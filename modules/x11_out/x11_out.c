@@ -739,7 +739,7 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
   XSync(xWin->display, False);
   memset(&evt, 0, sizeof(GF_Event));
   evt.type = GF_EVENT_VIDEO_SETUP;
-  evt.hw_reset = 1;
+  evt.setup.hw_reset = 1;
   vout->on_event (vout->evt_cbk_hdl,&evt);
   xWin->is_init = 1;
   return GF_OK;

@@ -589,16 +589,11 @@ void evg_rgba_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
 	u32 col = surf->fill_col;
 	u32 new_a, fin, col_no_a;
-	u8 a, r, g, b;
 	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u8 *p;
 	s32 i;
 	u32 len;
 
-	a = GF_COL_A(col);
-	r = GF_COL_R(col);
-	g = GF_COL_G(col);
-	b = GF_COL_B(col);
 	col_no_a = col & 0x00FFFFFF;
 
 	for (i=0; i<count; i++) {
@@ -632,7 +627,7 @@ void evg_rgba_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
 	u8 *dst = (u8 *) surf->pixels + y * surf->pitch_y;
 	u8 *p;
-	u8 spanalpha, col_a;
+	u8 spanalpha;
 	s32 i;
 	u32 len;
 	u32 *col;

@@ -55,8 +55,6 @@ void gf_sc_texture_set_stencil(GF_TextureHandler *hdl, GF_STENCIL stencil);
 
 Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh);
 
-Bool gf_sc_texture_is_flipped(GF_TextureHandler *txh);
-
 /*ALL THE FOLLOWING ARE ONLY AVAILABLE IN 3D AND DEAL WITH OPENGL TEXTURE MANAGEMENT*/
 #ifndef GPAC_DISABLE_3D
 
