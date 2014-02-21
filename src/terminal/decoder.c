@@ -850,7 +850,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	if (codec->Muted && (codec->type==GF_STREAM_VISUAL) ) return GF_OK;
 
 	entryTime = gf_term_get_time(codec->odm->term);
-	if (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) 
+	if (!codec->odm->term->bench_mode && (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) 
 		drop_late_frames = 1;
 
 	//cannot output frame, do nothing (we force a channel query before for pull mode)
@@ -1038,9 +1038,10 @@ scalable_retry:
 		case GF_PACKED_FRAMES:
 			/*in seek do dispatch output otherwise we will only see the I-frame preceding the seek point*/
 			if (mmlevel == GF_CODEC_LEVEL_DROP) {
-				if (drop_late_frames)
+				if (drop_late_frames) {
 					unit_size = 0;
-				else 
+					codec->nb_droped++;
+				} else 
 					ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
 			} 
 			e = UnlockCompositionUnit(codec, CU, unit_size);
@@ -1139,9 +1140,10 @@ scalable_retry:
 
 		/*in seek don't dispatch any output*/
 		if (mmlevel >= GF_CODEC_LEVEL_DROP) {
-			if (drop_late_frames || (mmlevel == GF_CODEC_LEVEL_SEEK) )
+			if (drop_late_frames || (mmlevel == GF_CODEC_LEVEL_SEEK) ) {
 				unit_size = 0;
-			else 
+				if (drop_late_frames) codec->nb_droped++;
+			} else 
 				ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
 		} 
 
