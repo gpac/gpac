@@ -1749,33 +1749,33 @@ GF_EXPORT
 Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS)
 {
 	Double fps;
-	u32 ind, num, frames, run_time;
+	u32 fidx, num, frames, run_time;
 
 	gf_mx_p(compositor->mx);
 
 	if (absoluteFPS) {
 		/*start from last frame and get first frame time*/
-		ind = compositor->current_frame;
+		fidx = compositor->current_frame;
 		frames = 0;
-		run_time = compositor->frame_dur[ind];
+		run_time = compositor->frame_dur[fidx];
 		for (num=0; num<GF_SR_FPS_COMPUTE_SIZE; num++) {
-			run_time += compositor->frame_dur[ind];
+			run_time += compositor->frame_dur[fidx];
 			frames++;
 			if (frames==GF_SR_FPS_COMPUTE_SIZE) break;
-			if (!ind) {
-				ind = GF_SR_FPS_COMPUTE_SIZE;
+			if (!fidx) {
+				fidx = GF_SR_FPS_COMPUTE_SIZE-1;
 			} else {
-				ind--;
+				fidx--;
 			}
 		}
 	} else {
 		/*start from last frame and get first frame time*/
-		ind = compositor->current_frame;
+		fidx = compositor->current_frame;
 		frames = 0;
-		run_time = compositor->frame_time[ind];
-		if (ind == GF_SR_FPS_COMPUTE_SIZE) ind = 0;
-		assert(run_time >= compositor->frame_time[ind+1]);
-		run_time -= compositor->frame_time[ind+1];
+		run_time = compositor->frame_time[fidx];
+		fidx = (fidx+1)% GF_SR_FPS_COMPUTE_SIZE; 
+		assert(run_time >= compositor->frame_time[fidx]);
+		run_time -= compositor->frame_time[fidx];
 		frames = GF_SR_FPS_COMPUTE_SIZE-1;
 	}
 
@@ -2051,7 +2051,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 {	
 	GF_SceneGraph *sg;
 	u32 in_time, end_time, i, count;
-	Bool frame_drawn, has_timed_nodes=GF_FALSE;
+	Bool frame_drawn, has_timed_nodes=GF_FALSE, all_tx_done=GF_TRUE;
 #ifndef GPAC_DISABLE_LOG
 	s32 event_time, route_time, smil_timing_time=0, time_node_time, texture_time, traverse_time, flush_time, txtime;
 #endif
@@ -2131,6 +2131,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		/*signal graphics reset before updating*/
 		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
 		txh->update_texture_fcnt(txh);
+
+		if (!txh->stream_finished) all_tx_done=0;
 	}
 
 	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures 
@@ -2447,11 +2449,10 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		compositor->frame_time[compositor->current_frame] = compositor->last_frame_time;
 		compositor->frame_number++;
 	}
-	if (compositor->bench_mode && (frame_drawn || has_timed_nodes)) {
+	if (compositor->bench_mode && (frame_drawn || (has_timed_nodes&&all_tx_done) )) {
 		//in bench mode we always increase the clock of the fixed target simulation rate - this needs refinement if video is used ...
 		compositor->scene_sampled_clock += compositor->frame_duration;
 	}
-
 	gf_sc_lock(compositor, 0);
 
 #if 0
