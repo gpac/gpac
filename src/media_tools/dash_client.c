@@ -43,7 +43,7 @@
 #define M3U8_TO_MPD_USE_TEMPLATE	0
 
 /*uncomment to only play the first adaptation set*/
-#define DEBUG_FIRST_SET_ONLY
+//#define DEBUG_FIRST_SET_ONLY
 /*uncomment to play all but the first adaptation set*/
 //#define DEBUG_SKIP_FIRST_SET
 
