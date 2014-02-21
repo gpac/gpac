@@ -137,7 +137,7 @@ struct __gf_download_session
     u32 total_size, bytes_done, start_time, icy_metaint, icy_count, icy_bytes;
     u32 bytes_per_sec;
 	u64 start_time_utc;
-
+	Bool connection_close;
 	Bool is_range_continuation;
 	/*0: no cache reconfig before next GET request: 1: try to rematch the cache entry: 2: force to create a new cache entry (for byte-range cases*/
 	u32 needs_cache_reconfig;
@@ -667,6 +667,9 @@ static void gf_dm_clear_headers(GF_DownloadSession *sess)
 static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 {
     assert( sess );
+	if (sess->connection_close) force_close=1;
+	sess->connection_close = 0;
+
     if (sess->status >= GF_NETIO_DISCONNECTED)
 		return;
     GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Downloader] gf_dm_disconnect(%p)\n", sess ));
@@ -685,7 +688,6 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 			GF_Socket * sx = sess->sock;
 			sess->sock = NULL;
 			gf_sk_del(sx);
-			//sess->sock = NULL;
 		}
 	}
     sess->status = GF_NETIO_DISCONNECTED;
@@ -2285,8 +2287,14 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 #endif
             e = gf_sk_send(sess->sock, sHTTP, (u32) strlen(sHTTP));
 
-        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request %s\n ; Error Code=%d\n", sHTTP, e));
-    }
+#ifndef GPAC_DISABLE_LOG
+		 if (e) {
+	        GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Error sending request %s\n", gf_error_to_string(e) ));
+		 } else {
+	        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request %s\n\n", sHTTP));
+		 }
+#endif
+	}
 	sess->request_time = gf_sys_clock();
 
     if (e) {
@@ -2332,7 +2340,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
                 gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
 				assert(sess->server_name);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Disconnected from %s: %s\n", sess->server_name, gf_error_to_string(e)));
-                sess->status = GF_NETIO_DISCONNECTED;
+		        gf_dm_disconnect(sess, (e == GF_IP_CONNECTION_CLOSED) ? 1 : 0);
             }
             return GF_OK;
         }
@@ -2351,7 +2359,6 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 					gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
 					assert(sess->server_name);
 					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Disconnected from %s: %s\n", sess->server_name, gf_error_to_string(e)));
-					sess->status = GF_NETIO_DISCONNECTED;
 					if (sess->use_cache_file) 
 						gf_cache_set_content_length(sess->cache_entry, sess->bytes_done);
 					e = GF_OK;
@@ -2629,6 +2636,41 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
      */
     if (sess->creds && rsp_code != 304)
         sess->creds->valid = 1;
+
+
+	/*try to flush body */
+	if (rsp_code>=300) {
+		u32 start = gf_sys_clock();
+		while (BodyStart + ContentLength > (u32) bytesRead) {
+		    e = gf_dm_read_data(sess, sHTTP + bytesRead, GF_DOWNLOAD_BUFFER_SIZE - bytesRead, &res);
+			switch (e) {
+			case GF_IP_NETWORK_EMPTY:
+				gf_sleep(1);
+				continue;
+			case GF_OK:
+		        bytesRead += res;
+				break;
+			default:
+				start=0;
+				break;
+			}
+			if (gf_sys_clock()-start>100)
+				break;
+
+			//does not fit in our buffer, too bad we'll kill the connection
+			if (bytesRead == GF_DOWNLOAD_BUFFER_SIZE)
+				break;
+		}
+
+		if (BodyStart + ContentLength > (u32) bytesRead) {
+			ContentLength = 0;
+			//cannot flush, discard socket
+			sess->connection_close = 1;
+		}
+	}
+	//remember if we can keep the session alive after the transfer is done
+	sess->connection_close = connection_closed;
+
     switch (rsp_code) {
     case 200:
     case 201:
@@ -2726,7 +2768,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         /* Cache file is the most recent */
         sess->status = GF_NETIO_DATA_TRANSFERED;
         gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
-        sess->status = GF_NETIO_DISCONNECTED;
+        gf_dm_disconnect(sess, 0);
         par.msg_type = GF_NETIO_DATA_TRANSFERED;
         par.error = GF_OK;
         gf_dm_sess_user_io(sess, &par);
@@ -2765,7 +2807,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Failure: %s\n", sHTTP + BodyStart));
 		}
 		notify_headers(sess, sHTTP, bytesRead, BodyStart);
-
 		e = GF_URL_ERROR;
         goto exit;
         break;
@@ -2825,7 +2866,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     if (sess->http_read_type==HEAD) {
         gf_dm_disconnect(sess, 0);
         gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
-        sess->status = GF_NETIO_DISCONNECTED;
         sess->http_read_type = 0;
         return GF_OK;
     }
@@ -2837,7 +2877,10 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             sess->use_cache_file = 0;
         }
 
-        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connected to %s - error %s\n", sess->server_name, gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK,
+				(e ? ("[HTTP] Error connecting to %s: %s\n", sess->server_name, gf_error_to_string(e) )
+				: ("[HTTP] Connected to %s\n", sess->server_name )
+			));
 
         /*some servers may reply without content length, but we MUST have it*/
         if (e) goto exit;
@@ -2857,10 +2900,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
                 sess->status = GF_NETIO_DATA_EXCHANGE;
                 sess->bytes_done = 0;
             } else {
-                /*we don't expect anything*/
-                gf_dm_disconnect(sess, 0);
                 gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
-                sess->status = GF_NETIO_DISCONNECTED;
+                gf_dm_disconnect(sess, 0);
                 return GF_OK;
             }
         } else {
@@ -2892,13 +2933,12 @@ exit:
 		gf_dm_remove_cache_entry_from_session(sess);
 		sess->cache_entry = NULL;
 		gf_dm_disconnect(sess, 0);
-        sess->status = connection_closed ? GF_NETIO_STATE_ERROR : GF_NETIO_DISCONNECTED;
+        sess->status = GF_NETIO_STATE_ERROR;
         sess->last_error = e;
         gf_dm_sess_notify_state(sess, sess->status, e);
         return e;
     }
 	/*DO NOT call parse_body yet, as the final user may not be connected to our session*/
-    //return http_parse_remaining_body(sess, sHTTP);
 	return GF_OK;
 }
 
@@ -2912,7 +2952,7 @@ void http_do_requests(GF_DownloadSession *sess)
 
 	if (sess->reused_cache_entry) {
 		if (!gf_cache_is_in_progress(sess->cache_entry)) {
-			sess->status = GF_NETIO_DISCONNECTED;
+			gf_dm_disconnect(sess, 0);
 			sess->reused_cache_entry = 0;
 		}
 		return;
