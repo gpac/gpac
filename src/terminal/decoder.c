@@ -1010,7 +1010,7 @@ scalable_retry:
 			unit_size = 0;
 			gf_cm_abort_buffering(codec->CB);
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoding frame DTS %d CTS %d size %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->DTS, AU->CTS, AU->dataLength));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoding frame DTS %d CTS %d size %d (%d in channels)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->DTS, AU->CTS, AU->dataLength, ch->AU_Count));
 			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, CU->data, &unit_size, AU->PaddingBits, mmlevel);
 		}
 		now = gf_term_get_time(codec->odm->term) - now;
@@ -1117,6 +1117,16 @@ scalable_retry:
 			codec->last_unit_cts = AU->CTS;
 			codec->first_frame_processed = 1;
 		}
+
+#ifndef GPAC_DISABLE_LOG
+		if (unit_size) {
+			if (ch->is_pulling) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d decoded frame CTS %d in %d ms\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now));
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d decoded frame CTS %d in %d ms - %d AU in channel\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now, ch->AU_Count));
+			}
+		}
+#endif
 
 		/*store current CTS*/
 		cts = AU->CTS;

@@ -43,7 +43,7 @@
 #define M3U8_TO_MPD_USE_TEMPLATE	0
 
 /*uncomment to only play the first adaptation set*/
-//#define DEBUG_FIRST_SET_ONLY
+#define DEBUG_FIRST_SET_ONLY
 /*uncomment to play all but the first adaptation set*/
 //#define DEBUG_SKIP_FIRST_SET
 
@@ -2442,14 +2442,27 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	}
 }
 
-static void gf_dash_skip_disabled_representation(GF_DASH_Group *group, GF_MPD_Representation *rep)
+static void gf_dash_skip_disabled_representation(GF_DASH_Group *group, GF_MPD_Representation *rep, Bool for_autoswitch)
 {
-	s32 rep_idx = gf_list_find(group->adaptation_set->representations, rep);
+	s32 rep_idx, orig_idx;
+	u32 bandwidth = 0xFFFFFFFF;
+	if (for_autoswitch && group->segment_download) {
+		bandwidth = 8*group->dash->dash_io->get_bytes_per_sec(group->dash->dash_io, group->segment_download);
+	}
+
+	rep_idx = orig_idx = gf_list_find(group->adaptation_set->representations, rep);
 	while (1) {
 		rep_idx++;
 		if (rep_idx==gf_list_count(group->adaptation_set->representations)) rep_idx = 0;
+		//none other than current one
+		if (orig_idx==rep_idx) return;
+
 		rep = gf_list_get(group->adaptation_set->representations, rep_idx);
-		if (!rep->playback.disabled) break;
+		if (rep->playback.disabled) continue;
+
+		if (rep->bandwidth<=bandwidth) break;
+		assert(for_autoswitch);
+		//go to next rep
 	}
 	assert(rep && !rep->playback.disabled);
 	gf_dash_set_group_representation(group, rep);
@@ -3503,7 +3516,7 @@ restart_period:
 						continue;
 					}
 					if (rep->playback.disabled) {
-						gf_dash_skip_disabled_representation(group, rep);
+						gf_dash_skip_disabled_representation(group, rep, GF_FALSE);
 						/*restart*/
 						i--;
 						gf_free(new_base_seg_url);
@@ -3517,7 +3530,8 @@ restart_period:
 
 				resource_name = dash->dash_io->get_url(dash->dash_io, group->segment_download);
 
-				dash_do_rate_adaptation(dash, group, rep);
+				if (!dash->auto_switch_count) 
+					dash_do_rate_adaptation(dash, group, rep);
 			}
 
 			if (local_file_name && (e == GF_OK || group->segment_must_be_streamed )) {
@@ -3552,7 +3566,7 @@ restart_period:
 					group->nb_segments_done++;
 					if (group->nb_segments_done==dash->auto_switch_count) {
 						group->nb_segments_done=0;
-						gf_dash_skip_disabled_representation(group, rep);
+						gf_dash_skip_disabled_representation(group, rep, GF_TRUE);
 					}
 				}
 				gf_mx_v(dash->dl_mutex);
