@@ -701,7 +701,7 @@ assert(txh->data );
 #ifndef GPAC_DISABLE_3D
 static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_load, u8 *data, u32 stride, u32 w, u32 h)
 {
-    Bool needs_stride;
+	Bool needs_stride;
 	if (txh->tx_io->gl_dtype==GL_UNSIGNED_SHORT) {
 		needs_stride = (stride != 2*w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE; 
 	} else {
@@ -714,7 +714,7 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 #else
     u32 i;
     if (needs_stride) {
-#endif        
+#endif
 
 	if (first_load) {
 		glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);
