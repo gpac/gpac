@@ -1085,7 +1085,9 @@ restart_fragmentation_pass:
 					/*we are in bitstream switching mode, delete init segment*/
 					if (is_bs_switching && !init_segment_deleted) {
 						init_segment_deleted = GF_TRUE;
-						gf_delete_file(gf_isom_get_filename(output));
+						if (strcmp(dash_cfg->bs_switch_segment_file, gf_isom_get_filename(output))) {
+							gf_delete_file(gf_isom_get_filename(output));
+						}
 					}
 
 					if (!use_url_template) {
