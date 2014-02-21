@@ -132,14 +132,18 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 	if (!strcmp(location, "mp4_tmp_edit")) {
 #ifndef GPAC_DISABLE_ISOM_WRITE
 		*outDataMap = gf_isom_fdm_new_temp(parentPath);
-		if (! (*outDataMap)) return GF_IO_ERR;
+		if (! (*outDataMap)) {
+			return GF_IO_ERR;
+		}
 		return GF_OK;
 #else
 		return GF_NOT_SUPPORTED;
 #endif
 	} else if (!strncmp(location, "gmem://", 7)) {
 		*outDataMap = gf_isom_fdm_new(location, GF_ISOM_DATA_MAP_READ);
-		if (! (*outDataMap)) return GF_IO_ERR;
+		if (! (*outDataMap)) {
+			return GF_IO_ERR;
+		}
 		return GF_OK;
 	}
 
@@ -153,10 +157,14 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 	}
 
 	//TEMP: however, only support for file right now (we'd have to add some callback functions at some point)
-	if (extern_file) return GF_NOT_SUPPORTED;
+	if (extern_file) {
+		return GF_NOT_SUPPORTED;
+	}
 
 	sPath = gf_url_get_absolute_path(location, parentPath);
-	if (sPath == NULL) return GF_URL_ERROR;
+	if (sPath == NULL) {
+		return GF_URL_ERROR;
+	}
 
 	if (mode == GF_ISOM_DATA_MAP_READ_ONLY) {
 		mode = GF_ISOM_DATA_MAP_READ;
@@ -179,9 +187,13 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 		}
 	}
 
-	if (sPath) 
+	if (sPath) {
 		gf_free(sPath);
-	if (! (*outDataMap)) return GF_URL_ERROR;
+	}
+	if (! (*outDataMap)) {
+		return GF_URL_ERROR;
+	}
+
 	return GF_OK;
 }
 
@@ -327,7 +339,7 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 	memset(tmp, 0, sizeof(GF_FileDataMap));
 	tmp->type = GF_ISOM_DATA_FILE;
 	tmp->mode = GF_ISOM_DATA_MAP_WRITE;
-
+	
 	if (!sPath) {
 		tmp->stream = gf_temp_file_new();
 	} else {
@@ -361,6 +373,8 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+#include <errno.h>
+#include <string.h>
 GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 {
 	u8 bs_mode;
