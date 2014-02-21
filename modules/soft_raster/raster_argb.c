@@ -512,6 +512,8 @@ GFINLINE static void overmask_rgba(u32 src, u8 *dst, u32 alpha)
 	u8 srcg = GF_COL_G(src);
 	u8 srcb = GF_COL_B(src);
 	u8 dsta = dst[3];
+
+	srca = mul255(srca, alpha);
 	/*special case for RGBA: 
 		if dst alpha is 0, consider the surface is empty and copy pixel
 		if source alpha is 0xFF erase the entire pixel
@@ -524,7 +526,7 @@ GFINLINE static void overmask_rgba(u32 src, u8 *dst, u32 alpha)
 
 		//do the maths , so that the result of the blend follows the sam DST = SRC*apha + DST(1-alpha)
 		//it gives a transform alpha of Fa = SRCa + DSTa - SRCa*DSTa
-		//aand an RGB Fc = (SRCa*SRCc + DSTa*DSTc - DSTc*(DSTa-SRCa)) / Fa
+		//and an RGB Fc = (SRCa*SRCc + DSTa*DSTc - DSTc*(DSTa-SRCa)) / Fa
 		final_a = dsta + srca - mul255(dsta, srca);
 		if (final_a) {
 			dst[0] = (u8) ((srcr*srca + dstr*(dsta-srca)) / final_a);
@@ -563,7 +565,7 @@ GFINLINE static void overmask_rgba_const_run(u32 src, u8 *dst, s32 dst_pitch_x, 
 
 			//do the maths , so that the result of the blend follows the sam DST = SRC*apha + DST(1-alpha)
 			//it gives a transform alpha of Fa = SRCa + DSTa - SRCa*DSTa
-			//aand an RGB Fc = (SRCa*SRCc + DSTa*DSTc - DSTc*(DSTa-SRCa)) / Fa
+			//and an RGB Fc = (SRCa*SRCc + DSTa*DSTc - DSTc*(DSTa-SRCa)) / Fa
 			final_a = dsta + srca - mul255(dsta, srca);
 			if (final_a) {
 				dst[0] = (u8) ((srcr*srca + dstr*(dsta-srca)) / final_a);
