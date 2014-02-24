@@ -1433,9 +1433,9 @@ restart_fragmentation_pass:
 				max_segment_duration = (Double) (s64) SegmentDuration;
 				max_segment_duration /= dash_cfg->dash_scale;
 			}
-			force_switch_segment=GF_FALSE;
-			switch_segment=GF_TRUE;
-			SegmentDuration=GF_FALSE;
+			force_switch_segment = GF_FALSE;
+			switch_segment = GF_TRUE;
+			SegmentDuration = 0;
 			split_at_rap = GF_FALSE;
 			has_rap = GF_FALSE;
 			/*restore fragment duration*/
@@ -1591,6 +1591,8 @@ restart_fragmentation_pass:
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, 0, 0, dash_cfg->use_segment_timeline);
 			fprintf(dash_cfg->mpd, "   <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", mpd_timeline_bs ? dash_cfg->dash_scale : mpd_timescale, SegmentName, startNumber - startNumberRewind);	
 			if (!mpd_timeline_bs) {
+				if (!max_segment_duration)
+					max_segment_duration = dash_cfg->segment_duration;
 				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale));
 			}
 			/*in BS switching we share the same IS for all reps*/
