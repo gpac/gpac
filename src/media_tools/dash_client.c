@@ -43,7 +43,7 @@
 #define M3U8_TO_MPD_USE_TEMPLATE	0
 
 /*uncomment to only play the first adaptation set*/
-//#define DEBUG_FIRST_SET_ONLY
+#define DEBUG_FIRST_SET_ONLY
 /*uncomment to play all but the first adaptation set*/
 //#define DEBUG_SKIP_FIRST_SET
 
@@ -73,6 +73,7 @@ struct __dash_client
 	char *base_url;
 
 	u32 max_cache_duration, max_width, max_height;
+	u8 max_bit_per_pixel;
 	u32 auto_switch_count;
 	Bool keep_files, disable_switching, allow_local_mpd_update, enable_buffering, estimate_utc_drift;
 	Bool is_m3u8;
@@ -2575,6 +2576,36 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 					continue;
 				}
 			}
+			if (rep->codecs && dash->max_bit_per_pixel) {
+				char *vid_type = strstr(rep->codecs, "hvc");
+				if (!vid_type) vid_type = strstr(rep->codecs, "hev");
+				if (!vid_type) vid_type = strstr(rep->codecs, "avc");
+				if (!vid_type) vid_type = strstr(rep->codecs, "svc");
+				if (!vid_type) vid_type = strstr(rep->codecs, "mvc");
+				//HEVC
+				if (vid_type && (!strnicmp(rep->codecs, "hvc", 3) || !strnicmp(rep->codecs, "hev", 3))) {
+					char *pidc = rep->codecs+5;
+					if ((pidc[0]=='A') || (pidc[0]=='B') || (pidc[0]=='C')) pidc++;
+					//Main 10 !!
+					if (!strncmp(pidc, "2.", 2)) {
+						rep->playback.disabled = 1;
+						continue;
+					}
+				}
+				//AVC
+				if (vid_type && (!strnicmp(rep->codecs, "avc", 3) || !strnicmp(rep->codecs, "svc", 3) || !strnicmp(rep->codecs, "mvc", 3))) {
+					char prof_string[3];
+					u8 prof;
+					strncpy(prof_string, vid_type+5, 2);
+					prof_string[2]=0;
+					prof = atoi(prof_string);
+					//Main 10
+					if (prof==0x6E) {
+						rep->playback.disabled = 1;
+						continue;
+					}
+				}
+			}
 	
 			rep->playback.disabled = 0;
 			if (rep->width>set->max_width) {
@@ -3104,6 +3135,8 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 		
 		for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
 			GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
+			if (arep->playback.disabled) continue;
+
 			if (dl_rate >= arep->bandwidth) {
 				if (!new_rep) new_rep = arep;
 				else if (go_up) {
@@ -3287,6 +3320,7 @@ restart_period:
 			Bool use_byterange;
 			u32 representation_index;
 			u32 clock_time;
+			Bool empty_file = GF_FALSE;
 			GF_DASH_Group *group = gf_list_get(dash->groups, i);
 			if (group->selection != GF_DASH_GROUP_SELECTED) continue;
 			if (group->done) continue;
@@ -3527,7 +3561,10 @@ restart_period:
 
 				if (group->segment_must_be_streamed) local_file_name = dash->dash_io->get_url(dash->dash_io, group->segment_download);
 				else local_file_name = dash->dash_io->get_cache_name(dash->dash_io, group->segment_download);
-
+				
+				if (dash->dash_io->get_total_size(dash->dash_io, group->segment_download)==0) {
+					empty_file = GF_TRUE;
+				}
 				resource_name = dash->dash_io->get_url(dash->dash_io, group->segment_download);
 
 				if (!dash->auto_switch_count) 
@@ -3538,22 +3575,26 @@ restart_period:
 				gf_mx_p(dash->dl_mutex);
 				assert(group->nb_cached_segments<group->max_cached_segments);
 				assert( local_file_name );
-				group->cached[group->nb_cached_segments].cache = gf_strdup(local_file_name);
-				group->cached[group->nb_cached_segments].url = gf_strdup( resource_name );
-				group->cached[group->nb_cached_segments].start_range = 0;
-				group->cached[group->nb_cached_segments].end_range = 0;
-				group->cached[group->nb_cached_segments].representation_index = representation_index;
-				group->cached[group->nb_cached_segments].duration = (u32) group->current_downloaded_segment_duration;
-				group->cached[group->nb_cached_segments].loop_detected = group->loop_detected;
-				group->loop_detected = GF_FALSE;
+				if (! empty_file) {
 
-				if (group->local_files && use_byterange) {
-					group->cached[group->nb_cached_segments].start_range = start_range;
-					group->cached[group->nb_cached_segments].end_range = end_range;
+					group->cached[group->nb_cached_segments].cache = gf_strdup(local_file_name);
+					group->cached[group->nb_cached_segments].url = gf_strdup( resource_name );
+					group->cached[group->nb_cached_segments].start_range = 0;
+					group->cached[group->nb_cached_segments].end_range = 0;
+					group->cached[group->nb_cached_segments].representation_index = representation_index;
+					group->cached[group->nb_cached_segments].duration = (u32) group->current_downloaded_segment_duration;
+					group->cached[group->nb_cached_segments].loop_detected = group->loop_detected;
+					group->loop_detected = GF_FALSE;
+
+					if (group->local_files && use_byterange) {
+						group->cached[group->nb_cached_segments].start_range = start_range;
+						group->cached[group->nb_cached_segments].end_range = end_range;
+					}
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Added file to cache (%u/%u in cache): %s\n", group->nb_cached_segments+1, group->max_cached_segments, group->cached[group->nb_cached_segments].url));
+					group->nb_cached_segments++;
+					gf_dash_update_buffering(group, dash);
 				}
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Added file to cache (%u/%u in cache): %s\n", group->nb_cached_segments+1, group->max_cached_segments, group->cached[group->nb_cached_segments].url));
-				group->nb_cached_segments++;
-				gf_dash_update_buffering(group, dash);
+
 				/* download enhancement representation of this segment*/
 				if ((representation_index != group->force_max_rep_index) && rep->enhancement_rep_index_plus_one)
 					group->active_rep_index = rep->enhancement_rep_index_plus_one - 1;
@@ -4860,11 +4901,12 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 }
 
 GF_EXPORT
-GF_Err gf_dash_set_max_resolution(GF_DashClient *dash, u32 width, u32 height)
+GF_Err gf_dash_set_max_resolution(GF_DashClient *dash, u32 width, u32 height, u8 max_display_bpp)
 {
 	if (dash) {
 		dash->max_width = width;
 		dash->max_height = height;
+		dash->max_bit_per_pixel = max_display_bpp;
 		return GF_OK;
 	}
 	return GF_BAD_PARAM;

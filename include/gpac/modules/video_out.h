@@ -212,6 +212,8 @@ typedef struct _video_out
 	u32 max_screen_width, max_screen_height;
 	/* dpi of the screen*/
 	u32 dpi_x, dpi_y;
+	/* max bits per color channel*/
+	u32 max_screen_bpp;
 
 	/*overlay color key used by the hardware bliter - if not set, only top-level overlay can be used*/
 	u32 overlay_color_key;

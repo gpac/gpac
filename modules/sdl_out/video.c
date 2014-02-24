@@ -674,11 +674,13 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	SDL_GetDesktopDisplayMode(0,&vinf);
 	dr->max_screen_width = vinf.w;
 	dr->max_screen_height = vinf.h;
+	dr->max_screen_bpp = 8;
 #else
 	vinf = SDL_GetVideoInfo();
 #if SDL_VERSION_ATLEAST(1, 2, 10)
 	dr->max_screen_width = vinf->current_w;
 	dr->max_screen_height = vinf->current_h;
+	dr->max_screen_bpp = 8;
 #else
 	{
 		SDL_Rect** modes;
@@ -700,6 +702,7 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			}
 		}
 	}
+	dr->max_screen_bpp = 8;
 #endif /* versions prior to 1.2.10 do not have the size of screen */
 #endif
 

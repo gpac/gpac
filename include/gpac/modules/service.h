@@ -411,7 +411,9 @@ typedef struct
 	LPNETCHANNEL channel;
 	u32 width;
 	u32 height;
-	u32 bpp;
+	//max bits per color channel
+	u32 display_bit_depth;
+	u32 audio_bpp;
 	u32 channels;
 	u32 sample_rate;
 	const char *mime_query;

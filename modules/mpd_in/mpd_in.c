@@ -742,8 +742,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		com.base.command_type = GF_NET_SERVICE_MEDIA_CAP_QUERY;
 		gf_term_on_command(serv, &com, GF_OK);
 
+		com.mcaps.width = 1920;
+		com.mcaps.height = 1080;
 		if (com.mcaps.width && com.mcaps.height) {
-			gf_dash_set_max_resolution(mpdin->dash, com.mcaps.width, com.mcaps.height);
+			gf_dash_set_max_resolution(mpdin->dash, com.mcaps.width, com.mcaps.height, com.mcaps.display_bit_depth);
 		}
 	}
 

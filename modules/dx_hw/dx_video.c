@@ -405,6 +405,8 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 			return DD_SetupOpenGL(dr, offscreen_width, offscreen_height);
 		}
 
+		dr->max_screen_bpp = dd->bpp;
+
 		if (wglGetPixelFormatAttribivARB) {
 			int rb, gb, bb, att;
 			rb = gb = bb = 0;
@@ -815,6 +817,7 @@ static void *NewDXVideoOutput()
 
     driv->max_screen_width = GetSystemMetrics(SM_CXSCREEN);
     driv->max_screen_height = GetSystemMetrics(SM_CYSCREEN);
+	driv->max_screen_bpp = 8;
 	driv->hw_caps = GF_VIDEO_HW_OPENGL | GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA | GF_VIDEO_HW_HAS_HWND_HDC;
 
 	DD_SetupDDraw(driv);

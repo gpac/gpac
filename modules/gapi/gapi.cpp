@@ -1184,6 +1184,7 @@ static Bool check_resolution_switch(GF_VideoOutput *dr, u32 width, u32 height)
 	GF_Event evt;
 	dr->max_screen_width = gctx->screen_w = width;
 	dr->max_screen_height = gctx->screen_h = height;
+	dr->max_screen_bpp = 8;//we don't filter for bpp less than 8
 
 	evt.type = GF_EVENT_RESOLUTION;
 	evt.size.width = dr->max_screen_width;

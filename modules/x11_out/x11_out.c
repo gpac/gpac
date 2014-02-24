@@ -1156,6 +1156,8 @@ X11_SetupWindow (GF_VideoOutput * vout)
 xWindow->screennum=0;
 	vout->max_screen_width = DisplayWidth(xWindow->display, xWindow->screennum);
 	vout->max_screen_height = DisplayHeight(xWindow->display, xWindow->screennum);
+	vout->max_screen_bpp = 8;
+
 	/*
 	 * Full screen wnd
 	 */
@@ -1406,7 +1408,7 @@ retry_8bpp:
 			  nb_bits = 8;
 			goto retry_8bpp;
 		}
-		  xWindow->glx_visualinfo = my_glXGetVisualFromFBConfig(xWindow->display, fb[0]);
+		xWindow->glx_visualinfo = my_glXGetVisualFromFBConfig(xWindow->display, fb[0]);
 
 		if (my_glXGetFBConfigAttrib && fb) {
 			int r, g, b;
@@ -1418,6 +1420,7 @@ retry_8bpp:
  	  } else {
 		  xWindow->glx_visualinfo = glXChooseVisual(xWindow->display, xWindow->screennum, attribs);
 	  }
+	  vout->max_screen_bpp = nb_bits;
 
 	  if (!xWindow->glx_visualinfo) {
 		  GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Error selecting GL display\n"));
