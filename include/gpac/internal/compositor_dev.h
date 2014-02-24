@@ -1385,7 +1385,7 @@ GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bo
 
 
 Bool gf_sc_use_raw_texture(GF_Compositor *compositor);
-void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *bpp, u32 *channels, u32 *sample_rate);
+void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *display_bit_depth, u32 *audio_bpp, u32 *channels, u32 *sample_rate);
 
 //signals the compositor a system frame is pending on a future frame 
 void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pending);

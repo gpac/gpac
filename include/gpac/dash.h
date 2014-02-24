@@ -270,8 +270,8 @@ u32 gf_dash_get_min_buffer_time(GF_DashClient *dash);
 //shifts UTC clock of server by shift_utc_ms so that new UTC in MPD is old + shift_utc_ms
 void gf_dash_set_utc_shift(GF_DashClient *dash, s32 shift_utc_ms);
 
-//sets max resolution for all video 
-GF_Err gf_dash_set_max_resolution(GF_DashClient *dash, u32 width, u32 height);
+//sets max resolution@bpp for all video 
+GF_Err gf_dash_set_max_resolution(GF_DashClient *dash, u32 width, u32 height, u8 max_display_bpp);
 
 //sets min time in ms between a 404 and the next request on the same group. The default value is 500 ms. 
 GF_Err gf_dash_set_min_timeout_between_404(GF_DashClient *dash, u32 min_timeout_between_404);

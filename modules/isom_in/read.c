@@ -417,6 +417,7 @@ GF_Err ISOR_CloseService(GF_InputService *plug)
 	read = (ISOMReader *) plug->priv;
 	reply = GF_OK;
 
+	read->disconnected = GF_TRUE;
 	if (read->mov) gf_isom_close(read->mov);
 	read->mov = NULL;
 
@@ -983,6 +984,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	if (!plug || !plug->priv || !com) return GF_SERVICE_ERROR;
 	read = (ISOMReader *) plug->priv;
+	if (read->disconnected) return GF_OK;
 
 	if (com->command_type==GF_NET_SERVICE_INFO) {
 		u32 tag_len;

@@ -517,7 +517,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		return;
 	}
 	if (com->command_type==GF_NET_SERVICE_MEDIA_CAP_QUERY) {
-		gf_sc_get_av_caps(term->compositor, &com->mcaps.width, &com->mcaps.height, &com->mcaps.bpp, &com->mcaps.channels, &com->mcaps.sample_rate);
+		gf_sc_get_av_caps(term->compositor, &com->mcaps.width, &com->mcaps.height, &com->mcaps.display_bit_depth, &com->mcaps.audio_bpp, &com->mcaps.channels, &com->mcaps.sample_rate);
 		return;
 	}
 
