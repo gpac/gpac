@@ -41,7 +41,7 @@
 #define GPAC_VERSION_MICRO 0
 
 #include <gpac/revision.h>
-#define GPAC_FULL_VERSION       GPAC_VERSION"-rev"GPAC_SVN_REVISION
+#define GPAC_FULL_VERSION       GPAC_VERSION "-rev" GPAC_SVN_REVISION
 
 
 #endif //_GF_VERSION_H
