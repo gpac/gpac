@@ -2877,10 +2877,13 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             sess->use_cache_file = 0;
         }
 
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK,
-				(e ? ("[HTTP] Error connecting to %s: %s\n", sess->server_name, gf_error_to_string(e) )
-				: ("[HTTP] Connected to %s\n", sess->server_name )
-			));
+#ifndef GPAC_DISABLE_LOGS
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Error connecting to %s: %s\n", sess->server_name, gf_error_to_string(e) ) );
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connected to %s\n", sess->server_name ) );
+		}
+#endif
 
         /*some servers may reply without content length, but we MUST have it*/
         if (e) goto exit;
