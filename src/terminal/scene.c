@@ -1509,7 +1509,7 @@ Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene)
 		}
 		i=0;
 		while ( (odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i)) ) {
-			if (odm->net_service != ns) {
+			if (odm->net_service && (odm->net_service != ns)) {
 				if (!gf_scene_check_clocks(odm->net_service, NULL)) return 0;
 			} else if (odm->codec && odm->codec->CB && !gf_cm_is_eos(odm->codec->CB) ) {
 				return 0;
