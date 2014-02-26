@@ -1286,8 +1286,6 @@ void media_event_collect_info(GF_ClientService *net, GF_ObjectManager *odm, GF_D
 		u32 val;
 		if (ch->service != net) continue;
 
-		gf_mx_p(ch->mx);
-		
 		media_event->bufferValid = GF_TRUE;
 		if (ch->BufferTime>0) {
 			if (ch->MaxBuffer) {
@@ -1302,7 +1300,6 @@ void media_event_collect_info(GF_ClientService *net, GF_ObjectManager *odm, GF_D
 			*min_time = 0;
 			*min_buffer = 0;
 		}
-		gf_mx_v(ch->mx);
 	}
 }
 #endif

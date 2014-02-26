@@ -92,6 +92,8 @@ typedef struct
 	u32 db_unit_count;
 	/*number of CUs in composition memory (if any) and CM capacity*/
 	u16 cb_unit_count, cb_max_count;
+	/*inidciate that thye composition memory is bypassed for this decoder (video only) */
+	Bool direct_video_memory;
 	/*clock drift in ms of object clock: this is the delay set by the audio renderer to keep AV in sync*/
 	s32 clock_drift;
 	/*codec name*/

@@ -188,7 +188,8 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 
 	if (!has_gl_context) return;
 
-	/*we have a GL context, get proc addresses*/
+	/*we have a GL context, init the rest (proc addresses & co)*/
+	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &compositor->gl_caps.max_texture_size);
 	
 #ifdef LOAD_GL_1_3
 	if (CHECK_GL_EXT("GL_ARB_multitexture")) {
@@ -601,6 +602,7 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 		}
 		glUniform1i(loc, i);
 	}
+	glUseProgram(0);  
 
 	if (visual->compositor->gl_caps.rect_texture) {
 		Bool res;
@@ -617,7 +619,7 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 				res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "fragment", glsl_yuv_rect_shader_relaxed);
 				if (res) {
 					gf_cfg_set_key(visual->compositor->user->config, "Compositor", "YUVShader", "Relaxed");
-					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Using relaxed syntaxed version of YUV shader\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Using relaxed syntax version of YUV shader\n"));
 				}
 			}
 		}
@@ -643,10 +645,9 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 				}
 				glUniform1i(loc, i);
 			}
+			glUseProgram(0);  
 		}
 	}
-
-	glUseProgram(0);  
 }
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 

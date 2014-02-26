@@ -704,6 +704,7 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 	Bool needs_stride;
 	if (txh->tx_io->gl_dtype==GL_UNSIGNED_SHORT) {
 		needs_stride = (stride != 2*w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE; 
+		if (needs_stride) stride /= 2;
 	} else {
 		needs_stride = (stride!=w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE; 
 	}
@@ -1530,8 +1531,12 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		glActiveTexture(GL_TEXTURE0 );
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
 		
-		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
+//		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
+//		glClientActiveTexture(GL_TEXTURE0);
+
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 		glClientActiveTexture(GL_TEXTURE0);
+
 	} else 
 #endif
     {

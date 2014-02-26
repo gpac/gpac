@@ -102,6 +102,7 @@ typedef struct
 	Bool vbo;
 	u32 yuv_texture;
 	Bool has_shaders;
+	s32 max_texture_size;
 } GLCaps;
 
 #endif

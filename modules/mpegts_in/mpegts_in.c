@@ -34,7 +34,8 @@
 
 static const char * MIMES[] = { "video/mpeg-2", "video/mp2t", "video/mpeg", NULL};
 
-#define M2TS_BUFFER_MAX 200
+//when regulating data rate from file using PCR, this is the maximum sleep we tolerate
+#define M2TS_MAX_SLEEP 200
 
 typedef struct {
 	char *fragment;
@@ -666,7 +667,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 						diff = (u32) pcr_diff - (stb - ts->stb_at_last_pcr);
 					}
 				}
-				if (diff<-100) {
+				if (diff<-400) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] Demux not going fast enough according to PCR (drift %d, pcr: "LLU", last pcr: "LLU")\n", diff, pcr, ts->pcr_last));
 				} else if (diff>0) {
 					u32 sleep_for=1;
@@ -685,7 +686,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 						}
 						/*We don't sleep for the entire buffer occupancy, because we would take
 						the risk of starving the audio chains. We try to keep buffers half full*/
-						sleep_for = MIN(com.buffer.occupancy/2, M2TS_BUFFER_MAX);
+						sleep_for = MIN(com.buffer.occupancy/2, M2TS_MAX_SLEEP);
 
 #ifndef GPAC_DISABLE_LOG
 						if (!nb_sleep) {
@@ -1280,14 +1281,10 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_INTERACTIVE:
 		return GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_BUFFER:
+		//do not override config 
 		if (ts->dnload || plug->query_proxy) {
 			if (!com->buffer.max) com->buffer.max = 1000;
-			com->buffer.min = com->buffer.max;
-		} else if (ts->file) {
-			com->buffer.max = M2TS_BUFFER_MAX;
 		}
-		if (m2ts->low_latency_mode)
-			com->buffer.max = M2TS_BUFFER_MAX;
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:
 		com->duration.duration = ts->duration;

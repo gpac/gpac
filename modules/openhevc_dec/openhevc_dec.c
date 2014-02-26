@@ -200,6 +200,13 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		break;
 	case GF_CODEC_STRIDE:
 		capability->cap.valueInt = ctx->stride;
+		if (ctx->direct_output) {
+			//to fix soon - currently hardcoded to 32 pixels
+			if ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) 
+				capability->cap.valueInt += 32;
+			else
+				capability->cap.valueInt += 64;
+		}
 		break;
 	case GF_CODEC_PAR:
 		capability->cap.valueInt = ctx->pixel_ar;
@@ -287,8 +294,6 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		return GF_BUFFER_TOO_SMALL;
 	}
 	if (ctx->direct_output) {
-	    OpenHevc_Frame HVCFrame;
-		libOpenHevcGetOutput(ctx->openHevcHandle, 1, &HVCFrame);
 		*outBufferLength = ctx->out_size;
 		ctx->has_pic = GF_TRUE;
 	} else {

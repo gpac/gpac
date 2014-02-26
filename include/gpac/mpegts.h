@@ -583,10 +583,12 @@ typedef struct tag_m2ts_pes
 
 	/*mpegts lib private - do not touch :)*/
 	/*PES re-assembler*/
-	unsigned char *data;
+	unsigned char *pck_data;
+	/*amount of bytes allocated for data */
+	u32 pck_alloc_len;
 	/*amount of bytes received in the current PES packet (NOT INCLUDING ANY PENDING BYTES)*/
-	u32 data_len;
-	/*size of the PES packet being recevied*/
+	u32 pck_data_len;
+	/*size of the PES packet being received, as indicated in pes header length field - can be 0 if unknown*/
 	u32 pes_len;
 	Bool rap;
 	u64 PTS, DTS;
@@ -609,7 +611,7 @@ typedef struct tag_m2ts_pes
 
 	/*PES reframer - if NULL, pes processing is skiped*/
 	/*returns the number of bytes NOT consummed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
-	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, Bool same_pts, unsigned char *data, u32 data_len);
+	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *hdr);
 
 	/*used by several reframers to store their parsing state*/
 	u32 frame_state;
@@ -971,6 +973,7 @@ typedef struct __m2ts_mux_pck
 	u32 data_len;
 	u32 flags;
 	u64 cts, dts;
+	u32 duration;
 
 	char *mpeg2_af_descriptors;
 	u32 mpeg2_af_descriptors_size;

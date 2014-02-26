@@ -16,7 +16,7 @@
 #include <openHevcWrapper.h>
 #include <windows.h>
 #define SDL_MAIN_HANDLED
-#include "SDL2/SDL.h"
+#include <SDL.h>
 #include <gpac/math.h>
 
 #define GL_GLEXT_PROTOTYPES

@@ -766,9 +766,7 @@ static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, GF_CMUnit *CU, u32 c
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[ODM] CU (TS %d) later than last frame drawn (TS %d) - droping\n", CU->TS, dec->CB->LastRenderedTS));
 		cu_size = 0;
 	}
-
 */
-
 	if (dec->is_reordering) {
 		/*first dispatch from decoder, store CTS*/
 		if (!dec->first_frame_dispatched) {
@@ -1172,9 +1170,9 @@ scalable_retry:
 		} else if (now >= 10*TimeAvailable) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because running for too long: %d vs %d available\n", codec->decio->module_name, now, TimeAvailable));
 			return GF_OK;
+		} else if (codec->odm->term->bench_mode) {
+			return GF_OK;
 		}
-		MediaDecoder_GetNextAU(codec, &ch, &AU);
-		if (!ch || !AU) return GF_OK;
 	}
 	return GF_OK;
 }
