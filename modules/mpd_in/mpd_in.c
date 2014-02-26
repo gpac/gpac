@@ -861,12 +861,12 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
         /* we are interactive (that's the whole point of MPD) */
         return GF_OK;
 
-	/*we should get it from MPD minBufferTime*/
 	case GF_NET_CHAN_BUFFER:
-		if (mpdin->enable_buffering) {
+		/*get it from MPD minBufferTime - if not in low latency mode, indicate the value given in MPD (not possible to fetch segments earlier) - to be more precise we should get the min segment duration for this group*/
+		if (mpdin->enable_buffering || !mpdin->use_low_latency) {
 			com->buffer.max = gf_dash_get_min_buffer_time(mpdin->dash);
 			if (! gf_dash_is_dynamic_mpd(mpdin->dash)) { 
-				com->buffer.min = 200;
+				com->buffer.min = 1;
 			}
 		}
         return GF_OK;

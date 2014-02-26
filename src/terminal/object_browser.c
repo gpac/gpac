@@ -255,6 +255,9 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 		if (odm->codec->CB) {
 			info->cb_max_count = odm->codec->CB->Capacity;
 			info->cb_unit_count = odm->codec->CB->UnitCount;
+			if (odm->codec->direct_vout) {
+				info->direct_video_memory = 1;
+			}
 		}
 	} 
 	

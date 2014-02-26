@@ -54,7 +54,7 @@ static void term_on_message(void *user_priv, GF_ClientService *service, GF_Err e
 			sprintf(szMsg, "!! UDP down (%s) - Retrying with TCP !!\n", message);
 			gf_term_message(term, service->url, szMsg, GF_IP_NETWORK_FAILURE);
 
-			/*reload scene*/
+			/*reload scene - FIXME this shall work on inline nodes, not on the root !*/
 			if (term->reload_url) gf_free(term->reload_url);
 			term->reload_state = 1;
 			term->reload_url = gf_strdup(term->root_scene->root_od->net_service->url);
@@ -610,13 +610,8 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		gf_es_buffer_off(ch);
 		break;
 	case GF_NET_CHAN_BUFFER:
-		//lock channel before updating buffer info, otherwise we may collect wrong HTML media info
-		gf_mx_p(ch->mx);
-		ch->BufferTime = com->buffer.occupancy;
-		ch->MaxBuffer = com->buffer.max;
+		ch->BufferTime = 100 * com->buffer.occupancy / com->buffer.max;
 		gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
-		ch->MaxBuffer = 0;
-		gf_mx_v(ch->mx);
 		break;
 	default:
 		return;

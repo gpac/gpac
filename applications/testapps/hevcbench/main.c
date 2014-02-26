@@ -43,6 +43,7 @@ GLint pixel_format=GL_LUMINANCE;
 GLint texture_type=GL_TEXTURE_RECTANGLE_EXT;
 u32 gl_nb_frames = 1;
 u32 gl_upload_time = 0;
+u32 gl_draw_time = 0;
 Bool pbo_mode = GF_TRUE;
 Bool first_tx_load = GF_FALSE;
 
@@ -259,18 +260,6 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 	glAttachShader(glsl_program, fragment_shader);
 	glLinkProgram(glsl_program);  
 
-	//sets uniforms: y, u, v textures point to texture slots 0, 1 and 2
-	glUseProgram(glsl_program);  
-	for (i=0; i<3; i++) {
-		const char *txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
-		loc = glGetUniformLocation(glsl_program, txname);
-		if (loc == -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture %s in YUV shader\n", txname));
-			continue;
-		}
-		glUniform1i(loc, i);
-	}
-
 	glGenTextures(3, txid);
 	for (i=0; i<3; i++) {
 
@@ -294,6 +283,17 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 		glDisable(texture_type);
 	}
 
+	//sets uniforms: y, u, v textures point to texture slots 0, 1 and 2
+	glUseProgram(glsl_program);  
+	for (i=0; i<3; i++) {
+		const char *txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
+		loc = glGetUniformLocation(glsl_program, txname);
+		if (loc == -1) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture %s in YUV shader\n", txname));
+			continue;
+		}
+		glUniform1i(loc, i);
+	}
 	loc = glGetUniformLocation(glsl_program, "width");
 	if (loc>= 0) {
 		Float w = (Float) width;
@@ -304,6 +304,8 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 		Float h = (Float) height;
 		glUniform1f(loc, h);
 	}
+
+	glUseProgram(0);  
 
 
 	if (glMapBuffer==NULL) use_pbo = GF_FALSE;
@@ -331,8 +333,6 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 
 void sdl_close()
 {
-	glUseProgram(0);  
-
 	DEL_SHADER(vertex_shader);
 	DEL_SHADER(fragment_shader);
 	DEL_PROGRAM(glsl_program );
@@ -378,7 +378,7 @@ void sdl_draw_quad()
 void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 stride)
 {
 	u32 needs_stride = 0;
-	u32 now;
+	u32 now, end;
 
 	if (stride != w) {
 		if (bit_depth==10) {
@@ -390,7 +390,6 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 		}
 	}
 
-	glUseProgram(glsl_program);
 	glEnable(texture_type);
 
 	now = gf_sys_clock();
@@ -554,23 +553,28 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 		glBindTexture(texture_type, txid[0] );
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride);
 		glTexSubImage2D(texture_type, 0, 0, 0, w, h, pixel_format, memory_format, pY);
+		glBindTexture(texture_type, 0);
 
 		glBindTexture(texture_type, txid[1] );
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
 		glTexSubImage2D(texture_type, 0, 0, 0, w/2, h/2, pixel_format, memory_format, pU);
+		glBindTexture(texture_type, 0);
 
 		glBindTexture(texture_type, txid[2] );
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
 		glTexSubImage2D(texture_type, 0, 0, 0, w/2, h/2, pixel_format, memory_format, pV);
+		glBindTexture(texture_type, 0);
 
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	}
-	now = gf_sys_clock() - now;
+	end = gf_sys_clock() - now;
 
 	if (!first_tx_load) {
 		gl_nb_frames ++;
-		gl_upload_time += now;
+		gl_upload_time += end;
 	}
+
+	glUseProgram(glsl_program);
 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(texture_type, txid[2]);
@@ -589,8 +593,13 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 	glDisable(texture_type);
 	glUseProgram(0);
 
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(texture_type, 0);
 
 	SDL_GL_SwapWindow(window);
+
+	gl_draw_time += gf_sys_clock() - now;
+	return;
 }
 
 
@@ -621,6 +630,8 @@ void PrintUsage()
 			"-sys-mem: uses  copy from decoder mem to system mem before upload (removes stride)\n"
 			"-use-pbo: uses PixelBufferObject for texture transfer\n"
 			"-no-display: disables video output\n"
+			"-nb-threads=N: sets number of frame to N (default N=6)\n"
+			"-mode=[frame|wpp|frame+wpp] : sets threading type (default is frame)\n"
 			);
 }
 
@@ -636,6 +647,8 @@ int main(int argc, char **argv)
 	u32 i, count, track= 0;
 	u32 nb_frames_at_start = 0;
 	GF_ESD *esd;
+	u32 nb_threads = 6;
+	u32 mode = 1;
 	Bool use_raw_memory = 1;
 	OpenHevc_Handle ohevc;
 	Bool use_pbo = 0;
@@ -662,6 +675,12 @@ int main(int argc, char **argv)
 		else if (!strcmp(arg, "-sys-mem")) use_raw_memory = 0;
 		else if (!strcmp(arg, "-use-pbo")) use_pbo = 1;
 		else if (!strcmp(arg, "-no-display")) no_display = 1;
+		else if (!strncmp(arg, "-nb-threads=", 12)) nb_threads = atoi(arg+12);
+		else if (!strncmp(arg, "-mode=", 6)) {
+			if (!strcmp(arg+6, "wpp")) mode = 2;
+			else if (!strcmp(arg+6, "frame+wpp")) mode = 3;
+			else mode = 1;
+		}
 
 		else if (!strcmp(arg, "-h")) {
 			PrintUsage();
@@ -704,7 +723,7 @@ int main(int argc, char **argv)
 	start = gf_sys_clock();
 
 	esd = gf_isom_get_esd(isom, track, 1);
-	ohevc = libOpenHevcInit(12, 1);
+	ohevc = libOpenHevcInit(nb_threads, mode);
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 		libOpenHevcCopyExtraData(ohevc, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength+8);
 	}
@@ -751,7 +770,7 @@ int main(int argc, char **argv)
 			gf_isom_sample_del(&sample);
 
 			now = gf_sys_clock();
-			fprintf(stderr, "%d %% %d frames in %d ms - FPS %g - push time %d ms\r", 100*(i+1-nb_frames_at_start)/count, i+1-nb_frames_at_start, now-start, 1000.0 * (i+1-nb_frames_at_start) / (now-start), gl_upload_time / gl_nb_frames ); 
+			fprintf(stderr, "%d %% %d frames in %d ms - FPS %02.2g - push time %d ms - draw %d ms\r", 100*(i+1-nb_frames_at_start)/count, i+1-nb_frames_at_start, now-start, 1000.0 * (i+1-nb_frames_at_start) / (now-start), gl_upload_time / gl_nb_frames , (gl_draw_time - gl_upload_time) / gl_nb_frames ); 
 		} else {
 			gf_sleep(10);
 			i--;
@@ -778,6 +797,8 @@ int main(int argc, char **argv)
 				case 'r':
 					start = gf_sys_clock();
 					nb_frames_at_start = i+1;
+					gl_upload_time = gl_draw_time = 0;
+					gl_nb_frames=1;
 					break;
 
 				}

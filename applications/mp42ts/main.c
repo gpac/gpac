@@ -57,6 +57,14 @@
 #define MP42TS_VIDEO_FREQ 1000 /*meant to send AVC IDR only every CLOCK_REFRESH ms*/
 
 u32 temi_url_insertion_delay = 1000;
+FILE *logfile = NULL;
+
+static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
+{
+	FILE *logs = cbk;
+	vfprintf(logs, fmt, list);
+	fflush(logs);
+}
 
 static GFINLINE void usage(const char * progname) 
 {
@@ -327,6 +335,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		pck.flags |= GF_ESI_DATA_AU_END;
 		pck.data = priv->sample->data;
 		pck.data_len = priv->sample->dataLength;
+		pck.duration = gf_isom_get_sample_duration(priv->mp4, priv->track, priv->sample_number+1);
 		ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Track %d: sample %d CTS %d\n", priv->track, priv->sample_number+1, pck.cts));
 
@@ -1819,8 +1828,11 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		arg = argv[i];		
 		if (arg[0]=='-') {
 			if (!strnicmp(arg, "-logs=", 6)) {
-				if (gf_log_set_tools_levels(argv[i+1]+6) != GF_OK)
+				if (gf_log_set_tools_levels(arg+6) != GF_OK)
 					return GF_BAD_PARAM;
+			} else if (!strnicmp(arg, "-lf=", 4)) {
+				logfile = gf_f64_open(arg+4, "wt");
+				gf_log_set_callback(logfile, on_gpac_log);
 			} else if (!strnicmp(arg, "-prog=", 6)) {
 				u32 res;
 				prog_name = arg+6;
@@ -1872,6 +1884,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			}
 			else if (!strnicmp(arg, "-nb-pack=", 9)) {
 				*nb_pck_pack = atoi(arg+9);
+			} else if (!strnicmp(arg, "-nb-pck=", 8)) {
+				*nb_pck_pack = atoi(arg+8);
 			} else if (!strnicmp(arg, "-ttl=", 5)) {
 				*ttl = atoi(arg+5);
 			} else if (!strnicmp(arg, "-ifce=", 6)) {
@@ -2534,6 +2548,7 @@ exit:
 	if (aac_reader) AAC_Reader_del(aac_reader);
 #endif
 
+	if (logfile) fclose(logfile);
 	gf_sys_close();
 	return 0;
 }

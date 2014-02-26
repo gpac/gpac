@@ -350,11 +350,14 @@ static Bool Channel_NeedsBuffering(GF_Channel *ch, u32 ForRebuffering)
 	if (ch->BufferTime < (s32) ch->MaxBuffer) {
 		/*check last AU time*/
 		u32 now = gf_term_get_time(ch->odm->term);
-		/*if more than half sec since last AU don't buffer and prevent rebuffering on short streams
-		this will also work for channels ignoring timing*/
-		if (now>ch->last_au_time + MAX(ch->BufferTime, 500) ) {
+		/*if more than MaxBuffer sec since last AU don't buffer and prevent rebuffering on short streams
+		this will also work for channels ignoring timing
+		we use MaxBuffer as some transport protocols (HTTP streaming, DVB-H) will work in burst modes of MaxBuffer 
+		*/
+		if (now > ch->last_au_time + 2*ch->MaxBuffer ) {
 			/*this can be safely seen as a stream with very few updates (likely only one)*/
-			if (!ch->AU_buffer_first && ch->first_au_fetched) ch->MinBuffer = 0;
+			if (!ch->AU_buffer_first && ch->first_au_fetched) 
+				ch->MinBuffer = 0;
 			return 0;
 		}
 		return 1;
@@ -1344,6 +1347,8 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	if (ch->es_state != GF_ESM_ES_RUNNING) return NULL;
 
 	if (!ch->is_pulling) {
+		gf_mx_p(ch->mx);
+		
 		if (!ch->AU_buffer_first) {
 			/*query buffer level, don't sleep if too low*/
 			GF_NetworkCommand com;
@@ -1355,6 +1360,8 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 		/*we must update buffering before fetching in order to stop buffering for streams with very few
 		updates (especially streams with one update, like most of OD streams)*/
 		if (ch->BufferOn) Channel_UpdateBuffering(ch, 0);
+		gf_mx_v(ch->mx);
+		
 		if (ch->BufferOn) {
 			if (ch->first_au_fetched || !ch->AU_buffer_first || !ch->AU_buffer_first->next)
 				return NULL;

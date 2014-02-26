@@ -1930,7 +1930,7 @@ void PrintAVInfo(Bool final)
 			GF_ObjectManager *odm = gf_term_get_object(term, root_odm, i);
 			if (!odm) break;
 			if (gf_term_get_object_info(term, odm, &v_odi) == GF_OK) {
-				if (!video_odm && (v_odi.od_type == GF_STREAM_VISUAL) && (v_odi.raw_media || (v_odi.cb_max_count>1)) ) {
+				if (!video_odm && (v_odi.od_type == GF_STREAM_VISUAL) && (v_odi.raw_media || (v_odi.cb_max_count>1) || v_odi.direct_video_memory) ) {
 					video_odm = odm;
 				}
 				else if (!audio_odm && (v_odi.od_type == GF_STREAM_AUDIO)) {
@@ -1949,7 +1949,10 @@ void PrintAVInfo(Bool final)
 	}
 
 	if (video_odm) {
-		gf_term_get_object_info(term, video_odm, &v_odi);
+		if (gf_term_get_object_info(term, video_odm, &v_odi)!= GF_OK) {
+			video_odm = NULL;
+			return;
+		}
 		avg_dec_time = 0;
 		if (v_odi.nb_dec_frames && v_odi.total_dec_time) { 
 			avg_dec_time = (Float) 1000 * v_odi.nb_dec_frames; 
