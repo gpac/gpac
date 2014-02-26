@@ -647,9 +647,12 @@ int main(int argc, char **argv)
 	gf_sys_init(0);
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 
-	if (argc<2) return 0;
+	if (argc<2) {
+		PrintUsage();
+		return 0;
+	}
 
-	for (i=0; i<argc; i++) {
+	for (i=0; i<(u32)argc; i++) {
 		char *arg = argv[i];
 		if (arg[0]!='-') {
 			src = arg;
@@ -701,7 +704,7 @@ int main(int argc, char **argv)
 	start = gf_sys_clock();
 
 	esd = gf_isom_get_esd(isom, track, 1);
-    ohevc = libOpenHevcInit(6, 3);
+	ohevc = libOpenHevcInit(12, 1);
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 		libOpenHevcCopyExtraData(ohevc, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength+8);
 	}
