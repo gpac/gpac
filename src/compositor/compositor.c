@@ -324,14 +324,21 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 	}
 
 	if (!compositor->video_out) {
-		u32 i, count;
-		count = gf_modules_get_count(compositor->user->modules);
+		GF_VideoOutput *raw_out = NULL;
+		u32 i, count = gf_modules_get_count(compositor->user->modules);
 		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Trying to find a suitable video driver amongst %d modules...\n", count));
 		for (i=0; i<count; i++) {
 			compositor->video_out = (GF_VideoOutput *) gf_modules_load_interface(compositor->user->modules, i, GF_VIDEO_OUTPUT_INTERFACE);
 			if (!compositor->video_out) continue;
 			compositor->video_out->evt_cbk_hdl = compositor;
 			compositor->video_out->on_event = gf_sc_on_event;
+			//in enum mode, only use raw out if everything else failed ...
+			if (!stricmp(compositor->video_out->module_name, "Raw Video Output")) {
+				raw_out = compositor->video_out;
+				compositor->video_out = NULL;
+				continue;
+			}
+
 			/*init hw*/
 			if (compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags)==GF_OK) {
 				gf_cfg_set_key(compositor->user->config, "Video", "DriverName", compositor->video_out->module_name);
@@ -339,6 +346,13 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 			}
 			gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
 			compositor->video_out = NULL;
+		}
+		if (raw_out) {
+			if (compositor->video_out) gf_modules_close_interface((GF_BaseInterface *)raw_out);
+			else {
+				compositor->video_out = raw_out;
+				compositor->video_out ->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags);
+			}
 		}
 	}
 	if (!compositor->video_out ) {
@@ -446,9 +460,12 @@ static u32 gf_sc_proc(void *par)
 
 	compositor->video_th_state = GF_COMPOSITOR_THREAD_RUN;	
 	while (compositor->video_th_state == GF_COMPOSITOR_THREAD_RUN) {
-		if (compositor->is_hidden==1) 
+		if (compositor->is_hidden==1) {
+			if (!compositor->bench_mode) {
+				compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
+			}
 			gf_sleep(compositor->frame_duration);
-		else	
+		} else	
 			gf_sc_simulation_tick(compositor);
 	}
 
@@ -1160,20 +1177,19 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 #ifndef GPAC_DISABLE_3D
 
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ForceOpenGL");
-	compositor->force_opengl_2d = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLMode");
+	compositor->force_opengl_2d = (sOpt && !strcmp(sOpt, "always")) ? 1 : 0;
 	if (!sOpt) {
-		compositor->visual->type_3d = 1;
 		compositor->recompute_ar = 1;
 		compositor->autoconfig_opengl = 1;
+	} else {
+		compositor->hybrid_opengl = !strcmp(sOpt, "hybrid") ? 1 : 0;
+#ifdef OPENGL_RASTER
+		compositor->opengl_raster = !strcmp(sOpt, "raster") ? 1 : 0;
+		if (compositor->opengl_raster) compositor->traverse_state->immediate_draw = GF_TRUE;
+#endif
 	}
 
-#ifdef OPENGL_RASTER
-	compositor->opengl_raster = (sOpt && !strcmp(sOpt, "raster")) ? 1 : 0;
-	if (compositor->opengl_raster) compositor->traverse_state->immediate_draw = GF_TRUE;
-#endif
-
-	compositor->hybrid_opengl = (sOpt && !strcmp(sOpt, "hybrid")) ? 1 : 0;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DefaultNavigationMode");
 	if (sOpt && !strcmp(sOpt, "Walk")) compositor->default_navigation_mode = GF_NAVIGATE_WALK;
@@ -1952,17 +1968,18 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #endif
 				compositor->autoconfig_opengl = 0;
 
-				//to change to "auto" once the GL auto mode is stable
+				//to enable
 #if 0
 				if (compositor->visual->yuv_rect_glsl_program) {
-					gf_cfg_set_key(compositor->user->config, "Compositor", "ForceOpenGL", "yes");
+					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "hybrid");
 					compositor->force_opengl_2d = 1;
-				} else {
-					gf_cfg_set_key(compositor->user->config, "Compositor", "ForceOpenGL", "no");
+				} else 
+#endif
+				{
+					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "disable");
 					compositor->force_opengl_2d = 0;
 					compositor->visual->type_3d = 0;
 				}
-#endif
 			}
 
 		}
@@ -2065,6 +2082,9 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	if (compositor->freeze_display) {
 		gf_sc_lock(compositor, 0);
+		if (!compositor->bench_mode) {
+			compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
+		}
 		if (!compositor->no_regulation) gf_sleep(compositor->frame_duration);
 		return;
 	}

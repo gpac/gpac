@@ -1236,7 +1236,7 @@ int main (int argc, char **argv)
 		if (bench_mode!=2) {
 			gf_cfg_set_key(user.config, "Video", "DriverName", "Raw Video Output");
 			gf_cfg_set_key(user.config, "RAWVideo", "RawOutput", "null");
-			gf_cfg_set_key(user.config, "Compositor", "ForceOpenGL", "no");
+			gf_cfg_set_key(user.config, "Compositor", "OpenGLMode", "disable");
 		} else {
 			gf_cfg_set_key(user.config, "Video", "DisableVSync", "yes");
 		}

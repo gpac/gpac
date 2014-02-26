@@ -287,18 +287,20 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 static char *default_glsl_vertex = "\
 	varying vec3 gfNormal;\
 	varying vec3 gfView;\
+	varying out vec2 TexCoord;\
 	void main(void)\
 	{\
 		gfView = vec3(gl_ModelViewMatrix * gl_Vertex);\
 		gfNormal = normalize(gl_NormalMatrix * gl_Normal);\
 		gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\
-		gl_TexCoord[0] = gl_MultiTexCoord0;\
+		TexCoord = gl_MultiTexCoord0.st;\
 	}";
 
 #ifdef GPAC_UNUSED_FUNC
 static char *default_glsl_lighting = "\
 	varying vec3 gfNormal;\
 	varying vec3 gfView;\
+	out vec2 TexCoord;\
 	void gpac_lighting (void)  \
 	{  \
 	   vec3 L = normalize(gl_LightSource[0].position.xyz - gfView);\
@@ -316,10 +318,11 @@ static char *default_glsl_lighting = "\
 static char *glsl_view_anaglyph = "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
+	in vec2 TexCoord;\
 	void main(void)  \
 	{\
-		vec4 col1 = texture2D(gfView1, gl_TexCoord[0].st); \
-		vec4 col2 = texture2D(gfView2, gl_TexCoord[0].st); \
+		vec4 col1 = texture2D(gfView1, TexCoord.st); \
+		vec4 col2 = texture2D(gfView2, TexCoord.st); \
 		gl_FragColor.r = col1.r;\
 		gl_FragColor.g = col2.g;\
 		gl_FragColor.b = col2.b;\
@@ -329,10 +332,11 @@ static char *glsl_view_anaglyph = "\
 static char *glsl_view_anaglyph_optimize = "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
+	in vec2 TexCoord;\
 	void main(void)  \
 	{\
-		vec4 col1 = texture2D(gfView1, gl_TexCoord[0].st); \
-		vec4 col2 = texture2D(gfView2, gl_TexCoord[0].st); \
+		vec4 col1 = texture2D(gfView1, TexCoord.st); \
+		vec4 col2 = texture2D(gfView2, TexCoord.st); \
 		gl_FragColor.r = 0.7*col1.g + 0.3*col1.b;\
 		gl_FragColor.r = pow(gl_FragColor.r, 1.5);\
 		gl_FragColor.g = col2.g;\
@@ -343,23 +347,25 @@ static char *glsl_view_anaglyph_optimize = "\
 static char *glsl_view_columns = "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
+	in vec2 TexCoord;\
 	void main(void)  \
 	{\
 		if ( int( mod(gl_FragCoord.x, 2.0) ) == 0) \
-			gl_FragColor = texture2D(gfView1, gl_TexCoord[0].st); \
+			gl_FragColor = texture2D(gfView1, TexCoord.st); \
 		else \
-			gl_FragColor = texture2D(gfView2, gl_TexCoord[0].st); \
+			gl_FragColor = texture2D(gfView2, TexCoord.st); \
 	}";
 
 static char *glsl_view_rows = "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
+	in vec2 TexCoord;\
 	void main(void)  \
 	{\
 		if ( int( mod(gl_FragCoord.y, 2.0) ) == 0) \
-			gl_FragColor = texture2D(gfView1, gl_TexCoord[0].st); \
+			gl_FragColor = texture2D(gfView1, TexCoord.st); \
 		else \
-			gl_FragColor = texture2D(gfView2, gl_TexCoord[0].st); \
+			gl_FragColor = texture2D(gfView2, TexCoord.st); \
 	}";
 
 static char *glsl_view_5VSP19 = "\
@@ -368,13 +374,14 @@ static char *glsl_view_5VSP19 = "\
 	uniform sampler2D gfView3;\
 	uniform sampler2D gfView4;\
 	uniform sampler2D gfView5;\
+	in vec2 TexCoord;\
 	void main(void) {\
 	vec4 color[5];\
-	color[0] = texture2D(gfView5, gl_TexCoord[0].st);\
-	color[1] = texture2D(gfView4, gl_TexCoord[0].st);\
-	color[2] = texture2D(gfView3, gl_TexCoord[0].st);\
-	color[3] = texture2D(gfView2, gl_TexCoord[0].st);\
-	color[4] = texture2D(gfView1, gl_TexCoord[0].st);\
+	color[0] = texture2D(gfView5, TexCoord.st);\
+	color[1] = texture2D(gfView4, TexCoord.st);\
+	color[2] = texture2D(gfView3, TexCoord.st);\
+	color[3] = texture2D(gfView2, TexCoord.st);\
+	color[4] = texture2D(gfView1, TexCoord.st);\
 	float pitch = 5.0 + 1.0  - mod(gl_FragCoord.y , 5.0);\
 	int col = int( mod(pitch + 3.0 * (gl_FragCoord.x), 5.0 ) );\
 	int Vr = int(col);\
@@ -392,6 +399,7 @@ static char *glsl_yuv_shader = "\
 	uniform sampler2D u_plane;\
 	uniform sampler2D v_plane;\
 	uniform float alpha;\
+	in vec2 TexCoord;\
 	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
@@ -400,7 +408,7 @@ static char *glsl_yuv_shader = "\
 	{\
 		vec2 texc;\
 		vec3 yuv, rgb;\
-		texc = gl_TexCoord[0].st;\
+		texc = TexCoord.st;\
 		texc.y = 1.0 - texc.y;\
 		yuv.x = texture2D(y_plane, texc).r; \
 		yuv.y = texture2D(u_plane, texc).r; \
@@ -422,6 +430,7 @@ static char *glsl_yuv_rect_shader_strict = "\
 	uniform float width;\
 	uniform float height;\
 	uniform float alpha;\
+	in vec2 TexCoord;\
 	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
@@ -431,7 +440,7 @@ static char *glsl_yuv_rect_shader_strict = "\
 	{\
 		vec2 texc;\
 		vec3 yuv, rgb;\
-		texc = gl_TexCoord[0].st;\
+		texc = TexCoord.st;\
 		texc.y = 1.0 - texc.y;\
 		texc.x *= width;\
 		texc.y *= height;\
@@ -462,7 +471,7 @@ static char *glsl_yuv_rect_shader_relaxed= "\
 	{\
 		vec2 texc;\
 		vec3 yuv, rgb;\
-		texc = gl_TexCoord[0].st;\
+		texc = TexCoord.st;\
 		texc.y = 1.0 - texc.y;\
 		texc.x *= width;\
 		texc.y *= height;\

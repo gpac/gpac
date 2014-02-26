@@ -926,9 +926,9 @@ void Osmo4::OnUpdateFileStop(CCmdUI* pCmdUI)
 
 void Osmo4::OnSwitchRender() 
 {
-	const char *opt = gf_cfg_get_key(m_user.config, "Compositor", "ForceOpenGL");
-	Bool use_gl = (opt && !stricmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
-	gf_cfg_set_key(m_user.config, "Compositor", "ForceOpenGL", use_gl ? "no" : "yes");
+	const char *opt = gf_cfg_get_key(m_user.config, "Compositor", "OpenGLMode");
+	Bool use_gl = (opt && !stricmp(opt, "always")) ? GF_TRUE : GF_FALSE;
+	gf_cfg_set_key(m_user.config, "Compositor", "OpenGLMode", use_gl ? "disable" : "always");
 
 	gf_term_set_option(m_term, GF_OPT_USE_OPENGL, !use_gl);
 
@@ -937,8 +937,8 @@ void Osmo4::OnSwitchRender()
 
 void Osmo4::UpdateRenderSwitch()
 {
-	const char *opt = gf_cfg_get_key(m_user.config, "Compositor", "ForceOpenGL");
-	if (opt && !stricmp(opt, "no"))
+	const char *opt = gf_cfg_get_key(m_user.config, "Compositor", "OpenGLMode");
+	if (opt && !stricmp(opt, "disable"))
 		((CMainFrame *) m_pMainWnd)->m_wndToolBar.SetButtonInfo(12, ID_SWITCH_RENDER, TBBS_BUTTON, 10);
 	else
 		((CMainFrame *) m_pMainWnd)->m_wndToolBar.SetButtonInfo(12, ID_SWITCH_RENDER, TBBS_BUTTON, 9);
