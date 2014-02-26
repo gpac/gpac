@@ -424,25 +424,36 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 			}
 		}
 		if (!ar->audio_out) {
+			GF_AudioOutput *raw_out = NULL;
 			count = gf_modules_get_count(ar->user->modules);
 			for (i=0; i<count; i++) {
 				ar->audio_out = (GF_AudioOutput *) gf_modules_load_interface(ar->user->modules, i, GF_AUDIO_OUTPUT_INTERFACE);
 				if (!ar->audio_out) continue;
+
+				//in enum mode, only use raw out if everything else failed ...
+				if (!stricmp(ar->audio_out->module_name, "Raw Audio Output")) {
+					raw_out = ar->audio_out;
+					ar->audio_out = NULL;
+					continue;
+				}
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Audio output module %s loaded\n", ar->audio_out->module_name));
 				/*check that's a valid audio compositor*/
-				if (ar->audio_out->SelfThreaded) {
-					if (ar->audio_out->SetPriority) break;
-				} else {
-					if (ar->audio_out->WriteAudio) break;
+				if ((ar->audio_out->SelfThreaded && ar->audio_out->SetPriority) || ar->audio_out->WriteAudio) {
+					/*remember the module we use*/
+					gf_cfg_set_key(user->config, "Audio", "DriverName", ar->audio_out->module_name);
+					break;
 				}
 				gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
 				ar->audio_out = NULL;
+			}
+			if (raw_out) {
+				if (ar->audio_out) gf_modules_close_interface((GF_BaseInterface *)raw_out);
+				else ar->audio_out = raw_out;
 			}
 		}
 
 		/*if not init we run with a NULL audio compositor*/
 		if (ar->audio_out) {
-
 			ar->audio_out->FillBuffer = gf_ar_fill_output;
 			ar->audio_out->audio_renderer = ar;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Setting up audio module %s\n", ar->audio_out->module_name));
@@ -458,8 +469,6 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 				gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
 				ar->audio_out = NULL;
 			} else {
-				/*remember the module we use*/
-				gf_cfg_set_key(user->config, "Audio", "DriverName", ar->audio_out->module_name);
 				if (!ar->audio_out->SelfThreaded) {
 					ar->th = gf_th_new("AudioRenderer");
 					gf_th_run(ar->th, gf_ar_proc, ar);

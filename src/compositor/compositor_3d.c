@@ -110,6 +110,7 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.setup.opengl_mode = 0;
 #else
 	evt.setup.opengl_mode = 1;
+	compositor->was_opengl = 1;
 #endif
 
 	if (compositor->video_out->ProcessEvent(compositor->video_out, &evt)<0) {

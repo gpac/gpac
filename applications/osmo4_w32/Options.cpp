@@ -505,8 +505,8 @@ BOOL COptRender::OnInitDialog()
 	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 	
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "ForceOpenGL");
-	m_Use3DRender.SetCheck( (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "OpenGLMode");
+	m_Use3DRender.SetCheck( (sOpt && !strcmp(sOpt, "always")) ? 1 : 0);
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "ForceSceneSize");
 	m_ForceSize.SetCheck( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
@@ -585,7 +585,7 @@ Bool COptRender::SaveOptions()
 	m_Graphics.GetWindowText(str, 50);
 	gf_cfg_set_key(gpac->m_user.config, "Compositor", "Raster2D", str);
 
-	gf_cfg_set_key(gpac->m_user.config, "Compositor", "ForceOpenGL", m_Use3DRender.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "OpenGLMode", m_Use3DRender.GetCheck() ? "always" : "disable");
 	return GF_FALSE;
 }
 
