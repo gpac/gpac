@@ -87,6 +87,8 @@ struct __texture_wrapper
 	u32 nb_comp, gl_format, gl_type, gl_dtype;
 	Bool yuv_shader;
 	u32 v_id, u_id;
+	u32 pbo_id, u_pbo_id, v_pbo_id;
+	Bool pbo_pushed;
 #endif
 #ifdef GF_SR_USE_DEPTH
 	char *depth_data;
@@ -121,6 +123,11 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 	if (txh->tx_io->v_id) glDeleteTextures(1, &txh->tx_io->v_id);
 	if (txh->tx_io->scale_data) gf_free(txh->tx_io->scale_data);
 	if (txh->tx_io->conv_data) gf_free(txh->tx_io->conv_data);
+
+	if (txh->tx_io->pbo_id) glDeleteBuffers(1, &txh->tx_io->pbo_id);
+	if (txh->tx_io->u_pbo_id) glDeleteBuffers(1, &txh->tx_io->u_pbo_id);
+	if (txh->tx_io->v_pbo_id) glDeleteBuffers(1, &txh->tx_io->v_pbo_id);
+
 #endif
 
 #ifdef GF_SR_USE_DEPTH
@@ -134,6 +141,46 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 {
 	txh->tx_io->flags |= TX_NEEDS_RASTER_LOAD | TX_NEEDS_HW_LOAD;
+
+#ifndef GPAC_DISABLE_3D
+	//PBO mode: start pushing the texture
+	if (txh->tx_io->pbo_id) {
+		u8 *ptr;
+		u32 size = txh->stride*txh->height;
+
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, txh->tx_io->pbo_id);
+		ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
+		if (ptr) memcpy(ptr, txh->data, size);
+		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+
+		if (txh->tx_io->u_pbo_id) {
+			u8 *pU = txh->pU;
+			u8 *pV = txh->pV;
+			if (!pU) pU = txh->data + size;
+			if (!pV) pV = txh->data + 5*size/4;
+
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, txh->tx_io->u_pbo_id);
+			ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
+			if (ptr) memcpy(ptr, pU, size/4);
+			glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, txh->tx_io->v_pbo_id);
+			ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
+			if (ptr) memcpy(ptr, pV, size/4);
+			glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+		}
+
+		txh->tx_io->pbo_pushed = 1;
+
+		//we just pushed our texture to the GPU, release
+		if (txh->raw_memory) {
+			gf_sc_texture_release_stream(txh);
+		}
+	}
+#endif
 	return GF_OK;
 }
 
@@ -149,6 +196,10 @@ void gf_sc_texture_reset(GF_TextureHandler *txh)
 			glDeleteTextures(1, &txh->tx_io->v_id);
 			txh->tx_io->u_id = txh->tx_io->v_id = 0;
 		}
+		if (txh->tx_io->pbo_id) glDeleteBuffers(1, &txh->tx_io->pbo_id);
+		if (txh->tx_io->u_pbo_id) glDeleteBuffers(1, &txh->tx_io->u_pbo_id);
+		if (txh->tx_io->v_pbo_id) glDeleteBuffers(1, &txh->tx_io->v_pbo_id);
+		txh->tx_io->pbo_id = txh->tx_io->u_pbo_id = txh->tx_io->v_pbo_id = 0;
 	}
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
 #endif
@@ -390,7 +441,6 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		tx_id[2] = txh->tx_io->v_id;
 		nb_tx = 3;
 
-
 		if (txh->tx_io->flags & TX_IS_RECT) {
 			GLint loc;
 			glUseProgram(compositor->visual->yuv_rect_glsl_program);
@@ -413,6 +463,35 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	}
 #endif
     
+	if (txh->compositor->gl_caps.pbo && txh->compositor->enable_pbo) {
+		u32 size = txh->stride*txh->height;
+
+		if (!txh->tx_io->pbo_id && txh->tx_io->id) {
+			glGenBuffers(1, &txh->tx_io->pbo_id);
+			if (txh->tx_io->pbo_id) {
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, txh->tx_io->pbo_id);
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, size, NULL, GL_DYNAMIC_DRAW_ARB);
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+			}
+		}
+		if (!txh->tx_io->u_pbo_id && txh->tx_io->u_id) {
+			glGenBuffers(1, &txh->tx_io->u_pbo_id);
+			if (txh->tx_io->u_pbo_id) {
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, txh->tx_io->u_pbo_id);
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, size/4, NULL, GL_DYNAMIC_DRAW_ARB);
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+			}
+		}
+		if (!txh->tx_io->v_pbo_id && txh->tx_io->v_id) {
+			glGenBuffers(1, &txh->tx_io->v_pbo_id);
+			if (txh->tx_io->v_pbo_id) {
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, txh->tx_io->v_pbo_id);
+				glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, size/4, NULL, GL_DYNAMIC_DRAW_ARB);
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+			}
+		}
+	}
+
 	if (use_yuv_shaders) {
 		//we use LUMINANCE because GL_RED is not defined on android ...
 		txh->tx_io->gl_format = GL_LUMINANCE;
@@ -699,7 +778,7 @@ assert(txh->data );
 
 
 #ifndef GPAC_DISABLE_3D
-static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_load, u8 *data, u32 stride, u32 w, u32 h)
+static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_load, u8 *data, u32 stride, u32 w, u32 h, u32 pbo_id)
 {
 	Bool needs_stride;
 	if (txh->tx_io->gl_dtype==GL_UNSIGNED_SHORT) {
@@ -717,7 +796,12 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
     if (needs_stride) {
 #endif
 
-	if (first_load) {
+	if (txh->tx_io->pbo_pushed) {
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_id);
+		glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, NULL);
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
+	}
+	else if (first_load) {
 		glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);
 	} else {
 		glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);
@@ -846,13 +930,13 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 
 			push_time = gf_sys_clock();
             
-            do_tex_image_2d(txh, tx_mode, first_load, pY, txh->stride, w, h);
+			do_tex_image_2d(txh, tx_mode, first_load, pY, txh->stride, w, h, txh->tx_io->pbo_id);
 
 			glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
-            do_tex_image_2d(txh, tx_mode, first_load, pU, txh->stride/2, w/2, h/2);
+            do_tex_image_2d(txh, tx_mode, first_load, pU, txh->stride/2, w/2, h/2, txh->tx_io->u_pbo_id);
 			
             glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
-            do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride/2, w/2, h/2);
+            do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride/2, w/2, h/2, txh->tx_io->v_pbo_id);
             
 			push_time = gf_sys_clock() - push_time;
 
@@ -865,18 +949,16 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 
 #ifndef GPAC_DISABLE_LOGS
 		    gf_mo_get_object_time(txh->stream, &ck);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texure (CTS %d) %d ms after due date - Pushed Y,U,V texures in %d ms - average push time %d ms\n", txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texure (CTS %d) %d ms after due date - Pushed Y,U,V texures in %d ms - average push time %d ms (PBO enabled %s)\n", txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames, txh->tx_io->pbo_pushed ? "yes" : "no"));
 #endif
 			//we just pushed our texture to the GPU, release
-			if (txh->raw_memory) {
+			if (!txh->tx_io->pbo_pushed && txh->raw_memory) {
 				gf_sc_texture_release_stream(txh);
 			}
+			txh->tx_io->pbo_pushed = 0;
 		} else {
-			if (first_load) {
-				glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, (unsigned char *) data);
-			} else {
-				glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, (unsigned char *) data);
-			}
+            do_tex_image_2d(txh, tx_mode, first_load, data, txh->stride, w, h, txh->tx_io->pbo_id);
+			txh->tx_io->pbo_pushed = 0;
 		}
 	} else {
 

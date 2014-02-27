@@ -99,7 +99,7 @@ typedef struct
 	Bool npot_texture;
 	Bool rect_texture;
 	Bool point_sprite;
-	Bool vbo;
+	Bool vbo, pbo;
 	u32 yuv_texture;
 	Bool has_shaders;
 	s32 max_texture_size;
@@ -476,6 +476,8 @@ struct __tag_compositor
 	Bool disable_gl_cull;
 	/*YUV textures in OpenGL are disabled (soft YUV->RGB )*/
 	Bool disable_yuvgl;
+	//use PBO to start pushing textures at the begining of the render pass
+	Bool enable_pbo;
 
 	u32 default_navigation_mode;
 

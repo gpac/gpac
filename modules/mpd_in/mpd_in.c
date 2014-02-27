@@ -735,7 +735,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseScreenResolution");
-	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseScreenResolution", "yes");
+	//default mode is no for the time being
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseScreenResolution", "no");
 	if (!opt || !strcmp(opt, "yes")) {
 		GF_NetworkCommand com;
 		memset(&com, 0, sizeof(GF_NetworkCommand));

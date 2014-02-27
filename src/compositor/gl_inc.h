@@ -328,6 +328,8 @@ GLDECL(void, glDeleteBuffers, (GLsizei , GLuint *) )
 GLDECL(void, glBindBuffer, (GLenum, GLuint ) )
 GLDECL(void, glBufferData, (GLenum, int, void *, GLenum) )
 GLDECL(void, glBufferSubData, (GLenum, int, int, void *) )
+GLDECL(void *, glMapBuffer, (GLenum, GLenum) )
+GLDECL(void *, glUnmapBuffer, (GLenum) )
 
 #endif	//GL_VERSION_1_5
 
@@ -421,6 +423,10 @@ GLDECL(void, glBufferSubData, (GLenum, int, int, void *) )
 #define GL_STENCIL_BACK_REF 0x8CA3
 #define GL_STENCIL_BACK_VALUE_MASK 0x8CA4
 #define GL_STENCIL_BACK_WRITEMASK 0x8CA5
+#define GL_PIXEL_UNPACK_BUFFER_ARB   0x88EC
+#define GL_STREAM_DRAW_ARB   0x88E0
+#define GL_WRITE_ONLY_ARB   0x88B9
+#define GL_DYNAMIC_DRAW_ARB   0x88E8
 
 
 GLDECL(GLuint, glCreateProgram, (void) )
