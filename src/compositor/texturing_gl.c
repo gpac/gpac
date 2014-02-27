@@ -123,9 +123,9 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 
 void gf_sc_texture_cleanup_hw(GF_Compositor *compositor)
 {
-	u32 i, count = gf_list_count(compositor->textures_gc);
-	for (i=0; i<count; i++) {
-		struct __texture_wrapper *tx_io = (struct __texture_wrapper *) gf_list_get(compositor->textures_gc, i);
+	while (gf_list_count(compositor->textures_gc)) {
+		struct __texture_wrapper *tx_io = (struct __texture_wrapper *) gf_list_last(compositor->textures_gc);
+		gf_list_rem_last(compositor->textures_gc);
 
 
 #ifndef GPAC_DISABLE_3D
