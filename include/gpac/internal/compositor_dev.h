@@ -186,6 +186,10 @@ struct __tag_compositor
 	/*all textures (texture handlers)*/
 	GF_List *textures;
 
+	/*all textures to be destroyed (needed for openGL context ...)*/
+	GF_List *textures_gc;
+
+
 #ifdef GF_SR_EVENT_QUEUE
 	/*event queue*/
 	GF_List *events;
@@ -654,6 +658,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync);
 /*release video memory if needed*/
 void gf_sc_texture_release_stream(GF_TextureHandler *txh);
 
+void gf_sc_texture_cleanup_hw(GF_Compositor *compositor);
 
 
 /*sensor node handler - this is not defined as a stack because Anchor is both a grouping node and a 

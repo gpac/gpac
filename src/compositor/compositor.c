@@ -210,7 +210,6 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor)
 }
 
 
-
 /*forces graphics redraw*/
 GF_EXPORT
 void gf_sc_reset_graphics(GF_Compositor *compositor)
@@ -407,6 +406,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 	}
 
 	compositor->textures = gf_list_new();
+	compositor->textures_gc = gf_list_new();
 	compositor->frame_rate = 30.0;	
 	compositor->frame_duration = 33;
 	compositor->time_nodes = gf_list_new();
@@ -563,7 +563,10 @@ void gf_sc_del(GF_Compositor *compositor)
 			}
 		}
 		gf_th_del(compositor->VisualThread);
+	} else {
+		gf_sc_texture_cleanup_hw(compositor);
 	}
+
 	if (compositor->video_out) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Closing video output\n"));
 		compositor->video_out->Shutdown(compositor->video_out);
@@ -634,6 +637,7 @@ void gf_sc_del(GF_Compositor *compositor)
 #endif
 
 	if (compositor->textures) gf_list_del(compositor->textures);
+	if (compositor->textures_gc) gf_list_del(compositor->textures_gc);
 	if (compositor->time_nodes) gf_list_del(compositor->time_nodes);
 	if (compositor->extra_scenes) gf_list_del(compositor->extra_scenes);
 	if (compositor->video_listeners) gf_list_del(compositor->video_listeners);
@@ -2079,6 +2083,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	in_time = gf_sys_clock();
 	/*lock compositor for the whole cycle*/
 	gf_sc_lock(compositor, 1);
+
+	gf_sc_texture_cleanup_hw(compositor);
 
 	/*first thing to do, let the video output handle user event if it is not threaded*/
 	compositor->video_out->ProcessEvent(compositor->video_out, NULL);

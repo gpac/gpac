@@ -111,31 +111,42 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 		txh->vout_udta = NULL;
 	}
 
-	if (!txh->tx_io) return;
-	if (txh->tx_io->tx_raster) {
-		txh->compositor->rasterizer->stencil_delete(txh->tx_io->tx_raster);
-		txh->tx_io->tx_raster = NULL;
+	if (txh->tx_io) {
+		if (txh->tx_io->tx_raster) {
+			txh->compositor->rasterizer->stencil_delete(txh->tx_io->tx_raster);
+			txh->tx_io->tx_raster = NULL;
+		}
+		gf_list_add(txh->compositor->textures_gc, txh->tx_io);
+		txh->tx_io=NULL;
 	}
+}
+
+void gf_sc_texture_cleanup_hw(GF_Compositor *compositor)
+{
+	u32 i, count = gf_list_count(compositor->textures_gc);
+	for (i=0; i<count; i++) {
+		struct __texture_wrapper *tx_io = (struct __texture_wrapper *) gf_list_get(compositor->textures_gc, i);
+
 
 #ifndef GPAC_DISABLE_3D
-	if (txh->tx_io->id) glDeleteTextures(1, &txh->tx_io->id);
-	if (txh->tx_io->u_id) glDeleteTextures(1, &txh->tx_io->u_id);
-	if (txh->tx_io->v_id) glDeleteTextures(1, &txh->tx_io->v_id);
-	if (txh->tx_io->scale_data) gf_free(txh->tx_io->scale_data);
-	if (txh->tx_io->conv_data) gf_free(txh->tx_io->conv_data);
+		if (tx_io->id) glDeleteTextures(1, &tx_io->id);
+		if (tx_io->u_id) glDeleteTextures(1, &tx_io->u_id);
+		if (tx_io->v_id) glDeleteTextures(1, &tx_io->v_id);
 
-	if (txh->tx_io->pbo_id) glDeleteBuffers(1, &txh->tx_io->pbo_id);
-	if (txh->tx_io->u_pbo_id) glDeleteBuffers(1, &txh->tx_io->u_pbo_id);
-	if (txh->tx_io->v_pbo_id) glDeleteBuffers(1, &txh->tx_io->v_pbo_id);
+		if (tx_io->pbo_id) glDeleteBuffers(1, &tx_io->pbo_id);
+		if (tx_io->u_pbo_id) glDeleteBuffers(1, &tx_io->u_pbo_id);
+		if (tx_io->v_pbo_id) glDeleteBuffers(1, &tx_io->v_pbo_id);
 
+		if (tx_io->scale_data) gf_free(tx_io->scale_data);
+		if (tx_io->conv_data) gf_free(tx_io->conv_data);
 #endif
 
 #ifdef GF_SR_USE_DEPTH
-	if (txh->tx_io->depth_data) gf_free(txh->tx_io->depth_data);
+		if (tx_io->depth_data) gf_free(tx_io->depth_data);
 #endif
 
-	gf_free(txh->tx_io);
-	txh->tx_io = NULL;
+		gf_free(tx_io);
+	}
 }
 
 GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)

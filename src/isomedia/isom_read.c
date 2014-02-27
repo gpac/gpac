@@ -1244,18 +1244,13 @@ GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 GF_EXPORT
 u32 gf_isom_get_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber)
 {
-	u64 dur;
+	u32 dur;
 	u64 dts;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !sampleNumber) return 0;
 
-	stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, sampleNumber, &dur);
-	if (sampleNumber == trak->Media->information->sampleTable->SampleSize->sampleCount) {
-		return (u32) (trak->Media->mediaHeader->duration - dur);
-	}
-
-	stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, sampleNumber+1, &dts);
-	return (u32) (dts - dur);
+	stbl_GetSampleDTS_and_Duration(trak->Media->information->sampleTable->TimeToSample, sampleNumber, &dts, &dur);
+	return dur;
 }
 
 
