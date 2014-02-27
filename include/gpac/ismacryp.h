@@ -59,7 +59,7 @@ enum
 
 typedef struct
 {
-	/*0: ISMACryp - 1: OMA DRM - 2: CENC CTR - 3: CENC CBC*/
+	/*0: ISMACryp - 1: OMA DRM - 2: CENC CTR - 3: CENC CBC - 4: ADOBE*/
 	u32 enc_type;
 	u32 trackID;
 	unsigned char key[16];
@@ -99,6 +99,9 @@ typedef struct
 	u32 defaultKeyIdx;
 	u32 keyRoll;
 
+	char metadata[5000];
+	u32 metadata_len;
+
 } GF_TrackCryptInfo;
 
 #if !defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)
@@ -116,6 +119,10 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 /*AES-CBC*/
 GF_Err gf_cbc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 GF_Err gf_cbc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
+
+/*ADOBE*/
+GF_Err gf_adobe_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
+GF_Err gf_adobe_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 
 GF_Err (*gf_encrypt_track)(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 GF_Err (*gf_decrypt_track)(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);

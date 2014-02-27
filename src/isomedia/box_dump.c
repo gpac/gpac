@@ -514,6 +514,22 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_SBTT:
 		return metx_dump(a, trace);
 #endif
+
+		/*Adobe's protection boxes*/
+	case GF_ISOM_BOX_TYPE_ADKM:
+		return adkm_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_AHDR:
+		return ahdr_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ADAF:
+		return adaf_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_APRM:
+		return aprm_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_AEIB:
+		return aeib_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_AKEY:
+		return akey_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_FLXS:
+		return flxs_dump(a, trace);
 			
 	default: 
 		return defa_dump(a, trace);
@@ -3309,6 +3325,7 @@ GF_Err schi_dump(GF_Box *a, FILE * trace)
 	if (p->isfm) gf_box_dump(p->isfm, trace);
 	if (p->okms) gf_box_dump(p->okms, trace);
 	if (p->tenc) gf_box_dump(p->tenc, trace);
+	if (p->adkm) gf_box_dump(p->adkm, trace);
 	gf_box_dump_done("SchemeInformationBox", a, trace);
 	return GF_OK;
 }
@@ -4255,6 +4272,90 @@ GF_Err prft_dump(GF_Box *a, FILE * trace)
 	gf_full_box_dump((GF_Box *)a, trace);
 	gf_box_dump_done("ProducerReferenceTimeBox", a, trace);
 
+	return GF_OK;
+}
+
+GF_Err adkm_dump(GF_Box *a, FILE * trace)
+{
+	GF_AdobeDRMKeyManagementSystemBox *ptr = (GF_AdobeDRMKeyManagementSystemBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<GF_AdobeDRMKeyManagementSystemBox>\n");
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	if (ptr->header) gf_box_dump((GF_Box *)ptr->header, trace);
+	if (ptr->au_format) gf_box_dump((GF_Box *)ptr->au_format, trace);
+	gf_box_dump_done("GF_AdobeDRMKeyManagementSystemBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err ahdr_dump(GF_Box *a, FILE * trace)
+{
+	GF_AdobeDRMHeaderBox *ptr = (GF_AdobeDRMHeaderBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<GF_AdobeDRMHeaderBox>\n");
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	if (ptr->std_enc_params) gf_box_dump((GF_Box *)ptr->std_enc_params, trace);
+	gf_box_dump_done("GF_AdobeDRMHeaderBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err aprm_dump(GF_Box *a, FILE * trace)
+{
+	GF_AdobeStdEncryptionParamsBox *ptr = (GF_AdobeStdEncryptionParamsBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<GF_AdobeStdEncryptionParamsBox>\n");
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	if (ptr->enc_info) gf_box_dump((GF_Box *)ptr->enc_info, trace);
+	if (ptr->key_info) gf_box_dump((GF_Box *)ptr->key_info, trace);
+	gf_box_dump_done("GF_AdobeStdEncryptionParamsBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err aeib_dump(GF_Box *a, FILE * trace)
+{
+	GF_AdobeEncryptionInfoBox *ptr = (GF_AdobeEncryptionInfoBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<GF_AdobeEncryptionInfoBox EncryptionAlgorithm=\"%s\" KeyLength=\"%d\">\n", ptr->enc_algo, ptr->key_length);
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	gf_box_dump_done("GF_AdobeEncryptionInfoBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err akey_dump(GF_Box *a, FILE * trace)
+{
+	GF_AdobeKeyInfoBox *ptr = (GF_AdobeKeyInfoBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<GF_AdobeKeyInfoBox>\n");
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	if (ptr->params) gf_box_dump((GF_Box *)ptr->params, trace);
+	gf_box_dump_done("GF_AdobeKeyInfoBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err flxs_dump(GF_Box *a, FILE * trace)
+{
+	GF_AdobeFlashAccessParamsBox *ptr = (GF_AdobeFlashAccessParamsBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<GF_AdobeFlashAccessParamsBox>\n");
+	DumpBox(a, trace);
+	if (ptr->metadata)
+		fprintf(trace, "<FmrmsV2Metadata=\"%s\"/>\n", ptr->metadata);
+	gf_box_dump_done("GF_AdobeFlashAccessParamsBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err adaf_dump(GF_Box *a, FILE * trace)
+{
+	GF_AdobeDRMAUFormatBox *ptr = (GF_AdobeDRMAUFormatBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<GF_AdobeDRMAUFormatBox SelectiveEncryption=\"%d\" IV_length=\"%d\">\n", ptr->selective_enc ? 1 : 0, ptr->IV_length);
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	gf_box_dump_done("GF_AdobeDRMAUFormatBox", a, trace);
 	return GF_OK;
 }
 

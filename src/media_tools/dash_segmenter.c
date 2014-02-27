@@ -90,6 +90,7 @@ typedef struct
 	u32 initial_moof_sn;
 	u64 initial_tfdt;
 	Bool no_fragments_defaults;
+	Bool samplegroups_in_traf;
 } GF_DASHSegmenterOptions;
 
 struct _dash_segment_input
@@ -700,6 +701,17 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 			if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
 
+			/*remove sgpd in stbl; it wuold be in traf*/
+			if (dash_cfg->samplegroups_in_traf) {
+				GF_TrackBox *trak = (GF_TrackBox *)gf_isom_get_track_from_file(output, TrackNum);
+				if (!trak) continue;
+				while (gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription)) {
+					GF_Box* box = (GF_Box*)gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, 0);
+					gf_isom_box_del(box);
+					gf_list_rem(trak->Media->information->sampleTable->sampleGroupsDescription, 0);
+				}
+			}
+
 // Commenting it the code for Timed Text tracks, it may happen that we have only one long sample, fragmentation is useful
 #if 0 
 			//if only one sample, don't fragment track
@@ -1258,7 +1270,7 @@ restart_fragmentation_pass:
 					if (e) goto err_exit;
 
 					/*copy subsample information*/
-					e = gf_isom_fragment_copy_subsample(output, tf->TrackID, input, tf->OriginalTrack, tf->SampleNum + 1);
+					e = gf_isom_fragment_copy_subsample(output, tf->TrackID, input, tf->OriginalTrack, tf->SampleNum + 1, dash_cfg->samplegroups_in_traf);
 					if (e) 
 						goto err_exit;
 
@@ -4115,7 +4127,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 							   Bool seg_at_rap, Double dash_duration, char *seg_name, char *seg_ext, u32 segment_marker_4cc,
 							   Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
 							   GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer, 
-							   u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, Bool pssh_moof)
+							   u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf)
 {
 	u32 i, j, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH];
@@ -4365,6 +4377,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.inband_param_set = ((bitstream_switching == GF_DASH_BSMODE_INBAND) || (bitstream_switching == GF_DASH_BSMODE_SINGLE) ) ? 1 : 0;
 	dash_opts.memory_mode = fragments_in_memory;
 	dash_opts.pssh_moof = pssh_moof;
+	dash_opts.samplegroups_in_traf = samplegroups_in_traf;
 
 	dash_opts.segment_duration = dash_duration * 1000 / dash_scale;
 	dash_opts.subduration = subduration * 1000 / dash_scale;

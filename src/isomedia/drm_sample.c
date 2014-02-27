@@ -334,6 +334,7 @@ GF_Err gf_isom_remove_track_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	if (!sinf) sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, &sea);
 	if (!sinf) sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ISMACRYP_SCHEME, &sea);
 	if (!sinf) sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_OMADRM_SCHEME, &sea);
+	if (!sinf) sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ADOBE_SCHEME, &sea);
 	if (!sinf) return GF_OK;
 
 	sea->type = sinf->original_format->data_format;
@@ -374,7 +375,8 @@ GF_Err gf_isom_change_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber,
 }
 
 
-static GF_Err gf_isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, u32 scheme_version, Bool is_isma, GF_ProtectionInfoBox **out_sinf)
+static GF_Err gf_isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u8 version, u32 flags, 
+										  u32 scheme_type, u32 scheme_version, char *scheme_uri, Bool is_isma, GF_ProtectionInfoBox **out_sinf)
 {
 	u32 original_format;
 	GF_Err e;
@@ -439,8 +441,14 @@ static GF_Err gf_isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber,
 	gf_list_add(sea->protections, sinf);
 
 	sinf->scheme_type = (GF_SchemeTypeBox *)schm_New();
+	sinf->scheme_type->version = version;
+	sinf->scheme_type->flags = flags;
 	sinf->scheme_type->scheme_type = scheme_type;
 	sinf->scheme_type->scheme_version = scheme_version;
+	if (sinf->scheme_type->flags == 1) {
+		sinf->scheme_type->URI = (char *)gf_malloc(sizeof(char)*strlen(scheme_uri));
+		memmove(sinf->scheme_type->URI, scheme_uri, strlen(scheme_uri));
+	}
 
 	sinf->original_format = (GF_OriginalFormatBox *)frma_New();
 	sinf->original_format->data_format = original_format;
@@ -460,7 +468,7 @@ GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	GF_ProtectionInfoBox *sinf;
 
 	//setup generic protection
-	e = gf_isom_set_protected_entry(the_file, trackNumber, desc_index, scheme_type, scheme_version, GF_TRUE, &sinf);
+	e = gf_isom_set_protected_entry(the_file, trackNumber, desc_index, 0, 0, scheme_type, scheme_version, NULL, GF_TRUE, &sinf);
 	if (e) return e;
 
 	if (scheme_uri) {
@@ -486,7 +494,7 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 	GF_Err e;
 
 	//setup generic protection
-	e = gf_isom_set_protected_entry(the_file, trackNumber, desc_index, GF_ISOM_OMADRM_SCHEME, 0x00000200, GF_FALSE, &sinf);
+	e = gf_isom_set_protected_entry(the_file, trackNumber, desc_index, 0, 0, GF_ISOM_OMADRM_SCHEME, 0x00000200, NULL, GF_FALSE, &sinf);
 	if (e) return e;
 
 	sinf->info->okms = (GF_OMADRMKMSBox *)odkm_New();
@@ -591,7 +599,7 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 	GF_ProtectionInfoBox *sinf;
 
 	//setup generic protection
-	e = gf_isom_set_protected_entry(the_file, trackNumber, desc_index, scheme_type, scheme_version, GF_FALSE, &sinf);
+	e = gf_isom_set_protected_entry(the_file, trackNumber, desc_index, 0, 0, scheme_type, scheme_version, NULL, GF_FALSE, &sinf);
 	if (e) return e;
 
 	sinf->info->tenc = (GF_TrackEncryptionBox *)tenc_New();
@@ -1132,8 +1140,10 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	}
 
 	gf_isom_get_sample_cenc_info_ex(trak, NULL, sampleNumber, NULL, &IV_size, NULL);
-	if (!IV_size)
+	if (!IV_size) {
+		GF_SAFEALLOC( (*sai),  GF_CENCSampleAuxInfo);
 		return GF_OK;
+	}
 
 	/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
 	if (gf_isom_cenc_has_saiz_saio(stbl, NULL)) {
@@ -1190,6 +1200,93 @@ void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return;
 	gf_isom_cenc_get_default_info_ex(trak, sampleDescriptionIndex, default_IsEncrypted, default_IV_size, default_KID);
+}
+
+/*
+	Adobe'protection scheme
+*/
+GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, u32 scheme_version, Bool is_selective_enc, char *metadata, u32 len)
+{
+	GF_Err e;
+	GF_ProtectionInfoBox *sinf;
+
+	//setup generic protection
+	e = gf_isom_set_protected_entry(the_file, trackNumber, desc_index, 1, 0, scheme_type, scheme_version, NULL, GF_FALSE, &sinf);
+	if (e) return e;
+
+	sinf->info->adkm = (GF_AdobeDRMKeyManagementSystemBox *)adkm_New();
+
+	sinf->info->adkm->header = (GF_AdobeDRMHeaderBox *)ahdr_New();
+
+	sinf->info->adkm->header->std_enc_params = (GF_AdobeStdEncryptionParamsBox *)aprm_New();
+
+	sinf->info->adkm->header->std_enc_params->enc_info = (GF_AdobeEncryptionInfoBox *)aeib_New();
+	if (sinf->info->adkm->header->std_enc_params->enc_info->enc_algo)
+		gf_free(sinf->info->adkm->header->std_enc_params->enc_info->enc_algo);
+	sinf->info->adkm->header->std_enc_params->enc_info->enc_algo = (char *)gf_malloc(8*sizeof(char));
+	strncpy(sinf->info->adkm->header->std_enc_params->enc_info->enc_algo, "AES-CBC", 7);
+	sinf->info->adkm->header->std_enc_params->enc_info->enc_algo[7] = 0;
+	sinf->info->adkm->header->std_enc_params->enc_info->key_length = 16;
+
+	sinf->info->adkm->header->std_enc_params->key_info = (GF_AdobeKeyInfoBox *)akey_New();
+
+	sinf->info->adkm->header->std_enc_params->key_info->params = (GF_AdobeFlashAccessParamsBox *)flxs_New();
+	if (metadata && len) {
+		if (sinf->info->adkm->header->std_enc_params->key_info->params->metadata)
+			gf_free(sinf->info->adkm->header->std_enc_params->key_info->params->metadata);
+		sinf->info->adkm->header->std_enc_params->key_info->params->metadata = (char *)gf_malloc((len+1)*sizeof(char));
+		strncpy(sinf->info->adkm->header->std_enc_params->key_info->params->metadata, metadata, len);
+		sinf->info->adkm->header->std_enc_params->key_info->params->metadata[len] = 0;
+	}
+
+	sinf->info->adkm->au_format = (GF_AdobeDRMAUFormatBox *)adaf_New();
+	sinf->info->adkm->au_format->selective_enc = is_selective_enc ? 0x10 : 0x00;
+	sinf->info->adkm->au_format->IV_length = 16;
+
+	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_isom_is_adobe_protection_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_ProtectionInfoBox *sinf;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_FALSE;
+
+	sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ADOBE_SCHEME, NULL);
+
+	if (!sinf) return GF_FALSE;
+
+	/*non-encrypted or non-ADOBE*/
+	if (!sinf->info || !sinf->info->adkm) 
+		return GF_FALSE;
+
+	return GF_TRUE;
+}
+
+GF_EXPORT
+GF_Err gf_isom_get_adobe_protection_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion)
+{
+	GF_TrackBox *trak;
+	GF_ProtectionInfoBox *sinf;
+	
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ADOBE_SCHEME, NULL);
+
+	if (!sinf) return GF_BAD_PARAM;
+
+	if (outOriginalFormat) {
+		*outOriginalFormat = sinf->original_format->data_format;
+		if (IsMP4Description(sinf->original_format->data_format)) *outOriginalFormat = GF_ISOM_SUBTYPE_MPEG4;
+	}
+	if (outSchemeType) *outSchemeType = sinf->scheme_type->scheme_type;
+	if (outSchemeVersion) *outSchemeVersion = sinf->scheme_type->scheme_version;
+
+	return GF_OK;
 }
 
 #endif //	GPAC_DISABLE_ISOM_FRAGMENTS

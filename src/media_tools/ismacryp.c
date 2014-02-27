@@ -62,6 +62,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				if (!stricmp(att->value, "ISMA"))info->crypt_type = 1;
 				else if (!stricmp(att->value, "CENC AES-CTR")) info->crypt_type = 2;
 				else if (!stricmp(att->value, "CENC AES-CBC")) info->crypt_type = 3;
+				else if (!stricmp(att->value, "ADOBE")) info->crypt_type = 4;
 			}
 		}
 		return;
@@ -173,6 +174,15 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				else if (!strncmp(att->value, "roll=", 5))
 					tkc->keyRoll = atoi(att->value+5);
 			}
+			else if (!stricmp(att->name, "metadata")) {
+				tkc->metadata_len = gf_base64_encode(att->value, (u32) strlen(att->value), tkc->metadata, 5000);
+				tkc->metadata[tkc->metadata_len] = 0;
+			}
+		}
+
+		if ((info->crypt_type == 3) && (tkc->IV_size == 8)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using AES-128 CBC: IV_size should be 16\n"));
+			tkc->IV_size = 16;
 		}
 	}
 
@@ -948,7 +958,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 	pleintext_bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
 	cyphertext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	sai_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	gf_bs_write_data(sai_bs, IV, IV_size);
+	gf_bs_write_data(sai_bs, IV, 16);
 	subsamples = gf_list_new();
 	if (!subsamples) {
 		e = GF_IO_ERR;
@@ -1216,8 +1226,11 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 		if (tci->enc_type == 2)
 			gf_cenc_encrypt_sample_ctr(mc, samp, is_nalu_video, nalu_size_length, IV, tci->IV_size, &buf, &len, bytes_in_nalhr);
-		else if (tci->enc_type == 3)
+		else if (tci->enc_type == 3) {
+			int IV_size = 16;
+			gf_crypt_get_state(mc, IV, &IV_size);
 			gf_cenc_encrypt_sample_cbc(mc, samp, is_nalu_video, nalu_size_length, IV, tci->IV_size, &buf, &len, bytes_in_nalhr);
+		}
 		
 		gf_isom_update_sample(mp4, track, i+1, samp, 1);
 		gf_isom_sample_del(&samp);
@@ -1350,6 +1363,10 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				gf_bs_del(bs);
 				gf_crypt_set_state(mc, IV, 17);
 			}
+			else if (tci->enc_type == 3) {
+				memmove(IV, sai->IV, 16);
+				gf_crypt_set_state(mc, IV, 16);
+			}
 			e = gf_crypt_set_key(mc, tci->key, 16, IV);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot set key AES-128 %s (%s)\n", (tci->enc_type == 2) ? "CTR" : "CBC", gf_error_to_string(e)) );
@@ -1433,6 +1450,247 @@ exit:
 	return e;
 }
 
+GF_Err gf_adobe_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk)
+{
+	GF_Err e;
+	char IV[16];
+	GF_ISOSample *samp;
+	GF_Crypt *mc;
+	Bool all_rap = GF_FALSE;
+	u32 i, count, di, track, len;
+	Bool has_crypted_samp;
+	char *buf;
+	GF_BitStream *bs;
+	int IV_size;
+
+	e = GF_OK;
+	samp = NULL;
+	mc = NULL;
+	buf = NULL;
+	bs = NULL;
+
+	track = gf_isom_get_track_by_id(mp4, tci->trackID);
+	if (!track) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Adobe] Cannot find TrackID %d in input file - skipping\n", tci->trackID));
+		return GF_OK;
+	}
+
+	mc = gf_crypt_open("AES-128", "CBC");
+	if (!mc) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[Adobe] Cannot open AES-128 CBC \n"));
+		e = GF_IO_ERR;
+		goto exit;
+	}
+
+	/*Adobe's protection scheme does not support selective key*/
+	memcpy(tci->key, tci->keys[0], 16);
+
+	e = gf_isom_set_adobe_protection(mp4, track, 1, GF_ISOM_ADOBE_SCHEME, 1, GF_TRUE, tci->metadata, tci->metadata_len);
+	if (e) goto  exit;
+
+	count = gf_isom_get_sample_count(mp4, track);	
+	has_crypted_samp = GF_FALSE;
+	if (! gf_isom_has_sync_points(mp4, track)) 
+		all_rap = GF_TRUE;
+
+	gf_isom_set_nalu_extract_mode(mp4, track, GF_ISOM_NALU_EXTRACT_INSPECT);
+	for (i = 0; i < count; i++) {
+		Bool is_encrypted_au = GF_TRUE;
+		samp = gf_isom_get_sample(mp4, track, i+1, &di);
+		if (!samp)
+		{
+			e = GF_IO_ERR;
+			goto exit;
+		}
+
+		len = samp->dataLength;
+		buf = (char *) gf_malloc(len*sizeof(char));
+		memmove(buf, samp->data, len);
+		gf_free(samp->data);
+		samp->dataLength = 0;
+		
+		switch (tci->sel_enc_type) {
+			case GF_CRYPT_SELENC_RAP:
+				if (!samp->IsRAP && !all_rap) {
+					is_encrypted_au = GF_FALSE;
+				}
+				break;
+			case GF_CRYPT_SELENC_NON_RAP:
+				if (samp->IsRAP || all_rap) {
+					is_encrypted_au = GF_FALSE;
+				}
+				break;
+			default:
+				break;
+		}
+
+		if (is_encrypted_au) {
+			u32 padding_bytes;
+			if (!has_crypted_samp) {
+				memset(IV, 0, sizeof(char)*16);
+				memcpy(IV, tci->first_IV, sizeof(char)*16);
+				e = gf_crypt_init(mc, tci->key, 16, IV);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Cannot initialize AES-128 CBC (%s)\n",  gf_error_to_string(e)) );
+					gf_crypt_close(mc);
+					mc = NULL;
+					e = GF_IO_ERR;
+					goto exit;
+				}
+				has_crypted_samp = GF_TRUE;
+			}
+			else {
+				IV_size = 16;
+				e = gf_crypt_get_state(mc, IV, &IV_size);
+			}
+
+			padding_bytes = 16 - len % 16;
+			len += padding_bytes;
+			buf = (char *)gf_realloc(buf, len);
+			memset(buf+len-padding_bytes, padding_bytes, padding_bytes);
+
+			gf_crypt_encrypt(mc, buf, len);
+		}
+
+		/*rewrite sample with AU header*/
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		if (is_encrypted_au) {
+			gf_bs_write_u8(bs, 0x10);
+			gf_bs_write_data(bs, (char *) IV, 16);
+		}
+		else {
+			gf_bs_write_u8(bs, 0x0);
+		}
+		gf_bs_write_data(bs, buf, len);
+		gf_bs_get_content(bs, &samp->data, &samp->dataLength);
+		gf_bs_del(bs);
+		bs = NULL;
+		gf_isom_update_sample(mp4, track, i+1, samp, 1);
+		gf_isom_sample_del(&samp);
+		samp = NULL;
+		gf_free(buf);
+		buf = NULL;
+
+		gf_set_progress("Adobe's protection scheme Encrypt", i+1, count);
+	}
+
+exit:
+	if (samp) gf_isom_sample_del(&samp);
+	if (mc) gf_crypt_close(mc);
+	if (buf) gf_free(buf);
+	if (bs) gf_bs_del(bs);
+	return e;
+}
+
+GF_Err gf_adobe_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk)
+{
+	GF_Err e;
+	u32 track, count, len, i, prev_sample_decrypted, si;
+	u8 encrypted_au;
+	GF_Crypt *mc;
+	GF_ISOSample *samp;
+	char IV[17];
+	char *ptr;
+	GF_BitStream *bs;
+
+	e = GF_OK;
+	mc = NULL;
+	samp = NULL;
+	bs = NULL;
+	prev_sample_decrypted = GF_FALSE;
+
+	track = gf_isom_get_track_by_id(mp4, tci->trackID);
+	if (!track) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Cannot find TrackID %d in input file - skipping\n", tci->trackID));
+		return GF_OK;
+	}
+
+	mc = gf_crypt_open("AES-128", "CBC");
+	if (!mc) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Cannot open AES-128 CBC\n"));
+		e = GF_IO_ERR;
+		goto exit;
+	}
+
+	memcpy(tci->key, tci->keys[0], 16);
+
+	count = gf_isom_get_sample_count(mp4, track);
+	gf_isom_set_nalu_extract_mode(mp4, track, GF_ISOM_NALU_EXTRACT_INSPECT);
+	for (i = 0; i < count; i++) {
+		u32 trim_bytes = 0;
+		samp = gf_isom_get_sample(mp4, track, i+1, &si);
+		if (!samp)
+		{
+			e = GF_IO_ERR;
+			goto exit;
+		}
+
+		ptr = samp->data;
+		len = samp->dataLength;
+
+		encrypted_au = ptr[0];
+		if (encrypted_au) {
+			memmove(IV, ptr+1, 16);
+			if (!prev_sample_decrypted) {
+				e = gf_crypt_init(mc, tci->key, 16, IV);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Cannot initialize AES-128 CBC (%s)\n", gf_error_to_string(e)) );
+					gf_crypt_close(mc);
+					mc = NULL;
+					e = GF_IO_ERR;
+					goto exit;
+				}
+				prev_sample_decrypted = GF_TRUE;
+			}
+			else {
+				e = gf_crypt_set_state(mc, IV, 16);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Cannot set state AES-128 CBC (%s)\n", gf_error_to_string(e)) );
+					gf_crypt_close(mc);
+					mc = NULL;
+					e = GF_IO_ERR;
+					goto exit;
+				}
+			}
+
+			ptr += 17;
+			len -= 17;
+
+			gf_crypt_decrypt(mc, ptr, len);
+			trim_bytes = ptr[len-1];
+		}
+		else {
+			ptr += 1;
+			len -= 1;
+		}
+
+		//rewrite decrypted sample
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_data(bs, ptr, len - trim_bytes);
+		gf_free(samp->data);
+		samp->dataLength = 0;
+		gf_bs_get_content(bs, &samp->data, &samp->dataLength);
+		gf_isom_update_sample(mp4, track, i+1, samp, 1);
+		gf_bs_del(bs);
+		bs = NULL;
+		gf_isom_sample_del(&samp);
+		samp = NULL;
+		gf_set_progress("Adobe's protection scheme Decrypt", i+1, count);
+	}
+
+	/*remove protection info*/
+	e = gf_isom_remove_track_protection(mp4, track, 1);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ADOBE] Error Adobe's protection scheme signature from trackID %d: %s\n", tci->trackID, gf_error_to_string(e)));
+	}
+
+exit:
+	if (mc) gf_crypt_close(mc);
+	if (samp) gf_isom_sample_del(&samp);
+	if (bs) gf_bs_del(bs);
+	return e;
+}
+
 
 GF_EXPORT
 GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
@@ -1500,6 +1758,9 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 				tci.enc_type = 3;
 				gf_decrypt_track = gf_cenc_decrypt_track;
 				break;
+			case 4:
+				gf_decrypt_track = gf_adobe_decrypt_track;
+				break;
 			default:
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Encryption type not supported\n"));
 				return GF_NOT_SUPPORTED;;
@@ -1514,7 +1775,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			}
 			KMS_URI = "OMA DRM";
 			is_oma = 1;
-		} else if (!gf_isom_is_cenc_media(mp4, i+1, 1)){
+		} else if (!gf_isom_is_cenc_media(mp4, i+1, 1) && !gf_isom_is_adobe_protection_media(mp4, i+1, 1)){
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] TrackID %d encrypted with unknown scheme %s - skipping\n", trackID, gf_4cc_to_str(scheme_type) ));
 			continue;
 		}
@@ -1751,6 +2012,9 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 		case 3:
 			tci->enc_type = 3;
 			gf_encrypt_track = gf_cenc_encrypt_track;
+			break;
+		case 4:
+			gf_encrypt_track = gf_adobe_encrypt_track;
 			break;
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Encryption type not sopported\n"));

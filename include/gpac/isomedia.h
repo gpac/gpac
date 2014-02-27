@@ -167,7 +167,10 @@ enum
 	GF_ISOM_CENC_SCHEME	= GF_4CC('c','e','n','c'),
 	
 	/* Encryption Scheme Type in the SchemeTypeInfoBox */
-	GF_ISOM_CBC_SCHEME	= GF_4CC('c','b','c','1')
+	GF_ISOM_CBC_SCHEME	= GF_4CC('c','b','c','1'),
+
+	/* Encryption Scheme Type in the SchemeTypeInfoBox */
+	GF_ISOM_ADOBE_SCHEME	= GF_4CC('a','d','k','m'),
 };
 
 
@@ -1970,6 +1973,10 @@ GF_Err gf_isom_remove_samp_enc_box(GF_ISOFile *the_file, u32 trackNumber);
 GF_Err gf_isom_remove_samp_group_box(GF_ISOFile *the_file, u32 trackNumber);
 GF_Err gf_isom_remove_pssh_box(GF_ISOFile *the_file);
 
+Bool gf_isom_is_adobe_protection_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex);
+GF_Err gf_isom_get_adobe_protection_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion);
+GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, u32 scheme_version, Bool is_selective_enc, char *metadata, u32 len);
+
 void gf_isom_ipmpx_remove_tool_list(GF_ISOFile *the_file);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -2262,7 +2269,7 @@ GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32
 GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable);
 
 /*copy over the subsample and sampleToGroup information of the given sample from the source track/file to the last sample added to the current track fragment of the destination file*/
-GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber);
+GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber, Bool sgpd_in_traf);
 
 /*gets the number of the next moof to be produced*/
 u32 gf_isom_get_next_moof_number(GF_ISOFile *movie);

@@ -396,6 +396,44 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
+Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
+{
+	GF_BitStream *bs1, *bs2;
+	char *buf1, *buf2;
+	u32 len1, len2;
+	Bool res = GF_FALSE;
+
+	if (!ptr1 || !ptr2)
+		return GF_FALSE;
+
+	bs1 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (grouping_type) {
+		sgpd_write_entry(grouping_type, ptr1, bs1);
+	} else {
+		sgpd_Write((GF_Box *)ptr1, bs1);
+	}
+	gf_bs_get_content(bs1, &buf1, &len1);
+	gf_bs_del(bs1);
+
+	bs2 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (grouping_type) {
+		sgpd_write_entry(grouping_type, ptr2, bs2);
+	} else {
+		sgpd_Write((GF_Box *)ptr2, bs2);
+	}
+	gf_bs_get_content(bs2, &buf2, &len2);
+	gf_bs_del(bs2);	
+
+
+	if ((len1==len2) && !memcmp(buf1, buf2, len1))
+		res = GF_TRUE;
+
+	gf_free(buf1);
+	gf_free(buf2);
+
+	return res;
+}
+
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, Bool is_first_merge)
 {
 	u32 i, j, chunk_size;
@@ -512,6 +550,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	if (traf->sampleGroups) {
 		GF_List *groups;
 		GF_List *groupDescs;
+		Bool is_identical_sgpd = GF_TRUE;
+		u32 *new_idx = NULL;
+
 		if (!trak->Media->information->sampleTable->sampleGroups)
 			trak->Media->information->sampleTable->sampleGroups = gf_list_new();
 
@@ -535,14 +576,36 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			}
 			/*merge descriptions*/
 			else {
-				u32 idx = gf_list_count(new_sgdesc->group_descriptions);
-				for (j=idx; j<gf_list_count(sgdesc->group_descriptions); j++) {
-					void *ptr = gf_list_get(sgdesc->group_descriptions, j);
-					if (ptr) {
-						gf_list_add(new_sgdesc->group_descriptions, ptr);
-						gf_list_rem(sgdesc->group_descriptions, j);
-						j--;
+				u32 count;
+
+				is_identical_sgpd = gf_isom_is_identical_sgpd(new_sgdesc, sgdesc, 0);
+				if (is_identical_sgpd)
+					continue;
+
+				new_idx = (u32 *)gf_malloc(gf_list_count(sgdesc->group_descriptions)*sizeof(u32));
+				count = 0;
+				while (gf_list_count(sgdesc->group_descriptions)) {
+					void *sgpd_entry = gf_list_get(sgdesc->group_descriptions, 0);
+					Bool new_entry = GF_TRUE;
+
+					for (j = 0; j < gf_list_count(new_sgdesc->group_descriptions); j++) {
+						void *ptr = gf_list_get(new_sgdesc->group_descriptions, j);
+						if (gf_isom_is_identical_sgpd(sgpd_entry, ptr, new_sgdesc->grouping_type)) {
+							new_idx[count] = j + 1;
+							count ++;
+							new_entry = GF_FALSE;
+							gf_free(sgpd_entry);
+							break;
+						}
 					}
+
+					if (new_entry) {
+						gf_list_add(new_sgdesc->group_descriptions, sgpd_entry);
+						new_idx[count] = gf_list_count(new_sgdesc->group_descriptions);
+						count ++;
+					}
+
+					gf_list_rem(sgdesc->group_descriptions, 0);
 				}
 			}
 		}
@@ -566,21 +629,33 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 				stbl_group->version = frag_group->version;
 				gf_list_add(groups, stbl_group);
 			}
-			if (frag_group->entry_count && stbl_group->entry_count && 
-				(frag_group->sample_entries[0].group_description_index==stbl_group->sample_entries[stbl_group->entry_count-1].group_description_index) 
-			) {
-				stbl_group->sample_entries[stbl_group->entry_count - 1].sample_count += frag_group->sample_entries[0].sample_count;
-				if (frag_group->entry_count>1) {
-					stbl_group->sample_entries = gf_realloc(stbl_group->sample_entries, sizeof(GF_SampleGroupEntry) * (stbl_group->entry_count + frag_group->entry_count - 1));
-					memcpy(&stbl_group->sample_entries[stbl_group->entry_count], &frag_group->sample_entries[1], sizeof(GF_SampleGroupEntry) * (frag_group->entry_count - 1));
-					stbl_group->entry_count += frag_group->entry_count - 1;
+
+			if (is_identical_sgpd) {
+				if (frag_group->entry_count && stbl_group->entry_count && 
+					(frag_group->sample_entries[0].group_description_index==stbl_group->sample_entries[stbl_group->entry_count-1].group_description_index) 
+				) {
+					stbl_group->sample_entries[stbl_group->entry_count - 1].sample_count += frag_group->sample_entries[0].sample_count;
+					if (frag_group->entry_count>1) {
+						stbl_group->sample_entries = gf_realloc(stbl_group->sample_entries, sizeof(GF_SampleGroupEntry) * (stbl_group->entry_count + frag_group->entry_count - 1));
+						memcpy(&stbl_group->sample_entries[stbl_group->entry_count], &frag_group->sample_entries[1], sizeof(GF_SampleGroupEntry) * (frag_group->entry_count - 1));
+						stbl_group->entry_count += frag_group->entry_count - 1;
+					}
+				} else {
+					stbl_group->sample_entries = gf_realloc(stbl_group->sample_entries, sizeof(GF_SampleGroupEntry) * (stbl_group->entry_count + frag_group->entry_count));
+					memcpy(&stbl_group->sample_entries[stbl_group->entry_count], &frag_group->sample_entries[0], sizeof(GF_SampleGroupEntry) * frag_group->entry_count);
+					stbl_group->entry_count += frag_group->entry_count;
 				}
 			} else {
 				stbl_group->sample_entries = gf_realloc(stbl_group->sample_entries, sizeof(GF_SampleGroupEntry) * (stbl_group->entry_count + frag_group->entry_count));
+				//adjust sgpd index
+				for (j = 0; j < frag_group->entry_count; j++)
+					frag_group->sample_entries[j].group_description_index = new_idx[j];
 				memcpy(&stbl_group->sample_entries[stbl_group->entry_count], &frag_group->sample_entries[0], sizeof(GF_SampleGroupEntry) * frag_group->entry_count);
 				stbl_group->entry_count += frag_group->entry_count;
 			}
 		}
+
+		if (new_idx) gf_free(new_idx);
 	}
 
 	if (gf_isom_is_cenc_media(trak->moov->mov, gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID), 1)) {
