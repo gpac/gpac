@@ -199,7 +199,7 @@ static Bool ft_enum_fonts_dir(void *cbck, char *file_name, char *file_path)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Scanning directory %s (%s)\n", file_name, file_path));
 	gf_enum_directory(file_path, 0, ft_enum_fonts, cbck, "ttf;ttc");
-	return gf_enum_directory(file_path, 1, ft_enum_fonts_dir, cbck, NULL);
+	return (gf_enum_directory(file_path, 1, ft_enum_fonts_dir, cbck, NULL)==GF_OK) ? GF_FALSE : GF_TRUE;
 }
 
 

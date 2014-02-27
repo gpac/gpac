@@ -3461,7 +3461,7 @@ static Bool wm_enum_widget(void *cbk, char *file_name, char *file_path)
 
 static Bool wm_enum_dir(void *cbk, char *file_name, char *file_path)
 {
-	return gf_enum_directory(file_path, 0, wm_enum_widget, cbk, "mgt");
+	return (gf_enum_directory(file_path, 0, wm_enum_widget, cbk, "mgt")==GF_OK) ? GF_FALSE : GF_TRUE;
 }
 
 

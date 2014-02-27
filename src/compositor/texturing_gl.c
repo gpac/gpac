@@ -153,7 +153,7 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 {
 	txh->tx_io->flags |= TX_NEEDS_RASTER_LOAD | TX_NEEDS_HW_LOAD;
 
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 	//PBO mode: start pushing the texture
 	if (txh->tx_io->pbo_id) {
 		u8 *ptr;
@@ -474,6 +474,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	}
 #endif
     
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 	if (txh->compositor->gl_caps.pbo && txh->compositor->enable_pbo) {
 		u32 size = txh->stride*txh->height;
 
@@ -502,6 +503,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 			}
 		}
 	}
+#endif
 
 	if (use_yuv_shaders) {
 		//we use LUMINANCE because GL_RED is not defined on android ...
@@ -807,12 +809,15 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
     if (needs_stride) {
 #endif
 
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 	if (txh->tx_io->pbo_pushed) {
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_id);
 		glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, NULL);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 	}
-	else if (first_load) {
+	else 
+#endif
+	if (first_load) {
 		glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);
 	} else {
 		glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, h, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);

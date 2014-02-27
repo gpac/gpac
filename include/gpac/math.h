@@ -37,10 +37,7 @@ extern "C" {
 
 #include <gpac/setup.h>
 	
-/*NOTE: there is a conflict on Win32 VC6 with C++ and gpac headers when including <math.h>*/
-#if !defined(__cplusplus) || defined(__SYMBIAN32__)
 #include <math.h>
-#endif
 
 
 /*!

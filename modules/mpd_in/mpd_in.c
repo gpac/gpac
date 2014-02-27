@@ -391,7 +391,6 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 	if (param->msg_type == GF_NETIO_DATA_TRANSFERED) {
 		u32 bytes_per_sec;
 		const char *url;
-		u64 start_time = gf_dm_sess_get_utc_start(group->sess);
 		gf_dm_sess_get_stats(group->sess, NULL, &url, NULL, NULL, &bytes_per_sec, NULL);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] End of file %s download at UTC "LLU" ms - estimated bandwidth %d kbps - started file or last chunk at UTC "LLU"\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000, gf_dm_sess_get_utc_start(group->sess)));
 	}
@@ -850,6 +849,9 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_SERVICE_QUALITY_SWITCH:
 		gf_dash_switch_quality(mpdin->dash, com->switch_quality.up, mpdin->immediate_switch);
         return GF_OK;
+
+	default:
+		break;
 	}
 	/*not supported*/
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
@@ -966,7 +968,7 @@ Bool MPD_CanHandleURLInService(GF_InputService *plug, const char *url)
 	*/
 	GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Can Handle URL In Service (%p) request from terminal for %s\n", mpdin->service, url));
-	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
+	if (!plug || !plug->priv) return GF_FALSE;
 	if (gf_dash_get_url(mpdin->dash) && !strcmp(gf_dash_get_url(mpdin->dash) , url)) {
 		return 1;
 	} else {

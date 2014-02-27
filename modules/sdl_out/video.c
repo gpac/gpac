@@ -1281,7 +1281,7 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 		dst.width = wndSurface->w;
 		dst.pitch_x = 0;
 		dst.pitch_y = wndSurface->pitch;
-		dst.pixel_format = SDLVid_MapPixelFormat(wndSurface->format, SDL_FALSE);
+		dst.pixel_format = SDLVid_MapPixelFormat(wndSurface->format, GF_FALSE);
 		dst.video_buffer = (char*)wndSurface->pixels;
 #else
 		SDL_LockSurface(ctx->screen);
