@@ -237,6 +237,7 @@ GF_Err gf_isom_read_box_list_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_b
 {
 	GF_Err e;
 	GF_Box *a = NULL;
+	
 	while (parent->size) {
 		e = gf_isom_parse_box_ex(&a, bs, parent_type);
 		if (e) {
@@ -691,6 +692,14 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_SBTT: return metx_New(GF_ISOM_BOX_TYPE_SBTT);
 #endif //GPAC_DISABLE_TTXT
 
+	case GF_ISOM_BOX_TYPE_ADKM: return adkm_New();
+	case GF_ISOM_BOX_TYPE_AHDR: return ahdr_New();
+	case GF_ISOM_BOX_TYPE_APRM: return aprm_New();
+	case GF_ISOM_BOX_TYPE_AEIB: return aeib_New();
+	case GF_ISOM_BOX_TYPE_AKEY: return akey_New();
+	case GF_ISOM_BOX_TYPE_FLXS: return flxs_New();
+	case GF_ISOM_BOX_TYPE_ADAF: return adaf_New();
+
 	default:
 		a = defa_New();
 		if (a) a->type = boxType;
@@ -1022,6 +1031,14 @@ void gf_isom_box_del(GF_Box *a)
 
 #endif // GPAC_DISABLE_TTXT
 
+	case GF_ISOM_BOX_TYPE_ADKM: adkm_del(a); return;
+	case GF_ISOM_BOX_TYPE_AHDR: ahdr_del(a); return;	
+	case GF_ISOM_BOX_TYPE_APRM: aprm_del(a); return;
+	case GF_ISOM_BOX_TYPE_AEIB: aeib_del(a); return;
+	case GF_ISOM_BOX_TYPE_AKEY: akey_del(a); return;
+	case GF_ISOM_BOX_TYPE_FLXS: flxs_del(a); return;
+	case GF_ISOM_BOX_TYPE_ADAF: adaf_del(a); return;
+
 	default:
 		defa_del(a);
 		return;
@@ -1307,6 +1324,14 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_SBTT: return metx_Read(a, bs);
 
 #endif // GPAC_DISABLE_TTXT
+
+	case GF_ISOM_BOX_TYPE_ADKM: return adkm_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_AHDR: return ahdr_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_APRM: return aprm_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_AEIB: return aeib_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_AKEY: return akey_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_FLXS: return flxs_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ADAF: return adaf_Read(a, bs);
 
 	default:
 		return defa_Read(a, bs);
@@ -1596,6 +1621,14 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_STPP: return stpp_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_SBTT: return metx_Write(a, bs);
 #endif//GPAC_DISABLE_TTXT
+
+	case GF_ISOM_BOX_TYPE_ADKM: return adkm_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_AHDR: return ahdr_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_APRM: return aprm_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_AEIB: return aeib_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_AKEY: return akey_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_FLXS: return flxs_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_ADAF: return adaf_Write(a, bs);
 
 	default:
 		return defa_Write(a, bs);
@@ -1891,6 +1924,14 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_STPP: return stpp_Size(a);
 	case GF_ISOM_BOX_TYPE_SBTT: return metx_Size(a);
 #endif // GPAC_DISABLE_TTXT
+
+	case GF_ISOM_BOX_TYPE_ADKM: return adkm_Size(a);
+	case GF_ISOM_BOX_TYPE_AHDR: return ahdr_Size(a);
+	case GF_ISOM_BOX_TYPE_APRM: return aprm_Size(a);
+	case GF_ISOM_BOX_TYPE_AEIB: return aeib_Size(a);
+	case GF_ISOM_BOX_TYPE_AKEY: return akey_Size(a);
+	case GF_ISOM_BOX_TYPE_FLXS: return flxs_Size(a);
+	case GF_ISOM_BOX_TYPE_ADAF: return adaf_Size(a);
 
 	default: return defa_Size(a);
 	}

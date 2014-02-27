@@ -8470,7 +8470,7 @@ static void	sgpd_del_entry(u32 grouping_type, void *entry)
 	}
 }
 
-static void	sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
+void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 {
 	switch (grouping_type) {
 	case GF_4CC( 'r', 'o', 'l', 'l' ):
@@ -8505,7 +8505,6 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 		return ((GF_DefaultSampleGroupDescriptionEntry *)entry)->length;
 	}
 }
-
 
 GF_Box *sgpd_New()
 {

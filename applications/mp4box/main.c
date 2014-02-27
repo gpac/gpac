@@ -329,6 +329,7 @@ void PrintDASHUsage()
 			" -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
 			" -mem-frags           fragments will be produced in memory rather than on disk before flushing to disk\n"
 			" -pssh-moof           stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box.\n"
+			" -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf) rather than in moof. By default sample group descriptions are stored in movie box.\n"		
 			
 			"\n"
 			"Advanced Options, should not be needed when using -dash-profile:\n"
@@ -1499,6 +1500,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool enable_mem_tracker = 0;
 	Bool dump_iod=0;
 	Bool pssh_in_moof=0;
+	Bool samplegroups_in_traf=0;
 	Bool daisy_chain_sidx=0;
 	Bool single_segment=0;
 	Bool single_file=0;
@@ -1974,6 +1976,8 @@ int mp4boxMain(int argc, char **argv)
 			single_file = 1;
 		} else if (!stricmp(arg, "-pssh-moof")) {
 			pssh_in_moof = 1;
+		} else if (!stricmp(arg, "-sample-groups-traf")) {
+			samplegroups_in_traf = 1;
 		} else if (!stricmp(arg, "-dash-profile") || !stricmp(arg, "-profile")) {
 			CHECK_NEXT_ARG
 			if (!stricmp(argv[i+1], "live") || !stricmp(argv[i+1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
@@ -3012,7 +3016,7 @@ int mp4boxMain(int argc, char **argv)
 									   seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
 									   interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
 									   dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer, 
-									   ast_shift_sec, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, pssh_in_moof);
+									   ast_shift_sec, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf);
 			if (e) break;
 
 			if (dash_live) {

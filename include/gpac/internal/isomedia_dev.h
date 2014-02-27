@@ -164,6 +164,15 @@ enum
 	GF_ISOM_BOX_TYPE_PSSH	= GF_4CC( 'p', 's', 's', 'h' ),
 	GF_ISOM_BOX_TYPE_TENC	= GF_4CC( 't', 'e', 'n', 'c' ),
 
+	/*Adobe's protection boxes*/
+	GF_ISOM_BOX_TYPE_ADKM	= GF_4CC( 'a', 'd', 'k', 'm' ),
+	GF_ISOM_BOX_TYPE_AHDR	= GF_4CC( 'a', 'h', 'd', 'r' ),
+	GF_ISOM_BOX_TYPE_ADAF	= GF_4CC( 'a', 'd', 'a', 'f' ),
+	GF_ISOM_BOX_TYPE_APRM	= GF_4CC( 'a', 'p', 'r', 'm' ),
+	GF_ISOM_BOX_TYPE_AEIB	= GF_4CC( 'a', 'e', 'i', 'b' ),
+	GF_ISOM_BOX_TYPE_AKEY	= GF_4CC( 'a', 'k', 'e', 'y' ),
+	GF_ISOM_BOX_TYPE_FLXS	= GF_4CC( 'f', 'l', 'x', 's' ),
+
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*Movie Fragments*/
 	GF_ISOM_BOX_TYPE_MVEX	= GF_4CC( 'm', 'v', 'e', 'x' ),
@@ -1549,6 +1558,7 @@ typedef struct
 	struct __oma_kms_box *okms;
 	struct __cenc_tenc_box *tenc;
 	struct __piff_tenc_box *piff_tenc;
+	struct __adobe_drm_key_management_system_box *adkm;
 } GF_SchemeInformationBox;
 
 typedef struct __tag_protect_box
@@ -2301,6 +2311,58 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *t
 
 GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *ptr);
 
+/*
+	Boxes for Adobe's protection scheme
+*/
+typedef struct __adobe_enc_info_box
+{
+	GF_ISOM_FULL_BOX
+	char *enc_algo; /*spec: The encryption algorithm shall be 'AES-CBC'*/
+	u8 key_length;
+} GF_AdobeEncryptionInfoBox;
+
+typedef struct __adobe_flash_access_params_box
+{
+	GF_ISOM_BOX
+	char *metadata; /*base-64 encoded metadata used by the DRM client to retrieve decrypted key*/
+} GF_AdobeFlashAccessParamsBox;
+
+typedef struct __adobe_key_info_box
+{
+	GF_ISOM_FULL_BOX
+	GF_AdobeFlashAccessParamsBox * params; /*spec: APSParamsBox will no longer be produced by conformaing applications*/
+} GF_AdobeKeyInfoBox;
+
+typedef struct __adobe_std_enc_params_box
+{
+	GF_ISOM_FULL_BOX
+	GF_AdobeEncryptionInfoBox *enc_info;
+	GF_AdobeKeyInfoBox *key_info;
+} GF_AdobeStdEncryptionParamsBox;
+
+typedef struct __adobe_drm_header_box
+{
+	GF_ISOM_FULL_BOX
+	GF_AdobeStdEncryptionParamsBox *std_enc_params;
+	//AdobeSignatureBox *signature; /*AdobeSignatureBox is not described*/
+} GF_AdobeDRMHeaderBox;
+
+
+typedef struct __adobe_drm_au_format_box
+{
+	GF_ISOM_FULL_BOX
+	u8 selective_enc;
+	u8 IV_length;
+} GF_AdobeDRMAUFormatBox;
+
+typedef struct __adobe_drm_key_management_system_box
+{
+	GF_ISOM_FULL_BOX
+	GF_AdobeDRMHeaderBox *header;
+	GF_AdobeDRMAUFormatBox *au_format;
+} GF_AdobeDRMKeyManagementSystemBox;
+
+
 typedef struct 
 {
 	GF_ISOM_FULL_BOX
@@ -2640,8 +2702,7 @@ GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveSampleFragments(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber);
 
-/*expands sampleGroup table for the given grouping type and sample_number. If sample_number is 0, just appends an entry at the end of the table*/
-GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_number, u32 grouping_type, u32 sampleGroupDescriptionIndex);
+GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_SampleTableBox *stbl, u32 grouping_type, u32 sampleGroupDescriptionIndex, Bool sgpd_in_traf);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie);
@@ -4060,6 +4121,67 @@ void prft_del(GF_Box *s);
 GF_Box *prft_New();
 GF_Err prft_Read(GF_Box *s,GF_BitStream *bs);
 GF_Err prft_dump(GF_Box *a, FILE * trace);
+
+//exported for sgpd comparison in traf merge
+void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs);
+
+/*
+	Adobe's protection boxes
+*/
+
+GF_Box *adkm_New();
+void adkm_del(GF_Box *s);
+GF_Err adkm_AddBox(GF_Box *s, GF_Box *a);
+GF_Err adkm_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err adkm_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err adkm_Size(GF_Box *s);
+GF_Err adkm_dump(GF_Box *a, FILE * trace);
+
+GF_Box *ahdr_New();
+void ahdr_del(GF_Box *s);
+GF_Err ahdr_AddBox(GF_Box *s, GF_Box *a);
+GF_Err ahdr_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ahdr_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err ahdr_Size(GF_Box *s);
+GF_Err ahdr_dump(GF_Box *a, FILE * trace);
+
+GF_Box *aprm_New();
+void aprm_del(GF_Box *s);
+GF_Err aprm_AddBox(GF_Box *s, GF_Box *a);
+GF_Err aprm_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err aprm_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err aprm_Size(GF_Box *s);
+GF_Err aprm_dump(GF_Box *a, FILE * trace);
+
+GF_Box *aeib_New();
+void aeib_del(GF_Box *s);
+GF_Err aeib_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err aeib_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err aeib_Size(GF_Box *s);
+GF_Err aeib_dump(GF_Box *a, FILE * trace);
+
+GF_Box *akey_New();
+void akey_del(GF_Box *s);
+GF_Err akey_AddBox(GF_Box *s, GF_Box *a);
+GF_Err akey_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err akey_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err akey_Size(GF_Box *s);
+GF_Err akey_dump(GF_Box *a, FILE * trace);
+
+GF_Box *flxs_New();
+void flxs_del(GF_Box *s);
+GF_Err flxs_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err flxs_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err flxs_Size(GF_Box *s);
+GF_Err flxs_dump(GF_Box *a, FILE * trace);
+
+
+GF_Box *adaf_New();
+void adaf_del(GF_Box *s);
+GF_Err adaf_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err adaf_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err adaf_Size(GF_Box *s);
+GF_Err adaf_dump(GF_Box *a, FILE * trace);
 
 #endif /*GPAC_DISABLE_ISOM*/
 

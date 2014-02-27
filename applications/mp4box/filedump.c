@@ -1012,6 +1012,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	GF_AVCConfig *avccfg, *svccfg;
 	GF_HEVCConfig *hevccfg, *shvccfg;
 	GF_AVCConfigSlot *slc;
+	Bool is_adobe_protection = GF_FALSE;
 
 	memset(&avc, 0, sizeof(AVCState));
 #endif
@@ -1126,6 +1127,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 
 	fprintf(dump, " <NALUSamples>\n");
 	gf_isom_set_nalu_extract_mode(file, track, GF_ISOM_NALU_EXTRACT_INSPECT);
+	is_adobe_protection = gf_isom_is_adobe_protection_media(file, track, 1);
 	for (i=0; i<count; i++) {
 		u64 dts, cts;
 		u32 size, nal_size, idx;
@@ -1140,6 +1142,18 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		idx = 1;
 		ptr = samp->data;
 		size = samp->dataLength;
+		if (is_adobe_protection) {
+			u8 encrypted_au = ptr[0];
+			if (encrypted_au) {
+				fprintf(dump, "   <!-- Sample number %d is an Adobe's protected sample: can not be dumped -->\n", i+1);
+				fprintf(dump, "  </Sample>\n\n");
+				continue;
+			}
+			else {
+				ptr++;
+				size--;
+			}
+		}
 		while (size) {
 			u32 v = nalh_size;
 			nal_size = 0;
@@ -1860,6 +1874,9 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					gf_isom_get_cenc_info(file, trackNum, 1, NULL, &scheme_type, &version, &IV_size);
 					fprintf(stderr, "\n*Encrypted stream - CENC scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
 					if (IV_size) fprintf(stderr, "Initialization Vector size: %d bits\n", IV_size*8);
+				} else if(gf_isom_is_adobe_protection_media(file, trackNum, 1)) {
+					gf_isom_get_adobe_protection_info(file, trackNum, 1, NULL, &scheme_type, &version);
+					fprintf(stderr, "\n*Encrypted stream - Adobe protection scheme %s (version %d)\n", gf_4cc_to_str(scheme_type), version);
 				} else {
 					fprintf(stderr, "\n*Encrypted stream - unknown scheme %s\n", gf_4cc_to_str(gf_isom_is_media_encrypted(file, trackNum, 1) ));
 				}

@@ -233,6 +233,7 @@ void schi_del(GF_Box *s)
 	if (ptr->okms) gf_isom_box_del((GF_Box *)ptr->okms);
 	if (ptr->tenc) gf_isom_box_del((GF_Box *)ptr->tenc);
 	if (ptr->piff_tenc) gf_isom_box_del((GF_Box *)ptr->piff_tenc);
+	if (ptr->adkm) gf_isom_box_del((GF_Box *)ptr->adkm);
 	gf_free(ptr);
 }
 
@@ -255,6 +256,10 @@ GF_Err schi_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TENC:
 		if (ptr->tenc) return GF_ISOM_INVALID_FILE;
 		ptr->tenc = (GF_TrackEncryptionBox *)a;
+		return GF_OK;
+	case GF_ISOM_BOX_TYPE_ADKM:
+		if (ptr->adkm) return GF_ISOM_INVALID_FILE;
+		ptr->adkm = (GF_AdobeDRMKeyManagementSystemBox *)a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_UUID:
 		if (((GF_UUIDBox*)a)->internal_4cc==GF_ISOM_BOX_UUID_TENC) {
@@ -299,6 +304,10 @@ GF_Err schi_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->tenc, bs);
 		if (e) return e;
 	}
+	if (ptr->adkm) {
+		e = gf_isom_box_write((GF_Box *) ptr->adkm, bs);
+		if (e) return e;
+	}
 	if (ptr->piff_tenc) {
 		e = gf_isom_box_write((GF_Box *) ptr->piff_tenc, bs);
 		if (e) return e;
@@ -333,6 +342,11 @@ GF_Err schi_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->tenc);
 		if (e) return e;
 		ptr->size += ptr->tenc->size;
+	}
+	if (ptr->adkm) {
+		e = gf_isom_box_size((GF_Box *) ptr->adkm);
+		if (e) return e;
+		ptr->size += ptr->adkm->size;
 	}
 	if (ptr->piff_tenc) {
 		e = gf_isom_box_size((GF_Box *) ptr->tenc);
@@ -1391,5 +1405,476 @@ GF_Err senc_Size(GF_Box *s)
 	return GF_OK;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
+
+GF_Box *adkm_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AdobeDRMKeyManagementSystemBox, GF_ISOM_BOX_TYPE_ADKM);
+	tmp->version = 1;
+	tmp->flags = 0;
+	return (GF_Box *)tmp;
+}
+
+void adkm_del(GF_Box *s)
+{
+	GF_AdobeDRMKeyManagementSystemBox *ptr = (GF_AdobeDRMKeyManagementSystemBox *)s;
+	if (!ptr) return;
+	if (ptr->header) gf_isom_box_del((GF_Box *)ptr->header);
+	if (ptr->au_format) gf_isom_box_del((GF_Box *)ptr->au_format);
+	gf_free(s);
+}
+
+GF_Err adkm_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_AdobeDRMKeyManagementSystemBox *ptr = (GF_AdobeDRMKeyManagementSystemBox *)s;
+	switch (a->type) {
+	case GF_ISOM_BOX_TYPE_AHDR: 
+		if (ptr->header) return GF_ISOM_INVALID_FILE;
+		ptr->header = (GF_AdobeDRMHeaderBox *)a; 
+		break;
+	case GF_ISOM_BOX_TYPE_ADAF: 
+		if (ptr->au_format) return GF_ISOM_INVALID_FILE;
+		ptr->au_format = (GF_AdobeDRMAUFormatBox *)a; 
+		break;
+
+	default: 
+		return gf_isom_box_add_default(s, a);
+	}
+	return GF_OK;
+}
+
+GF_Err adkm_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	return gf_isom_read_box_list(s, bs, adkm_AddBox);
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err adkm_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AdobeDRMKeyManagementSystemBox *ptr = (GF_AdobeDRMKeyManagementSystemBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	//ahdr
+	e = gf_isom_box_write((GF_Box *) ptr->header, bs);
+	if (e) return e;
+	//adaf
+	e = gf_isom_box_write((GF_Box *) ptr->au_format, bs);
+	if (e) return e;
+
+	return GF_OK;
+}
+
+GF_Err adkm_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_AdobeDRMKeyManagementSystemBox *ptr = (GF_AdobeDRMKeyManagementSystemBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	e = gf_isom_box_size((GF_Box *) ptr->header);
+	if (e) return e;
+	ptr->size += ptr->header->size;
+	e = gf_isom_box_size((GF_Box *) ptr->au_format);
+	if (e) return e;
+	ptr->size += ptr->au_format->size;
+	return GF_OK;
+}
+#endif //GPAC_DISABLE_ISOM_WRITE
+
+GF_Box *ahdr_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AdobeDRMHeaderBox, GF_ISOM_BOX_TYPE_AHDR);
+	tmp->version = 2;
+	tmp->flags = 0;
+	return (GF_Box *)tmp;
+}
+
+void ahdr_del(GF_Box *s)
+{
+	GF_AdobeDRMHeaderBox *ptr = (GF_AdobeDRMHeaderBox *)s;
+	if (!ptr) return;
+	if (ptr->std_enc_params) gf_isom_box_del((GF_Box *)ptr->std_enc_params);
+	gf_free(s);
+}
+
+
+GF_Err ahdr_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_AdobeDRMHeaderBox *ptr = (GF_AdobeDRMHeaderBox *)s;
+	switch (a->type) {
+	case GF_ISOM_BOX_TYPE_APRM: 
+		if (ptr->std_enc_params) return GF_ISOM_INVALID_FILE;
+		ptr->std_enc_params = (GF_AdobeStdEncryptionParamsBox *)a; 
+		break;
+
+	default: 
+		return gf_isom_box_add_default(s, a);
+	}
+	return GF_OK;
+}
+
+GF_Err ahdr_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	return gf_isom_read_box_list(s, bs, ahdr_AddBox);
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err ahdr_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AdobeDRMHeaderBox *ptr = (GF_AdobeDRMHeaderBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	e = gf_isom_box_write((GF_Box *) ptr->std_enc_params, bs);
+	if (e) return e;
+
+	return GF_OK;
+}
+
+GF_Err ahdr_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_AdobeDRMHeaderBox *ptr = (GF_AdobeDRMHeaderBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	e = gf_isom_box_size((GF_Box *) ptr->std_enc_params);
+	if (e) return e;
+	ptr->size += ptr->std_enc_params->size;
+	return GF_OK;
+}
+#endif //GPAC_DISABLE_ISOM_WRITE
+
+GF_Box *aprm_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AdobeStdEncryptionParamsBox, GF_ISOM_BOX_TYPE_APRM);
+	tmp->version = 1;
+	tmp->flags = 0;
+	return (GF_Box *)tmp;
+}
+
+void aprm_del(GF_Box *s)
+{
+	GF_AdobeStdEncryptionParamsBox *ptr = (GF_AdobeStdEncryptionParamsBox *)s;
+	if (!ptr) return;
+	if (ptr->enc_info) gf_isom_box_del((GF_Box *)ptr->enc_info);
+	if (ptr->key_info) gf_isom_box_del((GF_Box *)ptr->key_info);
+	gf_free(s);
+}
+
+GF_Err aprm_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_AdobeStdEncryptionParamsBox *ptr = (GF_AdobeStdEncryptionParamsBox *)s;
+	switch (a->type) {
+	case GF_ISOM_BOX_TYPE_AHDR: 
+		if (ptr->enc_info) return GF_ISOM_INVALID_FILE;
+		ptr->enc_info = (GF_AdobeEncryptionInfoBox *)a; 
+		break;
+	case GF_ISOM_BOX_TYPE_ADAF: 
+		if (ptr->key_info) return GF_ISOM_INVALID_FILE;
+		ptr->key_info = (GF_AdobeKeyInfoBox *)a; 
+		break;
+
+	default: 
+		return gf_isom_box_add_default(s, a);
+	}
+	return GF_OK;
+}
+
+GF_Err aprm_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	return gf_isom_read_box_list(s, bs, aprm_AddBox);
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err aprm_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AdobeStdEncryptionParamsBox *ptr = (GF_AdobeStdEncryptionParamsBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	//ahdr
+	e = gf_isom_box_write((GF_Box *) ptr->enc_info, bs);
+	if (e) return e;
+	//adaf
+	e = gf_isom_box_write((GF_Box *) ptr->key_info, bs);
+	if (e) return e;
+
+	return GF_OK;
+}
+
+GF_Err aprm_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_AdobeStdEncryptionParamsBox *ptr = (GF_AdobeStdEncryptionParamsBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	e = gf_isom_box_size((GF_Box *) ptr->enc_info);
+	if (e) return e;
+	ptr->size += ptr->enc_info->size;
+	e = gf_isom_box_size((GF_Box *) ptr->key_info);
+	if (e) return e;
+	ptr->size += ptr->key_info->size;
+	return GF_OK;
+}
+#endif //GPAC_DISABLE_ISOM_WRITE
+
+GF_Box *aeib_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AdobeEncryptionInfoBox, GF_ISOM_BOX_TYPE_AEIB);
+	tmp->version = 1;
+	tmp->flags = 0;
+	return (GF_Box *)tmp;
+}
+
+void aeib_del(GF_Box *s)
+{
+	GF_AdobeEncryptionInfoBox *ptr = (GF_AdobeEncryptionInfoBox*)s;
+	if (!ptr) return;
+	if (ptr->enc_algo) gf_free(ptr->enc_algo);
+	gf_free(ptr);
+}
+
+GF_Err aeib_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AdobeEncryptionInfoBox *ptr = (GF_AdobeEncryptionInfoBox*)s;
+	u32 len;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	len = (u32) ptr->size - 1;
+	if (len) {
+		if (ptr->enc_algo) return GF_ISOM_INVALID_FILE;
+		ptr->enc_algo = (char *)gf_malloc(len*sizeof(char));
+		gf_bs_read_data(bs, ptr->enc_algo, len);
+	}
+	ptr->key_length = gf_bs_read_u8(bs);
+	ptr->size = 0;
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err aeib_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AdobeEncryptionInfoBox *ptr = (GF_AdobeEncryptionInfoBox *) s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	if (ptr->enc_algo) {
+		gf_bs_write_data(bs, (char *) ptr->enc_algo, (u32) strlen(ptr->enc_algo));
+		gf_bs_write_u8(bs, 0); //string end
+	}
+	gf_bs_write_u8(bs, ptr->key_length);
+	return GF_OK;
+}
+
+GF_Err aeib_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_AdobeEncryptionInfoBox *ptr = (GF_AdobeEncryptionInfoBox*)s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	if (ptr->enc_algo)
+		ptr->size += strlen(ptr->enc_algo) + 1;
+	ptr->size += 1; //KeyLength
+	return GF_OK;
+}
+#endif //GPAC_DISABLE_ISOM_WRITE
+
+GF_Box *akey_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AdobeKeyInfoBox, GF_ISOM_BOX_TYPE_AKEY);
+	tmp->version = 1;
+	tmp->flags = 0;
+	return (GF_Box *)tmp;
+}
+
+void akey_del(GF_Box *s)
+{
+	GF_AdobeKeyInfoBox *ptr = (GF_AdobeKeyInfoBox *)s;
+	if (!ptr) return;
+	if (ptr->params) gf_isom_box_del((GF_Box *)ptr->params);
+	gf_free(s);
+}
+
+GF_Err akey_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_AdobeKeyInfoBox *ptr = (GF_AdobeKeyInfoBox *)s;
+	switch (a->type) {
+	case GF_ISOM_BOX_TYPE_FLXS: 
+		if (ptr->params) return GF_ISOM_INVALID_FILE;
+		ptr->params = (GF_AdobeFlashAccessParamsBox *)a; 
+		break;
+	default: 
+		return gf_isom_box_add_default(s, a);
+	}
+	return GF_OK;
+}
+
+GF_Err akey_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	return gf_isom_read_box_list(s, bs, akey_AddBox);
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err akey_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AdobeKeyInfoBox *ptr = (GF_AdobeKeyInfoBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	e = gf_isom_box_write((GF_Box *) ptr->params, bs);
+	if (e) return e;
+
+	return GF_OK;
+}
+
+GF_Err akey_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_AdobeKeyInfoBox *ptr = (GF_AdobeKeyInfoBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	e = gf_isom_box_size((GF_Box *) ptr->params);
+	if (e) return e;
+	ptr->size += ptr->params->size;
+	e = gf_isom_box_size((GF_Box *) ptr->params);
+	return GF_OK;
+}
+#endif //GPAC_DISABLE_ISOM_WRITE
+
+GF_Box *flxs_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AdobeFlashAccessParamsBox, GF_ISOM_BOX_TYPE_FLXS);
+	return (GF_Box *)tmp;
+}
+
+void flxs_del(GF_Box *s)
+{
+	GF_AdobeFlashAccessParamsBox *ptr = (GF_AdobeFlashAccessParamsBox*)s;
+	if (!ptr) return;
+	if (ptr->metadata)
+		gf_free(ptr->metadata);
+	gf_free(ptr);
+}
+
+GF_Err flxs_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_AdobeFlashAccessParamsBox *ptr = (GF_AdobeFlashAccessParamsBox*)s;
+	u32 len;
+
+	len = (u32) ptr->size;
+	if (len) {
+		if (ptr->metadata) return GF_ISOM_INVALID_FILE;
+		ptr->metadata = (char *)gf_malloc(len*sizeof(char));
+		gf_bs_read_data(bs, ptr->metadata, len);
+	}
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err flxs_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AdobeFlashAccessParamsBox *ptr = (GF_AdobeFlashAccessParamsBox *) s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	if (ptr->metadata) {
+		gf_bs_write_data(bs, ptr->metadata, (u32) strlen(ptr->metadata));
+		gf_bs_write_u8(bs, 0); //string end
+	}
+	return GF_OK;
+}
+
+GF_Err flxs_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_AdobeFlashAccessParamsBox *ptr = (GF_AdobeFlashAccessParamsBox*)s;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	if (ptr->metadata) 
+		ptr->size += strlen(ptr->metadata) + 1;
+	return GF_OK;
+}
+#endif //GPAC_DISABLE_ISOM_WRITE
+
+GF_Box *adaf_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AdobeDRMAUFormatBox, GF_ISOM_BOX_TYPE_ADAF);
+	return (GF_Box *)tmp;
+}
+
+void adaf_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+GF_Err adaf_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AdobeDRMAUFormatBox *ptr = (GF_AdobeDRMAUFormatBox*)s;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	ptr->selective_enc = gf_bs_read_u8(bs);
+	gf_bs_read_u8(bs);//resersed
+	ptr->IV_length = gf_bs_read_u8(bs);
+	ptr->size -= 3;
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err adaf_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AdobeDRMAUFormatBox *ptr = (GF_AdobeDRMAUFormatBox *) s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u8(bs, ptr->selective_enc);
+	gf_bs_write_u8(bs, 0x0);
+	gf_bs_write_u8(bs, ptr->IV_length);
+	return GF_OK;
+}
+
+GF_Err adaf_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_AdobeDRMAUFormatBox *ptr = (GF_AdobeDRMAUFormatBox*)s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	ptr->size += 3;
+	return GF_OK;
+}
+#endif //GPAC_DISABLE_ISOM_WRITE
+
 
 #endif /*GPAC_DISABLE_ISOM*/

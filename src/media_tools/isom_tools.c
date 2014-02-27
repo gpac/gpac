@@ -2482,7 +2482,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 				if (e) goto err_exit;
 
 				/*copy subsample information*/
-				e = gf_isom_fragment_copy_subsample(output, tf->TrackID, input, tf->OriginalTrack, tf->SampleNum + 1);
+				e = gf_isom_fragment_copy_subsample(output, tf->TrackID, input, tf->OriginalTrack, tf->SampleNum + 1, GF_FALSE);
 				if (e) 
 					goto err_exit;
 

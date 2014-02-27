@@ -1774,12 +1774,16 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 		GF_TrackBox  *src_trak = gf_isom_get_track_from_file(input, TrackID);
 		u32 boxType;
 		GF_SampleEncryptionBox *senc;
+		u8 IV_size;
+		u32 IsEncrypted;
 
 		if (!traf)  return GF_BAD_PARAM;
 
 		sai = NULL;
+		gf_isom_get_sample_cenc_info(input, trackNum, SampleNum, &IsEncrypted, &IV_size, NULL);
 		e = gf_isom_cenc_get_sample_aux_info(input, trackNum, SampleNum, &sai, &boxType);
 		if (e) return e;
+		sai->IV_size = IV_size;
 
 		switch (boxType) {
 		case GF_ISOM_BOX_UUID_PSEC:
@@ -1813,7 +1817,7 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 		gf_list_add(senc->samp_aux_info, sai);
 		if (sai->subsample_count) senc->flags = 0x00000002;
 
-		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, 18+6*sai->subsample_count);
+		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IsEncrypted ? IV_size+2+6*sai->subsample_count : 0);
 
 	}
 
@@ -1883,7 +1887,7 @@ GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 subSam
 	return gf_isom_add_subsample_info(traf->subs, last_sample, subSampleSize, priority, reserved, discardable);
 }
 
-GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber)
+GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber, Bool sgpd_in_traf)
 {
 	u32 i, count, last_sample;
 	GF_SubSampleInfoEntry *sub_sample;
@@ -1961,11 +1965,12 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 					first_sample_in_entry = last_sample_in_entry+1;
 					continue;
 				}
-				/*found our sample, add it to trak->sampleGroups*/
+
 				if (!traf->sampleGroups)
 					traf->sampleGroups = gf_list_new();
 
-				e = gf_isom_add_sample_group_entry(traf->sampleGroups, 0, sg->grouping_type, sg->sample_entries[j].group_description_index);
+				/*found our sample, add it to trak->sampleGroups*/
+				e = gf_isom_copy_sample_group_entry_to_traf(traf, trak->Media->information->sampleTable, sg->grouping_type, sg->sample_entries[j].group_description_index, sgpd_in_traf);
 				break;
 			}
 		}

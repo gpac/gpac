@@ -790,6 +790,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_last_producer_time_box) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sync_table) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_current_tfdt) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_adobe_protection_media) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_adobe_protection_info) )
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
