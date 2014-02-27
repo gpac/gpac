@@ -186,12 +186,13 @@ struct _visual_manager
 	u32 nb_views, current_view, autostereo_type, camera_layout;
 	Bool reverse_views;
 
+	GF_SHADERID base_glsl_vertex;
+
 	u32 *gl_textures;
 	u32 auto_stereo_width, auto_stereo_height;
 	GF_Mesh *autostereo_mesh;
-	GF_SHADERID glsl_program;
-	GF_SHADERID glsl_vertex;
-	GF_SHADERID glsl_fragment;
+	GF_SHADERID autostereo_glsl_program;
+	GF_SHADERID autostereo_glsl_fragment;
 	
 	GF_SHADERID yuv_glsl_program;
 	GF_SHADERID yuv_glsl_fragment;

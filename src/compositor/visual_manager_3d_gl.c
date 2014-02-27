@@ -92,6 +92,8 @@ GLDECL_STATIC(glDeleteBuffers);
 GLDECL_STATIC(glBindBuffer);
 GLDECL_STATIC(glBufferData);
 GLDECL_STATIC(glBufferSubData);
+GLDECL_STATIC(glMapBuffer);
+GLDECL_STATIC(glUnmapBuffer);
 #endif //LOAD_GL_1_5
 
 #ifdef LOAD_GL_2_0
@@ -198,7 +200,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	}
 	GET_GLFUN(glBlendEquation);
 #endif
-
+	
 #ifdef LOAD_GL_1_4
 	if (compositor->gl_caps.point_sprite) {
 		GET_GLFUN(glPointParameterf);
@@ -214,7 +216,14 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		GET_GLFUN(glBufferData);
 		GET_GLFUN(glBufferSubData);
 	}
+	if (CHECK_GL_EXT("GL_ARB_pixel_buffer_object")) {
+		GET_GLFUN(glMapBuffer);
+		GET_GLFUN(glUnmapBuffer);
+		
+		compositor->gl_caps.pbo=1;
+	}
 #endif
+
 
 
 
@@ -284,10 +293,11 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 
 
+
 static char *default_glsl_vertex = "\
 	varying vec3 gfNormal;\
 	varying vec3 gfView;\
-	varying out vec2 TexCoord;\
+	varying vec2 TexCoord;\
 	void main(void)\
 	{\
 		gfView = vec3(gl_ModelViewMatrix * gl_Vertex);\
@@ -300,7 +310,7 @@ static char *default_glsl_vertex = "\
 static char *default_glsl_lighting = "\
 	varying vec3 gfNormal;\
 	varying vec3 gfView;\
-	out vec2 TexCoord;\
+	varying vec2 TexCoord;\
 	void gpac_lighting (void)  \
 	{  \
 	   vec3 L = normalize(gl_LightSource[0].position.xyz - gfView);\
@@ -318,7 +328,7 @@ static char *default_glsl_lighting = "\
 static char *glsl_view_anaglyph = "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
-	in vec2 TexCoord;\
+	varying vec2 TexCoord;\
 	void main(void)  \
 	{\
 		vec4 col1 = texture2D(gfView1, TexCoord.st); \
@@ -332,7 +342,7 @@ static char *glsl_view_anaglyph = "\
 static char *glsl_view_anaglyph_optimize = "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
-	in vec2 TexCoord;\
+	varying vec2 TexCoord;\
 	void main(void)  \
 	{\
 		vec4 col1 = texture2D(gfView1, TexCoord.st); \
@@ -347,7 +357,7 @@ static char *glsl_view_anaglyph_optimize = "\
 static char *glsl_view_columns = "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
-	in vec2 TexCoord;\
+	varying vec2 TexCoord;\
 	void main(void)  \
 	{\
 		if ( int( mod(gl_FragCoord.x, 2.0) ) == 0) \
@@ -359,7 +369,7 @@ static char *glsl_view_columns = "\
 static char *glsl_view_rows = "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
-	in vec2 TexCoord;\
+	varying vec2 TexCoord;\
 	void main(void)  \
 	{\
 		if ( int( mod(gl_FragCoord.y, 2.0) ) == 0) \
@@ -374,7 +384,7 @@ static char *glsl_view_5VSP19 = "\
 	uniform sampler2D gfView3;\
 	uniform sampler2D gfView4;\
 	uniform sampler2D gfView5;\
-	in vec2 TexCoord;\
+	varying vec2 TexCoord;\
 	void main(void) {\
 	vec4 color[5];\
 	color[0] = texture2D(gfView5, TexCoord.st);\
@@ -399,7 +409,7 @@ static char *glsl_yuv_shader = "\
 	uniform sampler2D u_plane;\
 	uniform sampler2D v_plane;\
 	uniform float alpha;\
-	in vec2 TexCoord;\
+	varying vec2 TexCoord;\
 	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
@@ -430,7 +440,7 @@ static char *glsl_yuv_rect_shader_strict = "\
 	uniform float width;\
 	uniform float height;\
 	uniform float alpha;\
-	in vec2 TexCoord;\
+	varying vec2 TexCoord;\
 	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
@@ -463,6 +473,7 @@ static char *glsl_yuv_rect_shader_relaxed= "\
 	uniform float width;\
 	uniform float height;\
 	uniform float alpha;\
+    varying vec2 TexCoord;\
 	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
@@ -512,66 +523,77 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 	}
 	return 1;
 }
+static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 shader_type)
+{
+	FILE *src = gf_f64_open(src_path, "rt");
+	GF_SHADERID shader = 0;
+	if (src) {
+		size_t size;
+		char *shader_src;
+		gf_f64_seek(src, 0, SEEK_END);
+		size = (size_t) gf_f64_tell(src);
+		gf_f64_seek(src, 0, SEEK_SET);
+		shader_src = gf_malloc(sizeof(char)*(size+1));
+		size = fread(shader_src, 1, size, src);
+		fclose(src);
+		if (size != (size_t) -1) {
+			shader_src[size]=0;
+			shader = glCreateShader(shader_type);
+			if (visual_3d_compile_shader(shader, (shader_type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", shader_src)==GF_FALSE) {
+				glDeleteShader(shader);
+				shader = 0;
+			}
+		}
+		gf_free(shader_src);
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to open shader file %s\n", src_path));
+	}
+	return shader;
+}
 
 void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 {
     if (!visual->compositor->gl_caps.has_shaders) return;
     
-	if (visual->glsl_program) return;
+	if (visual->autostereo_glsl_program) return;
 	
-	visual->glsl_program = glCreateProgram();
+	visual->autostereo_glsl_program = glCreateProgram();
 
-	if (!visual->glsl_vertex) {
-		visual->glsl_vertex = glCreateShader(GL_VERTEX_SHADER);
-		visual_3d_compile_shader(visual->glsl_vertex, "vertex", default_glsl_vertex);
+	if (!visual->base_glsl_vertex) {
+		visual->base_glsl_vertex = glCreateShader(GL_VERTEX_SHADER);
+		visual_3d_compile_shader(visual->base_glsl_vertex, "vertex", default_glsl_vertex);
 	}
 
 	switch (visual->autostereo_type) {
 	case GF_3D_STEREO_COLUMNS:
-		visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		visual_3d_compile_shader(visual->glsl_fragment, "fragment", glsl_view_columns);
+		visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+		visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_columns);
 		break;
 	case GF_3D_STEREO_ROWS:
-		visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		visual_3d_compile_shader(visual->glsl_fragment, "fragment", glsl_view_rows);
+		visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+		visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_rows);
 		break;
 	case GF_3D_STEREO_ANAGLYPH:
-		visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		visual_3d_compile_shader(visual->glsl_fragment, "fragment", glsl_view_anaglyph);
+		visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+		visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_anaglyph);
 		break;
 	case GF_3D_STEREO_5VSP19:
-		visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		visual_3d_compile_shader(visual->glsl_fragment, "fragment", glsl_view_5VSP19);
+		visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+		visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_5VSP19);
 		break;
 	case GF_3D_STEREO_CUSTOM:
 	{
 		const char *sOpt = gf_cfg_get_key(visual->compositor->user->config, "Compositor", "InterleaverShader");
 		if (sOpt) {
-			FILE *src = gf_f64_open(sOpt, "rt");
-			if (src) {
-				size_t size;
-				char *shader_src;
-				gf_f64_seek(src, 0, SEEK_END);
-				size = (size_t) gf_f64_tell(src);
-				gf_f64_seek(src, 0, SEEK_SET);
-				shader_src = gf_malloc(sizeof(char)*(size+1));
-				size = fread(shader_src, 1, size, src);
-				fclose(src);
-				if (size != (size_t) -1) {
-					shader_src[size]=0;
-					visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-					visual_3d_compile_shader(visual->glsl_fragment, "fragment", shader_src);
-				}
-				gf_free(shader_src);
-			}
+			visual->autostereo_glsl_fragment = visual_3d_shader_from_source_file(sOpt, GL_FRAGMENT_SHADER);
 		}
 	}
 		break;
 	}
 
-	glAttachShader(visual->glsl_program, visual->glsl_vertex);
-	glAttachShader(visual->glsl_program, visual->glsl_fragment);
-	glLinkProgram(visual->glsl_program);  
+	glAttachShader(visual->autostereo_glsl_program, visual->base_glsl_vertex);
+	glAttachShader(visual->autostereo_glsl_program, visual->autostereo_glsl_fragment);
+	glLinkProgram(visual->autostereo_glsl_program);  
 }
 
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
@@ -588,15 +610,15 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 	
 	visual->yuv_glsl_program = glCreateProgram();
 
-	if (!visual->glsl_vertex) {
-		visual->glsl_vertex = glCreateShader(GL_VERTEX_SHADER);
-		visual_3d_compile_shader(visual->glsl_vertex, "vertex", default_glsl_vertex);
+	if (!visual->base_glsl_vertex) {
+		visual->base_glsl_vertex = glCreateShader(GL_VERTEX_SHADER);
+		visual_3d_compile_shader(visual->base_glsl_vertex, "vertex", default_glsl_vertex);
 	}
 
 	visual->yuv_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
 	visual_3d_compile_shader(visual->yuv_glsl_fragment, "fragment", glsl_yuv_shader);
 
-	glAttachShader(visual->yuv_glsl_program, visual->glsl_vertex);
+	glAttachShader(visual->yuv_glsl_program, visual->base_glsl_vertex);
 	glAttachShader(visual->yuv_glsl_program, visual->yuv_glsl_fragment);
 	glLinkProgram(visual->yuv_glsl_program);  
 
@@ -618,16 +640,20 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 		const char *opt;
 		visual->yuv_rect_glsl_program = glCreateProgram();
 
-		opt = gf_cfg_get_key(visual->compositor->user->config, "Compositor", "YUVShader");
+		opt = gf_cfg_get_key(visual->compositor->user->config, "Compositor", "YUVRectShader");
 		visual->yuv_rect_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
 		if (opt && !strcmp(opt, "Relaxed")) {
 			res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "fragment", glsl_yuv_rect_shader_relaxed);
 		} else {
+			if (opt) {
+				visual->yuv_rect_glsl_fragment = visual_3d_shader_from_source_file(opt, GL_FRAGMENT_SHADER);
+				if (!visual->yuv_rect_glsl_fragment) res  = GF_FALSE;
+			}
 			res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "fragment", glsl_yuv_rect_shader_strict);
 			if (!res) {
 				res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "fragment", glsl_yuv_rect_shader_relaxed);
 				if (res) {
-					gf_cfg_set_key(visual->compositor->user->config, "Compositor", "YUVShader", "Relaxed");
+					if (!opt) gf_cfg_set_key(visual->compositor->user->config, "Compositor", "YUVRectShader", "Relaxed");
 					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Using relaxed syntax version of YUV shader\n"));
 				}
 			}
@@ -639,7 +665,7 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 		}
 
 		if (visual->yuv_rect_glsl_program) {
-			glAttachShader(visual->yuv_rect_glsl_program, visual->glsl_vertex);
+			glAttachShader(visual->yuv_rect_glsl_program, visual->base_glsl_vertex);
 			glAttachShader(visual->yuv_rect_glsl_program, visual->yuv_rect_glsl_fragment);
 			glLinkProgram(visual->yuv_rect_glsl_program);  
 
@@ -665,11 +691,11 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 {
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 
-	DEL_SHADER(visual->glsl_vertex);
-	DEL_SHADER(visual->glsl_fragment);
+	DEL_SHADER(visual->base_glsl_vertex);
+	DEL_SHADER(visual->autostereo_glsl_fragment);
 	DEL_SHADER(visual->yuv_glsl_fragment);
 
-	DEL_PROGRAM(visual->glsl_program );
+	DEL_PROGRAM(visual->autostereo_glsl_program );
 	DEL_PROGRAM(visual->yuv_glsl_program );
 
 	if (visual->gl_textures) {
@@ -786,10 +812,10 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	glMatrixMode(GL_MODELVIEW);
 
 	/*use our program*/
-	glUseProgram(visual->glsl_program);
+	glUseProgram(visual->autostereo_glsl_program);
 
 	/*push number of views if shader uses it*/
-	loc = glGetUniformLocation(visual->glsl_program, "gfViewCount");
+	loc = glGetUniformLocation(visual->autostereo_glsl_program, "gfViewCount");
 	if (loc != -1) glUniform1i(loc, visual->nb_views);
 
 	glClientActiveTexture(GL_TEXTURE0);
@@ -799,7 +825,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	/*bind all our textures*/
 	for (i=0; i<visual->nb_views; i++) {
 		sprintf(szTex, "gfView%d", i+1);
-		loc = glGetUniformLocation(visual->glsl_program, szTex);
+		loc = glGetUniformLocation(visual->autostereo_glsl_program, szTex);
 		if (loc == -1) continue;
 
 		glActiveTexture(GL_TEXTURE0 + i);

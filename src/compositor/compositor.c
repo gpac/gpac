@@ -1190,6 +1190,9 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #endif
 	}
 
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "EnablePBO");
+	if (!sOpt) gf_cfg_set_key(compositor->user->config, "Compositor", "EnablePBO", "no");
+	compositor->enable_pbo = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DefaultNavigationMode");
 	if (sOpt && !strcmp(sOpt, "Walk")) compositor->default_navigation_mode = GF_NAVIGATE_WALK;
