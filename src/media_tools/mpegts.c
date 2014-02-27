@@ -3621,7 +3621,7 @@ Bool gf_m2ts_probe_file(const char *fileName)
 		u32 size;
 		u8 *mem_address;
 		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
-			return GF_URL_ERROR;
+			return GF_FALSE;
 		} 
 		while (size>188 && count) {
 			if (mem_address[0] != 0x47)
@@ -3630,7 +3630,7 @@ Bool gf_m2ts_probe_file(const char *fileName)
 			size-=188;
 			count--;
 		}
-		return 1;
+		return GF_TRUE;
 	}
 
 	t = gf_f64_open(fileName, "rb");
@@ -3647,7 +3647,7 @@ Bool gf_m2ts_probe_file(const char *fileName)
 		else count--;
 	}
 	if (t) fclose(t);
-	return count ? 0 : 1;
+	return count ? GF_FALSE : GF_TRUE;
 }
 
 static void rewrite_pts_dts(unsigned char *ptr, u64 TS)
