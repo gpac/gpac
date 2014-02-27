@@ -89,7 +89,7 @@ u32 id3_get_genre_tag(const char *name);
 /*in filedump.c*/
 #ifndef GPAC_DISABLE_SCENE_DUMP
 GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log);
-void gf_check_isom_files(char *conf_rules, char *inName);
+//void gf_check_isom_files(char *conf_rules, char *inName);
 #endif
 #ifndef GPAC_DISABLE_SCENE_STATS
 void dump_scene_stats(char *file, char *inName, u32 stat_level);
@@ -1766,6 +1766,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-dump-chap-ogg")) dump_chap = 2;
 		else if (!stricmp(arg, "-hash")) do_hash = 1;
 
+#if 0
 		else if (!stricmp(arg, "-conf")) {
 			if (i+1==(u32)argc) { fprintf(stderr, "Missing arg - please check usage\n"); MP4BOX_EXIT_WITH_CODE(1); }
 			if (i+2==(u32)argc) { 
@@ -1775,6 +1776,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 			MP4BOX_EXIT_WITH_CODE(0);
 		}
+#endif
 		else if (!stricmp(arg, "-dmp4")) {
 			dump_isom = 1;
 			fprintf(stderr, "WARNING: \"-dmp4\" is deprecated - use \"-diso\" option\n");
