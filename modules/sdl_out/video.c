@@ -720,12 +720,15 @@ static void SDLVid_ResetWindow(SDLVidCtx *ctx)
 {
 	SDLVid_DestroyObjects(ctx);
 #if SDL_VERSION_ATLEAST(2,0,0)
-	if ( ctx->gl_context )
+	if ( ctx->gl_context ) {
 		SDL_GL_DeleteContext(ctx->gl_context);
-	if ( ctx->renderer )
+        ctx->gl_context = NULL;
+    }
+	if ( ctx->renderer ) {
 		SDL_DestroyRenderer(ctx->renderer);
-	ctx->renderer = NULL;
-
+        ctx->renderer = NULL;
+    }
+    
     /*iOS SDL2 has a nasty bug that breaks switching between 2D and GL context if we don't re-init the video subsystem*/
 #ifdef GPAC_IPHONE
 	if ( ctx->screen ) {
