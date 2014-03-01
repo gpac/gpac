@@ -730,7 +730,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 					/*cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
 					gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset);
-					buffer = (char *)malloc(size);
+					buffer = (char *)gf_malloc(size);
 					gf_bs_read_data(trak->moov->mov->movieFileMap->bs, buffer, size);
 					gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);
 

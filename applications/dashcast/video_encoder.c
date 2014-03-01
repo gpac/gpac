@@ -59,7 +59,7 @@ void build_dict(void *priv_data, const char *options) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Unknown custom option \"%s\" with value \"%s\" in %s\n", tok, tokval, options));
 		tok = strtok(NULL, "=");
 	}
-	free(opt);
+	gf_free(opt);
 }
 
 int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, Bool use_source_timing)

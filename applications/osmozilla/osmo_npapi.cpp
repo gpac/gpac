@@ -58,9 +58,8 @@ NPError NPOsmozilla_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int1
 {   
 	Osmozilla *osmo;
 	NPError rv = NPERR_NO_ERROR;
-	if(instance == NULL)
+	if (instance == NULL)
 		return NPERR_INVALID_INSTANCE_ERROR;
-
 
 	osmo = (Osmozilla *) malloc(sizeof(Osmozilla));
 	memset(osmo, 0, sizeof(Osmozilla));
