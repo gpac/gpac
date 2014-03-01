@@ -1080,7 +1080,7 @@ static GF_Err gf_isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNum
 	offset += (nb_saio == 1) ? prev_sai_size : 0;
 	cur_position = gf_bs_get_position(mdia->information->dataHandler->bs);
 	gf_bs_seek(mdia->information->dataHandler->bs, offset);
-	buffer = (char *)malloc(size);
+	buffer = (char *)gf_malloc(size);
 	gf_bs_read_data(mdia->information->dataHandler->bs, buffer, size);
 	gf_bs_seek(mdia->information->dataHandler->bs, cur_position);
 

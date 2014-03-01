@@ -2576,7 +2576,7 @@ GF_Err gf_media_split_tiles(GF_ISOFile *file)
 	if (! hevc.pps[pps_idx].tiles_enabled_flag) return GF_OK;
 
 	nb_tracks = hevc.pps[pps_idx].num_tile_columns * hevc.pps[pps_idx].num_tile_rows;
-	tiles_track = malloc(sizeof(u32) * nb_tracks);
+	tiles_track = gf_malloc(sizeof(u32) * nb_tracks);
 	for (i=0; i<nb_tracks; i++) {
 		gf_isom_clone_track(file, track, file, 0, &tiles_track[i] );
 	}
