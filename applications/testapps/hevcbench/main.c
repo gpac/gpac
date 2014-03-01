@@ -637,28 +637,23 @@ void PrintUsage()
 
 int main(int argc, char **argv)
 {
-	Bool sdl_bench_yuv= 0;
-	Bool no_display = 0;
+	Bool sdl_bench_yuv = GF_FALSE;
+	Bool no_display = GF_FALSE;
 	u32 start, now, check_prompt;
-	Bool sdl_is_init=0, run;
-	Bool paused=0;
-	u32 pause_time=0;
+	Bool sdl_is_init=GF_FALSE, run;
+	Bool paused = GF_FALSE;
+	u32 pause_time = 0;
 	GF_ISOFile *isom;
-	u32 i, count, track= 0;
+	u32 i, count, track = 0;
 	u32 nb_frames_at_start = 0;
 	GF_ESD *esd;
 	u32 nb_threads = 6;
 	u32 mode = 1;
-	Bool use_raw_memory = 1;
+	Bool use_raw_memory = GF_TRUE;
 	OpenHevc_Handle ohevc;
-	Bool use_pbo = 0;
+	Bool use_pbo = GF_FALSE;
+	Bool enable_mem_tracker = GF_FALSE;
 	const char *src = NULL;
-
-	/*****************/
-	/*   gpac init   */
-	/*****************/
-	gf_sys_init(0);
-	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 
 	if (argc<2) {
 		PrintUsage();
@@ -675,6 +670,7 @@ int main(int argc, char **argv)
 		else if (!strcmp(arg, "-sys-mem")) use_raw_memory = 0;
 		else if (!strcmp(arg, "-use-pbo")) use_pbo = 1;
 		else if (!strcmp(arg, "-no-display")) no_display = 1;
+		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = GF_TRUE;
 		else if (!strncmp(arg, "-nb-threads=", 12)) nb_threads = atoi(arg+12);
 		else if (!strncmp(arg, "-mode=", 6)) {
 			if (!strcmp(arg+6, "wpp")) mode = 2;
@@ -688,14 +684,28 @@ int main(int argc, char **argv)
 		}
 	}
 
+	
+
+	/*****************/
+	/*   gpac init   */
+	/*****************/
+#ifdef GPAC_MEMORY_TRACKING
+	gf_sys_init(enable_mem_tracker);
+#else
+	gf_sys_init(GF_FALSE);
+#endif
+	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
+
 	if (sdl_bench_yuv) {
 		sdl_init(3840, 2160, 8, 3840, use_pbo);
 		sdl_bench();
 		sdl_close();
+		gf_sys_close();
 		return 0;
 	}
 	if (!src) {
 			PrintUsage();
+			gf_sys_close();
 			return 0;
 	}
 
@@ -703,6 +713,7 @@ int main(int argc, char **argv)
 	isom = gf_isom_open(src, GF_ISOM_OPEN_READ, NULL);
 	if (!isom) {
 		sdl_close();
+		gf_sys_close();
 		return 0;
 	}
 
@@ -716,6 +727,7 @@ int main(int argc, char **argv)
 	if (!track) {
 		gf_isom_close(isom);
 		sdl_close();
+		gf_sys_close();
 		return 0;
 	}
 
@@ -814,6 +826,8 @@ int main(int argc, char **argv)
 
 	if (!no_display) 
 		sdl_close();
+		
+	gf_sys_close();
 	return 1;
 }
 
