@@ -4155,7 +4155,6 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 	/*init dash context if needed*/
 	if (dash_ctx) {
-
 		e = gf_dasher_init_context(dash_ctx, &dash_dynamic, &time_shift_depth, NULL, ast_shift_sec);
 		if (e) return e;
 		if (dash_ctx) {
@@ -4192,7 +4191,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	memset(dash_inputs, 0, sizeof(GF_DashSegInput)*nb_dash_inputs);
 	j = 0;
 	for (i=0; i<nb_inputs; i++) {
-		u32 nb_diff;
+		s32 nb_diff;
 		dash_inputs[j].file_name = inputs[i].file_name;
 		strcpy(dash_inputs[j].representationID, inputs[i].representationID);
 		strcpy(dash_inputs[j].periodID, inputs[i].periodID);
@@ -4214,16 +4213,22 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		nb_diff = nb_dash_inputs;
 		dash_inputs[j].moof_seqnum_increase = 2 + (u32) (dash_duration/frag_duration);
 		e = gf_dash_segmenter_probe_input(&dash_inputs, &nb_dash_inputs, j);
-
+		nb_diff = nb_dash_inputs - nb_diff;
 		if (e) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Cannot open file %s for dashing: %s\n", dash_inputs[i].file_name, gf_error_to_string(e) ));
+			nb_diff--;
 		}
 
 		if (!strcmp(dash_inputs[j].szMime, "video/mp2t")) has_mpeg2 = 1;
 
-		nb_diff = nb_dash_inputs - nb_diff;
 		j += 1+nb_diff;
  	}
+	if (!j) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: no suitable file found for dashing.\n"));
+		e = GF_BAD_PARAM;
+		goto exit;
+	}
+
 	memset(&dash_opts, 0, sizeof(GF_DASHSegmenterOptions));
 
 	/*set all default roles to main if needed*/
