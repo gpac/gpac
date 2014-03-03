@@ -2180,6 +2180,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	//if next video frame is due in this render cycle, wait until it matures
 	if ((compositor->frame_delay > 0) && (compositor->frame_delay != (u32) -1)) {
 		u32 diff=0;
+		compositor->frame_delay = MIN(compositor->frame_delay, (s32) compositor->frame_duration);
 		while (1) {
 			gf_sleep(0);
 			diff = gf_sys_clock() - in_time;
@@ -2510,6 +2511,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	//we have a pending frame, return asap - we could sleep until frames matures but this give weird regulation 
 	if (compositor->next_frame_delay != (u32) -1) {
+		compositor->next_frame_delay = MIN(compositor->next_frame_delay, 2*compositor->frame_duration);
 		if (compositor->next_frame_delay>2) {
 			u32 diff=0;
 			while (! compositor->msg_type) {

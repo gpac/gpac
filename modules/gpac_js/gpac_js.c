@@ -185,7 +185,7 @@ static SMJS_FUNC_PROP_GET( gpac_getProperty)
 	else if (!strcmp(prop_name, "hardware_rgba")) {
 		u32 has_rgba = (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGBA) ? 1 : 0;
 #ifndef GPAC_DISABLE_3D
-		if (term->compositor->hybrid_opengl || term->compositor->inherit_type_3d) has_rgba = 1;
+		if (term->compositor->hybrid_opengl || term->compositor->is_opengl) has_rgba = 1;
 #endif
 		*vp = INT_TO_JSVAL( has_rgba  );
 	}

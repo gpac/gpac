@@ -884,19 +884,13 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		/*force setup of image*/
 		txh->needs_refresh = 1;
 		tx_setup_format(txh);
-		first_load = 1;
+		txh->tx_io->flags |= TX_EMULE_FIRST_LOAD;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Texturing] Allocating OpenGL texture %d\n", txh->tx_io->id));
 	}
 	if (!txh->tx_io->gl_type) return 0;
 	
 	/*if data not yet ready don't push the texture*/
 	if (txh->data) {
-
-		if (txh->tx_io->flags & TX_EMULE_FIRST_LOAD) {
-			txh->tx_io->flags &= ~TX_EMULE_FIRST_LOAD;
-			first_load = 1;
-		}
-
 		/*convert image*/
 		gf_sc_texture_convert(txh);
 	}
@@ -906,6 +900,12 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	txh->tx_io->flags &= ~TX_NEEDS_HW_LOAD;
 	data = gf_sc_texture_get_data(txh, &pixel_format);
 	if (!data) return 0;
+
+	if (txh->tx_io->flags & TX_EMULE_FIRST_LOAD) {
+		txh->tx_io->flags &= ~TX_EMULE_FIRST_LOAD;
+		first_load = 1;
+	}
+
 	if (txh->tx_io->flags & TX_EMULE_POW2) {
 		w = txh->tx_io->conv_w;
 		h = txh->tx_io->conv_h;
@@ -947,12 +947,15 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			push_time = gf_sys_clock();
             
 			do_tex_image_2d(txh, tx_mode, first_load, pY, txh->stride, w, h, txh->tx_io->pbo_id);
+	GL_CHECK_ERR
 
 			glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
             do_tex_image_2d(txh, tx_mode, first_load, pU, txh->stride/2, w/2, h/2, txh->tx_io->u_pbo_id);
+	GL_CHECK_ERR
 			
             glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
             do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride/2, w/2, h/2, txh->tx_io->v_pbo_id);
+	GL_CHECK_ERR
             
 			push_time = gf_sys_clock() - push_time;
 
@@ -1587,7 +1590,8 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		return ret;
 	}
 #endif
-	if (!txh || !txh->tx_io) return 0;
+	if (!txh || !txh->tx_io) 
+		return 0;
 
 	if (txh->compute_gradient_matrix && gf_sc_texture_needs_reload(txh) ) {
 		compositor_gradient_update(txh);
@@ -1616,7 +1620,9 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		/*use our program*/
 		Bool is_rect = txh->tx_io->flags & TX_IS_RECT;
 		compositor->visual->current_texture_glsl_program = is_rect ? compositor->visual->yuv_rect_glsl_program : compositor->visual->yuv_glsl_program;
+	GL_CHECK_ERR
 		glUseProgram(compositor->visual->current_texture_glsl_program);
+	GL_CHECK_ERR
 
 		glEnable(txh->tx_io->gl_type);
 		
@@ -1629,12 +1635,8 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		glActiveTexture(GL_TEXTURE0 );
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
 		
-//		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
-//		glClientActiveTexture(GL_TEXTURE0);
-
-		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
 		glClientActiveTexture(GL_TEXTURE0);
-
 	} else 
 #endif
     {

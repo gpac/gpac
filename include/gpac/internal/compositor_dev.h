@@ -258,7 +258,7 @@ struct __tag_compositor
 	/*options*/
 	u32 aspect_ratio, antiAlias, texture_text_mode;
 	Bool high_speed, stress_mode;
-	Bool was_opengl;
+	Bool is_opengl;
 	Bool autoconfig_opengl;
 	u32 force_opengl_2d;
 #ifdef OPENGL_RASTER

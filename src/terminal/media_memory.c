@@ -596,6 +596,9 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 
 void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 {
+	if (cb->Status == Status) 
+		return;
+
 	gf_odm_lock(cb->odm, 1);
 	/*if we're asked for play, trigger on buffering*/
 	if (Status == CB_PLAY) {
