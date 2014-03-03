@@ -148,7 +148,7 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity, Bool no_allocation)
 void gf_cm_del(GF_CompositionMemory *cb)
 {
 	gf_odm_lock(cb->odm, 1);
-	/*may happen when CB is destroyed right after creation in case*/
+	/*may happen when CB is destroyed right after creation */
 	if (cb->Status == CB_BUFFER) {
 		gf_clock_buffer_off(cb->odm->codec->ck);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
@@ -626,6 +626,9 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 			cb->LastRenderedTS = 0;
 		}
 		cb->Status = Status;
+		if (Status==CB_BUFFER) {
+			gf_clock_buffer_on(cb->odm->codec->ck);
+		}
 	}
 
 	gf_odm_lock(cb->odm, 0);

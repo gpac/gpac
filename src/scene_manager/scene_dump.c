@@ -560,7 +560,7 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 		u16 *uniLine;
 		str = (char*)((SFScript *)ptr)->script_text;
 		len = (u32)strlen(str);
-		uniLine = (u16*)gf_malloc(sizeof(short) * len);
+		uniLine = (u16*)gf_malloc(sizeof(short) * (len+1));
 		_len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
 		if (_len != (size_t) -1) {
 			len = (u32) _len;

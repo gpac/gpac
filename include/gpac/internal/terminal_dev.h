@@ -189,6 +189,7 @@ struct _scene
 	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/
 	SFURL visual_url, audio_url, text_url, dims_url;
 
+	Bool end_of_scene;
 #ifndef GPAC_DISABLE_VRML
 	/*list of externproto libraries*/
 	GF_List *extern_protos;
@@ -245,7 +246,7 @@ void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo);
 
 Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene);
 
-void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt, GF_Err code);
+void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt, GF_Err code, Bool no_queueing);
 
 void gf_scene_mpeg4_inline_restart(GF_Scene *scene);
 
@@ -1037,7 +1038,7 @@ struct _mediaobj
 	/*frame presentation time*/
 	u32 timestamp;
 	/*time in ms until next frame shall be presented*/
-	u32 ms_until_next;
+	s32 ms_until_next;
 	s32 ms_until_pres;
 	/*data frame size*/
 	u32 framesize;

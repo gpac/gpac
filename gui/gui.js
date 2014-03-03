@@ -31,6 +31,17 @@ current_url = '';
 current_duration = 0.0;
 current_time = 0.0;
 player_control = null;
+icon_pause=1;
+icon_play=0;
+max_playercontrol_width=1024;
+dynamic_scene=1;
+screen_width = 0;
+screen_height = 0;
+
+GF_STATE_PLAY=0;
+GF_STATE_PAUSE=1;
+GF_STATE_STOP=2;
+GF_STATE_TRICK=3;
 
 all_extensions = [];
 
@@ -60,8 +71,10 @@ function on_movie_active(value)
 
 function on_movie_time(value)
 {
+  var diff = current_time - value;
+  if (diff<0) diff = -diff;
   /*filter out every 1/2 seconds*/
-  if (current_time+0.5 > value) return;
+  if (diff < 0.5) return;
   current_time = value;
   player_control.set_time(value);
   if (UPnP_Enabled) UPnP.MovieTime = value;
@@ -229,7 +242,9 @@ function compute_movie_size(width, height)
 {
    var w, h, r_w, r_h;
    if (!width || !height) return;
-   
+
+   if (width > gpac.screen_width) width = gpac.screen_width;
+   if (height > gpac.screen_height) height = gpac.screen_height;
    w = width;
    h = height;
    r_w = r_h = 1;
@@ -268,11 +283,16 @@ function initialize() {
 
     root.children[0].backColor = gwskin.back_color;
     movie.children[0].on_size = function(evt) {
+      if (!movie_connected) {
+         movie_connected = true;
+         gpac.set_3d(evt.type3d ? 1 : 0);
+         player_control.play.switch_icon(icon_pause);
+         dynamic_scene = evt.dynamic_scene;
+      }
       if (!gpac.fullscreen) {
        compute_movie_size(evt.width, evt.height);
       }
     }
-    movie.children[0].addEventListener('gpac_scene_attached', movie.children[0].on_size, 0);
 
     movie.children[0].on_media_progress = function(evt) {
      if (!current_duration) return;
@@ -281,13 +301,22 @@ function initialize() {
      var percent_playback = 100.0 * current_time / current_duration;
      //alert('URL data ' + percent_dload + ' - ' + percent_playback + ' playback');     
     }
-    movie.children[0].addEventListener('progress', movie.children[0].on_media_progress, 0);
 
     movie.children[0].on_media_playing = function(evt) {
-     alert('URL is now paying');     
+     player_control.play.switch_icon(icon_pause);
     }
+    movie.children[0].on_media_end = function(evt) {
+     if (player_control.duration && movie_ctrl.loop) {
+      movie_ctrl.mediaStartTime = 0;
+      current_time=0; 
+     }
+    }
+    
+    movie.children[0].addEventListener('gpac_scene_attached', movie.children[0].on_size, 0);
+    movie.children[0].addEventListener('progress', movie.children[0].on_media_progress, 0);
     movie.children[0].addEventListener('playing', movie.children[0].on_media_playing, 0);
     movie.children[0].addEventListener('canplay', movie.children[0].on_media_playing, 0);
+    movie.children[0].addEventListener('ended', movie.children[0].on_media_end, 0);
 
     movie.children[0].on_media_waiting = function(evt) {
      alert('URL is now buffering');     
@@ -437,7 +466,7 @@ function set_movie_url(url)
     test_resource.on_attached = function(evt) {
 
       this.callback_done = true;
-      var current_url = this.url[0];
+      current_url = this.url[0];
       
       /*process the error or connect service*/
       if (evt.error) {
@@ -449,13 +478,7 @@ function set_movie_url(url)
         movie_sensor.url[0] = current_url;
         root.children[0].set_bind = FALSE;
 
-        if (!movie_connected) {
-          if (!gpac.fullscreen) {
-           compute_movie_size(evt.width, evt.height);
-          }
-          movie_connected = true;
-          gpac.set_3d(evt.type3d ? 1 : 0);
-        }
+        movie.children[0].on_size(evt);
       }
       /*destroy the resource node*/
       this.url.length = 0;
@@ -464,6 +487,7 @@ function set_movie_url(url)
       this.on_attached = null;
       
     }
+
     /*get notified when service loads or fails*/
     test_resource.addEventListener('gpac_scene_attached', test_resource.on_attached, 0);
 
@@ -495,8 +519,10 @@ function set_movie_url(url)
 //performs layout on all contents
 function layout() 
 {
-  var i, list, start_x;
-  player_control.set_size(display_width, player_control.height);
+  var i, list, start_x, w;
+  w = display_width;
+  if (max_playercontrol_width && (w>max_playercontrol_width)) w=max_playercontrol_width;
+  player_control.set_size(w, player_control.height);
 
   
   dock.set_size(display_width, display_height);
@@ -587,6 +613,70 @@ function new_player_control(container)
     wnd.snd_low = null;
     wnd.snd_ctrl = null;
   }
+  
+  
+  wnd.set_state = function(state) {
+   if (!movie_connected && !controlled_renderer) return;
+
+   if (state==this.state) return;
+   
+   if (state == GF_STATE_STOP) {
+     this.stoped_url = ''+current_url;
+     if (controlled_renderer) controlled_renderer.Stop();
+     else {
+      set_movie_url(''); 
+      /*override movie_connected to avoid auto-resizing*/
+      movie_connected = true;
+     }
+     movie_ctrl.mediaStartTime = 0; 
+     this.media_line.set_value(0);
+     this.play.switch_icon(icon_play);
+     this.state = GF_STATE_STOP;
+     return;
+   }
+   if (state==GF_STATE_PAUSE) {
+    if (this.state==GF_STATE_STOP) return;    
+    if (controlled_renderer) controlled_renderer.Pause();
+    movie_ctrl.mediaSpeed = 0; 
+    this.state=GF_STATE_PAUSE;
+    this.play.switch_icon(icon_play);
+    return;
+   }
+   //we are playing, resume from stop if needed
+   if (this.stoped_url) {
+    if (controlled_renderer) {
+      controlled_renderer.Play();
+    } else {
+     set_movie_url(this.stoped_url);
+    }
+    this.stoped_url = null;
+    //not in trick mode, next pause/play will restart from current time
+    if (state != GF_STATE_TRICK)
+      movie_ctrl.mediaStartTime = -1; 
+   }
+   
+  
+   if (state==GF_STATE_PLAY) {
+    if (controlled_renderer) controlled_renderer.Play();
+    this.state = state;
+    movie_ctrl.mediaSpeed = 1; 
+    this.play.switch_icon(icon_pause);
+    return;
+   }
+   if (state==GF_STATE_TRICK) {
+    this.state = state;
+    this.play.switch_icon(icon_play);
+    movie_ctrl.mediaStartTime = -1; 
+    return;
+   }
+  }
+  
+  wnd.stop = gw_new_icon_button(wnd.infobar, 'icons/media-playback-stop.svg', 'Stop', 'icon');
+  wnd.stop.on_click = function() {
+   player_control.set_state(GF_STATE_STOP);
+  }
+  wnd.stop.set_size(small_control_icon_size, small_control_icon_size);
+
 
   if (0) {
     wnd.rewind = gw_new_icon_button(wnd.infobar, 'icons/media-seek-backward.svg', 'Rewind', 'icon');
@@ -594,69 +684,35 @@ function new_player_control(container)
   } else {
     wnd.rewind = null;
   } 
-  
-  if (1) {
-    wnd.stop = gw_new_icon_button(wnd.infobar, 'icons/media-playback-stop.svg', 'Stop', 'icon');
-    wnd.stop.on_click = function() {
-     player_control.stoped_url = ''+current_url;
-     if (controlled_renderer) controlled_renderer.Stop();
-     else {
-      set_movie_url(''); 
-      /*override movie_connected to avoid auto-resizing*/
-      movie_connected = true;
-     }
-     
-     movie_ctrl.mediaStartTime = 0; 
-     player_control.media_line.set_value(0);
-     player_control.play.switch_icon(1);
-    }
-    wnd.stop.set_size(small_control_icon_size, small_control_icon_size);
-  } else {
-    wnd.stop = null;
-  }
 
   wnd.play = gw_new_icon_button(wnd.infobar, 'icons/media-playback-start.svg', 'Play', 'icon');
   wnd.play.set_size(control_icon_size, control_icon_size);
-  wnd.play.state = 0;
+  wnd.state = GF_STATE_PLAY;
   wnd.play.add_icon('icons/media-playback-pause.svg');
   wnd.play.on_click = function() {
-   if (!movie_connected && !controlled_renderer) return;
-   if (player_control.stoped_url) {
-    if (controlled_renderer) {
-      controlled_renderer.Play();
-    } else {
-     set_movie_url(player_control.stoped_url);
-    }
-    player_control.stoped_url = null;
-    this.state = 0;
-    movie_ctrl.mediaStartTime = -1; 
-   } else if (movie_ctrl.mediaSpeed != 1) {
-     this.state = 0;
-   } else {
-    this.state = this.state ? 0 : 1;
-   }
-   this.switch_icon(this.state);
-   if (this.state) {
-    if (controlled_renderer) controlled_renderer.Pause();
-    movie_ctrl.mediaSpeed = 0; 
-   } else {
-    if (controlled_renderer) controlled_renderer.Play();
-    movie_ctrl.mediaSpeed = 1; 
-   }
+    player_control.set_state( (player_control.state==GF_STATE_PLAY) ? GF_STATE_PAUSE : GF_STATE_PLAY);
   }
-  wnd.play.on_long_click = function () { 
-    var cur_url = current_url;
-    set_movie_url(''); 
-    set_movie_url(cur_url); 
+  
+  if (!browser_mode) {
+    wnd.forward = gw_new_icon_button(wnd.infobar, 'icons/media-seek-forward.svg', 'Forward', 'icon');
+    wnd.forward.on_click = function() {
+     if (movie_ctrl.mediaSpeed) {
+      player_control.set_state(GF_STATE_TRICK);
+      movie_ctrl.mediaSpeed = 2*movie_ctrl.mediaSpeed;
+     }
+    }
+    wnd.forward.set_size(small_control_icon_size, small_control_icon_size);
+  } else {
+    wnd.forward = null;
   }
 
   wnd.media_line = gw_new_progress_bar(wnd.infobar, false, true);
   wnd.media_line.on_slide = function(value, type) { 
-
    if (!movie_connected && !controlled_renderer) {
     this.set_value(0);
     return;
    }
+   
    var duration = player_control.duration;
    if (!duration) return;
    var time = value*duration/100;
@@ -667,15 +723,24 @@ function new_player_control(container)
    }
    root.children[0].set_bind = FALSE;
    switch (type) {
+   //sliding
    case 1:
+    player_control.set_state(GF_STATE_PAUSE);
     movie_ctrl.mediaStartTime = time; 
     movie_ctrl.mediaSpeed = 0;
     break;
+   //done sliding
    case 2:
+    player_control.set_state(GF_STATE_PLAY);
     if (time!= movie_ctrl.mediaStartTime) movie_ctrl.mediaStartTime = time;
     movie_ctrl.mediaSpeed = 1;
     break;
+   //init slide, go in play mode
    default:
+    if (player_control.state==GF_STATE_STOP)
+      player_control.set_state(GF_STATE_PLAY);
+      
+    player_control.set_state(GF_STATE_PAUSE);
     movie_ctrl.mediaStartTime = time;
     break;
    }   
@@ -693,26 +758,22 @@ function new_player_control(container)
   wnd.time.set_size(control_icon_size, control_icon_size);
   wnd.time.set_width(4*wnd.time.font_size() );
   
-  if (!browser_mode) {
-    wnd.forward = gw_new_icon_button(wnd.infobar, 'icons/media-seek-forward.svg', 'Forward', 'icon');
-    wnd.forward.on_click = function() {
-     if (movie_ctrl.mediaSpeed) {
-      movie_ctrl.mediaSpeed = 2*movie_ctrl.mediaSpeed;
-     }
+  if (0) {
+    wnd.loop = gw_new_icon_button(wnd.infobar, 'vector/loop.svg', 'Loop', 'icon');
+    wnd.loop.on_click = function () { 
+      movie_ctrl.loop = movie_ctrl.loop ? FALSE : TRUE;
     }
-    wnd.forward.set_size(small_control_icon_size, small_control_icon_size);
+    wnd.loop.set_size(small_control_icon_size, small_control_icon_size);
   } else {
-    wnd.forward = null;
+    wnd.loop = null;
   }
-  if (1) {
-    wnd.view = gw_new_icon_button(wnd.infobar, 'icons/edit-find.svg', 'Navigation', 'icon');
-    wnd.view.on_click = function() {
-      select_navigation_type();
-    }
-    wnd.view.set_size(small_control_icon_size, small_control_icon_size);
-  } else {
-    wnd.view = null;
+
+  wnd.view = gw_new_icon_button(wnd.infobar, 'icons/edit-find.svg', 'Navigation', 'icon');
+  wnd.view.on_click = function() {
+    select_navigation_type();
   }
+  wnd.view.set_size(small_control_icon_size, small_control_icon_size);
+
     
   if (!browser_mode) {
     wnd.open = gw_new_icon_button(wnd.infobar, 'icons/folder.svg', 'Open', 'icon');
@@ -763,12 +824,12 @@ function new_player_control(container)
    var min_w, full_w, time_w;
    var control_icon_size = gwskin.default_icon_size;
    this.move(0, Math.floor( (height-display_height)/2) );
-
+    
    width -= control_icon_size/2;
    min_w = this.play.width + this.time.width;
    if (this.open) min_w += this.open.width;
    if (this.home) min_w += this.home.width;
-   if (this.exit) min_w += this.exit.width;
+   if (this.exit && gpac.fullscreen) min_w += this.exit.width;
    full_w = 0;
    if (this.snd_low) full_w += this.snd_low.width;
    if (this.snd_ctrl) full_w += this.snd_ctrl.width;
@@ -776,21 +837,32 @@ function new_player_control(container)
 
    if (this.view) {
      this.view.hide();
-     if (movie_connected && (gpac.navigation_type!= GF_NAVIGATE_TYPE_NONE) ) {
+     if (!dynamic_scene && movie_connected && (gpac.navigation_type!= GF_NAVIGATE_TYPE_NONE) ) {
       full_w+= this.view.width;
      }
    }
    
    if (this.duration) {
+     if (this.stop) full_w += this.stop.width;
+     if (this.play) full_w += this.play.width;
      if (this.rewind) full_w+= this.rewind.width;
      if (this.forward) full_w+= this.forward.width;
+     if (this.loop) full_w += this.loop.width;
    }
-   if (this.stop) full_w+= this.stop.width;
 
 	 if (this.remote && UPnP.MediaRenderersCount && (current_url!='')) {
       full_w += this.remote.width;
    }
    time_w = this.media_line.visible ? 2*control_icon_size : 0;
+
+   if (this.exit) {
+    if (gpac.fullscreen) {
+      this.exit.show();
+    } else {
+      this.exit.hide();
+    }
+   } 
+
    if (min_w + full_w + time_w < width) {
      if (this.media_line.visible)
        this.media_line.set_size(width - min_w - full_w - control_icon_size/3, control_icon_size/3);
@@ -800,8 +872,9 @@ function new_player_control(container)
      if (this.duration) {
       if (this.rewind) this.rewind.show();
       if (this.forward) this.forward.show();
+      if (this.loop) this.loop.show();
+      if (this.stop) this.stop.show();
      }
-     if (this.stop) this.stop.show();
      if (wnd.fullscreen) wnd.fullscreen.show();
   	 
      if (this.remote) {
@@ -812,7 +885,7 @@ function new_player_control(container)
       }
   	 }
   	 
-     if (this.view && movie_connected && (gpac.navigation_type!= GF_NAVIGATE_TYPE_NONE) ) {
+     if (this.view && !dynamic_scene && movie_connected && (gpac.navigation_type!= GF_NAVIGATE_TYPE_NONE) ) {
       this.view.show();
      }
    } else {
@@ -822,6 +895,7 @@ function new_player_control(container)
      if (this.rewind) this.rewind.hide();
      if (this.stop) this.stop.hide();
      if (this.forward) this.forward.hide();
+     if (this.loop) this.loop.hide();
      if (this.fullscreen) this.fullscreen.hide();
   	 if (this.remote) this.remote.hide();
   	 
@@ -853,25 +927,29 @@ function new_player_control(container)
   wnd.duration = 0;
   wnd.set_duration = function(value) { 
     this.duration = value; 
-    wnd.time.show();
-    wnd.media_line.show();
-    if (wnd.rewind) wnd.rewind.show();
-    if (wnd.stop) wnd.stop.show();
-    if (wnd.forward) wnd.forward.show();
     if (!value) {
       wnd.time.hide();
       wnd.media_line.hide();
       if (wnd.rewind) wnd.rewind.hide();
       if (wnd.stop) wnd.stop.hide();
       if (wnd.forward) wnd.forward.hide();
+      if (wnd.loop) wnd.loop.hide();
       wnd.time.set_size(0, control_icon_size);
       wnd.time.set_width(0);
-    } else if (value<3600) {
-      wnd.time.set_size(control_icon_size/2, control_icon_size);
-      wnd.time.set_width(3*wnd.time.font_size() );
     } else {
-      wnd.time.set_size(control_icon_size, control_icon_size);
-      wnd.time.set_width(4*wnd.time.font_size() );
+      wnd.time.show();
+      wnd.media_line.show();
+      if (wnd.rewind) wnd.rewind.show();
+      if (wnd.stop) wnd.stop.show();
+      if (wnd.forward) wnd.forward.show();
+      if (wnd.loop) wnd.loop.show();
+      if (value<3600) {
+        wnd.time.set_size(control_icon_size/2, control_icon_size);
+        wnd.time.set_width(3*wnd.time.font_size() );
+      } else {
+        wnd.time.set_size(control_icon_size, control_icon_size);
+        wnd.time.set_width(4*wnd.time.font_size() );
+      }
     }
     this.layout(this.width, this.height);
   }
@@ -923,17 +1001,25 @@ function open_local_file()
   filebrowse.browse(gpac.last_working_directory);  
   
   filebrowse.on_browse = function(value, directory) {
-    if (directory) gpac.last_working_directory = directory;
-    set_movie_url(value);
-    show_dock(false);
+    if (value==null) {
+      player_control.set_state(this.prev_state);
+      player_control.show();
+    } else {
+     if (directory) gpac.last_working_directory = directory;
+     set_movie_url(value);
+     show_dock(false);
+    }
  }
+ var w = display_width/2;
+ if (w<200) w = display_width-20;
+ filebrowse.set_size(w, 3*display_height/4);
+ if (gpac.hardware_rgba) filebrowse.set_alpha(0.8);
 
- filebrowse.set_size(display_width, display_height);
+ player_control.hide();
  gpacui_show_window(filebrowse);
 
-  set_movie_url('');
-//	filebrowse.set_alpha(0.8);
-
+ filebrowse.prev_state = player_control.state;
+ player_control.set_state(GF_STATE_PAUSE);
 }
 
 urldlg = null;

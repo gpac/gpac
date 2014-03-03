@@ -331,7 +331,6 @@ void gf_html_track_del(GF_HTML_Track *track);
  */
 GF_HTML_MediaElement *gf_html_media_element_new(GF_Node *media_node, GF_HTML_MediaController *mc);
 void gf_html_media_element_del(GF_HTML_MediaElement *me);
-GF_DOMEventTarget *gf_html_media_get_event_target_from_node(GF_Node *n);
 
 void html_media_element_js_init(JSContext *c, JSObject *new_obj, GF_Node *n);
 

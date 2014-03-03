@@ -189,12 +189,9 @@ struct __tag_compositor
 	/*all textures to be destroyed (needed for openGL context ...)*/
 	GF_List *textures_gc;
 
-
-#ifdef GF_SR_EVENT_QUEUE
 	/*event queue*/
-	GF_List *events;
-	GF_Mutex *ev_mx;
-#endif
+	GF_List *event_queue;
+	GF_Mutex *evq_mx;
 
 	Bool video_setup_failed;
 
@@ -539,6 +536,17 @@ struct __tag_compositor
 #endif
 };
 
+typedef struct
+{
+	GF_Event evt;
+	GF_DOM_Event dom_evt;
+	GF_Node *node;
+	GF_DOMEventTarget *target;
+	GF_SceneGraph *sg;
+} GF_QueuedEvent;
+
+void gf_sc_queue_dom_event(GF_Compositor *compositor, GF_Node *node, GF_DOM_Event *evt);
+void gf_sc_queue_dom_event_on_target(GF_Compositor *compositor, GF_DOM_Event *evt, GF_DOMEventTarget *target, GF_SceneGraph *sg);
 
 /*base stack for timed nodes (nodes that activate themselves at given times)
 	@UpdateTimeNode: shall be setup by the node handler and is called once per simulation frame
@@ -1397,6 +1405,8 @@ void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *
 
 //signals the compositor a system frame is pending on a future frame 
 void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pending);
+
+Bool gf_sc_is_over(GF_Compositor *compositor, GF_SceneGraph *scene_graph);
 
 #ifdef __cplusplus
 }

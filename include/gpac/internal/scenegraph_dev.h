@@ -178,8 +178,6 @@ struct __tag_scene_graph
 	/*real scene time callback*/
 	Double (*GetSceneTime)(void *userpriv);
 
-
-
 	/*parent scene if any*/
 	struct __tag_scene_graph *parent_scene;
 
@@ -1127,7 +1125,7 @@ void	gf_dom_event_target_del(GF_DOMEventTarget *target);
 GF_Err	gf_dom_event_remove_listener_from_parent(GF_DOMEventTarget *event_target, GF_Node *listener);
 
 /* returns associated DOMEventtarget for an HTML/SVG media element, or NULL otherwise*/
-GF_DOMEventTarget *gf_html_media_get_event_target_from_node(GF_Node *n);
+GF_DOMEventTarget *gf_dom_event_get_target_from_node(GF_Node *n);
 
 #ifdef __cplusplus
 }

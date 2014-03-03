@@ -363,8 +363,7 @@ Bool sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGraph
         if (et->ptr_type==GF_DOM_EVENT_TARGET_NODE || 
 			et->ptr_type == GF_DOM_EVENT_TARGET_DOCUMENT || 
 			et->ptr_type == GF_DOM_EVENT_TARGET_XHR ||
-			et->ptr_type == GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE || 
-			et->ptr_type == GF_DOM_EVENT_TARGET_HTML_MEDIA) {
+			et->ptr_type == GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE) {
 		    GF_Node *observer = NULL;
 		    u32 i, count, post_count;
             if (et->ptr_type==GF_DOM_EVENT_TARGET_NODE) {
@@ -918,6 +917,23 @@ void gf_dom_event_target_del(GF_DOMEventTarget *target)
     assert(gf_list_count(target->listeners) == 0);
 	gf_list_del(target->listeners);
 	gf_free(target);
+}
+
+GF_DOMEventTarget *gf_dom_event_get_target_from_node(GF_Node *n) 
+{
+	GF_DOMEventTarget *target = NULL;
+	//GF_HTML_MediaElement *me = html_media_element_get_from_node(c, n);
+	//*target = me->evt_target;
+
+	if (!n->sgprivate->interact) {
+		GF_SAFEALLOC(n->sgprivate->interact, struct _node_interactive_ext);
+	}
+	if (!n->sgprivate->interact->dom_evt) {
+		n->sgprivate->interact->dom_evt = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_NODE, n);
+	}
+	target = n->sgprivate->interact->dom_evt;
+
+	return target;
 }
 
 

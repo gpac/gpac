@@ -23,7 +23,9 @@ DEF GPAC_UI OrderedGroup {
  children [
   Background2D {}
   
-  DEF MovieControl MediaControl {}
+  DEF MovieControl MediaControl {
+   loop FALSE
+  }
   DEF MovieSensor MediaSensor {
   }
   DEF Movie Transform2D {

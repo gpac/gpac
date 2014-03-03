@@ -68,6 +68,8 @@ void gf_sc_invalidate(GF_Compositor *sr, GF_Node *byObj);
 /*return the compositor time - this is the time every time line syncs on*/
 u32 gf_sc_get_clock(GF_Compositor *sr);
 
+//signals the node is about to be destroyed (called after the node destructor if any). If node is NULL, SG will be set to indicate the entire scene graph is about to be reset
+void gf_sc_node_destroy(GF_Compositor *compositor, GF_Node *node, GF_SceneGraph *sg);
 
 /*locks/unlocks the visual scene rendering - modification of the scene tree shall only happen when scene compositor is locked*/
 void gf_sc_lock(GF_Compositor *sr, Bool doLock);
