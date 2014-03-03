@@ -110,7 +110,7 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.setup.opengl_mode = 0;
 #else
 	evt.setup.opengl_mode = 1;
-	compositor->was_opengl = 1;
+	compositor->is_opengl = 1;
 #endif
 
 	if (compositor->video_out->ProcessEvent(compositor->video_out, &evt)<0) {
@@ -211,7 +211,7 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 	if (!alpha) alpha = GF_COL_A(asp->line_color);
 
 	/*texture is available in hw, use it - if blending, force using texture*/
-	if (!gf_sc_texture_needs_reload(txh) || (alpha != 0xFF) || use_texture 
+	if (use_texture || !gf_sc_texture_needs_reload(txh) || (alpha != 0xFF) 
 #ifdef GF_SR_USE_DEPTH
 		|| tr_state->depth_offset
 #endif

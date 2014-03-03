@@ -289,6 +289,21 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		}
 	}
 
+	/*if not attached return (attaching the graph cannot be done in render since render is not called while unattached :) */
+	if (!scene->graph_attached) {
+		/*just like protos, we must invalidate parent graph until attached*/
+		gf_node_dirty_set(n, 0, GF_TRUE);
+		return;
+	}
+	/*clear dirty flags for any sub-inlines, bitmaps or protos*/
+	gf_node_dirty_clear(n, 0);
+
+	current_url = scene->current_url;
+	scene->current_url = & ((M_Inline*)n)->url;
+	gf_sc_traverse_subscene(scene->root_od->term->compositor, n, scene->graph, rs);
+	scene->current_url = current_url;
+
+	//do we have to restart for next frame ? If so let's do it
 	gf_inline_check_restart(scene);
 
 	/*if we need to restart, shutdown graph and do it*/
@@ -310,19 +325,6 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		return;
 	} 
 	
-	/*if not attached return (attaching the graph cannot be done in render since render is not called while unattached :) */
-	if (!scene->graph_attached) {
-		/*just like protos, we must invalidate parent graph until attached*/
-		gf_node_dirty_set(n, 0, GF_TRUE);
-		return;
-	}
-	/*clear dirty flags for any sub-inlines, bitmaps or protos*/
-	gf_node_dirty_clear(n, 0);
-
-	current_url = scene->current_url;
-	scene->current_url = & ((M_Inline*)n)->url;
-	gf_sc_traverse_subscene(scene->root_od->term->compositor, n, scene->graph, rs);
-	scene->current_url = current_url;
 }
 
 

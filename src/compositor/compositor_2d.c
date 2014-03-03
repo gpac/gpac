@@ -1201,7 +1201,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	if (compositor->was_system_memory != evt.setup.system_memory) changed = 1;
 	else if (old_vp_width != compositor->vp_width) changed=1;
 	else if (old_vp_height != compositor->vp_height) changed=1;
-	else if (compositor->was_opengl != evt.setup.opengl_mode) changed=1;
+	else if (compositor->is_opengl != evt.setup.opengl_mode) changed=1;
 	
 
 	if (changed) {
@@ -1227,7 +1227,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 			return e;
 		}
 
-		compositor->was_opengl = evt.setup.opengl_mode;
+		compositor->is_opengl = evt.setup.opengl_mode;
 		compositor->was_system_memory = evt.setup.system_memory;		
 	}
 	if (compositor->has_size_info) {
