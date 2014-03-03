@@ -1466,10 +1466,13 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 
 	if (ch->pull_forced_buffer) {
 		assert(ch->BufferOn);
-		gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PLAYING);
 		ch->pull_forced_buffer=0;
 		gf_es_buffer_off(ch);
+		Channel_UpdateBuffering(ch, 1);
+	} else if (is_new_data && !ch->first_au_fetched) {
+		Channel_UpdateBuffering(ch, 1);
 	}
+
 	return ch->AU_buffer_pull;
 }
 

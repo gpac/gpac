@@ -386,6 +386,8 @@ enum
 	/*function called when the a "set dirty" propagates to root node of the graph
 		ctxdata is not used*/
 	GF_SG_CALLBACK_GRAPH_DIRTY,
+	//node is being destroyed
+	GF_SG_CALLBACK_NODE_DESTROY,
 };
 
 /*set node callback: function called upon node creation. 

@@ -231,6 +231,7 @@ typedef enum {
 	EVENT_JSPROPERTY_TRANSLATIONY				= -37,
 	EVENT_JSPROPERTY_TYPE3D						= -38,
 	EVENT_JSPROPERTY_ERROR						= -39,
+	EVENT_JSPROPERTY_DYNAMIC_SCENE				= -40,
 } GF_DOMEventJSProperty;
 
 typedef enum {
@@ -684,10 +685,16 @@ static JSBool sg_js_get_event_target(JSContext *c, JSObject *obj, GF_EventType e
 	if (gf_dom_event_get_category(evtType) == GF_DOM_EVENT_MEDIA) {
 		void gf_html_media_get_event_target(JSContext *c, JSObject *obj, GF_DOMEventTarget **target, GF_SceneGraph **sg);
 		gf_html_media_get_event_target(c, obj, target, sg);
-	} else if (gf_dom_event_get_category(evtType) == GF_DOM_EVENT_MEDIASOURCE) {
+		if (*target && *sg) return JS_TRUE;
+	} 
+	
+	if (gf_dom_event_get_category(evtType) == GF_DOM_EVENT_MEDIASOURCE) {
 		void gf_mse_get_event_target(JSContext *c, JSObject *obj, GF_DOMEventTarget **target, GF_SceneGraph **sg);
 		gf_mse_get_event_target(c, obj, target, sg);
-	} else if (GF_JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) || is_svg_document_class(c, obj)) {
+		if (*target && *sg) return JS_TRUE;
+	} 
+	
+	if (GF_JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) || is_svg_document_class(c, obj)) {
 		/*document interface*/
 		*sg = dom_get_doc(c, obj);
 		if (*sg) {
@@ -699,7 +706,7 @@ static JSBool sg_js_get_event_target(JSContext *c, JSObject *obj, GF_EventType e
 		} else {
 			return JS_TRUE;
 		}
-	} else if (GF_JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) || is_svg_element_class(c, obj)) {
+	} else if (GF_JS_InstanceOf(c, obj, &dom_rt->domElementClass, NULL) || is_svg_element_class(c, obj) || vrml_node) {
 		/*Element interface*/
 		if (vrml_node) {
 			*n = vrml_node;
@@ -2525,6 +2532,8 @@ static SMJS_FUNC_PROP_GET( event_getProperty)
 			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
 		case EVENT_JSPROPERTY_ERROR:
 			*vp = INT_TO_JSVAL(evt->error_state); return JS_TRUE;
+		case EVENT_JSPROPERTY_DYNAMIC_SCENE:
+			*vp = INT_TO_JSVAL(evt->key_flags ? 1 : 0); return JS_TRUE;
 
 		default: return JS_TRUE;
 		}
@@ -4335,6 +4344,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			SMJS_PROPERTY_SPEC("translation_y",	EVENT_JSPROPERTY_TRANSLATIONY,JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			SMJS_PROPERTY_SPEC("type3d",		EVENT_JSPROPERTY_TYPE3D,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 			SMJS_PROPERTY_SPEC("error",			EVENT_JSPROPERTY_ERROR,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+			SMJS_PROPERTY_SPEC("dynamic_scene",	EVENT_JSPROPERTY_DYNAMIC_SCENE,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0),
 		};

@@ -360,7 +360,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 }
 
 GF_EXPORT
-char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, u32 *ms_until_next)
+char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next)
 {
 	GF_Codec *codec;
 	Bool force_decode = GF_FALSE;
@@ -431,7 +431,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 			}
 			retry--;
 		}
-		if (!retry) {
+		if (!retry && codec->force_cb_resize) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not resize and decode next frame in one pass - blank frame after TS %d\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), mo->timestamp));
 		}
 		if (!gf_odm_lock_mo(mo))
@@ -1215,7 +1215,7 @@ GF_DOMEventTarget *gf_mo_event_target_add_node(GF_MediaObject *mo, GF_Node *n)
 {
     GF_DOMEventTarget *target = NULL;
     if (!mo ||!n) return NULL;
-	target = gf_html_media_get_event_target_from_node(n);
+	target = gf_dom_event_get_target_from_node(n);
 	gf_list_add(mo->evt_targets, target);
 	return target;
 }
@@ -1266,7 +1266,9 @@ GF_Err gf_mo_event_target_remove_by_node(GF_MediaObject *mo, GF_Node *node)
         GF_DOMEventTarget *target = (GF_DOMEventTarget *)gf_list_get(mo->evt_targets, i);
         if (target->ptr == node) {
             gf_list_del_item(mo->evt_targets, target);
-            return GF_OK;
+            i--;
+			count--;
+			//return GF_OK;
         }
     }
     return GF_BAD_PARAM;
@@ -1275,7 +1277,7 @@ GF_Err gf_mo_event_target_remove_by_node(GF_MediaObject *mo, GF_Node *node)
 GF_EXPORT
 GF_Node *gf_event_target_get_node(GF_DOMEventTarget *target)
 {
-    if (target && (target->ptr_type == GF_DOM_EVENT_TARGET_HTML_MEDIA)) {
+    if (target && (target->ptr_type == GF_DOM_EVENT_TARGET_NODE)) {
         return (GF_Node *)target->ptr;
     }
     return NULL;

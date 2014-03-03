@@ -410,10 +410,8 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 	compositor->frame_rate = 30.0;	
 	compositor->frame_duration = 33;
 	compositor->time_nodes = gf_list_new();
-#ifdef GF_SR_EVENT_QUEUE
-	compositor->events = gf_list_new();
-	compositor->ev_mx = gf_mx_new("EventQueue");
-#endif
+	compositor->event_queue = gf_list_new();
+	compositor->evq_mx = gf_mx_new("EventQueue");
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 	compositor->cached_groups = gf_list_new();
@@ -617,17 +615,15 @@ void gf_sc_del(GF_Compositor *compositor)
 		}
 		gf_list_del(compositor->proto_modules);
 	}
-#ifdef GF_SR_EVENT_QUEUE
-	gf_mx_p(compositor->ev_mx);
-	while (gf_list_count(compositor->events)) {
-		GF_Event *ev = (GF_Event *)gf_list_get(compositor->events, 0);
-		gf_list_rem(compositor->events, 0);
-		gf_free(ev);
+	gf_mx_p(compositor->evq_mx);
+	while (gf_list_count(compositor->event_queue)) {
+		GF_QueuedEvent *qev = (GF_QueuedEvent *)gf_list_get(compositor->event_queue, 0);
+		gf_list_rem(compositor->event_queue, 0);
+		gf_free(qev);
 	}
-	gf_mx_v(compositor->ev_mx);
-	gf_mx_del(compositor->ev_mx);
-	gf_list_del(compositor->events);
-#endif
+	gf_mx_v(compositor->evq_mx);
+	gf_mx_del(compositor->evq_mx);
+	gf_list_del(compositor->event_queue);
 
 	if (compositor->font_manager) gf_font_manager_del(compositor->font_manager);
 
@@ -857,15 +853,14 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		gf_sc_ar_reset(compositor->audio_renderer);
 	}
 
-#ifdef GF_SR_EVENT_QUEUE
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Reseting event queue\n"));
-	gf_mx_p(compositor->ev_mx);
-	while (gf_list_count(compositor->events)) {
-		GF_Event *ev = (GF_Event*)gf_list_get(compositor->events, 0);
-		gf_list_rem(compositor->events, 0);
-		gf_free(ev);
+	gf_mx_p(compositor->evq_mx);
+	while (gf_list_count(compositor->event_queue)) {
+		GF_QueuedEvent *qev = (GF_QueuedEvent*)gf_list_get(compositor->event_queue, 0);
+		gf_list_rem(compositor->event_queue, 0);
+		gf_free(qev);
 	}
-#endif
+	gf_mx_v(compositor->evq_mx);
 	
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Reseting compositor module\n"));
 	/*reset main surface*/
@@ -987,9 +982,6 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	}
 
 	gf_sc_reset_framerate(compositor);	
-#ifdef GF_SR_EVENT_QUEUE
-	gf_mx_v(compositor->ev_mx);
-#endif
 	
 	gf_sc_lock(compositor, 0);
 	if (scene_graph)
@@ -1594,6 +1586,49 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 	return e;
 }
 
+Bool gf_sc_is_over(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
+{
+	u32 i, count;
+	count = gf_list_count(compositor->time_nodes);
+	for (i=0; i<count; i++) {
+		GF_TimeNode *tn = (GF_TimeNode *)gf_list_get(compositor->time_nodes, i);
+		if (tn->needs_unregister) continue;
+
+		if (scene_graph && (gf_node_get_graph((GF_Node *)tn->udta) != scene_graph))
+			continue;
+
+		switch (gf_node_get_tag((GF_Node *)tn->udta)) {
+#ifndef GPAC_DISABLE_VRML
+		case TAG_MPEG4_TimeSensor: 
+#endif
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_TimeSensor: 
+#endif
+			return 0;
+
+#ifndef GPAC_DISABLE_VRML
+		case TAG_MPEG4_MovieTexture: 
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_MovieTexture: 
+#endif
+			if (((M_MovieTexture *)tn->udta)->loop) return 0;
+			break;
+		case TAG_MPEG4_AudioClip: 
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_AudioClip: 
+#endif
+			if (((M_AudioClip*)tn->udta)->loop) return 0;
+			break;
+		case TAG_MPEG4_AnimationStream: 
+			if (((M_AnimationStream*)tn->udta)->loop) return 0;
+			break;
+#endif
+		}
+	}
+	/*FIXME - this does not work with SVG/SMIL*/
+	return 1;
+}
+
 u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 {
 	switch (type) {
@@ -1602,43 +1637,7 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 	case GF_OPT_IS_FINISHED:
 		if (compositor->interaction_sensors) return 0;
 	case GF_OPT_IS_OVER:
-	{
-		u32 i, count;
-		count = gf_list_count(compositor->time_nodes);
-		for (i=0; i<count; i++) {
-			GF_TimeNode *tn = (GF_TimeNode *)gf_list_get(compositor->time_nodes, i);
-			if (tn->needs_unregister) continue;
-			switch (gf_node_get_tag((GF_Node *)tn->udta)) {
-#ifndef GPAC_DISABLE_VRML
-			case TAG_MPEG4_TimeSensor: 
-#endif
-#ifndef GPAC_DISABLE_X3D
-			case TAG_X3D_TimeSensor: 
-#endif
-				return 0;
-
-#ifndef GPAC_DISABLE_VRML
-			case TAG_MPEG4_MovieTexture: 
-#ifndef GPAC_DISABLE_X3D
-			case TAG_X3D_MovieTexture: 
-#endif
-				if (((M_MovieTexture *)tn->udta)->loop) return 0;
-				break;
-			case TAG_MPEG4_AudioClip: 
-#ifndef GPAC_DISABLE_X3D
-			case TAG_X3D_AudioClip: 
-#endif
-				if (((M_AudioClip*)tn->udta)->loop) return 0;
-				break;
-			case TAG_MPEG4_AnimationStream: 
-				if (((M_AnimationStream*)tn->udta)->loop) return 0;
-				break;
-#endif
-			}
-		}
-	}
-		/*FIXME - this does not work with SVG/SMIL*/
-		return 1;
+		return gf_sc_is_over(compositor, NULL);
 	case GF_OPT_STRESS_MODE: return compositor->stress_mode;
 	case GF_OPT_AUDIO_VOLUME: return compositor->audio_renderer->volume;
 	case GF_OPT_AUDIO_PAN: return compositor->audio_renderer->pan;
@@ -2120,27 +2119,31 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		visual_reset_graphics(compositor->visual);
 	}
 
-#ifdef GF_SR_EVENT_QUEUE
 	/*process pending user events*/
 #ifndef GPAC_DISABLE_LOG
 	event_time = gf_sys_clock();
 #endif
-	gf_mx_p(compositor->ev_mx);
-	while (gf_list_count(compositor->events)) {
+	gf_mx_p(compositor->evq_mx);
+	while (gf_list_count(compositor->event_queue)) {
 		Bool ret;
-		GF_Event *ev = (GF_Event*)gf_list_get(compositor->events, 0);
-		gf_list_rem(compositor->events, 0);
-		ret = gf_sc_exec_event(compositor, ev);
-		gf_free(ev);
+		GF_QueuedEvent *qev = (GF_QueuedEvent*)gf_list_get(compositor->event_queue, 0);
+		gf_list_rem(compositor->event_queue, 0);
+		gf_mx_v(compositor->evq_mx);
+
+		if (qev->target) {
+			ret = sg_fire_dom_event(qev->target, &qev->dom_evt, qev->sg, NULL);
+		} else if (qev->node) {
+			ret = gf_dom_event_fire(qev->node, &qev->dom_evt);
+		} else {
+			ret = gf_sc_exec_event(compositor, &qev->evt);
+		}
+		gf_free(qev);
+		gf_mx_p(compositor->evq_mx);
 	}
-	gf_mx_v(compositor->ev_mx);
+	gf_mx_v(compositor->evq_mx);
 #ifndef GPAC_DISABLE_LOG
 	event_time = gf_sys_clock() - event_time;
 #endif
-#elif !defined(GPAC_DISABLE_LOG)
-	event_time = 0;
-#endif
-	
 
 	//first update all natural textures to figure out timing
 	compositor->frame_delay = (u32) -1;
@@ -2722,12 +2725,7 @@ void gf_sc_traverse_subscene_ex(GF_Compositor *compositor, GF_Node *inline_paren
 
 static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event, Bool from_user)
 {
-#ifdef GF_SR_EVENT_QUEUE
-	GF_Event *ev;
-#else
 	Bool ret;
-	u32 retry;
-#endif
 
 	if (compositor->term && (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVENT_MOUSEWHEEL)) {
 		GF_Event evt = *event;
@@ -2741,58 +2739,12 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 		return 0;
 	}
 */
-#ifdef GF_SR_EVENT_QUEUE
-	switch (event->type) {
-	case GF_EVENT_MOUSEMOVE:
-	{
-		u32 i, count;
-		gf_mx_p(compositor->ev_mx);
-		count = gf_list_count(compositor->events);
-		for (i=0; i<count; i++) {
-			ev = (GF_Event *)gf_list_get(compositor->events, i);
-			if (ev->type == GF_EVENT_MOUSEMOVE) {
-				ev->mouse =  event->mouse;
-				gf_mx_v(compositor->ev_mx);
-				return 1;
-			}
-		}
-		gf_mx_v(compositor->ev_mx);
-	}
-	default:
-		ev = (GF_Event *)gf_malloc(sizeof(GF_Event));
-		ev->type = event->type;
-		if (event->type<=GF_EVENT_MOUSEWHEEL) {
-			ev->mouse = event->mouse;
-		} else if (event->type==GF_EVENT_TEXTINPUT) {
-			ev->character = event->character;
-		} else {
-			ev->key = event->key;
-		}
-		gf_mx_p(compositor->ev_mx);
-		gf_list_add(compositor->events, ev);
-		gf_mx_v(compositor->ev_mx);
-		break;
-	}
-	return 0;
-#else
-
-	retry = 100;
-	while (retry) {
-		if (gf_mx_try_lock(compositor->mx)) 
-			break;
-		retry--;
-		gf_sleep(0);
-		if (!retry) {
-			return GF_FALSE;
-		}
-	}
+	gf_mx_p(compositor->mx);
 	ret = gf_sc_exec_event(compositor, event);
 	gf_sc_lock(compositor, GF_FALSE);
 
-	if (!from_user) {
-	}
+//	if (!from_user) { }
 	return ret;
-#endif
 }
 
 void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, GF_SceneGraph *subscene, void *rs)
@@ -3256,4 +3208,60 @@ void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pendin
 		//do not increase clock
 		compositor->force_bench_frame = 2;
 	}
+}
+
+void gf_sc_queue_dom_event(GF_Compositor *compositor, GF_Node *node, GF_DOM_Event *evt)
+{
+	GF_QueuedEvent *qev;
+	gf_mx_p(compositor->evq_mx);
+	GF_SAFEALLOC(qev, GF_QueuedEvent);
+	qev->node = node;
+	qev->dom_evt = *evt;
+	gf_list_add(compositor->event_queue, qev);
+	gf_mx_v(compositor->evq_mx);
+}
+
+void gf_sc_queue_dom_event_on_target(GF_Compositor *compositor, GF_DOM_Event *evt, GF_DOMEventTarget *target, GF_SceneGraph *sg)
+{
+	GF_QueuedEvent *qev;
+	gf_mx_p(compositor->evq_mx);
+	GF_SAFEALLOC(qev, GF_QueuedEvent);
+	qev->sg = sg;
+	qev->target = target;
+	qev->dom_evt = *evt;
+	gf_list_add(compositor->event_queue, qev);
+	gf_mx_v(compositor->evq_mx);
+}
+
+void gf_sc_node_destroy(GF_Compositor *compositor, GF_Node *node, GF_SceneGraph *sg)
+{
+	u32 i, count;
+	gf_mx_p(compositor->evq_mx);
+	count = gf_list_count(compositor->event_queue);
+	for (i=0; i<count; i++) {
+		Bool del = 0;
+		GF_QueuedEvent *qev = gf_list_get(compositor->event_queue, i);
+		if (qev->node) {
+			if (node && qev->node)
+				del = 1;
+			if (sg && (gf_node_get_graph(qev->node)==sg)) 
+				del = 1;
+		}
+		if (qev->sg==sg)
+			del = 1;
+	    else if (qev->target && (qev->target->ptr_type == GF_DOM_EVENT_TARGET_NODE)) {
+			if (node && ((GF_Node *)qev->target->ptr==node)) 
+				del = 1;
+			if (sg && (gf_node_get_graph((GF_Node *)qev->target->ptr)==sg)) 
+				del = 1;
+		}
+
+		if (del) {
+			gf_list_rem(compositor->event_queue, i);
+			i--;
+			count--;
+			gf_free(qev);
+		}
+	}
+	gf_mx_v(compositor->evq_mx);
 }

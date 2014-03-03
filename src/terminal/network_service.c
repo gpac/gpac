@@ -107,7 +107,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 					evt.connect.is_connected = 0;
 					gf_term_send_event(term, &evt);
 				} else {
-					if (root->subscene) gf_scene_notify_event(root->subscene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, err);
+					if (root->subscene) gf_scene_notify_event(root->subscene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, err, GF_FALSE);
 					/*try to reinsert OD for VRML/X3D with multiple URLs:
 					1- first remove from parent scene without destroying object, this will trigger a re-setup
 					if other URLs are present

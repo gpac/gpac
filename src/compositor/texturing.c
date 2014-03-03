@@ -166,8 +166,8 @@ GF_EXPORT
 void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 {
 	Bool needs_reload = 0;
-	u32 size, ts, ms_until_next;
-	s32 ms_until_pres;
+	u32 size, ts;
+	s32 ms_until_pres, ms_until_next;
 
 	/*already refreshed*/
 	if (txh->needs_refresh) return;
@@ -223,7 +223,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
 		if (!txh->stream_finished) {
-			if (txh->compositor->next_frame_delay > ms_until_next)
+			if (ms_until_next>0 && (txh->compositor->next_frame_delay > ms_until_next))
 				txh->compositor->next_frame_delay = ms_until_next;
 		}
 		return;

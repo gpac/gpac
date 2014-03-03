@@ -183,10 +183,20 @@ static SMJS_FUNC_PROP_GET( gpac_getProperty)
 		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB) ? 1 : 0 );
 	}
 	else if (!strcmp(prop_name, "hardware_rgba")) {
-		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGBA) ? 1 : 0 );
+		u32 has_rgba = (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGBA) ? 1 : 0;
+#ifndef GPAC_DISABLE_3D
+		if (term->compositor->hybrid_opengl || term->compositor->inherit_type_3d) has_rgba = 1;
+#endif
+		*vp = INT_TO_JSVAL( has_rgba  );
 	}
 	else if (!strcmp(prop_name, "hardware_stretch")) {
 		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_STRETCH) ? 1 : 0 );
+	}
+	else if (!strcmp(prop_name, "screen_width")) {
+		*vp = INT_TO_JSVAL( term->compositor->video_out->max_screen_width);
+	}
+	else if (!strcmp(prop_name, "screen_height")) {
+		*vp = INT_TO_JSVAL( term->compositor->video_out->max_screen_height);
 	}
 	else if (!strcmp(prop_name, "http_bitrate")) {
 		*vp = INT_TO_JSVAL( gf_dm_get_data_rate(term->downloader)*8/1024);

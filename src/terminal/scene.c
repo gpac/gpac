@@ -257,6 +257,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 
 	/*release the scene - at this stage, we no longer have any node stack refering to our media objects */
 	if (dec && dec->ReleaseScene) dec->ReleaseScene(dec);
+	gf_sc_node_destroy(scene->root_od->term->compositor, NULL, scene->graph);
 	gf_sg_reset(scene->graph);
 	scene->graph_attached = 0;
 
@@ -530,27 +531,28 @@ void gf_scene_buffering_info(GF_Scene *scene)
 
 
 
-void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_event, GF_Err code)
+void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_event, GF_Err code, Bool no_queueing)
 {
 	/*fire resize event*/
 #ifndef GPAC_DISABLE_SVG
 	GF_Node *root;
 	u32 i, count;
 	u32 w, h;
-	GF_DOM_Event evt, *event;
-	event = (GF_DOM_Event *)_event;
+	GF_DOM_Event evt, *dom_event;
+	dom_event = (GF_DOM_Event *)_event;
 
 	if (!scene) return;
 	root = gf_sg_get_root_node(scene->graph);
 
-	if (!event) {
+	if (!dom_event) {
 		memset(&evt, 0, sizeof(GF_DOM_Event));
-		event = &evt;
+		dom_event = &evt;
 		w = h = 0;
 		gf_sg_get_scene_size_info(scene->graph, &w, &h);
 		evt.type = event_type;
 		evt.screen_rect.width = INT2FIX(w);
 		evt.screen_rect.height = INT2FIX(h);
+		evt.key_flags = scene->is_dynamic_scene;
 		if (root) {
 #ifndef GPAC_DISABLE_VRML
 			switch (gf_node_get_tag(root)) {
@@ -570,13 +572,28 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 		evt.error_state = code;
 	}
 	if (n) {
-		gf_dom_event_fire(n, event);
+		if (no_queueing) {
+			gf_dom_event_fire(n, dom_event);
+		} else {
+			gf_sc_queue_dom_event(scene->root_od->term->compositor, n, dom_event);
+		}
 	} else {
-		if (root) gf_dom_event_fire(root, event);
+		if (root) {
+			if (no_queueing) {
+				gf_dom_event_fire(root, dom_event);
+			} else {
+				gf_sc_queue_dom_event(scene->root_od->term->compositor, root, dom_event);
+			}
+		}
 	
 		count=scene->root_od->mo ? gf_mo_event_target_count(scene->root_od->mo) : 0;
 		for (i=0;i<count; i++) {
-			gf_dom_event_fire(gf_event_target_get_node(gf_mo_event_target_get(scene->root_od->mo, i)), event);
+			GF_Node *an = gf_event_target_get_node(gf_mo_event_target_get(scene->root_od->mo, i));
+			if (no_queueing) {
+				gf_dom_event_fire(an, dom_event);
+			} else {
+				gf_sc_queue_dom_event(scene->root_od->term->compositor, an, dom_event);
+			}
 		}
 	}
 #endif
@@ -623,7 +640,7 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 			gf_sc_set_size(scene->root_od->term->compositor, w, h);
 		}
 		/*trigger a scene attach event*/
-		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK);
+		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK, GF_FALSE);
 	}
 }
 
@@ -1176,7 +1193,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		IS_UpdateVideoPos(scene);
 	} else {
 		scene->graph_attached = 1;
-		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK);
+		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK, GF_FALSE);
 		gf_term_invalidate_compositor(scene->root_od->term);
 	}
 }
@@ -1352,8 +1369,6 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	/*for now only allowed when no scene info*/
 	if (!scene->is_dynamic_scene) return;
 	
-	gf_sc_lock(scene->root_od->term->compositor, 1);
-
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing scene size to %d x %d\n", width, height));
 	
 	if (scene->root_od->term->root_scene == scene) {
@@ -1393,9 +1408,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	IS_UpdateVideoPos(scene);
 #endif
 
-	gf_sc_lock(scene->root_od->term->compositor, 0);
-
-	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK);
+	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK, GF_FALSE);
 }
 
 
@@ -1579,6 +1592,7 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 	M_Inline *inl;
 #endif
 	GF_Event evt;
+	gf_sc_node_destroy(scene->root_od->term->compositor, NULL, scene->graph);
 	gf_sg_reset(scene->graph);
 	
 	scene->force_single_timeline = 1;

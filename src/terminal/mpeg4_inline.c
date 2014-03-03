@@ -95,7 +95,7 @@ void gf_inline_on_modified(GF_Node *node)
 			if (mo->num_open) {
 				if (!changed) return;
 
-				gf_scene_notify_event(scene, GF_EVENT_UNLOAD, node, NULL, GF_OK);
+				gf_scene_notify_event(scene, GF_EVENT_UNLOAD, node, NULL, GF_OK, GF_TRUE);
 				gf_node_dirty_parents(node);
 				gf_mo_event_target_remove_by_node(mo, node);
 
@@ -148,7 +148,6 @@ void gf_inline_on_modified(GF_Node *node)
 
 		In such a case we would end up in a deadlock - this needs urgent fixing ...
 	*/
-
 	if (ODID) {
 		/*if no parent we must process the url change as we may not be traversed later on (not in the scene tree)*/
 		if (gf_node_get_parent(node, 0)==NULL) {
@@ -238,7 +237,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		if (!scene) return;
 		mo = scene->root_od ? scene->root_od->mo : NULL;
 
-		gf_scene_notify_event(scene, GF_EVENT_UNLOAD, n, NULL, GF_OK);
+		gf_scene_notify_event(scene, GF_EVENT_UNLOAD, n, NULL, GF_OK, GF_TRUE);
 		if (!mo) return;
 		gf_mo_event_target_remove_by_node(mo, n);
 

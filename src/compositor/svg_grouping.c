@@ -458,7 +458,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 			evt.prev_translate.x = stack->vp.x;
 			evt.prev_translate.y = stack->vp.y;
 			evt.type = GF_EVENT_VP_RESIZE;
-			gf_scene_notify_event(scene, 0, NULL, &evt, GF_OK);
+			gf_scene_notify_event(scene, 0, NULL, &evt, GF_OK, GF_TRUE);
 		}
 	}
 

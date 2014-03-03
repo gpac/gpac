@@ -1308,7 +1308,6 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTy
 {
 #ifndef GPAC_DISABLE_SVG
 	u32 i, count, min_buffer, min_time;
-	Bool locked;
 	GF_DOMMediaEvent media_event;
 	GF_DOM_Event evt;
 	GF_ObjectManager *an_od;
@@ -1317,7 +1316,19 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTy
 	if (!odm || !odm->net_service) return;
 	if (odm->mo) {
 		count = gf_mo_event_target_count(odm->mo);
+
+		//for dynamic scenes, check if we have listeners on the root object of the scene containing this media
+		if (!count
+			&& odm->parentscene 
+			&& odm->parentscene->is_dynamic_scene 
+			&& odm->parentscene->root_od->mo 
+			&& (odm->parentscene->root_od->net_service==odm->net_service)
+		) {
+			odm = odm->parentscene->root_od;
+			count = gf_mo_event_target_count(odm->mo);
+		}
 		if (!count) return;
+
 		if (0 && !(gf_node_get_dom_event_filter((GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(odm->mo, 0))) & GF_DOM_EVENT_MEDIA))
 			return;
 	} else {
@@ -1351,19 +1362,18 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTy
 	evt.type = event_type;
 	evt.bubbles = 0;	/*the spec says yes but we force it to NO*/
 
-	/*lock scene to prevent concurrent access of scene data*/
-	locked = gf_mx_try_lock(odm->term->compositor->mx);
-	if (!locked) return;
-
+	//these events may be triggered from any input or decoding threads. Sync processing cannot be 
+	//achieved in most cases, because we may run into deadlocks, especially if the event 
+	//was triggered by a service opened by JS
 	for (i=0; i<count; i++) {
 		GF_DOMEventTarget *target = (GF_DOMEventTarget *)gf_list_get(odm->mo->evt_targets, i);
-		sg_fire_dom_event(target, &evt, scene->graph, NULL);
+		if (target) 
+			gf_sc_queue_dom_event_on_target(scene->root_od->term->compositor, &evt, target, scene->graph);
 	}
 	if (!count) {
 		GF_Node *root = gf_sg_get_root_node(scene->graph);
-		if (root) gf_dom_event_fire(root, &evt);
+		if (root) gf_sc_queue_dom_event(scene->root_od->term->compositor, root, &evt);
 	}
-	gf_sc_lock(odm->term->compositor, GF_FALSE);
 #endif
 }
 

@@ -420,7 +420,7 @@ gwskin.window.font_size = 14;
 gwskin.window.width = 320;
 gwskin.window.height = 240;
 gwskin.window.normal = gw_new_appearance(0.6, 0.6, 0.6);
-gwskin.window.normal.texture = gw_make_gradient('vertical', [0, 0.85, 1], [0.6, 0.6, 0.6, 1, 1, 1, 0.6, 0.6, 0.6]);
+//gwskin.window.normal.texture = gw_make_gradient('vertical', [0, 0.85, 1], [0.6, 0.6, 0.6, 1, 1, 1, 0.6, 0.6, 0.6]);
 gwskin.window.normal.skin = true;
 gwskin.window.text = gwskin.label.text;
 gwskin.window.font = gw_new_fontstyle(gwskin.window.font_size, 1);
@@ -1920,6 +1920,11 @@ function gw_new_file_open(class_name)
    }
   }
 
+  dlg.on_close = function () {
+    if (this.on_browse) {
+      this.on_browse(null, false);
+    }
+  }
   
   dlg.go_up = dlg.add_tool(gwskin.images.previous, gwskin.labels.up);
   dlg.go_up.on_click = function() {

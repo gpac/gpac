@@ -490,7 +490,7 @@ void gf_html_media_get_event_target(JSContext *c, JSObject *obj, GF_DOMEventTarg
 	if (GF_JS_InstanceOf(c, obj, &html_media_rt->htmlVideoElementClass, NULL) ||
 		GF_JS_InstanceOf(c, obj, &html_media_rt->htmlAudioElementClass, NULL) ) {
 		GF_Node *n = (GF_Node *)SMJS_GET_PRIVATE(c, obj);
-		*target = gf_html_media_get_event_target_from_node(n);
+		*target = gf_dom_event_get_target_from_node(n);
 		*sg = n->sgprivate->scenegraph;
 	} else {
 		*target = NULL;

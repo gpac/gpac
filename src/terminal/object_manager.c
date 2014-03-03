@@ -25,6 +25,7 @@
 
 
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/constants.h>
 #include "media_memory.h"
 #include "media_control.h"
@@ -1615,7 +1616,10 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 
 	/*little opt for image codecs: don't actually stop the OD*/
 	if (!force_close && odm->codec && odm->codec->CB && !odm->codec->CB->no_allocation) {
-		if (odm->codec->CB->Capacity==1) return;
+		if (odm->codec->CB->Capacity==1) {
+			gf_cm_abort_buffering(odm->codec->CB);
+			return;
+		}
 	}
 
 	/*if raw media, stop all channels before sending stop command to network, to avoid new media frames to be set
@@ -2025,12 +2029,25 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 
 void gf_odm_signal_eos(GF_ObjectManager *odm)
 {
-	//FIXME make this work with gui ?
-	if (odm->parentscene && (odm->parentscene != odm->term->root_scene) ) return;
-	if (gf_term_check_end_of_scene(odm->term, 0)) {
-		GF_Event evt;
-		evt.type = GF_EVENT_EOS;
-		gf_term_send_event(odm->term, &evt);
+	if (odm->parentscene && (odm->parentscene != odm->term->root_scene) ) {
+		GF_ObjectManager *root = odm->parentscene->root_od;
+		Bool is_over = 0;
+		
+		if (!gf_scene_check_clocks(root->net_service, root->subscene)) return;
+		if (root->subscene->is_dynamic_scene)
+			is_over = 1;
+		else
+			is_over = gf_sc_is_over(odm->term->compositor, root->subscene->graph);
+
+		if (is_over) {
+			gf_term_service_media_event(root, GF_EVENT_MEDIA_ENDED);
+		}
+	} else {
+		if (gf_term_check_end_of_scene(odm->term, 0)) {
+			GF_Event evt;
+			evt.type = GF_EVENT_EOS;
+			gf_term_send_event(odm->term, &evt);
+		}
 	}
 }
 

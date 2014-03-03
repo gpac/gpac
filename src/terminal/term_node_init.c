@@ -300,12 +300,22 @@ void gf_term_on_node_modified(void *_is, GF_Node *node)
 	}
 }
 
+static void gf_term_on_node_destroyed(void *_is, GF_Node *node)
+{
+	GF_Scene *scene = (GF_Scene *)_is;
+	if (!scene) return;
+	gf_sc_node_destroy(scene->root_od->term->compositor, node, NULL); 
+}
+
 GF_EXPORT
 void gf_term_node_callback(void *_is, u32 type, GF_Node *n, void *param)
 {
 	switch (type) {
 	case GF_SG_CALLBACK_MODIFIED:
 		gf_term_on_node_modified(_is, n);
+		break;
+	case GF_SG_CALLBACK_NODE_DESTROY:
+		gf_term_on_node_destroyed(_is, n);
 		break;
 	case GF_SG_CALLBACK_INIT:
 		gf_term_on_node_init(_is, n);
