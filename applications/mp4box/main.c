@@ -1875,6 +1875,10 @@ int mp4boxMain(int argc, char **argv)
 		} else if (!stricmp(arg, "-dash")) {
 			CHECK_NEXT_ARG
 			dash_duration = atof(argv[i+1]) / 1000;
+			if (dash_duration == 0.0) {
+				fprintf(stderr, "\tERROR: \"-dash-dash_duration\": invalid parameter %s\n", argv[i+1]);
+				MP4BOX_EXIT_WITH_CODE(1);
+			}
 			i++;
 		} else if (!stricmp(arg, "-subdur")) {
 			CHECK_NEXT_ARG
