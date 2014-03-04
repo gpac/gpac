@@ -107,7 +107,7 @@ static void gf_mse_fire_event(GF_DOMEventTarget *target, GF_EventType event_type
 		break;
 	}
 	assert(sg);
-    sg_fire_dom_event(target, &mse_event, sg, NULL);
+    gf_sg_fire_dom_event(target, &mse_event, sg, NULL);
 }
 
 GF_EXPORT

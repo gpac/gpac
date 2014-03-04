@@ -357,7 +357,7 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 }
 
 GF_EXPORT
-Bool sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGraph *sg, GF_Node *n)
+Bool gf_sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGraph *sg, GF_Node *n)
 {
 	if (et) {
         if (et->ptr_type==GF_DOM_EVENT_TARGET_NODE || 
@@ -464,7 +464,7 @@ static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *
 	if (!parent) {
 	/*top of the graph, use Document*/
 		if (node->sgprivate->scenegraph->RootNode==node)
-			sg_fire_dom_event(node->sgprivate->scenegraph->dom_evt, event, node->sgprivate->scenegraph, NULL);
+			gf_sg_fire_dom_event(node->sgprivate->scenegraph->dom_evt, event, node->sgprivate->scenegraph, NULL);
 		return;
 	}
 	if (cur_par_idx) {
@@ -476,7 +476,7 @@ static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *
 			else cur_par_idx = 0;
 			/*if no events attached,bubble by default*/
 			if (parent->sgprivate->interact) {
-				Bool can_bubble = sg_fire_dom_event(parent->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, parent);
+				Bool can_bubble = gf_sg_fire_dom_event(parent->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, parent);
 				if (!can_bubble)  {
 					return;
 				}
@@ -488,7 +488,7 @@ static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *
 	/*if no events attached,bubble by default*/
 	if (parent->sgprivate->interact) {
 		Bool can_bubble;
-		can_bubble = sg_fire_dom_event(parent->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, parent);
+		can_bubble = gf_sg_fire_dom_event(parent->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, parent);
 		if(!can_bubble) return;
 	}
 	gf_sg_dom_event_bubble(parent, event, use_stack, cur_par_idx);
@@ -543,7 +543,7 @@ Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack
 		for (i=0; i<count; i++) {
 			GF_Node *n = (GF_Node *)gf_list_get(parents, i);
 			if (n->sgprivate->interact)
-				sg_fire_dom_event(n->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, n);
+				gf_sg_fire_dom_event(n->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, n);
 
 			/*event has been canceled*/
 			if (event->event_phase & (GF_DOM_EVENT_PHASE_CANCEL|GF_DOM_EVENT_PHASE_CANCEL_ALL) ) {
@@ -570,7 +570,7 @@ Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack
 	sg->abort_bubbling = GF_FALSE;
 
 	if (node->sgprivate->interact) {
-		can_bubble = sg_fire_dom_event(node->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, node);
+		can_bubble = gf_sg_fire_dom_event(node->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, node);
 	}
 	if ( (!node->sgprivate->interact || can_bubble) && event->bubbles) {
 		/*bubbling phase*/
