@@ -464,7 +464,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		ch->sample_num++;
 fetch_next:
 		ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &ivar);
-		
 		/*if sync shadow / carousel RAP skip*/
 		if (ch->sample && (ch->sample->IsRAP==2)) {
 			gf_isom_sample_del(&ch->sample);
@@ -530,6 +529,7 @@ fetch_next:
 	ch->last_state = GF_OK;
 	ch->current_slh.accessUnitEndFlag = ch->current_slh.accessUnitStartFlag = 1;
 	ch->current_slh.accessUnitLength = ch->sample->dataLength;
+	ch->current_slh.au_duration = gf_isom_get_sample_duration(ch->owner->mov, ch->track, ch->sample_num);
 	/*still seeking or not ?*/
 	if (ch->start <= ch->sample->DTS + ch->sample->CTS_Offset) {
 		ch->current_slh.decodingTimeStamp = ch->sample->DTS;

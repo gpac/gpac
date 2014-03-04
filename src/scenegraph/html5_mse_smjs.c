@@ -106,8 +106,8 @@ static void mediasource_sourceBuffer_initjs(JSContext *c, JSObject *ms_obj, GF_H
     sb->_this = JS_NewObject(c, &html_media_rt->sourceBufferClass._class, 0, 0);
     //gf_js_add_root(c, &sb->_this, GF_JSGC_OBJECT);
     SMJS_SET_PRIVATE(c, sb->_this, sb);
-    sb->buffered._this = JS_NewObject(c, &html_media_rt->timeRangesClass._class, NULL, sb->_this);
-    SMJS_SET_PRIVATE(c, sb->buffered._this, &sb->buffered);
+    sb->buffered->_this = JS_NewObject(c, &html_media_rt->timeRangesClass._class, NULL, sb->_this);
+    SMJS_SET_PRIVATE(c, sb->buffered->_this, sb->buffered);
 }
 
 #include <gpac/internal/terminal_dev.h>
@@ -118,16 +118,20 @@ static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
     SMJS_ARGS
     GF_SceneGraph *sg;
     GF_JSAPIParam par;
-    Bool isSupported;
+    Bool isSupported = GF_TRUE;
     char *mime;
-    if (!argc || !JSVAL_CHECK_STRING(argv[0]) ) 
-    {
-        return JS_TRUE;
+    if (!argc || !JSVAL_CHECK_STRING(argv[0])) {
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     mime = SMJS_CHARS(c, argv[0]);
     sg = mediasource_get_scenegraph(c);
-    sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_TERM, NULL, &par);
-    isSupported = gf_term_is_type_supported((GF_Terminal *)par.term, mime);
+	assert(sg);
+	if (!strlen(mime)) { 
+		isSupported = GF_FALSE;
+	} else {
+		sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_TERM, NULL, &par);
+		isSupported = gf_term_is_type_supported((GF_Terminal *)par.term, mime);
+	}
     SMJS_SET_RVAL(BOOLEAN_TO_JSVAL(isSupported ? JS_TRUE : JS_FALSE));
 	SMJS_FREE(c, mime);
     return JS_TRUE;
@@ -141,25 +145,27 @@ static JSBool SMJS_FUNCTION(mediasource_addSourceBuffer)
     GF_HTML_MediaSource     *ms;
     const char              *mime;
 	GF_Err					e;
+	u32						exception = 0;
 
 	e = GF_OK;
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) {
-        return JS_TRUE;
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     if (!argc || !JSVAL_CHECK_STRING(argv[0])) 
     {
 		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     mime = SMJS_CHARS(c, argv[0]);
-    if (!strlen(mime))
-    {
-		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+    if (!strlen(mime))     {
+		exception = GF_DOM_EXC_INVALID_ACCESS_ERR;
+		goto exit;
     }
     ms = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
-    if (ms->readyState != MEDIA_SOURCE_READYSTATE_OPEN) 
-    {
-		dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
-		e = GF_BAD_PARAM;
+	if (!ms) {
+		exception = GF_DOM_EXC_INVALID_ACCESS_ERR;
+		goto exit;
+	} else if (ms->readyState != MEDIA_SOURCE_READYSTATE_OPEN) {
+		exception = GF_DOM_EXC_INVALID_STATE_ERR;
 		goto exit;
     }
     assert(ms->service);
@@ -171,34 +177,57 @@ static JSBool SMJS_FUNCTION(mediasource_addSourceBuffer)
 	}
 	*/
     sb = gf_mse_source_buffer_new(ms);
+	assert(sb);
     e = gf_mse_source_buffer_load_parser(sb, mime);
 	if (e == GF_OK) {
-	    gf_mse_add_source_buffer(ms, sb);
+	    gf_mse_mediasource_add_source_buffer(ms, sb);
 		mediasource_sourceBuffer_initjs(c, obj, sb);
 		SMJS_SET_RVAL( OBJECT_TO_JSVAL(sb->_this) );
 	} else {
 		gf_mse_source_buffer_del(sb);
-		dom_throw_exception(c, GF_DOM_EXC_NOT_SUPPORTED_ERR);
+		exception = GF_DOM_EXC_NOT_SUPPORTED_ERR;
 	}
 exit:
-	SMJS_FREE(c, (void *)mime);
-	if (e == GF_OK) {
-		return JS_TRUE;
+	if (mime) { 
+		SMJS_FREE(c, (void *)mime);
+	}
+	if (exception) {
+		return dom_throw_exception(c, exception);
 	} else {
-		return JS_FALSE;
+		return JS_TRUE;
 	}
 }
 
 static JSBool SMJS_FUNCTION(mediasource_removeSourceBuffer)
 {
     SMJS_OBJ
-//    SMJS_ARGS
-//    GF_HTML_MediaSource *ms;
+    SMJS_ARGS
+    GF_HTML_MediaSource *ms;
+	GF_HTML_SourceBuffer *sb;
+	JSObject *sb_obj;
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) {
-        return JS_TRUE;
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
-//    ms = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
-	/* TODO */
+    ms = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
+	if (!ms) {
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+	}
+    if (!argc || JSVAL_IS_NULL(argv[0]) || !JSVAL_IS_OBJECT(argv[0])) {
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+    }
+    sb_obj = JSVAL_TO_OBJECT(argv[0]);
+    if (!GF_JS_InstanceOf(c, sb_obj, &html_media_rt->sourceBufferClass, NULL) ) {
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+    }
+    sb = (GF_HTML_SourceBuffer *)SMJS_GET_PRIVATE(c, sb_obj);
+	if (!sb) {
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+	} else {
+		GF_Err e = gf_mse_remove_source_buffer(ms, sb);
+		if (e == GF_NOT_FOUND) {
+			return dom_throw_exception(c, GF_DOM_EXC_NOT_FOUND_ERR);
+		}
+	}
     return JS_TRUE;
 }
 
@@ -209,34 +238,32 @@ static JSBool SMJS_FUNCTION(mediasource_endOfStream)
     GF_HTML_MediaSource *ms;
 	u32 i;
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) {
-        return JS_TRUE;
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     ms = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
+	if (!ms) {
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+	}
 	if (ms->readyState != MEDIA_SOURCE_READYSTATE_OPEN) {
-		dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
-	    return JS_FALSE;
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
 	}
 	for (i = 0; i < gf_list_count(ms->sourceBuffers.list); i++) {
 		GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(ms->sourceBuffers.list, i);
 		if (sb->updating) {
-			dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
-			return JS_FALSE;
+			return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
 		}
 	}
-    if (argc > 0) 
-    {
+    if (argc > 0)  {
 		char *error = NULL;
 		if (!JSVAL_CHECK_STRING(argv[0])) {
-			dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
-			return JS_FALSE;
+			return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
 		}
 	    error = SMJS_CHARS(c, argv[0]);
 		if (strcmp(error, "decode") && strcmp(error, "network")) {
 			SMJS_FREE(c, error);
-			dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
-			return JS_FALSE;
+			return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
 		}
-	SMJS_FREE(c, error);
+		SMJS_FREE(c, error);
     }
 	gf_mse_mediasource_end(ms);
     return JS_TRUE;
@@ -275,10 +302,12 @@ static DECL_FINALIZE(media_source_finalize)
 static SMJS_FUNC_PROP_GET(media_source_get_source_buffers)
     GF_HTML_MediaSource *p;
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) {
-        return JS_TRUE;
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     p = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
-    if (p) {
+    if (!p) {
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+	} else {
         *vp = OBJECT_TO_JSVAL(p->sourceBuffers._this);
         return JS_TRUE;
     }
@@ -301,10 +330,12 @@ static SMJS_FUNC_PROP_GET(media_source_get_active_source_buffers)
 static SMJS_FUNC_PROP_GET(media_source_get_ready_state)
     GF_HTML_MediaSource *p;
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) {
-        return JS_TRUE;
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     p = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
-    if (p) {
+    if (!p) {
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+    } else {
         switch (p->readyState)
         {
         case MEDIA_SOURCE_READYSTATE_CLOSED:
@@ -317,7 +348,6 @@ static SMJS_FUNC_PROP_GET(media_source_get_ready_state)
             *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "ended"));
             break;
         }
-        return JS_TRUE;
     }
     return JS_TRUE;
 }
@@ -342,6 +372,40 @@ static SMJS_FUNC_PROP_GET(media_source_get_duration)
 }
 
 static SMJS_FUNC_PROP_SET(media_source_set_duration)
+    GF_HTML_MediaSource *ms;
+    if (!GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL)) {
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+    }
+    ms = (GF_HTML_MediaSource *)SMJS_GET_PRIVATE(c, obj);
+    if (!ms) {
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+    } else {
+        if (ms->readyState != MEDIA_SOURCE_READYSTATE_OPEN) {
+			return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
+		} else if (!JSVAL_IS_NUMBER(*vp)) {
+			return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+		} else {
+			u32 i, count;
+			count = gf_list_count(ms->sourceBuffers.list);
+			for (i = 0; i < count; i++) {
+				GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(ms->sourceBuffers.list, i);
+				if (sb->updating) { 
+					return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
+				}
+			}
+			{
+				jsdouble durationValue;
+				JS_ValueToNumber(c, *vp, &durationValue);
+				if (durationValue < 0) {
+					return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+				} else {
+					ms->duration = durationValue;
+					ms->durationType = DURATION_VALUE;
+					/* TODO: call the run duration algorithm */
+				}
+			}
+		}
+	}
     return JS_TRUE;
 }
 
@@ -385,21 +449,25 @@ static SMJS_FUNC_PROP_GET( sourcebufferlist_getProperty)
     GF_HTML_SourceBuffer *sb; \
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->sourceBufferClass, NULL) )  \
     { \
-		return dom_throw_exception(c, GF_DOM_EXC_TYPE_MISMATCH_ERR); \
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR); \
     }\
     sb = (GF_HTML_SourceBuffer *)SMJS_GET_PRIVATE(c, obj);\
-    /* check if this source buffer is still in the list of source buffers */\
-    if (!sb || gf_list_find(sb->mediasource->sourceBuffers.list, sb) < 0)\
+    if (!sb)\
     {\
-		return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR); \
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR); \
     }
 
 #define SB_UPDATING_CHECK \
     SB_BASIC_CHECK \
+    /* check if this source buffer is still in the list of source buffers */\
+    if (gf_list_find(sb->mediasource->sourceBuffers.list, sb) < 0)\
+    {\
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR); \
+    } \
     if (sb->updating)\
     {\
 		return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR); \
-    }\
+    }
 
 /* FIXME : Function not used, generates warning on debian
 static DECL_FINALIZE(sourcebuffer_finalize)
@@ -428,8 +496,7 @@ static JSBool SMJS_FUNCTION(sourcebuffer_appendBuffer)
 		gf_mse_mediasource_open(sb->mediasource, NULL);
     }
 
-    if (!argc || JSVAL_IS_NULL(argv[0]) || !JSVAL_IS_OBJECT(argv[0])) 
-    {
+    if (!argc || JSVAL_IS_NULL(argv[0]) || !JSVAL_IS_OBJECT(argv[0])) {
 		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     js_ab = JSVAL_TO_OBJECT(argv[0]);
@@ -459,11 +526,13 @@ static JSBool SMJS_FUNCTION(sourcebuffer_appendStream)
 static JSBool SMJS_FUNCTION(sourcebuffer_abort)
 {
     SMJS_OBJ
-//    SMJS_ARGS
     SB_BASIC_CHECK
+    if (gf_list_find(sb->mediasource->sourceBuffers.list, sb) < 0) {
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
+    }
     if (sb->mediasource->readyState != MEDIA_SOURCE_READYSTATE_OPEN) {
-        return JS_TRUE;
-    } 
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
+    }
     if (gf_mse_source_buffer_abort(sb) != GF_OK) {
         return JS_TRUE;
     }
@@ -477,21 +546,17 @@ static JSBool SMJS_FUNCTION(sourcebuffer_remove)
     jsdouble start, end;
     SB_UPDATING_CHECK
     if (argc < 2 || !JSVAL_IS_NUMBER(argv[0]) || !JSVAL_IS_NUMBER(argv[1])) {
-        return JS_TRUE;
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     JS_ValueToNumber(c, argv[0], &start);
     JS_ValueToNumber(c, argv[1], &end);
     if (start < 0 /* || start > sb->duration */ || start >= end) {
-        return JS_TRUE;
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     if (sb->mediasource->readyState != MEDIA_SOURCE_READYSTATE_OPEN) {
-        return JS_TRUE;
+		gf_mse_mediasource_open(sb->mediasource, NULL);
     }
-    sb->updating = GF_TRUE;
-    if (!sb->remove_thread) {
-        sb->remove_thread = gf_th_new(NULL);
-    }
-    gf_th_run(sb->remove_thread, gf_mse_source_buffer_remove, sb);
+	gf_mse_remove(sb, start, end);
     return JS_TRUE;
 }
 
@@ -507,32 +572,39 @@ static SMJS_FUNC_PROP_GET(sourceBuffer_get_mode)
 
 static SMJS_FUNC_PROP_SET(sourceBuffer_set_mode)
 	char *smode = NULL;
+	GF_HTML_MediaSource_AppendMode mode;
     SB_BASIC_CHECK
     if (!JSVAL_CHECK_STRING(*vp)) {
-        return JS_TRUE;
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     smode = SMJS_CHARS(c, *vp);
 	if (stricmp(smode, "segments") && stricmp(smode, "sequence")) {
-		return JS_TRUE;
+		SMJS_FREE(c, smode);
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
 	}
-	if (sb->updating) {
-		return JS_TRUE;
-	}
+	if (!stricmp(smode, "segments")) {
+        mode = MEDIA_SOURCE_APPEND_MODE_SEGMENTS;
+    } else if (!stricmp(smode, "sequence")) {
+        mode = MEDIA_SOURCE_APPEND_MODE_SEQUENCE;
+    }
+	SMJS_FREE(c, smode);
+    if (gf_list_find(sb->mediasource->sourceBuffers.list, sb) < 0) {
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
+    }
+    if (sb->updating) {
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
+    }
 	if (sb->mediasource->readyState == MEDIA_SOURCE_READYSTATE_ENDED) {
 		gf_mse_mediasource_open(sb->mediasource, NULL);
 	}
 	if (sb->append_state == MEDIA_SOURCE_APPEND_STATE_PARSING_MEDIA_SEGMENT) {
-		return JS_TRUE;
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
 	}
-	if (!stricmp(smode, "segments")) {
-        sb->append_mode = MEDIA_SOURCE_APPEND_MODE_SEGMENTS;
-    } else if (!stricmp(smode, "sequence")) {
-        sb->append_mode = MEDIA_SOURCE_APPEND_MODE_SEQUENCE;
-    }
+    sb->append_mode = mode;
 	if (sb->append_mode == MEDIA_SOURCE_APPEND_MODE_SEQUENCE) {
-		/* TODO */
+		sb->group_start_timestamp_flag = GF_TRUE;
+		sb->group_start_timestamp = sb->group_end_timestamp;
 	}
-	SMJS_FREE(c, smode);
     return JS_TRUE;
 }
 
@@ -544,15 +616,21 @@ static SMJS_FUNC_PROP_GET(sourceBuffer_get_updating)
 
 static SMJS_FUNC_PROP_GET(sourceBuffer_get_timestampOffset)
     SB_BASIC_CHECK
-    *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, sb->timestampOffset));
+    *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, sb->timestampOffset*1.0/sb->timescale));
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_SET(sourceBuffer_set_timestampOffset)
     jsdouble d;
-    SB_BASIC_CHECK
+    SB_UPDATING_CHECK
+	if (sb->mediasource->readyState == MEDIA_SOURCE_READYSTATE_ENDED) {
+		gf_mse_mediasource_open(sb->mediasource, NULL);
+	}
+	if (sb->append_state == MEDIA_SOURCE_APPEND_STATE_PARSING_MEDIA_SEGMENT) {
+        return dom_throw_exception(c, GF_DOM_EXC_INVALID_STATE_ERR);
+	}
     JS_ValueToNumber(c, *vp, &d);
-    sb->timestampOffset = d;
+	gf_mse_source_buffer_set_timestampOffset(sb, d);
     return JS_TRUE;
 }
 
@@ -564,12 +642,12 @@ static SMJS_FUNC_PROP_GET(sourceBuffer_get_timescale)
 
 static SMJS_FUNC_PROP_SET(sourceBuffer_set_timescale)
     SB_BASIC_CHECK
-    sb->timescale = JSVAL_TO_INT(*vp);
+    gf_mse_source_buffer_set_timescale(sb, JSVAL_TO_INT(*vp));
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(sourceBuffer_get_appendWindowStart)
-    SB_UPDATING_CHECK
+    SB_BASIC_CHECK
     *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, sb->appendWindowStart));
     return JS_TRUE;
 }
@@ -577,26 +655,36 @@ static SMJS_FUNC_PROP_GET(sourceBuffer_get_appendWindowStart)
 static SMJS_FUNC_PROP_SET(sourceBuffer_set_appendWindowStart)
     jsdouble d;
     SB_UPDATING_CHECK
+	if (!JSVAL_IS_NUMBER(*vp)) {
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+	}
     JS_ValueToNumber(c, *vp, &d);
     if (d < 0 || d >= sb->appendWindowEnd) {
-        return JS_TRUE;
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     sb->appendWindowStart = d;
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(sourceBuffer_get_appendWindowEnd)
-    SB_UPDATING_CHECK
-    *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, sb->appendWindowEnd));
+    SB_BASIC_CHECK
+	if (sb->appendWindowEnd == GF_MAX_DOUBLE) {
+		*vp = JS_GetPositiveInfinityValue(c);
+	} else {
+		*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, sb->appendWindowEnd));
+	}
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_SET(sourceBuffer_set_appendWindowEnd)
     jsdouble d;
     SB_UPDATING_CHECK
+	if (!JSVAL_IS_NUMBER(*vp)) {
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+	}
     JS_ValueToNumber(c, *vp, &d);
     if (d <= sb->appendWindowStart) {
-        return JS_TRUE;
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
     }
     sb->appendWindowEnd = d;
     return JS_TRUE;
@@ -605,12 +693,13 @@ static SMJS_FUNC_PROP_SET(sourceBuffer_set_appendWindowEnd)
 static SMJS_FUNC_PROP_GET(sourceBuffer_get_buffered)
     SB_BASIC_CHECK
     gf_mse_source_buffer_update_buffered(sb);
-    *vp = OBJECT_TO_JSVAL(sb->buffered._this);
+    *vp = OBJECT_TO_JSVAL(sb->buffered->_this);
     return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET(sourceBuffer_get_tracks)
     SB_BASIC_CHECK
+	/* TODO */
     return JS_TRUE;
 }
 

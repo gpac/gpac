@@ -1248,6 +1248,10 @@ u32 gf_isom_get_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 sampl
 	u64 dts;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !sampleNumber) return 0;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (sampleNumber<=trak->sample_count_at_seg_start) return 0;
+	sampleNumber -= trak->sample_count_at_seg_start;
+#endif
 
 	stbl_GetSampleDTS_and_Duration(trak->Media->information->sampleTable->TimeToSample, sampleNumber, &dts, &dur);
 	return dur;
@@ -1260,7 +1264,10 @@ u32 gf_isom_get_sample_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNum
 	u32 size = 0;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !sampleNumber) return 0;
-
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (sampleNumber<=trak->sample_count_at_seg_start) return 0;
+	sampleNumber -= trak->sample_count_at_seg_start;
+#endif
 	stbl_GetSampleSize(trak->Media->information->sampleTable->SampleSize, sampleNumber, &size);
 	return size;
 }
@@ -1274,6 +1281,10 @@ u8 gf_isom_get_sample_sync(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumb
 	if (!trak || !sampleNumber) return 0;
 
 	if (! trak->Media->information->sampleTable->SyncSample) return 1;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (sampleNumber<=trak->sample_count_at_seg_start) return 0;
+	sampleNumber -= trak->sample_count_at_seg_start;
+#endif
 	e = stbl_GetSampleRAP(trak->Media->information->sampleTable->SyncSample, sampleNumber, &is_rap, NULL, NULL);
 	if (e) return 0;
 	return is_rap;
@@ -1290,6 +1301,10 @@ GF_ISOSample *gf_isom_get_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32
 	if (!trak) return NULL;
 
 	if (!sampleNumber) return NULL;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (sampleNumber<=trak->sample_count_at_seg_start) return NULL;
+	sampleNumber -= trak->sample_count_at_seg_start;
+#endif
 	samp = gf_isom_sample_new();
 	if (!samp) return NULL;
 	e = Media_GetSample(trak->Media, sampleNumber, &samp, sampleDescriptionIndex, 1, data_offset);
@@ -1314,6 +1329,10 @@ u64 gf_isom_get_sample_dts(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumb
 	if (!trak) return 0;
 
 	if (!sampleNumber) return 0;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (sampleNumber<=trak->sample_count_at_seg_start) return 0;
+	sampleNumber -= trak->sample_count_at_seg_start;
+#endif
 	if (stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, sampleNumber, &dts) != GF_OK) return 0;
 	return dts;
 }

@@ -2401,6 +2401,12 @@ static SMJS_FUNC_PROP_GET( event_getProperty)
 			case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
 				*vp = OBJECT_TO_JSVAL(((GF_HTML_MediaSource *)evt->target)->_this);
 				break;
+			case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER:
+				*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBuffer *)evt->target)->_this);
+				break;
+			case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST:
+				*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBufferList *)evt->target)->_this);
+				break;
 			default:
 				break;
 			}
@@ -2416,6 +2422,12 @@ static SMJS_FUNC_PROP_GET( event_getProperty)
 				break;
 			case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
 				*vp = OBJECT_TO_JSVAL(((GF_HTML_MediaSource *)evt->target)->_this);
+				break;
+			case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER:
+				*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBuffer *)evt->target)->_this);
+				break;
+			case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST:
+				*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBufferList *)evt->target)->_this);
 				break;
             default:
                 break;
@@ -3300,6 +3312,9 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	par.msg_type = GF_NETIO_DATA_TRANSFERED;
 	xml_http_on_data(ctx, &par);			
 
+	if (!ctx->async) {
+		xml_http_terminate(ctx, GF_OK);
+	}
 	return GF_OK;
 }
 

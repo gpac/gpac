@@ -654,6 +654,8 @@ GF_TextureHandler *gf_sc_texture_get_handler(GF_Node *n);
 
 /*returns 1 if url changed from current one*/
 Bool gf_sc_texture_check_url_change(GF_TextureHandler *txh, MFURL *url);
+/* opens associated object */
+GF_Err gf_sc_texture_open(GF_TextureHandler *txh, MFURL *url, Bool lock_scene_timeline);
 /*starts associated object*/
 GF_Err gf_sc_texture_play(GF_TextureHandler *txh, MFURL *url);
 GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double start_offset, Double end_offset, Bool can_loop, Bool lock_scene_timeline);
