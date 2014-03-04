@@ -1511,7 +1511,7 @@ void gf_node_free(GF_Node *node)
 
 	if (node->sgprivate->UserCallback) node->sgprivate->UserCallback(node, NULL, 1);
 	
-	if (node->sgprivate->scenegraph)
+	if (node->sgprivate->scenegraph && node->sgprivate->scenegraph->NodeCallback)
 		node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_NODE_DESTROY, node, NULL);
 
 	if (node->sgprivate->interact) {

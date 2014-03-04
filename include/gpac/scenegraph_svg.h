@@ -353,7 +353,7 @@ typedef struct
 BE CAREFULL: event execution may very well destroy ANY node, especially the event target node !!
 */
 Bool gf_dom_event_fire(GF_Node *node, GF_DOM_Event *event);
-Bool sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGraph *sg, GF_Node *n);
+Bool gf_sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGraph *sg, GF_Node *n);
 
 /*fires event on the specified node
 BE CAREFULL: event execution may very well destroy ANY node, especially the event target node !!

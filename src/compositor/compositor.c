@@ -2125,17 +2125,20 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 	gf_mx_p(compositor->evq_mx);
 	while (gf_list_count(compositor->event_queue)) {
-		Bool ret;
 		GF_QueuedEvent *qev = (GF_QueuedEvent*)gf_list_get(compositor->event_queue, 0);
 		gf_list_rem(compositor->event_queue, 0);
 		gf_mx_v(compositor->evq_mx);
 
 		if (qev->target) {
-			ret = sg_fire_dom_event(qev->target, &qev->dom_evt, qev->sg, NULL);
+#ifndef GPAC_DISABLE_SVG
+			gf_sg_fire_dom_event(qev->target, &qev->dom_evt, qev->sg, NULL);
+#endif
 		} else if (qev->node) {
-			ret = gf_dom_event_fire(qev->node, &qev->dom_evt);
+#ifndef GPAC_DISABLE_SVG
+			gf_dom_event_fire(qev->node, &qev->dom_evt);
+#endif
 		} else {
-			ret = gf_sc_exec_event(compositor, &qev->evt);
+			gf_sc_exec_event(compositor, &qev->evt);
 		}
 		gf_free(qev);
 		gf_mx_p(compositor->evq_mx);

@@ -2880,7 +2880,7 @@ static void xml_http_fire_event(XMLHTTPContext *ctx, GF_EventType evtType)
 	xhr_evt.type = evtType;
 	xhr_evt.target = ctx->event_target->ptr;
 	xhr_evt.target_type = ctx->event_target->ptr_type;
-	sg_fire_dom_event(ctx->event_target, &xhr_evt, ctx->owning_graph, NULL);
+	gf_sg_fire_dom_event(ctx->event_target, &xhr_evt, ctx->owning_graph, NULL);
 }
 
 static void xml_http_state_change(XMLHTTPContext *ctx)
