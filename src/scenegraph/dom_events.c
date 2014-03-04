@@ -363,7 +363,9 @@ Bool gf_sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGr
         if (et->ptr_type==GF_DOM_EVENT_TARGET_NODE || 
 			et->ptr_type == GF_DOM_EVENT_TARGET_DOCUMENT || 
 			et->ptr_type == GF_DOM_EVENT_TARGET_XHR ||
-			et->ptr_type == GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE) {
+			et->ptr_type == GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE || 
+			et->ptr_type == GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER || 
+			et->ptr_type == GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST ) {
 		    GF_Node *observer = NULL;
 		    u32 i, count, post_count;
             if (et->ptr_type==GF_DOM_EVENT_TARGET_NODE) {

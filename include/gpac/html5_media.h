@@ -138,6 +138,7 @@ typedef struct _timerange
     JSObject                *_this;
 
     GF_List                 *times;
+	u32						timescale;
 } GF_HTML_MediaTimeRanges;
 
 typedef enum {
@@ -160,11 +161,13 @@ typedef enum {
     u32						packet_index;   /* index of MSE Packets*/\
     GF_Mutex                *buffer_mutex;\
     Bool                    last_dts_set; \
-    double                  last_dts; /* MSE  last decode timestamp */ \
+    u64						last_dts; /* MSE  last decode timestamp (in timescale units)*/ \
+    u32						last_dur; /* MSE  last frame duration (in timescale units)*/ \
     Bool                    highest_pts_set; \
-    double                  highest_pts; /* MSE highest presentation timestamp */ \
+    u64						highest_pts; /* MSE highest presentation timestamp (in timescale units)*/ \
     Bool                    needs_rap; /* MSE  need random access point flag */ \
     u32                     timescale; /* used by time stamps in MSE Packets */ \
+    s64                     timestampOffset; /* MSE SourceBuffer value (in timescale units) */ \
     /* standard HTML properties */ \
     GF_HTML_TrackType        type;\
     char                    *id;\
@@ -219,9 +222,9 @@ typedef struct
     /* JavaScript counterpart */
     JSObject                *_this;
 
-    GF_HTML_MediaTimeRanges  buffered;
-    GF_HTML_MediaTimeRanges  seekable;
-    GF_HTML_MediaTimeRanges  played;
+    GF_HTML_MediaTimeRanges  *buffered;
+    GF_HTML_MediaTimeRanges  *seekable;
+    GF_HTML_MediaTimeRanges  *played;
     Bool                    paused;
     GF_HTML_MediaControllerPlaybackState playbackState;
     double                  defaultPlaybackRate;
@@ -250,7 +253,7 @@ typedef struct
     /* crossOrigin: "must reflect the content of the attribute of the same name", use the node */
     /* networkState: retrieved dynamically from GPAC Service */
     /* preload: "must reflect the content of the attribute of the same name", use the node */
-    GF_HTML_MediaTimeRanges  buffered;
+    GF_HTML_MediaTimeRanges  *buffered;
     /* ready state */
     /* readyState: retrieved from GPAC Media Object dynamically */
     Bool                    seeking;
@@ -261,8 +264,8 @@ typedef struct
     char                    *startDate;
     Bool                    paused;
     double                  defaultPlaybackRate;
-    GF_HTML_MediaTimeRanges  played;
-    GF_HTML_MediaTimeRanges  seekable;
+    GF_HTML_MediaTimeRanges  *played;
+    GF_HTML_MediaTimeRanges  *seekable;
     /* ended: retrieved from the state of GPAC Media Object */
     /* autoplay: "must reflect the content of the attribute of the same name", use the node */
     /* loop: "must reflect the content of the attribute of the same name", use the node */
@@ -305,9 +308,13 @@ typedef struct
 /* 
  * TimeRanges 
  */
-GF_Err	gf_media_time_ranges_add(GF_HTML_MediaTimeRanges *timeranges, double start, double end);
+GF_HTML_MediaTimeRanges *gf_html_timeranges_new(u32 timescale);
+GF_Err gf_html_timeranges_add_start(GF_HTML_MediaTimeRanges *timeranges, u64 start);
+GF_Err gf_html_timeranges_add_end(GF_HTML_MediaTimeRanges *timeranges, u64 end);
 void	gf_html_timeranges_reset(GF_HTML_MediaTimeRanges *range);
 void	gf_html_timeranges_del(GF_HTML_MediaTimeRanges *range);
+GF_HTML_MediaTimeRanges *gf_html_timeranges_intersection(GF_HTML_MediaTimeRanges *a, GF_HTML_MediaTimeRanges *b);
+GF_HTML_MediaTimeRanges *gf_html_timeranges_union(GF_HTML_MediaTimeRanges *a, GF_HTML_MediaTimeRanges *b);
 
 /*
  * HTML5 TrackList

@@ -175,6 +175,9 @@ GF_Err stbl_GetSampleDTS_and_Duration(GF_TimeToSampleBox *stts, u32 SampleNumber
 	GF_SttsEntry *ent;
 
 	(*DTS) = 0;
+	if (duration) {
+		*duration = 0;
+	}
 	if (!stts || !SampleNumber) return GF_BAD_PARAM;
 
 	ent = NULL;

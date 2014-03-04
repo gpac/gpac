@@ -67,7 +67,7 @@ Bool gf_sc_texture_check_url_change(GF_TextureHandler *txh, MFURL *url)
 }
 
 GF_EXPORT
-GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double start_offset, Double end_offset, Bool can_loop, Bool lock_scene_timeline)
+GF_Err gf_sc_texture_open(GF_TextureHandler *txh, MFURL *url, Bool lock_scene_timeline)
 {
 	if (txh->is_open) return GF_BAD_PARAM;
 
@@ -78,6 +78,19 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 	txh->stream = gf_mo_register(txh->owner, url, lock_scene_timeline, 0);
 	/*bad/Empty URL*/
 	if (!txh->stream) return GF_NOT_SUPPORTED;
+
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double start_offset, Double end_offset, Bool can_loop, Bool lock_scene_timeline)
+{
+	if (!txh->stream) {
+		GF_Err e;
+		e = gf_sc_texture_open(txh, url, lock_scene_timeline);
+		if (e != GF_OK) return e;
+	}
+
 	/*request play*/
 	gf_mo_play(txh->stream, start_offset, end_offset, can_loop);
 

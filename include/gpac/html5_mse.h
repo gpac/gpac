@@ -66,29 +66,37 @@ typedef struct
 
     /* MSE defined properties */
     Bool                    updating;
-    GF_HTML_MediaTimeRanges buffered;
-    double                  timestampOffset;
+    GF_HTML_MediaTimeRanges *buffered;
+    s64						timestampOffset;
     double                  appendWindowStart;
     double                  appendWindowEnd;
     u32                     timescale;
 
     GF_HTML_MediaSource_AppendState append_state;
     Bool                    buffer_full_flag;
+	/* Mode used to append media data: 
+	   - "segments" uses the timestamps in the media, 
+	   - "sequence" ignores them and appends just after the previous data */
     GF_HTML_MediaSource_AppendMode   append_mode;
-    double                  group_start_timestamp;
+
+	/* time (in timescale units) of the first frame in the group */
+    u64						group_start_timestamp;
     Bool                    group_start_timestamp_flag;
-    double                  highest_end_timestamp;
-    Bool                    highest_end_timestamp_set;
+	/* time (in timescale units) of the frame end time (start + duration) in the group */
+    u64						group_end_timestamp;
+    Bool                    group_end_timestamp_set;
+
     Bool                    first_init_segment;
 
-    double                  remove_start;
-    double                  remove_end;
+	/* times (in timescale units) of the frames to be removed */
+    u64						remove_start;
+    u64						remove_end;
 
     /*
 	 * GPAC internal objects 
 	 */
 
-	/* Media tracks associated to this source buffer */
+	/* Media tracks (GF_HTML_Track) associated to this source buffer */
     GF_List                 *tracks;
 	/* Buffers to parse */
 	GF_List					*input_buffer;
@@ -107,6 +115,7 @@ typedef struct
 	Bool                    parser_connected;
 
 	/* Threads used to asynchronously parse the buffer and remove media data */
+	GF_List					*threads;
     GF_Thread               *parser_thread;
     GF_Thread               *remove_thread;
 
@@ -178,16 +187,19 @@ void					gf_mse_mediasource_del(GF_HTML_MediaSource *ms, Bool del_js);
 void					gf_mse_mediasource_open(GF_HTML_MediaSource *ms, struct _mediaobj *mo);
 void					gf_mse_mediasource_close(GF_HTML_MediaSource *ms);
 void					gf_mse_mediasource_end(GF_HTML_MediaSource *ms);
+void					gf_mse_mediasource_add_source_buffer(GF_HTML_MediaSource *ms, GF_HTML_SourceBuffer *sb);
 
 GF_HTML_SourceBuffer   *gf_mse_source_buffer_new(GF_HTML_MediaSource *mediasource);
+void					gf_mse_source_buffer_set_timestampOffset(GF_HTML_SourceBuffer *sb, double d);
+void					gf_mse_source_buffer_set_timescale(GF_HTML_SourceBuffer *sb, u32 timescale);
 GF_Err                  gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, const char *mime);
-void					gf_mse_add_source_buffer(GF_HTML_MediaSource *ms, GF_HTML_SourceBuffer *sb);
+GF_Err					gf_mse_remove_source_buffer(GF_HTML_MediaSource *ms, GF_HTML_SourceBuffer *sb);
 void                    gf_mse_source_buffer_del(GF_HTML_SourceBuffer *sb);
 GF_Err                  gf_mse_source_buffer_abort(GF_HTML_SourceBuffer *sb);
 void                    gf_mse_source_buffer_append_arraybuffer(GF_HTML_SourceBuffer *sb, GF_HTML_ArrayBuffer *buffer);
 void                    gf_mse_source_buffer_update_buffered(GF_HTML_SourceBuffer *sb);
-u32                     gf_mse_source_buffer_remove(void *par);
-
+void					gf_mse_remove(GF_HTML_SourceBuffer *sb, double start, double end);
+	
 typedef struct
 {
     char        *data;

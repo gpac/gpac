@@ -213,6 +213,10 @@ static void SVG_Build_Bitmap_Graph(SVG_video_stack *stack, GF_TraverseState *tr_
 	gf_node_dirty_clear(stack->graph->node, GF_SG_SVG_GEOMETRY_DIRTY);
 }
 
+static void svg_open_texture(SVG_video_stack *stack)
+{
+	gf_sc_texture_open(&stack->txh, &stack->txurl, GF_FALSE);
+}
 
 static void svg_play_texture(SVG_video_stack *stack, SVGAllAttributes *atts)
 {
@@ -246,7 +250,6 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 	DrawableContext *ctx;
 	SVGAllAttributes all_atts;
 
-
 	if (is_destroy) {
 		gf_sc_texture_destroy(&stack->txh);
 		gf_sg_mfurl_del(stack->txurl);
@@ -258,7 +261,6 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 		gf_free(stack);
 		return;
 	} 
-
 
 	/*TRAVERSE_DRAW is NEVER called in 3D mode*/
 	if (tr_state->traversing_mode==TRAVERSE_DRAW_2D) {
@@ -436,20 +438,24 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 	GF_FieldInfo init_vis_info;
 	SVG_video_stack *stack = (SVG_video_stack *) gf_node_get_private(txh->owner);
 	
-	if (!txh->is_open) {
-		SVG_InitialVisibility init_vis;
-		if (stack->first_frame_fetched) return;
+	if (!txh->stream) {
+		svg_open_texture(stack);
 
-		init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
+		if (!txh->is_open) {
+			SVG_InitialVisibility init_vis;
+			if (stack->first_frame_fetched) return;
 
-		if (gf_node_get_attribute_by_tag(txh->owner, TAG_SVG_ATT_initialVisibility, GF_FALSE, GF_FALSE, &init_vis_info) == GF_OK) {
-			init_vis = *(SVG_InitialVisibility *)init_vis_info.far_ptr;
-		}
+			init_vis = SVG_INITIALVISIBILTY_WHENSTARTED;
 
-		/*opens stream only at first access to fetch first frame if needed*/
-		if (init_vis == SVG_INITIALVISIBILTY_ALWAYS) {
-			svg_play_texture((SVG_video_stack*)stack, NULL);
-			gf_sc_invalidate(txh->compositor, NULL);
+			if (gf_node_get_attribute_by_tag(txh->owner, TAG_SVG_ATT_initialVisibility, GF_FALSE, GF_FALSE, &init_vis_info) == GF_OK) {
+				init_vis = *(SVG_InitialVisibility *)init_vis_info.far_ptr;
+			}
+
+			/*opens stream only at first access to fetch first frame if needed*/
+			if (init_vis == SVG_INITIALVISIBILTY_ALWAYS) {
+				svg_play_texture((SVG_video_stack*)stack, NULL);
+				gf_sc_invalidate(txh->compositor, NULL);
+			} 
 		}
 		return;
 	} 
