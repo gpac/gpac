@@ -1213,11 +1213,15 @@ GF_SceneGraph *gf_mo_get_scenegraph(GF_MediaObject *mo)
 GF_EXPORT
 GF_DOMEventTarget *gf_mo_event_target_add_node(GF_MediaObject *mo, GF_Node *n)
 {
+#ifndef GPAC_DISABLE_SVG
     GF_DOMEventTarget *target = NULL;
     if (!mo ||!n) return NULL;
 	target = gf_dom_event_get_target_from_node(n);
 	gf_list_add(mo->evt_targets, target);
 	return target;
+#else
+	return NULL;
+#endif
 }
 
 GF_Err gf_mo_event_target_remove(GF_MediaObject *mo, GF_DOMEventTarget *target)
