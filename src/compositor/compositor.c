@@ -201,9 +201,16 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 	}
 }
 
-Bool gf_sc_draw_frame(GF_Compositor *compositor)
+GF_EXPORT
+Bool gf_sc_draw_frame(GF_Compositor *compositor, u32 *ms_till_next)
 {	
 	gf_sc_simulation_tick(compositor);
+	if (ms_till_next) {
+		if ((s32) compositor->next_frame_delay == -1)	
+			*ms_till_next = compositor->frame_duration;
+		else
+			*ms_till_next = MIN(compositor->next_frame_delay, compositor->frame_duration);
+	}
 	if (compositor->frame_draw_type) return 1;
 	if (compositor->fonts_pending) return 1;
 	return GF_FALSE;

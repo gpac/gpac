@@ -200,6 +200,7 @@ void gf_sc_texture_reset(GF_TextureHandler *txh)
 #ifndef GPAC_DISABLE_3D
 	if (txh->tx_io->id) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Texturing] Releasing OpenGL texture %d\n", txh->tx_io->id));
+
 		glDeleteTextures(1, &txh->tx_io->id);
 		txh->tx_io->id = 0;
 		if (txh->tx_io->u_id) {
