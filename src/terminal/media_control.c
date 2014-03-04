@@ -390,6 +390,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		stack->media_start = stack->control->mediaStartTime;
 		stack->media_stop = stack->control->mediaStopTime;
 		stack->is_init = 1;
+		stack->paused = 0;
 		/*the object has already been started, and media start time is not 0, restart*/
 		if (stack->stream->num_open) {
 			if ( (stack->media_start > 0) || (gf_list_count(stack->seg)>0 ) ) {
@@ -467,7 +468,8 @@ void MC_Modified(GF_Node *node)
 	if (!stack) return;
 	if (stack->changed!=2) {
 		/*check URL*/
-		if (MC_URLChanged(&stack->url, &stack->control->url)) stack->changed = 2;
+		if (MC_URLChanged(&stack->url, &stack->control->url)) 
+			stack->changed = 2;
 		/*check speed (play/pause)*/
 		else if (stack->media_speed != stack->control->mediaSpeed) 
 			stack->changed = 1;
