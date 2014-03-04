@@ -443,7 +443,6 @@ function initialize() {
       if (url.indexOf('://')<0) set_movie_url('gpac://'+url);
       else set_movie_url(url);
     } else {
-//     show_dock(true);
         player_control.show();
   }
 }
@@ -474,6 +473,8 @@ function set_movie_url(url)
         gpacui_show_window(notif);
       } else {
         movie.children[0].url[0] = current_url;
+        movie_ctrl.mediaSpeed = 1;
+        movie_ctrl.mediaStartTime = 0;
         movie_ctrl.url[0] = current_url;
         movie_sensor.url[0] = current_url;
         root.children[0].set_bind = FALSE;

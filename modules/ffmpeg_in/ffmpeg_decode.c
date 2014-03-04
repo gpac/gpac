@@ -190,14 +190,16 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 
 			/*ffmpeg specific*/
 			(*ctx)->block_align = gf_bs_read_u16(bs);
+			(*ctx)->bit_rate = gf_bs_read_u32(bs);
+			(*ctx)->codec_tag = gf_bs_read_u32(bs);
 		} else if (ffd->st==GF_STREAM_VISUAL) {
 			(*ctx)->codec_type = AVMEDIA_TYPE_VIDEO;
 			(*ctx)->width = gf_bs_read_u16(bs);
 			(*ctx)->height = gf_bs_read_u16(bs);
+			(*ctx)->bit_rate = gf_bs_read_u32(bs);
+			(*ctx)->codec_tag = gf_bs_read_u32(bs);
+			ffd->raw_pix_fmt = gf_bs_read_u32(bs);
 		}
-		(*ctx)->bit_rate = gf_bs_read_u32(bs);
-		(*ctx)->codec_tag = gf_bs_read_u32(bs);
-		ffd->raw_pix_fmt = gf_bs_read_u32(bs);
 
 		*codec = avcodec_find_decoder(codec_id);
 		FFDEC_LoadDSI(ffd, bs, *codec, *ctx, 1);
@@ -718,14 +720,14 @@ redecode:
 		if (ffd->audio_frame->format==AV_SAMPLE_FMT_FLTP) {
 			s32 i, j;
 			s16 *output = (s16 *) outBuffer;
-			for (i=0 ; i<ffd->audio_frame->nb_samples ; i++) {
-				for (j=0; j<ctx->channels; j++) {
-					Float* inputChannel = (Float*)ffd->audio_frame->extended_data[j];
+			for (j=0; j<ctx->channels; j++) {
+				Float* inputChannel = (Float*)ffd->audio_frame->extended_data[j];
+				for (i=0 ; i<ffd->audio_frame->nb_samples ; i++) {
 					Float sample = inputChannel[i];
 					if (sample<-1.0f) sample=-1.0f;
 					else if (sample>1.0f) sample=1.0f;
 					
-					output[i*ctx->channels + j] = (int16_t) (sample * GF_SHORT_MAX);
+					output[i*ctx->channels + j] = (int16_t) (sample * GF_SHORT_MAX );
 				}
 			}
 		} else {

@@ -1822,8 +1822,11 @@ function gw_new_listbox(container)
      }
      start_y -= children[i].height;
    }
-   if (this.selected_idx < this.first_visible) this.selected_idx = this.first_visible;
-   else if (this.selected_idx > this.last_visible) this.selected_idx = this.last_visible;
+//   if (this.selected_idx < this.first_visible) this.selected_idx = this.first_visible;
+//   else if (this.selected_idx > this.last_visible) this.selected_idx = this.last_visible;
+
+   if (this.selected_idx < this.first_visible) this.selected_idx = -1;
+   else if (this.selected_idx > this.last_visible) this.selected_idx = -1;
   }
   obj.add_child = function(child) {
    this.children[0].children[this.children[0].children.length] = child;
@@ -1856,6 +1859,10 @@ function gw_new_listbox(container)
     return 1;
    case GF_EVENT_KEYDOWN:
     var children = this.get_children();
+
+   if (this.selected_idx < this.first_visible) this.selected_idx = this.first_visible;
+   else if (this.selected_idx > this.last_visible) this.selected_idx = this.last_visible;
+
     if (evt.keycode=='Up') {
 //      alert('sel '+ this.selected_idx + ' first '+this.first_visible+ ' last '+this.last_visible);
       if (children[this.selected_idx].translation.y + children[this.selected_idx].height/2 > this.height/2  ) {

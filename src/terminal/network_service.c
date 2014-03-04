@@ -502,6 +502,8 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 					} else if ( (u32) ch->BufferTime  < com->buffer.occupancy) {
 						com->buffer.occupancy = ch->BufferTime;
 					}
+				} else {
+					com->buffer.occupancy = 0;
 				}
 			}
 		}

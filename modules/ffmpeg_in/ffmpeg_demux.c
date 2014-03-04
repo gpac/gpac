@@ -69,8 +69,6 @@ static u32 FFDemux_Run(void *par)
 {
 	AVPacket pkt;
 	s64 seek_to;
-	u64 seek_audio, seek_video;
-	Bool video_init, do_seek, map_audio_time, map_video_time;
 	GF_NetworkCommand com;
 	GF_NetworkCommand map;
 	GF_SLHeader slh;
@@ -80,28 +78,23 @@ static u32 FFDemux_Run(void *par)
 	map.command_type = GF_NET_CHAN_MAP_TIME;
 
 	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.command_type = GF_NET_CHAN_BUFFER_QUERY;
+	com.command_type = GF_NET_BUFFER_QUERY;
 
 	memset(&slh, 0, sizeof(GF_SLHeader));
-
+	
 	slh.compositionTimeStampFlag = slh.decodingTimeStampFlag = 1;
-	seek_to = (s64) (AV_TIME_BASE*ffd->seek_time);
-	map_video_time = !ffd->seekable;
 
-	video_init = (seek_to && ffd->video_ch) ? GF_FALSE : GF_TRUE;
-	seek_audio = seek_video = 0;
-	if (ffd->seekable && (ffd->audio_st>=0)) seek_audio = (u64) (s64) (ffd->seek_time*ffd->audio_tscale.den);
-	if (ffd->seekable && (ffd->video_st>=0)) seek_video = (u64) (s64) (ffd->seek_time*ffd->video_tscale.den);
-
-	/*it appears that ffmpeg has trouble resyncing on some mpeg files - we trick it by restarting to 0 to get the
-	first video frame, and only then seek*/
-	if (ffd->seekable) av_seek_frame(ffd->ctx, -1, video_init ? seek_to : 0, AVSEEK_FLAG_BACKWARD);
-	do_seek = !video_init;
-	map_audio_time = video_init ? ffd->unreliable_audio_timing : 0;
-
-	gf_sleep(1000);
 	while (ffd->is_running) {
+		if ((!ffd->video_ch && (ffd->video_st>=0)) || (!ffd->audio_ch && (ffd->audio_st>=0))) {
+			gf_sleep(100);
+			continue;
+		}
 
+		if ((ffd->seek_time>=0) && ffd->seekable) {
+			seek_to = (s64) (AV_TIME_BASE*ffd->seek_time);
+			av_seek_frame(ffd->ctx, -1, seek_to, AVSEEK_FLAG_BACKWARD);
+			ffd->seek_time = -1;
+		}
 		pkt.stream_index = -1;
 		/*EOF*/
 		if (av_read_frame(ffd->ctx, &pkt) <0) break;
@@ -113,73 +106,41 @@ static u32 FFDemux_Run(void *par)
 
 		gf_mx_p(ffd->mx);
 		/*blindly send audio as soon as video is init*/
-		if (ffd->audio_ch && (pkt.stream_index == ffd->audio_st) && !do_seek) {
+		if (ffd->audio_ch && (pkt.stream_index == ffd->audio_st) ) {
+//			u64 seek_audio = ffd->seek_time ? (u64) (s64) (ffd->seek_time*ffd->audio_tscale.den) : 0;
 			slh.compositionTimeStamp *= ffd->audio_tscale.num;
 			slh.decodingTimeStamp *= ffd->audio_tscale.num;
 
-			if (map_audio_time) {
-				map.base.on_channel = ffd->audio_ch;
-				map.map_time.media_time = ffd->seek_time;
-				/*mapwith TS=0 since we don't use SL*/
-				map.map_time.timestamp = 0;
-				map.map_time.reset_buffers = 1;
-				map_audio_time = 0;
-				gf_term_on_command(ffd->service, &map, GF_OK);
-			}
-			else if (slh.compositionTimeStamp < seek_audio) {
+#if 0
+			if (slh.compositionTimeStamp < seek_audio) {
 				slh.decodingTimeStamp = slh.compositionTimeStamp = seek_audio;
 			}
+#endif
 			gf_term_on_sl_packet(ffd->service, ffd->audio_ch, pkt.data, pkt.size, &slh, GF_OK);
 		}
 		else if (ffd->video_ch && (pkt.stream_index == ffd->video_st)) {
+//			u64 seek_video = ffd->seek_time ? (u64) (s64) (ffd->seek_time*ffd->video_tscale.den) : 0;
 			slh.compositionTimeStamp *= ffd->video_tscale.num;
 			slh.decodingTimeStamp *= ffd->video_tscale.num;
 
-			/*if we get pts = 0 after a seek the demuxer is reseting PTSs, so force map time*/
-			if ((!do_seek && seek_to && !slh.compositionTimeStamp) || (map_video_time) ) {
-				seek_to = 0;
-				map_video_time = 0;
-
-				map.base.on_channel = ffd->video_ch;
-				map.map_time.timestamp = (u64) pkt.pts;
-//				map.map_time.media_time = ffd->seek_time;
-				map.map_time.media_time = 0;
-				map.map_time.reset_buffers = 0;
-				gf_term_on_command(ffd->service, &map, GF_OK);
-			}
-			else if (slh.compositionTimeStamp < seek_video) {
+#if 0
+			if (slh.compositionTimeStamp < seek_video) {
 				slh.decodingTimeStamp = slh.compositionTimeStamp = seek_video;
 			}
+#endif
 			gf_term_on_sl_packet(ffd->service, ffd->video_ch, pkt.data, pkt.size, &slh, GF_OK);
-			video_init = 1;
 		}
 		gf_mx_v(ffd->mx);
 		av_free_packet(&pkt);
 
-		/*here's the trick - only seek after sending the first packets of each stream - this allows ffmpeg video decoders
-		to resync properly*/
-		if (do_seek && video_init && ffd->seekable) {
-			av_seek_frame(ffd->ctx, -1, seek_to, AVSEEK_FLAG_BACKWARD);
-			do_seek = 0;
-			map_audio_time = ffd->unreliable_audio_timing;
-		}
 		/*sleep untill the buffer occupancy is too low - note that this work because all streams in this
 		demuxer are synchronized*/
-		while (1) {
-			if (ffd->audio_ch) {
-				com.base.on_channel = ffd->audio_ch;
-				gf_term_on_command(ffd->service, &com, GF_OK);
-				if (com.buffer.occupancy < ffd->data_buffer_ms) break;
-			}
-			if (ffd->video_ch) {
-				com.base.on_channel = ffd->video_ch;
-				gf_term_on_command(ffd->service, &com, GF_OK);
-				if (com.buffer.occupancy < ffd->data_buffer_ms) break;
-			}
+		while (ffd->audio_run || ffd->video_run) {
+			gf_term_on_command(ffd->service, &com, GF_OK);
+			if (com.buffer.occupancy < com.buffer.max) 
+				break;
 			gf_sleep(10);
 
-			/*escape if disconnect*/
-			if (!ffd->audio_run && !ffd->video_run) break;
 		}
 		if (!ffd->audio_run && !ffd->video_run) break;
 	}
@@ -882,7 +843,6 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_INTERACTIVE:
 		return ffd->seekable ? GF_OK : GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_BUFFER:
-		com->buffer.max = com->buffer.min = 0;
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:
 		if (ffd->ctx->duration == AV_NOPTS_VALUE)

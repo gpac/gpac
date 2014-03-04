@@ -437,6 +437,7 @@ void gf_term_start_codec(GF_Codec *codec, Bool is_resume)
 	GF_CodecCapability cap;
 	CodecEntry *ce;
 	GF_Terminal *term = codec->odm->term;
+	if (!gf_list_count(codec->odm->channels)) return;
 	ce = mm_get_codec(term->codecs, codec);
 	if (!ce) return;
 
