@@ -55,7 +55,7 @@ void gf_sc_set_fps(GF_Compositor *sr, Double fps);
 GF_Err gf_sc_set_scene(GF_Compositor *sr, GF_SceneGraph *scene_graph);
 
 /*if the compositor doesn't use its own thread for visual, this will perform a render pass*/
-Bool gf_sc_draw_frame(GF_Compositor *sr);
+Bool gf_sc_draw_frame(GF_Compositor *sr, u32 *ms_till_next);
 
 /*inits rendering info for the node - shall be called for all nodes the parent system doesn't handle*/
 void gf_sc_on_node_init(GF_Compositor *sr, GF_Node *node);

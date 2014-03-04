@@ -270,7 +270,7 @@ Bool gf_term_find_codec(GF_Terminal *term, GF_Codec *codec)
 	return 0;
 }
 
-static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
+static u32 MM_SimulationStep_Decoder(GF_Terminal *term, u32 *nb_active_decs)
 {
 	CodecEntry *ce;
 	GF_Err e;
@@ -295,6 +295,7 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 
 	count = gf_list_count(term->codecs);
 	time_left = term->frame_duration;
+	*nb_active_decs = 0;
 
 	if (term->last_codec >= count) term->last_codec = 0;
 	remain = count;
@@ -314,6 +315,7 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 		if (ce->dec->PriorityBoost) time_slice *= 2;
 		time_taken = gf_sys_clock();
 
+		(*nb_active_decs) ++;
 		e = gf_codec_process(ce->dec, time_slice);
 		time_taken = gf_sys_clock() - time_taken;
 		/*avoid signaling errors too often...*/
@@ -364,26 +366,31 @@ u32 MM_Loop(void *par)
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("(RTI] Terminal Cycle Log\tServices\tDecoders\tCompositor\tSleep\n"));
 
 	while (term->flags & GF_TERM_RUNNING) {
+		u32 nb_decs = 0;
 		u32 left = 0;
-		if (do_codec) left = MM_SimulationStep_Decoder(term);
+		if (do_codec) left = MM_SimulationStep_Decoder(term, &nb_decs);
 		else left = term->frame_duration;
 		
 		if (do_scene) {
+			u32 ms_until_next=0;
 			u32 time_taken = gf_sys_clock();
-			gf_sc_draw_frame(term->compositor);
+			gf_sc_draw_frame(term->compositor, &ms_until_next);
 			time_taken = gf_sys_clock() - time_taken;
-			if (left>time_taken) 
+			if (ms_until_next<term->frame_duration/2) {
+				left = 0;
+			} else if (left>time_taken) 
 				left -= time_taken;
 			else
 				left = 0;
 		}
-
 		if (do_regulate) {
 			if (term->bench_mode) {
 				gf_sleep(0);
 			} else {
 				if (left==term->frame_duration) {
-					gf_sleep(term->frame_duration/2);
+					//if nothing was done during this pass but we have active decoder, just yield. We don't want to sleep since 
+					//composition memory could be released at any time. We should have a signal here, rather than a wait
+					gf_sleep(nb_decs ? 0 : term->frame_duration/2);
 				}
 			}
 		}
@@ -651,14 +658,20 @@ void gf_term_set_priority(GF_Terminal *term, s32 Priority)
 GF_EXPORT
 u32 gf_term_process_step(GF_Terminal *term)
 {
+	u32 nb_decs=0;
 	u32 time_taken = gf_sys_clock();
 
 	if (term->flags & GF_TERM_NO_DECODER_THREAD) {
-		MM_SimulationStep_Decoder(term);
+		MM_SimulationStep_Decoder(term, &nb_decs);
 	} 
 
 	if (term->flags & GF_TERM_NO_COMPOSITOR_THREAD) {
-		gf_sc_draw_frame(term->compositor);
+		u32 ms_until_next;
+		gf_sc_draw_frame(term->compositor, &ms_until_next);
+		if (ms_until_next<term->compositor->frame_duration/2) {
+			time_taken=0;
+		}
+
 	}
 	time_taken = gf_sys_clock() - time_taken;
 	if (time_taken > term->compositor->frame_duration) {
@@ -669,7 +682,7 @@ u32 gf_term_process_step(GF_Terminal *term)
 	if (term->bench_mode || (term->user->init_flags & GF_TERM_NO_REGULATION)) return time_taken;
 
 	if (2*time_taken >= term->compositor->frame_duration) {
-		gf_sleep(time_taken);
+		gf_sleep(nb_decs ? 0 : time_taken);
 	}
 	return time_taken;
 }
@@ -694,7 +707,7 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 			gf_mx_v(term->mm_mx);
 		}
 
-		if (!gf_sc_draw_frame(term->compositor))
+		if (!gf_sc_draw_frame(term->compositor, NULL))
 			break;
 
 		if (! (term->user->init_flags & GF_TERM_NO_REGULATION))

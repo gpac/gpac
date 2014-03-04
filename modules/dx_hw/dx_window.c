@@ -886,7 +886,8 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 		/*create event thread*/
 		ctx->th = gf_th_new("DirectX Video");
 		gf_th_run(ctx->th, DD_WindowThread, dr);
-		while (!ctx->th_state) gf_sleep(2);
+		while (!ctx->th_state)
+			gf_sleep(1);
 	}
 	if (!the_video_output) the_video_output = dr;
 }
