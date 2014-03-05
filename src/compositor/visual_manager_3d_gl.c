@@ -405,98 +405,98 @@ static char *glsl_view_5VSP19 = "\
 	}";
 
 static char *glsl_yuv_shader = "\
-	uniform sampler2D y_plane;\
-	uniform sampler2D u_plane;\
-	uniform sampler2D v_plane;\
-	uniform float alpha;\
-	varying vec2 TexCoord;\
-	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
-	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
-	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
-	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
-	void main(void)  \
-	{\
-		vec2 texc;\
-		vec3 yuv, rgb;\
-		texc = TexCoord.st;\
-		texc.y = 1.0 - texc.y;\
-		yuv.x = texture2D(y_plane, texc).r; \
-		yuv.y = texture2D(u_plane, texc).r; \
-		yuv.z = texture2D(v_plane, texc).r; \
-		yuv += offset; \
-	    rgb.r = dot(yuv, R_mul); \
-	    rgb.g = dot(yuv, G_mul); \
-	    rgb.b = dot(yuv, B_mul); \
-		gl_FragColor = vec4(rgb, alpha);\
-	}";
+	uniform sampler2D y_plane;\n\
+	uniform sampler2D u_plane;\n\
+	uniform sampler2D v_plane;\n\
+	uniform float alpha;\n\
+	varying vec2 TexCoord;\n\
+	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
+	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\n\
+	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\n\
+	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\n\
+	void main(void)  \n\
+	{\n\
+		vec2 texc;\n\
+		vec3 yuv, rgb;\n\
+		texc = TexCoord.st;\n\
+		texc.y = 1.0 - texc.y;\n\
+		yuv.x = texture2D(y_plane, texc).r;\n\
+		yuv.y = texture2D(u_plane, texc).r;\n\
+		yuv.z = texture2D(v_plane, texc).r;\n\
+		yuv += offset;\n\
+	    rgb.r = dot(yuv, R_mul);\n\
+	    rgb.g = dot(yuv, G_mul);\n\
+	    rgb.b = dot(yuv, B_mul);\n\
+		gl_FragColor = vec4(rgb, alpha);\n\
+	}\n";
 
 
 static char *glsl_yuv_rect_shader_strict = "\
 	#version 140\n\
 	#extension GL_ARB_texture_rectangle : enable\n\
-	uniform sampler2DRect y_plane;\
-	uniform sampler2DRect u_plane;\
-	uniform sampler2DRect v_plane;\
-	uniform float width;\
-	uniform float height;\
-	uniform float alpha;\
-	varying vec2 TexCoord;\
-	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
-	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
-	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
-	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
-	out vec4 FragColor;\
-	void main(void)  \
-	{\
-		vec2 texc;\
-		vec3 yuv, rgb;\
-		texc = TexCoord.st;\
-		texc.y = 1.0 - texc.y;\
-		texc.x *= width;\
-		texc.y *= height;\
-		yuv.x = texture2DRect(y_plane, texc).r; \
-		texc.x /= 2.0;\
-		texc.y /= 2.0;\
-		yuv.y = texture2DRect(u_plane, texc).r; \
-		yuv.z = texture2DRect(v_plane, texc).r; \
-		yuv += offset; \
-	    rgb.r = dot(yuv, R_mul); \
-	    rgb.g = dot(yuv, G_mul); \
-	    rgb.b = dot(yuv, B_mul); \
-		FragColor = vec4(rgb, alpha);\
-	}";
+	uniform sampler2DRect y_plane;\n\
+	uniform sampler2DRect u_plane;\n\
+	uniform sampler2DRect v_plane;\n\
+	uniform float width;\n\
+	uniform float height;\n\
+	uniform float alpha;\n\
+	in vec2 TexCoord;\n\
+	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
+	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\n\
+	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\n\
+	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\n\
+	out vec4 FragColor;\n\
+	void main(void)  \n\
+	{\n\
+		vec2 texc;\n\
+		vec3 yuv, rgb;\n\
+		texc = TexCoord.st;\n\
+		texc.y = 1.0 - texc.y;\n\
+		texc.x *= width;\n\
+		texc.y *= height;\n\
+		yuv.x = texture2DRect(y_plane, texc).r;\n\
+		texc.x /= 2.0;\n\
+		texc.y /= 2.0;\n\
+		yuv.y = texture2DRect(u_plane, texc).r;\n\
+		yuv.z = texture2DRect(v_plane, texc).r;\n\
+		yuv += offset;\n\
+	    rgb.r = dot(yuv, R_mul);\n\
+	    rgb.g = dot(yuv, G_mul);\n\
+	    rgb.b = dot(yuv, B_mul);\n\
+		FragColor = vec4(rgb, alpha);\n\
+	}\n";
 
 static char *glsl_yuv_rect_shader_relaxed= "\
-	uniform sampler2DRect y_plane;\
-	uniform sampler2DRect u_plane;\
-	uniform sampler2DRect v_plane;\
-	uniform float width;\
-	uniform float height;\
-	uniform float alpha;\
-    varying vec2 TexCoord;\
-	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
-	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
-	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
-	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
-	void main(void)  \
-	{\
-		vec2 texc;\
-		vec3 yuv, rgb;\
-		texc = TexCoord.st;\
-		texc.y = 1.0 - texc.y;\
-		texc.x *= width;\
-		texc.y *= height;\
-		yuv.x = texture2DRect(y_plane, texc).r; \
-		texc.x /= 2.0;\
-		texc.y /= 2.0;\
-		yuv.y = texture2DRect(u_plane, texc).r; \
-		yuv.z = texture2DRect(v_plane, texc).r; \
-		yuv += offset; \
-	    rgb.r = dot(yuv, R_mul); \
-	    rgb.g = dot(yuv, G_mul); \
-	    rgb.b = dot(yuv, B_mul); \
-		gl_FragColor = vec4(rgb, alpha);\
-	}";
+	uniform sampler2DRect y_plane;\n\
+	uniform sampler2DRect u_plane;\n\
+	uniform sampler2DRect v_plane;\n\
+	uniform float width;\n\
+	uniform float height;\n\
+	uniform float alpha;\n\
+    varying vec2 TexCoord;\n\
+	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
+	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\n\
+	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\n\
+	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\n\
+	void main(void)  \n\
+	{\n\
+		vec2 texc;\n\
+		vec3 yuv, rgb;\n\
+		texc = TexCoord.st;\n\
+		texc.y = 1.0 - texc.y;\n\
+		texc.x *= width;\n\
+		texc.y *= height;\n\
+		yuv.x = texture2DRect(y_plane, texc).r;\n\
+		texc.x /= 2.0;\n\
+		texc.y /= 2.0;\n\
+		yuv.y = texture2DRect(u_plane, texc).r;\n\
+		yuv.z = texture2DRect(v_plane, texc).r;\n\
+		yuv += offset;\n\
+	    rgb.r = dot(yuv, R_mul);\n\
+	    rgb.g = dot(yuv, G_mul);\n\
+	    rgb.b = dot(yuv, B_mul);\n\
+		gl_FragColor = vec4(rgb, alpha);\n\
+	}\n";
 
 
 Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const char *source)
@@ -517,7 +517,7 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 #else
 		glGetInfoLogARB(shader_id, blen, &slen, compiler_log);
 #endif
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[GLSL] Failed to compile shader %s: %s\n", name, compiler_log));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[GLSL] Failed to compile shader %s: %s\n***** shader code ****\n%s\n**********************\n", name, compiler_log, source));
 		gf_free (compiler_log);
 		return 0;
 	}
@@ -616,7 +616,7 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 	}
 
 	visual->yuv_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-	visual_3d_compile_shader(visual->yuv_glsl_fragment, "fragment", glsl_yuv_shader);
+	visual_3d_compile_shader(visual->yuv_glsl_fragment, "YUV fragment", glsl_yuv_shader);
 
 	glAttachShader(visual->yuv_glsl_program, visual->base_glsl_vertex);
 	glAttachShader(visual->yuv_glsl_program, visual->yuv_glsl_fragment);
@@ -643,19 +643,21 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 		opt = gf_cfg_get_key(visual->compositor->user->config, "Compositor", "YUVRectShader");
 		visual->yuv_rect_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
 		if (opt && !strcmp(opt, "Relaxed")) {
-			res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "fragment", glsl_yuv_rect_shader_relaxed);
+			res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "YUV Rect fragment (relaxed syntax)", glsl_yuv_rect_shader_relaxed);
 		} else {
 			if (opt) {
 				visual->yuv_rect_glsl_fragment = visual_3d_shader_from_source_file(opt, GL_FRAGMENT_SHADER);
 				if (!visual->yuv_rect_glsl_fragment) res  = GF_FALSE;
 			}
-			res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "fragment", glsl_yuv_rect_shader_strict);
+			res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "YUV Rect fragment (strict syntax)", glsl_yuv_rect_shader_strict);
 			if (!res) {
-				res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "fragment", glsl_yuv_rect_shader_relaxed);
+				res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "YUV Rect fragment (relaxed syntax)", glsl_yuv_rect_shader_relaxed);
 				if (res) {
 					if (!opt) gf_cfg_set_key(visual->compositor->user->config, "Compositor", "YUVRectShader", "Relaxed");
-					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Using relaxed syntax version of YUV shader\n"));
+					GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Using relaxed syntax version of YUV shader\n"));
 				}
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Using strict syntax version of YUV shader\n"));
 			}
 		}
 		if (!res) {
@@ -680,6 +682,17 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 				}
 				glUniform1i(loc, i);
 			}
+
+			loc = glGetUniformLocation(visual->yuv_rect_glsl_program, "width");
+			if (loc == -1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate width in YUV shader\n"));
+			}
+
+			loc = glGetUniformLocation(visual->yuv_rect_glsl_program, "height");
+			if (loc == -1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate width in YUV shader\n"));
+			}
+
 			glUseProgram(0);  
 		}
 	}

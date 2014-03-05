@@ -187,7 +187,7 @@ GF_HTML_MediaTimeRanges *gf_html_timeranges_union(GF_HTML_MediaTimeRanges *a, GF
 		/* first check if the next a is not contiguous */
 		if (add_a == GF_TRUE && i+2 < count_a) {
 			u64 *next_starta = (u64 *)gf_list_get(a->times, i+2);
-			u64 *next_enda = (u64 *)gf_list_get(a->times, i+3);
+			//u64 *next_enda = (u64 *)gf_list_get(a->times, i+3);
 			if (*enda == *next_starta) {
 				*next_starta = *starta;
 			}

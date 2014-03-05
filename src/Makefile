@@ -135,8 +135,8 @@ LIBGPAC_MEDIATOOLS+=media_tools/text_import.o
 endif
 
 ifeq ($(DISABLE_PLAYER), no)
-LIBGPAC_MEDIATOOLS+=media_tools/html5_media.o media_tools/html5_mse.o
 ifeq ($(DISABLE_TTXT), no)
+LIBGPAC_MEDIATOOLS+=media_tools/html5_media.o media_tools/html5_mse.o
 LIBGPAC_MEDIATOOLS+=media_tools/webvtt.o
 endif
 endif

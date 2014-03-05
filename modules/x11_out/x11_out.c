@@ -728,18 +728,23 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
   GF_Event evt;
   XWindow *xWin = (XWindow *)vout->opaque;
 
-  GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[X11] Setting up GL for display %d\n", xWin->display));
-  XSync(xWin->display, False);
-  xWin->glx_context = glXCreateContext(xWin->display,xWin->glx_visualinfo, NULL, True);
-  XSync(xWin->display, False);
-  if (!xWin->glx_context) return GF_IO_ERR;
-  if (xWin->output_3d_mode==2)  return GF_IO_ERR;
+  if (!xWin->glx_visualinfo) return GF_IO_ERR;
+  memset(&evt, 0, sizeof(GF_Event));
 
+  if (!xWin->glx_context) {
+	  GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[X11] Setting up GL for display %d\n", xWin->display));
+	  XSync(xWin->display, False);
+	  xWin->glx_context = glXCreateContext(xWin->display,xWin->glx_visualinfo, NULL, True);
+	  XSync(xWin->display, False);
+	  if (!xWin->glx_context) return GF_IO_ERR;
+	  if (xWin->output_3d_mode==2)  return GF_IO_ERR;
+
+	  evt.setup.hw_reset = 1;
+  }
   if ( ! glXMakeCurrent(xWin->display, xWin->fullscreen ? xWin->full_wnd : xWin->wnd, xWin->glx_context) ) return GF_IO_ERR;
   XSync(xWin->display, False);
-  memset(&evt, 0, sizeof(GF_Event));
+
   evt.type = GF_EVENT_VIDEO_SETUP;
-  evt.setup.hw_reset = 1;
   vout->on_event (vout->evt_cbk_hdl,&evt);
   xWin->is_init = 1;
   return GF_OK;
@@ -997,7 +1002,7 @@ GF_Err X11_SetFullScreen (struct _video_out * vout, u32 bFullScreenOn, u32 * scr
 	X11VID ();
 	xWindow->fullscreen = bFullScreenOn;
 #ifdef GPAC_HAS_OPENGL
-	if (xWindow->output_3d_mode==1) X11_ReleaseGL(xWindow);
+//	if (xWindow->output_3d_mode==1) X11_ReleaseGL(xWindow);
 #endif
 
 	if (bFullScreenOn) {
@@ -1349,9 +1354,9 @@ xWindow->screennum=0;
           }
 retry_8bpp:
 	  i=0;
-	  attribs[i++] = GLX_DRAWABLE_TYPE;
-	  attribs[i++] =  GLX_WINDOW_BIT;
 	  if (nb_bits>8) {
+		  attribs[i++] = GLX_DRAWABLE_TYPE;
+		  attribs[i++] =  GLX_WINDOW_BIT;
 		  attribs[i++] = GLX_RENDER_TYPE;
 		  attribs[i++] = GLX_RGBA_BIT;
 	  } else {
