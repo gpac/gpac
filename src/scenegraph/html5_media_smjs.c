@@ -357,6 +357,34 @@ static void html_media_element_populate_tracks(JSContext *c, GF_HTML_MediaElemen
     }
 }
 
+/* Used to retrieve the structure implementing the GF_HTML_MediaElement interface associated with this node
+ * Usually this is done with the private stack of the node (see gf_node_get_private), but in this case,
+ * the stack already contains the rendering stack SVG_video_stack.
+ * So, we store the structure implementing the GF_HTML_MediaElement interface in the JavaScript context of this node,
+ * as a non enumeratable property named 'gpac_me_impl'
+ *
+ *  \param c the global JavaScript context 
+ *  \param n the audio or video node
+ *  \return the GF_HTML_MediaElement associated with this node in the given context
+ */
+static GF_HTML_MediaElement *html_media_element_get_from_node(JSContext *c, GF_Node *n)
+{
+    jsval vp;
+    JSObject *me_obj;
+    JSObject *node_obj;
+    GF_HTML_MediaElement *me = NULL;
+
+    if ((n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) && n->sgprivate->interact && n->sgprivate->interact->js_binding) {
+		node_obj = (JSObject *)n->sgprivate->interact->js_binding->node;
+		if (node_obj) {
+			JS_GetProperty(c, node_obj, "gpac_me_impl", &vp);
+			me_obj = JSVAL_TO_OBJECT(vp);
+			me = (GF_HTML_MediaElement *)SMJS_GET_PRIVATE(c, me_obj);
+		}
+	}
+    return me;
+}
+
 static JSBool SMJS_FUNCTION(html_media_load)
 {
     SMJS_OBJ
@@ -364,9 +392,19 @@ static JSBool SMJS_FUNCTION(html_media_load)
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlVideoElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlMediaElementClass, NULL))
     {
-        /* mo->odm->net_service */
-    }
-    return JS_TRUE;
+		MFURL mfurl;
+		GF_Node *n = (GF_Node *)SMJS_GET_PRIVATE(c, obj);
+		GF_HTML_MediaElement *me = html_media_element_get_from_node(c, n);
+		mfurl.count = 1;
+		mfurl.vals = (SFURL *)gf_malloc(sizeof(SFURL));
+		mfurl.vals[0].url = me->currentSrc;
+		mfurl.vals[0].OD_ID = GF_MEDIA_EXTERNAL_ID;
+		gf_mo_register(n, &mfurl, GF_FALSE, GF_FALSE);
+		gf_free(mfurl.vals);
+	    return JS_TRUE;
+    } else {
+		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
+	}
 }
 
 static JSBool SMJS_FUNCTION(html_media_canPlayType)
@@ -397,6 +435,7 @@ static JSBool SMJS_FUNCTION(html_media_fastSeek)
 
 static JSBool SMJS_FUNCTION(html_media_addTextTrack)
 {
+    SMJS_OBJ
     if (GF_JS_InstanceOf(c, obj, &html_media_rt->htmlAudioElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlVideoElementClass, NULL) ||
         GF_JS_InstanceOf(c, obj, &html_media_rt->htmlMediaElementClass, NULL))
@@ -421,35 +460,6 @@ void *html_get_element_class(GF_Node *n)
     }
 }
 
-/* Used to retrieve the structure implementing the GF_HTML_MediaElement interface associated with this node
- * Usually this is done with the private stack of the node (see gf_node_get_private), but in this case,
- * the stack already contains the rendering stack SVG_video_stack.
- * So, we store the structure implementing the GF_HTML_MediaElement interface in the JavaScript context of this node,
- * as a non enumeratable property named 'gpac_me_impl'
- *
- *  \param c the global JavaScript context 
- *  \param n the audio or video node
- *  \return the GF_HTML_MediaElement associated with this node in the given context
- */
-static GF_HTML_MediaElement *html_media_element_get_from_node(JSContext *c, GF_Node *n)
-{
-    jsval vp;
-    JSObject *me_obj;
-    JSObject *node_obj;
-    GF_HTML_MediaElement *me = NULL;
-
-    if ((n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) && n->sgprivate->interact && n->sgprivate->interact->js_binding) {
-		node_obj = (JSObject *)n->sgprivate->interact->js_binding->node;
-		if (node_obj)
-		{
-			JS_GetProperty(c, node_obj, "gpac_me_impl", &vp);
-			me_obj = JSVAL_TO_OBJECT(vp);
-			me = (GF_HTML_MediaElement *)SMJS_GET_PRIVATE(c, me_obj);
-		}
-	}
-    return me;
-}
-
 /* Creates the GF_HTML_MediaElement structure for this node
  * Store it in the JavaScript context of this node, as a non enumeratable property named 'gpac_me_impl'
  * see \ref html_media_element_get_from_node for retrieving it
@@ -460,8 +470,7 @@ static GF_HTML_MediaElement *html_media_element_get_from_node(JSContext *c, GF_N
  */
 void html_media_element_js_init(JSContext *c, JSObject *node_obj, GF_Node *n)
 {
-    if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio)
-    {
+    if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
         GF_HTML_MediaElement *me;
         me = gf_html_media_element_new(n, NULL);
         gf_html_media_element_init_js(me, c, node_obj);
