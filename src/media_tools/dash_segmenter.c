@@ -4656,6 +4656,14 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 						fps_num = dash_inputs[i].components[j].fps_num;
 						fps_denum = dash_inputs[i].components[j].fps_denum;
 					}
+					
+					if (dash_inputs[i].components[j].szLang && dash_inputs[i].components[j].szLang[0]) {
+						if (szLang[0]) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] two languages in adaptation set: %s will be kept, %s will be ignored\n", szLang[0], dash_inputs[i].components[j].szLang[0]));
+						} else {
+							memcpy(szLang, dash_inputs[i].components[j].szLang, 4*sizeof(char));
+						}
+					}
 				}
 			}
 
