@@ -1982,10 +1982,12 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 				compositor->autoconfig_opengl = 0;
 
 				//to enable
-#if 0
+				fprintf(stderr, "YUV shader enabled: %d\n", compositor->visual->yuv_rect_glsl_program);
+#if 1
 				if (compositor->visual->yuv_rect_glsl_program) {
 					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "hybrid");
-					compositor->force_opengl_2d = 1;
+					compositor->force_opengl_2d = 0;
+					compositor->hybrid_opengl = 1;
 				} else 
 #endif
 				{
