@@ -569,7 +569,7 @@ static void log_blit_times(GF_TextureHandler *txh, u32 push_time)
     txh->nb_frames ++;
     txh->upload_time += push_time;
         
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] Blit texure (CTS %d) %d ms after due date - blit in %d ms - average push time %d ms\n", txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] At %d Blit texure (CTS %d) %d ms after due date - blit in %d ms - average push time %d ms\n", ck, txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
 }
 #endif
 
@@ -836,47 +836,53 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		video_src.v_ptr = txh->pV;
 	}
 
+	//overlay queing
+	if (overlay_type==2) {
+		GF_IRect o_rc;
+		GF_OverlayStack *ol, *first;
+
+		/*queue overlay in order*/
+		GF_SAFEALLOC(ol, GF_OverlayStack);
+		ol->ctx = ctx;
+		ol->dst = dst_wnd;
+		ol->src = src_wnd;
+		first = visual->overlays;
+		if (first) {
+			while (first->next) first = first->next;
+			first->next = ol;
+		} else {
+			visual->overlays = ol;
+		}
+
+		if (visual->center_coords) {
+			o_rc.x = dst_wnd.x - output_width/2;
+			o_rc.y = output_height/2- dst_wnd.y;
+		} else {
+			o_rc.x = dst_wnd.x;
+			o_rc.y = dst_wnd.y + dst_wnd.h;
+		}
+
+		o_rc.width = dst_wnd.w;
+		o_rc.height = dst_wnd.h;
+		visual->ClearSurface(visual, &o_rc, visual->compositor->video_out->overlay_color_key);
+		visual->has_overlays = GF_TRUE;
+		/*mark drawable as overlay*/
+		ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;
+
+		/*prevents this context from being removed in direct draw mode by requesting a new one
+		but not allocating it*/
+		if (tr_state->immediate_draw)
+			visual_2d_get_drawable_context(visual);
+
+		return GF_TRUE;
+	}
+
+	//will pause clock if first HW load
+	gf_sc_texture_check_pause_on_first_load(txh);
+
 	if (overlay_type) {
 		u32 push_time;
 
-		if (overlay_type==2) {
-			GF_IRect o_rc;
-			GF_OverlayStack *ol, *first;
-
-			/*queue overlay in order*/
-			GF_SAFEALLOC(ol, GF_OverlayStack);
-			ol->ctx = ctx;
-			ol->dst = dst_wnd;
-			ol->src = src_wnd;
-			first = visual->overlays;
-			if (first) {
-				while (first->next) first = first->next;
-				first->next = ol;
-			} else {
-				visual->overlays = ol;
-			}
-
-			if (visual->center_coords) {
-				o_rc.x = dst_wnd.x - output_width/2;
-				o_rc.y = output_height/2- dst_wnd.y;
-			} else {
-				o_rc.x = dst_wnd.x;
-				o_rc.y = dst_wnd.y + dst_wnd.h;
-			}
-
-			o_rc.width = dst_wnd.w;
-			o_rc.height = dst_wnd.h;
-			visual->ClearSurface(visual, &o_rc, visual->compositor->video_out->overlay_color_key);
-			visual->has_overlays = GF_TRUE;
-			/*mark drawable as overlay*/
-			ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;
-
-			/*prevents this context from being removed in direct draw mode by requesting a new one
-			but not allocating it*/
-			if (tr_state->immediate_draw)
-				visual_2d_get_drawable_context(visual);
-			return GF_TRUE;
-		}
 		/*top level overlay*/
 		if (flush_video) {
 			GF_Window rc;
@@ -892,6 +898,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 		push_time = gf_sys_clock();
 		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 1);
+
 		if (!e) {            
 #ifndef GPAC_DISABLE_LOG
             log_blit_times(txh, push_time);
@@ -899,6 +906,9 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			/*mark drawable as overlay*/
 			ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;
 			visual->has_overlays = GF_TRUE;
+
+			//will resume clock if first HW load
+			gf_sc_texture_check_pause_on_first_load(txh);
 			return GF_TRUE;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during overlay blit - trying with soft one\n"));
@@ -912,6 +922,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	if (!use_soft_stretch) {
 		u32 push_time = gf_sys_clock();
 		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 0);
+
 		/*HW pb, try soft*/
 		if (e) {
 			use_soft_stretch = GF_TRUE;
@@ -933,6 +944,10 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 #endif
 	}
+
+	//will resume clock if first HW load
+	gf_sc_texture_check_pause_on_first_load(txh);
+
 	if (use_soft_stretch) {
 		GF_VideoSurface backbuffer;
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_TRUE);
@@ -946,6 +961,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));
 			if (is_attached) visual_2d_init_raster(visual);
+
 			return GF_FALSE;
 		}
 		if (!visual->compositor->video_memory) {
@@ -956,7 +972,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 	}
 	visual->has_modif = GF_TRUE;
-	if (is_attached) visual_2d_init_raster(visual);
+//	if (is_attached) visual_2d_init_raster(visual);
 	return GF_TRUE;
 }
 

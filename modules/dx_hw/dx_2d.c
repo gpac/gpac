@@ -305,13 +305,9 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 	pcClipper->lpVtbl->Release(pcClipper);
 
 
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
-	if (opt && !strcmp(opt, "yes")) dd->disable_vsync = GF_TRUE;
-
 	dd->ddraw_init = 1;
 	/*if YUV not initialize, init using HW video memory to setup HW caps*/
 	return GF_OK;
-	//CreateBackBuffer(dr, Width, Height, dd->yuv_init);
 }
 
 static GF_Err DD_LockSurface(DDContext *dd, GF_VideoSurface *vi, LPDDRAWSURFACE surface)

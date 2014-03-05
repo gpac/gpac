@@ -46,14 +46,15 @@ u32 gl_upload_time = 0;
 u32 gl_draw_time = 0;
 Bool pbo_mode = GF_TRUE;
 Bool first_tx_load = GF_FALSE;
+Bool use_vsync=0;
 
 GLint glsl_program;
 GLint vertex_shader;
 GLint fragment_shader;
 
-GLint pbo_Y;
-GLint pbo_U;
-GLint pbo_V;
+GLint pbo_Y=0;
+GLint pbo_U=0;
+GLint pbo_V=0;
 
 GLDECL_STATIC(glActiveTexture);
 GLDECL_STATIC(glClientActiveTexture);
@@ -154,7 +155,7 @@ Bool sdl_compile_shader(u32 shader_id, const char *name, const char *source)
 
 void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 {
-	u32 i;
+	u32 i, flags;
 	Float hw, hh;
 	GLint loc;
 	GF_Matrix mx;
@@ -170,7 +171,9 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
 
-	window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS | SDL_WINDOW_MAXIMIZED);
+	flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS | SDL_WINDOW_MAXIMIZED;
+	if (use_vsync) flags |= SDL_RENDERER_PRESENTVSYNC;
+	window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags);
 	glctx = SDL_GL_CreateContext(window);
 	SDL_GL_MakeCurrent(window, glctx);
 
@@ -337,19 +340,19 @@ void sdl_close()
 	DEL_SHADER(fragment_shader);
 	DEL_PROGRAM(glsl_program );
 
-	if (pbo_mode) {
+	if (pbo_mode && pbo_Y) {
 		glDeleteBuffers(1, &pbo_Y);
 		glDeleteBuffers(1, &pbo_U);
 		glDeleteBuffers(1, &pbo_V);
 	}
 
-	gf_free(pY);
-	gf_free(pU);
-	gf_free(pV);
+	if (pY) gf_free(pY);
+	if (pU) gf_free(pU);
+	if (pV) gf_free(pV);
 
-	SDL_GL_DeleteContext(glctx);
-	SDL_DestroyRenderer(render);
-	SDL_DestroyWindow(window);
+	if (glctx) SDL_GL_DeleteContext(glctx);
+	if (render) SDL_DestroyRenderer(render);
+	if (window) SDL_DestroyWindow(window);
 }
 
 void sdl_draw_quad()
@@ -668,6 +671,7 @@ int main(int argc, char **argv)
 		}
 		if (!strcmp(arg, "-bench-yuv")) sdl_bench_yuv=1;
 		else if (!strcmp(arg, "-sys-mem")) use_raw_memory = 0;
+		else if (!strcmp(arg, "-vsync")) use_vsync = 1;
 		else if (!strcmp(arg, "-use-pbo")) use_pbo = 1;
 		else if (!strcmp(arg, "-no-display")) no_display = 1;
 		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = GF_TRUE;

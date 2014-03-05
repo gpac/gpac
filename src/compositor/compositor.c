@@ -1968,6 +1968,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		}
 #endif
 
+		gf_sc_ar_control(compositor->audio_renderer, 0);
 #ifndef GPAC_DISABLE_3D
 		if (compositor->autoconfig_opengl) {
 			compositor->visual->type_3d = 1;
@@ -2008,6 +2009,9 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			}
 #endif
 		}
+
+		gf_sc_ar_control(compositor->audio_renderer, 1);
+
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_NONE);
 
 #ifndef GPAC_DISABLE_LOG
@@ -2074,6 +2078,22 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 extern u32 time_spent_in_anim;
 #endif
+
+static void compositor_release_textures(GF_Compositor *compositor, Bool frame_drawn)
+{
+	u32 i, count;
+	/*release all textures - we must release them to handle a same OD being used by several textures*/
+	count = gf_list_count(compositor->textures);
+	for (i=0; i<count; i++) {
+		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
+		gf_sc_texture_release_stream(txh);
+		if (frame_drawn && txh->tx_io && !(txh->flags & GF_SR_TEXTURE_USED)) 
+			gf_sc_texture_reset(txh);
+		/*remove the use flag*/
+		txh->flags &= ~GF_SR_TEXTURE_USED;
+	}
+}
+
 
 void gf_sc_simulation_tick(GF_Compositor *compositor)
 {	
@@ -2153,6 +2173,18 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	event_time = gf_sys_clock() - event_time;
 #endif
 
+
+	if (!compositor->bench_mode) {
+		compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
+	} else {
+		if (compositor->force_bench_frame==1) {
+			//a system frame is pending on a future frame - we must increase our time
+			compositor->scene_sampled_clock += compositor->frame_duration;
+		}
+		compositor->force_bench_frame = 0;
+	}
+
+
 	//first update all natural textures to figure out timing
 	compositor->frame_delay = (u32) -1;
 	compositor->next_frame_delay = (u32) -1;
@@ -2189,7 +2221,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	if ((compositor->frame_delay > 0) && (compositor->frame_delay != (u32) -1)) {
 		u32 diff=0;
 		compositor->frame_delay = MIN(compositor->frame_delay, (s32) compositor->frame_duration);
-		while (1) {
+		while (!compositor->video_frame_pending) {
 			gf_sleep(0);
 			diff = gf_sys_clock() - in_time;
 			if (diff >= (u32) compositor->frame_delay)
@@ -2202,15 +2234,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		}
 	}
 
-	if (!compositor->bench_mode) {
-		compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
-	} else {
-		if (compositor->force_bench_frame==1) {
-			//a system frame is pending on a future frame - we must increase our time
-			compositor->scene_sampled_clock += compositor->frame_duration;
-		}
-		compositor->force_bench_frame = 0;
-	}
 
 
 #ifndef GPAC_DISABLE_SVG
@@ -2376,6 +2399,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	/*if invalidated, draw*/
 	if (compositor->frame_draw_type) {
 		GF_Window rc;
+		Bool textures_released = 0;
+
 #ifndef GPAC_DISABLE_LOG
 		traverse_time = gf_sys_clock();
 		time_spent_in_anim = 0;
@@ -2413,7 +2438,14 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		if(compositor->user->init_flags & GF_TERM_INIT_HIDE)
 			compositor->skip_flush = 1;
 
+		//if no overlays, release textures before flushing, otherwise we might loose time waiting for vsync
+		if (!compositor->visual->has_overlays) {
+			compositor_release_textures(compositor, frame_drawn);
+			textures_released = 1;
+		}
+
 		if (compositor->skip_flush!=1) {
+
 			//release compositor in case we have vsync
 			gf_sc_lock(compositor, 0);
 			rc.x = rc.y = 0; 
@@ -2424,19 +2456,31 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		} else {
 			compositor->skip_flush = 0;
 		}
+
 #ifndef GPAC_DISABLE_LOG
 		flush_time = gf_sys_clock() - flush_time;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Compositor] done flushing frame in %d ms\n", flush_time));
 #endif
 
 		visual_2d_draw_overlays(compositor->visual);
 		compositor->last_had_overlays = compositor->visual->has_overlays;
+
+		if (!textures_released) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Compositor] Releasing textures after flush\n" ));
+			compositor_release_textures(compositor, frame_drawn);
+		}
 
 		if (compositor->stress_mode) {
 			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 			gf_sc_reset_graphics(compositor);
 		}
 		compositor->reset_fonts = 0;
+
 	} else {
+
+		//frame not drawn, release textures
+		compositor_release_textures(compositor, frame_drawn);
+
 #ifndef GPAC_DISABLE_LOG
 		traverse_time = 0;
 		time_spent_in_anim = 0;
@@ -2448,18 +2492,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	}
 	compositor->reset_graphics = 0;
 
-	/*release all textures - we must release them to handle a same OD being used by several textures*/
-	count = gf_list_count(compositor->textures);
-	for (i=0; i<count; i++) {
-		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
-		gf_sc_texture_release_stream(txh);
-		if (frame_drawn && txh->tx_io && !(txh->flags & GF_SR_TEXTURE_USED)) 
-			gf_sc_texture_reset(txh);
-		/*remove the use flag*/
-		txh->flags &= ~GF_SR_TEXTURE_USED;
-	}
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Frame %sdrawn\n", frame_drawn ? "" : "not " ));
 
 	compositor->last_frame_time = gf_sys_clock();
 	end_time = compositor->last_frame_time - in_time;
@@ -2494,6 +2526,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		//in bench mode we always increase the clock of the fixed target simulation rate - this needs refinement if video is used ...
 		compositor->scene_sampled_clock += compositor->frame_duration;
 	}
+	compositor->video_frame_pending=0;
 	gf_sc_lock(compositor, 0);
 
 #if 0
@@ -2522,7 +2555,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		compositor->next_frame_delay = MIN(compositor->next_frame_delay, 2*compositor->frame_duration);
 		if (compositor->next_frame_delay>2) {
 			u32 diff=0;
-			while (! compositor->msg_type) {
+			while (! compositor->msg_type && ! compositor->video_frame_pending) {
 				gf_sleep(1);
 				diff = gf_sys_clock() - in_time;
 				if (diff >= (u32) compositor->next_frame_delay)
@@ -3218,6 +3251,11 @@ void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pendin
 		//do not increase clock
 		compositor->force_bench_frame = 2;
 	}
+}
+
+void gf_sc_set_video_pending_frame(GF_Compositor *compositor)
+{
+	compositor->video_frame_pending = GF_TRUE;
 }
 
 void gf_sc_queue_dom_event(GF_Compositor *compositor, GF_Node *node, GF_DOM_Event *evt)

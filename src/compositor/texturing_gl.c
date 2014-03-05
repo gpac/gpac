@@ -52,16 +52,17 @@ enum
 	TX_NEEDS_RASTER_LOAD = (1<<1),
 	/*signal video data must be sent to 3D hw*/
 	TX_NEEDS_HW_LOAD = (1<<2),
+
 	/*OpenGL texturing flags*/
 
 	/*these 4 are exclusives*/
-	TX_MUST_SCALE = (1<<3),
-	TX_IS_POW2 = (1<<4),
-	TX_IS_RECT = (1<<5),
-	TX_EMULE_POW2 = (1<<6),
-	TX_EMULE_FIRST_LOAD = (1<<7),
+	TX_MUST_SCALE = (1<<10),
+	TX_IS_POW2 = (1<<11),
+	TX_IS_RECT = (1<<12),
+	TX_EMULE_POW2 = (1<<13),
+	TX_EMULE_FIRST_LOAD = (1<<14),
 
-	TX_IS_FLIPPED = (1<<8),
+	TX_IS_FLIPPED = (1<<15),
 };
 
 
@@ -71,6 +72,8 @@ struct __texture_wrapper
 
 	/*2D texturing*/
 	GF_STENCIL tx_raster;
+	//0: not paused, 1: paused, 2: initial pause has been done
+	u32 init_pause_status;
 
 	/*3D texturing*/
 #ifndef GPAC_DISABLE_3D
@@ -567,6 +570,9 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 			glPixelTransferi(GL_RED_SCALE, 64);
 #endif
 		} else {
+#ifndef GPAC_USE_OGL_ES 
+			glPixelTransferi(GL_RED_SCALE, 1);
+#endif
 		    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 		}
 		glDisable(txh->tx_io->gl_type);
@@ -928,6 +934,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 
 #else
 
+	gf_sc_texture_check_pause_on_first_load(txh);
+
 	/*pow2 texture or hardware support*/
 	if (! (txh->tx_io->flags & TX_MUST_SCALE) ) {
 		if (txh->tx_io->yuv_shader) {
@@ -936,14 +944,21 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			u32 ck;
 			pY = data;
 			if (txh->raw_memory) {
-				if (!txh->pU || !txh->pV) return 0;
-
+				assert(txh->pU && txh->pV);
 				pU = txh->pU;
 				pV = txh->pV;
 			} else {
 				pU = pY + txh->height*txh->stride;
 				pV = pU + txh->height*txh->stride/4;
 			}
+
+#ifndef GPAC_USE_OGL_ES 
+			if (txh->pixelformat==GF_PIXEL_YV12_10) {
+				glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+				//we use 10 bits but GL will normalise using 16 bits, so we need to multiply the nomralized result by 2^6
+				glPixelTransferi(GL_RED_SCALE, 64);
+			}
+#endif
 
 			push_time = gf_sys_clock();
             
@@ -966,6 +981,13 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			}
 			txh->nb_frames ++;
 			txh->upload_time += push_time;
+
+#ifndef GPAC_USE_OGL_ES 
+			if (txh->pixelformat==GF_PIXEL_YV12_10) {
+				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+				glPixelTransferi(GL_RED_SCALE, 1);
+			}
+#endif
 
 #ifndef GPAC_DISABLE_LOGS
 		    gf_mo_get_object_time(txh->stream, &ck);
@@ -1016,6 +1038,9 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		}
 	}
 #endif
+
+	gf_sc_texture_check_pause_on_first_load(txh);
+
 	return 1;
 
 #endif
@@ -1670,5 +1695,23 @@ void gf_sc_texture_set_stencil(GF_TextureHandler *txh, GF_STENCIL stencil)
 {
 	txh->tx_io->tx_raster = stencil;
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
+}
+
+void gf_sc_texture_check_pause_on_first_load(GF_TextureHandler *txh)
+{
+	if (txh->stream && txh->tx_io) {
+		switch (txh->tx_io->init_pause_status) {
+		case 0:
+			gf_sc_ar_control(txh->compositor->audio_renderer, 0);
+			txh->tx_io->init_pause_status = 1;
+			break;
+		case 1:
+			gf_sc_ar_control(txh->compositor->audio_renderer, 1);
+			txh->tx_io->init_pause_status = 2;
+			break;
+		default:
+			break;
+		}
+	}
 }
 

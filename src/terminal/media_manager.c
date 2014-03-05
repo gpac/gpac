@@ -299,7 +299,6 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term, u32 *nb_active_decs)
 
 	if (term->last_codec >= count) term->last_codec = 0;
 	remain = count;
-	time_taken = 0;
 	/*this is ultra basic a nice scheduling system would be much better*/
 	while (remain) {
 		ce = (CodecEntry*)gf_list_get(term->codecs, term->last_codec);
@@ -314,7 +313,6 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term, u32 *nb_active_decs)
 		time_slice = ce->dec->Priority * time_left / term->cumulated_priority;
 		if (ce->dec->PriorityBoost) time_slice *= 2;
 		time_taken = gf_sys_clock();
-
 		(*nb_active_decs) ++;
 		e = gf_codec_process(ce->dec, time_slice);
 		time_taken = gf_sys_clock() - time_taken;
@@ -476,6 +474,7 @@ void gf_term_start_codec(GF_Codec *codec, Bool is_resume)
 			term->cumulated_priority += ce->dec->Priority+1;
 		}
 	}
+
 
 	/*unlock dec*/
 	if (ce->mx)
@@ -682,7 +681,7 @@ u32 gf_term_process_step(GF_Terminal *term)
 	if (term->bench_mode || (term->user->init_flags & GF_TERM_NO_REGULATION)) return time_taken;
 
 	if (2*time_taken >= term->compositor->frame_duration) {
-		gf_sleep(nb_decs ? 0 : time_taken);
+		gf_sleep(nb_decs ? 1 : time_taken);
 	}
 	return time_taken;
 }

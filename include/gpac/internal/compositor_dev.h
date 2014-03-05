@@ -209,10 +209,10 @@ struct __tag_compositor
 	Bool show_caret;
 	Bool text_edit_changed;
 	u32 scene_sampled_clock;
-
 	u32 last_click_time;
 	u32 next_frame_delay;
 	s32 frame_delay;
+	Bool video_frame_pending;
 
 	/*display size*/
 	u32 display_width, display_height;
@@ -1407,6 +1407,9 @@ void gf_sc_get_av_caps(GF_Compositor *compositor, u32 *width, u32 *height, u32 *
 
 //signals the compositor a system frame is pending on a future frame 
 void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pending);
+
+//indicates a video frame is pending - this is used fo decoders dispatching their internal memory in order to wake up the compositor asap
+void gf_sc_set_video_pending_frame(GF_Compositor *compositor);
 
 Bool gf_sc_is_over(GF_Compositor *compositor, GF_SceneGraph *scene_graph);
 
