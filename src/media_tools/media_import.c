@@ -7103,7 +7103,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				//ses = (GF_M2TS_SECTION_ES *)es;
 			} else {
 				pes = (GF_M2TS_PES *)es;
-				gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
+				gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT_NAL);
 			}
 
 			mtype = stype = oti = 0;
