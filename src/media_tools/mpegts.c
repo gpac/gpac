@@ -272,7 +272,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 				/*check AU start type*/
 				if (nal_type==GF_HEVC_NALU_ACCESS_UNIT) {
 					if (!prev_is_au_delim) {
-						//arg this was not a one AU per PES config, dispatch ..;
+						//this was not a one AU per PES config, dispatch 
 						if (au_start) {
 							pck.data = (char *)au_start;
 							pck.data_len = (u32) (data - au_start);
@@ -291,7 +291,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 						pck.flags = GF_M2TS_PES_PCK_AU_START;
 						force_new_au = 0;
 						au_start_in_pes = 1;
-						if (pes_hdr->data_alignment && !first_nal_offset_in_pck) {
+						if (pes_hdr->data_alignment && !first_nal_offset_in_pck && !pes->single_nal_mode) {
 							full_au_pes_mode = GF_TRUE;
 							au_start = pck.data;
 						} else {
@@ -338,6 +338,16 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 				/*check AU start type*/
 				if ((nal_type==GF_AVC_NALU_ACCESS_UNIT) || (nal_type==GF_AVC_NALU_VDRD)) {
 					if (!prev_is_au_delim) {
+
+						//this was not a one AU per PES config, dispatch 
+						if (au_start) {
+							pck.data = (char *)au_start;
+							pck.data_len = (u32) (data - au_start);
+							ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+							au_start = NULL;
+							full_au_pes_mode = 0;
+						}
+
 						if (au_start_in_pes) {
 							/*FIXME - we should check the AVC framerate to update the timing ...*/
 							pck.DTS += 3000;
@@ -347,12 +357,21 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 						pck.flags = GF_M2TS_PES_PCK_AU_START;
 						force_new_au = 0;
 						au_start_in_pes = 1;
-						ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+						if (pes_hdr->data_alignment && !first_nal_offset_in_pck && !pes->single_nal_mode) {
+							full_au_pes_mode = GF_TRUE;
+							au_start = pck.data;
+						} else {
+							ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+						}
 						prev_is_au_delim=1;
 					}
 				} else {
-					pck.flags = (nal_type==GF_AVC_NALU_IDR_SLICE) ? GF_M2TS_PES_PCK_RAP : 0;
-					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+					if (!full_au_pes_mode) {
+						pck.flags = (nal_type==GF_AVC_NALU_IDR_SLICE) ? GF_M2TS_PES_PCK_RAP : 0;
+						ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+					} else {
+						if (nal_type==GF_AVC_NALU_IDR_SLICE) pck.flags |= GF_M2TS_PES_PCK_RAP;
+					}
 					prev_is_au_delim=0;
 				}
 			}
@@ -2763,6 +2782,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 	case GF_M2TS_PES_FRAMING_SKIP_NO_RESET:
 		pes->reframe = NULL;
 		break;
+	case GF_M2TS_PES_FRAMING_DEFAULT_NAL:
 	case GF_M2TS_PES_FRAMING_DEFAULT:
 	default:
 		switch (pes->stream_type) {
@@ -2778,10 +2798,12 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 		case GF_M2TS_VIDEO_H264:
 		case GF_M2TS_VIDEO_SVC:
 			pes->reframe = gf_m2ts_reframe_avc_h264;
+			pes->single_nal_mode = (mode==GF_M2TS_PES_FRAMING_DEFAULT_NAL) ? 1 : 0;
 			break;
 		case GF_M2TS_VIDEO_HEVC:
 		case GF_M2TS_VIDEO_SHVC:
 			pes->reframe = gf_m2ts_reframe_hevc;
+			pes->single_nal_mode = (mode==GF_M2TS_PES_FRAMING_DEFAULT_NAL) ? 1 : 0;
 			break;
 		case GF_M2TS_AUDIO_AAC:
 			pes->reframe = gf_m2ts_reframe_aac_adts;

@@ -285,7 +285,9 @@ enum
 	/*skip pes processing: all transport packets related to this stream are discarded*/
 	GF_M2TS_PES_FRAMING_SKIP,
 	/*same as GF_M2TS_PES_FRAMING_SKIP but keeps internal PES buffer alive*/
-	GF_M2TS_PES_FRAMING_SKIP_NO_RESET
+	GF_M2TS_PES_FRAMING_SKIP_NO_RESET,
+	/*same as defualt PES framing but forces nal-per-nal dispatch for AVC/HEVC (default mode may dispatch complete frames)*/
+	GF_M2TS_PES_FRAMING_DEFAULT_NAL,
 };
 
 /*PES packet flags*/
@@ -613,6 +615,7 @@ typedef struct tag_m2ts_pes
 	/*returns the number of bytes NOT consummed from the input data buffer - these bytes are kept when reassembling the next PES packet*/
 	u32 (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *hdr);
 
+	Bool single_nal_mode;
 	/*used by several reframers to store their parsing state*/
 	u32 frame_state;
 	/*LATM stuff - should be moved out of mpegts*/
