@@ -324,6 +324,14 @@ exit:
 #endif
 }
 
+static void cb_set_buffer_off(GF_CompositionMemory *cb)
+{
+	gf_clock_buffer_off(cb->odm->codec->ck);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
+
+	gf_term_service_media_event(cb->odm->parentscene->root_od, GF_EVENT_MEDIA_CANPLAY);
+}
+
 void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bool codec_reordering)
 {
 	/*nothing dispatched, ignore*/
@@ -352,11 +360,9 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bo
 		if ( (cb->Status == CB_BUFFER) && (cb->UnitCount >= cb->Capacity) ) {
 			/*done with buffering, signal to the clock (ONLY ONCE !)*/
 			cb->Status = CB_BUFFER_DONE;
-			gf_clock_buffer_off(cb->odm->codec->ck);
-//			cb->odm->codec->ck->data_timeout = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
-
-			gf_term_service_media_event(cb->odm->parentscene->root_od, GF_EVENT_MEDIA_CANPLAY);
+			if (!cb->no_allocation) {
+				cb_set_buffer_off(cb);
+			}
 		} 
 
 		//new FPS regulation doesn't need this signaling
@@ -517,6 +523,9 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 		if (cb->odm->codec->type != GF_STREAM_VISUAL) return NULL;
 		break;
 	case CB_BUFFER_DONE:
+		if (cb->no_allocation) {
+			cb_set_buffer_off(cb);
+		}
 		cb->Status = CB_PLAY;
 		break;
 	}
@@ -569,13 +578,22 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 	for the raw channel - we have to make sure the output is completely reseted before releasing the sema*/
 
 	/*on visual streams (except raw oness), always keep the last AU*/
-	if (!cb->no_allocation && cb->output->dataLength && (cb->odm->codec->type == GF_STREAM_VISUAL) ) {
+	if (cb->output->dataLength && (cb->odm->codec->type == GF_STREAM_VISUAL) ) {
 		if ( !cb->output->next->dataLength || (cb->Capacity == 1) )  {
-			if (cb->odm->raw_frame_sema) {
-				cb->output->dataLength = 0;
-				gf_sema_notify(cb->odm->raw_frame_sema, 1);
+			Bool no_drop = 1;
+			if (cb->no_allocation ) {
+				if (cb->odm->term->bench_mode)
+					no_drop = 0;
+				else if (gf_clock_time(cb->odm->codec->ck) > cb->output->TS)
+					no_drop = 0;
 			}
-			return;
+			if (no_drop) {
+				if (cb->odm->raw_frame_sema) {
+					cb->output->dataLength = 0;
+					gf_sema_notify(cb->odm->raw_frame_sema, 1);
+				}
+				return;
+			}
 		}
 	}
 	
@@ -669,7 +687,7 @@ Bool gf_cm_is_running(GF_CompositionMemory *cb)
 		return !cb->odm->codec->ck->Paused;
 
 	if ((cb->Status == CB_BUFFER_DONE) && (gf_clock_is_started(cb->odm->codec->ck) || cb->odm->term->play_state) ) {
-		cb->Status = CB_PLAY;
+		//cb->Status = CB_PLAY;
 		return 1;
 	}
 

@@ -194,7 +194,8 @@ void gf_clock_set_time(GF_Clock *ck, u32 TS)
 void gf_clock_pause(GF_Clock *ck)
 {
 	gf_mx_p(ck->mx);
-	if (!ck->Paused) ck->PauseTime = gf_term_get_time(ck->term);
+	if (!ck->Paused)
+		ck->PauseTime = gf_term_get_time(ck->term);
 	ck->Paused += 1;
 	gf_mx_v(ck->mx);
 }

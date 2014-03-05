@@ -416,9 +416,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		}
 	}
 
-	/*fast forward, force decode if no data is available*/
-	if (! *eos && (codec->ck->speed > FIX_ONE))
+	/*fast forward, bench mode or using decoder memory (no composition memory): force decode if no data is available*/
+	if (! *eos && ((codec->ck->speed > FIX_ONE) || codec->odm->term->bench_mode || codec->CB->no_allocation) )
 		force_decode = GF_TRUE;
+	
 
 	if (force_decode) {
 		u32 retry=100;
@@ -430,6 +431,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 				break;
 			}
 			retry--;
+			gf_sleep(0);
 		}
 		if (!retry && codec->force_cb_resize) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not resize and decode next frame in one pass - blank frame after TS %d\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), mo->timestamp));
@@ -605,6 +607,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop)
 			if (forceDrop) {
 				gf_cm_drop_output(mo->odm->codec->CB);
 				forceDrop--;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u drop frame TS %u\n", mo->odm->OD->objectDescriptorID, gf_clock_time(mo->odm->codec->ck), mo->timestamp));
 //				if (forceDrop) mo->odm->codec->nb_droped++;
 			} else {
 				/*we cannot drop since we don't know the speed of the playback (which can even be frame by frame)*/

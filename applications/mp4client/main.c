@@ -334,7 +334,7 @@ static void UpdateRTInfo(const char *legend)
 	if (display_rti) {
 		char szMsg[1024];
 
-		if (rti.total_cpu_usage && (bench_mode!=2) ) {
+		if (rti.total_cpu_usage && (bench_mode<2) ) {
 			sprintf(szMsg, "FPS %d CPU %2d (%02d) Mem %d kB", 
 					(u32) gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024));
 		} else {
@@ -343,7 +343,7 @@ static void UpdateRTInfo(const char *legend)
 		}
 
 		if (display_rti==2) {
-			if (bench_mode==2) {
+			if (bench_mode>=2) {
 				PrintAVInfo(GF_FALSE);
 			}
 			fprintf(stderr, "%s\r", szMsg); 
@@ -1260,7 +1260,6 @@ int main (int argc, char **argv)
 	if (bench_mode) {
 		display_rti = 2;
 		gf_term_set_option(term, GF_OPT_VIDEO_BENCH, (bench_mode==3) ? 2 : 1);
-		bench_mode=2;
 	}
 
 	if (dump_mode) {
@@ -1970,6 +1969,7 @@ void PrintAVInfo(Bool final)
 		tot_time = gf_sys_clock() - bench_mode_start;
 		fprintf(stderr, "                                                                                     \r");
 		fprintf(stderr, "************** Bench Mode Done in %d ms ********************\n", tot_time);
+		if (bench_mode==3) fprintf(stderr, "** Systems layer only (no decoding) **\n");
 
 		if (!video_odm) {
 			u32 nb_frames_drawn;

@@ -76,9 +76,13 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 
 	gf_mo_get_object_time(ai->stream, &obj_time);
 	obj_time += audio_delay_ms;
-	drift = (s32)obj_time;
-	drift -= (s32)ts;
-
+	if (ai->compositor->bench_mode) {
+		drift = 0;
+	} else {
+		drift = (s32)obj_time;
+		drift -= (s32)ts;
+	}
+	
 #ifdef ENABLE_EARLY_FRAME_DETECTION
 	/*too early (silence insertions), skip*/
 	if (drift < 0) {

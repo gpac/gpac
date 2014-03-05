@@ -847,13 +847,18 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	if audio codec muted we dispatch to keep sync in place*/
 	if (codec->Muted && (codec->type==GF_STREAM_VISUAL) ) return GF_OK;
 
+	//cannot output frame, do nothing (we force a channel query before for pull mode)
+	if ( (codec->CB->Capacity == codec->CB->UnitCount) ) {
+		if (codec->CB->UnitCount > 1)  return GF_OK;
+		else if (codec->direct_vout)  return GF_OK;
+	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] At %d entering process\n", codec->decio->module_name, gf_clock_time(codec->ck)));
+
 	entryTime = gf_term_get_time(codec->odm->term);
 	if (!codec->odm->term->bench_mode && (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) 
 		drop_late_frames = 1;
 
-	//cannot output frame, do nothing (we force a channel query before for pull mode)
-	if ( (codec->CB->UnitCount > 1) && (codec->CB->Capacity == codec->CB->UnitCount) )
-		return GF_OK;
 
 	/*fetch next AU in DTS order for this codec*/
 	MediaDecoder_GetNextAU(codec, &ch, &AU);
@@ -882,7 +887,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			}
 		}
 		/*if no data, and channel not buffering, ABORT CB buffer (data timeout or EOS not detectable)*/
-		else if (ch && !ch->BufferOn && !ch->last_au_was_seek)
+		else if (ch && !ch->is_pulling && !ch->BufferOn && !ch->last_au_was_seek)
 			gf_cm_abort_buffering(codec->CB);
 
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d: No data in decoding buffer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID));
@@ -891,6 +896,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	/*get the object time*/
 	obj_time = gf_clock_time(codec->ck);
+
 	/*Media Time for media codecs is updated in the CB*/
 
 	if (!codec->CB) {
@@ -1073,6 +1079,9 @@ scalable_retry:
 
 				if (codec->direct_vout) {
 					e = mdec->GetOutputBuffer(mdec, ch->esd->ESID, &codec->CB->pY, &codec->CB->pU, &codec->CB->pV);
+					if (e==GF_OK) {
+						gf_sc_set_video_pending_frame(codec->odm->term->compositor);
+					}
 				}
 			}
 			/*if no size the decoder is not using the composition memory - if the object is in intitial buffering resume it!!*/

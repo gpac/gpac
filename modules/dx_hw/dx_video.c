@@ -86,6 +86,9 @@ static GETPBUFFERDCARB wglGetPbufferDCARB = NULL;
 typedef HDC (APIENTRY *RELEASEPBUFFERDCARB)(void *pb, HDC dc);
 static RELEASEPBUFFERDCARB wglReleasePbufferDCARB = NULL;
 
+typedef BOOL (APIENTRY *PFNWGLSWAPINTERVALFARPROC)( int );
+PFNWGLSWAPINTERVALFARPROC wglSwapIntervalEXT = NULL;
+
 static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 {
 	const char *opt;
@@ -453,6 +456,14 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 		dd_init_gl_offscreen(dr);
 	}
 
+	if (dd->disable_vsync) {
+		if (!wglSwapIntervalEXT) {
+			wglSwapIntervalEXT = (PFNWGLSWAPINTERVALFARPROC)wglGetProcAddress( "wglSwapIntervalEXT" );
+		}
+		if (wglSwapIntervalEXT) {
+			wglSwapIntervalEXT(0);
+		}
+	}
 
 	if ((dd->output_3d_type!=2) || dd->gl_hwnd) {
 		if (!wglMakeCurrent(dd->gl_HDC, dd->gl_HRC)) return GF_IO_ERR;
@@ -516,6 +527,7 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 {
 	RECT rc;
 	DDCONTEXT
+	const char *opt;
 	dd->os_hwnd = (HWND) os_handle;
 	
 	DD_SetupWindow(dr, init_flags);
@@ -535,7 +547,10 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 	dd->output_3d_type = 0;
 #endif
 	GetWindowRect(dd->cur_hwnd, &rc);
-//	return InitDirectDraw(dr, rc.right - rc.left, rc.bottom - rc.top);
+
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
+	if (opt && !strcmp(opt, "yes")) dd->disable_vsync = GF_TRUE;
+
 	return GF_OK;
 }
 
@@ -559,10 +574,12 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	u32 MaxWidth, MaxHeight;
 	DDCONTEXT;
 
-	if (!dd->width ||!dd->height) return GF_BAD_PARAM;
 	if (bOn == dd->fullscreen) return GF_OK;
 	if (!dd->fs_hwnd) return GF_NOT_SUPPORTED;
+
 	dd->fullscreen = bOn;
+	//this is now allowed upon init
+	if (!dd->width ||!dd->height) return GF_OK;
 	
 	/*whenever changing card display mode relocate fastest YUV format for blit (since it depends
 	on the dest pixel format)*/
