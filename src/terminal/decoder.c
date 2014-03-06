@@ -60,7 +60,13 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	tmp->Status = GF_ESM_CODEC_STOP;
 
 	if (tmp->type==GF_STREAM_PRIVATE_MEDIA) tmp->type = GF_STREAM_VISUAL;
-
+	
+	if (tmp->type==GF_STREAM_VISUAL) {
+		GF_CodecCapability cap;
+		cap.CapCode = GF_CODEC_DISPLAY_BPP;
+		cap.cap.valueInt = odm->term->compositor->video_out->max_screen_bpp;
+		gf_codec_set_capability(tmp, cap);
+	}
 	tmp->Priority = base_layer->streamPriority ? base_layer->streamPriority : 1;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Codec] Found decoder %s for stream type %s\n", tmp->decio ? tmp->decio->module_name : "RAW", gf_esd_get_textual_description(base_layer) ));
@@ -311,7 +317,7 @@ Bool gf_codec_remove_channel(GF_Codec *codec, struct _es_channel *ch)
 }
 
 
-static void codec_update_stats(GF_Codec *codec, u32 dataLength, u32 dec_time, u32 DTS)
+static void codec_update_stats(GF_Codec *codec, u32 dataLength, u64 dec_time, u32 DTS)
 {
 	codec->total_dec_time += dec_time;
 	codec->last_frame_time = gf_sys_clock();
@@ -514,7 +520,8 @@ static GF_Err SystemCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 {
 	GF_DBUnit *AU;
 	GF_Channel *ch;
-	u32 now, obj_time, mm_level, au_time, cts;
+	u32 obj_time, mm_level, au_time, cts;
+	u64 now;
 	GF_Scene *scene_locked;
 	Bool check_next_unit;
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)codec->decio;
@@ -617,15 +624,15 @@ check_unit:
 	updates in time*/
 	codec->odm->current_time = gf_clock_time(codec->ck);
 
-	now = gf_term_get_time(codec->odm->term);
+	now = gf_sys_clock_high_res();
 	if (codec->odm->term->bench_mode==2) {
 		e = GF_OK;
 	} else {
 		e = sdec->ProcessData(sdec, AU->data, AU->dataLength, ch->esd->ESID, au_time, mm_level);
 	}
-	now = gf_term_get_time(codec->odm->term) - now;
+	now = gf_sys_clock_high_res() - now;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d at %d decoded AU TS %d in %d ms\n", sdec->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, codec->odm->current_time, AU->CTS, now));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d at %d decoded AU TS %d in "LLU" us\n", sdec->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, codec->odm->current_time, AU->CTS, now));
 
 	codec_update_stats(codec, AU->dataLength, now, AU->DTS);
 	codec->prev_au_size = AU->dataLength;
@@ -671,7 +678,7 @@ exit:
 /*special handling of decoders not using ESM*/
 static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 {
-	u32 now;
+	u64 now;
 	GF_Channel *ch;
 	GF_Scene *scene_locked;
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)codec->decio;
@@ -715,13 +722,13 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	if (!gf_mx_try_lock(scene_locked->root_od->term->compositor->mx)) return GF_OK;
 
-    now = gf_term_get_time(codec->odm->term);
+    now = gf_sys_clock_high_res();
 	if (codec->odm->term->bench_mode == 2) {
 		e = GF_OK;
 	} else {
 		e = sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);
 	}
-    now = gf_term_get_time(codec->odm->term) - now;
+    now = gf_sys_clock_high_res() - now;
 	codec->last_unit_dts ++;
 	/*resume on error*/
 	if (e && (codec->last_unit_dts<2) ) {
@@ -837,8 +844,9 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	GF_DBUnit *AU;
 	GF_Channel *ch, *prev_ch;
 	Bool drop_late_frames = 0;
+	u64 now, entryTime;
 	u32 mmlevel, cts;
-	u32 first, entryTime, now, obj_time, unit_size;
+	u32 first, obj_time, unit_size;
 	GF_MediaDecoder *mdec = (GF_MediaDecoder*)codec->decio;
 	GF_Err e = GF_OK;
 	CU = NULL;
@@ -855,7 +863,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] At %d entering process\n", codec->decio->module_name, gf_clock_time(codec->ck)));
 
-	entryTime = gf_term_get_time(codec->odm->term);
+	entryTime = gf_sys_clock_high_res();
 	if (!codec->odm->term->bench_mode && (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) 
 		drop_late_frames = 1;
 
@@ -1005,7 +1013,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 scalable_retry:
 
-		now = gf_term_get_time(codec->odm->term);
+		now = gf_sys_clock_high_res();
 
 		assert( CU );
 		if (!CU->data && unit_size && !codec->CB->no_allocation) {
@@ -1017,7 +1025,7 @@ scalable_retry:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoding frame DTS %d CTS %d size %d (%d in channels)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->DTS, AU->CTS, AU->dataLength, ch->AU_Count));
 			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, CU->data, &unit_size, AU->PaddingBits, mmlevel);
 		}
-		now = gf_term_get_time(codec->odm->term) - now;
+		now = gf_sys_clock_high_res() - now;
 		if (codec->Status == GF_ESM_CODEC_STOP) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because codec has been stopped\n", codec->decio->module_name));
 			return GF_OK;
@@ -1050,7 +1058,7 @@ scalable_retry:
 			} 
 			e = UnlockCompositionUnit(codec, CU, unit_size);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded packed frame TS %d in %d ms\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded packed frame TS %d in "LLU" us\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now));
 			if (ch->skip_sl) {
 				if (codec->bytes_per_sec) {
 					codec->cur_audio_bytes += unit_size;
@@ -1075,7 +1083,7 @@ scalable_retry:
 		processing a scalable stream*/
 		case GF_OK:
 			if (unit_size) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded frame TS %d in %d ms (DTS %d - size %d) - %d in CB\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS, AU->dataLength, codec->CB->UnitCount + 1));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded frame TS %d in "LLU" us (DTS %d - size %d) - %d in CB\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS, AU->dataLength, codec->CB->UnitCount + 1));
 
 				if (codec->direct_vout) {
 					e = mdec->GetOutputBuffer(mdec, ch->esd->ESID, &codec->CB->pY, &codec->CB->pU, &codec->CB->pV);
@@ -1113,7 +1121,7 @@ scalable_retry:
 			unit_size = 0;
 			/*error - if the object is in intitial buffering resume it!!*/
 			gf_cm_abort_buffering(codec->CB);
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d At %d (frame TS %d - %d ms ): decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d At %d (frame TS %d - "LLU" us ): decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, gf_error_to_string(e) ));
 			e = GF_OK;
 			break;
 		}
@@ -1128,9 +1136,9 @@ scalable_retry:
 #ifndef GPAC_DISABLE_LOG
 		if (unit_size) {
 			if (ch->is_pulling) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d decoded frame CTS %d in %d ms\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d decoded frame CTS %d in "LLU" us\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now));
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d decoded frame CTS %d in %d ms - %d AU in channel\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now, ch->AU_Count));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d decoded frame CTS %d in "LLU" us - %d AU in channel\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now, ch->AU_Count));
 			}
 		}
 #endif
@@ -1169,7 +1177,7 @@ scalable_retry:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because no more input data\n", codec->decio->module_name));
 			return GF_OK;
 		}
-		now = gf_term_get_time(codec->odm->term) - entryTime;
+		now = gf_sys_clock_high_res() - entryTime;
 		/*escape from decoding loop only if above critical limit - this is to avoid starvation on audio*/
 		if (!ch->esd->dependsOnESID && (codec->CB->UnitCount > codec->CB->Min)) {
 			if (now >= TimeAvailable) {
@@ -1363,7 +1371,8 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 		codec->prev_au_size = 0;
 		codec->Status = Status;
 		codec->last_stat_start = codec->cur_bit_size = codec->max_bit_rate = codec->avg_bit_rate = 0;
-		codec->nb_dec_frames = codec->total_dec_time = codec->max_dec_time = 0;
+		codec->nb_dec_frames = 0;
+		codec->total_dec_time = codec->max_dec_time = 0;
 		codec->cur_audio_bytes = codec->cur_video_frames = 0;
 		codec->nb_droped = 0;
 		codec->nb_repeted_frames = 0;

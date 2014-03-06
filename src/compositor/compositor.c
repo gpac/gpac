@@ -323,9 +323,6 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 				gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
 				compositor->video_out = NULL;
 			}
-		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Failed to load module %s, no video driver.\n", sOpt));
-			sOpt = NULL;
 		}
 	}
 

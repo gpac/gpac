@@ -47,6 +47,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rmdir) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cleanup_dir) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_clock) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_clock_high_res) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_rti) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_battery_state) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_get_default_cache_directory) )
