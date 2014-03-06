@@ -223,6 +223,7 @@ typedef struct __track_import
 	u32 nb_tracks;
 	/*track info after probing (GF_IMPORT_PROBE_ONLY set).*/
 	struct __track_import_info tk_info[GF_IMPORT_MAX_TRACKS];
+	u64 probe_duration;
 
 	/*for MPEG-TS and similar: program names*/
 	u32 nb_progs;

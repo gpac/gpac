@@ -87,7 +87,7 @@ static void gf_m2ts_estimate_duration(GF_M2TS_Demuxer *ts, u64 PCR, u16 pcr_pid)
 	u64 file_size = 0;
 //	if (ts->duration>0) return;
 
-	if (ts->file) {
+	if (ts->file || ts->file_size) {
 		file_size = ts->file_size;
 	} else if (ts->dnload) {
 		u32 size;
@@ -1050,6 +1050,15 @@ static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
 
 static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses)
 {
+	//seek mode, only process PAT and PMT
+	if (ts->start_range && (sec->section[0] != GF_M2TS_TABLE_ID_PAT) && (sec->section[0] != GF_M2TS_TABLE_ID_PMT)) {
+		/*clean-up (including broken sections)*/
+		if (sec->section) gf_free(sec->section);
+		sec->section = NULL;
+		sec->length = sec->received = 0;
+		return; 
+	}
+
 	if (!sec->process_section) {
 		if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_AIT)) ) {				
 #ifdef GPAC_ENABLE_DSMCC
@@ -2212,7 +2221,7 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Bad SL Packet size: (%d indicated < %d header)\n", pes->pid, pes->pck_data_len, len));
 				}
 			} else if (pes->reframe) {
-				u32 remain;
+				u32 remain = 0;
 				u32 offset = len;
 
 				if (pesh.pck_len && (pesh.pck_len-3-pesh.hdr_data_len != pes->pck_data_len-len)) {
@@ -2224,7 +2233,9 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 					offset = len - pes->prev_data_len;
 					memcpy(pes->pck_data + offset, pes->prev_data, pes->prev_data_len);
 				}
-				remain = pes->reframe(ts, pes, same_pts, pes->pck_data+offset, pes->pck_data_len-offset, &pesh);
+
+				if (! ts->start_range)
+					remain = pes->reframe(ts, pes, same_pts, pes->pck_data+offset, pes->pck_data_len-offset, &pesh);
 
 				//CLEANUP alloc stuff
 				if (pes->prev_data) gf_free(pes->prev_data);
@@ -3170,23 +3181,27 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 		u32 pos = 0;
 		GF_BitStream *ts_bs = NULL;
 
-		if (ts->start_range && ts->duration) {
-			Double perc = ts->start_range / (1000 * ts->duration);
-			pos = (u32) (s64) (perc * ts->file_size);
-			/*align to TS packet size*/
-			while (pos%188) pos++;
-			if (pos>=ts->file_size) {
-				ts->start_range = 0;
-				pos = 0;
-			}
-		}
-
 		if (ts->file)
 			ts_bs = gf_bs_from_file(ts->file, GF_BITSTREAM_READ);
 		else
 			ts_bs = gf_bs_new(ts->ts_data_chunk, ts->ts_data_chunk_size, GF_BITSTREAM_READ);
 
 		while (ts->run_state && gf_bs_available(ts_bs) && !ts->force_file_refresh) {
+
+			if (ts->start_range && ts->duration) {
+				Double perc = ts->start_range / (1000 * ts->duration);
+				pos = (u32) (s64) (perc * ts->file_size);
+				/*align to TS packet size*/
+				pos/=188;
+				pos*=188;
+
+				if (pos>=ts->file_size) {
+					pos = 0;
+				}
+				ts->start_range = 0;
+				gf_bs_seek(ts_bs, pos);
+			}
+
 			/*m2ts chunks by chunks*/
 			size = gf_bs_read_data(ts_bs, data, 188);
 			if (!size && (ts->loop_demux == 1)) {

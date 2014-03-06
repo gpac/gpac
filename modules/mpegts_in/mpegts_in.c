@@ -1279,6 +1279,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_NOT_SUPPORTED;
 	/*we cannot seek stream by stream*/
 	case GF_NET_CHAN_INTERACTIVE:
+		if (m2ts->ts->file) return GF_OK;
 		return GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_BUFFER:
 		//do not override config 

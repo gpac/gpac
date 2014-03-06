@@ -541,6 +541,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 			/*force update of media time*/
 			mediasensor_update_timing(cb->odm, 1);
 #endif
+			gf_odm_signal_eos(cb->odm);
 		}
 		return NULL;
 	}

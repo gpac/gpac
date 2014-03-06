@@ -436,6 +436,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 	compositor->interaction_level = GF_INTERACT_NORMAL | GF_INTERACT_INPUT_SENSOR | GF_INTERACT_NAVIGATION;
 
 	compositor->scene_sampled_clock = 0;
+	compositor->video_th_id = gf_th_id();
 	return GF_OK;
 }
 
@@ -476,7 +477,11 @@ static u32 gf_sc_proc(void *par)
 
 #ifndef GPAC_DISABLE_3D
 	visual_3d_reset_graphics(compositor->visual);
+	compositor_2d_reset_gl_auto(compositor);
 #endif
+	gf_sc_texture_cleanup_hw(compositor);
+
+
 	/*destroy video out here if we're using openGL, to avoid threading issues*/
 	compositor->video_out->Shutdown(compositor->video_out);
 	gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
@@ -569,6 +574,9 @@ void gf_sc_del(GF_Compositor *compositor)
 		}
 		gf_th_del(compositor->VisualThread);
 	} else {
+#ifndef GPAC_DISABLE_3D
+		compositor_2d_reset_gl_auto(compositor);
+#endif
 		gf_sc_texture_cleanup_hw(compositor);
 	}
 
@@ -604,7 +612,6 @@ void gf_sc_del(GF_Compositor *compositor)
 	}
 
 #ifndef GPAC_DISABLE_3D
-	compositor_2d_reset_gl_auto(compositor);
 	if (compositor->unit_bbox) mesh_free(compositor->unit_bbox);
 #endif
 
@@ -769,7 +776,7 @@ void compositor_set_ar_scale(GF_Compositor *compositor, Fixed scaleX, Fixed scal
 	compositor_2d_set_user_transform(compositor, compositor->zoom, compositor->trans_x, compositor->trans_y, 1);
 }
 
-static void gf_sc_reset(GF_Compositor *compositor)
+static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 {
 	Bool draw_mode;
 	
@@ -813,7 +820,7 @@ static void gf_sc_reset(GF_Compositor *compositor)
 
 #ifndef GPAC_DISABLE_3D
 	//force a recompute of the canvas
-	if (compositor->hybgl_txh) {
+	if (has_scene && compositor->hybgl_txh) {
 		compositor->hybgl_txh->width = compositor->hybgl_txh->height = 0;
 	}
 #endif
@@ -871,7 +878,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Reseting compositor module\n"));
 	/*reset main surface*/
-	gf_sc_reset(compositor);
+	gf_sc_reset(compositor, scene_graph ? 1 : 0);
 
 	/*set current graph*/
 	compositor->scene = scene_graph;
@@ -2005,7 +2012,9 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #ifndef GPAC_USE_OGL_ES
 				visual_3d_init_yuv_shader(compositor->visual);
 #endif
-				ra_init(&compositor->visual->hybgl_drawn);
+				if (!compositor->visual->hybgl_drawn.list) {
+					ra_init(&compositor->visual->hybgl_drawn);
+				}
 			}
 #endif
 		}

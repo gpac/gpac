@@ -454,7 +454,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 
 	if (com->command_type==GF_NET_BUFFER_QUERY) {
 		GF_List *od_list;
-		u32 i;
+		u32 i, max_buffer_time;
 		GF_ObjectManager *odm;
 		com->buffer.max = 0;
 		com->buffer.min = com->buffer.occupancy = (u32) -1;
@@ -477,6 +477,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		/*get exclusive access to media scheduler, to make sure ODs are not being
 		manipulated*/
 		gf_mx_p(term->mm_mx);
+		max_buffer_time=0;
 		if (!gf_list_count(od_list))
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM] No object manager found for the scene (URL: %s), buffer occupancy will remain unchanged\n", service->url));
 		i=0;
@@ -495,10 +496,12 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 				if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
 				if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
 				if (ch->IsClockInit) {
+					if (ch->BufferTime > (s32) max_buffer_time)
+						max_buffer_time = ch->BufferTime;
+
 					/*if we don't have more units (compressed or not) than requested max for the composition memory, request more data*/
 					if (ch->odm->codec && ch->odm->codec->CB && (odm->codec->CB->UnitCount + ch->AU_Count <= odm->codec->CB->Capacity)) {
 						com->buffer.occupancy = 0;
-//						com->buffer.occupancy = ch->BufferTime;
 					} else if ( (u32) ch->BufferTime  < com->buffer.occupancy) {
 						com->buffer.occupancy = ch->BufferTime;
 					}
@@ -508,8 +511,14 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 			}
 		}
 		gf_mx_v(term->mm_mx);
-//		fprintf(stderr, "Buffer occupancy %d\n", com->buffer.occupancy);
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
+	
+		//in bench mode return the 1 if one of the buffer is full (eg sleep until all buffers are not full), 0 otherwise
+		if (term->bench_mode) {
+			com->buffer.occupancy = (max_buffer_time>com->buffer.max) ? 2 : 0;
+			com->buffer.max = 1;
+			com->buffer.min = 0;
+		}
 		return;
 	}
 	if (com->command_type==GF_NET_SERVICE_INFO) {

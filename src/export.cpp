@@ -511,6 +511,7 @@
 
 /*color.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_stretch_bits) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_color_write_yv12_10_to_yuv) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_set) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_set_all) )

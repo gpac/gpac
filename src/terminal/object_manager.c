@@ -1457,6 +1457,10 @@ void gf_odm_play(GF_ObjectManager *odm)
 			ck_time = (Double) (s64) odm->media_start_time;
 			ck_time /= 1000;
 		}
+		else if (odm->parentscene && odm->parentscene->root_od->media_start_time && !ch->clock->clock_init) {
+			ck_time = (Double) (s64) odm->parentscene->root_od->media_start_time;
+			ck_time /= 1000;
+		}
 		/*play from current time*/
 		else {
 			ck_time = gf_clock_time(ch->clock);

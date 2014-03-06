@@ -227,12 +227,37 @@ typedef struct
 	u8 high;
 } GF_ColorKey;
 
-/*!\brief not done yet
+/*!\brief stretches two video surfaces
  *
+ * Software stretch of source surface ont destination surface.
+ *\param dst destination surface
+ *\param src source surface
+ *\param dst_wnd destination rectangle. If null the entire destination surface is used
+ *\param src_wnd source rectangle. If null the entire source surface is used
+ *\param alpha blend factor of source over alpha
+ *\param flip flips the source
+ *\param colorKey makes source pixel matching the color key transparent
+ *\param cmat applies color matrix to the source
+ *\return error code if any
  */
 GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, u8 alpha, Bool flip, GF_ColorKey *colorKey, GF_ColorMatrix * cmat);
 
 
+
+/*!\brief copies YUV 420 10 bits to YUV destination (only YUV420 8 bits supported)
+ *
+ * Software stretch of source surface ont destination surface.
+ *\param vs_dst destination surface
+ *\param pY source Y plane
+ *\param pU source U plane. if NULL, the U plane is located after the Y plane 
+ *\param pV source V plane. if NULL, the V plane is located after the U plane 
+ *\param src_stride source stride in bytes
+ *\param src_width source width in pixels
+ *\param src_height source height in pixels
+ *\param src_wnd source rectangle. If null the entire source surface is used
+ *\return error code if any
+ */
+GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd);
 
 /*! @} */
 
