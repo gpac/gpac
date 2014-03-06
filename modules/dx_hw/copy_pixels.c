@@ -214,136 +214,6 @@ static void write_yv12_to_yuv(GF_VideoSurface *vs,  unsigned char *pY, u32 src_s
 	}
 }
 
-
-#if 0
-static void write_yv12_10_to_yuv(GF_VideoSurface *vs,  unsigned char *pY, u32 src_stride, u32 src_pf,
-								 u32 src_width, u32 src_height, const GF_Window *src_wnd, unsigned char *pU, unsigned char*pV)
-{
-	u32 i, j;
-	
-	if (!pU) {
-		pU = pY + src_stride * src_height;
-		pV = pY + 5*src_stride * src_height/4;
-	}
-
-	pY = pY + src_stride * src_wnd->y + src_wnd->x;
-	/*because of U and V downsampling by 2x2, working with odd Y offset will lead to a half-line shift between Y and UV components. We
-	therefore force an even Y offset for U and V planes.*/
-	pU = pU + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
-	pV = pV + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
-
-	if (vs->pixel_format == GF_PIXEL_YV12) {
-		for (i=0; i<src_wnd->h; i++) {
-			u16 *src = (u16 *) (pY + i*src_stride);
-			u8 *dst = vs->video_buffer + i*vs->pitch_y;
-
-			for (j=0; j<src_wnd->w;j++) {
-				*dst = (*src) >> 2;
-				dst++;
-				src++;
-			}
-		}
-
-		for (i=0; i<src_wnd->h/2; i++) {
-			u16 *src = (u16 *) (pV + i*src_stride/2);
-			u8 *dst = vs->video_buffer + vs->pitch_y * vs->height + i*vs->pitch_y/2;
-
-			for (j=0; j<src_wnd->w/2;j++) {
-				*dst = (*src) >> 2;
-				dst++;
-				src++;
-			}
-		}
-
-		for (i=0; i<src_wnd->h/2; i++) {
-			u16 *src = (u16 *) (pU + i*src_stride/2);
-			u8 *dst = vs->video_buffer + 5*vs->pitch_y * vs->height/4  + i*vs->pitch_y/2;
-
-			for (j=0; j<src_wnd->w/2;j++) {
-				*dst = (*src) >> 2;
-				dst++;
-				src++;
-			}
-		}
-	}
-}
-
-#else
-#include <intrin.h>
-static void write_yv12_10_to_yuv(GF_VideoSurface *vs,  unsigned char *pY, u32 src_stride, u32 src_pf,
-								 u32 src_width, u32 src_height, const GF_Window *src_wnd, unsigned char *pU, unsigned char *pV)
-{
-	u32 i, j;
-	if (!pU) {
-		pU = pY + src_stride * src_height;
-		pV = pY + 5*src_stride * src_height/4;
-	}
-
-	pY = pY + src_stride * src_wnd->y + src_wnd->x;
-	/*because of U and V downsampling by 2x2, working with odd Y offset will lead to a half-line shift between Y and UV components. We
-	therefore force an even Y offset for U and V planes.*/
-	pU = pU + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
-	pV = pV + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
-
-	if (vs->pixel_format == GF_PIXEL_YV12) {
-		__m128i val1, val2, val_dst, *src1, *src2, *dst;
-		for (i=0; i<src_wnd->h; i++) {
-			assert((u64)(pY + i*src_stride)%8 == 0);
-			src1 = (__m128i *)(pY + i*src_stride);
-			src2 = src1+1;
-			assert((u64)(vs->video_buffer + i*vs->pitch_y)%8 == 0);
-			dst = (__m128i *)(vs->video_buffer + i*vs->pitch_y);
-			
-			assert(src_wnd->w%16 == 0);
-			for (j=0; j<src_wnd->w/16; j++, src1+=2, src2+=2, dst++) {
-				val1 = _mm_load_si128(src1);
-				val1 = _mm_srli_epi16(val1, 2);				
-				val2 = _mm_load_si128(src2);
-				val2 = _mm_srli_epi16(val2, 2);
-				val_dst = _mm_packus_epi16(val1, val2);
-				_mm_store_si128(dst, val_dst);
-			}
-		}
-		
-		for (i=0; i<src_wnd->h/2; i++) {
-			assert((u64)(pV + i*src_stride/2)%8 == 0);
-			src1 = (__m128i *) (pV + i*src_stride/2);
-			src2 = src1+1;
-			assert((u64)(vs->video_buffer + vs->pitch_y * vs->height + i*vs->pitch_y/2)%8 == 0);
-			dst = (__m128i *)(vs->video_buffer + vs->pitch_y * vs->height + i*vs->pitch_y/2);
-
-			assert(src_wnd->w%32 == 0);
-			for (j=0; j<src_wnd->w/32; j++, src1+=2, src2+=2, dst++) {
-				val1 = _mm_load_si128(src1);
-				val1 = _mm_srli_epi16(val1, 2);				
-				val2 = _mm_load_si128(src2);
-				val2 = _mm_srli_epi16(val2, 2);
-				val_dst = _mm_packus_epi16(val1, val2);
-				_mm_store_si128(dst, val_dst);
-			}
-		}
-
-		for (i=0; i<src_wnd->h/2; i++) {
-			assert((u64)(pU + i*src_stride/2)%8 == 0);
-			src1 = (__m128i *) (pU + i*src_stride/2);
-			src2 = src1+1;
-			assert((u64)(vs->video_buffer + 5*vs->pitch_y * vs->height/4  + i*vs->pitch_y/2)%8 == 0);
-			dst = (__m128i *)(vs->video_buffer + 5*vs->pitch_y * vs->height/4  + i*vs->pitch_y/2);
-			
-			for (j=0; j<src_wnd->w/32; j++, src1+=2, src2+=2, dst++) {
-				val1 = _mm_load_si128(src1);
-				val1 = _mm_srli_epi16(val1, 2);				
-				val2 = _mm_load_si128(src2);
-				val2 = _mm_srli_epi16(val2, 2);
-				val_dst = _mm_packus_epi16(val1, val2);
-				_mm_store_si128(dst, val_dst);
-			}
-		}
-	}
-}
-#endif
-
-
 static void write_yvyu_to_yuv(GF_VideoSurface *vs,  unsigned char *src, u32 src_stride, u32 src_pf,
 								 u32 src_width, u32 src_height, const GF_Window *src_wnd)
 {
@@ -690,7 +560,7 @@ void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const 
 	} else if (get_yuv_base(src_s->pixel_format)==GF_PIXEL_YV12_10) {
 		if (format_is_yuv(dst_s->pixel_format)) {
 			/*generic YV planar to YUV (planar or not) */
-			write_yv12_10_to_yuv(dst_s, src_s->video_buffer, src_s->pitch_y, src_s->pixel_format, src_s->width, src_s->height, src_wnd, src_s->u_ptr, src_s->v_ptr);
+			gf_color_write_yv12_10_to_yuv(dst_s, src_s->video_buffer, src_s->u_ptr, src_s->v_ptr, src_s->pitch_y, src_s->width, src_s->height, src_wnd);
 			return;
 		}
 	} else if (format_is_yuv(src_s->pixel_format)) {

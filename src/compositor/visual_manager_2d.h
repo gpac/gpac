@@ -58,7 +58,7 @@ typedef struct
 
 #define ra_init(ra) { (ra)->count = 0; (ra)->alloc = RA_DEFAULT_STEP; (ra)->list = (GF_RectArrayEntry*)gf_malloc(sizeof(GF_RectArrayEntry)*(ra)->alloc); }
 /*deletes structure - called as a destructor*/
-#define ra_del(ra) { if ((ra)->list) gf_free((ra)->list);  }
+#define ra_del(ra) { if ((ra)->list) { gf_free((ra)->list); (ra)->list = NULL; } }
 
 
 /*adds rect to list - expand if needed*/

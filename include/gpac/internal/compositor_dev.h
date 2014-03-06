@@ -167,6 +167,8 @@ struct __tag_compositor
 	/*0: not init, 1: running, 2: exit requested, 3: done*/
 	u32 video_th_state;
 
+	u32 video_th_id;
+
 	/*compositor exclusive access to the scene and display*/
 	GF_Mutex *mx;
 

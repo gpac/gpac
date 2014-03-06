@@ -451,9 +451,9 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	/*note this assert is NOT true when recomputing DTS from CTS on the fly (MPEG1/2 RTP and H264/AVC RTP)*/
 	//assert(CU->TS >= codec->CB->LastRenderedTS);
 
-	if (codec->CB->UnitCount==1) resync = GF_FALSE;
+	if (codec->CB->UnitCount<=1) resync = GF_FALSE;
 
-	if (bench_mode) {
+	if (bench_mode && resync) {
 		resync = GF_FALSE;
 		if (mo->timestamp == CU->TS) {
 			if (CU->next->dataLength) {

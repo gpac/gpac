@@ -88,6 +88,9 @@ void convert_file_info(char *inName, u32 trackID)
 		}
 		fprintf(stderr, "File has %d tracks\n", import.nb_tracks);
 	}
+	if (import.probe_duration) {
+		fprintf(stderr, "Duration: %g ms\n", (Double) (import.probe_duration/1000.0));
+	}
 	found = 0;
 	for (i=0; i<import.nb_tracks; i++) {
 		if (trackID && (trackID != import.tk_info[i].track_num)) continue;

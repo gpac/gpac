@@ -107,6 +107,29 @@ GF_Err gf_sc_texture_allocate(GF_TextureHandler *txh)
 	return GF_OK;
 }
 
+static void release_txio(struct __texture_wrapper *tx_io)
+{
+
+#ifndef GPAC_DISABLE_3D
+	if (tx_io->id) glDeleteTextures(1, &tx_io->id);
+	if (tx_io->u_id) glDeleteTextures(1, &tx_io->u_id);
+	if (tx_io->v_id) glDeleteTextures(1, &tx_io->v_id);
+
+	if (tx_io->pbo_id) glDeleteBuffers(1, &tx_io->pbo_id);
+	if (tx_io->u_pbo_id) glDeleteBuffers(1, &tx_io->u_pbo_id);
+	if (tx_io->v_pbo_id) glDeleteBuffers(1, &tx_io->v_pbo_id);
+
+	if (tx_io->scale_data) gf_free(tx_io->scale_data);
+	if (tx_io->conv_data) gf_free(tx_io->conv_data);
+#endif
+
+#ifdef GF_SR_USE_DEPTH
+	if (tx_io->depth_data) gf_free(tx_io->depth_data);
+#endif
+
+	gf_free(tx_io);
+}
+
 void gf_sc_texture_release(GF_TextureHandler *txh)
 {
 	if (txh->vout_udta && txh->compositor->video_out->ReleaseTexture) {
@@ -119,7 +142,12 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 			txh->compositor->rasterizer->stencil_delete(txh->tx_io->tx_raster);
 			txh->tx_io->tx_raster = NULL;
 		}
-		gf_list_add(txh->compositor->textures_gc, txh->tx_io);
+
+		if (gf_th_id()==txh->compositor->video_th_id) {
+			release_txio(txh->tx_io);
+		} else {
+			gf_list_add(txh->compositor->textures_gc, txh->tx_io);
+		}
 		txh->tx_io=NULL;
 	}
 }
@@ -130,27 +158,11 @@ void gf_sc_texture_cleanup_hw(GF_Compositor *compositor)
 		struct __texture_wrapper *tx_io = (struct __texture_wrapper *) gf_list_last(compositor->textures_gc);
 		gf_list_rem_last(compositor->textures_gc);
 
-
-#ifndef GPAC_DISABLE_3D
-		if (tx_io->id) glDeleteTextures(1, &tx_io->id);
-		if (tx_io->u_id) glDeleteTextures(1, &tx_io->u_id);
-		if (tx_io->v_id) glDeleteTextures(1, &tx_io->v_id);
-
-		if (tx_io->pbo_id) glDeleteBuffers(1, &tx_io->pbo_id);
-		if (tx_io->u_pbo_id) glDeleteBuffers(1, &tx_io->u_pbo_id);
-		if (tx_io->v_pbo_id) glDeleteBuffers(1, &tx_io->v_pbo_id);
-
-		if (tx_io->scale_data) gf_free(tx_io->scale_data);
-		if (tx_io->conv_data) gf_free(tx_io->conv_data);
-#endif
-
-#ifdef GF_SR_USE_DEPTH
-		if (tx_io->depth_data) gf_free(tx_io->depth_data);
-#endif
-
-		gf_free(tx_io);
+		release_txio(tx_io);
 	}
 }
+
+
 
 GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 {

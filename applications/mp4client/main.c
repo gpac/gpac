@@ -957,6 +957,7 @@ int main (int argc, char **argv)
 	Bool rgbd_dump = GF_FALSE;
 	Bool depth_dump = GF_FALSE;
 	Bool pause_at_first = GF_FALSE;
+	Double play_from = 0;
 #ifdef GPAC_MEMORY_TRACKING
 	Bool enable_mem_tracker = GF_FALSE;
 #endif
@@ -1122,6 +1123,9 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
 		else if (!strcmp(arg, "-pause")) pause_at_first = 1;
+		else if (!strcmp(arg, "-play-from")) {
+			play_from = atof((const char *) argv[i+1]);
+		}
 		else if (!strcmp(arg, "-exit")) auto_exit = 1;
 		else if (!strcmp(arg, "-mem-track")) {
 #ifdef GPAC_MEMORY_TRACKING
@@ -1344,7 +1348,7 @@ int main (int argc, char **argv)
 		} else {
 			fprintf(stderr, "Opening URL %s\n", the_url);
 			if (pause_at_first) fprintf(stderr, "[Status: Paused]\n");
-			gf_term_connect_from_time(term, the_url, 0, pause_at_first);
+			gf_term_connect_from_time(term, the_url, (u64) (play_from*1000), pause_at_first);
 		}
 	} else {
 		fprintf(stderr, "Hit 'h' for help\n\n");

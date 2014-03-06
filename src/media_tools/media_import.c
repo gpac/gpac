@@ -6927,6 +6927,14 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		gf_import_message(import, GF_OK, "[MPEG-2 TS] PMT Update found - cannot import any further"); 
 		import->flags |= GF_IMPORT_DO_ABORT;
 		break;
+	case GF_M2TS_EVT_DURATION_ESTIMATED:
+		prog = (GF_M2TS_Program*)par;
+
+		if (import->flags & GF_IMPORT_PROBE_ONLY) {
+			import->probe_duration = ((GF_M2TS_PES_PCK *) par)->PTS;
+			//import->flags |= GF_IMPORT_DO_ABORT;
+		}
+		break;
 
 	/*case GF_M2TS_EVT_SDT_FOUND:
 		import->nb_progs = gf_list_count(ts->SDTs);
@@ -6992,7 +7000,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					tsimp->nb_video++;
 					break;
 				case GF_M2TS_VIDEO_HEVC:
-					import->tk_info[idx].media_type = GF_4CC('h','e','v','c');
+					import->tk_info[idx].media_type = GF_4CC('H','E','V','C');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
@@ -7240,6 +7248,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						if (!ts->has_4on2 
 							&& (tsimp->nb_video_configured == tsimp->nb_video)
 							&& (tsimp->nb_audio_configured == tsimp->nb_audio)
+							&& import->probe_duration
 							) {
 							import->flags |= GF_IMPORT_DO_ABORT;
 						}
@@ -7704,6 +7713,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_import_data;
 	ts->user = &tsimp;
+	ts->file_size = fsize;
 
 	ts->dvb_h_demux = (import->flags & GF_IMPORT_MPE_DEMUX) ? 1 : 0;
 
@@ -7718,6 +7728,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			break;
 
 		gf_m2ts_process_data(ts, data, size);
+		ts->nb_pck++;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 		done += size;
 		if (do_import) gf_set_progress(progress, (u32) (done/1024), (u32) (fsize/1024));
