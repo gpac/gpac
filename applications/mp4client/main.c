@@ -1260,6 +1260,7 @@ int main (int argc, char **argv)
 	if (bench_mode) {
 		display_rti = 2;
 		gf_term_set_option(term, GF_OPT_VIDEO_BENCH, (bench_mode==3) ? 2 : 1);
+		if (bench_mode==1) bench_mode=2;
 	}
 
 	if (dump_mode) {
