@@ -160,9 +160,15 @@ typedef struct
 #endif
 
 #ifdef USE_AVCTX3
-		AVFrame *audio_frame;
+	AVFrame *audio_frame;
 #endif
 
+
+
+	Bool output_as_8bit;
+	u32 display_bpp;
+	Bool conv_to_8bit;
+	char *conv_buffer;
 } FFDec;
 
 void *FFDEC_Load();

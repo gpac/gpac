@@ -68,6 +68,7 @@
 #define SLEEP_ABS_SELECT		1
 
 static u32 sys_start_time = 0;
+static u64 sys_start_time_hr = 0;
 #endif
 
 
@@ -85,6 +86,15 @@ u32 gf_sys_clock()
 	gettimeofday(&now, NULL);
 	return ( (now.tv_sec)*1000 + (now.tv_usec) / 1000) - sys_start_time;
 }
+
+GF_EXPORT
+u64 gf_sys_clock_high_res()
+{
+	struct timeval now;
+	gettimeofday(&now, NULL);
+	return ( (now.tv_sec)*1000000 + (now.tv_usec) - sys_start_time_hr;
+}
+
 #endif
 
 
@@ -1069,6 +1079,13 @@ u32 gf_sys_clock()
 {
 	return OS_GetSysClock();
 }
+
+
+static u64 (*OS_GetSysClockHR)();
+u64 gf_sys_clock_high_res()
+{
+	return OS_GetSysClockHR();
+}
 #endif
 
 
@@ -1082,6 +1099,14 @@ static u32 OS_GetSysClockHIGHRES()
 	return (u32) ((now.QuadPart * 1000) / frequency.QuadPart);
 }
 
+static u64 OS_GetSysClockHIGHRES_FULL()
+{
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+	now.QuadPart -= init_counter.QuadPart;
+	return (u64) ((now.QuadPart * 1000000) / frequency.QuadPart);
+}
+
 static u32 OS_GetSysClockNORMAL() 
 { 
 #ifdef _WIN32_WCE
@@ -1089,6 +1114,12 @@ static u32 OS_GetSysClockNORMAL()
 #else
 	return timeGetTime();
 #endif
+}
+
+static u64 OS_GetSysClockNORMAL_FULL() 
+{ 
+	u64 res = OS_GetSysClockNORMAL();
+	return res*1000;
 }
 
 #endif /* WIN32 */
@@ -1176,9 +1207,11 @@ void gf_sys_init(Bool enable_memory_tracker)
 		if (QueryPerformanceFrequency(&frequency)) {
 			QueryPerformanceCounter(&init_counter);
 			OS_GetSysClock = OS_GetSysClockHIGHRES;
+			OS_GetSysClockHR = OS_GetSysClockHIGHRES_FULL;
 			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] using WIN32 performance timer\n"));
 		} else {
 			OS_GetSysClock = OS_GetSysClockNORMAL;
+			OS_GetSysClockHR = OS_GetSysClockNORMAL_FULL;
 			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] using WIN32 regular timer\n"));
 		}
 
@@ -1247,6 +1280,7 @@ void gf_sys_init(Bool enable_memory_tracker)
 #endif
 
 		sys_start_time = gf_sys_clock();
+		sys_start_time_hr = gf_sys_clock_high_res();
 #endif
 		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] process id %d\n", the_rti.pid));
 

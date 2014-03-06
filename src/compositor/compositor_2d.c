@@ -561,7 +561,7 @@ static void log_blit_times(GF_TextureHandler *txh, u32 push_time)
     gf_mo_get_object_time(txh->stream, &ck);
     if (ck>txh->last_frame_time) {
         GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Bliting frame (CTS %d) %d ms too late\n", txh->last_frame_time, ck - txh->last_frame_time ));
-    }                
+    }
     if (txh->nb_frames==100) {
         txh->nb_frames = 0;
         txh->upload_time = 0;

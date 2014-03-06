@@ -135,6 +135,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	AVCodecContext **ctx;
 	AVCodec **codec;
 	AVFrame **frame;
+	const char *sOpt;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4VDecSpecInfo dsi;
@@ -325,7 +326,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	if (ffd->oti == GPAC_OTI_VIDEO_HEVC) {
 		GF_SystemRTInfo rti;
 		u32 nb_threads, detected_nb_threads = 1;
-		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "ThreadingType");
+		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "ThreadingType");
 		if (sOpt && !strcmp(sOpt, "wpp")) av_opt_set(*ctx, "thread_type", "slice", 0);
 		else if (sOpt && !strcmp(sOpt, "frame+wpp")) av_opt_set(*ctx, "thread_type", "frameslice", 0);
 		else {
@@ -338,8 +339,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "NumThreads");
 		if (!sOpt) {
 			char szO[100];
-			//checkme I have perf using too many threads
-			if (detected_nb_threads > 6) detected_nb_threads = 6;
+			if (detected_nb_threads > 12) detected_nb_threads = 12;
 			sprintf(szO, "%d", detected_nb_threads);
 			gf_modules_set_option((GF_BaseInterface *)plug, "OpenHEVC", "NumThreads", szO);
 			nb_threads = detected_nb_threads;
@@ -433,6 +433,16 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	}
 
 
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Systems", "Output8bit");
+	if (!sOpt) gf_modules_set_option((GF_BaseInterface *)plug, "Systems", "Output8bit", (ffd->display_bpp>8) ? "no" : "yes");
+	if (sOpt && !strcmp(sOpt, "yes")) ffd->output_as_8bit = 1;
+
+	if (ffd->output_as_8bit && (ffd->stride > (u32) (*ctx)->width)) {
+		ffd->stride /=2;
+		ffd->out_size /= 2;
+		ffd->conv_to_8bit = 1;
+	}
+
 	return GF_OK;
 }
 
@@ -483,6 +493,10 @@ static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 		*sws = NULL;
 	}
 #endif
+	if (ffd->conv_buffer) {
+		gf_free(ffd->conv_buffer);
+		ffd->conv_buffer = NULL;
+	}
 	return GF_OK;
 }
 
@@ -544,8 +558,12 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		capability->cap.valueInt = ffd->base_ctx->height;
 		break;
 	case GF_CODEC_STRIDE:
-		capability->cap.valueInt = ffd->stride;
-		if (ffd->out_pix_fmt==GF_PIXEL_RGB_24) capability->cap.valueInt *= 3;
+		if (ffd->out_pix_fmt==GF_PIXEL_RGB_24) 
+			capability->cap.valueInt = ffd->stride*3;
+		else if (ffd->conv_buffer) 
+			capability->cap.valueInt = ffd->base_ctx->width;
+		else 
+			capability->cap.valueInt = ffd->stride;
 		break;
 	case GF_CODEC_FPS:
 		capability->cap.valueFloat = 30.0f;
@@ -555,6 +573,7 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		break;
 	case GF_CODEC_PIXEL_FORMAT:
 		if (ffd->base_ctx->width) capability->cap.valueInt = ffd->out_pix_fmt;
+		if (ffd->conv_buffer) capability->cap.valueInt = GF_PIXEL_YV12;
 		break;
 	/*ffmpeg performs frame reordering internally*/
 	case GF_CODEC_REORDER:
@@ -588,6 +607,9 @@ static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap
 	assert(plug);
 	assert( ffd );
 	switch (capability.CapCode) {
+	case GF_CODEC_DISPLAY_BPP:
+		ffd->display_bpp = capability.cap.valueInt;
+		return GF_OK;
 	case GF_CODEC_WAIT_RAP:
 		ffd->frame_start = 0;
 		if (ffd->st==GF_STREAM_VISUAL) {
@@ -615,7 +637,7 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 #endif
 	AVPicture pict;
 	u32 pix_out;
-	s32 w, h, gotpic;
+	s32 w, h, gotpic, stride;
 	u32 outsize;
 	AVCodecContext *ctx;
 	AVCodec **codec;
@@ -900,21 +922,28 @@ redecode:
 		return GF_BUFFER_TOO_SMALL;
 	}
 
+	stride = frame->linesize[0];
+	if (ffd->output_as_8bit && (frame->linesize[0] >= 2*w) )  {
+		ffd->conv_to_8bit = 1;
+		stride=w;
+	}
 
 	/*recompute outsize in case on-the-fly change*/
 	if ((w != ctx->width) || (h != ctx->height)
-		|| (ffd->direct_output && (frame->linesize[0] != ffd->stride)) 
-		|| (ffd->out_pix_fmt==GF_PIXEL_YV12 && (ctx->pix_fmt != PIX_FMT_YUV420P)) 
-		) {
+		|| (ffd->direct_output && (stride != ffd->stride)) 
+		|| ((ffd->out_pix_fmt==GF_PIXEL_YV12) && (ctx->pix_fmt != PIX_FMT_YUV420P) && !ffd->output_as_8bit ) 
+		//need to realloc the conversion buffer
+		|| (ffd->conv_to_8bit && !ffd->conv_buffer && ffd->direct_output)  
+	) {
 
-		ffd->stride = ffd->direct_output ? frame->linesize[0] : ctx->width;
+		ffd->stride = (!ffd->output_as_8bit && ffd->direct_output) ? frame->linesize[0] : ctx->width;
 		if (ffd->out_pix_fmt == GF_PIXEL_RGB_24) {
 			outsize = ctx->width * ctx->height * 3;
 		}
 #ifndef NO_10bit
 		//this YUV format is handled natively in GPAC
-		else if (ctx->pix_fmt == PIX_FMT_YUV420P10LE) {
-			ffd->stride = 2* ctx->width;
+		else if ((ctx->pix_fmt == PIX_FMT_YUV420P10LE) && !ffd->output_as_8bit) {
+			ffd->stride = ffd->direct_output ? frame->linesize[0] : ctx->width*2;
 			outsize = ffd->stride * ctx->height * 3 / 2;
 			ffd->out_pix_fmt = GF_PIXEL_YV12_10;
 		}
@@ -953,6 +982,11 @@ redecode:
 		}
 #endif
 		ffd->had_pic = 1;
+
+		if (ffd->conv_to_8bit && ffd->direct_output) {
+			ffd->conv_buffer = gf_realloc(ffd->conv_buffer, sizeof(char)*ffd->out_size);
+		}
+
 		return GF_BUFFER_TOO_SMALL;
 	}
 	/*check PAR in case on-the-fly change*/
@@ -983,10 +1017,25 @@ redecode:
 	}
 #endif
 
-	if (ffd->direct_output) {
+	if (ffd->direct_output && !ffd->conv_to_8bit) {
 		*outBufferLength = ffd->out_size;
 		return GF_OK;
 	}
+
+	if (ffd->conv_to_8bit) {
+		GF_VideoSurface dst;
+		memset(&dst, 0, sizeof(GF_VideoSurface));
+		dst.width = ctx->width;
+		dst.height = ctx->height;
+		dst.pitch_y = ctx->width;
+		dst.video_buffer = ffd->direct_output ? ffd->conv_buffer : outBuffer;
+		dst.pixel_format = GF_PIXEL_YV12;
+
+		gf_color_write_yv12_10_to_yuv(&dst, (u8 *) frame->data[0], frame->data[1], frame->data[2], frame->linesize[0], ctx->width, ctx->height, NULL);
+		*outBufferLength = ffd->out_size;	
+		return GF_OK;
+	}
+
 
 	if (ES_ID == ffd->depth_ES_ID) {
 		s32 i;
@@ -1087,6 +1136,14 @@ static GF_Err FFDEC_GetOutputBuffer(GF_MediaDecoder *ifcg, u16 ES_ID, u8 **pY_or
 	FFDec *ffd = ifcg->privateStack;
 	AVFrame *frame;
 	
+
+	if (ffd->conv_buffer) {
+		*pY_or_RGB = (u8 *) ffd->conv_buffer;
+		*pU = (u8 *) ffd->conv_buffer + ffd->stride * ffd->base_ctx->height;
+		*pV = (u8 *) ffd->conv_buffer + 5*ffd->stride * ffd->base_ctx->height/4;
+		return GF_OK;
+	}
+
 	if (ES_ID && (ffd->depth_ES_ID==ES_ID)) {
 		frame = ffd->depth_frame;
 		*pY_or_RGB = frame->data[0];

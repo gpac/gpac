@@ -667,9 +667,17 @@ void gf_sys_close();
  *	\brief System clock query
  *
  *	Gets the system clock time.
- *	\return System clock value since initialization in milliseconds.
+ *	\return System clock value since GPAC initialization in milliseconds.
  */
 u32 gf_sys_clock();
+
+/*!
+ *	\brief High precision system clock query
+ *
+ *	Gets the hight precision system clock time.
+ *	\return System clock value since GPAC initialization in microseconds.
+ */
+u64 gf_sys_clock_high_res();
 
 /*!
  *	\brief Sleeps thread/process

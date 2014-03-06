@@ -416,8 +416,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		}
 	}
 
-	/*fast forward, bench mode or using decoder memory (no composition memory): force decode if no data is available*/
-	if (! *eos && ((codec->ck->speed > FIX_ONE) || codec->odm->term->bench_mode || codec->CB->no_allocation) )
+	/*fast forward, bench mode with composition memory: force decode if no data is available*/
+	if (! *eos && ((codec->ck->speed > FIX_ONE) || (codec->odm->term->bench_mode && !codec->CB->no_allocation)) )
 		force_decode = GF_TRUE;
 	
 

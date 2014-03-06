@@ -107,8 +107,9 @@ typedef struct
 
 	/*average birate over last second and max bitrate over one second at decoder input - expressed in bits per sec*/
 	u32 avg_bitrate, instant_bitrate, max_bitrate;
-	u32 total_dec_time, max_dec_time, nb_dec_frames, nb_droped;
+	u32 nb_dec_frames, nb_droped;
 	u32 first_frame_time, last_frame_time;
+	u64 max_dec_time, total_dec_time;
 
 	/*set if ISMACryp present on the object - will need refinement for IPMPX...
 	0: not protected - 1: protected and OK - 2: protected and DRM failed*/

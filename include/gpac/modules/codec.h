@@ -102,7 +102,10 @@ enum
 	GF_CODEC_PIXEL_FORMAT,
 	/*isgnal decoder performs frame re-ordering in temporal scalability*/
 	GF_CODEC_REORDER,
-	
+
+	/*set cap only, indicate smax bpp of display*/
+	GF_CODEC_DISPLAY_BPP,
+
 	/*Audio sample rate*/
 	GF_CODEC_SAMPLERATE,
 	/*Audio num channels*/
