@@ -923,7 +923,7 @@ redecode:
 	}
 
 	stride = frame->linesize[0];
-	if (ffd->output_as_8bit && (frame->linesize[0] >= 2*w) )  {
+	if ((ctx->pix_fmt == PIX_FMT_YUV420P10LE) && ffd->output_as_8bit && (frame->linesize[0] >= 2*w) )  {
 		ffd->conv_to_8bit = 1;
 		stride=w;
 	}
@@ -936,7 +936,7 @@ redecode:
 		|| (ffd->conv_to_8bit && !ffd->conv_buffer && ffd->direct_output)  
 	) {
 
-		ffd->stride = (!ffd->output_as_8bit && ffd->direct_output) ? frame->linesize[0] : ctx->width;
+		ffd->stride = (!ffd->conv_to_8bit && ffd->direct_output) ? frame->linesize[0] : ctx->width;
 		if (ffd->out_pix_fmt == GF_PIXEL_RGB_24) {
 			outsize = ctx->width * ctx->height * 3;
 		}
