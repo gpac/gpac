@@ -137,6 +137,7 @@ typedef struct
 	Bool direct_output;
 	u32 stride;
 
+	u32 output_cb_size;
 	/*for audio packed frames*/
 	u32 frame_start;
 	char audio_buf[192000];

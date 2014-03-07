@@ -56,6 +56,8 @@ typedef struct
     Bool base_only;
 #endif
 
+	u32 output_cb_size;
+
 	u32 display_bpp;
 	Bool conv_to_8bit;
 	char *conv_buffer;
@@ -177,6 +179,13 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "Systems", "Output8bit", (ctx->display_bpp>8) ? "no" : "yes");
 	if (sOpt && !strcmp(sOpt, "yes")) ctx->output_as_8bit = 1;
 
+	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "CBUnits");
+	if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "CBUnits", "4");
+	if (sOpt) ctx->output_cb_size = atoi(sOpt);
+	if (!ctx->output_cb_size) ctx->output_cb_size = 4;
+
+
+
 	/*once base layer is configured, nothing to do on enhancement*/
 	if (esd->dependsOnESID) return GF_OK;
 
@@ -237,7 +246,10 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = 1;
 		break;
 	case GF_CODEC_BUFFER_MAX:
-		capability->cap.valueInt = 4;
+		capability->cap.valueInt = ctx->output_cb_size;
+		break;
+	case GF_CODEC_WANTS_THREAD:
+		capability->cap.valueBool= GF_TRUE;
 		break;
 	case GF_CODEC_PADDING_BYTES:
 		capability->cap.valueInt = 32;
@@ -305,7 +317,11 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 	if (!ctx->output_as_8bit) {
 		if ((ctx->luma_bpp>8) || (ctx->chroma_bpp>8)) a_stride *= 2;
 	} else {
-		bit_depth=8;
+		if (bit_depth>8) {
+			bit_depth=8;
+
+			ctx->conv_to_8bit = 1;
+		}
 	}
 
 	if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride) || (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) ){
