@@ -569,7 +569,7 @@ static void log_blit_times(GF_TextureHandler *txh, u32 push_time)
     txh->nb_frames ++;
     txh->upload_time += push_time;
         
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] At %d Blit texure (CTS %d) %d ms after due date - blit in %d ms - average push time %d ms\n", ck, txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] At %d Blit texture (CTS %d) %d ms after due date - blit in %d ms - average push time %d ms\n", ck, txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
 }
 #endif
 
