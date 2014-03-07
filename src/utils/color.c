@@ -1395,12 +1395,17 @@ void gf_cmx_apply_fixed(GF_ColorMatrix *_this, Fixed *a, Fixed *r, Fixed *g, Fix
 
 
 
-#ifndef GPAC_USE_OGL_ES
 #ifdef WIN32
-#include <intrin.h>
+# include <intrin.h>
+# define GPAC_HAS_SSE2
 #else
-#include <emmintrin.h>
+# ifdef __SSE2__
+#  include <emmintrin.h>
+#  define GPAC_HAS_SSE2
+# endif
 #endif
+
+#ifdef GPAC_HAS_SSE2
 
 static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd)
 {
@@ -1426,13 +1431,10 @@ static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  uns
 	if (vs_dst->pixel_format == GF_PIXEL_YV12) {
 		__m128i val1, val2, val_dst, *src1, *src2, *dst;
 		for (i=0; i<h; i++) {
-			assert((u64)(pY + i*src_stride)%8 == 0);
 			src1 = (__m128i *)(pY + i*src_stride);
 			src2 = src1+1;
-			assert((u64)(vs_dst->video_buffer + i*vs_dst->pitch_y)%8 == 0);
 			dst = (__m128i *)(vs_dst->video_buffer + i*vs_dst->pitch_y);
 			
-			assert(w%16 == 0);
 			for (j=0; j<w/16; j++, src1+=2, src2+=2, dst++) {
 				val1 = _mm_load_si128(src1);
 				val1 = _mm_srli_epi16(val1, 2);				
@@ -1444,13 +1446,10 @@ static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  uns
 		}
 		
 		for (i=0; i<h/2; i++) {
-			assert((u64)(pU + i*src_stride/2)%8 == 0);
 			src1 = (__m128i *) (pU + i*src_stride/2);
 			src2 = src1+1;
-			assert((u64)(vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y/2)%8 == 0);
 			dst = (__m128i *)(vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y/2);
 
-			assert(w%32 == 0);
 			for (j=0; j<w/32; j++, src1+=2, src2+=2, dst++) {
 				val1 = _mm_load_si128(src1);
 				val1 = _mm_srli_epi16(val1, 2);				
@@ -1462,10 +1461,8 @@ static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  uns
 		}
 
 		for (i=0; i<h/2; i++) {
-			assert((u64)(pV + i*src_stride/2)%8 == 0);
 			src1 = (__m128i *) (pV + i*src_stride/2);
 			src2 = src1+1;
-			assert((u64)(vs_dst->video_buffer + 5*vs_dst->pitch_y * vs_dst->height/4  + i*vs_dst->pitch_y/2)%8 == 0);
 			dst = (__m128i *)(vs_dst->video_buffer + 5*vs_dst->pitch_y * vs_dst->height/4  + i*vs_dst->pitch_y/2);
 			
 			for (j=0; j<w/32; j++, src1+=2, src2+=2, dst++) {
@@ -1498,7 +1495,7 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 	}
 
 
-#ifndef GPAC_USE_OGL_ES
+#ifdef GPAC_HAS_SSE2
 	if ( (w%32 == 0)
 		&& ((u64)(vs_dst->video_buffer + vs_dst->pitch_y)%8 == 0)
 		&& ((u64)(vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + vs_dst->pitch_y/2)%8 == 0)

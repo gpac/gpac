@@ -660,6 +660,16 @@ cxx_naked=$cxx
 cc="$cc $CFLAGS"
 cxx="$cxx $CXXFLAGS"
 
+#look for zlib
+cat > $TMPC << EOF
+#include <emmintrin.h>
+int main( void ) {  }
+EOF
+
+if $cc -o $TMPO $TMPC -msse2 $LDFLAGS 2> /dev/null  ; then
+  CFLAGS="$CFLAGS -msse2"
+fi
+
 
 #look for zlib
 cat > $TMPC << EOF
