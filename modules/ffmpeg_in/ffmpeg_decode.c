@@ -923,11 +923,13 @@ redecode:
 	}
 
 	stride = frame->linesize[0];
-	if ((ctx->pix_fmt == PIX_FMT_YUV420P10LE) && ffd->output_as_8bit && (frame->linesize[0] >= 2*w) )  {
+#ifndef NO_10bit
+    if ((ctx->pix_fmt == PIX_FMT_YUV420P10LE) && ffd->output_as_8bit && (frame->linesize[0] >= 2*w) )  {
 		ffd->conv_to_8bit = 1;
 		stride=w;
 	}
-
+#endif
+            
 	/*recompute outsize in case on-the-fly change*/
 	if ((w != ctx->width) || (h != ctx->height)
 		|| (ffd->direct_output && (stride != ffd->stride)) 
