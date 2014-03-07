@@ -304,10 +304,15 @@ void gf_sc_texture_disable(GF_TextureHandler *txh)
 			txh->compositor->visual->current_texture_glsl_program = 0;
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(txh->tx_io->gl_type, 0);
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texure drawn (CTS %d)\n", txh->last_frame_time));
+
 		}
 #endif
 		glDisable(txh->tx_io->gl_type);
 		if (txh->transparent) glDisable(GL_BLEND);
+
+		gf_sc_texture_check_pause_on_first_load(txh);
 	}
 }
 
@@ -1005,10 +1010,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		    gf_mo_get_object_time(txh->stream, &ck);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texture (CTS %d) %d ms after due date - Pushed Y,U,V textures in %d ms - average push time %d ms (PBO enabled %s)\n", txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames, txh->tx_io->pbo_pushed ? "yes" : "no"));
 #endif
-			//we just pushed our texture to the GPU, release
-			if (!txh->tx_io->pbo_pushed && txh->raw_memory) {
-				gf_sc_texture_release_stream(txh);
-			}
 			txh->tx_io->pbo_pushed = 0;
 		} else {
             do_tex_image_2d(txh, tx_mode, first_load, data, txh->stride, w, h, txh->tx_io->pbo_id);
@@ -1050,8 +1051,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		}
 	}
 #endif
-
-	gf_sc_texture_check_pause_on_first_load(txh);
 
 	return 1;
 

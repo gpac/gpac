@@ -355,14 +355,12 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bo
 		cu->dataLength = cu_size;
 		cu->RenderedLength = 0;
 
-		/*turn off buffering - this must be done now rather than when fetching first output frame since we're not 
+		/*turn off buffering for audio - this must be done now rather than when fetching first output frame since we're not 
 		sure output is fetched (Switch node, ...)*/
-		if ( (cb->Status == CB_BUFFER) && (cb->UnitCount >= cb->Capacity) ) {
+		if ( (cb->Status == CB_BUFFER) && (cb->UnitCount >= cb->Capacity) && (cb->odm->codec->type == GF_STREAM_AUDIO)) {
 			/*done with buffering, signal to the clock (ONLY ONCE !)*/
 			cb->Status = CB_BUFFER_DONE;
-			if (!cb->no_allocation) {
-				cb_set_buffer_off(cb);
-			}
+			cb_set_buffer_off(cb);
 		} 
 
 		//new FPS regulation doesn't need this signaling
@@ -523,9 +521,6 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 		if (cb->odm->codec->type != GF_STREAM_VISUAL) return NULL;
 		break;
 	case CB_BUFFER_DONE:
-		if (cb->no_allocation) {
-			cb_set_buffer_off(cb);
-		}
 		cb->Status = CB_PLAY;
 		break;
 	}
@@ -574,6 +569,14 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 	/*this allows reuse of the CU*/
 	cb->output->RenderedLength = 0;
 	cb->LastRenderedTS = cb->output->TS;
+
+	if (cb->Status==CB_BUFFER) {
+		cb_set_buffer_off(cb);
+		cb->Status=CB_PLAY;
+	}
+	if (cb->Status!=CB_PLAY) {
+		return;
+	}
 
 	/*WARNING: in RAW mode, we (for the moment) only have one unit - setting output->dataLength to 0 means the input is available 
 	for the raw channel - we have to make sure the output is completely reseted before releasing the sema*/
@@ -666,7 +669,6 @@ void gf_cm_set_eos(GF_CompositionMemory *cb)
 	if (cb->Status == CB_BUFFER) {
 		cb->Status = CB_BUFFER_DONE;
 		gf_clock_buffer_off(cb->odm->codec->ck);
-//		cb->odm->codec->ck->data_timeout = 0;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 	}
 	cb->HasSeenEOS = 1;
@@ -688,7 +690,6 @@ Bool gf_cm_is_running(GF_CompositionMemory *cb)
 		return !cb->odm->codec->ck->Paused;
 
 	if ((cb->Status == CB_BUFFER_DONE) && (gf_clock_is_started(cb->odm->codec->ck) || cb->odm->term->play_state) ) {
-		//cb->Status = CB_PLAY;
 		return 1;
 	}
 
@@ -711,8 +712,6 @@ void gf_cm_abort_buffering(GF_CompositionMemory *cb)
 {
 	if (cb->Status == CB_BUFFER) {
 		cb->Status = CB_BUFFER_DONE;
-		gf_clock_buffer_off(cb->odm->codec->ck);
-//		cb->odm->codec->ck->data_timeout = 0;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
+		cb_set_buffer_off(cb);
 	}
 }

@@ -339,7 +339,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "NumThreads");
 		if (!sOpt) {
 			char szO[100];
-			if (detected_nb_threads > 12) detected_nb_threads = 12;
 			sprintf(szO, "%d", detected_nb_threads);
 			gf_modules_set_option((GF_BaseInterface *)plug, "OpenHEVC", "NumThreads", szO);
 			nb_threads = detected_nb_threads;
@@ -524,6 +523,9 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 	case GF_CODEC_DIRECT_OUTPUT:
 		capability->cap.valueBool = GF_TRUE;
 		return GF_OK;
+	case GF_CODEC_WANTS_THREAD:
+		capability->cap.valueBool= GF_TRUE;
+		break;
 	}
 
 	if (!ffd->base_ctx) {
