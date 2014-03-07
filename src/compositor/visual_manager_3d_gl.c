@@ -517,7 +517,8 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 #else
 		glGetInfoLogARB(shader_id, blen, &slen, compiler_log);
 #endif
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[GLSL] Failed to compile shader %s: %s\n***** shader code ****\n%s\n**********************\n", name, compiler_log, source));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[GLSL] Failed to compile shader %s: %s\n", name, compiler_log));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[GLSL] ***** faulty shader code ****\n%s\n**********************\n", source));
 		gf_free (compiler_log);
 		return 0;
 	}
@@ -654,7 +655,7 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 				res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "YUV Rect fragment (relaxed syntax)", glsl_yuv_rect_shader_relaxed);
 				if (res) {
 					if (!opt) gf_cfg_set_key(visual->compositor->user->config, "Compositor", "YUVRectShader", "Relaxed");
-					GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Using relaxed syntax version of YUV shader\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Using relaxed syntax version of YUV shader\n"));
 				}
 			} else {
 				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Using strict syntax version of YUV shader\n"));
