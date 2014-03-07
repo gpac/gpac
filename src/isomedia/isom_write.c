@@ -4420,6 +4420,7 @@ static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, GF_Track
 		if (!traf->sampleGroups)
 			traf->sampleGroups = gf_list_new();
 		groupList = traf->sampleGroups;
+		entry_idx |= 0x10000;
 	} else {
 		if (!stbl->sampleGroups)
 			stbl->sampleGroups = gf_list_new();

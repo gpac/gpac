@@ -1088,7 +1088,7 @@ static GF_Err gf_isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNum
 	memset(*sai, 0, sizeof(GF_CENCSampleAuxInfo)); 
 	bs = gf_bs_new(buffer, size, GF_BITSTREAM_READ);
 	gf_bs_read_data(bs, (char *)(*sai)->IV, IV_size);
-	if (size > 16) {
+	if (size > IV_size) {
 		(*sai)->subsample_count = gf_bs_read_u16(bs);
 		(*sai)->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
 		for (i = 0; i < (*sai)->subsample_count; i++) {

@@ -1183,7 +1183,7 @@ GF_Err piff_psec_Write(GF_Box *s, GF_BitStream *bs)
 		for (i = 0; i < sample_count; i++) {
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 			if (! sai->IV_size) continue;
-			gf_bs_write_data(bs, (char *)sai->IV, 16);
+			gf_bs_write_data(bs, (char *)sai->IV, sai->IV_size);
 			gf_bs_write_u16(bs, sai->subsample_count);
 			for (j = 0; j < sai->subsample_count; j++) {
 				gf_bs_write_u16(bs, sai->subsamples[j].bytes_clear_data);
