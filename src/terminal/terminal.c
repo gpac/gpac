@@ -346,6 +346,8 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 			else if (!stricmp(sOpt, "Multi")) mode = GF_TERM_THREAD_MULTI;
 			gf_term_set_threading(term, mode);
 		}
+	} else {
+		gf_term_set_threading(term, GF_TERM_THREAD_SINGLE);
 	}
 
 	/*default data timeout is 20 sec*/

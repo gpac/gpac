@@ -400,20 +400,20 @@ u32 MM_Loop(void *par)
 u32 RunSingleDec(void *ptr)
 {
 	GF_Err e;
-	u32 time_left;
+	u64 time_taken;
 	CodecEntry *ce = (CodecEntry *) ptr;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[MediaDecoder %d] Entering thread ID %d\n", ce->dec->odm->OD->objectDescriptorID, gf_th_id() ));
 
 	while (ce->flags & GF_MM_CE_RUNNING) {
-		time_left = gf_sys_clock();
+		time_taken = gf_sys_clock_high_res();
 		if (!ce->dec->force_cb_resize) {
 			gf_mx_p(ce->mx);
 			e = gf_codec_process(ce->dec, ce->dec->odm->term->frame_duration);
 			if (e) gf_term_message(ce->dec->odm->term, ce->dec->odm->net_service->url, "Decoding Error", e);
 			gf_mx_v(ce->mx);
 		}
-		time_left = gf_sys_clock() - time_left;
+		time_taken = gf_sys_clock_high_res() - time_taken;
 
 
 		/*no priority boost this way for systems codecs, priority is dynamically set by not releasing the 
@@ -424,10 +424,8 @@ u32 RunSingleDec(void *ptr)
 		/*while on don't sleep*/
 		if (ce->dec->PriorityBoost) continue;
 
-		if (time_left) {
+		if (time_taken<20) {
 			gf_sleep(1);
-		} else {
-			gf_sleep(ce->dec->odm->term->frame_duration/2);
 		}
 	}
 	ce->flags |= GF_MM_CE_DEAD;

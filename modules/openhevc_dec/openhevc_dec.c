@@ -155,8 +155,6 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "NumThreads");
 	if (!sOpt) {
 		char szO[100];
-		if (nb_threads > 12)
-			nb_threads = 12;
 		sprintf(szO, "%d", nb_threads);
 		gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "NumThreads", szO);
 		ctx->nb_threads = nb_threads;

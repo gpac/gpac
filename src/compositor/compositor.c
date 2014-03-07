@@ -2223,6 +2223,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	texture_time = gf_sys_clock() - texture_time;
 #endif
 
+	//this is correct but doesn't bring much and we may actually waste time while sleeping that could be used for texture upload - we prefer sleeping at the end of the pass
+#if 0
 	//if next video frame is due in this render cycle, wait until it matures
 	if ((compositor->frame_delay > 0) && (compositor->frame_delay != (u32) -1)) {
 		u32 diff=0;
@@ -2233,12 +2235,13 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			if (diff >= (u32) compositor->frame_delay)
 				break;
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Waited %d ms for next frame and %d ms was required\n", diff, compositor->frame_delay));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Compositor] Waited %d ms for next frame and %d ms was required\n", diff, compositor->frame_delay));
 		if (compositor->next_frame_delay != (u32) -1) {
 			if (diff < compositor->next_frame_delay) compositor->next_frame_delay -= diff;
 			else compositor->next_frame_delay = 1;
 		}
 	}
+#endif
 
 
 
@@ -2421,7 +2424,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			compositor->frame_draw_type = 0;
 
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene - OTB %d\n", compositor->scene_sampled_clock));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene - STB %d\n", compositor->scene_sampled_clock));
 			gf_sc_draw_scene(compositor);
 #ifndef GPAC_DISABLE_LOG
 			traverse_time = gf_sys_clock() - traverse_time;
@@ -2558,6 +2561,9 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	//we have a pending frame, return asap - we could sleep until frames matures but this give weird regulation 
 	if (compositor->next_frame_delay != (u32) -1) {
+		if (compositor->next_frame_delay>end_time) compositor->next_frame_delay-=end_time;
+		else compositor->next_frame_delay=0;
+
 		compositor->next_frame_delay = MIN(compositor->next_frame_delay, 2*compositor->frame_duration);
 		if (compositor->next_frame_delay>2) {
 			u32 diff=0;
