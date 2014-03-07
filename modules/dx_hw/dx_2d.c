@@ -206,7 +206,6 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
     DDSURFDESC ddsd;
 	DDPIXELFORMAT pixelFmt;
     LPDIRECTDRAWCLIPPER pcClipper;
-	const char *opt;
 	DDCONTEXT;
 	if (!dd->cur_hwnd || !Width || !Height || !dd->DirectDrawCreate) return GF_BAD_PARAM;
 	DestroyObjects(dd);
