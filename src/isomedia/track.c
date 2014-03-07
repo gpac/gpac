@@ -631,6 +631,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			}
 
 			if (is_identical_sgpd) {
+				//adjust sgpd index: in traf index start at 0x1001
+				for (j = 0; j < frag_group->entry_count; j++)
+					frag_group->sample_entries[j].group_description_index &= 0x0FFFF;
 				if (frag_group->entry_count && stbl_group->entry_count && 
 					(frag_group->sample_entries[0].group_description_index==stbl_group->sample_entries[stbl_group->entry_count-1].group_description_index) 
 				) {
