@@ -357,8 +357,13 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
         /* Set the decoder id */
 		//av_opt_set_int(openHevcContext->c->priv_data, "decoder-id", i, 0);
 
+		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "CBUnits");
+		if (!sOpt) gf_modules_set_option((GF_BaseInterface *)plug, "OpenHEVC", "CBUnits", "4");
+		if (sOpt) ffd->output_cb_size = atoi(sOpt);
 	}
 #endif //HAS_HEVC
+	if (!ffd->output_cb_size) ffd->output_cb_size = 4;
+
 	if (codec_id == CODEC_ID_RAWVIDEO) {
 		(*ctx)->codec_id = CODEC_ID_RAWVIDEO;
 		(*ctx)->pix_fmt = ffd->raw_pix_fmt;
@@ -545,7 +550,7 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		break;
 	case GF_CODEC_BUFFER_MAX:
 	  /*for audio let the systems engine decide since we may have very large block size (1 sec with some QT movies)*/
-		capability->cap.valueInt = (ffd->st==GF_STREAM_AUDIO) ? 0 : (ffd->is_image ? 1 : 4);
+		capability->cap.valueInt = (ffd->st==GF_STREAM_AUDIO) ? 0 : (ffd->is_image ? 1 : ffd->output_cb_size);
 		break;
 	/*by default AAC access unit lasts num_samples (timescale being sampleRate)*/
 	case GF_CODEC_CU_DURATION:

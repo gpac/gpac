@@ -359,6 +359,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 	}
 }
 
+
 GF_EXPORT
 char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next)
 {
@@ -369,8 +370,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	s32 diff;
 	Bool bench_mode;
 
-
-	*eos = GF_FALSE;
 	*eos = GF_FALSE;
 	*timestamp = mo->timestamp;
 	*size = mo->framesize;
@@ -462,6 +461,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 			}
 		}
 	}
+
+
+	if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO))
+		resync=GF_FALSE;
 
 	/*resync*/
 	obj_time = gf_clock_time(codec->ck);
@@ -563,7 +566,7 @@ GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u
 }
 
 GF_EXPORT
-void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop)
+void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 {
 #if 0
 	u32 obj_time;
@@ -579,8 +582,11 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop)
 		gf_odm_lock(mo->odm, 0);
 		return;
 	}
-	if (mo->odm->codec->CB->no_allocation)
-		forceDrop = 1;
+
+	if ((drop_mode==0) && !(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO))
+		drop_mode=1;
+	else if (mo->odm->codec->CB->no_allocation)
+		drop_mode = 1;
 
 	/*perform a sanity check on TS since the CB may have changed status - this may happen in 
 	temporal scalability only*/
@@ -592,10 +598,10 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop)
 			mo->odm->codec->CB->output->RenderedLength += nb_bytes;
 		}
 
-		if (forceDrop<0) {
+		if (drop_mode<0) {
 			/*only allow for explicit last frame keeping if only one node is using the resource
 			otherwise this would block the composition memory*/
-			if (mo->num_open>1) forceDrop=0;
+			if (mo->num_open>1) drop_mode=0;
 			else {
 				gf_odm_lock(mo->odm, 0);
 				return;
@@ -604,9 +610,9 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop)
 
 		/*discard frame*/
 		if (mo->odm->codec->CB->output->RenderedLength == mo->odm->codec->CB->output->dataLength) {
-			if (forceDrop) {
+			if (drop_mode) {
 				gf_cm_drop_output(mo->odm->codec->CB);
-				forceDrop--;
+				drop_mode--;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u drop frame TS %u\n", mo->odm->OD->objectDescriptorID, gf_clock_time(mo->odm->codec->ck), mo->timestamp));
 //				if (forceDrop) mo->odm->codec->nb_droped++;
 			} else {
