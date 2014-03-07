@@ -54,7 +54,7 @@ struct _dash_component
 	/*for audio*/
 	u32 sample_rate, channels;
 	/*for anything*/
-	char szLang[5];
+	char szLang[4];
 };	
 
 typedef struct
@@ -4659,7 +4659,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					
 					if (dash_inputs[i].components[j].szLang && dash_inputs[i].components[j].szLang[0]) {
 						if (szLang[0]) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] two languages in adaptation set: %s will be kept, %s will be ignored\n", szLang[0], dash_inputs[i].components[j].szLang[0]));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] two languages in adaptation set: %s will be kept %s will be ignored\n", szLang, dash_inputs[i].components[j].szLang));
 						} else {
 							memcpy(szLang, dash_inputs[i].components[j].szLang, 4*sizeof(char));
 						}
