@@ -1989,7 +1989,7 @@ void PrintAVInfo(Bool final)
 				u32 dec_run_time = v_odi.last_frame_time - v_odi.first_frame_time;
 				if (!dec_run_time) dec_run_time = 1;
 				if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
-				fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
+				fprintf(stderr, "%d frames FPS %.2f (max "LLU" us/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
 				if (v_odi.nb_droped) {
 					fprintf(stderr, " (Error during bench: %d frames drop)", v_odi.nb_droped);
 				}
@@ -2017,7 +2017,7 @@ void PrintAVInfo(Bool final)
 				if (s_odi.nb_dec_frames>2 && s_odi.total_dec_time) { 
 					u32 dec_run_time = s_odi.last_frame_time - s_odi.first_frame_time;
 					if (!dec_run_time) dec_run_time = 1;
-					fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
+					fprintf(stderr, "%d frames FPS %.2f (max "LLD" us/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
 					fprintf(stderr, "\n");
 				} else {
 					u32 nb_frames_drawn;
@@ -2047,7 +2047,7 @@ void PrintAVInfo(Bool final)
 			avg_dec_time = (Float) 1000000 * s_odi.nb_dec_frames; 
 			avg_dec_time /= s_odi.total_dec_time; 
 			if (s_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*s_odi.current_time / s_odi.duration ) );
-			fprintf(stderr, "%d frames %.2f (%d us max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
+			fprintf(stderr, "%d frames %.2f ("LLU" us max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
 		} else {
 			u32 nb_frames_drawn;
 			Double FPS = gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
@@ -2248,7 +2248,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 			avg_dec_time = (Float) odi.total_dec_time; 
 			avg_dec_time /= odi.nb_dec_frames; 
 		}
-		fprintf(stderr, "\tBitrate over last second: %d kbps\n\tMax bitrate over one second: %d kbps\n\tAverage Decoding Time %.2f ms (%d max)\n\tTotal decoded frames %d\n", 
+		fprintf(stderr, "\tBitrate over last second: %d kbps\n\tMax bitrate over one second: %d kbps\n\tAverage Decoding Time %.2f ms ("LLU" max)\n\tTotal decoded frames %d\n", 
 			(u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames);
 	}
 	if (odi.protection) fprintf(stderr, "Encrypted Media%s\n", (odi.protection==2) ? " NOT UNLOCKED" : "");
@@ -2476,7 +2476,7 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm)
 	fprintf(stderr, "\n * %d decoded frames - %d dropped frames\n", odi.nb_dec_frames, odi.nb_droped);
 	avg_dec_time = 0;
 	if (odi.nb_dec_frames) { avg_dec_time = (Float) odi.total_dec_time; avg_dec_time /= odi.nb_dec_frames; }
-	fprintf(stderr, " * Avg Bitrate %d kbps (%d max) - Avg Decoding Time %.2f ms (%d max)\n",
+	fprintf(stderr, " * Avg Bitrate %d kbps (%d max) - Avg Decoding Time %.2f ms ("LLU" max)\n",
 								(u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time);
 }
 
