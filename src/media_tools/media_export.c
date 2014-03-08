@@ -454,6 +454,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		if (is_mj2k) 
 			write_jp2_file(bs, samp->data, samp->dataLength, dsi, dsi_size);
 		else {
+#ifndef GPAC_DISABLE_TTXT
             if (is_wvtt) {
                 GF_Err e;
                 e = gf_webvtt_dump_header(out, dumper->file, track, 1);
@@ -462,7 +463,9 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
                     u32 timescale = gf_isom_get_media_timescale(dumper->file, track);
                     gf_webvtt_dump_iso_sample(out, timescale, samp);
                 }
-            } else {
+            } else 
+#endif
+            {
                 gf_bs_write_data(bs, samp->data, samp->dataLength);
             }
         }
@@ -503,6 +506,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		if (is_mj2k) 
 			write_jp2_file(bs, samp->data, samp->dataLength, dsi, dsi_size);
 		else {
+#ifndef GPAC_DISABLE_TTXT
             if (is_wvtt) {
                 GF_Err e;
                 e = gf_webvtt_dump_header(out, dumper->file, track, 1);
@@ -511,7 +515,9 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
                     u32 timescale = gf_isom_get_media_timescale(dumper->file, track);
                     gf_webvtt_dump_iso_sample(out, timescale, samp);
                 }
-            } else {
+            } else 
+#endif
+            {
                 gf_bs_write_data(bs, samp->data, samp->dataLength);
             }
         }
@@ -972,8 +978,12 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	if (is_vobsub) return gf_dump_to_vobsub(dumper, szName, track, dsi, dsi_size);
 
 	if (is_webvtt) {
+#ifndef GPAC_DISABLE_TTXT
         GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 track, Bool merge);
         return gf_webvtt_dump_iso_track(dumper, szName, track, (dumper->flags & GF_EXPORT_WEBVTT_NOMERGE? GF_FALSE : GF_TRUE));
+#else
+        return GF_NOT_SUPPORTED;
+#endif
     }
 
     if (qcp_type>1) {
@@ -2221,6 +2231,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 			if (layer) fprintf(vtt, "layer:%d\n", layer);
 		}
 		if (esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
+#ifndef GPAC_DISABLE_TTXT
 			if (isText) {
 				if (mstype == GF_ISOM_SUBTYPE_WVTT) {
 					/* Warning: Just use -raw export */
@@ -2243,7 +2254,9 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 					gf_webvtt_dump_header_boxed(med, esd->decoderConfig->decoderSpecificInfo->data+4, esd->decoderConfig->decoderSpecificInfo->dataLength, &headerLength);
 					fprintf(vtt, "text-header-length: %d\n", headerLength);
 				}
-			} else {
+			} else
+#endif
+            {
 				char b64[200];
 				u32 size = gf_base64_encode(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, b64, 200);
 				useBase64 = GF_TRUE;
@@ -2303,6 +2316,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
 		if (!samp) break;
 
+#ifndef GPAC_DISABLE_TTXT
 		{
 			GF_WebVTTTimestamp start, end;
 			u64 dur = gf_isom_get_sample_duration(dumper->file, track, i+1);
@@ -2322,6 +2336,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 			else fprintf(vtt, "isRAP:false ");
 			fprintf(vtt, "\n");
 		}
+#endif
 		if (med) {
 			gf_fwrite(samp->data, samp->dataLength, 1, med);
 		} else if (dumper->flags & GF_EXPORT_WEBVTT_META_EMBEDDED) {
@@ -2411,12 +2426,15 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 	header_size = 0;
 	if (esd) {
 		if (esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
+#ifndef GPAC_DISABLE_TTXT
 			if (mstype == GF_ISOM_SUBTYPE_WVTT || mstype == GF_ISOM_SUBTYPE_STSE) {
 				gf_webvtt_dump_header_boxed(media, 
 											esd->decoderConfig->decoderSpecificInfo->data+4, 
 											esd->decoderConfig->decoderSpecificInfo->dataLength, 
 											&header_size);
-			} else {
+			} else
+#endif
+            {
 				gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, media);
 				header_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 			}
