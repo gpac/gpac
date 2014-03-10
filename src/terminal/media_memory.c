@@ -561,9 +561,8 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 }
 
 
-
 /*drop the output CU*/
-void gf_cm_drop_output(GF_CompositionMemory *cb)
+void gf_cm_output_kept(GF_CompositionMemory *cb)
 {
 	assert(cb->UnitCount);
 	/*this allows reuse of the CU*/
@@ -574,6 +573,12 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 		cb_set_buffer_off(cb);
 		cb->Status=CB_PLAY;
 	}
+}
+
+/*drop the output CU*/
+void gf_cm_drop_output(GF_CompositionMemory *cb)
+{
+	gf_cm_output_kept(cb);
 	if (cb->Status!=CB_PLAY) {
 		return;
 	}
