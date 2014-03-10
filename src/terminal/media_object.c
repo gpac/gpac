@@ -463,14 +463,22 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	}
 
 
-	if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO))
-		resync=GF_FALSE;
-
 	/*resync*/
 	obj_time = gf_clock_time(codec->ck);
+
+	//no drop mode: all frames are presented, we discard the current output only if already presented and next frame time is mature
+	if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO)) {
+		resync=GF_FALSE;
+		if (gf_clock_is_started(mo->odm->codec->ck) && (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time) ) {
+			gf_cm_drop_output(codec->CB);
+			CU = gf_cm_get_output(codec->CB);
+		}
+	}
+
 	if (resync) {
 		u32 nb_droped = 0;
 		while (CU->TS < obj_time) {
+			u32 diff;
 			if (!CU->next->dataLength) {
 				if (force_decode) {
 					obj_time = gf_clock_time(codec->ck);
@@ -485,6 +493,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 				} else {
 					break;
 				}
+			}
+			diff = CU->next->TS;
+			diff -= CU->TS;
+			if (CU->TS + codec->CB->Capacity*diff > obj_time) {
+				break;
 			}
 			/*figure out closest time*/
 			if (CU->next->TS > obj_time) {
@@ -583,10 +596,13 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 		return;
 	}
 
-	if ((drop_mode==0) && !(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO))
+/*	if ((drop_mode==0) && !(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO))
 		drop_mode=1;
-	else if (mo->odm->codec->CB->no_allocation)
+	else 
+*/
+	if (mo->odm->codec->CB->no_allocation)
 		drop_mode = 1;
+	
 
 	/*perform a sanity check on TS since the CB may have changed status - this may happen in 
 	temporal scalability only*/
@@ -612,25 +628,12 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 		if (mo->odm->codec->CB->output->RenderedLength == mo->odm->codec->CB->output->dataLength) {
 			if (drop_mode) {
 				gf_cm_drop_output(mo->odm->codec->CB);
-				drop_mode--;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u drop frame TS %u\n", mo->odm->OD->objectDescriptorID, gf_clock_time(mo->odm->codec->ck), mo->timestamp));
-//				if (forceDrop) mo->odm->codec->nb_droped++;
 			} else {
 				/*we cannot drop since we don't know the speed of the playback (which can even be frame by frame)*/
-#if 0
-				obj_time = gf_clock_time(mo->odm->codec->ck);
-				if (mo->odm->codec->CB->output->next->dataLength) { 
-					if (2*obj_time < mo->timestamp + mo->odm->codec->CB->output->next->TS ) {
-						mo->odm->codec->CB->output->RenderedLength = 0;
-					} else {
-						gf_cm_drop_output(mo->odm->codec->CB);
-					}
-				} else {
-					gf_cm_drop_output(mo->odm->codec->CB);
-				}
-#else
-				mo->odm->codec->CB->output->RenderedLength = 0;
-#endif
+
+				//notif CB we kept the output
+				gf_cm_output_kept(mo->odm->codec->CB);
 			}
 		}
 	}

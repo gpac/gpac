@@ -147,9 +147,10 @@ void gf_cm_rewind_input(GF_CompositionMemory *cb);
 
 /*fetch output buffer, NULL if output is empty*/
 GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb);
-/*release the output buffer once rendered - if renderedLength is not equal to dataLength the
-output is NOT droped*/
+/*release the output buffer once rendered */
 void gf_cm_drop_output(GF_CompositionMemory *cb);
+/*notifies the output has not been discarded: sets render length to 0 and check clock resume if needed*/
+void gf_cm_output_kept(GF_CompositionMemory *cb);
 
 /*reset the entire memory*/
 void gf_cm_reset(GF_CompositionMemory *cb);
