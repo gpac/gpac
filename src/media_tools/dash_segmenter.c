@@ -53,8 +53,8 @@ struct _dash_component
 
 	/*for audio*/
 	u32 sample_rate, channels;
-	/*for anything*/
-	char szLang[4];
+	/*apply to any media. We use 5 bytes because we may use copy data converted from gf_4cc_to_str which is 5 bytes*/
+	char szLang[5];
 };	
 
 typedef struct

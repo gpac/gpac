@@ -617,8 +617,10 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 								}
 								fclose(t);
 							}
-							/*remap to remote URL*/
-							remote = gf_strdup(mux->file_name);
+							/*remap to remote URL - warning, the URL has already been resolved according to the parent path*/
+							remote = gf_malloc(sizeof(char) * (strlen("gpac://")+strlen(mux->file_name)+1) );
+							strcpy(remote, "gpac://");
+							strcat(remote, mux->file_name);
 							k = od->objectDescriptorID;
 							/*if files were created we'll have to clean up (swf import)*/
 							if (mux->delete_file) gf_list_add(priv->files_to_delete, gf_strdup(remote));
