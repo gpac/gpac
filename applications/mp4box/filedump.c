@@ -42,7 +42,7 @@
 #endif
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
-#include <gpac/media_tools.h>
+#include <gpac/internal/media_dev.h>
 /*for asctime and gmtime*/
 #include <time.h>
 /*ISO 639 languages*/
@@ -1432,9 +1432,9 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 }
 
 #ifndef GPAC_DISABLE_HEVC
-void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg)
+void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg, HEVCState *hevc_state)
 {
-	u32 k;
+	u32 k, idx;
 	fprintf(stderr, "\t%s Info: Profile %s @ Level %g - Chroma Format %d\n", hevccfg->is_shvc ? "SHVC" : "HEVC", gf_hevc_get_profile_name(hevccfg->profile_idc), ((Double)hevccfg->level_idc) / 30.0, hevccfg->chromaFormat);
 	fprintf(stderr, "\tNAL Unit length bits: %d - general profile compatibility 0x%08X\n", 8*hevccfg->nal_unit_size, hevccfg->general_profile_compatibility_flags);
 	fprintf(stderr, "\tParameter Sets: ");
@@ -1443,23 +1443,30 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 		if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 			fprintf(stderr, "%d SPS ", gf_list_count(ar->nalus));
 		}
-		else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
+		if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
 			fprintf(stderr, "%d PPS ", gf_list_count(ar->nalus));
 		}
 		if (ar->type==GF_HEVC_NALU_VID_PARAM) {
 			fprintf(stderr, "%d VPS ", gf_list_count(ar->nalus));
+
+			for (idx=0; idx<gf_list_count(ar->nalus); idx++) {
+				GF_AVCConfigSlot *vps = gf_list_get(ar->nalus, idx);
+				gf_media_hevc_read_vps(vps->data, vps->size, hevc_state);
+			}
 		}
 	}
+
 	fprintf(stderr, "\n");
 	for (k=0; k<gf_list_count(hevccfg->param_array); k++) {
 		GF_HEVCParamArray *ar=gf_list_get(hevccfg->param_array, k);
-		u32 idx, width, height;
+		u32 width, height;
 		s32 par_n, par_d;
+
 		if (ar->type !=GF_HEVC_NALU_SEQ_PARAM) continue;
 		for (idx=0; idx<gf_list_count(ar->nalus); idx++) {
 			GF_AVCConfigSlot *sps = gf_list_get(ar->nalus, idx);
 			par_n = par_d = -1;
-			gf_hevc_get_sps_info(sps->data, sps->size, NULL, &width, &height, &par_n, &par_d);
+			gf_hevc_get_sps_info_with_state(hevc_state, sps->data, sps->size, NULL, &width, &height, &par_n, &par_d);
 			fprintf(stderr, "\tSPS resolution %dx%d", width, height);
 			if ((par_n>0) && (par_d>0)) {
 				u32 tw, th;
@@ -1547,6 +1554,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		|| (msub_type==GF_ISOM_SUBTYPE_LSR1)
 		|| (msub_type==GF_ISOM_SUBTYPE_HVC1)
 		|| (msub_type==GF_ISOM_SUBTYPE_HEV1)
+		|| (msub_type==GF_ISOM_SUBTYPE_SHV1)
+		|| (msub_type==GF_ISOM_SUBTYPE_SHC1)
 	)  {
 		esd = gf_isom_get_esd(file, trackNum, 1);
 		if (!esd) {
@@ -1643,9 +1652,14 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					}
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
-				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) {
+				} else if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC)
+				|| (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SHVC)
+				) {
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
+					HEVCState hevc_state;
 					GF_HEVCConfig *hevccfg, *shvccfg;
+					memset(&hevc_state, 0, sizeof(HEVCState));
+					hevc_state.sps_active_idx = -1;
 #endif
 
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
@@ -1658,12 +1672,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stderr, "\n\n\tNon-compliant HEVC track: No hvcC or shcC found in sample description\n");
 					} 
 					if (hevccfg) {
-						dump_hevc_track_info(file, trackNum, hevccfg);
+						dump_hevc_track_info(file, trackNum, hevccfg, &hevc_state);
 						gf_odf_hevc_cfg_del(hevccfg);
 						fprintf(stderr, "\n");
 					}
 					if (shvccfg) {
-						dump_hevc_track_info(file, trackNum, shvccfg);
+						dump_hevc_track_info(file, trackNum, shvccfg, &hevc_state);
 						gf_odf_hevc_cfg_del(shvccfg);
 					}
 #endif /*GPAC_DISABLE_AV_PARSERS  && defined(GPAC_DISABLE_HEVC)*/

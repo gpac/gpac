@@ -1926,7 +1926,7 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 {
 	SHVCTrackInfo sti[64];
 	GF_HEVCConfig *hevccfg, *shvccfg;
-	u32 i, count, cur_extract_mode, j, k;
+	u32 i, count, cur_extract_mode, j, k, max_layer_id;
 	char *nal_data=NULL;
 	u32 nal_alloc_size;
 	GF_Err e = GF_OK;
@@ -1943,7 +1943,7 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 	memset(sti, 0, sizeof(sti));
 	sti[0].track_num = track;
-
+	max_layer_id = 0;
 	//split all SPS/PPS/VPS from svccfg
 	count = gf_list_count(shvccfg->param_array);
 	for (i=0; i<count; i++) {
@@ -1961,6 +1961,9 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 			if (!splitAll) layer_id = 1;
 
+			if (max_layer_id < layer_id)
+				max_layer_id = layer_id;
+
 			if (!sti[layer_id].shvccfg) {
 				sti[layer_id].shvccfg = gf_odf_hevc_cfg_new();
 				sti[layer_id].shvccfg->is_shvc = 1;
@@ -1976,7 +1979,40 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 			count2--;
 		}
 	}
-	//remove shvc config
+
+	//CLARIFY wether this is correct: we duplicate all VPS in the enhancement layer ...
+	//we do this because if we split the tracks some info for setting up the enhancement layer
+	//is in the VPS
+	count = gf_list_count(hevccfg->param_array);
+	for (i=0; i<count; i++) {
+		u32 k, count2;
+		GF_HEVCParamArray *s_ar;
+		GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, i);
+		if (ar->type != GF_HEVC_NALU_VID_PARAM) continue;
+		count2 = gf_list_count(ar->nalus);
+		for (j=0; j<count2; j++) {
+			GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
+			u8 layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
+			if (layer_id) continue;
+
+			for (k=0; k <= max_layer_id; k++) {
+				GF_AVCConfigSlot *sl2;
+				if (!sti[k].shvccfg) continue;
+
+				s_ar = alloc_hevc_param_array(sti[k].shvccfg, ar->type);
+				s_ar->array_completeness = ar->array_completeness;
+
+				GF_SAFEALLOC(sl2, GF_AVCConfigSlot);
+				sl2->data = gf_malloc(sl->size);
+				memcpy(sl2->data, sl->data, sl->size);
+				sl2->id = sl->id;
+				sl2->size = sl->size;
+				gf_list_add(s_ar->nalus, sl2);
+			}
+		}
+	}
+
+	//update shvc config
 	e = gf_isom_shvc_config_update(file, track, 1, NULL, 0);
 	if (e) goto exit;
 
@@ -2143,7 +2179,7 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 exit:
 	//reset all scalable info
-	for (j=0; j<64; j++) {
+	for (j=0; j<=max_layer_id; j++) {
 		if (sti[j].shvccfg) gf_odf_hevc_cfg_del(sti[j].shvccfg);
 	}
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);

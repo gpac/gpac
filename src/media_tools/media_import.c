@@ -5087,7 +5087,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	Bool flush_sample, flush_next_sample, is_empty_sample, sample_is_rap, sample_has_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
-	Bool first_avc;
+	Bool first_hevc;
 	u32 use_opengop_gdr = 0;
 	u8 layer_ids[64];
 
@@ -5134,7 +5134,7 @@ restart_import:
 	shvc_cfg->non_hevc_base_layer = 0;
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
 	sample_data = NULL;
-	first_avc = 1;
+	first_hevc = 1;
 	sei_recovery_frame_count = -1;
 	spss = ppss = vpss = NULL;
 
@@ -5281,7 +5281,7 @@ restart_import:
 
 				dst_cfg->avgFrameRate = hevc.vps[idx].rates[0].avg_pic_rate;
 				dst_cfg->constantFrameRate = hevc.vps[idx].rates[0].constand_pic_rate_idc;
-				dst_cfg->numTemporalLayers = hevc.vps[idx].max_sub_layer;
+				dst_cfg->numTemporalLayers = hevc.vps[idx].max_sub_layers;
 				dst_cfg->temporalIdNested = hevc.vps[idx].temporal_id_nesting;
 				//TODO set scalability mask
 
@@ -5387,8 +5387,8 @@ restart_import:
 					goto restart_import;
 				}
 
-				if (first_avc) {
-					first_avc = 0;
+				if (first_hevc) {
+					first_hevc = 0;
 					gf_import_message(import, GF_OK, "HEVC import - frame size %d x %d at %02.3f FPS", hevc.sps[idx].width, hevc.sps[idx].height, FPS);
 				} else {
 					gf_import_message(import, GF_OK, "SHVC detected - %d x %d at %02.3f FPS", hevc.sps[idx].width, hevc.sps[idx].height, FPS);
@@ -7417,7 +7417,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						tsimp->hevc.vps[idx].state = 2;
 						tsimp->hevccfg->avgFrameRate = tsimp->hevc.vps[idx].rates[0].avg_pic_rate;
 						tsimp->hevccfg->constantFrameRate = tsimp->hevc.vps[idx].rates[0].constand_pic_rate_idc;
-						tsimp->hevccfg->numTemporalLayers = tsimp->hevc.vps[idx].max_sub_layer;
+						tsimp->hevccfg->numTemporalLayers = tsimp->hevc.vps[idx].max_sub_layers;
 						hevc_cfg_add_nalu(tsimp->hevccfg, nal_type, pck->data+4, pck->data_len-4);
 					}
 					return;

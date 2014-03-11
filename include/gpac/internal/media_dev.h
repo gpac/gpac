@@ -300,6 +300,8 @@ typedef struct
 	u32 num_units_in_tick, time_scale;
 	Bool poc_proportional_to_timing_flag;
 	u32 num_ticks_poc_diff_one_minus1;
+
+	u32 rep_format_idx;
 } HEVC_SPS;
 
 typedef struct
@@ -320,25 +322,50 @@ typedef struct
 	u32 column_width[22], row_height[20];
 } HEVC_PPS;
 
+typedef struct RepFormat
+{
+    u32 chroma_format_idc;
+    u32 pic_width_luma_samples;
+    u32 pic_height_luma_samples;
+    u32 bit_depth_luma;
+    u32 bit_depth_chroma;
+	u8 separate_colour_plane_flag;
+} HEVC_RepFormat;
+
 typedef struct
 {
 	u16 avg_bit_rate, max_bit_rate, avg_pic_rate;
 	u8 constand_pic_rate_idc;
 } HEVC_RateInfo;
 
+
+#define MAX_SHVC_LAYERS	4
 typedef struct
 {
 	s32 id; 
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
 	u32 state;
 	u32 crc;
-	u8 max_sub_layer;
+	u32 max_layers, max_sub_layers, max_layer_id, num_layer_sets;
 	Bool temporal_id_nesting;
 	HEVC_ProfileTierLevel ptl;
 
 	HEVC_SublayerPTL sub_ptl[8];
 	HEVC_RateInfo rates[8];
 
+
+	u32 scalability_mask[16];
+    u32 dimension_id[MAX_SHVC_LAYERS][16];
+    u32 layer_id_in_nuh[MAX_SHVC_LAYERS];
+    u32 layer_id_in_vps[MAX_SHVC_LAYERS];
+
+
+	u32 profile_level_tier_idx[MAX_SHVC_LAYERS];
+	HEVC_ProfileTierLevel ext_ptl[MAX_SHVC_LAYERS];
+
+	u32 num_rep_formats;
+	HEVC_RepFormat rep_formats[16];
+    u32 rep_format_idx[16];
 } HEVC_VPS;
 
 typedef struct
@@ -369,7 +396,7 @@ typedef struct
 	HEVC_PPS *pps;
 } HEVCSliceInfo;
 
-typedef struct
+typedef struct _hevc_state
 {
 	HEVC_SPS sps[16]; /* range allowed in the spec is 0..15 */
 	s8 sps_active_idx;	/*currently active sps; must be initalized to -1 in order to discard not yet decodable SEIs*/
@@ -397,6 +424,7 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 Bool gf_media_hevc_slice_is_intra(HEVCState *hevc);
 Bool gf_media_hevc_slice_is_IDR(HEVCState *hevc);
 
+GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
