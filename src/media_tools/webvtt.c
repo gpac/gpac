@@ -90,6 +90,7 @@ void vtcu_del(GF_Box *s)
     if (box->id) gf_isom_box_del((GF_Box *)box->id);
     if (box->settings) gf_isom_box_del((GF_Box *)box->settings);
     if (box->payload) gf_isom_box_del((GF_Box *)box->payload);
+	gf_free(s);
 }
 
 void vtte_del(GF_Box *s)
@@ -1409,7 +1410,7 @@ static GF_Err gf_webvtt_parser_dump_finalize(GF_WebVTTParser *parser, u64 durati
     return GF_OK;
 }
 
-void gf_webvtt_dump_cue(void *user, GF_WebVTTCue *cue)
+static void gf_webvtt_dump_cue(void *user, GF_WebVTTCue *cue)
 {
     FILE *dump = (FILE *)user;
     if (!cue || !dump) return;
@@ -1431,7 +1432,7 @@ void gf_webvtt_dump_cue(void *user, GF_WebVTTCue *cue)
     fprintf(dump, "\n");
 }
 
-GF_Err gf_webvtt_dump_cues(FILE *dump, GF_List *cues)
+static GF_Err gf_webvtt_dump_cues(FILE *dump, GF_List *cues)
 {
     u32 i;
     for (i = 0; i < gf_list_count(cues); i++) {

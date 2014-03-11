@@ -2711,6 +2711,10 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		strcat(szFile, ".264");
 		gf_export_message(dumper, GF_OK, "Extracting H264-SVC Visual stream to h264");
 		break;
+	case GF_M2TS_METADATA_ID3_HLS:
+		strcat(szFile, ".txt");
+		gf_export_message(dumper, GF_OK, "Extracting ID3 tags from metadata stream");
+		break;
 	default:
 		strcat(szFile, ".raw");
 		gf_export_message(dumper, GF_OK, "Extracting Unknown stream to raw");

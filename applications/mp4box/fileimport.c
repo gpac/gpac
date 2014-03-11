@@ -103,6 +103,7 @@ void convert_file_info(char *inName, u32 trackID)
 		case GF_ISOM_MEDIA_TEXT: fprintf(stderr, "Text (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
 		case GF_ISOM_MEDIA_SCENE: fprintf(stderr, "Scene (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
 		case GF_ISOM_MEDIA_OD: fprintf(stderr, "OD (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
+		case GF_ISOM_MEDIA_META: fprintf(stderr, "Metadata (%s)", gf_4cc_to_str(import.tk_info[i].media_type)); break;
 		default: fprintf(stderr, "Other (4CC: %s)", gf_4cc_to_str(import.tk_info[i].type)); break;
 		}
 

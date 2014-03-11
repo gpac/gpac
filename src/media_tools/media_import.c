@@ -7067,6 +7067,14 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					}
 					import->nb_tracks++;
 					break;
+				case GF_M2TS_METADATA_ID3_HLS:
+					import->tk_info[idx].media_type = GF_4CC('I','D','3',' ');
+					import->tk_info[idx].type = GF_ISOM_MEDIA_META;
+					import->tk_info[idx].lang = pes->lang;
+					import->nb_tracks++;
+					break;
+				default:
+					gf_import_message(import, GF_OK, "[MPEG-2 TS] Ignoring stream of type %d", es->stream_type); 
 				}
 			}
 		} else {

@@ -36,6 +36,10 @@
 #include <gpac/scene_engine.h>
 #endif
 
+#ifndef GPAC_DISABLE_TTXT
+#include <gpac/webvtt.h>
+#endif
+
 #ifdef GPAC_DISABLE_ISOM
 
 #error "Cannot compile MP42TS if GPAC is not built with ISO File Format support"
@@ -66,58 +70,69 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 	fflush(logs);
 }
 
-static GFINLINE void usage(const char * progname) 
+static GFINLINE void usage() 
 {
-	fprintf(stderr, "USAGE: %s -rate=R [[-prog=prog1]..[-prog=progn]] [-audio=url] [-video=url] [-mpeg4-carousel=n] [-mpeg4] [-time=n] [-src=file] DST [[DST]]\n"
+	fprintf(stderr, "GPAC version " GPAC_FULL_VERSION "\n"
+		"GPAC Copyright (c) Telecom ParisTech 2000-2012\n"
+		"GPAC Configuration: " GPAC_CONFIGURATION "\n"
+		"Features: %s\n\n", gpac_features());
+	fprintf(stderr, "mp2ts <inputs> <destinations> [options]\n"
 					"\n"
-#ifdef GPAC_MEMORY_TRACKING
-					"\t-mem-track:  enables memory tracker\n"
-#endif
-					"\t-rate=R                specifies target rate in kbps of the multiplex (mandatory)\n"
-					"\t-real-time             specifies the muxer will work in real-time mode\n"
-					"\t                        * automatically set for SDP or BT input\n"
-					"\t-pcr-init=V            sets initial value V for PCR - if not set, random value is used\n"
-					"\t-pcr-offset=V          offsets all timestamps from PCR by V, in 90kHz. Default value: %d\n"
-					"\t-psi-rate=V            sets PSI refresh rate V in ms (default 100ms). If 0, PSI data is only send once at the begining\n"
-					"                          or before each IDR when -rap option is set. This should be set to 0 for DASH streams.\n"
-					"\t-time=n                request the program to stop after n ms\n"
-					"\t-single-au             forces 1 PES = 1 AU (disabled by default)\n"
-					"\t-rap                   forces RAP/IDR to be aligned with PES start for video streams (disabled by default)\n"
+					"Inputs:\n"
+					"-prog=filename         specifies an input file used for a TS service\n"
+					"                        * currently only supports ISO files and SDP files\n"
+					"                        * can be used several times, once for each program\n"
+					"\n"
+					"Destinations:\n"
+					"Several destinations may be specified as follows, at least one is mandatory\n"
+					"-dst-udp=UDP_address:port (multicast or unicast)\n"
+					"-dst-rtp=RTP_address:port\n"
+					"-dst-file=filename\n"
+					"The following parameters may be specified when -dst-file is used\n"
+					"-segment-dir=dir       server local directory to store segments (ends with a '/')\n"
+					"-segment-duration=dur  segment duration in seconds\n"
+					"-segment-manifest=file m3u8 file basename\n"
+					"-segment-http-prefix=p client address for accessing server segments\n"
+					"-segment-number=n      number of segments to list in the manifest\n"
+					"\n"
+					"Basic options:\n"
+					"-rate=R                specifies target rate in kbps of the multiplex (optional)\n"
+					"-real-time             specifies the muxer will work in real-time mode\n"
+					"                        * if not specified, the muxer will generate the TS as quickly as possible\n"
+					"                        * automatically set for SDP or BT input\n"
+					"-pcr-init=V            sets initial value V for PCR - if not set, random value is used\n"
+					"-pcr-offset=V          offsets all timestamps from PCR by V, in 90kHz. Default value: %d\n"
+					"-psi-rate=V            sets PSI refresh rate V in ms (default 100ms).\n"
+					"                        * If 0, PSI data is only send once at the begining or before each IDR when -rap option is set.\n"
+					"                        * This should be set to 0 for DASH streams.\n"
+					"-time=n                request the muxer to stop after n ms\n"
+					"-single-au             forces 1 PES = 1 AU (disabled by default)\n"
+					"-rap                   forces RAP/IDR to be aligned with PES start for video streams (disabled by default)\n"
 					"                          in this mode, PAT, PMT and PCR will be inserted before the first TS packet of the RAP PES\n"
-					"\t-flush-rap             same as -rap but flushes all other streams (sends remaining PES packets) before inserting PAT/PMT\n"
-					"\t-prog=filename         specifies an input file used for a TS service\n"
-					"\t                        * currently only supports ISO files and SDP files\n"
-					"\t                        * can be used several times, once for each program\n"
-					"\t-nb-pack=N             specifies to pack N TS packets together before sending on network or writing to file\n"
-					"\t-ttl=N                 specifies Time-To-Live for multicast. Default is 1.\n"
-					"\t-ifce=IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
-					"\t-temi[=URL]            Inserts TEMI time codes in adaptation field. URL is optionnal\n"
-					"\t-temi-delay=DelayMS    Specifies delay between two TEMI url descriptors\n"
-					
-					"\tDST : Destinations, at least one is mandatory\n"
-					"\t  -dst-udp             UDP_address:port (multicast or unicast)\n"
-					"\t  -dst-rtp             RTP_address:port\n"
-					"\t  -dst-file            Supports the following arguments:\n"
-					"\t     -segment-dir=dir       server local directory to store segments\n"
-					"\t     -segment-duration=dur  segment duration in seconds\n"
-					"\t     -segment-manifest=file m3u8 file basename\n"
-					"\t     -segment-http-prefix=p client address for accessing server segments\n"
-					"\t     -segment-number=n      only n segments are used using a cyclic pattern\n"
-					"\t\n"
-					"\tMPEG-4 options\n"
-					"\t-mpeg4-carousel=n      carousel period in ms\n"
-                    "\t-mpeg4 or -4on2        forces usage of MPEG-4 signaling (IOD and SL Config)\n"
-                    "\t-4over2                same as -4on2 and uses PMT to carry OD Updates\n"
-                    "\t-bifs-pes              carries BIFS over PES instead of sections\n"
-                    "\t-bifs-pes-ex           carries BIFS over PES without writing timestamps in SL\n"
-					"\tMisc options\n"
-					"\t-audio=url             may be mp3/udp or aac/http (shoutcast/icecast)\n"
-					"\t-video=url             shall be a raw h264 frame\n"
-					"\t-src=filename          update file: must be either an .sdp or a .bt file\n\n"
-					"\t\n"
-					"\t-logs                  set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
-					"\t-h or -help            print this screen\n"
-					"\n", progname, DEFAULT_PCR_OFFSET
+					"-flush-rap             same as -rap but flushes all other streams (sends remaining PES packets) before inserting PAT/PMT\n"
+					"-nb-pack=N             specifies to pack N TS packets together before sending on network or writing to file\n"
+					"-ttl=N                 specifies Time-To-Live for multicast. Default is 1.\n"
+					"-ifce=IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
+					"-temi[=URL]            Inserts TEMI time codes in adaptation field. URL is optionnal\n"
+					"-temi-delay=DelayMS    Specifies delay between two TEMI url descriptors\n"
+					"\n"		
+					"MPEG-4/T-DMB options:\n"
+					"-src=filename          update file: must be either an .sdp or a .bt file\n"
+					"-audio=url             may be mp3/udp or aac/http (shoutcast/icecast)\n"
+					"-video=url             shall be a raw h264 frame\n"
+					"-mpeg4-carousel=n      carousel period in ms\n"
+                    "-mpeg4 or -4on2        forces usage of MPEG-4 signaling (IOD and SL Config)\n"
+                    "-4over2                same as -4on2 and uses PMT to carry OD Updates\n"
+                    "-bifs-pes              carries BIFS over PES instead of sections\n"
+                    "-bifs-pes-ex           carries BIFS over PES without writing timestamps in SL\n"
+					"\n"
+					"Misc options\n"
+#ifdef GPAC_MEMORY_TRACKING
+					"-mem-track             enables memory tracker\n"
+#endif
+					"-logs                  set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
+					"-h or -help            print this screen\n"
+					"\n", DEFAULT_PCR_OFFSET
 		);
 }
 
@@ -150,6 +165,7 @@ typedef struct
 {
 	GF_ISOFile *mp4;
 	u32 track, sample_number, sample_count;
+	u32 mstype, mtype;
 	GF_ISOSample *sample;
 	/*refresh rate for images*/
 	u32 image_repeat_ms, nb_repeat_last;
@@ -296,6 +312,9 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	case GF_ESI_INPUT_DATA_FLUSH:
 	{
 		GF_ESIPacket pck;
+#ifndef GPAC_DISABLE_TTXT
+		GF_List *cues = NULL;
+#endif
 		if (!priv->sample) 
 			priv->sample = gf_isom_get_sample(priv->mp4, priv->track, priv->sample_number+1, NULL);
 
@@ -336,9 +355,40 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		pck.data = priv->sample->data;
 		pck.data_len = priv->sample->dataLength;
 		pck.duration = gf_isom_get_sample_duration(priv->mp4, priv->track, priv->sample_number+1);
+#ifndef GPAC_DISABLE_TTXT
+		if (priv->mtype==GF_ISOM_MEDIA_TEXT && priv->mstype==GF_ISOM_SUBTYPE_WVTT) {
+			u64             start;
+			GF_WebVTTCue    *cue;
+			GF_List *gf_webvtt_parse_iso_cues(GF_ISOSample *iso_sample, u64 start);
+			start = (priv->sample->DTS * 1000) / ifce->timescale;
+			cues = gf_webvtt_parse_iso_cues(priv->sample, start);
+			if (gf_list_count(cues)>1) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] More than one cue in sample\n"));	
+			}
+			cue = (GF_WebVTTCue *)gf_list_get(cues, 0);
+			if (cue) {
+				pck.data = cue->text;
+				pck.data_len = strlen(cue->text)+1;
+			} else {
+				pck.data = NULL;
+				pck.data_len = 0;
+			}
+		} 
+#endif
 		ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Track %d: sample %d CTS %d\n", priv->track, priv->sample_number+1, pck.cts));
 
+#ifndef GPAC_DISABLE_TTXT
+		if (cues) {
+			while (gf_list_count(cues)) {
+				GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, 0);
+				gf_list_rem(cues, 0);
+				gf_webvtt_cue_del(cue);
+			}
+			gf_list_del(cues);
+			cues = NULL;
+		}
+#endif
 		gf_isom_sample_del(&priv->sample);
 		priv->sample_number++;
 
@@ -403,6 +453,8 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 
 	priv->mp4 = mp4;
 	priv->track = track_num;
+	priv->mtype = gf_isom_get_media_type(priv->mp4, priv->track);
+	priv->mstype = gf_isom_get_media_subtype(priv->mp4, priv->track, 1);
 	priv->loop = prog->real_time ? 1 : 0;
 	priv->sample_count = gf_isom_get_sample_count(mp4, track_num);
 	prog->samples_count += priv->sample_count;
@@ -425,7 +477,7 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 			case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
 			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 			case GPAC_OTI_VIDEO_MPEG4_PART2:
-				ifce->decoder_config = gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+				ifce->decoder_config = (char *)gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
 				ifce->decoder_config_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 				memcpy(ifce->decoder_config, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 				break;
@@ -434,6 +486,11 @@ static void fill_isom_es_ifce(M2TSProgram *prog, GF_ESInterface *ifce, GF_ISOFil
 			case GPAC_OTI_VIDEO_AVC:
 			case GPAC_OTI_VIDEO_SVC:
 				gf_isom_set_nalu_extract_mode(mp4, track_num, GF_ISOM_NALU_EXTRACT_LAYER_ONLY | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG | GF_ISOM_NALU_EXTRACT_VDRD_FLAG);
+				break;
+			case GPAC_OTI_SCENE_VTT_MP4:
+				ifce->decoder_config = (char *)gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+				ifce->decoder_config_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+				memcpy(ifce->decoder_config, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 				break;
 			}
 		}
@@ -1680,7 +1737,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 	for (i=1; i<argc; i++) {
 		arg = argv[i];
 		if (!stricmp(arg, "-h") || strstr(arg, "-help")) {
-			usage(argv[0]);
+			usage();
 			return GF_EOS;
 		}
 		else if (!strnicmp(arg, "-pcr-init=", 10)) {
@@ -1971,19 +2028,18 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		return GF_OK;
 	} else {
 		if (!dst_found)
-			fprintf(stderr, "Error: Destination argument not found\n\n");
+			fprintf(stderr, "Error: Destination argument not found\n");
 		if (! *nb_progs)
-			fprintf(stderr, "Error: No Programs are available\n\n");
-		if (!rate_found)
-			fprintf(stderr, "Error: Rate argument not found\n\n");
+			fprintf(stderr, "Error: No Programs are available\n");
+		usage();
 		return GF_BAD_PARAM;
 	}
 
 error:	
 	if (!arg) {
-		fprintf(stderr, "Error: %s\n\n", error_msg);
+		fprintf(stderr, "Error: %s\n", error_msg);
 	} else {
-		fprintf(stderr, "Error: %s \"%s\"\n\n", error_msg, arg);
+		fprintf(stderr, "Error: %s \"%s\"\n", error_msg, arg);
 	}
 	return GF_BAD_PARAM;
 }

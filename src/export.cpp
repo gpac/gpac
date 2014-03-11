@@ -1942,6 +1942,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_js_addCue) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_js_removeCues) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_parse_cues_from_data) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_parse_iso_cues) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_cue_del) )
 #endif
 
 #ifndef GPAC_DISABLE_MSE
