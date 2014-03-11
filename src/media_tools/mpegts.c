@@ -1103,7 +1103,7 @@ static u32 gf_m2ts_reframe_id3_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool s
 	pck.DTS = pes->DTS;
 	pck.PTS = pes->PTS;
 	sprintf(frame_header, "%d --> NEXT\n", pes->PTS);
-	add_text(&output_text, &output_len, &pos, frame_header, strlen(frame_header));
+	add_text(&output_text, &output_len, &pos, frame_header, (u32)strlen(frame_header));
 	id3_parse_tag((char *)data, data_len, &output_text, &output_len, &pos);
 	add_text(&output_text, &output_len, &pos, "\n\n", 2);
 	pck.data = (char *)output_text;

@@ -368,7 +368,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			cue = (GF_WebVTTCue *)gf_list_get(cues, 0);
 			if (cue) {
 				pck.data = cue->text;
-				pck.data_len = strlen(cue->text)+1;
+				pck.data_len = (u32)strlen(cue->text)+1;
 			} else {
 				pck.data = NULL;
 				pck.data_len = 0;
