@@ -817,23 +817,22 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 		}
 	}
 
-	/*update GF_AVCConfig*/
-	if (!avc->svc_config) {
-		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) {
-			if (!avc->hevc_config) avc->hevc_config = (GF_HEVCConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
-			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-				if (avc->hevc_config->config) gf_odf_hevc_cfg_del(avc->hevc_config->config);
-				avc->hevc_config->config = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
-			}
-		} else {
-			if (!avc->avc_config) avc->avc_config = (GF_AVCConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
-			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-				if (avc->avc_config->config) gf_odf_avc_cfg_del(avc->avc_config->config);
-				avc->avc_config->config = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-			}
-		}
 
+	if (!avc->shvc_config && (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC)) {
+		if (!avc->hevc_config) avc->hevc_config = (GF_HEVCConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
+		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+			if (avc->hevc_config->config) gf_odf_hevc_cfg_del(avc->hevc_config->config);
+			avc->hevc_config->config = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
+		}
 	}
+	else if (!avc->svc_config && (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC)) {
+		if (!avc->avc_config) avc->avc_config = (GF_AVCConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
+		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+			if (avc->avc_config->config) gf_odf_avc_cfg_del(avc->avc_config->config);
+			avc->avc_config->config = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+		}
+	}
+
 	gf_odf_desc_del((GF_Descriptor *)esd);
 	if (avc->hevc_config) {
 		HEVC_RewriteESDescriptor(avc);
