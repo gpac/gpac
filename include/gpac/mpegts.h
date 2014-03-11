@@ -60,6 +60,9 @@ enum
 	GF_M2TS_MPEG4_SL_DESCRIPTOR				= 0x1E,
 	GF_M2TS_MPEG4_FMC_DESCRIPTOR				= 0x1F,
 	/* ... */
+	GF_M2TS_METADATA_POINTER_DESCRIPTOR			= 0x25,
+	GF_M2TS_METADATA_DESCRIPTOR					= 0x26,
+	/* ... */
 	GF_M2TS_AVC_VIDEO_DESCRIPTOR				= 0x28,
 	/* ... */	
 	GF_M2TS_AVC_TIMING_HRD_DESCRIPTOR			= 0x2A,
@@ -207,6 +210,8 @@ enum
 	GF_M2TS_SYSTEMS_MPEG4_PES		= 0x12,
 	GF_M2TS_SYSTEMS_MPEG4_SECTIONS	= 0x13,
 
+	GF_M2TS_METADATA_PES			= 0x15,
+
 	GF_M2TS_VIDEO_H264				= 0x1B,
 	GF_M2TS_VIDEO_SVC				= 0x1F,
 	GF_M2TS_VIDEO_HEVC				= 0x24,
@@ -225,6 +230,7 @@ enum
 	GF_M2TS_DVB_TELETEXT			= 0x152,
 	GF_M2TS_DVB_VBI					= 0x153,
 	GF_M2TS_DVB_SUBTITLE			= 0x154,
+	GF_M2TS_METADATA_ID3_HLS		= 0x155,
 };
 
 
@@ -450,7 +456,29 @@ typedef struct GF_M2TS_SectionFilter
 	gf_m2ts_section_callback process_section; 
 } GF_M2TS_SectionFilter;
 
+enum metadata_carriage {
+	METADATA_CARRIAGE_SAME_TS		= 0,
+	METADATA_CARRIAGE_DIFFERENT_TS	= 1,
+	METADATA_CARRIAGE_PS			= 2,
+	METADATA_CARRIAGE_OTHER			= 3
+};
 
+typedef struct tag_m2ts_metadata_pointer_descriptor {
+	u16 application_format;
+	u32 application_format_identifier;
+	u8 format;
+	u32 format_identifier;
+	u8 service_id;
+	Bool locator_record_flag;
+	u32 locator_length;
+	char *locator_data;
+	enum metadata_carriage carriage_flag;
+	u16 program_number;
+	u16 ts_location;
+	u16 ts_id;
+	char *data;
+	u32 data_size;
+} GF_M2TS_MetadataPointerDescriptor;
 
 /*MPEG-2 TS program object*/
 typedef struct 
@@ -483,6 +511,8 @@ typedef struct
 
 	u32 pid_playing;
 	Bool is_scalable;
+
+	GF_M2TS_MetadataPointerDescriptor *metadata_pointer_descriptor;
 } GF_M2TS_Program;
 
 /*ES flags*/
@@ -567,6 +597,23 @@ typedef struct tag_m2ts_dvb_teletext
 	u8 page_number;
 } GF_M2TS_DVB_Teletext_Descriptor;
 
+typedef struct tag_m2ts_metadata_descriptor {
+	u16 application_format;
+	u32 application_format_identifier;
+	u8 format;
+	u32 format_identifier;
+	u8 service_id;
+	u8 decoder_config_flags;
+	Bool dsmcc_flag;
+	u8 service_id_record_length;
+	char *service_id_record;
+	u8 decoder_config_length;
+	char *decoder_config;
+	u8 decoder_config_id_length;
+	char *decoder_config_id;
+	u8 decoder_config_service_id;
+} GF_M2TS_MetadataDescriptor;
+
 /*MPEG-2 TS ES object*/
 typedef struct tag_m2ts_pes
 {
@@ -624,6 +671,7 @@ typedef struct tag_m2ts_pes
 	u64 prev_PTS;
 
 	GF_M2TS_DVB_Subtitling_Descriptor sub;
+	GF_M2TS_MetadataDescriptor *metadata_descriptor;
 } GF_M2TS_PES;
 
 /*SDT information object*/

@@ -730,18 +730,18 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			case GF_M2TS_AUDIO_AC3:
 				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8); 
 				gf_bs_write_int(bs,	4, 8); 
-				gf_bs_write_int(bs,	0x41, 8); 
-				gf_bs_write_int(bs,	0x43, 8); 
-				gf_bs_write_int(bs,	0x2D, 8); 
-				gf_bs_write_int(bs,	0x33, 8); 
+				gf_bs_write_int(bs,	'A', 8); 
+				gf_bs_write_int(bs,	'C', 8); 
+				gf_bs_write_int(bs,	'-', 8); 
+				gf_bs_write_int(bs,	'3', 8); 
 				break;
 			case GF_M2TS_VIDEO_VC1:
 				gf_bs_write_int(bs,	GF_M2TS_REGISTRATION_DESCRIPTOR, 8); 
 				gf_bs_write_int(bs,	4, 8); 
-				gf_bs_write_int(bs,	0x56, 8); 
-				gf_bs_write_int(bs,	0x43, 8); 
-				gf_bs_write_int(bs,	0x2D, 8); 
-				gf_bs_write_int(bs,	0x31, 8); 
+				gf_bs_write_int(bs,	'V', 8); 
+				gf_bs_write_int(bs,	'C', 8); 
+				gf_bs_write_int(bs,	'-', 8); 
+				gf_bs_write_int(bs,	'1', 8); 
 				break;
 			case GF_M2TS_AUDIO_EC3:
 				gf_bs_write_int(bs,	GF_M2TS_DVB_EAC3_DESCRIPTOR, 8); 
@@ -822,6 +822,27 @@ static void gf_m2ts_remap_timestamps_for_pes(GF_M2TS_Mux_Stream *stream, u32 pck
 	pcr_offset = stream->program->pcr_init_time/300;
 	*cts = *cts - stream->program->initial_ts + pcr_offset;
 	*dts = *dts - stream->program->initial_ts + pcr_offset;
+}
+
+static void id3_tag_create(char **input, u32 *len)
+{
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_bs_write_u8(bs, 'I');
+	gf_bs_write_u8(bs, 'D');
+	gf_bs_write_u8(bs, '3');
+	gf_bs_write_u8(bs, 4);
+	gf_bs_write_u8(bs, 0);
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_int(bs, 0, 1);
+	gf_bs_write_int(bs, 0x1F, 5);
+	gf_bs_write_u32(bs, GF_4CC('T','X','X','X'));
+	gf_bs_write_u32(bs, *len); /* size of the text */
+	gf_bs_write_u8(bs, 0);
+	gf_bs_write_u8(bs, 0);
+	gf_bs_write_data(bs, *input, *len);
+	gf_bs_get_content(bs, input, len);
+	gf_bs_del(bs);
 }
 
 u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
@@ -1076,6 +1097,14 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 		}
 		/*since we reallocated the packet data buffer, force a discard in pull mode*/
 		stream->discard_data = 1;
+		break;
+	case GF_M2TS_METADATA_PES:
+	case GF_M2TS_METADATA_ID3_HLS:
+		{
+			gf_free(stream->curr_pck.data);
+			id3_tag_create(&stream->curr_pck.data, &stream->curr_pck.data_len);
+			stream->discard_data = 1;
+		}
 		break;
 	}
 
@@ -1786,6 +1815,51 @@ static void gf_m2ts_stream_add_hierarchy_descriptor(GF_M2TS_Mux_Stream *stream)
 	gf_list_add(stream->loop_descriptors, desc);
 }
 
+static void gf_m2ts_stream_add_metadata_pointer_descriptor(GF_M2TS_Mux_Program *program)
+{
+	GF_M2TSDescriptor *desc;
+	GF_BitStream *bs;
+	u32 data_len;
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_bs_write_u16(bs, 0xFFFF);
+	gf_bs_write_u32(bs, GF_4CC('I','D','3',' '));
+	gf_bs_write_u8(bs, 0xFF);
+	gf_bs_write_u32(bs, GF_4CC('I','D','3',' '));
+	gf_bs_write_u8(bs, 0); /* service id */
+	gf_bs_write_int(bs, 0, 1); /* locator */
+	gf_bs_write_int(bs, 0, 2); /* carriage flags */
+	gf_bs_write_int(bs, 0x1F, 5); /* reserved */
+	gf_bs_write_u16(bs, program->number);
+	GF_SAFEALLOC(desc, GF_M2TSDescriptor);
+	desc->tag = (u8) GF_M2TS_METADATA_POINTER_DESCRIPTOR;
+	gf_bs_get_content(bs, &desc->data, &data_len);
+	gf_bs_del(bs);
+	desc->data_len = (u8) data_len;
+	gf_list_add(program->loop_descriptors, desc);
+}
+
+static void gf_m2ts_stream_add_metadata_descriptor(GF_M2TS_Mux_Stream *stream)
+{
+	GF_M2TSDescriptor *desc;
+	GF_BitStream *bs;
+	u32 data_len;
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_bs_write_u16(bs, 0xFFFF);
+	gf_bs_write_u32(bs, GF_4CC('I','D','3',' '));
+	gf_bs_write_u8(bs, 0xFF);
+	gf_bs_write_u32(bs, GF_4CC('I','D','3',' '));
+	gf_bs_write_u8(bs, 0); /* service id */
+	gf_bs_write_int(bs, 0, 3); /* decoder config flags */
+	gf_bs_write_int(bs, 0, 1); /* dsmcc flag */
+	gf_bs_write_int(bs, 0xF, 4); /* reserved */
+	GF_SAFEALLOC(desc, GF_M2TSDescriptor);
+	desc->tag = (u8) GF_M2TS_METADATA_DESCRIPTOR;
+	gf_bs_get_content(bs, &desc->data, &data_len);
+	gf_bs_del(bs);
+	desc->data_len = (u8) data_len;
+	gf_list_add(stream->loop_descriptors, desc);
+}
+
 GF_EXPORT
 GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, struct __elementary_stream_ifce *ifce, u32 pid, Bool is_pcr, Bool force_pes)
 {
@@ -1923,8 +1997,12 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_SECTIONS;
 		}
 		break;
+	case GF_STREAM_TEXT:
+		stream->mpeg2_stream_id = 0xBD;
+		stream->mpeg2_stream_type = GF_M2TS_METADATA_PES;
+		gf_m2ts_stream_add_metadata_pointer_descriptor(stream->program);
+		gf_m2ts_stream_add_metadata_descriptor(stream);
 	}
-
 
 	if (! (ifce->caps & GF_ESI_STREAM_WITHOUT_MPEG4_SYSTEMS)) {
 		/*override signaling for all streams except BIFS/OD, to use MPEG-4 PES*/
@@ -1964,7 +2042,8 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_num
 	program->mux = muxer;
 	program->mpeg4_signaling = mpeg4_signaling;
 	program->pcr_offset = pcr_offset;
-	
+	program->loop_descriptors = gf_list_new();
+
 	program->number = program_number;
 	if (muxer->programs) {
 		GF_M2TS_Mux_Program *p = muxer->programs;

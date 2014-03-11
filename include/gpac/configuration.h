@@ -235,5 +235,8 @@
 /*disables dashclient */
 //#define GPAC_DISABLE_DASH_CLIENT
 
+/*disables Timed Text support */
+//#define GPAC_DISABLE_TTXT
+
 #endif		/*_GF_CONFIG_H_*/
 
