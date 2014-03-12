@@ -3596,7 +3596,7 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	}
 
 	memset(&ptl, 0, sizeof(ptl));
-
+    max_sub_layers_minus1 = 0;
 	if (layer_id == 0) {
 		max_sub_layers_minus1 = gf_bs_read_int(bs, 3);
 		/*temporal_id_nesting_flag = */gf_bs_read_int(bs, 1);
