@@ -588,6 +588,7 @@ static GF_WebVTTCue *gf_webvtt_cue_new()
     return cue;
 }
 
+GF_EXPORT
 void gf_webvtt_cue_del(GF_WebVTTCue * cue)
 {
     if (cue) {
@@ -1246,6 +1247,7 @@ GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sa
     return GF_OK;
 }
 
+GF_EXPORT
 GF_List *gf_webvtt_parse_iso_cues(GF_ISOSample *iso_sample, u64 start)
 {
 	return gf_webvtt_parse_cues_from_data(iso_sample->data, iso_sample->dataLength, start);

@@ -3476,6 +3476,7 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 
 }
 
+GF_EXPORT
 s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc)
 {
 	GF_BitStream *bs;

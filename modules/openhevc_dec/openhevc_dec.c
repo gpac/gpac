@@ -100,10 +100,11 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 					ctx->luma_bpp = MAX(hevc.sps[idx].bit_depth_luma, ctx->luma_bpp);
 					ctx->chroma_bpp = MAX(hevc.sps[idx].bit_depth_chroma, ctx->chroma_bpp);
 
+					if (hdr & 0x1f8) {
 #ifdef OPEN_SHVC
-					if (hdr & 0x1f8) 
 						ctx->nb_layers ++;
 #endif
+                    }
 				}
 	            else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
 					gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
