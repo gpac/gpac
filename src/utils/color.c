@@ -1496,11 +1496,18 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 
 
 #ifdef GPAC_HAS_SSE2
+
+#ifdef GPAC_64_BITS
+#define GFINTCAST  (u64)
+#else
+#define GFINTCAST  (u32)
+#endif
+
 	if ( (w%32 == 0)
-		&& ((u64)(vs_dst->video_buffer + vs_dst->pitch_y)%8 == 0)
-		&& ((u64)(vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + vs_dst->pitch_y/2)%8 == 0)
-		&& ((u64)(pU + src_stride/2)%8 == 0)
-		&& ((u64)(pV + src_stride/2)%8 == 0)
+		&& (GFINTCAST (vs_dst->video_buffer + vs_dst->pitch_y)%8 == 0)
+		&& (GFINTCAST (vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + vs_dst->pitch_y/2)%8 == 0)
+		&& (GFINTCAST (pU + src_stride/2)%8 == 0)
+		&& (GFINTCAST (pV + src_stride/2)%8 == 0)
 	) {
 		return gf_color_write_yv12_10_to_yuv_intrin(vs_dst, pY, pU, pV, src_stride, src_width, src_height, _src_wnd);
 	}

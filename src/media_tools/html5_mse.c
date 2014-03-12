@@ -426,7 +426,7 @@ GF_HTML_MediaTimeRanges *gf_mse_timeranges_from_track_packets(GF_HTML_Track *tra
 	u32 i, count;
 	GF_HTML_MediaTimeRanges *ranges;
 	u64 start;
-	u64 end;
+	u64 end=0;
 	Bool end_set = GF_FALSE;
 	GF_MSE_Packet *packet;
 
