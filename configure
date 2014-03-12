@@ -369,6 +369,9 @@ case "$cpu" in
             SunOS)
                 canon_arch=`isainfo -n`
                 ;;
+            Darwin)
+                canon_arch="x86_64"
+                ;;
             *)
                 canon_arch="`$cc -dumpmachine | sed -e 's,\([^-]*\)-.*,\1,'`"
                 ;;
@@ -412,8 +415,6 @@ case "$cpu" in
         cpu="unknown"
         ;;
 esac
-
-echo "64: $is_64"
 
 #checking for CFLAGS
 if test -z "$CFLAGS"; then
@@ -552,7 +553,7 @@ EOF
         GPAC_SH_FLAGS=""
         strip="strip -x"
         if test "$is_64" = "yes" ; then
-            LDFLAGS="$LDFLAGS -read_only_relocs warning"
+            LDFLAGS="$LDFLAGS"
         fi
         darwin="yes"
         gcc_version=`$cc -v 2>&1 | grep version | cut -d ' ' -f3`
@@ -3064,7 +3065,12 @@ if test "$has_x11_xv" = "yes"; then
 fi
 
 if test "$is_64" = "yes"; then
+#not on OSX ...
+if test "$darwin" = "yes"; then
+    echo "X11_LIB_PATH=$X11_PATH/lib" >> config.mak
+else
     echo "X11_LIB_PATH=$X11_PATH/lib64" >> config.mak
+fi
 else
     echo "X11_LIB_PATH=$X11_PATH/lib" >> config.mak
 fi
