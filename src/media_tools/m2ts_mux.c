@@ -841,6 +841,7 @@ static void id3_tag_create(char **input, u32 *len)
 	gf_bs_write_u8(bs, 0);
 	gf_bs_write_u8(bs, 0);
 	gf_bs_write_data(bs, *input, *len);
+	gf_free(*input);
 	gf_bs_get_content(bs, input, len);
 	gf_bs_del(bs);
 }
@@ -1101,7 +1102,6 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 	case GF_M2TS_METADATA_PES:
 	case GF_M2TS_METADATA_ID3_HLS:
 		{
-			gf_free(stream->curr_pck.data);
 			id3_tag_create(&stream->curr_pck.data, &stream->curr_pck.data_len);
 			stream->discard_data = 1;
 		}
