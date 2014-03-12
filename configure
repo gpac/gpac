@@ -378,6 +378,7 @@ case "$cpu" in
             if [ -z "`echo $CFLAGS | grep -- -m32`"  ]; then
                 cpu="x86_64"
                 want_pic="yes"
+	        is_64="yes"
             fi
         fi
         ;;
@@ -411,6 +412,8 @@ case "$cpu" in
         cpu="unknown"
         ;;
 esac
+
+echo "64: $is_64"
 
 #checking for CFLAGS
 if test -z "$CFLAGS"; then
@@ -2988,6 +2991,10 @@ echo "STATICBUILD=$static_build" >> config.mak
 echo "CONFIG_IPV6=$has_ipv6" >> config.mak
 if test "$has_ipv6" = "yes" ; then
     echo "#define GPAC_HAS_IPV6" >> $TMPH
+fi
+
+if test "$is_64" = "yes" ; then
+    echo "#define GPAC_64_BITS" >> $TMPH
 fi
 
 if test "$win32" = "yes" ; then

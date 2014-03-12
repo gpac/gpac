@@ -46,6 +46,9 @@ This is only needed when building libgpac and modules when libgpac is not instal
 #include <stdio.h>
 #include <stdlib.h>
 
+#if defined(_WIN64) && !defined(GPAC_64_BITS)
+#define GPAC_64_BITS
+#endif
 
 typedef unsigned __int64 u64;
 typedef unsigned int u32;

@@ -1034,10 +1034,10 @@ static GF_Err id3_parse_tag(char *data, u32 length, char **output, u32 *output_s
 	 * Size starts AFTER this header, meaning we have to add 10 bytes
 	 */
 	if (data[pos] == 'I' && data[pos+1] == 'D' && data[pos+2] == '3') {
-		u16 version = (data[pos+3]<<8)+data[pos+4];
-		Bool unsync_flag = ((data[pos+5]>>7 & 0x1) ? GF_TRUE: GF_FALSE);
+		//u16 version = (data[pos+3]<<8)+data[pos+4];
+		//Bool unsync_flag = ((data[pos+5]>>7 & 0x1) ? GF_TRUE: GF_FALSE);
 		Bool extended_header_flag = ((data[pos+5]>>6 & 0x1) ? GF_TRUE: GF_FALSE);
-		Bool experimental_flag = ((data[pos+5]>>5 & 0x1) ? GF_TRUE: GF_FALSE);
+		//Bool experimental_flag = ((data[pos+5]>>5 & 0x1) ? GF_TRUE: GF_FALSE);
 		if (data[pos+5] & 0x1F) {
 			return GF_NOT_SUPPORTED;
 		} else {
@@ -1053,21 +1053,20 @@ static GF_Err id3_parse_tag(char *data, u32 length, char **output, u32 *output_s
 		while (pos < size) {
 			GF_ID3v2FrameType type;
 			u32 frame_size, frame_pos;
-			Bool tag_alter_preservation_flag, file_alter_preservation_flag, readonly_flag,
-				 compression_flag, encryption_flag, grouping_flag;
+			Bool compression_flag, encryption_flag/*, tag_alter_preservation_flag, file_alter_preservation_flag, readonly_flag, grouping_flag*/;
 			frame_pos = pos;
 			/* parsing a frame */
 			type = (GF_ID3v2FrameType)(((data[pos+3]) + ((data[pos+2]) << 8) + ((data[pos+1]) << 16) + ((data[pos]) << 24)));
 			pos+=4;
 			frame_size = 10 + ((data[pos+3]) + ((data[pos+2]) << 8) + ((data[pos+1]) << 16) + ((data[pos]) << 24));
 			pos+=4;
-			tag_alter_preservation_flag = ((data[pos]>>7 & 0x1) ? GF_TRUE: GF_FALSE);
-			file_alter_preservation_flag = ((data[pos]>>6 & 0x1) ? GF_TRUE: GF_FALSE);
-			readonly_flag = ((data[pos]>>5 & 0x1) ? GF_TRUE: GF_FALSE);
+			//tag_alter_preservation_flag = ((data[pos]>>7 & 0x1) ? GF_TRUE: GF_FALSE);
+			//file_alter_preservation_flag = ((data[pos]>>6 & 0x1) ? GF_TRUE: GF_FALSE);
+			//readonly_flag = ((data[pos]>>5 & 0x1) ? GF_TRUE: GF_FALSE);
 			pos++;
 			compression_flag = ((data[pos]>>7 & 0x1) ? GF_TRUE: GF_FALSE);
 			encryption_flag = ((data[pos]>>6 & 0x1) ? GF_TRUE: GF_FALSE);
-			grouping_flag = ((data[pos]>>5 & 0x1) ? GF_TRUE: GF_FALSE);
+			//grouping_flag = ((data[pos]>>5 & 0x1) ? GF_TRUE: GF_FALSE);
 			if (compression_flag || encryption_flag) {
 				/* unsupported, skip */
 				pos = frame_pos + frame_size;
@@ -1102,7 +1101,7 @@ static u32 gf_m2ts_reframe_id3_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool s
 	if (!same_pts) pck.flags |= GF_M2TS_PES_PCK_AU_START;
 	pck.DTS = pes->DTS;
 	pck.PTS = pes->PTS;
-	sprintf(frame_header, "%d --> NEXT\n", pes->PTS);
+	sprintf(frame_header, LLU" --> NEXT\n", pes->PTS);
 	add_text(&output_text, &output_len, &pos, frame_header, (u32)strlen(frame_header));
 	id3_parse_tag((char *)data, data_len, &output_text, &output_len, &pos);
 	add_text(&output_text, &output_len, &pos, "\n\n", 2);
