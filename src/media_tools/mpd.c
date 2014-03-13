@@ -944,6 +944,8 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 			mpd->availabilityStartTime = gf_mpd_parse_date(att->value);
 		} else if (!strcmp(att->name, "availabilityEndTime")) {
 			mpd->availabilityEndTime = gf_mpd_parse_date(att->value);
+		} else if (!strcmp(att->name, "publishTime")) {
+			mpd->publishTime = gf_mpd_parse_date(att->value);
 		} else if (!strcmp(att->name, "mediaPresentationDuration")) {
 			mpd->media_presentation_duration = gf_mpd_parse_duration(att->value);
 		} else if (!strcmp(att->name, "minimumUpdatePeriod")) {

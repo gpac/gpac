@@ -1349,7 +1349,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	if (!ch->is_pulling) {
 		gf_mx_p(ch->mx);
 		
-		if (!ch->AU_buffer_first) {
+		if (!ch->AU_buffer_first || (ch->BufferTime < (s32) ch->MaxBuffer/2) ) {
 			/*query buffer level, don't sleep if too low*/
 			GF_NetworkCommand com;
 			com.command_type = GF_NET_SERVICE_FLUSH_DATA;
@@ -1359,7 +1359,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	
 		/*we must update buffering before fetching in order to stop buffering for streams with very few
 		updates (especially streams with one update, like most of OD streams)*/
-		if (ch->BufferOn) Channel_UpdateBuffering(ch, 0);
+		if (ch->BufferOn && ch->AU_buffer_first) Channel_UpdateBuffering(ch, 0);
 		gf_mx_v(ch->mx);
 		
 		if (ch->BufferOn) {

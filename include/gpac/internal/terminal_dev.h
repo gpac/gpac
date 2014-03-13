@@ -1087,6 +1087,9 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_url);
 
 GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable);
 
+
+Bool gf_codec_is_scene_or_image(GF_Codec *codec);
+
 #ifdef __cplusplus
 }
 #endif

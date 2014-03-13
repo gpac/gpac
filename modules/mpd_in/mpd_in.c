@@ -103,7 +103,9 @@ static void MPD_NotifyData(GF_MPDGroup *group, Bool chunk_flush)
 {
 	GF_NetworkCommand com;
 	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.command_type = chunk_flush ? GF_NET_SERVICE_PROXY_CHUNK_RECEIVE : GF_NET_SERVICE_PROXY_SEGMENT_RECEIVE;
+	com.proxy_data.command_type = GF_NET_SERVICE_PROXY_DATA_RECEIVE;
+	com.proxy_data.is_chunk = chunk_flush;
+	com.proxy_data.is_live = gf_dash_is_dynamic_mpd(group->mpdin->dash);
 	group->segment_ifce->ServiceCommand(group->segment_ifce, &com);
 }
 
@@ -314,9 +316,12 @@ GF_InputService *MPD_GetInputServiceForChannel(GF_MPD_In *mpdin, LPNETCHANNEL ch
 {
 	GF_Channel *ch;
 	if (!channel) {
-		if (gf_dash_is_group_selected(mpdin->dash, 0)) {
-			GF_MPDGroup *mudta = gf_dash_get_group_udta(mpdin->dash, 0);
-			return mudta ? mudta->segment_ifce : NULL;
+		u32 i;
+		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
+			if (gf_dash_is_group_selectable(mpdin->dash, i)) {
+				GF_MPDGroup *mudta = gf_dash_get_group_udta(mpdin->dash, i);
+				if (mudta && mudta->segment_ifce) return mudta->segment_ifce;
+			}
 		}
 		return NULL;
 	}
@@ -519,15 +524,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	}
 
 	if (dash_evt==GF_DASH_EVENT_SELECT_GROUPS) {
-		const char *opt;
-		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
-			/*todo: select groups based on user criteria*/
-			gf_dash_group_select(mpdin->dash, i, 1);
-		}
-		opt = gf_modules_get_option((GF_BaseInterface *)mpdin->plug, "Systems", "Language3CC");
-		if (opt && strcmp(opt, "und"))
-			gf_dash_groups_set_language(mpdin->dash, opt);
-
+		//let the player decide which group to play: we declare everything
 		return GF_OK;
 	}
 
@@ -537,7 +534,8 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		/*select input services if possible*/
 		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
 			const char *mime, *init_segment;			
-			if (!gf_dash_is_group_selected(mpdin->dash, i))
+			//let the player decide which group to play
+			if (!gf_dash_is_group_selectable(mpdin->dash, i))
 				continue;
 
 			mime = gf_dash_group_get_segment_mime(mpdin->dash, i);
@@ -617,7 +615,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
     const char *opt;
     GF_Err e;
-	s32 shift_utc_ms;
+	s32 shift_utc_ms, debug_adaptation_set;
 	u32 max_cache_duration, auto_switch_count, init_timeshift;
 	Bool use_server_utc;
 	GF_DASHInitialSelectionMode first_select_mode;
@@ -682,8 +680,15 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	mpdin->memory_storage = (opt && !strcmp(opt, "yes")) ? 1 : 0;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution");
-	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution", "yes");
-	mpdin->use_max_res = (!opt || !strcmp(opt, "yes")) ? 1 : 0;
+	if (!opt) {
+#if defined(_WIN32_WCE) || defined(GPAC_ANDROID) || defined(GPAC_IPHONE) 
+		opt = "yes";
+#else
+		opt = "no";
+#endif
+		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution", opt);
+	}
+	mpdin->use_max_res = !strcmp(opt, "yes") ? 1 : 0;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "ImmediateSwitching");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "ImmediateSwitching", "no");
@@ -711,7 +716,6 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseServerUTC");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseServerUTC", "yes");
 	use_server_utc = (opt && !strcmp(opt, "yes")) ? 1 : 0;
-	
 
 	mpdin->in_seek = 0;
 	mpdin->previous_start_range = -1;
@@ -759,6 +763,13 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		gf_dash_set_segment_expiration_threshold(mpdin->dash, atoi(opt));
 	}
 
+
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "DebugAdaptationSet");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "DebugAdaptationSet", "-1");
+	debug_adaptation_set = opt ? atoi(opt) : -1;
+
+	gf_dash_debug_group(mpdin->dash, debug_adaptation_set);
+
 	/*dash thread starts at the end of gf_dash_open */
 	e = gf_dash_open(mpdin->dash, url);
 	if (e) {
@@ -777,8 +788,10 @@ static GF_Descriptor *MPD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 	for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
 		GF_Descriptor *desc;
 		GF_MPDGroup *mudta;
+#if 0
 		if (!gf_dash_is_group_selected(mpdin->dash, i))
 			continue;
+#endif
 		mudta = gf_dash_get_group_udta(mpdin->dash, i);
 		if (!mudta) continue;
 		if (mudta->service_descriptor_fetched) continue;
@@ -866,7 +879,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	case GF_NET_CHAN_BUFFER:
 		/*get it from MPD minBufferTime - if not in low latency mode, indicate the value given in MPD (not possible to fetch segments earlier) - to be more precise we should get the min segment duration for this group*/
-		if (mpdin->enable_buffering || !mpdin->use_low_latency) {
+		if (mpdin->enable_buffering && !mpdin->use_low_latency) {
 			com->buffer.max = gf_dash_get_min_buffer_time(mpdin->dash);
 			if (! gf_dash_is_dynamic_mpd(mpdin->dash)) { 
 				com->buffer.min = 1;
@@ -909,6 +922,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 			idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
 			if (idx>=0) {
+				gf_dash_group_select(mpdin->dash, idx, GF_TRUE);
 				gf_dash_set_group_done(mpdin->dash, idx, 0);
 				com->play.dash_segment_switch = gf_dash_group_segment_switch_forced(mpdin->dash, idx);
 			}
@@ -918,6 +932,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		} else {
 			s32 idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
 			if (idx>=0)
+				gf_dash_group_select(mpdin->dash, idx, GF_TRUE);
 				com->play.start_range = gf_dash_group_get_start_range(mpdin->dash, idx);
 		}
 

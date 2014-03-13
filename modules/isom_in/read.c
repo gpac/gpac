@@ -1028,12 +1028,8 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		}
 		return GF_OK;
 	}
-	if (com->command_type == GF_NET_SERVICE_PROXY_CHUNK_RECEIVE) {
-		isor_flush_data(read, 1, 1);
-		return GF_OK;
-	}
-	if (com->command_type == GF_NET_SERVICE_PROXY_SEGMENT_RECEIVE) {
-		isor_flush_data(read, 1, 0);
+	if (com->command_type == GF_NET_SERVICE_PROXY_DATA_RECEIVE) {
+		isor_flush_data(read, 1, com->proxy_data.is_chunk);
 		return GF_OK;
 	}
 	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {

@@ -597,6 +597,24 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline)
 	return GF_OK;
 }
 
+static Bool gf_odm_should_auto_select(GF_ObjectManager *odm)
+{
+	u32 i, count;
+	if (gf_codec_is_scene_or_image(odm->codec)) return GF_TRUE;
+
+	if (odm->parentscene && !odm->parentscene->is_dynamic_scene) return GF_TRUE;
+
+	count = gf_list_count(odm->parentscene->resources);
+	for (i=0; i<count; i++) {
+		GF_ObjectManager *an_odm = gf_list_get(odm->parentscene->resources, i);
+		if (an_odm==odm) continue;
+		if (!an_odm->codec) continue;
+		if (an_odm->codec->type != odm->codec->type) continue;
+		//same type - if the first one has been autumatically activated, do not activate this one
+		if (an_odm->state == GF_ODM_STATE_PLAY) return GF_FALSE;
+	}
+	return GF_TRUE;
+}
 
 
 /*connection of OD and setup of streams. The streams are not requested if the OD
@@ -776,7 +794,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	have to wait for an entire image carousel period to start filling the buffers, which is sub-optimal
 	we also force a prefetch for object declared outside the OD stream to make sure we don't loose any data before object declaration and play
 	as can be the case with MPEG2 TS (first video packet right after the PMT) - this should be refined*/
-	else if ( ((odm->flags & GF_ODM_NO_TIME_CTRL) || (odm->flags & GF_ODM_NOT_IN_OD_STREAM)) && (odm->parentscene->selected_service_id == odm->OD->ServiceID)) {
+	else if ( ((odm->flags & GF_ODM_NO_TIME_CTRL) || (odm->flags & GF_ODM_NOT_IN_OD_STREAM)) && gf_odm_should_auto_select(odm) && (odm->parentscene->selected_service_id == odm->OD->ServiceID)) {
 		Bool force_play = GF_FALSE;
 		if (odm->state==GF_ODM_STATE_STOP) {
 			odm->flags |= GF_ODM_PREFETCH;
@@ -786,6 +804,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		else if ((odm->state==GF_ODM_STATE_PLAY) && (gf_list_del_item(odm->term->media_queue, odm)>=0) ) {
 			force_play = GF_TRUE;
 		}
+
 		if (force_play) {
 			odm->flags |= GF_ODM_INITIAL_BROADCAST_PLAY;
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from broadcast or input service - forcing play\n", odm->OD->objectDescriptorID));

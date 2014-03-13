@@ -118,10 +118,9 @@ typedef enum
 	GF_NET_SERVICE_QUERY_INIT_RANGE,
 	/* When using proxy between an input module and the terminal, exchange status using this command: input -> proxy */
 	GF_NET_SERVICE_STATUS_PROXY,
-	/*When using DASH or playlists, indicates that DATA (chunk) has been received by the playlist proxy*/
-	GF_NET_SERVICE_PROXY_CHUNK_RECEIVE,
-	/*When using DASH or playlists, indicates that complete segment has been received by the playlist proxy*/
-	GF_NET_SERVICE_PROXY_SEGMENT_RECEIVE,
+
+	/*When using DASH or playlists, indicates that DATA (chunk or complete file ) has been received by the playlist proxy*/
+	GF_NET_SERVICE_PROXY_DATA_RECEIVE,
 
 	/*query screen capabilities*/
 	GF_NET_SERVICE_MEDIA_CAP_QUERY,
@@ -216,6 +215,16 @@ typedef struct
 	LPNETCHANNEL on_channel;
 	u32 padding_bytes;
 } GF_NetComPadding;
+
+
+/*GF_NET_SERVICE_PROXY_DATA_RECEIVE*/
+typedef struct
+{
+	u32 command_type;
+	LPNETCHANNEL on_channel;
+	Bool is_chunk;
+	Bool is_live;
+} GF_NetComProxyData;
 
 /*GF_NET_CHAN_MAP_TIME*/
 typedef struct
@@ -444,6 +453,7 @@ typedef union __netcommand
 	GF_NetQualitySwitch switch_quality;
 	GF_NetServiceStatus status;
 	GF_MediaCapQuery mcaps;
+	GF_NetComProxyData proxy_data;
 } GF_NetworkCommand;
 
 /*

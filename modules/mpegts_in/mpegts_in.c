@@ -1257,12 +1257,8 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		}
 		return GF_OK;
 	}
-	if (com->command_type == GF_NET_SERVICE_PROXY_CHUNK_RECEIVE) {
-		m2ts_flush_data(m2ts, 1);
-		return GF_OK;
-	}
-	if (com->command_type == GF_NET_SERVICE_PROXY_SEGMENT_RECEIVE) {
-		m2ts_flush_data(m2ts, 0);
+	if (com->command_type == GF_NET_SERVICE_PROXY_DATA_RECEIVE) {
+		m2ts_flush_data(m2ts, com->proxy_data.is_chunk);
 		return GF_OK;
 	}
 	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {

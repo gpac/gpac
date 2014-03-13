@@ -304,6 +304,7 @@ typedef struct {
     GF_MPD_Type type;
 	u64 availabilityStartTime; /* expressed in milliseconds */	/*MANDATORY if type=dynamic*/
 	u64 availabilityEndTime;/* expressed in milliseconds */	
+	u64 publishTime;/* expressed in milliseconds */	
     u32 media_presentation_duration; /* expressed in milliseconds */	/*MANDATORY if type=static*/
     u32 minimum_update_period; /* expressed in milliseconds */
     u32 min_buffer_time; /* expressed in milliseconds */	/*MANDATORY*/
