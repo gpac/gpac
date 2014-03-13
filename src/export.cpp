@@ -1897,6 +1897,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_group_udta) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_group_udta) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_is_group_selected) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_is_group_selectable) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_debug_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_switch_quality) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_duration) )

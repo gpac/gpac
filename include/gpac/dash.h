@@ -174,6 +174,9 @@ void *gf_dash_get_group_udta(GF_DashClient *dash, u32 group_index);
 /*indicates whether a group is selected for playback or not. Currently groups cannot be selected during playback*/
 Bool gf_dash_is_group_selected(GF_DashClient *dash, u32 group_index);
 
+/*indicates whether a group can be selected for playback or not. Some groups may have been disabled because of non supported features*/
+Bool gf_dash_is_group_selectable(GF_DashClient *dash, u32 idx);
+
 /*selects a group for playback. If other groups are alternate to this group (through the @group attribute), they are automatically deselected. */
 void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select);
 
@@ -278,6 +281,10 @@ GF_Err gf_dash_set_min_timeout_between_404(GF_DashClient *dash, u32 min_timeout_
 
 //sets time in ms after which 404 request for a segment will indicate segment lost. The default value is 100 ms. 
 GF_Err gf_dash_set_segment_expiration_threshold(GF_DashClient *dash, u32 expire_after_ms);
+
+
+//only enables the given group - this shall be set before calling @gf_dash_open. If group_index is <0 (default) no groups will be disabled. 
+void gf_dash_debug_group(GF_DashClient *dash, s32 group_index);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

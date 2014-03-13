@@ -272,7 +272,6 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		}
 	}
 
-
 	/*assign the first base layer as the codec clock by default, or current channel clock if no clock set
 	Also assign codec priority here*/
 	if (!ch->esd->dependsOnESID || !codec->ck) {
@@ -295,6 +294,14 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		/*by default append*/
 		return gf_list_add(codec->inChannels, ch);
 	}
+}
+
+Bool gf_codec_is_scene_or_image(GF_Codec *codec)
+{
+	if (!codec) return GF_TRUE;
+	if (!codec->CB) return GF_TRUE;
+	if (codec->CB->Capacity>1 || codec->CB->no_allocation) return GF_FALSE;
+	return GF_TRUE;
 }
 
 Bool gf_codec_remove_channel(GF_Codec *codec, struct _es_channel *ch)
