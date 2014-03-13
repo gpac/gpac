@@ -221,7 +221,7 @@ Specifies the user prefered language as expressed in ISO 639-1. This is used to 
 </p>
 <b>DrawLateFrames</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
-If set, late frames will still be drawn. If not set, the late frames are droped (or executed for systems decoders) untill the decoder output is back in sync. This is by default off to keep better sync, but may be usefull when testing heavy content or slow renderers.
+If set, late frames will still be drawn. If not set, the late frames are droped (or executed for systems decoders) untill the decoder output is back in sync. This is by default on to keep better testing heavy content or slow renderers, but should be set to off when needing a better sync or monitoring skipped frames.
 </p>
 <b>ForceSingleClock</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
@@ -754,7 +754,7 @@ If chunk is selected, media data is re-parsed at each HTTP 1.1 chunk end. If alw
 Enables aborts of HTTP transfer when rate gets too low. This may result in a packet drops. Default is no.</p>
 <b>UseServerUTC</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
-Enables using <i>Server-UTC</i> HTTP header to compensate any drift between client and server. Default is no.
+Enables using <i>Server-UTC</i> HTTP header to compensate any drift between client and server. Default is yes.
 
 
 <br/><br/>
