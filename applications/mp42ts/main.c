@@ -79,48 +79,48 @@ static GFINLINE void usage()
 	fprintf(stderr, "mp2ts <inputs> <destinations> [options]\n"
 					"\n"
 					"Inputs:\n"
-					"-prog=filename         specifies an input file used for a TS service\n"
+					"-prog filename         specifies an input file used for a TS service\n"
 					"                        * currently only supports ISO files and SDP files\n"
 					"                        * can be used several times, once for each program\n"
 					"\n"
 					"Destinations:\n"
 					"Several destinations may be specified as follows, at least one is mandatory\n"
-					"-dst-udp=UDP_address:port (multicast or unicast)\n"
-					"-dst-rtp=RTP_address:port\n"
-					"-dst-file=filename\n"
+					"-dst-udp UDP_address:port (multicast or unicast)\n"
+					"-dst-rtp RTP_address:port\n"
+					"-dst-file filename\n"
 					"The following parameters may be specified when -dst-file is used\n"
-					"-segment-dir=dir       server local directory to store segments (ends with a '/')\n"
-					"-segment-duration=dur  segment duration in seconds\n"
-					"-segment-manifest=file m3u8 file basename\n"
-					"-segment-http-prefix=p client address for accessing server segments\n"
-					"-segment-number=n      number of segments to list in the manifest\n"
+					"-segment-dir dir       server local directory to store segments (ends with a '/')\n"
+					"-segment-duration dur  segment duration in seconds\n"
+					"-segment-manifest file m3u8 file basename\n"
+					"-segment-http-prefix p client address for accessing server segments\n"
+					"-segment-number n      number of segments to list in the manifest\n"
 					"\n"
 					"Basic options:\n"
-					"-rate=R                specifies target rate in kbps of the multiplex (optional)\n"
+					"-rate R                specifies target rate in kbps of the multiplex (optional)\n"
 					"-real-time             specifies the muxer will work in real-time mode\n"
 					"                        * if not specified, the muxer will generate the TS as quickly as possible\n"
 					"                        * automatically set for SDP or BT input\n"
-					"-pcr-init=V            sets initial value V for PCR - if not set, random value is used\n"
-					"-pcr-offset=V          offsets all timestamps from PCR by V, in 90kHz. Default value: %d\n"
-					"-psi-rate=V            sets PSI refresh rate V in ms (default 100ms).\n"
+					"-pcr-init V            sets initial value V for PCR - if not set, random value is used\n"
+					"-pcr-offset V          offsets all timestamps from PCR by V, in 90kHz. Default value: %d\n"
+					"-psi-rate V            sets PSI refresh rate V in ms (default 100ms).\n"
 					"                        * If 0, PSI data is only send once at the begining or before each IDR when -rap option is set.\n"
 					"                        * This should be set to 0 for DASH streams.\n"
-					"-time=n                request the muxer to stop after n ms\n"
+					"-time n                request the muxer to stop after n ms\n"
 					"-single-au             forces 1 PES = 1 AU (disabled by default)\n"
 					"-rap                   forces RAP/IDR to be aligned with PES start for video streams (disabled by default)\n"
 					"                          in this mode, PAT, PMT and PCR will be inserted before the first TS packet of the RAP PES\n"
 					"-flush-rap             same as -rap but flushes all other streams (sends remaining PES packets) before inserting PAT/PMT\n"
-					"-nb-pack=N             specifies to pack N TS packets together before sending on network or writing to file\n"
-					"-ttl=N                 specifies Time-To-Live for multicast. Default is 1.\n"
-					"-ifce=IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
-					"-temi[=URL]            Inserts TEMI time codes in adaptation field. URL is optionnal\n"
-					"-temi-delay=DelayMS    Specifies delay between two TEMI url descriptors\n"
+					"-nb-pack N             specifies to pack N TS packets together before sending on network or writing to file\n"
+					"-ttl N                 specifies Time-To-Live for multicast. Default is 1.\n"
+					"-ifce IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
+					"-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optionnal\n"
+					"-temi-delay DelayMS    Specifies delay between two TEMI url descriptors\n"
 					"\n"		
 					"MPEG-4/T-DMB options:\n"
-					"-src=filename          update file: must be either an .sdp or a .bt file\n"
-					"-audio=url             may be mp3/udp or aac/http (shoutcast/icecast)\n"
-					"-video=url             shall be a raw h264 frame\n"
-					"-mpeg4-carousel=n      carousel period in ms\n"
+					"-src filename          update file: must be either an .sdp or a .bt file\n"
+					"-audio url             may be mp3/udp or aac/http (shoutcast/icecast)\n"
+					"-video url             shall be a raw h264 frame\n"
+					"-mpeg4-carousel n      carousel period in ms\n"
                     "-mpeg4 or -4on2        forces usage of MPEG-4 signaling (IOD and SL Config)\n"
                     "-4over2                same as -4on2 and uses PMT to carry OD Updates\n"
                     "-bifs-pes              carries BIFS over PES instead of sections\n"
@@ -1718,6 +1718,11 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
 	}
 }
 
+/*macro to keep retro compatibility with '=' and spaces in parse_args*/
+#define CHECK_PARAM(param) (!strnicmp(arg, param, strlen(param)) \
+        && (   ((arg[strlen(param)] == '=') && (next_arg = arg+strlen(param)+1)) \
+            || ((strlen(arg) == strlen(param)) && ++i && (i<argc) && (next_arg = argv[i]))))
+
 /*parse MP42TS arguments*/
 static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *carrousel_rate, u64 *pcr_init_val, u32 *pcr_offset, u32 *psi_refresh_rate, Bool *single_au_pes, u32 *bifs_use_pes, 
 								  M2TSProgram *progs, u32 *nb_progs, char **src_name, 
@@ -1727,8 +1732,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 								  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix, u32 *split_rap, u32 *nb_pck_pack, u32 *ttl, const char **ip_ifce, const char **temi_url)
 {
 	Bool rate_found=0, mpeg4_carousel_found=0, time_found=0, src_found=0, dst_found=0, audio_input_found=0, video_input_found=0, 
-		 seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found = 0, real_time_found=0;
-	char *prog_name, *arg = NULL, *error_msg = "no argument found";
+		 seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found=0, real_time_found=0;
+	char *prog_name, *arg = NULL, *next_arg = NULL, *error_msg = "no argument found";
 	u32 mpeg4_signaling = GF_M2TS_MPEG4_SIGNALING_NONE; 
 	Bool force_real_time = 0;
 	s32 i;
@@ -1740,13 +1745,13 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			usage();
 			return GF_EOS;
 		}
-		else if (!strnicmp(arg, "-pcr-init=", 10)) {
-			sscanf(arg, "-pcr-init="LLD, pcr_init_val);
+		else if (CHECK_PARAM("-pcr-init")) {
+			sscanf(next_arg, LLD, pcr_init_val);
 		}
-		else if (!strnicmp(arg, "-pcr-offset=", 12)) {
-			*pcr_offset = atoi(arg+12);
+		else if (CHECK_PARAM("-pcr-offset")) {
+			*pcr_offset = atoi(next_arg);
 		}
-		else if (!strnicmp(arg, "-video=", 7)) {
+		else if (CHECK_PARAM("-video")) {
 			FILE *f;
 			if (video_input_found) {
 				error_msg = "multiple '-video' found";
@@ -1754,8 +1759,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				goto error;
 			}
 			video_input_found = 1;
-			arg+=7;
-			f = fopen(arg, "rb");
+			f = fopen(next_arg, "rb");
 			if (!f) {
 				error_msg = "video file not found: ";
 				goto error;
@@ -1771,44 +1775,43 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 					fprintf(stderr, "Error while reading video file, has readen %u chars instead of %u.\n", read, *video_buffer_size);
 			}
 			fclose(f);
-		} else if (!strnicmp(arg, "-audio=", 7)) {
+		} else if (CHECK_PARAM("-audio")) {
 			if (audio_input_found) {
 				error_msg = "multiple '-audio' found";
 				arg = NULL;
 				goto error;
 			}
 			audio_input_found = 1;
-			arg+=7;
-			if (!strnicmp(arg, "udp://", 6) || !strnicmp(arg, "rtp://", 6) || !strnicmp(arg, "http://", 7)) {
+			if (!strnicmp(next_arg, "udp://", 6) || !strnicmp(next_arg, "rtp://", 6) || !strnicmp(next_arg, "http://", 7)) {
 				char *sep;
 				/*set audio input type*/
-				if (!strnicmp(arg, "udp://", 6))
+				if (!strnicmp(next_arg, "udp://", 6))
 					*audio_input_type = GF_MP42TS_UDP;
-				else if (!strnicmp(arg, "rtp://", 6))
+				else if (!strnicmp(next_arg, "rtp://", 6))
 					*audio_input_type = GF_MP42TS_RTP;
 #ifndef GPAC_DISABLE_PLAYER
-				else if (!strnicmp(arg, "http://", 7))
+				else if (!strnicmp(next_arg, "http://", 7))
 					*audio_input_type = GF_MP42TS_HTTP;
 #endif
 				/*http needs to get the complete URL*/
 				switch(*audio_input_type) {
 					case GF_MP42TS_UDP:
 					case GF_MP42TS_RTP:
-						sep = strchr(arg+6, ':');
+						sep = strchr(next_arg+6, ':');
 						*real_time=1;
 						if (sep) {
 							*audio_input_port = atoi(sep+1);
 							sep[0]=0;
-							*audio_input_ip = gf_strdup(arg+6);
+							*audio_input_ip = gf_strdup(next_arg+6);
 							sep[0]=':';
 						} else {
-							*audio_input_ip = gf_strdup(arg+6);
+							*audio_input_ip = gf_strdup(next_arg+6);
 						}
 						break;
 #ifndef GPAC_DISABLE_PLAYER
 					case GF_MP42TS_HTTP:
 						/* No need to dup since it may come from argv */
-						*audio_input_ip = arg;
+						*audio_input_ip = next_arg;
 						assert(audio_input_port != 0);
 						break;
 #endif
@@ -1816,11 +1819,11 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 						assert(0);
 				}
 			}
-		} else if (!strnicmp(arg, "-psi-rate=", 10) ) {
-			*psi_refresh_rate = atoi(arg+10);
-		} else if (!stricmp(arg, "-bifs-pes") ) {
+		} else if (CHECK_PARAM("-psi-rate")) {
+			*psi_refresh_rate = atoi(next_arg);
+		} else if (!stricmp(arg, "-bifs-pes")) {
 			*bifs_use_pes = 1;
-		} else if (!stricmp(arg, "-bifs-pes-ex") ) {
+		} else if (!stricmp(arg, "-bifs-pes-ex")) {
 			*bifs_use_pes = 2;
 		} else if (!stricmp(arg, "-mpeg4") || !stricmp(arg, "-4on2")) {
 			mpeg4_signaling = GF_M2TS_MPEG4_SIGNALING_FULL;
@@ -1834,36 +1837,36 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 #else
 			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
 #endif
-		} else if (!strnicmp(arg, "-rate=", 6)) {
+		} else if (CHECK_PARAM("-rate")) {
 			if (rate_found) {
 				error_msg = "multiple '-rate' found";
 				arg = NULL;
 				goto error;
 			}
 			rate_found = 1;
-			*mux_rate = 1000*atoi(arg+6);
-		} else if (!strnicmp(arg, "-mpeg4-carousel=", 16)) {
+			*mux_rate = 1000*atoi(next_arg);
+		} else if (CHECK_PARAM("-mpeg4-carousel")) {
 			if (mpeg4_carousel_found) {
 				error_msg = "multiple '-mpeg4-carousel' found";
 				arg = NULL;
 				goto error;
 			}
 			mpeg4_carousel_found = 1;
-			*carrousel_rate = atoi(arg+16);
+			*carrousel_rate = atoi(next_arg);
 		} else if (!strnicmp(arg, "-real-time", 10)) {
 			if (real_time_found) {
 				goto error;
 			}
 			real_time_found = 1;
 			*real_time = 1;
-		} else if (!strnicmp(arg, "-time=", 6)) {
+		} else if (CHECK_PARAM("-time")) {
 			if (time_found) {
 				error_msg = "multiple '-time' found";
 				arg = NULL;
 				goto error;
 			}
 			time_found = 1;
-			*run_time = atoi(arg+6);
+			*run_time = atoi(next_arg);
 		} else if (!stricmp(arg, "-single-au")) {
 			*single_au_pes = 1;
 		} else if (!stricmp(arg, "-rap")) {
@@ -1871,10 +1874,108 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		} else if (!stricmp(arg, "-flush-rap")) {
 			*split_rap = 2;
 		}
-		else if (!strnicmp(arg, "-dst-udp=", 9)) {
+		else if (!strnicmp(arg, "-dst-udp", 8)) {
 			*real_time = 1;
-		} else if (!strnicmp(arg, "-dst-rtp=", 9)) {
+		} else if (!strnicmp(arg, "-dst-rtp", 8)) {
 			*real_time = 1;
+		} else if (CHECK_PARAM("-nb-pack")) {
+			*nb_pck_pack = atoi(next_arg);
+		} else if (CHECK_PARAM("-nb-pck")) {
+			*nb_pck_pack = atoi(next_arg);
+		} else if (CHECK_PARAM("-ttl")) {
+			*ttl = atoi(next_arg);
+		} else if (CHECK_PARAM("-ifce")) {
+			*ip_ifce = next_arg;
+		} else if (CHECK_PARAM("-logs")) {
+				if (gf_log_set_tools_levels(next_arg) != GF_OK)
+					return GF_BAD_PARAM;
+		} else if (CHECK_PARAM("-lf")) {
+			logfile = gf_f64_open(next_arg, "wt");
+			gf_log_set_callback(logfile, on_gpac_log);
+		} else if (CHECK_PARAM("-segment-dir")) {
+			if (seg_dir_found) {
+				goto error;
+			}
+			seg_dir_found = 1;
+			*segment_dir = next_arg;
+			/* TODO: add the path separation char, if missing */
+		} else if (CHECK_PARAM("-segment-duration")) {
+			if (seg_dur_found) {
+				goto error;
+			}
+			seg_dur_found = 1;
+			*segment_duration = atoi(next_arg);
+		} else if (CHECK_PARAM("-segment-manifest=")) {
+			if (seg_manifest_found) {
+				goto error;
+			}
+			seg_manifest_found = 1;
+			*segment_manifest = next_arg;
+		} else if (CHECK_PARAM("-segment-http-prefix=")) {
+			if (seg_http_found) {
+				goto error;
+			}
+			seg_http_found = 1;
+			*segment_http_prefix = next_arg;
+		} else if (CHECK_PARAM("-segment-number=")) {
+			if (seg_number_found) {
+				goto error;
+			}
+			seg_number_found = 1;
+			*segment_number = atoi(next_arg);
+		} 
+		else if (CHECK_PARAM("-src")) {
+			if (src_found) {
+				error_msg = "multiple '-src' found";
+				arg = NULL;
+				goto error;
+			}
+			src_found = 1;
+			*src_name = next_arg;
+		} else if (CHECK_PARAM("-dst-file")) {
+			dst_found = 1;
+			*ts_out = gf_strdup(next_arg);
+		} else if (!strnicmp(arg, "-temi", 5)) {
+			*temi_url = "";
+			if (arg[5]=='=' || arg[5]==' ') {
+				*temi_url = arg+6; 
+				if (strlen(arg+6) > 150) {
+					fprintf(stderr, "URLs longer than 150 bytes are not currently supported\n");
+					return GF_NOT_SUPPORTED;
+				}
+			}
+		}
+		else if (CHECK_PARAM("-temi-delay")) {
+			temi_url_insertion_delay = atoi(next_arg);
+		}
+		else if (CHECK_PARAM("-dst-udp")) {
+			char *sep = strchr(next_arg, ':');
+			dst_found = 1;
+			*real_time=1;
+			if (sep) {
+				*output_port = atoi(sep+1);
+				sep[0]=0;
+				*udp_out = gf_strdup(next_arg);
+				sep[0]=':';
+			} else {
+				*udp_out = gf_strdup(next_arg);
+			}
+		}
+		else if (CHECK_PARAM("-dst-rtp")) {
+			char *sep = strchr(next_arg, ':');
+			dst_found = 1;
+			*real_time=1;
+			if (sep) {
+				*output_port = atoi(sep+1);
+				sep[0]=0;
+				*rtp_out = gf_strdup(next_arg);
+				sep[0]=':';
+			} else {
+				*rtp_out = gf_strdup(next_arg);
+			}
+		} else if (strnicmp(arg, "-prog", 5)) { //second pass arguments
+			error_msg = "unknown option";
+			goto error;
 		}
 	}
 	if (*real_time) force_real_time = 1;
@@ -1884,116 +1985,14 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 	for (i=1; i<argc; i++) {		
 		arg = argv[i];		
 		if (arg[0]=='-') {
-			if (!strnicmp(arg, "-logs=", 6)) {
-				if (gf_log_set_tools_levels(arg+6) != GF_OK)
-					return GF_BAD_PARAM;
-			} else if (!strnicmp(arg, "-lf=", 4)) {
-				logfile = gf_f64_open(arg+4, "wt");
-				gf_log_set_callback(logfile, on_gpac_log);
-			} else if (!strnicmp(arg, "-prog=", 6)) {
+			if (CHECK_PARAM("-prog")) {
 				u32 res;
-				prog_name = arg+6;
+				prog_name = next_arg;
 				res = open_program(&progs[*nb_progs], prog_name, *carrousel_rate, mpeg4_signaling, *src_name, *audio_input_ip, *audio_input_port, *video_buffer, force_real_time, *bifs_use_pes, *temi_url);
 				if (res) {
 					(*nb_progs)++;
 					if (res==2) *real_time=1;
 				}
-			} else if (!strnicmp(arg, "-segment-dir=", 13)) {
-				if (seg_dir_found) {
-					goto error;
-				}
-				seg_dir_found = 1;
-				*segment_dir = arg+13;
-				/* TODO: add the path separation char, if missing */
-			} else if (!strnicmp(arg, "-segment-duration=", 18)) {
-				if (seg_dur_found) {
-					goto error;
-				}
-				seg_dur_found = 1;
-				*segment_duration = atoi(arg+18);
-			} else if (!strnicmp(arg, "-segment-manifest=", 18)) {
-				if (seg_manifest_found) {
-					goto error;
-				}
-				seg_manifest_found = 1;
-				*segment_manifest = arg+18;
-			} else if (!strnicmp(arg, "-segment-http-prefix=", 21)) {
-				if (seg_http_found) {
-					goto error;
-				}
-				seg_http_found = 1;
-				*segment_http_prefix = arg+21;
-			} else if (!strnicmp(arg, "-segment-number=", 16)) {
-				if (seg_number_found) {
-					goto error;
-				}
-				seg_number_found = 1;
-				*segment_number = atoi(arg+16);
-			} 
-			else if (!strnicmp(arg, "-src=", 5)) {
-				if (src_found) {
-					error_msg = "multiple '-src' found";
-					arg = NULL;
-					goto error;
-				}
-				src_found = 1;
-				*src_name = arg+5;
-			}
-			else if (!strnicmp(arg, "-nb-pack=", 9)) {
-				*nb_pck_pack = atoi(arg+9);
-			} else if (!strnicmp(arg, "-nb-pck=", 8)) {
-				*nb_pck_pack = atoi(arg+8);
-			} else if (!strnicmp(arg, "-ttl=", 5)) {
-				*ttl = atoi(arg+5);
-			} else if (!strnicmp(arg, "-ifce=", 6)) {
-				*ip_ifce = arg+6;
-			} else if (!strnicmp(arg, "-dst-file=", 10)) {
-				dst_found = 1;
-				*ts_out = gf_strdup(arg+10);
-			} else if (!strnicmp(arg, "-temi", 5)) {
-				*temi_url = "";
-				if (arg[5]=='=') {
-					*temi_url = arg+6; 
-					if (strlen(arg+6) > 150) {
-						fprintf(stderr, "URLs longer than 150 bytes are not currently supported\n");
-						return GF_NOT_SUPPORTED;
-					}
-				}
-			}
-			else if (!strnicmp(arg, "-temi-delay=", 12)) {
-				temi_url_insertion_delay = atoi(arg+12);
-			}
-			else if (!strnicmp(arg, "-dst-udp=", 9)) {
-				char *sep = strchr(arg+9, ':');
-				dst_found = 1;
-				*real_time=1;
-				if (sep) {
-					*output_port = atoi(sep+1);
-					sep[0]=0;
-					*udp_out = gf_strdup(arg+9);
-					sep[0]=':';
-				} else {
-					*udp_out = gf_strdup(arg+9);
-				}
-			}
-			else if (!strnicmp(arg, "-dst-rtp=", 9)) {
-				char *sep = strchr(arg+9, ':');
-				dst_found = 1;
-				*real_time=1;
-				if (sep) {
-					*output_port = atoi(sep+1);
-					sep[0]=0;
-					*rtp_out = gf_strdup(arg+9);
-					sep[0]=':';
-				} else {
-					*rtp_out = gf_strdup(arg+9);
-				}
-			}
-			else if (!strnicmp(arg, "-audio=", 7) || !strnicmp(arg, "-video=", 7) || !strnicmp(arg, "-mpeg4", 6))
-				; /*already treated on the first pass*/
-			else {
-				//error_msg = "unknown option";
-				//goto error;
 			}
 		} 
 #if 0
