@@ -1992,8 +1992,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			else if (!strnicmp(arg, "-audio=", 7) || !strnicmp(arg, "-video=", 7) || !strnicmp(arg, "-mpeg4", 6))
 				; /*already treated on the first pass*/
 			else {
-				error_msg = "unknown option";
-				goto error;
+				//error_msg = "unknown option";
+				//goto error;
 			}
 		} 
 #if 0
