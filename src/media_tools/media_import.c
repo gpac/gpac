@@ -5064,6 +5064,43 @@ static GF_HEVCParamArray *get_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 type)
 	}
 	return NULL;
 }
+
+
+static void hevc_set_parall_type(GF_HEVCConfig *hevc_cfg)
+{
+	u32 use_tiles, use_wpp, nb_pps;
+	HEVCState hevc;
+	GF_HEVCParamArray *ar = get_hevc_param_array(hevc_cfg, GF_HEVC_NALU_PIC_PARAM);
+	u32 i, count = gf_list_count(ar->nalus);
+	
+	memset(&hevc, 0, sizeof(HEVCState));
+	hevc.sps_active_idx = -1;
+
+	use_tiles = 0;
+	use_wpp = 0;
+	nb_pps = 0;
+
+
+	for (i=0; i<count; i++) {
+		HEVC_PPS *pps;
+		GF_AVCConfigSlot *slc = gf_list_get(ar->nalus, i);
+		s32 idx = gf_media_hevc_read_pps(slc->data, slc->size, &hevc);
+
+		if (idx>=0) {
+			nb_pps++;
+			pps = &hevc.pps[idx];
+			if (!pps->entropy_coding_sync_enabled_flag && pps->tiles_enabled_flag)
+				use_tiles++;
+			else if (pps->entropy_coding_sync_enabled_flag && !pps->tiles_enabled_flag)
+				use_wpp++;
+		}
+	}
+	if (!use_tiles && !use_wpp) hevc_cfg->parallelismType = 1;
+	else if (!use_wpp && (use_tiles==nb_pps) ) hevc_cfg->parallelismType = 2;
+	else if (!use_tiles && (use_wpp==nb_pps) ) hevc_cfg->parallelismType = 3;
+	else hevc_cfg->parallelismType = 0;
+}
+
 #endif
 
 static GF_Err gf_import_hevc(GF_MediaImporter *import)
@@ -5421,6 +5458,15 @@ restart_import:
 			if (hevc.pps[idx].state==1) {
 				hevc.pps[idx].state = 2;
 				hevc.pps[idx].crc = gf_crc_32(buffer, nal_size);
+
+				if (!hevc.pps[idx].entropy_coding_sync_enabled_flag && !hevc.pps[idx].tiles_enabled_flag)
+					dst_cfg->parallelismType = 1;
+				else if (!hevc.pps[idx].entropy_coding_sync_enabled_flag && hevc.pps[idx].tiles_enabled_flag)
+					dst_cfg->parallelismType = 2;
+				else if (hevc.pps[idx].entropy_coding_sync_enabled_flag && !hevc.pps[idx].tiles_enabled_flag)
+					dst_cfg->parallelismType = 3;
+				else 
+					dst_cfg->parallelismType = 0;
 				
 				if (!ppss) {
 					GF_SAFEALLOC(ppss, GF_HEVCParamArray);
@@ -5842,11 +5888,14 @@ next_nal:
 	}
 
 	if (gf_list_count(hevc_cfg->param_array) || !gf_list_count(shvc_cfg->param_array) ) {
+		hevc_set_parall_type(hevc_cfg);
 		gf_isom_hevc_config_update(import->dest, track, 1, hevc_cfg);
 		if (gf_list_count(shvc_cfg->param_array)) {
+			hevc_set_parall_type(shvc_cfg);
 			gf_isom_shvc_config_update(import->dest, track, 1, shvc_cfg, 1);
 		}
 	} else {
+		hevc_set_parall_type(shvc_cfg);
 		gf_isom_shvc_config_update(import->dest, track, 1, shvc_cfg, 0);
 	}
 
@@ -7783,6 +7832,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		if (tsimp.hevccfg) {
 			u32 w = ((GF_M2TS_PES*)es)->vid_w;
 			u32 h = ((GF_M2TS_PES*)es)->vid_h;
+			hevc_set_parall_type(tsimp.hevccfg);
 			gf_isom_hevc_config_update(import->dest, tsimp.track, 1, tsimp.hevccfg);
 			gf_isom_set_visual_info(import->dest, tsimp.track, 1, w, h);
 			gf_isom_set_track_layout_info(import->dest, tsimp.track, w<<16, h<<16, 0, 0, 0);
