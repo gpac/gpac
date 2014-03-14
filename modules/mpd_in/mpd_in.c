@@ -524,6 +524,23 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	}
 
 	if (dash_evt==GF_DASH_EVENT_SELECT_GROUPS) {
+		//configure buffer in dynamic mode without low latency: we indicate how much the player will buffer
+		if (gf_dash_is_dynamic_mpd(mpdin->dash) && !mpdin->use_low_latency) {
+			u32 buffer_ms = 0;
+			//use min buffer from MPD
+			if (mpdin->enable_buffering) {
+				buffer_ms = gf_dash_get_min_buffer_time(mpdin->dash);
+			} 
+			//use default GPAC buffer
+			else {
+				const char *opt = gf_modules_get_option((GF_BaseInterface *)mpdin->plug, "Network", "BufferLength");
+				if (opt) buffer_ms = atoi(opt);
+			}
+
+			if (buffer_ms) {
+				gf_dash_set_user_buffer(mpdin->dash, buffer_ms);
+			}
+		}
 		//let the player decide which group to play: we declare everything
 		return GF_OK;
 	}
@@ -621,7 +638,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	GF_DASHInitialSelectionMode first_select_mode;
 	Bool keep_files, disable_switching;
 
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Connection request (%p) from terminal for %s\n", serv, url));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Connection request (%p) from terminal for %s\n", serv, url));
 
     if (!mpdin|| !serv || !url) return GF_BAD_PARAM;
 
@@ -724,7 +741,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "InitialTimeshift");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "InitialTimeshift", "0");
 	if (opt) init_timeshift = atoi(opt);
-
+	
 	mpdin->dash = gf_dash_new(&mpdin->dash_io, max_cache_duration, auto_switch_count, keep_files, disable_switching, first_select_mode, mpdin->enable_buffering, init_timeshift);
 
 	if (!mpdin->dash) {
@@ -735,7 +752,6 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 	gf_dash_set_utc_shift(mpdin->dash, shift_utc_ms);
 	gf_dash_enable_utc_drift_compensation(mpdin->dash, use_server_utc);
-
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseScreenResolution");
 	//default mode is no for the time being
@@ -930,7 +946,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			/*don't forward commands, we are killing the service anyway ...*/
 			if (gf_dash_get_period_switch_status(mpdin->dash) ) return GF_OK;
 		} else {
-			s32 idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
+			idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
 			if (idx>=0)
 				gf_dash_group_select(mpdin->dash, idx, GF_TRUE);
 				com->play.start_range = gf_dash_group_get_start_range(mpdin->dash, idx);

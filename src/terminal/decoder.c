@@ -1099,12 +1099,14 @@ scalable_retry:
 					}
 				}
 			}
-			/*if no size the decoder is not using the composition memory - if the object is in intitial buffering resume it!!*/
-			else if (codec->CB->Status == CB_BUFFER) {
+#if 0
+			/*if no size and the decoder is not using the composition memory - if the object is in intitial buffering resume it!!*/
+			else if ( (!codec->CB->UnitSize && !codec->CB->Capacity) && (codec->CB->Status == CB_BUFFER)) {
 				codec->nb_dispatch_skipped++;
 				if (codec->nb_dispatch_skipped==codec->CB->UnitCount)
 					gf_cm_abort_buffering(codec->CB);
 			}
+#endif
 
 			codec_update_stats(codec, AU->dataLength, now, AU->DTS);
 			if (ch->skip_sl) {

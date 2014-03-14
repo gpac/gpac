@@ -120,6 +120,8 @@ struct __dash_client
 
 	Bool force_mpd_update;
 
+	u32 user_buffer_ms;
+
 	u32 min_timeout_between_404, segment_lost_after_ms;
 
 	s32 debug_group_index;
@@ -240,7 +242,6 @@ struct __dash_group
 	//start time of currently downloaded segment - for now only used for merging SegmentTimeline, but we should use this to resync across representations ...
 	u64 current_start_time;
 	u32 current_timescale;
-
 
 	void *udta;
 };
@@ -377,7 +378,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	GF_MPD_SegmentTimeline *timeline = NULL;
 	GF_MPD_Representation *rep = NULL;
 	u32 shift, timescale;
-	u64 current_time, availabilityStartTime;
+	u64 current_time, current_time_no_timeshift, availabilityStartTime;
 	u32 ast_diff, start_number;
 	Double ast_offset = 0;
 	
@@ -489,13 +490,22 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	}
 #endif
 
+	current_time_no_timeshift = current_time;
 	if ( ((s32) mpd->time_shift_buffer_depth>=0)) {
-		shift = mpd->time_shift_buffer_depth;
-		shift *= group->dash->initial_time_shift_percent;
-		shift /= 100;
 
-		if (current_time < shift) current_time = 0;
-		else current_time -= shift;
+		if (group->dash->initial_time_shift_percent) {
+			shift = mpd->time_shift_buffer_depth;
+			shift *= group->dash->initial_time_shift_percent;
+			shift /= 100;
+
+			if (current_time < shift) current_time = 0;
+			else current_time -= shift;
+		} else if (group->dash->user_buffer_ms) {
+			shift = MIN(group->dash->user_buffer_ms, mpd->time_shift_buffer_depth);
+
+			if (current_time < shift) current_time = 0;
+			else current_time -= shift;
+		}
 	}
 
 	timeline = NULL;
@@ -549,18 +559,21 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		u32 count;
 		u32 i, seg_idx = 0;
 
-		count = gf_list_count(timeline->entries);
+		current_time_rescale = current_time;
+		current_time_rescale /= 1000;
+		current_time_rescale *= timescale;
 
+		count = gf_list_count(timeline->entries);
 		for (i=0; i<count; i++) {
 			GF_MPD_SegmentTimelineEntry *ent = gf_list_get(timeline->entries, i);
+
+			if (!i && (current_time_rescale + ent->duration < ent->start_time)) {
+				current_time_rescale = current_time_no_timeshift * timescale / 1000; 
+			}
 			timeline_duration += (1+ent->repeat_count)*ent->duration;
 
 			if (i+1 == count) timeline_duration -= ent->duration;
 		}
-
-		current_time_rescale = current_time;
-		current_time_rescale /= 1000;
-		current_time_rescale *= timescale;
 
 		for (i=0; i<count; i++) {
 			u32 repeat;
@@ -819,7 +832,6 @@ GF_Err gf_dash_download_resource(GF_DASHFileIO *dash_io, GF_DASHFileIOSession *s
 	if (! *sess) {
 		*sess = dash_io->create(dash_io, persistent_mode ? 1 : 0, url, group_idx);
 		if (!(*sess)){
-			assert(0);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot try to download %s... OUT of memory ?\n", url));
 			return GF_OUT_OF_MEM;
 		}
@@ -1445,6 +1457,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	char * purl;
 	Double timeline_start_time;
 	GF_MPD *new_mpd;
+	Bool fetch_only = 0;
 
 	if (!dash->mpd_dnload) {
 		local_url = purl = NULL;
@@ -1469,6 +1482,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 				gf_free(dash->base_url);
 				dash->base_url = gf_strdup(purl);
 			} 
+			fetch_only = 1;
 		}
 	} else {
 		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
@@ -1569,6 +1583,8 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 
 	/*TODO - check periods are the same !!*/
 	period = gf_list_get(dash->mpd->periods, dash->active_period_index);
+	if (fetch_only  && !period) goto exit;
+
 	new_period = gf_list_get(new_mpd->periods, dash->active_period_index);
 	if (!new_period) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: missing period\n"));
@@ -1809,6 +1825,8 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updated AdaptationSet %d - %d segments\n", group_idx+1, group->nb_segments_in_rep));
 
 	}
+
+exit:
 	/*swap representations - we don't need to update download_segment_index as it still points to the right entry in the merged list*/
 	if (dash->mpd)
 		gf_mpd_del(dash->mpd);
@@ -5074,6 +5092,13 @@ void gf_dash_debug_group(GF_DashClient *dash, s32 group_index)
 {
 	dash->debug_group_index = group_index;
 }
+
+GF_EXPORT
+void gf_dash_set_user_buffer(GF_DashClient *dash, u32 buffer_time_ms)
+{
+	if (dash) dash->user_buffer_ms = buffer_time_ms;
+}
+
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

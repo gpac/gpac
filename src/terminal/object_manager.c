@@ -1381,6 +1381,11 @@ void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state)
 			}
 			skip_register = 0;
 		}
+		//wait for end of setup 
+		else if (odm->state==GF_ODM_STATE_IN_SETUP) {
+			media_queue_state=0;
+			skip_register = 0;
+		}
 		/*object is already started - only reinsert in media queue if this function was called on an object already in the queue*/
 		else {
 			skip_register = media_queue_state ? 0 : 1;

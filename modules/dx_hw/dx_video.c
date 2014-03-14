@@ -578,7 +578,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	if (!dd->fs_hwnd) return GF_NOT_SUPPORTED;
 
 	dd->fullscreen = bOn;
-	//this is now allowed upon init
+
 	if (!dd->width ||!dd->height) return GF_OK;
 	
 	/*whenever changing card display mode relocate fastest YUV format for blit (since it depends
@@ -642,32 +642,12 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 				dd->fs_width = MaxWidth;
 				dd->fs_height = MaxHeight;
 			}
-			SetWindowPos(dd->cur_hwnd, NULL, X, Y, dd->fs_width, dd->fs_height, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_ASYNCWINDOWPOS);
-
-//#ifndef _WIN32_WCE
-			/*commented out since it causes problem on multiple monitors*/
-#if 0
-			{
-			DEVMODE settings;
-
-			memset(&settings, 0, sizeof(DEVMODE));
-			settings.dmSize = sizeof(DEVMODE);
-			settings.dmPelsWidth = dd->fs_width;
-			settings.dmPelsHeight = dd->fs_height;
-			settings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-
-			if ( ChangeDisplaySettings(&settings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL ) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectDraw] cannot change display settings\n"));
-				e = GF_IO_ERR;
-			} 
-			}
-			dd->NeedRestore = 1;
-#endif
+			SetWindowPos(dd->cur_hwnd, NULL, X, Y, dd->fs_width, dd->fs_height, SWP_SHOWWINDOW | SWP_NOZORDER /*| SWP_ASYNCWINDOWPOS*/);
 
 			dd->fs_store_width = dd->fs_width;
 			dd->fs_store_height = dd->fs_height;
 		} else if (dd->os_hwnd==dd->fs_hwnd) {
-			SetWindowPos(dd->os_hwnd, NULL, 0, 0, dd->store_width+dd->off_w, dd->store_height+dd->off_h, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
+			SetWindowPos(dd->os_hwnd, NULL, 0, 0, dd->store_width+dd->off_w, dd->store_height+dd->off_h, SWP_NOMOVE | SWP_NOZORDER /*| SWP_ASYNCWINDOWPOS*/);
 		}
 
 		if (!e) e = DD_SetupOpenGL(dr, 0, 0);

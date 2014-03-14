@@ -1938,6 +1938,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_max_resolution) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_min_timeout_between_404) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_segment_expiration_threshold) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_user_buffer) )
 #endif
 
 #ifndef GPAC_DISABLE_VTT

@@ -73,6 +73,8 @@ static void movietexture_activate(MovieTextureStack *stack, M_MovieTexture *mt, 
 	if (!stack->txh.is_open) {
 		scene_time -= mt->startTime;
 		gf_sc_texture_play_from_to(&stack->txh, &mt->url, scene_time, -1, gf_mo_get_loop(stack->txh.stream, mt->loop), 0);
+	} else if (stack->first_frame_fetched) {
+		gf_mo_resume(stack->txh.stream);
 	}
 	gf_mo_set_speed(stack->txh.stream, mt->speed);
 }
@@ -96,7 +98,7 @@ static void movietexture_update(GF_TextureHandler *txh)
 	if (!txnode->isActive && st->first_frame_fetched) return;
 
 	/*when fetching the first frame disable resync*/
-	gf_sc_texture_update_frame(txh, !txnode->isActive);
+	gf_sc_texture_update_frame(txh, 0);
 
 	if (txh->stream_finished) {
 		if (movietexture_get_loop(st, txnode)) {
@@ -114,7 +116,7 @@ static void movietexture_update(GF_TextureHandler *txh)
 		gf_node_event_out_str(txh->owner, "duration_changed");
 		/*stop stream if needed*/
 		if (!txnode->isActive && txh->is_open) {
-			gf_sc_texture_stop(txh);
+			gf_mo_pause(txh->stream);
 			/*make sure the refresh flag is not cleared*/
 			txh->needs_refresh = 1;
 			gf_sc_invalidate(txh->compositor, NULL);
@@ -148,6 +150,8 @@ static void movietexture_update_time(GF_TimeNode *st)
 			stack->fetch_first_frame = 0;
 			if (!stack->txh.is_open)
 				gf_sc_texture_play(&stack->txh, &mt->url);
+			else
+				gf_mo_resume(stack->txh.stream);
 		}
 		return;
 	}

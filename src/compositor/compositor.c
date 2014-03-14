@@ -59,6 +59,9 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Switching fullscreen %s\n", compositor->fullscreen ? "off" : "on"));
 	/*move to FS*/
 	compositor->fullscreen = !compositor->fullscreen;
+
+	gf_sc_ar_control(compositor->audio_renderer, 0);
+
 	if (compositor->fullscreen && (compositor->scene_width>=compositor->scene_height)
 #ifndef GPAC_DISABLE_3D
 			&& !compositor->visual->type_3d 
@@ -68,6 +71,8 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	} else {
 		e = compositor->video_out->SetFullScreen(compositor->video_out, compositor->fullscreen, &compositor->display_width, &compositor->display_height);
 	}
+
+	gf_sc_ar_control(compositor->audio_renderer, 1);
 
 	if (e) {
 		GF_Event evt;
@@ -167,9 +172,14 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		/*fullscreen on/off request*/
 		if (compositor->msg_type & GF_SR_CFG_FULLSCREEN) {
 			compositor->msg_type &= ~GF_SR_CFG_FULLSCREEN;
-			gf_sc_set_fullscreen(compositor);
-			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
-			notif_size=1;
+			//video is about to resetup, wait for the setup 
+			if (compositor->recompute_ar) {
+				compositor->fullscreen_postponed = 1;
+			} else {
+				gf_sc_set_fullscreen(compositor);
+				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+				notif_size=1;
+			}
 		}
 		compositor->msg_type &= ~GF_SR_IN_RECONFIG;
 	}
@@ -415,6 +425,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 	compositor->frame_duration = 33;
 	compositor->time_nodes = gf_list_new();
 	compositor->event_queue = gf_list_new();
+	compositor->event_queue_back = gf_list_new();
 	compositor->evq_mx = gf_mx_new("EventQueue");
 
 #ifdef GF_SR_USE_VIDEO_CACHE
@@ -632,9 +643,15 @@ void gf_sc_del(GF_Compositor *compositor)
 		gf_list_rem(compositor->event_queue, 0);
 		gf_free(qev);
 	}
+	while (gf_list_count(compositor->event_queue_back)) {
+		GF_QueuedEvent *qev = (GF_QueuedEvent *)gf_list_get(compositor->event_queue_back, 0);
+		gf_list_rem(compositor->event_queue, 0);
+		gf_free(qev);
+	}
 	gf_mx_v(compositor->evq_mx);
 	gf_mx_del(compositor->evq_mx);
 	gf_list_del(compositor->event_queue);
+	gf_list_del(compositor->event_queue_back);
 
 	if (compositor->font_manager) gf_font_manager_del(compositor->font_manager);
 
@@ -2027,6 +2044,13 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #endif
 
 		compositor_evaluate_envtests(compositor, 0);
+
+		//fullscreen was postponed, retry now that the AR has been recomputed
+		if (compositor->fullscreen_postponed) {
+			compositor->fullscreen_postponed = 0;
+			compositor->msg_type |= GF_SR_CFG_FULLSCREEN;
+		}
+
 	} 
 }
 
@@ -2104,6 +2128,7 @@ static void compositor_release_textures(GF_Compositor *compositor, Bool frame_dr
 void gf_sc_simulation_tick(GF_Compositor *compositor)
 {	
 	GF_SceneGraph *sg;
+	GF_List *temp_queue;
 	u32 in_time, end_time, i, count;
 	Bool frame_drawn, has_timed_nodes=GF_FALSE, all_tx_done=GF_TRUE;
 #ifndef GPAC_DISABLE_LOG
@@ -2154,11 +2179,15 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	event_time = gf_sys_clock();
 #endif
+	//swap event queus
 	gf_mx_p(compositor->evq_mx);
-	while (gf_list_count(compositor->event_queue)) {
-		GF_QueuedEvent *qev = (GF_QueuedEvent*)gf_list_get(compositor->event_queue, 0);
-		gf_list_rem(compositor->event_queue, 0);
-		gf_mx_v(compositor->evq_mx);
+	temp_queue = compositor->event_queue;
+	compositor->event_queue = compositor->event_queue_back;
+	compositor->event_queue_back = temp_queue; 
+	gf_mx_v(compositor->evq_mx);
+	while (gf_list_count(compositor->event_queue_back)) {
+		GF_QueuedEvent *qev = (GF_QueuedEvent*)gf_list_get(compositor->event_queue_back, 0);
+		gf_list_rem(compositor->event_queue_back, 0);
 
 		if (qev->target) {
 #ifndef GPAC_DISABLE_SVG
@@ -2172,9 +2201,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			gf_sc_exec_event(compositor, &qev->evt);
 		}
 		gf_free(qev);
-		gf_mx_p(compositor->evq_mx);
 	}
-	gf_mx_v(compositor->evq_mx);
 #ifndef GPAC_DISABLE_LOG
 	event_time = gf_sys_clock() - event_time;
 #endif
@@ -2219,6 +2246,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		gf_sc_lock(compositor, 0);
 		return;
 	}
+
+
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock() - texture_time;
 #endif
@@ -2500,7 +2529,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 	}
 	compositor->reset_graphics = 0;
-
 
 	compositor->last_frame_time = gf_sys_clock();
 	end_time = compositor->last_frame_time - in_time;
@@ -3272,8 +3300,19 @@ void gf_sc_set_video_pending_frame(GF_Compositor *compositor)
 
 void gf_sc_queue_dom_event(GF_Compositor *compositor, GF_Node *node, GF_DOM_Event *evt)
 {
+	u32 i, count;
 	GF_QueuedEvent *qev;
 	gf_mx_p(compositor->evq_mx);
+
+	count = gf_list_count(compositor->event_queue);
+	for (i=0; i<count; i++) {
+		qev = gf_list_get(compositor->event_queue, i);
+		if ((qev->node==node) && (qev->dom_evt.type==evt->type)) {
+			qev->dom_evt = *evt;
+			gf_mx_v(compositor->evq_mx);
+			return;
+		}
+	}
 	GF_SAFEALLOC(qev, GF_QueuedEvent);
 	qev->node = node;
 	qev->dom_evt = *evt;
@@ -3283,8 +3322,20 @@ void gf_sc_queue_dom_event(GF_Compositor *compositor, GF_Node *node, GF_DOM_Even
 
 void gf_sc_queue_dom_event_on_target(GF_Compositor *compositor, GF_DOM_Event *evt, GF_DOMEventTarget *target, GF_SceneGraph *sg)
 {
+	u32 i, count;
 	GF_QueuedEvent *qev;
 	gf_mx_p(compositor->evq_mx);
+
+	count = gf_list_count(compositor->event_queue);
+	for (i=0; i<count; i++) {
+		qev = gf_list_get(compositor->event_queue, i);
+		if ((qev->target==target) && (qev->dom_evt.type==evt->type) && (qev->sg==sg) ) {
+			qev->dom_evt = *evt;
+			gf_mx_v(compositor->evq_mx);
+			return;
+		}
+	}
+
 	GF_SAFEALLOC(qev, GF_QueuedEvent);
 	qev->sg = sg;
 	qev->target = target;
@@ -3293,14 +3344,12 @@ void gf_sc_queue_dom_event_on_target(GF_Compositor *compositor, GF_DOM_Event *ev
 	gf_mx_v(compositor->evq_mx);
 }
 
-void gf_sc_node_destroy(GF_Compositor *compositor, GF_Node *node, GF_SceneGraph *sg)
+static void sc_cleanup_event_queue(GF_List *evq, GF_Node *node, GF_SceneGraph *sg)
 {
-	u32 i, count;
-	gf_mx_p(compositor->evq_mx);
-	count = gf_list_count(compositor->event_queue);
+	u32 i, count = gf_list_count(evq);
 	for (i=0; i<count; i++) {
 		Bool del = 0;
-		GF_QueuedEvent *qev = gf_list_get(compositor->event_queue, i);
+		GF_QueuedEvent *qev = gf_list_get(evq, i);
 		if (qev->node) {
 			if (node && qev->node)
 				del = 1;
@@ -3317,11 +3366,18 @@ void gf_sc_node_destroy(GF_Compositor *compositor, GF_Node *node, GF_SceneGraph 
 		}
 
 		if (del) {
-			gf_list_rem(compositor->event_queue, i);
+			gf_list_rem(evq, i);
 			i--;
 			count--;
 			gf_free(qev);
 		}
 	}
+}
+
+void gf_sc_node_destroy(GF_Compositor *compositor, GF_Node *node, GF_SceneGraph *sg)
+{
+	gf_mx_p(compositor->evq_mx);
+	sc_cleanup_event_queue(compositor->event_queue, node, sg);
+	sc_cleanup_event_queue(compositor->event_queue_back, node, sg);
 	gf_mx_v(compositor->evq_mx);
 }
