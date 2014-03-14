@@ -286,6 +286,9 @@ GF_Err gf_dash_set_segment_expiration_threshold(GF_DashClient *dash, u32 expire_
 //only enables the given group - this shall be set before calling @gf_dash_open. If group_index is <0 (default) no groups will be disabled. 
 void gf_dash_debug_group(GF_DashClient *dash, s32 group_index);
 
+//indicates typical buffering used by the user app . This allows fetching data earlier in live mode, if the timeshiftbuffer allows for it
+void gf_dash_set_user_buffer(GF_DashClient *dash, u32 buffer_time_ms);
+
 #endif //GPAC_DISABLE_DASH_CLIENT
 
 

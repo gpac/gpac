@@ -192,7 +192,7 @@ struct __tag_compositor
 	GF_List *textures_gc;
 
 	/*event queue*/
-	GF_List *event_queue;
+	GF_List *event_queue, *event_queue_back;
 	GF_Mutex *evq_mx;
 
 	Bool video_setup_failed;
@@ -215,6 +215,7 @@ struct __tag_compositor
 	u32 next_frame_delay;
 	s32 frame_delay;
 	Bool video_frame_pending;
+	Bool fullscreen_postponed;
 
 	/*display size*/
 	u32 display_width, display_height;

@@ -754,8 +754,11 @@ If chunk is selected, media data is re-parsed at each HTTP 1.1 chunk end. If alw
 Enables aborts of HTTP transfer when rate gets too low. This may result in a packet drops. Default is no.</p>
 <b>UseServerUTC</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
-Enables using <i>Server-UTC</i> HTTP header to compensate any drift between client and server. Default is yes.
-
+Enables using <i>Server-UTC</i> HTTP header to compensate any drift between client and server. Default is yes.</p>
+<b>DebugAdaptationSet</b> [value: <i>integer</i>]
+<p style="text-indent: 5%">
+Plays only the adaptation set indicated by its index in the MPD. If index is negative, all sets are used (default mode).
+</p>
 
 <br/><br/>
 
