@@ -3493,7 +3493,7 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 			parser->initialized = 0;
 			return GF_OK;
 		}
-		strncpy(BOM, str, 5); 
+		strncpy((char *) BOM, str, 5); 
 	}
 
 	/*0: no unicode, 1: UTF-16BE, 2: UTF-16LE*/

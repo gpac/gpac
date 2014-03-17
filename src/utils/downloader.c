@@ -1784,7 +1784,7 @@ static void gf_icy_skip_data(GF_DownloadSession * sess, u32 icy_metaint, const c
 }
 
 
-static u8 *gf_dm_get_chunk_data(GF_DownloadSession *sess, u8 *body_start, u32 *payload_size, u32 *header_size)
+static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, char *body_start, u32 *payload_size, u32 *header_size)
 {
 	u32 size;
 	char *te_header, *sep;
@@ -1803,7 +1803,7 @@ static u8 *gf_dm_get_chunk_data(GF_DownloadSession *sess, u8 *body_start, u32 *p
 	}
 	
 
-	te_header = strstr(body_start, "\r\n");
+	te_header = strstr((char *) body_start, "\r\n");
 	if (!te_header) return NULL;
 
 	te_header[0] = 0;
@@ -1833,7 +1833,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 	hdr_size = 0;
 	remaining = 0;
 	if (sess->chunked) {
-		data = gf_dm_get_chunk_data(sess, payload, &nbBytes, &hdr_size);
+		data = (u8 *) gf_dm_get_chunk_data(sess, (char *) payload, &nbBytes, &hdr_size);
 		if (hdr_size + nbBytes + 2 > payload_size) {
 			remaining = nbBytes + 2 - payload_size + hdr_size;
 			nbBytes = payload_size - hdr_size; 
@@ -1870,14 +1870,14 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		}
 
 		if (sess->icy_metaint > 0)
-			gf_icy_skip_data(sess, sess->icy_metaint, data, nbBytes);
+			gf_icy_skip_data(sess, sess->icy_metaint, (char *) data, nbBytes);
 		else {
 			if (sess->use_cache_file)
-				gf_cache_write_to_cache( sess->cache_entry, sess, data, nbBytes);
+				gf_cache_write_to_cache( sess->cache_entry, sess, (char *) data, nbBytes);
 
 			par.msg_type = GF_NETIO_DATA_EXCHANGE;
 			par.error = GF_OK;
-			par.data = data;
+			par.data = (char *) data;
 			par.size = nbBytes;
 			par.reply = flush_chunk;
 			gf_dm_sess_user_io(sess, &par);
@@ -1967,7 +1967,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
     if (e) return e;
     size = *read_size;
     *read_size = 0;
-    gf_dm_data_received(sess, buffer, size, 0, read_size);
+    gf_dm_data_received(sess, (u8 *) buffer, size, 0, read_size);
     return GF_OK;
 }
 
@@ -2349,7 +2349,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 			if (e == GF_IP_CONNECTION_CLOSED){
 				u32 len = gf_cache_get_content_length(sess->cache_entry);
 				if (size > 0)
-					gf_dm_data_received(sess, sHTTP, size, 0, NULL);
+					gf_dm_data_received(sess, (u8 *) sHTTP, size, 0, NULL);
 				if ( ( (len == 0) && sess->use_cache_file) 
 					/*ivica patch*/
 					|| (size==0)
@@ -2369,7 +2369,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 			gf_dm_sess_notify_state(sess, sess->status, e);
 			return e;
 		}
-		gf_dm_data_received(sess, sHTTP, size, 0, NULL);
+		gf_dm_data_received(sess, (u8 *) sHTTP, size, 0, NULL);
 
         /*socket empty*/
         if (size < GF_DOWNLOAD_BUFFER_SIZE) {
@@ -2927,7 +2927,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         sess->init_data_size = 0;
 	    sess->init_data = NULL;
 
-		gf_dm_data_received(sess, sHTTP + BodyStart, bytesRead - BodyStart, 1, NULL);
+		gf_dm_data_received(sess, (u8 *) sHTTP + BodyStart, bytesRead - BodyStart, 1, NULL);
     }
 exit:
     if (e) {

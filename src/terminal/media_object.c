@@ -564,7 +564,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	gf_term_service_media_event(mo->odm, GF_EVENT_MEDIA_TIME_UPDATE);
 			
 	gf_odm_lock(mo->odm, 0);
-	if (codec->direct_vout) return codec->CB->pY;
+	if (codec->direct_vout) return (char *) codec->CB->pY;
 	return mo->frame;
 }
 

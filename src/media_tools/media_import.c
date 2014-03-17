@@ -782,7 +782,7 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 	samp = gf_isom_sample_new();
 	samp->IsRAP = 1;
 	samp->dataLength = nbbytes;
-	samp->data = aac_buf;
+	samp->data = (char *) aac_buf;
 	
 	e = gf_isom_add_sample(import->dest, track, di, samp);
 	if (e) goto exit;

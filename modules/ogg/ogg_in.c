@@ -224,7 +224,7 @@ static void OGG_GetStreamInfo(ogg_packet *oggpacket, OGGInfo *info)
 	memset(info, 0, sizeof(OGGInfo));
 
 	/*vorbis*/
-	if ((oggpacket->bytes >= 7) && !strncmp(&oggpacket->packet[1], "vorbis", 6)) {
+	if ((oggpacket->bytes >= 7) && !strncmp((char *) &oggpacket->packet[1], "vorbis", 6)) {
 		info->streamType = GF_STREAM_AUDIO;
 		oggpack_readinit(&opb, oggpacket->packet, oggpacket->bytes);
 		oggpack_adv( &opb, 88);
@@ -236,7 +236,7 @@ static void OGG_GetStreamInfo(ogg_packet *oggpacket, OGGInfo *info)
 		info->type = OGG_VORBIS;
 	}
 	/*speex*/
-	else if ((oggpacket->bytes >= 7) && !strncmp(&oggpacket->packet[0], "Speex", 5)) {
+	else if ((oggpacket->bytes >= 7) && !strncmp((char *) &oggpacket->packet[0], "Speex", 5)) {
 		info->streamType = GF_STREAM_AUDIO;
 		oggpack_readinit(&opb, oggpacket->packet, oggpacket->bytes);
 		oggpack_adv(&opb, 224);
@@ -247,19 +247,19 @@ static void OGG_GetStreamInfo(ogg_packet *oggpacket, OGGInfo *info)
 		info->num_init_headers = 1;
 	}
 	/*flac*/
-	else if ((oggpacket->bytes >= 4) && !strncmp(&oggpacket->packet[0], "fLaC", 4)) {
+	else if ((oggpacket->bytes >= 4) && !strncmp((char *) &oggpacket->packet[0], "fLaC", 4)) {
 		info->streamType = GF_STREAM_AUDIO;
 		info->type = 3;
 		info->num_init_headers = OGG_FLAC;
 	}
 	/*theora*/
-	else if ((oggpacket->bytes >= 7) && !strncmp(&oggpacket->packet[1], "theora", 6)) {
+	else if ((oggpacket->bytes >= 7) && !strncmp((char *) &oggpacket->packet[1], "theora", 6)) {
 		GF_BitStream *bs;
 		u32 fps_numerator, fps_denominator, keyframe_freq_force;
 
 		info->streamType = GF_STREAM_VISUAL;
 		info->type = OGG_THEORA;
-		bs = gf_bs_new(oggpacket->packet, oggpacket->bytes, GF_BITSTREAM_READ);
+		bs = gf_bs_new((char *) oggpacket->packet, oggpacket->bytes, GF_BITSTREAM_READ);
 		gf_bs_read_int(bs, 56);
 		gf_bs_read_int(bs, 8); /* major version num */
 		gf_bs_read_int(bs, 8); /* minor version num */
@@ -402,8 +402,8 @@ void OGG_SendPackets(OGGReader *read, OGGStream *st, ogg_packet *oggpacket)
 		slh.randomAccessPointFlag = 1;
 		slh.compositionTimeStampFlag = 1;
 		slh.compositionTimeStamp = st->ogg_ts;
-		gf_term_on_sl_packet(read->service, st->ch, oggpacket->packet, oggpacket->bytes, &slh, GF_OK);
-		st->ogg_ts += gf_vorbis_check_frame(&st->vp, oggpacket->packet, oggpacket->bytes);
+		gf_term_on_sl_packet(read->service, st->ch, (char *) oggpacket->packet, oggpacket->bytes, &slh, GF_OK);
+		st->ogg_ts += gf_vorbis_check_frame(&st->vp, (char *) oggpacket->packet, oggpacket->bytes);
 	}
 	else if (st->info.type==OGG_THEORA) {
 		oggpack_buffer opb;
@@ -415,7 +415,7 @@ void OGG_SendPackets(OGGReader *read, OGGStream *st, ogg_packet *oggpacket)
 			slh.randomAccessPointFlag = oggpackB_read(&opb, 1) ? 0 : 1;
 			slh.compositionTimeStampFlag = 1;
 			slh.compositionTimeStamp = st->ogg_ts;
-			gf_term_on_sl_packet(read->service, st->ch, oggpacket->packet, oggpacket->bytes, &slh, GF_OK);
+			gf_term_on_sl_packet(read->service, st->ch, (char *) oggpacket->packet, oggpacket->bytes, &slh, GF_OK);
 			st->ogg_ts += 1000;
 		}
 	}
@@ -461,7 +461,7 @@ void OGG_Process(OGGReader *read)
 		while (ogg_stream_packetout(&st->os, &oggpacket ) > 0 ) {
 			GF_BitStream *bs;
 			if (st->info.type==OGG_VORBIS)
-				gf_vorbis_parse_header(&st->vp, oggpacket.packet, oggpacket.bytes);
+				gf_vorbis_parse_header(&st->vp, (char *) oggpacket.packet, oggpacket.bytes);
 
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (st->dsi) {
@@ -471,7 +471,7 @@ void OGG_Process(OGGReader *read)
 				st->dsi_len=0;
 			}
 			gf_bs_write_u16(bs, oggpacket.bytes);
-			gf_bs_write_data(bs, oggpacket.packet, oggpacket.bytes);
+			gf_bs_write_data(bs, (char *) oggpacket.packet, oggpacket.bytes);
 			gf_bs_get_content(bs, (char **)&st->dsi, &st->dsi_len);
 			gf_bs_del(bs);
 			st->parse_headers--;

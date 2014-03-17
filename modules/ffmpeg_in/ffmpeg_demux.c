@@ -116,7 +116,7 @@ static u32 FFDemux_Run(void *par)
 				slh.decodingTimeStamp = slh.compositionTimeStamp = seek_audio;
 			}
 #endif
-			gf_term_on_sl_packet(ffd->service, ffd->audio_ch, pkt.data, pkt.size, &slh, GF_OK);
+			gf_term_on_sl_packet(ffd->service, ffd->audio_ch, (char *) pkt.data, pkt.size, &slh, GF_OK);
 		}
 		else if (ffd->video_ch && (pkt.stream_index == ffd->video_st)) {
 //			u64 seek_video = ffd->seek_time ? (u64) (s64) (ffd->seek_time*ffd->video_tscale.den) : 0;
@@ -128,7 +128,7 @@ static u32 FFDemux_Run(void *par)
 				slh.decodingTimeStamp = slh.compositionTimeStamp = seek_video;
 			}
 #endif
-			gf_term_on_sl_packet(ffd->service, ffd->video_ch, pkt.data, pkt.size, &slh, GF_OK);
+			gf_term_on_sl_packet(ffd->service, ffd->video_ch, (char *) pkt.data, pkt.size, &slh, GF_OK);
 		}
 		gf_mx_v(ffd->mx);
 		av_free_packet(&pkt);
@@ -363,7 +363,7 @@ opaque_audio:
 			gf_bs_write_u32(bs, dec->bit_rate);
 			gf_bs_write_u32(bs, dec->codec_tag);
 			if (dec->extradata_size) {
-				gf_bs_write_data(bs, dec->extradata, dec->extradata_size);
+				gf_bs_write_data(bs, (char *) dec->extradata, dec->extradata_size);
 			}
 			gf_bs_get_content(bs, (char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_bs_del(bs);
@@ -408,7 +408,7 @@ opaque_video:
 			gf_bs_write_u32(bs, dec->pix_fmt);
 
 			if (dec->extradata_size) {
-				gf_bs_write_data(bs, dec->extradata, dec->extradata_size);
+				gf_bs_write_data(bs, (char *) dec->extradata, dec->extradata_size);
 			}
 			gf_bs_get_content(bs, (char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_bs_del(bs);
@@ -582,7 +582,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		} else {
 			pd.filename = szName;
 			pd.buf_size = ffd->buffer_used;
-			pd.buf = ffd->buffer;
+			pd.buf = (u8 *) ffd->buffer;
 			av_in = av_probe_input_format(&pd, 1);
 			if (!av_in) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG] error probing file %s - probe start with %c %c %c %c\n", url, ffd->buffer[0], ffd->buffer[1], ffd->buffer[2], ffd->buffer[3]));

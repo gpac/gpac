@@ -412,7 +412,7 @@ static SMJS_FUNC_PROP_SET(media_source_set_duration)
 static SMJS_FUNC_PROP_GET( sourcebufferlist_getProperty)
     GF_HTML_SourceBufferList *p;
 	u32 count;
-	u32 idx;
+	s32 idx;
     if (!GF_JS_InstanceOf(c, obj, &html_media_rt->sourceBufferListClass, NULL) ) 
     {
         return JS_TRUE;

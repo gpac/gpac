@@ -798,7 +798,7 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u64 BSO, u8 IV_size, Bool 
 	}
 	else {
 		prev_block_count = BSO / 16;
-		remain = BSO % 16;
+		remain = (u32) (BSO % 16);
 	}
 
 	tmp = gf_bs_new(IV, 16, GF_BITSTREAM_READ);

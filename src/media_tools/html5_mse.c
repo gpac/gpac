@@ -641,7 +641,7 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
     }
 
     if (track->last_dts_set) {
-        if (DTS_with_offset - track->last_dts < 0 ||
+        if (DTS_with_offset < track->last_dts ||
 			DTS_with_offset - track->last_dts > 2*track->last_dur) {
 			/* A discontinuity in the timestamps is detected, this triggers the start of a new coded frame group */
 			if (sb->append_mode == MEDIA_SOURCE_APPEND_MODE_SEGMENTS) {

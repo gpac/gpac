@@ -286,7 +286,7 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 	jpx.src.resync_to_restart = jpeg_resync_to_restart;
 	jpx.src.term_source = gf_jpeg_stub;
 	jpx.skip = 0;
-	jpx.src.next_input_byte = jpg;
+	jpx.src.next_input_byte = (JOCTET *) jpg;
         jpx.src.bytes_in_buffer = jpg_size;
 	jpx.cinfo.src = (void *) &jpx.src;
 

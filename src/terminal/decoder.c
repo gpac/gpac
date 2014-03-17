@@ -863,7 +863,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	if (codec->Muted && (codec->type==GF_STREAM_VISUAL) ) return GF_OK;
 
 	//cannot output frame, do nothing (we force a channel query before for pull mode)
-	if ( (codec->CB->Capacity == codec->CB->UnitCount) ) {
+	if (codec->CB->Capacity == codec->CB->UnitCount) {
 		if (codec->CB->UnitCount > 1)  return GF_OK;
 		else if (codec->direct_vout)  return GF_OK;
 	}

@@ -270,7 +270,7 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 	if (timescale || ntp) {
 		len = 3; //3 bytes flags
 
-		if (timescale) len += 4 + (timecode > 0xFFFFFFFFUL) ? 8 : 4;
+		if (timescale) len += 4 + ((timecode > 0xFFFFFFFFUL) ? 8 : 4);
 		if (ntp) len += 8;
 
 		//write timeline descriptor

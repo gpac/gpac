@@ -620,11 +620,11 @@ void SFE_PutInteger(ScriptEnc *sc_enc, char *str)
 	u32 nbBits, val = 0;
 	if (sc_enc->emul) return;
 	if ((str[0]=='0') && (str[1]=='x' || str[1]=='X')) {
-		val = strtoul(sc_enc->token, (char **) NULL, 16);
+		val = (u32) strtoul(sc_enc->token, (char **) NULL, 16);
 	} else if (str[0]=='0' && isdigit(str[1])) {
-		val = strtoul(str, (char **) NULL, 8);
+		val = (u32) strtoul(str, (char **) NULL, 8);
 	} else if (isdigit(str[0])) {
-		val = strtoul(str, (char **) NULL, 10);
+		val = (u32) strtoul(str, (char **) NULL, 10);
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: %s is not an integer\n", str));
 		sc_enc->err = GF_BAD_PARAM;
@@ -872,11 +872,11 @@ u32 SFE_PutCaseInteger(ScriptEnc *sc_enc, char *str, u32 nbBits)
 {
 	u32 val = 0;
 	if ((str[0]=='0') && (str[1]=='x' || str[1]=='X')) {
-		val = strtoul(sc_enc->token, (char **) NULL, 16);
+		val = (u32) strtoul(sc_enc->token, (char **) NULL, 16);
 	} else if (str[0]=='0' && isdigit(str[1])) {
-		val = strtoul(str, (char **) NULL, 8);
+		val = (u32) strtoul(str, (char **) NULL, 8);
 	} else if (isdigit(str[0])) {
-		val = strtoul(str, (char **) NULL, 10);
+		val = (u32) strtoul(str, (char **) NULL, 10);
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: %s is not an integer\n", str));
 		sc_enc->err = GF_BAD_PARAM;

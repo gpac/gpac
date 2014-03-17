@@ -44,8 +44,12 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_STATIC_MODULES
 	GF_InterfaceRegister *pr;
 
+#ifdef GPAC_HAS_FAAD
 	LOAD_PLUGIN(aac_in);
+#endif
+#ifdef GPAC_HAS_AC3
     LOAD_PLUGIN(ac3);
+#endif
 #ifdef GPAC_HAS_ALSA
     LOAD_PLUGIN(alsa);
 #endif
@@ -82,7 +86,9 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifndef GPAC_DISABLE_SVG
 	LOAD_PLUGIN(laser);
 #endif	
+#ifdef GPAC_HAS_MAD
 	LOAD_PLUGIN(mp3_in);
+#endif
     LOAD_PLUGIN(mpd_in);
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 	LOAD_PLUGIN(mpegts_in);
@@ -127,6 +133,9 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_HAS_WAVEOUT
 	LOAD_PLUGIN(wave_out);
 #endif
+#ifndef GPAC_DISABLE_TTXT
+	LOAD_PLUGIN(vtt_in);
+#endif
 #ifndef GPAC_DISABLE_SVG
 	LOAD_PLUGIN(widgetman);
 #endif
@@ -136,11 +145,7 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_HAS_XVID
     LOAD_PLUGIN(xvid);
 #endif
-	
-    LOAD_PLUGIN(ffmpeg);
-
-
-				
+					
 	//todo fix project for iOS
 #ifdef GPAC_IPHONE
 //    LOAD_PLUGIN(ios_cam);

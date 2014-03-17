@@ -47,7 +47,7 @@ extern int pBytes[MAXDEG];
 extern int synBytes[MAXDEG];
 
 /* print debugging info */
-extern int DEBUG;
+extern int RS_DEBUG;
 
 /* Reed Solomon encode/decode routines */
 void initialize_ecc (void);
