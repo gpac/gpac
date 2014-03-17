@@ -36,6 +36,12 @@
 #  pragma comment(lib, "libLibOpenHevcWrapper")
 #endif
 
+#ifdef OPEN_SHVC
+void libOpenHevcSetActiveDecoders(OpenHevc_Handle openHevcHandle, int val);
+void libOpenHevcSetViewLayers(OpenHevc_Handle openHevcHandle, int val);
+#endif
+
+
 typedef struct
 {
 	u16 ES_ID;
@@ -47,7 +53,7 @@ typedef struct
 
 	u32 nalu_size_length;
 	u32 threading_type;
-	Bool direct_output, has_pic;
+	Bool direct_output, has_pic, skip_wait_rap;
 
 	GF_ESD *esd;
 	OpenHevc_Handle openHevcHandle;
@@ -67,7 +73,7 @@ typedef struct
 
 static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 {
-    u32 i, j;
+    u32 i, j, nb_threads;
     GF_HEVCConfig *cfg = NULL;
 	ctx->ES_ID = esd->ESID;
 	ctx->width = ctx->height = ctx->out_size = ctx->luma_bpp = ctx->chroma_bpp = 0;
@@ -76,7 +82,8 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
     ctx->nb_layers = 1;
     ctx->base_only = GF_FALSE;
 #endif
-    
+
+	nb_threads = ctx->nb_threads;
     
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 		HEVCState hevc;
@@ -121,9 +128,12 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 
 
 #ifdef OPEN_SHVC
-    ctx->openHevcHandle = libOpenHevcInit(ctx->nb_threads, ctx->nb_layers);
-    libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->nb_layers);
-//    libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->nb_layers);
+	if (ctx->nb_layers/1) nb_threads /= 2;
+
+	ctx->openHevcHandle = libOpenHevcInit(nb_threads, ctx->threading_type);
+	//these are 0-based
+    libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->nb_layers-1);
+    libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->nb_layers-1);
 #else
 	ctx->openHevcHandle = libOpenHevcInit(ctx->nb_threads, ctx->threading_type);
 #endif
@@ -149,6 +159,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		ctx->chroma_bpp = ctx->luma_bpp = 8;
 		ctx->conv_to_8bit = 1;
 	}
+	ctx->skip_wait_rap = GF_TRUE;
 	return GF_OK;
 }
 
@@ -179,7 +190,7 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ThreadingType");
 	if (sOpt && !strcmp(sOpt, "wpp")) ctx->threading_type = 2;
-	else if (sOpt && !strcmp(sOpt, "frame+wpp")) ctx->threading_type = 3;
+	else if (sOpt && !strcmp(sOpt, "frame+wpp")) ctx->threading_type = 4;
 	else {
 		ctx->threading_type = 1;
 		if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ThreadingType", "frame");
@@ -285,7 +296,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		ctx->display_bpp = capability.cap.valueInt;
 		return GF_OK;
     case GF_CODEC_WAIT_RAP:
-		if (ctx->openHevcHandle)
+		if (ctx->openHevcHandle && !ctx->skip_wait_rap)
             libOpenHevcFlush(ctx->openHevcHandle);
         return GF_OK;
 #ifdef OPEN_SHVC
@@ -293,12 +304,12 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		/*switch up*/
 		if (capability.cap.valueInt) {
             ctx->base_only = GF_FALSE;
-//			libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);		
-			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
+			libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);		
+//			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
 		} else {
             ctx->base_only = GF_TRUE;
-//			libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);		
-			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 0);
+			libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);		
+//			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 0);
 		}
 		return GF_OK;
 #endif
@@ -429,6 +440,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		if (e) return e;
 		got_pic = 0;
 	}
+	ctx->skip_wait_rap = 0;
 	return GF_OK;
 }
 
