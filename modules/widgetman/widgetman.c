@@ -3380,7 +3380,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		wi->instance_id ++;
 
 		sprintf(szName, "%s#%s#Instance%d", path, wi->widget->name, wi->instance_id);
-		sprintf(wi->secname, "Widget#%08X", gf_crc_32(szName, (u32) strlen(szName)));
+		sprintf((char *)wi->secname, "Widget#%08X", gf_crc_32(szName, (u32) strlen(szName)));
 
 		/*create section*/
 		gf_cfg_set_key(wm->term->user->config, "Widgets", (const char *) wi->secname, " ");
@@ -3484,7 +3484,7 @@ static JSBool SMJS_FUNCTION(wm_initialize)
 				u32 instID = ID ? atoi(ID) : 0;
 				GF_WidgetInstance *wi = wm_load_widget(wm, manifest, instID, 0);
 				if (wi) {
-					strcpy(wi->secname, (const char *) name);
+					strcpy((char *)wi->secname, (const char *) name);
 					wm_widget_jsbind(wm, wi);
 				}
 			}

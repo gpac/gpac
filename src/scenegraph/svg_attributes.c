@@ -422,7 +422,7 @@ const char *gf_dom_get_key_name(u32 key_identifier)
 GF_KeyCode gf_dom_get_key_type(char *key_name)
 {
 	if (strlen(key_name) == 1) {
-		unsigned char c[2];
+		char c[2];
 		c[0] = key_name[0];
 		c[1] = 0;
 		strupr(c);
@@ -432,7 +432,7 @@ GF_KeyCode gf_dom_get_key_type(char *key_name)
 		if (c[0] >= '0' && c[0] <= '9')
 			return ( GF_KEY_0 + (c[0] - '0') );
 
-		switch (c[0]) {
+		switch ((u8) c[0]) {
 		case '@': return GF_KEY_AT;
 		case '*': return GF_KEY_STAR;
 		case '#': return GF_KEY_NUMBER;

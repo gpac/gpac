@@ -105,7 +105,7 @@ static void swf_init_decompress(SWFReader *read)
 	memset(dst, 0, sizeof(char)*8);
 	gf_bs_read_data(read->bs, src, size);
 	dst_size -= 8;
-	uncompress(dst+8, (uLongf *)&dst_size, src, size);
+	uncompress((Bytef *) dst+8, (uLongf *)&dst_size, (Bytef *) src, size);
 	dst_size += 8;
 	gf_free(src);
 	read->mem = dst;
@@ -2105,7 +2105,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 		osize = w*h;
 		dst = gf_malloc(sizeof(char)*osize);
-		uncompress(dst, (uLongf *) &osize, buf, AlphaPlaneSize);
+		uncompress((Bytef *) dst, (uLongf *) &osize, buf, AlphaPlaneSize);
 		/*write alpha channel*/
 		for (j=0; j<osize; j++) {
 			raw[4*j + 3] = dst[j];

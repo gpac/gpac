@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2011-2012
  *			All rights reserved
  *
- *  This file is part of GPAC / User Event Recorder sub-project
+ *  This file is part of GPAC / Sampe On-Scvreen Display sub-project
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by

@@ -44,8 +44,8 @@
  * \param size Size to allocate (will use extra padding for real size)
  * \return The newly allocated buffer
  */
-static char * ffmpeg_realloc_buffer(char * oldBuffer, u32 size){
-	char * buffer;
+static uint8_t * ffmpeg_realloc_buffer(uint8_t * oldBuffer, u32 size){
+	uint8_t * buffer;
 	/* Size of buffer must be larger, see avcodec_decode_video2 documentation */
 	u32 allocatedSz = sizeof( char ) * (FF_INPUT_BUFFER_PADDING_SIZE + size);
 	if (oldBuffer)
@@ -96,7 +96,7 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, AVCodec *codec, AVCodecC
 			gf_free(ctx->extradata);
 		ctx->extradata_size = dsi_size;
 		ctx->extradata = ffmpeg_realloc_buffer(ctx->extradata, ctx->extradata_size);
-		gf_bs_read_data(bs, ctx->extradata, ctx->extradata_size);
+		gf_bs_read_data(bs, (char *) ctx->extradata, ctx->extradata_size);
 		return;
 	}
 
@@ -112,8 +112,8 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, AVCodec *codec, AVCodecC
 				gf_free(ctx->extradata);
 			ctx->extradata_size = 0x5a + size;
 			ctx->extradata = ffmpeg_realloc_buffer(ctx->extradata, ctx->extradata_size);
-			strcpy(ctx->extradata, "SVQ3");
-			gf_bs_read_data(bs, (unsigned char *)ctx->extradata + 0x5a, size);
+			strcpy((char *) ctx->extradata, "SVQ3");
+			gf_bs_read_data(bs, (char *)ctx->extradata + 0x5a, size);
 		}
 	}
 		break;
@@ -122,7 +122,7 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, AVCodec *codec, AVCodecC
 			gf_free(ctx->extradata);
 		ctx->extradata_size = dsi_size;
 		ctx->extradata = ffmpeg_realloc_buffer(ctx->extradata, ctx->extradata_size);
-		gf_bs_read_data(bs, ctx->extradata, ctx->extradata_size);
+		gf_bs_read_data(bs, (char *)ctx->extradata, ctx->extradata_size);
 		break;
 	}
 }
@@ -366,7 +366,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	if (codec_id == CODEC_ID_RAWVIDEO) {
 		(*ctx)->codec_id = CODEC_ID_RAWVIDEO;
 		(*ctx)->pix_fmt = ffd->raw_pix_fmt;
-		if ((*ctx)->extradata && strstr((*ctx)->extradata, "BottomUp")) ffd->flipped = 1;
+		if ((*ctx)->extradata && strstr((char *) (*ctx)->extradata, "BottomUp")) ffd->flipped = 1;
 	} else {
 #ifdef USE_AVCTX3
 		if (avcodec_open2((*ctx), (*codec), NULL )<0) return GF_NON_COMPLIANT_BITSTREAM;
@@ -406,7 +406,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			{
 			  AVPacket pkt;
 			  av_init_packet(&pkt);
-			  pkt.data = esd->decoderConfig->decoderSpecificInfo->data;
+			  pkt.data = (uint8_t *) esd->decoderConfig->decoderSpecificInfo->data;
 			  pkt.size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 			  avcodec_decode_video2((*ctx), *frame, &gotpic, &pkt);
 			}
@@ -693,7 +693,7 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 
 #ifdef USE_AVCODEC2
 	av_init_packet(&pkt);
-	pkt.data = inBuffer;
+	pkt.data = (uint8_t *)inBuffer;
 	pkt.size = inBufferLength;
 #endif
 	/*audio stream*/
@@ -795,10 +795,10 @@ redecode:
 			if (ffd->raw_pix_fmt==PIX_FMT_BGR24) {
 				s32 i, j;
 				for (j=0; j<ctx->height; j++) {
-					u8 *src = inBuffer + j*3*ctx->width;
-					u8 *dst = outBuffer + j*3*ctx->width;
+					u8 *src = (u8 *) inBuffer + j*3*ctx->width;
+					u8 *dst = (u8 *)outBuffer + j*3*ctx->width;
 					if (ffd->flipped) {
-						dst = outBuffer + (ctx->height-j-1) * 3*ctx->width;
+						dst = (u8 *)outBuffer + (ctx->height-j-1) * 3*ctx->width;
 					}
 					for (i=0; i<ctx->width; i++) {
 						dst[0] = src[2];
@@ -1051,7 +1051,7 @@ redecode:
 		u8 *pYO, *pYD;
 
 		pYO = frame->data[0];
-		pYD = outBuffer+ffd->yuv_size;
+		pYD = (u8 *) outBuffer+ffd->yuv_size;
 		for (i=0; i<ctx->height; i++) {
 			memcpy(pYD, pYO, sizeof(char) * ctx->width);
 			pYD += ctx->width;
@@ -1095,13 +1095,13 @@ redecode:
 
 	memset(&pict, 0, sizeof(pict));
 	if (ffd->out_pix_fmt==GF_PIXEL_RGB_24) {
-		pict.data[0] = outBuffer;
+		pict.data[0] =  (uint8_t *)outBuffer;
 		pict.linesize[0] = 3*ctx->width;
 		pix_out = PIX_FMT_RGB24;
 	} else {
-		pict.data[0] = outBuffer;
-		pict.data[1] = outBuffer + ffd->stride * ctx->height;
-		pict.data[2] = outBuffer + 5 * ffd->stride * ctx->height / 4;
+		pict.data[0] =  (uint8_t *)outBuffer;
+		pict.data[1] =  (uint8_t *)outBuffer + ffd->stride * ctx->height;
+		pict.data[2] =  (uint8_t *)outBuffer + 5 * ffd->stride * ctx->height / 4;
 		pict.linesize[0] = ffd->stride;
 		pict.linesize[1] = pict.linesize[2] = ffd->stride/2;
 		pix_out = PIX_FMT_YUV420P;

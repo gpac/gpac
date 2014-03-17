@@ -4564,7 +4564,7 @@ GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_Sam
 				bs = gf_bs_new(udta, 20*sizeof(char), GF_BITSTREAM_WRITE);
 				gf_bs_write_u24(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->IsEncrypted);
 				gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->IV_size);
-				gf_bs_write_data(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->KID, 16);
+				gf_bs_write_data(bs, (char *) ((GF_CENCSampleEncryptionGroupEntry *)entry)->KID, 16);
 				gf_bs_del(bs);
 				return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, udta, sg_encryption_create_entry, sg_encryption_compare_entry);
 			}

@@ -832,8 +832,8 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 #endif
 	video_src.video_buffer = txh->data;
 	if (txh->raw_memory) {
-		video_src.u_ptr = txh->pU;
-		video_src.v_ptr = txh->pV;
+		video_src.u_ptr = (char *) txh->pU;
+		video_src.v_ptr = (char *) txh->pV;
 	}
 
 	//overlay queing

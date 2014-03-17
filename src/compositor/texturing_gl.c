@@ -183,8 +183,8 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 		if (txh->tx_io->u_pbo_id) {
 			u8 *pU = txh->pU;
 			u8 *pV = txh->pV;
-			if (!pU) pU = txh->data + size;
-			if (!pV) pV = txh->data + 5*size/4;
+			if (!pU) pU = (u8 *) txh->data + size;
+			if (!pV) pV = (u8 *) txh->data + 5*size/4;
 
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, txh->tx_io->u_pbo_id);
 			ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
@@ -959,14 +959,14 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			u32 push_time;
 			u8 *pY, *pU, *pV;
 			u32 ck;
-			pY = data;
+			pY = (u8 *) data;
 			if (txh->raw_memory) {
 				assert(txh->pU && txh->pV);
-				pU = txh->pU;
-				pV = txh->pV;
+				pU = (u8 *) txh->pU;
+				pV = (u8 *) txh->pV;
 			} else {
-				pU = pY + txh->height*txh->stride;
-				pV = pU + txh->height*txh->stride/4;
+				pU = (u8 *) pY + txh->height*txh->stride;
+				pV = (u8 *) pU + txh->height*txh->stride/4;
 			}
 
 #ifndef GPAC_USE_OGL_ES 
@@ -1012,7 +1012,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 #endif
 			txh->tx_io->pbo_pushed = 0;
 		} else {
-            do_tex_image_2d(txh, tx_mode, first_load, data, txh->stride, w, h, txh->tx_io->pbo_id);
+            do_tex_image_2d(txh, tx_mode, first_load, (u8 *) data, txh->stride, w, h, txh->tx_io->pbo_id);
 			txh->tx_io->pbo_pushed = 0;
 		}
 	} else {

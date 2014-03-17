@@ -503,7 +503,7 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 {
 	GLint blen = 0;	
 	GLsizei slen = 0;
-	u32 len;
+	s32 len;
 	if (!source || !shader_id) return 0;
 	len = (u32) strlen(source);
 	glShaderSource(shader_id, 1, &source, &len);
@@ -2554,7 +2554,7 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 		Float z;
 		static GLfloat none[3] = { 1.0f, 0, 0 };
 
-		data = gf_sc_texture_get_data(txh, &pixel_format);
+		data = (u8 *) gf_sc_texture_get_data(txh, &pixel_format);
 		if (!data) return;
 		if (pixel_format!=GF_PIXEL_RGBD) return;
 		stride = txh->stride;
@@ -2603,7 +2603,7 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 		if (!delta) first_pass = 2;
 		else first_pass = 1;
 
-		data = gf_sc_texture_get_data(txh, &pixel_format);
+		data = (u8 *) gf_sc_texture_get_data(txh, &pixel_format);
 		if (!data) return;
 		if (pixel_format!=GF_PIXEL_RGBD) return;
 		stride = txh->stride;
@@ -2627,7 +2627,7 @@ restart:
 
 		in_strip = 0;
 		for (h=0; h<txh->height - 1; h++) {
-			char *src = data + h*stride;
+			u8 *src = data + h*stride;
 			x = -1; x = gf_mulfix(x, INT2FIX(txh->width/2));
 			if (!tr_state->pixel_metrics) x  = gf_divfix(x, tr_state->min_hsize);
 
@@ -2739,13 +2739,13 @@ restart:
 		Fixed f_scale = FLT2FIX(visual->compositor->depth_gl_scale);
 		txh->needs_refresh = 0;
 
-		data = gf_sc_texture_get_data(txh, &pixel_format);
+		data = (u8 *) gf_sc_texture_get_data(txh, &pixel_format);
 		if (!data) return;
 		if (pixel_format!=GF_PIXEL_RGB_24_DEPTH) return;
 		data += txh->height*txh->width*3;
 
 		for (h=0; h<txh->height; h++) {
-			char *src = data + h * txh->width;
+			u8 *src = data + h * txh->width;
 			for (w=0; w<txh->width; w++) {
 				u8 d = src[w];
 				Fixed z = INT2FIX(d);

@@ -179,7 +179,7 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 
 	if (read->needs_connection) {
 		read->needs_connection = 0;
-		bs = gf_bs_new(read->data, read->data_size, GF_BITSTREAM_READ);
+		bs = gf_bs_new((char *) read->data, read->data_size, GF_BITSTREAM_READ);
 		sync = gf_ac3_parser_bs(bs, &hdr, 1);
 		gf_bs_del(bs);
 		if (!sync) return;
@@ -195,7 +195,7 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 	/*need a full ac3 header*/
 	if (read->data_size<=7) return;
 
-	bs = gf_bs_new(read->data, read->data_size, GF_BITSTREAM_READ);
+	bs = gf_bs_new((char *) read->data, read->data_size, GF_BITSTREAM_READ);
 	hdr.framesize = 0;
 	pos = 0;
 	while (gf_ac3_parser_bs(bs, &hdr, 0)) {
@@ -205,7 +205,7 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 		read->sl_hdr.AU_sequenceNumber++;
 		read->sl_hdr.compositionTimeStampFlag = 1;
 		read->sl_hdr.compositionTimeStamp += 1536;
-		gf_term_on_sl_packet(read->service, read->ch, read->data + pos, hdr.framesize, &read->sl_hdr, GF_OK);
+		gf_term_on_sl_packet(read->service, read->ch, (char *) read->data + pos, hdr.framesize, &read->sl_hdr, GF_OK);
 		gf_bs_skip_bytes(bs, hdr.framesize);
 	}
 
@@ -213,7 +213,7 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 	gf_bs_del(bs);
 
 	if (pos) {
-		char *d;
+		u8 *d;
 		read->data_size -= (u32) pos;
 		d = gf_malloc(sizeof(char) * read->data_size);
 		memcpy(d, read->data + pos, sizeof(char) * read->data_size);
@@ -589,12 +589,12 @@ fetch_next:
 		read->sl_hdr.compositionTimeStamp = read->current_time;
 
 		read->data = gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
-		gf_bs_read_data(bs, read->data, read->data_size);
+		gf_bs_read_data(bs, (char *) read->data, read->data_size);
 		if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
 		gf_bs_del(bs);
 	}
 	*out_sl_hdr = read->sl_hdr;
-	*out_data_ptr = read->data;
+	*out_data_ptr =(char *) read->data;
 	*out_data_size = read->data_size;
 	return GF_OK;
 }

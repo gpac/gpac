@@ -296,7 +296,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 						au_start_in_pes = 1;
 						if (pes_hdr->data_alignment && !first_nal_offset_in_pck && !pes->single_nal_mode) {
 							full_au_pes_mode = GF_TRUE;
-							au_start = pck.data;
+							au_start = (u8 *) pck.data;
 						} else {
 							ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 						}
@@ -362,7 +362,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 						au_start_in_pes = 1;
 						if (pes_hdr->data_alignment && !first_nal_offset_in_pck && !pes->single_nal_mode) {
 							full_au_pes_mode = GF_TRUE;
-							au_start = pck.data;
+							au_start = (u8 *) pck.data;
 						} else {
 							ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 						}
@@ -2681,7 +2681,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 
 static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_AdaptationField *paf, unsigned char *data, u32 size, u32 pid)
 {
-	char *af_extension;
+	unsigned char *af_extension;
 	paf->discontinuity_indicator = (data[0] & 0x80) ? 1 : 0;
 	paf->random_access_indicator = (data[0] & 0x40) ? 1 : 0;
 	paf->priority_indicator = (data[0] & 0x20) ? 1 : 0;
@@ -2745,7 +2745,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Descriptor found (tag %d) size is %d but only %d bytes available\n", pid, desc_tag, desc_len, afext_bytes));
 					break;
 				}
-				desc = af_extension+2;
+				desc = (char *) af_extension+2;
 
 				bs = gf_bs_new(desc, desc_len, GF_BITSTREAM_READ);
 				switch (desc_tag) {

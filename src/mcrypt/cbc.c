@@ -30,8 +30,9 @@ typedef struct cbc_buf {
 /* CBC MODE */
 
 
-static GF_Err _init_mcrypt( CBC_BUFFER* buf,void *key, int lenofkey, void *IV, int size)
+static GF_Err _init_mcrypt( void* _buf,void *key, int lenofkey, void *IV, int size)
 {
+    CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
 /* For cbc */
 	buf->previous_ciphertext =
 	buf->previous_cipher = NULL;
@@ -58,9 +59,10 @@ static GF_Err _init_mcrypt( CBC_BUFFER* buf,void *key, int lenofkey, void *IV, i
 		return GF_OUT_OF_MEM;
 }
 
-static GF_Err _mcrypt_set_state( CBC_BUFFER* buf, void *IV, int size)
+static GF_Err _mcrypt_set_state( void* _buf, void *IV, int size)
 {
 /* For cbc */
+    CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
 
 	memcpy(buf->previous_ciphertext, IV, size);
 	memcpy(buf->previous_cipher, IV, size);
@@ -68,8 +70,9 @@ static GF_Err _mcrypt_set_state( CBC_BUFFER* buf, void *IV, int size)
 	return GF_OK;
 }
 
-static GF_Err _mcrypt_get_state( CBC_BUFFER* buf, void *IV, int *size)
+static GF_Err _mcrypt_get_state( void* _buf, void *IV, int *size)
 {
+    CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
 	if (*size < buf->blocksize) {
 		*size = buf->blocksize;
 		return GF_BAD_PARAM;
@@ -82,13 +85,15 @@ static GF_Err _mcrypt_get_state( CBC_BUFFER* buf, void *IV, int *size)
 }
 
 
-static void _end_mcrypt( CBC_BUFFER* buf) {
+static void _end_mcrypt( void* _buf) {
+    CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
 	gf_free(buf->previous_ciphertext);
 	gf_free(buf->previous_cipher);
 }
 
-static GF_Err _mcrypt( CBC_BUFFER* buf, void *plaintext, int len, int blocksize, void* akey, void (*func)(void*,void*), void (*func2)(void*,void*))
+static GF_Err _mcrypt( void* _buf, void *plaintext, int len, int blocksize, void* akey, void (*func)(void*,void*), void (*func2)(void*,void*))
 {
+    CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
 	u32 *fplain = plaintext;
 	u32 *plain;
 	int dblock, dlen, i, j; 
@@ -117,8 +122,9 @@ static GF_Err _mcrypt( CBC_BUFFER* buf, void *plaintext, int len, int blocksize,
 
 
 
-static GF_Err _mdecrypt( CBC_BUFFER* buf, void *ciphertext, int len, int blocksize,void* akey, void (*func)(void*,void*), void (*func2)(void*,void*))
+static GF_Err _mdecrypt( void* _buf, void *ciphertext, int len, int blocksize,void* akey, void (*func)(void*,void*), void (*func2)(void*,void*))
 {
+    CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
 	u32 *cipher;
 	u32 *fcipher = ciphertext;
 	int i, j, dlen, dblock; 

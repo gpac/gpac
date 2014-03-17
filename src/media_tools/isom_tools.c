@@ -2286,8 +2286,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		GF_ISOSample *sample = gf_isom_get_sample(file, track, i+1, &di);
 
-	
-		data = sample->data;
+		data = (u8 *) sample->data;
 		size = sample->dataLength;
 		sample->data = NULL;
 		sample->dataLength = 0;
@@ -2297,7 +2296,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 			if (e)
 				goto err_exit;
 		}
-		sample->data = data;
+		sample->data = (char *) data;
 		cur_tile = 0;
 
 		while (size) {
@@ -2323,13 +2322,13 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 			case GF_HEVC_NALU_SLICE_RADL_R:
 			case GF_HEVC_NALU_SLICE_RASL_R:
 				//ret = hevc_parse_slice_segment(bs, hevc, &n_state);
-				e = gf_isom_append_sample_data(file, tiles_track[cur_tile], data, nalu_size + nalu_size_length);
+				e = gf_isom_append_sample_data(file, tiles_track[cur_tile], (char *) data, nalu_size + nalu_size_length);
 				if (e)
 					goto err_exit;
 				cur_tile++;
 				break;
 			default:
-				gf_bs_write_data(bs, data, nalu_size + nalu_size_length);
+				gf_bs_write_data(bs, (char *) data, nalu_size + nalu_size_length);
 				break;
 			}
 			data += nalu_size + nalu_size_length;
@@ -2625,7 +2624,7 @@ GF_Err gf_media_split_tiles(GF_ISOFile *file)
 		GF_ISOSample *sample = gf_isom_get_sample(file, track, i+1, &di);
 
 	
-		data = sample->data;
+		data = (u8 *) sample->data;
 		size = sample->dataLength;
 		sample->data = NULL;
 		sample->dataLength = 0;
@@ -2657,10 +2656,10 @@ GF_Err gf_media_split_tiles(GF_ISOFile *file)
 			case GF_HEVC_NALU_SLICE_RADL_R:
 			case GF_HEVC_NALU_SLICE_RASL_R:
 				//ret = hevc_parse_slice_segment(bs, hevc, &n_state);
-				gf_isom_append_sample_data(file, track, data, nalu_size + nalu_size_length);
+				gf_isom_append_sample_data(file, track, (char *) data, nalu_size + nalu_size_length);
 				break;
 			default:
-				gf_bs_write_data(bs, data, nalu_size + nalu_size_length);
+				gf_bs_write_data(bs, (char *) data, nalu_size + nalu_size_length);
 				break;
 			}
 			data += nalu_size + nalu_size_length;

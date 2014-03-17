@@ -456,7 +456,7 @@ static RTPChannel *set_broadcast_params(LiveSession *livesess, u16 esid, u32 per
 int live_session(int argc, char **argv)
 {
 	GF_Err e;
-	int i;
+	u32 i;
 	char *filename = NULL;
 	char *dst = NULL;
 	char *ifce_addr = NULL;
@@ -819,7 +819,7 @@ int live_session(int argc, char **argv)
 			gf_sleep(10);
 			continue;
 		}
-		ch = next_carousel(&livesess, &next_time); 
+		ch = next_carousel(&livesess, (u32 *) &next_time); 
 		if ((ch==NULL) || (next_time > 20)) {
 			gf_sleep(20);
 			continue;

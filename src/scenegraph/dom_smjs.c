@@ -612,7 +612,7 @@ static SMJS_FUNC_PROP_GET( dom_nodelist_getProperty)
 
 	DOMNodeList *nl;
 	u32			count;
-	u32			idx;
+	s32			idx;
 	if (!GF_JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL)) {
 		return JS_TRUE;
 	}

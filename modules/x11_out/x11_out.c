@@ -1400,9 +1400,9 @@ retry_8bpp:
 		typedef int (* FnGlXGetFBConfigAttrib) (Display *  dpy,  GLXFBConfig  config,  int  attribute,  int *  value);
 
 
-		FnGlXChooseFBConfigProc my_glXChooseFBConfig = (FnGlXChooseFBConfigProc) glXGetProcAddress("glXChooseFBConfig");
-		FnGlXGetVisualFromFBConfigProc my_glXGetVisualFromFBConfig = (FnGlXGetVisualFromFBConfigProc)glXGetProcAddress("glXGetVisualFromFBConfig");
-		FnGlXGetFBConfigAttrib my_glXGetFBConfigAttrib = (FnGlXGetFBConfigAttrib)glXGetProcAddress("glXGetFBConfigAttrib");
+		FnGlXChooseFBConfigProc my_glXChooseFBConfig = (FnGlXChooseFBConfigProc) glXGetProcAddress((GLubyte*) "glXChooseFBConfig");
+		FnGlXGetVisualFromFBConfigProc my_glXGetVisualFromFBConfig = (FnGlXGetVisualFromFBConfigProc)glXGetProcAddress((GLubyte*) "glXGetVisualFromFBConfig");
+		FnGlXGetFBConfigAttrib my_glXGetFBConfigAttrib = (FnGlXGetFBConfigAttrib)glXGetProcAddress((GLubyte*) "glXGetFBConfigAttrib");
 
 		if (my_glXChooseFBConfig && my_glXGetVisualFromFBConfig) {
 			fb = my_glXChooseFBConfig(xWindow->display, xWindow->screennum, attribs, &fbcount);

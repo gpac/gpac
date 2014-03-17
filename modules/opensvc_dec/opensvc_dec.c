@@ -80,13 +80,14 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 		/*decode all NALUs*/
 		count = gf_list_count(cfg->sequenceParameterSets);
-        SetCommandLayer(Layer, 255, 0, &i, 0);//bufindex can be reset without pb
+        SetCommandLayer(Layer, 255, 0, &res, 0);//bufindex can be reset without pb
 		for (i=0; i<count; i++) {
-			u32 w=0, h=0, par_n=0, par_d=0;
+			u32 w=0, h=0, sid;
+            s32 par_n=0, par_d=0;
 			GF_AVCConfigSlot *slc = gf_list_get(cfg->sequenceParameterSets, i);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-			gf_avc_get_sps_info(slc->data, slc->size, &slc->id, &w, &h, &par_n, &par_d);
+			gf_avc_get_sps_info(slc->data, slc->size, &sid, &w, &h, &par_n, &par_d);
 #endif
 			/*by default use the base layer*/
 			if (!i) {
@@ -97,7 +98,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 						ctx->pixel_ar = (par_n<<16) || par_d;
 				}
 			}
-			res = decodeNAL(ctx->codec, slc->data, slc->size, &Picture, Layer);
+			res = decodeNAL(ctx->codec, (unsigned char *) slc->data, slc->size, &Picture, Layer);
 			if (res<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding SPS %d\n", res));
 			}
@@ -109,7 +110,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			u32 sps_id, pps_id;
 			GF_AVCConfigSlot *slc = gf_list_get(cfg->pictureParameterSets, i);
 			gf_avc_get_pps_info(slc->data, slc->size, &pps_id, &sps_id);
-			res = decodeNAL(ctx->codec, slc->data, slc->size, &Picture, Layer);
+			res = decodeNAL(ctx->codec, (unsigned char *) slc->data, slc->size, &Picture, Layer);
 			if (res<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding PPS %d\n", res));
 			}
@@ -233,7 +234,7 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 		return GF_BUFFER_TOO_SMALL;
 	}
 
-	ctx->MaxDqId = GetDqIdMax(inBuffer, inBufferLength, ctx->nalu_size_length, ctx->DqIdTable, ctx->nalu_size_length ? 1 : 0);
+	ctx->MaxDqId = GetDqIdMax((unsigned char *) inBuffer, inBufferLength, ctx->nalu_size_length, ctx->DqIdTable, ctx->nalu_size_length ? 1 : 0);
 	if (!ctx->init_layer_set) {
 		//AVC stream in a h264 file 
 		if (ctx->MaxDqId == -1) 
@@ -249,12 +250,12 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 
 	got_pic = 0;
 	nalu_size = 0;
-	ptr = inBuffer;
+	ptr = (u8 *) inBuffer;
 
 	if (!ctx->nalu_size_length) {
 		u32 size;
 		sc_size = 0;
-		size = gf_media_nalu_next_start_code(inBuffer, inBufferLength, &sc_size);
+		size = gf_media_nalu_next_start_code((u8 *) inBuffer, inBufferLength, &sc_size);
 		if (sc_size) {
 			ptr += size+sc_size;
 			assert(inBufferLength >= size+sc_size);

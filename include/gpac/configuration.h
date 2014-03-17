@@ -31,20 +31,17 @@
 
 /*this file defines all common macros for libgpac compilation
   except for symbian32 which uses .mmp directives ... */
-#if defined(WIN32) || defined(_WIN32_WCE) || defined(GPAC_CONFIG_DARWIN) /*visual studio and xcode*/
 
-/*enables GPAC fixed point*/
-//#define GPAC_FIXED_POINT
+
+/*visual studio and xcode*/
+#if defined(WIN32) || defined(_WIN32_WCE) || defined(GPAC_CONFIG_DARWIN) 
 
 /*enables GPAC memory tracking in debug mode only*/
 #if defined(DEBUG) || defined(_DEBUG)
 #define GPAC_MEMORY_TRACKING
 #endif
 
-/*platform is big endian*/
-//#define GPAC_BIG_ENDIAN
-
-/*SSL enabled*/
+/*SSL enabled - no 64 bit support yet*/
 #if defined(WIN32) && !defined(_WIN64)
 #define GPAC_HAS_SSL
 #endif
@@ -53,47 +50,48 @@
 #define GPAC_HAS_SPIDERMONKEY
 #ifdef GPAC_CONFIG_DARWIN
 #define MOZILLA_1_8_BRANCH
+#define XP_UNIX
 #endif
-
-/*zlib enabled*/
-//#define GPAC_DISABLE_ZLIB
 
 /*libjpeg enabled*/
 #define GPAC_HAS_JPEG
-
 /*pnj enabled*/
 #define GPAC_HAS_PNG
 
 /*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
-//#define GPAC_HAS_IPV6
 
-/*3D compositor disabled*/
-#ifdef GPAC_CONFIG_DARWIN
-//#define GPAC_DISABLE_3D
-#endif
 
-/*use TinyGL instead of OpenGL*/
-//#define GPAC_USE_TINYGL
+//iOS compilation
+#if defined(GPAC_CONFIG_DARWIN) && defined(GPAC_IPHONE)
 
-/*use OpenGL ES instead of OpenGL*/
-#ifdef GPAC_CONFIG_DARWIN
 #define GPAC_USE_OGL_ES
 #define GPAC_FIXED_POINT
-#ifdef GPAC_IPHONE
 #define GPAC_HAS_GLU
-#endif
-#endif
-
 
 /*lazy definition of extra libs for iOS*/
-#if defined(GPAC_IPHONE)
 #define GPAC_HAS_FAAD
 //#define GPAC_HAS_MAD
 #define GPAC_HAS_SDL
 #define GPAC_HAS_FREETYPE
+
+#endif //end iOS flags
+
+
+//OSX compilation
+#if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
+
+#define GPAC_HAS_IPV6
+#define GPAC_HAS_SSL
+
+#ifdef __LP64__
+#define GPAC_64_BITS
 #endif
 
+#endif  //end OSX flags
 
+
+
+//WinCE flags
 #if defined(_WIN32_WCE)
 
 #ifndef GPAC_FIXED_POINT
@@ -113,11 +111,11 @@
 #define GPAC_USE_OGL_ES
 #endif
 
-#endif /*_WIN32_WCE*/
+#endif //WinCE flags
 
 
 
-#endif /*defined(WIN32) || defined(_WIN32_WCE)*/
+#endif /*defined(WIN32) || defined(_WIN32_WCE) || defined(GPAC_CONFIG_DARWIN)*/
 
 
 #if defined(__SYMBIAN32__)
