@@ -36,9 +36,14 @@
 #  pragma comment(lib, "libLibOpenHevcWrapper")
 #endif
 
-#ifdef OPEN_SHVC
-void libOpenHevcSetActiveDecoders(OpenHevc_Handle openHevcHandle, int val);
-void libOpenHevcSetViewLayers(OpenHevc_Handle openHevcHandle, int val);
+//temporary hack for WIN32 version
+#if defined(_WIN32) && !defined (WIN64)
+void libOpenHevcSetActiveDecoders(OpenHevc_Handle openHevcHandle, int val)
+{
+}
+void libOpenHevcSetViewLayers(OpenHevc_Handle openHevcHandle, int val)
+{
+}
 #endif
 
 typedef struct
