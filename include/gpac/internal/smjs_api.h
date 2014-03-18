@@ -34,6 +34,10 @@
 #endif
 #endif
 
+#if defined(DEBUG) && defined(GPAC_CONFIG_DARWIN)
+#undef DEBUG
+#endif
+
 #include <jsapi.h>
 
 #ifndef JS_VERSION

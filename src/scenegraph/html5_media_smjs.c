@@ -1226,7 +1226,7 @@ static SMJS_FUNC_PROP_GET(html_track_list_get_selected_index)
 static SMJS_FUNC_PROP_GET(html_track_list_get_onchange)
 	if (html_is_track_list(c, obj)) {
         GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
-		if (tracklist->onchange) {
+		if (! JSVAL_IS_NULL(tracklist->onchange)) {
 			*vp = tracklist->onchange;
 		} else {
 			*vp = JSVAL_NULL;
@@ -1252,7 +1252,7 @@ static SMJS_FUNC_PROP_SET(html_track_list_set_onchange)
 static SMJS_FUNC_PROP_GET(html_track_list_get_onaddtrack)
 	if (html_is_track_list(c, obj)) {
         GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
-		if (tracklist->onaddtrack) {
+		if (! JSVAL_IS_NULL(tracklist->onaddtrack)) {
 			*vp = tracklist->onaddtrack;
 		} else {
 			*vp = JSVAL_NULL;
@@ -1276,7 +1276,7 @@ static SMJS_FUNC_PROP_SET(html_track_list_set_onaddtrack)
 static SMJS_FUNC_PROP_GET(html_track_list_get_onremovetrack)
 	if (html_is_track_list(c, obj)) {
         GF_HTML_TrackList *tracklist = (GF_HTML_TrackList *)SMJS_GET_PRIVATE(c, obj);
-		if (tracklist->onremovetrack) {
+		if (! JSVAL_IS_NULL(tracklist->onremovetrack) ) {
 			*vp = tracklist->onremovetrack;
 		} else {
 			*vp = JSVAL_NULL;

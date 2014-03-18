@@ -950,7 +950,13 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node)
 		hdl = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 		if (!hdl) continue;
 		if (! JSVAL_IS_NULL(funval) ) {
+#if (JS_VERSION>=185)
+            JSBool res = JS_FALSE;
+            if (! JS_StrictlyEqual(c, funval, *(jsval *)&hdl->js_fun_val, &res)) 
+                continue;
+#else
 			if (funval != *(jsval *)&hdl->js_fun_val) continue;
+#endif
 		} else if (hdl->children) {
 			txt = (GF_DOMText *) hdl->children->node;
 			if (txt->sgprivate->tag != TAG_DOMText) continue;
@@ -2855,14 +2861,14 @@ static DECL_FINALIZE(xml_http_finalize)
 	if (!GF_JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return;
 	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
 	if (ctx) {
-		if (ctx->onabort)				gf_js_remove_root(c, &(ctx->onabort), GF_JSGC_VAL);
-		if (ctx->onerror)				gf_js_remove_root(c, &(ctx->onerror), GF_JSGC_VAL);
-		if (ctx->onload)					gf_js_remove_root(c, &(ctx->onload), GF_JSGC_VAL);
-		if (ctx->onloadend)				gf_js_remove_root(c, &(ctx->onloadend), GF_JSGC_VAL);
-		if (ctx->onloadstart)			gf_js_remove_root(c, &(ctx->onloadstart), GF_JSGC_VAL);
-		if (ctx->onprogress)				gf_js_remove_root(c, &(ctx->onprogress), GF_JSGC_VAL);
-		if (ctx->onreadystatechange)		gf_js_remove_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
-		if (ctx->ontimeout)				gf_js_remove_root(c, &(ctx->ontimeout), GF_JSGC_VAL);
+		if (! JSVAL_IS_NULL(ctx->onabort))				gf_js_remove_root(c, &(ctx->onabort), GF_JSGC_VAL);
+		if (! JSVAL_IS_NULL(ctx->onerror))				gf_js_remove_root(c, &(ctx->onerror), GF_JSGC_VAL);
+		if (! JSVAL_IS_NULL(ctx->onload))					gf_js_remove_root(c, &(ctx->onload), GF_JSGC_VAL);
+		if (! JSVAL_IS_NULL(ctx->onloadend))				gf_js_remove_root(c, &(ctx->onloadend), GF_JSGC_VAL);
+		if (! JSVAL_IS_NULL(ctx->onloadstart))			gf_js_remove_root(c, &(ctx->onloadstart), GF_JSGC_VAL);
+		if (! JSVAL_IS_NULL(ctx->onprogress))				gf_js_remove_root(c, &(ctx->onprogress), GF_JSGC_VAL);
+		if (! JSVAL_IS_NULL(ctx->onreadystatechange))		gf_js_remove_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
+		if (! JSVAL_IS_NULL(ctx->ontimeout))				gf_js_remove_root(c, &(ctx->ontimeout), GF_JSGC_VAL);
 		xml_http_reset(ctx);
 		gf_dom_event_target_del(ctx->event_target);
 		ctx->event_target = NULL;
@@ -2902,7 +2908,7 @@ static void xml_http_state_change(XMLHTTPContext *ctx)
 	jsval rval;
 	
 	gf_sg_lock_javascript(ctx->c, GF_TRUE);
-	if (ctx->onreadystatechange)
+	if (! JSVAL_IS_NULL(ctx->onreadystatechange))
 		JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onreadystatechange, 0, NULL, &rval);
 
 	gf_sg_lock_javascript(ctx->c, GF_FALSE);
@@ -2987,7 +2993,7 @@ static JSBool SMJS_FUNCTION(xml_http_open)
 	ctx->readyState = XHR_READYSTATE_OPENED;
 	xml_http_state_change(ctx);
 	xml_http_fire_event(ctx, GF_EVENT_MEDIA_LOAD_START);
-	if (ctx->onloadstart) {
+	if (! JSVAL_IS_NULL(ctx->onloadstart) ) {
 		jsval rval;
 		return JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onloadstart, 0, NULL, &rval);
 	}
@@ -3106,11 +3112,11 @@ static void xml_http_terminate(XMLHTTPContext *ctx, GF_Err error)
 	xml_http_state_change(ctx);
 	xml_http_fire_event(ctx, GF_EVENT_LOAD);
 	xml_http_fire_event(ctx, GF_EVENT_MEDIA_LOAD_DONE);
-	if (ctx->onload) {
+	if (! JSVAL_IS_NULL(ctx->onload)) {
 		jsval rval;
 		JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onload, 0, NULL, &rval);
 	}
-	if (ctx->onloadend) {
+	if (! JSVAL_IS_NULL(ctx->onloadend)) {
 		jsval rval;
 		JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onloadend, 0, NULL, &rval);
 	}
@@ -3153,7 +3159,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		ctx->readyState = XHR_READYSTATE_HEADERS_RECEIVED;
 		xml_http_state_change(ctx);
 		xml_http_fire_event(ctx, GF_EVENT_MEDIA_PROGRESS);
-		if (ctx->onprogress) {
+		if (! JSVAL_IS_NULL(ctx->onprogress) ) {
 			jsval rval;
 			JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onprogress, 0, NULL, &rval);
 		}
@@ -3169,7 +3175,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		ctx->readyState = XHR_READYSTATE_HEADERS_RECEIVED;
 		xml_http_state_change(ctx);
 		xml_http_fire_event(ctx, GF_EVENT_MEDIA_PROGRESS);
-		if (ctx->onprogress) {
+		if (! JSVAL_IS_NULL(ctx->onprogress) ) {
 			jsval rval;
 			JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onprogress, 0, NULL, &rval);
 		}
@@ -3267,7 +3273,7 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 		ctx->html_status = 404;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] cannot open local file %s\n", ctx->url));
 		xml_http_fire_event(ctx, GF_EVENT_ERROR);
-		if (ctx->onerror) {
+		if (! JSVAL_IS_NULL(ctx->onerror) ) {
 			jsval rval;
 			JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onerror, 0, NULL, &rval);
 		}
@@ -3406,7 +3412,7 @@ static JSBool SMJS_FUNCTION(xml_http_abort)
 	if (sess) gf_dm_sess_del(sess);
 
 	xml_http_fire_event(ctx, GF_EVENT_ABORT);
-	if (ctx->onabort) {
+	if (! JSVAL_IS_NULL(ctx->onabort)) {
 		jsval rval;
 		return JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onabort, 0, NULL, &rval);
 	}
@@ -3528,42 +3534,42 @@ static SMJS_FUNC_PROP_GET(xml_http_getProperty)
 		*vp = JSVAL_VOID;
 		switch (SMJS_ID_TO_INT(id)) {
 		case XHR_ONABORT:
-			if (ctx->onabort) {
+			if (! JSVAL_IS_NULL(ctx->onabort)) {
 				*vp = ctx->onabort;
 			}
 			return JS_TRUE;
 		case XHR_ONERROR:
-			if (ctx->onerror) {
+			if (! JSVAL_IS_NULL(ctx->onerror)) {
 				*vp = ctx->onerror;
 			}
 			return JS_TRUE;
 		case XHR_ONLOAD:
-			if (ctx->onload) {
+			if (! JSVAL_IS_NULL(ctx->onload)) {
 				*vp = ctx->onload;
 			}
 			return JS_TRUE;
 		case XHR_ONLOADSTART:
-			if (ctx->onloadstart) {
+			if (! JSVAL_IS_NULL(ctx->onloadstart) ) {
 				*vp = ctx->onloadstart;
 			}
 			return JS_TRUE;
 		case XHR_ONLOADEND:
-			if (ctx->onloadend) {
+			if (! JSVAL_IS_NULL(ctx->onloadend)) {
 				*vp = ctx->onloadend;
 			}
 			return JS_TRUE;
 		case XHR_ONPROGRESS:
-			if (ctx->onprogress) {
+			if (! JSVAL_IS_NULL(ctx->onprogress) ) {
 				*vp = ctx->onprogress;
 			}
 			return JS_TRUE;
 		case XHR_ONREADYSTATECHANGE:
-			if (ctx->onreadystatechange) {
+			if (! JSVAL_IS_NULL(ctx->onreadystatechange)) {
 				*vp = ctx->onreadystatechange;
 			}
 			return JS_TRUE;
 		case XHR_ONTIMEOUT:
-			if (ctx->ontimeout) {
+			if (! JSVAL_IS_NULL(ctx->ontimeout)) {
 				*vp = ctx->ontimeout;
 			}
 			return JS_TRUE;
@@ -3706,7 +3712,7 @@ static SMJS_FUNC_PROP_GET(xml_http_getProperty)
 
 JSBool gf_set_js_eventhandler(JSContext *c, jsval vp, jsval *callbackfuncval) {
 	if (!callbackfuncval) return JS_FALSE;
-	if (*callbackfuncval) {
+	if (! JSVAL_IS_NULL( *callbackfuncval )) {
 		gf_js_remove_root(c, callbackfuncval, GF_JSGC_VAL);
 	}
 	if (JSVAL_IS_VOID(vp)) {
@@ -3720,7 +3726,7 @@ JSBool gf_set_js_eventhandler(JSContext *c, jsval vp, jsval *callbackfuncval) {
 	} else if (JSVAL_IS_OBJECT(vp)) {
 		*callbackfuncval = vp;
 	}
-	if (*callbackfuncval) {
+	if (! JSVAL_IS_NULL( *callbackfuncval )) {
 		gf_js_add_root(c, callbackfuncval, GF_JSGC_VAL);
 	}
 	return JS_TRUE;
@@ -4070,8 +4076,10 @@ static JSBool SMJS_FUNCTION(dcci_search_property)
 static SMJS_FUNC_PROP_GET( storage_getProperty)
 
 	/*avoids gcc warning*/
-	if (!id) id=0;
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
+#ifndef GPAC_CONFIG_DARWIN
+    if (!id) id=0;
+#endif
+    if (!GF_JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
 	*vp = JSVAL_VOID;
 	return JS_TRUE;
 }
@@ -4079,7 +4087,9 @@ static SMJS_FUNC_PROP_GET( storage_getProperty)
 static SMJS_FUNC_PROP_SET_NOVP( storage_setProperty)
 
 	/*avoids gcc warning*/
-	if (!id) id=0;
+#ifndef GPAC_CONFIG_DARWIN
+    if (!id) id=0;
+#endif
 	if (!GF_JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
 	return JS_TRUE;
 }

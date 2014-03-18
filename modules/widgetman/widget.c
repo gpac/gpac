@@ -385,8 +385,10 @@ SMJS_FUNC_PROP_SET( widget_setProperty)
 
 	/*avoids GCC warning*/
 	if (!obj) obj = NULL;
+#ifndef GPAC_CONFIG_DARWIN
 	if (!id) id=0;
-	if (!vp) vp=0;
+#endif
+    if (!vp) vp=0;
 	return JS_TRUE;
 }
 

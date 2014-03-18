@@ -3332,6 +3332,8 @@
 					GPAC_STATIC_MODULES,
 					GPAC_CONFIG_DARWIN,
 					CONFIG_DARWIN_GL,
+					NO_JS_RUNTIMETHREAD,
+					SPIDERMONKEY_NEW_API,
 					"DEBUG=1",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
@@ -3342,14 +3344,13 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/local/include,
-					/opt/local/include/js,
-					/usr/local/include,
-					/usr/local/include/js,
+					/opt/local/include/mozjs185,
+					/opt/local/include/nspr,
 					../../include,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/opt/local/lib,
-					/usr/local/lib,
+					/opt/local/lib/nspr,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
@@ -3358,9 +3359,12 @@
 				OTHER_LDFLAGS = (
 					"-lcrypto",
 					"-lssl",
-					"-ljs",
 					"-ljpeg",
 					"-lpng",
+					"-lmozjs185",
+					"-lplds4",
+					"-lplc4",
+					"-lnspr4",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3390,14 +3394,13 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/local/include,
-					/opt/local/include/js,
-					/usr/local/include,
-					/usr/local/include/js,
+					/opt/local/include/mozjs185,
+					/opt/local/include/nspr,
 					../../include,
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/opt/local/lib,
-					/usr/local/lib,
+					/opt/local/lib/nspr,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
@@ -3405,9 +3408,12 @@
 				OTHER_LDFLAGS = (
 					"-lcrypto",
 					"-lssl",
-					"-ljs",
 					"-ljpeg",
 					"-lpng",
+					"-lmozjs185",
+					"-lplds4",
+					"-lplc4",
+					"-lnspr4",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -4245,6 +4251,7 @@
 				9225732618D7267900D6FD98 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		92AAF0D418D6DB2D00E2FF12 /* Build configuration list for PBXNativeTarget "sdl_out" */ = {
 			isa = XCConfigurationList;

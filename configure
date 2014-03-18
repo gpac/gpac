@@ -913,31 +913,26 @@ EOF
                         else
 				js_flags="-DUSE_FFDEV_14 $js_flags"
          		fi
-                else
-cat > $TMPC << EOF
-#include <jsapi.h>
-int main( void ) { JSContext *cx; JS_SetContextThread(cx); }
-EOF
-		        if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
-cat > $TMPC << EOF
-#include <jsapi.h>
-int main( void ) { JSContext *cx; JS_SetRuntimeThread(cx); }
-EOF
-			        if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
-			            js_flags="$js_flags"
-			        else
-			            js_flags="-DNO_JS_RUNTIMETHREAD $js_flags"
-			        fi
-		        else
-		            js_flags="-DUSE_FFDEV_11 $js_flags"
-		        fi
                 fi
             fi
         fi
     fi
 fi
 
-#fi
+
+
+if test "$has_js" != "no" ; then
+cat > $TMPC << EOF
+cat > $TMPC << EOF
+#include <jsapi.h>
+int main( void ) { JSContext *cx; JS_SetRuntimeThread(cx); }
+EOF
+	if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
+		js_flags="$js_flags"
+	else
+		js_flags="-DNO_JS_RUNTIMETHREAD $js_flags"
+	fi
+fi
 
 
 #end JS test
