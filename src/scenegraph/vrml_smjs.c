@@ -229,7 +229,7 @@ Bool gf_js_remove_root(JSContext *cx, void *rp, u32 type)
 		if (!cx) JS_RemoveValueRootRT(js_rt->js_runtime, rp);
 		else 
 #endif
-			JS_RemoveValueRoot(cx, rp);
+			JS_RemoveValueRoot(cx, (jsval *) rp);
 		break;
 	default:
 		if (cx) JS_RemoveGCThingRoot(cx, rp);
@@ -2887,8 +2887,10 @@ static SMJS_FUNC_PROP_SET( array_setLength)
 	GF_JSField *ptr = (GF_JSField *) SMJS_GET_PRIVATE(c, obj);
 	if (!JSVAL_IS_INT(*vp) || JSVAL_TO_INT(*vp) < 0) return JS_FALSE;
 	/*avoids gcc warning*/
+#ifndef GPAC_CONFIG_DARWIN
 	if (!id) id=0;
-	len = JSVAL_TO_INT(*vp);
+#endif
+    len = JSVAL_TO_INT(*vp);
 
 
 	if (!len) {
@@ -2968,8 +2970,9 @@ static SMJS_FUNC_PROP_GET( array_getLength)
 	jsuint len;
 	GF_JSField *ptr = (GF_JSField *) SMJS_GET_PRIVATE(c, obj);
 	/*avoids gcc warning*/
+#ifndef GPAC_CONFIG_DARWIN
 	if (!id) id=0;
-
+#endif
 	if (ptr->field.fieldType==GF_SG_VRML_MFNODE) {
 		len = gf_node_list_get_count(*(GF_ChildNodeItem **)ptr->field.far_ptr);
 		ret = JS_TRUE;
