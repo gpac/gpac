@@ -4274,6 +4274,8 @@ restart_import:
 	e = gf_isom_avc_config_new(import->dest, track, avccfg, NULL, NULL, &di);
 	if (e) goto exit;
 
+	gf_isom_set_nalu_extract_mode(import->dest, track, GF_ISOM_NALU_EXTRACT_INSPECT);
+
 	sample_data = NULL;
 	sample_is_rap = 0;
 	sample_has_islice = 0;
@@ -5206,6 +5208,7 @@ restart_import:
 	e = gf_isom_hevc_config_new(import->dest, track, hevc_cfg, NULL, NULL, &di);
 	if (e) goto exit;
 
+	gf_isom_set_nalu_extract_mode(import->dest, track, GF_ISOM_NALU_EXTRACT_INSPECT);
 	memset(layer_ids, 0, sizeof(u8)*64);
 
 	sample_data = NULL;
@@ -5380,12 +5383,6 @@ restart_import:
 				dst_cfg->luma_bit_depth = hevc.sps[idx].bit_depth_luma;
 				dst_cfg->chroma_bit_depth = hevc.sps[idx].bit_depth_chroma;
 
-				//need VUI for these ...
-				//u16 min_spatial_segmentation_idc;
-				//u8 parallelismType;
-				//u16 avgFrameRate;
-				//u8 constantFrameRate;
-
 				if (!spss) {
 					GF_SAFEALLOC(spss, GF_HEVCParamArray);
 					spss->nalus = gf_list_new();
@@ -5458,15 +5455,6 @@ restart_import:
 			if (hevc.pps[idx].state==1) {
 				hevc.pps[idx].state = 2;
 				hevc.pps[idx].crc = gf_crc_32(buffer, nal_size);
-
-				if (!hevc.pps[idx].entropy_coding_sync_enabled_flag && !hevc.pps[idx].tiles_enabled_flag)
-					dst_cfg->parallelismType = 1;
-				else if (!hevc.pps[idx].entropy_coding_sync_enabled_flag && hevc.pps[idx].tiles_enabled_flag)
-					dst_cfg->parallelismType = 2;
-				else if (hevc.pps[idx].entropy_coding_sync_enabled_flag && !hevc.pps[idx].tiles_enabled_flag)
-					dst_cfg->parallelismType = 3;
-				else 
-					dst_cfg->parallelismType = 0;
 				
 				if (!ppss) {
 					GF_SAFEALLOC(ppss, GF_HEVCParamArray);
@@ -5892,6 +5880,12 @@ next_nal:
 		gf_isom_hevc_config_update(import->dest, track, 1, hevc_cfg);
 		if (gf_list_count(shvc_cfg->param_array)) {
 			hevc_set_parall_type(shvc_cfg);
+
+			shvc_cfg->avgFrameRate = hevc_cfg->avgFrameRate;
+			shvc_cfg->constantFrameRate = hevc_cfg->constantFrameRate;
+			shvc_cfg->numTemporalLayers = hevc_cfg->numTemporalLayers;
+			shvc_cfg->temporalIdNested = hevc_cfg->temporalIdNested;
+
 			gf_isom_shvc_config_update(import->dest, track, 1, shvc_cfg, 1);
 		}
 	} else {
@@ -7049,7 +7043,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					tsimp->nb_video++;
 					break;
 				case GF_M2TS_VIDEO_HEVC:
-					import->tk_info[idx].media_type = GF_4CC('H','E','V','C');
+				case GF_M2TS_VIDEO_SHVC:
+					import->tk_info[idx].media_type = (es->stream_type==GF_M2TS_VIDEO_SHVC) ? GF_4CC('S','H','V','C') : GF_4CC('H','E','V','C');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;

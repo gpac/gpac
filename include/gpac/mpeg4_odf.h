@@ -922,7 +922,7 @@ typedef struct
 	
 	GF_List *param_array;
 
-	//set by libisomedia at impport/export time
+	//set by libisomedia at import/export time
 	Bool is_shvc;
 
 	//used in SHVC config
