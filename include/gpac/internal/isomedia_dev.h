@@ -2740,7 +2740,9 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a);
 
 /*rewrites avcC based on the given esd - this destroys the esd*/
 GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd);
+void AVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *mdia);
 void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
+void HEVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *mdia);
 void HEVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
 
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);

@@ -1542,6 +1542,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	}
 
 	gf_isom_get_audio_info(file, trackNum, 1, &sr, &nb_ch, &bps);
+	gf_isom_set_nalu_extract_mode(file, trackNum, GF_ISOM_NALU_EXTRACT_INSPECT);
 	
 	msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
 	if ((msub_type==GF_ISOM_SUBTYPE_MPEG4) 

@@ -1965,7 +1965,12 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				max_layer_id = layer_id;
 
 			if (!sti[layer_id].shvccfg) {
+				GF_List *backup_list;
 				sti[layer_id].shvccfg = gf_odf_hevc_cfg_new();
+				backup_list = sti[layer_id].shvccfg->param_array;
+				memcpy(sti[layer_id].shvccfg , shvccfg ? shvccfg : hevccfg, sizeof(GF_HEVCConfig));
+				sti[layer_id].shvccfg->param_array = backup_list;
+
 				sti[layer_id].shvccfg->is_shvc = 1;
 				sti[layer_id].shvccfg->complete_representation = 1;
 				sti[layer_id].shvccfg->num_layers = 1;
@@ -2087,6 +2092,9 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				if (e) goto exit;
 
 				gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('s','b','a','s'), track_id);
+
+				gf_isom_set_nalu_extract_mode(file, sti[j].track_num, GF_ISOM_NALU_EXTRACT_INSPECT);
+
 				//get lower layer
 				for (k=j; k>0; k--) {
 					if (sti[k-1].track_num) {
