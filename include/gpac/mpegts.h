@@ -383,8 +383,13 @@ enum
 	GF_M2TS_EVT_AIT_FOUND,
 	/*DSCM-CC has been found (carousel) */
 	GF_M2TS_EVT_DSMCC_FOUND,
+	
+	/*a TEMI locator has been found or repeated*/
+	GF_M2TS_EVT_TEMI_LOCATION,
+	/*a TEMI timecode has been found*/
+	GF_M2TS_EVT_TEMI_TIMECODE,
+	
 	GF_M2TS_EVT_EOS,
-
 };
 
 enum
@@ -479,6 +484,28 @@ typedef struct tag_m2ts_metadata_pointer_descriptor {
 	char *data;
 	u32 data_size;
 } GF_M2TS_MetadataPointerDescriptor;
+
+typedef struct
+{
+	u32 timeline_id;
+	//for now we only support one URL announcement
+	const char *external_URL;
+	Bool is_announce, is_splicing;
+	Bool reload_external;
+	Double activation_countdown;
+} GF_M2TS_TemiLocationDescriptor;
+
+typedef struct
+{
+	u32 timeline_id;
+	u32 media_timescale;
+	u64 media_timestamp;
+	u64 pes_pts;
+	Bool force_reload;
+	Bool is_paused;
+	Bool is_discontinuity;
+} GF_M2TS_TemiTimecodeDescriptor;
+
 
 /*MPEG-2 TS program object*/
 typedef struct 
@@ -672,6 +699,10 @@ typedef struct tag_m2ts_pes
 
 	GF_M2TS_DVB_Subtitling_Descriptor sub;
 	GF_M2TS_MetadataDescriptor *metadata_descriptor;
+
+
+	char *temi_tc_desc;
+	u32 temi_tc_desc_len, temi_tc_desc_alloc_size;
 } GF_M2TS_PES;
 
 /*SDT information object*/
@@ -1141,6 +1172,7 @@ struct __m2ts_mux_program {
 	u32 last_sys_clock;
 	u64 initial_ts;
 	Bool initial_ts_set;
+	Bool pcr_init_time_set;
 	u32 pcr_offset;
 
 	GF_Descriptor *iod;

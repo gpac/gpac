@@ -39,6 +39,24 @@ GF_Err gf_codec_process_raw_media_pull(GF_Codec *codec, u32 TimeAvailable);
 GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err *e)
 {
 	GF_Codec *tmp;
+
+	//this is an addon, we must check if it's scalable stream or not ...
+	//if so, do not create any new codec
+	if (odm->parentscene && odm->parentscene->root_od->addon) {
+		switch (base_layer->decoderConfig->objectTypeIndication) {
+		case GPAC_OTI_VIDEO_SHVC:
+		case GPAC_OTI_VIDEO_SVC:
+			odm->scalable_addon = 1;
+			odm->parentscene->root_od->addon->scalable_type = 1;
+			*e = GF_OK;
+			//fixme - we need a way to signal dependencies accross services!!
+			base_layer->dependsOnESID = 0xFFFF;
+			return NULL;
+		default:
+			break;
+		}
+	}
+
 	GF_SAFEALLOC(tmp, GF_Codec);
 	if (! tmp) {
 		*e = GF_OUT_OF_MEM;
@@ -209,6 +227,12 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			cap.CapCode = GF_CODEC_REORDER;
 			if (gf_codec_get_capability(codec, &cap) == GF_OK)
 				codec->is_reordering = cap.cap.valueInt;
+
+			codec->trusted_cts = 0;
+			cap.CapCode = GF_CODEC_TRUSTED_CTS;
+			if (gf_codec_get_capability(codec, &cap) == GF_OK)
+				codec->trusted_cts = cap.cap.valueInt;
+		
 		}
 
 		if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) {
@@ -357,18 +381,22 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 {
 	GF_Channel *ch;
 	GF_DBUnit *AU;
+	GF_List *src_channels = codec->inChannels;
+	GF_ObjectManager *current_odm = codec->odm;
 	u32 count, curCTS, i;
-	count = gf_list_count(codec->inChannels);
+
 	*nextAU = NULL;
 	*activeChannel = NULL;
+	curCTS = 0;
 
+browse_scalable:
+
+	count = gf_list_count(src_channels);
 	if (!count) return;
 
-	curCTS = 0;
-	
 	/*browse from base to top layer*/
 	for (i=0;i<count;i++) {
-		ch = (GF_Channel*)gf_list_get(codec->inChannels, i);
+		ch = (GF_Channel*)gf_list_get(src_channels, i);
 
 		if ((codec->type==GF_STREAM_OCR) && ch->IsClockInit) {
 			/*check duration - we assume that scalable OCR streams are just pure nonsense...*/
@@ -391,7 +419,7 @@ refetch_AU:
 				//gf_es_drop_au(ch);
 				continue;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d selected as first layer (DTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS, AU->DTS));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU CTS %d selected as first layer (DTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->CTS, AU->DTS));
 			*nextAU = AU;
 			*activeChannel = ch;
 			curCTS = AU->CTS;
@@ -402,7 +430,7 @@ refetch_AU:
 			baseAU->data = gf_realloc(baseAU->data, baseAU->dataLength + AU->dataLength);
 			memcpy(baseAU->data + baseAU->dataLength , AU->data, AU->dataLength);
 			baseAU->dataLength += AU->dataLength;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS, (*activeChannel)->esd->ESID));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU CTS %d reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->CTS, (*activeChannel)->esd->ESID));
 			gf_es_drop_au(ch);
 			ch->first_au_fetched = 1;
 		}
@@ -426,7 +454,7 @@ refetch_AU:
 				// AU found with the same CTS as the current base, we either had a drop on the base or some temporal scalability - aggregate from current channel.
 				else {
 					//we cannot tell whether this is a loss or temporal scalable, don't attempt to discard the AU
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d doesn't have the same CTS as the base (%d)- selected as first layer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS, (*nextAU)->CTS));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU CTS %d doesn't have the same CTS as the base (%d)- selected as first layer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->CTS, (*nextAU)->CTS));
 					*nextAU = AU;
 					*activeChannel = ch;
 					(*activeChannel)->prev_aggregated_dts = (*nextAU)->DTS;
@@ -436,8 +464,9 @@ refetch_AU:
 			//we can rely on DTS - if DTS is earlier on the enhencement, this is a loss or temporal scalability
 			else if (AU->DTS < (*nextAU)->DTS) {
 				//Sample with the same DTS of this AU has been decoded. This is a loss, we need to drop it and re-fetch this channel
-				if (AU->DTS < (*activeChannel)->prev_aggregated_dts) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d: loss detected - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS));
+				if (AU->DTS < (*activeChannel)->prev_aggregated_dts) 
+				{
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d %s AU DTS %d but base DTS %d: loss detected - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*nextAU)->DTS));
 					gf_es_drop_au(ch);
 					goto refetch_AU;
 				} 
@@ -451,6 +480,12 @@ refetch_AU:
 				}
 			}
 		}
+	}
+	//scalable addon, browse channels in scalable object
+	if (current_odm->scalable_odm) {
+		current_odm = current_odm->scalable_odm;
+		src_channels = current_odm->channels;
+		goto browse_scalable;
 	}
 
 	if (*nextAU)
@@ -478,6 +513,7 @@ refetch_AU:
 			(*nextAU)->CTS = (*nextAU)->DTS;
 		}
 	}
+
 }
 
 /*scalable browsing of input channels: find the AU with the lowest DTS on all input channels*/
@@ -773,15 +809,7 @@ static GFINLINE GF_Err LockCompositionUnit(GF_Codec *dec, u32 CU_TS, GF_CMUnit *
 
 static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, GF_CMUnit *CU, u32 cu_size)
 {
-
-	/*temporal scalability disabling: if we already rendered this, no point getting further*/
-/*
-	if (CU->TS < dec->CB->LastRenderedTS) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[ODM] CU (TS %d) later than last frame drawn (TS %d) - droping\n", CU->TS, dec->CB->LastRenderedTS));
-		cu_size = 0;
-	}
-*/
-	if (dec->is_reordering) {
+	if (dec->is_reordering && !dec->trusted_cts) {
 		/*first dispatch from decoder, store CTS*/
 		if (!dec->first_frame_dispatched) {
 			dec->recomputed_cts = CU->TS;
@@ -889,7 +917,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				assert( CU );
 				unit_size = 0;
 				if (codec->odm->term->bench_mode != 2) {
-					e = mdec->ProcessData(mdec, NULL, 0, 0, CU->data, &unit_size, 0, 0);
+					e = mdec->ProcessData(mdec, NULL, 0, 0, &CU->TS, CU->data, &unit_size, 0, 0);
 					if (e==GF_OK) {
 						e = UnlockCompositionUnit(codec, CU, unit_size);
 						if (unit_size) return GF_OK;
@@ -1030,7 +1058,7 @@ scalable_retry:
 			gf_cm_abort_buffering(codec->CB);
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoding frame DTS %d CTS %d size %d (%d in channels)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->DTS, AU->CTS, AU->dataLength, ch->AU_Count));
-			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, CU->data, &unit_size, AU->PaddingBits, mmlevel);
+			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, &CU->TS, CU->data, &unit_size, AU->PaddingBits, mmlevel);
 		}
 		now = gf_sys_clock_high_res() - now;
 		if (codec->Status == GF_ESM_CODEC_STOP) {

@@ -779,6 +779,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		return 1;
 	}
+	case GF_EVENT_ADDON_DETECTED:
+		fprintf(stderr, "Media Addon %s detected - enabling it\n", evt->addon_connect.addon_url);
+		return 1;
 	}
 	return 0;
 }
@@ -1181,7 +1184,7 @@ int main (int argc, char **argv)
 	if (gui_mode) {
 		if (gui_mode==1) {
 			hide_shell(1);
-			user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;
+			//user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;
 		}
 	}
 

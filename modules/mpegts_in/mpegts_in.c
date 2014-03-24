@@ -75,6 +75,8 @@ typedef struct
 	Bool skip_regulation;
 	Bool has_pending_segments;
 
+	Bool in_data_flush;
+
 	Bool hybrid_on;
 }M2TSIn;
 
@@ -384,7 +386,7 @@ static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
 #endif
 		slh.compositionTimeStampFlag = 1;
 		slh.compositionTimeStamp = pck->PTS;
-		if (pck->DTS) {
+		if (pck->DTS != pck->PTS) {
 			slh.decodingTimeStampFlag = 1;
 			slh.decodingTimeStamp = pck->DTS;
 		}
@@ -768,6 +770,35 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 	}
 		break;
+
+	case GF_M2TS_EVT_TEMI_LOCATION:
+	{
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(com));
+		com.addon_info.command_type = GF_NET_ASSOCIATED_CONTENT_LOCATION;
+		com.addon_info.external_URL = ((GF_M2TS_TemiLocationDescriptor*)param)->external_URL;
+		com.addon_info.is_announce = ((GF_M2TS_TemiLocationDescriptor*)param)->is_announce;
+		com.addon_info.is_splicing = ((GF_M2TS_TemiLocationDescriptor*)param)->is_splicing;
+		com.addon_info.activation_countdown = ((GF_M2TS_TemiLocationDescriptor*)param)->activation_countdown;
+		com.addon_info.reload_external = ((GF_M2TS_TemiLocationDescriptor*)param)->reload_external;
+		com.addon_info.timeline_id = ((GF_M2TS_TemiLocationDescriptor*)param)->timeline_id;
+		gf_term_on_command(m2ts->service, &com, GF_OK);
+	}
+		break;
+	case GF_M2TS_EVT_TEMI_TIMECODE:
+	{
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(com));
+		com.addon_time.command_type = GF_NET_ASSOCIATED_CONTENT_TIMING;
+		com.addon_time.timeline_id = ((GF_M2TS_TemiTimecodeDescriptor*)param)->timeline_id;
+		com.addon_time.media_pts = ((GF_M2TS_TemiTimecodeDescriptor*)param)->pes_pts;
+		com.addon_time.media_timescale = ((GF_M2TS_TemiTimecodeDescriptor*)param)->media_timescale;
+		com.addon_time.media_timestamp = ((GF_M2TS_TemiTimecodeDescriptor*)param)->media_timestamp;
+		com.addon_time.force_reload = ((GF_M2TS_TemiTimecodeDescriptor*)param)->force_reload;
+		com.addon_time.is_paused = ((GF_M2TS_TemiTimecodeDescriptor*)param)->is_paused;
+		gf_term_on_command(m2ts->service, &com, GF_OK);
+	}
+		break;
 	}
 }
 
@@ -899,6 +930,13 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 	return query_ret;
 }
 
+enum
+{
+	GF_M2TS_PUSH_SEGMENT,
+	GF_M2TS_PUSH_CHUNK,
+	GF_M2TS_FLUSH_DATA
+};
+
 void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 {
 	u64 start_byterange, end_byterange;
@@ -906,10 +944,16 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 	u32 refresh_type = 0;
 	const char *url;
 
+	if (m2ts->in_data_flush) {
+		if (flush_type==GF_M2TS_PUSH_SEGMENT) 
+			m2ts->has_pending_segments++;
+		return;
+	}
 	gf_mx_p(m2ts->mx);
+	m2ts->in_data_flush = 1;
 
 	//check buffer level when start of new segment
-	if (flush_type<=1) {
+	if (flush_type<=GF_M2TS_PUSH_CHUNK) {
 		GF_NetworkCommand com;
 		/*query buffer level on each channel, don't sleep if too low*/
 		memset(&com, 0, sizeof(GF_NetworkCommand));
@@ -917,22 +961,25 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 		gf_term_on_command(m2ts->service, &com, GF_OK);
 		if (com.buffer.occupancy && (com.buffer.occupancy >= com.buffer.max)) {
 			//count completed segment that were not dispatched
-			if (flush_type==1)
+			if (flush_type==GF_M2TS_PUSH_SEGMENT)
 				m2ts->has_pending_segments++;
 			
+			m2ts->in_data_flush = 0;
 			gf_mx_v(m2ts->mx);
 			return;
 		}
 	}
-	else if (flush_type==2) {
+	else if (0 && flush_type==GF_M2TS_FLUSH_DATA) {
 		if (! m2ts->has_pending_segments) {
+			m2ts->in_data_flush = 0;
 			gf_mx_v(m2ts->mx);
 			return;
 		}
 	}
 
-	e = M2TS_QueryNextFile(m2ts, (flush_type==2) ? 2 : 1, &url, &start_byterange, &end_byterange, &refresh_type);
+	e = M2TS_QueryNextFile(m2ts, (flush_type==GF_M2TS_FLUSH_DATA) ? 2 : 1, &url, &start_byterange, &end_byterange, &refresh_type);
 	if (e) {
+		m2ts->in_data_flush = 0;
 		gf_mx_v(m2ts->mx);
 		return;
 	}
@@ -950,9 +997,9 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 		}
 
 	}
+	m2ts->in_data_flush = 0;
 	gf_mx_v(m2ts->mx);
 }
-
 
 static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
@@ -992,8 +1039,13 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 			//get byte range if any (local playback)
 			if (url) {
 				u64 start_byterange, end_byterange;
+				gf_mx_p(m2ts->mx);
+				m2ts->in_data_flush = 1;
 				M2TS_QueryNextFile(m2ts, 0, NULL, &start_byterange, &end_byterange, NULL);
 				e = gf_m2ts_demux_file(m2ts->ts, url, start_byterange, end_byterange, 0, 0);
+				M2TS_QueryNextFile(m2ts, 3, NULL, NULL, NULL, NULL);
+				m2ts->in_data_flush = 0;
+				gf_mx_v(m2ts->mx);
 			} else {
 				e = GF_OK;
 			}
@@ -1258,12 +1310,12 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	}
 	if (com->command_type == GF_NET_SERVICE_PROXY_DATA_RECEIVE) {
-		m2ts_flush_data(m2ts, com->proxy_data.is_chunk);
+		m2ts_flush_data(m2ts, com->proxy_data.is_chunk ? GF_M2TS_PUSH_CHUNK : GF_M2TS_PUSH_SEGMENT);
 		return GF_OK;
 	}
 	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {
 		if (plug->query_proxy)
-			m2ts_flush_data(m2ts, 2);
+			m2ts_flush_data(m2ts, GF_M2TS_FLUSH_DATA);
 		return GF_OK;
 	}
 

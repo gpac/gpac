@@ -125,6 +125,11 @@ typedef enum
 	/*query screen capabilities*/
 	GF_NET_SERVICE_MEDIA_CAP_QUERY,
 
+	/*signal an associated content is announced (from service to term). This does not have to be filtered by the service
+	the terminal will handle this.*/
+	GF_NET_ASSOCIATED_CONTENT_LOCATION,
+	/*signal associated content timeline (from service to term)*/
+	GF_NET_ASSOCIATED_CONTENT_TIMING,
 } GF_NET_CHAN_CMD;
 
 /*channel command for all commands that don't need params:
@@ -431,6 +436,36 @@ typedef struct
 	Bool mime_supported;
 } GF_MediaCapQuery;
 
+
+/*GF_NET_ASSOCIATED_CONTENT_LOCATION*/
+typedef struct
+{
+	u32 command_type;
+	LPNETCHANNEL channel;
+
+	s32 timeline_id;
+	const char *external_URL;
+	Bool is_announce, is_splicing;
+	Bool reload_external;
+	Double activation_countdown;
+} GF_AssociatedContentLocation;
+
+/*GF_NET_ASSOCIATED_CONTENT_TIMING*/
+typedef struct
+{
+	u32 command_type;
+	LPNETCHANNEL channel;
+
+	u32 timeline_id;
+	u32 media_timescale;
+	u64 media_timestamp;
+	//for now only used in MPEG-2, so media_pts is in 90khz scale
+	u64 media_pts;
+	Bool force_reload;
+	Bool is_paused;
+	Bool is_discontinuity;
+} GF_AssociatedContentTiming;
+
 typedef union __netcommand
 {
 	GF_NET_CHAN_CMD command_type;
@@ -454,6 +489,8 @@ typedef union __netcommand
 	GF_NetServiceStatus status;
 	GF_MediaCapQuery mcaps;
 	GF_NetComProxyData proxy_data;
+	GF_AssociatedContentLocation addon_info;
+	GF_AssociatedContentTiming addon_time;
 } GF_NetworkCommand;
 
 /*

@@ -223,6 +223,15 @@ typedef struct
 	Bool is_connected;
 } GF_EventConnect;
 
+/*event proc return value: 1 to indicate the terminal should attempt a default layout for this addon, 0: nothing will be done*/
+typedef struct
+{
+	/*GF_EVENT_ADDON_DETECTED*/
+	u8 type;
+	const char *addon_url;
+	const char *mime_type;
+} GF_EventAddonConnect;
+
 /*event proc return value: 1 if info has been completed, 0 otherwise (and operation this request was for
 will then fail)*/
 typedef struct
@@ -304,6 +313,7 @@ typedef union
 	GF_EventMutation mutation;
 	GF_EventForwarded forwarded_event;
 	GF_EventOpenFile open_file;
+	GF_EventAddonConnect addon_connect;
 } GF_Event;
 
 

@@ -126,10 +126,11 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 
 		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
 			GF_MPDGroup *group;
-			if (!gf_dash_is_group_selected(mpdin->dash, i)) continue;
+			if (!gf_dash_is_group_selectable(mpdin->dash, i)) continue;
 			group = gf_dash_get_group_udta(mpdin->dash, i);
 			if (group->segment_ifce == ifce) {
 				gf_dash_group_get_segment_init_url(mpdin->dash, i, &param->url_query.start_range, &param->url_query.end_range);
+				param->url_query.current_download = 0;
 				return GF_OK;
 			}
 		}		

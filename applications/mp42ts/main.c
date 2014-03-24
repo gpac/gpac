@@ -53,7 +53,7 @@
 #endif
 
 
-#define DEFAULT_PCR_OFFSET	18000
+#define DEFAULT_PCR_OFFSET	0
 
 #define UDP_BUFFER_SIZE	0x40000
 
@@ -1724,7 +1724,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, u32 mp
             || ((strlen(arg) == strlen(param)) && ++i && (i<argc) && (next_arg = argv[i]))))
 
 /*parse MP42TS arguments*/
-static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *carrousel_rate, u64 *pcr_init_val, u32 *pcr_offset, u32 *psi_refresh_rate, Bool *single_au_pes, u32 *bifs_use_pes, 
+static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *carrousel_rate, s64 *pcr_init_val, u32 *pcr_offset, u32 *psi_refresh_rate, Bool *single_au_pes, u32 *bifs_use_pes, 
 								  M2TSProgram *progs, u32 *nb_progs, char **src_name, 
 								  Bool *real_time, u32 *run_time, char **video_buffer, u32 *video_buffer_size,
 								  u32 *audio_input_type, char **audio_input_ip, u16 *audio_input_port,
@@ -1873,11 +1873,6 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			*split_rap = 1;
 		} else if (!stricmp(arg, "-flush-rap")) {
 			*split_rap = 2;
-		}
-		else if (!strnicmp(arg, "-dst-udp", 8)) {
-			*real_time = 1;
-		} else if (!strnicmp(arg, "-dst-rtp", 8)) {
-			*real_time = 1;
 		} else if (CHECK_PARAM("-nb-pack")) {
 			*nb_pck_pack = atoi(next_arg);
 		} else if (CHECK_PARAM("-nb-pck")) {
@@ -2101,7 +2096,7 @@ int main(int argc, char **argv)
 	GF_Err e;
 	u32 run_time;
 	Bool real_time, single_au_pes, is_stdout;
-	u64 pcr_init_val=0;
+	s64 pcr_init_val = -1;
 	u32 usec_till_next, ttl, split_rap;
 	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time, last_video_time, bifs_use_pes, psi_refresh_rate, nb_pck_pack, nb_pck_in_pack;
 	char *ts_out = NULL, *udp_out = NULL, *rtp_out = NULL, *audio_input_ip = NULL;
@@ -2200,7 +2195,7 @@ int main(int argc, char **argv)
 	/***************************/
 	muxer = gf_m2ts_mux_new(mux_rate, psi_refresh_rate, real_time);
 	if (muxer) gf_m2ts_mux_use_single_au_pes_mode(muxer, single_au_pes);
-	if (pcr_init_val) gf_m2ts_mux_set_initial_pcr(muxer, pcr_init_val);
+	if (pcr_init_val>=0) gf_m2ts_mux_set_initial_pcr(muxer, (u64) pcr_init_val);
 
 	if (ts_out != NULL) {
 		if (segment_duration) {

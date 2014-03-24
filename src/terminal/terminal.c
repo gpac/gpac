@@ -1784,6 +1784,19 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 		return gf_scene_execute_script(term->root_scene->graph, com);
 	}
 
+	if (!type && com && !strncmp(com, "gpac ", 5)) {
+		com += 5;
+		//new add-on
+		if (term->root_scene && !strncmp(com, "add ", 4)) {
+			GF_AssociatedContentLocation addon_info;
+			memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
+			addon_info.external_URL = com + 4;
+			addon_info.timeline_id = -1;
+			gf_scene_register_associated_media(term->root_scene, &addon_info);
+		}
+		return GF_OK;
+	}
+
 	memset(&load, 0, sizeof(GF_SceneLoader));
 	load.localPath = gf_cfg_get_key(term->user->config, "General", "CacheDirectory");
 	load.flags = GF_SM_LOAD_FOR_PLAYBACK | GF_SM_LOAD_CONTEXT_READY;
