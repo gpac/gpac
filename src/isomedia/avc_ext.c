@@ -390,7 +390,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	ps_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	src_bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
 	max_size = 4096;
-	insert_nalu_delim = 0;
 
 	/*rewrite start code with NALU delim*/
 	if (rewrite_start_codes) {
