@@ -923,15 +923,15 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 		stream->curr_pck.dts = stream->curr_pck.cts;
 
 	/*initializing the PCR*/
-	if (!stream->program->pcr_init_time) {
+	if (!stream->program->pcr_init_time_set) {
 		if (stream==stream->program->pcr) {
 			if (stream->program->mux->init_pcr_value) {
-				stream->program->pcr_init_time = stream->program->mux->init_pcr_value;
+				stream->program->pcr_init_time = stream->program->mux->init_pcr_value-1;
 			} else {
 				while (!stream->program->pcr_init_time)
 					stream->program->pcr_init_time = gf_rand();
 			}
-
+			stream->program->pcr_init_time_set = 1;
 			stream->program->ts_time_at_pcr_init = muxer->time;
 			stream->program->num_pck_at_pcr_init = muxer->tot_pck_sent;
 
@@ -2243,7 +2243,7 @@ GF_EXPORT
 GF_Err gf_m2ts_mux_set_initial_pcr(GF_M2TS_Mux *muxer, u64 init_pcr_value)
 {
 	if (!muxer) return GF_BAD_PARAM;
-	muxer->init_pcr_value = init_pcr_value;
+	muxer->init_pcr_value = 1 + init_pcr_value;
 	return GF_OK;
 }
 
@@ -2266,7 +2266,7 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 		if (!muxer->init_sys_time) {
 			//init TS time
 			muxer->time.sec = muxer->time.nanosec = 0;
-			gf_m2ts_time_inc(&muxer->time, (u32) muxer->init_pcr_value, 27000000);
+			gf_m2ts_time_inc(&muxer->time, (u32) (muxer->init_pcr_value ? muxer->init_pcr_value-1 : 0), 27000000);
 			muxer->init_sys_time = now;
 			muxer->init_ts_time = muxer->time;
 		} else {

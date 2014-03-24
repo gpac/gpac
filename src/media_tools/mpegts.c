@@ -170,6 +170,7 @@ static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool sam
 	pes->prev_PTS = 0;
 	pes->reframe = NULL;
 	pes->cc = -1;
+	pes->temi_tc_desc_len = 0;
 	return 0;
 }
 
@@ -410,6 +411,18 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 	}
 
 	if (au_start) {
+		if (is_hevc) {
+#ifndef GPAC_DISABLE_HEVC
+			nal_type = (data[4] & 0x7E) >> 1;
+			if ((nal_type>=GF_HEVC_NALU_SLICE_BLA_W_LP) && (nal_type<=GF_HEVC_NALU_SLICE_CRA)) {
+				pck.flags |= GF_M2TS_PES_PCK_RAP;
+			}
+#endif
+		} else {
+			nal_type = data[4] & 0x1F;
+			if (nal_type==GF_AVC_NALU_IDR_SLICE) pck.flags |= GF_M2TS_PES_PCK_RAP;
+		}
+
 		pck.data = (char *)au_start;
 		pck.data_len = (u32) (data - au_start) + data_len;
 		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
@@ -1214,6 +1227,7 @@ void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 		if (pes->pck_data) gf_free(pes->pck_data);
 		if (pes->prev_data) gf_free(pes->prev_data);
 		if (pes->buf) gf_free(pes->buf);
+		if (pes->temi_tc_desc) gf_free(pes->temi_tc_desc);
 	}
 	if (es->slcfg) gf_free(es->slcfg);
 	gf_free(es);
@@ -2469,6 +2483,34 @@ void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_size, GF
 	}
 }
 
+static void gf_m2ts_flush_temi(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
+{
+	GF_M2TS_TemiTimecodeDescriptor temi_tc;
+	GF_BitStream *bs = gf_bs_new(pes->temi_tc_desc, pes->temi_tc_desc_len, GF_BITSTREAM_READ);
+	u32 has_timestamp = gf_bs_read_int(bs, 2);
+	u32 has_ntp = gf_bs_read_int(bs, 1);
+	u32 has_ptp = gf_bs_read_int(bs, 1);
+	u32 has_timecode = gf_bs_read_int(bs, 2);
+	
+	memset(&temi_tc, 0, sizeof(GF_M2TS_TemiTimecodeDescriptor));
+	temi_tc.force_reload = gf_bs_read_int(bs, 1);
+	temi_tc.is_paused = gf_bs_read_int(bs, 1);
+	temi_tc.is_discontinuity = gf_bs_read_int(bs, 1);
+	gf_bs_read_int(bs, 7);
+	temi_tc.timeline_id = gf_bs_read_int(bs, 8);
+	if (has_timestamp) {
+		temi_tc.media_timescale = gf_bs_read_u32(bs); 
+		if (has_timestamp==2) 
+			temi_tc.media_timestamp = gf_bs_read_u64(bs);
+		else
+			temi_tc.media_timestamp = gf_bs_read_u32(bs);
+	}
+	temi_tc.pes_pts = pes->PTS;
+	gf_bs_del(bs);
+	pes->temi_tc_desc_len = 0;
+	ts->on_event(ts, GF_M2TS_EVT_TEMI_TIMECODE, &temi_tc);
+}
+
 static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 {
 	GF_M2TS_PESHeader pesh;
@@ -2562,6 +2604,9 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 					offset = len - pes->prev_data_len;
 					memcpy(pes->pck_data + offset, pes->prev_data, pes->prev_data_len);
 				}
+
+				if (pes->temi_tc_desc_len)
+					gf_m2ts_flush_temi(ts, pes);
 
 				if (! ts->start_range)
 					remain = pes->reframe(ts, pes, same_pts, pes->pck_data+offset, pes->pck_data_len-offset, &pesh);
@@ -2736,7 +2781,6 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 
 		if (! af_desc_not_present) {
 			while (afext_bytes) {
-				char URL[255];
 				GF_BitStream *bs;
 				char *desc;
 				u8 desc_tag = af_extension[0];
@@ -2751,15 +2795,17 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 				switch (desc_tag) {
 				case GF_M2TS_AFDESC_LOCATION_DESCRIPTOR:
 				{
-					//u32 timeline_id;
-					Bool external_url, use_base_temi_url;
-					/*Bool force_reload = */gf_bs_read_int(bs, 1);
-					/*Bool is_announcement = */gf_bs_read_int(bs, 1); 
-					/*Bool splicing_flag = */gf_bs_read_int(bs, 1);
+					Bool external_url , use_base_temi_url;
+					char URL[255];
+					GF_M2TS_TemiLocationDescriptor temi_loc;
+					memset(&temi_loc, 0, sizeof(GF_M2TS_TemiLocationDescriptor) );
+					temi_loc.reload_external = gf_bs_read_int(bs, 1);
+					temi_loc.is_announce = gf_bs_read_int(bs, 1); 
+					temi_loc.is_splicing = gf_bs_read_int(bs, 1);
 					external_url = gf_bs_read_int(bs, 1);
 					use_base_temi_url = gf_bs_read_int(bs, 1);
 					gf_bs_read_int(bs, 3); //reserved 
-					/*timeline_id = */gf_bs_read_int(bs, 8); 
+					temi_loc.timeline_id = gf_bs_read_int(bs, 8); 
 					if (!external_url) {
 						if (!use_base_temi_url) {
 							char *_url = URL;
@@ -2779,12 +2825,23 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 							_url[url_len] = 0;
 						}
 					}
+					temi_loc.external_URL = URL;
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d AF Location descriptor found - URL %s\n", pid, URL));
+					if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TEMI_LOCATION, &temi_loc);
 				}
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d AF Location descriptor found - URL %s\n", pid, URL));
 					break;
 				case GF_M2TS_AFDESC_TIMELINE_DESCRIPTOR:
-
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d AF Timeline descriptor found\n", pid));
+					if (ts->ess[pid] && (ts->ess[pid]->flags & GF_M2TS_ES_IS_PES)) {
+						GF_M2TS_PES *pes = (GF_M2TS_PES *) ts->ess[pid];
+						if (pes->temi_tc_desc_alloc_size < desc_len) {
+							pes->temi_tc_desc = gf_realloc(pes->temi_tc_desc, desc_len);
+							pes->temi_tc_desc_alloc_size = desc_len;
+						}
+						memcpy(pes->temi_tc_desc, desc, desc_len);
+						pes->temi_tc_desc_len = desc_len;
+					
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d AF Timeline descriptor found\n", pid));
+				}
 					break;
 				}
 				gf_bs_del(bs);
@@ -3069,7 +3126,10 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 			pes->pes_len = pes->pes_end_packet_number = pes->pes_start_packet_number = 0;
 			if (pes->buf) gf_free(pes->buf);
 			pes->buf = NULL;
-			pes->buf_len = 0;
+			if (pes->temi_tc_desc) gf_free(pes->temi_tc_desc);
+			pes->temi_tc_desc = NULL;
+			pes->temi_tc_desc_len = pes->temi_tc_desc_alloc_size = 0;
+
 			pes->before_last_pcr_value = pes->before_last_pcr_value_pck_number = 0;
 			pes->last_pcr_value = pes->last_pcr_value_pck_number = 0;
 			if (pes->program->pcr_pid==pes->pid) {

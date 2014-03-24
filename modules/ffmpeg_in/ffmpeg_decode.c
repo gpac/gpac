@@ -635,7 +635,7 @@ static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap
 
 static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID,
+		u16 ES_ID, u32 *CTS,
 		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {

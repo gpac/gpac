@@ -743,7 +743,8 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	if (odm->parentscene) {
 		GF_Event evt;
 
-		gf_scene_setup_object(odm->parentscene, odm);
+		if (!odm->scalable_addon)
+			gf_scene_setup_object(odm->parentscene, odm);
 
 		/*setup node decoder*/
 		if (odm->mo && odm->codec && odm->codec->decio && (odm->codec->decio->InterfaceType==GF_NODE_DECODER_INTERFACE) ) {
@@ -751,7 +752,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			GF_Node *n = gf_event_target_get_node(gf_mo_event_target_get(odm->mo, 0));
 			if (n) ndec->AttachNode(ndec, n);
 
-			/*not clear in the spec how the streams attached to AFC are started - default to "right now"*/
+			/*not clear in the spec how the streams attached to AFX are started - default to "right now"*/
 			gf_odm_start(odm, 0);
 		}
 
@@ -821,14 +822,35 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		if (odm->OD_PL) {
 			gf_scene_select_object(odm->parentscene, odm);
 			odm->OD_PL = 0;
+			gf_term_lock_net(odm->term, GF_FALSE);
+			return;
 		}
+
+		if (odm->addon) {
+			Bool res;
+			
+			gf_term_lock_net(odm->term, GF_FALSE);
+
+			evt.type = GF_EVENT_ADDON_DETECTED;
+			evt.addon_connect.addon_url = odm->net_service->url;
+			evt.addon_connect.mime_type = odm->net_service->mime;
+			res = gf_term_send_event(odm->term,&evt);
+	
+			if (res) {
+				if (! odm->addon->scalable_type) {
+					gf_scene_select_object(odm->parentscene, odm);
+				}
+			}
+
+			return;
+		}
+		
 		if (odm->parentscene==odm->term->root_scene) {
 			gf_term_lock_net(odm->term, GF_FALSE);
 
 			evt.type = GF_EVENT_STREAMLIST;
 			gf_term_send_event(odm->term,&evt);
-	
-			gf_term_lock_net(odm->term, GF_TRUE);
+			return;
 		}
 	}
 
@@ -849,7 +871,6 @@ void ODM_CheckChannelService(GF_Channel *ch)
 GF_EXPORT
 GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *serv, GF_MediaObject *sync_ref)
 {
-	GF_CodecCapability cap;
 	GF_Channel *ch;
 	GF_Clock *ck;
 	GF_List *ck_namespace;
@@ -1019,7 +1040,7 @@ clock_setup:
 		/*we have a media or user-specific codec...*/
 		if (!odm->codec) {
 			odm->codec = gf_codec_new(odm, esd, (esd->decoderConfig->streamType==GF_STREAM_VISUAL) ? odm->Visual_PL : odm->Audio_PL, &e);
-			if (!e) gf_term_add_codec(odm->term, odm->codec);
+			if (!e && odm->codec) gf_term_add_codec(odm->term, odm->codec);
 		}
 		dec = odm->codec;
 		break;
@@ -1052,7 +1073,7 @@ clock_setup:
 			}
 			dec = odm->subscene->scene_codec;
 		} else {
-			/*this is a bit tricky: the scene decoder needs to ba called with the dummy streams of this 
+			/*this is a bit tricky: the scene decoder needs to be called with the dummy streams of this 
 			object, so we associate the main decoder to this object*/
 			odm->codec = dec = gf_codec_use_codec(odm->parentscene->scene_codec, odm);
 			gf_term_add_codec(odm->term, odm->codec);
@@ -1062,23 +1083,20 @@ clock_setup:
 	default:
 		if (!odm->codec) {
 			odm->codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
-			if (!e) gf_term_add_codec(odm->term, odm->codec);
+			if (!e && odm->codec) gf_term_add_codec(odm->term, odm->codec);
 
 		}
 		dec = odm->codec;
 		break;
 	}
 
-	/*if we have a decoder, set up the channel and co.*/
-	if (!dec) {
-		if (e) {
-			gf_es_del(ch);
-			return e;
-		}
+	if (!dec && e) {
+		gf_es_del(ch);
+		return e;
 	}
 
 	/*setup scene decoder*/
-	if (dec->decio && (dec->decio->InterfaceType==GF_SCENE_DECODER_INTERFACE) ) {
+	if (dec && dec->decio && (dec->decio->InterfaceType==GF_SCENE_DECODER_INTERFACE) ) {
 		GF_SceneDecoder *sdec = (GF_SceneDecoder *) dec->decio;
 		scene = odm->subscene ? odm->subscene : odm->parentscene;
 		if (sdec->AttachScene) {
@@ -1095,7 +1113,11 @@ clock_setup:
 			}
 		}
 	}
-	{
+	
+	ch->es_state = GF_ESM_ES_SETUP;
+	ch->odm = odm;
+
+	if (dec) {
 		GF_CodecCapability cap;
 		cap.CapCode = GF_CODEC_RAW_MEDIA;
 		gf_codec_get_capability(dec, &cap);
@@ -1103,13 +1125,8 @@ clock_setup:
 			dec->flags |= GF_ESM_CODEC_IS_RAW_MEDIA;
 			dec->process = gf_codec_process_private_media;
 		}
-	}
 
-	ch->es_state = GF_ESM_ES_SETUP;
-	ch->odm = odm;
-
-	/*get media padding BEFORE channel setup, since we use it on channel connect ack*/
-	if (dec) {
+		/*get media padding BEFORE channel setup, since we use it on channel connect ack*/
 		cap.CapCode = GF_CODEC_PADDING_BYTES;
 		gf_codec_get_capability(dec, &cap);
 		ch->media_padding_bytes = cap.cap.valueInt;
@@ -1138,7 +1155,7 @@ clock_setup:
 		cs->dec = dec;
 
 		/*HACK: special case when OD resources are statically described in the ESD itself (ISMA streaming)*/
-		if ((ch->esd->decoderConfig->streamType==GF_STREAM_OD) && strstr(ch->esd->URLString, "data:application/mpeg4-od-au;") ) 
+		if (dec && (ch->esd->decoderConfig->streamType==GF_STREAM_OD) && strstr(ch->esd->URLString, "data:application/mpeg4-od-au;") ) 
 			dec->flags |= GF_ESM_CODEC_IS_STATIC_OD;
 
 		gf_term_lock_net(odm->term, 1);
@@ -1180,7 +1197,7 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 	}
 
 	/*insert channel*/
-	if (dec) gf_list_insert(ch->odm->channels, ch, 0);
+	gf_list_insert(ch->odm->channels, ch, 0);
 
 	if (ch->service) {
 		ch->es_state = GF_ESM_ES_WAIT_FOR_ACK;
@@ -1218,7 +1235,7 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 				gf_term_message(ch->odm->term, ch->service->url, "Audio Setup failed", e);
 				break;
 			}
-			gf_list_rem(ch->odm->channels, 0);
+			gf_list_del_item(ch->odm->channels, ch);
 			/*disconnect*/
 			ch->service->ifce->DisconnectChannel(ch->service->ifce, ch); 
 			if (ch->esd->URLString) {
@@ -1380,6 +1397,7 @@ void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state)
 				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u starting channel\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock)));
 			}
 			skip_register = 0;
+
 		}
 		//wait for end of setup 
 		else if (odm->state==GF_ODM_STATE_IN_SETUP) {
@@ -1488,7 +1506,17 @@ void gf_odm_play(GF_ObjectManager *odm)
 		/*play from current time*/
 		else {
 			ck_time = gf_clock_time(ch->clock);
+			if (odm->parentscene && odm->parentscene->root_od->addon) {
+				ck_time = gf_scene_adjust_time_for_addon(odm->parentscene, (u32) ck_time, odm->parentscene->root_od->addon);
+
+				if (odm->scalable_addon) {
+					//this is a scalable extension to an object in the parent scene
+					gf_scene_select_scalable_addon(odm->parentscene->root_od->parentscene, odm);
+				}
+
+			}
 			ck_time /= 1000;
+
 			/*handle initial start - MPEG-4 is a bit annoying here, streams are not started through OD but through
 			scene nodes. If the stream runs on the BIFS/OD clock, the clock is already started at this point and we're 
 			sure to get at least a one-frame delay in PLAY, so just remove it - note we're generous but this shouldn't hurt*/

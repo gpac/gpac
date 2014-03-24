@@ -447,6 +447,35 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	if (!no_scene_check && scene->is_dynamic_scene) gf_scene_regenerate(scene);
 }
 
+static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service, GF_NetworkCommand *com, s32 *max_buffer_time)
+{
+	u32 j, count = gf_list_count(odm->channels);
+	for (j=0; j<count; j++) {
+		GF_Channel *ch = (GF_Channel *)gf_list_get(odm->channels, j);
+		if (ch->service != service) continue;
+		if (ch->es_state != GF_ESM_ES_RUNNING) continue;
+		if (com->base.on_channel && (com->base.on_channel != ch)) continue;
+		if (/*!ch->MaxBuffer || */ch->dispatch_after_db || ch->bypass_sl_and_db || ch->IsEndOfStream) continue;
+		//perform buffer management only on base layer  -this is because we don't signal which ESs are on/off in the underlying service ...
+		if (ch->esd->dependsOnESID) continue;
+		if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
+		if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
+		if (ch->IsClockInit) {
+			if (ch->BufferTime > (s32) *max_buffer_time)
+				*max_buffer_time = ch->BufferTime;
+
+			/*if we don't have more units (compressed or not) than requested max for the composition memory, request more data*/
+			if (ch->odm->codec && ch->odm->codec->CB && (odm->codec->CB->UnitCount + ch->AU_Count <= odm->codec->CB->Capacity)) {
+				com->buffer.occupancy = 0;
+			} else if ( (u32) ch->BufferTime  < com->buffer.occupancy) {
+				com->buffer.occupancy = ch->BufferTime;
+			}
+		} else {
+			com->buffer.occupancy = 0;
+		}
+	}
+}
+
 static void term_on_command(void *user_priv, GF_ClientService *service, GF_NetworkCommand *com, GF_Err response)
 {
 	GF_Channel *ch;
@@ -482,33 +511,8 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM] No object manager found for the scene (URL: %s), buffer occupancy will remain unchanged\n", service->url));
 		i=0;
 		while ((odm = (GF_ObjectManager*)gf_list_enum(od_list, &i))) {
-			u32 j, count;
 			if (!odm->codec) continue;
-			count = gf_list_count(odm->channels);
-			for (j=0; j<count; j++) {
-				GF_Channel *ch = (GF_Channel *)gf_list_get(odm->channels, j);
-				if (ch->service != service) continue;
-				if (ch->es_state != GF_ESM_ES_RUNNING) continue;
-				if (com->base.on_channel && (com->base.on_channel != ch)) continue;
-				if (/*!ch->MaxBuffer || */ch->dispatch_after_db || ch->bypass_sl_and_db || ch->IsEndOfStream) continue;
-				//perform buffer management only on base layer  -this is because we don't signal which ESs are on/off in the underlying service ...
-				if (ch->esd->dependsOnESID) continue;
-				if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
-				if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
-				if (ch->IsClockInit) {
-					if (ch->BufferTime > (s32) max_buffer_time)
-						max_buffer_time = ch->BufferTime;
-
-					/*if we don't have more units (compressed or not) than requested max for the composition memory, request more data*/
-					if (ch->odm->codec && ch->odm->codec->CB && (odm->codec->CB->UnitCount + ch->AU_Count <= odm->codec->CB->Capacity)) {
-						com->buffer.occupancy = 0;
-					} else if ( (u32) ch->BufferTime  < com->buffer.occupancy) {
-						com->buffer.occupancy = ch->BufferTime;
-					}
-				} else {
-					com->buffer.occupancy = 0;
-				}
-			}
+			gather_buffer_level(odm, service, com, &max_buffer_time);
 		}
 		gf_mx_v(term->mm_mx);
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
@@ -531,6 +535,28 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		gf_sc_get_av_caps(term->compositor, &com->mcaps.width, &com->mcaps.height, &com->mcaps.display_bit_depth, &com->mcaps.audio_bpp, &com->mcaps.channels, &com->mcaps.sample_rate);
 		return;
 	}
+
+	if (com->command_type==GF_NET_ASSOCIATED_CONTENT_LOCATION) {
+		GF_Scene *scene;
+		if (service->owner->subscene) {
+			scene = service->owner->subscene;
+		} else if (service->owner->parentscene) {
+			scene = service->owner->parentscene;
+		}
+		gf_scene_register_associated_media(scene, &com->addon_info);
+		return;
+	}
+	if (com->command_type==GF_NET_ASSOCIATED_CONTENT_TIMING) {
+		GF_Scene *scene;
+		if (service->owner->subscene) {
+			scene = service->owner->subscene;
+		} else if (service->owner->parentscene) {
+			scene = service->owner->parentscene;
+		}
+		gf_scene_notify_associated_media_timeline(scene, &com->addon_time);
+		return;
+	}
+
 
 	if (!com->base.on_channel) return;
 
@@ -702,7 +728,7 @@ static Bool check_extension(const char *szExtList, char *szExt)
 }
 
 
-static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char *url, const char *parent_url, Bool no_mime_check, char **out_url, GF_Err *ret_code, GF_DownloadSession **the_session)
+static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char *url, const char *parent_url, Bool no_mime_check, char **out_url, GF_Err *ret_code, GF_DownloadSession **the_session, char **out_mime_type)
 {
 	u32 i;
 	GF_Err e;
@@ -718,6 +744,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	mime_type = NULL;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Looking for plugin for URL %s\n", url));
 	*out_url = NULL;
+	*out_mime_type = NULL;
 	sURL = NULL;
 	if (!url || !strncmp(url, "\\\\", 2) ) {
 		(*ret_code) = GF_URL_ERROR;
@@ -772,7 +799,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		const char *sPlug = gf_cfg_get_key(term->user->config, "MimeTypes", mime_type);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Mime type found: %s\n", mime_type));
 		if (!sPlug) {
-			gf_free(mime_type);
+			*out_mime_type = mime_type;
 			mime_type=NULL;
 		}
 		if (sPlug) sPlug = strrchr(sPlug, '"');
@@ -891,13 +918,16 @@ exit:
 		if (the_session && *the_session) {
 			gf_dm_sess_del(*the_session);
 		}
+		if (mime_type) gf_free(mime_type);
+		mime_type = NULL;
+		if (*out_mime_type) gf_free(*out_mime_type);
+		*out_mime_type = NULL;
 	} else {
 	    *out_url = sURL;
 	    GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Found input plugin %s for URL %s (%s)\n", ifce->module_name, sURL, mime_type ? mime_type : "no mime type"));
 	}
 	if (mime_type)
-	  gf_free(mime_type);
-	mime_type = NULL;
+	  *out_mime_type = mime_type;
 	return ifce;
 }
 
@@ -905,8 +935,9 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 {
 	GF_DownloadSession *download_session = NULL;
 	char *sURL;
+	char *mime;
 	GF_ClientService *serv;
-	GF_InputService *ifce = gf_term_can_handle_service(term, url, parent_url, 0, &sURL, ret_code, &download_session);
+	GF_InputService *ifce = gf_term_can_handle_service(term, url, parent_url, 0, &sURL, ret_code, &download_session, &mime);
 	if (!ifce) return NULL;
 
 	GF_SAFEALLOC(serv, GF_ClientService);
@@ -914,6 +945,7 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 	serv->owner = owner;
 	serv->ifce = ifce;
 	serv->url = sURL;
+	serv->mime = mime;
 	serv->Clocks = gf_list_new();
 	serv->dnloads = gf_list_new();
 	serv->pending_service_session = download_session;
@@ -929,13 +961,15 @@ Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_
 	GF_InputService *ifce;
 	GF_Err e;
 	char *sURL;
+	char *mime=NULL;
 	char *parent_url = NULL;
 	if (use_parent_url && term->root_scene) parent_url = term->root_scene->root_od->net_service->url;
 
-	ifce = gf_term_can_handle_service(term, fileName, parent_url, no_mime_check, &sURL, &e, NULL);
+	ifce = gf_term_can_handle_service(term, fileName, parent_url, no_mime_check, &sURL, &e, NULL, &mime);
 	if (!ifce) return 0;
 	gf_modules_close_interface((GF_BaseInterface *) ifce);
 	gf_free(sURL);
+	if (mime) gf_free(mime);
 	return 1;
 }
 
@@ -1030,6 +1064,7 @@ void gf_term_delete_net_service(GF_ClientService *ns)
 
 	gf_modules_close_interface((GF_BaseInterface *)ns->ifce);
 	gf_free(ns->url);
+	gf_free(ns->mime);
 
 
 	/*delete all the clocks*/

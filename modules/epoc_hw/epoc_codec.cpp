@@ -300,7 +300,7 @@ static GF_Err EDEC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 
 static GF_Err EDEC_ProcessData(GF_MediaDecoder *ifcg, 
 		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID,
+		u16 ES_ID, u32 *CTS,
 		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {

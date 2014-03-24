@@ -619,7 +619,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	ch->au_duration = 0;
 	if (duration) ch->au_duration = (u32) ((u64)1000 * duration / ch->ts_res);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch AU DTS %d - CTS %d - RAP %d - size %d time %d Buffer %d Nb AUs %d - First AU relative timing %d\n", ch->esd->ESID, au->DTS, au->CTS, au->flags&1, au->dataLength, gf_clock_real_time(ch->clock), ch->BufferTime, ch->AU_Count, ch->AU_buffer_first ? ch->AU_buffer_first->DTS - gf_clock_time(ch->clock) : 0 ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) - Dispatch AU DTS %d - CTS %d - RAP %d - size %d time %d Buffer %d Nb AUs %d - First AU relative timing %d\n", ch->esd->ESID, ch->odm->net_service->url, au->DTS, au->CTS, au->flags&1, au->dataLength, gf_clock_real_time(ch->clock), ch->BufferTime, ch->AU_Count, ch->AU_buffer_first ? ch->AU_buffer_first->DTS - gf_clock_time(ch->clock) : 0 ));
 
 	/*little optimisation: if direct dispatching is possible, try to decode the AU
 	we must lock the media scheduler to avoid deadlocks with other codecs accessing the scene or 
@@ -1017,6 +1017,23 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			init_ts = 1;
 	}
 
+
+	/*if we had a previous buffer, add or discard it, depending on codec resilience*/
+	if (hdr.accessUnitStartFlag && ch->buffer) {
+		if (ch->esd->slConfig->useAccessUnitEndFlag) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: missed end of AU (DTS %d)\n", ch->esd->ESID, ch->DTS));
+		}
+		if (ch->codec_resilient) {
+			if (!ch->IsClockInit && !ch->skip_time_check_for_pending) gf_es_check_timing(ch);
+			Channel_DispatchAU(ch, 0);
+		} else {
+			gf_free(ch->buffer);
+			ch->buffer = NULL;
+			ch->AULength = 0;
+			ch->len = ch->allocSize = 0;
+		}
+	}
+
 	if (init_ts) {
 		/*Get CTS */
 		if (ch->esd->slConfig->useTimestampsFlag) {
@@ -1029,8 +1046,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				/*until clock is not init check seed ts*/
 				if (!ch->IsClockInit && (ch->net_dts < ch->seed_ts)) 
 					ch->seed_ts = ch->net_dts;
-#endif
-				
+#endif				
 
 				if (ch->net_cts<ch->seed_ts) {
 					u64 diff = ch->seed_ts - ch->net_cts;
@@ -1047,6 +1063,11 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					/*TS Wraping not tested*/
 					ch->CTS = (u32) (ch->ts_offset + (s64) (ch->net_cts) * 1000 / ch->ts_res);
 					ch->DTS = (u32) (ch->ts_offset + (s64) (ch->net_dts) * 1000 / ch->ts_res);
+				}
+
+				if (ch->odm->parentscene && ch->odm->parentscene->root_od->addon) {
+					ch->DTS = (u32) gf_scene_adjust_timestamp_for_addon(ch->odm->parentscene, ch->DTS, ch->odm->parentscene->root_od->addon);
+					ch->CTS = (u32) gf_scene_adjust_timestamp_for_addon(ch->odm->parentscene, ch->CTS, ch->odm->parentscene->root_od->addon);
 				}
 
 				if (ch->clock->probe_ocr && gf_es_owns_clock(ch)) {
@@ -1188,23 +1209,6 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		else if (ch->stream_state) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Waiting for RAP - skipping AU (DTS %d)\n", ch->esd->ESID, ch->DTS));
 			return;
-		}
-	}
-
-
-	/*if we had a previous buffer, add or discard it, depending on codec resilience*/
-	if (hdr.accessUnitStartFlag && ch->buffer) {
-		if (ch->esd->slConfig->useAccessUnitEndFlag) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: missed end of AU (DTS %d)\n", ch->esd->ESID, ch->DTS));
-		}
-		if (ch->codec_resilient) {
-			if (!ch->IsClockInit && !ch->skip_time_check_for_pending) gf_es_check_timing(ch);
-			Channel_DispatchAU(ch, 0);
-		} else {
-			gf_free(ch->buffer);
-			ch->buffer = NULL;
-			ch->AULength = 0;
-			ch->len = ch->allocSize = 0;
 		}
 	}
 
@@ -1450,7 +1454,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 				return NULL;
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch Pull AU DTS %d - CTS %d - size %d time %d - UTC "LLU" ms\n", ch->esd->ESID, ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, gf_clock_real_time(ch->clock), gf_net_get_utc() ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) - Dispatch Pull AU DTS %d - CTS %d - size %d time %d - UTC "LLU" ms\n", ch->esd->ESID, ch->odm->net_service->url, ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, gf_clock_real_time(ch->clock), gf_net_get_utc() ));
 	}
 
 	/*this may happen in file streaming when data has not arrived yet, in which case we discard the AU*/

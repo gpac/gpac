@@ -100,8 +100,11 @@ enum
 	GF_CODEC_PAR,
 	/*video color mode - color modes are defined in constants.h*/
 	GF_CODEC_PIXEL_FORMAT,
-	/*isgnal decoder performs frame re-ordering in temporal scalability*/
+	/*signal decoder performs frame re-ordering in temporal scalability*/
 	GF_CODEC_REORDER,
+	/*signal decoder can safely handle CTS when outputing a picture. If not supported by the
+	decoder, the terminal will automatically handle CTS adjustments*/
+	GF_CODEC_TRUSTED_CTS,
 
 	/*set cap only, indicate smax bpp of display*/
 	GF_CODEC_DISPLAY_BPP,
@@ -191,7 +194,7 @@ typedef struct _basedecoder
 } GF_BaseDecoder;
 
 /*interface name and version for media decoder */
-#define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', '2')
+#define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', '3')
 
 /*the media module interface. A media module MUST be implemented in synchronous mode as time 
 and resources management is done by the terminal*/
@@ -209,7 +212,7 @@ typedef struct _mediadecoder
 	@mmlevel: speed indicator for the decoding - cf above for values*/
 	GF_Err (*ProcessData)(struct _mediadecoder *, 
 			char *inBuffer, u32 inBufferLength,
-			u16 ES_ID,
+			u16 ES_ID, u32 *CTS,
 			char *outBuffer, u32 *outBufferLength,
 			u8 PaddingBits, u32 mmlevel);
 

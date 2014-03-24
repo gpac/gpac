@@ -324,6 +324,7 @@ static void nalu_merge_ps(GF_BitStream *ps_bs, Bool rewrite_start_codes, u32 nal
 GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 sampleNumber, GF_MPEGVisualSampleEntryBox *entry)
 {
 	Bool is_hevc = 0;
+	Bool insert_nalu_delim = 1;
 	GF_Err e = GF_OK;
 	GF_ISOSample *ref_samp;
 	GF_BitStream *src_bs, *ref_bs, *dst_bs, *ps_bs;
@@ -389,6 +390,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	ps_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	src_bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
 	max_size = 4096;
+	insert_nalu_delim = 0;
 
 	/*rewrite start code with NALU delim*/
 	if (rewrite_start_codes) {
@@ -403,7 +405,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			}
 		}
 		//AVC/HEVC base, insert NALU delim
-		else {
+		else if (insert_nalu_delim) {
 			gf_bs_write_int(dst_bs, 1, 32);
 			if (is_hevc) {
 #ifndef GPAC_DISABLE_HEVC

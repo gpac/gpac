@@ -235,7 +235,7 @@ static s8 FAAD_GetChannelPos(FAADDec *ffd, u32 ch_cfg)
 
 static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg, 
 		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID,
+		u16 ES_ID, u32 *CTS, 
 		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {

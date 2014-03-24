@@ -47,6 +47,7 @@ typedef struct _object_clock GF_Clock;
 typedef struct _es_channel GF_Channel;
 typedef struct _generic_codec GF_Codec;
 typedef struct _composition_memory GF_CompositionMemory;
+typedef struct _gf_addon_media GF_AddonMedia;
 
 
 struct _net_service
@@ -58,6 +59,8 @@ struct _net_service
 	struct _tag_terminal *term;
 	/*service url*/
 	char *url;
+	/*service mime type*/
+	char *mime;
 	/*od_manager owning service, NULL for services created for remote channels*/
 	struct _od_manager *owner;
 	/*number of attached remote channels ODM (ESD URLs)*/
@@ -209,6 +212,10 @@ struct _scene
 	/*list of M_KeyNavigator nodes*/
 	GF_List *keynavigators;
 #endif
+
+
+	GF_AddonMedia *active_addon;
+	GF_List *declared_addons;
 };
 
 GF_Scene *gf_scene_new(GF_Scene *parentScene);
@@ -805,6 +812,8 @@ struct _generic_codec
 	u8 last_unit_signature[20];
 	/*in case the codec performs temporal re-ordering itself*/
 	Bool is_reordering;
+	/*codec will properly handle CTS adjustments*/
+	Bool trusted_cts;
 	u32 prev_au_size;
 	u32 bytes_per_sec;
 	Double fps;
@@ -957,6 +966,14 @@ struct _od_manager
 	/*the media sensor(s) attached to this object*/
 	GF_List *ms_stack;
 #endif
+
+	//only set on root OD of addon subscene, which gather all the hybrid resources
+	GF_AddonMedia *addon;
+	//set to true if this is a scalable addon for an existing object
+	Bool scalable_addon;
+
+	//for a regular ODM, this indicates that the current scalable_odm associated
+	struct _od_manager *scalable_odm;
 };
 
 
@@ -1084,6 +1101,32 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTy
 u32 gf_mo_get_od_id(MFURL *url);
 
 void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_url);
+
+void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
+void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
+u32 gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedia *addon);
+u64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon);
+
+struct _gf_addon_media
+{
+	char *url;
+	GF_ObjectManager *root_od;
+	s32 timeline_id;
+	u32 is_splicing;
+	//in scene time
+	Double activation_time;
+
+	Bool timeline_ready;
+
+	u32 media_timescale;
+	u64 media_timestamp;
+	u64 media_pts;
+
+	//0: not scalable
+	//1: layered coding scalable enhancement (reassembly before the decoder)
+	//2: view enhancement (reassembly after the decoder)
+	u32 scalable_type;
+};
 
 GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable);
 

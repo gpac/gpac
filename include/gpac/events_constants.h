@@ -228,6 +228,8 @@ typedef enum {
     /* Events for Keyboad */
     GF_EVENT_TEXT_EDITING_START,
     GF_EVENT_TEXT_EDITING_END,
+
+	GF_EVENT_ADDON_DETECTED,
 } GF_EventType;
 
 /*GPAC/DOM3 key codes*/

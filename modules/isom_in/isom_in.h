@@ -117,6 +117,9 @@ typedef struct
 
 	Bool buffering;
 	u32 buffer_min, buffer_max;
+
+
+	u32 nalu_extract_mode;
 } ISOMChannel;
 void isor_reset_reader(ISOMChannel *ch);
 void isor_reader_get_sample(ISOMChannel *ch);

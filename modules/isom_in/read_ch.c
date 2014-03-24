@@ -268,7 +268,7 @@ next_segment:
 					}
 				}
 				/*rewrite all upcoming SPS/PPS into the samples*/
-				gf_isom_set_nalu_extract_mode(read->mov, ch->track, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
+				gf_isom_set_nalu_extract_mode(read->mov, ch->track, ch->nalu_extract_mode);
 				ch->last_state = GF_OK;
 
 				

@@ -2372,13 +2372,9 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		return e;
 	}
 
-	/*no error and no init segment, go for media segment*/
+	/*no error and no init segment, go for media segment - this is needed for TS so that the set of media streams can be
+	declared to the player */
 	if (!base_init_url) {
-		//if no init segment don't download first segment
-#if 1
-		gf_mx_v(dash->dl_mutex);
-		return GF_OK;
-#else
 		e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_DASH_RESOLVE_URL_MEDIA, group->download_segment_index, &base_init_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL);
 		if (e) {
 			gf_mx_v(dash->dl_mutex);
@@ -2386,7 +2382,6 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 			return e;
 		}
 		nb_segment_read = 1;
-#endif
 	} else if (!group->bitstream_switching) {
 		group->dont_delete_first_segment = 1;
 	}
