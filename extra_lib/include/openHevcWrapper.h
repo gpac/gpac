@@ -65,6 +65,9 @@ void libOpenHevcClose(OpenHevc_Handle openHevcHandle);
 void libOpenHevcFlush(OpenHevc_Handle openHevcHandle);
 const char *libOpenHevcVersion(OpenHevc_Handle openHevcHandle);
 
+void libOpenHevcSetActiveDecoders(OpenHevc_Handle openHevcHandle, int val);
+void libOpenHevcSetViewLayers(OpenHevc_Handle openHevcHandle, int val);
+
 #ifdef __cplusplus
 }
 #endif

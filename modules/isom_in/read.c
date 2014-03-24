@@ -764,7 +764,7 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 		gf_isom_get_reference(ch->owner->mov, ch->track, GF_ISOM_REF_BASE, 1, &ch->base_track);
 		ch->next_track = 0;
 		/*in scalable mode add SPS/PPS in-band*/
-		ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG;
+		ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG /*| GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG*/;
 		gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
 		break;
 	}
