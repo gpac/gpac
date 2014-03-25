@@ -130,6 +130,9 @@ typedef enum
 	GF_NET_ASSOCIATED_CONTENT_LOCATION,
 	/*signal associated content timeline (from service to term)*/
 	GF_NET_ASSOCIATED_CONTENT_TIMING,
+
+	//sets nalu mode
+	GF_NET_CHAN_NALU_MODE,
 } GF_NET_CHAN_CMD;
 
 /*channel command for all commands that don't need params:
@@ -466,6 +469,17 @@ typedef struct
 	Bool is_discontinuity;
 } GF_AssociatedContentTiming;
 
+/*GF_NET_CHAN_NALU_MODE*/
+typedef struct
+{
+	u32 command_type;
+	LPNETCHANNEL channel;
+
+	//mode 0: extract in ISOBMF format (nalu size field + nalu)
+	//mode 1: extract in Annex B format (start code + nalu)
+	u32 extract_mode;
+} GF_NALUExtractMode;
+
 typedef union __netcommand
 {
 	GF_NET_CHAN_CMD command_type;
@@ -491,6 +505,7 @@ typedef union __netcommand
 	GF_NetComProxyData proxy_data;
 	GF_AssociatedContentLocation addon_info;
 	GF_AssociatedContentTiming addon_time;
+	GF_NALUExtractMode nalu_mode;
 } GF_NetworkCommand;
 
 /*

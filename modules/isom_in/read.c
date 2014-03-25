@@ -1138,9 +1138,16 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			gf_odf_desc_del((GF_Descriptor *) dcd);
 		}
 		return GF_OK;
+	}
+	case GF_NET_CHAN_NALU_MODE:
+		ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
+		//when this is set, we work in real scalable (eg N streams reassembled by the player) so only extract the layer. This wll need refinements if we plan to support
+		//several scalable layers ...
+		if (com->nalu_mode.extract_mode==1) ch->nalu_extract_mode |= GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG | GF_ISOM_NALU_EXTRACT_VDRD_FLAG | GF_ISOM_NALU_EXTRACT_LAYER_ONLY;
+		gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
+		break;
 	default:
 		break;
-	}
 	}
 	return GF_NOT_SUPPORTED;
 }

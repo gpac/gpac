@@ -2824,8 +2824,8 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 							gf_bs_read_data(bs, _url, url_len);
 							_url[url_len] = 0;
 						}
+						temi_loc.external_URL = URL;
 					}
-					temi_loc.external_URL = URL;
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d AF Location descriptor found - URL %s\n", pid, URL));
 					if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TEMI_LOCATION, &temi_loc);
 				}

@@ -315,6 +315,7 @@ typedef struct
 	 0: not random access
 	 1: regular RAP, 
 	 2: sample is a redundant RAP. If set when adding the sample, this will create a sample dependency entry
+	 3: specific RAP (CRA/BLA in HEVC) 
 	*/
 	u8 IsRAP;
 } GF_ISOSample;

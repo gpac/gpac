@@ -1898,6 +1898,9 @@ u64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMe
 
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 {
+	GF_NetworkCommand com;
+	GF_CodecCapability caps;
+	Bool nalu_annex_b;
 	GF_Channel *ch;
 	GF_ObjectManager *odm_base = NULL;
 	u32 i, count, mtype;
@@ -1910,8 +1913,28 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 		if ((mtype==odm_base->codec->type) && odm_base->codec)
 			break;
 		odm_base=NULL;
+		//todo check if we use compatible formats, for now we only do demos with hevc/shvc
 	}
 	if (!odm_base) return;
 	
 	odm_base->scalable_odm = odm;
+	
+	nalu_annex_b = 1;
+	ch = gf_list_get(odm_base->channels, 0);
+	if (ch->esd->decoderConfig->decoderSpecificInfo && ch->esd->decoderConfig->decoderSpecificInfo->dataLength)
+		nalu_annex_b = 0;
+
+	memset(&com, 0, sizeof(GF_NetworkCommand));
+	com.command_type = GF_NET_CHAN_NALU_MODE;
+	com.nalu_mode.extract_mode = nalu_annex_b ? 1 : 0;
+	count = gf_list_count(odm->channels);
+	for (i=0; i<count; i++) {
+		com.base.on_channel = ch = gf_list_get(odm->channels, i);
+		gf_term_service_command(ch->service, &com);
+	}
+
+	//signal to the base decoder that we will want full quality
+	caps.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
+	caps.cap.valueInt = 2;
+	odm_base->codec->decio->SetCapabilities(odm_base->codec->decio, caps);
 }

@@ -2041,7 +2041,7 @@ void PrintAVInfo(Bool final)
 		tot_time = v_odi.last_frame_time - v_odi.first_frame_time;
 		if (!tot_time) tot_time=1;
 		if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
-		fprintf(stderr, "%d frames FPS %.2f (%.2f ms max) rate %d ", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / tot_time, v_odi.max_dec_time/1000.0, (u32) v_odi.instant_bitrate/1000);
+		fprintf(stderr, "%d f FPS %.2f (%.2f ms max) rate %d ", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / tot_time, v_odi.max_dec_time/1000.0, (u32) v_odi.instant_bitrate/1000);
 	}
 	else if (scene_odm) {
 
@@ -2050,13 +2050,13 @@ void PrintAVInfo(Bool final)
 			avg_dec_time = (Float) 1000000 * s_odi.nb_dec_frames; 
 			avg_dec_time /= s_odi.total_dec_time; 
 			if (s_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*s_odi.current_time / s_odi.duration ) );
-			fprintf(stderr, "%d frames %.2f ("LLU" us max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
+			fprintf(stderr, "%d f %.2f ("LLU" us max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
 		} else {
 			u32 nb_frames_drawn;
 			Double FPS = gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
 			tot_time = gf_sys_clock() - bench_mode_start;
 			FPS = gf_term_get_framerate(term, 1);
-			fprintf(stderr, "%d frames FPS %.2f (abs %.2f) ", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
+			fprintf(stderr, "%d f FPS %.2f (abs %.2f) ", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
 		}
 	}
 }
