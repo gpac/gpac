@@ -324,6 +324,8 @@ static void nalu_merge_ps(GF_BitStream *ps_bs, Bool rewrite_start_codes, u32 nal
 GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 sampleNumber, GF_MPEGVisualSampleEntryBox *entry)
 {
 	Bool is_hevc = 0;
+	//if only one sync given in the sample sync table, insert sps/pps/vps before cra/bla in hevc
+	Bool check_cra_bla = (mdia->information->sampleTable->SyncSample && mdia->information->sampleTable->SyncSample->nb_entries>1) ? 0 : 1;
 	Bool insert_nalu_delim = 1;
 	GF_Err e = GF_OK;
 	GF_ISOSample *ref_samp;
@@ -348,10 +350,14 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	rewrite_start_codes = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG) ? 1 : 0;
 	insert_vdrd_code = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_VDRD_FLAG) ? 1 : 0;
-	if (!entry->svc_config) insert_vdrd_code = 0;
+	if (!entry->svc_config && !entry->shvc_config) insert_vdrd_code = 0;
 	extractor_mode = mdia->mediaTrack->extractor_mode&0x0000FFFF;
 
 	if (extractor_mode != GF_ISOM_NALU_EXTRACT_LAYER_ONLY)
+		insert_vdrd_code = 0;
+
+	//this is a compatible HEVC, don't insert VDRD, insert NALU delim
+	if (entry->shvc_config && entry->hevc_config) 
 		insert_vdrd_code = 0;
 
 	if (extractor_mode == GF_ISOM_NALU_EXTRACT_INSPECT) {
@@ -425,7 +431,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	}
 
 	if (rewrite_ps) {
-		//in insepct mode or single-layer mode just use the xPS from this layer
+		//in inspect mode or single-layer mode just use the xPS from this layer
 		if (extractor_mode == GF_ISOM_NALU_EXTRACT_DEFAULT) {
 			u32 i;
 			GF_TrackReferenceTypeBox *scal = NULL;
@@ -537,6 +543,24 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			case GF_HEVC_NALU_SLICE_STSA_R:
 				if (temporal_id < (nal_hdr & 0x7))
 					temporal_id = (nal_hdr & 0x7);
+
+			case GF_HEVC_NALU_SLICE_BLA_W_LP:
+			case GF_HEVC_NALU_SLICE_BLA_W_DLP:
+			case GF_HEVC_NALU_SLICE_BLA_N_LP:
+			case GF_HEVC_NALU_SLICE_IDR_W_DLP:
+			case GF_HEVC_NALU_SLICE_IDR_N_LP:
+			case GF_HEVC_NALU_SLICE_CRA:
+				//insert xPS before CRA/BLS
+				if (check_cra_bla && !sample->IsRAP) {
+					if (ref_samp) gf_isom_sample_del(&ref_samp);
+					if (src_bs) gf_bs_del(src_bs);
+					if (ref_bs) gf_bs_del(ref_bs);
+					if (dst_bs) gf_bs_del(dst_bs);
+					if (buffer) gf_free(buffer);
+
+					sample->IsRAP=3;
+					return gf_isom_nalu_sample_rewrite(mdia, sample, sampleNumber, entry);
+				}
 			default:
 				/*rewrite nal*/
 				gf_bs_read_data(src_bs, buffer, nal_size-2);

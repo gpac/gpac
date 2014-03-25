@@ -419,7 +419,7 @@ refetch_AU:
 				//gf_es_drop_au(ch);
 				continue;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU CTS %d selected as first layer (DTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->CTS, AU->DTS));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %d (size %d) selected as first layer (CTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, AU->dataLength, AU->CTS));
 			*nextAU = AU;
 			*activeChannel = ch;
 			curCTS = AU->CTS;
@@ -430,7 +430,7 @@ refetch_AU:
 			baseAU->data = gf_realloc(baseAU->data, baseAU->dataLength + AU->dataLength);
 			memcpy(baseAU->data + baseAU->dataLength , AU->data, AU->dataLength);
 			baseAU->dataLength += AU->dataLength;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU CTS %d reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->CTS, (*activeChannel)->esd->ESID));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %d reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*activeChannel)->esd->ESID));
 			gf_es_drop_au(ch);
 			ch->first_au_fetched = 1;
 		}
@@ -457,14 +457,13 @@ refetch_AU:
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU CTS %d doesn't have the same CTS as the base (%d)- selected as first layer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->CTS, (*nextAU)->CTS));
 					*nextAU = AU;
 					*activeChannel = ch;
-					(*activeChannel)->prev_aggregated_dts = (*nextAU)->DTS;
 					curCTS = AU->CTS;
 				}
 			}
 			//we can rely on DTS - if DTS is earlier on the enhencement, this is a loss or temporal scalability
 			else if (AU->DTS < (*nextAU)->DTS) {
 				//Sample with the same DTS of this AU has been decoded. This is a loss, we need to drop it and re-fetch this channel
-				if (AU->DTS < (*activeChannel)->prev_aggregated_dts) 
+				if (AU->DTS <= codec->last_unit_dts) 
 				{
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d %s AU DTS %d but base DTS %d: loss detected - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*nextAU)->DTS));
 					gf_es_drop_au(ch);
@@ -472,10 +471,9 @@ refetch_AU:
 				} 
 				//This is a temporal scalability so we re-aggregate from the enhencement
 				else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d AU CTS %d selected as first layer\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %d selected as first layer (CTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, AU->CTS));
 					*nextAU = AU;
 					*activeChannel = ch;
-					(*activeChannel)->prev_aggregated_dts = (*nextAU)->DTS;
 					curCTS = AU->CTS;
 				}
 			}
@@ -487,9 +485,6 @@ refetch_AU:
 		src_channels = current_odm->channels;
 		goto browse_scalable;
 	}
-
-	if (*nextAU)
-		(*activeChannel)->prev_aggregated_dts = (*nextAU)->DTS;
 
 	if (codec->is_reordering && *nextAU && codec->first_frame_dispatched) {
 		if ((*activeChannel)->esd->slConfig->no_dts_signaling) {
@@ -896,8 +891,6 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		else if (codec->direct_vout)  return GF_OK;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] At %d entering process\n", codec->decio->module_name, gf_clock_time(codec->ck)));
-
 	entryTime = gf_sys_clock_high_res();
 	if (!codec->odm->term->bench_mode && (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) 
 		drop_late_frames = 1;
@@ -1221,8 +1214,8 @@ scalable_retry:
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because time is up: %d vs %d available\n", codec->decio->module_name, now, TimeAvailable));
 				return GF_OK;
 			}
-		} else if (now >= 10*TimeAvailable) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because running for too long: %d vs %d available\n", codec->decio->module_name, now, TimeAvailable));
+		} else if (now >= 10000*TimeAvailable) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because running for too long: %d vs %d available\n", codec->decio->module_name, now/1000, TimeAvailable));
 			return GF_OK;
 		} else if (codec->odm->term->bench_mode) {
 			return GF_OK;

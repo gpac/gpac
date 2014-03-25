@@ -1478,7 +1478,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 			adaptation_field_control = GF_M2TS_ADAPTATION_AND_PAYLOAD;
 		}
 		if (stream->curr_pck.mpeg2_af_descriptors) {
-			if (adaptation_field_control != GF_M2TS_ADAPTATION_AND_PAYLOAD) {
+			if (adaptation_field_control == GF_M2TS_ADAPTATION_NONE) {
 				payload_length -= 2; //AF header but no PCR
 				adaptation_field_control = GF_M2TS_ADAPTATION_AND_PAYLOAD;
 			}
@@ -1519,8 +1519,10 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	else {
 		/*AF headers*/
 		if (!needs_pcr) {
-			payload_length -= 2;
-			adaptation_field_control = GF_M2TS_ADAPTATION_AND_PAYLOAD;
+			if (adaptation_field_control == GF_M2TS_ADAPTATION_NONE) {
+				payload_length -= 2;
+				adaptation_field_control = GF_M2TS_ADAPTATION_AND_PAYLOAD;
+			}
 		}
 		/*cannot add adaptation field for this TS packet with this payload, we need to split in 2 TS packets*/
 		if (payload_length < payload_to_copy + copy_next) {

@@ -133,7 +133,7 @@ enum
 	after the last AU). Otherwise the decoder will be stopped and ask to remove any extra scene being displayed*/
 	GF_CODEC_MEDIA_NOT_OVER,
 
-	/*switches up or down media quality for scalable coding*/
+	/*switches up (1), max (2), down (0) or min (-1) media quality for scalable coding. */
 	GF_CODEC_MEDIA_SWITCH_QUALITY,
 
 	/*special cap indicating the codec should abort processing as soon as possible because it is about to be destroyed*/

@@ -52,8 +52,6 @@ typedef struct
 	GF_ESD *esd;
 	OpenHevc_Handle openHevcHandle;
     u32 nb_layers;
-    Bool base_only;
-
 	u32 output_cb_size;
 
 	u32 display_bpp;
@@ -71,7 +69,6 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	ctx->width = ctx->height = ctx->out_size = ctx->luma_bpp = ctx->chroma_bpp = 0;
 	
     ctx->nb_layers = 1;
-    ctx->base_only = GF_FALSE;    
     
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 		HEVCState hevc;
@@ -120,11 +117,16 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	}
 #endif
 
-	libOpenHevcSetActiveDecoders(ctx->openHevcHandle, /*ctx->nb_layers*/2);
-    libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->nb_layers-1);
 
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->nb_layers);
+		libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->nb_layers-1);
+
 		libOpenHevcCopyExtraData(ctx->openHevcHandle, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength+8);
+	} else {
+		//hardcoded values: 2 layers max, display layer 0
+		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1 /*ctx->nb_layers*/);
+		libOpenHevcSetViewLayers(ctx->openHevcHandle, 0/*ctx->nb_layers-1*/);
 	}
 
     libOpenHevcStartDecoder(ctx->openHevcHandle);
@@ -283,11 +285,9 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
         return GF_OK;
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
 		/*switch up*/
-		if (capability.cap.valueInt) {
-            ctx->base_only = GF_FALSE;
+		if (capability.cap.valueInt > 0) {
 			libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);		
 		} else {
-            ctx->base_only = GF_TRUE;
 			libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);		
 		}
 		return GF_OK;
@@ -395,9 +395,6 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
  		return GF_OK;
 	}
 
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("HEVC: Decoding AU %d bytes\n", inBufferLength));
-
 	if (!ES_ID || (ES_ID!=ctx->ES_ID) ) {
 		*outBufferLength = 0;
 		return GF_OK;
@@ -413,7 +410,6 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		ctx->had_pic = 0;
 		return HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
 	}
-	
 	got_pic = libOpenHevcDecode(ctx->openHevcHandle, (u8 *) inBuffer, inBufferLength, *CTS);
 	if (got_pic>0) {
 		e = HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
