@@ -34,6 +34,13 @@
 
 #if defined(WIN32) && !defined(_WIN32_WCE) && !defined(__GNUC__)
 #  pragma comment(lib, "libLibOpenHevcWrapper")
+
+#if !defined _WIN64
+void libOpenHevcSetViewLayers(OpenHevc_Handle openHevcHandle, int val)
+{
+}
+#endif
+
 #endif
 
 typedef struct
