@@ -1116,6 +1116,7 @@ struct _gf_addon_media
 	//in scene time
 	Double activation_time;
 
+	Bool enabled;
 	Bool timeline_ready;
 
 	u32 media_timescale;
