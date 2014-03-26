@@ -273,8 +273,8 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 					}
 				}
 #endif
-				/*check AU start type*/
-				if (nal_type==GF_HEVC_NALU_ACCESS_UNIT) {
+				/*check AU start type - if this is an SHVC PID and the first nal is the first byte of the PES payload, consider this is an AU start*/
+				if ((nal_type==GF_HEVC_NALU_ACCESS_UNIT) || (pes->depends_on_pid && !first_nal_offset_in_pck)) {
 					if (!prev_is_au_delim) {
 						//this was not a one AU per PES config, dispatch 
 						if (au_start) {

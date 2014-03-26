@@ -2259,10 +2259,24 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 		if (reset_tables) {
 			u32 type, dur;
 			u64 dts;
+			Bool scalable = has_scalable;
 			GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
-			if (has_scalable && !gf_isom_get_reference_count(movie, i+1, GF_ISOM_REF_SCAL))
+
+			if (scalable) {
+				//check if the base reference is in the file - if not, do not consider the track is scalable.
+				if (gf_isom_get_reference_count(movie, i+1, GF_ISOM_REF_BASE) > 0) {
+					u32 on_track=0;
+					GF_TrackBox *base;
+					gf_isom_get_reference(movie, i+1, GF_ISOM_REF_BASE, 1, &on_track);
+
+					base = gf_isom_get_track_from_file(movie, on_track);
+					if (!base) scalable = GF_FALSE;
+				}
+			}
+
+			if (scalable && !gf_isom_get_reference_count(movie, i+1, GF_ISOM_REF_SCAL))
 				base_track_sample_count = stbl->SampleSize->sampleCount;
-			trak->sample_count_at_seg_start += has_scalable ? base_track_sample_count : stbl->SampleSize->sampleCount;
+			trak->sample_count_at_seg_start += scalable ? base_track_sample_count : stbl->SampleSize->sampleCount;
 			if (trak->sample_count_at_seg_start) {
 				GF_Err e;
 				e = stbl_GetSampleDTS_and_Duration(stbl->TimeToSample, stbl->SampleSize->sampleCount, &dts, &dur);
@@ -3330,8 +3344,9 @@ Bool gf_isom_has_scalable_layer(GF_ISOFile *file)
 		return GF_FALSE;
 	count = gf_isom_get_track_count(file);
 	for (i = 0; i < count; i++) {
-		if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_SCAL) > 0)
+		if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_SCAL) > 0) {
 			return GF_TRUE;
+		}
 	}
 	return GF_FALSE;
 }

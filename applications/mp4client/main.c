@@ -84,6 +84,7 @@ GF_User user;
 GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
+static Bool enable_add_ons = GF_TRUE;
 
 static Bool request_next_playlist_item = GF_FALSE;
 FILE *playlist = NULL;
@@ -209,6 +210,7 @@ void PrintUsage()
 		"\n"
 		"\t-exit:          automatically exits when presentation is over\n"
 		"\t-run-for TIME:  runs for TIME seconds and exits\n"
+		"\t-no-addon:      disable automatic loading of media addons declared in source URL\n"
 		"\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
 		"\n"
 		"Dumper Options:\n"
@@ -780,8 +782,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		return 1;
 	}
 	case GF_EVENT_ADDON_DETECTED:
-		fprintf(stderr, "Media Addon %s detected - enabling it\n", evt->addon_connect.addon_url);
-		return 1;
+		if (enable_add_ons)
+			fprintf(stderr, "Media Addon %s detected - enabling it\n", evt->addon_connect.addon_url);
+		return enable_add_ons;
 	}
 	return 0;
 }
@@ -1141,6 +1144,8 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-bench")) bench_mode = 1;
 		else if (!strcmp(arg, "-vbench")) bench_mode = 2;
 		else if (!strcmp(arg, "-sbench")) bench_mode = 3;
+		else if (!strcmp(arg, "-no-addon")) enable_add_ons = GF_FALSE;
+
 		else if (!strcmp(arg, "-opt")) {
 			set_cfg_option(argv[i+1]);
 			i++;

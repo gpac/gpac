@@ -1766,6 +1766,8 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 	MFURL url;
 	SFURL sfurl;
 
+	if (!addon->enabled) return;
+
 	url.count=1;
 	url.vals = &sfurl;
 	url.vals[0].OD_ID = GF_MEDIA_EXTERNAL_ID;
@@ -1786,6 +1788,7 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info)
 {
 	GF_AddonMedia *addon;
+	GF_Event evt;
 	u32 i, count;
 	
 	if (!scene->is_dynamic_scene) return;
@@ -1819,6 +1822,11 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	addon->timeline_ready = (addon_info->timeline_id<0) ? 1 : 0;
 	if (addon->timeline_ready && !scene->active_addon) scene->active_addon = addon;
 	gf_list_add(scene->declared_addons, addon);
+	
+
+	evt.type = GF_EVENT_ADDON_DETECTED;
+	evt.addon_connect.addon_url = addon->url;
+	addon->enabled = gf_term_send_event(scene->root_od->term,&evt);
 	
 	if (addon->timeline_ready) 
 		load_associated_media(scene, addon);
@@ -1936,5 +1944,5 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	//signal to the base decoder that we will want full quality
 	caps.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
 	caps.cap.valueInt = 2;
-	odm_base->codec->decio->SetCapabilities(odm_base->codec->decio, caps);
+//	odm_base->codec->decio->SetCapabilities(odm_base->codec->decio, caps);
 }

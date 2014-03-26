@@ -827,21 +827,11 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		}
 
 		if (odm->addon) {
-			Bool res;
-			
 			gf_term_lock_net(odm->term, GF_FALSE);
 
-			evt.type = GF_EVENT_ADDON_DETECTED;
-			evt.addon_connect.addon_url = odm->net_service->url;
-			evt.addon_connect.mime_type = odm->net_service->mime;
-			res = gf_term_send_event(odm->term,&evt);
-	
-			if (res) {
-				if (! odm->addon->scalable_type) {
-					gf_scene_select_object(odm->parentscene, odm);
-				}
+			if (! odm->addon->scalable_type) {
+				gf_scene_select_object(odm->parentscene, odm);
 			}
-
 			return;
 		}
 		
