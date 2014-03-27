@@ -727,6 +727,15 @@ Specifies whether downloaded files should not be deleted.</p>
 <b>AutoSwitchCount</b> [value: <i>positive integer</i>]
 <p style="text-indent: 5%">
 For debug purposes, instructs the player to switch representation every N segments. If 0 (default), switching is disabled.</p>
+<b>BufferMode</b> [value: <i>segments, minBuffer, none</i>]
+<p style="text-indent: 5%">
+Selects buffer mode:
+<ul> 
+<li>segments: buffers complete segments as indicated in MPD before handing them to the player.</li>
+<li>minBuffer: asks the player to buffer media for the time indicated in the MPD (default mode), but segments are not pre-buffered.</li> 
+<li>none: uses the  player settings for buffering.</li> 
+</ul>
+</p>
 <b>DisableSwitching</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
 Disables automatic adaptation logic. Default is no</p>
