@@ -30,6 +30,13 @@
 #include <gpac/dash.h>
 #include <gpac/internal/terminal_dev.h>
 
+typedef enum
+{
+	MPDIN_BUFFER_NONE=0,
+	MPDIN_BUFFER_MIN=1,
+	MPDIN_BUFFER_SEGMENTS=2
+} MpdInBuffer;
+
 typedef struct __mpd_module 
 {
     /* GPAC Service object (i.e. how this module is seen by the terminal)*/
@@ -45,7 +52,8 @@ typedef struct __mpd_module
 	Bool in_seek;
 	Bool memory_storage;
 	Bool use_max_res, immediate_switch, allow_http_abort;
-	u32 use_low_latency, buffer_mode;
+	u32 use_low_latency;
+	MpdInBuffer buffer_mode;
 	Double previous_start_range;
 	/*max width & height in all active representations*/
 	u32 width, height;
@@ -62,13 +70,6 @@ typedef struct
 	u32 idx;
 	GF_DownloadSession *sess;
 } GF_MPDGroup;
-
-enum
-{
-	MPDIN_BUFFER_NONE=0,
-	MPDIN_BUFFER_MIN=1,
-	MPDIN_BUFFER_SEGMENTS=2
-};
 
 const char * MPD_MPD_DESC = "MPEG-DASH Streaming";
 const char * MPD_MPD_EXT = "3gm mpd";
@@ -637,20 +638,21 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 
 GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
-    GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
-    const char *opt;
-    GF_Err e;
+	GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
+	const char *opt;
+	GF_Err e;
 	s32 shift_utc_ms, debug_adaptation_set;
 	u32 max_cache_duration, auto_switch_count, init_timeshift;
 	Bool use_server_utc;
 	GF_DASHInitialSelectionMode first_select_mode;
-	Bool keep_files, disable_switching, enable_buffering;
+	Bool keep_files, disable_switching;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Connection request (%p) from terminal for %s\n", serv, url));
 
-    if (!mpdin|| !serv || !url) return GF_BAD_PARAM;
+	if (!mpdin || !serv || !url)
+		return GF_BAD_PARAM;
 
-    mpdin->service = serv;
+	mpdin->service = serv;
 
 	mpdin->dash_io.udta = mpdin;
 	mpdin->dash_io.delete_cache_file = mpdin_dash_io_delete_cache_file;
@@ -723,8 +725,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "BufferingMode", "minBuffer");
 
 	if (opt && !strcmp(opt, "segments")) mpdin->buffer_mode = MPDIN_BUFFER_SEGMENTS;
-	else if (opt && !strcmp(opt, "minBuffer")) mpdin->buffer_mode = MPDIN_BUFFER_MIN;
-	else mpdin->buffer_mode = MPDIN_BUFFER_NONE;
+	else if (opt && !strcmp(opt, "none")) mpdin->buffer_mode = MPDIN_BUFFER_NONE;
+	else mpdin->buffer_mode = MPDIN_BUFFER_MIN;
 
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "LowLatency");
