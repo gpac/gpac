@@ -44,8 +44,8 @@ typedef struct __mpd_module
 	Bool connection_ack_sent;
 	Bool in_seek;
 	Bool memory_storage;
-	Bool use_max_res, immediate_switch, allow_http_abort, enable_buffering;
-	u32 use_low_latency;
+	Bool use_max_res, immediate_switch, allow_http_abort;
+	u32 use_low_latency, buffer_mode;
 	Double previous_start_range;
 	/*max width & height in all active representations*/
 	u32 width, height;
@@ -62,6 +62,13 @@ typedef struct
 	u32 idx;
 	GF_DownloadSession *sess;
 } GF_MPDGroup;
+
+enum
+{
+	MPDIN_BUFFER_NONE=0,
+	MPDIN_BUFFER_MIN=1,
+	MPDIN_BUFFER_SEGMENTS=2
+};
 
 const char * MPD_MPD_DESC = "MPEG-DASH Streaming";
 const char * MPD_MPD_EXT = "3gm mpd";
@@ -528,15 +535,15 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		//configure buffer in dynamic mode without low latency: we indicate how much the player will buffer
 		if (gf_dash_is_dynamic_mpd(mpdin->dash) && !mpdin->use_low_latency) {
 			u32 buffer_ms = 0;
+			const char *opt = gf_modules_get_option((GF_BaseInterface *)mpdin->plug, "Network", "BufferLength");
+			if (opt) buffer_ms = atoi(opt);
+
 			//use min buffer from MPD
-			if (mpdin->enable_buffering) {
-				buffer_ms = gf_dash_get_min_buffer_time(mpdin->dash);
+			if (mpdin->buffer_mode>=MPDIN_BUFFER_MIN) {
+				u32 mpd_buffer_ms = gf_dash_get_min_buffer_time(mpdin->dash);
+				if (mpd_buffer_ms > buffer_ms)
+					buffer_ms = mpd_buffer_ms;
 			} 
-			//use default GPAC buffer
-			else {
-				const char *opt = gf_modules_get_option((GF_BaseInterface *)mpdin->plug, "Network", "BufferLength");
-				if (opt) buffer_ms = atoi(opt);
-			}
 
 			if (buffer_ms) {
 				gf_dash_set_user_buffer(mpdin->dash, buffer_ms);
@@ -637,7 +644,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	u32 max_cache_duration, auto_switch_count, init_timeshift;
 	Bool use_server_utc;
 	GF_DASHInitialSelectionMode first_select_mode;
-	Bool keep_files, disable_switching;
+	Bool keep_files, disable_switching, enable_buffering;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Connection request (%p) from terminal for %s\n", serv, url));
 
@@ -712,9 +719,13 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "ImmediateSwitching", "no");
 	mpdin->immediate_switch = (opt && !strcmp(opt, "yes")) ? 1 : 0;
 	
-	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "EnableBuffering");
-	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "EnableBuffering", "no");
-	mpdin->enable_buffering = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "BufferingMode");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "BufferingMode", "minBuffer");
+
+	if (opt && !strcmp(opt, "segments")) mpdin->buffer_mode = MPDIN_BUFFER_SEGMENTS;
+	else if (opt && !strcmp(opt, "minBuffer")) mpdin->buffer_mode = MPDIN_BUFFER_MIN;
+	else mpdin->buffer_mode = MPDIN_BUFFER_NONE;
+
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "LowLatency");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "LowLatency", "no");
@@ -743,7 +754,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "InitialTimeshift", "0");
 	if (opt) init_timeshift = atoi(opt);
 	
-	mpdin->dash = gf_dash_new(&mpdin->dash_io, max_cache_duration, auto_switch_count, keep_files, disable_switching, first_select_mode, mpdin->enable_buffering, init_timeshift);
+	mpdin->dash = gf_dash_new(&mpdin->dash_io, max_cache_duration, auto_switch_count, keep_files, disable_switching, first_select_mode, (mpdin->buffer_mode == MPDIN_BUFFER_SEGMENTS) ? 1 : 0, init_timeshift);
 
 	if (!mpdin->dash) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD_IN] Error - cannot create DASH Client for %s\n", url));
@@ -896,8 +907,11 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	case GF_NET_CHAN_BUFFER:
 		/*get it from MPD minBufferTime - if not in low latency mode, indicate the value given in MPD (not possible to fetch segments earlier) - to be more precise we should get the min segment duration for this group*/
-		if (mpdin->enable_buffering && !mpdin->use_low_latency) {
-			com->buffer.max = gf_dash_get_min_buffer_time(mpdin->dash);
+		if (!mpdin->use_low_latency && (mpdin->buffer_mode>=MPDIN_BUFFER_MIN) ) {
+			u32 max = gf_dash_get_min_buffer_time(mpdin->dash);
+			if (max>com->buffer.max)
+				com->buffer.max = max;
+
 			if (! gf_dash_is_dynamic_mpd(mpdin->dash)) { 
 				com->buffer.min = 1;
 			}
