@@ -76,7 +76,7 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	RVCDec *ctx = (RVCDec*) ifcg->privateStack;
 	char* VTLFolder; 
 	char *XDF_doc = NULL; 
-	int isAVCFile;
+	int isNALUFile;
 
 	/*not supported in this version*/
 	if (esd->dependsOnESID) return GF_NOT_SUPPORTED;
@@ -86,10 +86,10 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 	VTLFolder = (char *)gf_modules_get_option((GF_BaseInterface *)ifcg, "RVCDecoder", "VTLPath");
 	if (!VTLFolder) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[RVC_Dec] Cannot locate VTL: path is unknown. Please indicate path in GPAC config file:\n[RVCDecoder]\nVTLPath=PATH\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[RVC Decoder] Cannot locate VTL: path is unknown. Please indicate path in GPAC config file:\n[RVCDecoder]\nVTLPath=PATH\n"));
 		return GF_SERVICE_ERROR;
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[RVC_Dec] Using VTL in %s\n", VTLFolder));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[RVC Decoder] Using VTL in %s\n", VTLFolder));
 	}
 
 	/*initialize RVC*/
@@ -120,10 +120,19 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	}
 
 
-	if(esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) isAVCFile = 1;
-	else isAVCFile = 0;
+	switch (esd->decoderConfig->objectTypeIndication) {
+	case GPAC_OTI_VIDEO_AVC:
+	case GPAC_OTI_VIDEO_SVC:
+	case GPAC_OTI_VIDEO_HEVC:
+	case GPAC_OTI_VIDEO_SHVC:
+		isNALUFile = 1;
+		break;
+	default:
+		isNALUFile = 0;
+		break;
+	}
 
-	rvc_init(XDF_doc, VTLFolder, isAVCFile); //->data contains the uncompressed XDF
+	rvc_init(XDF_doc, VTLFolder, isNALUFile); //->data contains the uncompressed XDF
 
 	/*free data*/
 	gf_free(XDF_doc);
@@ -137,7 +146,7 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		return GF_OK;
 
 	/*initialize the decoder */
-	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
+	if ( (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) ||  (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) {
 		GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 		if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
 		ctx->nalu_size_length = cfg->nal_unit_size;
@@ -158,29 +167,63 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 						ctx->pixel_ar = (par_n<<16) || par_d;
 				}
 			}
-			/* call decode - warning for AVC: the data blocks do not contain startcode prefixes (00000001), you may need to add them) */
 			
+			/* call decode*/			
 			res = rvc_decode(slc->data, slc->size, &Picture, 1);
 			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding SPS %d\n", res));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[RVC Decoder] Error decoding SPS %d\n", res));
 			}
-			
 		}
 
 		count = gf_list_count(cfg->pictureParameterSets);
 		for (i=0; i<count; i++) {
 			GF_AVCConfigSlot *slc = gf_list_get(cfg->pictureParameterSets, i);
-			/*same remark as above*/
-
-			
 			res = rvc_decode(slc->data, slc->size, &Picture, 1);
 			if (res<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding PPS %d\n", res));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[RVC Decoder] Error decoding PPS %d\n", res));
 			}
 			
 		}
 
 		gf_odf_avc_cfg_del(cfg);
+	/*initialize the decoder */
+	} else if ( (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) ||  (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SHVC)) {
+		GF_HEVCConfig *cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
+		if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
+		ctx->nalu_size_length = cfg->nal_unit_size;
+		
+		/*decode all NALUs*/
+		count = gf_list_count(cfg->param_array);
+		for (i=0; i<count; i++) {
+			u32 j, count2;
+			GF_HEVCParamArray *ar = gf_list_get(cfg->param_array, i);
+			count2 = gf_list_count(ar->nalus);
+			for (j=0; j<count2; j++) {
+				u32 w, h, par_n, par_d;
+				GF_AVCConfigSlot *slc = gf_list_get(ar->nalus, j);
+
+				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
+					gf_hevc_get_sps_info(slc->data, slc->size, &slc->id, &w, &h, &par_n, &par_d);
+					/*by default use the base layer*/
+					if (!j) {
+						if ((ctx->width<w) || (ctx->height<h)) {
+							ctx->width = w;
+							ctx->height = h;
+							if ( ((s32)par_n>0) && ((s32)par_d>0) )
+								ctx->pixel_ar = (par_n<<16) || par_d;
+						}
+					}
+				}
+
+				/* call decode*/			
+				res = rvc_decode(slc->data, slc->size, &Picture, 1);
+				if (res<0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[RVC Decoder] Error decoding parameter set: %d\n", res));
+				}
+			}
+		}
+
+		gf_odf_hevc_cfg_del(cfg);
 	} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
 		GF_M4VDecSpecInfo dsi;
 		GF_Err e;
@@ -195,7 +238,7 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		
 		res = rvc_decode(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &Picture, 1);
 		if (res<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding PPS %d\n", res));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[RVC Decoder] Error decoding PPS %d\n", res));
 		}
 		
 
@@ -204,7 +247,7 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		
 		res = rvc_decode(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &Picture, 1);
 		if (res<0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding PPS %d\n", res));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[RVC Decoder] Error decoding PPS %d\n", res));
 		}
 		
 	}
@@ -375,7 +418,10 @@ static u32 RVCD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_VIDEO_AVC:
+	case GPAC_OTI_VIDEO_SVC:
 	case GPAC_OTI_VIDEO_MPEG4_PART2:
+	case GPAC_OTI_VIDEO_HEVC:
+	case GPAC_OTI_VIDEO_SHVC:
 		if (!esd->decoderConfig->rvc_config && !esd->decoderConfig->predefined_rvc_config) return GF_CODEC_NOT_SUPPORTED;
 		return GF_CODEC_SUPPORTED+1;
 	}
@@ -384,7 +430,7 @@ static u32 RVCD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 
 static const char *RVCD_GetCodecName(GF_BaseDecoder *dec)
 {
-	return "RVC Decoder";
+	return "Reconfigurable Video Decoder";
 }
 
 GF_BaseDecoder *NewRVCDec()
