@@ -1076,6 +1076,7 @@ enum
 	GF_RTP_PAYT_H264_SVC,
 	/*use HEVC/H265 transport - no RFC yet, only draft*/
 	GF_RTP_PAYT_HEVC,
+	GF_RTP_PAYT_SHVC
 };
 
 

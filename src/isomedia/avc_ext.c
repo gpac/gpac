@@ -76,29 +76,6 @@ static void rewrite_nalus_list(GF_List *nalus, GF_BitStream *bs, Bool rewrite_st
 	}				
 }
 
-/* FIXME : unused function
-static void merge_nalus_list(GF_List  *src, GF_List *dst)
-{
-	u32 i, count = gf_list_count(src);
-	for (i=0; i<count; i++) {
-		void *p = gf_list_get(src, i);
-		if (p) gf_list_add(dst, p);
-	}
-}
-
-
-static void merge_nalus(GF_MPEGVisualSampleEntryBox *entry, GF_List *sps, GF_List *pps)
-{
-	if (entry->avc_config) {
-		merge_nalus_list(entry->avc_config->config->sequenceParameterSets, sps);
-		merge_nalus_list(entry->avc_config->config->sequenceParameterSetExtensions, sps);
-		merge_nalus_list(entry->avc_config->config->pictureParameterSets, pps);
-	}
-	if (entry->svc_config) {
-		merge_nalus_list(entry->svc_config->config->sequenceParameterSets, sps);
-		merge_nalus_list(entry->svc_config->config->pictureParameterSets, pps);
-	}
-}*/
 
 static GF_Err process_extractor(GF_ISOFile *file, u32 sampleNumber, u32 nal_size, u16 nal_hdr, u32 nal_unit_size_field, Bool is_hevc, Bool rewrite_ps, Bool rewrite_start_codes, GF_BitStream *src_bs, GF_BitStream *dst_bs, u32 extractor_mode)
 {
@@ -551,7 +528,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			case GF_HEVC_NALU_SLICE_IDR_N_LP:
 			case GF_HEVC_NALU_SLICE_CRA:
 				//insert xPS before CRA/BLS
-				if (0&&check_cra_bla && !sample->IsRAP) {
+				if (check_cra_bla && !sample->IsRAP) {
 					if (ref_samp) gf_isom_sample_del(&ref_samp);
 					if (src_bs) gf_bs_del(src_bs);
 					if (ref_bs) gf_bs_del(ref_bs);
@@ -722,7 +699,7 @@ static void merge_avc_config(GF_AVCConfig *dst_cfg, GF_AVCConfig *src_cfg)
 	gf_odf_avc_cfg_del(cfg);
 }
 
-void merge_hevc_config(GF_HEVCConfig *dst_cfg, GF_HEVCConfig *src_cfg)
+void merge_hevc_config(GF_HEVCConfig *dst_cfg, GF_HEVCConfig *src_cfg, Bool force_insert)
 {
 	GF_HEVCConfig *cfg = HEVC_DuplicateConfig(src_cfg);
 	//merge all xPS
@@ -747,7 +724,10 @@ void merge_hevc_config(GF_HEVCConfig *dst_cfg, GF_HEVCConfig *src_cfg)
 			while (gf_list_count(ar->nalus)) {
 				GF_AVCConfigSlot *p = (GF_AVCConfigSlot*)gf_list_get(ar->nalus, 0);
 				gf_list_rem(ar->nalus, 0);
-				gf_list_insert(ar_h->nalus, p, 0);
+				if (force_insert) 
+					gf_list_insert(ar_h->nalus, p, 0);
+				else
+					gf_list_add(ar_h->nalus, p);
 			}
 
 		}
@@ -792,10 +772,10 @@ void merge_all_config(GF_AVCConfig *avc_cfg, GF_HEVCConfig *hevc_cfg, GF_MediaBo
 			merge_avc_config(avc_cfg, an_entry->avc_config->config);
 
 		if (hevc_cfg && an_entry->shvc_config && an_entry->shvc_config->config) 
-			merge_hevc_config(hevc_cfg, an_entry->shvc_config->config);
+			merge_hevc_config(hevc_cfg, an_entry->shvc_config->config, GF_TRUE);
 
 		if (hevc_cfg && an_entry->hevc_config && an_entry->hevc_config->config) 
-			merge_hevc_config(hevc_cfg, an_entry->hevc_config->config);
+			merge_hevc_config(hevc_cfg, an_entry->hevc_config->config, GF_TRUE);
 	}
 
 	if (hevc_cfg) hevc_cfg->is_shvc = 0;
@@ -886,12 +866,14 @@ void HEVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *hevc, GF_MediaBox *
 		GF_HEVCConfig *hcfg = HEVC_DuplicateConfig(hevc->hevc_config ? hevc->hevc_config->config : hevc->shvc_config->config);
 
 		if (hevc->hevc_config && hevc->shvc_config) {
-			merge_hevc_config(hcfg, hevc->shvc_config->config);
+			//merge SHVC config to HEVC conf, so we add entry rather than insert
+			merge_hevc_config(hcfg, hevc->shvc_config->config, GF_FALSE);
 		}
 
 		if (mdia) merge_all_config(NULL, hcfg, mdia);
 
 		if (hcfg) {
+			hcfg->is_shvc = GF_FALSE;
 			gf_odf_hevc_cfg_write(hcfg, &hevc->emul_esd->decoderConfig->decoderSpecificInfo->data, &hevc->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_odf_hevc_cfg_del(hcfg);
 		}

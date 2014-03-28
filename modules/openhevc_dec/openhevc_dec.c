@@ -64,13 +64,47 @@ typedef struct
 	u32 display_bpp;
 	Bool conv_to_8bit;
 	char *conv_buffer;
+
 } HEVCDec;
 
+static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
+{
+	GF_HEVCConfig *cfg = NULL;
+	char *data;
+	u32 data_len;
+	GF_BitStream *bs;
+	u32 i, j;
 
+	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data)
+		return GF_OK;
+	cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
+ 	if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
+	if (ctx->nalu_size_length != cfg->nal_unit_size) 
+		return GF_NON_COMPLIANT_BITSTREAM;
+  
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+ 	for (i=0; i< gf_list_count(cfg->param_array); i++) {
+ 		GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(cfg->param_array, i);
+		for (j=0; j< gf_list_count(ar->nalus); j++) {
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+			gf_bs_write_int(bs, sl->size, 8*ctx->nalu_size_length);
+			gf_bs_write_data(bs, sl->data, sl->size);
+		}
+	}
+
+	gf_bs_get_content(bs, &data, &data_len);
+	gf_bs_del(bs);
+	libOpenHevcDecode(ctx->openHevcHandle, (u8 *)data, data_len, 0);
+	gf_free(data);
+
+	libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 2);
+	libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);
+	return GF_OK;
+}
 
 static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 {
-    u32 i, j;
+	u32 i, j;
     GF_HEVCConfig *cfg = NULL;
 	ctx->ES_ID = esd->ESID;
 	ctx->width = ctx->height = ctx->out_size = ctx->luma_bpp = ctx->chroma_bpp = 0;
@@ -79,20 +113,20 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
     
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 		HEVCState hevc;
-		memset(&hevc, 0, sizeof(HEVCState));
+		memset(&hevc, 0, sizeof(HEVCState));  
 
 		cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
  		if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
- 		ctx->nalu_size_length = cfg->nal_unit_size;
-        
+ 		ctx->nalu_size_length = cfg->nal_unit_size;    
+
  		for (i=0; i< gf_list_count(cfg->param_array); i++) {
- 			GF_HEVCParamArray *ar = gf_list_get(cfg->param_array, i);
-            for (j=0; j< gf_list_count(ar->nalus); j++) {
-                GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
-                s32 idx;
+ 			GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(cfg->param_array, i);
+			for (j=0; j< gf_list_count(ar->nalus); j++) {
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+				s32 idx;
 				u16 hdr = sl->data[0] << 8 | sl->data[1]; 
 					
-	            if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
+				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 					idx = gf_media_hevc_read_sps(sl->data, sl->size, &hevc);
 					ctx->width = MAX(hevc.sps[idx].width, ctx->width);
 					ctx->height = MAX(hevc.sps[idx].height, ctx->height);
@@ -101,18 +135,18 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 
 					if (hdr & 0x1f8) {
 						ctx->nb_layers ++;
-                    }
+					}
 				}
-	            else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
+				else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
 					gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
 				}
-	            else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
+				else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
 					gf_media_hevc_read_pps(sl->data, sl->size, &hevc);
 				}
-            }
-        }
+			}
+		}
 		gf_odf_hevc_cfg_del(cfg);
-    } else {
+	} else {
 		ctx->nalu_size_length = 0;
 	}
 
@@ -129,7 +163,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->nb_layers);
 		libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->nb_layers-1);
 
-		libOpenHevcCopyExtraData(ctx->openHevcHandle, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength+8);
+		libOpenHevcCopyExtraData(ctx->openHevcHandle, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 	} else {
 		//hardcoded values: 2 layers max, display layer 0
 		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1/*ctx->nb_layers*/);
@@ -194,8 +228,11 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 
 
-	/*once base layer is configured, nothing to do on enhancement*/
-	if (esd->dependsOnESID) return GF_OK;
+	/*RTP case: configure enhancement now*/
+	if (esd->dependsOnESID) {
+		HEVC_ConfigurationScalableStream(ctx, esd);
+		return GF_OK;
+	}
 
 	ctx->esd = esd;
 	return HEVC_ConfigureStream(ctx, esd);
@@ -223,7 +260,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 
 	switch (capability->CapCode) {
 	case GF_CODEC_RESILIENT:
-		capability->cap.valueInt = 1;
+		capability->cap.valueInt = 2;
 		break;
 	case GF_CODEC_WIDTH:
 		capability->cap.valueInt = ctx->width;
@@ -292,7 +329,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
         return GF_OK;
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
 		/*switch up*/
-		if (capability.cap.valueInt > 0) {
+		if (capability.cap.valueInt > 0) {	
 			libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);		
 		} else {
 			libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);		
@@ -402,10 +439,11 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
  		return GF_OK;
 	}
 
-	if (!ES_ID || (ES_ID!=ctx->ES_ID) ) {
+	if (!ES_ID) {
 		*outBufferLength = 0;
 		return GF_OK;
 	}
+
 	if (*outBufferLength < ctx->out_size) {
 		*outBufferLength = ctx->out_size;
 		return GF_BUFFER_TOO_SMALL;
@@ -418,11 +456,13 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		return HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
 	}
 	got_pic = libOpenHevcDecode(ctx->openHevcHandle, (u8 *) inBuffer, inBufferLength, *CTS);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Decode CTS %d - size %d - got pic %d\n", *CTS, inBufferLength, got_pic));
 	if (got_pic>0) {
 		e = HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
 		if (e) return e;
 		got_pic = 0;
 	}
+
 	return GF_OK;
 }
 

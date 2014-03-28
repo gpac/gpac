@@ -53,6 +53,16 @@ enum
 	GF_CODEC_LEVEL_SEEK
 };
 
+
+/*codec resilience type*/
+enum
+{
+	GF_CODEC_NOT_RESILIENT=0,
+	GF_CODEC_RESILIENT_ALWAYS=1,
+	GF_CODEC_RESILIENT_AFTER_FIRST_RAP=2
+};
+
+
 /*the structure for capabilities*/
 typedef struct 
 {
@@ -75,7 +85,11 @@ enum
 	/*size of a single composition unit */
 	GF_CODEC_OUTPUT_SIZE =	0x01,
 	/*resilency: if packets are lost within an AU, resilience means the AU won't be discarded and the codec
-	will try to decode */
+	will try to decode
+	0: not resilient
+	1: resilient
+	2: resilient after first rap
+	*/
 	GF_CODEC_RESILIENT,
 	/*critical level of composition memory - if below, media management for the object */
 	GF_CODEC_BUFFER_MIN,

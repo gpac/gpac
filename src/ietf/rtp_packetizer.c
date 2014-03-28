@@ -118,6 +118,7 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 	case GF_RTP_PAYT_AC3: 
 		return gp_rtp_builder_do_ac3(builder, data, data_size, IsAUEnd, FullAUSize); 
 	case GF_RTP_PAYT_HEVC:
+	case GF_RTP_PAYT_SHVC:
 		return gp_rtp_builder_do_hevc(builder, data, data_size, IsAUEnd, FullAUSize); 
  	default:
 		return GF_NOT_SUPPORTED;
@@ -530,6 +531,10 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 	case GF_RTP_PAYT_HEVC:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "H265");
+		return 1;
+	case GF_RTP_PAYT_SHVC:
+		strcpy(szMediaName, "video");
+		strcpy(szPayloadName, "H265-SHVC");
 		return 1;
 	default:
 		strcpy(szMediaName, "");

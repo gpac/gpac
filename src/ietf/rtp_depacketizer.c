@@ -806,7 +806,7 @@ static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 			u32 nal_size = (u8) payload[offset]; nal_size<<=8; nal_size |= (u8) payload[offset+1]; 
 			offset += 2;
 			nal_type = (payload[offset] & 0x7E) >> 1;
-			if ((nal_type==GF_HEVC_NALU_SLICE_IDR_W_DLP) || (nal_type==GF_HEVC_NALU_SLICE_IDR_N_LP)) {
+			if ((nal_type>=GF_HEVC_NALU_SLICE_BLA_W_LP) && (nal_type<=GF_HEVC_NALU_SLICE_CRA)) {
 				rtp->sl_hdr.randomAccessPointFlag = 1;
 			}
 
@@ -829,7 +829,7 @@ static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 		if (is_start) gf_rtp_hevc_flush(rtp, hdr, 1);
 
 		nal_type = payload[2] & 0x3F;
-		if ((nal_type==GF_HEVC_NALU_SLICE_IDR_W_DLP) || (nal_type==GF_HEVC_NALU_SLICE_IDR_N_LP)) {
+		if ((nal_type>=GF_HEVC_NALU_SLICE_BLA_W_LP) && (nal_type<=GF_HEVC_NALU_SLICE_CRA)) {
 			rtp->sl_hdr.randomAccessPointFlag = 1;
 		}
 
@@ -1044,6 +1044,7 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "ac3")) return GF_RTP_PAYT_AC3;
 	else if (!stricmp(map->payload_name, "H264-SVC")) return GF_RTP_PAYT_H264_SVC;
 	else if (!stricmp(map->payload_name, "H265")) return GF_RTP_PAYT_HEVC;
+	else if (!stricmp(map->payload_name, "H265-SHVC")) return GF_RTP_PAYT_SHVC;
 	else return 0;
 }
 
@@ -1521,6 +1522,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->depacketize = gf_rtp_parse_h264;
 		break;
 	case GF_RTP_PAYT_HEVC:
+	case GF_RTP_PAYT_SHVC:
 #ifndef GPAC_DISABLE_HEVC
 	{
 		GF_SDP_FMTP *fmtp;
