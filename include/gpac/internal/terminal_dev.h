@@ -630,7 +630,7 @@ struct _es_channel
 	/*signal that next AU is an AU start*/
 	Bool NextIsAUStart;
 	/*if codec resilient, packet drops are not considered as fatal for AU reconstruction (eg no wait for RAP)*/
-	Bool codec_resilient;
+	u32 codec_resilient;
 	/*when starting a channel, the first AU is ALWAYS fetched when buffering - this forces
 	BIFS and OD to be decoded and first frame render, in order to detect media objects that would also need
 	buffering - note this doesn't affect the clock, it is still paused if buffering*/

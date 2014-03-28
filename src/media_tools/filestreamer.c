@@ -157,7 +157,10 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 		char *dsi = NULL;
 		u32 w, h;
 		u32 dsi_len = 0;
-		GF_DecoderConfig *dcd = gf_isom_get_decoder_config(streamer->isom, track->track_num, 1);
+		GF_DecoderConfig *dcd;
+		//use inspect mode so that we don't aggregate xPS from the base in the enhancement ESD
+		gf_isom_set_nalu_extract_mode(streamer->isom, track->track_num, GF_ISOM_NALU_EXTRACT_INSPECT);
+		dcd = gf_isom_get_decoder_config(streamer->isom, track->track_num, 1);
 
 		if (dcd && dcd->decoderSpecificInfo) {
 			dsi = dcd->decoderSpecificInfo->data;
@@ -552,14 +555,22 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 		case GF_ISOM_SUBTYPE_HEV1:
 		case GF_ISOM_SUBTYPE_HVC2:
 		case GF_ISOM_SUBTYPE_HEV2:
+		case GF_ISOM_SUBTYPE_SHC1:
 		{
-			GF_HEVCConfig *hevcc = NULL;
+			GF_HEVCConfig *hevcc = NULL, *shvcc = NULL;
 			hevcc = gf_isom_hevc_config_get(streamer->isom, track->track_num, 1);
 			if (hevcc) {
 				track->avc_nalu_size = hevcc->nal_unit_size;
 				gf_odf_hevc_cfg_del(hevcc);
 				streamType = GF_STREAM_VISUAL;
 				oti = GPAC_OTI_VIDEO_HEVC;
+			}
+			shvcc = gf_isom_shvc_config_get(streamer->isom, track->track_num, 1);
+			if (shvcc) {
+				track->avc_nalu_size = shvcc->nal_unit_size;
+				gf_odf_hevc_cfg_del(shvcc);
+				streamType = GF_STREAM_VISUAL;
+				oti = GPAC_OTI_VIDEO_SHVC;
 			}
 			flags |= GP_RTP_PCK_USE_MULTI;
 			break;

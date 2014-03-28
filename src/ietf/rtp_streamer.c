@@ -307,6 +307,12 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			rtp_type = GF_RTP_PAYT_HEVC;
 			PL_ID = 0x0F;
 			break;
+		/*SHVC*/
+		case GPAC_OTI_VIDEO_SHVC:
+			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
+			rtp_type = GF_RTP_PAYT_SHVC;
+			PL_ID = 0x0F;
+			break;
 		}
 		break;
 
@@ -617,7 +623,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 			strcat(sdpLine, "\n");
 		}
 	}
-	else if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_HEVC) {
+	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_HEVC) || (rtp->packetizer->rtp_payt == GF_RTP_PAYT_SHVC)) {
 #ifndef GPAC_DISABLE_HEVC
 		GF_HEVCConfig *hevcc = dsi ? gf_odf_hevc_cfg_read(dsi, dsi_len, 0) : NULL;
 		if (hevcc) {

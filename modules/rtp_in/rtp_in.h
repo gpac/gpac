@@ -94,7 +94,7 @@ typedef struct
 	
 	Bool session_migration;
 
-	Bool is_svc;
+	Bool is_scalable;
 
 	u32 cur_mid;
 } RTPClient;

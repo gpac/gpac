@@ -1472,7 +1472,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	GF_ISOFile *orig;
 	GF_Err e;
 	char *opts, *multi_cat;
-	Float ts_scale;
+	Double ts_scale;
 	Double dest_orig_dur;
 	u32 dst_tk, tk_id, mtype;
 	u64 insert_dts;
@@ -1734,7 +1734,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			if (!count) insert_dts = 0;
 		}
 
-		ts_scale = (Float) gf_isom_get_media_timescale(dest, dst_tk);
+		ts_scale = gf_isom_get_media_timescale(dest, dst_tk);
 		ts_scale /= gf_isom_get_media_timescale(orig, i+1);
 
 		/*if not a new track, see if we can merge the edit list - this is a crude test that only checks

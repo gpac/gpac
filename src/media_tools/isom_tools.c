@@ -1943,7 +1943,10 @@ static GF_HEVCParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 typ
 	GF_SAFEALLOC(ar, GF_HEVCParamArray);
 	ar->nalus = gf_list_new();
 	ar->type = type;
-	gf_list_add(hevc_cfg->param_array, ar);
+	if (ar->type == GF_HEVC_NALU_VID_PARAM)
+		gf_list_insert(hevc_cfg->param_array, ar, 0);
+	else
+		gf_list_add(hevc_cfg->param_array, ar);
 	return ar;
 }
 

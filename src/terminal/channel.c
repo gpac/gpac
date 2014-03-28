@@ -264,8 +264,8 @@ void Channel_WaitRAP(GF_Channel *ch)
 {
 	ch->pck_sn = 0;
 
-	/*if using RAP signal and codec not resilient, wait for rap. If RAP isn't signaled DON'T wait for it :)*/
-	if (!ch->codec_resilient) 
+	/*if using RAP signal and codec not resilient, wait for rap. If RAP isn't signaled, this will be ignored*/
+	if (ch->codec_resilient != GF_CODEC_RESILIENT_ALWAYS) 
 		ch->stream_state = 2;
 	if (ch->buffer) gf_free(ch->buffer);
 	ch->buffer = NULL;
@@ -964,7 +964,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	/*get RAP*/
 	if (ch->esd->slConfig->hasRandomAccessUnitsOnlyFlag) {
 		hdr.randomAccessPointFlag = 1;
-	} else if ((ch->carousel_type!=GF_ESM_CAROUSEL_MPEG2) && (!ch->esd->slConfig->useRandomAccessPointFlag || ch->codec_resilient) ) {
+	} else if ((ch->carousel_type!=GF_ESM_CAROUSEL_MPEG2) && (!ch->esd->slConfig->useRandomAccessPointFlag || (ch->codec_resilient==GF_CODEC_RESILIENT_ALWAYS) ) ) {
 		ch->stream_state = 0;
 	}
 

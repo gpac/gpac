@@ -543,7 +543,7 @@ GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_si
 	if (!nalu) do_flush = 1;
 	else if (builder->sl_header.accessUnitStartFlag) do_flush = 1;
 	/*we must NOT fragment a NALU*/
-	else if (builder->bytesInPacket + nalu_size + 4 >= builder->Path_MTU) do_flush = 2;
+	else if (builder->bytesInPacket + nalu_size + 4 >= builder->Path_MTU) do_flush = 2; //2 bytes PayloadHdr for AP + 2 bytes NAL size
 	/*aggregation is disabled*/
 	else if (! (builder->flags & GP_RTP_PCK_USE_MULTI) ) do_flush = 2;
 
@@ -633,7 +633,7 @@ GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_si
 		char payload_hdr[2];
 		char shdr;
 
-		assert(nalu_size>=builder->Path_MTU);
+		assert(nalu_size + 4 >=builder->Path_MTU);
 		assert(!builder->bytesInPacket);
 
 		/*FU payload doesn't have the NAL hdr (2 bytes*/

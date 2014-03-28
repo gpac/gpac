@@ -57,7 +57,7 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 		else if (!strcmp(att->Name, "x-session-name")) url = att->Value;
 		else if (!strcmp(att->Name, "x-session-id")) session_id = att->Value;
 		/*we have the H264-SVC streams*/
-		else if (!strcmp(att->Name, "group") && !strncmp(att->Value, "DDP", 3)) rtp->is_svc = 1;
+		else if (!strcmp(att->Name, "group") && !strncmp(att->Value, "DDP", 3)) rtp->is_scalable = 1;
 	}
 	if (range) {
 		Start = range->start;
@@ -215,7 +215,7 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
 	gf_list_add(od->ESDescriptors, esd);
 
 	// for each channel depending on this channel, get esd, set esd->dependsOnESID and add to od
-	if (ch->owner->is_svc)
+	if (ch->owner->is_scalable)
 	{
 		u32 i, count;
 
