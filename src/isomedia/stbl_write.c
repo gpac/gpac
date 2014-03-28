@@ -870,7 +870,7 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 		} else {
 			stts->entries[0].sampleDelta = (u32) DTSs[1] /*- DTS[0]==0 */;
 		}
-		for (i=0; i<stbl->SampleSize->sampleCount-1; i++) {
+		for (i=1; i<stbl->SampleSize->sampleCount-1; i++) {
 			if (i+1 == stbl->SampleSize->sampleCount-1) {
 				//and by default, our last sample has the same delta as the prev
 	//			stts->entries[j].sampleCount++;
@@ -879,6 +879,9 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 			} else {
 				j++;
 				stts->nb_entries++;
+				if (j<stts->alloc_size) {
+					stts->entries = gf_realloc(stts->entries, sizeof(GF_SttsEntry) * stts->alloc_size);
+				}
 				stts->entries[j].sampleCount = 1;
 				stts->entries[j].sampleDelta = (u32) (DTSs[i+1] - DTSs[i]);
 			}
@@ -1031,20 +1034,19 @@ GF_Err stbl_RemoveRAP(GF_SampleTableBox *stbl, u32 sampleNumber)
 		stss->alloc_size = stss->nb_entries = 0;
 		return GF_OK;
 	}
-	//the real pain is that we may actually not have to change anything..
-	for (i=0; i<stss->nb_entries; i++) {
-		if (sampleNumber == stss->sampleNumbers[i]) goto found;
-	}
-	//nothing to do
-	return GF_OK;
 
-found:
-	//a small opt: the sample numbers are in order...
-	i++;
-	for (;i<stss->nb_entries; i++) {
-		stss->sampleNumbers[i-1] = stss->sampleNumbers[i];
+	for (i=0; i<stss->nb_entries; i++) {
+		//found the sample
+		if (sampleNumber == stss->sampleNumbers[i]) {
+			memmove(&stss->sampleNumbers[i], &stss->sampleNumbers[i+1], sizeof(u32)* (stss->nb_entries-i-1) );
+			stss->nb_entries--;
+		}
+		
+		if (sampleNumber < stss->sampleNumbers[i]) {
+			assert(stss->sampleNumbers[i]);
+			stss->sampleNumbers[i]--;
+		}
 	}
-	stss->nb_entries -= 1;
 	return GF_OK;
 }
 

@@ -47,6 +47,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*changes pixel aspect ratio for visual tracks if supported. Negative values remove any PAR info*/
 GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);
+GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track);
 #endif
 
 
