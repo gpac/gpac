@@ -879,7 +879,8 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 			} else {
 				j++;
 				stts->nb_entries++;
-				if (j<stts->alloc_size) {
+				if (j+1==stts->alloc_size) {
+					stts->alloc_size++;
 					stts->entries = gf_realloc(stts->entries, sizeof(GF_SttsEntry) * stts->alloc_size);
 				}
 				stts->entries[j].sampleCount = 1;
