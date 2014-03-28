@@ -186,7 +186,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, tile_mode;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
-	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset;
+	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_shvc;
 	const char *szLan;
 	GF_Err e;
@@ -220,6 +220,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	profile = level = 0;
 	negative_cts_offset = 0;
 	tile_mode = 0;
+	rap_only = 0;
 
 	tw = th = tx = ty = txtw = txth = txtx = txty = 0;
 	par_d = par_n = -2;
@@ -268,6 +269,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "nosvc") || !stricmp(ext+1, "noshvc")) import_flags |= GF_IMPORT_SVC_NONE;
 		else if (!stricmp(ext+1, "subsamples")) import_flags |= GF_IMPORT_SET_SUBSAMPLES;
 		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
+		else if (!stricmp(ext+1, "rap")) rap_only = 1;
 		else if (!stricmp(ext+1, "mpeg4")) import_flags |= GF_IMPORT_FORCE_MPEG4;
 		else if (!stricmp(ext+1, "swf-global")) import.swf_flags |= GF_SM_SWF_STATIC_DICT;
 		else if (!stricmp(ext+1, "swf-no-ctrl")) import.swf_flags &= ~GF_SM_SWF_SPLIT_TIMELINE;
@@ -496,6 +498,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if ((par_n>=0) && (par_d>=0)) {
 				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
 			}
+
+			if (rap_only) {
+				e = gf_media_remove_non_rap(import.dest, i+1);
+			}
+
 			if (handler_name) gf_isom_set_handler_name(import.dest, i+1, handler_name);
 			else if (!keep_handler) {
 				char szHName[1024];
@@ -593,6 +600,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 			if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) && (par_n>=-1) && (par_d>=-1)) {
 				e = gf_media_change_par(import.dest, track, par_n, par_d);
+			}
+			if (rap_only) {
+				e = gf_media_remove_non_rap(import.dest, track);
 			}
 			if (handler_name) gf_isom_set_handler_name(import.dest, track, handler_name);
 			else if (!keep_handler) {

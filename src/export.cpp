@@ -1242,6 +1242,7 @@
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_change_par) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_remove_non_rap) )
 #endif
 
 #ifndef GPAC_DISABLE_AV_PARSERS

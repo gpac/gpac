@@ -225,6 +225,7 @@ void PrintGeneralUsage()
 			" -cprt string         adds copyright string to movie\n"
 			" -chap file           adds chapter information contained in file\n"
 			" -rem trackID         removes track from file\n"
+			" -rap trackID         removes all non-RAP samples from track\n"
 			" -enable trackID      enables track\n"
 			" -disable trackID     disables track\n"
 			" -new                 forces creation of a new destination file\n"
@@ -1305,6 +1306,7 @@ typedef struct
 	7: disables track
 	8: referenceTrack
 	9: raw extraction
+	10: remove non-rap 
 	*/
 	u32 act_type;
 	/*track ID*/
@@ -2021,6 +2023,17 @@ int mp4boxMain(int argc, char **argv)
 		} else if (!stricmp(arg, "-ocr")) force_ocr = 1;
 		else if (!stricmp(arg, "-latm")) hint_flags |= GP_RTP_PCK_USE_LATM_AAC;
 		else if (!stricmp(arg, "-rap")) {
+			if ((i+1 < (u32)argc) && (argv[i+1][0] != '-')) {
+				if (sscanf(argv[i+1], "%d", &trackID) == 1) {
+					tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+					memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
+					tracks[nb_track_act].act_type = 10;
+					tracks[nb_track_act].trackID = trackID;
+					nb_track_act++;
+					i++;
+					open_edit = 1;
+				}
+			}
 			hint_flags |= GP_RTP_PCK_SIGNAL_RAP;
 			seg_at_rap=1;
 		}
@@ -3704,6 +3717,11 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		case 8:
 			e = gf_isom_set_track_reference(file, track, GF_4CC(tka->lang[0], tka->lang[1], tka->lang[2], tka->lang[3]), (u32) tka->delay_ms);
+			needSave = 1;
+			break;
+		case 10:
+			fprintf(stderr, "Removing non-rap samples from track %d\n", tka->trackID);
+			e = gf_media_remove_non_rap(file, track);
 			needSave = 1;
 			break;
 		}

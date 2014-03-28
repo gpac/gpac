@@ -97,6 +97,42 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 	}
 	return gf_isom_set_track_layout_info(file, track, tk_w<<16, tk_h<<16, 0, 0, 0);
 }
+
+GF_EXPORT
+GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track)
+{
+	GF_Err e;
+	u32 i, count, di;
+	u64 offset, dur, last_dts;
+	Bool all_raps = (gf_isom_has_sync_points(file, track)==0) ? 1 : 0;
+	if (all_raps) return GF_OK;
+
+	last_dts = 0;
+	dur = gf_isom_get_media_duration(file, track);
+
+	gf_isom_set_cts_packing(file, track, 1);
+
+	count = gf_isom_get_sample_count(file, track);
+	for (i=0; i<count; i++) {
+		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, &di, &offset);
+		if (!samp) return gf_isom_last_error(file);
+
+		if (samp->IsRAP) {
+			last_dts = samp->DTS;
+			gf_isom_sample_del(&samp);
+			continue;
+		}
+		gf_isom_sample_del(&samp);
+		e = gf_isom_remove_sample(file, track, i+1);
+		if (e) return e;
+		i--;
+		count--;
+	}
+	gf_isom_set_cts_packing(file, track, 0);
+	gf_isom_set_last_sample_duration(file, track, (u32) (dur - last_dts) );
+	return GF_OK;
+}
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_EXPORT
