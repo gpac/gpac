@@ -50,6 +50,9 @@ static GFINLINE Bool gf_m2ts_time_less(GF_M2TS_Time *a, GF_M2TS_Time *b) {
 	if (a->sec==b->sec) return (a->nanosec<b->nanosec) ? 1 : 0;
 	return 1;
 }
+static GFINLINE Bool gf_m2ts_time_equal(GF_M2TS_Time *a, GF_M2TS_Time *b) {
+	return ((a->sec==b->sec) && (a->nanosec == b->nanosec) );
+}
 static GFINLINE Bool gf_m2ts_time_less_or_equal(GF_M2TS_Time *a, GF_M2TS_Time *b) {
 	if (a->sec>b->sec) return 0;
 	if (a->sec==b->sec) return (a->nanosec>b->nanosec) ? 0 : 1;
@@ -2398,15 +2401,26 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 				if (!flush_all_pes && muxer->force_pat)
 					return gf_m2ts_mux_process(muxer, status, usec_till_next);
 
-				if (res && gf_m2ts_time_less_or_equal(&stream->time, &time)) {
-					/*if same priority schedule the earliest data*/
-					if (res>=highest_priority) {
+				if (res) {
+					/*always schedule the earliest data*/
+					if (gf_m2ts_time_less(&stream->time, &time)) {
 						highest_priority = res;
 						time = stream->time;
 						stream_to_process = stream;
 #if FORCE_PCR_FIRST
 						goto send_pck;
 #endif
+					}
+					else if (gf_m2ts_time_equal(&stream->time, &time)) {
+						/*if the same priority schedule base stream first*/
+						if ((res > highest_priority) || ((res == highest_priority) && !stream->ifce->depends_on_stream)){
+								highest_priority = res;
+								time = stream->time;
+								stream_to_process = stream;
+#if FORCE_PCR_FIRST
+								goto send_pck;
+#endif
+						}				
 					}
 				}
 			}
