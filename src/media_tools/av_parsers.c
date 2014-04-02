@@ -3513,7 +3513,7 @@ s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc)
 	profile_tier_level(bs, 1, vps->max_sub_layers-1, &vps->ptl);
 
 	vps_sub_layer_ordering_info_present_flag = gf_bs_read_int(bs, 1);
-	for (i=(vps_sub_layer_ordering_info_present_flag ? 0 : vps->max_sub_layers); i < vps->max_sub_layers; i++) {
+	for (i=(vps_sub_layer_ordering_info_present_flag ? 0 : vps->max_sub_layers - 1); i < vps->max_sub_layers; i++) {
 		/*vps_max_dec_pic_buffering_minus1[i] = */bs_get_ue(bs);
 		/*vps_max_num_reorder_pics[i] = */bs_get_ue(bs);
 		/*vps_max_latency_increase_plus1[i] = */bs_get_ue(bs);
@@ -3536,7 +3536,8 @@ s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc)
 		for( i = 0; i < vps_num_hrd_parameters; i++ ) {
 			//Bool cprms_present_flag=1;
 			/*hrd_layer_set_idx[ i ] = */bs_get_ue(bs);
-			if (i>0) /*cprms_present_flag = */gf_bs_read_int(bs, 1) ;
+			if (i>0)
+				/*cprms_present_flag = */gf_bs_read_int(bs, 1) ;
 			// hevc_parse_hrd_parameters(cprms_present_flag, vps->max_sub_layers - 1);
 		}
 	}
