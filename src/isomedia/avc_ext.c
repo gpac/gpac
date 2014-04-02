@@ -188,7 +188,7 @@ static GF_Err process_extractor(GF_ISOFile *file, u32 sampleNumber, u32 nal_size
 	return GF_OK;
 }
 
-static Bool is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
+static u8 is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
 {
 	Bool is_hevc = 0;
 	u32 nalu_size_field = 0;
@@ -222,9 +222,11 @@ static Bool is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *ent
 			case GF_HEVC_NALU_SLICE_BLA_W_LP:
 			case GF_HEVC_NALU_SLICE_BLA_W_DLP:
 			case GF_HEVC_NALU_SLICE_BLA_N_LP:
+			case GF_HEVC_NALU_SLICE_CRA:
+				gf_bs_del(bs);
+				return 3;
 			case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 			case GF_HEVC_NALU_SLICE_IDR_N_LP:
-			case GF_HEVC_NALU_SLICE_CRA:
 				gf_bs_del(bs);
 				return 1;
 			case GF_HEVC_NALU_ACCESS_UNIT:

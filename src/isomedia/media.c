@@ -760,8 +760,8 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, GF_ISOSample *sample,
 
 	//The first non sync sample we see must create a syncTable
 	if (sample->IsRAP) {
-		//insert it only if we have a sync table
-		if (stbl->SyncSample) {
+		//insert it only if we have a sync table and if we have an IDR slice
+		if (stbl->SyncSample && (sample->IsRAP == 1)){
 			e = stbl_AddRAP(stbl->SyncSample, sampleNumber);
 			if (e) return e;
 		}
