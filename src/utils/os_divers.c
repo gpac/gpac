@@ -2272,6 +2272,12 @@ u64 gf_net_parse_date(const char *val)
 		else if (!strcmp(szDay, "Sat") || !strcmp(szDay, "Saturday")) t.tm_wday = 5;
 		else if (!strcmp(szDay, "Sun") || !strcmp(szDay, "Sunday")) t.tm_wday = 6;
 	}
+
+#ifdef GPAC_ANDROID
+	/* strange issue in Android, we have to indicate DST is not applied in our time struct*/
+	t.tm_isdst = -1;
+#endif
+
 	current_time = mktime(&t) - gf_net_get_timezone();
 
 #endif
@@ -2308,6 +2314,12 @@ u64 gf_net_get_utc()
 #ifndef _WIN32_WCE
 	gtime = sec - GF_NTP_SEC_1900_TO_1970;
 	_t = * gmtime(&gtime);
+
+#ifdef GPAC_ANDROID
+	/* strange issue in Android, we have to indicate DST is not applied in our time struct*/
+	_t.tm_isdst = -1;
+#endif
+
 	current_time = mktime(&_t) - gf_net_get_timezone();
 #else
 	GetSystemTime(&syst);
