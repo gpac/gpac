@@ -411,15 +411,16 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 	}
 
 	if (au_start) {
+		u8 sc_end = ((data[0]==0) && (data[1]==0) && (data[2]==1)) ? 3 : 4;
 		if (is_hevc) {
 #ifndef GPAC_DISABLE_HEVC
-			nal_type = (data[4] & 0x7E) >> 1;
+			nal_type = (data[sc_end] & 0x7E) >> 1;
 			if ((nal_type>=GF_HEVC_NALU_SLICE_BLA_W_LP) && (nal_type<=GF_HEVC_NALU_SLICE_CRA)) {
 				pck.flags |= GF_M2TS_PES_PCK_RAP;
 			}
 #endif
 		} else {
-			nal_type = data[4] & 0x1F;
+			nal_type = data[sc_end] & 0x1F;
 			if (nal_type==GF_AVC_NALU_IDR_SLICE) pck.flags |= GF_M2TS_PES_PCK_RAP;
 		}
 
