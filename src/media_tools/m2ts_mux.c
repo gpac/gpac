@@ -29,8 +29,6 @@
 
 #if !defined(GPAC_DISABLE_MPEG2TS_MUX)
 
-/*num ms between PCR*/
-#define PCR_UPDATE_MS	200
 /*90khz internal delay between two updates for instant bitrate compute per stream*/
 #define BITRATE_UPDATE_WINDOW	90000
 /* length of adaptation_field_length; */ 
@@ -1128,10 +1126,10 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 	/*do we need to send a PCR*/
 	if (stream == stream->program->pcr) {
 		if (muxer->real_time) {
-			if (gf_sys_clock() > stream->program->last_sys_clock + PCR_UPDATE_MS)
+			if (gf_sys_clock() > stream->program->last_sys_clock + stream->program->mux->pcr_update_ms)
 				stream->pcr_priority = 1;
 		} else {
-			if (!stream->program->last_dts || (stream->curr_pck.dts > stream->program->last_dts + PCR_UPDATE_MS*90))
+			if (!stream->program->last_dts || (stream->curr_pck.dts > stream->program->last_dts + stream->program->mux->pcr_update_ms * 90))
 				stream->pcr_priority = 1;
 		}
 	}
@@ -2092,7 +2090,14 @@ GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time)
 	gf_bs_write_int(bs,	0, 4);
 	gf_bs_del(bs);
 	gf_rand_init(0);
+	muxer->pcr_update_ms = 100;
 	return muxer;
+}
+
+GF_EXPORT
+void gf_m2ts_mux_set_pcr_max_interval(GF_M2TS_Mux *muxer, u32 pcr_update_ms)
+{
+	if (muxer && (pcr_update_ms<=100)) muxer->pcr_update_ms = pcr_update_ms;
 }
 
 void gf_m2ts_mux_stream_del(GF_M2TS_Mux_Stream *st)

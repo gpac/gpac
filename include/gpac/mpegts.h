@@ -1215,6 +1215,8 @@ struct __m2ts_mux {
 	/*init value for PCRs on all streams if 0, random value is used*/
 	u64 init_pcr_value;
 
+	u32 pcr_update_ms;
+
 	char dst_pck[188], null_pck[188];
 
 	/*multiplexer time, incremented each time a packet is sent
@@ -1260,6 +1262,8 @@ enum
  */
 GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time);
 void gf_m2ts_mux_del(GF_M2TS_Mux *mux);
+//sets max interval between two PCR. Default/max interval is 100 ms
+void gf_m2ts_mux_set_pcr_max_interval(GF_M2TS_Mux *muxer, u32 pcr_update_ms);
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, Bool mpeg4_signaling);
 GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_ESInterface *ifce, u32 pid, Bool is_pcr, Bool force_pes_mode);
 void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);	

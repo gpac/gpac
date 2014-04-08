@@ -2002,16 +2002,15 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 				visual_3d_init_yuv_shader(compositor->visual);
 #endif
 				compositor->autoconfig_opengl = 0;
+				compositor->visual->type_3d = 0;
+				compositor->force_opengl_2d = 0;
 
 				//enable hybrid mode by default
 				if (compositor->visual->yuv_rect_glsl_program) {
 					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "hybrid");
-					compositor->force_opengl_2d = 0;
 					compositor->hybrid_opengl = 1;
 				} else {
 					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "disable");
-					compositor->force_opengl_2d = 0;
-					compositor->visual->type_3d = 0;
 				}
 			}
 
