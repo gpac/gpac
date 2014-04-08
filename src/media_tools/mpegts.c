@@ -2489,9 +2489,9 @@ static void gf_m2ts_flush_temi(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 	GF_M2TS_TemiTimecodeDescriptor temi_tc;
 	GF_BitStream *bs = gf_bs_new(pes->temi_tc_desc, pes->temi_tc_desc_len, GF_BITSTREAM_READ);
 	u32 has_timestamp = gf_bs_read_int(bs, 2);
-	u32 has_ntp = gf_bs_read_int(bs, 1);
-	u32 has_ptp = gf_bs_read_int(bs, 1);
-	u32 has_timecode = gf_bs_read_int(bs, 2);
+	/*u32 has_ntp = */gf_bs_read_int(bs, 1);
+	/*u32 has_ptp = */gf_bs_read_int(bs, 1);
+	/*u32 has_timecode = */gf_bs_read_int(bs, 2);
 	
 	memset(&temi_tc, 0, sizeof(GF_M2TS_TemiTimecodeDescriptor));
 	temi_tc.force_reload = gf_bs_read_int(bs, 1);

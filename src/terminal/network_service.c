@@ -537,23 +537,25 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 	}
 
 	if (com->command_type==GF_NET_ASSOCIATED_CONTENT_LOCATION) {
-		GF_Scene *scene;
+		GF_Scene *scene = NULL;
 		if (service->owner->subscene) {
 			scene = service->owner->subscene;
 		} else if (service->owner->parentscene) {
 			scene = service->owner->parentscene;
 		}
-		gf_scene_register_associated_media(scene, &com->addon_info);
+		if (scene)
+			gf_scene_register_associated_media(scene, &com->addon_info);
 		return;
 	}
 	if (com->command_type==GF_NET_ASSOCIATED_CONTENT_TIMING) {
-		GF_Scene *scene;
+		GF_Scene *scene = NULL;
 		if (service->owner->subscene) {
 			scene = service->owner->subscene;
 		} else if (service->owner->parentscene) {
 			scene = service->owner->parentscene;
 		}
-		gf_scene_notify_associated_media_timeline(scene, &com->addon_time);
+		if (scene)
+			gf_scene_notify_associated_media_timeline(scene, &com->addon_time);
 		return;
 	}
 

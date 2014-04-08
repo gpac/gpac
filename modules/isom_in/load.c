@@ -88,16 +88,8 @@ void isor_declare_objects(ISOMReader *read)
 	const char *tag;
 	u32 i, count, ocr_es_id, tlen, base_track, j, track_id;
 	Bool highest_stream;
-	char *opt;
-	Bool add_ps_lower = GF_TRUE;
 
 	ocr_es_id = 0;
-	opt = (char*) gf_modules_get_option((GF_BaseInterface *)read->input, "ISOReader", "DeclareScalableXPS");
-	if (!opt) {
-		gf_modules_set_option((GF_BaseInterface *)read->input, "ISOReader", "DeclareScalableXPS", "yes");
-	} else if (!strcmp(opt, "no")) {
-		add_ps_lower = GF_FALSE;
-	}
 
 	/*TODO check for alternate tracks*/
 	count = gf_isom_get_track_count(read->mov);

@@ -1854,7 +1854,6 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 				//this is a splicing point, discard all previsously declared splicing addons
 				|| prev_addon->is_splicing
 			) {
-				Bool discard = GF_FALSE;
 				scene_reset_addon(prev_addon, GF_TRUE);
 				gf_list_rem(scene->declared_addons, i);
 				i--;
@@ -1944,5 +1943,5 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	//signal to the base decoder that we will want full quality
 	caps.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
 	caps.cap.valueInt = 2;
-//	odm_base->codec->decio->SetCapabilities(odm_base->codec->decio, caps);
+	odm_base->codec->decio->SetCapabilities(odm_base->codec->decio, caps);
 }
