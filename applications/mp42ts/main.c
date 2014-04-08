@@ -111,6 +111,7 @@ static GFINLINE void usage()
 					"                          in this mode, PAT, PMT and PCR will be inserted before the first TS packet of the RAP PES\n"
 					"-flush-rap             same as -rap but flushes all other streams (sends remaining PES packets) before inserting PAT/PMT\n"
 					"-nb-pack N             specifies to pack N TS packets together before sending on network or writing to file\n"
+					"-pcr-ms N              sets max interval in ms between 2 PCR. Default is 100 ms\n"
 					"-ttl N                 specifies Time-To-Live for multicast. Default is 1.\n"
 					"-ifce IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
 					"-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optionnal\n"
@@ -1729,7 +1730,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 								  Bool *real_time, u32 *run_time, char **video_buffer, u32 *video_buffer_size,
 								  u32 *audio_input_type, char **audio_input_ip, u16 *audio_input_port,
 								  u32 *output_type, char **ts_out, char **udp_out, char **rtp_out, u16 *output_port, 
-								  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix, u32 *split_rap, u32 *nb_pck_pack, u32 *ttl, const char **ip_ifce, const char **temi_url)
+								  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix, u32 *split_rap, u32 *nb_pck_pack, u32 *pcr_ms, u32 *ttl, const char **ip_ifce, const char **temi_url)
 {
 	Bool rate_found=0, mpeg4_carousel_found=0, time_found=0, src_found=0, dst_found=0, audio_input_found=0, video_input_found=0, 
 		 seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found=0, real_time_found=0;
@@ -1877,6 +1878,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			*nb_pck_pack = atoi(next_arg);
 		} else if (CHECK_PARAM("-nb-pck")) {
 			*nb_pck_pack = atoi(next_arg);
+		} else if (CHECK_PARAM("-pcr-ms")) {
+			*pcr_ms = atoi(next_arg);
 		} else if (CHECK_PARAM("-ttl")) {
 			*ttl = atoi(next_arg);
 		} else if (CHECK_PARAM("-ifce")) {
@@ -2098,7 +2101,7 @@ int main(int argc, char **argv)
 	Bool real_time, single_au_pes, is_stdout;
 	s64 pcr_init_val = -1;
 	u32 usec_till_next, ttl, split_rap;
-	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time, last_video_time, bifs_use_pes, psi_refresh_rate, nb_pck_pack, nb_pck_in_pack;
+	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time, last_video_time, bifs_use_pes, psi_refresh_rate, nb_pck_pack, nb_pck_in_pack, pcr_ms;
 	char *ts_out = NULL, *udp_out = NULL, *rtp_out = NULL, *audio_input_ip = NULL;
 	FILE *ts_output_file = NULL;
 	GF_Socket *ts_output_udp_sk = NULL, *audio_input_udp_sk = NULL;
@@ -2163,6 +2166,7 @@ int main(int argc, char **argv)
 	prev_seg_time.nanosec = 0;
 	video_buffer_size = 0;
 	nb_pck_pack = 1;
+	pcr_ms = 100;
 #ifndef GPAC_DISABLE_PLAYER
 	aac_reader = AAC_Reader_new();
 #endif
@@ -2181,7 +2185,7 @@ int main(int argc, char **argv)
 							&real_time, &run_time, &video_buffer, &video_buffer_size,
 							&audio_input_type, &audio_input_ip, &audio_input_port,
 							&output_type, &ts_out, &udp_out, &rtp_out, &output_port, 
-							&segment_dir, &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix, &split_rap, &nb_pck_pack, &ttl, &ip_ifce, &insert_temi)) {
+							&segment_dir, &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix, &split_rap, &nb_pck_pack, &pcr_ms, &ttl, &ip_ifce, &insert_temi)) {
 		goto exit;
 	}
 	
@@ -2196,6 +2200,7 @@ int main(int argc, char **argv)
 	muxer = gf_m2ts_mux_new(mux_rate, psi_refresh_rate, real_time);
 	if (muxer) gf_m2ts_mux_use_single_au_pes_mode(muxer, single_au_pes);
 	if (pcr_init_val>=0) gf_m2ts_mux_set_initial_pcr(muxer, (u64) pcr_init_val);
+	gf_m2ts_mux_set_pcr_max_interval(muxer, pcr_ms);
 
 	if (ts_out != NULL) {
 		if (segment_duration) {
