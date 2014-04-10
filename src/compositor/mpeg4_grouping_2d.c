@@ -148,18 +148,7 @@ static void traverse_transform(GF_Node *node, Transform2DStack *stack, GF_Traver
 		gf_mx_copy(mx_bckup, tr_state->model_matrix);
 
 		gf_mx_add_matrix_2d(&tr_state->model_matrix, &stack->mat);
-
-		if (tr_state->traversing_mode == TRAVERSE_SORT) {
-			GF_Matrix tmp;
-			gf_mx_from_mx2d(&tmp, &stack->mat);
-			visual_3d_matrix_push(tr_state->visual);
-			visual_3d_matrix_add(tr_state->visual, tmp.m);
-			group_2d_traverse(node, (GroupingNode2D *)stack, tr_state);
-			visual_3d_matrix_pop(tr_state->visual);
-		} else {
-			group_2d_traverse(node, (GroupingNode2D *)stack, tr_state);
-		}
-
+		group_2d_traverse(node, (GroupingNode2D *)stack, tr_state);
 		gf_mx_copy(tr_state->model_matrix, mx_bckup);
 	} 
 #endif

@@ -67,7 +67,6 @@ static void l2d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 }
 
 
-#if VIEWPORT_CLIPS
 static void rect_intersect(GF_Rect *rc1, GF_Rect *rc2)
 {
 	if (! gf_rect_overlaps(*rc1, *rc2)) {
@@ -89,7 +88,6 @@ static void rect_intersect(GF_Rect *rc1, GF_Rect *rc2)
 		rc1->height = rc1->y - rc2->y + rc2->height;
 	} 
 }
-#endif
 
 static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 {
@@ -167,11 +165,13 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			gf_mx_copy(prev_layer_mx, tr_state->layer_matrix);
 			tr_state->layer_clipper = compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, 1);
 
-			visual_3d_matrix_push(tr_state->visual);
 			gf_mx_copy(mx3d, tr_state->model_matrix);
 
 			/*setup clipping*/
-			visual_3d_set_clipper_2d(tr_state->visual, tr_state->layer_clipper);
+			if (had_clip) {
+				visual_3d_reset_clipper_2d(tr_state->visual);
+			}
+			visual_3d_set_clipper_2d(tr_state->visual, tr_state->layer_clipper, &mx3d);
 			
 			/*apply background BEFORE viewport*/
 			if (back) {
@@ -185,7 +185,6 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 				tr_state->traversing_mode = TRAVERSE_BINDABLE;
 				tr_state->bounds = st->clip;
 				gf_node_traverse(viewport, tr_state);
-				visual_3d_matrix_add(tr_state->visual, tr_state->model_matrix.m);
 			}
 
 
@@ -203,8 +202,6 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			gf_list_del(tr_state->visual->alpha_nodes_to_draw);
 			tr_state->visual->alpha_nodes_to_draw = node_list_backup;
 
-			
-			visual_3d_matrix_pop(tr_state->visual);
 			gf_mx_copy(tr_state->model_matrix, mx3d);
 
 			visual_3d_reset_clipper_2d(tr_state->visual);
@@ -213,7 +210,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			if (had_clip) {
 				tr_state->layer_clipper = prev_clipper;
 				gf_mx_copy(tr_state->layer_matrix, prev_layer_mx);
-				visual_3d_set_clipper_2d(tr_state->visual, tr_state->layer_clipper);
+				visual_3d_set_clipper_2d(tr_state->visual, tr_state->layer_clipper, &prev_layer_mx);
 			}
 		} else 
 #endif

@@ -190,32 +190,27 @@ static Bool back_texture_enabled(M_Background2D *bck, GF_TextureHandler *txh)
 
 static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_TraverseState *tr_state)
 {
-	GF_Matrix mx;
+	GF_Matrix mx, bck_mx, bck_mx_cam;
 	Bool use_texture;
 
 	use_texture = back_texture_enabled(bck, &st->txh);
 
 	visual_3d_set_background_state(tr_state->visual, 1);
-
-	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
-	visual_3d_matrix_push(tr_state->visual);
-
-/*	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_TEXTURE);
-	gf_sc_texture_get_transform(&st->txh, NULL, &mx, 0);
-	visual_3d_matrix_load(tr_state->visual, mx.m);
-*/	
+	
+	gf_mx_copy(bck_mx_cam, tr_state->camera->modelview);
+	gf_mx_copy(bck_mx, tr_state->model_matrix);
 
 	/*little opt: if we clear the main visual clear it entirely */
 	if (! tr_state->is_layer) {
 		visual_3d_clear(tr_state->visual, bck->backColor, FIX_ONE);
 		if (!use_texture) {
-			visual_3d_matrix_pop(tr_state->visual);
 			visual_3d_set_background_state(tr_state->visual, 0);
 			return;
 		}
 		/*we need a hack here because main vp is always traversed before main background, and in the case of a
 		2D viewport it modifies the modelview matrix, which we don't want ...*/
-		visual_3d_matrix_reset(tr_state->visual);
+		gf_mx_init(tr_state->model_matrix);
+		gf_mx_init(tr_state->camera->modelview);
 	}
 	if (!use_texture || (!tr_state->is_layer && st->txh.transparent) ) visual_3d_set_material_2d(tr_state->visual, bck->backColor, FIX_ONE);
 	if (use_texture) {
@@ -239,7 +234,7 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 	if (tr_state->camera->is_3D) {
 		Fixed sx, sy;
 		/*reset matrix*/
-		visual_3d_matrix_reset(tr_state->visual);
+		gf_mx_init(tr_state->model_matrix);
 		sx = sy = 2 * gf_mulfix(gf_tan(tr_state->camera->fieldOfView/2), tr_state->camera->z_far);
 		if (tr_state->camera->width > tr_state->camera->height) {
 			sx = gf_muldiv(sx, tr_state->camera->width, tr_state->camera->height);
@@ -268,14 +263,16 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 			gf_mx_add_translation(&mx, 0, 0, tr);
 		}
 	}
-	visual_3d_matrix_add(tr_state->visual, mx.m);
+	gf_mx_add_matrix(&tr_state->model_matrix, &mx);
 	visual_3d_mesh_paint(tr_state, st->mesh);
 	if (tr_state->mesh_num_textures) {
 		gf_sc_texture_disable(&st->txh);
 		tr_state->mesh_num_textures = 0;
 	}
 
-	visual_3d_matrix_pop(tr_state->visual);
+	gf_mx_copy(tr_state->model_matrix, bck_mx);
+	gf_mx_copy(tr_state->camera->modelview, bck_mx_cam);
+
 	visual_3d_set_background_state(tr_state->visual, 0);
 }
 #endif

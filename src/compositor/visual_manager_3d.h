@@ -30,6 +30,10 @@
 
 #ifndef GPAC_DISABLE_3D
 
+
+#define GF_MAX_GL_CLIPS	12
+#define GF_MAX_GL_LIGHTS 12
+
  /*
  *	Visual 3D functions
  */
@@ -161,6 +165,18 @@ typedef struct
 #endif
 } Drawable3DContext;
 
+
+typedef struct
+{
+	//0: directional - 1: spot - 2: point
+	u32 type;
+	SFVec3f direction, position, attenuation;
+	Fixed ambientIntensity, intensity, beamWidth, cutOffAngle;
+	SFColor color;
+	GF_Matrix light_mx;
+} GF_LightInfo;
+
+
 /*
 	till end of file: all 3D specific calls. 
 */
@@ -194,25 +210,13 @@ void visual_3d_clear_depth(GF_VisualManager *visual);
 /*turns background state on/off. When on, all quality options are disabled in order to draw as fast as possible*/
 void visual_3d_set_background_state(GF_VisualManager *visual, Bool on);
 
-/*matrix mode types*/
-enum
-{
-	V3D_MATRIX_MODELVIEW,
-	V3D_MATRIX_PROJECTION,
-	V3D_MATRIX_TEXTURE,
-};
-/*set current matrix type*/
-void visual_3d_set_matrix_mode(GF_VisualManager *visual, u32 mat_type);
-/*push matrix stack*/
-void visual_3d_matrix_push(GF_VisualManager *visual);
-/*reset current matrix (identity)*/
-void visual_3d_matrix_reset(GF_VisualManager *visual);
-/*multiply current matrix with given matrix (16 coefs)*/
-void visual_3d_matrix_add(GF_VisualManager *visual, Fixed *mat);
-/*loads given matrix (16 coefs) as current one*/
-void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat);
-/*pop matrix stack*/
-void visual_3d_matrix_pop(GF_VisualManager *visual);
+
+void visual_3d_set_texture_matrix(GF_VisualManager *visual, GF_Matrix *mx);
+//depending on platforms / GL rendering mode, the projection matrix is not loaded at each object Draw(). This function is used to notify a change
+//in the projection matrix to force a reload of the camera's projection
+void visual_3d_projection_matrix_modified(GF_VisualManager *visual);
+
+
 
 /*setup viewport (vp: top-left, width, height)*/
 void visual_3d_set_viewport(GF_VisualManager *visual, GF_Rect vp);
@@ -222,12 +226,19 @@ void visual_3d_set_scissor(GF_VisualManager *visual, GF_Rect *vp);
 /*setup rectangular cliper (clip: top-left, width, height)
 NOTE: 2D clippers can only be set from a 2D context, hence will always take the 4 first GL clip planes.
 In order to allow multiple Layer2D in Layer2D, THERE IS ALWAYS AT MOST ONE 2D CLIPPER USED AT ANY TIME, 
-it is the caller responsability to restore previous 2D clipers*/
-void visual_3d_set_clipper_2d(GF_VisualManager *visual, GF_Rect clip);
+it is the caller responsability to restore previous 2D clipers
+
+the matrix is not copied, care should be taken to keep it unmodified until the cliper is reset (unless desired otherwise)
+if NULL, no specific clipping transform will be used*/
+void visual_3d_set_clipper_2d(GF_VisualManager *visual, GF_Rect clip, GF_Matrix *mx_at_clipper);
 /*remove 2D clipper*/
 void visual_3d_reset_clipper_2d(GF_VisualManager *visual);
-/*set clipping plane*/
-void visual_3d_set_clip_plane(GF_VisualManager *visual, GF_Plane p);
+
+/*set clipping plane
+the matrix is not copied, care should be taken to keep it unmodified until the cliper is reset (unless desired otherwise)
+if NULL, no specific clipping transform will be used*/
+void visual_3d_set_clip_plane(GF_VisualManager *visual, GF_Plane p, GF_Matrix *mx_at_clipper);
+
 /*reset last clipping plane set*/
 void visual_3d_reset_clip_plane(GF_VisualManager *visual);
 
@@ -239,9 +250,7 @@ void visual_3d_mesh_strike(GF_TraverseState *tr_state, GF_Mesh *mesh, Fixed widt
 /*material types*/
 enum
 {
-	/*default material*/
-	V3D_MATERIAL_NONE,
-	V3D_MATERIAL_AMBIENT,
+	V3D_MATERIAL_AMBIENT=0,
 	V3D_MATERIAL_DIFFUSE,
 	V3D_MATERIAL_SPECULAR,
 	V3D_MATERIAL_EMISSIVE,
@@ -262,11 +271,14 @@ void visual_3d_remove_last_light(GF_VisualManager *visual);
 void visual_3d_clear_all_lights(GF_VisualManager *visual);
 /*insert spot light - returns 0 if too many lights*/
 Bool visual_3d_add_spot_light(GF_VisualManager *visual, Fixed ambientIntensity, SFVec3f attenuation, Fixed beamWidth, 
-					   SFColor color, Fixed cutOffAngle, SFVec3f direction, Fixed intensity, SFVec3f location);
+					   SFColor color, Fixed cutOffAngle, SFVec3f direction, Fixed intensity, SFVec3f location, GF_Matrix *light_mx);
 /*insert point light - returns 0 if too many lights*/
-Bool visual_3d_add_point_light(GF_VisualManager *visual, Fixed ambientIntensity, SFVec3f attenuation, SFColor color, Fixed intensity, SFVec3f location);
+Bool visual_3d_add_point_light(GF_VisualManager *visual, Fixed ambientIntensity, SFVec3f attenuation, SFColor color, Fixed intensity, SFVec3f location, GF_Matrix *light_mx);
 /*insert directional light - returns 0 if too many lights*/
-Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed ambientIntensity, SFColor color, Fixed intensity, SFVec3f direction);
+Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed ambientIntensity, SFColor color, Fixed intensity, SFVec3f direction, GF_Matrix *light_mx);
+
+void visual_3d_has_inactive_light(GF_VisualManager *visual);
+
 /*set fog*/
 void visual_3d_set_fog(GF_VisualManager *visual, const char *type, SFColor color, Fixed density, Fixed visibility);
 /*fill given rect with given color (used for text hilighting only) - context shall not be altered*/
@@ -276,20 +288,8 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 
 /*non-oglES functions*/
 #ifndef GPAC_USE_OGL_ES
-
-/*draws image data:
-	pos_x, pos_y: top-left pos of image
-	width, height: size of image
-	pixelformat: image pixel format
-	data: image data
-	scale_x, scale_y: x & y scale
-*/
-void visual_3d_draw_image(GF_VisualManager *visual, Fixed pos_x, Fixed pos_y, u32 width, u32 height, u32 pixelformat, char *data, Fixed scale_x, Fixed scale_y);
-/*get matrix for the desired mode*/
-void visual_3d_matrix_get(GF_VisualManager *visual, u32 mat_type, Fixed *mat);
 /*X3D hatching*/
 void visual_3d_mesh_hatch(GF_TraverseState *tr_state, GF_Mesh *mesh, u32 hatchStyle, SFColor hatchColor);
-
 #endif
 
 

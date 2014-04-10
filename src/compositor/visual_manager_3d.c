@@ -373,11 +373,10 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords);
 	}
 
-	/*setup projection/modelview*/
-	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
-	visual_3d_matrix_load(tr_state->visual, tr_state->camera->projection.m);
-	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
-	visual_3d_matrix_load(tr_state->visual, tr_state->camera->modelview.m);
+	/*setup projection (we do this to avoidloading the projection matrix for each draw operation in non-GL3/GLES2 modes
+		modelview will be loaded at each object
+	*/
+	visual_3d_projection_matrix_modified(tr_state->visual);
 	gf_mx_init(tr_state->model_matrix);
 
 	tr_state->traversing_mode = mode;
@@ -447,18 +446,22 @@ static void visual_3d_draw_background_on_axis(GF_TraverseState *tr_state, u32 la
 	Fixed ar = gf_divfix(cam->width, cam->height);
 
 	tr_state->visual->camera_layout = 0;
+	gf_mx_copy(proj, cam->projection);
+	gf_mx_copy(model, cam->modelview);
 
-	gf_mx_perspective(&proj, cam->fieldOfView, ar, cam->z_near, cam->z_far);
+	gf_mx_perspective(&cam->projection, cam->fieldOfView, ar, cam->z_near, cam->z_far);
+	visual_3d_projection_matrix_modified(tr_state->visual);
+
 	/*setup modelview*/
-	gf_mx_lookat(&model, cam->position, cam->target, cam->up);
-
-	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
-	visual_3d_matrix_load(tr_state->visual, proj.m);
-	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
-	visual_3d_matrix_load(tr_state->visual, model.m);
+	gf_mx_lookat(&cam->modelview, cam->position, cam->target, cam->up);
 
 	visual_3d_draw_background(tr_state, layer_type);
+
 	tr_state->visual->camera_layout = GF_3D_CAMERA_OFFAXIS;
+	gf_mx_copy(cam->projection, proj);
+	gf_mx_copy(cam->modelview, model);
+
+
 }
 
 void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
@@ -526,9 +529,6 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 	/*turn off depth buffer in 2D*/
 	visual_3d_enable_depth_buffer(tr_state->visual, tr_state->camera->is_3D);
 
-	/*set headlight if any*/
-	visual_3d_enable_headlight(tr_state->visual, (tr_state->camera->navigation_flags & NAV_HEADLIGHT) ? 1 : 0, tr_state->camera);
-
 	if (tr_state->visual->autostereo_type==GF_3D_STEREO_SIDE) {
 		GF_Rect orig_vp;
 		orig_vp = tr_state->camera->vp;
@@ -584,10 +584,17 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 			visual_3d_clear_depth(tr_state->visual);
 		}
 	}
+
 	/*regular background draw*/
 	if (!tr_state->camera->is_3D || tr_state->visual->camera_layout != GF_3D_CAMERA_OFFAXIS) {
 		visual_3d_draw_background(tr_state, layer_type);
 	}
+
+	/*set headlight if any*/
+	if (tr_state->visual->type_3d>1) {
+		visual_3d_enable_headlight(tr_state->visual, (tr_state->camera->navigation_flags & NAV_HEADLIGHT) ? 1 : 0, tr_state->camera);
+	}
+
 
 	visual_3d_set_scissor(tr_state->visual, NULL);
 }
@@ -660,10 +667,7 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 		tr_state->traversing_mode = TRAVERSE_DRAW_3D;
 		/*layout/form clipper, set it in world coords only*/
 		if (tr_state->has_clip) {
-			visual_3d_matrix_push(tr_state->visual);
-			visual_3d_matrix_reset(tr_state->visual);
-			visual_3d_set_clipper_2d(tr_state->visual, tr_state->clipper);
-			visual_3d_matrix_pop(tr_state->visual);
+			visual_3d_set_clipper_2d(tr_state->visual, tr_state->clipper, NULL);
 		}
 		
 		gf_node_traverse(geometry, tr_state);
@@ -742,32 +746,29 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		DirectionalLightContext *dl;
 		Drawable3DContext *ctx = (Drawable3DContext *)gf_list_get(visual->alpha_nodes_to_draw, idx);
 
-		visual_3d_matrix_push(visual);
-
 		/*apply directional lights*/
 		tr_state->local_light_on = 1;
 		i=0;
 		while ((dl = (DirectionalLightContext*)gf_list_enum(ctx->directional_lights, &i))) {
-			visual_3d_matrix_push(visual);
-			visual_3d_matrix_add(visual, dl->light_matrix.m);
+			GF_Matrix mx;
+			gf_mx_copy(mx, tr_state->model_matrix);
+
+			gf_mx_add_matrix(&tr_state->model_matrix, &dl->light_matrix);
 			gf_node_traverse(dl->dlight, tr_state);
-			visual_3d_matrix_pop(visual);
+
+			gf_mx_copy(tr_state->model_matrix, mx);
 		}
 		
 		/*clipper, set it in world coords only*/
 		if (ctx->has_clipper) {
-			visual_3d_matrix_push(visual);
-			visual_3d_matrix_reset(visual);
-			visual_3d_set_clipper_2d(visual, ctx->clipper);
-			visual_3d_matrix_pop(visual);
+			visual_3d_set_clipper_2d(visual, ctx->clipper, NULL);
 		}
 
 		/*clip planes, set it in world coords only*/
 		for (i=0; i<ctx->num_clip_planes; i++)
-			visual_3d_set_clip_plane(visual, ctx->clip_planes[i]);
+			visual_3d_set_clip_plane(visual, ctx->clip_planes[i], NULL);
 
 		/*restore traversing state*/
-		visual_3d_matrix_add(visual, ctx->model_matrix.m);
 		memcpy(&tr_state->model_matrix, &ctx->model_matrix, sizeof(GF_Matrix));
 		tr_state->color_mat.identity = ctx->color_mat.identity;
 		if (!tr_state->color_mat.identity) memcpy(&tr_state->color_mat, &ctx->color_mat, sizeof(GF_ColorMatrix));
@@ -800,8 +801,6 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 
 		if (ctx->has_clipper) visual_3d_reset_clipper_2d(visual);
 		for (i=0; i<ctx->num_clip_planes; i++) visual_3d_reset_clip_plane(visual);
-
-		visual_3d_matrix_pop(visual);
 
 		/*and destroy*/
 		gf_list_del(ctx->directional_lights);
@@ -1533,6 +1532,10 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 
 		if (asp->fill_color) 
 			visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
+		else if (GF_COL_A(asp->line_color) && !(asp->line_color & 0x00FFFFFF)) {
+			u32 col = asp->line_color | 0x00FFFFFF;
+			visual_3d_set_material_2d_argb(tr_state->visual, col);
+		}
 		
 		visual_3d_mesh_paint(tr_state, st->mesh);
 		/*reset texturing in case of line texture*/
@@ -1826,6 +1829,203 @@ void visual_3d_draw(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 }
 
+void visual_3d_projection_matrix_modified(GF_VisualManager *visual)
+{
+	visual->needs_projection_matrix_reload = 1;
+}
 
+void visual_3d_enable_headlight(GF_VisualManager *visual, Bool bOn, GF_Camera *cam)
+{
+	SFVec3f dir;
+	SFColor col;
+
+	if (!bOn) return;
+	//if we have lights in the scene don't turn the headlight on
+	if (visual->has_inactive_lights || visual->num_lights) return;
+
+	col.blue = col.red = col.green = FIX_ONE;
+	dir.x = dir.y = 0; dir.z = -FIX_ONE;
+	if (cam->is_3D) dir = camera_get_target_dir(cam);
+
+	visual_3d_add_directional_light(visual, 0, col, FIX_ONE, dir, &cam->modelview);
+}
+
+void visual_3d_set_material_2d(GF_VisualManager *visual, SFColor col, Fixed alpha)
+{
+	visual->has_mat_2d = alpha ? 1 : 0;
+	if (visual->has_mat_2d) {
+		visual->mat_2d.red = col.red;
+		visual->mat_2d.green = col.green;
+		visual->mat_2d.blue = col.blue;
+		visual->mat_2d.alpha = alpha;
+	}
+
+}
+
+void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
+{
+	u32 a = GF_COL_A(col);
+	visual->has_mat_2d = a ? 1 : 0;
+	if (visual->has_mat_2d) {
+		visual->mat_2d.red = INT2FIX( GF_COL_R(col) ) / 255;
+		visual->mat_2d.green = INT2FIX( GF_COL_G(col) ) / 255;
+		visual->mat_2d.blue = INT2FIX( GF_COL_B(col) ) / 255;
+		visual->mat_2d.alpha = INT2FIX( a ) / 255;;
+	}
+}
+
+void visual_3d_set_clipper_2d(GF_VisualManager *visual, GF_Rect clip, GF_Matrix *mx_at_clipper)
+{
+	GF_Plane p;
+
+	if (visual->num_clips + 4 > visual->max_clips) 
+		return;
+
+	p.normal.z = 0;
+	p.normal.y = 0;
+	p.normal.x = -FIX_ONE; 
+	p.d = clip.x + clip.width;
+	visual_3d_set_clip_plane(visual, p, mx_at_clipper);
+
+	p.normal.x = FIX_ONE;
+	p.d = -clip.x;
+	visual_3d_set_clip_plane(visual, p, mx_at_clipper);
+
+	p.normal.x = 0;
+	p.normal.y = -FIX_ONE; 
+	p.d = clip.y;
+	visual_3d_set_clip_plane(visual, p, mx_at_clipper);
+
+	p.normal.y = FIX_ONE; 
+	p.d = clip.height - clip.y;
+	visual_3d_set_clip_plane(visual, p, mx_at_clipper);
+}
+
+void visual_3d_reset_clipper_2d(GF_VisualManager *visual)
+{
+	if (visual->num_clips < 4) return;
+	visual->num_clips -= 4;
+}
+
+void visual_3d_set_clip_plane(GF_VisualManager *visual, GF_Plane p, GF_Matrix *mx_at_clipper)
+{
+	if (visual->num_clips==GF_MAX_GL_CLIPS) return;
+	gf_vec_norm(&p.normal);
+	visual->clippers[visual->num_clips] = p;
+	visual->mx_clippers[visual->num_clips] = mx_at_clipper;
+	visual->num_clips++;
+}
+
+void visual_3d_reset_clip_plane(GF_VisualManager *visual)
+{
+	if (!visual->num_clips) return;
+	visual->num_clips -= 1;
+}
+
+void visual_3d_set_material(GF_VisualManager *visual, u32 material_type, Fixed *rgba)
+{
+	visual->materials[material_type].red = rgba[0];
+	visual->materials[material_type].green = rgba[1];
+	visual->materials[material_type].blue = rgba[2];
+	visual->materials[material_type].alpha = rgba[3];
+
+	visual->has_mat = 1;
+}
+
+void visual_3d_set_shininess(GF_VisualManager *visual, Fixed shininess)
+{
+	visual->shininess = shininess;
+}
+
+void visual_3d_set_state(GF_VisualManager *visual, u32 flag_mask, Bool setOn)
+{
+	if (flag_mask & V3D_STATE_LIGHT) visual->state_light_on = setOn;
+	if (flag_mask & V3D_STATE_BLEND) visual->state_blend_on = setOn;
+	if (flag_mask & V3D_STATE_COLOR) visual->state_color_on = setOn;
+}
+
+
+void visual_3d_set_texture_matrix(GF_VisualManager *visual, GF_Matrix *mx)
+{
+	visual->has_tx_matrix = mx ? 1 : 0;
+	if (mx) gf_mx_copy(visual->tx_matrix, *mx);
+}
+
+void visual_3d_has_inactive_light(GF_VisualManager *visual)
+{
+	visual->has_inactive_lights = GF_TRUE;
+}
+
+Bool visual_3d_add_point_light(GF_VisualManager *visual, Fixed ambientIntensity, SFVec3f attenuation, SFColor color, Fixed intensity, SFVec3f location, GF_Matrix *light_mx)
+{
+	if (visual->num_lights==visual->max_lights) return 0;
+	visual->lights[visual->num_lights].type = 2;
+	visual->lights[visual->num_lights].ambientIntensity = ambientIntensity;
+	visual->lights[visual->num_lights].attenuation = attenuation;
+	visual->lights[visual->num_lights].color = color;
+	visual->lights[visual->num_lights].intensity = intensity;
+	visual->lights[visual->num_lights].position = location;
+	memcpy(&visual->lights[visual->num_lights].light_mx, light_mx, sizeof(GF_Matrix) );
+	visual->num_lights++;
+	return 1;
+}
+
+Bool visual_3d_add_spot_light(GF_VisualManager *visual, Fixed ambientIntensity, SFVec3f attenuation, Fixed beamWidth, 
+					   SFColor color, Fixed cutOffAngle, SFVec3f direction, Fixed intensity, SFVec3f location, GF_Matrix *light_mx)
+{
+	if (visual->num_lights==visual->max_lights) return 0;
+	visual->lights[visual->num_lights].type = 1;
+	visual->lights[visual->num_lights].ambientIntensity = ambientIntensity;
+	visual->lights[visual->num_lights].attenuation = attenuation;
+	visual->lights[visual->num_lights].beamWidth = beamWidth;
+	visual->lights[visual->num_lights].cutOffAngle = cutOffAngle;
+	visual->lights[visual->num_lights].color = color;
+	visual->lights[visual->num_lights].direction = direction;
+	visual->lights[visual->num_lights].intensity = intensity;
+	visual->lights[visual->num_lights].position = location;	
+	memcpy(&visual->lights[visual->num_lights].light_mx, light_mx, sizeof(GF_Matrix) );
+	visual->num_lights++;
+	return 1;
+}
+
+Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed ambientIntensity, SFColor color, Fixed intensity, SFVec3f direction, GF_Matrix *light_mx)
+{
+	if (visual->num_lights==visual->max_lights) return 0;
+	visual->lights[visual->num_lights].type = 0;
+	visual->lights[visual->num_lights].ambientIntensity = ambientIntensity;
+	visual->lights[visual->num_lights].color = color;
+	visual->lights[visual->num_lights].intensity = intensity;
+	visual->lights[visual->num_lights].direction = direction;
+	memcpy(&visual->lights[visual->num_lights].light_mx, light_mx, sizeof(GF_Matrix) );
+	visual->num_lights++;
+	return 1;
+}
+
+
+void visual_3d_remove_last_light(GF_VisualManager *visual)
+{
+	if (visual->num_lights) {
+		visual->num_lights--;
+	}
+}
+
+void visual_3d_clear_all_lights(GF_VisualManager *visual)
+{
+	visual->num_lights = 0;
+	visual->has_inactive_lights = GF_FALSE;
+}
+
+void visual_3d_set_fog(GF_VisualManager *visual, const char *type, SFColor color, Fixed density, Fixed visibility)
+{
+	visual->has_fog = GF_TRUE;
+	if (!type || !stricmp(type, "LINEAR")) visual->fog_type = 0;
+	else if (!stricmp(type, "EXPONENTIAL")) visual->fog_type = 1;
+	else if (!stricmp(type, "EXPONENTIAL2")) visual->fog_type = 2;
+
+	visual->fog_color = color;
+	visual->fog_density = density;
+	visual->fog_visibility = visibility;
+}
 
 #endif
+

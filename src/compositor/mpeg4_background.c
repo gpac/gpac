@@ -310,7 +310,13 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (!bck->isBound) return;
-	if (tr_state->traversing_mode != TRAVERSE_BINDABLE) return;
+
+	if (tr_state->traversing_mode != TRAVERSE_BINDABLE) {
+		if (tr_state->traversing_mode == TRAVERSE_SORT) {
+			gf_mx_copy(st->current_mx, tr_state->model_matrix);
+		}
+		return;
+	}
 
 	front_tx = back_gf_sc_texture_enabled(&bck->frontUrl, &st->txh_front);
 	back_tx = back_gf_sc_texture_enabled(&bck->backUrl, &st->txh_back);
@@ -345,11 +351,15 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 	visual_3d_set_background_state(tr_state->visual, 1);
 
 	if (has_sky) {
+		GF_Matrix bck_mx;
+		gf_mx_copy(bck_mx, tr_state->model_matrix);
+		gf_mx_copy(tr_state->model_matrix, st->current_mx);
+
 		if (!st->sky_mesh) {
 			st->sky_mesh = new_mesh();
 			back_build_dome(st->sky_mesh, &bck->skyAngle, &bck->skyColor, 0);
 		}
-		visual_3d_matrix_push(tr_state->visual);
+
 		gf_mx_init(mx);
 		gf_mx_add_translation(&mx, res.x, res.y, res.z);
 
@@ -362,17 +372,23 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 		gf_mx_add_scale(&mx, scale, scale, scale);
 
-		visual_3d_matrix_add(tr_state->visual, mx.m);
+		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
+
 		visual_3d_mesh_paint(tr_state, st->sky_mesh);
-		visual_3d_matrix_pop(tr_state->visual);
+
+		gf_mx_copy(tr_state->model_matrix, bck_mx);
 	}
 
 	if (has_ground) {
+		GF_Matrix bck_mx;
+		gf_mx_copy(bck_mx, tr_state->model_matrix);
+		gf_mx_copy(tr_state->model_matrix, st->current_mx);
+
 		if (!st->ground_mesh) {
 			st->ground_mesh = new_mesh();
 			back_build_dome(st->ground_mesh, &bck->groundAngle, &bck->groundColor, 1);
 		}
-		visual_3d_matrix_push(tr_state->visual);
+
 		gf_mx_init(mx);
 		gf_mx_add_translation(&mx, res.x, res.y, res.z);
 		/*cf above*/
@@ -382,13 +398,17 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 		scale = 85*tr_state->camera->z_far/100;
 #endif
 		gf_mx_add_scale(&mx, scale, -scale, scale);
-		visual_3d_matrix_add(tr_state->visual, mx.m);
+
+		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
 		visual_3d_mesh_paint(tr_state, st->ground_mesh);
-		visual_3d_matrix_pop(tr_state->visual);
+		gf_mx_copy(tr_state->model_matrix, bck_mx);
 	}
 
 	if (front_tx || back_tx || left_tx || right_tx || top_tx || bottom_tx) {
-		visual_3d_matrix_push(tr_state->visual);
+		GF_Matrix bck_mx;
+		gf_mx_copy(bck_mx, tr_state->model_matrix);
+		gf_mx_copy(tr_state->model_matrix, st->current_mx);
+
 		gf_mx_init(mx);
 		gf_mx_add_translation(&mx, res.x, res.y, res.z);
 #ifdef GPAC_FIXED_POINT
@@ -397,9 +417,9 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 #else
 		gf_mx_add_scale(&mx, tr_state->camera->z_far, tr_state->camera->z_far, tr_state->camera->z_far);
 #endif
-		visual_3d_matrix_add(tr_state->visual, mx.m);
-
 		visual_3d_enable_antialias(tr_state->visual, 1);
+
+		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
 
 		if (front_tx) back_draw_texture(tr_state, &st->txh_front, st->front_mesh);
 		if (back_tx) back_draw_texture(tr_state, &st->txh_back, st->back_mesh);
@@ -408,7 +428,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 		if (left_tx) back_draw_texture(tr_state, &st->txh_left, st->left_mesh);
 		if (right_tx) back_draw_texture(tr_state, &st->txh_right, st->right_mesh);
 
-		visual_3d_matrix_pop(tr_state->visual);
+		gf_mx_copy(tr_state->model_matrix, bck_mx);
 	}
 
 	/*enable background state (turn off all quality options)*/
@@ -433,6 +453,7 @@ void compositor_init_background(GF_Compositor *compositor, GF_Node *node)
 	ptr->reg_stacks = gf_list_new();
 	((M_Background *)node)->on_set_bind = back_set_bind;
 
+	gf_mx_init(ptr->current_mx);
 
 	/*build texture cube*/
 	ptr->front_mesh = new_mesh();

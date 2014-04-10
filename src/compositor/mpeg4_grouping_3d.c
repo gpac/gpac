@@ -173,14 +173,6 @@ static void NewTransformStack(GF_Compositor *compositor, GF_Node *node, GF_Child
 	gf_node_set_private(node, st);
 }
 
-#define TRANS_PUSH_MX	\
-		if (tr_state->traversing_mode == TRAVERSE_SORT) {	\
-			visual_3d_matrix_push(tr_state->visual); \
-			visual_3d_matrix_add(tr_state->visual, st->mx.m);	\
-		}	\
-
-#define TRANS_POP_MX	if (tr_state->traversing_mode==TRAVERSE_SORT) visual_3d_matrix_pop(tr_state->visual);
-
 static void TraverseTransform(GF_Node *n, void *rs, Bool is_destroy)
 {
 	GF_Matrix gf_mx_bckup;
@@ -219,14 +211,9 @@ static void TraverseTransform(GF_Node *n, void *rs, Bool is_destroy)
 
 	gf_mx_copy(gf_mx_bckup, tr_state->model_matrix);
 	gf_mx_add_matrix(&tr_state->model_matrix, &st->mx);
-
-	TRANS_PUSH_MX
 	
 	/*note we don't clear dirty flag, this is done in traversing*/
 	group_3d_traverse(n, (GroupingNode *) st, tr_state);
-
-	TRANS_POP_MX	
-
 	
 	gf_mx_copy(tr_state->model_matrix, gf_mx_bckup);
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) 
@@ -312,12 +299,8 @@ static void TraverseBillboard(GF_Node *n, void *rs, Bool is_destroy)
 	gf_mx_copy(gf_mx_bckup, tr_state->model_matrix);
 	gf_mx_add_matrix(&tr_state->model_matrix, &st->mx);
 	
-	TRANS_PUSH_MX
-
 	/*note we don't clear dirty flag, this is done in traversing*/
 	group_3d_traverse(n, (GroupingNode *) st, tr_state);
-
-	TRANS_POP_MX
 
 	gf_mx_copy(tr_state->model_matrix, gf_mx_bckup);
 

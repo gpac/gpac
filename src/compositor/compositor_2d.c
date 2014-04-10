@@ -182,6 +182,8 @@ void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area)
 		goto exit;
 
 	a_tr_state.visual = compositor->visual;
+	a_tr_state.camera = &compositor->visual->camera;
+	gf_mx_init(a_tr_state.model_matrix);
 
 	visual_3d_set_state(compositor->visual, V3D_STATE_LIGHT, 0);
 	visual_3d_enable_antialias(compositor->visual, 0);
@@ -335,12 +337,14 @@ void compositor_2d_reset_gl_auto(GF_Compositor *compositor)
 
 static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 {
-	GF_Matrix mx;
 	Fixed hh, hw;
 	GF_Compositor *compositor = visual->compositor;
 	visual->is_attached = 1;
 
 	visual_3d_setup(visual);
+	visual->compositor->traverse_state->camera = &visual->camera;
+
+
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glViewport(0, 0, compositor->vp_width, compositor->vp_height);
 
@@ -368,22 +372,17 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 
 	hw = INT2FIX(compositor->vp_width)/2;
 	hh = INT2FIX(compositor->vp_height)/2;
-	gf_mx_ortho(&mx, -hw, hw, -hh, hh, 50, -50);
+	gf_mx_ortho(&visual->camera.projection, -hw, hw, -hh, hh, 50, -50);
+	visual_3d_projection_matrix_modified(visual);
 
-	visual_3d_set_matrix_mode(visual, V3D_MATRIX_PROJECTION);
-	visual_3d_matrix_load(visual, mx.m);
+	gf_mx_init(visual->camera.modelview);
 
-	visual_3d_set_matrix_mode(visual, V3D_MATRIX_MODELVIEW);
-	gf_mx_init(mx);
 #ifdef OPENGL_RASTER
 	if (compositor->opengl_raster) {
-		gf_mx_add_scale(&mx, 1, -1, 1);
-		gf_mx_add_translation(&mx, -hw, -hh, 0);
+		gf_mx_add_scale(&visual->camera.modelview, 1, -1, 1);
+		gf_mx_add_translation(&visual->camera.modelview, -hw, -hh, 0);
 	}
 #endif
-
-	visual_3d_matrix_load(visual, mx.m);
-
 	return GF_OK;
 }
 #endif

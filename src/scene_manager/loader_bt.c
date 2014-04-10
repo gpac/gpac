@@ -26,6 +26,7 @@
 #include <gpac/scene_manager.h>
 #include <gpac/utf.h>
 #include <gpac/constants.h>
+#include <gpac/network.h>
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
 
@@ -3043,7 +3044,7 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 	} else if (desc->tag==GF_ODF_MUXINFO_TAG) {
 		GF_MuxInfo *mi = (GF_MuxInfo *)desc;
 		if (mi->file_name) {
-			char *res_name = gf_url_concatenate(parser->load->fileName, mi->file_name);
+			char *res_name = gf_url_concatenate(parser->load->fileName, (const char *) mi->file_name);
 			if (res_name) {
 				gf_free(mi->file_name);
 				mi->file_name = res_name;

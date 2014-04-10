@@ -44,7 +44,10 @@ static void TraverseSpotLight(GF_Node *n, void *rs, Bool is_destroy)
 		gf_free(vis);
 		return;
 	}
-	if (!sl->on) return;
+	if (!sl->on) {
+		visual_3d_has_inactive_light(tr_state->visual);
+		return;
+	}
 
 	/*store local bounds for culling*/
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
@@ -64,14 +67,10 @@ static void TraverseSpotLight(GF_Node *n, void *rs, Bool is_destroy)
 	else if (tr_state->traversing_mode == TRAVERSE_LIGHTING) {
 		Bool *visible = gf_node_get_private(n);
 		if (*visible) {
-
-			visual_3d_matrix_push(tr_state->visual);
-			visual_3d_matrix_add(tr_state->visual, tr_state->model_matrix.m);
-			
 			visual_3d_add_spot_light(tr_state->visual, sl->ambientIntensity, sl->attenuation, sl->beamWidth, 
-						   sl->color, sl->cutOffAngle, sl->direction, sl->intensity, sl->location);
-			
-			visual_3d_matrix_pop(tr_state->visual);
+						   sl->color, sl->cutOffAngle, sl->direction, sl->intensity, sl->location, &tr_state->model_matrix);
+		} else {
+			visual_3d_has_inactive_light(tr_state->visual);
 		}
 	}
 }
@@ -95,7 +94,10 @@ static void TraversePointLight(GF_Node *n, void *rs, Bool is_destroy)
 		gf_free(vis);
 		return;
 	}
-	if (!pl->on) return;
+	if (!pl->on) {
+		visual_3d_has_inactive_light(tr_state->visual);
+		return;
+	}
 
 	/*store local bounds for culling*/
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
@@ -114,13 +116,10 @@ static void TraversePointLight(GF_Node *n, void *rs, Bool is_destroy)
 	else if (tr_state->traversing_mode == TRAVERSE_LIGHTING) {
 		Bool *visible = gf_node_get_private(n);
 		if (*visible) {
-			visual_3d_matrix_push(tr_state->visual);
-			visual_3d_matrix_add(tr_state->visual, tr_state->model_matrix.m);
-
 			visual_3d_add_point_light(tr_state->visual, pl->ambientIntensity, pl->attenuation, pl->color, 
-						pl->intensity, pl->location);
-
-			visual_3d_matrix_pop(tr_state->visual);
+						pl->intensity, pl->location, &tr_state->model_matrix);
+		} else {
+			visual_3d_has_inactive_light(tr_state->visual);
 		}
 	}
 }
@@ -145,17 +144,21 @@ static void TraverseDirectionalLight(GF_Node *n, void *rs, Bool is_destroy)
 		gf_free(stack);
 		return;
 	}
-	if (tr_state->switched_off || !dl->on) return;
+	if (tr_state->switched_off || !dl->on) {
+		visual_3d_has_inactive_light(tr_state->visual);
+		return;
+	}
 
 	/*1- DL only lights the parent group, no need for culling it*/
 	/*DL is set dynamically while traversing, the only mode that interest us is draw*/
 	if (tr_state->traversing_mode) return;
 
 	if (tr_state->local_light_on) {
-		*stack = visual_3d_add_directional_light(tr_state->visual, dl->ambientIntensity, dl->color, dl->intensity, dl->direction);
+		*stack = visual_3d_add_directional_light(tr_state->visual, dl->ambientIntensity, dl->color, dl->intensity, dl->direction, &tr_state->model_matrix);
 	} else {
 		if (*stack) visual_3d_remove_last_light(tr_state->visual);
 		*stack = 0;
+		visual_3d_has_inactive_light(tr_state->visual);
 	}
 }
 

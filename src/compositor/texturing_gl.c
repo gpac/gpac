@@ -1618,12 +1618,12 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	if (txh->matteTexture) {
 		u32 ret = gf_sc_texture_enable_matte_texture(txh->matteTexture);
 		if (!ret) return 0;
-		visual_3d_set_matrix_mode(compositor->visual, V3D_MATRIX_TEXTURE);
+
 		if (gf_sc_texture_get_transform(txh, tx_transform, &mx, 0)) 
-			visual_3d_matrix_load(compositor->visual, mx.m);
+			visual_3d_set_texture_matrix(compositor->visual, &mx);
 		else
-			visual_3d_matrix_reset(compositor->visual);
-		visual_3d_set_matrix_mode(compositor->visual, V3D_MATRIX_MODELVIEW);
+			visual_3d_set_texture_matrix(compositor->visual, NULL);
+
 		return ret;
 	}
 #endif
@@ -1636,19 +1636,17 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 	tx_set_image(txh, 0);
 
-	visual_3d_set_matrix_mode(compositor->visual, V3D_MATRIX_TEXTURE);
 	if (bounds && txh->compute_gradient_matrix) {
 		GF_Matrix2D mx2d;
 		txh->compute_gradient_matrix(txh, bounds, &mx2d, 1);
 		gf_mx_from_mx2d(&mx, &mx2d);
-		visual_3d_matrix_load(compositor->visual, mx.m);
+		visual_3d_set_texture_matrix(compositor->visual, &mx);
 	}
 	else if (gf_sc_texture_get_transform(txh, tx_transform, &mx, 0)) {
-		visual_3d_matrix_load(compositor->visual, mx.m);
+		visual_3d_set_texture_matrix(compositor->visual, &mx);
 	} else {
-		visual_3d_matrix_reset(compositor->visual);
+		visual_3d_set_texture_matrix(compositor->visual, NULL);
 	}
-	visual_3d_set_matrix_mode(compositor->visual, V3D_MATRIX_MODELVIEW);
 
 	txh->flags |= GF_SR_TEXTURE_USED;
 

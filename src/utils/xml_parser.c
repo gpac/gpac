@@ -1332,7 +1332,7 @@ u32 gf_xml_sax_get_file_pos(GF_SAXParser *parser)
 GF_EXPORT
 char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value, char *substitute, char *get_attr, char *end_pattern, Bool *is_substitute)
 {
-	u32 state, att_len, alloc_size;
+	u32 state, att_len, alloc_size, _len;
 #ifdef NO_GZIP
 	u64 pos;
 #else
@@ -1343,12 +1343,13 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	char szLine1[XML_INPUT_SIZE+2], szLine2[XML_INPUT_SIZE+2], *szLine, *cur_line, *sep, *start, first_c, *result;
 
 
-#define CPYCAT_ALLOC(__str, __is_copy) if ( strlen(__str) + (__is_copy ? 0 : strlen(szLine))>=alloc_size) {\
+#define CPYCAT_ALLOC(__str, __is_copy) _len = (u32) strlen(__str);\
+							if ( _len + (__is_copy ? 0 : strlen(szLine))>=alloc_size) {\
 								alloc_size = 1 + (u32) strlen(__str);	\
 								if (!__is_copy) alloc_size += (u32) strlen(szLine); \
 								szLine = gf_realloc(szLine, alloc_size);	\
 							}\
-							if (__is_copy) strcpy(szLine, __str);	\
+							if (__is_copy) { memcpy(szLine, __str, sizeof(char)*_len); szLine[_len] = 0; }\
 							else strcat(szLine, __str); \
 
 	from_buffer=0;

@@ -26,6 +26,7 @@
 #include <gpac/scene_manager.h>
 #include <gpac/constants.h>
 #include <gpac/utf.h>
+#include <gpac/network.h>
 #include <gpac/xml.h>
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
@@ -1917,7 +1918,7 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 		else if (!strcmp(att->name, "OCR_ES_ID")) ocr_ref = att->value;
 		else if (!strcmp(att->name, "dependsOn_ES_ID")) dep_ref = att->value;
 		else if ((desc->tag==GF_ODF_MUXINFO_TAG) && (!stricmp(att->name, "fileName") || !stricmp(att->name, "url"))) {
-			char *res_name = gf_url_concatenate(parser->load->fileName, att->value);
+			char *res_name = gf_url_concatenate(parser->load->fileName, (const char *)att->value);
 			e = gf_odf_set_field(desc, att->name, res_name ? res_name : att->value);
 			if (e) xmt_report(parser, e, "Warning: %s not a valid attribute for descriptor %s", att->name, name);
 			if (res_name)

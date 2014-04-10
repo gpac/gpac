@@ -57,7 +57,11 @@ static jmethodID getImageFormat;
 static jmethodID getImageHeight;
 static jmethodID getImageWidth;
 
+#ifndef GPAC_STATIC_MODULES
 jint JNI_OnLoad(JavaVM* vm, void* reserved)
+#else
+jint static_JNI_OnLoad(JavaVM* vm, void* reserved)
+#endif
 {
 	JNIEnv* env = 0;
   javaVM = vm;
@@ -144,6 +148,8 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 
 	return JNI_VERSION_1_2;
 }
+
+#ifndef GPAC_STATIC_MODULES
 //----------------------------------------------------------------------
 JavaVM* GetJavaVM()
 {
@@ -158,6 +164,11 @@ JNIEnv* GetEnv()
 
 	return env;
 }
+#else
+JavaVM* GetJavaVM();
+JNIEnv* GetEnv();
+
+#endif
 
 void JNI_OnUnload(JavaVM *vm, void *reserved)
 {
@@ -688,6 +699,12 @@ GF_InputService *CAM_client_load()
 	GF_SAFEALLOC(reader, ISOMReader);
 	plug->priv = reader;
 	globReader = reader;
+
+
+#ifdef GPAC_STATIC_MODULES
+	static_JNI_OnLoad(GetJavaVM(), NULL);
+#endif
+
 	return plug;
 }
 
