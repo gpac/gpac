@@ -1021,7 +1021,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	if (do_notif) {
 		GF_Event evt;
 		/*wait for user ack*/
-		gf_sc_next_frame_state(compositor, GF_SC_DRAW_NONE);
+//		gf_sc_next_frame_state(compositor, GF_SC_DRAW_NONE);
 
 		evt.type = GF_EVENT_SCENE_SIZE;
 		evt.size.width = width;
@@ -1233,12 +1233,9 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #ifndef GPAC_USE_OGL_ES
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "EmulatePOW2");
 	compositor->emul_pow2 = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "BitmapCopyPixels");
-	compositor->bitmap_use_pixels = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 #else
 	compositor->raster_outlines = 1;
 	compositor->emul_pow2 = 1;
-	compositor->bitmap_use_pixels = 0;
 #endif
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "PolygonAA");
@@ -1585,7 +1582,6 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 			gf_sc_reset_graphics(compositor);
 		}
 		break;
-	case GF_OPT_BITMAP_COPY: compositor->bitmap_use_pixels = value; break;
 	case GF_OPT_COLLISION: compositor->collide_mode = value; break;
 	case GF_OPT_GRAVITY: 
 	{	
@@ -1858,6 +1854,84 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 	return NULL;
 }
 
+static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
+{
+
+#ifndef GPAC_DISABLE_LOG
+	compositor->visual_config_time = 0;
+#endif
+	if (compositor->recompute_ar) {
+#ifndef GPAC_DISABLE_LOG
+		u32 time=0;
+		
+		if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) { 
+			time = gf_sys_clock();
+		}
+#endif
+
+		gf_sc_ar_control(compositor->audio_renderer, 0);
+#ifndef GPAC_DISABLE_3D
+		if (compositor->autoconfig_opengl) {
+			compositor->visual->type_3d = 1;
+		}
+		if (compositor->visual->type_3d) {
+			compositor_3d_set_aspect_ratio(compositor);
+			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d);
+			if (compositor->autoconfig_opengl) {
+#ifndef GPAC_USE_OGL_ES
+				visual_3d_init_yuv_shader(compositor->visual);
+#endif
+				compositor->autoconfig_opengl = 0;
+				compositor->visual->type_3d = 0;
+				compositor->force_opengl_2d = 0;
+
+				//enable hybrid mode by default
+				if (compositor->visual->yuv_rect_glsl_program) {
+					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "hybrid");
+					compositor->hybrid_opengl = 1;
+				} else {
+					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "disable");
+				}
+			}
+
+		}
+		if (!compositor->visual->type_3d) 
+#endif
+		{
+			compositor_2d_set_aspect_ratio(compositor);
+#ifndef GPAC_DISABLE_3D
+			if (compositor->hybrid_opengl) {
+				gf_sc_load_opengl_extensions(compositor, GF_TRUE);
+#ifndef GPAC_USE_OGL_ES
+				visual_3d_init_yuv_shader(compositor->visual);
+#endif
+				if (!compositor->visual->hybgl_drawn.list) {
+					ra_init(&compositor->visual->hybgl_drawn);
+				}
+			}
+#endif
+		}
+
+		gf_sc_ar_control(compositor->audio_renderer, 1);
+
+#ifndef GPAC_DISABLE_LOG
+		if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) { 
+			compositor->visual_config_time = gf_sys_clock() - time;
+		}
+#endif
+
+		compositor_evaluate_envtests(compositor, 0);
+
+		//fullscreen was postponed, retry now that the AR has been recomputed
+		if (compositor->fullscreen_postponed) {
+			compositor->fullscreen_postponed = 0;
+			compositor->msg_type |= GF_SR_CFG_FULLSCREEN;
+		}
+
+	} 
+}
+
+
 
 static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node)
 {
@@ -1974,84 +2048,6 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 	}
 }
 
-static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
-{
-
-#ifndef GPAC_DISABLE_LOG
-	compositor->visual_config_time = 0;
-#endif
-	if (compositor->recompute_ar) {
-#ifndef GPAC_DISABLE_LOG
-		u32 time=0;
-		
-		if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) { 
-			time = gf_sys_clock();
-		}
-#endif
-
-		gf_sc_ar_control(compositor->audio_renderer, 0);
-#ifndef GPAC_DISABLE_3D
-		if (compositor->autoconfig_opengl) {
-			compositor->visual->type_3d = 1;
-		}
-		if (compositor->visual->type_3d) {
-			compositor_3d_set_aspect_ratio(compositor);
-			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d);
-			if (compositor->autoconfig_opengl) {
-#ifndef GPAC_USE_OGL_ES
-				visual_3d_init_yuv_shader(compositor->visual);
-#endif
-				compositor->autoconfig_opengl = 0;
-				compositor->visual->type_3d = 0;
-				compositor->force_opengl_2d = 0;
-
-				//enable hybrid mode by default
-				if (compositor->visual->yuv_rect_glsl_program) {
-					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "hybrid");
-					compositor->hybrid_opengl = 1;
-				} else {
-					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "disable");
-				}
-			}
-
-		}
-		if (!compositor->visual->type_3d) 
-#endif
-		{
-			compositor_2d_set_aspect_ratio(compositor);
-#ifndef GPAC_DISABLE_3D
-			if (compositor->hybrid_opengl) {
-				gf_sc_load_opengl_extensions(compositor, GF_TRUE);
-#ifndef GPAC_USE_OGL_ES
-				visual_3d_init_yuv_shader(compositor->visual);
-#endif
-				if (!compositor->visual->hybgl_drawn.list) {
-					ra_init(&compositor->visual->hybgl_drawn);
-				}
-			}
-#endif
-		}
-
-		gf_sc_ar_control(compositor->audio_renderer, 1);
-
-		gf_sc_next_frame_state(compositor, GF_SC_DRAW_NONE);
-
-#ifndef GPAC_DISABLE_LOG
-		if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) { 
-			compositor->visual_config_time = gf_sys_clock() - time;
-		}
-#endif
-
-		compositor_evaluate_envtests(compositor, 0);
-
-		//fullscreen was postponed, retry now that the AR has been recomputed
-		if (compositor->fullscreen_postponed) {
-			compositor->fullscreen_postponed = 0;
-			compositor->msg_type |= GF_SR_CFG_FULLSCREEN;
-		}
-
-	} 
-}
 
 static void gf_sc_draw_scene(GF_Compositor *compositor)
 {
@@ -2063,8 +2059,6 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Scene has no root node, nothing to draw\n"));
 		return;
 	}
-
-	gf_sc_recompute_ar(compositor, top_node);
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 	if (!compositor->video_cache_max_size)
@@ -2386,6 +2380,9 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	/*setup root visual BEFORE updating the composite textures (since they may depend on root setup)*/
 	gf_sc_setup_root_visual(compositor, gf_sg_get_root_node(compositor->scene));
+
+	/*setup display before updating composite textures (some may require a valid openGL context)*/
+	gf_sc_recompute_ar(compositor, gf_sg_get_root_node(compositor->scene) );
 
 #ifndef GPAC_DISABLE_LOG
 	txtime = gf_sys_clock();
@@ -2778,14 +2775,7 @@ void gf_sc_traverse_subscene_ex(GF_Compositor *compositor, GF_Node *inline_paren
 		/*copy over z scale*/
 		mx.m[10] = mx.m[5];
 		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
-		if (tr_state->traversing_mode==TRAVERSE_SORT) {
-			visual_3d_matrix_push(tr_state->visual);
-			visual_3d_matrix_add(tr_state->visual, mx.m);
-			gf_node_traverse(inline_root, rs);
-			visual_3d_matrix_pop(tr_state->visual);
-		} else {
-			gf_node_traverse(inline_root, rs);
-		}
+		gf_node_traverse(inline_root, rs);
 		gf_mx_copy(tr_state->model_matrix, mx_bck);
 
 	} else

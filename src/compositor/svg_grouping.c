@@ -416,15 +416,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
-		if (tr_state->traversing_mode==TRAVERSE_SORT) {
-			GF_Matrix tmp;
-			visual_3d_matrix_push(tr_state->visual);
-
-			gf_mx_from_mx2d(&tmp, &tr_state->vb_transform);
-			visual_3d_matrix_add(tr_state->visual, tmp.m);
-		} else {
-			gf_mx_add_matrix_2d(&tr_state->model_matrix, &tr_state->vb_transform);
-		}
+		gf_mx_add_matrix_2d(&tr_state->model_matrix, &tr_state->vb_transform);
 	} else 
 #endif
 	{
@@ -471,7 +463,6 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
-		if (tr_state->traversing_mode==TRAVERSE_SORT) visual_3d_matrix_pop(tr_state->visual);
 		gf_mx_copy(tr_state->model_matrix, bck_mx);
 	}
 #endif
@@ -1098,12 +1089,6 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->type_3d) {
 			gf_mx_add_matrix_2d(&tr_state->model_matrix, &translate);
-
-			if (tr_state->traversing_mode==TRAVERSE_SORT) {
-				GF_Matrix tmp;
-				gf_mx_from_mx2d(&tmp, &translate);
-				visual_3d_matrix_add(tr_state->visual, tmp.m);
-			}
 		} else 
 #endif
 			gf_mx2d_pre_multiply(&tr_state->transform, &translate);
@@ -1282,12 +1267,6 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		gf_mx_add_matrix_2d(&tr_state->model_matrix, &translate);
-
-		if (tr_state->traversing_mode==TRAVERSE_SORT) {
-			GF_Matrix tmp;
-			gf_mx_from_mx2d(&tmp, &translate);
-			visual_3d_matrix_add(tr_state->visual, tmp.m);
-		}
 	} else 
 #endif
 		gf_mx2d_pre_multiply(&tr_state->transform, &translate);

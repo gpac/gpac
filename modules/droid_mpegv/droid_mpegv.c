@@ -57,6 +57,8 @@ static jmethodID cid;
 static jmethodID startSensor;
 static jmethodID stopSensor;
 
+#ifndef GPAC_STATIC_MODULES
+
 //----------------------------------------------------------------------
 jint JNI_OnLoad(JavaVM* vm, void* reserved)
 {
@@ -120,12 +122,18 @@ void JNI_OnUnload(JavaVM *vm, void *reserved)
 	
 	(*env)->DeleteGlobalRef(env, sensCtrlClass);
 }
+
 //----------------------------------------------------------------------
 JavaVM* GetJavaVM()
 {
 	return javaVM;
 }
 //----------------------------------------------------------------------
+#else
+JavaVM* GetJavaVM();
+JNIEnv* GetEnv();
+
+#endif
 
 typedef struct
 {

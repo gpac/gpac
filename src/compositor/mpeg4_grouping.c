@@ -777,18 +777,7 @@ void parent_node_child_traverse(ChildGroup *cg, GF_TraverseState *tr_state)
 
 		gf_mx_copy(mx_bckup, tr_state->model_matrix);
 		gf_mx_add_translation(&tr_state->model_matrix, dx, dy, 0);
-
-		if (tr_state->traversing_mode==TRAVERSE_SORT) {
-			GF_Matrix mx;
-			gf_mx_init(mx);
-			gf_mx_add_translation(&mx, dx, dy, 0);
-			visual_3d_matrix_push(tr_state->visual);
-			visual_3d_matrix_add(tr_state->visual, mx.m);
-			gf_node_traverse(cg->child, tr_state);
-			visual_3d_matrix_pop(tr_state->visual);
-		} else {
-			gf_node_traverse(cg->child, tr_state);
-		}
+		gf_node_traverse(cg->child, tr_state);
 		gf_mx_copy(tr_state->model_matrix, mx_bckup);
 	} else 
 #endif
@@ -815,14 +804,7 @@ void parent_node_child_traverse_matrix(ChildGroup *cg, GF_TraverseState *tr_stat
 		gf_mx_from_mx2d(&mx, mat2D);
 		gf_mx_copy(mx_bckup, tr_state->model_matrix);
 		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
-		if (tr_state->traversing_mode==TRAVERSE_SORT) {
-			visual_3d_matrix_push(tr_state->visual);
-			visual_3d_matrix_add(tr_state->visual, mx.m);
-			gf_node_traverse(cg->child, tr_state);
-			visual_3d_matrix_pop(tr_state->visual);
-		} else {
-			gf_node_traverse(cg->child, tr_state);
-		}
+		gf_node_traverse(cg->child, tr_state);
 		gf_mx_copy(tr_state->model_matrix, mx_bckup);
 	} else 
 #endif

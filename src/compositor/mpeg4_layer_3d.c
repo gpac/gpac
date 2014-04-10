@@ -451,6 +451,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*drawing a layer means drawing all subelements as a whole (no depth sorting with parents)*/
 	if (tr_state->traversing_mode==TRAVERSE_SORT) {
+		u32 old_type_3d = tr_state->visual->type_3d;
 
 		if (gf_node_dirty_get(node)) changed = 1;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY|GF_SG_VRML_BINDABLE_DIRTY);
@@ -478,24 +479,13 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 			rc = st->vp;
 			/*setup GL*/
 			visual_3d_setup(tr_state->visual);
-
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
-			visual_3d_matrix_reset(tr_state->visual);
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_TEXTURE);
-			visual_3d_matrix_reset(tr_state->visual);
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
-			visual_3d_matrix_reset(tr_state->visual);
-		} else {
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
-			visual_3d_matrix_push(tr_state->visual);
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_TEXTURE);
-			visual_3d_matrix_push(tr_state->visual);
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
-			visual_3d_matrix_push(tr_state->visual);
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer3D] Redrawing\n"));
 
 		layer3d_setup_clip(st, tr_state, prev_cam ? 1 : 0, rc);
+
+		tr_state->visual->type_3d = 2;
+		visual_3d_clear_all_lights(tr_state->visual);
 
 		cur_lights = tr_state->visual->num_lights;
 		/*this will init projection. Note that we're binding the viewpoint in the current pixelMetrics context
@@ -524,14 +514,11 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		}
 
 		tr_state->traversing_mode = TRAVERSE_SORT;
+		tr_state->visual->type_3d = old_type_3d;
 
+		//reload previous projection matrix
 		if (prev_cam) {
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
-			visual_3d_matrix_pop(tr_state->visual);
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_TEXTURE);
-			visual_3d_matrix_pop(tr_state->visual);
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
-			visual_3d_matrix_pop(tr_state->visual);
+			visual_3d_projection_matrix_modified(tr_state->visual);
 		}
 
 

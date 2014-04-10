@@ -34,7 +34,7 @@
 
 
 /*visual studio and xcode*/
-#if defined(WIN32) || defined(_WIN32_WCE) || defined(GPAC_CONFIG_DARWIN) 
+#if defined(WIN32) || defined(_WIN32_WCE) || defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_ANDROID) 
 
 /*enables GPAC memory tracking in debug mode only*/
 #if defined(DEBUG) || defined(_DEBUG)
@@ -86,6 +86,21 @@
 #ifdef __LP64__
 #define GPAC_64_BITS
 #endif
+
+#endif  //end OSX flags
+
+
+//Android test compilation without any extra lib
+#if defined(GPAC_CONFIG_ANDROID) 
+#define GPAC_ANDROID
+
+#define GPAC_HAS_IPV6
+#define GPAC_USE_OGL_ES
+#define GPAC_FIXED_POINT
+
+#undef GPAC_HAS_SPIDERMONKEY
+#undef GPAC_HAS_PNG
+#undef GPAC_HAS_JPEG
 
 #endif  //end OSX flags
 

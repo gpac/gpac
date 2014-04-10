@@ -932,6 +932,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 		while ((span = (GF_TextSpan *)gf_list_enum(spans, &i))) {
 			if (text_hl) {
 				visual_3d_fill_rect(tr_state->visual, span->bounds, hl_color);
+
 				if (fill_2d) 
 					visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
 				else

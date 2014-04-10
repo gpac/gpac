@@ -291,8 +291,6 @@ enum
 	/*get/set RECT Ext flag (value: boolean) - when set, GL rectangular texture extension is not used 
 	(but NPO2 texturing is if available)*/
 	GF_OPT_NO_RECT_TEXTURE,
-	/*get/set bitmap draw mode. If set, bitmap doesn't use texturing but direct video copy*/
-	GF_OPT_BITMAP_COPY,
 	/*set/get headlight (value: boolean)*/
 	GF_OPT_HEADLIGHT,
 	/*set/get collision (value: cf above)*/

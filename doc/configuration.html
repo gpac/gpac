@@ -366,11 +366,6 @@ Enables power of 2 emulation. Ignored if openGL rectangular texture extension is
 <b>DisableGLUScale</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Disables usage of gluScaleImage, which may be slower but nicer than GPAC's software stretch routines.</p>
-<b>BitmapCopyPixels</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether the bitmap node should be drawn with regular openGL texturing ("no") or through pixel copy routines ("yes"). This greatly impacts video rendering through 
-bitmap depending on the graphics card. Some cards will have faster pixel copy routines that texture transfer ones, some won't.
-</p>
 <b>TextureTextMode</b> (value: <i>"Default", "Never", "Always"</i>]
 <p style="text-indent: 5%">
 Specifies whether text shall be drawn to a texture and then rendered or directly rendered. Using textured text can improve text rendering in 3D and also improve text-on-video like content. Default value will use texturing for OpenGL rendering. </p>

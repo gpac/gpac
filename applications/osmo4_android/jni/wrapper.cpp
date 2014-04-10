@@ -53,6 +53,32 @@ static JavaVM* javaVM = NULL;
 
 static pthread_key_t jni_thread_env_key = 0;
 
+//these two are used by modumles - define them when using static module build
+#ifdef GPAC_STATIC_MODULES
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+JavaVM* GetJavaVM()
+{
+	return javaVM;
+}
+
+JNIEnv* GetEnv()
+{
+    JNIEnv* env = 0;
+	if (javaVM) javaVM->GetEnv((void**)(&env), JNI_VERSION_1_2);
+    return env;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
+
 /**
  * This method is called when a pthread is destroyed, so we can delete the JNI env
  */
@@ -138,7 +164,7 @@ jint JNI_OnUnLoad(JavaVM* vm, void* reserved){
     LOGW("Failed to delete key jni_thread_env_key jni_thread_env_key=%p\n", jni_thread_env_key);
   }
   javaVM = NULL;
-  jni_thread_env_key = NULL;
+  jni_thread_env_key = (int) NULL;
 }
 
 #define NUM_JNI_VERSIONS 4

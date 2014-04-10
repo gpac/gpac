@@ -44,6 +44,15 @@
 /*for channel codes*/
 #include <gpac/constants.h>
 
+#ifdef GPAC_STATIC_MODULES
+
+JavaVM* GetJavaVM();
+JNIEnv* GetEnv();
+
+#endif
+
+
+
 static const char android_device[] = "Android Default";
 
 static jclass cAudioTrack = NULL;

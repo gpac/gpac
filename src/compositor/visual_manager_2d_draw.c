@@ -351,7 +351,6 @@ void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_
 #ifndef GPAC_DISABLE_3D
 void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx, GF_TraverseState *tr_state)
 {
-	GF_Matrix mx;
 	u32 prev_mode = tr_state->traversing_mode;
 	u32 prev_type_3d = tr_state->visual->type_3d;
 
@@ -426,12 +425,11 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	if (ctx->col_mat) gf_cmx_copy(&tr_state->color_mat, ctx->col_mat);
 
 	tr_state->traversing_mode=TRAVERSE_DRAW_3D;
-	gf_mx_from_mx2d(&mx, &ctx->transform);
-	visual_3d_matrix_push(visual);
-	visual_3d_matrix_add(visual, mx.m);
+	gf_mx_from_mx2d(&tr_state->model_matrix, &ctx->transform);
+
 	gf_node_allow_cyclic_traverse(ctx->drawable->node);
 	gf_node_traverse(ctx->drawable->node, tr_state);
-	visual_3d_matrix_pop(visual);
+
 	tr_state->visual->type_3d=prev_type_3d;
 	tr_state->traversing_mode=prev_mode;
 	if (ctx->col_mat) gf_cmx_init(&tr_state->color_mat);

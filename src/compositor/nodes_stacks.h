@@ -124,6 +124,7 @@ typedef struct
 
 	GF_Mesh *front_mesh, *back_mesh, *top_mesh, *bottom_mesh, *left_mesh, *right_mesh;
 	GF_TextureHandler txh_front, txh_back, txh_top, txh_bottom, txh_left, txh_right;
+	GF_Matrix current_mx;
 } BackgroundStack;
 #endif
 

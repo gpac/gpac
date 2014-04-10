@@ -153,7 +153,7 @@ GF_VideoOutput *NewRawVideoOutput()
 	return (void *)driv;
 }
 
-void DeleteVideoOutput(void *ifce)
+void DeleteRawVideoOutput(void *ifce)
 {
 	RawContext *rc;
 	GF_VideoOutput *driv = (GF_VideoOutput *) ifce;
@@ -279,7 +279,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
 	case GF_VIDEO_OUTPUT_INTERFACE:
-		DeleteVideoOutput((GF_VideoOutput *)ifce);
+		DeleteRawVideoOutput((GF_VideoOutput *)ifce);
 		break;
 	case GF_AUDIO_OUTPUT_INTERFACE:
 		DeleteAudioOutput((GF_AudioOutput *)ifce);

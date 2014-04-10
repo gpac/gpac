@@ -180,15 +180,8 @@ void compositor_3d_reset_camera(GF_Compositor *compositor)
 void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseState *tr_state, Fixed width, Fixed height, Fixed bmp_scale_x, Fixed bmp_scale_y)
 {
 	u8 alpha;
-#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
-	Fixed x, y;
-	Fixed sx, sy;
-	char *data;
-	u32 format;
-#endif
 	GF_TextureHandler *txh;
 	GF_Compositor *compositor = tr_state->visual->compositor;
-	Bool use_texture = !compositor->bitmap_use_pixels;
 
 	if (!asp->fill_texture) 
 		return;
@@ -201,8 +194,6 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 			if (txh->data && gf_sc_texture_convert(txh) )
 				visual_3d_point_sprite(tr_state->visual, stack, txh, tr_state);
 			return;
-		} else {
-			use_texture = 1;
 		}
 	}	
 
@@ -210,103 +201,61 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
 	if (!alpha) alpha = GF_COL_A(asp->line_color);
 
-	/*texture is available in hw, use it - if blending, force using texture*/
-	if (use_texture || !gf_sc_texture_needs_reload(txh) || (alpha != 0xFF) 
-#ifdef GF_SR_USE_DEPTH
-		|| tr_state->depth_offset
-#endif
-		) {
-		visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, 0);
-		visual_3d_enable_antialias(tr_state->visual, 0);
-		if (alpha && (alpha != 0xFF)) {
-			visual_3d_set_material_2d_argb(tr_state->visual, GF_COL_ARGB(alpha, 0xFF, 0xFF, 0xFF));
-			gf_sc_texture_set_blend_mode(txh, TX_MODULATE);
-		} else if (gf_sc_texture_is_transparent(txh)) {
-			gf_sc_texture_set_blend_mode(txh, TX_REPLACE);
-		} else {
-			visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, 0);
-		}
-		/*ignore texture transform for bitmap*/
- 		tr_state->mesh_num_textures = gf_sc_texture_enable(txh, NULL);
-		if (tr_state->mesh_num_textures) {
-			/*we must check the w & h passed are correct because of bitmap node initialization*/
-			if (width && height) {
-				if (!stack->mesh) {
-					SFVec2f size;
-					size.x = width;
-					size.y = height;
+	visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, 0);
+	visual_3d_enable_antialias(tr_state->visual, 0);
+	if (alpha && (alpha != 0xFF)) {
+		visual_3d_set_material_2d_argb(tr_state->visual, GF_COL_ARGB(alpha, 0xFF, 0xFF, 0xFF));
+		gf_sc_texture_set_blend_mode(txh, TX_MODULATE);
+	} else if (gf_sc_texture_is_transparent(txh)) {
+		gf_sc_texture_set_blend_mode(txh, TX_REPLACE);
+	} else {
+		visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, 0);
+	}
+	/*ignore texture transform for bitmap*/
+ 	tr_state->mesh_num_textures = gf_sc_texture_enable(txh, NULL);
+	if (tr_state->mesh_num_textures) {
+		/*we must check the w & h passed are correct because of bitmap node initialization*/
+		if (width && height) {
+			if (!stack->mesh) {
+				SFVec2f size;
+				size.x = width;
+				size.y = height;
 
-					stack->mesh = new_mesh();
-					mesh_new_rectangle(stack->mesh, size, NULL, 0);
-				}
-			} 
-			if (stack->mesh) {
-#ifdef GF_SR_USE_DEPTH
-				if (tr_state->depth_offset) {
-					GF_Matrix mx;
-					Fixed offset;
-					Fixed disp_depth = (compositor->display_depth<0) ? INT2FIX(tr_state->visual->height) : INT2FIX(compositor->display_depth);
-					if (disp_depth) {
-						if (!tr_state->pixel_metrics) disp_depth = gf_divfix(disp_depth, tr_state->min_hsize);
-						gf_mx_init(mx);
-						/*add recalibration by the scene*/
-						offset = tr_state->depth_offset;
-						if (tr_state->visual->depth_vp_range) {
-							offset = gf_divfix(offset, tr_state->visual->depth_vp_range/2);
-						}
-						gf_mx_add_translation(&mx, 0, 0, gf_mulfix(offset, disp_depth/2) );
-						
-						visual_3d_matrix_push(tr_state->visual);
-						visual_3d_matrix_add(tr_state->visual, mx.m);
-						visual_3d_mesh_paint(tr_state, stack->mesh);
-						visual_3d_matrix_pop(tr_state->visual);
-					} else {
-						visual_3d_mesh_paint(tr_state, stack->mesh);
-					}
-				} else 
-#endif
-					visual_3d_mesh_paint(tr_state, stack->mesh);
+				stack->mesh = new_mesh();
+				mesh_new_rectangle(stack->mesh, size, NULL, 0);
 			}
- 			gf_sc_texture_disable(txh);
-			tr_state->mesh_num_textures = 0;
-			return;
+		} 
+		if (stack->mesh) {
+#ifdef GF_SR_USE_DEPTH
+			if (tr_state->depth_offset) {
+				GF_Matrix mx;
+				Fixed offset;
+				Fixed disp_depth = (compositor->display_depth<0) ? INT2FIX(tr_state->visual->height) : INT2FIX(compositor->display_depth);
+				if (disp_depth) {
+					GF_Matrix bck_mx;
+					if (!tr_state->pixel_metrics) disp_depth = gf_divfix(disp_depth, tr_state->min_hsize);
+					gf_mx_init(mx);
+					/*add recalibration by the scene*/
+					offset = tr_state->depth_offset;
+					if (tr_state->visual->depth_vp_range) {
+						offset = gf_divfix(offset, tr_state->visual->depth_vp_range/2);
+					}
+					gf_mx_add_translation(&mx, 0, 0, gf_mulfix(offset, disp_depth/2) );
+						
+					gf_mx_copy(bck_mx, tr_state->model_matrix);
+					gf_mx_add_matrix(&tr_state->model_matrix, &mx);
+					visual_3d_mesh_paint(tr_state, stack->mesh);
+					gf_mx_copy(tr_state->model_matrix, bck_mx);
+				} else {
+					visual_3d_mesh_paint(tr_state, stack->mesh);
+				}
+			} else 
+#endif
+				visual_3d_mesh_paint(tr_state, stack->mesh);
 		}
+ 		gf_sc_texture_disable(txh);
+		tr_state->mesh_num_textures = 0;
 	}
-
-	/*otherwise use glDrawPixels*/
-#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
-	data = gf_sc_texture_get_data(txh, &format);
-	if (!data) return;
-
-	x = INT2FIX(txh->width) / -2;
-	y = INT2FIX(txh->height) / 2;
-
-	{
-	Fixed g[16];
-
-	sx = bmp_scale_x; if (sx<0) sx = FIX_ONE;
-	sy = bmp_scale_y; if (sy<0) sy = FIX_ONE;
-#ifndef GPAC_DISABLE_VRML
-	compositor_adjust_scale(txh->owner, &sx, &sy);
-#endif
-
-	/*add top level scale if any*/
-	sx = gf_mulfix(sx, compositor->scale_x);
-	sy = gf_mulfix(sy, compositor->scale_y);
-
-	/*get & apply current transform scale*/
-	visual_3d_matrix_get(tr_state->visual, V3D_MATRIX_MODELVIEW, g);
-
-	if (g[0]<0) g[0] *= -FIX_ONE;
-	if (g[5]<0) g[5] *= -FIX_ONE;
-	sx = gf_mulfix(sx, g[0]);
-	sy = gf_mulfix(sy, g[5]);
-	x = gf_mulfix(x, sx);
-	y = gf_mulfix(y, sy);
-
-	}
-	visual_3d_draw_image(tr_state->visual, x, y, txh->width, txh->height, format, data, sx, sy);
-#endif
 }
 
 

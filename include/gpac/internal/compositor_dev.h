@@ -461,8 +461,6 @@ struct __tag_compositor
 	/*disable RECT extensions (except for Bitmap...)*/
 	Bool disable_rect_ext;
 	/*disable RECT extensions (except for Bitmap...)*/
-	Bool bitmap_use_pixels;
-	/*disable RECT extensions (except for Bitmap...)*/
 	u32 draw_normals;
 	/*backface cull type: 0 off, 1: on, 2: on with transparency*/
 	u32 backcull;

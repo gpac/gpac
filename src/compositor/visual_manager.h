@@ -200,6 +200,33 @@ struct _visual_manager
 	GF_SHADERID yuv_rect_glsl_fragment;
 
 	GF_SHADERID current_texture_glsl_program;
+
+
+	Bool has_mat_2d;
+	SFColorRGBA mat_2d;
+
+	Bool has_mat;
+	SFColorRGBA materials[4];
+	Float shininess;
+
+	Bool state_light_on, state_blend_on, state_color_on;
+
+	GF_Plane clippers[GF_MAX_GL_CLIPS];
+	GF_Matrix *mx_clippers[GF_MAX_GL_CLIPS];
+
+	Bool has_tx_matrix;
+	GF_Matrix tx_matrix;
+
+	Bool needs_projection_matrix_reload;
+
+	GF_LightInfo lights[GF_MAX_GL_LIGHTS];
+	Bool has_inactive_lights;
+
+	Bool has_fog;
+	u32 fog_type;
+	SFColor fog_color;
+	Fixed fog_density, fog_visibility;
+
 #endif
 
 #ifdef GF_SR_USE_DEPTH

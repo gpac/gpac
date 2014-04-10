@@ -590,7 +590,7 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	return GF_OK;
 }
 
-GF_VideoOutput *NewRawVideoOutput()
+GF_VideoOutput *NewAndroidVideoOutput()
 {
 	AndroidContext *pCtx;
 	GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
@@ -621,7 +621,7 @@ GF_VideoOutput *NewRawVideoOutput()
 	return (void *)driv;
 }
 
-void DeleteVideoOutput(void *ifce)
+void DeleteAndroidVideoOutput(void *ifce)
 {
 	AndroidContext *rc;
 	GF_VideoOutput *driv = (GF_VideoOutput *) ifce;
@@ -650,7 +650,7 @@ const u32 *QueryInterfaces()
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return (GF_BaseInterface *) NewRawVideoOutput();
+	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return (GF_BaseInterface *) NewAndroidVideoOutput();
 	return NULL;
 }
 /*interface destroy*/
@@ -659,7 +659,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
 	case GF_VIDEO_OUTPUT_INTERFACE:
-		DeleteVideoOutput((GF_VideoOutput *)ifce);
+		DeleteAndroidVideoOutput((GF_VideoOutput *)ifce);
 		break;
 	}
 }

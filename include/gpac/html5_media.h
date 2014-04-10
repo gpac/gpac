@@ -46,7 +46,9 @@ extern "C" {
 #include <gpac/xml.h>
 #include <gpac/internal/terminal_dev.h>
 
+#ifdef GPAC_HAS_SPIDERMONKEY
 #include <gpac/internal/smjs_api.h>
+#endif
 
 typedef struct
 {

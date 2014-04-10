@@ -415,7 +415,9 @@ static void TraversePlaneClipper(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (tr_state->traversing_mode == TRAVERSE_SORT) {
-		visual_3d_set_clip_plane(tr_state->visual, stack->pc.plane);
+		GF_Matrix mx;
+		gf_mx_copy(mx, tr_state->model_matrix);
+		visual_3d_set_clip_plane(tr_state->visual, stack->pc.plane, &mx);
 		tr_state->num_clip_planes++;
 
 		group_3d_traverse((GF_Node*)&stack->pc, (GroupingNode*)stack, tr_state);
@@ -669,17 +671,7 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 		gf_mx_init(mx);
 		mx.m[14] = gf_mulfix(stack->dg.depth_offset, tr_state->visual->compositor->depth_gl_scale);
 		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
-
-		if (tr_state->traversing_mode == TRAVERSE_SORT) {
-			visual_3d_matrix_push(tr_state->visual);
-			visual_3d_matrix_add(tr_state->visual, mx.m);
-
-			group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
-		
-			visual_3d_matrix_pop(tr_state->visual);
-		} else {
-			group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
-		}
+		group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
 		gf_mx_copy(tr_state->model_matrix, mx_bckup);
 
 	} else 
@@ -909,22 +901,15 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 
 
 		if (tr_state->traversing_mode == TRAVERSE_SORT) {
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
-			visual_3d_matrix_load(tr_state->visual, tr_state->camera->projection.m);
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
-			visual_3d_matrix_load(tr_state->visual, tr_state->camera->modelview.m);
-
 			visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+			visual_3d_projection_matrix_modified(tr_state->visual);
 
 			gf_node_traverse_children((GF_Node *)&stack->untr, tr_state);
 
 			gf_mx_copy(tr_state->model_matrix, mx_model);
 			memcpy(tr_state->camera, &backup_cam, sizeof(GF_Camera));
 
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
-			visual_3d_matrix_load(tr_state->visual, tr_state->camera->projection.m);
-			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
-			visual_3d_matrix_load(tr_state->visual, tr_state->camera->modelview.m);
+			visual_3d_projection_matrix_modified(tr_state->visual);
 
 			visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
 		} else if (tr_state->traversing_mode == TRAVERSE_PICK) {
