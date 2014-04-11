@@ -42,6 +42,19 @@ void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state)
 	/*switch the texture to our offscreen cache*/
 	tr_state->ctx->aspect.fill_texture = &cache->txh;
 
+
+#ifndef GPAC_DISABLE_3D
+	if (tr_state->traversing_mode == TRAVERSE_DRAW_3D) {
+		if (!cache->drawable->mesh) {
+			cache->drawable->mesh = new_mesh();
+		}
+		mesh_from_path(cache->drawable->mesh, cache->drawable->path);
+
+		visual_3d_draw_2d(cache->drawable, tr_state);
+		return;
+	}
+#endif
+
 	if (! tr_state->visual->DrawBitmap(tr_state->visual, tr_state, tr_state->ctx, NULL)) {
 		visual_2d_texture_path(tr_state->visual, cache->drawable->path, tr_state->ctx, tr_state);
 	}

@@ -1135,12 +1135,6 @@ static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 #endif
 }
 
-
-static void visual_3d_matrix_reset(GF_VisualManager *visual)
-{
-	glLoadIdentity();
-}
-
 static void visual_3d_matrix_add(GF_VisualManager *visual, Fixed *mat)
 {
 #ifdef GPAC_USE_OGL_ES
