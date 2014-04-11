@@ -492,7 +492,7 @@ int live_session(int argc, char **argv)
 	
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_INFO);
 
-	for (i=1; i<argc; i++) {
+	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
 		if (arg[0] != '-') filename = arg;
 		else if (!strnicmp(arg, "-dst=", 5)) dst = arg+5;
@@ -538,7 +538,7 @@ int live_session(int argc, char **argv)
     }
 
 
-	for (i=0; i<argc; i++) {
+	for (i=0; i<(u32) argc; i++) {
 		char *arg = argv[i];
 		if (!strnicmp(arg, "-rap=", 5)) {
 			u32 period, id, j;

@@ -41,6 +41,7 @@ typedef struct _group_cache
 	/*user scale (zoom and AR) of the group*/
 	Fixed scale;
 	SFVec2f orig_vp;
+
 } GroupCache;
 
 GroupCache *group_cache_new(GF_Compositor *compositor, GF_Node *node);

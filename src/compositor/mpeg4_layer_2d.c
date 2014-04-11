@@ -67,6 +67,7 @@ static void l2d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 }
 
 
+#if VIEWPORT_CLIPS
 static void rect_intersect(GF_Rect *rc1, GF_Rect *rc2)
 {
 	if (! gf_rect_overlaps(*rc1, *rc2)) {
@@ -88,6 +89,7 @@ static void rect_intersect(GF_Rect *rc1, GF_Rect *rc2)
 		rc1->height = rc1->y - rc2->y + rc2->height;
 	} 
 }
+#endif
 
 static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 {
