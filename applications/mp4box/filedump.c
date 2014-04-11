@@ -875,12 +875,27 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_hevc, AVCState *avc)
+
+static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
+{
+	u32 nal_size=0;
+	u32 v = nalh_size;
+	while (v) {
+		nal_size |= (u8) *ptr;
+		ptr++;
+		v-=1;
+		if (v) nal_size <<= 8;
+	}
+	return nal_size;
+}
+
+static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_hevc, AVCState *avc, u32 nalh_size)
 {
 	u8 type;
 	u8 dependency_id, quality_id, temporal_id;
 	u8 track_ref_index;
-	u32 data_offset, idx;
+	s8 sample_offset;
+	u32 data_offset, idx, data_size;
 	GF_BitStream *bs;
 	
 	if (is_hevc) {
@@ -919,9 +934,11 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 			break;
 		case 49:
 			fputs("HEVCExtractor", dump); 
-			track_ref_index = (u8) ptr[4];
-			data_offset = (ptr[6] << 12) + (ptr[7] << 8) + (ptr[8] << 4) + ptr[9];
-			fprintf(dump, "\" track_ref_index=\"%d\" data_offset=\"%d", track_ref_index, data_offset);
+			track_ref_index = (u8) ptr[2];
+			sample_offset = (s8) ptr[3];
+			data_offset = read_nal_size_hdr(&ptr[4], nalh_size);
+			data_size = read_nal_size_hdr(&ptr[4+nalh_size], nalh_size);
+			fprintf(dump, "\" track_ref_index=\"%d\" sample_offset=\"%d\" data_offset=\"%d\" data_size=\"%d\"", track_ref_index, sample_offset, data_offset, data_size);
 			break;
 		default:
 			fputs("UNKNOWN", dump); break;
@@ -989,8 +1006,10 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 	case 31:
 		fputs("SVCExtractor", dump); 
 		track_ref_index = (u8) ptr[4];
-		data_offset = (ptr[6] << 12) + (ptr[7] << 8) + (ptr[8] << 4) + ptr[9];
-		fprintf(dump, "\" track_ref_index=\"%d\" data_offset=\"%d", track_ref_index, data_offset);
+		sample_offset = (s8) ptr[5];
+		data_offset = read_nal_size_hdr(&ptr[6], nalh_size);
+		data_size = read_nal_size_hdr(&ptr[6+nalh_size], nalh_size);
+		fprintf(dump, "\" track_ref_index=\"%d\" sample_offset=\"%d\" data_offset=\"%d\" data_size=\"%d\"", track_ref_index, sample_offset, data_offset, data_size);
 		break;
 
 	default:
@@ -1047,7 +1066,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "  <%s number=\"%d\" size=\"%d\" ", name, i+1, slc->size);\
-			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc, &avc);\
+			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc, &avc, nalh_size);\
 			fprintf(dump, "/>\n");\
 		}\
 	}\
@@ -1155,21 +1174,16 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 			}
 		}
 		while (size) {
-			u32 v = nalh_size;
-			nal_size = 0;
-			while (v) {
-				nal_size |= (u8) *ptr;
-				ptr++;
-				v-=1;
-				if (v) nal_size<<=8;
-			}
+			nal_size = read_nal_size_hdr(ptr, nalh_size);
+			ptr += nalh_size;
+
 			if (nalh_size + nal_size > size) {
 				fprintf(dump, "   <!-- NALU number %d is corrupted: size is %d but only %d remains -->\n", idx, nal_size, size);
 				break;
 			} else {
 				fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", idx, nal_size);
 #ifndef GPAC_DISABLE_AV_PARSERS
-				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc, &avc);
+				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc, &avc, nalh_size);
 #endif
 				fprintf(dump, "/>\n");
 			}
