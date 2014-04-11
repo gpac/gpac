@@ -1969,7 +1969,7 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 	char *nal_data=NULL;
 	u32 nal_alloc_size;
 	GF_Err e = GF_OK;
-
+	
 	hevccfg = gf_isom_hevc_config_get(file, track, 1);
 	shvccfg = gf_isom_shvc_config_get(file, track, 1);
 	if (!shvccfg) {
@@ -2068,7 +2068,7 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 		GF_BitStream *bs;
 		u32 di;
 		GF_ISOSample *sample;
-		u8 max_layer_id = 0;
+		u8 cur_max_layer_id = 0;
 		
 		sample = gf_isom_get_sample(file, track, i+1, &di);
 		
@@ -2083,8 +2083,9 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 			if (!splitAll) layer_id = 1;
 
-			if (max_layer_id < layer_id) 
-				max_layer_id = layer_id;
+			if (cur_max_layer_id < layer_id) { 
+				cur_max_layer_id = layer_id;
+			}
 
 			if (!sti[layer_id].bs)
 				sti[layer_id].bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -2110,15 +2111,20 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 		}
 		gf_bs_del(bs);
 
+		if (cur_max_layer_id>max_layer_id) {
+			max_layer_id = cur_max_layer_id;
+		}
 
 		gf_free(sample->data);
 		sample->data = NULL;
 		sample->dataLength = 0;
-		//reset all samples on scalable layers
+		//reset all samples on all layers found - we may have layers not present in this sample, we still need to process these layers when extractors are used
 		for (j=0; j<=max_layer_id; j++) {
 			if (! sti[j].bs) {
-				sti[j].data_offset =  sti[j].data_size = 0;
-				continue;
+				if (!sti[j].track_num || !use_extractors) {
+					sti[j].data_offset =  sti[j].data_size = 0;
+					continue;
+				}
 			}
 
 			//clone track
@@ -2160,7 +2166,8 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				//get all lower layers
 				for (k=0; k<j; k++) {
 					u8 trefidx;
-					if (!sti[k].data_size) continue;
+					if (!sti[k].data_size) 
+						continue;
 					//extractor is 12 bytes
 					gf_bs_write_int(xbs, 2*shvccfg->nal_unit_size + 4, 8*shvccfg->nal_unit_size);
 					gf_bs_write_int(xbs, 0, 1);
@@ -2183,14 +2190,18 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				//we wrote all our references, store offset for upper layers
 				sti[j].data_offset = sample->dataLength;
 				e = gf_isom_add_sample(file, sti[j].track_num, 1, sample);
-				if (e) goto exit;
+				if (e) 
+					goto exit;
 				gf_free(sample->data);
+				sample->data = NULL;
 
 				//get real content, remember its size and add it to the new bs
-				gf_bs_get_content(sti[j].bs, &sample->data, &sample->dataLength);
-				e = gf_isom_append_sample_data(file, sti[j].track_num, sample->data, sample->dataLength);
-				if (e) goto exit;
-
+				if (sti[j].bs) {
+					gf_bs_get_content(sti[j].bs, &sample->data, &sample->dataLength);
+					e = gf_isom_append_sample_data(file, sti[j].track_num, sample->data, sample->dataLength);
+					if (e)
+						goto exit;
+				}
 
 			} else {
 				//get sample content
@@ -2205,15 +2216,17 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				} else {
 					e = gf_isom_update_sample(file, sti[j].track_num, i+1, sample, 1);
 				}
-				if (e) goto exit;
+				if (e)
+					goto exit;
 			}
 			
 			gf_bs_del(sti[j].bs);
 			sti[j].bs = NULL;
 				
-
-			gf_free(sample->data);
-			sample->data = NULL;
+			if (sample->data) {
+				gf_free(sample->data);
+				sample->data = NULL;
+			}
 			sample->dataLength = 0;
 		}
 		gf_isom_sample_del(&sample);
