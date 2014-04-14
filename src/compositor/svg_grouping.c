@@ -541,7 +541,11 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	/*group cache traverse routine*/
-	else if ((tr_state->traversing_mode == TRAVERSE_DRAW_2D) || (tr_state->traversing_mode == TRAVERSE_DRAW_3D) ) {
+	else if ((tr_state->traversing_mode == TRAVERSE_DRAW_2D) 
+#ifndef GPAC_DISABLE_3D
+		|| (tr_state->traversing_mode == TRAVERSE_DRAW_3D) 
+#endif
+	) {
 		SVGgStack *group = gf_node_get_private(node);
 		group_cache_draw(group->cache, tr_state);
 		return;
