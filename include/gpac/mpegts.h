@@ -284,14 +284,15 @@ GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes);
 /*PES data framing modes*/
 enum
 {
-	/*use data framing: recompute start of AUs (data frames)*/
-	GF_M2TS_PES_FRAMING_DEFAULT,
-	/*don't use data framing: all packets are raw PES packets*/
-	GF_M2TS_PES_FRAMING_RAW,
 	/*skip pes processing: all transport packets related to this stream are discarded*/
 	GF_M2TS_PES_FRAMING_SKIP,
 	/*same as GF_M2TS_PES_FRAMING_SKIP but keeps internal PES buffer alive*/
 	GF_M2TS_PES_FRAMING_SKIP_NO_RESET,
+	/*don't use data framing: all packets are raw PES packets*/
+	GF_M2TS_PES_FRAMING_RAW,
+
+	/*use data framing: recompute start of AUs (data frames)*/
+	GF_M2TS_PES_FRAMING_DEFAULT,
 	/*same as defualt PES framing but forces nal-per-nal dispatch for AVC/HEVC (default mode may dispatch complete frames)*/
 	GF_M2TS_PES_FRAMING_DEFAULT_NAL,
 };
@@ -941,12 +942,14 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts);
 void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts);
 GF_ESD *gf_m2ts_get_esd(GF_M2TS_ES *es);
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode);
+u32 gf_m2ts_pes_get_framing_mode(GF_M2TS_PES *pes);
 void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts);
 GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size);
 u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url);
 void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts);
 
 
+GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *ts, u32 program_id);
 
 Bool gf_m2ts_crc32_check(char *data, u32 len);
 
@@ -1181,6 +1184,7 @@ struct __m2ts_mux_program {
 	u32 mpeg4_signaling;
 	Bool mpeg4_signaling_for_scene_only;
 
+	char *name, *provider;
 };
 
 enum
@@ -1196,6 +1200,7 @@ enum
 struct __m2ts_mux {
 	GF_M2TS_Mux_Program *programs;
 	GF_M2TS_Mux_Stream *pat;
+	GF_M2TS_Mux_Stream *sdt;
 
 	u16 ts_id;
 
@@ -1269,6 +1274,8 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_
 void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);	
 void gf_m2ts_mux_update_bitrate(GF_M2TS_Mux *mux);
 
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_find(GF_M2TS_Mux *muxer, u32 program_number);
+
 const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_next);
 u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer);
 u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer);
@@ -1279,6 +1286,9 @@ GF_Err gf_m2ts_mux_set_initial_pcr(GF_M2TS_Mux *muxer, u64 init_pcr_value);
 
 /*user inteface functions*/
 GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_scale);
+
+void gf_m2ts_mux_program_set_name(GF_M2TS_Mux_Program *program, const char *program_name, const char *mux_provider_name);
+void gf_m2ts_mux_enable_sdt(GF_M2TS_Mux *mux, u32 refresh_rate_ms);
 
 
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/

@@ -390,6 +390,7 @@ static void ResetCaption()
 			if (com.artist) { strcat(szName, com.artist); strcat(szName, " "); }
 			if (com.name) { strcat(szName, com.name); strcat(szName, " "); }
 			if (com.album) { strcat(szName, "("); strcat(szName, com.album); strcat(szName, ")"); }
+			if (com.provider) { strcat(szName, "("); strcat(szName, com.provider); strcat(szName, ")"); }
 			
 			if (strlen(szName)) event.caption.caption = szName;
 		}

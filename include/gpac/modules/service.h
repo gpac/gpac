@@ -342,6 +342,7 @@ typedef struct __netinfocom
 	const char *composer;
 	const char *name;
 	const char *writer;
+	const char *provider;
 } GF_NetComInfo;
 
 /*GF_NET_CHAN_GET_PIXEL_AR*/

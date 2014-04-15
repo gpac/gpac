@@ -556,6 +556,63 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 }
 
 
+u32 gf_m2ts_stream_process_sdt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
+{
+	if (stream->table_needs_update) { /* generate table payload */
+		GF_M2TS_Mux_Program *prog;
+		GF_BitStream *bs;
+		u8 *payload;
+		u32 size;
+
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+		gf_bs_write_u16(bs, muxer->ts_id);
+		gf_bs_write_u8(bs, 0xFF);	//reserved future use
+
+		prog = muxer->programs;
+		while (prog) {
+			u32 len = 0;
+			gf_bs_write_u16(bs, prog->number);
+			gf_bs_write_int(bs, 0xFF, 6); //reserved future use
+			gf_bs_write_int(bs, 0, 1); //EIT_schedule_flag
+			gf_bs_write_int(bs, 0, 1); //EIT_present_following_flag
+			gf_bs_write_int(bs, 4, 3); //running status
+			gf_bs_write_int(bs, 0, 1); //free_CA_mode
+
+			if (prog->name) len += (u32) strlen(prog->name);
+			if (prog->provider) len += (u32) strlen(prog->provider);
+
+			if (len) {
+				len += 3;
+				gf_bs_write_int(bs, len + 2, 12); 
+				gf_bs_write_u8(bs, GF_M2TS_DVB_SERVICE_DESCRIPTOR); 
+				gf_bs_write_u8(bs, len); 
+				gf_bs_write_u8(bs, 0x01); 
+				len = prog->provider ? (u32) strlen(prog->provider) : 0;
+				gf_bs_write_u8(bs, len); 
+				if (prog->provider) gf_bs_write_data(bs, prog->provider, len); 
+
+				len = prog->name ? (u32) strlen(prog->name) : 0;
+				gf_bs_write_u8(bs, len); 
+				if (prog->name) gf_bs_write_data(bs, prog->name, len); 
+			} else {
+				gf_bs_write_int(bs, 0, 12); 
+			}
+			prog = prog->next;
+		}
+		gf_bs_get_content(bs, (char**)&payload, &size);
+		gf_bs_del(bs);
+		gf_m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_SDT_ACTUAL, muxer->ts_id, payload, size, 1, 0, 0);
+		stream->table_needs_update = 0;
+		stream->table_needs_send = 1;
+		gf_free(payload);
+	}
+	if (stream->table_needs_send) 
+		return 1;
+	if (stream->refresh_rate_ms) 
+		return 1;
+	return 0;
+}
 
 u32 gf_m2ts_stream_process_pat(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 {
@@ -2037,6 +2094,17 @@ GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_sc
 }
 
 GF_EXPORT
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_find(GF_M2TS_Mux *muxer, u32 program_number)
+{
+	GF_M2TS_Mux_Program *program = muxer->programs;
+	while (program) {
+		if (program->number == program_number) return program;
+		program = program->next;
+	}
+	return NULL;
+}
+
+GF_EXPORT
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, Bool mpeg4_signaling)
 {
 	GF_M2TS_Mux_Program *program;
@@ -2062,6 +2130,18 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_num
 	program->pmt->process = gf_m2ts_stream_process_pmt;
 	program->pmt->refresh_rate_ms = pmt_refresh_rate ? pmt_refresh_rate : (u32) -1;
 	return program;
+}
+
+GF_EXPORT
+void gf_m2ts_mux_program_set_name(GF_M2TS_Mux_Program *program, const char *program_name, const char *provider_name)
+{
+	if (program->name) gf_free(program->name);
+	program->name = program_name ? gf_strdup(program_name) : NULL;
+
+	if (program->provider) gf_free(program->provider);
+	program->provider = provider_name ? gf_strdup(provider_name) : NULL;
+
+	if (program->mux->sdt) program->mux->sdt->table_needs_update = 1;
 }
 
 GF_EXPORT
@@ -2093,6 +2173,19 @@ GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time)
 	muxer->pcr_update_ms = 100;
 	return muxer;
 }
+
+GF_EXPORT
+void gf_m2ts_mux_enable_sdt(GF_M2TS_Mux *mux, u32 refresh_rate_ms)
+{
+	if (!mux->sdt) {
+		mux->sdt = gf_m2ts_stream_new(GF_M2TS_PID_SDT_BAT_ST);
+		mux->sdt->process = gf_m2ts_stream_process_sdt;
+		mux->sdt->refresh_rate_ms = refresh_rate_ms;
+	}
+	mux->sdt->table_needs_update = 1;
+	return;
+}
+
 
 GF_EXPORT
 void gf_m2ts_mux_set_pcr_max_interval(GF_M2TS_Mux *muxer, u32 pcr_update_ms)
@@ -2150,6 +2243,8 @@ void gf_m2ts_mux_program_del(GF_M2TS_Mux_Program *prog)
 		gf_list_del(prog->loop_descriptors);
 	}
 	gf_m2ts_mux_stream_del(prog->pmt);
+	if (prog->name) gf_free(prog->name);
+	if (prog->provider) gf_free(prog->provider);
 	gf_free(prog);
 }
 
@@ -2162,6 +2257,7 @@ void gf_m2ts_mux_del(GF_M2TS_Mux *mux)
 		mux->programs = p;
 	}
 	gf_m2ts_mux_stream_del(mux->pat);
+	if (mux->sdt) gf_m2ts_mux_stream_del(mux->sdt);
 	gf_free(mux);
 }
 
@@ -2174,6 +2270,10 @@ void gf_m2ts_mux_update_bitrate(GF_M2TS_Mux *mux)
 	gf_m2ts_mux_table_update_bitrate(mux, mux->pat);
 	mux->bit_rate += mux->pat->bit_rate;
 
+	if (mux->sdt) {
+		gf_m2ts_mux_table_update_bitrate(mux, mux->sdt);
+		mux->bit_rate += mux->sdt->bit_rate;
+	}
 
 	prog = mux->programs;
 	while (prog) {
@@ -2199,6 +2299,11 @@ void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time)
 		/*get PAT bitrate*/
 		gf_m2ts_mux_table_update_bitrate(mux, mux->pat);
 		mux->bit_rate += mux->pat->bit_rate;
+
+		if (mux->sdt) {
+			gf_m2ts_mux_table_update_bitrate(mux, mux->sdt);
+			mux->bit_rate += mux->sdt->bit_rate;
+		}
 	}
 
 	prog = mux->programs;
@@ -2342,6 +2447,16 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 			}
 			/*force sending the PAT regardless of other streams*/
 			goto send_pck;
+		}
+
+		/*SDT*/
+		if (muxer->sdt && !muxer->force_pat_pmt_state) {
+			res = muxer->sdt->process(muxer, muxer->sdt);
+			if (res && gf_m2ts_time_less_or_equal(&muxer->sdt->time, &time) ) {
+				time = muxer->sdt->time;
+				stream_to_process = muxer->sdt;
+				goto send_pck;
+			}
 		}
 
 		/*PMT, for each program*/
