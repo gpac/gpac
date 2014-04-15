@@ -152,7 +152,7 @@ struct _visual_manager
 	 *	Visual Manager part for 3D drawing 
 	 */
 
-#if defined( _LP64 ) && 0 && defined(CONFIG_DARWIN_GL)
+#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL) 
 #define GF_SHADERID u64
 #else
 #define GF_SHADERID u32
