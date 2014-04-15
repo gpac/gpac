@@ -1245,6 +1245,16 @@ static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
 	}
 }
 
+GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *ts, u32 program_id)
+{
+	u32 i;
+	for (i=0; i<gf_list_count(ts->SDTs); i++) {
+		GF_M2TS_SDT *sdt = (GF_M2TS_SDT *)gf_list_get(ts->SDTs, i);
+		if (sdt->service_id==program_id) return sdt;
+	}
+	return NULL;
+}
+
 static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses)
 {
 	//seek mode, only process PAT and PMT
@@ -3153,6 +3163,25 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 
 static void gf_m2ts_process_section_discard(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
+}
+
+GF_EXPORT
+u32 gf_m2ts_pes_get_framing_mode(GF_M2TS_PES *pes)
+{
+	if (pes->flags & GF_M2TS_ES_IS_SECTION) {
+		if (pes->flags & GF_M2TS_ES_IS_SL) {
+			if ( ((GF_M2TS_SECTION_ES *)pes)->sec->process_section == gf_m2ts_process_section_discard)
+				return GF_M2TS_PES_FRAMING_DEFAULT;
+			
+		}
+		return GF_M2TS_PES_FRAMING_SKIP_NO_RESET;
+	}
+
+	if (!pes->reframe ) return GF_M2TS_PES_FRAMING_SKIP_NO_RESET;
+	if (pes->reframe == gf_m2ts_reframe_default) return GF_M2TS_PES_FRAMING_RAW;
+	if (pes->reframe == gf_m2ts_reframe_reset) return GF_M2TS_PES_FRAMING_SKIP;
+	if (pes->single_nal_mode) return GF_M2TS_PES_FRAMING_DEFAULT_NAL;
+	return GF_M2TS_PES_FRAMING_DEFAULT;
 }
 
 GF_EXPORT

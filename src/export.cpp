@@ -1806,6 +1806,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_crc32_check) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_restamp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_file) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_pes_get_framing_mode) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_sdt_info) )
+
 
 /* carousel.h */
 #ifdef GPAC_ENABLE_DSMCC
@@ -1830,6 +1833,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_ts_clock) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_use_single_au_pes_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_set_initial_pcr) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_program_set_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_enable_sdt) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_program_find) )
 
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
 /* M3U8 & MPD related functions */

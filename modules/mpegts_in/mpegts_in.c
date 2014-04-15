@@ -78,6 +78,9 @@ typedef struct
 	Bool in_data_flush;
 
 	Bool hybrid_on;
+
+	Bool flush_sdt;
+
 }M2TSIn;
 
 
@@ -580,10 +583,18 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 //	case GF_M2TS_EVT_PMT_UPDATE:
 		M2TS_FlushRequested(m2ts);
 		break;
-	case GF_M2TS_EVT_SDT_REPEAT:
-	case GF_M2TS_EVT_SDT_UPDATE:
 	case GF_M2TS_EVT_SDT_FOUND:
+	case GF_M2TS_EVT_SDT_UPDATE:
+		m2ts->flush_sdt = 1;
+	case GF_M2TS_EVT_SDT_REPEAT:
 		M2TS_FlushRequested(m2ts);
+		if (m2ts->flush_sdt) {
+			GF_NetworkCommand com;
+			m2ts->flush_sdt = 0;
+			memset(&com, 0, sizeof(GF_NetworkCommand));
+			com.base.command_type = GF_NET_SERVICE_INFO;
+			gf_term_on_command(m2ts->service, &com, GF_OK);
+		}
 		break;
 	case GF_M2TS_EVT_DVB_GENERAL:
 		if (m2ts->eit_channel) {
@@ -1238,6 +1249,21 @@ static GF_M2TS_PES *M2TS_GetChannel(M2TSIn *m2ts, LPNETCHANNEL channel)
 	}
 	return NULL;
 }
+
+static GF_M2TS_PES *M2TS_GetFirstRunningChannel(M2TSIn *m2ts)
+{
+	u32 i;
+	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+		GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[i];
+		if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
+		if (!pes->user) continue;
+		
+		if (gf_m2ts_pes_get_framing_mode(pes) >= GF_M2TS_PES_FRAMING_DEFAULT)
+			return pes;
+	}
+	return NULL;
+}
+
 static GF_Err M2TS_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	M2TSIn *m2ts = plug->priv;
@@ -1316,6 +1342,20 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {
 		if (plug->query_proxy)
 			m2ts_flush_data(m2ts, GF_M2TS_FLUSH_DATA);
+		return GF_OK;
+	}
+	//get info on the first running program
+	if (com->command_type==GF_NET_SERVICE_INFO) {
+		pes = M2TS_GetFirstRunningChannel(m2ts);
+		if (pes) {
+			GF_M2TS_SDT *sdt = gf_m2ts_get_sdt_info(ts, pes->program->number);
+			if (sdt) {
+				com->info.name = sdt->service;
+				com->info.provider = sdt->provider;
+			}
+		} else {
+			m2ts->flush_sdt = 1;
+		}
 		return GF_OK;
 	}
 
