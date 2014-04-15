@@ -1053,7 +1053,8 @@ Bool gf_mo_should_deactivate(GF_MediaObject *mo)
 
 	if (!gf_odm_lock_mo(mo)) return GF_FALSE;
 	
-	if (!mo->odm->state) {
+
+	if (!mo->odm->state || (mo->odm->parentscene && mo->odm->parentscene->is_dynamic_scene)) {
 		gf_odm_lock(mo->odm, 0);
 		return GF_FALSE;
 	}

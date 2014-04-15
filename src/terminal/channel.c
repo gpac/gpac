@@ -1337,6 +1337,7 @@ void gf_es_on_eos(GF_Channel *ch)
 	if (ch->len)
 		Channel_DispatchAU(ch, 0);
 
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Channel %d is end of stream\n", ch->odm->OD->objectDescriptorID, (u32) ch->esd->ESID));
 	gf_odm_on_eos(ch->odm, ch);
 }
 

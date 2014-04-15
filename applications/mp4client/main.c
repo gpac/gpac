@@ -1393,7 +1393,7 @@ int main (int argc, char **argv)
 				gf_term_disconnect(term);
 				gf_term_connect(term, startup_file ? gf_cfg_get_key(cfg_file, "General", "StartupFile") : the_url);
 			}
-			if (restart) {
+			if (restart && gf_term_get_option(term, GF_OPT_IS_OVER)) {
 				restart = 0;
 				gf_term_play_from_time(term, 0, 0);
 			}
