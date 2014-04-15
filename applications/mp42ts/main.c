@@ -1989,7 +1989,10 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			} else {
 				*rtp_out = gf_strdup(next_arg);
 			}
-		} else if (strnicmp(arg, "-source", 5)) { //second pass arguments
+		} else if (CHECK_PARAM("-src")) { //second pass arguments
+		} else if (CHECK_PARAM("-prog")) { //second pass arguments
+		}
+		else {
 			error_msg = "unknown option";
 			goto error;
 		}
@@ -2004,7 +2007,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		arg = argv[i];		
 		if (arg[0] !='-') continue;
 		
-		if (! CHECK_PARAM("-source")) continue;
+		if (! CHECK_PARAM("-src") && ! CHECK_PARAM("-prog") ) continue;
 
 		src_args = strchr(next_arg, ':');
 		if (src_args) {
