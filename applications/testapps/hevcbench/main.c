@@ -619,9 +619,10 @@ void sdl_bench()
 	
 	start = gf_sys_clock() - start;
 	rate = 3*size/2;
+	rate *= count;
 	rate /= start; //in ms
 	rate /= 1000; //==*1000 (in s) / 1000 * 1000 in MB /s
-	fprintf(stdout, "gltext pushed %d frames in %d ms - FPS %g - data rate %g MB/s\n", count, start, 100.0*count/start, rate);
+	fprintf(stdout, "gltext pushed %d frames in %d ms - FPS %g - data rate %g MB/s\n", count, start, 1000.0*count/start, rate);
 }
 
 void PrintUsage()
