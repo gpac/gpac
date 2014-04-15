@@ -1245,6 +1245,7 @@ static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
 	}
 }
 
+GF_EXPORT
 GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *ts, u32 program_id)
 {
 	u32 i;
