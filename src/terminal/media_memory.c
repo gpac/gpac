@@ -547,7 +547,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 
 		/*handle visual object - EOS if no more data (we keep the last CU for rendering, so check next one)*/
 		if (cb->HasSeenEOS && (!cb->output->next->dataLength || (cb->Capacity==1))) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
 			cb->Status = CB_STOP;
 			cb->odm->current_time = (u32) cb->odm->media_stop_time;
 #ifndef GPAC_DISABLE_VRML
