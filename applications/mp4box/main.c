@@ -3798,6 +3798,7 @@ int mp4boxMain(int argc, char **argv)
 				if (_v) {
 					gf_isom_apple_set_tag(file, itag, NULL, _v);
 				} else {
+					if (!val) val="";
 					gf_isom_apple_set_tag(file, itag, val, (u32) strlen(val) );
 				}
 			}
