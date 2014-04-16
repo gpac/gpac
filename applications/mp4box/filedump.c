@@ -2136,6 +2136,7 @@ static const char *id3_get_genre(u32 tag)
 u32 id3_get_genre_tag(const char *name)
 {
 	u32 i, count = sizeof(ID3v1Genres)/sizeof(const char *);
+	if (!name) return 0;
 	for (i=0; i<count; i++) {
 		if (!stricmp(ID3v1Genres[i], name)) return i+1;
 	}
