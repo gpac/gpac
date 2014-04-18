@@ -1368,7 +1368,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 		gf_mx_v(ch->mx);
 		
 		if (ch->BufferOn) {
-			if (ch->first_au_fetched || !ch->AU_buffer_first || !ch->AU_buffer_first->next)
+			if (ch->first_au_fetched || !ch->AU_buffer_first || !ch->AU_buffer_first->next || !ch->odm->parentscene->active_addon || !ch->odm->parentscene->active_addon->started)
 				return NULL;
 		}
 		return ch->AU_buffer_first;
@@ -1420,6 +1420,11 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	if (is_new_data) {
 		ch->IsRap = 0;
 		gf_es_receive_sl_packet(ch->service, ch, NULL, 0, &slh, GF_OK);
+
+		if (ch->stream_state) {
+			gf_term_channel_release_sl_packet(ch->service, ch);
+			return NULL;
+		}
 		
 		if (ch->ipmp_tool) {
 			GF_IPMPEvent evt;

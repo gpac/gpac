@@ -29,7 +29,7 @@
 
 #if !defined(GPAC_DISABLE_MPEG2TS_MUX)
 
-/*90khz internal delay between two updates for instant bitrate compute per stream*/
+/*90khz internal delay between two updates for bitrate compute per stream */
 #define BITRATE_UPDATE_WINDOW	90000
 /* length of adaptation_field_length; */ 
 #define ADAPTATION_LENGTH_LENGTH 1
@@ -1214,7 +1214,7 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 
 	/*do we need to send a PCR*/
 	if (stream == stream->program->pcr) {
-		if (muxer->real_time) {
+		if (muxer->real_time && muxer->fixed_rate) {
 			if (gf_sys_clock_high_res() > stream->program->last_sys_clock + stream->program->mux->pcr_update_ms - 2)
 				stream->pcr_priority = 1;
 		} else {
@@ -1236,7 +1236,8 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 			u64 r = 8*stream->bytes_since_last_time;
 			r*=90000;
 			bitrate = (u32) (r / time_diff);
-			stream->bit_rate = bitrate;
+			if (bitrate > stream->bit_rate)
+				stream->bit_rate = bitrate;
 			stream->last_br_time = 0;
 			stream->bytes_since_last_time = 0;
 			stream->pes_since_last_time = 0;
@@ -1267,7 +1268,7 @@ static GFINLINE u64 gf_m2ts_get_pcr(GF_M2TS_Mux_Stream *stream)
 {
 	u64 pcr;
 	/*compute PCR - we disabled real-time clock for now and only insert PCR based on DTS / CTS*/
-	if (stream->program->mux->real_time) {
+	if (stream->program->mux->fixed_rate) {
 		u32 nb_pck = (u32) (stream->program->mux->tot_pck_sent - stream->program->num_pck_at_pcr_init);
 		pcr = 27000000;
 		pcr *= nb_pck*1504;
@@ -1698,7 +1699,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	stream->pes_data_remain -= payload_to_copy;
 
 	/*update stream time, including headers*/
-	gf_m2ts_time_inc(&stream->time, 8*(payload_to_copy + pos - 4), stream->program->mux->bit_rate);
+	gf_m2ts_time_inc(&stream->time, 8*(payload_to_copy + pos - 4), stream->bit_rate);
 //	gf_m2ts_time_inc(&stream->time, 1504/*188*8*/, stream->program->mux->bit_rate);
 	
 	if (stream->pck_offset == stream->curr_pck.data_len) {
@@ -2633,23 +2634,7 @@ send_pck:
 		ret = muxer->dst_pck;
 		*status = GF_M2TS_STATE_DATA;
 
-#ifndef GPAC_DISABLE_LOG
-		if (gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG) 
-			&& muxer->fixed_rate 
-		) {
-			s32 drift;
-			drift= muxer->time.nanosec;
-			drift-=time.nanosec;
-			drift/=1000000;
-			if (muxer->time.sec!=time.sec) {
-				drift += (muxer->time.sec - time.sec)*1000;
-				assert(muxer->time.sec > time.sec);
-			}
-//			fprintf(stderr, "\nMux time - Packet PID %d time: %d ms\n", stream_to_process->pid, drift);
-		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Send %s from PID %d at %d:%09d - mux time %d:%09d\n", stream_to_process->tables ? "table" : "PES", stream_to_process->pid, time.sec, time.nanosec, muxer->time.sec, muxer->time.nanosec));
-#endif
-
 
 		if (nb_streams && (nb_streams==nb_streams_done)) 
 			*status = GF_M2TS_STATE_EOS;

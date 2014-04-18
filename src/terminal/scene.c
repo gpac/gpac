@@ -1874,7 +1874,7 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 	scene->active_addon->media_timescale = addon_time->media_timescale;
 }
 
-u32 gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedia *addon)
+s64 gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedia *addon)
 {
 	s64 media_ts_ms;
 	if (!addon->timeline_ready)
@@ -1882,11 +1882,11 @@ u32 gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedi
 	assert(scene->root_od->addon);
 	assert(scene->root_od->addon==addon);
 
-	media_ts_ms = clock_time;
+	media_ts_ms = clock_time*1000;
 
-	media_ts_ms -= (addon->media_pts/90);
-	media_ts_ms += (addon->media_timestamp*1000) / addon->media_timescale;
-	return (u32) media_ts_ms;
+	media_ts_ms -= (addon->media_pts*1000/90);
+	media_ts_ms += (addon->media_timestamp*1000000) / addon->media_timescale;
+	return media_ts_ms;
 }
 
 u64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon)

@@ -304,7 +304,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 {
 	Bool is_hevc = 0;
 	//if only one sync given in the sample sync table, insert sps/pps/vps before cra/bla in hevc
-	Bool check_cra_bla = (mdia->information->sampleTable->SyncSample && mdia->information->sampleTable->SyncSample->nb_entries>1) ? 0 : 1;
+//	Bool check_cra_bla = (mdia->information->sampleTable->SyncSample && mdia->information->sampleTable->SyncSample->nb_entries>1) ? 0 : 1;
+	Bool check_cra_bla = 1;
 	Bool insert_nalu_delim = 1;
 	GF_Err e = GF_OK;
 	GF_ISOSample *ref_samp;
@@ -321,7 +322,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	ref_samp = NULL;
 	buffer = NULL;
 	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? 1 : 0;
-	if ( mdia->information->sampleTable->no_sync_found) {
+
+	if (mdia->information->sampleTable->no_sync_found || (!sample->IsRAP && check_cra_bla) ) {
 		sample->IsRAP = is_sample_idr(sample, entry);
 	}
 	if (!sample->IsRAP)
