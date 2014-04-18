@@ -1172,7 +1172,7 @@ struct __m2ts_mux_program {
 	u64 pcr_init_time, num_pck_at_pcr_init;
 	u64 last_pcr;
 	u64 last_dts;
-	u32 last_sys_clock;
+	u64 last_sys_clock;
 	u64 initial_ts;
 	Bool initial_ts_set;
 	Bool pcr_init_time_set;
@@ -1231,15 +1231,16 @@ struct __m2ts_mux {
     /* Time of the muxer when the first call to process is made (first packet sent?) */
     GF_M2TS_Time init_ts_time;
 	
-    /* System time when the muxer is started */
-    u32 init_sys_time;
+    /* System time high res when the muxer is started */
+    u64 init_sys_time;
 
 	Bool force_pat;
 
 	Bool one_au_per_pes;
 
 	Bool eos_found;
-	u32 pck_sent_over_br_window, last_br_time;
+	u64 last_br_time_us;
+	u32 pck_sent_over_br_window;
 	u64 tot_pck_sent, tot_pad_sent, tot_pes_pad_bytes;
 
 
