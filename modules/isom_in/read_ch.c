@@ -333,11 +333,14 @@ static void init_reader(ISOMChannel *ch)
 		ch->sample->DTS = ch->start;
 		ch->last_state=GF_OK;
 	} else {
+		//if seek is disabled, get the next closest sample for this time; otherwose, get the previous RAP sample for this time
+		u32 mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
+
 		/*take care of seeking out of the track range*/
 		if (!ch->owner->frag_type && (ch->duration<ch->start)) {
-			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->duration, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
+			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->duration, &ivar, mode, &ch->sample, &ch->sample_num);
 		} else {
-			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
+			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &ivar, mode, &ch->sample, &ch->sample_num);
 		}
 		ch->last_state = GF_OK;
 	
@@ -365,10 +368,15 @@ static void init_reader(ISOMChannel *ch)
 		ch->sample_time = ch->sample->DTS;
 		ch->to_init = 0;
 	}
-	ch->current_slh.decodingTimeStamp = ch->start;
-	ch->current_slh.compositionTimeStamp = ch->start;
+	if (ch->disable_seek) {
+		ch->current_slh.decodingTimeStamp = ch->sample->DTS;
+		ch->current_slh.compositionTimeStamp = ch->sample->DTS + ch->sample->CTS_Offset;
+		ch->start = 0;
+	} else {
+		ch->current_slh.decodingTimeStamp = ch->start;
+		ch->current_slh.compositionTimeStamp = ch->start;
+	}
 	ch->current_slh.randomAccessPointFlag = ch->sample ? ch->sample->IsRAP : 0;
-
 }
 
 

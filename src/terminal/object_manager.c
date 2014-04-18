@@ -1497,15 +1497,16 @@ void gf_odm_play(GF_ObjectManager *odm)
 		else {
 			ck_time = gf_clock_time(ch->clock);
 			if (odm->parentscene && odm->parentscene->root_od->addon) {
-				ck_time = gf_scene_adjust_time_for_addon(odm->parentscene, (u32) ck_time, odm->parentscene->root_od->addon);
+				ck_time = (Double) gf_scene_adjust_time_for_addon(odm->parentscene, (u32) ck_time, odm->parentscene->root_od->addon);
+				ck_time /= 1000000;
 
 				if (odm->scalable_addon) {
 					//this is a scalable extension to an object in the parent scene
 					gf_scene_select_scalable_addon(odm->parentscene->root_od->parentscene, odm);
 				}
-
+			} else {
+				ck_time /= 1000;
 			}
-			ck_time /= 1000;
 
 			/*handle initial start - MPEG-4 is a bit annoying here, streams are not started through OD but through
 			scene nodes. If the stream runs on the BIFS/OD clock, the clock is already started at this point and we're 
@@ -1584,6 +1585,9 @@ void gf_odm_play(GF_ObjectManager *odm)
 	}
 //	odm->media_start_time = 0;
 
+	if (odm->parentscene && odm->parentscene->root_od->addon) {
+		odm->parentscene->root_od->addon->started = 1;
+	}
 	if (nb_failure) {
 		odm->state = GF_ODM_STATE_BLOCKED;
 		return;

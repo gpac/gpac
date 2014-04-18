@@ -1103,7 +1103,8 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_url);
 
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
-u32 gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedia *addon);
+//returns media time in us for the addon
+s64 gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedia *addon);
 u64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon);
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
 
@@ -1117,6 +1118,7 @@ struct _gf_addon_media
 	Double activation_time;
 
 	Bool enabled;
+	Bool started;
 	Bool timeline_ready;
 
 	u32 media_timescale;

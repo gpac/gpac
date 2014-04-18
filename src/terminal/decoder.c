@@ -463,8 +463,9 @@ refetch_AU:
 			//we can rely on DTS - if DTS is earlier on the enhencement, this is a loss or temporal scalability
 			else if (AU->DTS < (*nextAU)->DTS) {
 				//Sample with the same DTS of this AU has been decoded. This is a loss, we need to drop it and re-fetch this channel
-				if (AU->DTS <= codec->last_unit_dts) 
-				{
+				if ((AU->DTS <= codec->last_unit_dts) 
+					//we also prevent detecting temporal scalability until at least one frame from the base has been decoded
+					|| !codec->first_frame_processed) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d %s AU DTS %d but base DTS %d: loss detected - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*nextAU)->DTS));
 					gf_es_drop_au(ch);
 					goto refetch_AU;
