@@ -57,10 +57,10 @@ static GFINLINE Bool gf_m2ts_time_less_or_equal(GF_M2TS_Time *a, GF_M2TS_Time *b
 	return 1;
 }
 
-static GFINLINE void gf_m2ts_time_inc(GF_M2TS_Time *time, u32 delta_inc_num, u32 delta_inc_den)
+static GFINLINE void gf_m2ts_time_inc(GF_M2TS_Time *time, u64 delta_inc_num, u32 delta_inc_den)
 {
 	u64 n_sec;
-	u32 sec;
+	u64 sec;
 
 	/*couldn't compute bitrate - we need to have more info*/
 	if (!delta_inc_den) return;
@@ -68,7 +68,7 @@ static GFINLINE void gf_m2ts_time_inc(GF_M2TS_Time *time, u32 delta_inc_num, u32
 	sec = delta_inc_num / delta_inc_den;
 
 	if (sec) {
-		time->sec += sec;
+		time->sec += (u32) sec;
 		sec *= delta_inc_den;
 		delta_inc_num = delta_inc_num % sec;
 	}
@@ -81,6 +81,17 @@ static GFINLINE void gf_m2ts_time_inc(GF_M2TS_Time *time, u32 delta_inc_num, u32
 		time->nanosec -= 0x3B9ACA00;
 		time->sec ++;
 	}
+}
+
+static GFINLINE s32 gf_m2ts_time_diff_us(GF_M2TS_Time *a, GF_M2TS_Time *b)
+{
+	s32 drift = b->nanosec;
+	drift -= a->nanosec;
+	drift /= 1000;
+	if (a->sec != b->sec) {
+		drift += (b->sec - a->sec) * 1000000;
+	}
+	return drift;
 }
 
 /************************************
@@ -467,13 +478,18 @@ static u32 gf_m2ts_add_adaptation(GF_M2TS_Mux_Program *prog, GF_BitStream *bs, u
 	return adaptation_length + ADAPTATION_LENGTH_LENGTH;
 }
 
+//#define USE_AF_STUFFING
+
 void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 {
 	GF_BitStream *bs;
 	GF_M2TS_Mux_Table *table;
 	GF_M2TS_Mux_Section *section;
-	u32 payload_length, padding_length;
-	u8 adaptation_field_control;
+	u32 payload_length, payload_start, padding_length;
+	u8 adaptation_field_control = GF_M2TS_ADAPTATION_NONE;
+#ifndef USE_AF_STUFFING
+	u32 padded_bytes;
+#endif
 
 	stream->table_needs_send = 0;
 	table = stream->current_table;
@@ -496,10 +512,14 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	if (!stream->current_section_offset) payload_length = 183;
 	else payload_length = 184;
 
+	payload_start = payload_length;
+
+	padded_bytes = 0;
 	if (section->length - stream->current_section_offset >= payload_length) {
 		padding_length = 0;
-		adaptation_field_control = GF_M2TS_ADAPTATION_NONE;
-	} else {		
+	} else  {		
+		//stuffing using adaptation field - seems not well handled by some equipments ...
+#ifdef USE_AF_STUFFING
 		/* in all the following cases, we write an adaptation field */
 		adaptation_field_control = GF_M2TS_ADAPTATION_AND_PAYLOAD;
 		/* we need at least 2 bytes for adaptation field headers (no pcr) */
@@ -510,7 +530,14 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 			padding_length = payload_length - section->length + stream->current_section_offset; 
 			payload_length -= padding_length;
 		}
+#else
+		//stuffing according to annex C.3
+		padding_length = 0;
+		padded_bytes = payload_length - section->length + stream->current_section_offset;
+		payload_length = section->length - stream->current_section_offset;
+#endif
 	}
+
 	assert(payload_length + stream->current_section_offset <= section->length);
 	
 	gf_bs_write_int(bs,	0, 1);    /*priority indicator*/
@@ -521,8 +548,10 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	if (stream->continuity_counter < 15) stream->continuity_counter++;
 	else stream->continuity_counter=0;
 
+#ifdef USE_AF_STUFFING
 	if (adaptation_field_control != GF_M2TS_ADAPTATION_NONE)
 		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, 0, 0, 0, padding_length, NULL, 0);
+#endif
 
 	/*pointer field*/
 	if (!stream->current_section_offset) {
@@ -531,9 +560,12 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	}
 	gf_bs_del(bs);
 
-	memcpy(packet+188-payload_length, section->data + stream->current_section_offset, payload_length);
+	memcpy(packet+188-payload_start, section->data + stream->current_section_offset, payload_length);
 	stream->current_section_offset += payload_length;
-	
+#ifndef USE_AF_STUFFING
+	if (padded_bytes) memset(packet+188-payload_start+payload_length, 0xFF, padded_bytes);
+#endif
+
 	if (stream->current_section_offset == section->length) {
 		stream->current_section_offset = 0;
 		stream->current_section = stream->current_section->next;
@@ -1178,15 +1210,15 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 
 	/*compute next interesting time in TS unit: this will be DTS of next packet*/
 	stream->time = stream->program->ts_time_at_pcr_init;
-	gf_m2ts_time_inc(&stream->time, (u32) stream->curr_pck.dts, 90000);
+	gf_m2ts_time_inc(&stream->time, stream->curr_pck.dts - stream->program->pcr_offset, 90000);
 
 	/*do we need to send a PCR*/
 	if (stream == stream->program->pcr) {
 		if (muxer->real_time) {
-			if (gf_sys_clock() > stream->program->last_sys_clock + stream->program->mux->pcr_update_ms)
+			if (gf_sys_clock_high_res() > stream->program->last_sys_clock + stream->program->mux->pcr_update_ms - 2)
 				stream->pcr_priority = 1;
 		} else {
-			if (!stream->program->last_dts || (stream->curr_pck.dts > stream->program->last_dts + stream->program->mux->pcr_update_ms * 90))
+			if (!stream->program->last_dts || (stream->curr_pck.dts > stream->program->last_dts + (stream->program->mux->pcr_update_ms  - 2) * 90))
 				stream->pcr_priority = 1;
 		}
 	}
@@ -1231,13 +1263,22 @@ u32 gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream
 	return stream->scheduling_priority + stream->pcr_priority;
 }
 
-static GFINLINE u64 gf_m2ts_get_pcr(GF_M2TS_Mux_Program *program)
+static GFINLINE u64 gf_m2ts_get_pcr(GF_M2TS_Mux_Stream *stream)
 {
-	u32 nb_pck = (u32) (program->mux->tot_pck_sent - program->num_pck_at_pcr_init);
-	u64 pcr = 27000000;
-	pcr *= nb_pck*1504;
-	pcr /= program->mux->bit_rate;
-	pcr += program->pcr_init_time;
+	u64 pcr;
+	/*compute PCR - we disabled real-time clock for now and only insert PCR based on DTS / CTS*/
+	if (stream->program->mux->real_time) {
+		u32 nb_pck = (u32) (stream->program->mux->tot_pck_sent - stream->program->num_pck_at_pcr_init);
+		pcr = 27000000;
+		pcr *= nb_pck*1504;
+		pcr /= stream->program->mux->bit_rate;
+		pcr += stream->program->pcr_init_time;
+	} else {
+//		pcr = ( ((stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS) ? stream->curr_pck.dts : stream->curr_pck.cts) - stream->program->pcr_offset) * 300;
+		pcr = (stream->curr_pck.dts - stream->program->pcr_offset) * 300;
+		if (pcr>stream->program->pcr_init_time) pcr -= stream->program->pcr_init_time;
+		else pcr = 0;
+	}
 	return pcr;
 }
 
@@ -1302,6 +1343,10 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 		stream->next_payload_size += stream->reframe_overhead;
 
 		gf_m2ts_remap_timestamps_for_pes(stream, stream->next_pck_flags, &stream->next_pck_dts, &stream->next_pck_cts, NULL);
+
+
+		if (!(stream->next_pck_flags & GF_ESI_DATA_HAS_DTS))
+			stream->next_pck_dts = stream->next_pck_cts;
 	}
 }
 
@@ -1489,7 +1534,7 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream)
 		gf_bs_write_long_int(bs, t, 15);
 		gf_bs_write_int(bs, 1, 1); // marker bit
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Adding PES header at PCR "LLD" - has PTS %d ("LLU") - has DTS %d ("LLU") - Payload length %d\n", stream->pid, gf_m2ts_get_pcr(stream->program)/300, use_pts, cts, use_dts, dts, pes_len));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Adding PES header at PCR "LLD" - has PTS %d ("LLU") - has DTS %d ("LLU") - Payload length %d\n", stream->pid, gf_m2ts_get_pcr(stream)/300, use_pts, cts, use_dts, dts, pes_len));
 
 	return pes_len+4; // 4 = start code + stream_id
 }
@@ -1594,6 +1639,14 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		}
 	}
 
+	if (hdr_len) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Start sending PES: PID %d - %d bytes - DTS "LLD" - PCR "LLD" - stream time %d:%09d - mux time %d:%09d (%d us ahead of mux time)\n", 
+				stream->pid, stream->curr_pck.data_len, stream->curr_pck.dts, gf_m2ts_get_pcr(stream)/300, 
+				stream->time.sec, stream->time.nanosec, stream->program->mux->time.sec, stream->program->mux->time.nanosec,
+				gf_m2ts_time_diff_us(&stream->program->mux->time, &stream->time)
+			));
+	}
+
 	gf_bs_write_int(bs,	0x47, 8); // sync byte
 	gf_bs_write_int(bs,	0, 1);    // error indicator
 	gf_bs_write_int(bs,	hdr_len ? 1 : 0, 1); // start ind
@@ -1609,21 +1662,16 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		Bool is_rap;
 		u64 pcr = 0;
 		if (needs_pcr) {
-			u32 now = gf_sys_clock();
-			/*compute PCR - we disabled real-time clock for now and only insert PCR based on DTS / CTS*/
-			if (0 && stream->program->mux->real_time) {
-				pcr = gf_m2ts_get_pcr(stream->program);
-			} else {
-				pcr = ( ((stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS) ? stream->curr_pck.dts : stream->curr_pck.cts) - stream->program->pcr_offset) * 300;
-				if (pcr>stream->program->pcr_init_time) pcr -= stream->program->pcr_init_time;
-				else pcr = 0;
-			}
+			u64 now = gf_sys_clock_high_res();
+			pcr = gf_m2ts_get_pcr(stream);
 
-			//fprintf(stderr, "PCR Diff in ms %d - sys clock diff in ms %d - DTS diff %d\n", (u32) (pcr - stream->program->last_pcr) / 27000, now - stream->program->last_sys_clock, (stream->curr_pck.dts - stream->program->last_dts)/90);
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Inserted PCR "LLD" (%d @90kHz) at mux time %d:%09d\n", pcr, (u32) (pcr/300), stream->program->mux->time.sec, stream->program->mux->time.nanosec ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] PCR diff to STB in ms %d - sys clock diff in ms %d - DTS diff %d\n", (u32) (pcr - stream->program->last_pcr) / 27000, now - stream->program->last_sys_clock, (stream->curr_pck.dts - stream->program->last_dts)/90));
 
 			stream->program->last_sys_clock = now;
 			/*if stream does not use DTS, use CTS as base time for PCR*/
-			stream->program->last_dts = (stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS) ? stream->curr_pck.dts : stream->curr_pck.cts;
+//			stream->program->last_dts = (stream->curr_pck.flags & GF_ESI_DATA_HAS_DTS) ? stream->curr_pck.dts : stream->curr_pck.cts;
+			stream->program->last_dts = stream->curr_pck.dts;
 			stream->pcr_priority = 0;
 		}
 		is_rap = (hdr_len && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP) ) ? 1 : 0;
@@ -1638,7 +1686,6 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		if (padding_length) 
 			stream->program->mux->tot_pes_pad_bytes += padding_length;
 	}
-
 	if (hdr_len) gf_m2ts_stream_add_pes_header(bs, stream);
 
 	pos = (u32) gf_bs_get_position(bs);
@@ -1651,13 +1698,28 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	stream->pes_data_remain -= payload_to_copy;
 
 	/*update stream time, including headers*/
-//	gf_m2ts_time_inc(&stream->time, payload_to_copy + pos - 4, stream->bit_rate);
+	gf_m2ts_time_inc(&stream->time, 8*(payload_to_copy + pos - 4), stream->program->mux->bit_rate);
+//	gf_m2ts_time_inc(&stream->time, 1504/*188*8*/, stream->program->mux->bit_rate);
 	
 	if (stream->pck_offset == stream->curr_pck.data_len) {
+		u64 pcr = gf_m2ts_get_pcr(stream)/300;
 		if (stream->program->mux->real_time && !stream->program->mux->fixed_rate && gf_m2ts_time_less(&stream->time, &stream->program->mux->time) ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Done sending PES from PID %d TOO LATE: stream time %d:%d - mux time %d:%d (current mux rate %d) \n", stream->pid, stream->time.sec, stream->time.nanosec, stream->program->mux->time.sec, stream->program->mux->time.nanosec, stream->program->mux->bit_rate));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Done sending PES TOO LATE: PID %d - DTS "LLD" - PCR "LLD" - stream time %d:%09d - mux time %d:%09d - current mux rate %d\n", 
+				stream->pid, stream->curr_pck.dts, pcr, 
+				stream->time.sec, stream->time.nanosec, stream->program->mux->time.sec, stream->program->mux->time.nanosec,
+				stream->program->mux->bit_rate
+			));
+		} else if (stream->curr_pck.dts < pcr) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Done sending PES %d us TOO LATE: PID %d - DTS "LLD" - PCR "LLD" - stream time %d:%09d - mux time %d:%09d \n", 
+				pcr - stream->curr_pck.dts, stream->pid, stream->curr_pck.dts, pcr, 
+				stream->time.sec, stream->time.nanosec, stream->program->mux->time.sec, stream->program->mux->time.nanosec
+			));
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Done sending PES (%d bytes) from PID %d at stream time %d:%d (DTS "LLD" - PCR "LLD")\n", stream->curr_pck.data_len, stream->pid, stream->time.sec, stream->time.nanosec, stream->curr_pck.dts, gf_m2ts_get_pcr(stream->program)/300));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Done sending PES: PID %d - DTS "LLD" - PCR "LLD" - stream time %d:%09d - mux time %d:%09d \n", 
+				stream->pid, stream->curr_pck.dts, pcr, 
+				stream->time.sec, stream->time.nanosec, stream->program->mux->time.sec, stream->program->mux->time.nanosec
+			));
+
 		}
 
 		/*PES has been sent, discard internal buffer*/
@@ -1667,18 +1729,9 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		stream->pck_offset = 0;
 
 #ifndef GPAC_DISABLE_LOG
-		if (gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_INFO)
-			&& gf_m2ts_time_less(&stream->program->mux->time, &stream->time)
-		) {
-			s32 drift;
-			GF_M2TS_Time muxtime = stream->program->mux->time;
-			drift= stream->time.nanosec;
-			drift-=muxtime.nanosec;
-			drift/=1000;
-			if (muxtime.sec!=stream->time.sec) {
-				drift += (stream->time.sec - muxtime.sec)*1000000;
-			}
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] PES PID %d sent %d us too late\n", stream->pid, drift) );
+		if (gf_m2ts_time_less(&stream->program->mux->time, &stream->time) ) {
+			s32 drift = gf_m2ts_time_diff_us(&stream->program->mux->time, &stream->time);
+			GF_LOG( (drift>1000) ? GF_LOG_WARNING : GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] PES PID %d sent %d us too late\n", stream->pid, drift) );
 		}
 #endif
 
@@ -2334,7 +2387,7 @@ void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time)
 GF_EXPORT
 u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer)
 {
-	return gf_sys_clock() - muxer->init_sys_time;
+	return (u32) (gf_sys_clock_high_res() - muxer->init_sys_time)/1000;
 }
 
 GF_EXPORT
@@ -2368,7 +2421,8 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 	GF_M2TS_Mux_Program *program;
 	GF_M2TS_Mux_Stream *stream, *stream_to_process;
 	GF_M2TS_Time time;
-	u32 now, nb_streams, nb_streams_done;
+	u32 nb_streams, nb_streams_done;
+	u64 now_us;
 	char *ret;
 	u32 res, highest_priority;
 	Bool flush_all_pes = 0;
@@ -2376,18 +2430,18 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 	nb_streams = nb_streams_done = 0;
 	*status = GF_M2TS_STATE_IDLE;
 
-	now = gf_sys_clock();
+	now_us = gf_sys_clock_high_res();
 	if (muxer->real_time) {
 		if (!muxer->init_sys_time) {
 			//init TS time
 			muxer->time.sec = muxer->time.nanosec = 0;
 			gf_m2ts_time_inc(&muxer->time, (u32) (muxer->init_pcr_value ? muxer->init_pcr_value-1 : 0), 27000000);
-			muxer->init_sys_time = now;
+			muxer->init_sys_time = now_us;
 			muxer->init_ts_time = muxer->time;
 		} else {
-			u32 diff = now - muxer->init_sys_time;
+			u64 us_diff = now_us - muxer->init_sys_time;
 			GF_M2TS_Time now = muxer->init_ts_time;
-			gf_m2ts_time_inc(&now, diff, 1000);
+			gf_m2ts_time_inc(&now, us_diff, 1000000);
 			if (gf_m2ts_time_less(&now, &muxer->time)) {
 				if (usec_till_next) {
 					u32 diff = muxer->time.sec - now.sec;
@@ -2564,7 +2618,7 @@ send_pck:
 		}
 		/* padding packets ?? */
 		if (muxer->fixed_rate) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Inserting empty packet at %d:%d\n", time.sec, time.nanosec));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Inserting empty packet at %d:%09d\n", time.sec, time.nanosec));
 			ret = muxer->null_pck;
 			muxer->tot_pad_sent++;
 		}
@@ -2612,10 +2666,10 @@ send_pck:
 		}
 
 		muxer->pck_sent_over_br_window++;
-		if (now - muxer->last_br_time > 1000) {
+		if (now_us - muxer->last_br_time_us > 1000000) {
 			u64 size = 8*188*muxer->pck_sent_over_br_window;
-			muxer->average_birate_kbps = (u32) (size /(now - muxer->last_br_time));
-			muxer->last_br_time = now;
+			muxer->average_birate_kbps = (u32) (size*1000 / (now_us - muxer->last_br_time_us));
+			muxer->last_br_time_us = now_us;
 			muxer->pck_sent_over_br_window=0;
 		}
 	}

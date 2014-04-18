@@ -1903,8 +1903,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			*sdt_refresh_rate = atoi(next_arg);
 		} 
 		else if (CHECK_PARAM("-logs")) {
-				if (gf_log_set_tools_levels(next_arg) != GF_OK)
-					return GF_BAD_PARAM;
+			if (gf_log_set_tools_levels(next_arg) != GF_OK)
+				return GF_BAD_PARAM;
 		} else if (CHECK_PARAM("-lf")) {
 			logfile = gf_f64_open(next_arg, "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
@@ -2010,6 +2010,9 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		if (! CHECK_PARAM("-src") && ! CHECK_PARAM("-prog") ) continue;
 
 		src_args = strchr(next_arg, ':');
+		if (src_args && (src_args[1]=='\\')) {
+			src_args = strchr(src_args+2, ':');
+		}
 		if (src_args) {
 			src_args[0] = 0;
 			src_args = src_args + 1;
