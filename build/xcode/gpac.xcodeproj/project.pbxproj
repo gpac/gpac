@@ -3747,19 +3747,13 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavcodec,
 					../../include,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libswscale,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavutil,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavformat,
+					/usr/local/include/,
+					/opt/local/include/,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					/opt/local/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
@@ -3792,19 +3786,13 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavcodec,
 					../../include,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libswscale,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavutil,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavcodec/,
-					/usr/local/include/libavformat,
+					/usr/local/include/,
+					/opt/local/include/,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					/opt/local/lib,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OTHER_LDFLAGS = (
