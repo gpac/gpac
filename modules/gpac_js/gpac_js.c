@@ -1020,6 +1020,7 @@ GF_JSUserExtension *gjs_new()
 
 	GF_SAFEALLOC(gjs, GF_GPACJSExt);
 	gjs->rti_refresh_rate = GPAC_JS_RTI_REFRESH_RATE;
+    gjs->evt_fun = JSVAL_NULL;
 	dr->load = gjs_load;
 	dr->udta = gjs;
 	return dr;

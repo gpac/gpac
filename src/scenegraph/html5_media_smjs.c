@@ -230,6 +230,9 @@ static void gf_html_track_init_js(GF_HTML_Track *track, JSContext *c, GF_HTML_Tr
     {
         return;
     }
+    tracklist->onchange = JSVAL_NULL;
+    tracklist->onaddtrack = JSVAL_NULL;
+    tracklist->onremovetrack = JSVAL_NULL;
     track->_this = track_obj;
     SMJS_SET_PRIVATE(c, track->_this, track);
 }

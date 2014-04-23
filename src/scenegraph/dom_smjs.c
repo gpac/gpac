@@ -2886,6 +2886,15 @@ static JSBool SMJS_FUNCTION(xml_http_constructor)
 	p->_this = obj;
 	p->owning_graph = xml_get_scenegraph(c);
 	p->event_target = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_XHR, p);
+    p->onabort = JSVAL_NULL;
+	p->onerror = JSVAL_NULL;
+	p->onreadystatechange = JSVAL_NULL;
+	p->onload = JSVAL_NULL;
+	p->onloadstart = JSVAL_NULL;
+	p->onloadend = JSVAL_NULL;
+	p->onprogress = JSVAL_NULL;
+	p->ontimeout = JSVAL_NULL;
+
 	SMJS_SET_PRIVATE(c, obj, p);
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(obj) );
 	return JS_TRUE;
@@ -4441,7 +4450,6 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			SMJS_FUNCTION_SPEC("wait",					xml_http_wait, 0),
 			/*eventTarget interface*/
 			JS_DOM3_EVENT_TARGET_INTERFACE
-			/*todo - addEventListener and removeEventListener*/
 			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		GF_JS_InitClass(c, global, NULL, &dom_rt->xmlHTTPRequestClass, xml_http_constructor, 0, xmlHTTPRequestClassProps, xmlHTTPRequestClassFuncs, xmlHTTPRequestStaticClassProps, 0);
