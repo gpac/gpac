@@ -331,8 +331,10 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		/*switch up*/
 		if (capability.cap.valueInt > 0) {	
 			libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);		
+			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
 		} else {
 			libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);		
+			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 0);
 		}
 		return GF_OK;
 	case GF_CODEC_DIRECT_OUTPUT:

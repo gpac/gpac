@@ -533,7 +533,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 
 	if (mo->timestamp != CU->TS) {
 #ifndef GPAC_DISABLE_VRML
-		mediasensor_update_timing(mo->odm, codec->CB->HasSeenEOS);
+		if (! gf_cm_is_eos(codec->CB))
+			mediasensor_update_timing(mo->odm, 0);
 #endif
 	
 		if (mo->odm->parentscene->is_dynamic_scene)
