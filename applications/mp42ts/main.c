@@ -53,8 +53,6 @@
 #endif
 
 
-#define DEFAULT_PCR_OFFSET	0
-
 #define UDP_BUFFER_SIZE	0x40000
 
 #define MP42TS_PRINT_TIME_MS 500 /*refresh printed info every CLOCK_REFRESH ms*/
@@ -110,7 +108,7 @@ static GFINLINE void usage()
 					"                        * if not specified, the muxer will generate the TS as quickly as possible\n"
 					"                        * automatically set for SDP or BT input\n"
 					"-pcr-init V            sets initial value V for PCR - if not set, random value is used\n"
-					"-pcr-offset V          offsets all timestamps from PCR by V, in 90kHz. Default value: %d\n"
+					"-pcr-offset V          offsets all timestamps from PCR by V, in 90kHz. Default value is computed based on input media.\n"
 					"-psi-rate V            sets PSI refresh rate V in ms (default 100ms).\n"
 					"                        * If 0, PSI data is only send once at the begining or before each IDR when -rap option is set.\n"
 					"                        * This should be set to 0 for DASH streams.\n"
@@ -143,7 +141,7 @@ static GFINLINE void usage()
 #endif
 					"-logs                  set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 					"-h or -help            print this screen\n"
-					"\n", DEFAULT_PCR_OFFSET
+					"\n"
 		);
 }
 
@@ -168,6 +166,8 @@ typedef struct
 	u32 nb_real_streams;
 	Bool real_time;
 	GF_List *od_updates;
+
+	u32 max_sample_size;
 
 	char program_name[20];
 	char provider_name[20];
@@ -456,7 +456,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	}
 }
 
-static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_num, u32 bifs_use_pes)
+static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_num, u32 bifs_use_pes, Bool compute_max_size)
 {
 	GF_ESIMP4 *priv;
 	char _lan[4];
@@ -572,6 +572,16 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 	else {
 		ifce->depends_on_stream = 0;
 	}
+
+	source->max_sample_size = 0;
+	if (compute_max_size) {
+		u32 i;
+		for (i=0; i < priv->sample_count; i++) {
+			u32 s = gf_isom_get_sample_size(mp4, track_num, i+1);
+			if (s>source->max_sample_size) source->max_sample_size = s;
+		}
+	}
+
 }
 
 
@@ -1339,7 +1349,7 @@ void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 pe
 }
 #endif
 
-static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mpeg4_signaling, char *update, char *audio_input_ip, u16 audio_input_port, char *video_buffer, Bool force_real_time, u32 bifs_use_pes, const char *temi_url)
+static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mpeg4_signaling, char *update, char *audio_input_ip, u16 audio_input_port, char *video_buffer, Bool force_real_time, u32 bifs_use_pes, const char *temi_url, Bool compute_max_size)
 {
 #ifndef GPAC_DISABLE_STREAMING
 	GF_SDPInfo *sdp;
@@ -1368,7 +1378,7 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 			if (gf_isom_get_media_type(source->mp4, i+1) == GF_ISOM_MEDIA_HINT) 
 				continue; 
 
-			fill_isom_es_ifce(source, &source->streams[i], source->mp4, i+1, bifs_use_pes);
+			fill_isom_es_ifce(source, &source->streams[i], source->mp4, i+1, bifs_use_pes, compute_max_size);
 			if (min_offset > ((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset)
 				min_offset = ((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset;
 
@@ -2018,7 +2028,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			src_args = src_args + 1;
 		}
 
-		res = open_source(&sources[*nb_sources], next_arg, *carrousel_rate, mpeg4_signaling, *bifs_src_name, *audio_input_ip, *audio_input_port, *video_buffer, force_real_time, *bifs_use_pes, *temi_url);
+		res = open_source(&sources[*nb_sources], next_arg, *carrousel_rate, mpeg4_signaling, *bifs_src_name, *audio_input_ip, *audio_input_port, *video_buffer, force_real_time, *bifs_use_pes, *temi_url, (*pcr_offset == (u32) -1) ? 1 : 0);
 
 
 		//we may have arguments
@@ -2211,7 +2221,7 @@ int main(int argc, char **argv)
 	split_rap = 0;
 	ttl = 1;
 	psi_refresh_rate = GF_M2TS_PSI_DEFAULT_REFRESH_RATE;
-	pcr_offset = DEFAULT_PCR_OFFSET;
+	pcr_offset = (u32) -1;
 
 	/***********************/
 	/*   parse arguments   */
@@ -2383,7 +2393,22 @@ int main(int argc, char **argv)
 		GF_M2TS_Mux_Program *program;
 		
 		if (! sources[i].is_not_program_declaration) {
-			program = gf_m2ts_mux_program_add(muxer, sources[i].ID, cur_pid, psi_refresh_rate, pcr_offset, sources[i].mpeg4_signaling);
+			u32 prog_pcr_offset = 0;
+			if (pcr_offset==(u32)-1) {
+				if (sources[i].max_sample_size && mux_rate) {
+					Double r = sources[i].max_sample_size * 8;
+					r *= 90000;
+					r/= mux_rate;
+					//add 10% of safety to cover TS signaling and other potential table update while sending the largest PES
+					r *= 1.1;
+					prog_pcr_offset = (u32) r;
+				}
+			} else {
+				prog_pcr_offset = pcr_offset;
+			}
+			fprintf(stderr, "Setting up program ID %d - send rates: PSI %d ms PCR %d ms - PCR offset %d\n", sources[i].ID, psi_refresh_rate, pcr_ms, prog_pcr_offset);
+
+			program = gf_m2ts_mux_program_add(muxer, sources[i].ID, cur_pid, psi_refresh_rate, prog_pcr_offset, sources[i].mpeg4_signaling);
 			if (sources[i].mpeg4_signaling) program->iod = sources[i].iod;
 			if (sources[i].od_updates) {
 				program->loop_descriptors = sources[i].od_updates;
