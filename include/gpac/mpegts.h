@@ -1077,8 +1077,6 @@ typedef struct __m2ts_mux_stream {
 	
 	/*multiplexer time - NOT THE PCR*/
 	GF_M2TS_Time time;
-	/*for PCR strreams, set to 1 when PCR has to be sent, 0 otherwise*/
-	u32 pcr_priority;
 
 	/*table tools*/
 	GF_M2TS_Mux_Table *tables;
@@ -1172,7 +1170,9 @@ struct __m2ts_mux_program {
 	u64 pcr_init_time, num_pck_at_pcr_init;
 	u64 last_pcr;
 	u64 last_dts;
-	u64 last_sys_clock;
+	//high res clock at last PCR
+	u64 sys_clock_at_last_pcr;
+	u64 nb_pck_last_pcr;
 	u64 initial_ts;
 	Bool initial_ts_set;
 	Bool pcr_init_time_set;
@@ -1273,7 +1273,6 @@ void gf_m2ts_mux_set_pcr_max_interval(GF_M2TS_Mux *muxer, u32 pcr_update_ms);
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, Bool mpeg4_signaling);
 GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_ESInterface *ifce, u32 pid, Bool is_pcr, Bool force_pes_mode);
 void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);	
-void gf_m2ts_mux_update_bitrate(GF_M2TS_Mux *mux);
 
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_find(GF_M2TS_Mux *muxer, u32 program_number);
 

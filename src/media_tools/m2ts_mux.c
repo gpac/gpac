@@ -485,10 +485,12 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	GF_BitStream *bs;
 	GF_M2TS_Mux_Table *table;
 	GF_M2TS_Mux_Section *section;
-	u32 payload_length, payload_start, padding_length;
+	u32 payload_length, payload_start;
 	u8 adaptation_field_control = GF_M2TS_ADAPTATION_NONE;
 #ifndef USE_AF_STUFFING
 	u32 padded_bytes;
+#else
+	u32 padding_length = 0;
 #endif
 
 	stream->table_needs_send = 0;
@@ -516,7 +518,7 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 
 	padded_bytes = 0;
 	if (section->length - stream->current_section_offset >= payload_length) {
-		padding_length = 0;
+
 	} else  {		
 		//stuffing using adaptation field - seems not well handled by some equipments ...
 #ifdef USE_AF_STUFFING
@@ -532,7 +534,6 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		}
 #else
 		//stuffing according to annex C.3
-		padding_length = 0;
 		padded_bytes = payload_length - section->length + stream->current_section_offset;
 		payload_length = section->length - stream->current_section_offset;
 #endif
@@ -1532,7 +1533,7 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream)
 void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 {
 	GF_BitStream *bs;
-	Bool needs_pcr, first_pass, is_rap=0;
+	Bool needs_pcr, first_pass;
 	u32 adaptation_field_control, payload_length, payload_to_copy, padding_length, hdr_len, pos, copy_next;
 
 	assert(stream->pid);
@@ -1554,7 +1555,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		adaptation_field_control = GF_M2TS_ADAPTATION_NONE;
 		payload_length = 184 - hdr_len;
 		payload_to_copy = padding_length = 0;
-		is_rap = (hdr_len && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP)) ? GF_TRUE : GF_FALSE;
+//		is_rap = (hdr_len && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP)) ? GF_TRUE : GF_FALSE;
 		needs_pcr = 0;
 		
 		if (stream == stream->program->pcr) {
@@ -1653,14 +1654,16 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		}
 	}
 
-	if (hdr_len) {
+#ifndef GPAC_DISABLE_LOG
+	if (hdr_len && gf_log_tool_level_on(GF_LOG_DEBUG, GF_LOG_CONTAINER) ) {
 		u64 pcr = (s64) gf_m2ts_get_pcr(stream)/300;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Start sending PES: PID %d - %d bytes - DTS "LLD" PCR "LLD" (diff %d) - stream time %d:%09d - mux time %d:%09d (%d us ahead of mux time)\n", 
-				stream->pid, stream->curr_pck.data_len, stream->curr_pck.dts, gf_m2ts_get_pcr(stream)/300, (s64) stream->curr_pck.dts - (s64) gf_m2ts_get_pcr(stream)/300, 
+				stream->pid, stream->curr_pck.data_len, stream->curr_pck.dts, pcr, (s64) stream->curr_pck.dts - (s64) pcr, 
 				stream->time.sec, stream->time.nanosec, stream->program->mux->time.sec, stream->program->mux->time.nanosec,
 				gf_m2ts_time_diff_us(&stream->program->mux->time, &stream->time)
 			));
 	}
+#endif
 
 	gf_bs_write_int(bs,	0x47, 8); // sync byte
 	gf_bs_write_int(bs,	0, 1);    // error indicator
@@ -2348,7 +2351,6 @@ void gf_m2ts_mux_del(GF_M2TS_Mux *mux)
 GF_EXPORT
 void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time)
 {
-	u32 old_bitrate = 0;
 	GF_M2TS_Mux_Program *prog;
 
 	gf_m2ts_mux_table_update_bitrate(mux, mux->pat);
@@ -2357,7 +2359,6 @@ void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time)
 	}
 
 	if (!mux->fixed_rate) {
-		old_bitrate = mux->bit_rate;
 		mux->bit_rate = 0;
 
 		/*get PAT bitrate*/
