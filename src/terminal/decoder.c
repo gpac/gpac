@@ -383,7 +383,7 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 	GF_DBUnit *AU;
 	GF_List *src_channels = codec->inChannels;
 	GF_ObjectManager *current_odm = codec->odm;
-	u32 count, curCTS, i;
+	u32 count, curCTS, i, stream_state;
 
 	*nextAU = NULL;
 	*activeChannel = NULL;
@@ -407,6 +407,7 @@ browse_scalable:
 			return;
 		}
 refetch_AU:
+		stream_state = ch->stream_state;
 		AU = gf_es_get_au(ch);
 		if (!AU) {
 			if (! (*activeChannel)) *activeChannel = ch;
@@ -468,6 +469,9 @@ refetch_AU:
 					|| !codec->first_frame_processed) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d %s AU DTS %d but base DTS %d: loss detected - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*nextAU)->DTS));
 					gf_es_drop_au(ch);
+					//restore stream state in case we got a RAP this time but we discard the AU, we need to wait again for the next RAP with the right timing
+					ch->stream_state = stream_state;
+
 					goto refetch_AU;
 				} 
 				//This is a temporal scalability so we re-aggregate from the enhencement

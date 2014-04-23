@@ -1367,6 +1367,12 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 		if (ch->BufferOn && ch->AU_buffer_first) Channel_UpdateBuffering(ch, 0);
 		gf_mx_v(ch->mx);
 		
+#if 0
+		if (ch->odm->parentscene->active_addon && !ch->odm->parentscene->active_addon->started) {
+			return NULL;
+		}
+#endif
+
 		if (ch->BufferOn) {
 			if (ch->first_au_fetched || !ch->AU_buffer_first || !ch->AU_buffer_first->next || !ch->odm->parentscene->active_addon || !ch->odm->parentscene->active_addon->started)
 				return NULL;
@@ -1460,7 +1466,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 				return NULL;
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) - Dispatch Pull AU DTS %d - CTS %d - size %d time %d - UTC "LLU" ms\n", ch->esd->ESID, ch->odm->net_service->url, ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, gf_clock_real_time(ch->clock), gf_net_get_utc() ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) at %d - Dispatch Pull AU DTS %d - CTS %d - size %d - RAP %d\n", ch->esd->ESID, ch->odm->net_service->url, gf_clock_real_time(ch->clock), ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, ch->AU_buffer_pull->flags&1 ? 1 : 0));
 	}
 
 	/*this may happen in file streaming when data has not arrived yet, in which case we discard the AU*/
