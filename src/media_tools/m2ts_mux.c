@@ -2674,7 +2674,7 @@ send_pck:
 			muxer->last_br_time_us = now_us;
 			muxer->pck_sent_over_br_window=0;
 		}
-	} else if (!muxer->fixed_rate) {
+	} else if (muxer->real_time && !muxer->fixed_rate) {
 		u64 us_diff = gf_sys_clock_high_res() - muxer->init_sys_time;
 		muxer->time = muxer->init_ts_time;
 		gf_m2ts_time_inc(&muxer->time, us_diff, 1000000);
