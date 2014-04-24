@@ -130,6 +130,8 @@ typedef enum
 	@keep_files: do not delete files from the cache
 	@disable_switching: turn off bandwidth switching algorithm
 	@first_select_mode: indicates which representation to select upon startup
+	@enable_buffering: forces buffering of segments for the duration indicated in the MPD before calling back the user
+	@initial_time_shift_percent: sets initial buffering: if between 0 and 100, this is a percentage of the time shift window of the session. If greater than 100, this is a time shift in milliseconds.
 */
 GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, 
 						   u32 max_cache_duration, 
