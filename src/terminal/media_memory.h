@@ -41,7 +41,9 @@ enum
 	SFTime init time*/
 	GF_DB_AU_CTS_IN_PAST = 1<<1,
 	/*hack for some DMB streams not signaling TS for BIFS*/
-	GF_DB_AU_NO_TIMESTAMPS = 1<<2
+	GF_DB_AU_NO_TIMESTAMPS = 1<<2,
+	/*for debuging AU reassembly in scalable coding*/
+	GF_DB_AU_REAGGREGATED = 1<<3
 };
 
 /*compressed media unit*/

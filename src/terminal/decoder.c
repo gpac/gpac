@@ -384,6 +384,7 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 	GF_List *src_channels = codec->inChannels;
 	GF_ObjectManager *current_odm = codec->odm;
 	u32 count, curCTS, i, stream_state;
+	Bool scalable_check = 0;
 
 	*nextAU = NULL;
 	*activeChannel = NULL;
@@ -410,6 +411,13 @@ refetch_AU:
 		stream_state = ch->stream_state;
 		AU = gf_es_get_au(ch);
 		if (!AU) {
+			if (scalable_check==1) {
+				if (*nextAU && ((*nextAU)->flags & GF_DB_AU_REAGGREGATED)) {
+					scalable_check=2;
+				} else {
+					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Warning, No AU in enhancement layer for this AU\n"));
+				}
+			}
 			if (! (*activeChannel)) *activeChannel = ch;
 			continue;
 		}
@@ -434,6 +442,8 @@ refetch_AU:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %d reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*activeChannel)->esd->ESID));
 			gf_es_drop_au(ch);
 			ch->first_au_fetched = 1;
+			scalable_check = 2;
+			(*nextAU)->flags |= GF_DB_AU_REAGGREGATED;
 		}
 		//not the same TS for base and enhancement - either temporal scalability is used or we had a frame loss
 		else {		
@@ -481,14 +491,26 @@ refetch_AU:
 					*activeChannel = ch;
 					curCTS = AU->CTS;
 				}
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("AU in enhancement layer DTS "LLD" too early for this AU\n", AU->DTS));
+				if ((*nextAU)->flags & GF_DB_AU_REAGGREGATED)
+					scalable_check = 2;
 			}
 		}
 	}
 	//scalable addon, browse channels in scalable object
 	if (current_odm->scalable_odm) {
+		if (*nextAU) {
+			gf_scene_check_addon_restart(current_odm->scalable_odm->parentscene->root_od->addon, (*nextAU)->CTS, (*nextAU)->DTS);
+		}
 		current_odm = current_odm->scalable_odm;
 		src_channels = current_odm->channels;
+		scalable_check = 1;
 		goto browse_scalable;
+	}
+
+	if (scalable_check==1) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Warning, could not find enhancement layer for this AU\n"));
 	}
 
 	if (codec->is_reordering && *nextAU && codec->first_frame_dispatched) {
@@ -978,6 +1000,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	}
 
+	TimeAvailable*=1000;
 	/*try to refill the full buffer*/
 	first = 1;
 	while (codec->CB->Capacity > codec->CB->UnitCount) {
@@ -1216,11 +1239,11 @@ scalable_retry:
 		/*escape from decoding loop only if above critical limit - this is to avoid starvation on audio*/
 		if (!ch->esd->dependsOnESID && (codec->CB->UnitCount > codec->CB->Min)) {
 			if (now >= TimeAvailable) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because time is up: %d vs %d available\n", codec->decio->module_name, now, TimeAvailable));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because time is up: %d vs %d us available\n", codec->decio->module_name, now, TimeAvailable));
 				return GF_OK;
 			}
-		} else if (now >= 10000*TimeAvailable) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because running for too long: %d vs %d available\n", codec->decio->module_name, now/1000, TimeAvailable));
+		} else if (now >= TimeAvailable) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because running for too long: %d vs %d us available\n", codec->decio->module_name, now, TimeAvailable));
 			return GF_OK;
 		} else if (codec->odm->term->bench_mode) {
 			return GF_OK;

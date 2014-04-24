@@ -1495,16 +1495,15 @@ void gf_odm_play(GF_ObjectManager *odm)
 		}
 		/*play from current time*/
 		else {
-			ck_time = gf_clock_time(ch->clock);
 			if (odm->parentscene && odm->parentscene->root_od->addon) {
-				ck_time = (Double) gf_scene_adjust_time_for_addon(odm->parentscene, (u32) ck_time, odm->parentscene->root_od->addon);
-				ck_time /= 1000000;
+				ck_time = gf_scene_adjust_time_for_addon(odm->parentscene, gf_clock_time(ch->clock), odm->parentscene->root_od->addon);
 
 				if (odm->scalable_addon) {
 					//this is a scalable extension to an object in the parent scene
 					gf_scene_select_scalable_addon(odm->parentscene->root_od->parentscene, odm);
 				}
 			} else {
+				ck_time = gf_clock_time(ch->clock);
 				ck_time /= 1000;
 			}
 
@@ -1799,6 +1798,8 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 	} else {
 		if (nb_eos != count) return;
 	}
+
+
 	gf_term_service_media_event(odm, GF_EVENT_MEDIA_LOAD_DONE);
 	
 	if (odm->codec && (on_channel->esd->decoderConfig->streamType==odm->codec->type)) {
