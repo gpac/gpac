@@ -746,9 +746,11 @@ Disables all resolutions that are higher than the screen resolution. Default is 
 <b>StartRepresentation</b> [value: <i>minBandwidth, maxBandwidth, minQuality, maxQuality</i>]
 <p style="text-indent: 5%">
 Instructs the DASH client to start playing the indicated representation before doing any switching. Default is minBandwidth.</p>
-<b>InitialTimeshift</b> [value: <i>positive integer between 0 and 100</i> ]
+<b>InitialTimeshift</b> [value: <i>positive integer </i> ]
 <p style="text-indent: 5%">
-Uses the given percentage of the timeshift buffer when starting playback. Default is 0 to tune to the live point.</p>
+If between 0 and 100, indicates the percentage of the timeshift buffer when starting playback.<br/> 
+If more than 100, indicates the number of milliseconds to rewind in the timeshift buffer when starting playback. <br/>
+Default is 0 to tune to the live point.</p>
 <b>LowLatency</b> [value: <i>always, chunk, no</i>]
 <p style="text-indent: 5%">
 Sets low-latency mode enabled. In low-latency mode, media data is parsed as soon as possible while segment is being downloaded. Default is no.

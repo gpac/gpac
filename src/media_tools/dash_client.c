@@ -94,7 +94,7 @@ struct __dash_client
 	u64 start_time_in_active_period;
 
 	Bool ignore_mpd_duration;
-	u32 initial_time_shift_percent;
+	u32 initial_time_shift_value;
 
 	/*list of groups in the active period*/
 	GF_List *groups;
@@ -493,10 +493,15 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	current_time_no_timeshift = current_time;
 	if ( ((s32) mpd->time_shift_buffer_depth>=0)) {
 
-		if (group->dash->initial_time_shift_percent) {
-			shift = mpd->time_shift_buffer_depth;
-			shift *= group->dash->initial_time_shift_percent;
-			shift /= 100;
+		if (group->dash->initial_time_shift_value) {
+			if (group->dash->initial_time_shift_value<=100) {
+				shift = mpd->time_shift_buffer_depth;
+				shift *= group->dash->initial_time_shift_value;
+				shift /= 100;
+			} else {
+				shift = (u32) group->dash->initial_time_shift_value;
+				if (shift > mpd->time_shift_buffer_depth) shift = mpd->time_shift_buffer_depth;
+			}
 
 			if (current_time < shift) current_time = 0;
 			else current_time -= shift;
@@ -4199,8 +4204,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration, u32 a
 
 	dash->max_cache_duration = max_cache_duration;
 	dash->enable_buffering = enable_buffering;
-	dash->initial_time_shift_percent = initial_time_shift_percent;
-	if (initial_time_shift_percent>100) dash->initial_time_shift_percent = 100;
+	dash->initial_time_shift_value = initial_time_shift_percent;
 
 	dash->auto_switch_count = auto_switch_count;
 	dash->keep_files = keep_files;
