@@ -487,7 +487,11 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	GF_M2TS_Mux_Section *section;
 	u32 payload_length, payload_start;
 	u8 adaptation_field_control = GF_M2TS_ADAPTATION_NONE;
+#ifndef USE_AF_STUFFING
+	u32 padded_bytes=0;
+#else
 	u32 padding_length = 0;
+#endif
 
 	stream->table_needs_send = 0;
 	table = stream->current_table;
@@ -529,7 +533,8 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		}
 #else
 		//stuffing according to annex C.3
-		payload_length = section->length - stream->current_section_offset;
+		padded_bytes = payload_length - section->length + stream->current_section_offset;
+ 		payload_length = section->length - stream->current_section_offset;
 #endif
 	}
 
@@ -558,7 +563,7 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	memcpy(packet+188-payload_start, section->data + stream->current_section_offset, payload_length);
 	stream->current_section_offset += payload_length;
 #ifndef USE_AF_STUFFING
-	if (padding_length) memset(packet+188-payload_start+payload_length, 0xFF, padding_length);
+	if (padded_bytes) memset(packet+188-payload_start+payload_length, 0xFF, padded_bytes);
 #endif
 
 	if (stream->current_section_offset == section->length) {
