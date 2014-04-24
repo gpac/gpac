@@ -152,6 +152,7 @@ disable_scenegraph="no"
 disable_dvbx="yes"
 disable_vobsub="no"
 disable_ttxt="no"
+disable_ttml="no"
 disable_hevc="no"
 enable_depth_compositor="no"
 enable_renoir="no"
@@ -1014,13 +1015,13 @@ fi
 
 if test "$darwin" = "yes" ; then
 ohevc_cflags="-I/usr/include -I/usr/local/include"
-ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lLibOpenHevcWrapper -lpthread"
+ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lpthread -lLibOpenHevcWrapper"
 elif test "$cross_prefix" = "" ; then
 ohevc_cflags=""
-ohevc_ldflags="-lLibOpenHevcWrapper -lpthread -lm"
+ohevc_ldflags=" -lpthread -lm -lLibOpenHevcWrapper"
 else
 ohevc_cflags="-I${prefix}include"
-ohevc_ldflags="-lLibOpenHevcWrapper -lpthread"
+ohevc_ldflags=" -lpthread -lm -lLibOpenHevcWrapper"
 fi
 
 cat > $TMPC << EOF
@@ -1028,12 +1029,12 @@ cat > $TMPC << EOF
 #include <openHevcWrapper.h>
 int main( void ) { libOpenHevcInit(1, 1); return 0; }
 EOF
-if $cc -o $TMPO $TMPC $ohevc_cflags $LDFLAGS $ohevc_ldflags 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC $ohevc_cflags $ohevc_ldflags $LDFLAGS 2> /dev/null  ; then
   has_openhevc="yes"
 else
   ohevc_cflags="-I$local_inc"
-  ohevc_ldflags="-lLibOpenHevcWrapper -lpthread -lm"
-  if $cc -o $TMPO $TMPC $ohevc_cflags $LDFLAGS -L$local_lib $ohevc_ldflags 2> /dev/null  ; then
+  ohevc_ldflags="-lpthread -lm -lLibOpenHevcWrapper"
+  if $cc -o $TMPO $TMPC $ohevc_cflags $ohevc_ldflags $LDFLAGS -L$local_lib 2> /dev/null  ; then
     has_openhevc="yes"
     ohevc_ldflags="-L../../$local_lib $ohevc_ldflags"
   fi
@@ -1814,7 +1815,7 @@ for opt do
             ;;
         --enable-pulseaudio=*) has_pulseaudio="yes"
             ;;
-        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_isoff_hds="yes"; disable_hevc="yes"
+        --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_ttml="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_isoff_hds="yes"; disable_hevc="yes"
             ;;
         --isomedia-only) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_hevc="no"; disable_isoff="no"; disable_isoff_hds="no"; disable_isoff_write="no"; disable_isoff_hint="no"; disable_isoff_frag="no"
             ;;
@@ -1979,6 +1980,10 @@ for opt do
         --disable-ttxt) disable_ttxt="yes"
             ;;
         --enable-ttxt) disable_ttxt="no"
+            ;; 
+        --disable-ttml) disable_ttml="yes"
+            ;;
+        --enable-ttml) disable_ttml="no"
             ;; 
         --disable-saf) disable_saf="yes"
             ;;
@@ -2557,8 +2562,13 @@ if test "$disable_vobsub" = "yes" ; then
     echo "#define GPAC_DISABLE_VOBSUB" >> $TMPH
 fi
 if test "$disable_ttxt" = "yes" ; then
-    echo "TimedText disabled"
+    echo "3GPP/Apple TimedText disabled"
     echo "#define GPAC_DISABLE_TTXT" >> $TMPH
+fi
+
+if test "$disable_ttml" = "yes" ; then
+    echo "TTML TimedText disabled"
+    echo "#define GPAC_DISABLE_TTML" >> $TMPH
 fi
 
 if test "$enable_depth_compositor" = "yes" ; then
@@ -2918,6 +2928,7 @@ echo "DISABLE_OGG=$disable_ogg" >> config.mak
 echo "DISABLE_ISOFF_HINT=$disable_isoff_hint" >> config.mak
 echo "DISABLE_VOBSUB=$disable_vobsub" >> config.mak
 echo "DISABLE_TTXT=$disable_ttxt" >> config.mak
+echo "DISABLE_TTML=$disable_ttml" >> config.mak
 echo "DISABLE_SMGR=$disable_smgr" >> config.mak
 echo "DISABLE_AV_PARSERS=$disable_parsers" >> config.mak
 echo "DISABLE_MEDIA_IMPORT=$disable_import" >> config.mak
