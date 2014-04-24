@@ -1103,10 +1103,11 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_url);
 
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
-//returns media time in us for the addon
-s64 gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedia *addon);
+//returns media time in sec for the addon
+Double gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedia *addon);
 u64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon);
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
+void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
 
 struct _gf_addon_media
 {
@@ -1124,6 +1125,12 @@ struct _gf_addon_media
 	u32 media_timescale;
 	u64 media_timestamp;
 	u64 media_pts;
+
+	//in case we detect a loop, we store the value of the mediatime in the loop until we actually loop the content
+	u32 past_media_timescale;
+	u64 past_media_timestamp;
+	u64 past_media_pts, past_media_pts_scaled;
+	Bool loop_detected;
 
 	//0: not scalable
 	//1: layered coding scalable enhancement (reassembly before the decoder)

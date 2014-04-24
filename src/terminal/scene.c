@@ -1834,6 +1834,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time)
 {
+	Double prev_time;
 	GF_AddonMedia *addon = scene->active_addon;
 	//locate the active timeline
 	if (!scene->active_addon || (scene->active_addon->timeline_id!=addon_time->timeline_id)) {
@@ -1868,25 +1869,87 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 		}
 	}
 
+	gf_mx_p(scene->active_addon->root_od->mx);
+	prev_time = (Double) scene->active_addon->media_timestamp;
+	prev_time /= scene->active_addon->media_timescale;
+
 	assert(scene->active_addon->timeline_id == addon_time->timeline_id);
-	scene->active_addon->media_pts = addon_time->media_pts;
-	scene->active_addon->media_timestamp = addon_time->media_timestamp;
-	scene->active_addon->media_timescale = addon_time->media_timescale;
+
+	//loop has been detected
+	if ( prev_time  * addon_time->media_timescale > addon_time->media_timestamp + 1.5 * addon_time->media_timescale ) {
+		if (!scene->active_addon->loop_detected) {
+			scene->active_addon->loop_detected = GF_TRUE;
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Loop detected in addon - PTS "LLD" (CTS %d) - media time "LLD"\n", addon_time->media_pts, addon_time->media_pts/90, addon_time->media_timestamp));
+			scene->active_addon->past_media_pts = addon_time->media_pts;
+			scene->active_addon->past_media_timestamp = addon_time->media_timestamp;
+			scene->active_addon->past_media_timescale = addon_time->media_timescale;
+			scene->active_addon->past_media_pts_scaled = addon_time->media_pts/90;
+		} 
+	} else if (!scene->active_addon->loop_detected) {
+		scene->active_addon->media_pts = addon_time->media_pts;
+		scene->active_addon->media_timestamp = addon_time->media_timestamp;
+		scene->active_addon->media_timescale = addon_time->media_timescale;
+		assert(addon_time->media_timescale);
+		assert(!scene->active_addon->loop_detected);
+	}
+	gf_mx_v(scene->active_addon->root_od->mx);
 }
 
-s64 gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedia *addon)
+void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 {
-	s64 media_ts_ms;
+	u32 i;
+	GF_ObjectManager*odm;
+	GF_Scene *subscene;
+
+	if (!addon || !addon->loop_detected) return;
+	//warning, we need to compare to media PTS/90 since we already rounded the media_ts to milliseconds (otherwise we would get rounding errors). 
+	if ((cts == addon->past_media_pts_scaled) || (dts>=addon->past_media_pts_scaled) ) {
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Loop not yet active - CTS "LLD" DTS "LLD" media TS "LLD" \n", cts, dts, addon->past_media_pts_scaled));
+		return;
+	}
+
+	gf_mx_p(addon->root_od->mx);
+
+	addon->loop_detected = 0;
+	addon->media_pts = addon->past_media_pts;
+	addon->media_timestamp = addon->past_media_timestamp;
+	addon->media_timescale = addon->past_media_timescale;
+	assert(addon->past_media_timescale);
+	addon->past_media_pts = 0;
+	addon->past_media_timestamp = 0;
+	addon->past_media_timescale = 0;
+
+	subscene = addon->root_od->subscene;
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Looping addon - CTS "LLD" - addon media TS "LLD" (CTS "LLD") addon media time "LLD"\n", cts, addon->media_pts, addon->media_pts/90, addon->media_timestamp));
+
+	gf_mx_v(addon->root_od->mx);
+
+	i=0;
+	while ((odm = (GF_ObjectManager*)gf_list_enum(subscene->resources, &i))) {
+		gf_odm_play(odm);
+	}
+
+}
+
+Double gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedia *addon)
+{
+	Double media_time;
 	if (!addon->timeline_ready)
 		return clock_time;
 	assert(scene->root_od->addon);
 	assert(scene->root_od->addon==addon);
 
-	media_ts_ms = clock_time*1000;
-
-	media_ts_ms -= (addon->media_pts*1000/90);
-	media_ts_ms += (addon->media_timestamp*1000000) / addon->media_timescale;
-	return media_ts_ms;
+	//get PTS diff (clock is in ms, pt is in 90k)
+	media_time = clock_time;
+	media_time -= addon->media_pts/90;
+	media_time *= addon->media_timescale;
+	media_time /= 1000;
+	media_time += addon->media_timestamp;
+	media_time /= addon->media_timescale;
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Addon about to start - media time %g\n", media_time));
+	return media_time;
 }
 
 u64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon)
@@ -1908,7 +1971,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	GF_NetworkCommand com;
 	GF_CodecCapability caps;
 	Bool nalu_annex_b;
-	GF_Channel *ch;
+	GF_Channel *ch, *base_ch;
 	GF_ObjectManager *odm_base = NULL;
 	u32 i, count, mtype;
 	ch = gf_list_get(odm->channels, 0);
@@ -1927,8 +1990,8 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	odm_base->scalable_odm = odm;
 	
 	nalu_annex_b = 1;
-	ch = gf_list_get(odm_base->channels, 0);
-	if (ch->esd->decoderConfig->decoderSpecificInfo && ch->esd->decoderConfig->decoderSpecificInfo->dataLength)
+	base_ch = gf_list_get(odm_base->channels, 0);
+	if (base_ch->esd->decoderConfig->decoderSpecificInfo && base_ch->esd->decoderConfig->decoderSpecificInfo->dataLength)
 		nalu_annex_b = 0;
 
 	memset(&com, 0, sizeof(GF_NetworkCommand));
@@ -1937,7 +2000,11 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	count = gf_list_count(odm->channels);
 	for (i=0; i<count; i++) {
 		com.base.on_channel = ch = gf_list_get(odm->channels, i);
+		//we must wait for RAP otherwise we won't be able to detect temporal scalability correctly
+		ch->stream_state = 1;
+		ch->media_padding_bytes = base_ch->media_padding_bytes;
 		gf_term_service_command(ch->service, &com);
+
 	}
 
 	//signal to the base decoder that we will want full quality
