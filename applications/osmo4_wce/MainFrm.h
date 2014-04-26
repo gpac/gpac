@@ -27,7 +27,7 @@ public:
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CChildView)
-	protected:
+protected:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	//}}AFX_VIRTUAL
 
@@ -48,7 +48,7 @@ public:
 
 
 
-protected: 
+protected:
 	DECLARE_DYNAMIC(CMainFrame)
 
 // Attributes
@@ -77,12 +77,12 @@ public:
 public:
 	virtual ~CMainFrame();
 
-/*
-#ifdef _DEBUG
-	virtual void AssertValid() const;
-	virtual void Dump(CDumpContext& dc) const;
-#endif
-*/
+	/*
+	#ifdef _DEBUG
+		virtual void AssertValid() const;
+		virtual void Dump(CDumpContext& dc) const;
+	#endif
+	*/
 
 protected:  // control bar embedded members
 

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -35,20 +35,20 @@
 enum
 {
 	QC_NONE				=	0,
-	QC_3DPOS			=	1, 
-	QC_2DPOS			=	2, 
-	QC_ORDER			=	3, 
-	QC_COLOR			=	4, 
-	QC_TEXTURE_COORD	=	5, 
-	QC_ANGLE			=	6, 
-	QC_SCALE			=	7, 
-	QC_INTERPOL_KEYS	=	8, 
-	QC_NORMALS			=	9, 
-	QC_ROTATION			=	10, 
-	QC_SIZE_3D			=	11, 
-	QC_SIZE_2D			=	12, 
-	QC_LINEAR_SCALAR	=	13, 
-	QC_COORD_INDEX		=	14, 
+	QC_3DPOS			=	1,
+	QC_2DPOS			=	2,
+	QC_ORDER			=	3,
+	QC_COLOR			=	4,
+	QC_TEXTURE_COORD	=	5,
+	QC_ANGLE			=	6,
+	QC_SCALE			=	7,
+	QC_INTERPOL_KEYS	=	8,
+	QC_NORMALS			=	9,
+	QC_ROTATION			=	10,
+	QC_SIZE_3D			=	11,
+	QC_SIZE_2D			=	12,
+	QC_LINEAR_SCALAR	=	13,
+	QC_COORD_INDEX		=	14,
 	QC_RESERVED			=	15,
 	QC_NOTDEF			=	16,
 };
@@ -119,4 +119,4 @@ void gp_bifs_aa_dec_reset(GF_AADecoder *dec);
 
 #endif /*GPAC_DISABLE_BIFS*/
 
-#endif	
+#endif

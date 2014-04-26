@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -121,23 +121,23 @@ typedef enum {
 	GF_EVENT_MEDIA_SETUP_DONE,	/*not HTML5 but should be :)*/
 	GF_EVENT_MEDIA_LOAD_START,
 	GF_EVENT_MEDIA_LOAD_DONE,	/*not HTML5 but should be :)*/
-	GF_EVENT_MEDIA_PROGRESS, 
-	GF_EVENT_MEDIA_SUSPEND, 
-	GF_EVENT_MEDIA_EMPTIED, 
-	GF_EVENT_MEDIA_STALLED, 
-	GF_EVENT_MEDIA_LOADED_METADATA, 
-	GF_EVENT_MEDIA_LODADED_DATA, 
-	GF_EVENT_MEDIA_CANPLAY, 
-	GF_EVENT_MEDIA_CANPLAYTHROUGH, 
-	GF_EVENT_MEDIA_PLAYING, 
-	GF_EVENT_MEDIA_WAITING, 
-	GF_EVENT_MEDIA_SEEKING, 
-	GF_EVENT_MEDIA_SEEKED, 
-	GF_EVENT_MEDIA_ENDED, 
-	GF_EVENT_MEDIA_DURATION_CHANGED, 
-	GF_EVENT_MEDIA_TIME_UPDATE, 
-	GF_EVENT_MEDIA_RATECHANGE, 
-	GF_EVENT_MEDIA_VOLUME_CHANGED, 
+	GF_EVENT_MEDIA_PROGRESS,
+	GF_EVENT_MEDIA_SUSPEND,
+	GF_EVENT_MEDIA_EMPTIED,
+	GF_EVENT_MEDIA_STALLED,
+	GF_EVENT_MEDIA_LOADED_METADATA,
+	GF_EVENT_MEDIA_LODADED_DATA,
+	GF_EVENT_MEDIA_CANPLAY,
+	GF_EVENT_MEDIA_CANPLAYTHROUGH,
+	GF_EVENT_MEDIA_PLAYING,
+	GF_EVENT_MEDIA_WAITING,
+	GF_EVENT_MEDIA_SEEKING,
+	GF_EVENT_MEDIA_SEEKED,
+	GF_EVENT_MEDIA_ENDED,
+	GF_EVENT_MEDIA_DURATION_CHANGED,
+	GF_EVENT_MEDIA_TIME_UPDATE,
+	GF_EVENT_MEDIA_RATECHANGE,
+	GF_EVENT_MEDIA_VOLUME_CHANGED,
 
 	GF_EVENT_HTML_MSE_SOURCE_OPEN,
 	GF_EVENT_HTML_MSE_SOURCE_ENDED,
@@ -196,7 +196,7 @@ typedef enum {
 			* for 3D output, this means re-setup of OpenGL context (depending on HW constraints). Depending on windowing systems
 			and implementations, it could be possible to resize a window without destroying the GL context.
 
-		- when sent from plugin to gpac, indicates that hardware has been setup. 
+		- when sent from plugin to gpac, indicates that hardware has been setup.
 		- when sent from gpac to user, indicate aspect ratio has been modified and video output is ready
 	*/
 	GF_EVENT_VIDEO_SETUP,
@@ -225,9 +225,9 @@ typedef enum {
 	GF_EVENT_DISCONNECT, /*indicates the current url should be disconnected*/
 	GF_EVENT_RESOLUTION, /*indicates the screen resolution has changed*/
 	GF_EVENT_OPENFILE,
-    /* Events for Keyboad */
-    GF_EVENT_TEXT_EDITING_START,
-    GF_EVENT_TEXT_EDITING_END,
+	/* Events for Keyboad */
+	GF_EVENT_TEXT_EDITING_START,
+	GF_EVENT_TEXT_EDITING_END,
 
 	GF_EVENT_ADDON_DETECTED,
 } GF_EventType;
@@ -440,7 +440,7 @@ typedef enum {
 	GF_KEY_EPG, /*EPG*/
 	GF_KEY_RECORD, /*Record*/
 	GF_KEY_BEGINPAGE, /*BeginPage*/
-    /* end STB */
+	/* end STB */
 
 	/*non-dom keys, used in LASeR*/
 	GF_KEY_CELL_SOFT1,	/*soft1 key of cell phones*/

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -55,10 +55,10 @@ GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track);
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 
-/*			
+/*
 			track importers
 
-	All these can import a file into a dedicated track. If esd is NULL the track is blindly added 
+	All these can import a file into a dedicated track. If esd is NULL the track is blindly added
 	otherwise it is added with the requested ESID if non-0, otherwise the new trackID is stored in ESID
 	if use_data_ref is set, data is only referenced in the file
 	if duration is not 0, only the first duration seconds are imported
@@ -75,7 +75,7 @@ enum
 	GF_IMPORT_FORCE_PACKED = 1<<2,
 	/*for AAC audio: forces SBR mode with implicit signaling (backward compatible)*/
 	GF_IMPORT_SBR_IMPLICIT = 1<<3,
-	/*for AAC audio: forces SBR mode with explicit signaling (non-backward compatible). 
+	/*for AAC audio: forces SBR mode with explicit signaling (non-backward compatible).
 	Will override GF_IMPORT_SBR_IMPLICIT flag when set*/
 	GF_IMPORT_SBR_EXPLICIT = 1<<4,
 	/*forces MPEG-4 import - some 3GP2 streams have both native IsoMedia sample description and MPEG-4 one possible*/
@@ -96,17 +96,17 @@ enum
 
 	/*for AAC audio: forces PS mode with implicit signaling (backward compatible)*/
 	GF_IMPORT_PS_IMPLICIT = 1<<12,
-	/*for AAC audio: forces PS mode with explicit signaling (non-backward compatible). 
+	/*for AAC audio: forces PS mode with explicit signaling (non-backward compatible).
 	Will override GF_IMPORT_PS_IMPLICIT flag when set*/
 	GF_IMPORT_PS_EXPLICIT = 1<<13,
-	
+
 	/* oversampled SBR */
 	GF_IMPORT_OVSBR = 1<<14,
 
 	/* set subsample information with SVC*/
 	GF_IMPORT_SET_SUBSAMPLES = 1<<15,
 
-	/* force to mark non-IDR frmaes with sync data (I slices,) to be marked as sync points points 
+	/* force to mark non-IDR frmaes with sync data (I slices,) to be marked as sync points points
 	THE RESULTING FILE IS NOT COMPLIANT*/
 	GF_IMPORT_FORCE_SYNC = 1<<16,
 
@@ -173,11 +173,11 @@ typedef struct __track_import
 	GF_ISOFile *dest;
 	/*media to import:
 		MP4/ISO media: trackID
-		AVI files: 
+		AVI files:
 			0: first video and first audio,
 			1: video track
 			2->any: audio track(s)
-		MPEG-PS files with N video streams: 
+		MPEG-PS files with N video streams:
 			0: first video and first audio
 			1->N: video track
 			N+1->any: audio track
@@ -205,7 +205,7 @@ typedef struct __track_import
 	u32 final_trackID;
 	/*optional format indication for media source (used in IM1)*/
 	char *force_ext;
-	
+
 	/*for MP4 import only*/
 	GF_ISOFile *orig;
 
@@ -218,7 +218,7 @@ typedef struct __track_import
 	/*Initial offset of the first AU to import*/
 	Double initial_time_offset;
 
-	/*number of tracks after probing - may be set to 0, in which case no track 
+	/*number of tracks after probing - may be set to 0, in which case no track
 	selection can be performed. It may also be inaccurate if probing doesn't
 	detect all available tracks (cf ogg import)*/
 	u32 nb_tracks;
@@ -273,7 +273,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file);
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 
-typedef struct 
+typedef struct
 {
 	char *file_name;
 	char representationID[100];
@@ -307,14 +307,14 @@ typedef enum
 	GF_DASH_BSMODE_SINGLE
 } GF_DashSwitchingMode;
 
-GF_Err gf_dasher_segment_files(const char *mpd_name, GF_DashSegmenterInput *inputs, u32 nb_inputs, GF_DashProfile profile, 
-							   const char *mpd_title, const char *mpd_source, const char *mpd_copyright,
-							   const char *mpd_moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls, 
-							   u32 use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching_mode,
-							   Bool segments_start_with_rap, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, u32 segment_marker_4cc,
-							   Double frag_duration_sec, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool fragments_start_with_rap, const char *tmp_dir,  
-							   GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer, 
-							   u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf);
+GF_Err gf_dasher_segment_files(const char *mpd_name, GF_DashSegmenterInput *inputs, u32 nb_inputs, GF_DashProfile profile,
+                               const char *mpd_title, const char *mpd_source, const char *mpd_copyright,
+                               const char *mpd_moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls,
+                               u32 use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching_mode,
+                               Bool segments_start_with_rap, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, u32 segment_marker_4cc,
+                               Double frag_duration_sec, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool fragments_start_with_rap, const char *tmp_dir,
+                               GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
+                               u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf);
 
 /*returns time to wait until end of currently generated segments*/
 u32 gf_dasher_next_update_time(GF_Config *dash_ctx, u32 mpd_update_time);
@@ -335,7 +335,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 enum
 {
-	/*track dumper types are formatted as flags for conveniency for 
+	/*track dumper types are formatted as flags for conveniency for
 	authoring tools, but never used as a OR'ed set*/
 	/*native format (JPG, PNG, MP3, etc) if supported*/
 	GF_EXPORT_NATIVE = GF_TRUE,
@@ -407,9 +407,9 @@ GF_Err gf_media_export(GF_MediaExporter *dump);
 */
 typedef struct __tag_isom_hinter GF_RTPHinter;
 
-GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum, 
-							u32 Path_MTU, u32 max_ptime, u32 default_rtp_rate, u32 hint_flags, u8 PayloadID, 
-							Bool copy_media, u32 InterleaveGroupID, u8 InterleaveGroupPriority, GF_Err *e);
+GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
+                                  u32 Path_MTU, u32 max_ptime, u32 default_rtp_rate, u32 hint_flags, u8 PayloadID,
+                                  Bool copy_media, u32 InterleaveGroupID, u8 InterleaveGroupPriority, GF_Err *e);
 /*delete the track hinter*/
 void gf_hinter_track_del(GF_RTPHinter *tkHinter);
 /*hints all samples in the media track*/
@@ -418,7 +418,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint);
 u32 gf_hinter_track_get_bandwidth(GF_RTPHinter *tkHinter);
 /*retrieves hinter flags*/
 u32 gf_hinter_track_get_flags(GF_RTPHinter *tkHinter);
-/*retrieves rtp payload name 
+/*retrieves rtp payload name
 	@payloadName: static buffer for retrieval, minimum 30 bytes
 */
 void gf_hinter_track_get_payload_name(GF_RTPHinter *tkHint, char *payloadName);
@@ -467,7 +467,7 @@ void gf_saf_mux_del(GF_SAFMuxer *mux);
 GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 buffersize_db, u8 stream_type, u8 object_type, char *mime_type, char *dsi, u32 dsi_len, char *remote_url);
 /*removes a stream from the SAF multiplex*/
 GF_Err gf_saf_mux_stream_rem(GF_SAFMuxer *mux, u32 stream_id);
-/*adds an AU to the given stream. !!AU data will be freed by the multiplexer!! 
+/*adds an AU to the given stream. !!AU data will be freed by the multiplexer!!
 AUs are not reinterleaved based on their CTS, in order to enable audio interleaving
 */
 GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u32 data_len, Bool is_rap);

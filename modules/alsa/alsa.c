@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 
@@ -28,11 +28,11 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <poll.h>
-#include <alsa/asoundlib.h>	      
+#include <alsa/asoundlib.h>
 #include <gpac/modules/audio_out.h>
 
 
-typedef struct 
+typedef struct
 {
 	snd_pcm_t *playback_handle;
 	u32 nb_ch, buf_size, delay, num_buffers, total_duration, block_align;
@@ -47,7 +47,7 @@ static GF_Err ALSA_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u3
 	int err;
 	const char *opt;
 	ALSAContext *ctx = (ALSAContext*)dr->opaque;
-	
+
 
 	opt = gf_modules_get_option((GF_BaseInterface *)dr, "ALSA", "ForceSampleRate");
 	if (opt) ctx->force_sr = atoi(opt);
@@ -180,7 +180,7 @@ static GF_Err ALSA_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCh
 	ctx->buf_size *= ctx->block_align;
 	/*get period time*/
 	snd_pcm_hw_params_get_period_time(hw_params, &period_time, 0);
-	
+
 	err = snd_pcm_hw_params(ctx->playback_handle, hw_params);
 	if (err < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[ALSA] Cannot set parameters: %s\n", snd_strerror (err)) );
@@ -196,7 +196,7 @@ static GF_Err ALSA_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCh
 	if(!ctx->wav_buf) return GF_OUT_OF_MEM;
 	memset(ctx->wav_buf, 0, ctx->buf_size*sizeof(char));
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[ALSA] Setup %d ch @ %d hz - %d periods of %d us - total buffer size %d - overall delay %d ms\n", ctx->nb_ch, sr, nb_bufs, period_time, ctx->buf_size, ctx->delay));
-	
+
 	return GF_OK;
 
 err_exit:
@@ -239,7 +239,7 @@ static void ALSA_WriteAudio(GF_AudioOutput*dr)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[ALSA] no frame to write\n" ));
 		return;
 	}
-	
+
 	//assert(nb_frames*ctx->block_align<=ctx->buf_size);
 	written = dr->FillBuffer(dr->audio_renderer, ctx->wav_buf, (u32) (ctx->block_align*nb_frames) );
 	if (!written) return;
@@ -260,11 +260,11 @@ static void ALSA_SetVolume(GF_AudioOutput*dr, u32 Volume)
 {
 }
 
-static void ALSA_SetPan(GF_AudioOutput*dr, u32 Pan) 
+static void ALSA_SetPan(GF_AudioOutput*dr, u32 Pan)
 {
 }
 
-static void ALSA_SetPriority(GF_AudioOutput*dr, u32 Priority) 
+static void ALSA_SetPriority(GF_AudioOutput*dr, u32 Priority)
 {
 }
 
@@ -352,19 +352,19 @@ void DeleteALSAOutput(void *ifce)
  * interface
  */
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_AUDIO_OUTPUT_INTERFACE,
 		0
 	};
-	return si; 
+	return si;
 }
 
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) 
+	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
 		return NewALSAOutput();
 	return NULL;
 }

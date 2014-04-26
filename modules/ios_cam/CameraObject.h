@@ -29,23 +29,23 @@
 #include "cam_wrap.h"
 
 @interface CameraObject : NSObject
-<AVCaptureVideoDataOutputSampleBufferDelegate>
+	<AVCaptureVideoDataOutputSampleBufferDelegate>
 {
-    //    AVCaptureSession *session;
-    //    AVCaptureDevice *device;
-    AVCaptureDeviceInput *input;
-    AVCaptureVideoDataOutput *output;
-    
-    int desiredWidth;
-    int desiredHeight;
-    int desiredColor;
-    
-    int m_width;
-    int m_height;
-    int m_color;
-    int m_stride;
-    
-    GetPixelsCallback *callback;
+	//    AVCaptureSession *session;
+	//    AVCaptureDevice *device;
+	AVCaptureDeviceInput *input;
+	AVCaptureVideoDataOutput *output;
+
+	int desiredWidth;
+	int desiredHeight;
+	int desiredColor;
+
+	int m_width;
+	int m_height;
+	int m_color;
+	int m_stride;
+
+	GetPixelsCallback *callback;
 }
 
 @property (retain) AVCaptureSession *captureSession;
@@ -58,7 +58,7 @@
 - (int) setCallback:(GetPixelsCallback*) func;
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
-didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
-       fromConnection:(AVCaptureConnection *)connection;
+    didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
+    fromConnection:(AVCaptureConnection *)connection;
 
 @end

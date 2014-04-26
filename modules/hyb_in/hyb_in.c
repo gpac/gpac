@@ -175,12 +175,12 @@ static GF_Err HYB_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 
 	if (!plug || !plug->priv)
 		return GF_SERVICE_ERROR;
-	
+
 	hyb_in = (GF_HYB_In*)plug->priv;
 	master = (GF_HYBMEDIA*)hyb_in->master;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Channel Connection request from service %p for %s\n", channel, url));
-	
+
 	master->channel = channel;
 	gf_term_on_connect(hyb_in->service, channel, GF_OK);
 
@@ -271,7 +271,7 @@ const u32 *QueryInterfaces()
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
- 	GF_HYB_In *hyb_in;
+	GF_HYB_In *hyb_in;
 	GF_InputService *plug;
 	if (InterfaceType != GF_NET_CLIENT_INTERFACE) return NULL;
 

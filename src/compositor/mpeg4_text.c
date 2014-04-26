@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -86,7 +86,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 	if (fontSize <= 0) {
 		fontSize = INT2FIX(12);
 		if (!tr_state->pixel_metrics) fontSize = gf_divfix(fontSize, tr_state->visual->compositor->output_width);
-    }
+	}
 
 	styles = 0;
 	if (fs && fs->style.buffer) {
@@ -113,7 +113,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 	else {
 		start_y = st->ascent;
 	}
-	
+
 	st->bounds.width = st->bounds.x = st->bounds.height = 0;
 	idx = 0;
 	split_words = (tr_state->text_split_mode==1) ? 1 : 0;
@@ -138,9 +138,9 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 
 			/*we currently only split sentences at spaces*/
 			if (tspan->glyphs[j]->utf_name == (unsigned short) ' ') is_space = 1;
-			else if (tspan->glyphs[j]->utf_name == (unsigned short) '\n') 
+			else if (tspan->glyphs[j]->utf_name == (unsigned short) '\n')
 				is_space = 2;
-			if (split_words && (j+1!=len) && !is_space) 
+			if (split_words && (j+1!=len) && !is_space)
 				continue;
 
 			span = (GF_TextSpan*) gf_malloc(sizeof(GF_TextSpan));
@@ -213,7 +213,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 	if (fontSize <= 0) {
 		fontSize = INT2FIX(12);
 		if (!tr_state->pixel_metrics) fontSize = gf_divfix(fontSize, tr_state->visual->compositor->output_width);
-    }
+	}
 	horizontal = FSHORIZ;
 	start_x = start_y = 0;
 
@@ -254,7 +254,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 
 		tspan = gf_font_manager_create_span(ft_mgr, font, txt->string.vals[i], fontSize, 0, 0, 0, NULL, 0, styles, (GF_Node*)txt);
 		if (!tspan) continue;
-		
+
 		if (horizontal) tspan->flags |= GF_TEXT_SPAN_HORIZONTAL;
 
 		size = 0;
@@ -327,7 +327,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 	}
 	if (trim_tspan)	gf_font_manager_delete_span(ft_mgr, trim_tspan);
 
-	
+
 	max_scale = FIX_ONE;
 	if (horizontal) {
 		if ((maxExtent > 0) && (tot_width>maxExtent)) {
@@ -405,7 +405,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 			}
 		}
 	}
-			
+
 
 	/*major-justification*/
 	if (!strcmp(FSMAJOR, "MIDDLE") ) {
@@ -568,9 +568,9 @@ static void text_check_changes(GF_Node *node, TextStack *stack, GF_TraverseState
 		gf_node_dirty_clear(node, 0);
 		drawable_mark_modified(stack->graph, tr_state);
 	}
-	
+
 	if (tr_state->visual->compositor->edited_text && (tr_state->visual->compositor->focus_node==node)) {
-		drawable_mark_modified(stack->graph, tr_state);	
+		drawable_mark_modified(stack->graph, tr_state);
 		tr_state->visual->has_text_edit = 1;
 		if (!stack->bounds.width) stack->bounds.width = INT2FIX(1)/100;
 		if (!stack->bounds.height) stack->bounds.height = INT2FIX(1)/100;
@@ -649,12 +649,12 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 	/*if text selection mode, we must force redraw of the entire text span because we don't
 	if glyphs have been (un)selected*/
-	if (!tr_state->immediate_draw && 
-		/*text selection on*/
-		(tr_state->visual->compositor->text_selection 
-		/*text sel release*/
-		|| (tr_state->visual->compositor->store_text_state==GF_SC_TSEL_RELEASED)) 
-	) {
+	if (!tr_state->immediate_draw &&
+	        /*text selection on*/
+	        (tr_state->visual->compositor->text_selection
+	         /*text sel release*/
+	         || (tr_state->visual->compositor->store_text_state==GF_SC_TSEL_RELEASED))
+	   ) {
 		GF_TextSpan *span;
 		u32 i = 0;
 		Bool unselect = (tr_state->visual->compositor->store_text_state==GF_SC_TSEL_RELEASED) ? 1 : 0;

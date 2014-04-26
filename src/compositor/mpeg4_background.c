@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -90,7 +90,7 @@ static void DestroyBackground(GF_Node *node)
 
 	if (ptr->sky_mesh) mesh_free(ptr->sky_mesh);
 	if (ptr->ground_mesh) mesh_free(ptr->ground_mesh);
-	
+
 	gf_sg_vrml_mf_reset(&ptr->ground_ang, GF_SG_VRML_MFFLOAT);
 	gf_sg_vrml_mf_reset(&ptr->sky_ang, GF_SG_VRML_MFFLOAT);
 	gf_sg_vrml_mf_reset(&ptr->ground_col, GF_SG_VRML_MFCOLOR);
@@ -103,14 +103,14 @@ static void DestroyBackground(GF_Node *node)
 	mesh_free(ptr->left_mesh);
 	mesh_free(ptr->right_mesh);
 
-	
+
 	gf_sc_texture_destroy(&ptr->txh_front);
 	gf_sc_texture_destroy(&ptr->txh_back);
 	gf_sc_texture_destroy(&ptr->txh_top);
 	gf_sc_texture_destroy(&ptr->txh_bottom);
 	gf_sc_texture_destroy(&ptr->txh_left);
 	gf_sc_texture_destroy(&ptr->txh_right);
-	
+
 	gf_free(ptr);
 }
 
@@ -142,14 +142,15 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 	start_col.alpha = end_col.alpha = FIX_ONE;
 	vx.texcoords.x = vx.texcoords.y = 0;
 	vx.color = MESH_MAKE_COL(start_col);
-	vx.pos.x = vx.pos.z = 0; vx.pos.y = FIX_ONE;
-	vx.normal.x = vx.normal.z = 0; 
+	vx.pos.x = vx.pos.z = 0;
+	vx.pos.y = FIX_ONE;
+	vx.normal.x = vx.normal.z = 0;
 	vx.normal.y = -MESH_NORMAL_UNIT;
 
 	mesh_set_vertex_vx(mesh, &vx);
 	last_idx = 0;
 	ang_idx = 0;
-	
+
 	pad = 1;
 	next_angle = first_angle = 0;
 	if (angles->count) {
@@ -163,13 +164,13 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 	if (ground_dome) {
 		step_div_h *= 2;
 		i=1;
-	} 
-	
+	}
+
 	for (; i<DOME_STEP_V; i++) {
 		if (ground_dome) {
-	        angle = first_angle + (i * (GF_PI2-first_angle) / DOME_STEP_V);
+			angle = first_angle + (i * (GF_PI2-first_angle) / DOME_STEP_V);
 		} else {
-	        angle = (i * GF_PI / DOME_STEP_V);
+			angle = (i * GF_PI / DOME_STEP_V);
 		}
 
 		/*switch cols*/
@@ -202,15 +203,15 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 		}
 		vx.color = MESH_MAKE_COL(fcol);
 
-        vx.pos.y = gf_sin(GF_PI2 - angle);
-        r = gf_sqrt(FIX_ONE - gf_mulfix(vx.pos.y, vx.pos.y));
-	
+		vx.pos.y = gf_sin(GF_PI2 - angle);
+		r = gf_sqrt(FIX_ONE - gf_mulfix(vx.pos.y, vx.pos.y));
+
 		new_idx = mesh->v_count;
-        for (j = 0; j < step_div_h; j++) {
+		for (j = 0; j < step_div_h; j++) {
 			SFVec3f n;
-            Fixed lon = 2 * GF_PI * j / step_div_h;
-            vx.pos.x = gf_mulfix(gf_sin(lon), r);
-            vx.pos.z = gf_mulfix(gf_cos(lon), r);
+			Fixed lon = 2 * GF_PI * j / step_div_h;
+			vx.pos.x = gf_mulfix(gf_sin(lon), r);
+			vx.pos.z = gf_mulfix(gf_cos(lon), r);
 			n = gf_vec_scale(vx.pos, FIX_ONE /*-FIX_ONE*/);
 			gf_vec_norm(&n);
 			MESH_SET_NORMAL(vx, n);
@@ -224,7 +225,7 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 					mesh_set_triangle(mesh, 0, new_idx+j, new_idx+j-1);
 				}
 			}
-        }
+		}
 		if (i>1) {
 			mesh_set_triangle(mesh, last_idx, new_idx, new_idx+step_div_h-1);
 			mesh_set_triangle(mesh, last_idx, new_idx+step_div_h-1, last_idx+step_div_h-1);
@@ -236,8 +237,9 @@ static void back_build_dome(GF_Mesh *mesh, MFFloat *angles, MFColor *color, Bool
 
 	if (!ground_dome) {
 		new_idx = mesh->v_count;
-		vx.pos.x = vx.pos.z = 0; vx.pos.y = -FIX_ONE;
-		vx.normal.x = vx.normal.z = 0; 
+		vx.pos.x = vx.pos.z = 0;
+		vx.pos.y = -FIX_ONE;
+		vx.normal.x = vx.normal.z = 0;
 		vx.normal.y = MESH_NORMAL_UNIT;
 		mesh_set_vertex_vx(mesh, &vx);
 
@@ -283,7 +285,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 	st = (BackgroundStack *) gf_node_get_private(node);
 	compositor = (GF_Compositor*)st->compositor;
 
-	
+
 	/*may happen in get_bounds*/
 	if (!tr_state->backgrounds) return;
 
@@ -339,7 +341,8 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	/*undo translation*/
-	res.x = res.y = res.z = 0; res.q = FIX_ONE;
+	res.x = res.y = res.z = 0;
+	res.q = FIX_ONE;
 	gf_mx_apply_vec_4x4(&tr_state->camera->unprojection, &res);
 	assert(res.q);
 	res.x = gf_divfix(res.x, res.q);
@@ -461,7 +464,8 @@ void compositor_init_background(GF_Compositor *compositor, GF_Node *node)
 	mesh_set_vertex(ptr->front_mesh,  PLANE_HSIZE, -PLANE_HSIZE, -PLANE_HSIZE_LOW,  0,  0,  FIX_ONE, FIX_ONE, 0);
 	mesh_set_vertex(ptr->front_mesh,  PLANE_HSIZE,  PLANE_HSIZE, -PLANE_HSIZE_LOW,  0,  0,  FIX_ONE, FIX_ONE, FIX_ONE);
 	mesh_set_vertex(ptr->front_mesh, -PLANE_HSIZE,  PLANE_HSIZE, -PLANE_HSIZE_LOW,  0,  0,  FIX_ONE, 0, FIX_ONE);
-	mesh_set_triangle(ptr->front_mesh, 0, 1, 2); mesh_set_triangle(ptr->front_mesh, 0, 2, 3);
+	mesh_set_triangle(ptr->front_mesh, 0, 1, 2);
+	mesh_set_triangle(ptr->front_mesh, 0, 2, 3);
 	mesh_update_bounds(ptr->front_mesh);
 
 	ptr->back_mesh = new_mesh();
@@ -469,7 +473,8 @@ void compositor_init_background(GF_Compositor *compositor, GF_Node *node)
 	mesh_set_vertex(ptr->back_mesh,  PLANE_HSIZE, -PLANE_HSIZE,  PLANE_HSIZE_LOW,  0,  0,  -FIX_ONE, 0, 0);
 	mesh_set_vertex(ptr->back_mesh,  PLANE_HSIZE,  PLANE_HSIZE,  PLANE_HSIZE_LOW,  0,  0,  -FIX_ONE, 0, FIX_ONE);
 	mesh_set_vertex(ptr->back_mesh, -PLANE_HSIZE,  PLANE_HSIZE,  PLANE_HSIZE_LOW,  0,  0,  -FIX_ONE, FIX_ONE, FIX_ONE);
-	mesh_set_triangle(ptr->back_mesh, 0, 1, 2); mesh_set_triangle(ptr->back_mesh, 0, 2, 3);
+	mesh_set_triangle(ptr->back_mesh, 0, 1, 2);
+	mesh_set_triangle(ptr->back_mesh, 0, 2, 3);
 	mesh_update_bounds(ptr->back_mesh);
 
 	ptr->top_mesh = new_mesh();
@@ -477,7 +482,8 @@ void compositor_init_background(GF_Compositor *compositor, GF_Node *node)
 	mesh_set_vertex(ptr->top_mesh,  PLANE_HSIZE,  PLANE_HSIZE_LOW,  PLANE_HSIZE,  0,  -FIX_ONE,  0, 0, FIX_ONE);
 	mesh_set_vertex(ptr->top_mesh,  PLANE_HSIZE,  PLANE_HSIZE_LOW, -PLANE_HSIZE,  0,  -FIX_ONE,  0, FIX_ONE, FIX_ONE);
 	mesh_set_vertex(ptr->top_mesh, -PLANE_HSIZE,  PLANE_HSIZE_LOW, -PLANE_HSIZE,  0,  -FIX_ONE,  0, FIX_ONE, 0);
-	mesh_set_triangle(ptr->top_mesh, 0, 1, 2); mesh_set_triangle(ptr->top_mesh, 0, 2, 3);
+	mesh_set_triangle(ptr->top_mesh, 0, 1, 2);
+	mesh_set_triangle(ptr->top_mesh, 0, 2, 3);
 	mesh_update_bounds(ptr->top_mesh);
 
 	ptr->bottom_mesh = new_mesh();
@@ -485,7 +491,8 @@ void compositor_init_background(GF_Compositor *compositor, GF_Node *node)
 	mesh_set_vertex(ptr->bottom_mesh,  PLANE_HSIZE, -PLANE_HSIZE_LOW, -PLANE_HSIZE,  0, FIX_ONE,  0, FIX_ONE, 0);
 	mesh_set_vertex(ptr->bottom_mesh,  PLANE_HSIZE, -PLANE_HSIZE_LOW,  PLANE_HSIZE,  0, FIX_ONE,  0, 0, 0);
 	mesh_set_vertex(ptr->bottom_mesh, -PLANE_HSIZE, -PLANE_HSIZE_LOW,  PLANE_HSIZE,  0, FIX_ONE,  0, 0, FIX_ONE);
-	mesh_set_triangle(ptr->bottom_mesh, 0, 1, 2); mesh_set_triangle(ptr->bottom_mesh, 0, 2, 3);
+	mesh_set_triangle(ptr->bottom_mesh, 0, 1, 2);
+	mesh_set_triangle(ptr->bottom_mesh, 0, 2, 3);
 	mesh_update_bounds(ptr->bottom_mesh);
 
 	ptr->left_mesh = new_mesh();
@@ -493,7 +500,8 @@ void compositor_init_background(GF_Compositor *compositor, GF_Node *node)
 	mesh_set_vertex(ptr->left_mesh, -PLANE_HSIZE_LOW, -PLANE_HSIZE,  PLANE_HSIZE, FIX_ONE,  0,  0, 0, 0);
 	mesh_set_vertex(ptr->left_mesh, -PLANE_HSIZE_LOW,  PLANE_HSIZE,  PLANE_HSIZE, FIX_ONE,  0,  0, 0, FIX_ONE);
 	mesh_set_vertex(ptr->left_mesh, -PLANE_HSIZE_LOW,  PLANE_HSIZE, -PLANE_HSIZE, FIX_ONE,  0,  0, FIX_ONE, FIX_ONE);
-	mesh_set_triangle(ptr->left_mesh, 0, 1, 2); mesh_set_triangle(ptr->left_mesh, 0, 2, 3);
+	mesh_set_triangle(ptr->left_mesh, 0, 1, 2);
+	mesh_set_triangle(ptr->left_mesh, 0, 2, 3);
 	mesh_update_bounds(ptr->left_mesh);
 
 	ptr->right_mesh = new_mesh();
@@ -501,7 +509,8 @@ void compositor_init_background(GF_Compositor *compositor, GF_Node *node)
 	mesh_set_vertex(ptr->right_mesh,  PLANE_HSIZE_LOW, -PLANE_HSIZE, -PLANE_HSIZE, -FIX_ONE,  0,  0, 0, 0);
 	mesh_set_vertex(ptr->right_mesh,  PLANE_HSIZE_LOW,  PLANE_HSIZE, -PLANE_HSIZE, -FIX_ONE,  0,  0, 0, FIX_ONE);
 	mesh_set_vertex(ptr->right_mesh,  PLANE_HSIZE_LOW,  PLANE_HSIZE,  PLANE_HSIZE, -FIX_ONE,  0,  0, FIX_ONE, FIX_ONE);
-	mesh_set_triangle(ptr->right_mesh, 0, 1, 2); mesh_set_triangle(ptr->right_mesh, 0, 2, 3);
+	mesh_set_triangle(ptr->right_mesh, 0, 1, 2);
+	mesh_set_triangle(ptr->right_mesh, 0, 2, 3);
 	mesh_update_bounds(ptr->right_mesh);
 
 
@@ -530,8 +539,8 @@ void compositor_background_modified(GF_Node *node)
 	if (!st) return;
 
 	if (!gf_sg_vrml_field_equal(&bck->skyColor, &st->sky_col, GF_SG_VRML_MFCOLOR)
-		|| !gf_sg_vrml_field_equal(&bck->skyAngle, &st->sky_ang, GF_SG_VRML_MFFLOAT)
-		) {
+	        || !gf_sg_vrml_field_equal(&bck->skyAngle, &st->sky_ang, GF_SG_VRML_MFFLOAT)
+	   ) {
 
 		if (st->sky_mesh) mesh_free(st->sky_mesh);
 		st->sky_mesh = NULL;
@@ -539,8 +548,8 @@ void compositor_background_modified(GF_Node *node)
 		gf_sg_vrml_field_copy(&st->sky_ang, &bck->skyAngle, GF_SG_VRML_MFFLOAT);
 	}
 	if (!gf_sg_vrml_field_equal(&bck->groundColor, &st->ground_col, GF_SG_VRML_MFCOLOR)
-		|| !gf_sg_vrml_field_equal(&bck->groundAngle, &st->ground_ang, GF_SG_VRML_MFFLOAT)
-		) {
+	        || !gf_sg_vrml_field_equal(&bck->groundAngle, &st->ground_ang, GF_SG_VRML_MFFLOAT)
+	   ) {
 
 		if (st->ground_mesh) mesh_free(st->ground_mesh);
 		st->ground_mesh = NULL;
@@ -555,7 +564,7 @@ void compositor_background_modified(GF_Node *node)
 	back_check_gf_sc_texture_change(&st->txh_left, &bck->leftUrl);
 	back_check_gf_sc_texture_change(&st->txh_right, &bck->rightUrl);
 
-	
+
 	gf_sc_invalidate(st->compositor, NULL);
 }
 

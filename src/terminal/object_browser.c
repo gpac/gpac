@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -200,7 +200,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 	} else if (odm->state) {
 		u32 i, buf;
 		GF_Clock *ck;
-		
+
 		ck = gf_odm_get_media_clock(odm);
 		/*no clock means setup failed*/
 		if (!ck) {
@@ -228,12 +228,12 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 	info->has_profiles = (odm->flags & GF_ODM_HAS_PROFILES) ? 1 : 0;
 	if (info->has_profiles) {
 		info->inline_pl = (odm->flags & GF_ODM_INLINE_PROFILES) ? 1 : 0;
-		info->OD_pl = odm->OD_PL; 
+		info->OD_pl = odm->OD_PL;
 		info->scene_pl = odm->Scene_PL;
 		info->audio_pl = odm->Audio_PL;
 		info->visual_pl = odm->Visual_PL;
 		info->graphics_pl = odm->Graphics_PL;
-	}	
+	}
 
 	if (odm->net_service) {
 		info->service_handler = odm->net_service->ifce->module_name;
@@ -259,8 +259,8 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 				info->direct_video_memory = 1;
 			}
 		}
-	} 
-	
+	}
+
 	if (odm->subscene && odm->subscene->scene_codec) {
 		GF_BaseDecoder *dec = odm->subscene->scene_codec->decio;
 		assert(odm->subscene->root_od==odm) ;
@@ -361,7 +361,7 @@ const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od
 		info = (GF_Node*) (scene_od->subscene ? scene_od->subscene->world_info : scene_od->parentscene->world_info);
 	}
 	if (!info) return NULL;
-	
+
 	if (gf_node_get_tag(info) == TAG_SVG_title) {
 		/*FIXME*/
 		//return ((SVG_titleElement *) info)->textContent;
@@ -400,7 +400,7 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 		odm = term->root_scene->root_od;
 	} else {
 		odm = scene_od;
-		if (!gf_term_check_odm(term, scene_od)) 
+		if (!gf_term_check_odm(term, scene_od))
 			odm = term->root_scene->root_od;
 	}
 

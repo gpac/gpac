@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -15,7 +15,7 @@
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.	
+ *  GNU Lesser General Public License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
@@ -1145,7 +1145,8 @@ u32 gf_bifs_get_node_type(u32 NDT_Tag, u32 NodeTag, u32 Version)
 	default:
 		return 0;
 	}
-}u32 GetChildrenNDT(GF_Node *node)
+}
+u32 GetChildrenNDT(GF_Node *node)
 {
 	if (!node) return 0;
 	switch (gf_node_get_tag(node)) {

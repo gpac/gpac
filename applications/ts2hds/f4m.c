@@ -13,15 +13,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -47,18 +47,18 @@ struct __tag_adobe_multirate
 	GF_List *streams;
 };
 
-static GF_Err adobe_gen_stream_manifest(AdobeStream *as) 
-{ 
-	fprintf(as->f, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"); 
-	fprintf(as->f, "<manifest xmlns=\"http://ns.adobe.com/f4m/1.0\">\n"); 
-	fprintf(as->f, "<id>%s</id>\n", as->id); 
-	if (as->base_url) 
-		fprintf(as->f, "<baseURL>%s</baseURL>\n", as->base_url); 
-	fprintf(as->f, "<bootstrapInfo profile=\"named\" id=\"boot_%s_%d\" url=\"%s_%d.bootstrap\"/>\n", as->id, as->bitrate, as->id, as->bitrate); 
-	fprintf(as->f, "<media url=\"%s_%u_\" bitrate=\"%u\" bootstrapInfoId=\"boot_%s_%d\"/>\n", as->id, as->bitrate, as->bitrate, as->id, as->bitrate); 
-	fprintf(as->f, "</manifest>\n"); 
+static GF_Err adobe_gen_stream_manifest(AdobeStream *as)
+{
+	fprintf(as->f, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
+	fprintf(as->f, "<manifest xmlns=\"http://ns.adobe.com/f4m/1.0\">\n");
+	fprintf(as->f, "<id>%s</id>\n", as->id);
+	if (as->base_url)
+		fprintf(as->f, "<baseURL>%s</baseURL>\n", as->base_url);
+	fprintf(as->f, "<bootstrapInfo profile=\"named\" id=\"boot_%s_%d\" url=\"%s_%d.bootstrap\"/>\n", as->id, as->bitrate, as->id, as->bitrate);
+	fprintf(as->f, "<media url=\"%s_%u_\" bitrate=\"%u\" bootstrapInfoId=\"boot_%s_%d\"/>\n", as->id, as->bitrate, as->bitrate, as->id, as->bitrate);
+	fprintf(as->f, "</manifest>\n");
 
-	return GF_OK; 
+	return GF_OK;
 }
 
 AdobeMultirate *adobe_alloc_multirate_manifest(char *id)
@@ -84,16 +84,16 @@ AdobeMultirate *adobe_alloc_multirate_manifest(char *id)
 		AdobeStream *as = gf_calloc(1, sizeof(AdobeStream));
 		as->id = "HD";
 		as->bitrate = 100;
-		sprintf(filename, "%s_%s_%d.f4m", am->id, as->id, as->bitrate); 
-		as->f = fopen(filename, "wt"); 
-		if (!as->f) { 
-			fprintf(stderr, "Couldn't create Adobe stream manifest file: %s\n", filename); 
-			assert(0); 
-			gf_list_del(am->streams); 
-			gf_free(as); 
-			gf_free(am); 
-			return NULL; 
-		} 
+		sprintf(filename, "%s_%s_%d.f4m", am->id, as->id, as->bitrate);
+		as->f = fopen(filename, "wt");
+		if (!as->f) {
+			fprintf(stderr, "Couldn't create Adobe stream manifest file: %s\n", filename);
+			assert(0);
+			gf_list_del(am->streams);
+			gf_free(as);
+			gf_free(am);
+			return NULL;
+		}
 		gf_list_add(am->streams, as);
 	}
 
@@ -110,8 +110,8 @@ void adobe_free_multirate_manifest(AdobeMultirate *am)
 	for (i=0; i<gf_list_count(am->streams); i++) {
 		AdobeStream *as = gf_list_get(am->streams, i);
 		assert(as);
-		if (as->f) 
-			fclose(as->f); 
+		if (as->f)
+			fclose(as->f);
 		//TODO: base_url and id may be stored as gf_strdup in the future
 		gf_list_rem(am->streams, i);
 		gf_free(as);
@@ -134,7 +134,7 @@ GF_Err adobe_gen_multirate_manifest(AdobeMultirate* am, char *bootstrap, size_t 
 	fprintf(am->f, "<manifest xmlns=\"http://ns.adobe.com/f4m/2.0\">\n");
 	fprintf(am->f, "<id>%s</id>\n", am->id);
 	fprintf(am->f, "<baseURL>%s</baseURL>\n", am->base_url);
-    fprintf(am->f, "<streamType>live</streamType>\n");
+	fprintf(am->f, "<streamType>live</streamType>\n");
 
 	assert(am->streams);
 	for (i=0; i<gf_list_count(am->streams); i++) {
@@ -159,12 +159,12 @@ GF_Err adobe_gen_multirate_manifest(AdobeMultirate* am, char *bootstrap, size_t 
 			fclose(bstfile);
 		}
 #endif
-		e = adobe_gen_stream_manifest(as); 
-		if (!e) { 
-			if (!am->base_url && !as->base_url) 
-				fprintf(stderr, "Warning: no base_url specified\n"); 
+		e = adobe_gen_stream_manifest(as);
+		if (!e) {
+			if (!am->base_url && !as->base_url)
+				fprintf(stderr, "Warning: no base_url specified\n");
 
-			fprintf(am->f, "<media href=\"%s_%s_%d.f4m\" bitrate=\"%d\"/>\n", am->id, as->id, as->bitrate, as->bitrate); 
+			fprintf(am->f, "<media href=\"%s_%s_%d.f4m\" bitrate=\"%d\"/>\n", am->id, as->id, as->bitrate, as->bitrate);
 		}
 	}
 	fprintf(am->f, "</manifest>\n");

@@ -78,20 +78,20 @@ extern dword xvid_debug;
  | Common msvc stuff
  *---------------------------------------------------------------------------*/
 
-    /*
-     * This function must be declared/defined all the time because MSVC does
-     * not support C99 variable arguments macros.
-     *
-     * Btw, if the MS compiler does its job well, it should remove the nop
-     * DPRINTF function when not compiling in _DEBUG mode
-     */
+/*
+ * This function must be declared/defined all the time because MSVC does
+ * not support C99 variable arguments macros.
+ *
+ * Btw, if the MS compiler does its job well, it should remove the nop
+ * DPRINTF function when not compiling in _DEBUG mode
+ */
 #if defined _DEBUG && defined _WINDOWS
 
 void DPRINTF(int level, char *fmt, int p=0);
 
 #else
 
-inline void DPRINTF(int level, char *fmt, int p=0){}
+inline void DPRINTF(int level, char *fmt, int p=0) {}
 
 #endif
 
@@ -112,17 +112,17 @@ inline void DPRINTF(int level, char *fmt, int p=0){}
  */
 #    ifdef _DEBUG
 
-        /* Needed for all debuf fprintf calls */
+/* Needed for all debuf fprintf calls */
 #       include <stdio.h>
 #       include <stdarg.h>
 
-  inline void DPRINTF(int level, char *format, int p=0){
-      va_list args;
-      va_start(args, format);
-      if(xvid_debug & level){
-             vfprintf(stderr, format, args);
-      }
-  }
+inline void DPRINTF(int level, char *format, int p=0) {
+	va_list args;
+	va_start(args, format);
+	if(xvid_debug & level) {
+		vfprintf(stderr, format, args);
+	}
+}
 
 # else /* _DEBUG */
 inline void DPRINTF(int level, char *format, int p=0) {}
@@ -130,28 +130,28 @@ inline void DPRINTF(int level, char *format, int p=0) {}
 
 #else                         //Compiler test
 
-      /*
-       * Ok we know nothing about the compiler, so we fallback to ANSI C
-       * features, so every compiler should be happy and compile the code.
-       *
-       * This is (mostly) equivalent to ARCH_IS_GENERIC.
-       */
+/*
+ * Ok we know nothing about the compiler, so we fallback to ANSI C
+ * features, so every compiler should be happy and compile the code.
+ *
+ * This is (mostly) equivalent to ARCH_IS_GENERIC.
+ */
 
 #ifdef _DEBUG
-        /* Needed for all debuf fprintf calls */
+/* Needed for all debuf fprintf calls */
 # include <stdio.h>
 # include <stdarg.h>
 
-static __inline void DPRINTF(int level, char *format, int p=0){
-   va_list args;
-   va_start(args, format);
-   if(xvid_debug & level) {
-          vfprintf(stderr, format, args);
-   }
+static __inline void DPRINTF(int level, char *format, int p=0) {
+	va_list args;
+	va_start(args, format);
+	if(xvid_debug & level) {
+		vfprintf(stderr, format, args);
+	}
 }
 
 # else //_DEBUG
-inline void DPRINTF(int level, char *format, int p=0){}
+inline void DPRINTF(int level, char *format, int p=0) {}
 #endif //_DEBUG
 
 #define ByteSwap(a) \

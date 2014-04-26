@@ -1,7 +1,7 @@
 /*
  *					GPAC Multimedia Framework
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2005-2012
  *					All rights reserved
  *
@@ -96,7 +96,7 @@ static GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len)
 }
 
 static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength,
-								u16 ES_ID, u32 stream_time, u32 mmlevel)
+                              u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
 	SVGIn *svgin = (SVGIn *)plug->privateStack;
@@ -188,43 +188,43 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 
 	/*!OTI for DIMS (dsi = 3GPP DIMS configuration) - GPAC internal*/
 	case GPAC_OTI_SCENE_DIMS:
-		{
-			u8 prev, dims_hdr;
-			u32 nb_bytes, size;
-			u64 pos;
-			char * buf2 = gf_malloc(inBufferLength);
-			GF_BitStream *bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
-			memcpy(buf2, inBuffer, inBufferLength);
+	{
+		u8 prev, dims_hdr;
+		u32 nb_bytes, size;
+		u64 pos;
+		char * buf2 = gf_malloc(inBufferLength);
+		GF_BitStream *bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
+		memcpy(buf2, inBuffer, inBufferLength);
 //			FILE *f = gf_f64_open("dump.svg", "wb");
 //
-			while (gf_bs_available(bs)) {
-				pos = gf_bs_get_position(bs);
-				size = gf_bs_read_u16(bs);
-				nb_bytes = 2;
-				/*GPAC internal hack*/
-				if (!size) {
-					size = gf_bs_read_u32(bs);
-					nb_bytes = 6;
-				}
+		while (gf_bs_available(bs)) {
+			pos = gf_bs_get_position(bs);
+			size = gf_bs_read_u16(bs);
+			nb_bytes = 2;
+			/*GPAC internal hack*/
+			if (!size) {
+				size = gf_bs_read_u32(bs);
+				nb_bytes = 6;
+			}
 //	            gf_fwrite( inBuffer + pos + nb_bytes + 1, 1, size - 1, f );
 
-				dims_hdr = gf_bs_read_u8(bs);
-				prev = buf2[pos + nb_bytes + size];
+			dims_hdr = gf_bs_read_u8(bs);
+			prev = buf2[pos + nb_bytes + size];
 
-				buf2[pos + nb_bytes + size] = 0;
-				if (dims_hdr & GF_DIMS_UNIT_C) {
-					e = svgin_deflate(svgin, buf2 + pos + nb_bytes + 1, size - 1);
-				} else {
-					e = gf_sm_load_string(&svgin->loader, buf2 + pos + nb_bytes + 1, 0);
-				}
-				buf2[pos + nb_bytes + size] = prev;
-				gf_bs_skip_bytes(bs, size-1);
-
+			buf2[pos + nb_bytes + size] = 0;
+			if (dims_hdr & GF_DIMS_UNIT_C) {
+				e = svgin_deflate(svgin, buf2 + pos + nb_bytes + 1, size - 1);
+			} else {
+				e = gf_sm_load_string(&svgin->loader, buf2 + pos + nb_bytes + 1, 0);
 			}
-//          fclose(f);
-			gf_bs_del(bs);
+			buf2[pos + nb_bytes + size] = prev;
+			gf_bs_skip_bytes(bs, size-1);
+
 		}
-		break;
+//          fclose(f);
+		gf_bs_del(bs);
+	}
+	break;
 
 	default:
 		return GF_BAD_PARAM;
@@ -344,7 +344,7 @@ static u32 SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
 		/*media type query*/
 		if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
-		
+
 		if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_PRIVATE_SCENE_SVG) return GF_CODEC_SUPPORTED;
 		return GF_CODEC_NOT_SUPPORTED;
 	} else if (StreamType==GF_STREAM_SCENE) {
@@ -356,7 +356,7 @@ static u32 SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd
 		case GPAC_OTI_SCENE_SVG_GZ:
 		case GPAC_OTI_SCENE_DIMS:
 			return GF_CODEC_SUPPORTED;
-		default:	
+		default:
 			return GF_CODEC_NOT_SUPPORTED;
 		}
 	}
@@ -415,14 +415,14 @@ GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	SVGIn *svgin;
-        GF_SceneDecoder *sdec = (GF_SceneDecoder *)ifce;
-        if (!sdec)
-          return;
+	GF_SceneDecoder *sdec = (GF_SceneDecoder *)ifce;
+	if (!sdec)
+		return;
 	if (sdec->InterfaceType != GF_SCENE_DECODER_INTERFACE) return;
-        svgin = (SVGIn *) sdec->privateStack;
-        if (svgin)
-          gf_free(svgin);
-        sdec->privateStack = NULL;
+	svgin = (SVGIn *) sdec->privateStack;
+	if (svgin)
+		gf_free(svgin);
+	sdec->privateStack = NULL;
 	gf_free(sdec);
 }
 

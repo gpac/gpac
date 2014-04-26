@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -88,7 +88,7 @@ void timesensor_update_time(GF_TimeNode *st)
 		stack->start_time = TS->startTime;
 		stack->cycle_interval = TS->cycleInterval;
 	}
-	
+
 	currentTime = gf_node_get_scene_time(st->udta);
 	if (!TS->isActive) {
 		if (currentTime < stack->start_time) return;
@@ -144,7 +144,7 @@ void timesensor_update_time(GF_TimeNode *st)
 	}
 
 	/*we're (about to be) active: VRML:
-	"A time-dependent node is inactive until its startTime is reached. When time now becomes greater than or 
+	"A time-dependent node is inactive until its startTime is reached. When time now becomes greater than or
 	equal to startTime, an isActive TRUE event is generated and the time-dependent node becomes active 	*/
 
 	if (!TS->isActive) {
@@ -181,7 +181,7 @@ void compositor_init_timesensor(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, timesensor_destroy);
 	/*time sensor needs to be run only if def'ed, otherwise it doesn't impact scene*/
-	//if (gf_node_get_id(node)) 
+	//if (gf_node_get_id(node))
 	gf_sc_register_time_node(compositor, &st->time_handle);
 }
 

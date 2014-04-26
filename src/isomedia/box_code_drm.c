@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -48,19 +48,19 @@ GF_Err sinf_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_ProtectionInfoBox *ptr = (GF_ProtectionInfoBox *)s;
 	switch (a->type) {
-	case GF_ISOM_BOX_TYPE_FRMA: 
+	case GF_ISOM_BOX_TYPE_FRMA:
 		if (ptr->original_format) return GF_ISOM_INVALID_FILE;
-		ptr->original_format = (GF_OriginalFormatBox*)a; 
+		ptr->original_format = (GF_OriginalFormatBox*)a;
 		break;
-	case GF_ISOM_BOX_TYPE_SCHM: 
+	case GF_ISOM_BOX_TYPE_SCHM:
 		if (ptr->scheme_type) return GF_ISOM_INVALID_FILE;
-		ptr->scheme_type = (GF_SchemeTypeBox*)a; 
+		ptr->scheme_type = (GF_SchemeTypeBox*)a;
 		break;
-	case GF_ISOM_BOX_TYPE_SCHI: 
+	case GF_ISOM_BOX_TYPE_SCHI:
 		if (ptr->info) return GF_ISOM_INVALID_FILE;
-		ptr->info = (GF_SchemeInformationBox*)a; 
+		ptr->info = (GF_SchemeInformationBox*)a;
 		break;
-	default: 
+	default:
 		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
@@ -524,7 +524,7 @@ GF_Err ohdr_Read(GF_Box *s, GF_BitStream *bs)
 		gf_bs_read_data(bs, ptr->RightsIssuerURL, ri_len);
 		ptr->RightsIssuerURL[ri_len]=0;
 	}
-	
+
 	if (ptr->TextualHeadersLen) {
 		ptr->TextualHeaders = (char *)gf_malloc(sizeof(char)*(ptr->TextualHeadersLen+1));
 		gf_bs_read_data(bs, ptr->TextualHeaders, ptr->TextualHeadersLen);
@@ -548,7 +548,7 @@ GF_Err ohdr_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->EncryptionMethod);
 	gf_bs_write_u8(bs, ptr->PaddingScheme);
 	gf_bs_write_u64(bs, ptr->PlaintextLength);
-	
+
 	cid_len = ptr->ContentID ? (u32) strlen(ptr->ContentID) : 0;
 	gf_bs_write_u16(bs, cid_len);
 	ri_len = ptr->RightsIssuerURL ? (u32) strlen(ptr->RightsIssuerURL) : 0;
@@ -613,7 +613,7 @@ GF_Err grpi_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->GroupID = gf_malloc(sizeof(char)*(gid_len+1));
 	gf_bs_read_data(bs, ptr->GroupID, gid_len);
 	ptr->GroupID[gid_len]=0;
-	
+
 	ptr->GroupKey = (char *)gf_malloc(sizeof(char)*ptr->GKLength);
 	gf_bs_read_data(bs, ptr->GroupKey, ptr->GKLength);
 	ptr->size -= gid_len+ptr->GKLength;
@@ -949,13 +949,13 @@ GF_Err pssh_Write(GF_Box *s, GF_BitStream *bs)
 	if (ptr->version > 0) {
 		u32 i;
 		gf_bs_write_u32(bs, ptr->KID_count);
-		for (i=0; i<ptr->KID_count; i++) 
+		for (i=0; i<ptr->KID_count; i++)
 			gf_bs_write_data(bs, (char *) ptr->KIDs[i], 16);
 	}
 	if (ptr->private_data) {
 		gf_bs_write_u32(bs, ptr->private_data_size);
 		gf_bs_write_data(bs, (char *) ptr->private_data, ptr->private_data_size);
-	} else 
+	} else
 		gf_bs_write_u32(bs, 0);
 	return GF_OK;
 }
@@ -1398,7 +1398,7 @@ GF_Err senc_Size(GF_Box *s)
 			GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 			if (! sai->IV_size) continue;
 			ptr->size += sai->IV_size;
-			if (ptr->flags & 0x00000002) 
+			if (ptr->flags & 0x00000002)
 				ptr->size += 2 + 6*sai->subsample_count;
 		}
 	}
@@ -1427,16 +1427,16 @@ GF_Err adkm_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_AdobeDRMKeyManagementSystemBox *ptr = (GF_AdobeDRMKeyManagementSystemBox *)s;
 	switch (a->type) {
-	case GF_ISOM_BOX_TYPE_AHDR: 
+	case GF_ISOM_BOX_TYPE_AHDR:
 		if (ptr->header) return GF_ISOM_INVALID_FILE;
-		ptr->header = (GF_AdobeDRMHeaderBox *)a; 
+		ptr->header = (GF_AdobeDRMHeaderBox *)a;
 		break;
-	case GF_ISOM_BOX_TYPE_ADAF: 
+	case GF_ISOM_BOX_TYPE_ADAF:
 		if (ptr->au_format) return GF_ISOM_INVALID_FILE;
-		ptr->au_format = (GF_AdobeDRMAUFormatBox *)a; 
+		ptr->au_format = (GF_AdobeDRMAUFormatBox *)a;
 		break;
 
-	default: 
+	default:
 		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
@@ -1506,12 +1506,12 @@ GF_Err ahdr_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_AdobeDRMHeaderBox *ptr = (GF_AdobeDRMHeaderBox *)s;
 	switch (a->type) {
-	case GF_ISOM_BOX_TYPE_APRM: 
+	case GF_ISOM_BOX_TYPE_APRM:
 		if (ptr->std_enc_params) return GF_ISOM_INVALID_FILE;
-		ptr->std_enc_params = (GF_AdobeStdEncryptionParamsBox *)a; 
+		ptr->std_enc_params = (GF_AdobeStdEncryptionParamsBox *)a;
 		break;
 
-	default: 
+	default:
 		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
@@ -1574,16 +1574,16 @@ GF_Err aprm_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_AdobeStdEncryptionParamsBox *ptr = (GF_AdobeStdEncryptionParamsBox *)s;
 	switch (a->type) {
-	case GF_ISOM_BOX_TYPE_AHDR: 
+	case GF_ISOM_BOX_TYPE_AHDR:
 		if (ptr->enc_info) return GF_ISOM_INVALID_FILE;
-		ptr->enc_info = (GF_AdobeEncryptionInfoBox *)a; 
+		ptr->enc_info = (GF_AdobeEncryptionInfoBox *)a;
 		break;
-	case GF_ISOM_BOX_TYPE_ADAF: 
+	case GF_ISOM_BOX_TYPE_ADAF:
 		if (ptr->key_info) return GF_ISOM_INVALID_FILE;
-		ptr->key_info = (GF_AdobeKeyInfoBox *)a; 
+		ptr->key_info = (GF_AdobeKeyInfoBox *)a;
 		break;
 
-	default: 
+	default:
 		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
@@ -1718,11 +1718,11 @@ GF_Err akey_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_AdobeKeyInfoBox *ptr = (GF_AdobeKeyInfoBox *)s;
 	switch (a->type) {
-	case GF_ISOM_BOX_TYPE_FLXS: 
+	case GF_ISOM_BOX_TYPE_FLXS:
 		if (ptr->params) return GF_ISOM_INVALID_FILE;
-		ptr->params = (GF_AdobeFlashAccessParamsBox *)a; 
+		ptr->params = (GF_AdobeFlashAccessParamsBox *)a;
 		break;
-	default: 
+	default:
 		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
@@ -1817,7 +1817,7 @@ GF_Err flxs_Size(GF_Box *s)
 	GF_AdobeFlashAccessParamsBox *ptr = (GF_AdobeFlashAccessParamsBox*)s;
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
-	if (ptr->metadata) 
+	if (ptr->metadata)
 		ptr->size += strlen(ptr->metadata) + 1;
 	return GF_OK;
 }

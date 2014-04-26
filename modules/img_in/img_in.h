@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -66,16 +66,16 @@ void DeleteJP2Dec(GF_BaseDecoder *dec);
 #if defined(WIN32) || defined(_WIN32_WCE)
 #include <windows.h>
 #else
-typedef struct tagBITMAPFILEHEADER 
+typedef struct tagBITMAPFILEHEADER
 {
-    u16	bfType;
-    u32	bfSize;
-    u16	bfReserved1;
-    u16	bfReserved2;
-    u32 bfOffBits;
+	u16	bfType;
+	u32	bfSize;
+	u16	bfReserved1;
+	u16	bfReserved2;
+	u32 bfOffBits;
 } BITMAPFILEHEADER;
 
-typedef struct tagBITMAPINFOHEADER{
+typedef struct tagBITMAPINFOHEADER {
 	u32	biSize;
 	s32	biWidth;
 	s32	biHeight;

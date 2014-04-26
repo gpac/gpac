@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -304,12 +304,12 @@ void compositor_init_extrusion(GF_Compositor *compositor, GF_Node *node)
 /*
 			NonLinearDeformer
 
-	NOTE: AFX spec is just hmm, well, hmm. NonLinearDeformer.extend interpretation differ from type to 
+	NOTE: AFX spec is just hmm, well, hmm. NonLinearDeformer.extend interpretation differ from type to
 	type within the spec, and between the spec and the ref soft. This is GPAC interpretation
 	* all params are specified with default transform axis (Z axis)
 	* NLD.type = 0 (taper):
 		* taping radius = NLD.param
-		* extend = N * [diff, perc] with 
+		* extend = N * [diff, perc] with
 			- diff : relative position along taper axis (for default, diff=0: z min, diff=1: z max)
 			- perc: mult ratio for base taper radius
 		extend works like key/keyValue for a scalar interpolator
@@ -317,7 +317,7 @@ void compositor_init_extrusion(GF_Compositor *compositor, GF_Node *node)
 
 	* NLD.type = 1 (twister):
 		* twisting angle = NLD.param
-		* extend = N * [diff, perc] with 
+		* extend = N * [diff, perc] with
 			- diff : relative position along twister axis (for default, diff=0: z min, diff=1: z max)
 			- perc: mult ratio for base twister angle
 		extend works like key/keyValue for a scalar interpolator
@@ -325,14 +325,14 @@ void compositor_init_extrusion(GF_Compositor *compositor, GF_Node *node)
 
 	* NLD.type = 2 (bender):
 		* bending curvature = NLD.param
-		* extend = N * [diff, perc] with 
+		* extend = N * [diff, perc] with
 			- diff : relative position along bender axis (for default, diff=0: z min, diff=1: z max)
 			- perc: mult ratio for base bender curvature
 		extend works like key/keyValue for a scalar interpolator
 		final curvature: c(z) = LinearInterp(extend[min key], extend[min key + 1]) * param
 
   Another pb of NLD is that the spec says nothing about object/axis alignment: should we center
-  the object at 0,0,0 (local coords) or not? the results are quite different. Here we don't 
+  the object at 0,0,0 (local coords) or not? the results are quite different. Here we don't
   recenter the object before transform
 */
 
@@ -345,7 +345,8 @@ static Bool NLD_GetMatrix(M_NonLinearDeformer *nld, GF_Matrix *mx)
 	/*compute rotation matrix from NLD axis to 0 0 1*/
 	v1 = nld->axis;
 	gf_vec_norm(&v1);
-	v2.x = v2.y = 0; v2.z = FIX_ONE;
+	v2.x = v2.y = 0;
+	v2.z = FIX_ONE;
 	if (gf_vec_equal(v1, v2)) return 0;
 
 	l1 = gf_vec_len(v1);
@@ -373,7 +374,7 @@ static GFINLINE void NLD_GetKey(M_NonLinearDeformer *nld, Fixed frac, Fixed *f_m
 		if (frac>=nld->extend.vals[i]) {
 			*f_min = nld->extend.vals[i];
 			*min = nld->extend.vals[i+1];
-		} 
+		}
 		if ((i+2<count) && (frac<=nld->extend.vals[i+2])) {
 			*f_max = nld->extend.vals[i+2];
 			*max = nld->extend.vals[i+3];
@@ -399,7 +400,7 @@ static void NLD_Apply(M_NonLinearDeformer *nld, GF_Mesh *mesh)
 
 	param = nld->param;
 	if (!param) param = 1;
-	
+
 	if (mesh->bounds.min_edge.z == mesh->bounds.max_edge.z) return;
 
 	z_min = FIX_MAX;
@@ -418,7 +419,7 @@ static void NLD_Apply(M_NonLinearDeformer *nld, GF_Mesh *mesh)
 		z_min = mesh->bounds.min_edge.z;
 		z_max = mesh->bounds.max_edge.z;
 	}
-	
+
 	for (i=0; i<mesh->v_count; i++) {
 		SFVec3f old = mesh->vertices[i].pos;
 		frac = gf_divfix(old.z - z_min, z_max - z_min);

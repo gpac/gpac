@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -125,16 +125,16 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props_1, &backup_flags_1);
 
 	if (real_traverse &&
-		! (tr_state->svg_flags & (GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY|GF_SG_SVG_COLOR_DIRTY)) 
-		&& !gf_node_dirty_get(node) 
-		&& !st->txh.needs_refresh) 
+	        ! (tr_state->svg_flags & (GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY|GF_SG_SVG_COLOR_DIRTY))
+	        && !gf_node_dirty_get(node)
+	        && !st->txh.needs_refresh)
 	{
 		memcpy(tr_state->svg_props, &backup_props_1, sizeof(SVGPropertiesPointers));
 		tr_state->svg_flags = backup_flags_1;
 		return;
 	}
 
-	/*for gradients we must traverse the gradient stops to trigger animations, even if the 
+	/*for gradients we must traverse the gradient stops to trigger animations, even if the
 	gradient is not marked as dirty*/
 	all_dirty = tr_state->svg_flags & (GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY|GF_SG_SVG_COLOR_DIRTY);
 	is_dirty = 0;
@@ -195,7 +195,7 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 
 			if (all_atts.offset) {
 				key = all_atts.offset->value;
-				if (all_atts.offset->type==SVG_NUMBER_PERCENTAGE) key/=100; 
+				if (all_atts.offset->type==SVG_NUMBER_PERCENTAGE) key/=100;
 			} else {
 				key=0;
 			}
@@ -356,7 +356,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 
 	if (!(txh->flags & GF_SR_TEXTURE_GRAD_REGISTERED)) {
 		txh->flags |= GF_SR_TEXTURE_GRAD_REGISTERED;
-		if (gf_list_find(txh->compositor->textures, txh)<0) 
+		if (gf_list_find(txh->compositor->textures, txh)<0)
 			gf_list_insert(txh->compositor->textures, txh, 0);
 	}
 
@@ -366,7 +366,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 	}
 	stencil = gf_sc_texture_get_stencil(txh);
 	if (!stencil) return;
-	
+
 	/*init our 2D graphics stuff*/
 	texture2D = raster->stencil_new(raster, GF_STENCIL_TEXTURE);
 	if (!texture2D) return;
@@ -378,7 +378,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 
 	transparent = st->txh.transparent;
 	if (st->txh.flags & GF_SR_TEXTURE_GRAD_NO_RGB) transparent = 1;
-	
+
 	if (transparent) {
 		if (!txh->data) {
 			txh->data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
@@ -517,7 +517,7 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	/*gradient is a texture, only update the bounds*/
 	if (for_3d) {
 		GF_Rect rc;
-		if (!all_atts.gradientUnits || (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT)) 
+		if (!all_atts.gradientUnits || (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT))
 			return;
 
 		/*get gradient bounds in local coord system*/
@@ -527,7 +527,7 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		return;
 	}
 
-	if (all_atts.gradientTransform) 
+	if (all_atts.gradientTransform)
 		gf_mx2d_copy(*mat, all_atts.gradientTransform->mat );
 
 	if (all_atts.x1) {
@@ -572,7 +572,7 @@ void compositor_init_svg_linearGradient(GF_Compositor *compositor, GF_Node *node
 	GF_SAFEALLOC(st, SVG_GradientStack);
 
 	/*!!! Gradients are textures but are not registered as textures with the compositor in order to avoid updating
-	too many textures each frame - gradients are only registered with the compositor when they are used in OpenGL, in order 
+	too many textures each frame - gradients are only registered with the compositor when they are used in OpenGL, in order
 	to release associated HW resource when no longer used*/
 	st->txh.owner = node;
 	st->txh.compositor = compositor;
@@ -622,7 +622,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	/*gradient is a texture, only update the bounds*/
 	if (for_3d && bounds) {
 		GF_Rect rc;
-		if (!all_atts.gradientUnits || (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT)) 
+		if (!all_atts.gradientUnits || (*(SVG_GradientUnit*)all_atts.gradientUnits==SVG_GRADIENTUNITS_OBJECT))
 			return;
 
 		/*get gradient bounds in local coord system*/
@@ -634,9 +634,9 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		return;
 	}
 
-	if (all_atts.gradientTransform) 
+	if (all_atts.gradientTransform)
 		gf_mx2d_copy(*mat, all_atts.gradientTransform->mat);
-	
+
 	if (all_atts.r) {
 		radius = all_atts.r->value;
 		if (all_atts.r->type==SVG_NUMBER_PERCENTAGE) radius /= 100;
@@ -673,8 +673,8 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 
 	/* clamping fx/fy according to:
 	http://www.w3.org/TR/SVG11/pservers.html#RadialGradients
-	If the point defined by ‘fx’ and ‘fy’ lies outside the circle defined by ‘cx’, ‘cy’ and ‘r’, 
-	then the user agent shall set the focal point to the intersection of the line from (‘cx’, ‘cy’) 
+	If the point defined by ‘fx’ and ‘fy’ lies outside the circle defined by ‘cx’, ‘cy’ and ‘r’,
+	then the user agent shall set the focal point to the intersection of the line from (‘cx’, ‘cy’)
 	to (‘fx’, ‘fy’) with the circle defined by ‘cx’, ‘cy’ and ‘r’.*/
 	{
 		Fixed norm = gf_v2d_distance(&focal, &center);
@@ -690,7 +690,7 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 		/*move to local coord system - cf SVG spec*/
 		gf_mx2d_add_scale(mat, bounds->width, bounds->height);
 		gf_mx2d_add_translation(mat, bounds->x, bounds->y  - bounds->height);
-	} 
+	}
 	txh->compositor->rasterizer->stencil_set_radial_gradient(stencil, center.x, center.y, focal.x, focal.y, radius, radius);
 }
 
@@ -700,7 +700,7 @@ void compositor_init_svg_radialGradient(GF_Compositor *compositor, GF_Node *node
 	GF_SAFEALLOC(st, SVG_GradientStack);
 
 	/*!!! Gradients are textures but are not registered as textures with the compositor in order to avoid updating
-	too many textures each frame - gradients are only registered with the compositor when they are used in OpenGL, in order 
+	too many textures each frame - gradients are only registered with the compositor when they are used in OpenGL, in order
 	to release associated HW resource when no longer used*/
 	st->txh.owner = node;
 	st->txh.compositor = compositor;
@@ -730,7 +730,7 @@ static void svg_traverse_PaintServer(GF_Node *node, void *rs, Bool is_destroy, B
 
 	gf_svg_flatten_attributes(elt, &all_atts);
 	compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags);
-	
+
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		return;
 	} else {

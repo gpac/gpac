@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -46,7 +46,7 @@ GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...);
 
 u32 gf_latm_get_value(GF_BitStream *bs);
 
-#define GF_SVC_SSPS_ID_SHIFT	16	
+#define GF_SVC_SSPS_ID_SHIFT	16
 
 /*returns 0 if not a start code, or size of start code (3 or 4 bytes). If start code, bitstream
 is positionned AFTER start code*/
@@ -78,7 +78,7 @@ enum
 	AVC_SPS_EXT_DECLARED = 1<<4,
 };
 
-typedef struct 
+typedef struct
 {
 	u8 cpb_removal_delay_length_minus1;
 	u8 dpb_output_delay_length_minus1;
@@ -86,7 +86,7 @@ typedef struct
 	/*to be eventually completed by other hrd members*/
 } AVC_HRD;
 
-typedef struct 
+typedef struct
 {
 	s32 timing_info_present_flag;
 	u32 num_units_in_tick;
@@ -123,7 +123,7 @@ typedef struct
 	u32 width, height;
 
 	AVC_VUI vui;
-	
+
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 sent*/
 	u32 state;
 
@@ -131,7 +131,7 @@ typedef struct
 	u32 nb_ei, nb_ep, nb_eb;
 } AVC_SPS;
 
-typedef struct 
+typedef struct
 {
 	s32 id; /* used to compare pps when storing SVC PSS */
 	s32 sps_id;
@@ -143,7 +143,7 @@ typedef struct
 
 } AVC_PPS;
 
-typedef struct 
+typedef struct
 {
 	s32 idr_pic_flag;
 	u8 temporal_id, priority_id, dependency_id, quality_id;
@@ -167,7 +167,7 @@ typedef struct
 } AVCSliceInfo;
 
 
-typedef struct 
+typedef struct
 {
 	u32 frame_cnt;
 	u8 exact_match_flag;
@@ -176,13 +176,13 @@ typedef struct
 	u8 valid;
 } AVCSeiRecoveryPoint;
 
-typedef struct 
+typedef struct
 {
 	u8 pic_struct;
 	/*to be eventually completed by other pic_timing members*/
 } AVCSeiPicTiming;
 
-typedef struct 
+typedef struct
 {
 	AVCSeiRecoveryPoint recovery_point;
 	AVCSeiPicTiming pic_timing;
@@ -257,7 +257,7 @@ typedef struct
 	Bool general_non_packed_constraint_flag;
 	Bool general_frame_only_constraint_flag;
 	u64 general_reserved_44bits;
-	
+
 	HEVC_SublayerPTL sub_ptl[8];
 } HEVC_ProfileTierLevel;
 
@@ -270,7 +270,7 @@ typedef struct
 
 typedef struct
 {
-	s32 id, vps_id; 
+	s32 id, vps_id;
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
 	u32 state;
 	u32 crc;
@@ -306,8 +306,8 @@ typedef struct
 
 typedef struct
 {
-	s32 id; 
-	u32 sps_id; 
+	s32 id;
+	u32 sps_id;
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
 	u32 state;
 	u32 crc;
@@ -324,11 +324,11 @@ typedef struct
 
 typedef struct RepFormat
 {
-    u32 chroma_format_idc;
-    u32 pic_width_luma_samples;
-    u32 pic_height_luma_samples;
-    u32 bit_depth_luma;
-    u32 bit_depth_chroma;
+	u32 chroma_format_idc;
+	u32 pic_width_luma_samples;
+	u32 pic_height_luma_samples;
+	u32 bit_depth_luma;
+	u32 bit_depth_chroma;
 	u8 separate_colour_plane_flag;
 } HEVC_RepFormat;
 
@@ -342,7 +342,7 @@ typedef struct
 #define MAX_SHVC_LAYERS	4
 typedef struct
 {
-	s32 id; 
+	s32 id;
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
 	u32 state;
 	u32 crc;
@@ -355,9 +355,9 @@ typedef struct
 
 
 	u32 scalability_mask[16];
-    u32 dimension_id[MAX_SHVC_LAYERS][16];
-    u32 layer_id_in_nuh[MAX_SHVC_LAYERS];
-    u32 layer_id_in_vps[MAX_SHVC_LAYERS];
+	u32 dimension_id[MAX_SHVC_LAYERS][16];
+	u32 layer_id_in_nuh[MAX_SHVC_LAYERS];
+	u32 layer_id_in_vps[MAX_SHVC_LAYERS];
 
 
 	u32 profile_level_tier_idx[MAX_SHVC_LAYERS];
@@ -365,7 +365,7 @@ typedef struct
 
 	u32 num_rep_formats;
 	HEVC_RepFormat rep_formats[16];
-    u32 rep_format_idx[16];
+	u32 rep_format_idx[16];
 } HEVC_VPS;
 
 typedef struct
@@ -437,21 +437,21 @@ typedef struct
 
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_STREAMING)
 
-GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file, 
-															  u32 TrackNum,
-															  void *cbk_obj, 
-															  void (*OnNewPacket)(void *cbk, GF_RTPHeader *header),
-															  void (*OnPacketDone)(void *cbk, GF_RTPHeader *header),
-															  void (*OnDataReference)(void *cbk, u32 payload_size, u32 offset_from_orig),
-															  void (*OnData)(void *cbk, char *data, u32 data_size, Bool is_head),
-															  u32 Path_MTU, 
-															  u32 max_ptime, 
-															  u32 default_rtp_rate, 
-															  u32 flags, 
-															  u8 PayloadID, 
-															  Bool copy_media, 
-															  u32 InterleaveGroupID, 
-															  u8 InterleaveGroupPriority);
+GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
+        u32 TrackNum,
+        void *cbk_obj,
+        void (*OnNewPacket)(void *cbk, GF_RTPHeader *header),
+        void (*OnPacketDone)(void *cbk, GF_RTPHeader *header),
+        void (*OnDataReference)(void *cbk, u32 payload_size, u32 offset_from_orig),
+        void (*OnData)(void *cbk, char *data, u32 data_size, Bool is_head),
+        u32 Path_MTU,
+        u32 max_ptime,
+        u32 default_rtp_rate,
+        u32 flags,
+        u8 PayloadID,
+        Bool copy_media,
+        u32 InterleaveGroupID,
+        u8 InterleaveGroupPriority);
 
 void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, GF_ISOFile *file, u32 track);
 
@@ -475,10 +475,10 @@ typedef struct _webvtt_parser GF_WebVTTParser;
 typedef struct _webvtt_sample GF_WebVTTSample;
 
 GF_WebVTTParser *gf_webvtt_parser_new();
-GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, const char *input_file, 
-                                    void *user, GF_Err (*report_message)(void *, GF_Err, char *, const char *),
-                                    void (*on_sample_parsed)(void *, GF_WebVTTSample *),
-                                    void (*on_header_parsed)(void *, const char *));
+GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, const char *input_file,
+                             void *user, GF_Err (*report_message)(void *, GF_Err, char *, const char *),
+                             void (*on_sample_parsed)(void *, GF_WebVTTSample *),
+                             void (*on_header_parsed)(void *, const char *));
 GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser, u32 duration);
 u64 gf_webvtt_parser_last_duration(GF_WebVTTParser *parser);
 void gf_webvtt_parser_del(GF_WebVTTParser *parser);

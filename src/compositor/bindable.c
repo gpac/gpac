@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -33,28 +33,30 @@ GF_List *Bindable_GetStack(GF_Node *bindable)
 	if (!bindable) return 0;
 	st = gf_node_get_private(bindable);
 	switch (gf_node_get_tag(bindable)) {
-	case TAG_MPEG4_Background2D: return ((Background2DStack*)st)->reg_stacks;
+	case TAG_MPEG4_Background2D:
+		return ((Background2DStack*)st)->reg_stacks;
 	case TAG_MPEG4_Viewport:
-	case TAG_MPEG4_NavigationInfo: 
+	case TAG_MPEG4_NavigationInfo:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_NavigationInfo: 
+	case TAG_X3D_NavigationInfo:
 #endif
 		return ((ViewStack*)st)->reg_stacks;
 #ifndef GPAC_DISABLE_3D
-	case TAG_MPEG4_Background: 
+	case TAG_MPEG4_Background:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Background: 
+	case TAG_X3D_Background:
 #endif
 		return ((BackgroundStack*)st)->reg_stacks;
-	case TAG_MPEG4_Viewpoint: 
-	case TAG_MPEG4_Fog: 
+	case TAG_MPEG4_Viewpoint:
+	case TAG_MPEG4_Fog:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Viewpoint: 
+	case TAG_X3D_Viewpoint:
 	case TAG_X3D_Fog:
 #endif
 		return ((ViewStack*)st)->reg_stacks;
 #endif
-	default: return NULL;
+	default:
+		return NULL;
 	}
 }
 
@@ -62,29 +64,32 @@ Bool Bindable_GetIsBound(GF_Node *bindable)
 {
 	if (!bindable) return 0;
 	switch (gf_node_get_tag(bindable)) {
-	case TAG_MPEG4_Background2D: return ((M_Background2D*)bindable)->isBound;
-	case TAG_MPEG4_Viewport: return ((M_Viewport*)bindable)->isBound;
-	case TAG_MPEG4_Background: 
+	case TAG_MPEG4_Background2D:
+		return ((M_Background2D*)bindable)->isBound;
+	case TAG_MPEG4_Viewport:
+		return ((M_Viewport*)bindable)->isBound;
+	case TAG_MPEG4_Background:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Background: 
+	case TAG_X3D_Background:
 #endif
 		return ((M_Background*)bindable)->isBound;
-	case TAG_MPEG4_NavigationInfo: 
+	case TAG_MPEG4_NavigationInfo:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_NavigationInfo: 
+	case TAG_X3D_NavigationInfo:
 #endif
 		return ((M_NavigationInfo*)bindable)->isBound;
-	case TAG_MPEG4_Viewpoint: 
+	case TAG_MPEG4_Viewpoint:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Viewpoint: 
+	case TAG_X3D_Viewpoint:
 #endif
 		return ((M_Viewpoint*)bindable)->isBound;
-	case TAG_MPEG4_Fog: 
+	case TAG_MPEG4_Fog:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Fog: 
+	case TAG_X3D_Fog:
 #endif
 		return ((M_Fog*)bindable)->isBound;
-	default: return 0;
+	default:
+		return 0;
 	}
 }
 
@@ -93,7 +98,7 @@ void Bindable_SetIsBound(GF_Node *bindable, Bool val)
 	Bool has_bind_time = 0;
 	if (!bindable) return;
 	switch (gf_node_get_tag(bindable)) {
-	case TAG_MPEG4_Background2D: 
+	case TAG_MPEG4_Background2D:
 		if ( ((M_Background2D*)bindable)->isBound == val) return;
 		((M_Background2D*)bindable)->isBound = val;
 		break;
@@ -116,20 +121,20 @@ void Bindable_SetIsBound(GF_Node *bindable, Bool val)
 		((M_Background*)bindable)->isBound = val;
 		break;
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_NavigationInfo: 
+	case TAG_X3D_NavigationInfo:
 		if ( ((X_NavigationInfo*)bindable)->isBound == val) return;
 		((X_NavigationInfo*)bindable)->isBound = val;
 		((X_NavigationInfo*)bindable)->bindTime = gf_node_get_scene_time(bindable);
 		has_bind_time = 1;
 		break;
 #endif
-	case TAG_MPEG4_NavigationInfo: 
+	case TAG_MPEG4_NavigationInfo:
 		if ( ((M_NavigationInfo*)bindable)->isBound == val) return;
 		((M_NavigationInfo*)bindable)->isBound = val;
 		break;
-	case TAG_MPEG4_Viewpoint: 
+	case TAG_MPEG4_Viewpoint:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Viewpoint: 
+	case TAG_X3D_Viewpoint:
 #endif
 		if ( ((M_Viewpoint*)bindable)->isBound == val) return;
 		((M_Viewpoint*)bindable)->isBound = val;
@@ -137,18 +142,18 @@ void Bindable_SetIsBound(GF_Node *bindable, Bool val)
 		has_bind_time = 1;
 		break;
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Fog: 
+	case TAG_X3D_Fog:
 		if ( ((X_Fog*)bindable)->isBound == val) return;
 		((X_Fog*)bindable)->isBound = val;
 		((X_Fog*)bindable)->bindTime = gf_node_get_scene_time(bindable);
 		has_bind_time = 1;
 		break;
 #endif
-	case TAG_MPEG4_Fog: 
+	case TAG_MPEG4_Fog:
 		if ( ((M_Fog*)bindable)->isBound == val) return;
 		((M_Fog*)bindable)->isBound = val;
 		break;
-	default: 
+	default:
 		return;
 	}
 	gf_node_event_out_str(bindable, "isBound");
@@ -162,29 +167,32 @@ Bool Bindable_GetSetBind(GF_Node *bindable)
 {
 	if (!bindable) return 0;
 	switch (gf_node_get_tag(bindable)) {
-	case TAG_MPEG4_Background2D: return ((M_Background2D*)bindable)->set_bind;
-	case TAG_MPEG4_Viewport: return ((M_Viewport*)bindable)->set_bind;
-	case TAG_MPEG4_Background: 
+	case TAG_MPEG4_Background2D:
+		return ((M_Background2D*)bindable)->set_bind;
+	case TAG_MPEG4_Viewport:
+		return ((M_Viewport*)bindable)->set_bind;
+	case TAG_MPEG4_Background:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Background: 
+	case TAG_X3D_Background:
 #endif
 		return ((M_Background*)bindable)->set_bind;
-	case TAG_MPEG4_NavigationInfo: 
+	case TAG_MPEG4_NavigationInfo:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_NavigationInfo: 
+	case TAG_X3D_NavigationInfo:
 #endif
 		return ((M_NavigationInfo*)bindable)->set_bind;
-	case TAG_MPEG4_Viewpoint: 
+	case TAG_MPEG4_Viewpoint:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Viewpoint: 
+	case TAG_X3D_Viewpoint:
 #endif
 		return ((M_Viewpoint*)bindable)->set_bind;
-	case TAG_MPEG4_Fog: 
+	case TAG_MPEG4_Fog:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Fog: 
+	case TAG_X3D_Fog:
 #endif
 		return ((M_Fog*)bindable)->set_bind;
-	default: return 0;
+	default:
+		return 0;
 	}
 }
 
@@ -192,43 +200,44 @@ void Bindable_SetSetBindEx(GF_Node *bindable, Bool val, GF_List *stack)
 {
 	if (!bindable) return;
 	switch (gf_node_get_tag(bindable)) {
-	case TAG_MPEG4_Background2D: 
+	case TAG_MPEG4_Background2D:
 		((M_Background2D*)bindable)->set_bind = val;
 		((M_Background2D*)bindable)->on_set_bind(bindable, NULL);
 		break;
-	case TAG_MPEG4_Viewport: 
+	case TAG_MPEG4_Viewport:
 		((M_Viewport*)bindable)->set_bind = val;
 		((M_Viewport*)bindable)->on_set_bind(bindable, (GF_Route*)stack);
 		break;
-	case TAG_MPEG4_Background: 
+	case TAG_MPEG4_Background:
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Background:
 #endif
 		((M_Background*)bindable)->set_bind = val;
 		((M_Background*)bindable)->on_set_bind(bindable, NULL);
 		break;
-	case TAG_MPEG4_NavigationInfo: 
+	case TAG_MPEG4_NavigationInfo:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_NavigationInfo: 
+	case TAG_X3D_NavigationInfo:
 #endif
 		((M_NavigationInfo*)bindable)->set_bind = val;
 		((M_NavigationInfo*)bindable)->on_set_bind(bindable, NULL);
 		break;
-	case TAG_MPEG4_Viewpoint: 
+	case TAG_MPEG4_Viewpoint:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Viewpoint: 
+	case TAG_X3D_Viewpoint:
 #endif
 		((M_Viewpoint*)bindable)->set_bind = val;
 		((M_Viewpoint*)bindable)->on_set_bind(bindable, NULL);
 		break;
-	case TAG_MPEG4_Fog: 
+	case TAG_MPEG4_Fog:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Fog: 
+	case TAG_X3D_Fog:
 #endif
 		((M_Fog*)bindable)->set_bind = val;
 		((M_Fog*)bindable)->on_set_bind(bindable, NULL);
 		break;
-	default: return;
+	default:
+		return;
 	}
 }
 void Bindable_SetSetBind(GF_Node *bindable, Bool val)

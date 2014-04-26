@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2006-2012
  *				All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -82,7 +82,7 @@ GF_Err ilst_Size(GF_Box *s)
 {
 	GF_Err e;
 //	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
-	
+
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
 
@@ -139,7 +139,7 @@ GF_Box *ListItem_New(u32 type)
 
 	tmp->data = (GF_DataBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_DATA);
 
-	if (tmp->data == NULL){
+	if (tmp->data == NULL) {
 		gf_free(tmp);
 		return NULL;
 	}
@@ -215,7 +215,7 @@ GF_Err data_Read(GF_Box *s,GF_BitStream *bs)
 		ptr->data[ptr->dataSize] = 0;
 		gf_bs_read_data(bs, ptr->data, ptr->dataSize);
 	}
-	
+
 	return GF_OK;
 }
 
@@ -238,7 +238,7 @@ GF_Err data_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	gf_bs_write_int(bs, ptr->reserved, 32);
-	if(ptr->data != NULL && ptr->dataSize > 0){
+	if(ptr->data != NULL && ptr->dataSize > 0) {
 		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
 	}
 	return GF_OK;
@@ -251,7 +251,7 @@ GF_Err data_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size += 4;
-	if(ptr->data != NULL && ptr->dataSize > 0){
+	if(ptr->data != NULL && ptr->dataSize > 0) {
 		ptr->size += ptr->dataSize;
 	}
 	return GF_OK;
@@ -271,7 +271,7 @@ GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov)
 	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_META, NULL);
 	if (!map) return NULL;
 
-	for(i = 0; i < gf_list_count(map->other_boxes); i++){
+	for(i = 0; i < gf_list_count(map->other_boxes); i++) {
 		meta = (GF_MetaBox*)gf_list_get(map->other_boxes, i);
 
 		if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return meta;
@@ -290,14 +290,14 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 
 	if (!mov || !mov->moov) return NULL;
 
-	if (!mov->moov->udta){
+	if (!mov->moov->udta) {
 		e = moov_AddBox((GF_Box*)mov->moov, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
 		if (e) return NULL;
 	}
 
 	map = udta_getEntry(mov->moov->udta, GF_ISOM_BOX_TYPE_META, NULL);
-	if (map){
-		for(i = 0; i < gf_list_count(map->other_boxes); i++){
+	if (map) {
+		for(i = 0; i < gf_list_count(map->other_boxes); i++) {
 			meta = (GF_MetaBox*)gf_list_get(map->other_boxes, i);
 
 			if(meta != NULL && meta->handler != NULL && meta->handler->handlerType == GF_ISOM_HANDLER_TYPE_MDIR) return meta;
@@ -306,9 +306,9 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 
 	meta = (GF_MetaBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_META);
 
-	if(meta != NULL){
+	if(meta != NULL) {
 		meta->handler = (GF_HandlerBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_HDLR);
-		if(meta->handler == NULL){
+		if(meta->handler == NULL) {
 			gf_isom_box_del((GF_Box *)meta);
 			return NULL;
 		}

@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -122,7 +122,7 @@ GF_Err gf_odf_write_qos_qual(GF_BitStream *bs, GF_QoS_Default *qos)
 {
 	GF_Err e;
 	if (!bs || !qos) return GF_BAD_PARAM;
-	
+
 	e = gf_odf_size_qos_qual(qos);
 	if (e) return e;
 	e = gf_odf_write_base_descriptor(bs, qos->tag, qos->size);
@@ -365,7 +365,7 @@ GF_Err gf_odf_read_qos(GF_BitStream *bs, GF_QoS_Descriptor *qos, u32 DescSize)
 	nbBytes += 1;
 
 	if (qos->predefined) {
-		if (nbBytes != DescSize) return GF_ODF_INVALID_DESCRIPTOR;		
+		if (nbBytes != DescSize) return GF_ODF_INVALID_DESCRIPTOR;
 		return GF_OK;
 	}
 
@@ -394,9 +394,9 @@ GF_Err gf_odf_size_qos(GF_QoS_Descriptor *qos, u32 *outSize)
 	GF_QoS_Default *tmp;
 
 	if (!qos) return GF_BAD_PARAM;
-	
+
 	*outSize = 1;
-	
+
 	i=0;
 	while ((tmp = (GF_QoS_Default *)gf_list_enum(qos->QoS_Qualifiers, &i))) {
 		e = gf_odf_size_qos_qual(tmp);

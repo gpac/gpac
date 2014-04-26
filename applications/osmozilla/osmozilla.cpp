@@ -1,7 +1,7 @@
 /*
 *			GPAC - Multimedia Framework C SDK
 *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
 *					All rights reserved
 *
@@ -11,15 +11,15 @@
 *  it under the terms of the GNU Lesser General Public License as published by
 *  the Free Software Foundation; either version 2, or (at your option)
 *  any later version.
-*   
+*
 *  GPAC is distributed in the hope that it will be useful,
 *  but WITHOUT ANY WARRANTY; without even the implied warranty of
 *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *  GNU Lesser General Public License for more details.
-*   
+*
 *  You should have received a copy of the GNU Lesser General Public
 *  License along with this library; see the file COPYING.  If not, write to
-*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 */
 
@@ -86,33 +86,32 @@ Bool Osmozilla_EventProc(void *opaque, GF_Event *evt)
 		} else {
 			char *szTitle = (char *)"";
 			if (evt->progress.progress_type==0) szTitle = (char *)"Buffer ";
-			else 
-			if (evt->progress.progress_type==1) 
+			else if (evt->progress.progress_type==1)
 			{
 				szTitle = (char *)"Download ";
 				osmo->download_progress = (int) (100.0*evt->progress.done) / evt->progress.total;
 			}
 			else if (evt->progress.progress_type==2) szTitle = (char *)"Import ";
-			
+
 			sprintf(msg, "(GPAC) %s: %02.2f", szTitle, (100.0*evt->progress.done) / evt->progress.total);
 			Osmozilla_SetStatus(osmo->np_instance, msg);
 		}
 		break;
 
-		/*IGNORE any scene size, just work with the size allocated in the parent doc*/
-	case GF_EVENT_SCENE_SIZE:	
+	/*IGNORE any scene size, just work with the size allocated in the parent doc*/
+	case GF_EVENT_SCENE_SIZE:
 		gf_term_set_size(osmo->term, osmo->width, osmo->height);
 		break;
-		/*window has been resized (full-screen plugin), resize*/
-	case GF_EVENT_SIZE:	
+	/*window has been resized (full-screen plugin), resize*/
+	case GF_EVENT_SIZE:
 		osmo->width = evt->size.width;
 		osmo->height = evt->size.height;
 		gf_term_set_size(osmo->term, osmo->width, osmo->height);
 		break;
-	case GF_EVENT_CONNECT:	
+	case GF_EVENT_CONNECT:
 		osmo->is_connected = evt->connect.is_connected;
 		break;
-	case GF_EVENT_DURATION:	
+	case GF_EVENT_DURATION:
 		osmo->can_seek = evt->duration.can_seek;
 		osmo->duration = evt->duration.duration;
 		break;
@@ -154,9 +153,9 @@ int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char*
 	osmo->use_gui = 0;
 
 	/*options sent from plugin*/
-	for(i=0;i<argc;i++) {   
+	for(i=0; i<argc; i++) {
 		if (!argn[i] || !argv[i]) continue;
-		if (!stricmp(argn[i],"autostart") && (!stricmp(argv[i], "false") || !stricmp(argv[i], "no")) ) 
+		if (!stricmp(argn[i],"autostart") && (!stricmp(argv[i], "false") || !stricmp(argv[i], "no")) )
 			osmo->auto_start = 0;
 
 		else if (!stricmp(argn[i],"src") ) {
@@ -176,18 +175,18 @@ int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char*
 			else if (!stricmp(argv[i], "4:3")) osmo->aspect_ratio = GF_ASPECT_RATIO_4_3;
 			else if (!stricmp(argv[i], "fill")) osmo->aspect_ratio = GF_ASPECT_RATIO_FILL_SCREEN;
 		}
-		else if (!stricmp(argn[i],"gui") && (!stricmp(argv[i], "true") || !stricmp(argv[i], "yes") ) ) 
+		else if (!stricmp(argn[i],"gui") && (!stricmp(argv[i], "true") || !stricmp(argv[i], "yes") ) )
 			osmo->use_gui = 1;
 	}
 
-	/*URL is not absolute, request new stream to mozilla - we don't pass absolute URLs since some may not be 
+	/*URL is not absolute, request new stream to mozilla - we don't pass absolute URLs since some may not be
 	handled by gecko */
 	if (osmo->url) {
 		Bool absolute_url = GF_FALSE;
 		if (strstr(osmo->url, "://")) absolute_url = GF_TRUE;
 		else if (osmo->url[0] == '/') {
 			FILE *test = gf_f64_open(osmo->url, "rb");
-			if (test) {	
+			if (test) {
 				absolute_url = GF_TRUE;
 				fclose(test);
 			}
@@ -317,7 +316,7 @@ void Osmozilla_ConnectTo(Osmozilla *osmo, const char *url)
 
 	fprintf(stdout, "Osmozilla connecting to %s\n", url);
 
-	if (osmo->url) gf_free(osmo->url);	
+	if (osmo->url) gf_free(osmo->url);
 	osmo->url = gf_strdup(url);
 
 	/*connect from 0 and pause if not autoplay*/
@@ -361,26 +360,26 @@ void Osmozilla_Stop(Osmozilla *osmo)
 
 #ifdef XP_WIN
 PBITMAPINFO CreateBitmapInfoStruct(GF_VideoSurface *pfb)
-{ 
-	PBITMAPINFO pbmi; 
-	WORD    cClrBits; 
+{
+	PBITMAPINFO pbmi;
+	WORD    cClrBits;
 
 	cClrBits = 32;
 
-	pbmi = (PBITMAPINFO) LocalAlloc(LPTR, 
-		sizeof(BITMAPINFOHEADER)); 
+	pbmi = (PBITMAPINFO) LocalAlloc(LPTR,
+	                                sizeof(BITMAPINFOHEADER));
 
-	pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER); 
+	pbmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	pbmi->bmiHeader.biWidth = pfb->width;
 	pbmi->bmiHeader.biHeight = 1;
-	pbmi->bmiHeader.biPlanes = 1; 
-	pbmi->bmiHeader.biBitCount = cClrBits; 
+	pbmi->bmiHeader.biPlanes = 1;
+	pbmi->bmiHeader.biBitCount = cClrBits;
 
-	pbmi->bmiHeader.biCompression = BI_RGB; 
+	pbmi->bmiHeader.biCompression = BI_RGB;
 	pbmi->bmiHeader.biSizeImage = ((pbmi->bmiHeader.biWidth * cClrBits +31) & ~31) /8
-		* pbmi->bmiHeader.biHeight; 
-	pbmi->bmiHeader.biClrImportant = 0; 
-	return pbmi; 
+	                              * pbmi->bmiHeader.biHeight;
+	pbmi->bmiHeader.biClrImportant = 0;
+	return pbmi;
 }
 #endif
 
@@ -401,7 +400,7 @@ void Osmozilla_Print(Osmozilla *osmo, unsigned int is_embed, void *os_print_dc, 
 #endif  // XP_UNIX
 #ifdef XP_WIN
 	/*
-	The coordinates for the window rectangle are in TWIPS format. 
+	The coordinates for the window rectangle are in TWIPS format.
 	This means that you need to convert the x-y coordinates using the Windows API call DPtoLP when you output text
 	*/
 	GF_VideoSurface fb;
@@ -425,52 +424,52 @@ void Osmozilla_Print(Osmozilla *osmo, unsigned int is_embed, void *os_print_dc, 
 		for (xsrc=0; xsrc<fb.width; xsrc++)
 		{
 			switch (fb.pixel_format) {
-				case GF_PIXEL_RGB_32:
-				case GF_PIXEL_ARGB:
-					dst[0] = src[0];
-					dst[1] = src[1];
-					dst[2] = src[2];
-					src+=4;
-					break;
-				case GF_PIXEL_BGR_32:
-				case GF_PIXEL_RGBA:
-					dst[0] = src[3];
-					dst[1] = src[2];
-					dst[2] = src[1];
-					src+=4;
-					break;
-				case GF_PIXEL_RGB_24:
-					dst[0] = src[2];
-					dst[1] = src[1];
-					dst[2] = src[0];
-					src+=3;
-					break;
-				case GF_PIXEL_BGR_24:
-					dst[0] = src[2];
-					dst[1] = src[1];
-					dst[2] = src[0];
-					src+=3;
-					break;
-				case GF_PIXEL_RGB_565:
-					src_16 = * ( (u16 *)src );
-					dst[2] = (src_16 >> 8) & 0xf8;
-					dst[2] += dst[2]>>5;
-					dst[1] = (src_16 >> 3) & 0xfc;
-					dst[1] += dst[1]>>6;
-					dst[0] = (src_16 << 3) & 0xf8;
-					dst[0] += dst[0]>>5;
-					src+=2;
-					break;
-				case GF_PIXEL_RGB_555:
-					src_16 = * (u16 *)src;
-					dst[2] = (src_16 >> 7) & 0xf8;
-					dst[2] += dst[2]>>5;
-					dst[1] = (src_16 >> 2) & 0xf8;
-					dst[1] += dst[1]>>5;
-					dst[0] = (src_16 << 3) & 0xf8;
-					dst[0] += dst[0]>>5;
-					src+=2;
-					break;
+			case GF_PIXEL_RGB_32:
+			case GF_PIXEL_ARGB:
+				dst[0] = src[0];
+				dst[1] = src[1];
+				dst[2] = src[2];
+				src+=4;
+				break;
+			case GF_PIXEL_BGR_32:
+			case GF_PIXEL_RGBA:
+				dst[0] = src[3];
+				dst[1] = src[2];
+				dst[2] = src[1];
+				src+=4;
+				break;
+			case GF_PIXEL_RGB_24:
+				dst[0] = src[2];
+				dst[1] = src[1];
+				dst[2] = src[0];
+				src+=3;
+				break;
+			case GF_PIXEL_BGR_24:
+				dst[0] = src[2];
+				dst[1] = src[1];
+				dst[2] = src[0];
+				src+=3;
+				break;
+			case GF_PIXEL_RGB_565:
+				src_16 = * ( (u16 *)src );
+				dst[2] = (src_16 >> 8) & 0xf8;
+				dst[2] += dst[2]>>5;
+				dst[1] = (src_16 >> 3) & 0xfc;
+				dst[1] += dst[1]>>6;
+				dst[0] = (src_16 << 3) & 0xf8;
+				dst[0] += dst[0]>>5;
+				src+=2;
+				break;
+			case GF_PIXEL_RGB_555:
+				src_16 = * (u16 *)src;
+				dst[2] = (src_16 >> 7) & 0xf8;
+				dst[2] += dst[2]>>5;
+				dst[1] = (src_16 >> 2) & 0xf8;
+				dst[1] += dst[1]>>5;
+				dst[0] = (src_16 << 3) & 0xf8;
+				dst[0] += dst[0]>>5;
+				src+=2;
+				break;
 			}
 			dst += 4;
 		}
@@ -478,10 +477,10 @@ void Osmozilla_Print(Osmozilla *osmo, unsigned int is_embed, void *os_print_dc, 
 		ysuiv = (u32) ( ((float)ysrc+1.0)*deltay);
 		delta = ysuiv-ycrt;
 		StretchDIBits(
-			pDC, target_x, target_y, target_width, 
-			delta, 
-			0, 0, fb.width, 1,
-			ligne, infoSrc, DIB_RGB_COLORS, SRCCOPY);
+		    pDC, target_x, target_y, target_width,
+		    delta,
+		    0, 0, fb.width, 1,
+		    ligne, infoSrc, DIB_RGB_COLORS, SRCCOPY);
 	}
 
 	/*unlock GPAC frame buffer */
@@ -492,7 +491,7 @@ void Osmozilla_Print(Osmozilla *osmo, unsigned int is_embed, void *os_print_dc, 
 #endif   // XP_WIN
 
 	return;
-} 
+}
 
 /*TODO - this is full print, present the print dialog and manage the print*/
 }

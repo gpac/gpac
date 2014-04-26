@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -95,7 +95,9 @@ static void camera_frustum_from_matrix(GF_Camera *cam, GF_Matrix *mx)
 		vy = FIX2FLT(cam->planes[i].normal.y);
 		vz = FIX2FLT(cam->planes[i].normal.z);
 		nor = (Float) sqrt(vx*vx + vy*vy + vz*vz);
-		vx /= nor; vy /= nor; vz /= nor;
+		vx /= nor;
+		vy /= nor;
+		vz /= nor;
 		cam->planes[i].d = FLT2FIX (FIX2FLT(cam->planes[i].d) / nor);
 		cam->planes[i].normal.x = FLT2FIX(vx);
 		cam->planes[i].normal.y = FLT2FIX(vy);
@@ -122,26 +124,40 @@ SFRotation camera_get_orientation(SFVec3f pos, SFVec3f target, SFVec3f up)
 	tmp = gf_vec_scale(dir, gf_vec_dot(up, dir));
 	gf_vec_diff(v, up, tmp);
 	gf_vec_norm(&v);
-	axis.x = dir.y; axis.y = -dir.x; axis.z = 0;
+	axis.x = dir.y;
+	axis.y = -dir.x;
+	axis.z = 0;
 
 	if (gf_vec_dot(axis, axis) < FIX_EPSILON) {
 		if (dir.z> 0) {
-			norm.x = 0; norm.y = FIX_ONE; norm.z = 0; norm.q = 0;
+			norm.x = 0;
+			norm.y = FIX_ONE;
+			norm.z = 0;
+			norm.q = 0;
 		} else {
-			norm.x = 0; norm.y = 0; norm.z = 0; norm.q = FIX_ONE;
+			norm.x = 0;
+			norm.y = 0;
+			norm.z = 0;
+			norm.q = FIX_ONE;
 		}
 	} else {
 		gf_vec_norm(&axis);
 		norm = gf_quat_from_axis_cos(axis, -dir.z);
 	}
 	/* Find the inverse rotation. */
-    inv_norm.x = -norm.x; inv_norm.y = -norm.y; inv_norm.z = -norm.z; inv_norm.q = norm.q;
+	inv_norm.x = -norm.x;
+	inv_norm.y = -norm.y;
+	inv_norm.z = -norm.z;
+	inv_norm.q = norm.q;
 	/* Rotate the y. */
-	y_quat.x = y_quat.z = y_quat.q = 0; y_quat.y = FIX_ONE;
+	y_quat.x = y_quat.z = y_quat.q = 0;
+	y_quat.y = FIX_ONE;
 	ny_quat = gf_quat_multiply(&norm, &y_quat);
 	ny_quat = gf_quat_multiply(&ny_quat, &inv_norm);
 
-	new_y.x = ny_quat.x; new_y.y = ny_quat.y; new_y.z = ny_quat.z;
+	new_y.x = ny_quat.x;
+	new_y.y = ny_quat.y;
+	new_y.z = ny_quat.z;
 
 	tmp = gf_vec_cross(new_y, v);
 
@@ -149,9 +165,13 @@ SFRotation camera_get_orientation(SFVec3f pos, SFVec3f target, SFVec3f up)
 		/* The old and new may be pointing in the same or opposite. Need
 		** to generate a vector perpendicular to the old or new y.
 		*/
-		tmp.x = 0; tmp.y = -v.z; tmp.z = v.y;
+		tmp.x = 0;
+		tmp.y = -v.z;
+		tmp.z = v.y;
 		if (gf_vec_dot(tmp, tmp) < FIX_EPSILON) {
-			tmp.x = v.z; tmp.y = 0; tmp.z = -v.x;
+			tmp.x = v.z;
+			tmp.y = 0;
+			tmp.z = -v.x;
 		}
 	}
 	gf_vec_norm(&tmp);
@@ -174,11 +194,15 @@ void camera_set_2d(GF_Camera *cam)
 {
 	cam->is_3D = 0;
 #ifdef FORCE_CAMERA_3D
-	cam->position.x = cam->position.y = 0; cam->position.z = INT2FIX(NEAR_PLANE_2D);
-	cam->up.x = cam->up.z = 0; cam->up.y = FIX_ONE;
+	cam->position.x = cam->position.y = 0;
+	cam->position.z = INT2FIX(NEAR_PLANE_2D);
+	cam->up.x = cam->up.z = 0;
+	cam->up.y = FIX_ONE;
 	cam->target.x = cam->target.y = cam->target.z = 0;
 	cam->vp_position = cam->position;
-	cam->vp_orientation.x = cam->vp_orientation.y = 0; cam->vp_orientation.q = 0; cam->vp_orientation.y = FIX_ONE;
+	cam->vp_orientation.x = cam->vp_orientation.y = 0;
+	cam->vp_orientation.q = 0;
+	cam->vp_orientation.y = FIX_ONE;
 	cam->vp_fov = cam->fieldOfView = FLT2FIX(0.785398);
 	cam->vp_dist = INT2FIX(NEAR_PLANE_2D);
 	cam->end_zoom = FIX_ONE;
@@ -255,8 +279,12 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 		vlen = cam->z_far - cam->z_near;
 		h = gf_mulfix(vlen , gf_tan(cam->fieldOfView / 2));
 		w = gf_mulfix(h, ar);
-		center.x = 0; center.y = 0; center.z = cam->z_near + vlen / 2;
-		corner.x = w; corner.y = h; corner.z = vlen;
+		center.x = 0;
+		center.y = 0;
+		center.z = cam->z_near + vlen / 2;
+		corner.x = w;
+		corner.y = h;
+		corner.z = vlen;
 		gf_vec_diff(corner, corner, center);
 		cam->radius = gf_vec_len(corner);
 		gf_vec_diff(cam->center, cam->target, cam->position);
@@ -290,7 +318,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 			if (! (cam->flags & CAM_NO_LOOKAT)) {
 				GF_Matrix mx;
 				gf_mx_from_mx2d(&mx, user_transform);
-				mx.m[10] = mx.m[0]; 
+				mx.m[10] = mx.m[0];
 				gf_mx_add_matrix(&post_model_view, &mx);
 			} else
 #endif
@@ -345,7 +373,7 @@ void camera_update_stereo(GF_Camera *cam, GF_Matrix2D *user_transform, Bool cent
 		gf_vec_diff(center, cam->world_bbox.center, cam->position);
 		vlen = gf_vec_len(center);
 		vlen += gf_mulfix(view_distance_offset, gf_divfix(vlen, nominal_view_distance));
-	
+
 		gf_vec_diff(eye, cam->target, cam->position);
 		gf_vec_norm(&eye);
 		tar = gf_vec_scale(eye, vlen);
@@ -409,7 +437,7 @@ void camera_reset_viewpoint(GF_Camera *cam, Bool animate)
 		return;
 	}
 #ifndef FORCE_CAMERA_3D
-	if (cam->is_3D) 
+	if (cam->is_3D)
 #endif
 	{
 		cam->start_pos = cam->position;
@@ -507,12 +535,12 @@ Bool camera_animate(GF_Camera *cam)
 		if (now > cam->anim_len) {
 			cam->anim_len = 0;
 #ifndef FORCE_CAMERA_3D
-			if (cam->is_3D) 
+			if (cam->is_3D)
 #endif
 			{
 				camera_set_vectors(cam, cam->end_pos, cam->end_ori, cam->end_fov);
 				cam->end_zoom = FIX_ONE;
-			} 
+			}
 #ifndef FORCE_CAMERA_3D
 			else {
 				cam->flags |= CAM_IS_DIRTY;
@@ -543,7 +571,7 @@ Bool camera_animate(GF_Camera *cam)
 		dif = gf_vec_scale(dif, frac);
 		gf_vec_add(pos, cam->start_pos, dif);
 		fov = gf_mulfix(cam->end_fov - cam->start_fov, frac) + cam->start_fov;
-		cam->end_zoom = frac + gf_mulfix((FIX_ONE-frac), cam->start_zoom); 
+		cam->end_zoom = frac + gf_mulfix((FIX_ONE-frac), cam->start_zoom);
 		camera_set_vectors(cam, pos, rot, fov);
 	}
 	return 1;

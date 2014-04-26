@@ -14,10 +14,10 @@
 
 @interface SensorAccess : NSObject <CLLocationManagerDelegate>
 {
-    SensorDataCallback* sensorCallbak;
-    void* userData;
-    int sensorType;
-    int gpsActive;
+	SensorDataCallback* sensorCallbak;
+	void* userData;
+	int sensorType;
+	int gpsActive;
 }
 
 @property (nonatomic, retain) CMMotionManager *motionManager;

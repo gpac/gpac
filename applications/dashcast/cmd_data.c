@@ -67,7 +67,7 @@ int dc_str_to_resolution(char *str, int *width, int *height)
 
 
 static void dc_create_configuration(CmdData *cmd_data)
-{	
+{
 	u32 i;
 	GF_Config *conf = cmd_data->conf;
 	u32 sec_count = gf_cfg_get_section_count(conf);
@@ -77,7 +77,7 @@ static void dc_create_configuration(CmdData *cmd_data)
 		sec_count = gf_cfg_get_section_count(conf);
 	}
 	for (i=0; i<sec_count; i++) {
-		char value[GF_MAX_PATH];		
+		char value[GF_MAX_PATH];
 		const char *section_name = gf_cfg_get_section_name(conf, i);
 		const char *section_type = gf_cfg_get_key(conf, section_name, "type");
 
@@ -88,46 +88,46 @@ static void dc_create_configuration(CmdData *cmd_data)
 				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.bitrate);
 				gf_cfg_set_key(conf, section_name, "bitrate", value);
 			}
-		
+
 			if (!gf_cfg_get_key(conf, section_name, "framerate")) {
 				if (cmd_data->video_data_conf.framerate == -1)
 					cmd_data->video_data_conf.framerate = DEFAULT_VIDEO_FRAMERATE;
 				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.framerate);
 				gf_cfg_set_key(conf, section_name, "framerate", value);
 			}
-		
+
 			if (!gf_cfg_get_key(conf, section_name, "width")) {
 				if (cmd_data->video_data_conf.width == -1)
 					cmd_data->video_data_conf.width = DEFAULT_VIDEO_WIDTH;
 				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.width);
 				gf_cfg_set_key(conf, section_name, "width", value);
 			}
-		
+
 			if (!gf_cfg_get_key(conf, section_name, "height")) {
 				if (cmd_data->video_data_conf.height == -1)
 					cmd_data->video_data_conf.height = DEFAULT_VIDEO_HEIGHT;
 				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.height);
 				gf_cfg_set_key(conf, section_name, "height", value);
 			}
-		
+
 			if (!gf_cfg_get_key(conf, section_name, "crop_x")) {
 				if (cmd_data->video_data_conf.crop_x == -1)
 					cmd_data->video_data_conf.crop_x = 0;
 				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.crop_x);
 				gf_cfg_set_key(conf, section_name, "crop_x", value);
 			}
-		
+
 			if (!gf_cfg_get_key(conf, section_name, "crop_y")) {
 				if (cmd_data->video_data_conf.crop_y == -1)
 					cmd_data->video_data_conf.crop_y = 0;
 				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.crop_y);
 				gf_cfg_set_key(conf, section_name, "crop_y", value);
 			}
-			
+
 			if (!gf_cfg_get_key(conf, section_name, "codec"))
 				gf_cfg_set_key(conf, section_name, "codec", DEFAULT_VIDEO_CODEC);
 		}
-		
+
 		if (strcmp(section_type, "audio") == 0) {
 			if (!gf_cfg_get_key(conf, section_name, "bitrate")) {
 				if (cmd_data->audio_data_conf.bitrate == -1)
@@ -135,21 +135,21 @@ static void dc_create_configuration(CmdData *cmd_data)
 				snprintf(value, sizeof(value), "%d", cmd_data->audio_data_conf.bitrate);
 				gf_cfg_set_key(conf, section_name, "bitrate", value);
 			}
-			
+
 			if (!gf_cfg_get_key(conf, section_name, "samplerate")) {
 				if (cmd_data->audio_data_conf.samplerate == -1)
 					cmd_data->audio_data_conf.samplerate = DEFAULT_AUDIO_SAMPLERATE;
 				snprintf(value, sizeof(value), "%d", cmd_data->audio_data_conf.samplerate);
 				gf_cfg_set_key(conf, section_name, "samplerate", value);
 			}
-			
+
 			if (!gf_cfg_get_key(conf, section_name, "channels")) {
 				if (cmd_data->audio_data_conf.channels == -1)
 					cmd_data->audio_data_conf.channels = DEFAULT_AUDIO_CHANNELS;
 				snprintf(value, sizeof(value), "%d", cmd_data->audio_data_conf.channels);
 				gf_cfg_set_key(conf, section_name, "channels", value);
 			}
-			
+
 			if (!gf_cfg_get_key(conf, section_name, "codec"))
 				gf_cfg_set_key(conf, section_name, "codec", DEFAULT_AUDIO_CODEC);
 		}
@@ -217,8 +217,9 @@ int dc_read_configuration(CmdData *cmd_data)
 	for (i=0; i<gf_list_count(cmd_data->video_lst); i++) {
 		VideoDataConf *video_data_conf = gf_list_get(cmd_data->video_lst, i);
 		fprintf(stdout, "    id:%s\tres:%dx%d\tvbr:%d\n", video_data_conf->filename,
-				video_data_conf->width, video_data_conf->height,
-				video_data_conf->bitrate/*, video_data_conf->framerate, video_data_conf->codec*/);	}
+		        video_data_conf->width, video_data_conf->height,
+		        video_data_conf->bitrate/*, video_data_conf->framerate, video_data_conf->codec*/);
+	}
 
 	for (i=0; i<gf_list_count(cmd_data->audio_lst); i++) {
 		AudioDataConf *audio_data_conf = gf_list_get(cmd_data->audio_lst, i);
@@ -393,99 +394,99 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	int i;
 
 	const char *command_usage =
-			"Usage: DashCast [options]\n"
-					"\n"
-					"General options:\n"
-					"    -log-file filename       set output log file. Also works with -lf\n"
-					"    -logs LOGS               set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
+	    "Usage: DashCast [options]\n"
+	    "\n"
+	    "General options:\n"
+	    "    -log-file filename       set output log file. Also works with -lf\n"
+	    "    -logs LOGS               set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 #ifdef GPAC_MEMORY_TRACKING
-					"    -mem-track               enable the memory tracker\n"
+	    "    -mem-track               enable the memory tracker\n"
 #endif
-					"    -conf filename           set the configuration file name (default: dashcast.conf)\n"
-					"    -switch-source filename  set the configuration file name for source switching\n"
-					"\n"
-					"Live options:\n"
-					"    -live                    system is live and input is a camera\n"
-					"    -live-media              system is live and input is a media file\n"
-					"    -no-loop                 system does not loop on the input media file when live\n"
-					"    -dynamic-ast             changes segment availability start time at each MPD generation (old behaviour but not allowed in most profiles)\n"
-					"    -insert-utc              inserts UTC clock at the start of each segment\n"
-					"\n"
-					"Source options:\n"
-					"    -npts                    use frame counting for timestamps (not error-free) instead of source timing (default)\n"
-					"    -av string               set the source name for a multiplexed audio and video input\n"
-					"                                - if this option is present, neither '-a' nor '-v' shall be present\n"
-					"* Video options:\n"
-					"    -v string                set the source name for a video input\n"
-					"                                - if input is from a webcam, use \"/dev/video[x]\" \n"
-					"                                  where x is the video device number\n"
-					"                                - if input is the screen video, use \":0.0+[x],[y]\" \n"
-					"                                  which captures from upper-left at x,y\n"
-					"                                - if input is from stdin, use \"pipe:\"\n"
-					"    -vf string               set the input video format\n"
+	    "    -conf filename           set the configuration file name (default: dashcast.conf)\n"
+	    "    -switch-source filename  set the configuration file name for source switching\n"
+	    "\n"
+	    "Live options:\n"
+	    "    -live                    system is live and input is a camera\n"
+	    "    -live-media              system is live and input is a media file\n"
+	    "    -no-loop                 system does not loop on the input media file when live\n"
+	    "    -dynamic-ast             changes segment availability start time at each MPD generation (old behaviour but not allowed in most profiles)\n"
+	    "    -insert-utc              inserts UTC clock at the start of each segment\n"
+	    "\n"
+	    "Source options:\n"
+	    "    -npts                    use frame counting for timestamps (not error-free) instead of source timing (default)\n"
+	    "    -av string               set the source name for a multiplexed audio and video input\n"
+	    "                                - if this option is present, neither '-a' nor '-v' shall be present\n"
+	    "* Video options:\n"
+	    "    -v string                set the source name for a video input\n"
+	    "                                - if input is from a webcam, use \"/dev/video[x]\" \n"
+	    "                                  where x is the video device number\n"
+	    "                                - if input is the screen video, use \":0.0+[x],[y]\" \n"
+	    "                                  which captures from upper-left at x,y\n"
+	    "                                - if input is from stdin, use \"pipe:\"\n"
+	    "    -vf string               set the input video format\n"
 #ifdef WIN32
-					"                                - to capture from a VfW webcam, set vfwcap\n"
-					"                                - to capture from a directshow device, set dshow\n"
+	    "                                - to capture from a VfW webcam, set vfwcap\n"
+	    "                                - to capture from a directshow device, set dshow\n"
 #else
-					"                                - to capture from a webcam, set video4linux2\n"
-					"                                - to capture the screen, set x11grab\n"
-					"    -v4l2f inv4l2f           inv4l2f is the input format for webcam acquisition\n"
-					"                                - it can be mjpeg, yuyv422, etc.\n"
+	    "                                - to capture from a webcam, set video4linux2\n"
+	    "                                - to capture the screen, set x11grab\n"
+	    "    -v4l2f inv4l2f           inv4l2f is the input format for webcam acquisition\n"
+	    "                                - it can be mjpeg, yuyv422, etc.\n"
 #endif
-					"    -pixf FMT                set the input pixel format\n"
-					"    -vfr N                   force the input video framerate\n"
-					"    -vres WxH                force the video resolution (e.g. 640x480)\n"
-					"    -vcrop XxY               crop the source video from X pixels left and Y pixels top. Must be used with -vres.\n"
-					"    -gdr                     use Gradual Decoder Refresh feature for video encoding (h264 codec only)\n"
-					"* Audio options:\n"
-					"    -a string                set the source name for an audio input\n"
-					"                                - if input is from microphone, use \"plughw:[x],[y]\"\n"
-					"                                  where x is the card number and y is the device number\n"
-					"    -af string               set the input audio format\n"
-					"\n"
-					"Output options:\n"
-					"* Video encoding options:\n"
-					"    -vcodec string          set the output video codec (default: h264)\n"
+	    "    -pixf FMT                set the input pixel format\n"
+	    "    -vfr N                   force the input video framerate\n"
+	    "    -vres WxH                force the video resolution (e.g. 640x480)\n"
+	    "    -vcrop XxY               crop the source video from X pixels left and Y pixels top. Must be used with -vres.\n"
+	    "    -gdr                     use Gradual Decoder Refresh feature for video encoding (h264 codec only)\n"
+	    "* Audio options:\n"
+	    "    -a string                set the source name for an audio input\n"
+	    "                                - if input is from microphone, use \"plughw:[x],[y]\"\n"
+	    "                                  where x is the card number and y is the device number\n"
+	    "    -af string               set the input audio format\n"
+	    "\n"
+	    "Output options:\n"
+	    "* Video encoding options:\n"
+	    "    -vcodec string          set the output video codec (default: h264)\n"
 #if 0 //TODO: bind to option and params - test first how it binds to current input parameters
-					"    -vb int                 set the output video bitrate (in bits)\n"
+	    "    -vb int                 set the output video bitrate (in bits)\n"
 #endif
-					"    -vcustom string         send custom parameters directly to the audio encoder\n"
-					"* Audio encoding options:\n"
-					"    -acodec string          set the output audio codec (default: mp2)\n"
+	    "    -vcustom string         send custom parameters directly to the audio encoder\n"
+	    "* Audio encoding options:\n"
+	    "    -acodec string          set the output audio codec (default: mp2)\n"
 #if 0 //TODO: bind to option and params - test first how it binds to current input parameters
-					"    -ab int                 set the output audio bitrate in bits (default: 192000)\n"
-					"    -as int                 set the sample rate (default: 48000)\n"
-					"    -ach int                set the number of output audio channels (default: 2)\n"
+	    "    -ab int                 set the output audio bitrate in bits (default: 192000)\n"
+	    "    -as int                 set the sample rate (default: 48000)\n"
+	    "    -ach int                set the number of output audio channels (default: 2)\n"
 #endif
-					"    -acustom string         send custom parameters directly to the audio encoder\n"
-					"\n"
-					"DASH options:\n"
-					"    -seg-dur dur:int         set the segment duration in millisecond (default value: 1000)\n"
-					"    -frag-dur dur:int        set the fragment duration in millisecond (default value: 1000)\n"
-					"    -seg-marker marker:str   add a marker box named marker at the end of DASH segment\n"
-					"    -out outdir:str          outdir is the output data directory (default: output)\n"
-					"    -mpd mpdname:str         mpdname is the MPD file name (default: dashcast.mpd)\n"
-					"    -ast-offset dur:int      dur is the MPD availabilityStartTime shift in milliseconds (default value: 1000)\n"
-					"    -mpd-refresh dur:int     dur is the MPD minimumUpdatePeriod in seconds\n"
-					"    -time-shift dur:int      dur is the MPD TimeShiftBufferDepth in seconds\n"
-					"                                - the default value is 10. Specify -1 to keep all files.\n"
-					"    -min-buffer dur:float    dur is the MPD minBufferTime in seconds (default value: 1.0)\n"
-					"    -base-url baseurl:str    baseurl is the MPD BaseURL\n"
-					"\n"
-					"\n"
-					"Examples:\n"
-					"\n"
-					"    DashCast -av test.avi -live-media\n"
-					"    DashCast -a test_audio.mp3 -v test_audio.mp4 -live-media\n"
+	    "    -acustom string         send custom parameters directly to the audio encoder\n"
+	    "\n"
+	    "DASH options:\n"
+	    "    -seg-dur dur:int         set the segment duration in millisecond (default value: 1000)\n"
+	    "    -frag-dur dur:int        set the fragment duration in millisecond (default value: 1000)\n"
+	    "    -seg-marker marker:str   add a marker box named marker at the end of DASH segment\n"
+	    "    -out outdir:str          outdir is the output data directory (default: output)\n"
+	    "    -mpd mpdname:str         mpdname is the MPD file name (default: dashcast.mpd)\n"
+	    "    -ast-offset dur:int      dur is the MPD availabilityStartTime shift in milliseconds (default value: 1000)\n"
+	    "    -mpd-refresh dur:int     dur is the MPD minimumUpdatePeriod in seconds\n"
+	    "    -time-shift dur:int      dur is the MPD TimeShiftBufferDepth in seconds\n"
+	    "                                - the default value is 10. Specify -1 to keep all files.\n"
+	    "    -min-buffer dur:float    dur is the MPD minBufferTime in seconds (default value: 1.0)\n"
+	    "    -base-url baseurl:str    baseurl is the MPD BaseURL\n"
+	    "\n"
+	    "\n"
+	    "Examples:\n"
+	    "\n"
+	    "    DashCast -av test.avi -live-media\n"
+	    "    DashCast -a test_audio.mp3 -v test_audio.mp4 -live-media\n"
 #ifdef WIN32
-					"    DashCast -vf vfwcap -vres 1280x720 -vfr 24 -v 0 -live\n"
-					"    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"screen-capture-recorder\" -live (please install http://screencapturer.sf.net/)\n"
-					"    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"YOUR-WEBCAM\" -pixf yuv420p -live\n"
+	    "    DashCast -vf vfwcap -vres 1280x720 -vfr 24 -v 0 -live\n"
+	    "    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"screen-capture-recorder\" -live (please install http://screencapturer.sf.net/)\n"
+	    "    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"YOUR-WEBCAM\" -pixf yuv420p -live\n"
 #else
-					"    DashCast -vf video4linux2 -vres 1280x720 -vfr 24 -v4l2f mjpeg -v /dev/video0 -af alsa -a plughw:1,0 -live\n"
-					"    DashCast -vf x11grab -vres 800x600 -vfr 25 -v :0.0 -live\n"
+	    "    DashCast -vf video4linux2 -vres 1280x720 -vfr 24 -v4l2f mjpeg -v /dev/video0 -af alsa -a plughw:1,0 -live\n"
+	    "    DashCast -vf x11grab -vres 800x600 -vfr 25 -v :0.0 -live\n"
 #endif
-					"\n";
+	    "\n";
 
 	const char *command_error = "\33[31mUnknown option or missing mandatory argument.\33[0m\n";
 
@@ -872,7 +873,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	}
 	fprintf(stdout, "\33[0m");
 //	fflush(stdout);
-		
+
 	if (!cmd_data->conf) {
 		cmd_data->conf = gf_cfg_force_new(NULL, "dashcast.conf");
 		dc_create_configuration(cmd_data);

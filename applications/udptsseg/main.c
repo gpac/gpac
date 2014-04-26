@@ -11,15 +11,15 @@
 *  it under the terms of the GNU Lesser General Public License as published by
 *  the Free Software Foundation; either version 2, or (at your option)
 *  any later version.
-*   
+*
 *  GPAC is distributed in the hope that it will be useful,
 *  but WITHOUT ANY WARRANTY; without even the implied warranty of
 *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *  GNU Lesser General Public License for more details.
-*   
+*
 *  You should have received a copy of the GNU Lesser General Public
 *  License along with this library; see the file COPYING.  If not, write to
-*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 */
 #include <gpac/media_tools.h>
@@ -31,65 +31,65 @@
 #define UDP_BUFFER_SIZE	64484
 
 /* adapted from http://svn.assembla.com/svn/legend/segmenter/segmenter.c */
-static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_duration, char *segment_prefix, char *http_prefix, 
-							 u32 first_segment, u32 last_segment, Bool end) {
-								 FILE *manifest_fp;
-								 u32 i;
-								 char manifest_tmp_name[GF_MAX_PATH];
-								 char manifest_name[GF_MAX_PATH];
-								 char *tmp_manifest = manifest_tmp_name;
+static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_duration, char *segment_prefix, char *http_prefix,
+                             u32 first_segment, u32 last_segment, Bool end) {
+	FILE *manifest_fp;
+	u32 i;
+	char manifest_tmp_name[GF_MAX_PATH];
+	char manifest_name[GF_MAX_PATH];
+	char *tmp_manifest = manifest_tmp_name;
 
-								 if (segment_dir) {
-									 sprintf(manifest_tmp_name, "%stmp.m3u8", segment_dir);
-									 sprintf(manifest_name, "%s%s", segment_dir, manifest);
-								 } else {
-									 sprintf(manifest_tmp_name, "tmp.m3u8");
-									 sprintf(manifest_name, "%s", manifest);
-								 }
+	if (segment_dir) {
+		sprintf(manifest_tmp_name, "%stmp.m3u8", segment_dir);
+		sprintf(manifest_name, "%s%s", segment_dir, manifest);
+	} else {
+		sprintf(manifest_tmp_name, "tmp.m3u8");
+		sprintf(manifest_name, "%s", manifest);
+	}
 
-								 manifest_fp = fopen(tmp_manifest, "w");
-								 if (!manifest_fp) {
-									 fprintf(stderr, "Could not create m3u8 manifest file (%s)\n", tmp_manifest);
-									 return GF_BAD_PARAM;
-								 }
+	manifest_fp = fopen(tmp_manifest, "w");
+	if (!manifest_fp) {
+		fprintf(stderr, "Could not create m3u8 manifest file (%s)\n", tmp_manifest);
+		return GF_BAD_PARAM;
+	}
 
-								 fprintf(manifest_fp, "#EXTM3U\n#EXT-X-TARGETDURATION:%u\n#EXT-X-MEDIA-SEQUENCE:%u\n", segment_duration, first_segment);
+	fprintf(manifest_fp, "#EXTM3U\n#EXT-X-TARGETDURATION:%u\n#EXT-X-MEDIA-SEQUENCE:%u\n", segment_duration, first_segment);
 
-								 for (i = first_segment; i <= last_segment; i++) {
-									 fprintf(manifest_fp, "#EXTINF:%u,\n%s%s_%u.ts\n", segment_duration, http_prefix, segment_prefix, i);
-								 }
+	for (i = first_segment; i <= last_segment; i++) {
+		fprintf(manifest_fp, "#EXTINF:%u,\n%s%s_%u.ts\n", segment_duration, http_prefix, segment_prefix, i);
+	}
 
-								 if (end) {
-									 fprintf(manifest_fp, "#EXT-X-ENDLIST\n");
-								 }
-								 fclose(manifest_fp);
+	if (end) {
+		fprintf(manifest_fp, "#EXT-X-ENDLIST\n");
+	}
+	fclose(manifest_fp);
 
-								 if (!rename(tmp_manifest, manifest_name)) {
-									 return GF_OK;
-								 } else {
-									 if (remove(manifest_name)) {
-										 fprintf(stdout, "Error removing file %s\n", manifest_name);
-										 return GF_IO_ERR;
-									 } else if (rename(tmp_manifest, manifest_name)) {
-										 fprintf(stderr, "Could not rename temporary m3u8 manifest file (%s) into %s\n", tmp_manifest, manifest_name);
-										 return GF_IO_ERR;
-									 } else {
-										 return GF_OK;
-									 }
-								 }
+	if (!rename(tmp_manifest, manifest_name)) {
+		return GF_OK;
+	} else {
+		if (remove(manifest_name)) {
+			fprintf(stdout, "Error removing file %s\n", manifest_name);
+			return GF_IO_ERR;
+		} else if (rename(tmp_manifest, manifest_name)) {
+			fprintf(stderr, "Could not rename temporary m3u8 manifest file (%s) into %s\n", tmp_manifest, manifest_name);
+			return GF_IO_ERR;
+		} else {
+			return GF_OK;
+		}
+	}
 }
 
-void usage() 
+void usage()
 {
 	fprintf(stderr, "usage: udptsseg -src=UDP -dst-file=FILE -segment-duration=DUR -segment-dir=DIR -segment-manifest=M3U8 -segment-http-prefix=P -segment-number=N\n"
-		"-src=UDP                udp://address:port providing the input transport stream\n"
-		"-dst-file=FILE          e.g. out.ts, radical name of all segments\n"
-		"-segment-dir=DIR        server local directory to store segments (with the trailing path separator)\n"
-		"-segment-duration=DUR   segment duration in seconds\n"
-		"-segment-manifest=M3U8  m3u8 file basename\n"
-		"-segment-http-prefix=P  client address for accessing server segments\n"
-		"-segment-number=N       only n segments are used using a cyclic pattern\n"
-		"\n");
+	        "-src=UDP                udp://address:port providing the input transport stream\n"
+	        "-dst-file=FILE          e.g. out.ts, radical name of all segments\n"
+	        "-segment-dir=DIR        server local directory to store segments (with the trailing path separator)\n"
+	        "-segment-duration=DUR   segment duration in seconds\n"
+	        "-segment-manifest=M3U8  m3u8 file basename\n"
+	        "-segment-http-prefix=P  client address for accessing server segments\n"
+	        "-segment-number=N       only n segments are used using a cyclic pattern\n"
+	        "\n");
 }
 
 int main(int argc, char **argv)
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 	u32 last_segment_size = 0;
 	u32 read = 0;
 	u32 towrite = 0;
-	u32 leftinbuffer = 0;			
+	u32 leftinbuffer = 0;
 
 	fprintf(stdout, "UDP Transport Stream Segmenter\n");
 
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 	/*****************/
 	for (i = 1; i < (u32) argc ; i++) {
 		arg = argv[i];
-		if (!strnicmp(arg, "-src=udp://",11)) { 
+		if (!strnicmp(arg, "-src=udp://",11)) {
 			char *sep;
 			arg+=11;
 			sep = strchr(arg+6, ':');
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 			segment_http_prefix = gf_strdup(arg+21);
 		} else if (!strnicmp(arg, "-segment-number=", 16)) {
 			segment_number = atoi(arg+16);
-		} 
+		}
 	}
 	fprintf(stdout, "Listening to TS input on %s:%d\n", input_ip, input_port);
 	fprintf(stdout, "Creating %d sec. segments in directory %s\n", segment_duration, segment_dir);
@@ -207,12 +207,12 @@ int main(int argc, char **argv)
 		}
 		fprintf(stderr, "Processing %s segment\r", segment_name);
 		ts_out = gf_strdup(segment_name);
-		if (!segment_manifest) { 
+		if (!segment_manifest) {
 			sprintf(segment_manifest_default, "%s.m3u8", segment_prefix);
 			segment_manifest = segment_manifest_default;
 		}
 		//write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, segment_index, 0, 0);
-	} 
+	}
 	ts_output_file = fopen(ts_out, "wb");
 	if (!ts_output_file) {
 		fprintf(stderr, "Error opening %s\n", ts_out);
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 					while (input_buffer[i] != 0x47 && i < leftinbuffer) i++;
 					fprintf(stderr, "Warning: data in buffer not starting with the MPEG-2 TS sync byte, skipping %d bytes of %d\n", i, leftinbuffer);
 					if (i < leftinbuffer) memmove(input_buffer, input_buffer+i, leftinbuffer-i);
-					leftinbuffer -=i;					
+					leftinbuffer -=i;
 				}
 				if ((leftinbuffer % 188) != 0) {
 					fprintf(stderr, "Warning: data in buffer with a size (%d bytes) not multiple of 188 bytes\n", leftinbuffer);
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
 			if (ts_output_file != NULL) {
 				u32 now = gf_sys_clock();
 				if (towrite) {
-					gf_fwrite(input_buffer, 1, towrite, ts_output_file); 
+					gf_fwrite(input_buffer, 1, towrite, ts_output_file);
 					if (towrite < leftinbuffer) {
 						fprintf(stderr, "Warning: wrote %d bytes, keeping %d bytes\n", towrite, (leftinbuffer-towrite));
 						memmove(input_buffer, input_buffer+towrite, leftinbuffer-towrite);
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
 					leftinbuffer -= towrite;
 					last_segment_size += towrite;
 				}
-				if ((now - last_segment_time) > segment_duration*1000) { 
+				if ((now - last_segment_time) > segment_duration*1000) {
 					last_segment_time = now;
 					fclose(ts_output_file);
 					fprintf(stderr, "Closing segment %s (%d bytes)\n", segment_name, last_segment_size);
@@ -284,7 +284,7 @@ int main(int argc, char **argv)
 						goto exit;
 					}
 					/* delete the oldest segment */
-					if (segment_number && ((s32) (segment_index - segment_number - 1) >= 0)){
+					if (segment_number && ((s32) (segment_index - segment_number - 1) >= 0)) {
 						char old_segment_name[GF_MAX_PATH];
 						if (segment_dir) {
 							if (strchr("\\/", segment_name[strlen(segment_name)-1])) {
@@ -298,10 +298,10 @@ int main(int argc, char **argv)
 						gf_delete_file(old_segment_name);
 						fprintf(stderr, "Deleting segment %s\n", old_segment_name);
 					}
-					write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, 
-						//								   (segment_index >= segment_number/2 ? segment_index - segment_number/2 : 0), segment_index >1 ? segment_index-1 : 0, 0);
-						( (segment_index > segment_number ) ? segment_index - segment_number : 0), segment_index >1 ? segment_index-1 : 0, 0);
-				} 
+					write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix,
+					               //								   (segment_index >= segment_number/2 ? segment_index - segment_number/2 : 0), segment_index >1 ? segment_index-1 : 0, 0);
+					               ( (segment_index > segment_number ) ? segment_index - segment_number : 0), segment_index >1 ? segment_index-1 : 0, 0);
+				}
 			}
 
 			//}

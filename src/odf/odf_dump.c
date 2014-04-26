@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -39,7 +39,7 @@
 		for (z=0; z<indent; z++) ind_buf[z] = ' '; \
 		ind_buf[z] = 0; \
 	} \
-
+ 
 GF_EXPORT
 GF_Err gf_odf_dump_com(void *p, FILE *trace, u32 indent, Bool XMTDump)
 {
@@ -217,7 +217,7 @@ static void EndDescDump(FILE *trace, const char *descName, u32 indent, Bool XMTD
 	}
 }
 
-/*special element open for XML only, appends "<eltName " - used because XMT-A OD representations use lots of 
+/*special element open for XML only, appends "<eltName " - used because XMT-A OD representations use lots of
 subdescs not present in BT*/
 static void StartSubElement(FILE *trace, const char *eltName, u32 indent, Bool XMTDump)
 {
@@ -227,7 +227,7 @@ static void StartSubElement(FILE *trace, const char *eltName, u32 indent, Bool X
 		fprintf(trace, "%s<%s ", ind_buf, eltName);
 	}
 }
-/*special close for XML only, appends "/>" - used because XMT-A OD representations use lots of 
+/*special close for XML only, appends "/>" - used because XMT-A OD representations use lots of
 subdescs not present in BT*/
 static void EndSubElement(FILE *trace, u32 indent, Bool XMTDump)
 {
@@ -244,7 +244,7 @@ static void StartElement(FILE *trace, const char *attName, u32 indent, Bool XMTD
 	char ind_buf[OD_MAX_TREE];
 	OD_FORMAT_INDENT(ind_buf, indent);
 	if (!XMTDump) {
-		if (IsList) 
+		if (IsList)
 			fprintf(trace, "%s%s [\n", ind_buf, attName);
 		else
 			fprintf(trace, "%s%s ", ind_buf, attName);
@@ -410,7 +410,7 @@ GF_Err DumpDescListFilter(GF_List *list, FILE *trace, u32 indent, const char *Li
 		if (desc->tag == tag_only) num_desc++;
 	}
 	if (!num_desc) return GF_OK;
-	
+
 	StartElement(trace, ListName, indent, XMTDump, 1);
 	indent++;
 	OD_FORMAT_INDENT(ind_buf, indent);
@@ -460,7 +460,7 @@ GF_Err gf_odf_dump_iod(GF_InitialObjectDescriptor *iod, FILE *trace, u32 indent,
 		DumpString(trace, "URLstring", iod->URLString, indent, XMTDump);
 		EndSubElement(trace, indent, XMTDump);
 	}
-		
+
 	if (XMTDump) {
 		StartElement(trace, "Descr", indent, XMTDump, 1);
 		indent++;
@@ -478,7 +478,7 @@ GF_Err gf_odf_dump_iod(GF_InitialObjectDescriptor *iod, FILE *trace, u32 indent,
 		gf_odf_dump_desc(iod->IPMPToolList, trace, indent + (XMTDump ? 1 : 0), XMTDump);
 		EndElement(trace, "toolListDescr" , indent, XMTDump, 0);
 	}
-	
+
 	if (XMTDump) {
 		indent--;
 		EndElement(trace, "Descr", indent, XMTDump, 1);
@@ -512,7 +512,7 @@ GF_Err gf_odf_dump_esd(GF_ESD *esd, FILE *trace, u32 indent, Bool XMTDump)
 			fprintf(trace, "es%d", esd->dependsOnESID);
 			EndAttribute(trace, indent, XMTDump);
 		}
-	
+
 		if (esd->OCRESID) {
 			StartAttribute(trace, "OCR_ES_ID", indent, XMTDump);
 			fprintf(trace, "es%d", esd->OCRESID);
@@ -539,7 +539,7 @@ GF_Err gf_odf_dump_esd(GF_ESD *esd, FILE *trace, u32 indent, Bool XMTDump)
 		StartElement(trace, "slConfigDescr" , indent, XMTDump, 0);
 		gf_odf_dump_desc(esd->slConfig, trace, indent + (XMTDump ? 1 : 0), XMTDump);
 		EndElement(trace, "slConfigDescr" , indent, XMTDump, 0);
-	}else{
+	} else {
 		StartElement(trace, "slConfigDescr" , indent, XMTDump, 0);
 		StartDescDump(trace, "SLConfigDescriptor", indent, XMTDump);
 		EndAttributes(trace, indent, XMTDump);
@@ -605,7 +605,7 @@ GF_Err gf_odf_dump_bifs_cfg(GF_BIFSConfig *dsi, FILE *trace, u32 indent, Bool XM
 	u32 i, count;
 	StartDescDump(trace, (dsi->version==1) ? "BIFSConfig" : "BIFSv2Config", indent, XMTDump);
 	indent++;
-	
+
 	if (dsi->version==2) {
 		DumpBool(trace, "use3DMeshCoding", 0, indent, XMTDump);
 		DumpBool(trace, "usePredictiveMFField", 0, indent, XMTDump);
@@ -678,7 +678,7 @@ GF_Err DumpRawBIFSConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Boo
 
 	StartDescDump(trace, (oti==1) ? "BIFSConfig" : "BIFSv2Config", indent, XMTDump);
 	indent++;
-	
+
 	if (oti==2) {
 		DumpBool(trace, "use3DMeshCoding", gf_bs_read_int(bs, 1), indent, XMTDump);
 		DumpBool(trace, "usePredictiveMFField", gf_bs_read_int(bs, 1), indent, XMTDump);
@@ -686,7 +686,7 @@ GF_Err DumpRawBIFSConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Boo
 	DumpInt(trace, "nodeIDbits", gf_bs_read_int(bs, 5), indent, XMTDump);
 	DumpInt(trace, "routeIDbits", gf_bs_read_int(bs, 5), indent, XMTDump);
 
-	if (oti==2) 
+	if (oti==2)
 		DumpInt(trace, "protoIDbits", gf_bs_read_int(bs, 5), indent, XMTDump);
 
 	flag = gf_bs_read_int(bs, 1);
@@ -735,9 +735,9 @@ GF_Err DumpRawBIFSConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Boo
 
 GF_Err gf_odf_dump_laser_cfg(GF_LASERConfig *dsi, FILE *trace, u32 indent, Bool XMTDump)
 {
-	fprintf(trace, "<lsr:LASeRHeader profile=\"%s\" pointsCodec=\"%s\"", 
-		dsi->profile ? "mini" : "full",
-		dsi->pointsCodec ? "Unknown" : "ExpGolombPointsCodec");
+	fprintf(trace, "<lsr:LASeRHeader profile=\"%s\" pointsCodec=\"%s\"",
+	        dsi->profile ? "mini" : "full",
+	        dsi->pointsCodec ? "Unknown" : "ExpGolombPointsCodec");
 
 	if (dsi->colorComponentBits) fprintf(trace, " colorComponentBits=\"%d\"", dsi->colorComponentBits);
 	if (dsi->newSceneIndicator) fprintf(trace, " newSceneIndicator=\"true\"");
@@ -774,7 +774,7 @@ GF_Err gf_odf_dump_txtcfg(GF_TextConfig *desc, FILE *trace, u32 indent, Bool XMT
 	StartElement(trace, "SampleDescriptions", indent, XMTDump, 1);
 	indent++;
 	OD_FORMAT_INDENT(ind_buf, indent);
-	
+
 	count = gf_list_count(desc->sample_descriptions);
 	for (i=0; i<count; i++) {
 		char szStyles[1024];
@@ -836,7 +836,7 @@ GF_Err gf_odf_dump_ui_cfg(GF_UIConfig *uid, FILE *trace, u32 indent, Bool XMTDum
 	StartDescDump(trace, "UIConfig" , indent, XMTDump);
 	indent++;
 	DumpString(trace, "deviceName", uid->deviceName, indent, XMTDump);
-	
+
 	if (!stricmp(devName, "StringSensor") && uid->termChar) {
 		devName[0] = uid->termChar;
 		devName[1] = 0;
@@ -895,7 +895,7 @@ GF_Err DumpRawUIConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool 
 	for (i=0; i<len; i++) devName[i] = gf_bs_read_int(bs, 8);
 	devName[i] = 0;
 	DumpString(trace, "deviceName", devName, indent, XMTDump);
-	
+
 	if (!stricmp(devName, "StringSensor") && gf_bs_available(bs)) {
 		devName[0] = gf_bs_read_int(bs, 8);
 		devName[1] = 0;
@@ -1175,15 +1175,15 @@ GF_Err gf_odf_dump_exp_text(GF_ExpandedTextual *etd, FILE *trace, u32 indent, Bo
 	DumpBool(trace, "isUTF8", etd->isUTF8, indent, XMTDump);
 	DumpString(trace, "nonItemText", etd->NonItemText, indent, XMTDump);
 	EndAttributes(trace, indent, XMTDump);
-	
+
 	count = gf_list_count(etd->itemDescriptionList);
 	for (i=0; i<count; i++) {
 		it1 = (GF_ETD_ItemText *)gf_list_get(etd->itemDescriptionList, i);
 		it2 = (GF_ETD_ItemText *)gf_list_get(etd->itemTextList, i);
-		StartSubElement(trace, "item", indent, XMTDump);	
+		StartSubElement(trace, "item", indent, XMTDump);
 		DumpString(trace, "description", it1->text, indent, XMTDump);
 		DumpString(trace, "text", it2->text, indent, XMTDump);
-		EndSubElement(trace, indent, XMTDump);	
+		EndSubElement(trace, indent, XMTDump);
 	}
 	indent--;
 	EndDescDump(trace, "ExpandedTextualDescriptor", indent, XMTDump);
@@ -1268,8 +1268,8 @@ GF_Err gf_odf_dump_ipmp_ptr(GF_IPMPPtr *ipmpd, FILE *trace, u32 indent, Bool XMT
 		DumpInt(trace, "IPMP_DescriptorID", ipmpd->IPMP_DescriptorID, indent, XMTDump);
 	}
 	indent--;
-	if (XMTDump) 
-		EndSubElement(trace, indent, XMTDump);	
+	if (XMTDump)
+		EndSubElement(trace, indent, XMTDump);
 	else
 		EndDescDump(trace, "IPMP_DescriptorPointer", indent, XMTDump);
 	return GF_OK;
@@ -1308,7 +1308,7 @@ GF_Err gf_odf_dump_lang(GF_Language *ld, FILE *trace, u32 indent, Bool XMTDump)
 	sLan[3] = 0;
 	DumpString(trace, "languageCode", sLan, indent, XMTDump);
 	indent--;
-	EndSubElement(trace, indent, XMTDump);	
+	EndSubElement(trace, indent, XMTDump);
 	if (!XMTDump) EndDescDump(trace, "LanguageDescriptor", indent, XMTDump);
 	return GF_OK;
 }
@@ -1329,7 +1329,7 @@ GF_Err gf_odf_dump_aux_vid(GF_AuxVideoDescriptor *ld, FILE *trace, u32 indent, B
 	DumpInt(trace, "dref", ld->dref, indent, XMTDump);
 	DumpInt(trace, "wref", ld->wref, indent, XMTDump);
 	indent--;
-	EndSubElement(trace, indent, XMTDump);	
+	EndSubElement(trace, indent, XMTDump);
 	if (!XMTDump) EndDescDump(trace, "LanguageDescriptor", indent, XMTDump);
 	return GF_OK;
 }
@@ -1337,7 +1337,7 @@ GF_Err gf_odf_dump_aux_vid(GF_AuxVideoDescriptor *ld, FILE *trace, u32 indent, B
 GF_Err gf_odf_dump_isom_iod(GF_IsomInitialObjectDescriptor *iod, FILE *trace, u32 indent, Bool XMTDump)
 {
 
-	
+
 	StartDescDump(trace, "MP4InitialObjectDescriptor", indent, XMTDump);
 	indent++;
 
@@ -1372,7 +1372,7 @@ GF_Err gf_odf_dump_isom_iod(GF_IsomInitialObjectDescriptor *iod, FILE *trace, u3
 		DumpString(trace, "URLstring", iod->URLString, indent, XMTDump);
 		EndSubElement(trace, indent, XMTDump);
 	}
-		
+
 	if (XMTDump) {
 		StartElement(trace, "Descr", indent, XMTDump, 1);
 		indent++;
@@ -1394,7 +1394,7 @@ GF_Err gf_odf_dump_isom_iod(GF_IsomInitialObjectDescriptor *iod, FILE *trace, u3
 		gf_odf_dump_desc(iod->IPMPToolList, trace, indent + (XMTDump ? 1 : 0), XMTDump);
 		EndElement(trace, "toolListDescr" , indent, XMTDump, 0);
 	}
-	
+
 	if (XMTDump) {
 		indent--;
 		EndElement(trace, "Descr", indent, XMTDump, 1);
@@ -1423,7 +1423,7 @@ GF_Err gf_odf_dump_od(GF_ObjectDescriptor *od, FILE *trace, u32 indent, Bool XMT
 		DumpString(trace, "URLstring", od->URLString, indent, XMTDump);
 		EndSubElement(trace, indent, XMTDump);
 	}
-		
+
 	if (XMTDump) {
 		StartElement(trace, "Descr", indent, XMTDump, 1);
 		indent++;
@@ -1435,7 +1435,7 @@ GF_Err gf_odf_dump_od(GF_ObjectDescriptor *od, FILE *trace, u32 indent, Bool XMT
 	DumpDescListFilter(od->IPMP_Descriptors, trace, indent, "ipmpDescr", XMTDump, GF_ODF_IPMP_TAG);
 
 	DumpDescList(od->extensionDescriptors, trace, indent, "extDescr", XMTDump, 0);
-	
+
 	if (XMTDump) {
 		indent--;
 		EndElement(trace, "Descr", indent, XMTDump, 1);
@@ -1464,7 +1464,7 @@ GF_Err gf_odf_dump_isom_od(GF_IsomObjectDescriptor *od, FILE *trace, u32 indent,
 		DumpString(trace, "URLstring", od->URLString, indent, XMTDump);
 		EndSubElement(trace, indent, XMTDump);
 	}
-		
+
 	if (XMTDump) {
 		StartElement(trace, "Descr", indent, XMTDump, 1);
 		indent++;
@@ -1479,7 +1479,7 @@ GF_Err gf_odf_dump_isom_od(GF_IsomObjectDescriptor *od, FILE *trace, u32 indent,
 	DumpDescListFilter(od->IPMP_Descriptors, trace, indent, "ipmpDescrPtr", XMTDump, GF_ODF_IPMP_PTR_TAG);
 	DumpDescListFilter(od->IPMP_Descriptors, trace, indent, "ipmpDescr", XMTDump, GF_ODF_IPMP_TAG);
 	DumpDescList(od->extensionDescriptors, trace, indent, "extDescr", XMTDump, 0);
-	
+
 	if (XMTDump) {
 		indent--;
 		EndElement(trace, "Descr", indent, XMTDump, 1);
@@ -1643,7 +1643,7 @@ GF_Err gf_odf_dump_smpte_camera(GF_SMPTECamera *cpd, FILE *trace, u32 indent, Bo
 	indent++;
 	DumpInt(trace, "cameraID", cpd->cameraID, indent, XMTDump);
 	EndAttributes(trace, indent, XMTDump);
-	
+
 	i=0;
 	while ((p = (GF_SmpteParam *)gf_list_enum(cpd->ParamList, &i))) {
 		StartSubElement(trace, "parameter", indent, XMTDump);
@@ -1677,7 +1677,7 @@ GF_Err gf_odf_dump_segment(GF_Segment *sd, FILE *trace, u32 indent, Bool XMTDump
 	DumpDouble(trace, "duration", sd->Duration, indent, XMTDump);
 	DumpString(trace, "name", sd->SegmentName, indent, XMTDump);
 	indent--;
-	if (XMTDump) 
+	if (XMTDump)
 		EndSubElement(trace, indent, XMTDump);
 	else
 		EndDescDump(trace, "SegmentDescriptor", indent, XMTDump);
@@ -1715,7 +1715,7 @@ GF_Err gf_odf_dump_muxinfo(GF_MuxInfo *mi, FILE *trace, u32 indent, Bool XMTDump
 
 		if (mi->textNode) DumpString(trace, "textNode", mi->textNode, indent, 0);
 		if (mi->fontNode) DumpString(trace, "fontNode", mi->fontNode, indent, 0);
-		
+
 		indent--;
 		EndDescDump(trace, "MuxInfo", indent, 0);
 		return GF_OK;
@@ -1947,7 +1947,7 @@ GF_Err gf_oci_dump_event(OCIEvent *ev, FILE *trace, u32 indent, Bool XMTDump)
 	StartAttribute(trace, "duration", indent, XMTDump);
 	fprintf(trace, "%d:%d:%d:%d", H, M, S, hS);
 	EndAttribute(trace, indent, XMTDump);
-	
+
 	StartElement(trace, "OCIDescr", indent, XMTDump, 1);
 	for (i=0; i<gf_oci_event_get_desc_count(ev); i++) {
 		desc = gf_oci_event_get_desc(ev, i);

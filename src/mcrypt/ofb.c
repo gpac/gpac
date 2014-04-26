@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 1998,1999,2000,2001,2002 Nikos Mavroyanopoulos
- * 
- * This library is free software; you can redistribute it and/or modify it 
- * under the terms of the GNU Library General Public License as published 
- * by the Free Software Foundation; either version 2 of the License, or 
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Library General Public License as published
+ * by the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
@@ -33,30 +33,30 @@ typedef struct ofb_buf {
 static GF_Err _init_mcrypt( OFB_BUFFER* buf, void *key, int lenofkey, void *IV, int size)
 {
 
-    buf->s_register = buf->enc_s_register = NULL;
+	buf->s_register = buf->enc_s_register = NULL;
 
-    buf->blocksize = size;
-    
-    /* For ofb */
+	buf->blocksize = size;
+
+	/* For ofb */
 	buf->s_register=gf_malloc( size);
-    if (buf->s_register==NULL) goto freeall;
+	if (buf->s_register==NULL) goto freeall;
 
 	buf->enc_s_register=gf_malloc( size);
-    if (buf->enc_s_register==NULL) goto freeall;
+	if (buf->enc_s_register==NULL) goto freeall;
 
 	if (IV!=NULL) {
 		memcpy(buf->s_register, IV, size);
 	} else {
 		memset(buf->s_register, 0, size);
 	}
-/* End ofb */
+	/* End ofb */
 
 	return GF_OK;
 
-	freeall:
-		if (buf->s_register) gf_free(buf->s_register);
-		if (buf->enc_s_register) gf_free(buf->enc_s_register);
-		return GF_OUT_OF_MEM;
+freeall:
+	if (buf->s_register) gf_free(buf->s_register);
+	if (buf->enc_s_register) gf_free(buf->enc_s_register);
+	return GF_OUT_OF_MEM;
 }
 
 static GF_Err _mcrypt_get_state( OFB_BUFFER* buf, u8 *IV, int *size)
@@ -88,7 +88,7 @@ static void _end_mcrypt( OFB_BUFFER* buf) {
 
 
 static GF_Err _mcrypt( OFB_BUFFER* buf,void *plaintext, int len, int blocksize, void* akey, void (*func)(void*,void*), void (*func2)(void*,void*) )
-{				/* plaintext is 1 u8 (8bit ofb) */
+{	/* plaintext is 1 u8 (8bit ofb) */
 	char *plain = plaintext;
 	int i, j;
 	void (*_mcrypt_block_encrypt) (void *, void *);
@@ -103,7 +103,7 @@ static GF_Err _mcrypt( OFB_BUFFER* buf,void *plaintext, int len, int blocksize, 
 
 		plain[j] ^= buf->enc_s_register[0];
 
-/* Shift the register */
+		/* Shift the register */
 		for (i = 0; i < (blocksize - 1); i++)
 			buf->s_register[i] = buf->s_register[i + 1];
 
@@ -116,7 +116,7 @@ static GF_Err _mcrypt( OFB_BUFFER* buf,void *plaintext, int len, int blocksize, 
 
 
 static GF_Err _mdecrypt( OFB_BUFFER* buf, void *plaintext, int len, int blocksize, void* akey, void (*func)(void*,void*), void (*func2)(void*,void*))
-{				/* plaintext is 1 u8 (8bit ofb) */
+{	/* plaintext is 1 u8 (8bit ofb) */
 	char *plain = plaintext;
 	int i, j;
 	void (*_mcrypt_block_encrypt) (void *, void *);
@@ -129,7 +129,7 @@ static GF_Err _mdecrypt( OFB_BUFFER* buf, void *plaintext, int len, int blocksiz
 
 		_mcrypt_block_encrypt(akey, buf->enc_s_register);
 
-/* Shift the register */
+		/* Shift the register */
 		for (i = 0; i < (blocksize - 1); i++)
 			buf->s_register[i] = buf->s_register[i + 1];
 

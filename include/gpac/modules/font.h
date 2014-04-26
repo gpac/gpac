@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -100,7 +100,7 @@ typedef struct _font_reader
 	/*shutdown font engine*/
 	GF_Err (*shutdown_font_engine)(struct _font_reader *dr);
 
-	/*set active font . @styles indicates font styles (PLAIN, BOLD, ITALIC, 
+	/*set active font . @styles indicates font styles (PLAIN, BOLD, ITALIC,
 	BOLDITALIC and UNDERLINED, STRIKEOUT)*/
 	GF_Err (*set_font)(struct _font_reader *dr, const char *fontName, u32 styles);
 	/*gets font info*/
@@ -112,7 +112,7 @@ typedef struct _font_reader
 	/*loads glyph by name - returns NULL if glyph cannot be found*/
 	GF_Glyph *(*load_glyph)(struct _font_reader *dr, u32 glyph_name);
 
-/*module private*/
+	/*module private*/
 	void *udta;
 } GF_FontReader;
 

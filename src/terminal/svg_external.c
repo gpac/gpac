@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -70,7 +70,7 @@ char *gf_term_resolve_xlink(GF_Node *node, char *the_url)
 		}
 		gf_free(url);
 		return the_url;
-	} 
+	}
 	return url;
 }
 
@@ -172,7 +172,7 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, 
 	SVGAllAttributes all_atts;
 	XLinkAttributesPointers xlinkp;
 	SMILSyncAttributesPointers syncp;
-	GF_Scene *scene = gf_sg_get_private(gf_node_get_graph(node)); 
+	GF_Scene *scene = gf_sg_get_private(gf_node_get_graph(node));
 	if (!scene) return NULL;
 
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
@@ -201,7 +201,7 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, 
 	/*play*/
 	gf_mo_play(new_resource->root_od->mo, 0, -1, 0);
 
-	return new_resource->root_od->mo;	
+	return new_resource->root_od->mo;
 }
 
 void gf_mo_unload_xlink_resource(GF_Node *node, GF_MediaObject *mo)

@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -52,36 +52,36 @@ GF_Err meta_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_MetaBox *ptr = (GF_MetaBox *)s;
 	switch (a->type) {
-	case GF_ISOM_BOX_TYPE_HDLR: 
+	case GF_ISOM_BOX_TYPE_HDLR:
 		if (ptr->handler) return GF_ISOM_INVALID_FILE;
-		ptr->handler = (GF_HandlerBox*)a; 
+		ptr->handler = (GF_HandlerBox*)a;
 		break;
-	case GF_ISOM_BOX_TYPE_PITM: 
+	case GF_ISOM_BOX_TYPE_PITM:
 		if (ptr->primary_resource) return GF_ISOM_INVALID_FILE;
-		ptr->primary_resource = (GF_PrimaryItemBox*)a; 
+		ptr->primary_resource = (GF_PrimaryItemBox*)a;
 		break;
-	case GF_ISOM_BOX_TYPE_DINF: 
+	case GF_ISOM_BOX_TYPE_DINF:
 		if (ptr->file_locations) return GF_ISOM_INVALID_FILE;
-		ptr->file_locations = (GF_DataInformationBox*)a; 
+		ptr->file_locations = (GF_DataInformationBox*)a;
 		break;
-	case GF_ISOM_BOX_TYPE_ILOC: 
+	case GF_ISOM_BOX_TYPE_ILOC:
 		if (ptr->item_locations) return GF_ISOM_INVALID_FILE;
-		ptr->item_locations = (GF_ItemLocationBox*)a; 
+		ptr->item_locations = (GF_ItemLocationBox*)a;
 		break;
-	case GF_ISOM_BOX_TYPE_IPRO: 
+	case GF_ISOM_BOX_TYPE_IPRO:
 		if (ptr->protections) return GF_ISOM_INVALID_FILE;
-		ptr->protections = (GF_ItemProtectionBox*)a; 
+		ptr->protections = (GF_ItemProtectionBox*)a;
 		break;
-	case GF_ISOM_BOX_TYPE_IINF: 
+	case GF_ISOM_BOX_TYPE_IINF:
 		if (ptr->item_infos) return GF_ISOM_INVALID_FILE;
-		ptr->item_infos = (GF_ItemInfoBox*)a; 
+		ptr->item_infos = (GF_ItemInfoBox*)a;
 		break;
 	//case ???: ptr->IPMP_control = (???*)a; break;
-	case GF_ISOM_BOX_TYPE_XML: 
-	case GF_ISOM_BOX_TYPE_BXML: 
-	case GF_ISOM_BOX_TYPE_ILST: 
-	default: 
-		return gf_isom_box_add_default(s, a); 
+	case GF_ISOM_BOX_TYPE_XML:
+	case GF_ISOM_BOX_TYPE_BXML:
+	case GF_ISOM_BOX_TYPE_ILST:
+	default:
+		return gf_isom_box_add_default(s, a);
 	}
 	return GF_OK;
 }
@@ -424,7 +424,7 @@ GF_Err pitm_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_PrimaryItemBox *ptr = (GF_PrimaryItemBox *)s;
 	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;	
+	if (e) return e;
 	ptr->item_ID = gf_bs_read_u16(bs);
 	return GF_OK;
 }
@@ -478,9 +478,9 @@ void ipro_del(GF_Box *s)
 GF_Err ipro_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_ItemProtectionBox *ptr = (GF_ItemProtectionBox *)s;
-	if (a->type == GF_ISOM_BOX_TYPE_SINF) 
+	if (a->type == GF_ISOM_BOX_TYPE_SINF)
 		return gf_list_add(ptr->protection_information, a);
-	else 
+	else
 		return gf_isom_box_add_default(s, a);
 }
 GF_Err ipro_Read(GF_Box *s, GF_BitStream *bs)
@@ -560,7 +560,7 @@ GF_Err infe_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr == NULL) return GF_BAD_PARAM;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	
+
 	ptr->item_ID = gf_bs_read_u16(bs);
 	ptr->item_protection_index = gf_bs_read_u16(bs);
 	ptr->size -= 4;
@@ -569,7 +569,7 @@ GF_Err infe_Read(GF_Box *s, GF_BitStream *bs)
 	if (buf_len != gf_bs_read_data(bs, buf, buf_len)) {
 		gf_free(buf);
 		return GF_ISOM_INVALID_FILE;
-	} 
+	}
 	string_len = 1;
 	string_start = 0;
 	for (i = 0; i < buf_len; i++) {
@@ -674,8 +674,8 @@ GF_Err iinf_Read(GF_Box *s, GF_BitStream *bs)
 		if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
 
 		if (a->type == GF_ISOM_BOX_TYPE_INFE)
-			gf_list_add(ptr->item_infos, a); 
-		else 
+			gf_list_add(ptr->item_infos, a);
+		else
 			gf_isom_box_del(a);
 		count --;
 	}

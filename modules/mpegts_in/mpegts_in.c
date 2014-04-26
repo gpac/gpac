@@ -44,7 +44,7 @@ typedef struct {
 	u32 pid;
 } M2TSIn_Prog;
 
-typedef struct 
+typedef struct
 {
 	GF_M2TS_Demuxer *ts;
 
@@ -81,7 +81,7 @@ typedef struct
 
 	Bool flush_sdt;
 
-}M2TSIn;
+} M2TSIn;
 
 
 static void M2TS_GetNetworkType(GF_InputService *plug,M2TSIn *reader);
@@ -89,16 +89,16 @@ static void M2TS_GetNetworkType(GF_InputService *plug,M2TSIn *reader);
 static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
-        if (!plug || !url)
-          return 0;
+	if (!plug || !url)
+		return 0;
 	if (!strnicmp(url, "udp://", 6)
-		|| !strnicmp(url, "mpegts-udp://", 13)
-		|| !strnicmp(url, "mpegts-tcp://", 13)
+	        || !strnicmp(url, "mpegts-udp://", 13)
+	        || !strnicmp(url, "mpegts-tcp://", 13)
 #ifdef GPAC_HAS_LINUX_DVB
-		|| !strnicmp(url, "dvb://", 6)
+	        || !strnicmp(url, "dvb://", 6)
 #endif
-	) {
-	  	return 1;
+	   ) {
+		return 1;
 	}
 
 	sExt = strrchr(url, '.');
@@ -151,21 +151,21 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 		}
 	} else
 #endif
-	if (!strnicmp(url, "udp://", 6)
-		|| !strnicmp(url, "mpegts-udp://", 13)
-		|| !strnicmp(url, "mpegts-tcp://", 13))
-	{
-		/* TODO: check IP address ...*/
-		ret = 0;
-	} else {
-		char *frag = strchr(url, '#');
-		if (frag) frag[0] = 0;
-		if (!strlen(url) || !strcmp(url, m2ts->ts->filename)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DVBIn] Reusing the same input file for %s\n", url));
- 			ret = 1;
+		if (!strnicmp(url, "udp://", 6)
+		        || !strnicmp(url, "mpegts-udp://", 13)
+		        || !strnicmp(url, "mpegts-tcp://", 13))
+		{
+			/* TODO: check IP address ...*/
+			ret = 0;
+		} else {
+			char *frag = strchr(url, '#');
+			if (frag) frag[0] = 0;
+			if (!strlen(url) || !strcmp(url, m2ts->ts->filename)) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DVBIn] Reusing the same input file for %s\n", url));
+				ret = 1;
+			}
+			if (frag) frag[0] = '#';
 		}
-		if (frag) frag[0] = '#';
-	}
 	return ret;
 }
 
@@ -335,9 +335,9 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 #endif
 
 	/*TS is a file, start regulation regardless of how the TS is access (with or without fragment URI)*/
-	if (m2ts->ts->file || m2ts->ts->dnload) 
+	if (m2ts->ts->file || m2ts->ts->dnload)
 		m2ts->ts->file_regulate = 1;
-		
+
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
@@ -350,20 +350,20 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
-		if ((es->flags & GF_M2TS_ES_IS_PES) && ((GF_M2TS_PES *)es)->depends_on_pid ) 
+		if ((es->flags & GF_M2TS_ES_IS_PES) && ((GF_M2TS_PES *)es)->depends_on_pid )
 			continue;
 
 		/*move to skip mode for all ES until asked for playback*/
 		if (!es->user)
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
 
-		if (!prog->pmt_iod && !no_declare) {						
+		if (!prog->pmt_iod && !no_declare) {
 			MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
-		} 
+		}
 		/*if IOD, streams not declared through OD framework are refered to by pid:// scheme, and will be declared upon
 		request by the terminal through GetServiceDesc*/
 	}
-	
+
 	/*force scene regeneration*/
 	if (!prog->pmt_iod && regenerate_scene)
 		gf_term_add_media(m2ts->service, NULL, 0);
@@ -479,7 +479,7 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 				if (prog_id==ts_prog->number) {
 					req_prog->id = prog_id;
 					break;
-					}
+				}
 			}
 		}
 		if (req_prog->id) {
@@ -524,9 +524,9 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_UPDATE:
-/*	example code showing how to forward an event from MPEG-2 TS input service to GPAC user*/
+		/*	example code showing how to forward an event from MPEG-2 TS input service to GPAC user*/
 #if 0
-		{
+	{
 		GF_Event evt;
 		evt.type = GF_EVENT_FORWARDED;
 		evt.forwarded_event.forward_type = GF_EVT_FORWARDED_MPEG2;
@@ -536,16 +536,16 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		gf_term_on_service_event(m2ts->service, &evt);
 	}
 #endif
-		break;
+	break;
 	case GF_M2TS_EVT_AIT_FOUND:
 		evt.type = GF_EVENT_FORWARDED;
 		evt.forwarded_event.forward_type = GF_EVT_FORWARDED_MPEG2;
 		evt.forwarded_event.service_event_type = evt_type;
-		evt.forwarded_event.param = param;		  
+		evt.forwarded_event.param = param;
 		gf_term_on_service_event(m2ts->service, &evt);
 		break;
 	case GF_M2TS_EVT_PAT_FOUND:
-		/* In case the TS has one program, wait for the PMT to send connect, in case of IOD in PMT */		
+		/* In case the TS has one program, wait for the PMT to send connect, in case of IOD in PMT */
 		if (gf_list_count(m2ts->ts->programs) != 1) {
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);
 			m2ts->is_connected = 1;
@@ -555,29 +555,29 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		evt.forwarded_event.forward_type = GF_M2TS_EVT_PAT_FOUND;
 		evt.forwarded_event.service_event_type = evt_type;
 		evt.forwarded_event.param = ts;
-		gf_term_on_service_event(m2ts->service, &evt);		
+		gf_term_on_service_event(m2ts->service, &evt);
 		break;
 	case GF_M2TS_EVT_DSMCC_FOUND:
 		evt.type = GF_EVENT_FORWARDED;
 		evt.forwarded_event.forward_type = GF_EVT_FORWARDED_MPEG2;
 		evt.forwarded_event.service_event_type = evt_type;
-		evt.forwarded_event.param = param;		  
+		evt.forwarded_event.param = param;
 		gf_term_on_service_event(m2ts->service, &evt);
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
 		if (gf_list_count(m2ts->ts->programs) == 1) {
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);
 			m2ts->is_connected = 1;
-		}		
+		}
 		/*do not declare if  single program was requested for playback*/
 		MP2TS_SetupProgram(m2ts, param, m2ts->request_all_pids, m2ts->request_all_pids ? 0 : 1);
-		M2TS_FlushRequested(m2ts);		
+		M2TS_FlushRequested(m2ts);
 		/* Send the TS to the a user if needed. Useful to check the number of received programs*/
 		evt.type = GF_EVENT_FORWARDED;
 		evt.forwarded_event.forward_type = GF_M2TS_EVT_PMT_FOUND;
 		evt.forwarded_event.service_event_type = evt_type;
 		evt.forwarded_event.param = param;
-		gf_term_on_service_event(m2ts->service, &evt);		
+		gf_term_on_service_event(m2ts->service, &evt);
 		break;
 	case GF_M2TS_EVT_PMT_REPEAT:
 //	case GF_M2TS_EVT_PMT_UPDATE:
@@ -617,14 +617,14 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		if (!pck->stream->first_dts) {
 			gf_m2ts_set_pes_framing(pck->stream, GF_M2TS_PES_FRAMING_SKIP_NO_RESET);
 			MP2TS_DeclareStream(m2ts, pck->stream, pck->data, pck->data_len);
-			if (ts->file || ts->dnload) 
+			if (ts->file || ts->dnload)
 				ts->file_regulate = 1;
 			pck->stream->first_dts=1;
 			/*force scene regeneration*/
 			gf_term_add_media(m2ts->service, NULL, 0);
 		}
 	}
-		break;
+	break;
 	case GF_M2TS_EVT_PES_PCR:
 		/*send pcr*/
 		if (((GF_M2TS_PES_PCK *) param)->stream && ((GF_M2TS_PES_PCK *) param)->stream->user) {
@@ -645,7 +645,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			}
 #endif
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] PCR discontinuity - switching from old STB "LLD" to new one "LLD"\n", ts->pcr_last, ((GF_M2TS_PES_PCK *) param)->PTS));
-			/*FIXME - we need to find a way to treat PCR discontinuities correctly while ignoring broken PCR discontinuities 
+			/*FIXME - we need to find a way to treat PCR discontinuities correctly while ignoring broken PCR discontinuities
 			seen in many HLS solutions*/
 			return;
 		}
@@ -653,7 +653,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		if (ts->file_regulate) {
 			u64 pcr = ((GF_M2TS_PES_PCK *) param)->PTS;
 			u32 stb = gf_sys_clock();
-			
+
 			if (m2ts->regulation_pcr_pid==0) {
 				/*we pick the first PCR PID for file regulation - we don't need to make sure this is the PCR of a program being played as we
 				only check buffer levels, not DTS/PTS of the streams in the regulation step*/
@@ -750,8 +750,8 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 						gf_term_on_command(m2ts->service, &com, GF_OK);
 					}
 				}
-				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Mapping TDT Time %04d/%02d/%02d %02d:%02d:%02d and PCR time "LLD" on program %d\n", 
-					tdt->year, tdt->month, tdt->day, tdt->hour, tdt->minute, tdt->second, com.map_time.timestamp, prog->number));
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Mapping TDT Time %04d/%02d/%02d %02d:%02d:%02d and PCR time "LLD" on program %d\n",
+				                                       tdt->year, tdt->month, tdt->day, tdt->hour, tdt->minute, tdt->second, com.map_time.timestamp, prog->number));
 			}
 		}
 		break;
@@ -780,7 +780,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			}
 		}
 	}
-		break;
+	break;
 
 	case GF_M2TS_EVT_TEMI_LOCATION:
 	{
@@ -795,7 +795,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		com.addon_info.timeline_id = ((GF_M2TS_TemiLocationDescriptor*)param)->timeline_id;
 		gf_term_on_command(m2ts->service, &com, GF_OK);
 	}
-		break;
+	break;
 	case GF_M2TS_EVT_TEMI_TIMECODE:
 	{
 		GF_NetworkCommand com;
@@ -809,7 +809,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		com.addon_time.is_paused = ((GF_M2TS_TemiTimecodeDescriptor*)param)->is_paused;
 		gf_term_on_command(m2ts->service, &com, GF_OK);
 	}
-		break;
+	break;
 	}
 }
 
@@ -826,10 +826,10 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 	} else if (param->msg_type==GF_NETIO_DATA_EXCHANGE) {
 		e = GF_OK;
 		assert( m2ts->ts);
-		if (param->size > 0){
+		if (param->size > 0) {
 			/*process chunk*/
 			assert(param->data);
-			if (m2ts->network_buffer_size < param->size){
+			if (m2ts->network_buffer_size < param->size) {
 				m2ts->network_buffer = gf_realloc(m2ts->network_buffer, sizeof(char) * param->size);
 				m2ts->network_buffer_size = param->size;
 			}
@@ -849,7 +849,7 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 		}
 #if 1 //see commit 3642: crashes when reload quickly with http
 		if (!m2ts->ts->run_state) {
-			if (m2ts->ts->dnload) 
+			if (m2ts->ts->dnload)
 				gf_term_download_del( m2ts->ts->dnload );
 			m2ts->ts->dnload = NULL;
 		}
@@ -859,20 +859,20 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 		e = param->error;
 	}
 
-	switch (e){
-	  case GF_EOS:
-		  if (!m2ts->is_connected) {
-			  gf_term_on_connect(m2ts->service, NULL, GF_OK);
-		  }
-		  return;
-	  case GF_OK:
-		  return;
-	  default:
-		  if (!m2ts->ts_setup) {
-			  m2ts->ts_setup = 1;
-		  }
-		  GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER,("[MPEGTSIn] : Error while getting data : %s\n", gf_error_to_string(e)));
-		  gf_term_on_connect(m2ts->service, NULL, e);
+	switch (e) {
+	case GF_EOS:
+		if (!m2ts->is_connected) {
+			gf_term_on_connect(m2ts->service, NULL, GF_OK);
+		}
+		return;
+	case GF_OK:
+		return;
+	default:
+		if (!m2ts->ts_setup) {
+			m2ts->ts_setup = 1;
+		}
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER,("[MPEGTSIn] : Error while getting data : %s\n", gf_error_to_string(e)));
+		gf_term_on_connect(m2ts->service, NULL, e);
 	}
 }
 
@@ -905,9 +905,9 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 
 	query_ret = m2ts->owner->query_proxy(m2ts->owner, &param);
 
-	if ((query_ret==GF_BUFFER_TOO_SMALL) && query_type && !param.url_query.next_url){
+	if ((query_ret==GF_BUFFER_TOO_SMALL) && query_type && !param.url_query.next_url) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M2TS In] Cannot query next file: not yet downloaded\n"));
-	} else if ((query_ret==GF_OK) && query_type && !param.url_query.next_url){
+	} else if ((query_ret==GF_OK) && query_type && !param.url_query.next_url) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M2TS In] Cannot query next file: no file provided but no error raised\n"));
 	} else if (query_ret) {
 		GF_LOG((query_ret<0) ? GF_LOG_ERROR : GF_LOG_INFO, GF_LOG_DASH, ("[M2TS In] Cannot query next file: error: %s\n", gf_error_to_string(query_ret)));
@@ -956,7 +956,7 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 	const char *url;
 
 	if (m2ts->in_data_flush) {
-		if (flush_type==GF_M2TS_PUSH_SEGMENT) 
+		if (flush_type==GF_M2TS_PUSH_SEGMENT)
 			m2ts->has_pending_segments++;
 		return;
 	}
@@ -974,7 +974,7 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 			//count completed segment that were not dispatched
 			if (flush_type==GF_M2TS_PUSH_SEGMENT)
 				m2ts->has_pending_segments++;
-			
+
 			m2ts->in_data_flush = 0;
 			gf_mx_v(m2ts->mx);
 			return;
@@ -996,7 +996,7 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 	}
 	gf_m2ts_demux_file(m2ts->ts, url, start_byterange, end_byterange, refresh_type, 0);
 
-	//done, drop segment 
+	//done, drop segment
 	if (!m2ts->in_segment_download) {
 		e = M2TS_QueryNextFile(m2ts, 3, &url, &start_byterange, &end_byterange, &refresh_type);
 
@@ -1014,7 +1014,7 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 
 static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
-	GF_Err e;	
+	GF_Err e;
 	const char *opt;
 	M2TSIn *m2ts = plug->priv;
 
@@ -1025,7 +1025,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "HybRadio", "Activated");
 	if (opt && !strcmp(opt, "true")) {
 		m2ts->hybrid_on = 1;
-	}	
+	}
 
 	m2ts->ts->record_to = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "M2TS", "RecordTo");
 
@@ -1038,14 +1038,14 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 
 	if (url && !strnicmp(url, "http://", 7)) {
 		m2ts->ts->dnload = gf_term_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, m2ts_net_io, m2ts);
-		if (!m2ts->ts->dnload){
+		if (!m2ts->ts->dnload) {
 			gf_term_on_connect(m2ts->service, NULL, GF_NOT_SUPPORTED);
 			return GF_OK;
 		} else {
 			e = gf_m2ts_demuxer_play(m2ts->ts);
 		}
 	} else {
-		//dash & HLS - run in non-threaded mode 
+		//dash & HLS - run in non-threaded mode
 		if (plug->query_proxy) {
 			//get byte range if any (local playback)
 			if (url) {
@@ -1067,7 +1067,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	}
 
 	if (e) {
-		gf_term_on_connect(m2ts->service, NULL, e);	
+		gf_term_on_connect(m2ts->service, NULL, e);
 	}
 	return e;
 }
@@ -1078,8 +1078,8 @@ static GF_Err M2TS_CloseService(GF_InputService *plug)
 	GF_M2TS_Demuxer* ts = m2ts->ts;
 
 	if (!plug->query_proxy)
-		gf_m2ts_demuxer_close(ts);	
-	
+		gf_m2ts_demuxer_close(ts);
+
 	m2ts->ts->run_state = 0;
 
 	if (ts->dnload) gf_term_download_del(ts->dnload);
@@ -1154,7 +1154,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			}
 		}
 		/*if we expect scene, return NULL and repost a connection ack when we get the PMT*/
-		if (expect_type==GF_MEDIA_OBJECT_SCENE) 
+		if (expect_type==GF_MEDIA_OBJECT_SCENE)
 			return NULL;
 		if (m2ts->epg_requested) {
 			GF_ObjectDescriptor *od = M2TS_GenerateEPG_OD(m2ts);
@@ -1198,9 +1198,9 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 					GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[i];
 					if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
 					if ((pes->mpeg4_es_id == ES_ID)
-						/*for pid:// url*/
-						|| (!pes->mpeg4_es_id && (pes->pid == ES_ID))
-					) {
+					        /*for pid:// url*/
+					        || (!pes->mpeg4_es_id && (pes->pid == ES_ID))
+					   ) {
 						if (pes->user) {
 							e = GF_SERVICE_ERROR;
 							gf_term_on_connect(m2ts->service, channel, e);
@@ -1257,7 +1257,7 @@ static GF_M2TS_PES *M2TS_GetFirstRunningChannel(M2TSIn *m2ts)
 		GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[i];
 		if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
 		if (!pes->user) continue;
-		
+
 		if (gf_m2ts_pes_get_framing_mode(pes) >= GF_M2TS_PES_FRAMING_DEFAULT)
 			return pes;
 	}
@@ -1319,7 +1319,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	GF_M2TS_PES *pes;
 	M2TSIn *m2ts = plug->priv;
-	GF_M2TS_Demuxer *ts = m2ts->ts;	
+	GF_M2TS_Demuxer *ts = m2ts->ts;
 
 	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
 		char *frag = strchr(com->audio.base_url, '#');
@@ -1370,7 +1370,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (m2ts->ts->file) return GF_OK;
 		return GF_NOT_SUPPORTED;
 	case GF_NET_CHAN_BUFFER:
-		//do not override config 
+		//do not override config
 		if (ts->dnload || plug->query_proxy) {
 			if (!com->buffer.max) com->buffer.max = 1000;
 		}
@@ -1395,7 +1395,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			ts->start_range = (u32) (com->play.start_range*1000);
 			ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
 
-			if (plug->query_proxy && ts->file) 
+			if (plug->query_proxy && ts->file)
 				ts->segment_switch = 1;
 
 			/*start demuxer*/
@@ -1417,7 +1417,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		}
 		/* In case of EOS, we may receive a stop command after no one is playing */
 		if (ts->nb_playing)
-		  ts->nb_playing--;
+			ts->nb_playing--;
 		/*stop demuxer*/
 		if (!plug->query_proxy) {
 			if (!ts->nb_playing && (ts->run_state==1)) {
@@ -1448,13 +1448,13 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	}
 }
 
-static u32 M2TS_RegisterMimeTypes(const GF_InputService * service){
-  int i;
-  if (service == NULL)
-    return 0;
-  for (i = 0 ; MIMES[i]; i++)
-    gf_term_register_mime_type( service, MIMES[i], "ts m2t dmb", "MPEG-2 TS");
-  return i;
+static u32 M2TS_RegisterMimeTypes(const GF_InputService * service) {
+	int i;
+	if (service == NULL)
+		return 0;
+	for (i = 0 ; MIMES[i]; i++)
+		gf_term_register_mime_type( service, MIMES[i], "ts m2t dmb", "MPEG-2 TS");
+	return i;
 }
 
 static void M2TS_GetNetworkType(GF_InputService *plug,M2TSIn *reader)
@@ -1463,12 +1463,12 @@ static void M2TS_GetNetworkType(GF_InputService *plug,M2TSIn *reader)
 	const char *mcast_ifce;
 
 	mob_on = gf_modules_get_option((GF_BaseInterface*)plug, "Network", "MobileIPEnabled");
-	if(mob_on && !strcmp(mob_on, "yes")){
+	if(mob_on && !strcmp(mob_on, "yes")) {
 		reader->ts->MobileIPEnabled = 1;
 		reader->ts->network_type = gf_modules_get_option((GF_BaseInterface*)plug, "Network", "MobileIP");
 	}
 
-    mcast_ifce = gf_modules_get_option((GF_BaseInterface*)plug, "Network", "DefaultMCastInterface");
+	mcast_ifce = gf_modules_get_option((GF_BaseInterface*)plug, "Network", "DefaultMCastInterface");
 	if(mcast_ifce) reader->ts->network_type = gf_strdup(mcast_ifce);
 }
 
@@ -1499,7 +1499,7 @@ GF_InputService *NewM2TSReader()
 	reader->ts->th = gf_th_new("MPEG-2 TS Demux");
 
 	reader->mx = gf_mx_new("MPEG2 Demux");
-	
+
 	return plug;
 }
 
@@ -1509,11 +1509,11 @@ void DeleteM2TSReader(void *ifce)
 	M2TSIn *m2ts;
 	GF_InputService *plug = (GF_InputService *) ifce;
 	if (!ifce)
-	  return;
+		return;
 	m2ts = plug->priv;
 	if (!m2ts)
-	  return;
-	if( m2ts->ts->requested_progs ){
+		return;
+	if( m2ts->ts->requested_progs ) {
 		count = gf_list_count(m2ts->ts->requested_progs);
 		for (i = 0; i < count; i++) {
 			M2TSIn_Prog *prog = gf_list_get(m2ts->ts->requested_progs, i);
@@ -1523,7 +1523,7 @@ void DeleteM2TSReader(void *ifce)
 		gf_list_del(m2ts->ts->requested_progs);
 		m2ts->ts->requested_progs = NULL;
 	}
-	if( m2ts->ts->requested_pids ){
+	if( m2ts->ts->requested_pids ) {
 		count = gf_list_count(m2ts->ts->requested_pids);
 		for (i = 0; i < count; i++) {
 			M2TSIn_Prog *prog = gf_list_get(m2ts->ts->requested_pids, i);
@@ -1566,9 +1566,11 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
 #ifndef GPAC_DISABLE_MPEG2TS
-	case GF_NET_CLIENT_INTERFACE: return (GF_BaseInterface *) NewM2TSReader();
+	case GF_NET_CLIENT_INTERFACE:
+		return (GF_BaseInterface *) NewM2TSReader();
 #endif
-	default: return NULL;
+	default:
+		return NULL;
 	}
 }
 
@@ -1577,7 +1579,9 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
 #ifndef GPAC_DISABLE_MPEG2TS
-	case GF_NET_CLIENT_INTERFACE:  DeleteM2TSReader(ifce); break;
+	case GF_NET_CLIENT_INTERFACE:
+		DeleteM2TSReader(ifce);
+		break;
 #endif
 	}
 }

@@ -162,7 +162,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 				dc_producer_lock(&audio_input_data->producer, &audio_input_data->circular_buf);
 				dc_producer_unlock_previous(&audio_input_data->producer, &audio_input_data->circular_buf);
 				audio_data_node = (AudioDataNode*)dc_producer_produce(&audio_input_data->producer, &audio_input_data->circular_buf);
-				
+
 				audio_data_node->abuf_size = audio_input_data->aframe->linesize[0];
 				memcpy(audio_data_node->abuf, audio_input_data->aframe->data[0], audio_data_node->abuf_size);
 

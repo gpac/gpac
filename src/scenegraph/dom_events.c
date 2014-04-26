@@ -15,7 +15,7 @@
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.	
+ *  GNU Lesser General Public License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
@@ -100,14 +100,14 @@ u32 gf_sg_get_dom_event_filter(GF_SceneGraph *sg)
 
 u32 gf_node_get_dom_event_filter(GF_Node *node)
 {
-    if (node) {
-        return node->sgprivate->scenegraph->dom_evt_filter;
-    } else {
-        return 0;
-    }
+	if (node) {
+		return node->sgprivate->scenegraph->dom_evt_filter;
+	} else {
+		return 0;
+	}
 }
 
-/* Associate a listener node and a event target node 
+/* Associate a listener node and a event target node
    - adds the listener node in the list of event listener nodes for the target node
    - sets the target node as the user of the listener
 */
@@ -140,8 +140,8 @@ GF_Err gf_node_dom_listener_add(GF_Node *node, GF_Node *listener)
 	if (!node || !listener) return GF_BAD_PARAM;
 	if (listener->sgprivate->tag!=TAG_SVG_listener)
 		return GF_BAD_PARAM;
-	
-	if (!node->sgprivate->interact) 
+
+	if (!node->sgprivate->interact)
 		GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
 
 	if (!node->sgprivate->interact->dom_evt) {
@@ -167,7 +167,7 @@ GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target)
 	return GF_OK;
 }
 
-GF_Err gf_dom_event_remove_listener_from_parent(GF_DOMEventTarget *event_target, GF_Node *listener) 
+GF_Err gf_dom_event_remove_listener_from_parent(GF_DOMEventTarget *event_target, GF_Node *listener)
 {
 	if (!event_target) return GF_BAD_PARAM;
 	if (event_target->ptr_type == GF_DOM_EVENT_TARGET_NODE) {
@@ -188,7 +188,7 @@ GF_Err gf_dom_event_remove_listener_from_parent(GF_DOMEventTarget *event_target,
 	return GF_OK;
 }
 
-void gf_dom_event_remove_all_listeners(GF_DOMEventTarget *event_target) 
+void gf_dom_event_remove_all_listeners(GF_DOMEventTarget *event_target)
 {
 	while (gf_list_count(event_target->listeners)) {
 		GF_Node *n = (GF_Node *)gf_list_get(event_target->listeners, 0);
@@ -297,8 +297,8 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 
 			if ((iri->type==XMLRI_STRING) && iri->string && !strnicmp(iri->string, "javascript:", 11)) {
 #ifdef GPAC_HAS_SPIDERMONKEY
-			if (listen->sgprivate->scenegraph->svg_js) 
-				listen->sgprivate->scenegraph->svg_js->handler_execute(listen, event, observer, iri->string + 11);
+				if (listen->sgprivate->scenegraph->svg_js)
+					listen->sgprivate->scenegraph->svg_js->handler_execute(listen, event, observer, iri->string + 11);
 #endif
 				return;
 			}
@@ -310,7 +310,7 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 			return;
 		}
 	}
-		break;
+	break;
 	default:
 		return;
 	}
@@ -338,7 +338,7 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 		handler->handle_event(hdl_node, event, observer);
 #endif
 	}
-		break;
+	break;
 	case TAG_LSR_conditional:
 		if ( ((SVG_Element*)hdl_node)->children)
 			gf_node_traverse(((SVG_Element*)hdl_node)->children->node, NULL);
@@ -350,7 +350,7 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 		act.type = GF_EVENT_ACTIVATE;
 		gf_dom_event_fire((GF_Node *)hdl_node, &act);
 	}
-		break;
+	break;
 	default:
 		return;
 	}
@@ -360,94 +360,94 @@ GF_EXPORT
 Bool gf_sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_SceneGraph *sg, GF_Node *n)
 {
 	if (et) {
-        if (et->ptr_type==GF_DOM_EVENT_TARGET_NODE || 
-			et->ptr_type == GF_DOM_EVENT_TARGET_DOCUMENT || 
-			et->ptr_type == GF_DOM_EVENT_TARGET_XHR ||
-			et->ptr_type == GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE || 
-			et->ptr_type == GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER || 
-			et->ptr_type == GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST ) {
-		    GF_Node *observer = NULL;
-		    u32 i, count, post_count;
-            if (et->ptr_type==GF_DOM_EVENT_TARGET_NODE) {
-                observer = (GF_Node *)et->ptr;
-            }
-		    count = gf_list_count(et->listeners);
-		    for (i=0; i<count; i++) {
-			    XMLEV_Event *listened_event;
-			    GF_Node *listen = (GF_Node *)gf_list_get(et->listeners, i);
+		if (et->ptr_type==GF_DOM_EVENT_TARGET_NODE ||
+		        et->ptr_type == GF_DOM_EVENT_TARGET_DOCUMENT ||
+		        et->ptr_type == GF_DOM_EVENT_TARGET_XHR ||
+		        et->ptr_type == GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE ||
+		        et->ptr_type == GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER ||
+		        et->ptr_type == GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST ) {
+			GF_Node *observer = NULL;
+			u32 i, count, post_count;
+			if (et->ptr_type==GF_DOM_EVENT_TARGET_NODE) {
+				observer = (GF_Node *)et->ptr;
+			}
+			count = gf_list_count(et->listeners);
+			for (i=0; i<count; i++) {
+				XMLEV_Event *listened_event;
+				GF_Node *listen = (GF_Node *)gf_list_get(et->listeners, i);
 
-			    switch (listen->sgprivate->tag) {
-			    case TAG_SVG_listener:
-			    {
-				    SVGAllAttributes atts;
-				    gf_svg_flatten_attributes((SVG_Element*)listen, &atts);
-				    listened_event = atts.event;
-				    if (!listened_event) continue;
+				switch (listen->sgprivate->tag) {
+				case TAG_SVG_listener:
+				{
+					SVGAllAttributes atts;
+					gf_svg_flatten_attributes((SVG_Element*)listen, &atts);
+					listened_event = atts.event;
+					if (!listened_event) continue;
 
-				    if (atts.propagate && (*atts.propagate==XMLEVENT_PROPAGATE_STOP))
-					    event->event_phase |= GF_DOM_EVENT_PHASE_CANCEL;
-				    if (atts.defaultAction && (*atts.defaultAction==XMLEVENT_DEFAULTACTION_CANCEL))
-					    event->event_phase |= GF_DOM_EVENT_PHASE_PREVENT;
-			    }
-				    break;
-			    default:
-				    continue;
-			    }
-			    if (listened_event->type <= GF_EVENT_MOUSEMOVE) event->has_ui_events=1;
-			    if (listened_event->type != event->type) continue;
-			    if (listened_event->parameter && (listened_event->parameter != event->detail)) continue;
-			    event->currentTarget = et;
-			    event->consumed	++;
+					if (atts.propagate && (*atts.propagate==XMLEVENT_PROPAGATE_STOP))
+						event->event_phase |= GF_DOM_EVENT_PHASE_CANCEL;
+					if (atts.defaultAction && (*atts.defaultAction==XMLEVENT_DEFAULTACTION_CANCEL))
+						event->event_phase |= GF_DOM_EVENT_PHASE_PREVENT;
+				}
+				break;
+				default:
+					continue;
+				}
+				if (listened_event->type <= GF_EVENT_MOUSEMOVE) event->has_ui_events=1;
+				if (listened_event->type != event->type) continue;
+				if (listened_event->parameter && (listened_event->parameter != event->detail)) continue;
+				event->currentTarget = et;
+				event->consumed	++;
 
-			    /*load event cannot bubble and can only be called once (on load :) ), remove it
-			    to release some resources*/
-			    if (event->type==GF_EVENT_LOAD) {
-				    dom_event_process(listen, event, observer);
-				    /*delete listener*/
-				    //gf_dom_listener_del(listen, et);
-			    } else if (n) {
-				    assert(n->sgprivate->num_instances);
-				    /*protect node*/
-				    n->sgprivate->num_instances++;
-				    /*exec event*/
-				    dom_event_process(listen, event, observer);
-				    /*the event has destroyed ourselves, abort propagation
-				    THIS IS NOT DOM compliant, the event should propagate on the original target+ancestors path*/
-				    if (n->sgprivate->num_instances==1) {
-					    /*unprotect node event*/
-					    gf_node_unregister(n, NULL);
-					    return GF_FALSE;
-				    }
-				    n->sgprivate->num_instances--;
-			    } else {
-				    dom_event_process(listen, event, observer);
-			    }
-			    /*canceled*/
-			    if (event->event_phase & GF_DOM_EVENT_PHASE_CANCEL_ALL) {
-				    gf_dom_listener_process_add(sg);
-				    return GF_FALSE;
-			    }
+				/*load event cannot bubble and can only be called once (on load :) ), remove it
+				to release some resources*/
+				if (event->type==GF_EVENT_LOAD) {
+					dom_event_process(listen, event, observer);
+					/*delete listener*/
+					//gf_dom_listener_del(listen, et);
+				} else if (n) {
+					assert(n->sgprivate->num_instances);
+					/*protect node*/
+					n->sgprivate->num_instances++;
+					/*exec event*/
+					dom_event_process(listen, event, observer);
+					/*the event has destroyed ourselves, abort propagation
+					THIS IS NOT DOM compliant, the event should propagate on the original target+ancestors path*/
+					if (n->sgprivate->num_instances==1) {
+						/*unprotect node event*/
+						gf_node_unregister(n, NULL);
+						return GF_FALSE;
+					}
+					n->sgprivate->num_instances--;
+				} else {
+					dom_event_process(listen, event, observer);
+				}
+				/*canceled*/
+				if (event->event_phase & GF_DOM_EVENT_PHASE_CANCEL_ALL) {
+					gf_dom_listener_process_add(sg);
+					return GF_FALSE;
+				}
 
-			    /*if listeners have been removed, update count*/
-			    post_count = gf_list_count(et->listeners);
-			    if (post_count < count) {
-				    s32 pos = gf_list_find(et->listeners, listen);
-				    if (pos>=0) i = pos;
-				    /*FIXME this is not going to work in all cases...*/
-				    else i--;
-				    count = post_count;
-			    }
-		    }
-		    /*propagation stopped*/
-		    if (event->event_phase & (GF_DOM_EVENT_PHASE_CANCEL|GF_DOM_EVENT_PHASE_CANCEL_ALL) ) {
-			    gf_dom_listener_process_add(sg);
-			    return GF_FALSE;
-		    }
+				/*if listeners have been removed, update count*/
+				post_count = gf_list_count(et->listeners);
+				if (post_count < count) {
+					s32 pos = gf_list_find(et->listeners, listen);
+					if (pos>=0) i = pos;
+					/*FIXME this is not going to work in all cases...*/
+					else i--;
+					count = post_count;
+				}
+			}
+			/*propagation stopped*/
+			if (event->event_phase & (GF_DOM_EVENT_PHASE_CANCEL|GF_DOM_EVENT_PHASE_CANCEL_ALL) ) {
+				gf_dom_listener_process_add(sg);
+				return GF_FALSE;
+			}
 		}
-	    gf_dom_listener_process_add(sg);
-	    /*if the current target is a node, we can bubble*/
-	    return n ? GF_TRUE : GF_FALSE;
-    } else {
+		gf_dom_listener_process_add(sg);
+		/*if the current target is a node, we can bubble*/
+		return n ? GF_TRUE : GF_FALSE;
+	} else {
 		/* if the node does not have a event target, probably a parent will have, so let's bubble */
 		return GF_TRUE;
 	}
@@ -458,13 +458,13 @@ static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *
 	GF_Node *parent;
 
 	if (!node || node->sgprivate->scenegraph->abort_bubbling) return;
-	
+
 
 	/*get the node's parent*/
 	parent = gf_node_get_parent(node, 0);
 
 	if (!parent) {
-	/*top of the graph, use Document*/
+		/*top of the graph, use Document*/
 		if (node->sgprivate->scenegraph->RootNode==node)
 			gf_sg_fire_dom_event(node->sgprivate->scenegraph->dom_evt, event, node->sgprivate->scenegraph, NULL);
 		return;
@@ -615,7 +615,7 @@ GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event
 		gf_node_register((GF_Node *)handler, (GF_Node *) listener);
 		gf_node_list_add_child_last(& ((GF_ParentNode *)listener)->children, (GF_Node*)handler, &last);
 	}
-	
+
 	gf_node_get_attribute_by_tag((GF_Node*)listener, TAG_XMLEV_ATT_event, GF_TRUE, GF_FALSE, &info);
 	((XMLEV_Event *)info.far_ptr)->type = event_type;
 	((XMLEV_Event *)info.far_ptr)->parameter = event_parameter;
@@ -625,7 +625,7 @@ GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event
 
 	gf_node_get_attribute_by_tag((GF_Node*)listener, TAG_XMLEV_ATT_target, GF_TRUE, GF_FALSE, &info);
 	((XMLRI *)info.far_ptr)->target = node;
-	
+
 	gf_node_dom_listener_add((GF_Node *) node, (GF_Node *) listener);
 
 	if (out_listener) *out_listener = (GF_Node *) listener;
@@ -670,7 +670,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 		}
 		/*only handle event if coming from the watched element*/
 		if (proto->element) {
-			if ((evt->currentTarget->ptr_type!=GF_DOM_EVENT_TARGET_NODE) || (proto->element!= (GF_Node*)evt->currentTarget->ptr)) 
+			if ((evt->currentTarget->ptr_type!=GF_DOM_EVENT_TARGET_NODE) || (proto->element!= (GF_Node*)evt->currentTarget->ptr))
 				continue;
 		}
 
@@ -745,25 +745,25 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 		} else if (t->event.type==GF_EVENT_REPEAT) {
 			t->event.type=GF_EVENT_REPEAT_EVENT;
 			t->is_absolute_event = GF_TRUE;
-		} 
+		}
 
 		/*create a new listener*/
 		hdl = gf_dom_listener_build_ex(t->element, t->event.type, t->event.parameter, NULL, &t->listener);
 
-		/*register the listener so that we can handle cyclic references: 
+		/*register the listener so that we can handle cyclic references:
 			- If the anim node gets destroyed, the listener is removed through the SMIL_Time reference
 			- If the target gets destroyed, the listener is removed through the regular way
 		*/
 		if (t->listener)
 			gf_node_register(t->listener, NULL);
-		
+
 		if (hdl) {
 			((SVG_handlerElement *)hdl)->handle_event = is_begin ? gf_smil_handle_event_begin : gf_smil_handle_event_end;
 		}
 		else {
 			continue;
 		}
-		/*We don't want to insert the implicit listener in the DOM. However remember 
+		/*We don't want to insert the implicit listener in the DOM. However remember
 		the listener at the handler level in case the handler gets destroyed*/
 		gf_node_set_private((GF_Node *)hdl, node);
 		gf_node_register((GF_Node*)node, NULL);
@@ -868,7 +868,7 @@ GF_DOMUpdates *gf_dom_add_update_node(GF_Node *parent)
 	return update;
 }
 
-void gf_dom_event_dump_listeners(GF_Node *n, FILE *f) 
+void gf_dom_event_dump_listeners(GF_Node *n, FILE *f)
 {
 	u32		i;
 	u32		count;
@@ -889,9 +889,9 @@ void gf_dom_event_dump_listeners(GF_Node *n, FILE *f)
 				hdl = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 				if (!hdl) continue;
 				/*this handler was declared in the graph*/
-				if (hdl->sgprivate->parents 
-					&& (hdl->sgprivate->parents->next || (hdl->sgprivate->parents->node != listener))
-				)
+				if (hdl->sgprivate->parents
+				        && (hdl->sgprivate->parents->next || (hdl->sgprivate->parents->node != listener))
+				   )
 					continue;
 
 				txt = hdl->children ? (GF_DOMText*)hdl->children->node : NULL;
@@ -904,24 +904,24 @@ void gf_dom_event_dump_listeners(GF_Node *n, FILE *f)
 	}
 }
 
-GF_DOMEventTarget *gf_dom_event_target_new(GF_DOMEventTargetType type, void *obj) 
+GF_DOMEventTarget *gf_dom_event_target_new(GF_DOMEventTargetType type, void *obj)
 {
-    GF_DOMEventTarget *target;
-    GF_SAFEALLOC(target, GF_DOMEventTarget);
-    target->ptr_type = type;
+	GF_DOMEventTarget *target;
+	GF_SAFEALLOC(target, GF_DOMEventTarget);
+	target->ptr_type = type;
 	target->listeners = gf_list_new();
-    target->ptr = obj;
-    return target;
+	target->ptr = obj;
+	return target;
 }
 
-void gf_dom_event_target_del(GF_DOMEventTarget *target) 
+void gf_dom_event_target_del(GF_DOMEventTarget *target)
 {
-    assert(gf_list_count(target->listeners) == 0);
+	assert(gf_list_count(target->listeners) == 0);
 	gf_list_del(target->listeners);
 	gf_free(target);
 }
 
-GF_DOMEventTarget *gf_dom_event_get_target_from_node(GF_Node *n) 
+GF_DOMEventTarget *gf_dom_event_get_target_from_node(GF_Node *n)
 {
 	GF_DOMEventTarget *target = NULL;
 	//GF_HTML_MediaElement *me = html_media_element_get_from_node(c, n);

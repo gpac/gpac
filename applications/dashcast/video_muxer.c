@@ -114,7 +114,7 @@ static GF_Err avc_import_ffextradata(const u8 *extradata, const u64 extradata_si
 			gf_free(buffer);
 			return GF_BAD_PARAM;
 		}
-		
+
 		idx = gf_media_avc_read_pps(buffer, nal_size, &avc);
 		if (idx < 0) {
 			gf_bs_del(bs);
@@ -177,7 +177,7 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 	video_output_file->trackID = gf_isom_get_track_id(video_output_file->isof, track);
 
 	video_output_file->timescale = video_codec_ctx->time_base.den;
-	if (!video_output_file->frame_dur) 
+	if (!video_output_file->frame_dur)
 		video_output_file->frame_dur = video_codec_ctx->time_base.num;
 
 	if (!track) {
@@ -398,7 +398,7 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filenam
 	}
 
 	video_stream = avformat_new_stream(video_output_file->av_fmt_ctx,
-			video_output_file->codec);
+	                                   video_output_file->codec);
 	if (!video_stream) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot create output video stream\n"));
 		return -1;
@@ -413,7 +413,7 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filenam
 	video_stream->codec->height = video_codec_ctx->height; //video_output_file->video_data_conf->height;
 
 	video_stream->codec->time_base = video_codec_ctx->time_base;
-	
+
 	video_stream->codec->pix_fmt = PIX_FMT_YUV420P;
 	video_stream->codec->gop_size = video_codec_ctx->time_base.den; //video_output_file->video_data_conf->framerate;
 
@@ -586,7 +586,9 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool 
 
 					if (insert_utc) {
 						gf_net_get_ntp(&sec, &frac);
-						ntpts = sec; ntpts <<= 32; ntpts |= frac; 
+						ntpts = sec;
+						ntpts <<= 32;
+						ntpts |= frac;
 						gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, ntpts, video_output_file->pts_at_segment_start);
 					}
 				}
@@ -626,7 +628,7 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool 
 			if (!video_output_file->segment_started) {
 				u32 sec, frac;
 				u64 ntpts;
-					
+
 				video_output_file->pts_at_segment_start = video_output_file->codec_ctx->coded_frame->pts;
 				video_output_file->segment_started = 1;
 
@@ -634,7 +636,9 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool 
 					time_t secs;
 					struct tm t;
 					gf_net_get_ntp(&sec, &frac);
-					ntpts = sec; ntpts <<= 32; ntpts |= frac; 
+					ntpts = sec;
+					ntpts <<= 32;
+					ntpts |= frac;
 					gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, ntpts, video_output_file->pts_at_segment_start);
 
 					secs = sec - GF_NTP_SEC_1900_TO_1970;

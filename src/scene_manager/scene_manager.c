@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -36,7 +36,7 @@ GF_EXPORT
 GF_SceneManager *gf_sm_new(GF_SceneGraph *graph)
 {
 	GF_SceneManager *tmp;
-	
+
 	if (!graph) return NULL;
 	GF_SAFEALLOC(tmp, GF_SceneManager);
 	tmp->streams = gf_list_new();
@@ -57,12 +57,12 @@ GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamTyp
 		/*if no ESID/OTI specified this is a base layer (default stream created by parsers)
 		if ESID/OTI specified this is a stream already setup
 		*/
-		if ( tmp->ESID==ES_ID ){
+		if ( tmp->ESID==ES_ID ) {
 			//tmp->objectType = objectType;
 			return tmp;
 		}
 	}
-	
+
 	GF_SAFEALLOC(tmp, GF_StreamContext);
 	tmp->AUs = gf_list_new();
 	tmp->ESID = ES_ID;
@@ -174,29 +174,29 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 {
 	u32 i;
 	GF_AUContext *tmp;
-    u64 tmp_timing;
+	u64 tmp_timing;
 
-    tmp_timing = timing ? timing : (u64) (time_sec*1000);
-    if (stream->imp_exp_time >= tmp_timing) {
-	    /*look for existing AU*/
-	    i=0;
-	    while ((tmp = (GF_AUContext *)gf_list_enum(stream->AUs, &i))) {
-		    if (timing && (tmp->timing==timing)) return tmp;
-		    else if (time_sec && (tmp->timing_sec == time_sec)) return tmp;
-		    else if (!time_sec && !timing && !tmp->timing && !tmp->timing_sec) return tmp;
-		    /*insert AU*/
-		    else if ((time_sec && time_sec<tmp->timing_sec) || (timing && timing<tmp->timing)) {
-			    GF_SAFEALLOC(tmp, GF_AUContext);
-			    tmp->commands = gf_list_new();
-			    if (isRap) tmp->flags = GF_SM_AU_RAP;
-			    tmp->timing = timing;
-			    tmp->timing_sec = time_sec;
-			    tmp->owner = stream;
-			    gf_list_insert(stream->AUs, tmp, i-1);
-			    return tmp;
-		    }
-	    }
-    } 
+	tmp_timing = timing ? timing : (u64) (time_sec*1000);
+	if (stream->imp_exp_time >= tmp_timing) {
+		/*look for existing AU*/
+		i=0;
+		while ((tmp = (GF_AUContext *)gf_list_enum(stream->AUs, &i))) {
+			if (timing && (tmp->timing==timing)) return tmp;
+			else if (time_sec && (tmp->timing_sec == time_sec)) return tmp;
+			else if (!time_sec && !timing && !tmp->timing && !tmp->timing_sec) return tmp;
+			/*insert AU*/
+			else if ((time_sec && time_sec<tmp->timing_sec) || (timing && timing<tmp->timing)) {
+				GF_SAFEALLOC(tmp, GF_AUContext);
+				tmp->commands = gf_list_new();
+				if (isRap) tmp->flags = GF_SM_AU_RAP;
+				tmp->timing = timing;
+				tmp->timing_sec = time_sec;
+				tmp->owner = stream;
+				gf_list_insert(stream->AUs, tmp, i-1);
+				return tmp;
+			}
+		}
+	}
 	GF_SAFEALLOC(tmp, GF_AUContext);
 	tmp->commands = gf_list_new();
 	if (isRap) tmp->flags = GF_SM_AU_RAP;
@@ -205,7 +205,7 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 	tmp->owner = stream;
 	if (stream->disable_aggregation) tmp->flags |= GF_SM_AU_NOT_AGGREGATED;
 	gf_list_add(stream->AUs, tmp);
-    stream->imp_exp_time = tmp_timing;
+	stream->imp_exp_time = tmp_timing;
 	return tmp;
 }
 
@@ -276,7 +276,9 @@ static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *co
 				/*we may aggregate an indexed insertion and a replace one*/
 				if (check_index) {
 					if (check->tag == GF_SG_INDEXED_REPLACE) {}
-					else if (check->tag == GF_SG_INDEXED_INSERT) { original_is_index = 1; }
+					else if (check->tag == GF_SG_INDEXED_INSERT) {
+						original_is_index = 1;
+					}
 					else {
 						break;
 					}
@@ -350,7 +352,7 @@ static GF_StreamContext *gf_sm_get_stream(GF_SceneManager *ctx, u16 ESID)
 {
 	u32 i, count;
 	count = gf_list_count(ctx->streams);
-	for (i=0;i<count;i++) {
+	for (i=0; i<count; i++) {
 		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
 		if (sc->ESID==ESID) return sc;
 	}
@@ -371,19 +373,19 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 	e = GF_OK;
 
 #if DEBUG_RAP
-    com_count = 0;
+	com_count = 0;
 	stream_count = gf_list_count(ctx->streams);
-    for (i=0; i<stream_count; i++) {
+	for (i=0; i<stream_count; i++) {
 		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, i);
 		if (sc->streamType == GF_STREAM_SCENE) {
-	        au_count = gf_list_count(sc->AUs);
-            for (j=0; j<au_count; j++) {
+			au_count = gf_list_count(sc->AUs);
+			for (j=0; j<au_count; j++) {
 				au = (GF_AUContext *)gf_list_get(sc->AUs, j);
-                com_count += gf_list_count(au->commands);
-            }
-        }
-    }
-    GF_LOG(GF_LOG_INFO, GF_LOG_SCENE, ("[SceneManager] Making RAP with %d commands\n", com_count));
+				com_count += gf_list_count(au->commands);
+			}
+		}
+	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_SCENE, ("[SceneManager] Making RAP with %d commands\n", com_count));
 #endif
 
 	stream_count = gf_list_count(ctx->streams);
@@ -418,7 +420,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 			Bool base_stream_found = 0;
 
 			/*in DIMS we use an empty initial AU with no commands to signal the RAP*/
-            if (sc->objectType == GPAC_OTI_SCENE_DIMS) base_stream_found = 1;
+			if (sc->objectType == GPAC_OTI_SCENE_DIMS) base_stream_found = 1;
 
 			/*apply all commands - this will also apply the SceneReplace*/
 			while (gf_list_count(sc->AUs)) {
@@ -452,7 +454,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 					/*if stream doesn't carry a carousel or carries the base carousel (scene replace), always apply the command*/
 					if (base_stream_found || !sc->aggregate_on_esid) {
 						store = 0;
-					} 
+					}
 					/*otherwise, check wether the command should be kept in this stream as is, or can be aggregated on this stream*/
 					else {
 						switch (com->tag) {
@@ -469,14 +471,14 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 						case GF_SG_LSR_SAVE:
 						case GF_SG_LSR_SEND_EVENT:
 						case GF_SG_LSR_CLEAN:
-						/*todo check in which category to put these commands*/
+							/*todo check in which category to put these commands*/
 //						case GF_SG_LSR_ACTIVATE:
 //						case GF_SG_LSR_DEACTIVATE:
 							store = 1;
 							break;
-						/*other commands: 
+						/*other commands:
 							!!! we need to know if the target node of the command has been inserted in this stream !!!
-						
+
 						This is a tedious task, for now we will consider the following cases:
 							- locate a similar command in the stored list: remove the similar one and aggregate on stream
 							- by default all AUs are stored if the stream is in aggregate mode - we should fix that by checking insertion points:
@@ -526,8 +528,8 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 				case GPAC_OTI_SCENE_LASER:
 					com = gf_sg_command_new(ctx->scene_graph, GF_SG_LSR_NEW_SCENE);
 					break;
-                case GPAC_OTI_SCENE_DIMS:
-                    /* We do not create a new command, empty AU is enough in DIMS*/
+				case GPAC_OTI_SCENE_DIMS:
+				/* We do not create a new command, empty AU is enough in DIMS*/
 				default:
 					com = NULL;
 					break;
@@ -539,7 +541,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 					gf_list_del(com->new_proto_list);
 					com->new_proto_list = ctx->scene_graph->protos;
 					ctx->scene_graph->protos = NULL;
-					/*indicate the command is the aggregated scene graph, so that PROTOs and ROUTEs 
+					/*indicate the command is the aggregated scene graph, so that PROTOs and ROUTEs
 					are taken from the scenegraph when encoding*/
 					com->aggregated = 1;
 					gf_list_add(au->commands, com);
@@ -564,7 +566,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 
 #ifndef GPAC_DISABLE_LOADER_BT
 GF_Err gf_sm_load_init_bt(GF_SceneLoader *load);
-#endif 
+#endif
 
 #ifndef GPAC_DISABLE_LOADER_XMT
 GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load);
@@ -614,17 +616,17 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	GF_Err e = GF_NOT_SUPPORTED;
 	char *ext, szExt[50];
 	/*we need at least a scene graph*/
-	if (!load || (!load->ctx && !load->scene_graph) 
+	if (!load || (!load->ctx && !load->scene_graph)
 #ifndef GPAC_DISABLE_ISOM
-		|| (!load->fileName && !load->isom && !(load->flags & GF_SM_LOAD_FOR_PLAYBACK) )
+	        || (!load->fileName && !load->isom && !(load->flags & GF_SM_LOAD_FOR_PLAYBACK) )
 #endif
-		) return GF_BAD_PARAM;
+	   ) return GF_BAD_PARAM;
 
 	if (!load->type) {
 #ifndef GPAC_DISABLE_ISOM
 		if (load->isom) {
 			load->type = GF_SM_LOAD_MP4;
-		} else 
+		} else
 #endif
 		{
 			ext = strrchr(load->fileName, '.');
@@ -669,7 +671,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 
 	switch (load->type) {
 #ifndef GPAC_DISABLE_LOADER_BT
-	case GF_SM_LOAD_BT: 
+	case GF_SM_LOAD_BT:
 	case GF_SM_LOAD_VRML:
 	case GF_SM_LOAD_X3DV:
 		return gf_sm_load_init_bt(load);
@@ -687,7 +689,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	case GF_SM_LOAD_DIMS:
 		return gf_sm_load_init_svg(load);
 
-	case GF_SM_LOAD_XBL: 
+	case GF_SM_LOAD_XBL:
 		e = gf_sm_load_init_xbl(load);
 
 		load->process = gf_sm_load_run_xbl;;
@@ -696,7 +698,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 #endif
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
-	case GF_SM_LOAD_SWF: 
+	case GF_SM_LOAD_SWF:
 		return gf_sm_load_init_swf(load);
 #endif
 
@@ -706,7 +708,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 #endif
 
 #ifndef GPAC_DISABLE_QTVR
-	case GF_SM_LOAD_QT: 
+	case GF_SM_LOAD_QT:
 		return gf_sm_load_init_qt(load);
 #endif
 
@@ -740,7 +742,7 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 {
 	u32 data_size = 0;
 	char *data = NULL;
-	char *buffer; 
+	char *buffer;
 	M_BitWrapper *bw = (M_BitWrapper *)node;
 
 	if (!bw->buffer.buffer) return;
@@ -769,11 +771,11 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 			base_64 = strstr(bw->buffer.buffer, ";base64") ? 1 : 0;
 			if (sep) buffer = sep+1;
 		}
-			
+
 		if (base_64) {
 			data_size = 2 * (u32) strlen(buffer);
 			data = (char*)gf_malloc(sizeof(char)*data_size);
-			if (data) 
+			if (data)
 				data_size = gf_base64_decode(buffer, (u32) strlen(buffer), data, data_size);
 		} else {
 			u32 i, c;

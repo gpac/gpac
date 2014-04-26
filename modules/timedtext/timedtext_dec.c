@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -124,8 +124,10 @@ static void TTD_UpdateSizeInfo(TTDPriv *priv)
 	if offsets are negative: since MPEG-4 uses centered coord system, we must assume video is aligned to top-left*/
 	if (priv->cfg->has_vid_info) {
 		Bool set_size = 0;
-		vw = priv->cfg->horiz_offset; if (vw<0) vw = 0;
-		vh = priv->cfg->vert_offset; if (vh<0) vh = 0;
+		vw = priv->cfg->horiz_offset;
+		if (vw<0) vw = 0;
+		vh = priv->cfg->vert_offset;
+		if (vh<0) vh = 0;
 		if (priv->cfg->text_width + (u32) vw > w) {
 			w = priv->cfg->text_width+vw;
 			set_size = 1;
@@ -412,7 +414,7 @@ static void ttd_set_scroll_fraction(GF_Node *node, GF_Route *route)
 				priv->tr_scroll->translation.y = gf_muldiv(priv->dlist->size.y, frac, priv->scroll_time);
 			}
 		}
-			if (priv->scroll_type - 1 == GF_TXT_SCROLL_DOWN) priv->tr_scroll->translation.y *= -1;
+		if (priv->scroll_type - 1 == GF_TXT_SCROLL_DOWN) priv->tr_scroll->translation.y *= -1;
 		break;
 	case GF_TXT_SCROLL_MARQUEE:
 	case GF_TXT_SCROLL_RIGHT:
@@ -960,19 +962,26 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 			/*only one item in line, no need for alignment, but still add a group (we could use the
 			item as a group but that would complicate the alignment generation)*/
 			if (start_idx==i-1) {
-				gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id); (*id) = idx.vals[start_idx];
-				gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id); (*id) = -1;
+				gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id);
+				(*id) = idx.vals[start_idx];
+				gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id);
+				(*id) = -1;
 			} else {
 				/*spread horizontal 0 pixels (eg align) all items in line*/
-				gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s); s->buffer = gf_strdup(vertical ? "SV 0" : "SH 0");
+				gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s);
+				s->buffer = gf_strdup(vertical ? "SV 0" : "SH 0");
 				for (j=start_idx; j<i; j++) {
-					gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = idx.vals[j];
+					gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id);
+					(*id) = idx.vals[j];
 					/*also add a group for the line, for final justif*/
-					gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id); (*id) = idx.vals[j];
+					gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id);
+					(*id) = idx.vals[j];
 				}
-				gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = -1;
+				gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id);
+				(*id) = -1;
 				/*mark end of group*/
-				gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id); (*id) = -1;
+				gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id);
+				(*id) = -1;
 			}
 			start_idx = i+1;
 			nb_lines ++;
@@ -986,56 +995,92 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s);
 	if (vertical) {
 		switch (td->vert_justif) {
-		case 1: s->buffer = gf_strdup("AV"); break;/*center*/
-		case -1: s->buffer = gf_strdup("AB"); break;/*bottom*/
-		default: s->buffer = gf_strdup("AT"); break;/*top*/
+		case 1:
+			s->buffer = gf_strdup("AV");
+			break;/*center*/
+		case -1:
+			s->buffer = gf_strdup("AB");
+			break;/*bottom*/
+		default:
+			s->buffer = gf_strdup("AT");
+			break;/*top*/
 		}
 	} else {
 		switch (td->horiz_justif) {
-		case 1: s->buffer = gf_strdup("AH"); break;/*center*/
-		case -1: s->buffer = gf_strdup("AR"); break;/*right*/
-		default: s->buffer = gf_strdup("AL"); break;/*left*/
+		case 1:
+			s->buffer = gf_strdup("AH");
+			break;/*center*/
+		case -1:
+			s->buffer = gf_strdup("AR");
+			break;/*right*/
+		default:
+			s->buffer = gf_strdup("AL");
+			break;/*left*/
 		}
 	}
-	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = 0;
+	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id);
+	(*id) = 0;
 	for (i=0; i<nb_lines; i++) {
-		gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = i+start_idx;
+		gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id);
+		(*id) = i+start_idx;
 	}
-	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = -1;
+	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id);
+	(*id) = -1;
 
 
 	/*vertical alignment: first align all items vertically, 0 pixel */
-	gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s); s->buffer = gf_strdup(vertical ? "SH 0" : "SV 0");
-	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = 0;
+	gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s);
+	s->buffer = gf_strdup(vertical ? "SH 0" : "SV 0");
+	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id);
+	(*id) = 0;
 	for (i=0; i<nb_lines; i++) {
-		gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = i+start_idx;
+		gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id);
+		(*id) = i+start_idx;
 	}
-	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = -1;
+	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id);
+	(*id) = -1;
 
 	/*define a group with every item drawn*/
 	count = gf_node_list_get_count(form->children);
 	for (i=0; i<count; i++) {
-		gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id); (*id) = i+1;
+		gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id);
+		(*id) = i+1;
 	}
-	gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id); (*id) = -1;
+	gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id);
+	(*id) = -1;
 
 	gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s);
 	if (vertical) {
 		switch (td->horiz_justif) {
-		case 1: s->buffer = gf_strdup("AH"); break;/*center*/
-		case -1: s->buffer = gf_strdup("AR"); break;/*right*/
-		default: s->buffer = gf_strdup("AL"); break;/*left*/
+		case 1:
+			s->buffer = gf_strdup("AH");
+			break;/*center*/
+		case -1:
+			s->buffer = gf_strdup("AR");
+			break;/*right*/
+		default:
+			s->buffer = gf_strdup("AL");
+			break;/*left*/
 		}
 	} else {
 		switch (td->vert_justif) {
-		case 1: s->buffer = gf_strdup("AV"); break;/*center*/
-		case -1: s->buffer = gf_strdup("AB"); break;/*bottom*/
-		default: s->buffer = gf_strdup("AT"); break;/*top*/
+		case 1:
+			s->buffer = gf_strdup("AV");
+			break;/*center*/
+		case -1:
+			s->buffer = gf_strdup("AB");
+			break;/*bottom*/
+		default:
+			s->buffer = gf_strdup("AT");
+			break;/*top*/
 		}
 	}
-	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = 0;
-	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = start_idx + nb_lines;
-	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = -1;
+	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id);
+	(*id) = 0;
+	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id);
+	(*id) = start_idx + nb_lines;
+	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id);
+	(*id) = -1;
 
 
 	gf_node_dirty_set((GF_Node *)form, 0, 1);
@@ -1059,7 +1104,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 }
 
 static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 inBufferLength,
-								u16 ES_ID, u32 AU_time, u32 mmlevel)
+                              u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	GF_BitStream *bs;
 	GF_Err e = GF_OK;
@@ -1148,11 +1193,14 @@ GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
-	case GF_SCENE_DECODER_INTERFACE: return (GF_BaseInterface *)NewTimedTextDec();
+	case GF_SCENE_DECODER_INTERFACE:
+		return (GF_BaseInterface *)NewTimedTextDec();
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
-	case GF_NET_CLIENT_INTERFACE: return (GF_BaseInterface *)NewTTReader();
+	case GF_NET_CLIENT_INTERFACE:
+		return (GF_BaseInterface *)NewTTReader();
 #endif
-	default: return NULL;
+	default:
+		return NULL;
 	}
 }
 
@@ -1174,7 +1222,9 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 #else
 
 GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) { return NULL; }
+GF_BaseInterface *LoadInterface(u32 InterfaceType) {
+	return NULL;
+}
 GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce) {}
 

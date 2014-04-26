@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -105,24 +105,24 @@ GF_ESD *IMG_GetESD(IMGLoader *read)
 }
 
 const char * IMG_MIME_TYPES[] = {
-  "image/jpeg", "jpeg jpg", "JPEG Images",
-  "image/jp2", "jp2", "JPEG2000 Images",
-  "image/png", "png", "PNG Images",
-  "image/bmp", "bmp", "MS Bitmap Images",
-  "image/x-png+depth", "pngd", "PNG+Depth Images",
-  "image/x-png+depth+mask", "pngds", "PNG+Depth+Mask Images",
-  "image/x-png+stereo", "pngs", "Stereo PNG Images",
-  NULL
+	"image/jpeg", "jpeg jpg", "JPEG Images",
+	"image/jp2", "jp2", "JPEG2000 Images",
+	"image/png", "png", "PNG Images",
+	"image/bmp", "bmp", "MS Bitmap Images",
+	"image/x-png+depth", "pngd", "PNG+Depth Images",
+	"image/x-png+depth+mask", "pngds", "PNG+Depth+Mask Images",
+	"image/x-png+stereo", "pngs", "Stereo PNG Images",
+	NULL
 };
 
-static u32 IMG_RegisterMimeTypes(const GF_InputService *plug){
-    u32 i;
-    if (!plug){
-      GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("IMG_RegisterMimeTypes : plug is NULL !!\n"));
-    }
-    for (i = 0 ; IMG_MIME_TYPES[i]; i+=3)
-      gf_term_register_mime_type(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2]);
-    return i/3;
+static u32 IMG_RegisterMimeTypes(const GF_InputService *plug) {
+	u32 i;
+	if (!plug) {
+		GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("IMG_RegisterMimeTypes : plug is NULL !!\n"));
+	}
+	for (i = 0 ; IMG_MIME_TYPES[i]; i+=3)
+		gf_term_register_mime_type(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2]);
+	return i/3;
 }
 
 
@@ -130,13 +130,13 @@ static Bool IMG_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	u32 i;
-        GF_LOG(GF_LOG_MEDIA, GF_LOG_INFO, ("IMG_CanHandleURL(%s)\n", url));
-        if (!plug || !url)
-          return 0;
+	GF_LOG(GF_LOG_MEDIA, GF_LOG_INFO, ("IMG_CanHandleURL(%s)\n", url));
+	if (!plug || !url)
+		return 0;
 	sExt = strrchr(url, '.');
-	for (i = 0 ; IMG_MIME_TYPES[i]; i+=3){
-	  if (gf_term_check_extension(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2], sExt))
-	    return 1;
+	for (i = 0 ; IMG_MIME_TYPES[i]; i+=3) {
+		if (gf_term_check_extension(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2], sExt))
+			return 1;
 	}
 	return 0;
 }
@@ -214,8 +214,8 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	IMGLoader *read = (IMGLoader *)plug->priv;
 
 	read->service = serv;
-        if (!url)
-          return GF_BAD_PARAM;
+	if (!url)
+		return GF_BAD_PARAM;
 	sExt = strrchr(url, '.');
 	if (!stricmp(sExt, ".jpeg") || !stricmp(sExt, ".jpg")) read->img_type = IMG_JPEG;
 	else if (!stricmp(sExt, ".png")) read->img_type = IMG_PNG;
@@ -287,14 +287,14 @@ static GF_Err IMG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	u32 ES_ID=0;
 	GF_Err e;
 	IMGLoader *read;
-        if (!plug)
-          return 0;
-        read = (IMGLoader *)plug->priv;
+	if (!plug)
+		return 0;
+	read = (IMGLoader *)plug->priv;
 
 	e = GF_SERVICE_ERROR;
 	if (read->ch==channel) goto exit;
-        if (!url)
-          goto exit;
+	if (!url)
+		goto exit;
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
 		sscanf(url, "ES_ID=%ud", &ES_ID);
@@ -341,7 +341,9 @@ static GF_Err IMG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	case GF_NET_CHAN_PLAY:
 		/*note we don't handle range since we're only dealing with images*/
-		if (read->ch == com->base.on_channel) { read->done = 0; }
+		if (read->ch == com->base.on_channel) {
+			read->done = 0;
+		}
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
 		return GF_OK;

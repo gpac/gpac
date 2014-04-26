@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -39,7 +39,7 @@ extern "C" {
 /*GPAC client terminal*/
 typedef struct _tag_terminal GF_Terminal;
 typedef struct _tag_user GF_User;
-	
+
 
 enum
 {
@@ -47,14 +47,14 @@ enum
 	GF_TERM_INIT_HIDE = 1,
 	/*no audio renderer will be created*/
 	GF_TERM_NO_AUDIO = 1<<1,
-	/*terminal is used without visual threading: 
+	/*terminal is used without visual threading:
 		* media codecs are not threaded
 		* all composition memories are filled before rendering
 		* rendering is done after media decoding
 		* the user is responsible for updating the terminal
 	*/
 	GF_TERM_NO_DECODER_THREAD = 1<<2,
-	
+
 	/*works with no visual thread for the composition - compositor is driven by the media manager
 		if GF_TERM_NO_DECODER_THREAD, equivalent to GF_TERM_NO_COMPOSITOR_THREAD
 	*/
@@ -91,7 +91,7 @@ struct _tag_user
 	GF_Config *config;
 	/*modules manager - cannot be NULL - owned by the user (to allow selection of module directory)*/
 	GF_ModuleManager *modules;
-	/*optional os window handler (HWND on win32/winCE, XWindow for X11) 
+	/*optional os window handler (HWND on win32/winCE, XWindow for X11)
 	if not set the video outut will create and manage the display window.*/
 	void *os_window_handler;
 	/*for now, only used by X11 (indicates display the window is on)*/

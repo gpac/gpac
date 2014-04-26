@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,17 +11,17 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *		
+ *
  */
 
 #include "fileprops.h"
@@ -36,7 +36,7 @@
 
 
 wxFileProps::wxFileProps(wxWindow *parent)
-             : wxDialog(parent, -1, wxString(_T("File Properties")))
+	: wxDialog(parent, -1, wxString(_T("File Properties")))
 {
 
 	m_pApp = (wxOsmo4Frame *)parent;
@@ -44,16 +44,16 @@ wxFileProps::wxFileProps(wxWindow *parent)
 	assert(m_pApp->m_pPlayList);
 
 	m_pTreeView = new wxTreeCtrl(this, ID_TREE_VIEW, wxPoint(4, 2), wxSize(200, 180), wxTR_DEFAULT_STYLE | wxSUNKEN_BORDER);
-	
+
 	new wxStaticText(this, 0, _T("Information"), wxPoint(210, 2), wxSize(60, 20));
-    m_pViewSel = new wxComboBox(this, ID_VIEW_SEL, _T(""), wxPoint(280, 2), wxSize(120, 24), 0, NULL, wxCB_READONLY);
+	m_pViewSel = new wxComboBox(this, ID_VIEW_SEL, _T(""), wxPoint(280, 2), wxSize(120, 24), 0, NULL, wxCB_READONLY);
 	m_pViewSel->Append(wxT("General"));
 	m_pViewSel->Append(wxT("Streams"));
 	m_pViewSel->Append(wxT("Playback"));
 	m_pViewSel->Append(wxT("Network"));
 	m_pViewSel->SetSelection(0);
 
-    m_pViewInfo = new wxTextCtrl(this, -1, wxT(""), wxPoint(210, 30), wxSize(320, 200), wxTE_MULTILINE | wxTE_READONLY | wxHSCROLL | wxSUNKEN_BORDER);
+	m_pViewInfo = new wxTextCtrl(this, -1, wxT(""), wxPoint(210, 30), wxSize(320, 200), wxTE_MULTILINE | wxTE_READONLY | wxHSCROLL | wxSUNKEN_BORDER);
 
 #ifdef WIN32
 	m_pViewInfo->SetBackgroundColour(wxColour(wxT("LIGHT GREY")));
@@ -147,17 +147,27 @@ void wxFileProps::SetInfo(GF_ObjectManager *odm)
 	m_current_odm = odm;
 
 	switch (m_pViewSel->GetSelection()) {
-	case 3: SetNetworkInfo(); break;
-	case 2: SetDecoderInfo(); break;
-	case 1: SetStreamsInfo(); break;
-	default: SetGeneralInfo(); break;
+	case 3:
+		SetNetworkInfo();
+		break;
+	case 2:
+		SetDecoderInfo();
+		break;
+	case 1:
+		SetStreamsInfo();
+		break;
+	default:
+		SetGeneralInfo();
+		break;
 	}
 }
 
 void wxFileProps::OnTimer(wxTimerEvent& WXUNUSED(event))
 {
 	switch (m_pViewSel->GetSelection()) {
-	case 2: SetDecoderInfo(); break;
+	case 2:
+		SetDecoderInfo();
+		break;
 	}
 }
 void wxFileProps::OnSelectInfo(wxCommandEvent & WXUNUSED(event) )
@@ -193,10 +203,10 @@ void wxFileProps::SetGeneralInfo()
 		info += wxT("Service Handler: ") + wxString(odi.service_handler, wxConvUTF8) + wxT("\n");
 		info += wxT("Service URL: ") + wxString(odi.service_url, wxConvUTF8) + wxT("\n");
 	}
-	
+
 	if (odi.od->URLString) {
 		info += wxT("Remote OD - URL: ") + wxString(odi.od->URLString, wxConvUTF8) + wxT("\n");
-	} 
+	}
 
 	if (odi.codec_name) {
 		switch (odi.od_type) {
@@ -227,8 +237,8 @@ void wxFileProps::SetGeneralInfo()
 			break;
 		}
 	}
-	if (odi.protection==2) info += wxT("Encrypted Media NOT UNLOCKED"); 
-	else if (odi.protection==1) info += wxT("Encrypted Media"); 
+	if (odi.protection==2) info += wxT("Encrypted Media NOT UNLOCKED");
+	else if (odi.protection==1) info += wxT("Encrypted Media");
 
 	if (!gf_list_count(odi.od->OCIDescriptors)) {
 		m_pViewInfo->Clear();
@@ -248,7 +258,7 @@ void wxFileProps::SetGeneralInfo()
 			info += wxT("\nSegment Descriptor:\nName: ") + wxString((char *) sd->SegmentName, wxConvUTF8);
 			info += wxString::Format(wxT(" - start time %g sec - duration %g sec\n"), sd->startTime, sd->Duration);
 		}
-			break;
+		break;
 		case GF_ODF_CC_NAME_TAG:
 		{
 			GF_CC_Name *ccn = (GF_CC_Name *)desc;
@@ -259,14 +269,14 @@ void wxFileProps::SetGeneralInfo()
 				info += wxT("\t") + wxString(ci->contentCreatorName, wxConvUTF8) + wxT("\n");
 			}
 		}
-			break;
+		break;
 
 		case GF_ODF_SHORT_TEXT_TAG:
-			{
-				GF_ShortTextual *std = (GF_ShortTextual *)desc;
-				info += wxT("\n") + wxString(std->eventName, wxConvUTF8) + wxT(": ") + wxString(std->eventText, wxConvUTF8) + wxT("\n");
-			}
-			break;
+		{
+			GF_ShortTextual *std = (GF_ShortTextual *)desc;
+			info += wxT("\n") + wxString(std->eventName, wxConvUTF8) + wxT(": ") + wxString(std->eventText, wxConvUTF8) + wxT("\n");
+		}
+		break;
 		/*todo*/
 		case GF_ODF_CC_DATE_TAG:
 			break;
@@ -307,7 +317,7 @@ void wxFileProps::SetStreamsInfo()
 
 	for (i=0; i<count; i++) {
 		GF_ESD *esd = (GF_ESD *) gf_list_get(odi.od->ESDescriptors, i);
-		
+
 		info += wxString::Format(wxT("Stream ID %d - Clock ID %d\n"), esd->ESID, esd->OCRESID);
 		if (esd->dependsOnESID) {
 			info += wxString::Format(wxT("\tDepends on Stream ID %d for decoding\n"), esd->dependsOnESID);
@@ -328,24 +338,46 @@ void wxFileProps::SetStreamsInfo()
 		case GF_STREAM_VISUAL:
 			info += wxT("\tVisual Stream - media type: ");
 			switch (esd->decoderConfig->objectTypeIndication) {
-			case GPAC_OTI_VIDEO_MPEG4_PART2: info += wxT("MPEG-4\n"); break;
-			case GPAC_OTI_VIDEO_MPEG2_SIMPLE: info += wxT("MPEG-2 Simple Profile\n"); break;
-			case GPAC_OTI_VIDEO_MPEG2_MAIN: info += wxT("MPEG-2 Main Profile\n"); break;
-			case GPAC_OTI_VIDEO_MPEG2_SNR: info += wxT("MPEG-2 SNR Profile\n"); break;
-			case GPAC_OTI_VIDEO_MPEG2_SPATIAL: info += wxT("MPEG-2 Spatial Profile\n"); break;
-			case GPAC_OTI_VIDEO_MPEG2_HIGH: info += wxT("MPEG-2 High Profile\n"); break;
-			case GPAC_OTI_VIDEO_MPEG2_422: info += wxT("MPEG-2 422 Profile\n"); break;
-			case GPAC_OTI_VIDEO_MPEG1: info += wxT("MPEG-1\n"); break;
-			case GPAC_OTI_IMAGE_JPEG: info += wxT("JPEG\n"); break;
-			case GPAC_OTI_IMAGE_PNG: info += wxT("PNG\n"); break;
-			case GPAC_OTI_IMAGE_JPEG_2000: info += wxT("JPEG2000\n"); break;
+			case GPAC_OTI_VIDEO_MPEG4_PART2:
+				info += wxT("MPEG-4\n");
+				break;
+			case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
+				info += wxT("MPEG-2 Simple Profile\n");
+				break;
+			case GPAC_OTI_VIDEO_MPEG2_MAIN:
+				info += wxT("MPEG-2 Main Profile\n");
+				break;
+			case GPAC_OTI_VIDEO_MPEG2_SNR:
+				info += wxT("MPEG-2 SNR Profile\n");
+				break;
+			case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
+				info += wxT("MPEG-2 Spatial Profile\n");
+				break;
+			case GPAC_OTI_VIDEO_MPEG2_HIGH:
+				info += wxT("MPEG-2 High Profile\n");
+				break;
+			case GPAC_OTI_VIDEO_MPEG2_422:
+				info += wxT("MPEG-2 422 Profile\n");
+				break;
+			case GPAC_OTI_VIDEO_MPEG1:
+				info += wxT("MPEG-1\n");
+				break;
+			case GPAC_OTI_IMAGE_JPEG:
+				info += wxT("JPEG\n");
+				break;
+			case GPAC_OTI_IMAGE_PNG:
+				info += wxT("PNG\n");
+				break;
+			case GPAC_OTI_IMAGE_JPEG_2000:
+				info += wxT("JPEG2000\n");
+				break;
 			case 0x80:
 				memcpy(code, esd->decoderConfig->decoderSpecificInfo->data, 4);
 				code[4] = 0;
 				info += wxT("GPAC Intern (") + wxString(code, wxConvUTF8) + wxT(")\n");
 				break;
-			default: 
-				info += wxString::Format(wxT("Private/Unknown Type (0x%x)\n"), esd->decoderConfig->objectTypeIndication); 
+			default:
+				info += wxString::Format(wxT("Private/Unknown Type (0x%x)\n"), esd->decoderConfig->objectTypeIndication);
 				break;
 			}
 			break;
@@ -353,22 +385,40 @@ void wxFileProps::SetStreamsInfo()
 		case GF_STREAM_AUDIO:
 			info += wxT("\tAudio Stream - media type: ");
 			switch (esd->decoderConfig->objectTypeIndication) {
-			case GPAC_OTI_AUDIO_AAC_MPEG4: info += wxT("MPEG-4\n"); break;
-			case GPAC_OTI_AUDIO_AAC_MPEG2_MP: info += wxT("MPEG-2 AAC Main Profile\n"); break;
-			case GPAC_OTI_AUDIO_AAC_MPEG2_LCP: info += wxT("MPEG-2 AAC LowComplexity Profile\n"); break;
-			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP: info += wxT("MPEG-2 AAC Scalable Sampling Rate Profile\n"); break;
-			case GPAC_OTI_AUDIO_MPEG2_PART3: info += wxT("MPEG-2 Audio\n"); break;
-			case GPAC_OTI_AUDIO_MPEG1: info += wxT("MPEG-1 Audio\n"); break;
-			case 0xA0: info += wxT("EVRC Audio\n"); break;
-			case 0xA1: info += wxT("SMV Audio\n"); break;
-			case 0xE1: info += wxT("QCELP Audio\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG4:
+				info += wxT("MPEG-4\n");
+				break;
+			case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+				info += wxT("MPEG-2 AAC Main Profile\n");
+				break;
+			case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+				info += wxT("MPEG-2 AAC LowComplexity Profile\n");
+				break;
+			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
+				info += wxT("MPEG-2 AAC Scalable Sampling Rate Profile\n");
+				break;
+			case GPAC_OTI_AUDIO_MPEG2_PART3:
+				info += wxT("MPEG-2 Audio\n");
+				break;
+			case GPAC_OTI_AUDIO_MPEG1:
+				info += wxT("MPEG-1 Audio\n");
+				break;
+			case 0xA0:
+				info += wxT("EVRC Audio\n");
+				break;
+			case 0xA1:
+				info += wxT("SMV Audio\n");
+				break;
+			case 0xE1:
+				info += wxT("QCELP Audio\n");
+				break;
 			case 0x80:
 				memcpy(code, esd->decoderConfig->decoderSpecificInfo->data, 4);
 				code[4] = 0;
 				info += wxT("GPAC Intern (") + wxString(code, wxConvUTF8) + wxT(")\n");
 				break;
-			default: 
-				info += wxString::Format(wxT("Private/Unknown Type (0x%x)\n"), esd->decoderConfig->objectTypeIndication); 
+			default:
+				info += wxString::Format(wxT("Private/Unknown Type (0x%x)\n"), esd->decoderConfig->objectTypeIndication);
 				break;
 			}
 			break;
@@ -398,7 +448,7 @@ void wxFileProps::SetStreamsInfo()
 		} else {
 			info += wxString::Format(wxT("\tStream Clock Resolution %d\n"), esd->slConfig->timestampResolution);
 		}
-		if (esd->URLString) 
+		if (esd->URLString)
 			info += wxT("\tStream Location: ") + wxString(esd->URLString, wxConvUTF8) + wxT("\n");
 
 		/*check language*/
@@ -437,9 +487,9 @@ void wxFileProps::SetDecoderInfo()
 	u32 h, m, s;
 
 	if (!m_current_odm || gf_term_get_object_info(m_pApp->m_term, m_current_odm, &odi)) {
-	  m_pViewInfo->Clear();
-	  m_pViewInfo->AppendText(info);
-	  return;
+		m_pViewInfo->Clear();
+		m_pViewInfo->AppendText(info);
+		return;
 	}
 
 	info = wxT("Status: ");
@@ -476,16 +526,16 @@ void wxFileProps::SetDecoderInfo()
 	/*get DB occupation*/
 	if (odi.buffer>=0) info += wxString::Format(wxT("Decoding Buffer: %d Access Units\n"), odi.db_unit_count);
 	/*get CB occupation*/
-	if (odi.cb_max_count) 
+	if (odi.cb_max_count)
 		info += wxString::Format(wxT("Composition Memory: %d/%d Units\n"), odi.cb_unit_count, odi.cb_max_count);
 
 	Float avg_dec_time = 0;
 	if (odi.nb_dec_frames) {
-		avg_dec_time = (Float) odi.total_dec_time; 
-		avg_dec_time /= odi.nb_dec_frames; 
+		avg_dec_time = (Float) odi.total_dec_time;
+		avg_dec_time /= odi.nb_dec_frames;
 	}
 	info += wxString::Format(wxT("Average Bitrate %d kbps (%d max)\nAverage Decoding Time %.2f ms (%d max)\nTotal decoded frames %d - %d dropped\n"),
-								(u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames, odi.nb_droped);
+	                         (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames, odi.nb_droped);
 
 	m_pViewInfo->Clear();
 	m_pViewInfo->AppendText(info);
@@ -553,7 +603,7 @@ void wxFileProps::SetNetworkInfo()
 }
 
 
-void wxFileProps::OnViewWorld(wxCommandEvent &WXUNUSED(event)) 
+void wxFileProps::OnViewWorld(wxCommandEvent &WXUNUSED(event))
 {
 	wxString wit;
 	const char *str;
@@ -576,7 +626,7 @@ void wxFileProps::OnViewWorld(wxCommandEvent &WXUNUSED(event))
 	gf_list_del(descs);
 }
 
-void wxFileProps::OnViewSG(wxCommandEvent &WXUNUSED(event)) 
+void wxFileProps::OnViewSG(wxCommandEvent &WXUNUSED(event))
 {
 	const char *sOpt;
 	Bool dump_xmt;

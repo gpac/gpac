@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -31,8 +31,8 @@ Bool IsHintTrack(GF_TrackBox *trak)
 {
 	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_HINT) return 0;
 	//QT doesn't specify any InfoHeader on HintTracks
-	if (trak->Media->information->InfoHeader 
-			&& trak->Media->information->InfoHeader->type != GF_ISOM_BOX_TYPE_HMHD) 
+	if (trak->Media->information->InfoHeader
+	        && trak->Media->information->InfoHeader->type != GF_ISOM_BOX_TYPE_HMHD)
 		return 0;
 
 	return 1;
@@ -65,7 +65,7 @@ GF_Err AdjustHintInfo(GF_HintSampleEntryBox *entry, u32 HintSampleNumber)
 
 	offset = gf_isom_hint_sample_size(entry->hint_sample) - entry->hint_sample->dataLength;
 	count = gf_list_count(entry->hint_sample->packetTable);
-	
+
 	for (i=0; i<count; i++) {
 		pck = (GF_HintPacket *)gf_list_get(entry->hint_sample->packetTable, i);
 		if (offset && entry->hint_sample->dataLength) {
@@ -115,7 +115,7 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType
 	//store the HintTrack format for later use...
 	hmhd->subType = HintType;
 
-	
+
 	//hint tracks always have a tref and everything ...
 	if (!trak->References) {
 		if (!trak->References) {
@@ -153,13 +153,13 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType
 	e = udta_AddBox(udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
 	if (e) return e;
 
-/*
-	//NAME
-	e = udta_AddBox(udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_NAME));
-	if (e) return e;
-	//HINF
-	return udta_AddBox(udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HINF));
-*/
+	/*
+		//NAME
+		e = udta_AddBox(udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_NAME));
+		if (e) return e;
+		//HINF
+		return udta_AddBox(udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HINF));
+	*/
 	return GF_OK;
 }
 
@@ -234,7 +234,7 @@ GF_Err gf_isom_rtp_set_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 Hint
 
 	for (i=0; i< count; i++) {
 		ent = (GF_TSHintEntryBox *)gf_list_get(hdesc->HintDataTable, i);
-		if (ent->type == GF_ISOM_BOX_TYPE_TIMS) {			
+		if (ent->type == GF_ISOM_BOX_TYPE_TIMS) {
 			ent->timeScale = TimeScale;
 			return GF_OK;
 		}
@@ -263,7 +263,7 @@ GF_Err gf_isom_rtp_set_time_offset(GF_ISOFile *the_file, u32 trackNumber, u32 Hi
 
 	for (i=0; i< count; i++) {
 		ent = (GF_TimeOffHintEntryBox *)gf_list_get(hdesc->HintDataTable, i);
-		if (ent->type == GF_ISOM_BOX_TYPE_TSRO) {			
+		if (ent->type == GF_ISOM_BOX_TYPE_TSRO) {
 			ent->TimeOffset = TimeOffset;
 			return GF_OK;
 		}
@@ -292,7 +292,7 @@ GF_Err gf_isom_rtp_set_time_sequence_offset(GF_ISOFile *the_file, u32 trackNumbe
 
 	for (i=0; i< count; i++) {
 		ent = (GF_SeqOffHintEntryBox *)gf_list_get(hdesc->HintDataTable, i);
-		if (ent->type == GF_ISOM_BOX_TYPE_SNRO) {			
+		if (ent->type == GF_ISOM_BOX_TYPE_SNRO) {
 			ent->SeqOffset = SequenceNumberOffset;
 			return GF_OK;
 		}
@@ -343,7 +343,7 @@ GF_Err gf_isom_begin_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Hint
 }
 
 //stores the hint sample in the file
-//set IsRandomAccessPoint if you want to indicate that this is a random access point 
+//set IsRandomAccessPoint if you want to indicate that this is a random access point
 //in the stream
 GF_Err gf_isom_end_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u8 IsRandomAccessPoint)
 {
@@ -364,8 +364,8 @@ GF_Err gf_isom_end_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u8 IsRando
 	//first of all, we need to adjust the offset for data referenced IN THIS hint sample
 	//and get some PckSize
 	e = AdjustHintInfo(entry, trak->Media->information->sampleTable->SampleSize->sampleCount + 1);
-	if (e) return e;	
-	
+	if (e) return e;
+
 	//ok, let's write the sample
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	e = gf_isom_hint_sample_write(entry->hint_sample, bs);
@@ -381,7 +381,7 @@ GF_Err gf_isom_end_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u8 IsRando
 	gf_bs_get_content(bs, &samp->data, &samp->dataLength);
 	gf_bs_del(bs);
 
-	//finally add the sample 
+	//finally add the sample
 	e = gf_isom_add_sample(the_file, trackNumber, trak->Media->information->sampleTable->currentEntryIndex, samp);
 	gf_isom_sample_del(&samp);
 
@@ -417,7 +417,7 @@ GF_Err gf_isom_hint_blank_data(GF_ISOFile *the_file, u32 trackNumber, u8 AtBegin
 }
 
 
-//adds a chunk of data (max 14 bytes) in the packet that is directly copied 
+//adds a chunk of data (max 14 bytes) in the packet that is directly copied
 //while streaming
 GF_Err gf_isom_hint_direct_data(GF_ISOFile *the_file, u32 trackNumber, char *data, u32 dataLength, u8 AtBegin)
 {
@@ -476,7 +476,7 @@ GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 Sourc
 
 	//we're getting data from another track
 	if (SourceTrackID != trak->Header->trackID) {
-		//get (or set) the track reference index 
+		//get (or set) the track reference index
 		e = Track_FindRef(trak, GF_ISOM_REF_HINT, &hint);
 		if (e) return e;
 		e = reftype_AddRefTrack(hint, SourceTrackID, &refIndex);
@@ -543,7 +543,7 @@ GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumbe
 	if (SourceTrackID == trak->Header->trackID) {
 		dte->trackRefIndex = (s8) -1;
 	} else {
-		//get (or set) the track reference index 
+		//get (or set) the track reference index
 		e = Track_FindRef(trak, GF_ISOM_REF_HINT, &hint);
 		if (e) return e;
 		e = reftype_AddRefTrack(hint, SourceTrackID, &refIndex);
@@ -556,11 +556,11 @@ GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumbe
 
 
 GF_Err gf_isom_rtp_packet_set_flags(GF_ISOFile *the_file, u32 trackNumber,
-						   u8 PackingBit, 
-						   u8 eXtensionBit, 
-						   u8 MarkerBit, 
-						   u8 disposable_packet, 
-						   u8 IsRepeatedPacket)
+                                    u8 PackingBit,
+                                    u8 eXtensionBit,
+                                    u8 MarkerBit,
+                                    u8 disposable_packet,
+                                    u8 IsRepeatedPacket)
 {
 	GF_TrackBox *trak;
 	GF_HintSampleEntryBox *entry;
@@ -587,15 +587,15 @@ GF_Err gf_isom_rtp_packet_set_flags(GF_ISOFile *the_file, u32 trackNumber,
 	return GF_OK;
 }
 
-GF_Err gf_isom_rtp_packet_begin(GF_ISOFile *the_file, u32 trackNumber, 
-						   s32 relativeTime, 
-						   u8 PackingBit, 
-						   u8 eXtensionBit, 
-						   u8 MarkerBit, 
-						   u8 PayloadType, 
-						   u8 B_frame, 
-						   u8 IsRepeatedPacket, 
-						   u16 SequenceNumber)
+GF_Err gf_isom_rtp_packet_begin(GF_ISOFile *the_file, u32 trackNumber,
+                                s32 relativeTime,
+                                u8 PackingBit,
+                                u8 eXtensionBit,
+                                u8 MarkerBit,
+                                u8 PayloadType,
+                                u8 B_frame,
+                                u8 IsRepeatedPacket,
+                                u16 SequenceNumber)
 {
 	GF_TrackBox *trak;
 	GF_HintSampleEntryBox *entry;
@@ -624,8 +624,8 @@ GF_Err gf_isom_rtp_packet_begin(GF_ISOFile *the_file, u32 trackNumber,
 }
 
 
-//set the time offset of this packet. This enables packets to be placed in the hint track 
-//in decoding order, but have their presentation time-stamp in the transmitted 
+//set the time offset of this packet. This enables packets to be placed in the hint track
+//in decoding order, but have their presentation time-stamp in the transmitted
 //packet be in a different order. Typically used for MPEG video with B-frames
 GF_Err gf_isom_rtp_packet_set_offset(GF_ISOFile *the_file, u32 trackNumber, s32 timeOffset)
 {
@@ -752,7 +752,7 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const c
 	strcat(buf, "\r\n");
 	gf_free(sdp->sdpText);
 	ReorderSDP(buf, 0);
-	sdp->sdpText = buf;	
+	sdp->sdpText = buf;
 	return GF_OK;
 }
 
@@ -820,7 +820,7 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->other_boxes, 0);
 
 	if (!hnti->SDP) {
-		//we have to create it by hand, as we have a duplication of box type 
+		//we have to create it by hand, as we have a duplication of box type
 		//(GF_RTPSampleEntryBox and GF_RTPBox have the same type...)
 		rtp = (GF_RTPBox *) gf_malloc(sizeof(GF_RTPBox));
 		rtp->subType = GF_ISOM_BOX_TYPE_SDP;
@@ -842,7 +842,7 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	strcat(buf, "\r\n");
 	gf_free(rtp->sdpText);
 	ReorderSDP(buf, 1);
-	rtp->sdpText = buf;	
+	rtp->sdpText = buf;
 	return GF_OK;
 }
 

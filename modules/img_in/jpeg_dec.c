@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -99,11 +99,11 @@ static GF_Err JPEG_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 	return GF_NOT_SUPPORTED;
 }
 
-static GF_Err JPEG_ProcessData(GF_MediaDecoder *ifcg, 
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID, u32 *CTS,
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+static GF_Err JPEG_ProcessData(GF_MediaDecoder *ifcg,
+                               char *inBuffer, u32 inBufferLength,
+                               u16 ES_ID, u32 *CTS,
+                               char *outBuffer, u32 *outBufferLength,
+                               u8 PaddingBits, u32 mmlevel)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_Err e;
@@ -111,8 +111,12 @@ static GF_Err JPEG_ProcessData(GF_MediaDecoder *ifcg,
 
 	e = gf_img_jpeg_dec(inBuffer, inBufferLength, &ctx->width, &ctx->height, &ctx->pixel_format, outBuffer, outBufferLength, ctx->BPP);
 	switch (ctx->pixel_format) {
-	case GF_PIXEL_GREYSCALE: ctx->BPP = 1; break;
-	case GF_PIXEL_RGB_24: ctx->BPP = 3; break;
+	case GF_PIXEL_GREYSCALE:
+		ctx->BPP = 1;
+		break;
+	case GF_PIXEL_RGB_24:
+		ctx->BPP = 3;
+		break;
 	}
 	ctx->out_size = *outBufferLength;
 	return e;
@@ -135,7 +139,7 @@ Bool NewJPEGDec(GF_BaseDecoder *ifcd)
 	wrap->opaque = dec;
 	wrap->type = DEC_JPEG;
 
-	/*setup our own interface*/	
+	/*setup our own interface*/
 	ifcd->AttachStream = JPEG_AttachStream;
 	ifcd->DetachStream = JPEG_DetachStream;
 	ifcd->GetCapabilities = JPEG_GetCapabilities;

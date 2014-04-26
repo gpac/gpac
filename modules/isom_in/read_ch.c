@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 
@@ -46,7 +46,7 @@ void isor_reset_reader(ISOMChannel *ch)
 }
 
 /*
-	refresh type: 
+	refresh type:
 		0: not progressive
 		1: progressive
 		2: not progressive and don't check current download
@@ -69,9 +69,9 @@ void isor_segment_switch_or_refresh(ISOMReader *read, u32 refresh_type)
 	memset(&param, 0, sizeof(GF_NetworkCommand));
 	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
 	param.url_query.current_download = (refresh_type==2) ? 0 : 1;
-	if (refresh_type==2) 
+	if (refresh_type==2)
 		refresh_type = 0;
-	
+
 	count = gf_list_count(read->channels);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Refresh seg: refresh_type %d - seg opened %d\n", refresh_type , read->seg_opened));
@@ -117,7 +117,7 @@ next_segment:
 	if (e == GF_OK) {
 		u64 timestamp, ntp;
 		u32 trackID = 0;
-		if (param.url_query.next_url){
+		if (param.url_query.next_url) {
 
 			//previously loaded file has been aborted, reload segment !
 			if (refresh_type && param.url_query.discontinuity_type) {
@@ -271,7 +271,7 @@ next_segment:
 				gf_isom_set_nalu_extract_mode(read->mov, ch->track, ch->nalu_extract_mode);
 				ch->last_state = GF_OK;
 
-				
+
 				if (ch->is_cenc) {
 					isor_send_cenc_config(ch);
 				}
@@ -292,7 +292,7 @@ next_segment:
 		/*consider we are done*/
 		read->frag_type = 2;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] No more segments - done playing file\n"));
-	} else if (e==GF_BUFFER_TOO_SMALL){
+	} else if (e==GF_BUFFER_TOO_SMALL) {
 		if (refresh_type==0) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Next segment is not yet available\n"));
 			read->waiting_for_data = GF_TRUE;
@@ -312,7 +312,7 @@ static void init_reader(ISOMChannel *ch)
 	u32 ivar;
 	if (ch->is_pulling && ch->wait_for_segment_switch) {
 		isor_segment_switch_or_refresh(ch->owner, 0);
-		if (ch->wait_for_segment_switch) 
+		if (ch->wait_for_segment_switch)
 			return;
 	}
 
@@ -343,7 +343,7 @@ static void init_reader(ISOMChannel *ch)
 			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &ivar, mode, &ch->sample, &ch->sample_num);
 		}
 		ch->last_state = GF_OK;
-	
+
 		if (ch->has_rap && ch->has_edit_list) {
 			ch->edit_sync_frame = ch->sample_num;
 		}
@@ -420,7 +420,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				/*if we get the same sample, figure out next interesting time (current sample + DTS gap to next sample should be a good bet)*/
 				if (prev_sample == ch->sample_num) {
 					if (ch->owner->frag_type && (ch->sample_num==gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
-						if (ch->sample) 
+						if (ch->sample)
 							gf_isom_sample_del(&ch->sample);
 					} else {
 						u32 time_diff = 2;
@@ -501,7 +501,7 @@ fetch_next:
 				gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
 				if (net_status == GF_NETIO_DATA_EXCHANGE) {
 					ch->last_state = GF_OK;
-					if (!ch->has_edit_list) 
+					if (!ch->has_edit_list)
 						ch->sample_num--;
 				}
 			}
@@ -653,7 +653,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		}
 		//otherwise this is new chunk or end of chunk, process
 	}
-	//this is a new file, check buffer level 
+	//this is a new file, check buffer level
 	else if (!is_chunk_flush && check_buffer_level) {
 		Bool buffer_full = 1;
 		for (i=0; i<count; i++) {
@@ -688,9 +688,9 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 #endif
 
 	//if this is a request from terminal to flush pending segments, do not attempt to open the current download one, only open the first available in the cache
-	if (!check_buffer_level && !in_progressive_mode) 
+	if (!check_buffer_level && !in_progressive_mode)
 		in_progressive_mode = 2;
- 
+
 	//update data
 	isor_segment_switch_or_refresh(read, in_progressive_mode);
 
@@ -698,19 +698,19 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 	count = gf_list_count(read->channels);
 	for (i=0; i<count; i++) {
 		ch = (ISOMChannel *)gf_list_get(read->channels, i);
-		
+
 		while (!ch->sample) {
 			isor_reader_get_sample(ch);
 			if (!ch->sample) break;
 			gf_term_on_sl_packet(read->service, ch->channel, ch->sample->data, ch->sample->dataLength, &ch->current_slh, GF_OK);
 			isor_reader_release_sample(ch);
 		}
- 		if (!ch->sample && (ch->last_state==GF_EOS)) {
+		if (!ch->sample && (ch->last_state==GF_EOS)) {
 			gf_term_on_sl_packet(read->service, ch->channel, NULL, 0, NULL, GF_EOS);
 		}
 	}
 
-	//done playing the file after notification from DASH client: 
+	//done playing the file after notification from DASH client:
 	if (read->seg_opened==2) {
 		GF_NetworkCommand param;
 		//drop this segment
@@ -723,7 +723,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 
 		if (read->has_pending_segments) {
 			read->has_pending_segments--;
-		} 
+		}
 
 		if (e==GF_EOS) {
 			for (i=0; i<count; i++) {

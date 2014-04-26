@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -47,7 +47,7 @@ enum
 		if (strchr(__sep, __str[_len])) __str[_len] = 0;	\
 		else break;	\
 	}	\
-
+ 
 
 static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 {
@@ -72,7 +72,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 		if (!strnicmp(ext, ".ttxt", 5)) *fmt = GF_TEXT_IMPORT_TTXT;
 		ext = strstr(szLine, "?>");
 		if (ext) ext += 2;
-		if (!ext[0]){
+		if (!ext[0]) {
 			if (!fgets(szLine, 2048, test))
 				szLine[0] = '\0';
 		}
@@ -170,55 +170,55 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 
 		if (sOK) REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
-		if (!sOK || !strlen(szLine)) {
-			state = 0;
-			if (au) {
-				/*if italic or underscore do it*/
-				if (font && (italic || underlined || bold)) {
-					com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
-					com->node = font;
-					gf_node_register(font, NULL);
-					inf = gf_sg_command_field_new(com);
-					inf->fieldIndex = style.fieldIndex;
-					inf->fieldType = style.fieldType;
-					inf->field_ptr = gf_sg_vrml_field_pointer_new(style.fieldType);
-					sfstr = (SFString *)inf->field_ptr;
-					if (bold && italic && underlined) sfstr->buffer = gf_strdup("BOLDITALIC UNDERLINED");
-					else if (italic && underlined) sfstr->buffer = gf_strdup("ITALIC UNDERLINED");
-					else if (bold && underlined) sfstr->buffer = gf_strdup("BOLD UNDERLINED");
-					else if (underlined) sfstr->buffer = gf_strdup("UNDERLINED");
-					else if (bold && italic) sfstr->buffer = gf_strdup("BOLDITALIC");
-					else if (bold) sfstr->buffer = gf_strdup("BOLD");
-					else sfstr->buffer = gf_strdup("ITALIC");
-					gf_list_add(au->commands, com);
-				}
+			if (!sOK || !strlen(szLine)) {
+				state = 0;
+				if (au) {
+					/*if italic or underscore do it*/
+					if (font && (italic || underlined || bold)) {
+						com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
+						com->node = font;
+						gf_node_register(font, NULL);
+						inf = gf_sg_command_field_new(com);
+						inf->fieldIndex = style.fieldIndex;
+						inf->fieldType = style.fieldType;
+						inf->field_ptr = gf_sg_vrml_field_pointer_new(style.fieldType);
+						sfstr = (SFString *)inf->field_ptr;
+						if (bold && italic && underlined) sfstr->buffer = gf_strdup("BOLDITALIC UNDERLINED");
+						else if (italic && underlined) sfstr->buffer = gf_strdup("ITALIC UNDERLINED");
+						else if (bold && underlined) sfstr->buffer = gf_strdup("BOLD UNDERLINED");
+						else if (underlined) sfstr->buffer = gf_strdup("UNDERLINED");
+						else if (bold && italic) sfstr->buffer = gf_strdup("BOLDITALIC");
+						else if (bold) sfstr->buffer = gf_strdup("BOLD");
+						else sfstr->buffer = gf_strdup("ITALIC");
+						gf_list_add(au->commands, com);
+					}
 
-				au = gf_sm_stream_au_new(srt, end, 0, 1);
-				com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
-				com->node = text;
-				gf_node_register(text, NULL);
-				inf = gf_sg_command_field_new(com);
-				inf->fieldIndex = string.fieldIndex;
-				inf->fieldType = string.fieldType;
-				inf->field_ptr = gf_sg_vrml_field_pointer_new(string.fieldType);
-				gf_list_add(au->commands, com);
-				/*reset font styles so that all AUs are true random access*/
-				if (font) {
+					au = gf_sm_stream_au_new(srt, end, 0, 1);
 					com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
-					com->node = font;
-					gf_node_register(font, NULL);
+					com->node = text;
+					gf_node_register(text, NULL);
 					inf = gf_sg_command_field_new(com);
-					inf->fieldIndex = style.fieldIndex;
-					inf->fieldType = style.fieldType;
-					inf->field_ptr = gf_sg_vrml_field_pointer_new(style.fieldType);
+					inf->fieldIndex = string.fieldIndex;
+					inf->fieldType = string.fieldType;
+					inf->field_ptr = gf_sg_vrml_field_pointer_new(string.fieldType);
 					gf_list_add(au->commands, com);
+					/*reset font styles so that all AUs are true random access*/
+					if (font) {
+						com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
+						com->node = font;
+						gf_node_register(font, NULL);
+						inf = gf_sg_command_field_new(com);
+						inf->fieldIndex = style.fieldIndex;
+						inf->fieldType = style.fieldType;
+						inf->field_ptr = gf_sg_vrml_field_pointer_new(style.fieldType);
+						gf_list_add(au->commands, com);
+					}
+					au = NULL;
 				}
-				au = NULL;
+				inf = NULL;
+				if (!sOK) break;
+				continue;
 			}
-			inf = NULL;
-			if (!sOK) break;
-			continue;
-		}
 
 		switch (state) {
 		case 0:
@@ -262,7 +262,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 
 			au = gf_sm_stream_au_new(srt, start, 0, 1);
 			com = NULL;
-			state = 2;			
+			state = 2;
 			italic = underlined = bold = 0;
 			break;
 
@@ -311,7 +311,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 						szText[len] = 0xc0 | ( (ptr[i] >> 6) & 0x3 );
 						len++;
 						ptr[i] &= 0xbf;
-					} 
+					}
 					/*we only handle UTF8 chars on 2 bytes (eg first byte is 0b110xxxxx)*/
 					else if ((ptr[i] & 0xe0) == 0xc0) {
 						szText[len] = ptr[i];
@@ -424,7 +424,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		REM_TRAIL_MARKS(szLine, "\r\n\t ")
 
 		line++;
-		len = (u32) strlen(szLine); 
+		len = (u32) strlen(szLine);
 		if (!len) continue;
 
 		i=0;
@@ -433,7 +433,10 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			break;
 		}
-		while (szLine[i+1] && szLine[i+1]!='}') { szTime[i] = szLine[i+1]; i++; }
+		while (szLine[i+1] && szLine[i+1]!='}') {
+			szTime[i] = szLine[i+1];
+			i++;
+		}
 		szTime[i] = 0;
 		start = atoi(szTime);
 		if (start<end) {
@@ -447,7 +450,10 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			break;
 		}
-		while (szLine[i+1+j] && szLine[i+1+j]!='}') { szTime[i] = szLine[i+1+j]; i++; }
+		while (szLine[i+1+j] && szLine[i+1+j]!='}') {
+			szTime[i] = szLine[i+1+j];
+			i++;
+		}
 		szTime[i] = 0;
 		end = atoi(szTime);
 		j+=i+2;

@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -36,7 +36,7 @@
 		for (z=0; z<indent; z++) ind_buf[z] = ' '; \
 		ind_buf[z] = 0; \
 	} \
-
+ 
 
 static void StartList(FILE *trace, const char *name, u32 indent, Bool XMTDump)
 {
@@ -240,7 +240,7 @@ void gf_ipmpx_dump_AUTH(GF_IPMPX_Authentication *ipa, FILE *trace, u32 indent, B
 		if (XMTDump) EndAttributes(trace, 1, 0);
 		else EndElement(trace, "", indent, 0);
 	}
-		break;
+	break;
 	case GF_IPMPX_AUTH_AlgorithmDescr_Tag:
 	{
 		GF_IPMPX_AUTH_AlgorithmDescriptor *p = (GF_IPMPX_AUTH_AlgorithmDescriptor *)ipa;
@@ -255,7 +255,7 @@ void gf_ipmpx_dump_AUTH(GF_IPMPX_Authentication *ipa, FILE *trace, u32 indent, B
 
 		EndElement(trace, "IPMP_AlgorithmDescriptor", indent, XMTDump);
 	}
-		break;
+	break;
 	}
 }
 
@@ -410,7 +410,7 @@ GF_Err gf_ipmpx_dump_MutualAuthentication(GF_IPMPX_Data *_p, FILE *trace, u32 in
 	}
 	indent--;
 	EndList(trace, "candidateAlgorithms", indent, XMTDump);
-	
+
 	StartList(trace, "agreedAlgorithms", indent, XMTDump);
 	count = gf_list_count(p->agreedAlgorithms);
 	indent++;
@@ -774,7 +774,7 @@ GF_Err gf_ipmpx_dump_SelectiveDecryptionInit(GF_IPMPX_Data *_p, FILE *trace, u32
 				DumpInt(trace, "keySize", sb->keySize, indent, XMTDump);
 			}
 			EndAttributes(trace, XMTDump, 1);
-			if (sb->Stream_Cipher_Specific_Init_Info) 
+			if (sb->Stream_Cipher_Specific_Init_Info)
 				gf_ipmpx_dump_ByteArray(sb->Stream_Cipher_Specific_Init_Info, "StreamCipher", trace, indent, XMTDump);
 
 			indent--;
@@ -797,7 +797,7 @@ GF_Err gf_ipmpx_dump_SelectiveDecryptionInit(GF_IPMPX_Data *_p, FILE *trace, u32
 			DumpInt(trace, "buf", sf->buf, indent, XMTDump);
 			if (sf->mappingTable) DumpData_16(trace, "mappingTable", sf->mappingTable, sf->mappingTableSize, indent, XMTDump);
 			EndAttributes(trace, XMTDump, 1);
-			if (sf->shuffleSpecificInfo) 
+			if (sf->shuffleSpecificInfo)
 				gf_ipmpx_dump_ByteArray(sf->shuffleSpecificInfo, "shuffleSpecificInfo", trace, indent, XMTDump);
 
 			indent--;
@@ -832,40 +832,63 @@ GF_Err gf_ipmpx_dump_data(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMTDu
 {
 	switch (_p->tag) {
 	case GF_IPMPX_RIGHTS_DATA_TAG:
-	case GF_IPMPX_OPAQUE_DATA_TAG: return gf_ipmpx_dump_OpaqueData(_p, trace, indent, XMTDump);
-	case GF_IPMPX_KEY_DATA_TAG: return gf_ipmpx_dump_KeyData(_p, trace, indent, XMTDump);
-	case GF_IPMPX_SECURE_CONTAINER_TAG: return gf_ipmpx_dump_SecureContainer(_p, trace, indent, XMTDump);
-	case GF_IPMPX_INIT_AUTHENTICATION_TAG: return gf_ipmpx_dump_InitAuthentication(_p, trace, indent, XMTDump);
-	case GF_IPMPX_TRUST_SECURITY_METADATA_TAG: return gf_ipmpx_dump_TrustSecurityMetadata(_p, trace, indent, XMTDump);
-	case GF_IPMPX_MUTUAL_AUTHENTICATION_TAG: return gf_ipmpx_dump_MutualAuthentication(_p, trace, indent, XMTDump);
-	case GF_IPMPX_GET_TOOLS_RESPONSE_TAG: return gf_ipmpx_dump_GetToolsResponse(_p, trace, indent, XMTDump);
-	case GF_IPMPX_PARAMETRIC_DESCRIPTION_TAG: return gf_ipmpx_dump_ParametricDescription(_p, trace, indent, XMTDump);
-	case GF_IPMPX_PARAMETRIC_CAPS_QUERY_TAG: return gf_ipmpx_dump_ToolParamCapabilitiesQuery(_p, trace, indent, XMTDump);
-	case GF_IPMPX_PARAMETRIC_CAPS_RESPONSE_TAG: return gf_ipmpx_dump_ToolParamCapabilitiesResponse(_p, trace, indent, XMTDump);
-	case GF_IPMPX_GET_TOOL_CONTEXT_TAG: return gf_ipmpx_dump_GetToolContext(_p, trace, indent, XMTDump);
-	case GF_IPMPX_GET_TOOL_CONTEXT_RESPONSE_TAG: return gf_ipmpx_dump_GetToolContextResponse(_p, trace, indent, XMTDump);
-	case GF_IPMPX_CONNECT_TOOL_TAG: return gf_ipmpx_dump_ConnectTool(_p, trace, indent, XMTDump);
-	case GF_IPMPX_DISCONNECT_TOOL_TAG: return gf_ipmpx_dump_DisconnectTool(_p, trace, indent, XMTDump);
-	case GF_IPMPX_ADD_TOOL_LISTENER_TAG: return gf_ipmpx_dump_AddToolNotificationListener(_p, trace, indent, XMTDump);
-	case GF_IPMPX_REMOVE_TOOL_LISTENER_TAG: return gf_ipmpx_dump_RemoveToolNotificationListener(_p, trace, indent, XMTDump);
-	case GF_IPMPX_NOTIFY_TOOL_EVENT_TAG: return gf_ipmpx_dump_NotifyToolEvent(_p, trace, indent, XMTDump);
-	case GF_IPMPX_CAN_PROCESS_TAG: return gf_ipmpx_dump_CanProcess(_p, trace, indent, XMTDump);
-	case GF_IPMPX_ISMACRYP_TAG: return gf_ipmpx_dump_ISMACryp(_p, trace, indent, XMTDump);
-	case GF_IPMPX_TOOL_API_CONFIG_TAG: return gf_ipmpx_dump_ToolAPI_Config(_p, trace, indent, XMTDump);
-	case GF_IPMPX_AUDIO_WM_INIT_TAG: 
-	case GF_IPMPX_VIDEO_WM_INIT_TAG: 
+	case GF_IPMPX_OPAQUE_DATA_TAG:
+		return gf_ipmpx_dump_OpaqueData(_p, trace, indent, XMTDump);
+	case GF_IPMPX_KEY_DATA_TAG:
+		return gf_ipmpx_dump_KeyData(_p, trace, indent, XMTDump);
+	case GF_IPMPX_SECURE_CONTAINER_TAG:
+		return gf_ipmpx_dump_SecureContainer(_p, trace, indent, XMTDump);
+	case GF_IPMPX_INIT_AUTHENTICATION_TAG:
+		return gf_ipmpx_dump_InitAuthentication(_p, trace, indent, XMTDump);
+	case GF_IPMPX_TRUST_SECURITY_METADATA_TAG:
+		return gf_ipmpx_dump_TrustSecurityMetadata(_p, trace, indent, XMTDump);
+	case GF_IPMPX_MUTUAL_AUTHENTICATION_TAG:
+		return gf_ipmpx_dump_MutualAuthentication(_p, trace, indent, XMTDump);
+	case GF_IPMPX_GET_TOOLS_RESPONSE_TAG:
+		return gf_ipmpx_dump_GetToolsResponse(_p, trace, indent, XMTDump);
+	case GF_IPMPX_PARAMETRIC_DESCRIPTION_TAG:
+		return gf_ipmpx_dump_ParametricDescription(_p, trace, indent, XMTDump);
+	case GF_IPMPX_PARAMETRIC_CAPS_QUERY_TAG:
+		return gf_ipmpx_dump_ToolParamCapabilitiesQuery(_p, trace, indent, XMTDump);
+	case GF_IPMPX_PARAMETRIC_CAPS_RESPONSE_TAG:
+		return gf_ipmpx_dump_ToolParamCapabilitiesResponse(_p, trace, indent, XMTDump);
+	case GF_IPMPX_GET_TOOL_CONTEXT_TAG:
+		return gf_ipmpx_dump_GetToolContext(_p, trace, indent, XMTDump);
+	case GF_IPMPX_GET_TOOL_CONTEXT_RESPONSE_TAG:
+		return gf_ipmpx_dump_GetToolContextResponse(_p, trace, indent, XMTDump);
+	case GF_IPMPX_CONNECT_TOOL_TAG:
+		return gf_ipmpx_dump_ConnectTool(_p, trace, indent, XMTDump);
+	case GF_IPMPX_DISCONNECT_TOOL_TAG:
+		return gf_ipmpx_dump_DisconnectTool(_p, trace, indent, XMTDump);
+	case GF_IPMPX_ADD_TOOL_LISTENER_TAG:
+		return gf_ipmpx_dump_AddToolNotificationListener(_p, trace, indent, XMTDump);
+	case GF_IPMPX_REMOVE_TOOL_LISTENER_TAG:
+		return gf_ipmpx_dump_RemoveToolNotificationListener(_p, trace, indent, XMTDump);
+	case GF_IPMPX_NOTIFY_TOOL_EVENT_TAG:
+		return gf_ipmpx_dump_NotifyToolEvent(_p, trace, indent, XMTDump);
+	case GF_IPMPX_CAN_PROCESS_TAG:
+		return gf_ipmpx_dump_CanProcess(_p, trace, indent, XMTDump);
+	case GF_IPMPX_ISMACRYP_TAG:
+		return gf_ipmpx_dump_ISMACryp(_p, trace, indent, XMTDump);
+	case GF_IPMPX_TOOL_API_CONFIG_TAG:
+		return gf_ipmpx_dump_ToolAPI_Config(_p, trace, indent, XMTDump);
+	case GF_IPMPX_AUDIO_WM_INIT_TAG:
+	case GF_IPMPX_VIDEO_WM_INIT_TAG:
 		return gf_ipmpx_dump_WatermarkingInit(_p, trace, indent, XMTDump);
-	case GF_IPMPX_AUDIO_WM_SEND_TAG: 
-	case GF_IPMPX_VIDEO_WM_SEND_TAG: 
+	case GF_IPMPX_AUDIO_WM_SEND_TAG:
+	case GF_IPMPX_VIDEO_WM_SEND_TAG:
 		return gf_ipmpx_dump_SendWatermark(_p, trace, indent, XMTDump);
-	case GF_IPMPX_SEL_DEC_INIT_TAG: return gf_ipmpx_dump_SelectiveDecryptionInit(_p, trace, indent, XMTDump);
+	case GF_IPMPX_SEL_DEC_INIT_TAG:
+		return gf_ipmpx_dump_SelectiveDecryptionInit(_p, trace, indent, XMTDump);
 
-/*
-	case GF_IPMPX_USER_QUERY_TAG: return gf_ipmpx_dump_UserQuery(_p, trace, indent, XMTDump);
-	case GF_IPMPX_USER_RESPONSE_TAG: return gf_ipmpx_dump_UserQueryResponse(_p, trace, indent, XMTDump);
-*/
-	case GF_IPMPX_GET_TOOLS_TAG: return GF_BAD_PARAM;
-	default: return GF_BAD_PARAM;
+	/*
+		case GF_IPMPX_USER_QUERY_TAG: return gf_ipmpx_dump_UserQuery(_p, trace, indent, XMTDump);
+		case GF_IPMPX_USER_RESPONSE_TAG: return gf_ipmpx_dump_UserQueryResponse(_p, trace, indent, XMTDump);
+	*/
+	case GF_IPMPX_GET_TOOLS_TAG:
+		return GF_BAD_PARAM;
+	default:
+		return GF_BAD_PARAM;
 	}
 }
 

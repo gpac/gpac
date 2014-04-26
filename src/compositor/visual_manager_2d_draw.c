@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -44,7 +44,7 @@ GF_Err visual_2d_init_raster(GF_VisualManager *visual)
 void visual_2d_release_raster(GF_VisualManager *visual)
 {
 	if (visual->raster_surface) {
-		if (visual->compositor->rasterizer->surface_flush) 
+		if (visual->compositor->rasterizer->surface_flush)
 			visual->compositor->rasterizer->surface_flush(visual->raster_surface);
 
 		visual->ReleaseSurfaceAccess(visual);
@@ -58,7 +58,7 @@ void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackCol
 	return;
 #endif
 	if (!visual->is_attached) return;
-	
+
 	if (!BackColor && !visual->offscreen) {
 		if (!visual->compositor->user || !(visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
 			BackColor = visual->compositor->back_color;
@@ -111,7 +111,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 
 			has_modif = GF_TRUE;
 		}
-	} 
+	}
 	/*indirect drawing, draw path in all dirty areas*/
 	else {
 		u32 i;
@@ -141,7 +141,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 	if (has_modif) {
 		visual->has_modif = 1;
 #ifndef GPAC_DISABLE_3D
-		if (!visual->offscreen && visual->compositor->hybrid_opengl && !is_erase) 
+		if (!visual->offscreen && visual->compositor->hybrid_opengl && !is_erase)
 			ra_union_rect(&visual->hybgl_drawn, &ctx->bi->clip);
 #endif
 	}
@@ -177,7 +177,7 @@ static void visual_2d_set_options(GF_Compositor *compositor, GF_SURFACE rend, Bo
 static void visual_2d_get_texture_transform(GF_Node *__appear, GF_TextureHandler *txh, GF_Matrix2D *mat, Bool line_texture, Fixed final_width, Fixed final_height)
 {
 	u32 node_tag;
-	M_Appearance *appear;		
+	M_Appearance *appear;
 	GF_Node *txtrans = NULL;
 	gf_mx2d_init(*mat);
 
@@ -233,14 +233,14 @@ static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_
 	GF_Raster2D *raster = visual->compositor->rasterizer;
 
 	if (!txh) txh = ctx->aspect.fill_texture;
-	
+
 	gf_path_get_bounds(path, &rc);
 	if (!rc.width || !rc.height || !txh->tx_io) return;
 
 	if (orig_bounds) {
-		txh->compute_gradient_matrix(txh, orig_bounds, &g_mat, 0);	
+		txh->compute_gradient_matrix(txh, orig_bounds, &g_mat, 0);
 	} else {
-		txh->compute_gradient_matrix(txh, &rc, &g_mat, 0);	
+		txh->compute_gradient_matrix(txh, &rc, &g_mat, 0);
 	}
 	stencil = gf_sc_texture_get_stencil(txh);
 	if (!stencil) return;
@@ -258,11 +258,11 @@ static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_
 	if (orig_bounds) gf_mx2d_add_translation(&g_mat, (orig_bounds->x), (orig_bounds->y - orig_bounds->height));
 
 	gf_mx2d_add_matrix(&g_mat, &ctx->transform);
-	
+
 	raster->stencil_set_matrix(stencil, &g_mat);
 	raster->stencil_set_color_matrix(stencil, ctx->col_mat);
 
-	/*MPEG-4/VRML context or no fill info*/	
+	/*MPEG-4/VRML context or no fill info*/
 	if (ctx->flags & CTX_HAS_APPEARANCE || !ctx->aspect.fill_color)
 		raster->stencil_set_alpha(stencil, 0xFF);
 	else
@@ -300,18 +300,18 @@ void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_
 
 	/*get original bounds*/
 	orig_rc = *object_bounds;
-	
+
 	/*get scaling ratio so that active texture view is stretched to original bounds (std 2D shape texture mapping in MPEG4)*/
 	sS = gf_divfix(orig_rc.width, INT2FIX(txh->width));
 	sT = gf_divfix(orig_rc.height, INT2FIX(txh->height));
-	
+
 	gf_mx2d_init(gf_mx2d_txt);
 	gf_mx2d_add_scale(&gf_mx2d_txt, sS, sT);
 
 	/*move to bottom-left corner of bounds */
 	gf_mx2d_add_translation(&gf_mx2d_txt, (orig_rc.x), (orig_rc.y - orig_rc.height));
 
-	/*move to final coordinate system*/	
+	/*move to final coordinate system*/
 	gf_mx2d_add_matrix(&gf_mx2d_txt, &txt_ctx->transform);
 
 	/*set path transform, except for background2D node which is directly build in the final coord system*/
@@ -395,7 +395,7 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 						assert(nb_obj_left_on_canvas);
 						nb_obj_left_on_canvas--;
 					}
-				} 
+				}
 
 				//erase all part of the canvas below us
 				if (!tr_state->immediate_draw) {
@@ -466,7 +466,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 		return;
 	}
 
-	
+
 #ifndef GPAC_DISABLE_3D
 	if (visual->compositor->hybrid_opengl) {
 		visual_2d_texture_path_opengl_auto(visual, path, txh, ctx, orig_bounds, ext_mx, tr_state);
@@ -482,9 +482,9 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 		if (!txh->width || !txh->height) {
 			gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat, &txh->is_flipped);
 			/*in case the node is an MPEG-4 bitmap, force stack rebuild at next frame */
-  			gf_node_dirty_set(ctx->drawable->node, GF_SG_NODE_DIRTY, 1);
+			gf_node_dirty_set(ctx->drawable->node, GF_SG_NODE_DIRTY, 1);
 		}
-		
+
 		if (compositor_texture_rectangles(visual, txh, &ctx->bi->clip, &ctx->bi->unclip, &src, &dst, NULL, NULL)) {
 			if (txh->stream && gf_mo_set_position(txh->stream, &src, &dst)) {
 				gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat, &txh->is_flipped);
@@ -493,8 +493,8 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 				gf_sc_next_frame_state(visual->compositor, GF_SC_DRAW_FRAME);
 			}
 		}
-		
-			
+
+
 
 		return;
 	}
@@ -515,7 +515,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	/*get scaling ratio so that active texture view is stretched to original bounds (std 2D shape texture mapping in MPEG4)*/
 	sS = orig_rc.width / txh->width;
 	sT = orig_rc.height / txh->height;
-	
+
 	gf_mx2d_init(mx_texture);
 	gf_mx2d_add_scale(&mx_texture, sS, sT);
 
@@ -533,7 +533,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 
 	if (ext_mx) gf_mx2d_add_matrix(&mx_texture, ext_mx);
 
-	/*move to final coordinate system (except background which is built directly in final coord system)*/	
+	/*move to final coordinate system (except background which is built directly in final coord system)*/
 	if (!(ctx->flags & CTX_IS_BACKGROUND) ) gf_mx2d_add_matrix(&mx_texture, &ctx->transform);
 
 	/*set path transform*/
@@ -566,7 +566,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	raster->surface_set_path(visual->raster_surface, NULL);
 
 
-	
+
 	ctx->flags |= CTX_PATH_FILLED;
 }
 
@@ -606,7 +606,7 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 		return;
 	}
 
-	if (! (ctx->flags & CTX_IS_BACKGROUND) ) 
+	if (! (ctx->flags & CTX_IS_BACKGROUND) )
 		visual_2d_set_options(visual->compositor, visual->raster_surface, ctx->flags & CTX_IS_TEXT, ctx->flags & CTX_NO_ANTIALIAS);
 
 	dofill = dostrike = 0;
@@ -634,7 +634,7 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 #if ADAPTATION_SIZE
 		if ((ctx->bi->clip.width<ADAPTATION_SIZE) && (ctx->bi->clip.height<ADAPTATION_SIZE)) {
 			raster->surface_clear(visual->raster_surface, &ctx->bi->clip, ctx->aspect.fill_color);
-		} else 
+		} else
 #endif
 		{
 			/*push path*/
@@ -647,11 +647,11 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 	if (dostrike) {
 #if ADAPTATION_SIZE
 		if ((ctx->bi->clip.width<ADAPTATION_SIZE) && (ctx->bi->clip.height<ADAPTATION_SIZE)) {
-		} else 
+		} else
 #endif
 		{
 			StrikeInfo2D *si;
-			
+
 			if (!pen) {
 				pen = visual->raster_brush;
 				raster->stencil_set_brush_color(pen, ctx->aspect.line_color);
@@ -717,7 +717,7 @@ void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect
 	gf_path_add_line_to(path, rc->x+rc->width, rc->y);
 	gf_path_add_line_to(path, rc->x, rc->y);
 	gf_path_close(path);
-	
+
 
 	if (color) {
 		/*push path*/
@@ -734,7 +734,7 @@ void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect
 		pen.join = GF_LINE_JOIN_BEVEL;
 		pen.dash = GF_DASH_STYLE_DOT;
 		raster->stencil_set_brush_color(visual->raster_brush, strike_color);
-		outline = gf_path_get_outline(path,  pen);	
+		outline = gf_path_get_outline(path,  pen);
 		outline->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
 		raster->surface_set_path(visual->raster_surface, outline);
 		visual_2d_fill_path(visual, ctx, visual->raster_brush, tr_state, 0);
@@ -788,7 +788,7 @@ void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 
 		pen.width = 2;
 		pen.align = GF_PATH_LINE_INSIDE;
 		pen.join = GF_LINE_JOIN_BEVEL;
-		outline = gf_path_get_outline(path, pen);	
+		outline = gf_path_get_outline(path, pen);
 		outline->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
 
 		raster->surface_set_path(visual->raster_surface, outline);

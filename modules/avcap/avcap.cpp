@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -60,7 +60,7 @@ using namespace avcap;
 class GPACCaptureHandler : public CaptureHandler
 {
 public:
-	GPACCaptureHandler(GF_ClientService *service, LPNETCHANNEL channel) 
+	GPACCaptureHandler(GF_ClientService *service, LPNETCHANNEL channel)
 		: m_pService(service), m_pChannel(channel), m_data(NULL)
 	{
 		memset(&m_pSLHeader, 0, sizeof(GF_SLHeader));
@@ -120,7 +120,7 @@ DeviceDescriptor* get_device_descriptor(char *name)
 	for(DeviceCollector::DeviceList::const_iterator i = dl.begin(); i != dl.end(); i++, index++) {
 		dd = *i;
 
-		if (!name || !stricmp(name, "default") ) 
+		if (!name || !stricmp(name, "default") )
 			return dd;
 		if (strstr((char *) dd->getName().c_str(), name) != NULL)
 			return dd;
@@ -196,7 +196,7 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 			gf_term_on_connect(serv, NULL, GF_REMOTE_SERVICE_ERROR);
 			return GF_OK;
 		}
-		
+
 		vcap->device_desc->open();
 		if ( (!strnicmp(url, "camera://", 9) || !strnicmp(url, "video://", 8)) && !vcap->device_desc->isVideoCaptureDev()) {
 			vcap->device_desc->close();
@@ -228,7 +228,7 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 		while (params) {
 			char *sep = (char *) strchr(params, '&');
 			if (sep) sep[0] = 0;
-	
+
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[VideoCapture] Set camera option %s\n", params));
 
 			if (!strnicmp(params, "resolution=", 11)) {
@@ -272,7 +272,7 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 
 		if (default_4cc )
 			vcap->device->getFormatMgr()->setFormat(default_4cc );
-	
+
 		format = vcap->device->getFormatMgr()->getFormat();
 		switch (format->getFourcc()) {
 		case GF_4CC('V', 'Y', 'U', 'Y'):
@@ -306,7 +306,7 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 
 	/*setup object descriptor*/
 	od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-	
+
 	esd = gf_odf_desc_esd_new(0);
 	esd->slConfig->timestampResolution = 1000;
 	if (!strnicmp(url, "camera://", 9) || !strnicmp(url, "video://", 8)) {
@@ -319,7 +319,7 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 	}
 	esd->decoderConfig->objectTypeIndication = GPAC_OTI_RAW_MEDIA_STREAM;
-	
+
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u32(bs, vcap->pixel_format);
 	gf_bs_write_u16(bs, vcap->width);
@@ -362,10 +362,13 @@ GF_Err AVCap_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 
 	switch (com->command_type) {
-	case GF_NET_CHAN_SET_PULL: return GF_NOT_SUPPORTED;
-	case GF_NET_CHAN_INTERACTIVE: return GF_OK;
+	case GF_NET_CHAN_SET_PULL:
+		return GF_NOT_SUPPORTED;
+	case GF_NET_CHAN_INTERACTIVE:
+		return GF_OK;
 	/*since data is file-based, no padding is needed (decoder plugin will handle it itself)*/
-	case GF_NET_CHAN_SET_PADDING: return GF_OK;
+	case GF_NET_CHAN_SET_PADDING:
+		return GF_OK;
 	case GF_NET_CHAN_BUFFER:
 		com->buffer.max = com->buffer.min = 500;
 		return GF_OK;
@@ -379,7 +382,7 @@ GF_Err AVCap_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			if (vcap->video_handler)
 				vcap->device->getVidCapMgr()->registerCaptureHandler(vcap->video_handler);
 
-			if (vcap->device->getVidCapMgr()->startCapture() != -1) 
+			if (vcap->device->getVidCapMgr()->startCapture() != -1)
 				vcap->state = 1;
 			else
 				vcap->device->getVidCapMgr()->removeCaptureHandler();
@@ -389,11 +392,12 @@ GF_Err AVCap_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (vcap->state==1) {
 			/*stop capture*/
 			vcap->device->getVidCapMgr()->removeCaptureHandler();
-			vcap->device->getVidCapMgr()->stopCapture(); 
+			vcap->device->getVidCapMgr()->stopCapture();
 			vcap->state = 0;
 		}
 		return GF_OK;
-	case GF_NET_CHAN_CONFIG: return GF_OK;
+	case GF_NET_CHAN_CONFIG:
+		return GF_OK;
 	case GF_NET_CHAN_GET_DSI:
 		com->get_dsi.dsi = NULL;
 		com->get_dsi.dsi_len = 0;
@@ -408,7 +412,7 @@ GF_Err AVCap_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const c
 {
 	u32 ESID;
 	AVCapIn *vcap = (AVCapIn *) plug->priv;
-	
+
 	sscanf(url, "ES_ID=%u", &ESID);
 	if (ESID == 1) {
 		/*video connect*/
@@ -450,7 +454,7 @@ Bool AVCap_CanHandleURLInService(GF_InputService *plug, const char *url)
 
 
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_NET_CLIENT_INTERFACE,
@@ -482,7 +486,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 		GF_SAFEALLOC(vcap, AVCapIn);
 		plug->priv = vcap;
 		return (GF_BaseInterface *)plug;
-	} 
+	}
 	return NULL;
 }
 

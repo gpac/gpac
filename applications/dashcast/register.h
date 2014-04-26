@@ -35,14 +35,14 @@
 #include <gpac/thread.h>
 
 
-/* 
+/*
  * Register all codecs and define
  * the lock manager on top of avlib
  */
 void dc_register_libav();
 void dc_unregister_libav();
 
-/* 
+/*
  * performs libav* cleanup
  */
 void dc_unregister_libav();

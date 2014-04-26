@@ -2,7 +2,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -12,15 +12,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -53,7 +53,7 @@ enum {
 	GF_NODE_RANGE_LAST_MPEG4 = GF_NODE_RANGE_FIRST_MPEG4+512,
 
 	/*range for X3D*/
-	GF_NODE_RANGE_FIRST_X3D, 
+	GF_NODE_RANGE_FIRST_X3D,
 	GF_NODE_RANGE_LAST_X3D = GF_NODE_RANGE_FIRST_X3D+512,
 
 	/*all nodes after this are always parent nodes*/
@@ -69,16 +69,16 @@ enum {
 	TAG_DOMText,
 	/*all nodes below MUST use the base DOM structure (with dyn attribute list)*/
 	GF_NODE_FIRST_DOM_NODE_TAG,
-	
+
 	/*full node*/
 	TAG_DOMFullNode = GF_NODE_FIRST_DOM_NODE_TAG,
 
 	/*range for SVG*/
-	GF_NODE_RANGE_FIRST_SVG, 
+	GF_NODE_RANGE_FIRST_SVG,
 	GF_NODE_RANGE_LAST_SVG = GF_NODE_RANGE_FIRST_SVG+100,
 
 	/*range for XBL*/
-	GF_NODE_RANGE_FIRST_XBL, 
+	GF_NODE_RANGE_FIRST_XBL,
 	TAG_XBL_bindings = GF_NODE_RANGE_FIRST_XBL,
 	TAG_XBL_binding,
 	TAG_XBL_content,
@@ -156,7 +156,7 @@ GF_Node *gf_node_list_del_child_idx(GF_ChildNodeItem **list, u32 pos);
 /*tag is set upon creation and cannot be modified*/
 u32 gf_node_get_tag(GF_Node*);
 /*set node def
-	@ID: node ID, !=0 set def node - if a different node with the same ID exists, returns error. 
+	@ID: node ID, !=0 set def node - if a different node with the same ID exists, returns error.
 You may change the node ID by recalling the function with a different ID value. You may get a node ID
 by calling the gf_sg_get_next_available_node_id function
 	@defName: optional readable name (script, MPEGJ). To change the name, recall the function with a different name and the same ID
@@ -180,7 +180,7 @@ GF_Err gf_node_remove_id(GF_Node *p);
 void *gf_node_get_private(GF_Node*);
 void gf_node_set_private(GF_Node*, void *);
 
-/*set traversal callback function. If a node has no associated callback, the traversing of the 
+/*set traversal callback function. If a node has no associated callback, the traversing of the
 graph won't propagate below it. It is the app responsability to setup traversing functions as needed
 VRML/MPEG4:  Instanciated Protos are handled internally as well as interpolators, valuators and scripts
 @is_destroy: set when the node is about to be destroyed
@@ -188,7 +188,7 @@ VRML/MPEG4:  Instanciated Protos are handled internally as well as interpolators
 GF_Err gf_node_set_callback_function(GF_Node *, void (*NodeFunction)(GF_Node *node, void *traverse_state, Bool is_destroy) );
 
 /*register a node (DEFed or not), specifying parent if any.
-A node must be registered whenever used by something (a parent node, a command, whatever) to prevent its 
+A node must be registered whenever used by something (a parent node, a command, whatever) to prevent its
 destruction (think of it as a reference counting).
 NOTE: NODES ARE CREATED WITHOUT BEING REGISTERED
 */
@@ -197,7 +197,7 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parent_node);
 /*unregister a node from parent (node may or not be DEF'ed). Parent may be NULL (DEF root node, commands).
 This MUST be called whenever a node is destroyed (removed from a parent node)
 If this is the last instance of the node, the node is destroyed
-NOTE: NODES ARE CREATED WITHOUT BEING REGISTERED, hence they MUST be registered at least once before 
+NOTE: NODES ARE CREATED WITHOUT BEING REGISTERED, hence they MUST be registered at least once before
 being destroyed
 */
 GF_Err gf_node_unregister(GF_Node *node, GF_Node *parent_node);
@@ -214,7 +214,7 @@ u32 gf_node_get_num_instances(GF_Node *node);
 
 /*calls node traverse callback routine on this node*/
 void gf_node_traverse(GF_Node *node, void *udta);
-/*allows a node to be re-rendered - by default a node in its render phase will never be retraversed a second time. 
+/*allows a node to be re-rendered - by default a node in its render phase will never be retraversed a second time.
 Use this function to enable a second traverse for this node while traversing the node*/
 void gf_node_allow_cyclic_traverse(GF_Node *node);
 
@@ -242,7 +242,7 @@ enum
 	if relying on this flag for sub-tree discarding (eg, culling or similar)*/
 	GF_SG_CHILD_DIRTY = 1<<1,
 
-	/*flag set by bindable nodes to indicate a modification of the bindable stack. This is 
+	/*flag set by bindable nodes to indicate a modification of the bindable stack. This is
 	only used for offscreen rendering of Layer3D*/
 	GF_SG_VRML_BINDABLE_DIRTY = 1<<2,
 
@@ -310,7 +310,7 @@ void gf_node_dirty_reset(GF_Node *node, Bool reset_children);
 u32 gf_node_dirty_get(GF_Node *node);
 
 /*Notes on GF_FieldInfo
-all scene graph implementations should answer node field query with this interface. 
+all scene graph implementations should answer node field query with this interface.
 In case an implementation does not use this:
 	- the implementation shall handle the parent node dirty flag itself most of the time
 	- the implementation shall NOT allow referencing of a graph node in a parent graph node (when inlining
@@ -322,7 +322,7 @@ typedef struct _route GF_Route;
 /*other fieldTypes may be ignored by implmentation not using VRML/MPEG4 native types*/
 
 typedef struct
-{	
+{
 	/*0-based index of the field in the node*/
 	u32 fieldIndex;
 	/*field type - VRML/MPEG4 types are listed in scenegraph_vrml.h*/
@@ -353,10 +353,10 @@ typedef struct __tag_scene_graph GF_SceneGraph;
 /*scene graph constructor*/
 GF_SceneGraph *gf_sg_new();
 
-/*creates a sub scene graph (typically used with Inline node): independent graph with same private stack, 
-and user callbacks as parent. All routes triggered in this subgraph are executed in the parent graph (this 
+/*creates a sub scene graph (typically used with Inline node): independent graph with same private stack,
+and user callbacks as parent. All routes triggered in this subgraph are executed in the parent graph (this
 means you only have to activate routes on the main graph)
-NOTE: the resulting graph is not destroyed when the parent graph is 
+NOTE: the resulting graph is not destroyed when the parent graph is
 */
 GF_SceneGraph *gf_sg_new_subscene(GF_SceneGraph *scene);
 
@@ -377,7 +377,7 @@ void gf_sg_set_scene_time_callback(GF_SceneGraph *scene, Double (*GetSceneTime)(
 
 enum
 {
-	/*function called upon node creation. 
+	/*function called upon node creation.
 		ctxdata is not used*/
 	GF_SG_CALLBACK_INIT = 0,
 	/*function called upon node modification. You typically will set some of the dirty flags here.
@@ -390,7 +390,7 @@ enum
 	GF_SG_CALLBACK_NODE_DESTROY,
 };
 
-/*set node callback: function called upon node creation. 
+/*set node callback: function called upon node creation.
 Application should instanciate the node rendering stack and any desired callback*/
 void gf_sg_set_node_callback(GF_SceneGraph *sg, void (*NodeCallback)(void *user_priv, u32 type, GF_Node *node, void *ctxdata) );
 
@@ -403,7 +403,7 @@ GF_Node *gf_sg_find_node(GF_SceneGraph *sg, u32 nodeID);
 /*finds a registered node by DEF name*/
 GF_Node *gf_sg_find_node_by_name(GF_SceneGraph *sg, char *name);
 
-/*used to signal modification of a node, indicating which field is modified - exposed for BIFS codec, 
+/*used to signal modification of a node, indicating which field is modified - exposed for BIFS codec,
 should not be needed by other apps*/
 void gf_node_changed(GF_Node *node, GF_FieldInfo *fieldChanged);
 
@@ -430,7 +430,7 @@ void gf_node_init(GF_Node *node);
 
 /*clones a node in the given graph and register with parent cloned. The cloning handles ID based on id_suffix:
  id_suffix = NULL: all IDs are removed from the cloned subtree, (each node instance will become a hard copy)
- id_suffix = "": ID will be kept exactly as they where in the original subtree - this may lead to errors due to 
+ id_suffix = "": ID will be kept exactly as they where in the original subtree - this may lead to errors due to
 		the presence of the same ID depending on the standard (DOM, ...).
  id_suffix = anything: all IDs are translated ($(name) -> $(name)id_suffix) and bynary IDs are generated on the fly
 */
@@ -464,8 +464,8 @@ enum
 
 typedef struct
 {
-	/*for GF_JSAPI_OP_RESOLVE_URI, 
-		set by caller to the URI to resolve. 
+	/*for GF_JSAPI_OP_RESOLVE_URI,
+		set by caller to the URI to resolve.
 				If NULL, the return URI is the unresolved parent scene one.
 				Otherwise, the input URL will be reolved to its local name (eg for ZIP/... packages)
 		upon return, ALLOCATED by the callee and must be freed by the caller
@@ -482,7 +482,7 @@ typedef struct
 	const char *key_val;
 } GF_JSAPIOPT;
 
-	/*for script message option*/
+/*for script message option*/
 typedef struct
 {
 	GF_Err e;
@@ -604,8 +604,8 @@ char *gf_node_dump_attribute(GF_Node *elt, GF_FieldInfo *info);
 
 /*
 			scene graph command tools used for BIFS and LASeR
-		These are used to store updates in memory without applying changes to the graph, 
-	for dumpers, encoders ... 
+		These are used to store updates in memory without applying changes to the graph,
+	for dumpers, encoders ...
 		The commands can then be applied through this lib
 */
 
@@ -621,7 +621,7 @@ enum
 	/*BIFS commands*/
 	GF_SG_SCENE_REPLACE,
 	GF_SG_NODE_REPLACE,
-	GF_SG_FIELD_REPLACE, 
+	GF_SG_FIELD_REPLACE,
 	GF_SG_INDEXED_REPLACE,
 	GF_SG_ROUTE_REPLACE,
 	GF_SG_NODE_DELETE,
@@ -641,7 +641,7 @@ enum
 	GF_SG_NODE_DELETE_EX,
 
 	/*BIFS*/
-	GF_SG_XREPLACE, 
+	GF_SG_XREPLACE,
 
 #endif
 	GF_SG_LAST_BIFS_COMMAND,
@@ -668,8 +668,8 @@ enum
 /*
 				single command wrapper
 
-  NOTE: In order to maintain node registry, the nodes replaced/inserted MUST be registered with 
-  their parents even when the command is never applied. Registering shall be performed 
+  NOTE: In order to maintain node registry, the nodes replaced/inserted MUST be registered with
+  their parents even when the command is never applied. Registering shall be performed
   with gf_node_register (see below).
   If you fail to do so, a node may be destroyed when destroying a command while still used
   in another command or in the graph - this will just crash.
@@ -700,7 +700,7 @@ typedef struct
 	/*node the command applies to - may be NULL*/
 	GF_Node *node;
 
-	/*list of GF_CommandField for all field commands replace/ index insert / index replace / index delete / MultipleReplace / MultipleIndexedreplace 
+	/*list of GF_CommandField for all field commands replace/ index insert / index replace / index delete / MultipleReplace / MultipleIndexedreplace
 	the content is destroyed when deleting the command*/
 	GF_List *command_fields;
 
@@ -712,7 +712,7 @@ typedef struct
 
 
 	union {
-		/*scene replace command: 
+		/*scene replace command:
 			root node is stored in com->node
 			protos are stored in com->new_proto_list
 			routes are stored as RouteInsert in the same frame

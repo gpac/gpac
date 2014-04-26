@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2008-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -97,7 +97,7 @@ GF_Err gf_isom_streamer_get_sdp(GF_ISOMRTPStreamer *streamer, char **out_sdp_buf
  *	Sends the next RTP packet in the current file, potentially waiting for the TS to be mature. If the last packet is sent and looping is disabled, this will return GF_EOS.
  *	\param streamer RTP streamer object
  *	\param send_ahead_delay delay in milliseconds for packet sending. A packet is sent if (packet.timestamp + send_ahead_delay) is greate than the current time.
- *	\param max_sleep_time indicates that if the streamer has to wait more than max_sleep_time before sending the packet, it should return and send it later. 
+ *	\param max_sleep_time indicates that if the streamer has to wait more than max_sleep_time before sending the packet, it should return and send it later.
  */
 GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_ahead_delay, s32 max_sleep_time);
 

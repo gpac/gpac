@@ -15,45 +15,45 @@
 /*                                                                         */
 /***************************************************************************/
 
-  /*************************************************************************/
-  /*                                                                       */
-  /* This is a new anti-aliasing scan-converter for FreeType 2.  The       */
-  /* algorithm used here is _very_ different from the one in the standard  */
-  /* `ftraster' module.  Actually, `ftgrays' computes the _exact_          */
-  /* coverage of the outline on each pixel cell.                           */
-  /*                                                                       */
-  /* It is based on ideas that I initially found in Raph Levien's          */
-  /* excellent LibArt graphics library (see http://www.levien.com/libart   */
-  /* for more information, though the web pages do not tell anything       */
-  /* about the renderer; you'll have to dive into the source code to       */
-  /* understand how it works).                                             */
-  /*                                                                       */
-  /* Note, however, that this is a _very_ different implementation         */
-  /* compared to Raph's.  Coverage information is stored in a very         */
-  /* different way, and I don't use sorted vector paths.  Also, it doesn't */
-  /* use floating point values.                                            */
-  /*                                                                       */
-  /* This renderer has the following advantages:                           */
-  /*                                                                       */
-  /* - It doesn't need an intermediate bitmap.  Instead, one can supply a  */
-  /*   callback function that will be called by the renderer to draw gray  */
-  /*   spans on any target surface.  You can thus do direct composition on */
-  /*   any kind of bitmap, provided that you give the renderer the right   */
-  /*   callback.                                                           */
-  /*                                                                       */
-  /* - A perfect anti-aliaser, i.e., it computes the _exact_ coverage on   */
-  /*   each pixel cell.                                                    */
-  /*                                                                       */
-  /* - It performs a single pass on the outline (the `standard' FT2        */
-  /*   renderer makes two passes).                                         */
-  /*                                                                       */
-  /* - It can easily be modified to render to _any_ number of gray levels  */
-  /*   cheaply.                                                            */
-  /*                                                                       */
-  /* - For small (< 20) pixel sizes, it is faster than the standard        */
-  /*   renderer.                                                           */
-  /*                                                                       */
-  /*************************************************************************/
+/*************************************************************************/
+/*                                                                       */
+/* This is a new anti-aliasing scan-converter for FreeType 2.  The       */
+/* algorithm used here is _very_ different from the one in the standard  */
+/* `ftraster' module.  Actually, `ftgrays' computes the _exact_          */
+/* coverage of the outline on each pixel cell.                           */
+/*                                                                       */
+/* It is based on ideas that I initially found in Raph Levien's          */
+/* excellent LibArt graphics library (see http://www.levien.com/libart   */
+/* for more information, though the web pages do not tell anything       */
+/* about the renderer; you'll have to dive into the source code to       */
+/* understand how it works).                                             */
+/*                                                                       */
+/* Note, however, that this is a _very_ different implementation         */
+/* compared to Raph's.  Coverage information is stored in a very         */
+/* different way, and I don't use sorted vector paths.  Also, it doesn't */
+/* use floating point values.                                            */
+/*                                                                       */
+/* This renderer has the following advantages:                           */
+/*                                                                       */
+/* - It doesn't need an intermediate bitmap.  Instead, one can supply a  */
+/*   callback function that will be called by the renderer to draw gray  */
+/*   spans on any target surface.  You can thus do direct composition on */
+/*   any kind of bitmap, provided that you give the renderer the right   */
+/*   callback.                                                           */
+/*                                                                       */
+/* - A perfect anti-aliaser, i.e., it computes the _exact_ coverage on   */
+/*   each pixel cell.                                                    */
+/*                                                                       */
+/* - It performs a single pass on the outline (the `standard' FT2        */
+/*   renderer makes two passes).                                         */
+/*                                                                       */
+/* - It can easily be modified to render to _any_ number of gray levels  */
+/*   cheaply.                                                            */
+/*                                                                       */
+/* - For small (< 20) pixel sizes, it is faster than the standard        */
+/*   renderer.                                                           */
+/*                                                                       */
+/*************************************************************************/
 
 
 /*
@@ -112,7 +112,7 @@ typedef int  TArea;
 #endif
 
 
-  /* maximal number of gray spans in a call to the span callback */
+/* maximal number of gray spans in a call to the span callback */
 #define FT_MAX_GRAY_SPANS  64
 
 typedef struct  TCell_
@@ -151,7 +151,7 @@ typedef struct  TRaster_
 
 #define AA_CELL_STEP_ALLOC	8
 
-static GFINLINE void gray_record_cell( TRaster *raster ) 
+static GFINLINE void gray_record_cell( TRaster *raster )
 {
 	if (( raster->area | raster->cover) && (raster->ey<raster->max_ey)) {
 		AACell *cell;
@@ -190,16 +190,16 @@ static GFINLINE void gray_set_cell( TRaster *raster, TCoord  ex, TCoord  ey )
 
 static GFINLINE void evg_translate_point(GF_Matrix2D *mx, EVG_Vector *pt, TPos *x, TPos *y)
 {
-		Fixed _x, _y;
-		_x = pt->x;
-		_y = pt->y;
-		gf_mx2d_apply_coords(mx, &_x, &_y);
+	Fixed _x, _y;
+	_x = pt->x;
+	_y = pt->y;
+	gf_mx2d_apply_coords(mx, &_x, &_y);
 #ifdef GPAC_FIXED_POINT
-		*x = UPSCALE(_x);
-		*y = UPSCALE(_y);
+	*x = UPSCALE(_x);
+	*y = UPSCALE(_y);
 #else
-		*x = (s32) (_x * ONE_PIXEL);
-		*y = (s32) (_y * ONE_PIXEL);
+	*x = (s32) (_x * ONE_PIXEL);
+	*y = (s32) (_y * ONE_PIXEL);
 #endif
 }
 #endif
@@ -241,7 +241,7 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 	long    p, first;
 	long dx;
 	int     incr, lift, mod, rem;
-	
+
 	dx = x2 - x1;
 	ex1 = TRUNC( x1 ); /* if (ex1 >= raster->max_ex) ex1 = raster->max_ex-1; */
 	ex2 = TRUNC( x2 ); /* if (ex2 >= raster->max_ex) ex2 = raster->max_ex-1; */
@@ -261,13 +261,13 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 		raster->cover += delta;
 		return;
 	}
-	
+
 	/* ok, we'll have to render a run of adjacent cells on the same */
 	/* scanline...                                                  */
 	p     = ( ONE_PIXEL - fx1 ) * ( y2 - y1 );
 	first = ONE_PIXEL;
 	incr  = 1;
-	
+
 	if ( dx < 0 ) {
 		p     = fx1 * ( y2 - y1 );
 		first = 0;
@@ -302,7 +302,7 @@ static void gray_render_scanline( TRaster *raster,  TCoord  ey, TPos x1, TCoord 
 			mod  += rem;
 			if ( mod >= 0 ) {
 				mod -= (TCoord)dx;
-				delta++; 
+				delta++;
 			}
 
 			raster->area  += (TArea)ONE_PIXEL * delta;
@@ -455,7 +455,7 @@ End:
 }
 
 
- 
+
 static int EVG_Outline_Decompose(EVG_Outline *outline, TRaster *user)
 {
 	EVG_Vector   v_start;
@@ -508,14 +508,14 @@ static int EVG_Outline_Decompose(EVG_Outline *outline, TRaster *user)
                                   }
 
 
-  /* This is a non-recursive quicksort that directly process our cells     */
-  /* array.  It should be faster than calling the stdlib qsort(), and we   */
-  /* can even tailor our insertion threshold...                            */
+/* This is a non-recursive quicksort that directly process our cells     */
+/* array.  It should be faster than calling the stdlib qsort(), and we   */
+/* can even tailor our insertion threshold...                            */
 
 #define QSORT_THRESHOLD  9  /* below this size, a sub-array will be sorted */
-                            /* through a normal insertion sort             */
+/* through a normal insertion sort             */
 
-static void gray_quick_sort( AACell *cells, int    count ) 
+static void gray_quick_sort( AACell *cells, int    count )
 {
 	AACell *stack[80];  /* should be enough ;-) */
 	AACell **top;        /* top of stack */
@@ -549,8 +549,10 @@ static void gray_quick_sort( AACell *cells, int    count )
 
 			for (;;) {
 				int x = base->x;
-				do i++; while( i->x < x );
-				do j--; while( x < j->x );
+				do i++;
+				while( i->x < x );
+				do j--;
+				while( x < j->x );
 
 				if ( i > j )
 					break;
@@ -579,7 +581,7 @@ static void gray_quick_sort( AACell *cells, int    count )
 			for ( ; i < limit; j = i, i++ ) {
 				for ( ; j[1].x < j->x; j-- ) {
 					SWAP_CELLS( j + 1, j, temp );
-					if ( j == base ) 
+					if ( j == base )
 						break;
 				}
 			}
@@ -610,9 +612,9 @@ static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos    area, int
 	/* the coverage percentage is area/(PIXEL_BITS*PIXEL_BITS*2) */
 	/*                                                           */
 	coverage = (int)( area >> ( PIXEL_BITS * 2 + 1 - 8 ) );
-									/* use range 0..256 */
+	/* use range 0..256 */
 	if ( coverage < 0 )
-	coverage = -coverage;
+		coverage = -coverage;
 
 	if (zero_non_zero_rule) {
 		/* normal non-zero winding rule */
@@ -632,8 +634,8 @@ static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos    area, int
 		count = raster->num_gray_spans;
 		span  = raster->gray_spans + count - 1;
 		if ( count > 0                          &&
-			(int)span->x + span->len == (int)x &&
-			span->coverage == coverage )
+		        (int)span->x + span->len == (int)x &&
+		        span->coverage == coverage )
 		{
 			span->len = (unsigned short)( span->len + acount );
 			return;
@@ -680,7 +682,7 @@ static void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_n
 			area  += cur->area;
 			cover += cur->cover;
 		}
-		
+
 		/* if the start cell has a non-null area, we must draw an */
 		/* individual gray pixel there                            */
 		if ( area && x >= 0 ) {
@@ -719,19 +721,19 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 #endif
 
 	size_y = raster->max_ey - raster->min_ey;
-    if (raster->max_lines < size_y) {
+	if (raster->max_lines < size_y) {
 		raster->scanlines = (AAScanline*)gf_realloc(raster->scanlines, sizeof(AAScanline)*size_y);
 		memset(&raster->scanlines[raster->max_lines], 0, sizeof(AAScanline)*(size_y-raster->max_lines) );
 		raster->max_lines = size_y;
 	}
-	
+
 	raster->ex = raster->max_ex+1;
 	raster->ey = raster->max_ey+1;
 	raster->cover = 0;
 	raster->area = 0;
 	EVG_Outline_Decompose(outline, raster);
-    gray_record_cell( raster );
-	
+	gray_record_cell( raster );
+
 	/*store odd/even rule*/
 	zero_non_zero_rule = (outline->flags & GF_PATH_FILL_ZERO_NONZERO) ? 1 : 0;
 
@@ -771,7 +773,7 @@ void evg_raster_del(EVG_Raster raster)
 		gf_free(raster->scanlines[i].cells);
 	}
 	gf_free(raster->scanlines);
-    gf_free(raster);
+	gf_free(raster);
 }
 
 /* END */

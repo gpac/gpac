@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -115,7 +115,7 @@ Bool MC_URLChanged(MFURL *old_url, MFURL *new_url)
 	u32 i;
 	if (gf_mo_get_od_id(old_url) != gf_mo_get_od_id(new_url)) return 1;
 	if (old_url->count != new_url->count) return 1;
-	
+
 	for (i=0; i<old_url->count; i++) {
 		if (old_url->vals[i].url || new_url->vals[i].url) {
 			if (!old_url->vals[i].url || !new_url->vals[i].url) return 1;
@@ -236,7 +236,7 @@ void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range
 		prev_seg = desc;
 		last_seg = NULL;
 		duration = desc->Duration;
-		i=1+ctrl->current_seg; 
+		i=1+ctrl->current_seg;
 		while ((last_seg = (GF_Segment *)gf_list_enum(ctrl->seg, &i))) {
 			if (prev_seg->startTime + prev_seg->Duration != last_seg->startTime) {
 				last_seg = NULL;
@@ -294,14 +294,14 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 
 	need_restart = (stack->changed==2) ? 1 : 0;
 	shall_restart = (stack->control->mediaStartTime>=0) ? 1 : 0;
-	
+
 	/*check url target*/
 	if (stack->stream) {
 		if (MC_URLChanged(&stack->url, &stack->control->url)) {
 			gf_sg_vrml_mf_reset(&stack->url, GF_SG_VRML_MFURL);
 
 			prev = stack->stream;
-			if (gf_list_find(stack->parent->scene_objects, prev)<0) 
+			if (gf_list_find(stack->parent->scene_objects, prev)<0)
 				prev = NULL;
 
 			stack->stream = gf_scene_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, 0);
@@ -318,7 +318,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 				/*register with new*/
 				/*if we assigned the media control to an exiting object - force the state of the object*/
 				gf_odm_set_mediacontrol((GF_ObjectManager *) stack->stream->odm, stack);
-				
+
 				while (gf_list_count(stack->seg)) gf_list_rem(stack->seg, 0);
 				gf_odm_init_segments((GF_ObjectManager *) stack->stream->odm, stack->seg, &stack->control->url);
 
@@ -333,7 +333,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			}
 			/*MediaControl has been detached*/
 			else {
-				if (prev) 
+				if (prev)
 					gf_odm_remove_mediacontrol(prev->odm, stack);
 				return;
 			}
@@ -374,7 +374,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		stack->enabled = 1;
 		need_restart = gf_odm_switch_mediacontrol(stack->stream->odm, stack);
 	}
-	
+
 	stack->changed = 0;
 
 	if (!stack->control->mediaSpeed) shall_restart = 0;
@@ -468,10 +468,10 @@ void MC_Modified(GF_Node *node)
 	if (!stack) return;
 	if (stack->changed!=2) {
 		/*check URL*/
-		if (MC_URLChanged(&stack->url, &stack->control->url)) 
+		if (MC_URLChanged(&stack->url, &stack->control->url))
 			stack->changed = 2;
 		/*check speed (play/pause)*/
-		else if (stack->media_speed != stack->control->mediaSpeed) 
+		else if (stack->media_speed != stack->control->mediaSpeed)
 			stack->changed = 1;
 		/*check mediaStartTime (seek)*/
 		else if (stack->media_start != stack->control->mediaStartTime) {
@@ -542,7 +542,7 @@ void gf_odm_remove_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)
 	/*removed. Note the spec doesn't say what to do in this case...*/
 	if (odm->media_ctrl == ctrl) {
 		/*we're about to release the media control from this object - if paused, force a resume (as if no MC was set)*/
-		if (ctrl->paused) 
+		if (ctrl->paused)
 			mediacontrol_resume(odm);
 		gf_odm_set_mediacontrol(odm, NULL);
 	}
@@ -603,14 +603,14 @@ Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
 	for (i=ctrl->current_seg; i<count; i++) {
 		next = (GF_Segment *)gf_list_get(ctrl->seg, i);
 		if (
-			/*if next seg start is after cur seg start*/
-			(cur->startTime < next->startTime) 
-			/*if next seg start is before cur seg end*/
-			&& (cur->startTime + cur->Duration > next->startTime) 
-			/*if next seg start is already passed*/
-			&& (1000*next->startTime < odm->current_time)
-			/*then next segment was taken into account when requesting play*/
-			) {
+		    /*if next seg start is after cur seg start*/
+		    (cur->startTime < next->startTime)
+		    /*if next seg start is before cur seg end*/
+		    && (cur->startTime + cur->Duration > next->startTime)
+		    /*if next seg start is already passed*/
+		    && (1000*next->startTime < odm->current_time)
+		    /*then next segment was taken into account when requesting play*/
+		) {
 			cur = next;
 			ctrl->current_seg ++;
 		}

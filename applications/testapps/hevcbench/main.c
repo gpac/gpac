@@ -130,15 +130,15 @@ static char *default_glsl_vertex = "\
 
 Bool sdl_compile_shader(u32 shader_id, const char *name, const char *source)
 {
-	GLint blen = 0;	
+	GLint blen = 0;
 	GLsizei slen = 0;
 	u32 len;
 	if (!source || !shader_id) return 0;
 	len = (u32) strlen(source);
 	glShaderSource(shader_id, 1, &source, &len);
 	glCompileShader(shader_id);
-	
-	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);       
+
+	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
 	if (blen > 1) {
 		char* compiler_log = (char*) gf_malloc(blen);
 #ifdef CONFIG_DARWIN_GL
@@ -180,7 +180,7 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 	render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 
-#if (COPY_TYPE==5) 
+#if (COPY_TYPE==5)
 	size = stride*height;
 #else
 	size = width*height;
@@ -261,7 +261,7 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 
 	glAttachShader(glsl_program, vertex_shader);
 	glAttachShader(glsl_program, fragment_shader);
-	glLinkProgram(glsl_program);  
+	glLinkProgram(glsl_program);
 
 	glGenTextures(3, txid);
 	for (i=0; i<3; i++) {
@@ -277,9 +277,9 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 		glTexParameteri(texture_type, GL_TEXTURE_WRAP_T, GL_CLAMP);
 		glTexParameteri(texture_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(texture_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	
+
 		if (bpp>8) {
-		    glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
 		} else {
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 		}
@@ -287,7 +287,7 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 	}
 
 	//sets uniforms: y, u, v textures point to texture slots 0, 1 and 2
-	glUseProgram(glsl_program);  
+	glUseProgram(glsl_program);
 	for (i=0; i<3; i++) {
 		const char *txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
 		loc = glGetUniformLocation(glsl_program, txname);
@@ -308,7 +308,7 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 		glUniform1f(loc, h);
 	}
 
-	glUseProgram(0);  
+	glUseProgram(0);
 
 
 	if (glMapBuffer==NULL) use_pbo = GF_FALSE;
@@ -524,10 +524,10 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 #endif
 		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
 
-#if (COPY_TYPE!=5)	
+#if (COPY_TYPE!=5)
 		needs_stride=0;
 #endif
-		
+
 
 #if (NO_TEX==0)
 		glBindTexture(texture_type, txid[0] );
@@ -587,7 +587,7 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 
 	glActiveTexture(GL_TEXTURE0 );
 	glBindTexture(texture_type, txid[0]);
-		
+
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glClientActiveTexture(GL_TEXTURE0);
 
@@ -616,7 +616,7 @@ void sdl_bench()
 	for (i=0; i<count; i++) {
 		sdl_draw_frame(pY, pU, pV, width, height, 8, width);
 	}
-	
+
 	start = gf_sys_clock() - start;
 	rate = 3*size/2;
 	rate *= count;
@@ -628,15 +628,15 @@ void sdl_bench()
 void PrintUsage()
 {
 	fprintf(stderr, "USAGE: [OPTS] file.mp4\n"
-			"\n"
-			"Options:\n"
-			"-bench-yuv: only bench YUV upload rate\n"
-			"-sys-mem: uses  copy from decoder mem to system mem before upload (removes stride)\n"
-			"-use-pbo: uses PixelBufferObject for texture transfer\n"
-			"-no-display: disables video output\n"
-			"-nb-threads=N: sets number of frame to N (default N=6)\n"
-			"-mode=[frame|wpp|frame+wpp] : sets threading type (default is frame)\n"
-			);
+	        "\n"
+	        "Options:\n"
+	        "-bench-yuv: only bench YUV upload rate\n"
+	        "-sys-mem: uses  copy from decoder mem to system mem before upload (removes stride)\n"
+	        "-use-pbo: uses PixelBufferObject for texture transfer\n"
+	        "-no-display: disables video output\n"
+	        "-nb-threads=N: sets number of frame to N (default N=6)\n"
+	        "-mode=[frame|wpp|frame+wpp] : sets threading type (default is frame)\n"
+	       );
 }
 
 int main(int argc, char **argv)
@@ -689,7 +689,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	
+
 
 	/*****************/
 	/*   gpac init   */
@@ -709,9 +709,9 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	if (!src) {
-			PrintUsage();
-			gf_sys_close();
-			return 0;
+		PrintUsage();
+		gf_sys_close();
+		return 0;
 	}
 
 
@@ -744,7 +744,7 @@ int main(int argc, char **argv)
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 		libOpenHevcCopyExtraData(ohevc, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength+8);
 	}
-    libOpenHevcStartDecoder(ohevc);
+	libOpenHevcStartDecoder(ohevc);
 	gf_odf_desc_del((GF_Descriptor *)esd);
 	gf_isom_set_sample_padding(isom, track, 8);
 
@@ -765,7 +765,7 @@ int main(int argc, char **argv)
 					start = gf_sys_clock();
 					nb_frames_at_start = i+1;
 				}
-			
+
 				if (no_display) {
 					OpenHevc_Frame HVCFrame_ptr;
 					libOpenHevcGetOutput(ohevc, 1, &HVCFrame_ptr);
@@ -787,7 +787,7 @@ int main(int argc, char **argv)
 			gf_isom_sample_del(&sample);
 
 			now = gf_sys_clock();
-			fprintf(stderr, "%d %% %d frames in %d ms - FPS %02.2g - push time %d ms - draw %d ms\r", 100*(i+1-nb_frames_at_start)/count, i+1-nb_frames_at_start, now-start, 1000.0 * (i+1-nb_frames_at_start) / (now-start), gl_upload_time / gl_nb_frames , (gl_draw_time - gl_upload_time) / gl_nb_frames ); 
+			fprintf(stderr, "%d %% %d frames in %d ms - FPS %02.2g - push time %d ms - draw %d ms\r", 100*(i+1-nb_frames_at_start)/count, i+1-nb_frames_at_start, now-start, 1000.0 * (i+1-nb_frames_at_start) / (now-start), gl_upload_time / gl_nb_frames , (gl_draw_time - gl_upload_time) / gl_nb_frames );
 		} else {
 			gf_sleep(10);
 			i--;
@@ -824,14 +824,14 @@ int main(int argc, char **argv)
 		}
 	}
 	now = gf_sys_clock();
-	fprintf(stderr, "Decoded %d frames in %d ms - FPS %g\n", i+1, now-start, 1000.0 * (i+1) / (now-start) ); 
+	fprintf(stderr, "Decoded %d frames in %d ms - FPS %g\n", i+1, now-start, 1000.0 * (i+1) / (now-start) );
 
 	libOpenHevcClose(ohevc);
 	gf_isom_close(isom);
 
-	if (!no_display) 
+	if (!no_display)
 		sdl_close();
-		
+
 	gf_sys_close();
 	return 1;
 }

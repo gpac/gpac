@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -166,7 +166,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 		mi->delete_file = 1;
 		sprintf(szName, "%s_img%d.jpg", load->fileName, esd->ESID);
 		mi->file_name = gf_strdup(szName);
-		
+
 		gf_list_add(od->ESDescriptors, esd);
 		gf_list_add(odU->objectDescriptors, od);
 

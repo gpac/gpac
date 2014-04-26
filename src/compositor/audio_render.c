@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,24 +11,24 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
 #include <gpac/internal/compositor_dev.h>
 
 GF_Err gf_afc_load(GF_AudioFilterChain *afc, GF_User *user, char *filterstring)
-{	
+{
 	struct _audiofilterentry *prev_filter = NULL;
-	
+
 	while (filterstring) {
 		u32 i, count;
 		GF_AudioFilter *filter;
@@ -41,13 +41,13 @@ GF_Err gf_afc_load(GF_AudioFilterChain *afc, GF_User *user, char *filterstring)
 			filter = (GF_AudioFilter *)gf_modules_load_interface(user->modules, i, GF_AUDIO_FILTER_INTERFACE);
 			if (filter) {
 				if (filter->SetFilter
-					&& filter->Configure
-					&& filter->Process
-					&& filter->Reset
-					&& filter->SetOption 
-					&& filter->GetOption 
-					&& filter->SetFilter(filter, filterstring)
-				)
+				        && filter->Configure
+				        && filter->Process
+				        && filter->Reset
+				        && filter->SetOption
+				        && filter->GetOption
+				        && filter->SetFilter(filter, filterstring)
+				   )
 					break;
 
 				gf_modules_close_interface((GF_BaseInterface *)filter);
@@ -101,7 +101,7 @@ GF_Err gf_afc_setup(GF_AudioFilterChain *afc, u32 bps, u32 sr, u32 chan, u32 ch_
 		if (entry->filter->Configure(entry->filter, sr, bps, chan, ch_cfg, &och, &ocfg, &block_len, &entry->delay_ms, &entry->in_place)==GF_OK) {
 			u32 out_block_size;
 			entry->in_block_size = chan * bps * block_len / 8;
-			if (!afc->min_block_size || (afc->min_block_size > entry->in_block_size)) 
+			if (!afc->min_block_size || (afc->min_block_size > entry->in_block_size))
 				afc->min_block_size = entry->in_block_size;
 
 			out_block_size = och * bps * block_len / 8;
@@ -168,7 +168,7 @@ u32 gf_afc_process(GF_AudioFilterChain *afc, u32 nb_bytes)
 			/*copy bytes in input*/
 			memcpy(entry->in_block + entry->nb_bytes, inptr, nb_bytes);
 			entry->nb_bytes += nb_bytes;
-			
+
 			/*and process*/
 			while (entry->nb_bytes >= entry->in_block_size) {
 				u32 done;
@@ -179,7 +179,7 @@ u32 gf_afc_process(GF_AudioFilterChain *afc, u32 nb_bytes)
 				processed += entry->in_block_size;
 			}
 			/*move remaining data at the begining of the buffer*/
-			if (processed && entry->nb_bytes) 
+			if (processed && entry->nb_bytes)
 				memmove(entry->in_block, entry->in_block+processed, entry->nb_bytes);
 
 			nb_bytes = nb_bytes_out;
@@ -246,7 +246,7 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		nb_chan = och;
 
 		/*try to reconfigure audio output*/
-		if (!e) 
+		if (!e)
 			e = ar->audio_out->ConfigureOutput(ar->audio_out, &osr, &och, &obps, ocfg);
 
 		/*output module cannot support filter output, disable it ...*/
@@ -283,7 +283,7 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		while ((l = gf_list_enum(ar->audio_listeners, &k))) {
 			l->on_audio_reconfig(l->udta, in_freq, in_bps, in_ch, in_cfg);
 		}
-	}	
+	}
 	return GF_OK;
 }
 
@@ -308,7 +308,7 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 
 					/*fill input block*/
 					nb_bytes = gf_mixer_get_output(ar->mixer, ar->filter_chain.tmp_block1, ar->filter_chain.min_block_size, delay_ms);
-					if (!nb_bytes) 
+					if (!nb_bytes)
 						return written;
 
 					/*delay used to check for late frames - we only use it on the first call to gf_mixer_get_output()*/
@@ -357,9 +357,9 @@ u32 gf_ar_proc(void *p)
 
 	while (ar->audio_th_state == 1) {
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Audio simulation step\n"));
-		
-		/*THIS IS NEEDED FOR SYMBIAN - if no yield here, the audio module always grabs the 
-		main mixer mutex and it takes forever before it can be grabed by another thread, 
+
+		/*THIS IS NEEDED FOR SYMBIAN - if no yield here, the audio module always grabs the
+		main mixer mutex and it takes forever before it can be grabed by another thread,
 		for instance when reconfiguring scene*/
 //		gf_sleep(1);
 
@@ -403,7 +403,7 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 	ar->disable_resync = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	sOpt = gf_cfg_get_key(user->config, "Audio", "DisableMultiChannel");
 	ar->disable_multichannel = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
-	
+
 	ar->mixer = gf_mixer_new(ar);
 	ar->user = user;
 
@@ -458,7 +458,7 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 			ar->audio_out->audio_renderer = ar;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Setting up audio module %s\n", ar->audio_out->module_name));
 			e = ar->audio_out->Setup(ar->audio_out, ar->user->os_window_handler, num_buffers, total_duration);
-			
+
 
 			/*load main audio filter*/
 			gf_afc_load(&ar->filter_chain, user, (char*)gf_cfg_get_key(user->config, "Audio", "Filter"));
@@ -553,7 +553,7 @@ void gf_sc_ar_control(GF_AudioRenderer *ar, u32 PauseType)
 }
 
 void gf_sc_ar_set_volume(GF_AudioRenderer *ar, u32 Volume)
-{	
+{
 	char sOpt[10];
 	gf_mixer_lock(ar->mixer, 1);
 	ar->volume = MIN(Volume, 100);
@@ -565,7 +565,7 @@ void gf_sc_ar_set_volume(GF_AudioRenderer *ar, u32 Volume)
 }
 
 void gf_sc_ar_mute(GF_AudioRenderer *ar, Bool mute)
-{	
+{
 	gf_mixer_lock(ar->mixer, 1);
 	ar->mute = mute;
 	if (ar->audio_out) ar->audio_out->SetVolume(ar->audio_out, mute ? 0 : ar->volume);
@@ -592,7 +592,7 @@ void gf_sc_ar_add_src(GF_AudioRenderer *ar, GF_AudioInterface *source)
 	recfg = gf_mixer_reconfig(ar->mixer);
 	if (!ar->need_reconfig) ar->need_reconfig = recfg;
 
-	if (!gf_mixer_empty(ar->mixer) && ar->audio_out && ar->audio_out->Play) 
+	if (!gf_mixer_empty(ar->mixer) && ar->audio_out && ar->audio_out->Play)
 		ar->audio_out->Play(ar->audio_out, 1);
 	/*unlock mixer*/
 	gf_mixer_lock(ar->mixer, 0);
@@ -602,7 +602,7 @@ void gf_sc_ar_remove_src(GF_AudioRenderer *ar, GF_AudioInterface *source)
 {
 	if (ar) {
 		gf_mixer_remove_input(ar->mixer, source);
-		if (gf_mixer_empty(ar->mixer) && ar->audio_out && ar->audio_out->Play) 
+		if (gf_mixer_empty(ar->mixer) && ar->audio_out && ar->audio_out->Play)
 			ar->audio_out->Play(ar->audio_out, 0);
 	}
 }
@@ -624,10 +624,10 @@ void gf_sc_ar_reconfig(GF_AudioRenderer *ar)
 	gf_mixer_lock(ar->mixer, 1);
 
 	gf_ar_freeze_intern(ar, 1, 1, 0);
-	ar->need_reconfig = 0;		
+	ar->need_reconfig = 0;
 	gf_ar_setup_output_format(ar);
 	gf_ar_freeze_intern(ar, 0, 1, 0);
-	
+
 	/*unlock mixer*/
 	gf_mixer_lock(ar->mixer, 0);
 }
@@ -656,7 +656,7 @@ void gf_sc_reload_audio_filters(GF_Compositor *compositor)
 	gf_afc_load(&ar->filter_chain, ar->user, (char*)gf_cfg_get_key(ar->user->config, "Audio", "Filter"));
 
 	gf_ar_freeze_intern(ar, 1, 1, 0);
-	ar->need_reconfig = 0;		
+	ar->need_reconfig = 0;
 	gf_ar_setup_output_format(ar);
 	gf_ar_freeze_intern(ar, 0, 1, 0);
 

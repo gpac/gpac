@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -43,7 +43,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 	s32 whichChoice;
 	GF_Node *child;
 	SwitchStack *st = (SwitchStack *)gf_node_get_private(node);
-	GF_TraverseState *tr_state; 
+	GF_TraverseState *tr_state;
 	tr_state = (GF_TraverseState *)rs;
 	children = NULL;
 
@@ -75,7 +75,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 			i=0;
 			l = children;
 			while (l) {
-	//			if ((s32) i!=whichChoice) gf_node_traverse(l->node, tr_state);
+				//			if ((s32) i!=whichChoice) gf_node_traverse(l->node, tr_state);
 				if ((s32) i == st->last_switch) gf_node_traverse(l->node, tr_state);
 				l = l->next;
 				i++;
@@ -103,7 +103,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 			child = (GF_Node*)gf_node_list_get_child(children, idx);
 			gf_node_traverse(child, tr_state);
 			return;
-		} else 
+		} else
 #endif //GPAC_DISABLE_3D
 		{
 			/*fallback to first view*/
@@ -141,7 +141,7 @@ static void traverse_transform(GF_Node *node, Transform2DStack *stack, GF_Traver
 	/*note we don't clear dirty flag, this is done in traversing*/
 	if (stack->is_identity) {
 		group_2d_traverse(node, (GroupingNode2D *)stack, tr_state);
-	} 
+	}
 #ifndef GPAC_DISABLE_3D
 	else if (tr_state->visual->type_3d) {
 		GF_Matrix mx_bckup;
@@ -150,13 +150,13 @@ static void traverse_transform(GF_Node *node, Transform2DStack *stack, GF_Traver
 		gf_mx_add_matrix_2d(&tr_state->model_matrix, &stack->mat);
 		group_2d_traverse(node, (GroupingNode2D *)stack, tr_state);
 		gf_mx_copy(tr_state->model_matrix, mx_bckup);
-	} 
+	}
 #endif
 	else {
 		GF_Matrix2D bckup;
 		gf_mx2d_copy(bckup, tr_state->transform);
 		gf_mx2d_pre_multiply(&tr_state->transform, &stack->mat);
-		
+
 		group_2d_traverse(node, (GroupingNode2D *)stack, tr_state);
 
 		gf_mx2d_copy(tr_state->transform, bckup);
@@ -173,7 +173,7 @@ static void TraverseTransform2D(GF_Node *node, void *rs, Bool is_destroy)
 	M_Transform2D *tr = (M_Transform2D *)node;
 	Transform2DStack *ptr = (Transform2DStack *)gf_node_get_private(node);
 	GF_TraverseState *tr_state;
-	
+
 	if (is_destroy) {
 		gf_sc_check_focus_upon_destroy(node);
 		group_2d_destroy(node, (GroupingNode2D*)ptr);
@@ -245,7 +245,7 @@ static void TraverseTransformMatrix2D(GF_Node *node, void *rs, Bool is_destroy)
 		M_TransformMatrix2D *tr = (M_TransformMatrix2D*)node;
 		tr_mx2d_get_matrix(node, &ptr->mat);
 		if ((tr->mxx==FIX_ONE) && (tr->mxy==0) && (tr->tx==0)
-			&& (tr->myx==0) && (tr->myy==FIX_ONE) && (tr->ty==0) )
+		        && (tr->myx==0) && (tr->myy==FIX_ONE) && (tr->ty==0) )
 			ptr->is_identity = 1;
 		else
 			ptr->is_identity = 0;
@@ -297,18 +297,18 @@ static void TraverseColorTransform(GF_Node *node, void *rs, Bool is_destroy)
 	prev_inv = tr_state->invalidate_all;
 	c_changed = 0;
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
-		gf_cmx_set(&ptr->cmat, 
-			tr->mrr , tr->mrg, tr->mrb, tr->mra, tr->tr, 
-			tr->mgr , tr->mgg, tr->mgb, tr->mga, tr->tg, 
-			tr->mbr, tr->mbg, tr->mbb, tr->mba, tr->tb, 
-			tr->mar, tr->mag, tr->mab, tr->maa, tr->ta); 
+		gf_cmx_set(&ptr->cmat,
+		           tr->mrr , tr->mrg, tr->mrb, tr->mra, tr->tr,
+		           tr->mgr , tr->mgg, tr->mgb, tr->mga, tr->tg,
+		           tr->mbr, tr->mbg, tr->mbb, tr->mba, tr->tb,
+		           tr->mar, tr->mag, tr->mab, tr->maa, tr->ta);
 		c_changed = 1;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 
-	if ((tr_state->traversing_mode==TRAVERSE_SORT) 
-		&& !tr->maa && !tr->mar && !tr->mag && !tr->mab && !tr->ta)
-		return; 
+	if ((tr_state->traversing_mode==TRAVERSE_SORT)
+	        && !tr->maa && !tr->mar && !tr->mag && !tr->mab && !tr->ta)
+		return;
 
 	/*if modified redraw all nodes*/
 	if (c_changed) tr_state->invalidate_all = 1;
@@ -401,7 +401,7 @@ static void TraverseOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 		stack->positions = (u32*)gf_malloc(sizeof(u32) * count);
 		for (i=0; i<count; i++) stack->positions[i] = priorities[i].position;
 		gf_free(priorities);
-		
+
 		tr_state->invalidate_all = 1;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
@@ -412,7 +412,7 @@ static void TraverseOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 void compositor_init_orderedgroup(GF_Compositor *compositor, GF_Node *node)
 {
 	OrderedGroupStack *ptr;
-	GF_SAFEALLOC(ptr, OrderedGroupStack);	
+	GF_SAFEALLOC(ptr, OrderedGroupStack);
 	gf_node_set_private(node, ptr);
 	gf_node_set_callback_function(node, TraverseOrderedGroup);
 }

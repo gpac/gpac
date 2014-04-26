@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 
@@ -109,7 +109,7 @@ void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl);
 #undef USE_AVCODEC2
 #endif
 
-#if (LIBAVCODEC_VERSION_MAJOR >= 55) 
+#if (LIBAVCODEC_VERSION_MAJOR >= 55)
 #define USE_AVCTX3
 #elif (LIBAVCODEC_VERSION_MAJOR >= 54) && (LIBAVCODEC_VERSION_MINOR >= 35)
 #define USE_AVCTX3
@@ -117,7 +117,7 @@ void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl);
 
 
 /*FFMPEG decoder module */
-typedef struct 
+typedef struct
 {
 	char szCodec[100];
 	u32 out_size;
@@ -196,7 +196,7 @@ typedef struct
 
 	/*input file*/
 	AVFormatContext *ctx;
-	
+
 	Bool seekable;
 	Double seek_time;
 
@@ -244,14 +244,14 @@ void Delete_FFMPEG_Demux(void *ifce);
 
 	u32 codec_id
 
-- for audio - 
+- for audio -
 	u32 sample_rate: sampling rate or 0 if unknown
 	u16 nb_channels: num channels or 0 if unknown
 	u16 nb_bits_per_sample: nb bits or 0 if unknown
 	u16 num_samples: num audio samples per frame or 0 if unknown
 	u16 block_align: audio block align
 
-- for video - 
+- for video -
 	u32 width: video width or 0 if unknown;
 	u32 height: video height or 0 if unknown;
 

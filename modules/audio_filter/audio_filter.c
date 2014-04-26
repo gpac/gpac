@@ -12,16 +12,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 
@@ -32,7 +32,7 @@
 #define PI GF_PI
 #endif
 
-typedef struct 
+typedef struct
 {
 	u32 type;
 	Bool inplace;
@@ -140,7 +140,7 @@ static GF_Err Configure(GF_AudioFilter *af, u32 in_sr, u32 in_bps, u32 in_nb_ch,
 		if (ctx->delai_buffer) gf_free(ctx->delai_buffer);
 		ctx->delai_buffer = gf_malloc(sizeof(char)*ctx->delai_buffer_size);
 		memset(ctx->delai_buffer, 0, sizeof(char)*ctx->delai_buffer_size);
-		
+
 		if (ctx->block_buffer) gf_free(ctx->block_buffer);
 		ctx->block_buffer = gf_malloc(sizeof(char)*ctx->block_size);
 		memset(ctx->block_buffer, 0, sizeof(char)*ctx->block_size);
@@ -261,19 +261,19 @@ void DeleteAudioFilter(void *ifce)
  * interface
  */
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_AUDIO_FILTER_INTERFACE,
 		0
 	};
-	return si; 
+	return si;
 }
 
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_AUDIO_FILTER_INTERFACE) 
+	if (InterfaceType == GF_AUDIO_FILTER_INTERFACE)
 		return NewAudioFilter();
 	return NULL;
 }

@@ -15,7 +15,7 @@
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.	
+ *  GNU Lesser General Public License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
@@ -47,7 +47,7 @@ static void Anchor_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->description);
 	gf_sg_mfstring_del(p->parameter);
 	gf_sg_mfurl_del(p->url);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -58,10 +58,14 @@ static const u16 Anchor_Out2All[] = { 2, 3, 4, 5};
 static u32 Anchor_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 7;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 7;
 	}
@@ -150,7 +154,7 @@ static s32 Anchor_get_field_index_by_name(char *name)
 	if (!strcmp("url", name)) return 5;
 	if (!strcmp("activate", name)) return 6;
 	return -1;
-	}
+}
 static Bool Anchor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -193,10 +197,14 @@ static const u16 AnimationStream_Dyn2All[] = { 1};
 static u32 AnimationStream_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 7;
 	}
@@ -282,7 +290,7 @@ static s32 AnimationStream_get_field_index_by_name(char *name)
 	if (!strcmp("duration_changed", name)) return 5;
 	if (!strcmp("isActive", name)) return 6;
 	return -1;
-	}
+}
 static Bool AnimationStream_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -321,9 +329,9 @@ GF_Node *AnimationStream_Create()
 static void Appearance_Del(GF_Node *node)
 {
 	M_Appearance *p = (M_Appearance *) node;
-	gf_node_unregister((GF_Node *) p->material, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->texture, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->textureTransform, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->material, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->texture, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->textureTransform, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -334,10 +342,14 @@ static const u16 Appearance_Out2All[] = { 0, 1, 2};
 static u32 Appearance_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 3;
 	}
@@ -395,7 +407,7 @@ static s32 Appearance_get_field_index_by_name(char *name)
 	if (!strcmp("texture", name)) return 1;
 	if (!strcmp("textureTransform", name)) return 2;
 	return -1;
-	}
+}
 static Bool Appearance_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -425,7 +437,7 @@ GF_Node *Appearance_Create()
 static void AudioBuffer_Del(GF_Node *node)
 {
 	M_AudioBuffer *p = (M_AudioBuffer *) node;
-	gf_node_unregister_children((GF_Node *) p, p->children);	
+	gf_node_unregister_children((GF_Node *) p, p->children);
 	gf_sg_mfint32_del(p->phaseGroup);
 	gf_node_free((GF_Node *) p);
 }
@@ -438,10 +450,14 @@ static const u16 AudioBuffer_Dyn2All[] = { 1};
 static u32 AudioBuffer_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 8;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 10;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 8;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 10;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 10;
 	}
@@ -549,7 +565,7 @@ static s32 AudioBuffer_get_field_index_by_name(char *name)
 	if (!strcmp("duration_changed", name)) return 8;
 	if (!strcmp("isActive", name)) return 9;
 	return -1;
-	}
+}
 static Bool AudioBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -631,10 +647,14 @@ static const u16 AudioClip_Dyn2All[] = { 2};
 static u32 AudioClip_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 8;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 8;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 8;
 	}
@@ -727,7 +747,7 @@ static s32 AudioClip_get_field_index_by_name(char *name)
 	if (!strcmp("duration_changed", name)) return 6;
 	if (!strcmp("isActive", name)) return 7;
 	return -1;
-	}
+}
 static Bool AudioClip_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -767,7 +787,7 @@ static void AudioDelay_Del(GF_Node *node)
 {
 	M_AudioDelay *p = (M_AudioDelay *) node;
 	gf_sg_mfint32_del(p->phaseGroup);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -778,10 +798,14 @@ static const u16 AudioDelay_Out2All[] = { 2, 3};
 static u32 AudioDelay_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 6;
 	}
@@ -862,7 +886,7 @@ static s32 AudioDelay_get_field_index_by_name(char *name)
 	if (!strcmp("numChan", name)) return 4;
 	if (!strcmp("phaseGroup", name)) return 5;
 	return -1;
-	}
+}
 static Bool AudioDelay_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -913,7 +937,7 @@ static void AudioFX_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->score);
 	gf_sg_mffloat_del(p->params);
 	gf_sg_mfint32_del(p->phaseGroup);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -925,10 +949,14 @@ static const u16 AudioFX_Dyn2All[] = { 5};
 static u32 AudioFX_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 8;
 	}
@@ -1026,7 +1054,7 @@ static s32 AudioFX_get_field_index_by_name(char *name)
 	if (!strcmp("numChan", name)) return 6;
 	if (!strcmp("phaseGroup", name)) return 7;
 	return -1;
-	}
+}
 static Bool AudioFX_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -1080,7 +1108,7 @@ static void AudioMix_Del(GF_Node *node)
 	M_AudioMix *p = (M_AudioMix *) node;
 	gf_sg_mffloat_del(p->matrix);
 	gf_sg_mfint32_del(p->phaseGroup);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -1092,10 +1120,14 @@ static const u16 AudioMix_Dyn2All[] = { 4};
 static u32 AudioMix_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 7;
 	}
@@ -1186,7 +1218,7 @@ static s32 AudioMix_get_field_index_by_name(char *name)
 	if (!strcmp("numChan", name)) return 5;
 	if (!strcmp("phaseGroup", name)) return 6;
 	return -1;
-	}
+}
 static Bool AudioMix_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -1248,7 +1280,7 @@ static void AudioSource_Del(GF_Node *node)
 	M_AudioSource *p = (M_AudioSource *) node;
 	gf_sg_mfurl_del(p->url);
 	gf_sg_mfint32_del(p->phaseGroup);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -1260,10 +1292,14 @@ static const u16 AudioSource_Dyn2All[] = { 4, 5};
 static u32 AudioSource_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 8;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 8;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 10;
 	}
@@ -1375,7 +1411,7 @@ static s32 AudioSource_get_field_index_by_name(char *name)
 	if (!strcmp("numChan", name)) return 8;
 	if (!strcmp("phaseGroup", name)) return 9;
 	return -1;
-	}
+}
 static Bool AudioSource_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -1439,7 +1475,7 @@ static void AudioSwitch_Del(GF_Node *node)
 	M_AudioSwitch *p = (M_AudioSwitch *) node;
 	gf_sg_mfint32_del(p->whichChoice);
 	gf_sg_mfint32_del(p->phaseGroup);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -1450,10 +1486,14 @@ static const u16 AudioSwitch_Out2All[] = { 2, 3};
 static u32 AudioSwitch_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 6;
 	}
@@ -1534,7 +1574,7 @@ static s32 AudioSwitch_get_field_index_by_name(char *name)
 	if (!strcmp("numChan", name)) return 4;
 	if (!strcmp("phaseGroup", name)) return 5;
 	return -1;
-	}
+}
 static Bool AudioSwitch_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -1608,10 +1648,14 @@ static const u16 Background_Dyn2All[] = { 1, 2, 9, 10};
 static u32 Background_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 11;
-	case GF_SG_FIELD_CODING_DEF: return 10;
-	case GF_SG_FIELD_CODING_OUT: return 11;
-	case GF_SG_FIELD_CODING_DYN: return 4;
+	case GF_SG_FIELD_CODING_IN:
+		return 11;
+	case GF_SG_FIELD_CODING_DEF:
+		return 10;
+	case GF_SG_FIELD_CODING_OUT:
+		return 11;
+	case GF_SG_FIELD_CODING_DYN:
+		return 4;
 	default:
 		return 12;
 	}
@@ -1733,7 +1777,7 @@ static s32 Background_get_field_index_by_name(char *name)
 	if (!strcmp("skyColor", name)) return 10;
 	if (!strcmp("isBound", name)) return 11;
 	return -1;
-	}
+}
 static Bool Background_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -1804,10 +1848,14 @@ static const u16 Background2D_Dyn2All[] = { 1};
 static u32 Background2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 4;
 	}
@@ -1873,7 +1921,7 @@ static s32 Background2D_get_field_index_by_name(char *name)
 	if (!strcmp("url", name)) return 2;
 	if (!strcmp("isBound", name)) return 3;
 	return -1;
-	}
+}
 static Bool Background2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -1912,7 +1960,7 @@ GF_Node *Background2D_Create()
 static void Billboard_Del(GF_Node *node)
 {
 	M_Billboard *p = (M_Billboard *) node;
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -1924,10 +1972,14 @@ static const u16 Billboard_Dyn2All[] = { 3};
 static u32 Billboard_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 4;
 	}
@@ -1997,7 +2049,7 @@ static s32 Billboard_get_field_index_by_name(char *name)
 	if (!strcmp("children", name)) return 2;
 	if (!strcmp("axisOfRotation", name)) return 3;
 	return -1;
-	}
+}
 static Bool Billboard_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2046,10 +2098,14 @@ static const u16 Bitmap_Dyn2All[] = { 0};
 static u32 Bitmap_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 1;
 	}
@@ -2093,7 +2149,7 @@ static s32 Bitmap_get_field_index_by_name(char *name)
 {
 	if (!strcmp("scale", name)) return 0;
 	return -1;
-	}
+}
 static Bool Bitmap_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2139,10 +2195,14 @@ static const u16 Box_Def2All[] = { 0};
 static u32 Box_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 1;
 	}
@@ -2177,7 +2237,7 @@ static s32 Box_get_field_index_by_name(char *name)
 {
 	if (!strcmp("size", name)) return 0;
 	return -1;
-	}
+}
 static Bool Box_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2227,10 +2287,14 @@ static const u16 Circle_Dyn2All[] = { 0};
 static u32 Circle_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 1;
 	}
@@ -2274,7 +2338,7 @@ static s32 Circle_get_field_index_by_name(char *name)
 {
 	if (!strcmp("radius", name)) return 0;
 	return -1;
-	}
+}
 static Bool Circle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2311,8 +2375,8 @@ GF_Node *Circle_Create()
 static void Collision_Del(GF_Node *node)
 {
 	M_Collision *p = (M_Collision *) node;
-	gf_node_unregister((GF_Node *) p->proxy, (GF_Node *) p);	
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->proxy, (GF_Node *) p);
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -2323,10 +2387,14 @@ static const u16 Collision_Out2All[] = { 2, 3, 5};
 static u32 Collision_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 6;
 	}
@@ -2408,7 +2476,7 @@ static s32 Collision_get_field_index_by_name(char *name)
 	if (!strcmp("proxy", name)) return 4;
 	if (!strcmp("collideTime", name)) return 5;
 	return -1;
-	}
+}
 static Bool Collision_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2452,10 +2520,14 @@ static const u16 Color_Dyn2All[] = { 0};
 static u32 Color_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 1;
 	}
@@ -2499,7 +2571,7 @@ static s32 Color_get_field_index_by_name(char *name)
 {
 	if (!strcmp("color", name)) return 0;
 	return -1;
-	}
+}
 static Bool Color_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2547,10 +2619,14 @@ static const u16 ColorInterpolator_Out2All[] = { 1, 2, 3};
 static u32 ColorInterpolator_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -2613,7 +2689,7 @@ static s32 ColorInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("keyValue", name)) return 2;
 	if (!strcmp("value_changed", name)) return 3;
 	return -1;
-	}
+}
 static Bool ColorInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2655,9 +2731,9 @@ GF_Node *ColorInterpolator_Create()
 static void CompositeTexture2D_Del(GF_Node *node)
 {
 	M_CompositeTexture2D *p = (M_CompositeTexture2D *) node;
-	gf_node_unregister((GF_Node *) p->background, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->viewport, (GF_Node *) p);	
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->background, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->viewport, (GF_Node *) p);
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -2668,10 +2744,14 @@ static const u16 CompositeTexture2D_Out2All[] = { 2, 3, 4, 5, 6};
 static u32 CompositeTexture2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 7;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 8;
 	}
@@ -2768,7 +2848,7 @@ static s32 CompositeTexture2D_get_field_index_by_name(char *name)
 	if (!strcmp("viewport", name)) return 6;
 	if (!strcmp("repeatSandT", name)) return 7;
 	return -1;
-	}
+}
 static Bool CompositeTexture2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -2823,11 +2903,11 @@ GF_Node *CompositeTexture2D_Create()
 static void CompositeTexture3D_Del(GF_Node *node)
 {
 	M_CompositeTexture3D *p = (M_CompositeTexture3D *) node;
-	gf_node_unregister((GF_Node *) p->background, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->fog, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->navigationInfo, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->viewpoint, (GF_Node *) p);	
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->background, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->fog, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->navigationInfo, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->viewpoint, (GF_Node *) p);
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -2838,10 +2918,14 @@ static const u16 CompositeTexture3D_Out2All[] = { 2, 3, 4, 5, 6, 7, 8};
 static u32 CompositeTexture3D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 9;
-	case GF_SG_FIELD_CODING_DEF: return 9;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 9;
+	case GF_SG_FIELD_CODING_DEF:
+		return 9;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 11;
 	}
@@ -2961,7 +3045,7 @@ static s32 CompositeTexture3D_get_field_index_by_name(char *name)
 	if (!strcmp("repeatS", name)) return 9;
 	if (!strcmp("repeatT", name)) return 10;
 	return -1;
-	}
+}
 static Bool CompositeTexture3D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3021,10 +3105,14 @@ static const u16 Conditional_Out2All[] = { 2, 3};
 static u32 Conditional_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -3088,7 +3176,7 @@ static s32 Conditional_get_field_index_by_name(char *name)
 	if (!strcmp("buffer", name)) return 2;
 	if (!strcmp("isActive", name)) return 3;
 	return -1;
-	}
+}
 static Bool Conditional_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3105,7 +3193,7 @@ GF_Node *Conditional_Create()
 	GF_SAFEALLOC(p, M_Conditional);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_Conditional);
-	p->buffer.commandList = gf_list_new();	
+	p->buffer.commandList = gf_list_new();
 
 	/*default field values*/
 	return (GF_Node *)p;
@@ -3127,10 +3215,14 @@ static const u16 Cone_Def2All[] = { 0, 1, 2, 3};
 static u32 Cone_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -3186,7 +3278,7 @@ static s32 Cone_get_field_index_by_name(char *name)
 	if (!strcmp("side", name)) return 2;
 	if (!strcmp("bottom", name)) return 3;
 	return -1;
-	}
+}
 static Bool Cone_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3244,10 +3336,14 @@ static const u16 Coordinate_Dyn2All[] = { 0};
 static u32 Coordinate_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 1;
 	}
@@ -3291,7 +3387,7 @@ static s32 Coordinate_get_field_index_by_name(char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	return -1;
-	}
+}
 static Bool Coordinate_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3339,10 +3435,14 @@ static const u16 Coordinate2D_Dyn2All[] = { 0};
 static u32 Coordinate2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 1;
 	}
@@ -3386,7 +3486,7 @@ static s32 Coordinate2D_get_field_index_by_name(char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	return -1;
-	}
+}
 static Bool Coordinate2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3435,10 +3535,14 @@ static const u16 CoordinateInterpolator_Out2All[] = { 1, 2, 3};
 static u32 CoordinateInterpolator_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -3501,7 +3605,7 @@ static s32 CoordinateInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("keyValue", name)) return 2;
 	if (!strcmp("value_changed", name)) return 3;
 	return -1;
-	}
+}
 static Bool CoordinateInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3556,10 +3660,14 @@ static const u16 CoordinateInterpolator2D_Out2All[] = { 1, 2, 3};
 static u32 CoordinateInterpolator2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -3622,7 +3730,7 @@ static s32 CoordinateInterpolator2D_get_field_index_by_name(char *name)
 	if (!strcmp("keyValue", name)) return 2;
 	if (!strcmp("value_changed", name)) return 3;
 	return -1;
-	}
+}
 static Bool CoordinateInterpolator2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3664,7 +3772,7 @@ GF_Node *CoordinateInterpolator2D_Create()
 static void Curve2D_Del(GF_Node *node)
 {
 	M_Curve2D *p = (M_Curve2D *) node;
-	gf_node_unregister((GF_Node *) p->point, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->point, (GF_Node *) p);
 	gf_sg_mfint32_del(p->type);
 	gf_node_free((GF_Node *) p);
 }
@@ -3677,10 +3785,14 @@ static const u16 Curve2D_Dyn2All[] = { 1};
 static u32 Curve2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 3;
 	}
@@ -3739,7 +3851,7 @@ static s32 Curve2D_get_field_index_by_name(char *name)
 	if (!strcmp("fineness", name)) return 1;
 	if (!strcmp("type", name)) return 2;
 	return -1;
-	}
+}
 static Bool Curve2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3791,10 +3903,14 @@ static const u16 Cylinder_Def2All[] = { 0, 1, 2, 3, 4};
 static u32 Cylinder_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 5;
 	}
@@ -3857,7 +3973,7 @@ static s32 Cylinder_get_field_index_by_name(char *name)
 	if (!strcmp("side", name)) return 3;
 	if (!strcmp("top", name)) return 4;
 	return -1;
-	}
+}
 static Bool Cylinder_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -3914,10 +4030,14 @@ static const u16 CylinderSensor_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8};
 static u32 CylinderSensor_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 9;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 9;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 9;
 	}
@@ -4014,7 +4134,7 @@ static s32 CylinderSensor_get_field_index_by_name(char *name)
 	if (!strcmp("rotation_changed", name)) return 7;
 	if (!strcmp("trackPoint_changed", name)) return 8;
 	return -1;
-	}
+}
 static Bool CylinderSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -4085,10 +4205,14 @@ static const u16 DirectionalLight_Dyn2All[] = { 0, 1, 2, 3};
 static u32 DirectionalLight_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 4;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 4;
 	default:
 		return 5;
 	}
@@ -4160,7 +4284,7 @@ static s32 DirectionalLight_get_field_index_by_name(char *name)
 	if (!strcmp("intensity", name)) return 3;
 	if (!strcmp("on", name)) return 4;
 	return -1;
-	}
+}
 static Bool DirectionalLight_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -4231,10 +4355,14 @@ static const u16 DiscSensor_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7};
 static u32 DiscSensor_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 8;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 8;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 8;
 	}
@@ -4324,7 +4452,7 @@ static s32 DiscSensor_get_field_index_by_name(char *name)
 	if (!strcmp("rotation_changed", name)) return 6;
 	if (!strcmp("trackPoint_changed", name)) return 7;
 	return -1;
-	}
+}
 static Bool DiscSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -4378,9 +4506,9 @@ static void ElevationGrid_Del(GF_Node *node)
 {
 	M_ElevationGrid *p = (M_ElevationGrid *) node;
 	gf_sg_mffloat_del(p->set_height);
-	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->normal, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->normal, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);
 	gf_sg_mffloat_del(p->height);
 	gf_node_free((GF_Node *) p);
 }
@@ -4392,10 +4520,14 @@ static const u16 ElevationGrid_Out2All[] = { 1, 2, 3};
 static u32 ElevationGrid_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 13;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 13;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 14;
 	}
@@ -4531,7 +4663,7 @@ static s32 ElevationGrid_get_field_index_by_name(char *name)
 	if (!strcmp("zDimension", name)) return 12;
 	if (!strcmp("zSpacing", name)) return 13;
 	return -1;
-	}
+}
 static Bool ElevationGrid_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -4616,10 +4748,14 @@ static const u16 Expression_Out2All[] = { 0, 1, 2, 3, 4, 5};
 static u32 Expression_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 6;
 	}
@@ -4695,7 +4831,7 @@ static s32 Expression_get_field_index_by_name(char *name)
 	if (!strcmp("init_face", name)) return 4;
 	if (!strcmp("expression_def", name)) return 5;
 	return -1;
-	}
+}
 static Bool Expression_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -4774,10 +4910,14 @@ static const u16 Extrusion_In2All[] = { 0, 1, 2, 3};
 static u32 Extrusion_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 10;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 10;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 14;
 	}
@@ -4910,7 +5050,7 @@ static s32 Extrusion_get_field_index_by_name(char *name)
 	if (!strcmp("solid", name)) return 12;
 	if (!strcmp("spine", name)) return 13;
 	return -1;
-	}
+}
 static Bool Extrusion_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -5006,11 +5146,11 @@ GF_Node *Extrusion_Create()
 static void Face_Del(GF_Node *node)
 {
 	M_Face *p = (M_Face *) node;
-	gf_node_unregister((GF_Node *) p->fap, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->fdp, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->fit, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->ttsSource, (GF_Node *) p);	
-	gf_node_unregister_children((GF_Node *) p, p->renderedFace);	
+	gf_node_unregister((GF_Node *) p->fap, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->fdp, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->fit, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->ttsSource, (GF_Node *) p);
+	gf_node_unregister_children((GF_Node *) p, p->renderedFace);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -5021,10 +5161,14 @@ static const u16 Face_Out2All[] = { 0, 1, 2, 3, 4};
 static u32 Face_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 5;
 	}
@@ -5098,7 +5242,7 @@ static s32 Face_get_field_index_by_name(char *name)
 	if (!strcmp("ttsSource", name)) return 3;
 	if (!strcmp("renderedFace", name)) return 4;
 	return -1;
-	}
+}
 static Bool Face_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -5128,7 +5272,7 @@ GF_Node *Face_Create()
 static void FaceDefMesh_Del(GF_Node *node)
 {
 	M_FaceDefMesh *p = (M_FaceDefMesh *) node;
-	gf_node_unregister((GF_Node *) p->faceSceneGraphNode, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->faceSceneGraphNode, (GF_Node *) p);
 	gf_sg_mfint32_del(p->intervalBorders);
 	gf_sg_mfint32_del(p->coordIndex);
 	gf_sg_mfvec3f_del(p->displacements);
@@ -5140,10 +5284,14 @@ static const u16 FaceDefMesh_Def2All[] = { 0, 1, 2, 3};
 static u32 FaceDefMesh_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -5200,7 +5348,7 @@ static s32 FaceDefMesh_get_field_index_by_name(char *name)
 	if (!strcmp("coordIndex", name)) return 2;
 	if (!strcmp("displacements", name)) return 3;
 	return -1;
-	}
+}
 static Bool FaceDefMesh_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -5242,8 +5390,8 @@ GF_Node *FaceDefMesh_Create()
 static void FaceDefTables_Del(GF_Node *node)
 {
 	M_FaceDefTables *p = (M_FaceDefTables *) node;
-	gf_node_unregister_children((GF_Node *) p, p->faceDefMesh);	
-	gf_node_unregister_children((GF_Node *) p, p->faceDefTransform);	
+	gf_node_unregister_children((GF_Node *) p, p->faceDefMesh);
+	gf_node_unregister_children((GF_Node *) p, p->faceDefTransform);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -5254,10 +5402,14 @@ static const u16 FaceDefTables_Out2All[] = { 2, 3};
 static u32 FaceDefTables_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -5321,7 +5473,7 @@ static s32 FaceDefTables_get_field_index_by_name(char *name)
 	if (!strcmp("faceDefMesh", name)) return 2;
 	if (!strcmp("faceDefTransform", name)) return 3;
 	return -1;
-	}
+}
 static Bool FaceDefTables_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -5367,7 +5519,7 @@ GF_Node *FaceDefTables_Create()
 static void FaceDefTransform_Del(GF_Node *node)
 {
 	M_FaceDefTransform *p = (M_FaceDefTransform *) node;
-	gf_node_unregister((GF_Node *) p->faceSceneGraphNode, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->faceSceneGraphNode, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -5376,10 +5528,14 @@ static const u16 FaceDefTransform_Def2All[] = { 0, 1, 2, 3, 4};
 static u32 FaceDefTransform_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 5;
 	}
@@ -5443,7 +5599,7 @@ static s32 FaceDefTransform_get_field_index_by_name(char *name)
 	if (!strcmp("scaleDef", name)) return 3;
 	if (!strcmp("translationDef", name)) return 4;
 	return -1;
-	}
+}
 static Bool FaceDefTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -5498,8 +5654,8 @@ GF_Node *FaceDefTransform_Create()
 static void FAP_Del(GF_Node *node)
 {
 	M_FAP *p = (M_FAP *) node;
-	gf_node_unregister((GF_Node *) p->viseme, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->expression, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->viseme, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->expression, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -5510,10 +5666,14 @@ static const u16 FAP_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
 static u32 FAP_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 68;
-	case GF_SG_FIELD_CODING_DEF: return 68;
-	case GF_SG_FIELD_CODING_OUT: return 68;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 68;
+	case GF_SG_FIELD_CODING_DEF:
+		return 68;
+	case GF_SG_FIELD_CODING_OUT:
+		return 68;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 68;
 	}
@@ -6025,7 +6185,7 @@ static s32 FAP_get_field_index_by_name(char *name)
 	if (!strcmp("pull_l_ear", name)) return 66;
 	if (!strcmp("pull_r_ear", name)) return 67;
 	return -1;
-	}
+}
 static Bool FAP_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -6517,10 +6677,10 @@ GF_Node *FAP_Create()
 static void FDP_Del(GF_Node *node)
 {
 	M_FDP *p = (M_FDP *) node;
-	gf_node_unregister((GF_Node *) p->featurePointsCoord, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->textureCoord, (GF_Node *) p);	
-	gf_node_unregister_children((GF_Node *) p, p->faceDefTables);	
-	gf_node_unregister_children((GF_Node *) p, p->faceSceneGraph);	
+	gf_node_unregister((GF_Node *) p->featurePointsCoord, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->textureCoord, (GF_Node *) p);
+	gf_node_unregister_children((GF_Node *) p, p->faceDefTables);
+	gf_node_unregister_children((GF_Node *) p, p->faceSceneGraph);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -6531,10 +6691,14 @@ static const u16 FDP_Out2All[] = { 0, 1, 2, 3};
 static u32 FDP_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 5;
 	}
@@ -6607,7 +6771,7 @@ static s32 FDP_get_field_index_by_name(char *name)
 	if (!strcmp("faceSceneGraph", name)) return 3;
 	if (!strcmp("useOrthoTexture", name)) return 4;
 	return -1;
-	}
+}
 static Bool FDP_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -6656,10 +6820,14 @@ static const u16 FIT_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8};
 static u32 FIT_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 9;
-	case GF_SG_FIELD_CODING_DEF: return 9;
-	case GF_SG_FIELD_CODING_OUT: return 9;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 9;
+	case GF_SG_FIELD_CODING_DEF:
+		return 9;
+	case GF_SG_FIELD_CODING_OUT:
+		return 9;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 9;
 	}
@@ -6756,7 +6924,7 @@ static s32 FIT_get_field_index_by_name(char *name)
 	if (!strcmp("numeratorCoefs", name)) return 7;
 	if (!strcmp("denominatorCoefs", name)) return 8;
 	return -1;
-	}
+}
 static Bool FIT_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -6847,10 +7015,14 @@ static const u16 Fog_Dyn2All[] = { 0, 2};
 static u32 Fog_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 5;
 	}
@@ -6923,7 +7095,7 @@ static s32 Fog_get_field_index_by_name(char *name)
 	if (!strcmp("set_bind", name)) return 3;
 	if (!strcmp("isBound", name)) return 4;
 	return -1;
-	}
+}
 static Bool Fog_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -6985,10 +7157,14 @@ static const u16 FontStyle_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8};
 static u32 FontStyle_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 9;
-	case GF_SG_FIELD_CODING_DEF: return 9;
-	case GF_SG_FIELD_CODING_OUT: return 9;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 9;
+	case GF_SG_FIELD_CODING_DEF:
+		return 9;
+	case GF_SG_FIELD_CODING_OUT:
+		return 9;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 9;
 	}
@@ -7085,7 +7261,7 @@ static s32 FontStyle_get_field_index_by_name(char *name)
 	if (!strcmp("style", name)) return 7;
 	if (!strcmp("topToBottom", name)) return 8;
 	return -1;
-	}
+}
 static Bool FontStyle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7145,7 +7321,7 @@ static void Form_Del(GF_Node *node)
 	gf_sg_mfint32_del(p->groups);
 	gf_sg_mfstring_del(p->constraints);
 	gf_sg_mfint32_del(p->groupsIndex);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -7157,10 +7333,14 @@ static const u16 Form_Dyn2All[] = { 3};
 static u32 Form_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 7;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 7;
 	}
@@ -7251,7 +7431,7 @@ static s32 Form_get_field_index_by_name(char *name)
 	if (!strcmp("constraints", name)) return 5;
 	if (!strcmp("groupsIndex", name)) return 6;
 	return -1;
-	}
+}
 static Bool Form_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7304,7 +7484,7 @@ GF_Node *Form_Create()
 static void Group_Del(GF_Node *node)
 {
 	M_Group *p = (M_Group *) node;
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -7315,10 +7495,14 @@ static const u16 Group_Out2All[] = { 2};
 static u32 Group_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 3;
 	}
@@ -7378,7 +7562,7 @@ static s32 Group_get_field_index_by_name(char *name)
 	if (!strcmp("removeChildren", name)) return 1;
 	if (!strcmp("children", name)) return 2;
 	return -1;
-	}
+}
 static Bool Group_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7420,10 +7604,14 @@ static const u16 ImageTexture_Out2All[] = { 0};
 static u32 ImageTexture_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 3;
 	}
@@ -7478,7 +7666,7 @@ static s32 ImageTexture_get_field_index_by_name(char *name)
 	if (!strcmp("repeatS", name)) return 1;
 	if (!strcmp("repeatT", name)) return 2;
 	return -1;
-	}
+}
 static Bool ImageTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7514,10 +7702,10 @@ static void IndexedFaceSet_Del(GF_Node *node)
 	gf_sg_mfint32_del(p->set_coordIndex);
 	gf_sg_mfint32_del(p->set_normalIndex);
 	gf_sg_mfint32_del(p->set_texCoordIndex);
-	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->normal, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->normal, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);
 	gf_sg_mfint32_del(p->colorIndex);
 	gf_sg_mfint32_del(p->coordIndex);
 	gf_sg_mfint32_del(p->normalIndex);
@@ -7532,10 +7720,14 @@ static const u16 IndexedFaceSet_Out2All[] = { 4, 5, 6, 7};
 static u32 IndexedFaceSet_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 8;
-	case GF_SG_FIELD_CODING_DEF: return 14;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 8;
+	case GF_SG_FIELD_CODING_DEF:
+		return 14;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 18;
 	}
@@ -7703,7 +7895,7 @@ static s32 IndexedFaceSet_get_field_index_by_name(char *name)
 	if (!strcmp("solid", name)) return 16;
 	if (!strcmp("texCoordIndex", name)) return 17;
 	return -1;
-	}
+}
 static Bool IndexedFaceSet_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7772,9 +7964,9 @@ static void IndexedFaceSet2D_Del(GF_Node *node)
 	gf_sg_mfint32_del(p->set_colorIndex);
 	gf_sg_mfint32_del(p->set_coordIndex);
 	gf_sg_mfint32_del(p->set_texCoordIndex);
-	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);
 	gf_sg_mfint32_del(p->colorIndex);
 	gf_sg_mfint32_del(p->coordIndex);
 	gf_sg_mfint32_del(p->texCoordIndex);
@@ -7788,10 +7980,14 @@ static const u16 IndexedFaceSet2D_Out2All[] = { 3, 4, 5};
 static u32 IndexedFaceSet2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 11;
 	}
@@ -7908,7 +8104,7 @@ static s32 IndexedFaceSet2D_get_field_index_by_name(char *name)
 	if (!strcmp("coordIndex", name)) return 9;
 	if (!strcmp("texCoordIndex", name)) return 10;
 	return -1;
-	}
+}
 static Bool IndexedFaceSet2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -7960,8 +8156,8 @@ static void IndexedLineSet_Del(GF_Node *node)
 	M_IndexedLineSet *p = (M_IndexedLineSet *) node;
 	gf_sg_mfint32_del(p->set_colorIndex);
 	gf_sg_mfint32_del(p->set_coordIndex);
-	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);
 	gf_sg_mfint32_del(p->colorIndex);
 	gf_sg_mfint32_del(p->coordIndex);
 	gf_node_free((GF_Node *) p);
@@ -7974,10 +8170,14 @@ static const u16 IndexedLineSet_Out2All[] = { 2, 3};
 static u32 IndexedLineSet_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 7;
 	}
@@ -8064,7 +8264,7 @@ static s32 IndexedLineSet_get_field_index_by_name(char *name)
 	if (!strcmp("colorPerVertex", name)) return 5;
 	if (!strcmp("coordIndex", name)) return 6;
 	return -1;
-	}
+}
 static Bool IndexedLineSet_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8109,8 +8309,8 @@ static void IndexedLineSet2D_Del(GF_Node *node)
 	M_IndexedLineSet2D *p = (M_IndexedLineSet2D *) node;
 	gf_sg_mfint32_del(p->set_colorIndex);
 	gf_sg_mfint32_del(p->set_coordIndex);
-	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);
 	gf_sg_mfint32_del(p->colorIndex);
 	gf_sg_mfint32_del(p->coordIndex);
 	gf_node_free((GF_Node *) p);
@@ -8123,10 +8323,14 @@ static const u16 IndexedLineSet2D_Out2All[] = { 2, 3};
 static u32 IndexedLineSet2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 7;
 	}
@@ -8213,7 +8417,7 @@ static s32 IndexedLineSet2D_get_field_index_by_name(char *name)
 	if (!strcmp("colorPerVertex", name)) return 5;
 	if (!strcmp("coordIndex", name)) return 6;
 	return -1;
-	}
+}
 static Bool IndexedLineSet2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8267,10 +8471,14 @@ static const u16 Inline_Out2All[] = { 0};
 static u32 Inline_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 1;
 	}
@@ -8311,7 +8519,7 @@ static s32 Inline_get_field_index_by_name(char *name)
 {
 	if (!strcmp("url", name)) return 0;
 	return -1;
-	}
+}
 static Bool Inline_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8341,7 +8549,7 @@ GF_Node *Inline_Create()
 static void LOD_Del(GF_Node *node)
 {
 	M_LOD *p = (M_LOD *) node;
-	gf_node_unregister_children((GF_Node *) p, p->level);	
+	gf_node_unregister_children((GF_Node *) p, p->level);
 	gf_sg_mffloat_del(p->range);
 	gf_node_free((GF_Node *) p);
 }
@@ -8353,10 +8561,14 @@ static const u16 LOD_Out2All[] = { 0};
 static u32 LOD_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 3;
 	}
@@ -8412,7 +8624,7 @@ static s32 LOD_get_field_index_by_name(char *name)
 	if (!strcmp("center", name)) return 1;
 	if (!strcmp("range", name)) return 2;
 	return -1;
-	}
+}
 static Bool LOD_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8457,9 +8669,9 @@ GF_Node *LOD_Create()
 static void Layer2D_Del(GF_Node *node)
 {
 	M_Layer2D *p = (M_Layer2D *) node;
-	gf_node_unregister((GF_Node *) p->background, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->viewport, (GF_Node *) p);	
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->background, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->viewport, (GF_Node *) p);
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -8471,10 +8683,14 @@ static const u16 Layer2D_Dyn2All[] = { 3};
 static u32 Layer2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 6;
 	}
@@ -8560,7 +8776,7 @@ static s32 Layer2D_get_field_index_by_name(char *name)
 	if (!strcmp("background", name)) return 4;
 	if (!strcmp("viewport", name)) return 5;
 	return -1;
-	}
+}
 static Bool Layer2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8599,11 +8815,11 @@ GF_Node *Layer2D_Create()
 static void Layer3D_Del(GF_Node *node)
 {
 	M_Layer3D *p = (M_Layer3D *) node;
-	gf_node_unregister((GF_Node *) p->background, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->fog, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->navigationInfo, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->viewpoint, (GF_Node *) p);	
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->background, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->fog, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->navigationInfo, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->viewpoint, (GF_Node *) p);
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -8615,10 +8831,14 @@ static const u16 Layer3D_Dyn2All[] = { 3};
 static u32 Layer3D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 8;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 8;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 8;
 	}
@@ -8720,7 +8940,7 @@ static s32 Layer3D_get_field_index_by_name(char *name)
 	if (!strcmp("navigationInfo", name)) return 6;
 	if (!strcmp("viewpoint", name)) return 7;
 	return -1;
-	}
+}
 static Bool Layer3D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -8760,7 +8980,7 @@ static void Layout_Del(GF_Node *node)
 {
 	M_Layout *p = (M_Layout *) node;
 	gf_sg_mfstring_del(p->justify);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -8772,10 +8992,14 @@ static const u16 Layout_Dyn2All[] = { 4, 9, 13};
 static u32 Layout_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 15;
-	case GF_SG_FIELD_CODING_DEF: return 13;
-	case GF_SG_FIELD_CODING_OUT: return 13;
-	case GF_SG_FIELD_CODING_DYN: return 3;
+	case GF_SG_FIELD_CODING_IN:
+		return 15;
+	case GF_SG_FIELD_CODING_DEF:
+		return 13;
+	case GF_SG_FIELD_CODING_OUT:
+		return 13;
+	case GF_SG_FIELD_CODING_DYN:
+		return 3;
 	default:
 		return 15;
 	}
@@ -8922,7 +9146,7 @@ static s32 Layout_get_field_index_by_name(char *name)
 	if (!strcmp("scrollRate", name)) return 13;
 	if (!strcmp("scrollMode", name)) return 14;
 	return -1;
-	}
+}
 static Bool Layout_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9002,10 +9226,14 @@ static const u16 LineProperties_Dyn2All[] = { 0, 2};
 static u32 LineProperties_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 3;
 	}
@@ -9063,7 +9291,7 @@ static s32 LineProperties_get_field_index_by_name(char *name)
 	if (!strcmp("lineStyle", name)) return 1;
 	if (!strcmp("width", name)) return 2;
 	return -1;
-	}
+}
 static Bool LineProperties_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9129,10 +9357,14 @@ static const u16 ListeningPoint_Dyn2All[] = { 2, 3};
 static u32 ListeningPoint_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 7;
 	}
@@ -9219,7 +9451,7 @@ static s32 ListeningPoint_get_field_index_by_name(char *name)
 	if (!strcmp("bindTime", name)) return 5;
 	if (!strcmp("isBound", name)) return 6;
 	return -1;
-	}
+}
 static Bool ListeningPoint_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9278,10 +9510,14 @@ static const u16 Material_Dyn2All[] = { 0, 1, 2, 3, 4, 5};
 static u32 Material_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 6;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 6;
 	default:
 		return 6;
 	}
@@ -9360,7 +9596,7 @@ static s32 Material_get_field_index_by_name(char *name)
 	if (!strcmp("specularColor", name)) return 4;
 	if (!strcmp("transparency", name)) return 5;
 	return -1;
-	}
+}
 static Bool Material_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9438,7 +9674,7 @@ GF_Node *Material_Create()
 static void Material2D_Del(GF_Node *node)
 {
 	M_Material2D *p = (M_Material2D *) node;
-	gf_node_unregister((GF_Node *) p->lineProps, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->lineProps, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -9450,10 +9686,14 @@ static const u16 Material2D_Dyn2All[] = { 0, 3};
 static u32 Material2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 4;
 	}
@@ -9519,7 +9759,7 @@ static s32 Material2D_get_field_index_by_name(char *name)
 	if (!strcmp("lineProps", name)) return 2;
 	if (!strcmp("transparency", name)) return 3;
 	return -1;
-	}
+}
 static Bool Material2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9577,10 +9817,14 @@ static const u16 MovieTexture_Dyn2All[] = { 1};
 static u32 MovieTexture_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 9;
 	}
@@ -9680,7 +9924,7 @@ static s32 MovieTexture_get_field_index_by_name(char *name)
 	if (!strcmp("duration_changed", name)) return 7;
 	if (!strcmp("isActive", name)) return 8;
 	return -1;
-	}
+}
 static Bool MovieTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9734,10 +9978,14 @@ static const u16 NavigationInfo_Dyn2All[] = { 5};
 static u32 NavigationInfo_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 7;
 	}
@@ -9824,7 +10072,7 @@ static s32 NavigationInfo_get_field_index_by_name(char *name)
 	if (!strcmp("visibilityLimit", name)) return 5;
 	if (!strcmp("isBound", name)) return 6;
 	return -1;
-	}
+}
 static Bool NavigationInfo_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9898,10 +10146,14 @@ static const u16 Normal_Dyn2All[] = { 0};
 static u32 Normal_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 1;
 	}
@@ -9945,7 +10197,7 @@ static s32 Normal_get_field_index_by_name(char *name)
 {
 	if (!strcmp("vector", name)) return 0;
 	return -1;
-	}
+}
 static Bool Normal_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -9992,10 +10244,14 @@ static const u16 NormalInterpolator_Out2All[] = { 1, 2, 3};
 static u32 NormalInterpolator_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -10058,7 +10314,7 @@ static s32 NormalInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("keyValue", name)) return 2;
 	if (!strcmp("value_changed", name)) return 3;
 	return -1;
-	}
+}
 static Bool NormalInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10101,7 +10357,7 @@ static void OrderedGroup_Del(GF_Node *node)
 {
 	M_OrderedGroup *p = (M_OrderedGroup *) node;
 	gf_sg_mffloat_del(p->order);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -10112,10 +10368,14 @@ static const u16 OrderedGroup_Out2All[] = { 2, 3};
 static u32 OrderedGroup_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -10182,7 +10442,7 @@ static s32 OrderedGroup_get_field_index_by_name(char *name)
 	if (!strcmp("children", name)) return 2;
 	if (!strcmp("order", name)) return 3;
 	return -1;
-	}
+}
 static Bool OrderedGroup_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10231,10 +10491,14 @@ static const u16 OrientationInterpolator_Out2All[] = { 1, 2, 3};
 static u32 OrientationInterpolator_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -10297,7 +10561,7 @@ static s32 OrientationInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("keyValue", name)) return 2;
 	if (!strcmp("value_changed", name)) return 3;
 	return -1;
-	}
+}
 static Bool OrientationInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10350,10 +10614,14 @@ static const u16 PixelTexture_Out2All[] = { 0};
 static u32 PixelTexture_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 3;
 	}
@@ -10408,7 +10676,7 @@ static s32 PixelTexture_get_field_index_by_name(char *name)
 	if (!strcmp("repeatS", name)) return 1;
 	if (!strcmp("repeatT", name)) return 2;
 	return -1;
-	}
+}
 static Bool PixelTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10454,10 +10722,14 @@ static const u16 PlaneSensor_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7};
 static u32 PlaneSensor_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 8;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 8;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 8;
 	}
@@ -10547,7 +10819,7 @@ static s32 PlaneSensor_get_field_index_by_name(char *name)
 	if (!strcmp("trackPoint_changed", name)) return 6;
 	if (!strcmp("translation_changed", name)) return 7;
 	return -1;
-	}
+}
 static Bool PlaneSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10614,10 +10886,14 @@ static const u16 PlaneSensor2D_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7};
 static u32 PlaneSensor2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 8;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 8;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 8;
 	}
@@ -10707,7 +10983,7 @@ static s32 PlaneSensor2D_get_field_index_by_name(char *name)
 	if (!strcmp("trackPoint_changed", name)) return 6;
 	if (!strcmp("translation_changed", name)) return 7;
 	return -1;
-	}
+}
 static Bool PlaneSensor2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10774,10 +11050,14 @@ static const u16 PointLight_Dyn2All[] = { 0, 1, 2, 3, 4, 6};
 static u32 PointLight_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 6;
+	case GF_SG_FIELD_CODING_IN:
+		return 7;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 6;
 	default:
 		return 7;
 	}
@@ -10863,7 +11143,7 @@ static s32 PointLight_get_field_index_by_name(char *name)
 	if (!strcmp("on", name)) return 5;
 	if (!strcmp("radius", name)) return 6;
 	return -1;
-	}
+}
 static Bool PointLight_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -10942,8 +11222,8 @@ GF_Node *PointLight_Create()
 static void PointSet_Del(GF_Node *node)
 {
 	M_PointSet *p = (M_PointSet *) node;
-	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -10954,10 +11234,14 @@ static const u16 PointSet_Out2All[] = { 0, 1};
 static u32 PointSet_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -11007,7 +11291,7 @@ static s32 PointSet_get_field_index_by_name(char *name)
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("coord", name)) return 1;
 	return -1;
-	}
+}
 static Bool PointSet_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11037,8 +11321,8 @@ GF_Node *PointSet_Create()
 static void PointSet2D_Del(GF_Node *node)
 {
 	M_PointSet2D *p = (M_PointSet2D *) node;
-	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -11049,10 +11333,14 @@ static const u16 PointSet2D_Out2All[] = { 0, 1};
 static u32 PointSet2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -11102,7 +11390,7 @@ static s32 PointSet2D_get_field_index_by_name(char *name)
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("coord", name)) return 1;
 	return -1;
-	}
+}
 static Bool PointSet2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11144,10 +11432,14 @@ static const u16 PositionInterpolator_Out2All[] = { 1, 2, 3};
 static u32 PositionInterpolator_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -11210,7 +11502,7 @@ static s32 PositionInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("keyValue", name)) return 2;
 	if (!strcmp("value_changed", name)) return 3;
 	return -1;
-	}
+}
 static Bool PositionInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11264,10 +11556,14 @@ static const u16 PositionInterpolator2D_Out2All[] = { 1, 2, 3};
 static u32 PositionInterpolator2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -11330,7 +11626,7 @@ static s32 PositionInterpolator2D_get_field_index_by_name(char *name)
 	if (!strcmp("keyValue", name)) return 2;
 	if (!strcmp("value_changed", name)) return 3;
 	return -1;
-	}
+}
 static Bool PositionInterpolator2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11382,10 +11678,14 @@ static const u16 ProximitySensor2D_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7};
 static u32 ProximitySensor2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 8;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 8;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 8;
 	}
@@ -11475,7 +11775,7 @@ static s32 ProximitySensor2D_get_field_index_by_name(char *name)
 	if (!strcmp("enterTime", name)) return 6;
 	if (!strcmp("exitTime", name)) return 7;
 	return -1;
-	}
+}
 static Bool ProximitySensor2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11532,10 +11832,14 @@ static const u16 ProximitySensor_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7};
 static u32 ProximitySensor_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 8;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 8;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 8;
 	}
@@ -11625,7 +11929,7 @@ static s32 ProximitySensor_get_field_index_by_name(char *name)
 	if (!strcmp("enterTime", name)) return 6;
 	if (!strcmp("exitTime", name)) return 7;
 	return -1;
-	}
+}
 static Bool ProximitySensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -11682,10 +11986,14 @@ static const u16 QuantizationParameter_Def2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 
 static u32 QuantizationParameter_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 40;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 40;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 40;
 	}
@@ -11993,7 +12301,7 @@ static s32 QuantizationParameter_get_field_index_by_name(char *name)
 	if (!strcmp("sizeNbBits", name)) return 38;
 	if (!strcmp("useEfficientCoding", name)) return 39;
 	return -1;
-	}
+}
 static Bool QuantizationParameter_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -12251,10 +12559,14 @@ static const u16 Rectangle_Dyn2All[] = { 0};
 static u32 Rectangle_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 1;
 	}
@@ -12298,7 +12610,7 @@ static s32 Rectangle_get_field_index_by_name(char *name)
 {
 	if (!strcmp("size", name)) return 0;
 	return -1;
-	}
+}
 static Bool Rectangle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -12348,10 +12660,14 @@ static const u16 ScalarInterpolator_Out2All[] = { 1, 2, 3};
 static u32 ScalarInterpolator_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -12414,7 +12730,7 @@ static s32 ScalarInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("keyValue", name)) return 2;
 	if (!strcmp("value_changed", name)) return 3;
 	return -1;
-	}
+}
 static Bool ScalarInterpolator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -12467,10 +12783,14 @@ static const u16 Script_Out2All[] = { 0};
 static u32 Script_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 3;
 	}
@@ -12525,7 +12845,7 @@ static s32 Script_get_field_index_by_name(char *name)
 	if (!strcmp("directOutput", name)) return 1;
 	if (!strcmp("mustEvaluate", name)) return 2;
 	return -1;
-	}
+}
 static Bool Script_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -12555,8 +12875,8 @@ GF_Node *Script_Create()
 static void Shape_Del(GF_Node *node)
 {
 	M_Shape *p = (M_Shape *) node;
-	gf_node_unregister((GF_Node *) p->appearance, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->geometry, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->appearance, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->geometry, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -12567,10 +12887,14 @@ static const u16 Shape_Out2All[] = { 0, 1};
 static u32 Shape_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -12620,7 +12944,7 @@ static s32 Shape_get_field_index_by_name(char *name)
 	if (!strcmp("appearance", name)) return 0;
 	if (!strcmp("geometry", name)) return 1;
 	return -1;
-	}
+}
 static Bool Shape_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -12650,7 +12974,7 @@ GF_Node *Shape_Create()
 static void Sound_Del(GF_Node *node)
 {
 	M_Sound *p = (M_Sound *) node;
-	gf_node_unregister((GF_Node *) p->source, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->source, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -12662,10 +12986,14 @@ static const u16 Sound_Dyn2All[] = { 1, 2, 3, 4, 5, 6};
 static u32 Sound_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 9;
-	case GF_SG_FIELD_CODING_DEF: return 10;
-	case GF_SG_FIELD_CODING_OUT: return 9;
-	case GF_SG_FIELD_CODING_DYN: return 6;
+	case GF_SG_FIELD_CODING_IN:
+		return 9;
+	case GF_SG_FIELD_CODING_DEF:
+		return 10;
+	case GF_SG_FIELD_CODING_OUT:
+		return 9;
+	case GF_SG_FIELD_CODING_DYN:
+		return 6;
 	default:
 		return 10;
 	}
@@ -12773,7 +13101,7 @@ static s32 Sound_get_field_index_by_name(char *name)
 	if (!strcmp("source", name)) return 8;
 	if (!strcmp("spatialize", name)) return 9;
 	return -1;
-	}
+}
 static Bool Sound_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -12864,7 +13192,7 @@ GF_Node *Sound_Create()
 static void Sound2D_Del(GF_Node *node)
 {
 	M_Sound2D *p = (M_Sound2D *) node;
-	gf_node_unregister((GF_Node *) p->source, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->source, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -12876,10 +13204,14 @@ static const u16 Sound2D_Dyn2All[] = { 0, 1};
 static u32 Sound2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 4;
 	}
@@ -12945,7 +13277,7 @@ static s32 Sound2D_get_field_index_by_name(char *name)
 	if (!strcmp("source", name)) return 2;
 	if (!strcmp("spatialize", name)) return 3;
 	return -1;
-	}
+}
 static Bool Sound2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -12999,10 +13331,14 @@ static const u16 Sphere_Def2All[] = { 0};
 static u32 Sphere_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 1;
 	}
@@ -13037,7 +13373,7 @@ static s32 Sphere_get_field_index_by_name(char *name)
 {
 	if (!strcmp("radius", name)) return 0;
 	return -1;
-	}
+}
 static Bool Sphere_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13084,10 +13420,14 @@ static const u16 SphereSensor_Out2All[] = { 0, 1, 2, 3, 4, 5};
 static u32 SphereSensor_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 6;
 	}
@@ -13163,7 +13503,7 @@ static s32 SphereSensor_get_field_index_by_name(char *name)
 	if (!strcmp("rotation_changed", name)) return 4;
 	if (!strcmp("trackPoint_changed", name)) return 5;
 	return -1;
-	}
+}
 static Bool SphereSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13216,10 +13556,14 @@ static const u16 SpotLight_Dyn2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 9};
 static u32 SpotLight_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 10;
-	case GF_SG_FIELD_CODING_DEF: return 10;
-	case GF_SG_FIELD_CODING_OUT: return 10;
-	case GF_SG_FIELD_CODING_DYN: return 9;
+	case GF_SG_FIELD_CODING_IN:
+		return 10;
+	case GF_SG_FIELD_CODING_DEF:
+		return 10;
+	case GF_SG_FIELD_CODING_OUT:
+		return 10;
+	case GF_SG_FIELD_CODING_DYN:
+		return 9;
 	default:
 		return 10;
 	}
@@ -13326,7 +13670,7 @@ static s32 SpotLight_get_field_index_by_name(char *name)
 	if (!strcmp("on", name)) return 8;
 	if (!strcmp("radius", name)) return 9;
 	return -1;
-	}
+}
 static Bool SpotLight_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13428,7 +13772,7 @@ GF_Node *SpotLight_Create()
 static void Switch_Del(GF_Node *node)
 {
 	M_Switch *p = (M_Switch *) node;
-	gf_node_unregister_children((GF_Node *) p, p->choice);	
+	gf_node_unregister_children((GF_Node *) p, p->choice);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -13439,10 +13783,14 @@ static const u16 Switch_Out2All[] = { 0, 1};
 static u32 Switch_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -13491,7 +13839,7 @@ static s32 Switch_get_field_index_by_name(char *name)
 	if (!strcmp("choice", name)) return 0;
 	if (!strcmp("whichChoice", name)) return 1;
 	return -1;
-	}
+}
 static Bool Switch_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13539,10 +13887,14 @@ static const u16 TermCap_Out2All[] = { 1, 2};
 static u32 TermCap_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 3;
 	}
@@ -13598,7 +13950,7 @@ static s32 TermCap_get_field_index_by_name(char *name)
 	if (!strcmp("capability", name)) return 1;
 	if (!strcmp("value", name)) return 2;
 	return -1;
-	}
+}
 static Bool TermCap_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13645,7 +13997,7 @@ static void Text_Del(GF_Node *node)
 	M_Text *p = (M_Text *) node;
 	gf_sg_mfstring_del(p->string);
 	gf_sg_mffloat_del(p->length);
-	gf_node_unregister((GF_Node *) p->fontStyle, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->fontStyle, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -13657,10 +14009,14 @@ static const u16 Text_Dyn2All[] = { 1, 3};
 static u32 Text_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 4;
 	}
@@ -13726,7 +14082,7 @@ static s32 Text_get_field_index_by_name(char *name)
 	if (!strcmp("fontStyle", name)) return 2;
 	if (!strcmp("maxExtent", name)) return 3;
 	return -1;
-	}
+}
 static Bool Text_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13781,10 +14137,14 @@ static const u16 TextureCoordinate_Dyn2All[] = { 0};
 static u32 TextureCoordinate_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 1;
 	}
@@ -13828,7 +14188,7 @@ static s32 TextureCoordinate_get_field_index_by_name(char *name)
 {
 	if (!strcmp("point", name)) return 0;
 	return -1;
-	}
+}
 static Bool TextureCoordinate_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -13875,10 +14235,14 @@ static const u16 TextureTransform_Dyn2All[] = { 0, 1, 2, 3};
 static u32 TextureTransform_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 4;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 4;
 	default:
 		return 4;
 	}
@@ -13943,7 +14307,7 @@ static s32 TextureTransform_get_field_index_by_name(char *name)
 	if (!strcmp("scale", name)) return 2;
 	if (!strcmp("translation", name)) return 3;
 	return -1;
-	}
+}
 static Bool TextureTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -14014,10 +14378,14 @@ static const u16 TimeSensor_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8};
 static u32 TimeSensor_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 9;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 9;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 9;
 	}
@@ -14114,7 +14482,7 @@ static s32 TimeSensor_get_field_index_by_name(char *name)
 	if (!strcmp("isActive", name)) return 7;
 	if (!strcmp("time", name)) return 8;
 	return -1;
-	}
+}
 static Bool TimeSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -14158,10 +14526,14 @@ static const u16 TouchSensor_Out2All[] = { 0, 1, 2, 3, 4, 5, 6};
 static u32 TouchSensor_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 7;
 	}
@@ -14244,7 +14616,7 @@ static s32 TouchSensor_get_field_index_by_name(char *name)
 	if (!strcmp("isOver", name)) return 5;
 	if (!strcmp("touchTime", name)) return 6;
 	return -1;
-	}
+}
 static Bool TouchSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -14275,7 +14647,7 @@ GF_Node *TouchSensor_Create()
 static void Transform_Del(GF_Node *node)
 {
 	M_Transform *p = (M_Transform *) node;
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -14287,10 +14659,14 @@ static const u16 Transform_Dyn2All[] = { 2, 4, 5, 6, 7};
 static u32 Transform_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 8;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 5;
+	case GF_SG_FIELD_CODING_IN:
+		return 8;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 5;
 	default:
 		return 8;
 	}
@@ -14388,7 +14764,7 @@ static s32 Transform_get_field_index_by_name(char *name)
 	if (!strcmp("scaleOrientation", name)) return 6;
 	if (!strcmp("translation", name)) return 7;
 	return -1;
-	}
+}
 static Bool Transform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -14462,7 +14838,7 @@ GF_Node *Transform_Create()
 static void Transform2D_Del(GF_Node *node)
 {
 	M_Transform2D *p = (M_Transform2D *) node;
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -14474,10 +14850,14 @@ static const u16 Transform2D_Dyn2All[] = { 3, 4, 5, 6, 7};
 static u32 Transform2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 8;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 5;
+	case GF_SG_FIELD_CODING_IN:
+		return 8;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 5;
 	default:
 		return 8;
 	}
@@ -14575,7 +14955,7 @@ static s32 Transform2D_get_field_index_by_name(char *name)
 	if (!strcmp("scaleOrientation", name)) return 6;
 	if (!strcmp("translation", name)) return 7;
 	return -1;
-	}
+}
 static Bool Transform2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -14670,10 +15050,14 @@ static const u16 Valuator_Out2All[] = { 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 
 static u32 Valuator_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 25;
-	case GF_SG_FIELD_CODING_DEF: return 9;
-	case GF_SG_FIELD_CODING_OUT: return 25;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 25;
+	case GF_SG_FIELD_CODING_DEF:
+		return 9;
+	case GF_SG_FIELD_CODING_OUT:
+		return 25;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 41;
 	}
@@ -15010,7 +15394,7 @@ static s32 Valuator_get_field_index_by_name(char *name)
 	if (!strcmp("Offset4", name)) return 39;
 	if (!strcmp("Sum", name)) return 40;
 	return -1;
-	}
+}
 static Bool Valuator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15108,10 +15492,14 @@ static const u16 Viewpoint_Dyn2All[] = { 1, 3, 4};
 static u32 Viewpoint_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 3;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 3;
 	default:
 		return 8;
 	}
@@ -15205,7 +15593,7 @@ static s32 Viewpoint_get_field_index_by_name(char *name)
 	if (!strcmp("bindTime", name)) return 6;
 	if (!strcmp("isBound", name)) return 7;
 	return -1;
-	}
+}
 static Bool Viewpoint_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15271,10 +15659,14 @@ static const u16 VisibilitySensor_Dyn2All[] = { 0, 2};
 static u32 VisibilitySensor_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 6;
 	}
@@ -15353,7 +15745,7 @@ static s32 VisibilitySensor_get_field_index_by_name(char *name)
 	if (!strcmp("exitTime", name)) return 4;
 	if (!strcmp("isActive", name)) return 5;
 	return -1;
-	}
+}
 static Bool VisibilitySensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15412,10 +15804,14 @@ static const u16 Viseme_Out2All[] = { 0, 1, 2, 3};
 static u32 Viseme_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -15477,7 +15873,7 @@ static s32 Viseme_get_field_index_by_name(char *name)
 	if (!strcmp("viseme_blend", name)) return 2;
 	if (!strcmp("viseme_def", name)) return 3;
 	return -1;
-	}
+}
 static Bool Viseme_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15541,10 +15937,14 @@ static const u16 WorldInfo_Def2All[] = { 0, 1};
 static u32 WorldInfo_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -15586,7 +15986,7 @@ static s32 WorldInfo_get_field_index_by_name(char *name)
 	if (!strcmp("info", name)) return 0;
 	if (!strcmp("title", name)) return 1;
 	return -1;
-	}
+}
 static Bool WorldInfo_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15631,10 +16031,14 @@ static const u16 AcousticMaterial_Dyn2All[] = { 0, 1, 2, 3, 4, 5};
 static u32 AcousticMaterial_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 10;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 6;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 10;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 6;
 	default:
 		return 10;
 	}
@@ -15741,7 +16145,7 @@ static s32 AcousticMaterial_get_field_index_by_name(char *name)
 	if (!strcmp("refFrequency", name)) return 8;
 	if (!strcmp("transFrequency", name)) return 9;
 	return -1;
-	}
+}
 static Bool AcousticMaterial_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -15868,10 +16272,14 @@ static const u16 AcousticScene_Dyn2All[] = { 4};
 static u32 AcousticScene_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 6;
 	}
@@ -15950,7 +16358,7 @@ static s32 AcousticScene_get_field_index_by_name(char *name)
 	if (!strcmp("reverbLevel", name)) return 4;
 	if (!strcmp("reverbDelay", name)) return 5;
 	return -1;
-	}
+}
 static Bool AcousticScene_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -16044,10 +16452,14 @@ static const u16 ApplicationWindow_Dyn2All[] = { 6};
 static u32 ApplicationWindow_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 7;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 7;
 	}
@@ -16133,7 +16545,7 @@ static s32 ApplicationWindow_get_field_index_by_name(char *name)
 	if (!strcmp("url", name)) return 5;
 	if (!strcmp("size", name)) return 6;
 	return -1;
-	}
+}
 static Bool ApplicationWindow_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -16195,10 +16607,14 @@ static const u16 BAP_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
 static u32 BAP_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 296;
-	case GF_SG_FIELD_CODING_DEF: return 296;
-	case GF_SG_FIELD_CODING_OUT: return 296;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 296;
+	case GF_SG_FIELD_CODING_DEF:
+		return 296;
+	case GF_SG_FIELD_CODING_OUT:
+		return 296;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 296;
 	}
@@ -18304,7 +18720,7 @@ static s32 BAP_get_field_index_by_name(char *name)
 	if (!strcmp("extensionBap295", name)) return 294;
 	if (!strcmp("extensionBap296", name)) return 295;
 	return -1;
-	}
+}
 static Bool BAP_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -20406,8 +20822,8 @@ GF_Node *BAP_Create()
 static void BDP_Del(GF_Node *node)
 {
 	M_BDP *p = (M_BDP *) node;
-	gf_node_unregister_children((GF_Node *) p, p->bodyDefTables);	
-	gf_node_unregister_children((GF_Node *) p, p->bodySceneGraph);	
+	gf_node_unregister_children((GF_Node *) p, p->bodyDefTables);
+	gf_node_unregister_children((GF_Node *) p, p->bodySceneGraph);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -20418,10 +20834,14 @@ static const u16 BDP_Out2All[] = { 0, 1};
 static u32 BDP_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -20471,7 +20891,7 @@ static s32 BDP_get_field_index_by_name(char *name)
 	if (!strcmp("bodyDefTables", name)) return 0;
 	if (!strcmp("bodySceneGraph", name)) return 1;
 	return -1;
-	}
+}
 static Bool BDP_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -20501,9 +20921,9 @@ GF_Node *BDP_Create()
 static void Body_Del(GF_Node *node)
 {
 	M_Body *p = (M_Body *) node;
-	gf_node_unregister((GF_Node *) p->bdp, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->bap, (GF_Node *) p);	
-	gf_node_unregister_children((GF_Node *) p, p->renderedBody);	
+	gf_node_unregister((GF_Node *) p->bdp, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->bap, (GF_Node *) p);
+	gf_node_unregister_children((GF_Node *) p, p->renderedBody);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -20514,10 +20934,14 @@ static const u16 Body_Out2All[] = { 0, 1, 2};
 static u32 Body_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 3;
 	}
@@ -20575,7 +20999,7 @@ static s32 Body_get_field_index_by_name(char *name)
 	if (!strcmp("bap", name)) return 1;
 	if (!strcmp("renderedBody", name)) return 2;
 	return -1;
-	}
+}
 static Bool Body_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -20620,10 +21044,14 @@ static const u16 BodyDefTable_Out2All[] = { 0, 1, 2, 3, 4, 5};
 static u32 BodyDefTable_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 6;
 	}
@@ -20699,7 +21127,7 @@ static s32 BodyDefTable_get_field_index_by_name(char *name)
 	if (!strcmp("displacements", name)) return 4;
 	if (!strcmp("numInterpolateKeys", name)) return 5;
 	return -1;
-	}
+}
 static Bool BodyDefTable_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -20769,10 +21197,14 @@ static const u16 BodySegmentConnectionHint_Out2All[] = { 0, 1, 2, 3};
 static u32 BodySegmentConnectionHint_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -20834,7 +21266,7 @@ static s32 BodySegmentConnectionHint_get_field_index_by_name(char *name)
 	if (!strcmp("firstVertexIdList", name)) return 2;
 	if (!strcmp("secondVertexIdList", name)) return 3;
 	return -1;
-	}
+}
 static Bool BodySegmentConnectionHint_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -20876,8 +21308,8 @@ GF_Node *BodySegmentConnectionHint_Create()
 static void DirectiveSound_Del(GF_Node *node)
 {
 	M_DirectiveSound *p = (M_DirectiveSound *) node;
-	gf_node_unregister((GF_Node *) p->source, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->perceptualParameters, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->source, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->perceptualParameters, (GF_Node *) p);
 	gf_sg_mffloat_del(p->directivity);
 	gf_sg_mffloat_del(p->angles);
 	gf_sg_mffloat_del(p->frequency);
@@ -20892,10 +21324,14 @@ static const u16 DirectiveSound_Dyn2All[] = { 0, 1, 2};
 static u32 DirectiveSound_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 13;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 3;
+	case GF_SG_FIELD_CODING_IN:
+		return 7;
+	case GF_SG_FIELD_CODING_DEF:
+		return 13;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 3;
 	default:
 		return 13;
 	}
@@ -21025,7 +21461,7 @@ static s32 DirectiveSound_get_field_index_by_name(char *name)
 	if (!strcmp("distance", name)) return 11;
 	if (!strcmp("useAirabs", name)) return 12;
 	return -1;
-	}
+}
 static Bool DirectiveSound_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -21130,10 +21566,14 @@ static const u16 Hierarchical3DMesh_Out2All[] = { 1, 3};
 static u32 Hierarchical3DMesh_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -21196,7 +21636,7 @@ static s32 Hierarchical3DMesh_get_field_index_by_name(char *name)
 	if (!strcmp("url", name)) return 2;
 	if (!strcmp("doneLoading", name)) return 3;
 	return -1;
-	}
+}
 static Bool Hierarchical3DMesh_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -21250,10 +21690,14 @@ static const u16 MaterialKey_Dyn2All[] = { 2, 3, 4, 5};
 static u32 MaterialKey_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 4;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 4;
 	default:
 		return 6;
 	}
@@ -21332,7 +21776,7 @@ static s32 MaterialKey_get_field_index_by_name(char *name)
 	if (!strcmp("highThreshold", name)) return 4;
 	if (!strcmp("transparency", name)) return 5;
 	return -1;
-	}
+}
 static Bool MaterialKey_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -21408,10 +21852,14 @@ static const u16 PerceptualParameters_Dyn2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
 static u32 PerceptualParameters_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 19;
-	case GF_SG_FIELD_CODING_DEF: return 19;
-	case GF_SG_FIELD_CODING_OUT: return 19;
-	case GF_SG_FIELD_CODING_DYN: return 15;
+	case GF_SG_FIELD_CODING_IN:
+		return 19;
+	case GF_SG_FIELD_CODING_DEF:
+		return 19;
+	case GF_SG_FIELD_CODING_OUT:
+		return 19;
+	case GF_SG_FIELD_CODING_DYN:
+		return 15;
 	default:
 		return 19;
 	}
@@ -21581,7 +22029,7 @@ static s32 PerceptualParameters_get_field_index_by_name(char *name)
 	if (!strcmp("timeLimit3", name)) return 17;
 	if (!strcmp("modalDensity", name)) return 18;
 	return -1;
-	}
+}
 static Bool PerceptualParameters_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -21757,7 +22205,7 @@ static void TemporalTransform_Del(GF_Node *node)
 	gf_sg_mfurl_del(p->url);
 	gf_sg_mfint32_del(p->stretchMode);
 	gf_sg_mfint32_del(p->shrinkMode);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -21769,10 +22217,14 @@ static const u16 TemporalTransform_Dyn2All[] = { 7, 8};
 static u32 TemporalTransform_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 12;
-	case GF_SG_FIELD_CODING_DEF: return 10;
-	case GF_SG_FIELD_CODING_OUT: return 11;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 12;
+	case GF_SG_FIELD_CODING_DEF:
+		return 10;
+	case GF_SG_FIELD_CODING_OUT:
+		return 11;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 13;
 	}
@@ -21905,7 +22357,7 @@ static s32 TemporalTransform_get_field_index_by_name(char *name)
 	if (!strcmp("maxDelay", name)) return 11;
 	if (!strcmp("actualDuration", name)) return 12;
 	return -1;
-	}
+}
 static Bool TemporalTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -21975,7 +22427,7 @@ static void TemporalGroup_Del(GF_Node *node)
 {
 	M_TemporalGroup *p = (M_TemporalGroup *) node;
 	gf_sg_mffloat_del(p->priority);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -21986,10 +22438,14 @@ static const u16 TemporalGroup_Out2All[] = { 2, 6, 7, 8};
 static u32 TemporalGroup_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 9;
 	}
@@ -22091,7 +22547,7 @@ static s32 TemporalGroup_get_field_index_by_name(char *name)
 	if (!strcmp("isActive", name)) return 7;
 	if (!strcmp("activeChild", name)) return 8;
 	return -1;
-	}
+}
 static Bool TemporalGroup_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -22141,10 +22597,14 @@ static const u16 ServerCommand_Out2All[] = { 1, 2, 3};
 static u32 ServerCommand_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -22207,7 +22667,7 @@ static s32 ServerCommand_get_field_index_by_name(char *name)
 	if (!strcmp("url", name)) return 2;
 	if (!strcmp("command", name)) return 3;
 	return -1;
-	}
+}
 static Bool ServerCommand_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -22249,10 +22709,14 @@ static const u16 InputSensor_Out2All[] = { 0, 1, 2, 3};
 static u32 InputSensor_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -22314,7 +22778,7 @@ static s32 InputSensor_get_field_index_by_name(char *name)
 	if (!strcmp("url", name)) return 2;
 	if (!strcmp("eventTime", name)) return 3;
 	return -1;
-	}
+}
 static Bool InputSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -22331,7 +22795,7 @@ GF_Node *InputSensor_Create()
 	GF_SAFEALLOC(p, M_InputSensor);
 	if(!p) return NULL;
 	gf_node_setup((GF_Node *)p, TAG_MPEG4_InputSensor);
-	p->buffer.commandList = gf_list_new();	
+	p->buffer.commandList = gf_list_new();
 
 	/*default field values*/
 	p->enabled = 1;
@@ -22346,9 +22810,9 @@ GF_Node *InputSensor_Create()
 static void MatteTexture_Del(GF_Node *node)
 {
 	M_MatteTexture *p = (M_MatteTexture *) node;
-	gf_node_unregister((GF_Node *) p->surfaceA, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->surfaceB, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->alphaSurface, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->surfaceA, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->surfaceB, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->alphaSurface, (GF_Node *) p);
 	gf_sg_sfstring_del(p->operation);
 	gf_sg_mffloat_del(p->parameter);
 	gf_node_free((GF_Node *) p);
@@ -22361,10 +22825,14 @@ static const u16 MatteTexture_Out2All[] = { 3, 5, 6};
 static u32 MatteTexture_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 7;
 	}
@@ -22450,7 +22918,7 @@ static s32 MatteTexture_get_field_index_by_name(char *name)
 	if (!strcmp("fraction", name)) return 5;
 	if (!strcmp("parameter", name)) return 6;
 	return -1;
-	}
+}
 static Bool MatteTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -22495,10 +22963,14 @@ static const u16 MediaBuffer_Out2All[] = { 0, 1, 2, 3, 4, 5};
 static u32 MediaBuffer_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 6;
 	}
@@ -22574,7 +23046,7 @@ static s32 MediaBuffer_get_field_index_by_name(char *name)
 	if (!strcmp("isBuffered", name)) return 4;
 	if (!strcmp("enabled", name)) return 5;
 	return -1;
-	}
+}
 static Bool MediaBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -22619,10 +23091,14 @@ static const u16 MediaControl_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8};
 static u32 MediaControl_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 8;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 9;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 8;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 9;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 9;
 	}
@@ -22719,7 +23195,7 @@ static s32 MediaControl_get_field_index_by_name(char *name)
 	if (!strcmp("enabled", name)) return 7;
 	if (!strcmp("isPreRolled", name)) return 8;
 	return -1;
-	}
+}
 static Bool MediaControl_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -22766,10 +23242,14 @@ static const u16 MediaSensor_Out2All[] = { 0, 1, 2, 3, 4, 5};
 static u32 MediaSensor_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 6;
 	}
@@ -22845,7 +23325,7 @@ static s32 MediaSensor_get_field_index_by_name(char *name)
 	if (!strcmp("isActive", name)) return 4;
 	if (!strcmp("info", name)) return 5;
 	return -1;
-	}
+}
 static Bool MediaSensor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -22875,7 +23355,7 @@ GF_Node *MediaSensor_Create()
 static void BitWrapper_Del(GF_Node *node)
 {
 	M_BitWrapper *p = (M_BitWrapper *) node;
-	gf_node_unregister((GF_Node *) p->node, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->node, (GF_Node *) p);
 	gf_sg_mfurl_del(p->url);
 	gf_sg_sfstring_del(p->buffer);
 	gf_node_free((GF_Node *) p);
@@ -22886,10 +23366,14 @@ static const u16 BitWrapper_Def2All[] = { 0, 1, 2, 3};
 static u32 BitWrapper_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -22946,7 +23430,7 @@ static s32 BitWrapper_get_field_index_by_name(char *name)
 	if (!strcmp("url", name)) return 2;
 	if (!strcmp("buffer", name)) return 3;
 	return -1;
-	}
+}
 static Bool BitWrapper_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -22990,10 +23474,14 @@ static const u16 CoordinateInterpolator4D_Out2All[] = { 1, 2, 3};
 static u32 CoordinateInterpolator4D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -23056,7 +23544,7 @@ static s32 CoordinateInterpolator4D_get_field_index_by_name(char *name)
 	if (!strcmp("keyValue", name)) return 2;
 	if (!strcmp("value_changed", name)) return 3;
 	return -1;
-	}
+}
 static Bool CoordinateInterpolator4D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -23098,7 +23586,7 @@ GF_Node *CoordinateInterpolator4D_Create()
 static void DepthImage_Del(GF_Node *node)
 {
 	M_DepthImage *p = (M_DepthImage *) node;
-	gf_node_unregister((GF_Node *) p->diTexture, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->diTexture, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -23107,10 +23595,14 @@ static const u16 DepthImage_Def2All[] = { 0, 1, 2, 3, 4, 5, 6};
 static u32 DepthImage_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 7;
 	}
@@ -23188,7 +23680,7 @@ static s32 DepthImage_get_field_index_by_name(char *name)
 	if (!strcmp("orthographic", name)) return 5;
 	if (!strcmp("position", name)) return 6;
 	return -1;
-	}
+}
 static Bool DepthImage_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -23234,7 +23726,7 @@ static void FFD_Del(GF_Node *node)
 	gf_sg_mffloat_del(p->uKnot);
 	gf_sg_mffloat_del(p->vKnot);
 	gf_sg_mffloat_del(p->wKnot);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -23246,10 +23738,14 @@ static const u16 FFD_Dyn2All[] = { 3};
 static u32 FFD_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 11;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 11;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 13;
 	}
@@ -23382,7 +23878,7 @@ static s32 FFD_get_field_index_by_name(char *name)
 	if (!strcmp("wKnot", name)) return 11;
 	if (!strcmp("wOrder", name)) return 12;
 	return -1;
-	}
+}
 static Bool FFD_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -23480,10 +23976,14 @@ static const u16 Implicit_Dyn2All[] = { 0, 1};
 static u32 Implicit_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 5;
 	}
@@ -23555,7 +24055,7 @@ static s32 Implicit_get_field_index_by_name(char *name)
 	if (!strcmp("dual", name)) return 3;
 	if (!strcmp("solid", name)) return 4;
 	return -1;
-	}
+}
 static Bool Implicit_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -23600,10 +24100,10 @@ GF_Node *Implicit_Create()
 static void XXLFM_Appearance_Del(GF_Node *node)
 {
 	M_XXLFM_Appearance *p = (M_XXLFM_Appearance *) node;
-	gf_node_unregister((GF_Node *) p->blendList, (GF_Node *) p);	
-	gf_node_unregister_children((GF_Node *) p, p->lightMapList);	
-	gf_node_unregister_children((GF_Node *) p, p->tileList);	
-	gf_node_unregister((GF_Node *) p->vertexFrameList, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->blendList, (GF_Node *) p);
+	gf_node_unregister_children((GF_Node *) p, p->lightMapList);
+	gf_node_unregister_children((GF_Node *) p, p->tileList);
+	gf_node_unregister((GF_Node *) p->vertexFrameList, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -23614,10 +24114,14 @@ static const u16 XXLFM_Appearance_Out2All[] = { 0, 1, 2, 3};
 static u32 XXLFM_Appearance_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -23683,7 +24187,7 @@ static s32 XXLFM_Appearance_get_field_index_by_name(char *name)
 	if (!strcmp("tileList", name)) return 2;
 	if (!strcmp("vertexFrameList", name)) return 3;
 	return -1;
-	}
+}
 static Bool XXLFM_Appearance_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -23725,10 +24229,14 @@ static const u16 XXLFM_BlendList_Out2All[] = { 0, 1};
 static u32 XXLFM_BlendList_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -23776,7 +24284,7 @@ static s32 XXLFM_BlendList_get_field_index_by_name(char *name)
 	if (!strcmp("blendMode", name)) return 0;
 	if (!strcmp("lightMapIndex", name)) return 1;
 	return -1;
-	}
+}
 static Bool XXLFM_BlendList_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -23829,10 +24337,14 @@ static const u16 XXLFM_FrameList_Out2All[] = { 0, 1};
 static u32 XXLFM_FrameList_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -23880,7 +24392,7 @@ static s32 XXLFM_FrameList_get_field_index_by_name(char *name)
 	if (!strcmp("index", name)) return 0;
 	if (!strcmp("frame", name)) return 1;
 	return -1;
-	}
+}
 static Bool XXLFM_FrameList_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -23934,8 +24446,8 @@ GF_Node *XXLFM_FrameList_Create()
 static void XXLFM_LightMap_Del(GF_Node *node)
 {
 	M_XXLFM_LightMap *p = (M_XXLFM_LightMap *) node;
-	gf_node_unregister((GF_Node *) p->surfaceMapList, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->viewMapList, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->surfaceMapList, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->viewMapList, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -23946,10 +24458,14 @@ static const u16 XXLFM_LightMap_Out2All[] = { 0, 1, 2, 3, 4};
 static u32 XXLFM_LightMap_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 5;
 	}
@@ -24020,7 +24536,7 @@ static s32 XXLFM_LightMap_get_field_index_by_name(char *name)
 	if (!strcmp("surfaceMapList", name)) return 3;
 	if (!strcmp("viewMapList", name)) return 4;
 	return -1;
-	}
+}
 static Bool XXLFM_LightMap_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -24077,7 +24593,7 @@ static void XXLFM_SurfaceMapList_Del(GF_Node *node)
 {
 	M_XXLFM_SurfaceMapList *p = (M_XXLFM_SurfaceMapList *) node;
 	gf_sg_mfint32_del(p->tileIndex);
-	gf_node_unregister((GF_Node *) p->triangleCoordinate, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->triangleCoordinate, (GF_Node *) p);
 	gf_sg_mfint32_del(p->triangleIndex);
 	gf_sg_mfint32_del(p->viewMapIndex);
 	gf_node_free((GF_Node *) p);
@@ -24090,10 +24606,14 @@ static const u16 XXLFM_SurfaceMapList_Out2All[] = { 0, 1, 2, 3};
 static u32 XXLFM_SurfaceMapList_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -24156,7 +24676,7 @@ static s32 XXLFM_SurfaceMapList_get_field_index_by_name(char *name)
 	if (!strcmp("triangleIndex", name)) return 2;
 	if (!strcmp("viewMapIndex", name)) return 3;
 	return -1;
-	}
+}
 static Bool XXLFM_SurfaceMapList_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -24198,8 +24718,8 @@ GF_Node *XXLFM_SurfaceMapList_Create()
 static void XXLFM_ViewMapList_Del(GF_Node *node)
 {
 	M_XXLFM_ViewMapList *p = (M_XXLFM_ViewMapList *) node;
-	gf_node_unregister((GF_Node *) p->textureOrigin, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->textureSize, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->textureOrigin, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->textureSize, (GF_Node *) p);
 	gf_sg_mfint32_del(p->tileIndex);
 	gf_sg_mfint32_del(p->vertexIndex);
 	gf_node_free((GF_Node *) p);
@@ -24212,10 +24732,14 @@ static const u16 XXLFM_ViewMapList_Out2All[] = { 0, 1, 2, 3};
 static u32 XXLFM_ViewMapList_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -24279,7 +24803,7 @@ static s32 XXLFM_ViewMapList_get_field_index_by_name(char *name)
 	if (!strcmp("tileIndex", name)) return 2;
 	if (!strcmp("vertexIndex", name)) return 3;
 	return -1;
-	}
+}
 static Bool XXLFM_ViewMapList_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -24321,13 +24845,13 @@ static void MeshGrid_Del(GF_Node *node)
 	gf_sg_mfint32_del(p->set_coordIndex);
 	gf_sg_mfint32_del(p->set_normalIndex);
 	gf_sg_mfint32_del(p->set_texCoordIndex);
-	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->gridCoord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->gridCoord, (GF_Node *) p);
 	gf_sg_mfint32_del(p->nLevels);
-	gf_node_unregister((GF_Node *) p->normal, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->normal, (GF_Node *) p);
 	gf_sg_mfint32_del(p->nSlices);
-	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);
 	gf_sg_mffloat_del(p->vertexOffset);
 	gf_sg_mfint32_del(p->vertexLink);
 	gf_sg_mfint32_del(p->colorIndex);
@@ -24346,10 +24870,14 @@ static const u16 MeshGrid_Dyn2All[] = { 6, 7, 9, 10, 12, 14};
 static u32 MeshGrid_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 16;
-	case GF_SG_FIELD_CODING_DEF: return 17;
-	case GF_SG_FIELD_CODING_OUT: return 14;
-	case GF_SG_FIELD_CODING_DYN: return 6;
+	case GF_SG_FIELD_CODING_IN:
+		return 16;
+	case GF_SG_FIELD_CODING_DEF:
+		return 17;
+	case GF_SG_FIELD_CODING_OUT:
+		return 14;
+	case GF_SG_FIELD_CODING_DYN:
+		return 6;
 	default:
 		return 23;
 	}
@@ -24556,7 +25084,7 @@ static s32 MeshGrid_get_field_index_by_name(char *name)
 	if (!strcmp("isLoading", name)) return 21;
 	if (!strcmp("nVertices", name)) return 22;
 	return -1;
-	}
+}
 static Bool MeshGrid_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -24657,7 +25185,7 @@ static void NonLinearDeformer_Del(GF_Node *node)
 {
 	M_NonLinearDeformer *p = (M_NonLinearDeformer *) node;
 	gf_sg_mffloat_del(p->extend);
-	gf_node_unregister((GF_Node *) p->geometry, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->geometry, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -24668,10 +25196,14 @@ static const u16 NonLinearDeformer_Out2All[] = { 0, 1, 2, 3, 4};
 static u32 NonLinearDeformer_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 5;
 	}
@@ -24741,7 +25273,7 @@ static s32 NonLinearDeformer_get_field_index_by_name(char *name)
 	if (!strcmp("param", name)) return 3;
 	if (!strcmp("type", name)) return 4;
 	return -1;
-	}
+}
 static Bool NonLinearDeformer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -24777,7 +25309,7 @@ static void NurbsCurve_Del(GF_Node *node)
 {
 	M_NurbsCurve *p = (M_NurbsCurve *) node;
 	gf_sg_mfint32_del(p->set_colorIndex);
-	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);
 	gf_sg_mfvec4f_del(p->controlPoint);
 	gf_sg_mfint32_del(p->colorIndex);
 	gf_sg_mffloat_del(p->knot);
@@ -24792,10 +25324,14 @@ static const u16 NurbsCurve_Dyn2All[] = { 2};
 static u32 NurbsCurve_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 8;
 	}
@@ -24890,7 +25426,7 @@ static s32 NurbsCurve_get_field_index_by_name(char *name)
 	if (!strcmp("knot", name)) return 6;
 	if (!strcmp("order", name)) return 7;
 	return -1;
-	}
+}
 static Bool NurbsCurve_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -24941,7 +25477,7 @@ static void NurbsCurve2D_Del(GF_Node *node)
 {
 	M_NurbsCurve2D *p = (M_NurbsCurve2D *) node;
 	gf_sg_mfint32_del(p->set_colorIndex);
-	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);
 	gf_sg_mfvec3f_del(p->controlPoint);
 	gf_sg_mfint32_del(p->colorIndex);
 	gf_sg_mffloat_del(p->knot);
@@ -24956,10 +25492,14 @@ static const u16 NurbsCurve2D_Dyn2All[] = { 2};
 static u32 NurbsCurve2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 8;
 	}
@@ -25054,7 +25594,7 @@ static s32 NurbsCurve2D_get_field_index_by_name(char *name)
 	if (!strcmp("knot", name)) return 6;
 	if (!strcmp("order", name)) return 7;
 	return -1;
-	}
+}
 static Bool NurbsCurve2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -25106,9 +25646,9 @@ static void NurbsSurface_Del(GF_Node *node)
 	M_NurbsSurface *p = (M_NurbsSurface *) node;
 	gf_sg_mfint32_del(p->set_colorIndex);
 	gf_sg_mfint32_del(p->set_texColorIndex);
-	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);
 	gf_sg_mfvec4f_del(p->controlPoint);
-	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);
 	gf_sg_mfint32_del(p->colorIndex);
 	gf_sg_mfint32_del(p->texColorIndex);
 	gf_sg_mffloat_del(p->uKnot);
@@ -25124,10 +25664,14 @@ static const u16 NurbsSurface_Dyn2All[] = { 3};
 static u32 NurbsSurface_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 16;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 7;
+	case GF_SG_FIELD_CODING_DEF:
+		return 16;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 18;
 	}
@@ -25294,7 +25838,7 @@ static s32 NurbsSurface_get_field_index_by_name(char *name)
 	if (!strcmp("vKnot", name)) return 16;
 	if (!strcmp("vOrder", name)) return 17;
 	return -1;
-	}
+}
 static Bool NurbsSurface_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -25375,7 +25919,7 @@ GF_Node *NurbsSurface_Create()
 static void OctreeImage_Del(GF_Node *node)
 {
 	M_OctreeImage *p = (M_OctreeImage *) node;
-	gf_node_unregister_children((GF_Node *) p, p->images);	
+	gf_node_unregister_children((GF_Node *) p, p->images);
 	gf_sg_mfint32_del(p->octree);
 	gf_sg_mfint32_del(p->voxelImageIndex);
 	gf_node_free((GF_Node *) p);
@@ -25386,10 +25930,14 @@ static const u16 OctreeImage_Def2All[] = { 0, 1, 2, 3};
 static u32 OctreeImage_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -25446,7 +25994,7 @@ static s32 OctreeImage_get_field_index_by_name(char *name)
 	if (!strcmp("octreeResolution", name)) return 2;
 	if (!strcmp("voxelImageIndex", name)) return 3;
 	return -1;
-	}
+}
 static Bool OctreeImage_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -25491,9 +26039,9 @@ GF_Node *OctreeImage_Create()
 static void XXParticles_Del(GF_Node *node)
 {
 	M_XXParticles *p = (M_XXParticles *) node;
-	gf_node_unregister_children((GF_Node *) p, p->influences);	
-	gf_node_unregister((GF_Node *) p->init, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->primitive, (GF_Node *) p);	
+	gf_node_unregister_children((GF_Node *) p, p->influences);
+	gf_node_unregister((GF_Node *) p->init, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->primitive, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -25504,10 +26052,14 @@ static const u16 XXParticles_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
 static u32 XXParticles_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 25;
-	case GF_SG_FIELD_CODING_DEF: return 25;
-	case GF_SG_FIELD_CODING_OUT: return 25;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 25;
+	case GF_SG_FIELD_CODING_DEF:
+		return 25;
+	case GF_SG_FIELD_CODING_OUT:
+		return 25;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 25;
 	}
@@ -25719,7 +26271,7 @@ static s32 XXParticles_get_field_index_by_name(char *name)
 	if (!strcmp("particleRadiusRate", name)) return 23;
 	if (!strcmp("particleRadiusVariation", name)) return 24;
 	return -1;
-	}
+}
 static Bool XXParticles_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -25795,10 +26347,14 @@ static const u16 XXParticleInitBox_Out2All[] = { 0, 1};
 static u32 XXParticleInitBox_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -25846,7 +26402,7 @@ static s32 XXParticleInitBox_get_field_index_by_name(char *name)
 	if (!strcmp("falloff", name)) return 0;
 	if (!strcmp("size", name)) return 1;
 	return -1;
-	}
+}
 static Bool XXParticleInitBox_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -25890,10 +26446,14 @@ static const u16 XXPlanarObstacle_Out2All[] = { 0, 1, 2, 3};
 static u32 XXPlanarObstacle_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -25955,7 +26515,7 @@ static s32 XXPlanarObstacle_get_field_index_by_name(char *name)
 	if (!strcmp("reflection", name)) return 2;
 	if (!strcmp("absorption", name)) return 3;
 	return -1;
-	}
+}
 static Bool XXPlanarObstacle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -26003,10 +26563,14 @@ static const u16 XXPointAttractor_Out2All[] = { 0, 1, 2, 3};
 static u32 XXPointAttractor_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -26068,7 +26632,7 @@ static s32 XXPointAttractor_get_field_index_by_name(char *name)
 	if (!strcmp("position", name)) return 2;
 	if (!strcmp("rate", name)) return 3;
 	return -1;
-	}
+}
 static Bool XXPointAttractor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -26114,10 +26678,14 @@ static const u16 PointTexture_Def2All[] = { 0, 1, 2, 3, 4};
 static u32 PointTexture_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 5;
 	}
@@ -26180,7 +26748,7 @@ static s32 PointTexture_get_field_index_by_name(char *name)
 	if (!strcmp("height", name)) return 3;
 	if (!strcmp("width", name)) return 4;
 	return -1;
-	}
+}
 static Bool PointTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -26235,10 +26803,14 @@ static const u16 PositionAnimator_Out2All[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1
 static u32 PositionAnimator_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 10;
-	case GF_SG_FIELD_CODING_DEF: return 9;
-	case GF_SG_FIELD_CODING_OUT: return 12;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 10;
+	case GF_SG_FIELD_CODING_DEF:
+		return 9;
+	case GF_SG_FIELD_CODING_OUT:
+		return 12;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 13;
 	}
@@ -26364,7 +26936,7 @@ static s32 PositionAnimator_get_field_index_by_name(char *name)
 	if (!strcmp("rotation_changed", name)) return 11;
 	if (!strcmp("value_changed", name)) return 12;
 	return -1;
-	}
+}
 static Bool PositionAnimator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -26443,10 +27015,14 @@ static const u16 PositionAnimator2D_Out2All[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 static u32 PositionAnimator2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 10;
-	case GF_SG_FIELD_CODING_DEF: return 9;
-	case GF_SG_FIELD_CODING_OUT: return 12;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 10;
+	case GF_SG_FIELD_CODING_DEF:
+		return 9;
+	case GF_SG_FIELD_CODING_OUT:
+		return 12;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 13;
 	}
@@ -26572,7 +27148,7 @@ static s32 PositionAnimator2D_get_field_index_by_name(char *name)
 	if (!strcmp("rotation_changed", name)) return 11;
 	if (!strcmp("value_changed", name)) return 12;
 	return -1;
-	}
+}
 static Bool PositionAnimator2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -26649,10 +27225,14 @@ static const u16 PositionInterpolator4D_Out2All[] = { 1, 2, 3};
 static u32 PositionInterpolator4D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -26715,7 +27295,7 @@ static s32 PositionInterpolator4D_get_field_index_by_name(char *name)
 	if (!strcmp("keyValue", name)) return 2;
 	if (!strcmp("value_changed", name)) return 3;
 	return -1;
-	}
+}
 static Bool PositionInterpolator4D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -26775,10 +27355,14 @@ static const u16 ProceduralTexture_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 1
 static u32 ProceduralTexture_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 19;
-	case GF_SG_FIELD_CODING_DEF: return 19;
-	case GF_SG_FIELD_CODING_OUT: return 20;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 19;
+	case GF_SG_FIELD_CODING_DEF:
+		return 19;
+	case GF_SG_FIELD_CODING_OUT:
+		return 20;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 20;
 	}
@@ -26952,7 +27536,7 @@ static s32 ProceduralTexture_get_field_index_by_name(char *name)
 	if (!strcmp("width", name)) return 18;
 	if (!strcmp("image_changed", name)) return 19;
 	return -1;
-	}
+}
 static Bool ProceduralTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -27141,10 +27725,14 @@ static const u16 Quadric_Dyn2All[] = { 0, 3, 4, 5, 6, 7, 8};
 static u32 Quadric_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 10;
-	case GF_SG_FIELD_CODING_DEF: return 10;
-	case GF_SG_FIELD_CODING_OUT: return 10;
-	case GF_SG_FIELD_CODING_DYN: return 7;
+	case GF_SG_FIELD_CODING_IN:
+		return 10;
+	case GF_SG_FIELD_CODING_DEF:
+		return 10;
+	case GF_SG_FIELD_CODING_OUT:
+		return 10;
+	case GF_SG_FIELD_CODING_DYN:
+		return 7;
 	default:
 		return 10;
 	}
@@ -27251,7 +27839,7 @@ static s32 Quadric_get_field_index_by_name(char *name)
 	if (!strcmp("P5", name)) return 8;
 	if (!strcmp("solid", name)) return 9;
 	return -1;
-	}
+}
 static Bool Quadric_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -27361,7 +27949,7 @@ static void SBBone_Del(GF_Node *node)
 	gf_sg_mffloat_del(p->sectionPosition);
 	gf_sg_mfint32_del(p->skinCoordIndex);
 	gf_sg_mffloat_del(p->skinCoordWeight);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -27373,10 +27961,14 @@ static const u16 SBBone_Dyn2All[] = { 3, 5, 14, 16, 17, 23};
 static u32 SBBone_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 24;
-	case GF_SG_FIELD_CODING_DEF: return 22;
-	case GF_SG_FIELD_CODING_OUT: return 22;
-	case GF_SG_FIELD_CODING_DYN: return 6;
+	case GF_SG_FIELD_CODING_IN:
+		return 24;
+	case GF_SG_FIELD_CODING_DEF:
+		return 22;
+	case GF_SG_FIELD_CODING_OUT:
+		return 22;
+	case GF_SG_FIELD_CODING_DYN:
+		return 6;
 	default:
 		return 24;
 	}
@@ -27586,7 +28178,7 @@ static s32 SBBone_get_field_index_by_name(char *name)
 	if (!strcmp("skinCoordWeight", name)) return 22;
 	if (!strcmp("translation", name)) return 23;
 	return -1;
-	}
+}
 static Bool SBBone_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -27697,7 +28289,7 @@ GF_Node *SBBone_Create()
 static void SBMuscle_Del(GF_Node *node)
 {
 	M_SBMuscle *p = (M_SBMuscle *) node;
-	gf_node_unregister((GF_Node *) p->muscleCurve, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->muscleCurve, (GF_Node *) p);
 	gf_sg_mfint32_del(p->skinCoordIndex);
 	gf_sg_mffloat_del(p->skinCoordWeight);
 	gf_node_free((GF_Node *) p);
@@ -27711,10 +28303,14 @@ static const u16 SBMuscle_Dyn2All[] = { 3};
 static u32 SBMuscle_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 6;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 6;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 6;
 	}
@@ -27794,7 +28390,7 @@ static s32 SBMuscle_get_field_index_by_name(char *name)
 	if (!strcmp("skinCoordIndex", name)) return 4;
 	if (!strcmp("skinCoordWeight", name)) return 5;
 	return -1;
-	}
+}
 static Bool SBMuscle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -27853,7 +28449,7 @@ static void SBSegment_Del(GF_Node *node)
 	M_SBSegment *p = (M_SBSegment *) node;
 	gf_sg_mfvec3f_del(p->momentsOfInertia);
 	gf_sg_sfstring_del(p->name);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -27865,10 +28461,14 @@ static const u16 SBSegment_Dyn2All[] = { 2};
 static u32 SBSegment_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 7;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 7;
 	}
@@ -27959,7 +28559,7 @@ static s32 SBSegment_get_field_index_by_name(char *name)
 	if (!strcmp("momentsOfInertia", name)) return 5;
 	if (!strcmp("name", name)) return 6;
 	return -1;
-	}
+}
 static Bool SBSegment_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -28010,7 +28610,7 @@ static void SBSite_Del(GF_Node *node)
 {
 	M_SBSite *p = (M_SBSite *) node;
 	gf_sg_sfstring_del(p->name);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -28022,10 +28622,14 @@ static const u16 SBSite_Dyn2All[] = { 2, 5, 6, 7, 8};
 static u32 SBSite_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 9;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 5;
+	case GF_SG_FIELD_CODING_IN:
+		return 9;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 5;
 	default:
 		return 9;
 	}
@@ -28130,7 +28734,7 @@ static s32 SBSite_get_field_index_by_name(char *name)
 	if (!strcmp("scaleOrientation", name)) return 7;
 	if (!strcmp("translation", name)) return 8;
 	return -1;
-	}
+}
 static Bool SBSite_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -28198,16 +28802,16 @@ GF_Node *SBSite_Create()
 static void SBSkinnedModel_Del(GF_Node *node)
 {
 	M_SBSkinnedModel *p = (M_SBSkinnedModel *) node;
-	gf_node_unregister_children((GF_Node *) p, p->bones);	
-	gf_node_unregister_children((GF_Node *) p, p->muscles);	
+	gf_node_unregister_children((GF_Node *) p, p->bones);
+	gf_node_unregister_children((GF_Node *) p, p->muscles);
 	gf_sg_sfstring_del(p->name);
-	gf_node_unregister_children((GF_Node *) p, p->segments);	
-	gf_node_unregister_children((GF_Node *) p, p->sites);	
-	gf_node_unregister_children((GF_Node *) p, p->skeleton);	
-	gf_node_unregister_children((GF_Node *) p, p->skin);	
-	gf_node_unregister((GF_Node *) p->skinCoord, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->skinNormal, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->weighsComputationSkinCoord, (GF_Node *) p);	
+	gf_node_unregister_children((GF_Node *) p, p->segments);
+	gf_node_unregister_children((GF_Node *) p, p->sites);
+	gf_node_unregister_children((GF_Node *) p, p->skeleton);
+	gf_node_unregister_children((GF_Node *) p, p->skin);
+	gf_node_unregister((GF_Node *) p->skinCoord, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->skinNormal, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->weighsComputationSkinCoord, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -28219,10 +28823,14 @@ static const u16 SBSkinnedModel_Dyn2All[] = { 1, 4, 6, 7, 13};
 static u32 SBSkinnedModel_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 15;
-	case GF_SG_FIELD_CODING_DEF: return 15;
-	case GF_SG_FIELD_CODING_OUT: return 15;
-	case GF_SG_FIELD_CODING_DYN: return 5;
+	case GF_SG_FIELD_CODING_IN:
+		return 15;
+	case GF_SG_FIELD_CODING_DEF:
+		return 15;
+	case GF_SG_FIELD_CODING_OUT:
+		return 15;
+	case GF_SG_FIELD_CODING_DYN:
+		return 5;
 	default:
 		return 15;
 	}
@@ -28373,7 +28981,7 @@ static s32 SBSkinnedModel_get_field_index_by_name(char *name)
 	if (!strcmp("translation", name)) return 13;
 	if (!strcmp("weighsComputationSkinCoord", name)) return 14;
 	return -1;
-	}
+}
 static Bool SBSkinnedModel_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -28441,7 +29049,7 @@ static void SBVCAnimation_Del(GF_Node *node)
 {
 	M_SBVCAnimation *p = (M_SBVCAnimation *) node;
 	gf_sg_mfurl_del(p->url);
-	gf_node_unregister_children((GF_Node *) p, p->virtualCharacters);	
+	gf_node_unregister_children((GF_Node *) p, p->virtualCharacters);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -28452,10 +29060,14 @@ static const u16 SBVCAnimation_Out2All[] = { 0, 1};
 static u32 SBVCAnimation_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -28504,7 +29116,7 @@ static s32 SBVCAnimation_get_field_index_by_name(char *name)
 	if (!strcmp("url", name)) return 0;
 	if (!strcmp("virtualCharacters", name)) return 1;
 	return -1;
-	}
+}
 static Bool SBVCAnimation_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -28548,10 +29160,14 @@ static const u16 ScalarAnimator_Out2All[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 static u32 ScalarAnimator_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 9;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 10;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 9;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 10;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 11;
 	}
@@ -28663,7 +29279,7 @@ static s32 ScalarAnimator_get_field_index_by_name(char *name)
 	if (!strcmp("endValue", name)) return 9;
 	if (!strcmp("value_changed", name)) return 10;
 	return -1;
-	}
+}
 static Bool ScalarAnimator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -28720,8 +29336,8 @@ GF_Node *ScalarAnimator_Create()
 static void SimpleTexture_Del(GF_Node *node)
 {
 	M_SimpleTexture *p = (M_SimpleTexture *) node;
-	gf_node_unregister((GF_Node *) p->depth, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->texture, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->depth, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->texture, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -28730,10 +29346,14 @@ static const u16 SimpleTexture_Def2All[] = { 0, 1};
 static u32 SimpleTexture_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -28777,7 +29397,7 @@ static s32 SimpleTexture_get_field_index_by_name(char *name)
 	if (!strcmp("depth", name)) return 0;
 	if (!strcmp("texture", name)) return 1;
 	return -1;
-	}
+}
 static Bool SimpleTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -28808,7 +29428,7 @@ static void SolidRep_Del(GF_Node *node)
 {
 	M_SolidRep *p = (M_SolidRep *) node;
 	gf_sg_mfint32_del(p->densityList);
-	gf_node_unregister((GF_Node *) p->solidTree, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->solidTree, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -28820,10 +29440,14 @@ static const u16 SolidRep_Dyn2All[] = { 0};
 static u32 SolidRep_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 3;
 	}
@@ -28882,7 +29506,7 @@ static s32 SolidRep_get_field_index_by_name(char *name)
 	if (!strcmp("densityList", name)) return 1;
 	if (!strcmp("solidTree", name)) return 2;
 	return -1;
-	}
+}
 static Bool SolidRep_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -28928,10 +29552,10 @@ static void SubdivisionSurface_Del(GF_Node *node)
 	gf_sg_mfint32_del(p->set_creaseVertexIndex);
 	gf_sg_mfint32_del(p->set_dartVertexIndex);
 	gf_sg_mfint32_del(p->set_texCoordIndex);
-	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);	
-	gf_node_unregister_children((GF_Node *) p, p->sectors);	
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);
+	gf_node_unregister_children((GF_Node *) p, p->sectors);
 	gf_sg_mfint32_del(p->invisibleEdgeIndex);
 	gf_sg_mfint32_del(p->colorIndex);
 	gf_sg_mfint32_del(p->coordIndex);
@@ -28950,10 +29574,14 @@ static const u16 SubdivisionSurface_Out2All[] = { 7, 8, 9, 10, 11, 12, 13};
 static u32 SubdivisionSurface_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 14;
-	case GF_SG_FIELD_CODING_DEF: return 19;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 14;
+	case GF_SG_FIELD_CODING_DEF:
+		return 19;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 26;
 	}
@@ -29180,7 +29808,7 @@ static s32 SubdivisionSurface_get_field_index_by_name(char *name)
 	if (!strcmp("solid", name)) return 24;
 	if (!strcmp("texCoordIndex", name)) return 25;
 	return -1;
-	}
+}
 static Bool SubdivisionSurface_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -29241,10 +29869,14 @@ static const u16 SubdivSurfaceSector_Out2All[] = { 0, 1, 2, 3, 4};
 static u32 SubdivSurfaceSector_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 7;
 	}
@@ -29327,7 +29959,7 @@ static s32 SubdivSurfaceSector_get_field_index_by_name(char *name)
 	if (!strcmp("faceIndex", name)) return 5;
 	if (!strcmp("vertexIndex", name)) return 6;
 	return -1;
-	}
+}
 static Bool SubdivSurfaceSector_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -29403,7 +30035,7 @@ GF_Node *SubdivSurfaceSector_Create()
 static void WaveletSubdivisionSurface_Del(GF_Node *node)
 {
 	M_WaveletSubdivisionSurface *p = (M_WaveletSubdivisionSurface *) node;
-	gf_node_unregister((GF_Node *) p->baseMesh, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->baseMesh, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -29414,10 +30046,14 @@ static const u16 WaveletSubdivisionSurface_Out2All[] = { 0, 1, 2, 3};
 static u32 WaveletSubdivisionSurface_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -29480,7 +30116,7 @@ static s32 WaveletSubdivisionSurface_get_field_index_by_name(char *name)
 	if (!strcmp("frequency", name)) return 2;
 	if (!strcmp("quality", name)) return 3;
 	return -1;
-	}
+}
 static Bool WaveletSubdivisionSurface_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -29513,9 +30149,9 @@ GF_Node *WaveletSubdivisionSurface_Create()
 static void Clipper2D_Del(GF_Node *node)
 {
 	M_Clipper2D *p = (M_Clipper2D *) node;
-	gf_node_unregister((GF_Node *) p->geometry, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->transform, (GF_Node *) p);	
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->geometry, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->transform, (GF_Node *) p);
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -29526,10 +30162,14 @@ static const u16 Clipper2D_Out2All[] = { 2, 3, 4, 5, 6};
 static u32 Clipper2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 7;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 7;
 	}
@@ -29619,7 +30259,7 @@ static s32 Clipper2D_get_field_index_by_name(char *name)
 	if (!strcmp("transform", name)) return 5;
 	if (!strcmp("XOR", name)) return 6;
 	return -1;
-	}
+}
 static Bool Clipper2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -29651,7 +30291,7 @@ GF_Node *Clipper2D_Create()
 static void ColorTransform_Del(GF_Node *node)
 {
 	M_ColorTransform *p = (M_ColorTransform *) node;
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -29663,10 +30303,14 @@ static const u16 ColorTransform_Dyn2All[] = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1
 static u32 ColorTransform_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 23;
-	case GF_SG_FIELD_CODING_DEF: return 21;
-	case GF_SG_FIELD_CODING_OUT: return 21;
-	case GF_SG_FIELD_CODING_DYN: return 20;
+	case GF_SG_FIELD_CODING_IN:
+		return 23;
+	case GF_SG_FIELD_CODING_DEF:
+		return 21;
+	case GF_SG_FIELD_CODING_OUT:
+		return 21;
+	case GF_SG_FIELD_CODING_DYN:
+		return 20;
 	default:
 		return 23;
 	}
@@ -29869,7 +30513,7 @@ static s32 ColorTransform_get_field_index_by_name(char *name)
 	if (!strcmp("maa", name)) return 21;
 	if (!strcmp("ta", name)) return 22;
 	return -1;
-	}
+}
 static Bool ColorTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -30051,10 +30695,14 @@ static const u16 Ellipse_Dyn2All[] = { 0};
 static u32 Ellipse_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 1;
 	}
@@ -30098,7 +30746,7 @@ static s32 Ellipse_get_field_index_by_name(char *name)
 {
 	if (!strcmp("radius", name)) return 0;
 	return -1;
-	}
+}
 static Bool Ellipse_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -30139,7 +30787,7 @@ static void LinearGradient_Del(GF_Node *node)
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mfcolor_del(p->keyValue);
 	gf_sg_mffloat_del(p->opacity);
-	gf_node_unregister((GF_Node *) p->transform, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->transform, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -30151,10 +30799,14 @@ static const u16 LinearGradient_Dyn2All[] = { 0, 5};
 static u32 LinearGradient_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 7;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 7;
 	}
@@ -30241,7 +30893,7 @@ static s32 LinearGradient_get_field_index_by_name(char *name)
 	if (!strcmp("startPoint", name)) return 5;
 	if (!strcmp("transform", name)) return 6;
 	return -1;
-	}
+}
 static Bool LinearGradient_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -30316,9 +30968,9 @@ GF_Node *LinearGradient_Create()
 static void PathLayout_Del(GF_Node *node)
 {
 	M_PathLayout *p = (M_PathLayout *) node;
-	gf_node_unregister((GF_Node *) p->geometry, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->geometry, (GF_Node *) p);
 	gf_sg_mfint32_del(p->alignment);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -30330,10 +30982,14 @@ static const u16 PathLayout_Dyn2All[] = { 5, 6};
 static u32 PathLayout_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 10;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 8;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 10;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 8;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 10;
 	}
@@ -30446,7 +31102,7 @@ static s32 PathLayout_get_field_index_by_name(char *name)
 	if (!strcmp("wrapMode", name)) return 8;
 	if (!strcmp("splitText", name)) return 9;
 	return -1;
-	}
+}
 static Bool PathLayout_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -30513,7 +31169,7 @@ static void RadialGradient_Del(GF_Node *node)
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mfcolor_del(p->keyValue);
 	gf_sg_mffloat_del(p->opacity);
-	gf_node_unregister((GF_Node *) p->transform, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->transform, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -30525,10 +31181,14 @@ static const u16 RadialGradient_Dyn2All[] = { 0, 1, 5};
 static u32 RadialGradient_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 8;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 8;
-	case GF_SG_FIELD_CODING_DYN: return 3;
+	case GF_SG_FIELD_CODING_IN:
+		return 8;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 8;
+	case GF_SG_FIELD_CODING_DYN:
+		return 3;
 	default:
 		return 8;
 	}
@@ -30622,7 +31282,7 @@ static s32 RadialGradient_get_field_index_by_name(char *name)
 	if (!strcmp("spreadMethod", name)) return 6;
 	if (!strcmp("transform", name)) return 7;
 	return -1;
-	}
+}
 static Bool RadialGradient_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -30718,10 +31378,14 @@ static const u16 SynthesizedTexture_Dyn2All[] = { 0, 1, 5};
 static u32 SynthesizedTexture_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 9;
-	case GF_SG_FIELD_CODING_DEF: return 9;
-	case GF_SG_FIELD_CODING_OUT: return 11;
-	case GF_SG_FIELD_CODING_DYN: return 3;
+	case GF_SG_FIELD_CODING_IN:
+		return 9;
+	case GF_SG_FIELD_CODING_DEF:
+		return 9;
+	case GF_SG_FIELD_CODING_OUT:
+		return 11;
+	case GF_SG_FIELD_CODING_DYN:
+		return 3;
 	default:
 		return 11;
 	}
@@ -30835,7 +31499,7 @@ static s32 SynthesizedTexture_get_field_index_by_name(char *name)
 	if (!strcmp("duration_changed", name)) return 9;
 	if (!strcmp("isActive", name)) return 10;
 	return -1;
-	}
+}
 static Bool SynthesizedTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -30902,7 +31566,7 @@ GF_Node *SynthesizedTexture_Create()
 static void TransformMatrix2D_Del(GF_Node *node)
 {
 	M_TransformMatrix2D *p = (M_TransformMatrix2D *) node;
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -30914,10 +31578,14 @@ static const u16 TransformMatrix2D_Dyn2All[] = { 3, 4, 5, 6, 7, 8};
 static u32 TransformMatrix2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 9;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 6;
+	case GF_SG_FIELD_CODING_IN:
+		return 9;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 6;
 	default:
 		return 9;
 	}
@@ -31022,7 +31690,7 @@ static s32 TransformMatrix2D_get_field_index_by_name(char *name)
 	if (!strcmp("myy", name)) return 7;
 	if (!strcmp("ty", name)) return 8;
 	return -1;
-	}
+}
 static Bool TransformMatrix2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -31108,10 +31776,14 @@ static const u16 Viewport_Dyn2All[] = { 1, 2, 3};
 static u32 Viewport_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 6;
-	case GF_SG_FIELD_CODING_DEF: return 6;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 3;
+	case GF_SG_FIELD_CODING_IN:
+		return 6;
+	case GF_SG_FIELD_CODING_DEF:
+		return 6;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 3;
 	default:
 		return 9;
 	}
@@ -31212,7 +31884,7 @@ static s32 Viewport_get_field_index_by_name(char *name)
 	if (!strcmp("bindTime", name)) return 7;
 	if (!strcmp("isBound", name)) return 8;
 	return -1;
-	}
+}
 static Bool Viewport_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -31283,7 +31955,7 @@ GF_Node *Viewport_Create()
 static void XCurve2D_Del(GF_Node *node)
 {
 	M_XCurve2D *p = (M_XCurve2D *) node;
-	gf_node_unregister((GF_Node *) p->point, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->point, (GF_Node *) p);
 	gf_sg_mfint32_del(p->type);
 	gf_node_free((GF_Node *) p);
 }
@@ -31296,10 +31968,14 @@ static const u16 XCurve2D_Dyn2All[] = { 1};
 static u32 XCurve2D_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 3;
-	case GF_SG_FIELD_CODING_OUT: return 3;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 3;
+	case GF_SG_FIELD_CODING_OUT:
+		return 3;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 3;
 	}
@@ -31358,7 +32034,7 @@ static s32 XCurve2D_get_field_index_by_name(char *name)
 	if (!strcmp("fineness", name)) return 1;
 	if (!strcmp("type", name)) return 2;
 	return -1;
-	}
+}
 static Bool XCurve2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -31421,10 +32097,14 @@ static const u16 XFontStyle_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
 static u32 XFontStyle_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 17;
-	case GF_SG_FIELD_CODING_DEF: return 17;
-	case GF_SG_FIELD_CODING_OUT: return 17;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 17;
+	case GF_SG_FIELD_CODING_DEF:
+		return 17;
+	case GF_SG_FIELD_CODING_OUT:
+		return 17;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 17;
 	}
@@ -31577,7 +32257,7 @@ static s32 XFontStyle_get_field_index_by_name(char *name)
 	if (!strcmp("featureLength", name)) return 15;
 	if (!strcmp("featureValue", name)) return 16;
 	return -1;
-	}
+}
 static Bool XFontStyle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -31646,8 +32326,8 @@ static void XLineProperties_Del(GF_Node *node)
 {
 	M_XLineProperties *p = (M_XLineProperties *) node;
 	gf_sg_mffloat_del(p->dashes);
-	gf_node_unregister((GF_Node *) p->texture, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->textureTransform, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->texture, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->textureTransform, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -31659,10 +32339,14 @@ static const u16 XLineProperties_Dyn2All[] = { 0, 7, 8, 9, 10};
 static u32 XLineProperties_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 13;
-	case GF_SG_FIELD_CODING_DEF: return 13;
-	case GF_SG_FIELD_CODING_OUT: return 13;
-	case GF_SG_FIELD_CODING_DYN: return 5;
+	case GF_SG_FIELD_CODING_IN:
+		return 13;
+	case GF_SG_FIELD_CODING_DEF:
+		return 13;
+	case GF_SG_FIELD_CODING_OUT:
+		return 13;
+	case GF_SG_FIELD_CODING_DYN:
+		return 5;
 	default:
 		return 13;
 	}
@@ -31792,7 +32476,7 @@ static s32 XLineProperties_get_field_index_by_name(char *name)
 	if (!strcmp("texture", name)) return 11;
 	if (!strcmp("textureTransform", name)) return 12;
 	return -1;
-	}
+}
 static Bool XLineProperties_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -31892,7 +32576,7 @@ static void AdvancedAudioBuffer_Del(GF_Node *node)
 {
 	M_AdvancedAudioBuffer *p = (M_AdvancedAudioBuffer *) node;
 	gf_sg_mfint32_del(p->phaseGroup);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -31904,10 +32588,14 @@ static const u16 AdvancedAudioBuffer_Dyn2All[] = { 4};
 static u32 AdvancedAudioBuffer_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 14;
-	case GF_SG_FIELD_CODING_DEF: return 14;
-	case GF_SG_FIELD_CODING_OUT: return 14;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 14;
+	case GF_SG_FIELD_CODING_DEF:
+		return 14;
+	case GF_SG_FIELD_CODING_OUT:
+		return 14;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 18;
 	}
@@ -32075,7 +32763,7 @@ static s32 AdvancedAudioBuffer_get_field_index_by_name(char *name)
 	if (!strcmp("duration_changed", name)) return 16;
 	if (!strcmp("isActive", name)) return 17;
 	return -1;
-	}
+}
 static Bool AdvancedAudioBuffer_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -32202,7 +32890,7 @@ static void AudioChannelConfig_Del(GF_Node *node)
 	gf_sg_mfint32_del(p->ambComponentIndex);
 	gf_sg_mffloat_del(p->ambBackwardMatrix);
 	gf_sg_mfint32_del(p->ambSoundfieldResolution);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -32213,10 +32901,14 @@ static const u16 AudioChannelConfig_Out2All[] = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
 static u32 AudioChannelConfig_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 21;
-	case GF_SG_FIELD_CODING_DEF: return 20;
-	case GF_SG_FIELD_CODING_OUT: return 19;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 21;
+	case GF_SG_FIELD_CODING_DEF:
+		return 20;
+	case GF_SG_FIELD_CODING_OUT:
+		return 19;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 22;
 	}
@@ -32409,7 +33101,7 @@ static s32 AudioChannelConfig_get_field_index_by_name(char *name)
 	if (!strcmp("ambSoundfieldResolution", name)) return 20;
 	if (!strcmp("numChannel", name)) return 21;
 	return -1;
-	}
+}
 static Bool AudioChannelConfig_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -32543,7 +33235,7 @@ GF_Node *AudioChannelConfig_Create()
 static void DepthImageV2_Del(GF_Node *node)
 {
 	M_DepthImageV2 *p = (M_DepthImageV2 *) node;
-	gf_node_unregister((GF_Node *) p->diTexture, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->diTexture, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -32552,10 +33244,14 @@ static const u16 DepthImageV2_Def2All[] = { 0, 1, 2, 3, 4, 5, 6, 7};
 static u32 DepthImageV2_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 8;
 	}
@@ -32640,7 +33336,7 @@ static s32 DepthImageV2_get_field_index_by_name(char *name)
 	if (!strcmp("position", name)) return 6;
 	if (!strcmp("splatMinMax", name)) return 7;
 	return -1;
-	}
+}
 static Bool DepthImageV2_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -32684,8 +33380,8 @@ GF_Node *DepthImageV2_Create()
 static void MorphShape_Del(GF_Node *node)
 {
 	M_MorphShape *p = (M_MorphShape *) node;
-	gf_node_unregister((GF_Node *) p->baseShape, (GF_Node *) p);	
-	gf_node_unregister_children((GF_Node *) p, p->targetShapes);	
+	gf_node_unregister((GF_Node *) p->baseShape, (GF_Node *) p);
+	gf_node_unregister_children((GF_Node *) p, p->targetShapes);
 	gf_sg_mffloat_del(p->weights);
 	gf_node_free((GF_Node *) p);
 }
@@ -32697,10 +33393,14 @@ static const u16 MorphShape_Out2All[] = { 0, 1, 2, 3};
 static u32 MorphShape_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 4;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 4;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -32764,7 +33464,7 @@ static s32 MorphShape_get_field_index_by_name(char *name)
 	if (!strcmp("targetShapes", name)) return 2;
 	if (!strcmp("weights", name)) return 3;
 	return -1;
-	}
+}
 static Bool MorphShape_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -32805,7 +33505,7 @@ static void MultiTexture_Del(GF_Node *node)
 	gf_sg_mfint32_del(p->function);
 	gf_sg_mfint32_del(p->mode);
 	gf_sg_mfint32_del(p->source);
-	gf_node_unregister_children((GF_Node *) p, p->texture);	
+	gf_node_unregister_children((GF_Node *) p, p->texture);
 	gf_sg_mfvec3f_del(p->cameraVector);
 	gf_node_free((GF_Node *) p);
 }
@@ -32817,10 +33517,14 @@ static const u16 MultiTexture_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7};
 static u32 MultiTexture_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 8;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 8;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 8;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 8;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 8;
 	}
@@ -32911,7 +33615,7 @@ static s32 MultiTexture_get_field_index_by_name(char *name)
 	if (!strcmp("cameraVector", name)) return 6;
 	if (!strcmp("transparent", name)) return 7;
 	return -1;
-	}
+}
 static Bool MultiTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -32947,7 +33651,7 @@ static void PointTextureV2_Del(GF_Node *node)
 	M_PointTextureV2 *p = (M_PointTextureV2 *) node;
 	gf_sg_mfcolor_del(p->color);
 	gf_sg_mfint32_del(p->depth);
-	gf_node_unregister((GF_Node *) p->normal, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->normal, (GF_Node *) p);
 	gf_sg_mfvec3f_del(p->splatU);
 	gf_sg_mfvec3f_del(p->splatV);
 	gf_node_free((GF_Node *) p);
@@ -32958,10 +33662,14 @@ static const u16 PointTextureV2_Def2All[] = { 0, 1, 2, 3, 4, 5, 6, 7};
 static u32 PointTextureV2_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 8;
 	}
@@ -33046,7 +33754,7 @@ static s32 PointTextureV2_get_field_index_by_name(char *name)
 	if (!strcmp("splatV", name)) return 6;
 	if (!strcmp("width", name)) return 7;
 	return -1;
-	}
+}
 static Bool PointTextureV2_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -33100,7 +33808,7 @@ static void SBVCAnimationV2_Del(GF_Node *node)
 	M_SBVCAnimationV2 *p = (M_SBVCAnimationV2 *) node;
 	gf_sg_mfint32_del(p->activeUrlIndex);
 	gf_sg_mfurl_del(p->url);
-	gf_node_unregister_children((GF_Node *) p, p->virtualCharacters);	
+	gf_node_unregister_children((GF_Node *) p, p->virtualCharacters);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -33112,10 +33820,14 @@ static const u16 SBVCAnimationV2_Dyn2All[] = { 2, 5};
 static u32 SBVCAnimationV2_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 8;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 10;
-	case GF_SG_FIELD_CODING_DYN: return 2;
+	case GF_SG_FIELD_CODING_IN:
+		return 8;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 10;
+	case GF_SG_FIELD_CODING_DYN:
+		return 2;
 	default:
 		return 10;
 	}
@@ -33223,7 +33935,7 @@ static s32 SBVCAnimationV2_get_field_index_by_name(char *name)
 	if (!strcmp("duration_changed", name)) return 8;
 	if (!strcmp("isActive", name)) return 9;
 	return -1;
-	}
+}
 static Bool SBVCAnimationV2_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -33269,11 +33981,11 @@ GF_Node *SBVCAnimationV2_Create()
 static void SimpleTextureV2_Del(GF_Node *node)
 {
 	M_SimpleTextureV2 *p = (M_SimpleTextureV2 *) node;
-	gf_node_unregister((GF_Node *) p->depth, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->normal, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->splatU, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->splatV, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->texture, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->depth, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->normal, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->splatU, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->splatV, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->texture, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -33282,10 +33994,14 @@ static const u16 SimpleTextureV2_Def2All[] = { 0, 1, 2, 3, 4};
 static u32 SimpleTextureV2_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 5;
 	}
@@ -33353,7 +34069,7 @@ static s32 SimpleTextureV2_get_field_index_by_name(char *name)
 	if (!strcmp("splatV", name)) return 3;
 	if (!strcmp("texture", name)) return 4;
 	return -1;
-	}
+}
 static Bool SimpleTextureV2_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -33383,7 +34099,7 @@ GF_Node *SimpleTextureV2_Create()
 static void SurroundingSound_Del(GF_Node *node)
 {
 	M_SurroundingSound *p = (M_SurroundingSound *) node;
-	gf_node_unregister((GF_Node *) p->source, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->source, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -33395,10 +34111,14 @@ static const u16 SurroundingSound_Dyn2All[] = { 1, 3, 5};
 static u32 SurroundingSound_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 3;
+	case GF_SG_FIELD_CODING_IN:
+		return 7;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 3;
 	default:
 		return 7;
 	}
@@ -33485,7 +34205,7 @@ static s32 SurroundingSound_get_field_index_by_name(char *name)
 	if (!strcmp("orientation", name)) return 5;
 	if (!strcmp("isTransformable", name)) return 6;
 	return -1;
-	}
+}
 static Bool SurroundingSound_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -33550,7 +34270,7 @@ GF_Node *SurroundingSound_Create()
 static void Transform3DAudio_Del(GF_Node *node)
 {
 	M_Transform3DAudio *p = (M_Transform3DAudio *) node;
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -33562,10 +34282,14 @@ static const u16 Transform3DAudio_Dyn2All[] = { 3, 4, 5, 6, 7};
 static u32 Transform3DAudio_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 9;
-	case GF_SG_FIELD_CODING_DEF: return 7;
-	case GF_SG_FIELD_CODING_OUT: return 7;
-	case GF_SG_FIELD_CODING_DYN: return 5;
+	case GF_SG_FIELD_CODING_IN:
+		return 9;
+	case GF_SG_FIELD_CODING_DEF:
+		return 7;
+	case GF_SG_FIELD_CODING_OUT:
+		return 7;
+	case GF_SG_FIELD_CODING_DYN:
+		return 5;
 	default:
 		return 9;
 	}
@@ -33670,7 +34394,7 @@ static s32 Transform3DAudio_get_field_index_by_name(char *name)
 	if (!strcmp("thirdTranslationCoordinate", name)) return 7;
 	if (!strcmp("coordinateTransform", name)) return 8;
 	return -1;
-	}
+}
 static Bool Transform3DAudio_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -33750,8 +34474,8 @@ GF_Node *Transform3DAudio_Create()
 static void WideSound_Del(GF_Node *node)
 {
 	M_WideSound *p = (M_WideSound *) node;
-	gf_node_unregister((GF_Node *) p->source, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->perceptualParameters, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->source, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->perceptualParameters, (GF_Node *) p);
 	gf_sg_mffloat_del(p->size);
 	gf_node_free((GF_Node *) p);
 }
@@ -33764,10 +34488,14 @@ static const u16 WideSound_Dyn2All[] = { 1, 2, 8};
 static u32 WideSound_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 12;
-	case GF_SG_FIELD_CODING_DEF: return 15;
-	case GF_SG_FIELD_CODING_OUT: return 12;
-	case GF_SG_FIELD_CODING_DYN: return 3;
+	case GF_SG_FIELD_CODING_IN:
+		return 12;
+	case GF_SG_FIELD_CODING_DEF:
+		return 15;
+	case GF_SG_FIELD_CODING_OUT:
+		return 12;
+	case GF_SG_FIELD_CODING_DYN:
+		return 3;
 	default:
 		return 15;
 	}
@@ -33911,7 +34639,7 @@ static s32 WideSound_get_field_index_by_name(char *name)
 	if (!strcmp("distance", name)) return 13;
 	if (!strcmp("useAirabs", name)) return 14;
 	return -1;
-	}
+}
 static Bool WideSound_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -34001,8 +34729,8 @@ GF_Node *WideSound_Create()
 static void ScoreShape_Del(GF_Node *node)
 {
 	M_ScoreShape *p = (M_ScoreShape *) node;
-	gf_node_unregister((GF_Node *) p->score, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->geometry, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->score, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->geometry, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -34013,10 +34741,14 @@ static const u16 ScoreShape_Out2All[] = { 0, 1};
 static u32 ScoreShape_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -34066,7 +34798,7 @@ static s32 ScoreShape_get_field_index_by_name(char *name)
 	if (!strcmp("score", name)) return 0;
 	if (!strcmp("geometry", name)) return 1;
 	return -1;
-	}
+}
 static Bool ScoreShape_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -34121,10 +34853,14 @@ static const u16 MusicScore_Dyn2All[] = { 14};
 static u32 MusicScore_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 21;
-	case GF_SG_FIELD_CODING_DEF: return 16;
-	case GF_SG_FIELD_CODING_OUT: return 26;
-	case GF_SG_FIELD_CODING_DYN: return 1;
+	case GF_SG_FIELD_CODING_IN:
+		return 21;
+	case GF_SG_FIELD_CODING_DEF:
+		return 16;
+	case GF_SG_FIELD_CODING_OUT:
+		return 26;
+	case GF_SG_FIELD_CODING_DYN:
+		return 1;
 	default:
 		return 31;
 	}
@@ -34383,7 +35119,7 @@ static s32 MusicScore_get_field_index_by_name(char *name)
 	if (!strcmp("numMeasures", name)) return 29;
 	if (!strcmp("partNames", name)) return 30;
 	return -1;
-	}
+}
 static Bool MusicScore_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -34428,7 +35164,7 @@ GF_Node *MusicScore_Create()
 static void FootPrintSetNode_Del(GF_Node *node)
 {
 	M_FootPrintSetNode *p = (M_FootPrintSetNode *) node;
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -34439,10 +35175,14 @@ static const u16 FootPrintSetNode_Out2All[] = { 0};
 static u32 FootPrintSetNode_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 1;
-	case GF_SG_FIELD_CODING_DEF: return 1;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 1;
+	case GF_SG_FIELD_CODING_DEF:
+		return 1;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 1;
 	}
@@ -34484,7 +35224,7 @@ static s32 FootPrintSetNode_get_field_index_by_name(char *name)
 {
 	if (!strcmp("children", name)) return 0;
 	return -1;
-	}
+}
 static Bool FootPrintSetNode_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -34515,7 +35255,7 @@ GF_Node *FootPrintSetNode_Create()
 static void FootPrintNode_Del(GF_Node *node)
 {
 	M_FootPrintNode *p = (M_FootPrintNode *) node;
-	gf_node_unregister((GF_Node *) p->footprint, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->footprint, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -34526,10 +35266,14 @@ static const u16 FootPrintNode_Out2All[] = { 0, 1};
 static u32 FootPrintNode_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 2;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 2;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 2;
 	}
@@ -34578,7 +35322,7 @@ static s32 FootPrintNode_get_field_index_by_name(char *name)
 	if (!strcmp("index", name)) return 0;
 	if (!strcmp("footprint", name)) return 1;
 	return -1;
-	}
+}
 static Bool FootPrintNode_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -34609,10 +35353,10 @@ GF_Node *FootPrintNode_Create()
 static void BuildingPartNode_Del(GF_Node *node)
 {
 	M_BuildingPartNode *p = (M_BuildingPartNode *) node;
-	gf_node_unregister((GF_Node *) p->footprint, (GF_Node *) p);	
-	gf_node_unregister_children((GF_Node *) p, p->alternativeGeometry);	
-	gf_node_unregister_children((GF_Node *) p, p->roofs);	
-	gf_node_unregister_children((GF_Node *) p, p->facades);	
+	gf_node_unregister((GF_Node *) p->footprint, (GF_Node *) p);
+	gf_node_unregister_children((GF_Node *) p, p->alternativeGeometry);
+	gf_node_unregister_children((GF_Node *) p, p->roofs);
+	gf_node_unregister_children((GF_Node *) p, p->facades);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -34623,10 +35367,14 @@ static const u16 BuildingPartNode_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7};
 static u32 BuildingPartNode_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 8;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 8;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 8;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 8;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 8;
 	}
@@ -34720,7 +35468,7 @@ static s32 BuildingPartNode_get_field_index_by_name(char *name)
 	if (!strcmp("roofs", name)) return 6;
 	if (!strcmp("facades", name)) return 7;
 	return -1;
-	}
+}
 static Bool BuildingPartNode_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -34766,10 +35514,14 @@ static const u16 RoofNode_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
 static u32 RoofNode_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 12;
-	case GF_SG_FIELD_CODING_DEF: return 12;
-	case GF_SG_FIELD_CODING_OUT: return 12;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 12;
+	case GF_SG_FIELD_CODING_DEF:
+		return 12;
+	case GF_SG_FIELD_CODING_OUT:
+		return 12;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 12;
 	}
@@ -34887,7 +35639,7 @@ static s32 RoofNode_get_field_index_by_name(char *name)
 	if (!strcmp("TextureYPosition", name)) return 10;
 	if (!strcmp("TextureRotation", name)) return 11;
 	return -1;
-	}
+}
 static Bool RoofNode_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -34933,7 +35685,7 @@ static void FacadeNode_Del(GF_Node *node)
 	gf_sg_sfurl_del(p->FacadePrimitive);
 	gf_sg_mfint32_del(p->NbFacadeCellsByStorey);
 	gf_sg_mffloat_del(p->StoreyHeight);
-	gf_node_unregister_children((GF_Node *) p, p->FacadeCellsArray);	
+	gf_node_unregister_children((GF_Node *) p, p->FacadeCellsArray);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -34944,10 +35696,14 @@ static const u16 FacadeNode_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 
 static u32 FacadeNode_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 13;
-	case GF_SG_FIELD_CODING_DEF: return 13;
-	case GF_SG_FIELD_CODING_OUT: return 13;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 13;
+	case GF_SG_FIELD_CODING_DEF:
+		return 13;
+	case GF_SG_FIELD_CODING_OUT:
+		return 13;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 13;
 	}
@@ -35073,7 +35829,7 @@ static s32 FacadeNode_get_field_index_by_name(char *name)
 	if (!strcmp("StoreyHeight", name)) return 11;
 	if (!strcmp("FacadeCellsArray", name)) return 12;
 	return -1;
-	}
+}
 static Bool FacadeNode_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -35117,7 +35873,7 @@ GF_Node *FacadeNode_Create()
 static void Shadow_Del(GF_Node *node)
 {
 	M_Shadow *p = (M_Shadow *) node;
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -35128,10 +35884,14 @@ static const u16 Shadow_Out2All[] = { 2, 3, 4, 5, 6};
 static u32 Shadow_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 7;
-	case GF_SG_FIELD_CODING_DEF: return 5;
-	case GF_SG_FIELD_CODING_OUT: return 5;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 7;
+	case GF_SG_FIELD_CODING_DEF:
+		return 5;
+	case GF_SG_FIELD_CODING_OUT:
+		return 5;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 7;
 	}
@@ -35219,7 +35979,7 @@ static s32 Shadow_get_field_index_by_name(char *name)
 	if (!strcmp("receive", name)) return 5;
 	if (!strcmp("penumbra", name)) return 6;
 	return -1;
-	}
+}
 static Bool Shadow_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -35267,10 +36027,14 @@ static const u16 CacheTexture_Def2All[] = { 0, 1, 2, 3, 4, 5, 6, 7};
 static u32 CacheTexture_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 0;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 0;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 0;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 0;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 8;
 	}
@@ -35354,7 +36118,7 @@ static s32 CacheTexture_get_field_index_by_name(char *name)
 	if (!strcmp("repeatS", name)) return 6;
 	if (!strcmp("repeatT", name)) return 7;
 	return -1;
-	}
+}
 static Bool CacheTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -35400,10 +36164,14 @@ static const u16 EnvironmentTest_Out2All[] = { 1, 2, 3, 4, 5, 6, 7, 8};
 static u32 EnvironmentTest_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 5;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 8;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 5;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 8;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 9;
 	}
@@ -35501,7 +36269,7 @@ static s32 EnvironmentTest_get_field_index_by_name(char *name)
 	if (!strcmp("valueSmaller", name)) return 7;
 	if (!strcmp("parameterValue", name)) return 8;
 	return -1;
-	}
+}
 static Bool EnvironmentTest_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -35534,13 +36302,13 @@ GF_Node *EnvironmentTest_Create()
 static void KeyNavigator_Del(GF_Node *node)
 {
 	M_KeyNavigator *p = (M_KeyNavigator *) node;
-	gf_node_unregister((GF_Node *) p->sensor, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->left, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->right, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->up, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->down, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->select, (GF_Node *) p);	
-	gf_node_unregister((GF_Node *) p->quit, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->sensor, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->left, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->right, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->up, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->down, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->select, (GF_Node *) p);
+	gf_node_unregister((GF_Node *) p->quit, (GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -35551,10 +36319,14 @@ static const u16 KeyNavigator_Out2All[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9};
 static u32 KeyNavigator_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 9;
-	case GF_SG_FIELD_CODING_DEF: return 8;
-	case GF_SG_FIELD_CODING_OUT: return 9;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 9;
+	case GF_SG_FIELD_CODING_DEF:
+		return 8;
+	case GF_SG_FIELD_CODING_OUT:
+		return 9;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 10;
 	}
@@ -35666,7 +36438,7 @@ static s32 KeyNavigator_get_field_index_by_name(char *name)
 	if (!strcmp("step", name)) return 8;
 	if (!strcmp("focusSet", name)) return 9;
 	return -1;
-	}
+}
 static Bool KeyNavigator_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -35698,7 +36470,7 @@ static void SpacePartition_Del(GF_Node *node)
 {
 	M_SpacePartition *p = (M_SpacePartition *) node;
 	gf_sg_sfurl_del(p->SPStream);
-	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_sg_vrml_parent_destroy((GF_Node *) p);
 	gf_node_free((GF_Node *) p);
 }
 
@@ -35709,10 +36481,14 @@ static const u16 SpacePartition_Out2All[] = { 2, 3};
 static u32 SpacePartition_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 4;
-	case GF_SG_FIELD_CODING_DEF: return 2;
-	case GF_SG_FIELD_CODING_OUT: return 2;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 4;
+	case GF_SG_FIELD_CODING_DEF:
+		return 2;
+	case GF_SG_FIELD_CODING_OUT:
+		return 2;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 4;
 	}
@@ -35779,7 +36555,7 @@ static s32 SpacePartition_get_field_index_by_name(char *name)
 	if (!strcmp("children", name)) return 2;
 	if (!strcmp("SPStream", name)) return 3;
 	return -1;
-	}
+}
 static Bool SpacePartition_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -35821,10 +36597,14 @@ static const u16 Storage_Out2All[] = { 2};
 static u32 Storage_get_field_count(GF_Node *node, u8 IndexMode)
 {
 	switch(IndexMode) {
-	case GF_SG_FIELD_CODING_IN: return 3;
-	case GF_SG_FIELD_CODING_DEF: return 4;
-	case GF_SG_FIELD_CODING_OUT: return 1;
-	case GF_SG_FIELD_CODING_DYN: return 0;
+	case GF_SG_FIELD_CODING_IN:
+		return 3;
+	case GF_SG_FIELD_CODING_DEF:
+		return 4;
+	case GF_SG_FIELD_CODING_OUT:
+		return 1;
+	case GF_SG_FIELD_CODING_DYN:
+		return 0;
 	default:
 		return 6;
 	}
@@ -35902,7 +36682,7 @@ static s32 Storage_get_field_index_by_name(char *name)
 	if (!strcmp("name", name)) return 4;
 	if (!strcmp("storageList", name)) return 5;
 	return -1;
-	}
+}
 static Bool Storage_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (FieldIndex) {
@@ -36729,395 +37509,590 @@ void gf_sg_mpeg4_node_del(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
 	case TAG_MPEG4_Anchor:
-		Anchor_Del(node); return;
+		Anchor_Del(node);
+		return;
 	case TAG_MPEG4_AnimationStream:
-		AnimationStream_Del(node); return;
+		AnimationStream_Del(node);
+		return;
 	case TAG_MPEG4_Appearance:
-		Appearance_Del(node); return;
+		Appearance_Del(node);
+		return;
 	case TAG_MPEG4_AudioBuffer:
-		AudioBuffer_Del(node); return;
+		AudioBuffer_Del(node);
+		return;
 	case TAG_MPEG4_AudioClip:
-		AudioClip_Del(node); return;
+		AudioClip_Del(node);
+		return;
 	case TAG_MPEG4_AudioDelay:
-		AudioDelay_Del(node); return;
+		AudioDelay_Del(node);
+		return;
 	case TAG_MPEG4_AudioFX:
-		AudioFX_Del(node); return;
+		AudioFX_Del(node);
+		return;
 	case TAG_MPEG4_AudioMix:
-		AudioMix_Del(node); return;
+		AudioMix_Del(node);
+		return;
 	case TAG_MPEG4_AudioSource:
-		AudioSource_Del(node); return;
+		AudioSource_Del(node);
+		return;
 	case TAG_MPEG4_AudioSwitch:
-		AudioSwitch_Del(node); return;
+		AudioSwitch_Del(node);
+		return;
 	case TAG_MPEG4_Background:
-		Background_Del(node); return;
+		Background_Del(node);
+		return;
 	case TAG_MPEG4_Background2D:
-		Background2D_Del(node); return;
+		Background2D_Del(node);
+		return;
 	case TAG_MPEG4_Billboard:
-		Billboard_Del(node); return;
+		Billboard_Del(node);
+		return;
 	case TAG_MPEG4_Bitmap:
-		Bitmap_Del(node); return;
+		Bitmap_Del(node);
+		return;
 	case TAG_MPEG4_Box:
-		Box_Del(node); return;
+		Box_Del(node);
+		return;
 	case TAG_MPEG4_Circle:
-		Circle_Del(node); return;
+		Circle_Del(node);
+		return;
 	case TAG_MPEG4_Collision:
-		Collision_Del(node); return;
+		Collision_Del(node);
+		return;
 	case TAG_MPEG4_Color:
-		Color_Del(node); return;
+		Color_Del(node);
+		return;
 	case TAG_MPEG4_ColorInterpolator:
-		ColorInterpolator_Del(node); return;
+		ColorInterpolator_Del(node);
+		return;
 	case TAG_MPEG4_CompositeTexture2D:
-		CompositeTexture2D_Del(node); return;
+		CompositeTexture2D_Del(node);
+		return;
 	case TAG_MPEG4_CompositeTexture3D:
-		CompositeTexture3D_Del(node); return;
+		CompositeTexture3D_Del(node);
+		return;
 	case TAG_MPEG4_Conditional:
-		Conditional_Del(node); return;
+		Conditional_Del(node);
+		return;
 	case TAG_MPEG4_Cone:
-		Cone_Del(node); return;
+		Cone_Del(node);
+		return;
 	case TAG_MPEG4_Coordinate:
-		Coordinate_Del(node); return;
+		Coordinate_Del(node);
+		return;
 	case TAG_MPEG4_Coordinate2D:
-		Coordinate2D_Del(node); return;
+		Coordinate2D_Del(node);
+		return;
 	case TAG_MPEG4_CoordinateInterpolator:
-		CoordinateInterpolator_Del(node); return;
+		CoordinateInterpolator_Del(node);
+		return;
 	case TAG_MPEG4_CoordinateInterpolator2D:
-		CoordinateInterpolator2D_Del(node); return;
+		CoordinateInterpolator2D_Del(node);
+		return;
 	case TAG_MPEG4_Curve2D:
-		Curve2D_Del(node); return;
+		Curve2D_Del(node);
+		return;
 	case TAG_MPEG4_Cylinder:
-		Cylinder_Del(node); return;
+		Cylinder_Del(node);
+		return;
 	case TAG_MPEG4_CylinderSensor:
-		CylinderSensor_Del(node); return;
+		CylinderSensor_Del(node);
+		return;
 	case TAG_MPEG4_DirectionalLight:
-		DirectionalLight_Del(node); return;
+		DirectionalLight_Del(node);
+		return;
 	case TAG_MPEG4_DiscSensor:
-		DiscSensor_Del(node); return;
+		DiscSensor_Del(node);
+		return;
 	case TAG_MPEG4_ElevationGrid:
-		ElevationGrid_Del(node); return;
+		ElevationGrid_Del(node);
+		return;
 	case TAG_MPEG4_Expression:
-		Expression_Del(node); return;
+		Expression_Del(node);
+		return;
 	case TAG_MPEG4_Extrusion:
-		Extrusion_Del(node); return;
+		Extrusion_Del(node);
+		return;
 	case TAG_MPEG4_Face:
-		Face_Del(node); return;
+		Face_Del(node);
+		return;
 	case TAG_MPEG4_FaceDefMesh:
-		FaceDefMesh_Del(node); return;
+		FaceDefMesh_Del(node);
+		return;
 	case TAG_MPEG4_FaceDefTables:
-		FaceDefTables_Del(node); return;
+		FaceDefTables_Del(node);
+		return;
 	case TAG_MPEG4_FaceDefTransform:
-		FaceDefTransform_Del(node); return;
+		FaceDefTransform_Del(node);
+		return;
 	case TAG_MPEG4_FAP:
-		FAP_Del(node); return;
+		FAP_Del(node);
+		return;
 	case TAG_MPEG4_FDP:
-		FDP_Del(node); return;
+		FDP_Del(node);
+		return;
 	case TAG_MPEG4_FIT:
-		FIT_Del(node); return;
+		FIT_Del(node);
+		return;
 	case TAG_MPEG4_Fog:
-		Fog_Del(node); return;
+		Fog_Del(node);
+		return;
 	case TAG_MPEG4_FontStyle:
-		FontStyle_Del(node); return;
+		FontStyle_Del(node);
+		return;
 	case TAG_MPEG4_Form:
-		Form_Del(node); return;
+		Form_Del(node);
+		return;
 	case TAG_MPEG4_Group:
-		Group_Del(node); return;
+		Group_Del(node);
+		return;
 	case TAG_MPEG4_ImageTexture:
-		ImageTexture_Del(node); return;
+		ImageTexture_Del(node);
+		return;
 	case TAG_MPEG4_IndexedFaceSet:
-		IndexedFaceSet_Del(node); return;
+		IndexedFaceSet_Del(node);
+		return;
 	case TAG_MPEG4_IndexedFaceSet2D:
-		IndexedFaceSet2D_Del(node); return;
+		IndexedFaceSet2D_Del(node);
+		return;
 	case TAG_MPEG4_IndexedLineSet:
-		IndexedLineSet_Del(node); return;
+		IndexedLineSet_Del(node);
+		return;
 	case TAG_MPEG4_IndexedLineSet2D:
-		IndexedLineSet2D_Del(node); return;
+		IndexedLineSet2D_Del(node);
+		return;
 	case TAG_MPEG4_Inline:
-		Inline_Del(node); return;
+		Inline_Del(node);
+		return;
 	case TAG_MPEG4_LOD:
-		LOD_Del(node); return;
+		LOD_Del(node);
+		return;
 	case TAG_MPEG4_Layer2D:
-		Layer2D_Del(node); return;
+		Layer2D_Del(node);
+		return;
 	case TAG_MPEG4_Layer3D:
-		Layer3D_Del(node); return;
+		Layer3D_Del(node);
+		return;
 	case TAG_MPEG4_Layout:
-		Layout_Del(node); return;
+		Layout_Del(node);
+		return;
 	case TAG_MPEG4_LineProperties:
-		LineProperties_Del(node); return;
+		LineProperties_Del(node);
+		return;
 	case TAG_MPEG4_ListeningPoint:
-		ListeningPoint_Del(node); return;
+		ListeningPoint_Del(node);
+		return;
 	case TAG_MPEG4_Material:
-		Material_Del(node); return;
+		Material_Del(node);
+		return;
 	case TAG_MPEG4_Material2D:
-		Material2D_Del(node); return;
+		Material2D_Del(node);
+		return;
 	case TAG_MPEG4_MovieTexture:
-		MovieTexture_Del(node); return;
+		MovieTexture_Del(node);
+		return;
 	case TAG_MPEG4_NavigationInfo:
-		NavigationInfo_Del(node); return;
+		NavigationInfo_Del(node);
+		return;
 	case TAG_MPEG4_Normal:
-		Normal_Del(node); return;
+		Normal_Del(node);
+		return;
 	case TAG_MPEG4_NormalInterpolator:
-		NormalInterpolator_Del(node); return;
+		NormalInterpolator_Del(node);
+		return;
 	case TAG_MPEG4_OrderedGroup:
-		OrderedGroup_Del(node); return;
+		OrderedGroup_Del(node);
+		return;
 	case TAG_MPEG4_OrientationInterpolator:
-		OrientationInterpolator_Del(node); return;
+		OrientationInterpolator_Del(node);
+		return;
 	case TAG_MPEG4_PixelTexture:
-		PixelTexture_Del(node); return;
+		PixelTexture_Del(node);
+		return;
 	case TAG_MPEG4_PlaneSensor:
-		PlaneSensor_Del(node); return;
+		PlaneSensor_Del(node);
+		return;
 	case TAG_MPEG4_PlaneSensor2D:
-		PlaneSensor2D_Del(node); return;
+		PlaneSensor2D_Del(node);
+		return;
 	case TAG_MPEG4_PointLight:
-		PointLight_Del(node); return;
+		PointLight_Del(node);
+		return;
 	case TAG_MPEG4_PointSet:
-		PointSet_Del(node); return;
+		PointSet_Del(node);
+		return;
 	case TAG_MPEG4_PointSet2D:
-		PointSet2D_Del(node); return;
+		PointSet2D_Del(node);
+		return;
 	case TAG_MPEG4_PositionInterpolator:
-		PositionInterpolator_Del(node); return;
+		PositionInterpolator_Del(node);
+		return;
 	case TAG_MPEG4_PositionInterpolator2D:
-		PositionInterpolator2D_Del(node); return;
+		PositionInterpolator2D_Del(node);
+		return;
 	case TAG_MPEG4_ProximitySensor2D:
-		ProximitySensor2D_Del(node); return;
+		ProximitySensor2D_Del(node);
+		return;
 	case TAG_MPEG4_ProximitySensor:
-		ProximitySensor_Del(node); return;
+		ProximitySensor_Del(node);
+		return;
 	case TAG_MPEG4_QuantizationParameter:
-		QuantizationParameter_Del(node); return;
+		QuantizationParameter_Del(node);
+		return;
 	case TAG_MPEG4_Rectangle:
-		Rectangle_Del(node); return;
+		Rectangle_Del(node);
+		return;
 	case TAG_MPEG4_ScalarInterpolator:
-		ScalarInterpolator_Del(node); return;
+		ScalarInterpolator_Del(node);
+		return;
 	case TAG_MPEG4_Script:
-		Script_Del(node); return;
+		Script_Del(node);
+		return;
 	case TAG_MPEG4_Shape:
-		Shape_Del(node); return;
+		Shape_Del(node);
+		return;
 	case TAG_MPEG4_Sound:
-		Sound_Del(node); return;
+		Sound_Del(node);
+		return;
 	case TAG_MPEG4_Sound2D:
-		Sound2D_Del(node); return;
+		Sound2D_Del(node);
+		return;
 	case TAG_MPEG4_Sphere:
-		Sphere_Del(node); return;
+		Sphere_Del(node);
+		return;
 	case TAG_MPEG4_SphereSensor:
-		SphereSensor_Del(node); return;
+		SphereSensor_Del(node);
+		return;
 	case TAG_MPEG4_SpotLight:
-		SpotLight_Del(node); return;
+		SpotLight_Del(node);
+		return;
 	case TAG_MPEG4_Switch:
-		Switch_Del(node); return;
+		Switch_Del(node);
+		return;
 	case TAG_MPEG4_TermCap:
-		TermCap_Del(node); return;
+		TermCap_Del(node);
+		return;
 	case TAG_MPEG4_Text:
-		Text_Del(node); return;
+		Text_Del(node);
+		return;
 	case TAG_MPEG4_TextureCoordinate:
-		TextureCoordinate_Del(node); return;
+		TextureCoordinate_Del(node);
+		return;
 	case TAG_MPEG4_TextureTransform:
-		TextureTransform_Del(node); return;
+		TextureTransform_Del(node);
+		return;
 	case TAG_MPEG4_TimeSensor:
-		TimeSensor_Del(node); return;
+		TimeSensor_Del(node);
+		return;
 	case TAG_MPEG4_TouchSensor:
-		TouchSensor_Del(node); return;
+		TouchSensor_Del(node);
+		return;
 	case TAG_MPEG4_Transform:
-		Transform_Del(node); return;
+		Transform_Del(node);
+		return;
 	case TAG_MPEG4_Transform2D:
-		Transform2D_Del(node); return;
+		Transform2D_Del(node);
+		return;
 	case TAG_MPEG4_Valuator:
-		Valuator_Del(node); return;
+		Valuator_Del(node);
+		return;
 	case TAG_MPEG4_Viewpoint:
-		Viewpoint_Del(node); return;
+		Viewpoint_Del(node);
+		return;
 	case TAG_MPEG4_VisibilitySensor:
-		VisibilitySensor_Del(node); return;
+		VisibilitySensor_Del(node);
+		return;
 	case TAG_MPEG4_Viseme:
-		Viseme_Del(node); return;
+		Viseme_Del(node);
+		return;
 	case TAG_MPEG4_WorldInfo:
-		WorldInfo_Del(node); return;
+		WorldInfo_Del(node);
+		return;
 	case TAG_MPEG4_AcousticMaterial:
-		AcousticMaterial_Del(node); return;
+		AcousticMaterial_Del(node);
+		return;
 	case TAG_MPEG4_AcousticScene:
-		AcousticScene_Del(node); return;
+		AcousticScene_Del(node);
+		return;
 	case TAG_MPEG4_ApplicationWindow:
-		ApplicationWindow_Del(node); return;
+		ApplicationWindow_Del(node);
+		return;
 	case TAG_MPEG4_BAP:
-		BAP_Del(node); return;
+		BAP_Del(node);
+		return;
 	case TAG_MPEG4_BDP:
-		BDP_Del(node); return;
+		BDP_Del(node);
+		return;
 	case TAG_MPEG4_Body:
-		Body_Del(node); return;
+		Body_Del(node);
+		return;
 	case TAG_MPEG4_BodyDefTable:
-		BodyDefTable_Del(node); return;
+		BodyDefTable_Del(node);
+		return;
 	case TAG_MPEG4_BodySegmentConnectionHint:
-		BodySegmentConnectionHint_Del(node); return;
+		BodySegmentConnectionHint_Del(node);
+		return;
 	case TAG_MPEG4_DirectiveSound:
-		DirectiveSound_Del(node); return;
+		DirectiveSound_Del(node);
+		return;
 	case TAG_MPEG4_Hierarchical3DMesh:
-		Hierarchical3DMesh_Del(node); return;
+		Hierarchical3DMesh_Del(node);
+		return;
 	case TAG_MPEG4_MaterialKey:
-		MaterialKey_Del(node); return;
+		MaterialKey_Del(node);
+		return;
 	case TAG_MPEG4_PerceptualParameters:
-		PerceptualParameters_Del(node); return;
+		PerceptualParameters_Del(node);
+		return;
 	case TAG_MPEG4_TemporalTransform:
-		TemporalTransform_Del(node); return;
+		TemporalTransform_Del(node);
+		return;
 	case TAG_MPEG4_TemporalGroup:
-		TemporalGroup_Del(node); return;
+		TemporalGroup_Del(node);
+		return;
 	case TAG_MPEG4_ServerCommand:
-		ServerCommand_Del(node); return;
+		ServerCommand_Del(node);
+		return;
 	case TAG_MPEG4_InputSensor:
-		InputSensor_Del(node); return;
+		InputSensor_Del(node);
+		return;
 	case TAG_MPEG4_MatteTexture:
-		MatteTexture_Del(node); return;
+		MatteTexture_Del(node);
+		return;
 	case TAG_MPEG4_MediaBuffer:
-		MediaBuffer_Del(node); return;
+		MediaBuffer_Del(node);
+		return;
 	case TAG_MPEG4_MediaControl:
-		MediaControl_Del(node); return;
+		MediaControl_Del(node);
+		return;
 	case TAG_MPEG4_MediaSensor:
-		MediaSensor_Del(node); return;
+		MediaSensor_Del(node);
+		return;
 	case TAG_MPEG4_BitWrapper:
-		BitWrapper_Del(node); return;
+		BitWrapper_Del(node);
+		return;
 	case TAG_MPEG4_CoordinateInterpolator4D:
-		CoordinateInterpolator4D_Del(node); return;
+		CoordinateInterpolator4D_Del(node);
+		return;
 	case TAG_MPEG4_DepthImage:
-		DepthImage_Del(node); return;
+		DepthImage_Del(node);
+		return;
 	case TAG_MPEG4_FFD:
-		FFD_Del(node); return;
+		FFD_Del(node);
+		return;
 	case TAG_MPEG4_Implicit:
-		Implicit_Del(node); return;
+		Implicit_Del(node);
+		return;
 	case TAG_MPEG4_XXLFM_Appearance:
-		XXLFM_Appearance_Del(node); return;
+		XXLFM_Appearance_Del(node);
+		return;
 	case TAG_MPEG4_XXLFM_BlendList:
-		XXLFM_BlendList_Del(node); return;
+		XXLFM_BlendList_Del(node);
+		return;
 	case TAG_MPEG4_XXLFM_FrameList:
-		XXLFM_FrameList_Del(node); return;
+		XXLFM_FrameList_Del(node);
+		return;
 	case TAG_MPEG4_XXLFM_LightMap:
-		XXLFM_LightMap_Del(node); return;
+		XXLFM_LightMap_Del(node);
+		return;
 	case TAG_MPEG4_XXLFM_SurfaceMapList:
-		XXLFM_SurfaceMapList_Del(node); return;
+		XXLFM_SurfaceMapList_Del(node);
+		return;
 	case TAG_MPEG4_XXLFM_ViewMapList:
-		XXLFM_ViewMapList_Del(node); return;
+		XXLFM_ViewMapList_Del(node);
+		return;
 	case TAG_MPEG4_MeshGrid:
-		MeshGrid_Del(node); return;
+		MeshGrid_Del(node);
+		return;
 	case TAG_MPEG4_NonLinearDeformer:
-		NonLinearDeformer_Del(node); return;
+		NonLinearDeformer_Del(node);
+		return;
 	case TAG_MPEG4_NurbsCurve:
-		NurbsCurve_Del(node); return;
+		NurbsCurve_Del(node);
+		return;
 	case TAG_MPEG4_NurbsCurve2D:
-		NurbsCurve2D_Del(node); return;
+		NurbsCurve2D_Del(node);
+		return;
 	case TAG_MPEG4_NurbsSurface:
-		NurbsSurface_Del(node); return;
+		NurbsSurface_Del(node);
+		return;
 	case TAG_MPEG4_OctreeImage:
-		OctreeImage_Del(node); return;
+		OctreeImage_Del(node);
+		return;
 	case TAG_MPEG4_XXParticles:
-		XXParticles_Del(node); return;
+		XXParticles_Del(node);
+		return;
 	case TAG_MPEG4_XXParticleInitBox:
-		XXParticleInitBox_Del(node); return;
+		XXParticleInitBox_Del(node);
+		return;
 	case TAG_MPEG4_XXPlanarObstacle:
-		XXPlanarObstacle_Del(node); return;
+		XXPlanarObstacle_Del(node);
+		return;
 	case TAG_MPEG4_XXPointAttractor:
-		XXPointAttractor_Del(node); return;
+		XXPointAttractor_Del(node);
+		return;
 	case TAG_MPEG4_PointTexture:
-		PointTexture_Del(node); return;
+		PointTexture_Del(node);
+		return;
 	case TAG_MPEG4_PositionAnimator:
-		PositionAnimator_Del(node); return;
+		PositionAnimator_Del(node);
+		return;
 	case TAG_MPEG4_PositionAnimator2D:
-		PositionAnimator2D_Del(node); return;
+		PositionAnimator2D_Del(node);
+		return;
 	case TAG_MPEG4_PositionInterpolator4D:
-		PositionInterpolator4D_Del(node); return;
+		PositionInterpolator4D_Del(node);
+		return;
 	case TAG_MPEG4_ProceduralTexture:
-		ProceduralTexture_Del(node); return;
+		ProceduralTexture_Del(node);
+		return;
 	case TAG_MPEG4_Quadric:
-		Quadric_Del(node); return;
+		Quadric_Del(node);
+		return;
 	case TAG_MPEG4_SBBone:
-		SBBone_Del(node); return;
+		SBBone_Del(node);
+		return;
 	case TAG_MPEG4_SBMuscle:
-		SBMuscle_Del(node); return;
+		SBMuscle_Del(node);
+		return;
 	case TAG_MPEG4_SBSegment:
-		SBSegment_Del(node); return;
+		SBSegment_Del(node);
+		return;
 	case TAG_MPEG4_SBSite:
-		SBSite_Del(node); return;
+		SBSite_Del(node);
+		return;
 	case TAG_MPEG4_SBSkinnedModel:
-		SBSkinnedModel_Del(node); return;
+		SBSkinnedModel_Del(node);
+		return;
 	case TAG_MPEG4_SBVCAnimation:
-		SBVCAnimation_Del(node); return;
+		SBVCAnimation_Del(node);
+		return;
 	case TAG_MPEG4_ScalarAnimator:
-		ScalarAnimator_Del(node); return;
+		ScalarAnimator_Del(node);
+		return;
 	case TAG_MPEG4_SimpleTexture:
-		SimpleTexture_Del(node); return;
+		SimpleTexture_Del(node);
+		return;
 	case TAG_MPEG4_SolidRep:
-		SolidRep_Del(node); return;
+		SolidRep_Del(node);
+		return;
 	case TAG_MPEG4_SubdivisionSurface:
-		SubdivisionSurface_Del(node); return;
+		SubdivisionSurface_Del(node);
+		return;
 	case TAG_MPEG4_SubdivSurfaceSector:
-		SubdivSurfaceSector_Del(node); return;
+		SubdivSurfaceSector_Del(node);
+		return;
 	case TAG_MPEG4_WaveletSubdivisionSurface:
-		WaveletSubdivisionSurface_Del(node); return;
+		WaveletSubdivisionSurface_Del(node);
+		return;
 	case TAG_MPEG4_Clipper2D:
-		Clipper2D_Del(node); return;
+		Clipper2D_Del(node);
+		return;
 	case TAG_MPEG4_ColorTransform:
-		ColorTransform_Del(node); return;
+		ColorTransform_Del(node);
+		return;
 	case TAG_MPEG4_Ellipse:
-		Ellipse_Del(node); return;
+		Ellipse_Del(node);
+		return;
 	case TAG_MPEG4_LinearGradient:
-		LinearGradient_Del(node); return;
+		LinearGradient_Del(node);
+		return;
 	case TAG_MPEG4_PathLayout:
-		PathLayout_Del(node); return;
+		PathLayout_Del(node);
+		return;
 	case TAG_MPEG4_RadialGradient:
-		RadialGradient_Del(node); return;
+		RadialGradient_Del(node);
+		return;
 	case TAG_MPEG4_SynthesizedTexture:
-		SynthesizedTexture_Del(node); return;
+		SynthesizedTexture_Del(node);
+		return;
 	case TAG_MPEG4_TransformMatrix2D:
-		TransformMatrix2D_Del(node); return;
+		TransformMatrix2D_Del(node);
+		return;
 	case TAG_MPEG4_Viewport:
-		Viewport_Del(node); return;
+		Viewport_Del(node);
+		return;
 	case TAG_MPEG4_XCurve2D:
-		XCurve2D_Del(node); return;
+		XCurve2D_Del(node);
+		return;
 	case TAG_MPEG4_XFontStyle:
-		XFontStyle_Del(node); return;
+		XFontStyle_Del(node);
+		return;
 	case TAG_MPEG4_XLineProperties:
-		XLineProperties_Del(node); return;
+		XLineProperties_Del(node);
+		return;
 	case TAG_MPEG4_AdvancedAudioBuffer:
-		AdvancedAudioBuffer_Del(node); return;
+		AdvancedAudioBuffer_Del(node);
+		return;
 	case TAG_MPEG4_AudioChannelConfig:
-		AudioChannelConfig_Del(node); return;
+		AudioChannelConfig_Del(node);
+		return;
 	case TAG_MPEG4_DepthImageV2:
-		DepthImageV2_Del(node); return;
+		DepthImageV2_Del(node);
+		return;
 	case TAG_MPEG4_MorphShape:
-		MorphShape_Del(node); return;
+		MorphShape_Del(node);
+		return;
 	case TAG_MPEG4_MultiTexture:
-		MultiTexture_Del(node); return;
+		MultiTexture_Del(node);
+		return;
 	case TAG_MPEG4_PointTextureV2:
-		PointTextureV2_Del(node); return;
+		PointTextureV2_Del(node);
+		return;
 	case TAG_MPEG4_SBVCAnimationV2:
-		SBVCAnimationV2_Del(node); return;
+		SBVCAnimationV2_Del(node);
+		return;
 	case TAG_MPEG4_SimpleTextureV2:
-		SimpleTextureV2_Del(node); return;
+		SimpleTextureV2_Del(node);
+		return;
 	case TAG_MPEG4_SurroundingSound:
-		SurroundingSound_Del(node); return;
+		SurroundingSound_Del(node);
+		return;
 	case TAG_MPEG4_Transform3DAudio:
-		Transform3DAudio_Del(node); return;
+		Transform3DAudio_Del(node);
+		return;
 	case TAG_MPEG4_WideSound:
-		WideSound_Del(node); return;
+		WideSound_Del(node);
+		return;
 	case TAG_MPEG4_ScoreShape:
-		ScoreShape_Del(node); return;
+		ScoreShape_Del(node);
+		return;
 	case TAG_MPEG4_MusicScore:
-		MusicScore_Del(node); return;
+		MusicScore_Del(node);
+		return;
 	case TAG_MPEG4_FootPrintSetNode:
-		FootPrintSetNode_Del(node); return;
+		FootPrintSetNode_Del(node);
+		return;
 	case TAG_MPEG4_FootPrintNode:
-		FootPrintNode_Del(node); return;
+		FootPrintNode_Del(node);
+		return;
 	case TAG_MPEG4_BuildingPartNode:
-		BuildingPartNode_Del(node); return;
+		BuildingPartNode_Del(node);
+		return;
 	case TAG_MPEG4_RoofNode:
-		RoofNode_Del(node); return;
+		RoofNode_Del(node);
+		return;
 	case TAG_MPEG4_FacadeNode:
-		FacadeNode_Del(node); return;
+		FacadeNode_Del(node);
+		return;
 	case TAG_MPEG4_Shadow:
-		Shadow_Del(node); return;
+		Shadow_Del(node);
+		return;
 	case TAG_MPEG4_CacheTexture:
-		CacheTexture_Del(node); return;
+		CacheTexture_Del(node);
+		return;
 	case TAG_MPEG4_EnvironmentTest:
-		EnvironmentTest_Del(node); return;
+		EnvironmentTest_Del(node);
+		return;
 	case TAG_MPEG4_KeyNavigator:
-		KeyNavigator_Del(node); return;
+		KeyNavigator_Del(node);
+		return;
 	case TAG_MPEG4_SpacePartition:
-		SpacePartition_Del(node); return;
+		SpacePartition_Del(node);
+		return;
 	case TAG_MPEG4_Storage:
-		Storage_Del(node); return;
+		Storage_Del(node);
+		return;
 	default:
 		return;
 	}
@@ -37126,201 +38101,396 @@ void gf_sg_mpeg4_node_del(GF_Node *node)
 u32 gf_sg_mpeg4_node_get_field_count(GF_Node *node, u8 code_mode)
 {
 	switch (node->sgprivate->tag) {
-	case TAG_MPEG4_Anchor:return Anchor_get_field_count(node, code_mode);
-	case TAG_MPEG4_AnimationStream:return AnimationStream_get_field_count(node, code_mode);
-	case TAG_MPEG4_Appearance:return Appearance_get_field_count(node, code_mode);
-	case TAG_MPEG4_AudioBuffer:return AudioBuffer_get_field_count(node, code_mode);
-	case TAG_MPEG4_AudioClip:return AudioClip_get_field_count(node, code_mode);
-	case TAG_MPEG4_AudioDelay:return AudioDelay_get_field_count(node, code_mode);
-	case TAG_MPEG4_AudioFX:return AudioFX_get_field_count(node, code_mode);
-	case TAG_MPEG4_AudioMix:return AudioMix_get_field_count(node, code_mode);
-	case TAG_MPEG4_AudioSource:return AudioSource_get_field_count(node, code_mode);
-	case TAG_MPEG4_AudioSwitch:return AudioSwitch_get_field_count(node, code_mode);
-	case TAG_MPEG4_Background:return Background_get_field_count(node, code_mode);
-	case TAG_MPEG4_Background2D:return Background2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_Billboard:return Billboard_get_field_count(node, code_mode);
-	case TAG_MPEG4_Bitmap:return Bitmap_get_field_count(node, code_mode);
-	case TAG_MPEG4_Box:return Box_get_field_count(node, code_mode);
-	case TAG_MPEG4_Circle:return Circle_get_field_count(node, code_mode);
-	case TAG_MPEG4_Collision:return Collision_get_field_count(node, code_mode);
-	case TAG_MPEG4_Color:return Color_get_field_count(node, code_mode);
-	case TAG_MPEG4_ColorInterpolator:return ColorInterpolator_get_field_count(node, code_mode);
-	case TAG_MPEG4_CompositeTexture2D:return CompositeTexture2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_CompositeTexture3D:return CompositeTexture3D_get_field_count(node, code_mode);
-	case TAG_MPEG4_Conditional:return Conditional_get_field_count(node, code_mode);
-	case TAG_MPEG4_Cone:return Cone_get_field_count(node, code_mode);
-	case TAG_MPEG4_Coordinate:return Coordinate_get_field_count(node, code_mode);
-	case TAG_MPEG4_Coordinate2D:return Coordinate2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_CoordinateInterpolator:return CoordinateInterpolator_get_field_count(node, code_mode);
-	case TAG_MPEG4_CoordinateInterpolator2D:return CoordinateInterpolator2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_Curve2D:return Curve2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_Cylinder:return Cylinder_get_field_count(node, code_mode);
-	case TAG_MPEG4_CylinderSensor:return CylinderSensor_get_field_count(node, code_mode);
-	case TAG_MPEG4_DirectionalLight:return DirectionalLight_get_field_count(node, code_mode);
-	case TAG_MPEG4_DiscSensor:return DiscSensor_get_field_count(node, code_mode);
-	case TAG_MPEG4_ElevationGrid:return ElevationGrid_get_field_count(node, code_mode);
-	case TAG_MPEG4_Expression:return Expression_get_field_count(node, code_mode);
-	case TAG_MPEG4_Extrusion:return Extrusion_get_field_count(node, code_mode);
-	case TAG_MPEG4_Face:return Face_get_field_count(node, code_mode);
-	case TAG_MPEG4_FaceDefMesh:return FaceDefMesh_get_field_count(node, code_mode);
-	case TAG_MPEG4_FaceDefTables:return FaceDefTables_get_field_count(node, code_mode);
-	case TAG_MPEG4_FaceDefTransform:return FaceDefTransform_get_field_count(node, code_mode);
-	case TAG_MPEG4_FAP:return FAP_get_field_count(node, code_mode);
-	case TAG_MPEG4_FDP:return FDP_get_field_count(node, code_mode);
-	case TAG_MPEG4_FIT:return FIT_get_field_count(node, code_mode);
-	case TAG_MPEG4_Fog:return Fog_get_field_count(node, code_mode);
-	case TAG_MPEG4_FontStyle:return FontStyle_get_field_count(node, code_mode);
-	case TAG_MPEG4_Form:return Form_get_field_count(node, code_mode);
-	case TAG_MPEG4_Group:return Group_get_field_count(node, code_mode);
-	case TAG_MPEG4_ImageTexture:return ImageTexture_get_field_count(node, code_mode);
-	case TAG_MPEG4_IndexedFaceSet:return IndexedFaceSet_get_field_count(node, code_mode);
-	case TAG_MPEG4_IndexedFaceSet2D:return IndexedFaceSet2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_IndexedLineSet:return IndexedLineSet_get_field_count(node, code_mode);
-	case TAG_MPEG4_IndexedLineSet2D:return IndexedLineSet2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_Inline:return Inline_get_field_count(node, code_mode);
-	case TAG_MPEG4_LOD:return LOD_get_field_count(node, code_mode);
-	case TAG_MPEG4_Layer2D:return Layer2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_Layer3D:return Layer3D_get_field_count(node, code_mode);
-	case TAG_MPEG4_Layout:return Layout_get_field_count(node, code_mode);
-	case TAG_MPEG4_LineProperties:return LineProperties_get_field_count(node, code_mode);
-	case TAG_MPEG4_ListeningPoint:return ListeningPoint_get_field_count(node, code_mode);
-	case TAG_MPEG4_Material:return Material_get_field_count(node, code_mode);
-	case TAG_MPEG4_Material2D:return Material2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_MovieTexture:return MovieTexture_get_field_count(node, code_mode);
-	case TAG_MPEG4_NavigationInfo:return NavigationInfo_get_field_count(node, code_mode);
-	case TAG_MPEG4_Normal:return Normal_get_field_count(node, code_mode);
-	case TAG_MPEG4_NormalInterpolator:return NormalInterpolator_get_field_count(node, code_mode);
-	case TAG_MPEG4_OrderedGroup:return OrderedGroup_get_field_count(node, code_mode);
-	case TAG_MPEG4_OrientationInterpolator:return OrientationInterpolator_get_field_count(node, code_mode);
-	case TAG_MPEG4_PixelTexture:return PixelTexture_get_field_count(node, code_mode);
-	case TAG_MPEG4_PlaneSensor:return PlaneSensor_get_field_count(node, code_mode);
-	case TAG_MPEG4_PlaneSensor2D:return PlaneSensor2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_PointLight:return PointLight_get_field_count(node, code_mode);
-	case TAG_MPEG4_PointSet:return PointSet_get_field_count(node, code_mode);
-	case TAG_MPEG4_PointSet2D:return PointSet2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_PositionInterpolator:return PositionInterpolator_get_field_count(node, code_mode);
-	case TAG_MPEG4_PositionInterpolator2D:return PositionInterpolator2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_ProximitySensor2D:return ProximitySensor2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_ProximitySensor:return ProximitySensor_get_field_count(node, code_mode);
-	case TAG_MPEG4_QuantizationParameter:return QuantizationParameter_get_field_count(node, code_mode);
-	case TAG_MPEG4_Rectangle:return Rectangle_get_field_count(node, code_mode);
-	case TAG_MPEG4_ScalarInterpolator:return ScalarInterpolator_get_field_count(node, code_mode);
-	case TAG_MPEG4_Script:return Script_get_field_count(node, code_mode);
-	case TAG_MPEG4_Shape:return Shape_get_field_count(node, code_mode);
-	case TAG_MPEG4_Sound:return Sound_get_field_count(node, code_mode);
-	case TAG_MPEG4_Sound2D:return Sound2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_Sphere:return Sphere_get_field_count(node, code_mode);
-	case TAG_MPEG4_SphereSensor:return SphereSensor_get_field_count(node, code_mode);
-	case TAG_MPEG4_SpotLight:return SpotLight_get_field_count(node, code_mode);
-	case TAG_MPEG4_Switch:return Switch_get_field_count(node, code_mode);
-	case TAG_MPEG4_TermCap:return TermCap_get_field_count(node, code_mode);
-	case TAG_MPEG4_Text:return Text_get_field_count(node, code_mode);
-	case TAG_MPEG4_TextureCoordinate:return TextureCoordinate_get_field_count(node, code_mode);
-	case TAG_MPEG4_TextureTransform:return TextureTransform_get_field_count(node, code_mode);
-	case TAG_MPEG4_TimeSensor:return TimeSensor_get_field_count(node, code_mode);
-	case TAG_MPEG4_TouchSensor:return TouchSensor_get_field_count(node, code_mode);
-	case TAG_MPEG4_Transform:return Transform_get_field_count(node, code_mode);
-	case TAG_MPEG4_Transform2D:return Transform2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_Valuator:return Valuator_get_field_count(node, code_mode);
-	case TAG_MPEG4_Viewpoint:return Viewpoint_get_field_count(node, code_mode);
-	case TAG_MPEG4_VisibilitySensor:return VisibilitySensor_get_field_count(node, code_mode);
-	case TAG_MPEG4_Viseme:return Viseme_get_field_count(node, code_mode);
-	case TAG_MPEG4_WorldInfo:return WorldInfo_get_field_count(node, code_mode);
-	case TAG_MPEG4_AcousticMaterial:return AcousticMaterial_get_field_count(node, code_mode);
-	case TAG_MPEG4_AcousticScene:return AcousticScene_get_field_count(node, code_mode);
-	case TAG_MPEG4_ApplicationWindow:return ApplicationWindow_get_field_count(node, code_mode);
-	case TAG_MPEG4_BAP:return BAP_get_field_count(node, code_mode);
-	case TAG_MPEG4_BDP:return BDP_get_field_count(node, code_mode);
-	case TAG_MPEG4_Body:return Body_get_field_count(node, code_mode);
-	case TAG_MPEG4_BodyDefTable:return BodyDefTable_get_field_count(node, code_mode);
-	case TAG_MPEG4_BodySegmentConnectionHint:return BodySegmentConnectionHint_get_field_count(node, code_mode);
-	case TAG_MPEG4_DirectiveSound:return DirectiveSound_get_field_count(node, code_mode);
-	case TAG_MPEG4_Hierarchical3DMesh:return Hierarchical3DMesh_get_field_count(node, code_mode);
-	case TAG_MPEG4_MaterialKey:return MaterialKey_get_field_count(node, code_mode);
-	case TAG_MPEG4_PerceptualParameters:return PerceptualParameters_get_field_count(node, code_mode);
-	case TAG_MPEG4_TemporalTransform:return TemporalTransform_get_field_count(node, code_mode);
-	case TAG_MPEG4_TemporalGroup:return TemporalGroup_get_field_count(node, code_mode);
-	case TAG_MPEG4_ServerCommand:return ServerCommand_get_field_count(node, code_mode);
-	case TAG_MPEG4_InputSensor:return InputSensor_get_field_count(node, code_mode);
-	case TAG_MPEG4_MatteTexture:return MatteTexture_get_field_count(node, code_mode);
-	case TAG_MPEG4_MediaBuffer:return MediaBuffer_get_field_count(node, code_mode);
-	case TAG_MPEG4_MediaControl:return MediaControl_get_field_count(node, code_mode);
-	case TAG_MPEG4_MediaSensor:return MediaSensor_get_field_count(node, code_mode);
-	case TAG_MPEG4_BitWrapper:return BitWrapper_get_field_count(node, code_mode);
-	case TAG_MPEG4_CoordinateInterpolator4D:return CoordinateInterpolator4D_get_field_count(node, code_mode);
-	case TAG_MPEG4_DepthImage:return DepthImage_get_field_count(node, code_mode);
-	case TAG_MPEG4_FFD:return FFD_get_field_count(node, code_mode);
-	case TAG_MPEG4_Implicit:return Implicit_get_field_count(node, code_mode);
-	case TAG_MPEG4_XXLFM_Appearance:return XXLFM_Appearance_get_field_count(node, code_mode);
-	case TAG_MPEG4_XXLFM_BlendList:return XXLFM_BlendList_get_field_count(node, code_mode);
-	case TAG_MPEG4_XXLFM_FrameList:return XXLFM_FrameList_get_field_count(node, code_mode);
-	case TAG_MPEG4_XXLFM_LightMap:return XXLFM_LightMap_get_field_count(node, code_mode);
-	case TAG_MPEG4_XXLFM_SurfaceMapList:return XXLFM_SurfaceMapList_get_field_count(node, code_mode);
-	case TAG_MPEG4_XXLFM_ViewMapList:return XXLFM_ViewMapList_get_field_count(node, code_mode);
-	case TAG_MPEG4_MeshGrid:return MeshGrid_get_field_count(node, code_mode);
-	case TAG_MPEG4_NonLinearDeformer:return NonLinearDeformer_get_field_count(node, code_mode);
-	case TAG_MPEG4_NurbsCurve:return NurbsCurve_get_field_count(node, code_mode);
-	case TAG_MPEG4_NurbsCurve2D:return NurbsCurve2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_NurbsSurface:return NurbsSurface_get_field_count(node, code_mode);
-	case TAG_MPEG4_OctreeImage:return OctreeImage_get_field_count(node, code_mode);
-	case TAG_MPEG4_XXParticles:return XXParticles_get_field_count(node, code_mode);
-	case TAG_MPEG4_XXParticleInitBox:return XXParticleInitBox_get_field_count(node, code_mode);
-	case TAG_MPEG4_XXPlanarObstacle:return XXPlanarObstacle_get_field_count(node, code_mode);
-	case TAG_MPEG4_XXPointAttractor:return XXPointAttractor_get_field_count(node, code_mode);
-	case TAG_MPEG4_PointTexture:return PointTexture_get_field_count(node, code_mode);
-	case TAG_MPEG4_PositionAnimator:return PositionAnimator_get_field_count(node, code_mode);
-	case TAG_MPEG4_PositionAnimator2D:return PositionAnimator2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_PositionInterpolator4D:return PositionInterpolator4D_get_field_count(node, code_mode);
-	case TAG_MPEG4_ProceduralTexture:return ProceduralTexture_get_field_count(node, code_mode);
-	case TAG_MPEG4_Quadric:return Quadric_get_field_count(node, code_mode);
-	case TAG_MPEG4_SBBone:return SBBone_get_field_count(node, code_mode);
-	case TAG_MPEG4_SBMuscle:return SBMuscle_get_field_count(node, code_mode);
-	case TAG_MPEG4_SBSegment:return SBSegment_get_field_count(node, code_mode);
-	case TAG_MPEG4_SBSite:return SBSite_get_field_count(node, code_mode);
-	case TAG_MPEG4_SBSkinnedModel:return SBSkinnedModel_get_field_count(node, code_mode);
-	case TAG_MPEG4_SBVCAnimation:return SBVCAnimation_get_field_count(node, code_mode);
-	case TAG_MPEG4_ScalarAnimator:return ScalarAnimator_get_field_count(node, code_mode);
-	case TAG_MPEG4_SimpleTexture:return SimpleTexture_get_field_count(node, code_mode);
-	case TAG_MPEG4_SolidRep:return SolidRep_get_field_count(node, code_mode);
-	case TAG_MPEG4_SubdivisionSurface:return SubdivisionSurface_get_field_count(node, code_mode);
-	case TAG_MPEG4_SubdivSurfaceSector:return SubdivSurfaceSector_get_field_count(node, code_mode);
-	case TAG_MPEG4_WaveletSubdivisionSurface:return WaveletSubdivisionSurface_get_field_count(node, code_mode);
-	case TAG_MPEG4_Clipper2D:return Clipper2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_ColorTransform:return ColorTransform_get_field_count(node, code_mode);
-	case TAG_MPEG4_Ellipse:return Ellipse_get_field_count(node, code_mode);
-	case TAG_MPEG4_LinearGradient:return LinearGradient_get_field_count(node, code_mode);
-	case TAG_MPEG4_PathLayout:return PathLayout_get_field_count(node, code_mode);
-	case TAG_MPEG4_RadialGradient:return RadialGradient_get_field_count(node, code_mode);
-	case TAG_MPEG4_SynthesizedTexture:return SynthesizedTexture_get_field_count(node, code_mode);
-	case TAG_MPEG4_TransformMatrix2D:return TransformMatrix2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_Viewport:return Viewport_get_field_count(node, code_mode);
-	case TAG_MPEG4_XCurve2D:return XCurve2D_get_field_count(node, code_mode);
-	case TAG_MPEG4_XFontStyle:return XFontStyle_get_field_count(node, code_mode);
-	case TAG_MPEG4_XLineProperties:return XLineProperties_get_field_count(node, code_mode);
-	case TAG_MPEG4_AdvancedAudioBuffer:return AdvancedAudioBuffer_get_field_count(node, code_mode);
-	case TAG_MPEG4_AudioChannelConfig:return AudioChannelConfig_get_field_count(node, code_mode);
-	case TAG_MPEG4_DepthImageV2:return DepthImageV2_get_field_count(node, code_mode);
-	case TAG_MPEG4_MorphShape:return MorphShape_get_field_count(node, code_mode);
-	case TAG_MPEG4_MultiTexture:return MultiTexture_get_field_count(node, code_mode);
-	case TAG_MPEG4_PointTextureV2:return PointTextureV2_get_field_count(node, code_mode);
-	case TAG_MPEG4_SBVCAnimationV2:return SBVCAnimationV2_get_field_count(node, code_mode);
-	case TAG_MPEG4_SimpleTextureV2:return SimpleTextureV2_get_field_count(node, code_mode);
-	case TAG_MPEG4_SurroundingSound:return SurroundingSound_get_field_count(node, code_mode);
-	case TAG_MPEG4_Transform3DAudio:return Transform3DAudio_get_field_count(node, code_mode);
-	case TAG_MPEG4_WideSound:return WideSound_get_field_count(node, code_mode);
-	case TAG_MPEG4_ScoreShape:return ScoreShape_get_field_count(node, code_mode);
-	case TAG_MPEG4_MusicScore:return MusicScore_get_field_count(node, code_mode);
-	case TAG_MPEG4_FootPrintSetNode:return FootPrintSetNode_get_field_count(node, code_mode);
-	case TAG_MPEG4_FootPrintNode:return FootPrintNode_get_field_count(node, code_mode);
-	case TAG_MPEG4_BuildingPartNode:return BuildingPartNode_get_field_count(node, code_mode);
-	case TAG_MPEG4_RoofNode:return RoofNode_get_field_count(node, code_mode);
-	case TAG_MPEG4_FacadeNode:return FacadeNode_get_field_count(node, code_mode);
-	case TAG_MPEG4_Shadow:return Shadow_get_field_count(node, code_mode);
-	case TAG_MPEG4_CacheTexture:return CacheTexture_get_field_count(node, code_mode);
-	case TAG_MPEG4_EnvironmentTest:return EnvironmentTest_get_field_count(node, code_mode);
-	case TAG_MPEG4_KeyNavigator:return KeyNavigator_get_field_count(node, code_mode);
-	case TAG_MPEG4_SpacePartition:return SpacePartition_get_field_count(node, code_mode);
-	case TAG_MPEG4_Storage:return Storage_get_field_count(node, code_mode);
+	case TAG_MPEG4_Anchor:
+		return Anchor_get_field_count(node, code_mode);
+	case TAG_MPEG4_AnimationStream:
+		return AnimationStream_get_field_count(node, code_mode);
+	case TAG_MPEG4_Appearance:
+		return Appearance_get_field_count(node, code_mode);
+	case TAG_MPEG4_AudioBuffer:
+		return AudioBuffer_get_field_count(node, code_mode);
+	case TAG_MPEG4_AudioClip:
+		return AudioClip_get_field_count(node, code_mode);
+	case TAG_MPEG4_AudioDelay:
+		return AudioDelay_get_field_count(node, code_mode);
+	case TAG_MPEG4_AudioFX:
+		return AudioFX_get_field_count(node, code_mode);
+	case TAG_MPEG4_AudioMix:
+		return AudioMix_get_field_count(node, code_mode);
+	case TAG_MPEG4_AudioSource:
+		return AudioSource_get_field_count(node, code_mode);
+	case TAG_MPEG4_AudioSwitch:
+		return AudioSwitch_get_field_count(node, code_mode);
+	case TAG_MPEG4_Background:
+		return Background_get_field_count(node, code_mode);
+	case TAG_MPEG4_Background2D:
+		return Background2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_Billboard:
+		return Billboard_get_field_count(node, code_mode);
+	case TAG_MPEG4_Bitmap:
+		return Bitmap_get_field_count(node, code_mode);
+	case TAG_MPEG4_Box:
+		return Box_get_field_count(node, code_mode);
+	case TAG_MPEG4_Circle:
+		return Circle_get_field_count(node, code_mode);
+	case TAG_MPEG4_Collision:
+		return Collision_get_field_count(node, code_mode);
+	case TAG_MPEG4_Color:
+		return Color_get_field_count(node, code_mode);
+	case TAG_MPEG4_ColorInterpolator:
+		return ColorInterpolator_get_field_count(node, code_mode);
+	case TAG_MPEG4_CompositeTexture2D:
+		return CompositeTexture2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_CompositeTexture3D:
+		return CompositeTexture3D_get_field_count(node, code_mode);
+	case TAG_MPEG4_Conditional:
+		return Conditional_get_field_count(node, code_mode);
+	case TAG_MPEG4_Cone:
+		return Cone_get_field_count(node, code_mode);
+	case TAG_MPEG4_Coordinate:
+		return Coordinate_get_field_count(node, code_mode);
+	case TAG_MPEG4_Coordinate2D:
+		return Coordinate2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_CoordinateInterpolator:
+		return CoordinateInterpolator_get_field_count(node, code_mode);
+	case TAG_MPEG4_CoordinateInterpolator2D:
+		return CoordinateInterpolator2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_Curve2D:
+		return Curve2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_Cylinder:
+		return Cylinder_get_field_count(node, code_mode);
+	case TAG_MPEG4_CylinderSensor:
+		return CylinderSensor_get_field_count(node, code_mode);
+	case TAG_MPEG4_DirectionalLight:
+		return DirectionalLight_get_field_count(node, code_mode);
+	case TAG_MPEG4_DiscSensor:
+		return DiscSensor_get_field_count(node, code_mode);
+	case TAG_MPEG4_ElevationGrid:
+		return ElevationGrid_get_field_count(node, code_mode);
+	case TAG_MPEG4_Expression:
+		return Expression_get_field_count(node, code_mode);
+	case TAG_MPEG4_Extrusion:
+		return Extrusion_get_field_count(node, code_mode);
+	case TAG_MPEG4_Face:
+		return Face_get_field_count(node, code_mode);
+	case TAG_MPEG4_FaceDefMesh:
+		return FaceDefMesh_get_field_count(node, code_mode);
+	case TAG_MPEG4_FaceDefTables:
+		return FaceDefTables_get_field_count(node, code_mode);
+	case TAG_MPEG4_FaceDefTransform:
+		return FaceDefTransform_get_field_count(node, code_mode);
+	case TAG_MPEG4_FAP:
+		return FAP_get_field_count(node, code_mode);
+	case TAG_MPEG4_FDP:
+		return FDP_get_field_count(node, code_mode);
+	case TAG_MPEG4_FIT:
+		return FIT_get_field_count(node, code_mode);
+	case TAG_MPEG4_Fog:
+		return Fog_get_field_count(node, code_mode);
+	case TAG_MPEG4_FontStyle:
+		return FontStyle_get_field_count(node, code_mode);
+	case TAG_MPEG4_Form:
+		return Form_get_field_count(node, code_mode);
+	case TAG_MPEG4_Group:
+		return Group_get_field_count(node, code_mode);
+	case TAG_MPEG4_ImageTexture:
+		return ImageTexture_get_field_count(node, code_mode);
+	case TAG_MPEG4_IndexedFaceSet:
+		return IndexedFaceSet_get_field_count(node, code_mode);
+	case TAG_MPEG4_IndexedFaceSet2D:
+		return IndexedFaceSet2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_IndexedLineSet:
+		return IndexedLineSet_get_field_count(node, code_mode);
+	case TAG_MPEG4_IndexedLineSet2D:
+		return IndexedLineSet2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_Inline:
+		return Inline_get_field_count(node, code_mode);
+	case TAG_MPEG4_LOD:
+		return LOD_get_field_count(node, code_mode);
+	case TAG_MPEG4_Layer2D:
+		return Layer2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_Layer3D:
+		return Layer3D_get_field_count(node, code_mode);
+	case TAG_MPEG4_Layout:
+		return Layout_get_field_count(node, code_mode);
+	case TAG_MPEG4_LineProperties:
+		return LineProperties_get_field_count(node, code_mode);
+	case TAG_MPEG4_ListeningPoint:
+		return ListeningPoint_get_field_count(node, code_mode);
+	case TAG_MPEG4_Material:
+		return Material_get_field_count(node, code_mode);
+	case TAG_MPEG4_Material2D:
+		return Material2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_MovieTexture:
+		return MovieTexture_get_field_count(node, code_mode);
+	case TAG_MPEG4_NavigationInfo:
+		return NavigationInfo_get_field_count(node, code_mode);
+	case TAG_MPEG4_Normal:
+		return Normal_get_field_count(node, code_mode);
+	case TAG_MPEG4_NormalInterpolator:
+		return NormalInterpolator_get_field_count(node, code_mode);
+	case TAG_MPEG4_OrderedGroup:
+		return OrderedGroup_get_field_count(node, code_mode);
+	case TAG_MPEG4_OrientationInterpolator:
+		return OrientationInterpolator_get_field_count(node, code_mode);
+	case TAG_MPEG4_PixelTexture:
+		return PixelTexture_get_field_count(node, code_mode);
+	case TAG_MPEG4_PlaneSensor:
+		return PlaneSensor_get_field_count(node, code_mode);
+	case TAG_MPEG4_PlaneSensor2D:
+		return PlaneSensor2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_PointLight:
+		return PointLight_get_field_count(node, code_mode);
+	case TAG_MPEG4_PointSet:
+		return PointSet_get_field_count(node, code_mode);
+	case TAG_MPEG4_PointSet2D:
+		return PointSet2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_PositionInterpolator:
+		return PositionInterpolator_get_field_count(node, code_mode);
+	case TAG_MPEG4_PositionInterpolator2D:
+		return PositionInterpolator2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_ProximitySensor2D:
+		return ProximitySensor2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_ProximitySensor:
+		return ProximitySensor_get_field_count(node, code_mode);
+	case TAG_MPEG4_QuantizationParameter:
+		return QuantizationParameter_get_field_count(node, code_mode);
+	case TAG_MPEG4_Rectangle:
+		return Rectangle_get_field_count(node, code_mode);
+	case TAG_MPEG4_ScalarInterpolator:
+		return ScalarInterpolator_get_field_count(node, code_mode);
+	case TAG_MPEG4_Script:
+		return Script_get_field_count(node, code_mode);
+	case TAG_MPEG4_Shape:
+		return Shape_get_field_count(node, code_mode);
+	case TAG_MPEG4_Sound:
+		return Sound_get_field_count(node, code_mode);
+	case TAG_MPEG4_Sound2D:
+		return Sound2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_Sphere:
+		return Sphere_get_field_count(node, code_mode);
+	case TAG_MPEG4_SphereSensor:
+		return SphereSensor_get_field_count(node, code_mode);
+	case TAG_MPEG4_SpotLight:
+		return SpotLight_get_field_count(node, code_mode);
+	case TAG_MPEG4_Switch:
+		return Switch_get_field_count(node, code_mode);
+	case TAG_MPEG4_TermCap:
+		return TermCap_get_field_count(node, code_mode);
+	case TAG_MPEG4_Text:
+		return Text_get_field_count(node, code_mode);
+	case TAG_MPEG4_TextureCoordinate:
+		return TextureCoordinate_get_field_count(node, code_mode);
+	case TAG_MPEG4_TextureTransform:
+		return TextureTransform_get_field_count(node, code_mode);
+	case TAG_MPEG4_TimeSensor:
+		return TimeSensor_get_field_count(node, code_mode);
+	case TAG_MPEG4_TouchSensor:
+		return TouchSensor_get_field_count(node, code_mode);
+	case TAG_MPEG4_Transform:
+		return Transform_get_field_count(node, code_mode);
+	case TAG_MPEG4_Transform2D:
+		return Transform2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_Valuator:
+		return Valuator_get_field_count(node, code_mode);
+	case TAG_MPEG4_Viewpoint:
+		return Viewpoint_get_field_count(node, code_mode);
+	case TAG_MPEG4_VisibilitySensor:
+		return VisibilitySensor_get_field_count(node, code_mode);
+	case TAG_MPEG4_Viseme:
+		return Viseme_get_field_count(node, code_mode);
+	case TAG_MPEG4_WorldInfo:
+		return WorldInfo_get_field_count(node, code_mode);
+	case TAG_MPEG4_AcousticMaterial:
+		return AcousticMaterial_get_field_count(node, code_mode);
+	case TAG_MPEG4_AcousticScene:
+		return AcousticScene_get_field_count(node, code_mode);
+	case TAG_MPEG4_ApplicationWindow:
+		return ApplicationWindow_get_field_count(node, code_mode);
+	case TAG_MPEG4_BAP:
+		return BAP_get_field_count(node, code_mode);
+	case TAG_MPEG4_BDP:
+		return BDP_get_field_count(node, code_mode);
+	case TAG_MPEG4_Body:
+		return Body_get_field_count(node, code_mode);
+	case TAG_MPEG4_BodyDefTable:
+		return BodyDefTable_get_field_count(node, code_mode);
+	case TAG_MPEG4_BodySegmentConnectionHint:
+		return BodySegmentConnectionHint_get_field_count(node, code_mode);
+	case TAG_MPEG4_DirectiveSound:
+		return DirectiveSound_get_field_count(node, code_mode);
+	case TAG_MPEG4_Hierarchical3DMesh:
+		return Hierarchical3DMesh_get_field_count(node, code_mode);
+	case TAG_MPEG4_MaterialKey:
+		return MaterialKey_get_field_count(node, code_mode);
+	case TAG_MPEG4_PerceptualParameters:
+		return PerceptualParameters_get_field_count(node, code_mode);
+	case TAG_MPEG4_TemporalTransform:
+		return TemporalTransform_get_field_count(node, code_mode);
+	case TAG_MPEG4_TemporalGroup:
+		return TemporalGroup_get_field_count(node, code_mode);
+	case TAG_MPEG4_ServerCommand:
+		return ServerCommand_get_field_count(node, code_mode);
+	case TAG_MPEG4_InputSensor:
+		return InputSensor_get_field_count(node, code_mode);
+	case TAG_MPEG4_MatteTexture:
+		return MatteTexture_get_field_count(node, code_mode);
+	case TAG_MPEG4_MediaBuffer:
+		return MediaBuffer_get_field_count(node, code_mode);
+	case TAG_MPEG4_MediaControl:
+		return MediaControl_get_field_count(node, code_mode);
+	case TAG_MPEG4_MediaSensor:
+		return MediaSensor_get_field_count(node, code_mode);
+	case TAG_MPEG4_BitWrapper:
+		return BitWrapper_get_field_count(node, code_mode);
+	case TAG_MPEG4_CoordinateInterpolator4D:
+		return CoordinateInterpolator4D_get_field_count(node, code_mode);
+	case TAG_MPEG4_DepthImage:
+		return DepthImage_get_field_count(node, code_mode);
+	case TAG_MPEG4_FFD:
+		return FFD_get_field_count(node, code_mode);
+	case TAG_MPEG4_Implicit:
+		return Implicit_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXLFM_Appearance:
+		return XXLFM_Appearance_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXLFM_BlendList:
+		return XXLFM_BlendList_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXLFM_FrameList:
+		return XXLFM_FrameList_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXLFM_LightMap:
+		return XXLFM_LightMap_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXLFM_SurfaceMapList:
+		return XXLFM_SurfaceMapList_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXLFM_ViewMapList:
+		return XXLFM_ViewMapList_get_field_count(node, code_mode);
+	case TAG_MPEG4_MeshGrid:
+		return MeshGrid_get_field_count(node, code_mode);
+	case TAG_MPEG4_NonLinearDeformer:
+		return NonLinearDeformer_get_field_count(node, code_mode);
+	case TAG_MPEG4_NurbsCurve:
+		return NurbsCurve_get_field_count(node, code_mode);
+	case TAG_MPEG4_NurbsCurve2D:
+		return NurbsCurve2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_NurbsSurface:
+		return NurbsSurface_get_field_count(node, code_mode);
+	case TAG_MPEG4_OctreeImage:
+		return OctreeImage_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXParticles:
+		return XXParticles_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXParticleInitBox:
+		return XXParticleInitBox_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXPlanarObstacle:
+		return XXPlanarObstacle_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXPointAttractor:
+		return XXPointAttractor_get_field_count(node, code_mode);
+	case TAG_MPEG4_PointTexture:
+		return PointTexture_get_field_count(node, code_mode);
+	case TAG_MPEG4_PositionAnimator:
+		return PositionAnimator_get_field_count(node, code_mode);
+	case TAG_MPEG4_PositionAnimator2D:
+		return PositionAnimator2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_PositionInterpolator4D:
+		return PositionInterpolator4D_get_field_count(node, code_mode);
+	case TAG_MPEG4_ProceduralTexture:
+		return ProceduralTexture_get_field_count(node, code_mode);
+	case TAG_MPEG4_Quadric:
+		return Quadric_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBBone:
+		return SBBone_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBMuscle:
+		return SBMuscle_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBSegment:
+		return SBSegment_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBSite:
+		return SBSite_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBSkinnedModel:
+		return SBSkinnedModel_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBVCAnimation:
+		return SBVCAnimation_get_field_count(node, code_mode);
+	case TAG_MPEG4_ScalarAnimator:
+		return ScalarAnimator_get_field_count(node, code_mode);
+	case TAG_MPEG4_SimpleTexture:
+		return SimpleTexture_get_field_count(node, code_mode);
+	case TAG_MPEG4_SolidRep:
+		return SolidRep_get_field_count(node, code_mode);
+	case TAG_MPEG4_SubdivisionSurface:
+		return SubdivisionSurface_get_field_count(node, code_mode);
+	case TAG_MPEG4_SubdivSurfaceSector:
+		return SubdivSurfaceSector_get_field_count(node, code_mode);
+	case TAG_MPEG4_WaveletSubdivisionSurface:
+		return WaveletSubdivisionSurface_get_field_count(node, code_mode);
+	case TAG_MPEG4_Clipper2D:
+		return Clipper2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_ColorTransform:
+		return ColorTransform_get_field_count(node, code_mode);
+	case TAG_MPEG4_Ellipse:
+		return Ellipse_get_field_count(node, code_mode);
+	case TAG_MPEG4_LinearGradient:
+		return LinearGradient_get_field_count(node, code_mode);
+	case TAG_MPEG4_PathLayout:
+		return PathLayout_get_field_count(node, code_mode);
+	case TAG_MPEG4_RadialGradient:
+		return RadialGradient_get_field_count(node, code_mode);
+	case TAG_MPEG4_SynthesizedTexture:
+		return SynthesizedTexture_get_field_count(node, code_mode);
+	case TAG_MPEG4_TransformMatrix2D:
+		return TransformMatrix2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_Viewport:
+		return Viewport_get_field_count(node, code_mode);
+	case TAG_MPEG4_XCurve2D:
+		return XCurve2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_XFontStyle:
+		return XFontStyle_get_field_count(node, code_mode);
+	case TAG_MPEG4_XLineProperties:
+		return XLineProperties_get_field_count(node, code_mode);
+	case TAG_MPEG4_AdvancedAudioBuffer:
+		return AdvancedAudioBuffer_get_field_count(node, code_mode);
+	case TAG_MPEG4_AudioChannelConfig:
+		return AudioChannelConfig_get_field_count(node, code_mode);
+	case TAG_MPEG4_DepthImageV2:
+		return DepthImageV2_get_field_count(node, code_mode);
+	case TAG_MPEG4_MorphShape:
+		return MorphShape_get_field_count(node, code_mode);
+	case TAG_MPEG4_MultiTexture:
+		return MultiTexture_get_field_count(node, code_mode);
+	case TAG_MPEG4_PointTextureV2:
+		return PointTextureV2_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBVCAnimationV2:
+		return SBVCAnimationV2_get_field_count(node, code_mode);
+	case TAG_MPEG4_SimpleTextureV2:
+		return SimpleTextureV2_get_field_count(node, code_mode);
+	case TAG_MPEG4_SurroundingSound:
+		return SurroundingSound_get_field_count(node, code_mode);
+	case TAG_MPEG4_Transform3DAudio:
+		return Transform3DAudio_get_field_count(node, code_mode);
+	case TAG_MPEG4_WideSound:
+		return WideSound_get_field_count(node, code_mode);
+	case TAG_MPEG4_ScoreShape:
+		return ScoreShape_get_field_count(node, code_mode);
+	case TAG_MPEG4_MusicScore:
+		return MusicScore_get_field_count(node, code_mode);
+	case TAG_MPEG4_FootPrintSetNode:
+		return FootPrintSetNode_get_field_count(node, code_mode);
+	case TAG_MPEG4_FootPrintNode:
+		return FootPrintNode_get_field_count(node, code_mode);
+	case TAG_MPEG4_BuildingPartNode:
+		return BuildingPartNode_get_field_count(node, code_mode);
+	case TAG_MPEG4_RoofNode:
+		return RoofNode_get_field_count(node, code_mode);
+	case TAG_MPEG4_FacadeNode:
+		return FacadeNode_get_field_count(node, code_mode);
+	case TAG_MPEG4_Shadow:
+		return Shadow_get_field_count(node, code_mode);
+	case TAG_MPEG4_CacheTexture:
+		return CacheTexture_get_field_count(node, code_mode);
+	case TAG_MPEG4_EnvironmentTest:
+		return EnvironmentTest_get_field_count(node, code_mode);
+	case TAG_MPEG4_KeyNavigator:
+		return KeyNavigator_get_field_count(node, code_mode);
+	case TAG_MPEG4_SpacePartition:
+		return SpacePartition_get_field_count(node, code_mode);
+	case TAG_MPEG4_Storage:
+		return Storage_get_field_count(node, code_mode);
 	default:
 		return 0;
 	}
@@ -37329,201 +38499,396 @@ u32 gf_sg_mpeg4_node_get_field_count(GF_Node *node, u8 code_mode)
 GF_Err gf_sg_mpeg4_node_get_field(GF_Node *node, GF_FieldInfo *field)
 {
 	switch (node->sgprivate->tag) {
-	case TAG_MPEG4_Anchor: return Anchor_get_field(node, field);
-	case TAG_MPEG4_AnimationStream: return AnimationStream_get_field(node, field);
-	case TAG_MPEG4_Appearance: return Appearance_get_field(node, field);
-	case TAG_MPEG4_AudioBuffer: return AudioBuffer_get_field(node, field);
-	case TAG_MPEG4_AudioClip: return AudioClip_get_field(node, field);
-	case TAG_MPEG4_AudioDelay: return AudioDelay_get_field(node, field);
-	case TAG_MPEG4_AudioFX: return AudioFX_get_field(node, field);
-	case TAG_MPEG4_AudioMix: return AudioMix_get_field(node, field);
-	case TAG_MPEG4_AudioSource: return AudioSource_get_field(node, field);
-	case TAG_MPEG4_AudioSwitch: return AudioSwitch_get_field(node, field);
-	case TAG_MPEG4_Background: return Background_get_field(node, field);
-	case TAG_MPEG4_Background2D: return Background2D_get_field(node, field);
-	case TAG_MPEG4_Billboard: return Billboard_get_field(node, field);
-	case TAG_MPEG4_Bitmap: return Bitmap_get_field(node, field);
-	case TAG_MPEG4_Box: return Box_get_field(node, field);
-	case TAG_MPEG4_Circle: return Circle_get_field(node, field);
-	case TAG_MPEG4_Collision: return Collision_get_field(node, field);
-	case TAG_MPEG4_Color: return Color_get_field(node, field);
-	case TAG_MPEG4_ColorInterpolator: return ColorInterpolator_get_field(node, field);
-	case TAG_MPEG4_CompositeTexture2D: return CompositeTexture2D_get_field(node, field);
-	case TAG_MPEG4_CompositeTexture3D: return CompositeTexture3D_get_field(node, field);
-	case TAG_MPEG4_Conditional: return Conditional_get_field(node, field);
-	case TAG_MPEG4_Cone: return Cone_get_field(node, field);
-	case TAG_MPEG4_Coordinate: return Coordinate_get_field(node, field);
-	case TAG_MPEG4_Coordinate2D: return Coordinate2D_get_field(node, field);
-	case TAG_MPEG4_CoordinateInterpolator: return CoordinateInterpolator_get_field(node, field);
-	case TAG_MPEG4_CoordinateInterpolator2D: return CoordinateInterpolator2D_get_field(node, field);
-	case TAG_MPEG4_Curve2D: return Curve2D_get_field(node, field);
-	case TAG_MPEG4_Cylinder: return Cylinder_get_field(node, field);
-	case TAG_MPEG4_CylinderSensor: return CylinderSensor_get_field(node, field);
-	case TAG_MPEG4_DirectionalLight: return DirectionalLight_get_field(node, field);
-	case TAG_MPEG4_DiscSensor: return DiscSensor_get_field(node, field);
-	case TAG_MPEG4_ElevationGrid: return ElevationGrid_get_field(node, field);
-	case TAG_MPEG4_Expression: return Expression_get_field(node, field);
-	case TAG_MPEG4_Extrusion: return Extrusion_get_field(node, field);
-	case TAG_MPEG4_Face: return Face_get_field(node, field);
-	case TAG_MPEG4_FaceDefMesh: return FaceDefMesh_get_field(node, field);
-	case TAG_MPEG4_FaceDefTables: return FaceDefTables_get_field(node, field);
-	case TAG_MPEG4_FaceDefTransform: return FaceDefTransform_get_field(node, field);
-	case TAG_MPEG4_FAP: return FAP_get_field(node, field);
-	case TAG_MPEG4_FDP: return FDP_get_field(node, field);
-	case TAG_MPEG4_FIT: return FIT_get_field(node, field);
-	case TAG_MPEG4_Fog: return Fog_get_field(node, field);
-	case TAG_MPEG4_FontStyle: return FontStyle_get_field(node, field);
-	case TAG_MPEG4_Form: return Form_get_field(node, field);
-	case TAG_MPEG4_Group: return Group_get_field(node, field);
-	case TAG_MPEG4_ImageTexture: return ImageTexture_get_field(node, field);
-	case TAG_MPEG4_IndexedFaceSet: return IndexedFaceSet_get_field(node, field);
-	case TAG_MPEG4_IndexedFaceSet2D: return IndexedFaceSet2D_get_field(node, field);
-	case TAG_MPEG4_IndexedLineSet: return IndexedLineSet_get_field(node, field);
-	case TAG_MPEG4_IndexedLineSet2D: return IndexedLineSet2D_get_field(node, field);
-	case TAG_MPEG4_Inline: return Inline_get_field(node, field);
-	case TAG_MPEG4_LOD: return LOD_get_field(node, field);
-	case TAG_MPEG4_Layer2D: return Layer2D_get_field(node, field);
-	case TAG_MPEG4_Layer3D: return Layer3D_get_field(node, field);
-	case TAG_MPEG4_Layout: return Layout_get_field(node, field);
-	case TAG_MPEG4_LineProperties: return LineProperties_get_field(node, field);
-	case TAG_MPEG4_ListeningPoint: return ListeningPoint_get_field(node, field);
-	case TAG_MPEG4_Material: return Material_get_field(node, field);
-	case TAG_MPEG4_Material2D: return Material2D_get_field(node, field);
-	case TAG_MPEG4_MovieTexture: return MovieTexture_get_field(node, field);
-	case TAG_MPEG4_NavigationInfo: return NavigationInfo_get_field(node, field);
-	case TAG_MPEG4_Normal: return Normal_get_field(node, field);
-	case TAG_MPEG4_NormalInterpolator: return NormalInterpolator_get_field(node, field);
-	case TAG_MPEG4_OrderedGroup: return OrderedGroup_get_field(node, field);
-	case TAG_MPEG4_OrientationInterpolator: return OrientationInterpolator_get_field(node, field);
-	case TAG_MPEG4_PixelTexture: return PixelTexture_get_field(node, field);
-	case TAG_MPEG4_PlaneSensor: return PlaneSensor_get_field(node, field);
-	case TAG_MPEG4_PlaneSensor2D: return PlaneSensor2D_get_field(node, field);
-	case TAG_MPEG4_PointLight: return PointLight_get_field(node, field);
-	case TAG_MPEG4_PointSet: return PointSet_get_field(node, field);
-	case TAG_MPEG4_PointSet2D: return PointSet2D_get_field(node, field);
-	case TAG_MPEG4_PositionInterpolator: return PositionInterpolator_get_field(node, field);
-	case TAG_MPEG4_PositionInterpolator2D: return PositionInterpolator2D_get_field(node, field);
-	case TAG_MPEG4_ProximitySensor2D: return ProximitySensor2D_get_field(node, field);
-	case TAG_MPEG4_ProximitySensor: return ProximitySensor_get_field(node, field);
-	case TAG_MPEG4_QuantizationParameter: return QuantizationParameter_get_field(node, field);
-	case TAG_MPEG4_Rectangle: return Rectangle_get_field(node, field);
-	case TAG_MPEG4_ScalarInterpolator: return ScalarInterpolator_get_field(node, field);
-	case TAG_MPEG4_Script: return Script_get_field(node, field);
-	case TAG_MPEG4_Shape: return Shape_get_field(node, field);
-	case TAG_MPEG4_Sound: return Sound_get_field(node, field);
-	case TAG_MPEG4_Sound2D: return Sound2D_get_field(node, field);
-	case TAG_MPEG4_Sphere: return Sphere_get_field(node, field);
-	case TAG_MPEG4_SphereSensor: return SphereSensor_get_field(node, field);
-	case TAG_MPEG4_SpotLight: return SpotLight_get_field(node, field);
-	case TAG_MPEG4_Switch: return Switch_get_field(node, field);
-	case TAG_MPEG4_TermCap: return TermCap_get_field(node, field);
-	case TAG_MPEG4_Text: return Text_get_field(node, field);
-	case TAG_MPEG4_TextureCoordinate: return TextureCoordinate_get_field(node, field);
-	case TAG_MPEG4_TextureTransform: return TextureTransform_get_field(node, field);
-	case TAG_MPEG4_TimeSensor: return TimeSensor_get_field(node, field);
-	case TAG_MPEG4_TouchSensor: return TouchSensor_get_field(node, field);
-	case TAG_MPEG4_Transform: return Transform_get_field(node, field);
-	case TAG_MPEG4_Transform2D: return Transform2D_get_field(node, field);
-	case TAG_MPEG4_Valuator: return Valuator_get_field(node, field);
-	case TAG_MPEG4_Viewpoint: return Viewpoint_get_field(node, field);
-	case TAG_MPEG4_VisibilitySensor: return VisibilitySensor_get_field(node, field);
-	case TAG_MPEG4_Viseme: return Viseme_get_field(node, field);
-	case TAG_MPEG4_WorldInfo: return WorldInfo_get_field(node, field);
-	case TAG_MPEG4_AcousticMaterial: return AcousticMaterial_get_field(node, field);
-	case TAG_MPEG4_AcousticScene: return AcousticScene_get_field(node, field);
-	case TAG_MPEG4_ApplicationWindow: return ApplicationWindow_get_field(node, field);
-	case TAG_MPEG4_BAP: return BAP_get_field(node, field);
-	case TAG_MPEG4_BDP: return BDP_get_field(node, field);
-	case TAG_MPEG4_Body: return Body_get_field(node, field);
-	case TAG_MPEG4_BodyDefTable: return BodyDefTable_get_field(node, field);
-	case TAG_MPEG4_BodySegmentConnectionHint: return BodySegmentConnectionHint_get_field(node, field);
-	case TAG_MPEG4_DirectiveSound: return DirectiveSound_get_field(node, field);
-	case TAG_MPEG4_Hierarchical3DMesh: return Hierarchical3DMesh_get_field(node, field);
-	case TAG_MPEG4_MaterialKey: return MaterialKey_get_field(node, field);
-	case TAG_MPEG4_PerceptualParameters: return PerceptualParameters_get_field(node, field);
-	case TAG_MPEG4_TemporalTransform: return TemporalTransform_get_field(node, field);
-	case TAG_MPEG4_TemporalGroup: return TemporalGroup_get_field(node, field);
-	case TAG_MPEG4_ServerCommand: return ServerCommand_get_field(node, field);
-	case TAG_MPEG4_InputSensor: return InputSensor_get_field(node, field);
-	case TAG_MPEG4_MatteTexture: return MatteTexture_get_field(node, field);
-	case TAG_MPEG4_MediaBuffer: return MediaBuffer_get_field(node, field);
-	case TAG_MPEG4_MediaControl: return MediaControl_get_field(node, field);
-	case TAG_MPEG4_MediaSensor: return MediaSensor_get_field(node, field);
-	case TAG_MPEG4_BitWrapper: return BitWrapper_get_field(node, field);
-	case TAG_MPEG4_CoordinateInterpolator4D: return CoordinateInterpolator4D_get_field(node, field);
-	case TAG_MPEG4_DepthImage: return DepthImage_get_field(node, field);
-	case TAG_MPEG4_FFD: return FFD_get_field(node, field);
-	case TAG_MPEG4_Implicit: return Implicit_get_field(node, field);
-	case TAG_MPEG4_XXLFM_Appearance: return XXLFM_Appearance_get_field(node, field);
-	case TAG_MPEG4_XXLFM_BlendList: return XXLFM_BlendList_get_field(node, field);
-	case TAG_MPEG4_XXLFM_FrameList: return XXLFM_FrameList_get_field(node, field);
-	case TAG_MPEG4_XXLFM_LightMap: return XXLFM_LightMap_get_field(node, field);
-	case TAG_MPEG4_XXLFM_SurfaceMapList: return XXLFM_SurfaceMapList_get_field(node, field);
-	case TAG_MPEG4_XXLFM_ViewMapList: return XXLFM_ViewMapList_get_field(node, field);
-	case TAG_MPEG4_MeshGrid: return MeshGrid_get_field(node, field);
-	case TAG_MPEG4_NonLinearDeformer: return NonLinearDeformer_get_field(node, field);
-	case TAG_MPEG4_NurbsCurve: return NurbsCurve_get_field(node, field);
-	case TAG_MPEG4_NurbsCurve2D: return NurbsCurve2D_get_field(node, field);
-	case TAG_MPEG4_NurbsSurface: return NurbsSurface_get_field(node, field);
-	case TAG_MPEG4_OctreeImage: return OctreeImage_get_field(node, field);
-	case TAG_MPEG4_XXParticles: return XXParticles_get_field(node, field);
-	case TAG_MPEG4_XXParticleInitBox: return XXParticleInitBox_get_field(node, field);
-	case TAG_MPEG4_XXPlanarObstacle: return XXPlanarObstacle_get_field(node, field);
-	case TAG_MPEG4_XXPointAttractor: return XXPointAttractor_get_field(node, field);
-	case TAG_MPEG4_PointTexture: return PointTexture_get_field(node, field);
-	case TAG_MPEG4_PositionAnimator: return PositionAnimator_get_field(node, field);
-	case TAG_MPEG4_PositionAnimator2D: return PositionAnimator2D_get_field(node, field);
-	case TAG_MPEG4_PositionInterpolator4D: return PositionInterpolator4D_get_field(node, field);
-	case TAG_MPEG4_ProceduralTexture: return ProceduralTexture_get_field(node, field);
-	case TAG_MPEG4_Quadric: return Quadric_get_field(node, field);
-	case TAG_MPEG4_SBBone: return SBBone_get_field(node, field);
-	case TAG_MPEG4_SBMuscle: return SBMuscle_get_field(node, field);
-	case TAG_MPEG4_SBSegment: return SBSegment_get_field(node, field);
-	case TAG_MPEG4_SBSite: return SBSite_get_field(node, field);
-	case TAG_MPEG4_SBSkinnedModel: return SBSkinnedModel_get_field(node, field);
-	case TAG_MPEG4_SBVCAnimation: return SBVCAnimation_get_field(node, field);
-	case TAG_MPEG4_ScalarAnimator: return ScalarAnimator_get_field(node, field);
-	case TAG_MPEG4_SimpleTexture: return SimpleTexture_get_field(node, field);
-	case TAG_MPEG4_SolidRep: return SolidRep_get_field(node, field);
-	case TAG_MPEG4_SubdivisionSurface: return SubdivisionSurface_get_field(node, field);
-	case TAG_MPEG4_SubdivSurfaceSector: return SubdivSurfaceSector_get_field(node, field);
-	case TAG_MPEG4_WaveletSubdivisionSurface: return WaveletSubdivisionSurface_get_field(node, field);
-	case TAG_MPEG4_Clipper2D: return Clipper2D_get_field(node, field);
-	case TAG_MPEG4_ColorTransform: return ColorTransform_get_field(node, field);
-	case TAG_MPEG4_Ellipse: return Ellipse_get_field(node, field);
-	case TAG_MPEG4_LinearGradient: return LinearGradient_get_field(node, field);
-	case TAG_MPEG4_PathLayout: return PathLayout_get_field(node, field);
-	case TAG_MPEG4_RadialGradient: return RadialGradient_get_field(node, field);
-	case TAG_MPEG4_SynthesizedTexture: return SynthesizedTexture_get_field(node, field);
-	case TAG_MPEG4_TransformMatrix2D: return TransformMatrix2D_get_field(node, field);
-	case TAG_MPEG4_Viewport: return Viewport_get_field(node, field);
-	case TAG_MPEG4_XCurve2D: return XCurve2D_get_field(node, field);
-	case TAG_MPEG4_XFontStyle: return XFontStyle_get_field(node, field);
-	case TAG_MPEG4_XLineProperties: return XLineProperties_get_field(node, field);
-	case TAG_MPEG4_AdvancedAudioBuffer: return AdvancedAudioBuffer_get_field(node, field);
-	case TAG_MPEG4_AudioChannelConfig: return AudioChannelConfig_get_field(node, field);
-	case TAG_MPEG4_DepthImageV2: return DepthImageV2_get_field(node, field);
-	case TAG_MPEG4_MorphShape: return MorphShape_get_field(node, field);
-	case TAG_MPEG4_MultiTexture: return MultiTexture_get_field(node, field);
-	case TAG_MPEG4_PointTextureV2: return PointTextureV2_get_field(node, field);
-	case TAG_MPEG4_SBVCAnimationV2: return SBVCAnimationV2_get_field(node, field);
-	case TAG_MPEG4_SimpleTextureV2: return SimpleTextureV2_get_field(node, field);
-	case TAG_MPEG4_SurroundingSound: return SurroundingSound_get_field(node, field);
-	case TAG_MPEG4_Transform3DAudio: return Transform3DAudio_get_field(node, field);
-	case TAG_MPEG4_WideSound: return WideSound_get_field(node, field);
-	case TAG_MPEG4_ScoreShape: return ScoreShape_get_field(node, field);
-	case TAG_MPEG4_MusicScore: return MusicScore_get_field(node, field);
-	case TAG_MPEG4_FootPrintSetNode: return FootPrintSetNode_get_field(node, field);
-	case TAG_MPEG4_FootPrintNode: return FootPrintNode_get_field(node, field);
-	case TAG_MPEG4_BuildingPartNode: return BuildingPartNode_get_field(node, field);
-	case TAG_MPEG4_RoofNode: return RoofNode_get_field(node, field);
-	case TAG_MPEG4_FacadeNode: return FacadeNode_get_field(node, field);
-	case TAG_MPEG4_Shadow: return Shadow_get_field(node, field);
-	case TAG_MPEG4_CacheTexture: return CacheTexture_get_field(node, field);
-	case TAG_MPEG4_EnvironmentTest: return EnvironmentTest_get_field(node, field);
-	case TAG_MPEG4_KeyNavigator: return KeyNavigator_get_field(node, field);
-	case TAG_MPEG4_SpacePartition: return SpacePartition_get_field(node, field);
-	case TAG_MPEG4_Storage: return Storage_get_field(node, field);
+	case TAG_MPEG4_Anchor:
+		return Anchor_get_field(node, field);
+	case TAG_MPEG4_AnimationStream:
+		return AnimationStream_get_field(node, field);
+	case TAG_MPEG4_Appearance:
+		return Appearance_get_field(node, field);
+	case TAG_MPEG4_AudioBuffer:
+		return AudioBuffer_get_field(node, field);
+	case TAG_MPEG4_AudioClip:
+		return AudioClip_get_field(node, field);
+	case TAG_MPEG4_AudioDelay:
+		return AudioDelay_get_field(node, field);
+	case TAG_MPEG4_AudioFX:
+		return AudioFX_get_field(node, field);
+	case TAG_MPEG4_AudioMix:
+		return AudioMix_get_field(node, field);
+	case TAG_MPEG4_AudioSource:
+		return AudioSource_get_field(node, field);
+	case TAG_MPEG4_AudioSwitch:
+		return AudioSwitch_get_field(node, field);
+	case TAG_MPEG4_Background:
+		return Background_get_field(node, field);
+	case TAG_MPEG4_Background2D:
+		return Background2D_get_field(node, field);
+	case TAG_MPEG4_Billboard:
+		return Billboard_get_field(node, field);
+	case TAG_MPEG4_Bitmap:
+		return Bitmap_get_field(node, field);
+	case TAG_MPEG4_Box:
+		return Box_get_field(node, field);
+	case TAG_MPEG4_Circle:
+		return Circle_get_field(node, field);
+	case TAG_MPEG4_Collision:
+		return Collision_get_field(node, field);
+	case TAG_MPEG4_Color:
+		return Color_get_field(node, field);
+	case TAG_MPEG4_ColorInterpolator:
+		return ColorInterpolator_get_field(node, field);
+	case TAG_MPEG4_CompositeTexture2D:
+		return CompositeTexture2D_get_field(node, field);
+	case TAG_MPEG4_CompositeTexture3D:
+		return CompositeTexture3D_get_field(node, field);
+	case TAG_MPEG4_Conditional:
+		return Conditional_get_field(node, field);
+	case TAG_MPEG4_Cone:
+		return Cone_get_field(node, field);
+	case TAG_MPEG4_Coordinate:
+		return Coordinate_get_field(node, field);
+	case TAG_MPEG4_Coordinate2D:
+		return Coordinate2D_get_field(node, field);
+	case TAG_MPEG4_CoordinateInterpolator:
+		return CoordinateInterpolator_get_field(node, field);
+	case TAG_MPEG4_CoordinateInterpolator2D:
+		return CoordinateInterpolator2D_get_field(node, field);
+	case TAG_MPEG4_Curve2D:
+		return Curve2D_get_field(node, field);
+	case TAG_MPEG4_Cylinder:
+		return Cylinder_get_field(node, field);
+	case TAG_MPEG4_CylinderSensor:
+		return CylinderSensor_get_field(node, field);
+	case TAG_MPEG4_DirectionalLight:
+		return DirectionalLight_get_field(node, field);
+	case TAG_MPEG4_DiscSensor:
+		return DiscSensor_get_field(node, field);
+	case TAG_MPEG4_ElevationGrid:
+		return ElevationGrid_get_field(node, field);
+	case TAG_MPEG4_Expression:
+		return Expression_get_field(node, field);
+	case TAG_MPEG4_Extrusion:
+		return Extrusion_get_field(node, field);
+	case TAG_MPEG4_Face:
+		return Face_get_field(node, field);
+	case TAG_MPEG4_FaceDefMesh:
+		return FaceDefMesh_get_field(node, field);
+	case TAG_MPEG4_FaceDefTables:
+		return FaceDefTables_get_field(node, field);
+	case TAG_MPEG4_FaceDefTransform:
+		return FaceDefTransform_get_field(node, field);
+	case TAG_MPEG4_FAP:
+		return FAP_get_field(node, field);
+	case TAG_MPEG4_FDP:
+		return FDP_get_field(node, field);
+	case TAG_MPEG4_FIT:
+		return FIT_get_field(node, field);
+	case TAG_MPEG4_Fog:
+		return Fog_get_field(node, field);
+	case TAG_MPEG4_FontStyle:
+		return FontStyle_get_field(node, field);
+	case TAG_MPEG4_Form:
+		return Form_get_field(node, field);
+	case TAG_MPEG4_Group:
+		return Group_get_field(node, field);
+	case TAG_MPEG4_ImageTexture:
+		return ImageTexture_get_field(node, field);
+	case TAG_MPEG4_IndexedFaceSet:
+		return IndexedFaceSet_get_field(node, field);
+	case TAG_MPEG4_IndexedFaceSet2D:
+		return IndexedFaceSet2D_get_field(node, field);
+	case TAG_MPEG4_IndexedLineSet:
+		return IndexedLineSet_get_field(node, field);
+	case TAG_MPEG4_IndexedLineSet2D:
+		return IndexedLineSet2D_get_field(node, field);
+	case TAG_MPEG4_Inline:
+		return Inline_get_field(node, field);
+	case TAG_MPEG4_LOD:
+		return LOD_get_field(node, field);
+	case TAG_MPEG4_Layer2D:
+		return Layer2D_get_field(node, field);
+	case TAG_MPEG4_Layer3D:
+		return Layer3D_get_field(node, field);
+	case TAG_MPEG4_Layout:
+		return Layout_get_field(node, field);
+	case TAG_MPEG4_LineProperties:
+		return LineProperties_get_field(node, field);
+	case TAG_MPEG4_ListeningPoint:
+		return ListeningPoint_get_field(node, field);
+	case TAG_MPEG4_Material:
+		return Material_get_field(node, field);
+	case TAG_MPEG4_Material2D:
+		return Material2D_get_field(node, field);
+	case TAG_MPEG4_MovieTexture:
+		return MovieTexture_get_field(node, field);
+	case TAG_MPEG4_NavigationInfo:
+		return NavigationInfo_get_field(node, field);
+	case TAG_MPEG4_Normal:
+		return Normal_get_field(node, field);
+	case TAG_MPEG4_NormalInterpolator:
+		return NormalInterpolator_get_field(node, field);
+	case TAG_MPEG4_OrderedGroup:
+		return OrderedGroup_get_field(node, field);
+	case TAG_MPEG4_OrientationInterpolator:
+		return OrientationInterpolator_get_field(node, field);
+	case TAG_MPEG4_PixelTexture:
+		return PixelTexture_get_field(node, field);
+	case TAG_MPEG4_PlaneSensor:
+		return PlaneSensor_get_field(node, field);
+	case TAG_MPEG4_PlaneSensor2D:
+		return PlaneSensor2D_get_field(node, field);
+	case TAG_MPEG4_PointLight:
+		return PointLight_get_field(node, field);
+	case TAG_MPEG4_PointSet:
+		return PointSet_get_field(node, field);
+	case TAG_MPEG4_PointSet2D:
+		return PointSet2D_get_field(node, field);
+	case TAG_MPEG4_PositionInterpolator:
+		return PositionInterpolator_get_field(node, field);
+	case TAG_MPEG4_PositionInterpolator2D:
+		return PositionInterpolator2D_get_field(node, field);
+	case TAG_MPEG4_ProximitySensor2D:
+		return ProximitySensor2D_get_field(node, field);
+	case TAG_MPEG4_ProximitySensor:
+		return ProximitySensor_get_field(node, field);
+	case TAG_MPEG4_QuantizationParameter:
+		return QuantizationParameter_get_field(node, field);
+	case TAG_MPEG4_Rectangle:
+		return Rectangle_get_field(node, field);
+	case TAG_MPEG4_ScalarInterpolator:
+		return ScalarInterpolator_get_field(node, field);
+	case TAG_MPEG4_Script:
+		return Script_get_field(node, field);
+	case TAG_MPEG4_Shape:
+		return Shape_get_field(node, field);
+	case TAG_MPEG4_Sound:
+		return Sound_get_field(node, field);
+	case TAG_MPEG4_Sound2D:
+		return Sound2D_get_field(node, field);
+	case TAG_MPEG4_Sphere:
+		return Sphere_get_field(node, field);
+	case TAG_MPEG4_SphereSensor:
+		return SphereSensor_get_field(node, field);
+	case TAG_MPEG4_SpotLight:
+		return SpotLight_get_field(node, field);
+	case TAG_MPEG4_Switch:
+		return Switch_get_field(node, field);
+	case TAG_MPEG4_TermCap:
+		return TermCap_get_field(node, field);
+	case TAG_MPEG4_Text:
+		return Text_get_field(node, field);
+	case TAG_MPEG4_TextureCoordinate:
+		return TextureCoordinate_get_field(node, field);
+	case TAG_MPEG4_TextureTransform:
+		return TextureTransform_get_field(node, field);
+	case TAG_MPEG4_TimeSensor:
+		return TimeSensor_get_field(node, field);
+	case TAG_MPEG4_TouchSensor:
+		return TouchSensor_get_field(node, field);
+	case TAG_MPEG4_Transform:
+		return Transform_get_field(node, field);
+	case TAG_MPEG4_Transform2D:
+		return Transform2D_get_field(node, field);
+	case TAG_MPEG4_Valuator:
+		return Valuator_get_field(node, field);
+	case TAG_MPEG4_Viewpoint:
+		return Viewpoint_get_field(node, field);
+	case TAG_MPEG4_VisibilitySensor:
+		return VisibilitySensor_get_field(node, field);
+	case TAG_MPEG4_Viseme:
+		return Viseme_get_field(node, field);
+	case TAG_MPEG4_WorldInfo:
+		return WorldInfo_get_field(node, field);
+	case TAG_MPEG4_AcousticMaterial:
+		return AcousticMaterial_get_field(node, field);
+	case TAG_MPEG4_AcousticScene:
+		return AcousticScene_get_field(node, field);
+	case TAG_MPEG4_ApplicationWindow:
+		return ApplicationWindow_get_field(node, field);
+	case TAG_MPEG4_BAP:
+		return BAP_get_field(node, field);
+	case TAG_MPEG4_BDP:
+		return BDP_get_field(node, field);
+	case TAG_MPEG4_Body:
+		return Body_get_field(node, field);
+	case TAG_MPEG4_BodyDefTable:
+		return BodyDefTable_get_field(node, field);
+	case TAG_MPEG4_BodySegmentConnectionHint:
+		return BodySegmentConnectionHint_get_field(node, field);
+	case TAG_MPEG4_DirectiveSound:
+		return DirectiveSound_get_field(node, field);
+	case TAG_MPEG4_Hierarchical3DMesh:
+		return Hierarchical3DMesh_get_field(node, field);
+	case TAG_MPEG4_MaterialKey:
+		return MaterialKey_get_field(node, field);
+	case TAG_MPEG4_PerceptualParameters:
+		return PerceptualParameters_get_field(node, field);
+	case TAG_MPEG4_TemporalTransform:
+		return TemporalTransform_get_field(node, field);
+	case TAG_MPEG4_TemporalGroup:
+		return TemporalGroup_get_field(node, field);
+	case TAG_MPEG4_ServerCommand:
+		return ServerCommand_get_field(node, field);
+	case TAG_MPEG4_InputSensor:
+		return InputSensor_get_field(node, field);
+	case TAG_MPEG4_MatteTexture:
+		return MatteTexture_get_field(node, field);
+	case TAG_MPEG4_MediaBuffer:
+		return MediaBuffer_get_field(node, field);
+	case TAG_MPEG4_MediaControl:
+		return MediaControl_get_field(node, field);
+	case TAG_MPEG4_MediaSensor:
+		return MediaSensor_get_field(node, field);
+	case TAG_MPEG4_BitWrapper:
+		return BitWrapper_get_field(node, field);
+	case TAG_MPEG4_CoordinateInterpolator4D:
+		return CoordinateInterpolator4D_get_field(node, field);
+	case TAG_MPEG4_DepthImage:
+		return DepthImage_get_field(node, field);
+	case TAG_MPEG4_FFD:
+		return FFD_get_field(node, field);
+	case TAG_MPEG4_Implicit:
+		return Implicit_get_field(node, field);
+	case TAG_MPEG4_XXLFM_Appearance:
+		return XXLFM_Appearance_get_field(node, field);
+	case TAG_MPEG4_XXLFM_BlendList:
+		return XXLFM_BlendList_get_field(node, field);
+	case TAG_MPEG4_XXLFM_FrameList:
+		return XXLFM_FrameList_get_field(node, field);
+	case TAG_MPEG4_XXLFM_LightMap:
+		return XXLFM_LightMap_get_field(node, field);
+	case TAG_MPEG4_XXLFM_SurfaceMapList:
+		return XXLFM_SurfaceMapList_get_field(node, field);
+	case TAG_MPEG4_XXLFM_ViewMapList:
+		return XXLFM_ViewMapList_get_field(node, field);
+	case TAG_MPEG4_MeshGrid:
+		return MeshGrid_get_field(node, field);
+	case TAG_MPEG4_NonLinearDeformer:
+		return NonLinearDeformer_get_field(node, field);
+	case TAG_MPEG4_NurbsCurve:
+		return NurbsCurve_get_field(node, field);
+	case TAG_MPEG4_NurbsCurve2D:
+		return NurbsCurve2D_get_field(node, field);
+	case TAG_MPEG4_NurbsSurface:
+		return NurbsSurface_get_field(node, field);
+	case TAG_MPEG4_OctreeImage:
+		return OctreeImage_get_field(node, field);
+	case TAG_MPEG4_XXParticles:
+		return XXParticles_get_field(node, field);
+	case TAG_MPEG4_XXParticleInitBox:
+		return XXParticleInitBox_get_field(node, field);
+	case TAG_MPEG4_XXPlanarObstacle:
+		return XXPlanarObstacle_get_field(node, field);
+	case TAG_MPEG4_XXPointAttractor:
+		return XXPointAttractor_get_field(node, field);
+	case TAG_MPEG4_PointTexture:
+		return PointTexture_get_field(node, field);
+	case TAG_MPEG4_PositionAnimator:
+		return PositionAnimator_get_field(node, field);
+	case TAG_MPEG4_PositionAnimator2D:
+		return PositionAnimator2D_get_field(node, field);
+	case TAG_MPEG4_PositionInterpolator4D:
+		return PositionInterpolator4D_get_field(node, field);
+	case TAG_MPEG4_ProceduralTexture:
+		return ProceduralTexture_get_field(node, field);
+	case TAG_MPEG4_Quadric:
+		return Quadric_get_field(node, field);
+	case TAG_MPEG4_SBBone:
+		return SBBone_get_field(node, field);
+	case TAG_MPEG4_SBMuscle:
+		return SBMuscle_get_field(node, field);
+	case TAG_MPEG4_SBSegment:
+		return SBSegment_get_field(node, field);
+	case TAG_MPEG4_SBSite:
+		return SBSite_get_field(node, field);
+	case TAG_MPEG4_SBSkinnedModel:
+		return SBSkinnedModel_get_field(node, field);
+	case TAG_MPEG4_SBVCAnimation:
+		return SBVCAnimation_get_field(node, field);
+	case TAG_MPEG4_ScalarAnimator:
+		return ScalarAnimator_get_field(node, field);
+	case TAG_MPEG4_SimpleTexture:
+		return SimpleTexture_get_field(node, field);
+	case TAG_MPEG4_SolidRep:
+		return SolidRep_get_field(node, field);
+	case TAG_MPEG4_SubdivisionSurface:
+		return SubdivisionSurface_get_field(node, field);
+	case TAG_MPEG4_SubdivSurfaceSector:
+		return SubdivSurfaceSector_get_field(node, field);
+	case TAG_MPEG4_WaveletSubdivisionSurface:
+		return WaveletSubdivisionSurface_get_field(node, field);
+	case TAG_MPEG4_Clipper2D:
+		return Clipper2D_get_field(node, field);
+	case TAG_MPEG4_ColorTransform:
+		return ColorTransform_get_field(node, field);
+	case TAG_MPEG4_Ellipse:
+		return Ellipse_get_field(node, field);
+	case TAG_MPEG4_LinearGradient:
+		return LinearGradient_get_field(node, field);
+	case TAG_MPEG4_PathLayout:
+		return PathLayout_get_field(node, field);
+	case TAG_MPEG4_RadialGradient:
+		return RadialGradient_get_field(node, field);
+	case TAG_MPEG4_SynthesizedTexture:
+		return SynthesizedTexture_get_field(node, field);
+	case TAG_MPEG4_TransformMatrix2D:
+		return TransformMatrix2D_get_field(node, field);
+	case TAG_MPEG4_Viewport:
+		return Viewport_get_field(node, field);
+	case TAG_MPEG4_XCurve2D:
+		return XCurve2D_get_field(node, field);
+	case TAG_MPEG4_XFontStyle:
+		return XFontStyle_get_field(node, field);
+	case TAG_MPEG4_XLineProperties:
+		return XLineProperties_get_field(node, field);
+	case TAG_MPEG4_AdvancedAudioBuffer:
+		return AdvancedAudioBuffer_get_field(node, field);
+	case TAG_MPEG4_AudioChannelConfig:
+		return AudioChannelConfig_get_field(node, field);
+	case TAG_MPEG4_DepthImageV2:
+		return DepthImageV2_get_field(node, field);
+	case TAG_MPEG4_MorphShape:
+		return MorphShape_get_field(node, field);
+	case TAG_MPEG4_MultiTexture:
+		return MultiTexture_get_field(node, field);
+	case TAG_MPEG4_PointTextureV2:
+		return PointTextureV2_get_field(node, field);
+	case TAG_MPEG4_SBVCAnimationV2:
+		return SBVCAnimationV2_get_field(node, field);
+	case TAG_MPEG4_SimpleTextureV2:
+		return SimpleTextureV2_get_field(node, field);
+	case TAG_MPEG4_SurroundingSound:
+		return SurroundingSound_get_field(node, field);
+	case TAG_MPEG4_Transform3DAudio:
+		return Transform3DAudio_get_field(node, field);
+	case TAG_MPEG4_WideSound:
+		return WideSound_get_field(node, field);
+	case TAG_MPEG4_ScoreShape:
+		return ScoreShape_get_field(node, field);
+	case TAG_MPEG4_MusicScore:
+		return MusicScore_get_field(node, field);
+	case TAG_MPEG4_FootPrintSetNode:
+		return FootPrintSetNode_get_field(node, field);
+	case TAG_MPEG4_FootPrintNode:
+		return FootPrintNode_get_field(node, field);
+	case TAG_MPEG4_BuildingPartNode:
+		return BuildingPartNode_get_field(node, field);
+	case TAG_MPEG4_RoofNode:
+		return RoofNode_get_field(node, field);
+	case TAG_MPEG4_FacadeNode:
+		return FacadeNode_get_field(node, field);
+	case TAG_MPEG4_Shadow:
+		return Shadow_get_field(node, field);
+	case TAG_MPEG4_CacheTexture:
+		return CacheTexture_get_field(node, field);
+	case TAG_MPEG4_EnvironmentTest:
+		return EnvironmentTest_get_field(node, field);
+	case TAG_MPEG4_KeyNavigator:
+		return KeyNavigator_get_field(node, field);
+	case TAG_MPEG4_SpacePartition:
+		return SpacePartition_get_field(node, field);
+	case TAG_MPEG4_Storage:
+		return Storage_get_field(node, field);
 	default:
 		return GF_BAD_PARAM;
 	}
@@ -37532,201 +38897,396 @@ GF_Err gf_sg_mpeg4_node_get_field(GF_Node *node, GF_FieldInfo *field)
 GF_Err gf_sg_mpeg4_node_get_field_index(GF_Node *node, u32 inField, u8 code_mode, u32 *fieldIndex)
 {
 	switch (node->sgprivate->tag) {
-	case TAG_MPEG4_Anchor: return Anchor_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_AnimationStream: return AnimationStream_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Appearance: return Appearance_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_AudioBuffer: return AudioBuffer_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_AudioClip: return AudioClip_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_AudioDelay: return AudioDelay_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_AudioFX: return AudioFX_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_AudioMix: return AudioMix_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_AudioSource: return AudioSource_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_AudioSwitch: return AudioSwitch_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Background: return Background_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Background2D: return Background2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Billboard: return Billboard_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Bitmap: return Bitmap_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Box: return Box_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Circle: return Circle_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Collision: return Collision_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Color: return Color_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ColorInterpolator: return ColorInterpolator_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_CompositeTexture2D: return CompositeTexture2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_CompositeTexture3D: return CompositeTexture3D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Conditional: return Conditional_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Cone: return Cone_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Coordinate: return Coordinate_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Coordinate2D: return Coordinate2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_CoordinateInterpolator: return CoordinateInterpolator_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_CoordinateInterpolator2D: return CoordinateInterpolator2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Curve2D: return Curve2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Cylinder: return Cylinder_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_CylinderSensor: return CylinderSensor_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_DirectionalLight: return DirectionalLight_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_DiscSensor: return DiscSensor_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ElevationGrid: return ElevationGrid_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Expression: return Expression_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Extrusion: return Extrusion_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Face: return Face_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_FaceDefMesh: return FaceDefMesh_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_FaceDefTables: return FaceDefTables_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_FaceDefTransform: return FaceDefTransform_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_FAP: return FAP_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_FDP: return FDP_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_FIT: return FIT_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Fog: return Fog_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_FontStyle: return FontStyle_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Form: return Form_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Group: return Group_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ImageTexture: return ImageTexture_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_IndexedFaceSet: return IndexedFaceSet_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_IndexedFaceSet2D: return IndexedFaceSet2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_IndexedLineSet: return IndexedLineSet_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_IndexedLineSet2D: return IndexedLineSet2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Inline: return Inline_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_LOD: return LOD_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Layer2D: return Layer2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Layer3D: return Layer3D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Layout: return Layout_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_LineProperties: return LineProperties_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ListeningPoint: return ListeningPoint_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Material: return Material_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Material2D: return Material2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_MovieTexture: return MovieTexture_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_NavigationInfo: return NavigationInfo_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Normal: return Normal_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_NormalInterpolator: return NormalInterpolator_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_OrderedGroup: return OrderedGroup_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_OrientationInterpolator: return OrientationInterpolator_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PixelTexture: return PixelTexture_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PlaneSensor: return PlaneSensor_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PlaneSensor2D: return PlaneSensor2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PointLight: return PointLight_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PointSet: return PointSet_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PointSet2D: return PointSet2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PositionInterpolator: return PositionInterpolator_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PositionInterpolator2D: return PositionInterpolator2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ProximitySensor2D: return ProximitySensor2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ProximitySensor: return ProximitySensor_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_QuantizationParameter: return QuantizationParameter_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Rectangle: return Rectangle_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ScalarInterpolator: return ScalarInterpolator_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Script: return Script_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Shape: return Shape_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Sound: return Sound_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Sound2D: return Sound2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Sphere: return Sphere_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SphereSensor: return SphereSensor_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SpotLight: return SpotLight_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Switch: return Switch_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_TermCap: return TermCap_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Text: return Text_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_TextureCoordinate: return TextureCoordinate_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_TextureTransform: return TextureTransform_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_TimeSensor: return TimeSensor_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_TouchSensor: return TouchSensor_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Transform: return Transform_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Transform2D: return Transform2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Valuator: return Valuator_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Viewpoint: return Viewpoint_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_VisibilitySensor: return VisibilitySensor_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Viseme: return Viseme_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_WorldInfo: return WorldInfo_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_AcousticMaterial: return AcousticMaterial_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_AcousticScene: return AcousticScene_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ApplicationWindow: return ApplicationWindow_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_BAP: return BAP_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_BDP: return BDP_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Body: return Body_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_BodyDefTable: return BodyDefTable_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_BodySegmentConnectionHint: return BodySegmentConnectionHint_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_DirectiveSound: return DirectiveSound_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Hierarchical3DMesh: return Hierarchical3DMesh_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_MaterialKey: return MaterialKey_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PerceptualParameters: return PerceptualParameters_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_TemporalTransform: return TemporalTransform_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_TemporalGroup: return TemporalGroup_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ServerCommand: return ServerCommand_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_InputSensor: return InputSensor_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_MatteTexture: return MatteTexture_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_MediaBuffer: return MediaBuffer_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_MediaControl: return MediaControl_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_MediaSensor: return MediaSensor_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_BitWrapper: return BitWrapper_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_CoordinateInterpolator4D: return CoordinateInterpolator4D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_DepthImage: return DepthImage_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_FFD: return FFD_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Implicit: return Implicit_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XXLFM_Appearance: return XXLFM_Appearance_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XXLFM_BlendList: return XXLFM_BlendList_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XXLFM_FrameList: return XXLFM_FrameList_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XXLFM_LightMap: return XXLFM_LightMap_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XXLFM_SurfaceMapList: return XXLFM_SurfaceMapList_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XXLFM_ViewMapList: return XXLFM_ViewMapList_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_MeshGrid: return MeshGrid_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_NonLinearDeformer: return NonLinearDeformer_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_NurbsCurve: return NurbsCurve_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_NurbsCurve2D: return NurbsCurve2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_NurbsSurface: return NurbsSurface_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_OctreeImage: return OctreeImage_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XXParticles: return XXParticles_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XXParticleInitBox: return XXParticleInitBox_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XXPlanarObstacle: return XXPlanarObstacle_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XXPointAttractor: return XXPointAttractor_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PointTexture: return PointTexture_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PositionAnimator: return PositionAnimator_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PositionAnimator2D: return PositionAnimator2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PositionInterpolator4D: return PositionInterpolator4D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ProceduralTexture: return ProceduralTexture_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Quadric: return Quadric_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SBBone: return SBBone_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SBMuscle: return SBMuscle_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SBSegment: return SBSegment_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SBSite: return SBSite_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SBSkinnedModel: return SBSkinnedModel_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SBVCAnimation: return SBVCAnimation_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ScalarAnimator: return ScalarAnimator_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SimpleTexture: return SimpleTexture_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SolidRep: return SolidRep_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SubdivisionSurface: return SubdivisionSurface_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SubdivSurfaceSector: return SubdivSurfaceSector_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_WaveletSubdivisionSurface: return WaveletSubdivisionSurface_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Clipper2D: return Clipper2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ColorTransform: return ColorTransform_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Ellipse: return Ellipse_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_LinearGradient: return LinearGradient_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PathLayout: return PathLayout_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_RadialGradient: return RadialGradient_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SynthesizedTexture: return SynthesizedTexture_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_TransformMatrix2D: return TransformMatrix2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Viewport: return Viewport_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XCurve2D: return XCurve2D_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XFontStyle: return XFontStyle_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_XLineProperties: return XLineProperties_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_AdvancedAudioBuffer: return AdvancedAudioBuffer_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_AudioChannelConfig: return AudioChannelConfig_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_DepthImageV2: return DepthImageV2_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_MorphShape: return MorphShape_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_MultiTexture: return MultiTexture_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_PointTextureV2: return PointTextureV2_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SBVCAnimationV2: return SBVCAnimationV2_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SimpleTextureV2: return SimpleTextureV2_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SurroundingSound: return SurroundingSound_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Transform3DAudio: return Transform3DAudio_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_WideSound: return WideSound_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_ScoreShape: return ScoreShape_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_MusicScore: return MusicScore_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_FootPrintSetNode: return FootPrintSetNode_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_FootPrintNode: return FootPrintNode_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_BuildingPartNode: return BuildingPartNode_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_RoofNode: return RoofNode_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_FacadeNode: return FacadeNode_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Shadow: return Shadow_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_CacheTexture: return CacheTexture_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_EnvironmentTest: return EnvironmentTest_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_KeyNavigator: return KeyNavigator_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_SpacePartition: return SpacePartition_get_field_index(node, inField, code_mode, fieldIndex);
-	case TAG_MPEG4_Storage: return Storage_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Anchor:
+		return Anchor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_AnimationStream:
+		return AnimationStream_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Appearance:
+		return Appearance_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_AudioBuffer:
+		return AudioBuffer_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_AudioClip:
+		return AudioClip_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_AudioDelay:
+		return AudioDelay_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_AudioFX:
+		return AudioFX_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_AudioMix:
+		return AudioMix_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_AudioSource:
+		return AudioSource_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_AudioSwitch:
+		return AudioSwitch_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Background:
+		return Background_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Background2D:
+		return Background2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Billboard:
+		return Billboard_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Bitmap:
+		return Bitmap_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Box:
+		return Box_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Circle:
+		return Circle_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Collision:
+		return Collision_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Color:
+		return Color_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ColorInterpolator:
+		return ColorInterpolator_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_CompositeTexture2D:
+		return CompositeTexture2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_CompositeTexture3D:
+		return CompositeTexture3D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Conditional:
+		return Conditional_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Cone:
+		return Cone_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Coordinate:
+		return Coordinate_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Coordinate2D:
+		return Coordinate2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_CoordinateInterpolator:
+		return CoordinateInterpolator_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_CoordinateInterpolator2D:
+		return CoordinateInterpolator2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Curve2D:
+		return Curve2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Cylinder:
+		return Cylinder_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_CylinderSensor:
+		return CylinderSensor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_DirectionalLight:
+		return DirectionalLight_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_DiscSensor:
+		return DiscSensor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ElevationGrid:
+		return ElevationGrid_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Expression:
+		return Expression_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Extrusion:
+		return Extrusion_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Face:
+		return Face_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FaceDefMesh:
+		return FaceDefMesh_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FaceDefTables:
+		return FaceDefTables_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FaceDefTransform:
+		return FaceDefTransform_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FAP:
+		return FAP_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FDP:
+		return FDP_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FIT:
+		return FIT_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Fog:
+		return Fog_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FontStyle:
+		return FontStyle_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Form:
+		return Form_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Group:
+		return Group_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ImageTexture:
+		return ImageTexture_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_IndexedFaceSet:
+		return IndexedFaceSet_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_IndexedFaceSet2D:
+		return IndexedFaceSet2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_IndexedLineSet:
+		return IndexedLineSet_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_IndexedLineSet2D:
+		return IndexedLineSet2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Inline:
+		return Inline_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_LOD:
+		return LOD_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Layer2D:
+		return Layer2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Layer3D:
+		return Layer3D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Layout:
+		return Layout_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_LineProperties:
+		return LineProperties_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ListeningPoint:
+		return ListeningPoint_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Material:
+		return Material_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Material2D:
+		return Material2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_MovieTexture:
+		return MovieTexture_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_NavigationInfo:
+		return NavigationInfo_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Normal:
+		return Normal_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_NormalInterpolator:
+		return NormalInterpolator_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_OrderedGroup:
+		return OrderedGroup_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_OrientationInterpolator:
+		return OrientationInterpolator_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PixelTexture:
+		return PixelTexture_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PlaneSensor:
+		return PlaneSensor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PlaneSensor2D:
+		return PlaneSensor2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PointLight:
+		return PointLight_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PointSet:
+		return PointSet_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PointSet2D:
+		return PointSet2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PositionInterpolator:
+		return PositionInterpolator_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PositionInterpolator2D:
+		return PositionInterpolator2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ProximitySensor2D:
+		return ProximitySensor2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ProximitySensor:
+		return ProximitySensor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_QuantizationParameter:
+		return QuantizationParameter_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Rectangle:
+		return Rectangle_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ScalarInterpolator:
+		return ScalarInterpolator_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Script:
+		return Script_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Shape:
+		return Shape_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Sound:
+		return Sound_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Sound2D:
+		return Sound2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Sphere:
+		return Sphere_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SphereSensor:
+		return SphereSensor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SpotLight:
+		return SpotLight_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Switch:
+		return Switch_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_TermCap:
+		return TermCap_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Text:
+		return Text_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_TextureCoordinate:
+		return TextureCoordinate_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_TextureTransform:
+		return TextureTransform_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_TimeSensor:
+		return TimeSensor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_TouchSensor:
+		return TouchSensor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Transform:
+		return Transform_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Transform2D:
+		return Transform2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Valuator:
+		return Valuator_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Viewpoint:
+		return Viewpoint_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_VisibilitySensor:
+		return VisibilitySensor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Viseme:
+		return Viseme_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_WorldInfo:
+		return WorldInfo_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_AcousticMaterial:
+		return AcousticMaterial_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_AcousticScene:
+		return AcousticScene_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ApplicationWindow:
+		return ApplicationWindow_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_BAP:
+		return BAP_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_BDP:
+		return BDP_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Body:
+		return Body_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_BodyDefTable:
+		return BodyDefTable_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_BodySegmentConnectionHint:
+		return BodySegmentConnectionHint_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_DirectiveSound:
+		return DirectiveSound_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Hierarchical3DMesh:
+		return Hierarchical3DMesh_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_MaterialKey:
+		return MaterialKey_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PerceptualParameters:
+		return PerceptualParameters_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_TemporalTransform:
+		return TemporalTransform_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_TemporalGroup:
+		return TemporalGroup_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ServerCommand:
+		return ServerCommand_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_InputSensor:
+		return InputSensor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_MatteTexture:
+		return MatteTexture_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_MediaBuffer:
+		return MediaBuffer_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_MediaControl:
+		return MediaControl_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_MediaSensor:
+		return MediaSensor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_BitWrapper:
+		return BitWrapper_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_CoordinateInterpolator4D:
+		return CoordinateInterpolator4D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_DepthImage:
+		return DepthImage_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FFD:
+		return FFD_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Implicit:
+		return Implicit_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXLFM_Appearance:
+		return XXLFM_Appearance_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXLFM_BlendList:
+		return XXLFM_BlendList_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXLFM_FrameList:
+		return XXLFM_FrameList_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXLFM_LightMap:
+		return XXLFM_LightMap_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXLFM_SurfaceMapList:
+		return XXLFM_SurfaceMapList_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXLFM_ViewMapList:
+		return XXLFM_ViewMapList_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_MeshGrid:
+		return MeshGrid_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_NonLinearDeformer:
+		return NonLinearDeformer_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_NurbsCurve:
+		return NurbsCurve_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_NurbsCurve2D:
+		return NurbsCurve2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_NurbsSurface:
+		return NurbsSurface_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_OctreeImage:
+		return OctreeImage_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXParticles:
+		return XXParticles_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXParticleInitBox:
+		return XXParticleInitBox_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXPlanarObstacle:
+		return XXPlanarObstacle_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXPointAttractor:
+		return XXPointAttractor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PointTexture:
+		return PointTexture_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PositionAnimator:
+		return PositionAnimator_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PositionAnimator2D:
+		return PositionAnimator2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PositionInterpolator4D:
+		return PositionInterpolator4D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ProceduralTexture:
+		return ProceduralTexture_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Quadric:
+		return Quadric_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBBone:
+		return SBBone_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBMuscle:
+		return SBMuscle_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBSegment:
+		return SBSegment_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBSite:
+		return SBSite_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBSkinnedModel:
+		return SBSkinnedModel_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBVCAnimation:
+		return SBVCAnimation_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ScalarAnimator:
+		return ScalarAnimator_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SimpleTexture:
+		return SimpleTexture_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SolidRep:
+		return SolidRep_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SubdivisionSurface:
+		return SubdivisionSurface_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SubdivSurfaceSector:
+		return SubdivSurfaceSector_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_WaveletSubdivisionSurface:
+		return WaveletSubdivisionSurface_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Clipper2D:
+		return Clipper2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ColorTransform:
+		return ColorTransform_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Ellipse:
+		return Ellipse_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_LinearGradient:
+		return LinearGradient_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PathLayout:
+		return PathLayout_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_RadialGradient:
+		return RadialGradient_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SynthesizedTexture:
+		return SynthesizedTexture_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_TransformMatrix2D:
+		return TransformMatrix2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Viewport:
+		return Viewport_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XCurve2D:
+		return XCurve2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XFontStyle:
+		return XFontStyle_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XLineProperties:
+		return XLineProperties_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_AdvancedAudioBuffer:
+		return AdvancedAudioBuffer_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_AudioChannelConfig:
+		return AudioChannelConfig_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_DepthImageV2:
+		return DepthImageV2_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_MorphShape:
+		return MorphShape_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_MultiTexture:
+		return MultiTexture_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PointTextureV2:
+		return PointTextureV2_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBVCAnimationV2:
+		return SBVCAnimationV2_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SimpleTextureV2:
+		return SimpleTextureV2_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SurroundingSound:
+		return SurroundingSound_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Transform3DAudio:
+		return Transform3DAudio_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_WideSound:
+		return WideSound_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ScoreShape:
+		return ScoreShape_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_MusicScore:
+		return MusicScore_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FootPrintSetNode:
+		return FootPrintSetNode_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FootPrintNode:
+		return FootPrintNode_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_BuildingPartNode:
+		return BuildingPartNode_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_RoofNode:
+		return RoofNode_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FacadeNode:
+		return FacadeNode_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Shadow:
+		return Shadow_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_CacheTexture:
+		return CacheTexture_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_EnvironmentTest:
+		return EnvironmentTest_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_KeyNavigator:
+		return KeyNavigator_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SpacePartition:
+		return SpacePartition_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Storage:
+		return Storage_get_field_index(node, inField, code_mode, fieldIndex);
 	default:
 		return GF_BAD_PARAM;
 	}
@@ -37735,201 +39295,396 @@ GF_Err gf_sg_mpeg4_node_get_field_index(GF_Node *node, u32 inField, u8 code_mode
 Bool gf_sg_mpeg4_node_get_aq_info(GF_Node *node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
 {
 	switch (node->sgprivate->tag) {
-	case TAG_MPEG4_Anchor: return Anchor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_AnimationStream: return AnimationStream_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Appearance: return Appearance_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_AudioBuffer: return AudioBuffer_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_AudioClip: return AudioClip_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_AudioDelay: return AudioDelay_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_AudioFX: return AudioFX_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_AudioMix: return AudioMix_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_AudioSource: return AudioSource_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_AudioSwitch: return AudioSwitch_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Background: return Background_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Background2D: return Background2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Billboard: return Billboard_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Bitmap: return Bitmap_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Box: return Box_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Circle: return Circle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Collision: return Collision_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Color: return Color_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ColorInterpolator: return ColorInterpolator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_CompositeTexture2D: return CompositeTexture2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_CompositeTexture3D: return CompositeTexture3D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Conditional: return Conditional_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Cone: return Cone_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Coordinate: return Coordinate_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Coordinate2D: return Coordinate2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_CoordinateInterpolator: return CoordinateInterpolator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_CoordinateInterpolator2D: return CoordinateInterpolator2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Curve2D: return Curve2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Cylinder: return Cylinder_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_CylinderSensor: return CylinderSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_DirectionalLight: return DirectionalLight_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_DiscSensor: return DiscSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ElevationGrid: return ElevationGrid_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Expression: return Expression_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Extrusion: return Extrusion_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Face: return Face_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_FaceDefMesh: return FaceDefMesh_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_FaceDefTables: return FaceDefTables_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_FaceDefTransform: return FaceDefTransform_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_FAP: return FAP_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_FDP: return FDP_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_FIT: return FIT_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Fog: return Fog_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_FontStyle: return FontStyle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Form: return Form_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Group: return Group_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ImageTexture: return ImageTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_IndexedFaceSet: return IndexedFaceSet_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_IndexedFaceSet2D: return IndexedFaceSet2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_IndexedLineSet: return IndexedLineSet_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_IndexedLineSet2D: return IndexedLineSet2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Inline: return Inline_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_LOD: return LOD_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Layer2D: return Layer2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Layer3D: return Layer3D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Layout: return Layout_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_LineProperties: return LineProperties_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ListeningPoint: return ListeningPoint_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Material: return Material_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Material2D: return Material2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_MovieTexture: return MovieTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_NavigationInfo: return NavigationInfo_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Normal: return Normal_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_NormalInterpolator: return NormalInterpolator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_OrderedGroup: return OrderedGroup_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_OrientationInterpolator: return OrientationInterpolator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PixelTexture: return PixelTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PlaneSensor: return PlaneSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PlaneSensor2D: return PlaneSensor2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PointLight: return PointLight_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PointSet: return PointSet_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PointSet2D: return PointSet2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PositionInterpolator: return PositionInterpolator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PositionInterpolator2D: return PositionInterpolator2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ProximitySensor2D: return ProximitySensor2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ProximitySensor: return ProximitySensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_QuantizationParameter: return QuantizationParameter_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Rectangle: return Rectangle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ScalarInterpolator: return ScalarInterpolator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Script: return Script_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Shape: return Shape_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Sound: return Sound_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Sound2D: return Sound2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Sphere: return Sphere_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SphereSensor: return SphereSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SpotLight: return SpotLight_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Switch: return Switch_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_TermCap: return TermCap_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Text: return Text_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_TextureCoordinate: return TextureCoordinate_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_TextureTransform: return TextureTransform_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_TimeSensor: return TimeSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_TouchSensor: return TouchSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Transform: return Transform_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Transform2D: return Transform2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Valuator: return Valuator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Viewpoint: return Viewpoint_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_VisibilitySensor: return VisibilitySensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Viseme: return Viseme_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_WorldInfo: return WorldInfo_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_AcousticMaterial: return AcousticMaterial_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_AcousticScene: return AcousticScene_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ApplicationWindow: return ApplicationWindow_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_BAP: return BAP_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_BDP: return BDP_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Body: return Body_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_BodyDefTable: return BodyDefTable_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_BodySegmentConnectionHint: return BodySegmentConnectionHint_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_DirectiveSound: return DirectiveSound_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Hierarchical3DMesh: return Hierarchical3DMesh_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_MaterialKey: return MaterialKey_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PerceptualParameters: return PerceptualParameters_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_TemporalTransform: return TemporalTransform_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_TemporalGroup: return TemporalGroup_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ServerCommand: return ServerCommand_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_InputSensor: return InputSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_MatteTexture: return MatteTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_MediaBuffer: return MediaBuffer_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_MediaControl: return MediaControl_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_MediaSensor: return MediaSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_BitWrapper: return BitWrapper_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_CoordinateInterpolator4D: return CoordinateInterpolator4D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_DepthImage: return DepthImage_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_FFD: return FFD_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Implicit: return Implicit_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XXLFM_Appearance: return XXLFM_Appearance_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XXLFM_BlendList: return XXLFM_BlendList_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XXLFM_FrameList: return XXLFM_FrameList_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XXLFM_LightMap: return XXLFM_LightMap_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XXLFM_SurfaceMapList: return XXLFM_SurfaceMapList_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XXLFM_ViewMapList: return XXLFM_ViewMapList_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_MeshGrid: return MeshGrid_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_NonLinearDeformer: return NonLinearDeformer_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_NurbsCurve: return NurbsCurve_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_NurbsCurve2D: return NurbsCurve2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_NurbsSurface: return NurbsSurface_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_OctreeImage: return OctreeImage_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XXParticles: return XXParticles_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XXParticleInitBox: return XXParticleInitBox_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XXPlanarObstacle: return XXPlanarObstacle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XXPointAttractor: return XXPointAttractor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PointTexture: return PointTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PositionAnimator: return PositionAnimator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PositionAnimator2D: return PositionAnimator2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PositionInterpolator4D: return PositionInterpolator4D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ProceduralTexture: return ProceduralTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Quadric: return Quadric_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SBBone: return SBBone_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SBMuscle: return SBMuscle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SBSegment: return SBSegment_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SBSite: return SBSite_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SBSkinnedModel: return SBSkinnedModel_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SBVCAnimation: return SBVCAnimation_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ScalarAnimator: return ScalarAnimator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SimpleTexture: return SimpleTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SolidRep: return SolidRep_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SubdivisionSurface: return SubdivisionSurface_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SubdivSurfaceSector: return SubdivSurfaceSector_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_WaveletSubdivisionSurface: return WaveletSubdivisionSurface_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Clipper2D: return Clipper2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ColorTransform: return ColorTransform_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Ellipse: return Ellipse_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_LinearGradient: return LinearGradient_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PathLayout: return PathLayout_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_RadialGradient: return RadialGradient_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SynthesizedTexture: return SynthesizedTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_TransformMatrix2D: return TransformMatrix2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Viewport: return Viewport_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XCurve2D: return XCurve2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XFontStyle: return XFontStyle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_XLineProperties: return XLineProperties_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_AdvancedAudioBuffer: return AdvancedAudioBuffer_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_AudioChannelConfig: return AudioChannelConfig_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_DepthImageV2: return DepthImageV2_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_MorphShape: return MorphShape_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_MultiTexture: return MultiTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_PointTextureV2: return PointTextureV2_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SBVCAnimationV2: return SBVCAnimationV2_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SimpleTextureV2: return SimpleTextureV2_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SurroundingSound: return SurroundingSound_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Transform3DAudio: return Transform3DAudio_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_WideSound: return WideSound_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_ScoreShape: return ScoreShape_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_MusicScore: return MusicScore_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_FootPrintSetNode: return FootPrintSetNode_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_FootPrintNode: return FootPrintNode_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_BuildingPartNode: return BuildingPartNode_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_RoofNode: return RoofNode_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_FacadeNode: return FacadeNode_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Shadow: return Shadow_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_CacheTexture: return CacheTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_EnvironmentTest: return EnvironmentTest_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_KeyNavigator: return KeyNavigator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_SpacePartition: return SpacePartition_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	case TAG_MPEG4_Storage: return Storage_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Anchor:
+		return Anchor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_AnimationStream:
+		return AnimationStream_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Appearance:
+		return Appearance_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_AudioBuffer:
+		return AudioBuffer_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_AudioClip:
+		return AudioClip_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_AudioDelay:
+		return AudioDelay_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_AudioFX:
+		return AudioFX_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_AudioMix:
+		return AudioMix_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_AudioSource:
+		return AudioSource_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_AudioSwitch:
+		return AudioSwitch_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Background:
+		return Background_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Background2D:
+		return Background2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Billboard:
+		return Billboard_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Bitmap:
+		return Bitmap_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Box:
+		return Box_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Circle:
+		return Circle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Collision:
+		return Collision_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Color:
+		return Color_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ColorInterpolator:
+		return ColorInterpolator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_CompositeTexture2D:
+		return CompositeTexture2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_CompositeTexture3D:
+		return CompositeTexture3D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Conditional:
+		return Conditional_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Cone:
+		return Cone_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Coordinate:
+		return Coordinate_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Coordinate2D:
+		return Coordinate2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_CoordinateInterpolator:
+		return CoordinateInterpolator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_CoordinateInterpolator2D:
+		return CoordinateInterpolator2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Curve2D:
+		return Curve2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Cylinder:
+		return Cylinder_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_CylinderSensor:
+		return CylinderSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_DirectionalLight:
+		return DirectionalLight_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_DiscSensor:
+		return DiscSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ElevationGrid:
+		return ElevationGrid_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Expression:
+		return Expression_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Extrusion:
+		return Extrusion_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Face:
+		return Face_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FaceDefMesh:
+		return FaceDefMesh_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FaceDefTables:
+		return FaceDefTables_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FaceDefTransform:
+		return FaceDefTransform_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FAP:
+		return FAP_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FDP:
+		return FDP_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FIT:
+		return FIT_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Fog:
+		return Fog_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FontStyle:
+		return FontStyle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Form:
+		return Form_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Group:
+		return Group_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ImageTexture:
+		return ImageTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_IndexedFaceSet:
+		return IndexedFaceSet_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_IndexedFaceSet2D:
+		return IndexedFaceSet2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_IndexedLineSet:
+		return IndexedLineSet_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_IndexedLineSet2D:
+		return IndexedLineSet2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Inline:
+		return Inline_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_LOD:
+		return LOD_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Layer2D:
+		return Layer2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Layer3D:
+		return Layer3D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Layout:
+		return Layout_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_LineProperties:
+		return LineProperties_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ListeningPoint:
+		return ListeningPoint_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Material:
+		return Material_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Material2D:
+		return Material2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_MovieTexture:
+		return MovieTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_NavigationInfo:
+		return NavigationInfo_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Normal:
+		return Normal_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_NormalInterpolator:
+		return NormalInterpolator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_OrderedGroup:
+		return OrderedGroup_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_OrientationInterpolator:
+		return OrientationInterpolator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PixelTexture:
+		return PixelTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PlaneSensor:
+		return PlaneSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PlaneSensor2D:
+		return PlaneSensor2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PointLight:
+		return PointLight_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PointSet:
+		return PointSet_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PointSet2D:
+		return PointSet2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PositionInterpolator:
+		return PositionInterpolator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PositionInterpolator2D:
+		return PositionInterpolator2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ProximitySensor2D:
+		return ProximitySensor2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ProximitySensor:
+		return ProximitySensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_QuantizationParameter:
+		return QuantizationParameter_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Rectangle:
+		return Rectangle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ScalarInterpolator:
+		return ScalarInterpolator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Script:
+		return Script_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Shape:
+		return Shape_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Sound:
+		return Sound_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Sound2D:
+		return Sound2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Sphere:
+		return Sphere_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SphereSensor:
+		return SphereSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SpotLight:
+		return SpotLight_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Switch:
+		return Switch_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_TermCap:
+		return TermCap_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Text:
+		return Text_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_TextureCoordinate:
+		return TextureCoordinate_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_TextureTransform:
+		return TextureTransform_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_TimeSensor:
+		return TimeSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_TouchSensor:
+		return TouchSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Transform:
+		return Transform_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Transform2D:
+		return Transform2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Valuator:
+		return Valuator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Viewpoint:
+		return Viewpoint_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_VisibilitySensor:
+		return VisibilitySensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Viseme:
+		return Viseme_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_WorldInfo:
+		return WorldInfo_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_AcousticMaterial:
+		return AcousticMaterial_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_AcousticScene:
+		return AcousticScene_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ApplicationWindow:
+		return ApplicationWindow_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_BAP:
+		return BAP_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_BDP:
+		return BDP_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Body:
+		return Body_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_BodyDefTable:
+		return BodyDefTable_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_BodySegmentConnectionHint:
+		return BodySegmentConnectionHint_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_DirectiveSound:
+		return DirectiveSound_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Hierarchical3DMesh:
+		return Hierarchical3DMesh_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_MaterialKey:
+		return MaterialKey_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PerceptualParameters:
+		return PerceptualParameters_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_TemporalTransform:
+		return TemporalTransform_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_TemporalGroup:
+		return TemporalGroup_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ServerCommand:
+		return ServerCommand_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_InputSensor:
+		return InputSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_MatteTexture:
+		return MatteTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_MediaBuffer:
+		return MediaBuffer_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_MediaControl:
+		return MediaControl_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_MediaSensor:
+		return MediaSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_BitWrapper:
+		return BitWrapper_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_CoordinateInterpolator4D:
+		return CoordinateInterpolator4D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_DepthImage:
+		return DepthImage_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FFD:
+		return FFD_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Implicit:
+		return Implicit_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXLFM_Appearance:
+		return XXLFM_Appearance_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXLFM_BlendList:
+		return XXLFM_BlendList_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXLFM_FrameList:
+		return XXLFM_FrameList_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXLFM_LightMap:
+		return XXLFM_LightMap_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXLFM_SurfaceMapList:
+		return XXLFM_SurfaceMapList_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXLFM_ViewMapList:
+		return XXLFM_ViewMapList_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_MeshGrid:
+		return MeshGrid_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_NonLinearDeformer:
+		return NonLinearDeformer_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_NurbsCurve:
+		return NurbsCurve_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_NurbsCurve2D:
+		return NurbsCurve2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_NurbsSurface:
+		return NurbsSurface_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_OctreeImage:
+		return OctreeImage_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXParticles:
+		return XXParticles_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXParticleInitBox:
+		return XXParticleInitBox_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXPlanarObstacle:
+		return XXPlanarObstacle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXPointAttractor:
+		return XXPointAttractor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PointTexture:
+		return PointTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PositionAnimator:
+		return PositionAnimator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PositionAnimator2D:
+		return PositionAnimator2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PositionInterpolator4D:
+		return PositionInterpolator4D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ProceduralTexture:
+		return ProceduralTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Quadric:
+		return Quadric_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBBone:
+		return SBBone_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBMuscle:
+		return SBMuscle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBSegment:
+		return SBSegment_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBSite:
+		return SBSite_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBSkinnedModel:
+		return SBSkinnedModel_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBVCAnimation:
+		return SBVCAnimation_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ScalarAnimator:
+		return ScalarAnimator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SimpleTexture:
+		return SimpleTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SolidRep:
+		return SolidRep_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SubdivisionSurface:
+		return SubdivisionSurface_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SubdivSurfaceSector:
+		return SubdivSurfaceSector_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_WaveletSubdivisionSurface:
+		return WaveletSubdivisionSurface_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Clipper2D:
+		return Clipper2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ColorTransform:
+		return ColorTransform_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Ellipse:
+		return Ellipse_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_LinearGradient:
+		return LinearGradient_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PathLayout:
+		return PathLayout_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_RadialGradient:
+		return RadialGradient_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SynthesizedTexture:
+		return SynthesizedTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_TransformMatrix2D:
+		return TransformMatrix2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Viewport:
+		return Viewport_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XCurve2D:
+		return XCurve2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XFontStyle:
+		return XFontStyle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XLineProperties:
+		return XLineProperties_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_AdvancedAudioBuffer:
+		return AdvancedAudioBuffer_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_AudioChannelConfig:
+		return AudioChannelConfig_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_DepthImageV2:
+		return DepthImageV2_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_MorphShape:
+		return MorphShape_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_MultiTexture:
+		return MultiTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PointTextureV2:
+		return PointTextureV2_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBVCAnimationV2:
+		return SBVCAnimationV2_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SimpleTextureV2:
+		return SimpleTextureV2_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SurroundingSound:
+		return SurroundingSound_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Transform3DAudio:
+		return Transform3DAudio_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_WideSound:
+		return WideSound_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ScoreShape:
+		return ScoreShape_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_MusicScore:
+		return MusicScore_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FootPrintSetNode:
+		return FootPrintSetNode_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FootPrintNode:
+		return FootPrintNode_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_BuildingPartNode:
+		return BuildingPartNode_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_RoofNode:
+		return RoofNode_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FacadeNode:
+		return FacadeNode_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Shadow:
+		return Shadow_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_CacheTexture:
+		return CacheTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_EnvironmentTest:
+		return EnvironmentTest_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_KeyNavigator:
+		return KeyNavigator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SpacePartition:
+		return SpacePartition_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Storage:
+		return Storage_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	default:
 		return 0;
 	}
@@ -37938,59 +39693,112 @@ Bool gf_sg_mpeg4_node_get_aq_info(GF_Node *node, u32 FieldIndex, u8 *QType, u8 *
 u32 gf_sg_mpeg4_node_get_child_ndt(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
-	case TAG_MPEG4_Anchor: return NDT_SF3DNode;
-	case TAG_MPEG4_AudioBuffer: return NDT_SFAudioNode;
-	case TAG_MPEG4_AudioDelay: return NDT_SFAudioNode;
-	case TAG_MPEG4_AudioFX: return NDT_SFAudioNode;
-	case TAG_MPEG4_AudioMix: return NDT_SFAudioNode;
-	case TAG_MPEG4_AudioSource: return NDT_SFAudioNode;
-	case TAG_MPEG4_AudioSwitch: return NDT_SFAudioNode;
-	case TAG_MPEG4_Billboard: return NDT_SF3DNode;
-	case TAG_MPEG4_Collision: return NDT_SF3DNode;
-	case TAG_MPEG4_CompositeTexture2D: return NDT_SF2DNode;
-	case TAG_MPEG4_CompositeTexture3D: return NDT_SF3DNode;
-	case TAG_MPEG4_Face: return NDT_SF3DNode;
-	case TAG_MPEG4_FaceDefTables: return NDT_SFFaceDefMeshNode;
-	case TAG_MPEG4_FDP: return NDT_SFFaceDefTablesNode;
-	case TAG_MPEG4_Form: return NDT_SF2DNode;
-	case TAG_MPEG4_Group: return NDT_SF3DNode;
-	case TAG_MPEG4_LOD: return NDT_SF3DNode;
-	case TAG_MPEG4_Layer2D: return NDT_SF2DNode;
-	case TAG_MPEG4_Layer3D: return NDT_SF3DNode;
-	case TAG_MPEG4_Layout: return NDT_SF2DNode;
-	case TAG_MPEG4_OrderedGroup: return NDT_SF3DNode;
-	case TAG_MPEG4_Switch: return NDT_SF3DNode;
-	case TAG_MPEG4_Transform: return NDT_SF3DNode;
-	case TAG_MPEG4_Transform2D: return NDT_SF2DNode;
-	case TAG_MPEG4_BDP: return NDT_SFBodyDefTableNode;
-	case TAG_MPEG4_Body: return NDT_SF3DNode;
-	case TAG_MPEG4_TemporalTransform: return NDT_SF3DNode;
-	case TAG_MPEG4_TemporalGroup: return NDT_SFTemporalNode;
-	case TAG_MPEG4_FFD: return NDT_SF3DNode;
-	case TAG_MPEG4_XXLFM_Appearance: return NDT_SFLightMapNode;
-	case TAG_MPEG4_OctreeImage: return NDT_SFDepthImageNode;
-	case TAG_MPEG4_XXParticles: return NDT_SFInfluenceNode;
-	case TAG_MPEG4_SBBone: return NDT_SF3DNode;
-	case TAG_MPEG4_SBSegment: return NDT_SF3DNode;
-	case TAG_MPEG4_SBSite: return NDT_SF3DNode;
-	case TAG_MPEG4_SBSkinnedModel: return NDT_SFSBBoneNode;
-	case TAG_MPEG4_SBVCAnimation: return NDT_SF3DNode;
-	case TAG_MPEG4_SubdivisionSurface: return NDT_SFSubdivSurfaceSectorNode;
-	case TAG_MPEG4_Clipper2D: return NDT_SF2DNode;
-	case TAG_MPEG4_ColorTransform: return NDT_SF3DNode;
-	case TAG_MPEG4_PathLayout: return NDT_SF2DNode;
-	case TAG_MPEG4_TransformMatrix2D: return NDT_SF2DNode;
-	case TAG_MPEG4_AdvancedAudioBuffer: return NDT_SFAudioNode;
-	case TAG_MPEG4_AudioChannelConfig: return NDT_SFAudioNode;
-	case TAG_MPEG4_MorphShape: return NDT_SF3DNode;
-	case TAG_MPEG4_MultiTexture: return NDT_SFTextureNode;
-	case TAG_MPEG4_SBVCAnimationV2: return NDT_SF3DNode;
-	case TAG_MPEG4_Transform3DAudio: return NDT_SF3DNode;
-	case TAG_MPEG4_FootPrintSetNode: return NDT_SFGeometryNode;
-	case TAG_MPEG4_BuildingPartNode: return NDT_SFGeometryNode;
-	case TAG_MPEG4_FacadeNode: return NDT_SFGeometryNode;
-	case TAG_MPEG4_Shadow: return NDT_SF3DNode;
-	case TAG_MPEG4_SpacePartition: return NDT_SF3DNode;
+	case TAG_MPEG4_Anchor:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_AudioBuffer:
+		return NDT_SFAudioNode;
+	case TAG_MPEG4_AudioDelay:
+		return NDT_SFAudioNode;
+	case TAG_MPEG4_AudioFX:
+		return NDT_SFAudioNode;
+	case TAG_MPEG4_AudioMix:
+		return NDT_SFAudioNode;
+	case TAG_MPEG4_AudioSource:
+		return NDT_SFAudioNode;
+	case TAG_MPEG4_AudioSwitch:
+		return NDT_SFAudioNode;
+	case TAG_MPEG4_Billboard:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_Collision:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_CompositeTexture2D:
+		return NDT_SF2DNode;
+	case TAG_MPEG4_CompositeTexture3D:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_Face:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_FaceDefTables:
+		return NDT_SFFaceDefMeshNode;
+	case TAG_MPEG4_FDP:
+		return NDT_SFFaceDefTablesNode;
+	case TAG_MPEG4_Form:
+		return NDT_SF2DNode;
+	case TAG_MPEG4_Group:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_LOD:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_Layer2D:
+		return NDT_SF2DNode;
+	case TAG_MPEG4_Layer3D:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_Layout:
+		return NDT_SF2DNode;
+	case TAG_MPEG4_OrderedGroup:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_Switch:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_Transform:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_Transform2D:
+		return NDT_SF2DNode;
+	case TAG_MPEG4_BDP:
+		return NDT_SFBodyDefTableNode;
+	case TAG_MPEG4_Body:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_TemporalTransform:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_TemporalGroup:
+		return NDT_SFTemporalNode;
+	case TAG_MPEG4_FFD:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_XXLFM_Appearance:
+		return NDT_SFLightMapNode;
+	case TAG_MPEG4_OctreeImage:
+		return NDT_SFDepthImageNode;
+	case TAG_MPEG4_XXParticles:
+		return NDT_SFInfluenceNode;
+	case TAG_MPEG4_SBBone:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_SBSegment:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_SBSite:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_SBSkinnedModel:
+		return NDT_SFSBBoneNode;
+	case TAG_MPEG4_SBVCAnimation:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_SubdivisionSurface:
+		return NDT_SFSubdivSurfaceSectorNode;
+	case TAG_MPEG4_Clipper2D:
+		return NDT_SF2DNode;
+	case TAG_MPEG4_ColorTransform:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_PathLayout:
+		return NDT_SF2DNode;
+	case TAG_MPEG4_TransformMatrix2D:
+		return NDT_SF2DNode;
+	case TAG_MPEG4_AdvancedAudioBuffer:
+		return NDT_SFAudioNode;
+	case TAG_MPEG4_AudioChannelConfig:
+		return NDT_SFAudioNode;
+	case TAG_MPEG4_MorphShape:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_MultiTexture:
+		return NDT_SFTextureNode;
+	case TAG_MPEG4_SBVCAnimationV2:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_Transform3DAudio:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_FootPrintSetNode:
+		return NDT_SFGeometryNode;
+	case TAG_MPEG4_BuildingPartNode:
+		return NDT_SFGeometryNode;
+	case TAG_MPEG4_FacadeNode:
+		return NDT_SFGeometryNode;
+	case TAG_MPEG4_Shadow:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_SpacePartition:
+		return NDT_SF3DNode;
 	default:
 		return 0;
 	}
@@ -38202,201 +40010,396 @@ u32 gf_node_mpeg4_type_by_class_name(const char *node_name)
 s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name)
 {
 	switch (node->sgprivate->tag) {
-	case TAG_MPEG4_Anchor: return Anchor_get_field_index_by_name(name);
-	case TAG_MPEG4_AnimationStream: return AnimationStream_get_field_index_by_name(name);
-	case TAG_MPEG4_Appearance: return Appearance_get_field_index_by_name(name);
-	case TAG_MPEG4_AudioBuffer: return AudioBuffer_get_field_index_by_name(name);
-	case TAG_MPEG4_AudioClip: return AudioClip_get_field_index_by_name(name);
-	case TAG_MPEG4_AudioDelay: return AudioDelay_get_field_index_by_name(name);
-	case TAG_MPEG4_AudioFX: return AudioFX_get_field_index_by_name(name);
-	case TAG_MPEG4_AudioMix: return AudioMix_get_field_index_by_name(name);
-	case TAG_MPEG4_AudioSource: return AudioSource_get_field_index_by_name(name);
-	case TAG_MPEG4_AudioSwitch: return AudioSwitch_get_field_index_by_name(name);
-	case TAG_MPEG4_Background: return Background_get_field_index_by_name(name);
-	case TAG_MPEG4_Background2D: return Background2D_get_field_index_by_name(name);
-	case TAG_MPEG4_Billboard: return Billboard_get_field_index_by_name(name);
-	case TAG_MPEG4_Bitmap: return Bitmap_get_field_index_by_name(name);
-	case TAG_MPEG4_Box: return Box_get_field_index_by_name(name);
-	case TAG_MPEG4_Circle: return Circle_get_field_index_by_name(name);
-	case TAG_MPEG4_Collision: return Collision_get_field_index_by_name(name);
-	case TAG_MPEG4_Color: return Color_get_field_index_by_name(name);
-	case TAG_MPEG4_ColorInterpolator: return ColorInterpolator_get_field_index_by_name(name);
-	case TAG_MPEG4_CompositeTexture2D: return CompositeTexture2D_get_field_index_by_name(name);
-	case TAG_MPEG4_CompositeTexture3D: return CompositeTexture3D_get_field_index_by_name(name);
-	case TAG_MPEG4_Conditional: return Conditional_get_field_index_by_name(name);
-	case TAG_MPEG4_Cone: return Cone_get_field_index_by_name(name);
-	case TAG_MPEG4_Coordinate: return Coordinate_get_field_index_by_name(name);
-	case TAG_MPEG4_Coordinate2D: return Coordinate2D_get_field_index_by_name(name);
-	case TAG_MPEG4_CoordinateInterpolator: return CoordinateInterpolator_get_field_index_by_name(name);
-	case TAG_MPEG4_CoordinateInterpolator2D: return CoordinateInterpolator2D_get_field_index_by_name(name);
-	case TAG_MPEG4_Curve2D: return Curve2D_get_field_index_by_name(name);
-	case TAG_MPEG4_Cylinder: return Cylinder_get_field_index_by_name(name);
-	case TAG_MPEG4_CylinderSensor: return CylinderSensor_get_field_index_by_name(name);
-	case TAG_MPEG4_DirectionalLight: return DirectionalLight_get_field_index_by_name(name);
-	case TAG_MPEG4_DiscSensor: return DiscSensor_get_field_index_by_name(name);
-	case TAG_MPEG4_ElevationGrid: return ElevationGrid_get_field_index_by_name(name);
-	case TAG_MPEG4_Expression: return Expression_get_field_index_by_name(name);
-	case TAG_MPEG4_Extrusion: return Extrusion_get_field_index_by_name(name);
-	case TAG_MPEG4_Face: return Face_get_field_index_by_name(name);
-	case TAG_MPEG4_FaceDefMesh: return FaceDefMesh_get_field_index_by_name(name);
-	case TAG_MPEG4_FaceDefTables: return FaceDefTables_get_field_index_by_name(name);
-	case TAG_MPEG4_FaceDefTransform: return FaceDefTransform_get_field_index_by_name(name);
-	case TAG_MPEG4_FAP: return FAP_get_field_index_by_name(name);
-	case TAG_MPEG4_FDP: return FDP_get_field_index_by_name(name);
-	case TAG_MPEG4_FIT: return FIT_get_field_index_by_name(name);
-	case TAG_MPEG4_Fog: return Fog_get_field_index_by_name(name);
-	case TAG_MPEG4_FontStyle: return FontStyle_get_field_index_by_name(name);
-	case TAG_MPEG4_Form: return Form_get_field_index_by_name(name);
-	case TAG_MPEG4_Group: return Group_get_field_index_by_name(name);
-	case TAG_MPEG4_ImageTexture: return ImageTexture_get_field_index_by_name(name);
-	case TAG_MPEG4_IndexedFaceSet: return IndexedFaceSet_get_field_index_by_name(name);
-	case TAG_MPEG4_IndexedFaceSet2D: return IndexedFaceSet2D_get_field_index_by_name(name);
-	case TAG_MPEG4_IndexedLineSet: return IndexedLineSet_get_field_index_by_name(name);
-	case TAG_MPEG4_IndexedLineSet2D: return IndexedLineSet2D_get_field_index_by_name(name);
-	case TAG_MPEG4_Inline: return Inline_get_field_index_by_name(name);
-	case TAG_MPEG4_LOD: return LOD_get_field_index_by_name(name);
-	case TAG_MPEG4_Layer2D: return Layer2D_get_field_index_by_name(name);
-	case TAG_MPEG4_Layer3D: return Layer3D_get_field_index_by_name(name);
-	case TAG_MPEG4_Layout: return Layout_get_field_index_by_name(name);
-	case TAG_MPEG4_LineProperties: return LineProperties_get_field_index_by_name(name);
-	case TAG_MPEG4_ListeningPoint: return ListeningPoint_get_field_index_by_name(name);
-	case TAG_MPEG4_Material: return Material_get_field_index_by_name(name);
-	case TAG_MPEG4_Material2D: return Material2D_get_field_index_by_name(name);
-	case TAG_MPEG4_MovieTexture: return MovieTexture_get_field_index_by_name(name);
-	case TAG_MPEG4_NavigationInfo: return NavigationInfo_get_field_index_by_name(name);
-	case TAG_MPEG4_Normal: return Normal_get_field_index_by_name(name);
-	case TAG_MPEG4_NormalInterpolator: return NormalInterpolator_get_field_index_by_name(name);
-	case TAG_MPEG4_OrderedGroup: return OrderedGroup_get_field_index_by_name(name);
-	case TAG_MPEG4_OrientationInterpolator: return OrientationInterpolator_get_field_index_by_name(name);
-	case TAG_MPEG4_PixelTexture: return PixelTexture_get_field_index_by_name(name);
-	case TAG_MPEG4_PlaneSensor: return PlaneSensor_get_field_index_by_name(name);
-	case TAG_MPEG4_PlaneSensor2D: return PlaneSensor2D_get_field_index_by_name(name);
-	case TAG_MPEG4_PointLight: return PointLight_get_field_index_by_name(name);
-	case TAG_MPEG4_PointSet: return PointSet_get_field_index_by_name(name);
-	case TAG_MPEG4_PointSet2D: return PointSet2D_get_field_index_by_name(name);
-	case TAG_MPEG4_PositionInterpolator: return PositionInterpolator_get_field_index_by_name(name);
-	case TAG_MPEG4_PositionInterpolator2D: return PositionInterpolator2D_get_field_index_by_name(name);
-	case TAG_MPEG4_ProximitySensor2D: return ProximitySensor2D_get_field_index_by_name(name);
-	case TAG_MPEG4_ProximitySensor: return ProximitySensor_get_field_index_by_name(name);
-	case TAG_MPEG4_QuantizationParameter: return QuantizationParameter_get_field_index_by_name(name);
-	case TAG_MPEG4_Rectangle: return Rectangle_get_field_index_by_name(name);
-	case TAG_MPEG4_ScalarInterpolator: return ScalarInterpolator_get_field_index_by_name(name);
-	case TAG_MPEG4_Script: return Script_get_field_index_by_name(name);
-	case TAG_MPEG4_Shape: return Shape_get_field_index_by_name(name);
-	case TAG_MPEG4_Sound: return Sound_get_field_index_by_name(name);
-	case TAG_MPEG4_Sound2D: return Sound2D_get_field_index_by_name(name);
-	case TAG_MPEG4_Sphere: return Sphere_get_field_index_by_name(name);
-	case TAG_MPEG4_SphereSensor: return SphereSensor_get_field_index_by_name(name);
-	case TAG_MPEG4_SpotLight: return SpotLight_get_field_index_by_name(name);
-	case TAG_MPEG4_Switch: return Switch_get_field_index_by_name(name);
-	case TAG_MPEG4_TermCap: return TermCap_get_field_index_by_name(name);
-	case TAG_MPEG4_Text: return Text_get_field_index_by_name(name);
-	case TAG_MPEG4_TextureCoordinate: return TextureCoordinate_get_field_index_by_name(name);
-	case TAG_MPEG4_TextureTransform: return TextureTransform_get_field_index_by_name(name);
-	case TAG_MPEG4_TimeSensor: return TimeSensor_get_field_index_by_name(name);
-	case TAG_MPEG4_TouchSensor: return TouchSensor_get_field_index_by_name(name);
-	case TAG_MPEG4_Transform: return Transform_get_field_index_by_name(name);
-	case TAG_MPEG4_Transform2D: return Transform2D_get_field_index_by_name(name);
-	case TAG_MPEG4_Valuator: return Valuator_get_field_index_by_name(name);
-	case TAG_MPEG4_Viewpoint: return Viewpoint_get_field_index_by_name(name);
-	case TAG_MPEG4_VisibilitySensor: return VisibilitySensor_get_field_index_by_name(name);
-	case TAG_MPEG4_Viseme: return Viseme_get_field_index_by_name(name);
-	case TAG_MPEG4_WorldInfo: return WorldInfo_get_field_index_by_name(name);
-	case TAG_MPEG4_AcousticMaterial: return AcousticMaterial_get_field_index_by_name(name);
-	case TAG_MPEG4_AcousticScene: return AcousticScene_get_field_index_by_name(name);
-	case TAG_MPEG4_ApplicationWindow: return ApplicationWindow_get_field_index_by_name(name);
-	case TAG_MPEG4_BAP: return BAP_get_field_index_by_name(name);
-	case TAG_MPEG4_BDP: return BDP_get_field_index_by_name(name);
-	case TAG_MPEG4_Body: return Body_get_field_index_by_name(name);
-	case TAG_MPEG4_BodyDefTable: return BodyDefTable_get_field_index_by_name(name);
-	case TAG_MPEG4_BodySegmentConnectionHint: return BodySegmentConnectionHint_get_field_index_by_name(name);
-	case TAG_MPEG4_DirectiveSound: return DirectiveSound_get_field_index_by_name(name);
-	case TAG_MPEG4_Hierarchical3DMesh: return Hierarchical3DMesh_get_field_index_by_name(name);
-	case TAG_MPEG4_MaterialKey: return MaterialKey_get_field_index_by_name(name);
-	case TAG_MPEG4_PerceptualParameters: return PerceptualParameters_get_field_index_by_name(name);
-	case TAG_MPEG4_TemporalTransform: return TemporalTransform_get_field_index_by_name(name);
-	case TAG_MPEG4_TemporalGroup: return TemporalGroup_get_field_index_by_name(name);
-	case TAG_MPEG4_ServerCommand: return ServerCommand_get_field_index_by_name(name);
-	case TAG_MPEG4_InputSensor: return InputSensor_get_field_index_by_name(name);
-	case TAG_MPEG4_MatteTexture: return MatteTexture_get_field_index_by_name(name);
-	case TAG_MPEG4_MediaBuffer: return MediaBuffer_get_field_index_by_name(name);
-	case TAG_MPEG4_MediaControl: return MediaControl_get_field_index_by_name(name);
-	case TAG_MPEG4_MediaSensor: return MediaSensor_get_field_index_by_name(name);
-	case TAG_MPEG4_BitWrapper: return BitWrapper_get_field_index_by_name(name);
-	case TAG_MPEG4_CoordinateInterpolator4D: return CoordinateInterpolator4D_get_field_index_by_name(name);
-	case TAG_MPEG4_DepthImage: return DepthImage_get_field_index_by_name(name);
-	case TAG_MPEG4_FFD: return FFD_get_field_index_by_name(name);
-	case TAG_MPEG4_Implicit: return Implicit_get_field_index_by_name(name);
-	case TAG_MPEG4_XXLFM_Appearance: return XXLFM_Appearance_get_field_index_by_name(name);
-	case TAG_MPEG4_XXLFM_BlendList: return XXLFM_BlendList_get_field_index_by_name(name);
-	case TAG_MPEG4_XXLFM_FrameList: return XXLFM_FrameList_get_field_index_by_name(name);
-	case TAG_MPEG4_XXLFM_LightMap: return XXLFM_LightMap_get_field_index_by_name(name);
-	case TAG_MPEG4_XXLFM_SurfaceMapList: return XXLFM_SurfaceMapList_get_field_index_by_name(name);
-	case TAG_MPEG4_XXLFM_ViewMapList: return XXLFM_ViewMapList_get_field_index_by_name(name);
-	case TAG_MPEG4_MeshGrid: return MeshGrid_get_field_index_by_name(name);
-	case TAG_MPEG4_NonLinearDeformer: return NonLinearDeformer_get_field_index_by_name(name);
-	case TAG_MPEG4_NurbsCurve: return NurbsCurve_get_field_index_by_name(name);
-	case TAG_MPEG4_NurbsCurve2D: return NurbsCurve2D_get_field_index_by_name(name);
-	case TAG_MPEG4_NurbsSurface: return NurbsSurface_get_field_index_by_name(name);
-	case TAG_MPEG4_OctreeImage: return OctreeImage_get_field_index_by_name(name);
-	case TAG_MPEG4_XXParticles: return XXParticles_get_field_index_by_name(name);
-	case TAG_MPEG4_XXParticleInitBox: return XXParticleInitBox_get_field_index_by_name(name);
-	case TAG_MPEG4_XXPlanarObstacle: return XXPlanarObstacle_get_field_index_by_name(name);
-	case TAG_MPEG4_XXPointAttractor: return XXPointAttractor_get_field_index_by_name(name);
-	case TAG_MPEG4_PointTexture: return PointTexture_get_field_index_by_name(name);
-	case TAG_MPEG4_PositionAnimator: return PositionAnimator_get_field_index_by_name(name);
-	case TAG_MPEG4_PositionAnimator2D: return PositionAnimator2D_get_field_index_by_name(name);
-	case TAG_MPEG4_PositionInterpolator4D: return PositionInterpolator4D_get_field_index_by_name(name);
-	case TAG_MPEG4_ProceduralTexture: return ProceduralTexture_get_field_index_by_name(name);
-	case TAG_MPEG4_Quadric: return Quadric_get_field_index_by_name(name);
-	case TAG_MPEG4_SBBone: return SBBone_get_field_index_by_name(name);
-	case TAG_MPEG4_SBMuscle: return SBMuscle_get_field_index_by_name(name);
-	case TAG_MPEG4_SBSegment: return SBSegment_get_field_index_by_name(name);
-	case TAG_MPEG4_SBSite: return SBSite_get_field_index_by_name(name);
-	case TAG_MPEG4_SBSkinnedModel: return SBSkinnedModel_get_field_index_by_name(name);
-	case TAG_MPEG4_SBVCAnimation: return SBVCAnimation_get_field_index_by_name(name);
-	case TAG_MPEG4_ScalarAnimator: return ScalarAnimator_get_field_index_by_name(name);
-	case TAG_MPEG4_SimpleTexture: return SimpleTexture_get_field_index_by_name(name);
-	case TAG_MPEG4_SolidRep: return SolidRep_get_field_index_by_name(name);
-	case TAG_MPEG4_SubdivisionSurface: return SubdivisionSurface_get_field_index_by_name(name);
-	case TAG_MPEG4_SubdivSurfaceSector: return SubdivSurfaceSector_get_field_index_by_name(name);
-	case TAG_MPEG4_WaveletSubdivisionSurface: return WaveletSubdivisionSurface_get_field_index_by_name(name);
-	case TAG_MPEG4_Clipper2D: return Clipper2D_get_field_index_by_name(name);
-	case TAG_MPEG4_ColorTransform: return ColorTransform_get_field_index_by_name(name);
-	case TAG_MPEG4_Ellipse: return Ellipse_get_field_index_by_name(name);
-	case TAG_MPEG4_LinearGradient: return LinearGradient_get_field_index_by_name(name);
-	case TAG_MPEG4_PathLayout: return PathLayout_get_field_index_by_name(name);
-	case TAG_MPEG4_RadialGradient: return RadialGradient_get_field_index_by_name(name);
-	case TAG_MPEG4_SynthesizedTexture: return SynthesizedTexture_get_field_index_by_name(name);
-	case TAG_MPEG4_TransformMatrix2D: return TransformMatrix2D_get_field_index_by_name(name);
-	case TAG_MPEG4_Viewport: return Viewport_get_field_index_by_name(name);
-	case TAG_MPEG4_XCurve2D: return XCurve2D_get_field_index_by_name(name);
-	case TAG_MPEG4_XFontStyle: return XFontStyle_get_field_index_by_name(name);
-	case TAG_MPEG4_XLineProperties: return XLineProperties_get_field_index_by_name(name);
-	case TAG_MPEG4_AdvancedAudioBuffer: return AdvancedAudioBuffer_get_field_index_by_name(name);
-	case TAG_MPEG4_AudioChannelConfig: return AudioChannelConfig_get_field_index_by_name(name);
-	case TAG_MPEG4_DepthImageV2: return DepthImageV2_get_field_index_by_name(name);
-	case TAG_MPEG4_MorphShape: return MorphShape_get_field_index_by_name(name);
-	case TAG_MPEG4_MultiTexture: return MultiTexture_get_field_index_by_name(name);
-	case TAG_MPEG4_PointTextureV2: return PointTextureV2_get_field_index_by_name(name);
-	case TAG_MPEG4_SBVCAnimationV2: return SBVCAnimationV2_get_field_index_by_name(name);
-	case TAG_MPEG4_SimpleTextureV2: return SimpleTextureV2_get_field_index_by_name(name);
-	case TAG_MPEG4_SurroundingSound: return SurroundingSound_get_field_index_by_name(name);
-	case TAG_MPEG4_Transform3DAudio: return Transform3DAudio_get_field_index_by_name(name);
-	case TAG_MPEG4_WideSound: return WideSound_get_field_index_by_name(name);
-	case TAG_MPEG4_ScoreShape: return ScoreShape_get_field_index_by_name(name);
-	case TAG_MPEG4_MusicScore: return MusicScore_get_field_index_by_name(name);
-	case TAG_MPEG4_FootPrintSetNode: return FootPrintSetNode_get_field_index_by_name(name);
-	case TAG_MPEG4_FootPrintNode: return FootPrintNode_get_field_index_by_name(name);
-	case TAG_MPEG4_BuildingPartNode: return BuildingPartNode_get_field_index_by_name(name);
-	case TAG_MPEG4_RoofNode: return RoofNode_get_field_index_by_name(name);
-	case TAG_MPEG4_FacadeNode: return FacadeNode_get_field_index_by_name(name);
-	case TAG_MPEG4_Shadow: return Shadow_get_field_index_by_name(name);
-	case TAG_MPEG4_CacheTexture: return CacheTexture_get_field_index_by_name(name);
-	case TAG_MPEG4_EnvironmentTest: return EnvironmentTest_get_field_index_by_name(name);
-	case TAG_MPEG4_KeyNavigator: return KeyNavigator_get_field_index_by_name(name);
-	case TAG_MPEG4_SpacePartition: return SpacePartition_get_field_index_by_name(name);
-	case TAG_MPEG4_Storage: return Storage_get_field_index_by_name(name);
+	case TAG_MPEG4_Anchor:
+		return Anchor_get_field_index_by_name(name);
+	case TAG_MPEG4_AnimationStream:
+		return AnimationStream_get_field_index_by_name(name);
+	case TAG_MPEG4_Appearance:
+		return Appearance_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioBuffer:
+		return AudioBuffer_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioClip:
+		return AudioClip_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioDelay:
+		return AudioDelay_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioFX:
+		return AudioFX_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioMix:
+		return AudioMix_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioSource:
+		return AudioSource_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioSwitch:
+		return AudioSwitch_get_field_index_by_name(name);
+	case TAG_MPEG4_Background:
+		return Background_get_field_index_by_name(name);
+	case TAG_MPEG4_Background2D:
+		return Background2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Billboard:
+		return Billboard_get_field_index_by_name(name);
+	case TAG_MPEG4_Bitmap:
+		return Bitmap_get_field_index_by_name(name);
+	case TAG_MPEG4_Box:
+		return Box_get_field_index_by_name(name);
+	case TAG_MPEG4_Circle:
+		return Circle_get_field_index_by_name(name);
+	case TAG_MPEG4_Collision:
+		return Collision_get_field_index_by_name(name);
+	case TAG_MPEG4_Color:
+		return Color_get_field_index_by_name(name);
+	case TAG_MPEG4_ColorInterpolator:
+		return ColorInterpolator_get_field_index_by_name(name);
+	case TAG_MPEG4_CompositeTexture2D:
+		return CompositeTexture2D_get_field_index_by_name(name);
+	case TAG_MPEG4_CompositeTexture3D:
+		return CompositeTexture3D_get_field_index_by_name(name);
+	case TAG_MPEG4_Conditional:
+		return Conditional_get_field_index_by_name(name);
+	case TAG_MPEG4_Cone:
+		return Cone_get_field_index_by_name(name);
+	case TAG_MPEG4_Coordinate:
+		return Coordinate_get_field_index_by_name(name);
+	case TAG_MPEG4_Coordinate2D:
+		return Coordinate2D_get_field_index_by_name(name);
+	case TAG_MPEG4_CoordinateInterpolator:
+		return CoordinateInterpolator_get_field_index_by_name(name);
+	case TAG_MPEG4_CoordinateInterpolator2D:
+		return CoordinateInterpolator2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Curve2D:
+		return Curve2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Cylinder:
+		return Cylinder_get_field_index_by_name(name);
+	case TAG_MPEG4_CylinderSensor:
+		return CylinderSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_DirectionalLight:
+		return DirectionalLight_get_field_index_by_name(name);
+	case TAG_MPEG4_DiscSensor:
+		return DiscSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_ElevationGrid:
+		return ElevationGrid_get_field_index_by_name(name);
+	case TAG_MPEG4_Expression:
+		return Expression_get_field_index_by_name(name);
+	case TAG_MPEG4_Extrusion:
+		return Extrusion_get_field_index_by_name(name);
+	case TAG_MPEG4_Face:
+		return Face_get_field_index_by_name(name);
+	case TAG_MPEG4_FaceDefMesh:
+		return FaceDefMesh_get_field_index_by_name(name);
+	case TAG_MPEG4_FaceDefTables:
+		return FaceDefTables_get_field_index_by_name(name);
+	case TAG_MPEG4_FaceDefTransform:
+		return FaceDefTransform_get_field_index_by_name(name);
+	case TAG_MPEG4_FAP:
+		return FAP_get_field_index_by_name(name);
+	case TAG_MPEG4_FDP:
+		return FDP_get_field_index_by_name(name);
+	case TAG_MPEG4_FIT:
+		return FIT_get_field_index_by_name(name);
+	case TAG_MPEG4_Fog:
+		return Fog_get_field_index_by_name(name);
+	case TAG_MPEG4_FontStyle:
+		return FontStyle_get_field_index_by_name(name);
+	case TAG_MPEG4_Form:
+		return Form_get_field_index_by_name(name);
+	case TAG_MPEG4_Group:
+		return Group_get_field_index_by_name(name);
+	case TAG_MPEG4_ImageTexture:
+		return ImageTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_IndexedFaceSet:
+		return IndexedFaceSet_get_field_index_by_name(name);
+	case TAG_MPEG4_IndexedFaceSet2D:
+		return IndexedFaceSet2D_get_field_index_by_name(name);
+	case TAG_MPEG4_IndexedLineSet:
+		return IndexedLineSet_get_field_index_by_name(name);
+	case TAG_MPEG4_IndexedLineSet2D:
+		return IndexedLineSet2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Inline:
+		return Inline_get_field_index_by_name(name);
+	case TAG_MPEG4_LOD:
+		return LOD_get_field_index_by_name(name);
+	case TAG_MPEG4_Layer2D:
+		return Layer2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Layer3D:
+		return Layer3D_get_field_index_by_name(name);
+	case TAG_MPEG4_Layout:
+		return Layout_get_field_index_by_name(name);
+	case TAG_MPEG4_LineProperties:
+		return LineProperties_get_field_index_by_name(name);
+	case TAG_MPEG4_ListeningPoint:
+		return ListeningPoint_get_field_index_by_name(name);
+	case TAG_MPEG4_Material:
+		return Material_get_field_index_by_name(name);
+	case TAG_MPEG4_Material2D:
+		return Material2D_get_field_index_by_name(name);
+	case TAG_MPEG4_MovieTexture:
+		return MovieTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_NavigationInfo:
+		return NavigationInfo_get_field_index_by_name(name);
+	case TAG_MPEG4_Normal:
+		return Normal_get_field_index_by_name(name);
+	case TAG_MPEG4_NormalInterpolator:
+		return NormalInterpolator_get_field_index_by_name(name);
+	case TAG_MPEG4_OrderedGroup:
+		return OrderedGroup_get_field_index_by_name(name);
+	case TAG_MPEG4_OrientationInterpolator:
+		return OrientationInterpolator_get_field_index_by_name(name);
+	case TAG_MPEG4_PixelTexture:
+		return PixelTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_PlaneSensor:
+		return PlaneSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_PlaneSensor2D:
+		return PlaneSensor2D_get_field_index_by_name(name);
+	case TAG_MPEG4_PointLight:
+		return PointLight_get_field_index_by_name(name);
+	case TAG_MPEG4_PointSet:
+		return PointSet_get_field_index_by_name(name);
+	case TAG_MPEG4_PointSet2D:
+		return PointSet2D_get_field_index_by_name(name);
+	case TAG_MPEG4_PositionInterpolator:
+		return PositionInterpolator_get_field_index_by_name(name);
+	case TAG_MPEG4_PositionInterpolator2D:
+		return PositionInterpolator2D_get_field_index_by_name(name);
+	case TAG_MPEG4_ProximitySensor2D:
+		return ProximitySensor2D_get_field_index_by_name(name);
+	case TAG_MPEG4_ProximitySensor:
+		return ProximitySensor_get_field_index_by_name(name);
+	case TAG_MPEG4_QuantizationParameter:
+		return QuantizationParameter_get_field_index_by_name(name);
+	case TAG_MPEG4_Rectangle:
+		return Rectangle_get_field_index_by_name(name);
+	case TAG_MPEG4_ScalarInterpolator:
+		return ScalarInterpolator_get_field_index_by_name(name);
+	case TAG_MPEG4_Script:
+		return Script_get_field_index_by_name(name);
+	case TAG_MPEG4_Shape:
+		return Shape_get_field_index_by_name(name);
+	case TAG_MPEG4_Sound:
+		return Sound_get_field_index_by_name(name);
+	case TAG_MPEG4_Sound2D:
+		return Sound2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Sphere:
+		return Sphere_get_field_index_by_name(name);
+	case TAG_MPEG4_SphereSensor:
+		return SphereSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_SpotLight:
+		return SpotLight_get_field_index_by_name(name);
+	case TAG_MPEG4_Switch:
+		return Switch_get_field_index_by_name(name);
+	case TAG_MPEG4_TermCap:
+		return TermCap_get_field_index_by_name(name);
+	case TAG_MPEG4_Text:
+		return Text_get_field_index_by_name(name);
+	case TAG_MPEG4_TextureCoordinate:
+		return TextureCoordinate_get_field_index_by_name(name);
+	case TAG_MPEG4_TextureTransform:
+		return TextureTransform_get_field_index_by_name(name);
+	case TAG_MPEG4_TimeSensor:
+		return TimeSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_TouchSensor:
+		return TouchSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_Transform:
+		return Transform_get_field_index_by_name(name);
+	case TAG_MPEG4_Transform2D:
+		return Transform2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Valuator:
+		return Valuator_get_field_index_by_name(name);
+	case TAG_MPEG4_Viewpoint:
+		return Viewpoint_get_field_index_by_name(name);
+	case TAG_MPEG4_VisibilitySensor:
+		return VisibilitySensor_get_field_index_by_name(name);
+	case TAG_MPEG4_Viseme:
+		return Viseme_get_field_index_by_name(name);
+	case TAG_MPEG4_WorldInfo:
+		return WorldInfo_get_field_index_by_name(name);
+	case TAG_MPEG4_AcousticMaterial:
+		return AcousticMaterial_get_field_index_by_name(name);
+	case TAG_MPEG4_AcousticScene:
+		return AcousticScene_get_field_index_by_name(name);
+	case TAG_MPEG4_ApplicationWindow:
+		return ApplicationWindow_get_field_index_by_name(name);
+	case TAG_MPEG4_BAP:
+		return BAP_get_field_index_by_name(name);
+	case TAG_MPEG4_BDP:
+		return BDP_get_field_index_by_name(name);
+	case TAG_MPEG4_Body:
+		return Body_get_field_index_by_name(name);
+	case TAG_MPEG4_BodyDefTable:
+		return BodyDefTable_get_field_index_by_name(name);
+	case TAG_MPEG4_BodySegmentConnectionHint:
+		return BodySegmentConnectionHint_get_field_index_by_name(name);
+	case TAG_MPEG4_DirectiveSound:
+		return DirectiveSound_get_field_index_by_name(name);
+	case TAG_MPEG4_Hierarchical3DMesh:
+		return Hierarchical3DMesh_get_field_index_by_name(name);
+	case TAG_MPEG4_MaterialKey:
+		return MaterialKey_get_field_index_by_name(name);
+	case TAG_MPEG4_PerceptualParameters:
+		return PerceptualParameters_get_field_index_by_name(name);
+	case TAG_MPEG4_TemporalTransform:
+		return TemporalTransform_get_field_index_by_name(name);
+	case TAG_MPEG4_TemporalGroup:
+		return TemporalGroup_get_field_index_by_name(name);
+	case TAG_MPEG4_ServerCommand:
+		return ServerCommand_get_field_index_by_name(name);
+	case TAG_MPEG4_InputSensor:
+		return InputSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_MatteTexture:
+		return MatteTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_MediaBuffer:
+		return MediaBuffer_get_field_index_by_name(name);
+	case TAG_MPEG4_MediaControl:
+		return MediaControl_get_field_index_by_name(name);
+	case TAG_MPEG4_MediaSensor:
+		return MediaSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_BitWrapper:
+		return BitWrapper_get_field_index_by_name(name);
+	case TAG_MPEG4_CoordinateInterpolator4D:
+		return CoordinateInterpolator4D_get_field_index_by_name(name);
+	case TAG_MPEG4_DepthImage:
+		return DepthImage_get_field_index_by_name(name);
+	case TAG_MPEG4_FFD:
+		return FFD_get_field_index_by_name(name);
+	case TAG_MPEG4_Implicit:
+		return Implicit_get_field_index_by_name(name);
+	case TAG_MPEG4_XXLFM_Appearance:
+		return XXLFM_Appearance_get_field_index_by_name(name);
+	case TAG_MPEG4_XXLFM_BlendList:
+		return XXLFM_BlendList_get_field_index_by_name(name);
+	case TAG_MPEG4_XXLFM_FrameList:
+		return XXLFM_FrameList_get_field_index_by_name(name);
+	case TAG_MPEG4_XXLFM_LightMap:
+		return XXLFM_LightMap_get_field_index_by_name(name);
+	case TAG_MPEG4_XXLFM_SurfaceMapList:
+		return XXLFM_SurfaceMapList_get_field_index_by_name(name);
+	case TAG_MPEG4_XXLFM_ViewMapList:
+		return XXLFM_ViewMapList_get_field_index_by_name(name);
+	case TAG_MPEG4_MeshGrid:
+		return MeshGrid_get_field_index_by_name(name);
+	case TAG_MPEG4_NonLinearDeformer:
+		return NonLinearDeformer_get_field_index_by_name(name);
+	case TAG_MPEG4_NurbsCurve:
+		return NurbsCurve_get_field_index_by_name(name);
+	case TAG_MPEG4_NurbsCurve2D:
+		return NurbsCurve2D_get_field_index_by_name(name);
+	case TAG_MPEG4_NurbsSurface:
+		return NurbsSurface_get_field_index_by_name(name);
+	case TAG_MPEG4_OctreeImage:
+		return OctreeImage_get_field_index_by_name(name);
+	case TAG_MPEG4_XXParticles:
+		return XXParticles_get_field_index_by_name(name);
+	case TAG_MPEG4_XXParticleInitBox:
+		return XXParticleInitBox_get_field_index_by_name(name);
+	case TAG_MPEG4_XXPlanarObstacle:
+		return XXPlanarObstacle_get_field_index_by_name(name);
+	case TAG_MPEG4_XXPointAttractor:
+		return XXPointAttractor_get_field_index_by_name(name);
+	case TAG_MPEG4_PointTexture:
+		return PointTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_PositionAnimator:
+		return PositionAnimator_get_field_index_by_name(name);
+	case TAG_MPEG4_PositionAnimator2D:
+		return PositionAnimator2D_get_field_index_by_name(name);
+	case TAG_MPEG4_PositionInterpolator4D:
+		return PositionInterpolator4D_get_field_index_by_name(name);
+	case TAG_MPEG4_ProceduralTexture:
+		return ProceduralTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_Quadric:
+		return Quadric_get_field_index_by_name(name);
+	case TAG_MPEG4_SBBone:
+		return SBBone_get_field_index_by_name(name);
+	case TAG_MPEG4_SBMuscle:
+		return SBMuscle_get_field_index_by_name(name);
+	case TAG_MPEG4_SBSegment:
+		return SBSegment_get_field_index_by_name(name);
+	case TAG_MPEG4_SBSite:
+		return SBSite_get_field_index_by_name(name);
+	case TAG_MPEG4_SBSkinnedModel:
+		return SBSkinnedModel_get_field_index_by_name(name);
+	case TAG_MPEG4_SBVCAnimation:
+		return SBVCAnimation_get_field_index_by_name(name);
+	case TAG_MPEG4_ScalarAnimator:
+		return ScalarAnimator_get_field_index_by_name(name);
+	case TAG_MPEG4_SimpleTexture:
+		return SimpleTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_SolidRep:
+		return SolidRep_get_field_index_by_name(name);
+	case TAG_MPEG4_SubdivisionSurface:
+		return SubdivisionSurface_get_field_index_by_name(name);
+	case TAG_MPEG4_SubdivSurfaceSector:
+		return SubdivSurfaceSector_get_field_index_by_name(name);
+	case TAG_MPEG4_WaveletSubdivisionSurface:
+		return WaveletSubdivisionSurface_get_field_index_by_name(name);
+	case TAG_MPEG4_Clipper2D:
+		return Clipper2D_get_field_index_by_name(name);
+	case TAG_MPEG4_ColorTransform:
+		return ColorTransform_get_field_index_by_name(name);
+	case TAG_MPEG4_Ellipse:
+		return Ellipse_get_field_index_by_name(name);
+	case TAG_MPEG4_LinearGradient:
+		return LinearGradient_get_field_index_by_name(name);
+	case TAG_MPEG4_PathLayout:
+		return PathLayout_get_field_index_by_name(name);
+	case TAG_MPEG4_RadialGradient:
+		return RadialGradient_get_field_index_by_name(name);
+	case TAG_MPEG4_SynthesizedTexture:
+		return SynthesizedTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_TransformMatrix2D:
+		return TransformMatrix2D_get_field_index_by_name(name);
+	case TAG_MPEG4_Viewport:
+		return Viewport_get_field_index_by_name(name);
+	case TAG_MPEG4_XCurve2D:
+		return XCurve2D_get_field_index_by_name(name);
+	case TAG_MPEG4_XFontStyle:
+		return XFontStyle_get_field_index_by_name(name);
+	case TAG_MPEG4_XLineProperties:
+		return XLineProperties_get_field_index_by_name(name);
+	case TAG_MPEG4_AdvancedAudioBuffer:
+		return AdvancedAudioBuffer_get_field_index_by_name(name);
+	case TAG_MPEG4_AudioChannelConfig:
+		return AudioChannelConfig_get_field_index_by_name(name);
+	case TAG_MPEG4_DepthImageV2:
+		return DepthImageV2_get_field_index_by_name(name);
+	case TAG_MPEG4_MorphShape:
+		return MorphShape_get_field_index_by_name(name);
+	case TAG_MPEG4_MultiTexture:
+		return MultiTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_PointTextureV2:
+		return PointTextureV2_get_field_index_by_name(name);
+	case TAG_MPEG4_SBVCAnimationV2:
+		return SBVCAnimationV2_get_field_index_by_name(name);
+	case TAG_MPEG4_SimpleTextureV2:
+		return SimpleTextureV2_get_field_index_by_name(name);
+	case TAG_MPEG4_SurroundingSound:
+		return SurroundingSound_get_field_index_by_name(name);
+	case TAG_MPEG4_Transform3DAudio:
+		return Transform3DAudio_get_field_index_by_name(name);
+	case TAG_MPEG4_WideSound:
+		return WideSound_get_field_index_by_name(name);
+	case TAG_MPEG4_ScoreShape:
+		return ScoreShape_get_field_index_by_name(name);
+	case TAG_MPEG4_MusicScore:
+		return MusicScore_get_field_index_by_name(name);
+	case TAG_MPEG4_FootPrintSetNode:
+		return FootPrintSetNode_get_field_index_by_name(name);
+	case TAG_MPEG4_FootPrintNode:
+		return FootPrintNode_get_field_index_by_name(name);
+	case TAG_MPEG4_BuildingPartNode:
+		return BuildingPartNode_get_field_index_by_name(name);
+	case TAG_MPEG4_RoofNode:
+		return RoofNode_get_field_index_by_name(name);
+	case TAG_MPEG4_FacadeNode:
+		return FacadeNode_get_field_index_by_name(name);
+	case TAG_MPEG4_Shadow:
+		return Shadow_get_field_index_by_name(name);
+	case TAG_MPEG4_CacheTexture:
+		return CacheTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_EnvironmentTest:
+		return EnvironmentTest_get_field_index_by_name(name);
+	case TAG_MPEG4_KeyNavigator:
+		return KeyNavigator_get_field_index_by_name(name);
+	case TAG_MPEG4_SpacePartition:
+		return SpacePartition_get_field_index_by_name(name);
+	case TAG_MPEG4_Storage:
+		return Storage_get_field_index_by_name(name);
 	default:
 		return -1;
 	}

@@ -51,23 +51,23 @@ typedef struct s_GF_HYBMEDIA {
 	const char* name;
 
 	/* *** static methods *** */
-	
+
 	/*is url handled by this service?*/
 	Bool (*CanHandleURL)(const char *url);
-	
+
 	/*retrieve object descriptor*/
 	GF_ObjectDescriptor* (*GetOD)(void);
 
 
 	/* *** other methods *** */
-	
+
 	/*create/destroy the object and all its data*/
 	GF_Err (*Connect)   (struct s_GF_HYBMEDIA *self, GF_ClientService *service, const char *url);
 	GF_Err (*Disconnect)(struct s_GF_HYBMEDIA *self);
 
 	/*request state from */
 	GF_Err (*SetState)(struct s_GF_HYBMEDIA *self, const GF_NET_CHAN_CMD state);
-	
+
 	/*in case data retrieval paradigm is pull these two functions shall not be NULL*/
 	GF_Err (*GetData)    (struct s_GF_HYBMEDIA *self, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr); /*only available when data_mode is pull*/
 	GF_Err (*ReleaseData)(struct s_GF_HYBMEDIA *self); /*only available when data_mode is pull*/

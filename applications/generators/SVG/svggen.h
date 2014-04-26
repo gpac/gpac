@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2004-2012 
+ *			Copyright (c) Telecom ParisTech 2004-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph Generator sub-project
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 #ifndef _SVGGEN_H_
@@ -39,9 +39,9 @@
 /* if defined generates .c/.h directly in the appropriate GPAC source folders */
 #undef LOCAL_SVG_NODES
 
-/* 
+/*
    Modes for generating SVG code
-   - 1 means static allocation of attributes (including properties, use Tiny-1.2-NG) 
+   - 1 means static allocation of attributes (including properties, use Tiny-1.2-NG)
    - 2 means static allocation of attributes (only useful properties on nodes, use Tiny-1.2-NG-noproperties)
    - 3 means dynamic allocation of attributes (including properties)
 */
@@ -58,8 +58,8 @@ static u32 generation_mode = 3;
 #define COPYRIGHT "/*\n *			GPAC - Multimedia Framework C SDK\n *\n *			Authors: Cyril Concolato - Jean Le Feuvre\n *    Copyright (c) Telecom ParisTech 2000-2012 - All rights reserved\n *\n *  This file is part of GPAC / SVG Scene Graph sub-project\n *\n *  GPAC is free software; you can redistribute it and/or modify\n *  it under the terms of the GNU Lesser General Public License as published by\n *  the Free Software Foundation; either version 2, or (at your option)\n *  any later version.\n *\n *  GPAC is distributed in the hope that it will be useful,\n *  but WITHOUT ANY WARRANTY; without even the implied warranty of\n *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *  GNU Lesser General Public License for more details.	\n *\n *  You should have received a copy of the GNU Lesser General Public\n *  License along with this library; see the file COPYING.  If not, write to\n *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.\n *\n */\n"
 
 
-/* 
-	type declarations 
+/*
+	type declarations
 */
 
 typedef struct
@@ -88,12 +88,12 @@ typedef struct
 } SVGGenElement;
 
 typedef struct {
-	xmlChar *svg_name; 
+	xmlChar *svg_name;
 	char implementation_name[50];
-	xmlChar *svg_type; 
-	char impl_type[50]; 
-	u8 animatable; 
-	u8 inheritable; 
+	xmlChar *svg_type;
+	char impl_type[50];
+	u8 animatable;
+	u8 inheritable;
 	Bool optional;
 	xmlChar *default_value;
 	u32 index;
@@ -120,28 +120,28 @@ static char *core[] = { "id", "class", "xml:id", "xml:base", "xml:lang", "xml:sp
 
 /* Media Properties */
 static char *media_properties[] = {
-  "audio-level", "display", "image-rendering", "pointer-events", "shape-rendering", "text-rendering", 
-  "viewport-fill", "viewport-fill-opacity", "visibility"
+	"audio-level", "display", "image-rendering", "pointer-events", "shape-rendering", "text-rendering",
+	"viewport-fill", "viewport-fill-opacity", "visibility"
 };
 
 /* others */
 static char *other_properties[] = {
-  "color", "color-rendering", "display-align", "fill", "fill-opacity", "fill-rule", 
-  "font-family", "font-size", "font-style", "font-weight", "line-increment", 
-  "solid-color", "solid-opacity", "stop-color", "stop-opacity", 
-  "stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", 
-   "stroke-opacity", "stroke-width", "text-align", "text-anchor", "vector-effect"
+	"color", "color-rendering", "display-align", "fill", "fill-opacity", "fill-rule",
+	"font-family", "font-size", "font-style", "font-weight", "line-increment",
+	"solid-color", "solid-opacity", "stop-color", "stop-opacity",
+	"stroke", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit",
+	"stroke-opacity", "stroke-width", "text-align", "text-anchor", "vector-effect"
 };
 
 /* only opacity on image */
 static char *opacity_properties[] = {
- "opacity"
+	"opacity"
 };
 
 /* Focus */
-static char *focus[] = { 
-  "focusHighlight", "focusable", "nav-down", "nav-down-left", "nav-down-right", 
-  "nav-left", "nav-next", "nav-prev", "nav-right", "nav-up", "nav-up-left", "nav-up-right"
+static char *focus[] = {
+	"focusHighlight", "focusable", "nav-down", "nav-down-left", "nav-down-right",
+	"nav-left", "nav-next", "nav-prev", "nav-right", "nav-up", "nav-up-left", "nav-up-right"
 };
 
 /* Xlink */

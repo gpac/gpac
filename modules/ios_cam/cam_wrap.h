@@ -47,7 +47,7 @@ int CAM_Stop(void* inst);
 int CAM_IsStarted(void* inst);
 
 int CAM_SetCallback(void* inst, GetPixelsCallback *callback);
-    
+
 #ifdef __cplusplus
 }
 #endif

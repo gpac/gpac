@@ -382,14 +382,14 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	DownloadedCacheEntry entry = NULL;
 	if ( !dm || !url || !cache_directory) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
-			("[CACHE] gf_cache_create_entry :%d, dm=%p, url=%s cache_directory=%s, aborting.\n", __LINE__, dm, url, cache_directory));
+		       ("[CACHE] gf_cache_create_entry :%d, dm=%p, url=%s cache_directory=%s, aborting.\n", __LINE__, dm, url, cache_directory));
 		return entry;
 	}
 	sz = (u32) strlen ( url );
 	if ( sz > _CACHE_TMP_SIZE )
 	{
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
-			("[CACHE] gf_cache_create_entry:%d : ERROR, URL is too long (%d chars), more than %d chars.\n", __LINE__, sz, _CACHE_TMP_SIZE ));
+		       ("[CACHE] gf_cache_create_entry:%d : ERROR, URL is too long (%d chars), more than %d chars.\n", __LINE__, sz, _CACHE_TMP_SIZE ));
 		return entry;
 	}
 	tmp[0] = '\0';
@@ -470,7 +470,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 
 	if (entry->memory_stored) {
 		sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
-		return entry;	
+		return entry;
 	}
 
 
@@ -557,7 +557,7 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 	assert( sess == entry->write_session );
 	if (entry->writeFilePtr) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK,
-			("[CACHE] Closing file %s, %d bytes written.\n", entry->cache_filename, entry->written_in_cache));
+		       ("[CACHE] Closing file %s, %d bytes written.\n", entry->cache_filename, entry->written_in_cache));
 		if (fflush( entry->writeFilePtr ) || fclose( entry->writeFilePtr ))
 			e = GF_IO_ERR;
 		e|= gf_cache_flush_disk_cache(entry);
@@ -619,7 +619,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 	entry->writeFilePtr = gf_f64_open(entry->cache_filename, entry->continue_file ? "a+b" : "wb");
 	if (!entry->writeFilePtr) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK,
-			("[CACHE] Error while opening cache file %s for writting.\n", entry->cache_filename));
+		       ("[CACHE] Error while opening cache file %s for writting.\n", entry->cache_filename));
 		entry->write_session = NULL;
 #ifdef ENABLE_WRITE_MX
 		gf_mx_v(entry->write_mutex);
@@ -640,7 +640,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Incorrect parameter : data=%p, writeFilePtr=%p mem_storage=%p at "__FILE__"\n", data, entry->writeFilePtr, entry->mem_storage));
 		return GF_BAD_PARAM;
 	}
-		
+
 	if (entry->memory_stored) {
 		if (entry->written_in_cache + size > entry->mem_allocated) {
 			u32 new_size = MAX(entry->mem_allocated*2, entry->written_in_cache + size);
@@ -664,14 +664,14 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 	if (read != size) {
 		/* Something bad happened */
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
-			("[CACHE] Error while writting %d bytes of data to cache : has written only %d bytes.", size, read));
+		       ("[CACHE] Error while writting %d bytes of data to cache : has written only %d bytes.", size, read));
 		gf_cache_close_write_cache(entry, sess, 0);
 		gf_delete_file(entry->cache_filename);
 		return GF_IO_ERR;
 	}
 	if (fflush(entry->writeFilePtr)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
-			("[CACHE] Error while flushing data bytes to cache file : %s.", entry->cache_filename));
+		       ("[CACHE] Error while flushing data bytes to cache file : %s.", entry->cache_filename));
 		gf_cache_close_write_cache(entry, sess, 0);
 		gf_delete_file(entry->cache_filename);
 		return GF_IO_ERR;
@@ -789,7 +789,7 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 		gf_free ( entry->mimeType );
 		entry->mimeType = NULL;
 	}
-	if (entry->mem_storage) { 
+	if (entry->mem_storage) {
 		gf_free(entry->mem_storage);
 	}
 
@@ -869,7 +869,7 @@ s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_Down
 		/* OK, this is not optimal to close it since we are in a mutex,
 		* but we don't want to risk to have another session opening
 		* a not fully closed cache entry */
-		if (entry->writeFilePtr){
+		if (entry->writeFilePtr) {
 			if (fclose(entry->writeFilePtr)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] gf_cache_remove_session_from_cache_entry:%d, Failed to properly fclose cache file '%s' of url '%s', cache may be corrupted !\n", __LINE__, entry->cache_filename, entry->url));
 			}
@@ -907,7 +907,7 @@ s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadS
 	return count + 1;
 }
 
-FILE *gf_cache_get_file_pointer(const DownloadedCacheEntry entry) 
+FILE *gf_cache_get_file_pointer(const DownloadedCacheEntry entry)
 {
 	if (entry) return entry->writeFilePtr;
 	return NULL;
@@ -925,7 +925,7 @@ Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry)
 {
 	if (!entry) return 0;
 	if (entry->writeFilePtr) return 1;
-	if (entry->mem_storage && entry->written_in_cache && entry->contentLength && (entry->written_in_cache<entry->contentLength) ) 
+	if (entry->mem_storage && entry->written_in_cache && entry->contentLength && (entry->written_in_cache<entry->contentLength) )
 		return 1;
 	return 0;
 }

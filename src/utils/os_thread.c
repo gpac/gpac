@@ -146,13 +146,13 @@ GF_Err gf_register_before_exit_function(GF_Thread *t, u32 (*toRunBeforePthreadEx
 static void currentThreadInfoKey_alloc()
 {
 	int err;
-  /* We do not use any destructor */
-  if (err = pthread_key_create(&currentThreadInfoKey, NULL))
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] pthread_key_create() failed with error %d\n", err));
+	/* We do not use any destructor */
+	if (err = pthread_key_create(&currentThreadInfoKey, NULL))
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex] pthread_key_create() failed with error %d\n", err));
 }
 
-GF_Thread * gf_th_current(){
-  return pthread_getspecific(currentThreadInfoKey);
+GF_Thread * gf_th_current() {
+	return pthread_getspecific(currentThreadInfoKey);
 }
 
 #endif /* GPAC_ANDROID */
@@ -205,9 +205,9 @@ exit:
 #else
 
 #ifdef GPAC_ANDROID
-	#ifndef GPAC_DISABLE_LOG
-		GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] RunBeforeExit=%p\n", t->log_name, t->RunBeforeExit));
-	#endif
+#ifndef GPAC_DISABLE_LOG
+	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] RunBeforeExit=%p\n", t->log_name, t->RunBeforeExit));
+#endif
 	if (t->RunBeforeExit)
 		t->RunBeforeExit(t->args);
 #endif /* GPAC_ANDROID */
@@ -321,7 +321,7 @@ void gf_th_del(GF_Thread *t)
 #else
 	/* It is necessary to free pthread handle */
 	if (t->threadH)
-	  pthread_detach(t->threadH);
+		pthread_detach(t->threadH);
 	t->threadH = 0;
 #endif
 
@@ -552,9 +552,9 @@ u32 gf_mx_p(GF_Mutex *mx)
 	if (retCode != 0 ) {
 #ifndef GPAC_DISABLE_LOG
 		if (retCode == EINVAL)
-		  GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Not properly initialized.\n", mx, mx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Not properly initialized.\n", mx, mx->log_name));
 		if (retCode == EDEADLK)
-		  GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Deadlock detected.\n", mx, mx->log_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %p=%s] Deadlock detected.\n", mx, mx->log_name));
 #endif /* GPAC_DISABLE_LOG */
 		assert(0);
 		return 0;
@@ -688,11 +688,11 @@ void gf_sema_del(GF_Semaphore *sm)
 	}
 #elif defined(__DARWIN__) || defined(__APPLE__)
 #ifdef GPAC_IPHONE
-    sem_close(sm->hSemaphore);
+	sem_close(sm->hSemaphore);
 #else
 	sem_destroy(sm->hSemaphore);
 #endif
-    gf_free(sm->SemName);
+	gf_free(sm->SemName);
 #else
 	sem_destroy(sm->hSemaphore);
 #endif

@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -205,23 +205,33 @@ void gf_term_on_node_init(void *_scene, GF_Node *node)
 {
 	GF_Scene *scene = (GF_Scene *)_scene;
 	if (!node || !scene) return;
-	
+
 	switch (gf_node_get_tag(node)) {
 #ifndef GPAC_DISABLE_VRML
 
-	case TAG_MPEG4_Inline: 
+	case TAG_MPEG4_Inline:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Inline: 
+	case TAG_X3D_Inline:
 #endif
-		gf_init_inline(scene, node); break;
-	case TAG_MPEG4_MediaBuffer: break;
-	case TAG_MPEG4_MediaControl: InitMediaControl(scene, node); break;
-	case TAG_MPEG4_MediaSensor: InitMediaSensor(scene, node); break;
-	case TAG_MPEG4_InputSensor: InitInputSensor(scene, node); break;
+		gf_init_inline(scene, node);
+		break;
+	case TAG_MPEG4_MediaBuffer:
+		break;
+	case TAG_MPEG4_MediaControl:
+		InitMediaControl(scene, node);
+		break;
+	case TAG_MPEG4_MediaSensor:
+		InitMediaSensor(scene, node);
+		break;
+	case TAG_MPEG4_InputSensor:
+		InitInputSensor(scene, node);
+		break;
 
 	/*BIFS nodes, get back to codec, but filter externProtos*/
-	case TAG_MPEG4_Conditional: break;
-	case TAG_MPEG4_QuantizationParameter: break;
+	case TAG_MPEG4_Conditional:
+		break;
+	case TAG_MPEG4_QuantizationParameter:
+		break;
 	/*world info is stored at the inline scene level*/
 	case TAG_MPEG4_WorldInfo:
 #ifndef GPAC_DISABLE_X3D
@@ -232,15 +242,21 @@ void gf_term_on_node_init(void *_scene, GF_Node *node)
 		break;
 
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_KeySensor: InitKeySensor(scene, node); break;
-	case TAG_X3D_StringSensor: InitStringSensor(scene, node); break;
+	case TAG_X3D_KeySensor:
+		InitKeySensor(scene, node);
+		break;
+	case TAG_X3D_StringSensor:
+		InitStringSensor(scene, node);
+		break;
 #endif
 
-	case TAG_MPEG4_TermCap: 
-		InitTermCap(scene, node); break;
+	case TAG_MPEG4_TermCap:
+		InitTermCap(scene, node);
+		break;
 
-	case TAG_MPEG4_Storage: 
-		gf_scene_init_storage(scene, node); break;
+	case TAG_MPEG4_Storage:
+		gf_scene_init_storage(scene, node);
+		break;
 
 	case TAG_MPEG4_KeyNavigator:
 		gf_node_set_callback_function(node, TraverseKeyNavigator);
@@ -248,18 +264,20 @@ void gf_term_on_node_init(void *_scene, GF_Node *node)
 		gf_list_add(scene->keynavigators, node);
 		((M_KeyNavigator*)node)->on_setFocus = on_kn_set_focus;
 		break;
-		
+
 #endif
 
 
 #ifndef GPAC_DISABLE_SVG
-	case TAG_SVG_title: 
+	case TAG_SVG_title:
 		gf_node_set_callback_function(node, svg_traverse_title);
 		gf_node_set_private(node, scene);
 		break;
 #endif
 
-	default: gf_sc_on_node_init(scene->root_od->term->compositor, node); break;
+	default:
+		gf_sc_on_node_init(scene->root_od->term->compositor, node);
+		break;
 	}
 }
 
@@ -268,35 +286,37 @@ void gf_term_on_node_modified(void *_is, GF_Node *node)
 	GF_Scene *scene = (GF_Scene *)_is;
 	if (!scene) return;
 	if (!node) {
-		gf_sc_invalidate(scene->root_od->term->compositor, NULL); 
+		gf_sc_invalidate(scene->root_od->term->compositor, NULL);
 		return;
 	}
-	
+
 	switch (gf_node_get_tag(node)) {
 #ifndef GPAC_DISABLE_VRML
-	case TAG_MPEG4_Inline: 
+	case TAG_MPEG4_Inline:
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Inline: 
+	case TAG_X3D_Inline:
 #endif
-		gf_inline_on_modified(node); 
+		gf_inline_on_modified(node);
 		break;
-	case TAG_MPEG4_MediaBuffer: 
+	case TAG_MPEG4_MediaBuffer:
 		break;
-	case TAG_MPEG4_MediaControl: 
-		MC_Modified(node); 
+	case TAG_MPEG4_MediaControl:
+		MC_Modified(node);
 		break;
-	case TAG_MPEG4_MediaSensor: 
-		MS_Modified(node); 
+	case TAG_MPEG4_MediaSensor:
+		MS_Modified(node);
 		break;
-	case TAG_MPEG4_InputSensor: 
-		InputSensorModified(node); 
+	case TAG_MPEG4_InputSensor:
+		InputSensorModified(node);
 		break;
-	case TAG_MPEG4_Conditional: 
+	case TAG_MPEG4_Conditional:
 		break;
-	case TAG_MPEG4_Storage: 
+	case TAG_MPEG4_Storage:
 		break;
 #endif
-	default: gf_sc_invalidate(scene->root_od->term->compositor, node); break;
+	default:
+		gf_sc_invalidate(scene->root_od->term->compositor, node);
+		break;
 	}
 }
 
@@ -304,7 +324,7 @@ static void gf_term_on_node_destroyed(void *_is, GF_Node *node)
 {
 	GF_Scene *scene = (GF_Scene *)_is;
 	if (!scene) return;
-	gf_sc_node_destroy(scene->root_od->term->compositor, node, NULL); 
+	gf_sc_node_destroy(scene->root_od->term->compositor, node, NULL);
 }
 
 GF_EXPORT
@@ -332,6 +352,6 @@ void gf_term_node_callback(void *_is, u32 type, GF_Node *n, void *param)
 			}
 		}
 	}
-		break;
+	break;
 	}
 }

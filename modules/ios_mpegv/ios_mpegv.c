@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 /*driver interfaces*/
@@ -42,8 +42,8 @@ typedef struct
 	char sensor[50];
 	u16 sensorIOSType;
 	u8 isAttached;
-    
-    GF_Mutex* mx;
+
+	GF_Mutex* mx;
 
 	void* inst;
 
@@ -54,7 +54,7 @@ typedef struct
 Bool MPEGVS_RegisterDevice(struct __input_device *dr, const char *urn, GF_BitStream *dsi, void (*AddField)(struct __input_device *_this, u32 fieldType, const char *name))
 {
 	MPEGVSCTX;
-	
+
 	//"MPEG-V:siv:OrientationSensorType"
 
 	if ( strnicmp(urn, "MPEG-V", 6) )
@@ -65,7 +65,7 @@ Bool MPEGVS_RegisterDevice(struct __input_device *dr, const char *urn, GF_BitStr
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[MPEG-V] No sensor type specified\n"));
 		return 0;
 	}
-	
+
 	if ( strnicmp(urn+6, ":siv:", 5) )
 	{
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[MPEG-V] Not valid sensor type specified\n"));
@@ -153,18 +153,18 @@ void MPEGVSensorCallback( void* ptr, const char* data)
 	char *buf;
 	u32 buf_size;
 	float x, y, z, a, b;
-    struct __input_device * dr = (struct __input_device *)ptr;
+	struct __input_device * dr = (struct __input_device *)ptr;
 	MPEGVSCTX;
-    
-    if (!gf_mx_try_lock(rc->mx))
-        return;
-    
+
+	if (!gf_mx_try_lock(rc->mx))
+		return;
+
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
-	if ( rc->sensorIOSType == SENSOR_ACCELEROMETER 
-			|| rc->sensorIOSType == SENSOR_GYROSCOPE
-			//|| rc->sensorIOSType == 3
-			|| rc->sensorIOSType == SENSOR_MAGNETOMETER )
+	if ( rc->sensorIOSType == SENSOR_ACCELEROMETER
+	        || rc->sensorIOSType == SENSOR_GYROSCOPE
+	        //|| rc->sensorIOSType == 3
+	        || rc->sensorIOSType == SENSOR_MAGNETOMETER )
 	{
 		sscanf(data, "%f;%f;%f;", &x, &y, &z);
 		gf_bs_write_int(bs, 1, 1);
@@ -172,17 +172,15 @@ void MPEGVSensorCallback( void* ptr, const char* data)
 		gf_bs_write_float(bs, y);
 		gf_bs_write_float(bs, z);
 	}
-	else
-	if ( rc->sensorIOSType == 5
-			|| rc->sensorIOSType == 6 )
+	else if ( rc->sensorIOSType == 5
+	          || rc->sensorIOSType == 6 )
 	{
 		sscanf(data, "%f;", &x);
-		
+
 		gf_bs_write_int(bs, 1, 1);
 		gf_bs_write_float(bs, x);
 	}
-	else 
-	if ( rc->sensorIOSType == 11 )
+	else if ( rc->sensorIOSType == 11 )
 	{
 		sscanf(data, "%f;%f;%f;", &x, &y, &z);
 
@@ -192,8 +190,7 @@ void MPEGVSensorCallback( void* ptr, const char* data)
 		gf_bs_write_float(bs, z);
 		/*gf_bs_write_float(bs, q);*/
 	}
-	else 
-	if ( rc->sensorIOSType == SENSOR_GPS )
+	else if ( rc->sensorIOSType == SENSOR_GPS )
 	{
 		sscanf(data, "%f;%f;%f;%f;%f;", &x, &y, &z, &a, &b);
 
@@ -214,42 +211,42 @@ void MPEGVSensorCallback( void* ptr, const char* data)
 
 	dr->DispatchFrame(dr, (u8*)buf, buf_size);
 	gf_free(buf);
-    
-    gf_mx_v(rc->mx);
+
+	gf_mx_v(rc->mx);
 }
 
 void MPEGVS_Start(struct __input_device * dr)
 {
 	MPEGVSCTX;
-    
-    GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[MPEG-V_IN] Start: %d\n", gf_th_id()));
 
-    if ( rc->inst ) {
-        SENS_Stop(rc->inst);
-        SENS_DestroyInstance(&rc->inst);
-    }
-	
-    rc->inst = SENS_CreateInstance();
-    SENS_SetSensorType(rc->inst, rc->sensorIOSType);
-    SENS_SetCallback(rc->inst, MPEGVSensorCallback, dr);
-    SENS_Start(rc->inst);
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[MPEG-V_IN] Start: %d\n", gf_th_id()));
+
+	if ( rc->inst ) {
+		SENS_Stop(rc->inst);
+		SENS_DestroyInstance(&rc->inst);
+	}
+
+	rc->inst = SENS_CreateInstance();
+	SENS_SetSensorType(rc->inst, rc->sensorIOSType);
+	SENS_SetCallback(rc->inst, MPEGVSensorCallback, dr);
+	SENS_Start(rc->inst);
 }
 
 void MPEGVS_Stop(struct __input_device * dr)
 {
 	MPEGVSCTX;
-    
-    GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[MPEG-V_IN] Stop: %d\n", gf_th_id()));
 
-    SENS_Stop(rc->inst);
-    SENS_DestroyInstance(&rc->inst);
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[MPEG-V_IN] Stop: %d\n", gf_th_id()));
+
+	SENS_Stop(rc->inst);
+	SENS_DestroyInstance(&rc->inst);
 }
 
 GF_InputSensorDevice* NewMPEGVSInputSesor()
 {
 	MPEGVSensorContext* ctx = NULL;
 	GF_InputSensorDevice* driv = NULL;
-	
+
 	driv = (GF_InputSensorDevice *) gf_malloc(sizeof(GF_InputSensorDevice));
 	memset(driv, 0, sizeof(GF_InputSensorDevice));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_INPUT_DEVICE_INTERFACE, "MPEG-V Sensors Input Module", "gpac distribution");
@@ -260,8 +257,8 @@ GF_InputSensorDevice* NewMPEGVSInputSesor()
 
 	ctx = (MPEGVSensorContext*) gf_malloc (sizeof(MPEGVSensorContext));
 	memset(ctx, 0, sizeof(MPEGVSensorContext));
-    ctx->mx = gf_mx_new(NULL);
-	
+	ctx->mx = gf_mx_new(NULL);
+
 	driv->udta = (void*)ctx;
 
 	return driv;
@@ -270,21 +267,21 @@ GF_InputSensorDevice* NewMPEGVSInputSesor()
 void DeleteMPEGVSInputSensor(GF_InputSensorDevice* dev)
 {
 	MPEGVS_Stop(dev);
-    MPEGVSensorContext* ctx = (MPEGVSensorContext*)dev->udta;
-    gf_mx_del(ctx->mx);
+	MPEGVSensorContext* ctx = (MPEGVSensorContext*)dev->udta;
+	gf_mx_del(ctx->mx);
 	gf_free(dev->udta);
 	gf_free(dev);
 }
 
 /*interface query*/
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_INPUT_DEVICE_INTERFACE,
 		0
 	};
-	return si; 
+	return si;
 }
 
 /*interface create*/

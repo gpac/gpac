@@ -46,14 +46,14 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CChildView message handlers
 
-BOOL CChildView::PreCreateWindow(CREATESTRUCT& cs) 
+BOOL CChildView::PreCreateWindow(CREATESTRUCT& cs)
 {
 	if (!CWnd::PreCreateWindow(cs))
 		return FALSE;
 
 	cs.style &= ~WS_BORDER;
-	cs.lpszClass = AfxRegisterWndClass(CS_HREDRAW|CS_VREDRAW|CS_DBLCLKS, 
-		NULL, HBRUSH(COLOR_WINDOW+1), NULL);
+	cs.lpszClass = AfxRegisterWndClass(CS_HREDRAW|CS_VREDRAW|CS_DBLCLKS,
+	                                   NULL, HBRUSH(COLOR_WINDOW+1), NULL);
 
 	return TRUE;
 }
@@ -133,16 +133,16 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	// create a view to occupy the client area of the frame
 	if (!m_wndView.Create(NULL, NULL, AFX_WS_DEFAULT_VIEW | WS_BORDER,
-		CRect(0, 0, 0, 0), this, AFX_IDW_PANE_FIRST, NULL))
+	                      CRect(0, 0, 0, 0), this, AFX_IDW_PANE_FIRST, NULL))
 	{
 		TRACE0("Failed to create view window\n");
 		return -1;
 	}
 	m_wndView.ShowWindow(SW_HIDE);
 
-	
+
 	if (!m_dumbWnd.Create(NULL, NULL, AFX_WS_DEFAULT_VIEW | WS_BORDER,
-		CRect(0, 0, 0, 0), this, AFX_IDW_PANE_FIRST, NULL))
+	                      CRect(0, 0, 0, 0), this, AFX_IDW_PANE_FIRST, NULL))
 	{
 		TRACE0("Failed to create dumb window\n");
 		return -1;
@@ -157,15 +157,15 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_progBar.UpdateWindow();
 	m_progBar.SetWindowPos(this, 0, 0, app->m_screen_width, app->m_menu_height, 0L);
 	m_progBar.ShowWindow(SW_SHOWNORMAL);
-	
+
 
 //	m_wndCommandBar.m_bShowSharedNewButton = FALSE;
 
-	if (!m_wndCommandBar.Create(this) 
-			|| !m_wndCommandBar.InsertMenuBar(IDR_MENU)
-			|| !m_wndCommandBar.AddAdornments()
-			|| !m_wndCommandBar.LoadBitmap(IDR_MAINFRAME) 
-		)
+	if (!m_wndCommandBar.Create(this)
+	        || !m_wndCommandBar.InsertMenuBar(IDR_MENU)
+	        || !m_wndCommandBar.AddAdornments()
+	        || !m_wndCommandBar.LoadBitmap(IDR_MAINFRAME)
+	   )
 	{
 		TRACE0("Failed to create CommandBar\n");
 		return -1;      // fail to create
@@ -174,18 +174,36 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CToolBarCtrl & toolBar = m_wndCommandBar.GetToolBarCtrl();
 	TBBUTTON tb;
 	memset(&tb, 0, sizeof(tb));
-    tb.idCommand = ID_OPEN_FILE; tb.iBitmap = 0; tb.fsStyle = TBSTYLE_BUTTON; toolBar.AddButtons(1, &tb);
-    tb.idCommand = 0; tb.iBitmap = 0; tb.fsStyle = TBSTYLE_SEP; toolBar.AddButtons(1, &tb);
-    tb.idCommand = ID_FILE_PAUSE; tb.iBitmap = 1; tb.fsStyle = TBSTYLE_BUTTON; toolBar.AddButtons(1, &tb);
-    tb.idCommand = ID_FILE_STEP; tb.iBitmap = 2; tb.fsStyle = TBSTYLE_BUTTON; toolBar.AddButtons(1, &tb);
-    tb.idCommand = ID_FILE_STOP; tb.iBitmap = 3; tb.fsStyle = TBSTYLE_BUTTON; toolBar.AddButtons(1, &tb);
-    tb.idCommand = 0; tb.iBitmap = 0; tb.fsStyle = TBSTYLE_SEP; toolBar.AddButtons(1, &tb);
-	
+	tb.idCommand = ID_OPEN_FILE;
+	tb.iBitmap = 0;
+	tb.fsStyle = TBSTYLE_BUTTON;
+	toolBar.AddButtons(1, &tb);
+	tb.idCommand = 0;
+	tb.iBitmap = 0;
+	tb.fsStyle = TBSTYLE_SEP;
+	toolBar.AddButtons(1, &tb);
+	tb.idCommand = ID_FILE_PAUSE;
+	tb.iBitmap = 1;
+	tb.fsStyle = TBSTYLE_BUTTON;
+	toolBar.AddButtons(1, &tb);
+	tb.idCommand = ID_FILE_STEP;
+	tb.iBitmap = 2;
+	tb.fsStyle = TBSTYLE_BUTTON;
+	toolBar.AddButtons(1, &tb);
+	tb.idCommand = ID_FILE_STOP;
+	tb.iBitmap = 3;
+	tb.fsStyle = TBSTYLE_BUTTON;
+	toolBar.AddButtons(1, &tb);
+	tb.idCommand = 0;
+	tb.iBitmap = 0;
+	tb.fsStyle = TBSTYLE_SEP;
+	toolBar.AddButtons(1, &tb);
+
 	SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), TRUE);
 	SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), FALSE);
 	SetWindowPos(NULL, 0, 0, app->m_screen_width, app->m_screen_height, 0L);
 
-	SetWindowText(_T("Osmo4"));	
+	SetWindowText(_T("Osmo4"));
 	return 0;
 }
 
@@ -194,8 +212,9 @@ void CMainFrame::SetPauseButton(Bool force_play_button)
 	CToolBarCtrl & toolBar = m_wndCommandBar.GetToolBarCtrl();
 	TBBUTTON tb;
 	memset(&tb, 0, sizeof(tb));
-    tb.idCommand = ID_FILE_PAUSE; tb.fsStyle = TBSTYLE_BUTTON;
-	
+	tb.idCommand = ID_FILE_PAUSE;
+	tb.fsStyle = TBSTYLE_BUTTON;
+
 	if (force_play_button || GetApp()->m_stopped || gf_term_get_option(GetApp()->m_term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) {
 		tb.iBitmap = 4;
 	} else {
@@ -218,7 +237,7 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	return TRUE;
 }
 
- 
+
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame diagnostics
 
@@ -277,7 +296,7 @@ void CMainFrame::UpdateTime()
 			}
 			return;
 		}
-	} 
+	}
 
 	if (!m_full_screen) m_progBar.SetPosition(now);
 }
@@ -295,13 +314,13 @@ void CMainFrame::CloseURL()
 	m_progBar.SetPosition(0);
 }
 
-void CMainFrame::OnAppExit() 
+void CMainFrame::OnAppExit()
 {
 	CloseURL();
 	PostMessage(WM_QUIT);
 }
 
-void CMainFrame::OnSize(UINT nType, int cx, int cy) 
+void CMainFrame::OnSize(UINT nType, int cx, int cy)
 {
 	COsmo4 *app = GetApp();
 	u32 disp_w, disp_h, c_w, c_h, x, y;
@@ -349,13 +368,13 @@ void CMainFrame::OnSize(UINT nType, int cx, int cy)
 }
 
 
-void CMainFrame::OnViewFullscreen() 
+void CMainFrame::OnViewFullscreen()
 {
 	COsmo4 *app = GetApp();
 	if (!app->m_open) return;
 	u32 disp_w = app->m_screen_width;
 	u32 disp_h = app->m_screen_height;
-	
+
 	Bool is_full_screen = !m_full_screen;
 
 	/*prevent resize messages*/
@@ -384,7 +403,7 @@ void CMainFrame::OnViewFullscreen()
 }
 
 
-void CMainFrame::OnUpdateViewFullscreen(CCmdUI* pCmdUI) 
+void CMainFrame::OnUpdateViewFullscreen(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(GetApp()->m_open ? TRUE : FALSE);
 }
@@ -395,7 +414,7 @@ LONG CMainFrame::OnSetSize(WPARAM wParam, LPARAM lParam)
 	if (m_full_screen) return 0;
 	GetWindowRect(&rc);
 	SetWindowPos(NULL, 0, 0, rc.right-rc.left, rc.bottom-rc.top, SWP_NOZORDER | SWP_NOMOVE);
-	return 1;	
+	return 1;
 }
 
 LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
@@ -405,7 +424,7 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 	char filename[5000];
 	CE_WideToChar((u16 *) (LPCTSTR) app->m_filename, filename);
 	app->m_stopped = 0;
-	
+
 	if (app->m_reconnect_time) {
 		gf_term_connect_from_time(app->m_term, filename, app->m_reconnect_time, 0);
 		app->m_reconnect_time = 0;
@@ -413,7 +432,7 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 		gf_term_connect(app->m_term, filename);
 	}
 	app->SetBacklightState(1);
-	return 1;	
+	return 1;
 }
 
 
@@ -441,13 +460,13 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 		console_err = GF_OK;
 		PostMessage(WM_CONSOLEMSG);
 
-		
+
 		if (m_full_screen) {
 			OnViewFullscreen();
 			app->ShowTaskBar(1);
 			m_restore_fs = 1;
 		}
-	
+
 		memset(&info, 0, sizeof(SHELLEXECUTEINFO));
 		info.cbSize = sizeof(SHELLEXECUTEINFO);
 		info.lpVerb = L"open";
@@ -457,7 +476,7 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 		info.nShow = SW_SHOWNORMAL;
 		ShellExecuteEx(&info);
 	}
-	return 1;	
+	return 1;
 }
 
 void CMainFrame::OnFilePause()
@@ -513,7 +532,7 @@ void CMainFrame::OnUpdateFileStep(CCmdUI* pCmdUI)
 	pCmdUI->Enable(GetApp()->m_open ? TRUE : FALSE);
 }
 
-void CMainFrame::OnClose() 
+void CMainFrame::OnClose()
 {
 	PostMessage(WM_DESTROY);
 }
@@ -524,46 +543,46 @@ LONG CMainFrame::OnSIPChange(WPARAM wParam, LPARAM lParam)
 	return 1;
 }
 
-void CMainFrame::OnViewFit() 
+void CMainFrame::OnViewFit()
 {
 	COsmo4 *app = GetApp();
 	app->m_fit_screen = !app->m_fit_screen;
 	if (app->m_open) OnSetSize(0, 0);
 }
 
-void CMainFrame::OnUpdateViewFit(CCmdUI* pCmdUI) 
+void CMainFrame::OnUpdateViewFit(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(GetApp()->m_fit_screen ? TRUE : FALSE);
 }
 
-void CMainFrame::OnViewArOrig() 
+void CMainFrame::OnViewArOrig()
 {
-	gf_term_set_option(GetApp()->m_term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);	
+	gf_term_set_option(GetApp()->m_term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);
 }
-void CMainFrame::OnViewArFill() 
+void CMainFrame::OnViewArFill()
 {
-	gf_term_set_option(GetApp()->m_term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN);	
+	gf_term_set_option(GetApp()->m_term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN);
 }
-void CMainFrame::OnViewAr43() 
+void CMainFrame::OnViewAr43()
 {
-	gf_term_set_option(GetApp()->m_term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3);	
+	gf_term_set_option(GetApp()->m_term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3);
 }
-void CMainFrame::OnViewAr169() 
+void CMainFrame::OnViewAr169()
 {
-	gf_term_set_option(GetApp()->m_term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9);	
+	gf_term_set_option(GetApp()->m_term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9);
 }
 
-void CMainFrame::OnNavNone() 
+void CMainFrame::OnNavNone()
 {
 	gf_term_set_option(GetApp()->m_term, GF_OPT_NAVIGATION, GF_NAVIGATE_NONE);
 }
 
-void CMainFrame::OnNavSlide() 
+void CMainFrame::OnNavSlide()
 {
 	gf_term_set_option(GetApp()->m_term, GF_OPT_NAVIGATION, GF_NAVIGATE_SLIDE);
 }
 
-void CMainFrame::OnNaveReset() 
+void CMainFrame::OnNaveReset()
 {
 	gf_term_set_option(GetApp()->m_term, GF_OPT_NAVIGATION_TYPE, 0);
 }
@@ -575,15 +594,15 @@ void CMainFrame::ForwardMessage()
 }
 void CMainFrame::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 {
-	ForwardMessage(); 
+	ForwardMessage();
 }
 void CMainFrame::OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags)
 {
-	ForwardMessage(); 
+	ForwardMessage();
 }
 
 
-void CMainFrame::OnViewTiming() 
+void CMainFrame::OnViewTiming()
 {
 	if (m_full_screen) return;
 	if (m_view_timing) KillTimer(PROGRESS_TIMER);
@@ -591,28 +610,28 @@ void CMainFrame::OnViewTiming()
 	OnSetSize(0, 0);
 }
 
-void CMainFrame::OnUpdateViewTiming(CCmdUI* pCmdUI) 
+void CMainFrame::OnUpdateViewTiming(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck(m_view_timing ? TRUE : FALSE);
 }
 
-void CMainFrame::OnSetNavigation(UINT nID) 
+void CMainFrame::OnSetNavigation(UINT nID)
 {
 	gf_term_set_option(GetApp()->m_term, GF_OPT_NAVIGATION, nID - ID_NAV_NONE);
 }
 
 
-void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu) 
+void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 {
 	COsmo4 *app = GetApp();
 	CFrameWnd::OnInitMenuPopup(pPopupMenu, nIndex, bSysMenu);
 
-	u32 opt = gf_term_get_option(GetApp()->m_term, GF_OPT_ASPECT_RATIO);	
+	u32 opt = gf_term_get_option(GetApp()->m_term, GF_OPT_ASPECT_RATIO);
 	CheckMenuItem(pPopupMenu->m_hMenu, ID_VIEW_AR_ORIG, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_KEEP) ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(pPopupMenu->m_hMenu, ID_VIEW_AR_FILL, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_FILL_SCREEN) ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(pPopupMenu->m_hMenu, ID_VIEW_AR_43, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_4_3) ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(pPopupMenu->m_hMenu, ID_VIEW_AR_169, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_16_9) ? MF_CHECKED : MF_UNCHECKED);
-	
+
 	CheckMenuItem(pPopupMenu->m_hMenu, ID_VIEW_FIT, MF_BYCOMMAND| app->m_fit_screen ? MF_CHECKED : MF_UNCHECKED);
 
 	u32 type;

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -37,12 +37,12 @@ void InitSL_RTP(GF_SLConfig *slc);
 
 GF_EXPORT
 GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt, GF_SLConfig *slc, u32 flags,
-				void *cbk_obj, 
-				void (*OnNewPacket)(void *cbk, GF_RTPHeader *header),
-				void (*OnPacketDone)(void *cbk, GF_RTPHeader *header),
-				void (*OnDataReference)(void *cbk, u32 payload_size, u32 offset_from_orig),
-				void (*OnData)(void *cbk, char *data, u32 data_size, Bool is_head)
-				)
+                                     void *cbk_obj,
+                                     void (*OnNewPacket)(void *cbk, GF_RTPHeader *header),
+                                     void (*OnPacketDone)(void *cbk, GF_RTPHeader *header),
+                                     void (*OnDataReference)(void *cbk, u32 payload_size, u32 offset_from_orig),
+                                     void (*OnData)(void *cbk, char *data, u32 data_size, Bool is_head)
+                                    )
 {
 	GP_RTPPacketizer *tmp;
 	if (!rtp_payt || !cbk_obj | !OnPacketDone) return NULL;
@@ -69,7 +69,7 @@ GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt, GF_SLConfig *slc, u32 flags,
 	tmp->sl_header.packetSequenceNumber = 1;
 
 	//we assume we start on a new AU
-	tmp->sl_header.accessUnitStartFlag = 1;	
+	tmp->sl_header.accessUnitStartFlag = 1;
 	return tmp;
 }
 
@@ -111,16 +111,16 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 		return gp_rtp_builder_do_qcelp(builder, data, data_size, IsAUEnd, FullAUSize);
 	case GF_RTP_PAYT_EVRC_SMV:
 		return gp_rtp_builder_do_smv(builder, data, data_size, IsAUEnd, FullAUSize);
-	case GF_RTP_PAYT_LATM: 
-		return gp_rtp_builder_do_latm(builder, data, data_size, IsAUEnd, FullAUSize, duration); 
-	case GF_RTP_PAYT_3GPP_DIMS: 
-		return gp_rtp_builder_do_dims(builder, data, data_size, IsAUEnd, FullAUSize, duration); 
-	case GF_RTP_PAYT_AC3: 
-		return gp_rtp_builder_do_ac3(builder, data, data_size, IsAUEnd, FullAUSize); 
+	case GF_RTP_PAYT_LATM:
+		return gp_rtp_builder_do_latm(builder, data, data_size, IsAUEnd, FullAUSize, duration);
+	case GF_RTP_PAYT_3GPP_DIMS:
+		return gp_rtp_builder_do_dims(builder, data, data_size, IsAUEnd, FullAUSize, duration);
+	case GF_RTP_PAYT_AC3:
+		return gp_rtp_builder_do_ac3(builder, data, data_size, IsAUEnd, FullAUSize);
 	case GF_RTP_PAYT_HEVC:
 	case GF_RTP_PAYT_SHVC:
-		return gp_rtp_builder_do_hevc(builder, data, data_size, IsAUEnd, FullAUSize); 
- 	default:
+		return gp_rtp_builder_do_hevc(builder, data, data_size, IsAUEnd, FullAUSize);
+	default:
 		return GF_NOT_SUPPORTED;
 	}
 }
@@ -128,12 +128,12 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 
 //Compute the #params of the slMap
 GF_EXPORT
-void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU, u32 max_ptime, 
-					   u32 StreamType, u32 OTI, u32 PL_ID,
-					   u32 avgSize, u32 maxSize, 
-					   u32 avgTS, u32 maxDTS,
-					   u32 IV_length, u32 KI_length,
-					   char *pref_mode) 
+void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU, u32 max_ptime,
+                         u32 StreamType, u32 OTI, u32 PL_ID,
+                         u32 avgSize, u32 maxSize,
+                         u32 avgTS, u32 maxDTS,
+                         u32 IV_length, u32 KI_length,
+                         char *pref_mode)
 {
 	u32 k, ismacrypt_flags;
 
@@ -198,8 +198,8 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 		/*remove all MPEG-4 and ISMA flags */
 		builder->flags &= 0x07;
 	}
-		return;
-	case GF_RTP_PAYT_LATM: 
+	return;
+	case GF_RTP_PAYT_LATM:
 	case GF_RTP_PAYT_MPEG4:
 		break;
 	default:
@@ -215,7 +215,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 			builder->flags &= ~GP_RTP_PCK_USE_MULTI;
 		}
 		return;
-	} 
+	}
 
 	builder->slMap.IV_length = IV_length;
 	builder->slMap.KI_length = KI_length;
@@ -265,7 +265,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 	}
 
 	/*generic setup by flags*/
-	
+
 	/*size*/
 	if (builder->flags & GP_RTP_PCK_SIGNAL_SIZE) {
 		if (avgSize==maxSize) {
@@ -298,7 +298,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 		builder->slMap.CTSDeltaLength = 0;
 
 		/*DTS Delta depends on the video type*/
-		if ((builder->flags & GP_RTP_PCK_SIGNAL_TS) && maxDTS ) 
+		if ((builder->flags & GP_RTP_PCK_SIGNAL_TS) && maxDTS )
 			builder->slMap.DTSDeltaLength = gf_get_bit_size(maxDTS);
 		else
 			builder->slMap.DTSDeltaLength = 0;
@@ -346,8 +346,8 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 		/*compute CTS delta*/
 		builder->slMap.CTSDeltaLength = gf_get_bit_size(k*avgTS);
 
-		/*compute DTS delta. Delta is ALWAYS from the CTS of the same sample*/ 
-		if (maxDTS) 
+		/*compute DTS delta. Delta is ALWAYS from the CTS of the same sample*/
+		if (maxDTS)
 			builder->slMap.DTSDeltaLength = gf_get_bit_size(maxDTS);
 		else
 			builder->slMap.DTSDeltaLength = 0;
@@ -378,33 +378,33 @@ check_header:
 	}
 	/*ISMACryp video mode*/
 	if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2)
-		&& (builder->flags & GP_RTP_PCK_SIGNAL_RAP) && builder->slMap.IV_length 
-		&& !(builder->flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(builder->flags & GP_RTP_PCK_SIGNAL_SIZE)
-		/*shall have SignalTS*/
-		&& (builder->flags & GP_RTP_PCK_SIGNAL_TS) && !(builder->flags & GP_RTP_PCK_USE_MULTI)
-	) {
+	        && (builder->flags & GP_RTP_PCK_SIGNAL_RAP) && builder->slMap.IV_length
+	        && !(builder->flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(builder->flags & GP_RTP_PCK_SIGNAL_SIZE)
+	        /*shall have SignalTS*/
+	        && (builder->flags & GP_RTP_PCK_SIGNAL_TS) && !(builder->flags & GP_RTP_PCK_USE_MULTI)
+	   ) {
 		strcpy(builder->slMap.mode, "mpeg4-video");
 	}
 	/*ISMACryp AVC video mode*/
 	else if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==GPAC_OTI_VIDEO_AVC)
-		&& (builder->flags & GP_RTP_PCK_SIGNAL_RAP) && builder->slMap.IV_length 
-		&& !(builder->flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(builder->flags & GP_RTP_PCK_SIGNAL_SIZE)
-		/*shall have SignalTS*/
-		&& (builder->flags & GP_RTP_PCK_SIGNAL_TS) && !(builder->flags & GP_RTP_PCK_USE_MULTI)
-	) {
+	         && (builder->flags & GP_RTP_PCK_SIGNAL_RAP) && builder->slMap.IV_length
+	         && !(builder->flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(builder->flags & GP_RTP_PCK_SIGNAL_SIZE)
+	         /*shall have SignalTS*/
+	         && (builder->flags & GP_RTP_PCK_SIGNAL_TS) && !(builder->flags & GP_RTP_PCK_USE_MULTI)
+	        ) {
 		strcpy(builder->slMap.mode, "avc-video");
 	}
 
 	/*check if we use AU header or not*/
-	if (!builder->slMap.SizeLength 
-		&& !builder->slMap.IndexLength 
-		&& !builder->slMap.IndexDeltaLength
-		&& !builder->slMap.DTSDeltaLength  
-		&& !builder->slMap.CTSDeltaLength
-		&& !builder->slMap.RandomAccessIndication
-		&& !builder->slMap.IV_length
-		&& !builder->slMap.KI_length
-	) {
+	if (!builder->slMap.SizeLength
+	        && !builder->slMap.IndexLength
+	        && !builder->slMap.IndexDeltaLength
+	        && !builder->slMap.DTSDeltaLength
+	        && !builder->slMap.CTSDeltaLength
+	        && !builder->slMap.RandomAccessIndication
+	        && !builder->slMap.IV_length
+	        && !builder->slMap.KI_length
+	   ) {
 		builder->has_AU_header= 0;
 	} else {
 		builder->has_AU_header = 1;
@@ -421,9 +421,9 @@ void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 			builder->key_indicator = NULL;
 		}
 	} else if (!builder->key_indicator
-		||
-		memcmp(builder->key_indicator, key_indicator, sizeof(char)*builder->slMap.KI_length)
-	) {
+	           ||
+	           memcmp(builder->key_indicator, key_indicator, sizeof(char)*builder->slMap.KI_length)
+	          ) {
 		/*force flush if no provision for keyIndicator per AU*/
 		builder->force_flush = (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) ? 0 : 1;
 
@@ -451,22 +451,22 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 			strcpy(szMediaName, "video");
 			/*ISMACryp video*/
 			if ( (flags & GP_RTP_PCK_SIGNAL_RAP) && rtpb->slMap.IV_length
-				&& !(flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(flags & GP_RTP_PCK_SIGNAL_SIZE)
-				&& (flags & GP_RTP_PCK_SIGNAL_TS) && !(flags & GP_RTP_PCK_USE_MULTI)
-				) 
+			        && !(flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(flags & GP_RTP_PCK_SIGNAL_SIZE)
+			        && (flags & GP_RTP_PCK_SIGNAL_TS) && !(flags & GP_RTP_PCK_USE_MULTI)
+			   )
 			{
 				strcpy(szPayloadName, "enc-mpeg4-generic");
 				return 1;
 			}
 			/*mpeg4-generic*/
-			if ( (flags & GP_RTP_PCK_SIGNAL_RAP) || (flags & GP_RTP_PCK_SIGNAL_AU_IDX) || (flags & GP_RTP_PCK_SIGNAL_SIZE) 
-				|| (flags & GP_RTP_PCK_SIGNAL_TS) || (flags & GP_RTP_PCK_USE_MULTI) ) {
+			if ( (flags & GP_RTP_PCK_SIGNAL_RAP) || (flags & GP_RTP_PCK_SIGNAL_AU_IDX) || (flags & GP_RTP_PCK_SIGNAL_SIZE)
+			        || (flags & GP_RTP_PCK_SIGNAL_TS) || (flags & GP_RTP_PCK_USE_MULTI) ) {
 				strcpy(szPayloadName, "mpeg4-generic");
 				return 1;
 			} else {
 				strcpy(szPayloadName, "MP4V-ES");
 				return 1;
-			} 
+			}
 		}
 		/*for all other types*/
 		if (rtpb->slMap.StreamType==GF_STREAM_AUDIO) strcpy(szMediaName, "audio");
@@ -512,17 +512,17 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 		/*header-free version*/
 		if (rtpb->auh_size<=1) strcat(szPayloadName, "0");
 		return 1;
-	case GF_RTP_PAYT_LATM: 
-		strcpy(szMediaName, "audio"); 
-		strcpy(szPayloadName, "MP4A-LATM"); 
-		return 1; 
-	case GF_RTP_PAYT_3GPP_DIMS: 
-		strcpy(szMediaName, "video"); 
-		strcpy(szPayloadName, "richmedia+xml"); 
-		return 1; 
-	case GF_RTP_PAYT_AC3: 
-		strcpy(szMediaName, "audio"); 
-		strcpy(szPayloadName, "ac3"); 
+	case GF_RTP_PAYT_LATM:
+		strcpy(szMediaName, "audio");
+		strcpy(szPayloadName, "MP4A-LATM");
+		return 1;
+	case GF_RTP_PAYT_3GPP_DIMS:
+		strcpy(szMediaName, "video");
+		strcpy(szPayloadName, "richmedia+xml");
+		return 1;
+	case GF_RTP_PAYT_AC3:
+		strcpy(szMediaName, "audio");
+		strcpy(szPayloadName, "ac3");
 		return 1;
 	case GF_RTP_PAYT_H264_SVC:
 		strcpy(szMediaName, "video");
@@ -553,17 +553,17 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 	Bool is_first = 1;
 
 	if ((builder->rtp_payt!=GF_RTP_PAYT_MPEG4) && (builder->rtp_payt!=GF_RTP_PAYT_LATM) ) return GF_BAD_PARAM;
-	
+
 #define SDP_ADD_INT(_name, _val) { if (!is_first) strcat(sdpLine, "; "); sprintf(buffer, "%s=%d", _name, _val); strcat(sdpLine, buffer); is_first = 0;}
 #define SDP_ADD_STR(_name, _val) { if (!is_first) strcat(sdpLine, "; "); sprintf(buffer, "%s=%s", _name, _val); strcat(sdpLine, buffer); is_first = 0;}
 
 	sprintf(sdpLine, "a=fmtp:%d ", builder->PayloadType);
-	
+
 	/*mandatory fields*/
 	if (builder->slMap.PL_ID) SDP_ADD_INT("profile-level-id", builder->slMap.PL_ID);
 
-	if (builder->rtp_payt == GF_RTP_PAYT_LATM) SDP_ADD_INT("cpresent", 0); 
-	
+	if (builder->rtp_payt == GF_RTP_PAYT_LATM) SDP_ADD_INT("cpresent", 0);
+
 	if (dsi && dsi_size) {
 		k = 0;
 		for (i=0; i<dsi_size; i++) {

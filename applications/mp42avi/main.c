@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -34,16 +34,16 @@
 #define GPAC_CFG_FILE "GPAC.cfg"
 #else
 #include <pwd.h>
-typedef struct tagBITMAPFILEHEADER 
+typedef struct tagBITMAPFILEHEADER
 {
-    u16	bfType;
-    u32	bfSize;
-    u16	bfReserved1;
-    u16	bfReserved2;
-    u32 bfOffBits;
+	u16	bfType;
+	u32	bfSize;
+	u16	bfReserved1;
+	u16	bfReserved2;
+	u32 bfOffBits;
 } BITMAPFILEHEADER;
 
-typedef struct tagBITMAPINFOHEADER{
+typedef struct tagBITMAPINFOHEADER {
 	u32	biSize;
 	s32	biWidth;
 	s32	biHeight;
@@ -73,26 +73,26 @@ void PrintVersion()
 void PrintUsage()
 {
 	printf ("MP42AVI [option] input\n"
-			"Dumps BIFS media frames as AVI, BMP or raw\n\n"
-			"Options\n"
-			"-fps Framerate: specifies extraction framerate - if not set computed from track length\n"
-			"-size WxH: forces output BIFS to the given resolution\n"
-			"-raw [frame]: uses raw format for output - only dumps one frame if specified\n"
-			"-bmp [frame]: uses BMP format for output - only dumps one frame if specified\n"
-			"-outpath path: specifies where to dump frames/movie\n"
-			"\n"
-			"Note: when dumping a frame, either the frame number can be specified or the frame time\n"
-			"in the format hh:mm:ss:xFz where hh, mm, ss are hours, minutes, seconds, x the number\n"
-			"of the frame in the seconds and z the frame rate used to express the time\n"
-			"\n"
-			"-cfg: specifies path to GPAC config file (GPAC.cfg)\n"
-			"-v: prints version\n"
-			"-h: prints this message\n"
-			"\nWritten by Jean Le Feuvre - (c) 2000-2005\n");
+	        "Dumps BIFS media frames as AVI, BMP or raw\n\n"
+	        "Options\n"
+	        "-fps Framerate: specifies extraction framerate - if not set computed from track length\n"
+	        "-size WxH: forces output BIFS to the given resolution\n"
+	        "-raw [frame]: uses raw format for output - only dumps one frame if specified\n"
+	        "-bmp [frame]: uses BMP format for output - only dumps one frame if specified\n"
+	        "-outpath path: specifies where to dump frames/movie\n"
+	        "\n"
+	        "Note: when dumping a frame, either the frame number can be specified or the frame time\n"
+	        "in the format hh:mm:ss:xFz where hh, mm, ss are hours, minutes, seconds, x the number\n"
+	        "of the frame in the seconds and z the frame rate used to express the time\n"
+	        "\n"
+	        "-cfg: specifies path to GPAC config file (GPAC.cfg)\n"
+	        "-v: prints version\n"
+	        "-h: prints this message\n"
+	        "\nWritten by Jean Le Feuvre - (c) 2000-2005\n");
 }
 
 
-typedef struct 
+typedef struct
 {
 	GF_Compositor *sr;
 	GF_SceneGraph *sg;
@@ -165,18 +165,18 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	fi.biSizeImage = fb->pitch * fb->height;
 
 	/*NOT ALIGNED!!*/
-    gf_fwrite(&fh.bfType, 2, 1, fout);
-    gf_fwrite(&fh.bfSize, 4, 1, fout);
-    gf_fwrite(&fh.bfReserved1, 2, 1, fout);
-    gf_fwrite(&fh.bfReserved2, 2, 1, fout);
-    gf_fwrite(&fh.bfOffBits, 4, 1, fout);
+	gf_fwrite(&fh.bfType, 2, 1, fout);
+	gf_fwrite(&fh.bfSize, 4, 1, fout);
+	gf_fwrite(&fh.bfReserved1, 2, 1, fout);
+	gf_fwrite(&fh.bfReserved2, 2, 1, fout);
+	gf_fwrite(&fh.bfOffBits, 4, 1, fout);
 
 	gf_fwrite(&fi, 1, 40, fout);
 
 	for (j=fb->height; j>0; j--) {
 		ptr = fb->video_buffer + (j-1)*fb->pitch;
 		//gf_fwrite(ptr, 1, fb->width  * 3, fout);
-		for (i=0;i<fb->width; i++) {
+		for (i=0; i<fb->width; i++) {
 			fputc(ptr[2], fout);
 			fputc(ptr[1], fout);
 			fputc(ptr[0], fout);
@@ -295,7 +295,7 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 	b2v.sr = gf_sc_new(&user, 0, NULL);
 	gf_sc_set_option(b2v.sr, GF_OPT_VISIBLE, 0);
 
-	/* Initialization of the scene graph */	
+	/* Initialization of the scene graph */
 	b2v.sg = gf_sg_new();
 	gf_sg_set_scene_time_callback(b2v.sg, get_scene_time, &b2v);
 	gf_sg_set_init_callback(b2v.sg, node_init, &b2v);
@@ -343,7 +343,7 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 		b2v.duration = gf_isom_get_media_duration(file, track_number+1);
 
 		gf_odf_desc_del((GF_Descriptor *) esd);
-	
+
 	}
 	gf_sc_set_scene(b2v.sr, b2v.sg);
 
@@ -398,7 +398,7 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 		for (y=0; y<out_fb.height; y++) {
 			/*starting red pixel is R1, R5, R4, R3, R2, R1, R5, ... when increasing line num*/
 			u32 line_shift = (5-y) % 5;
-			for (x=0; x<out_fb.width;x++) {
+			for (x=0; x<out_fb.width; x++) {
 				u32 view_shift = (line_shift+bpp*x)%5;
 				u32 offset = out_fb.pitch*y + x*bpp;
 				/* red */
@@ -413,7 +413,7 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 		/*calibration*/
 		for (y=0; y<out_fb.height; y++) {
 			u32 line_shift = (5- y%5) % 5;
-			for (x=0; x<out_fb.width;x++) {
+			for (x=0; x<out_fb.width; x++) {
 				u32 view_shift = (line_shift+bpp*x)%5;
 				u32 offset = out_fb.pitch*y + x*bpp;
 				out_fb.video_buffer[offset] = ((view_shift)%5 == 2) ? 0xFF : 0;
@@ -434,17 +434,17 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 
 
 err_exit:
-/*	if (rendered_frames) {
-		for (viewpoint_index = 1; viewpoint_index <= nb_viewpoints; viewpoint_index++) {
-			if (rendered_frames[viewpoint_index-1]) gf_free(rendered_frames[viewpoint_index-1]);
+	/*	if (rendered_frames) {
+			for (viewpoint_index = 1; viewpoint_index <= nb_viewpoints; viewpoint_index++) {
+				if (rendered_frames[viewpoint_index-1]) gf_free(rendered_frames[viewpoint_index-1]);
+			}
+			gf_free(rendered_frames);
 		}
-		gf_free(rendered_frames);
-	}
-	if (output_merged_frame) gf_free(output_merged_frame);
-*/
+		if (output_merged_frame) gf_free(output_merged_frame);
+	*/
 	if (user.modules) gf_modules_del(user.modules);
 	if (needs_raw) gf_cfg_set_key(user.config, "Video", "DriverName", old_driv);
- 	gf_cfg_del(user.config);
+	gf_cfg_del(user.config);
 }
 
 void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, char *rad_name, u32 dump_type, char *out_dir, Double fps, s32 frameID, s32 dump_time)
@@ -460,7 +460,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	char old_driv[1024];
 	const char *test;
 	char config_path[GF_MAX_PATH];
-	avi_t *avi_out; 
+	avi_t *avi_out;
 	Bool reset_fps;
 	GF_ESD *esd;
 	char comp[5];
@@ -500,7 +500,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 		needs_raw = 1;
 	}
 
-		needs_raw = 0;
+	needs_raw = 0;
 	user.init_flags = GF_TERM_NO_AUDIO | GF_TERM_FORCE_3D;
 	b2v.sr = gf_sc_new(&user, 0, NULL);
 	gf_sc_set_option(b2v.sr, GF_OPT_VISIBLE, 0);
@@ -566,7 +566,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	count = gf_isom_get_sample_count(file, i+1);
 
 	reset_fps = 0;
-	if (!fps) { 
+	if (!fps) {
 		fps = (Float) (count * timescale);
 		fps /= (Double) (s64) b2v.duration;
 		printf("Estimated BIFS FrameRate %g\n", fps);
@@ -689,7 +689,7 @@ int main (int argc, char **argv)
 		if (arg[0] != '-') {
 			inName = arg;
 			break;
-		}		
+		}
 		if (!stricmp(arg, "-h")) {
 			PrintUsage();
 			return 0;
@@ -775,7 +775,7 @@ int main (int argc, char **argv)
 	rad[strlen(rad)-1] = 0;
 	if (dump_type == 3) {
 		bifs3d_viewpoints_merger(file, szConfigFile, dump_w, dump_h, rad, dump_type, dump_out, fps_dump, frameID, dump_time);
-	} 
+	}
 	else bifs_to_vid(file, szConfigFile, dump_w, dump_h, rad, dump_type, dump_out, fps_dump, frameID, dump_time);
 	printf("\ndone\n");
 	gf_isom_delete(file);

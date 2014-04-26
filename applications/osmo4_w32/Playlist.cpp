@@ -117,35 +117,45 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // Playlist message handlers
 
-BOOL Playlist::OnInitDialog() 
+BOOL Playlist::OnInitDialog()
 {
 	UINT buttonArray[50];
 	TBBUTTONINFO bi;
 	u32 *ba;
 	CDialog::OnInitDialog();
 
-	
+
 	SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), TRUE);
 	SetIcon(AfxGetApp()->LoadIcon(IDR_MAINFRAME), FALSE);
 
 	if (!m_toolBar.CreateEx(this, WS_CHILD | CBRS_TOP | CBRS_FLYBY) ||
-		!m_toolBar.LoadBitmap(IDR_PLAYLIST))
+	        !m_toolBar.LoadBitmap(IDR_PLAYLIST))
 	{
 		TRACE0("Failed to create toolbar\n");
 		return 0;
 	}
-	
+
 	ba = &buttonArray[0];
-	*ba = ID_PL_OPEN; ba++;
-	*ba = ID_PL_SAVE; ba++;
-	*ba = ID_SEPARATOR; ba++;
-	*ba = ID_PL_ADD_FILE; ba++;
-	*ba = ID_PL_REM_FILE; ba++;
-	*ba = ID_SEPARATOR; ba++;
-	*ba = ID_PL_UP; ba++;
-	*ba = ID_PL_DOWN; ba++;
-	*ba = ID_SEPARATOR; ba++;
-	*ba = ID_PL_SORT_FILE; ba++;
+	*ba = ID_PL_OPEN;
+	ba++;
+	*ba = ID_PL_SAVE;
+	ba++;
+	*ba = ID_SEPARATOR;
+	ba++;
+	*ba = ID_PL_ADD_FILE;
+	ba++;
+	*ba = ID_PL_REM_FILE;
+	ba++;
+	*ba = ID_SEPARATOR;
+	ba++;
+	*ba = ID_PL_UP;
+	ba++;
+	*ba = ID_PL_DOWN;
+	ba++;
+	*ba = ID_SEPARATOR;
+	ba++;
+	*ba = ID_PL_SORT_FILE;
+	ba++;
 	m_toolBar.SetButtons(buttonArray, 9);
 	m_toolBar.SetButtonInfo(0, ID_PL_OPEN, TBBS_BUTTON, 0);
 	m_toolBar.SetButtonInfo(1, ID_PL_SAVE, TBBS_BUTTON, 1);
@@ -193,10 +203,10 @@ BOOL Playlist::OnInitDialog()
 	PostMessage(WM_NULL);
 	DragAcceptFiles();
 
-	return TRUE;  
+	return TRUE;
 }
 
-void Playlist::OnSize(UINT nType, int cx, int cy) 
+void Playlist::OnSize(UINT nType, int cx, int cy)
 {
 	u32 tool_h;
 	CDialog::OnSize(nType, cx, cy);
@@ -206,18 +216,18 @@ void Playlist::OnSize(UINT nType, int cx, int cy)
 
 	m_toolBar.GetClientRect(&rc);
 	tool_h = rc.bottom - rc.top;
-	m_toolBar.SetWindowPos(this, 0, 0, cx, tool_h, SWP_NOZORDER);		
-	m_FileList.SetWindowPos(this, 0, tool_h, cx, cy-tool_h, SWP_NOZORDER);		
+	m_toolBar.SetWindowPos(this, 0, 0, cx, tool_h, SWP_NOZORDER);
+	m_FileList.SetWindowPos(this, 0, tool_h, cx, cy-tool_h, SWP_NOZORDER);
 
 	m_FileList.SetExtendedStyle(m_FileList.GetExtendedStyle() | LVS_EX_FULLROWSELECT);
 
 	m_FileList.SetColumnWidth(0, 30);
 	m_FileList.SetColumnWidth(2, 60);
 	m_FileList.SetColumnWidth(1, cx-95);
-	
+
 }
 
-void Playlist::OnDropFiles(HDROP hDropInfo) 
+void Playlist::OnDropFiles(HDROP hDropInfo)
 {
 	u32 i, count;
 	Osmo4 *app = GetApp();
@@ -232,7 +242,7 @@ void Playlist::OnDropFiles(HDROP hDropInfo)
 }
 
 
-BOOL Playlist::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult) 
+BOOL Playlist::OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult)
 {
 
 	if (((LPNMHDR)lParam)->code == TBN_DROPDOWN) {
@@ -311,11 +321,18 @@ void Playlist::UpdateEntry(u32 i)
 	m_FileList.SetItem(i, 0, LVIF_TEXT, szText, 0, 0, 0, 0);
 
 	CString str;
-	if (ple->m_bIsDead) { str = "!! DEAD !! "; str += ple->m_disp_name; }
-	else if (ple->m_bIsPlaying) { str = ">> "; str += ple->m_disp_name; str += " >>"; }
+	if (ple->m_bIsDead) {
+		str = "!! DEAD !! ";
+		str += ple->m_disp_name;
+	}
+	else if (ple->m_bIsPlaying) {
+		str = ">> ";
+		str += ple->m_disp_name;
+		str += " >>";
+	}
 	else str = ple->m_disp_name;
 	m_FileList.SetItem(i, 1, LVIF_TEXT, str, 0, 0, 0, 0);
-	
+
 	if (ple->m_duration) {
 		u32 h = (u32) (ple->m_duration / 3600);
 		u32 m = (u32) (ple->m_duration / 60) - h*60;
@@ -350,7 +367,7 @@ void Playlist::RefreshList()
 			ple->m_bIsSelected = GF_FALSE;
 		}
 	}
-	
+
 	if (m_cur_entry >= (s32)gf_list_count(m_entries)) m_cur_entry = gf_list_count(m_entries);
 	else {
 		s32 last_idx = top_idx + m_FileList.GetCountPerPage();
@@ -365,11 +382,11 @@ void Playlist::RefreshList()
 	Save(szPath, GF_TRUE);
 }
 
-void Playlist::OnPlAddFile() 
+void Playlist::OnPlAddFile()
 {
 	Osmo4 *app = GetApp();
 	CString sFiles = app->GetFileFilter();
-	
+
 	CFileDialog fd(TRUE,NULL,NULL, OFN_ALLOWMULTISELECT | OFN_HIDEREADONLY | OFN_FILEMUSTEXIST , sFiles);
 	fd.m_ofn.nMaxFile = 25000;
 	fd.m_ofn.lpstrFile = (char *) gf_malloc(sizeof(char) * fd.m_ofn.nMaxFile);
@@ -387,12 +404,12 @@ void Playlist::OnPlAddFile()
 	RefreshList();
 }
 
-void Playlist::OnClose() 
+void Playlist::OnClose()
 {
 	ShowWindow(SW_HIDE);
 }
 
-void Playlist::OnPlRemFile() 
+void Playlist::OnPlRemFile()
 {
 	if (!m_FileList.GetSelectedCount()) return;
 	POSITION pos = m_FileList.GetFirstSelectedItemPosition();
@@ -406,7 +423,7 @@ void Playlist::OnPlRemFile()
 	RefreshList();
 }
 
-void Playlist::OnSelUp() 
+void Playlist::OnSelUp()
 {
 	s32 i;
 	if (!m_FileList.GetSelectedCount()) return;
@@ -426,7 +443,7 @@ void Playlist::OnSelUp()
 	RefreshList();
 }
 
-void Playlist::OnSelDown() 
+void Playlist::OnSelDown()
 {
 	s32 i, nItem;
 	if (!m_FileList.GetSelectedCount()) return;
@@ -446,14 +463,14 @@ void Playlist::OnSelDown()
 	RefreshList();
 }
 
-void Playlist::OnPlRemAll() 
+void Playlist::OnPlRemAll()
 {
 	Clear();
 	RefreshList();
 	m_cur_entry = -1;
 }
 
-void Playlist::OnPlRemDead() 
+void Playlist::OnPlRemDead()
 {
 	for (u32 i=0; i<gf_list_count(m_entries); i++) {
 		PLEntry *ple = (PLEntry *) gf_list_get(m_entries, i);
@@ -467,7 +484,7 @@ void Playlist::OnPlRemDead()
 }
 
 
-static int CALLBACK LocCbck(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pData) 
+static int CALLBACK LocCbck(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pData)
 {
 	char dir[MAX_PATH];
 	if (uMsg == BFFM_INITIALIZED) {
@@ -495,7 +512,7 @@ static Bool pl_enum_dir_dirs(void *cbck, char *item_name, char *item_path)
 }
 
 
-void Playlist::AddDir(Bool do_recurse) 
+void Playlist::AddDir(Bool do_recurse)
 {
 	BROWSEINFO brw;
 	LPMALLOC pMalloc;
@@ -526,16 +543,16 @@ void Playlist::AddDir(Bool do_recurse)
 	m_all_dead_entries=-1;
 	RefreshList();
 }
-void Playlist::OnPlAddDir() 
+void Playlist::OnPlAddDir()
 {
 	AddDir(GF_FALSE);
 }
-void Playlist::OnPlAddDirRec() 
+void Playlist::OnPlAddDirRec()
 {
 	AddDir(GF_TRUE);
 }
 
-void Playlist::OnPlAddUrl() 
+void Playlist::OnPlAddUrl()
 {
 	COpenUrl url;
 	if (url.DoModal() != IDOK) return;
@@ -545,7 +562,7 @@ void Playlist::OnPlAddUrl()
 	RefreshList();
 }
 
-void Playlist::OnPlSave() 
+void Playlist::OnPlSave()
 {
 	Bool save_m3u;
 	char szPath[GF_MAX_PATH];
@@ -574,10 +591,10 @@ void Playlist::OnPlSave()
 	Save(szPath, save_m3u);
 }
 
-void Playlist::Save(char *szPath, Bool save_m3u) 
+void Playlist::Save(char *szPath, Bool save_m3u)
 {
 	FILE *out = gf_f64_open(szPath, "wt");
-	if (!save_m3u) 
+	if (!save_m3u)
 		fprintf(out, "[playlist]\nNumberOfEntries=%d\n", gf_list_count(m_entries));
 
 	for (u32 i=0; i<gf_list_count(m_entries); i++) {
@@ -597,7 +614,7 @@ void Playlist::Save(char *szPath, Bool save_m3u)
 	fclose(out);
 }
 
-void Playlist::OnPlOpen() 
+void Playlist::OnPlOpen()
 {
 	CFileDialog fd(TRUE,NULL,NULL, OFN_HIDEREADONLY | OFN_FILEMUSTEXIST, "M3U & PLS Playlists|*.m3u;*.pls|M3U Playlists|*.m3u|ShoutCast Playlists|*.pls|");
 	if (fd.DoModal() != IDOK) return;
@@ -615,7 +632,7 @@ void Playlist::OpenPlayList(CString fileName)
 	Bool load_m3u, go;
 	char szLine[GF_MAX_PATH], *sep;
 	char szPath[GF_MAX_PATH];
-	
+
 	strcpy(szPath, fileName);
 	sep = strrchr(szPath, '\\');
 	if (sep) sep[1] = 0;
@@ -670,11 +687,11 @@ void Playlist::OpenPlayList(CString fileName)
 }
 
 
-void Playlist::OnRclickFilelist(NMHDR* pNMHDR, LRESULT* pResult) 
+void Playlist::OnRclickFilelist(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	if (!m_FileList.GetItemCount()) return;
 
-	CMenu *pPopup = new CMenu();	
+	CMenu *pPopup = new CMenu();
 	pPopup->CreatePopupMenu();
 
 	if (m_FileList.GetSelectedCount()==1) {
@@ -692,16 +709,16 @@ void Playlist::OnRclickFilelist(NMHDR* pNMHDR, LRESULT* pResult)
 		pPopup->AppendMenu(MF_STRING | MF_ENABLED, ID_PL_SORT_REV, "Reverse List");
 		pPopup->AppendMenu(MF_STRING | MF_ENABLED, ID_PL_RANDOM, "Randomize");
 	}
-	
+
 	POINT pt;
-    GetCursorPos(&pt);
+	GetCursorPos(&pt);
 	pPopup->TrackPopupMenu(TPM_RIGHTBUTTON, pt.x, pt.y, this);
 	delete pPopup;
 
 	*pResult = 0;
 }
 
-void Playlist::OnReverseSelection() 
+void Playlist::OnReverseSelection()
 {
 	u32 i;
 	POSITION pos = m_FileList.GetFirstSelectedItemPosition();
@@ -769,13 +786,13 @@ void Playlist::Sort(u32 type)
 			s32 test = 0;
 			switch (type) {
 			case 0:
-                test = stricmp(ple1->m_url, ple2->m_url);
+				test = stricmp(ple1->m_url, ple2->m_url);
 				break;
 			case 1:
-                test = stricmp(ple1->m_disp_name, ple2->m_disp_name);
+				test = stricmp(ple1->m_disp_name, ple2->m_disp_name);
 				break;
 			case 2:
-                test = ple1->m_duration - ple2->m_duration;
+				test = ple1->m_duration - ple2->m_duration;
 				break;
 			}
 			if (test<0) smallest = j;
@@ -788,9 +805,15 @@ void Playlist::Sort(u32 type)
 	RefreshList();
 }
 
-void Playlist::OnSortFile() { Sort(0); }
-void Playlist::OnSortTitle() { Sort(1); }
-void Playlist::OnSortDuration() { Sort(2); }
+void Playlist::OnSortFile() {
+	Sort(0);
+}
+void Playlist::OnSortTitle() {
+	Sort(1);
+}
+void Playlist::OnSortDuration() {
+	Sort(2);
+}
 
 
 Bool Playlist::HasValidEntries()
@@ -847,7 +870,7 @@ void Playlist::Play()
 	}
 }
 
-void Playlist::OnDblclkFilelist(NMHDR* pNMHDR, LRESULT* pResult) 
+void Playlist::OnDblclkFilelist(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	POSITION pos = m_FileList.GetFirstSelectedItemPosition();
 	RefreshCurrent();

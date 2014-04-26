@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2007-2012
  *			All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -63,10 +63,10 @@ Bool uir_on_event_record(GF_UIRecord *uir , GF_Event *event, Bool consumed_by_co
 			uir->ck = uir->term->root_scene->scene_codec ? uir->term->root_scene->scene_codec->ck : uir->term->root_scene->dyn_ck;
 		}
 		break;
-	case GF_EVENT_CLICK: 
+	case GF_EVENT_CLICK:
 	case GF_EVENT_MOUSEUP:
-	case GF_EVENT_MOUSEDOWN: 
-	case GF_EVENT_MOUSEOVER: 
+	case GF_EVENT_MOUSEDOWN:
+	case GF_EVENT_MOUSEOVER:
 	case GF_EVENT_MOUSEOUT:
 	/*!! ALL MOUSE EVENTS SHALL BE DECLARED BEFORE MOUSEMOVE !! */
 	case GF_EVENT_MOUSEMOVE:
@@ -110,10 +110,10 @@ void uir_load_event(GF_UIRecord *uir)
 	uir->next_time = gf_bs_read_u32(uir->bs);
 	uir->next_event.type = gf_bs_read_u8(uir->bs);
 	switch (uir->next_event.type) {
-	case GF_EVENT_CLICK: 
+	case GF_EVENT_CLICK:
 	case GF_EVENT_MOUSEUP:
-	case GF_EVENT_MOUSEDOWN: 
-	case GF_EVENT_MOUSEOVER: 
+	case GF_EVENT_MOUSEDOWN:
+	case GF_EVENT_MOUSEOVER:
 	case GF_EVENT_MOUSEOUT:
 	/*!! ALL MOUSE EVENTS SHALL BE DECLARED BEFORE MOUSEMOVE !! */
 	case GF_EVENT_MOUSEMOVE:
@@ -223,17 +223,17 @@ void uir_delete(GF_BaseInterface *ifce)
 }
 
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_TERM_EXT_INTERFACE,
 		0
 	};
-	return si; 
+	return si;
 }
 
 GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_TERM_EXT_INTERFACE) return (GF_BaseInterface *)uir_new();
 	return NULL;

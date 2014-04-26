@@ -50,23 +50,23 @@ typedef struct
 	/*the service we're responsible for*/
 	GF_ClientService *service;
 	LPNETCHANNEL channel;
-    
+
 	/*input file*/
 	u32 time_scale;
-    
+
 	u32 base_track_id;
-    
+
 	struct _tag_terminal *term;
-    
+
 	u32 cntr;
-    
+
 	u32 width;
 	u32 height;
-    
+
 	Bool started;
-    
-    void* camInst;
-    
+
+	void* camInst;
+
 } IOSCamCtx;
 
 IOSCamCtx* globReader = NULL;
@@ -78,7 +78,7 @@ void processFrameBuf( unsigned char* data, unsigned int dataSize);
 Bool CAM_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	if (!strnicmp(url, "hw://camera", 11)) return 1;
-    
+
 	return 0;
 }
 
@@ -87,25 +87,25 @@ GF_Err CAM_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	IOSCamCtx *read;
 	if (!plug || !plug->priv || !serv) return GF_SERVICE_ERROR;
 	read = (IOSCamCtx *) plug->priv;
-    
+
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] CAM_ConnectService: %d\n", gf_th_id()));
-    
-    globReader = read;
-    
+
+	globReader = read;
+
 	read->input = plug;
 	read->service = serv;
 	read->base_track_id = 1;
 	read->time_scale = 1000;
-    
+
 	read->term = serv->term;
-    
+
 	read->camInst = CAM_CreateInstance();
-    CAM_SetCallback(read->camInst, processFrameBuf);
-    
+	CAM_SetCallback(read->camInst, processFrameBuf);
+
 	/*reply to user*/
 	gf_term_on_connect(serv, NULL, GF_OK);
 	//if (read->no_service_desc) isor_declare_objects(read);
-    
+
 	return GF_OK;
 }
 
@@ -115,13 +115,13 @@ GF_Err CAM_CloseService(GF_InputService *plug)
 	IOSCamCtx *read;
 	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
 	read = (IOSCamCtx *) plug->priv;
-    
+
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] CAM_CloseService: %d\n", gf_th_id()));
-    
+
 	reply = GF_OK;
-    
+
 	CAM_DestroyInstance(&read->camInst);
-    
+
 	gf_term_on_disconnect(read->service, NULL, reply);
 	return GF_OK;
 }
@@ -138,46 +138,46 @@ static GF_Descriptor *CAM_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 	GF_BitStream *bs;
 	char *buf;
 	u32 buf_size;
-    s32 color;
-    s32 stride;
+	s32 color;
+	s32 stride;
 	if (!plug || !plug->priv) return NULL;
 	read = (IOSCamCtx *) plug->priv;
-    
+
 	trackID = read->base_track_id;
 	read->base_track_id = 0;
-    
+
 	if (trackID && (expect_type==GF_MEDIA_OBJECT_VIDEO) ) {
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		od->objectDescriptorID = 1;
-        
+
 		esd = gf_odf_desc_esd_new(0);
 		esd->slConfig->timestampResolution = 1000;
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 		esd->ESID = 1;
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_RAW_MEDIA_STREAM;
-		
+
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-        
-        CAM_GetCurrentFormat(read->camInst, &read->width, &read->height, &color, &stride);
-        
+
+		CAM_GetCurrentFormat(read->camInst, &read->width, &read->height, &color, &stride);
+
 		gf_bs_write_u32(bs, CAM_PIXEL_FORMAT); // fourcc
 		gf_bs_write_u16(bs, read->width); // width
 		gf_bs_write_u16(bs, read->height); // height
 		gf_bs_write_u32(bs, read->height * stride); // framesize
 		gf_bs_write_u32(bs, stride); // stride
-        gf_bs_write_u8(bs, 1); // is_flipped
-        
+		gf_bs_write_u8(bs, 1); // is_flipped
+
 		gf_bs_align(bs);
 		gf_bs_get_content(bs, &buf, &buf_size);
 		gf_bs_del(bs);
-        
+
 		esd->decoderConfig->decoderSpecificInfo->data = buf;
 		esd->decoderConfig->decoderSpecificInfo->dataLength = buf_size;
-        
+
 		gf_list_add(od->ESDescriptors, esd);
 		return (GF_Descriptor *) od;
 	}
-    
+
 	return NULL;
 }
 
@@ -187,18 +187,18 @@ GF_Err CAM_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const cha
 	IOSCamCtx *read;
 	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
 	read = (IOSCamCtx *) plug->priv;
-    
+
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] CAM_ConnectChannel: %d\n", gf_th_id()));
-    
+
 	e = GF_OK;
 	if (upstream) {
 		e = GF_ISOM_INVALID_FILE;
 	}
-    
+
 	read->channel = channel;
-    
+
 	camStartCamera(read);
-    
+
 	gf_term_on_connect(read->service, channel, e);
 	return e;
 }
@@ -209,13 +209,13 @@ GF_Err CAM_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	IOSCamCtx *read;
 	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
 	read = (IOSCamCtx *) plug->priv;
-    
+
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] CAM_DisconnectChannel: %d\n", gf_th_id()));
-    
+
 	e = GF_OK;
-    
+
 	camStopCamera(read);
-    
+
 	gf_term_on_disconnect(read->service, channel, e);
 	return e;
 }
@@ -225,7 +225,7 @@ int* decodeYUV420SP( char* yuv420sp, int width, int height)
 	int frameSize = width * height;
 	int j, yp, uvp, i, y, y1192, r, g, b, u, v;
 	int ti, tj;
-    
+
 	int* rgb = (int*)gf_malloc(width*height*4);
 	for (j = 0, yp = 0, tj=height-1; j < height; j++, tj--)
 	{
@@ -239,12 +239,12 @@ int* decodeYUV420SP( char* yuv420sp, int width, int height)
 				v = (0xff & yuv420sp[uvp++]) - 128;
 				u = (0xff & yuv420sp[uvp++]) - 128;
 			}
-            
+
 			y1192 = 1192 * y;
 			r = (y1192 + 1634 * v);
 			g = (y1192 - 833 * v - 400 * u);
 			b = (y1192 + 2066 * u);
-            
+
 			if (r < 0)
 				r = 0;
 			else if (r > 262143)
@@ -257,11 +257,11 @@ int* decodeYUV420SP( char* yuv420sp, int width, int height)
 				b = 0;
 			else if (b > 262143)
 				b = 262143;
-            
+
 			rgb[yp] = 0xff000000 | ((r << 6) & 0xff0000)
-            | ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
-            //			rgb[ti+tj] = 0xff000000 | ((r << 6) & 0xff0000)
-            //					| ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
+			          | ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
+			//			rgb[ti+tj] = 0xff000000 | ((r << 6) & 0xff0000)
+			//					| ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
 		}
 	}
 	return rgb;
@@ -272,9 +272,9 @@ void processFrameBuf( unsigned char* data, unsigned int dataSize)
 	IOSCamCtx* ctx = globReader;
 	GF_SLHeader hdr;
 	u32 cts = 0;
-	    
+
 	cts = gf_term_get_time(ctx->term);
-        
+
 	memset(&hdr, 0, sizeof(hdr));
 	hdr.compositionTimeStampFlag = 1;
 	hdr.compositionTimeStamp = cts;
@@ -285,21 +285,21 @@ void processFrameBuf( unsigned char* data, unsigned int dataSize)
 void camStartCamera(IOSCamCtx *read)
 {
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] startCamera: %d\n", gf_th_id()));
-    
+
 	//CAM_Start(read->camInst);
 }
 
 void camStopCamera(IOSCamCtx *read)
 {
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] stopCamera: %d\n", gf_th_id()));
-    
-    //CAM_Stop(read->camInst);
+
+	//CAM_Stop(read->camInst);
 }
 
 void pauseCamera(IOSCamCtx *read)
 {
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] pauseCamera: %d\n", gf_th_id()));
-    
+
 	read->started = 0;
 	CAM_Stop(read->camInst);
 }
@@ -307,7 +307,7 @@ void pauseCamera(IOSCamCtx *read)
 void resumeCamera(IOSCamCtx *read)
 {
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[ANDROID_CAMERA] resumeCamera: %d\n", gf_th_id()));
-    
+
 	read->started = 1;
 	CAM_Start(read->camInst);
 }
@@ -320,7 +320,7 @@ GF_Err CAM_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	u32 buf_size;
 	if (!plug || !plug->priv || !com) return GF_SERVICE_ERROR;
 	read = (IOSCamCtx *) plug->priv;
-    
+
 	if (com->command_type==GF_NET_SERVICE_INFO) {
 		return GF_OK;
 	}
@@ -328,48 +328,48 @@ GF_Err CAM_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_NOT_SUPPORTED;
 	}
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
-    
+
 	switch (com->command_type) {
-        case GF_NET_CHAN_INTERACTIVE:
-            return GF_OK;
-        case GF_NET_CHAN_BUFFER:
-            com->buffer.max = com->buffer.min = 0;
-            return GF_OK;
-        case GF_NET_CHAN_PLAY:
-            resumeCamera(read);
-            return GF_OK;
-        case GF_NET_CHAN_STOP:
-            pauseCamera(read);
-            return GF_OK;
-            /*nothing to do on MP4 for channel config*/
-        case GF_NET_CHAN_CONFIG:
-            return GF_OK;
-        case GF_NET_CHAN_GET_PIXEL_AR:
-            return 1<<16;//gf_isom_get_pixel_aspect_ratio(read->mov, ch->track, 1, &com->par.hSpacing, &com->par.vSpacing);
-        case GF_NET_CHAN_GET_DSI:
-		{
-            s32 color;
-            s32 stride;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cam get DSI\n"));
-			/*it may happen that there are conflicting config when using ESD URLs...*/
-			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-            
-			CAM_GetCurrentFormat(read->camInst, &read->width, &read->height, &color, &stride);
-            
-			gf_bs_write_u32(bs, CAM_PIXEL_FORMAT); // fourcc
-			gf_bs_write_u16(bs, read->width); // width
-			gf_bs_write_u16(bs, read->height); // height
-			gf_bs_write_u32(bs, read->height * stride); // framesize
-			gf_bs_write_u32(bs, stride); // stride
-            
-			gf_bs_align(bs);
-			gf_bs_get_content(bs, &buf, &buf_size);
-			gf_bs_del(bs);
-            
-			com->get_dsi.dsi = buf;
-			com->get_dsi.dsi_len = buf_size;
-			return GF_OK;
-		}
+	case GF_NET_CHAN_INTERACTIVE:
+		return GF_OK;
+	case GF_NET_CHAN_BUFFER:
+		com->buffer.max = com->buffer.min = 0;
+		return GF_OK;
+	case GF_NET_CHAN_PLAY:
+		resumeCamera(read);
+		return GF_OK;
+	case GF_NET_CHAN_STOP:
+		pauseCamera(read);
+		return GF_OK;
+	/*nothing to do on MP4 for channel config*/
+	case GF_NET_CHAN_CONFIG:
+		return GF_OK;
+	case GF_NET_CHAN_GET_PIXEL_AR:
+		return 1<<16;//gf_isom_get_pixel_aspect_ratio(read->mov, ch->track, 1, &com->par.hSpacing, &com->par.vSpacing);
+	case GF_NET_CHAN_GET_DSI:
+	{
+		s32 color;
+		s32 stride;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cam get DSI\n"));
+		/*it may happen that there are conflicting config when using ESD URLs...*/
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+		CAM_GetCurrentFormat(read->camInst, &read->width, &read->height, &color, &stride);
+
+		gf_bs_write_u32(bs, CAM_PIXEL_FORMAT); // fourcc
+		gf_bs_write_u16(bs, read->width); // width
+		gf_bs_write_u16(bs, read->height); // height
+		gf_bs_write_u32(bs, read->height * stride); // framesize
+		gf_bs_write_u32(bs, stride); // stride
+
+		gf_bs_align(bs);
+		gf_bs_get_content(bs, &buf, &buf_size);
+		gf_bs_del(bs);
+
+		com->get_dsi.dsi = buf;
+		com->get_dsi.dsi_len = buf_size;
+		return GF_OK;
+	}
 	}
 	return GF_NOT_SUPPORTED;
 }
@@ -387,7 +387,7 @@ GF_InputService *CAM_client_load()
 	plug->ConnectChannel = CAM_ConnectChannel;
 	plug->DisconnectChannel = CAM_DisconnectChannel;
 	plug->ServiceCommand = CAM_ServiceCommand;
-    
+
 	GF_SAFEALLOC(reader, IOSCamCtx);
 	plug->priv = reader;
 	return plug;
@@ -397,7 +397,7 @@ void CAM_client_del(GF_BaseInterface *bi)
 {
 	GF_InputService *plug = (GF_InputService *) bi;
 	IOSCamCtx *read = (IOSCamCtx *)plug->priv;
-    
+
 	gf_free(read);
 	gf_free(bi);
 }
@@ -424,7 +424,9 @@ GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
-        case GF_NET_CLIENT_INTERFACE: CAM_client_del(ifce); break;
+	case GF_NET_CLIENT_INTERFACE:
+		CAM_client_del(ifce);
+		break;
 	}
 }
 

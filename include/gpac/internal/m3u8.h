@@ -62,20 +62,20 @@
  * Basic Stream structure
  */
 typedef struct s_stream {
-    u8 i;
+	u8 i;
 } Stream;
 
 /**
  * The playlist contains a list of elements to play
  */
 typedef struct s_playList {
-    int currentMediaSequence;
-    int target_duration;
-    int mediaSequenceMin;
-    int mediaSequenceMax;
-    int computed_duration;
-    char is_ended;
-    GF_List * elements;
+	int currentMediaSequence;
+	int target_duration;
+	int mediaSequenceMin;
+	int mediaSequenceMax;
+	int computed_duration;
+	char is_ended;
+	GF_List * elements;
 } Playlist;
 
 typedef enum e_playlistElementType  { TYPE_PLAYLIST, TYPE_STREAM, TYPE_UNKNOWN} PlaylistElementType;
@@ -84,23 +84,24 @@ typedef enum e_playlistElementType  { TYPE_PLAYLIST, TYPE_STREAM, TYPE_UNKNOWN} 
  * The Structure containing the playlist element
  */
 typedef struct s_playlistElement {
-    int durationInfo;
-    u64 byteRangeStart, byteRangeEnd;
-    int bandwidth, width, height;
-    char * title;
+	int durationInfo;
+	u64 byteRangeStart, byteRangeEnd;
+	int bandwidth, width, height;
+	char * title;
 	char * codecs;
-    char * url;
-    PlaylistElementType elementType;
-    union { Playlist playlist;
-        Stream stream;
-    } element;
+	char * url;
+	PlaylistElementType elementType;
+	union {
+		Playlist playlist;
+		Stream stream;
+	} element;
 
 } PlaylistElement;
 
 typedef struct s_program {
-    int programId;
-    GF_List * bitrates;
-    int currentBitrateIndex;
+	int programId;
+	GF_List * bitrates;
+	int currentBitrateIndex;
 	int computed_duration;
 } Program;
 
@@ -109,9 +110,9 @@ typedef struct s_program {
  * The root playlist, can contains several PlaylistElements structures
  */
 typedef struct s_variantPlaylist {
-    GF_List * programs;
-    int currentProgram;
-    Bool playlistNeedsRefresh;
+	GF_List * programs;
+	int currentProgram;
+	Bool playlistNeedsRefresh;
 } VariantPlaylist;
 
 /**
@@ -144,7 +145,7 @@ GF_Err program_del(Program * program);
 /**
  * Creates an Playlist element.
  * This element can be either a playlist of a stream according to first parameter.
- * \return NULL if element could not be created. Elements will be deleted recusively 
+ * \return NULL if element could not be created. Elements will be deleted recusively
  */
 PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, const char *codecs, int durationInfo, u64 byteRangeStart, u64 byteRangeEnd);
 

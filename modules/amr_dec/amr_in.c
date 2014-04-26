@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include <gpac/modules/service.h>
@@ -101,7 +101,7 @@ static GF_ESD *AMR_GetESD(AMR_Reader *read)
 		gf_bs_write_u8(dsi, 1);
 		gf_bs_get_content(dsi, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(dsi);
-	} 
+	}
 	else if (read->mtype==TYPE_EVRC) esd->decoderConfig->objectTypeIndication = 0xA0;
 	else if (read->mtype==TYPE_SMV) esd->decoderConfig->objectTypeIndication = 0xA1;
 	return esd;
@@ -175,7 +175,7 @@ static Bool AMR_ConfigureFromFile(AMR_Reader *read)
 
 
 	read->duration = 0;
-	
+
 	if (!read->is_remote) {
 		u32 size;
 		while (!feof(read->stream)) {
@@ -419,8 +419,8 @@ static GF_Err AMR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		read->current_time = 0;
 		if (read->stream) fseek(read->stream, read->start_offset, SEEK_SET);
 
-		if (read->ch == com->base.on_channel) { 
-			read->done = 0; 
+		if (read->ch == com->base.on_channel) {
+			read->done = 0;
 			/*PLAY after complete download, estimate duration*/
 			if (!read->is_remote && !read->duration) {
 				AMR_ConfigureFromFile(read);
@@ -506,7 +506,7 @@ fetch_next:
 				read->start_range = 0;
 			}
 		}
-		
+
 		read->data_size++;
 		read->sl_hdr.compositionTimeStamp = read->current_time;
 		read->data = gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
@@ -570,7 +570,7 @@ void DeleteAESReader(void *ifce)
 
 #ifdef GPAC_AMR_IN_STANDALONE
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_NET_CLIENT_INTERFACE,
@@ -583,8 +583,10 @@ GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
-	case GF_NET_CLIENT_INTERFACE: return (GF_BaseInterface *) NewAESReader();
-	default: return NULL;
+	case GF_NET_CLIENT_INTERFACE:
+		return (GF_BaseInterface *) NewAESReader();
+	default:
+		return NULL;
 	}
 }
 
@@ -592,7 +594,9 @@ GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
-	case GF_NET_CLIENT_INTERFACE:  DeleteAESReader(ifce); break;
+	case GF_NET_CLIENT_INTERFACE:
+		DeleteAESReader(ifce);
+		break;
 	}
 }
 

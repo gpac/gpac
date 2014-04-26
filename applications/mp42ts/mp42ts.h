@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 #include <gpac/isomedia.h>
@@ -80,7 +80,7 @@ typedef struct __m2ts_mux_stream {
 
 	/*average stream bit-rate in bit/sec*/
 	u32 bit_rate;
-	
+
 	/*multiplexer time - NOT THE PCR*/
 	M2TS_Time time;
 
@@ -161,12 +161,12 @@ struct __m2ts_mux {
 
 	Bool needs_reconfig;
 
-    /* used to indicate that the input data is pushed to the muxer (i.e. not read from a file)
-    or that the output data is sent on sockets (not written to a file) */
+	/* used to indicate that the input data is pushed to the muxer (i.e. not read from a file)
+	or that the output data is sent on sockets (not written to a file) */
 	Bool real_time;
 
 	/* indicates if the multiplexer shall target a fix bit rate (monitoring timing and produce padding packets)
-       or if the output stream will contain only input data*/
+	   or if the output stream will contain only input data*/
 	Bool fixed_rate;
 
 	/*output bit-rate in bit/sec*/
@@ -175,14 +175,14 @@ struct __m2ts_mux {
 	char dst_pck[188], null_pck[188];
 
 	/*multiplexer time, incremented each time a packet is sent
-      used to monitor the sending of muxer related data (PAT, ...) */
-	M2TS_Time time; 
-    
-    /* Time of the muxer when the first call to process is made (first packet sent?) */
-    M2TS_Time init_ts_time;
-	
-    /* System time when the muxer is started */
-    u32 init_sys_time;
+	  used to monitor the sending of muxer related data (PAT, ...) */
+	M2TS_Time time;
+
+	/* Time of the muxer when the first call to process is made (first packet sent?) */
+	M2TS_Time init_ts_time;
+
+	/* System time when the muxer is started */
+	u32 init_sys_time;
 
 	Bool eos_found;
 	u32 pck_sent_over_br_window, last_br_time, avg_br;

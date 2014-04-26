@@ -9,7 +9,7 @@
 #endif // _MSC_VER > 1000
 
 #ifndef __AFXWIN_H__
-	#error include 'stdafx.h' before including this file for PCH
+#error include 'stdafx.h' before including this file for PCH
 #endif
 
 #include "resource.h"       // main symbols
@@ -26,7 +26,7 @@
 #include <gpac/term_info.h>
 
 enum {
-	WM_SCENE_DONE = WM_USER + 1, 
+	WM_SCENE_DONE = WM_USER + 1,
 	WM_NAVIGATE,
 	WM_SETSIZE,
 	WM_OPENURL,
@@ -48,7 +48,7 @@ public:
 	Bool m_isopen, m_reset;
 	u32 max_duration;
 	Bool can_seek;
-	u32 orig_width,orig_height, m_reconnect_time; 
+	u32 orig_width,orig_height, m_reconnect_time;
 
 	CString m_navigate_url;
 	void Pause();
@@ -63,7 +63,7 @@ public:
 	u32 start_mode;
 
 	CString GetFileFilter();
-	
+
 	char szApplicationPath[GF_MAX_PATH];
 	char szUserPath[GF_MAX_PATH];
 
@@ -74,7 +74,7 @@ public:
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(Osmo4)
-	public:
+public:
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();
 	//}}AFX_VIRTUAL
@@ -101,7 +101,9 @@ public:
 	DECLARE_MESSAGE_MAP()
 };
 
-inline Osmo4 *GetApp() { return (Osmo4 *)AfxGetApp(); }
+inline Osmo4 *GetApp() {
+	return (Osmo4 *)AfxGetApp();
+}
 
 
 
@@ -111,4 +113,3 @@ inline Osmo4 *GetApp() { return (Osmo4 *)AfxGetApp(); }
 // Microsoft Visual C++ will insert additional declarations immediately before the previous line.
 
 #endif // !defined(AFX_GPAC_H__8B06A368_E142_47E3_ABE7_0B459FC0E853__INCLUDED_)
-	

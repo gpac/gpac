@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -81,7 +81,7 @@ static u32 FFDemux_Run(void *par)
 	com.command_type = GF_NET_BUFFER_QUERY;
 
 	memset(&slh, 0, sizeof(GF_SLHeader));
-	
+
 	slh.compositionTimeStampFlag = slh.decodingTimeStampFlag = 1;
 
 	while (ffd->is_running) {
@@ -137,7 +137,7 @@ static u32 FFDemux_Run(void *par)
 		demuxer are synchronized*/
 		while (ffd->audio_run || ffd->video_run) {
 			gf_term_on_command(ffd->service, &com, GF_OK);
-			if (com.buffer.occupancy < com.buffer.max) 
+			if (com.buffer.occupancy < com.buffer.max)
 				break;
 			gf_sleep(10);
 
@@ -153,41 +153,41 @@ static u32 FFDemux_Run(void *par)
 }
 
 static const char * FFD_MIME_TYPES[] = {
-  "video/x-mpeg", "mpg mpeg mp2 mpa mpe mpv2", "MPEG 1/2 Movies",
-  "video/x-mpeg-systems", "mpg mpeg mp2 mpa mpe mpv2", "MPEG 1/2 Movies",
-  "audio/basic", "snd au", "Basic Audio",
-  "audio/x-wav", "wav", "WAV Audio",
-  "audio/vnd.wave", "wav", "WAV Audio",
-  "video/x-ms-asf", "asf wma wmv asx asr", "WindowsMedia Movies",
-  "video/x-ms-wmv", "asf wma wmv asx asr", "WindowsMedia Movies",
-  "video/x-msvideo", "avi", "AVI Movies",
-  "video/x-ms-video", "avi", "AVI Movies",
-  "video/avi", "avi", "AVI Movies",
-  "video/vnd.avi", "avi", "AVI Movies",
-  "video/H263", "h263 263", "H263 Video",
-  "video/H264", "h264 264", "H264 Video",
-  "video/MPEG4", "cmp", "MPEG-4 Video",
-/* We let ffmpeg handle mov because some QT files with uncompressed or adpcm audio use 1 audio sample
-   per MP4 sample which is a killer for our MP4 lib, whereas ffmpeg handles these as complete audio chunks
-   moreover ffmpeg handles cmov, we don't */
-  "video/quicktime", "mov qt", "QuickTime Movies",
-/* Supported by latest versions of FFMPEG */
-  "video/webm", "webm", "Google WebM Movies",
-  "audio/webm", "webm", "Google WebM Music",
+	"video/x-mpeg", "mpg mpeg mp2 mpa mpe mpv2", "MPEG 1/2 Movies",
+	"video/x-mpeg-systems", "mpg mpeg mp2 mpa mpe mpv2", "MPEG 1/2 Movies",
+	"audio/basic", "snd au", "Basic Audio",
+	"audio/x-wav", "wav", "WAV Audio",
+	"audio/vnd.wave", "wav", "WAV Audio",
+	"video/x-ms-asf", "asf wma wmv asx asr", "WindowsMedia Movies",
+	"video/x-ms-wmv", "asf wma wmv asx asr", "WindowsMedia Movies",
+	"video/x-msvideo", "avi", "AVI Movies",
+	"video/x-ms-video", "avi", "AVI Movies",
+	"video/avi", "avi", "AVI Movies",
+	"video/vnd.avi", "avi", "AVI Movies",
+	"video/H263", "h263 263", "H263 Video",
+	"video/H264", "h264 264", "H264 Video",
+	"video/MPEG4", "cmp", "MPEG-4 Video",
+	/* We let ffmpeg handle mov because some QT files with uncompressed or adpcm audio use 1 audio sample
+	   per MP4 sample which is a killer for our MP4 lib, whereas ffmpeg handles these as complete audio chunks
+	   moreover ffmpeg handles cmov, we don't */
+	"video/quicktime", "mov qt", "QuickTime Movies",
+	/* Supported by latest versions of FFMPEG */
+	"video/webm", "webm", "Google WebM Movies",
+	"audio/webm", "webm", "Google WebM Music",
 #ifdef FFMPEG_DEMUX_ENABLE_MPEG2TS
-  "video/mp2t", "ts", "MPEG 2 TS",
+	"video/mp2t", "ts", "MPEG 2 TS",
 #endif
-  NULL
+	NULL
 };
 
-static u32 FFD_RegisterMimeTypes(const GF_InputService *plug){
-    u32 i;
-    for (i = 0 ; FFD_MIME_TYPES[i]; i+=3)
-      gf_term_register_mime_type(plug, FFD_MIME_TYPES[i], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2]);
-    return i/3;
+static u32 FFD_RegisterMimeTypes(const GF_InputService *plug) {
+	u32 i;
+	for (i = 0 ; FFD_MIME_TYPES[i]; i+=3)
+		gf_term_register_mime_type(plug, FFD_MIME_TYPES[i], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2]);
+	return i/3;
 }
 
-static int open_file(AVFormatContext **	ic_ptr, const char * 	filename, AVInputFormat * 	fmt){
+static int open_file(AVFormatContext **	ic_ptr, const char * 	filename, AVInputFormat * 	fmt) {
 #ifdef USE_PRE_0_7
 	return av_open_input_file(ic_ptr, filename, fmt, 0, NULL);
 #else
@@ -234,30 +234,30 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 
 		/*note we forbid ffmpeg to handle files we support*/
 		if (!strcmp(szExt, "mp4") || !strcmp(szExt, "mpg4") || !strcmp(szExt, "m4a") || !strcmp(szExt, "m21")
-			|| !strcmp(szExt, "m4v") || !strcmp(szExt, "m4a")
-			|| !strcmp(szExt, "m4s") || !strcmp(szExt, "3gs")
-			|| !strcmp(szExt, "3gp") || !strcmp(szExt, "3gpp") || !strcmp(szExt, "3gp2") || !strcmp(szExt, "3g2")
-			|| !strcmp(szExt, "mp3")
-			|| !strcmp(szExt, "ac3")
-			|| !strcmp(szExt, "amr")
-			|| !strcmp(szExt, "bt") || !strcmp(szExt, "wrl") || !strcmp(szExt, "x3dv")
-			|| !strcmp(szExt, "xmt") || !strcmp(szExt, "xmta") || !strcmp(szExt, "x3d")
+		        || !strcmp(szExt, "m4v") || !strcmp(szExt, "m4a")
+		        || !strcmp(szExt, "m4s") || !strcmp(szExt, "3gs")
+		        || !strcmp(szExt, "3gp") || !strcmp(szExt, "3gpp") || !strcmp(szExt, "3gp2") || !strcmp(szExt, "3g2")
+		        || !strcmp(szExt, "mp3")
+		        || !strcmp(szExt, "ac3")
+		        || !strcmp(szExt, "amr")
+		        || !strcmp(szExt, "bt") || !strcmp(szExt, "wrl") || !strcmp(szExt, "x3dv")
+		        || !strcmp(szExt, "xmt") || !strcmp(szExt, "xmta") || !strcmp(szExt, "x3d")
 
-			|| !strcmp(szExt, "jpg") || !strcmp(szExt, "jpeg") || !strcmp(szExt, "png")
-			) return 0;
+		        || !strcmp(szExt, "jpg") || !strcmp(szExt, "jpeg") || !strcmp(szExt, "png")
+		   ) return 0;
 
 		/*check any default stuff that should work with ffmpeg*/
 		{
-		  u32 i;
-		  for (i = 0 ; FFD_MIME_TYPES[i]; i+=3){
-		    if (gf_term_check_extension(plug, FFD_MIME_TYPES[i], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2], ext))
-		      return 1;
-		  }
+			u32 i;
+			for (i = 0 ; FFD_MIME_TYPES[i]; i+=3) {
+				if (gf_term_check_extension(plug, FFD_MIME_TYPES[i], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2], ext))
+					return 1;
+			}
 		}
 	}
 
 	ctx = NULL;
-    if (open_file(&ctx, szName, NULL)<0) {
+	if (open_file(&ctx, szName, NULL)<0) {
 		AVInputFormat *av_in = NULL;;
 		/*some extensions not supported by ffmpeg*/
 		if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
@@ -266,7 +266,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 			return 0;
 		}
 	}
-    if (!ctx || av_find_stream_info(ctx) <0) goto exit;
+	if (!ctx || av_find_stream_info(ctx) <0) goto exit;
 
 	/*figure out if we can use codecs or not*/
 	has_video = has_audio = 0;
@@ -314,7 +314,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	}
 
 exit:
-    if (ctx) av_close_input_file(ctx);
+	if (ctx) av_close_input_file(ctx);
 	return ret;
 }
 
@@ -330,7 +330,7 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 	/*remap std object types - depending on input formats, FFMPEG may not have separate DSI from initial frame.
 	In this case we have no choice but using FFMPEG decoders*/
 	if (for_audio) {
-	AVCodecContext *dec = ffd->ctx->streams[ffd->audio_st]->codec;
+		AVCodecContext *dec = ffd->ctx->streams[ffd->audio_st]->codec;
 		esd->slConfig->timestampResolution = ffd->audio_tscale.den;
 		switch (dec->codec_id) {
 		case CODEC_ID_MP2:
@@ -345,8 +345,8 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 			esd->decoderConfig->decoderSpecificInfo->dataLength = dec->extradata_size;
 			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*dec->extradata_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data,
-					dec->extradata,
-					sizeof(char)*dec->extradata_size);
+			       dec->extradata,
+			       sizeof(char)*dec->extradata_size);
 			break;
 		default:
 opaque_audio:
@@ -375,9 +375,9 @@ opaque_audio:
 		esd->slConfig->timestampResolution = ffd->video_tscale.den;
 		switch (dec->codec_id) {
 		case CODEC_ID_MPEG4:
-		/*there is a bug in fragmentation of raw H264 in ffmpeg, the NALU startcode (0x00000001) is split across
-		two frames - we therefore force internal ffmpeg codec ID to avoid NALU size recompute
-		at the decoder level*/
+			/*there is a bug in fragmentation of raw H264 in ffmpeg, the NALU startcode (0x00000001) is split across
+			two frames - we therefore force internal ffmpeg codec ID to avoid NALU size recompute
+			at the decoder level*/
 //		case CODEC_ID_H264:
 			/*if dsi not detected force use ffmpeg*/
 			if (!dec->extradata_size) goto opaque_video;
@@ -386,8 +386,8 @@ opaque_audio:
 			esd->decoderConfig->decoderSpecificInfo->dataLength = dec->extradata_size;
 			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*dec->extradata_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data,
-					dec->extradata,
-					sizeof(char)*dec->extradata_size);
+			       dec->extradata,
+			       sizeof(char)*dec->extradata_size);
 			break;
 		case CODEC_ID_MPEG1VIDEO:
 			esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG1;
@@ -602,13 +602,25 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 	switch (res) {
 #ifndef _WIN32_WCE
-	case 0: e = GF_OK; break;
-	case AVERROR_IO: e = GF_URL_ERROR; goto err_exit;
-	case AVERROR_INVALIDDATA: e = GF_NON_COMPLIANT_BITSTREAM; goto err_exit;
-	case AVERROR_NOMEM: e = GF_OUT_OF_MEM; goto err_exit;
-	case AVERROR_NOFMT: e = GF_NOT_SUPPORTED; goto err_exit;
+	case 0:
+		e = GF_OK;
+		break;
+	case AVERROR_IO:
+		e = GF_URL_ERROR;
+		goto err_exit;
+	case AVERROR_INVALIDDATA:
+		e = GF_NON_COMPLIANT_BITSTREAM;
+		goto err_exit;
+	case AVERROR_NOMEM:
+		e = GF_OUT_OF_MEM;
+		goto err_exit;
+	case AVERROR_NOFMT:
+		e = GF_NOT_SUPPORTED;
+		goto err_exit;
 #endif
-	default: e = GF_SERVICE_ERROR; goto err_exit;
+	default:
+		e = GF_SERVICE_ERROR;
+		goto err_exit;
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG] looking for streams in %s - %d streams - type %s\n", ffd->ctx->filename, ffd->ctx->nb_streams, ffd->ctx->iformat->name));
@@ -688,7 +700,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 err_exit:
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG] Error opening file %s: %s\n", url, gf_error_to_string(e)));
-    if (ffd->ctx) av_close_input_file(ffd->ctx);
+	if (ffd->ctx) av_close_input_file(ffd->ctx);
 	ffd->ctx = NULL;
 	gf_term_on_connect(serv, NULL, e);
 	return GF_OK;
@@ -915,13 +927,13 @@ void *New_FFMPEG_Demux()
 
 	GF_SAFEALLOC(priv, FFDemux);
 
-    GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins...\n") );
-    /* register all codecs, demux and protocols */
-    av_register_all();
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins DONE.\n") );
+	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins...\n") );
+	/* register all codecs, demux and protocols */
+	av_register_all();
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins DONE.\n") );
 
 	ffd->RegisterMimeTypes = FFD_RegisterMimeTypes;
-	ffd->CanHandleURL = FFD_CanHandleURL;	
+	ffd->CanHandleURL = FFD_CanHandleURL;
 	ffd->CloseService = FFD_CloseService;
 	ffd->ConnectChannel = FFD_ConnectChannel;
 	ffd->ConnectService = FFD_ConnectService;

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -264,9 +264,10 @@ static void TraverseTriangleSet2D(GF_Node *node, void *rs, Bool is_destroy)
 
 			stack->mesh = new_mesh();
 			stack->mesh->mesh_type = MESH_TRIANGLES;
-			col.red = col.green = col.blue = 0; col.alpha = FIX_ONE;
+			col.red = col.green = col.blue = 0;
+			col.alpha = FIX_ONE;
 			v1.color = MESH_MAKE_COL(col);
-			v1.normal.x = v1.normal.y = 0; 
+			v1.normal.x = v1.normal.y = 0;
 			v1.normal.z = MESH_NORMAL_UNIT;
 			v1.pos.z = 0;
 			v3 = v2 = v1;
@@ -330,7 +331,8 @@ static void build_polypoint2d(GF_Node *node, Drawable3D *stack, GF_TraverseState
 	X_Polypoint2D *p = (X_Polypoint2D *)node;
 
 	stack->mesh->mesh_type = MESH_POINTSET;
-	col.red = col.green = col.blue = 0; col.alpha = FIX_ONE;
+	col.red = col.green = col.blue = 0;
+	col.alpha = FIX_ONE;
 	for (i=0; i<p->point.count; i++) {
 		mesh_set_point(stack->mesh, p->point.vals[i].x, p->point.vals[i].y, 0, col);
 		mesh_set_index(stack->mesh, stack->mesh->v_count-1);
@@ -420,9 +422,9 @@ static void BuildTriangleSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color, G
 	Bool rgba_col;
 	SFColorRGBA rgba;
 	X_Coordinate *c = (X_Coordinate *) _coords;
-	
+
 	mesh_reset(mesh);
-	
+
 	cols = NULL;
 	rgba_col = 0;
 	if (_color) {
@@ -481,13 +483,22 @@ static void BuildTriangleSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color, G
 		}
 		if (txcoords) {
 			if (txcoords->count>idx) vx.texcoords = txcoords->vals[idx];
-		} 
+		}
 		/*X3D says nothing about default texture mapping here...*/
 		else if (!generate_tx) {
 			switch (i%3) {
-			case 2: vx.texcoords.x = FIX_ONE; vx.texcoords.y = 0; break;
-			case 1: vx.texcoords.x = FIX_ONE/2; vx.texcoords.y = FIX_ONE; break;
-			case 0: vx.texcoords.x = 0; vx.texcoords.y = 0; break;
+			case 2:
+				vx.texcoords.x = FIX_ONE;
+				vx.texcoords.y = 0;
+				break;
+			case 1:
+				vx.texcoords.x = FIX_ONE/2;
+				vx.texcoords.y = FIX_ONE;
+				break;
+			case 0:
+				vx.texcoords.x = 0;
+				vx.texcoords.y = 0;
+				break;
 			}
 		}
 		mesh_set_vertex_vx(mesh, &vx);
@@ -564,9 +575,9 @@ static void BuildTriangleStripSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_col
 	Bool rgba_col;
 	SFColorRGBA rgba;
 	X_Coordinate *c = (X_Coordinate *) _coords;
-	
+
 	mesh_reset(mesh);
-	
+
 	cols = NULL;
 	rgba_col = 0;
 	if (_color) {
@@ -630,13 +641,22 @@ static void BuildTriangleStripSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_col
 			}
 			if (txcoords) {
 				if (txcoords->count>idx) vx.texcoords = txcoords->vals[idx];
-			} 
+			}
 			/*X3D says nothing about default texture mapping here...*/
 			else if (!generate_tx) {
 				switch (idx%3) {
-				case 2: vx.texcoords.x = FIX_ONE; vx.texcoords.y = 0; break;
-				case 1: vx.texcoords.x = FIX_ONE/2; vx.texcoords.y = FIX_ONE; break;
-				case 0: vx.texcoords.x = 0; vx.texcoords.y = 0; break;
+				case 2:
+					vx.texcoords.x = FIX_ONE;
+					vx.texcoords.y = 0;
+					break;
+				case 1:
+					vx.texcoords.x = FIX_ONE/2;
+					vx.texcoords.y = FIX_ONE;
+					break;
+				case 0:
+					vx.texcoords.x = 0;
+					vx.texcoords.y = 0;
+					break;
 				}
 			}
 			if (i>2) {
@@ -690,7 +710,10 @@ static void BuildTriangleStripSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_col
 				SFVec3f n_0, n_1, n_2, n_avg;
 				u32 nb_face;
 				if (stripList->vals[strip] < 3) continue;
-				if (stripList->vals[strip] <= 3) { cur_face ++; continue; }
+				if (stripList->vals[strip] <= 3) {
+					cur_face ++;
+					continue;
+				}
 
 				/*first face normal*/
 				MESH_GET_NORMAL(n_0, mesh->vertices[mesh->indices[3*cur_face]]);
@@ -754,7 +777,8 @@ static void build_indexed_triangle_strip_set(GF_Node *node, Drawable3D *stack, G
 
 	if (!itss->coord) return;
 
-	stripList.count = 0; stripList.vals = NULL;
+	stripList.count = 0;
+	stripList.vals = NULL;
 	nb_strips = 0;
 	for (i=0; i<itss->index.count; i++) {
 		if (itss->index.vals[i]==-1) {
@@ -809,7 +833,7 @@ static void BuildTriangleFanSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color
 	SFColorRGBA rgba;
 	X_Coordinate *c = (X_Coordinate *) _coords;
 	mesh_reset(mesh);
-		
+
 	cols = NULL;
 	rgba_col = 0;
 	if (_color) {
@@ -873,13 +897,22 @@ static void BuildTriangleFanSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color
 			}
 			if (txcoords) {
 				if (txcoords->count>idx) vx.texcoords = txcoords->vals[idx];
-			} 
+			}
 			/*X3D says nothing about default texture mapping here...*/
 			else if (!generate_tx) {
 				switch (idx%3) {
-				case 2: vx.texcoords.x = FIX_ONE; vx.texcoords.y = 0; break;
-				case 1: vx.texcoords.x = FIX_ONE/2; vx.texcoords.y = FIX_ONE; break;
-				case 0: vx.texcoords.x = 0; vx.texcoords.y = 0; break;
+				case 2:
+					vx.texcoords.x = FIX_ONE;
+					vx.texcoords.y = 0;
+					break;
+				case 1:
+					vx.texcoords.x = FIX_ONE/2;
+					vx.texcoords.y = FIX_ONE;
+					break;
+				case 0:
+					vx.texcoords.x = 0;
+					vx.texcoords.y = 0;
+					break;
 				}
 			}
 			mesh_set_vertex_vx(mesh, &vx);
@@ -888,7 +921,7 @@ static void BuildTriangleFanSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color
 			if (indices) {
 				if (cur_idx>=indices->count) break;
 			} else if (cur_idx==c->point.count) break;
-			
+
 			if (i>1) {
 				mesh_set_vertex_vx(mesh, &mesh->vertices[start_idx]);
 				mesh_set_vertex_vx(mesh, &vx);
@@ -913,8 +946,11 @@ static void BuildTriangleFanSet(GF_Mesh *mesh, GF_Node *_coords, GF_Node *_color
 				SFVec3f n_0, n_1, n_avg, n_tot;
 				u32 nb_face, start_face;
 				if (fanList->vals[fan] < 3) continue;
-				if (fanList->vals[fan] == 3) { cur_face++; continue; }
-	
+				if (fanList->vals[fan] == 3) {
+					cur_face++;
+					continue;
+				}
+
 				start_face = cur_face;
 
 				/*first face normal*/
@@ -970,7 +1006,8 @@ static void build_indexed_triangle_fan_set(GF_Node *node, Drawable3D *stack, GF_
 	gf_node_dirty_clear(node, 0);
 	if (!itfs->coord) return;
 
-	fanList.count = 0; fanList.vals = NULL;
+	fanList.count = 0;
+	fanList.vals = NULL;
 	nb_fans = 0;
 	for (i=0; i<itfs->index.count; i++) {
 		if (itfs->index.vals[i]==-1) {

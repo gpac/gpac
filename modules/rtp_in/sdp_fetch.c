@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include "rtp_in.h"
@@ -67,10 +67,10 @@ void RP_SDPFromFile(RTPClient *rtp, char *file_name, RTPStream *stream)
 	sdp_size = (u32) gf_f64_tell(_sdp);
 	gf_f64_seek(_sdp, 0, SEEK_SET);
 	sdp_buf = (char*)gf_malloc(sdp_size);
-	if (1 > fread(sdp_buf, 1, sdp_size, _sdp)){
-	  gf_term_on_connect(rtp->service, NULL, GF_URL_ERROR);
+	if (1 > fread(sdp_buf, 1, sdp_size, _sdp)) {
+		gf_term_on_connect(rtp->service, NULL, GF_URL_ERROR);
 	} else {
-	  RP_LoadSDP(rtp, sdp_buf, sdp_size, stream);
+		RP_LoadSDP(rtp, sdp_buf, sdp_size, stream);
 	}
 	fclose(_sdp);
 	gf_free(sdp_buf);
@@ -103,7 +103,7 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		if (sdp->original_url) {
 			u32 sdp_size;
 			e = gf_dm_sess_get_stats(rtp->dnload, NULL, NULL, &sdp_size, NULL, NULL, NULL);
-			if (sdp_size) { 
+			if (sdp_size) {
 				const char *szFile = gf_dm_sess_get_cache_name(rtp->dnload);
 				if (!szFile) {
 					e = GF_SERVICE_ERROR;
@@ -131,7 +131,7 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		gf_term_on_message(rtp->service, e, "Error fetching session state - restarting");
 		RP_ConnectServiceEx(gf_term_get_service_interface(rtp->service), rtp->service, url, 1);
 		gf_free(url);
-		return;	 
+		return;
 	}
 
 	/*error*/
@@ -159,7 +159,7 @@ void RP_FetchSDP(RTPClient *rtp, char *url, RTPStream *stream, char *original_ur
 		RP_SDPFromFile(rtp, url, stream);
 		return;
 	}
-	
+
 	sdp = (SDPFetch*)gf_malloc(sizeof(SDPFetch));
 	memset(sdp, 0, sizeof(SDPFetch));
 	sdp->client = rtp;

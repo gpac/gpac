@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -429,7 +429,7 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 #define GPAC_STATIC_MODULES
 #endif
 
-	
+
 /*safety checks on macros*/
 
 #ifdef GPAC_DISABLE_ZLIB

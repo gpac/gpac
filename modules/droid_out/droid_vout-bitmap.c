@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -59,14 +59,14 @@ GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init
 	RAWCTX;
 	void * pixels;
 	int ret;
-	
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout RAW_Setup\n"));
-	
+
 	if (!rc->width)
 	{
 		rc->env = (JNIEnv *)os_handle;
 		rc->bitmap = (jobject *)os_display;
-		
+
 		AndroidBitmap_getInfo(rc->env, *(rc->bitmap), &info);
 		rc->width = info.width;
 		rc->height = info.height;
@@ -77,9 +77,9 @@ GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init
 		rc->env = (JNIEnv *)os_handle;
 		rc->bitmap = (jobject *)os_display;
 	}
-	
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout rc dims: %d:%d\n", rc->height, rc->width));
-	
+
 	return GF_OK;
 }
 
@@ -103,7 +103,7 @@ static GF_Err RAW_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool d
 	RAWCTX;
 	int ret;
 	void * pixels;
-	
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout RAW_LockBackBuffer: %d\n", do_lock));
 	if (do_lock) {
 		if (!vi) return GF_BAD_PARAM;
@@ -168,9 +168,9 @@ GF_VideoOutput *NewRawVideoOutput()
 	driv->Setup = RAW_Setup;
 	driv->Shutdown = RAW_Shutdown;
 	driv->ProcessEvent = RAW_ProcessEvent;
-	
+
 	driv->hw_caps = GF_VIDEO_HW_OPENGL;
-	
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout init\n"));
 	return (void *)driv;
 }
@@ -184,19 +184,19 @@ void DeleteVideoOutput(void *ifce)
 	rc = (AndroidContext *)driv->opaque;
 	gf_free(rc);
 	gf_free(driv);
-	
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout deinit\n"));
 }
 
 /*interface query*/
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_VIDEO_OUTPUT_INTERFACE,
 		0
 	};
-	return si; 
+	return si;
 }
 /*interface create*/
 GPAC_MODULE_EXPORT

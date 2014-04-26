@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 1998,1999,2000,2001 Nikos Mavroyanopoulos
- * 
- * This library is free software; you can redistribute it and/or modify it 
- * under the terms of the GNU Library General Public License as published 
- * by the Free Software Foundation; either version 2 of the License, or 
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Library General Public License as published
+ * by the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
@@ -32,47 +32,47 @@ typedef struct cbc_buf {
 
 static GF_Err _init_mcrypt( void* _buf,void *key, int lenofkey, void *IV, int size)
 {
-    CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
-/* For cbc */
+	CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
+	/* For cbc */
 	buf->previous_ciphertext =
-	buf->previous_cipher = NULL;
+	    buf->previous_cipher = NULL;
 
 	buf->blocksize = size;
-		
+
 	buf->previous_ciphertext = gf_malloc( size);
 	buf->previous_cipher = gf_malloc( size);
-	
+
 	if (buf->previous_ciphertext==NULL ||
-		buf->previous_cipher==NULL) goto freeall;
-	
+	        buf->previous_cipher==NULL) goto freeall;
+
 	if (IV!=NULL) {
 		memcpy(buf->previous_ciphertext, IV, size);
 	} else {
-	        memset(buf->previous_ciphertext, 0, size);
+		memset(buf->previous_ciphertext, 0, size);
 	}
 
 	return GF_OK;
 
-	freeall:
-		if (buf->previous_ciphertext) gf_free(buf->previous_ciphertext);
-		if (buf->previous_cipher) gf_free(buf->previous_cipher);
-		return GF_OUT_OF_MEM;
+freeall:
+	if (buf->previous_ciphertext) gf_free(buf->previous_ciphertext);
+	if (buf->previous_cipher) gf_free(buf->previous_cipher);
+	return GF_OUT_OF_MEM;
 }
 
 static GF_Err _mcrypt_set_state( void* _buf, void *IV, int size)
 {
-/* For cbc */
-    CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
+	/* For cbc */
+	CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
 
 	memcpy(buf->previous_ciphertext, IV, size);
 	memcpy(buf->previous_cipher, IV, size);
- 
+
 	return GF_OK;
 }
 
 static GF_Err _mcrypt_get_state( void* _buf, void *IV, int *size)
 {
-    CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
+	CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
 	if (*size < buf->blocksize) {
 		*size = buf->blocksize;
 		return GF_BAD_PARAM;
@@ -86,21 +86,21 @@ static GF_Err _mcrypt_get_state( void* _buf, void *IV, int *size)
 
 
 static void _end_mcrypt( void* _buf) {
-    CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
+	CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
 	gf_free(buf->previous_ciphertext);
 	gf_free(buf->previous_cipher);
 }
 
 static GF_Err _mcrypt( void* _buf, void *plaintext, int len, int blocksize, void* akey, void (*func)(void*,void*), void (*func2)(void*,void*))
 {
-    CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
+	CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
 	u32 *fplain = plaintext;
 	u32 *plain;
-	int dblock, dlen, i, j; 
+	int dblock, dlen, i, j;
 	void (*_mcrypt_block_encrypt) (void *, void *);
 
 	_mcrypt_block_encrypt = func;
-	
+
 	dblock = blocksize / sizeof(u32);
 	dlen = len / blocksize;
 	for (j = 0; j < dlen ; j++) {
@@ -124,10 +124,10 @@ static GF_Err _mcrypt( void* _buf, void *plaintext, int len, int blocksize, void
 
 static GF_Err _mdecrypt( void* _buf, void *ciphertext, int len, int blocksize,void* akey, void (*func)(void*,void*), void (*func2)(void*,void*))
 {
-    CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
+	CBC_BUFFER* buf = (CBC_BUFFER* )_buf;
 	u32 *cipher;
 	u32 *fcipher = ciphertext;
-	int i, j, dlen, dblock; 
+	int i, j, dlen, dblock;
 	void (*_mcrypt_block_decrypt) (void *, void *);
 
 	_mcrypt_block_decrypt = func2;

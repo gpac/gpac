@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -454,7 +454,7 @@ Bool gf_log_tool_level_on(u32 log_tool, u32 log_level);
  *	\brief Set log tools and levels
  *
  *	Set log tools and levels according to the log_tools_levels string. All previous log settings are discarded.
- *	\param log_tools_levels string specifying the tools and levels. It is formatted as logToolX\@logLevelX:logToolZ\@logLevelZ:... 
+ *	\param log_tools_levels string specifying the tools and levels. It is formatted as logToolX\@logLevelX:logToolZ\@logLevelZ:...
  *	\return GF_OK or GF_BAD_PARAM
 */
 GF_Err gf_log_set_tools_levels(const char *log_tools_levels);
@@ -463,7 +463,7 @@ GF_Err gf_log_set_tools_levels(const char *log_tools_levels);
  *	\brief Modify log tools and levels
  *
  *	Modify log tools and levels according to the log_tools_levels string. Previous log settings are kept.
- *	\param val string specifying the tools and levels. It is formatted as logToolX\@logLevelX:logToolZ\@logLevelZ:... 
+ *	\param val string specifying the tools and levels. It is formatted as logToolX\@logLevelX:logToolZ\@logLevelZ:...
  *	\return GF_OK or GF_BAD_PARAM
 */
 GF_Err gf_log_modify_tools_levels(const char *val);
@@ -732,7 +732,7 @@ u32 gf_crc_32(const char *data, u32 size);
 #endif
 
 /*!
- *\brief gets UTC time in milliseconds 
+ *\brief gets UTC time in milliseconds
  *
  * Gets UTC clock in milliseconds
  * \return UTC time in milliseconds
@@ -740,10 +740,10 @@ u32 gf_crc_32(const char *data, u32 size);
 u64 gf_net_get_utc();
 
 /*!
- *\brief parses date and returns UTC value for this date. Date format is an XSD dateTime format or any of the supported formats from HTTP 1.1: 
-	Sun, 06 Nov 1994 08:49:37 GMT  ; RFC 822, updated by RFC 1123  
+ *\brief parses date and returns UTC value for this date. Date format is an XSD dateTime format or any of the supported formats from HTTP 1.1:
+	Sun, 06 Nov 1994 08:49:37 GMT  ; RFC 822, updated by RFC 1123
 	Sunday, 06-Nov-94 08:49:37 GMT ; RFC 850, obsoleted by RFC 1036
-	Sun Nov  6 08:49:37 1994       ; ANSI C's asctime() formatgets UTC time in milliseconds 
+	Sun Nov  6 08:49:37 1994       ; ANSI C's asctime() formatgets UTC time in milliseconds
  *
  * \param date string containing the date to parse
  * \return UTC time in milliseconds
@@ -751,7 +751,7 @@ u64 gf_net_get_utc();
 u64 gf_net_parse_date(const char *date);
 
 /*!
- *\brief gets timezone adjustment in seconds 
+ *\brief gets timezone adjustment in seconds
  *
  * Gets timezone adjustment in seconds, with localtime - timezone = UTC time
  * \return timezone shift in seconds
@@ -759,9 +759,9 @@ u64 gf_net_parse_date(const char *date);
 s32 gf_net_get_timezone();
 
 /*!
- *\brief parses 128 bit from string 
+ *\brief parses 128 bit from string
  *
- * Parses 128 bit from string 
+ * Parses 128 bit from string
  *
  * \param string the string containing the value in hexa. Non alphanum characters are skipped
  * \param value the value parsed
@@ -879,7 +879,7 @@ char * gf_get_default_cache_directory();
 GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *out_size);
 
 /**
- * Decompresses a data buffer using zlib. 
+ * Decompresses a data buffer using zlib.
  * \param data data buffer to be decompressed
  * \param data_len length of the data buffer to be decompressed
  * \param uncompressed_data pointer to the uncompressed data buffer. It is the responsibility of the caller to free this buffer.

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -130,7 +130,7 @@ typedef struct _nodepriv
 
 	/*list of all parent nodes (needed to invalidate parent tree)*/
 	GF_ParentList *parents;
-	
+
 	/*holder for all interactive stuff - THIS IS DYNAMICALLY CREATED*/
 	struct _node_interactive_ext *interact;
 } NodePriv;
@@ -154,7 +154,7 @@ typedef struct
 	u32 xmlns_id;
 } GF_XMLNS;
 
-struct __tag_scene_graph 
+struct __tag_scene_graph
 {
 	/*used to discriminate between node and scenegraph*/
 	u64 __reserved_null;
@@ -215,7 +215,7 @@ struct __tag_scene_graph
 	/*all routes available*/
 	GF_List *Routes;
 
-	/*when a proto is instanciated it creates its own scene graph. BIFS/VRML specify that the namespace is the same 
+	/*when a proto is instanciated it creates its own scene graph. BIFS/VRML specify that the namespace is the same
 	(eg cannot reuse a NodeID or route name/ID), but this could be done differently by some other stds
 	if NULL this is the main scenegraph*/
 	struct _proto_instance *pOwningProto;
@@ -226,7 +226,7 @@ struct __tag_scene_graph
 	GF_List *unregistered_protos;
 
 	/*routes to be activated (cascade model). This is used at the top-level graph only (eg
-	proto routes use that too, ecept ISed fields). It is the app responsability to 
+	proto routes use that too, ecept ISed fields). It is the app responsability to
 	correctly connect or browse scene graphs connected through Inline*/
 	GF_List *routes_to_activate;
 
@@ -284,10 +284,10 @@ struct __tag_scene_graph
 	/*
 			Note about reference counter
 
-	  A DOM document (<=> scenegraph) may be created through javascript, and the JS object having created the 
+	  A DOM document (<=> scenegraph) may be created through javascript, and the JS object having created the
 	  document may be destroyed while the document is still in use. Moreover with XMLHttpRequest, the
 	  "associated" doc is re-created at each request, but the script may still refer to the original document.
-	  Since the document doesn't have a fixed owner, a reference counter is use and the scenegraph is kept alive 
+	  Since the document doesn't have a fixed owner, a reference counter is use and the scenegraph is kept alive
 	  until the last object using it is destroyed.
 
 	If this counter is set to 0 when creating DOM Elements/..., this means the scenegraph is hold by an external
@@ -436,7 +436,7 @@ struct _protofield
 
 	/*default field value*/
 	void *def_value;
-	
+
 	GF_Node *def_sfnode_value;
 	GF_ChildNodeItem *def_mfnode_value;
 
@@ -463,7 +463,7 @@ GF_Err gf_bifs_proto_field_set_aq_info(GF_ProtoFieldInterface *field, u32 QP_Typ
 
 /*proto field instance. since it is useless to duplicate all coding info, names and the like
 we seperate proto declaration and proto instanciation*/
-typedef struct 
+typedef struct
 {
 	u8 EventType;
 	u8 FieldType;
@@ -549,7 +549,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node);
 u32 gf_sg_proto_get_root_tag(GF_Proto *proto);
 
 
-/*to call when a proto field has been modified (at creation or through commands, modifications through events 
+/*to call when a proto field has been modified (at creation or through commands, modifications through events
 are handled internally).
 node can be the proto instance or a node from the proto code
 this will call NodeChanged if needed, forward to proto/node or trigger any route if needed*/
@@ -590,7 +590,7 @@ typedef struct __xlink_attrip_ptrs {
 	XMLRI *href;
 	SVG_ContentType *type;
 	SVG_String *title;
-	XMLRI *arcrole; 
+	XMLRI *arcrole;
 	XMLRI *role;
 	SVG_String *show;
 	SVG_String *actuate;
@@ -617,7 +617,7 @@ typedef struct __smil_sync_attrip_ptrs {
 } SMILSyncAttributesPointers;
 
 typedef struct __smil_anim_attrip_ptrs {
-	SMIL_AttributeName *attributeName; 
+	SMIL_AttributeName *attributeName;
 	SMIL_AttributeType *attributeType;
 	SMIL_AnimateValue *to, *by, *from;
 	SMIL_AnimateValues *values;
@@ -663,7 +663,7 @@ Bool gf_svg_resolve_smil_times(GF_Node *anim, void *event_base_element, GF_List 
 
 
 /* SMIL Timing structures */
-/* status of an SMIL timed element */ 
+/* status of an SMIL timed element */
 enum {
 	SMIL_STATUS_WAITING_TO_BEGIN = 0,
 	SMIL_STATUS_ACTIVE,
@@ -680,11 +680,11 @@ typedef struct {
 	Bool min_active;
 
 	/* negative values mean indefinite */
-	Double begin, 
-		   end,
-		   simple_duration, 
-		   active_duration,
-		   repeat_duration;
+	Double begin,
+	       end,
+	       simple_duration,
+	       active_duration,
+	       repeat_duration;
 
 } SMIL_Interval;
 
@@ -745,15 +745,15 @@ s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
 /* This structure is used per animated attribute,
    it contains:
     - all the animations applying to the same attribute,
-    - the specified value before any inheritance has been applied nor any animation started 
+    - the specified value before any inheritance has been applied nor any animation started
 	    (as specified in the SVG document),
     - the presentation value passed from one animation to the next one, at the same level in the tree
 	- a boolean indicating if the animated attribute is in fact a property
-   
+
    and if the attribute is a property:
 	- a pointer to presentation value passed from the previous level in the tree
 	- a pointer to the value of the color property (for handling of 'currentColor'), from previous level in the tree
-	- the location of the attribute in the elt structure when it was created 
+	- the location of the attribute in the elt structure when it was created
 	  (used for fast comparison of SVG properties when animating from/to/by/values/... inherited values)
 */
 typedef struct {
@@ -771,8 +771,8 @@ typedef struct {
 	Bool dirty_parents;
 } SMIL_AttributeAnimations;
 
-/* This structure is per animation element, 
-   it holds the result of the animation and 
+/* This structure is per animation element,
+   it holds the result of the animation and
    some info to make animation computation faster */
 typedef struct _smil_anim_rti {
 	SMIL_AttributeAnimations *owner;
@@ -794,16 +794,16 @@ typedef struct _smil_anim_rti {
 
 	/* last value of the animation, used in accumulation phase */
 	/* normally the far pointer in the last specified value is a pointer to a real attribute value,
-	   and there's no need to allocate a new value. Except if the last specified value is the last 
+	   and there's no need to allocate a new value. Except if the last specified value is the last
 	   point in a path (animateMotion) in which case we allocate a matrix as last spec value,
 	   which we need to delete (see animate-elem-202-t.svg). This is signaled if rai->path is not NULL*/
 	GF_FieldInfo last_specified_value;
 
-	/* temporary value needed when the type of 
+	/* temporary value needed when the type of
 	   the key values is different from the target attribute type */
 	GF_FieldInfo tmp_value;
 
-	/* the number of values in animations should be constant (unless updated with LASeR commands) 
+	/* the number of values in animations should be constant (unless updated with LASeR commands)
 	   we can store them to avoid computing them at each cycle */
 	u32 values_count;
 	u32 key_times_count;
@@ -811,8 +811,8 @@ typedef struct _smil_anim_rti {
 	u32 key_splines_count;
 
 
-	/* In change detection mode, we test previous animation parameters to determine 
-	   if a new evaluation of the animation will produce a different result. 
+	/* In change detection mode, we test previous animation parameters to determine
+	   if a new evaluation of the animation will produce a different result.
 	   The result of these test is stored in interpolated_value_changed */
 	Bool	change_detection_mode;
 	Bool	interpolated_value_changed;
@@ -854,7 +854,7 @@ void gf_smil_timing_resume(GF_Node *node);
 		Script node
 */
 
-typedef struct 
+typedef struct
 {
 	//extra script fields
 	GF_List *fields;
@@ -942,7 +942,7 @@ void gf_sg_js_call_gc(struct JSContext *c);
 #endif /* GPAC_HAS_SPIDERMONKEY */
 
 
-typedef struct 
+typedef struct
 {
 	GF_FieldInfo field;
 	GF_Node *owner;
@@ -957,7 +957,7 @@ typedef struct
 	GF_ChildNodeItem *temp_list;
 	/*when not owned by a node*/
 	void *field_ptr;
-	
+
 	/*cpontext in which the field was created*/
 	struct JSContext *js_ctx;
 	Bool is_rooted;
@@ -973,7 +973,7 @@ struct _node_js_binding
 
 #ifndef GPAC_DISABLE_SVG
 
-typedef struct __tag_svg_script_ctx 
+typedef struct __tag_svg_script_ctx
 {
 	Bool (*script_execute)(struct __tag_scene_graph *sg, char *utf8_script, GF_DOM_Event *event);
 	Bool (*handler_execute)(GF_Node *n, GF_DOM_Event *event, GF_Node *observer, char *utf8_script);
@@ -989,7 +989,7 @@ typedef struct __tag_svg_script_ctx
 	Bool force_gc;
 } GF_SVGJS;
 
-typedef struct __tag_html_media_script_ctx 
+typedef struct __tag_html_media_script_ctx
 {
 	/*global script context for the scene*/
 	struct JSContext *js_ctx;
@@ -1047,13 +1047,13 @@ enum
 	GF_DOM_EXC_VALIDATION_ERR = 16,
 	GF_DOM_EXC_TYPE_MISMATCH_ERR = 17,
 	GF_DOM_EXC_SECURITY_ERR = 18,
-    GF_DOM_EXC_NETWORK_ERR = 19,
-    GF_DOM_EXC_ABORT_ERR = 20,
-    GF_DOM_EXC_URL_MISMATCH_ERR = 21,
-    GF_DOM_EXC_QUOTA_EXCEEDED_ERR = 22,
-    GF_DOM_EXC_TIMEOUT_ERR = 23,
-    GF_DOM_EXC_INVALID_NODE_TYPE_ERR = 24,
-    GF_DOM_EXC_DATA_CLONE_ERR = 25,
+	GF_DOM_EXC_NETWORK_ERR = 19,
+	GF_DOM_EXC_ABORT_ERR = 20,
+	GF_DOM_EXC_URL_MISMATCH_ERR = 21,
+	GF_DOM_EXC_QUOTA_EXCEEDED_ERR = 22,
+	GF_DOM_EXC_TIMEOUT_ERR = 23,
+	GF_DOM_EXC_INVALID_NODE_TYPE_ERR = 24,
+	GF_DOM_EXC_DATA_CLONE_ERR = 25,
 
 };
 
@@ -1079,7 +1079,7 @@ SVGAttribute *gf_node_create_attribute_from_datatype(u32 data_type, u32 attribut
 GF_Err gf_node_get_attribute_by_name(GF_Node *node, char *name, u32 xmlns_code, Bool create_if_not_found, Bool set_default, GF_FieldInfo *field);
 void *gf_svg_get_property_pointer_from_tag(SVGPropertiesPointers *output_property_context, u32 prop_tag);
 void *gf_svg_get_property_pointer(SVG_Element *elt, void *input_attribute,
-								   SVGPropertiesPointers *output_property_context);
+                                  SVGPropertiesPointers *output_property_context);
 
 Bool gf_svg_is_property(GF_Node *node, GF_FieldInfo *target_attribute);
 
@@ -1093,7 +1093,7 @@ GF_Err gf_node_activate(GF_Node *node);
 through DOM*/
 GF_Err gf_node_deactivate(GF_Node *node);
 
-/*post a listener to be added - this is only used by LASeR:activate and DOM.addEventListener. This 
+/*post a listener to be added - this is only used by LASeR:activate and DOM.addEventListener. This
 is to ensure that when a node is processing an event creating a new listener on this node, this listener
 will not be triggered*/
 void gf_sg_listener_post_add(GF_Node *obs, GF_Node *listener);

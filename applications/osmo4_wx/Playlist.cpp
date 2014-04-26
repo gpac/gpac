@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,17 +11,17 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *		
+ *
  */
 
 #include "wxOsmo4.h"
@@ -36,7 +36,10 @@ PLEntry::PLEntry(wxString url)
 	Bool is_remote = 0;;
 	wxCharBuffer the_url = (const char *) url.mb_str(wxConvUTF8);
 	const char *_url = strstr(the_url, "://");
-	if (_url) {_url += 3; is_remote = 1; }
+	if (_url) {
+		_url += 3;
+		is_remote = 1;
+	}
 	else _url = (const char *) the_url;
 
 	char *str = (char*)strrchr(_url, '\\');
@@ -66,8 +69,8 @@ PLEntry::~PLEntry()
 }
 
 wxPlaylist::wxPlaylist(wxWindow *parent)
-             : wxFrame(parent, -1, wxString(_T("Osmo4 Playlist")), wxDefaultPosition, wxDefaultSize, 
-			 wxCLOSE_BOX | wxSYSTEM_MENU | wxCAPTION | wxRESIZE_BORDER)
+	: wxFrame(parent, -1, wxString(_T("Osmo4 Playlist")), wxDefaultPosition, wxDefaultSize,
+	          wxCLOSE_BOX | wxSYSTEM_MENU | wxCAPTION | wxRESIZE_BORDER)
 {
 
 	m_pApp = (wxOsmo4Frame *)parent;
@@ -153,25 +156,25 @@ wxPlaylist::~wxPlaylist()
 BEGIN_EVENT_TABLE(wxPlaylist, wxWindow)
 	EVT_CLOSE(wxPlaylist::OnClose)
 	EVT_SIZE(wxPlaylist::OnSize)
-	EVT_TOOL(ID_PL_ADD_FILE, wxPlaylist::OnAddFile) 
-	EVT_TOOL(ID_PL_ADD_URL, wxPlaylist::OnAddURL) 
-	EVT_TOOL(ID_PL_ADD_DIR, wxPlaylist::OnAddDir) 
-	EVT_TOOL(ID_PL_ADD_DIR_REC, wxPlaylist::OnAddDirRec) 
-	EVT_TOOL(ID_PL_REM_FILE, wxPlaylist::OnRemFile) 
-	EVT_TOOL(ID_PL_REM_ALL, wxPlaylist::OnRemAll) 
-	EVT_TOOL(ID_PL_REM_DEAD, wxPlaylist::OnRemDead) 
-	EVT_TOOL(ID_PL_UP, wxPlaylist::OnSelUp) 
-	EVT_TOOL(ID_PL_DOWN, wxPlaylist::OnSelDown) 
-	EVT_TOOL(ID_PL_SAVE, wxPlaylist::OnSave) 
-	EVT_TOOL(ID_PL_OPEN, wxPlaylist::OnOpen) 
-	EVT_MENU(ID_PL_PLAY, wxPlaylist::OnPlay) 
-	EVT_MENU(ID_PL_RANDOMIZE, wxPlaylist::OnRandomize) 
-	EVT_MENU(ID_PL_REVERSE, wxPlaylist::OnReverseList) 
-	EVT_MENU(ID_PL_SEL_REV, wxPlaylist::OnReverseSelection) 
-	EVT_MENU(ID_PL_SORT_TITLE, wxPlaylist::OnSortTitle) 
-	EVT_MENU(ID_PL_SORT_FILE, wxPlaylist::OnSortFile) 
-	EVT_MENU(ID_PL_SORT_DUR, wxPlaylist::OnSortDuration) 
-	EVT_LIST_ITEM_ACTIVATED(ID_FILE_LIST, wxPlaylist::OnItemActivate) 
+	EVT_TOOL(ID_PL_ADD_FILE, wxPlaylist::OnAddFile)
+	EVT_TOOL(ID_PL_ADD_URL, wxPlaylist::OnAddURL)
+	EVT_TOOL(ID_PL_ADD_DIR, wxPlaylist::OnAddDir)
+	EVT_TOOL(ID_PL_ADD_DIR_REC, wxPlaylist::OnAddDirRec)
+	EVT_TOOL(ID_PL_REM_FILE, wxPlaylist::OnRemFile)
+	EVT_TOOL(ID_PL_REM_ALL, wxPlaylist::OnRemAll)
+	EVT_TOOL(ID_PL_REM_DEAD, wxPlaylist::OnRemDead)
+	EVT_TOOL(ID_PL_UP, wxPlaylist::OnSelUp)
+	EVT_TOOL(ID_PL_DOWN, wxPlaylist::OnSelDown)
+	EVT_TOOL(ID_PL_SAVE, wxPlaylist::OnSave)
+	EVT_TOOL(ID_PL_OPEN, wxPlaylist::OnOpen)
+	EVT_MENU(ID_PL_PLAY, wxPlaylist::OnPlay)
+	EVT_MENU(ID_PL_RANDOMIZE, wxPlaylist::OnRandomize)
+	EVT_MENU(ID_PL_REVERSE, wxPlaylist::OnReverseList)
+	EVT_MENU(ID_PL_SEL_REV, wxPlaylist::OnReverseSelection)
+	EVT_MENU(ID_PL_SORT_TITLE, wxPlaylist::OnSortTitle)
+	EVT_MENU(ID_PL_SORT_FILE, wxPlaylist::OnSortFile)
+	EVT_MENU(ID_PL_SORT_DUR, wxPlaylist::OnSortDuration)
+	EVT_LIST_ITEM_ACTIVATED(ID_FILE_LIST, wxPlaylist::OnItemActivate)
 	EVT_LIST_ITEM_RIGHT_CLICK(ID_FILE_LIST, wxPlaylist::OnRightClick)
 END_EVENT_TABLE()
 
@@ -233,7 +236,7 @@ void wxPlaylist::UpdateEntry(u32 idx)
 	else if (ple->m_bIsPlaying) str = wxT(">> ") + wxString(ple->m_disp_name, wxConvUTF8) + wxT(" >>");
 	else str = wxString(ple->m_disp_name, wxConvUTF8);
 	m_FileList->SetItem(idx, 1, str);
-	
+
 	if (ple->m_duration) {
 		u32 h = (u32) (ple->m_duration / 3600);
 		u32 m = (u32) (ple->m_duration / 60) - h*60;
@@ -273,7 +276,7 @@ void wxPlaylist::RefreshList()
 			}
 		}
 	}
-	
+
 	if (m_cur_entry >= (s32) gf_list_count(m_entries)-1) m_cur_entry = gf_list_count(m_entries)-1;
 	else {
 		s32 last_idx = top_idx + m_FileList->GetCountPerPage();
@@ -291,7 +294,7 @@ void wxPlaylist::RefreshList()
 	Save(szPath, 1);
 }
 
-void wxPlaylist::OnAddFile(wxCommandEvent &WXUNUSED(event)) 
+void wxPlaylist::OnAddFile(wxCommandEvent &WXUNUSED(event))
 {
 	wxFileDialog dlg(this, wxT("Select file(s)"), wxT(""), wxT(""), m_pApp->GetFileFilter(), wxOPEN | wxCHANGE_DIR | /*wxHIDE_READONLY |*/ wxMULTIPLE);
 
@@ -327,7 +330,7 @@ static Bool pl_enum_dir_dirs(void *cbck, char *item_name, char *item_path)
 }
 
 
-void wxPlaylist::AddDir(Bool do_recurse) 
+void wxPlaylist::AddDir(Bool do_recurse)
 {
 	wxDirDialog dlg(this);
 	dlg.SetPath(wxString(szCacheDir, wxConvUTF8) );
@@ -339,16 +342,16 @@ void wxPlaylist::AddDir(Bool do_recurse)
 	m_all_dead_entries = -1;
 	RefreshList();
 }
-void wxPlaylist::OnAddDir(wxCommandEvent &WXUNUSED(event)) 
+void wxPlaylist::OnAddDir(wxCommandEvent &WXUNUSED(event))
 {
 	AddDir(0);
 }
-void wxPlaylist::OnAddDirRec(wxCommandEvent &WXUNUSED(event)) 
+void wxPlaylist::OnAddDirRec(wxCommandEvent &WXUNUSED(event))
 {
 	AddDir(1);
 }
 
-void wxPlaylist::OnAddURL(wxCommandEvent &WXUNUSED(event)) 
+void wxPlaylist::OnAddURL(wxCommandEvent &WXUNUSED(event))
 {
 	OpenURLDlg dlg(this, m_pApp->m_user.config);
 	if (dlg.ShowModal() != wxID_OK) return;
@@ -358,22 +361,22 @@ void wxPlaylist::OnAddURL(wxCommandEvent &WXUNUSED(event))
 	RefreshList();
 }
 
-void wxPlaylist::OnRemFile(wxCommandEvent &WXUNUSED(event)) 
+void wxPlaylist::OnRemFile(wxCommandEvent &WXUNUSED(event))
 {
 	if (!m_FileList->GetSelectedItemCount()) return;
 
 	long item = -1;
 	for (;;) {
-        item = m_FileList->GetNextItem(item, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+		item = m_FileList->GetNextItem(item, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 		if (item == -1) break;
 		PLEntry *ple = (PLEntry *) m_FileList->GetItemData(item);
 		gf_list_del_item(m_entries, ple);
 		delete ple;
-    }
+	}
 	RefreshList();
 }
 
-void wxPlaylist::OnRemAll(wxCommandEvent &WXUNUSED(event)) 
+void wxPlaylist::OnRemAll(wxCommandEvent &WXUNUSED(event))
 {
 	Clear();
 	RefreshList();
@@ -381,7 +384,7 @@ void wxPlaylist::OnRemAll(wxCommandEvent &WXUNUSED(event))
 	m_all_dead_entries = 1;
 }
 
-void wxPlaylist::OnRemDead(wxCommandEvent &WXUNUSED(event)) 
+void wxPlaylist::OnRemDead(wxCommandEvent &WXUNUSED(event))
 {
 	for (u32 i=0; i<gf_list_count(m_entries); i++) {
 		PLEntry *ple = (PLEntry *) gf_list_get(m_entries, i);
@@ -395,28 +398,28 @@ void wxPlaylist::OnRemDead(wxCommandEvent &WXUNUSED(event))
 }
 
 
-void wxPlaylist::OnSelUp(wxCommandEvent &WXUNUSED(event)) 
+void wxPlaylist::OnSelUp(wxCommandEvent &WXUNUSED(event))
 {
 	s32 i;
 	if (!m_FileList->GetSelectedItemCount()) return;
 	long item = -1;
 	item = m_FileList->GetNextItem(item, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 	if (item <= 0) return;
-	
+
 	item = -1;
 	for (;;) {
-        item = m_FileList->GetNextItem(item, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+		item = m_FileList->GetNextItem(item, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 		if (item == -1) break;
 		PLEntry *ple = (PLEntry *) m_FileList->GetItemData(item);
 		i = gf_list_del_item(m_entries, ple);
 		assert(i>=1);
 		gf_list_insert(m_entries, ple, i-1);
 		ple->m_bIsSelected = 1;
-    }
+	}
 	RefreshList();
 }
 
-void wxPlaylist::OnSelDown(wxCommandEvent &WXUNUSED(event)) 
+void wxPlaylist::OnSelDown(wxCommandEvent &WXUNUSED(event))
 {
 	s32 i;
 
@@ -427,23 +430,23 @@ void wxPlaylist::OnSelDown(wxCommandEvent &WXUNUSED(event))
 		if (item == -1) break;
 	}
 	if ((u32) item + 1 == gf_list_count(m_entries)) return;
-	
+
 	item = -1;
 	for (;;) {
-        item = m_FileList->GetNextItem(item, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+		item = m_FileList->GetNextItem(item, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 		if (item == -1) break;
 		PLEntry *ple = (PLEntry *) m_FileList->GetItemData(item);
 		i = gf_list_del_item(m_entries, ple);
 		assert(i>=1);
 		gf_list_insert(m_entries, ple, i+1);
 		ple->m_bIsSelected = 1;
-    }
+	}
 	RefreshList();
 }
 
 
 
-void wxPlaylist::OnSave(wxCommandEvent & WXUNUSED(event)) 
+void wxPlaylist::OnSave(wxCommandEvent & WXUNUSED(event))
 {
 	Bool save_m3u;
 	char szPath[GF_MAX_PATH];
@@ -476,7 +479,7 @@ void wxPlaylist::OnSave(wxCommandEvent & WXUNUSED(event))
 void wxPlaylist::Save(char *szPath, Bool save_m3u)
 {
 	FILE *out = fopen(szPath, "wt");
-	if (!save_m3u) 
+	if (!save_m3u)
 		fprintf(out, "[playlist]\nNumberOfEntries=%d\n", gf_list_count(m_entries));
 
 	for (u32 i=0; i<gf_list_count(m_entries); i++) {
@@ -496,7 +499,7 @@ void wxPlaylist::Save(char *szPath, Bool save_m3u)
 	fclose(out);
 }
 
-void wxPlaylist::OnOpen(wxCommandEvent & WXUNUSED(event)) 
+void wxPlaylist::OnOpen(wxCommandEvent & WXUNUSED(event))
 {
 	wxFileDialog dlg(this, wxT("Select file(s)"), wxT(""), wxT(""), wxT("M3U & PLS Playlists|*.m3u;*.pls|M3U Playlists|*.m3u|ShoutCast Playlists|*.pls|"), wxOPEN | wxCHANGE_DIR/* | wxHIDE_READONLY*/);
 	if (dlg.ShowModal() != wxID_OK) return;
@@ -562,11 +565,11 @@ void wxPlaylist::OpenPlaylist(wxString filename)
 	RefreshList();
 }
 
-void wxPlaylist::OnRightClick(wxListEvent & event) 
+void wxPlaylist::OnRightClick(wxListEvent & event)
 {
 	if (!m_FileList->GetItemCount()) return;
 
-	wxMenu *popup = new wxMenu();	
+	wxMenu *popup = new wxMenu();
 
 	if (m_FileList->GetSelectedItemCount()==1) {
 		popup->Append(ID_PL_PLAY, wxT("Play"));
@@ -583,12 +586,12 @@ void wxPlaylist::OnRightClick(wxListEvent & event)
 		popup->Append(ID_PL_REVERSE, wxT("Reverse List"));
 		popup->Append(ID_PL_RANDOMIZE, wxT("Randomize"));
 	}
-	
+
 	PopupMenu(popup, event.GetPoint());
 	delete popup;
 }
 
-void wxPlaylist::OnReverseSelection(wxCommandEvent &WXUNUSED(event) ) 
+void wxPlaylist::OnReverseSelection(wxCommandEvent &WXUNUSED(event) )
 {
 	u32 i;
 	long item = -1;
@@ -655,13 +658,13 @@ void wxPlaylist::Sort(u32 type)
 			s32 test = 0;
 			switch (type) {
 			case 0:
-                test = stricmp(ple1->m_url, ple2->m_url);
+				test = stricmp(ple1->m_url, ple2->m_url);
 				break;
 			case 1:
-                test = stricmp(ple1->m_disp_name, ple2->m_disp_name);
+				test = stricmp(ple1->m_disp_name, ple2->m_disp_name);
 				break;
 			case 2:
-                test = ple1->m_duration - ple2->m_duration;
+				test = ple1->m_duration - ple2->m_duration;
 				break;
 			}
 			if (test<0) smallest = j;
@@ -674,9 +677,15 @@ void wxPlaylist::Sort(u32 type)
 	RefreshList();
 }
 
-void wxPlaylist::OnSortFile(wxCommandEvent &WXUNUSED(event) ) { Sort(0); }
-void wxPlaylist::OnSortTitle(wxCommandEvent &WXUNUSED(event) ) { Sort(1); }
-void wxPlaylist::OnSortDuration(wxCommandEvent &WXUNUSED(event) ) { Sort(2); }
+void wxPlaylist::OnSortFile(wxCommandEvent &WXUNUSED(event) ) {
+	Sort(0);
+}
+void wxPlaylist::OnSortTitle(wxCommandEvent &WXUNUSED(event) ) {
+	Sort(1);
+}
+void wxPlaylist::OnSortDuration(wxCommandEvent &WXUNUSED(event) ) {
+	Sort(2);
+}
 
 void wxPlaylist::RefreshCurrent()
 {
@@ -730,7 +739,7 @@ void wxPlaylist::Play()
 	}
 }
 
-void wxPlaylist::OnItemActivate(wxListEvent &WXUNUSED(event) ) 
+void wxPlaylist::OnItemActivate(wxListEvent &WXUNUSED(event) )
 {
 	long item = m_FileList->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 	if (item==-1) return;

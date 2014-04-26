@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2006-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -48,27 +48,27 @@ CPlaylist::CPlaylist()
 }
 CPlaylist::~CPlaylist()
 {
-    delete iListBox;
+	delete iListBox;
 	delete iBackGround;
 }
 
 CPlaylist* CPlaylist::NewL( const TRect& aRect, GF_User *user)
 {
-    CPlaylist* self = CPlaylist::NewLC( aRect, user);
-    CleanupStack::Pop( self );
-    return self;
+	CPlaylist* self = CPlaylist::NewLC( aRect, user);
+	CleanupStack::Pop( self );
+	return self;
 }
 CPlaylist* CPlaylist::NewLC( const TRect& aRect, GF_User *user)
 {
-    CPlaylist* self = new ( ELeave ) CPlaylist;
-    CleanupStack::PushL( self );
-    self->ConstructL( aRect, user);
-    return self;
+	CPlaylist* self = new ( ELeave ) CPlaylist;
+	CleanupStack::PushL( self );
+	self->ConstructL( aRect, user);
+	return self;
 }
 
 void CPlaylist::ConstructL(const TRect& aRect, GF_User *user)
 {
-    CreateWindowL();
+	CreateWindowL();
 
 #ifdef USE_SKIN
 	iListBox = new (ELeave) CAknSingleStyleListBox();
@@ -81,17 +81,17 @@ void CPlaylist::ConstructL(const TRect& aRect, GF_User *user)
 
 	CDesCArray* textArray = new (ELeave) CDesCArrayFlat(16);
 	iListBox->Model()->SetItemTextArray( textArray );
-    iListBox->Model()->SetOwnershipType( ELbmOwnsItemArray );
+	iListBox->Model()->SetOwnershipType( ELbmOwnsItemArray );
 
-    // Creates scrollbar.
-    iListBox->CreateScrollBarFrameL( ETrue );
-    iListBox->ScrollBarFrame()->SetScrollBarVisibilityL(CEikScrollBarFrame::EAuto, CEikScrollBarFrame::EAuto);
-    //iListBox->ActivateL();
+	// Creates scrollbar.
+	iListBox->CreateScrollBarFrameL( ETrue );
+	iListBox->ScrollBarFrame()->SetScrollBarVisibilityL(CEikScrollBarFrame::EAuto, CEikScrollBarFrame::EAuto);
+	//iListBox->ActivateL();
 
 	iListBox->SetFocus(ETrue);
 
-    SetRect(aRect);
-    ActivateL();
+	SetRect(aRect);
+	ActivateL();
 	MakeVisible(EFalse);
 
 	strcpy(szCurrentDir, "");
@@ -127,10 +127,10 @@ void CPlaylist::SizeChanged()
 void CPlaylist::Draw(const TRect& aRect) const
 {
 #ifdef USE_SKIN
-    CWindowGc& gc = SystemGc();
+	CWindowGc& gc = SystemGc();
 	MAknsSkinInstance* skin = AknsUtils::SkinInstance();
 	MAknsControlContext* cc = AknsDrawUtils::ControlContext( this );
-    AknsDrawUtils::Background( skin, cc, this, gc, aRect );
+	AknsDrawUtils::Background( skin, cc, this, gc, aRect );
 #endif
 
 }
@@ -152,28 +152,30 @@ TInt CPlaylist::CountComponentControls() const
 }
 CCoeControl* CPlaylist::ComponentControl(TInt aIndex) const
 {
-    switch (aIndex) {
-	case 0: return iListBox;
-	default: return NULL;
+	switch (aIndex) {
+	case 0:
+		return iListBox;
+	default:
+		return NULL;
 	}
 }
 
 TKeyResponse CPlaylist::OfferKeyEventL(const TKeyEvent& aKeyEvent, TEventCode aType)
 {
-	if (aType != EEventKey) return iListBox->OfferKeyEventL(aKeyEvent, aType);   
+	if (aType != EEventKey) return iListBox->OfferKeyEventL(aKeyEvent, aType);
 
-    switch (aKeyEvent.iScanCode) {
+	switch (aKeyEvent.iScanCode) {
 	case EStdKeyEnter:
 		HandleSelection();
 		return EKeyWasConsumed;
 	default:
-		return iListBox->OfferKeyEventL(aKeyEvent, aType);    
+		return iListBox->OfferKeyEventL(aKeyEvent, aType);
 	}
 }
 void CPlaylist::HandleListBoxEventL(CEikListBox* aListBox, TListBoxEvent aEventType )
 {
-    if (aEventType == MEikListBoxObserver::EEventItemClicked ||
-		aEventType == MEikListBoxObserver::EEventEnterKeyPressed)
+	if (aEventType == MEikListBoxObserver::EEventItemClicked ||
+	        aEventType == MEikListBoxObserver::EEventEnterKeyPressed)
 
 		HandleSelection();
 }
@@ -255,7 +257,7 @@ void CPlaylist::ScanDirectory(const char *dir)
 		TDriveList aList;
 		iFs.Connect();
 		iFs.DriveList(aList);
-		for (TInt i=0;i<KMaxDrives;i++) {
+		for (TInt i=0; i<KMaxDrives; i++) {
 			if (aList[i]) {
 				TChar aDrive;
 				iFs.DriveToChar(i, aDrive);

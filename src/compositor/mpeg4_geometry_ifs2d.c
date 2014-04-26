@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -94,7 +94,7 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 	M_IndexedFaceSet2D *ifs2D = (M_IndexedFaceSet2D *)node;
 	M_Coordinate2D *coord = (M_Coordinate2D*) ifs2D->coord;
 	M_Color *color = (M_Color *) ifs2D->color;
-		
+
 	col.red = col.green = col.blue = 0;
 	/*simple case, no color specified*/
 	if (!ifs2D->color) {
@@ -134,7 +134,7 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 			gf_path_add_move_to(path, start.x, start.y);
 			i++;
 
-			while (ifs2D->coordIndex.vals[i] != -1) {	
+			while (ifs2D->coordIndex.vals[i] != -1) {
 				start = pts[ifs2D->coordIndex.vals[i]];
 				gf_path_add_line_to(path, start.x, start.y);
 				i++;
@@ -187,7 +187,7 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		gf_path_add_move_to(path, start.x, start.y);
 		num_col = 1;
 		i+=1;
-		while (ifs2D->coordIndex.vals[i] != -1) {	
+		while (ifs2D->coordIndex.vals[i] != -1) {
 			end = pts[ifs2D->coordIndex.vals[i]];
 			gf_path_add_line_to(path, end.x, end.y);
 			i++;
@@ -229,7 +229,7 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		raster->stencil_set_vertex_colors(grad, colors, num_col);
 
 		gf_free(colors);
-		
+
 		col_cen.blue /= num_col;
 		col_cen.green /= num_col;
 		col_cen.red /= num_col;
@@ -246,7 +246,7 @@ static void IFS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 
 		//goto next point
 		i++;
-		ind_col += num_col + 1;	
+		ind_col += num_col + 1;
 		if (i >= ci_count) break;
 		grad = raster->stencil_new(raster, GF_STENCIL_VERTEX_GRADIENT);
 		ctx->flags &= ~CTX_PATH_FILLED;
@@ -298,7 +298,7 @@ static void TraverseIFS2D(GF_Node *node, void *rs, Bool is_destroy)
 			visual_3d_draw_2d_with_aspect(stack, tr_state, &asp);
 		}
 		return;
-	} 
+	}
 #endif
 	case TRAVERSE_PICK:
 		vrml_drawable_pick(stack, tr_state);

@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 2002 Nikos Mavroyanopoulos
- * 
- * This library is free software; you can redistribute it and/or modify it 
- * under the terms of the GNU Library General Public License as published 
- * by the Free Software Foundation; either version 2 of the License, or 
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Library General Public License as published
+ * by the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
@@ -34,9 +34,9 @@ typedef struct ctr_buf {
  * has been reached.
  */
 static void increase_counter( u8 *x, int x_size) {
-register int i, y=0;
+	register int i, y=0;
 
-	for (i=x_size-1;i>=0;i--) {
+	for (i=x_size-1; i>=0; i--) {
 		y = 0;
 		if ( x[i] == 0xff) {
 			x[i] = 0;
@@ -55,30 +55,30 @@ register int i, y=0;
  */
 GF_Err _init_mcrypt( void *buf, void *key, int lenofkey, void *IV, int size)
 {
-    ((CTR_BUFFER* )buf)->c_counter = ((CTR_BUFFER* )buf)->enc_counter = NULL;
+	((CTR_BUFFER* )buf)->c_counter = ((CTR_BUFFER* )buf)->enc_counter = NULL;
 
-/* For ctr */
-    ((CTR_BUFFER* )buf)->c_counter_pos = 0;
-    ((CTR_BUFFER* )buf)->blocksize = size;
+	/* For ctr */
+	((CTR_BUFFER* )buf)->c_counter_pos = 0;
+	((CTR_BUFFER* )buf)->blocksize = size;
 
 	((CTR_BUFFER* )buf)->c_counter = (u8 *)gf_malloc(size);
-    if (((CTR_BUFFER* )buf)->c_counter==NULL) goto freeall;
+	if (((CTR_BUFFER* )buf)->c_counter==NULL) goto freeall;
 
 	((CTR_BUFFER* )buf)->enc_counter = (u8 *)gf_malloc(size);
-    if (((CTR_BUFFER* )buf)->enc_counter==NULL) goto freeall;
-    
-    if (IV!=NULL) {
-	memcpy(((CTR_BUFFER* )buf)->enc_counter, IV, size);
-	memcpy(((CTR_BUFFER* )buf)->c_counter, IV, size);
-    }
+	if (((CTR_BUFFER* )buf)->enc_counter==NULL) goto freeall;
 
-/* End ctr */
+	if (IV!=NULL) {
+		memcpy(((CTR_BUFFER* )buf)->enc_counter, IV, size);
+		memcpy(((CTR_BUFFER* )buf)->c_counter, IV, size);
+	}
+
+	/* End ctr */
 
 	return GF_OK;
-	freeall:
-		gf_free(((CTR_BUFFER* )buf)->c_counter);
-		gf_free(((CTR_BUFFER* )buf)->enc_counter);
-		return GF_OUT_OF_MEM;
+freeall:
+	gf_free(((CTR_BUFFER* )buf)->c_counter);
+	gf_free(((CTR_BUFFER* )buf)->enc_counter);
+	return GF_OUT_OF_MEM;
 }
 
 GF_Err _mcrypt_set_state(void *_buf, void *IV, int size)
@@ -112,7 +112,7 @@ void _end_mcrypt(void *buf) {
 }
 
 static GFINLINE
-void xor_stuff( CTR_BUFFER *buf, void* akey, void (*func)(void*,void*), u8* plain,  int blocksize, int xor_size) 
+void xor_stuff( CTR_BUFFER *buf, void* akey, void (*func)(void*,void*), u8* plain,  int blocksize, int xor_size)
 {
 	void (*_mcrypt_block_encrypt) (void *, void *);
 
@@ -133,15 +133,15 @@ void xor_stuff( CTR_BUFFER *buf, void* akey, void (*func)(void*,void*), u8* plai
 			int size = blocksize - ((CTR_BUFFER* )buf)->c_counter_pos;
 
 			memxor( plain, &((CTR_BUFFER* )buf)->enc_counter[((CTR_BUFFER* )buf)->c_counter_pos],
-				size);
-		
+			        size);
+
 			increase_counter( ((CTR_BUFFER* )buf)->c_counter, blocksize);
 
 			memcpy( ((CTR_BUFFER* )buf)->enc_counter, ((CTR_BUFFER* )buf)->c_counter, blocksize);
 			_mcrypt_block_encrypt(akey, ((CTR_BUFFER* )buf)->enc_counter);
 
 			memxor( &plain[size], ((CTR_BUFFER* )buf)->enc_counter,
-				((CTR_BUFFER* )buf)->c_counter_pos);
+			        ((CTR_BUFFER* )buf)->c_counter_pos);
 
 			/* ((CTR_BUFFER* )buf)->c_counter_pos remains the same */
 
@@ -158,7 +158,7 @@ void xor_stuff( CTR_BUFFER *buf, void* akey, void (*func)(void*,void*), u8* plai
 			int min_size =  size < xor_size ? size: xor_size;
 
 			memxor( plain, &((CTR_BUFFER* )buf)->enc_counter[((CTR_BUFFER* )buf)->c_counter_pos],
-				min_size); 
+			        min_size);
 
 			((CTR_BUFFER* )buf)->c_counter_pos += min_size;
 
@@ -171,18 +171,18 @@ void xor_stuff( CTR_BUFFER *buf, void* akey, void (*func)(void*,void*), u8* plai
 			_mcrypt_block_encrypt(akey, ((CTR_BUFFER* )buf)->enc_counter);
 
 			memxor( &plain[min_size], ((CTR_BUFFER* )buf)->enc_counter,
-				xor_size - min_size);
+			        xor_size - min_size);
 
 			((CTR_BUFFER* )buf)->c_counter_pos = xor_size - min_size;
 
 		}
-	
+
 	}
 	return;
 }
 
 GF_Err _mcrypt(void * buf,void *plaintext, int len, int blocksize, void* akey, void (*func)(void*,void*), void (*func2)(void*,void*))
-{				/* plaintext can be any size */
+{	/* plaintext can be any size */
 	u8 *plain;
 	int dlen, j=0;
 	int modlen;
@@ -195,7 +195,7 @@ GF_Err _mcrypt(void * buf,void *plaintext, int len, int blocksize, void* akey, v
 
 		plain += blocksize;
 
-/* Put the new register */
+		/* Put the new register */
 
 	}
 	modlen = len % blocksize;
@@ -208,13 +208,13 @@ GF_Err _mcrypt(void * buf,void *plaintext, int len, int blocksize, void* akey, v
 		xor_stuff( (CTR_BUFFER*)buf, akey, func, plain, blocksize, modlen);
 
 	}
-	
+
 	return GF_OK;
 }
 
 
 GF_Err _mdecrypt(void * buf,void *plaintext, int len, int blocksize, void* akey, void (*func)(void*,void*), void (*func2)(void*,void*))
-{				/* plaintext can be any size */
+{	/* plaintext can be any size */
 	return _mcrypt( buf, plaintext, len, blocksize, akey, func, func2);
 }
 

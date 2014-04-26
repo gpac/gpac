@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -46,7 +46,7 @@ s32 gf_token_get(const char *Buffer, s32 Start,  const char *Separator,  char *C
 	}
 	start = i;
 	if (i == Len) return( -1 );
-	
+
 	for (i=start; i<Len; i++) {
 		if (gf_tok_is_char_in_set(Buffer[i], Separator)) break;
 	}
@@ -112,7 +112,7 @@ s32 gf_token_find(const char *Buffer, u32 Start, u32 Size, const char *Pattern)
 	s32 Len;
 
 	if (Start >= Size) return -1;
-	
+
 	Len = (u32) strlen(Pattern);
 	if ( Len <= 0 ) return -1;
 	if (Size - Start < (u32) Len) return -1;

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -49,7 +49,7 @@
 typedef struct
 {
 	a52_state_t *codec;
-    sample_t* samples;
+	sample_t* samples;
 
 	u32 sample_rate, num_samples, out_size, flags;
 	u8 num_channels;
@@ -76,7 +76,7 @@ static GF_Err AC3_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[A52] Error initializing decoder\n"));
 		return GF_IO_ERR;
 	}
-    ctx->samples = a52_samples(ctx->codec);
+	ctx->samples = a52_samples(ctx->codec);
 	if (!ctx->samples) {
 		a52_free(ctx->codec);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[A52] Error initializing decoder\n"));
@@ -187,15 +187,33 @@ static s8 AC3_GetChannelPos(AC3Dec *ffd, u32 ch_cfg)
 	u32 i;
 	for (i=0; i<ffd->info.channels; i++) {
 		switch (ffd->info.channel_position[i]) {
-		case FRONT_CHANNEL_CENTER: if (ch_cfg==GF_AUDIO_CH_FRONT_CENTER) return i; break;
-		case FRONT_CHANNEL_LEFT: if (ch_cfg==GF_AUDIO_CH_FRONT_LEFT) return i; break;
-		case FRONT_CHANNEL_RIGHT: if (ch_cfg==GF_AUDIO_CH_FRONT_RIGHT) return i; break;
-		case SIDE_CHANNEL_LEFT: if (ch_cfg==GF_AUDIO_CH_SIDE_LEFT) return i; break;
-		case SIDE_CHANNEL_RIGHT: if (ch_cfg==GF_AUDIO_CH_SIDE_RIGHT) return i; break;
-		case BACK_CHANNEL_LEFT: if (ch_cfg==GF_AUDIO_CH_BACK_LEFT) return i; break;
-		case BACK_CHANNEL_RIGHT: if (ch_cfg==GF_AUDIO_CH_BACK_RIGHT) return i; break;
-		case BACK_CHANNEL_CENTER: if (ch_cfg==GF_AUDIO_CH_BACK_CENTER) return i; break;
-		case LFE_CHANNEL: if (ch_cfg==GF_AUDIO_CH_LFE) return i; break;
+		case FRONT_CHANNEL_CENTER:
+			if (ch_cfg==GF_AUDIO_CH_FRONT_CENTER) return i;
+			break;
+		case FRONT_CHANNEL_LEFT:
+			if (ch_cfg==GF_AUDIO_CH_FRONT_LEFT) return i;
+			break;
+		case FRONT_CHANNEL_RIGHT:
+			if (ch_cfg==GF_AUDIO_CH_FRONT_RIGHT) return i;
+			break;
+		case SIDE_CHANNEL_LEFT:
+			if (ch_cfg==GF_AUDIO_CH_SIDE_LEFT) return i;
+			break;
+		case SIDE_CHANNEL_RIGHT:
+			if (ch_cfg==GF_AUDIO_CH_SIDE_RIGHT) return i;
+			break;
+		case BACK_CHANNEL_LEFT:
+			if (ch_cfg==GF_AUDIO_CH_BACK_LEFT) return i;
+			break;
+		case BACK_CHANNEL_RIGHT:
+			if (ch_cfg==GF_AUDIO_CH_BACK_RIGHT) return i;
+			break;
+		case BACK_CHANNEL_CENTER:
+			if (ch_cfg==GF_AUDIO_CH_BACK_CENTER) return i;
+			break;
+		case LFE_CHANNEL:
+			if (ch_cfg==GF_AUDIO_CH_LFE) return i;
+			break;
 		}
 	}
 	return -1;
@@ -205,39 +223,39 @@ static s8 AC3_GetChannelPos(AC3Dec *ffd, u32 ch_cfg)
 /**** the following two functions comes from a52dec */
 static GFINLINE s32 blah (s32 i)
 {
-    if (i > 0x43c07fff)
-        return 32767;
-    else if (i < 0x43bf8000)
-        return -32768;
-    return i - 0x43c00000;
+	if (i > 0x43c07fff)
+		return 32767;
+	else if (i < 0x43bf8000)
+		return -32768;
+	return i - 0x43c00000;
 }
 
 static GFINLINE void float_to_int (float * _f, s16 *samps, int nchannels)
 {
-    int i, j, c;
-    s32 * f = (s32 *) _f;       // XXX assumes IEEE float format
+	int i, j, c;
+	s32 * f = (s32 *) _f;       // XXX assumes IEEE float format
 
-    j = 0;
-    nchannels *= 256;
-    for (i = 0; i < 256; i++) {
-        for (c = 0; c < nchannels; c += 256)
-            samps[j++] = blah (f[i + c]);
-    }
+	j = 0;
+	nchannels *= 256;
+	for (i = 0; i < 256; i++) {
+		for (c = 0; c < nchannels; c += 256)
+			samps[j++] = blah (f[i + c]);
+	}
 }
 
 /**** end */
 
 static const int ac3_channels[8] = {
-    2, 1, 2, 3, 3, 4, 4, 5
+	2, 1, 2, 3, 3, 4, 4, 5
 };
 
 static GF_Err AC3_ProcessData(GF_MediaDecoder *ifcg,
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID, u32 *CTS, 
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+                              char *inBuffer, u32 inBufferLength,
+                              u16 ES_ID, u32 *CTS,
+                              char *outBuffer, u32 *outBufferLength,
+                              u8 PaddingBits, u32 mmlevel)
 {
-    short *out_samples;
+	short *out_samples;
 	int i, len, bit_rate;
 	sample_t level;
 	A52CTX();
@@ -339,16 +357,16 @@ GF_BaseDecoder *NewAC3Dec()
 void DeleteAC3Dec(GF_BaseDecoder *ifcg)
 {
 	AC3Dec *ctx;
-        if (!ifcg)
-          return;
-        ctx = (AC3Dec *) ifcg->privateStack;
-        if (ctx){
-          if (ctx->codec)
-            a52_free(ctx->codec);
-          ctx->codec = NULL;
-          gf_free(ctx);
-          ifcg->privateStack = NULL;
-        }
+	if (!ifcg)
+		return;
+	ctx = (AC3Dec *) ifcg->privateStack;
+	if (ctx) {
+		if (ctx->codec)
+			a52_free(ctx->codec);
+		ctx->codec = NULL;
+		gf_free(ctx);
+		ifcg->privateStack = NULL;
+	}
 	gf_free(ifcg);
 }
 

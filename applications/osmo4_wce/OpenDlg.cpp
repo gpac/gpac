@@ -19,7 +19,7 @@ OpenDlg::OpenDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(OpenDlg::IDD, pParent)
 {
 	//{{AFX_DATA_INIT(OpenDlg)
-		// NOTE: the ClassWizard will add member initialization here
+	// NOTE: the ClassWizard will add member initialization here
 	//}}AFX_DATA_INIT
 }
 
@@ -38,7 +38,7 @@ BEGIN_MESSAGE_MAP(OpenDlg, CDialog)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
-void OpenDlg::OnOK() 
+void OpenDlg::OnOK()
 {
 	CString URL;
 	char szUrl[5000];
@@ -70,7 +70,7 @@ void OpenDlg::OnOK()
 	EndDialog(IDOK);
 }
 
-BOOL OpenDlg::OnInitDialog() 
+BOOL OpenDlg::OnInitDialog()
 {
 	TCHAR w_str[5000];
 	CDialog::OnInitDialog();
@@ -88,5 +88,5 @@ BOOL OpenDlg::OnInitDialog()
 	}
 
 	SetFocus();
-	return TRUE;  
+	return TRUE;
 }

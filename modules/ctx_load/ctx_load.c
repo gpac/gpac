@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -231,8 +231,8 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 
 	ext++;
 	if (!stricmp(ext, "xmt") || !stricmp(ext, "xmtz") || !stricmp(ext, "xmta")
-		|| !stricmp(ext, "x3d") || !stricmp(ext, "x3dz")
-	) {
+	        || !stricmp(ext, "x3d") || !stricmp(ext, "x3dz")
+	   ) {
 		ext = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "Progressive");
 		priv->progressive_support = (ext && !stricmp(ext, "yes")) ? 1 : 0;
 	}
@@ -320,7 +320,7 @@ static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 }
 
 static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength,
-								u16 ES_ID, u32 stream_time, u32 mmlevel)
+                                  u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
 	u32 i, j, k, nb_updates, last_rap=0;
@@ -633,7 +633,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 						}
 						if (keep_com) break;
 					}
-						break;
+					break;
 					case GF_ODF_OD_REMOVE_TAG:
 					{
 						GF_ODRemove *odR = (GF_ODRemove*)com;
@@ -642,7 +642,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 							if (odm) gf_odm_disconnect(odm, 1);
 						}
 					}
-						break;
+					break;
 					default:
 						break;
 					}
@@ -681,17 +681,27 @@ const char *CTXLoad_GetName(struct _basedecoder *plug)
 	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
 
 	switch (priv->load.type) {
-	case GF_SM_LOAD_BT: return "MPEG-4 BT Parser";
-	case GF_SM_LOAD_VRML: return "VRML 97 Parser";
-	case GF_SM_LOAD_X3DV: return "X3D (VRML Syntax) Parser";
-	case GF_SM_LOAD_XMTA: return "XMT-A Parser";
-	case GF_SM_LOAD_X3D: return "X3D (XML Syntax) Parser";
-	case GF_SM_LOAD_SWF: return "Flash (SWF) Emulator";
-	case GF_SM_LOAD_XSR: return "LASeRML Loader";
-	case GF_SM_LOAD_MP4: return "MP4 Memory Loader";
-	case GF_SM_LOAD_XBL: return "XBL Parser";
+	case GF_SM_LOAD_BT:
+		return "MPEG-4 BT Parser";
+	case GF_SM_LOAD_VRML:
+		return "VRML 97 Parser";
+	case GF_SM_LOAD_X3DV:
+		return "X3D (VRML Syntax) Parser";
+	case GF_SM_LOAD_XMTA:
+		return "XMT-A Parser";
+	case GF_SM_LOAD_X3D:
+		return "X3D (XML Syntax) Parser";
+	case GF_SM_LOAD_SWF:
+		return "Flash (SWF) Emulator";
+	case GF_SM_LOAD_XSR:
+		return "LASeRML Loader";
+	case GF_SM_LOAD_MP4:
+		return "MP4 Memory Loader";
+	case GF_SM_LOAD_XBL:
+		return "XBL Parser";
 
-	default: return "Undetermined";
+	default:
+		return "Undetermined";
 	}
 }
 
@@ -721,7 +731,7 @@ static u32 CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD 
 		case GPAC_OTI_SCENE_SVG_GZ:
 		case GPAC_OTI_SCENE_DIMS:
 			return GF_CODEC_MAYBE_SUPPORTED;
-		default:	
+		default:
 			break;
 		}
 	}
@@ -731,20 +741,20 @@ static u32 CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD 
 void DeleteContextLoader(GF_BaseDecoder *plug)
 {
 	CTXLoadPriv *priv;
-        if (!plug)
-          return;
-        priv = (CTXLoadPriv *)plug->privateStack;
-        if (priv){
-          if (priv->file_name)
-            gf_free(priv->file_name);
-          priv->file_name = NULL;
-          assert(!priv->ctx);
-          if (priv->files_to_delete)
-            gf_list_del(priv->files_to_delete);
-          priv->files_to_delete = NULL;
-          gf_free(priv);
-          plug->privateStack = NULL;
-        }
+	if (!plug)
+		return;
+	priv = (CTXLoadPriv *)plug->privateStack;
+	if (priv) {
+		if (priv->file_name)
+			gf_free(priv->file_name);
+		priv->file_name = NULL;
+		assert(!priv->ctx);
+		if (priv->files_to_delete)
+			gf_list_del(priv->files_to_delete);
+		priv->files_to_delete = NULL;
+		gf_free(priv);
+		plug->privateStack = NULL;
+	}
 	gf_free(plug);
 }
 
@@ -777,11 +787,12 @@ GF_BaseDecoder *NewContextLoader()
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
-static u32 si [] = {
+	static u32 si [] = {
 #ifndef GPAC_DISABLE_VRML
-	GF_SCENE_DECODER_INTERFACE,
+		GF_SCENE_DECODER_INTERFACE,
 #endif
-	0};
+		0
+	};
 	return si;
 }
 
@@ -790,7 +801,8 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
 #ifndef GPAC_DISABLE_VRML
-	case GF_SCENE_DECODER_INTERFACE: return (GF_BaseInterface *)NewContextLoader();
+	case GF_SCENE_DECODER_INTERFACE:
+		return (GF_BaseInterface *)NewContextLoader();
 #endif
 	default:
 		return NULL;

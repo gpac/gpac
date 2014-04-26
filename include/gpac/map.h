@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -37,7 +37,7 @@ extern "C" {
 /*!
  *	\addtogroup  map_grp map
  *	\ingroup utils_grp
- *	\brief 
+ *	\brief
  *
  *	This section documents the map object of the GPAC framework
  *	\note The map use a random function for hashing. Collisions are resolved by using a GF_List on each slot.
@@ -76,7 +76,7 @@ typedef struct {
  *
  * Allows to go through each pair key/value in the map.
  */
-typedef struct _it_map{
+typedef struct _it_map {
 	/* The current map*/
 	GF_Map* map;
 
@@ -88,8 +88,8 @@ typedef struct _it_map{
 
 	/* The current index in the hasmap*/
 	u32 hash;
-	
-}GF_It_Map;
+
+} GF_It_Map;
 
 /*!
  *	\brief map constructor

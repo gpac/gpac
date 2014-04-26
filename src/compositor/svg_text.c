@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Cyril Concolato 
+ *			Authors: Cyril Concolato
  *			Copyright (c) Telecom ParisTech 2004-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -30,7 +30,7 @@
 #include "visual_manager.h"
 #include "nodes_stacks.h"
 
-typedef struct 
+typedef struct
 {
 	Drawable *drawable;
 	Fixed prev_size;
@@ -71,16 +71,16 @@ static void svg_finalize_sort(DrawableContext *ctx, SVG_TextStack *st, GF_Traver
 		drawable_check_focus_highlight(ctx->drawable->node, tr_state, &st->bounds);
 		ctx->drawable = NULL;
 		return;
-	} 
+	}
 #endif
 	/*if text selection mode, we must force redraw of the entire text span because we don't
 	if glyphs have been (un)selected*/
-	if (!tr_state->immediate_draw && 
-		/*text selection on*/
-		(tr_state->visual->compositor->text_selection 
-		/*text sel release*/
-		|| (tr_state->visual->compositor->store_text_state==GF_SC_TSEL_RELEASED)) 
-	) {
+	if (!tr_state->immediate_draw &&
+	        /*text selection on*/
+	        (tr_state->visual->compositor->text_selection
+	         /*text sel release*/
+	         || (tr_state->visual->compositor->store_text_state==GF_SC_TSEL_RELEASED))
+	   ) {
 		GF_TextSpan *span;
 		u32 i = 0;
 		Bool unselect = (tr_state->visual->compositor->store_text_state==GF_SC_TSEL_RELEASED) ? 1 : 0;
@@ -106,23 +106,49 @@ static u32 svg_get_font_styles(GF_TraverseState * tr_state)
 		styles = GF_FONT_OBLIQUE;
 		break;
 	}
-	if (*tr_state->svg_props->font_variant==SVG_FONTVARIANT_SMALLCAPS) 
+	if (*tr_state->svg_props->font_variant==SVG_FONTVARIANT_SMALLCAPS)
 		styles |= GF_FONT_SMALLCAPS;
 
 	switch(*tr_state->svg_props->font_weight) {
-	case SVG_FONTWEIGHT_100: styles |= GF_FONT_WEIGHT_100; break;
-	case SVG_FONTWEIGHT_LIGHTER: styles |= GF_FONT_WEIGHT_LIGHTER; break;
-	case SVG_FONTWEIGHT_200: styles |= GF_FONT_WEIGHT_200; break;
-	case SVG_FONTWEIGHT_300: styles |= GF_FONT_WEIGHT_300; break;
-	case SVG_FONTWEIGHT_400: styles |= GF_FONT_WEIGHT_400; break;
-	case SVG_FONTWEIGHT_NORMAL: styles |= GF_FONT_WEIGHT_NORMAL; break;
-	case SVG_FONTWEIGHT_500: styles |= GF_FONT_WEIGHT_500; break;
-	case SVG_FONTWEIGHT_600: styles |= GF_FONT_WEIGHT_600; break;
-	case SVG_FONTWEIGHT_700: styles |= GF_FONT_WEIGHT_700; break;
-	case SVG_FONTWEIGHT_BOLD: styles |= GF_FONT_WEIGHT_BOLD; break;
-	case SVG_FONTWEIGHT_800: styles |= GF_FONT_WEIGHT_800; break;
-	case SVG_FONTWEIGHT_900: styles |= GF_FONT_WEIGHT_900; break;
-	case SVG_FONTWEIGHT_BOLDER: styles |= GF_FONT_WEIGHT_BOLDER; break;
+	case SVG_FONTWEIGHT_100:
+		styles |= GF_FONT_WEIGHT_100;
+		break;
+	case SVG_FONTWEIGHT_LIGHTER:
+		styles |= GF_FONT_WEIGHT_LIGHTER;
+		break;
+	case SVG_FONTWEIGHT_200:
+		styles |= GF_FONT_WEIGHT_200;
+		break;
+	case SVG_FONTWEIGHT_300:
+		styles |= GF_FONT_WEIGHT_300;
+		break;
+	case SVG_FONTWEIGHT_400:
+		styles |= GF_FONT_WEIGHT_400;
+		break;
+	case SVG_FONTWEIGHT_NORMAL:
+		styles |= GF_FONT_WEIGHT_NORMAL;
+		break;
+	case SVG_FONTWEIGHT_500:
+		styles |= GF_FONT_WEIGHT_500;
+		break;
+	case SVG_FONTWEIGHT_600:
+		styles |= GF_FONT_WEIGHT_600;
+		break;
+	case SVG_FONTWEIGHT_700:
+		styles |= GF_FONT_WEIGHT_700;
+		break;
+	case SVG_FONTWEIGHT_BOLD:
+		styles |= GF_FONT_WEIGHT_BOLD;
+		break;
+	case SVG_FONTWEIGHT_800:
+		styles |= GF_FONT_WEIGHT_800;
+		break;
+	case SVG_FONTWEIGHT_900:
+		styles |= GF_FONT_WEIGHT_900;
+		break;
+	case SVG_FONTWEIGHT_BOLDER:
+		styles |= GF_FONT_WEIGHT_BOLDER;
+		break;
 	}
 
 	return styles;
@@ -159,7 +185,7 @@ GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles
 			nb_fonts++;
 			if (skip) a_font[len-skip] = ' ';
 		}
-		
+
 		if (sep) {
 			sep[0] = ',';
 			a_font = sep+1;
@@ -208,7 +234,7 @@ static void svg_apply_text_anchor(GF_TraverseState * tr_state, Fixed *width)
 	}
 }
 
-static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed font_size, Bool x_offsets, Bool y_offsets, Bool rotate, SVGAllAttributes *atts, char *textContent, const char *lang, GF_TraverseState *tr_state) 
+static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed font_size, Bool x_offsets, Bool y_offsets, Bool rotate, SVGAllAttributes *atts, char *textContent, const char *lang, GF_TraverseState *tr_state)
 {
 	GF_TextSpan *span = NULL;
 	char *dup_text;
@@ -219,7 +245,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 
 	len = (u32) strlen(textContent);
 	dup_text = gf_malloc(len+1);
-		
+
 	switch (tr_state->last_char_type) {
 	case 2:
 		prev = 0;
@@ -232,7 +258,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 	}
 	for (i = 0, j = 0; i < len; i++) {
 		if (textContent[i] == ' ') {
-			if (prev == ' ' && !preserve) { 
+			if (prev == ' ' && !preserve) {
 				/* ignore space */
 			} else {
 				dup_text[j] = textContent[i];
@@ -240,7 +266,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 				j++;
 			}
 		} else if (textContent[i] == '\t') {
-			if (prev == ' ' && !preserve) { 
+			if (prev == ' ' && !preserve) {
 				/* ignore space */
 			} else {
 				dup_text[j] = ' ';
@@ -248,9 +274,9 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 				j++;
 			}
 		} else if ((textContent[i] == '\n') ||
-				   (textContent[i] == '\r') 
-		) {
-			if (prev == ' ' && preserve) { 
+		           (textContent[i] == '\r')
+		          ) {
+			if (prev == ' ' && preserve) {
 				dup_text[j] = ' ';
 				prev = dup_text[j];
 				j++;
@@ -259,9 +285,9 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 				j++;
 			}
 		} else if (
-			(((u8) textContent[i] == 0xc2) && ((u8) textContent[i+1] == 0xa0)) 
+		    (((u8) textContent[i] == 0xc2) && ((u8) textContent[i+1] == 0xa0))
 		) {
-			if (prev == ' ' && !preserve) { 
+			if (prev == ' ' && !preserve) {
 				/* ignore space */
 			} else {
 				dup_text[j] = ' ';
@@ -339,7 +365,7 @@ static void svg_text_area_queue_state(GF_TraverseState *tr_state, GF_TextSpan *s
 			st->last_glyph = last_glyph;
 			return;
 		}
-	}	
+	}
 	st = gf_malloc(sizeof(textArea_state));
 	st->first_glyph = first_glyph;
 	st->last_glyph = last_glyph;
@@ -394,7 +420,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 			tr_state->line_spacing = gf_mulfix(span->font_size, FLT2FIX(1.0) );
 		}
 		tr_state->text_end_y += tr_state->line_spacing;
-	} 
+	}
 
 	line_spacing = gf_mulfix(span->font_size, FLT2FIX(1.0) );
 
@@ -428,7 +454,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 				word_size += font->max_advance_h * span->font_scale;
 			}
 			i++;
-		} 
+		}
 
 		/* word doesn't fit on line, escape*/
 		if (!word_size && !last_char_size) break;
@@ -503,8 +529,8 @@ static void get_domtext_width(GF_Node *node, SVGAllAttributes *atts, GF_Traverse
 	i=0;
 	//count_x, _y: number of x- (y-) position of characters to come in the text flow
 	while ( (i<span->nb_glyphs)
-		&& ( (tr_state->count_x>1) || (tr_state->count_y>1) )
-	) {
+	        && ( (tr_state->count_x>1) || (tr_state->count_y>1) )
+	      ) {
 		block_width = (span->glyphs[i] ? span->glyphs[i]->horiz_advance : font->max_advance_h) * span->font_scale;
 
 		//store width in tr_state->x_anchors
@@ -528,7 +554,7 @@ static void get_domtext_width(GF_Node *node, SVGAllAttributes *atts, GF_Traverse
 		}
 		//if last indicated position, create a new item
 		if ((tr_state->count_x==1)||(tr_state->count_y==1)
-			|| !gf_list_count(tr_state->x_anchors) ) {
+		        || !gf_list_count(tr_state->x_anchors) ) {
 			entry = (Fixed*)gf_malloc(sizeof(Fixed));
 			*entry = block_width;
 
@@ -564,10 +590,10 @@ static void get_tspan_width(GF_Node *node, void *rs)
 	while (child) {
 		switch  (gf_node_get_tag(child->node)) {
 		case TAG_DOMText:
-			get_domtext_width(child->node, &atts, tr_state); 
+			get_domtext_width(child->node, &atts, tr_state);
 			break;
 		case TAG_SVG_tspan:
-			get_tspan_width(child->node, tr_state); 
+			get_tspan_width(child->node, tr_state);
 			break;
 		default:
 			break;
@@ -615,12 +641,12 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 
 	i=0;
 	/*
-	if character position is given in (x, y) attributes, use it. 
+	if character position is given in (x, y) attributes, use it.
 	Otherwise add text at tr_state->text_end_x.
-	*/		
+	*/
 	while ((i<span->nb_glyphs)
-		&& ( (tr_state->count_x>1) || (tr_state->count_y>1) )
-	) {
+	        && ( (tr_state->count_x>1) || (tr_state->count_y>1) )
+	      ) {
 		//get x and y positions
 		if (tr_state->count_x==0) {
 			x = tr_state->text_end_x;
@@ -636,7 +662,7 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 			y = yc->value;
 			(tr_state->count_y)--;
 		}
-		
+
 
 		/*apply x-anchor*/
 		ptr = (Fixed *)gf_list_get(tr_state->x_anchors, tr_state->chunk_index);
@@ -716,10 +742,10 @@ static void svg_compute_text_width(GF_Node *node, SVGAllAttributes *atts, GF_Tra
 	/*compute length of all text blocks*/
 	switch  (gf_node_get_tag(node)) {
 	case TAG_DOMText:
-		get_domtext_width(node, atts, tr_state); 
+		get_domtext_width(node, atts, tr_state);
 		break;
 	case TAG_SVG_tspan:
-		get_tspan_width(node, tr_state); 
+		get_tspan_width(node, tr_state);
 		break;
 	case TAG_SVG_switch:
 		is_switch = 1;
@@ -750,12 +776,12 @@ static void svg_traverse_text_block(GF_Node *node, SVGAllAttributes *atts, GF_Tr
 	Bool is_switch = 0;
 	switch  (gf_node_get_tag(node)) {
 	case TAG_DOMText:
-		svg_traverse_domtext(node, atts, tr_state, spans, NULL); 
+		svg_traverse_domtext(node, atts, tr_state, spans, NULL);
 		break;
 	case TAG_SVG_tspan:
 		/*mark tspan as dirty to force rebuild*/
 		gf_node_dirty_set(node, 0, 0);
-		gf_node_traverse(node, tr_state); 
+		gf_node_traverse(node, tr_state);
 		break;
 	case TAG_SVG_switch:
 		is_switch = 1;
@@ -770,7 +796,7 @@ static void svg_traverse_text_block(GF_Node *node, SVGAllAttributes *atts, GF_Tr
 					break;
 				}
 			} else if (gf_node_get_tag(child->node)==TAG_DOMText) {
-				svg_traverse_domtext(child->node, atts, tr_state, spans, node); 
+				svg_traverse_domtext(child->node, atts, tr_state, spans, node);
 			}
 			child = child->next;
 		}
@@ -839,7 +865,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		while (child) {
 			switch  (gf_node_get_tag(child->node)) {
 			case TAG_SVG_tspan:
-				gf_node_traverse(child->node, tr_state); 
+				gf_node_traverse(child->node, tr_state);
 				break;
 			}
 			child = child->next;
@@ -857,7 +883,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (tr_state->traversing_mode==TRAVERSE_PICK) {
 		compositor_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
-		if (*tr_state->svg_props->pointer_events!=SVG_POINTEREVENTS_NONE) 
+		if (*tr_state->svg_props->pointer_events!=SVG_POINTEREVENTS_NONE)
 			gf_font_spans_pick(node, st->spans, tr_state, &st->bounds, 1, st->drawable);
 
 		/*and browse children*/
@@ -865,7 +891,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		while (child) {
 			switch  (gf_node_get_tag(child->node)) {
 			case TAG_SVG_tspan:
-				gf_node_traverse(child->node, tr_state); 
+				gf_node_traverse(child->node, tr_state);
 				break;
 			}
 			child = child->next;
@@ -888,12 +914,12 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 
 	compositor_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
 
-	if ( (st->prev_size != tr_state->svg_props->font_size->value) || 
-		 (st->prev_flags != *tr_state->svg_props->font_style) || 
-		 (st->prev_anchor != *tr_state->svg_props->text_anchor) ||
-		 (gf_node_dirty_get(node) & (GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_CHILD_DIRTY) ) 
-		 || tr_state->visual->compositor->reset_fonts
-	) {
+	if ( (st->prev_size != tr_state->svg_props->font_size->value) ||
+	        (st->prev_flags != *tr_state->svg_props->font_style) ||
+	        (st->prev_anchor != *tr_state->svg_props->text_anchor) ||
+	        (gf_node_dirty_get(node) & (GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_CHILD_DIRTY) )
+	        || tr_state->visual->compositor->reset_fonts
+	   ) {
 		u32 mode;
 		child = ((GF_ParentNode *) text)->children;
 
@@ -922,7 +948,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 
 		/*apply justification of all blocks*/
 		imax=gf_list_count(tr_state->x_anchors);
-		for (i=0;i<imax;i++){
+		for (i=0; i<imax; i++) {
 			lw=gf_list_get(tr_state->x_anchors, i);
 			svg_apply_text_anchor(tr_state, lw);
 		}
@@ -938,11 +964,11 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		tr_state->chunk_index = 0;
 
 		/*initialize current text position*/
-		if (!tr_state->text_end_x){
+		if (!tr_state->text_end_x) {
 			SVG_Coordinate *xc = (atts.text_x ? (SVG_Coordinate *) gf_list_get(*atts.text_x, 0) : NULL);
 			tr_state->text_end_x = (xc ? xc->value : 0);
 		}
-		if (!tr_state->text_end_y){
+		if (!tr_state->text_end_y) {
 			SVG_Coordinate *yc = (atts.text_y ? (SVG_Coordinate *) gf_list_get(*atts.text_y, 0) : NULL);
 			tr_state->text_end_y = (yc ? yc->value : 0);
 		}
@@ -951,9 +977,9 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		tr_state->text_x = atts.text_x;
 		tr_state->text_y = atts.text_y;
 		tr_state->text_rotate = atts.text_rotate;
-		
+
 		drawable_reset_path(st->drawable);
-		
+
 		/*switch to bounds mode, and recompute children*/
 		mode = tr_state->traversing_mode;
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
@@ -978,18 +1004,18 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		}
 		gf_list_del(tr_state->x_anchors);
 		tr_state->x_anchors = NULL;
-	
+
 		svg_update_bounds(st);
-	} 
+	}
 
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (!compositor_svg_is_display_off(tr_state->svg_props))
 			tr_state->bounds = st->bounds;
 
-	} else if ((tr_state->traversing_mode == TRAVERSE_SORT) 
-		&& !compositor_svg_is_display_off(tr_state->svg_props) 
-		&& (*(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) 
-		) {
+	} else if ((tr_state->traversing_mode == TRAVERSE_SORT)
+	           && !compositor_svg_is_display_off(tr_state->svg_props)
+	           && (*(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN)
+	          ) {
 		ctx = drawable_init_context_svg(st->drawable, tr_state);
 		if (ctx) svg_finalize_sort(ctx, st, tr_state);
 
@@ -998,10 +1024,10 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		while (child) {
 			switch  (gf_node_get_tag(child->node)) {
 			case TAG_SVG_tspan:
-				gf_node_traverse(child->node, tr_state); 
+				gf_node_traverse(child->node, tr_state);
 				break;
 			case TAG_SVG_switch:
-				gf_node_traverse(child->node, tr_state); 
+				gf_node_traverse(child->node, tr_state);
 				break;
 			}
 			child = child->next;
@@ -1030,7 +1056,7 @@ void compositor_init_svg_text(GF_Compositor *compositor, GF_Node *node)
 
 
 static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
-{	
+{
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	GF_Matrix2D backup_matrix;
@@ -1060,7 +1086,7 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		while (child) {
 			switch  (gf_node_get_tag(child->node)) {
 			case TAG_SVG_tspan:
-				gf_node_traverse(child->node, tr_state); 
+				gf_node_traverse(child->node, tr_state);
 				break;
 			}
 			child = child->next;
@@ -1075,7 +1101,7 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 
 	if (tr_state->traversing_mode==TRAVERSE_PICK) {
-		if (*tr_state->svg_props->pointer_events!=SVG_POINTEREVENTS_NONE) 
+		if (*tr_state->svg_props->pointer_events!=SVG_POINTEREVENTS_NONE)
 			gf_font_spans_pick(node, st->spans, tr_state, &st->bounds, 1, st->drawable);
 
 		/*and browse children*/
@@ -1083,7 +1109,7 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		while (child) {
 			switch  (gf_node_get_tag(child->node)) {
 			case TAG_SVG_tspan:
-				gf_node_traverse(child->node, tr_state); 
+				gf_node_traverse(child->node, tr_state);
 				break;
 			}
 			child = child->next;
@@ -1092,18 +1118,18 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		tr_state->svg_flags = backup_flags;
 		return;
 	}
-	
+
 	compositor_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
 
-	if ( (st->prev_size != tr_state->svg_props->font_size->value) || 
-		 (st->prev_flags != *tr_state->svg_props->font_style) || 
-		 (st->prev_anchor != *tr_state->svg_props->text_anchor) ||
-		 (gf_node_dirty_get(node) & (GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_CHILD_DIRTY) ) 
-	) {
+	if ( (st->prev_size != tr_state->svg_props->font_size->value) ||
+	        (st->prev_flags != *tr_state->svg_props->font_style) ||
+	        (st->prev_anchor != *tr_state->svg_props->text_anchor) ||
+	        (gf_node_dirty_get(node) & (GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_CHILD_DIRTY) )
+	   ) {
 		u32 mode;
-		
+
 		/*tspan has been modified in the SORT stage, which means that an anim local to tspan has modified the node.
-		The result of the parent (text, textArea) will thus be wrong if we try to update the tspan. We therefore 
+		The result of the parent (text, textArea) will thus be wrong if we try to update the tspan. We therefore
 		keep the previous computed drawable, and invalidate the parent for next frame*/
 		if (tr_state->traversing_mode==TRAVERSE_SORT) {
 			gf_node_dirty_set(node, 0, 1);
@@ -1120,16 +1146,16 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		while (child) {
 			switch  (gf_node_get_tag(child->node)) {
 			case TAG_DOMText:
-				svg_traverse_domtext(child->node, &atts, tr_state, st->spans, NULL); 
+				svg_traverse_domtext(child->node, &atts, tr_state, st->spans, NULL);
 				break;
 			case TAG_SVG_tspan:
 				gf_node_dirty_set(child->node, 0, 0);
-				gf_node_traverse(child->node, tr_state); 
+				gf_node_traverse(child->node, tr_state);
 				break;
 			case TAG_SVG_switch:
 			case TAG_SVG_a:
 			case TAG_SVG_tbreak:
-				gf_node_traverse(child->node, tr_state); 
+				gf_node_traverse(child->node, tr_state);
 				break;
 			default:
 				break;
@@ -1144,12 +1170,12 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		st->prev_anchor = *tr_state->svg_props->text_anchor;
 
 		svg_update_bounds(st);
-	} 
+	}
 skip_changes:
 
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (tr_state->refresh_children_bounds) {
-			if (tr_state->base_shift) 
+			if (tr_state->base_shift)
 				svg_text_area_shift_bounds(st, tr_state);
 			else
 				svg_update_bounds(st);
@@ -1159,7 +1185,7 @@ skip_changes:
 				case TAG_SVG_tspan:
 				case TAG_SVG_switch:
 				case TAG_SVG_a:
-					gf_node_traverse(child->node, tr_state); 
+					gf_node_traverse(child->node, tr_state);
 					break;
 				default:
 					break;
@@ -1170,14 +1196,14 @@ skip_changes:
 		if (!compositor_svg_is_display_off(tr_state->svg_props))
 			tr_state->bounds = st->bounds;
 
-	} 
+	}
 	else if (
-		(tr_state->traversing_mode == TRAVERSE_SORT) 
-		&& !compositor_svg_is_display_off(tr_state->svg_props) 
-		&& ( *(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) 
+	    (tr_state->traversing_mode == TRAVERSE_SORT)
+	    && !compositor_svg_is_display_off(tr_state->svg_props)
+	    && ( *(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN)
 	) {
 		child = ((GF_ParentNode *) tspan)->children;
-		
+
 		ctx = drawable_init_context_svg(st->drawable, tr_state);
 		if (ctx) svg_finalize_sort(ctx, st, tr_state);
 
@@ -1186,7 +1212,7 @@ skip_changes:
 			case TAG_SVG_tspan:
 			case TAG_SVG_switch:
 			case TAG_SVG_a:
-				gf_node_traverse(child->node, tr_state); 
+				gf_node_traverse(child->node, tr_state);
 				break;
 			default:
 				break;
@@ -1214,7 +1240,7 @@ void compositor_init_svg_tspan(GF_Compositor *compositor, GF_Node *node)
 
 
 static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
-{	
+{
 	SVGPropertiesPointers backup_props;
 	u32 backup_flags;
 	GF_Matrix mx3d;
@@ -1247,7 +1273,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 			switch  (gf_node_get_tag(child->node)) {
 			case TAG_SVG_tspan:
 			case TAG_SVG_a:
-				gf_node_traverse(child->node, tr_state); 
+				gf_node_traverse(child->node, tr_state);
 				break;
 			}
 			child = child->next;
@@ -1283,15 +1309,15 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 		tr_state->text_parent = NULL;
 		return;
 	}
-	
+
 	compositor_svg_apply_local_transformation(tr_state, &atts, &backup_matrix, &mx3d);
 
-	if ( (st->prev_size != tr_state->svg_props->font_size->value) || 
-		 (st->prev_flags != *tr_state->svg_props->font_style) || 
-		 (st->prev_anchor != *tr_state->svg_props->text_anchor) ||
-		 (gf_node_dirty_get(node) & (GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_CHILD_DIRTY) ) 
-		 || tr_state->visual->compositor->reset_fonts
-	) {
+	if ( (st->prev_size != tr_state->svg_props->font_size->value) ||
+	        (st->prev_flags != *tr_state->svg_props->font_style) ||
+	        (st->prev_anchor != *tr_state->svg_props->text_anchor) ||
+	        (gf_node_dirty_get(node) & (GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_CHILD_DIRTY) )
+	        || tr_state->visual->compositor->reset_fonts
+	   ) {
 		u32 mode;
 
 		child = ((GF_ParentNode *) text)->children;
@@ -1329,17 +1355,17 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 				c++;
 				switch  (gf_node_get_tag(child->node)) {
 				case TAG_DOMText:
-					svg_traverse_dom_text_area(child->node, &atts, tr_state, st->spans); 
+					svg_traverse_dom_text_area(child->node, &atts, tr_state, st->spans);
 					break;
 				case TAG_SVG_tspan:
 					/*mark tspan as dirty to force rebuild*/
 					gf_node_dirty_set(child->node, 0, 0);
-					gf_node_traverse(child->node, tr_state); 
+					gf_node_traverse(child->node, tr_state);
 					break;
 				case TAG_SVG_switch:
 				case TAG_SVG_a:
 				case TAG_SVG_tbreak:
-					gf_node_traverse(child->node, tr_state); 
+					gf_node_traverse(child->node, tr_state);
 					break;
 				default:
 					break;
@@ -1382,7 +1408,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 					tr_state->base_shift = remain;
 					svg_text_area_shift_bounds(st, tr_state);
 				}
-			} 
+			}
 
 			if (refresh_to_idx) {
 				tr_state->refresh_children_bounds=1;
@@ -1395,7 +1421,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 					case TAG_SVG_tspan:
 					case TAG_SVG_switch:
 					case TAG_SVG_a:
-						gf_node_traverse(child->node, tr_state); 
+						gf_node_traverse(child->node, tr_state);
 						break;
 					default:
 						break;
@@ -1410,19 +1436,19 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 			tr_state->refresh_children_bounds = prev_refresh;
 		}
 		svg_update_bounds(st);
-	} 
-	
+	}
+
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (!compositor_svg_is_display_off(tr_state->svg_props))
 			tr_state->bounds = st->bounds;
-	} else if ( (tr_state->traversing_mode == TRAVERSE_SORT) 
-			&& !compositor_svg_is_display_off(tr_state->svg_props) 
-			&& (*(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) 
-		) {
+	} else if ( (tr_state->traversing_mode == TRAVERSE_SORT)
+	            && !compositor_svg_is_display_off(tr_state->svg_props)
+	            && (*(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN)
+	          ) {
 
 		ctx = drawable_init_context_svg(st->drawable, tr_state);
 		if (ctx) svg_finalize_sort(ctx, st, tr_state);
-		
+
 		child = ((GF_ParentNode *) text)->children;
 		while (child) {
 			switch  (gf_node_get_tag(child->node)) {
@@ -1431,7 +1457,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 			case TAG_SVG_tspan:
 			case TAG_SVG_switch:
 			case TAG_SVG_a:
-				gf_node_traverse(child->node, tr_state); 
+				gf_node_traverse(child->node, tr_state);
 				break;
 			default:
 				break;

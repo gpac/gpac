@@ -52,19 +52,37 @@ END_MESSAGE_MAP()
 // COptions message handlers
 
 
-void COptions::OnSelchangeCombosel() 
+void COptions::OnSelchangeCombosel()
 {
 	HideAll();
 	switch (m_Selection.GetCurSel()) {
-	case 0: m_general.ShowWindow(SW_SHOW); break;
-	case 1: m_systems.ShowWindow(SW_SHOW); break;
-	case 2: m_decoder.ShowWindow(SW_SHOW); break;
-	case 3: m_render.ShowWindow(SW_SHOW); break;
-	case 4: m_render3D.ShowWindow(SW_SHOW); break;
-	case 5: m_audio.ShowWindow(SW_SHOW); break;
-	case 6: m_font.ShowWindow(SW_SHOW); break;
-	case 7: m_http.ShowWindow(SW_SHOW); break;
-	case 8: m_stream.ShowWindow(SW_SHOW); break;
+	case 0:
+		m_general.ShowWindow(SW_SHOW);
+		break;
+	case 1:
+		m_systems.ShowWindow(SW_SHOW);
+		break;
+	case 2:
+		m_decoder.ShowWindow(SW_SHOW);
+		break;
+	case 3:
+		m_render.ShowWindow(SW_SHOW);
+		break;
+	case 4:
+		m_render3D.ShowWindow(SW_SHOW);
+		break;
+	case 5:
+		m_audio.ShowWindow(SW_SHOW);
+		break;
+	case 6:
+		m_font.ShowWindow(SW_SHOW);
+		break;
+	case 7:
+		m_http.ShowWindow(SW_SHOW);
+		break;
+	case 8:
+		m_stream.ShowWindow(SW_SHOW);
+		break;
 	}
 }
 
@@ -81,10 +99,10 @@ void COptions::HideAll()
 	m_decoder.ShowWindow(SW_HIDE);
 }
 
-BOOL COptions::OnInitDialog() 
+BOOL COptions::OnInitDialog()
 {
 	CDialog::OnInitDialog();
-	
+
 	m_general.Create(IDD_OPT_GEN, this);
 	m_systems.Create(IDD_OPT_SYSTEMS, this);
 	m_decoder.Create(IDD_OPT_DECODER, this);
@@ -113,10 +131,10 @@ BOOL COptions::OnInitDialog()
 	OnSelchangeCombosel();
 
 	SetFocus();
-	return TRUE;  
+	return TRUE;
 }
 
-void COptions::OnSaveopt() 
+void COptions::OnSaveopt()
 {
 	m_general.SaveOptions();
 	m_systems.SaveOptions();
@@ -132,7 +150,7 @@ void COptions::OnSaveopt()
 	gf_term_set_option(gpac->m_term, GF_OPT_RELOAD_CONFIG, 1);
 }
 
-void COptions::OnOK() 
+void COptions::OnOK()
 {
 	char str[20];
 	sprintf(str, "%d", m_Selection.GetCurSel());
@@ -175,7 +193,7 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // COptAudio message handlers
 
-BOOL COptAudio::OnInitDialog() 
+BOOL COptAudio::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
@@ -213,7 +231,7 @@ BOOL COptAudio::OnInitDialog()
 	} else {
 		m_AudioResync.SetCheck(0);
 	}
-	
+
 	/*driver enum*/
 	while (m_DriverList.GetCount()) m_DriverList.DeleteString(0);
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Audio", "DriverName");
@@ -231,9 +249,9 @@ BOOL COptAudio::OnInitDialog()
 		to_sel++;
 	}
 	m_DriverList.SetCurSel(select);
-	
-	
-	return TRUE;  
+
+
+	return TRUE;
 }
 
 
@@ -259,7 +277,7 @@ void COptAudio::SaveOptions()
 
 }
 
-void COptAudio::OnForceAudio() 
+void COptAudio::OnForceAudio()
 {
 	BOOL en = m_ForceConfig.GetCheck();
 
@@ -274,7 +292,7 @@ COptDecoder::COptDecoder(CWnd* pParent /*=NULL*/)
 	: CDialog(COptDecoder::IDD, pParent)
 {
 	//{{AFX_DATA_INIT(COptDecoder)
-		// NOTE: the ClassWizard will add member initialization here
+	// NOTE: the ClassWizard will add member initialization here
 	//}}AFX_DATA_INIT
 }
 
@@ -297,11 +315,11 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // COptDecoder message handlers
 
-BOOL COptDecoder::OnInitDialog() 
+BOOL COptDecoder::OnInitDialog()
 {
 	u32 i;
 	CDialog::OnInitDialog();
-	
+
 	COsmo4 *gpac = GetApp();
 	const char *sOpt;
 
@@ -393,13 +411,13 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // COptFont message handlers
 
-BOOL COptFont::OnInitDialog() 
+BOOL COptFont::OnInitDialog()
 {
 	u32 i;
 	GF_BaseInterface *ifce;
-	
+
 	CDialog::OnInitDialog();
-	
+
 	COsmo4 *gpac = GetApp();
 	TCHAR wTmp[500];
 	const char *sOpt;
@@ -420,7 +438,7 @@ BOOL COptFont::OnInitDialog()
 		to_sel++;
 	}
 	m_Fonts.SetCurSel(select);
-	
+
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "FontEngine", "FontDirectory");
 	CE_CharToWide((char *)sOpt, (u16 *)wTmp);
@@ -429,10 +447,10 @@ BOOL COptFont::OnInitDialog()
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "TextureTextMode");
 	m_UseTexture.SetCheck( (!sOpt || stricmp(sOpt, "Never")) ? 1 : 0);
 
-	return TRUE;  
+	return TRUE;
 }
 
-void COptFont::OnBrowseFont() 
+void COptFont::OnBrowseFont()
 {
 
 }
@@ -443,7 +461,7 @@ void COptFont::SaveOptions()
 	COsmo4 *gpac = GetApp();
 	char str[MAX_PATH];
 	TCHAR wstr[MAX_PATH];
-		
+
 	m_Fonts.GetWindowText(wstr, 50);
 	CE_WideToChar((u16 *)wstr, str);
 	gf_cfg_set_key(gpac->m_user.config, "FontEngine", "FontReader", str);
@@ -486,12 +504,12 @@ END_MESSAGE_MAP()
 
 
 
-BOOL COptGen::OnInitDialog() 
+BOOL COptGen::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	COsmo4 *gpac = GetApp();
 	const char *sOpt;
-	
+
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "Loop");
 	if (sOpt && !stricmp(sOpt, "yes")) {
 		m_Loop.SetCheck(1);
@@ -505,7 +523,7 @@ BOOL COptGen::OnInitDialog()
 
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "Logs");
 	m_Logs.SetCheck((sOpt && !strstr(sOpt, "none")) ? 1 : 0);
-	return TRUE; 
+	return TRUE;
 }
 
 void COptGen::SaveOptions()
@@ -522,7 +540,7 @@ void COptGen::SaveOptions()
 	gpac->EnableLogs(m_Logs.GetCheck() ? 1 : 0);
 }
 
-void COptGen::OnFileassoc() 
+void COptGen::OnFileassoc()
 {
 	HKEY hSection;
 	TCHAR szDir[MAX_PATH];
@@ -532,11 +550,11 @@ void COptGen::OnFileassoc()
 	DWORD dwDisp;
 
 	RegOpenKeyEx(HKEY_LOCAL_MACHINE, _T("SOFTWARE\\Osmo4"), 0, KEY_READ, &hSection);
-	
+
 	GetModuleFileName(NULL, szDir, MAX_PATH);
 
 	while (szDir[strlen((char *) szDir)-1] != (TCHAR) '\\') szDir[strlen((char *) szDir)-1] = 0;
-	if (!hSection) 
+	if (!hSection)
 		RegCreateKeyEx(HKEY_LOCAL_MACHINE, _T("SOFTWARE\\Osmo4"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hSection, &dwDisp);
 
 	CE_WideToChar((u16 *)szDir, szTemp);
@@ -600,15 +618,15 @@ END_MESSAGE_MAP()
 // COptHTTP message handlers
 
 
-void COptHTTP::OnBrowseCache() 
+void COptHTTP::OnBrowseCache()
 {
 
 }
 
-BOOL COptHTTP::OnInitDialog() 
+BOOL COptHTTP::OnInitDialog()
 {
 	CDialog::OnInitDialog();
-	
+
 	COsmo4 *gpac = GetApp();
 	TCHAR wTmp[500];
 	const char *sOpt;
@@ -631,9 +649,9 @@ BOOL COptHTTP::OnInitDialog()
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "General", "CacheDirectory");
 	CE_CharToWide((char *) sOpt, (u16 *)wTmp);
 	if (sOpt) m_CacheDir.SetWindowText(wTmp);
-	
+
 	OnProgressive();
-	return TRUE; 
+	return TRUE;
 }
 
 void COptHTTP::OnProgressive()
@@ -695,7 +713,7 @@ END_MESSAGE_MAP()
 
 
 #define NUM_RATES 11
-static char *BIFSRates[11] = 
+static char *BIFSRates[11] =
 {
 	"5.0",
 	"7.5",
@@ -712,13 +730,13 @@ static char *BIFSRates[11] =
 
 
 
-BOOL COptRender::OnInitDialog() 
+BOOL COptRender::OnInitDialog()
 {
 	CDialog::OnInitDialog();
-	
+
 	COsmo4 *gpac = GetApp();
 	const char *sOpt;
-	
+
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "DirectDraw");
 	if (sOpt && !stricmp(sOpt, "yes")) {
 		m_DirectRender.SetCheck(1);
@@ -749,10 +767,10 @@ BOOL COptRender::OnInitDialog()
 		if (sOpt && !stricmp(sOpt, BIFSRates[i]) ) select = i;
 	}
 	m_BIFSRate.SetCurSel(select);
-	
+
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "HighSpeed");
 	m_HighSpeed.SetCheck((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	
+
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "AntiAlias");
 	while (m_Antialias.GetCount()) m_Antialias.DeleteString(0);
 
@@ -764,7 +782,7 @@ BOOL COptRender::OnInitDialog()
 	else if (sOpt && !stricmp(sOpt, "None")) select = 0;
 	m_Antialias.SetCurSel(select);
 
-	return TRUE;  
+	return TRUE;
 }
 
 
@@ -813,10 +831,10 @@ BEGIN_MESSAGE_MAP(COptRender3D, CDialog)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
-BOOL COptRender3D::OnInitDialog() 
+BOOL COptRender3D::OnInitDialog()
 {
 	CDialog::OnInitDialog();
-	
+
 	COsmo4 *gpac = GetApp();
 	const char *sOpt;
 
@@ -848,7 +866,7 @@ BOOL COptRender3D::OnInitDialog()
 	else if (sOpt && !stricmp(sOpt, "PerVertex")) m_DrawNormals.SetCurSel(2);
 	else m_DrawNormals.SetCurSel(0);
 
-	return TRUE;  
+	return TRUE;
 }
 
 
@@ -858,7 +876,7 @@ void COptRender3D::SaveOptions()
 
 	u32 sel = m_DrawNormals.GetCurSel();
 	gf_cfg_set_key(gpac->m_user.config, "Compositor", "DrawNormals", (sel==2) ? "PerVertex" : (sel==1) ? "PerFace" : "Never");
-	
+
 	sel = m_WireMode.GetCurSel();
 	gf_cfg_set_key(gpac->m_user.config, "Compositor", "Wireframe", (sel==2) ? "WireOnSolid" : (sel==1) ? "WireOnly" : "WireNone");
 
@@ -903,7 +921,7 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // COptStream message handlers
 
-BOOL COptStream::OnInitDialog() 
+BOOL COptStream::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
@@ -989,11 +1007,11 @@ BOOL COptStream::OnInitDialog()
 		m_RebufferLen.EnableWindow(0);
 	}
 
-	return TRUE;  
+	return TRUE;
 }
 
 
-void COptStream::OnSelchangePort() 
+void COptStream::OnSelchangePort()
 {
 	s32 sel = m_Port.GetCurSel();
 	switch (sel) {
@@ -1014,7 +1032,7 @@ void COptStream::OnSelchangePort()
 	}
 }
 
-void COptStream::OnRtsp() 
+void COptStream::OnRtsp()
 {
 	if (m_UseRTSP.GetCheck()) {
 		m_Reorder.SetCheck(0);
@@ -1023,7 +1041,7 @@ void COptStream::OnRtsp()
 		m_Reorder.SetCheck(1);
 		m_Reorder.EnableWindow(1);
 	}
-	
+
 }
 
 void COptStream::CheckRebuffer()
@@ -1044,7 +1062,7 @@ void COptStream::CheckRebuffer()
 	}
 }
 
-void COptStream::OnRebuffer() 
+void COptStream::OnRebuffer()
 {
 	if (!m_Rebuffer.GetCheck()) {
 		m_RebufferLen.EnableWindow(0);
@@ -1054,14 +1072,14 @@ void COptStream::OnRebuffer()
 	}
 }
 
-void COptStream::OnUpdateRebufferLen() 
+void COptStream::OnUpdateRebufferLen()
 {
 	CheckRebuffer();
 }
 
-void COptStream::OnUpdateBuffer() 
+void COptStream::OnUpdateBuffer()
 {
-	CheckRebuffer();	
+	CheckRebuffer();
 }
 
 void COptStream::SaveOptions()
@@ -1118,7 +1136,7 @@ COptSystems::COptSystems(CWnd* pParent /*=NULL*/)
 	: CDialog(COptSystems::IDD, pParent)
 {
 	//{{AFX_DATA_INIT(COptSystems)
-		// NOTE: the ClassWizard will add member initialization here
+	// NOTE: the ClassWizard will add member initialization here
 	//}}AFX_DATA_INIT
 }
 
@@ -1145,10 +1163,10 @@ END_MESSAGE_MAP()
 
 
 
-BOOL COptSystems::OnInitDialog() 
+BOOL COptSystems::OnInitDialog()
 {
 	CDialog::OnInitDialog();
-	
+
 	COsmo4 *gpac = GetApp();
 	const char *sOpt;
 
@@ -1169,7 +1187,7 @@ BOOL COptSystems::OnInitDialog()
 	}
 	m_Lang.SetCurSel(select);
 
-	
+
 	/*system config*/
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Systems", "ThreadingPolicy");
 	select = 0;
@@ -1195,8 +1213,8 @@ BOOL COptSystems::OnInitDialog()
 		m_BifsAlwaysDrawn.SetCheck(0);
 	}
 
-	
-	return TRUE; 
+
+	return TRUE;
 }
 
 

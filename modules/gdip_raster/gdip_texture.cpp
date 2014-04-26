@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -135,62 +135,63 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 		GdipCreateBitmapFromScan0(_sten->width, _sten->height, 0, pFormat, NULL, &_sten->pBitmap);
 		ptr = pixels;
 		for (j=0; j<_sten->height; j++) {
-		for (i=0; i<_sten->width; i++) {
-			switch (pixelFormat) {
-			case GF_PIXEL_GREYSCALE:
-				r = *ptr++;
-				col = GF_COL_ARGB(255, r, r, r);
-				break;
-			case GF_PIXEL_ALPHAGREY:
-				r = *ptr++;
-				a = *ptr++;
-				col = GF_COL_ARGB(a, r, r, r);
-				break;
-			case GF_PIXEL_RGB_555:
-				val = * (unsigned short *) (ptr);
-				ptr+= 2;
-				col = COL_555(val);
-				break;
-			case GF_PIXEL_RGB_565:
-				val = * (unsigned short *) (ptr);
-				ptr+= 2;
-				col = COL_565(val);
-				break;
-			/*scan0 uses bgr...*/
-			case GF_PIXEL_BGR_24:
-			case GF_PIXEL_RGB_24:
-				r = *ptr++;
-				g = *ptr++;
-				b = *ptr++;
-				if (!isBGR) {
-					col = GF_COL_ARGB(255, b, g, r);
-				} else {
-					col = GF_COL_ARGB(255, r, g, b);
+			for (i=0; i<_sten->width; i++) {
+				switch (pixelFormat) {
+				case GF_PIXEL_GREYSCALE:
+					r = *ptr++;
+					col = GF_COL_ARGB(255, r, r, r);
+					break;
+				case GF_PIXEL_ALPHAGREY:
+					r = *ptr++;
+					a = *ptr++;
+					col = GF_COL_ARGB(a, r, r, r);
+					break;
+				case GF_PIXEL_RGB_555:
+					val = * (unsigned short *) (ptr);
+					ptr+= 2;
+					col = COL_555(val);
+					break;
+				case GF_PIXEL_RGB_565:
+					val = * (unsigned short *) (ptr);
+					ptr+= 2;
+					col = COL_565(val);
+					break;
+				/*scan0 uses bgr...*/
+				case GF_PIXEL_BGR_24:
+				case GF_PIXEL_RGB_24:
+					r = *ptr++;
+					g = *ptr++;
+					b = *ptr++;
+					if (!isBGR) {
+						col = GF_COL_ARGB(255, b, g, r);
+					} else {
+						col = GF_COL_ARGB(255, r, g, b);
+					}
+					break;
+				/*NOTE: we assume little-endian only for GDIplus platforms, so BGRA/BGRX*/
+				case GF_PIXEL_RGB_32:
+				case GF_PIXEL_ARGB:
+					b = *ptr++;
+					g = *ptr++;
+					r = *ptr++;
+					a = *ptr++;
+					if (pixelFormat==GF_PIXEL_RGB_32) a = 0xFF;
+					col = GF_COL_ARGB(a, r, g, b);
+					break;
+				case GF_PIXEL_RGBA:
+					r = *ptr++;
+					g = *ptr++;
+					b = *ptr++;
+					a = *ptr++;
+					col = GF_COL_ARGB(a, r, g, b);
+					break;
+				default:
+					col = GF_COL_ARGB(255, 255, 255, 255);
+					break;
 				}
-				break;
-			/*NOTE: we assume little-endian only for GDIplus platforms, so BGRA/BGRX*/
-			case GF_PIXEL_RGB_32:
-			case GF_PIXEL_ARGB:
-				b = *ptr++;
-				g = *ptr++;
-				r = *ptr++;
-				a = *ptr++;
-				if (pixelFormat==GF_PIXEL_RGB_32) a = 0xFF;
-				col = GF_COL_ARGB(a, r, g, b);
-				break;
-			case GF_PIXEL_RGBA:
-				r = *ptr++;
-				g = *ptr++;
-				b = *ptr++;
-				a = *ptr++;
-				col = GF_COL_ARGB(a, r, g, b);
-				break;
-			default:
-				col = GF_COL_ARGB(255, 255, 255, 255);
-				break;
+				GdipBitmapSetPixel(_sten->pBitmap, i, j, col);
 			}
-			GdipBitmapSetPixel(_sten->pBitmap, i, j, col);
-		}}
+		}
 	}
 
 	return GF_OK;

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -34,7 +34,7 @@ extern "C" {
 #endif
 
 /*
-	OD Browsing API - YOU MUST INCLUDE <gpac/terminal.h> before 
+	OD Browsing API - YOU MUST INCLUDE <gpac/terminal.h> before
 	(this has been separated from terminal.h to limit dependency of core to mpeg4_odf.h header)
 	ALL ITEMS ARE READ-ONLY AND SHALL NOT BE MODIFIED
 */
@@ -67,7 +67,7 @@ typedef struct
 	/*if set, the PL flags are valid*/
 	Bool has_profiles;
 	Bool inline_pl;
-	u8 OD_pl; 
+	u8 OD_pl;
 	u8 scene_pl;
 	u8 audio_pl;
 	u8 visual_pl;
@@ -124,7 +124,7 @@ typedef struct
 /*fills the GF_MediaInfo structure describing the OD manager*/
 GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_MediaInfo *info);
 /*gets current downloads info for the service - only use if ODM owns thesrevice, returns 0 otherwise.
-	@d_enum: in/out current enum - shall start to 0, incremented at each call. fct returns 0 if no more 
+	@d_enum: in/out current enum - shall start to 0, incremented at each call. fct returns 0 if no more
 	downloads
 	@server: server name
 	@path: file/data location on server
@@ -141,11 +141,11 @@ Bool gf_term_get_channel_net_info(GF_Terminal *term, GF_ObjectManager *odm, u32 
 typedef struct __netinfocom NetInfoCommand;
 GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, NetInfoCommand *netcom);
 
-/*retrieves world info of the scene @od belongs to. 
+/*retrieves world info of the scene @od belongs to.
 If @odm is or points to an inlined OD the world info of the inlined content is retrieved
 If @odm is NULL the world info of the main scene is retrieved
 returns NULL if no WorldInfo available
-returns world title if available 
+returns world title if available
 @descriptions: any textual descriptions is stored here
   strings are not allocated
 */

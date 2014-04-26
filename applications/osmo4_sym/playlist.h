@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2006-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -68,12 +68,16 @@ public:
 	TInt CountComponentControls() const;
 	CCoeControl* ComponentControl(TInt aIndex) const;
 	void Draw(const TRect& aRect) const;
-	
+
 	void ShowHide(Bool show);
 	Bool SelectionIsFile();
 	Bool IsInPlaylist();
-	Bool PlaylistMode() { return playlist_mode; }
-	Bool ViewAllFiles() { return view_all_files; }
+	Bool PlaylistMode() {
+		return playlist_mode;
+	}
+	Bool ViewAllFiles() {
+		return view_all_files;
+	}
 
 	void PlaylistAct(Osmo4_PLActions act);
 
@@ -82,8 +86,8 @@ public:
 #endif
 
 private:
-    void ConstructL(const TRect& aRect, GF_User *user);
-    CPlaylist();
+	void ConstructL(const TRect& aRect, GF_User *user);
+	CPlaylist();
 
 
 #ifdef USE_SKIN
@@ -99,7 +103,7 @@ private:
 	void GetSelectionName(char *name);
 	void RefreshPlaylist();
 
-	char szCurrentDir[1024];	
+	char szCurrentDir[1024];
 	CEikTextListBox* iListBox;
 	Bool playlist_mode;
 	Bool view_all_files;

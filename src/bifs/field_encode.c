@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -27,8 +27,8 @@
 
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/internal/bifs_tables.h>
-#include "quant.h" 
-#include "script.h" 
+#include "quant.h"
+#include "script.h"
 
 #ifndef GPAC_DISABLE_BIFS_ENC
 
@@ -55,7 +55,7 @@ void BE_WriteSFFloat(GF_BifsEncoder *codec, Fixed val, GF_BitStream *bs, char *c
 		gf_bifs_enc_mantissa_float(codec, val, bs);
 	} else {
 		gf_bs_write_float(bs, FIX2FLT(val));
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] SFFloat\t\t32\t\t%g\t\t%s\n", FIX2FLT(val), com ? com : "") );	
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] SFFloat\t\t32\t\t%g\t\t%s\n", FIX2FLT(val), com ? com : "") );
 	}
 }
 
@@ -132,7 +132,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		BE_WriteSFFloat(codec, ((SFVec2f *)field->far_ptr)->x, bs, "vec2f.x");
 		BE_WriteSFFloat(codec, ((SFVec2f *)field->far_ptr)->y, bs, "vec2f.y");
 		break;
-	
+
 	case GF_SG_VRML_SFVEC3F:
 		BE_WriteSFFloat(codec, ((SFVec3f *)field->far_ptr)->x, bs, "vec3f.x");
 		BE_WriteSFFloat(codec, ((SFVec3f *)field->far_ptr)->y, bs, "vec3f.y");
@@ -154,7 +154,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] string\t\t%d\t\t%s\t\t//SFURL\n", 8*len, url->url));
 		}
 	}
-		break;
+	break;
 	case GF_SG_VRML_SFIMAGE:
 	{
 		u32 size, i;
@@ -166,7 +166,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		for (i=0; i<size; i++) gf_bs_write_int(bs, img->pixels[i], 8);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] pixels\t\t%d\t\tnot dumped\t\t//SFImage\n", 8*size));
 	}
-		break;
+	break;
 
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 	{
@@ -193,7 +193,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			GF_BIFS_WRITE_INT(codec, bs, 0, 5, "NbBits", NULL);
 		}
 	}
-		break;
+	break;
 
 	case GF_SG_VRML_SFNODE:
 		return gf_bifs_enc_node(codec, *((GF_Node **)field->far_ptr), field->NDTtype, bs);
@@ -211,11 +211,11 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		SFAttrRef *ar = (SFAttrRef *)field->far_ptr;
 		u32 nbBitsDEF = gf_get_bit_size(gf_node_get_num_fields_in_mode(ar->node, GF_SG_FIELD_CODING_DEF) - 1);
 		GF_BIFS_WRITE_INT(codec, bs, gf_node_get_id(ar->node) - 1, codec->info->config.NodeIDBits, "NodeID", NULL);
-			
+
 		gf_bifs_field_index_by_mode(ar->node, ar->fieldIndex, GF_SG_FIELD_CODING_DEF, &idx);
 		GF_BIFS_WRITE_INT(codec, bs, idx, nbBitsDEF, "field", NULL);
 	}
-		break;
+	break;
 	default:
 		return GF_NOT_SUPPORTED;
 	}
@@ -231,7 +231,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	Bool use_list, qp_on, initial_qp;
 	u32 nbF, i;
 	GF_FieldInfo sffield;
-		
+
 	nbF = 0;
 	if (field->fieldType != GF_SG_VRML_MFNODE) {
 		nbF = field->far_ptr ? ((GenMFField *)field->far_ptr)->count : 0;
@@ -291,7 +291,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			}
 			list = list->next;
 		}
-		
+
 		if (e) return e;
 
 		if (qp_on && qp_local) {
@@ -314,9 +314,9 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 GF_Err gf_bifs_enc_field(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field)
 {
 	assert(node);
-	if (field->fieldType == GF_SG_VRML_UNKNOWN) 
+	if (field->fieldType == GF_SG_VRML_UNKNOWN)
 		return GF_NON_COMPLIANT_BITSTREAM;
-	
+
 	if (gf_sg_vrml_is_sf_field(field->fieldType)) {
 		return gf_bifs_enc_sf_field(codec, bs, node, field);
 	}
@@ -393,7 +393,7 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 		clone = gf_node_new(node->sgprivate->scenegraph, node->sgprivate->tag);
 	}
 	if (clone) gf_node_register(clone, NULL);
-	
+
 	numBitsDEF = gf_get_bit_size(gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF) - 1);
 
 	enc_fields = (s32*)gf_malloc(sizeof(s32) * count);
@@ -423,23 +423,36 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 		/*if field is default skip*/
 		switch (field.fieldType) {
 		case GF_SG_VRML_SFNODE:
-			if (* (GF_Node **) field.far_ptr) { enc_fields[i] = allInd; nbFinal++; }
+			if (* (GF_Node **) field.far_ptr) {
+				enc_fields[i] = allInd;
+				nbFinal++;
+			}
 			break;
 		case GF_SG_VRML_MFNODE:
-			if (* (GF_ChildNodeItem **) field.far_ptr) { enc_fields[i] = allInd; nbFinal++; }
+			if (* (GF_ChildNodeItem **) field.far_ptr) {
+				enc_fields[i] = allInd;
+				nbFinal++;
+			}
 			break;
 		case GF_SG_VRML_SFCOMMANDBUFFER:
 		{
 			SFCommandBuffer *cb = (SFCommandBuffer *)field.far_ptr;
-			if (gf_list_count(cb->commandList)) { enc_fields[i] = allInd; nbFinal++; }
+			if (gf_list_count(cb->commandList)) {
+				enc_fields[i] = allInd;
+				nbFinal++;
+			}
 		}
-			break;
+		break;
 		case GF_SG_VRML_MFSCRIPT:
-			enc_fields[i] = allInd; nbFinal++;
+			enc_fields[i] = allInd;
+			nbFinal++;
 			break;
 		default:
 			gf_node_get_field(clone, allInd, &clone_field);
-			if (!gf_sg_vrml_field_equal(clone_field.far_ptr, field.far_ptr, field.fieldType)) { enc_fields[i] = allInd; nbFinal++; }
+			if (!gf_sg_vrml_field_equal(clone_field.far_ptr, field.far_ptr, field.fieldType)) {
+				enc_fields[i] = allInd;
+				nbFinal++;
+			}
 			break;
 		}
 	}
@@ -456,7 +469,7 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 		use_list = 1;
 	}
 	/*number of bits in mask node is count*1, in list node is 1+nbFinal*(1+numBitsDEF) */
-	else if (count < 1+nbFinal*(1+numBitsDEF)) 
+	else if (count < 1+nbFinal*(1+numBitsDEF))
 		use_list = 0;
 
 	GF_BIFS_WRITE_INT(codec, bs, use_list ? 0 : 1, 1, "isMask", NULL);
@@ -555,9 +568,9 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	if (flag) {
 		gf_bs_write_int(bs, gf_node_get_id(node) - 1, codec->info->config.NodeIDBits);
 		new_node = gf_bifs_enc_find_node(codec, gf_node_get_id(node) );
-		if (!new_node) 
+		if (!new_node)
 			return codec->LastError = GF_SG_UNKNOWN_NODE;
-		
+
 		/*restore QP14 length*/
 		switch (gf_node_get_tag(new_node)) {
 		case TAG_MPEG4_Coordinate:
@@ -567,7 +580,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 			gf_bifs_enc_qp14_set_length(codec, nbCoord);
 			gf_bifs_enc_qp14_enter(codec, 0);
 		}
-			break;
+		break;
 		case TAG_MPEG4_Coordinate2D:
 		{
 			u32 nbCoord = ((M_Coordinate2D *)new_node)->point.count;
@@ -575,7 +588,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 			gf_bifs_enc_qp14_set_length(codec, nbCoord);
 			gf_bifs_enc_qp14_enter(codec, 0);
 		}
-			break;
+		break;
 		}
 		return GF_OK;
 	}
@@ -622,7 +635,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	e = EncNodeFields(codec, bs, node);
 	if (e) return e;
 
-	if (codec->coord_stored && reset_qp14) 
+	if (codec->coord_stored && reset_qp14)
 		gf_bifs_enc_qp14_reset(codec);
 
 	switch (node_tag) {

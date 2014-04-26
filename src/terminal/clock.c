@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC scene distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -154,8 +154,8 @@ void gf_clock_reset(GF_Clock *ck)
 	ck->clock_init = 0;
 	ck->drift = 0;
 	ck->discontinuity_time = 0;
-	//do NOT reset buffering flag, because RESET scene called only 
-	//for the stream owning the clock, and other streams may 
+	//do NOT reset buffering flag, because RESET scene called only
+	//for the stream owning the clock, and other streams may
 	//have signaled buffering on this clock
 	ck->init_time = 0;
 	ck->StartTime = 0;
@@ -208,7 +208,7 @@ void gf_clock_resume(GF_Clock *ck)
 		assert(!ck->Buffering);
 	}
 	ck->Paused -= 1;
-	if (!ck->Paused) 
+	if (!ck->Paused)
 		ck->StartTime += gf_term_get_time(ck->term) - ck->PauseTime;
 	gf_mx_v(ck->mx);
 }
@@ -319,7 +319,7 @@ void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontin
 					gf_es_reset_buffers(ch);
 					ch->IsClockInit = 0;
 					gf_term_lock_codec(odm->codec, GF_FALSE, GF_FALSE);
-					
+
 					GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] Reinitializing timing for ES%d\n", ch->esd->ESID));
 				}
 

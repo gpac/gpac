@@ -13,7 +13,7 @@ GF_Err PNC_InitRTP(GF_RTPChannel **chan, char *dest, int port, unsigned short mt
 	res = gf_rtp_set_ports(*chan, 0);
 	if (res) {
 		fprintf(stderr, "Cannot set RTP ports: %s\n", gf_error_to_string(res));
-		gf_rtp_del(*chan);		
+		gf_rtp_del(*chan);
 		return res;
 	}
 
@@ -56,16 +56,16 @@ GF_Err PNC_InitRTP(GF_RTPChannel **chan, char *dest, int port, unsigned short mt
 GF_Err PNC_SendRTP(PNC_CallbackData *data, char *payload, int payloadSize)
 {
 	GF_Err e;
-	unsigned char feedback_buffer[250];	
-	
-	if (!data->hdr->TimeStamp) 
+	unsigned char feedback_buffer[250];
+
+	if (!data->hdr->TimeStamp)
 		data->hdr->TimeStamp = ((PNC_CallbackExt * )data->extension)->lastTS;
 
 	((PNC_CallbackExt * )data->extension)->lastTS = data->hdr->TimeStamp;
-	
+
 	e = gf_rtp_send_packet(data->chan, data->hdr, payload, payloadSize, 0);
 	dprintf(DEBUG_RTP_serv_sender, "SendPacket : %d, TimeStamp RTP = %d, sz= %d\n",
-			e, data->hdr->TimeStamp, payloadSize);
+	        e, data->hdr->TimeStamp, payloadSize);
 
 	// sending feedback bytes
 	memset(feedback_buffer, 0, sizeof(feedback_buffer));
@@ -77,7 +77,7 @@ GF_Err PNC_SendRTP(PNC_CallbackData *data, char *payload, int payloadSize)
 }
 
 GF_Err PNC_CloseRTP(GF_RTPChannel *chan)
-{ 
+{
 	gf_rtp_del(chan);
 	return GF_OK;
 }

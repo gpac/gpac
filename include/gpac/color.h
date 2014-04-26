@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -56,10 +56,10 @@ typedef struct
 	u32 width;
 	/*!Height of the video framebuffer */
 	u32 height;
-	/*!Horizontal pitch of the video framebuffer (number of bytes to skip to go to next (right) pixel in the buffer). May be 
+	/*!Horizontal pitch of the video framebuffer (number of bytes to skip to go to next (right) pixel in the buffer). May be
 	negative for some framebuffers (embedded devices). 0 means linear frame buffer (pitch_x==bytes per pixel)*/
 	s32 pitch_x;
-	/*!Vertical pitch of the video framebuffer (number of bytes to skip to go down one line in the buffer). May be 
+	/*!Vertical pitch of the video framebuffer (number of bytes to skip to go down one line in the buffer). May be
 	negative for some framebuffers (embedded devices)*/
 	s32 pitch_y;
 	/*!Pixel format of the video framebuffer*/
@@ -146,12 +146,12 @@ typedef u32 GF_Color;
 
 /*!Inits a color matrix to identity*/
 void gf_cmx_init(GF_ColorMatrix *_this);
-/*!Inits all coefficients of a color matrix 
+/*!Inits all coefficients of a color matrix
  *\param _this color matrix to initialize
  *\param coefs list of the 20 fixed numbers to copy
 */
 void gf_cmx_set_all(GF_ColorMatrix *_this, Fixed *coefs);
-/*!Inits all coefficients of a color matrix 
+/*!Inits all coefficients of a color matrix
  *\param _this color matrix to initialize
  *\param mrr red-to-red multiplication factor
  *\param mrg red-to-green multiplication factor
@@ -174,11 +174,11 @@ void gf_cmx_set_all(GF_ColorMatrix *_this, Fixed *coefs);
  *\param maa alpha-to-alpha multiplication factor
  *\param ta alpha translation factor
 */
-void gf_cmx_set(GF_ColorMatrix *_this, 
-				 Fixed mrr, Fixed mrg, Fixed mrb, Fixed mra, Fixed tr,
-				 Fixed mgr, Fixed mgg, Fixed mgb, Fixed mga, Fixed tg,
-				 Fixed mbr, Fixed mbg, Fixed mbb, Fixed mba, Fixed tb,
-				 Fixed mar, Fixed mag, Fixed mab, Fixed maa, Fixed ta);
+void gf_cmx_set(GF_ColorMatrix *_this,
+                Fixed mrr, Fixed mrg, Fixed mrb, Fixed mra, Fixed tr,
+                Fixed mgr, Fixed mgg, Fixed mgb, Fixed mga, Fixed tg,
+                Fixed mbr, Fixed mbg, Fixed mbb, Fixed mba, Fixed tb,
+                Fixed mar, Fixed mag, Fixed mab, Fixed maa, Fixed ta);
 /*!Inits a matrix from another matrix
  *\param _this color matrix to initialize
  *\param from color matrix to copy from
@@ -249,8 +249,8 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
  * Software stretch of source surface ont destination surface.
  *\param vs_dst destination surface
  *\param pY source Y plane
- *\param pU source U plane. if NULL, the U plane is located after the Y plane 
- *\param pV source V plane. if NULL, the V plane is located after the U plane 
+ *\param pU source U plane. if NULL, the U plane is located after the Y plane
+ *\param pV source V plane. if NULL, the V plane is located after the U plane
  *\param src_stride source stride in bytes
  *\param src_width source width in pixels
  *\param src_height source height in pixels

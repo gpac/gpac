@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -50,7 +50,7 @@ typedef struct
 	u16 Length;
 	/*sync source identifier*/
 	u32 SSRC;
-} GF_RTCPHeader;	
+} GF_RTCPHeader;
 
 
 typedef struct __PRO_item
@@ -94,12 +94,12 @@ struct __tag_rtp_channel
 {
 	/*global transport info for the session*/
 	GF_RTSPTransport net_info;
-	
+
 	/*RTP CHANNEL*/
 	GF_Socket *rtp;
 	/*RTCP CHANNEL*/
 	GF_Socket *rtcp;
-	
+
 	/*RTP Packet reordering. Turned on/off during initialization. The library forces a 200 ms
 	max latency at the reordering queue*/
 	GF_RTPReorder *po;
@@ -111,7 +111,7 @@ struct __tag_rtp_channel
 	/*NAT keep-alive*/
 	u32 last_nat_keepalive_time, nat_keepalive_time_period;
 
-	
+
 	/*the seq number of the first packet as signaled by the server if any, or first
 	RTP SN received (RTP multicast)*/
 	u32 rtp_first_SN;
@@ -156,7 +156,7 @@ struct __tag_rtp_channel
 	u32 last_num_pck_rcv, last_num_pck_expected, last_num_pck_loss;
 	/*jitter compute*/
 	u32 Jitter, ntp_init;
-	s32 last_deviance;	
+	s32 last_deviance;
 	/*NTP of last SR*/
 	u32 last_SR_NTP_sec, last_SR_NTP_frac;
 	/*RTP time at last SR as indicated in SR*/
@@ -190,12 +190,12 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 	}	\
 	strcpy(buf+pos, (const char *) str);		\
 	pos += (u32) strlen((const char *) str); \
-
+ 
 #define RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, str)		\
 	if (str){	\
 		RTSP_WRITE_ALLOC_STR_WITHOUT_CHECK(buf, buf_size, pos, str);	\
 	}	\
-		
+	
 #define RTSP_WRITE_HEADER(buf, buf_size, pos, type, str)		\
 	if( str ) {	\
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, type);		\
@@ -203,7 +203,7 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, str);		\
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, "\r\n");	\
 	}	\
-
+ 
 #define RTSP_WRITE_INT(buf, buf_size, pos, d, sig)		\
 	if (sig < 0) { \
 		sprintf(temp, "%d", d);		\
@@ -238,7 +238,7 @@ typedef struct
 struct _tag_rtsp_session
 {
 	/*service name (extracted from URL) ex: news/latenight.mp4, vod.mp4 ...*/
-	char *Service;	
+	char *Service;
 	/*server name (extracted from URL)*/
 	char *Server;
 	/*server port (extracted from URL)*/
@@ -278,7 +278,7 @@ struct _tag_rtsp_session
 
 	/*RTSP interleaving*/
 	GF_Err (*RTSP_SignalData)(GF_RTSPSession *sess, void *chan, char *buffer, u32 bufferSize, Bool IsRTCP);
-	
+
 	/*buffer for pck reconstruction*/
 	char *rtsp_pck_buf;
 	u32 rtsp_pck_size;
@@ -289,7 +289,7 @@ struct _tag_rtsp_session
 	/*thread-safe, full duplex library for PLAY and RECORD*/
 	GF_Mutex *mx;
 
-	char *MobileIP;	
+	char *MobileIP;
 };
 
 GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort);
@@ -299,7 +299,7 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess);
 /*send data on RTSP*/
 GF_Err gf_rtsp_send_data(GF_RTSPSession *sess, char *buffer, u32 Size);
 
-/* 
+/*
 			Common RTSP tools
 */
 
@@ -335,7 +335,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_qcelp(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
-GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration); 
+GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration);
 GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration);
 GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);

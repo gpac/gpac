@@ -1,7 +1,7 @@
 /*
  *					GPAC Multimedia Framework
  *
- *			Authors: Cyril Concolato 
+ *			Authors: Cyril Concolato
  *			Copyright (c) Telecom ParisTech 2013-
  *					All rights reserved
  *
@@ -51,13 +51,13 @@ typedef struct {
 	   0 if no dependency */
 	u32 base_es_id;
 
-	/* file_name of the VTT file when parsing a input text file 
+	/* file_name of the VTT file when parsing a input text file
 	   not used when parsing from MP4 or from a stream */
 	char *file_name;
 	u64 file_size;
 	u64 file_pos;
 
-	/* config of the VTT file when parsing an MP4 file 
+	/* config of the VTT file when parsing an MP4 file
 	   not used when parsing from text file or from a stream */
 	char *config;
 
@@ -96,7 +96,7 @@ static Bool vtt_check_download(VTTDec *vttdec)
 
 
 static GF_Err VTT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength,
-							  u16 ES_ID, u32 stream_time, u32 mmlevel)
+                              u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
 	VTTDec *vttdec = (VTTDec *)plug->privateStack;
@@ -127,23 +127,23 @@ static GF_Err VTT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 		break;
 
 	case GPAC_OTI_SCENE_VTT_MP4:
-		{ 
-			char start[100], end[100];
-			GF_List *cues;
-			cues = gf_webvtt_parse_cues_from_data(inBuffer, inBufferLength, 0);
-			gf_webvtt_js_removeCues(vttdec->sg->RootNode);
-			if (gf_list_count(cues)) {
-				while (gf_list_count(cues)) {
-					GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, 0);
-					gf_list_rem(cues, 0);
-					sprintf(start, "%02d:%02d:%02d.%03d", cue->start.hour, cue->start.min, cue->start.sec, cue->start.ms);
-					sprintf(end, "%02d:%02d:%02d.%03d", cue->end.hour, cue->end.min, cue->end.sec, cue->end.ms);
-					gf_webvtt_js_addCue(vttdec->sg->RootNode, cue->id, start, end, cue->settings, cue->text);
-				}
-			} 
-			gf_list_del(cues);
+	{
+		char start[100], end[100];
+		GF_List *cues;
+		cues = gf_webvtt_parse_cues_from_data(inBuffer, inBufferLength, 0);
+		gf_webvtt_js_removeCues(vttdec->sg->RootNode);
+		if (gf_list_count(cues)) {
+			while (gf_list_count(cues)) {
+				GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, 0);
+				gf_list_rem(cues, 0);
+				sprintf(start, "%02d:%02d:%02d.%03d", cue->start.hour, cue->start.min, cue->start.sec, cue->start.ms);
+				sprintf(end, "%02d:%02d:%02d.%03d", cue->end.hour, cue->end.min, cue->end.sec, cue->end.ms);
+				gf_webvtt_js_addCue(vttdec->sg->RootNode, cue->id, start, end, cue->settings, cue->text);
+			}
 		}
-		break;
+		gf_list_del(cues);
+	}
+	break;
 
 	default:
 		return GF_BAD_PARAM;
@@ -266,7 +266,7 @@ static void VTT_ReadConfigFromDSI(VTTDec *vttdec, GF_DefaultDescriptor *dsi)
 		vttdec->config = ((GF_StringBox *)b)->string;
 		((GF_StringBox *)b)->string = NULL;
 		gf_isom_box_del(b);
-	} 
+	}
 	gf_bs_del(bs);
 }
 
@@ -331,7 +331,7 @@ static u32 VTT_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd
 		case GPAC_OTI_SCENE_VTT:
 		case GPAC_OTI_SCENE_VTT_MP4:
 			return GF_CODEC_SUPPORTED;
-		default:	
+		default:
 			return GF_CODEC_NOT_SUPPORTED;
 		}
 	}

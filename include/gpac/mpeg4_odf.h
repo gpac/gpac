@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -60,10 +60,10 @@ enum
 	GF_ODF_ISOM_OD_TAG		= 0x11,
 	GF_ODF_ISOM_IPI_PTR_TAG	= 0x12,
 	/*END FILE FORMAT RESERVED*/
-	
+
 	GF_ODF_EXT_PL_TAG		= 0x13,
 	GF_ODF_PL_IDX_TAG		= 0x14,
-	
+
 	GF_ODF_ISO_BEGIN_TAG	= 0x15,
 	GF_ODF_ISO_END_TAG		= 0x3F,
 
@@ -87,7 +87,7 @@ enum
 
 	GF_ODF_ISO_RES_BEGIN_TAG	= 0x62,
 	GF_ODF_ISO_RES_END_TAG		= 0xBF,
-	
+
 	GF_ODF_USER_BEGIN_TAG	= 0xC0,
 
 	/*internal descriptor for mux input description*/
@@ -132,7 +132,7 @@ typedef struct
 } GF_Descriptor;
 
 
-/*	default descriptor. 
+/*	default descriptor.
 	NOTE: The decoderSpecificInfo is used as a default desc with tag 0x05 */
 typedef struct
 {
@@ -161,7 +161,7 @@ typedef struct
 	GF_List *extensionDescriptors;
 	/*MPEG-2 (or other service mux formats) service ID*/
 	u16 ServiceID;
-	/*pointer to the service interface (GF_InputService) of the service having declared the object 
+	/*pointer to the service interface (GF_InputService) of the service having declared the object
 	only used for DASH*/
 	void *service_ifce;
 } GF_ObjectDescriptor;
@@ -181,7 +181,7 @@ typedef struct
 	GF_List *extensionDescriptors;
 	/*MPEG-2 (or other service mux formats) service ID*/
 	u16 ServiceID;
-	/*pointer to the service interface (GF_InputService) of the service having declared the object 
+	/*pointer to the service interface (GF_InputService) of the service having declared the object
 	only used for DASH*/
 	void *service_ifce;
 
@@ -256,7 +256,7 @@ typedef struct
 	u32 maxBitrate;
 	u32 avgBitrate;
 	GF_DefaultDescriptor *decoderSpecificInfo;
-	
+
 	/*placeholder for RVC decoder config if any*/
 	u16 predefined_rvc_config;
 	GF_DefaultDescriptor *rvc_config;
@@ -277,7 +277,7 @@ typedef struct {
 	u8 contentType;
 	u8 contentIdentifierType;
 	/*international code string*/
-	char *contentIdentifier;	
+	char *contentIdentifier;
 } GF_CIDesc;
 
 /*Supplementary Content Identification Descriptor)*/
@@ -299,7 +299,7 @@ typedef struct {
 	BASE_DESCRIPTOR
 	u8 IPMP_DescriptorID;
 	u16 IPMP_DescriptorIDEx;
-	u16 IPMP_ES_ID;	
+	u16 IPMP_ES_ID;
 } GF_IPMPPtr;
 
 /*IPMPX control points*/
@@ -315,7 +315,7 @@ enum
 	IPMP_CP_CM = 3,
 	/*control point in BIFS tree (???)*/
 	IPMP_CP_BIFS = 4
-	/*the rest is reserved or forbidden(0xFF)*/
+	               /*the rest is reserved or forbidden(0xFF)*/
 };
 
 /*IPMPX base classe*/
@@ -323,8 +323,8 @@ enum
 	u8 tag;	\
 	u8 version;	\
 	u32 dataID;	\
-
-typedef struct 
+ 
+typedef struct
 {
 	GF_IPMPX_BASE
 } GF_GF_IPMPX_Base;
@@ -693,7 +693,7 @@ typedef struct
 	GF_Registration *RegDescriptor;
 	/*0 or 1 lang desc*/
 	GF_Language *langDesc;
-	
+
 	GF_List *IPIDataSet;
 	GF_List *IPMPDescriptorPointers;
 	GF_List *extensionDescriptors;
@@ -856,18 +856,18 @@ typedef struct
 {
 	u16 size;
 	char *data;
-    /* used of AVC/SVC detection */
-    s32 id;
+	/* used of AVC/SVC detection */
+	s32 id;
 } GF_AVCConfigSlot;
 
-typedef struct 
+typedef struct
 {
 	u8 configurationVersion;
 	u8 AVCProfileIndication;
 	u8 profile_compatibility;
-	u8 AVCLevelIndication; 
+	u8 AVCLevelIndication;
 	u8 nal_unit_size;
-	
+
 	GF_List *sequenceParameterSets;
 	GF_List *pictureParameterSets;
 
@@ -893,7 +893,7 @@ typedef struct
 } GF_HEVCParamArray;
 
 
-typedef struct 
+typedef struct
 {
 	u8 configurationVersion;
 	u8 profile_space;
@@ -919,7 +919,7 @@ typedef struct
 	u8 temporalIdNested;
 
 	u8 nal_unit_size;
-	
+
 	GF_List *param_array;
 
 	//set by libisomedia at import/export time
@@ -974,7 +974,7 @@ enum
 
 	GF_ODF_COM_ISO_BEGIN_TAG		= 0x0D,
 	GF_ODF_COM_ISO_END_TAG		= 0xBF,
-	
+
 	GF_ODF_COM_USER_BEGIN_TAG	= 0xC0,
 	GF_ODF_COM_USER_END_TAG		= 0xFE
 };
@@ -1065,7 +1065,7 @@ GF_ODCodec *gf_odf_codec_new();
 void gf_odf_codec_del(GF_ODCodec *codec);
 /* add a command to the codec command list. */
 GF_Err gf_odf_codec_add_com(GF_ODCodec *codec, GF_ODCom *command);
-/*encode the current command list - once called the commands are removed or destroyed depending on @cleanup_type: 
+/*encode the current command list - once called the commands are removed or destroyed depending on @cleanup_type:
 	0: commands are removed from the list but not destroyed
 	1: commands are removed from the list and destroyed
 	2: commands are kept in the list and not destroyed
@@ -1077,7 +1077,7 @@ GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, char **outAU, u32 *au_length);
 GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, const char *au, u32 au_length);
 /*decode the previously set-up AU*/
 GF_Err gf_odf_codec_decode(GF_ODCodec *codec);
-/*get the first OD command in the list. Once called, the command is removed 
+/*get the first OD command in the list. Once called, the command is removed
 from the command list. Return NULL when commandList is empty*/
 GF_ODCom *gf_odf_codec_get_com(GF_ODCodec *codec);
 
@@ -1102,7 +1102,7 @@ GF_Err gf_odf_com_del(GF_ODCom **com);
 GF_Descriptor *gf_odf_desc_new(u8 tag);
 void gf_odf_desc_del(GF_Descriptor *desc);
 
-/*this is a helper for building a preformatted GF_ESD with decoderConfig, decoderSpecificInfo with no data and 
+/*this is a helper for building a preformatted GF_ESD with decoderConfig, decoderSpecificInfo with no data and
 SLConfig descriptor with predefined*/
 GF_ESD *gf_odf_desc_esd_new(u32 sl_predefined);
 
@@ -1139,7 +1139,7 @@ GF_Err gf_odf_desc_list_del(GF_List *descList);
 /*use this function to decode a standalone descriptor
 the raw descriptor MUST be formatted with tag and size field!!!
 a new desc is created and you must delete it when done*/
-GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor * *outDesc);
+GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor **outDesc);
 
 /*use this function to encode a standalone descriptor
 the desc will be formatted with tag and size field
@@ -1155,7 +1155,7 @@ GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc);
 
 /*This functions handles internally what desc can be added to another desc
 and adds it. NO DUPLICATION of the descriptor, so
-once a desc is added to its parent, destroying the parent WILL DESTROY 
+once a desc is added to its parent, destroying the parent WILL DESTROY
 this descriptor*/
 GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc);
 
@@ -1236,12 +1236,12 @@ OCICodec *gf_oci_codec_new(u8 IsEncoder, u8 Version);
 void gf_oci_codec_del(OCICodec *codec);
 
 /*				ENCODER FUNCTIONS
-add a command to the codec event list. 
+add a command to the codec event list.
 The event WILL BE DESTROYED BY THE CODEC after encoding*/
 GF_Err gf_oci_codec_add_event(OCICodec *codec, OCIEvent *event);
 
 /*encode AU. The memory allocation is done in place
-WARNING: once this function called, the codec event List is empty 
+WARNING: once this function called, the codec event List is empty
 and events destroyed
 you must set *outAU = NULL*/
 GF_Err gf_oci_codec_encode(OCICodec *codec, char **outAU, u32 *au_length);
@@ -1252,7 +1252,7 @@ GF_Err gf_oci_codec_encode(OCICodec *codec, char **outAU, u32 *au_length);
 the input buffer is cleared once decoded*/
 GF_Err gf_oci_codec_decode(OCICodec *codec, char *au, u32 au_length);
 
-/*get the first OCI Event in the list. Once called, the event is removed 
+/*get the first OCI Event in the list. Once called, the event is removed
 from the event list. Return NULL when the event List is empty
 you MUST delete events */
 OCIEvent *gf_oci_codec_get_event(OCICodec *codec);
@@ -1319,7 +1319,7 @@ typedef struct
 /*IPMPX authentication descriptors*/
 #define GF_IPMPX_AUTH_DESC	\
 	u8 tag;	\
-
+ 
 typedef struct
 {
 	GF_IPMPX_AUTH_DESC
@@ -1350,7 +1350,7 @@ typedef struct
 
 
 /*IPMP data messages*/
-enum 
+enum
 {
 	GF_IPMPX_OPAQUE_DATA_TAG = 0x01,
 	GF_IPMPX_AUDIO_WM_INIT_TAG = 0x02,
@@ -1383,7 +1383,7 @@ enum
 	GF_IPMPX_TOOL_API_CONFIG_TAG = 0x1C,
 
 	/*ISMA*/
-	GF_IPMPX_ISMACRYP_TAG = 0xD0, 
+	GF_IPMPX_ISMACRYP_TAG = 0xD0,
 
 	/*intern ones for parsing (not real datas)*/
 	GF_IPMPX_TRUSTED_TOOL_TAG = 0xA1,
@@ -1403,7 +1403,7 @@ typedef char GF_IPMPX_Date[5];
 	u8 tag;	\
 	u8 Version;	\
 	u8 dataID;	\
-
+ 
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1430,7 +1430,7 @@ typedef struct
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
-	bin128 toolID;	
+	bin128 toolID;
 	GF_IPMPX_Date AuditDate;
 	GF_List *trustSpecifications;
 } GF_IPMPX_TrustedTool;
@@ -1609,7 +1609,7 @@ typedef struct
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
-	GF_IPMPX_ByteArray *rightsInfo;	
+	GF_IPMPX_ByteArray *rightsInfo;
 } GF_IPMPX_RightsData;
 
 
@@ -1617,22 +1617,22 @@ typedef struct
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
-	bin128 cipher_Id; 
+	bin128 cipher_Id;
 	u8 syncBoundary;
 	/*block mode if stream cypher info is NULL*/
-	u8 mode;  
+	u8 mode;
 	u16 blockSize;
 	u16 keySize;
-	GF_IPMPX_ByteArray *Stream_Cipher_Specific_Init_Info; 
+	GF_IPMPX_ByteArray *Stream_Cipher_Specific_Init_Info;
 } GF_IPMPX_SelEncBuffer;
 
 /*not a real GF_IPMPX_Data in spec, but emulated as if for parsing*/
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
-	u8 field_Id; 
+	u8 field_Id;
 	u8 field_Scope;
-	u8 buf; 
+	u8 buf;
 
 	u16 mappingTableSize;
 	u16 *mappingTable;
@@ -1645,7 +1645,7 @@ enum
 {
 	GF_IPMPX_SE_MT_ISO_IEC = 0x00,
 	GF_IPMPX_SE_MT_ITU = 0x01
-	/*the rest is reserved or forbidden*/
+	                     /*the rest is reserved or forbidden*/
 };
 
 /*compliance*/
@@ -1659,12 +1659,12 @@ enum
 	/*0x05-2F	ISO Reserved for video*/
 	GF_IPMPX_SE_COMP_AAC_DF = 0x30,
 	GF_IPMPX_SE_COMP_AAC_NONE = 0x31
-	/*
-	0x32 -  0x5F	ISO Reserved for audio
-	0x60 - 0xCF	ISO Reserved
-	0xD0 - 0xFE	User Defined
-	0xFF	Forbidden
-	*/
+	                            /*
+	                            0x32 -  0x5F	ISO Reserved for audio
+	                            0x60 - 0xCF	ISO Reserved
+	                            0xD0 - 0xFE	User Defined
+	                            0xFF	Forbidden
+	                            */
 };
 
 /*syncBoundary*/
@@ -1675,11 +1675,11 @@ enum
 	GF_IPMPX_SE_SYNC_VIDEO_GOV = 0x02,
 	/*0x03-2F	ISO Reserved for video,*/
 	GF_IPMPX_SE_SYNC_AAC_DF = 0x30
-	/*0x31 -  0x5F	ISO Reserved for audio
-	0x60 - 0xCF	ISO Reserved
-	0xD0 - 0xFE	User Defined
-	0xFF	Forbidden
-	*/
+	                          /*0x31 -  0x5F	ISO Reserved for audio
+	                          0x60 - 0xCF	ISO Reserved
+	                          0xD0 - 0xFE	User Defined
+	                          0xFF	Forbidden
+	                          */
 };
 
 /*field_Id*/
@@ -1695,19 +1695,19 @@ enum
 	GF_IPMPX_SE_FID_AAC_SIGN = 0x30,
 	GF_IPMPX_SE_FID_AAC_CODEWORDS = 0x31,
 	GF_IPMPX_SE_FID_AAC_SCALE = 0x32
-	/*0x32 -  0x5F	ISO Reserved for audio
-	0x60 - 0xCF	ISO Reserved
-	0xD0 - 0xFE	User Defined
-	0xFF	Forbidden*/
+	                            /*0x32 -  0x5F	ISO Reserved for audio
+	                            0x60 - 0xCF	ISO Reserved
+	                            0xD0 - 0xFE	User Defined
+	                            0xFF	Forbidden*/
 };
 
 
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
-	u8 mediaTypeExtension; 
+	u8 mediaTypeExtension;
 	u8 mediaTypeIndication;
-	u8 profileLevelIndication; 
+	u8 profileLevelIndication;
 	u8 compliance;
 
 	GF_List *SelEncBuffer;
@@ -1753,7 +1753,7 @@ typedef struct
 	char *wmPayload;
 
 	u16 wmRecipientId;
-	
+
 	u32 opaqueDataSize;
 	char *opaqueData;
 } GF_IPMPX_WatermarkingInit;

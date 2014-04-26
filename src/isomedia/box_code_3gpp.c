@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -175,7 +175,7 @@ GF_Err gppc_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->cfg.AMR_mode_change_period = gf_bs_read_u8(bs);
 		ptr->cfg.frames_per_sample = gf_bs_read_u8(bs);
 		break;
-	case GF_ISOM_BOX_TYPE_DEVC: 
+	case GF_ISOM_BOX_TYPE_DEVC:
 	case GF_ISOM_BOX_TYPE_DQCP:
 	case GF_ISOM_BOX_TYPE_DSMV:
 		ptr->cfg.frames_per_sample = gf_bs_read_u8(bs);
@@ -253,7 +253,7 @@ void ftab_del(GF_Box *s)
 	GF_FontTableBox *ptr = (GF_FontTableBox *)s;
 	if (ptr->fonts) {
 		u32 i;
-		for (i=0; i<ptr->entry_count; i++) 
+		for (i=0; i<ptr->entry_count; i++)
 			if (ptr->fonts[i].fontName) gf_free(ptr->fonts[i].fontName);
 		gf_free(ptr->fonts);
 	}
@@ -342,7 +342,7 @@ GF_Box *tx3g_New()
 void tx3g_del(GF_Box *s)
 {
 	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
-	
+
 	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
 
 	if (ptr->font_table)
@@ -358,9 +358,12 @@ static u32 gpp_read_rgba(GF_BitStream *bs)
 	g = gf_bs_read_u8(bs);
 	b = gf_bs_read_u8(bs);
 	a = gf_bs_read_u8(bs);
-	col = a; col<<=8; 
-	col |= r; col<<=8; 
-	col |= g; col<<=8; 
+	col = a;
+	col<<=8;
+	col |= r;
+	col<<=8;
+	col |= g;
+	col<<=8;
 	col |= b;
 	return col;
 }
@@ -1015,7 +1018,7 @@ GF_Err tsel_Read(GF_Box *s,GF_BitStream *bs)
 	ptr->attributeListCount = (u32)ptr->size/4;
 	ptr->attributeList = gf_malloc(ptr->attributeListCount*sizeof(u32));
 	if (ptr->attributeList == NULL) return GF_OUT_OF_MEM;
-	
+
 	for (i=0; i< ptr->attributeListCount; i++) {
 		ptr->attributeList[i] = gf_bs_read_u32(bs);
 	}
@@ -1037,7 +1040,7 @@ GF_Err tsel_Write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	u32 i;
 	GF_TrackSelectionBox *ptr = (GF_TrackSelectionBox *) s;
-	
+
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	gf_bs_write_u32(bs,ptr->switchGroup);
@@ -1045,7 +1048,7 @@ GF_Err tsel_Write(GF_Box *s, GF_BitStream *bs)
 	for (i = 0; i < ptr->attributeListCount; i++ ) {
 		gf_bs_write_u32(bs, ptr->attributeList[i]);
 	}
-	
+
 	return GF_OK;
 }
 
@@ -1091,7 +1094,7 @@ GF_Err dimC_Read(GF_Box *s, GF_BitStream *bs)
 	p->streamType = gf_bs_read_int(bs, 1);
 	p->containsRedundant = gf_bs_read_int(bs, 2);
 	s->size -= 3;
-	
+
 	i=0;
 	str[0]=0;
 	while (1) {
@@ -1220,15 +1223,15 @@ static GF_Err dims_AddBox(GF_Box *s, GF_Box *a)
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_DIMC:
 		if (ptr->config) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->config = (GF_DIMSSceneConfigBox*)a;
+			ptr->config = (GF_DIMSSceneConfigBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_DIST:
 		if (ptr->scripts) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->scripts = (GF_DIMSScriptTypesBox*)a;
+			ptr->scripts = (GF_DIMSScriptTypesBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_BTRT:
 		if (ptr->bitrate) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->bitrate = (GF_MPEG4BitRateBox*)a;
+			ptr->bitrate = (GF_MPEG4BitRateBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_SINF:
 		gf_list_add(ptr->protections, a);
@@ -1276,19 +1279,19 @@ GF_Err dims_Size(GF_Box *s)
 	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox *)s;
 	if (e) return e;
 	s->size += 8;
-	
+
 	if (p->config) {
-		e = gf_isom_box_size((GF_Box *) p->config); 
+		e = gf_isom_box_size((GF_Box *) p->config);
 		if (e) return e;
 		p->size += p->config->size;
 	}
 	if (p->bitrate) {
-		e = gf_isom_box_size((GF_Box *) p->bitrate); 
+		e = gf_isom_box_size((GF_Box *) p->bitrate);
 		if (e) return e;
 		p->size += p->bitrate->size;
 	}
 	if (p->scripts) {
-		e = gf_isom_box_size((GF_Box *) p->scripts); 
+		e = gf_isom_box_size((GF_Box *) p->scripts);
 		if (e) return e;
 		p->size += p->scripts->size;
 	}

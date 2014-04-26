@@ -1,25 +1,25 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2009-2012
  *			All rights reserved
  *
- *  This file is part of GPAC / Platinum UPnP module 
+ *  This file is part of GPAC / Platinum UPnP module
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *
  *	----------------------------------------------------------------------------------
@@ -37,37 +37,37 @@ void upnp_delete(GF_BaseInterface *ifce);
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
-    
-    GPAC_MODULE_EXPORT
-    const u32 *QueryInterfaces() 
-    {
-        static u32 si [] = {
-            GF_TERM_EXT_INTERFACE,
-            0
-        };
-        return si; 
-    }
-    
-    GPAC_MODULE_EXPORT
-    GF_BaseInterface *LoadInterface(u32 InterfaceType) 
-    {
-        if (InterfaceType == GF_TERM_EXT_INTERFACE) return (GF_BaseInterface *)upnp_new();
-        return NULL;
-    }
-    
-    GPAC_MODULE_EXPORT
-    void ShutdownInterface(GF_BaseInterface *ifce)
-    {
-        switch (ifce->InterfaceType) {
-            case GF_TERM_EXT_INTERFACE:
-                upnp_delete(ifce);
-                break;
-        }
-    }
-    
-    GPAC_MODULE_STATIC_DELARATION( platinum )
-    
+
+
+GPAC_MODULE_EXPORT
+const u32 *QueryInterfaces()
+{
+	static u32 si [] = {
+		GF_TERM_EXT_INTERFACE,
+		0
+	};
+	return si;
+}
+
+GPAC_MODULE_EXPORT
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
+{
+	if (InterfaceType == GF_TERM_EXT_INTERFACE) return (GF_BaseInterface *)upnp_new();
+	return NULL;
+}
+
+GPAC_MODULE_EXPORT
+void ShutdownInterface(GF_BaseInterface *ifce)
+{
+	switch (ifce->InterfaceType) {
+	case GF_TERM_EXT_INTERFACE:
+		upnp_delete(ifce);
+		break;
+	}
+}
+
+GPAC_MODULE_STATIC_DELARATION( platinum )
+
 #ifdef __cplusplus
 }
 #endif
@@ -92,12 +92,12 @@ extern "C" {
 GF_UPnP::GF_UPnP()
 {
 	m_pTerm = NULL;
-    m_pPlatinum = NULL;
+	m_pPlatinum = NULL;
 	m_pMediaRenderer = NULL;
 	m_pMediaServer = NULL;
 	m_pAVCtrlPoint = NULL;
 	m_renderer_bound = GF_FALSE;
-	m_pGenericController = NULL;	
+	m_pGenericController = NULL;
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 	m_Devices = NULL;
@@ -177,7 +177,7 @@ NPT_String GF_UPnP::OnMigrate()
 }
 
 #ifdef GPAC_HAS_SPIDERMONKEY
-jsval GF_UPnP::GetUPnPDevice(const char *src_url) 
+jsval GF_UPnP::GetUPnPDevice(const char *src_url)
 {
 	return src_url ? STRING_TO_JSVAL( JS_NewStringCopyZ(m_pJSCtx, src_url ) ) : JSVAL_NULL;
 }
@@ -242,8 +242,8 @@ void GF_UPnP::OnSeek(Double time)
 	} else {
 		/* CanSeek and Duration set for each media by event_proc */
 		if (!m_pTerm->root_scene || (m_pTerm->root_scene->root_od->flags & GF_ODM_NO_TIME_CTRL)
-			|| (m_pTerm->root_scene->duration<2000)
-		) {
+		        || (m_pTerm->root_scene->duration<2000)
+		   ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] Scene not seekable\n"));
 		} else {
 			gf_term_play_from_time(m_pTerm, (u64) (time * 1000), 0);
@@ -308,7 +308,7 @@ Bool GF_UPnP::ProcessEvent(GF_Event *evt)
 		break;
 
 	case GF_EVENT_DURATION:
-			m_pMediaRenderer->SetDuration(evt->duration.duration, evt->duration.can_seek);
+		m_pMediaRenderer->SetDuration(evt->duration.duration, evt->duration.can_seek);
 	case GF_EVENT_METADATA:
 		if (m_pTerm->root_scene) {
 			char szName[1024];
@@ -318,8 +318,15 @@ Bool GF_UPnP::ProcessEvent(GF_Event *evt)
 			/*get any service info*/
 			if (gf_term_get_service_info(m_pTerm, m_pTerm->root_scene->root_od, &com) == GF_OK) {
 				strcpy(szName, "");
-				if (com.name) { strcat(szName, com.name); strcat(szName, " "); }
-				if (com.album) { strcat(szName, "("); strcat(szName, com.album); strcat(szName, ")"); }
+				if (com.name) {
+					strcat(szName, com.name);
+					strcat(szName, " ");
+				}
+				if (com.album) {
+					strcat(szName, "(");
+					strcat(szName, com.album);
+					strcat(szName, ")");
+				}
 
 				/*const char *artist = "Unknown";
 				if (com.artist) artist = com.artist;
@@ -382,7 +389,7 @@ void GF_UPnP::Load(GF_Terminal *term)
 
 	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "SaveUUIDs");
 	if (opt && !strcmp(opt, "yes")) save_uuids = GF_TRUE;
-	
+
 	opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaRendererEnabled");
 	if (!opt || !strcmp(opt, "yes")) {
 		if (!opt) gf_cfg_set_key(m_pTerm->user->config, "UPnP", "MediaRendererEnabled", "yes");
@@ -392,7 +399,7 @@ void GF_UPnP::Load(GF_Terminal *term)
 			sprintf(friendly_name, "GPAC @ %s", hostname);
 			name = friendly_name;
 		}
-		
+
 		port = 0;
 		opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaRendererPort");
 		if (opt) port = atoi(opt);
@@ -428,7 +435,7 @@ void GF_UPnP::Load(GF_Terminal *term)
 			sprintf(friendly_name, "GPAC @ %s", hostname);
 			name = friendly_name;
 		}
-		
+
 		port = 0;
 		opt = gf_cfg_get_key(m_pTerm->user->config, "UPnP", "MediaServerPort");
 		if (opt) port = atoi(opt);
@@ -467,7 +474,7 @@ void GF_UPnP::Load(GF_Terminal *term)
 				media_root = sep2+1;
 			}
 		}
-	    PLT_DeviceHostReference device(m_pMediaServer);
+		PLT_DeviceHostReference device(m_pMediaServer);
 		device->m_ModelDescription = "GPAC Media Server";
 		device->m_ModelURL = "http://gpac.sourceforge.net";
 		device->m_ModelNumber = GPAC_FULL_VERSION;
@@ -499,7 +506,7 @@ void GF_UPnP::Load(GF_Terminal *term)
 		m_pAVCtrlPoint = new GPAC_MediaController(m_ctrlPtRef, this);
 	}
 
-	// add control point to upnp engine 
+	// add control point to upnp engine
 	if (m_pCtrlPoint) {
 		if (ignore_local_devices) {
 			if (m_pMediaServer) m_pCtrlPoint->IgnoreUUID(m_pMediaServer->GetUUID());
@@ -514,7 +521,7 @@ void GF_UPnP::Load(GF_Terminal *term)
 
 	//start UPnP engine
 	m_pPlatinum->Start();
-	
+
 	/*if we have a control point, force a rescan of the network servcies*/
 	if (m_pCtrlPoint) {
 		m_pCtrlPoint->Search();
@@ -530,7 +537,7 @@ void GF_UPnP::Unload()
 	delete m_pPlatinum;
 
 	/*final cleanup of UPnP lib*/
-    NPT_AutomaticCleaner::Shutdown();
+	NPT_AutomaticCleaner::Shutdown();
 }
 
 
@@ -551,7 +558,7 @@ void GF_UPnP::OnMediaRendererAdd(PLT_DeviceDataReference& device, int added)
 		argv[0] = STRING_TO_JSVAL( JS_NewStringCopyZ(m_pJSCtx, device->GetFriendlyName() ) );
 		argv[1] = STRING_TO_JSVAL( JS_NewStringCopyZ(m_pJSCtx, device->GetUUID() ) );
 		argv[2] = BOOLEAN_TO_JSVAL( added ? JS_TRUE : JS_FALSE);
-		
+
 		JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 3, argv, &rval);
 	}
 	LockJavascript(GF_FALSE);
@@ -572,7 +579,7 @@ void GF_UPnP::OnMediaServerAdd(PLT_DeviceDataReference& device, int added)
 		argv[0] = STRING_TO_JSVAL( JS_NewStringCopyZ(m_pJSCtx, device->GetFriendlyName() ) );
 		argv[1] = STRING_TO_JSVAL( JS_NewStringCopyZ(m_pJSCtx, device->GetUUID() ) );
 		argv[2] = BOOLEAN_TO_JSVAL( added ? JS_TRUE : JS_FALSE);
-		
+
 		JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 3, argv, &rval);
 	}
 	LockJavascript(GF_FALSE);
@@ -610,14 +617,14 @@ static SMJS_DECL_FUNC_PROP_GET(  upnpdevice_getProperty)
 		}
 		VPASSIGN( INT_TO_JSVAL(count)  );
 	}
-	SMJS_FREE(c, prop_name);	
+	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
 
 #ifdef GPAC_UNUSED_FUNC
 static JSBool upnp_device_subscribe(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-    PLT_Service* service;
+	PLT_Service* service;
 	char *service_uuid;
 	GPAC_DeviceItem *item = (GPAC_DeviceItem *)SMJS_GET_PRIVATE(c, obj);
 	if (!item || (argc!=2) ) return JS_FALSE;
@@ -911,7 +918,7 @@ static JSBool SMJS_FUNCTION(upnp_renderer_open)
 		if (!JS_LookupProperty(c, fobj, "ObjectID", &val) || JSVAL_IS_NULL(val) || !JSVAL_IS_STRING(val)) return JS_TRUE;
 		item = SMJS_CHARS(c, val);
 	}
-	else if (JSVAL_IS_STRING(argv[0])) 
+	else if (JSVAL_IS_STRING(argv[0]))
 		resource_url = SMJS_CHARS(c, argv[0]);
 
 	if (!item && !resource_url) {
@@ -925,10 +932,10 @@ static JSBool SMJS_FUNCTION(upnp_renderer_open)
 		return JS_TRUE;
 	}
 
-    if (NPT_SUCCEEDED(render->m_device->FindServiceByType("urn:schemas-upnp-org:service:AVTransport:1", service))) {
+	if (NPT_SUCCEEDED(render->m_device->FindServiceByType("urn:schemas-upnp-org:service:AVTransport:1", service))) {
 		if (resource_url) {
 			upnp->m_pAVCtrlPoint->m_MediaController->SetAVTransportURI(render->m_device, 0, resource_url, NULL, NULL);
-			upnp->m_pAVCtrlPoint->m_MediaController->Play(render->m_device, 0, "1", NULL);                        
+			upnp->m_pAVCtrlPoint->m_MediaController->Play(render->m_device, 0, "1", NULL);
 		} else {
 			NPT_String objID = item;
 
@@ -938,7 +945,7 @@ static JSBool SMJS_FUNCTION(upnp_renderer_open)
 				if ((*item)->m_ObjectID == objID) {
 					if ((*item)->m_Resources.GetItemCount()) {
 						upnp->m_pAVCtrlPoint->m_MediaController->SetAVTransportURI(render->m_device, 0, (*item)->m_Resources[0].m_Uri, (*item)->m_Didl, NULL);
-						upnp->m_pAVCtrlPoint->m_MediaController->Play(render->m_device, 0, "1", NULL);                        
+						upnp->m_pAVCtrlPoint->m_MediaController->Play(render->m_device, 0, "1", NULL);
 					}
 					break;
 				}
@@ -972,15 +979,15 @@ static JSBool SMJS_FUNCTION_EXT(upnp_renderer_playback, u32 act_type)
 			JS_ValueToNumber(c, argv[0], &d);
 			sprintf(szSpeed, "%2.2f", d);
 		}
-		upnp->m_pAVCtrlPoint->m_MediaController->Play(render->m_device, 0, szSpeed, NULL);                        
+		upnp->m_pAVCtrlPoint->m_MediaController->Play(render->m_device, 0, szSpeed, NULL);
 		break;
 	/*pause*/
 	case 1:
-		upnp->m_pAVCtrlPoint->m_MediaController->Pause(render->m_device, 0, NULL);                        
+		upnp->m_pAVCtrlPoint->m_MediaController->Pause(render->m_device, 0, NULL);
 		break;
 	/*stop*/
 	case 2:
-		upnp->m_pAVCtrlPoint->m_MediaController->Stop(render->m_device, 0, NULL);                        
+		upnp->m_pAVCtrlPoint->m_MediaController->Stop(render->m_device, 0, NULL);
 		break;
 	/*seek*/
 	case 3:
@@ -1082,11 +1089,11 @@ static JSBool SMJS_FUNCTION(upnp_server_browse)
 				SMJS_FREE(c, _filter);
 				return JS_FALSE;
 			}
-	        server->m_ParentDirectories.Pop(parent);
-	        server->m_ParentDirectories.Peek(parent);
+			server->m_ParentDirectories.Pop(parent);
+			server->m_ParentDirectories.Peek(parent);
 			dir=parent;
 
-			if (server->m_ParentDirectories.GetItemCount()==1) 
+			if (server->m_ParentDirectories.GetItemCount()==1)
 				server->m_ParentDirectories.Clear();
 
 		} else {
@@ -1165,7 +1172,7 @@ static JSBool SMJS_FUNCTION(upnp_server_get_file)
 	if (!mo->IsContainer()) {
 		JS_DefineProperty(c, f_obj, "ResourceCount", INT_TO_JSVAL(mo->m_Resources.GetItemCount()), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineFunction(c, f_obj, "GetResourceURI", upnp_server_get_resource_uri, 1, 0);
-	}	
+	}
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(f_obj));
 	return JS_TRUE;
 }
@@ -1512,12 +1519,12 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		SMJS_FUNCTION_SPEC("BindRenderer", upnp_bind_renderer, 0),
 		SMJS_FUNCTION_SPEC("GetMediaServer", upnp_get_server, 1),
 		SMJS_FUNCTION_SPEC("GetMediaRenderer", upnp_get_renderer, 1),
-		SMJS_FUNCTION_SPEC("ShareResource", upnp_share_resource, 1),	
-		SMJS_FUNCTION_SPEC("ShareVirtualResource", upnp_share_virtual_resource, 2),	
-		SMJS_FUNCTION_SPEC("GetDevice", upnp_get_device, 1),	
-		SMJS_FUNCTION_SPEC("FindService", upnp_find_service, 1),	
-		SMJS_FUNCTION_SPEC("CreateDevice", upnp_create_device, 2),	
-		SMJS_FUNCTION_SPEC("DeleteDevice", upnp_delete_device, 1),	
+		SMJS_FUNCTION_SPEC("ShareResource", upnp_share_resource, 1),
+		SMJS_FUNCTION_SPEC("ShareVirtualResource", upnp_share_virtual_resource, 2),
+		SMJS_FUNCTION_SPEC("GetDevice", upnp_get_device, 1),
+		SMJS_FUNCTION_SPEC("FindService", upnp_find_service, 1),
+		SMJS_FUNCTION_SPEC("CreateDevice", upnp_create_device, 2),
+		SMJS_FUNCTION_SPEC("DeleteDevice", upnp_delete_device, 1),
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
 
@@ -1571,7 +1578,7 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 	SMJS_SET_PRIVATE(m_pJSCtx, m_pObj, this);
 
 	JS_SETUP_CLASS(upnpDeviceClass, "UPNPAVDEVICE", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
-	
+
 	/*setup JS bindings*/
 	JSPropertySpec upnpDeviceClassProps[] = {
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
@@ -1583,12 +1590,12 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 	};
 	JS_SETUP_CLASS(upnpGenericDeviceClass, "UPNPDEVICE", JSCLASS_HAS_PRIVATE, upnpdevice_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
 	GF_JS_InitClass(m_pJSCtx, (JSObject*)param->global, 0, &upnpGenericDeviceClass, 0, 0, upnpDeviceClassProps, upnpDeviceClassFuncs, 0, 0);
-	
+
 	JS_SETUP_CLASS(upnpServiceClass, "UPNPSERVICEDEVICE", JSCLASS_HAS_PRIVATE, upnpservice_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
 	GF_JS_InitClass(m_pJSCtx, (JSObject*)param->global, 0, &upnpServiceClass, 0, 0, 0, 0, 0, 0);
 
 	m_nbJSInstances=1;
-	
+
 	upnp_init_time = gf_sys_clock();
 
 	count = gf_cfg_get_key_count(m_pTerm->user->config, "UPnPDevices");
@@ -1598,7 +1605,7 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		const char *dev = gf_cfg_get_key(m_pTerm->user->config, "UPnPDevices", device_id);
 
 		if (!strncmp(dev, "off;", 4)) continue;
-		
+
 		if (!strncmp(dev, "on;", 3)) dev += 3;
 
 		sep = (char*)strchr(dev, ';');
@@ -1606,7 +1613,7 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		sep[0] = 0;
 		strcpy(szFile, dev);
 		sep[0] = ';';
-		
+
 		if (!sep[1]) continue;
 		strcpy(szFriendlyName, sep+1);
 
@@ -1675,7 +1682,7 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 			u32 now;
 			now = gf_sys_clock() - upnp->upnp_init_time;
 			if (now - upnp->last_time > 200) {
-				u32 i, count, arg_set; 
+				u32 i, count, arg_set;
 				jsval argv[1], rval;
 				upnp->LockJavascript(GF_TRUE);
 				arg_set = 0;

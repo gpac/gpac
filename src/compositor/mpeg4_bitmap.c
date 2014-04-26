@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -56,9 +56,9 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 	/*bitmap not ready*/
 	if (!txh || !txh->width || !txh->height
 #ifndef GPAC_DISABLE_3D
-		|| (tr_state->visual->type_3d && !txh->tx_io) 
+	        || (tr_state->visual->type_3d && !txh->tx_io)
 #endif
-		) {
+	   ) {
 		if (notify_changes) gf_node_dirty_set(node, 0, 1);
 		return;
 	}
@@ -71,8 +71,10 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 	st->prev_tx_w = txh->width;
 	st->prev_tx_h = txh->height;
 
-	sx = bmp->scale.x; if (sx<0) sx = FIX_ONE;
-	sy = bmp->scale.y; if (sy<0) sy = FIX_ONE;
+	sx = bmp->scale.x;
+	if (sx<0) sx = FIX_ONE;
+	sy = bmp->scale.y;
+	if (sy<0) sy = FIX_ONE;
 
 	compositor_adjust_scale(txh->owner, &sx, &sy);
 
@@ -96,7 +98,7 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 
 	gf_node_dirty_clear(node, 0);
 
-	if ((st->size.x==size.x) && (st->size.y==size.y)) return; 
+	if ((st->size.x==size.x) && (st->size.y==size.y)) return;
 	st->size = size;
 
 	/*change in size*/
@@ -198,13 +200,13 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 		vrml_drawable_pick(st->graph, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
-		Bitmap_BuildGraph(node, st, tr_state, &tr_state->bounds, 
+		Bitmap_BuildGraph(node, st, tr_state, &tr_state->bounds,
 #ifndef GPAC_DISABLE_3D
-			tr_state->visual->type_3d ? 1 : 0
+		                  tr_state->visual->type_3d ? 1 : 0
 #else
-		0
+		                  0
 #endif
-		);
+		                 );
 
 		return;
 	case TRAVERSE_SORT:
@@ -246,7 +248,7 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 				}
 				ctx->flags |= CTX_IS_TRANSPARENT;
 			}
-		} 
+		}
 		else if (!tr_state->color_mat.identity) {
 			ctx->flags |= CTX_IS_TRANSPARENT;
 		} else {
@@ -257,7 +259,7 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 		}
 	}
 
-	/*bounds are stored when building graph*/	
+	/*bounds are stored when building graph*/
 	drawable_finalize_sort(ctx, tr_state, &rc);
 }
 

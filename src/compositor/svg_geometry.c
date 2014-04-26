@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -54,18 +54,18 @@ Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *as
 		gf_path_get_bounds(drawable->path, &rc);
 	}
 	inside = ( (x >= rc.x) && (y <= rc.y) && (x <= rc.x + rc.width) && (y >= rc.y - rc.height) ) ? 1 : 0;
-	
+
 	if (ptr_evt==SVG_POINTEREVENTS_BOUNDINGBOX) return inside;
 
 	check_fill = check_stroke = check_over = check_outline = check_vis = 0;
 	/*
 	check_vis: if set, return FALSE when visible property is not "visible"
-	check_fill: 
+	check_fill:
 		if 1, checks whether point is over path,
-		if 2, checks if the path is painted (even with fill-opacity=0) before 
-	check_stroke: 
+		if 2, checks if the path is painted (even with fill-opacity=0) before
+	check_stroke:
 		if 1, checks whether point is over path outline,
-		if 2, checks if the path outline is painted (even with stroke-opacity=0) before 
+		if 2, checks if the path outline is painted (even with stroke-opacity=0) before
 	*/
 	switch (ptr_evt) {
 	case SVG_POINTEREVENTS_VISIBLE:
@@ -145,7 +145,7 @@ Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *as
 			if (glyph_rc) return 1;
 			si = drawable_get_strikeinfo(tr_state->visual->compositor, drawable, asp, tr_state->appear, NULL, 0, NULL);
 			/*point is over outline*/
-			if (si && si->outline && gf_path_point_over(si->outline, x, y)) 
+			if (si && si->outline && gf_path_point_over(si->outline, x, y))
 				return 1;
 		}
 	}
@@ -166,7 +166,7 @@ void svg_clone_use_stack(GF_Compositor *compositor, GF_TraverseState *tr_state)
 
 #ifndef GPAC_DISABLE_3D
 
-void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAspect2D *asp) 
+void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAspect2D *asp)
 {
 	SFVec3f local_pt, world_pt, vdiff;
 	SFVec3f hit_normal;
@@ -208,7 +208,8 @@ void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAs
 
 	if (!node_is_over) return;
 
-	hit_normal.x = hit_normal.y = 0; hit_normal.z = FIX_ONE;
+	hit_normal.x = hit_normal.y = 0;
+	hit_normal.z = FIX_ONE;
 	text_coords.x = gf_divfix(local_pt.x, drawable->path->bbox.width) + FIX_ONE/2;
 	text_coords.y = gf_divfix(local_pt.y, drawable->path->bbox.height) + FIX_ONE/2;
 
@@ -256,7 +257,7 @@ void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAs
 	compositor->hit_use_dom_events = 1;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SVG Picking] node %s (def %s) is under mouse - hit %g %g %g\n", gf_node_get_class_name(drawable->node), gf_node_get_name(drawable->node),
-			FIX2FLT(world_pt.x), FIX2FLT(world_pt.y), FIX2FLT(world_pt.z)));
+	                                      FIX2FLT(world_pt.x), FIX2FLT(world_pt.y), FIX2FLT(world_pt.z)));
 }
 
 #endif
@@ -292,7 +293,7 @@ void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_s
 		compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
 		memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 		return;
-	} 
+	}
 #endif
 	gf_mx2d_copy(inv_2d, tr_state->transform);
 	gf_mx2d_inverse(&inv_2d);
@@ -313,7 +314,8 @@ void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_s
 
 		compositor->hit_node = drawable->node;
 		compositor->hit_use_dom_events = 1;
-		compositor->hit_normal.x = compositor->hit_normal.y = 0; compositor->hit_normal.z = FIX_ONE;
+		compositor->hit_normal.x = compositor->hit_normal.y = 0;
+		compositor->hit_normal.z = FIX_ONE;
 		compositor->hit_texcoords.x = gf_divfix(x, drawable->path->bbox.width) + FIX_ONE/2;
 		compositor->hit_texcoords.y = gf_divfix(y, drawable->path->bbox.height) + FIX_ONE/2;
 		svg_clone_use_stack(compositor, tr_state);
@@ -336,8 +338,8 @@ void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_s
 }
 
 static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
-							void (*rebuild_path)(GF_Node *, Drawable *, SVGAllAttributes *),
-							Bool is_svg_rect, Bool is_svg_path)
+                                  void (*rebuild_path)(GF_Node *, Drawable *, SVGAllAttributes *),
+                                  Bool is_svg_rect, Bool is_svg_path)
 {
 	GF_Matrix2D backup_matrix;
 	GF_Matrix mx_3d;
@@ -358,7 +360,7 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 	}
 	assert(tr_state->traversing_mode!=TRAVERSE_DRAW_2D);
 
-	
+
 	if (tr_state->traversing_mode==TRAVERSE_PICK) {
 		svg_drawable_pick(node, drawable, tr_state);
 		return;
@@ -368,7 +370,7 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 	if (!compositor_svg_traverse_base(node, &all_atts, (GF_TraverseState *)rs, &backup_props, &backup_flags))
 		return;
-	
+
 	/* Recreates the path (i.e the shape) only if the node is dirty */
 	if (gf_node_dirty_get(node) & GF_SG_SVG_GEOMETRY_DIRTY) {
 		/*the rebuild function is responsible for cleaning the path*/
@@ -416,7 +418,7 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 		gf_node_dirty_clear(node, 0);
 
 		if (!compositor_svg_is_display_off(tr_state->svg_props) &&
-			( *(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) ) {
+		        ( *(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) ) {
 
 			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
@@ -428,12 +430,12 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 					else if (ctx->transform.m[1] || ctx->transform.m[3]) {}
 					else {
 						ctx->flags &= ~CTX_IS_TRANSPARENT;
-						if (!ctx->aspect.pen_props.width) 
+						if (!ctx->aspect.pen_props.width)
 							ctx->flags |= CTX_NO_ANTIALIAS;
 					}
 				}
 
-				if (all_atts.pathLength && all_atts.pathLength->type==SVG_NUMBER_VALUE) 
+				if (all_atts.pathLength && all_atts.pathLength->type==SVG_NUMBER_VALUE)
 					ctx->aspect.pen_props.path_length = all_atts.pathLength->value;
 
 #ifndef GPAC_DISABLE_3D
@@ -444,7 +446,7 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 					}
 					visual_3d_draw_from_context(ctx, tr_state);
 					ctx->drawable = NULL;
-				} else 
+				} else
 #endif
 				{
 					drawable_finalize_sort(ctx, tr_state, NULL);
@@ -509,34 +511,38 @@ static void svg_rect_rebuild(GF_Node *node, Drawable *stack, SVGAllAttributes *a
 		if (width-rx!=rx)
 			gf_path_add_line_to(stack->path, x+width-rx, y);
 
-		cx = x+width-rx; cy = y+ry;
+		cx = x+width-rx;
+		cy = y+ry;
 		svg_rect_add_arc(stack->path, x+width, y+ry, cx, cy, rx, ry);
-		
+
 		if (height-ry!=ry)
 			gf_path_add_line_to(stack->path, x+width, y+height-ry);
 
-		cx = x+width-rx; cy = y+height-ry;
+		cx = x+width-rx;
+		cy = y+height-ry;
 		svg_rect_add_arc(stack->path, x+width-rx, y+height, cx, cy, rx, ry);
-		
+
 		if (width-rx!=rx)
 			gf_path_add_line_to(stack->path, x+rx, y+height);
 
-		cx = x+rx; cy = y+height-ry;
+		cx = x+rx;
+		cy = y+height-ry;
 		svg_rect_add_arc(stack->path, x, y+height-ry, cx, cy, rx, ry);
-		
+
 		if (height-ry!=ry)
 			gf_path_add_line_to(stack->path, x, y+ry);
 
-		cx = x+rx; cy = y+ry;
+		cx = x+rx;
+		cy = y+ry;
 		svg_rect_add_arc(stack->path, x+rx, y, cx, cy, rx, ry);
 
 		gf_path_close(stack->path);
 	} else {
 		gf_path_add_move_to(stack->path, x, y);
-		gf_path_add_line_to(stack->path, x+width, y);		
-		gf_path_add_line_to(stack->path, x+width, y+height);		
-		gf_path_add_line_to(stack->path, x, y+height);		
-		gf_path_close(stack->path);		
+		gf_path_add_line_to(stack->path, x+width, y);
+		gf_path_add_line_to(stack->path, x+width, y+height);
+		gf_path_add_line_to(stack->path, x, y+height);
+		gf_path_close(stack->path);
 	}
 }
 
@@ -572,10 +578,10 @@ void compositor_init_svg_circle(GF_Compositor *compositor, GF_Node *node)
 static void svg_ellipse_rebuild(GF_Node *node, Drawable *stack, SVGAllAttributes *atts)
 {
 	drawable_reset_path(stack);
-	gf_path_add_ellipse(stack->path, (atts->cx ? atts->cx->value : 0), 
-								  (atts->cy ? atts->cy->value : 0), 
-								  (atts->rx ? 2*atts->rx->value : 0), 
-								  (atts->ry ? 2*atts->ry->value : 0));
+	gf_path_add_ellipse(stack->path, (atts->cx ? atts->cx->value : 0),
+	                    (atts->cy ? atts->cy->value : 0),
+	                    (atts->rx ? 2*atts->rx->value : 0),
+	                    (atts->ry ? 2*atts->ry->value : 0));
 }
 static void svg_traverse_ellipse(GF_Node *node, void *rs, Bool is_destroy)
 {
@@ -609,9 +615,9 @@ static void svg_polyline_rebuild(GF_Node *node, Drawable *stack, SVGAllAttribute
 {
 	u32 i, nbPoints;
 	drawable_reset_path(stack);
-	if (atts->points) 
+	if (atts->points)
 		nbPoints = gf_list_count(*atts->points);
-	else 
+	else
 		nbPoints = 0;
 
 	if (nbPoints) {
@@ -640,9 +646,9 @@ static void svg_polygon_rebuild(GF_Node *node, Drawable *stack, SVGAllAttributes
 {
 	u32 i, nbPoints;
 	drawable_reset_path(stack);
-	if (atts->points) 
+	if (atts->points)
 		nbPoints = gf_list_count(*atts->points);
-	else 
+	else
 		nbPoints = 0;
 
 	if (nbPoints) {

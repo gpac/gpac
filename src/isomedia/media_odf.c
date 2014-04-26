@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -34,7 +34,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 	GF_ODCodec *ODdecode;
 	GF_ODCodec *ODencode;
 	GF_ODCom *com;
-	
+
 	//the commands we proceed
 	GF_ESDUpdate *esdU, *esdU2;
 	GF_ESDRemove *esdR, *esdR2;
@@ -92,7 +92,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 				}
 				e = gf_odf_desc_copy(desc, (GF_Descriptor **)&isom_od);
 				if (e) goto err_exit;
-					
+
 				//create our OD...
 				if (desc->tag == GF_ODF_ISOM_IOD_TAG) {
 					od = (GF_ObjectDescriptor *) gf_malloc(sizeof(GF_InitialObjectDescriptor));
@@ -115,7 +115,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 				isom_od->IPMP_Descriptors = NULL;
 				od->OCIDescriptors = isom_od->OCIDescriptors;
 				isom_od->OCIDescriptors = NULL;
-				
+
 				//init as IOD
 				if (isom_od->tag == GF_ODF_ISOM_IOD_TAG) {
 					((GF_InitialObjectDescriptor *)od)->audio_profileAndLevel = ((GF_IsomInitialObjectDescriptor *)isom_od)->audio_profileAndLevel;
@@ -127,10 +127,10 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 					((GF_InitialObjectDescriptor *)od)->IPMPToolList = ((GF_IsomInitialObjectDescriptor *)isom_od)->IPMPToolList;
 					((GF_IsomInitialObjectDescriptor *)isom_od)->IPMPToolList = NULL;
 				}
-				
+
 				//then rewrite the ESDesc
 				j=0;
-				while ((ref = (GF_ES_ID_Ref*)gf_list_enum(isom_od->ES_ID_RefDescriptors, &j))){
+				while ((ref = (GF_ES_ID_Ref*)gf_list_enum(isom_od->ES_ID_RefDescriptors, &j))) {
 					//if the ref index is not valid, skip this desc...
 					if (!mpod->trackIDs || gf_isom_get_track_from_id(mdia->mediaTrack->moov, mpod->trackIDs[ref->trackRef - 1]) == NULL) continue;
 					//OK, get the esd
@@ -324,7 +324,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample, GF_ISOSample 
 				//in OD stream only ref desc are accepted
 				isom_od->ES_ID_RefDescriptors = gf_list_new();
 				isom_od->ES_ID_IncDescriptors = NULL;
-	
+
 				//TO DO: check that a given sampleDescription exists
 				isom_od->extensionDescriptors = od->extensionDescriptors;
 				od->extensionDescriptors = NULL;
@@ -471,12 +471,13 @@ static u32 Media_FindOD_ID(GF_MediaBox *mdia, GF_ISOSample *sample, u32 track_id
 			switch (desc->tag) {
 			case GF_ODF_OD_TAG:
 			case GF_ODF_IOD_TAG:
-				esd_list = ((GF_ObjectDescriptor *)desc)->ESDescriptors; break;
+				esd_list = ((GF_ObjectDescriptor *)desc)->ESDescriptors;
+				break;
 			default:
 				continue;
-			}	
+			}
 			j=0;
-			while ((esd = (GF_ESD*)gf_list_enum( esd_list, &j))){
+			while ((esd = (GF_ESD*)gf_list_enum( esd_list, &j))) {
 				if (esd->ESID==track_id) {
 					the_od_id = ((GF_IsomObjectDescriptor*)desc)->objectDescriptorID;
 					break;

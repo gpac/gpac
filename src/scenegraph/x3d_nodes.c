@@ -15,7 +15,7 @@
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.	
+ *  GNU Lesser General Public License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
@@ -50,8 +50,8 @@ static void Anchor_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->description);
 	gf_sg_mfstring_del(p->parameter);
 	gf_sg_mfurl_del(p->url);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -128,7 +128,7 @@ static s32 Anchor_get_field_index_by_name(char *name)
 	if (!strcmp("url", name)) return 5;
 	if (!strcmp("metadata", name)) return 6;
 	return -1;
-	}
+}
 
 
 static GF_Node *Anchor_Create()
@@ -151,12 +151,12 @@ static GF_Node *Anchor_Create()
 static void Appearance_Del(GF_Node *node)
 {
 	X_Appearance *p = (X_Appearance *) node;
-	gf_node_unregister((GF_Node *) p->material, node);	
-	gf_node_unregister((GF_Node *) p->texture, node);	
-	gf_node_unregister((GF_Node *) p->textureTransform, node);	
-	gf_node_unregister((GF_Node *) p->fillProperties, node);	
-	gf_node_unregister((GF_Node *) p->lineProperties, node);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->material, node);
+	gf_node_unregister((GF_Node *) p->texture, node);
+	gf_node_unregister((GF_Node *) p->textureTransform, node);
+	gf_node_unregister((GF_Node *) p->fillProperties, node);
+	gf_node_unregister((GF_Node *) p->lineProperties, node);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -226,7 +226,7 @@ static s32 Appearance_get_field_index_by_name(char *name)
 	if (!strcmp("lineProperties", name)) return 4;
 	if (!strcmp("metadata", name)) return 5;
 	return -1;
-	}
+}
 
 
 static GF_Node *Appearance_Create()
@@ -248,7 +248,7 @@ static GF_Node *Appearance_Create()
 static void Arc2D_Del(GF_Node *node)
 {
 	X_Arc2D *p = (X_Arc2D *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -299,7 +299,7 @@ static s32 Arc2D_get_field_index_by_name(char *name)
 	if (!strcmp("startAngle", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *Arc2D_Create()
@@ -325,7 +325,7 @@ static void ArcClose2D_Del(GF_Node *node)
 {
 	X_ArcClose2D *p = (X_ArcClose2D *) node;
 	gf_sg_sfstring_del(p->closureType);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -383,7 +383,7 @@ static s32 ArcClose2D_get_field_index_by_name(char *name)
 	if (!strcmp("startAngle", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *ArcClose2D_Create()
@@ -412,7 +412,7 @@ static void AudioClip_Del(GF_Node *node)
 	X_AudioClip *p = (X_AudioClip *) node;
 	gf_sg_sfstring_del(p->description);
 	gf_sg_mfurl_del(p->url);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -526,7 +526,7 @@ static s32 AudioClip_get_field_index_by_name(char *name)
 	if (!strcmp("elapsedTime", name)) return 11;
 	if (!strcmp("isPaused", name)) return 12;
 	return -1;
-	}
+}
 
 
 static GF_Node *AudioClip_Create()
@@ -563,7 +563,7 @@ static void Background_Del(GF_Node *node)
 	gf_sg_mfurl_del(p->topUrl);
 	gf_sg_mffloat_del(p->skyAngle);
 	gf_sg_mfcolor_del(p->skyColor);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -685,7 +685,7 @@ static s32 Background_get_field_index_by_name(char *name)
 	if (!strcmp("metadata", name)) return 12;
 	if (!strcmp("bindTime", name)) return 13;
 	return -1;
-	}
+}
 
 
 static GF_Node *Background_Create()
@@ -712,8 +712,8 @@ static GF_Node *Background_Create()
 static void Billboard_Del(GF_Node *node)
 {
 	X_Billboard *p = (X_Billboard *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -776,7 +776,7 @@ static s32 Billboard_get_field_index_by_name(char *name)
 	if (!strcmp("axisOfRotation", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *Billboard_Create()
@@ -802,7 +802,7 @@ static GF_Node *Billboard_Create()
 static void BooleanFilter_Del(GF_Node *node)
 {
 	X_BooleanFilter *p = (X_BooleanFilter *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -861,7 +861,7 @@ static s32 BooleanFilter_get_field_index_by_name(char *name)
 	if (!strcmp("inputTrue", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *BooleanFilter_Create()
@@ -885,7 +885,7 @@ static void BooleanSequencer_Del(GF_Node *node)
 	X_BooleanSequencer *p = (X_BooleanSequencer *) node;
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mfbool_del(p->keyValue);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -960,7 +960,7 @@ static s32 BooleanSequencer_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 5;
 	if (!strcmp("metadata", name)) return 6;
 	return -1;
-	}
+}
 
 
 static GF_Node *BooleanSequencer_Create()
@@ -982,7 +982,7 @@ static GF_Node *BooleanSequencer_Create()
 static void BooleanToggle_Del(GF_Node *node)
 {
 	X_BooleanToggle *p = (X_BooleanToggle *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1027,7 +1027,7 @@ static s32 BooleanToggle_get_field_index_by_name(char *name)
 	if (!strcmp("toggle", name)) return 1;
 	if (!strcmp("metadata", name)) return 2;
 	return -1;
-	}
+}
 
 
 static GF_Node *BooleanToggle_Create()
@@ -1049,7 +1049,7 @@ static GF_Node *BooleanToggle_Create()
 static void BooleanTrigger_Del(GF_Node *node)
 {
 	X_BooleanTrigger *p = (X_BooleanTrigger *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1094,7 +1094,7 @@ static s32 BooleanTrigger_get_field_index_by_name(char *name)
 	if (!strcmp("triggerTrue", name)) return 1;
 	if (!strcmp("metadata", name)) return 2;
 	return -1;
-	}
+}
 
 
 static GF_Node *BooleanTrigger_Create()
@@ -1116,7 +1116,7 @@ static GF_Node *BooleanTrigger_Create()
 static void Box_Del(GF_Node *node)
 {
 	X_Box *p = (X_Box *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1153,7 +1153,7 @@ static s32 Box_get_field_index_by_name(char *name)
 	if (!strcmp("size", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *Box_Create()
@@ -1178,7 +1178,7 @@ static GF_Node *Box_Create()
 static void Circle2D_Del(GF_Node *node)
 {
 	X_Circle2D *p = (X_Circle2D *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1215,7 +1215,7 @@ static s32 Circle2D_get_field_index_by_name(char *name)
 	if (!strcmp("radius", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *Circle2D_Create()
@@ -1238,9 +1238,9 @@ static GF_Node *Circle2D_Create()
 static void Collision_Del(GF_Node *node)
 {
 	X_Collision *p = (X_Collision *) node;
-	gf_node_unregister((GF_Node *) p->proxy, node);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->proxy, node);
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1325,7 +1325,7 @@ static s32 Collision_get_field_index_by_name(char *name)
 	if (!strcmp("isActive", name)) return 6;
 	if (!strcmp("metadata", name)) return 7;
 	return -1;
-	}
+}
 
 
 static GF_Node *Collision_Create()
@@ -1350,7 +1350,7 @@ static void Color_Del(GF_Node *node)
 {
 	X_Color *p = (X_Color *) node;
 	gf_sg_mfcolor_del(p->color);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1387,7 +1387,7 @@ static s32 Color_get_field_index_by_name(char *name)
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *Color_Create()
@@ -1411,7 +1411,7 @@ static void ColorInterpolator_Del(GF_Node *node)
 	X_ColorInterpolator *p = (X_ColorInterpolator *) node;
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mfcolor_del(p->keyValue);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1470,7 +1470,7 @@ static s32 ColorInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *ColorInterpolator_Create()
@@ -1492,7 +1492,7 @@ static GF_Node *ColorInterpolator_Create()
 static void ColorRGBA_Del(GF_Node *node)
 {
 	X_ColorRGBA *p = (X_ColorRGBA *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1529,7 +1529,7 @@ static s32 ColorRGBA_get_field_index_by_name(char *name)
 	if (!strcmp("color", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *ColorRGBA_Create()
@@ -1551,7 +1551,7 @@ static GF_Node *ColorRGBA_Create()
 static void Cone_Del(GF_Node *node)
 {
 	X_Cone *p = (X_Cone *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1609,7 +1609,7 @@ static s32 Cone_get_field_index_by_name(char *name)
 	if (!strcmp("bottom", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *Cone_Create()
@@ -1635,8 +1635,8 @@ static GF_Node *Cone_Create()
 static void Contour2D_Del(GF_Node *node)
 {
 	X_Contour2D *p = (X_Contour2D *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1692,7 +1692,7 @@ static s32 Contour2D_get_field_index_by_name(char *name)
 	if (!strcmp("children", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *Contour2D_Create()
@@ -1716,7 +1716,7 @@ static void ContourPolyline2D_Del(GF_Node *node)
 {
 	X_ContourPolyline2D *p = (X_ContourPolyline2D *) node;
 	gf_sg_mfvec2f_del(p->point);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1753,7 +1753,7 @@ static s32 ContourPolyline2D_get_field_index_by_name(char *name)
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *ContourPolyline2D_Create()
@@ -1776,7 +1776,7 @@ static void Coordinate_Del(GF_Node *node)
 {
 	X_Coordinate *p = (X_Coordinate *) node;
 	gf_sg_mfvec3f_del(p->point);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1813,7 +1813,7 @@ static s32 Coordinate_get_field_index_by_name(char *name)
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *Coordinate_Create()
@@ -1836,7 +1836,7 @@ static void CoordinateDouble_Del(GF_Node *node)
 {
 	X_CoordinateDouble *p = (X_CoordinateDouble *) node;
 	gf_sg_mfvec3d_del(p->point);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1873,7 +1873,7 @@ static s32 CoordinateDouble_get_field_index_by_name(char *name)
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *CoordinateDouble_Create()
@@ -1896,7 +1896,7 @@ static void Coordinate2D_Del(GF_Node *node)
 {
 	X_Coordinate2D *p = (X_Coordinate2D *) node;
 	gf_sg_mfvec2f_del(p->point);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -1933,7 +1933,7 @@ static s32 Coordinate2D_get_field_index_by_name(char *name)
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *Coordinate2D_Create()
@@ -1958,7 +1958,7 @@ static void CoordinateInterpolator_Del(GF_Node *node)
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mfvec3f_del(p->keyValue);
 	gf_sg_mfvec3f_del(p->value_changed);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -2017,7 +2017,7 @@ static s32 CoordinateInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *CoordinateInterpolator_Create()
@@ -2042,7 +2042,7 @@ static void CoordinateInterpolator2D_Del(GF_Node *node)
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mfvec2f_del(p->keyValue);
 	gf_sg_mfvec2f_del(p->value_changed);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -2101,7 +2101,7 @@ static s32 CoordinateInterpolator2D_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *CoordinateInterpolator2D_Create()
@@ -2123,7 +2123,7 @@ static GF_Node *CoordinateInterpolator2D_Create()
 static void Cylinder_Del(GF_Node *node)
 {
 	X_Cylinder *p = (X_Cylinder *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -2188,7 +2188,7 @@ static s32 Cylinder_get_field_index_by_name(char *name)
 	if (!strcmp("top", name)) return 4;
 	if (!strcmp("metadata", name)) return 5;
 	return -1;
-	}
+}
 
 
 static GF_Node *Cylinder_Create()
@@ -2215,7 +2215,7 @@ static GF_Node *Cylinder_Create()
 static void CylinderSensor_Del(GF_Node *node)
 {
 	X_CylinderSensor *p = (X_CylinderSensor *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_sg_sfstring_del(p->description);
 	gf_node_free((GF_Node *)p);
 }
@@ -2323,7 +2323,7 @@ static s32 CylinderSensor_get_field_index_by_name(char *name)
 	if (!strcmp("description", name)) return 10;
 	if (!strcmp("isOver", name)) return 11;
 	return -1;
-	}
+}
 
 
 static GF_Node *CylinderSensor_Create()
@@ -2351,7 +2351,7 @@ static GF_Node *CylinderSensor_Create()
 static void DirectionalLight_Del(GF_Node *node)
 {
 	X_DirectionalLight *p = (X_DirectionalLight *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -2416,7 +2416,7 @@ static s32 DirectionalLight_get_field_index_by_name(char *name)
 	if (!strcmp("on", name)) return 4;
 	if (!strcmp("metadata", name)) return 5;
 	return -1;
-	}
+}
 
 
 static GF_Node *DirectionalLight_Create()
@@ -2447,7 +2447,7 @@ static GF_Node *DirectionalLight_Create()
 static void Disk2D_Del(GF_Node *node)
 {
 	X_Disk2D *p = (X_Disk2D *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -2491,7 +2491,7 @@ static s32 Disk2D_get_field_index_by_name(char *name)
 	if (!strcmp("outerRadius", name)) return 1;
 	if (!strcmp("metadata", name)) return 2;
 	return -1;
-	}
+}
 
 
 static GF_Node *Disk2D_Create()
@@ -2516,11 +2516,11 @@ static void ElevationGrid_Del(GF_Node *node)
 {
 	X_ElevationGrid *p = (X_ElevationGrid *) node;
 	gf_sg_mffloat_del(p->set_height);
-	gf_node_unregister((GF_Node *) p->color, node);	
-	gf_node_unregister((GF_Node *) p->normal, node);	
-	gf_node_unregister((GF_Node *) p->texCoord, node);	
+	gf_node_unregister((GF_Node *) p->color, node);
+	gf_node_unregister((GF_Node *) p->normal, node);
+	gf_node_unregister((GF_Node *) p->texCoord, node);
 	gf_sg_mffloat_del(p->height);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -2652,7 +2652,7 @@ static s32 ElevationGrid_get_field_index_by_name(char *name)
 	if (!strcmp("zSpacing", name)) return 13;
 	if (!strcmp("metadata", name)) return 14;
 	return -1;
-	}
+}
 
 
 static GF_Node *ElevationGrid_Create()
@@ -2692,8 +2692,8 @@ static void EspduTransform_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->marking);
 	gf_sg_sfstring_del(p->multicastRelayHost);
 	gf_sg_sfstring_del(p->networkMode);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -3331,7 +3331,7 @@ static s32 EspduTransform_get_field_index_by_name(char *name)
 	if (!strcmp("timestamp", name)) return 84;
 	if (!strcmp("metadata", name)) return 85;
 	return -1;
-	}
+}
 
 
 static GF_Node *EspduTransform_Create()
@@ -3433,7 +3433,7 @@ static void Extrusion_Del(GF_Node *node)
 	gf_sg_mfrotation_del(p->orientation);
 	gf_sg_mfvec2f_del(p->scale);
 	gf_sg_mfvec3f_del(p->spine);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -3565,7 +3565,7 @@ static s32 Extrusion_get_field_index_by_name(char *name)
 	if (!strcmp("spine", name)) return 13;
 	if (!strcmp("metadata", name)) return 14;
 	return -1;
-	}
+}
 
 
 static GF_Node *Extrusion_Create()
@@ -3672,7 +3672,7 @@ static s32 FillProperties_get_field_index_by_name(char *name)
 	if (!strcmp("hatched", name)) return 2;
 	if (!strcmp("hatchStyle", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *FillProperties_Create()
@@ -3701,7 +3701,7 @@ static void Fog_Del(GF_Node *node)
 {
 	X_Fog *p = (X_Fog *) node;
 	gf_sg_sfstring_del(p->fogType);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -3774,7 +3774,7 @@ static s32 Fog_get_field_index_by_name(char *name)
 	if (!strcmp("metadata", name)) return 5;
 	if (!strcmp("bindTime", name)) return 6;
 	return -1;
-	}
+}
 
 
 static GF_Node *Fog_Create()
@@ -3806,7 +3806,7 @@ static void FontStyle_Del(GF_Node *node)
 	gf_sg_mfstring_del(p->justify);
 	gf_sg_sfstring_del(p->language);
 	gf_sg_sfstring_del(p->style);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -3899,7 +3899,7 @@ static s32 FontStyle_get_field_index_by_name(char *name)
 	if (!strcmp("topToBottom", name)) return 8;
 	if (!strcmp("metadata", name)) return 9;
 	return -1;
-	}
+}
 
 
 static GF_Node *FontStyle_Create()
@@ -3937,9 +3937,9 @@ static void GeoCoordinate_Del(GF_Node *node)
 {
 	X_GeoCoordinate *p = (X_GeoCoordinate *) node;
 	gf_sg_mfvec3d_del(p->point);
-	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);
 	gf_sg_mfstring_del(p->geoSystem);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -3991,7 +3991,7 @@ static s32 GeoCoordinate_get_field_index_by_name(char *name)
 	if (!strcmp("geoSystem", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *GeoCoordinate_Create()
@@ -4020,14 +4020,14 @@ static void GeoElevationGrid_Del(GF_Node *node)
 {
 	X_GeoElevationGrid *p = (X_GeoElevationGrid *) node;
 	gf_sg_mfdouble_del(p->set_height);
-	gf_node_unregister((GF_Node *) p->color, node);	
-	gf_node_unregister((GF_Node *) p->normal, node);	
-	gf_node_unregister((GF_Node *) p->texCoord, node);	
+	gf_node_unregister((GF_Node *) p->color, node);
+	gf_node_unregister((GF_Node *) p->normal, node);
+	gf_node_unregister((GF_Node *) p->texCoord, node);
 	gf_sg_sfstring_del(p->geoGridOrigin);
-	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);
 	gf_sg_mfstring_del(p->geoSystem);
 	gf_sg_mfdouble_del(p->height);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -4188,7 +4188,7 @@ static s32 GeoElevationGrid_get_field_index_by_name(char *name)
 	if (!strcmp("zSpacing", name)) return 17;
 	if (!strcmp("metadata", name)) return 18;
 	return -1;
-	}
+}
 
 
 static GF_Node *GeoElevationGrid_Create()
@@ -4228,10 +4228,10 @@ static GF_Node *GeoElevationGrid_Create()
 static void GeoLocation_Del(GF_Node *node)
 {
 	X_GeoLocation *p = (X_GeoLocation *) node;
-	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);
 	gf_sg_mfstring_del(p->geoSystem);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -4309,7 +4309,7 @@ static s32 GeoLocation_get_field_index_by_name(char *name)
 	if (!strcmp("geoSystem", name)) return 5;
 	if (!strcmp("metadata", name)) return 6;
 	return -1;
-	}
+}
 
 
 static GF_Node *GeoLocation_Create()
@@ -4345,12 +4345,12 @@ static void GeoLOD_Del(GF_Node *node)
 	gf_sg_mfurl_del(p->child2Url);
 	gf_sg_mfurl_del(p->child3Url);
 	gf_sg_mfurl_del(p->child4Url);
-	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);
 	gf_sg_mfstring_del(p->geoSystem);
 	gf_sg_mfurl_del(p->rootUrl);
-	gf_node_unregister_children(node, p->rootNode);	
-	gf_node_unregister_children(node, p->children);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister_children(node, p->rootNode);
+	gf_node_unregister_children(node, p->children);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -4460,7 +4460,7 @@ static s32 GeoLOD_get_field_index_by_name(char *name)
 	if (!strcmp("children", name)) return 10;
 	if (!strcmp("metadata", name)) return 11;
 	return -1;
-	}
+}
 
 
 static GF_Node *GeoLOD_Create()
@@ -4492,10 +4492,10 @@ static GF_Node *GeoLOD_Create()
 static void GeoMetadata_Del(GF_Node *node)
 {
 	X_GeoMetadata *p = (X_GeoMetadata *) node;
-	gf_node_unregister_children(node, p->data);	
+	gf_node_unregister_children(node, p->data);
 	gf_sg_mfstring_del(p->summary);
 	gf_sg_mfurl_del(p->url);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -4547,7 +4547,7 @@ static s32 GeoMetadata_get_field_index_by_name(char *name)
 	if (!strcmp("url", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *GeoMetadata_Create()
@@ -4570,7 +4570,7 @@ static void GeoOrigin_Del(GF_Node *node)
 {
 	X_GeoOrigin *p = (X_GeoOrigin *) node;
 	gf_sg_mfstring_del(p->geoSystem);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -4621,7 +4621,7 @@ static s32 GeoOrigin_get_field_index_by_name(char *name)
 	if (!strcmp("rotateYUp", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *GeoOrigin_Create()
@@ -4654,9 +4654,9 @@ static void GeoPositionInterpolator_Del(GF_Node *node)
 	X_GeoPositionInterpolator *p = (X_GeoPositionInterpolator *) node;
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mfvec3d_del(p->keyValue);
-	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);
 	gf_sg_mfstring_del(p->geoSystem);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -4737,7 +4737,7 @@ static s32 GeoPositionInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 6;
 	if (!strcmp("metadata", name)) return 7;
 	return -1;
-	}
+}
 
 
 static GF_Node *GeoPositionInterpolator_Create()
@@ -4765,9 +4765,9 @@ static GF_Node *GeoPositionInterpolator_Create()
 static void GeoTouchSensor_Del(GF_Node *node)
 {
 	X_GeoTouchSensor *p = (X_GeoTouchSensor *) node;
-	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);
 	gf_sg_mfstring_del(p->geoSystem);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -4868,7 +4868,7 @@ static s32 GeoTouchSensor_get_field_index_by_name(char *name)
 	if (!strcmp("touchTime", name)) return 9;
 	if (!strcmp("metadata", name)) return 10;
 	return -1;
-	}
+}
 
 
 static GF_Node *GeoTouchSensor_Create()
@@ -4901,9 +4901,9 @@ static void GeoViewpoint_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->set_position);
 	gf_sg_sfstring_del(p->description);
 	gf_sg_mfstring_del(p->navType);
-	gf_node_unregister((GF_Node *) p->geoOrigin, node);	
+	gf_node_unregister((GF_Node *) p->geoOrigin, node);
 	gf_sg_mfstring_del(p->geoSystem);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -5042,7 +5042,7 @@ static s32 GeoViewpoint_get_field_index_by_name(char *name)
 	if (!strcmp("speedFactor", name)) return 14;
 	if (!strcmp("metadata", name)) return 15;
 	return -1;
-	}
+}
 
 
 static GF_Node *GeoViewpoint_Create()
@@ -5087,8 +5087,8 @@ static GF_Node *GeoViewpoint_Create()
 static void Group_Del(GF_Node *node)
 {
 	X_Group *p = (X_Group *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -5144,7 +5144,7 @@ static s32 Group_get_field_index_by_name(char *name)
 	if (!strcmp("children", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *Group_Create()
@@ -5170,7 +5170,7 @@ static void HAnimDisplacer_Del(GF_Node *node)
 	gf_sg_mfint32_del(p->coordIndex);
 	gf_sg_mfvec3f_del(p->displacements);
 	gf_sg_sfstring_del(p->name);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -5228,7 +5228,7 @@ static s32 HAnimDisplacer_get_field_index_by_name(char *name)
 	if (!strcmp("weight", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *HAnimDisplacer_Create()
@@ -5252,17 +5252,17 @@ static void HAnimHumanoid_Del(GF_Node *node)
 {
 	X_HAnimHumanoid *p = (X_HAnimHumanoid *) node;
 	gf_sg_mfstring_del(p->info);
-	gf_node_unregister_children(node, p->joints);	
+	gf_node_unregister_children(node, p->joints);
 	gf_sg_sfstring_del(p->name);
-	gf_node_unregister_children(node, p->segments);	
-	gf_node_unregister_children(node, p->sites);	
-	gf_node_unregister_children(node, p->skeleton);	
-	gf_node_unregister_children(node, p->skin);	
-	gf_node_unregister((GF_Node *) p->skinCoord, node);	
-	gf_node_unregister((GF_Node *) p->skinNormal, node);	
+	gf_node_unregister_children(node, p->segments);
+	gf_node_unregister_children(node, p->sites);
+	gf_node_unregister_children(node, p->skeleton);
+	gf_node_unregister_children(node, p->skin);
+	gf_node_unregister((GF_Node *) p->skinCoord, node);
+	gf_node_unregister((GF_Node *) p->skinNormal, node);
 	gf_sg_sfstring_del(p->version);
-	gf_node_unregister_children(node, p->viewpoints);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister_children(node, p->viewpoints);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -5412,7 +5412,7 @@ static s32 HAnimHumanoid_get_field_index_by_name(char *name)
 	if (!strcmp("viewpoints", name)) return 15;
 	if (!strcmp("metadata", name)) return 16;
 	return -1;
-	}
+}
 
 
 static GF_Node *HAnimHumanoid_Create()
@@ -5451,15 +5451,15 @@ static GF_Node *HAnimHumanoid_Create()
 static void HAnimJoint_Del(GF_Node *node)
 {
 	X_HAnimJoint *p = (X_HAnimJoint *) node;
-	gf_node_unregister_children(node, p->displacers);	
+	gf_node_unregister_children(node, p->displacers);
 	gf_sg_mffloat_del(p->llimit);
 	gf_sg_sfstring_del(p->name);
 	gf_sg_mfint32_del(p->skinCoordIndex);
 	gf_sg_mffloat_del(p->skinCoordWeight);
 	gf_sg_mffloat_del(p->stiffness);
 	gf_sg_mffloat_del(p->ulimit);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -5607,7 +5607,7 @@ static s32 HAnimJoint_get_field_index_by_name(char *name)
 	if (!strcmp("ulimit", name)) return 15;
 	if (!strcmp("metadata", name)) return 16;
 	return -1;
-	}
+}
 
 
 static GF_Node *HAnimJoint_Create()
@@ -5656,12 +5656,12 @@ static GF_Node *HAnimJoint_Create()
 static void HAnimSegment_Del(GF_Node *node)
 {
 	X_HAnimSegment *p = (X_HAnimSegment *) node;
-	gf_node_unregister((GF_Node *) p->coord, node);	
-	gf_node_unregister_children(node, p->displacers);	
+	gf_node_unregister((GF_Node *) p->coord, node);
+	gf_node_unregister_children(node, p->displacers);
 	gf_sg_mffloat_del(p->momentsOfInertia);
 	gf_sg_sfstring_del(p->name);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -5761,7 +5761,7 @@ static s32 HAnimSegment_get_field_index_by_name(char *name)
 	if (!strcmp("name", name)) return 8;
 	if (!strcmp("metadata", name)) return 9;
 	return -1;
-	}
+}
 
 
 static GF_Node *HAnimSegment_Create()
@@ -5800,8 +5800,8 @@ static void HAnimSite_Del(GF_Node *node)
 {
 	X_HAnimSite *p = (X_HAnimSite *) node;
 	gf_sg_sfstring_del(p->name);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -5899,7 +5899,7 @@ static s32 HAnimSite_get_field_index_by_name(char *name)
 	if (!strcmp("translation", name)) return 8;
 	if (!strcmp("metadata", name)) return 9;
 	return -1;
-	}
+}
 
 
 static GF_Node *HAnimSite_Create()
@@ -5940,7 +5940,7 @@ static void ImageTexture_Del(GF_Node *node)
 {
 	X_ImageTexture *p = (X_ImageTexture *) node;
 	gf_sg_mfurl_del(p->url);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -5991,7 +5991,7 @@ static s32 ImageTexture_get_field_index_by_name(char *name)
 	if (!strcmp("repeatT", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *ImageTexture_Create()
@@ -6019,15 +6019,15 @@ static void IndexedFaceSet_Del(GF_Node *node)
 	gf_sg_mfint32_del(p->set_coordIndex);
 	gf_sg_mfint32_del(p->set_normalIndex);
 	gf_sg_mfint32_del(p->set_texCoordIndex);
-	gf_node_unregister((GF_Node *) p->color, node);	
-	gf_node_unregister((GF_Node *) p->coord, node);	
-	gf_node_unregister((GF_Node *) p->normal, node);	
-	gf_node_unregister((GF_Node *) p->texCoord, node);	
+	gf_node_unregister((GF_Node *) p->color, node);
+	gf_node_unregister((GF_Node *) p->coord, node);
+	gf_node_unregister((GF_Node *) p->normal, node);
+	gf_node_unregister((GF_Node *) p->texCoord, node);
 	gf_sg_mfint32_del(p->colorIndex);
 	gf_sg_mfint32_del(p->coordIndex);
 	gf_sg_mfint32_del(p->normalIndex);
 	gf_sg_mfint32_del(p->texCoordIndex);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -6191,7 +6191,7 @@ static s32 IndexedFaceSet_get_field_index_by_name(char *name)
 	if (!strcmp("texCoordIndex", name)) return 17;
 	if (!strcmp("metadata", name)) return 18;
 	return -1;
-	}
+}
 
 
 static GF_Node *IndexedFaceSet_Create()
@@ -6221,11 +6221,11 @@ static void IndexedLineSet_Del(GF_Node *node)
 	X_IndexedLineSet *p = (X_IndexedLineSet *) node;
 	gf_sg_mfint32_del(p->set_colorIndex);
 	gf_sg_mfint32_del(p->set_coordIndex);
-	gf_node_unregister((GF_Node *) p->color, node);	
-	gf_node_unregister((GF_Node *) p->coord, node);	
+	gf_node_unregister((GF_Node *) p->color, node);
+	gf_node_unregister((GF_Node *) p->coord, node);
 	gf_sg_mfint32_del(p->colorIndex);
 	gf_sg_mfint32_del(p->coordIndex);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -6308,7 +6308,7 @@ static s32 IndexedLineSet_get_field_index_by_name(char *name)
 	if (!strcmp("coordIndex", name)) return 6;
 	if (!strcmp("metadata", name)) return 7;
 	return -1;
-	}
+}
 
 
 static GF_Node *IndexedLineSet_Create()
@@ -6332,12 +6332,12 @@ static void IndexedTriangleFanSet_Del(GF_Node *node)
 {
 	X_IndexedTriangleFanSet *p = (X_IndexedTriangleFanSet *) node;
 	gf_sg_mfint32_del(p->set_index);
-	gf_node_unregister((GF_Node *) p->color, node);	
-	gf_node_unregister((GF_Node *) p->coord, node);	
-	gf_node_unregister((GF_Node *) p->normal, node);	
-	gf_node_unregister((GF_Node *) p->texCoord, node);	
+	gf_node_unregister((GF_Node *) p->color, node);
+	gf_node_unregister((GF_Node *) p->coord, node);
+	gf_node_unregister((GF_Node *) p->normal, node);
+	gf_node_unregister((GF_Node *) p->texCoord, node);
 	gf_sg_mfint32_del(p->index);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -6442,7 +6442,7 @@ static s32 IndexedTriangleFanSet_get_field_index_by_name(char *name)
 	if (!strcmp("index", name)) return 9;
 	if (!strcmp("metadata", name)) return 10;
 	return -1;
-	}
+}
 
 
 static GF_Node *IndexedTriangleFanSet_Create()
@@ -6469,12 +6469,12 @@ static void IndexedTriangleSet_Del(GF_Node *node)
 {
 	X_IndexedTriangleSet *p = (X_IndexedTriangleSet *) node;
 	gf_sg_mfint32_del(p->set_index);
-	gf_node_unregister((GF_Node *) p->color, node);	
-	gf_node_unregister((GF_Node *) p->coord, node);	
-	gf_node_unregister((GF_Node *) p->normal, node);	
-	gf_node_unregister((GF_Node *) p->texCoord, node);	
+	gf_node_unregister((GF_Node *) p->color, node);
+	gf_node_unregister((GF_Node *) p->coord, node);
+	gf_node_unregister((GF_Node *) p->normal, node);
+	gf_node_unregister((GF_Node *) p->texCoord, node);
 	gf_sg_mfint32_del(p->index);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -6579,7 +6579,7 @@ static s32 IndexedTriangleSet_get_field_index_by_name(char *name)
 	if (!strcmp("index", name)) return 9;
 	if (!strcmp("metadata", name)) return 10;
 	return -1;
-	}
+}
 
 
 static GF_Node *IndexedTriangleSet_Create()
@@ -6606,12 +6606,12 @@ static void IndexedTriangleStripSet_Del(GF_Node *node)
 {
 	X_IndexedTriangleStripSet *p = (X_IndexedTriangleStripSet *) node;
 	gf_sg_mfint32_del(p->set_index);
-	gf_node_unregister((GF_Node *) p->color, node);	
-	gf_node_unregister((GF_Node *) p->coord, node);	
-	gf_node_unregister((GF_Node *) p->normal, node);	
-	gf_node_unregister((GF_Node *) p->texCoord, node);	
+	gf_node_unregister((GF_Node *) p->color, node);
+	gf_node_unregister((GF_Node *) p->coord, node);
+	gf_node_unregister((GF_Node *) p->normal, node);
+	gf_node_unregister((GF_Node *) p->texCoord, node);
 	gf_sg_mfint32_del(p->index);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -6716,7 +6716,7 @@ static s32 IndexedTriangleStripSet_get_field_index_by_name(char *name)
 	if (!strcmp("index", name)) return 9;
 	if (!strcmp("metadata", name)) return 10;
 	return -1;
-	}
+}
 
 
 static GF_Node *IndexedTriangleStripSet_Create()
@@ -6743,7 +6743,7 @@ static void Inline_Del(GF_Node *node)
 {
 	X_Inline *p = (X_Inline *) node;
 	gf_sg_mfurl_del(p->url);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -6787,7 +6787,7 @@ static s32 Inline_get_field_index_by_name(char *name)
 	if (!strcmp("metadata", name)) return 1;
 	if (!strcmp("load", name)) return 2;
 	return -1;
-	}
+}
 
 
 static GF_Node *Inline_Create()
@@ -6812,7 +6812,7 @@ static void IntegerSequencer_Del(GF_Node *node)
 	X_IntegerSequencer *p = (X_IntegerSequencer *) node;
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mfint32_del(p->keyValue);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -6887,7 +6887,7 @@ static s32 IntegerSequencer_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 5;
 	if (!strcmp("metadata", name)) return 6;
 	return -1;
-	}
+}
 
 
 static GF_Node *IntegerSequencer_Create()
@@ -6909,7 +6909,7 @@ static GF_Node *IntegerSequencer_Create()
 static void IntegerTrigger_Del(GF_Node *node)
 {
 	X_IntegerTrigger *p = (X_IntegerTrigger *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -6961,7 +6961,7 @@ static s32 IntegerTrigger_get_field_index_by_name(char *name)
 	if (!strcmp("triggerValue", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *IntegerTrigger_Create()
@@ -6986,7 +6986,7 @@ static void KeySensor_Del(GF_Node *node)
 	X_KeySensor *p = (X_KeySensor *) node;
 	gf_sg_sfstring_del(p->keyPress);
 	gf_sg_sfstring_del(p->keyRelease);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -7079,7 +7079,7 @@ static s32 KeySensor_get_field_index_by_name(char *name)
 	if (!strcmp("shiftKey", name)) return 8;
 	if (!strcmp("metadata", name)) return 9;
 	return -1;
-	}
+}
 
 
 static GF_Node *KeySensor_Create()
@@ -7102,7 +7102,7 @@ static GF_Node *KeySensor_Create()
 static void LineProperties_Del(GF_Node *node)
 {
 	X_LineProperties *p = (X_LineProperties *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -7153,7 +7153,7 @@ static s32 LineProperties_get_field_index_by_name(char *name)
 	if (!strcmp("linewidthScaleFactor", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *LineProperties_Create()
@@ -7178,10 +7178,10 @@ static GF_Node *LineProperties_Create()
 static void LineSet_Del(GF_Node *node)
 {
 	X_LineSet *p = (X_LineSet *) node;
-	gf_node_unregister((GF_Node *) p->color, node);	
-	gf_node_unregister((GF_Node *) p->coord, node);	
+	gf_node_unregister((GF_Node *) p->color, node);
+	gf_node_unregister((GF_Node *) p->coord, node);
 	gf_sg_mfint32_del(p->vertexCount);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -7234,7 +7234,7 @@ static s32 LineSet_get_field_index_by_name(char *name)
 	if (!strcmp("vertexCount", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *LineSet_Create()
@@ -7256,8 +7256,8 @@ static GF_Node *LineSet_Create()
 static void LoadSensor_Del(GF_Node *node)
 {
 	X_LoadSensor *p = (X_LoadSensor *) node;
-	gf_node_unregister_children(node, p->watchList);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister_children(node, p->watchList);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -7337,7 +7337,7 @@ static s32 LoadSensor_get_field_index_by_name(char *name)
 	if (!strcmp("progress", name)) return 6;
 	if (!strcmp("metadata", name)) return 7;
 	return -1;
-	}
+}
 
 
 static GF_Node *LoadSensor_Create()
@@ -7362,8 +7362,8 @@ static void LOD_Del(GF_Node *node)
 {
 	X_LOD *p = (X_LOD *) node;
 	gf_sg_mffloat_del(p->range);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -7433,7 +7433,7 @@ static s32 LOD_get_field_index_by_name(char *name)
 	if (!strcmp("range", name)) return 4;
 	if (!strcmp("metadata", name)) return 5;
 	return -1;
-	}
+}
 
 
 static GF_Node *LOD_Create()
@@ -7459,7 +7459,7 @@ static GF_Node *LOD_Create()
 static void Material_Del(GF_Node *node)
 {
 	X_Material *p = (X_Material *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -7531,7 +7531,7 @@ static s32 Material_get_field_index_by_name(char *name)
 	if (!strcmp("transparency", name)) return 5;
 	if (!strcmp("metadata", name)) return 6;
 	return -1;
-	}
+}
 
 
 static GF_Node *Material_Create()
@@ -7568,7 +7568,7 @@ static void MetadataDouble_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->name);
 	gf_sg_sfstring_del(p->reference);
 	gf_sg_mfdouble_del(p->value);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -7619,7 +7619,7 @@ static s32 MetadataDouble_get_field_index_by_name(char *name)
 	if (!strcmp("value", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *MetadataDouble_Create()
@@ -7644,7 +7644,7 @@ static void MetadataFloat_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->name);
 	gf_sg_sfstring_del(p->reference);
 	gf_sg_mffloat_del(p->value);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -7695,7 +7695,7 @@ static s32 MetadataFloat_get_field_index_by_name(char *name)
 	if (!strcmp("value", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *MetadataFloat_Create()
@@ -7720,7 +7720,7 @@ static void MetadataInteger_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->name);
 	gf_sg_sfstring_del(p->reference);
 	gf_sg_mfint32_del(p->value);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -7771,7 +7771,7 @@ static s32 MetadataInteger_get_field_index_by_name(char *name)
 	if (!strcmp("value", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *MetadataInteger_Create()
@@ -7795,8 +7795,8 @@ static void MetadataSet_Del(GF_Node *node)
 	X_MetadataSet *p = (X_MetadataSet *) node;
 	gf_sg_sfstring_del(p->name);
 	gf_sg_sfstring_del(p->reference);
-	gf_node_unregister_children(node, p->value);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister_children(node, p->value);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -7848,7 +7848,7 @@ static s32 MetadataSet_get_field_index_by_name(char *name)
 	if (!strcmp("value", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *MetadataSet_Create()
@@ -7873,7 +7873,7 @@ static void MetadataString_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->name);
 	gf_sg_sfstring_del(p->reference);
 	gf_sg_mfstring_del(p->value);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -7924,7 +7924,7 @@ static s32 MetadataString_get_field_index_by_name(char *name)
 	if (!strcmp("value", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *MetadataString_Create()
@@ -7947,7 +7947,7 @@ static void MovieTexture_Del(GF_Node *node)
 {
 	X_MovieTexture *p = (X_MovieTexture *) node;
 	gf_sg_mfurl_del(p->url);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -8068,7 +8068,7 @@ static s32 MovieTexture_get_field_index_by_name(char *name)
 	if (!strcmp("elapsedTime", name)) return 12;
 	if (!strcmp("isPaused", name)) return 13;
 	return -1;
-	}
+}
 
 
 static GF_Node *MovieTexture_Create()
@@ -8100,8 +8100,8 @@ static void MultiTexture_Del(GF_Node *node)
 	gf_sg_mfstring_del(p->function);
 	gf_sg_mfstring_del(p->mode);
 	gf_sg_mfstring_del(p->source);
-	gf_node_unregister_children(node, p->texture);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister_children(node, p->texture);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -8174,7 +8174,7 @@ static s32 MultiTexture_get_field_index_by_name(char *name)
 	if (!strcmp("texture", name)) return 5;
 	if (!strcmp("metadata", name)) return 6;
 	return -1;
-	}
+}
 
 
 static GF_Node *MultiTexture_Create()
@@ -8200,8 +8200,8 @@ static GF_Node *MultiTexture_Create()
 static void MultiTextureCoordinate_Del(GF_Node *node)
 {
 	X_MultiTextureCoordinate *p = (X_MultiTextureCoordinate *) node;
-	gf_node_unregister_children(node, p->texCoord);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister_children(node, p->texCoord);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -8239,7 +8239,7 @@ static s32 MultiTextureCoordinate_get_field_index_by_name(char *name)
 	if (!strcmp("texCoord", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *MultiTextureCoordinate_Create()
@@ -8261,8 +8261,8 @@ static GF_Node *MultiTextureCoordinate_Create()
 static void MultiTextureTransform_Del(GF_Node *node)
 {
 	X_MultiTextureTransform *p = (X_MultiTextureTransform *) node;
-	gf_node_unregister_children(node, p->textureTransform);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister_children(node, p->textureTransform);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -8300,7 +8300,7 @@ static s32 MultiTextureTransform_get_field_index_by_name(char *name)
 	if (!strcmp("textureTransform", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *MultiTextureTransform_Create()
@@ -8324,7 +8324,7 @@ static void NavigationInfo_Del(GF_Node *node)
 	X_NavigationInfo *p = (X_NavigationInfo *) node;
 	gf_sg_mffloat_del(p->avatarSize);
 	gf_sg_mfstring_del(p->type);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_sg_mfstring_del(p->transitionType);
 	gf_node_free((GF_Node *)p);
 }
@@ -8419,7 +8419,7 @@ static s32 NavigationInfo_get_field_index_by_name(char *name)
 	if (!strcmp("transitionType", name)) return 8;
 	if (!strcmp("bindTime", name)) return 9;
 	return -1;
-	}
+}
 
 
 static GF_Node *NavigationInfo_Create()
@@ -8462,7 +8462,7 @@ static void Normal_Del(GF_Node *node)
 {
 	X_Normal *p = (X_Normal *) node;
 	gf_sg_mfvec3f_del(p->vector);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -8499,7 +8499,7 @@ static s32 Normal_get_field_index_by_name(char *name)
 	if (!strcmp("vector", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *Normal_Create()
@@ -8524,7 +8524,7 @@ static void NormalInterpolator_Del(GF_Node *node)
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mfvec3f_del(p->keyValue);
 	gf_sg_mfvec3f_del(p->value_changed);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -8583,7 +8583,7 @@ static s32 NormalInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *NormalInterpolator_Create()
@@ -8608,7 +8608,7 @@ static void NurbsCurve_Del(GF_Node *node)
 	gf_sg_mfvec3f_del(p->controlPoint);
 	gf_sg_mfdouble_del(p->weight);
 	gf_sg_mffloat_del(p->knot);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -8680,7 +8680,7 @@ static s32 NurbsCurve_get_field_index_by_name(char *name)
 	if (!strcmp("order", name)) return 5;
 	if (!strcmp("metadata", name)) return 6;
 	return -1;
-	}
+}
 
 
 static GF_Node *NurbsCurve_Create()
@@ -8707,7 +8707,7 @@ static void NurbsCurve2D_Del(GF_Node *node)
 	gf_sg_mfvec2f_del(p->controlPoint);
 	gf_sg_mffloat_del(p->weight);
 	gf_sg_mffloat_del(p->knot);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -8779,7 +8779,7 @@ static s32 NurbsCurve2D_get_field_index_by_name(char *name)
 	if (!strcmp("closed", name)) return 5;
 	if (!strcmp("metadata", name)) return 6;
 	return -1;
-	}
+}
 
 
 static GF_Node *NurbsCurve2D_Create()
@@ -8803,10 +8803,10 @@ static GF_Node *NurbsCurve2D_Create()
 static void NurbsOrientationInterpolator_Del(GF_Node *node)
 {
 	X_NurbsOrientationInterpolator *p = (X_NurbsOrientationInterpolator *) node;
-	gf_node_unregister((GF_Node *) p->controlPoints, node);	
+	gf_node_unregister((GF_Node *) p->controlPoints, node);
 	gf_sg_mfdouble_del(p->knot);
 	gf_sg_mfdouble_del(p->weight);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -8880,7 +8880,7 @@ static s32 NurbsOrientationInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 5;
 	if (!strcmp("metadata", name)) return 6;
 	return -1;
-	}
+}
 
 
 static GF_Node *NurbsOrientationInterpolator_Create()
@@ -8903,12 +8903,12 @@ static GF_Node *NurbsOrientationInterpolator_Create()
 static void NurbsPatchSurface_Del(GF_Node *node)
 {
 	X_NurbsPatchSurface *p = (X_NurbsPatchSurface *) node;
-	gf_node_unregister((GF_Node *) p->controlPoint, node);	
-	gf_node_unregister((GF_Node *) p->texCoord, node);	
+	gf_node_unregister((GF_Node *) p->controlPoint, node);
+	gf_node_unregister((GF_Node *) p->texCoord, node);
 	gf_sg_mfdouble_del(p->weight);
 	gf_sg_mfdouble_del(p->uKnot);
 	gf_sg_mfdouble_del(p->vKnot);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -9038,7 +9038,7 @@ static s32 NurbsPatchSurface_get_field_index_by_name(char *name)
 	if (!strcmp("vOrder", name)) return 13;
 	if (!strcmp("metadata", name)) return 14;
 	return -1;
-	}
+}
 
 
 static GF_Node *NurbsPatchSurface_Create()
@@ -9067,10 +9067,10 @@ static GF_Node *NurbsPatchSurface_Create()
 static void NurbsPositionInterpolator_Del(GF_Node *node)
 {
 	X_NurbsPositionInterpolator *p = (X_NurbsPositionInterpolator *) node;
-	gf_node_unregister((GF_Node *) p->controlPoints, node);	
+	gf_node_unregister((GF_Node *) p->controlPoints, node);
 	gf_sg_mfdouble_del(p->knot);
 	gf_sg_mfdouble_del(p->weight);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -9144,7 +9144,7 @@ static s32 NurbsPositionInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 5;
 	if (!strcmp("metadata", name)) return 6;
 	return -1;
-	}
+}
 
 
 static GF_Node *NurbsPositionInterpolator_Create()
@@ -9167,10 +9167,10 @@ static GF_Node *NurbsPositionInterpolator_Create()
 static void NurbsSet_Del(GF_Node *node)
 {
 	X_NurbsSet *p = (X_NurbsSet *) node;
-	gf_node_unregister_children(node, p->addGeometry);	
-	gf_node_unregister_children(node, p->removeGeometry);	
-	gf_node_unregister_children(node, p->geometry);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister_children(node, p->addGeometry);
+	gf_node_unregister_children(node, p->removeGeometry);
+	gf_node_unregister_children(node, p->geometry);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -9233,7 +9233,7 @@ static s32 NurbsSet_get_field_index_by_name(char *name)
 	if (!strcmp("tessellationScale", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *NurbsSet_Create()
@@ -9256,11 +9256,11 @@ static GF_Node *NurbsSet_Create()
 static void NurbsSurfaceInterpolator_Del(GF_Node *node)
 {
 	X_NurbsSurfaceInterpolator *p = (X_NurbsSurfaceInterpolator *) node;
-	gf_node_unregister((GF_Node *) p->controlPoints, node);	
+	gf_node_unregister((GF_Node *) p->controlPoints, node);
 	gf_sg_mfdouble_del(p->weight);
 	gf_sg_mfdouble_del(p->uKnot);
 	gf_sg_mfdouble_del(p->vKnot);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -9369,7 +9369,7 @@ static s32 NurbsSurfaceInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("vOrder", name)) return 10;
 	if (!strcmp("metadata", name)) return 11;
 	return -1;
-	}
+}
 
 
 static GF_Node *NurbsSurfaceInterpolator_Create()
@@ -9395,9 +9395,9 @@ static GF_Node *NurbsSurfaceInterpolator_Create()
 static void NurbsSweptSurface_Del(GF_Node *node)
 {
 	X_NurbsSweptSurface *p = (X_NurbsSweptSurface *) node;
-	gf_node_unregister((GF_Node *) p->crossSectionCurve, node);	
-	gf_node_unregister((GF_Node *) p->trajectoryCurve, node);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->crossSectionCurve, node);
+	gf_node_unregister((GF_Node *) p->trajectoryCurve, node);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -9457,7 +9457,7 @@ static s32 NurbsSweptSurface_get_field_index_by_name(char *name)
 	if (!strcmp("solid", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *NurbsSweptSurface_Create()
@@ -9481,9 +9481,9 @@ static GF_Node *NurbsSweptSurface_Create()
 static void NurbsSwungSurface_Del(GF_Node *node)
 {
 	X_NurbsSwungSurface *p = (X_NurbsSwungSurface *) node;
-	gf_node_unregister((GF_Node *) p->profileCurve, node);	
-	gf_node_unregister((GF_Node *) p->trajectoryCurve, node);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->profileCurve, node);
+	gf_node_unregister((GF_Node *) p->trajectoryCurve, node);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -9543,7 +9543,7 @@ static s32 NurbsSwungSurface_get_field_index_by_name(char *name)
 	if (!strcmp("solid", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *NurbsSwungSurface_Create()
@@ -9571,7 +9571,7 @@ static void NurbsTextureCoordinate_Del(GF_Node *node)
 	gf_sg_mffloat_del(p->weight);
 	gf_sg_mfdouble_del(p->uKnot);
 	gf_sg_mfdouble_del(p->vKnot);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -9657,7 +9657,7 @@ static s32 NurbsTextureCoordinate_get_field_index_by_name(char *name)
 	if (!strcmp("vOrder", name)) return 7;
 	if (!strcmp("metadata", name)) return 8;
 	return -1;
-	}
+}
 
 
 static GF_Node *NurbsTextureCoordinate_Create()
@@ -9683,15 +9683,15 @@ static GF_Node *NurbsTextureCoordinate_Create()
 static void NurbsTrimmedSurface_Del(GF_Node *node)
 {
 	X_NurbsTrimmedSurface *p = (X_NurbsTrimmedSurface *) node;
-	gf_node_unregister_children(node, p->addTrimmingContour);	
-	gf_node_unregister_children(node, p->removeTrimmingContour);	
-	gf_node_unregister_children(node, p->trimmingContour);	
-	gf_node_unregister((GF_Node *) p->controlPoint, node);	
-	gf_node_unregister((GF_Node *) p->texCoord, node);	
+	gf_node_unregister_children(node, p->addTrimmingContour);
+	gf_node_unregister_children(node, p->removeTrimmingContour);
+	gf_node_unregister_children(node, p->trimmingContour);
+	gf_node_unregister((GF_Node *) p->controlPoint, node);
+	gf_node_unregister((GF_Node *) p->texCoord, node);
 	gf_sg_mfdouble_del(p->weight);
 	gf_sg_mfdouble_del(p->uKnot);
 	gf_sg_mfdouble_del(p->vKnot);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -9847,7 +9847,7 @@ static s32 NurbsTrimmedSurface_get_field_index_by_name(char *name)
 	if (!strcmp("vOrder", name)) return 16;
 	if (!strcmp("metadata", name)) return 17;
 	return -1;
-	}
+}
 
 
 static GF_Node *NurbsTrimmedSurface_Create()
@@ -9878,7 +9878,7 @@ static void OrientationInterpolator_Del(GF_Node *node)
 	X_OrientationInterpolator *p = (X_OrientationInterpolator *) node;
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mfrotation_del(p->keyValue);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -9937,7 +9937,7 @@ static s32 OrientationInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *OrientationInterpolator_Create()
@@ -9960,7 +9960,7 @@ static void PixelTexture_Del(GF_Node *node)
 {
 	X_PixelTexture *p = (X_PixelTexture *) node;
 	gf_sg_sfimage_del(p->image);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -10011,7 +10011,7 @@ static s32 PixelTexture_get_field_index_by_name(char *name)
 	if (!strcmp("repeatT", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *PixelTexture_Create()
@@ -10035,7 +10035,7 @@ static GF_Node *PixelTexture_Create()
 static void PlaneSensor_Del(GF_Node *node)
 {
 	X_PlaneSensor *p = (X_PlaneSensor *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_sg_sfstring_del(p->description);
 	gf_node_free((GF_Node *)p);
 }
@@ -10136,7 +10136,7 @@ static s32 PlaneSensor_get_field_index_by_name(char *name)
 	if (!strcmp("description", name)) return 9;
 	if (!strcmp("isOver", name)) return 10;
 	return -1;
-	}
+}
 
 
 static GF_Node *PlaneSensor_Create()
@@ -10167,7 +10167,7 @@ static GF_Node *PlaneSensor_Create()
 static void PointLight_Del(GF_Node *node)
 {
 	X_PointLight *p = (X_PointLight *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -10246,7 +10246,7 @@ static s32 PointLight_get_field_index_by_name(char *name)
 	if (!strcmp("radius", name)) return 6;
 	if (!strcmp("metadata", name)) return 7;
 	return -1;
-	}
+}
 
 
 static GF_Node *PointLight_Create()
@@ -10281,9 +10281,9 @@ static GF_Node *PointLight_Create()
 static void PointSet_Del(GF_Node *node)
 {
 	X_PointSet *p = (X_PointSet *) node;
-	gf_node_unregister((GF_Node *) p->color, node);	
-	gf_node_unregister((GF_Node *) p->coord, node);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->color, node);
+	gf_node_unregister((GF_Node *) p->coord, node);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -10329,7 +10329,7 @@ static s32 PointSet_get_field_index_by_name(char *name)
 	if (!strcmp("coord", name)) return 1;
 	if (!strcmp("metadata", name)) return 2;
 	return -1;
-	}
+}
 
 
 static GF_Node *PointSet_Create()
@@ -10352,7 +10352,7 @@ static void Polyline2D_Del(GF_Node *node)
 {
 	X_Polyline2D *p = (X_Polyline2D *) node;
 	gf_sg_mfvec2f_del(p->lineSegments);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -10389,7 +10389,7 @@ static s32 Polyline2D_get_field_index_by_name(char *name)
 	if (!strcmp("lineSegments", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *Polyline2D_Create()
@@ -10412,7 +10412,7 @@ static void Polypoint2D_Del(GF_Node *node)
 {
 	X_Polypoint2D *p = (X_Polypoint2D *) node;
 	gf_sg_mfvec2f_del(p->point);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -10449,7 +10449,7 @@ static s32 Polypoint2D_get_field_index_by_name(char *name)
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *Polypoint2D_Create()
@@ -10473,7 +10473,7 @@ static void PositionInterpolator_Del(GF_Node *node)
 	X_PositionInterpolator *p = (X_PositionInterpolator *) node;
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mfvec3f_del(p->keyValue);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -10532,7 +10532,7 @@ static s32 PositionInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *PositionInterpolator_Create()
@@ -10556,7 +10556,7 @@ static void PositionInterpolator2D_Del(GF_Node *node)
 	X_PositionInterpolator2D *p = (X_PositionInterpolator2D *) node;
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mfvec2f_del(p->keyValue);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -10615,7 +10615,7 @@ static s32 PositionInterpolator2D_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *PositionInterpolator2D_Create()
@@ -10637,7 +10637,7 @@ static GF_Node *PositionInterpolator2D_Create()
 static void ProximitySensor_Del(GF_Node *node)
 {
 	X_ProximitySensor *p = (X_ProximitySensor *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -10730,7 +10730,7 @@ static s32 ProximitySensor_get_field_index_by_name(char *name)
 	if (!strcmp("metadata", name)) return 8;
 	if (!strcmp("centerOfRotation_changed", name)) return 9;
 	return -1;
-	}
+}
 
 
 static GF_Node *ProximitySensor_Create()
@@ -10762,7 +10762,7 @@ static void ReceiverPdu_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->address);
 	gf_sg_sfstring_del(p->multicastRelayHost);
 	gf_sg_sfstring_del(p->networkMode);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -10967,7 +10967,7 @@ static s32 ReceiverPdu_get_field_index_by_name(char *name)
 	if (!strcmp("timestamp", name)) return 24;
 	if (!strcmp("metadata", name)) return 25;
 	return -1;
-	}
+}
 
 
 static GF_Node *ReceiverPdu_Create()
@@ -11008,7 +11008,7 @@ static GF_Node *ReceiverPdu_Create()
 static void Rectangle2D_Del(GF_Node *node)
 {
 	X_Rectangle2D *p = (X_Rectangle2D *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -11045,7 +11045,7 @@ static s32 Rectangle2D_get_field_index_by_name(char *name)
 	if (!strcmp("size", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *Rectangle2D_Create()
@@ -11071,7 +11071,7 @@ static void ScalarInterpolator_Del(GF_Node *node)
 	X_ScalarInterpolator *p = (X_ScalarInterpolator *) node;
 	gf_sg_mffloat_del(p->key);
 	gf_sg_mffloat_del(p->keyValue);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -11130,7 +11130,7 @@ static s32 ScalarInterpolator_get_field_index_by_name(char *name)
 	if (!strcmp("value_changed", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *ScalarInterpolator_Create()
@@ -11153,7 +11153,7 @@ static void Script_Del(GF_Node *node)
 {
 	X_Script *p = (X_Script *) node;
 	gf_sg_mfscript_del(p->url);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -11204,7 +11204,7 @@ static s32 Script_get_field_index_by_name(char *name)
 	if (!strcmp("mustEvaluate", name)) return 2;
 	if (!strcmp("metadata", name)) return 3;
 	return -1;
-	}
+}
 
 
 static GF_Node *Script_Create()
@@ -11226,9 +11226,9 @@ static GF_Node *Script_Create()
 static void Shape_Del(GF_Node *node)
 {
 	X_Shape *p = (X_Shape *) node;
-	gf_node_unregister((GF_Node *) p->appearance, node);	
-	gf_node_unregister((GF_Node *) p->geometry, node);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->appearance, node);
+	gf_node_unregister((GF_Node *) p->geometry, node);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -11274,7 +11274,7 @@ static s32 Shape_get_field_index_by_name(char *name)
 	if (!strcmp("geometry", name)) return 1;
 	if (!strcmp("metadata", name)) return 2;
 	return -1;
-	}
+}
 
 
 static GF_Node *Shape_Create()
@@ -11300,7 +11300,7 @@ static void SignalPdu_Del(GF_Node *node)
 	gf_sg_mfint32_del(p->data);
 	gf_sg_sfstring_del(p->multicastRelayHost);
 	gf_sg_sfstring_del(p->networkMode);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -11505,7 +11505,7 @@ static s32 SignalPdu_get_field_index_by_name(char *name)
 	if (!strcmp("timestamp", name)) return 24;
 	if (!strcmp("metadata", name)) return 25;
 	return -1;
-	}
+}
 
 
 static GF_Node *SignalPdu_Create()
@@ -11545,8 +11545,8 @@ static GF_Node *SignalPdu_Create()
 static void Sound_Del(GF_Node *node)
 {
 	X_Sound *p = (X_Sound *) node;
-	gf_node_unregister((GF_Node *) p->source, node);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->source, node);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -11647,7 +11647,7 @@ static s32 Sound_get_field_index_by_name(char *name)
 	if (!strcmp("spatialize", name)) return 9;
 	if (!strcmp("metadata", name)) return 10;
 	return -1;
-	}
+}
 
 
 static GF_Node *Sound_Create()
@@ -11682,7 +11682,7 @@ static GF_Node *Sound_Create()
 static void Sphere_Del(GF_Node *node)
 {
 	X_Sphere *p = (X_Sphere *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -11719,7 +11719,7 @@ static s32 Sphere_get_field_index_by_name(char *name)
 	if (!strcmp("radius", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *Sphere_Create()
@@ -11742,7 +11742,7 @@ static GF_Node *Sphere_Create()
 static void SphereSensor_Del(GF_Node *node)
 {
 	X_SphereSensor *p = (X_SphereSensor *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_sg_sfstring_del(p->description);
 	gf_node_free((GF_Node *)p);
 }
@@ -11829,7 +11829,7 @@ static s32 SphereSensor_get_field_index_by_name(char *name)
 	if (!strcmp("description", name)) return 7;
 	if (!strcmp("isOver", name)) return 8;
 	return -1;
-	}
+}
 
 
 static GF_Node *SphereSensor_Create()
@@ -11857,7 +11857,7 @@ static GF_Node *SphereSensor_Create()
 static void SpotLight_Del(GF_Node *node)
 {
 	X_SpotLight *p = (X_SpotLight *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -11957,7 +11957,7 @@ static s32 SpotLight_get_field_index_by_name(char *name)
 	if (!strcmp("radius", name)) return 9;
 	if (!strcmp("metadata", name)) return 10;
 	return -1;
-	}
+}
 
 
 static GF_Node *SpotLight_Create()
@@ -11997,8 +11997,8 @@ static GF_Node *SpotLight_Create()
 static void StaticGroup_Del(GF_Node *node)
 {
 	X_StaticGroup *p = (X_StaticGroup *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -12036,7 +12036,7 @@ static s32 StaticGroup_get_field_index_by_name(char *name)
 	if (!strcmp("children", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *StaticGroup_Create()
@@ -12061,7 +12061,7 @@ static void StringSensor_Del(GF_Node *node)
 	X_StringSensor *p = (X_StringSensor *) node;
 	gf_sg_sfstring_del(p->enteredText);
 	gf_sg_sfstring_del(p->finalText);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -12126,7 +12126,7 @@ static s32 StringSensor_get_field_index_by_name(char *name)
 	if (!strcmp("isActive", name)) return 4;
 	if (!strcmp("metadata", name)) return 5;
 	return -1;
-	}
+}
 
 
 static GF_Node *StringSensor_Create()
@@ -12150,8 +12150,8 @@ static GF_Node *StringSensor_Create()
 static void Switch_Del(GF_Node *node)
 {
 	X_Switch *p = (X_Switch *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -12214,7 +12214,7 @@ static s32 Switch_get_field_index_by_name(char *name)
 	if (!strcmp("whichChoice", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *Switch_Create()
@@ -12240,8 +12240,8 @@ static void Text_Del(GF_Node *node)
 	X_Text *p = (X_Text *) node;
 	gf_sg_mfstring_del(p->string);
 	gf_sg_mffloat_del(p->length);
-	gf_node_unregister((GF_Node *) p->fontStyle, node);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->fontStyle, node);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -12300,7 +12300,7 @@ static s32 Text_get_field_index_by_name(char *name)
 	if (!strcmp("maxExtent", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *Text_Create()
@@ -12325,16 +12325,16 @@ static void TextureBackground_Del(GF_Node *node)
 	X_TextureBackground *p = (X_TextureBackground *) node;
 	gf_sg_mffloat_del(p->groundAngle);
 	gf_sg_mfcolor_del(p->groundColor);
-	gf_node_unregister((GF_Node *) p->backTexture, node);	
-	gf_node_unregister((GF_Node *) p->bottomTexture, node);	
-	gf_node_unregister((GF_Node *) p->frontTexture, node);	
-	gf_node_unregister((GF_Node *) p->leftTexture, node);	
-	gf_node_unregister((GF_Node *) p->rightTexture, node);	
-	gf_node_unregister((GF_Node *) p->topTexture, node);	
+	gf_node_unregister((GF_Node *) p->backTexture, node);
+	gf_node_unregister((GF_Node *) p->bottomTexture, node);
+	gf_node_unregister((GF_Node *) p->frontTexture, node);
+	gf_node_unregister((GF_Node *) p->leftTexture, node);
+	gf_node_unregister((GF_Node *) p->rightTexture, node);
+	gf_node_unregister((GF_Node *) p->topTexture, node);
 	gf_sg_mffloat_del(p->skyAngle);
 	gf_sg_mfcolor_del(p->skyColor);
 	gf_sg_mffloat_del(p->transparency);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -12469,7 +12469,7 @@ static s32 TextureBackground_get_field_index_by_name(char *name)
 	if (!strcmp("isBound", name)) return 13;
 	if (!strcmp("metadata", name)) return 14;
 	return -1;
-	}
+}
 
 
 static GF_Node *TextureBackground_Create()
@@ -12500,7 +12500,7 @@ static void TextureCoordinate_Del(GF_Node *node)
 {
 	X_TextureCoordinate *p = (X_TextureCoordinate *) node;
 	gf_sg_mfvec2f_del(p->point);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -12537,7 +12537,7 @@ static s32 TextureCoordinate_get_field_index_by_name(char *name)
 	if (!strcmp("point", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *TextureCoordinate_Create()
@@ -12561,7 +12561,7 @@ static void TextureCoordinateGenerator_Del(GF_Node *node)
 	X_TextureCoordinateGenerator *p = (X_TextureCoordinateGenerator *) node;
 	gf_sg_sfstring_del(p->mode);
 	gf_sg_mffloat_del(p->parameter);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -12605,7 +12605,7 @@ static s32 TextureCoordinateGenerator_get_field_index_by_name(char *name)
 	if (!strcmp("parameter", name)) return 1;
 	if (!strcmp("metadata", name)) return 2;
 	return -1;
-	}
+}
 
 
 static GF_Node *TextureCoordinateGenerator_Create()
@@ -12629,7 +12629,7 @@ static GF_Node *TextureCoordinateGenerator_Create()
 static void TextureTransform_Del(GF_Node *node)
 {
 	X_TextureTransform *p = (X_TextureTransform *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -12687,7 +12687,7 @@ static s32 TextureTransform_get_field_index_by_name(char *name)
 	if (!strcmp("translation", name)) return 3;
 	if (!strcmp("metadata", name)) return 4;
 	return -1;
-	}
+}
 
 
 static GF_Node *TextureTransform_Create()
@@ -12716,7 +12716,7 @@ static GF_Node *TextureTransform_Create()
 static void TimeSensor_Del(GF_Node *node)
 {
 	X_TimeSensor *p = (X_TimeSensor *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -12837,7 +12837,7 @@ static s32 TimeSensor_get_field_index_by_name(char *name)
 	if (!strcmp("elapsedTime", name)) return 12;
 	if (!strcmp("isPaused", name)) return 13;
 	return -1;
-	}
+}
 
 
 static GF_Node *TimeSensor_Create()
@@ -12865,7 +12865,7 @@ static GF_Node *TimeSensor_Create()
 static void TimeTrigger_Del(GF_Node *node)
 {
 	X_TimeTrigger *p = (X_TimeTrigger *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -12910,7 +12910,7 @@ static s32 TimeTrigger_get_field_index_by_name(char *name)
 	if (!strcmp("triggerTime", name)) return 1;
 	if (!strcmp("metadata", name)) return 2;
 	return -1;
-	}
+}
 
 
 static GF_Node *TimeTrigger_Create()
@@ -12932,7 +12932,7 @@ static GF_Node *TimeTrigger_Create()
 static void TouchSensor_Del(GF_Node *node)
 {
 	X_TouchSensor *p = (X_TouchSensor *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_sg_sfstring_del(p->description);
 	gf_node_free((GF_Node *)p);
 }
@@ -13019,7 +13019,7 @@ static s32 TouchSensor_get_field_index_by_name(char *name)
 	if (!strcmp("metadata", name)) return 7;
 	if (!strcmp("description", name)) return 8;
 	return -1;
-	}
+}
 
 
 static GF_Node *TouchSensor_Create()
@@ -13042,8 +13042,8 @@ static GF_Node *TouchSensor_Create()
 static void Transform_Del(GF_Node *node)
 {
 	X_Transform *p = (X_Transform *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
-	gf_sg_vrml_parent_destroy(node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
+	gf_sg_vrml_parent_destroy(node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -13134,7 +13134,7 @@ static s32 Transform_get_field_index_by_name(char *name)
 	if (!strcmp("translation", name)) return 7;
 	if (!strcmp("metadata", name)) return 8;
 	return -1;
-	}
+}
 
 
 static GF_Node *Transform_Create()
@@ -13177,7 +13177,7 @@ static void TransmitterPdu_Del(GF_Node *node)
 	gf_sg_sfstring_del(p->address);
 	gf_sg_sfstring_del(p->multicastRelayHost);
 	gf_sg_sfstring_del(p->networkMode);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -13494,7 +13494,7 @@ static s32 TransmitterPdu_get_field_index_by_name(char *name)
 	if (!strcmp("timestamp", name)) return 40;
 	if (!strcmp("metadata", name)) return 41;
 	return -1;
-	}
+}
 
 
 static GF_Node *TransmitterPdu_Create()
@@ -13555,12 +13555,12 @@ static GF_Node *TransmitterPdu_Create()
 static void TriangleFanSet_Del(GF_Node *node)
 {
 	X_TriangleFanSet *p = (X_TriangleFanSet *) node;
-	gf_node_unregister((GF_Node *) p->color, node);	
-	gf_node_unregister((GF_Node *) p->coord, node);	
+	gf_node_unregister((GF_Node *) p->color, node);
+	gf_node_unregister((GF_Node *) p->coord, node);
 	gf_sg_mfint32_del(p->fanCount);
-	gf_node_unregister((GF_Node *) p->normal, node);	
-	gf_node_unregister((GF_Node *) p->texCoord, node);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->normal, node);
+	gf_node_unregister((GF_Node *) p->texCoord, node);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -13657,7 +13657,7 @@ static s32 TriangleFanSet_get_field_index_by_name(char *name)
 	if (!strcmp("solid", name)) return 8;
 	if (!strcmp("metadata", name)) return 9;
 	return -1;
-	}
+}
 
 
 static GF_Node *TriangleFanSet_Create()
@@ -13683,11 +13683,11 @@ static GF_Node *TriangleFanSet_Create()
 static void TriangleSet_Del(GF_Node *node)
 {
 	X_TriangleSet *p = (X_TriangleSet *) node;
-	gf_node_unregister((GF_Node *) p->color, node);	
-	gf_node_unregister((GF_Node *) p->coord, node);	
-	gf_node_unregister((GF_Node *) p->normal, node);	
-	gf_node_unregister((GF_Node *) p->texCoord, node);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->color, node);
+	gf_node_unregister((GF_Node *) p->coord, node);
+	gf_node_unregister((GF_Node *) p->normal, node);
+	gf_node_unregister((GF_Node *) p->texCoord, node);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -13777,7 +13777,7 @@ static s32 TriangleSet_get_field_index_by_name(char *name)
 	if (!strcmp("solid", name)) return 7;
 	if (!strcmp("metadata", name)) return 8;
 	return -1;
-	}
+}
 
 
 static GF_Node *TriangleSet_Create()
@@ -13804,7 +13804,7 @@ static void TriangleSet2D_Del(GF_Node *node)
 {
 	X_TriangleSet2D *p = (X_TriangleSet2D *) node;
 	gf_sg_mfvec2f_del(p->vertices);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -13841,7 +13841,7 @@ static s32 TriangleSet2D_get_field_index_by_name(char *name)
 	if (!strcmp("vertices", name)) return 0;
 	if (!strcmp("metadata", name)) return 1;
 	return -1;
-	}
+}
 
 
 static GF_Node *TriangleSet2D_Create()
@@ -13863,12 +13863,12 @@ static GF_Node *TriangleSet2D_Create()
 static void TriangleStripSet_Del(GF_Node *node)
 {
 	X_TriangleStripSet *p = (X_TriangleStripSet *) node;
-	gf_node_unregister((GF_Node *) p->color, node);	
-	gf_node_unregister((GF_Node *) p->coord, node);	
-	gf_node_unregister((GF_Node *) p->normal, node);	
+	gf_node_unregister((GF_Node *) p->color, node);
+	gf_node_unregister((GF_Node *) p->coord, node);
+	gf_node_unregister((GF_Node *) p->normal, node);
 	gf_sg_mfint32_del(p->stripCount);
-	gf_node_unregister((GF_Node *) p->texCoord, node);	
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->texCoord, node);
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -13965,7 +13965,7 @@ static s32 TriangleStripSet_get_field_index_by_name(char *name)
 	if (!strcmp("solid", name)) return 8;
 	if (!strcmp("metadata", name)) return 9;
 	return -1;
-	}
+}
 
 
 static GF_Node *TriangleStripSet_Create()
@@ -13992,7 +13992,7 @@ static void Viewpoint_Del(GF_Node *node)
 {
 	X_Viewpoint *p = (X_Viewpoint *) node;
 	gf_sg_sfstring_del(p->description);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -14086,7 +14086,7 @@ static s32 Viewpoint_get_field_index_by_name(char *name)
 	if (!strcmp("metadata", name)) return 8;
 	if (!strcmp("centerOfRotation", name)) return 9;
 	return -1;
-	}
+}
 
 
 static GF_Node *Viewpoint_Create()
@@ -14120,7 +14120,7 @@ static GF_Node *Viewpoint_Create()
 static void VisibilitySensor_Del(GF_Node *node)
 {
 	X_VisibilitySensor *p = (X_VisibilitySensor *) node;
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -14192,7 +14192,7 @@ static s32 VisibilitySensor_get_field_index_by_name(char *name)
 	if (!strcmp("isActive", name)) return 5;
 	if (!strcmp("metadata", name)) return 6;
 	return -1;
-	}
+}
 
 
 static GF_Node *VisibilitySensor_Create()
@@ -14223,7 +14223,7 @@ static void WorldInfo_Del(GF_Node *node)
 	X_WorldInfo *p = (X_WorldInfo *) node;
 	gf_sg_mfstring_del(p->info);
 	gf_sg_sfstring_del(p->title);
-	gf_node_unregister((GF_Node *) p->metadata, node);	
+	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
 
@@ -14267,7 +14267,7 @@ static s32 WorldInfo_get_field_index_by_name(char *name)
 	if (!strcmp("title", name)) return 1;
 	if (!strcmp("metadata", name)) return 2;
 	return -1;
-	}
+}
 
 
 static GF_Node *WorldInfo_Create()
@@ -14816,261 +14816,389 @@ void gf_sg_x3d_node_del(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
 	case TAG_X3D_Anchor:
-		Anchor_Del(node); return;
+		Anchor_Del(node);
+		return;
 	case TAG_X3D_Appearance:
-		Appearance_Del(node); return;
+		Appearance_Del(node);
+		return;
 	case TAG_X3D_Arc2D:
-		Arc2D_Del(node); return;
+		Arc2D_Del(node);
+		return;
 	case TAG_X3D_ArcClose2D:
-		ArcClose2D_Del(node); return;
+		ArcClose2D_Del(node);
+		return;
 	case TAG_X3D_AudioClip:
-		AudioClip_Del(node); return;
+		AudioClip_Del(node);
+		return;
 	case TAG_X3D_Background:
-		Background_Del(node); return;
+		Background_Del(node);
+		return;
 	case TAG_X3D_Billboard:
-		Billboard_Del(node); return;
+		Billboard_Del(node);
+		return;
 	case TAG_X3D_BooleanFilter:
-		BooleanFilter_Del(node); return;
+		BooleanFilter_Del(node);
+		return;
 	case TAG_X3D_BooleanSequencer:
-		BooleanSequencer_Del(node); return;
+		BooleanSequencer_Del(node);
+		return;
 	case TAG_X3D_BooleanToggle:
-		BooleanToggle_Del(node); return;
+		BooleanToggle_Del(node);
+		return;
 	case TAG_X3D_BooleanTrigger:
-		BooleanTrigger_Del(node); return;
+		BooleanTrigger_Del(node);
+		return;
 	case TAG_X3D_Box:
-		Box_Del(node); return;
+		Box_Del(node);
+		return;
 	case TAG_X3D_Circle2D:
-		Circle2D_Del(node); return;
+		Circle2D_Del(node);
+		return;
 	case TAG_X3D_Collision:
-		Collision_Del(node); return;
+		Collision_Del(node);
+		return;
 	case TAG_X3D_Color:
-		Color_Del(node); return;
+		Color_Del(node);
+		return;
 	case TAG_X3D_ColorInterpolator:
-		ColorInterpolator_Del(node); return;
+		ColorInterpolator_Del(node);
+		return;
 	case TAG_X3D_ColorRGBA:
-		ColorRGBA_Del(node); return;
+		ColorRGBA_Del(node);
+		return;
 	case TAG_X3D_Cone:
-		Cone_Del(node); return;
+		Cone_Del(node);
+		return;
 	case TAG_X3D_Contour2D:
-		Contour2D_Del(node); return;
+		Contour2D_Del(node);
+		return;
 	case TAG_X3D_ContourPolyline2D:
-		ContourPolyline2D_Del(node); return;
+		ContourPolyline2D_Del(node);
+		return;
 	case TAG_X3D_Coordinate:
-		Coordinate_Del(node); return;
+		Coordinate_Del(node);
+		return;
 	case TAG_X3D_CoordinateDouble:
-		CoordinateDouble_Del(node); return;
+		CoordinateDouble_Del(node);
+		return;
 	case TAG_X3D_Coordinate2D:
-		Coordinate2D_Del(node); return;
+		Coordinate2D_Del(node);
+		return;
 	case TAG_X3D_CoordinateInterpolator:
-		CoordinateInterpolator_Del(node); return;
+		CoordinateInterpolator_Del(node);
+		return;
 	case TAG_X3D_CoordinateInterpolator2D:
-		CoordinateInterpolator2D_Del(node); return;
+		CoordinateInterpolator2D_Del(node);
+		return;
 	case TAG_X3D_Cylinder:
-		Cylinder_Del(node); return;
+		Cylinder_Del(node);
+		return;
 	case TAG_X3D_CylinderSensor:
-		CylinderSensor_Del(node); return;
+		CylinderSensor_Del(node);
+		return;
 	case TAG_X3D_DirectionalLight:
-		DirectionalLight_Del(node); return;
+		DirectionalLight_Del(node);
+		return;
 	case TAG_X3D_Disk2D:
-		Disk2D_Del(node); return;
+		Disk2D_Del(node);
+		return;
 	case TAG_X3D_ElevationGrid:
-		ElevationGrid_Del(node); return;
+		ElevationGrid_Del(node);
+		return;
 	case TAG_X3D_EspduTransform:
-		EspduTransform_Del(node); return;
+		EspduTransform_Del(node);
+		return;
 	case TAG_X3D_Extrusion:
-		Extrusion_Del(node); return;
+		Extrusion_Del(node);
+		return;
 	case TAG_X3D_FillProperties:
-		FillProperties_Del(node); return;
+		FillProperties_Del(node);
+		return;
 	case TAG_X3D_Fog:
-		Fog_Del(node); return;
+		Fog_Del(node);
+		return;
 	case TAG_X3D_FontStyle:
-		FontStyle_Del(node); return;
+		FontStyle_Del(node);
+		return;
 	case TAG_X3D_GeoCoordinate:
-		GeoCoordinate_Del(node); return;
+		GeoCoordinate_Del(node);
+		return;
 	case TAG_X3D_GeoElevationGrid:
-		GeoElevationGrid_Del(node); return;
+		GeoElevationGrid_Del(node);
+		return;
 	case TAG_X3D_GeoLocation:
-		GeoLocation_Del(node); return;
+		GeoLocation_Del(node);
+		return;
 	case TAG_X3D_GeoLOD:
-		GeoLOD_Del(node); return;
+		GeoLOD_Del(node);
+		return;
 	case TAG_X3D_GeoMetadata:
-		GeoMetadata_Del(node); return;
+		GeoMetadata_Del(node);
+		return;
 	case TAG_X3D_GeoOrigin:
-		GeoOrigin_Del(node); return;
+		GeoOrigin_Del(node);
+		return;
 	case TAG_X3D_GeoPositionInterpolator:
-		GeoPositionInterpolator_Del(node); return;
+		GeoPositionInterpolator_Del(node);
+		return;
 	case TAG_X3D_GeoTouchSensor:
-		GeoTouchSensor_Del(node); return;
+		GeoTouchSensor_Del(node);
+		return;
 	case TAG_X3D_GeoViewpoint:
-		GeoViewpoint_Del(node); return;
+		GeoViewpoint_Del(node);
+		return;
 	case TAG_X3D_Group:
-		Group_Del(node); return;
+		Group_Del(node);
+		return;
 	case TAG_X3D_HAnimDisplacer:
-		HAnimDisplacer_Del(node); return;
+		HAnimDisplacer_Del(node);
+		return;
 	case TAG_X3D_HAnimHumanoid:
-		HAnimHumanoid_Del(node); return;
+		HAnimHumanoid_Del(node);
+		return;
 	case TAG_X3D_HAnimJoint:
-		HAnimJoint_Del(node); return;
+		HAnimJoint_Del(node);
+		return;
 	case TAG_X3D_HAnimSegment:
-		HAnimSegment_Del(node); return;
+		HAnimSegment_Del(node);
+		return;
 	case TAG_X3D_HAnimSite:
-		HAnimSite_Del(node); return;
+		HAnimSite_Del(node);
+		return;
 	case TAG_X3D_ImageTexture:
-		ImageTexture_Del(node); return;
+		ImageTexture_Del(node);
+		return;
 	case TAG_X3D_IndexedFaceSet:
-		IndexedFaceSet_Del(node); return;
+		IndexedFaceSet_Del(node);
+		return;
 	case TAG_X3D_IndexedLineSet:
-		IndexedLineSet_Del(node); return;
+		IndexedLineSet_Del(node);
+		return;
 	case TAG_X3D_IndexedTriangleFanSet:
-		IndexedTriangleFanSet_Del(node); return;
+		IndexedTriangleFanSet_Del(node);
+		return;
 	case TAG_X3D_IndexedTriangleSet:
-		IndexedTriangleSet_Del(node); return;
+		IndexedTriangleSet_Del(node);
+		return;
 	case TAG_X3D_IndexedTriangleStripSet:
-		IndexedTriangleStripSet_Del(node); return;
+		IndexedTriangleStripSet_Del(node);
+		return;
 	case TAG_X3D_Inline:
-		Inline_Del(node); return;
+		Inline_Del(node);
+		return;
 	case TAG_X3D_IntegerSequencer:
-		IntegerSequencer_Del(node); return;
+		IntegerSequencer_Del(node);
+		return;
 	case TAG_X3D_IntegerTrigger:
-		IntegerTrigger_Del(node); return;
+		IntegerTrigger_Del(node);
+		return;
 	case TAG_X3D_KeySensor:
-		KeySensor_Del(node); return;
+		KeySensor_Del(node);
+		return;
 	case TAG_X3D_LineProperties:
-		LineProperties_Del(node); return;
+		LineProperties_Del(node);
+		return;
 	case TAG_X3D_LineSet:
-		LineSet_Del(node); return;
+		LineSet_Del(node);
+		return;
 	case TAG_X3D_LoadSensor:
-		LoadSensor_Del(node); return;
+		LoadSensor_Del(node);
+		return;
 	case TAG_X3D_LOD:
-		LOD_Del(node); return;
+		LOD_Del(node);
+		return;
 	case TAG_X3D_Material:
-		Material_Del(node); return;
+		Material_Del(node);
+		return;
 	case TAG_X3D_MetadataDouble:
-		MetadataDouble_Del(node); return;
+		MetadataDouble_Del(node);
+		return;
 	case TAG_X3D_MetadataFloat:
-		MetadataFloat_Del(node); return;
+		MetadataFloat_Del(node);
+		return;
 	case TAG_X3D_MetadataInteger:
-		MetadataInteger_Del(node); return;
+		MetadataInteger_Del(node);
+		return;
 	case TAG_X3D_MetadataSet:
-		MetadataSet_Del(node); return;
+		MetadataSet_Del(node);
+		return;
 	case TAG_X3D_MetadataString:
-		MetadataString_Del(node); return;
+		MetadataString_Del(node);
+		return;
 	case TAG_X3D_MovieTexture:
-		MovieTexture_Del(node); return;
+		MovieTexture_Del(node);
+		return;
 	case TAG_X3D_MultiTexture:
-		MultiTexture_Del(node); return;
+		MultiTexture_Del(node);
+		return;
 	case TAG_X3D_MultiTextureCoordinate:
-		MultiTextureCoordinate_Del(node); return;
+		MultiTextureCoordinate_Del(node);
+		return;
 	case TAG_X3D_MultiTextureTransform:
-		MultiTextureTransform_Del(node); return;
+		MultiTextureTransform_Del(node);
+		return;
 	case TAG_X3D_NavigationInfo:
-		NavigationInfo_Del(node); return;
+		NavigationInfo_Del(node);
+		return;
 	case TAG_X3D_Normal:
-		Normal_Del(node); return;
+		Normal_Del(node);
+		return;
 	case TAG_X3D_NormalInterpolator:
-		NormalInterpolator_Del(node); return;
+		NormalInterpolator_Del(node);
+		return;
 	case TAG_X3D_NurbsCurve:
-		NurbsCurve_Del(node); return;
+		NurbsCurve_Del(node);
+		return;
 	case TAG_X3D_NurbsCurve2D:
-		NurbsCurve2D_Del(node); return;
+		NurbsCurve2D_Del(node);
+		return;
 	case TAG_X3D_NurbsOrientationInterpolator:
-		NurbsOrientationInterpolator_Del(node); return;
+		NurbsOrientationInterpolator_Del(node);
+		return;
 	case TAG_X3D_NurbsPatchSurface:
-		NurbsPatchSurface_Del(node); return;
+		NurbsPatchSurface_Del(node);
+		return;
 	case TAG_X3D_NurbsPositionInterpolator:
-		NurbsPositionInterpolator_Del(node); return;
+		NurbsPositionInterpolator_Del(node);
+		return;
 	case TAG_X3D_NurbsSet:
-		NurbsSet_Del(node); return;
+		NurbsSet_Del(node);
+		return;
 	case TAG_X3D_NurbsSurfaceInterpolator:
-		NurbsSurfaceInterpolator_Del(node); return;
+		NurbsSurfaceInterpolator_Del(node);
+		return;
 	case TAG_X3D_NurbsSweptSurface:
-		NurbsSweptSurface_Del(node); return;
+		NurbsSweptSurface_Del(node);
+		return;
 	case TAG_X3D_NurbsSwungSurface:
-		NurbsSwungSurface_Del(node); return;
+		NurbsSwungSurface_Del(node);
+		return;
 	case TAG_X3D_NurbsTextureCoordinate:
-		NurbsTextureCoordinate_Del(node); return;
+		NurbsTextureCoordinate_Del(node);
+		return;
 	case TAG_X3D_NurbsTrimmedSurface:
-		NurbsTrimmedSurface_Del(node); return;
+		NurbsTrimmedSurface_Del(node);
+		return;
 	case TAG_X3D_OrientationInterpolator:
-		OrientationInterpolator_Del(node); return;
+		OrientationInterpolator_Del(node);
+		return;
 	case TAG_X3D_PixelTexture:
-		PixelTexture_Del(node); return;
+		PixelTexture_Del(node);
+		return;
 	case TAG_X3D_PlaneSensor:
-		PlaneSensor_Del(node); return;
+		PlaneSensor_Del(node);
+		return;
 	case TAG_X3D_PointLight:
-		PointLight_Del(node); return;
+		PointLight_Del(node);
+		return;
 	case TAG_X3D_PointSet:
-		PointSet_Del(node); return;
+		PointSet_Del(node);
+		return;
 	case TAG_X3D_Polyline2D:
-		Polyline2D_Del(node); return;
+		Polyline2D_Del(node);
+		return;
 	case TAG_X3D_Polypoint2D:
-		Polypoint2D_Del(node); return;
+		Polypoint2D_Del(node);
+		return;
 	case TAG_X3D_PositionInterpolator:
-		PositionInterpolator_Del(node); return;
+		PositionInterpolator_Del(node);
+		return;
 	case TAG_X3D_PositionInterpolator2D:
-		PositionInterpolator2D_Del(node); return;
+		PositionInterpolator2D_Del(node);
+		return;
 	case TAG_X3D_ProximitySensor:
-		ProximitySensor_Del(node); return;
+		ProximitySensor_Del(node);
+		return;
 	case TAG_X3D_ReceiverPdu:
-		ReceiverPdu_Del(node); return;
+		ReceiverPdu_Del(node);
+		return;
 	case TAG_X3D_Rectangle2D:
-		Rectangle2D_Del(node); return;
+		Rectangle2D_Del(node);
+		return;
 	case TAG_X3D_ScalarInterpolator:
-		ScalarInterpolator_Del(node); return;
+		ScalarInterpolator_Del(node);
+		return;
 	case TAG_X3D_Script:
-		Script_Del(node); return;
+		Script_Del(node);
+		return;
 	case TAG_X3D_Shape:
-		Shape_Del(node); return;
+		Shape_Del(node);
+		return;
 	case TAG_X3D_SignalPdu:
-		SignalPdu_Del(node); return;
+		SignalPdu_Del(node);
+		return;
 	case TAG_X3D_Sound:
-		Sound_Del(node); return;
+		Sound_Del(node);
+		return;
 	case TAG_X3D_Sphere:
-		Sphere_Del(node); return;
+		Sphere_Del(node);
+		return;
 	case TAG_X3D_SphereSensor:
-		SphereSensor_Del(node); return;
+		SphereSensor_Del(node);
+		return;
 	case TAG_X3D_SpotLight:
-		SpotLight_Del(node); return;
+		SpotLight_Del(node);
+		return;
 	case TAG_X3D_StaticGroup:
-		StaticGroup_Del(node); return;
+		StaticGroup_Del(node);
+		return;
 	case TAG_X3D_StringSensor:
-		StringSensor_Del(node); return;
+		StringSensor_Del(node);
+		return;
 	case TAG_X3D_Switch:
-		Switch_Del(node); return;
+		Switch_Del(node);
+		return;
 	case TAG_X3D_Text:
-		Text_Del(node); return;
+		Text_Del(node);
+		return;
 	case TAG_X3D_TextureBackground:
-		TextureBackground_Del(node); return;
+		TextureBackground_Del(node);
+		return;
 	case TAG_X3D_TextureCoordinate:
-		TextureCoordinate_Del(node); return;
+		TextureCoordinate_Del(node);
+		return;
 	case TAG_X3D_TextureCoordinateGenerator:
-		TextureCoordinateGenerator_Del(node); return;
+		TextureCoordinateGenerator_Del(node);
+		return;
 	case TAG_X3D_TextureTransform:
-		TextureTransform_Del(node); return;
+		TextureTransform_Del(node);
+		return;
 	case TAG_X3D_TimeSensor:
-		TimeSensor_Del(node); return;
+		TimeSensor_Del(node);
+		return;
 	case TAG_X3D_TimeTrigger:
-		TimeTrigger_Del(node); return;
+		TimeTrigger_Del(node);
+		return;
 	case TAG_X3D_TouchSensor:
-		TouchSensor_Del(node); return;
+		TouchSensor_Del(node);
+		return;
 	case TAG_X3D_Transform:
-		Transform_Del(node); return;
+		Transform_Del(node);
+		return;
 	case TAG_X3D_TransmitterPdu:
-		TransmitterPdu_Del(node); return;
+		TransmitterPdu_Del(node);
+		return;
 	case TAG_X3D_TriangleFanSet:
-		TriangleFanSet_Del(node); return;
+		TriangleFanSet_Del(node);
+		return;
 	case TAG_X3D_TriangleSet:
-		TriangleSet_Del(node); return;
+		TriangleSet_Del(node);
+		return;
 	case TAG_X3D_TriangleSet2D:
-		TriangleSet2D_Del(node); return;
+		TriangleSet2D_Del(node);
+		return;
 	case TAG_X3D_TriangleStripSet:
-		TriangleStripSet_Del(node); return;
+		TriangleStripSet_Del(node);
+		return;
 	case TAG_X3D_Viewpoint:
-		Viewpoint_Del(node); return;
+		Viewpoint_Del(node);
+		return;
 	case TAG_X3D_VisibilitySensor:
-		VisibilitySensor_Del(node); return;
+		VisibilitySensor_Del(node);
+		return;
 	case TAG_X3D_WorldInfo:
-		WorldInfo_Del(node); return;
+		WorldInfo_Del(node);
+		return;
 	default:
 		return;
 	}
@@ -15079,134 +15207,262 @@ void gf_sg_x3d_node_del(GF_Node *node)
 u32 gf_sg_x3d_node_get_field_count(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
-	case TAG_X3D_Anchor:return Anchor_get_field_count(node, 0);
-	case TAG_X3D_Appearance:return Appearance_get_field_count(node, 0);
-	case TAG_X3D_Arc2D:return Arc2D_get_field_count(node, 0);
-	case TAG_X3D_ArcClose2D:return ArcClose2D_get_field_count(node, 0);
-	case TAG_X3D_AudioClip:return AudioClip_get_field_count(node, 0);
-	case TAG_X3D_Background:return Background_get_field_count(node, 0);
-	case TAG_X3D_Billboard:return Billboard_get_field_count(node, 0);
-	case TAG_X3D_BooleanFilter:return BooleanFilter_get_field_count(node, 0);
-	case TAG_X3D_BooleanSequencer:return BooleanSequencer_get_field_count(node, 0);
-	case TAG_X3D_BooleanToggle:return BooleanToggle_get_field_count(node, 0);
-	case TAG_X3D_BooleanTrigger:return BooleanTrigger_get_field_count(node, 0);
-	case TAG_X3D_Box:return Box_get_field_count(node, 0);
-	case TAG_X3D_Circle2D:return Circle2D_get_field_count(node, 0);
-	case TAG_X3D_Collision:return Collision_get_field_count(node, 0);
-	case TAG_X3D_Color:return Color_get_field_count(node, 0);
-	case TAG_X3D_ColorInterpolator:return ColorInterpolator_get_field_count(node, 0);
-	case TAG_X3D_ColorRGBA:return ColorRGBA_get_field_count(node, 0);
-	case TAG_X3D_Cone:return Cone_get_field_count(node, 0);
-	case TAG_X3D_Contour2D:return Contour2D_get_field_count(node, 0);
-	case TAG_X3D_ContourPolyline2D:return ContourPolyline2D_get_field_count(node, 0);
-	case TAG_X3D_Coordinate:return Coordinate_get_field_count(node, 0);
-	case TAG_X3D_CoordinateDouble:return CoordinateDouble_get_field_count(node, 0);
-	case TAG_X3D_Coordinate2D:return Coordinate2D_get_field_count(node, 0);
-	case TAG_X3D_CoordinateInterpolator:return CoordinateInterpolator_get_field_count(node, 0);
-	case TAG_X3D_CoordinateInterpolator2D:return CoordinateInterpolator2D_get_field_count(node, 0);
-	case TAG_X3D_Cylinder:return Cylinder_get_field_count(node, 0);
-	case TAG_X3D_CylinderSensor:return CylinderSensor_get_field_count(node, 0);
-	case TAG_X3D_DirectionalLight:return DirectionalLight_get_field_count(node, 0);
-	case TAG_X3D_Disk2D:return Disk2D_get_field_count(node, 0);
-	case TAG_X3D_ElevationGrid:return ElevationGrid_get_field_count(node, 0);
-	case TAG_X3D_EspduTransform:return EspduTransform_get_field_count(node, 0);
-	case TAG_X3D_Extrusion:return Extrusion_get_field_count(node, 0);
-	case TAG_X3D_FillProperties:return FillProperties_get_field_count(node, 0);
-	case TAG_X3D_Fog:return Fog_get_field_count(node, 0);
-	case TAG_X3D_FontStyle:return FontStyle_get_field_count(node, 0);
-	case TAG_X3D_GeoCoordinate:return GeoCoordinate_get_field_count(node, 0);
-	case TAG_X3D_GeoElevationGrid:return GeoElevationGrid_get_field_count(node, 0);
-	case TAG_X3D_GeoLocation:return GeoLocation_get_field_count(node, 0);
-	case TAG_X3D_GeoLOD:return GeoLOD_get_field_count(node, 0);
-	case TAG_X3D_GeoMetadata:return GeoMetadata_get_field_count(node, 0);
-	case TAG_X3D_GeoOrigin:return GeoOrigin_get_field_count(node, 0);
-	case TAG_X3D_GeoPositionInterpolator:return GeoPositionInterpolator_get_field_count(node, 0);
-	case TAG_X3D_GeoTouchSensor:return GeoTouchSensor_get_field_count(node, 0);
-	case TAG_X3D_GeoViewpoint:return GeoViewpoint_get_field_count(node, 0);
-	case TAG_X3D_Group:return Group_get_field_count(node, 0);
-	case TAG_X3D_HAnimDisplacer:return HAnimDisplacer_get_field_count(node, 0);
-	case TAG_X3D_HAnimHumanoid:return HAnimHumanoid_get_field_count(node, 0);
-	case TAG_X3D_HAnimJoint:return HAnimJoint_get_field_count(node, 0);
-	case TAG_X3D_HAnimSegment:return HAnimSegment_get_field_count(node, 0);
-	case TAG_X3D_HAnimSite:return HAnimSite_get_field_count(node, 0);
-	case TAG_X3D_ImageTexture:return ImageTexture_get_field_count(node, 0);
-	case TAG_X3D_IndexedFaceSet:return IndexedFaceSet_get_field_count(node, 0);
-	case TAG_X3D_IndexedLineSet:return IndexedLineSet_get_field_count(node, 0);
-	case TAG_X3D_IndexedTriangleFanSet:return IndexedTriangleFanSet_get_field_count(node, 0);
-	case TAG_X3D_IndexedTriangleSet:return IndexedTriangleSet_get_field_count(node, 0);
-	case TAG_X3D_IndexedTriangleStripSet:return IndexedTriangleStripSet_get_field_count(node, 0);
-	case TAG_X3D_Inline:return Inline_get_field_count(node, 0);
-	case TAG_X3D_IntegerSequencer:return IntegerSequencer_get_field_count(node, 0);
-	case TAG_X3D_IntegerTrigger:return IntegerTrigger_get_field_count(node, 0);
-	case TAG_X3D_KeySensor:return KeySensor_get_field_count(node, 0);
-	case TAG_X3D_LineProperties:return LineProperties_get_field_count(node, 0);
-	case TAG_X3D_LineSet:return LineSet_get_field_count(node, 0);
-	case TAG_X3D_LoadSensor:return LoadSensor_get_field_count(node, 0);
-	case TAG_X3D_LOD:return LOD_get_field_count(node, 0);
-	case TAG_X3D_Material:return Material_get_field_count(node, 0);
-	case TAG_X3D_MetadataDouble:return MetadataDouble_get_field_count(node, 0);
-	case TAG_X3D_MetadataFloat:return MetadataFloat_get_field_count(node, 0);
-	case TAG_X3D_MetadataInteger:return MetadataInteger_get_field_count(node, 0);
-	case TAG_X3D_MetadataSet:return MetadataSet_get_field_count(node, 0);
-	case TAG_X3D_MetadataString:return MetadataString_get_field_count(node, 0);
-	case TAG_X3D_MovieTexture:return MovieTexture_get_field_count(node, 0);
-	case TAG_X3D_MultiTexture:return MultiTexture_get_field_count(node, 0);
-	case TAG_X3D_MultiTextureCoordinate:return MultiTextureCoordinate_get_field_count(node, 0);
-	case TAG_X3D_MultiTextureTransform:return MultiTextureTransform_get_field_count(node, 0);
-	case TAG_X3D_NavigationInfo:return NavigationInfo_get_field_count(node, 0);
-	case TAG_X3D_Normal:return Normal_get_field_count(node, 0);
-	case TAG_X3D_NormalInterpolator:return NormalInterpolator_get_field_count(node, 0);
-	case TAG_X3D_NurbsCurve:return NurbsCurve_get_field_count(node, 0);
-	case TAG_X3D_NurbsCurve2D:return NurbsCurve2D_get_field_count(node, 0);
-	case TAG_X3D_NurbsOrientationInterpolator:return NurbsOrientationInterpolator_get_field_count(node, 0);
-	case TAG_X3D_NurbsPatchSurface:return NurbsPatchSurface_get_field_count(node, 0);
-	case TAG_X3D_NurbsPositionInterpolator:return NurbsPositionInterpolator_get_field_count(node, 0);
-	case TAG_X3D_NurbsSet:return NurbsSet_get_field_count(node, 0);
-	case TAG_X3D_NurbsSurfaceInterpolator:return NurbsSurfaceInterpolator_get_field_count(node, 0);
-	case TAG_X3D_NurbsSweptSurface:return NurbsSweptSurface_get_field_count(node, 0);
-	case TAG_X3D_NurbsSwungSurface:return NurbsSwungSurface_get_field_count(node, 0);
-	case TAG_X3D_NurbsTextureCoordinate:return NurbsTextureCoordinate_get_field_count(node, 0);
-	case TAG_X3D_NurbsTrimmedSurface:return NurbsTrimmedSurface_get_field_count(node, 0);
-	case TAG_X3D_OrientationInterpolator:return OrientationInterpolator_get_field_count(node, 0);
-	case TAG_X3D_PixelTexture:return PixelTexture_get_field_count(node, 0);
-	case TAG_X3D_PlaneSensor:return PlaneSensor_get_field_count(node, 0);
-	case TAG_X3D_PointLight:return PointLight_get_field_count(node, 0);
-	case TAG_X3D_PointSet:return PointSet_get_field_count(node, 0);
-	case TAG_X3D_Polyline2D:return Polyline2D_get_field_count(node, 0);
-	case TAG_X3D_Polypoint2D:return Polypoint2D_get_field_count(node, 0);
-	case TAG_X3D_PositionInterpolator:return PositionInterpolator_get_field_count(node, 0);
-	case TAG_X3D_PositionInterpolator2D:return PositionInterpolator2D_get_field_count(node, 0);
-	case TAG_X3D_ProximitySensor:return ProximitySensor_get_field_count(node, 0);
-	case TAG_X3D_ReceiverPdu:return ReceiverPdu_get_field_count(node, 0);
-	case TAG_X3D_Rectangle2D:return Rectangle2D_get_field_count(node, 0);
-	case TAG_X3D_ScalarInterpolator:return ScalarInterpolator_get_field_count(node, 0);
-	case TAG_X3D_Script:return Script_get_field_count(node, 0);
-	case TAG_X3D_Shape:return Shape_get_field_count(node, 0);
-	case TAG_X3D_SignalPdu:return SignalPdu_get_field_count(node, 0);
-	case TAG_X3D_Sound:return Sound_get_field_count(node, 0);
-	case TAG_X3D_Sphere:return Sphere_get_field_count(node, 0);
-	case TAG_X3D_SphereSensor:return SphereSensor_get_field_count(node, 0);
-	case TAG_X3D_SpotLight:return SpotLight_get_field_count(node, 0);
-	case TAG_X3D_StaticGroup:return StaticGroup_get_field_count(node, 0);
-	case TAG_X3D_StringSensor:return StringSensor_get_field_count(node, 0);
-	case TAG_X3D_Switch:return Switch_get_field_count(node, 0);
-	case TAG_X3D_Text:return Text_get_field_count(node, 0);
-	case TAG_X3D_TextureBackground:return TextureBackground_get_field_count(node, 0);
-	case TAG_X3D_TextureCoordinate:return TextureCoordinate_get_field_count(node, 0);
-	case TAG_X3D_TextureCoordinateGenerator:return TextureCoordinateGenerator_get_field_count(node, 0);
-	case TAG_X3D_TextureTransform:return TextureTransform_get_field_count(node, 0);
-	case TAG_X3D_TimeSensor:return TimeSensor_get_field_count(node, 0);
-	case TAG_X3D_TimeTrigger:return TimeTrigger_get_field_count(node, 0);
-	case TAG_X3D_TouchSensor:return TouchSensor_get_field_count(node, 0);
-	case TAG_X3D_Transform:return Transform_get_field_count(node, 0);
-	case TAG_X3D_TransmitterPdu:return TransmitterPdu_get_field_count(node, 0);
-	case TAG_X3D_TriangleFanSet:return TriangleFanSet_get_field_count(node, 0);
-	case TAG_X3D_TriangleSet:return TriangleSet_get_field_count(node, 0);
-	case TAG_X3D_TriangleSet2D:return TriangleSet2D_get_field_count(node, 0);
-	case TAG_X3D_TriangleStripSet:return TriangleStripSet_get_field_count(node, 0);
-	case TAG_X3D_Viewpoint:return Viewpoint_get_field_count(node, 0);
-	case TAG_X3D_VisibilitySensor:return VisibilitySensor_get_field_count(node, 0);
-	case TAG_X3D_WorldInfo:return WorldInfo_get_field_count(node, 0);
+	case TAG_X3D_Anchor:
+		return Anchor_get_field_count(node, 0);
+	case TAG_X3D_Appearance:
+		return Appearance_get_field_count(node, 0);
+	case TAG_X3D_Arc2D:
+		return Arc2D_get_field_count(node, 0);
+	case TAG_X3D_ArcClose2D:
+		return ArcClose2D_get_field_count(node, 0);
+	case TAG_X3D_AudioClip:
+		return AudioClip_get_field_count(node, 0);
+	case TAG_X3D_Background:
+		return Background_get_field_count(node, 0);
+	case TAG_X3D_Billboard:
+		return Billboard_get_field_count(node, 0);
+	case TAG_X3D_BooleanFilter:
+		return BooleanFilter_get_field_count(node, 0);
+	case TAG_X3D_BooleanSequencer:
+		return BooleanSequencer_get_field_count(node, 0);
+	case TAG_X3D_BooleanToggle:
+		return BooleanToggle_get_field_count(node, 0);
+	case TAG_X3D_BooleanTrigger:
+		return BooleanTrigger_get_field_count(node, 0);
+	case TAG_X3D_Box:
+		return Box_get_field_count(node, 0);
+	case TAG_X3D_Circle2D:
+		return Circle2D_get_field_count(node, 0);
+	case TAG_X3D_Collision:
+		return Collision_get_field_count(node, 0);
+	case TAG_X3D_Color:
+		return Color_get_field_count(node, 0);
+	case TAG_X3D_ColorInterpolator:
+		return ColorInterpolator_get_field_count(node, 0);
+	case TAG_X3D_ColorRGBA:
+		return ColorRGBA_get_field_count(node, 0);
+	case TAG_X3D_Cone:
+		return Cone_get_field_count(node, 0);
+	case TAG_X3D_Contour2D:
+		return Contour2D_get_field_count(node, 0);
+	case TAG_X3D_ContourPolyline2D:
+		return ContourPolyline2D_get_field_count(node, 0);
+	case TAG_X3D_Coordinate:
+		return Coordinate_get_field_count(node, 0);
+	case TAG_X3D_CoordinateDouble:
+		return CoordinateDouble_get_field_count(node, 0);
+	case TAG_X3D_Coordinate2D:
+		return Coordinate2D_get_field_count(node, 0);
+	case TAG_X3D_CoordinateInterpolator:
+		return CoordinateInterpolator_get_field_count(node, 0);
+	case TAG_X3D_CoordinateInterpolator2D:
+		return CoordinateInterpolator2D_get_field_count(node, 0);
+	case TAG_X3D_Cylinder:
+		return Cylinder_get_field_count(node, 0);
+	case TAG_X3D_CylinderSensor:
+		return CylinderSensor_get_field_count(node, 0);
+	case TAG_X3D_DirectionalLight:
+		return DirectionalLight_get_field_count(node, 0);
+	case TAG_X3D_Disk2D:
+		return Disk2D_get_field_count(node, 0);
+	case TAG_X3D_ElevationGrid:
+		return ElevationGrid_get_field_count(node, 0);
+	case TAG_X3D_EspduTransform:
+		return EspduTransform_get_field_count(node, 0);
+	case TAG_X3D_Extrusion:
+		return Extrusion_get_field_count(node, 0);
+	case TAG_X3D_FillProperties:
+		return FillProperties_get_field_count(node, 0);
+	case TAG_X3D_Fog:
+		return Fog_get_field_count(node, 0);
+	case TAG_X3D_FontStyle:
+		return FontStyle_get_field_count(node, 0);
+	case TAG_X3D_GeoCoordinate:
+		return GeoCoordinate_get_field_count(node, 0);
+	case TAG_X3D_GeoElevationGrid:
+		return GeoElevationGrid_get_field_count(node, 0);
+	case TAG_X3D_GeoLocation:
+		return GeoLocation_get_field_count(node, 0);
+	case TAG_X3D_GeoLOD:
+		return GeoLOD_get_field_count(node, 0);
+	case TAG_X3D_GeoMetadata:
+		return GeoMetadata_get_field_count(node, 0);
+	case TAG_X3D_GeoOrigin:
+		return GeoOrigin_get_field_count(node, 0);
+	case TAG_X3D_GeoPositionInterpolator:
+		return GeoPositionInterpolator_get_field_count(node, 0);
+	case TAG_X3D_GeoTouchSensor:
+		return GeoTouchSensor_get_field_count(node, 0);
+	case TAG_X3D_GeoViewpoint:
+		return GeoViewpoint_get_field_count(node, 0);
+	case TAG_X3D_Group:
+		return Group_get_field_count(node, 0);
+	case TAG_X3D_HAnimDisplacer:
+		return HAnimDisplacer_get_field_count(node, 0);
+	case TAG_X3D_HAnimHumanoid:
+		return HAnimHumanoid_get_field_count(node, 0);
+	case TAG_X3D_HAnimJoint:
+		return HAnimJoint_get_field_count(node, 0);
+	case TAG_X3D_HAnimSegment:
+		return HAnimSegment_get_field_count(node, 0);
+	case TAG_X3D_HAnimSite:
+		return HAnimSite_get_field_count(node, 0);
+	case TAG_X3D_ImageTexture:
+		return ImageTexture_get_field_count(node, 0);
+	case TAG_X3D_IndexedFaceSet:
+		return IndexedFaceSet_get_field_count(node, 0);
+	case TAG_X3D_IndexedLineSet:
+		return IndexedLineSet_get_field_count(node, 0);
+	case TAG_X3D_IndexedTriangleFanSet:
+		return IndexedTriangleFanSet_get_field_count(node, 0);
+	case TAG_X3D_IndexedTriangleSet:
+		return IndexedTriangleSet_get_field_count(node, 0);
+	case TAG_X3D_IndexedTriangleStripSet:
+		return IndexedTriangleStripSet_get_field_count(node, 0);
+	case TAG_X3D_Inline:
+		return Inline_get_field_count(node, 0);
+	case TAG_X3D_IntegerSequencer:
+		return IntegerSequencer_get_field_count(node, 0);
+	case TAG_X3D_IntegerTrigger:
+		return IntegerTrigger_get_field_count(node, 0);
+	case TAG_X3D_KeySensor:
+		return KeySensor_get_field_count(node, 0);
+	case TAG_X3D_LineProperties:
+		return LineProperties_get_field_count(node, 0);
+	case TAG_X3D_LineSet:
+		return LineSet_get_field_count(node, 0);
+	case TAG_X3D_LoadSensor:
+		return LoadSensor_get_field_count(node, 0);
+	case TAG_X3D_LOD:
+		return LOD_get_field_count(node, 0);
+	case TAG_X3D_Material:
+		return Material_get_field_count(node, 0);
+	case TAG_X3D_MetadataDouble:
+		return MetadataDouble_get_field_count(node, 0);
+	case TAG_X3D_MetadataFloat:
+		return MetadataFloat_get_field_count(node, 0);
+	case TAG_X3D_MetadataInteger:
+		return MetadataInteger_get_field_count(node, 0);
+	case TAG_X3D_MetadataSet:
+		return MetadataSet_get_field_count(node, 0);
+	case TAG_X3D_MetadataString:
+		return MetadataString_get_field_count(node, 0);
+	case TAG_X3D_MovieTexture:
+		return MovieTexture_get_field_count(node, 0);
+	case TAG_X3D_MultiTexture:
+		return MultiTexture_get_field_count(node, 0);
+	case TAG_X3D_MultiTextureCoordinate:
+		return MultiTextureCoordinate_get_field_count(node, 0);
+	case TAG_X3D_MultiTextureTransform:
+		return MultiTextureTransform_get_field_count(node, 0);
+	case TAG_X3D_NavigationInfo:
+		return NavigationInfo_get_field_count(node, 0);
+	case TAG_X3D_Normal:
+		return Normal_get_field_count(node, 0);
+	case TAG_X3D_NormalInterpolator:
+		return NormalInterpolator_get_field_count(node, 0);
+	case TAG_X3D_NurbsCurve:
+		return NurbsCurve_get_field_count(node, 0);
+	case TAG_X3D_NurbsCurve2D:
+		return NurbsCurve2D_get_field_count(node, 0);
+	case TAG_X3D_NurbsOrientationInterpolator:
+		return NurbsOrientationInterpolator_get_field_count(node, 0);
+	case TAG_X3D_NurbsPatchSurface:
+		return NurbsPatchSurface_get_field_count(node, 0);
+	case TAG_X3D_NurbsPositionInterpolator:
+		return NurbsPositionInterpolator_get_field_count(node, 0);
+	case TAG_X3D_NurbsSet:
+		return NurbsSet_get_field_count(node, 0);
+	case TAG_X3D_NurbsSurfaceInterpolator:
+		return NurbsSurfaceInterpolator_get_field_count(node, 0);
+	case TAG_X3D_NurbsSweptSurface:
+		return NurbsSweptSurface_get_field_count(node, 0);
+	case TAG_X3D_NurbsSwungSurface:
+		return NurbsSwungSurface_get_field_count(node, 0);
+	case TAG_X3D_NurbsTextureCoordinate:
+		return NurbsTextureCoordinate_get_field_count(node, 0);
+	case TAG_X3D_NurbsTrimmedSurface:
+		return NurbsTrimmedSurface_get_field_count(node, 0);
+	case TAG_X3D_OrientationInterpolator:
+		return OrientationInterpolator_get_field_count(node, 0);
+	case TAG_X3D_PixelTexture:
+		return PixelTexture_get_field_count(node, 0);
+	case TAG_X3D_PlaneSensor:
+		return PlaneSensor_get_field_count(node, 0);
+	case TAG_X3D_PointLight:
+		return PointLight_get_field_count(node, 0);
+	case TAG_X3D_PointSet:
+		return PointSet_get_field_count(node, 0);
+	case TAG_X3D_Polyline2D:
+		return Polyline2D_get_field_count(node, 0);
+	case TAG_X3D_Polypoint2D:
+		return Polypoint2D_get_field_count(node, 0);
+	case TAG_X3D_PositionInterpolator:
+		return PositionInterpolator_get_field_count(node, 0);
+	case TAG_X3D_PositionInterpolator2D:
+		return PositionInterpolator2D_get_field_count(node, 0);
+	case TAG_X3D_ProximitySensor:
+		return ProximitySensor_get_field_count(node, 0);
+	case TAG_X3D_ReceiverPdu:
+		return ReceiverPdu_get_field_count(node, 0);
+	case TAG_X3D_Rectangle2D:
+		return Rectangle2D_get_field_count(node, 0);
+	case TAG_X3D_ScalarInterpolator:
+		return ScalarInterpolator_get_field_count(node, 0);
+	case TAG_X3D_Script:
+		return Script_get_field_count(node, 0);
+	case TAG_X3D_Shape:
+		return Shape_get_field_count(node, 0);
+	case TAG_X3D_SignalPdu:
+		return SignalPdu_get_field_count(node, 0);
+	case TAG_X3D_Sound:
+		return Sound_get_field_count(node, 0);
+	case TAG_X3D_Sphere:
+		return Sphere_get_field_count(node, 0);
+	case TAG_X3D_SphereSensor:
+		return SphereSensor_get_field_count(node, 0);
+	case TAG_X3D_SpotLight:
+		return SpotLight_get_field_count(node, 0);
+	case TAG_X3D_StaticGroup:
+		return StaticGroup_get_field_count(node, 0);
+	case TAG_X3D_StringSensor:
+		return StringSensor_get_field_count(node, 0);
+	case TAG_X3D_Switch:
+		return Switch_get_field_count(node, 0);
+	case TAG_X3D_Text:
+		return Text_get_field_count(node, 0);
+	case TAG_X3D_TextureBackground:
+		return TextureBackground_get_field_count(node, 0);
+	case TAG_X3D_TextureCoordinate:
+		return TextureCoordinate_get_field_count(node, 0);
+	case TAG_X3D_TextureCoordinateGenerator:
+		return TextureCoordinateGenerator_get_field_count(node, 0);
+	case TAG_X3D_TextureTransform:
+		return TextureTransform_get_field_count(node, 0);
+	case TAG_X3D_TimeSensor:
+		return TimeSensor_get_field_count(node, 0);
+	case TAG_X3D_TimeTrigger:
+		return TimeTrigger_get_field_count(node, 0);
+	case TAG_X3D_TouchSensor:
+		return TouchSensor_get_field_count(node, 0);
+	case TAG_X3D_Transform:
+		return Transform_get_field_count(node, 0);
+	case TAG_X3D_TransmitterPdu:
+		return TransmitterPdu_get_field_count(node, 0);
+	case TAG_X3D_TriangleFanSet:
+		return TriangleFanSet_get_field_count(node, 0);
+	case TAG_X3D_TriangleSet:
+		return TriangleSet_get_field_count(node, 0);
+	case TAG_X3D_TriangleSet2D:
+		return TriangleSet2D_get_field_count(node, 0);
+	case TAG_X3D_TriangleStripSet:
+		return TriangleStripSet_get_field_count(node, 0);
+	case TAG_X3D_Viewpoint:
+		return Viewpoint_get_field_count(node, 0);
+	case TAG_X3D_VisibilitySensor:
+		return VisibilitySensor_get_field_count(node, 0);
+	case TAG_X3D_WorldInfo:
+		return WorldInfo_get_field_count(node, 0);
 	default:
 		return 0;
 	}
@@ -15215,134 +15471,262 @@ u32 gf_sg_x3d_node_get_field_count(GF_Node *node)
 GF_Err gf_sg_x3d_node_get_field(GF_Node *node, GF_FieldInfo *field)
 {
 	switch (node->sgprivate->tag) {
-	case TAG_X3D_Anchor: return Anchor_get_field(node, field);
-	case TAG_X3D_Appearance: return Appearance_get_field(node, field);
-	case TAG_X3D_Arc2D: return Arc2D_get_field(node, field);
-	case TAG_X3D_ArcClose2D: return ArcClose2D_get_field(node, field);
-	case TAG_X3D_AudioClip: return AudioClip_get_field(node, field);
-	case TAG_X3D_Background: return Background_get_field(node, field);
-	case TAG_X3D_Billboard: return Billboard_get_field(node, field);
-	case TAG_X3D_BooleanFilter: return BooleanFilter_get_field(node, field);
-	case TAG_X3D_BooleanSequencer: return BooleanSequencer_get_field(node, field);
-	case TAG_X3D_BooleanToggle: return BooleanToggle_get_field(node, field);
-	case TAG_X3D_BooleanTrigger: return BooleanTrigger_get_field(node, field);
-	case TAG_X3D_Box: return Box_get_field(node, field);
-	case TAG_X3D_Circle2D: return Circle2D_get_field(node, field);
-	case TAG_X3D_Collision: return Collision_get_field(node, field);
-	case TAG_X3D_Color: return Color_get_field(node, field);
-	case TAG_X3D_ColorInterpolator: return ColorInterpolator_get_field(node, field);
-	case TAG_X3D_ColorRGBA: return ColorRGBA_get_field(node, field);
-	case TAG_X3D_Cone: return Cone_get_field(node, field);
-	case TAG_X3D_Contour2D: return Contour2D_get_field(node, field);
-	case TAG_X3D_ContourPolyline2D: return ContourPolyline2D_get_field(node, field);
-	case TAG_X3D_Coordinate: return Coordinate_get_field(node, field);
-	case TAG_X3D_CoordinateDouble: return CoordinateDouble_get_field(node, field);
-	case TAG_X3D_Coordinate2D: return Coordinate2D_get_field(node, field);
-	case TAG_X3D_CoordinateInterpolator: return CoordinateInterpolator_get_field(node, field);
-	case TAG_X3D_CoordinateInterpolator2D: return CoordinateInterpolator2D_get_field(node, field);
-	case TAG_X3D_Cylinder: return Cylinder_get_field(node, field);
-	case TAG_X3D_CylinderSensor: return CylinderSensor_get_field(node, field);
-	case TAG_X3D_DirectionalLight: return DirectionalLight_get_field(node, field);
-	case TAG_X3D_Disk2D: return Disk2D_get_field(node, field);
-	case TAG_X3D_ElevationGrid: return ElevationGrid_get_field(node, field);
-	case TAG_X3D_EspduTransform: return EspduTransform_get_field(node, field);
-	case TAG_X3D_Extrusion: return Extrusion_get_field(node, field);
-	case TAG_X3D_FillProperties: return FillProperties_get_field(node, field);
-	case TAG_X3D_Fog: return Fog_get_field(node, field);
-	case TAG_X3D_FontStyle: return FontStyle_get_field(node, field);
-	case TAG_X3D_GeoCoordinate: return GeoCoordinate_get_field(node, field);
-	case TAG_X3D_GeoElevationGrid: return GeoElevationGrid_get_field(node, field);
-	case TAG_X3D_GeoLocation: return GeoLocation_get_field(node, field);
-	case TAG_X3D_GeoLOD: return GeoLOD_get_field(node, field);
-	case TAG_X3D_GeoMetadata: return GeoMetadata_get_field(node, field);
-	case TAG_X3D_GeoOrigin: return GeoOrigin_get_field(node, field);
-	case TAG_X3D_GeoPositionInterpolator: return GeoPositionInterpolator_get_field(node, field);
-	case TAG_X3D_GeoTouchSensor: return GeoTouchSensor_get_field(node, field);
-	case TAG_X3D_GeoViewpoint: return GeoViewpoint_get_field(node, field);
-	case TAG_X3D_Group: return Group_get_field(node, field);
-	case TAG_X3D_HAnimDisplacer: return HAnimDisplacer_get_field(node, field);
-	case TAG_X3D_HAnimHumanoid: return HAnimHumanoid_get_field(node, field);
-	case TAG_X3D_HAnimJoint: return HAnimJoint_get_field(node, field);
-	case TAG_X3D_HAnimSegment: return HAnimSegment_get_field(node, field);
-	case TAG_X3D_HAnimSite: return HAnimSite_get_field(node, field);
-	case TAG_X3D_ImageTexture: return ImageTexture_get_field(node, field);
-	case TAG_X3D_IndexedFaceSet: return IndexedFaceSet_get_field(node, field);
-	case TAG_X3D_IndexedLineSet: return IndexedLineSet_get_field(node, field);
-	case TAG_X3D_IndexedTriangleFanSet: return IndexedTriangleFanSet_get_field(node, field);
-	case TAG_X3D_IndexedTriangleSet: return IndexedTriangleSet_get_field(node, field);
-	case TAG_X3D_IndexedTriangleStripSet: return IndexedTriangleStripSet_get_field(node, field);
-	case TAG_X3D_Inline: return Inline_get_field(node, field);
-	case TAG_X3D_IntegerSequencer: return IntegerSequencer_get_field(node, field);
-	case TAG_X3D_IntegerTrigger: return IntegerTrigger_get_field(node, field);
-	case TAG_X3D_KeySensor: return KeySensor_get_field(node, field);
-	case TAG_X3D_LineProperties: return LineProperties_get_field(node, field);
-	case TAG_X3D_LineSet: return LineSet_get_field(node, field);
-	case TAG_X3D_LoadSensor: return LoadSensor_get_field(node, field);
-	case TAG_X3D_LOD: return LOD_get_field(node, field);
-	case TAG_X3D_Material: return Material_get_field(node, field);
-	case TAG_X3D_MetadataDouble: return MetadataDouble_get_field(node, field);
-	case TAG_X3D_MetadataFloat: return MetadataFloat_get_field(node, field);
-	case TAG_X3D_MetadataInteger: return MetadataInteger_get_field(node, field);
-	case TAG_X3D_MetadataSet: return MetadataSet_get_field(node, field);
-	case TAG_X3D_MetadataString: return MetadataString_get_field(node, field);
-	case TAG_X3D_MovieTexture: return MovieTexture_get_field(node, field);
-	case TAG_X3D_MultiTexture: return MultiTexture_get_field(node, field);
-	case TAG_X3D_MultiTextureCoordinate: return MultiTextureCoordinate_get_field(node, field);
-	case TAG_X3D_MultiTextureTransform: return MultiTextureTransform_get_field(node, field);
-	case TAG_X3D_NavigationInfo: return NavigationInfo_get_field(node, field);
-	case TAG_X3D_Normal: return Normal_get_field(node, field);
-	case TAG_X3D_NormalInterpolator: return NormalInterpolator_get_field(node, field);
-	case TAG_X3D_NurbsCurve: return NurbsCurve_get_field(node, field);
-	case TAG_X3D_NurbsCurve2D: return NurbsCurve2D_get_field(node, field);
-	case TAG_X3D_NurbsOrientationInterpolator: return NurbsOrientationInterpolator_get_field(node, field);
-	case TAG_X3D_NurbsPatchSurface: return NurbsPatchSurface_get_field(node, field);
-	case TAG_X3D_NurbsPositionInterpolator: return NurbsPositionInterpolator_get_field(node, field);
-	case TAG_X3D_NurbsSet: return NurbsSet_get_field(node, field);
-	case TAG_X3D_NurbsSurfaceInterpolator: return NurbsSurfaceInterpolator_get_field(node, field);
-	case TAG_X3D_NurbsSweptSurface: return NurbsSweptSurface_get_field(node, field);
-	case TAG_X3D_NurbsSwungSurface: return NurbsSwungSurface_get_field(node, field);
-	case TAG_X3D_NurbsTextureCoordinate: return NurbsTextureCoordinate_get_field(node, field);
-	case TAG_X3D_NurbsTrimmedSurface: return NurbsTrimmedSurface_get_field(node, field);
-	case TAG_X3D_OrientationInterpolator: return OrientationInterpolator_get_field(node, field);
-	case TAG_X3D_PixelTexture: return PixelTexture_get_field(node, field);
-	case TAG_X3D_PlaneSensor: return PlaneSensor_get_field(node, field);
-	case TAG_X3D_PointLight: return PointLight_get_field(node, field);
-	case TAG_X3D_PointSet: return PointSet_get_field(node, field);
-	case TAG_X3D_Polyline2D: return Polyline2D_get_field(node, field);
-	case TAG_X3D_Polypoint2D: return Polypoint2D_get_field(node, field);
-	case TAG_X3D_PositionInterpolator: return PositionInterpolator_get_field(node, field);
-	case TAG_X3D_PositionInterpolator2D: return PositionInterpolator2D_get_field(node, field);
-	case TAG_X3D_ProximitySensor: return ProximitySensor_get_field(node, field);
-	case TAG_X3D_ReceiverPdu: return ReceiverPdu_get_field(node, field);
-	case TAG_X3D_Rectangle2D: return Rectangle2D_get_field(node, field);
-	case TAG_X3D_ScalarInterpolator: return ScalarInterpolator_get_field(node, field);
-	case TAG_X3D_Script: return Script_get_field(node, field);
-	case TAG_X3D_Shape: return Shape_get_field(node, field);
-	case TAG_X3D_SignalPdu: return SignalPdu_get_field(node, field);
-	case TAG_X3D_Sound: return Sound_get_field(node, field);
-	case TAG_X3D_Sphere: return Sphere_get_field(node, field);
-	case TAG_X3D_SphereSensor: return SphereSensor_get_field(node, field);
-	case TAG_X3D_SpotLight: return SpotLight_get_field(node, field);
-	case TAG_X3D_StaticGroup: return StaticGroup_get_field(node, field);
-	case TAG_X3D_StringSensor: return StringSensor_get_field(node, field);
-	case TAG_X3D_Switch: return Switch_get_field(node, field);
-	case TAG_X3D_Text: return Text_get_field(node, field);
-	case TAG_X3D_TextureBackground: return TextureBackground_get_field(node, field);
-	case TAG_X3D_TextureCoordinate: return TextureCoordinate_get_field(node, field);
-	case TAG_X3D_TextureCoordinateGenerator: return TextureCoordinateGenerator_get_field(node, field);
-	case TAG_X3D_TextureTransform: return TextureTransform_get_field(node, field);
-	case TAG_X3D_TimeSensor: return TimeSensor_get_field(node, field);
-	case TAG_X3D_TimeTrigger: return TimeTrigger_get_field(node, field);
-	case TAG_X3D_TouchSensor: return TouchSensor_get_field(node, field);
-	case TAG_X3D_Transform: return Transform_get_field(node, field);
-	case TAG_X3D_TransmitterPdu: return TransmitterPdu_get_field(node, field);
-	case TAG_X3D_TriangleFanSet: return TriangleFanSet_get_field(node, field);
-	case TAG_X3D_TriangleSet: return TriangleSet_get_field(node, field);
-	case TAG_X3D_TriangleSet2D: return TriangleSet2D_get_field(node, field);
-	case TAG_X3D_TriangleStripSet: return TriangleStripSet_get_field(node, field);
-	case TAG_X3D_Viewpoint: return Viewpoint_get_field(node, field);
-	case TAG_X3D_VisibilitySensor: return VisibilitySensor_get_field(node, field);
-	case TAG_X3D_WorldInfo: return WorldInfo_get_field(node, field);
+	case TAG_X3D_Anchor:
+		return Anchor_get_field(node, field);
+	case TAG_X3D_Appearance:
+		return Appearance_get_field(node, field);
+	case TAG_X3D_Arc2D:
+		return Arc2D_get_field(node, field);
+	case TAG_X3D_ArcClose2D:
+		return ArcClose2D_get_field(node, field);
+	case TAG_X3D_AudioClip:
+		return AudioClip_get_field(node, field);
+	case TAG_X3D_Background:
+		return Background_get_field(node, field);
+	case TAG_X3D_Billboard:
+		return Billboard_get_field(node, field);
+	case TAG_X3D_BooleanFilter:
+		return BooleanFilter_get_field(node, field);
+	case TAG_X3D_BooleanSequencer:
+		return BooleanSequencer_get_field(node, field);
+	case TAG_X3D_BooleanToggle:
+		return BooleanToggle_get_field(node, field);
+	case TAG_X3D_BooleanTrigger:
+		return BooleanTrigger_get_field(node, field);
+	case TAG_X3D_Box:
+		return Box_get_field(node, field);
+	case TAG_X3D_Circle2D:
+		return Circle2D_get_field(node, field);
+	case TAG_X3D_Collision:
+		return Collision_get_field(node, field);
+	case TAG_X3D_Color:
+		return Color_get_field(node, field);
+	case TAG_X3D_ColorInterpolator:
+		return ColorInterpolator_get_field(node, field);
+	case TAG_X3D_ColorRGBA:
+		return ColorRGBA_get_field(node, field);
+	case TAG_X3D_Cone:
+		return Cone_get_field(node, field);
+	case TAG_X3D_Contour2D:
+		return Contour2D_get_field(node, field);
+	case TAG_X3D_ContourPolyline2D:
+		return ContourPolyline2D_get_field(node, field);
+	case TAG_X3D_Coordinate:
+		return Coordinate_get_field(node, field);
+	case TAG_X3D_CoordinateDouble:
+		return CoordinateDouble_get_field(node, field);
+	case TAG_X3D_Coordinate2D:
+		return Coordinate2D_get_field(node, field);
+	case TAG_X3D_CoordinateInterpolator:
+		return CoordinateInterpolator_get_field(node, field);
+	case TAG_X3D_CoordinateInterpolator2D:
+		return CoordinateInterpolator2D_get_field(node, field);
+	case TAG_X3D_Cylinder:
+		return Cylinder_get_field(node, field);
+	case TAG_X3D_CylinderSensor:
+		return CylinderSensor_get_field(node, field);
+	case TAG_X3D_DirectionalLight:
+		return DirectionalLight_get_field(node, field);
+	case TAG_X3D_Disk2D:
+		return Disk2D_get_field(node, field);
+	case TAG_X3D_ElevationGrid:
+		return ElevationGrid_get_field(node, field);
+	case TAG_X3D_EspduTransform:
+		return EspduTransform_get_field(node, field);
+	case TAG_X3D_Extrusion:
+		return Extrusion_get_field(node, field);
+	case TAG_X3D_FillProperties:
+		return FillProperties_get_field(node, field);
+	case TAG_X3D_Fog:
+		return Fog_get_field(node, field);
+	case TAG_X3D_FontStyle:
+		return FontStyle_get_field(node, field);
+	case TAG_X3D_GeoCoordinate:
+		return GeoCoordinate_get_field(node, field);
+	case TAG_X3D_GeoElevationGrid:
+		return GeoElevationGrid_get_field(node, field);
+	case TAG_X3D_GeoLocation:
+		return GeoLocation_get_field(node, field);
+	case TAG_X3D_GeoLOD:
+		return GeoLOD_get_field(node, field);
+	case TAG_X3D_GeoMetadata:
+		return GeoMetadata_get_field(node, field);
+	case TAG_X3D_GeoOrigin:
+		return GeoOrigin_get_field(node, field);
+	case TAG_X3D_GeoPositionInterpolator:
+		return GeoPositionInterpolator_get_field(node, field);
+	case TAG_X3D_GeoTouchSensor:
+		return GeoTouchSensor_get_field(node, field);
+	case TAG_X3D_GeoViewpoint:
+		return GeoViewpoint_get_field(node, field);
+	case TAG_X3D_Group:
+		return Group_get_field(node, field);
+	case TAG_X3D_HAnimDisplacer:
+		return HAnimDisplacer_get_field(node, field);
+	case TAG_X3D_HAnimHumanoid:
+		return HAnimHumanoid_get_field(node, field);
+	case TAG_X3D_HAnimJoint:
+		return HAnimJoint_get_field(node, field);
+	case TAG_X3D_HAnimSegment:
+		return HAnimSegment_get_field(node, field);
+	case TAG_X3D_HAnimSite:
+		return HAnimSite_get_field(node, field);
+	case TAG_X3D_ImageTexture:
+		return ImageTexture_get_field(node, field);
+	case TAG_X3D_IndexedFaceSet:
+		return IndexedFaceSet_get_field(node, field);
+	case TAG_X3D_IndexedLineSet:
+		return IndexedLineSet_get_field(node, field);
+	case TAG_X3D_IndexedTriangleFanSet:
+		return IndexedTriangleFanSet_get_field(node, field);
+	case TAG_X3D_IndexedTriangleSet:
+		return IndexedTriangleSet_get_field(node, field);
+	case TAG_X3D_IndexedTriangleStripSet:
+		return IndexedTriangleStripSet_get_field(node, field);
+	case TAG_X3D_Inline:
+		return Inline_get_field(node, field);
+	case TAG_X3D_IntegerSequencer:
+		return IntegerSequencer_get_field(node, field);
+	case TAG_X3D_IntegerTrigger:
+		return IntegerTrigger_get_field(node, field);
+	case TAG_X3D_KeySensor:
+		return KeySensor_get_field(node, field);
+	case TAG_X3D_LineProperties:
+		return LineProperties_get_field(node, field);
+	case TAG_X3D_LineSet:
+		return LineSet_get_field(node, field);
+	case TAG_X3D_LoadSensor:
+		return LoadSensor_get_field(node, field);
+	case TAG_X3D_LOD:
+		return LOD_get_field(node, field);
+	case TAG_X3D_Material:
+		return Material_get_field(node, field);
+	case TAG_X3D_MetadataDouble:
+		return MetadataDouble_get_field(node, field);
+	case TAG_X3D_MetadataFloat:
+		return MetadataFloat_get_field(node, field);
+	case TAG_X3D_MetadataInteger:
+		return MetadataInteger_get_field(node, field);
+	case TAG_X3D_MetadataSet:
+		return MetadataSet_get_field(node, field);
+	case TAG_X3D_MetadataString:
+		return MetadataString_get_field(node, field);
+	case TAG_X3D_MovieTexture:
+		return MovieTexture_get_field(node, field);
+	case TAG_X3D_MultiTexture:
+		return MultiTexture_get_field(node, field);
+	case TAG_X3D_MultiTextureCoordinate:
+		return MultiTextureCoordinate_get_field(node, field);
+	case TAG_X3D_MultiTextureTransform:
+		return MultiTextureTransform_get_field(node, field);
+	case TAG_X3D_NavigationInfo:
+		return NavigationInfo_get_field(node, field);
+	case TAG_X3D_Normal:
+		return Normal_get_field(node, field);
+	case TAG_X3D_NormalInterpolator:
+		return NormalInterpolator_get_field(node, field);
+	case TAG_X3D_NurbsCurve:
+		return NurbsCurve_get_field(node, field);
+	case TAG_X3D_NurbsCurve2D:
+		return NurbsCurve2D_get_field(node, field);
+	case TAG_X3D_NurbsOrientationInterpolator:
+		return NurbsOrientationInterpolator_get_field(node, field);
+	case TAG_X3D_NurbsPatchSurface:
+		return NurbsPatchSurface_get_field(node, field);
+	case TAG_X3D_NurbsPositionInterpolator:
+		return NurbsPositionInterpolator_get_field(node, field);
+	case TAG_X3D_NurbsSet:
+		return NurbsSet_get_field(node, field);
+	case TAG_X3D_NurbsSurfaceInterpolator:
+		return NurbsSurfaceInterpolator_get_field(node, field);
+	case TAG_X3D_NurbsSweptSurface:
+		return NurbsSweptSurface_get_field(node, field);
+	case TAG_X3D_NurbsSwungSurface:
+		return NurbsSwungSurface_get_field(node, field);
+	case TAG_X3D_NurbsTextureCoordinate:
+		return NurbsTextureCoordinate_get_field(node, field);
+	case TAG_X3D_NurbsTrimmedSurface:
+		return NurbsTrimmedSurface_get_field(node, field);
+	case TAG_X3D_OrientationInterpolator:
+		return OrientationInterpolator_get_field(node, field);
+	case TAG_X3D_PixelTexture:
+		return PixelTexture_get_field(node, field);
+	case TAG_X3D_PlaneSensor:
+		return PlaneSensor_get_field(node, field);
+	case TAG_X3D_PointLight:
+		return PointLight_get_field(node, field);
+	case TAG_X3D_PointSet:
+		return PointSet_get_field(node, field);
+	case TAG_X3D_Polyline2D:
+		return Polyline2D_get_field(node, field);
+	case TAG_X3D_Polypoint2D:
+		return Polypoint2D_get_field(node, field);
+	case TAG_X3D_PositionInterpolator:
+		return PositionInterpolator_get_field(node, field);
+	case TAG_X3D_PositionInterpolator2D:
+		return PositionInterpolator2D_get_field(node, field);
+	case TAG_X3D_ProximitySensor:
+		return ProximitySensor_get_field(node, field);
+	case TAG_X3D_ReceiverPdu:
+		return ReceiverPdu_get_field(node, field);
+	case TAG_X3D_Rectangle2D:
+		return Rectangle2D_get_field(node, field);
+	case TAG_X3D_ScalarInterpolator:
+		return ScalarInterpolator_get_field(node, field);
+	case TAG_X3D_Script:
+		return Script_get_field(node, field);
+	case TAG_X3D_Shape:
+		return Shape_get_field(node, field);
+	case TAG_X3D_SignalPdu:
+		return SignalPdu_get_field(node, field);
+	case TAG_X3D_Sound:
+		return Sound_get_field(node, field);
+	case TAG_X3D_Sphere:
+		return Sphere_get_field(node, field);
+	case TAG_X3D_SphereSensor:
+		return SphereSensor_get_field(node, field);
+	case TAG_X3D_SpotLight:
+		return SpotLight_get_field(node, field);
+	case TAG_X3D_StaticGroup:
+		return StaticGroup_get_field(node, field);
+	case TAG_X3D_StringSensor:
+		return StringSensor_get_field(node, field);
+	case TAG_X3D_Switch:
+		return Switch_get_field(node, field);
+	case TAG_X3D_Text:
+		return Text_get_field(node, field);
+	case TAG_X3D_TextureBackground:
+		return TextureBackground_get_field(node, field);
+	case TAG_X3D_TextureCoordinate:
+		return TextureCoordinate_get_field(node, field);
+	case TAG_X3D_TextureCoordinateGenerator:
+		return TextureCoordinateGenerator_get_field(node, field);
+	case TAG_X3D_TextureTransform:
+		return TextureTransform_get_field(node, field);
+	case TAG_X3D_TimeSensor:
+		return TimeSensor_get_field(node, field);
+	case TAG_X3D_TimeTrigger:
+		return TimeTrigger_get_field(node, field);
+	case TAG_X3D_TouchSensor:
+		return TouchSensor_get_field(node, field);
+	case TAG_X3D_Transform:
+		return Transform_get_field(node, field);
+	case TAG_X3D_TransmitterPdu:
+		return TransmitterPdu_get_field(node, field);
+	case TAG_X3D_TriangleFanSet:
+		return TriangleFanSet_get_field(node, field);
+	case TAG_X3D_TriangleSet:
+		return TriangleSet_get_field(node, field);
+	case TAG_X3D_TriangleSet2D:
+		return TriangleSet2D_get_field(node, field);
+	case TAG_X3D_TriangleStripSet:
+		return TriangleStripSet_get_field(node, field);
+	case TAG_X3D_Viewpoint:
+		return Viewpoint_get_field(node, field);
+	case TAG_X3D_VisibilitySensor:
+		return VisibilitySensor_get_field(node, field);
+	case TAG_X3D_WorldInfo:
+		return WorldInfo_get_field(node, field);
 	default:
 		return GF_BAD_PARAM;
 	}
@@ -15487,134 +15871,262 @@ u32 gf_node_x3d_type_by_class_name(const char *node_name)
 s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, char *name)
 {
 	switch (node->sgprivate->tag) {
-	case TAG_X3D_Anchor: return Anchor_get_field_index_by_name(name);
-	case TAG_X3D_Appearance: return Appearance_get_field_index_by_name(name);
-	case TAG_X3D_Arc2D: return Arc2D_get_field_index_by_name(name);
-	case TAG_X3D_ArcClose2D: return ArcClose2D_get_field_index_by_name(name);
-	case TAG_X3D_AudioClip: return AudioClip_get_field_index_by_name(name);
-	case TAG_X3D_Background: return Background_get_field_index_by_name(name);
-	case TAG_X3D_Billboard: return Billboard_get_field_index_by_name(name);
-	case TAG_X3D_BooleanFilter: return BooleanFilter_get_field_index_by_name(name);
-	case TAG_X3D_BooleanSequencer: return BooleanSequencer_get_field_index_by_name(name);
-	case TAG_X3D_BooleanToggle: return BooleanToggle_get_field_index_by_name(name);
-	case TAG_X3D_BooleanTrigger: return BooleanTrigger_get_field_index_by_name(name);
-	case TAG_X3D_Box: return Box_get_field_index_by_name(name);
-	case TAG_X3D_Circle2D: return Circle2D_get_field_index_by_name(name);
-	case TAG_X3D_Collision: return Collision_get_field_index_by_name(name);
-	case TAG_X3D_Color: return Color_get_field_index_by_name(name);
-	case TAG_X3D_ColorInterpolator: return ColorInterpolator_get_field_index_by_name(name);
-	case TAG_X3D_ColorRGBA: return ColorRGBA_get_field_index_by_name(name);
-	case TAG_X3D_Cone: return Cone_get_field_index_by_name(name);
-	case TAG_X3D_Contour2D: return Contour2D_get_field_index_by_name(name);
-	case TAG_X3D_ContourPolyline2D: return ContourPolyline2D_get_field_index_by_name(name);
-	case TAG_X3D_Coordinate: return Coordinate_get_field_index_by_name(name);
-	case TAG_X3D_CoordinateDouble: return CoordinateDouble_get_field_index_by_name(name);
-	case TAG_X3D_Coordinate2D: return Coordinate2D_get_field_index_by_name(name);
-	case TAG_X3D_CoordinateInterpolator: return CoordinateInterpolator_get_field_index_by_name(name);
-	case TAG_X3D_CoordinateInterpolator2D: return CoordinateInterpolator2D_get_field_index_by_name(name);
-	case TAG_X3D_Cylinder: return Cylinder_get_field_index_by_name(name);
-	case TAG_X3D_CylinderSensor: return CylinderSensor_get_field_index_by_name(name);
-	case TAG_X3D_DirectionalLight: return DirectionalLight_get_field_index_by_name(name);
-	case TAG_X3D_Disk2D: return Disk2D_get_field_index_by_name(name);
-	case TAG_X3D_ElevationGrid: return ElevationGrid_get_field_index_by_name(name);
-	case TAG_X3D_EspduTransform: return EspduTransform_get_field_index_by_name(name);
-	case TAG_X3D_Extrusion: return Extrusion_get_field_index_by_name(name);
-	case TAG_X3D_FillProperties: return FillProperties_get_field_index_by_name(name);
-	case TAG_X3D_Fog: return Fog_get_field_index_by_name(name);
-	case TAG_X3D_FontStyle: return FontStyle_get_field_index_by_name(name);
-	case TAG_X3D_GeoCoordinate: return GeoCoordinate_get_field_index_by_name(name);
-	case TAG_X3D_GeoElevationGrid: return GeoElevationGrid_get_field_index_by_name(name);
-	case TAG_X3D_GeoLocation: return GeoLocation_get_field_index_by_name(name);
-	case TAG_X3D_GeoLOD: return GeoLOD_get_field_index_by_name(name);
-	case TAG_X3D_GeoMetadata: return GeoMetadata_get_field_index_by_name(name);
-	case TAG_X3D_GeoOrigin: return GeoOrigin_get_field_index_by_name(name);
-	case TAG_X3D_GeoPositionInterpolator: return GeoPositionInterpolator_get_field_index_by_name(name);
-	case TAG_X3D_GeoTouchSensor: return GeoTouchSensor_get_field_index_by_name(name);
-	case TAG_X3D_GeoViewpoint: return GeoViewpoint_get_field_index_by_name(name);
-	case TAG_X3D_Group: return Group_get_field_index_by_name(name);
-	case TAG_X3D_HAnimDisplacer: return HAnimDisplacer_get_field_index_by_name(name);
-	case TAG_X3D_HAnimHumanoid: return HAnimHumanoid_get_field_index_by_name(name);
-	case TAG_X3D_HAnimJoint: return HAnimJoint_get_field_index_by_name(name);
-	case TAG_X3D_HAnimSegment: return HAnimSegment_get_field_index_by_name(name);
-	case TAG_X3D_HAnimSite: return HAnimSite_get_field_index_by_name(name);
-	case TAG_X3D_ImageTexture: return ImageTexture_get_field_index_by_name(name);
-	case TAG_X3D_IndexedFaceSet: return IndexedFaceSet_get_field_index_by_name(name);
-	case TAG_X3D_IndexedLineSet: return IndexedLineSet_get_field_index_by_name(name);
-	case TAG_X3D_IndexedTriangleFanSet: return IndexedTriangleFanSet_get_field_index_by_name(name);
-	case TAG_X3D_IndexedTriangleSet: return IndexedTriangleSet_get_field_index_by_name(name);
-	case TAG_X3D_IndexedTriangleStripSet: return IndexedTriangleStripSet_get_field_index_by_name(name);
-	case TAG_X3D_Inline: return Inline_get_field_index_by_name(name);
-	case TAG_X3D_IntegerSequencer: return IntegerSequencer_get_field_index_by_name(name);
-	case TAG_X3D_IntegerTrigger: return IntegerTrigger_get_field_index_by_name(name);
-	case TAG_X3D_KeySensor: return KeySensor_get_field_index_by_name(name);
-	case TAG_X3D_LineProperties: return LineProperties_get_field_index_by_name(name);
-	case TAG_X3D_LineSet: return LineSet_get_field_index_by_name(name);
-	case TAG_X3D_LoadSensor: return LoadSensor_get_field_index_by_name(name);
-	case TAG_X3D_LOD: return LOD_get_field_index_by_name(name);
-	case TAG_X3D_Material: return Material_get_field_index_by_name(name);
-	case TAG_X3D_MetadataDouble: return MetadataDouble_get_field_index_by_name(name);
-	case TAG_X3D_MetadataFloat: return MetadataFloat_get_field_index_by_name(name);
-	case TAG_X3D_MetadataInteger: return MetadataInteger_get_field_index_by_name(name);
-	case TAG_X3D_MetadataSet: return MetadataSet_get_field_index_by_name(name);
-	case TAG_X3D_MetadataString: return MetadataString_get_field_index_by_name(name);
-	case TAG_X3D_MovieTexture: return MovieTexture_get_field_index_by_name(name);
-	case TAG_X3D_MultiTexture: return MultiTexture_get_field_index_by_name(name);
-	case TAG_X3D_MultiTextureCoordinate: return MultiTextureCoordinate_get_field_index_by_name(name);
-	case TAG_X3D_MultiTextureTransform: return MultiTextureTransform_get_field_index_by_name(name);
-	case TAG_X3D_NavigationInfo: return NavigationInfo_get_field_index_by_name(name);
-	case TAG_X3D_Normal: return Normal_get_field_index_by_name(name);
-	case TAG_X3D_NormalInterpolator: return NormalInterpolator_get_field_index_by_name(name);
-	case TAG_X3D_NurbsCurve: return NurbsCurve_get_field_index_by_name(name);
-	case TAG_X3D_NurbsCurve2D: return NurbsCurve2D_get_field_index_by_name(name);
-	case TAG_X3D_NurbsOrientationInterpolator: return NurbsOrientationInterpolator_get_field_index_by_name(name);
-	case TAG_X3D_NurbsPatchSurface: return NurbsPatchSurface_get_field_index_by_name(name);
-	case TAG_X3D_NurbsPositionInterpolator: return NurbsPositionInterpolator_get_field_index_by_name(name);
-	case TAG_X3D_NurbsSet: return NurbsSet_get_field_index_by_name(name);
-	case TAG_X3D_NurbsSurfaceInterpolator: return NurbsSurfaceInterpolator_get_field_index_by_name(name);
-	case TAG_X3D_NurbsSweptSurface: return NurbsSweptSurface_get_field_index_by_name(name);
-	case TAG_X3D_NurbsSwungSurface: return NurbsSwungSurface_get_field_index_by_name(name);
-	case TAG_X3D_NurbsTextureCoordinate: return NurbsTextureCoordinate_get_field_index_by_name(name);
-	case TAG_X3D_NurbsTrimmedSurface: return NurbsTrimmedSurface_get_field_index_by_name(name);
-	case TAG_X3D_OrientationInterpolator: return OrientationInterpolator_get_field_index_by_name(name);
-	case TAG_X3D_PixelTexture: return PixelTexture_get_field_index_by_name(name);
-	case TAG_X3D_PlaneSensor: return PlaneSensor_get_field_index_by_name(name);
-	case TAG_X3D_PointLight: return PointLight_get_field_index_by_name(name);
-	case TAG_X3D_PointSet: return PointSet_get_field_index_by_name(name);
-	case TAG_X3D_Polyline2D: return Polyline2D_get_field_index_by_name(name);
-	case TAG_X3D_Polypoint2D: return Polypoint2D_get_field_index_by_name(name);
-	case TAG_X3D_PositionInterpolator: return PositionInterpolator_get_field_index_by_name(name);
-	case TAG_X3D_PositionInterpolator2D: return PositionInterpolator2D_get_field_index_by_name(name);
-	case TAG_X3D_ProximitySensor: return ProximitySensor_get_field_index_by_name(name);
-	case TAG_X3D_ReceiverPdu: return ReceiverPdu_get_field_index_by_name(name);
-	case TAG_X3D_Rectangle2D: return Rectangle2D_get_field_index_by_name(name);
-	case TAG_X3D_ScalarInterpolator: return ScalarInterpolator_get_field_index_by_name(name);
-	case TAG_X3D_Script: return Script_get_field_index_by_name(name);
-	case TAG_X3D_Shape: return Shape_get_field_index_by_name(name);
-	case TAG_X3D_SignalPdu: return SignalPdu_get_field_index_by_name(name);
-	case TAG_X3D_Sound: return Sound_get_field_index_by_name(name);
-	case TAG_X3D_Sphere: return Sphere_get_field_index_by_name(name);
-	case TAG_X3D_SphereSensor: return SphereSensor_get_field_index_by_name(name);
-	case TAG_X3D_SpotLight: return SpotLight_get_field_index_by_name(name);
-	case TAG_X3D_StaticGroup: return StaticGroup_get_field_index_by_name(name);
-	case TAG_X3D_StringSensor: return StringSensor_get_field_index_by_name(name);
-	case TAG_X3D_Switch: return Switch_get_field_index_by_name(name);
-	case TAG_X3D_Text: return Text_get_field_index_by_name(name);
-	case TAG_X3D_TextureBackground: return TextureBackground_get_field_index_by_name(name);
-	case TAG_X3D_TextureCoordinate: return TextureCoordinate_get_field_index_by_name(name);
-	case TAG_X3D_TextureCoordinateGenerator: return TextureCoordinateGenerator_get_field_index_by_name(name);
-	case TAG_X3D_TextureTransform: return TextureTransform_get_field_index_by_name(name);
-	case TAG_X3D_TimeSensor: return TimeSensor_get_field_index_by_name(name);
-	case TAG_X3D_TimeTrigger: return TimeTrigger_get_field_index_by_name(name);
-	case TAG_X3D_TouchSensor: return TouchSensor_get_field_index_by_name(name);
-	case TAG_X3D_Transform: return Transform_get_field_index_by_name(name);
-	case TAG_X3D_TransmitterPdu: return TransmitterPdu_get_field_index_by_name(name);
-	case TAG_X3D_TriangleFanSet: return TriangleFanSet_get_field_index_by_name(name);
-	case TAG_X3D_TriangleSet: return TriangleSet_get_field_index_by_name(name);
-	case TAG_X3D_TriangleSet2D: return TriangleSet2D_get_field_index_by_name(name);
-	case TAG_X3D_TriangleStripSet: return TriangleStripSet_get_field_index_by_name(name);
-	case TAG_X3D_Viewpoint: return Viewpoint_get_field_index_by_name(name);
-	case TAG_X3D_VisibilitySensor: return VisibilitySensor_get_field_index_by_name(name);
-	case TAG_X3D_WorldInfo: return WorldInfo_get_field_index_by_name(name);
+	case TAG_X3D_Anchor:
+		return Anchor_get_field_index_by_name(name);
+	case TAG_X3D_Appearance:
+		return Appearance_get_field_index_by_name(name);
+	case TAG_X3D_Arc2D:
+		return Arc2D_get_field_index_by_name(name);
+	case TAG_X3D_ArcClose2D:
+		return ArcClose2D_get_field_index_by_name(name);
+	case TAG_X3D_AudioClip:
+		return AudioClip_get_field_index_by_name(name);
+	case TAG_X3D_Background:
+		return Background_get_field_index_by_name(name);
+	case TAG_X3D_Billboard:
+		return Billboard_get_field_index_by_name(name);
+	case TAG_X3D_BooleanFilter:
+		return BooleanFilter_get_field_index_by_name(name);
+	case TAG_X3D_BooleanSequencer:
+		return BooleanSequencer_get_field_index_by_name(name);
+	case TAG_X3D_BooleanToggle:
+		return BooleanToggle_get_field_index_by_name(name);
+	case TAG_X3D_BooleanTrigger:
+		return BooleanTrigger_get_field_index_by_name(name);
+	case TAG_X3D_Box:
+		return Box_get_field_index_by_name(name);
+	case TAG_X3D_Circle2D:
+		return Circle2D_get_field_index_by_name(name);
+	case TAG_X3D_Collision:
+		return Collision_get_field_index_by_name(name);
+	case TAG_X3D_Color:
+		return Color_get_field_index_by_name(name);
+	case TAG_X3D_ColorInterpolator:
+		return ColorInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_ColorRGBA:
+		return ColorRGBA_get_field_index_by_name(name);
+	case TAG_X3D_Cone:
+		return Cone_get_field_index_by_name(name);
+	case TAG_X3D_Contour2D:
+		return Contour2D_get_field_index_by_name(name);
+	case TAG_X3D_ContourPolyline2D:
+		return ContourPolyline2D_get_field_index_by_name(name);
+	case TAG_X3D_Coordinate:
+		return Coordinate_get_field_index_by_name(name);
+	case TAG_X3D_CoordinateDouble:
+		return CoordinateDouble_get_field_index_by_name(name);
+	case TAG_X3D_Coordinate2D:
+		return Coordinate2D_get_field_index_by_name(name);
+	case TAG_X3D_CoordinateInterpolator:
+		return CoordinateInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_CoordinateInterpolator2D:
+		return CoordinateInterpolator2D_get_field_index_by_name(name);
+	case TAG_X3D_Cylinder:
+		return Cylinder_get_field_index_by_name(name);
+	case TAG_X3D_CylinderSensor:
+		return CylinderSensor_get_field_index_by_name(name);
+	case TAG_X3D_DirectionalLight:
+		return DirectionalLight_get_field_index_by_name(name);
+	case TAG_X3D_Disk2D:
+		return Disk2D_get_field_index_by_name(name);
+	case TAG_X3D_ElevationGrid:
+		return ElevationGrid_get_field_index_by_name(name);
+	case TAG_X3D_EspduTransform:
+		return EspduTransform_get_field_index_by_name(name);
+	case TAG_X3D_Extrusion:
+		return Extrusion_get_field_index_by_name(name);
+	case TAG_X3D_FillProperties:
+		return FillProperties_get_field_index_by_name(name);
+	case TAG_X3D_Fog:
+		return Fog_get_field_index_by_name(name);
+	case TAG_X3D_FontStyle:
+		return FontStyle_get_field_index_by_name(name);
+	case TAG_X3D_GeoCoordinate:
+		return GeoCoordinate_get_field_index_by_name(name);
+	case TAG_X3D_GeoElevationGrid:
+		return GeoElevationGrid_get_field_index_by_name(name);
+	case TAG_X3D_GeoLocation:
+		return GeoLocation_get_field_index_by_name(name);
+	case TAG_X3D_GeoLOD:
+		return GeoLOD_get_field_index_by_name(name);
+	case TAG_X3D_GeoMetadata:
+		return GeoMetadata_get_field_index_by_name(name);
+	case TAG_X3D_GeoOrigin:
+		return GeoOrigin_get_field_index_by_name(name);
+	case TAG_X3D_GeoPositionInterpolator:
+		return GeoPositionInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_GeoTouchSensor:
+		return GeoTouchSensor_get_field_index_by_name(name);
+	case TAG_X3D_GeoViewpoint:
+		return GeoViewpoint_get_field_index_by_name(name);
+	case TAG_X3D_Group:
+		return Group_get_field_index_by_name(name);
+	case TAG_X3D_HAnimDisplacer:
+		return HAnimDisplacer_get_field_index_by_name(name);
+	case TAG_X3D_HAnimHumanoid:
+		return HAnimHumanoid_get_field_index_by_name(name);
+	case TAG_X3D_HAnimJoint:
+		return HAnimJoint_get_field_index_by_name(name);
+	case TAG_X3D_HAnimSegment:
+		return HAnimSegment_get_field_index_by_name(name);
+	case TAG_X3D_HAnimSite:
+		return HAnimSite_get_field_index_by_name(name);
+	case TAG_X3D_ImageTexture:
+		return ImageTexture_get_field_index_by_name(name);
+	case TAG_X3D_IndexedFaceSet:
+		return IndexedFaceSet_get_field_index_by_name(name);
+	case TAG_X3D_IndexedLineSet:
+		return IndexedLineSet_get_field_index_by_name(name);
+	case TAG_X3D_IndexedTriangleFanSet:
+		return IndexedTriangleFanSet_get_field_index_by_name(name);
+	case TAG_X3D_IndexedTriangleSet:
+		return IndexedTriangleSet_get_field_index_by_name(name);
+	case TAG_X3D_IndexedTriangleStripSet:
+		return IndexedTriangleStripSet_get_field_index_by_name(name);
+	case TAG_X3D_Inline:
+		return Inline_get_field_index_by_name(name);
+	case TAG_X3D_IntegerSequencer:
+		return IntegerSequencer_get_field_index_by_name(name);
+	case TAG_X3D_IntegerTrigger:
+		return IntegerTrigger_get_field_index_by_name(name);
+	case TAG_X3D_KeySensor:
+		return KeySensor_get_field_index_by_name(name);
+	case TAG_X3D_LineProperties:
+		return LineProperties_get_field_index_by_name(name);
+	case TAG_X3D_LineSet:
+		return LineSet_get_field_index_by_name(name);
+	case TAG_X3D_LoadSensor:
+		return LoadSensor_get_field_index_by_name(name);
+	case TAG_X3D_LOD:
+		return LOD_get_field_index_by_name(name);
+	case TAG_X3D_Material:
+		return Material_get_field_index_by_name(name);
+	case TAG_X3D_MetadataDouble:
+		return MetadataDouble_get_field_index_by_name(name);
+	case TAG_X3D_MetadataFloat:
+		return MetadataFloat_get_field_index_by_name(name);
+	case TAG_X3D_MetadataInteger:
+		return MetadataInteger_get_field_index_by_name(name);
+	case TAG_X3D_MetadataSet:
+		return MetadataSet_get_field_index_by_name(name);
+	case TAG_X3D_MetadataString:
+		return MetadataString_get_field_index_by_name(name);
+	case TAG_X3D_MovieTexture:
+		return MovieTexture_get_field_index_by_name(name);
+	case TAG_X3D_MultiTexture:
+		return MultiTexture_get_field_index_by_name(name);
+	case TAG_X3D_MultiTextureCoordinate:
+		return MultiTextureCoordinate_get_field_index_by_name(name);
+	case TAG_X3D_MultiTextureTransform:
+		return MultiTextureTransform_get_field_index_by_name(name);
+	case TAG_X3D_NavigationInfo:
+		return NavigationInfo_get_field_index_by_name(name);
+	case TAG_X3D_Normal:
+		return Normal_get_field_index_by_name(name);
+	case TAG_X3D_NormalInterpolator:
+		return NormalInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_NurbsCurve:
+		return NurbsCurve_get_field_index_by_name(name);
+	case TAG_X3D_NurbsCurve2D:
+		return NurbsCurve2D_get_field_index_by_name(name);
+	case TAG_X3D_NurbsOrientationInterpolator:
+		return NurbsOrientationInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_NurbsPatchSurface:
+		return NurbsPatchSurface_get_field_index_by_name(name);
+	case TAG_X3D_NurbsPositionInterpolator:
+		return NurbsPositionInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_NurbsSet:
+		return NurbsSet_get_field_index_by_name(name);
+	case TAG_X3D_NurbsSurfaceInterpolator:
+		return NurbsSurfaceInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_NurbsSweptSurface:
+		return NurbsSweptSurface_get_field_index_by_name(name);
+	case TAG_X3D_NurbsSwungSurface:
+		return NurbsSwungSurface_get_field_index_by_name(name);
+	case TAG_X3D_NurbsTextureCoordinate:
+		return NurbsTextureCoordinate_get_field_index_by_name(name);
+	case TAG_X3D_NurbsTrimmedSurface:
+		return NurbsTrimmedSurface_get_field_index_by_name(name);
+	case TAG_X3D_OrientationInterpolator:
+		return OrientationInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_PixelTexture:
+		return PixelTexture_get_field_index_by_name(name);
+	case TAG_X3D_PlaneSensor:
+		return PlaneSensor_get_field_index_by_name(name);
+	case TAG_X3D_PointLight:
+		return PointLight_get_field_index_by_name(name);
+	case TAG_X3D_PointSet:
+		return PointSet_get_field_index_by_name(name);
+	case TAG_X3D_Polyline2D:
+		return Polyline2D_get_field_index_by_name(name);
+	case TAG_X3D_Polypoint2D:
+		return Polypoint2D_get_field_index_by_name(name);
+	case TAG_X3D_PositionInterpolator:
+		return PositionInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_PositionInterpolator2D:
+		return PositionInterpolator2D_get_field_index_by_name(name);
+	case TAG_X3D_ProximitySensor:
+		return ProximitySensor_get_field_index_by_name(name);
+	case TAG_X3D_ReceiverPdu:
+		return ReceiverPdu_get_field_index_by_name(name);
+	case TAG_X3D_Rectangle2D:
+		return Rectangle2D_get_field_index_by_name(name);
+	case TAG_X3D_ScalarInterpolator:
+		return ScalarInterpolator_get_field_index_by_name(name);
+	case TAG_X3D_Script:
+		return Script_get_field_index_by_name(name);
+	case TAG_X3D_Shape:
+		return Shape_get_field_index_by_name(name);
+	case TAG_X3D_SignalPdu:
+		return SignalPdu_get_field_index_by_name(name);
+	case TAG_X3D_Sound:
+		return Sound_get_field_index_by_name(name);
+	case TAG_X3D_Sphere:
+		return Sphere_get_field_index_by_name(name);
+	case TAG_X3D_SphereSensor:
+		return SphereSensor_get_field_index_by_name(name);
+	case TAG_X3D_SpotLight:
+		return SpotLight_get_field_index_by_name(name);
+	case TAG_X3D_StaticGroup:
+		return StaticGroup_get_field_index_by_name(name);
+	case TAG_X3D_StringSensor:
+		return StringSensor_get_field_index_by_name(name);
+	case TAG_X3D_Switch:
+		return Switch_get_field_index_by_name(name);
+	case TAG_X3D_Text:
+		return Text_get_field_index_by_name(name);
+	case TAG_X3D_TextureBackground:
+		return TextureBackground_get_field_index_by_name(name);
+	case TAG_X3D_TextureCoordinate:
+		return TextureCoordinate_get_field_index_by_name(name);
+	case TAG_X3D_TextureCoordinateGenerator:
+		return TextureCoordinateGenerator_get_field_index_by_name(name);
+	case TAG_X3D_TextureTransform:
+		return TextureTransform_get_field_index_by_name(name);
+	case TAG_X3D_TimeSensor:
+		return TimeSensor_get_field_index_by_name(name);
+	case TAG_X3D_TimeTrigger:
+		return TimeTrigger_get_field_index_by_name(name);
+	case TAG_X3D_TouchSensor:
+		return TouchSensor_get_field_index_by_name(name);
+	case TAG_X3D_Transform:
+		return Transform_get_field_index_by_name(name);
+	case TAG_X3D_TransmitterPdu:
+		return TransmitterPdu_get_field_index_by_name(name);
+	case TAG_X3D_TriangleFanSet:
+		return TriangleFanSet_get_field_index_by_name(name);
+	case TAG_X3D_TriangleSet:
+		return TriangleSet_get_field_index_by_name(name);
+	case TAG_X3D_TriangleSet2D:
+		return TriangleSet2D_get_field_index_by_name(name);
+	case TAG_X3D_TriangleStripSet:
+		return TriangleStripSet_get_field_index_by_name(name);
+	case TAG_X3D_Viewpoint:
+		return Viewpoint_get_field_index_by_name(name);
+	case TAG_X3D_VisibilitySensor:
+		return VisibilitySensor_get_field_index_by_name(name);
+	case TAG_X3D_WorldInfo:
+		return WorldInfo_get_field_index_by_name(name);
 	default:
 		return -1;
 	}
@@ -15626,152 +16138,152 @@ s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, char *name)
 
 #define SFWorldNode_X3D_Count	127
 static const u32 SFWorldNode_X3D_TypeToTag[127] = {
- TAG_X3D_Anchor, TAG_X3D_Appearance, TAG_X3D_Arc2D, TAG_X3D_ArcClose2D, TAG_X3D_AudioClip, TAG_X3D_Background, TAG_X3D_Billboard, TAG_X3D_BooleanFilter, TAG_X3D_BooleanSequencer, TAG_X3D_BooleanToggle, TAG_X3D_BooleanTrigger, TAG_X3D_Box, TAG_X3D_Circle2D, TAG_X3D_Collision, TAG_X3D_Color, TAG_X3D_ColorInterpolator, TAG_X3D_ColorRGBA, TAG_X3D_Cone, TAG_X3D_Contour2D, TAG_X3D_ContourPolyline2D, TAG_X3D_Coordinate, TAG_X3D_CoordinateDouble, TAG_X3D_Coordinate2D, TAG_X3D_CoordinateInterpolator, TAG_X3D_CoordinateInterpolator2D, TAG_X3D_Cylinder, TAG_X3D_CylinderSensor, TAG_X3D_DirectionalLight, TAG_X3D_Disk2D, TAG_X3D_ElevationGrid, TAG_X3D_EspduTransform, TAG_X3D_Extrusion, TAG_X3D_FillProperties, TAG_X3D_Fog, TAG_X3D_FontStyle, TAG_X3D_GeoCoordinate, TAG_X3D_GeoElevationGrid, TAG_X3D_GeoLocation, TAG_X3D_GeoLOD, TAG_X3D_GeoMetadata, TAG_X3D_GeoPositionInterpolator, TAG_X3D_GeoTouchSensor, TAG_X3D_GeoViewpoint, TAG_X3D_Group, TAG_X3D_HAnimDisplacer, TAG_X3D_HAnimHumanoid, TAG_X3D_HAnimJoint, TAG_X3D_HAnimSegment, TAG_X3D_HAnimSite, TAG_X3D_ImageTexture, TAG_X3D_IndexedFaceSet, TAG_X3D_IndexedLineSet, TAG_X3D_IndexedTriangleFanSet, TAG_X3D_IndexedTriangleSet, TAG_X3D_IndexedTriangleStripSet, TAG_X3D_Inline, TAG_X3D_IntegerSequencer, TAG_X3D_IntegerTrigger, TAG_X3D_KeySensor, TAG_X3D_LineProperties, TAG_X3D_LineSet, TAG_X3D_LoadSensor, TAG_X3D_LOD, TAG_X3D_Material, TAG_X3D_MetadataDouble, TAG_X3D_MetadataFloat, TAG_X3D_MetadataInteger, TAG_X3D_MetadataSet, TAG_X3D_MetadataString, TAG_X3D_MovieTexture, TAG_X3D_MultiTexture, TAG_X3D_MultiTextureCoordinate, TAG_X3D_MultiTextureTransform, TAG_X3D_NavigationInfo, TAG_X3D_Normal, TAG_X3D_NormalInterpolator, TAG_X3D_NurbsCurve, TAG_X3D_NurbsCurve2D, TAG_X3D_NurbsOrientationInterpolator, TAG_X3D_NurbsPatchSurface, TAG_X3D_NurbsPositionInterpolator, TAG_X3D_NurbsSet, TAG_X3D_NurbsSurfaceInterpolator, TAG_X3D_NurbsSweptSurface, TAG_X3D_NurbsSwungSurface, TAG_X3D_NurbsTextureCoordinate, TAG_X3D_NurbsTrimmedSurface, TAG_X3D_OrientationInterpolator, TAG_X3D_PixelTexture, TAG_X3D_PlaneSensor, TAG_X3D_PointLight, TAG_X3D_PointSet, TAG_X3D_Polyline2D, TAG_X3D_Polypoint2D, TAG_X3D_PositionInterpolator, TAG_X3D_PositionInterpolator2D, TAG_X3D_ProximitySensor, TAG_X3D_ReceiverPdu, TAG_X3D_Rectangle2D, TAG_X3D_ScalarInterpolator, TAG_X3D_Script, TAG_X3D_Shape, TAG_X3D_SignalPdu, TAG_X3D_Sound, TAG_X3D_Sphere, TAG_X3D_SphereSensor, TAG_X3D_SpotLight, TAG_X3D_StaticGroup, TAG_X3D_StringSensor, TAG_X3D_Switch, TAG_X3D_Text, TAG_X3D_TextureBackground, TAG_X3D_TextureCoordinate, TAG_X3D_TextureCoordinateGenerator, TAG_X3D_TextureTransform, TAG_X3D_TimeSensor, TAG_X3D_TimeTrigger, TAG_X3D_TouchSensor, TAG_X3D_Transform, TAG_X3D_TransmitterPdu, TAG_X3D_TriangleFanSet, TAG_X3D_TriangleSet, TAG_X3D_TriangleSet2D, TAG_X3D_TriangleStripSet, TAG_X3D_Viewpoint, TAG_X3D_VisibilitySensor, TAG_X3D_WorldInfo
+	TAG_X3D_Anchor, TAG_X3D_Appearance, TAG_X3D_Arc2D, TAG_X3D_ArcClose2D, TAG_X3D_AudioClip, TAG_X3D_Background, TAG_X3D_Billboard, TAG_X3D_BooleanFilter, TAG_X3D_BooleanSequencer, TAG_X3D_BooleanToggle, TAG_X3D_BooleanTrigger, TAG_X3D_Box, TAG_X3D_Circle2D, TAG_X3D_Collision, TAG_X3D_Color, TAG_X3D_ColorInterpolator, TAG_X3D_ColorRGBA, TAG_X3D_Cone, TAG_X3D_Contour2D, TAG_X3D_ContourPolyline2D, TAG_X3D_Coordinate, TAG_X3D_CoordinateDouble, TAG_X3D_Coordinate2D, TAG_X3D_CoordinateInterpolator, TAG_X3D_CoordinateInterpolator2D, TAG_X3D_Cylinder, TAG_X3D_CylinderSensor, TAG_X3D_DirectionalLight, TAG_X3D_Disk2D, TAG_X3D_ElevationGrid, TAG_X3D_EspduTransform, TAG_X3D_Extrusion, TAG_X3D_FillProperties, TAG_X3D_Fog, TAG_X3D_FontStyle, TAG_X3D_GeoCoordinate, TAG_X3D_GeoElevationGrid, TAG_X3D_GeoLocation, TAG_X3D_GeoLOD, TAG_X3D_GeoMetadata, TAG_X3D_GeoPositionInterpolator, TAG_X3D_GeoTouchSensor, TAG_X3D_GeoViewpoint, TAG_X3D_Group, TAG_X3D_HAnimDisplacer, TAG_X3D_HAnimHumanoid, TAG_X3D_HAnimJoint, TAG_X3D_HAnimSegment, TAG_X3D_HAnimSite, TAG_X3D_ImageTexture, TAG_X3D_IndexedFaceSet, TAG_X3D_IndexedLineSet, TAG_X3D_IndexedTriangleFanSet, TAG_X3D_IndexedTriangleSet, TAG_X3D_IndexedTriangleStripSet, TAG_X3D_Inline, TAG_X3D_IntegerSequencer, TAG_X3D_IntegerTrigger, TAG_X3D_KeySensor, TAG_X3D_LineProperties, TAG_X3D_LineSet, TAG_X3D_LoadSensor, TAG_X3D_LOD, TAG_X3D_Material, TAG_X3D_MetadataDouble, TAG_X3D_MetadataFloat, TAG_X3D_MetadataInteger, TAG_X3D_MetadataSet, TAG_X3D_MetadataString, TAG_X3D_MovieTexture, TAG_X3D_MultiTexture, TAG_X3D_MultiTextureCoordinate, TAG_X3D_MultiTextureTransform, TAG_X3D_NavigationInfo, TAG_X3D_Normal, TAG_X3D_NormalInterpolator, TAG_X3D_NurbsCurve, TAG_X3D_NurbsCurve2D, TAG_X3D_NurbsOrientationInterpolator, TAG_X3D_NurbsPatchSurface, TAG_X3D_NurbsPositionInterpolator, TAG_X3D_NurbsSet, TAG_X3D_NurbsSurfaceInterpolator, TAG_X3D_NurbsSweptSurface, TAG_X3D_NurbsSwungSurface, TAG_X3D_NurbsTextureCoordinate, TAG_X3D_NurbsTrimmedSurface, TAG_X3D_OrientationInterpolator, TAG_X3D_PixelTexture, TAG_X3D_PlaneSensor, TAG_X3D_PointLight, TAG_X3D_PointSet, TAG_X3D_Polyline2D, TAG_X3D_Polypoint2D, TAG_X3D_PositionInterpolator, TAG_X3D_PositionInterpolator2D, TAG_X3D_ProximitySensor, TAG_X3D_ReceiverPdu, TAG_X3D_Rectangle2D, TAG_X3D_ScalarInterpolator, TAG_X3D_Script, TAG_X3D_Shape, TAG_X3D_SignalPdu, TAG_X3D_Sound, TAG_X3D_Sphere, TAG_X3D_SphereSensor, TAG_X3D_SpotLight, TAG_X3D_StaticGroup, TAG_X3D_StringSensor, TAG_X3D_Switch, TAG_X3D_Text, TAG_X3D_TextureBackground, TAG_X3D_TextureCoordinate, TAG_X3D_TextureCoordinateGenerator, TAG_X3D_TextureTransform, TAG_X3D_TimeSensor, TAG_X3D_TimeTrigger, TAG_X3D_TouchSensor, TAG_X3D_Transform, TAG_X3D_TransmitterPdu, TAG_X3D_TriangleFanSet, TAG_X3D_TriangleSet, TAG_X3D_TriangleSet2D, TAG_X3D_TriangleStripSet, TAG_X3D_Viewpoint, TAG_X3D_VisibilitySensor, TAG_X3D_WorldInfo
 };
 
 #define SF3DNode_X3D_Count	60
 static const u32 SF3DNode_X3D_TypeToTag[60] = {
- TAG_X3D_Anchor, TAG_X3D_Background, TAG_X3D_Billboard, TAG_X3D_BooleanFilter, TAG_X3D_BooleanSequencer, TAG_X3D_BooleanToggle, TAG_X3D_BooleanTrigger, TAG_X3D_Collision, TAG_X3D_ColorInterpolator, TAG_X3D_CoordinateInterpolator, TAG_X3D_CoordinateInterpolator2D, TAG_X3D_CylinderSensor, TAG_X3D_DirectionalLight, TAG_X3D_EspduTransform, TAG_X3D_Fog, TAG_X3D_GeoLocation, TAG_X3D_GeoLOD, TAG_X3D_GeoMetadata, TAG_X3D_GeoPositionInterpolator, TAG_X3D_GeoTouchSensor, TAG_X3D_GeoViewpoint, TAG_X3D_Group, TAG_X3D_HAnimHumanoid, TAG_X3D_Inline, TAG_X3D_IntegerSequencer, TAG_X3D_IntegerTrigger, TAG_X3D_KeySensor, TAG_X3D_LOD, TAG_X3D_NavigationInfo, TAG_X3D_NormalInterpolator, TAG_X3D_NurbsOrientationInterpolator, TAG_X3D_NurbsPositionInterpolator, TAG_X3D_NurbsSet, TAG_X3D_NurbsSurfaceInterpolator, TAG_X3D_OrientationInterpolator, TAG_X3D_PlaneSensor, TAG_X3D_PointLight, TAG_X3D_PositionInterpolator, TAG_X3D_PositionInterpolator2D, TAG_X3D_ProximitySensor, TAG_X3D_ReceiverPdu, TAG_X3D_ScalarInterpolator, TAG_X3D_Script, TAG_X3D_Shape, TAG_X3D_SignalPdu, TAG_X3D_Sound, TAG_X3D_SphereSensor, TAG_X3D_SpotLight, TAG_X3D_StaticGroup, TAG_X3D_StringSensor, TAG_X3D_Switch, TAG_X3D_TextureBackground, TAG_X3D_TimeSensor, TAG_X3D_TimeTrigger, TAG_X3D_TouchSensor, TAG_X3D_Transform, TAG_X3D_TransmitterPdu, TAG_X3D_Viewpoint, TAG_X3D_VisibilitySensor, TAG_X3D_WorldInfo
+	TAG_X3D_Anchor, TAG_X3D_Background, TAG_X3D_Billboard, TAG_X3D_BooleanFilter, TAG_X3D_BooleanSequencer, TAG_X3D_BooleanToggle, TAG_X3D_BooleanTrigger, TAG_X3D_Collision, TAG_X3D_ColorInterpolator, TAG_X3D_CoordinateInterpolator, TAG_X3D_CoordinateInterpolator2D, TAG_X3D_CylinderSensor, TAG_X3D_DirectionalLight, TAG_X3D_EspduTransform, TAG_X3D_Fog, TAG_X3D_GeoLocation, TAG_X3D_GeoLOD, TAG_X3D_GeoMetadata, TAG_X3D_GeoPositionInterpolator, TAG_X3D_GeoTouchSensor, TAG_X3D_GeoViewpoint, TAG_X3D_Group, TAG_X3D_HAnimHumanoid, TAG_X3D_Inline, TAG_X3D_IntegerSequencer, TAG_X3D_IntegerTrigger, TAG_X3D_KeySensor, TAG_X3D_LOD, TAG_X3D_NavigationInfo, TAG_X3D_NormalInterpolator, TAG_X3D_NurbsOrientationInterpolator, TAG_X3D_NurbsPositionInterpolator, TAG_X3D_NurbsSet, TAG_X3D_NurbsSurfaceInterpolator, TAG_X3D_OrientationInterpolator, TAG_X3D_PlaneSensor, TAG_X3D_PointLight, TAG_X3D_PositionInterpolator, TAG_X3D_PositionInterpolator2D, TAG_X3D_ProximitySensor, TAG_X3D_ReceiverPdu, TAG_X3D_ScalarInterpolator, TAG_X3D_Script, TAG_X3D_Shape, TAG_X3D_SignalPdu, TAG_X3D_Sound, TAG_X3D_SphereSensor, TAG_X3D_SpotLight, TAG_X3D_StaticGroup, TAG_X3D_StringSensor, TAG_X3D_Switch, TAG_X3D_TextureBackground, TAG_X3D_TimeSensor, TAG_X3D_TimeTrigger, TAG_X3D_TouchSensor, TAG_X3D_Transform, TAG_X3D_TransmitterPdu, TAG_X3D_Viewpoint, TAG_X3D_VisibilitySensor, TAG_X3D_WorldInfo
 };
 
 #define SF2DNode_X3D_Count	34
 static const u32 SF2DNode_X3D_TypeToTag[34] = {
- TAG_X3D_Anchor, TAG_X3D_BooleanFilter, TAG_X3D_BooleanSequencer, TAG_X3D_BooleanToggle, TAG_X3D_BooleanTrigger, TAG_X3D_ColorInterpolator, TAG_X3D_CoordinateInterpolator2D, TAG_X3D_EspduTransform, TAG_X3D_GeoMetadata, TAG_X3D_GeoTouchSensor, TAG_X3D_Group, TAG_X3D_Inline, TAG_X3D_IntegerSequencer, TAG_X3D_IntegerTrigger, TAG_X3D_KeySensor, TAG_X3D_LOD, TAG_X3D_NurbsOrientationInterpolator, TAG_X3D_NurbsPositionInterpolator, TAG_X3D_NurbsSet, TAG_X3D_NurbsSurfaceInterpolator, TAG_X3D_PositionInterpolator2D, TAG_X3D_ReceiverPdu, TAG_X3D_ScalarInterpolator, TAG_X3D_Script, TAG_X3D_Shape, TAG_X3D_SignalPdu, TAG_X3D_StaticGroup, TAG_X3D_StringSensor, TAG_X3D_Switch, TAG_X3D_TimeSensor, TAG_X3D_TimeTrigger, TAG_X3D_TouchSensor, TAG_X3D_TransmitterPdu, TAG_X3D_WorldInfo
+	TAG_X3D_Anchor, TAG_X3D_BooleanFilter, TAG_X3D_BooleanSequencer, TAG_X3D_BooleanToggle, TAG_X3D_BooleanTrigger, TAG_X3D_ColorInterpolator, TAG_X3D_CoordinateInterpolator2D, TAG_X3D_EspduTransform, TAG_X3D_GeoMetadata, TAG_X3D_GeoTouchSensor, TAG_X3D_Group, TAG_X3D_Inline, TAG_X3D_IntegerSequencer, TAG_X3D_IntegerTrigger, TAG_X3D_KeySensor, TAG_X3D_LOD, TAG_X3D_NurbsOrientationInterpolator, TAG_X3D_NurbsPositionInterpolator, TAG_X3D_NurbsSet, TAG_X3D_NurbsSurfaceInterpolator, TAG_X3D_PositionInterpolator2D, TAG_X3D_ReceiverPdu, TAG_X3D_ScalarInterpolator, TAG_X3D_Script, TAG_X3D_Shape, TAG_X3D_SignalPdu, TAG_X3D_StaticGroup, TAG_X3D_StringSensor, TAG_X3D_Switch, TAG_X3D_TimeSensor, TAG_X3D_TimeTrigger, TAG_X3D_TouchSensor, TAG_X3D_TransmitterPdu, TAG_X3D_WorldInfo
 };
 
 #define SFAppearanceNode_X3D_Count	1
 static const u32 SFAppearanceNode_X3D_TypeToTag[1] = {
- TAG_X3D_Appearance
+	TAG_X3D_Appearance
 };
 
 #define SFGeometryNode_X3D_Count	31
 static const u32 SFGeometryNode_X3D_TypeToTag[31] = {
- TAG_X3D_Arc2D, TAG_X3D_ArcClose2D, TAG_X3D_Box, TAG_X3D_Circle2D, TAG_X3D_Cone, TAG_X3D_Cylinder, TAG_X3D_Disk2D, TAG_X3D_ElevationGrid, TAG_X3D_Extrusion, TAG_X3D_GeoElevationGrid, TAG_X3D_IndexedFaceSet, TAG_X3D_IndexedLineSet, TAG_X3D_IndexedTriangleFanSet, TAG_X3D_IndexedTriangleSet, TAG_X3D_IndexedTriangleStripSet, TAG_X3D_LineSet, TAG_X3D_NurbsCurve, TAG_X3D_NurbsPatchSurface, TAG_X3D_NurbsSweptSurface, TAG_X3D_NurbsSwungSurface, TAG_X3D_NurbsTrimmedSurface, TAG_X3D_PointSet, TAG_X3D_Polyline2D, TAG_X3D_Polypoint2D, TAG_X3D_Rectangle2D, TAG_X3D_Sphere, TAG_X3D_Text, TAG_X3D_TriangleFanSet, TAG_X3D_TriangleSet, TAG_X3D_TriangleSet2D, TAG_X3D_TriangleStripSet
+	TAG_X3D_Arc2D, TAG_X3D_ArcClose2D, TAG_X3D_Box, TAG_X3D_Circle2D, TAG_X3D_Cone, TAG_X3D_Cylinder, TAG_X3D_Disk2D, TAG_X3D_ElevationGrid, TAG_X3D_Extrusion, TAG_X3D_GeoElevationGrid, TAG_X3D_IndexedFaceSet, TAG_X3D_IndexedLineSet, TAG_X3D_IndexedTriangleFanSet, TAG_X3D_IndexedTriangleSet, TAG_X3D_IndexedTriangleStripSet, TAG_X3D_LineSet, TAG_X3D_NurbsCurve, TAG_X3D_NurbsPatchSurface, TAG_X3D_NurbsSweptSurface, TAG_X3D_NurbsSwungSurface, TAG_X3D_NurbsTrimmedSurface, TAG_X3D_PointSet, TAG_X3D_Polyline2D, TAG_X3D_Polypoint2D, TAG_X3D_Rectangle2D, TAG_X3D_Sphere, TAG_X3D_Text, TAG_X3D_TriangleFanSet, TAG_X3D_TriangleSet, TAG_X3D_TriangleSet2D, TAG_X3D_TriangleStripSet
 };
 
 #define SFAudioNode_X3D_Count	1
 static const u32 SFAudioNode_X3D_TypeToTag[1] = {
- TAG_X3D_AudioClip
+	TAG_X3D_AudioClip
 };
 
 #define SFStreamingNode_X3D_Count	4
 static const u32 SFStreamingNode_X3D_TypeToTag[4] = {
- TAG_X3D_AudioClip, TAG_X3D_Inline, TAG_X3D_LoadSensor, TAG_X3D_MovieTexture
+	TAG_X3D_AudioClip, TAG_X3D_Inline, TAG_X3D_LoadSensor, TAG_X3D_MovieTexture
 };
 
 #define SFBackground3DNode_X3D_Count	2
 static const u32 SFBackground3DNode_X3D_TypeToTag[2] = {
- TAG_X3D_Background, TAG_X3D_TextureBackground
+	TAG_X3D_Background, TAG_X3D_TextureBackground
 };
 
 #define SFColorNode_X3D_Count	2
 static const u32 SFColorNode_X3D_TypeToTag[2] = {
- TAG_X3D_Color, TAG_X3D_ColorRGBA
+	TAG_X3D_Color, TAG_X3D_ColorRGBA
 };
 
 #define SFNurbsControlCurveNode_X3D_Count	3
 static const u32 SFNurbsControlCurveNode_X3D_TypeToTag[3] = {
- TAG_X3D_Contour2D, TAG_X3D_ContourPolyline2D, TAG_X3D_NurbsCurve2D
+	TAG_X3D_Contour2D, TAG_X3D_ContourPolyline2D, TAG_X3D_NurbsCurve2D
 };
 
 #define SFCoordinateNode_X3D_Count	3
 static const u32 SFCoordinateNode_X3D_TypeToTag[3] = {
- TAG_X3D_Coordinate, TAG_X3D_CoordinateDouble, TAG_X3D_GeoCoordinate
+	TAG_X3D_Coordinate, TAG_X3D_CoordinateDouble, TAG_X3D_GeoCoordinate
 };
 
 #define SFCoordinate2DNode_X3D_Count	1
 static const u32 SFCoordinate2DNode_X3D_TypeToTag[1] = {
- TAG_X3D_Coordinate2D
+	TAG_X3D_Coordinate2D
 };
 
 #define SFFillPropertiesNode_X3D_Count	1
 static const u32 SFFillPropertiesNode_X3D_TypeToTag[1] = {
- TAG_X3D_FillProperties
+	TAG_X3D_FillProperties
 };
 
 #define SFFogNode_X3D_Count	1
 static const u32 SFFogNode_X3D_TypeToTag[1] = {
- TAG_X3D_Fog
+	TAG_X3D_Fog
 };
 
 #define SFFontStyleNode_X3D_Count	1
 static const u32 SFFontStyleNode_X3D_TypeToTag[1] = {
- TAG_X3D_FontStyle
+	TAG_X3D_FontStyle
 };
 
 #define SFGeoOriginNode_X3D_Count	1
 static const u32 SFGeoOriginNode_X3D_TypeToTag[1] = {
- TAG_X3D_GeoOrigin
+	TAG_X3D_GeoOrigin
 };
 
 #define SFViewpointNode_X3D_Count	2
 static const u32 SFViewpointNode_X3D_TypeToTag[2] = {
- TAG_X3D_GeoViewpoint, TAG_X3D_Viewpoint
+	TAG_X3D_GeoViewpoint, TAG_X3D_Viewpoint
 };
 
 #define SFTopNode_X3D_Count	1
 static const u32 SFTopNode_X3D_TypeToTag[1] = {
- TAG_X3D_Group
+	TAG_X3D_Group
 };
 
 #define SFHAnimDisplacerNode_X3D_Count	1
 static const u32 SFHAnimDisplacerNode_X3D_TypeToTag[1] = {
- TAG_X3D_HAnimDisplacer
+	TAG_X3D_HAnimDisplacer
 };
 
 #define SFHAnimNode_X3D_Count	3
 static const u32 SFHAnimNode_X3D_TypeToTag[3] = {
- TAG_X3D_HAnimJoint, TAG_X3D_HAnimSegment, TAG_X3D_HAnimSite
+	TAG_X3D_HAnimJoint, TAG_X3D_HAnimSegment, TAG_X3D_HAnimSite
 };
 
 #define SFTextureNode_X3D_Count	4
 static const u32 SFTextureNode_X3D_TypeToTag[4] = {
- TAG_X3D_ImageTexture, TAG_X3D_MovieTexture, TAG_X3D_MultiTexture, TAG_X3D_PixelTexture
+	TAG_X3D_ImageTexture, TAG_X3D_MovieTexture, TAG_X3D_MultiTexture, TAG_X3D_PixelTexture
 };
 
 #define SFX3DLinePropertiesNode_X3D_Count	1
 static const u32 SFX3DLinePropertiesNode_X3D_TypeToTag[1] = {
- TAG_X3D_LineProperties
+	TAG_X3D_LineProperties
 };
 
 #define SFMaterialNode_X3D_Count	1
 static const u32 SFMaterialNode_X3D_TypeToTag[1] = {
- TAG_X3D_Material
+	TAG_X3D_Material
 };
 
 #define SFMetadataNode_X3D_Count	5
 static const u32 SFMetadataNode_X3D_TypeToTag[5] = {
- TAG_X3D_MetadataDouble, TAG_X3D_MetadataFloat, TAG_X3D_MetadataInteger, TAG_X3D_MetadataSet, TAG_X3D_MetadataString
+	TAG_X3D_MetadataDouble, TAG_X3D_MetadataFloat, TAG_X3D_MetadataInteger, TAG_X3D_MetadataSet, TAG_X3D_MetadataString
 };
 
 #define SFTextureCoordinateNode_X3D_Count	4
 static const u32 SFTextureCoordinateNode_X3D_TypeToTag[4] = {
- TAG_X3D_MultiTextureCoordinate, TAG_X3D_NurbsTextureCoordinate, TAG_X3D_TextureCoordinate, TAG_X3D_TextureCoordinateGenerator
+	TAG_X3D_MultiTextureCoordinate, TAG_X3D_NurbsTextureCoordinate, TAG_X3D_TextureCoordinate, TAG_X3D_TextureCoordinateGenerator
 };
 
 #define SFTextureTransformNode_X3D_Count	2
 static const u32 SFTextureTransformNode_X3D_TypeToTag[2] = {
- TAG_X3D_MultiTextureTransform, TAG_X3D_TextureTransform
+	TAG_X3D_MultiTextureTransform, TAG_X3D_TextureTransform
 };
 
 #define SFNavigationInfoNode_X3D_Count	1
 static const u32 SFNavigationInfoNode_X3D_TypeToTag[1] = {
- TAG_X3D_NavigationInfo
+	TAG_X3D_NavigationInfo
 };
 
 #define SFNormalNode_X3D_Count	1
 static const u32 SFNormalNode_X3D_TypeToTag[1] = {
- TAG_X3D_Normal
+	TAG_X3D_Normal
 };
 
 #define SFNurbsCurveNode_X3D_Count	1
 static const u32 SFNurbsCurveNode_X3D_TypeToTag[1] = {
- TAG_X3D_NurbsCurve
+	TAG_X3D_NurbsCurve
 };
 
 #define SFNurbsSurfaceNode_X3D_Count	4
 static const u32 SFNurbsSurfaceNode_X3D_TypeToTag[4] = {
- TAG_X3D_NurbsPatchSurface, TAG_X3D_NurbsSweptSurface, TAG_X3D_NurbsSwungSurface, TAG_X3D_NurbsTrimmedSurface
+	TAG_X3D_NurbsPatchSurface, TAG_X3D_NurbsSweptSurface, TAG_X3D_NurbsSwungSurface, TAG_X3D_NurbsTrimmedSurface
 };
 
 
@@ -15782,72 +16294,135 @@ Bool gf_x3d_get_node_type(u32 NDT_Tag, u32 NodeTag)
 	const u32 *types;
 	u32 count, i;
 	if (!NodeTag) return 0;
-	types = NULL; count = 0;
+	types = NULL;
+	count = 0;
 	switch (NDT_Tag) {
 	case NDT_SFWorldNode:
-		types = SFWorldNode_X3D_TypeToTag; count = SFWorldNode_X3D_Count; break;
+		types = SFWorldNode_X3D_TypeToTag;
+		count = SFWorldNode_X3D_Count;
+		break;
 	case NDT_SF3DNode:
-		types = SF3DNode_X3D_TypeToTag; count = SF3DNode_X3D_Count; break;
+		types = SF3DNode_X3D_TypeToTag;
+		count = SF3DNode_X3D_Count;
+		break;
 	case NDT_SF2DNode:
-		types = SF2DNode_X3D_TypeToTag; count = SF2DNode_X3D_Count; break;
+		types = SF2DNode_X3D_TypeToTag;
+		count = SF2DNode_X3D_Count;
+		break;
 	case NDT_SFAppearanceNode:
-		types = SFAppearanceNode_X3D_TypeToTag; count = SFAppearanceNode_X3D_Count; break;
+		types = SFAppearanceNode_X3D_TypeToTag;
+		count = SFAppearanceNode_X3D_Count;
+		break;
 	case NDT_SFGeometryNode:
-		types = SFGeometryNode_X3D_TypeToTag; count = SFGeometryNode_X3D_Count; break;
+		types = SFGeometryNode_X3D_TypeToTag;
+		count = SFGeometryNode_X3D_Count;
+		break;
 	case NDT_SFAudioNode:
-		types = SFAudioNode_X3D_TypeToTag; count = SFAudioNode_X3D_Count; break;
+		types = SFAudioNode_X3D_TypeToTag;
+		count = SFAudioNode_X3D_Count;
+		break;
 	case NDT_SFStreamingNode:
-		types = SFStreamingNode_X3D_TypeToTag; count = SFStreamingNode_X3D_Count; break;
+		types = SFStreamingNode_X3D_TypeToTag;
+		count = SFStreamingNode_X3D_Count;
+		break;
 	case NDT_SFBackground3DNode:
-		types = SFBackground3DNode_X3D_TypeToTag; count = SFBackground3DNode_X3D_Count; break;
+		types = SFBackground3DNode_X3D_TypeToTag;
+		count = SFBackground3DNode_X3D_Count;
+		break;
 	case NDT_SFColorNode:
-		types = SFColorNode_X3D_TypeToTag; count = SFColorNode_X3D_Count; break;
+		types = SFColorNode_X3D_TypeToTag;
+		count = SFColorNode_X3D_Count;
+		break;
 	case NDT_SFNurbsControlCurveNode:
-		types = SFNurbsControlCurveNode_X3D_TypeToTag; count = SFNurbsControlCurveNode_X3D_Count; break;
+		types = SFNurbsControlCurveNode_X3D_TypeToTag;
+		count = SFNurbsControlCurveNode_X3D_Count;
+		break;
 	case NDT_SFCoordinateNode:
-		types = SFCoordinateNode_X3D_TypeToTag; count = SFCoordinateNode_X3D_Count; break;
+		types = SFCoordinateNode_X3D_TypeToTag;
+		count = SFCoordinateNode_X3D_Count;
+		break;
 	case NDT_SFCoordinate2DNode:
-		types = SFCoordinate2DNode_X3D_TypeToTag; count = SFCoordinate2DNode_X3D_Count; break;
+		types = SFCoordinate2DNode_X3D_TypeToTag;
+		count = SFCoordinate2DNode_X3D_Count;
+		break;
 	case NDT_SFFillPropertiesNode:
-		types = SFFillPropertiesNode_X3D_TypeToTag; count = SFFillPropertiesNode_X3D_Count; break;
+		types = SFFillPropertiesNode_X3D_TypeToTag;
+		count = SFFillPropertiesNode_X3D_Count;
+		break;
 	case NDT_SFFogNode:
-		types = SFFogNode_X3D_TypeToTag; count = SFFogNode_X3D_Count; break;
+		types = SFFogNode_X3D_TypeToTag;
+		count = SFFogNode_X3D_Count;
+		break;
 	case NDT_SFFontStyleNode:
-		types = SFFontStyleNode_X3D_TypeToTag; count = SFFontStyleNode_X3D_Count; break;
+		types = SFFontStyleNode_X3D_TypeToTag;
+		count = SFFontStyleNode_X3D_Count;
+		break;
 	case NDT_SFGeoOriginNode:
-		types = SFGeoOriginNode_X3D_TypeToTag; count = SFGeoOriginNode_X3D_Count; break;
+		types = SFGeoOriginNode_X3D_TypeToTag;
+		count = SFGeoOriginNode_X3D_Count;
+		break;
 	case NDT_SFViewpointNode:
-		types = SFViewpointNode_X3D_TypeToTag; count = SFViewpointNode_X3D_Count; break;
+		types = SFViewpointNode_X3D_TypeToTag;
+		count = SFViewpointNode_X3D_Count;
+		break;
 	case NDT_SFTopNode:
-		types = SFTopNode_X3D_TypeToTag; count = SFTopNode_X3D_Count; break;
+		types = SFTopNode_X3D_TypeToTag;
+		count = SFTopNode_X3D_Count;
+		break;
 	case NDT_SFHAnimDisplacerNode:
-		types = SFHAnimDisplacerNode_X3D_TypeToTag; count = SFHAnimDisplacerNode_X3D_Count; break;
+		types = SFHAnimDisplacerNode_X3D_TypeToTag;
+		count = SFHAnimDisplacerNode_X3D_Count;
+		break;
 	case NDT_SFHAnimNode:
-		types = SFHAnimNode_X3D_TypeToTag; count = SFHAnimNode_X3D_Count; break;
+		types = SFHAnimNode_X3D_TypeToTag;
+		count = SFHAnimNode_X3D_Count;
+		break;
 	case NDT_SFTextureNode:
-		types = SFTextureNode_X3D_TypeToTag; count = SFTextureNode_X3D_Count; break;
+		types = SFTextureNode_X3D_TypeToTag;
+		count = SFTextureNode_X3D_Count;
+		break;
 	case NDT_SFX3DLinePropertiesNode:
-		types = SFX3DLinePropertiesNode_X3D_TypeToTag; count = SFX3DLinePropertiesNode_X3D_Count; break;
+		types = SFX3DLinePropertiesNode_X3D_TypeToTag;
+		count = SFX3DLinePropertiesNode_X3D_Count;
+		break;
 	case NDT_SFMaterialNode:
-		types = SFMaterialNode_X3D_TypeToTag; count = SFMaterialNode_X3D_Count; break;
+		types = SFMaterialNode_X3D_TypeToTag;
+		count = SFMaterialNode_X3D_Count;
+		break;
 	case NDT_SFMetadataNode:
-		types = SFMetadataNode_X3D_TypeToTag; count = SFMetadataNode_X3D_Count; break;
+		types = SFMetadataNode_X3D_TypeToTag;
+		count = SFMetadataNode_X3D_Count;
+		break;
 	case NDT_SFTextureCoordinateNode:
-		types = SFTextureCoordinateNode_X3D_TypeToTag; count = SFTextureCoordinateNode_X3D_Count; break;
+		types = SFTextureCoordinateNode_X3D_TypeToTag;
+		count = SFTextureCoordinateNode_X3D_Count;
+		break;
 	case NDT_SFTextureTransformNode:
-		types = SFTextureTransformNode_X3D_TypeToTag; count = SFTextureTransformNode_X3D_Count; break;
+		types = SFTextureTransformNode_X3D_TypeToTag;
+		count = SFTextureTransformNode_X3D_Count;
+		break;
 	case NDT_SFNavigationInfoNode:
-		types = SFNavigationInfoNode_X3D_TypeToTag; count = SFNavigationInfoNode_X3D_Count; break;
+		types = SFNavigationInfoNode_X3D_TypeToTag;
+		count = SFNavigationInfoNode_X3D_Count;
+		break;
 	case NDT_SFNormalNode:
-		types = SFNormalNode_X3D_TypeToTag; count = SFNormalNode_X3D_Count; break;
+		types = SFNormalNode_X3D_TypeToTag;
+		count = SFNormalNode_X3D_Count;
+		break;
 	case NDT_SFNurbsCurveNode:
-		types = SFNurbsCurveNode_X3D_TypeToTag; count = SFNurbsCurveNode_X3D_Count; break;
+		types = SFNurbsCurveNode_X3D_TypeToTag;
+		count = SFNurbsCurveNode_X3D_Count;
+		break;
 	case NDT_SFNurbsSurfaceNode:
-		types = SFNurbsSurfaceNode_X3D_TypeToTag; count = SFNurbsSurfaceNode_X3D_Count; break;
+		types = SFNurbsSurfaceNode_X3D_TypeToTag;
+		count = SFNurbsSurfaceNode_X3D_Count;
+		break;
 	default:
 		return 0;
 	}
-	for(i=0; i<count; i++) { if (types[i]==NodeTag) return 1;}
+	for(i=0; i<count; i++) {
+		if (types[i]==NodeTag) return 1;
+	}
 	return 0;
 }
 #endif /*GPAC_DISABLE_X3D*/

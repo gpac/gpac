@@ -60,48 +60,48 @@ typedef struct avr_ts_muxer GF_AbstractTSMuxer;
 
 typedef struct
 {
-    GF_Terminal *term;
+	GF_Terminal *term;
 
-    Bool is_open;
-    GF_AudioListener audio_listen;
-    GF_VideoListener video_listen;
-    GF_TermEventFilter term_listen;
+	Bool is_open;
+	GF_AudioListener audio_listen;
+	GF_VideoListener video_listen;
+	GF_TermEventFilter term_listen;
 #ifdef AVR_DUMP_RAW_AVI
-    avi_t *avi_out;
+	avi_t *avi_out;
 #endif
-    char *frame;
-    u32 size;
-    GF_AbstractTSMuxer * ts_implementation;
-    Bool encode;
-    AVCodec *audioCodec;
-    AVCodec *videoCodec;
-    AVFrame *YUVpicture, *RGBpicture;
-    struct SwsContext * swsContext;
-    uint8_t * yuv_data;
-    uint8_t * videoOutbuf;
-    u32 videoOutbufSize;
-    GF_Ringbuffer * pcmAudio;
-    u32 audioCurrentTime;
-    GF_Thread * encodingThread;
-    GF_Thread * audioEncodingThread;
-    GF_Mutex * frameMutex;
-    GF_Mutex * encodingMutex;
-    volatile Bool is_running;
-    u64 frameTime;
-    u64 frameTimeEncoded;
-    /**
-     * Audio parameters for encoding
-     */
-    u32 audioSampleRate;
-    u16 audioChannels;
-    /**
-     * Video parameters for encoding
-     */
-    u32 srcWidth;
-    u32 srcHeight;
-    const char * destination;
-    GF_GlobalLock * globalLock;
-    Bool started;
+	char *frame;
+	u32 size;
+	GF_AbstractTSMuxer * ts_implementation;
+	Bool encode;
+	AVCodec *audioCodec;
+	AVCodec *videoCodec;
+	AVFrame *YUVpicture, *RGBpicture;
+	struct SwsContext * swsContext;
+	uint8_t * yuv_data;
+	uint8_t * videoOutbuf;
+	u32 videoOutbufSize;
+	GF_Ringbuffer * pcmAudio;
+	u32 audioCurrentTime;
+	GF_Thread * encodingThread;
+	GF_Thread * audioEncodingThread;
+	GF_Mutex * frameMutex;
+	GF_Mutex * encodingMutex;
+	volatile Bool is_running;
+	u64 frameTime;
+	u64 frameTimeEncoded;
+	/**
+	 * Audio parameters for encoding
+	 */
+	u32 audioSampleRate;
+	u16 audioChannels;
+	/**
+	 * Video parameters for encoding
+	 */
+	u32 srcWidth;
+	u32 srcHeight;
+	const char * destination;
+	GF_GlobalLock * globalLock;
+	Bool started;
 } GF_AVRedirect;
 
 GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerSec, u32 width, u32 height, u32 audioBitRateInBitsPerSec);

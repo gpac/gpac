@@ -4,7 +4,7 @@
  *			Authors: Cyril Concolato
  *    Copyright (c)2004-2012 Telecom ParisTech - All rights reserved
  *
- *  This file is part of GPAC / XBL Elements 
+ *  This file is part of GPAC / XBL Elements
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -14,7 +14,7 @@
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.	
+ *  GNU Lesser General Public License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
@@ -33,7 +33,7 @@ extern "C" {
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/svg_types.h>
 
-#define XBL_String_datatype SVG_String_datatype 
+#define XBL_String_datatype SVG_String_datatype
 
 struct _all_atts {
 	DOM_String *id;

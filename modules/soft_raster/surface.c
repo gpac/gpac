@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *
  */
@@ -54,7 +54,7 @@ void evg_surface_delete(GF_SURFACE _this)
 {
 	EVGSurface *surf = (EVGSurface *)_this;
 	if (!surf)
-	  return;
+		return;
 #ifndef INLINE_POINT_CONVERSION
 	if (surf->points) gf_free(surf->points);
 	surf->points = NULL;
@@ -216,7 +216,7 @@ GF_Err evg_surface_clear(GF_SURFACE _this, GF_IRect *rc, u32 color)
 	EVGSurface *surf = (EVGSurface *)_this;
 	if (!surf) return GF_BAD_PARAM;
 
-	if (rc) {	
+	if (rc) {
 		s32 _x, _y;
 		if (surf->center_coords) {
 			_x = rc->x + surf->width / 2;
@@ -247,7 +247,7 @@ GF_Err evg_surface_clear(GF_SURFACE _this, GF_IRect *rc, u32 color)
 		clear.width = surf->width;
 		clear.height = surf->height;
 	}
-	
+
 	if (surf->raster_cbk) {
 		surf->raster_fill_rectangle(surf->raster_cbk, clear.x, clear.y, clear.width, clear.height, color);
 		return GF_OK;
@@ -350,7 +350,7 @@ static Bool setup_grey_callback(EVGSurface *surf)
 		col = a = 0;
 		use_const = 0;
 	}
-	
+
 	if (surf->raster_cbk) {
 		if (use_const) {
 			if (!a) return 0;
@@ -534,7 +534,7 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 		surf->pointlen = gp->n_points;
 	}
 	surf->ftoutline.points = surf->points;
-	
+
 	for (i=0; i<gp->n_points; i++) {
 		pt = gp->points[i];
 		gf_mx2d_apply_point(&surf->mat, &pt);
@@ -567,7 +567,7 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 	/*setup ft raster calllbacks*/
 	if (!setup_grey_callback(surf)) return GF_OK;
 
-/*	surf->ftparams.gray_spans = gray_spans_stub; */
+	/*	surf->ftparams.gray_spans = gray_spans_stub; */
 
 	get_surface_world_matrix(surf, &mat);
 
@@ -615,7 +615,7 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 			gf_mx2d_add_scale(&sten->smat, INT2FIX(1<<EVGGRADIENTBITS), INT2FIX(1<<EVGGRADIENTBITS));
 
 		}
-			break;
+		break;
 		case GF_STENCIL_RADIAL_GRADIENT:
 		{
 			EVG_RadialGradient *rad = (EVG_RadialGradient*)sten;
@@ -630,7 +630,7 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 			/*init*/
 			evg_radial_init(rad);
 		}
-			break;
+		break;
 		}
 	}
 

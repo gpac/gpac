@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2011-2012
  *			All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -152,7 +152,7 @@ Bool osd_load_scene(GF_OSD *osd)
 	gf_list_del(nodes);
 
 	if (!n) return 0;
-	
+
 	gf_sg_set_root_node(osd->odm->subscene->graph, n);
 	gf_sg_set_scene_size_info(osd->odm->subscene->graph, 0, 0, 1);
 
@@ -274,17 +274,17 @@ void osd_delete(GF_BaseInterface *ifce)
 }
 
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_TERM_EXT_INTERFACE,
 		0
 	};
-	return si; 
+	return si;
 }
 
 GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_TERM_EXT_INTERFACE) return (GF_BaseInterface *)osd_new();
 	return NULL;

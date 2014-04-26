@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -55,14 +55,14 @@ static u32 DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd,
 
 	default:
 #ifdef GPAC_HAS_JP2
-		{
-			char *dsi = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data : NULL;
-			if (dsi && (dsi[0]=='m') && (dsi[1]=='j') && (dsi[2]=='p') && (dsi[3]=='2'))
-				if (NewJP2Dec(dec)) return GF_CODEC_SUPPORTED;
-				return GF_CODEC_NOT_SUPPORTED;
-		}
-#endif
+	{
+		char *dsi = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data : NULL;
+		if (dsi && (dsi[0]=='m') && (dsi[1]=='j') && (dsi[2]=='p') && (dsi[3]=='2'))
+			if (NewJP2Dec(dec)) return GF_CODEC_SUPPORTED;
 		return GF_CODEC_NOT_SUPPORTED;
+	}
+#endif
+	return GF_CODEC_NOT_SUPPORTED;
 	}
 	return GF_CODEC_NOT_SUPPORTED;
 }
@@ -91,11 +91,11 @@ GF_BaseDecoder *NewBaseDecoder()
 void DeleteBaseDecoder(GF_BaseDecoder *ifcd)
 {
 	IMGDec *wrap;
-        if (!ifcd)
-          return;
-        wrap = (IMGDec *)ifcd->privateStack;
-        if (!wrap)
-          return;
+	if (!ifcd)
+		return;
+	wrap = (IMGDec *)ifcd->privateStack;
+	if (!wrap)
+		return;
 	switch (wrap->type) {
 	case DEC_PNG:
 		DeletePNGDec(ifcd);
@@ -115,7 +115,7 @@ void DeleteBaseDecoder(GF_BaseDecoder *ifcd)
 		break;
 	}
 	gf_free(wrap);
-        ifcd->privateStack = NULL;
+	ifcd->privateStack = NULL;
 	gf_free(ifcd);
 }
 

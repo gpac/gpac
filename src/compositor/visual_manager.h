@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -35,7 +35,7 @@
 #include "visual_manager_3d.h"
 
 
-enum 
+enum
 {
 	GF_3D_STEREO_NONE = 0,
 	GF_3D_STEREO_TOP,
@@ -54,7 +54,7 @@ enum
 	GF_3D_STEREO_5VSP19,
 };
 
-enum 
+enum
 {
 	GF_3D_CAMERA_STRAIGHT = 0,
 	GF_3D_CAMERA_OFFAXIS,
@@ -96,7 +96,7 @@ struct _visual_manager
 	GF_RectArray to_redraw;
 	u32 draw_node_index;
 
-	/*display list (list of drawable context). The first context with no drawable attached to 
+	/*display list (list of drawable context). The first context with no drawable attached to
 	it (ctx->drawable==NULL) marks the end of the display list*/
 	DrawableContext *context, *cur_context;
 
@@ -124,7 +124,7 @@ struct _visual_manager
 
 	/*clear given rect or all visual if no rect specified - clear color depends on visual's type:
 		BackColor for background nodes
-		0x00000000 for composite, 
+		0x00000000 for composite,
 		compositor clear color otherwise
 	*/
 	void (*ClearSurface)(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor);
@@ -149,10 +149,10 @@ struct _visual_manager
 
 #ifndef GPAC_DISABLE_3D
 	/*
-	 *	Visual Manager part for 3D drawing 
+	 *	Visual Manager part for 3D drawing
 	 */
 
-#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL) 
+#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
 #define GF_SHADERID u64
 #else
 #define GF_SHADERID u32
@@ -193,7 +193,7 @@ struct _visual_manager
 	GF_Mesh *autostereo_mesh;
 	GF_SHADERID autostereo_glsl_program;
 	GF_SHADERID autostereo_glsl_fragment;
-	
+
 	GF_SHADERID yuv_glsl_program;
 	GF_SHADERID yuv_glsl_fragment;
 	GF_SHADERID yuv_rect_glsl_program;

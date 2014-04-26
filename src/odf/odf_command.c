@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -40,7 +40,7 @@ GF_Err gf_odf_parse_command(GF_BitStream *bs, GF_ODCom **com, u32 *com_size)
 	//tag
 	tag = gf_bs_read_int(bs, 8);
 	sizeHeader = 1;
-	
+
 	//size
 	size = 0;
 	do {
@@ -60,7 +60,7 @@ GF_Err gf_odf_parse_command(GF_BitStream *bs, GF_ODCom **com, u32 *com_size)
 	newCom->tag = tag;
 
 	err = gf_odf_read_command(bs, newCom, *com_size);
-	//little trick to handle lazy bitstreams that encode 
+	//little trick to handle lazy bitstreams that encode
 	//SizeOfInstance on a fix number of bytes
 	//This nb of bytes is added in Read methods
 	*com_size += sizeHeader - gf_odf_size_field_size(*com_size);
@@ -158,7 +158,7 @@ GF_Err gf_odf_size_od_remove(GF_ODRemove *odRem, u32 *outSize)
 {
 	u32 size;
 	if (!odRem) return GF_BAD_PARAM;
-	
+
 	size = 10 * odRem->NbODs;
 	*outSize = 0;
 	*outSize = size/8;
@@ -191,7 +191,7 @@ GF_ODCom *gf_odf_new_od_update()
 {
 	GF_ODUpdate *newCom = (GF_ODUpdate *) gf_malloc(sizeof(GF_ODUpdate));
 	if (!newCom) return NULL;
-	
+
 	newCom->objectDescriptors = gf_list_new();
 	if (! newCom->objectDescriptors) {
 		gf_free(newCom);
@@ -297,7 +297,7 @@ GF_ODCom *gf_odf_new_esd_update()
 {
 	GF_ESDUpdate *newCom = (GF_ESDUpdate *) gf_malloc(sizeof(GF_ESDUpdate));
 	if (!newCom) return NULL;
-	
+
 	newCom->ESDescriptors = gf_list_new();
 	if (! newCom->ESDescriptors) {
 		gf_free(newCom);
@@ -356,8 +356,8 @@ GF_Err gf_odf_read_esd_update(GF_BitStream *bs, GF_ESDUpdate *esdUp, u32 gf_odf_
 		if (e) return e;
 		nbBits += ( tmpSize + gf_odf_size_field_size(tmpSize) ) * 8;
 		//our com is aligned, so nbBits is between (gf_odf_size_command-1)*8 and gf_odf_size_command*8
-		if ( ( (nbBits >(gf_odf_size_command-1)*8) && (nbBits <= gf_odf_size_command * 8)) 
-			|| (nbBits > gf_odf_size_command*8) ) {	//this one is a security break
+		if ( ( (nbBits >(gf_odf_size_command-1)*8) && (nbBits <= gf_odf_size_command * 8))
+		        || (nbBits > gf_odf_size_command*8) ) {	//this one is a security break
 			break;
 		}
 	}

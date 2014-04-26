@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -50,7 +50,7 @@ struct __tag_oci_event
 	GF_List *OCIDescriptors;
 };
 
-struct __tag_oci_codec 
+struct __tag_oci_codec
 {
 	//events
 	GF_List *OCIEvents;
@@ -85,7 +85,7 @@ void gf_oci_event_del(OCIEvent *event)
 		gf_odf_delete_descriptor(desc);
 	}
 	gf_list_del(event->OCIDescriptors);
-	gf_free(event);	
+	gf_free(event);
 }
 
 GF_EXPORT
@@ -127,7 +127,7 @@ GF_Err gf_oci_event_add_desc(OCIEvent *event, GF_Descriptor *oci_desc)
 {
 	if (!event || !oci_desc) return GF_BAD_PARAM;
 	if (!OCI_IsOCIDesc(oci_desc)) return GF_ODF_INVALID_DESCRIPTOR;
-	
+
 	gf_list_add(event->OCIDescriptors, oci_desc);
 	return GF_OK;
 }
@@ -143,7 +143,7 @@ GF_Err gf_oci_event_get_id(OCIEvent *event, u16 *ID)
 GF_EXPORT
 GF_Err gf_oci_event_get_start_time(OCIEvent *event, u8 *Hours, u8 *Minutes, u8 *Seconds, u8 *HundredSeconds, u8 *IsAbsoluteTime)
 {
-	if (!event || !Hours || !Minutes || !Seconds || !HundredSeconds || !IsAbsoluteTime) 
+	if (!event || !Hours || !Minutes || !Seconds || !HundredSeconds || !IsAbsoluteTime)
 		return GF_BAD_PARAM;
 
 	*IsAbsoluteTime = event->AbsoluteTimeFlag;
@@ -157,7 +157,7 @@ GF_Err gf_oci_event_get_start_time(OCIEvent *event, u8 *Hours, u8 *Minutes, u8 *
 GF_EXPORT
 GF_Err gf_oci_event_get_duration(OCIEvent *event, u8 *Hours, u8 *Minutes, u8 *Seconds, u8 *HundredSeconds)
 {
-	if (!event || !Hours || !Minutes || !Seconds || !HundredSeconds) 
+	if (!event || !Hours || !Minutes || !Seconds || !HundredSeconds)
 		return GF_BAD_PARAM;
 
 	*Hours = event->duration[0];
@@ -232,16 +232,16 @@ GF_Err WriteSevenBitLength(GF_BitStream *bs, u32 size)
 	unsigned char vals[4];
 
 	if (!bs || !size) return GF_BAD_PARAM;
-	
+
 	length = size;
 	vals[3] = (unsigned char) (length & 0x7f);
 	length >>= 7;
-	vals[2] = (unsigned char) ((length & 0x7f) | 0x80); 
+	vals[2] = (unsigned char) ((length & 0x7f) | 0x80);
 	length >>= 7;
-	vals[1] = (unsigned char) ((length & 0x7f) | 0x80); 
+	vals[1] = (unsigned char) ((length & 0x7f) | 0x80);
 	length >>= 7;
 	vals[0] = (unsigned char) ((length & 0x7f) | 0x80);
-	
+
 	if (size < 0x00000080) {
 		gf_bs_write_int(bs, vals[3], 8);
 	} else if (size < 0x00004000) {
@@ -269,7 +269,7 @@ GF_Err gf_oci_codec_encode(OCICodec *codec, char **outAU, u32 *au_length)
 	u32 i, size, desc_size;
 	GF_Err e;
 	OCIEvent *ev;
-	
+
 	if (!codec || !codec->Mode || *outAU) return GF_BAD_PARAM;
 
 	bs = NULL;
@@ -300,7 +300,7 @@ GF_Err gf_oci_codec_encode(OCICodec *codec, char **outAU, u32 *au_length)
 		gf_bs_write_int(bs, ev->AbsoluteTimeFlag, 1);
 		gf_bs_write_data(bs, ev->StartingTime, 4);
 		gf_bs_write_data(bs, ev->duration, 4);
-		
+
 		e = gf_odf_write_descriptor_list(bs, ev->OCIDescriptors);
 		gf_oci_event_del(ev);
 		if (e) goto err_exit;
@@ -330,7 +330,7 @@ GF_Err gf_oci_codec_decode(OCICodec *codec, char *au, u32 au_length)
 	OCIEvent *ev;
 	GF_BitStream *bs;
 	u32 size, hdrS, desc_size, tot_size, tmp_size, val;
-	GF_Descriptor *tmp;	
+	GF_Descriptor *tmp;
 	GF_Err e;
 
 	//must be decoder
@@ -346,7 +346,7 @@ GF_Err gf_oci_codec_decode(OCICodec *codec, char *au, u32 au_length)
 			e = GF_OUT_OF_MEM;
 			goto err_exit;
 		}
-		
+
 
 		//FIX IM1
 		gf_bs_read_int(bs, 8);
@@ -359,7 +359,7 @@ GF_Err gf_oci_codec_decode(OCICodec *codec, char *au, u32 au_length)
 			size <<= 7;
 			size |= val & 0x7F;
 		} while ( val & 0x80 );
-		
+
 		//parse event vars
 		ev->EventID = gf_bs_read_int(bs, 15);
 		ev->AbsoluteTimeFlag = gf_bs_read_int(bs, 1);
@@ -380,7 +380,7 @@ GF_Err gf_oci_codec_decode(OCICodec *codec, char *au, u32 au_length)
 			gf_list_add(ev->OCIDescriptors, tmp);
 			desc_size += tmp_size + gf_odf_size_field_size(tmp_size);
 		}
-		
+
 		if (desc_size != size - 10) {
 			e = GF_CORRUPTED_DATA;
 			goto err_exit;

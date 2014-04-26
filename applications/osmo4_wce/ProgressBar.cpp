@@ -46,7 +46,7 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // ProgressBar message handlers
 #define TEXT_RIGHT_PAD	2
-void ProgressBar::OnSize(UINT nType, int cx, int cy) 
+void ProgressBar::OnSize(UINT nType, int cx, int cy)
 {
 	u32 tw;
 	CDialog::OnSize(nType, cx, cy);
@@ -65,7 +65,7 @@ void ProgressBar::OnSize(UINT nType, int cx, int cy)
 	m_Slider.MoveWindow(&rc);
 }
 
-void ProgressBar::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
+void ProgressBar::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 {
 	COsmo4 *app = GetApp();
 
@@ -111,14 +111,14 @@ void ProgressBar::SetPosition(u32 now)
 		} else {
 			m_Slider.ShowWindow(SW_SHOWNORMAL);
 			m_Slider.EnableWindow(FALSE);
-			
+
 		}
 		m_range_invalidated = 0;
 	}
 	if (now==m_prev_time) return;
 
 	if (now<m_prev_time) m_prev_time = 0;
-	
+
 	if (!m_prev_time || (m_prev_time + 500 <= now)) {
 		m_FPS = gf_term_get_framerate(app->m_term, 0);
 		m_prev_time = now;
@@ -128,6 +128,6 @@ void ProgressBar::SetPosition(u32 now)
 	nb_s -= nb_m*60;
 	wsprintf(swText, _T("%02d:%02d FPS %02.2f"), nb_m, nb_s, m_FPS);
 	m_Time.SetWindowText(swText);
-	
+
 	if (!m_grabbed) m_Slider.SetPos(now);
 }

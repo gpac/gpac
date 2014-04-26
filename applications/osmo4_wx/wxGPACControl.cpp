@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,17 +11,17 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *		
+ *
  */
 
 #include "wxOsmo4.h"
@@ -38,7 +38,7 @@
 
 
 #define NUM_RATES 11
-static const char *BIFSRates[11] = 
+static const char *BIFSRates[11] =
 {
 	"5.0",
 	"7.5",
@@ -66,7 +66,7 @@ void wxGPACControl::SetYUVLabel()
 }
 
 wxGPACControl::wxGPACControl(wxWindow *parent)
-             : wxDialog(parent, -1, wxString(wxT("GPAC Control Panel")))
+	: wxDialog(parent, -1, wxString(wxT("GPAC Control Panel")))
 {
 	const char *sOpt;
 	SetSize(320, 240);
@@ -82,16 +82,16 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	//s_header->Add(new wxStaticText(this, 0, wxT("Category"), wxDefaultPosition, wxSize(60, 20)), wxALIGN_CENTER);
 	m_select = new wxComboBox(this, ID_SELECT, wxT(""), wxDefaultPosition, wxSize(120, 30), 0, NULL, wxCB_READONLY);
 	s_header->Add(m_select, 2, wxALIGN_CENTER | wxADJUST_MINSIZE);
-	s_header->Add( new wxButton(this, ID_APPLY, wxT("Apply"), wxDefaultPosition, 
+	s_header->Add( new wxButton(this, ID_APPLY, wxT("Apply"), wxDefaultPosition,
 #ifdef WIN32
-		wxSize(40, 20)
+	                            wxSize(40, 20)
 #else
-		wxSize(40, 30)
+	                            wxSize(40, 30)
 #endif
-		),
-		1, wxALIGN_TOP|wxALIGN_RIGHT|wxADJUST_MINSIZE);
+	                           ),
+	               1, wxALIGN_TOP|wxALIGN_RIGHT|wxADJUST_MINSIZE);
 	s_main->Add(s_header, 0, wxEXPAND, 0);
-		
+
 	/*general section*/
 	s_general = new wxBoxSizer(wxVERTICAL);
 	m_loop = new wxCheckBox(this, 0, wxT("Loop at End"), wxPoint(10, 40), wxSize(140, 20));
@@ -169,7 +169,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	s_rend->Add(m_use3D, 0, wxALL|wxEXPAND, 2);
 	m_bWas3D = m_use3D->GetValue();
 	s_main->Add(s_rend, 0, wxEXPAND, 0);
-	
+
 	/*Render 2D*/
 	s_rend2d = new wxBoxSizer(wxVERTICAL);
 	m_direct = new wxCheckBox(this, 0, wxT("Direct Rendering"));
@@ -192,13 +192,13 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	s_rend3d->Add(m_polyaa, 0, wxALL|wxEXPAND, 2);
 	m_nobackcull = new wxCheckBox(this, 0, wxT("Disable backface culling"));
 	s_rend3d->Add(m_nobackcull, 0, wxALL|wxEXPAND, 2);
-	
+
 	bs = new wxBoxSizer(wxHORIZONTAL);
 	bs->Add(new wxStaticText(this, 0, wxT("Wireframe mode")), wxALIGN_CENTER | wxADJUST_MINSIZE);
 	m_wire = new wxComboBox(this, 0, wxT(""), wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_READONLY);
 	bs->Add(m_wire, wxALIGN_CENTER | wxADJUST_MINSIZE);
 	s_rend3d->Add(bs, 0, wxALL|wxEXPAND, 2);
-	
+
 	bs = new wxBoxSizer(wxHORIZONTAL);
 	bs->Add(new wxStaticText(this, 0, wxT("Draw Normals")), wxALIGN_CENTER | wxADJUST_MINSIZE);
 	m_normals = new wxComboBox(this, 0, wxT(""), wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_READONLY);
@@ -225,7 +225,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_usehwmem = new wxCheckBox(this, 0, wxT("Use hardware memory in 2D mode"));
 	s_video->Add(m_usehwmem, 0, wxALL|wxEXPAND, 2);
 	s_main->Add(s_video, 0, wxEXPAND, 0);
-	
+
 
 	/*audio*/
 	s_audio = new wxBoxSizer(wxVERTICAL);
@@ -262,7 +262,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	s_audio->Add(m_notifs);
 #endif
 	s_main->Add(s_audio, 0, wxEXPAND, 0);
-	
+
 	/*font*/
 	s_font = new wxBoxSizer(wxVERTICAL);
 	bs = new wxBoxSizer(wxHORIZONTAL);
@@ -445,7 +445,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 		if (sOpt && !stricmp(sOpt, BIFSRates[i]) ) select = i;
 	}
 	m_fps->SetSelection(select);
-	
+
 	sOpt = gf_cfg_get_key(cfg, "Compositor", "HighSpeed");
 	m_fast->SetValue( (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
@@ -622,7 +622,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	m_proxy_name->SetValue( wxString((char *)szProxy, wxConvUTF8) );
 	if (! m_use_proxy->GetValue()) m_proxy_name->Enable(0);
 
-	/*streaming*/	
+	/*streaming*/
 	m_port->Append(wxT("554 (RTSP standard)"));
 	m_port->Append(wxT("7070 (RTSP ext)"));
 	m_port->Append(wxT("80 (RTSP / HTTP tunnel)"));
@@ -763,20 +763,44 @@ void wxGPACControl::DoSelect()
 	s_main->Show(s_stream, false);
 	s_main->Show(s_rec, false);
 	switch (m_sel) {
-	case 0: s_main->Show(s_general, true); break;
-	case 1: s_main->Show(s_mpeg4, true); break;
-	case 2: s_main->Show(s_mdec, true); break;
-	case 3: s_main->Show(s_rend, true); break;
-	case 4: s_main->Show(s_rend2d, true); break;
-	case 5: s_main->Show(s_rend3d, true); break;
-	case 6: s_main->Show(s_video, true); break;
-	case 7: s_main->Show(s_audio, true); break;
-	case 8: s_main->Show(s_font, true); break;
-	case 9: s_main->Show(s_dnld, true); break;
-	case 10: s_main->Show(s_stream, true); break;
-	case 11: s_main->Show(s_rec, true); break;
+	case 0:
+		s_main->Show(s_general, true);
+		break;
+	case 1:
+		s_main->Show(s_mpeg4, true);
+		break;
+	case 2:
+		s_main->Show(s_mdec, true);
+		break;
+	case 3:
+		s_main->Show(s_rend, true);
+		break;
+	case 4:
+		s_main->Show(s_rend2d, true);
+		break;
+	case 5:
+		s_main->Show(s_rend3d, true);
+		break;
+	case 6:
+		s_main->Show(s_video, true);
+		break;
+	case 7:
+		s_main->Show(s_audio, true);
+		break;
+	case 8:
+		s_main->Show(s_font, true);
+		break;
+	case 9:
+		s_main->Show(s_dnld, true);
+		break;
+	case 10:
+		s_main->Show(s_stream, true);
+		break;
+	case 11:
+		s_main->Show(s_rec, true);
+		break;
 	}
-    SetSizer(s_main);
+	SetSizer(s_main);
 	s_main->Fit(this);
 	//s_main->Layout();
 	return;
@@ -920,7 +944,7 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 
 	gf_cfg_set_key(cfg, "Systems", "DefAudioDec", m_decaudio->GetStringSelection().mb_str(wxConvUTF8));
 	gf_cfg_set_key(cfg, "Systems", "DefVideoDec", m_decvideo->GetStringSelection().mb_str(wxConvUTF8));
-	
+
 
 	gf_cfg_set_key(cfg, "Compositor", "HighSpeed", m_fast->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "Compositor", "ForceSceneSize", m_force_size->GetValue() ? "yes" : "no");
@@ -961,21 +985,27 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 	gf_cfg_set_key(cfg, "Audio", "ForceConfig", m_forcecfg->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "Audio", "NoResync", m_noresync->GetValue() ? "yes" : "no");
 	gf_cfg_set_key(cfg, "Audio", "DisableMultiChannel", m_nomulitch->GetValue() ? "yes" : "no");
-	
+
 	gf_cfg_set_key(cfg, "Audio", "NumBuffers", wxString::Format(wxT("%d"), m_nbbuf->GetValue()).mb_str(wxConvUTF8) );
 	gf_cfg_set_key(cfg, "Audio", "TotalDuration", wxString::Format(wxT("%d"), m_buflen->GetValue()).mb_str(wxConvUTF8) );
 	gf_cfg_set_key(cfg, "Audio", "DriverName", m_audio->GetStringSelection().mb_str(wxConvUTF8));
 #ifdef WIN32
-	if (m_notifs->IsEnabled()) 
+	if (m_notifs->IsEnabled())
 		gf_cfg_set_key(cfg, "Audio", "DisableNotification", m_notifs->GetValue() ? "yes" : "no");
 #endif
-	
+
 	gf_cfg_set_key(cfg, "FontEngine", "FontReader", m_font->GetStringSelection().mb_str(wxConvUTF8));
 	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", m_fontdir->GetLabel().mb_str(wxConvUTF8));
 	switch (m_texturemode->GetSelection()) {
-	case 2: gf_cfg_set_key(cfg, "Compositor", "TextureTextMode", "Always"); break;
-	case 1: gf_cfg_set_key(cfg, "Compositor", "TextureTextMode", "Never"); break;
-	default: gf_cfg_set_key(cfg, "Compositor", "TextureTextMode", "Default"); break;
+	case 2:
+		gf_cfg_set_key(cfg, "Compositor", "TextureTextMode", "Always");
+		break;
+	case 1:
+		gf_cfg_set_key(cfg, "Compositor", "TextureTextMode", "Never");
+		break;
+	default:
+		gf_cfg_set_key(cfg, "Compositor", "TextureTextMode", "Default");
+		break;
 	}
 
 	gf_cfg_set_key(cfg, "Downloader", "CleanCache", m_cleancache->GetValue() ? "yes" : "no");

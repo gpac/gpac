@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2004-2012 
+ *			Copyright (c) Telecom ParisTech 2004-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph Generator sub-project
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -32,17 +32,17 @@ static char *laser_attribute_name_type_list[] = {
 
 
 static char *laser_attribute_rare_type_list[] = {
-	"_class", "audio_level", "color", "color_rendering", "display", "display_align", "fill_opacity", 
-	"fill_rule",  "image_rendering", "line_increment", "pointer_events", "shape_rendering", "solid_color", 
-	"solid_opacity", "stop_color", "stop_opacity", "stroke_dasharray", "stroke_dashoffset", "stroke_linecap", 
-	"stroke_linejoin", "stroke_miterlimit",	"stroke_opacity", "stroke_width", "text_anchor", "text_rendering", 
-	"viewport_fill", "viewport_fill_opacity", "vector_effect", "visibility", "requiredExtensions", 
-	"requiredFeatures", "requiredFormats", "systemLanguage", "xml_base", "xml_lang", "xml_space", 
-	"nav_next", "nav_up", "nav_up_left", "nav_up_right", "nav_prev", "nav_down", "nav_down_left", 
-	"nav_down_right", "nav_left", "focusable", "nav_right", "transform","text_decoration", 
+	"_class", "audio_level", "color", "color_rendering", "display", "display_align", "fill_opacity",
+	"fill_rule",  "image_rendering", "line_increment", "pointer_events", "shape_rendering", "solid_color",
+	"solid_opacity", "stop_color", "stop_opacity", "stroke_dasharray", "stroke_dashoffset", "stroke_linecap",
+	"stroke_linejoin", "stroke_miterlimit",	"stroke_opacity", "stroke_width", "text_anchor", "text_rendering",
+	"viewport_fill", "viewport_fill_opacity", "vector_effect", "visibility", "requiredExtensions",
+	"requiredFeatures", "requiredFormats", "systemLanguage", "xml_base", "xml_lang", "xml_space",
+	"nav_next", "nav_up", "nav_up_left", "nav_up_right", "nav_prev", "nav_down", "nav_down_left",
+	"nav_down_right", "nav_left", "focusable", "nav_right", "transform","text_decoration",
 	"extension", /*LASER EXTENSIONS SVG*/
 
-	"font_variant", "font_family", "font_size", "font_style", "font_weight", "xlink_title", "xlink_type", 
+	"font_variant", "font_family", "font_size", "font_style", "font_weight", "xlink_title", "xlink_type",
 	"xlink_role", "xlink_arcrole", "xlink_actuate", "xlink_show", "end", "max", "min",
 	NULL
 };
@@ -99,7 +99,7 @@ void generate_laser_tables(GF_List *svg_elements)
 		if (elt->has_media_properties) generateGenericAttrib(output, elt, 2);
 		if (elt->has_properties) generateGenericAttrib(output, elt, 1);
 		if (elt->has_opacity_properties) generateGenericAttrib(output, elt, 3);
-		if (elt->has_focus) generateGenericAttrib(output, elt, 4); 
+		if (elt->has_focus) generateGenericAttrib(output, elt, 4);
 		if (elt->has_xlink) generateGenericAttrib(output, elt, 5);
 		if (elt->has_timing) generateGenericAttrib(output, elt, 6);
 		if (elt->has_sync) generateGenericAttrib(output, elt, 7);
@@ -119,12 +119,12 @@ void generate_laser_tables(GF_List *svg_elements)
 			SVGGenAttribute *att = gf_list_get(elt->attributes, j);
 			s32 type = get_lsr_att_name_type(att->svg_name);
 			if (special_cases==1) {
-				if (!strcmp(att->svg_name, "width")) 
+				if (!strcmp(att->svg_name, "width"))
 					type = 95;
-				else if (!strcmp(att->svg_name, "height")) 
+				else if (!strcmp(att->svg_name, "height"))
 					type = 94;
 			}
-			if ((special_cases==2) && !strcmp(att->svg_name, "target")) 
+			if ((special_cases==2) && !strcmp(att->svg_name, "target"))
 				type = 0;
 			fprintf(output, ", %d", type);
 		}
@@ -149,7 +149,7 @@ void generate_laser_tables_da(GF_List *atts)
 	u32 i, count, j, count2;
 
 	output = BeginFile(2);
-	
+
 	fprintf(output, "\n#include <gpac/internal/laser_dev.h>\n\n");
 	fprintf(output, "\n\ns32 gf_lsr_anim_type_from_attribute(u32 tag) {\n\tswitch(tag) {\n");
 
@@ -247,7 +247,7 @@ void generate_laser_tables_da(GF_List *atts)
 		}
 		for (i=0; i<count; i++) {
 			att = gf_list_get(atts, i);
-			if (!strcmp(att->implementation_name, laser_attribute_rare_type_list[j])) 
+			if (!strcmp(att->implementation_name, laser_attribute_rare_type_list[j]))
 				break;
 			att = NULL;
 		}
@@ -262,6 +262,6 @@ void generate_laser_tables_da(GF_List *atts)
 		j++;
 	}
 	fprintf(output, "\treturn 1;\n}\n\n");
-	
+
 	fclose(output);
 }

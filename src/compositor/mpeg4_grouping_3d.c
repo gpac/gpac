@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -49,7 +49,7 @@ static void TraverseGroup(GF_Node *node, void *rs, Bool is_destroy)
 void compositor_init_group(GF_Compositor *compositor, GF_Node *node)
 {
 	GroupingNode2D *ptr;
-	GF_SAFEALLOC(ptr, GroupingNode2D);	
+	GF_SAFEALLOC(ptr, GroupingNode2D);
 	gf_node_set_private(node, ptr);
 	gf_node_set_callback_function(node, TraverseGroup);
 }
@@ -153,7 +153,7 @@ typedef struct
 {
 	GROUPING_NODE_STACK_3D
 
-		GF_Matrix mx;
+	GF_Matrix mx;
 	Bool has_scale;
 } TransformStack;
 
@@ -189,34 +189,34 @@ static void TraverseTransform(GF_Node *n, void *rs, Bool is_destroy)
 	if (gf_node_dirty_get(n) & GF_SG_NODE_DIRTY) {
 		Bool scale_rot, recenter;
 		gf_mx_init(st->mx);
-		if (tr->translation.x || tr->translation.y || tr->translation.z) 
+		if (tr->translation.x || tr->translation.y || tr->translation.z)
 			gf_mx_add_translation(&st->mx, tr->translation.x, tr->translation.y, tr->translation.z);
 		recenter = (tr->center.x || tr->center.y || tr->center.z) ? 1 : 0;
-		if (recenter) 
+		if (recenter)
 			gf_mx_add_translation(&st->mx, tr->center.x, tr->center.y, tr->center.z);
 
 		if (tr->rotation.q) gf_mx_add_rotation(&st->mx, tr->rotation.q, tr->rotation.x, tr->rotation.y, tr->rotation.z);
 		scale_rot = (tr->scaleOrientation.q) ? 1 : 0;
-		if (scale_rot) 
+		if (scale_rot)
 			gf_mx_add_rotation(&st->mx, tr->scaleOrientation.q, tr->scaleOrientation.x, tr->scaleOrientation.y, tr->scaleOrientation.z);
-		if ((tr->scale.x != FIX_ONE) || (tr->scale.y != FIX_ONE) || (tr->scale.z != FIX_ONE)) 
+		if ((tr->scale.x != FIX_ONE) || (tr->scale.y != FIX_ONE) || (tr->scale.z != FIX_ONE))
 			gf_mx_add_scale(&st->mx, tr->scale.x, tr->scale.y, tr->scale.z);
-		if (scale_rot) 
+		if (scale_rot)
 			gf_mx_add_rotation(&st->mx, -tr->scaleOrientation.q, tr->scaleOrientation.x, tr->scaleOrientation.y, tr->scaleOrientation.z);
-		if (recenter) 
+		if (recenter)
 			gf_mx_add_translation(&st->mx, -tr->center.x, -tr->center.y, -tr->center.z);
 
 		st->has_scale = ((tr->scale.x != FIX_ONE) || (tr->scale.y != FIX_ONE) || (tr->scale.z != FIX_ONE)) ? 1 : 0;
-   	}
+	}
 
 	gf_mx_copy(gf_mx_bckup, tr_state->model_matrix);
 	gf_mx_add_matrix(&tr_state->model_matrix, &st->mx);
-	
+
 	/*note we don't clear dirty flag, this is done in traversing*/
 	group_3d_traverse(n, (GroupingNode *) st, tr_state);
-	
+
 	gf_mx_copy(tr_state->model_matrix, gf_mx_bckup);
-	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) 
+	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS)
 		gf_mx_apply_bbox(&st->mx, &tr_state->bbox);
 }
 
@@ -280,7 +280,8 @@ static void TraverseBillboard(GF_Node *n, void *rs, Bool is_destroy)
 			gf_vec_add(user_pos, user_pos, tmp);
 			gf_vec_norm(&user_pos);
 
-			z.x = z.y = 0; z.z = FIX_ONE;
+			z.x = z.y = 0;
+			z.z = FIX_ONE;
 			d = -gf_vec_dot(axis, z);
 			tmp = gf_vec_scale(axis, d);
 			gf_vec_add(z, z, tmp);
@@ -289,7 +290,7 @@ static void TraverseBillboard(GF_Node *n, void *rs, Bool is_destroy)
 			cosw = gf_vec_dot(user_pos, z);
 			tmp = gf_vec_cross(user_pos, z);
 			sinw = gf_vec_len(tmp);
-			angle = gf_acos(cosw); 
+			angle = gf_acos(cosw);
 			gf_vec_norm(&tmp);
 			if ((sinw>0) && (gf_vec_dot(axis, tmp) > 0)) gf_vec_rev(axis);
 			gf_mx_add_rotation(&st->mx, angle, axis.x, axis.y, axis.z);
@@ -298,7 +299,7 @@ static void TraverseBillboard(GF_Node *n, void *rs, Bool is_destroy)
 
 	gf_mx_copy(gf_mx_bckup, tr_state->model_matrix);
 	gf_mx_add_matrix(&tr_state->model_matrix, &st->mx);
-	
+
 	/*note we don't clear dirty flag, this is done in traversing*/
 	group_3d_traverse(n, (GroupingNode *) st, tr_state);
 
@@ -348,7 +349,7 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (!children) return;
 	nb_children = gf_node_list_get_count(children);
-	
+
 	if (!tr_state->camera) {
 		do_all = 1;
 		which_child = 0;
@@ -376,7 +377,7 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 			do_all = 1;
 		}
 	}
-	
+
 	if (do_all) {
 		u32 i;
 		Bool prev_switch = tr_state->switched_off;

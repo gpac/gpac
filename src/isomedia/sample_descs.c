@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -75,7 +75,7 @@ void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ptr, GF_BitStream
 {
 	gf_bs_write_data(bs, ptr->reserved, 6);
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
-	
+
 	gf_bs_write_u16(bs, ptr->version);
 	gf_bs_write_u16(bs, ptr->revision);
 	gf_bs_write_u32(bs, ptr->vendor);
@@ -240,7 +240,7 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
-	
+
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
 
@@ -250,7 +250,7 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 		if (trak->Media->handler->handlerType!=GF_ISOM_MEDIA_AUDIO) return GF_BAD_PARAM;
 		cfg_type = GF_ISOM_BOX_TYPE_DAMR;
 		break;
-	case GF_ISOM_SUBTYPE_3GP_EVRC: 
+	case GF_ISOM_SUBTYPE_3GP_EVRC:
 		if (trak->Media->handler->handlerType!=GF_ISOM_MEDIA_AUDIO) return GF_BAD_PARAM;
 		cfg_type = GF_ISOM_BOX_TYPE_DEVC;
 		break;
@@ -266,7 +266,8 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 		if (trak->Media->handler->handlerType!=GF_ISOM_MEDIA_VISUAL) return GF_BAD_PARAM;
 		cfg_type = GF_ISOM_BOX_TYPE_D263;
 		break;
-	case 0: return GF_BAD_PARAM;
+	case 0:
+		return GF_BAD_PARAM;
 	default:
 		return GF_NOT_SUPPORTED;
 	}
@@ -301,7 +302,7 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 		e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
 		*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	}
-		break;
+	break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
 	{
 		GF_3GPPVisualSampleEntryBox *entry = (GF_3GPPVisualSampleEntryBox *) gf_isom_box_new(cfg->type);
@@ -316,7 +317,7 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 		e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
 		*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	}
-		break;
+	break;
 	}
 	return e;
 }
@@ -330,7 +331,7 @@ GF_Err gf_isom_3gp_config_update(GF_ISOFile *the_file, u32 trackNumber, GF_3GPCo
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
-	
+
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !param || !DescriptionIndex) return GF_BAD_PARAM;
 
@@ -366,7 +367,7 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
-	
+
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
 
@@ -437,7 +438,7 @@ GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSD
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
-	
+
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
 
@@ -485,7 +486,7 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
-	
+
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media || !desc || !DescriptionIndex) return GF_BAD_PARAM;
 
@@ -536,15 +537,24 @@ GF_Err LSR_UpdateESD(GF_LASeRSampleEntryBox *lsr, GF_ESD *esd)
 	lsr->bitrate->bufferSizeDB = esd->decoderConfig->bufferSizeDB;
 
 	if (gf_list_count(esd->IPIDataSet)
-		|| gf_list_count(esd->IPMPDescriptorPointers)
-		|| esd->langDesc
-		|| gf_list_count(esd->extensionDescriptors)
-		|| esd->ipiPtr || esd->qos || esd->RegDescriptor) {
+	        || gf_list_count(esd->IPMPDescriptorPointers)
+	        || esd->langDesc
+	        || gf_list_count(esd->extensionDescriptors)
+	        || esd->ipiPtr || esd->qos || esd->RegDescriptor) {
 
 		lsr->descr = (GF_MPEG4ExtensionDescriptorsBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_M4DS);
-		if (esd->RegDescriptor) { gf_list_add(lsr->descr->descriptors, esd->RegDescriptor); esd->RegDescriptor = NULL; }
-		if (esd->qos) { gf_list_add(lsr->descr->descriptors, esd->qos); esd->qos = NULL; }
-		if (esd->ipiPtr) { gf_list_add(lsr->descr->descriptors, esd->ipiPtr); esd->ipiPtr= NULL; }
+		if (esd->RegDescriptor) {
+			gf_list_add(lsr->descr->descriptors, esd->RegDescriptor);
+			esd->RegDescriptor = NULL;
+		}
+		if (esd->qos) {
+			gf_list_add(lsr->descr->descriptors, esd->qos);
+			esd->qos = NULL;
+		}
+		if (esd->ipiPtr) {
+			gf_list_add(lsr->descr->descriptors, esd->ipiPtr);
+			esd->ipiPtr= NULL;
+		}
 
 		while (gf_list_count(esd->IPIDataSet)) {
 			GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(esd->IPIDataSet, 0);

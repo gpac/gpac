@@ -1,7 +1,7 @@
 //This software module was originally developed by TelecomParisTech in the
 //course of the development of MPEG-U Widgets (ISO/IEC 23007-1) standard.
 //
-//This software module is an implementation of a part of one or 
+//This software module is an implementation of a part of one or
 //more MPEG-U Widgets (ISO/IEC 23007-1) tools as specified by the MPEG-U Widgets
 //(ISO/IEC 23007-1) standard. ISO/IEC gives users of the MPEG-U Widgets
 //(ISO/IEC 23007-1) free license to this software module or modifications
@@ -10,13 +10,13 @@
 //module in hardware or software products are advised that its use may
 //infringe existing patents.
 //The original developer of this software module and his/her company, the
-//subsequent editors and their companies, and ISO/IEC have no liability 
-//for use of this software module or modifications thereof in an implementation. 
-//Copyright is not released for non MPEG-U Widgets (ISO/IEC 23007-1) conforming 
-//products. 
-//Telecom ParisTech retains full right to use the code for his/her own purpose, 
-//assign or donate the code to a third party and to inhibit third parties from 
-//using the code for non MPEG-U Widgets (ISO/IEC 23007-1) conforming products. 
+//subsequent editors and their companies, and ISO/IEC have no liability
+//for use of this software module or modifications thereof in an implementation.
+//Copyright is not released for non MPEG-U Widgets (ISO/IEC 23007-1) conforming
+//products.
+//Telecom ParisTech retains full right to use the code for his/her own purpose,
+//assign or donate the code to a third party and to inhibit third parties from
+//using the code for non MPEG-U Widgets (ISO/IEC 23007-1) conforming products.
 //
 //This copyright notice must be included in all copies or derivative works.
 //
@@ -32,7 +32,7 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 //
-//	Authors:	
+//	Authors:
 //					Jean Le Feuvre, Telecom ParisTech
 //					Cyril Concolato, Telecom ParisTech
 //
@@ -96,9 +96,9 @@ typedef struct _widget_manager
 
 enum
 {
-	GF_WPIN_STRING, 
-	GF_WPIN_INTEGER, 
-	GF_WPIN_NUMBER, 
+	GF_WPIN_STRING,
+	GF_WPIN_INTEGER,
+	GF_WPIN_NUMBER,
 };
 
 typedef struct
@@ -124,7 +124,7 @@ typedef struct _widget_package_relocator
 
 enum
 {
-	GF_WM_PARAM_OUTPUT, 
+	GF_WM_PARAM_OUTPUT,
 	GF_WM_PARAM_INPUT,
 	GF_WM_INPUT_ACTION,
 	GF_WM_OUTPUT_TRIGGER,
@@ -143,7 +143,7 @@ enum
 #define GF_WM_PARAM_SCRIPT_BOOL		(u16) 1
 #define GF_WM_PARAM_SCRIPT_NUMBER	(u16) 2
 
-typedef struct 
+typedef struct
 {
 	struct __widget_message *msg;
 
@@ -203,19 +203,19 @@ enum
 	GF_WM_PREF_MIGRATE = 1<<2,
 };
 
-typedef struct 
+typedef struct
 {
 	char *name, *value;
 	u32 flags;
 	GF_WidgetPin *connectTo;
 } GF_WidgetPreference;
 
-typedef struct 
+typedef struct
 {
 	char *name, *value;
 } GF_WidgetFeatureParam;
 
-typedef struct 
+typedef struct
 {
 	char *name;
 	Bool required;
@@ -255,27 +255,27 @@ typedef struct _widget
 	char *manifest_path;
 
 	GF_List *icons;
-/*
-	GF_WidgetContent *simple;
-	char *icon_url;
-*/
+	/*
+		GF_WidgetContent *simple;
+		char *icon_url;
+	*/
 	GF_WidgetContent *main;
 
 	GF_WidgetPackage *wpack;
 
 	/*misc metadata for W3C Widgets API*/
-	char *name, *shortname, *identifier, 
-		*authorName, *authorEmail, *authorHref, 
-		*description, *version, 
-		*uuid, *license, *licenseHref, *viewmodes;
-	
+	char *name, *shortname, *identifier,
+	     *authorName, *authorEmail, *authorHref,
+	     *description, *version,
+	     *uuid, *license, *licenseHref, *viewmodes;
+
 	u32 width, height;
 
 	GF_List *features;
 
 	Bool discardable, multipleInstance;
 
-	/*when a widget is being received from a remote peer, 
+	/*when a widget is being received from a remote peer,
 	we remember where we locally store it to be able to further remote it
 	This is only supported for packaged widgets*/
 	char *local_path;
@@ -312,7 +312,7 @@ typedef struct _widget_instance
 } GF_WidgetInstance;
 
 
-typedef struct 
+typedef struct
 {
 	GF_WidgetInterface *ifce;
 	GF_WidgetInstance *wid;
@@ -321,7 +321,7 @@ typedef struct
 	JSObject *cookie;
 } GF_WidgetInterfaceInstance;
 
-typedef struct 
+typedef struct
 {
 	GF_WidgetComponent *comp;
 	GF_WidgetInstance *wid;

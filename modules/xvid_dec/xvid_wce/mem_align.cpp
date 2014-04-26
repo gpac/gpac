@@ -49,7 +49,7 @@
 
 #include "Rules.h"
 
-void *xvid_malloc(long size, dword alignment){
+void *xvid_malloc(long size, dword alignment) {
 
 	byte *mem_ptr;
 
@@ -57,9 +57,9 @@ void *xvid_malloc(long size, dword alignment){
 	if (!alignment) {
 
 		/* We have not to satisfy any alignment */
-      //mem_ptr = (byte*)gf_malloc(size + 1);
-      //mem_ptr = new(ELeave) byte[size+1];
-      mem_ptr = new byte[size+1];
+		//mem_ptr = (byte*)gf_malloc(size + 1);
+		//mem_ptr = new(ELeave) byte[size+1];
+		mem_ptr = new byte[size+1];
 		if(mem_ptr) {
 
 			/* Store (mem_ptr - "real allocated memory") in *(mem_ptr-1) */
@@ -73,14 +73,14 @@ void *xvid_malloc(long size, dword alignment){
 
 		/* Allocate the required size memory + alignment so we
 		 * can realign the data if necessary */
-      //tmp = (byte *) gf_malloc(size + alignment);
-      //tmp = new(ELeave) byte[size + alignment];
-      tmp = new byte[size + alignment];
+		//tmp = (byte *) gf_malloc(size + alignment);
+		//tmp = new(ELeave) byte[size + alignment];
+		tmp = new byte[size + alignment];
 		if(tmp) {
 
 			/* Align the tmp pointer */
 			mem_ptr =
-				(byte *) ((dword)(tmp + alignment - 1) & (~(dword)(alignment - 1)));
+			    (byte *) ((dword)(tmp + alignment - 1) & (~(dword)(alignment - 1)));
 
 			/* Special case where gf_malloc have already satisfied the alignment
 			 * We must add alignment to mem_ptr because we must store
@@ -111,7 +111,7 @@ void *xvid_malloc(long size, dword alignment){
  *
  ****************************************************************************/
 
-void xvid_free(void *mem_ptr){
+void xvid_free(void *mem_ptr) {
 
 	if(!mem_ptr)
 		return;
@@ -125,7 +125,7 @@ void xvid_free(void *mem_ptr){
 
 	/* Free the memory */
 	//free(ptr);
-   delete[] ptr;
+	delete[] ptr;
 }
 
 //----------------------------

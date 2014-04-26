@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -50,17 +50,17 @@ static void l2d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 	l2d = (M_Layer2D *)n;
 	if (force_traverse) gf_node_traverse(l2d->background, tr_state);
 	btop = (GF_Node*)gf_list_get(tr_state->backgrounds, 0);
-	if (btop != l2d->background) { 
+	if (btop != l2d->background) {
 		gf_node_unregister(l2d->background, n);
-		gf_node_register(btop, n); 
+		gf_node_register(btop, n);
 		l2d->background = btop;
 		gf_node_event_out_str(n, "background");
 	}
 	if (force_traverse) gf_node_traverse(l2d->viewport, tr_state);
 	btop = (GF_Node*)gf_list_get(tr_state->viewpoints, 0);
-	if (btop != l2d->viewport) { 
+	if (btop != l2d->viewport) {
 		gf_node_unregister(l2d->viewport, n);
-		gf_node_register(btop, n); 
+		gf_node_register(btop, n);
 		l2d->viewport = btop;
 		gf_node_event_out_str(n, "viewport");
 	}
@@ -71,23 +71,23 @@ static void l2d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 static void rect_intersect(GF_Rect *rc1, GF_Rect *rc2)
 {
 	if (! gf_rect_overlaps(*rc1, *rc2)) {
-		rc1->width = rc1->height = 0; 
+		rc1->width = rc1->height = 0;
 		return;
 	}
 	if (rc2->x > rc1->x) {
 		rc1->width -= rc2->x - rc1->x;
 		rc1->x = rc2->x;
-	} 
+	}
 	if (rc2->x + rc2->width < rc1->x + rc1->width) {
 		rc1->width = rc2->width + rc2->x - rc1->x;
-	} 
+	}
 	if (rc2->y < rc1->y) {
-		rc1->height -= rc1->y - rc2->y; 
+		rc1->height -= rc1->y - rc2->y;
 		rc1->y = rc2->y;
-	} 
+	}
 	if (rc2->y - rc2->height > rc1->y - rc1->height) {
 		rc1->height = rc1->y - rc2->y + rc2->height;
-	} 
+	}
 }
 #endif
 
@@ -109,11 +109,11 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	GF_Rect prev_clipper;
 	Bool had_clip;
 #endif
-	
+
 	M_Layer2D *l = (M_Layer2D *)node;
 	Layer2DStack *st = (Layer2DStack *) gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
-	
+
 	if (is_destroy) {
 		BindableStackDelete(st->backs);
 		BindableStackDelete(st->views);
@@ -155,7 +155,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 		st->clip = gf_rect_center(st->clip.width, st->clip.height);
 		st->bounds = st->clip;
 	}
-	
+
 	prev_vp = tr_state->vp_size;
 	tr_state->vp_size.x = st->clip.width;
 	tr_state->vp_size.y = st->clip.height;
@@ -174,7 +174,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 				visual_3d_reset_clipper_2d(tr_state->visual);
 			}
 			visual_3d_set_clipper_2d(tr_state->visual, tr_state->layer_clipper, &mx3d);
-			
+
 			/*apply background BEFORE viewport*/
 			if (back) {
 				tr_state->traversing_mode = TRAVERSE_BINDABLE;
@@ -214,14 +214,14 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 				gf_mx_copy(tr_state->layer_matrix, prev_layer_mx);
 				visual_3d_set_clipper_2d(tr_state->visual, tr_state->layer_clipper, &prev_layer_mx);
 			}
-		} else 
+		} else
 #endif
 		{
 			gf_mx2d_copy(backup, tr_state->transform);
 
 			prev_clip = tr_state->visual->top_clipper;
 			rc = st->clip;
-			
+
 			/*get clipper in world coordinate*/
 			gf_mx2d_apply_rect(&tr_state->transform, &rc);
 
@@ -237,8 +237,10 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 			}
 
-			rc.x -= FIX_ONE; rc.width += 2*FIX_ONE;
-			rc.y += FIX_ONE; rc.height += 2*FIX_ONE;
+			rc.x -= FIX_ONE;
+			rc.width += 2*FIX_ONE;
+			rc.y += FIX_ONE;
+			rc.height += 2*FIX_ONE;
 			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
 			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);
 			tr_state->traversing_mode = TRAVERSE_SORT;
@@ -294,11 +296,11 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			gf_mx2d_copy(tr_state->transform, backup);
 		}
 		break;
-		
-		/*check picking - we must fall in our 2D clipper*/
+
+	/*check picking - we must fall in our 2D clipper*/
 	case TRAVERSE_PICK:
 		if (gf_sc_pick_in_clipper(tr_state, &st->clip)) {
-		
+
 #ifndef GPAC_DISABLE_3D
 			if (tr_state->visual->type_3d) {
 				/*apply viewport*/
@@ -313,7 +315,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 				} else {
 					group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
 				}
-			} else 
+			} else
 #endif
 			{
 				if (viewport) {
@@ -327,7 +329,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 				} else {
 					group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
 				}
-			}	
+			}
 		}
 		break;
 	case TRAVERSE_GET_BOUNDS:
@@ -352,7 +354,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 		break;
 #endif
 	}
-	
+
 	/*restore traversing state*/
 	tr_state->vp_size = prev_vp;
 	tr_state->backgrounds = oldb;

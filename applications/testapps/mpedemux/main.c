@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2007-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 #include <gpac/mpegts.h>
@@ -60,15 +60,15 @@ static void mpedemux_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		/* called when an MPEG-4 SL-packet is parsed */
 		break;
 	case GF_M2TS_EVT_IP_DATAGRAM:
-		/* called when an IP packet is parsed 
-			TODO: send this packet on the right socket */		
+		/* called when an IP packet is parsed
+			TODO: send this packet on the right socket */
 		break;
 	}
 }
 
-static void usage() 
+static void usage()
 {
-		fprintf(stdout, "mpedemux input.ts\n");
+	fprintf(stdout, "mpedemux input.ts\n");
 }
 
 int main(int argc, char **argv)

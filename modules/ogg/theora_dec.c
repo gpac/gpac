@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -32,11 +32,11 @@
 
 typedef struct
 {
-    theora_info ti;
+	theora_info ti;
 	theora_state td;
-    theora_comment tc;
-    ogg_packet op;
-	
+	theora_comment tc;
+	ogg_packet op;
+
 	u16 ES_ID;
 	Bool has_reconfigured;
 } TheoraDec;
@@ -45,12 +45,12 @@ typedef struct
 
 static GF_Err THEO_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
-    ogg_packet oggpacket;
+	ogg_packet oggpacket;
 	GF_BitStream *bs;
 
 	THEORACTX();
 	if (ctx->ES_ID) return GF_BAD_PARAM;
-	
+
 	if (!esd->decoderConfig->decoderSpecificInfo) return GF_NON_COMPLIANT_BITSTREAM;
 
 	if (esd->decoderConfig->objectTypeIndication != GPAC_OTI_MEDIA_OGG) return GF_NON_COMPLIANT_BITSTREAM;
@@ -63,8 +63,8 @@ static GF_Err THEO_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 	ctx->ES_ID = esd->ESID;
 
-    theora_info_init(&ctx->ti);
-    theora_comment_init(&ctx->tc);
+	theora_info_init(&ctx->ti);
+	theora_comment_init(&ctx->tc);
 
 
 	bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
@@ -79,7 +79,7 @@ static GF_Err THEO_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		}
 		gf_free(oggpacket.packet);
 	}
-    theora_decode_init(&ctx->td, &ctx->ti);
+	theora_decode_init(&ctx->td, &ctx->ti);
 	gf_bs_del(bs);
 	return GF_OK;
 }
@@ -89,9 +89,9 @@ static GF_Err THEO_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 	THEORACTX();
 	if (ctx->ES_ID != ES_ID) return GF_BAD_PARAM;
 
-	theora_clear(&ctx->td); 
-    theora_info_clear(&ctx->ti);
-    theora_comment_clear(&ctx->tc);
+	theora_clear(&ctx->td);
+	theora_info_clear(&ctx->ti);
+	theora_comment_clear(&ctx->tc);
 
 	ctx->ES_ID = 0;
 	return GF_OK;
@@ -148,11 +148,11 @@ static GF_Err THEO_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 }
 
 
-static GF_Err THEO_ProcessData(GF_MediaDecoder *ifcg, 
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID, u32 *CTS,
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+static GF_Err THEO_ProcessData(GF_MediaDecoder *ifcg,
+                               char *inBuffer, u32 inBufferLength,
+                               u16 ES_ID, u32 *CTS,
+                               char *outBuffer, u32 *outBufferLength,
+                               u8 PaddingBits, u32 mmlevel)
 {
 	ogg_packet op;
 	yuv_buffer yuv;
@@ -168,15 +168,15 @@ static GF_Err THEO_ProcessData(GF_MediaDecoder *ifcg,
 	op.b_o_s = 0;
 	op.e_o_s = 0;
 	op.packetno = 0;
-    op.packet = inBuffer;
-    op.bytes = inBufferLength;
+	op.packet = inBuffer;
+	op.bytes = inBufferLength;
 
 
 	*outBufferLength = 0;
 
-    if (theora_decode_packetin(&ctx->td, &op)<0) return GF_NON_COMPLIANT_BITSTREAM;
+	if (theora_decode_packetin(&ctx->td, &op)<0) return GF_NON_COMPLIANT_BITSTREAM;
 	if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
-    if (theora_decode_YUVout(&ctx->td, &yuv)<0) return GF_OK;
+	if (theora_decode_YUVout(&ctx->td, &yuv)<0) return GF_OK;
 
 	pYO = yuv.y;
 	pUO = yuv.u;
@@ -184,7 +184,7 @@ static GF_Err THEO_ProcessData(GF_MediaDecoder *ifcg,
 	pYD = outBuffer;
 	pUD = outBuffer + ctx->ti.width * ctx->ti.height;
 	pVD = outBuffer + 5 * ctx->ti.width * ctx->ti.height / 4;
-	
+
 	for (i=0; i<(u32)yuv.y_height; i++) {
 		memcpy(pYD, pYO, sizeof(char) * yuv.y_width);
 		pYD += ctx->ti.width;
@@ -215,7 +215,7 @@ u32 NewTheoraDecoder(GF_BaseDecoder *ifcd)
 	GF_SAFEALLOC(dec, TheoraDec);
 	((OGGWraper *)ifcd->privateStack)->opaque = dec;
 	((OGGWraper *)ifcd->privateStack)->type = OGG_THEORA;
-	/*setup our own interface*/	
+	/*setup our own interface*/
 	ifcd->AttachStream = THEO_AttachStream;
 	ifcd->DetachStream = THEO_DetachStream;
 	ifcd->GetCapabilities = THEO_GetCapabilities;

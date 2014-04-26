@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -32,7 +32,7 @@
 #ifndef GPAC_DISABLE_LASER
 
 /*per_stream config support*/
-typedef struct 
+typedef struct
 {
 	GF_LASERConfig cfg;
 	u16 ESID;
@@ -142,7 +142,7 @@ enum
 	LSR_EVT_textinput = 30,
 	LSR_EVT_unload = 31,
 	LSR_EVT_zoom = 32
-};	
+};
 
 u32 dom_to_lsr_key(u32 dom_k);
 
@@ -179,18 +179,18 @@ enum
 	LSR_PATH_COM_C = 0,
 	LSR_PATH_COM_H,
 	LSR_PATH_COM_L,
-	LSR_PATH_COM_M, 
-	LSR_PATH_COM_Q, 
-	LSR_PATH_COM_S, 
-	LSR_PATH_COM_T, 
-	LSR_PATH_COM_V, 
-	LSR_PATH_COM_Z, 
-	LSR_PATH_COM_c, 
-	LSR_PATH_COM_h, 
-	LSR_PATH_COM_l, 
-	LSR_PATH_COM_m, 
-	LSR_PATH_COM_q, 
-	LSR_PATH_COM_s, 
+	LSR_PATH_COM_M,
+	LSR_PATH_COM_Q,
+	LSR_PATH_COM_S,
+	LSR_PATH_COM_T,
+	LSR_PATH_COM_V,
+	LSR_PATH_COM_Z,
+	LSR_PATH_COM_c,
+	LSR_PATH_COM_h,
+	LSR_PATH_COM_l,
+	LSR_PATH_COM_m,
+	LSR_PATH_COM_q,
+	LSR_PATH_COM_s,
 	LSR_PATH_COM_t,
 	LSR_PATH_COM_v,
 	LSR_PATH_COM_z

@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -34,144 +34,144 @@ typedef struct _tag_lang_type
 
 static lang_type lang_table[] =
 {
-{"--", "und" },
-{"aa", "aar" },
-{"ab", "abk" },
-{"af", "afr" },
-{"am", "amh" },
-{"ar", "ara" },
-{"as", "ast" },
-{"ay", "aym" },
-{"az", "aze" },
-{"ba", "bak" },
-{"be", "bel" },
-{"bg", "bul" },
-{"bh", "bih" },
-{"bi", "bis" },
-{"bn", "ben" },
-{"bo", "bod" }, // was "tib" (Tibetan)
-{"br", "bre" },
-{"ca", "cat" },
-{"cc", "und" },
-{"co", "cos" },
-{"cs", "ces" }, // was "cze" (Czech)
-{"cy", "cym" }, // was "wel" (Welsh)
-{"da", "dan" },
-{"de", "deu" }, // was "ger" (German)
-{"dz", "dzo" },
-{"el", "ell" }, // was "gre" (Greek, Modern (1453-))
-{"en", "eng" },
-{"eo", "epo" },
-{"es", "spa" },
-{"et", "est" },
-{"eu", "eus" }, // was "baq" (Basque)
-{"fa", "fas" }, // was "per" (Persian)
-{"fi", "fin" },
-{"fj", "fij" },
-{"fo", "fao" },
-{"fr", "fra" }, // was "fre" (French)
-{"fy", "fry" },
-{"ga", "gle" },
-{"gl", "glg" },
-{"gn", "grn" },
-{"gu", "guj" },
-{"ha", "hau" },
-{"he", "heb" },
-{"hi", "hin" },
-{"hr", "scr" },
-{"hu", "hun" },
-{"hy", "hye" }, // was "arm" (Armenian)
-{"ia", "ina" },
-{"id", "ind" },
-{"ik", "ipk" },
-{"is", "isl" }, // was "ice" (Icelandic)
-{"it", "ita" },
-{"iu", "iku" },
-{"ja", "jpn" },
-{"jv", "jav" },
-{"ka", "kat" }, // was "geo" (Georgian)
-{"kk", "kaz" },
-{"kl", "kal" },
-{"km", "khm" },
-{"kn", "kan" },
-{"ko", "kor" },
-{"ks", "kas" },
-{"ku", "kur" },
-{"ky", "kir" },
-{"la", "lat" },
-{"ln", "lin" },
-{"lo", "lao" },
-{"lt", "lit" },
-{"lv", "lav" },
-{"mg", "mlg" },
-{"mi", "mri" }, // was "mao" (Maori)
-{"mk", "mkd" }, // was "mac" (Macedonian)
-{"ml", "mlt" },
-{"mn", "mon" },
-{"mo", "mol" },
-{"mr", "mar" },
-{"ms", "msa" }, // was "may" (Malay)
-{"my", "mya" }, // was "bur" (Burmese)
-{"na", "nau" },
-{"ne", "nep" },
-{"nl", "nld" }, // was "dut" (Dutch; Flemish)
-{"no", "nor" },
-{"oc", "oci" },
-{"om", "orm" },
-{"or", "ori" },
-{"pa", "pan" },
-{"pl", "pol" },
-{"ps", "pus" },
-{"pt", "por" },
-{"qu", "que" },
-{"rm", "roh" },
-{"rn", "run" },
-{"ro", "ron" }, // was "rum" (Romanian; Moldavian; Moldovan)
-{"ru", "rus" },
-{"rw", "kin" },
-{"sa", "san" },
-{"sd", "snd" },
-{"sg", "sag" },
-{"sh", "scr" },
-{"si", "sin" },
-{"sk", "slk" }, // was "slo" (Slovak)
-{"sl", "slv" },
-{"sm", "smo" },
-{"sn", "sna" },
-{"so", "som" },
-{"sq", "sqi" }, // was "alb" (Albanian)
-{"sr", "srp" },
-{"ss", "ssw" },
-{"st", "sot" },
-{"su", "sun" },
-{"sv", "swe" },
-{"sw", "swa" },
-{"ta", "tam" },
-{"te", "tel" },
-{"tg", "tgk" },
-{"th", "tha" },
-{"ti", "tir" },
-{"tk", "tuk" },
-{"tl", "tgl" },
-{"tn", "tsn" },
-{"to", "tog" },
-{"tr", "tur" },
-{"ts", "tso" },
-{"tt", "tat" },
-{"tw", "twi" },
-{"ug", "uig" },
-{"uk", "ukr" },
-{"ur", "urd" },
-{"uz", "uzb" },
-{"vi", "vie" },
-{"vo", "vol" },
-{"wo", "wol" },
-{"xh", "xho" },
-{"yi", "yid" },
-{"yo", "yor" },
-{"za", "zha" },
-{"zh", "zho" }, // was "chi" (Chinese)
-{"zu", "zul" }
+	{"--", "und" },
+	{"aa", "aar" },
+	{"ab", "abk" },
+	{"af", "afr" },
+	{"am", "amh" },
+	{"ar", "ara" },
+	{"as", "ast" },
+	{"ay", "aym" },
+	{"az", "aze" },
+	{"ba", "bak" },
+	{"be", "bel" },
+	{"bg", "bul" },
+	{"bh", "bih" },
+	{"bi", "bis" },
+	{"bn", "ben" },
+	{"bo", "bod" }, // was "tib" (Tibetan)
+	{"br", "bre" },
+	{"ca", "cat" },
+	{"cc", "und" },
+	{"co", "cos" },
+	{"cs", "ces" }, // was "cze" (Czech)
+	{"cy", "cym" }, // was "wel" (Welsh)
+	{"da", "dan" },
+	{"de", "deu" }, // was "ger" (German)
+	{"dz", "dzo" },
+	{"el", "ell" }, // was "gre" (Greek, Modern (1453-))
+	{"en", "eng" },
+	{"eo", "epo" },
+	{"es", "spa" },
+	{"et", "est" },
+	{"eu", "eus" }, // was "baq" (Basque)
+	{"fa", "fas" }, // was "per" (Persian)
+	{"fi", "fin" },
+	{"fj", "fij" },
+	{"fo", "fao" },
+	{"fr", "fra" }, // was "fre" (French)
+	{"fy", "fry" },
+	{"ga", "gle" },
+	{"gl", "glg" },
+	{"gn", "grn" },
+	{"gu", "guj" },
+	{"ha", "hau" },
+	{"he", "heb" },
+	{"hi", "hin" },
+	{"hr", "scr" },
+	{"hu", "hun" },
+	{"hy", "hye" }, // was "arm" (Armenian)
+	{"ia", "ina" },
+	{"id", "ind" },
+	{"ik", "ipk" },
+	{"is", "isl" }, // was "ice" (Icelandic)
+	{"it", "ita" },
+	{"iu", "iku" },
+	{"ja", "jpn" },
+	{"jv", "jav" },
+	{"ka", "kat" }, // was "geo" (Georgian)
+	{"kk", "kaz" },
+	{"kl", "kal" },
+	{"km", "khm" },
+	{"kn", "kan" },
+	{"ko", "kor" },
+	{"ks", "kas" },
+	{"ku", "kur" },
+	{"ky", "kir" },
+	{"la", "lat" },
+	{"ln", "lin" },
+	{"lo", "lao" },
+	{"lt", "lit" },
+	{"lv", "lav" },
+	{"mg", "mlg" },
+	{"mi", "mri" }, // was "mao" (Maori)
+	{"mk", "mkd" }, // was "mac" (Macedonian)
+	{"ml", "mlt" },
+	{"mn", "mon" },
+	{"mo", "mol" },
+	{"mr", "mar" },
+	{"ms", "msa" }, // was "may" (Malay)
+	{"my", "mya" }, // was "bur" (Burmese)
+	{"na", "nau" },
+	{"ne", "nep" },
+	{"nl", "nld" }, // was "dut" (Dutch; Flemish)
+	{"no", "nor" },
+	{"oc", "oci" },
+	{"om", "orm" },
+	{"or", "ori" },
+	{"pa", "pan" },
+	{"pl", "pol" },
+	{"ps", "pus" },
+	{"pt", "por" },
+	{"qu", "que" },
+	{"rm", "roh" },
+	{"rn", "run" },
+	{"ro", "ron" }, // was "rum" (Romanian; Moldavian; Moldovan)
+	{"ru", "rus" },
+	{"rw", "kin" },
+	{"sa", "san" },
+	{"sd", "snd" },
+	{"sg", "sag" },
+	{"sh", "scr" },
+	{"si", "sin" },
+	{"sk", "slk" }, // was "slo" (Slovak)
+	{"sl", "slv" },
+	{"sm", "smo" },
+	{"sn", "sna" },
+	{"so", "som" },
+	{"sq", "sqi" }, // was "alb" (Albanian)
+	{"sr", "srp" },
+	{"ss", "ssw" },
+	{"st", "sot" },
+	{"su", "sun" },
+	{"sv", "swe" },
+	{"sw", "swa" },
+	{"ta", "tam" },
+	{"te", "tel" },
+	{"tg", "tgk" },
+	{"th", "tha" },
+	{"ti", "tir" },
+	{"tk", "tuk" },
+	{"tl", "tgl" },
+	{"tn", "tsn" },
+	{"to", "tog" },
+	{"tr", "tur" },
+	{"ts", "tso" },
+	{"tt", "tat" },
+	{"tw", "twi" },
+	{"ug", "uig" },
+	{"uk", "ukr" },
+	{"ur", "urd" },
+	{"uz", "uzb" },
+	{"vi", "vie" },
+	{"vo", "vol" },
+	{"wo", "wol" },
+	{"xh", "xho" },
+	{"yi", "yid" },
+	{"yo", "yor" },
+	{"za", "zha" },
+	{"zh", "zho" }, // was "chi" (Chinese)
+	{"zu", "zul" }
 };
 
 
@@ -312,10 +312,10 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			u8  palette[16][4];
 
 			if (sscanf(str, "%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x,%x",
-				(u32 *) &palette[0], (u32 *) &palette[1], (u32 *) &palette[2], (u32 *) &palette[3],
-				(u32 *) &palette[4], (u32 *) &palette[5], (u32 *) &palette[6], (u32 *) &palette[7],
-				(u32 *) &palette[8], (u32 *) &palette[9], (u32 *) &palette[10], (u32 *) &palette[11],
-				(u32 *) &palette[12],(u32 *) &palette[13],(u32 *) &palette[14], (u32 *) &palette[15]) != 16)
+			           (u32 *) &palette[0], (u32 *) &palette[1], (u32 *) &palette[2], (u32 *) &palette[3],
+			           (u32 *) &palette[4], (u32 *) &palette[5], (u32 *) &palette[6], (u32 *) &palette[7],
+			           (u32 *) &palette[8], (u32 *) &palette[9], (u32 *) &palette[10], (u32 *) &palette[11],
+			           (u32 *) &palette[12],(u32 *) &palette[13],(u32 *) &palette[14], (u32 *) &palette[15]) != 16)
 			{
 				error = 1;
 				continue;
@@ -502,14 +502,30 @@ GF_Err vobsub_get_subpic_duration(char *_data, u32 psize, u32 dsize, u32 *durati
 			cmd = data[i++];
 			switch (cmd)
 			{
-			case 0x00: len = 0; break;
-			case 0x01: len = 0; break;
-			case 0x02: len = 0; break;
-			case 0x03: len = 2; break;
-			case 0x04: len = 2; break;
-			case 0x05: len = 6; break;
-			case 0x06: len = 4; break;
-			default:   len = 0; break;
+			case 0x00:
+				len = 0;
+				break;
+			case 0x01:
+				len = 0;
+				break;
+			case 0x02:
+				len = 0;
+				break;
+			case 0x03:
+				len = 2;
+				break;
+			case 0x04:
+				len = 2;
+				break;
+			case 0x05:
+				len = 6;
+				break;
+			case 0x06:
+				len = 4;
+				break;
+			default:
+				len = 0;
+				break;
 			}
 
 			if (i + len > psize) {
@@ -540,7 +556,7 @@ GF_Err vobsub_packetize_subpicture(FILE *fsub, u64 pts, char *data, u32 dataSize
 {
 	u8	buf[0x800], ptsbuf[5];
 	u8	*p;
-	int	put_pts = 1; 
+	int	put_pts = 1;
 
 	/* Build PTS buffer */
 	ptsbuf[0] = (u8)(((pts >> 29) & 0x0e) | 0x21);

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -58,7 +58,7 @@ enum
 
 /*generic systems access unit context*/
 typedef struct
-{	
+{
 	/*AU timing in TimeStampResolution*/
 	u64 timing;
 	/*timing in sec - used if timing isn't set*/
@@ -104,7 +104,7 @@ typedef struct _stream_context
 } GF_StreamContext;
 
 /*generic presentation context*/
-typedef struct 
+typedef struct
 {
 	/*the one and only scene graph used by the scene manager.*/
 	GF_SceneGraph *scene_graph;
@@ -131,7 +131,7 @@ GF_SceneManager *gf_sm_new(GF_SceneGraph *scene_graph);
 /*scene manager destructor - does not destroy the attached scene graph*/
 void gf_sm_del(GF_SceneManager *ctx);
 /*retrive or create a stream context in the presentation context
-WARNING: if a stream with the same streamType and no ESID already exists in the context, 
+WARNING: if a stream with the same streamType and no ESID already exists in the context,
 it is assigned the requested ES_ID - this is needed to solve base layer*/
 GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamType, u8 objectType);
 /*removes and destroy stream context from presentation context*/
@@ -143,8 +143,8 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 
 GF_MuxInfo *gf_sm_get_mux_info(GF_ESD *src);
 
-/*reset the context: 
-- purge all access units on all streams 
+/*reset the context:
+- purge all access units on all streams
 - destroy root OD
 */
 void gf_sm_reset(GF_SceneManager *ctx);
@@ -194,7 +194,7 @@ enum
 {
 	/*if set, always load MPEG-4 nodes, otherwise X3D versions are used for vrml/x3d*/
 	GF_SM_LOAD_MPEG4_STRICT = 1,
-	/*signal loading is done for playback:	
+	/*signal loading is done for playback:
 		scrips will be queued in their parent command for later loading
 		SFTime (MPEG-4 only) fields will be handled correctly when inserting/creating nodes based on AU timing
 	*/
@@ -213,7 +213,7 @@ enum
 
 /*loader type, usually detected based on file ext*/
 enum
-{	
+{
 	GF_SM_LOAD_BT = 1, /*BT loader*/
 	GF_SM_LOAD_VRML, /*VRML97 loader*/
 	GF_SM_LOAD_X3DV, /*X3D VRML loader*/
@@ -230,7 +230,7 @@ enum
 
 typedef struct __scene_loader GF_SceneLoader;
 
-struct __scene_loader 
+struct __scene_loader
 {
 	/*loader type, one of the above value. If not set, detected based on file extension*/
 	u32 type;
@@ -240,7 +240,7 @@ struct __scene_loader
 
 	struct _scene  *is;
 
-	/*context manager to load (MUST BE RESETED BEFORE if needed) - may be NULL for loaders not using commands, 
+	/*context manager to load (MUST BE RESETED BEFORE if needed) - may be NULL for loaders not using commands,
 	in which case the graph will be directly updated*/
 	GF_SceneManager *ctx;
 	/*file to import except IsoMedia files*/
@@ -251,7 +251,7 @@ struct __scene_loader
 #endif
 	/*swf import flags*/
 	u32 swf_import_flags;
-	/*swf flatten limit: angle limit below which 2 lines are considered as aligned, 
+	/*swf flatten limit: angle limit below which 2 lines are considered as aligned,
 	in which case the lines are merged as one. If 0, no flattening happens*/
 	Float swf_flatten_limit;
 	/*swf extraction path: if set, swf media (mp3, jpeg) are extracted to this path. If not set
@@ -282,9 +282,9 @@ GF_Err gf_sm_load_suspend(GF_SceneLoader *load, Bool suspend);
 
 /*parses memory scene (any textural format) into the context
 !! THE LOADER TYPE MUST BE ASSIGNED (BT/WRL/XMT/X3D/SVG only) !!
-The string MUST be at least 4 bytes long in order to detect BOM (unicode encoding). 
+The string MUST be at least 4 bytes long in order to detect BOM (unicode encoding).
 The string can ba either UTF-8 or UTF-16 data
-if clean_at_end is set, associated parser is destroyed. Otherwise, a call to gf_sm_load_done must be done 
+if clean_at_end is set, associated parser is destroyed. Otherwise, a call to gf_sm_load_done must be done
 to clean ressources (needed for SAX progressive loading)
 */
 GF_Err gf_sm_load_string(GF_SceneLoader *load, const char *str, Bool clean_at_end);
@@ -367,7 +367,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode);
 
 typedef struct _scenedump GF_SceneDumper;
 
-/*create a scene dumper 
+/*create a scene dumper
 @graph: scene graph being dumped
 @rad_name: file radical (NULL for stdout) - if not NULL MUST BE GF_MAX_PATH length
 @indent_char: indent format
@@ -389,7 +389,7 @@ char *gf_sm_dump_get_name(GF_SceneDumper *bd);
 */
 GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 indent, Bool skip_first_replace);
 
-/*dumps complete graph - 
+/*dumps complete graph -
 @skip_proto: proto declarations are skipped
 @skip_routes: routes are not dumped
 */
@@ -420,7 +420,7 @@ typedef struct _scenestat
 	GF_List *node_stats;
 
 	GF_List *proto_stats;
-	
+
 	/*ranges of all SFVec2fs for points only (MFVec2fs)*/
 	SFVec2f max_2d, min_2d;
 	/* resolution of 2D points (nb bits for integer part and decimal part)*/

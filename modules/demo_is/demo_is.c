@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2009-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -46,7 +46,7 @@ static void DEV_Start(struct __input_device *ifce)
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	/*HTK sensor buffer format: SFString - SFInt32 - SFFloat*/
-	gf_bs_write_int(bs, 1, 1); 
+	gf_bs_write_int(bs, 1, 1);
 	len = strlen(szWord);
 	val = gf_get_bit_size(len);
 	gf_bs_write_int(bs, val, 5);
@@ -67,7 +67,7 @@ static void DEV_Stop(struct __input_device *ifce)
 
 
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_INPUT_DEVICE_INTERFACE,

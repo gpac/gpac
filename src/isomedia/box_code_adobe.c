@@ -13,15 +13,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -101,7 +101,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	if (i)
 		ptr->movie_identifier = gf_strdup(tmp_str);
-	
+
 	ptr->server_entry_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->server_entry_count; i++) {
 		int j=0;
@@ -115,7 +115,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 		}
 		gf_list_insert(ptr->server_entry_table, gf_strdup(tmp_str), i);
 	}
-	
+
 	ptr->quality_entry_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->quality_entry_count; i++) {
 		int j=0;
@@ -153,7 +153,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	if (i)
 		ptr->meta_data = gf_strdup(tmp_str);
-	
+
 	ptr->segment_run_table_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->segment_run_table_count; i++) {
 		GF_AdobeSegmentRunTableBox *asrt;
@@ -161,10 +161,10 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 		if (e) return e;
 		gf_list_insert(ptr->segment_run_table_entries, asrt, i);
 	}
-	
+
 	ptr->fragment_run_table_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->fragment_run_table_count; i++) {
-		GF_AdobeFragmentRunTableBox *afrt;	
+		GF_AdobeFragmentRunTableBox *afrt;
 		e = gf_isom_parse_box((GF_Box **)&afrt, bs);
 		if (e) return e;
 		gf_list_insert(ptr->fragment_run_table_entries, afrt, i);
@@ -252,25 +252,25 @@ GF_Err abst_Size(GF_Box *s)
 	GF_Err e;
 	int i;
 	GF_AdobeBootstrapInfoBox *ptr = (GF_AdobeBootstrapInfoBox *)s;
-	
+
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 
 	s->size += 25
-			+ (ptr->movie_identifier ? (strlen(ptr->movie_identifier) + 1) : 1)
-			+ 1;
+	           + (ptr->movie_identifier ? (strlen(ptr->movie_identifier) + 1) : 1)
+	           + 1;
 
 	for (i=0; i<ptr->server_entry_count; i++)
-			s->size += strlen(gf_list_get(ptr->server_entry_table, i)) + 1;
+		s->size += strlen(gf_list_get(ptr->server_entry_table, i)) + 1;
 
 	s->size += 1;
 
 	for (i=0; i<ptr->quality_entry_count; i++)
-			s->size += strlen(gf_list_get(ptr->quality_entry_table, i)) + 1;
+		s->size += strlen(gf_list_get(ptr->quality_entry_table, i)) + 1;
 
 	s->size += (ptr->drm_data ? (strlen(ptr->drm_data) + 1) : 1)
-			+ (ptr->meta_data ? (strlen(ptr->meta_data) + 1) : 1)
-			+ 1;
+	           + (ptr->meta_data ? (strlen(ptr->meta_data) + 1) : 1)
+	           + 1;
 
 	for (i=0; i<ptr->segment_run_table_count; i++) {
 		GF_Box *box = (GF_Box *)gf_list_get(ptr->segment_run_table_entries, i);
@@ -278,7 +278,7 @@ GF_Err abst_Size(GF_Box *s)
 		if (e) return e;
 		s->size += box->size;
 	}
-		
+
 	s->size += 1;
 	for (i=0; i<ptr->fragment_run_table_count; i++) {
 		GF_Box *box = (GF_Box *)gf_list_get(ptr->fragment_run_table_entries, i);
@@ -355,7 +355,7 @@ GF_Err afra_Read(GF_Box *s, GF_BitStream *bs)
 			if (ptr->long_offsets) {
 				ae->afra_offset = gf_bs_read_u64(bs);
 				ae->offset_from_afra = gf_bs_read_u64(bs);
-			}else {
+			} else {
 				ae->afra_offset = gf_bs_read_u32(bs);
 				ae->offset_from_afra = gf_bs_read_u32(bs);
 			}
@@ -437,8 +437,8 @@ GF_Err afra_Size(GF_Box *s)
 	if (e) return e;
 
 	s->size += 9
-			+ ptr->entry_count * (ptr->long_offsets ? 16 : 12)
-			+ (ptr->global_entries ? 4 + ptr->global_entry_count * (4 + (ptr->long_offsets ? 16 : 8) + (ptr->long_ids ? 8 : 4)) : 0);
+	           + ptr->entry_count * (ptr->long_offsets ? 16 : 12)
+	           + (ptr->global_entries ? 4 + ptr->global_entry_count * (4 + (ptr->long_offsets ? 16 : 8) + (ptr->long_ids ? 8 : 4)) : 0);
 
 	return GF_OK;
 }

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include "rtp_in.h"
@@ -94,7 +94,7 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 			if (End > 0) ch->flags |= RTP_HAS_RANGE;
 		}
 
-		/*force interleaving whenever needed*/	
+		/*force interleaving whenever needed*/
 		if (ch->rtsp) {
 			switch (ch->depacketizer->sl_map.StreamType) {
 			case GF_STREAM_VISUAL:
@@ -112,7 +112,7 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 				break;
 			}
 		}
-	
+
 	}
 	return GF_OK;
 }
@@ -160,10 +160,14 @@ GF_Err RP_SDPLoadIOD(RTPClient *rtp, char *iod_str)
 static u32 get_stream_type_from_hint(u32 ht)
 {
 	switch (ht) {
-	case GF_MEDIA_OBJECT_VIDEO: return GF_STREAM_VISUAL;
-	case GF_MEDIA_OBJECT_AUDIO: return GF_STREAM_AUDIO;
-	case GF_MEDIA_OBJECT_TEXT: return GF_STREAM_TEXT;
-	default: return 0;
+	case GF_MEDIA_OBJECT_VIDEO:
+		return GF_STREAM_VISUAL;
+	case GF_MEDIA_OBJECT_AUDIO:
+		return GF_STREAM_AUDIO;
+	case GF_MEDIA_OBJECT_TEXT:
+		return GF_STREAM_TEXT;
+	default:
+		return 0;
 	}
 }
 
@@ -226,7 +230,7 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
 			GF_ESD *the_esd;
 
 			the_channel = (RTPStream *)gf_list_get(ch->owner->channels, i);
-			if (the_channel->base_stream == ch->mid) 
+			if (the_channel->base_stream == ch->mid)
 			{
 				the_esd = RP_GetChannelESD(the_channel, i);
 				the_esd->dependsOnESID = the_channel->prev_stream;
@@ -234,7 +238,7 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
 			}
 		}
 	}
-	
+
 	return od;
 }
 
@@ -329,7 +333,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 			/*force iod reconstruction with ISMA to use proper clock dependencies*/
 			if (is_isma_1) iod_str = NULL;
 
-			/*some folks have weird notions of MPEG-4 systems, they use hardcoded IOD 
+			/*some folks have weird notions of MPEG-4 systems, they use hardcoded IOD
 			with AAC ESD even when streaming AMR...*/
 			if (iod_str) {
 				RTPStream *ch;
@@ -340,15 +344,15 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 						break;
 					}
 				}
-			} 
+			}
 			if (!iod_str) {
 				RTPStream *ch;
 				Bool needs_iod = 0;
 				i=0;
 				while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
-					if ((ch->depacketizer->payt==GF_RTP_PAYT_MPEG4) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE) 
+					if ((ch->depacketizer->payt==GF_RTP_PAYT_MPEG4) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE)
 //						|| ((ch->depacketizer->payt==GF_RTP_PAYT_3GPP_DIMS) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE))
-						) {
+					   ) {
 						needs_iod = 1;
 						break;
 					}
@@ -357,7 +361,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 					rtp->session_desc = (GF_Descriptor *)RP_GetChannelOD(ch, 0);
 				}
 			}
-			
+
 			if (iod_str) e = RP_SDPLoadIOD(rtp, iod_str);
 		}
 		/*attach service*/
@@ -472,14 +476,14 @@ void RP_SaveSessionState(RTPClient *rtp)
 			porta = ch->rtp_ch->net_info.port_first ? ch->rtp_ch->net_info.port_first : ch->rtp_ch->net_info.client_port_first;
 			portb = ch->rtp_ch->net_info.port_last ? ch->rtp_ch->net_info.port_last : ch->rtp_ch->net_info.client_port_last;
 
-			sprintf(szPorts, "server-port=%d-%d;ssrc=%X;npt=%g;seq=%d;rtptime=%d", 
-				porta, 
-				portb,
-				ch->rtp_ch->SenderSSRC,
-				ch->current_start,
-				ch->rtp_ch->rtp_first_SN,
-				ch->rtp_ch->rtp_time
-			);
+			sprintf(szPorts, "server-port=%d-%d;ssrc=%X;npt=%g;seq=%d;rtptime=%d",
+			        porta,
+			        portb,
+			        ch->rtp_ch->SenderSSRC,
+			        ch->current_start,
+			        ch->rtp_ch->rtp_first_SN,
+			        ch->rtp_ch->rtp_time
+			       );
 			att->Value = gf_strdup(szPorts);
 			gf_list_add(media->Attributes, att);
 
@@ -494,7 +498,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 	for (j=0; j<gf_list_count(sdp->Attributes); j++) {
 		att = (GF_X_Attribute*)gf_list_get(sdp->Attributes, j);
 		if (!stricmp(att->Name, "x-session-id") || !stricmp(att->Name, "x-session-name")
-		) {
+		   ) {
 			gf_free(att->Name);
 			gf_free(att->Value);
 			gf_free(att);

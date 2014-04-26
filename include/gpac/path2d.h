@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -47,11 +47,11 @@ extern "C" {
  *\ingroup utils_grp
  *\brief Vectorial 2D Path manipulation functions
  *
- *This section documents the 2D path object used in the GPAC framework. 
+ *This section documents the 2D path object used in the GPAC framework.
  *	@{
  */
 
-	
+
 /*!\brief 2D Path Object
  *
  *The 2D path object is used to construct complex 2D shapes for later drawing
@@ -217,7 +217,7 @@ GF_Err gf_path_add_rect_center(GF_Path *gp, Fixed cx, Fixed cy, Fixed w, Fixed h
  *
  *	Adds a rectangle contour to the path
  *	\param gp the target path
- *	\param ox left-most coordinate of the rectangle 
+ *	\param ox left-most coordinate of the rectangle
  *	\param oy top-most coordinate of the rectangle
  *	\param w width of the rectangle
  *	\param h height of the rectangle
@@ -270,7 +270,7 @@ GF_Err gf_path_add_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed fa_x, Fix
  *	\param end_x x-coordinate of the arc end point
  *	\param end_y y-coordinate of the arc end point
  *	\param r_x x-axis radius
- *	\param r_y y-axis radius 
+ *	\param r_y y-axis radius
  *	\param x_axis_rotation angle for the x-axis
  *	\param large_arc_flag large or short arc selection
  *	\param sweep_flag if 1, the arc will be clockwise, otherwise counter-clockwise.
@@ -282,7 +282,7 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
  *
  *	Adds an arc contour to the path.
  *	\param gp the target path
- *	\param radius radius of the arc 
+ *	\param radius radius of the arc
  *	\param start_angle start angle of the arc in radians
  *	\param end_angle end angle of the arc in radians
  *	\param close_type closing type: 0 for open arc, 1 for close arc, 2 for pie
@@ -296,7 +296,7 @@ GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_a
  *	Adds a sub-path to the path with a given transform.
  *	\param gp the target path
  *	\param subpath the path to add
- *	\param mx Matrix for subpath 
+ *	\param mx Matrix for subpath
  *	\return error code if any error, \ref GF_OK otherwise
  */
 GF_Err gf_path_add_subpath(GF_Path *gp, GF_Path *subpath, GF_Matrix2D *mx);
@@ -319,14 +319,14 @@ GF_Err gf_path_get_control_bounds(GF_Path *gp, GF_Rect *rc);
  */
 GF_Err gf_path_get_bounds(GF_Path *gp, GF_Rect *rc);
 /*!
- *	\brief flattens path 
+ *	\brief flattens path
  *
  *	Flattens the path, i.e. transform all bezier curves to lines according to the path flatness.
  *	\param gp the target path
  */
 void gf_path_flatten(GF_Path *gp);
 /*!
- *	\brief gets flatten copy of path 
+ *	\brief gets flatten copy of path
  *
  *	Gets a flatten copy of the path.
  *	\param gp the target path
@@ -354,7 +354,7 @@ Bool gf_path_point_over(GF_Path *gp, Fixed x, Fixed y);
 Bool gf_path_is_empty(GF_Path *gp);
 
 /*!
- *	\brief path iterator 
+ *	\brief path iterator
  *
  *	The path iterator object is used to compute the length of a given path as well
  * as transformation matrices along this path.
@@ -388,8 +388,8 @@ Fixed gf_path_iterator_get_length(GF_PathIterator *it);
 /*!
  *\brief gets transformation matrix at given point on path
  *
- * Gets the transformation of a given point on the path, given by offset from origin. 
- *The transform is so that a local system is translated to the given point, its x-axis tangent 
+ * Gets the transformation of a given point on the path, given by offset from origin.
+ *The transform is so that a local system is translated to the given point, its x-axis tangent
  *to the path and in the same direction. The path direction is from first point to last point
  *of the path.
  *	\param it the target path iterator
@@ -397,7 +397,7 @@ Fixed gf_path_iterator_get_length(GF_PathIterator *it);
  *	\param follow_tangent indicates if transformation shall be computed if offset indicates a point outside the path (<0 or >path_length). In which case the path shall be virtually extended by the tangent at origin (offset <0) or at end (offset>path_length). Otherwise the transformation is not computed and 0 is returned.
  *	\param mat matrix to be transformed (transformation shall be appended) - the matrix shall not be initialized
  *	\param smooth_edges indicates if discontinuities shall be smoothed. If not set, the rotation angle THETA is the slope (DX/DY) of the current segment found.
- *	\param length_after_point if set and smooth_edges is set, the amount of the object that lies on next segment shall be computed according to length_after_point. 
+ *	\param length_after_point if set and smooth_edges is set, the amount of the object that lies on next segment shall be computed according to length_after_point.
  \code
   Let:
 	len_last: length of current checked segment
@@ -405,7 +405,7 @@ Fixed gf_path_iterator_get_length(GF_PathIterator *it);
 	ratio = (len1 + len_last - offset) / length_after_point;
 	then THETA = ratio * slope(L1) + (1-ratio) * slope(L2)
 
-  Of course care must be taken for PI/2 angles and similar situations 
+  Of course care must be taken for PI/2 angles and similar situations
  \endcode
 
  *	\return 1 if matrix has been updated, 0 otherwise, if failure or if point is out of path without tangent extension.
@@ -451,7 +451,7 @@ enum
 {
 	/*! Path is filled using the zero-nonzero rule. If not set, filling uses odd/even rule*/
 	GF_PATH_FILL_ZERO_NONZERO = 1,
-	/*! When set bbox must be recomputed. 
+	/*! When set bbox must be recomputed.
 	\note Read only, used to avoid wasting time on bounds calculation*/
 	GF_PATH_BBOX_DIRTY = 2,
 	/*! Indicates the path is flattened flattened
@@ -484,7 +484,7 @@ enum
  *	\hideinitializer
  */
 enum
-{	
+{
 	/*! outline is centered on the path (default)*/
 	GF_PATH_LINE_CENTER = 0,
 	/*! outline is inside the path*/
@@ -563,11 +563,11 @@ typedef struct
 	u32 num_dash;
 	/*! Value of the pattern dashes. Unit depends on the dash type*/
 	Fixed *dashes;
-    /*! SVG/CSS unit for the dashes */
-    u8 *dash_units;
+	/*! SVG/CSS unit for the dashes */
+	u8 *dash_units;
 } GF_DashSettings;
 
-/*!\brief Pen properties 
+/*!\brief Pen properties
  *
  *The pen properties object is used to specify several parameters used when building
  *the vectorial outline of a path.
@@ -586,7 +586,7 @@ typedef struct
 	u8 dash;
 	/*! The miter limit of the line joins*/
 	Fixed miterLimit;
-	/*! The initial dash offset in the outline. All points before this offset will be 
+	/*! The initial dash offset in the outline. All points before this offset will be
 	* ignored when building the outline*/
 	Fixed dash_offset;
 	/*! The dash pattern used for curstom dashing*/
@@ -600,7 +600,7 @@ typedef struct
  * Builds the vectorial outline of a path for the given settings. The outline of a path is a path.
  * \param path the desired path to outline
  * \param pen the properties of the virtual pen used for outlining
- * \return the outline of the path 
+ * \return the outline of the path
 */
 GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen);
 

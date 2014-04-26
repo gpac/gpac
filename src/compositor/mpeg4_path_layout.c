@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -32,7 +32,7 @@
 typedef struct
 {
 	PARENT_MPEG4_STACK_2D
-	
+
 	GF_Node *last_geom;
 	GF_PathIterator *iter;
 } PathLayoutStack;
@@ -55,7 +55,7 @@ static void TraversePathLayout(GF_Node *node, void *rs, Bool is_destroy)
 	PathLayoutStack *gr = (PathLayoutStack*) gf_node_get_private(node);
 	M_PathLayout *pl = (M_PathLayout *)node;
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
-	
+
 	if (is_destroy) {
 		parent_node_predestroy((ParentNode2D *)gr);
 		if (gr->iter) gf_path_iterator_del(gr->iter);
@@ -63,12 +63,15 @@ static void TraversePathLayout(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 	if (!pl->geometry) return;
-	
+
 	/*only low-level primitives allowed*/
 	switch (gf_node_get_tag((GF_Node *) pl->geometry)) {
-	case TAG_MPEG4_Rectangle: return;
-	case TAG_MPEG4_Circle: return;
-	case TAG_MPEG4_Ellipse: return;
+	case TAG_MPEG4_Rectangle:
+		return;
+	case TAG_MPEG4_Circle:
+		return;
+	case TAG_MPEG4_Ellipse:
+		return;
 	}
 
 	/*store traversing state*/
@@ -76,7 +79,7 @@ static void TraversePathLayout(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx_copy(mat, tr_state->model_matrix);
 	gf_mx_init(tr_state->model_matrix);
 #endif
-	
+
 	gf_mx2d_copy(mx2d, tr_state->transform);
 	gf_mx2d_init(tr_state->transform);
 
@@ -142,7 +145,7 @@ static void TraversePathLayout(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx2d_copy(tr_state->transform, mx2d);
 
 	count = gf_list_count(gr->groups);
-	
+
 	length = gf_path_iterator_get_length(gr->iter);
 	/*place all children*/
 	offset = gf_mulfix(length, pl->pathOffset);
@@ -197,22 +200,22 @@ static void TraversePathLayout(GF_Node *node, void *rs, Bool is_destroy)
 		switch (minor) {
 		/*top alignment*/
 		case 3:
-			if (cg->ascent) 
+			if (cg->ascent)
 				gf_mx2d_add_translation(&mx2d, 0, -1 * cg->ascent);
-			else 
+			else
 				gf_mx2d_add_translation(&mx2d, 0, -1 * cg->original.height / 2);
-			
+
 			break;
 		/*baseline*/
 		case 1:
 			/*move to bottom align if not text*/
-			if (!cg->ascent) 
+			if (!cg->ascent)
 				gf_mx2d_add_translation(&mx2d, 0, cg->original.height / 2);
 			break;
 		/*middle*/
 		case 2:
 			/*if text use (asc+desc) /2 as line height since glyph height differ*/
-			if (cg->ascent) 
+			if (cg->ascent)
 				gf_mx2d_add_translation(&mx2d, 0, cg->descent - (cg->ascent + cg->descent) / 2);
 			break;
 		/*bottomline alignment*/
@@ -222,7 +225,7 @@ static void TraversePathLayout(GF_Node *node, void *rs, Bool is_destroy)
 				gf_mx2d_add_translation(&mx2d, 0, cg->descent);
 			else
 				gf_mx2d_add_translation(&mx2d, 0, cg->original.height / 2);
-			
+
 			break;
 		}
 		res = gf_path_iterator_get_transform(gr->iter, offset, (Bool) (pl->wrapMode==2), &mx2d, 1, length_after_point);
@@ -257,7 +260,7 @@ next:
 	}
 
 	/*undrawn nodes*/
-	for (;i<count; i++) {
+	for (; i<count; i++) {
 		cg = (ChildGroup*)gf_list_get(gr->groups, i);
 		parent_node_child_traverse_matrix(cg, (GF_TraverseState *)rs, NULL);
 	}

@@ -26,7 +26,7 @@
 	{ 0x9d, 0x10, 0x00, 0x60, 0xb0, 0xfb, 0xd8, 0x0b }}
 
 class NS_NO_VTABLE nsIOsmozilla : public nsISupports {
-public: 
+public:
 
 	NS_DEFINE_STATIC_IID_ACCESSOR(NS_IOSMOZILLA_IID)
 
@@ -56,7 +56,7 @@ public:
 	NS_IMETHOD Stop(void); \
 	NS_IMETHOD Update(const char *type, const char *commands); \
 	NS_IMETHOD QualitySwitch(int switch_up); \
-	NS_IMETHOD SetURL(const char *type); 
+	NS_IMETHOD SetURL(const char *type);
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object. */
 #define NS_FORWARD_NSIOSMOZILLA(_to) \
@@ -65,7 +65,7 @@ public:
 	NS_IMETHOD Stop(void) { return _to Stop(); } \
 	NS_IMETHOD Update(const char *type, const char *commands) { return _to Update(type, commands); } \
 	NS_IMETHOD QualitySwitch(int switch_up) { return _to QualitySwitch( switch_up ); } \
-	NS_IMETHOD SetURL(const char *url) { return _to SetURL(url); } 
+	NS_IMETHOD SetURL(const char *url) { return _to SetURL(url); }
 
 /* Use this macro to declare functions that forward the behavior of this interface to another object in a safe way. */
 #define NS_FORWARD_SAFE_NSIOSMOZILLA(_to) \
@@ -75,7 +75,7 @@ public:
 	NS_IMETHOD Update(const char *type, const char *commands) { return !_to ? NS_ERROR_NULL_POINTER : _to->Update(type, commands); } \
 	NS_IMETHOD QualitySwitch(int switch_up) { return !_to ? NS_ERROR_NULL_POINTER : _to->QualitySwitch(switch_up); } \
 	NS_IMETHOD SetURL(const char *url) { return !_to ? NS_ERROR_NULL_POINTER : _to->Update(url); } \
-
+ 
 #if 0
 /* Use the code below as a template for the implementation class for this interface. */
 
@@ -84,9 +84,9 @@ class nsOsmozilla : public nsIOsmozilla
 {
 public:
 	NS_DECL_ISUPPORTS
-		NS_DECL_NSIOSMOZILLA
+	NS_DECL_NSIOSMOZILLA
 
-		nsOsmozilla();
+	nsOsmozilla();
 	virtual ~nsOsmozilla();
 	/* additional members */
 };

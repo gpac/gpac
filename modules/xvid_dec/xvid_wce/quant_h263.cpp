@@ -29,57 +29,55 @@
 //----------------------------
 /* dequantize intra-block & clamp to [-2048,2047]
  */
-void dequant_h263_intra(int *data, const int *coeff, dword quant, dword dcscalar, const dword *mpeg_quant_matrices){
+void dequant_h263_intra(int *data, const int *coeff, dword quant, dword dcscalar, const dword *mpeg_quant_matrices) {
 
-   const int quant_m_2 = quant << 1;
-   const int quant_add = (quant & 1 ? quant : quant - 1);
+	const int quant_m_2 = quant << 1;
+	const int quant_add = (quant & 1 ? quant : quant - 1);
 
-   data[0] = *coeff++ * dcscalar;
-   if(data[0] < -2048){
-      data[0] = -2048;
-   }//else
-   if(data[0] > 2047){
-      data[0] = 2047;
-   }
-   for(int i = 1; i < 64; i++){
-      int acLevel = *coeff++;
+	data[0] = *coeff++ * dcscalar;
+	if(data[0] < -2048) {
+		data[0] = -2048;
+	}//else
+	if(data[0] > 2047) {
+		data[0] = 2047;
+	}
+	for(int i = 1; i < 64; i++) {
+		int acLevel = *coeff++;
 
-      if(acLevel == 0){
-         data[i] = 0;
-      }else
-      if(acLevel < 0){
-         acLevel = quant_m_2 * -acLevel + quant_add;
-         data[i] = (acLevel <= 2048 ? -acLevel : -2048);
-      }else{
-         acLevel = quant_m_2 * acLevel + quant_add;
-         data[i] = (acLevel <= 2047 ? acLevel : 2047);
-      }
-   }
+		if(acLevel == 0) {
+			data[i] = 0;
+		} else if(acLevel < 0) {
+			acLevel = quant_m_2 * -acLevel + quant_add;
+			data[i] = (acLevel <= 2048 ? -acLevel : -2048);
+		} else {
+			acLevel = quant_m_2 * acLevel + quant_add;
+			data[i] = (acLevel <= 2047 ? acLevel : 2047);
+		}
+	}
 }
 
 //----------------------------
 /* dequantize inter-block & clamp to [-2048,2047]
  */
 
-void dequant_h263_inter(int *data, const int *coeff, dword quant, const dword *mpeg_quant_matrices){
+void dequant_h263_inter(int *data, const int *coeff, dword quant, const dword *mpeg_quant_matrices) {
 
-   const dword quant_m_2 = quant << 1;
-   const dword quant_add = (quant & 1 ? quant : quant - 1);
+	const dword quant_m_2 = quant << 1;
+	const dword quant_add = (quant & 1 ? quant : quant - 1);
 
-   for(int i = 0; i < 64; i++){
-      int acLevel = *coeff++;
+	for(int i = 0; i < 64; i++) {
+		int acLevel = *coeff++;
 
-      if(acLevel == 0){
-         data[i] = 0;
-      }else
-      if(acLevel < 0){
-         acLevel = acLevel * quant_m_2 - quant_add;
-         data[i] = (acLevel >= -2048 ? acLevel : -2048);
-      }else{
-         acLevel = acLevel * quant_m_2 + quant_add;
-         data[i] = (acLevel <= 2047 ? acLevel : 2047);
-      }
-   }
+		if(acLevel == 0) {
+			data[i] = 0;
+		} else if(acLevel < 0) {
+			acLevel = acLevel * quant_m_2 - quant_add;
+			data[i] = (acLevel >= -2048 ? acLevel : -2048);
+		} else {
+			acLevel = acLevel * quant_m_2 + quant_add;
+			data[i] = (acLevel <= 2047 ? acLevel : 2047);
+		}
+	}
 }
 
 //----------------------------

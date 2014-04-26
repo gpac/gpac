@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -64,7 +64,7 @@ enum
 
 
 /*the structure for capabilities*/
-typedef struct 
+typedef struct
 {
 	/*cap code cf below*/
 	u16 CapCode;
@@ -109,7 +109,7 @@ enum
 	GF_CODEC_HEIGHT,
 	GF_CODEC_STRIDE,
 	GF_CODEC_FPS,
-    GF_CODEC_FLIP,
+	GF_CODEC_FLIP,
 	/*Pixel Aspect Ratio, expressed as (par.num<<16) | par.den*/
 	GF_CODEC_PAR,
 	/*video color mode - color modes are defined in constants.h*/
@@ -139,7 +139,7 @@ enum
 	/*queries or set  support for usage of decoded frame from decoder memory - used for video codecs only*/
 	GF_CODEC_DIRECT_OUTPUT,
 
-	/*This is only called on scene decoders to signal that potential overlay scene should be 
+	/*This is only called on scene decoders to signal that potential overlay scene should be
 	showed (cap.valueINT=1) or hidden (cap.valueINT=0). Currently only used with SetCap*/
 	GF_CODEC_SHOW_SCENE,
 	/*This is only called on scene decoders, GetCap only. If the decoder may continue modifying the scene once the last AU is received,
@@ -167,28 +167,28 @@ enum
 	GF_CODEC_SUPPORTED = 255,
 };
 
-	/* Generic interface used by both media decoders and scene decoders
+/* Generic interface used by both media decoders and scene decoders
 @AttachStream:
-	Add a Stream to the codec. If DependsOnESID is NULL, the stream is a base layer
-	UpStream means that the decoder should send feedback on this channel. 
-	WARNING: Feedback format is not standardized by MPEG
-	the same API is used for both encoder and decoder (decSpecInfo is ignored
-	for an encoder) 
+Add a Stream to the codec. If DependsOnESID is NULL, the stream is a base layer
+UpStream means that the decoder should send feedback on this channel.
+WARNING: Feedback format is not standardized by MPEG
+the same API is used for both encoder and decoder (decSpecInfo is ignored
+for an encoder)
 @DetachStream:
-	Remove stream
+Remove stream
 @GetCapabilities:
-	Get the desired capability given its code
+Get the desired capability given its code
 @SetCapabilities
-	Set the desired capability given its code if possible
-	if the codec does not support the request capability, return GF_NOT_SUPPORTED
+Set the desired capability given its code if possible
+if the codec does not support the request capability, return GF_NOT_SUPPORTED
 @CanHandleStream
-	Can module handle this codec? Return one of GF_CODEC_NOT_SUPPORTED, GF_CODEC_MAYBE_SUPPORTED or GF_CODEC_SUPPORTED
-	esd is provided for more advanced inspection ( eg MPEG4 audio/visual where a bunch of codecs are defined with same objectType). If esd is NULL, only 
-	decoder type is checked (audio or video), not codec type
+Can module handle this codec? Return one of GF_CODEC_NOT_SUPPORTED, GF_CODEC_MAYBE_SUPPORTED or GF_CODEC_SUPPORTED
+esd is provided for more advanced inspection ( eg MPEG4 audio/visual where a bunch of codecs are defined with same objectType). If esd is NULL, only
+decoder type is checked (audio or video), not codec type
 @GetDecoderName
-	returns codec name - only called once the stream is successfully attached
+returns codec name - only called once the stream is successfully attached
 @privateStack
-	user defined.
+user defined.
 */
 
 #define GF_CODEC_BASE_INTERFACE(IFCE_NAME)		\
@@ -200,7 +200,7 @@ enum
 	u32 (*CanHandleStream)(IFCE_NAME, u32 StreamType, GF_ESD *esd, u8 ProfileLevelIndication);\
 	const char *(*GetName)(IFCE_NAME);\
 	void *privateStack;	\
-
+ 
 
 typedef struct _basedecoder
 {
@@ -210,25 +210,25 @@ typedef struct _basedecoder
 /*interface name and version for media decoder */
 #define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', '3')
 
-/*the media module interface. A media module MUST be implemented in synchronous mode as time 
+/*the media module interface. A media module MUST be implemented in synchronous mode as time
 and resources management is done by the terminal*/
 typedef struct _mediadecoder
 {
 	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
 
-	/*Process the media data in inAU. 
+	/*Process the media data in inAU.
 	@inBuffer, inBufferLength: encoded input data (complete framing of encoded data)
 	@ES_ID: stream this data belongs too (scalable object)
 	@outBuffer, outBufferLength: allocated data for decoding - if outBufferLength is not enough
-		you must set the size in outBufferLength and GF_BUFFER_TOO_SMALL 
+		you must set the size in outBufferLength and GF_BUFFER_TOO_SMALL
 
 	@PaddingBits is the padding at the end of the buffer (some codecs need this info)
 	@mmlevel: speed indicator for the decoding - cf above for values*/
-	GF_Err (*ProcessData)(struct _mediadecoder *, 
-			char *inBuffer, u32 inBufferLength,
-			u16 ES_ID, u32 *CTS,
-			char *outBuffer, u32 *outBufferLength,
-			u8 PaddingBits, u32 mmlevel);
+	GF_Err (*ProcessData)(struct _mediadecoder *,
+	                      char *inBuffer, u32 inBufferLength,
+	                      u16 ES_ID, u32 *CTS,
+	                      char *outBuffer, u32 *outBufferLength,
+	                      u8 PaddingBits, u32 mmlevel);
 
 
 	/*optionnal (may be null), retrievs internal output frame of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_DIRECT_OUTPUT*/
@@ -248,8 +248,8 @@ typedef struct _scene *LPSCENE;
 typedef struct _scenedecoder
 {
 	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
-	
-	/*Process the scene data in inAU. 
+
+	/*Process the scene data in inAU.
 	@inBuffer, inBufferLength: encoded input data (complete framing of encoded data)
 	@ES_ID: stream this data belongs too (scalable object)
 	@AU_Time: specifies the current AU time. This is usually unused, however is needed for decoder
@@ -257,11 +257,11 @@ typedef struct _scenedecoder
 	time caries the time of the scene (or of the stream object attached to the scene decoder, cf below)
 	@mmlevel: speed indicator for the decoding - cf above for values*/
 	GF_Err (*ProcessData)(struct _scenedecoder *, const char *inBuffer, u32 inBufferLength,
-					u16 ES_ID, u32 AU_Time, u32 mmlevel);
+	                      u16 ES_ID, u32 AU_Time, u32 mmlevel);
 
 
 	/*attaches scene to the decoder - a scene may be attached to several decoders of several types
-	(BIFS or others scene dec, ressource decoders (OD), etc. 
+	(BIFS or others scene dec, ressource decoders (OD), etc.
 	is: inline scene owning graph (and not just graph), defined in intern/terminal_dev.h. With inline scene
 	the complete terminal is exposed so there's pretty much everything doable in a scene decoder
 	@is_scene_root: set to true if this decoder is the root of the scene, false otherwise (either another decoder
@@ -269,7 +269,7 @@ typedef struct _scenedecoder
 	This is called once upon creation of the decoder (several times if re-entrant)
 	*/
 	GF_Err (*AttachScene)(struct _scenedecoder *, LPSCENE scene, Bool is_scene_root);
-	/*releases scene. If the decoder manages nodes / resources in the scene, 
+	/*releases scene. If the decoder manages nodes / resources in the scene,
 	THESE MUST BE DESTROYED. May be NULL if decoder doesn't manage nodes but only create them (like BIFS, OD) and
 	doesn't have to be instructed the scene is about to be resumed
 	This is called each time the scene is about to be reseted (eg, seek and destroy)
@@ -286,8 +286,8 @@ typedef struct _base_node *LPNODE;
 typedef struct _nodedecoder
 {
 	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
-	
-	/*Process the node data in inAU. 
+
+	/*Process the node data in inAU.
 	@inBuffer, inBufferLength: encoded input data (complete framing of encoded data)
 	@ES_ID: stream this data belongs too (scalable object)
 	@AU_Time: specifies the current AU time. This is usually unused, however is needed for decoder
@@ -295,7 +295,7 @@ typedef struct _nodedecoder
 	time caries the time of the scene (or of the stream object attached to the scene decoder, cf below)
 	@mmlevel: speed indicator for the decoding - cf above for values*/
 	GF_Err (*ProcessData)(struct _nodedecoder *, const char *inBuffer, u32 inBufferLength,
-					u16 ES_ID, u32 AU_Time, u32 mmlevel);
+	                      u16 ES_ID, u32 AU_Time, u32 mmlevel);
 
 	/*attaches node to the decoder - currently only one node is only attached to a single decoder*/
 	GF_Err (*AttachNode)(struct _nodedecoder *, LPNODE node);
@@ -328,13 +328,13 @@ typedef struct __input_device
 /*interface name and version for media decoder */
 #define GF_PRIVATE_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'P', 'M', '2')
 
-/*the media module interface. A media module MUST be implemented in synchronous mode as time 
+/*the media module interface. A media module MUST be implemented in synchronous mode as time
 and resources management is done by the terminal*/
 typedef struct _private_mediadecoder
 {
 	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
 
-	/*Control media decoder. 
+	/*Control media decoder.
 	@mute: set mute or not
 	@x, y, w, h: video output position in screen coordinate
 	*/

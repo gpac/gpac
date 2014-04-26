@@ -29,7 +29,7 @@
 */
 
 /*
-This is an extended version of the zlib library designed to run on EPOC 
+This is an extended version of the zlib library designed to run on EPOC
 Symbian Markr 5/11/99
 */
 
@@ -145,7 +145,7 @@ int gzflush OF((gzFile file, int flush));
 */
 
 z_off_t gzseek OF((gzFile file, z_off_t offset, int whence));
-/* 
+/*
       Sets the starting position for the next gzread or gzwrite on the
    given compressed file. The offset represents a number of bytes in the
    uncompressed data stream. The whence parameter is defined as in lseek(2);

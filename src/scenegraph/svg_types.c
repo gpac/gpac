@@ -15,7 +15,7 @@
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.	
+ *  GNU Lesser General Public License for more details.
  *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
@@ -31,22 +31,22 @@
 Bool gf_svg_is_animation_tag(u32 tag)
 {
 	return (tag == TAG_SVG_set ||
-			tag == TAG_SVG_animate ||
-			tag == TAG_SVG_animateColor ||
-			tag == TAG_SVG_animateTransform ||
-			tag == TAG_SVG_animateMotion || 
-			tag == TAG_SVG_discard
-			) ? 1 : 0;
+	        tag == TAG_SVG_animate ||
+	        tag == TAG_SVG_animateColor ||
+	        tag == TAG_SVG_animateTransform ||
+	        tag == TAG_SVG_animateMotion ||
+	        tag == TAG_SVG_discard
+	       ) ? 1 : 0;
 }
 
 Bool gf_svg_is_timing_tag(u32 tag)
 {
 	if (gf_svg_is_animation_tag(tag)) return 1;
 	else return (tag == TAG_SVG_animation ||
-			tag == TAG_SVG_audio ||
-			tag == TAG_LSR_conditional ||
-			tag == TAG_LSR_updates ||
-			tag == TAG_SVG_video)?1:0;
+		             tag == TAG_SVG_audio ||
+		             tag == TAG_LSR_conditional ||
+		             tag == TAG_LSR_updates ||
+		             tag == TAG_SVG_video)?1:0;
 }
 
 SVG_Element *gf_svg_create_node(u32 ElementTag)
@@ -54,11 +54,11 @@ SVG_Element *gf_svg_create_node(u32 ElementTag)
 	SVG_Element *p;
 	if (gf_svg_is_timing_tag(ElementTag)) {
 		SVGTimedAnimBaseElement *tap;
-		GF_SAFEALLOC(tap, SVGTimedAnimBaseElement); 
+		GF_SAFEALLOC(tap, SVGTimedAnimBaseElement);
 		p = (SVG_Element *)tap;
 	} else if (ElementTag == TAG_SVG_handler) {
 		SVG_handlerElement *hdl;
-		GF_SAFEALLOC(hdl, SVG_handlerElement); 
+		GF_SAFEALLOC(hdl, SVG_handlerElement);
 		p = (SVG_Element *)hdl;
 	} else {
 		GF_SAFEALLOC(p, SVG_Element);
@@ -79,7 +79,7 @@ void gf_svg_node_del(GF_Node *node)
 		/*remove from target's listener list*/
 		gf_dom_event_remove_listener_from_parent((GF_DOMEventTarget *)node->sgprivate->UserPrivate, (GF_Node *)p);
 	}
-	/*if this is a handler with a UserPrivate, this is a handler with an implicit listener 
+	/*if this is a handler with a UserPrivate, this is a handler with an implicit listener
 	(eg handler with ev:event=""). Destroy the associated listener*/
 	if (p->sgprivate->tag==TAG_SVG_handler) {
 		GF_Node *listener = p->sgprivate->UserPrivate;
@@ -115,7 +115,7 @@ void gf_svg_node_del(GF_Node *node)
 		if (tap->timingp)		{
 			gf_smil_timing_delete_runtime_info((GF_Node *)tap, tap->timingp->runtime);
 			gf_free(tap->timingp);
-		}	
+		}
 		if (tap->xlinkp)	gf_free(tap->xlinkp);
 	}
 
@@ -128,12 +128,12 @@ Bool gf_svg_node_init(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
 	case TAG_SVG_script:
-		if (node->sgprivate->scenegraph->script_load) 
+		if (node->sgprivate->scenegraph->script_load)
 			node->sgprivate->scenegraph->script_load(node);
 		return 1;
 
 	case TAG_SVG_handler:
-		if (node->sgprivate->scenegraph->script_load) 
+		if (node->sgprivate->scenegraph->script_load)
 			node->sgprivate->scenegraph->script_load(node);
 		if (node->sgprivate->scenegraph->script_action)
 			((SVG_handlerElement*)node)->handle_event = gf_sg_handle_dom_event;
@@ -143,17 +143,17 @@ Bool gf_svg_node_init(GF_Node *node)
 		gf_smil_setup_events(node);
 		return 1;
 	case TAG_SVG_animateMotion:
-	case TAG_SVG_set: 
-	case TAG_SVG_animate: 
-	case TAG_SVG_animateColor: 
-	case TAG_SVG_animateTransform: 
+	case TAG_SVG_set:
+	case TAG_SVG_animate:
+	case TAG_SVG_animateColor:
+	case TAG_SVG_animateTransform:
 		gf_smil_anim_init_node(node);
 		gf_smil_setup_events(node);
 		/*we may get called several times depending on xlink:href resoling for events*/
 		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
-	case TAG_SVG_audio: 
-	case TAG_SVG_video: 
-	case TAG_LSR_updates: 
+	case TAG_SVG_audio:
+	case TAG_SVG_video:
+	case TAG_LSR_updates:
 		gf_smil_timing_init_runtime_info(node);
 		gf_smil_setup_events(node);
 		/*we may get called several times depending on xlink:href resoling for events*/
@@ -163,7 +163,7 @@ Bool gf_svg_node_init(GF_Node *node)
 		gf_smil_setup_events(node);
 		return 0;
 	/*discard is implemented as a special animation element */
-	case TAG_SVG_discard: 
+	case TAG_SVG_discard:
 		gf_smil_anim_init_discard(node);
 		gf_smil_setup_events(node);
 		return 1;
@@ -177,18 +177,18 @@ Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
 {
 	switch (node->sgprivate->tag) {
 	case TAG_SVG_animateMotion:
-	case TAG_SVG_discard: 
-	case TAG_SVG_set: 
-	case TAG_SVG_animate: 
-	case TAG_SVG_animateColor: 
-	case TAG_SVG_animateTransform: 
-	case TAG_LSR_conditional: 
+	case TAG_SVG_discard:
+	case TAG_SVG_set:
+	case TAG_SVG_animate:
+	case TAG_SVG_animateColor:
+	case TAG_SVG_animateTransform:
+	case TAG_LSR_conditional:
 		gf_smil_timing_modified(node, field);
 		return 1;
-	case TAG_SVG_animation: 
-	case TAG_SVG_audio: 
-	case TAG_SVG_video: 
-	case TAG_LSR_updates: 
+	case TAG_SVG_animation:
+	case TAG_SVG_audio:
+	case TAG_SVG_video:
+	case TAG_LSR_updates:
 		gf_smil_timing_modified(node, field);
 		/*used by compositors*/
 		return 0;
@@ -197,7 +197,7 @@ Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
 }
 
 
-void gf_svg_reset_path(SVG_PathData d) 
+void gf_svg_reset_path(SVG_PathData d)
 {
 #if USE_GF_PATH
 	gf_path_reset(&d);
@@ -218,7 +218,7 @@ void gf_svg_reset_path(SVG_PathData d)
 #endif
 }
 
-/* TODO: update for elliptical arcs */		
+/* TODO: update for elliptical arcs */
 GF_EXPORT
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 {
@@ -236,7 +236,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			gf_path_add_move_to(path, orig.x, orig.y);
 			j++;
 			/*provision for nextCurveTo when no curve is specified:
-				"If there is no previous command or if the previous command was not an C, c, S or s, 
+				"If there is no previous command or if the previous command was not an C, c, S or s,
 				assume the first control point is coincident with the current point.
 			*/
 			ct_orig = orig;
@@ -280,7 +280,7 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			ct_orig = *tmp;
 			tmp = (SVG_Point*)gf_list_get(points, j+1);
 			end = *tmp;
-			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);			
+			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);
 			orig = end;
 			j+=2;
 			break;
@@ -290,14 +290,14 @@ void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points)
 			tmp = (SVG_Point*)gf_list_get(points, j);
 			end = *tmp;
 			gf_path_add_quadratic_to(path, ct_orig.x, ct_orig.y, end.x, end.y);
-				orig = end;
-				j++;
+			orig = end;
+			j++;
 			break;
 		case SVG_PATHCOMMAND_Z: /* Close */
 			gf_path_close(path);
 			break;
 		}
-	}	
+	}
 }
 
 
@@ -333,14 +333,14 @@ void gf_svg_delete_coordinates(GF_List *list)
 	gf_list_del(list);
 }
 
-void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI *iri) 
+void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI *iri)
 {
 	if (!iri) return;
 	if (iri->string) gf_free(iri->string);
 	gf_node_unregister_iri(sg, iri);
 }
 
-void gf_svg_delete_paint(GF_SceneGraph *sg, SVG_Paint *paint) 
+void gf_svg_delete_paint(GF_SceneGraph *sg, SVG_Paint *paint)
 {
 	if (!paint) return;
 	if (paint->type == SVG_PAINT_URI && sg) gf_svg_reset_iri(sg, &paint->iri);
@@ -418,19 +418,19 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		gf_free(value);
 		break;
 	case SVG_FontFamily_datatype:
-		{
-			SVG_FontFamily *ff = (SVG_FontFamily *)value;
-			if (ff->value) gf_free(ff->value);
-			gf_free(value);
-		}
-		break;
+	{
+		SVG_FontFamily *ff = (SVG_FontFamily *)value;
+		if (ff->value) gf_free(ff->value);
+		gf_free(value);
+	}
+	break;
 	case SMIL_AttributeName_datatype:
-		{
-			SMIL_AttributeName *an = (SMIL_AttributeName *)value;
-			if (an->name) gf_free(an->name);
-			gf_free(value);
-		}
-		break;
+	{
+		SMIL_AttributeName *an = (SMIL_AttributeName *)value;
+		if (an->name) gf_free(an->name);
+		gf_free(value);
+	}
+	break;
 	case SMIL_Times_datatype:
 		gf_smil_delete_times(*(SMIL_Times *)value);
 		gf_free(value);
@@ -484,7 +484,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	case SVG_Display_datatype:
 	default:
 		gf_free(value);
-	} 
+	}
 }
 
 

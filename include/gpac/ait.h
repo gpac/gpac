@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) TELECOM ParisTech 2011
  */
 
@@ -32,9 +32,9 @@ typedef enum {
 } DESCRIPTOR_TAG;
 
 enum ApplicationControlCode {
-	AUTOSTART =				0x01, 
-	PRESENT = 				0x02, 
-	DESTROY =				0x03, 
+	AUTOSTART =				0x01,
+	PRESENT = 				0x02,
+	DESTROY =				0x03,
 	KILL =					0x04,
 	PREFETCH =				0x05,
 	REMOTE = 				0x06,
@@ -72,7 +72,7 @@ typedef struct
 typedef struct
 {
 	ABSTRACT_ES
-	GF_M2TS_SectionFilter *sec;	
+	GF_M2TS_SectionFilter *sec;
 
 } GF_M2TS_AIT_CARRY;
 
@@ -87,7 +87,7 @@ typedef struct
 	u8 application_descriptors_id[50];
 	u8 index_app_desc_id;
 
-}GF_M2TS_AIT_APPLICATION_DECODE;
+} GF_M2TS_AIT_APPLICATION_DECODE;
 
 
 typedef enum {
@@ -129,7 +129,7 @@ typedef struct
 	u8 descriptor_length;
 	char* initial_path_bytes;
 
-}GF_M2TS_SIMPLE_APPLICATION_LOCATION;
+} GF_M2TS_SIMPLE_APPLICATION_LOCATION;
 
 typedef struct
 {
@@ -141,19 +141,19 @@ typedef struct
 
 } GF_M2TS_OBJECT_CAROUSEL_SELECTOR_BYTE;
 
-typedef struct{
+typedef struct {
 
 	u8 URL_extension_length;
 	char* URL_extension_byte;
 
-}GF_M2TS_TRANSPORT_HTTP_URL_EXTENTION;
+} GF_M2TS_TRANSPORT_HTTP_URL_EXTENTION;
 
 typedef struct
 {
 	u8 URL_base_length;
 	char* URL_base_byte;
 	u8 URL_extension_count;
-	GF_M2TS_TRANSPORT_HTTP_URL_EXTENTION* URL_extentions;	
+	GF_M2TS_TRANSPORT_HTTP_URL_EXTENTION* URL_extentions;
 
 } GF_M2TS_TRANSPORT_HTTP_SELECTOR_BYTE;
 
@@ -194,7 +194,7 @@ typedef struct
 } GF_M2TS_APPLICATION_BOUNDARY_DESCRIPTOR;
 
 typedef struct
-{	
+{
 	u32 application_id;
 	u8 application_control_code;
 
@@ -211,7 +211,7 @@ typedef struct
 	/* Carousel */
 	u32 carousel_pid;
 	u32 component_tag;
-	
+
 
 	char* appli_name;
 
@@ -223,7 +223,7 @@ typedef struct
 	u32 version_number;
 	u32 ait_pid;
 	u32 nb_application;
-	GF_List *Application;	
+	GF_List *Application;
 
 } GF_M2TS_CHANNEL_APPLICATION_INFO;
 

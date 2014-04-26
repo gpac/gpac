@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -103,7 +103,7 @@ typedef enum
 	@cbk: user defined callback
 	@x, y: first pixel position of the run, in device memory (top-left) coordinates
 	@run_h_len: number of pixels to fill on line
-	@color: color to fill pixel with. USER MUST IGNORE THE ALPHA COMPONENT OF THIS COLOR, the final 
+	@color: color to fill pixel with. USER MUST IGNORE THE ALPHA COMPONENT OF THIS COLOR, the final
 		alpha is computed by the lib
 	@alpha: blending amount (0->0xFF) for the pixels
 */
@@ -155,7 +155,7 @@ typedef struct _raster2d_interface
 	GF_Err (*stencil_set_linear_gradient) (GF_STENCIL _this, Fixed start_x, Fixed start_y, Fixed end_x, Fixed end_y);
 	/*radial gradient brush center point, focal point and radius - colors can only be set through set_interpolation */
 	GF_Err (*stencil_set_radial_gradient) (GF_STENCIL _this, Fixed cx, Fixed cy, Fixed fx, Fixed fy, Fixed x_radius, Fixed y_radius);
-	/*radial and linear gradient (not used with vertex) - set color interpolation at given points, 
+	/*radial and linear gradient (not used with vertex) - set color interpolation at given points,
 		@pos[i]: distance from (center for radial, start for linear) expressed between 0 and 1 (1 being the gradient bounds)
 		@col[i]: associated color
 	NOTE 1: the colors at 0 and 1.0 MUST be provided
@@ -170,11 +170,11 @@ typedef struct _raster2d_interface
 	GF_Err (*stencil_set_vertex_center) (GF_STENCIL _this, Fixed cx, Fixed cy, u32 color);
 	/*set the center of the gradient*/
 	GF_Err (*stencil_set_vertex_colors) (GF_STENCIL _this, u32 *colors, u32 nbCol);
-	
+
 	/*sets global alpha blending level for stencil (texture and gradients)
 	the alpha channel shall be combined with the color matrix if any*/
 	GF_Err (*stencil_set_alpha) (GF_STENCIL _this, u8 alpha);
-	
+
 	/*set stencil texture
 		@pixels: texture data, from top to bottom
 		@width, @height: texture size
@@ -188,9 +188,9 @@ typedef struct _raster2d_interface
 	data is not required to be available for texturing until the stencil is used in a draw operation
 	*/
 	GF_Err (*stencil_set_texture) (GF_STENCIL _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy);
-	/*creates internal texture - pixel data is owned by texture brush - set to NULL if not supported - this is used to 
-	cope with engines that don't support random strides (ex: Gdiplus needs stride to be a multiple of 4) 
-	if not set the compositor will create its own mem texture and pass it through set_texture - pixel format shall 
+	/*creates internal texture - pixel data is owned by texture brush - set to NULL if not supported - this is used to
+	cope with engines that don't support random strides (ex: Gdiplus needs stride to be a multiple of 4)
+	if not set the compositor will create its own mem texture and pass it through set_texture - pixel format shall
 	be respected as far as Alpha is concerned (eg alpha info shall be kept and used in blit) */
 	GF_Err (*stencil_create_texture) (GF_STENCIL _this, u32 width, u32 height, GF_PixelFormat pixelFormat);
 	/*signals the texture has been modified (internal texture only)*/
@@ -204,7 +204,7 @@ typedef struct _raster2d_interface
 	GF_Err (*stencil_set_color_matrix) (GF_STENCIL _this, GF_ColorMatrix *cmat);
 
 	/*creates surface object*/
-	/* @center_coords: true indicates mathematical-like coord system, 
+	/* @center_coords: true indicates mathematical-like coord system,
 					   false indicates computer-like coord system */
 	GF_SURFACE (*surface_new) (struct _raster2d_interface *, Bool center_coords);
 	/* delete surface object */
@@ -252,7 +252,7 @@ typedef struct _raster2d_interface
 	the given rect is formatted as a clipper - CF ABOVE NOTE ON CLIPPERS*/
 	GF_Err (*surface_clear)(GF_SURFACE _this, GF_IRect *rc, GF_Color col);
 
-/*private:*/
+	/*private:*/
 	void *internal;
 } GF_Raster2D;
 

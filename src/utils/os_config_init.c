@@ -19,7 +19,7 @@
  *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -65,7 +65,7 @@
 static Bool enum_mod_dir(void *cbck, char *item_name, char *item_path)
 {
 	if (!strnicmp(item_name, "gm_", 3)) {
-printf("Found %s\n", item_name);
+		printf("Found %s\n", item_name);
 		*(Bool *) cbck = GF_TRUE;
 	}
 	return GF_FALSE;
@@ -108,8 +108,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	FILE *f;
 	char *sep;
 	char szPath[GF_MAX_PATH];
-	
-	
+
+
 #ifdef _WIN32_WCE
 	TCHAR w_szPath[GF_MAX_PATH];
 	GetModuleFileName(NULL, w_szPath, GF_MAX_PATH);
@@ -117,7 +117,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #else
 	GetModuleFileNameA(NULL, file_path, GF_MAX_PATH);
 #endif
-	
+
 	/*remove exe name*/
 	if (strstr(file_path, ".exe")) {
 		sep = strrchr(file_path, '\\');
@@ -127,12 +127,12 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	strcpy(szPath, file_path);
 	strlwr(szPath);
 
-	/*if this is run from a browser, we do not get our app path - fortunately on Windows, we always use 'GPAC' in the 
+	/*if this is run from a browser, we do not get our app path - fortunately on Windows, we always use 'GPAC' in the
 	installation path*/
 	if (!strstr(file_path, "gpac")) {
 		HKEY hKey = NULL;
 		DWORD dwSize = GF_MAX_PATH;
-		
+
 		/*locate the key in current user, then in local machine*/
 #ifdef _WIN32_WCE
 		DWORD dwType = REG_SZ;
@@ -147,7 +147,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #else
 		if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\GPAC", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
 			RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\GPAC", 0, KEY_READ, &hKey);
-		
+
 		dwSize = GF_MAX_PATH;
 
 #ifdef _DEBUG
@@ -161,7 +161,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 
 	if (path_type==GF_PATH_APP) return 1;
-	
+
 	if (path_type==GF_PATH_GUI) {
 		char *sep;
 		strcat(file_path, "\\gui");
@@ -202,7 +202,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	f = gf_f64_open(szPath, "wb");
 	/*COMPLETE FAILURE*/
 	if (!f) return 0;
-	
+
 	fclose(f);
 	gf_delete_file(szPath);
 	return 1;
@@ -221,7 +221,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	return 1;
 }
 
-	
+
 #elif defined(__SYMBIAN__)
 
 #if defined(__SERIES60_3X__)
@@ -256,19 +256,19 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	if (path_type==GF_PATH_CFG) {
 		char *user_home = getenv("HOME");
 #ifdef GPAC_IPHONE
-        char buf[PATH_MAX];
-        char *res;
+		char buf[PATH_MAX];
+		char *res;
 #endif
 		if (!user_home) return 0;
 #ifdef GPAC_IPHONE
-        res = realpath(user_home, buf);
-        if (res) {
-            strcpy(file_path, buf);
-        } else
+		res = realpath(user_home, buf);
+		if (res) {
+			strcpy(file_path, buf);
+		} else
 #endif
-        strcpy(file_path, user_home);
+			strcpy(file_path, user_home);
 		if (file_path[strlen(file_path)-1] == '/') file_path[strlen(file_path)-1] = 0;
-        return 1;
+		return 1;
 	}
 
 	if (path_type==GF_PATH_APP) {
@@ -282,7 +282,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 #elif defined(GPAC_CONFIG_LINUX)
 		size = readlink("/proc/self/exe", file_path, GF_MAX_PATH);
-		if (size>0) {				
+		if (size>0) {
 			char *sep = strrchr(file_path, '/');
 			if (sep) sep[0] = 0;
 			return 1;
@@ -291,7 +291,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		return 0;
 	}
 
-	
+
 	/*locate the app*/
 	if (!get_default_install_path(app_path, GF_PATH_APP)) return 0;
 
@@ -363,9 +363,9 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		get_default_install_path(app_path, GF_PATH_APP);
 		strcat(app_path, "/gui");
 		if (check_file_exists("gui_old.bt", app_path, file_path)) return 1;
-#endif		
+#endif
 	}
-	else { // (path_type==GF_PATH_MODULES) 
+	else { // (path_type==GF_PATH_MODULES)
 		strcat(app_path, "/Contents/MacOS/modules");
 		if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
 	}
@@ -390,7 +390,7 @@ static GF_Config *create_default_config(char *file_path)
 	}
 	/*Create the config file*/
 	sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
-    fprintf(stderr, "Trying to create config file: %s", szPath);
+	fprintf(stderr, "Trying to create config file: %s", szPath);
 	f = gf_f64_open(szPath, "wt");
 	if (!f) return NULL;
 	fclose(f);
@@ -461,7 +461,7 @@ static GF_Config *create_default_config(char *file_path)
 	gf_cfg_set_key(cfg, "Audio", "DriverName", "SDL Audio Output");
 #endif
 #ifdef GPAC_IPHONE
-    gf_cfg_set_key(cfg, "Compositor", "DisableGLUScale", "yes");
+	gf_cfg_set_key(cfg, "Compositor", "DisableGLUScale", "yes");
 #endif
 
 	gf_cfg_set_key(cfg, "Video", "SwitchResolution", "no");
@@ -487,7 +487,7 @@ static GF_Config *create_default_config(char *file_path)
 }
 
 /*check if modules directory has changed in the config file
-this is mainly intended for OSX where we can have an install in /usr/... and an install in /Applications/Osmo4.app 
+this is mainly intended for OSX where we can have an install in /usr/... and an install in /Applications/Osmo4.app
 */
 static void check_modules_dir(GF_Config *cfg)
 {
@@ -501,7 +501,7 @@ static void check_modules_dir(GF_Config *cfg)
 #endif
 	}
 
-	/*if startup file was disabled, do not attempt to correct it*/	
+	/*if startup file was disabled, do not attempt to correct it*/
 	if (gf_cfg_get_key(cfg, "General", "StartupFile")==NULL) return;
 
 	if ( get_default_install_path(path, GF_PATH_GUI) ) {

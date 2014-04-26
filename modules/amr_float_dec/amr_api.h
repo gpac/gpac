@@ -4,11 +4,11 @@
 /*AMR*/
 void Decoder_Interface_Decode( void *st,
 #ifndef ETSI
-      unsigned char *bits,
+                               unsigned char *bits,
 #else
-      short *bits,
+                               short *bits,
 #endif
-      short *synth, int bfi );
+                               short *synth, int bfi );
 
 void *Decoder_Interface_init( void );
 

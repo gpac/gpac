@@ -65,7 +65,7 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 	case GF_EVENT_SCENE_SIZE:
 		app->m_scene_width = event->size.width;
 		app->m_scene_height = event->size.height;
-		if (!pFrame->m_full_screen) 
+		if (!pFrame->m_full_screen)
 			pFrame->PostMessage(WM_SETSIZE, event->size.width, event->size.height);
 		break;
 	case GF_EVENT_CONNECT:
@@ -80,7 +80,7 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 		/*by default, don't display timing if not seekable and vice-versa*/
 		if (app->m_can_seek != pFrame->m_view_timing) {
 			pFrame->m_view_timing = app->m_can_seek;
-			if (!pFrame->m_full_screen) 
+			if (!pFrame->m_full_screen)
 				pFrame->PostMessage(WM_SETSIZE, 0, 0);
 		}
 		break;
@@ -95,11 +95,11 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 	/*ipaq keys*/
 	case GF_EVENT_KEYDOWN:
 		switch (event->key.key_code) {
-		case GF_KEY_F1: 
-			pFrame->PostMessage(WM_COMMAND, ID_FILE_OPEN); 
+		case GF_KEY_F1:
+			pFrame->PostMessage(WM_COMMAND, ID_FILE_OPEN);
 			break;
 		case GF_KEY_F2:
-			pFrame->PostMessage(WM_QUIT); 
+			pFrame->PostMessage(WM_QUIT);
 			break;
 		case GF_KEY_F3:
 			pFrame->PostMessage(WM_COMMAND, ID_FILE_RESTART);
@@ -125,7 +125,7 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 			}
 			break;
 		case GF_KEY_UP:
-			if (app->m_duration>=2000) pFrame->PostMessage(WM_COMMAND, ID_FILE_STEP);	
+			if (app->m_duration>=2000) pFrame->PostMessage(WM_COMMAND, ID_FILE_STEP);
 			break;
 		case GF_KEY_DOWN:
 			gf_term_set_option(app->m_term, GF_OPT_REFRESH, 0);
@@ -136,7 +136,7 @@ Bool Osmo4CE_EventProc(void *priv, GF_Event *event)
 		pFrame->PostMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
 		return 0;
 	}
-	
+
 	return 0;
 }
 
@@ -157,7 +157,7 @@ static void osmo4_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_lis
 {
 	FILE *logs = (FILE *) cbk;
 	if (logs) {
-	    vfprintf(logs, fmt, list);
+		vfprintf(logs, fmt, list);
 		fflush(logs);
 	}
 }
@@ -179,7 +179,7 @@ void COsmo4::EnableLogs(Bool turn_on)
 			gf_log_set_callback(m_logs, osmo4_do_log);
 			gf_cfg_set_key(m_user.config, "General", "Logs", "network:rtp:sync:codec:media@debug");
 		}
-	} 
+	}
 	if (!turn_on) {
 		if (m_logs) {
 			fclose(m_logs);
@@ -204,7 +204,7 @@ BOOL COsmo4::InitInstance()
 	}
 
 	gf_sys_init();
-	
+
 	SetRegistryKey(_T("GPAC"));
 
 	m_prev_batt_bl = m_prev_ac_bl = 0;
@@ -322,7 +322,7 @@ public:
 
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CAboutDlg)
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
 
@@ -350,7 +350,7 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
 	//{{AFX_MSG_MAP(CAboutDlg)
-		// No message handlers
+	// No message handlers
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -358,7 +358,7 @@ END_MESSAGE_MAP()
 // COsmo4 commands
 // Added for WCE apps
 
-BOOL CAboutDlg::OnInitDialog() 
+BOOL CAboutDlg::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	CString str = _T("Osmo4 Player\nGPAC V");
@@ -367,7 +367,7 @@ BOOL CAboutDlg::OnInitDialog()
 	str += _T(GPAC_BUILD_NUMBER);
 	str += _T(")");
 	m_AbtTxt.SetWindowText(str);
-	return TRUE; 
+	return TRUE;
 }
 
 
@@ -381,7 +381,7 @@ void COsmo4::OnAppAbout()
 }
 
 
-int COsmo4::ExitInstance() 
+int COsmo4::ExitInstance()
 {
 	gf_term_del(m_term);
 	gf_modules_del(m_user.modules);
@@ -425,7 +425,7 @@ void COsmo4::Pause()
 void COsmo4::OnConfigure()
 {
 	COptions dlg;
-	
+
 	ShowTaskBar(1);
 	dlg.DoModal();
 	ShowTaskBar(0);
@@ -487,7 +487,7 @@ CString COsmo4::GetFileFilter()
 		CString sOpt;
 		const char *opt = gf_cfg_get_key(m_user.config, "MimeTypes", sMime);
 		/*remove #include <gpac/options.h>
- name*/
+		name*/
 		strcpy(szKeyList, opt+1);
 		sKey = strrchr(szKeyList, '\"');
 		if (!sKey) continue;
@@ -518,7 +518,7 @@ CString COsmo4::GetFileFilter()
 
 		sOpt = CString(szKeyList);
 		while (1) {
-			
+
 			int pos = sOpt.Find(' ');
 			CString ext = (pos==-1) ? sOpt : sOpt.Left(pos);
 			/*WATCHOUT: we do have some "double" ext , eg .wrl.gz - these are NOT supported by windows*/
@@ -553,7 +553,7 @@ CString COsmo4::GetFileFilter()
 	return supportedFiles;
 }
 
-void COsmo4::OnOpenFile() 
+void COsmo4::OnOpenFile()
 {
 	Bool res;
 	CFileDialog fd(TRUE,NULL,_T("\\"),OFN_HIDEREADONLY, GetFileFilter());
@@ -564,12 +564,12 @@ void COsmo4::OnOpenFile()
 		res = 1;
 		m_filename = fd.GetPathName();
 		m_DoResume = 0;/*done by term*/
-	} 
+	}
 	ShowTaskBar(0);
 	if (res) m_pMainWnd->PostMessage(WM_OPENURL);
 }
 
-void COsmo4::OnOpenUrl() 
+void COsmo4::OnOpenUrl()
 {
 	OpenDlg dlg;
 	Bool res;
@@ -578,12 +578,12 @@ void COsmo4::OnOpenUrl()
 	if (dlg.DoModal() == IDOK) {
 		res = 1;
 		m_DoResume = 0;/*done by term*/
-	} 
+	}
 	ShowTaskBar(0, 1);
 	if (res) m_pMainWnd->PostMessage(WM_OPENURL);
 }
 
-void COsmo4::SetBacklightState(Bool disable) 
+void COsmo4::SetBacklightState(Bool disable)
 {
 	HKEY hKey = 0;
 	DWORD dwSize;
@@ -623,16 +623,16 @@ void COsmo4::SetBacklightState(Bool disable)
 	}
 }
 
-void COsmo4::OnShortcuts() 
+void COsmo4::OnShortcuts()
 {
 	ShowTaskBar(1);
 
 	MessageBox(NULL,
-		_T("Double Click: Fullscreen on/off\n"),
+	           _T("Double Click: Fullscreen on/off\n"),
 
-		_T("Osmo4 Shortcuts"),
-		MB_OK);
-	
+	           _T("Osmo4 Shortcuts"),
+	           MB_OK);
+
 	ShowTaskBar(0);
 }
 

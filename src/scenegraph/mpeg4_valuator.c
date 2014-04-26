@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -48,7 +48,7 @@ static void format_sftime_string(Fixed _val, char *str)
 
 static void valuator_get_output(M_Valuator *p, GenMFField *inMFField, u32 inType, Bool do_sum, u32 i, SFVec4f *output, u32 *num_out)
 {
-	
+
 	switch (inType) {
 	case GF_SG_VRML_MFINT32:
 	{
@@ -59,7 +59,7 @@ static void valuator_get_output(M_Valuator *p, GenMFField *inMFField, u32 inType
 		output->z = gf_mulfix(p->Factor3, vi) + p->Offset3;
 		output->q = gf_mulfix(p->Factor4, vi) + p->Offset4;
 	}
-		break;
+	break;
 	case GF_SG_VRML_MFFLOAT:
 	{
 		Fixed sff = ((MFFloat *)inMFField)->vals[i];
@@ -68,7 +68,7 @@ static void valuator_get_output(M_Valuator *p, GenMFField *inMFField, u32 inType
 		output->z = gf_mulfix(p->Factor3, sff) + p->Offset3;
 		output->q = gf_mulfix(p->Factor4, sff) + p->Offset4;
 	}
-		break;
+	break;
 	case GF_SG_VRML_MFCOLOR:
 	{
 		SFColor sfc = ((MFColor *)inMFField)->vals[i];
@@ -78,7 +78,7 @@ static void valuator_get_output(M_Valuator *p, GenMFField *inMFField, u32 inType
 		output->q = p->Offset4;
 		*num_out = 3;
 	}
-		break;
+	break;
 	case GF_SG_VRML_MFVEC2F:
 	{
 		SFVec2f sfv = ((MFVec2f *)inMFField)->vals[i];
@@ -88,7 +88,7 @@ static void valuator_get_output(M_Valuator *p, GenMFField *inMFField, u32 inType
 		output->q = p->Offset4;
 		*num_out = 2;
 	}
-		break;
+	break;
 	case GF_SG_VRML_MFVEC3F:
 	{
 		SFVec3f sfv = ((MFVec3f *)inMFField)->vals[i];
@@ -98,7 +98,7 @@ static void valuator_get_output(M_Valuator *p, GenMFField *inMFField, u32 inType
 		output->q = p->Offset4;
 		*num_out = 3;
 	}
-		break;
+	break;
 	case GF_SG_VRML_MFVEC4F:
 	case GF_SG_VRML_MFROTATION:
 	{
@@ -109,7 +109,7 @@ static void valuator_get_output(M_Valuator *p, GenMFField *inMFField, u32 inType
 		output->q = gf_mulfix(p->Factor4, sfv.q) + p->Offset4;
 		*num_out = 4;
 	}
-		break;
+	break;
 	case GF_SG_VRML_MFSTRING:
 		/*cf below*/
 		output->x = output->y = output->z = output->q = 0;
@@ -195,12 +195,13 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 		}
 		if (!i) sf_out = output;
 	}
-	
+
 	gf_sg_vrml_mf_alloc(&p->outMFColor, GF_SG_VRML_MFCOLOR, count);
 	gf_sg_vrml_mf_alloc(&p->outMFFloat, GF_SG_VRML_MFFLOAT, count);
 	gf_sg_vrml_mf_alloc(&p->outMFInt32, GF_SG_VRML_MFINT32, count);
 	gf_sg_vrml_mf_alloc(&p->outMFRotation, GF_SG_VRML_MFROTATION, count);
-	gf_sg_vrml_mf_alloc(&p->outMFString, GF_SG_VRML_MFSTRING, count);	gf_sg_vrml_mf_alloc(&p->outMFVec2f, GF_SG_VRML_MFVEC2F, count);
+	gf_sg_vrml_mf_alloc(&p->outMFString, GF_SG_VRML_MFSTRING, count);
+	gf_sg_vrml_mf_alloc(&p->outMFVec2f, GF_SG_VRML_MFVEC2F, count);
 	gf_sg_vrml_mf_alloc(&p->outMFVec3f, GF_SG_VRML_MFVEC3F, count);
 
 	/*valuator is a special case, all routes are triggered*/
@@ -265,12 +266,12 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 
 		case GF_SG_VRML_MFFLOAT:
 			gf_sg_vrml_mf_alloc(&p->outMFFloat, GF_SG_VRML_MFFLOAT, count);
-			for (i=0; i<count; i++) 
+			for (i=0; i<count; i++)
 				p->outMFFloat.vals[i] = mf_output->vals[i].x;
 			break;
 		case GF_SG_VRML_MFINT32:
 			gf_sg_vrml_mf_alloc(&p->outMFInt32, GF_SG_VRML_MFINT32, count);
-			for (i=0; i<count; i++) 
+			for (i=0; i<count; i++)
 				p->outMFInt32.vals[i] = FIX2INT(mf_output->vals[i].x);
 			break;
 		case GF_SG_VRML_MFCOLOR:
@@ -306,7 +307,8 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 			}
 			break;
 		case GF_SG_VRML_MFSTRING:
-			gf_sg_vrml_mf_alloc(&p->outMFString, GF_SG_VRML_MFSTRING, count);	gf_sg_vrml_mf_alloc(&p->outMFVec2f, GF_SG_VRML_MFVEC2F, count);
+			gf_sg_vrml_mf_alloc(&p->outMFString, GF_SG_VRML_MFSTRING, count);
+			gf_sg_vrml_mf_alloc(&p->outMFVec2f, GF_SG_VRML_MFVEC2F, count);
 			for (i=0; i<count; i++) {
 				if (num_out==1) {
 					if (inType==GF_SG_VRML_SFTIME) {
@@ -446,7 +448,7 @@ static void Valuator_SetInMFInt32(GF_Node *n, GF_Route *route)
 {
 	M_Valuator *_this = (M_Valuator *) n;
 	SetValuatorOutput(_this, NULL, (GenMFField *) &_this->inMFInt32, GF_SG_VRML_MFINT32);
-} 
+}
 static void Valuator_SetInMFVec2f(GF_Node *n, GF_Route *route)
 {
 	M_Valuator *_this = (M_Valuator *) n;
@@ -501,7 +503,7 @@ Bool InitValuator(M_Valuator *node)
 
 	gf_node_set_private((GF_Node*)node, temp);
 	gf_node_set_callback_function((GF_Node*)node, valuator_destroy);
-	
+
 	return 1;
 }
 

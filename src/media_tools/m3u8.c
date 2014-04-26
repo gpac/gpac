@@ -238,13 +238,13 @@ GF_Err playlist_element_dump(const PlaylistElement * e, int indent) {
 		return r;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] PlayListElement[%p, title=%s, codecs=%s, duration=%d, bandwidth=%d, url=%s, type=%s]\n",
-		(void*)e,
-		e->title,
-		e->codecs,
-		e->durationInfo,
-		e->bandwidth,
-		e->url,
-		e->elementType == TYPE_STREAM ? "stream" : "playlist"));
+	                                   (void*)e,
+	                                   e->title,
+	                                   e->codecs,
+	                                   e->durationInfo,
+	                                   e->bandwidth,
+	                                   e->url,
+	                                   e->elementType == TYPE_STREAM ? "stream" : "playlist"));
 	if (TYPE_PLAYLIST == e->elementType) {
 		int sz;
 		assert( e->element.playlist.elements);
@@ -564,14 +564,15 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 			continue;
 		if (currentLineNumber == 1) {
 			/* Playlist MUST start with #EXTM3U */
-/*			if (len < 7 || strncmp("#EXTM3U", currentLine, 7)!=0) {
-				fclose(f);
-				variant_playlist_del(pl);
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Failed to parse M3U8 File, it should start with #EXTM3U, but was : %s\n", currentLine));
-				return GF_STREAM_NOT_FOUND;
-			}
-			continue;
-*/		}
+			/*			if (len < 7 || strncmp("#EXTM3U", currentLine, 7)!=0) {
+							fclose(f);
+							variant_playlist_del(pl);
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Failed to parse M3U8 File, it should start with #EXTM3U, but was : %s\n", currentLine));
+							return GF_STREAM_NOT_FOUND;
+						}
+						continue;
+			*/
+		}
 		if (currentLine[0] == '#') {
 			/* A comment or a directive */
 			if (strncmp("#EXT", currentLine, 4)==0) {
@@ -614,8 +615,8 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 				}
 				} else */ {
 					fullURL = gf_url_concatenate(baseURL, currentLine);
-			}
-			assert( fullURL );
+				}
+				assert( fullURL );
 			}
 			{
 				u32 count;
@@ -661,12 +662,12 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 						//assert( 0 );
 					}
 					currentPlayList = playlist_element_new(
-						TYPE_UNKNOWN,
-						fullURL,
-						attribs.title,
-						attribs.codecs,
-						attribs.durationInSeconds,
-						attribs.byteRangeStart, attribs.byteRangeEnd);
+					                      TYPE_UNKNOWN,
+					                      fullURL,
+					                      attribs.title,
+					                      attribs.codecs,
+					                      attribs.durationInSeconds,
+					                      attribs.byteRangeStart, attribs.byteRangeEnd);
 					if (currentPlayList == NULL) {
 						/* OUT of memory */
 						variant_playlist_del(*playlist);
@@ -689,12 +690,12 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 						PlaylistElement * subElement;
 						assert(baseURL);
 						currentPlayList = playlist_element_new(
-							TYPE_PLAYLIST,
-							baseURL,
-							attribs.title,
-							attribs.codecs,
-							attribs.durationInSeconds, 
-							attribs.byteRangeStart, attribs.byteRangeEnd);
+						                      TYPE_PLAYLIST,
+						                      baseURL,
+						                      attribs.title,
+						                      attribs.codecs,
+						                      attribs.durationInSeconds,
+						                      attribs.byteRangeStart, attribs.byteRangeEnd);
 						if (currentPlayList == NULL) {
 							/* OUT of memory */
 							variant_playlist_del(*playlist);
@@ -708,12 +709,12 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 						currentPlayList->title = NULL;
 						currentPlayList->codecs = NULL;
 						subElement = playlist_element_new(
-							TYPE_UNKNOWN,
-							fullURL,
-							attribs.title,
-							attribs.codecs,
-							attribs.durationInSeconds,
-							attribs.byteRangeStart, attribs.byteRangeEnd);
+						                 TYPE_UNKNOWN,
+						                 fullURL,
+						                 attribs.title,
+						                 attribs.codecs,
+						                 attribs.durationInSeconds,
+						                 attribs.byteRangeStart, attribs.byteRangeEnd);
 						if (subElement == NULL) {
 							variant_playlist_del(*playlist);
 							playlist_element_del(currentPlayList);
@@ -723,19 +724,19 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 						}
 						gf_list_add(currentPlayList->element.playlist.elements, subElement);
 						gf_list_add(program->bitrates, currentPlayList);
-						currentPlayList->element.playlist.computed_duration += subElement->durationInfo; 
+						currentPlayList->element.playlist.computed_duration += subElement->durationInfo;
 						assert( program );
 						assert( program->bitrates);
 						assert( currentPlayList);
 
 					} else {
 						PlaylistElement * subElement = playlist_element_new(
-							TYPE_UNKNOWN,
-							fullURL,
-							attribs.title,
-							attribs.codecs,
-							attribs.durationInSeconds,
-							attribs.byteRangeStart, attribs.byteRangeEnd);
+						                                   TYPE_UNKNOWN,
+						                                   fullURL,
+						                                   attribs.title,
+						                                   attribs.codecs,
+						                                   attribs.durationInSeconds,
+						                                   attribs.byteRangeStart, attribs.byteRangeEnd);
 						if (currentPlayList->elementType != TYPE_PLAYLIST) {
 							currentPlayList->elementType = TYPE_PLAYLIST;
 							if (!currentPlayList->element.playlist.elements)
@@ -749,7 +750,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 							return GF_OUT_OF_MEM;
 						}
 						gf_list_add(currentPlayList->element.playlist.elements, subElement);
-						currentPlayList->element.playlist.computed_duration += subElement->durationInfo; 
+						currentPlayList->element.playlist.computed_duration += subElement->durationInfo;
 					}
 				}
 
@@ -759,11 +760,11 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 					currentPlayList->element.playlist.target_duration = attribs.targetDurationInSeconds;
 					currentPlayList->durationInfo = attribs.targetDurationInSeconds;
 				}
-				if (attribs.durationInSeconds) {					
+				if (attribs.durationInSeconds) {
 					if (currentPlayList->durationInfo == 0) {
 						/* we set the playlist duration info as the duration of a segment, only if it's not set
-						   There are cases of playlist with the last segment with a duration different from the others 
-						   (example: Apple bipbop test)*/				  
+						   There are cases of playlist with the last segment with a duration different from the others
+						   (example: Apple bipbop test)*/
 						currentPlayList->durationInfo = attribs.durationInSeconds;
 					}
 				}
@@ -800,7 +801,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 		for (j=0; j<gf_list_count(prog->bitrates); j++) {
 			PlaylistElement *ple = gf_list_get(prog->bitrates, j);
 			if (ple->elementType==TYPE_PLAYLIST) {
-				if (ple->element.playlist.computed_duration > prog->computed_duration) 
+				if (ple->element.playlist.computed_duration > prog->computed_duration)
 					prog->computed_duration = ple->element.playlist.computed_duration;
 			}
 		}

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -36,7 +36,7 @@
 
 static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color)
 {
-    return;
+	return;
 #if defined(GPAC_USE_OGL_ES)
 	GLfloat line[4];
 
@@ -64,7 +64,7 @@ static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Colo
 
 static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u8 alpha)
 {
-    return;
+	return;
 #if defined(GPAC_USE_OGL_ES)
 	GLfloat line[4];
 
@@ -95,7 +95,7 @@ static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color c
 
 static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_Color color)
 {
-    return;
+	return;
 #if defined(GPAC_USE_OGL_ES)
 	GLfloat line[8];
 
@@ -142,7 +142,7 @@ void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u
 {
 	SFColor rgb;
 	if (!visual->is_attached) return;
-	
+
 	if (!BackColor && !visual->offscreen) {
 		if (!visual->compositor->user || !(visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
 			BackColor = visual->compositor->back_color & 0x00FFFFFF;
@@ -226,7 +226,7 @@ void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area)
 
 		visual_3d_mesh_paint(&a_tr_state, compositor->hybgl_mesh);
 		gf_sc_texture_disable(compositor->hybgl_txh);
-		
+
 		if (area) {
 			SFVec2f size;
 			size.x = INT2FIX(compositor->vp_width);
@@ -319,7 +319,7 @@ void compositor_2d_reset_gl_auto(GF_Compositor *compositor)
 			gf_free(compositor->hybgl_txh->data);
 			compositor->hybgl_txh->data = NULL;
 		}
-		if (compositor->hybgl_txh->tx_io) 
+		if (compositor->hybgl_txh->tx_io)
 			gf_sc_texture_release(compositor->hybgl_txh);
 
 		gf_free(compositor->hybgl_txh);
@@ -361,7 +361,7 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 	glDisable(GL_NORMALIZE);
 	glDisable(GL_DEPTH_TEST);
 	//glDepthFunc(GL_LEQUAL);
-	
+
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	if (compositor->opengl_raster) {
@@ -406,7 +406,7 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 
 		e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &callbacks, compositor->vp_width, compositor->vp_height);
 		if (e) return e;
-		
+
 		return compositor_2d_setup_opengl(visual);
 	}
 #endif
@@ -422,11 +422,11 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 
 		if ((compositor->hybgl_txh->width != compositor->vp_width) || (compositor->hybgl_txh->height != compositor->vp_height)) {
 			SFVec2f size;
-			compositor->hybgl_txh->data = gf_realloc(compositor->hybgl_txh->data, 4*compositor->vp_width*compositor->vp_height);		
+			compositor->hybgl_txh->data = gf_realloc(compositor->hybgl_txh->data, 4*compositor->vp_width*compositor->vp_height);
 
-			if (compositor->hybgl_txh->tx_io) 
+			if (compositor->hybgl_txh->tx_io)
 				gf_sc_texture_release(compositor->hybgl_txh);
-		
+
 			compositor->hybgl_txh->width = compositor->vp_width;
 			compositor->hybgl_txh->height = compositor->vp_height;
 			compositor->hybgl_txh->stride = 4*compositor->vp_width;
@@ -455,11 +455,11 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 			memset(compositor->hybgl_txh->data, 0, 4*compositor->hybgl_txh->width*compositor->hybgl_txh->height);
 
 		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hybgl_txh->data,
-							compositor->hybgl_txh->width,
-							compositor->hybgl_txh->height,
-							0,
-							compositor->hybgl_txh->width * 4,
-							(GF_PixelFormat) GF_PIXEL_RGBA);
+		        compositor->hybgl_txh->width,
+		        compositor->hybgl_txh->height,
+		        0,
+		        compositor->hybgl_txh->width * 4,
+		        (GF_PixelFormat) GF_PIXEL_RGBA);
 		if (e) return e;
 		e = compositor_2d_setup_opengl(visual);
 		if (e) return e;
@@ -474,9 +474,9 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 
 	/*try from video memory handle (WIN32) if supported*/
 	if ((compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_HWND_HDC)
-		&& compositor->rasterizer->surface_attach_to_device
-		&& compositor->video_out->LockOSContext
-		) {
+	        && compositor->rasterizer->surface_attach_to_device
+	        && compositor->video_out->LockOSContext
+	   ) {
 		compositor->hw_context = compositor->video_out->LockOSContext(compositor->video_out, 1);
 		if (compositor->hw_context) {
 			e = compositor->rasterizer->surface_attach_to_device(visual->raster_surface, compositor->hw_context, compositor->vp_width, compositor->vp_height);
@@ -507,11 +507,11 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 		compositor->hw_locked = 1;
 
 		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hw_surface.video_buffer,
-							compositor->hw_surface.width,
-							compositor->hw_surface.height,
-							compositor->hw_surface.pitch_x,
-							compositor->hw_surface.pitch_y,
-							(GF_PixelFormat) compositor->hw_surface.pixel_format);
+		        compositor->hw_surface.width,
+		        compositor->hw_surface.height,
+		        compositor->hw_surface.pitch_x,
+		        compositor->hw_surface.pitch_y,
+		        (GF_PixelFormat) compositor->hw_surface.pixel_format);
 		if (!e) {
 			visual->is_attached = 1;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Video surface memory attached to raster - w=%d h=%d pitch_x=%d pitch_y=%d\n", compositor->hw_surface.width, compositor->hw_surface.height, compositor->hw_surface.pitch_x, compositor->hw_surface.pitch_y));
@@ -554,21 +554,21 @@ void compositor_2d_release_video_access(GF_VisualManager *visual)
 #ifndef GPAC_DISABLE_LOGS
 static void log_blit_times(GF_TextureHandler *txh, u32 push_time)
 {
-    u32 ck;
-    if (!txh->stream) return;
-    push_time = gf_sys_clock() - push_time;
-    gf_mo_get_object_time(txh->stream, &ck);
-    if (ck>txh->last_frame_time) {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Bliting frame (CTS %d) %d ms too late\n", txh->last_frame_time, ck - txh->last_frame_time ));
-    }
-    if (txh->nb_frames==100) {
-        txh->nb_frames = 0;
-        txh->upload_time = 0;
-    }
-    txh->nb_frames ++;
-    txh->upload_time += push_time;
-        
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] At %d Blit texture (CTS %d) %d ms after due date - blit in %d ms - average push time %d ms\n", ck, txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
+	u32 ck;
+	if (!txh->stream) return;
+	push_time = gf_sys_clock() - push_time;
+	gf_mo_get_object_time(txh->stream, &ck);
+	if (ck>txh->last_frame_time) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Bliting frame (CTS %d) %d ms too late\n", txh->last_frame_time, ck - txh->last_frame_time ));
+	}
+	if (txh->nb_frames==100) {
+		txh->nb_frames = 0;
+		txh->upload_time = 0;
+	}
+	txh->nb_frames ++;
+	txh->upload_time += push_time;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] At %d Blit texture (CTS %d) %d ms after due date - blit in %d ms - average push time %d ms\n", ck, txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
 }
 #endif
 
@@ -714,11 +714,11 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	if (!txh->data) return GF_TRUE;
 
 	if (!visual->compositor->has_size_info && !(visual->compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE)
-		&& (visual->compositor->override_size_flags & 1)
-		&& !(visual->compositor->override_size_flags & 2)
-		) {
+	        && (visual->compositor->override_size_flags & 1)
+	        && !(visual->compositor->override_size_flags & 2)
+	   ) {
 		if ( (visual->compositor->scene_width < txh->width)
-			|| (visual->compositor->scene_height < txh->height)) {
+		        || (visual->compositor->scene_height < txh->height)) {
 			visual->compositor->scene_width = txh->width;
 			visual->compositor->scene_height = txh->height;
 			visual->compositor->msg_type |= GF_SR_CFG_OVERRIDE_SIZE;
@@ -727,7 +727,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	}
 
 	if (!compositor_texture_rectangles(visual, txh, clip, unclip, &src_wnd, &dst_wnd, &use_blit, &has_scale)) return GF_TRUE;
-	
+
 	/*can we use hardware blitter ?*/
 	hw_caps = visual->compositor->video_out->hw_caps;
 	overlay_type = 0;
@@ -778,8 +778,8 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 		/*disable based on settings*/
 		if (!visual->compositor->enable_yuv_hw
-			|| (ctx->col_mat || (alpha!=0xFF) || !visual->compositor->video_out->Blit)
-			) {
+		        || (ctx->col_mat || (alpha!=0xFF) || !visual->compositor->video_out->Blit)
+		   ) {
 			use_soft_stretch = GF_TRUE;
 			overlay_type = 0;
 		}
@@ -898,10 +898,10 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		push_time = gf_sys_clock();
 		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 1);
 
-		if (!e) {            
+		if (!e) {
 #ifndef GPAC_DISABLE_LOG
-            log_blit_times(txh, push_time);
-#endif            
+			log_blit_times(txh, push_time);
+#endif
 			/*mark drawable as overlay*/
 			ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;
 			visual->has_overlays = GF_TRUE;
@@ -939,7 +939,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 #ifndef GPAC_DISABLE_LOG
 		else {
-            log_blit_times(txh, push_time);
+			log_blit_times(txh, push_time);
 		}
 #endif
 	}
@@ -951,10 +951,10 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		GF_VideoSurface backbuffer;
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_TRUE);
 		if (!e) {
-            u32 push_time = gf_sys_clock();
+			u32 push_time = gf_sys_clock();
 			gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, alpha, 0, col_key, ctx->col_mat);
 #ifndef GPAC_DISABLE_LOG
-            log_blit_times(txh, push_time);
+			log_blit_times(txh, push_time);
 #endif
 			e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_FALSE);
 		} else {
@@ -1021,8 +1021,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_RGBS:
-	case GF_PIXEL_RGBAS:		
-	case GF_PIXEL_YV12_10:		
+	case GF_PIXEL_RGBAS:
+	case GF_PIXEL_YV12_10:
 		break;
 	case GF_PIXEL_YUVD:
 	case GF_PIXEL_RGBD:
@@ -1045,11 +1045,11 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 		if (visual->compositor->video_out->BlitTexture) {
 			if (! visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, col_key
 #ifdef GF_SR_USE_DEPTH
-				, ctx->depth_offset, ctx->depth_gain
+			        , ctx->depth_offset, ctx->depth_gain
 #else
-				, 0, 0
+			        , 0, 0
 #endif
-				))
+			                                                ))
 				return GF_FALSE;
 		} else {
 			if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0))
@@ -1071,12 +1071,12 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 				if (visual->compositor->video_out->BlitTexture) {
 					if (!visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, col_key
 #ifdef GF_SR_USE_DEPTH
-						, ctx->depth_offset, ctx->depth_gain
+					        , ctx->depth_offset, ctx->depth_gain
 #else
-						, 0, 0
+					        , 0, 0
 #endif
-					))
-					return 0;
+					                                               ))
+						return 0;
 				} else if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0)) {
 					return 0;
 				}
@@ -1173,10 +1173,10 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 
 			scaleX = scaleY = FIX_ONE;
 		} else {
-/*
-			compositor->output_width = compositor->vp_width;
-			compositor->output_height = compositor->vp_height;
-*/
+			/*
+						compositor->output_width = compositor->vp_width;
+						compositor->output_height = compositor->vp_height;
+			*/
 			compositor->output_width = compositor->display_width;
 			compositor->output_height = compositor->display_height;
 			compositor->vp_width = compositor->display_width;
@@ -1217,12 +1217,12 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	else if (old_vp_width != compositor->vp_width) changed=1;
 	else if (old_vp_height != compositor->vp_height) changed=1;
 	else if (compositor->is_opengl != evt.setup.opengl_mode) changed=1;
-	
+
 
 	if (changed) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor2D] Reconfiguring display size %d x %d - opengl %s - use %s memory\n", evt.setup.width, evt.setup.height,
-			(evt.setup.opengl_mode==2) ? "Offscreen" : (evt.setup.opengl_mode==1) ? "yes" : "no", evt.setup.system_memory ? "systems" : "video"
-			));
+		                                     (evt.setup.opengl_mode==2) ? "Offscreen" : (evt.setup.opengl_mode==1) ? "yes" : "no", evt.setup.system_memory ? "systems" : "video"
+		                                    ));
 
 		e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 		if (e) {
@@ -1243,7 +1243,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 		}
 
 		compositor->is_opengl = evt.setup.opengl_mode;
-		compositor->was_system_memory = evt.setup.system_memory;		
+		compositor->was_system_memory = evt.setup.system_memory;
 	}
 	if (compositor->has_size_info) {
 		compositor->traverse_state->vp_size.x = INT2FIX(compositor->scene_width);
@@ -1408,7 +1408,7 @@ GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_cl
 			gf_mx2d_inverse(&mx2d);
 			gf_mx2d_apply_rect(&mx2d, &orig);
 		}
-		
+
 		if (clip.x < orig.x) {
 			clip.width -= (orig.x - clip.x);
 			clip.x = orig.x;

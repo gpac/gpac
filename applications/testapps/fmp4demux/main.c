@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 //#define GPAC_HAVE_CONFIG_H
@@ -86,7 +86,7 @@ static u32 iso_progressive_read_thread(void *param)
 			/* get the track number we want */
 			if (track_number == 0) {
 				track_number = gf_isom_get_track_by_id(reader->movie, reader->track_id);
-			} 
+			}
 
 			/* only if we have the track number can we try to get the sample data */
 			if (track_number != 0) {
@@ -109,7 +109,7 @@ static u32 iso_progressive_read_thread(void *param)
 					gf_mx_v(reader->mutex);
 					//gf_sleep(1000);
 				} else {
-					/* we have some samples, lets keep things stable in the parser for now and 
+					/* we have some samples, lets keep things stable in the parser for now and
 					  don't let the data input force a reparsing of the data */
 					reader->refresh_boxes = GF_FALSE;
 
@@ -119,15 +119,15 @@ static u32 iso_progressive_read_thread(void *param)
 						/* if you want the sample description data, you can call:
 						   GF_Descriptor *desc = gf_isom_get_decoder_config(reader->movie, reader->track_handle, di);
 						*/
-						
+
 						samples_processed++;
 						/*here we dump some sample info: samp->data, samp->dataLength, samp->isRAP, samp->DTS, samp->CTS_Offset */
 						fprintf(stdout, "Found sample #%5d (#%5d) of length %8d, RAP: %d, DTS: "LLD", CTS: "LLD"\r", sample_index, samples_processed, iso_sample->dataLength, iso_sample->IsRAP, iso_sample->DTS, iso_sample->DTS+iso_sample->CTS_Offset);
 						sample_index++;
-						
+
 						/*release the sample data, once you're done with it*/
 						gf_isom_sample_del(&iso_sample);
-						
+
 						/* once we have read all the samples, we can release some data and force a reparse of the input buffer */
 						if (sample_index > sample_count) {
 							u64 new_buffer_start;
@@ -144,7 +144,7 @@ static u32 iso_progressive_read_thread(void *param)
 								u32 offset = (u32)new_buffer_start;
 								memmove(reader->data, reader->data+offset, reader->data_size-offset);
 								reader->valid_data_size -= offset;
-							} 
+							}
 							sprintf(reader->data_url, "gmem://%d@%p", reader->valid_data_size, reader->data);
 							gf_isom_refresh_fragmented(reader->movie, &missing_bytes, reader->data_url);
 #endif
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
 	while (1) {
 		/* block the parser until we are done manipulating the data buffer */
 		gf_mx_p(reader.mutex);
-		
+
 		if (reader.valid_data_size + BUFFER_BLOC_SIZE > MAX_BUFFER_SIZE) {
 			/* regulate the reader to limit the max buffer size and let some time to the parser to release buffer data */
 			fprintf(stdout, "Buffer full (%d/%d)- waiting to read next data \r", reader.valid_data_size, reader.data_size);
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 			if (reader.valid_data_size + BUFFER_BLOC_SIZE > reader.data_size) {
 				reader.data = (u8 *)gf_realloc(reader.data, reader.data_size + BUFFER_BLOC_SIZE);
 				reader.data_size += BUFFER_BLOC_SIZE;
-			} 
+			}
 
 			/* read the next bloc of data and update the data buffer url */
 			read_bytes = fread(reader.data+reader.valid_data_size, 1, BUFFER_BLOC_SIZE, input);
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
 					fprintf(stdout, "Error opening fragmented mp4 in progressive mode: %s (missing "LLD" bytes)\n", gf_error_to_string(e), missing_bytes);
 					ret = 1;
 					goto exit;
-				} 
+				}
 			} else {
 				/* let inform the parser that the buffer has been updated with new data */
 				e = gf_isom_refresh_fragmented(reader.movie, &missing_bytes, reader.data_url);
@@ -293,7 +293,7 @@ int main(int argc, char **argv)
 					goto exit;
 				}
 			}
-		
+
 			//gf_sleep(1);
 		}
 	}

@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -71,17 +71,17 @@ void compositor_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAl
 			gf_mx_add_matrix_2d(&tr_state->model_matrix, &atts->transform->mat);
 		}
 		return;
-	} 
+	}
 #endif
 	gf_mx2d_copy(*backup_matrix_2d, tr_state->transform);
 
-	if (atts->transform && atts->transform->is_ref) 
+	if (atts->transform && atts->transform->is_ref)
 		gf_mx2d_copy(tr_state->transform, tr_state->vb_transform);
 
-	if (atts->motionTransform) 
+	if (atts->motionTransform)
 		gf_mx2d_pre_multiply(&tr_state->transform, atts->motionTransform);
 
-	if (atts->transform) 
+	if (atts->transform)
 		gf_mx2d_pre_multiply(&tr_state->transform, &atts->transform->mat);
 
 }
@@ -90,15 +90,15 @@ void compositor_svg_restore_parent_transformation(GF_TraverseState *tr_state, GF
 {
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d && backup_matrix) {
-		gf_mx_copy(tr_state->model_matrix, *backup_matrix);  
+		gf_mx_copy(tr_state->model_matrix, *backup_matrix);
 		return;
-	} 
+	}
 #endif
-	gf_mx2d_copy(tr_state->transform, *backup_matrix_2d);  
+	gf_mx2d_copy(tr_state->transform, *backup_matrix_2d);
 }
 
 #ifdef GPAC_UNUSED_FUNC
-static void gf_svg_apply_inheritance_no_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *render_svg_props) 
+static void gf_svg_apply_inheritance_no_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *render_svg_props)
 {
 #define CHECK_PROP(a, b) if (b) a = b;
 
@@ -107,7 +107,7 @@ static void gf_svg_apply_inheritance_no_inheritance(SVGAllAttributes *all_atts, 
 	CHECK_PROP(render_svg_props->fill, all_atts->fill);
 	CHECK_PROP(render_svg_props->fill_opacity, all_atts->fill_opacity);
 	CHECK_PROP(render_svg_props->fill_rule, all_atts->fill_rule);
-	CHECK_PROP(render_svg_props->solid_color, all_atts->solid_color);		
+	CHECK_PROP(render_svg_props->solid_color, all_atts->solid_color);
 	CHECK_PROP(render_svg_props->solid_opacity, all_atts->solid_opacity);
 	CHECK_PROP(render_svg_props->stop_color, all_atts->stop_color);
 	CHECK_PROP(render_svg_props->stop_opacity, all_atts->stop_opacity);
@@ -123,7 +123,10 @@ static void gf_svg_apply_inheritance_no_inheritance(SVGAllAttributes *all_atts, 
 }
 #endif /*GPAC_UNUSED_FUNC*/
 
-static const struct svg_11_feature { const char *name; Bool supported; } svg11_features[] = 
+static const struct svg_11_feature {
+	const char *name;
+	Bool supported;
+} svg11_features[] =
 {
 	{ "Animation", 1},
 	{ "AnimationEventsAttribute", 1},
@@ -176,46 +179,49 @@ static const struct svg_11_feature { const char *name; Bool supported; } svg11_f
 	{ "SVGDOM-dynamic", 0},
 	{ "SVGDOM-static", 0},
 };
-static const struct svg_12_feature { const char *name; Bool supported; } svg12_features[] = 
+static const struct svg_12_feature {
+	const char *name;
+	Bool supported;
+} svg12_features[] =
 {
-	{ "CoreAttribute", 1}, 
-	{ "NavigationAttribute", 1}, 
-	{ "Structure", 1}, 
-	{ "ConditionalProcessing", 1}, 
-	{ "ConditionalProcessingAttribute", 1}, 
-	{ "Image", 1}, 
-	{ "Prefetch", 1}, 
-	{ "Discard", 1}, 
-	{ "Shape", 1}, 
-	{ "Text", 1}, 
-	{ "PaintAttribute", 1}, 
-	{ "OpacityAttribute", 1}, 
-	{ "GraphicsAttribute", 1}, 
-	{ "Gradient", 1}, 
-	{ "SolidColor", 1}, 
-	{ "Hyperlinking", 1}, 
-	{ "XlinkAttribute", 1}, 
-	{ "ExternalResourcesRequired", 1}, 
-	{ "Scripting", 1}, 
-	{ "Handler", 1}, 
-	{ "Listener", 1}, 
-	{ "TimedAnimation", 1}, 
-	{ "Animation", 1}, 
-	{ "Audio", 1}, 
-	{ "Video", 1}, 
-	{ "Font", 1}, 
-	{ "Extensibility", 1}, 
-	{ "MediaAttribute", 1}, 
-	{ "TextFlow", 1}, 
-	{ "TransformedVideo", 1}, 
-	{ "ComposedVideo", 1}, 
-	{ "EditableTextAttribute", 1}, 
+	{ "CoreAttribute", 1},
+	{ "NavigationAttribute", 1},
+	{ "Structure", 1},
+	{ "ConditionalProcessing", 1},
+	{ "ConditionalProcessingAttribute", 1},
+	{ "Image", 1},
+	{ "Prefetch", 1},
+	{ "Discard", 1},
+	{ "Shape", 1},
+	{ "Text", 1},
+	{ "PaintAttribute", 1},
+	{ "OpacityAttribute", 1},
+	{ "GraphicsAttribute", 1},
+	{ "Gradient", 1},
+	{ "SolidColor", 1},
+	{ "Hyperlinking", 1},
+	{ "XlinkAttribute", 1},
+	{ "ExternalResourcesRequired", 1},
+	{ "Scripting", 1},
+	{ "Handler", 1},
+	{ "Listener", 1},
+	{ "TimedAnimation", 1},
+	{ "Animation", 1},
+	{ "Audio", 1},
+	{ "Video", 1},
+	{ "Font", 1},
+	{ "Extensibility", 1},
+	{ "MediaAttribute", 1},
+	{ "TextFlow", 1},
+	{ "TransformedVideo", 1},
+	{ "ComposedVideo", 1},
+	{ "EditableTextAttribute", 1},
 
-	{ "SVG-static", 1}, 
-	{ "SVG-static-DOM", 1}, 
-	{ "SVG-animated", 1}, 
-	{ "SVG-all", 1}, 
-	{ "SVG-interactive", 1}, 
+	{ "SVG-static", 1},
+	{ "SVG-static-DOM", 1},
+	{ "SVG-animated", 1},
+	{ "SVG-all", 1},
+	{ "SVG-interactive", 1},
 };
 
 
@@ -227,7 +233,7 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 
 	/*process required features*/
 	count = atts->requiredFeatures ? gf_list_count(*atts->requiredFeatures) : 0;
-	for (i=0;i<count;i++) {
+	for (i=0; i<count; i++) {
 		char *feat = NULL;
 		XMLRI *iri = gf_list_get(*atts->requiredFeatures, i);
 		if (!iri->string) continue;
@@ -297,14 +303,20 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 		found = 1;
 	}
 
-	for (i=0;i<count;i++) {
+	for (i=0; i<count; i++) {
 		char *lang = gf_list_get(*atts->systemLanguage, i);
 		/*3 char-code*/
 		if (strlen(lang)==3) {
-			if (!stricmp(lang, lang_3cc)) { found = 1; break; }
+			if (!stricmp(lang, lang_3cc)) {
+				found = 1;
+				break;
+			}
 		}
 		/*2 char-code, only check first 2 chars - TODO FIXME*/
-		else if (!strnicmp(lang, lang_2cc, 2)) { found = 1; break; }
+		else if (!strnicmp(lang, lang_2cc, 2)) {
+			found = 1;
+			break;
+		}
 	}
 	if (!found) return 0;
 
@@ -331,18 +343,18 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 				return 0;
 		}
 	}
-	
+
 	/*OK, we can render this one*/
 	return 1;
 }
 
-Bool compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *atts, GF_TraverseState *tr_state, 
-					 SVGPropertiesPointers *backup_props, u32 *backup_flags)
+Bool compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *atts, GF_TraverseState *tr_state,
+                                  SVGPropertiesPointers *backup_props, u32 *backup_flags)
 {
 	u32 inherited_flags_mask, flags;
 
-	if (atts->requiredFeatures || atts->requiredExtensions || atts->systemLanguage 
-	|| atts->requiredFonts || atts->requiredFormats) {
+	if (atts->requiredFeatures || atts->requiredExtensions || atts->systemLanguage
+	        || atts->requiredFonts || atts->requiredFormats) {
 		if (!compositor_svg_evaluate_conditional(tr_state->visual->compositor, atts))
 			return 0;
 	}
@@ -352,11 +364,11 @@ Bool compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *atts, GF_Trav
 
 #if 0
 	// applying inheritance and determining which group of properties are being inherited
-	inherited_flags_mask = gf_svg_apply_inheritance(atts, tr_state->svg_props);	
+	inherited_flags_mask = gf_svg_apply_inheritance(atts, tr_state->svg_props);
 	gf_svg_apply_animations(node, tr_state->svg_props); // including again inheritance if values are 'inherit'
 #else
 	/* animation (including possibly inheritance) then full inheritance */
-	gf_svg_apply_animations(node, tr_state->svg_props); 
+	gf_svg_apply_animations(node, tr_state->svg_props);
 	inherited_flags_mask = gf_svg_apply_inheritance(atts, tr_state->svg_props);
 //	gf_svg_apply_inheritance_no_inheritance(atts, tr_state->svg_props);
 //	inherited_flags_mask = 0xFFFFFFFF;

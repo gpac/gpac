@@ -200,7 +200,7 @@ int dc_producer_lock(Producer *producer, CircularBuffer *circular_buf)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("producer %s exits lock %d \n", producer->name, producer->idx));
 	gf_mx_v(node->mutex);
-	
+
 	return 0;
 }
 
