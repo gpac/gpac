@@ -1,14 +1,11 @@
-GPAC coding styles as of 0.4.0
+GPAC coding style
 
-Foreword:
-  As of 0.4.0, GPAC is being licensed under the LGPL. This brought the concern of refining coding conventions inside the framework so as
-  to extract the core functionlaities of GPAC to third-party developers.
-  The number of modules present in GPAC having been developed for many years without any specific coding styles, the entire GPAC framework
-  has been rewrote in a NON-BACKWARD COMPATIBLE WAY.
-  
 Introduction
   coding styles only concern the GPAC library (M4Systems in GPAC<=0.3.0, libgpac now), and, although recommended, are not mandatory for plugins 
   or applications development.
+  
+  AStyle is a code beautifier tool. Code should be compliant with the following pattern provided by AStyle :
+  AStyle -r --indent=tab '*.c' '*.h' '*.cpp' '*.hpp'
     
 1 Exported symbols 
 
