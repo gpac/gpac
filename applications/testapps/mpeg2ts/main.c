@@ -4,7 +4,7 @@ u32 dump_pid = 130;
 FILE *dest = NULL;
 Bool has_seen_pat = 0;
 
-void on_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
+void on_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 {
 	GF_M2TS_PES_PCK *pck;
 	switch (evt_type) {

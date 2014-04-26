@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -142,7 +142,7 @@ static void StatFixed(GF_SceneStatistics *stat, Fixed v, Bool scale)
 
 	if (fracv) {
 		frac_res = 1;
-		while ((fracv << frac_res) & 0x0000FFFF) 
+		while ((fracv << frac_res) & 0x0000FFFF)
 			frac_res++;
 	} else {
 		frac_res = 0;
@@ -170,7 +170,7 @@ static void StatSVGPoint(GF_SceneStatistics *stat, SFVec2f *val)
 	if (stat->min_2d.y > val->y) stat->min_2d.y = val->y;
 	StatFixed(stat, val->x, 0);
 	StatFixed(stat, val->y, 0);
-}	
+}
 
 static void StatSFVec2f(GF_SceneStatistics *stat, SFVec2f *val)
 {
@@ -179,7 +179,7 @@ static void StatSFVec2f(GF_SceneStatistics *stat, SFVec2f *val)
 	if (stat->max_2d.y < val->y) stat->max_2d.y = val->y;
 	if (stat->min_2d.x > val->x) stat->min_2d.x = val->x;
 	if (stat->min_2d.y > val->y) stat->min_2d.y = val->y;
-}	
+}
 
 static void StatSFVec3f(GF_SceneStatistics *stat, SFVec3f *val)
 {
@@ -230,7 +230,7 @@ static void StatField(GF_SceneStatistics *stat, GF_FieldInfo *field)
 			stat->count_2d ++;
 		}
 	}
-		break;
+	break;
 	case GF_SG_VRML_MFVEC3F:
 	{
 		MFVec3f *mf3d = (MFVec3f *)field->far_ptr;
@@ -239,7 +239,7 @@ static void StatField(GF_SceneStatistics *stat, GF_FieldInfo *field)
 			stat->count_3d ++;
 		}
 	}
-		break;
+	break;
 	}
 }
 
@@ -264,71 +264,71 @@ static void StatSVGAttribute(GF_SceneStatistics *stat, GF_FieldInfo *field)
 
 	switch (field->fieldType) {
 	case SVG_PathData_datatype:
-		{
+	{
 #if USE_GF_PATH
-			SVG_PathData *d = (SVG_PathData *)field->far_ptr;
-			for (i=0; i<d->n_points; i++) {
-				StatSVGPoint(stat, &(d->points[i]));
-				stat->count_2d ++;
-			}		
+		SVG_PathData *d = (SVG_PathData *)field->far_ptr;
+		for (i=0; i<d->n_points; i++) {
+			StatSVGPoint(stat, &(d->points[i]));
+			stat->count_2d ++;
+		}
 #else
-			SVG_PathData *d = (SVG_PathData *)field->far_ptr;
-			for (i=0; i<gf_list_count(d->points); i++) {
-				SVG_Point *p = (SVG_Point *)gf_list_get(d->points, i);
-				StatSVGPoint(stat, (SFVec2f *)p);
-				stat->count_2d ++;
-			}
+		SVG_PathData *d = (SVG_PathData *)field->far_ptr;
+		for (i=0; i<gf_list_count(d->points); i++) {
+			SVG_Point *p = (SVG_Point *)gf_list_get(d->points, i);
+			StatSVGPoint(stat, (SFVec2f *)p);
+			stat->count_2d ++;
+		}
 #endif
-		}
-		break;
+	}
+	break;
 	case SVG_ViewBox_datatype:
-		{
-			SVG_ViewBox *vB = (SVG_ViewBox *)field->far_ptr;
-			StatFixed(stat, vB->x, 0);
-			StatFixed(stat, vB->y, 0);
-			StatFixed(stat, vB->width, 0);
-			StatFixed(stat, vB->height, 0);
-		}
-		break;
+	{
+		SVG_ViewBox *vB = (SVG_ViewBox *)field->far_ptr;
+		StatFixed(stat, vB->x, 0);
+		StatFixed(stat, vB->y, 0);
+		StatFixed(stat, vB->width, 0);
+		StatFixed(stat, vB->height, 0);
+	}
+	break;
 	case SVG_Points_datatype:
 	case SVG_Coordinates_datatype:
-		{
-			GF_List *points = *((GF_List **)field->far_ptr);
-			for (i=0; i<gf_list_count(points); i++) {
-				SVG_Point *p = (SVG_Point *)gf_list_get(points, i);
-				StatSVGPoint(stat, (SFVec2f *)p);
-				stat->count_2d ++;
-			}
+	{
+		GF_List *points = *((GF_List **)field->far_ptr);
+		for (i=0; i<gf_list_count(points); i++) {
+			SVG_Point *p = (SVG_Point *)gf_list_get(points, i);
+			StatSVGPoint(stat, (SFVec2f *)p);
+			stat->count_2d ++;
 		}
-		break;
+	}
+	break;
 	case SVG_Transform_datatype:
-		{
-			GF_Matrix2D *mx = &((SVG_Transform *)field->far_ptr)->mat;
-			if (!gf_mx2d_is_identity(*mx) && !(!mx->m[0] && !mx->m[1] && !mx->m[3] && !mx->m[4])) {
-				StatFixed(stat, mx->m[0], 1);
-				StatFixed(stat, mx->m[1], 1);
-				StatFixed(stat, mx->m[3], 1);
-				StatFixed(stat, mx->m[4], 1);				
-				StatFixed(stat, mx->m[2], 0);
-				StatFixed(stat, mx->m[5], 0);
-			} 
+	{
+		GF_Matrix2D *mx = &((SVG_Transform *)field->far_ptr)->mat;
+		if (!gf_mx2d_is_identity(*mx) && !(!mx->m[0] && !mx->m[1] && !mx->m[3] && !mx->m[4])) {
+			StatFixed(stat, mx->m[0], 1);
+			StatFixed(stat, mx->m[1], 1);
+			StatFixed(stat, mx->m[3], 1);
+			StatFixed(stat, mx->m[4], 1);
+			StatFixed(stat, mx->m[2], 0);
+			StatFixed(stat, mx->m[5], 0);
 		}
-		break;
+	}
+	break;
 	case SVG_Motion_datatype:
-		{
-			GF_Matrix2D *mx = (GF_Matrix2D *)field->far_ptr;
-			if (!gf_mx2d_is_identity(*mx) && !(!mx->m[0] && !mx->m[1] && !mx->m[3] && !mx->m[4])) {
-				StatFixed(stat, mx->m[0], 1);
-				StatFixed(stat, mx->m[1], 1);
-				StatFixed(stat, mx->m[3], 1);
-				StatFixed(stat, mx->m[4], 1);				
-				StatFixed(stat, mx->m[2], 0);
-				StatFixed(stat, mx->m[5], 0);
-			} 
+	{
+		GF_Matrix2D *mx = (GF_Matrix2D *)field->far_ptr;
+		if (!gf_mx2d_is_identity(*mx) && !(!mx->m[0] && !mx->m[1] && !mx->m[3] && !mx->m[4])) {
+			StatFixed(stat, mx->m[0], 1);
+			StatFixed(stat, mx->m[1], 1);
+			StatFixed(stat, mx->m[3], 1);
+			StatFixed(stat, mx->m[4], 1);
+			StatFixed(stat, mx->m[2], 0);
+			StatFixed(stat, mx->m[5], 0);
 		}
-		break;
+	}
+	break;
 	case SVG_Length_datatype:
-	case SVG_Coordinate_datatype: 
+	case SVG_Coordinate_datatype:
 		StatFixed(stat, ((SVG_Number *)field->far_ptr)->value, 0);
 		break;
 	}
@@ -355,7 +355,7 @@ static void StatRemField(GF_SceneStatistics *stat, u32 fieldType, GF_FieldInfo *
 }
 
 
-Bool StatIsUSE(GF_StatManager *st, GF_Node *n) 
+Bool StatIsUSE(GF_StatManager *st, GF_Node *n)
 {
 	u32 i;
 	GF_Node *ptr;
@@ -396,7 +396,7 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 			field.far_ptr = atts->data;
 			field.fieldType = atts->data_type;
 			field.fieldIndex = atts->tag;
-			field.name = NULL; 
+			field.name = NULL;
 			StatSVGAttribute(st->stats, &field);
 
 			atts = atts->next;
@@ -405,46 +405,46 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 			StatNodeGraph(st, list->node);
 			list = list->next;
 		}
-	} else 
+	} else
 #endif
-	if (n->sgprivate->tag == TAG_DOMText) {
-	} else if (n->sgprivate->tag == TAG_DOMFullNode) {
-	} 
+		if (n->sgprivate->tag == TAG_DOMText) {
+		} else if (n->sgprivate->tag == TAG_DOMFullNode) {
+		}
 #ifndef GPAC_DISABLE_VRML
-	else if (n->sgprivate->tag<= GF_NODE_RANGE_LAST_X3D) {
-		GF_Node *child;
-		GF_ChildNodeItem *list;
-		u32 i, count;
-		GF_FieldInfo clone_field;
+		else if (n->sgprivate->tag<= GF_NODE_RANGE_LAST_X3D) {
+			GF_Node *child;
+			GF_ChildNodeItem *list;
+			u32 i, count;
+			GF_FieldInfo clone_field;
 
-		count = gf_node_get_field_count(n);
-	
-		for (i=0; i<count; i++) {
-			gf_node_get_field(n, i, &field);
-			if (field.eventType==GF_SG_EVENT_IN) continue;
-			if (field.eventType==GF_SG_EVENT_OUT) continue;
+			count = gf_node_get_field_count(n);
 
-			switch (field.fieldType) {
-			case GF_SG_VRML_SFNODE:
-				child = *((GF_Node **)field.far_ptr);
-				StatNodeGraph(st, child);
-				break;
-			case GF_SG_VRML_MFNODE:
-				list = *((GF_ChildNodeItem **)field.far_ptr);
-				while (list) {
-					StatNodeGraph(st, list->node);
-					list = list->next;
+			for (i=0; i<count; i++) {
+				gf_node_get_field(n, i, &field);
+				if (field.eventType==GF_SG_EVENT_IN) continue;
+				if (field.eventType==GF_SG_EVENT_OUT) continue;
+
+				switch (field.fieldType) {
+				case GF_SG_VRML_SFNODE:
+					child = *((GF_Node **)field.far_ptr);
+					StatNodeGraph(st, child);
+					break;
+				case GF_SG_VRML_MFNODE:
+					list = *((GF_ChildNodeItem **)field.far_ptr);
+					while (list) {
+						StatNodeGraph(st, list->node);
+						list = list->next;
+					}
+					break;
+				default:
+					gf_node_get_field(clone, i, &clone_field);
+					if (!gf_sg_vrml_field_equal(clone_field.far_ptr, field.far_ptr, field.fieldType)) {
+						StatField(st->stats, &field);
+					}
+					break;
 				}
-				break;
-			default:
-				gf_node_get_field(clone, i, &clone_field);
-				if (!gf_sg_vrml_field_equal(clone_field.far_ptr, field.far_ptr, field.fieldType)) {
-					StatField(st->stats, &field);
-				}
-				break;
 			}
 		}
-	}
 #endif
 
 	gf_node_unregister(clone, NULL);
@@ -461,7 +461,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 	GF_Err e;
 	GF_ChildNodeItem *list;
 	GF_CommandField *inf = NULL;
-	if (gf_list_count(com->command_fields)) 
+	if (gf_list_count(com->command_fields))
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 
 	if (!com || !stat) return GF_BAD_PARAM;
@@ -574,7 +574,7 @@ GF_Err gf_sm_stats_for_scene(GF_StatManager *stat, GF_SceneManager *sm)
 		while ((sc = (GF_StreamContext*)gf_list_enum(sm->streams, &i))) {
 			GF_AUContext *au;
 			if (sc->streamType != GF_STREAM_SCENE) continue;
-			
+
 			if (!stat->stats->base_layer)
 				stat->stats->base_layer = sc;
 

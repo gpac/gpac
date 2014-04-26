@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -50,14 +50,18 @@ typedef struct
 	GLUtesselator *tess_obj;
 	GF_Mesh *mesh;
 
-	/*vertex indices: we cannot use a static array because reallocating the array will likely change memory 
+	/*vertex indices: we cannot use a static array because reallocating the array will likely change memory
 	address of indices, hence break triangulator*/
 	GF_List *vertex_index;
 } MeshTess;
 
-static void CALLBACK mesh_tess_begin(GLenum which) { assert(which==GL_TRIANGLES); }
+static void CALLBACK mesh_tess_begin(GLenum which) {
+	assert(which==GL_TRIANGLES);
+}
 static void CALLBACK mesh_tess_end(void) { }
-static void CALLBACK mesh_tess_error(GLenum error_code) { GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Mesh] Tesselate error %s\n", gluErrorString(error_code))); }
+static void CALLBACK mesh_tess_error(GLenum error_code) {
+	GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Mesh] Tesselate error %s\n", gluErrorString(error_code)));
+}
 /*only needed to force GL_TRIANGLES*/
 static void CALLBACK mesh_tess_edgeflag(GLenum flag) { }
 
@@ -141,8 +145,8 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 	tess = gf_malloc(sizeof(MeshTess));
 	if (!tess) return;
 	memset(tess, 0, sizeof(MeshTess));
-    tess->tess_obj = gluNewTess();
-    if (!tess->tess_obj) {
+	tess->tess_obj = gluNewTess();
+	if (!tess->tess_obj) {
 		gf_free(tess);
 		return;
 	}
@@ -151,18 +155,18 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 	mesh_reset(mesh);
 	mesh->flags |= MESH_IS_2D;
 	if (outline_style==1) mesh->flags |= MESH_NO_TEXTURE;
-	
+
 	tess->mesh = mesh;
-    gluTessCallback(tess->tess_obj, GLU_TESS_VERTEX_DATA, (void (CALLBACK*)()) &mesh_tess_vertex);
-    gluTessCallback(tess->tess_obj, GLU_TESS_BEGIN, (void (CALLBACK*)()) &mesh_tess_begin);
-    gluTessCallback(tess->tess_obj, GLU_TESS_END, (void (CALLBACK*)()) &mesh_tess_end);
-    gluTessCallback(tess->tess_obj, GLU_TESS_COMBINE_DATA, (void (CALLBACK*)()) &mesh_tess_combine);
-    gluTessCallback(tess->tess_obj, GLU_TESS_ERROR, (void (CALLBACK*)()) &mesh_tess_error);
+	gluTessCallback(tess->tess_obj, GLU_TESS_VERTEX_DATA, (void (CALLBACK*)()) &mesh_tess_vertex);
+	gluTessCallback(tess->tess_obj, GLU_TESS_BEGIN, (void (CALLBACK*)()) &mesh_tess_begin);
+	gluTessCallback(tess->tess_obj, GLU_TESS_END, (void (CALLBACK*)()) &mesh_tess_end);
+	gluTessCallback(tess->tess_obj, GLU_TESS_COMBINE_DATA, (void (CALLBACK*)()) &mesh_tess_combine);
+	gluTessCallback(tess->tess_obj, GLU_TESS_ERROR, (void (CALLBACK*)()) &mesh_tess_error);
 	gluTessCallback(tess->tess_obj, GLU_EDGE_FLAG,(void (CALLBACK*)()) &mesh_tess_edgeflag);
 
 	if (path->flags & GF_PATH_FILL_ZERO_NONZERO) gluTessProperty(tess->tess_obj, GLU_TESS_WINDING_RULE, GLU_TESS_WINDING_NONZERO);
 
-    gluTessBeginPolygon(tess->tess_obj, tess);
+	gluTessBeginPolygon(tess->tess_obj, tess);
 	gluTessNormal(tess->tess_obj, 0, 0, 1);
 
 	gf_path_flatten(path);
@@ -197,7 +201,7 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 		cur+=nb_pts;
 	}
 
-    gluTessEndPolygon(tess->tess_obj);
+	gluTessEndPolygon(tess->tess_obj);
 
 	gluDeleteTess(tess->tess_obj);
 
@@ -229,7 +233,7 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style) { }
 	if (!direction) { pt.x = - apt.pos.z; pt.y = apt.pos.y;	}	\
 	else if (direction==1) { pt.x = apt.pos.z; pt.y = apt.pos.x; }	\
 	else if (direction==2) { pt.x = apt.pos.x; pt.y = apt.pos.y; } \
-
+ 
 
 #define ConvCompare(delta)	\
     ( (delta.x > 0) ? -1 :		\
@@ -244,7 +248,7 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style) { }
     GetPoint2D(pcur, pts[iread]); iread++;			\
     delta.x = pcur.x - pprev.x;					\
     delta.y = pcur.y - pprev.y;					\
-
+ 
 #define ConvCross(p, q) gf_mulfix(p.x,q.y) - gf_mulfix(p.y,q.x);
 
 #define ConvCheckTriple						\
@@ -265,7 +269,7 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style) { }
     pSecond = pThird;		\
     dprev.x = dcur.x;		\
     dprev.y = dcur.y;							\
-
+ 
 u32 polygon_check_convexity(GF_Vertex *pts, u32 len, u32 direction)
 {
 	s32 curDir, thisDir = 0, dirChanges = 0, angleSign = 0;
@@ -280,46 +284,46 @@ u32 polygon_check_convexity(GF_Vertex *pts, u32 len, u32 direction)
 	pThird = pSecond;
 
 	GetPoint2D(pThird, pts[0]);
-    /* Get different point, return if less than 3 diff points. */
-    if (len < 3 ) return GF_POLYGON_CONVEX_LINE;
-    iread = 1;
+	/* Get different point, return if less than 3 diff points. */
+	if (len < 3 ) return GF_POLYGON_CONVEX_LINE;
+	iread = 1;
 	ConvGetPointDelta(dprev, pThird, pSecond);
-    pSaveSecond = pSecond;
+	pSaveSecond = pSecond;
 	/*initial direction */
-    curDir = ConvCompare(dprev);
-    while ( iread < len) {
+	curDir = ConvCompare(dprev);
+	while ( iread < len) {
 		/* Get different point, break if no more points */
 		ConvGetPointDelta(dcur, pSecond, pThird );
 		if ( (dcur.x == 0) && (dcur.y == 0) ) continue;
 		/* Check current three points */
 		ConvCheckTriple;
-    }
+	}
 
-    /* Must check for direction changes from last vertex back to first */
+	/* Must check for direction changes from last vertex back to first */
 	/* Prepare for 'ConvexCheckTriple' */
 	GetPoint2D(pThird, pts[0]);
-    dcur.x = pThird.x - pSecond.x;
-    dcur.y = pThird.y - pSecond.y;
-    if ( ConvCompare(dcur) ) ConvCheckTriple;
+	dcur.x = pThird.x - pSecond.x;
+	dcur.y = pThird.y - pSecond.y;
+	if ( ConvCompare(dcur) ) ConvCheckTriple;
 
-    /* and check for direction changes back to second vertex */
-    dcur.x = pSaveSecond.x - pSecond.x;
-    dcur.y = pSaveSecond.y - pSecond.y;
+	/* and check for direction changes back to second vertex */
+	dcur.x = pSaveSecond.x - pSecond.x;
+	dcur.y = pSaveSecond.y - pSecond.y;
 	/* Don't care about 'pThird' now */
-    ConvCheckTriple;			
+	ConvCheckTriple;
 
-    /* Decide on polygon type given accumulated status */
-    if ( dirChanges > 2 ) return GF_POLYGON_COMPLEX;
-    if ( angleSign > 0 ) return GF_POLYGON_CONVEX_CCW;
-    if ( angleSign < 0 ) return GF_POLYGON_CONVEX_CW;
-    return GF_POLYGON_CONVEX_LINE;
+	/* Decide on polygon type given accumulated status */
+	if ( dirChanges > 2 ) return GF_POLYGON_COMPLEX;
+	if ( angleSign > 0 ) return GF_POLYGON_CONVEX_CCW;
+	if ( angleSign < 0 ) return GF_POLYGON_CONVEX_CW;
+	return GF_POLYGON_CONVEX_LINE;
 }
 
 
 void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 {
 	u32 poly_type, i, nb_pts, init_idx, direction;
-    Fixed max_nor_coord, c;
+	Fixed max_nor_coord, c;
 	SFVec3f nor;
 #ifdef GPAC_HAS_GLU
 	u32 *idx;
@@ -329,7 +333,8 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 
 	/*get normal*/
 	if (orig->flags & MESH_IS_2D) {
-		nor.x = nor.y = 0; nor.z = FIX_ONE;
+		nor.x = nor.y = 0;
+		nor.z = FIX_ONE;
 	} else {
 		MESH_GET_NORMAL(nor, orig->vertices[0]);
 	}
@@ -367,27 +372,27 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 	}
 
 #ifdef GPAC_HAS_GLU
-	
+
 	/*tesselate it*/
 	tess = gf_malloc(sizeof(MeshTess));
 	if (!tess) return;
 	memset(tess, 0, sizeof(MeshTess));
-    tess->tess_obj = gluNewTess();
-    if (!tess->tess_obj) {
+	tess->tess_obj = gluNewTess();
+	if (!tess->tess_obj) {
 		gf_free(tess);
 		return;
 	}
 	tess->vertex_index = gf_list_new();
 
 	tess->mesh = dest;
-    gluTessCallback(tess->tess_obj, GLU_TESS_VERTEX_DATA, (void (CALLBACK*)()) &mesh_tess_vertex);
-    gluTessCallback(tess->tess_obj, GLU_TESS_BEGIN, (void (CALLBACK*)()) &mesh_tess_begin);
-    gluTessCallback(tess->tess_obj, GLU_TESS_END, (void (CALLBACK*)()) &mesh_tess_end);
-    gluTessCallback(tess->tess_obj, GLU_TESS_COMBINE_DATA, (void (CALLBACK*)()) &mesh_tess_combine);
-    gluTessCallback(tess->tess_obj, GLU_TESS_ERROR, (void (CALLBACK*)()) &mesh_tess_error);
+	gluTessCallback(tess->tess_obj, GLU_TESS_VERTEX_DATA, (void (CALLBACK*)()) &mesh_tess_vertex);
+	gluTessCallback(tess->tess_obj, GLU_TESS_BEGIN, (void (CALLBACK*)()) &mesh_tess_begin);
+	gluTessCallback(tess->tess_obj, GLU_TESS_END, (void (CALLBACK*)()) &mesh_tess_end);
+	gluTessCallback(tess->tess_obj, GLU_TESS_COMBINE_DATA, (void (CALLBACK*)()) &mesh_tess_combine);
+	gluTessCallback(tess->tess_obj, GLU_TESS_ERROR, (void (CALLBACK*)()) &mesh_tess_error);
 	gluTessCallback(tess->tess_obj, GLU_EDGE_FLAG,(void (CALLBACK*)()) &mesh_tess_edgeflag);
 
-    gluTessBeginPolygon(tess->tess_obj, tess);
+	gluTessBeginPolygon(tess->tess_obj, tess);
 	gluTessBeginContour(tess->tess_obj);
 
 
@@ -404,7 +409,7 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 	}
 
 	gluTessEndContour(tess->tess_obj);
-    gluTessEndPolygon(tess->tess_obj);
+	gluTessEndPolygon(tess->tess_obj);
 	gluDeleteTess(tess->tess_obj);
 
 	while (gf_list_count(tess->vertex_index)) {
@@ -427,34 +432,34 @@ void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *pt
 	u32 *idx;
 	GLdouble vertex[3];
 	MeshTess *tess;
-	
+
 	/*tesselate it*/
 	tess = gf_malloc(sizeof(MeshTess));
 	if (!tess) return;
 	memset(tess, 0, sizeof(MeshTess));
-    tess->tess_obj = gluNewTess();
-    if (!tess->tess_obj) {
+	tess->tess_obj = gluNewTess();
+	if (!tess->tess_obj) {
 		gf_free(tess);
 		return;
 	}
 	tess->vertex_index = gf_list_new();
 
 	tess->mesh = dest;
-    gluTessCallback(tess->tess_obj, GLU_TESS_VERTEX_DATA, (void (CALLBACK*)()) &mesh_tess_vertex);
-    gluTessCallback(tess->tess_obj, GLU_TESS_BEGIN, (void (CALLBACK*)()) &mesh_tess_begin);
-    gluTessCallback(tess->tess_obj, GLU_TESS_END, (void (CALLBACK*)()) &mesh_tess_end);
-    gluTessCallback(tess->tess_obj, GLU_TESS_COMBINE_DATA, (void (CALLBACK*)()) &mesh_tess_combine);
-    gluTessCallback(tess->tess_obj, GLU_TESS_ERROR, (void (CALLBACK*)()) &mesh_tess_error);
+	gluTessCallback(tess->tess_obj, GLU_TESS_VERTEX_DATA, (void (CALLBACK*)()) &mesh_tess_vertex);
+	gluTessCallback(tess->tess_obj, GLU_TESS_BEGIN, (void (CALLBACK*)()) &mesh_tess_begin);
+	gluTessCallback(tess->tess_obj, GLU_TESS_END, (void (CALLBACK*)()) &mesh_tess_end);
+	gluTessCallback(tess->tess_obj, GLU_TESS_COMBINE_DATA, (void (CALLBACK*)()) &mesh_tess_combine);
+	gluTessCallback(tess->tess_obj, GLU_TESS_ERROR, (void (CALLBACK*)()) &mesh_tess_error);
 	gluTessCallback(tess->tess_obj, GLU_EDGE_FLAG,(void (CALLBACK*)()) &mesh_tess_edgeflag);
 
-    gluTessBeginPolygon(tess->tess_obj, tess);
+	gluTessBeginPolygon(tess->tess_obj, tess);
 	gluTessBeginContour(tess->tess_obj);
 
 
 	cur_pt_faces = 0;
 	cur_face = 0;
 	for (i=0; i<orig->v_count; i++) {
-		
+
 		if (i>= cur_pt_faces + ptsPerFaces[cur_face]) {
 			cur_pt_faces += ptsPerFaces[cur_face];
 			cur_face++;
@@ -475,7 +480,7 @@ void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *pt
 	}
 
 	gluTessEndContour(tess->tess_obj);
-    gluTessEndPolygon(tess->tess_obj);
+	gluTessEndPolygon(tess->tess_obj);
 	gluDeleteTess(tess->tess_obj);
 
 	while (gf_list_count(tess->vertex_index)) {

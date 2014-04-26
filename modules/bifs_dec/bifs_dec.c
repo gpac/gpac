@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -95,7 +95,7 @@ static GF_Err BIFS_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 }
 
 static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 inBufferLength,
-								u16 ES_ID, u32 AU_time, u32 mmlevel)
+                               u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	Double ts_offset;
 	s32 time;
@@ -137,16 +137,16 @@ static u32 BIFS_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *es
 void DeleteBIFSDec(GF_BaseDecoder *plug)
 {
 	BIFSPriv *priv;
-        if (!plug)
-          return;
-        priv = (BIFSPriv *)plug->privateStack;
-        if (priv){
-          /*in case something went wrong*/
-          if (priv->codec) gf_bifs_decoder_del(priv->codec);
-          priv->codec = NULL;
-          gf_free(priv);
-          plug->privateStack = NULL;
-        }
+	if (!plug)
+		return;
+	priv = (BIFSPriv *)plug->privateStack;
+	if (priv) {
+		/*in case something went wrong*/
+		if (priv->codec) gf_bifs_decoder_del(priv->codec);
+		priv->codec = NULL;
+		gf_free(priv);
+		plug->privateStack = NULL;
+	}
 	gf_free(plug);
 }
 

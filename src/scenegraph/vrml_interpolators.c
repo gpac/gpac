@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -56,7 +56,7 @@ SFRotation gf_sg_sfrotation_interpolate(SFRotation kv1, SFRotation kv2, Fixed fr
 		res.z = stzero ? kv2.z : kv1.z;
 	}
 	res.q = olda + gf_mulfix(fraction, newa - olda);
-	if (res.q > GF_2PI) { 
+	if (res.q > GF_2PI) {
 		res.q -= GF_2PI;
 	} else if (res.q < GF_2PI) {
 		res.q += GF_2PI;
@@ -87,7 +87,7 @@ static void CI2D_SetFraction(GF_Node *n, GF_Route *route)
 
 	if (! _this->key.count) return;
 	if (_this->keyValue.count % _this->key.count) return;
-	
+
 	numElemPerKey = _this->keyValue.count / _this->key.count;
 	//set size
 	if (_this->value_changed.count != numElemPerKey)
@@ -109,11 +109,11 @@ static void CI2D_SetFraction(GF_Node *n, GF_Route *route)
 			frac = GetInterpolateFraction(_this->key.vals[j-1], _this->key.vals[j], _this->set_fraction);
 			for (i=0; i<numElemPerKey; i++) {
 				_this->value_changed.vals[i].x = Interpolate(_this->keyValue.vals[(j-1)*numElemPerKey + i].x,
-															_this->keyValue.vals[(j)*numElemPerKey + i].x, 
-															frac);
+				                                 _this->keyValue.vals[(j)*numElemPerKey + i].x,
+				                                 frac);
 				_this->value_changed.vals[i].y = Interpolate(_this->keyValue.vals[(j-1)*numElemPerKey + i].y,
-															_this->keyValue.vals[(j)*numElemPerKey + i].y,
-															frac);
+				                                 _this->keyValue.vals[(j)*numElemPerKey + i].y,
+				                                 frac);
 			}
 			break;
 		}
@@ -143,7 +143,7 @@ static Bool CI_SetFraction(Fixed fraction, MFVec3f *vals, MFFloat *key, MFVec3f 
 
 	if (! key->count) return 0;
 	if (keyValue->count % key->count) return 0;
-	
+
 	numElemPerKey = keyValue->count / key->count;
 
 	if (vals->count != numElemPerKey) gf_sg_vrml_mf_alloc(vals, GF_SG_VRML_MFVEC3F, numElemPerKey);
@@ -163,14 +163,14 @@ static Bool CI_SetFraction(Fixed fraction, MFVec3f *vals, MFFloat *key, MFVec3f 
 			frac = GetInterpolateFraction(key->vals[j-1], key->vals[j], fraction);
 			for (i=0; i<numElemPerKey; i++) {
 				vals->vals[i].x = Interpolate(keyValue->vals[(j-1)*numElemPerKey + i].x,
-															keyValue->vals[(j)*numElemPerKey + i].x,
-															frac);
+				                              keyValue->vals[(j)*numElemPerKey + i].x,
+				                              frac);
 				vals->vals[i].y = Interpolate(keyValue->vals[(j-1)*numElemPerKey + i].y,
-															keyValue->vals[(j)*numElemPerKey + i].y,
-															frac);
+				                              keyValue->vals[(j)*numElemPerKey + i].y,
+				                              frac);
 				vals->vals[i].z = Interpolate(keyValue->vals[(j-1)*numElemPerKey + i].z,
-															keyValue->vals[(j)*numElemPerKey + i].z, 
-															frac);
+				                              keyValue->vals[(j)*numElemPerKey + i].z,
+				                              frac);
 			}
 			break;
 		}
@@ -183,7 +183,7 @@ static void CoordInt_SetFraction(GF_Node *n, GF_Route *route)
 {
 	M_CoordinateInterpolator *_this = (M_CoordinateInterpolator *) n;
 
-	if (CI_SetFraction(_this->set_fraction, &_this->value_changed, &_this->key, &_this->keyValue)) 
+	if (CI_SetFraction(_this->set_fraction, &_this->value_changed, &_this->key, &_this->keyValue))
 		gf_node_event_out(n, 3);//"value_changed"
 }
 
@@ -223,7 +223,7 @@ static void ColorInt_SetFraction(GF_Node *node, GF_Route *route)
 
 	if (! _this->key.count) return;
 	if (_this->keyValue.count != _this->key.count) return;
-	
+
 	// The given fraction is less than the specified range
 	if (_this->set_fraction < _this->key.vals[0]) {
 		_this->value_changed = _this->keyValue.vals[0];
@@ -236,15 +236,15 @@ static void ColorInt_SetFraction(GF_Node *node, GF_Route *route)
 			if (_this->set_fraction >= _this->key.vals[i]) continue;
 
 			frac = GetInterpolateFraction(_this->key.vals[i-1], _this->key.vals[i], _this->set_fraction);
-			_this->value_changed.red = Interpolate(_this->keyValue.vals[i-1].red, 
-													_this->keyValue.vals[i].red, 
-													frac);
+			_this->value_changed.red = Interpolate(_this->keyValue.vals[i-1].red,
+			                                       _this->keyValue.vals[i].red,
+			                                       frac);
 			_this->value_changed.green = Interpolate(_this->keyValue.vals[i-1].green,
-													_this->keyValue.vals[i].green, 
-													frac);
+			                             _this->keyValue.vals[i].green,
+			                             frac);
 			_this->value_changed.blue = Interpolate(_this->keyValue.vals[i-1].blue,
-													_this->keyValue.vals[i].blue,
-													frac);
+			                                        _this->keyValue.vals[i].blue,
+			                                        frac);
 			break;
 		}
 	}
@@ -253,7 +253,7 @@ static void ColorInt_SetFraction(GF_Node *node, GF_Route *route)
 
 Bool InitColorInterpolator(M_ColorInterpolator *node)
 {
-	node->on_set_fraction = ColorInt_SetFraction; 
+	node->on_set_fraction = ColorInt_SetFraction;
 	if (node->keyValue.count) node->value_changed = node->keyValue.vals[0];
 	return 1;
 }
@@ -267,7 +267,7 @@ static void PosInt2D_SetFraction(GF_Node *node, GF_Route *route)
 
 	if (! _this->key.count) return;
 	if (_this->keyValue.count != _this->key.count) return;
-	
+
 	// The given fraction is less than the specified range
 	if (_this->set_fraction < _this->key.vals[0]) {
 		_this->value_changed = _this->keyValue.vals[0];
@@ -290,7 +290,7 @@ static void PosInt2D_SetFraction(GF_Node *node, GF_Route *route)
 
 Bool InitPositionInterpolator2D(M_PositionInterpolator2D *node)
 {
-	node->on_set_fraction = PosInt2D_SetFraction; 
+	node->on_set_fraction = PosInt2D_SetFraction;
 	if (node->keyValue.count) node->value_changed = node->keyValue.vals[0];
 	return 1;
 }
@@ -303,7 +303,7 @@ static void PosInt_SetFraction(GF_Node *node, GF_Route *route)
 
 	if (! _this->key.count) return;
 	if (_this->keyValue.count != _this->key.count) return;
-	
+
 	// The given fraction is less than the specified range
 	if (_this->set_fraction < _this->key.vals[0]) {
 		_this->value_changed = _this->keyValue.vals[0];
@@ -327,7 +327,7 @@ static void PosInt_SetFraction(GF_Node *node, GF_Route *route)
 
 Bool InitPositionInterpolator(M_PositionInterpolator *node)
 {
-	node->on_set_fraction = PosInt_SetFraction; 
+	node->on_set_fraction = PosInt_SetFraction;
 	if (node->keyValue.count) node->value_changed = node->keyValue.vals[0];
 	return 1;
 }
@@ -340,7 +340,7 @@ static void ScalarInt_SetFraction(GF_Node *node, GF_Route *route)
 
 	if (! _this->key.count) return;
 	if (_this->keyValue.count != _this->key.count) return;
-	
+
 	// The given fraction is less than the specified range
 	if (_this->set_fraction < _this->key.vals[0]) {
 		_this->value_changed = _this->keyValue.vals[0];
@@ -361,7 +361,7 @@ static void ScalarInt_SetFraction(GF_Node *node, GF_Route *route)
 }
 Bool InitScalarInterpolator(M_ScalarInterpolator *node)
 {
-	node->on_set_fraction = ScalarInt_SetFraction; 
+	node->on_set_fraction = ScalarInt_SetFraction;
 	if (node->keyValue.count) node->value_changed = node->keyValue.vals[0];
 	return 1;
 }
@@ -375,7 +375,7 @@ static void OrientInt_SetFraction(GF_Node *node, GF_Route *route)
 
 	if (! _this->key.count) return;
 	if (_this->keyValue.count != _this->key.count) return;
-	
+
 	// The given fraction is less than the specified range
 	if (_this->set_fraction < _this->key.vals[0]) {
 		_this->value_changed = _this->keyValue.vals[0];
@@ -397,7 +397,7 @@ static void OrientInt_SetFraction(GF_Node *node, GF_Route *route)
 
 Bool InitOrientationInterpolator(M_OrientationInterpolator *node)
 {
-	node->on_set_fraction = OrientInt_SetFraction; 
+	node->on_set_fraction = OrientInt_SetFraction;
 	if (node->keyValue.count) node->value_changed = node->keyValue.vals[0];
 	return 1;
 }
@@ -410,7 +410,7 @@ static void CI4D_SetFraction(GF_Node *n, GF_Route *route)
 
 	if (! _this->key.count) return;
 	if (_this->keyValue.count % _this->key.count) return;
-	
+
 	numElemPerKey = _this->keyValue.count / _this->key.count;
 	//set size
 	if (_this->value_changed.count != numElemPerKey)
@@ -432,17 +432,17 @@ static void CI4D_SetFraction(GF_Node *n, GF_Route *route)
 			frac = GetInterpolateFraction(_this->key.vals[j-1], _this->key.vals[j], _this->set_fraction);
 			for (i=0; i<numElemPerKey; i++) {
 				_this->value_changed.vals[i].x = Interpolate(_this->keyValue.vals[(j-1)*numElemPerKey + i].x,
-															_this->keyValue.vals[(j)*numElemPerKey + i].x, 
-															frac);
+				                                 _this->keyValue.vals[(j)*numElemPerKey + i].x,
+				                                 frac);
 				_this->value_changed.vals[i].y = Interpolate(_this->keyValue.vals[(j-1)*numElemPerKey + i].y,
-															_this->keyValue.vals[(j)*numElemPerKey + i].y,
-															frac);
+				                                 _this->keyValue.vals[(j)*numElemPerKey + i].y,
+				                                 frac);
 				_this->value_changed.vals[i].z = Interpolate(_this->keyValue.vals[(j-1)*numElemPerKey + i].z,
-															_this->keyValue.vals[(j)*numElemPerKey + i].z,
-															frac);
+				                                 _this->keyValue.vals[(j)*numElemPerKey + i].z,
+				                                 frac);
 				_this->value_changed.vals[i].q = Interpolate(_this->keyValue.vals[(j-1)*numElemPerKey + i].q,
-															_this->keyValue.vals[(j)*numElemPerKey + i].q,
-															frac);
+				                                 _this->keyValue.vals[(j)*numElemPerKey + i].q,
+				                                 frac);
 			}
 			break;
 		}
@@ -472,7 +472,7 @@ static void PI4D_SetFraction(GF_Node *node, GF_Route *route)
 
 	if (! _this->key.count) return;
 	if (_this->keyValue.count != _this->key.count) return;
-	
+
 	// The given fraction is less than the specified range
 	if (_this->set_fraction < _this->key.vals[0]) {
 		_this->value_changed = _this->keyValue.vals[0];
@@ -533,7 +533,7 @@ static void BooleanSequencer_setFraction(GF_Node *n, GF_Route *route)
 	X_BooleanSequencer *bs = (X_BooleanSequencer*)n;
 	if (! bs->key.count) return;
 	if (bs->keyValue.count != bs->key.count) return;
-	
+
 	if (bs->set_fraction < bs->key.vals[0]) {
 		bs->value_changed = bs->keyValue.vals[0];
 	} else if (bs->set_fraction >= bs->key.vals[bs->key.count-1]) {
@@ -626,7 +626,7 @@ static void IntegerSequencer_setFraction(GF_Node *n, GF_Route *route)
 	X_IntegerSequencer *is = (X_IntegerSequencer *)n;
 	if (! is->key.count) return;
 	if (is->keyValue.count != is->key.count) return;
-	
+
 	if (is->set_fraction < is->key.vals[0]) {
 		is->value_changed = is->keyValue.vals[0];
 	} else if (is->set_fraction >= is->key.vals[is->key.count-1]) {

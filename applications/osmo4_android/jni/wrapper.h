@@ -145,88 +145,90 @@
 #include <jni.h>
 
 typedef struct _JavaEnvTh {
-  JNIEnv * env;
-  u32 javaThreadId;
-  jobject cbk_obj;
-  jmethodID cbk_displayMessage;
-  jmethodID cbk_onProgress;
-  jmethodID cbk_showKeyboard;
-  jmethodID cbk_setCaption;
-  jmethodID cbk_onLog;
-  jmethodID cbk_onFmRequest;
+	JNIEnv * env;
+	u32 javaThreadId;
+	jobject cbk_obj;
+	jmethodID cbk_displayMessage;
+	jmethodID cbk_onProgress;
+	jmethodID cbk_showKeyboard;
+	jmethodID cbk_setCaption;
+	jmethodID cbk_onLog;
+	jmethodID cbk_onFmRequest;
 } JavaEnvTh;
 
 
 //---------------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------
-class CNativeWrapper{
+class CNativeWrapper {
 
-	private:
-		void* m_window;
-		void* m_session;
+private:
+	void* m_window;
+	void* m_session;
 
-		GF_User *GetUser() { return &m_user; }
-		GF_Terminal *m_term;
+	GF_User *GetUser() {
+		return &m_user;
+	}
+	GF_Terminal *m_term;
 
-		/*
-		 * Callback management
-		 */
-    JavaEnvTh *mainJavaEnv;
+	/*
+	 * Callback management
+	 */
+	JavaEnvTh *mainJavaEnv;
 
-		GF_Mutex *m_mx;
-		GF_User m_user;
-		GF_SystemRTInfo m_rti;
+	GF_Mutex *m_mx;
+	GF_User m_user;
+	GF_SystemRTInfo m_rti;
 
-		int	do_log;
-	private:
-		char m_cfg_dir[GF_MAX_PATH];
-		char m_modules_dir[GF_MAX_PATH];
-		char m_cache_dir[GF_MAX_PATH];
-		char m_font_dir[GF_MAX_PATH];
-                void setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callback);
-	private:
-		void SetupLogs();
-		void Shutdown();
-		void DisplayRTI();
-	protected:
-		JavaEnvTh * getEnv();
+	int	do_log;
+private:
+	char m_cfg_dir[GF_MAX_PATH];
+	char m_modules_dir[GF_MAX_PATH];
+	char m_cache_dir[GF_MAX_PATH];
+	char m_font_dir[GF_MAX_PATH];
+	void setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callback);
+private:
+	void SetupLogs();
+	void Shutdown();
+	void DisplayRTI();
+protected:
+	JavaEnvTh * getEnv();
 
-	public:
-		CNativeWrapper();
-		~CNativeWrapper();
-		int init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir, const char * urlToLoad);
+public:
+	CNativeWrapper();
+	~CNativeWrapper();
+	int init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir, const char * urlToLoad);
 
-		int connect(const char *url);
-		void disconnect();
-		void step(void * env, void * bitmap);
-		void resize(int w, int h);
-		void setAudioEnvironment(JavaVM* javaVM);
+	int connect(const char *url);
+	void disconnect();
+	void step(void * env, void * bitmap);
+	void resize(int w, int h);
+	void setAudioEnvironment(JavaVM* javaVM);
 
-		void onMouseDown(float x, float y);
-		void onMouseUp(float x, float y);
-		void onMouseMove(float x, float y);
-		void onKeyPress(int keycode, int rawkeycode, int up, int flag, int unicode);
-		void translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt);
-		void navigate( GF_Event* evt);
-    void setGpacPreference( const char * category, const char * name, const char * value);
-    void setGpacLogs(const char *tools_at_level);
+	void onMouseDown(float x, float y);
+	void onMouseUp(float x, float y);
+	void onMouseMove(float x, float y);
+	void onKeyPress(int keycode, int rawkeycode, int up, int flag, int unicode);
+	void translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt);
+	void navigate( GF_Event* evt);
+	void setGpacPreference( const char * category, const char * name, const char * value);
+	void setGpacLogs(const char *tools_at_level);
 
-	public:
-		int MessageBox(const char* msg, const char* title, GF_Err status);
-		int Quit(int code);
-		GF_Config *create_default_config(char *file_path, char *file_name);
+public:
+	int MessageBox(const char* msg, const char* title, GF_Err status);
+	int Quit(int code);
+	GF_Config *create_default_config(char *file_path, char *file_name);
 
-		static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list);
-		static void on_fm_request(void *cbk, u32 type, u32 param, int *value);
-		static Bool GPAC_EventProc(void *cbk, GF_Event *evt);
-                void progress_cbk(const char *title, u64 done, u64 total);
-		static void Osmo4_progress_cbk(const void *usr, const char *title, u64 done, u64 total);
+	static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list);
+	static void on_fm_request(void *cbk, u32 type, u32 param, int *value);
+	static Bool GPAC_EventProc(void *cbk, GF_Event *evt);
+	void progress_cbk(const char *title, u64 done, u64 total);
+	static void Osmo4_progress_cbk(const void *usr, const char *title, u64 done, u64 total);
 
-	private:
+private:
 #ifdef	DEBUG_MODE
-		FILE	*debug_f;
+	FILE	*debug_f;
 #endif
-		void debug_log(const char* msg);
+	void debug_log(const char* msg);
 
 };
 

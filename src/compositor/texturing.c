@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -40,7 +40,7 @@ void gf_sc_texture_setup(GF_TextureHandler *txh, GF_Compositor *compositor, GF_N
 	txh->owner = owner;
 	txh->compositor = compositor;
 	/*insert texture in reverse order, so that textures in sub documents/scenes are updated before parent ones*/
-	if (gf_list_find(compositor->textures, txh)<0) 
+	if (gf_list_find(compositor->textures, txh)<0)
 		gf_list_insert(compositor->textures, txh, 0);
 	if (!txh->update_texture_fcnt) txh->update_texture_fcnt = update_texture_void;
 }
@@ -149,12 +149,12 @@ void gf_sc_texture_restart(GF_TextureHandler *txh)
 static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 {
 	if (!txh->tx_io) {
-        gf_sc_texture_allocate(txh);
+		gf_sc_texture_allocate(txh);
 		if (!txh->tx_io) return;
 
 		gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat, &txh->is_flipped);
-        
-        if (private_media) {
+
+		if (private_media) {
 			txh->transparent = 1;
 			txh->pixelformat = GF_PIXEL_ARGB;
 			txh->flags |= GF_SR_TEXTURE_PRIVATE_MEDIA;
@@ -241,7 +241,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		}
 		return;
 	}
-	txh->needs_release = 1; 
+	txh->needs_release = 1;
 	txh->last_frame_time = ts;
 	if (txh->raw_memory) {
 		gf_mo_get_raw_image_planes(txh->stream, (u8 **) &txh->data, (u8 **) &txh->pU, (u8 **) &txh->pV);
@@ -289,17 +289,19 @@ GF_TextureHandler *gf_sc_texture_get_handler(GF_Node *n)
 	if (!n) return NULL;
 	switch (gf_node_get_tag(n)) {
 #ifndef GPAC_DISABLE_VRML
-	case TAG_MPEG4_ImageTexture: 
-	case TAG_MPEG4_CacheTexture: 
+	case TAG_MPEG4_ImageTexture:
+	case TAG_MPEG4_CacheTexture:
 		return it_get_texture(n);
-	case TAG_MPEG4_MovieTexture: return mt_get_texture(n);
-	case TAG_MPEG4_PixelTexture: return pt_get_texture(n);
+	case TAG_MPEG4_MovieTexture:
+		return mt_get_texture(n);
+	case TAG_MPEG4_PixelTexture:
+		return pt_get_texture(n);
 
-	case TAG_MPEG4_CompositeTexture2D: 
-	case TAG_MPEG4_CompositeTexture3D: 
+	case TAG_MPEG4_CompositeTexture2D:
+	case TAG_MPEG4_CompositeTexture3D:
 		return compositor_get_composite_texture(n);
-	case TAG_MPEG4_LinearGradient: 
-	case TAG_MPEG4_RadialGradient: 
+	case TAG_MPEG4_LinearGradient:
+	case TAG_MPEG4_RadialGradient:
 		return compositor_mpeg4_get_gradient_texture(n);
 
 	case TAG_MPEG4_MatteTexture:
@@ -311,21 +313,25 @@ GF_TextureHandler *gf_sc_texture_get_handler(GF_Node *n)
 #endif /*GPAC_DISABLE_VRML*/
 
 #ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_ImageTexture: return it_get_texture(n);
-	case TAG_X3D_MovieTexture: return mt_get_texture(n);
-	case TAG_X3D_PixelTexture: return pt_get_texture(n);
+	case TAG_X3D_ImageTexture:
+		return it_get_texture(n);
+	case TAG_X3D_MovieTexture:
+		return mt_get_texture(n);
+	case TAG_X3D_PixelTexture:
+		return pt_get_texture(n);
 #endif
 
 
 #ifndef GPAC_DISABLE_SVG
-	case TAG_SVG_linearGradient: 
-	case TAG_SVG_radialGradient: 
+	case TAG_SVG_linearGradient:
+	case TAG_SVG_radialGradient:
 		return compositor_svg_get_gradient_texture(n);
 	case TAG_SVG_image:
 	case TAG_SVG_video:
 		return compositor_svg_get_image_texture(n);
 #endif
 
-	default: return NULL;
+	default:
+		return NULL;
 	}
 }

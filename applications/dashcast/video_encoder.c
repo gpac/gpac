@@ -91,7 +91,7 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 
 	video_output_file->codec_ctx->time_base.num = 1;
 	video_output_file->codec_ctx->time_base.den = video_output_file->gop_size ? video_output_file->gop_size : video_data_conf->framerate;
-	
+
 	video_output_file->use_source_timing = use_source_timing;
 	if (use_source_timing) {
 		//for avcodec to do rate allcoation, we need to have ctx->timebase == 1/framerate
@@ -161,7 +161,7 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 //		video_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
 	video_output_file->vstream_idx = 0;//video_stream->index;
-	
+
 	/* open the video codec - options are passed thru video_output_file->codec_ctx->priv_data */
 	if (avcodec_open2(video_output_file->codec_ctx, video_output_file->codec, NULL) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video codec\n"));
@@ -206,8 +206,8 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 	 */
 	if (!video_output_file->use_source_timing) {
 		video_data_node->vframe->pts = video_codec_ctx->frame_number;
-	}	
-	
+	}
+
 	/* Encoding video */
 	{
 		int got_packet = 0;

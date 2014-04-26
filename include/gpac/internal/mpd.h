@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 #ifndef _MPD_H_
 #define _MPD_H_
@@ -30,64 +30,64 @@
 #include <gpac/media_tools.h>
 
 /*TODO*/
-typedef struct 
+typedef struct
 {
 	u32 dummy;
 } GF_MPD_Metrics;
 
 /*TODO*/
-typedef struct 
+typedef struct
 {
 	u32 dummy;
 } GF_MPD_ContentComponent;
 
 /*TODO*/
-typedef struct 
+typedef struct
 {
 	char *scheme_id_uri; /*MANDATORY*/
 	char *value;
 } GF_MPD_Descriptor;
 
 /*TODO*/
-typedef struct 
+typedef struct
 {
 	u32 dummy;
 } GF_MPD_Subset;
 
-typedef struct 
+typedef struct
 {
 	u64 start_time;
 	u32 duration; /*MANDATORY*/
 	u32 repeat_count;
 } GF_MPD_SegmentTimelineEntry;
 
-typedef struct 
+typedef struct
 {
 	GF_List *entries;
 } GF_MPD_SegmentTimeline;
 
-typedef struct 
+typedef struct
 {
 	u64 start_range, end_range;
 } GF_MPD_ByteRange;
 
 
-typedef struct 
+typedef struct
 {
-    char *URL;
-    char *service_location;
-    GF_MPD_ByteRange *byte_range;
+	char *URL;
+	char *service_location;
+	GF_MPD_ByteRange *byte_range;
 } GF_MPD_BaseURL;
 
-typedef struct 
+typedef struct
 {
-    char *sourceURL;
-    GF_MPD_ByteRange *byte_range;
+	char *sourceURL;
+	GF_MPD_ByteRange *byte_range;
 } GF_MPD_URL;
 
-typedef struct 
+typedef struct
 {
-    u32 num, den;
+	u32 num, den;
 } GF_MPD_Fractional;
 
 
@@ -100,9 +100,9 @@ typedef struct
 	Double availability_time_offset;	\
 	GF_MPD_URL *initialization_segment;	\
 	GF_MPD_URL *representation_index;	\
+ 
 
-
-typedef struct 
+typedef struct
 {
 	GF_MPD_SEGMENT_BASE
 } GF_MPD_SegmentBase;
@@ -114,13 +114,13 @@ typedef struct
 	u32 start_number;	\
 	GF_MPD_SegmentTimeline *segment_timeline;	\
 	GF_MPD_URL *bitstream_switching_url;	\
-
-typedef struct 
+ 
+typedef struct
 {
 	GF_MPD_MULTIPLE_SEGMENT_BASE
 } GF_MPD_MultipleSegmentBase;
 
-typedef struct 
+typedef struct
 {
 	char *media;
 	GF_MPD_ByteRange *media_range;
@@ -129,9 +129,9 @@ typedef struct
 	u64 duration;
 } GF_MPD_SegmentURL;
 
-typedef struct 
+typedef struct
 {
-	GF_MPD_MULTIPLE_SEGMENT_BASE	
+	GF_MPD_MULTIPLE_SEGMENT_BASE
 	/*list of segments - can be NULL if no segment*/
 	GF_List *segment_URLs;
 
@@ -139,9 +139,9 @@ typedef struct
 	Bool xlink_actuate_on_load;
 } GF_MPD_SegmentList;
 
-typedef struct 
+typedef struct
 {
-	GF_MPD_MULTIPLE_SEGMENT_BASE	
+	GF_MPD_MULTIPLE_SEGMENT_BASE
 	char *media;
 	char *index;
 	char *initialization;
@@ -177,7 +177,7 @@ typedef enum
 	GF_List *frame_packing;	\
 	GF_List *audio_channels;	\
 	GF_List *content_protection;	\
-
+ 
 
 typedef struct {
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
@@ -185,7 +185,7 @@ typedef struct {
 
 typedef struct {
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
-	
+
 	u32 level;
 	char *dependecy_level;
 	u32 bandwidth; /*MANDATORY if level set*/
@@ -203,11 +203,11 @@ typedef struct {
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
 
 	char *id; /*MANDATORY*/
-    u32 bandwidth; /*MANDATORY*/
+	u32 bandwidth; /*MANDATORY*/
 	u32 quality_ranking;
 	char *dependency_id;
 	char *media_stream_structure_id;
-	
+
 	GF_List *base_URLs;
 	GF_MPD_SegmentBase *segment_base;
 	GF_MPD_SegmentList *segment_list;
@@ -223,8 +223,8 @@ typedef struct {
 } GF_MPD_Representation;
 
 
-typedef struct 
-{	
+typedef struct
+{
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
 
 	u32 id;
@@ -265,10 +265,10 @@ typedef struct
 } GF_MPD_AdaptationSet;
 
 
-typedef struct 
+typedef struct
 {
 	char *ID;
-    u32 start; /* expressed in ms, relative to the start of the MPD */
+	u32 start; /* expressed in ms, relative to the start of the MPD */
 	u32 duration; /* expressed in ms*/
 	Bool bitstream_switching;
 
@@ -283,31 +283,31 @@ typedef struct
 	Bool xlink_actuate_on_load;
 } GF_MPD_Period;
 
-typedef struct 
+typedef struct
 {
-    char *lang;
-    char *title;
-    char *source;
-    char *copyright;
-    char *more_info_url;
+	char *lang;
+	char *title;
+	char *source;
+	char *copyright;
+	char *more_info_url;
 } GF_MPD_ProgramInfo;
 
 
 typedef enum {
-    GF_MPD_TYPE_STATIC,
-    GF_MPD_TYPE_DYNAMIC,
+	GF_MPD_TYPE_STATIC,
+	GF_MPD_TYPE_DYNAMIC,
 } GF_MPD_Type;
 
 typedef struct {
-    char *ID;
-    char *profiles;	/*MANDATORY*/
-    GF_MPD_Type type;
+	char *ID;
+	char *profiles;	/*MANDATORY*/
+	GF_MPD_Type type;
 	u64 availabilityStartTime; /* expressed in milliseconds */	/*MANDATORY if type=dynamic*/
-	u64 availabilityEndTime;/* expressed in milliseconds */	
-	u64 publishTime;/* expressed in milliseconds */	
-    u32 media_presentation_duration; /* expressed in milliseconds */	/*MANDATORY if type=static*/
-    u32 minimum_update_period; /* expressed in milliseconds */
-    u32 min_buffer_time; /* expressed in milliseconds */	/*MANDATORY*/
+	u64 availabilityEndTime;/* expressed in milliseconds */
+	u64 publishTime;/* expressed in milliseconds */
+	u32 media_presentation_duration; /* expressed in milliseconds */	/*MANDATORY if type=static*/
+	u32 minimum_update_period; /* expressed in milliseconds */
+	u32 min_buffer_time; /* expressed in milliseconds */	/*MANDATORY*/
 
 	u32 time_shift_buffer_depth; /* expressed in milliseconds */
 	u32 suggested_presentaton_delay; /* expressed in milliseconds */
@@ -324,7 +324,7 @@ typedef struct {
 	/*list of Metrics */
 	GF_List *metrics;
 	/*list of GF_MPD_Period */
-    GF_List *periods;
+	GF_List *periods;
 
 	/*set during parsing*/
 	const char *xml_namespace;

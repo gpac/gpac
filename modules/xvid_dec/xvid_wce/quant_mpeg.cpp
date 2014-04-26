@@ -32,34 +32,32 @@
  *
  * data[i] = (coeff[i] * default_intra_matrix[i] * quant2) >> 4;
  */
-void dequant_mpeg_intra(int *data, const int *coeff, dword quant, dword dcscalar, const dword *mpeg_quant_matrices){
+void dequant_mpeg_intra(int *data, const int *coeff, dword quant, dword dcscalar, const dword *mpeg_quant_matrices) {
 
-   const dword *intra_matrix = get_intra_matrix(mpeg_quant_matrices);
+	const dword *intra_matrix = get_intra_matrix(mpeg_quant_matrices);
 
-   data[0] = coeff[0] * dcscalar;
-   if(data[0] < -2048){
-      data[0] = -2048;
-   }else
-   if(data[0] > 2047){
-      data[0] = 2047;
-   }
+	data[0] = coeff[0] * dcscalar;
+	if(data[0] < -2048) {
+		data[0] = -2048;
+	} else if(data[0] > 2047) {
+		data[0] = 2047;
+	}
 
-   for(int i = 1; i < 64; i++){
-      if(coeff[i] == 0){
-         data[i] = 0;
-      }else
-      if(coeff[i] < 0){
-         int level = -coeff[i];
+	for(int i = 1; i < 64; i++) {
+		if(coeff[i] == 0) {
+			data[i] = 0;
+		} else if(coeff[i] < 0) {
+			int level = -coeff[i];
 
-         level = (level * intra_matrix[i] * quant) >> 3;
-         data[i] = (level <= 2048 ? -level : -2048);
-      }else{
-         dword level = coeff[i];
+			level = (level * intra_matrix[i] * quant) >> 3;
+			data[i] = (level <= 2048 ? -level : -2048);
+		} else {
+			dword level = coeff[i];
 
-         level = (level * intra_matrix[i] * quant) >> 3;
-         data[i] = (level <= 2047 ? level : 2047);
-      }
-   }
+			level = (level * intra_matrix[i] * quant) >> 3;
+			data[i] = (level <= 2047 ? level : 2047);
+		}
+	}
 }
 
 //----------------------------
@@ -67,31 +65,30 @@ void dequant_mpeg_intra(int *data, const int *coeff, dword quant, dword dcscalar
  * data = ((2 * coeff + SIGN(coeff)) * inter_matrix[i] * quant) / 16
  */
 
-void dequant_mpeg_inter(int *data, const int *coeff, dword quant, const dword *mpeg_quant_matrices){
+void dequant_mpeg_inter(int *data, const int *coeff, dword quant, const dword *mpeg_quant_matrices) {
 
-   dword sum = 0;
-   const dword *inter_matrix = get_inter_matrix(mpeg_quant_matrices);
+	dword sum = 0;
+	const dword *inter_matrix = get_inter_matrix(mpeg_quant_matrices);
 
-   for(int i = 0; i < 64; i++){
-      if(coeff[i] == 0){
-         data[i] = 0;
-      }else
-      if(coeff[i] < 0){
-         int level = -coeff[i];
+	for(int i = 0; i < 64; i++) {
+		if(coeff[i] == 0) {
+			data[i] = 0;
+		} else if(coeff[i] < 0) {
+			int level = -coeff[i];
 
-         level = ((2 * level + 1) * inter_matrix[i] * quant) >> 4;
-         data[i] = (level <= 2048 ? -level : -2048);
-      }else{
-         dword level = coeff[i];
-         level = ((2 * level + 1) * inter_matrix[i] * quant) >> 4;
-         data[i] = (level <= 2047 ? level : 2047);
-      }
-      sum ^= data[i];
-   }
-   /* mismatch control */
-   if ((sum & 1) == 0) {
-      data[63] ^= 1;
-   }
+			level = ((2 * level + 1) * inter_matrix[i] * quant) >> 4;
+			data[i] = (level <= 2048 ? -level : -2048);
+		} else {
+			dword level = coeff[i];
+			level = ((2 * level + 1) * inter_matrix[i] * quant) >> 4;
+			data[i] = (level <= 2047 ? level : 2047);
+		}
+		sum ^= data[i];
+	}
+	/* mismatch control */
+	if ((sum & 1) == 0) {
+		data[63] ^= 1;
+	}
 }
 
 //----------------------------

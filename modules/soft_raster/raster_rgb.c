@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,18 +11,18 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *
- *		
+ *
  */
 
 #include "rast_soft.h"
@@ -91,7 +91,7 @@ void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	for (i=0; i<count; i++) {
 		len = spans[i].len;
 		p = dst + spans[i].x * surf->pitch_x;
-	
+
 		if (spans[i].coverage != 0xFF) {
 			a = mul255(0xFF, spans[i].coverage);
 			fin = (a<<24) | col_no_a;
@@ -243,7 +243,7 @@ void evg_bgr_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	for (i=0; i<count; i++) {
 		len = spans[i].len;
 		p = dst + spans[i].x * surf->pitch_x;
-	
+
 		if (spans[i].coverage != 0xFF) {
 			a = mul255(0xFF, spans[i].coverage);
 			fin = (a<<24) | col_no_a;
@@ -349,7 +349,7 @@ void evg_user_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	s32 i;
 
 	col_no_a = surf->fill_col;
-	for (i=0; i<count; i++) {	
+	for (i=0; i<count; i++) {
 		if (spans[i].coverage != 0xFF) {
 			u32 a = mul255(0xFF, spans[i].coverage);
 			surf->raster_fill_run_alpha(surf->raster_cbk, spans[i].x, y, spans[i].len, col_no_a, a);

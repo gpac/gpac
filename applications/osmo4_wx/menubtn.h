@@ -13,7 +13,7 @@
 wxMenuButton is a button that drops down an assigned wxMenu
 
 Create the button with either a text or bitmap label.
-    Create a new wxMenu and call AssignMenu and thats it. When you press the 
+    Create a new wxMenu and call AssignMenu and thats it. When you press the
     dropdown button the menu appears. When you press the label button the next
     wxITEM_RADIO (ie wxMenuItem::GetKind) in the menu is selected round robin.
     If there are no radio items then it really just acts like a menubar, though
@@ -26,7 +26,7 @@ Create the button with either a text or bitmap label.
 #define _WX_MENUBTN_H_
 
 #if defined(__GNUG__) && !defined(NO_GCC_PRAGMA)
-    #pragma interface "menubtn.h"
+#pragma interface "menubtn.h"
 #endif
 
 class wxMenu;
@@ -39,19 +39,19 @@ class wxCustomButton;
 
 enum wxCustomButton_Style
 {
-    // Position of the label, use only one
-    wxCUSTBUT_LEFT           = 0x0001,
-    wxCUSTBUT_RIGHT          = 0x0002,
-    wxCUSTBUT_TOP            = 0x0004,
-    wxCUSTBUT_BOTTOM         = 0x0008,
-    // Button style, use only one
-    wxCUSTBUT_NOTOGGLE       = 0x0100,
-    wxCUSTBUT_BUTTON         = 0x0200,
-    wxCUSTBUT_TOGGLE         = 0x0400,
-    wxCUSTBUT_BUT_DCLICK_TOG = 0x0800,
-    wxCUSTBUT_TOG_DCLICK_BUT = 0x1000, 
-    // drawing styles
-    wxCUSTBUT_FLAT           = 0x2000 // flat, mouseover raises if not depressed
+	// Position of the label, use only one
+	wxCUSTBUT_LEFT           = 0x0001,
+	wxCUSTBUT_RIGHT          = 0x0002,
+	wxCUSTBUT_TOP            = 0x0004,
+	wxCUSTBUT_BOTTOM         = 0x0008,
+	// Button style, use only one
+	wxCUSTBUT_NOTOGGLE       = 0x0100,
+	wxCUSTBUT_BUTTON         = 0x0200,
+	wxCUSTBUT_TOGGLE         = 0x0400,
+	wxCUSTBUT_BUT_DCLICK_TOG = 0x0800,
+	wxCUSTBUT_TOG_DCLICK_BUT = 0x1000,
+	// drawing styles
+	wxCUSTBUT_FLAT           = 0x2000 // flat, mouseover raises if not depressed
 };
 
 //-----------------------------------------------------------------------------
@@ -62,148 +62,182 @@ class WXDLLEXPORT wxCustomButton : public wxControl
 {
 public:
 
-    wxCustomButton() : wxControl() { Init(); }
-    
-    // wxToggleButton or wxButton compatible constructor (also wxTextCtrl)
-    wxCustomButton(wxWindow* parent, wxWindowID id,
-                   const wxString& label,
-                   const wxPoint& pos = wxDefaultPosition,
-                   const wxSize& size = wxDefaultSize,
-                   long style = wxCUSTBUT_TOGGLE,
-                   const wxValidator& val = wxDefaultValidator,
-                   const wxString& name = wxT("wxCustomButton"))
-                   : wxControl()
-    {
-        Init();
-        Create(parent,id,label,wxNullBitmap,pos,size,style,val,name);
-    }
+	wxCustomButton() : wxControl() {
+		Init();
+	}
 
-    // wxBitmapButton compatible constructor
-    wxCustomButton(wxWindow *parent, wxWindowID id,
-                   const wxBitmap& bitmap,
-                   const wxPoint& pos = wxDefaultPosition,
-                   const wxSize& size = wxDefaultSize,
-                   long style = wxCUSTBUT_TOGGLE,
-                   const wxValidator& val = wxDefaultValidator,
-                   const wxString& name = wxT("wxCustomButton"))
-                   : wxControl()
-    {
-        Init();
-        Create(parent,id,wxEmptyString,bitmap,pos,size,style,val,name);
-    }
+	// wxToggleButton or wxButton compatible constructor (also wxTextCtrl)
+	wxCustomButton(wxWindow* parent, wxWindowID id,
+	               const wxString& label,
+	               const wxPoint& pos = wxDefaultPosition,
+	               const wxSize& size = wxDefaultSize,
+	               long style = wxCUSTBUT_TOGGLE,
+	               const wxValidator& val = wxDefaultValidator,
+	               const wxString& name = wxT("wxCustomButton"))
+		: wxControl()
+	{
+		Init();
+		Create(parent,id,label,wxNullBitmap,pos,size,style,val,name);
+	}
 
-    // Native constructor
-    wxCustomButton(wxWindow *parent, wxWindowID id,
-                   const wxString& label, const wxBitmap& bitmap,
-                   const wxPoint& pos = wxDefaultPosition,
-                   const wxSize& size = wxDefaultSize,
-                   long style = wxCUSTBUT_TOGGLE|wxCUSTBUT_BOTTOM,
-                   const wxValidator& val = wxDefaultValidator,
-                   const wxString& name = wxT("wxCustomButton"))
-                   : wxControl()
-    {
-        Init();
-        Create(parent,id,label,bitmap,pos,size,style,val,name);
-    }
+	// wxBitmapButton compatible constructor
+	wxCustomButton(wxWindow *parent, wxWindowID id,
+	               const wxBitmap& bitmap,
+	               const wxPoint& pos = wxDefaultPosition,
+	               const wxSize& size = wxDefaultSize,
+	               long style = wxCUSTBUT_TOGGLE,
+	               const wxValidator& val = wxDefaultValidator,
+	               const wxString& name = wxT("wxCustomButton"))
+		: wxControl()
+	{
+		Init();
+		Create(parent,id,wxEmptyString,bitmap,pos,size,style,val,name);
+	}
 
-    virtual ~wxCustomButton();
-        
-    bool Create(wxWindow* parent,
-                wxWindowID id,
-                const wxString& label,
-                const wxBitmap &bitmap,
-                const wxPoint& pos = wxDefaultPosition,
-                const wxSize& size = wxDefaultSize,
-                long style = 0,
-                const wxValidator& val = wxDefaultValidator,
-                const wxString& name = wxT("wxCustomButton"));
+	// Native constructor
+	wxCustomButton(wxWindow *parent, wxWindowID id,
+	               const wxString& label, const wxBitmap& bitmap,
+	               const wxPoint& pos = wxDefaultPosition,
+	               const wxSize& size = wxDefaultSize,
+	               long style = wxCUSTBUT_TOGGLE|wxCUSTBUT_BOTTOM,
+	               const wxValidator& val = wxDefaultValidator,
+	               const wxString& name = wxT("wxCustomButton"))
+		: wxControl()
+	{
+		Init();
+		Create(parent,id,label,bitmap,pos,size,style,val,name);
+	}
 
-    bool GetValue() const { return m_down%2 != 0; }
-    void SetValue( bool depressed );
+	virtual ~wxCustomButton();
 
-    // Use combinations of wxCustomButton_Style(s)
-    long GetButtonStyle() const { return m_button_style; }
-    bool SetButtonStyle( long style );
-    
-    // Set the text label, wxEmptyString for none
-    void SetLabel( const wxString &label );
+	bool Create(wxWindow* parent,
+	            wxWindowID id,
+	            const wxString& label,
+	            const wxBitmap &bitmap,
+	            const wxPoint& pos = wxDefaultPosition,
+	            const wxSize& size = wxDefaultSize,
+	            long style = 0,
+	            const wxValidator& val = wxDefaultValidator,
+	            const wxString& name = wxT("wxCustomButton"));
 
-    // set the bitmaps, ONLY this Label bitmap is used for calculating control size
-    //   all bitmaps will be centered accordingly in any case
-    //   call SetSet(GetBestSize()) if you change their size and want the control to resize appropriately
-    void SetBitmapLabel(const wxBitmap& bitmap);
-    void SetBitmapSelected(const wxBitmap& sel)      { m_bmpSelected = sel; CalcLayout(TRUE); };
-    void SetBitmapFocus(const wxBitmap& focus)       { m_bmpFocus = focus; CalcLayout(TRUE); };
-    void SetBitmapDisabled(const wxBitmap& disabled) { m_bmpDisabled = disabled; CalcLayout(TRUE); };
-    // wxBitmapButton compatibility
-    void SetLabel(const wxBitmap& bitmap)            { SetBitmapLabel(bitmap); }
+	bool GetValue() const {
+		return m_down%2 != 0;
+	}
+	void SetValue( bool depressed );
 
-    // retrieve the bitmaps
-    const wxBitmap& GetBitmapLabel()    const { return m_bmpLabel;    }
-    const wxBitmap& GetBitmapSelected() const { return m_bmpSelected; }
-    const wxBitmap& GetBitmapFocus()    const { return m_bmpFocus;    }
-    const wxBitmap& GetBitmapDisabled() const { return m_bmpDisabled; }
+	// Use combinations of wxCustomButton_Style(s)
+	long GetButtonStyle() const {
+		return m_button_style;
+	}
+	bool SetButtonStyle( long style );
 
-    // Creates a "disabled" bitmap by dithering it with the background colour
-    wxBitmap CreateBitmapDisabled(const wxBitmap &bitmap) const;
-    
-    // set/get the margins (in pixels) around the label and bitmap
-    //    if fit = TRUE then resize the button to fit
-    void SetMargins(const wxSize &margin, bool fit = FALSE); 
-    
-    // set/get the margins around the text label
-    //    the inter bitmap/label margin is the max of either margin, not the sum
-    void SetLabelMargin(const wxSize &margin, bool fit = FALSE);
-    wxSize GetLabelMargin() const { return m_labelMargin; }
-    // set/get the margins around the bitmap
-    //    the inter bitmap/label margin is the max of either margin, not the sum
-    void SetBitmapMargin(const wxSize &margin, bool fit = FALSE);
-    wxSize GetBitmapMargin() const { return m_bitmapMargin; }
-    
-    // can be used to activate the focused behavior (see MenuButton)
-    void SetFocused(bool focused) { m_focused = focused; Refresh(FALSE); }
-    bool GetFocused() const { return m_focused; }
-    
+	// Set the text label, wxEmptyString for none
+	void SetLabel( const wxString &label );
+
+	// set the bitmaps, ONLY this Label bitmap is used for calculating control size
+	//   all bitmaps will be centered accordingly in any case
+	//   call SetSet(GetBestSize()) if you change their size and want the control to resize appropriately
+	void SetBitmapLabel(const wxBitmap& bitmap);
+	void SetBitmapSelected(const wxBitmap& sel)      {
+		m_bmpSelected = sel;
+		CalcLayout(TRUE);
+	};
+	void SetBitmapFocus(const wxBitmap& focus)       {
+		m_bmpFocus = focus;
+		CalcLayout(TRUE);
+	};
+	void SetBitmapDisabled(const wxBitmap& disabled) {
+		m_bmpDisabled = disabled;
+		CalcLayout(TRUE);
+	};
+	// wxBitmapButton compatibility
+	void SetLabel(const wxBitmap& bitmap)            {
+		SetBitmapLabel(bitmap);
+	}
+
+	// retrieve the bitmaps
+	const wxBitmap& GetBitmapLabel()    const {
+		return m_bmpLabel;
+	}
+	const wxBitmap& GetBitmapSelected() const {
+		return m_bmpSelected;
+	}
+	const wxBitmap& GetBitmapFocus()    const {
+		return m_bmpFocus;
+	}
+	const wxBitmap& GetBitmapDisabled() const {
+		return m_bmpDisabled;
+	}
+
+	// Creates a "disabled" bitmap by dithering it with the background colour
+	wxBitmap CreateBitmapDisabled(const wxBitmap &bitmap) const;
+
+	// set/get the margins (in pixels) around the label and bitmap
+	//    if fit = TRUE then resize the button to fit
+	void SetMargins(const wxSize &margin, bool fit = FALSE);
+
+	// set/get the margins around the text label
+	//    the inter bitmap/label margin is the max of either margin, not the sum
+	void SetLabelMargin(const wxSize &margin, bool fit = FALSE);
+	wxSize GetLabelMargin() const {
+		return m_labelMargin;
+	}
+	// set/get the margins around the bitmap
+	//    the inter bitmap/label margin is the max of either margin, not the sum
+	void SetBitmapMargin(const wxSize &margin, bool fit = FALSE);
+	wxSize GetBitmapMargin() const {
+		return m_bitmapMargin;
+	}
+
+	// can be used to activate the focused behavior (see MenuButton)
+	void SetFocused(bool focused) {
+		m_focused = focused;
+		Refresh(FALSE);
+	}
+	bool GetFocused() const {
+		return m_focused;
+	}
+
 protected:
-    void OnPaint(wxPaintEvent &event);
-    void Redraw();
-    virtual void Paint( wxDC &dc );
+	void OnPaint(wxPaintEvent &event);
+	void Redraw();
+	virtual void Paint( wxDC &dc );
 
-    virtual wxSize DoGetBestSize() const;
+	virtual wxSize DoGetBestSize() const;
 
-    virtual void SendEvent();
-    
-    void OnMouseEvents(wxMouseEvent &event);
+	virtual void SendEvent();
 
-    void OnSize( wxSizeEvent &event );
+	void OnMouseEvents(wxMouseEvent &event);
 
-    virtual void CalcLayout(bool refresh);
+	void OnSize( wxSizeEvent &event );
 
-    long m_down;         // toggle state if m_down%2 then depressed
-    bool m_focused;     // mouse in window
-    long m_button_style;
+	virtual void CalcLayout(bool refresh);
 
-    // the bitmaps for various states
-    wxBitmap m_bmpLabel,
-             m_bmpSelected,
-             m_bmpFocus,
-             m_bmpDisabled;
+	long m_down;         // toggle state if m_down%2 then depressed
+	bool m_focused;     // mouse in window
+	long m_button_style;
 
-    // the margins around the label/bitmap
-    wxSize m_labelMargin,
-           m_bitmapMargin;
+	// the bitmaps for various states
+	wxBitmap m_bmpLabel,
+	         m_bmpSelected,
+	         m_bmpFocus,
+	         m_bmpDisabled;
 
-    wxPoint m_bitmapPos,
-            m_labelPos;
+	// the margins around the label/bitmap
+	wxSize m_labelMargin,
+	       m_bitmapMargin;
 
-    wxTimer *m_timer;
-    
-    wxEventType m_eventType;     // store the mouse event type
+	wxPoint m_bitmapPos,
+	        m_labelPos;
+
+	wxTimer *m_timer;
+
+	wxEventType m_eventType;     // store the mouse event type
 
 private:
-    void Init();
-    DECLARE_DYNAMIC_CLASS(wxCustomButton)
-    DECLARE_EVENT_TABLE()
+	void Init();
+	DECLARE_DYNAMIC_CLASS(wxCustomButton)
+	DECLARE_EVENT_TABLE()
 };
 
 //-----------------------------------------------------------------------------
@@ -215,7 +249,7 @@ private:
 
 enum wxMenuButton_Styles
 {
-    wxMENUBUT_FLAT = wxCUSTBUT_FLAT
+	wxMENUBUT_FLAT = wxCUSTBUT_FLAT
 };
 
 //-----------------------------------------------------------------------------
@@ -226,87 +260,95 @@ class wxMenuButton : public wxControl
 {
 public:
 
-    wxMenuButton() : wxControl() { Init(); }
+	wxMenuButton() : wxControl() {
+		Init();
+	}
 
-    // Use this constructor if you need one compatible with a wxBitmapButton
-    //   setup the button later with AssignMenu
-    wxMenuButton( wxWindow* parent, wxWindowID id,
-                  const wxBitmap &bitmap, 
-                  const wxPoint& pos = wxDefaultPosition,
-                  const wxSize& size = wxDefaultSize,
-                  long style = 0, 
-				  const wxValidator& val = wxDefaultValidator,
-                  const wxString& name = wxT("wxMenuButton"))
-                  : wxControl()
-    {
-        Init();
-        Create(parent,id,wxEmptyString,bitmap,pos,size,style,val,name);
-    }
+	// Use this constructor if you need one compatible with a wxBitmapButton
+	//   setup the button later with AssignMenu
+	wxMenuButton( wxWindow* parent, wxWindowID id,
+	              const wxBitmap &bitmap,
+	              const wxPoint& pos = wxDefaultPosition,
+	              const wxSize& size = wxDefaultSize,
+	              long style = 0,
+	              const wxValidator& val = wxDefaultValidator,
+	              const wxString& name = wxT("wxMenuButton"))
+		: wxControl()
+	{
+		Init();
+		Create(parent,id,wxEmptyString,bitmap,pos,size,style,val,name);
+	}
 
-    virtual ~wxMenuButton();
-        
-    bool Create( wxWindow* parent,
-                 wxWindowID id,
-                 const wxString &label,
-                 const wxBitmap &bitmap,
-                 const wxPoint& pos = wxDefaultPosition,
-                 const wxSize& size = wxDefaultSize,
-                 long style = wxNO_BORDER,
-                 const wxValidator& val = wxDefaultValidator,
-                 const wxString& name = wxT("wxMenuButton"));
+	virtual ~wxMenuButton();
 
-    // Gets the id of the first selected radio item or wxNOT_FOUND (-1) if none
-    int GetSelection() const;
-    
-    // This menu will be displayed when the dropdown button is pressed.
-    //   if static_menu is FALSE it will be deleted when the buttton is destroyed.
-    void AssignMenu(wxMenu *menu, bool static_menu = FALSE); 
-    
-    wxMenu *GetMenu() const { return m_menu; }
-    
-    // get a pointer to the label button, for turning it into a toggle perhaps
-    wxCustomButton *GetLabelButton() const { return m_labelButton; }
-    wxCustomButton *GetDropDownButton() const { return m_dropdownButton; }
-    
-    void SetToolTip(const wxString &tip);
-    void SetToolTip(wxToolTip *tip);
-    
+	bool Create( wxWindow* parent,
+	             wxWindowID id,
+	             const wxString &label,
+	             const wxBitmap &bitmap,
+	             const wxPoint& pos = wxDefaultPosition,
+	             const wxSize& size = wxDefaultSize,
+	             long style = wxNO_BORDER,
+	             const wxValidator& val = wxDefaultValidator,
+	             const wxString& name = wxT("wxMenuButton"));
+
+	// Gets the id of the first selected radio item or wxNOT_FOUND (-1) if none
+	int GetSelection() const;
+
+	// This menu will be displayed when the dropdown button is pressed.
+	//   if static_menu is FALSE it will be deleted when the buttton is destroyed.
+	void AssignMenu(wxMenu *menu, bool static_menu = FALSE);
+
+	wxMenu *GetMenu() const {
+		return m_menu;
+	}
+
+	// get a pointer to the label button, for turning it into a toggle perhaps
+	wxCustomButton *GetLabelButton() const {
+		return m_labelButton;
+	}
+	wxCustomButton *GetDropDownButton() const {
+		return m_dropdownButton;
+	}
+
+	void SetToolTip(const wxString &tip);
+	void SetToolTip(wxToolTip *tip);
+
 protected:
-    void OnButton(wxCommandEvent &event);    
+	void OnButton(wxCommandEvent &event);
 
-    virtual void DoSetSize(int x, int y, int width, int height,
-                           int sizeFlags = wxSIZE_AUTO);
+	virtual void DoSetSize(int x, int y, int width, int height,
+	                       int sizeFlags = wxSIZE_AUTO);
 
-    virtual wxSize DoGetBestSize();
+	virtual wxSize DoGetBestSize();
 
 // FIXME! - in MSW the radio items don't check themselves
 #ifdef __WXMSW__
-    void OnMenu( wxCommandEvent &event );
+	void OnMenu( wxCommandEvent &event );
 #endif
 
-    wxCustomButton *m_labelButton;
-    wxCustomButton *m_dropdownButton;
+	wxCustomButton *m_labelButton;
+	wxCustomButton *m_dropdownButton;
 
-    wxMenu *m_menu;
-    bool m_menu_static;
-    long m_style;
+	wxMenu *m_menu;
+	bool m_menu_static;
+	long m_style;
 
 private:
-    void Init();
-    DECLARE_DYNAMIC_CLASS(wxMenuButton)
-    DECLARE_EVENT_TABLE()
+	void Init();
+	DECLARE_DYNAMIC_CLASS(wxMenuButton)
+	DECLARE_EVENT_TABLE()
 };
 
 //-----------------------------------------------------------------------------
 // wxMenuButtonEvents
-// 
+//
 // EVT_MENUBUTTON_OPEN(id, fn) - menu is about to be opened, (dis)(en)able items
 //                               or call Veto() to stop menu from popping up
 //                               this is a wxNotifyEvent
 //-----------------------------------------------------------------------------
 
 BEGIN_DECLARE_EVENT_TYPES()
-    DECLARE_LOCAL_EVENT_TYPE( wxEVT_MENUBUTTON_OPEN, 0 )
+DECLARE_LOCAL_EVENT_TYPE( wxEVT_MENUBUTTON_OPEN, 0 )
 END_DECLARE_EVENT_TYPES()
 
 #define EVT_MENUBUTTON_OPEN(id, fn) DECLARE_EVENT_TABLE_ENTRY(wxEVT_MENUBUTTON_OPEN, id, wxID_ANY, (wxObjectEventFunction) (wxEventFunction) (wxCommandEventFunction) (wxNotifyEventFunction) & fn, (wxObject *) NULL ),

@@ -77,7 +77,7 @@ void dc_video_scaler_list_init(VideoScaledDataList *video_scaled_data_list, GF_L
 		found = 0;
 		for (j=0; j<video_scaled_data_list->size; j++) {
 			if (   video_scaled_data_list->video_scaled_data[j]->out_height == video_data_conf->height
-				  && video_scaled_data_list->video_scaled_data[j]->out_width  == video_data_conf->width) {
+			        && video_scaled_data_list->video_scaled_data[j]->out_width  == video_data_conf->width) {
 				found = 1;
 				video_scaled_data_list->video_scaled_data[j]->num_consumers++;
 				break;
@@ -142,11 +142,11 @@ int dc_video_scaler_data_set_prop(VideoInputData *video_input_data, VideoScaledD
 	video_scaled_data->vsprop[index].in_pix_fmt = video_input_data->vprop[index].pix_fmt;
 
 	video_scaled_data->vsprop[index].sws_ctx = sws_getContext(
-			video_scaled_data->vsprop[index].in_width,
-			video_scaled_data->vsprop[index].in_height,
-			video_scaled_data->vsprop[index].in_pix_fmt,
-			video_scaled_data->out_width, video_scaled_data->out_height,
-			video_scaled_data->out_pix_fmt, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+	            video_scaled_data->vsprop[index].in_width,
+	            video_scaled_data->vsprop[index].in_height,
+	            video_scaled_data->vsprop[index].in_pix_fmt,
+	            video_scaled_data->out_width, video_scaled_data->out_height,
+	            video_scaled_data->out_pix_fmt, SWS_FAST_BILINEAR, NULL, NULL, NULL);
 	if (video_scaled_data->vsprop[index].sws_ctx == NULL) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot initialize the conversion context!\n"));
 		return -1;
@@ -168,7 +168,7 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 		return -2;
 	}
 
-	if (video_input_data->circular_buf.size > 1) 
+	if (video_input_data->circular_buf.size > 1)
 		dc_consumer_unlock_previous(&video_scaled_data->consumer, &video_input_data->circular_buf);
 
 	dc_producer_lock(&video_scaled_data->producer, &video_scaled_data->circular_buf);
@@ -201,9 +201,9 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 
 	//rescale the cropped frame
 	sws_scale(video_scaled_data->vsprop[index].sws_ctx,
-			(const uint8_t * const *)src_vframe->data, src_vframe->linesize, 0, src_height,
-			video_scaled_data_node->v_frame->data, video_scaled_data_node->v_frame->linesize);
-	
+	          (const uint8_t * const *)src_vframe->data, src_vframe->linesize, 0, src_height,
+	          video_scaled_data_node->v_frame->data, video_scaled_data_node->v_frame->linesize);
+
 	video_scaled_data_node->v_frame->pts = video_data_node->vframe->pts;
 
 	if (video_data_node->nb_raw_frames_ref) {
@@ -219,7 +219,7 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 	dc_consumer_advance(&video_scaled_data->consumer);
 	dc_producer_advance(&video_scaled_data->producer, &video_scaled_data->circular_buf);
 
-	if (video_input_data->circular_buf.size == 1) 
+	if (video_input_data->circular_buf.size == 1)
 		dc_consumer_unlock_previous(&video_scaled_data->consumer, &video_input_data->circular_buf);
 	return 0;
 }

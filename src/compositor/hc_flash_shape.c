@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -90,7 +90,7 @@ static void build_shape(FSStack *st, GF_Node *node)
 	u32 wi, li, fi, ci, command, i, has_ci;
 	FSItem *fill_item, *line_item;
 	Fixed w;
-	SFVec2f cur, pt, ct1={0,0}, ct2, *pts;
+	SFVec2f cur, pt, ct1= {0,0}, ct2, *pts;
 	GF_Rect rc;
 	u32 line_col, fill_col;
 	Bool need_line, need_fill;
@@ -127,39 +127,39 @@ static void build_shape(FSStack *st, GF_Node *node)
 
 	/*implicit commands: 0 1 2 3*/
 
-/*
-	if (widthIndex->count) {
-		w = (widthIndex->vals[wi]==-1) ? 0 : widths->vals[widthIndex->vals[wi]];
-		if (!w) {
-			need_line = 0;
-			line_item = NULL;
-		} else {
-			need_line = 1;
-			if (st->max_width<w) st->max_width = w;
+	/*
+		if (widthIndex->count) {
+			w = (widthIndex->vals[wi]==-1) ? 0 : widths->vals[widthIndex->vals[wi]];
+			if (!w) {
+				need_line = 0;
+				line_item = NULL;
+			} else {
+				need_line = 1;
+				if (st->max_width<w) st->max_width = w;
+			}
+			wi++;
 		}
-		wi++;
-	}
-	if (lineIndex->count) {
-		if (w) {
-			line_col = SFCOL_MAKE_ARGB(colors->vals[lineIndex->vals[li]]);
-			need_line = 1;
+		if (lineIndex->count) {
+			if (w) {
+				line_col = SFCOL_MAKE_ARGB(colors->vals[lineIndex->vals[li]]);
+				need_line = 1;
+			}
+			li++;
 		}
-		li++;
-	}
-	if (fillIndex->count) {
-		if (fillIndex->vals[fi]==-1) {
-			fill_col = 0;
-			fill_item = NULL;
-		} else {
-			fill_col = SFCOL_MAKE_ARGB(colors->vals[fillIndex->vals[fi]]);
-			need_fill = 1;
+		if (fillIndex->count) {
+			if (fillIndex->vals[fi]==-1) {
+				fill_col = 0;
+				fill_item = NULL;
+			} else {
+				fill_col = SFCOL_MAKE_ARGB(colors->vals[fillIndex->vals[fi]]);
+				need_fill = 1;
+			}
+			fi++;
 		}
-		fi++;
-	}
-	if (!coordIndex->count) return;
-	cur = coords->vals[coordIndex->vals[ci]];
-	ci++;
-*/
+		if (!coordIndex->count) return;
+		cur = coords->vals[coordIndex->vals[ci]];
+		ci++;
+	*/
 
 	for (command=0; command<com->count; command++) {
 		switch (com->vals[command]) {
@@ -167,7 +167,7 @@ static void build_shape(FSStack *st, GF_Node *node)
 		case 0:
 			if (wi >= widthIndex->count) return;
 			w = (widthIndex->vals[wi]==-1) ? 0 : widths->vals[widthIndex->vals[wi]];
-			if (!w) 
+			if (!w)
 				line_item = NULL;
 			else {
 				need_line = 1;
@@ -354,7 +354,7 @@ static void build_shape(FSStack *st, GF_Node *node)
 			break;
 		}
 	}
-	
+
 	/*compute bounds*/
 	st->bounds.width = st->bounds.height = 0;
 	for (i=0; i<gf_list_count(st->items); i++) {

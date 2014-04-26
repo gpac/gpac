@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -282,8 +282,8 @@ GF_Err Q_DecInt(GF_BifsDecoder *codec, GF_BitStream *bs, u32 QType, SFInt32 b_mi
 //in the UnitSphere (R=1.0)
 GF_Err Q_DecCoordOnUnitSphere(GF_BifsDecoder *codec, GF_BitStream *bs, u32 NbBits, u32 NbComp, Fixed *m_ft)
 {
-    u32 i, orient, sign;
-    s32 value;
+	u32 i, orient, sign;
+	s32 value;
 	Fixed tang[4], delta;
 	s32 dir;
 

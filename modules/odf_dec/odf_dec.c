@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2005-2012
  *					All rights reserved
  *
@@ -164,7 +164,7 @@ static GF_Err ODF_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 
 
 static GF_Err ODF_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength,
-							u16 ES_ID, u32 AU_time, u32 mmlevel)
+                              u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	GF_Err e;
 	GF_ODCom *com;
@@ -208,9 +208,9 @@ static GF_Err ODF_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			e = GF_OK;
 		}
 #else
-			e = GF_OK;
+		e = GF_OK;
 #endif
-			break;
+		break;
 		case GF_ODF_IPMP_REMOVE_TAG:
 			e = GF_NOT_SUPPORTED;
 			break;
@@ -251,13 +251,13 @@ static u32 ODF_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd
 void DeleteODDec(GF_BaseDecoder *plug)
 {
 	ODPriv *priv;
-        if (!plug)
-          return;
-        priv = (ODPriv *)plug->privateStack;
-        if (priv){
-          gf_free(priv);
-          plug->privateStack = NULL;
-        }
+	if (!plug)
+		return;
+	priv = (ODPriv *)plug->privateStack;
+	if (priv) {
+		gf_free(priv);
+		plug->privateStack = NULL;
+	}
 	gf_free(plug);
 }
 
@@ -308,8 +308,8 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
-        if (!ifce)
-          return;
+	if (!ifce)
+		return;
 	switch (ifce->InterfaceType) {
 	case GF_SCENE_DECODER_INTERFACE:
 		DeleteODDec((GF_BaseDecoder *)ifce);

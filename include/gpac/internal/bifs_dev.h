@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -74,14 +74,14 @@ typedef struct
 
 
 /*per_stream config support*/
-typedef struct 
+typedef struct
 {
 	BIFSConfig config;
 	u16 ESID;
 } BIFSStreamInfo;
 
 /*per_stream config support*/
-typedef struct 
+typedef struct
 {
 	GF_Node *node;
 	SFCommandBuffer *cb;
@@ -109,7 +109,7 @@ struct __tag_bifs_dec
 	M_QuantizationParameter *ActiveQP;
 
 	/*QP 14 stuff: we need to store the last numb of fields in the last received Coord //field (!!!)*/
-	
+
 	/*number of iten in the Coord field*/
 	u32 NumCoord;
 	Bool coord_stored, storing_coord;
@@ -207,7 +207,7 @@ GF_Node *gf_bifs_enc_find_node(GF_BifsEncoder *codec, u32 nodeID);
 		gf_bs_write_int(bs, val, nbBits);	\
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] %s\t\t%d\t\t%d\t\t%s\n", str, nbBits, val, com ? com : "") );	\
 	} \
-
+ 
 GF_Route *gf_bifs_enc_is_field_ised(GF_BifsEncoder *codec, GF_Node *node, u32 fieldIndex);
 
 #endif /*GPAC_DISABLE_BIFS_ENC*/

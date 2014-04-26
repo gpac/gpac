@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -38,8 +38,8 @@ extern "C" {
 /*for cache texture decode and hash*/
 #include <gpac/avparse.h>
 #include <gpac/crypt.h>
-	
-	
+
+
 typedef struct
 {
 	GF_TextureHandler txh;
@@ -92,7 +92,7 @@ static void movietexture_update(GF_TextureHandler *txh)
 {
 	M_MovieTexture *txnode = (M_MovieTexture *) txh->owner;
 	MovieTextureStack *st = (MovieTextureStack *) gf_node_get_private(txh->owner);
-	
+
 	/*setup texture if needed*/
 	if (!txh->is_open) return;
 	if (!txnode->isActive && st->first_frame_fetched) return;
@@ -133,7 +133,7 @@ static void movietexture_update_time(GF_TimeNode *st)
 	Double time;
 	M_MovieTexture *mt = (M_MovieTexture *)st->udta;
 	MovieTextureStack *stack = (MovieTextureStack *)gf_node_get_private(st->udta);
-	
+
 	/*not active, store start time and speed*/
 	if ( ! mt->isActive) {
 		stack->start_time = mt->startTime;
@@ -141,10 +141,10 @@ static void movietexture_update_time(GF_TimeNode *st)
 	time = gf_node_get_scene_time(st->udta);
 
 	if (time < stack->start_time ||
-		/*special case if we're getting active AFTER stoptime */
-		(!mt->isActive && (mt->stopTime > stack->start_time) && (time>=mt->stopTime))
+	        /*special case if we're getting active AFTER stoptime */
+	        (!mt->isActive && (mt->stopTime > stack->start_time) && (time>=mt->stopTime))
 //		|| (!stack->start_time && !stack->is_x3d && !mt->loop)
-		) {
+	   ) {
 		/*opens stream only at first access to fetch first frame*/
 		if (stack->fetch_first_frame) {
 			stack->fetch_first_frame = 0;
@@ -165,7 +165,7 @@ static void movietexture_update_time(GF_TimeNode *st)
 	}
 
 	/*we're (about to be) active: VRML:
-	"A time-dependent node is inactive until its startTime is reached. When time now becomes greater than or 
+	"A time-dependent node is inactive until its startTime is reached. When time now becomes greater than or
 	equal to startTime, an isActive TRUE event is generated and the time-dependent node becomes active 	*/
 
 	if (! mt->isActive) movietexture_activate(stack, mt, time);
@@ -183,14 +183,14 @@ void compositor_init_movietexture(GF_Compositor *compositor, GF_Node *node)
 	st->txh.flags = 0;
 	if (((M_MovieTexture*)node)->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
 	if (((M_MovieTexture*)node)->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
-	
+
 #ifndef GPAC_DISABLE_X3D
 	st->is_x3d = (gf_node_get_tag(node)==TAG_X3D_MovieTexture) ? 1 : 0;
 #endif
 
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, movietexture_destroy);
-	
+
 	gf_sc_register_time_node(compositor, &st->time_handle);
 }
 
@@ -210,7 +210,7 @@ void compositor_movietexture_modified(GF_Node *node)
 	if (gf_sc_texture_check_url_change(&st->txh, &mt->url)) {
 		if (st->txh.is_open) gf_sc_texture_stop(&st->txh);
 		if (mt->isActive) gf_sc_texture_play(&st->txh, &mt->url);
-	} 
+	}
 	/*update state if we're active*/
 	else if (mt->isActive) {
 		movietexture_update_time(&st->time_handle);
@@ -225,8 +225,8 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 {
 	if (is_destroy) {
 		GF_TextureHandler *txh = (GF_TextureHandler *) gf_node_get_private(node);
-		
-		/*cleanup cache if needed*/ 
+
+		/*cleanup cache if needed*/
 		if (gf_node_get_tag(node)==TAG_MPEG4_CacheTexture) {
 			char section[16];
 			const char *opt, *file;
@@ -266,18 +266,18 @@ static void imagetexture_update(GF_TextureHandler *txh)
 			gf_sc_texture_play(txh, &url);
 		}
 		gf_sc_texture_update_frame(txh, 0);
-		
+
 		if (
-			/*URL is present but not opened - redraw till fetch*/
-			/* (txh->stream && !txh->tx_io) && */ 
-			/*image has been updated*/
-			txh->needs_refresh) {
+		    /*URL is present but not opened - redraw till fetch*/
+		    /* (txh->stream && !txh->tx_io) && */
+		    /*image has been updated*/
+		    txh->needs_refresh) {
 			/*mark all subtrees using this image as dirty*/
 			gf_node_dirty_parents(txh->owner);
 			gf_sc_invalidate(txh->compositor, NULL);
 		}
 		return;
-	} 
+	}
 	/*cache texture case*/
 	else {
 		M_CacheTexture *ct = (M_CacheTexture *) txh->owner;
@@ -295,7 +295,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 					txh->needs_refresh = 1;
 					txh->stride = out_size / txh->height;
 				}
-			} 
+			}
 			/*BIFS decoded playback*/
 			else {
 				switch (ct->objectTypeIndication) {
@@ -463,7 +463,7 @@ void compositor_imagetexture_modified(GF_Node *node)
 		return;
 	}
 	/*if not open and changed play*/
-	if (url.count) 
+	if (url.count)
 		gf_sc_texture_play(txh, &url);
 }
 
@@ -493,8 +493,8 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 	if (!gf_node_dirty_get(txh->owner)) return;
 	gf_node_dirty_clear(txh->owner, 0);
 
-	
-	/*pixel texture doesn not use any media object but has data in the content. 
+
+	/*pixel texture doesn not use any media object but has data in the content.
 	However we still use the same texture object, just be carefull not to use media funtcions*/
 	txh->transparent = 0;
 	stride = pt->image.width;
@@ -534,7 +534,7 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 		for (i=0; i<pt->image.height; i++) {
 			memcpy(st->pixels + i * stride, pt->image.pixels + i * stride, stride);
 		}
-	} 
+	}
 	/*revert pixel ordering...*/
 	else {
 		for (i=0; i<pt->image.height; i++) {

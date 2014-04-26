@@ -79,7 +79,7 @@ AddressBar::AddressBar () : CInitDialogBar()
 BOOL AddressBar::OnInitDialog()
 {
 	CInitDialogBar::OnInitDialog();
-	
+
 	return TRUE;
 }
 
@@ -97,12 +97,12 @@ void AddressBar::DoDataExchange(CDataExchange* pDX)
 /////////////////////////////////////////////////////////////////////////////
 // AddressBar message handlers
 
-void AddressBar::OnSize(UINT nType, int cx, int cy) 
+void AddressBar::OnSize(UINT nType, int cx, int cy)
 {
 	u32 w;
 	POINT pt;
 	//CDialog::OnSize(nType, cx, cy);
-	
+
 	if (!m_Address.m_hWnd) return;
 	RECT rc;
 	m_Title.GetClientRect(&rc);
@@ -116,7 +116,7 @@ void AddressBar::OnSize(UINT nType, int cx, int cy)
 
 }
 
-void AddressBar::OnClose() 
+void AddressBar::OnClose()
 {
 }
 
@@ -134,7 +134,7 @@ void AddressBar::ReloadURLs()
 	}
 }
 
-void AddressBar::SelectionReady() 
+void AddressBar::SelectionReady()
 {
 	void UpdateLastFiles(GF_Config *cfg, const char *URL);
 
@@ -159,12 +159,12 @@ void AddressBar::SelectionReady()
 	pl->PlayNext();
 }
 
-void AddressBar::OnSelendOK() 
+void AddressBar::OnSelendOK()
 {
 	SelectionReady();
 }
 
-BOOL AddressBar::PreTranslateMessage(MSG* pMsg) 
+BOOL AddressBar::PreTranslateMessage(MSG* pMsg)
 {
 	if (pMsg->message == WM_KEYDOWN) {
 		switch (pMsg->wParam) {

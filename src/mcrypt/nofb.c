@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 1998,1999,2000,2001 Nikos Mavroyanopoulos
- * 
- * This library is free software; you can redistribute it and/or modify it 
- * under the terms of the GNU Library General Public License as published 
- * by the Free Software Foundation; either version 2 of the License, or 
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Library General Public License as published
+ * by the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
@@ -32,16 +32,16 @@ typedef struct ncfb_buf {
 
 static GF_Err _init_mcrypt( nOFB_BUFFER* buf, void *key, int lenofkey, void *IV, int size)
 {
-    buf->enc_s_register = buf->s_register = NULL;
-    buf->s_register_pos = 0;
+	buf->enc_s_register = buf->s_register = NULL;
+	buf->s_register_pos = 0;
 
-    buf->blocksize = size;    
-/* For ofb */
+	buf->blocksize = size;
+	/* For ofb */
 	buf->enc_s_register=gf_malloc( size);
-    if (buf->enc_s_register==NULL) goto freeall;
-    
+	if (buf->enc_s_register==NULL) goto freeall;
+
 	buf->s_register=gf_malloc( size);
-    if (buf->s_register==NULL) goto freeall;
+	if (buf->s_register==NULL) goto freeall;
 
 	if (IV!=NULL) {
 		memcpy(buf->enc_s_register, IV, size);
@@ -51,13 +51,13 @@ static GF_Err _init_mcrypt( nOFB_BUFFER* buf, void *key, int lenofkey, void *IV,
 		memset(buf->s_register, 0, size);
 	}
 
-/* End nofb */
+	/* End nofb */
 
 	return GF_OK;
-	freeall:
-		if (buf->enc_s_register) gf_free(buf->enc_s_register);
-		if (buf->s_register) gf_free(buf->s_register);
-		return GF_OUT_OF_MEM;
+freeall:
+	if (buf->enc_s_register) gf_free(buf->enc_s_register);
+	if (buf->s_register) gf_free(buf->s_register);
+	return GF_OUT_OF_MEM;
 }
 
 static GF_Err _mcrypt_set_state( nOFB_BUFFER* buf, u8 *IV, int size)
@@ -104,24 +104,24 @@ void xor_stuff( nOFB_BUFFER *buf, void* akey, void (*func)(void*,void*), u8* pla
 			_mcrypt_block_encrypt(akey, buf->enc_s_register);
 
 			memcpy(buf->s_register, buf->enc_s_register, blocksize);
-			
+
 			memxor( plain, buf->enc_s_register, blocksize);
 
 		} else {
 			int size = blocksize - buf->s_register_pos;
 
 			memxor( plain, &buf->enc_s_register[buf->s_register_pos],
-				size); 
-		
+			        size);
+
 			memcpy(buf->enc_s_register, buf->s_register, blocksize);
 
 			_mcrypt_block_encrypt(akey, buf->enc_s_register);
 
-			memcpy( buf->s_register, 
-				buf->enc_s_register, blocksize);
+			memcpy( buf->s_register,
+			        buf->enc_s_register, blocksize);
 
 			memxor( &plain[size], buf->enc_s_register,
-				buf->s_register_pos);
+			        buf->s_register_pos);
 
 			/* buf->s_register_pos remains the same */
 		}
@@ -132,7 +132,7 @@ void xor_stuff( nOFB_BUFFER *buf, void* akey, void (*func)(void*,void*), u8* pla
 			_mcrypt_block_encrypt(akey, buf->enc_s_register);
 
 			memcpy(buf->s_register, buf->enc_s_register, blocksize);
-			
+
 			memxor( plain, buf->enc_s_register, xor_size);
 
 			buf->s_register_pos = xor_size;
@@ -141,7 +141,7 @@ void xor_stuff( nOFB_BUFFER *buf, void* akey, void (*func)(void*,void*), u8* pla
 			int min_size =  size < xor_size ? size: xor_size;
 
 			memxor( plain, &buf->enc_s_register[buf->s_register_pos],
-				min_size);
+			        min_size);
 
 			buf->s_register_pos += min_size;
 
@@ -155,39 +155,39 @@ void xor_stuff( nOFB_BUFFER *buf, void* akey, void (*func)(void*,void*), u8* pla
 			memcpy(buf->s_register, buf->enc_s_register, blocksize);
 
 			memxor( &plain[min_size], buf->s_register,
-				xor_size - min_size);
+			        xor_size - min_size);
 
 			buf->s_register_pos = xor_size - min_size;
 
 		}
-	
+
 	}
 	return;
 }
 
 
 static GF_Err _mcrypt( nOFB_BUFFER* buf,void *plaintext, int len, int blocksize, void* akey, void (*func)(void*,void*), void (*func2)(void*,void*))
-{				/* plaintext is n*blocksize bytes (nbit cfb) */
+{	/* plaintext is n*blocksize bytes (nbit cfb) */
 	u8* plain;
 	int dlen, j=0;
 	void (*_mcrypt_block_encrypt) (void *, void *);
 	int modlen;
-	
+
 	_mcrypt_block_encrypt = func;
 
 	dlen = len / blocksize;
 	plain = plaintext;
 	for (j = 0; j < dlen; j++) {
-		xor_stuff( buf, akey, func, plain, blocksize, blocksize); 
-		
+		xor_stuff( buf, akey, func, plain, blocksize, blocksize);
+
 		plain += blocksize;
 
 	}
 	modlen = len % blocksize;
 	if (modlen > 0) {
-		xor_stuff( buf, akey, func, plain, blocksize, modlen); 
+		xor_stuff( buf, akey, func, plain, blocksize, modlen);
 	}
-	
+
 	return GF_OK;
 }
 

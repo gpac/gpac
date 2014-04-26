@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -43,7 +43,7 @@
 #include FT_GLYPH_H
 #include FT_OUTLINE_H
 /*TrueType tables*/
-#include FT_TRUETYPE_TABLES_H 
+#include FT_TRUETYPE_TABLES_H
 
 typedef struct
 {
@@ -92,7 +92,7 @@ static Bool isBestFontFor(const char * listOfFonts[], const char * currentBestFo
 	u32 i;
 	assert( fontName );
 	assert( listOfFonts );
-	for (i = 0 ; listOfFonts[i]; i++){
+	for (i = 0 ; listOfFonts[i]; i++) {
 		const char * best = listOfFonts[i];
 		if (!stricmp(best, fontName))
 			return GF_TRUE;
@@ -103,13 +103,13 @@ static Bool isBestFontFor(const char * listOfFonts[], const char * currentBestFo
 	return currentBestFont == NULL;
 }
 
-void setBestFont(const char * listOfFonts[], char ** currentBestFont, const char * fontName){
-	if (isBestFontFor(listOfFonts, *currentBestFont, fontName)){
+void setBestFont(const char * listOfFonts[], char ** currentBestFont, const char * fontName) {
+	if (isBestFontFor(listOfFonts, *currentBestFont, fontName)) {
 		if (*currentBestFont)
 			gf_free(*currentBestFont);
 		*currentBestFont = NULL;
 	}
-	if (! (*currentBestFont)){
+	if (! (*currentBestFont)) {
 		*currentBestFont = gf_strdup(fontName);
 	}
 }
@@ -176,7 +176,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 				strcpy(szfont, face->family_name);
 				strlwr(szfont);
 
-				if (face->face_flags & FT_FACE_FLAG_FIXED_WIDTH){
+				if (face->face_flags & FT_FACE_FLAG_FIXED_WIDTH) {
 					setBestFont(BEST_FIXED_FONTS, &(ftpriv->font_fixed), face->family_name);
 				}
 				setBestFont(BEST_SERIF_FONTS, &(ftpriv->font_serif), face->family_name);
@@ -257,8 +257,8 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 		if (!strchr(opt, '/') && !strchr(opt, '\\')) continue;
 		if (!strcmp(key, "FontDirectory")) continue;
 
-		if (strstr(key, "Bold")) continue; 
-		if (strstr(key, "Italic")) continue; 
+		if (strstr(key, "Bold")) continue;
+		if (strstr(key, "Italic")) continue;
 
 		strcpy(fkey, key);
 		strcat(fkey, " Italic");
@@ -277,18 +277,18 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 
 		strcpy(fkey, key);
 		strlwr(fkey);
-		
+
 		/*this font is suited for our case*/
 		if (isBestFontFor(BEST_FIXED_FONTS, ftpriv->font_fixed, key) || (!ftpriv->font_fixed && (strstr(fkey, "fixed") || strstr(fkey, "mono")) ) ) {
 			if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
 			ftpriv->font_fixed = gf_strdup(key);
 		}
-		
+
 		if (isBestFontFor(BEST_SANS_FONTS, ftpriv->font_sans, key) || (!ftpriv->font_sans && strstr(fkey, "sans")) ) {
 			if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
 			ftpriv->font_sans = gf_strdup(key);
 		}
-		
+
 		if (isBestFontFor(BEST_SERIF_FONTS, ftpriv->font_serif, key) || (!ftpriv->font_serif && strstr(fkey, "serif")) ) {
 			if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
 			ftpriv->font_serif = gf_strdup(key);
@@ -324,7 +324,7 @@ static GF_Err ft_init_font_engine(GF_FontReader *dr)
 	}
 
 	/*remove the final delimiter*/
-    ftpriv->font_dir = gf_strdup(sOpt);
+	ftpriv->font_dir = gf_strdup(sOpt);
 	while ( (ftpriv->font_dir[strlen(ftpriv->font_dir)-1] == '\n') || (ftpriv->font_dir[strlen(ftpriv->font_dir)-1] == '\r') )
 		ftpriv->font_dir[strlen(ftpriv->font_dir)-1] = 0;
 
@@ -341,7 +341,7 @@ static GF_Err ft_init_font_engine(GF_FontReader *dr)
 	}
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "RescanFonts");
-	if (!sOpt || !strcmp(sOpt, "yes") ) 
+	if (!sOpt || !strcmp(sOpt, "yes") )
 		ft_rescan_fonts(dr);
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif");
@@ -349,12 +349,12 @@ static GF_Err ft_init_font_engine(GF_FontReader *dr)
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSans");
 	ftpriv->font_sans = gf_strdup(sOpt ? sOpt : "");
-	
+
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed");
 	ftpriv->font_fixed = gf_strdup(sOpt ? sOpt : "");
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Init OK - font directory %s\n", ftpriv->font_dir));
-	
+
 	return GF_OK;
 }
 
@@ -403,10 +403,10 @@ static Bool ft_check_face(FT_Face font, const char *fontName, u32 styles)
 	loc_styles = styles & GF_FONT_WEIGHT_MASK;
 	if (loc_styles>=GF_FONT_WEIGHT_BOLD)
 		styles = (styles & 0x00000007) | GF_FONT_WEIGHT_BOLD;
-	else 
+	else
 		styles = (styles & 0x00000007);
 
-	if (ft_style==styles) 
+	if (ft_style==styles)
 		return 1;
 	return 0;
 }
@@ -455,7 +455,7 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 
 	{
 		int checkStyles = (styles & GF_FONT_WEIGHT_BOLD) | (styles & GF_FONT_ITALIC);
-	checkFont:
+checkFont:
 		strcpy(fname, fontName);
 		if (styles & GF_FONT_WEIGHT_BOLD & checkStyles) strcat(fname, " Bold");
 		if (styles & GF_FONT_ITALIC & checkStyles) strcat(fname, " Italic");
@@ -471,10 +471,10 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 			ftpriv->active_face = face;
 			return GF_OK;
 		}
-		if (checkStyles){
+		if (checkStyles) {
 			/* If we tried font + bold + italic -> we will try font + [bold | italic]
 			   If we tried font + [bold | italic] -> we try font
-		         */
+			     */
 			if (checkStyles == (GF_FONT_WEIGHT_BOLD | GF_FONT_ITALIC))
 				checkStyles = GF_FONT_WEIGHT_BOLD;
 			else if (checkStyles == GF_FONT_WEIGHT_BOLD && (styles & GF_FONT_ITALIC))
@@ -635,7 +635,7 @@ static GF_Glyph *ft_load_glyph(GF_FontReader *dr, u32 glyph_name)
 	ft_outl_funcs.cubic_to = ft_cubic_to;
 	outl.path = glyph->path;
 	outl.ftpriv = ftpriv;
-	
+
 	/*FreeType is marvelous and gives back the right advance on space char !!!*/
 	FT_Outline_Decompose(&outline->outline, &ft_outl_funcs, &outl);
 
@@ -645,10 +645,10 @@ static GF_Glyph *ft_load_glyph(GF_FontReader *dr, u32 glyph_name)
 	glyph->utf_name = glyph_name;
 	glyph->horiz_advance = ftpriv->active_face->glyph->metrics.horiAdvance;
 	glyph->vert_advance = ftpriv->active_face->glyph->metrics.vertAdvance;
-/*
-	glyph->x = bbox.xMin;
-	glyph->y = bbox.yMax;
-*/
+	/*
+		glyph->x = bbox.xMin;
+		glyph->y = bbox.yMax;
+	*/
 	glyph->width = ftpriv->active_face->glyph->metrics.width;
 	glyph->height = ftpriv->active_face->glyph->metrics.height;
 	FT_Done_Glyph((FT_Glyph) outline);
@@ -671,7 +671,7 @@ GF_FontReader *ft_load()
 
 	dr->udta = ftpriv;
 
-	
+
 	dr->init_font_engine = ft_init_font_engine;
 	dr->shutdown_font_engine = ft_shutdown_font_engine;
 	dr->set_font = ft_set_font;
@@ -703,7 +703,7 @@ void ft_delete(GF_BaseInterface *ifce)
 #ifndef GPAC_STANDALONE_RENDER_2D
 
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_FONT_READER_INTERFACE,
@@ -713,7 +713,7 @@ const u32 *QueryInterfaces()
 }
 
 GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_FONT_READER_INTERFACE) return (GF_BaseInterface *)ft_load();
 	return NULL;

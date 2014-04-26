@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -127,11 +127,11 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 	else if ((b1==0x89) && (b2==0x50) && (b3==0x4E)) {
 		/*check for PNG sig*/
 		if ( (gf_bs_read_u8(bs) != 0x47) || (gf_bs_read_u8(bs) != 0x0D) || (gf_bs_read_u8(bs) != 0x0A)
-			|| (gf_bs_read_u8(bs) != 0x1A) || (gf_bs_read_u8(bs) != 0x0A) ) goto exit;
+		        || (gf_bs_read_u8(bs) != 0x1A) || (gf_bs_read_u8(bs) != 0x0A) ) goto exit;
 		gf_bs_read_u32(bs);
 		/*check for PNG IHDR*/
 		if ( (gf_bs_read_u8(bs) != 'I') || (gf_bs_read_u8(bs) != 'H')
-			|| (gf_bs_read_u8(bs) != 'D') || (gf_bs_read_u8(bs) != 'R')) goto exit;
+		        || (gf_bs_read_u8(bs) != 'D') || (gf_bs_read_u8(bs) != 'R')) goto exit;
 
 		*width = gf_bs_read_u32(bs);
 		*height = gf_bs_read_u32(bs);
@@ -141,7 +141,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 	size = gf_bs_read_u8(bs);
 	type = gf_bs_read_u32(bs);
 	if ( ((size==12) && (type==GF_4CC('j','P',' ',' ') ))
-		|| (type==GF_4CC('j','p','2','h') ) ) {
+	        || (type==GF_4CC('j','p','2','h') ) ) {
 
 		if (type==GF_4CC('j','p','2','h')) {
 			*OTI = GPAC_OTI_IMAGE_JPEG_2000;
@@ -188,7 +188,7 @@ j2k_restart:
 				}
 				goto exit;
 			}
-				break;
+			break;
 			default:
 				gf_bs_skip_bytes(bs, size-8);
 				break;
@@ -214,13 +214,13 @@ typedef struct
 typedef struct
 {
 	/*io manager*/
-    struct jpeg_source_mgr src;
+	struct jpeg_source_mgr src;
 
 	s32 skip;
 	struct jpeg_decompress_struct cinfo;
 } JPGCtx;
 
-static void gf_jpeg_output_message (j_common_ptr cinfo){
+static void gf_jpeg_output_message (j_common_ptr cinfo) {
 	char buffer[JMSG_LENGTH_MAX];
 	/* Create the message */
 	(*cinfo->err->format_message) (cinfo, buffer);
@@ -237,7 +237,9 @@ static void gf_jpeg_fatal_error(j_common_ptr cinfo)
 void gf_jpeg_stub(j_decompress_ptr cinfo) {}
 
 /*a JPEG is always carried in a complete, single MPEG4 AU so no refill*/
-static boolean gf_jpeg_fill_input_buffer(j_decompress_ptr cinfo) { return 0; }
+static boolean gf_jpeg_fill_input_buffer(j_decompress_ptr cinfo) {
+	return 0;
+}
 
 static void gf_jpeg_skip_input_data(j_decompress_ptr cinfo, long num_bytes)
 {
@@ -287,7 +289,7 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 	jpx.src.term_source = gf_jpeg_stub;
 	jpx.skip = 0;
 	jpx.src.next_input_byte = (JOCTET *) jpg;
-        jpx.src.bytes_in_buffer = jpg_size;
+	jpx.src.bytes_in_buffer = jpg_size;
 	jpx.cinfo.src = (void *) &jpx.src;
 
 	/*read header*/
@@ -315,8 +317,8 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	if (*dst_size < *height * *width * jpx.cinfo.num_components) {
-		*dst_size = *height * *width * jpx.cinfo.num_components;
+	if (*dst_size < *height **width * jpx.cinfo.num_components) {
+		*dst_size = *height **width * jpx.cinfo.num_components;
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_BUFFER_TOO_SMALL;
 	}
@@ -340,15 +342,15 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 
 	/*read scanlines (the scan is not one line by one line so alloc a placeholder for block scaning) */
 	scan_line = gf_malloc(sizeof(char) * stride * jpx.cinfo.rec_outbuf_height);
-	for (i = 0; i<jpx.cinfo.rec_outbuf_height;i++) {
+	for (i = 0; i<jpx.cinfo.rec_outbuf_height; i++) {
 		lines[i] = scan_line + i * stride;
 	}
 	tmp = dst;
 	for (j=0; j< (s32) *height; j += jpx.cinfo.rec_outbuf_height) {
 		jpeg_read_scanlines(&jpx.cinfo, (unsigned char **) lines, jpx.cinfo.rec_outbuf_height);
-        scans = jpx.cinfo.rec_outbuf_height;
-        if (( (s32) *height - j) < scans) scans = *height - j;
-        ptr = scan_line;
+		scans = jpx.cinfo.rec_outbuf_height;
+		if (( (s32) *height - j) < scans) scans = *height - j;
+		ptr = scan_line;
 		/*for each line in the scan*/
 		for (k = 0; k < scans; k++) {
 			if (dst_nb_comp==(u32)jpx.cinfo.num_components) {
@@ -410,7 +412,7 @@ static void gf_png_user_read_data(png_structp png_ptr, png_bytep data, png_size_
 }
 static void gf_png_user_error_fn(png_structp png_ptr,png_const_charp error_msg)
 {
- 	longjmp(png_jmpbuf(png_ptr), 1);
+	longjmp(png_jmpbuf(png_ptr), 1);
 }
 
 
@@ -425,7 +427,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	png_bytep trans_alpha;
 	int num_trans;
 	png_color_16p trans_color;
- 
+
 	if ((png_size<8) || png_sig_cmp((png_bytep)png, 0, 8) ) return GF_NON_COMPLIANT_BITSTREAM;
 
 	udta.buffer = png;
@@ -465,8 +467,8 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 
 	switch (png_get_color_type(png_ptr, info_ptr)) {
 	case PNG_COLOR_TYPE_GRAY:
- 		*pixel_format = GF_PIXEL_GREYSCALE;
- 		break;
+		*pixel_format = GF_PIXEL_GREYSCALE;
+		break;
 	case PNG_COLOR_TYPE_GRAY_ALPHA:
 		*pixel_format = GF_PIXEL_ALPHAGREY;
 		break;
@@ -573,8 +575,8 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 	}
 
 	/* Set error handling.  REQUIRED if you aren't supplying your own
-    * error handling functions in the png_create_write_struct() call.
-    */
+	* error handling functions in the png_create_write_struct() call.
+	*/
 	if (setjmp(png_jmpbuf(png_ptr))) {
 		png_destroy_write_struct(&png_ptr, &info_ptr);
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -616,8 +618,8 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 	png_write_info(png_ptr, info_ptr);
 
 	/* Shift the pixels up to a legal bit depth and fill in
-    * as appropriate to correctly scale the image.
-    */
+	* as appropriate to correctly scale the image.
+	*/
 	png_set_shift(png_ptr, &sig_bit);
 
 	/* pack pixels into bytes */
@@ -633,7 +635,7 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 		png_set_bgr(png_ptr);
 		break;
 	case GF_PIXEL_BGR_32:
-	   png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
+		png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
 		break;
 	case GF_PIXEL_BGR_24:
 		png_set_bgr(png_ptr);
@@ -667,13 +669,13 @@ GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pi
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNG]: Error encoding image %s\n", gf_error_to_string(e) ));
 		goto exit;
-	} 
+	}
 
 	png = gf_f64_open(dst_file, "wb");
 	if (!png) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNG]: Error opening destination file %s\n", dst_file ));
 		goto exit;
-	} 
+	}
 
 	gf_fwrite(dst, dst_size, 1, png);
 	fclose(png);
@@ -704,12 +706,12 @@ GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pi
 
 GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
 {
-    u32 fsize, read, oti;
-    FILE *f;
-    char *data;
-    GF_Err e;
-    f = gf_f64_open(png_filename, "rb");
-    if (!f) return GF_URL_ERROR;
+	u32 fsize, read, oti;
+	FILE *f;
+	char *data;
+	GF_Err e;
+	f = gf_f64_open(png_filename, "rb");
+	if (!f) return GF_URL_ERROR;
 
 	oti = 0;
 	if (!hint_oti || ! *hint_oti) {
@@ -718,30 +720,30 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *heigh
 		if (!stricmp(ext, ".png")) oti = GPAC_OTI_IMAGE_PNG;
 		else if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) oti = GPAC_OTI_IMAGE_JPEG;
 	}
-    gf_f64_seek(f, 0, SEEK_END);
-    fsize = (u32)gf_f64_tell(f);
-    gf_f64_seek(f, 0, SEEK_SET);
-    data = gf_malloc(fsize);
-    read = (u32) fread(data, sizeof(char), fsize, f);
+	gf_f64_seek(f, 0, SEEK_END);
+	fsize = (u32)gf_f64_tell(f);
+	gf_f64_seek(f, 0, SEEK_SET);
+	data = gf_malloc(fsize);
+	read = (u32) fread(data, sizeof(char), fsize, f);
 	fclose( f );
-    if (read != fsize) return GF_IO_ERR;
+	if (read != fsize) return GF_IO_ERR;
 
 	e = GF_NOT_SUPPORTED;
 	*dst_size = 0;
 	if (oti == GPAC_OTI_IMAGE_JPEG) {
 #ifdef GPAC_HAS_JPEG
-		e = gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);    
+		e = gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);
 		if (*dst_size) {
 			*dst = gf_malloc(*dst_size);
-			return gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);    
+			return gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);
 		}
 #endif
 	} else if (oti == GPAC_OTI_IMAGE_PNG) {
 #ifdef GPAC_HAS_PNG
-		e = gf_img_png_dec(data, fsize, width, height, pixel_format, NULL, dst_size);    
+		e = gf_img_png_dec(data, fsize, width, height, pixel_format, NULL, dst_size);
 		if (*dst_size) {
 			*dst = gf_malloc(*dst_size);
-			return gf_img_png_dec(data, fsize, width, height, pixel_format, *dst, dst_size);    
+			return gf_img_png_dec(data, fsize, width, height, pixel_format, *dst, dst_size);
 		}
 #endif
 	}

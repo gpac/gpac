@@ -80,7 +80,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 		}
 	}
 #endif
-	
+
 	if (video_data_conf->format && strcmp(video_data_conf->format, "") != 0) {
 		in_fmt = av_find_input_format(video_data_conf->format);
 		if (in_fmt == NULL) {
@@ -155,7 +155,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	video_input_file->height = codec_ctx->height;
 	video_input_file->pix_fmt = codec_ctx->pix_fmt;
 	if (video_data_conf->framerate >= 0) {
-		video_data_conf->framerate = codec_ctx->time_base.den / codec_ctx->time_base.num;	
+		video_data_conf->framerate = codec_ctx->time_base.den / codec_ctx->time_base.num;
 	}
 	if (video_data_conf->framerate <= 1 || video_data_conf->framerate > 1000) {
 		const int num = video_input_file->av_fmt_ctx->streams[video_input_file->vstream_idx]->avg_frame_rate.num;
@@ -212,7 +212,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 		elapsed_time = (end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec);
 		fprintf(stdout, "fps: %f\n", 1000000.0/elapsed_time);
 #endif
-		
+
 		/* If we demux for the audio thread, send the packet to the audio */
 		if (video_input_file->av_fmt_ctx_ref_cnt && ((packet.stream_index != video_input_file->vstream_idx) || (ret == AVERROR_EOF))) {
 			AVPacket *packet_copy = NULL;
@@ -225,7 +225,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 			gf_mx_p(video_input_file->av_pkt_list_mutex);
 			gf_list_add(video_input_file->av_pkt_list, packet_copy);
 			gf_mx_v(video_input_file->av_pkt_list_mutex);
-			
+
 			if (ret != AVERROR_EOF) {
 				continue;
 			}
@@ -300,10 +300,10 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 						video_input_file->computed_pts = 0;
 						video_input_data->frame_duration = codec_ctx->time_base.num;
 						video_input_file->sync_tolerance = 9*video_input_data->frame_duration/5;
-						//TODO - check with audio if sync is OK 
-					} 
-					//perform FPS re-linearisation 
-					pts = packet.pts - video_input_file->first_pts;	
+						//TODO - check with audio if sync is OK
+					}
+					//perform FPS re-linearisation
+					pts = packet.pts - video_input_file->first_pts;
 					if (pts - video_input_file->prev_pts > video_input_file->sync_tolerance) {
 						u32 nb_lost=0;
 						while (pts > video_input_file->computed_pts) {
@@ -372,7 +372,7 @@ void dc_video_decoder_close(VideoInputFile *video_input_file)
 	/* Close the video format context */
 	if (!video_input_file->av_fmt_ctx_ref_cnt)
 		avformat_close_input(&video_input_file->av_fmt_ctx);
-	
+
 	video_input_file->av_pkt_list = NULL;
 	video_input_file->av_pkt_list_mutex = NULL;
 }

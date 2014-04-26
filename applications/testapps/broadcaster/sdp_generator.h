@@ -15,10 +15,10 @@ struct __tag_bifs_engine
 	GF_SceneLoader load;
 	void *calling_object;
 	GF_StreamContext *sc;
-	
+
 	GF_BifsEncoder *bifsenc;
 	u32 stream_ts_res;
-	/* TODO: maybe the currentAUCount should be a GF_List of u32 
+	/* TODO: maybe the currentAUCount should be a GF_List of u32
 	to capture the number of AU per input BIFS stream */
 	u32 currentAUCount;
 

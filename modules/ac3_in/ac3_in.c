@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include <gpac/modules/service.h>
@@ -35,7 +35,7 @@ typedef struct
 	GF_ClientService *service;
 
 	Bool is_remote;
-	
+
 	FILE *stream;
 	u32 duration;
 
@@ -72,10 +72,10 @@ static const char * AC3_DESC = "AC3 Music";
 
 static u32 AC3_RegisterMimeTypes(const GF_InputService *plug)
 {
-    u32 i;
-    for (i = 0 ; AC3_MIMES[i]; i++)
-      gf_term_register_mime_type(plug, AC3_MIMES[i], AC3_EXTS, AC3_DESC);
-    return i;
+	u32 i;
+	for (i = 0 ; AC3_MIMES[i]; i++)
+		gf_term_register_mime_type(plug, AC3_MIMES[i], AC3_EXTS, AC3_DESC);
+	return i;
 }
 
 static Bool AC3_CanHandleURL(GF_InputService *plug, const char *url)
@@ -83,8 +83,8 @@ static Bool AC3_CanHandleURL(GF_InputService *plug, const char *url)
 	char *sExt;
 	u32 i;
 	sExt = strrchr(url, '.');
-	for (i = 0 ; AC3_MIMES[i]; i++){
-	  if (gf_term_check_extension(plug, AC3_MIMES[i], AC3_EXTS, AC3_DESC, sExt)) return 1;
+	for (i = 0 ; AC3_MIMES[i]; i++) {
+		if (gf_term_check_extension(plug, AC3_MIMES[i], AC3_EXTS, AC3_DESC, sExt)) return 1;
 	}
 	return 0;
 }
@@ -129,7 +129,7 @@ static Bool AC3_ConfigureFromFile(AC3Reader *read)
 	if (!read->stream) return 0;
 	bs = gf_bs_from_file(read->stream, GF_BITSTREAM_READ);
 
-	
+
 	sync = gf_ac3_parser_bs(bs, &hdr, 1);
 	if (!sync) {
 		gf_bs_del(bs);
@@ -138,7 +138,7 @@ static Bool AC3_ConfigureFromFile(AC3Reader *read)
 	read->nb_ch = hdr.channels;
 	read->sample_rate = hdr.sample_rate;
 	read->duration = 0;
-	
+
 	if (!read->is_remote) {
 		read->duration = 1536;
 		gf_bs_skip_bytes(bs, hdr.framesize);
@@ -172,7 +172,7 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 	Bool sync;
 	GF_BitStream *bs;
 	GF_AC3Header hdr;
-	
+
 	read->data = gf_realloc(read->data, sizeof(char)*(read->data_size+data_size) );
 	memcpy(read->data + read->data_size, data, sizeof(char)*data_size);
 	read->data_size += data_size;
@@ -257,7 +257,7 @@ void AC3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			while (meta && meta[0]) {
 				char *sep = strchr(meta, ';');
 				if (sep) sep[0] = 0;
-	
+
 				if (!strnicmp(meta, "StreamTitle=", 12)) {
 					read->icy_track_name = gf_strdup(meta+12);
 				}
@@ -495,8 +495,8 @@ static GF_Err AC3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		read->current_time = 0;
 		if (read->stream) gf_f64_seek(read->stream, 0, SEEK_SET);
 
-		if (read->ch == com->base.on_channel) { 
-			read->done = 0; 
+		if (read->ch == com->base.on_channel) {
+			read->done = 0;
 			/*PLAY after complete download, estimate duration*/
 			if (!read->is_remote && !read->duration) {
 				AC3_ConfigureFromFile(read);
@@ -585,7 +585,7 @@ fetch_next:
 				read->start_range = 0;
 			}
 		}
-		
+
 		read->sl_hdr.compositionTimeStamp = read->current_time;
 
 		read->data = gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
@@ -654,23 +654,23 @@ void DeleteAC3Dec(GF_BaseDecoder *ifcg);
 #endif
 
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
-static u32 si [] = {
+	static u32 si [] = {
 #ifndef GPAC_DISABLE_AV_PARSERS
-	GF_NET_CLIENT_INTERFACE,
+		GF_NET_CLIENT_INTERFACE,
 #endif
 #ifdef GPAC_HAS_LIBA52
-	GF_MEDIA_DECODER_INTERFACE,
+		GF_MEDIA_DECODER_INTERFACE,
 #endif
-	0
-};
+		0
+	};
 
 	return si;
 }
 
 GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)AC3_Load();

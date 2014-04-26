@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -40,7 +40,7 @@ GF_Err gf_rtsp_read_reply(GF_RTSPSession *sess)
 	while (1) {
 		//Locate header / body
 		if (!BodyStart) gf_rtsp_get_body_info(sess, &BodyStart, &body_size);
-		
+
 		if (BodyStart) {
 			//enough data
 			res = sess->CurrentSize - sess->CurrentPos;
@@ -73,11 +73,11 @@ void gf_rtsp_get_body_info(GF_RTSPSession *sess, u32 *body_start, u32 *body_size
 
 	//if found add the 2 "\r\n" and parse it
 	*body_start = start + 4;
-		
+
 	//get the content length
 	cl_str = strstr(buffer, "Content-Length: ");
 	if (!cl_str) cl_str = strstr(buffer, "Content-length: ");
-		
+
 	if (cl_str) {
 		cl_str += 16;
 		i = 0;
@@ -114,9 +114,9 @@ GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess)
 	sess->CurrentSize = res;
 
 	//now read from current pos
-	e = gf_sk_receive(sess->connection, sess->TCPBuffer + sess->CurrentSize, 
-				RTSP_TCP_BUF_SIZE - sess->CurrentSize, 
-				0, &res);
+	e = gf_sk_receive(sess->connection, sess->TCPBuffer + sess->CurrentSize,
+	                  RTSP_TCP_BUF_SIZE - sess->CurrentSize,
+	                  0, &res);
 
 	if (!e) {
 		sess->CurrentSize += res;
@@ -157,7 +157,7 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 
 	IsFirst = 1;
 	pos = 0;
-	while (1) {	
+	while (1) {
 		pos = gf_token_get(buffer, pos, " ;", buf, 100);
 		if (pos <= 0) break;
 		if (strstr(buf, "=")) {
@@ -166,7 +166,7 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 		} else {
 			strcpy(param_name, buf);
 		}
-		
+
 		//very first param is the profile
 		if (IsFirst) {
 			tmp->Profile = gf_strdup(param_name);
@@ -236,10 +236,10 @@ GF_Err gf_rtsp_parse_header(char *buffer, u32 BufferSize, u32 BodyStart, GF_RTSP
 		HeaderLine = 0;
 		LinePos = gf_token_get_line(buffer, LinePos, BufferSize, LineBuffer, 1024);
 		if (LinePos <= 0) return GF_REMOTE_SERVICE_ERROR;
-		
-		//extract field header and value. Warning: some params (transport, ..) may be on several lines 
+
+		//extract field header and value. Warning: some params (transport, ..) may be on several lines
 		Pos = gf_token_get(LineBuffer, 0, ":\r\n", temp, 400);
-		
+
 		//end of header
 		if (Pos <= 0) {
 			HeaderLine = 2;
@@ -298,9 +298,9 @@ const char *gf_rtsp_nc_to_string(u32 ErrCode)
 	switch (ErrCode) {
 	case NC_RTSP_Continue:
 		return "Continue";
-	case NC_RTSP_OK:	
+	case NC_RTSP_OK:
 		return "OK";
-	case NC_RTSP_Created:	
+	case NC_RTSP_Created:
 		return "Created";
 	case NC_RTSP_Low_on_Storage_Space:
 		return "Low on Storage Space";

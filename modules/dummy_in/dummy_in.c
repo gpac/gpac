@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -76,38 +76,38 @@ Bool DC_RemoveChannel(DCReader *read, LPNETCHANNEL ch)
 }
 
 static const char * DC_MIME_TYPES[] = {
-/*  "application/x-xmta", "xmta xmta.gz xmtaz", "MPEG-4 Text (XMT)" */
-    "application/x-bt", "bt bt.gz btz", "MPEG-4 Text (BT)",
-    "application/x-xmt", "xmt xmt.gz xmtz", "MPEG-4 Text (XMT)",
-    "model/vrml", "wrl wrl.gz", "VRML World",
-    "x-model/x-vrml", "wrl wrl.gz", "VRML World",
-    "model/x3d+vrml", "x3dv x3dv.gz x3dvz", "X3D/VRML World",
-    "model/x3d+xml", "x3d x3d.gz x3dz", "X3D/XML World",
-    "application/x-shockwave-flash", "swf", "Macromedia Flash Movie",
-    "image/svg+xml", "svg svg.gz svgz", "SVG Document",
-    "image/x-svgm", "svgm", "SVGM Document",
-    "application/x-LASeR+xml", "xsr", "LASeR Document",
-    "application/widget", "wgt", "W3C Widget Package",
-    "application/x-mpegu-widget", "mgt", "MPEG-U Widget Package",
-    NULL
+	/*  "application/x-xmta", "xmta xmta.gz xmtaz", "MPEG-4 Text (XMT)" */
+	"application/x-bt", "bt bt.gz btz", "MPEG-4 Text (BT)",
+	"application/x-xmt", "xmt xmt.gz xmtz", "MPEG-4 Text (XMT)",
+	"model/vrml", "wrl wrl.gz", "VRML World",
+	"x-model/x-vrml", "wrl wrl.gz", "VRML World",
+	"model/x3d+vrml", "x3dv x3dv.gz x3dvz", "X3D/VRML World",
+	"model/x3d+xml", "x3d x3d.gz x3dz", "X3D/XML World",
+	"application/x-shockwave-flash", "swf", "Macromedia Flash Movie",
+	"image/svg+xml", "svg svg.gz svgz", "SVG Document",
+	"image/x-svgm", "svgm", "SVGM Document",
+	"application/x-LASeR+xml", "xsr", "LASeR Document",
+	"application/widget", "wgt", "W3C Widget Package",
+	"application/x-mpegu-widget", "mgt", "MPEG-U Widget Package",
+	NULL
 };
 
 
-static u32 DC_RegisterMimeTypes(const GF_InputService *plug){
-    u32 i;
-    if (!plug)
-      return 0;
-    for (i = 0 ; DC_MIME_TYPES[i] ; i+=3)
-      gf_term_register_mime_type(plug, DC_MIME_TYPES[i], DC_MIME_TYPES[i+1], DC_MIME_TYPES[i+2]);
-    return i / 3;
+static u32 DC_RegisterMimeTypes(const GF_InputService *plug) {
+	u32 i;
+	if (!plug)
+		return 0;
+	for (i = 0 ; DC_MIME_TYPES[i] ; i+=3)
+		gf_term_register_mime_type(plug, DC_MIME_TYPES[i], DC_MIME_TYPES[i+1], DC_MIME_TYPES[i+2]);
+	return i / 3;
 }
 
 Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
-        if (!plug || !url)
-          return 0;
-        sExt = strrchr(url, '.');
+	if (!plug || !url)
+		return 0;
+	sExt = strrchr(url, '.');
 	if (sExt) {
 		Bool ok = 0;
 		char *cgi_par;
@@ -117,16 +117,16 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 		cgi_par = strchr(sExt, '?');
 		if (cgi_par) cgi_par[0] = 0;
 		{
-		  u32 i;
-		  for (i = 0 ; DC_MIME_TYPES[i] ; i+=3)
-		    if (0 != (ok = gf_term_check_extension(plug, DC_MIME_TYPES[i], DC_MIME_TYPES[i+1], DC_MIME_TYPES[i+2], sExt)))
-		      break;
+			u32 i;
+			for (i = 0 ; DC_MIME_TYPES[i] ; i+=3)
+				if (0 != (ok = gf_term_check_extension(plug, DC_MIME_TYPES[i], DC_MIME_TYPES[i+1], DC_MIME_TYPES[i+2], sExt)))
+					break;
 		}
 		if (cgi_par) cgi_par[0] = '?';
 		if (ok) return 1;
 	}
 	/*views:// internal URI*/
-	if (!strnicmp(url, "views://", 8)) 
+	if (!strnicmp(url, "views://", 8))
 		return 1;
 
 	if (!strncmp(url, "\\\\", 2)) return 0;
@@ -242,19 +242,21 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 		char *cgi_par = NULL;
 		ext += 1;
 		if (ext) {
-			tmp = strchr(ext, '#'); if (tmp) tmp[0] = 0;
+			tmp = strchr(ext, '#');
+			if (tmp) tmp[0] = 0;
 			/* Warning the '?' sign should not be present in local files but it is convenient to have it
 			   to test web content locally */
-			cgi_par = strchr(ext, '?'); if (cgi_par) cgi_par[0] = 0;
+			cgi_par = strchr(ext, '?');
+			if (cgi_par) cgi_par[0] = 0;
 		}
 		if (!stricmp(ext, "bt") || !stricmp(ext, "btz") || !stricmp(ext, "bt.gz")
-			|| !stricmp(ext, "xmta")
-			|| !stricmp(ext, "xmt") || !stricmp(ext, "xmt.gz") || !stricmp(ext, "xmtz")
-			|| !stricmp(ext, "wrl") || !stricmp(ext, "wrl.gz")
-			|| !stricmp(ext, "x3d") || !stricmp(ext, "x3d.gz") || !stricmp(ext, "x3dz")
-			|| !stricmp(ext, "x3dv") || !stricmp(ext, "x3dv.gz") || !stricmp(ext, "x3dvz")
-			|| !stricmp(ext, "swf")
-			)
+		        || !stricmp(ext, "xmta")
+		        || !stricmp(ext, "xmt") || !stricmp(ext, "xmt.gz") || !stricmp(ext, "xmtz")
+		        || !stricmp(ext, "wrl") || !stricmp(ext, "wrl.gz")
+		        || !stricmp(ext, "x3d") || !stricmp(ext, "x3d.gz") || !stricmp(ext, "x3dz")
+		        || !stricmp(ext, "x3dv") || !stricmp(ext, "x3dv.gz") || !stricmp(ext, "x3dvz")
+		        || !stricmp(ext, "swf")
+		   )
 			read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
 
 		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz") || !stricmp(ext, "svg.gz")) {
@@ -374,10 +376,13 @@ GF_Err DC_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	if (!dc) return GF_STREAM_NOT_FOUND;
 
 	switch (com->command_type) {
-	case GF_NET_CHAN_SET_PULL: return GF_OK;
-	case GF_NET_CHAN_INTERACTIVE: return GF_OK;
+	case GF_NET_CHAN_SET_PULL:
+		return GF_OK;
+	case GF_NET_CHAN_INTERACTIVE:
+		return GF_OK;
 	/*since data is file-based, no padding is needed (decoder plugin will handle it itself)*/
-	case GF_NET_CHAN_SET_PADDING: return GF_OK;
+	case GF_NET_CHAN_SET_PADDING:
+		return GF_OK;
 	case GF_NET_CHAN_BUFFER:
 		com->buffer.max = com->buffer.min = 0;
 		return GF_OK;
@@ -391,7 +396,8 @@ GF_Err DC_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
 		return GF_OK;
-	case GF_NET_CHAN_CONFIG: return GF_OK;
+	case GF_NET_CHAN_CONFIG:
+		return GF_OK;
 	case GF_NET_CHAN_GET_DSI:
 		com->get_dsi.dsi = NULL;
 		com->get_dsi.dsi_len = 0;

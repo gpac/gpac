@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -47,7 +47,7 @@ extern "C" {
 #include <gpac/isomedia.h>
 
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_ISOM)
-    
+
 typedef struct __rtp_streamer GF_RTPStreamer;
 
 /*!
@@ -60,17 +60,17 @@ typedef struct __rtp_streamer GF_RTPStreamer;
  *\param ip_dest IP address of the destination
  *\param port port number of the destination
  *\param MTU Maximum Transmission Unit size to use
- *\param TTL Time To Leave 
+ *\param TTL Time To Leave
  *\param ifce_addr IP of the local interface to use (may be NULL)
- *\param flags 
+ *\param flags
  *\param dsi MPEG-4 Decoder Specific Info for the stream
  *\param dsi_len length of the dsi parameter
  *\return new object
  */
 
-GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 oti, u32 timeScale, 
-								const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr, 
-								u32 flags, char *dsi, u32 dsi_len);
+GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 oti, u32 timeScale,
+                                    const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
+                                    u32 flags, char *dsi, u32 dsi_len);
 
 /*!
  *	\brief RTP Streamer constructor with extended parameters
@@ -82,9 +82,9 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 oti, u32 timeScale,
  *\param ip_dest IP address of the destination
  *\param port port number of the destination
  *\param MTU Maximum Transmission Unit size to use
- *\param TTL Time To Leave 
+ *\param TTL Time To Leave
  *\param ifce_addr IP of the local interface to use (may be NULL)
- *\param flags 
+ *\param flags
  *\param dsi MPEG-4 Decoder Specific Info for the stream
  *\param dsi_len length of the dsi parameter
  *\param PayloadType RTP payload type
@@ -92,24 +92,24 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 oti, u32 timeScale,
  *\param nb_ch number of channels in audio streams
  *\param is_crypted Boolean indicating if the stream is crypted
  *\param IV_length lenght of the Initialisation Vector used for encryption
- *\param KI_length length of the key index 
- *\param MinSize 
- *\param MaxSize 
- *\param avgTS 
- *\param maxDTSDelta 
- *\param const_dur 
- *\param bandwidth 
- *\param max_ptime 
+ *\param KI_length length of the key index
+ *\param MinSize
+ *\param MaxSize
+ *\param avgTS
+ *\param maxDTSDelta
+ *\param const_dur
+ *\param bandwidth
+ *\param max_ptime
  *\param au_sn_len length of the MPEG-4 SL descriptor AU sequence number field
  *\return new object
  */
-GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeScale, 
-								const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr, 
-								 u32 flags, char *dsi, u32 dsi_len, 								 
-								 u32 PayloadType, u32 sample_rate, u32 nb_ch,
-								 Bool is_crypted, u32 IV_length, u32 KI_length,
-								 u32 MinSize, u32 MaxSize, u32 avgTS, u32 maxDTSDelta, u32 const_dur, u32 bandwidth, u32 max_ptime, 
-								 u32 au_sn_len);
+GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeScale,
+        const char *ip_dest, u16 port, u32 MTU, u8 TTL, const char *ifce_addr,
+        u32 flags, char *dsi, u32 dsi_len,
+        u32 PayloadType, u32 sample_rate, u32 nb_ch,
+        Bool is_crypted, u32 IV_length, u32 KI_length,
+        u32 MinSize, u32 MaxSize, u32 avgTS, u32 maxDTSDelta, u32 const_dur, u32 bandwidth, u32 max_ptime,
+        u32 au_sn_len);
 
 /*!
  *	\brief RTP file streamer destructor

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -47,12 +47,12 @@ void gf_term_connect(GF_Terminal *term, const char *URL);
 /*disconnects the url*/
 void gf_term_disconnect(GF_Terminal *term);
 /*navigates to a given destination or shutdown/restart the current one if any.
-This is the only safe way of restarting/jumping a presentation from inside the EventProc 
+This is the only safe way of restarting/jumping a presentation from inside the EventProc
 where doing a disconnect/connect could deadlock if toURL is NULL, uses the current URL*/
 void gf_term_navigate_to(GF_Terminal *term, const char *toURL);
-/*restarts url from given time (in ms). 
+/*restarts url from given time (in ms).
 @pause_at_first_frame: if 1, pauses at the first frame. If 2, pauses at the first frame only if the terminal is in paused state.
-Return value: 
+Return value:
 	0: service is not connected yet
 	1: service has no seeking capabilities
 	2: service has been seeked
@@ -67,9 +67,9 @@ void gf_term_connect_with_path(GF_Terminal *term, const char *URL, const char *p
 
 /*returns current framerate
 	if @absoluteFPS is set, the return value is the absolute framerate, eg NbFrameCount/NbTimeSpent regardless of
-whether a frame has been drawn or not, which means the FPS returned can be much greater than the target rendering 
+whether a frame has been drawn or not, which means the FPS returned can be much greater than the target rendering
 framerate
-	if @absoluteFPS is not set, the return value is the FPS taking into account not drawn frames (eg, less than 
+	if @absoluteFPS is not set, the return value is the FPS taking into account not drawn frames (eg, less than
 	or equal to compositor FPS)
 */
 Double gf_term_get_framerate(GF_Terminal *term, Bool absoluteFPS);
@@ -114,7 +114,7 @@ void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev);
 void gf_term_set_speed(GF_Terminal *term, Fixed speed);
 
 /*sends a set of scene commands (BT, XMT, X3D, LASeR+XML) to the scene
-type indicates the language used - accepted values are 
+type indicates the language used - accepted values are
 	"model/x3d+xml" or "x3d": commands is an X3D+XML scene
 	"model/x3d+vrml" or  "xrdv": commands is an X3D+VRML scene
 	"model/vrml" or "vrml": commands is an VRML scene
@@ -133,7 +133,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com);
 */
 GF_Err gf_term_set_size(GF_Terminal *term, u32 NewWidth, u32 NewHeight);
 
-/*returns current text selection if any, or NULL otherwise. If probe mode is set, returns a non-NULL string ("") 
+/*returns current text selection if any, or NULL otherwise. If probe mode is set, returns a non-NULL string ("")
 if some text is selected*/
 const char *gf_term_get_text_selection(GF_Terminal *term, Bool probe_only);
 /*pastes text into current selection if any. If probe mode is set, only check if text is currently edited
@@ -141,7 +141,7 @@ if some text is selected*/
 GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only);
 
 
-/*decodes pending media and render frame. 
+/*decodes pending media and render frame.
 NOTE: This can only be used when the terminal runs without visual thread (GF_TERM_NO_VISUAL_THREAD flag set)
 returns estimated time left until next frame should be drawn. If GF_TERM_NO_REGULATION is not set, the function will sleep
 for until next frame should be drawn before returning.
@@ -157,7 +157,7 @@ GF_Err gf_term_process_flush(GF_Terminal *term);
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
 Bool gf_term_user_event(GF_Terminal *term, GF_Event *event);
 
-/*post extended user mouse interaction to terminal 
+/*post extended user mouse interaction to terminal
 	X and Y are point coordinates in the display expressed in 2D coord system top-left (0,0), Y increasing towards bottom
 	@xxx_but_down: specifiy whether the mouse button is down(2) or up (1), 0 if unchanged
 	@wheel: specifiy current wheel inc (0: unchanged , +1 for one wheel delta forward, -1 for one wheel delta backward)
@@ -165,7 +165,7 @@ Bool gf_term_user_event(GF_Terminal *term, GF_Event *event);
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
 void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event);
 
-/*post extended user key interaction to terminal 
+/*post extended user key interaction to terminal
 	@key_code: GPAC DOM code of input key
 	@hw_code: hardware code of input key
 	@isKeyUp: set if key is released
@@ -173,7 +173,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event);
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
 Bool gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp);
 
-/*post extended user character interaction to terminal 
+/*post extended user character interaction to terminal
 	@character: unicode character input
 */
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/

@@ -1,7 +1,7 @@
 /*
  *					GPAC Multimedia Framework
  *
- *			Authors: Romain Bouqueau - Jean Le Feuvre 
+ *			Authors: Romain Bouqueau - Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2010-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.0
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -34,7 +34,7 @@
 
 /**
  *	function DirectFBVid_DrawHLine
- *	- using hardware accelerator to a draw horizontal line   
+ *	- using hardware accelerator to a draw horizontal line
  **/
 static void DirectFBVid_DrawHLine(GF_VideoOutput *driv, u32 x, u32 y, u32 length, GF_Color color)
 {
@@ -49,7 +49,7 @@ static void DirectFBVid_DrawHLine(GF_VideoOutput *driv, u32 x, u32 y, u32 length
 
 /**
  *	function DirectFBVid_DrawHLineAlpha
- *	- using hardware accelerator to draw a horizontal line with alpha   
+ *	- using hardware accelerator to draw a horizontal line with alpha
  **/
 static void DirectFBVid_DrawHLineAlpha(GF_VideoOutput *driv, u32 x, u32 y, u32 length, GF_Color color, u8 alpha)
 {
@@ -64,7 +64,7 @@ static void DirectFBVid_DrawHLineAlpha(GF_VideoOutput *driv, u32 x, u32 y, u32 l
 
 /**
  *	function DirectFBVid_DrawRectangle
- *	- using hardware accelerator to fill a rectangle   
+ *	- using hardware accelerator to fill a rectangle
  **/
 static void DirectFBVid_DrawRectangle(GF_VideoOutput *driv, u32 x, u32 y, u32 width, u32 height, GF_Color color)
 {
@@ -79,15 +79,15 @@ static void DirectFBVid_DrawRectangle(GF_VideoOutput *driv, u32 x, u32 y, u32 wi
 
 /**
  *	function DirectFBVid_Setup
- * 	- DirectFB setup  
+ * 	- DirectFB setup
  **/
 GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display, u32 init_flags)
 {
 	const char* opt;
-	
+
 	DirectFBVID();
 	DirectFBVid_CtxSetIsInit(ctx, 0);
-	
+
 	// initialisation and surface creation
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Initialization\n"));
 	// check window mode used - SDL or X11
@@ -99,7 +99,7 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 		else if (opt && !strcmp(opt, "SDL")) window_mode = WINDOW_SDL;
 		DirectFBVid_InitAndCreateSurface(ctx, window_mode);
 	}
-	
+
 	// check hardware accelerator configuration
 	DirectFBVid_CtxSetDisableAcceleration(ctx, 0);
 	opt = gf_modules_get_option((GF_BaseInterface *)driv, "DirectFB", "DisableAcceleration");
@@ -121,7 +121,7 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
 		else if (opt && !strcmp(opt, "wait")) flip_mode |= FLIP_WAIT;
 		else if (opt && !strcmp(opt, "sync")) flip_mode |= FLIP_ONSYNC;
 		else if (opt && !strcmp(opt, "swap")) flip_mode |= FLIP_SWAP;
-		
+
 		DirectFBVid_CtxSetFlipMode(ctx, flip_mode);
 	}
 
@@ -173,7 +173,7 @@ static void DirectFBVid_Shutdown(GF_VideoOutput *driv)
 
 /**
  *	function DirectFBVid_Flush
- * 	- flushing buffer 
+ * 	- flushing buffer
  **/
 static GF_Err DirectFBVid_Flush(GF_VideoOutput *driv, GF_Window *dest)
 {
@@ -188,7 +188,7 @@ static GF_Err DirectFBVid_Flush(GF_VideoOutput *driv, GF_Window *dest)
 
 /**
  *	function DirectFBVid_SetFullScreen
- * 	- set fullscreen mode  
+ * 	- set fullscreen mode
  **/
 GF_Err DirectFBVid_SetFullScreen(GF_VideoOutput *driv, u32 bFullScreenOn, u32 *screen_width, u32 *screen_height)
 {
@@ -203,7 +203,7 @@ GF_Err DirectFBVid_SetFullScreen(GF_VideoOutput *driv, u32 bFullScreenOn, u32 *s
 
 /**
  *	function DirectFBVid_ProcessMessageQueue
- * 	- handle DirectFB events 
+ * 	- handle DirectFB events
  **/
 Bool DirectFBVid_ProcessMessageQueue(DirectFBVidCtx *ctx, GF_VideoOutput *driv)
 {
@@ -221,7 +221,7 @@ Bool DirectFBVid_ProcessMessageQueue(DirectFBVidCtx *ctx, GF_VideoOutput *driv)
 
 /**
  *	function DirectFBVid_ProcessEvent
- * 	- process events 
+ * 	- process events
  **/
 static GF_Err DirectFBVid_ProcessEvent(GF_VideoOutput *driv, GF_Event *evt)
 {
@@ -294,14 +294,14 @@ static GF_Err DirectFBVid_LockBackBuffer(GF_VideoOutput *driv, GF_VideoSurface *
 		DirectFBVid_CtxPrimaryUnlock(ctx);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] backbuffer unlocked\n"));
 	}
-	
+
 	return GF_OK;
 }
 
 
 /**
  *	function DirectFBVid_Blit
- * 	- blit a surface  
+ * 	- blit a surface
  **/
 static GF_Err DirectFBVid_Blit(GF_VideoOutput *driv, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
 {
@@ -322,7 +322,7 @@ static GF_Err DirectFBVid_Blit(GF_VideoOutput *driv, GF_VideoSurface *video_src,
 
 /**
  *	function DirectFBNewVideo
- * 	- creates a DirectFb module  
+ * 	- creates a DirectFb module
  **/
 void *DirectFBNewVideo()
 {
@@ -353,7 +353,7 @@ void *DirectFBNewVideo()
 
 
 /**
- *	function DirectFBDeleteVideo  
+ *	function DirectFBDeleteVideo
  * 	- delete video
  **/
 void DirectFBDeleteVideo(void *ifce)

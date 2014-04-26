@@ -17,13 +17,13 @@ class CInitDialogBar : public CDialogBar
 
 // Construction
 public:
-	CInitDialogBar(); 
-	virtual ~CInitDialogBar(); 
+	CInitDialogBar();
+	virtual ~CInitDialogBar();
 
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CInitDialogBar)
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
 
@@ -49,7 +49,7 @@ class AddressBar : public CInitDialogBar
 
 	// Construction
 public:
-	AddressBar(); 
+	AddressBar();
 
 // Dialog Data
 	//{{AFX_DATA(AddressBar)
@@ -65,7 +65,7 @@ public:
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(AddressBar)
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	//virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);

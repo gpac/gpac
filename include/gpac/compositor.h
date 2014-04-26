@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -40,7 +40,7 @@ extern "C" {
 
 typedef struct __tag_compositor GF_Compositor;
 
-/*creates default compositor 
+/*creates default compositor
 if self_threaded, video compositor uses a dedicated thread, otherwise visual rendering is done by the user
 audio compositor always runs in its own thread if enabled
 term may be NULL, in which case InputSensors won't be enabled
@@ -60,7 +60,7 @@ Bool gf_sc_draw_frame(GF_Compositor *sr, u32 *ms_till_next);
 /*inits rendering info for the node - shall be called for all nodes the parent system doesn't handle*/
 void gf_sc_on_node_init(GF_Compositor *sr, GF_Node *node);
 
-/*notify the given node has been modified. The compositor filters object to decide whether the scene graph has to be 
+/*notify the given node has been modified. The compositor filters object to decide whether the scene graph has to be
 traversed or not- if object is NULL, this means complete traversing of the graph is requested (use carefully since it
 can be a time consuming operation)*/
 void gf_sc_invalidate(GF_Compositor *sr, GF_Node *byObj);
@@ -80,7 +80,7 @@ void gf_sc_lock_audio(GF_Compositor *sr, Bool doLock);
 Bool gf_sc_user_event(GF_Compositor *sr, GF_Event *event);
 
 /*maps screen coordinates to bifs 2D coordinates for the current zoom/pan settings
-X and Y are point coordinates in the display expressed in BIFS-like fashion (0,0) at center of 
+X and Y are point coordinates in the display expressed in BIFS-like fashion (0,0) at center of
 display and Y increasing from bottom to top*/
 void gf_sc_map_point(GF_Compositor *sr, s32 X, s32 Y, Fixed *bifsX, Fixed *bifsY);
 
@@ -104,7 +104,7 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor);
 
 GF_Err gf_sc_paste_text(GF_Compositor *compositor, const char *text);
 
-/*user-define management: this is used for instant visual rendering of the scene graph, 
+/*user-define management: this is used for instant visual rendering of the scene graph,
 for exporting or authoring tools preview. User is responsible for calling render when desired and shall also maintain
 scene timing*/
 

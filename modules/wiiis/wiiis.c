@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2009-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -80,7 +80,7 @@ static Bool WII_RegisterDevice(struct __input_device *ifce, const char *urn, GF_
 	if (IS_JUST_PRESSED(wm, _b)) {	gf_bs_write_int(bs, 1, 1); gf_bs_write_int(bs, 1, 1); }	\
 	else if (IS_RELEASED(wm, _b)) {	gf_bs_write_int(bs, 1, 1); gf_bs_write_int(bs, 0, 1); }	\
 	else gf_bs_write_int(bs, 0, 1); \
-
+ 
 
 #define WII_PI	3.1415926535898f
 
@@ -100,7 +100,7 @@ static u32 WII_Run(void *par)
 	if (opt) scan_delay = atoi(opt);
 
 	/*locate the wiimotes*/
-	count = wiiuse_find(wii->wiimotes, wii->nb_wiimotes, scan_delay); 
+	count = wiiuse_find(wii->wiimotes, wii->nb_wiimotes, scan_delay);
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[Wii] Found %d wiimotes\n", count));
 	count = wiiuse_connect(wii->wiimotes, wii->nb_wiimotes);
 	if (count) {
@@ -131,24 +131,24 @@ static u32 WII_Run(void *par)
 		}
 	}
 
-	while (wii->running) { 
+	while (wii->running) {
 		count = wiiuse_poll(wii->wiimotes, wii->nb_wiimotes);
 		if (!count) {
 			continue;
 		}
 		for (i=0; i<count; i++) {
 			struct wiimote_t* wm = wii->wiimotes[i];
-			switch (wm->event) { 
+			switch (wm->event) {
 			case WIIUSE_EVENT:/* A generic event occured on the wiimote. */
 				/*create the data frame*/
 				bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 				/*if not the same wiimote write the UID*/
 				if (wii->prev_id != wm->unid) {
-					gf_bs_write_int(bs, 1, 1); 
-					gf_bs_write_int(bs,  wm->unid, 32); 
+					gf_bs_write_int(bs, 1, 1);
+					gf_bs_write_int(bs,  wm->unid, 32);
 					wii->prev_id = wm->unid;
 				} else {
-					gf_bs_write_int(bs, 0, 1); 
+					gf_bs_write_int(bs, 0, 1);
 				}
 
 				/*write buttons state*/
@@ -165,13 +165,13 @@ static u32 WII_Run(void *par)
 				WRITE_BUTTON(WIIMOTE_BUTTON_UP);
 
 				/*write yaw-pitch-roll - FIXME: wiiuse seems to output NaN in these values upon init*/
-				gf_bs_write_int(bs, 1, 1); 
+				gf_bs_write_int(bs, 1, 1);
 				gf_bs_write_float(bs, WII_PI * wm->orient.yaw / 24 );
 				gf_bs_write_float(bs, WII_PI * wm->orient.pitch / 180);
 				gf_bs_write_float(bs, WII_PI * wm->orient.roll / 180);
 
 				/*write gravity - FIXME: wiiuse seems to output NaN in these values upon init*/
-				gf_bs_write_int(bs, 1, 1); 
+				gf_bs_write_int(bs, 1, 1);
 				gf_bs_write_float(bs, wm->gforce.x);
 				gf_bs_write_float(bs, wm->gforce.y);
 				gf_bs_write_float(bs, wm->gforce.z);
@@ -189,16 +189,16 @@ static u32 WII_Run(void *par)
 				break;
 			case WIIUSE_READ_DATA:/* Data was returned that was previously requested from the wiimote ROM/registers. */
 				break;
-			case WIIUSE_NUNCHUK_INSERTED: 
+			case WIIUSE_NUNCHUK_INSERTED:
 			case WIIUSE_NUNCHUK_REMOVED:
-			case  WIIUSE_CLASSIC_CTRL_INSERTED: 
+			case  WIIUSE_CLASSIC_CTRL_INSERTED:
 			case WIIUSE_CLASSIC_CTRL_REMOVED:
 			case WIIUSE_GUITAR_HERO_3_CTRL_INSERTED:
 			case WIIUSE_GUITAR_HERO_3_CTRL_REMOVED:
 				break;
 			}
 		}
-	} 
+	}
 	return 0;
 }
 
@@ -217,7 +217,7 @@ static void WII_Stop(struct __input_device *ifce)
 
 
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_INPUT_DEVICE_INTERFACE,
@@ -252,7 +252,7 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	GF_WiiMote *wii;
 	GF_InputSensorDevice *ifce = (GF_InputSensorDevice*)bi;
 	if (ifce->InterfaceType!=GF_INPUT_DEVICE_INTERFACE) return;
-	
+
 	wii = ifce->udta;
 	if (wii->wiimotes) {
 		wiiuse_cleanup(wii->wiimotes, wii->nb_wiimotes);

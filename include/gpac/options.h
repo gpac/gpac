@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -76,7 +76,7 @@ enum
 
 /*interaction level settings*/
 enum
-{	
+{
 	/*regular interactions enabled (touch sensors)*/
 	GF_INTERACT_NORMAL = 1,
 	/*InputSensor interactions enabled (mouse and keyboard)*/
@@ -106,7 +106,7 @@ enum
 
 
 /*navigation type*/
-enum 
+enum
 {
 	/*navigation is disabled by content and cannot be forced by user*/
 	GF_NAVIGATE_TYPE_NONE,
@@ -207,31 +207,31 @@ enum
 	GF_OPT_AUDIO_MUTE,
 	/*get javascript flag (no set, depends on compil) - value: boolean, true if JS enabled in build*/
 	GF_OPT_HAS_JAVASCRIPT,
-	/*get selectable stream flag (no set) - value: boolean, true if audio/video/subtitle stream selection is 
+	/*get selectable stream flag (no set) - value: boolean, true if audio/video/subtitle stream selection is
 	possible with content (if an MPEG-4 scene description is not present). Use regular OD browsing to get streams*/
 	GF_OPT_CAN_SELECT_STREAMS,
 	/*set/get control interaction, OR'ed combination of interaction flags*/
 	GF_OPT_INTERACTION_LEVEL,
 	/*set display window visible / get show/hide state*/
 	GF_OPT_VISIBLE,
-	/*set freeze display on/off / get freeze state freeze_display prevents any screen updates 
+	/*set freeze display on/off / get freeze state freeze_display prevents any screen updates
 	needed when output driver uses direct video memory access*/
 	GF_OPT_FREEZE_DISPLAY,
-	/*Returns 1 if file playback is considered as done (all streams finished, no active time sensors 
+	/*Returns 1 if file playback is considered as done (all streams finished, no active time sensors
 	and no user interactions in the scene)*/
 	GF_OPT_IS_FINISHED,
 	/*Returns 1 if file timeline is considered as done (all streams finished, no active time sensors)*/
 	GF_OPT_IS_OVER,
 	/*set/get aspect ratio (value: one of AspectRatio enum) */
 	GF_OPT_ASPECT_RATIO,
-	/*send a redraw message (SetOption only): all graphics info (display list, vectorial path) is 
+	/*send a redraw message (SetOption only): all graphics info (display list, vectorial path) is
 	recomputed, and textures are reloaded in HW*/
 	GF_OPT_REFRESH,
 	/*set/get stress mode (value: boolean) - in stress mode a GF_OPT_FORCE_REDRAW is emulated at each frame*/
 	GF_OPT_STRESS_MODE,
 	/*get/set bounding volume drawing (value: one of the above option)*/
 	GF_OPT_DRAW_BOUNDS,
-	/*get/set texture text option - when enabled and usable (that depends on content), text is first rendered 
+	/*get/set texture text option - when enabled and usable (that depends on content), text is first rendered
 	to a texture and only the texture is drawn, rather than drawing all the text each time (CPU intensive)*/
 	GF_OPT_TEXTURE_TEXT,
 	/*fake option, reload config file (set only), including drivers. Plugins configs are not reloaded*/
@@ -251,7 +251,7 @@ enum
 	/*get/set OpenGL force mode - returns error if OpenGL is not supported*/
 	GF_OPT_USE_OPENGL,
 
-	/*set/get draw mode. 
+	/*set/get draw mode.
 		In immediate mode, the screen is entirely redrawn at each frame
 		In defer mode, only the changed ares are redrawn
 		In defer-debug mode, unchanged areas are erased and changed ares are redrawn
@@ -271,9 +271,9 @@ enum
 	/*max HTTP download rate in bits per second, 0 if no limit*/
 	GF_OPT_HTTP_MAX_RATE,
 
-	
+
 	/*		3D ONLY OPTIONS		*/
-	/*set/get raster outline flag (value: boolean) - when set, no vectorial outlining is done, only 
+	/*set/get raster outline flag (value: boolean) - when set, no vectorial outlining is done, only
 	openGL raster outline*/
 	GF_OPT_RASTER_OUTLINES,
 	/*set/get pow2 emulation flag (value: boolean) - when set, video textures with non power of 2 dimensions
@@ -288,7 +288,7 @@ enum
 	GF_OPT_NORMALS,
 	/*disable backface culling*/
 	GF_OPT_BACK_CULL,
-	/*get/set RECT Ext flag (value: boolean) - when set, GL rectangular texture extension is not used 
+	/*get/set RECT Ext flag (value: boolean) - when set, GL rectangular texture extension is not used
 	(but NPO2 texturing is if available)*/
 	GF_OPT_NO_RECT_TEXTURE,
 	/*set/get headlight (value: boolean)*/

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -94,10 +94,10 @@ typedef	void (*gf_xml_sax_text_content)(void *sax_cbck, const char *content, Boo
 typedef	void (*gf_xml_sax_progress)(void *cbck, u64 done, u64 tot);
 
 /*creates new sax parser - all callbacks are optionals*/
-GF_SAXParser *gf_xml_sax_new(gf_xml_sax_node_start on_node_start, 
-							 gf_xml_sax_node_end on_node_end,
-							 gf_xml_sax_text_content on_text_content,
-							 void *cbck);
+GF_SAXParser *gf_xml_sax_new(gf_xml_sax_node_start on_node_start,
+                             gf_xml_sax_node_end on_node_end,
+                             gf_xml_sax_text_content on_text_content,
+                             void *cbck);
 
 /*destroys sax parser */
 void gf_xml_sax_del(GF_SAXParser *parser);
@@ -106,7 +106,7 @@ assume UTF-8 compatible coding*/
 GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM);
 /*parses input string data. string data MUST be terminated by the 0 character (eg 2 0s for UTF-16)*/
 GF_Err gf_xml_sax_parse(GF_SAXParser *parser, const void *string_bytes);
-/*suspends/resume sax parsing. 
+/*suspends/resume sax parsing.
 	When resuming on file, the function will run until suspended/end of file/error
 	When resuming on steram, the function will simply return
 */
@@ -155,7 +155,7 @@ char *gf_xml_dom_serialize(GF_XMLNode *node, Bool content_only);
 /*
  *\brief Create the root element of the DOM
  *
- * Create the root element -- the only top level element -- of the document. 
+ * Create the root element -- the only top level element -- of the document.
  *
  *\param parser the DOM structure
  *\return The created node if creation occurs properly, otherwise NULL;
@@ -165,7 +165,7 @@ GF_XMLNode *gf_xml_dom_create_root(GF_DOMParser *parser, const char* name);
 /*
  *\brief Get the root element of the DOM
  *
- * Get the root element -- the only top level element -- of the document. 
+ * Get the root element -- the only top level element -- of the document.
  *
  *\param parser the DOM structure
  *\return The corresponding node if exists, otherwise NULL;
@@ -240,8 +240,8 @@ void gf_xml_dom_node_del(GF_XMLNode *node);
  *\brief bitsequence parser.
  *
  * inspects all child elements of the node and converts <BS> children into bits. BS take the following attributes:.
- *bits: value gives the number of bits used to code a value or a length 
- *value: value is a 32 bit signed value 
+ *bits: value gives the number of bits used to code a value or a length
+ *value: value is a 32 bit signed value
  *dataOffset: value gives an offset into a file
  *dataLength: value gives the number of bits bytes to copy in a file
  *dataFile: value gives the name of the source file
@@ -249,8 +249,8 @@ void gf_xml_dom_node_del(GF_XMLNode *node);
  *text: or string: value gives a string (length is first coded on number of bits in bits attribute)
  *fcc: value gives a four character code, coded on 32 bits
  *ID128: value gives a 128 bit vlue in hexadecimal
- *data64: value gives data coded as base64 
- *data: value gives data coded in hexa 
+ *data64: value gives data coded as base64
+ *data: value gives data coded in hexa
  *
  *
  *

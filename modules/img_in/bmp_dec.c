@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -36,7 +36,7 @@ typedef struct
 	u16 ES_ID;
 	u32 width, height, out_size, pixel_format;
 } BMPDec;
-	
+
 #define BMPCTX()	BMPDec *ctx = (BMPDec *) ((IMGDec *)ifcg->privateStack)->opaque
 
 
@@ -104,11 +104,11 @@ static GF_Err BMP_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capab
 	return GF_NOT_SUPPORTED;
 }
 
-static GF_Err BMP_ProcessData(GF_MediaDecoder *ifcg, 
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID, u32 *CTS,
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+static GF_Err BMP_ProcessData(GF_MediaDecoder *ifcg,
+                              char *inBuffer, u32 inBufferLength,
+                              u16 ES_ID, u32 *CTS,
+                              char *outBuffer, u32 *outBufferLength,
+                              u8 PaddingBits, u32 mmlevel)
 {
 	char *pix;
 	u32 i, j, irow, in_stride, out_stride, BPP;
@@ -193,7 +193,7 @@ Bool NewBMPDec(GF_BaseDecoder *ifcd)
 	wrap->opaque = dec;
 	wrap->type = DEC_BMP;
 
-	/*setup our own interface*/	
+	/*setup our own interface*/
 	ifcd->AttachStream = BMP_AttachStream;
 	ifcd->DetachStream = BMP_DetachStream;
 	ifcd->GetCapabilities = BMP_GetCapabilities;

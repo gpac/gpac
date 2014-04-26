@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -43,13 +43,13 @@
 #define SHGFP_TYPE_CURRENT 0 /*needed for MinGW*/
 #endif
 
-#ifdef _MSC_VER 
+#ifdef _MSC_VER
 /*get rid of console*/
 #if 0
 #pragma comment(linker,"/SUBSYSTEM:WINDOWS")
 #pragma comment(linker,"/ENTRY:main")
 #else
-#pragma comment(linker,"/SUBSYSTEM:CONSOLE") 
+#pragma comment(linker,"/SUBSYSTEM:CONSOLE")
 #endif
 
 #endif // _MSC_VER
@@ -103,75 +103,75 @@ Bool dump_file(char *the_url, u32 dump_mode, Double fps, u32 width, u32 height, 
 void PrintUsage()
 {
 	fprintf(stdout, "Usage Osmo4iOS [options] [filename]\n"
-		"\t-c fileName:    user-defined configuration file\n"
-		"\t-rti fileName:  logs run-time info (FPS, CPU, Mem usage) to file\n"
-		"\t-rtix fileName: same as -rti but driven by GPAC logs\n"
-		"\t-quiet:         removes script message, buffering and downloading status\n"
-		"\t-opt	option:    Overrides an option in the configuration file. String format is section:key=value\n"
-		"\t-log-file file: sets output log file.\n"
-		"\t-log-level lev: sets log level. Possible values are:\n"
-		"\t        \"error\"      : logs only error messages\n"
-		"\t        \"warning\"    : logs error+warning messages\n"
-		"\t        \"info\"       : logs error+warning+info messages\n"
-		"\t        \"debug\"      : logs all messages\n"
-		"\n"
-		"\t-log-tools lt:  sets tool(s) to log. List of \':\'-separated values:\n"
-		"\t        \"core\"       : libgpac core\n"
-		"\t        \"coding\"     : bitstream formats (audio, video, scene)\n"
-		"\t        \"container\"  : container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
-		"\t        \"network\"    : network data exept RTP trafic\n"
-		"\t        \"rtp\"        : rtp trafic\n"
-		"\t        \"author\"     : authoring tools (hint, import, export)\n"
-		"\t        \"sync\"       : terminal sync layer\n"
-		"\t        \"codec\"      : terminal codec messages\n"
-		"\t        \"parser\"     : scene parsers (svg, xmt, bt) and other\n"
-		"\t        \"media\"      : terminal media object management\n"
-		"\t        \"scene\"      : scene graph and scene manager\n"
-		"\t        \"script\"     : scripting engine messages\n"
-		"\t        \"interact\"   : interaction engine (events, scripts, etc)\n"
-		"\t        \"compose\"    : composition engine (2D, 3D, etc)\n"
-		"\t        \"service\"    : network service management\n"
-		"\t        \"mmio\"       : Audio/Video HW I/O management\n"
-		"\t        \"none\"       : no tool logged\n"
-		"\t        \"all\"        : all tools logged\n"
-		"\n"
-		"\t-size WxH:      specifies visual size (default: scene size)\n"
-		"\t-scale s:      scales the visual size (default: 1)\n"
+	        "\t-c fileName:    user-defined configuration file\n"
+	        "\t-rti fileName:  logs run-time info (FPS, CPU, Mem usage) to file\n"
+	        "\t-rtix fileName: same as -rti but driven by GPAC logs\n"
+	        "\t-quiet:         removes script message, buffering and downloading status\n"
+	        "\t-opt	option:    Overrides an option in the configuration file. String format is section:key=value\n"
+	        "\t-log-file file: sets output log file.\n"
+	        "\t-log-level lev: sets log level. Possible values are:\n"
+	        "\t        \"error\"      : logs only error messages\n"
+	        "\t        \"warning\"    : logs error+warning messages\n"
+	        "\t        \"info\"       : logs error+warning+info messages\n"
+	        "\t        \"debug\"      : logs all messages\n"
+	        "\n"
+	        "\t-log-tools lt:  sets tool(s) to log. List of \':\'-separated values:\n"
+	        "\t        \"core\"       : libgpac core\n"
+	        "\t        \"coding\"     : bitstream formats (audio, video, scene)\n"
+	        "\t        \"container\"  : container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
+	        "\t        \"network\"    : network data exept RTP trafic\n"
+	        "\t        \"rtp\"        : rtp trafic\n"
+	        "\t        \"author\"     : authoring tools (hint, import, export)\n"
+	        "\t        \"sync\"       : terminal sync layer\n"
+	        "\t        \"codec\"      : terminal codec messages\n"
+	        "\t        \"parser\"     : scene parsers (svg, xmt, bt) and other\n"
+	        "\t        \"media\"      : terminal media object management\n"
+	        "\t        \"scene\"      : scene graph and scene manager\n"
+	        "\t        \"script\"     : scripting engine messages\n"
+	        "\t        \"interact\"   : interaction engine (events, scripts, etc)\n"
+	        "\t        \"compose\"    : composition engine (2D, 3D, etc)\n"
+	        "\t        \"service\"    : network service management\n"
+	        "\t        \"mmio\"       : Audio/Video HW I/O management\n"
+	        "\t        \"none\"       : no tool logged\n"
+	        "\t        \"all\"        : all tools logged\n"
+	        "\n"
+	        "\t-size WxH:      specifies visual size (default: scene size)\n"
+	        "\t-scale s:      scales the visual size (default: 1)\n"
 #if defined(__DARWIN__) || defined(__APPLE__)
-		"\t-thread:        enables thread usage for terminal and compositor \n"
+	        "\t-thread:        enables thread usage for terminal and compositor \n"
 #else
-		"\t-no-thread:     disables thread usage (except for audio)\n"
+	        "\t-no-thread:     disables thread usage (except for audio)\n"
 #endif
-		"\t-no-audio:	   disables audio \n"
-		"\t-no-wnd:        uses windowless mode (Win32 only)\n"
-		"\t-align vh:      specifies v and h alignment for windowless mode\n"
-		"                   possible v values: t(op), m(iddle), b(ottom)\n"
-		"                   possible h values: l(eft), m(iddle), r(ight)\n"
-		"                   default alignment is top-left\n"
-		"                   default alignment is top-left\n"
-		"\t-pause:         pauses at first frame\n"
-		"\n"
-		"Dumper Options:\n"
-		"\t-bmp [times]:   dumps given frames to bmp\n"
-		"\t-raw [times]:   dumps given frames to bmp\n"
-		"\t-avi [times]:   dumps given file to raw avi\n"
-		"\t-rgbds:         dumps the RGBDS pixel format texture\n"
-		"                   with -avi [times]: dumps an rgbds-format .avi\n"
-		"\t-rgbd:          dumps the RGBD pixel format texture\n"
-		"					with -avi [times]: dumps an rgbd-format .avi\n"		
-		"\t-depth:         dumps depthmap (z-buffer) frames\n"
-		"                   with -avi [times]: dumps depthmap in grayscale .avi\n"		
-		"                   with -bmp: dumps depthmap in grayscale .bmp\n"		
-		"\t-fps FPS:       specifies frame rate for AVI dumping (default: 25.0)\n"
-		"\t-2d:            uses 2D compositor\n"
-		"\t-3d:            uses 3D compositor\n"
-		"\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
-		"\t-show:          show window while dumping (default: no)\n"
-		"MP4Client - GPAC command line player and dumper - version %s\n"
-		"GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n",
+	        "\t-no-audio:	   disables audio \n"
+	        "\t-no-wnd:        uses windowless mode (Win32 only)\n"
+	        "\t-align vh:      specifies v and h alignment for windowless mode\n"
+	        "                   possible v values: t(op), m(iddle), b(ottom)\n"
+	        "                   possible h values: l(eft), m(iddle), r(ight)\n"
+	        "                   default alignment is top-left\n"
+	        "                   default alignment is top-left\n"
+	        "\t-pause:         pauses at first frame\n"
+	        "\n"
+	        "Dumper Options:\n"
+	        "\t-bmp [times]:   dumps given frames to bmp\n"
+	        "\t-raw [times]:   dumps given frames to bmp\n"
+	        "\t-avi [times]:   dumps given file to raw avi\n"
+	        "\t-rgbds:         dumps the RGBDS pixel format texture\n"
+	        "                   with -avi [times]: dumps an rgbds-format .avi\n"
+	        "\t-rgbd:          dumps the RGBD pixel format texture\n"
+	        "					with -avi [times]: dumps an rgbd-format .avi\n"
+	        "\t-depth:         dumps depthmap (z-buffer) frames\n"
+	        "                   with -avi [times]: dumps depthmap in grayscale .avi\n"
+	        "                   with -bmp: dumps depthmap in grayscale .bmp\n"
+	        "\t-fps FPS:       specifies frame rate for AVI dumping (default: 25.0)\n"
+	        "\t-2d:            uses 2D compositor\n"
+	        "\t-3d:            uses 3D compositor\n"
+	        "\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
+	        "\t-show:          show window while dumping (default: no)\n"
+	        "MP4Client - GPAC command line player and dumper - version %s\n"
+	        "GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n",
 
-		GPAC_FULL_VERSION
-		);
+	        GPAC_FULL_VERSION
+	       );
 }
 
 
@@ -196,7 +196,7 @@ static void UpdateRTInfo(const char *legend)
 
 	/*refresh every second*/
 	if (!display_rti && !rti_logs) return;
-	if (!gf_sys_get_rti(rti_update_time_ms, &rti, 0) && !legend) 
+	if (!gf_sys_get_rti(rti_update_time_ms, &rti, 0) && !legend)
 		return;
 
 	if (display_rti) {
@@ -204,28 +204,28 @@ static void UpdateRTInfo(const char *legend)
 		if (!rti.gpac_memory) rti.gpac_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
 
 		if (display_rti==2) {
-			fprintf(stdout, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB\r", 
-				gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
+			fprintf(stdout, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB\r",
+			        gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 		} else {
 			char szMsg[1024];
 			GF_Event evt;
 
-			sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
-				gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
+			sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB",
+			        gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 			evt.type = GF_EVENT_SET_CAPTION;
 			evt.caption.caption = szMsg;
 			gf_term_user_event(term, &evt);
 		}
 	}
 	if (rti_logs) {
-		fprintf(rti_logs, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t%s", 
-			gf_sys_clock(),
-			gf_term_get_time_in_ms(term),
-			rti.total_cpu_usage,
-			(u32) gf_term_get_framerate(term, 0),
-			(u32) (rti.gpac_memory / 1024), 
-			legend ? legend : ""
-			);
+		fprintf(rti_logs, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t%s",
+		        gf_sys_clock(),
+		        gf_term_get_time_in_ms(term),
+		        rti.total_cpu_usage,
+		        (u32) gf_term_get_framerate(term, 0),
+		        (u32) (rti.gpac_memory / 1024),
+		        legend ? legend : ""
+		       );
 		if (!legend) fprintf(rti_logs, "\n");
 	}
 }
@@ -243,15 +243,25 @@ static void ResetCaption()
 		/*get any service info*/
 		if (!startup_file && gf_term_get_service_info(term, gf_term_get_root_object(term), &com) == GF_OK) {
 			strcpy(szName, "");
-			if (com.track_info) { 
+			if (com.track_info) {
 				char szBuf[10];
 				sprintf(szBuf, "%02d ", (u32) (com.track_info>>16) );
 				strcat(szName, szBuf);
 			}
-			if (com.artist) { strcat(szName, com.artist); strcat(szName, " "); }
-			if (com.name) { strcat(szName, com.name); strcat(szName, " "); }
-			if (com.album) { strcat(szName, "("); strcat(szName, com.album); strcat(szName, ")"); }
-			
+			if (com.artist) {
+				strcat(szName, com.artist);
+				strcat(szName, " ");
+			}
+			if (com.name) {
+				strcat(szName, com.name);
+				strcat(szName, " ");
+			}
+			if (com.album) {
+				strcat(szName, "(");
+				strcat(szName, com.album);
+				strcat(szName, ")");
+			}
+
 			if (strlen(szName)) event.caption.caption = szName;
 		}
 		if (!event.caption.caption) {
@@ -270,8 +280,10 @@ u32 get_sys_col(int idx)
 {
 	u32 res;
 	DWORD val = GetSysColor(idx);
-	res = (val)&0xFF; res<<=8;
-	res |= (val>>8)&0xFF; res<<=8;
+	res = (val)&0xFF;
+	res<<=8;
+	res |= (val>>8)&0xFF;
+	res<<=8;
 	res |= (val>>16)&0xFF;
 	return res;
 }
@@ -311,10 +323,10 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		if (evt->message.error) {
 			if (!is_connected) last_error = evt->message.error;
 			fprintf(stderr, "%s (%s): %s\n", evt->message.message, servName, gf_error_to_string(evt->message.error));
-		} else if (!be_quiet) 
+		} else if (!be_quiet)
 			fprintf(stderr, "(%s) %s\r", servName, evt->message.message);
 	}
-		break;
+	break;
 	case GF_EVENT_PROGRESS:
 	{
 		char *szTitle = "";
@@ -323,8 +335,8 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		else if (evt->progress.progress_type==2) szTitle = "Import ";
 		gf_set_progress(szTitle, evt->progress.done, evt->progress.total);
 	}
-		break;
-	
+	break;
+
 
 	case GF_EVENT_DBLCLICK:
 		gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
@@ -389,21 +401,21 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		case GF_KEY_D:
 			if (evt->key.flags & GF_KEY_MOD_CTRL) gf_term_set_option(term, GF_OPT_DRAW_MODE, (gf_term_get_option(term, GF_OPT_DRAW_MODE)==GF_DRAW_MODE_DEFER) ? GF_DRAW_MODE_IMMEDIATE : GF_DRAW_MODE_DEFER );
 			break;
-		case GF_KEY_4: 
+		case GF_KEY_4:
 			if (evt->key.flags & GF_KEY_MOD_CTRL)
-				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3); 
+				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3);
 			break;
-		case GF_KEY_5: 
+		case GF_KEY_5:
 			if (evt->key.flags & GF_KEY_MOD_CTRL)
-				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9); 
+				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9);
 			break;
-		case GF_KEY_6: 
+		case GF_KEY_6:
 			if (evt->key.flags & GF_KEY_MOD_CTRL)
-				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN); 
+				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN);
 			break;
-		case GF_KEY_7: 
+		case GF_KEY_7:
 			if (evt->key.flags & GF_KEY_MOD_CTRL)
-				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP); 
+				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);
 			break;
 		case GF_KEY_P:
 			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
@@ -456,7 +468,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			move.move.align_y = (align_mode>>8) & 0xFF;
 			move.move.relative = 2;
 			gf_term_user_event(term, &move);
-		} 
+		}
 		break;
 	case GF_EVENT_SCENE_SIZE:
 		if (forced_width && forced_height) {
@@ -481,7 +493,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVENT_MIGRATE:
 	{
 	}
-		break;
+	break;
 	case GF_EVENT_NAVIGATE_INFO:
 		if (evt->navigate.to_url) fprintf(stderr, "Go to URL: \"%s\"\r", evt->navigate.to_url);
 		break;
@@ -703,8 +715,8 @@ int main (int argc, char *argv[])
 	FILE *playlist = NULL;
 	FILE *logfile = NULL;
 	Float scale = 1;
-    
-    /*by default use current dir*/
+
+	/*by default use current dir*/
 	strcpy(the_url, ".");
 
 	memset(&user, 0, sizeof(GF_User));
@@ -726,7 +738,7 @@ int main (int argc, char *argv[])
 	}
 
 	gf_sys_init(enable_mem_tracker);
-	
+
 	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
 		fprintf(stdout, "Error: Configuration File \"GPAC.cfg\" not found\n");
@@ -770,7 +782,7 @@ int main (int argc, char *argv[])
 			dump_mode=9;  /* rgbd texture directly*/
 			if (dump_mode==1) dump_mode = 10;    /* .avi rgbds dump*/
 		} else if (!strcmp(arg, "-depth")) {
-			depth_dump = 1;        
+			depth_dump = 1;
 			if (dump_mode==2) dump_mode=7; /* grayscale .bmp depth dump*/
 			else if (dump_mode==1) dump_mode=8; /* .avi depth dump*/
 			else dump_mode=4;   /*depth dump*/
@@ -830,13 +842,14 @@ int main (int argc, char *argv[])
 			if (sep) {
 				sep[0] = 0;
 				strcpy(szSec, argv[i+1]);
-				sep[0] = ':'; sep ++;
+				sep[0] = ':';
+				sep ++;
 				sep2 = strchr(sep, '=');
 				if (sep2) {
 					sep2[0] = 0;
 					strcpy(szKey, sep);
 					strcpy(szVal, sep2+1);
-					sep2[0] = '='; 
+					sep2[0] = '=';
 					if (!stricmp(szVal, "null")) szVal[0]=0;
 					gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
 				}
@@ -853,11 +866,11 @@ int main (int argc, char *argv[])
 		const char *opt = gf_cfg_get_key(cfg_file, "General", "LogFile");
 		if (opt) {
 			logfile = gf_f64_open(opt, "wt");
-			if (logfile) 
+			if (logfile)
 				gf_log_set_callback(logfile, on_gpac_log);
 		}
 	}
-		
+
 	if (dump_mode && !url_arg) {
 		fprintf(stdout, "Missing argument for dump\n");
 		PrintUsage();
@@ -893,7 +906,7 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 	fprintf(stderr, "Modules Loaded (%d found in %s)\n", i, str);
-	
+
 	user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
@@ -902,7 +915,7 @@ int main (int argc, char *argv[])
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
 
-	fprintf(stderr, "Loading GPAC Terminal\n");	
+	fprintf(stderr, "Loading GPAC Terminal\n");
 	term = gf_term_new(&user);
 	if (!term) {
 		fprintf(stderr, "\nInit error - check you have at least one video out and one rasterizer...\nFound modules:\n");
@@ -959,38 +972,38 @@ int main (int argc, char *argv[])
 		Run = 0;
 	} else
 
-	/*connect if requested*/
-	if (url_arg) {
-		char *ext;
-		strcpy(the_url, url_arg);
-		ext = strrchr(the_url, '.');
-		if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
-			fprintf(stdout, "Opening Playlist %s\n", the_url);
-			playlist = gf_f64_open(the_url, "rt");
-			if (playlist) {
-				strcpy(pl_path, the_url);
-				fscanf(playlist, "%s", the_url);
-				fprintf(stdout, "Opening URL %s\n", the_url);
-				gf_term_connect_with_path(term, the_url, pl_path);
+		/*connect if requested*/
+		if (url_arg) {
+			char *ext;
+			strcpy(the_url, url_arg);
+			ext = strrchr(the_url, '.');
+			if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
+				fprintf(stdout, "Opening Playlist %s\n", the_url);
+				playlist = gf_f64_open(the_url, "rt");
+				if (playlist) {
+					strcpy(pl_path, the_url);
+					fscanf(playlist, "%s", the_url);
+					fprintf(stdout, "Opening URL %s\n", the_url);
+					gf_term_connect_with_path(term, the_url, pl_path);
+				} else {
+					fprintf(stdout, "Hit 'h' for help\n\n");
+				}
 			} else {
-				fprintf(stdout, "Hit 'h' for help\n\n");
+				fprintf(stdout, "Opening URL %s\n", the_url);
+				if (pause_at_first) fprintf(stdout, "[Status: Paused]\n");
+				gf_term_connect_from_time(term, the_url, 0, pause_at_first);
 			}
 		} else {
-			fprintf(stdout, "Opening URL %s\n", the_url);
-			if (pause_at_first) fprintf(stdout, "[Status: Paused]\n");
-			gf_term_connect_from_time(term, the_url, 0, pause_at_first);
+			fprintf(stdout, "Hit 'h' for help\n\n");
+			str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
+			if (str) {
+				strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
+				gf_term_connect(term, str);
+				startup_file = 1;
+			}
 		}
-	} else {
-		fprintf(stdout, "Hit 'h' for help\n\n");
-		str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
-		if (str) {
-			strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
-			gf_term_connect(term, str);
-			startup_file = 1;
-		}
-	}
 	/*force fullscreen*/
-	if (0 && start_fs) 
+	if (0 && start_fs)
 		gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
 
 	while (Run) {
@@ -1003,7 +1016,7 @@ int main (int argc, char *argv[])
 			request_next_playlist_item = 0;
 			if (playlist) {
 				gf_term_disconnect(term);
-				
+
 				if (fscanf(playlist, "%s", the_url) == EOF) {
 					fprintf(stdout, "No more items - exiting\n");
 					Run = 0;
@@ -1019,7 +1032,7 @@ int main (int argc, char *argv[])
 			gf_term_process_step(term);
 			if (auto_exit && gf_term_get_option(term, GF_OPT_IS_OVER)) {
 				Run = 0;
-			} 
+			}
 		} else {
 			gf_sleep(rti_update_time_ms);
 		}

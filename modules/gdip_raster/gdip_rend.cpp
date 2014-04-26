@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -63,7 +63,7 @@ GpPath *gdip_create_path(GF_Path *_this)
 	u32 j, i, nb_pts, cur;
 	if (!_this || !_this->n_points) return NULL;
 	GdipCreatePath(FillModeAlternate, &p);
-	
+
 	GdipSetPathFillMode(p, (_this->flags & GF_PATH_FILL_ZERO_NONZERO) ? FillModeWinding : FillModeAlternate);
 
 	cur = 0;
@@ -82,11 +82,11 @@ GpPath *gdip_create_path(GF_Path *_this)
 				break;
 			case GF_PATH_CURVE_CUBIC:
 				GdipAddPathBezier(p,
-							FIX2FLT(_this->points[j-1].x), FIX2FLT(_this->points[j-1].y),
-							FIX2FLT(_this->points[j].x), FIX2FLT(_this->points[j].y),
-							FIX2FLT(_this->points[j+1].x), FIX2FLT(_this->points[j+1].y), 
-							FIX2FLT(_this->points[j+2].x), FIX2FLT(_this->points[j+2].y)
-									);
+				                  FIX2FLT(_this->points[j-1].x), FIX2FLT(_this->points[j-1].y),
+				                  FIX2FLT(_this->points[j].x), FIX2FLT(_this->points[j].y),
+				                  FIX2FLT(_this->points[j+1].x), FIX2FLT(_this->points[j+1].y),
+				                  FIX2FLT(_this->points[j+2].x), FIX2FLT(_this->points[j+2].y)
+				                 );
 				j+=3;
 				break;
 			case GF_PATH_CURVE_CONIC:
@@ -99,15 +99,15 @@ GpPath *gdip_create_path(GF_Path *_this)
 				c1.y = start.y + 2*(ctl.y - start.y) / 3;
 				c2.x = c1.x + (end.x - start.x) / 3;
 				c2.y = c1.y + (end.y - start.y) / 3;
-				GdipAddPathBezier(p, 
-							FIX2FLT(start.x), FIX2FLT(start.y),
-							FIX2FLT(c1.x), FIX2FLT(c1.y),
-							FIX2FLT(c2.x), FIX2FLT(c2.y),
-							FIX2FLT(end.x), FIX2FLT(end.y)
-								);
+				GdipAddPathBezier(p,
+				                  FIX2FLT(start.x), FIX2FLT(start.y),
+				                  FIX2FLT(c1.x), FIX2FLT(c1.y),
+				                  FIX2FLT(c2.x), FIX2FLT(c2.y),
+				                  FIX2FLT(end.x), FIX2FLT(end.y)
+				                 );
 				j+=2;
 			}
-				break;
+			break;
 			}
 		}
 		GdipClosePathFigure(p);
@@ -220,7 +220,7 @@ GF_Err gdip_attach_surface_to_buffer(GF_SURFACE _this, char *pixels, u32 width, 
 	}
 	GdipCreateBitmapFromScan0(width, height, pitch_y, pFormat, (unsigned char*)pixels, &_graph->pBitmap);
 	GdipGetImageGraphicsContext(_graph->pBitmap, &_graph->graph);
-	
+
 	_graph->w = width;
 	_graph->h = height;
 	if (_graph->center_coords) {
@@ -276,7 +276,7 @@ GF_Err gdip_surface_set_matrix(GF_SURFACE _this, GF_Matrix2D * mat)
 {
 	GPGRAPH();
 	if (_graph->mat) GdipDeleteMatrix(_graph->mat);
-	
+
 	_graph->mat = mat_gpac_to_gdip(mat);
 	return GF_OK;
 }
@@ -320,7 +320,7 @@ GF_Err gdip_surface_set_path(GF_SURFACE _this, GF_Path *path)
 	if (_graph->current) GdipDeletePath(_graph->current);
 	_graph->current = NULL;
 	if (!path) return GF_OK;
-	
+
 	_path = (struct _storepath *)path;
 	_graph->current = gdip_setup_path(_graph, path);
 	return GF_OK;
@@ -337,7 +337,8 @@ GF_Err gdip_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 	GPGRAPH();
 	if (!_this) return GF_BAD_PARAM;
 	if (!_graph->current) return GF_OK;
-	_sten = (struct _stencil *)stencil; assert(_sten);
+	_sten = (struct _stencil *)stencil;
+	assert(_sten);
 
 #ifdef NODRAW
 	return GF_OK;
@@ -375,7 +376,7 @@ GF_Err gdip_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 		GdipSetCompositingQuality(_graph->graph, CompositingQualityHighSpeed);
 		GdipSetInterpolationMode(_graph->graph, InterpolationModeLowQuality);
 		GdipSetSmoothingMode(_graph->graph, SmoothingModeHighSpeed);
-		
+
 		/*check if we need to draw solid background (GDIplus doesn't implement padded mode on path gradients)*/
 		if (_sten->pSolid) {
 			GpPath *tr;
@@ -405,10 +406,10 @@ GF_Err gdip_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 				GdipCreateMatrix(&newmat);
 			}
 			/*gdip flip*/
-			if (_graph->center_coords && !(_sten->tiling&GF_TEXTURE_FLIP) ) 
-				GdipScaleMatrix(newmat, 1, -1, MatrixOrderPrepend);	
-			else if (!_graph->center_coords && (_sten->tiling&GF_TEXTURE_FLIP) ) 
-				GdipScaleMatrix(newmat, 1, -1, MatrixOrderPrepend);	
+			if (_graph->center_coords && !(_sten->tiling&GF_TEXTURE_FLIP) )
+				GdipScaleMatrix(newmat, 1, -1, MatrixOrderPrepend);
+			else if (!_graph->center_coords && (_sten->tiling&GF_TEXTURE_FLIP) )
+				GdipScaleMatrix(newmat, 1, -1, MatrixOrderPrepend);
 
 			GdipSetTextureTransform((GpTexture*)_sten->pTexture, newmat);
 			GdipDeleteMatrix(newmat);
@@ -441,10 +442,10 @@ GF_Err gdip_surface_clear(GF_SURFACE _this, GF_IRect *rc, u32 color)
 		/*luckily enough this maps well for both flipped and unflipped coords*/
 		GdipAddPathRectangleI(path, rc->x, rc->y - rc->height, rc->width, rc->height);
 	} else {
-/*		if (_graph->center_coords) {
-			GdipAddPathRectangleI(path, -1 * (s32)_graph->w / 2, -1 * (s32)_graph->h / 2, _graph->w, _graph->h);
-		} else {
-*/			GdipAddPathRectangleI(path, 0, 0, _graph->w, _graph->h);
+		/*		if (_graph->center_coords) {
+					GdipAddPathRectangleI(path, -1 * (s32)_graph->w / 2, -1 * (s32)_graph->h / 2, _graph->w, _graph->h);
+				} else {
+		*/			GdipAddPathRectangleI(path, 0, 0, _graph->w, _graph->h);
 //		}
 	}
 	/*we MUST use clear otherwise ARGB surfaces are not cleared correctly*/

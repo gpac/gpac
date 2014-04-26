@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
- *			Copyright (c) Telecom ParisTech 2004-2012 
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2004-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / MPEG4 Scene Graph Generator sub-project
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -44,13 +44,13 @@ static char *CurrentLine;
 void PrintUsage()
 {
 	printf("MPEG4Gen [-p file] [template_file_v1 (template_file_v2 ...) ]\n"
-			"\nGPAC MPEG4 Scene Graph generator. Usage:\n"
-			"-p: listing file of nodes to exclude from tables\n"
-			"Template files MUST be fed in order\n"
-			"\n"
-			"Generated Files are directly updated in the GPAC distribution - do NOT try to change this\n\n"
-			"Written by Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2012\n"
-			);
+	       "\nGPAC MPEG4 Scene Graph generator. Usage:\n"
+	       "-p: listing file of nodes to exclude from tables\n"
+	       "Template files MUST be fed in order\n"
+	       "\n"
+	       "Generated Files are directly updated in the GPAC distribution - do NOT try to change this\n\n"
+	       "Written by Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2012\n"
+	      );
 }
 
 //a node field
@@ -119,7 +119,7 @@ u32 GetNextToken(char *token, char *sep)
 	u32 i , j = 0;
 
 	strcpy(token, "");
-	
+
 	//skip separaors
 	while (*CurrentLine && strchr(sep, *CurrentLine)) {
 		CurrentLine = CurrentLine + 1;
@@ -228,7 +228,7 @@ FILE *BeginFile(char *name, u32 type)
 			sprintf(sPath, "..%c..%c..%csrc%cscenegraph%c%s.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, name);
 		}
 	}
-	
+
 	f = fopen(sPath, "wt");
 	fprintf(f, "%s\n", cprt);
 
@@ -290,7 +290,7 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs, u32 NumVersions)
 
 	//write all tags
 	fprintf(f, "\n\nenum {\n");
-	
+
 	for (i=0; i<gf_list_count(BNodes); i++) {
 		n = gf_list_get(BNodes, i);
 		if (i)
@@ -318,7 +318,7 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs, u32 NumVersions)
 		}
 		for (j=0; j<gf_list_count(n->Fields); j++) {
 			bf = gf_list_get(n->Fields, j);
-			
+
 			if (!strcmp(bf->name, "addChildren") || !strcmp(bf->name, "removeChildren")) continue;
 			if (!strcmp(bf->name, "children") && stricmp(n->name, "audioBuffer")) continue;
 
@@ -337,8 +337,8 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs, u32 NumVersions)
 				//we will likely need a function such as:
 				//	void SignalRoute(route_stack, node, par)
 				fprintf(f, "\t%s %s;\t/*eventOut*/\n", bf->familly, bf->name);
-			} else if (strstr(bf->familly, "Node")) {		
-				//this is a POINTER to a node 
+			} else if (strstr(bf->familly, "Node")) {
+				//this is a POINTER to a node
 				if (strstr(bf->familly, "SF")) {
 					fprintf(f, "\tGF_Node *%s;\t/*%s*/\n", bf->name, bf->type);
 				} else {
@@ -350,18 +350,18 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs, u32 NumVersions)
 			}
 		}
 		if (!strcmp(n->name, "CacheTexture")) {
-				fprintf(f, "\t/*GPAC private*/\n");
-				fprintf(f, "\tu8 *data;\n");
-				fprintf(f, "\tu32 data_len;\n");
+			fprintf(f, "\t/*GPAC private*/\n");
+			fprintf(f, "\tu8 *data;\n");
+			fprintf(f, "\tu32 data_len;\n");
 		}
 		if (!strcmp(n->name, "BitWrapper")) {
-				fprintf(f, "\t/*GPAC private*/\n");
-				fprintf(f, "\tu32 buffer_len;\n");
+			fprintf(f, "\t/*GPAC private*/\n");
+			fprintf(f, "\tu32 buffer_len;\n");
 		}
 		fprintf(f, "} M_%s;\n\n\n", n->name);
 	}
 
-	
+
 	hasViewport = 0;
 	//all NDTs are defined in v1
 	fprintf(f, "/*NodeDataType tags*/\nenum {\n");
@@ -465,11 +465,11 @@ void WriteNDT_H(FILE *f, GF_List *BNodes, GF_List *NDTs, u32 Version)
 			count -= 1;
 		}
 		if (!count) continue;
-		
+
 		//numBits
 		fprintf(f, "#define %s_V%d_NUMBITS\t\t%d\n", NDTName, Version, GetBitsCount(count + ( (Version == 2) ? 1 : 0) ) );
 		fprintf(f, "#define %s_V%d_Count\t%d\n\n", NDTName, Version, count);
-		
+
 		fprintf(f, "static const u32 %s_V%d_TypeToTag[%d] = {\n", NDTName, Version, count);
 		first = 1;
 		//browse each node.
@@ -477,7 +477,7 @@ void WriteNDT_H(FILE *f, GF_List *BNodes, GF_List *NDTs, u32 Version)
 			n = gf_list_get(BNodes, j);
 			if (n->version != Version) continue;
 			if (!IsNodeInTable(n, NDTName)) continue;
-			
+
 			if (first) {
 				fprintf(f, " TAG_MPEG4_%s", n->name);
 				first = 0;
@@ -492,7 +492,7 @@ void WriteNDT_H(FILE *f, GF_List *BNodes, GF_List *NDTs, u32 Version)
 	fprintf(f, "\nu32 NDT_V%d_GetNumBits(u32 NDT_Tag);\n", Version);
 	fprintf(f, "u32 NDT_V%d_GetNodeTag(u32 Context_NDT_Tag, u32 NodeType);\n", Version);
 	fprintf(f, "u32 NDT_V%d_GetNodeType(u32 NDT_Tag, u32 NodeTag);\n", Version);
-	
+
 	fprintf(f, "\n\n");
 }
 
@@ -532,7 +532,7 @@ void WriteNDT_Dec(FILE *f, GF_List *BNodes, GF_List *NDTs, u32 Version)
 			count -= 1;
 		}
 		if (!count) continue;
-		
+
 		fprintf(f, "\tcase NDT_%s:\n\t\tif (NodeType >= %s_V%d_Count) return 0;\n", NDTName, NDTName, Version);
 		fprintf(f, "\t\treturn %s_V%d_TypeToTag[NodeType];\n", NDTName, Version);
 	}
@@ -551,7 +551,7 @@ void WriteNDT_Dec(FILE *f, GF_List *BNodes, GF_List *NDTs, u32 Version)
 			count -= 1;
 		}
 		if (!count) continue;
-		
+
 		fprintf(f, "\tcase NDT_%s:\n\t\treturn %s_V%d_NUMBITS;\n", NDTName, NDTName, Version);
 	}
 	/*all tables have 1 node in v2 for proto coding*/
@@ -588,7 +588,7 @@ void WriteNodeFields(FILE *f, BNode *n)
 	u32 NbDef, NbIn, NbOut, NbDyn, hasAQ;
 
 	NbDef = NbIn = NbOut = NbDyn = hasAQ = 0;
-	for (i=0;i<gf_list_count(n->Fields); i++) {
+	for (i=0; i<gf_list_count(n->Fields); i++) {
 		bf = gf_list_get(n->Fields, i);
 		if (!strcmp(bf->type, "field") || !strcmp(bf->type, "exposedField")) {
 			NbDef += 1;
@@ -719,11 +719,11 @@ void WriteNodeFields(FILE *f, BNode *n)
 
 
 	fprintf(f, "static GF_Err %s_get_field(GF_Node *node, GF_FieldInfo *info)\n{\n\tswitch (info->fieldIndex) {\n", n->name);
-	for (i=0;i<gf_list_count(n->Fields); i++) {
+	for (i=0; i<gf_list_count(n->Fields); i++) {
 		bf = gf_list_get(n->Fields, i);
 
 		fprintf(f, "\tcase %d:\n", i);
-		
+
 		fprintf(f, "\t\tinfo->name = \"%s\";\n", (bf->name[0]=='_') ? bf->name+1 : bf->name);
 
 		//skip all eventIn
@@ -763,7 +763,7 @@ void WriteNodeFields(FILE *f, BNode *n)
 	fprintf(f, "\tdefault:\n\t\treturn GF_BAD_PARAM;\n\t}\n}\n\n");
 
 	fprintf(f, "\nstatic s32 %s_get_field_index_by_name(char *name)\n{\n", n->name);
-	for (i=0;i<gf_list_count(n->Fields); i++) {
+	for (i=0; i<gf_list_count(n->Fields); i++) {
 		bf = gf_list_get(n->Fields, i);
 		fprintf(f, "\tif (!strcmp(\"%s\", name)) return %d;\n", (bf->name[0]=='_') ? bf->name+1 : bf->name, i);
 	}
@@ -777,7 +777,7 @@ void WriteNodeQuant(FILE *f, BNode *n)
 	u32 i;
 	BField *bf;
 	fprintf(f, "static Bool %s_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)\n{\n\tswitch (FieldIndex) {\n", n->name);
-	
+
 	for (i=0; i<gf_list_count(n->Fields) ; i++ ) {
 		bf = gf_list_get(n->Fields, i);
 		if (!bf->hasAnim && !bf->hasQuant) continue;
@@ -787,7 +787,7 @@ void WriteNodeQuant(FILE *f, BNode *n)
 		fprintf(f, "\t\t*AType = %d;\n", bf->AnimType);
 		//Quant Type
 		fprintf(f, "\t\t*QType = %s;\n", bf->quant_type);
-		if (!strcmp(bf->quant_type, "13")) 
+		if (!strcmp(bf->quant_type, "13"))
 			fprintf(f, "\t\t*QT13_bits = %s;\n", bf->qt13_bits);
 
 		//Bounds
@@ -841,35 +841,35 @@ void WriteNodeCode(GF_List *BNodes)
 			//nothing on child events
 			if (!strcmp(bf->name, "addChildren")) continue;
 			if (!strcmp(bf->name, "removeChildren")) continue;
-			
+
 			//delete all children node
 			if (!strcmp(bf->name, "children") && stricmp(n->name, "audioBuffer")) {
 				is_parent = 1;
 				continue;
 			}
 
-			//delete ALL fields that must be deleted: this includes eventIn and out since 
+			//delete ALL fields that must be deleted: this includes eventIn and out since
 			//all fields are defined in the node
 			if (!strcmp(bf->familly, "MFInt")
-				|| !strcmp(bf->familly, "MFFloat")
-				|| !strcmp(bf->familly, "MFDouble")
-				|| !strcmp(bf->familly, "MFBool")
-				|| !strcmp(bf->familly, "MFInt32")
-				|| !strcmp(bf->familly, "MFColor")
-				|| !strcmp(bf->familly, "MFRotation")
-				|| !strcmp(bf->familly, "MFString")
-				|| !strcmp(bf->familly, "MFTime")
-				|| !strcmp(bf->familly, "MFVec2f")
-				|| !strcmp(bf->familly, "MFVec3f")
-				|| !strcmp(bf->familly, "MFVec4f")
-				|| !strcmp(bf->familly, "MFVec2d")
-				|| !strcmp(bf->familly, "MFVec3d")
-				|| !strcmp(bf->familly, "MFURL")
-				|| !strcmp(bf->familly, "MFScript")
-				|| !strcmp(bf->familly, "SFString")
-				|| !strcmp(bf->familly, "SFURL")
-				|| !strcmp(bf->familly, "SFImage")
-				) {
+			        || !strcmp(bf->familly, "MFFloat")
+			        || !strcmp(bf->familly, "MFDouble")
+			        || !strcmp(bf->familly, "MFBool")
+			        || !strcmp(bf->familly, "MFInt32")
+			        || !strcmp(bf->familly, "MFColor")
+			        || !strcmp(bf->familly, "MFRotation")
+			        || !strcmp(bf->familly, "MFString")
+			        || !strcmp(bf->familly, "MFTime")
+			        || !strcmp(bf->familly, "MFVec2f")
+			        || !strcmp(bf->familly, "MFVec3f")
+			        || !strcmp(bf->familly, "MFVec4f")
+			        || !strcmp(bf->familly, "MFVec2d")
+			        || !strcmp(bf->familly, "MFVec3d")
+			        || !strcmp(bf->familly, "MFURL")
+			        || !strcmp(bf->familly, "MFScript")
+			        || !strcmp(bf->familly, "SFString")
+			        || !strcmp(bf->familly, "SFURL")
+			        || !strcmp(bf->familly, "SFImage")
+			   ) {
 				char szName[500];
 				strcpy(szName, bf->familly);
 				strlwr(szName);
@@ -878,8 +878,8 @@ void WriteNodeCode(GF_List *BNodes)
 			else if (!strcmp(bf->familly, "SFCommandBuffer")) {
 				fprintf(f, "\tgf_sg_sfcommand_del(p->%s);\n", bf->name);
 			}
-			else if (strstr(bf->familly, "Node")) {		
-				//this is a POINTER to a node 
+			else if (strstr(bf->familly, "Node")) {
+				//this is a POINTER to a node
 				if (strstr(bf->familly, "SF")) {
 					fprintf(f, "\tgf_node_unregister((GF_Node *) p->%s, (GF_Node *) p);\t\n", bf->name);
 				} else {
@@ -913,9 +913,9 @@ void WriteNodeCode(GF_List *BNodes)
 				fprintf(f, "\tgf_sg_vrml_parent_setup((GF_Node *) p);\n");
 				break;
 			}
-			else if ( strstr(bf->familly, "Node") && strncmp(bf->type, "event", 5) ) {		
+			else if ( strstr(bf->familly, "Node") && strncmp(bf->type, "event", 5) ) {
 #if 0
-				//this is a POINTER to a node 
+				//this is a POINTER to a node
 				if (strstr(bf->familly, "MF")) {
 					//this is a POINTER to a chain
 					fprintf(f, "\tp->%s = gf_list_new();\t\n", bf->name);
@@ -931,15 +931,15 @@ void WriteNodeCode(GF_List *BNodes)
 		//check if we have a child node
 		for (i=0; i<gf_list_count(n->Fields); i++) {
 			bf = gf_list_get(n->Fields, i);
-			if ( !strcmp(bf->name, "children") || 
-					( !strstr(bf->type, "event") && strstr(bf->familly, "MF") && strstr(bf->familly, "Node")) ) {
+			if ( !strcmp(bf->name, "children") ||
+			        ( !strstr(bf->type, "event") && strstr(bf->familly, "MF") && strstr(bf->familly, "Node")) ) {
 				sprintf(n->Child_NDT_Name, "NDT_SF%s", bf->familly+2);
 				break;
 			}
 		}
 
 		fprintf(f, "\n\t/*default field values*/\n");
-		
+
 		for (i=0; i<gf_list_count(n->Fields); i++) {
 			bf = gf_list_get(n->Fields, i);
 
@@ -952,14 +952,14 @@ void WriteNodeCode(GF_List *BNodes)
 			//no default on nodes
 			if (strstr(bf->familly, "Node")) continue;
 			//extract default falue
-			
+
 			//
 			//		SF Fields
 			//
-			
+
 			//SFBool
 			if (!strcmp(bf->familly, "SFBool")) {
-				if (!strcmp(bf->def, "1") || !strcmp(bf->def, "TRUE")) 
+				if (!strcmp(bf->def, "1") || !strcmp(bf->def, "TRUE"))
 					fprintf(f, "\tp->%s = 1;\n", bf->name);
 			}
 			//SFFloat
@@ -1040,7 +1040,7 @@ void WriteNodeCode(GF_List *BNodes)
 				fprintf(f, "\tp->%s.buffer = (char*)gf_malloc(sizeof(char) * %d);\n", bf->name, strlen(bf->def)+1);
 				fprintf(f, "\tstrcpy(p->%s.buffer, \"%s\");\n", bf->name, bf->def);
 			}
-		
+
 			//
 			//		MF Fields
 			//
@@ -1365,7 +1365,7 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs, u32 version)
 		if (sLine[0] == '\n') continue;
 
 		CurrentLine = sLine;
-		
+
 		//parse the line till end of line
 		while (GetNextToken(token, " \t")) {
 
@@ -1424,7 +1424,7 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs, u32 version)
 				}
 				f = BlankField();
 				gf_list_add(n->Fields, f);
-				
+
 				//get the field type
 				strcpy(f->type, token);
 				GetNextToken(f->familly, " \t");
@@ -1553,7 +1553,7 @@ void parse_profile(GF_List *nodes, FILE *prof)
 		//skip comment and empty lines
 		if (sLine[0] == '#') continue;
 		if (sLine[0] == '\n') continue;
-		if (strstr(sLine, "Proximity")) 
+		if (strstr(sLine, "Proximity"))
 			found = 0;
 		found = 1;
 		while (found) {
@@ -1620,25 +1620,25 @@ void generate_ndts(GF_List *NDTs, GF_List *nodes, u32 nbVersion)
 	char szStr[100];
 	nb_ndt = gf_list_count(NDTs);
 	nb_nodes = gf_list_count(nodes);
-	for (i=0; i<nbVersion;i++) {
+	for (i=0; i<nbVersion; i++) {
 		char szFile[100];
 		FILE *f;
 		sprintf(szFile, "NdtListV%d.html", i+1);
 		f = fopen(szFile, "wt");
 
 		fprintf(f, "<html>\n"\
-"<head>\n"\
-"<meta name=\"Author\" content=\"Jean Le Feuvre - GPAC %s\">\n"\
-"<title>NdtListV%d.html</title>\n"\
-"</head>\n"\
-"<body>\n"\
-"<title>Node Coding Tables for BIFS Version %d group</title>\n"
-		,GPAC_FULL_VERSION, i+1, i+1);
+		        "<head>\n"\
+		        "<meta name=\"Author\" content=\"Jean Le Feuvre - GPAC %s\">\n"\
+		        "<title>NdtListV%d.html</title>\n"\
+		        "</head>\n"\
+		        "<body>\n"\
+		        "<title>Node Coding Tables for BIFS Version %d group</title>\n"
+		        ,GPAC_FULL_VERSION, i+1, i+1);
 
 		for (j=0; j<nb_ndt; j++) {
 			u32 nb_in_ndt = 0;
 			char *ndt = gf_list_get(NDTs, j);
-			for (k=0;k<nb_nodes;k++) {
+			for (k=0; k<nb_nodes; k++) {
 				BNode *n = gf_list_get(nodes, k);
 				if (n->version != i+1) continue;
 				if (!IsNodeInTable(n, ndt)) continue;
@@ -1648,22 +1648,22 @@ void generate_ndts(GF_List *NDTs, GF_List *nodes, u32 nbVersion)
 			if (!nb_in_ndt) continue;
 
 			fprintf(f, "<BR><a name=\"%s\">\n"\
-"<TABLE BORDER COLS=\"10\" CELLSPACING=\"0\" WIDTH=\"100%%\">\n"\
-"<TD COLSPAN=\"2\" width=\"200\"><B>%s</B></TD>\n"\
-"<TD COLSPAN=\"4\"><B>%u nodes</B></TD>\n", ndt, ndt, nb_in_ndt);
+			        "<TABLE BORDER COLS=\"10\" CELLSPACING=\"0\" WIDTH=\"100%%\">\n"\
+			        "<TD COLSPAN=\"2\" width=\"200\"><B>%s</B></TD>\n"\
+			        "<TD COLSPAN=\"4\"><B>%u nodes</B></TD>\n", ndt, ndt, nb_in_ndt);
 
 			nb_bits = GetBitsCount(nb_in_ndt);
 			fprintf(f, "<TR><TD>reserved</TD><TD><P align=CENTER>%s</TD><TD><P align=RIGHT>&nbsp;</TD><TD><P align=RIGHT>&nbsp;</TD><TD><P align=RIGHT>&nbsp;</TD><TD><P align=RIGHT>&nbsp;</TD></TR>\n", format_bit_string(szStr, 0, nb_bits));
 
 			idx = 1;
-			for (k=0;k<nb_nodes;k++) {
+			for (k=0; k<nb_nodes; k++) {
 				BNode *n = gf_list_get(nodes, k);
 				if (n->version != i+1) continue;
 				if (!IsNodeInTable(n, ndt)) continue;
 
 
 				n->hasDef = n->hasIn = n->hasOut = n->hasDyn = 0;
-				for (l=0;l<gf_list_count(n->Fields); l++) {
+				for (l=0; l<gf_list_count(n->Fields); l++) {
 					BField *bf = gf_list_get(n->Fields, l);
 					if (!strcmp(bf->type, "field") || !strcmp(bf->type, "exposedField")) {
 						n->hasDef += 1;
@@ -1735,7 +1735,7 @@ int main (int argc, char **argv)
 
 		//all nodes are in the same list but we keep version info
 		ParseTemplateFile(nodes, BNodes, NDTs, nbVersion);
-		
+
 
 		//special case for viewport: it is present in V1 but empty
 		if (nbVersion==1) CheckInTable("SFViewportNode", NDTs);
@@ -1769,7 +1769,7 @@ int main (int argc, char **argv)
 
 	fprintf(ndt_c, "\n\n#include <gpac/internal/bifs_tables.h>\n");
 	fprintf(ndt_c, "\n\n#ifndef GPAC_DISABLE_BIFS\n");
-	
+
 	//prepare the encoding file
 	fprintf(ndt_h, "\n\nu32 ALL_GetNodeType(const u32 *table, const u32 count, u32 NodeTag, u32 Version);\n\n");
 	fprintf(ndt_c, "\n\nu32 ALL_GetNodeType(const u32 *table, const u32 count, u32 NodeTag, u32 Version)\n{\n\tu32 i = 0;");
@@ -1803,11 +1803,11 @@ int main (int argc, char **argv)
 	for (i=0; i<nbVersion; i++) {
 		fprintf(ndt_c, "\tcase GF_BIFS_V%d:\n\t\treturn NDT_V%d_GetNodeType(NDT_Tag, NodeTag);\n", i+1, i+1);
 	}
-	fprintf(ndt_c, "\tdefault:\n\t\treturn 0;\n\t}\n}");	
+	fprintf(ndt_c, "\tdefault:\n\t\treturn 0;\n\t}\n}");
 
 	fprintf(ndt_h, "\nu32 NDT_GetChildTable(u32 NodeTag);\n");
 	fprintf(ndt_h, "\n\n");
-	
+
 	//NDT checking
 	fprintf(ndt_c, "u32 GetChildrenNDT(GF_Node *node)\n{\n\tif (!node) return 0;\n\tswitch (gf_node_get_tag(node)) {\n");
 	for (i=0; i<gf_list_count(BNodes); i++) {
@@ -1827,7 +1827,7 @@ int main (int argc, char **argv)
 	fprintf(ndt_h, "\n\n#endif /*GPAC_DISABLE_BIFS*/\n\n");
 	EndFile(ndt_h, "NDT", 0);
 	EndFile(ndt_c, "", 1);
-	
+
 
 exit:
 	//free NDTs

@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -35,21 +35,21 @@ extern "C" {
 
 
 
-/* Attributes in SVG can be accessed using a GF_FieldInfo structure 
+/* Attributes in SVG can be accessed using a GF_FieldInfo structure
    like it is done in the BIFS part of the implementation:
 
 	fieldIndex:		attribute tag to identify the attribute in the element in the case of dynamic alloc (default)
 	             or index of the attribute in the element in the case of static allocation of attributes
 
 	fieldType:		attribute data type as in the enumeration below
-	
+
 	name:			attribute name (WARNING: this may be NULL)
 
 	far_ptr:		pointer to the actual data with one of the type given in this file
 
 	NDTType:		unused in SVG
 	eventType:		unused in SVG
-	on_event_in:	unused in SVG 
+	on_event_in:	unused in SVG
 */
 
 /* SVG attribute types */
@@ -68,8 +68,8 @@ enum {
 	SVG_FontWeight_datatype,
 	SVG_FontVariant_datatype,
 	SVG_TextAnchor_datatype,
-	SVG_TransformType_datatype, 
-	SVG_Display_datatype, 
+	SVG_TransformType_datatype,
+	SVG_Display_datatype,
 	SVG_Visibility_datatype,
 	SVG_Overflow_datatype,
 	SVG_ZoomAndPan_datatype,
@@ -95,7 +95,7 @@ enum {
 	SMIL_Additive_datatype,
 	SMIL_Accumulate_datatype,
 	SMIL_Restart_datatype,
-	SMIL_Fill_datatype,	
+	SMIL_Fill_datatype,
 
 	SVG_LAST_U8_PROPERTY,
 
@@ -234,15 +234,15 @@ typedef struct {
 	/* Type of timing value*/
 	u8 type;
 	/* in case of syncbase, event, repeat value: this is the pointer to the source of the event */
-	GF_Node *element; 
+	GF_Node *element;
 	/* id of the element before resolution of the pointer to the element */
-	char *element_id; 
+	char *element_id;
 	/* listener associated with event */
-	GF_Node *listener; 
+	GF_Node *listener;
 
 	/* event type and parameter */
-	XMLEV_Event event; 
-	/*set if event is 
+	XMLEV_Event event;
+	/*set if event is
 		begin rather than beginEvent,
 		end rather than endEvent,
 		repeat rather than repeatEvent */
@@ -274,7 +274,7 @@ typedef u8 SMIL_Restart;
 enum {
 	SMIL_FILL_FREEZE=0,
 	SMIL_FILL_REMOVE,
-	
+
 };
 typedef u8 SMIL_Fill;
 
@@ -302,13 +302,13 @@ typedef struct {
 enum {
 	SMIL_ADDITIVE_REPLACE = 0,
 	SMIL_ADDITIVE_SUM
-}; 
+};
 typedef u8 SMIL_Additive;
 
 enum {
 	SMIL_ACCUMULATE_NONE = 0,
 	SMIL_ACCUMULATE_SUM
-}; 
+};
 typedef u8 SMIL_Accumulate;
 
 enum {
@@ -338,9 +338,9 @@ typedef struct __xml_ri XML_IDREF;
 
 enum
 {
-	SVG_FOCUS_AUTO = 0, 
-	SVG_FOCUS_SELF, 
-	SVG_FOCUS_IRI, 
+	SVG_FOCUS_AUTO = 0,
+	SVG_FOCUS_SELF,
+	SVG_FOCUS_IRI,
 };
 
 typedef struct
@@ -361,10 +361,10 @@ typedef struct {
 
 enum {
 	SVG_FONTSTYLE_INHERIT = 0,
-	SVG_FONTSTYLE_ITALIC = 1,  
+	SVG_FONTSTYLE_ITALIC = 1,
 	SVG_FONTSTYLE_NORMAL = 2,
 	SVG_FONTSTYLE_OBLIQUE = 3
-}; 
+};
 typedef u8 SVG_FontStyle;
 
 /*the values are chosen to match LASeR code points*/
@@ -412,7 +412,7 @@ enum {
 	SVG_FILLRULE_INHERIT
 };
 typedef u8 SVG_FillRule;
-	
+
 enum {
 	SVG_STROKELINEJOIN_MITER = GF_LINE_JOIN_MITER_SVG,
 	SVG_STROKELINEJOIN_ROUND = GF_LINE_JOIN_ROUND,
@@ -510,11 +510,11 @@ enum {
 typedef struct {
 	u8 type;
 	Fixed value;
-} SVG_Number, 
-  SVG_FontSize, 
-  SVG_Length, 
-  SVG_Coordinate, 
-  SVG_Rotate;
+} SVG_Number,
+SVG_FontSize,
+SVG_Length,
+SVG_Coordinate,
+SVG_Rotate;
 
 typedef struct {
 	u8 is_ref;
@@ -530,22 +530,22 @@ enum {
 	SVG_TRANSFORM_SKEWY		= 5
 };
 
-typedef u8 SVG_TransformType; 
+typedef u8 SVG_TransformType;
 
 enum {
-	SVG_FONTWEIGHT_100 = 0, 
+	SVG_FONTWEIGHT_100 = 0,
 	SVG_FONTWEIGHT_200,
-	SVG_FONTWEIGHT_300, 
+	SVG_FONTWEIGHT_300,
 	SVG_FONTWEIGHT_400,
 	SVG_FONTWEIGHT_500,
 	SVG_FONTWEIGHT_600,
 	SVG_FONTWEIGHT_700,
 	SVG_FONTWEIGHT_800,
 	SVG_FONTWEIGHT_900,
-	SVG_FONTWEIGHT_BOLD, 
-	SVG_FONTWEIGHT_BOLDER, 
+	SVG_FONTWEIGHT_BOLD,
+	SVG_FONTWEIGHT_BOLDER,
 	SVG_FONTWEIGHT_INHERIT,
-	SVG_FONTWEIGHT_LIGHTER, 
+	SVG_FONTWEIGHT_LIGHTER,
 	SVG_FONTWEIGHT_NORMAL
 };
 typedef u8 SVG_FontWeight;
@@ -613,7 +613,7 @@ enum {
 typedef struct {
 	u32 count;
 	Fixed* vals;
-    u8 *units;
+	u8 *units;
 } UnitArray;
 
 typedef struct {
@@ -667,7 +667,7 @@ typedef struct {
 	Bool defer;
 	u8 align;
 	u8 meetOrSlice;
-} SVG_PreserveAspectRatio; 
+} SVG_PreserveAspectRatio;
 
 enum {
 	SVG_ZOOMANDPAN_DISABLE = 0,
@@ -683,33 +683,33 @@ enum {
 };
 
 enum {
-    // textPath Method Types
+	// textPath Method Types
 	TEXTPATH_METHODTYPE_UNKNOWN   = 0,
 	TEXTPATH_METHODTYPE_ALIGN     = 1,
 	TEXTPATH_METHODTYPE_STRETCH     = 2
 };
 enum {
-    // textPath Spacing Types
+	// textPath Spacing Types
 	TEXTPATH_SPACINGTYPE_UNKNOWN   = 0,
 	TEXTPATH_SPACINGTYPE_AUTO     = 1,
 	TEXTPATH_SPACINGTYPE_EXACT     = 2
 };
 
 enum {
-    // Marker Unit Types
+	// Marker Unit Types
 	SVG_MARKERUNITS_UNKNOWN        = 0,
 	SVG_MARKERUNITS_USERSPACEONUSE = 1,
 	SVG_MARKERUNITS_STROKEWIDTH    = 2
 };
 enum {
-    // Marker Orientation Types
+	// Marker Orientation Types
 	SVG_MARKER_ORIENT_UNKNOWN      = 0,
 	SVG_MARKER_ORIENT_AUTO         = 1,
 	SVG_MARKER_ORIENT_ANGLE        = 2
 };
 
 enum {
-    // Spread Method Types
+	// Spread Method Types
 	SVG_SPREADMETHOD_UNKNOWN = 0,
 	SVG_SPREADMETHOD_PAD     = 1,
 	SVG_SPREADMETHOD_REFLECT = 2,
@@ -759,7 +759,7 @@ typedef u8 XMLEV_Propagate;
 enum {
 	XMLEVENT_DEFAULTACTION_CANCEL = 0,
 	XMLEVENT_DEFAULTACTION_PERFORM,
-	
+
 };
 typedef u8 XMLEV_DefaultAction;
 

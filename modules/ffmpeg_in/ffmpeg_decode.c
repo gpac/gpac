@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -44,7 +44,7 @@
  * \param size Size to allocate (will use extra padding for real size)
  * \return The newly allocated buffer
  */
-static uint8_t * ffmpeg_realloc_buffer(uint8_t * oldBuffer, u32 size){
+static uint8_t * ffmpeg_realloc_buffer(uint8_t * oldBuffer, u32 size) {
 	uint8_t * buffer;
 	/* Size of buffer must be larger, see avcodec_decode_video2 documentation */
 	u32 allocatedSz = sizeof( char ) * (FF_INPUT_BUFFER_PADDING_SIZE + size);
@@ -116,7 +116,7 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, AVCodec *codec, AVCodecC
 			gf_bs_read_data(bs, (char *)ctx->extradata + 0x5a, size);
 		}
 	}
-		break;
+	break;
 	default:
 		if (ctx->extradata)
 			gf_free(ctx->extradata);
@@ -168,12 +168,12 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		codec = &ffd->base_codec;
 		frame = &ffd->base_frame;
 	}
-	if (!(*ctx)){
+	if (!(*ctx)) {
 
 #ifdef USE_AVCTX3
-	  *ctx = avcodec_alloc_context3(NULL);
+		*ctx = avcodec_alloc_context3(NULL);
 #else
-	  *ctx = avcodec_alloc_context();
+		*ctx = avcodec_alloc_context();
 #endif
 	}
 
@@ -219,9 +219,9 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			/*num_frames_per_au*/ gf_bs_read_u8(bs);
 			/*just in case...*/
 			if (codec_id == GF_4CC('a', 'm', 'r', ' ')) {
-			  (*ctx)->sample_rate = 8000;
-			  (*ctx)->channels = 1;
-			  (*ctx)->frame_size = 160;
+				(*ctx)->sample_rate = 8000;
+				(*ctx)->channels = 1;
+				(*ctx)->frame_size = 160;
 			}
 		} else if (ffd->st==GF_STREAM_VISUAL) {
 			(*ctx)->codec_type = AVMEDIA_TYPE_VIDEO;
@@ -245,11 +245,11 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				codec_id = CODEC_ID_H264;
 				break;
 #ifdef HAS_HEVC
-            case GPAC_OTI_VIDEO_HEVC:
-                codec_id = AV_CODEC_ID_HEVC;
-                break;
+			case GPAC_OTI_VIDEO_HEVC:
+				codec_id = AV_CODEC_ID_HEVC;
+				break;
 #endif
-                case GPAC_OTI_VIDEO_MPEG1:
+			case GPAC_OTI_VIDEO_MPEG1:
 			case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
 			case GPAC_OTI_VIDEO_MPEG2_MAIN:
 			case GPAC_OTI_VIDEO_MPEG2_SNR:
@@ -311,7 +311,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 
 				/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
 				(*ctx)->extradata = ffmpeg_realloc_buffer((*ctx)->extradata, esd->decoderConfig->decoderSpecificInfo->dataLength + 8);
-				if ((*ctx)->extradata){
+				if ((*ctx)->extradata) {
 					memcpy((*ctx)->extradata, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 					(*ctx)->extradata_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 				} else {
@@ -351,9 +351,9 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			GF_LOG(GF_LOG_CODEC, GF_LOG_INFO, ("[HEVC@ffmpeg] Initializing with %d threads\n", nb_threads));
 		}
 		fprintf(stderr, "[HEVC@ffmpeg] Initializing with %d threads\n", nb_threads);
-        av_opt_set_int(*ctx, "threads", nb_threads, 0);
+		av_opt_set_int(*ctx, "threads", nb_threads, 0);
 
-        /* Set the decoder id */
+		/* Set the decoder id */
 		//av_opt_set_int(openHevcContext->c->priv_data, "decoder-id", i, 0);
 
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "CBUnits");
@@ -404,11 +404,11 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			*frame = avcodec_alloc_frame();
 #ifdef USE_AVCODEC2
 			{
-			  AVPacket pkt;
-			  av_init_packet(&pkt);
-			  pkt.data = (uint8_t *) esd->decoderConfig->decoderSpecificInfo->data;
-			  pkt.size = esd->decoderConfig->decoderSpecificInfo->dataLength;
-			  avcodec_decode_video2((*ctx), *frame, &gotpic, &pkt);
+				AVPacket pkt;
+				av_init_packet(&pkt);
+				pkt.data = (uint8_t *) esd->decoderConfig->decoderSpecificInfo->data;
+				pkt.size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+				avcodec_decode_video2((*ctx), *frame, &gotpic, &pkt);
 			}
 #else
 			avcodec_decode_video((*ctx), *frame, &gotpic, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
@@ -551,7 +551,7 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		capability->cap.valueInt = (ffd->st==GF_STREAM_AUDIO) ? 4 : 1;
 		break;
 	case GF_CODEC_BUFFER_MAX:
-	  /*for audio let the systems engine decide since we may have very large block size (1 sec with some QT movies)*/
+		/*for audio let the systems engine decide since we may have very large block size (1 sec with some QT movies)*/
 		capability->cap.valueInt = (ffd->st==GF_STREAM_AUDIO) ? 0 : (ffd->is_image ? 1 : ffd->output_cb_size);
 		break;
 	/*by default AAC access unit lasts num_samples (timescale being sampleRate)*/
@@ -565,11 +565,11 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		capability->cap.valueInt = ffd->base_ctx->height;
 		break;
 	case GF_CODEC_STRIDE:
-		if (ffd->out_pix_fmt==GF_PIXEL_RGB_24) 
+		if (ffd->out_pix_fmt==GF_PIXEL_RGB_24)
 			capability->cap.valueInt = ffd->stride*3;
-		else if (ffd->conv_buffer) 
+		else if (ffd->conv_buffer)
 			capability->cap.valueInt = ffd->base_ctx->width;
-		else 
+		else
 			capability->cap.valueInt = ffd->stride;
 		break;
 	case GF_CODEC_FPS:
@@ -634,10 +634,10 @@ static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap
 }
 
 static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID, u32 *CTS,
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+                                char *inBuffer, u32 inBufferLength,
+                                u16 ES_ID, u32 *CTS,
+                                char *outBuffer, u32 *outBufferLength,
+                                u8 PaddingBits, u32 mmlevel)
 {
 #ifdef USE_AVCODEC2
 	AVPacket pkt;
@@ -723,8 +723,14 @@ redecode:
 		gotpic = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 		len = avcodec_decode_audio2(ctx, (short *)ffd->audio_buf, &gotpic, inBuffer + ffd->frame_start, inBufferLength - ffd->frame_start);
 #endif
-		if (len<0) { ffd->frame_start = 0; return GF_NON_COMPLIANT_BITSTREAM; }
-		if (gotpic<0) { ffd->frame_start = 0; return GF_OK; }
+		if (len<0) {
+			ffd->frame_start = 0;
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		if (gotpic<0) {
+			ffd->frame_start = 0;
+			return GF_OK;
+		}
 
 		/*first config*/
 		if (!ffd->out_size) {
@@ -755,7 +761,7 @@ redecode:
 					Float sample = inputChannel[i];
 					if (sample<-1.0f) sample=-1.0f;
 					else if (sample>1.0f) sample=1.0f;
-					
+
 					output[i*ctx->channels + j] = (int16_t) (sample * GF_SHORT_MAX );
 				}
 			}
@@ -864,11 +870,11 @@ redecode:
 			}
 		}
 
-	#ifdef USE_AVCODEC2
+#ifdef USE_AVCODEC2
 		if (avcodec_decode_video2(ctx, frame, &gotpic, &pkt) < 0) {
-	#else
+#else
 		if (avcodec_decode_video(ctx, frame, &gotpic, inBuffer, inBufferLength) < 0) {
-	#endif
+#endif
 			if (!ffd->check_short_header) {
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
@@ -888,11 +894,11 @@ redecode:
 				if (! (*codec) || (avcodec_open(ctx, *codec)<0)) return GF_NON_COMPLIANT_BITSTREAM;
 #endif
 
-	#if USE_AVCODEC2
+#if USE_AVCODEC2
 				if (avcodec_decode_video2(ctx, frame, &gotpic, &pkt) < 0) {
-	#else
+#else
 				if (avcodec_decode_video(ctx, frame, &gotpic, inBuffer, inBufferLength) < 0) {
-	#endif
+#endif
 					/*nope, stay in MPEG-4*/
 					avcodec_close(ctx);
 					*codec = avcodec_find_decoder(old_codec);
@@ -907,13 +913,13 @@ redecode:
 			}
 		}
 
-	/*
-		if (!gotpic && (!ctx->width || !ctx->height) ) {
-			ctx->width = w;
-			ctx->height = h;
-			return GF_OK;
-		}
-	*/
+		/*
+			if (!gotpic && (!ctx->width || !ctx->height) ) {
+				ctx->width = w;
+				ctx->height = h;
+				return GF_OK;
+			}
+		*/
 		/*some streams use odd width/height frame values*/
 		if (ffd->out_pix_fmt == GF_PIXEL_YV12) {
 			if (ctx->width%2) ctx->width++;
@@ -931,19 +937,19 @@ redecode:
 
 	stride = frame->linesize[0];
 #ifndef NO_10bit
-    if ((ctx->pix_fmt == PIX_FMT_YUV420P10LE) && ffd->output_as_8bit && (frame->linesize[0] >= 2*w) )  {
+	if ((ctx->pix_fmt == PIX_FMT_YUV420P10LE) && ffd->output_as_8bit && (frame->linesize[0] >= 2*w) )  {
 		ffd->conv_to_8bit = 1;
 		stride=w;
 	}
 #endif
-            
+
 	/*recompute outsize in case on-the-fly change*/
 	if ((w != ctx->width) || (h != ctx->height)
-		|| (ffd->direct_output && (stride != ffd->stride)) 
-		|| ((ffd->out_pix_fmt==GF_PIXEL_YV12) && (ctx->pix_fmt != PIX_FMT_YUV420P) && !ffd->output_as_8bit ) 
-		//need to realloc the conversion buffer
-		|| (ffd->conv_to_8bit && !ffd->conv_buffer && ffd->direct_output)  
-	) {
+	        || (ffd->direct_output && (stride != ffd->stride))
+	        || ((ffd->out_pix_fmt==GF_PIXEL_YV12) && (ctx->pix_fmt != PIX_FMT_YUV420P) && !ffd->output_as_8bit )
+	        //need to realloc the conversion buffer
+	        || (ffd->conv_to_8bit && !ffd->conv_buffer && ffd->direct_output)
+	   ) {
 
 		ffd->stride = (!ffd->conv_to_8bit && ffd->direct_output) ? frame->linesize[0] : ctx->width;
 		if (ffd->out_pix_fmt == GF_PIXEL_RGB_24) {
@@ -973,7 +979,7 @@ redecode:
 			ffd->previous_par = (ctx->sample_aspect_ratio.num<<16) | ctx->sample_aspect_ratio.den;
 		}
 
-		/*we didn't get any picture: wait for a picture before resizing output buffer, otherwise we will have no 
+		/*we didn't get any picture: wait for a picture before resizing output buffer, otherwise we will have no
 		video in the output buffer*/
 		if (!gotpic) {
 			ffd->needs_output_resize = 1;
@@ -1019,7 +1025,7 @@ redecode:
 	if (!gotpic) return GF_OK;
 
 #if (LIBAVCODEC_VERSION_MAJOR>52)
-	//fixme - investigate this, happens in some dash cases 
+	//fixme - investigate this, happens in some dash cases
 	if ((frame->width!=ctx->width) || (frame->height!=ctx->height))  {
 		*outBufferLength = 0;
 		return GF_OK;
@@ -1041,7 +1047,7 @@ redecode:
 		dst.pixel_format = GF_PIXEL_YV12;
 
 		gf_color_write_yv12_10_to_yuv(&dst, (u8 *) frame->data[0], frame->data[1], frame->data[2], frame->linesize[0], ctx->width, ctx->height, NULL);
-		*outBufferLength = ffd->out_size;	
+		*outBufferLength = ffd->out_size;
 		return GF_OK;
 	}
 
@@ -1121,9 +1127,9 @@ redecode:
 	img_convert(&pict, pix_out, (AVPicture *) frame, ctx->pix_fmt, ctx->width, ctx->height);
 #else
 	*cached_sws = sws_getCachedContext(*cached_sws,
-					   ctx->width, ctx->height, ctx->pix_fmt,
-					   ctx->width, ctx->height, pix_out,
-					   SWS_BICUBIC, NULL, NULL, NULL);
+	                                   ctx->width, ctx->height, ctx->pix_fmt,
+	                                   ctx->width, ctx->height, pix_out,
+	                                   SWS_BICUBIC, NULL, NULL, NULL);
 	if ((*cached_sws)) {
 #if LIBSWSCALE_VERSION_INT < AV_VERSION_INT(0, 9, 0)
 		int sz = sws_scale((*cached_sws), frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
@@ -1144,7 +1150,7 @@ static GF_Err FFDEC_GetOutputBuffer(GF_MediaDecoder *ifcg, u16 ES_ID, u8 **pY_or
 {
 	FFDec *ffd = ifcg->privateStack;
 	AVFrame *frame;
-	
+
 
 	if (ffd->conv_buffer) {
 		*pY_or_RGB = (u8 *) ffd->conv_buffer;
@@ -1161,7 +1167,7 @@ static GF_Err FFDEC_GetOutputBuffer(GF_MediaDecoder *ifcg, u16 ES_ID, u8 **pY_or
 		*pY_or_RGB = frame->data[0];
 		*pU = frame->data[1];
 		*pV = frame->data[2];
-	} 
+	}
 	return GF_OK;
 }
 
@@ -1209,7 +1215,7 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 	else if (StreamType==GF_STREAM_VISUAL) {
 
 		/*fixme - we should use some priority rather than declare ffmpeg can't handle svc*/
-		if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC){
+		if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC) {
 			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 				Bool is_svc = 0;
 				u32 i, count;
@@ -1239,15 +1245,19 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 
 		switch (ffd->oti) {
 		/*MPEG-4 v1 simple profile*/
-		case GPAC_OTI_VIDEO_MPEG4_PART2: codec_id = CODEC_ID_MPEG4; break;
+		case GPAC_OTI_VIDEO_MPEG4_PART2:
+			codec_id = CODEC_ID_MPEG4;
+			break;
 		/*H264 (not std OTI, just the way we use it internally)*/
 		case GPAC_OTI_VIDEO_AVC:
-			codec_id = CODEC_ID_H264; break;
+			codec_id = CODEC_ID_H264;
+			break;
 #ifdef HAS_HEVC
-        case GPAC_OTI_VIDEO_HEVC:
-            codec_id = AV_CODEC_ID_HEVC; break;
+		case GPAC_OTI_VIDEO_HEVC:
+			codec_id = AV_CODEC_ID_HEVC;
+			break;
 #endif
-        /*MPEG1 video*/
+		/*MPEG1 video*/
 		case GPAC_OTI_VIDEO_MPEG1:
 		/*MPEG2 video*/
 		case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
@@ -1256,15 +1266,16 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 		case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
 		case GPAC_OTI_VIDEO_MPEG2_HIGH:
 		case GPAC_OTI_VIDEO_MPEG2_422:
-			codec_id = CODEC_ID_MPEG2VIDEO; break;
+			codec_id = CODEC_ID_MPEG2VIDEO;
+			break;
 		/*JPEG*/
 		case GPAC_OTI_IMAGE_JPEG:
 			codec_id = CODEC_ID_MJPEG;
 			/*return maybe supported as FFMPEG JPEG decoder has some issues with many files, so let's use it only if no
 			other dec is available*/
-			if (avcodec_find_decoder(codec_id) != NULL) 
+			if (avcodec_find_decoder(codec_id) != NULL)
 				return GF_CODEC_MAYBE_SUPPORTED;
-			
+
 			return GF_CODEC_NOT_SUPPORTED;
 		default:
 			return GF_CODEC_NOT_SUPPORTED;
@@ -1341,7 +1352,7 @@ void FFDEC_Delete(void *ifce)
 		return;
 	ffd = dec->privateStack;
 	dec->privateStack = NULL;
-	if (ffd){
+	if (ffd) {
 		if (ffd->base_ctx && ffd->base_ctx->codec) avcodec_close(ffd->base_ctx);
 		ffd->base_ctx = NULL;
 		if (ffd->depth_ctx && ffd->depth_ctx->codec) avcodec_close(ffd->depth_ctx);

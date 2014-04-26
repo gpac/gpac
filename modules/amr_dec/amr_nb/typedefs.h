@@ -2,8 +2,8 @@
 ********************************************************************************
 *
 *      GSM AMR-NB speech codec   R98   Version 7.6.0   December 12, 2001
-*                                R99   Version 3.3.0                
-*                                REL-4 Version 4.1.0                
+*                                R99   Version 3.3.0
+*                                REL-4 Version 4.1.0
 *
 ********************************************************************************
 *
@@ -36,7 +36,7 @@
 *        OSF           only defined if the current platform is an Alpha
 *        PC            only defined if the current platform is a PC
 *        SUN           only defined if the current platform is a Sun
-*        
+*
 *        LSBFIRST      is defined if the byte order on this platform is
 *                      "least significant byte first" -> defined on DEC Alpha
 *                      and PC, undefined on Sun
@@ -58,7 +58,7 @@
 
 /*
 ********************************************************************************
-*                         DEFINITION OF CONSTANTS 
+*                         DEFINITION OF CONSTANTS
 ********************************************************************************
 */
 /*
@@ -147,8 +147,8 @@ typedef unsigned long UWord32;
  ********* define complex type
  */
 typedef struct {
-  Float r;  /* real      part */
-  Float i;  /* imaginary part */
+	Float r;  /* real      part */
+	Float i;  /* imaginary part */
 } CPX;
 
 /*
@@ -185,9 +185,9 @@ typedef struct {
 #error "can't determine architecture; adapt typedefs.h to your platform"
 #endif
 
-#if defined(_WIN32_WCE) 
+#if defined(_WIN32_WCE)
 # ifndef abort
-#  define abort() 
+#  define abort()
 # endif
 #endif
 

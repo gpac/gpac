@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -35,16 +35,16 @@ extern "C" {
  *	\brief configuration file functions.
  */
 
- /*!
- *	\addtogroup cfg_grp configuration
- *	\ingroup utils_grp
- *	\brief Configuration File object
- *
- *	This section documents the configuration file object of the GPAC framework.
- *	This file is formatted as the INI file mode of WIN32 in sections and keys.\n
- *\note For more information on the GPAC configuration file itself, please refer to the GPAC configuration help provided with GPAC.
- *	@{
- */
+/*!
+*	\addtogroup cfg_grp configuration
+*	\ingroup utils_grp
+*	\brief Configuration File object
+*
+*	This section documents the configuration file object of the GPAC framework.
+*	This file is formatted as the INI file mode of WIN32 in sections and keys.\n
+*\note For more information on the GPAC configuration file itself, please refer to the GPAC configuration help provided with GPAC.
+*	@{
+*/
 
 #include <gpac/tools.h>
 
@@ -55,7 +55,7 @@ typedef struct __tag_config GF_Config;
  *	\brief configuration file initialization
  *
  * Constructs a configuration file from fileName. if fileName is NULL, the default GPAC configuration file is loaded.
- * If no configuration file is found, a default configuration file is created with the proper module directory, font directory 
+ * If no configuration file is found, a default configuration file is created with the proper module directory, font directory
  * and other default options.
  *\param file name of the configuration file, or NULL for default file
  *\param new_cfg Boolean set to true if a new configuration file has been created
@@ -173,7 +173,7 @@ const char *gf_cfg_get_key_name(GF_Config *cfgFile, const char *secName, u32 key
 /*!
  *	\brief key insertion
  *
- *Inserts a new key in a given section. Returns an error if a key with the given name 
+ *Inserts a new key in a given section. Returns an error if a key with the given name
  *already exists in the section
  *\param cfgFile the target configuration file
  *\param secName the target section

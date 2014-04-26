@@ -151,7 +151,7 @@ static Bool package_find_res(GF_WidgetPackage *wpack, char *res_path, char *relo
 {
 	u32 count, i;
 	count = gf_list_count(wpack->resources);
-	for (i=0;i<count;i++) {
+	for (i=0; i<count; i++) {
 		GF_WidgetPackageResource *pack_res = gf_list_get(wpack->resources, i);
 		if (is_same_path(res_path, pack_res->inner_path, 0)) {
 			strcpy(localized_rel_path, res_path);
@@ -409,7 +409,7 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 		}
 
 		if ((i+1)<gi.number_entry)
-            unzGoToNextFile(uf);
+			unzGoToNextFile(uf);
 	}
 	unzClose(uf);
 
@@ -471,10 +471,10 @@ static void wm_delete_widget_content(GF_WidgetContent *content)
 	if (!content) return;
 
 	while (gf_list_count(content->interfaces)) {
-		 GF_WidgetInterface*ifce = gf_list_last(content->interfaces);
-		 gf_list_rem_last(content->interfaces);
+		GF_WidgetInterface*ifce = gf_list_last(content->interfaces);
+		gf_list_rem_last(content->interfaces);
 
-		 while (gf_list_count(ifce->messages)) {
+		while (gf_list_count(ifce->messages)) {
 			GF_WidgetMessage *msg = gf_list_last(ifce->messages);
 			gf_list_rem_last(ifce->messages);
 
@@ -502,32 +502,32 @@ static void wm_delete_widget_content(GF_WidgetContent *content)
 	gf_list_del(content->interfaces);
 
 	while (gf_list_count(content->components)) {
-		 GF_WidgetComponent *comp = gf_list_last(content->components);
-		 gf_list_rem_last(content->components);
+		GF_WidgetComponent *comp = gf_list_last(content->components);
+		gf_list_rem_last(content->components);
 
-		 wm_delete_message_param(comp->activateTrigger);
-		 wm_delete_message_param(comp->deactivateTrigger);
+		wm_delete_message_param(comp->activateTrigger);
+		wm_delete_message_param(comp->deactivateTrigger);
 
-		 while (gf_list_count(comp->required_interfaces)) {
+		while (gf_list_count(comp->required_interfaces)) {
 			char *type = gf_list_last(comp->required_interfaces);
 			gf_list_rem_last(comp->required_interfaces);
 			if (type) gf_free(type);
-		 }
-		 gf_list_del(comp->required_interfaces);
-		 if (comp->id) gf_free(comp->id);
-		 if (comp->src) gf_free(comp->src);
-		 gf_free(comp);
+		}
+		gf_list_del(comp->required_interfaces);
+		if (comp->id) gf_free(comp->id);
+		if (comp->src) gf_free(comp->src);
+		gf_free(comp);
 	}
 	gf_list_del(content->components);
 
 	while (gf_list_count(content->preferences)) {
-		 GF_WidgetPreference *pref = gf_list_last(content->preferences);
-		 gf_list_rem_last(content->preferences);
+		GF_WidgetPreference *pref = gf_list_last(content->preferences);
+		gf_list_rem_last(content->preferences);
 
-		 wm_delete_message_param(pref->connectTo);
-		 if (pref->value) gf_free(pref->value);
-		 gf_free(pref->name);
-		 gf_free(pref);
+		wm_delete_message_param(pref->connectTo);
+		if (pref->value) gf_free(pref->value);
+		gf_free(pref->name);
+		gf_free(pref);
 	}
 	gf_list_del(content->preferences);
 
@@ -858,9 +858,9 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 		//if this is a script eventIn call directly script
 		if ((n->sgprivate->tag==TAG_MPEG4_Script)
 #ifndef GPAC_DISABLE_X3D
-				|| (n->sgprivate->tag==TAG_X3D_Script)
+		        || (n->sgprivate->tag==TAG_X3D_Script)
 #endif
-				) 
+		   )
 			gf_sg_script_event_in(n, &info);
 
 		gf_node_changed(n, &info);
@@ -952,7 +952,7 @@ static SVG_handlerElement *wm_create_scene_listener(GF_WidgetInstance *wid, GF_W
 
 	evt_type = GF_EVENT_ATTR_MODIFIED;
 	n = gf_sg_find_node_by_name(wid->scene, param->node);
-	if (!n) 
+	if (!n)
 		return NULL;
 
 	att_name = 0;
@@ -1465,7 +1465,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_component)
 
 	comp_id = SMJS_CHARS(c, argv[0]);
 	count = gf_list_count(wid->components);
-	for (i=0; i<count;i++) {
+	for (i=0; i<count; i++) {
 		comp_inst = gf_list_get(wid->components, i);
 		if (comp_inst->comp->id && !strcmp(comp_inst->comp->id, comp_id)) {
 			SMJS_SET_RVAL( OBJECT_TO_JSVAL(comp_inst->wid->obj) );
@@ -1582,7 +1582,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 
 	count = gf_list_count(wid->widget->main->preferences);
 	for (i=0; i<count; i++) {
-		 GF_WidgetPreference *pref = gf_list_get(wid->widget->main->preferences, i);
+		GF_WidgetPreference *pref = gf_list_get(wid->widget->main->preferences, i);
 
 		/*preference is read only, do not include in context*/
 		if (pref->flags & GF_WM_PREF_READONLY) continue;
@@ -1609,13 +1609,13 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 					gf_bs_write_data(bs, (const char *) txt, (u32) strlen(txt) );
 				} else
 #endif
-				if (gf_node_get_field_by_name(n, pref->connectTo->attribute, &info)==GF_OK) {
-					att = gf_node_dump_attribute(n, &info);
-					if (att) {
-						gf_bs_write_data(bs, (const char *)  att, (u32) strlen(att) );
-						gf_free(att);
+					if (gf_node_get_field_by_name(n, pref->connectTo->attribute, &info)==GF_OK) {
+						att = gf_node_dump_attribute(n, &info);
+						if (att) {
+							gf_bs_write_data(bs, (const char *)  att, (u32) strlen(att) );
+							gf_free(att);
+						}
 					}
-				}
 			}
 		}
 		/*read from config*/
@@ -1646,304 +1646,304 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 
 static SMJS_FUNC_PROP_GET( wm_widget_getProperty)
 
-	JSString *s;
-	char *prop_name;
-	const char *opt;
-	GF_WidgetInstance *wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
-	if (!wid) return JS_FALSE;
+JSString *s;
+char *prop_name;
+const char *opt;
+GF_WidgetInstance *wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
+if (!wid) return JS_FALSE;
 
-	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
-	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
-	if (!prop_name) return JS_FALSE;
+if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
+if (!prop_name) return JS_FALSE;
 
-	/*
-			Manifest properties
-	*/
-	if (!strcmp(prop_name, "manifest")) {
-		s = JS_NewStringCopyZ(c, wid->widget->manifest_path);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "url")) {
-		s = JS_NewStringCopyZ(c, wid->widget->local_path ? wid->widget->local_path : wid->widget->url);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "main")) {
-		s = JS_NewStringCopyZ(c, wid->widget->main->relocated_src);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "localizedSrc")) {
-		s = JS_NewStringCopyZ(c, wid->widget->main->src);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "mainEncoding")) {
-		s = JS_NewStringCopyZ(c, wid->widget->main->encoding);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "mainMimeType")) {
-		s = JS_NewStringCopyZ(c, wid->widget->main->mimetype);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "defaultWidth")) {
-		*vp = INT_TO_JSVAL(wid->widget->width);
-	}
-	else if (!strcmp(prop_name, "defaultHeight")) {
-		*vp = INT_TO_JSVAL(wid->widget->height);
-	}
-	else if (!strcmp(prop_name, "icons")) {
-		u32 i, count;
-		JSObject *arr;
-		count = gf_list_count(wid->widget->icons);
-		arr = JS_NewArrayObject(c, count, NULL);
-		for (i = 0; i<count; i++) {
-			GF_WidgetContent *icon = gf_list_get(wid->widget->icons, i);
-			if (icon) {
-				char *abs_reloc_url;
-				jsval icon_obj_val;
-				JSObject *icon_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
-				SMJS_SET_PRIVATE(c, icon_obj, icon);
-				JS_DefineProperty(c, icon_obj, "src", STRING_TO_JSVAL( JS_NewStringCopyZ(c, icon->src) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-				if (strlen(icon->relocated_src)) abs_reloc_url = gf_url_concatenate(wid->widget->url, icon->relocated_src);
-				else abs_reloc_url = gf_strdup("");
-				JS_DefineProperty(c, icon_obj, "relocated_src", STRING_TO_JSVAL( JS_NewStringCopyZ(c, abs_reloc_url) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-				JS_DefineProperty(c, icon_obj, "width", INT_TO_JSVAL( icon->width ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-				JS_DefineProperty(c, icon_obj, "height", INT_TO_JSVAL( icon->height ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-				icon_obj_val = OBJECT_TO_JSVAL(icon_obj);
-				JS_SetElement(c, arr, i, &icon_obj_val);
-				gf_free(abs_reloc_url);
-			}
+/*
+		Manifest properties
+*/
+if (!strcmp(prop_name, "manifest")) {
+	s = JS_NewStringCopyZ(c, wid->widget->manifest_path);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "url")) {
+	s = JS_NewStringCopyZ(c, wid->widget->local_path ? wid->widget->local_path : wid->widget->url);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "main")) {
+	s = JS_NewStringCopyZ(c, wid->widget->main->relocated_src);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "localizedSrc")) {
+	s = JS_NewStringCopyZ(c, wid->widget->main->src);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "mainEncoding")) {
+	s = JS_NewStringCopyZ(c, wid->widget->main->encoding);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "mainMimeType")) {
+	s = JS_NewStringCopyZ(c, wid->widget->main->mimetype);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "defaultWidth")) {
+	*vp = INT_TO_JSVAL(wid->widget->width);
+}
+else if (!strcmp(prop_name, "defaultHeight")) {
+	*vp = INT_TO_JSVAL(wid->widget->height);
+}
+else if (!strcmp(prop_name, "icons")) {
+	u32 i, count;
+	JSObject *arr;
+	count = gf_list_count(wid->widget->icons);
+	arr = JS_NewArrayObject(c, count, NULL);
+	for (i = 0; i<count; i++) {
+		GF_WidgetContent *icon = gf_list_get(wid->widget->icons, i);
+		if (icon) {
+			char *abs_reloc_url;
+			jsval icon_obj_val;
+			JSObject *icon_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
+			SMJS_SET_PRIVATE(c, icon_obj, icon);
+			JS_DefineProperty(c, icon_obj, "src", STRING_TO_JSVAL( JS_NewStringCopyZ(c, icon->src) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+			if (strlen(icon->relocated_src)) abs_reloc_url = gf_url_concatenate(wid->widget->url, icon->relocated_src);
+			else abs_reloc_url = gf_strdup("");
+			JS_DefineProperty(c, icon_obj, "relocated_src", STRING_TO_JSVAL( JS_NewStringCopyZ(c, abs_reloc_url) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+			JS_DefineProperty(c, icon_obj, "width", INT_TO_JSVAL( icon->width ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+			JS_DefineProperty(c, icon_obj, "height", INT_TO_JSVAL( icon->height ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+			icon_obj_val = OBJECT_TO_JSVAL(icon_obj);
+			JS_SetElement(c, arr, i, &icon_obj_val);
+			gf_free(abs_reloc_url);
 		}
-		*vp = OBJECT_TO_JSVAL(arr);
 	}
-	else if (!strcmp(prop_name, "preferences")) {
-		u32 i, count;
-		JSObject *arr;
-		count = gf_list_count(wid->widget->main->preferences);
-		arr = JS_NewArrayObject(c, count, NULL);
-		for (i = 0; i<count; i++) {
-			GF_WidgetPreference *pref = gf_list_get(wid->widget->main->preferences, i);
-			if (pref) {
-				jsval pref_obj_val;
-				JSObject *pref_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
-				SMJS_SET_PRIVATE(c, pref_obj, pref);
-				JS_DefineProperty(c, pref_obj, "name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, pref->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-				JS_DefineProperty(c, pref_obj, "value", STRING_TO_JSVAL( JS_NewStringCopyZ(c, pref->value) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-				JS_DefineProperty(c, pref_obj, "readonly", STRING_TO_JSVAL( JS_NewStringCopyZ(c, ((pref->flags & GF_WM_PREF_READONLY)?"true":"false")) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-				pref_obj_val = OBJECT_TO_JSVAL(pref_obj);
-				JS_SetElement(c, arr, i, &pref_obj_val);
-			}
+	*vp = OBJECT_TO_JSVAL(arr);
+}
+else if (!strcmp(prop_name, "preferences")) {
+	u32 i, count;
+	JSObject *arr;
+	count = gf_list_count(wid->widget->main->preferences);
+	arr = JS_NewArrayObject(c, count, NULL);
+	for (i = 0; i<count; i++) {
+		GF_WidgetPreference *pref = gf_list_get(wid->widget->main->preferences, i);
+		if (pref) {
+			jsval pref_obj_val;
+			JSObject *pref_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
+			SMJS_SET_PRIVATE(c, pref_obj, pref);
+			JS_DefineProperty(c, pref_obj, "name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, pref->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+			JS_DefineProperty(c, pref_obj, "value", STRING_TO_JSVAL( JS_NewStringCopyZ(c, pref->value) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+			JS_DefineProperty(c, pref_obj, "readonly", STRING_TO_JSVAL( JS_NewStringCopyZ(c, ((pref->flags & GF_WM_PREF_READONLY)?"true":"false")) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+			pref_obj_val = OBJECT_TO_JSVAL(pref_obj);
+			JS_SetElement(c, arr, i, &pref_obj_val);
 		}
-		*vp = OBJECT_TO_JSVAL(arr);
 	}
-	else if (!strcmp(prop_name, "features")) {
-		u32 i, count;
-		JSObject *arr;
-		count = gf_list_count(wid->widget->features);
-		arr = JS_NewArrayObject(c, count, NULL);
-		for (i = 0; i<count; i++) {
-			GF_WidgetFeature *feat = gf_list_get(wid->widget->features, i);
-			if (feat) {
-				jsval feat_obj_val;
-				JSObject *feat_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
-				SMJS_SET_PRIVATE(c, feat_obj, feat);
-				JS_DefineProperty(c, feat_obj, "name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, feat->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-				JS_DefineProperty(c, feat_obj, "required", BOOLEAN_TO_JSVAL( (feat->required? JS_TRUE : JS_FALSE) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-				{
-					u32 j, pcount;
-					JSObject *params_arr;
-					pcount = gf_list_count(feat->params);
-					params_arr = JS_NewArrayObject(c, pcount, NULL);
-					for (j=0; j < pcount; j++) {
-						GF_WidgetFeatureParam *param = gf_list_get(feat->params, j);
-						JSObject *param_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
-						jsval param_obj_val;
-						SMJS_SET_PRIVATE(c, param_obj, param);
-						JS_DefineProperty(c, param_obj, "name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, param->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-						JS_DefineProperty(c, param_obj, "value", STRING_TO_JSVAL( JS_NewStringCopyZ(c, param->value) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-						param_obj_val = OBJECT_TO_JSVAL(param_obj);
-						JS_SetElement(c, params_arr, j, &param_obj_val);
-					}
-					JS_DefineProperty(c, feat_obj, "params", OBJECT_TO_JSVAL(params_arr), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	*vp = OBJECT_TO_JSVAL(arr);
+}
+else if (!strcmp(prop_name, "features")) {
+	u32 i, count;
+	JSObject *arr;
+	count = gf_list_count(wid->widget->features);
+	arr = JS_NewArrayObject(c, count, NULL);
+	for (i = 0; i<count; i++) {
+		GF_WidgetFeature *feat = gf_list_get(wid->widget->features, i);
+		if (feat) {
+			jsval feat_obj_val;
+			JSObject *feat_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
+			SMJS_SET_PRIVATE(c, feat_obj, feat);
+			JS_DefineProperty(c, feat_obj, "name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, feat->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+			JS_DefineProperty(c, feat_obj, "required", BOOLEAN_TO_JSVAL( (feat->required? JS_TRUE : JS_FALSE) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+			{
+				u32 j, pcount;
+				JSObject *params_arr;
+				pcount = gf_list_count(feat->params);
+				params_arr = JS_NewArrayObject(c, pcount, NULL);
+				for (j=0; j < pcount; j++) {
+					GF_WidgetFeatureParam *param = gf_list_get(feat->params, j);
+					JSObject *param_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
+					jsval param_obj_val;
+					SMJS_SET_PRIVATE(c, param_obj, param);
+					JS_DefineProperty(c, param_obj, "name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, param->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+					JS_DefineProperty(c, param_obj, "value", STRING_TO_JSVAL( JS_NewStringCopyZ(c, param->value) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+					param_obj_val = OBJECT_TO_JSVAL(param_obj);
+					JS_SetElement(c, params_arr, j, &param_obj_val);
 				}
-				feat_obj_val = OBJECT_TO_JSVAL(feat_obj);
-				JS_SetElement(c, arr, i, &feat_obj_val);
+				JS_DefineProperty(c, feat_obj, "params", OBJECT_TO_JSVAL(params_arr), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 			}
+			feat_obj_val = OBJECT_TO_JSVAL(feat_obj);
+			JS_SetElement(c, arr, i, &feat_obj_val);
 		}
-		*vp = OBJECT_TO_JSVAL(arr);
 	}
+	*vp = OBJECT_TO_JSVAL(arr);
+}
 
-	else if (!strcmp(prop_name, "components")) {
-		u32 i, count;
-		jsval val;
-		JSObject *arr;
-		count = gf_list_count(wid->components);
-		arr = JS_NewArrayObject(c, count, NULL);
-		for (i = 0; i<count; i++) {
-			GF_WidgetComponentInstance *comp = gf_list_get(wid->components, i);
-			val = OBJECT_TO_JSVAL(comp->wid->obj);
-			JS_SetElement(c, arr, i, &val);
-		}
-		*vp = OBJECT_TO_JSVAL(arr);
+else if (!strcmp(prop_name, "components")) {
+	u32 i, count;
+	jsval val;
+	JSObject *arr;
+	count = gf_list_count(wid->components);
+	arr = JS_NewArrayObject(c, count, NULL);
+	for (i = 0; i<count; i++) {
+		GF_WidgetComponentInstance *comp = gf_list_get(wid->components, i);
+		val = OBJECT_TO_JSVAL(comp->wid->obj);
+		JS_SetElement(c, arr, i, &val);
 	}
-	else if (!strcmp(prop_name, "identifier")) {
-		s = JS_NewStringCopyZ(c, wid->widget->identifier);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "name")) {
-		s = JS_NewStringCopyZ(c, wid->widget->name);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "shortName")) {
-		s = JS_NewStringCopyZ(c, wid->widget->shortname);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "authorName")) {
-		s = JS_NewStringCopyZ(c, wid->widget->authorName);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "authorEmail")) {
-		s = JS_NewStringCopyZ(c, wid->widget->authorEmail);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "authorHref")) {
-		s = JS_NewStringCopyZ(c, wid->widget->authorHref);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "description")) {
-		s = JS_NewStringCopyZ(c, wid->widget->description);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "viewmodes")) {
-		if (wid->widget->viewmodes) s = JS_NewStringCopyZ(c, wid->widget->viewmodes);
-		else s = JS_NewStringCopyZ(c, "");
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "license")) {
-		s = JS_NewStringCopyZ(c, wid->widget->license);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "licenseHref")) {
-		s = JS_NewStringCopyZ(c, wid->widget->licenseHref);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "version")) {
-		s = JS_NewStringCopyZ(c, wid->widget->version);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "uuid")) {
-		s = JS_NewStringCopyZ(c, wid->widget->uuid);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "discardable")) {
-		*vp = BOOLEAN_TO_JSVAL( wid->widget->discardable ? JS_TRUE : JS_FALSE);
-	}
-	else if (!strcmp(prop_name, "multipleInstances")) {
-		*vp = BOOLEAN_TO_JSVAL( wid->widget->multipleInstance ? JS_TRUE : JS_FALSE);
-	}
+	*vp = OBJECT_TO_JSVAL(arr);
+}
+else if (!strcmp(prop_name, "identifier")) {
+	s = JS_NewStringCopyZ(c, wid->widget->identifier);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "name")) {
+	s = JS_NewStringCopyZ(c, wid->widget->name);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "shortName")) {
+	s = JS_NewStringCopyZ(c, wid->widget->shortname);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "authorName")) {
+	s = JS_NewStringCopyZ(c, wid->widget->authorName);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "authorEmail")) {
+	s = JS_NewStringCopyZ(c, wid->widget->authorEmail);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "authorHref")) {
+	s = JS_NewStringCopyZ(c, wid->widget->authorHref);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "description")) {
+	s = JS_NewStringCopyZ(c, wid->widget->description);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "viewmodes")) {
+	if (wid->widget->viewmodes) s = JS_NewStringCopyZ(c, wid->widget->viewmodes);
+	else s = JS_NewStringCopyZ(c, "");
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "license")) {
+	s = JS_NewStringCopyZ(c, wid->widget->license);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "licenseHref")) {
+	s = JS_NewStringCopyZ(c, wid->widget->licenseHref);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "version")) {
+	s = JS_NewStringCopyZ(c, wid->widget->version);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "uuid")) {
+	s = JS_NewStringCopyZ(c, wid->widget->uuid);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "discardable")) {
+	*vp = BOOLEAN_TO_JSVAL( wid->widget->discardable ? JS_TRUE : JS_FALSE);
+}
+else if (!strcmp(prop_name, "multipleInstances")) {
+	*vp = BOOLEAN_TO_JSVAL( wid->widget->multipleInstance ? JS_TRUE : JS_FALSE);
+}
 
-	/*
-			Widget Manager special properties (common to all implementations)
-	*/
-	else if (!strcmp(prop_name, "permanent")) {
-		*vp = BOOLEAN_TO_JSVAL( wid->permanent ? JS_TRUE : JS_FALSE);
-	}
-	else if (!strcmp(prop_name, "is_component")) {
-		*vp = BOOLEAN_TO_JSVAL( wid->parent ? JS_TRUE : JS_FALSE);
-	}
-	else if (!strcmp(prop_name, "parent")) {
-		*vp = wid->parent ? OBJECT_TO_JSVAL(wid->parent->obj) : JSVAL_NULL;
-	}
-	else if (!strcmp(prop_name, "activated")) {
-		*vp = BOOLEAN_TO_JSVAL( wid->activated ? JS_TRUE : JS_FALSE);
-	}
-	else if (!strcmp(prop_name, "section")) {
-		s = JS_NewStringCopyZ(c, (const char *) wid->secname);
-		*vp = STRING_TO_JSVAL(s);
-	}
-	else if (!strcmp(prop_name, "num_instances")) {
-		*vp = INT_TO_JSVAL( wid->widget->nb_instances);
-	}
-	else if (!strcmp(prop_name, "num_interfaces")) {
-		*vp = INT_TO_JSVAL( gf_list_count(wid->widget->main->interfaces));
-	}
-	else if (!strcmp(prop_name, "num_components")) {
-		*vp = INT_TO_JSVAL( gf_list_count(wid->components));
-	}
-	else if (!strcmp(prop_name, "num_bound_interfaces")) {
-		*vp = INT_TO_JSVAL( gf_list_count(wid->bound_ifces));
-	}
-	/*all variables used by the WidgetManager script but not stored*/
-	else if (!strcmp(prop_name, "originating_device_ip")
-		|| !strcmp(prop_name, "originating_device")
-		|| !strcmp(prop_name, "device")
-	) {
-	}
-	/*
-			Widget properties, common to each implementation
-	*/
-	else {
-		char szName[1024];
-		sprintf(szName, "WM:%s", prop_name);
-		opt = gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *) wid->secname, szName);
-		if (opt) {
-			Double val=0;
-			if (!strcmp(opt, "true")) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
-			else if (!strcmp(opt, "false")) *vp = BOOLEAN_TO_JSVAL(JS_FALSE);
-			else if (sscanf(opt, "%lf", &val)==1) {
-				*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, val) );
-			} else {
-				s = JS_NewStringCopyZ(c, opt);
-				*vp = STRING_TO_JSVAL(s);
-			}
+/*
+		Widget Manager special properties (common to all implementations)
+*/
+else if (!strcmp(prop_name, "permanent")) {
+	*vp = BOOLEAN_TO_JSVAL( wid->permanent ? JS_TRUE : JS_FALSE);
+}
+else if (!strcmp(prop_name, "is_component")) {
+	*vp = BOOLEAN_TO_JSVAL( wid->parent ? JS_TRUE : JS_FALSE);
+}
+else if (!strcmp(prop_name, "parent")) {
+	*vp = wid->parent ? OBJECT_TO_JSVAL(wid->parent->obj) : JSVAL_NULL;
+}
+else if (!strcmp(prop_name, "activated")) {
+	*vp = BOOLEAN_TO_JSVAL( wid->activated ? JS_TRUE : JS_FALSE);
+}
+else if (!strcmp(prop_name, "section")) {
+	s = JS_NewStringCopyZ(c, (const char *) wid->secname);
+	*vp = STRING_TO_JSVAL(s);
+}
+else if (!strcmp(prop_name, "num_instances")) {
+	*vp = INT_TO_JSVAL( wid->widget->nb_instances);
+}
+else if (!strcmp(prop_name, "num_interfaces")) {
+	*vp = INT_TO_JSVAL( gf_list_count(wid->widget->main->interfaces));
+}
+else if (!strcmp(prop_name, "num_components")) {
+	*vp = INT_TO_JSVAL( gf_list_count(wid->components));
+}
+else if (!strcmp(prop_name, "num_bound_interfaces")) {
+	*vp = INT_TO_JSVAL( gf_list_count(wid->bound_ifces));
+}
+/*all variables used by the WidgetManager script but not stored*/
+else if (!strcmp(prop_name, "originating_device_ip")
+         || !strcmp(prop_name, "originating_device")
+         || !strcmp(prop_name, "device")
+        ) {
+}
+/*
+		Widget properties, common to each implementation
+*/
+else {
+	char szName[1024];
+	sprintf(szName, "WM:%s", prop_name);
+	opt = gf_cfg_get_key(wid->widget->wm->term->user->config, (const char *) wid->secname, szName);
+	if (opt) {
+		Double val=0;
+		if (!strcmp(opt, "true")) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
+		else if (!strcmp(opt, "false")) *vp = BOOLEAN_TO_JSVAL(JS_FALSE);
+		else if (sscanf(opt, "%lf", &val)==1) {
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, val) );
+		} else {
+			s = JS_NewStringCopyZ(c, opt);
+			*vp = STRING_TO_JSVAL(s);
 		}
 	}
-	SMJS_FREE(c, prop_name);
-	return JS_TRUE;
+}
+SMJS_FREE(c, prop_name);
+return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_SET( wm_widget_setProperty)
 
-	char szVal[32];
-	jsdouble val;
-	char *prop_name;
-	GF_WidgetInstance *wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
-	if (!wid) return JS_FALSE;
+char szVal[32];
+jsdouble val;
+char *prop_name;
+GF_WidgetInstance *wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
+if (!wid) return JS_FALSE;
 
-	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
-	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
+if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 
-	/*internal to WidgetManager, never stored*/
-	if (!strcmp(prop_name, "permanent")) {
-		wid->permanent = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : 0;
+/*internal to WidgetManager, never stored*/
+if (!strcmp(prop_name, "permanent")) {
+	wid->permanent = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : 0;
+}
+
+/*any widget properties*/
+else {
+	char szName[1024], *value, *_val = NULL;
+
+	if (JSVAL_IS_STRING(*vp)) {
+		value = _val = SMJS_CHARS(c, *vp);
+		if (!value) value = "";
+	}
+	else if (JSVAL_IS_BOOLEAN(*vp)) {
+		strcpy(szVal, (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? "true" : "false");
+		value = szVal;
+	}
+	else if (JSVAL_IS_NUMBER(*vp)) {
+		JS_ValueToNumber(c, *vp, &val);
+		sprintf(szVal, "%f", val);
+		value = szVal;
+	} else {
+		SMJS_FREE(c, prop_name);
+		return JS_TRUE;
 	}
 
-	/*any widget properties*/
-	else {
-		char szName[1024], *value, *_val = NULL;
+	sprintf(szName, "WM:%s", prop_name);
+	gf_cfg_set_key(wid->widget->wm->term->user->config, (const char *) wid->secname, szName, value);
+	SMJS_FREE(c, _val);
+}
 
-		if (JSVAL_IS_STRING(*vp)) {
-			value = _val = SMJS_CHARS(c, *vp);
-			if (!value) value = "";
-		}
-		else if (JSVAL_IS_BOOLEAN(*vp)) {
-			strcpy(szVal, (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? "true" : "false");
-			value = szVal;
-		}
-		else if (JSVAL_IS_NUMBER(*vp)) {
-			JS_ValueToNumber(c, *vp, &val);
-			sprintf(szVal, "%f", val);
-			value = szVal;
-		} else {
-			SMJS_FREE(c, prop_name);
-			return JS_TRUE;
-		}
-
-		sprintf(szName, "WM:%s", prop_name);
-		gf_cfg_set_key(wid->widget->wm->term->user->config, (const char *) wid->secname, szName, value);
-		SMJS_FREE(c, _val);
-	}
-
-	SMJS_FREE(c, prop_name);
-	return JS_TRUE;
+SMJS_FREE(c, prop_name);
+return JS_TRUE;
 }
 
 
@@ -2231,7 +2231,7 @@ static JSBool SMJS_FUNCTION(wm_load)
 		GF_WidgetInstance *parent_widget;
 		if (!GF_JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[1]), &wm->wmWidgetClass, NULL) ) return JS_FALSE;
 		parent_widget = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, JSVAL_TO_OBJECT(argv[1]) );
-		
+
 		if (parent_widget->widget->url) url = gf_url_concatenate(parent_widget->widget->url, manifest);
 	}
 
@@ -2313,44 +2313,44 @@ static JSBool SMJS_FUNCTION(wm_unload)
 
 static SMJS_FUNC_PROP_GET( wm_getProperty)
 
-	char *prop_name;
-	GF_WidgetManager *wm = (GF_WidgetManager *)SMJS_GET_PRIVATE(c, obj);
-	if (!wm) return JS_FALSE;
+char *prop_name;
+GF_WidgetManager *wm = (GF_WidgetManager *)SMJS_GET_PRIVATE(c, obj);
+if (!wm) return JS_FALSE;
 
-	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
-	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
-	if (!prop_name) return JS_FALSE;
+if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
+if (!prop_name) return JS_FALSE;
 
-	if (!strcmp(prop_name, "num_widgets")) {
-		*vp = INT_TO_JSVAL(gf_list_count(wm->widget_instances));
-	}
-	else if (!strcmp(prop_name, "last_widget_dir")) {
-		const char *opt = gf_cfg_get_key(wm->term->user->config, "Widgets", "last_widget_dir");
-		if (!opt) opt = "/";
-		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, opt));
-	}
-	SMJS_FREE(c, prop_name);
-	return JS_TRUE;
+if (!strcmp(prop_name, "num_widgets")) {
+	*vp = INT_TO_JSVAL(gf_list_count(wm->widget_instances));
+}
+else if (!strcmp(prop_name, "last_widget_dir")) {
+	const char *opt = gf_cfg_get_key(wm->term->user->config, "Widgets", "last_widget_dir");
+	if (!opt) opt = "/";
+	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, opt));
+}
+SMJS_FREE(c, prop_name);
+return JS_TRUE;
 }
 
 
 static SMJS_FUNC_PROP_SET( wm_setProperty)
 
-	char *prop_name;
-	GF_WidgetManager *wm = (GF_WidgetManager *)SMJS_GET_PRIVATE(c, obj);
-	if (!wm) return JS_FALSE;
+char *prop_name;
+GF_WidgetManager *wm = (GF_WidgetManager *)SMJS_GET_PRIVATE(c, obj);
+if (!wm) return JS_FALSE;
 
-	if (!JSVAL_IS_STRING(*vp)) return JS_TRUE;
-	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
-	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
+if (!JSVAL_IS_STRING(*vp)) return JS_TRUE;
+if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 
-	if (!strcmp(prop_name, "last_widget_dir")) {
-		char *v = SMJS_CHARS(c, *vp);
-		gf_cfg_set_key(wm->term->user->config, "Widgets", "last_widget_dir", v);
-		SMJS_FREE(c, v);
-	}
-	SMJS_FREE(c, prop_name);
-	return JS_TRUE;
+if (!strcmp(prop_name, "last_widget_dir")) {
+	char *v = SMJS_CHARS(c, *vp);
+	gf_cfg_set_key(wm->term->user->config, "Widgets", "last_widget_dir", v);
+	SMJS_FREE(c, v);
+}
+SMJS_FREE(c, prop_name);
+return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(wm_get)
@@ -2726,20 +2726,20 @@ static char *wm_get_single_attribute(const char *input) {
 	j = 0;
 	for (i = 0; i<len; i++) {
 		switch (input[i]) {
-			case ' ':
-			case '\t':
-			case '\r':
-			case '\n':
-				if (!first_space_copied) {
-					output[j] = ' ';
-					j++;
-					first_space_copied = 1;
-				}
-				break;
-			default:
-				output[j] = input[i];
+		case ' ':
+		case '\t':
+		case '\r':
+		case '\n':
+			if (!first_space_copied) {
+				output[j] = ' ';
 				j++;
-				first_space_copied = 0;
+				first_space_copied = 1;
+			}
+			break;
+		default:
+			output[j] = input[i];
+			j++;
+			first_space_copied = 0;
 		}
 	}
 	if (j && output[j-1] == ' ') output[j-1] = 0;
@@ -3061,7 +3061,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 
 		/* see http://www.w3.org/TR/widgets/#ta-ACCJfDGwDQ */
 		if ((root->ns && (!widget_ns_prefix || strcmp(root->ns, widget_ns_prefix) || strcmp(root->name, "widget"))) ||
-			(!root->ns && (widget_ns_prefix || strcmp(root->name, "widget"))))
+		        (!root->ns && (widget_ns_prefix || strcmp(root->name, "widget"))))
 			goto exit;
 
 
@@ -3183,8 +3183,8 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		i=0;
 		while ((icon = gf_list_enum(root->content, &i))) {
 			if (icon->type==GF_XML_NODE_TYPE &&
-					icon->name && !strcmp(icon->name, "icon") &&
-					((!widget_ns_prefix && !icon->ns) || !strcmp(widget_ns_prefix, icon->ns))) {
+			        icon->name && !strcmp(icon->name, "icon") &&
+			        ((!widget_ns_prefix && !icon->ns) || !strcmp(widget_ns_prefix, icon->ns))) {
 				char *sep;
 				char relocated[GF_MAX_PATH], localized_path[GF_MAX_PATH];
 				char *icon_width, *icon_height;
@@ -3290,8 +3290,8 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		i=0;
 		while ((xml_node = gf_list_enum(root->content, &i))) {
 			if (xml_node->type==GF_XML_NODE_TYPE &&
-					xml_node->name && !strcmp(xml_node->name, "feature") &&
-					((!widget_ns_prefix && !xml_node->ns) || !strcmp(widget_ns_prefix, xml_node->ns))) {
+			        xml_node->name && !strcmp(xml_node->name, "feature") &&
+			        ((!widget_ns_prefix && !xml_node->ns) || !strcmp(widget_ns_prefix, xml_node->ns))) {
 
 				u32 i, count;
 				Bool already_in = 0;
@@ -3328,8 +3328,8 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 				j = 0;
 				while ((param_node = gf_list_enum(xml_node->content, &j))) {
 					if (param_node->type==GF_XML_NODE_TYPE &&
-							param_node->name && !strcmp(param_node->name, "param") &&
-							((!widget_ns_prefix && !param_node->ns) || !strcmp(widget_ns_prefix, param_node->ns))) {
+					        param_node->name && !strcmp(param_node->name, "param") &&
+					        ((!widget_ns_prefix && !param_node->ns) || !strcmp(widget_ns_prefix, param_node->ns))) {
 						GF_WidgetFeatureParam *wfp;
 						const char *param_name, *param_value;
 						char *npname, *npvalue;
@@ -3550,32 +3550,32 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 
 
 	{
-	JSPropertySpec wmWidgetClassProps[] = {
-		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
-	};
-	JSFunctionSpec wmWidgetClassFuncs[] = {
-		SMJS_FUNCTION_SPEC("activate", wm_widget_activate, 1),
-		SMJS_FUNCTION_SPEC("deactivate", wm_widget_deactivate, 0),
-		SMJS_FUNCTION_SPEC("get_interface", wm_widget_get_interface, 1),
-		SMJS_FUNCTION_SPEC("bind_output_trigger", wm_widget_bind_output_trigger, 2),
-		SMJS_FUNCTION_SPEC("set_input", wm_widget_set_input, 2),
-		SMJS_FUNCTION_SPEC("bind_interface", wm_widget_bind_interface, 2),
-		SMJS_FUNCTION_SPEC("unbind_interface", wm_widget_unbind_interface, 1),
-		SMJS_FUNCTION_SPEC("call_input_action", wm_widget_call_input_action, 1),
-		SMJS_FUNCTION_SPEC("call_input_script", wm_widget_call_input_script, 2),
-		SMJS_FUNCTION_SPEC("is_interface_bound", wm_widget_is_interface_bound, 1),
-		SMJS_FUNCTION_SPEC("get_param_value", wm_widget_get_param_value, 1),
-		SMJS_FUNCTION_SPEC("get_context", wm_widget_get_context, 0),
-		SMJS_FUNCTION_SPEC("get_component", wm_widget_get_component, 2),
+		JSPropertySpec wmWidgetClassProps[] = {
+			SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
+		};
+		JSFunctionSpec wmWidgetClassFuncs[] = {
+			SMJS_FUNCTION_SPEC("activate", wm_widget_activate, 1),
+			SMJS_FUNCTION_SPEC("deactivate", wm_widget_deactivate, 0),
+			SMJS_FUNCTION_SPEC("get_interface", wm_widget_get_interface, 1),
+			SMJS_FUNCTION_SPEC("bind_output_trigger", wm_widget_bind_output_trigger, 2),
+			SMJS_FUNCTION_SPEC("set_input", wm_widget_set_input, 2),
+			SMJS_FUNCTION_SPEC("bind_interface", wm_widget_bind_interface, 2),
+			SMJS_FUNCTION_SPEC("unbind_interface", wm_widget_unbind_interface, 1),
+			SMJS_FUNCTION_SPEC("call_input_action", wm_widget_call_input_action, 1),
+			SMJS_FUNCTION_SPEC("call_input_script", wm_widget_call_input_script, 2),
+			SMJS_FUNCTION_SPEC("is_interface_bound", wm_widget_is_interface_bound, 1),
+			SMJS_FUNCTION_SPEC("get_param_value", wm_widget_get_param_value, 1),
+			SMJS_FUNCTION_SPEC("get_context", wm_widget_get_context, 0),
+			SMJS_FUNCTION_SPEC("get_component", wm_widget_get_component, 2),
 
-		SMJS_FUNCTION_SPEC(0, 0, 0)
-	};
-	/*setup JS bindings*/
-	JS_SETUP_CLASS(wm->wmWidgetClass, "WMWIDGET", JSCLASS_HAS_PRIVATE, wm_widget_getProperty, wm_widget_setProperty, JS_FinalizeStub);
-	GF_JS_InitClass(c, global, 0, &wm->wmWidgetClass, 0, 0, wmWidgetClassProps, wmWidgetClassFuncs, 0, 0);
+			SMJS_FUNCTION_SPEC(0, 0, 0)
+		};
+		/*setup JS bindings*/
+		JS_SETUP_CLASS(wm->wmWidgetClass, "WMWIDGET", JSCLASS_HAS_PRIVATE, wm_widget_getProperty, wm_widget_setProperty, JS_FinalizeStub);
+		GF_JS_InitClass(c, global, 0, &wm->wmWidgetClass, 0, 0, wmWidgetClassProps, wmWidgetClassFuncs, 0, 0);
 
-	JS_SETUP_CLASS(wm->widgetAnyClass, "WIDGETANY", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
-	GF_JS_InitClass(c, global, 0, &wm->widgetAnyClass, 0, 0, 0, 0, 0, 0);
+		JS_SETUP_CLASS(wm->widgetAnyClass, "WIDGETANY", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
+		GF_JS_InitClass(c, global, 0, &wm->widgetAnyClass, 0, 0, 0, 0, 0, 0);
 	}
 
 	JS_SETUP_CLASS(wm->widgetClass, "MPEGWidget", JSCLASS_HAS_PRIVATE, widget_getProperty, widget_setProperty, JS_FinalizeStub);
@@ -3608,21 +3608,21 @@ static GF_JSUserExtension *gwm_new()
 
 static void gwm_delete(GF_BaseInterface *ifce)
 {
-        GF_WidgetManager *wm;
+	GF_WidgetManager *wm;
 	GF_JSUserExtension *dr = (GF_JSUserExtension *) ifce;
-        if (!dr)
-          return;
-        wm = dr->udta;
-        if (!wm)
-          return;
-        if (wm->widget_instances)
-          gf_list_del(wm->widget_instances);
-        wm->widget_instances = NULL;
-        if (wm->widgets)
-          gf_list_del(wm->widgets);
-        wm->widgets = NULL;
+	if (!dr)
+		return;
+	wm = dr->udta;
+	if (!wm)
+		return;
+	if (wm->widget_instances)
+		gf_list_del(wm->widget_instances);
+	wm->widget_instances = NULL;
+	if (wm->widgets)
+		gf_list_del(wm->widgets);
+	wm->widgets = NULL;
 	gf_free(wm);
-        dr->udta = NULL;
+	dr->udta = NULL;
 	gf_free(dr);
 }
 #endif

@@ -125,9 +125,9 @@ typedef struct
 
 	GF_JSClass storageClass;
 
-    GF_JSClass htmlMediaElementClass;
+	GF_JSClass htmlMediaElementClass;
 
-    void *(*get_element_class)(GF_Node *n);
+	void *(*get_element_class)(GF_Node *n);
 	void *(*get_document_class)(GF_SceneGraph *n);
 	GF_List *handlers;
 } GF_DOMRuntime;
@@ -417,10 +417,10 @@ static jsval dom_base_node_construct(JSContext *c, GF_JSClass *_class, GF_Node *
 	new_obj = JS_NewObject(c, & _class->_class, 0, 0);
 	SMJS_SET_PRIVATE(c, new_obj, n);
 
-    if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio)
-    {
-        html_media_element_js_init(c, new_obj, n);
-    }
+	if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio)
+	{
+		html_media_element_js_init(c, new_obj, n);
+	}
 	if (!n->sgprivate->interact) GF_SAFEALLOC(n->sgprivate->interact, struct _node_interactive_ext);
 	if (!n->sgprivate->interact->js_binding) {
 		GF_SAFEALLOC(n->sgprivate->interact->js_binding, struct _node_js_binding);
@@ -562,25 +562,25 @@ static jsval dom_nodelist_construct(JSContext *c, GF_ParentNode *n)
 
 static DECL_FINALIZE(dom_nodelist_finalize)
 
-	DOMNodeList *nl;
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL) )
-		return;
+DOMNodeList *nl;
+if (!GF_JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL) )
+	return;
 
-	nl = (DOMNodeList *) SMJS_GET_PRIVATE(c, obj);
-	if (!nl) return;
+nl = (DOMNodeList *) SMJS_GET_PRIVATE(c, obj);
+if (!nl) return;
 
-	if (nl->owner) {
-		dom_unregister_node((GF_Node*)nl->owner);
-	} else {
-		/*unregister all nodes for created lists*/
-		while (nl->child) {
-			GF_ChildNodeItem *child = nl->child;
-			nl->child = child->next;
-			dom_unregister_node(child->node);
-			gf_free(child);
-		}
+if (nl->owner) {
+	dom_unregister_node((GF_Node*)nl->owner);
+} else {
+	/*unregister all nodes for created lists*/
+	while (nl->child) {
+		GF_ChildNodeItem *child = nl->child;
+		nl->child = child->next;
+		dom_unregister_node(child->node);
+		gf_free(child);
 	}
-	gf_free(nl);
+}
+gf_free(nl);
 }
 
 static JSBool SMJS_FUNCTION(dom_nodelist_item)
@@ -610,42 +610,42 @@ static JSBool SMJS_FUNCTION(dom_nodelist_item)
 
 static SMJS_FUNC_PROP_GET( dom_nodelist_getProperty)
 
-	DOMNodeList *nl;
-	u32			count;
-	s32			idx;
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL)) {
-		return JS_TRUE;
-	}
-	nl = (DOMNodeList *) SMJS_GET_PRIVATE(c, obj);
-	count = gf_node_list_get_count(nl->owner ? nl->owner->children : nl->child);
-
-	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
-
-	switch (SMJS_ID_TO_INT(id)) {
-	case NODELIST_JSPROPERTY_LENGTH:
-		*vp = INT_TO_JSVAL( count );
-		return JS_TRUE;
-	default:
-		idx = SMJS_ID_TO_INT(id);
-		if ((idx<0) || ((u32) idx>=count)) {
-			*vp = JSVAL_VOID;
-			return JS_TRUE;
-		} else {
-			GF_Node *n;
-			n = gf_node_list_get_child(nl->owner ? nl->owner->children : nl->child, idx);
-			*vp = dom_node_construct(c, n);
-			return JS_TRUE;
-		}
-	}
+DOMNodeList *nl;
+u32			count;
+s32			idx;
+if (!GF_JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL)) {
 	return JS_TRUE;
+}
+nl = (DOMNodeList *) SMJS_GET_PRIVATE(c, obj);
+count = gf_node_list_get_count(nl->owner ? nl->owner->children : nl->child);
+
+if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+
+switch (SMJS_ID_TO_INT(id)) {
+case NODELIST_JSPROPERTY_LENGTH:
+	*vp = INT_TO_JSVAL( count );
+	return JS_TRUE;
+default:
+	idx = SMJS_ID_TO_INT(id);
+	if ((idx<0) || ((u32) idx>=count)) {
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	} else {
+		GF_Node *n;
+		n = gf_node_list_get_child(nl->owner ? nl->owner->children : nl->child, idx);
+		*vp = dom_node_construct(c, n);
+		return JS_TRUE;
+	}
+}
+return JS_TRUE;
 }
 static SMJS_FUNC_PROP_SET_NOVP( dom_nodelist_setProperty)
 
-	/*avoids gcc warning*/
-	if (!obj) obj=NULL;
-	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
-	/*no write prop*/
-	return JS_TRUE;
+/*avoids gcc warning*/
+if (!obj) obj=NULL;
+if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+/*no write prop*/
+return JS_TRUE;
 }
 
 
@@ -672,8 +672,8 @@ static void dom_handler_remove(GF_Node *node, void *rs, Bool is_destroy)
 	}
 }
 
-static JSBool sg_js_get_event_target(JSContext *c, JSObject *obj, GF_EventType evtType, GF_Node *vrml_node, 
-									 GF_SceneGraph **sg, GF_DOMEventTarget **target, GF_Node **n)
+static JSBool sg_js_get_event_target(JSContext *c, JSObject *obj, GF_EventType evtType, GF_Node *vrml_node,
+                                     GF_SceneGraph **sg, GF_DOMEventTarget **target, GF_Node **n)
 {
 	Bool is_svg_document_class(JSContext *c, JSObject *obj);
 	Bool is_svg_element_class(JSContext *c, JSObject *obj);
@@ -686,14 +686,14 @@ static JSBool sg_js_get_event_target(JSContext *c, JSObject *obj, GF_EventType e
 		void gf_html_media_get_event_target(JSContext *c, JSObject *obj, GF_DOMEventTarget **target, GF_SceneGraph **sg);
 		gf_html_media_get_event_target(c, obj, target, sg);
 		if (*target && *sg) return JS_TRUE;
-	} 
-	
+	}
+
 	if (gf_dom_event_get_category(evtType) == GF_DOM_EVENT_MEDIASOURCE) {
 		void gf_mse_get_event_target(JSContext *c, JSObject *obj, GF_DOMEventTarget **target, GF_SceneGraph **sg);
 		gf_mse_get_event_target(c, obj, target, sg);
 		if (*target && *sg) return JS_TRUE;
-	} 
-	
+	}
+
 	if (GF_JS_InstanceOf(c, obj, &dom_rt->domDocumentClass, NULL) || is_svg_document_class(c, obj)) {
 		/*document interface*/
 		*sg = dom_get_doc(c, obj);
@@ -737,9 +737,9 @@ static JSBool sg_js_get_event_target(JSContext *c, JSObject *obj, GF_EventType e
 	return JS_TRUE;
 }
 
-static GF_Err sg_js_parse_event_args(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
-									 GF_EventType *evtType, 
-									 char **callback, jsval *funval, JSObject **evt_handler) {
+static GF_Err sg_js_parse_event_args(JSContext *c, JSObject *obj, uintN argc, jsval *argv,
+                                     GF_EventType *evtType,
+                                     char **callback, jsval *funval, JSObject **evt_handler) {
 	u32 offset = 0;
 	char *type = NULL;
 	char *inNS = NULL;
@@ -799,7 +799,7 @@ err_exit:
 }
 
 static GF_Node *create_listener(GF_SceneGraph *sg, GF_EventType evtType, GF_Node *n, GF_Node *vrml_node,
-								JSContext *c, char *callback, jsval funval, JSObject *evt_handler)
+                                JSContext *c, char *callback, jsval funval, JSObject *evt_handler)
 {
 	GF_FieldInfo info;
 	GF_Node *listener;
@@ -811,7 +811,7 @@ static GF_Node *create_listener(GF_SceneGraph *sg, GF_EventType evtType, GF_Node
 
 	/*!!! create the handler in the scene owning the script context !!! */
 	{
-		/* removed in harmonisation with XHR, was it really needed ? 
+		/* removed in harmonisation with XHR, was it really needed ?
 		GF_SceneGraph *sg = xml_get_scenegraph(c);
 		*/
 		handler = (SVG_handlerElement *) gf_node_new(sg, TAG_SVG_handler);
@@ -868,8 +868,8 @@ static GF_Node *create_listener(GF_SceneGraph *sg, GF_EventType evtType, GF_Node
 JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *vrml_node)
 {
 	GF_DOMEventTarget *target = NULL;
-	GF_Node *listener = NULL;	
-	GF_EventType evtType = GF_EVENT_UNKNOWN;	
+	GF_Node *listener = NULL;
+	GF_EventType evtType = GF_EVENT_UNKNOWN;
 	GF_SceneGraph *sg = NULL;
 	char *callback = NULL;
 	jsval funval = JSVAL_NULL;
@@ -885,7 +885,7 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *vrml_node)
 	if (e != GF_OK) goto err_exit;
 
 	/* First retrieve the scenegraph and the GF_DOMEventTarget object */
-	sg_js_get_event_target(c, obj, evtType, vrml_node, &sg, &target, &n);	
+	sg_js_get_event_target(c, obj, evtType, vrml_node, &sg, &target, &n);
 	if (!sg || !target) goto err_exit;
 
 	listener = create_listener(sg, evtType, n, vrml_node, c, callback, funval, evt_handler);
@@ -899,8 +899,8 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *vrml_node)
 	}
 
 err_exit:
-   if (callback) SMJS_FREE(c, callback);
-   return JS_TRUE;
+	if (callback) SMJS_FREE(c, callback);
+	return JS_TRUE;
 }
 
 
@@ -928,7 +928,7 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node)
 	if (e != GF_OK) goto err_exit;
 
 	/* First retrieve the scenegraph and the GF_DOMEventTarget object */
-	sg_js_get_event_target(c, obj, evtType, vrml_node, &sg, &target, &node);	
+	sg_js_get_event_target(c, obj, evtType, vrml_node, &sg, &target, &node);
 	if (!sg || !target) return JS_TRUE;
 
 	/*flush all pending add_listener*/
@@ -951,9 +951,9 @@ JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node)
 		if (!hdl) continue;
 		if (! JSVAL_IS_NULL(funval) ) {
 #if (JS_VERSION>=185)
-            JSBool res = JS_FALSE;
-            if (! JS_StrictlyEqual(c, funval, *(jsval *)&hdl->js_fun_val, &res)) 
-                continue;
+			JSBool res = JS_FALSE;
+			if (! JS_StrictlyEqual(c, funval, *(jsval *)&hdl->js_fun_val, &res))
+				continue;
 #else
 			if (funval != *(jsval *)&hdl->js_fun_val) continue;
 #endif
@@ -984,16 +984,16 @@ JSBool SMJS_FUNCTION(dom_event_remove_listener)
 /*dom3 node*/
 static DECL_FINALIZE( dom_node_finalize)
 
-	GF_Node *n = (GF_Node *) SMJS_GET_PRIVATE(c, obj);
-	/*the JS proto of the svgClass or a destroyed object*/
-	if (!n) return;
-	if (!n->sgprivate) return;
+GF_Node *n = (GF_Node *) SMJS_GET_PRIVATE(c, obj);
+/*the JS proto of the svgClass or a destroyed object*/
+if (!n) return;
+if (!n->sgprivate) return;
 
-	SMJS_SET_PRIVATE(c, obj, NULL);
-	gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
+SMJS_SET_PRIVATE(c, obj, NULL);
+gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
 
-	dom_js_pre_destroy(c, n->sgprivate->scenegraph, n);
-	dom_unregister_node(n);
+dom_js_pre_destroy(c, n->sgprivate->scenegraph, n);
+dom_unregister_node(n);
 }
 
 static Bool check_dom_parents(JSContext *c, GF_Node *n, GF_Node *parent)
@@ -1056,7 +1056,7 @@ static void dom_node_inserted(JSContext *c, GF_Node *n, GF_Node *parent, s32 pos
 			gf_dom_listener_build_ex(parent, 0, 0, n, NULL);
 		}
 		gf_node_init(n);
-		
+
 
 #ifndef GPAC_DISABLE_SVG
 		if (n->sgprivate->interact && n->sgprivate->interact->dom_evt) {
@@ -1200,7 +1200,7 @@ static JSBool SMJS_FUNCTION(xml_node_remove_child)
 	tag = gf_node_get_tag(n);
 	if (tag==TAG_DOMText) return JS_TRUE;
 	par = (GF_ParentNode*)n;
-	
+
 	/*if node is present in parent, unregister*/
 	if (gf_node_list_del_child(&par->children, old_node)) {
 		gf_node_unregister(old_node, n);
@@ -1333,173 +1333,173 @@ static u32 get_namespace_code_by_prefix(GF_Node *node, char *prefix)
 
 static SMJS_FUNC_PROP_GET( dom_node_getProperty)
 
-	u32 tag;
-	GF_Node *n;
-	GF_SceneGraph *sg = NULL;
-	GF_ParentNode *par;
+u32 tag;
+GF_Node *n;
+GF_SceneGraph *sg = NULL;
+GF_ParentNode *par;
 
-	n = dom_get_node(c, obj);
-	if (!n) {
-		sg = dom_get_doc(c, obj);
-		if (!sg) return JS_TRUE;
+n = dom_get_node(c, obj);
+if (!n) {
+	sg = dom_get_doc(c, obj);
+	if (!sg) return JS_TRUE;
+}
+
+/*not supported*/
+if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+
+tag = n ? gf_node_get_tag(n) : 0;
+par = (GF_ParentNode*)n;
+
+switch (SMJS_ID_TO_INT(id)) {
+case NODE_JSPROPERTY_NODENAME:
+	if (sg) {
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#document") );
 	}
-
-	/*not supported*/
-	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
-
-	tag = n ? gf_node_get_tag(n) : 0;
-	par = (GF_ParentNode*)n;
-
-	switch (SMJS_ID_TO_INT(id)) {
-	case NODE_JSPROPERTY_NODENAME:
-		if (sg) {
-			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#document") );
-		}
-		else if (tag==TAG_DOMText) {
-			GF_DOMText *txt = (GF_DOMText *)n;
-			if (txt->type==GF_DOM_TEXT_CDATA) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#cdata-section") );
-			else *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#text") );
-		}
-		else {
-			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_node_get_class_name(n) ) );
-		}
-		return JS_TRUE;
-	case NODE_JSPROPERTY_NODEVALUE:
-		*vp = JSVAL_VOID;
-		if (tag==TAG_DOMText) {
-			GF_DOMText *txt = (GF_DOMText *)n;
-			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, txt->textContent) );
-		}
-		return JS_TRUE;
-	case NODE_JSPROPERTY_NODETYPE:
-		if (sg) *vp = INT_TO_JSVAL(9);
-		else if (tag==TAG_DOMText) {
-			GF_DOMText *txt = (GF_DOMText *)n;
-			if (txt->type==GF_DOM_TEXT_CDATA) *vp = INT_TO_JSVAL(4);
-			else *vp = INT_TO_JSVAL(3);
-		}
-		else *vp = INT_TO_JSVAL(1);
-		return JS_TRUE;
-	case NODE_JSPROPERTY_PARENTNODE:
-		if (sg) {
-			*vp = JSVAL_NULL;
-		}
-		/*if root node of the tree, the parentNode is the document*/
-		else if (n->sgprivate->scenegraph->RootNode==n) {
-			*vp = dom_document_construct(c, n->sgprivate->scenegraph);
-		} else {
-			*vp = dom_node_construct(c, gf_node_get_parent(n, 0) );
-		}
-		return JS_TRUE;
-	case NODE_JSPROPERTY_CHILDNODES:
-		/*NOT SUPPORTED YET*/
-		if (sg) *vp = JSVAL_VOID;
-		else if (tag==TAG_DOMText) *vp = JSVAL_NULL;
-		else *vp = dom_nodelist_construct(c, par);
-		return JS_TRUE;
-	case NODE_JSPROPERTY_FIRSTCHILD:
-		if (sg) *vp = dom_node_construct(c, sg->RootNode);
-		else if (tag==TAG_DOMText) *vp = JSVAL_NULL;
-		else if (!par->children) {
-			*vp = JSVAL_NULL;
-		}
-		else *vp = dom_node_construct(c, par->children->node);
-		return JS_TRUE;
-	case NODE_JSPROPERTY_LASTCHILD:
-		if (sg) *vp = dom_node_construct(c, sg->RootNode);
-		else if ((tag==TAG_DOMText) || !par->children) *vp = JSVAL_VOID;
-		else *vp = dom_node_construct(c, gf_node_list_get_child(par->children, -1) );
-		return JS_TRUE;
-	case NODE_JSPROPERTY_PREVIOUSSIBLING:
-		/*works for doc as well since n is NULL*/
-		*vp = dom_node_get_sibling(c, n, GF_TRUE, GF_FALSE);
-		return JS_TRUE;
-	case NODE_JSPROPERTY_NEXTSIBLING:
-		*vp = dom_node_get_sibling(c, n, GF_FALSE, GF_FALSE);
-		return JS_TRUE;
-	case NODE_JSPROPERTY_ATTRIBUTES:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	case NODE_JSPROPERTY_OWNERDOCUMENT:
-		if (sg) *vp = JSVAL_NULL;
-		else *vp = dom_document_construct(c, n->sgprivate->scenegraph);
-		return JS_TRUE;
-	case NODE_JSPROPERTY_NAMESPACEURI:
-		*vp = JSVAL_NULL;
-		if (!sg) {
-			tag = gf_xml_get_element_namespace(n);
-			if (tag) {
-				const char *xmlns = gf_sg_get_namespace(n->sgprivate->scenegraph, tag);
-				if (!xmlns) xmlns = node_lookup_namespace_by_tag(n, tag);
-				*vp = xmlns ? STRING_TO_JSVAL( JS_NewStringCopyZ(c, xmlns) ) : JSVAL_VOID;
-			}
-		}
-		return JS_TRUE;
-	case NODE_JSPROPERTY_PREFIX:
-		if (sg) tag = gf_sg_get_namespace_code(sg, NULL);
-		else tag = gf_xml_get_element_namespace(n);
-		*vp = JSVAL_NULL;
-		if (tag) {
-			char *xmlns = (char *)gf_sg_get_namespace_qname(sg ? sg : n->sgprivate->scenegraph, tag);
-			if (xmlns) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, xmlns) );
-		}
-		return JS_TRUE;
-	case NODE_JSPROPERTY_LOCALNAME:
-		*vp = JSVAL_NULL;
-		if (!sg && (tag!=TAG_DOMText)) {
-			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, node_get_local_name(n) ) );
-		}
-		return JS_TRUE;
-	case NODE_JSPROPERTY_BASEURI:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_NULL;
-		return JS_TRUE;
-	case NODE_JSPROPERTY_TEXTCONTENT:
-		*vp = JSVAL_VOID;
-		if (!sg)  {
-			char *res = gf_dom_flatten_textContent(n);
-			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) );
-			gf_free(res);
-		}
-		return JS_TRUE;
-	case NODE_JSPROPERTY_FIRSTELEMENTCHILD:
-		*vp = JSVAL_NULL;
-		if (n->sgprivate->tag!=TAG_DOMText) {
-			GF_ChildNodeItem *child = ((GF_ParentNode*)n)->children;
-			while (child) {
-				if (child->node->sgprivate->tag != TAG_DOMText) {
-					*vp = dom_element_construct(c, child->node);
-					break;
-				}
-				child = child->next;
-			}
-		}
-		return JS_TRUE;
-	case NODE_JSPROPERTY_LASTELEMENTCHILD:
-		*vp = JSVAL_NULL;
-		if (n->sgprivate->tag!=TAG_DOMText) {
-			GF_Node *last = NULL;
-			GF_ChildNodeItem *child = ((GF_ParentNode*)n)->children;
-			while (child) {
-				if (child->node->sgprivate->tag != TAG_DOMText) {
-					last = child->node;
-				}
-				child = child->next;
-			}
-			if (last) *vp = dom_element_construct(c, last);
-		}
-		return JS_TRUE;
-	case NODE_JSPROPERTY_PREVIOUSELEMENTSIBLING:
-		*vp = dom_node_get_sibling(c, n, GF_TRUE, GF_TRUE);
-		return JS_TRUE;
-	case NODE_JSPROPERTY_NEXTELEMENTSIBLING:
-		*vp = dom_node_get_sibling(c, n, GF_FALSE, GF_TRUE);
-		return JS_TRUE;
-
+	else if (tag==TAG_DOMText) {
+		GF_DOMText *txt = (GF_DOMText *)n;
+		if (txt->type==GF_DOM_TEXT_CDATA) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#cdata-section") );
+		else *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "#text") );
 	}
-	/*not supported*/
+	else {
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_node_get_class_name(n) ) );
+	}
 	return JS_TRUE;
+case NODE_JSPROPERTY_NODEVALUE:
+	*vp = JSVAL_VOID;
+	if (tag==TAG_DOMText) {
+		GF_DOMText *txt = (GF_DOMText *)n;
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, txt->textContent) );
+	}
+	return JS_TRUE;
+case NODE_JSPROPERTY_NODETYPE:
+	if (sg) *vp = INT_TO_JSVAL(9);
+	else if (tag==TAG_DOMText) {
+		GF_DOMText *txt = (GF_DOMText *)n;
+		if (txt->type==GF_DOM_TEXT_CDATA) *vp = INT_TO_JSVAL(4);
+		else *vp = INT_TO_JSVAL(3);
+	}
+	else *vp = INT_TO_JSVAL(1);
+	return JS_TRUE;
+case NODE_JSPROPERTY_PARENTNODE:
+	if (sg) {
+		*vp = JSVAL_NULL;
+	}
+	/*if root node of the tree, the parentNode is the document*/
+	else if (n->sgprivate->scenegraph->RootNode==n) {
+		*vp = dom_document_construct(c, n->sgprivate->scenegraph);
+	} else {
+		*vp = dom_node_construct(c, gf_node_get_parent(n, 0) );
+	}
+	return JS_TRUE;
+case NODE_JSPROPERTY_CHILDNODES:
+	/*NOT SUPPORTED YET*/
+	if (sg) *vp = JSVAL_VOID;
+	else if (tag==TAG_DOMText) *vp = JSVAL_NULL;
+	else *vp = dom_nodelist_construct(c, par);
+	return JS_TRUE;
+case NODE_JSPROPERTY_FIRSTCHILD:
+	if (sg) *vp = dom_node_construct(c, sg->RootNode);
+	else if (tag==TAG_DOMText) *vp = JSVAL_NULL;
+	else if (!par->children) {
+		*vp = JSVAL_NULL;
+	}
+	else *vp = dom_node_construct(c, par->children->node);
+	return JS_TRUE;
+case NODE_JSPROPERTY_LASTCHILD:
+	if (sg) *vp = dom_node_construct(c, sg->RootNode);
+	else if ((tag==TAG_DOMText) || !par->children) *vp = JSVAL_VOID;
+	else *vp = dom_node_construct(c, gf_node_list_get_child(par->children, -1) );
+	return JS_TRUE;
+case NODE_JSPROPERTY_PREVIOUSSIBLING:
+	/*works for doc as well since n is NULL*/
+	*vp = dom_node_get_sibling(c, n, GF_TRUE, GF_FALSE);
+	return JS_TRUE;
+case NODE_JSPROPERTY_NEXTSIBLING:
+	*vp = dom_node_get_sibling(c, n, GF_FALSE, GF_FALSE);
+	return JS_TRUE;
+case NODE_JSPROPERTY_ATTRIBUTES:
+	/*NOT SUPPORTED YET*/
+	*vp = JSVAL_VOID;
+	return JS_TRUE;
+case NODE_JSPROPERTY_OWNERDOCUMENT:
+	if (sg) *vp = JSVAL_NULL;
+	else *vp = dom_document_construct(c, n->sgprivate->scenegraph);
+	return JS_TRUE;
+case NODE_JSPROPERTY_NAMESPACEURI:
+	*vp = JSVAL_NULL;
+	if (!sg) {
+		tag = gf_xml_get_element_namespace(n);
+		if (tag) {
+			const char *xmlns = gf_sg_get_namespace(n->sgprivate->scenegraph, tag);
+			if (!xmlns) xmlns = node_lookup_namespace_by_tag(n, tag);
+			*vp = xmlns ? STRING_TO_JSVAL( JS_NewStringCopyZ(c, xmlns) ) : JSVAL_VOID;
+		}
+	}
+	return JS_TRUE;
+case NODE_JSPROPERTY_PREFIX:
+	if (sg) tag = gf_sg_get_namespace_code(sg, NULL);
+	else tag = gf_xml_get_element_namespace(n);
+	*vp = JSVAL_NULL;
+	if (tag) {
+		char *xmlns = (char *)gf_sg_get_namespace_qname(sg ? sg : n->sgprivate->scenegraph, tag);
+		if (xmlns) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, xmlns) );
+	}
+	return JS_TRUE;
+case NODE_JSPROPERTY_LOCALNAME:
+	*vp = JSVAL_NULL;
+	if (!sg && (tag!=TAG_DOMText)) {
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, node_get_local_name(n) ) );
+	}
+	return JS_TRUE;
+case NODE_JSPROPERTY_BASEURI:
+	/*NOT SUPPORTED YET*/
+	*vp = JSVAL_NULL;
+	return JS_TRUE;
+case NODE_JSPROPERTY_TEXTCONTENT:
+	*vp = JSVAL_VOID;
+	if (!sg)  {
+		char *res = gf_dom_flatten_textContent(n);
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) );
+		gf_free(res);
+	}
+	return JS_TRUE;
+case NODE_JSPROPERTY_FIRSTELEMENTCHILD:
+	*vp = JSVAL_NULL;
+	if (n->sgprivate->tag!=TAG_DOMText) {
+		GF_ChildNodeItem *child = ((GF_ParentNode*)n)->children;
+		while (child) {
+			if (child->node->sgprivate->tag != TAG_DOMText) {
+				*vp = dom_element_construct(c, child->node);
+				break;
+			}
+			child = child->next;
+		}
+	}
+	return JS_TRUE;
+case NODE_JSPROPERTY_LASTELEMENTCHILD:
+	*vp = JSVAL_NULL;
+	if (n->sgprivate->tag!=TAG_DOMText) {
+		GF_Node *last = NULL;
+		GF_ChildNodeItem *child = ((GF_ParentNode*)n)->children;
+		while (child) {
+			if (child->node->sgprivate->tag != TAG_DOMText) {
+				last = child->node;
+			}
+			child = child->next;
+		}
+		if (last) *vp = dom_element_construct(c, last);
+	}
+	return JS_TRUE;
+case NODE_JSPROPERTY_PREVIOUSELEMENTSIBLING:
+	*vp = dom_node_get_sibling(c, n, GF_TRUE, GF_TRUE);
+	return JS_TRUE;
+case NODE_JSPROPERTY_NEXTELEMENTSIBLING:
+	*vp = dom_node_get_sibling(c, n, GF_FALSE, GF_TRUE);
+	return JS_TRUE;
+
+}
+/*not supported*/
+return JS_TRUE;
 }
 
 void dom_node_set_textContent(GF_Node *n, char *text)
@@ -1515,41 +1515,41 @@ void dom_node_set_textContent(GF_Node *n, char *text)
 
 static SMJS_FUNC_PROP_SET( dom_node_setProperty)
 
-	u32 tag;
-	GF_Node *n;
+u32 tag;
+GF_Node *n;
 
-	n = dom_get_node(c, obj);
-	/*note an element - we don't support property setting on document yet*/
-	if (!n) return JS_TRUE;
+n = dom_get_node(c, obj);
+/*note an element - we don't support property setting on document yet*/
+if (!n) return JS_TRUE;
 
-	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
-	tag = n ? gf_node_get_tag(n) : 0;
+tag = n ? gf_node_get_tag(n) : 0;
 
-	switch (SMJS_ID_TO_INT(id)) {
-	case NODE_JSPROPERTY_NODEVALUE:
-		if ((tag==TAG_DOMText) && JSVAL_CHECK_STRING(*vp)) {
-			GF_DOMText *txt = (GF_DOMText *)n;
-			if (txt->textContent) gf_free(txt->textContent);
-			txt->textContent = js_get_utf8(c, *vp);
-			dom_node_changed(n, GF_TRUE, NULL);
-		}
-		/*we only support element and sg in the Node interface, no set*/
-		return JS_TRUE;
-	case NODE_JSPROPERTY_PREFIX:
-		/*NOT SUPPORTED YET*/
-		return JS_TRUE;
-	case NODE_JSPROPERTY_TEXTCONTENT:
-	{
-		char *txt;
-		txt = js_get_utf8(c, *vp);
-		dom_node_set_textContent(n, txt);
-		if (txt) gf_free(txt);
+switch (SMJS_ID_TO_INT(id)) {
+case NODE_JSPROPERTY_NODEVALUE:
+	if ((tag==TAG_DOMText) && JSVAL_CHECK_STRING(*vp)) {
+		GF_DOMText *txt = (GF_DOMText *)n;
+		if (txt->textContent) gf_free(txt->textContent);
+		txt->textContent = js_get_utf8(c, *vp);
+		dom_node_changed(n, GF_TRUE, NULL);
 	}
-		return JS_TRUE;
-	}
-	/*not supported*/
+	/*we only support element and sg in the Node interface, no set*/
 	return JS_TRUE;
+case NODE_JSPROPERTY_PREFIX:
+	/*NOT SUPPORTED YET*/
+	return JS_TRUE;
+case NODE_JSPROPERTY_TEXTCONTENT:
+{
+	char *txt;
+	txt = js_get_utf8(c, *vp);
+	dom_node_set_textContent(n, txt);
+	if (txt) gf_free(txt);
+}
+return JS_TRUE;
+}
+/*not supported*/
+return JS_TRUE;
 }
 
 
@@ -1559,87 +1559,87 @@ static SMJS_FUNC_PROP_SET( dom_node_setProperty)
 fortunately a sg cannot be created like that...*/
 DECL_FINALIZE(dom_document_finalize)
 
-	GF_SceneGraph *sg = dom_get_doc(c, obj);
+GF_SceneGraph *sg = dom_get_doc(c, obj);
 
-	sg = (GF_SceneGraph*) SMJS_GET_PRIVATE(c, obj);
-	/*the JS proto of the svgClass or a destroyed object*/
-	if (!sg) return;
+sg = (GF_SceneGraph*) SMJS_GET_PRIVATE(c, obj);
+/*the JS proto of the svgClass or a destroyed object*/
+if (!sg) return;
 
-	SMJS_SET_PRIVATE(c, sg->document, NULL);
-	sg->document = NULL;
-	if (sg->RootNode) {
-		gf_node_unregister(sg->RootNode, NULL);
-		if (sg->reference_count) {
-			sg->reference_count--;
-			if (!sg->reference_count)
-				gf_sg_del(sg);
-		}
+SMJS_SET_PRIVATE(c, sg->document, NULL);
+sg->document = NULL;
+if (sg->RootNode) {
+	gf_node_unregister(sg->RootNode, NULL);
+	if (sg->reference_count) {
+		sg->reference_count--;
+		if (!sg->reference_count)
+			gf_sg_del(sg);
 	}
+}
 }
 
 static SMJS_FUNC_PROP_GET( dom_document_getProperty )
 
-	u32 prop_id;
-	GF_SceneGraph *sg = dom_get_doc(c, obj);
-	if (!sg) return JS_TRUE;
+u32 prop_id;
+GF_SceneGraph *sg = dom_get_doc(c, obj);
+if (!sg) return JS_TRUE;
 
-	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
-	prop_id = SMJS_ID_TO_INT(id);
+if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+prop_id = SMJS_ID_TO_INT(id);
 
-	switch (prop_id) {
-	case DOCUMENT_JSPROPERTY_IMPLEMENTATION:
-		/*FIXME, this is wrong, we should have our own implementation
-		but at the current time we rely on the global object to provide it*/
-		*vp = OBJECT_TO_JSVAL( JS_GetGlobalObject(c) );
-		return JS_TRUE;
-	case DOCUMENT_JSPROPERTY_DOCUMENTELEMENT:
-		*vp = dom_element_construct(c, sg->RootNode);
-		return JS_TRUE;
-	case DOCUMENT_JSPROPERTY_GLOBAL:
-		*vp = OBJECT_TO_JSVAL( JS_GetGlobalObject(c) );
-		return JS_TRUE;
+switch (prop_id) {
+case DOCUMENT_JSPROPERTY_IMPLEMENTATION:
+	/*FIXME, this is wrong, we should have our own implementation
+	but at the current time we rely on the global object to provide it*/
+	*vp = OBJECT_TO_JSVAL( JS_GetGlobalObject(c) );
+	return JS_TRUE;
+case DOCUMENT_JSPROPERTY_DOCUMENTELEMENT:
+	*vp = dom_element_construct(c, sg->RootNode);
+	return JS_TRUE;
+case DOCUMENT_JSPROPERTY_GLOBAL:
+	*vp = OBJECT_TO_JSVAL( JS_GetGlobalObject(c) );
+	return JS_TRUE;
 
 	/*NOT SUPPORTED YET*/
 
-	case DOCUMENT_JSPROPERTY_DOCTYPE:
-	case DOCUMENT_JSPROPERTY_INPUTENCODING:
-	case DOCUMENT_JSPROPERTY_XMLENCODING:
-	case DOCUMENT_JSPROPERTY_XMLSTANDALONE:
-	case DOCUMENT_JSPROPERTY_XMLVERSION:
-	case DOCUMENT_JSPROPERTY_STRICTERRORCHECKING:
-	case DOCUMENT_JSPROPERTY_DOCUMENTURI:
-	case DOCUMENT_JSPROPERTY_LOCATION: 
-	case DOCUMENT_JSPROPERTY_DOMCONFIG: 
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	}
+case DOCUMENT_JSPROPERTY_DOCTYPE:
+case DOCUMENT_JSPROPERTY_INPUTENCODING:
+case DOCUMENT_JSPROPERTY_XMLENCODING:
+case DOCUMENT_JSPROPERTY_XMLSTANDALONE:
+case DOCUMENT_JSPROPERTY_XMLVERSION:
+case DOCUMENT_JSPROPERTY_STRICTERRORCHECKING:
+case DOCUMENT_JSPROPERTY_DOCUMENTURI:
+case DOCUMENT_JSPROPERTY_LOCATION:
+case DOCUMENT_JSPROPERTY_DOMCONFIG:
+	*vp = JSVAL_VOID;
 	return JS_TRUE;
+}
+return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_SET_NOVP(dom_document_setProperty)
 
-	u32 prop_id;
-	GF_SceneGraph *sg = dom_get_doc(c, obj);
-	if (!sg) return JS_TRUE;
+u32 prop_id;
+GF_SceneGraph *sg = dom_get_doc(c, obj);
+if (!sg) return JS_TRUE;
 
-	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
-	prop_id = SMJS_ID_TO_INT(id);
+if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+prop_id = SMJS_ID_TO_INT(id);
 
-	switch (prop_id) {
-	case DOCUMENT_JSPROPERTY_XMLSTANDALONE:
-		break;
-	case DOCUMENT_JSPROPERTY_XMLVERSION:
-		break;
-	case DOCUMENT_JSPROPERTY_STRICTERRORCHECKING:
-		break;
-	case DOCUMENT_JSPROPERTY_DOCUMENTURI:
-		break;
-	case DOCUMENT_JSPROPERTY_DOMCONFIG:
-		break;
+switch (prop_id) {
+case DOCUMENT_JSPROPERTY_XMLSTANDALONE:
+	break;
+case DOCUMENT_JSPROPERTY_XMLVERSION:
+	break;
+case DOCUMENT_JSPROPERTY_STRICTERRORCHECKING:
+	break;
+case DOCUMENT_JSPROPERTY_DOCUMENTURI:
+	break;
+case DOCUMENT_JSPROPERTY_DOMCONFIG:
+	break;
 
 	/*the rest is read-only*/
-	}
-	return JS_TRUE;
+}
+return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(xml_document_create_element)
@@ -1792,27 +1792,27 @@ static JSBool SMJS_FUNCTION(xml_document_element_by_id)
 /*dom3 element*/
 DECL_FINALIZE( dom_element_finalize)
 
-	dom_node_finalize(c, obj);
+dom_node_finalize(c, obj);
 }
 
-static SMJS_FUNC_PROP_GET( dom_element_getProperty) 
+static SMJS_FUNC_PROP_GET( dom_element_getProperty)
 
-	u32 prop_id;
-	GF_Node *n = dom_get_node(c, obj);
-	if (!n) return JS_TRUE;
+u32 prop_id;
+GF_Node *n = dom_get_node(c, obj);
+if (!n) return JS_TRUE;
 
-	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
-	prop_id = SMJS_ID_TO_INT(id);
-	switch (prop_id) {
-	case ELEMENT_JSPROPERTY_TAGNAME:
-		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_node_get_class_name(n) ) );
-		return JS_TRUE;
-	case ELEMENT_JSPROPERTY_SCHEMATYPEINFO:
-		/*NOT SUPPORTED YET*/
-		*vp = JSVAL_VOID;
-		return JS_TRUE;
-	}
+if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+prop_id = SMJS_ID_TO_INT(id);
+switch (prop_id) {
+case ELEMENT_JSPROPERTY_TAGNAME:
+	*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_node_get_class_name(n) ) );
 	return JS_TRUE;
+case ELEMENT_JSPROPERTY_SCHEMATYPEINFO:
+	/*NOT SUPPORTED YET*/
+	*vp = JSVAL_VOID;
+	return JS_TRUE;
+}
+return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(xml_element_get_attribute)
@@ -2009,7 +2009,7 @@ static void gf_dom_add_handler_listener(GF_Node *n, u32 evtType, char *handlerCo
 	/*check if we're modifying an existing listener*/
 	SVG_handlerElement *handler;
 	u32 i, count = gf_dom_listener_count(n);
-	for (i=0;i<count; i++) {
+	for (i=0; i<count; i++) {
 		GF_FieldInfo info;
 		GF_DOMText *text;
 		GF_Node *listen = gf_dom_listener_get(n, i);
@@ -2017,7 +2017,7 @@ static void gf_dom_add_handler_listener(GF_Node *n, u32 evtType, char *handlerCo
 		gf_node_get_attribute_by_tag(listen, TAG_XMLEV_ATT_event, GF_FALSE, GF_FALSE, &info);
 		if (!info.far_ptr || (((XMLEV_Event*)info.far_ptr)->type != evtType)) continue;
 
-		/* found a listener for this event, override the handler 
+		/* found a listener for this event, override the handler
 		TODO: FIX this, there may be a listener/handler already set with JS, why overriding ? */
 		gf_node_get_attribute_by_tag(listen, TAG_XMLEV_ATT_handler, GF_FALSE, GF_FALSE, &info);
 		assert(info.far_ptr);
@@ -2067,7 +2067,7 @@ void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val)
 		if (gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_attributeName, GF_FALSE, GF_FALSE, &info) == GF_OK) {
 			SMIL_AttributeName *attname = (SMIL_AttributeName *)info.far_ptr;
 
-			/*parse the attribute name even if the target is not found, because a namespace could be specified and 
+			/*parse the attribute name even if the target is not found, because a namespace could be specified and
 			only valid for the current node*/
 			if (!attname->type) {
 				char *sep;
@@ -2092,12 +2092,24 @@ void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val)
 		}
 
 		switch(*(SVG_TransformType *) info.far_ptr) {
-		case SVG_TRANSFORM_TRANSLATE: anim_value_type = SVG_Transform_Translate_datatype; break;
-		case SVG_TRANSFORM_SCALE: anim_value_type = SVG_Transform_Scale_datatype; break;
-		case SVG_TRANSFORM_ROTATE: anim_value_type = SVG_Transform_Rotate_datatype; break;
-		case SVG_TRANSFORM_SKEWX: anim_value_type = SVG_Transform_SkewX_datatype; break;
-		case SVG_TRANSFORM_SKEWY: anim_value_type = SVG_Transform_SkewY_datatype; break;
-		case SVG_TRANSFORM_MATRIX: anim_value_type = SVG_Transform_datatype; break;
+		case SVG_TRANSFORM_TRANSLATE:
+			anim_value_type = SVG_Transform_Translate_datatype;
+			break;
+		case SVG_TRANSFORM_SCALE:
+			anim_value_type = SVG_Transform_Scale_datatype;
+			break;
+		case SVG_TRANSFORM_ROTATE:
+			anim_value_type = SVG_Transform_Rotate_datatype;
+			break;
+		case SVG_TRANSFORM_SKEWX:
+			anim_value_type = SVG_Transform_SkewX_datatype;
+			break;
+		case SVG_TRANSFORM_SKEWY:
+			anim_value_type = SVG_Transform_SkewY_datatype;
+			break;
+		case SVG_TRANSFORM_MATRIX:
+			anim_value_type = SVG_Transform_datatype;
+			break;
 		default:
 			return;
 		}
@@ -2112,7 +2124,7 @@ void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val)
 				GF_LOG(GF_LOG_WARNING, GF_LOG_SCRIPT, ("Cannot retrieve attribute 'attributeName'\n"));
 				return;
 			}
-		
+
 			attname = (SMIL_AttributeName *)attType.far_ptr;
 			if (!attname->type && attname->name) {
 				GF_Node *anim_target = gf_smil_anim_get_target(n);
@@ -2165,7 +2177,7 @@ JSBool SMJS_FUNCTION(xml_element_set_attribute)
 	if (!n) return JS_TRUE;
 	if ((argc < 2)) return JS_TRUE;
 
-	if (!JSVAL_CHECK_STRING(argv[0])) 
+	if (!JSVAL_CHECK_STRING(argv[0]))
 		return JS_TRUE;
 
 	idx = 1;
@@ -2173,7 +2185,7 @@ JSBool SMJS_FUNCTION(xml_element_set_attribute)
 	/*NS version*/
 	if (argc==3) {
 		char *sep;
-		if (!JSVAL_CHECK_STRING(argv[1])) 
+		if (!JSVAL_CHECK_STRING(argv[1]))
 			return JS_TRUE;
 		ns = js_get_utf8(c, argv[0]);
 		gf_sg_add_namespace(n->sgprivate->scenegraph, ns, NULL);
@@ -2204,7 +2216,7 @@ JSBool SMJS_FUNCTION(xml_element_set_attribute)
 	} else {
 		goto exit;
 	}
-	if (!name || !val) 
+	if (!name || !val)
 		goto exit;
 
 
@@ -2265,7 +2277,7 @@ static JSBool SMJS_FUNCTION(xml_element_elements_by_tag)
 	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, new_obj, nl);
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(new_obj) );
-	
+
 	SMJS_FREE(c, name);
 	return JS_TRUE;
 }
@@ -2310,53 +2322,53 @@ static JSBool SMJS_FUNCTION(xml_element_set_id)
 
 /*dom3 character/text/comment*/
 
-static SMJS_FUNC_PROP_GET( dom_text_getProperty) 
+static SMJS_FUNC_PROP_GET( dom_text_getProperty)
 
-	u32 prop_id;
-	GF_DOMText *txt = (GF_DOMText*)dom_get_node(c, obj);
-	if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return JS_TRUE;
-	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
-	prop_id = SMJS_ID_TO_INT(id);
+u32 prop_id;
+GF_DOMText *txt = (GF_DOMText*)dom_get_node(c, obj);
+if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return JS_TRUE;
+if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+prop_id = SMJS_ID_TO_INT(id);
 
-	switch (prop_id) {
-	case TEXT_JSPROPERTY_DATA:
-		if (txt->textContent) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, txt->textContent ) );
-		else *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "") );
-		return JS_TRUE;
-	case TEXT_JSPROPERTY_LENGTH:
-		*vp = INT_TO_JSVAL(txt->textContent ? strlen(txt->textContent) : 0);
-		return JS_TRUE;
-	case TEXT_JSPROPERTY_ISELEMENTCONTENTWHITESPACE:
-		*vp = BOOLEAN_TO_JSVAL(JS_FALSE);
-		return JS_TRUE;
-	case TEXT_JSPROPERTY_WHOLETEXT:
-		/*FIXME - this is wrong*/
-		*vp = INT_TO_JSVAL(txt->textContent ? strlen(txt->textContent) : 0);
-		return JS_TRUE;
-	}
+switch (prop_id) {
+case TEXT_JSPROPERTY_DATA:
+	if (txt->textContent) *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, txt->textContent ) );
+	else *vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "") );
 	return JS_TRUE;
+case TEXT_JSPROPERTY_LENGTH:
+	*vp = INT_TO_JSVAL(txt->textContent ? strlen(txt->textContent) : 0);
+	return JS_TRUE;
+case TEXT_JSPROPERTY_ISELEMENTCONTENTWHITESPACE:
+	*vp = BOOLEAN_TO_JSVAL(JS_FALSE);
+	return JS_TRUE;
+case TEXT_JSPROPERTY_WHOLETEXT:
+	/*FIXME - this is wrong*/
+	*vp = INT_TO_JSVAL(txt->textContent ? strlen(txt->textContent) : 0);
+	return JS_TRUE;
+}
+return JS_TRUE;
 }
 static SMJS_FUNC_PROP_SET( dom_text_setProperty)
 
-	u32 prop_id;
-	GF_DOMText *txt = (GF_DOMText*)dom_get_node(c, obj);
-	if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return JS_TRUE;
-	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
-	prop_id = SMJS_ID_TO_INT(id);
+u32 prop_id;
+GF_DOMText *txt = (GF_DOMText*)dom_get_node(c, obj);
+if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return JS_TRUE;
+if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+prop_id = SMJS_ID_TO_INT(id);
 
-	switch (prop_id) {
-	case TEXT_JSPROPERTY_DATA:
-		if (txt->textContent) gf_free(txt->textContent);
-		txt->textContent = NULL;
-		if (JSVAL_CHECK_STRING(*vp)) {
-			char *str = js_get_utf8(c, *vp);
-			txt->textContent = str ? str : gf_strdup("" );
-		}
-		dom_node_changed((GF_Node*)txt, GF_FALSE, NULL);
-		return JS_TRUE;
-	/*the rest is read-only*/
+switch (prop_id) {
+case TEXT_JSPROPERTY_DATA:
+	if (txt->textContent) gf_free(txt->textContent);
+	txt->textContent = NULL;
+	if (JSVAL_CHECK_STRING(*vp)) {
+		char *str = js_get_utf8(c, *vp);
+		txt->textContent = str ? str : gf_strdup("" );
 	}
+	dom_node_changed((GF_Node*)txt, GF_FALSE, NULL);
 	return JS_TRUE;
+	/*the rest is read-only*/
+}
+return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(event_stop_propagation)
@@ -2386,177 +2398,193 @@ static JSBool SMJS_FUNCTION(event_prevent_default)
 
 static SMJS_FUNC_PROP_GET( event_getProperty)
 
-	JSString *s;
-	GF_DOM_Event *evt = (GF_DOM_Event *)SMJS_GET_PRIVATE(c, obj);
-	if (evt==NULL) return JS_TRUE;
-	if (SMJS_ID_IS_INT(id)) {
-		switch (SMJS_ID_TO_INT(id)) {
-		case EVENT_JSPROPERTY_TYPE:
-			s = JS_NewStringCopyZ(c, gf_dom_event_get_name(evt->type) );
-			*vp = STRING_TO_JSVAL( s );
+JSString *s;
+GF_DOM_Event *evt = (GF_DOM_Event *)SMJS_GET_PRIVATE(c, obj);
+if (evt==NULL) return JS_TRUE;
+if (SMJS_ID_IS_INT(id)) {
+	switch (SMJS_ID_TO_INT(id)) {
+	case EVENT_JSPROPERTY_TYPE:
+		s = JS_NewStringCopyZ(c, gf_dom_event_get_name(evt->type) );
+		*vp = STRING_TO_JSVAL( s );
+		break;
+	case EVENT_JSPROPERTY_TARGET:
+		if (evt->is_vrml) return JS_TRUE;
+		switch (evt->target_type) {
+		case GF_DOM_EVENT_TARGET_NODE:
+			*vp = dom_element_construct(c, (GF_Node*) evt->target);
 			break;
-		case EVENT_JSPROPERTY_TARGET:
-			if (evt->is_vrml) return JS_TRUE;
-			switch (evt->target_type) {
-			case GF_DOM_EVENT_TARGET_NODE:
-				*vp = dom_element_construct(c, (GF_Node*) evt->target);
-				break;
-			case GF_DOM_EVENT_TARGET_DOCUMENT:
-				*vp = dom_document_construct(c, (GF_SceneGraph *) evt->target);
-				break;
-			case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
-				*vp = OBJECT_TO_JSVAL(((GF_HTML_MediaSource *)evt->target)->_this);
-				break;
-			case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER:
-				*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBuffer *)evt->target)->_this);
-				break;
-			case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST:
-				*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBufferList *)evt->target)->_this);
-				break;
-			default:
-				break;
-			}
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_CURRENTTARGET:
-			if (evt->is_vrml) return JS_TRUE;
-			switch (evt->currentTarget->ptr_type) {
-			case GF_DOM_EVENT_TARGET_NODE:
-				*vp = dom_element_construct(c, (GF_Node*) evt->currentTarget->ptr);
-				break;
-			case GF_DOM_EVENT_TARGET_DOCUMENT:
-				*vp = dom_document_construct(c, (GF_SceneGraph *) evt->currentTarget->ptr);
-				break;
-			case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
-				*vp = OBJECT_TO_JSVAL(((GF_HTML_MediaSource *)evt->target)->_this);
-				break;
-			case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER:
-				*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBuffer *)evt->target)->_this);
-				break;
-			case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST:
-				*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBufferList *)evt->target)->_this);
-				break;
-            default:
-                break;
-			}
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_EVENTPHASE:
-			*vp = INT_TO_JSVAL( (evt->event_phase & 0x3) ); return JS_TRUE;
-		case EVENT_JSPROPERTY_BUBBLES:
-			*vp = BOOLEAN_TO_JSVAL(evt->bubbles ? JS_TRUE : JS_FALSE); return JS_TRUE;
-		case EVENT_JSPROPERTY_CANCELABLE:
-			*vp = BOOLEAN_TO_JSVAL(evt->cancelable ? JS_TRUE : JS_FALSE); return JS_TRUE;
-		case EVENT_JSPROPERTY_NAMESPACEURI:
-			*vp = JSVAL_NULL;
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_TIMESTAMP:
-			*vp = JSVAL_VOID;
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_DEFAULTPREVENTED:
-			*vp = BOOLEAN_TO_JSVAL((evt->event_phase & GF_DOM_EVENT_PHASE_PREVENT) ? JS_TRUE : JS_FALSE); return JS_TRUE;
-		case EVENT_JSPROPERTY_DETAIL:
-			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
-		case EVENT_JSPROPERTY_DATA:
-		{
-			u32 len;
-			s16 txt[2];
-			const u16 *srcp;
-			char szData[5];;
-			txt[0] = evt->detail;
-			txt[1] = 0;
-			srcp = (const u16 *) txt;
-			len = (u32) gf_utf8_wcstombs(szData, 5, &srcp);
-			szData[len] = 0;
-			s = JS_NewStringCopyZ(c, szData);
-			*vp = STRING_TO_JSVAL( s );
+		case GF_DOM_EVENT_TARGET_DOCUMENT:
+			*vp = dom_document_construct(c, (GF_SceneGraph *) evt->target);
+			break;
+		case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
+			*vp = OBJECT_TO_JSVAL(((GF_HTML_MediaSource *)evt->target)->_this);
+			break;
+		case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER:
+			*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBuffer *)evt->target)->_this);
+			break;
+		case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST:
+			*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBufferList *)evt->target)->_this);
+			break;
+		default:
+			break;
 		}
-			return JS_TRUE;
-
-		case EVENT_JSPROPERTY_SCREENX:
-			*vp = INT_TO_JSVAL(evt->screenX); return JS_TRUE;
-		case EVENT_JSPROPERTY_SCREENY:
-			*vp = INT_TO_JSVAL(evt->screenY); return JS_TRUE;
-		case EVENT_JSPROPERTY_CLIENTX:
-			*vp = INT_TO_JSVAL(evt->clientX); return JS_TRUE;
-		case EVENT_JSPROPERTY_CLIENTY:
-			*vp = INT_TO_JSVAL(evt->clientY); return JS_TRUE;
-		case EVENT_JSPROPERTY_BUTTON:
-			*vp = INT_TO_JSVAL(evt->button); return JS_TRUE;
-		case EVENT_JSPROPERTY_RELATEDTARGET:
-			if (evt->is_vrml) return JS_TRUE;
-			*vp = dom_element_construct(c, evt->relatedTarget);
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_WHEELDELTA:
-			*vp = INT_TO_JSVAL(FIX2INT(evt->new_scale) ); return JS_TRUE;
-
-		case EVENT_JSPROPERTY_KEYIDENTIFIER:
-			s = JS_NewStringCopyZ(c, gf_dom_get_key_name(evt->detail) );
-			*vp = STRING_TO_JSVAL( s );
-			 return JS_TRUE;
-		/*Mozilla keyChar, charCode: wrap up to same value*/
-		case EVENT_JSPROPERTY_KEYCHAR:
-		case EVENT_JSPROPERTY_CHARCODE:
-			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
-		case EVENT_JSPROPERTY_LOADED:
-			if (!evt->media_event) return JS_TRUE;
-			*vp = INT_TO_JSVAL( evt->media_event->loaded_size);
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_TOTAL:
-			if (!evt->media_event) return JS_TRUE;
-			*vp = INT_TO_JSVAL( evt->media_event->total_size);
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_BUFFERLEVELVALID:
-			if (!evt->media_event) return JS_TRUE;
-			*vp = BOOLEAN_TO_JSVAL( evt->media_event->bufferValid ? JS_TRUE : JS_FALSE);
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_BUFFERLEVEL:
-			if (!evt->media_event) return JS_TRUE;
-			*vp = INT_TO_JSVAL( evt->media_event->level);
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_BUFFERREMAININGTIME:
-			if (!evt->media_event) return JS_TRUE;
-			*vp = JS_MAKE_DOUBLE(c, evt->media_event->remaining_time);
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_STATUS:
-			if (!evt->media_event) return JS_TRUE;
-			*vp = INT_TO_JSVAL( evt->media_event->status);
-			return JS_TRUE;
-
-		/*VRML ones*/
-		case EVENT_JSPROPERTY_WIDTH:
-			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.width) );
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_HEIGHT:
-			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.height) );
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_OFFSETX:
-			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.x) );
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_OFFSETY:
-			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.y) );
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_VPWIDTH:
-			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->prev_translate.x) );
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_VPHEIGHT:
-			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->prev_translate.y) );
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_TRANSLATIONX:
-			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->new_translate.x) );
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_TRANSLATIONY:
-			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->new_translate.y) );
-			return JS_TRUE;
-		case EVENT_JSPROPERTY_TYPE3D:
-			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
-		case EVENT_JSPROPERTY_ERROR:
-			*vp = INT_TO_JSVAL(evt->error_state); return JS_TRUE;
-		case EVENT_JSPROPERTY_DYNAMIC_SCENE:
-			*vp = INT_TO_JSVAL(evt->key_flags ? 1 : 0); return JS_TRUE;
-
-		default: return JS_TRUE;
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_CURRENTTARGET:
+		if (evt->is_vrml) return JS_TRUE;
+		switch (evt->currentTarget->ptr_type) {
+		case GF_DOM_EVENT_TARGET_NODE:
+			*vp = dom_element_construct(c, (GF_Node*) evt->currentTarget->ptr);
+			break;
+		case GF_DOM_EVENT_TARGET_DOCUMENT:
+			*vp = dom_document_construct(c, (GF_SceneGraph *) evt->currentTarget->ptr);
+			break;
+		case GF_DOM_EVENT_TARGET_MSE_MEDIASOURCE:
+			*vp = OBJECT_TO_JSVAL(((GF_HTML_MediaSource *)evt->target)->_this);
+			break;
+		case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFER:
+			*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBuffer *)evt->target)->_this);
+			break;
+		case GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST:
+			*vp = OBJECT_TO_JSVAL(((GF_HTML_SourceBufferList *)evt->target)->_this);
+			break;
+		default:
+			break;
 		}
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_EVENTPHASE:
+		*vp = INT_TO_JSVAL( (evt->event_phase & 0x3) );
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_BUBBLES:
+		*vp = BOOLEAN_TO_JSVAL(evt->bubbles ? JS_TRUE : JS_FALSE);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_CANCELABLE:
+		*vp = BOOLEAN_TO_JSVAL(evt->cancelable ? JS_TRUE : JS_FALSE);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_NAMESPACEURI:
+		*vp = JSVAL_NULL;
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_TIMESTAMP:
+		*vp = JSVAL_VOID;
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_DEFAULTPREVENTED:
+		*vp = BOOLEAN_TO_JSVAL((evt->event_phase & GF_DOM_EVENT_PHASE_PREVENT) ? JS_TRUE : JS_FALSE);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_DETAIL:
+		*vp = INT_TO_JSVAL(evt->detail);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_DATA:
+	{
+		u32 len;
+		s16 txt[2];
+		const u16 *srcp;
+		char szData[5];;
+		txt[0] = evt->detail;
+		txt[1] = 0;
+		srcp = (const u16 *) txt;
+		len = (u32) gf_utf8_wcstombs(szData, 5, &srcp);
+		szData[len] = 0;
+		s = JS_NewStringCopyZ(c, szData);
+		*vp = STRING_TO_JSVAL( s );
 	}
 	return JS_TRUE;
+
+	case EVENT_JSPROPERTY_SCREENX:
+		*vp = INT_TO_JSVAL(evt->screenX);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_SCREENY:
+		*vp = INT_TO_JSVAL(evt->screenY);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_CLIENTX:
+		*vp = INT_TO_JSVAL(evt->clientX);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_CLIENTY:
+		*vp = INT_TO_JSVAL(evt->clientY);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_BUTTON:
+		*vp = INT_TO_JSVAL(evt->button);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_RELATEDTARGET:
+		if (evt->is_vrml) return JS_TRUE;
+		*vp = dom_element_construct(c, evt->relatedTarget);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_WHEELDELTA:
+		*vp = INT_TO_JSVAL(FIX2INT(evt->new_scale) );
+		return JS_TRUE;
+
+	case EVENT_JSPROPERTY_KEYIDENTIFIER:
+		s = JS_NewStringCopyZ(c, gf_dom_get_key_name(evt->detail) );
+		*vp = STRING_TO_JSVAL( s );
+		return JS_TRUE;
+	/*Mozilla keyChar, charCode: wrap up to same value*/
+	case EVENT_JSPROPERTY_KEYCHAR:
+	case EVENT_JSPROPERTY_CHARCODE:
+		*vp = INT_TO_JSVAL(evt->detail);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_LOADED:
+		if (!evt->media_event) return JS_TRUE;
+		*vp = INT_TO_JSVAL( evt->media_event->loaded_size);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_TOTAL:
+		if (!evt->media_event) return JS_TRUE;
+		*vp = INT_TO_JSVAL( evt->media_event->total_size);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_BUFFERLEVELVALID:
+		if (!evt->media_event) return JS_TRUE;
+		*vp = BOOLEAN_TO_JSVAL( evt->media_event->bufferValid ? JS_TRUE : JS_FALSE);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_BUFFERLEVEL:
+		if (!evt->media_event) return JS_TRUE;
+		*vp = INT_TO_JSVAL( evt->media_event->level);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_BUFFERREMAININGTIME:
+		if (!evt->media_event) return JS_TRUE;
+		*vp = JS_MAKE_DOUBLE(c, evt->media_event->remaining_time);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_STATUS:
+		if (!evt->media_event) return JS_TRUE;
+		*vp = INT_TO_JSVAL( evt->media_event->status);
+		return JS_TRUE;
+
+	/*VRML ones*/
+	case EVENT_JSPROPERTY_WIDTH:
+		*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.width) );
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_HEIGHT:
+		*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.height) );
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_OFFSETX:
+		*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.x) );
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_OFFSETY:
+		*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.y) );
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_VPWIDTH:
+		*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->prev_translate.x) );
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_VPHEIGHT:
+		*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->prev_translate.y) );
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_TRANSLATIONX:
+		*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->new_translate.x) );
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_TRANSLATIONY:
+		*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->new_translate.y) );
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_TYPE3D:
+		*vp = INT_TO_JSVAL(evt->detail);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_ERROR:
+		*vp = INT_TO_JSVAL(evt->error_state);
+		return JS_TRUE;
+	case EVENT_JSPROPERTY_DYNAMIC_SCENE:
+		*vp = INT_TO_JSVAL(evt->key_flags ? 1 : 0);
+		return JS_TRUE;
+
+	default:
+		return JS_TRUE;
+	}
+}
+return JS_TRUE;
 }
 
 /************************************************************
@@ -2645,7 +2673,7 @@ struct __xhr_context
 	GF_DownloadSession *sess;
 	char *data;
 	u32 size;
-	JSObject *arraybuffer; 
+	JSObject *arraybuffer;
 	GF_Err ret_code;
 	u32 html_status;
 	char *statusText;
@@ -2715,43 +2743,43 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 			}
 			/*ignore these ones*/
 			if (!stricmp(hdr, "Accept-Charset")
-				|| !stricmp(hdr, "Accept-Encoding")
-				|| !stricmp(hdr, "Content-Length")
-				|| !stricmp(hdr, "Expect")
-				|| !stricmp(hdr, "Date")
-				|| !stricmp(hdr, "Host")
-				|| !stricmp(hdr, "Keep-Alive")
-				|| !stricmp(hdr, "Referer")
-				|| !stricmp(hdr, "TE")
-				|| !stricmp(hdr, "Trailer")
-				|| !stricmp(hdr, "Transfer-Encoding")
-				|| !stricmp(hdr, "Upgrade")
-				) {
+			        || !stricmp(hdr, "Accept-Encoding")
+			        || !stricmp(hdr, "Content-Length")
+			        || !stricmp(hdr, "Expect")
+			        || !stricmp(hdr, "Date")
+			        || !stricmp(hdr, "Host")
+			        || !stricmp(hdr, "Keep-Alive")
+			        || !stricmp(hdr, "Referer")
+			        || !stricmp(hdr, "TE")
+			        || !stricmp(hdr, "Trailer")
+			        || !stricmp(hdr, "Transfer-Encoding")
+			        || !stricmp(hdr, "Upgrade")
+			   ) {
 				return;
 			}
 
 			/*replace content for these ones*/
 			if (!stricmp(hdr, "Authorization")
-				|| !stricmp(hdr, "Content-Base")
-				|| !stricmp(hdr, "Content-Location")
-				|| !stricmp(hdr, "Content-MD5")
-				|| !stricmp(hdr, "Content-Range")
-				|| !stricmp(hdr, "Content-Type")
-				|| !stricmp(hdr, "Content-Version")
-				|| !stricmp(hdr, "Delta-Base")
-				|| !stricmp(hdr, "Depth")
-				|| !stricmp(hdr, "Destination")
-				|| !stricmp(hdr, "ETag")
-				|| !stricmp(hdr, "From")
-				|| !stricmp(hdr, "If-Modified-Since")
-				|| !stricmp(hdr, "If-Range")
-				|| !stricmp(hdr, "If-Unmodified-Since")
-				|| !stricmp(hdr, "Max-Forwards")
-				|| !stricmp(hdr, "MIME-Version")
-				|| !stricmp(hdr, "Overwrite")
-				|| !stricmp(hdr, "Proxy-Authorization")
-				|| !stricmp(hdr, "SOAPAction")
-				|| !stricmp(hdr, "Timeout") ) {
+			        || !stricmp(hdr, "Content-Base")
+			        || !stricmp(hdr, "Content-Location")
+			        || !stricmp(hdr, "Content-MD5")
+			        || !stricmp(hdr, "Content-Range")
+			        || !stricmp(hdr, "Content-Type")
+			        || !stricmp(hdr, "Content-Version")
+			        || !stricmp(hdr, "Delta-Base")
+			        || !stricmp(hdr, "Depth")
+			        || !stricmp(hdr, "Destination")
+			        || !stricmp(hdr, "ETag")
+			        || !stricmp(hdr, "From")
+			        || !stricmp(hdr, "If-Modified-Since")
+			        || !stricmp(hdr, "If-Range")
+			        || !stricmp(hdr, "If-Unmodified-Since")
+			        || !stricmp(hdr, "Max-Forwards")
+			        || !stricmp(hdr, "MIME-Version")
+			        || !stricmp(hdr, "Overwrite")
+			        || !stricmp(hdr, "Proxy-Authorization")
+			        || !stricmp(hdr, "SOAPAction")
+			        || !stricmp(hdr, "Timeout") ) {
 				gf_free(ctx->headers[nb_hdr+1]);
 				ctx->headers[nb_hdr+1] = gf_strdup(val);
 				return;
@@ -2815,8 +2843,14 @@ static void xml_http_reset_partial(XMLHTTPContext *ctx)
 
 static void xml_http_reset(XMLHTTPContext *ctx)
 {
-	if (ctx->method) { gf_free(ctx->method); ctx->method = NULL; }
-	if (ctx->url) { gf_free(ctx->url); ctx->url = NULL; }
+	if (ctx->method) {
+		gf_free(ctx->method);
+		ctx->method = NULL;
+	}
+	if (ctx->url) {
+		gf_free(ctx->url);
+		ctx->url = NULL;
+	}
 
 	xml_http_reset_partial(ctx);
 
@@ -2857,23 +2891,23 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 
 static DECL_FINALIZE(xml_http_finalize)
 
-	XMLHTTPContext *ctx;
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return;
-	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
-	if (ctx) {
-		if (! JSVAL_IS_NULL(ctx->onabort))				gf_js_remove_root(c, &(ctx->onabort), GF_JSGC_VAL);
-		if (! JSVAL_IS_NULL(ctx->onerror))				gf_js_remove_root(c, &(ctx->onerror), GF_JSGC_VAL);
-		if (! JSVAL_IS_NULL(ctx->onload))					gf_js_remove_root(c, &(ctx->onload), GF_JSGC_VAL);
-		if (! JSVAL_IS_NULL(ctx->onloadend))				gf_js_remove_root(c, &(ctx->onloadend), GF_JSGC_VAL);
-		if (! JSVAL_IS_NULL(ctx->onloadstart))			gf_js_remove_root(c, &(ctx->onloadstart), GF_JSGC_VAL);
-		if (! JSVAL_IS_NULL(ctx->onprogress))				gf_js_remove_root(c, &(ctx->onprogress), GF_JSGC_VAL);
-		if (! JSVAL_IS_NULL(ctx->onreadystatechange))		gf_js_remove_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
-		if (! JSVAL_IS_NULL(ctx->ontimeout))				gf_js_remove_root(c, &(ctx->ontimeout), GF_JSGC_VAL);
-		xml_http_reset(ctx);
-		gf_dom_event_target_del(ctx->event_target);
-		ctx->event_target = NULL;
-		gf_free(ctx);
-	}
+XMLHTTPContext *ctx;
+if (!GF_JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return;
+ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
+if (ctx) {
+	if (! JSVAL_IS_NULL(ctx->onabort))				gf_js_remove_root(c, &(ctx->onabort), GF_JSGC_VAL);
+	if (! JSVAL_IS_NULL(ctx->onerror))				gf_js_remove_root(c, &(ctx->onerror), GF_JSGC_VAL);
+	if (! JSVAL_IS_NULL(ctx->onload))					gf_js_remove_root(c, &(ctx->onload), GF_JSGC_VAL);
+	if (! JSVAL_IS_NULL(ctx->onloadend))				gf_js_remove_root(c, &(ctx->onloadend), GF_JSGC_VAL);
+	if (! JSVAL_IS_NULL(ctx->onloadstart))			gf_js_remove_root(c, &(ctx->onloadstart), GF_JSGC_VAL);
+	if (! JSVAL_IS_NULL(ctx->onprogress))				gf_js_remove_root(c, &(ctx->onprogress), GF_JSGC_VAL);
+	if (! JSVAL_IS_NULL(ctx->onreadystatechange))		gf_js_remove_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
+	if (! JSVAL_IS_NULL(ctx->ontimeout))				gf_js_remove_root(c, &(ctx->ontimeout), GF_JSGC_VAL);
+	xml_http_reset(ctx);
+	gf_dom_event_target_del(ctx->event_target);
+	ctx->event_target = NULL;
+	gf_free(ctx);
+}
 }
 static JSBool SMJS_FUNCTION(xml_http_constructor)
 {
@@ -2886,7 +2920,7 @@ static JSBool SMJS_FUNCTION(xml_http_constructor)
 	p->_this = obj;
 	p->owning_graph = xml_get_scenegraph(c);
 	p->event_target = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_XHR, p);
-    p->onabort = JSVAL_NULL;
+	p->onabort = JSVAL_NULL;
 	p->onerror = JSVAL_NULL;
 	p->onreadystatechange = JSVAL_NULL;
 	p->onload = JSVAL_NULL;
@@ -2915,7 +2949,7 @@ static void xml_http_state_change(XMLHTTPContext *ctx)
 	GF_SceneGraph *scene;
 	GF_Node *n;
 	jsval rval;
-	
+
 	gf_sg_lock_javascript(ctx->c, GF_TRUE);
 	if (! JSVAL_IS_NULL(ctx->onreadystatechange))
 		JS_CallFunctionValue(ctx->c, ctx->_this, ctx->onreadystatechange, 0, NULL, &rval);
@@ -2958,13 +2992,13 @@ static JSBool SMJS_FUNCTION(xml_http_open)
 	xml_http_reset(ctx);
 	val = SMJS_CHARS(c, argv[0]);
 	if (strcmp(val, "GET") && strcmp(val, "POST") && strcmp(val, "HEAD")
-	&& strcmp(val, "PUT") && strcmp(val, "DELETE") && strcmp(val, "OPTIONS") ) {
+	        && strcmp(val, "PUT") && strcmp(val, "DELETE") && strcmp(val, "OPTIONS") ) {
 		SMJS_FREE(c, val);
 		return JS_TRUE;
 	}
 
 	ctx->method = gf_strdup(val);
-	
+
 	SMJS_FREE(c, val);
 
 	/*concatenate URL*/
@@ -3102,7 +3136,7 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 
 #define USE_PROGRESSIVE_SAX	0
 
-static void xml_http_terminate(XMLHTTPContext *ctx, GF_Err error) 
+static void xml_http_terminate(XMLHTTPContext *ctx, GF_Err error)
 {
 	/*if we get here, destroy downloader - FIXME we'll need a mutex here for sync case...*/
 	if (ctx->sess) {
@@ -3138,14 +3172,14 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 	/*make sure we can grab JS and the session is not destroyed*/
 	while (ctx->sess) {
-		if (gf_sg_try_lock_javascript(ctx->c) ){
+		if (gf_sg_try_lock_javascript(ctx->c) ) {
 			locked = GF_TRUE;
 			break;
 		}
 		gf_sleep(1);
 	}
 	/*if session not set, we've had an abort*/
-	if (!ctx->sess && !ctx->isFile){
+	if (!ctx->sess && !ctx->isFile) {
 		if (locked)
 			gf_sg_lock_javascript(ctx->c, GF_FALSE);
 		return;
@@ -3211,18 +3245,18 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		/*prepare DOM*/
 		if (strcmp(parameter->name, "Content-Type")) return;
 		if (!strncmp(parameter->value, "application/xml", 15)
-			|| !strncmp(parameter->value, "text/xml", 8)
-			|| strstr(parameter->value, "+xml")
-			|| strstr(parameter->value, "/xml")
+		        || !strncmp(parameter->value, "text/xml", 8)
+		        || strstr(parameter->value, "+xml")
+		        || strstr(parameter->value, "/xml")
 //			|| !strncmp(parameter->value, "text/plain", 10)
-		) {
+		   ) {
 			assert(!ctx->sax);
 			ctx->sax = gf_xml_sax_new(xml_http_sax_start, xml_http_sax_end, xml_http_sax_text, ctx);
 			ctx->node_stack = gf_list_new();
 			ctx->document = gf_sg_new();
 			/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
 			ctx->document->reference_count = 1;
-		} 
+		}
 		return;
 	case GF_NETIO_DATA_EXCHANGE:
 		if (parameter->data && parameter->size) {
@@ -3270,7 +3304,7 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	GF_NETIO_Parameter par;
 	u64 fsize;
 	FILE *responseFile;
-		
+
 	/*opera-style local host*/
 	if (!strnicmp(ctx->url, "file://localhost", 16)) responseFile = gf_f64_open(ctx->url+16, "rb");
 	/*regular-style local host*/
@@ -3292,17 +3326,17 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 
 	par.msg_type = GF_NETIO_WAIT_FOR_REPLY;
 	xml_http_on_data(ctx, &par);
-		
+
 	gf_f64_seek(responseFile, 0, SEEK_END);
 	fsize = gf_f64_tell(responseFile);
 	gf_f64_seek(responseFile, 0, SEEK_SET);
-		
+
 	ctx->data = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
 	fsize = fread(ctx->data, sizeof(char), (size_t)fsize, responseFile);
 	fclose(responseFile);
 	ctx->data[fsize] = 0;
 	ctx->size = (u32)fsize;
-		
+
 	memset(&par, 0, sizeof(GF_NETIO_Parameter));
 	par.msg_type = GF_NETIO_PARSE_HEADER;
 	par.name = "Content-Type";
@@ -3325,7 +3359,7 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 
 	memset(&par, 0, sizeof(GF_NETIO_Parameter));
 	par.msg_type = GF_NETIO_DATA_TRANSFERED;
-	xml_http_on_data(ctx, &par);			
+	xml_http_on_data(ctx, &par);
 
 	if (!ctx->async) {
 		xml_http_terminate(ctx, GF_OK);
@@ -3375,17 +3409,17 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 
 	if (!strncmp(ctx->url, "http://", 7)) {
 		u32 flags;
-		
+
 		flags = ctx->async ? 0 : GF_NETIO_SESSION_NOT_THREADED;
 		if (ctx->cache != XHR_CACHETYPE_NORMAL) {
 			if (ctx->cache == XHR_CACHETYPE_NONE) {
 				flags |= GF_NETIO_SESSION_NOT_CACHED;
-			} 
+			}
 			if (ctx->cache == XHR_CACHETYPE_MEMORY) {
 				flags |= GF_NETIO_SESSION_MEMORY_CACHE;
 			}
 		}
-		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, flags, xml_http_on_data, ctx, &e);			
+		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, flags, xml_http_on_data, ctx, &e);
 		if (!ctx->sess) return JS_TRUE;
 
 		/*start our download (whether the session is threaded or not)*/
@@ -3532,191 +3566,191 @@ static JSBool SMJS_FUNCTION(xml_http_overrideMimeType)
 
 static SMJS_FUNC_PROP_GET(xml_http_getProperty)
 
-	JSString *s;
-	XMLHTTPContext *ctx;
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
-	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
-	if (!ctx) return JS_TRUE;
+JSString *s;
+XMLHTTPContext *ctx;
+if (!GF_JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
+ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
+if (!ctx) return JS_TRUE;
 
-	s = NULL;
-	if (SMJS_ID_IS_INT(id)) {
-		*vp = JSVAL_VOID;
-		switch (SMJS_ID_TO_INT(id)) {
-		case XHR_ONABORT:
-			if (! JSVAL_IS_NULL(ctx->onabort)) {
-				*vp = ctx->onabort;
-			}
-			return JS_TRUE;
-		case XHR_ONERROR:
-			if (! JSVAL_IS_NULL(ctx->onerror)) {
-				*vp = ctx->onerror;
-			}
-			return JS_TRUE;
-		case XHR_ONLOAD:
-			if (! JSVAL_IS_NULL(ctx->onload)) {
-				*vp = ctx->onload;
-			}
-			return JS_TRUE;
-		case XHR_ONLOADSTART:
-			if (! JSVAL_IS_NULL(ctx->onloadstart) ) {
-				*vp = ctx->onloadstart;
-			}
-			return JS_TRUE;
-		case XHR_ONLOADEND:
-			if (! JSVAL_IS_NULL(ctx->onloadend)) {
-				*vp = ctx->onloadend;
-			}
-			return JS_TRUE;
-		case XHR_ONPROGRESS:
-			if (! JSVAL_IS_NULL(ctx->onprogress) ) {
-				*vp = ctx->onprogress;
-			}
-			return JS_TRUE;
-		case XHR_ONREADYSTATECHANGE:
-			if (! JSVAL_IS_NULL(ctx->onreadystatechange)) {
-				*vp = ctx->onreadystatechange;
-			}
-			return JS_TRUE;
-		case XHR_ONTIMEOUT:
-			if (! JSVAL_IS_NULL(ctx->ontimeout)) {
-				*vp = ctx->ontimeout;
-			}
-			return JS_TRUE;
-		case XHR_READYSTATE:
-			*vp = INT_TO_JSVAL(ctx->readyState); 
-			return JS_TRUE;
-		case XHR_RESPONSETEXT:
-			if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_TRUE;
-			if (ctx->data) {
-				s = JS_NewStringCopyZ(c, ctx->data);
-				*vp = STRING_TO_JSVAL( s );
-			} else {
-				*vp = JSVAL_VOID;
-			}
-			return JS_TRUE;
-		case XHR_RESPONSEXML:
-			if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_TRUE;
-			if (ctx->data && ctx->document) {
-				*vp = dom_document_construct(c, ctx->document);
-			} else {
-				*vp = JSVAL_VOID;
-			}
-			return JS_TRUE;
-		case XHR_RESPONSE:
-			if (ctx->readyState<XHR_READYSTATE_LOADING) {
-				return JS_TRUE;
-			}
-			if (ctx->data) {
-				switch(ctx->responseType)
-				{
-				case XHR_RESPONSETYPE_NONE:
-				case XHR_RESPONSETYPE_TEXT:
-					s =	JS_NewStringCopyZ(c, ctx->data);
-					*vp	= STRING_TO_JSVAL( s );
-					break;
-				case XHR_RESPONSETYPE_ARRAYBUFFER:
-					if (!ctx->arraybuffer) {
-						/* always return the same ArrayBuffer, is this correct? Probably not in chunked/loading mode */
-						ctx->arraybuffer = gf_arraybuffer_js_new(c, ctx->data, ctx->size, obj);
-					}
-					*vp = OBJECT_TO_JSVAL( ctx->arraybuffer );
-					break;
-				case XHR_RESPONSETYPE_DOCUMENT:
-					if (ctx->data && ctx->document) {
-						*vp = dom_document_construct(c, ctx->document);
-					} else {
-						*vp = JSVAL_VOID;
-					}
-					break;
-				default:
-					/*other	types not supported	*/
-					*vp = JSVAL_VOID;
-				}
-			} else {
-				*vp = JSVAL_VOID;
-			}
-			return JS_TRUE;
-		case XHR_STATUS:
-			*vp = INT_TO_JSVAL(ctx->html_status); 
-			return JS_TRUE;
-		case XHR_STATUSTEXT:
-			if (ctx->statusText) {
-				s = JS_NewStringCopyZ(c, ctx->statusText);
-				*vp = STRING_TO_JSVAL( s );
-			} else {
-				*vp = JSVAL_VOID;
-			}
-			return JS_TRUE;
-		case XHR_TIMEOUT:
-			*vp = INT_TO_JSVAL(ctx->timeout); 
-			return JS_TRUE;
-        case XHR_WITHCREDENTIALS:
-			*vp = BOOLEAN_TO_JSVAL(ctx->withCredentials ? JS_TRUE : JS_FALSE); 
-			return JS_TRUE;
-		case XHR_UPLOAD:
-			/* TODO */
-			return JS_TRUE;
-		case XHR_RESPONSETYPE:
-			switch (ctx->responseType)
-            {
-            case XHR_RESPONSETYPE_NONE:
-				s = JS_NewStringCopyZ(c, "");
-                break;
-            case XHR_RESPONSETYPE_ARRAYBUFFER:
-				s = JS_NewStringCopyZ(c, "arraybuffer");
-                break;
-            case XHR_RESPONSETYPE_BLOB:
-				s = JS_NewStringCopyZ(c, "blob");
-                break;
-            case XHR_RESPONSETYPE_DOCUMENT:
-				s = JS_NewStringCopyZ(c, "document");
-                break;
-            case XHR_RESPONSETYPE_JSON:
-				s = JS_NewStringCopyZ(c, "json");
-                break;
-            case XHR_RESPONSETYPE_TEXT:
-				s = JS_NewStringCopyZ(c, "text");
-                break;
-            case XHR_RESPONSETYPE_STREAM:
-				s = JS_NewStringCopyZ(c, "stream");
-                break;
-            }
+s = NULL;
+if (SMJS_ID_IS_INT(id)) {
+	*vp = JSVAL_VOID;
+	switch (SMJS_ID_TO_INT(id)) {
+	case XHR_ONABORT:
+		if (! JSVAL_IS_NULL(ctx->onabort)) {
+			*vp = ctx->onabort;
+		}
+		return JS_TRUE;
+	case XHR_ONERROR:
+		if (! JSVAL_IS_NULL(ctx->onerror)) {
+			*vp = ctx->onerror;
+		}
+		return JS_TRUE;
+	case XHR_ONLOAD:
+		if (! JSVAL_IS_NULL(ctx->onload)) {
+			*vp = ctx->onload;
+		}
+		return JS_TRUE;
+	case XHR_ONLOADSTART:
+		if (! JSVAL_IS_NULL(ctx->onloadstart) ) {
+			*vp = ctx->onloadstart;
+		}
+		return JS_TRUE;
+	case XHR_ONLOADEND:
+		if (! JSVAL_IS_NULL(ctx->onloadend)) {
+			*vp = ctx->onloadend;
+		}
+		return JS_TRUE;
+	case XHR_ONPROGRESS:
+		if (! JSVAL_IS_NULL(ctx->onprogress) ) {
+			*vp = ctx->onprogress;
+		}
+		return JS_TRUE;
+	case XHR_ONREADYSTATECHANGE:
+		if (! JSVAL_IS_NULL(ctx->onreadystatechange)) {
+			*vp = ctx->onreadystatechange;
+		}
+		return JS_TRUE;
+	case XHR_ONTIMEOUT:
+		if (! JSVAL_IS_NULL(ctx->ontimeout)) {
+			*vp = ctx->ontimeout;
+		}
+		return JS_TRUE;
+	case XHR_READYSTATE:
+		*vp = INT_TO_JSVAL(ctx->readyState);
+		return JS_TRUE;
+	case XHR_RESPONSETEXT:
+		if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_TRUE;
+		if (ctx->data) {
+			s = JS_NewStringCopyZ(c, ctx->data);
 			*vp = STRING_TO_JSVAL( s );
-			return JS_TRUE;
-		case XHR_STATIC_UNSENT:
-			*vp = INT_TO_JSVAL(XHR_READYSTATE_UNSENT);
-			return JS_TRUE;
-		case XHR_STATIC_OPENED:
-			*vp = INT_TO_JSVAL(XHR_READYSTATE_OPENED);
-			return JS_TRUE;
-		case XHR_STATIC_HEADERS_RECEIVED:
-			*vp = INT_TO_JSVAL(XHR_READYSTATE_HEADERS_RECEIVED);
-			return JS_TRUE;
-		case XHR_STATIC_LOADING:
-			*vp = INT_TO_JSVAL(XHR_READYSTATE_LOADING);
-			return JS_TRUE;
-		case XHR_STATIC_DONE:
-			*vp = INT_TO_JSVAL(XHR_READYSTATE_DONE);
-			return JS_TRUE;
-		case XHR_CACHE:		
-			switch (ctx->cache) {
-			case XHR_CACHETYPE_NORMAL:
-				s = JS_NewStringCopyZ(c, "normal");
-				break;
-			case XHR_CACHETYPE_NONE:
-				s = JS_NewStringCopyZ(c, "none");
-				break;
-			case XHR_CACHETYPE_MEMORY:
-				s = JS_NewStringCopyZ(c, "memory");
-				break;
-			}
-			*vp = STRING_TO_JSVAL(s);
-			return JS_TRUE;
-		default:
+		} else {
+			*vp = JSVAL_VOID;
+		}
+		return JS_TRUE;
+	case XHR_RESPONSEXML:
+		if (ctx->readyState<XHR_READYSTATE_LOADING) return JS_TRUE;
+		if (ctx->data && ctx->document) {
+			*vp = dom_document_construct(c, ctx->document);
+		} else {
+			*vp = JSVAL_VOID;
+		}
+		return JS_TRUE;
+	case XHR_RESPONSE:
+		if (ctx->readyState<XHR_READYSTATE_LOADING) {
 			return JS_TRUE;
 		}
+		if (ctx->data) {
+			switch(ctx->responseType)
+			{
+			case XHR_RESPONSETYPE_NONE:
+			case XHR_RESPONSETYPE_TEXT:
+				s =	JS_NewStringCopyZ(c, ctx->data);
+				*vp	= STRING_TO_JSVAL( s );
+				break;
+			case XHR_RESPONSETYPE_ARRAYBUFFER:
+				if (!ctx->arraybuffer) {
+					/* always return the same ArrayBuffer, is this correct? Probably not in chunked/loading mode */
+					ctx->arraybuffer = gf_arraybuffer_js_new(c, ctx->data, ctx->size, obj);
+				}
+				*vp = OBJECT_TO_JSVAL( ctx->arraybuffer );
+				break;
+			case XHR_RESPONSETYPE_DOCUMENT:
+				if (ctx->data && ctx->document) {
+					*vp = dom_document_construct(c, ctx->document);
+				} else {
+					*vp = JSVAL_VOID;
+				}
+				break;
+			default:
+				/*other	types not supported	*/
+				*vp = JSVAL_VOID;
+			}
+		} else {
+			*vp = JSVAL_VOID;
+		}
+		return JS_TRUE;
+	case XHR_STATUS:
+		*vp = INT_TO_JSVAL(ctx->html_status);
+		return JS_TRUE;
+	case XHR_STATUSTEXT:
+		if (ctx->statusText) {
+			s = JS_NewStringCopyZ(c, ctx->statusText);
+			*vp = STRING_TO_JSVAL( s );
+		} else {
+			*vp = JSVAL_VOID;
+		}
+		return JS_TRUE;
+	case XHR_TIMEOUT:
+		*vp = INT_TO_JSVAL(ctx->timeout);
+		return JS_TRUE;
+	case XHR_WITHCREDENTIALS:
+		*vp = BOOLEAN_TO_JSVAL(ctx->withCredentials ? JS_TRUE : JS_FALSE);
+		return JS_TRUE;
+	case XHR_UPLOAD:
+		/* TODO */
+		return JS_TRUE;
+	case XHR_RESPONSETYPE:
+		switch (ctx->responseType)
+		{
+		case XHR_RESPONSETYPE_NONE:
+			s = JS_NewStringCopyZ(c, "");
+			break;
+		case XHR_RESPONSETYPE_ARRAYBUFFER:
+			s = JS_NewStringCopyZ(c, "arraybuffer");
+			break;
+		case XHR_RESPONSETYPE_BLOB:
+			s = JS_NewStringCopyZ(c, "blob");
+			break;
+		case XHR_RESPONSETYPE_DOCUMENT:
+			s = JS_NewStringCopyZ(c, "document");
+			break;
+		case XHR_RESPONSETYPE_JSON:
+			s = JS_NewStringCopyZ(c, "json");
+			break;
+		case XHR_RESPONSETYPE_TEXT:
+			s = JS_NewStringCopyZ(c, "text");
+			break;
+		case XHR_RESPONSETYPE_STREAM:
+			s = JS_NewStringCopyZ(c, "stream");
+			break;
+		}
+		*vp = STRING_TO_JSVAL( s );
+		return JS_TRUE;
+	case XHR_STATIC_UNSENT:
+		*vp = INT_TO_JSVAL(XHR_READYSTATE_UNSENT);
+		return JS_TRUE;
+	case XHR_STATIC_OPENED:
+		*vp = INT_TO_JSVAL(XHR_READYSTATE_OPENED);
+		return JS_TRUE;
+	case XHR_STATIC_HEADERS_RECEIVED:
+		*vp = INT_TO_JSVAL(XHR_READYSTATE_HEADERS_RECEIVED);
+		return JS_TRUE;
+	case XHR_STATIC_LOADING:
+		*vp = INT_TO_JSVAL(XHR_READYSTATE_LOADING);
+		return JS_TRUE;
+	case XHR_STATIC_DONE:
+		*vp = INT_TO_JSVAL(XHR_READYSTATE_DONE);
+		return JS_TRUE;
+	case XHR_CACHE:
+		switch (ctx->cache) {
+		case XHR_CACHETYPE_NORMAL:
+			s = JS_NewStringCopyZ(c, "normal");
+			break;
+		case XHR_CACHETYPE_NONE:
+			s = JS_NewStringCopyZ(c, "none");
+			break;
+		case XHR_CACHETYPE_MEMORY:
+			s = JS_NewStringCopyZ(c, "memory");
+			break;
+		}
+		*vp = STRING_TO_JSVAL(s);
+		return JS_TRUE;
+	default:
+		return JS_TRUE;
 	}
-	return SMJS_CALL_PROP_STUB();
+}
+return SMJS_CALL_PROP_STUB();
 }
 
 JSBool gf_set_js_eventhandler(JSContext *c, jsval vp, jsval *callbackfuncval) {
@@ -3743,231 +3777,231 @@ JSBool gf_set_js_eventhandler(JSContext *c, jsval vp, jsval *callbackfuncval) {
 
 static SMJS_FUNC_PROP_SET( xml_http_setProperty)
 
-	XMLHTTPContext *ctx;
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
-	ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
-	if (!ctx) return JS_TRUE;
+XMLHTTPContext *ctx;
+if (!GF_JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
+ctx = (XMLHTTPContext *)SMJS_GET_PRIVATE(c, obj);
+if (!ctx) return JS_TRUE;
 
-	if (SMJS_ID_IS_INT(id)) {
-		switch (SMJS_ID_TO_INT(id)) {
-		case XHR_ONERROR: 
-			gf_set_js_eventhandler(c, *vp, &ctx->onerror);
-			break;
-		case XHR_ONABORT: 
-			gf_set_js_eventhandler(c, *vp, &ctx->onabort);
-			break;
-		case XHR_ONLOAD: 
-			gf_set_js_eventhandler(c, *vp, &ctx->onload);
-			break;
-		case XHR_ONLOADSTART: 
-			gf_set_js_eventhandler(c, *vp, &ctx->onloadstart);
-			break;
-		case XHR_ONLOADEND: 
-			gf_set_js_eventhandler(c, *vp, &ctx->onloadend);
-			break;
-		case XHR_ONPROGRESS: 
-			gf_set_js_eventhandler(c, *vp, &ctx->onprogress);
-			break;
-		case XHR_ONREADYSTATECHANGE: 
-			gf_set_js_eventhandler(c, *vp, &ctx->onreadystatechange);
-			break;
-		case XHR_ONTIMEOUT: 
-			gf_set_js_eventhandler(c, *vp, &ctx->ontimeout);
-			break;
-		case XHR_TIMEOUT:
-			ctx->timeout = JSVAL_TO_INT(*vp);
-			return JS_TRUE;
-        case XHR_WITHCREDENTIALS:
-			ctx->withCredentials = (JSVAL_TO_BOOLEAN(*vp) == JS_TRUE ? GF_TRUE : GF_FALSE);
-			return JS_TRUE;
-		case XHR_RESPONSETYPE:
-            { 
-                char *str = SMJS_CHARS(c, *vp);
-	            if (!str) return JS_TRUE;
-                if (!strcmp(str, "")) {
-                    ctx->responseType = XHR_RESPONSETYPE_NONE;
-                } else if (!strcmp(str, "arraybuffer")) {
-                    ctx->responseType = XHR_RESPONSETYPE_ARRAYBUFFER;
-                } else if (!strcmp(str, "blob")) {
-                    ctx->responseType = XHR_RESPONSETYPE_BLOB;
-                } else if (!strcmp(str, "document")) {
-                    ctx->responseType = XHR_RESPONSETYPE_DOCUMENT;
-                } else if (!strcmp(str, "json")) {
-                    ctx->responseType = XHR_RESPONSETYPE_JSON;
-                } else if (!strcmp(str, "text")) {
-                    ctx->responseType = XHR_RESPONSETYPE_TEXT;
-                } else if (!strcmp(str, "stream")) {
-                    ctx->responseType = XHR_RESPONSETYPE_STREAM;
-                }
-                break;
-			    return JS_TRUE;
-            }
-		case XHR_CACHE:			
-            { 
-                char *str = SMJS_CHARS(c, *vp);
-	            if (!str) return JS_TRUE;
-                if (!strcmp(str, "normal")) {
-                    ctx->cache = XHR_CACHETYPE_NORMAL;
-                } else if (!strcmp(str, "none")) {
-                    ctx->cache = XHR_CACHETYPE_NONE;
-                } else if (!strcmp(str, "memory")) {
-                    ctx->cache = XHR_CACHETYPE_MEMORY;
-                } 
-                break;
-			    return JS_TRUE;
-            }
-		/*all other properties are read-only*/
-		default:
-			return JS_TRUE;
+if (SMJS_ID_IS_INT(id)) {
+	switch (SMJS_ID_TO_INT(id)) {
+	case XHR_ONERROR:
+		gf_set_js_eventhandler(c, *vp, &ctx->onerror);
+		break;
+	case XHR_ONABORT:
+		gf_set_js_eventhandler(c, *vp, &ctx->onabort);
+		break;
+	case XHR_ONLOAD:
+		gf_set_js_eventhandler(c, *vp, &ctx->onload);
+		break;
+	case XHR_ONLOADSTART:
+		gf_set_js_eventhandler(c, *vp, &ctx->onloadstart);
+		break;
+	case XHR_ONLOADEND:
+		gf_set_js_eventhandler(c, *vp, &ctx->onloadend);
+		break;
+	case XHR_ONPROGRESS:
+		gf_set_js_eventhandler(c, *vp, &ctx->onprogress);
+		break;
+	case XHR_ONREADYSTATECHANGE:
+		gf_set_js_eventhandler(c, *vp, &ctx->onreadystatechange);
+		break;
+	case XHR_ONTIMEOUT:
+		gf_set_js_eventhandler(c, *vp, &ctx->ontimeout);
+		break;
+	case XHR_TIMEOUT:
+		ctx->timeout = JSVAL_TO_INT(*vp);
+		return JS_TRUE;
+	case XHR_WITHCREDENTIALS:
+		ctx->withCredentials = (JSVAL_TO_BOOLEAN(*vp) == JS_TRUE ? GF_TRUE : GF_FALSE);
+		return JS_TRUE;
+	case XHR_RESPONSETYPE:
+	{
+		char *str = SMJS_CHARS(c, *vp);
+		if (!str) return JS_TRUE;
+		if (!strcmp(str, "")) {
+			ctx->responseType = XHR_RESPONSETYPE_NONE;
+		} else if (!strcmp(str, "arraybuffer")) {
+			ctx->responseType = XHR_RESPONSETYPE_ARRAYBUFFER;
+		} else if (!strcmp(str, "blob")) {
+			ctx->responseType = XHR_RESPONSETYPE_BLOB;
+		} else if (!strcmp(str, "document")) {
+			ctx->responseType = XHR_RESPONSETYPE_DOCUMENT;
+		} else if (!strcmp(str, "json")) {
+			ctx->responseType = XHR_RESPONSETYPE_JSON;
+		} else if (!strcmp(str, "text")) {
+			ctx->responseType = XHR_RESPONSETYPE_TEXT;
+		} else if (!strcmp(str, "stream")) {
+			ctx->responseType = XHR_RESPONSETYPE_STREAM;
 		}
+		break;
+		return JS_TRUE;
 	}
-	return JS_TRUE;
+	case XHR_CACHE:
+	{
+		char *str = SMJS_CHARS(c, *vp);
+		if (!str) return JS_TRUE;
+		if (!strcmp(str, "normal")) {
+			ctx->cache = XHR_CACHETYPE_NORMAL;
+		} else if (!strcmp(str, "none")) {
+			ctx->cache = XHR_CACHETYPE_NONE;
+		} else if (!strcmp(str, "memory")) {
+			ctx->cache = XHR_CACHETYPE_MEMORY;
+		}
+		break;
+		return JS_TRUE;
+	}
+	/*all other properties are read-only*/
+	default:
+		return JS_TRUE;
+	}
+}
+return JS_TRUE;
 }
 
 
 static SMJS_FUNC_PROP_GET(dcci_getProperty)
 
-	GF_DOMFullAttribute *att;
-	GF_ChildNodeItem *child;
-	GF_DOMFullNode *n;
-	char *value;
-	JSString *s;
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
-	n = (GF_DOMFullNode*) dom_get_node(c, obj);
-	if (!n) return JS_TRUE;
+GF_DOMFullAttribute *att;
+GF_ChildNodeItem *child;
+GF_DOMFullNode *n;
+char *value;
+JSString *s;
+if (!GF_JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
+n = (GF_DOMFullNode*) dom_get_node(c, obj);
+if (!n) return JS_TRUE;
 
-	if (SMJS_ID_IS_INT(id)) {
-		switch (SMJS_ID_TO_INT(id)) {
-		case DCCI_JSPROPERTY_VALUE:
-			child = n->children;
-			while (child) {
-				if (child->node && (child->node->sgprivate->tag==TAG_DOMText)) {
-					GF_DOMText *txt = (GF_DOMText *)child->node;
-					if (txt->type==GF_DOM_TEXT_REGULAR) {
-						s = JS_NewStringCopyZ(c, txt->textContent);
-						*vp = STRING_TO_JSVAL( s );
-						return JS_TRUE;
-					}
-				}
-				child = child->next;
-			}
-			*vp = JSVAL_NULL;
-			return JS_TRUE;
-		case DCCI_JSPROPERTY_VALUETYPE:
-			value = "DOMString";
-			att = (GF_DOMFullAttribute*) n->attributes;
-			while (att) {
-				if (att->name && !strcmp(att->name, "valueType") && att->data) {
-					value = (char *)att->data;
-					break;
-				}
-				att = (GF_DOMFullAttribute*) att->next;
-			}
-			s = JS_NewStringCopyZ(c, value);
-			*vp = STRING_TO_JSVAL( s );
-			return JS_TRUE;
-		case DCCI_JSPROPERTY_PROPERTYTYPE:
-			value = "DOMString";
-			att = (GF_DOMFullAttribute*) n->attributes;
-			while (att) {
-				if (att->name && !strcmp(att->name, "propertyType") && att->data) {
-					value = (char *)att->data;
-					break;
-				}
-				att = (GF_DOMFullAttribute*) att->next;
-			}
-			s = JS_NewStringCopyZ(c, value);
-			*vp = STRING_TO_JSVAL( s );
-			return JS_TRUE;
-		case DCCI_JSPROPERTY_READONLY:
-			att = (GF_DOMFullAttribute*) n->attributes;
-			while (att) {
-				if (att->name && !strcmp(att->name, "readOnly") && att->data && !strcmp((const char *)att->data, "true")) {
-					*vp = BOOLEAN_TO_JSVAL(JS_TRUE);
+if (SMJS_ID_IS_INT(id)) {
+	switch (SMJS_ID_TO_INT(id)) {
+	case DCCI_JSPROPERTY_VALUE:
+		child = n->children;
+		while (child) {
+			if (child->node && (child->node->sgprivate->tag==TAG_DOMText)) {
+				GF_DOMText *txt = (GF_DOMText *)child->node;
+				if (txt->type==GF_DOM_TEXT_REGULAR) {
+					s = JS_NewStringCopyZ(c, txt->textContent);
+					*vp = STRING_TO_JSVAL( s );
 					return JS_TRUE;
 				}
-				att = (GF_DOMFullAttribute*) att->next;
 			}
-			*vp = BOOLEAN_TO_JSVAL(JS_FALSE);
-			return JS_TRUE;
-		case DCCI_JSPROPERTY_DCCIMETADATAINTERFACETYPE:
-			*vp = JSVAL_NULL;
-			return JS_TRUE;
-		case DCCI_JSPROPERTY_DCCIMETADATAINTERFACE:
-			*vp = JSVAL_NULL;
-			return JS_TRUE;
-		case DCCI_JSPROPERTY_VERSION:
-			s = JS_NewStringCopyZ(c, "1.0");
-			*vp = STRING_TO_JSVAL( s );
-			return JS_TRUE;
-		default:
-			return JS_TRUE;
+			child = child->next;
 		}
+		*vp = JSVAL_NULL;
+		return JS_TRUE;
+	case DCCI_JSPROPERTY_VALUETYPE:
+		value = "DOMString";
+		att = (GF_DOMFullAttribute*) n->attributes;
+		while (att) {
+			if (att->name && !strcmp(att->name, "valueType") && att->data) {
+				value = (char *)att->data;
+				break;
+			}
+			att = (GF_DOMFullAttribute*) att->next;
+		}
+		s = JS_NewStringCopyZ(c, value);
+		*vp = STRING_TO_JSVAL( s );
+		return JS_TRUE;
+	case DCCI_JSPROPERTY_PROPERTYTYPE:
+		value = "DOMString";
+		att = (GF_DOMFullAttribute*) n->attributes;
+		while (att) {
+			if (att->name && !strcmp(att->name, "propertyType") && att->data) {
+				value = (char *)att->data;
+				break;
+			}
+			att = (GF_DOMFullAttribute*) att->next;
+		}
+		s = JS_NewStringCopyZ(c, value);
+		*vp = STRING_TO_JSVAL( s );
+		return JS_TRUE;
+	case DCCI_JSPROPERTY_READONLY:
+		att = (GF_DOMFullAttribute*) n->attributes;
+		while (att) {
+			if (att->name && !strcmp(att->name, "readOnly") && att->data && !strcmp((const char *)att->data, "true")) {
+				*vp = BOOLEAN_TO_JSVAL(JS_TRUE);
+				return JS_TRUE;
+			}
+			att = (GF_DOMFullAttribute*) att->next;
+		}
+		*vp = BOOLEAN_TO_JSVAL(JS_FALSE);
+		return JS_TRUE;
+	case DCCI_JSPROPERTY_DCCIMETADATAINTERFACETYPE:
+		*vp = JSVAL_NULL;
+		return JS_TRUE;
+	case DCCI_JSPROPERTY_DCCIMETADATAINTERFACE:
+		*vp = JSVAL_NULL;
+		return JS_TRUE;
+	case DCCI_JSPROPERTY_VERSION:
+		s = JS_NewStringCopyZ(c, "1.0");
+		*vp = STRING_TO_JSVAL( s );
+		return JS_TRUE;
+	default:
+		return JS_TRUE;
 	}
-	return SMJS_CALL_PROP_STUB();
+}
+return SMJS_CALL_PROP_STUB();
 }
 
 static SMJS_FUNC_PROP_SET( dcci_setProperty)
 
-	GF_ChildNodeItem *child;
-	GF_DOMFullNode *n;
-	GF_DOMFullAttribute*att;
-	GF_DOM_Event evt;
-	char *str;
-	Bool readonly;
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
-	n = (GF_DOMFullNode*) dom_get_node(c, obj);
-	if (!n) return JS_TRUE;
+GF_ChildNodeItem *child;
+GF_DOMFullNode *n;
+GF_DOMFullAttribute*att;
+GF_DOM_Event evt;
+char *str;
+Bool readonly;
+if (!GF_JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
+n = (GF_DOMFullNode*) dom_get_node(c, obj);
+if (!n) return JS_TRUE;
 
-	str = SMJS_CHARS(c, *vp);
-	if (!str) return JS_TRUE;
+str = SMJS_CHARS(c, *vp);
+if (!str) return JS_TRUE;
 
-	if (SMJS_ID_IS_INT(id)) {
-		switch (SMJS_ID_TO_INT(id)) {
-		case DCCI_JSPROPERTY_VALUE:
-			readonly = GF_FALSE;
-			att = (GF_DOMFullAttribute*) n->attributes;
-			while (att) {
-				if (att->name && !strcmp(att->name, "readOnly") && att->data && !strcmp((const char *)att->data, "true")) {
-					readonly = GF_TRUE;
-					break;
-				}
-				att = (GF_DOMFullAttribute*) att->next;
+if (SMJS_ID_IS_INT(id)) {
+	switch (SMJS_ID_TO_INT(id)) {
+	case DCCI_JSPROPERTY_VALUE:
+		readonly = GF_FALSE;
+		att = (GF_DOMFullAttribute*) n->attributes;
+		while (att) {
+			if (att->name && !strcmp(att->name, "readOnly") && att->data && !strcmp((const char *)att->data, "true")) {
+				readonly = GF_TRUE;
+				break;
 			}
-			if (readonly) break;
-			child = n->children;
-			while (child) {
-				if (child->node && (child->node->sgprivate->tag==TAG_DOMText)) {
-					GF_DOMText *txt = (GF_DOMText *)child->node;
-					if (txt->type==GF_DOM_TEXT_REGULAR) {
-						if (txt->textContent) gf_free(txt->textContent);
-						txt->textContent = gf_strdup(str);
-						break;
-
-					}
-				}
-				child = child->next;
-			}
-			if (!child)
-				gf_dom_add_text_node((GF_Node*)n, gf_strdup(str) );
-
-			memset(&evt, 0, sizeof(GF_DOM_Event));
-			evt.type = GF_EVENT_DCCI_PROP_CHANGE;
-			evt.bubbles = 1;
-			evt.relatedNode = (GF_Node*)n;
-			gf_dom_event_fire((GF_Node*)n, &evt);
-			n->sgprivate->scenegraph->modified = GF_TRUE;
-			break;
-		case DCCI_JSPROPERTY_PROPERTYTYPE:
-			break;
-
-		/*all other properties are read-only*/
-		default:
-			break;
+			att = (GF_DOMFullAttribute*) att->next;
 		}
+		if (readonly) break;
+		child = n->children;
+		while (child) {
+			if (child->node && (child->node->sgprivate->tag==TAG_DOMText)) {
+				GF_DOMText *txt = (GF_DOMText *)child->node;
+				if (txt->type==GF_DOM_TEXT_REGULAR) {
+					if (txt->textContent) gf_free(txt->textContent);
+					txt->textContent = gf_strdup(str);
+					break;
+
+				}
+			}
+			child = child->next;
+		}
+		if (!child)
+			gf_dom_add_text_node((GF_Node*)n, gf_strdup(str) );
+
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.type = GF_EVENT_DCCI_PROP_CHANGE;
+		evt.bubbles = 1;
+		evt.relatedNode = (GF_Node*)n;
+		gf_dom_event_fire((GF_Node*)n, &evt);
+		n->sgprivate->scenegraph->modified = GF_TRUE;
+		break;
+	case DCCI_JSPROPERTY_PROPERTYTYPE:
+		break;
+
+	/*all other properties are read-only*/
+	default:
+		break;
 	}
-	SMJS_FREE(c, str);
-	return JS_TRUE;
+}
+SMJS_FREE(c, str);
+return JS_TRUE;
 }
 
 Bool dcci_prop_lookup(GF_DOMFullNode *n, char *ns, char *name, Bool deep, Bool first)
@@ -4084,23 +4118,23 @@ static JSBool SMJS_FUNCTION(dcci_search_property)
 
 static SMJS_FUNC_PROP_GET( storage_getProperty)
 
-	/*avoids gcc warning*/
+/*avoids gcc warning*/
 #ifndef GPAC_CONFIG_DARWIN
-    if (!id) id=0;
+if (!id) id=0;
 #endif
-    if (!GF_JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
-	*vp = JSVAL_VOID;
-	return JS_TRUE;
+if (!GF_JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
+*vp = JSVAL_VOID;
+return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_SET_NOVP( storage_setProperty)
 
-	/*avoids gcc warning*/
+/*avoids gcc warning*/
 #ifndef GPAC_CONFIG_DARWIN
-    if (!id) id=0;
+if (!id) id=0;
 #endif
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
-	return JS_TRUE;
+if (!GF_JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
+return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(storage_constructor)
@@ -4113,13 +4147,13 @@ static JSBool SMJS_FUNCTION(storage_constructor)
 
 static DECL_FINALIZE( storage_finalize)
 
-	/*avoids GCC warning*/
-	if (!c) c=NULL;
+/*avoids GCC warning*/
+if (!c) c=NULL;
 }
 
 void dom_js_define_storage(JSContext *c, JSObject *parent_obj, const char *name)
 {
-    JS_DefineObject(c, parent_obj, name, &dom_rt->storageClass._class, 0, 0 );
+	JS_DefineObject(c, parent_obj, name, &dom_rt->storageClass._class, 0, 0 );
 }
 
 void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
@@ -4512,9 +4546,9 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 {
 	u32 i, count;
 	if (n) {
-        if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
-            //html_media_element_js_finalize(c, n);
-        }
+		if (n->sgprivate->tag == TAG_SVG_video || n->sgprivate->tag == TAG_SVG_audio) {
+			//html_media_element_js_finalize(c, n);
+		}
 		if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
 			JSObject *obj = (JSObject *)n->sgprivate->interact->js_binding->node;
 			SMJS_SET_PRIVATE(c, obj, NULL);
@@ -4589,10 +4623,18 @@ JSObject *gf_dom_new_event(JSContext *c)
 {
 	return JS_NewObject(c, &dom_rt->domEventClass._class, 0, 0);
 }
-JSObject *dom_js_get_node_proto(JSContext *c) { return dom_rt->domNodeClass._proto; }
-JSObject *dom_js_get_element_proto(JSContext *c) { return dom_rt->domElementClass._proto; }
-JSObject *dom_js_get_document_proto(JSContext *c) { return dom_rt->domDocumentClass._proto; }
-JSObject *dom_js_get_event_proto(JSContext *c) { return dom_rt->domEventClass._proto; }
+JSObject *dom_js_get_node_proto(JSContext *c) {
+	return dom_rt->domNodeClass._proto;
+}
+JSObject *dom_js_get_element_proto(JSContext *c) {
+	return dom_rt->domElementClass._proto;
+}
+JSObject *dom_js_get_document_proto(JSContext *c) {
+	return dom_rt->domDocumentClass._proto;
+}
+JSObject *dom_js_get_event_proto(JSContext *c) {
+	return dom_rt->domEventClass._proto;
+}
 
 void dom_set_class_selector(JSContext *c, void *(*get_element_class)(GF_Node *n), void *(*get_document_class)(GF_SceneGraph *n) )
 {

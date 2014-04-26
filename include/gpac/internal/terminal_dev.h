@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -67,7 +67,7 @@ struct _net_service
 	u32 nb_ch_users;
 	/*number of attached remote ODM (OD URLs)*/
 	u32 nb_odm_users;
-	
+
 	/*clock objects. Kept at service level since ESID namespace is the service one*/
 	GF_List *Clocks;
 	/*all downloaders objects used in this service*/
@@ -136,7 +136,7 @@ struct _scene
 	GF_List *resources;
 
 	/*list of GF_MediaObject - these are the links betwwen scene nodes (URL, xlink:href) and media resources.
-	We need this link because of MPEG-4 Systems, where an OD (media resource) can be removed or replaced by the server 
+	We need this link because of MPEG-4 Systems, where an OD (media resource) can be removed or replaced by the server
 	without the scene being modified*/
 	GF_List *scene_objects;
 
@@ -163,7 +163,7 @@ struct _scene
 
 	/*callback to call to dispatch SVG MediaEvent - this is a pointer to function only because of linking issues
 	with static libgpac (avoids depending on SpiderMonkey and OpenGL32 if not needed)*/
-	void (*on_media_event)(GF_Scene *scene, u32 type); 
+	void (*on_media_event)(GF_Scene *scene, u32 type);
 
 	/*duration of inline scene*/
 	u64 duration;
@@ -309,7 +309,7 @@ enum
 };
 
 /*URI relocators are used for containers like zip or ISO FF with file items. The relocator
-is in charge of translating the URI, potentially extracting the associated resource and sending 
+is in charge of translating the URI, potentially extracting the associated resource and sending
 back the new (local or not) URI. Only the interface is defined, URI translators are free to derive from them
 
 relocate a URI - if NULL is returned, this relocator is not concerned with the URI
@@ -318,17 +318,17 @@ otherwise returns the translated URI
 
 #define GF_TERM_URI_RELOCATOR	\
 	Bool (*relocate_uri)(void *__self, const char *parent_uri, const char *uri, char *out_relocated_uri, char *out_localized_uri);		\
-
+ 
 typedef struct __gf_uri_relocator GF_URIRelocator;
 
-struct __gf_uri_relocator 
-{	
-	GF_TERM_URI_RELOCATOR	
+struct __gf_uri_relocator
+{
+	GF_TERM_URI_RELOCATOR
 };
 
-typedef struct 
-{	
-	GF_TERM_URI_RELOCATOR	
+typedef struct
+{
+	GF_TERM_URI_RELOCATOR
 	GF_Terminal *term;
 	char *szAbsRelocatedPath;
 } GF_TermLocales;
@@ -347,7 +347,7 @@ struct _tag_terminal
 {
 	u32 flags;
 
-	/*callback to user application*/	
+	/*callback to user application*/
 	GF_User *user;
 	/*scene compositor*/
 	struct __tag_compositor *compositor;
@@ -388,7 +388,7 @@ struct _tag_terminal
 	GF_List *x3d_sensors;
 	/*all input stream decoders*/
 	GF_List *input_streams;
-	
+
 	/*options (cf config doc)*/
 	Bool enable_cache;
 	/*data timeout for network buffering in ms - if no data is received within this timeout
@@ -400,7 +400,7 @@ struct _tag_terminal
 	u32 reload_state;
 	char *reload_url;
 
-	/*special list used by nodes needing a call to RenderNode but not in the traverese scene graph (VRML/MPEG-4 protos only). 
+	/*special list used by nodes needing a call to RenderNode but not in the traverese scene graph (VRML/MPEG-4 protos only).
 	For these nodes, the traverse effect passed will be NULL. This is only used by InputSensor node at the moment*/
 	GF_List *nodes_pending;
 
@@ -476,7 +476,7 @@ void gf_term_invalidate_compositor(GF_Terminal *term);
 /*callbacks for scene graph library so that all related ESM nodes are properly instanciated*/
 void gf_term_node_callback(void *_is, u32 type, GF_Node *node, void *param);
 
-/*add/rem node requiring a call to render without being present in traversed graph (VRML/MPEG-4 protos). 
+/*add/rem node requiring a call to render without being present in traversed graph (VRML/MPEG-4 protos).
 For these nodes, the traverse effect passed will be NULL.*/
 void gf_term_queue_node_traverse(GF_Terminal *term, GF_Node *node);
 void gf_term_unqueue_node_traverse(GF_Terminal *term, GF_Node *node);
@@ -496,9 +496,9 @@ GF_Err gf_term_remove_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef
 
 
 /*clock*/
-struct _object_clock 
+struct _object_clock
 {
-	u16 clockID;	
+	u16 clockID;
 	GF_Terminal *term;
 	GF_Mutex *mx;
 	/*no_time_ctrl : set if ANY stream running on this clock has no time control capabilities - this avoids applying
@@ -579,7 +579,7 @@ enum
 };
 
 /*data channel (elementary stream)*/
-struct _es_channel 
+struct _es_channel
 {
 	/*service this channel belongs to*/
 	GF_ClientService *service;
@@ -636,13 +636,13 @@ struct _es_channel
 	buffering - note this doesn't affect the clock, it is still paused if buffering*/
 	Bool first_au_fetched;
 
-	/* used in Carousel, to skip packets until the end of AU */ 
+	/* used in Carousel, to skip packets until the end of AU */
 	u8 carousel_type;
 	Bool skip_carousel_au;
 
 	/*discard clock initialization when dispatching pending AU - this is used when TS discontinuities / MPA_TIME happen*/
 	Bool skip_time_check_for_pending;
-	
+
 	/* TimeStamp to Media Time mapping*/
 	/*TS (in TSResolution) corresponding to the SeedTime of the decoder. Delivered by net, otherwise 0*/
 	u64 seed_ts;
@@ -661,14 +661,14 @@ struct _es_channel
 
 	/*duration of last received AU if any, 0 if not known (most of the time)*/
 	u32 au_duration;
-	/*A channel with this flag set considers each incoming packet as a complete AU and assigns timestamps 
+	/*A channel with this flag set considers each incoming packet as a complete AU and assigns timestamps
 	upon reception matching the reception time, then dispatching it into the decoding buffer (only tested
 	with audi video). This flag is turned on by setting esd->slconfig->predefined to 'SLPredef_SkipSL' */
 	Bool skip_sl;
 
 	/*indicates that decoding can be called directly when receiving a complete AU on this channel
-	This is used by systems streams in non-seekable (eg broadcast/multicast, MPEG-2 TS multiplexes) to 
-	make sure resources are setup as fast as possible. If the AU is too early, it will be kept in the 
+	This is used by systems streams in non-seekable (eg broadcast/multicast, MPEG-2 TS multiplexes) to
+	make sure resources are setup as fast as possible. If the AU is too early, it will be kept in the
 	decoding buffer*/
 	Bool dispatch_after_db;
 
@@ -749,11 +749,11 @@ enum
 	/*stop: the decoder is playing*/
 	GF_ESM_CODEC_PLAY	=	1,
 	/*End Of Stream: when the base layer signals it's done, this triggers media-specific
-	handling of the CB. 
+	handling of the CB.
 	For video, the output is kept alive, For audio, the output is reseted (don't want audio loop ;)*/
 	GF_ESM_CODEC_EOS	=	2,
 	/*pause: the decoder is stopped but the CB is kept intact
-	THIS IS NOT USED AS A CODEC STATUS, but only for signaling that the CB shouldn't 
+	THIS IS NOT USED AS A CODEC STATUS, but only for signaling that the CB shouldn't
 	be reseted - the real status of a "paused" decoder is STOP*/
 	GF_ESM_CODEC_PAUSE	=	3,
 	/*Buffer: transition state: the decoder runs (fetch data/decode) but the clock
@@ -774,14 +774,14 @@ enum
 	GF_ESM_CODEC_IS_RAW_MEDIA = 1<<3,
 };
 
-struct _generic_codec 
+struct _generic_codec
 {
 	/*codec type (streamType from base layer)*/
 	u32 type;
 	u32 flags;
 	/*decoder module interface */
 	GF_BaseDecoder *decio;
-	
+
 	/*base process routine*/
 	GF_Err (*process)(GF_Codec *codec, u32 TimeAvailable);
 
@@ -830,7 +830,7 @@ struct _generic_codec
 	/*we detect if the same image is sent again and again to the decoder (using last_unit_signature)*/
 	u32 nb_repeted_frames;
 
-	/*for CTS reconstruction (channels not using SL): we cannot just update timing at each frame, not precise enough 
+	/*for CTS reconstruction (channels not using SL): we cannot just update timing at each frame, not precise enough
 	since we use ms and not microsec TSs*/
 	u32 cur_audio_bytes, cur_video_frames;
 
@@ -847,7 +847,7 @@ GF_Err gf_codec_process(GF_Codec *codec, u32 TimeAvailable);
 GF_Err gf_codec_get_capability(GF_Codec *codec, GF_CodecCapability *cap);
 GF_Err gf_codec_set_capability(GF_Codec *codec, GF_CodecCapability cap);
 void gf_codec_set_status(GF_Codec *codec, u32 Status);
-/*returns a new codec using an existing loaded decoder - only used by private scene to handle != timelines, for 
+/*returns a new codec using an existing loaded decoder - only used by private scene to handle != timelines, for
 instance when loading a BT with an animation stream*/
 GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm);
 
@@ -878,7 +878,7 @@ enum
 	/*flag set if object has been deleted*/
 	GF_ODM_DESTROYED = (1<<9),
 	/*dynamic flags*/
-	
+
 	/*flag set if associated subscene must be regenerated*/
 	GF_ODM_REGENERATE_SCENE = (1<<10),
 
@@ -935,10 +935,10 @@ struct _od_manager
 
 	/*PLs*/
 	u8 Audio_PL, Graphics_PL, OD_PL, Scene_PL, Visual_PL;
-	
+
 	/*interface with scene rendering*/
 	struct _mediaobj *mo;
-	
+
 	/*number of channels with connection not yet acknowledge*/
 	u32 pending_channels;
 	u32 state;
@@ -995,14 +995,14 @@ void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *, u64 stream_duratio
 /*signals end of stream on channels*/
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *);
 /*start Object streams and queue object for network PLAY
-media_queue_state: 0: object was not in media queue and must be queued    
-                   1: object is already in media queue 
+media_queue_state: 0: object was not in media queue and must be queued
+                   1: object is already in media queue
                    2: object shall not be queued bu started directly
 */
 void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state);
 /*stop OD streams*/
 void gf_odm_stop(GF_ObjectManager *odm, Bool force_close);
-/*send PLAY request to network - needed to properly handle multiplexed inputs 
+/*send PLAY request to network - needed to properly handle multiplexed inputs
 ONLY called by service handler (media manager thread)*/
 void gf_odm_play(GF_ObjectManager *odm);
 
@@ -1025,7 +1025,7 @@ Bool gf_odm_lock_mo(struct _mediaobj *mo);
 
 void gf_odm_signal_eos(GF_ObjectManager *odm);
 
-/*GF_MediaObject: link between real object manager and scene. although there is a one-to-one mapping between a 
+/*GF_MediaObject: link between real object manager and scene. although there is a one-to-one mapping between a
 MediaObject and an ObjectManager, we have to keep them seperated in order to handle OD remove commands which destroy
 ObjectManagers. */
 struct _mediaobj
@@ -1065,7 +1065,7 @@ struct _mediaobj
 	   used to dispatch HTML5 Media and Media Source Events */
 	GF_List *evt_targets;
 	/*pointer to the node responsible for the creation of this media object
-	ONLY used for scene media type (animationStreams) 
+	ONLY used for scene media type (animationStreams)
 	Reset upon creation of the decoder.
 	*/
 	void *node_ptr;
@@ -1075,10 +1075,10 @@ GF_MediaObject *gf_mo_new();
 
 
 /*used for delayed channel setup*/
-typedef struct 
+typedef struct
 {
 	struct _generic_codec *dec;
-	struct _es_channel *ch;	
+	struct _es_channel *ch;
 } GF_ChannelSetup;
 
 /*post-poned channel connect*/

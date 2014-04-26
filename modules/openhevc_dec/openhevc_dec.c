@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2010-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -58,7 +58,7 @@ typedef struct
 
 	GF_ESD *esd;
 	OpenHevc_Handle openHevcHandle;
-    u32 nb_layers;
+	u32 nb_layers;
 	u32 output_cb_size;
 
 	u32 display_bpp;
@@ -78,13 +78,13 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data)
 		return GF_OK;
 	cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
- 	if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
-	if (ctx->nalu_size_length != cfg->nal_unit_size) 
+	if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
+	if (ctx->nalu_size_length != cfg->nal_unit_size)
 		return GF_NON_COMPLIANT_BITSTREAM;
-  
+
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
- 	for (i=0; i< gf_list_count(cfg->param_array); i++) {
- 		GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(cfg->param_array, i);
+	for (i=0; i< gf_list_count(cfg->param_array); i++) {
+		GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(cfg->param_array, i);
 		for (j=0; j< gf_list_count(ar->nalus); j++) {
 			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
 			gf_bs_write_int(bs, sl->size, 8*ctx->nalu_size_length);
@@ -105,27 +105,27 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 {
 	u32 i, j;
-    GF_HEVCConfig *cfg = NULL;
+	GF_HEVCConfig *cfg = NULL;
 	ctx->ES_ID = esd->ESID;
 	ctx->width = ctx->height = ctx->out_size = ctx->luma_bpp = ctx->chroma_bpp = 0;
-	
-    ctx->nb_layers = 1;
-    
+
+	ctx->nb_layers = 1;
+
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 		HEVCState hevc;
-		memset(&hevc, 0, sizeof(HEVCState));  
+		memset(&hevc, 0, sizeof(HEVCState));
 
 		cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
- 		if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
- 		ctx->nalu_size_length = cfg->nal_unit_size;    
+		if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
+		ctx->nalu_size_length = cfg->nal_unit_size;
 
- 		for (i=0; i< gf_list_count(cfg->param_array); i++) {
- 			GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(cfg->param_array, i);
+		for (i=0; i< gf_list_count(cfg->param_array); i++) {
+			GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(cfg->param_array, i);
 			for (j=0; j< gf_list_count(ar->nalus); j++) {
 				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
 				s32 idx;
-				u16 hdr = sl->data[0] << 8 | sl->data[1]; 
-					
+				u16 hdr = sl->data[0] << 8 | sl->data[1];
+
 				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 					idx = gf_media_hevc_read_sps(sl->data, sl->size, &hevc);
 					ctx->width = MAX(hevc.sps[idx].width, ctx->width);
@@ -150,10 +150,10 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		ctx->nalu_size_length = 0;
 	}
 
-    ctx->openHevcHandle = libOpenHevcInit(ctx->nb_threads, ctx->threading_type);
+	ctx->openHevcHandle = libOpenHevcInit(ctx->nb_threads, ctx->threading_type);
 
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_CODEC, GF_LOG_DEBUG) ) {	
+	if (gf_log_tool_level_on(GF_LOG_CODEC, GF_LOG_DEBUG) ) {
 		libOpenHevcSetDebugMode(ctx->openHevcHandle, 1);
 	}
 #endif
@@ -170,9 +170,9 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		libOpenHevcSetViewLayers(ctx->openHevcHandle, 0/*ctx->nb_layers-1*/);
 	}
 
-    libOpenHevcStartDecoder(ctx->openHevcHandle);
+	libOpenHevcStartDecoder(ctx->openHevcHandle);
 
-	
+
 	ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
 	ctx->out_size = ctx->stride * ctx->height * 3 / 2;
 
@@ -272,7 +272,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = ctx->stride;
 		if (ctx->direct_output && !ctx->conv_buffer) {
 			//to fix soon - currently hardcoded to 32 pixels
-			if ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) 
+			if ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8))
 				capability->cap.valueInt += 32;
 			else
 				capability->cap.valueInt += 64;
@@ -323,17 +323,17 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 	case GF_CODEC_DISPLAY_BPP:
 		ctx->display_bpp = capability.cap.valueInt;
 		return GF_OK;
-    case GF_CODEC_WAIT_RAP:
+	case GF_CODEC_WAIT_RAP:
 		if (ctx->openHevcHandle)
-            libOpenHevcFlush(ctx->openHevcHandle);
-        return GF_OK;
+			libOpenHevcFlush(ctx->openHevcHandle);
+		return GF_OK;
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
 		/*switch up*/
-		if (capability.cap.valueInt > 0) {	
-			libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);		
+		if (capability.cap.valueInt > 0) {
+			libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);
 			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
 		} else {
-			libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);		
+			libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
 			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 0);
 		}
 		return GF_OK;
@@ -341,7 +341,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		ctx->direct_output = GF_TRUE;
 		if (ctx->conv_to_8bit && ctx->out_size)
 			ctx->conv_buffer = gf_realloc(ctx->conv_buffer, sizeof(char)*ctx->out_size);
-		
+
 		return GF_OK;
 	}
 	/*return unsupported to avoid confusion by the player (like color space changing ...) */
@@ -352,16 +352,16 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLength, u32 *CTS)
 {
 	unsigned int a_w, a_h, a_stride, bit_depth;
-    OpenHevc_Frame_cpy openHevcFrame;
+	OpenHevc_Frame_cpy openHevcFrame;
 
 	libOpenHevcGetPictureInfo(ctx->openHevcHandle, &openHevcFrame.frameInfo);
 
 
 	a_w      = openHevcFrame.frameInfo.nWidth;
-    a_h      = openHevcFrame.frameInfo.nHeight;
-    a_stride = openHevcFrame.frameInfo.nYPitch;
+	a_h      = openHevcFrame.frameInfo.nHeight;
+	a_stride = openHevcFrame.frameInfo.nYPitch;
 	bit_depth = openHevcFrame.frameInfo.nBitDepth;
-	
+
 	*CTS = (u32) openHevcFrame.frameInfo.nTimeStamp;
 
 	if (!ctx->output_as_8bit) {
@@ -374,7 +374,7 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		}
 	}
 
-	if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride) || (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) ){
+	if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride) || (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) ) {
 		ctx->width = a_w;
 		ctx->stride = a_stride;
 		ctx->height = a_h;
@@ -405,9 +405,9 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 				dst.pixel_format = GF_PIXEL_YV12;
 
 				gf_color_write_yv12_10_to_yuv(&dst, (u8 *) openHevcFramePtr.pvY, (u8 *) openHevcFramePtr.pvU, (u8 *) openHevcFramePtr.pvV, (openHevcFramePtr.frameInfo.nYPitch + 32)*2, ctx->width, ctx->height, NULL);
-				*outBufferLength = ctx->out_size;	
-				
-				if (ctx->direct_output ) 
+				*outBufferLength = ctx->out_size;
+
+				if (ctx->direct_output )
 					ctx->has_pic = GF_TRUE;
 			}
 		} else {
@@ -420,15 +420,15 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 			}
 		}
 	}
-    return GF_OK;
+	return GF_OK;
 }
 
 
-static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg, 
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID, u32 *CTS,
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
+                               char *inBuffer, u32 inBufferLength,
+                               u16 ES_ID, u32 *CTS,
+                               char *outBuffer, u32 *outBufferLength,
+                               u8 PaddingBits, u32 mmlevel)
 {
 	GF_Err e;
 	int got_pic;
@@ -438,7 +438,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		if ( libOpenHevcDecode(ctx->openHevcHandle, NULL, 0, 0) ) {
 			return HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
 		}
- 		return GF_OK;
+		return GF_OK;
 	}
 
 	if (!ES_ID) {
@@ -472,7 +472,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 static GF_Err HEVC_GetOutputBuffer(GF_MediaDecoder *ifcg, u16 ESID, u8 **pY_or_RGB, u8 **pU, u8 **pV)
 {
 	s32 res;
-    OpenHevc_Frame openHevcFrame;
+	OpenHevc_Frame openHevcFrame;
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 	if (!ctx->has_pic) return GF_BAD_PARAM;
 	ctx->has_pic = GF_FALSE;
@@ -521,14 +521,14 @@ GF_BaseDecoder *NewHEVCDec()
 {
 	GF_MediaDecoder *ifcd;
 	HEVCDec *dec;
-	
+
 	GF_SAFEALLOC(ifcd, GF_MediaDecoder);
 	GF_SAFEALLOC(dec, HEVCDec);
 	GF_REGISTER_MODULE_INTERFACE(ifcd, GF_MEDIA_DECODER_INTERFACE, "HEVC Decoder", "gpac distribution")
 
 	ifcd->privateStack = dec;
 
-	/*setup our own interface*/	
+	/*setup our own interface*/
 	ifcd->AttachStream = HEVC_AttachStream;
 	ifcd->DetachStream = HEVC_DetachStream;
 	ifcd->GetCapabilities = HEVC_GetCapabilities;
@@ -548,7 +548,7 @@ void DeleteHEVCDec(GF_BaseDecoder *ifcg)
 }
 
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -556,11 +556,11 @@ const u32 *QueryInterfaces()
 #endif
 		0
 	};
-	return si; 
+	return si;
 }
 
 GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)NewHEVCDec();
@@ -573,7 +573,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-	case GF_MEDIA_DECODER_INTERFACE: 
+	case GF_MEDIA_DECODER_INTERFACE:
 		DeleteHEVCDec((GF_BaseDecoder*)ifce);
 		break;
 #endif

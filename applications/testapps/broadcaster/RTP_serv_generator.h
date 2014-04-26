@@ -25,7 +25,7 @@ typedef struct tmp_PNC_CallbackData {
 	GF_Socket *socket;
 	GF_Socket *server_socket;
 	/* socket on which bitrate feedback is sent */
-	GF_Socket *feedback_socket;	
+	GF_Socket *feedback_socket;
 
 	void *extension;
 
@@ -34,7 +34,7 @@ typedef struct tmp_PNC_CallbackData {
 	/* RAP counter */
 	int RAPsent;
 	/* indication that the Access Unit Sequence Number should be increased */
-	int SAUN_inc; 
+	int SAUN_inc;
 
 	GF_Mutex *carrousel_mutex;
 	char buffer[RECV_BUFFER_SIZE_FOR_COMMANDS];
@@ -54,8 +54,8 @@ typedef struct tmp_PNC_CallbackExt {
 
 /*exports*/
 extern GF_Err PNC_RAP(PNC_CallbackData *data);
-extern PNC_CallbackData* PNC_Init_SceneGenerator(GF_RTPChannel *p_chan, GF_RTPHeader *p_hdr, char *default_scene, 
-												 u32 socketType, u16 socketPort, int debug);
+extern PNC_CallbackData* PNC_Init_SceneGenerator(GF_RTPChannel *p_chan, GF_RTPHeader *p_hdr, char *default_scene,
+        u32 socketType, u16 socketPort, int debug);
 extern GF_Err PNC_processBIFSGenerator(PNC_CallbackData*);
 extern void PNC_Close_SceneGenerator(PNC_CallbackData*);
 

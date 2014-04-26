@@ -1,27 +1,27 @@
- /*
- *			GPAC - Multimedia Framework C SDK
- *
- *			Authors: Jean Le Feuvre - Romain Bouqueau
- *			Copyright (c) Telecom ParisTech 2000-2012
- *					All rights reserved
- *
- *  This file is part of GPAC / SDL audio and video module
- *
- *  GPAC is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU Lesser General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *   
- *  GPAC is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU Lesser General Public License for more details.
- *   
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
- */
+/*
+*			GPAC - Multimedia Framework C SDK
+*
+*			Authors: Jean Le Feuvre - Romain Bouqueau
+*			Copyright (c) Telecom ParisTech 2000-2012
+*					All rights reserved
+*
+*  This file is part of GPAC / SDL audio and video module
+*
+*  GPAC is free software; you can redistribute it and/or modify
+*  it under the terms of the GNU Lesser General Public License as published by
+*  the Free Software Foundation; either version 2, or (at your option)
+*  any later version.
+*
+*  GPAC is distributed in the hope that it will be useful,
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*  GNU Lesser General Public License for more details.
+*
+*  You should have received a copy of the GNU Lesser General Public
+*  License along with this library; see the file COPYING.  If not, write to
+*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+*
+*/
 
 #include "sdl_out.h"
 #include <gpac/user.h>
@@ -38,9 +38,9 @@
 #endif
 
 /*cursors data*/
-static char hand_data[] = 
+static char hand_data[] =
 {
-	0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 
+	0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,1,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,1,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,1,2,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -77,8 +77,8 @@ static char hand_data[] =
 
 static char collide_data[] =
 {
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -91,8 +91,8 @@ static char collide_data[] =
 	0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -117,7 +117,7 @@ static char collide_data[] =
 #define SDLVID()	SDLVidCtx *ctx = (SDLVidCtx *)dr->opaque
 
 
-	
+
 #if SDL_VERSION_ATLEAST(2,0,0)
 void SDLVid_SetCaption(SDL_Window* window)
 {
@@ -147,7 +147,7 @@ void SDLVid_SetCaption(SDL_Window* window)
 #define SDLK_PRINTSCREEN SDLK_PRINT
 #define SDL_WINDOW_RESIZABLE SDL_RESIZABLE
 
-static u32 video_modes[] = 
+static u32 video_modes[] =
 {
 	320, 200,
 	320, 240,
@@ -172,7 +172,7 @@ void SDLVid_SetCaption()
 	}
 }
 #endif
-	
+
 
 
 SDL_Cursor *SDLVid_LoadCursor(char *maskdata)
@@ -206,191 +206,326 @@ SDL_Cursor *SDLVid_LoadCursor(char *maskdata)
 }
 
 
-static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt) 
+static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 {
 	evt->flags = 0;
 	evt->hw_code = SDLkey;
 	switch (SDLkey) {
-	case SDLK_BACKSPACE: evt->key_code = GF_KEY_BACKSPACE; break;
-	case SDLK_TAB: evt->key_code = GF_KEY_TAB; break;
-	case SDLK_CLEAR: evt->key_code = GF_KEY_CLEAR; break;
-	case SDLK_PAUSE: evt->key_code = GF_KEY_PAUSE; break;
-	case SDLK_ESCAPE: evt->key_code = GF_KEY_ESCAPE; break;
-	case SDLK_SPACE: evt->key_code = GF_KEY_SPACE; break;
-
-	case SDLK_KP_ENTER: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_RETURN: 
-		evt->key_code = GF_KEY_ENTER; 
+	case SDLK_BACKSPACE:
+		evt->key_code = GF_KEY_BACKSPACE;
+		break;
+	case SDLK_TAB:
+		evt->key_code = GF_KEY_TAB;
+		break;
+	case SDLK_CLEAR:
+		evt->key_code = GF_KEY_CLEAR;
+		break;
+	case SDLK_PAUSE:
+		evt->key_code = GF_KEY_PAUSE;
+		break;
+	case SDLK_ESCAPE:
+		evt->key_code = GF_KEY_ESCAPE;
+		break;
+	case SDLK_SPACE:
+		evt->key_code = GF_KEY_SPACE;
 		break;
 
-	case SDLK_KP_MULTIPLY: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_ASTERISK: 
-		evt->key_code = GF_KEY_STAR; 
-		break;
-	case SDLK_KP_PLUS: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_PLUS: 
-		evt->key_code = GF_KEY_PLUS; 
-		break;
-	case SDLK_KP_MINUS: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_MINUS: 
-		evt->key_code = GF_KEY_HYPHEN; 
-		break;
-	case SDLK_KP_DIVIDE: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_SLASH: 
-		evt->key_code = GF_KEY_SLASH; 
+	case SDLK_KP_ENTER:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_RETURN:
+		evt->key_code = GF_KEY_ENTER;
 		break;
 
-	case SDLK_KP_0: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_0: 
-		evt->key_code = GF_KEY_0; 
+	case SDLK_KP_MULTIPLY:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_ASTERISK:
+		evt->key_code = GF_KEY_STAR;
 		break;
-	case SDLK_KP_1: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_1: 
-		evt->key_code = GF_KEY_1; 
+	case SDLK_KP_PLUS:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_PLUS:
+		evt->key_code = GF_KEY_PLUS;
 		break;
-	case SDLK_KP_2: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_2: 
-		evt->key_code = GF_KEY_2; 
+	case SDLK_KP_MINUS:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_MINUS:
+		evt->key_code = GF_KEY_HYPHEN;
 		break;
-	case SDLK_KP_3: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_3: 
-		evt->key_code = GF_KEY_3; 
+	case SDLK_KP_DIVIDE:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_SLASH:
+		evt->key_code = GF_KEY_SLASH;
 		break;
-	case SDLK_KP_4: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_4: 
-		evt->key_code = GF_KEY_4; 
+
+	case SDLK_KP_0:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_0:
+		evt->key_code = GF_KEY_0;
 		break;
-	case SDLK_KP_5: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_5: 
-		evt->key_code = GF_KEY_5; 
+	case SDLK_KP_1:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_1:
+		evt->key_code = GF_KEY_1;
 		break;
-	case SDLK_KP_6: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_6: 
-		evt->key_code = GF_KEY_6; 
+	case SDLK_KP_2:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_2:
+		evt->key_code = GF_KEY_2;
 		break;
-	case SDLK_KP_7: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_7: 
-		evt->key_code = GF_KEY_7; 
+	case SDLK_KP_3:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_3:
+		evt->key_code = GF_KEY_3;
 		break;
-	case SDLK_KP_8: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_8: 
-		evt->key_code = GF_KEY_8; 
+	case SDLK_KP_4:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_4:
+		evt->key_code = GF_KEY_4;
 		break;
-	case SDLK_KP_9: evt->flags = GF_KEY_EXT_NUMPAD;
-	case SDLK_9: 
-		evt->key_code = GF_KEY_9; 
+	case SDLK_KP_5:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_5:
+		evt->key_code = GF_KEY_5;
 		break;
-	case SDLK_KP_PERIOD: evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_KP_6:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_6:
+		evt->key_code = GF_KEY_6;
+		break;
+	case SDLK_KP_7:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_7:
+		evt->key_code = GF_KEY_7;
+		break;
+	case SDLK_KP_8:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_8:
+		evt->key_code = GF_KEY_8;
+		break;
+	case SDLK_KP_9:
+		evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_9:
+		evt->key_code = GF_KEY_9;
+		break;
+	case SDLK_KP_PERIOD:
+		evt->flags = GF_KEY_EXT_NUMPAD;
 	case SDLK_PERIOD:
-		evt->key_code = GF_KEY_FULLSTOP; 
+		evt->key_code = GF_KEY_FULLSTOP;
 		break;
-	case SDLK_KP_EQUALS: evt->flags = GF_KEY_EXT_NUMPAD;
+	case SDLK_KP_EQUALS:
+		evt->flags = GF_KEY_EXT_NUMPAD;
 	case SDLK_EQUALS:
-		evt->key_code = GF_KEY_EQUALS; 
+		evt->key_code = GF_KEY_EQUALS;
 		break;
-	
-	case SDLK_EXCLAIM: evt->key_code = GF_KEY_EXCLAMATION; break;
-	case SDLK_QUOTEDBL: evt->key_code = GF_KEY_QUOTATION; break;
-	case SDLK_HASH: evt->key_code = GF_KEY_NUMBER; break;
-	case SDLK_DOLLAR: evt->key_code = GF_KEY_DOLLAR; break;
-	case SDLK_AMPERSAND: evt->key_code = GF_KEY_AMPERSAND; break;
-	case SDLK_QUOTE: evt->key_code = GF_KEY_APOSTROPHE; break;
-	case SDLK_LEFTPAREN: evt->key_code = GF_KEY_LEFTPARENTHESIS; break;
-	case SDLK_RIGHTPAREN: evt->key_code = GF_KEY_RIGHTPARENTHESIS; break;
-	case SDLK_COMMA: evt->key_code = GF_KEY_COMMA; break;
-	case SDLK_COLON: evt->key_code = GF_KEY_COLON; break;
-	case SDLK_SEMICOLON: evt->key_code = GF_KEY_SEMICOLON; break;
-	case SDLK_LESS: evt->key_code = GF_KEY_LESSTHAN; break;
-	case SDLK_GREATER: evt->key_code = GF_KEY_GREATERTHAN; break;
-	case SDLK_QUESTION: evt->key_code = GF_KEY_QUESTION; break;
-	case SDLK_AT: evt->key_code = GF_KEY_AT; break;
-	case SDLK_LEFTBRACKET: evt->key_code = GF_KEY_LEFTSQUAREBRACKET; break;
-	case SDLK_RIGHTBRACKET: evt->key_code = GF_KEY_RIGHTSQUAREBRACKET; break;
-	case SDLK_BACKSLASH: evt->key_code = GF_KEY_BACKSLASH; break;
-	case SDLK_UNDERSCORE: evt->key_code = GF_KEY_UNDERSCORE; break;
-	case SDLK_BACKQUOTE: evt->key_code = GF_KEY_GRAVEACCENT; break;
-	case SDLK_DELETE: evt->key_code = GF_KEY_DEL; break;
-	case SDLK_UNDO: evt->key_code = GF_KEY_UNDO; break;
 
-	case SDLK_UP: evt->key_code = GF_KEY_UP; break;
-	case SDLK_DOWN: evt->key_code = GF_KEY_DOWN; break;
-	case SDLK_RIGHT: evt->key_code = GF_KEY_RIGHT; break;
-	case SDLK_LEFT: evt->key_code = GF_KEY_LEFT; break;
-	case SDLK_INSERT: evt->key_code = GF_KEY_INSERT; break;
-	case SDLK_HOME: evt->key_code = GF_KEY_HOME; break;
-	case SDLK_END: evt->key_code = GF_KEY_END; break;
-	case SDLK_PAGEUP: evt->key_code = GF_KEY_PAGEUP; break;
-	case SDLK_PAGEDOWN: evt->key_code = GF_KEY_PAGEDOWN; break;
-	case SDLK_F1: evt->key_code = GF_KEY_F1; break;
-	case SDLK_F2: evt->key_code = GF_KEY_F2; break;
-	case SDLK_F3: evt->key_code = GF_KEY_F3; break;
-	case SDLK_F4: evt->key_code = GF_KEY_F4; break;
-	case SDLK_F5: evt->key_code = GF_KEY_F5; break;
-	case SDLK_F6: evt->key_code = GF_KEY_F6; break;
-	case SDLK_F7: evt->key_code = GF_KEY_F7; break;
-	case SDLK_F8: evt->key_code = GF_KEY_F8; break;
-	case SDLK_F9: evt->key_code = GF_KEY_F9; break;
-	case SDLK_F10: evt->key_code = GF_KEY_F10; break;
-	case SDLK_F11: evt->key_code = GF_KEY_F11; break;
-	case SDLK_F12: evt->key_code = GF_KEY_F12; break;
-	case SDLK_F13: evt->key_code = GF_KEY_F13; break;
-	case SDLK_F14: evt->key_code = GF_KEY_F14; break;
-	case SDLK_F15: evt->key_code = GF_KEY_F15; break;
-	case SDLK_NUMLOCKCLEAR: evt->key_code = GF_KEY_NUMLOCK; break;
-	case SDLK_CAPSLOCK: evt->key_code = GF_KEY_CAPSLOCK; break;
-	case SDLK_SCROLLLOCK: evt->key_code = GF_KEY_SCROLL; break;
+	case SDLK_EXCLAIM:
+		evt->key_code = GF_KEY_EXCLAMATION;
+		break;
+	case SDLK_QUOTEDBL:
+		evt->key_code = GF_KEY_QUOTATION;
+		break;
+	case SDLK_HASH:
+		evt->key_code = GF_KEY_NUMBER;
+		break;
+	case SDLK_DOLLAR:
+		evt->key_code = GF_KEY_DOLLAR;
+		break;
+	case SDLK_AMPERSAND:
+		evt->key_code = GF_KEY_AMPERSAND;
+		break;
+	case SDLK_QUOTE:
+		evt->key_code = GF_KEY_APOSTROPHE;
+		break;
+	case SDLK_LEFTPAREN:
+		evt->key_code = GF_KEY_LEFTPARENTHESIS;
+		break;
+	case SDLK_RIGHTPAREN:
+		evt->key_code = GF_KEY_RIGHTPARENTHESIS;
+		break;
+	case SDLK_COMMA:
+		evt->key_code = GF_KEY_COMMA;
+		break;
+	case SDLK_COLON:
+		evt->key_code = GF_KEY_COLON;
+		break;
+	case SDLK_SEMICOLON:
+		evt->key_code = GF_KEY_SEMICOLON;
+		break;
+	case SDLK_LESS:
+		evt->key_code = GF_KEY_LESSTHAN;
+		break;
+	case SDLK_GREATER:
+		evt->key_code = GF_KEY_GREATERTHAN;
+		break;
+	case SDLK_QUESTION:
+		evt->key_code = GF_KEY_QUESTION;
+		break;
+	case SDLK_AT:
+		evt->key_code = GF_KEY_AT;
+		break;
+	case SDLK_LEFTBRACKET:
+		evt->key_code = GF_KEY_LEFTSQUAREBRACKET;
+		break;
+	case SDLK_RIGHTBRACKET:
+		evt->key_code = GF_KEY_RIGHTSQUAREBRACKET;
+		break;
+	case SDLK_BACKSLASH:
+		evt->key_code = GF_KEY_BACKSLASH;
+		break;
+	case SDLK_UNDERSCORE:
+		evt->key_code = GF_KEY_UNDERSCORE;
+		break;
+	case SDLK_BACKQUOTE:
+		evt->key_code = GF_KEY_GRAVEACCENT;
+		break;
+	case SDLK_DELETE:
+		evt->key_code = GF_KEY_DEL;
+		break;
+	case SDLK_UNDO:
+		evt->key_code = GF_KEY_UNDO;
+		break;
 
-	case SDLK_RSHIFT: 
+	case SDLK_UP:
+		evt->key_code = GF_KEY_UP;
+		break;
+	case SDLK_DOWN:
+		evt->key_code = GF_KEY_DOWN;
+		break;
+	case SDLK_RIGHT:
+		evt->key_code = GF_KEY_RIGHT;
+		break;
+	case SDLK_LEFT:
+		evt->key_code = GF_KEY_LEFT;
+		break;
+	case SDLK_INSERT:
+		evt->key_code = GF_KEY_INSERT;
+		break;
+	case SDLK_HOME:
+		evt->key_code = GF_KEY_HOME;
+		break;
+	case SDLK_END:
+		evt->key_code = GF_KEY_END;
+		break;
+	case SDLK_PAGEUP:
+		evt->key_code = GF_KEY_PAGEUP;
+		break;
+	case SDLK_PAGEDOWN:
+		evt->key_code = GF_KEY_PAGEDOWN;
+		break;
+	case SDLK_F1:
+		evt->key_code = GF_KEY_F1;
+		break;
+	case SDLK_F2:
+		evt->key_code = GF_KEY_F2;
+		break;
+	case SDLK_F3:
+		evt->key_code = GF_KEY_F3;
+		break;
+	case SDLK_F4:
+		evt->key_code = GF_KEY_F4;
+		break;
+	case SDLK_F5:
+		evt->key_code = GF_KEY_F5;
+		break;
+	case SDLK_F6:
+		evt->key_code = GF_KEY_F6;
+		break;
+	case SDLK_F7:
+		evt->key_code = GF_KEY_F7;
+		break;
+	case SDLK_F8:
+		evt->key_code = GF_KEY_F8;
+		break;
+	case SDLK_F9:
+		evt->key_code = GF_KEY_F9;
+		break;
+	case SDLK_F10:
+		evt->key_code = GF_KEY_F10;
+		break;
+	case SDLK_F11:
+		evt->key_code = GF_KEY_F11;
+		break;
+	case SDLK_F12:
+		evt->key_code = GF_KEY_F12;
+		break;
+	case SDLK_F13:
+		evt->key_code = GF_KEY_F13;
+		break;
+	case SDLK_F14:
+		evt->key_code = GF_KEY_F14;
+		break;
+	case SDLK_F15:
+		evt->key_code = GF_KEY_F15;
+		break;
+	case SDLK_NUMLOCKCLEAR:
+		evt->key_code = GF_KEY_NUMLOCK;
+		break;
+	case SDLK_CAPSLOCK:
+		evt->key_code = GF_KEY_CAPSLOCK;
+		break;
+	case SDLK_SCROLLLOCK:
+		evt->key_code = GF_KEY_SCROLL;
+		break;
+
+	case SDLK_RSHIFT:
 		evt->key_code = GF_KEY_SHIFT;
 		evt->flags = GF_KEY_EXT_RIGHT;
 		break;
-	case SDLK_LSHIFT: 
+	case SDLK_LSHIFT:
 		evt->key_code = GF_KEY_SHIFT;
 		evt->flags = GF_KEY_EXT_LEFT;
 		break;
-	case SDLK_LCTRL: 
+	case SDLK_LCTRL:
 		evt->key_code = GF_KEY_CONTROL;
 		evt->flags = GF_KEY_EXT_LEFT;
 		break;
-	case SDLK_RCTRL: 
+	case SDLK_RCTRL:
 		evt->key_code = GF_KEY_CONTROL;
 		evt->flags = GF_KEY_EXT_RIGHT;
 		break;
-	case SDLK_LALT: 
+	case SDLK_LALT:
 		evt->key_code = GF_KEY_ALT;
 		evt->flags = GF_KEY_EXT_LEFT;
 		break;
-	case SDLK_RALT: 
+	case SDLK_RALT:
 		evt->key_code = GF_KEY_ALT;
 		evt->flags = GF_KEY_EXT_RIGHT;
 		break;
 #if (SDL_MAJOR_VERSION<=1) && (SDL_MINOR_VERSION<3)
-    case SDLK_LMETA:
-    case SDLK_LSUPER:
+	case SDLK_LMETA:
+	case SDLK_LSUPER:
 #else
-    case SDLK_LGUI:
+	case SDLK_LGUI:
 #endif
 		evt->key_code = GF_KEY_META;
 		evt->flags = GF_KEY_EXT_LEFT;
 		break;
 #if (SDL_MAJOR_VERSION<=1) && (SDL_MINOR_VERSION<3)
-    case SDLK_RMETA:
-    case SDLK_RSUPER:
+	case SDLK_RMETA:
+	case SDLK_RSUPER:
 #else
-    case SDLK_RGUI:
+	case SDLK_RGUI:
 #endif
 		evt->key_code = GF_KEY_META;
 		evt->flags = GF_KEY_EXT_RIGHT;
 		break;
-	case SDLK_MODE: evt->key_code = GF_KEY_MODECHANGE; break;
-	case SDLK_APPLICATION: evt->key_code = GF_KEY_COMPOSE; break;
-	case SDLK_HELP: evt->key_code = GF_KEY_HELP; break;
-	case SDLK_PRINTSCREEN: evt->key_code = GF_KEY_PRINTSCREEN; break;
+	case SDLK_MODE:
+		evt->key_code = GF_KEY_MODECHANGE;
+		break;
+	case SDLK_APPLICATION:
+		evt->key_code = GF_KEY_COMPOSE;
+		break;
+	case SDLK_HELP:
+		evt->key_code = GF_KEY_HELP;
+		break;
+	case SDLK_PRINTSCREEN:
+		evt->key_code = GF_KEY_PRINTSCREEN;
+		break;
 
 #if (SDL_MAJOR_VERSION>=1) && (SDL_MINOR_VERSION>=3)
-/*
-	SDLK_CARET		= 94,
- */
+	/*
+		SDLK_CARET		= 94,
+	 */
 	case SDLK_a:
 	case SDLK_b:
 	case SDLK_c:
@@ -419,20 +554,20 @@ static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 	case SDLK_z:
 		evt->key_code = GF_KEY_A + SDLkey - SDLK_a;
 		break;
-			/*
- SDLK_DELETE		= 127,
+		/*
+		SDLK_DELETE		= 127,
 
-	SDLK_SYSREQ		= 317,
-	SDLK_POWER		= 320,
+		SDLK_SYSREQ		= 317,
+		SDLK_POWER		= 320,
 
-*/
+		*/
 #endif
-			
+
 	default:
 		if ((SDLkey>=0x30) && (SDLkey<=0x39))  evt->key_code = GF_KEY_0 + SDLkey-0x30;
 		else if ((SDLkey>=0x41) && (SDLkey<=0x5A))  evt->key_code = GF_KEY_A + SDLkey-0x41;
 		else if ((SDLkey>=0x61) && (SDLkey<=0x7A))  evt->key_code = GF_KEY_A + SDLkey-0x61;
-		else	
+		else
 		{
 			evt->key_code = GF_KEY_UNIDENTIFIED;
 		}
@@ -513,12 +648,12 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 	Bool hw_reset = GF_FALSE;
 	SDLVID();
 	GF_Event evt;
-	
+
 	/*lock X mutex to make sure the event queue is not being processed*/
 	gf_mx_p(ctx->evt_mx);
-    
-    GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Resizing window %dx%d\n", width, height));
-		
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Resizing window %dx%d\n", width, height));
+
 	if (ctx->output_3d_type) {
 		u32 flags, nb_bits;
 		const char *opt;
@@ -527,7 +662,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			gf_mx_v(ctx->evt_mx);
 			return GF_OK;
 		}
-		
+
 #if SDL_VERSION_ATLEAST(2,0,0)
 		flags = SDL_GL_WINDOW_FLAGS;
 		if (ctx->os_handle) flags &= ~SDL_WINDOW_RESIZABLE;
@@ -552,14 +687,14 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 
 		assert(width);
 		assert(height);
-#if SDL_VERSION_ATLEAST(2,0,0)				
+#if SDL_VERSION_ATLEAST(2,0,0)
 		if (!ctx->screen) {
 			if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags))) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
 			}
-            GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
 		}
 
 		if ( !ctx->gl_context ) {
@@ -575,8 +710,8 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			}
 			hw_reset = GF_TRUE;
 		}
-        SDL_SetWindowSize(ctx->screen, width, height);
-				
+		SDL_SetWindowSize(ctx->screen, width, height);
+
 #else
 		hw_reset = GF_TRUE;
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
@@ -609,22 +744,22 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
 			}
-            GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
 		}
 		if ( !ctx->renderer ) {
 			u32 flags = SDL_RENDERER_ACCELERATED;
 			const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
-			if (!opt || strcmp(opt, "yes")) 
+			if (!opt || strcmp(opt, "yes"))
 				flags |= SDL_RENDERER_PRESENTVSYNC;
 
-			
+
 			if (!(ctx->renderer = SDL_CreateRenderer(ctx->screen, -1, flags))) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create renderer: %s\n", SDL_GetError()));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create renderer: %s\n", SDL_GetError()));
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
 			}
-        }
-        SDL_SetWindowSize(ctx->screen, width, height);
+		}
+		SDL_SetWindowSize(ctx->screen, width, height);
 #else
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
 #endif
@@ -647,14 +782,14 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 #ifdef WIN32
 	putenv("directx");
 #endif
-	
-    flags = SDL_WasInit(SDL_INIT_VIDEO);
+
+	flags = SDL_WasInit(SDL_INIT_VIDEO);
 	if (!(flags & SDL_INIT_VIDEO)) {
 		if (SDL_InitSubSystem(SDL_INIT_VIDEO)) {
 			return 0;
 		}
 	}
-    
+
 	ctx->curs_def = SDL_GetCursor();
 	ctx->curs_hand = SDLVid_LoadCursor(hand_data);
 	ctx->curs_collide = SDLVid_LoadCursor(collide_data);
@@ -686,16 +821,16 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 		SDL_Rect** modes;
 		modes = SDL_ListModes(NULL, SDL_FULLSCREEN|SDL_HWSURFACE);
 		assert( (modes != (SDL_Rect**)0));
-		if ( modes == (SDL_Rect**)-1 ){
+		if ( modes == (SDL_Rect**)-1 ) {
 			fprintf(stderr, "SDL : DONT KNOW WHICH MODE TO USE, using 640x480\n");
 			dr->max_screen_width = 640;
 			dr->max_screen_height = 480;
 		} else {
 			int i;
 			dr->max_screen_width = 0;
-			for (i=0; modes[i]; ++i){
+			for (i=0; modes[i]; ++i) {
 				int w = modes[i]->w;
-				if (w > dr->max_screen_width){
+				if (w > dr->max_screen_width) {
 					dr->max_screen_width = w;
 					dr->max_screen_height = modes[i]->h;
 				}
@@ -706,13 +841,13 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 #endif /* versions prior to 1.2.10 do not have the size of screen */
 #endif
 
-	if (!ctx->os_handle) 
+	if (!ctx->os_handle)
 #if SDL_VERSION_ATLEAST(2,0,0)
 		SDLVid_SetCaption(ctx->screen);
 #else
 		SDLVid_SetCaption();
 #endif
-	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Video output initialized - screen resolution %d %d\n", dr->max_screen_width, dr->max_screen_height)); 
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Video output initialized - screen resolution %d %d\n", dr->max_screen_width, dr->max_screen_height));
 	return 1;
 }
 
@@ -722,14 +857,14 @@ static void SDLVid_ResetWindow(SDLVidCtx *ctx)
 #if SDL_VERSION_ATLEAST(2,0,0)
 	if ( ctx->gl_context ) {
 		SDL_GL_DeleteContext(ctx->gl_context);
-        ctx->gl_context = NULL;
-    }
+		ctx->gl_context = NULL;
+	}
 	if ( ctx->renderer ) {
 		SDL_DestroyRenderer(ctx->renderer);
-        ctx->renderer = NULL;
-    }
-    
-    /*iOS SDL2 has a nasty bug that breaks switching between 2D and GL context if we don't re-init the video subsystem*/
+		ctx->renderer = NULL;
+	}
+
+	/*iOS SDL2 has a nasty bug that breaks switching between 2D and GL context if we don't re-init the video subsystem*/
 #ifdef GPAC_IPHONE
 	if ( ctx->screen ) {
 		SDL_DestroyWindow(ctx->screen);
@@ -738,7 +873,7 @@ static void SDLVid_ResetWindow(SDLVidCtx *ctx)
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 	SDL_InitSubSystem(SDL_INIT_VIDEO);
 #endif
-	
+
 #endif
 }
 
@@ -765,7 +900,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 		case SDL_WINDOWEVENT:
 			switch (sdl_evt.window.event) {
 			case SDL_WINDOWEVENT_SIZE_CHANGED:
-                gpac_evt.type = GF_EVENT_SIZE;
+				gpac_evt.type = GF_EVENT_SIZE;
 				gpac_evt.size.width = sdl_evt.window.data1;
 				gpac_evt.size.height = sdl_evt.window.data2;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
@@ -780,7 +915,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			break;
 #else
 		case SDL_VIDEORESIZE:
-		  	gpac_evt.type = GF_EVENT_SIZE;
+			gpac_evt.type = GF_EVENT_SIZE;
 			gpac_evt.size.width = sdl_evt.resize.w;
 			gpac_evt.size.height = sdl_evt.resize.h;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
@@ -790,13 +925,13 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			break;
 #endif
-				
+
 		case SDL_QUIT:
 			memset(&gpac_evt, 0, sizeof(GF_Event));
 			gpac_evt.type = GF_EVENT_QUIT;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			return 0;
-			
+
 #ifdef SDL_TEXTINPUTEVENT_TEXT_SIZE
 		/*keyboard*/
 		case SDL_TEXTINPUT: /* Since SDL 1.3, text-input is handled in a specific event */
@@ -806,7 +941,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			assert( len < 5 );
 			ucs4_len = utf8_to_ucs4 (&(gpac_evt.character.unicode_char), len, (unsigned char*)(sdl_evt.text.text));
 			gpac_evt.type = GF_EVENT_TEXTINPUT;
-			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);	
+			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			break;
 		}
 #endif /* SDL_TEXTINPUTEVENT_TEXT_SIZE */
@@ -818,16 +953,16 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			if (gpac_evt.key.key_code==GF_KEY_CONTROL) ctx->ctrl_down = (sdl_evt.key.type==SDL_KEYDOWN) ? 1 : 0;
 			else if (gpac_evt.key.key_code==GF_KEY_ALT) ctx->alt_down = (sdl_evt.key.type==SDL_KEYDOWN) ? 1 : 0;
 			else if (gpac_evt.key.key_code==GF_KEY_META) ctx->meta_down = (sdl_evt.key.type==SDL_KEYDOWN) ? 1 : 0;
-		
+
 #if (SDL_MAJOR_VERSION>=1) && (SDL_MINOR_VERSION>=3)
 
-			if ((gpac_evt.type==GF_EVENT_KEYUP) && (gpac_evt.key.key_code==GF_KEY_V)	
+			if ((gpac_evt.type==GF_EVENT_KEYUP) && (gpac_evt.key.key_code==GF_KEY_V)
 #if defined(__DARWIN__) || defined(__APPLE__)
-				&& ctx->meta_down 
+			        && ctx->meta_down
 #else
-				&& ctx->ctrl_down 
+			        && ctx->ctrl_down
 #endif
-            ) {
+			   ) {
 #if defined(__DARWIN__) || defined(__APPLE__)
 #else
 				gpac_evt.type = GF_EVENT_PASTE_TEXT;
@@ -836,33 +971,33 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 				SDL_free((char *) gpac_evt.message.message);
 #endif
 			}
-			else if ((gpac_evt.type==GF_EVENT_KEYUP) && (gpac_evt.key.key_code==GF_KEY_C)	
+			else if ((gpac_evt.type==GF_EVENT_KEYUP) && (gpac_evt.key.key_code==GF_KEY_C)
 #if defined(__DARWIN__) || defined(__APPLE__)
-				&& ctx->meta_down 
+			         && ctx->meta_down
 #else
-				&& ctx->ctrl_down 
+			         && ctx->ctrl_down
 #endif
-            ) {
-			gpac_evt.type = GF_EVENT_COPY_TEXT;
+			        ) {
+				gpac_evt.type = GF_EVENT_COPY_TEXT;
 #if defined(__DARWIN__) || defined(__APPLE__)
 #else
-			if (dr->on_event(dr->evt_cbk_hdl, &gpac_evt)==GF_TRUE)
-				SDL_SetClipboardText((char *)gpac_evt.message.message );
+				if (dr->on_event(dr->evt_cbk_hdl, &gpac_evt)==GF_TRUE)
+					SDL_SetClipboardText((char *)gpac_evt.message.message );
 #endif
 			}
 #endif
 
 #ifndef SDL_TEXTINPUTEVENT_TEXT_SIZE
 			if ((sdl_evt.key.type==SDL_KEYDOWN)
-				&& sdl_evt.key.keysym.unicode
-				&& ((sdl_evt.key.keysym.unicode=='\r') || (sdl_evt.key.keysym.unicode=='\n')  || (sdl_evt.key.keysym.unicode=='\b') || (sdl_evt.key.keysym.unicode=='\t') )
-			) {
+			        && sdl_evt.key.keysym.unicode
+			        && ((sdl_evt.key.keysym.unicode=='\r') || (sdl_evt.key.keysym.unicode=='\n')  || (sdl_evt.key.keysym.unicode=='\b') || (sdl_evt.key.keysym.unicode=='\t') )
+			   ) {
 				gpac_evt.character.unicode_char = sdl_evt.key.keysym.unicode;
 				gpac_evt.type = GF_EVENT_TEXTINPUT;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			}
 #endif
-                break;
+			break;
 
 		/*mouse*/
 		case SDL_MOUSEMOTION:
@@ -879,15 +1014,15 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			gpac_evt.mouse.y = sdl_evt.motion.y;
 			gpac_evt.type = (sdl_evt.type==SDL_MOUSEBUTTONUP) ? GF_EVENT_MOUSEUP : GF_EVENT_MOUSEDOWN;
 			switch (sdl_evt.button.button) {
-			case SDL_BUTTON_LEFT: 
+			case SDL_BUTTON_LEFT:
 				gpac_evt.mouse.button = GF_MOUSE_LEFT;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 				break;
-			case SDL_BUTTON_MIDDLE: 
+			case SDL_BUTTON_MIDDLE:
 				gpac_evt.mouse.button = GF_MOUSE_MIDDLE;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 				break;
-			case SDL_BUTTON_RIGHT: 
+			case SDL_BUTTON_RIGHT:
 				gpac_evt.mouse.button = GF_MOUSE_RIGHT;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 				break;
@@ -959,7 +1094,7 @@ u32 SDLVid_EventProc(void *par)
 			cursor_on = 1;
 		}
 #endif
-	
+
 		/*QUIT message has been processed*/
 		if (!ret) {
 			ctx->sdl_th_state = SDL_STATE_STOP_REQ;
@@ -992,7 +1127,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	ctx->force_alpha = (init_flags & GF_TERM_WINDOW_TRANSPARENT) ? 1 : 0;
 
 	if (!SDLOUT_InitSDL())
-        return GF_IO_ERR;
+		return GF_IO_ERR;
 
 #ifdef	SDL_WINDOW_THREAD
 	ctx->sdl_th_state = SDL_STATE_STOPPED;
@@ -1009,7 +1144,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	}
 #else
 	if (!SDLVid_InitializeWindow(ctx, dr)) {
-        SDL_QuitSubSystem(SDL_INIT_VIDEO);
+		SDL_QuitSubSystem(SDL_INIT_VIDEO);
 		SDLOUT_CloseSDL();
 		return GF_IO_ERR;
 	}
@@ -1057,7 +1192,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 #endif
 
 	if (ctx->fullscreen==bFullScreenOn) return GF_OK;
-	
+
 	/*lock to get sure the event queue is not processed under X*/
 	gf_mx_p(ctx->evt_mx);
 	ctx->fullscreen = bFullScreenOn;
@@ -1158,7 +1293,7 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 #else
 	u32 col;
 #endif
-	
+
 	if (ctx->output_3d_type==1) return GF_BAD_PARAM;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
@@ -1249,9 +1384,9 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	/*if resizing don't process otherwise we may deadlock*/
 	if (!ctx->screen) return GF_OK;
 
-    //GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Flush\n"));
-	
-    if (ctx->output_3d_type==1) {
+	//GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Flush\n"));
+
+	if (ctx->output_3d_type==1) {
 #if SDL_VERSION_ATLEAST(2,0,0)
 		SDL_GL_SwapWindow(ctx->screen);
 #else
@@ -1303,12 +1438,15 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 		SDL_UnlockSurface(ctx->screen);
 #endif
 		SDL_UnlockSurface(ctx->back_buffer);
-		
+
 	} else {
 #if SDL_VERSION_ATLEAST(2,0,0)
 		SDL_Texture* tx;
 #endif
-		rc.x = dest->x; rc.y = dest->y; rc.w = dest->w; rc.h = dest->h;
+		rc.x = dest->x;
+		rc.y = dest->y;
+		rc.w = dest->w;
+		rc.h = dest->h;
 #if SDL_VERSION_ATLEAST(2,0,0)
 		SDL_ClearError();
 		if (!(tx = SDL_CreateTextureFromSurface(ctx->renderer, ctx->back_buffer))) {
@@ -1355,8 +1493,10 @@ static u32 get_sys_col(int idx)
 {
 	u32 res;
 	DWORD val = GetSysColor(idx);
-	res = (val)&0xFF; res<<=8;
-	res |= (val>>8)&0xFF; res<<=8;
+	res = (val)&0xFF;
+	res<<=8;
+	res |= (val>>8)&0xFF;
+	res<<=8;
 	res |= (val>>16)&0xFF;
 	return res;
 }
@@ -1368,7 +1508,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 #ifndef	SDL_WINDOW_THREAD
 		SDLVID();
 		SDLVid_ProcessMessageQueue(ctx, dr);
-#endif		
+#endif
 #if SDL_VERSION_ATLEAST(2,0,0)
 		{
 			SDLVID();
@@ -1400,9 +1540,9 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		ctx->szCaption[99]=0;
 	}
 #else
-		SDL_WM_SetCaption(evt->caption.caption, NULL);
+	SDL_WM_SetCaption(evt->caption.caption, NULL);
 #endif
-		break;
+	break;
 	case GF_EVENT_SHOWHIDE:
 		/*the only way to have proper show/hide with SDL is to shutdown the video system and reset it up
 		which we don't want to do since the setup MUST occur in the rendering thread for some configs (openGL)*/
@@ -1422,7 +1562,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 #endif
 		}
 	}
-		break;
+	break;
 	case GF_EVENT_MOVE:
 		break;
 	case GF_EVENT_VIDEO_SETUP:
@@ -1435,7 +1575,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 				ctx->width = ctx->height = 0;
 				ctx->output_3d_type = 0;
 				SDLVid_ResetWindow(ctx);
-		        SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
+				SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 			} else {
 #if SDL_VERSION_ATLEAST(2,0,0)
 				SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
@@ -1450,7 +1590,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 				SDLVid_ResetWindow(ctx);
 			}
 			ctx->output_3d_type = 1;
-            GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Setting up 3D in SDL.\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Setting up 3D in SDL.\n"));
 #ifdef GPAC_IPHONE
 //            return SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
 			return SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
@@ -1466,7 +1606,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Trying to set an Unknown Mode %d !\n", evt->setup.opengl_mode));
 			return GF_NOT_SUPPORTED;
-	}
+		}
 		break;
 	case GF_EVENT_SYS_COLORS:
 #ifdef WIN32
@@ -1533,7 +1673,7 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, u
 		memcpy(pYD, pY, sizeof(unsigned char)*src_width*src_height);
 		memcpy(pVD, pV, sizeof(unsigned char)*src_width*src_height/4);
 		memcpy(pUD, pU, sizeof(unsigned char)*src_width*src_height/4);
-	} else if (src_pf==GF_PIXEL_YUY2){
+	} else if (src_pf==GF_PIXEL_YUY2) {
 		u32 i, j;
 		unsigned char *dst_y, *dst_u, *dst_v;
 
@@ -1565,7 +1705,7 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, u
 				pV += src_stride;
 			}
 		}
-	} else if (src_pf==GF_PIXEL_YV12_10){
+	} else if (src_pf==GF_PIXEL_YV12_10) {
 		u32 i, j;
 		for (i=0; i<src_wnd->h; i++) {
 			u16 *py = (u16 *) (pY + i*src_stride);
@@ -1598,7 +1738,7 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, u
 
 		src = pY;
 		dst = pYD;
-		
+
 		src2 = (pixel_format != GF_PIXEL_YV12) ? pU : pV;
 		dst2 = pVD;
 		src3 = (pixel_format  != GF_PIXEL_YV12) ? pV : pU;
@@ -1632,7 +1772,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	SDL_Rect dstrc;
 	SDL_Surface **pool;
 
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] Bliting surface (overlay type %d)\n", overlay_type));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] Bliting surface (overlay type %d)\n", overlay_type));
 
 	if (overlay_type) {
 #if SDL_VERSION_ATLEAST(2,0,0)
@@ -1701,9 +1841,9 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		/*copy pixels*/
 		SDL_LockYUVOverlay(ctx->yuv_overlay);
 
-		copy_yuv(ctx->yuv_overlay->pixels[0], ctx->yuv_overlay->pixels[1], ctx->yuv_overlay->pixels[2], GF_PIXEL_YV12, ctx->yuv_overlay->pitches[0], 
-			(unsigned char *) video_src->video_buffer, (unsigned char *) video_src->u_ptr, (unsigned char *) video_src->v_ptr, video_src->pitch_y, video_src->pixel_format,
-			video_src->width, video_src->height, src_wnd);
+		copy_yuv(ctx->yuv_overlay->pixels[0], ctx->yuv_overlay->pixels[1], ctx->yuv_overlay->pixels[2], GF_PIXEL_YV12, ctx->yuv_overlay->pitches[0],
+		         (unsigned char *) video_src->video_buffer, (unsigned char *) video_src->u_ptr, (unsigned char *) video_src->v_ptr, video_src->pitch_y, video_src->pixel_format,
+		         video_src->width, video_src->height, src_wnd);
 
 		SDL_UnlockYUVOverlay(ctx->yuv_overlay);
 
@@ -1717,7 +1857,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	}
 
 	/*SDL doesn't support stretching ...*/
-	if ((src_wnd->w != dst_wnd->w) || (src_wnd->h!=dst_wnd->h)) 
+	if ((src_wnd->w != dst_wnd->w) || (src_wnd->h!=dst_wnd->h))
 		return GF_NOT_SUPPORTED;
 
 	switch (video_src->pixel_format) {
@@ -1730,7 +1870,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
 		amask = 0x000000FF;
 #else
-        amask = 0xFF000000;
+		amask = 0xFF000000;
 #endif
 		bpp = 4;
 		break;
@@ -1738,33 +1878,33 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		return GF_NOT_SUPPORTED;
 	}
 #if SDL_VERSION_ATLEAST(2,0,0)
-    if ((*pool)) SDL_FreeSurface((*pool));
-    (*pool) = SDL_CreateRGBSurfaceFrom(video_src->video_buffer + video_src->pitch_y*src_wnd->y + src_wnd->x*bpp,
-        src_wnd->w, src_wnd->h, 8*bpp, video_src->pitch_y,
+	if ((*pool)) SDL_FreeSurface((*pool));
+	(*pool) = SDL_CreateRGBSurfaceFrom(video_src->video_buffer + video_src->pitch_y*src_wnd->y + src_wnd->x*bpp,
+	                                   src_wnd->w, src_wnd->h, 8*bpp, video_src->pitch_y,
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        0xFF000000, 0x00FF0000, 0x0000FF00, amask);
+	                                   0xFF000000, 0x00FF0000, 0x0000FF00, amask);
 #else
-        0x000000FF, 0x0000FF00, 0x00FF0000, amask);
+	                                   0x000000FF, 0x0000FF00, 0x00FF0000, amask);
 #endif
-    dstrc.w = dst_wnd->w;
+	dstrc.w = dst_wnd->w;
 	dstrc.h = dst_wnd->h;
 	dstrc.x = dst_wnd->x;
 	dstrc.y = dst_wnd->y;
-    
-	if (SDL_BlitSurface(*pool, NULL, ctx->back_buffer, &dstrc))
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Blit error: %s\n", SDL_GetError()));
 
-	
+	if (SDL_BlitSurface(*pool, NULL, ctx->back_buffer, &dstrc))
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Blit error: %s\n", SDL_GetError()));
+
+
 	SDL_FreeSurface((*pool));
-    *pool = NULL;
+	*pool = NULL;
 
 #else
 	if (! *pool || ((*pool)->w < (int) src_wnd->w) || ((*pool)->h < (int) src_wnd->h) ) {
 		if ((*pool)) SDL_FreeSurface((*pool));
 
-		(*pool) = SDL_CreateRGBSurface(ctx->use_systems_memory ? SDL_SWSURFACE : SDL_HWSURFACE, 
-						src_wnd->w, src_wnd->h, 8*bpp, 
-						0x000000FF, 0x0000FF00, 0x00FF0000, amask);
+		(*pool) = SDL_CreateRGBSurface(ctx->use_systems_memory ? SDL_SWSURFACE : SDL_HWSURFACE,
+		                               src_wnd->w, src_wnd->h, 8*bpp,
+		                               0x000000FF, 0x0000FF00, 0x00FF0000, amask);
 
 		if (! (*pool) ) return GF_IO_ERR;
 	}
@@ -1786,10 +1926,10 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	dstrc.y = dst_wnd->y;
 
 	if (SDL_BlitSurface(*pool, NULL, ctx->back_buffer, &dstrc))
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Blit error: %s\n", SDL_GetError()));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Blit error: %s\n", SDL_GetError()));
 #endif
-    
-    
+
+
 	return GF_OK;
 }
 
@@ -1799,7 +1939,7 @@ void *SDL_NewVideo()
 {
 	SDLVidCtx *ctx;
 	GF_VideoOutput *driv;
-	
+
 	driv = (GF_VideoOutput*)gf_malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "SDL Video Output", "gpac distribution");
@@ -1810,7 +1950,7 @@ void *SDL_NewVideo()
 	ctx->sdl_th = gf_th_new("SDLVideo");
 #endif
 	ctx->evt_mx = gf_mx_new("SDLEvents");
-	
+
 	driv->opaque = ctx;
 	driv->Setup = SDLVid_Setup;
 	driv->Shutdown = SDLVid_Shutdown;
@@ -1838,9 +1978,9 @@ void *SDL_NewVideo()
 	}
 	sscanf(opt, "%06x", &driv->overlay_color_key);
 	if (driv->overlay_color_key) driv->overlay_color_key |= 0xFF000000;
-	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL Out] YUV Overlays enabled - ColorKey enabled: %s (key %x)\n", 
-									driv->overlay_color_key ? "Yes" : "No", driv->overlay_color_key
-							));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL Out] YUV Overlays enabled - ColorKey enabled: %s (key %x)\n",
+	                                  driv->overlay_color_key ? "Yes" : "No", driv->overlay_color_key
+	                                 ));
 #endif
 #ifndef SDL_TEXTINPUTEVENT_TEXT_SIZE
 	SDL_EnableUNICODE(1);

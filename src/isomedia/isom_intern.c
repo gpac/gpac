@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -43,7 +43,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 	u64 MaxDur;
 	GF_TrackFragmentBox *traf;
 	GF_TrackBox *trak;
-	
+
 	MaxDur = 0;
 
 	//we shall have a MOOV and its MVEX BEFORE any MOOF
@@ -52,7 +52,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		return GF_ISOM_INVALID_FILE;
 	}
 	//and all fragments must be continous - we do not throw an error as we may still want to be able to concatenate dependent representations in DASH and
-	//we will likely a-have R1(moofSN 1, 3, 5, 7) plus R2(moofSN 2, 4, 6, 8) 
+	//we will likely a-have R1(moofSN 1, 3, 5, 7) plus R2(moofSN 2, 4, 6, 8)
 	if (mov->NextMoofNumber && (mov->NextMoofNumber >= moof->mfhd->sequence_number)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Warning: wrong sequence number: got %d but last one was %d\n", moof->mfhd->sequence_number, mov->NextMoofNumber));
 //		return GF_ISOM_INVALID_FILE;
@@ -84,14 +84,14 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 
 		//update trak duration
 		SetTrackDuration(trak);
-		if (trak->Header->duration > MaxDur) 
+		if (trak->Header->duration > MaxDur)
 			MaxDur = trak->Header->duration;
 
 		trak->first_traf_merged = 1;
 	}
 
 	if (moof->other_boxes) {
-		GF_Box *a;	
+		GF_Box *a;
 		i = 0;
 		while ((a = (GF_Box *)gf_list_enum(moof->other_boxes, &i))) {
 			if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
@@ -173,9 +173,9 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			/*set our pointer to the movie*/
 			mov->moov->mov = mov;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-            if (mov->moov->mvex) mov->moov->mvex->mov = mov;
+			if (mov->moov->mvex) mov->moov->mvex->mov = mov;
 #endif
-            e = gf_list_add(mov->TopBoxes, a);
+			e = gf_list_add(mov->TopBoxes, a);
 			if (e) {
 				return e;
 			}
@@ -287,10 +287,10 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			((GF_MovieFragmentBox *)a)->mov = mov;
 
 			totSize += a->size;
-            mov->moof = (GF_MovieFragmentBox *) a;
+			mov->moof = (GF_MovieFragmentBox *) a;
 			/*read & debug: store at root level*/
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
-                u32 k;
+				u32 k;
 				gf_list_add(mov->TopBoxes, a);
 				/*also update pointers to trex for debug*/
 				if (mov->moov) {
@@ -329,13 +329,13 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 		{
 			GF_UnknownBox *box = (GF_UnknownBox*)a;
 			u8 *c = (u8 *) box->data;
-			if ((box->dataSize==4) 
-				&& (GF_4CC(c[0],c[1],c[2],c[3])==(u32)0x0D0A870A)) 
-				 mov->is_jp2 = 1;
+			if ((box->dataSize==4)
+			        && (GF_4CC(c[0],c[1],c[2],c[3])==(u32)0x0D0A870A))
+				mov->is_jp2 = 1;
 
 			gf_isom_box_del(a);
 		}
-			break;
+		break;
 
 		case GF_ISOM_BOX_TYPE_PRFT:
 			if (!(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)) {
@@ -346,7 +346,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 					mov->last_producer_ref_time = (GF_ProducerReferenceTimeBox *)a;
 				break;
 			}
-			//fallthrough
+		//fallthrough
 
 
 		default:
@@ -362,12 +362,12 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 	}
 
 	/*we need at least moov or meta*/
-	if (!mov->moov && !mov->meta 
+	if (!mov->moov && !mov->meta
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-        && !mov->moof && !mov->is_index_segment
+	        && !mov->moof && !mov->is_index_segment
 #endif
-        ) {
-			return GF_ISOM_INCOMPLETE_FILE;
+	   ) {
+		return GF_ISOM_INCOMPLETE_FILE;
 	}
 	/*we MUST have movie header*/
 	if (mov->moov && !mov->moov->mvhd) {
@@ -417,7 +417,7 @@ GF_ISOFile *gf_isom_new_movie()
 		gf_free(mov);
 		return NULL;
 	}
-	
+
 	/*default storage mode is flat*/
 	mov->storageMode = GF_ISOM_STORE_FLAT;
 	return mov;
@@ -439,10 +439,10 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 		mov->openMode = GF_ISOM_OPEN_READ;
 		mov->es_id_default_sync = -1;
 		//for open, we do it the regular way and let the GF_DataMap assign the appropriate struct
-		//this can be FILE (the only one supported...) as well as remote 
+		//this can be FILE (the only one supported...) as well as remote
 		//(HTTP, ...),not suported yet
 		//the bitstream IS PART OF the GF_DataMap
-		//as this is read-only, use a FileMapping. this is the only place where 
+		//as this is read-only, use a FileMapping. this is the only place where
 		//we use file mapping
 		e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &mov->movieFileMap);
 		if (e) {
@@ -544,7 +544,7 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 	gf_free(mov);
 }
 
-GF_TrackBox *gf_isom_get_track_from_id(GF_MovieBox *moov, u32 trackID) 
+GF_TrackBox *gf_isom_get_track_from_id(GF_MovieBox *moov, u32 trackID)
 {
 	u32 i, count;
 	GF_TrackBox *trak;
@@ -558,7 +558,7 @@ GF_TrackBox *gf_isom_get_track_from_id(GF_MovieBox *moov, u32 trackID)
 	return NULL;
 }
 
-GF_TrackBox *gf_isom_get_track_from_original_id(GF_MovieBox *moov, u32 originalID, u32 originalFile) 
+GF_TrackBox *gf_isom_get_track_from_original_id(GF_MovieBox *moov, u32 originalID, u32 originalFile)
 {
 	u32 i, count;
 	GF_TrackBox *trak;
@@ -621,7 +621,7 @@ GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 
 		//check this is in our media time line
 		if ((*MediaTime > lastSampleTime)
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-			&& !trak->moov->mov->moof
+		        && !trak->moov->mov->moof
 #endif
 		   ) {
 			*MediaTime = lastSampleTime;
@@ -694,7 +694,7 @@ ent_found:
 		*useEdit = 2;
 		return GF_OK;
 	}
-	
+
 	/*WARNING: this can be "-1" when doing searchForward mode (to prevent jumping to next entry)*/
 	mtime = ent->mediaTime + movieTime - (time * trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale);
 	if (mtime<0) mtime = 0;
@@ -708,7 +708,7 @@ ent_found:
 	//we have to find a COMPOSITION time
 	e = findEntryForTime(stbl, (u32) *MediaTime, 1, &sampleNumber, &prevSampleNumber);
 	if (e) return e;
-	
+
 	//first case: our time is after the last sample DTS (it's a broken editList somehow)
 	//set the media time to the last sample
 	if (!sampleNumber && !prevSampleNumber) {
@@ -738,7 +738,7 @@ ent_found:
 	//and store the "time offset" of the desired sample in this segment
 	//this is weird, used to rebuild the timeStamp when reading from the track, not the
 	//media ...
-	*MediaOffset = firstDTS;	
+	*MediaOffset = firstDTS;
 #endif
 	return GF_OK;
 }
@@ -848,7 +848,7 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char 
 		mov->fileName = gf_strdup(fileName);
 		e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
 		if (e) goto err_exit;
-		
+
 		/*brand is set to ISOM by default - it may be touched until sample data is added to track*/
 		gf_isom_set_brand_info( (GF_ISOFile *) mov, GF_ISOM_BRAND_ISOM, 1);
 	} else {
@@ -868,7 +868,7 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char 
 	//create an MDAT
 	mov->mdat = (GF_MediaDataBox *) mdat_New();
 	gf_list_add(mov->TopBoxes, mov->mdat);
-	
+
 	//default behaviour is capture mode, no interleaving (eg, no rewrite of mdat)
 	mov->storageMode = GF_ISOM_STORE_FLAT;
 	return mov;
@@ -917,8 +917,8 @@ GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 s
 	for (i=0; i<count; i++) {
 		pSamp = (GF_SubSampleInfoEntry*) gf_list_get(sub_samples->Samples, i);
 		/*TODO - do we need to support insertion of subsample info ?*/
-		if (last_sample + pSamp->sample_delta > sampleNumber) return GF_NOT_SUPPORTED; 
-		if (last_sample + pSamp->sample_delta == sampleNumber) break; 
+		if (last_sample + pSamp->sample_delta > sampleNumber) return GF_NOT_SUPPORTED;
+		if (last_sample + pSamp->sample_delta == sampleNumber) break;
 		last_sample += pSamp->sample_delta;
 		pSamp = NULL;
 	}

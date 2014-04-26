@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -141,7 +141,7 @@ static GF_Err XVID_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "XviD", "Threaded");
 		capability->cap.valueInt = (sOpt && stricmp(sOpt, "yes")) ? 1 : 0;
 	}
-		break;
+	break;
 	/*not known at our level...*/
 	case GF_CODEC_CU_DURATION:
 	default:
@@ -155,11 +155,11 @@ static GF_Err XVID_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 	/*return unsupported to avoid confusion by the player (like color space changing ...) */
 	return GF_NOT_SUPPORTED;
 }
-static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg, 
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID, u32 *CTS,
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
+                               char *inBuffer, u32 inBufferLength,
+                               u16 ES_ID, u32 *CTS,
+                               char *outBuffer, u32 *outBufferLength,
+                               u8 PaddingBits, u32 mmlevel)
 {
 	unsigned char *pY, *pU, *pV;
 	u32 i, uv_w, half_h;
@@ -235,13 +235,13 @@ GF_BaseDecoder *NewXVIDDec()
 
 	ifcd = (GF_MediaDecoder*) gf_malloc(sizeof(GF_MediaDecoder));
 	memset(ifcd, 0, sizeof(GF_MediaDecoder));
-	
+
 	dec = (XVIDDec*) gf_malloc(sizeof(XVIDDec));
 	memset(dec, 0, sizeof(XVIDDec));
 
 	dec->cb_size = 4;
 	dec->cb_trig = 1;
-	/*setup our own interface*/	
+	/*setup our own interface*/
 	ifcd->AttachStream = XVID_AttachStream;
 	ifcd->DetachStream = XVID_DetachStream;
 	ifcd->GetCapabilities = XVID_GetCapabilities;
@@ -268,7 +268,7 @@ extern "C" {
 #endif
 
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -276,11 +276,11 @@ const u32 *QueryInterfaces()
 #endif
 		0
 	};
-	return si; 
+	return si;
 }
 
 GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *) NewXVIDDec();
 	return NULL;
@@ -290,7 +290,7 @@ GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
-	case GF_MEDIA_DECODER_INTERFACE: 
+	case GF_MEDIA_DECODER_INTERFACE:
 		DeleteXVIDDec((GF_BaseDecoder *)ifce);
 		break;
 	}

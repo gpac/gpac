@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 #include <gpac/scene_manager.h>
@@ -64,7 +64,7 @@ GF_Err load_mp4(GF_LoadCompare *lc, GF_ISOFile *mp4, u32 *loadtime)
 	u32 nb;
 	if (lc->spread_repeat) nb = 1;
 	else nb = lc->nbloads ;
-	
+
 	*loadtime = 0;
 	for (i = 0; i< nb; i++) {
 		memset(&load, 0, sizeof(GF_SceneLoader));
@@ -86,7 +86,7 @@ GF_Err load_mp4(GF_LoadCompare *lc, GF_ISOFile *mp4, u32 *loadtime)
 				*loadtime += endtime-starttime;
 			}
 			gf_sm_load_done(&load);
-		}		
+		}
 		gf_sm_del(load.ctx);
 		gf_sg_del(sg);
 	}
@@ -103,7 +103,7 @@ GF_Err gpacctx_load_file(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 	GF_SceneLoader load;
 	GF_SceneGraph *sg;
 	u32 i, starttime, endtime;
-	
+
 	u32 nb;
 	if (lc->spread_repeat) nb = 1;
 	else nb = lc->nbloads ;
@@ -131,7 +131,7 @@ GF_Err gpacctx_load_file(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 				*loadtime += endtime-starttime;
 			}
 			gf_sm_load_done(&load);
-		}		
+		}
 		gf_sm_del(load.ctx);
 		gf_sg_del(sg);
 	}
@@ -143,7 +143,7 @@ GF_Err get_laser_track_size(GF_ISOFile *mp4, u32 *size)
 	GF_Err e = GF_OK;
 	u32 j;
 	u32 track_id, trackNum;
-	
+
 	*size = 0;
 	track_id = gf_isom_get_track_id(mp4, 1);
 	trackNum = gf_isom_get_track_by_id(mp4, track_id);
@@ -155,7 +155,7 @@ GF_Err get_laser_track_size(GF_ISOFile *mp4, u32 *size)
 	return e;
 }
 
-GF_Err encode_laser(GF_LoadCompare *lc, char *item_path, GF_ISOFile *mp4, GF_SMEncodeOptions *opts) 
+GF_Err encode_laser(GF_LoadCompare *lc, char *item_path, GF_ISOFile *mp4, GF_SMEncodeOptions *opts)
 {
 	GF_Err e = GF_OK;
 	GF_SceneLoader load;
@@ -189,7 +189,7 @@ GF_Err encode_laser(GF_LoadCompare *lc, char *item_path, GF_ISOFile *mp4, GF_SME
 					} else if (stats->int_res_2d + opts->resolution <= 0) {
 						if (lc->verbose) fprintf(stdout, " Given resolution %d is too low, using %d instead.\n", opts->resolution, stats->int_res_2d - 1);
 						opts->resolution = 1 - stats->int_res_2d;
-					}				
+					}
 					opts->coord_bits = stats->int_res_2d + opts->resolution;
 					if (lc->verbose) fprintf(stdout, " Coordinates & Lengths encoded using ");
 					if (opts->resolution < 0) {
@@ -209,7 +209,7 @@ GF_Err encode_laser(GF_LoadCompare *lc, char *item_path, GF_ISOFile *mp4, GF_SME
 				}
 				gf_sm_stats_del(statsman);
 			}
-			
+
 			e = gf_sm_encode_to_file(ctx, mp4, opts);
 			if (e) {
 				fprintf(stderr, "Error while encoding mp4 file\n");
@@ -219,7 +219,7 @@ GF_Err encode_laser(GF_LoadCompare *lc, char *item_path, GF_ISOFile *mp4, GF_SME
 			}
 
 			gf_sm_load_done(&load);
-		}		
+		}
 	}
 	gf_sm_del(ctx);
 	gf_sg_del(sg);
@@ -262,7 +262,7 @@ GF_Err create_laser_mp4(GF_LoadCompare *lc, char *item_name, char *item_path, u3
 				e = get_laser_track_size(mp4, size);
 				if (e) {
 					if (lc->verbose) fprintf(stdout, "Could not get MP4 file size\n");
-				} 
+				}
 				gf_isom_close(mp4);
 			}
 		}
@@ -290,7 +290,7 @@ GF_Err get_mp4_loadtime(GF_LoadCompare *lc, char *item_name, char *item_path, u3
 		e = load_mp4(lc, mp4, loadtime);
 		if (e) {
 			if (lc->verbose) fprintf(stdout, "Could not get MP4 file load time\n");
-		}	
+		}
 	}
 	gf_isom_close(mp4);
 	return e;
@@ -322,7 +322,7 @@ GF_Err decode_svg(GF_LoadCompare *lc, char *item_name, char *item_path, char *sv
 		e = gf_sm_load_init(&load);
 		if (e) {
 			fprintf(stderr, "Error loading MP4 file\n");
-		} else {		
+		} else {
 			e = gf_sm_load_run(&load);
 			if (e) {
 				fprintf(stderr, "Error loading MP4 file\n");
@@ -350,7 +350,7 @@ GF_Err libxml_load_svg(GF_LoadCompare *lc, char *item_path, u32 *loadtime)
 	GF_SceneGraph *sg;
 	u32 i, starttime, endtime;
 	void *p;
-	
+
 	u32 nb;
 	if (lc->spread_repeat) nb = 1;
 	else nb = lc->nbloads ;
@@ -393,7 +393,7 @@ GF_Err get_size(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *size)
 		if (*size == 0) {
 			if (lc->verbose) fprintf(stdout, "File %s has a size of 0\n", item_path);
 			e = GF_IO_ERR;
-		} 		
+		}
 	}
 	return e;
 }
@@ -452,7 +452,7 @@ GF_Err create_gz_file(GF_LoadCompare *lc, char *item_name, char *item_path, u32 
 		if (*size == 0) {
 			if (lc->verbose) fprintf(stdout, "File %s has a size of 0\n", gz_path);
 			e = GF_IO_ERR;
-		} 
+		}
 	}
 	return e;
 }
@@ -573,9 +573,9 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 		if (e) return 1;
 		ld->track_loadtime += loadtime;
 
-/*		e = get_decoded_svg_loadtime_and_size(lc, item_name, item_path, &loadtime, &ld->decoded_size);
-		if (e) return 1;
-		ld->decoded_loadtime += loadtime;*/
+		/*		e = get_decoded_svg_loadtime_and_size(lc, item_name, item_path, &loadtime, &ld->decoded_size);
+				if (e) return 1;
+				ld->decoded_loadtime += loadtime;*/
 
 	} else if (lc->type == XMT) {
 		e = gpacctx_load_file(lc, item_path, &loadtime);
@@ -590,7 +590,7 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 	return 0;
 }
 
-void usage() 
+void usage()
 {
 	fprintf(stdout, "Compare LASeR and SVG encoding size and loading time\n");
 	fprintf(stdout, "usage: (-out output_result) (-single input.svg | -dir dir) (-nloads X) (-verbose X)\n");
@@ -611,7 +611,7 @@ int main(int argc, char **argv)
 	memset(&lc, 0, sizeof(GF_LoadCompare));
 	lc.nbloads = 1;
 	lc.out = stdout;
-	
+
 	for (i = 1; i < (u32) argc ; i++) {
 		arg = argv[i];
 		if (!stricmp(arg, "-out")) {
@@ -641,7 +641,7 @@ int main(int argc, char **argv)
 		} else {
 			usage();
 			return -1;
-		}	
+		}
 	}
 
 	gf_sys_init();
@@ -690,7 +690,7 @@ int main(int argc, char **argv)
 		}
 	}
 	gf_list_del(lc.data);
-		
+
 	if (lc.out) fclose(lc.out);
 	gf_sys_close();
 	return 0;

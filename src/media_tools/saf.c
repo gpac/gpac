@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -198,7 +198,7 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 
 	*out_data = NULL;
 	*out_size = 0;
-	
+
 	gf_mx_p(mux->mx);
 	if (!force_end_of_session && (mux->state!=1)) {
 		gf_mx_v(mux->mx);
@@ -234,7 +234,7 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 			u32 len = (u32) strlen(str->remote_url);
 			gf_bs_write_u16(payload, len);
 			gf_bs_write_data(payload, str->remote_url, len);
-		} 
+		}
 		if (str->dsi) {
 			gf_bs_write_data(payload, str->dsi, str->dsi_len);
 		}
@@ -251,7 +251,7 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 		gf_bs_write_int(bs, dlen, 16);
 		gf_bs_write_data(bs, data, dlen);
 		gf_free(data);
-		
+
 		/*mark as signaled*/
 		str->state |= 1;
 	}

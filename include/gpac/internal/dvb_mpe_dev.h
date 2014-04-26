@@ -54,18 +54,18 @@ typedef struct
 	u32 service_id;
 	u32 component_tag;
 
-}GF_M2TS_LOC_DSCPTR_IP_STREAM;
+} GF_M2TS_LOC_DSCPTR_IP_STREAM;
 
 typedef struct descriptor_TimeSliceFec
 {
 	Bool time_slicing;
 	u8 mpe_fec;
 	u8 frame_size;
-  	u8 max_burst_duration;
+	u8 max_burst_duration;
 	u8 max_average_rate;
 	u8 time_slice_fec_id;
 	u8 * id_selector;
-}GF_M2TS_DesTimeSliceFec;
+} GF_M2TS_DesTimeSliceFec;
 
 typedef struct
 {
@@ -74,7 +74,7 @@ typedef struct
 	u16 transport_stream_id;
 	u16 service_id;
 	u8 component_tag;
-}GF_M2TS_DesLocation;
+} GF_M2TS_DesLocation;
 
 typedef struct {
 	u8 type; /* 0 = target_IP_descriptor, 1 = target_IP_address_descriptor */
@@ -100,7 +100,7 @@ typedef struct
 /*IP_Platform object*/
 typedef struct __gf_dvb_mpe_ip_platform
 {
-/* remaining from INT, to be delete */
+	/* remaining from INT, to be delete */
 	u32 id;
 	u32 processing_order;
 	u32 number_of_descriptor;
@@ -142,7 +142,7 @@ typedef struct
 	u32 u32_rx_udp_port;                /* destination port */
 	u32 u32_udp_data_size;
 	u32 u32_udp_chksm;
-}GF_M2TS_IP_Packet;
+} GF_M2TS_IP_Packet;
 
 
 
@@ -155,7 +155,7 @@ typedef struct mpe_error_holes
 	u32 offset;
 	u32 length;
 
-}MPE_Error_Holes;
+} MPE_Error_Holes;
 
 typedef struct mpe_fec_frame
 {
@@ -164,13 +164,13 @@ typedef struct mpe_fec_frame
 	u32 col_rs ;
 	u8 *p_adt; /* pointer to the application data table*/
 	u8 *p_rs;  /* pointer to the RS data table*/
-    u32 *p_error_adt;
+	u32 *p_error_adt;
 	u32 *p_error_rs ;
 
 	u32 capacity_total;
 	u32 current_offset_adt ;
 	u32 current_offset_rs;
-    u32 initialized ;
+	u32 initialized ;
 	u8  ADT_done;
 	u32 PID;
 	GF_List *mpe_holes;
@@ -228,7 +228,7 @@ void gf_m2ts_gather_ipdatagram_information(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *t
 
 void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield);
 
-void gf_m2ts_mpe_send_datagram(GF_M2TS_Demuxer *ts, u32 pid, unsigned char *data, u32 data_size);			
+void gf_m2ts_mpe_send_datagram(GF_M2TS_Demuxer *ts, u32 pid, unsigned char *data, u32 data_size);
 
 /* allocate the necessary memory space*/
 u32 init_frame(MPE_FEC_FRAME * mff, u32 rows);

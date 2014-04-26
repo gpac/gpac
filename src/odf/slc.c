@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -130,18 +130,18 @@ u32 SLIsPredefined(GF_SLConfig *sl)
 	if (sl->predefined) return sl->predefined;
 
 	if (!sl->useAccessUnitStartFlag
-		&&  !sl->useAccessUnitEndFlag
-		&& !sl->usePaddingFlag
-		&& sl->useTimestampsFlag
-		&& !sl->useIdleFlag
-		&& !sl->durationFlag
-		&& !sl->timestampLength
-		&& !sl->OCRLength
-		&& !sl->AULength
-		&& !sl->instantBitrateLength
-		&& !sl->degradationPriorityLength
-		&& !sl->AUSeqNumLength
-		&& !sl->packetSeqNumLength)
+	        &&  !sl->useAccessUnitEndFlag
+	        && !sl->usePaddingFlag
+	        && sl->useTimestampsFlag
+	        && !sl->useIdleFlag
+	        && !sl->durationFlag
+	        && !sl->timestampLength
+	        && !sl->OCRLength
+	        && !sl->AULength
+	        && !sl->instantBitrateLength
+	        && !sl->degradationPriorityLength
+	        && !sl->AUSeqNumLength
+	        && !sl->packetSeqNumLength)
 		return SLPredef_MP4;
 
 	return 0;
@@ -167,7 +167,7 @@ GF_Err gf_odf_read_slc(GF_BitStream *bs, GF_SLConfig *sl, u32 DescSize)
 {
 	GF_Err e;
 	u32 nbBytes = 0;
-	
+
 	if (!sl) return GF_BAD_PARAM;
 
 	//APPLE fix
@@ -207,7 +207,7 @@ GF_Err gf_odf_read_slc(GF_BitStream *bs, GF_SLConfig *sl, u32 DescSize)
 
 		sl->OCRLength = gf_bs_read_int(bs, 8);
 		if (sl->OCRLength > 64) return GF_ODF_INVALID_DESCRIPTOR;
-		
+
 		sl->AULength = gf_bs_read_int(bs, 8);
 		if (sl->AULength > 32) return GF_ODF_INVALID_DESCRIPTOR;
 
@@ -217,7 +217,7 @@ GF_Err gf_odf_read_slc(GF_BitStream *bs, GF_SLConfig *sl, u32 DescSize)
 		if (sl->AUSeqNumLength > 16) return GF_ODF_INVALID_DESCRIPTOR;
 		sl->packetSeqNumLength = gf_bs_read_int(bs, 5);
 		if (sl->packetSeqNumLength > 16) return GF_ODF_INVALID_DESCRIPTOR;
-	
+
 		/*reserved = */gf_bs_read_int(bs, 2);
 		nbBytes += 15;
 	}
@@ -233,7 +233,7 @@ GF_Err gf_odf_read_slc(GF_BitStream *bs, GF_SLConfig *sl, u32 DescSize)
 		sl->startCTS = gf_bs_read_long_int(bs, sl->timestampLength);
 		nbBytes += GetTSbytesLen(sl);
 	}
-	
+
 	if (DescSize != nbBytes) return GF_ODF_INVALID_DESCRIPTOR;
 	return GF_OK;
 }
@@ -297,7 +297,7 @@ GF_Err gf_odf_write_slc(GF_BitStream *bs, GF_SLConfig *sl)
 		gf_bs_write_long_int(bs, sl->startDTS, sl->timestampLength);
 		gf_bs_write_long_int(bs, sl->startCTS, sl->timestampLength);
 	}
-	
+
 	return GF_OK;
 }
 
@@ -305,12 +305,12 @@ GF_Err gf_odf_write_slc(GF_BitStream *bs, GF_SLConfig *sl)
 /*allocates and writes the SL-PDU (Header + PDU) given the SLConfig and the GF_SLHeader
 for this PDU. AUs must be split in PDUs by another process if needed (packetizer).*/
 GF_EXPORT
-void gf_sl_packetize(GF_SLConfig* slConfig, 
-				  GF_SLHeader *Header, 
-				  char *PDU, 
-				  u32 size,
-				  char **outPacket,
-				  u32 *OutSize)
+void gf_sl_packetize(GF_SLConfig* slConfig,
+                     GF_SLHeader *Header,
+                     char *PDU,
+                     u32 size,
+                     char **outPacket,
+                     u32 *OutSize)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	*OutSize = 0;
@@ -438,8 +438,8 @@ void gf_sl_depacketize (GF_SLConfig *slConfig, GF_SLHeader *Header, const char *
 				Header->compositionTimeStampFlag = gf_bs_read_int(bs, 1);
 			}
 			if (slConfig->instantBitrateLength > 0) Header->instantBitrateFlag = gf_bs_read_int(bs, 1);
-			if (Header->decodingTimeStampFlag) Header->decodingTimeStamp = gf_bs_read_long_int(bs, slConfig->timestampLength); 
-			if (Header->compositionTimeStampFlag) Header->compositionTimeStamp = gf_bs_read_long_int(bs, slConfig->timestampLength); 
+			if (Header->decodingTimeStampFlag) Header->decodingTimeStamp = gf_bs_read_long_int(bs, slConfig->timestampLength);
+			if (Header->compositionTimeStampFlag) Header->compositionTimeStamp = gf_bs_read_long_int(bs, slConfig->timestampLength);
 			if (slConfig->AULength > 0) Header->accessUnitLength = gf_bs_read_int(bs, slConfig->AULength);
 			if (Header->instantBitrateFlag) Header->instantBitrate = gf_bs_read_int(bs, slConfig->instantBitrateLength);
 		}

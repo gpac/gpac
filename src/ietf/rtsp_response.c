@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -98,7 +98,7 @@ void gf_rtsp_response_reset(GF_RTSPResponse *rsp)
 	rsp->Scale = rsp->Speed = 0.0;
 	if (rsp->Range) gf_free(rsp->Range);
 	rsp->Range = NULL;
-	
+
 	rsp->SessionTimeOut = 0;
 
 	while (gf_list_count(rsp->Transports)) {
@@ -126,7 +126,7 @@ GF_EXPORT
 void gf_rtsp_response_del(GF_RTSPResponse *rsp)
 {
 	if (!rsp) return;
-	
+
 	gf_rtsp_response_reset(rsp);
 	gf_list_del(rsp->RTP_Infos);
 	gf_list_del(rsp->Xtensions);
@@ -142,12 +142,12 @@ GF_RTSPRange *gf_rtsp_range_parse(char *range_buf)
 	GF_RTSPRange *rg;
 
 	if (!strstr(range_buf, "npt")) return NULL;
-	
+
 	GF_SAFEALLOC(rg, GF_RTSPRange);
 	if (sscanf(range_buf, "npt=%lf-%lf", &rg->start, &rg->end) != 2) {
 		rg->end = -1.0;
 		sscanf(range_buf, "npt=%lf-", &rg->start);
-	}	
+	}
 	return rg;
 }
 
@@ -166,8 +166,8 @@ GF_RTSPTransport *gf_rtsp_transport_clone(GF_RTSPTransport *original)
 {
 	GF_RTSPTransport *tr;
 
-	if (!original) return NULL;	
-	
+	if (!original) return NULL;
+
 	tr = (GF_RTSPTransport*) gf_malloc(sizeof(GF_RTSPTransport));
 	memcpy(tr, original, sizeof(GF_RTSPTransport));
 	tr->destination = tr->source = tr->Profile = NULL;
@@ -210,36 +210,36 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 	else if (!stricmp(Header, "Cache-Control")) rsp->Cache_Control = gf_strdup(Value);
 	else if (!stricmp(Header, "Conference")) rsp->Conference = gf_strdup(Value);
 	else if (!stricmp(Header, "Connection")) rsp->Connection = gf_strdup(Value);
-	else if (!stricmp(Header, "Content-Base")) rsp->Content_Base = gf_strdup(Value);	
-	else if (!stricmp(Header, "Content-Encoding")) rsp->Content_Encoding = gf_strdup(Value);	
+	else if (!stricmp(Header, "Content-Base")) rsp->Content_Base = gf_strdup(Value);
+	else if (!stricmp(Header, "Content-Encoding")) rsp->Content_Encoding = gf_strdup(Value);
 	else if (!stricmp(Header, "Content-Length")) sscanf(Value, "%u", &rsp->Content_Length);
-	else if (!stricmp(Header, "Content-Language")) rsp->Content_Language = gf_strdup(Value);	
-	else if (!stricmp(Header, "Content-Location")) rsp->Content_Location = gf_strdup(Value);	
-	else if (!stricmp(Header, "Content-Type")) rsp->Content_Type = gf_strdup(Value);	
+	else if (!stricmp(Header, "Content-Language")) rsp->Content_Language = gf_strdup(Value);
+	else if (!stricmp(Header, "Content-Location")) rsp->Content_Location = gf_strdup(Value);
+	else if (!stricmp(Header, "Content-Type")) rsp->Content_Type = gf_strdup(Value);
 	else if (!stricmp(Header, "CSeq")) sscanf(Value, "%u", &rsp->CSeq);
-	else if (!stricmp(Header, "Date")) rsp->Date = gf_strdup(Value);	
-	else if (!stricmp(Header, "Expires")) rsp->Expires = gf_strdup(Value);	
-	else if (!stricmp(Header, "From")) rsp->From = gf_strdup(Value);	
-	else if (!stricmp(Header, "Host")) rsp->Host = gf_strdup(Value);	
-	else if (!stricmp(Header, "If-Match")) rsp->If_Match = gf_strdup(Value);	
-	else if (!stricmp(Header, "If-Modified-Since")) rsp->If_Modified_Since = gf_strdup(Value);	
-	else if (!stricmp(Header, "Last-Modified")) rsp->Last_Modified = gf_strdup(Value);	
-	else if (!stricmp(Header, "Location")) rsp->Location = gf_strdup(Value);	
-	else if (!stricmp(Header, "Proxy-Authenticate")) rsp->Proxy_Authenticate = gf_strdup(Value);	
-	else if (!stricmp(Header, "Proxy-Require")) rsp->Proxy_Require = gf_strdup(Value);	
-	else if (!stricmp(Header, "Public")) rsp->Public = gf_strdup(Value);	
-	else if (!stricmp(Header, "Referer")) rsp->Referer = gf_strdup(Value);	
-	else if (!stricmp(Header, "Require")) rsp->Require = gf_strdup(Value);	
-	else if (!stricmp(Header, "Retry-After")) rsp->Retry_After = gf_strdup(Value);	
+	else if (!stricmp(Header, "Date")) rsp->Date = gf_strdup(Value);
+	else if (!stricmp(Header, "Expires")) rsp->Expires = gf_strdup(Value);
+	else if (!stricmp(Header, "From")) rsp->From = gf_strdup(Value);
+	else if (!stricmp(Header, "Host")) rsp->Host = gf_strdup(Value);
+	else if (!stricmp(Header, "If-Match")) rsp->If_Match = gf_strdup(Value);
+	else if (!stricmp(Header, "If-Modified-Since")) rsp->If_Modified_Since = gf_strdup(Value);
+	else if (!stricmp(Header, "Last-Modified")) rsp->Last_Modified = gf_strdup(Value);
+	else if (!stricmp(Header, "Location")) rsp->Location = gf_strdup(Value);
+	else if (!stricmp(Header, "Proxy-Authenticate")) rsp->Proxy_Authenticate = gf_strdup(Value);
+	else if (!stricmp(Header, "Proxy-Require")) rsp->Proxy_Require = gf_strdup(Value);
+	else if (!stricmp(Header, "Public")) rsp->Public = gf_strdup(Value);
+	else if (!stricmp(Header, "Referer")) rsp->Referer = gf_strdup(Value);
+	else if (!stricmp(Header, "Require")) rsp->Require = gf_strdup(Value);
+	else if (!stricmp(Header, "Retry-After")) rsp->Retry_After = gf_strdup(Value);
 	else if (!stricmp(Header, "Scale")) sscanf(Value, "%lf", &rsp->Scale);
-	else if (!stricmp(Header, "Server")) rsp->Server = gf_strdup(Value);	
+	else if (!stricmp(Header, "Server")) rsp->Server = gf_strdup(Value);
 	else if (!stricmp(Header, "Speed")) sscanf(Value, "%lf", &rsp->Speed);
-	else if (!stricmp(Header, "Timestamp")) rsp->Timestamp = gf_strdup(Value);	
-	else if (!stricmp(Header, "Unsupported")) rsp->Unsupported = gf_strdup(Value);	
-	else if (!stricmp(Header, "User-Agent")) rsp->User_Agent = gf_strdup(Value);	
-	else if (!stricmp(Header, "Vary")) rsp->Vary = gf_strdup(Value);	
-	else if (!stricmp(Header, "Via")) rsp->Vary = gf_strdup(Value);	
-	else if (!stricmp(Header, "WWW_Authenticate")) rsp->Vary = gf_strdup(Value);	
+	else if (!stricmp(Header, "Timestamp")) rsp->Timestamp = gf_strdup(Value);
+	else if (!stricmp(Header, "Unsupported")) rsp->Unsupported = gf_strdup(Value);
+	else if (!stricmp(Header, "User-Agent")) rsp->User_Agent = gf_strdup(Value);
+	else if (!stricmp(Header, "Vary")) rsp->Vary = gf_strdup(Value);
+	else if (!stricmp(Header, "Via")) rsp->Vary = gf_strdup(Value);
+	else if (!stricmp(Header, "WWW_Authenticate")) rsp->Vary = gf_strdup(Value);
 	else if (!stricmp(Header, "Transport")) {
 		LinePos = 0;
 		while (1) {
@@ -274,7 +274,7 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 
 			GF_SAFEALLOC(info, GF_RTPInfo);
 			Pos = 0;
-			while (1) {	
+			while (1) {
 				Pos = gf_token_get(LineBuffer, Pos, " ;", buf, 1000);
 				if (Pos <= 0) break;
 				if (strstr(buf, "=")) {
@@ -325,17 +325,17 @@ GF_Err RTSP_ParseResponseHeader(GF_RTSPSession *sess, GF_RTSPResponse *rsp, u32 
 
 	//parse first line
 	ret = gf_token_get_line(buffer, 0, Size, LineBuffer, 1024);
-	if (ret < 0) 
+	if (ret < 0)
 		return GF_REMOTE_SERVICE_ERROR;
 	//RTSP/1.0
 	Pos = gf_token_get(LineBuffer, 0, " \t\r\n", ValBuf, 400);
-	if (Pos <= 0) 
+	if (Pos <= 0)
 		return GF_REMOTE_SERVICE_ERROR;
 	if (strcmp(ValBuf, GF_RTSP_VERSION))
 		return GF_SERVICE_ERROR;
 	//CODE
 	Pos = gf_token_get(LineBuffer, Pos, " \t\r\n", ValBuf, 400);
-	if (Pos <= 0) 
+	if (Pos <= 0)
 		return GF_REMOTE_SERVICE_ERROR;
 	rsp->ResponseCode = atoi(ValBuf);
 	//string info
@@ -368,7 +368,7 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	GF_Err e;
 	Bool force_reset = 0;
 	u32 BodyStart, size;
-	
+
 	if (!sess || !rsp) return GF_BAD_PARAM;
 	gf_rtsp_response_reset(rsp);
 
@@ -378,12 +378,12 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 
 
 	e = gf_rtsp_check_connection(sess);
-	if (e) 
+	if (e)
 		goto exit;
 
 	//push data in our queue
 	e = gf_rtsp_fill_buffer(sess);
-	if (e) 
+	if (e)
 		goto exit;
 
 	//this is interleaved data
@@ -404,15 +404,15 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 	if (!e && rsp->Content_Length) {
 		rsp->body = (char *)gf_malloc(sizeof(char) * (rsp->Content_Length));
 		memcpy(rsp->body, sess->TCPBuffer+sess->CurrentPos + BodyStart, rsp->Content_Length);
-	}	
+	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTSP] Got Response:\n%s\n", sess->TCPBuffer+sess->CurrentPos));
-	
+
 	//reset TCP buffer
 	sess->CurrentPos += BodyStart + rsp->Content_Length;
 
 	if (e) goto exit;
-	
+
 	//update RTSP aggreagation info
 	if (sess->NbPending) sess->NbPending -= 1;
 
@@ -467,14 +467,14 @@ exit:
 		//destroy the socket
 		if (sess->connection) gf_sk_del(sess->connection);
 		sess->connection = NULL;
-		
+
 		//destroy the http tunnel if any
 		if (sess->HasTunnel && sess->http) {
 			gf_sk_del(sess->http);
 			sess->http = NULL;
 		}
-	}	
-	
+	}
+
 	gf_mx_v(sess->mx);
 	return e;
 }
@@ -482,8 +482,8 @@ exit:
 
 
 
-GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp, 
-						 unsigned char **out_buffer, u32 *out_size)
+GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
+                          unsigned char **out_buffer, u32 *out_size)
 {
 	u32 i, cur_pos, size, count;
 	char *buffer, temp[50];
@@ -513,14 +513,14 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Allow", rsp->Allow);
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Authorization", rsp->Authorization);
 	if (rsp->Bandwidth) {
-		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Bandwidth: ");	
+		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Bandwidth: ");
 		RTSP_WRITE_INT(buffer, size, cur_pos, rsp->Bandwidth, 0);
-		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
+		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 	}
 	if (rsp->Blocksize) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Blocksize: ");
 		RTSP_WRITE_INT(buffer, size, cur_pos, rsp->Blocksize, 0);
-		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
+		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 	}
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Cache-Control", rsp->Cache_Control);
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Conference", rsp->Conference);
@@ -532,14 +532,14 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	if (rsp->body) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Content-Length: ");
 		RTSP_WRITE_INT(buffer, size, cur_pos, (u32) strlen(rsp->body), 0);
-		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
+		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 	}
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Content-Location", rsp->Content_Location);
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Content-Type", rsp->Content_Type);
 	//write the CSeq - use the RESPONSE CSeq
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "CSeq: ");
 	RTSP_WRITE_INT(buffer, size, cur_pos, rsp->CSeq, 0);
-	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
+	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Date", rsp->Date);
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Expires", rsp->Expires);
@@ -557,11 +557,11 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	if (rsp->Range && !rsp->Range->UseSMPTE) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Range: npt:");
 		RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, rsp->Range->start);
-		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");	
+		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");
 		if (rsp->Range->end > rsp->Range->start) {
 			RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, rsp->Range->end);
 		}
-		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
+		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 	}
 
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Referer", rsp->Referer);
@@ -577,7 +577,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 			//line separator for headers
 			if (i) RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n ,");
 			info = (GF_RTPInfo*)gf_list_get(rsp->RTP_Infos, i);
-			
+
 			if (info->url) {
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "url=");
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, info->url);
@@ -590,18 +590,18 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 		}
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 	}
-	
+
 	if (rsp->Scale != 0.0) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Scale: ");
 		RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, rsp->Scale);
-		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
+		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 	}
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Server", rsp->Server);
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Session", rsp->Session);
 	if (rsp->Speed != 0.0) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Scale: ");
 		RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, rsp->Speed);
-		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
+		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");
 	}
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Timestamp", rsp->Timestamp);
 
@@ -680,7 +680,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	for (i=0; i<count; i++) {
 		att = (GF_X_Attribute*)gf_list_get(rsp->Xtensions, i);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "x-");
-		RTSP_WRITE_HEADER(buffer, size, cur_pos, att->Name, att->Value);	
+		RTSP_WRITE_HEADER(buffer, size, cur_pos, att->Name, att->Value);
 	}
 	//end of header
 	RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");

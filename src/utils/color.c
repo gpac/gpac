@@ -202,7 +202,7 @@ static void gf_yuv_load_lines_packed(unsigned char *dst, s32 dststride, unsigned
 
 
 static void gf_yuva_load_lines(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char *v_src, unsigned char *a_src,
-				 s32 y_stride, s32 uv_stride, s32 width)
+                               s32 y_stride, s32 uv_stride, s32 width)
 {
 	u32 hw, x;
 	unsigned char *dst2 = dst + dststride;
@@ -277,7 +277,10 @@ static void copy_row_rgb_555(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc,
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 		}
 		if (a) *dst = GF_COL_555(r, g, b);
@@ -296,7 +299,10 @@ static void copy_row_rgb_565(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc,
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 		}
 		if (a) *dst = GF_COL_565(r, g, b);
@@ -315,10 +321,17 @@ static void copy_row_rgb_24(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 		}
-		if (a) { dst[0] = r; dst[1] = g; dst[2] = b; }
+		if (a) {
+			dst[0] = r;
+			dst[1] = g;
+			dst[2] = b;
+		}
 		dst += x_pitch;
 		pos += h_inc;
 		dst_w--;
@@ -333,10 +346,17 @@ static void copy_row_bgr_24(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 		}
-		if (a) { dst[0] = b; dst[1] = g; dst[2] = r; }
+		if (a) {
+			dst[0] = b;
+			dst[1] = g;
+			dst[2] = r;
+		}
 		dst += x_pitch;
 		pos += h_inc;
 		dst_w--;
@@ -350,7 +370,10 @@ static void copy_row_bgrx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32
 
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 		}
 		if (a) {
@@ -372,7 +395,10 @@ static void copy_row_rgbx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32
 
 	while ( dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 		}
 		if (a) {
@@ -394,7 +420,10 @@ static void copy_row_rgbd(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32
 
 	while ( dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 		}
 		dst[0] = r;
@@ -418,7 +447,10 @@ static void merge_row_rgb_555(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 			a = mul255(a, alpha);
 		}
@@ -447,7 +479,10 @@ static void merge_row_rgb_565(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 			a = mul255(a, alpha);
 		}
@@ -476,12 +511,17 @@ static void merge_row_rgb_24(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, 
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 			a = mul255(a, alpha);
 		}
 		if (a) {
-			_r = dst[0]; _g = dst[0]; _b = dst[0];
+			_r = dst[0];
+			_g = dst[0];
+			_b = dst[0];
 			dst[0] = mul255(a, r - _r) + _r;
 			dst[1] = mul255(a, g - _g) + _g;
 			dst[2] = mul255(a, b - _b) + _b;
@@ -500,14 +540,17 @@ static void merge_row_bgr_24(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, 
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 		}
 
 		if (a && alpha) {
 			_b = dst[0];
 			_g = dst[1];
-			_r = dst[2]; 
+			_r = dst[2];
 			a = mul255(a, alpha);
 			dst[0] = mul255(a, b - _b) + _b;
 			dst[1] = mul255(a, g - _g) + _g;
@@ -528,7 +571,10 @@ static void merge_row_bgrx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			a = mul255(a, alpha);
 			pos -= 0x10000L;
 		}
@@ -541,7 +587,7 @@ static void merge_row_bgrx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 			_r = mul255(a, r - _r) + _r;
 			_g = mul255(a, g - _g) + _g;
 			_b = mul255(a, b - _b) + _b;
-			
+
 			dst[0] = _b;
 			dst[1] = _g;
 			dst[2] = _r;
@@ -561,7 +607,10 @@ static void merge_row_rgbx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			a = mul255(a, alpha);
 			pos -= 0x10000L;
 		}
@@ -593,7 +642,10 @@ static void merge_row_bgra(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 			a = mul255(a, alpha);
 		}
@@ -631,7 +683,10 @@ static void merge_row_rgba(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
+			r = *src++;
+			g = *src++;
+			b = *src++;
+			a = *src++;
 			pos -= 0x10000L;
 			a = mul255(a, alpha);
 		}
@@ -687,8 +742,8 @@ static void load_line_alpha_grey(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y
 
 static GFINLINE u8 colmask(s32 a, s32 n)
 {
-    s32 mask = (1 << n) - 1;
-    return (u8) (a & (0xff & ~mask)) | ((-((a >> n) & 1)) & mask);
+	s32 mask = (1 << n) - 1;
+	return (u8) (a & (0xff & ~mask)) | ((-((a >> n) & 1)) & mask);
 }
 
 static void load_line_rgb_555(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_pitch, u32 width, u32 height, u8 *dst_bits)
@@ -908,7 +963,7 @@ static void load_line_YUV420SP(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_p
 			b = 262143;
 
 		*((u32*)dst_bits) = 0xff000000 | ((b << 6) & 0xff0000)
-					| ((g >> 2) & 0xff00) | ((r >> 10) & 0xff);
+		                    | ((g >> 2) & 0xff00) | ((r >> 10) & 0xff);
 		dst_bits+=4;
 	}
 }
@@ -1134,9 +1189,12 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 							for (i=0; i<2*src_w; i++) {
 								u32 idx = 4*i;
 								s32 thres, v;
-								v = tmp[idx]-kr; thres = ABS(v);
-								v = tmp[idx+1]-kg; thres += ABS(v);
-								v = tmp[idx+2]-kb; thres += ABS(v);
+								v = tmp[idx]-kr;
+								thres = ABS(v);
+								v = tmp[idx+1]-kg;
+								thres += ABS(v);
+								v = tmp[idx+2]-kb;
+								thres += ABS(v);
 								thres/=3;
 #ifdef COLORKEY_MPEG4_STRICT
 								if (thres < kl) tmp[idx+3] = 0;
@@ -1171,9 +1229,12 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 						for (i=0; i<2*src_w; i++) {
 							u32 idx = 4*i;
 							s32 thres, v;
-							v = tmp[idx]-kr; thres = ABS(v);
-							v = tmp[idx+1]-kg; thres += ABS(v);
-							v = tmp[idx+2]-kb; thres += ABS(v);
+							v = tmp[idx]-kr;
+							thres = ABS(v);
+							v = tmp[idx+1]-kg;
+							thres += ABS(v);
+							v = tmp[idx+2]-kb;
+							thres += ABS(v);
 							thres/=3;
 #ifdef COLORKEY_MPEG4_STRICT
 							if (thres < kl) tmp[idx+3] = 0;
@@ -1199,9 +1260,12 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 					for (i=0; i<src_w; i++) {
 						u32 idx = 4*i;
 						s32 thres, v;
-						v = tmp[idx]-kr; thres = ABS(v);
-						v = tmp[idx+1]-kg; thres += ABS(v);
-						v = tmp[idx+2]-kb; thres += ABS(v);
+						v = tmp[idx]-kr;
+						thres = ABS(v);
+						v = tmp[idx+1]-kg;
+						thres += ABS(v);
+						v = tmp[idx+2]-kb;
+						thres += ABS(v);
 						thres/=3;
 #ifdef COLORKEY_MPEG4_STRICT
 						if (thres < kl) tmp[idx+3] = 0;
@@ -1275,16 +1339,32 @@ void gf_cmx_set_all(GF_ColorMatrix *_this, Fixed *coefs)
 
 GF_EXPORT
 void gf_cmx_set(GF_ColorMatrix *_this,
-				 Fixed c1, Fixed c2, Fixed c3, Fixed c4, Fixed c5,
-				 Fixed c6, Fixed c7, Fixed c8, Fixed c9, Fixed c10,
-				 Fixed c11, Fixed c12, Fixed c13, Fixed c14, Fixed c15,
-				 Fixed c16, Fixed c17, Fixed c18, Fixed c19, Fixed c20)
+                Fixed c1, Fixed c2, Fixed c3, Fixed c4, Fixed c5,
+                Fixed c6, Fixed c7, Fixed c8, Fixed c9, Fixed c10,
+                Fixed c11, Fixed c12, Fixed c13, Fixed c14, Fixed c15,
+                Fixed c16, Fixed c17, Fixed c18, Fixed c19, Fixed c20)
 {
 	if (!_this) return;
-	_this->m[0] = c1; _this->m[1] = c2; _this->m[2] = c3; _this->m[3] = c4; _this->m[4] = c5;
-	_this->m[5] = c6; _this->m[6] = c7; _this->m[7] = c8; _this->m[8] = c9; _this->m[9] = c10;
-	_this->m[10] = c11; _this->m[11] = c12; _this->m[12] = c13; _this->m[13] = c14; _this->m[14] = c15;
-	_this->m[15] = c16; _this->m[16] = c17; _this->m[17] = c18; _this->m[18] = c19; _this->m[19] = c20;
+	_this->m[0] = c1;
+	_this->m[1] = c2;
+	_this->m[2] = c3;
+	_this->m[3] = c4;
+	_this->m[4] = c5;
+	_this->m[5] = c6;
+	_this->m[6] = c7;
+	_this->m[7] = c8;
+	_this->m[8] = c9;
+	_this->m[9] = c10;
+	_this->m[10] = c11;
+	_this->m[11] = c12;
+	_this->m[12] = c13;
+	_this->m[13] = c14;
+	_this->m[14] = c15;
+	_this->m[15] = c16;
+	_this->m[16] = c17;
+	_this->m[17] = c18;
+	_this->m[18] = c19;
+	_this->m[19] = c20;
 	gf_cmx_identity(_this);
 }
 
@@ -1367,10 +1447,14 @@ GF_Color gf_cmx_apply(GF_ColorMatrix *_this, GF_Color col)
 	Fixed _a, _r, _g, _b, a, r, g, b;
 	if (!_this || _this->identity) return col;
 
-	a = INT2FIX(col>>24); a /= 255;
-	r = INT2FIX((col>>16)&0xFF); r /= 255;
-	g = INT2FIX((col>>8)&0xFF); g /= 255;
-	b = INT2FIX((col)&0xFF); b /= 255;
+	a = INT2FIX(col>>24);
+	a /= 255;
+	r = INT2FIX((col>>16)&0xFF);
+	r /= 255;
+	g = INT2FIX((col>>8)&0xFF);
+	g /= 255;
+	b = INT2FIX((col)&0xFF);
+	b /= 255;
 	_r = gf_mulfix(r, _this->m[0]) + gf_mulfix(g, _this->m[1]) + gf_mulfix(b, _this->m[2]) + gf_mulfix(a, _this->m[3]) + _this->m[4];
 	_g = gf_mulfix(r, _this->m[5]) + gf_mulfix(g, _this->m[6]) + gf_mulfix(b, _this->m[7]) + gf_mulfix(a, _this->m[8]) + _this->m[9];
 	_b = gf_mulfix(r, _this->m[10]) + gf_mulfix(g, _this->m[11]) + gf_mulfix(b, _this->m[12]) + gf_mulfix(a, _this->m[13]) + _this->m[14];
@@ -1434,17 +1518,17 @@ static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  uns
 			src1 = (__m128i *)(pY + i*src_stride);
 			src2 = src1+1;
 			dst = (__m128i *)(vs_dst->video_buffer + i*vs_dst->pitch_y);
-			
+
 			for (j=0; j<w/16; j++, src1+=2, src2+=2, dst++) {
 				val1 = _mm_load_si128(src1);
-				val1 = _mm_srli_epi16(val1, 2);				
+				val1 = _mm_srli_epi16(val1, 2);
 				val2 = _mm_load_si128(src2);
 				val2 = _mm_srli_epi16(val2, 2);
 				val_dst = _mm_packus_epi16(val1, val2);
 				_mm_store_si128(dst, val_dst);
 			}
 		}
-		
+
 		for (i=0; i<h/2; i++) {
 			src1 = (__m128i *) (pU + i*src_stride/2);
 			src2 = src1+1;
@@ -1452,7 +1536,7 @@ static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  uns
 
 			for (j=0; j<w/32; j++, src1+=2, src2+=2, dst++) {
 				val1 = _mm_load_si128(src1);
-				val1 = _mm_srli_epi16(val1, 2);				
+				val1 = _mm_srli_epi16(val1, 2);
 				val2 = _mm_load_si128(src2);
 				val2 = _mm_srli_epi16(val2, 2);
 				val_dst = _mm_packus_epi16(val1, val2);
@@ -1464,10 +1548,10 @@ static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  uns
 			src1 = (__m128i *) (pV + i*src_stride/2);
 			src2 = src1+1;
 			dst = (__m128i *)(vs_dst->video_buffer + 5*vs_dst->pitch_y * vs_dst->height/4  + i*vs_dst->pitch_y/2);
-			
+
 			for (j=0; j<w/32; j++, src1+=2, src2+=2, dst++) {
 				val1 = _mm_load_si128(src1);
-				val1 = _mm_srli_epi16(val1, 2);				
+				val1 = _mm_srli_epi16(val1, 2);
 				val2 = _mm_load_si128(src2);
 				val2 = _mm_srli_epi16(val2, 2);
 				val_dst = _mm_packus_epi16(val1, val2);
@@ -1504,11 +1588,11 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 #endif
 
 	if ( (w%32 == 0)
-		&& (GFINTCAST (vs_dst->video_buffer + vs_dst->pitch_y)%8 == 0)
-		&& (GFINTCAST (vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + vs_dst->pitch_y/2)%8 == 0)
-		&& (GFINTCAST (pU + src_stride/2)%8 == 0)
-		&& (GFINTCAST (pV + src_stride/2)%8 == 0)
-	) {
+	        && (GFINTCAST (vs_dst->video_buffer + vs_dst->pitch_y)%8 == 0)
+	        && (GFINTCAST (vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + vs_dst->pitch_y/2)%8 == 0)
+	        && (GFINTCAST (pU + src_stride/2)%8 == 0)
+	        && (GFINTCAST (pV + src_stride/2)%8 == 0)
+	   ) {
 		return gf_color_write_yv12_10_to_yuv_intrin(vs_dst, pY, pU, pV, src_stride, src_width, src_height, _src_wnd);
 	}
 #endif
@@ -1531,7 +1615,7 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 			u16 *src = (u16 *) (pY + i*src_stride);
 			u8 *dst = (u8 *) vs_dst->video_buffer + i*vs_dst->pitch_y;
 
-			for (j=0; j<w;j++) {
+			for (j=0; j<w; j++) {
 				*dst = (*src) >> 2;
 				dst++;
 				src++;
@@ -1542,7 +1626,7 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 			u16 *src = (u16 *) (pU + i*src_stride/2);
 			u8 *dst = (u8 *) vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y/2;
 
-			for (j=0; j<w/2;j++) {
+			for (j=0; j<w/2; j++) {
 				*dst = (*src) >> 2;
 				dst++;
 				src++;
@@ -1553,7 +1637,7 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 			u16 *src = (u16 *) (pV + i*src_stride/2);
 			u8 *dst = (u8 *) vs_dst->video_buffer + 5*vs_dst->pitch_y * vs_dst->height/4  + i*vs_dst->pitch_y/2;
 
-			for (j=0; j<w/2;j++) {
+			for (j=0; j<w/2; j++) {
 				*dst = (*src) >> 2;
 				dst++;
 				src++;

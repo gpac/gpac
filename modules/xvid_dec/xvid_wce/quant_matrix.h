@@ -35,8 +35,12 @@ void init_mpeg_matrix(dword *mpeg_quant_matrices);
 void set_intra_matrix(dword *mpeg_quant_matrices, const byte *matrix);
 void set_inter_matrix(dword *mpeg_quant_matrices, const byte *matrix);
 
-inline const dword *get_intra_matrix(const dword *mpeg_quant_matrices){ return (mpeg_quant_matrices + 0*64); }
-inline const dword *get_inter_matrix(const dword *mpeg_quant_matrices){ return(mpeg_quant_matrices + 4*64); }
+inline const dword *get_intra_matrix(const dword *mpeg_quant_matrices) {
+	return (mpeg_quant_matrices + 0*64);
+}
+inline const dword *get_inter_matrix(const dword *mpeg_quant_matrices) {
+	return(mpeg_quant_matrices + 4*64);
+}
 
 const byte *get_default_intra_matrix(void);
 const byte *get_default_inter_matrix(void);

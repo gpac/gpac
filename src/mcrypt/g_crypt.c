@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -31,26 +31,65 @@
 
 static Bool gf_crypt_assign_algo(GF_Crypt *td, const char *algorithm)
 {
-	if (!stricmp(algorithm, "AES-128") || !stricmp(algorithm, "Rijndael-128")) { gf_crypt_register_rijndael_128(td); return 1; }
+	if (!stricmp(algorithm, "AES-128") || !stricmp(algorithm, "Rijndael-128")) {
+		gf_crypt_register_rijndael_128(td);
+		return 1;
+	}
 #ifndef GPAC_CRYPT_ISMA_ONLY
-	else if (!stricmp(algorithm, "AES-192") || !stricmp(algorithm, "Rijndael-192")) { gf_crypt_register_rijndael_192(td); return 1; }
-	else if (!stricmp(algorithm, "AES-256") || !stricmp(algorithm, "Rijndael-256")) { gf_crypt_register_rijndael_256(td); return 1; }
-	else if (!stricmp(algorithm, "DES")) { gf_crypt_register_des(td); return 1; }
-	else if (!stricmp(algorithm, "3DES")) { gf_crypt_register_3des(td); return 1; }
+	else if (!stricmp(algorithm, "AES-192") || !stricmp(algorithm, "Rijndael-192")) {
+		gf_crypt_register_rijndael_192(td);
+		return 1;
+	}
+	else if (!stricmp(algorithm, "AES-256") || !stricmp(algorithm, "Rijndael-256")) {
+		gf_crypt_register_rijndael_256(td);
+		return 1;
+	}
+	else if (!stricmp(algorithm, "DES")) {
+		gf_crypt_register_des(td);
+		return 1;
+	}
+	else if (!stricmp(algorithm, "3DES")) {
+		gf_crypt_register_3des(td);
+		return 1;
+	}
 #endif
 	return 0;
 }
 static Bool gf_crypt_assign_mode(GF_Crypt *td, const char *mode)
 {
-	if (!stricmp(mode, "CTR")) { gf_crypt_register_ctr(td); return 1; }
-	else if (!stricmp(mode, "CBC")) { gf_crypt_register_cbc(td); return 1; }
+	if (!stricmp(mode, "CTR")) {
+		gf_crypt_register_ctr(td);
+		return 1;
+	}
+	else if (!stricmp(mode, "CBC")) {
+		gf_crypt_register_cbc(td);
+		return 1;
+	}
 #ifndef GPAC_CRYPT_ISMA_ONLY
-	else if (!stricmp(mode, "CFB")) { gf_crypt_register_cfb(td); return 1; }
-	else if (!stricmp(mode, "ECB")) { gf_crypt_register_ecb(td); return 1; }
-	else if (!stricmp(mode, "nCFB")) { gf_crypt_register_ncfb(td); return 1; }
-	else if (!stricmp(mode, "nOFB")) { gf_crypt_register_nofb(td); return 1; }
-	else if (!stricmp(mode, "OFB")) { gf_crypt_register_ofb(td); return 1; }
-	else if (!stricmp(mode, "STREAM")) { gf_crypt_register_stream(td); return 1; }
+	else if (!stricmp(mode, "CFB")) {
+		gf_crypt_register_cfb(td);
+		return 1;
+	}
+	else if (!stricmp(mode, "ECB")) {
+		gf_crypt_register_ecb(td);
+		return 1;
+	}
+	else if (!stricmp(mode, "nCFB")) {
+		gf_crypt_register_ncfb(td);
+		return 1;
+	}
+	else if (!stricmp(mode, "nOFB")) {
+		gf_crypt_register_nofb(td);
+		return 1;
+	}
+	else if (!stricmp(mode, "OFB")) {
+		gf_crypt_register_ofb(td);
+		return 1;
+	}
+	else if (!stricmp(mode, "STREAM")) {
+		gf_crypt_register_stream(td);
+		return 1;
+	}
 #endif
 	return 0;
 }
@@ -59,11 +98,11 @@ static GF_Crypt *gf_crypt_open_intern(const char *algorithm, const char *mode, B
 {
 	GF_Crypt *td;
 	if ((!algorithm || !mode) && !is_check) return NULL;
-	
+
 	GF_SAFEALLOC(td, GF_Crypt);
 	if (td==NULL) return NULL;
 
-	
+
 	if (algorithm && !gf_crypt_assign_algo(td, algorithm)) {
 		gf_free(td);
 		return NULL;
@@ -79,7 +118,7 @@ static GF_Crypt *gf_crypt_open_intern(const char *algorithm, const char *mode, B
 		return NULL;
 	}
 	if (!td->_mcrypt || !td->_mdecrypt || !td->_mcrypt_set_state
-		|| !td->a_decrypt || !td->a_encrypt || !td->a_set_key)
+	        || !td->a_decrypt || !td->a_encrypt || !td->a_set_key)
 	{
 		gf_free(td);
 		return NULL;
@@ -137,7 +176,7 @@ GF_Err gf_crypt_set_key(GF_Crypt *td, void *key, u32 keysize, const void *IV)
 }
 
 GF_EXPORT
-GF_Err gf_crypt_set_state(GF_Crypt *td, const void *iv, int size) 
+GF_Err gf_crypt_set_state(GF_Crypt *td, const void *iv, int size)
 {
 	if (!td) return GF_BAD_PARAM;
 	return td->_mcrypt_set_state(td->abuf, (void *) iv, size);
@@ -149,16 +188,20 @@ GF_Err gf_crypt_get_state(GF_Crypt *td, void *iv, int *size)
 	return td->_mcrypt_get_state(td->abuf, iv, size);
 }
 
-u32 gf_crypt_get_block_size(GF_Crypt *td) { return td ? td->algo_block_size : 0; }
+u32 gf_crypt_get_block_size(GF_Crypt *td) {
+	return td ? td->algo_block_size : 0;
+}
 
-u32 gf_crypt_get_iv_size(GF_Crypt *td) 
+u32 gf_crypt_get_iv_size(GF_Crypt *td)
 {
 	if (!td) return 0;
 	if (td->is_block_algo_mode) return td->algo_block_size;
 	return td->algo_IV_size;
 }
 
-u32 gf_crypt_get_key_size(GF_Crypt *td) { return td ? td->key_size : 0; }
+u32 gf_crypt_get_key_size(GF_Crypt *td) {
+	return td ? td->key_size : 0;
+}
 
 u32 gf_crypt_get_supported_key_sizes(GF_Crypt *td, u32 *key_sizes)
 {
@@ -168,14 +211,30 @@ u32 gf_crypt_get_supported_key_sizes(GF_Crypt *td, u32 *key_sizes)
 	return td->num_key_sizes;
 }
 
-Bool gf_crypt_is_block_algorithm(GF_Crypt *td) { return td ? td->is_block_algo : 0; }
-const char *gf_crypt_get_algorithm_name(GF_Crypt *td) { return td ? td->algo_name : NULL; }
-const char *gf_crypt_get_mode_name(GF_Crypt *td) { return td ? td->mode_name : NULL; }
-Bool gf_crypt_is_block_mode(GF_Crypt *td) { return td ? td->is_block_mode : 0; }
-Bool gf_crypt_mode_has_iv(GF_Crypt *td) { return td ? td->has_IV : 0; }
-Bool gf_crypt_is_block_algorithm_mode(GF_Crypt *td) { return td ? td->is_block_algo_mode : 0; }
-u32 gf_crypt_get_algorithm_version(GF_Crypt *td) { return td ? td->algo_version : 0; }
-u32 gf_crypt_get_mode_version(GF_Crypt *td) { return td ? td->mode_version : 0; }
+Bool gf_crypt_is_block_algorithm(GF_Crypt *td) {
+	return td ? td->is_block_algo : 0;
+}
+const char *gf_crypt_get_algorithm_name(GF_Crypt *td) {
+	return td ? td->algo_name : NULL;
+}
+const char *gf_crypt_get_mode_name(GF_Crypt *td) {
+	return td ? td->mode_name : NULL;
+}
+Bool gf_crypt_is_block_mode(GF_Crypt *td) {
+	return td ? td->is_block_mode : 0;
+}
+Bool gf_crypt_mode_has_iv(GF_Crypt *td) {
+	return td ? td->has_IV : 0;
+}
+Bool gf_crypt_is_block_algorithm_mode(GF_Crypt *td) {
+	return td ? td->is_block_algo_mode : 0;
+}
+u32 gf_crypt_get_algorithm_version(GF_Crypt *td) {
+	return td ? td->algo_version : 0;
+}
+u32 gf_crypt_get_mode_version(GF_Crypt *td) {
+	return td ? td->mode_version : 0;
+}
 
 
 
@@ -217,8 +276,8 @@ GF_Err gf_crypt_init(GF_Crypt *td, void *key, u32 lenofkey, const void *IV)
 	}
 
 	td->keyword_given = (char*)gf_malloc(sizeof(char)*gf_crypt_get_key_size(td));
-	if (td->keyword_given==NULL) return GF_OUT_OF_MEM; 
-	
+	if (td->keyword_given==NULL) return GF_OUT_OF_MEM;
+
 	memmove(td->keyword_given, key, lenofkey);
 
 	td->akey = (char*)gf_malloc(sizeof(char)*td->algo_size);

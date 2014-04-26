@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2005-2012
  *					All rights reserved
  *
@@ -86,7 +86,7 @@ static const char * SAF_MIME_DESC = "SAF Rich Media";
 static u32 SAF_RegisterMimeTypes(const GF_InputService *plug)
 {
 	if (!plug)
-	  return 0;
+		return 0;
 	gf_term_register_mime_type(plug, SAF_MIME, SAF_MIME_EXT, SAF_MIME_DESC);
 	return 1;
 }
@@ -94,8 +94,8 @@ static u32 SAF_RegisterMimeTypes(const GF_InputService *plug)
 static Bool SAF_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
-        if (!plug || !url)
-          return 0;
+	if (!plug || !url)
+		return 0;
 	sExt = strrchr(url, '.');
 	if (gf_term_check_extension(plug, SAF_MIME, SAF_MIME_EXT, SAF_MIME_DESC, sExt)) return 1;
 	return 0;
@@ -363,7 +363,9 @@ static void SAF_CheckFile(SAFIn *read)
 		stream_id = gf_bs_read_int(bs, 12);
 		au_size-=2;
 		ts_res = 0;
-		for (i=0; i<nb_streams; i++) { if (si[i].stream_id==stream_id) ts_res = si[i].ts_res; }
+		for (i=0; i<nb_streams; i++) {
+			if (si[i].stream_id==stream_id) ts_res = si[i].ts_res;
+		}
 		if (!ts_res) {
 			if ((au_type==1) || (au_type==2) || (au_type==7)) {
 				gf_bs_read_u16(bs);
@@ -571,8 +573,8 @@ void DeleteSAFReader(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
 	SAFIn *read = (SAFIn *)plug->priv;
-        if (!ifce)
-          return;
+	if (!ifce)
+		return;
 	while (gf_list_count(read->channels)) {
 		SAFChannel *ch = (SAFChannel *)gf_list_last(read->channels);
 		gf_list_rem_last(read->channels);
@@ -581,10 +583,10 @@ void DeleteSAFReader(void *ifce)
 	}
 	gf_list_del(read->channels);
 	if (read->saf_data)
-          gf_free(read->saf_data);
-        read->saf_data = NULL;
+		gf_free(read->saf_data);
+	read->saf_data = NULL;
 	gf_free(read);
-        plug->priv = NULL;
+	plug->priv = NULL;
 	gf_free(plug);
 }
 
@@ -603,8 +605,10 @@ GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
-	case GF_NET_CLIENT_INTERFACE: return (GF_BaseInterface *) NewSAFReader();
-	default: return NULL;
+	case GF_NET_CLIENT_INTERFACE:
+		return (GF_BaseInterface *) NewSAFReader();
+	default:
+		return NULL;
 	}
 }
 
@@ -612,7 +616,9 @@ GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
-	case GF_NET_CLIENT_INTERFACE:  DeleteSAFReader(ifce); break;
+	case GF_NET_CLIENT_INTERFACE:
+		DeleteSAFReader(ifce);
+		break;
 	}
 }
 

@@ -36,7 +36,7 @@ public:
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CChildView)
-	protected:
+protected:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	//}}AFX_VIRTUAL
 
@@ -54,10 +54,10 @@ protected:
 
 class CMainFrame : public CFrameWnd
 {
-	
+
 public:
 	CMainFrame();
-protected: 
+protected:
 	DECLARE_DYNAMIC(CMainFrame)
 
 // Attributes
@@ -69,11 +69,11 @@ public:
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CMainFrame)
-	public:
+public:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual BOOL OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
 	virtual BOOL DestroyWindow();
-	protected:
+protected:
 	virtual BOOL OnNotify(WPARAM wParam, LPARAM lParam, LRESULT* pResult);
 	//}}AFX_VIRTUAL
 
@@ -85,7 +85,7 @@ public:
 	virtual void Dump(CDumpContext& dc) const;
 #endif
 
-public:  
+public:
 	CStatusBar  m_wndStatusBar;
 	CToolBar    m_wndToolBar;
 	Sliders m_Sliders;
@@ -113,7 +113,7 @@ public:
 	void BuildViewList();
 	void BuildStreamList(Bool reset_ony);
 	void BuildChapterList(Bool reset_ony);
-	void SetProgTimer(Bool bOn);		
+	void SetProgTimer(Bool bOn);
 	void AddSubtitle(const char *fileName, Bool auto_play);
 
 private:

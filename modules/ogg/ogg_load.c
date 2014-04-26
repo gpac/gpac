@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -27,7 +27,7 @@
 
 
 #if !defined(__GNUC__)
-# if (defined(_WIN32_WCE) || defined (WIN32)) 
+# if (defined(_WIN32_WCE) || defined (WIN32))
 #  pragma comment(lib, "libogg_static")
 #  pragma comment(lib, "libvorbis_static")
 #  pragma comment(lib, "libtheora_static")
@@ -43,7 +43,7 @@ static u32 OGG_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd,
 		/*media type query*/
 		if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 		dsi = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data : NULL;
-		
+
 		switch (esd->decoderConfig->objectTypeIndication) {
 #ifdef GPAC_HAS_THEORA
 		case GPAC_OTI_MEDIA_OGG:
@@ -52,7 +52,7 @@ static u32 OGG_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd,
 			}
 			return GF_CODEC_NOT_SUPPORTED;
 #endif
-		default: 
+		default:
 			return GF_CODEC_NOT_SUPPORTED;
 		}
 	}
@@ -71,7 +71,7 @@ static u32 OGG_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd,
 			}
 			return GF_CODEC_NOT_SUPPORTED;
 #endif
-		default: 
+		default:
 			return GF_CODEC_NOT_SUPPORTED;
 		}
 	}
@@ -96,23 +96,27 @@ GF_BaseDecoder *OGG_LoadDecoder()
 void DeleteOGGDecoder(GF_BaseDecoder *ifcd)
 {
 	OGGWraper *wrap;
-        if (!ifcd)
-          return;
-        wrap = (OGGWraper *)ifcd->privateStack;
-        if (wrap){
-          switch (wrap->type) {
+	if (!ifcd)
+		return;
+	wrap = (OGGWraper *)ifcd->privateStack;
+	if (wrap) {
+		switch (wrap->type) {
 #ifdef GPAC_HAS_VORBIS
-            case OGG_VORBIS: DeleteVorbisDecoder(ifcd); break;
+		case OGG_VORBIS:
+			DeleteVorbisDecoder(ifcd);
+			break;
 #endif
 #ifdef GPAC_HAS_THEORA
-            case OGG_THEORA: DeleteTheoraDecoder(ifcd); break;
+		case OGG_THEORA:
+			DeleteTheoraDecoder(ifcd);
+			break;
 #endif
-            default:
-		break;
-          }
-          gf_free(wrap);
-          ifcd->privateStack = NULL;
-        }
+		default:
+			break;
+		}
+		gf_free(wrap);
+		ifcd->privateStack = NULL;
+	}
 	gf_free(ifcd);
 }
 

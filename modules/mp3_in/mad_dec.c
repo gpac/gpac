@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2005-2012
  *					All rights reserved
  *
@@ -199,12 +199,12 @@ static GF_Err MAD_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capab
 	else if (chan < -MAD_F_ONE)				\
 		chan = -MAD_F_ONE;				\
 	ret = chan >> (MAD_F_FRACBITS + 1 - 16);		\
-
+ 
 static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg,
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID, u32 *CTS,
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+                              char *inBuffer, u32 inBufferLength,
+                              u16 ES_ID, u32 *CTS,
+                              char *outBuffer, u32 *outBufferLength,
+                              u8 PaddingBits, u32 mmlevel)
 {
 	mad_fixed_t *left_ch, *right_ch, chan;
 	char *ptr;
@@ -267,7 +267,7 @@ static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg,
 
 	if (ctx->stream.next_frame) {
 		ctx->len = (u32) (&ctx->buffer[ctx->len] - ctx->stream.next_frame);
-	    memmove(ctx->buffer, ctx->stream.next_frame, ctx->len);
+		memmove(ctx->buffer, ctx->stream.next_frame, ctx->len);
 	}
 
 
@@ -304,7 +304,7 @@ static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg,
 static const char *MAD_GetCodecName(GF_BaseDecoder *dec)
 {
 	return "MAD " \
-		MAD_VERSION;
+	       MAD_VERSION;
 }
 
 static u32 MAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
@@ -351,22 +351,22 @@ GF_BaseDecoder *NewMADDec()
 void DeleteMADDec(GF_MediaDecoder *ifcg)
 {
 	MADDec *ctx;
-        if (!ifcg)
-          return;
-        ctx = (MADDec *) ifcg->privateStack;
-        ifcg->privateStack = NULL;
-        if (ctx){
-          if (ctx->configured) {
-		mad_stream_finish(&ctx->stream);
-		mad_frame_finish(&ctx->frame);
-		mad_synth_finish(&ctx->synth);
-          }
-          ctx->configured = 0;
-          ctx->sample_rate = ctx->out_size = ctx->num_samples = 0;
-          ctx->num_channels = 0;
-          gf_free(ctx);
+	if (!ifcg)
+		return;
+	ctx = (MADDec *) ifcg->privateStack;
+	ifcg->privateStack = NULL;
+	if (ctx) {
+		if (ctx->configured) {
+			mad_stream_finish(&ctx->stream);
+			mad_frame_finish(&ctx->frame);
+			mad_synth_finish(&ctx->synth);
+		}
+		ctx->configured = 0;
+		ctx->sample_rate = ctx->out_size = ctx->num_samples = 0;
+		ctx->num_channels = 0;
+		gf_free(ctx);
 	}
-        gf_free(ifcg);
+	gf_free(ifcg);
 }
 
 #endif

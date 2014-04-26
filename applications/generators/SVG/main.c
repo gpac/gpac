@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2004-2012 
+ *			Copyright (c) Telecom ParisTech 2004-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph Generator sub-project
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -49,7 +49,7 @@ SVGGenAttrGrp *NewSVGGenAttrGrp()
 	return tmp;
 }
 
-SVGGenElement *NewSVGGenElement() 
+SVGGenElement *NewSVGGenElement()
 {
 	SVGGenElement *elt;
 	GF_SAFEALLOC(elt, SVGGenElement);
@@ -146,56 +146,65 @@ void svgNameToImplementationName(xmlChar *svg_name, char implementation_name[50]
 	char *tmp;
 	strcpy(implementation_name, svg_name);
 	tmp = implementation_name;
-	while ( (tmp = strchr(tmp, '.')) ) { *tmp='_'; tmp++; }
+	while ( (tmp = strchr(tmp, '.')) ) {
+		*tmp='_';
+		tmp++;
+	}
 	tmp = implementation_name;
-	while ( (tmp = strchr(tmp, '-')) ) { *tmp='_'; tmp++; }
+	while ( (tmp = strchr(tmp, '-')) ) {
+		*tmp='_';
+		tmp++;
+	}
 	tmp = implementation_name;
-	while ( (tmp = strchr(tmp, ':')) ) { *tmp='_'; tmp++; }
+	while ( (tmp = strchr(tmp, ':')) ) {
+		*tmp='_';
+		tmp++;
+	}
 }
 
-static Bool isGenericAttributesGroup(char *name) 
+static Bool isGenericAttributesGroup(char *name)
 {
 	if (!strcmp(name, "svg.Core.attr") ||
-		!strcmp(name, "svg.CorePreserve.attr") ||
-		!strcmp(name, "svg.External.attr") ||
-		!strcmp(name, "svg.Properties.attr") ||
-		!strcmp(name, "svg.Media.attr") ||
-		!strcmp(name, "svg.MediaClip.attr") ||
-		!strcmp(name, "svg.Opacity.attr") ||
-		!strcmp(name, "svg.FocusHighlight.attr") || 
-		!strcmp(name, "svg.Focus.attr") ||
-		!strcmp(name, "svg.AnimateCommon.attr") ||
-		!strcmp(name, "svg.XLinkEmbed.attr") ||
-		!strcmp(name, "svg.XLinkRequired.attr") ||
-		!strcmp(name, "svg.XLinkReplace.attr") ||
+	        !strcmp(name, "svg.CorePreserve.attr") ||
+	        !strcmp(name, "svg.External.attr") ||
+	        !strcmp(name, "svg.Properties.attr") ||
+	        !strcmp(name, "svg.Media.attr") ||
+	        !strcmp(name, "svg.MediaClip.attr") ||
+	        !strcmp(name, "svg.Opacity.attr") ||
+	        !strcmp(name, "svg.FocusHighlight.attr") ||
+	        !strcmp(name, "svg.Focus.attr") ||
+	        !strcmp(name, "svg.AnimateCommon.attr") ||
+	        !strcmp(name, "svg.XLinkEmbed.attr") ||
+	        !strcmp(name, "svg.XLinkRequired.attr") ||
+	        !strcmp(name, "svg.XLinkReplace.attr") ||
 //		!strcmp(name, "svg.ContentType.attr") ||
-		!strcmp(name, "svg.AnimateTiming.attr") ||
-		!strcmp(name, "svg.AnimateTimingNoMinMax.attr") ||
-		!strcmp(name, "svg.AnimateBegin.attr") || 
-		!strcmp(name, "svg.AnimateTimingNoFillNoMinMax.attr") ||
-		!strcmp(name, "svg.AnimateSync.attr") ||
-		!strcmp(name, "svg.AnimateSyncDefault.attr") ||
-		!strcmp(name, "svg.AnimateAttributeCommon.attr") ||
-		!strcmp(name, "svg.AnimateToCommon.attr") ||
-		!strcmp(name, "svg.AnimateValueCommon.attr") ||
-		!strcmp(name, "svg.AnimateAdditionCommon.attr") ||
-		!strcmp(name, "svg.AnimateTypeCommon.attr") ||
-		!strcmp(name, "svg.Conditional.attr") ||
+	        !strcmp(name, "svg.AnimateTiming.attr") ||
+	        !strcmp(name, "svg.AnimateTimingNoMinMax.attr") ||
+	        !strcmp(name, "svg.AnimateBegin.attr") ||
+	        !strcmp(name, "svg.AnimateTimingNoFillNoMinMax.attr") ||
+	        !strcmp(name, "svg.AnimateSync.attr") ||
+	        !strcmp(name, "svg.AnimateSyncDefault.attr") ||
+	        !strcmp(name, "svg.AnimateAttributeCommon.attr") ||
+	        !strcmp(name, "svg.AnimateToCommon.attr") ||
+	        !strcmp(name, "svg.AnimateValueCommon.attr") ||
+	        !strcmp(name, "svg.AnimateAdditionCommon.attr") ||
+	        !strcmp(name, "svg.AnimateTypeCommon.attr") ||
+	        !strcmp(name, "svg.Conditional.attr") ||
 //		!strcmp(name, "svg.XY.attr") ||
-		!strcmp(name, "svg.Transform.attr")) {
+	        !strcmp(name, "svg.Transform.attr")) {
 		return 1;
 	} else {
 		return 0;
 	}
 }
 
-static Bool setGenericAttributesFlags(char *name, SVGGenElement *e) 
+static Bool setGenericAttributesFlags(char *name, SVGGenElement *e)
 {
 	Bool ret = 1;
 	if (!strcmp(name, "svg.Core.attr") ||
-		!strcmp(name, "svg.CorePreserve.attr") ||
-		!strcmp(name, "svg.External.attr")) {
-		e->has_svg_generic = 1; 
+	        !strcmp(name, "svg.CorePreserve.attr") ||
+	        !strcmp(name, "svg.External.attr")) {
+		e->has_svg_generic = 1;
 		e->has_xml_generic = 1;
 	} else if (!strcmp(name, "svg.Properties.attr")) {
 		e->has_properties = 1;
@@ -204,28 +213,28 @@ static Bool setGenericAttributesFlags(char *name, SVGGenElement *e)
 		e->has_media_properties = 1;
 	} else if (!strcmp(name, "svg.Opacity.attr")) {
 		e->has_opacity_properties = 1;
-	} else if (!strcmp(name, "svg.FocusHighlight.attr") || 
-		       !strcmp(name, "svg.Focus.attr")) {
+	} else if (!strcmp(name, "svg.FocusHighlight.attr") ||
+	           !strcmp(name, "svg.Focus.attr")) {
 		e->has_focus = 1;
 	} else if (!strcmp(name, "svg.AnimateCommon.attr") ||
-			   !strcmp(name, "svg.XLinkEmbed.attr") ||
-			   !strcmp(name, "svg.XLinkRequired.attr") ||
-			   !strcmp(name, "svg.XLinkReplace.attr")) { //||
+	           !strcmp(name, "svg.XLinkEmbed.attr") ||
+	           !strcmp(name, "svg.XLinkRequired.attr") ||
+	           !strcmp(name, "svg.XLinkReplace.attr")) { //||
 //			   !strcmp(name, "svg.ContentType.attr")) {
 		e->has_xlink = 1;
 	} else if (!strcmp(name, "svg.AnimateTiming.attr") ||
-			   !strcmp(name, "svg.AnimateTimingNoMinMax.attr") ||
-			   !strcmp(name, "svg.AnimateBegin.attr") || 
-			   !strcmp(name, "svg.AnimateTimingNoFillNoMinMax.attr")) {
+	           !strcmp(name, "svg.AnimateTimingNoMinMax.attr") ||
+	           !strcmp(name, "svg.AnimateBegin.attr") ||
+	           !strcmp(name, "svg.AnimateTimingNoFillNoMinMax.attr")) {
 		e->has_timing = 1;
 	} else if (!strcmp(name, "svg.AnimateSync.attr") ||
-		       !strcmp(name, "svg.AnimateSyncDefault.attr")) {
+	           !strcmp(name, "svg.AnimateSyncDefault.attr")) {
 		e->has_sync= 1;
 	} else if (!strcmp(name, "svg.AnimateAttributeCommon.attr") ||
-			   !strcmp(name, "svg.AnimateToCommon.attr") ||
-			   !strcmp(name, "svg.AnimateValueCommon.attr") ||
-			   !strcmp(name, "svg.AnimateAdditionCommon.attr") ||
-			   !strcmp(name, "svg.AnimateTypeCommon.attr")) {
+	           !strcmp(name, "svg.AnimateToCommon.attr") ||
+	           !strcmp(name, "svg.AnimateValueCommon.attr") ||
+	           !strcmp(name, "svg.AnimateAdditionCommon.attr") ||
+	           !strcmp(name, "svg.AnimateTypeCommon.attr")) {
 		e->has_animation = 1;
 	} else if (!strcmp(name, "svg.Conditional.attr")) {
 		e->has_conditional = 1;
@@ -241,16 +250,16 @@ static Bool setGenericAttributesFlags(char *name, SVGGenElement *e)
 
 static void flattenAttributeGroup(SVGGenAttrGrp attgrp, SVGGenElement *e, Bool all);
 
-static void flattenAttributeGroups(GF_List *attrgrps, SVGGenElement *e, Bool all) 
+static void flattenAttributeGroups(GF_List *attrgrps, SVGGenElement *e, Bool all)
 {
 	u32 i;
 	for (i = 0; i < gf_list_count(attrgrps); i ++) {
 		SVGGenAttrGrp *ag = gf_list_get(attrgrps, i);
 		flattenAttributeGroup(*ag, e, all);
-	} 
+	}
 }
 
-static void flattenAttributeGroup(SVGGenAttrGrp attgrp, SVGGenElement *e, Bool all) 
+static void flattenAttributeGroup(SVGGenAttrGrp attgrp, SVGGenElement *e, Bool all)
 {
 	u32 i;
 
@@ -263,15 +272,15 @@ static void flattenAttributeGroup(SVGGenAttrGrp attgrp, SVGGenElement *e, Bool a
 	} else {
 		flattenAttributeGroups(attgrp.attrgrps, e, all);
 		for (i = 0; i < gf_list_count(attgrp.attrs); i++) {
-			if (all) 
+			if (all)
 				gf_list_add(e->generic_attributes, gf_list_get(attgrp.attrs, i));
-			else 
+			else
 				gf_list_add(e->attributes, gf_list_get(attgrp.attrs, i));
 		}
 	}
 }
 
-SVGGenAttribute *findAttribute(SVGGenElement *e, char *name) 
+SVGGenAttribute *findAttribute(SVGGenElement *e, char *name)
 {
 	u32 i;
 	for (i = 0; i < gf_list_count(e->attributes); i++) {
@@ -291,74 +300,74 @@ static u32 countAttributesAllInGroup(SVGGenAttrGrp *ag)
 	for (i = 0; i < gf_list_count(ag->attrgrps); i ++) {
 		SVGGenAttrGrp *agtmp = gf_list_get(ag->attrgrps, i);
 		ret += countAttributesAllInGroup(agtmp);
-	} 
+	}
 	ret += gf_list_count(ag->attrs);
 	return ret;
 }
 
 /* XML related functions */
-xmlNodeSetPtr findNodes( xmlXPathContextPtr ctxt, xmlChar * path ) 
+xmlNodeSetPtr findNodes( xmlXPathContextPtr ctxt, xmlChar * path )
 {
-    xmlXPathObjectPtr res = NULL;
-  
-    if ( ctxt->node != NULL && path != NULL ) {
-        xmlXPathCompExprPtr comp;
+	xmlXPathObjectPtr res = NULL;
 
-        xmlDocPtr tdoc = NULL;
-        xmlNodePtr froot = ctxt->node;
+	if ( ctxt->node != NULL && path != NULL ) {
+		xmlXPathCompExprPtr comp;
 
-        comp = xmlXPathCompile( path );
-        if ( comp == NULL ) {
-            return NULL;
-        }
-        
-        if ( ctxt->node->doc == NULL ) {
-            /* if one XPaths a node from a fragment, libxml2 will
-               refuse the lookup. this is not very usefull for XML
-               scripters. thus we need to create a temporary document
-               to make libxml2 do it's job correctly.
-             */
-            tdoc = xmlNewDoc( NULL );
+		xmlDocPtr tdoc = NULL;
+		xmlNodePtr froot = ctxt->node;
 
-            /* find refnode's root node */
-            while ( froot != NULL ) {
-                if ( froot->parent == NULL ) {
-                    break;
-                }
-                froot = froot->parent;
-            }
-            xmlAddChild((xmlNodePtr)tdoc, froot);
+		comp = xmlXPathCompile( path );
+		if ( comp == NULL ) {
+			return NULL;
+		}
 
-            ctxt->node->doc = tdoc;
-        }
-       
-        res = xmlXPathCompiledEval(comp, ctxt);
+		if ( ctxt->node->doc == NULL ) {
+			/* if one XPaths a node from a fragment, libxml2 will
+			   refuse the lookup. this is not very usefull for XML
+			   scripters. thus we need to create a temporary document
+			   to make libxml2 do it's job correctly.
+			 */
+			tdoc = xmlNewDoc( NULL );
 
-        xmlXPathFreeCompExpr(comp);
+			/* find refnode's root node */
+			while ( froot != NULL ) {
+				if ( froot->parent == NULL ) {
+					break;
+				}
+				froot = froot->parent;
+			}
+			xmlAddChild((xmlNodePtr)tdoc, froot);
 
-        if ( tdoc != NULL ) {
-            /* after looking through a fragment, we need to drop the
-               fake document again */
-	    xmlSetTreeDoc(froot,NULL);
-            froot->doc = NULL;
-            tdoc->children = NULL;
-            tdoc->last     = NULL;
-            froot->parent  = NULL;
-            ctxt->node->doc = NULL;
+			ctxt->node->doc = tdoc;
+		}
 
-            xmlFreeDoc( tdoc );
-        }
-    }
+		res = xmlXPathCompiledEval(comp, ctxt);
+
+		xmlXPathFreeCompExpr(comp);
+
+		if ( tdoc != NULL ) {
+			/* after looking through a fragment, we need to drop the
+			   fake document again */
+			xmlSetTreeDoc(froot,NULL);
+			froot->doc = NULL;
+			tdoc->children = NULL;
+			tdoc->last     = NULL;
+			froot->parent  = NULL;
+			ctxt->node->doc = NULL;
+
+			xmlFreeDoc( tdoc );
+		}
+	}
 	if (res && res->type == XPATH_NODESET)
 		return res->nodesetval;
-    else 
+	else
 		return NULL;
 }
 
 
 /* definition of GPAC groups of SVG attributes */
 
-void setAttributeType(SVGGenAttribute *att) 
+void setAttributeType(SVGGenAttribute *att)
 {
 	if (!att->svg_type) { /* if the type is not given in the RNG, we explicitely set it */
 		if (!strcmp(att->svg_name, "textContent")) {
@@ -398,27 +407,27 @@ void setAttributeType(SVGGenAttribute *att)
 			strcpy(att->impl_type, "SMIL_KeySplines");
 		} else if (!strcmp(att->svg_name, "keyPoints")) {
 			strcpy(att->impl_type, "SMIL_KeyPoints");
-		} else if (!strcmp(att->svg_name, "from") || 
-				   !strcmp(att->svg_name, "to") || 
-				   !strcmp(att->svg_name, "by")) {
+		} else if (!strcmp(att->svg_name, "from") ||
+		           !strcmp(att->svg_name, "to") ||
+		           !strcmp(att->svg_name, "by")) {
 			strcpy(att->impl_type, "SMIL_AnimateValue");
 		} else if (!strcmp(att->svg_name, "additive")) {
 			strcpy(att->impl_type, "SMIL_Additive");
 		} else if (!strcmp(att->svg_name, "accumulate")) {
 			strcpy(att->impl_type, "SMIL_Accumulate");
 		} else if (!strcmp(att->svg_name, "begin") ||
-				   !strcmp(att->svg_name, "end") 
-				  ) {
+		           !strcmp(att->svg_name, "end")
+		          ) {
 			strcpy(att->impl_type, "SMIL_Times");
 		} else if (!strcmp(att->svg_name, "clipBegin") ||
-				   !strcmp(att->svg_name, "clipEnd")
-				  ) {
+		           !strcmp(att->svg_name, "clipEnd")
+		          ) {
 			strcpy(att->impl_type, "SVG_Clock");
 		} else if (!strcmp(att->svg_name, "min") ||
-				   !strcmp(att->svg_name, "max") ||
-				   !strcmp(att->svg_name, "dur") ||
-				   !strcmp(att->svg_name, "repeatDur")
-				  ) {
+		           !strcmp(att->svg_name, "max") ||
+		           !strcmp(att->svg_name, "dur") ||
+		           !strcmp(att->svg_name, "repeatDur")
+		          ) {
 			strcpy(att->impl_type, "SMIL_Duration");
 		} else if (!strcmp(att->svg_name, "repeat")) {
 			strcpy(att->impl_type, "SMIL_Repeat");
@@ -506,8 +515,8 @@ void setAttributeType(SVGGenAttribute *att)
 			strcpy(att->impl_type, "SVG_Boolean");
 		} else if (!strcmp(att->svg_name, "choice")) {
 			strcpy(att->impl_type, "LASeR_Choice");
-		} else if (!strcmp(att->svg_name, "size") || 
-				   !strcmp(att->svg_name, "delta")) {
+		} else if (!strcmp(att->svg_name, "size") ||
+		           !strcmp(att->svg_name, "delta")) {
 			strcpy(att->impl_type, "LASeR_Size");
 		} else if (!strcmp(att->svg_name, "syncReference")) {
 			strcpy(att->impl_type, "XMLRI");
@@ -541,20 +550,26 @@ void setAttributeType(SVGGenAttribute *att)
 			char *tmp;
 			sprintf(att->impl_type, "SVG_%s", att->svg_type);
 			tmp = att->impl_type;
-			while ( (tmp = strstr(tmp, "-")) ) { *tmp='_'; tmp++; }
+			while ( (tmp = strstr(tmp, "-")) ) {
+				*tmp='_';
+				tmp++;
+			}
 			tmp = att->impl_type;
-			while ( (tmp = strstr(tmp, ".")) ) { *tmp='_'; tmp++; }
+			while ( (tmp = strstr(tmp, ".")) ) {
+				*tmp='_';
+				tmp++;
+			}
 			tmp = att->impl_type;;
 			if ( (tmp = strstr(tmp, "datatype")) ) {
 				tmp--;
 				*tmp = 0;
-			} 
+			}
 		}
 	}
 }
 
-void getAttributeType(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, 
-					  xmlNodePtr attributeNode, SVGGenAttribute *a) 
+void getAttributeType(xmlDocPtr doc, xmlXPathContextPtr xpathCtx,
+                      xmlNodePtr attributeNode, SVGGenAttribute *a)
 {
 
 	xmlNodeSetPtr refNodes;
@@ -570,8 +585,8 @@ void getAttributeType(xmlDocPtr doc, xmlXPathContextPtr xpathCtx,
 	}
 }
 
-void getRealAttributes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr newCtxNode, 
-					   GF_List *attributes)
+void getRealAttributes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr newCtxNode,
+                       GF_List *attributes)
 {
 	xmlNodeSetPtr attributeNodes;
 	int k;
@@ -589,7 +604,7 @@ void getRealAttributes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr ne
 			svgNameToImplementationName(a->svg_name, a->implementation_name);
 			getAttributeType(doc, xpathCtx, attributeNode, a);
 			setAttributeType(a);
-			for (j=0;j<gf_list_count(attributes); j++) {
+			for (j=0; j<gf_list_count(attributes); j++) {
 				SVGGenAttribute *ta = gf_list_get(attributes, j);
 				if (xmlStrEqual(ta->svg_name, a->svg_name)) {
 					already_exists = 1;
@@ -606,7 +621,7 @@ void getRealAttributes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlNodePtr ne
 	}
 }
 
-SVGGenAttrGrp *getOneGlobalAttrGrp(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlChar *name) 
+SVGGenAttrGrp *getOneGlobalAttrGrp(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, xmlChar *name)
 {
 	SVGGenAttrGrp *attgrp = NULL;
 	xmlNodeSetPtr attrGrpDefNodes;
@@ -631,7 +646,7 @@ SVGGenAttrGrp *getOneGlobalAttrGrp(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, x
 		fprintf(stdout, "Warning: found 0 non-empty or allowed definition for the Group of Attributes: %s\n", name);
 		return NULL;
 	}
-	attgrp = NewSVGGenAttrGrp();				
+	attgrp = NewSVGGenAttrGrp();
 	attgrp->name = gf_strdup(name);
 	svgNameToImplementationName(attgrp->name, attgrp->imp_name);
 	gf_list_add(globalAttrGrp, attgrp);
@@ -659,7 +674,7 @@ SVGGenAttrGrp *getOneGlobalAttrGrp(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, x
 	return attgrp;
 }
 
-void getAllGlobalAttrGrp(xmlDocPtr doc, xmlXPathContextPtr xpathCtx) 
+void getAllGlobalAttrGrp(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 {
 	xmlNodeSetPtr elementNodes = findNodes(xpathCtx, "//rng:define");
 	int k;
@@ -690,9 +705,9 @@ GF_List *getElements(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 			SVGGenElement *e = NewSVGGenElement();
 			e->svg_name = xmlStrdup(xmlGetProp(elementNode, "name"));
 			//fprintf(stdout, "\n\tElement %s\n", e->svg_name);
-			
+
 			svgNameToImplementationName(e->svg_name, e->implementation_name);
-		
+
 			/* getting the <define name="element.AT"/> */
 			expr = xmlStrdup("//rng:define[@name=\"");
 			if (!xmlStrcmp(e->svg_name, "polygon") || !xmlStrcmp(e->svg_name, "polyline")) {
@@ -710,7 +725,7 @@ GF_List *getElements(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 				for (j = 0; j <refNodes->nodeNr; j++) {
 					xmlNodePtr refNode = refNodes->nodeTab[j];
 					char *name = xmlGetProp(refNode, "name");
-					for (i = 0; i < gf_list_count(globalAttrGrp); i++) {						
+					for (i = 0; i < gf_list_count(globalAttrGrp); i++) {
 						SVGGenAttrGrp *a = gf_list_get(globalAttrGrp, i);
 						if (!strcmp(a->name, name)) {
 							if (isGenericAttributesGroup(a->name)) {
@@ -728,11 +743,11 @@ GF_List *getElements(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 				getRealAttributes(doc, xpathCtx, ATNodes->nodeTab[0], e->attributes);
 			}
 
-			/* checking if this element is already present in the list of possible elements 
+			/* checking if this element is already present in the list of possible elements
 			   and if not, adding it */
 			{
 				Bool found = 0;
-				for (i=0;i<gf_list_count(elements); i++) {
+				for (i=0; i<gf_list_count(elements); i++) {
 					SVGGenElement *etmp = gf_list_get(elements, i);
 					if (!strcmp(etmp->svg_name, e->svg_name)) {
 						found = 1;
@@ -757,21 +772,21 @@ FILE *BeginFile(u32 type)
 #ifdef LOCAL_SVG_NODES
 		sprintf(sPath, "nodes_svg.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 #else
-		if (generation_mode == 1) 
+		if (generation_mode == 1)
 			sprintf(sPath, "..%c..%c..%c..%cinclude%cgpac%cnodes_svg_sa.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		else if (generation_mode == 2) 
+		else if (generation_mode == 2)
 			sprintf(sPath, "..%c..%c..%c..%cinclude%cgpac%cnodes_svg_sani.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		else if (generation_mode == 3)
 			sprintf(sPath, "..%c..%c..%c..%cinclude%cgpac%cnodes_svg_da.h", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		
+
 #endif
 	} else if (type==1) {
 #ifdef LOCAL_SVG_NODES
 		sprintf(sPath, "svg_nodes.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 #else
-		if (generation_mode == 1) 
+		if (generation_mode == 1)
 			sprintf(sPath, "..%c..%c..%c..%csrc%cscenegraph%csvg_nodes_sa.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		else if (generation_mode == 2) 
+		else if (generation_mode == 2)
 			sprintf(sPath, "..%c..%c..%c..%csrc%cscenegraph%csvg_nodes_sani.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 		else if (generation_mode == 3)
 			sprintf(sPath, "..%c..%c..%c..%csrc%cscenegraph%csvg_nodes_da.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
@@ -780,16 +795,16 @@ FILE *BeginFile(u32 type)
 #ifdef LOCAL_SVG_NODES
 		sprintf(sPath, "lsr_tables.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 #else
-		if (generation_mode == 1) 
+		if (generation_mode == 1)
 			sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables_sa.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		else if (generation_mode == 2) 
+		else if (generation_mode == 2)
 			sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables_sani.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		else if (generation_mode == 3) 
+		else if (generation_mode == 3)
 			sprintf(sPath, "..%c..%c..%c..%csrc%claser%clsr_tables.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 
 #endif
 	}
-	
+
 	f = fopen(sPath, "wt");
 	fprintf(f, "%s\n", COPYRIGHT);
 
@@ -828,17 +843,17 @@ void EndFile(FILE *f, u32 type)
 	fclose(f);
 }
 
-void generateAttributes(FILE *output, GF_List *attributes, Bool inDefine) 
+void generateAttributes(FILE *output, GF_List *attributes, Bool inDefine)
 {
 	u32 i;
 	for (i = 0; i<gf_list_count(attributes); i++) {
 		SVGGenAttribute *att = (SVGGenAttribute *)gf_list_get(attributes, i);
-		if (inDefine) 
-			if (i == gf_list_count(attributes) -1) 
+		if (inDefine)
+			if (i == gf_list_count(attributes) -1)
 				fprintf(output, "\t%s %s;\n", att->impl_type, att->implementation_name);
-			else 
+			else
 				fprintf(output, "\t%s %s; \\\n", att->impl_type, att->implementation_name);
-		else 
+		else
 			fprintf(output, "\t%s %s;\n", att->impl_type, att->implementation_name);
 	}
 }
@@ -864,14 +879,14 @@ void replaceIncludes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 {
 	int k;
 	xmlNodeSetPtr nodes;
-	xmlXPathObjectPtr xpathObj; 
+	xmlXPathObjectPtr xpathObj;
 
-    /* Get all the RNG elements */
-    xpathObj = xmlXPathEvalExpression("//rng:include", xpathCtx);
-    if(xpathObj == NULL || xpathObj->type != XPATH_NODESET) return;
-	
-	nodes = xpathObj->nodesetval;	
-		
+	/* Get all the RNG elements */
+	xpathObj = xmlXPathEvalExpression("//rng:include", xpathCtx);
+	if(xpathObj == NULL || xpathObj->type != XPATH_NODESET) return;
+
+	nodes = xpathObj->nodesetval;
+
 	for (k = 0; k < nodes->nodeNr; k++)	{
 		xmlNodePtr node = nodes->nodeTab[k];
 		if (node->type == XML_ELEMENT_NODE) {
@@ -889,31 +904,31 @@ void replaceIncludes(xmlDocPtr doc, xmlXPathContextPtr xpathCtx)
 int main(int argc, char **argv)
 {
 	xmlDocPtr doc = NULL;
-	xmlXPathContextPtr xpathCtx = NULL; 
+	xmlXPathContextPtr xpathCtx = NULL;
 	GF_List *svg_elements = NULL;
 
-    xmlInitParser();
+	xmlInitParser();
 	LIBXML_TEST_VERSION
 
 	doc = xmlParseFile(argv[1]);
-    if (!doc) {
-        printf("error: could not parse file %s\n", argv[1]);
+	if (!doc) {
+		printf("error: could not parse file %s\n", argv[1]);
 		return -1;
-    }
+	}
 
 	xpathCtx = xmlXPathNewContext(doc);
-    if(xpathCtx == NULL) {
-        fprintf(stderr,"Error: unable to create new XPath context\n");
-        xmlFreeDoc(doc); 
-        return(-1);
-    }
+	if(xpathCtx == NULL) {
+		fprintf(stderr,"Error: unable to create new XPath context\n");
+		xmlFreeDoc(doc);
+		return(-1);
+	}
 	xmlXPathRegisterNs(xpathCtx, RNG_PREFIX, RNG_NS);
 	xmlXPathRegisterNs(xpathCtx, RNGA_PREFIX, RNGA_NS);
 	xmlXPathRegisterNs(xpathCtx, SVGA_PREFIX, SVGA_NS);
 
 	replaceIncludes(doc, xpathCtx);
 	xmlSaveFile("completerng_props.xml", doc);
-	
+
 	globalAttrGrp = gf_list_new();
 	getAllGlobalAttrGrp(doc, xpathCtx);
 
@@ -928,9 +943,9 @@ int main(int argc, char **argv)
 		if (generation_mode == 3) generateSVGCode_V3(svg_elements);
 	}
 
-	xmlXPathFreeContext(xpathCtx); 
-	//xmlFreeDoc(doc); 
-	
+	xmlXPathFreeContext(xpathCtx);
+	//xmlFreeDoc(doc);
+
 	xmlCleanupParser();
 	return 0;
 }

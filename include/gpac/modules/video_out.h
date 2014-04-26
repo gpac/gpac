@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -84,7 +84,7 @@ enum
 };
 
 typedef struct
-{	
+{
 	GF_IRect *list;
 	u32 count;
 } GF_DirtyRectangles;
@@ -92,19 +92,19 @@ typedef struct
 typedef struct _gf_sc_texture_handler GF_TextureH;
 
 /*interface name and version for video output*/
-#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','1') 
+#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','1')
 
 /*
 			video output interface
 
 	the video output may run in 2 modes: 2D and 3D.
 
-	** the 2D video output works by accessing a backbuffer surface on the video mem board - 
-	the app accesses to the surface through the GF_VideoSurface handler. 
+	** the 2D video output works by accessing a backbuffer surface on the video mem board -
+	the app accesses to the surface through the GF_VideoSurface handler.
 	The module may support HW blitting of RGB or YUV data to backbuffer.
 
 	** the 3D video output only handles window management and openGL contexts setup.
-	The context shall be setup in Resize and SetFullScreen calls which are always happening in the main 
+	The context shall be setup in Resize and SetFullScreen calls which are always happening in the main
 	rendering thread. This will take care of openGL context issues with multithreading
 
 	By default all modules are required to be setup in 2D. If 3D is needed, a GF_EVENT_VIDEO_SETUP will
@@ -125,7 +125,7 @@ typedef struct _video_out
 	/*shutdown system */
 	void (*Shutdown) (struct _video_out *vout);
 
-	/*flush video: the video shall be presented to screen 
+	/*flush video: the video shall be presented to screen
 	the destination area to update is in client display coordinates (0,0) being top-left, (w,h) bottom-right
 	Note: dest is always NULL in 3D mode (buffer flip only)*/
 	GF_Err (*Flush) (struct _video_out *vout, GF_Window *dest);
@@ -143,16 +143,16 @@ typedef struct _video_out
 			* This can be a request for an offscreen rendering surface. If supported, this surface SHALL
 			be readable through glReadPixels. If not supported, just return an error.
 			Note that GPAC never uses more than one GL context (offscreen or main video)
-			* Depending on windowing systems and implementations, it could be possible to resize a window 
+			* Depending on windowing systems and implementations, it could be possible to resize a window
 		without destroying the GL context. If the GL context is destroyed, the module should send an event
 		of the same type to the player.
-	
-	This function is also called with a NULL event at the begining of each rendering cycle, in order to allow event 
+
+	This function is also called with a NULL event at the begining of each rendering cycle, in order to allow event
 	handling for modules uncapable of safe multithreading (eg X11)
 	*/
 	GF_Err (*ProcessEvent)(struct _video_out *vout, GF_Event *event);
 
-	/*pass events to user (assigned before setup) - return 1 if the event has been processed by GPAC 
+	/*pass events to user (assigned before setup) - return 1 if the event has been processed by GPAC
 	(eiher scene or navigation), 0 otherwise*/
 	void *evt_cbk_hdl;
 	Bool (*on_event)(void *hdl, GF_Event *event);
@@ -180,7 +180,7 @@ typedef struct _video_out
 	GF_Err (*Blit)(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type);
 
 	/*optional
-	blits the texture as a bitmap with the specified transform cliped with the given cliper, with alpha and 
+	blits the texture as a bitmap with the specified transform cliped with the given cliper, with alpha and
 	color keying (NULL if no keying)
 	*/
 	Bool (*BlitTexture)(struct _video_out *vout, GF_TextureH *texture, GF_Matrix2D *transform, GF_IRect *clip, u8 alpha, GF_ColorKey *col_key, Fixed depth_offset, Fixed depth_gain);
@@ -194,7 +194,7 @@ typedef struct _video_out
 		flushes only the listed rectangles
 	*/
 	void (*FlushRectangles)(struct _video_out *vout, GF_DirtyRectangles *rectangles);
-	
+
 	/*ignored if GF_VIDEO_HW_HAS_LINE_BLIT is not set*/
 	void (*DrawHLine)(struct _video_out *vout, u32 x, u32 y, u32 length, GF_Color color);
 	void (*DrawHLineAlpha)(struct _video_out *vout, u32 x, u32 y, u32 length, GF_Color color, u8 alpha);
@@ -219,10 +219,10 @@ typedef struct _video_out
 	u32 overlay_color_key;
 
 	/*for auto-stereoscopic output*/
-    /*maximum pixel disparity*/
-    u32 disparity;
-    /*nominal display viewing distance in cm*/
-    Fixed view_distance;
+	/*maximum pixel disparity*/
+	u32 disparity;
+	/*nominal display viewing distance in cm*/
+	Fixed view_distance;
 
 	/*driver private*/
 	void *opaque;

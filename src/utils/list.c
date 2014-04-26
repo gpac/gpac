@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -99,7 +99,7 @@ GF_EXPORT
 GF_Err gf_list_add(GF_List *ptr, void* item)
 {
 	ItemSlot *entry;
-    if (! ptr) return GF_BAD_PARAM;
+	if (! ptr) return GF_BAD_PARAM;
 	entry = (ItemSlot *) gf_malloc(sizeof(ItemSlot));
 	if (!entry) return GF_OUT_OF_MEM;
 	entry->data = item;
@@ -162,7 +162,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 	u32 i;
 
 	/* !! if head is null (empty list)*/
-	if ( (! ptr) || (! ptr->head) || (ptr->head && !ptr->entryCount) || (itemNumber >= ptr->entryCount) ) 
+	if ( (! ptr) || (! ptr->head) || (ptr->head && !ptr->entryCount) || (itemNumber >= ptr->entryCount) )
 		return GF_BAD_PARAM;
 
 	/*we delete the head*/
@@ -297,7 +297,7 @@ GF_EXPORT
 GF_Err gf_list_add(GF_List *ptr, void* item)
 {
 	ItemSlot *entry;
-    if (! ptr) return GF_BAD_PARAM;
+	if (! ptr) return GF_BAD_PARAM;
 	entry = (ItemSlot *) gf_malloc(sizeof(ItemSlot));
 	if (!entry) return GF_OUT_OF_MEM;
 	entry->data = item;
@@ -368,7 +368,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 	u32 i;
 
 	/* !! if head is null (empty list)*/
-	if ( (! ptr) || (! ptr->head) || (ptr->head && !ptr->entryCount) || (itemNumber >= ptr->entryCount) ) 
+	if ( (! ptr) || (! ptr->head) || (ptr->head && !ptr->entryCount) || (itemNumber >= ptr->entryCount) )
 		return GF_BAD_PARAM;
 
 	/*we delete the head*/
@@ -501,7 +501,7 @@ void gf_list_del(GF_List *ptr)
 GF_EXPORT
 GF_Err gf_list_add(GF_List *ptr, void* item)
 {
-    if (! ptr) return GF_BAD_PARAM;
+	if (! ptr) return GF_BAD_PARAM;
 
 	ptr->entryCount ++;
 	ptr->slots = (void **) gf_realloc(ptr->slots, ptr->entryCount*sizeof(void*));
@@ -601,7 +601,7 @@ GF_List * gf_list_new()
 
 	nlist = (GF_List *) gf_malloc(sizeof(GF_List));
 	if (! nlist) return NULL;
-	
+
 	nlist->slots = NULL;
 	nlist->entryCount = 0;
 	nlist->allocSize = 0;
@@ -625,7 +625,7 @@ static void realloc_chain(GF_List *ptr)
 GF_EXPORT
 GF_Err gf_list_add(GF_List *ptr, void* item)
 {
-    if (! ptr) return GF_BAD_PARAM;
+	if (! ptr) return GF_BAD_PARAM;
 	if (ptr->allocSize==ptr->entryCount) realloc_chain(ptr);
 	if (!ptr->slots) return GF_OUT_OF_MEM;
 
@@ -733,7 +733,7 @@ void *gf_list_enum(GF_List *ptr, u32 *pos)
 }
 
 GF_EXPORT
-void *gf_list_rev_enum(GF_List *ptr, u32 *pos){
+void *gf_list_rev_enum(GF_List *ptr, u32 *pos) {
 	void *res;
 	if (!ptr || !pos) return NULL;
 	res = gf_list_get(ptr, gf_list_count (ptr) - *pos - 1 );
@@ -785,7 +785,7 @@ GF_Err gf_list_transfer(GF_List *l1, GF_List *l2)
 }
 
 GF_EXPORT
-GF_List* gf_list_clone(GF_List *ptr){
+GF_List* gf_list_clone(GF_List *ptr) {
 	GF_List* new_list;
 	u32 i = 0;
 	void* item;
@@ -798,7 +798,7 @@ GF_List* gf_list_clone(GF_List *ptr){
 }
 
 GF_EXPORT
-void gf_list_reverse(GF_List *ptr){
+void gf_list_reverse(GF_List *ptr) {
 	GF_List* saved_order;
 	void* item;
 	u32 i = 0;
@@ -806,7 +806,7 @@ void gf_list_reverse(GF_List *ptr){
 	saved_order = gf_list_clone(ptr);
 	gf_list_reset(ptr);
 
-	while ((item = gf_list_enum(saved_order, &i))){
+	while ((item = gf_list_enum(saved_order, &i))) {
 		gf_list_insert(ptr, item, 0);
 	}
 
@@ -814,10 +814,10 @@ void gf_list_reverse(GF_List *ptr){
 }
 
 GF_EXPORT
-void* gf_list_pop_front(GF_List *ptr){
+void* gf_list_pop_front(GF_List *ptr) {
 	void * item;
 	if (!ptr) return NULL;
-	
+
 	item = gf_list_get(ptr, 0);
 	gf_list_rem(ptr, 0);
 
@@ -825,10 +825,10 @@ void* gf_list_pop_front(GF_List *ptr){
 }
 
 GF_EXPORT
-void* gf_list_pop_back(GF_List *ptr){
+void* gf_list_pop_back(GF_List *ptr) {
 	void * item;
 	if (!ptr) return NULL;
-	
+
 	item = gf_list_last(ptr);
 	gf_list_rem_last(ptr);
 

@@ -4,18 +4,18 @@
    Copyright (c) 1999 Mike Scott
    See rijndael documentation
 
-   Permission for free direct or derivative use is granted subject 
-   to compliance with any conditions that the originators of the 
-   algorithm place on its exploitation.  
+   Permission for free direct or derivative use is granted subject
+   to compliance with any conditions that the originators of the
+   algorithm place on its exploitation.
 
    Inspiration from Brian Gladman's implementation is acknowledged.
 
    Written for clarity, rather than speed.
-   Full implementation. 
+   Full implementation.
    Endian indifferent.
 */
 
-/* modified in order to use the libmcrypt API by Nikos Mavroyanopoulos 
+/* modified in order to use the libmcrypt API by Nikos Mavroyanopoulos
  * All modifications are placed under the license of libmcrypt.
  */
 
@@ -61,14 +61,14 @@ static int tables_ok = 0;
 /* in "rijndael.h" */
 
 static u32 pack(u8 * b)
-{				/* pack bytes into a 32-bit Word */
+{	/* pack bytes into a 32-bit Word */
 	return ((u32) b[3] << 24) | ((u32) b[2] << 16) | ((u32)
-								b[1] << 8)
-	    | (u32) b[0];
+	        b[1] << 8)
+	       | (u32) b[0];
 }
 
 static void unpack(u32 a, u8 * b)
-{				/* unpack bytes from a word */
+{	/* unpack bytes from a word */
 	b[0] = (u8) a;
 	b[1] = (u8) (a >> 8);
 	b[2] = (u8) (a >> 16);
@@ -88,7 +88,7 @@ static u8 xtime(u8 a)
 }
 
 static u8 bmul(u8 x, u8 y)
-{				/* x.y= AntiLog(Log(x) + Log(y)) */
+{	/* x.y= AntiLog(Log(x) + Log(y)) */
 	if (x && y)
 		return ptab[(ltab[x] + ltab[y]) % 255];
 	else
@@ -107,17 +107,17 @@ static u32 SubByte(u32 a)
 }
 
 static u8 product(u32 x, u32 y)
-{				/* dot product of two 4-u8 arrays */
+{	/* dot product of two 4-u8 arrays */
 	u8 xb[4], yb[4];
 	unpack(x, xb);
 	unpack(y, yb);
 	return bmul(xb[0], yb[0]) ^ bmul(xb[1], yb[1]) ^ bmul(xb[2],
-							      yb[2]) ^
-	    bmul(xb[3], yb[3]);
+	        yb[2]) ^
+	       bmul(xb[3], yb[3]);
 }
 
 static u32 InvMixCol(u32 x)
-{				/* matrix Multiplication */
+{	/* matrix Multiplication */
 	u32 y, m;
 	u8 b[4];
 
@@ -150,7 +150,7 @@ static u8 ByteSub(u8 x)
 }
 
 static void _mcrypt_rijndael_gentables(void)
-{				/* generate tables */
+{	/* generate tables */
 	int i;
 	u8 y, b[4];
 
@@ -200,7 +200,7 @@ static void _mcrypt_rijndael_gentables(void)
 }
 
 static GF_Err _mcrypt_set_key(RI * rinst, u8 * key, int nk)
-{				/* blocksize=32*nb bits. Key=32*nk bits */
+{	/* blocksize=32*nb bits. Key=32*nk bits */
 	/* currently nb,bk = 4, 6 or 8          */
 	/* key comes as 4*rinst->Nk bytes              */
 	/* Key Scheduler. Create expanded encryption key */
@@ -254,32 +254,32 @@ static GF_Err _mcrypt_set_key(RI * rinst, u8 * key, int nk)
 	for (j = rinst->Nk, k = 0; j < N; j += rinst->Nk, k++) {
 		rinst->fkey[j] =
 		    rinst->fkey[j -
-				rinst->Nk] ^ SubByte(ROTL24(rinst->
-							    fkey[j -
-								 1])) ^
+		                rinst->Nk] ^ SubByte(ROTL24(rinst->
+		                                     fkey[j -
+		                                             1])) ^
 		    rco[k];
 		if (rinst->Nk <= 6) {
 			for (i = 1; i < rinst->Nk && (i + j) < N; i++)
 				rinst->fkey[i + j] =
 				    rinst->fkey[i + j -
-						rinst->Nk] ^ rinst->
+				                rinst->Nk] ^ rinst->
 				    fkey[i + j - 1];
 		} else {
 			for (i = 1; i < 4 && (i + j) < N; i++)
 				rinst->fkey[i + j] =
 				    rinst->fkey[i + j -
-						rinst->Nk] ^ rinst->
+				                rinst->Nk] ^ rinst->
 				    fkey[i + j - 1];
 			if ((j + 4) < N)
 				rinst->fkey[j + 4] =
 				    rinst->fkey[j + 4 -
-						rinst->
-						Nk] ^ SubByte(rinst->
-							      fkey[j + 3]);
+				                rinst->
+				                Nk] ^ SubByte(rinst->
+				                              fkey[j + 3]);
 			for (i = 5; i < rinst->Nk && (i + j) < N; i++)
 				rinst->fkey[i + j] =
 				    rinst->fkey[i + j -
-						rinst->Nk] ^ rinst->
+				                rinst->Nk] ^ rinst->
 				    fkey[i + j - 1];
 		}
 
@@ -317,32 +317,32 @@ static void _mcrypt_encrypt(RI * rinst, u8 * buff)
 	x = a;
 	y = b;
 
-/* State alternates between a and b */
+	/* State alternates between a and b */
 	for (i = 1; i < rinst->Nr; i++) {	/* rinst->Nr is number of rounds. May be odd. */
 
-/* if rinst->Nb is fixed - unroll this next 
-   loop and hard-code in the values of fi[]  */
+		/* if rinst->Nb is fixed - unroll this next
+		   loop and hard-code in the values of fi[]  */
 
 		for (m = j = 0; j < rinst->Nb; j++, m += 3) {	/* deal with each 32-bit element of the State */
 			/* This is the time-critical bit */
 			y[j] = rinst->fkey[k++] ^ ftable[(u8) x[j]] ^
-			    ROTL8(ftable[(u8) (x[rinst->fi[m]] >> 8)]) ^
-			    ROTL16(ftable
-				   [(u8) (x[rinst->fi[m + 1]] >> 16)]) ^
-			    ROTL24(ftable[x[rinst->fi[m + 2]] >> 24]);
+			       ROTL8(ftable[(u8) (x[rinst->fi[m]] >> 8)]) ^
+			       ROTL16(ftable
+			              [(u8) (x[rinst->fi[m + 1]] >> 16)]) ^
+			       ROTL24(ftable[x[rinst->fi[m + 2]] >> 24]);
 		}
 		t = x;
 		x = y;
 		y = t;		/* swap pointers */
 	}
 
-/* Last Round - unroll if possible */
+	/* Last Round - unroll if possible */
 	for (m = j = 0; j < rinst->Nb; j++, m += 3) {
 		y[j] = rinst->fkey[k++] ^ (u32) fbsub[(u8) x[j]] ^
-		    ROTL8((u32) fbsub[(u8) (x[rinst->fi[m]] >> 8)]) ^
-		    ROTL16((u32)
-			   fbsub[(u8) (x[rinst->fi[m + 1]] >> 16)]) ^
-		    ROTL24((u32) fbsub[x[rinst->fi[m + 2]] >> 24]);
+		       ROTL8((u32) fbsub[(u8) (x[rinst->fi[m]] >> 8)]) ^
+		       ROTL16((u32)
+		              fbsub[(u8) (x[rinst->fi[m + 1]] >> 16)]) ^
+		       ROTL24((u32) fbsub[x[rinst->fi[m + 2]] >> 24]);
 	}
 	for (i = j = 0; i < rinst->Nb; i++, j += 4) {
 		unpack(y[i], &buff[j]);
@@ -364,31 +364,31 @@ static void _mcrypt_decrypt(RI * rinst, u8 * buff)
 	x = a;
 	y = b;
 
-/* State alternates between a and b */
+	/* State alternates between a and b */
 	for (i = 1; i < rinst->Nr; i++) {	/* rinst->Nr is number of rounds. May be odd. */
 
-/* if rinst->Nb is fixed - unroll this next 
-   loop and hard-code in the values of ri[]  */
+		/* if rinst->Nb is fixed - unroll this next
+		   loop and hard-code in the values of ri[]  */
 
 		for (m = j = 0; j < rinst->Nb; j++, m += 3) {	/* This is the time-critical bit */
 			y[j] = rinst->rkey[k++] ^ rtable[(u8) x[j]] ^
-			    ROTL8(rtable[(u8) (x[rinst->ri[m]] >> 8)]) ^
-			    ROTL16(rtable
-				   [(u8) (x[rinst->ri[m + 1]] >> 16)]) ^
-			    ROTL24(rtable[x[rinst->ri[m + 2]] >> 24]);
+			       ROTL8(rtable[(u8) (x[rinst->ri[m]] >> 8)]) ^
+			       ROTL16(rtable
+			              [(u8) (x[rinst->ri[m + 1]] >> 16)]) ^
+			       ROTL24(rtable[x[rinst->ri[m + 2]] >> 24]);
 		}
 		t = x;
 		x = y;
 		y = t;		/* swap pointers */
 	}
 
-/* Last Round - unroll if possible */
+	/* Last Round - unroll if possible */
 	for (m = j = 0; j < rinst->Nb; j++, m += 3) {
 		y[j] = rinst->rkey[k++] ^ (u32) rbsub[(u8) x[j]] ^
-		    ROTL8((u32) rbsub[(u8) (x[rinst->ri[m]] >> 8)]) ^
-		    ROTL16((u32)
-			   rbsub[(u8) (x[rinst->ri[m + 1]] >> 16)]) ^
-		    ROTL24((u32) rbsub[x[rinst->ri[m + 2]] >> 24]);
+		       ROTL8((u32) rbsub[(u8) (x[rinst->ri[m]] >> 8)]) ^
+		       ROTL16((u32)
+		              rbsub[(u8) (x[rinst->ri[m + 1]] >> 16)]) ^
+		       ROTL24((u32) rbsub[x[rinst->ri[m + 2]] >> 24]);
 	}
 	for (i = j = 0; i < rinst->Nb; i++, j += 4) {
 		unpack(y[i], &buff[j]);
@@ -405,9 +405,9 @@ void gf_crypt_register_rijndael_192(GF_Crypt *td)
 	td->algo_name = "Rijndael-192";
 	td->algo_version = 20010801;
 	td->num_key_sizes = 3;
-	td->key_sizes[0] = 16; 
-	td->key_sizes[1] = 24; 
-	td->key_sizes[2] = 32; 
+	td->key_sizes[0] = 16;
+	td->key_sizes[1] = 24;
+	td->key_sizes[2] = 32;
 	td->key_size = 32;
 	td->is_block_algo = 1;
 	td->algo_block_size = 24;

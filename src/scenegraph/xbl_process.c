@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Cyril Concolato 
+ *			Authors: Cyril Concolato
  *			Copyright (c) Telecom ParisTech 2008-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 #include <gpac/scene_manager.h>
@@ -38,7 +38,7 @@ typedef struct
 	GF_Err last_error;
 	GF_SAXParser *sax_parser;
 	XBL_Element *root;
-	
+
 	/* stack of XBL nodes*/
 	GF_List *node_stack;
 } GF_XBL_Parser;
@@ -88,7 +88,7 @@ static XBL_Element *xbl_parse_element(GF_XBL_Parser *parser, const char *name, c
 {
 	u32	tag, attribute_tag, i;
 	XBL_Element *elt = NULL;
-	
+
 //	if (name_space && strlen(name_space)) return NULL;
 
 	tag = gf_sg_node_get_tag_by_class_name(name, 0);
@@ -151,7 +151,7 @@ static void xbl_node_end(void *sax_cbck, const char *name, const char *name_spac
 {
 	GF_XBL_Parser *parser = (GF_XBL_Parser *)sax_cbck;
 	XBL_NodeStack *top = (XBL_NodeStack *)gf_list_last(parser->node_stack);
-	
+
 	if (!top) return;
 	if (/*!name_space && */gf_sg_node_get_tag_by_class_name(name, 0) != TAG_UndefinedNode) {
 		const char *the_name;

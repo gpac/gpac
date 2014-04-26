@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -131,11 +131,11 @@ static void SG_CheckFieldChange(GF_Node *node, GF_FieldInfo *field)
 	/*and propagate eventIn if any*/
 	if (field->on_event_in) {
 		field->on_event_in(node, NULL);
-	} 
+	}
 #ifndef GPAC_DISABLE_VRML
 	else if ((field->eventType==GF_SG_EVENT_IN) && (gf_node_get_tag(node) == TAG_MPEG4_Script)) {
 		gf_sg_script_event_in(node, field);
-	} 
+	}
 	else {
 		/*Notify eventOut in all cases to handle protos*/
 		gf_node_event_out(node, field->fieldIndex);
@@ -183,7 +183,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		/*unregister root*/
 		gf_node_unregister(graph->RootNode, NULL);
 		/*remove all protos and routes*/
-		while (gf_list_count(graph->routes_to_activate)) 
+		while (gf_list_count(graph->routes_to_activate))
 			gf_list_rem(graph->routes_to_activate, 0);
 
 		if (!com->aggregated) {
@@ -287,13 +287,13 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				/*clone command list*/
 				sg = gf_node_get_graph(com->node);
 				count = gf_list_count(cb_src->commandList);
-				for (i=0; i<count;i++) {
+				for (i=0; i<count; i++) {
 					GF_Command *sub_com = (GF_Command *)gf_list_get(cb_src->commandList, i);
 					GF_Command *new_com = gf_sg_vrml_command_clone(sub_com, sg, 0);
 					gf_list_add(cb_dst->commandList, new_com);
 				}
 			}
-				break;
+			break;
 
 			default:
 				/*this is a regular field, reset it and clone - we cannot switch pointers since the
@@ -303,7 +303,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				}
 				if (e) return e;
 				gf_sg_vrml_field_copy(field.far_ptr, inf->field_ptr, field.fieldType);
-				
+
 				if ((field.fieldType==GF_SG_VRML_SFTIME) && !strstr(field.name, "media"))
 					*(SFTime *)field.far_ptr = *(SFTime *)field.far_ptr + time_offset;
 				break;
@@ -470,16 +470,16 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		}
 		return GF_OK;
 	case GF_SG_PROTO_DELETE:
-		{
-			u32 i;
-			for (i=0; i<com->del_proto_list_size; i++) {
-				/*note this will check for unregistered protos, but since IDs are unique we are sure we will 
-				not destroy an unregistered one*/
-				GF_Proto *proto = gf_sg_find_proto(graph, com->del_proto_list[i], NULL);
-				if (proto) gf_sg_proto_del(proto);
-			}
+	{
+		u32 i;
+		for (i=0; i<com->del_proto_list_size; i++) {
+			/*note this will check for unregistered protos, but since IDs are unique we are sure we will
+			not destroy an unregistered one*/
+			GF_Proto *proto = gf_sg_find_proto(graph, com->del_proto_list[i], NULL);
+			if (proto) gf_sg_proto_del(proto);
 		}
-		return GF_OK;
+	}
+	return GF_OK;
 	case GF_SG_PROTO_DELETE_ALL:
 		/*destroy all proto*/
 		while (gf_list_count(graph->protos)) {
@@ -492,7 +492,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		return GF_OK;
 	case GF_SG_XREPLACE:
 	{
-		s32 pos = -2; 
+		s32 pos = -2;
 		GF_Node *target = NULL;
 		GF_ChildNodeItem *list, *cur, *prev;
 		GF_FieldInfo value;
@@ -509,7 +509,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				if (com->toNodeID) {
 					GF_Node *idxNode = gf_sg_find_node(graph, com->toNodeID);
 					if (!idxNode) return GF_SG_UNKNOWN_NODE;
-				
+
 					if (gf_node_get_field(idxNode, com->toFieldIndex, &idxField) != GF_OK) return GF_OK;
 					pos = 0;
 					switch (idxField.fieldType) {
@@ -610,7 +610,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				}
 				if (e) return e;
 				gf_sg_vrml_field_clone(field.far_ptr, value.far_ptr, field.fieldType, graph);
-				
+
 				if ((field.fieldType==GF_SG_VRML_SFTIME) && !strstr(field.name, "media"))
 					*(SFTime *)field.far_ptr = *(SFTime *)field.far_ptr + time_offset;
 				break;
@@ -618,7 +618,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		}
 		SG_CheckFieldChange(target, &field);
 	}
-		return GF_OK;
+	return GF_OK;
 	/*only used by BIFS*/
 	case GF_SG_GLOBAL_QUANTIZER:
 		return GF_OK;
@@ -653,7 +653,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 		if (!com->node || !inf) return GF_NON_COMPLIANT_BITSTREAM;
 		if (inf->new_node) {
-			if (inf->pos<0) 
+			if (inf->pos<0)
 				gf_node_list_add_child(& ((SVG_Element *)com->node)->children, inf->new_node);
 			else
 				gf_node_list_insert_child(& ((SVG_Element *)com->node)->children, inf->new_node, inf->pos);
@@ -724,7 +724,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				GF_Matrix2D *dest;
 				gf_node_get_field_by_name(com->node, "transform", &a);
 				dest = (GF_Matrix2D*)a.far_ptr;
-				
+
 				if (com->tag==GF_SG_LSR_REPLACE) {
 					if (gf_mx2d_decompose(dest, &scale, &rotate, &translate)) {
 						gf_mx2d_init(*dest);
@@ -749,7 +749,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					char *str = *(SVG_String*)inf->field_ptr;
 
 					if (com->tag == GF_SG_LSR_REPLACE) {
-						GF_DOMText *t = ((SVG_Element*)com->node)->children ? (GF_DOMText*) ((SVG_Element*)com->node)->children->node :NULL; 
+						GF_DOMText *t = ((SVG_Element*)com->node)->children ? (GF_DOMText*) ((SVG_Element*)com->node)->children->node :NULL;
 						if (t && (t->sgprivate->tag==TAG_DOMText)) {
 							if (t->textContent) gf_free(t->textContent);
 							t->textContent = NULL;
@@ -761,10 +761,10 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					/*signal node modif*/
 					gf_node_changed(com->node, NULL);
 				}
-				else if ((inf->fieldIndex==TAG_LSR_ATT_scale) 
-					|| (inf->fieldIndex==TAG_LSR_ATT_translation)
-					|| (inf->fieldIndex==TAG_LSR_ATT_rotation)
-				) {
+				else if ((inf->fieldIndex==TAG_LSR_ATT_scale)
+				         || (inf->fieldIndex==TAG_LSR_ATT_translation)
+				         || (inf->fieldIndex==TAG_LSR_ATT_rotation)
+				        ) {
 					SVG_Transform *mx;
 					gf_node_get_attribute_by_tag(com->node, TAG_SVG_ATT_transform, 1, 0, &a);
 					mx = a.far_ptr;
@@ -814,7 +814,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				char *str = *(SVG_String*)inf->field_ptr;
 
 				if (com->tag == GF_SG_LSR_REPLACE) {
-					GF_DOMText *t = ((SVG_Element*)com->node)->children ? (GF_DOMText*) ((SVG_Element*)com->node)->children->node :NULL; 
+					GF_DOMText *t = ((SVG_Element*)com->node)->children ? (GF_DOMText*) ((SVG_Element*)com->node)->children->node :NULL;
 					if (t && (t->sgprivate->tag==TAG_DOMText)) {
 						if (t->textContent) gf_free(t->textContent);
 						t->textContent = NULL;
@@ -854,7 +854,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		evt.clientY = com->send_event_y;
 		gf_dom_event_fire(com->node, &evt);
 	}
-		break;
+	break;
 #endif
 
 	default:
@@ -905,7 +905,7 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 {
 	u32 i, count;
 	GF_Command *dest;
-	
+
 	/*FIXME - to do*/
 	if (gf_list_count(com->new_proto_list)) return NULL;
 	dest = gf_sg_command_new(inGraph, com->tag);

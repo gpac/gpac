@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -149,7 +149,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #else
 	const char *ext = NULL;
 
-	if (compositor->visual->type_3d || compositor->hybrid_opengl) 
+	if (compositor->visual->type_3d || compositor->hybrid_opengl)
 		ext = (const char *) glGetString(GL_EXTENSIONS);
 
 	if (!ext) ext = gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLExtensions");
@@ -161,13 +161,13 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 
 	memset(&compositor->gl_caps, 0, sizeof(GLCaps));
 
-	if (CHECK_GL_EXT("GL_ARB_multisample") || CHECK_GL_EXT("GLX_ARB_multisample") || CHECK_GL_EXT("WGL_ARB_multisample")) 
+	if (CHECK_GL_EXT("GL_ARB_multisample") || CHECK_GL_EXT("GLX_ARB_multisample") || CHECK_GL_EXT("WGL_ARB_multisample"))
 		compositor->gl_caps.multisample = 1;
-	if (CHECK_GL_EXT("GL_ARB_texture_non_power_of_two")) 
+	if (CHECK_GL_EXT("GL_ARB_texture_non_power_of_two"))
 		compositor->gl_caps.npot_texture = 1;
-	if (CHECK_GL_EXT("GL_EXT_abgr")) 
+	if (CHECK_GL_EXT("GL_EXT_abgr"))
 		compositor->gl_caps.abgr_texture = 1;
-	if (CHECK_GL_EXT("GL_EXT_bgra")) 
+	if (CHECK_GL_EXT("GL_EXT_bgra"))
 		compositor->gl_caps.bgra_texture = 1;
 
 	if (CHECK_GL_EXT("GL_ARB_point_parameters")) {
@@ -192,7 +192,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 
 	/*we have a GL context, init the rest (proc addresses & co)*/
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &compositor->gl_caps.max_texture_size);
-	
+
 #ifdef LOAD_GL_1_3
 	if (CHECK_GL_EXT("GL_ARB_multitexture")) {
 		GET_GLFUN(glActiveTexture);
@@ -200,7 +200,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	}
 	GET_GLFUN(glBlendEquation);
 #endif
-	
+
 #ifdef LOAD_GL_1_4
 	if (compositor->gl_caps.point_sprite) {
 		GET_GLFUN(glPointParameterf);
@@ -219,7 +219,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	if (CHECK_GL_EXT("GL_ARB_pixel_buffer_object")) {
 		GET_GLFUN(glMapBuffer);
 		GET_GLFUN(glUnmapBuffer);
-		
+
 		compositor->gl_caps.pbo=1;
 	}
 #endif
@@ -229,7 +229,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 
 #ifdef LOAD_GL_2_0
 	GET_GLFUN(glCreateProgram);
-	
+
 	if (glCreateProgram != NULL) {
 		GET_GLFUN(glDeleteProgram);
 		GET_GLFUN(glLinkProgram);
@@ -501,15 +501,15 @@ static char *glsl_yuv_rect_shader_relaxed= "\
 
 Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const char *source)
 {
-	GLint blen = 0;	
+	GLint blen = 0;
 	GLsizei slen = 0;
 	s32 len;
 	if (!source || !shader_id) return 0;
 	len = (u32) strlen(source);
 	glShaderSource(shader_id, 1, &source, &len);
 	glCompileShader(shader_id);
-	
-	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);       
+
+	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
 	if (blen > 1) {
 		char* compiler_log = (char*) gf_malloc(blen);
 #ifdef CONFIG_DARWIN_GL
@@ -518,7 +518,7 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 		glGetInfoLogARB(shader_id, blen, &slen, compiler_log);
 #endif
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[GLSL] Failed to compile shader %s: %s\n", name, compiler_log));
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[GLSL] ***** faulty shader code ****\n%s\n**********************\n", source));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[GLSL] ***** faulty shader code ****\n%s\n**********************\n", source));
 		gf_free (compiler_log);
 		return 0;
 	}
@@ -554,10 +554,10 @@ static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 s
 
 void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 {
-    if (!visual->compositor->gl_caps.has_shaders) return;
-    
+	if (!visual->compositor->gl_caps.has_shaders) return;
+
 	if (visual->autostereo_glsl_program) return;
-	
+
 	visual->autostereo_glsl_program = glCreateProgram();
 
 	if (!visual->base_glsl_vertex) {
@@ -589,12 +589,12 @@ void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 			visual->autostereo_glsl_fragment = visual_3d_shader_from_source_file(sOpt, GL_FRAGMENT_SHADER);
 		}
 	}
-		break;
+	break;
 	}
 
 	glAttachShader(visual->autostereo_glsl_program, visual->base_glsl_vertex);
 	glAttachShader(visual->autostereo_glsl_program, visual->autostereo_glsl_fragment);
-	glLinkProgram(visual->autostereo_glsl_program);  
+	glLinkProgram(visual->autostereo_glsl_program);
 }
 
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
@@ -604,11 +604,11 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 {
 	u32 i;
 	GLint loc;
-    if (!visual->compositor->gl_caps.has_shaders) return;
+	if (!visual->compositor->gl_caps.has_shaders) return;
 
 	GL_CHECK_ERR
 	if (visual->yuv_glsl_program) return;
-	
+
 	visual->yuv_glsl_program = glCreateProgram();
 
 	if (!visual->base_glsl_vertex) {
@@ -621,10 +621,10 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 
 	glAttachShader(visual->yuv_glsl_program, visual->base_glsl_vertex);
 	glAttachShader(visual->yuv_glsl_program, visual->yuv_glsl_fragment);
-	glLinkProgram(visual->yuv_glsl_program);  
+	glLinkProgram(visual->yuv_glsl_program);
 
 	//sets uniforms: y, u, v textures point to texture slots 0, 1 and 2
-	glUseProgram(visual->yuv_glsl_program);  
+	glUseProgram(visual->yuv_glsl_program);
 	for (i=0; i<3; i++) {
 		const char *txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
 		loc = glGetUniformLocation(visual->yuv_glsl_program, txname);
@@ -634,7 +634,7 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 		}
 		glUniform1i(loc, i);
 	}
-	glUseProgram(0);  
+	glUseProgram(0);
 
 	if (visual->compositor->gl_caps.rect_texture) {
 		Bool res;
@@ -670,10 +670,10 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 		if (visual->yuv_rect_glsl_program) {
 			glAttachShader(visual->yuv_rect_glsl_program, visual->base_glsl_vertex);
 			glAttachShader(visual->yuv_rect_glsl_program, visual->yuv_rect_glsl_fragment);
-			glLinkProgram(visual->yuv_rect_glsl_program);  
+			glLinkProgram(visual->yuv_rect_glsl_program);
 
 			//sets uniforms: y, u, v textures point to texture slots 0, 1 and 2
-			glUseProgram(visual->yuv_rect_glsl_program);  
+			glUseProgram(visual->yuv_rect_glsl_program);
 			for (i=0; i<3; i++) {
 				const char *txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
 				loc = glGetUniformLocation(visual->yuv_rect_glsl_program, txname);
@@ -694,7 +694,7 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate width in YUV shader\n"));
 			}
 
-			glUseProgram(0);  
+			glUseProgram(0);
 		}
 	}
 }
@@ -731,7 +731,7 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 	u32 bw, bh;
 	SFVec2f s;
 	if (visual->gl_textures) return GF_OK;
-	
+
 	visual->gl_textures = gf_malloc(sizeof(GLuint) * visual->nb_views);
 	glGenTextures(visual->nb_views, visual->gl_textures);
 
@@ -785,11 +785,11 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	glBindTexture(GL_TEXTURE_2D, visual->gl_textures[visual->current_view]);
 
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP);
-	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);	
+	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);
 
-	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR); 
+	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE); 
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, visual->auto_stereo_width, visual->auto_stereo_height, 0);
@@ -844,10 +844,10 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 		glActiveTexture(GL_TEXTURE0 + i);
 
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);	
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL); 
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 
 		glBindTexture(GL_TEXTURE_2D, visual->gl_textures[i]);
 
@@ -955,7 +955,7 @@ void visual_3d_setup(GF_VisualManager *visual)
 	glDisable(GL_FOG);
 	visual->has_fog = GF_FALSE;
 	/*Note: we cannot enable/disable normalization on the fly, because we have no clue when the GL implementation
-	will actually compute the related fragments. Since a typical world always use scaling, we always turn normalization on 
+	will actually compute the related fragments. Since a typical world always use scaling, we always turn normalization on
 	to avoid tracking scale*/
 	glEnable(GL_NORMALIZE);
 
@@ -1030,7 +1030,7 @@ void visual_3d_clear_depth(GF_VisualManager *visual)
 static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, u32 prim_type, GF_Plane *fplanes, u32 *p_indices, AABBNode *n)
 {
 	u32 i;
-	
+
 	/*if not leaf do cull*/
 	if (n->pos) {
 		u32 p_idx, cull;
@@ -1041,9 +1041,15 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 		for (i=0; i<6; i++) {
 			p_idx = p_indices[i];
 			/*check p-vertex: if not in plane, we're out (since p-vertex is the closest point to the plane)*/
-			if (gf_plane_get_distance(&fplanes[i], &vertices[p_idx])<0) { cull = CULL_OUTSIDE; break; }
+			if (gf_plane_get_distance(&fplanes[i], &vertices[p_idx])<0) {
+				cull = CULL_OUTSIDE;
+				break;
+			}
 			/*check n-vertex: if not in plane, we're intersecting*/
-			if (gf_plane_get_distance(&fplanes[i], &vertices[7-p_idx])<0) { cull = CULL_INTERSECTS; break;}
+			if (gf_plane_get_distance(&fplanes[i], &vertices[7-p_idx])<0) {
+				cull = CULL_INTERSECTS;
+				break;
+			}
 		}
 
 		if (cull==CULL_OUTSIDE) return;
@@ -1098,13 +1104,13 @@ static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *t
 		g[1] = p.normal.y;
 		g[2] = p.normal.z;
 		g[3] = p.d;
-		glClipPlanex(idx, g); 
+		glClipPlanex(idx, g);
 #else
 		g[0] = FIX2FLT(p.normal.x);
 		g[1] = FIX2FLT(p.normal.y);
 		g[2] = FIX2FLT(p.normal.z);
 		g[3] = FIX2FLT(p.d);
-		glClipPlane(idx, g); 
+		glClipPlane(idx, g);
 #endif
 		glEnable(idx);
 	}
@@ -1198,12 +1204,21 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 		//directionnal light
 		case 0:
 #ifdef GPAC_USE_OGL_ES
-			vals[0] = -li->direction.x; vals[1] = -li->direction.y; vals[2] = -li->direction.z; vals[3] = 0;
+			vals[0] = -li->direction.x;
+			vals[1] = -li->direction.y;
+			vals[2] = -li->direction.z;
+			vals[3] = 0;
 			glLightxv(iLight, GL_POSITION, vals);
-			vals[0] = gf_mulfix(li->color.red, li->intensity); vals[1] = gf_mulfix(li->color.green, li->intensity); vals[2] = gf_mulfix(li->color.blue, li->intensity); vals[3] = FIX_ONE;
+			vals[0] = gf_mulfix(li->color.red, li->intensity);
+			vals[1] = gf_mulfix(li->color.green, li->intensity);
+			vals[2] = gf_mulfix(li->color.blue, li->intensity);
+			vals[3] = FIX_ONE;
 			glLightxv(iLight, GL_DIFFUSE, vals);
 			glLightxv(iLight, GL_SPECULAR, vals);
-			vals[0] = gf_mulfix(li->color.red, li->ambientIntensity); vals[1] = gf_mulfix(li->color.green, li->ambientIntensity); vals[2] = gf_mulfix(li->color.blue, li->ambientIntensity); vals[3] = FIX_ONE;
+			vals[0] = gf_mulfix(li->color.red, li->ambientIntensity);
+			vals[1] = gf_mulfix(li->color.green, li->ambientIntensity);
+			vals[2] = gf_mulfix(li->color.blue, li->ambientIntensity);
+			vals[3] = FIX_ONE;
 			glLightxv(iLight, GL_AMBIENT, vals);
 
 			glLightx(iLight, GL_CONSTANT_ATTENUATION, FIX_ONE);
@@ -1214,12 +1229,21 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 			ambientIntensity = FIX2FLT(li->ambientIntensity);
 			intensity = FIX2FLT(li->intensity);
 
-			vals[0] = -FIX2FLT(li->direction.x); vals[1] = -FIX2FLT(li->direction.y); vals[2] = -FIX2FLT(li->direction.z); vals[3] = 0;
+			vals[0] = -FIX2FLT(li->direction.x);
+			vals[1] = -FIX2FLT(li->direction.y);
+			vals[2] = -FIX2FLT(li->direction.z);
+			vals[3] = 0;
 			glLightfv(iLight, GL_POSITION, vals);
-			vals[0] = FIX2FLT(li->color.red)*intensity; vals[1] = FIX2FLT(li->color.green)*intensity; vals[2] = FIX2FLT(li->color.blue)*intensity; vals[3] = 1;
+			vals[0] = FIX2FLT(li->color.red)*intensity;
+			vals[1] = FIX2FLT(li->color.green)*intensity;
+			vals[2] = FIX2FLT(li->color.blue)*intensity;
+			vals[3] = 1;
 			glLightfv(iLight, GL_DIFFUSE, vals);
 			glLightfv(iLight, GL_SPECULAR, vals);
-			vals[0] = FIX2FLT(li->color.red)*ambientIntensity; vals[1] = FIX2FLT(li->color.green)*ambientIntensity; vals[2] = FIX2FLT(li->color.blue)*ambientIntensity; vals[3] = 1;
+			vals[0] = FIX2FLT(li->color.red)*ambientIntensity;
+			vals[1] = FIX2FLT(li->color.green)*ambientIntensity;
+			vals[2] = FIX2FLT(li->color.blue)*ambientIntensity;
+			vals[3] = 1;
 			glLightfv(iLight, GL_AMBIENT, vals);
 
 			glLightf(iLight, GL_CONSTANT_ATTENUATION, 1.0f);
@@ -1240,17 +1264,29 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 #endif
 
 #ifdef GPAC_USE_OGL_ES
-			vals[0] = li->direction.x; vals[1] = li->direction.y; vals[2] = li->direction.z; vals[3] = FIX_ONE;
+			vals[0] = li->direction.x;
+			vals[1] = li->direction.y;
+			vals[2] = li->direction.z;
+			vals[3] = FIX_ONE;
 			glLightxv(iLight, GL_SPOT_DIRECTION, vals);
-			vals[0] = li->position.x; vals[1] = li->position.y; vals[2] = li->position.z; vals[3] = FIX_ONE;
+			vals[0] = li->position.x;
+			vals[1] = li->position.y;
+			vals[2] = li->position.z;
+			vals[3] = FIX_ONE;
 			glLightxv(iLight, GL_POSITION, vals);
 			glLightx(iLight, GL_CONSTANT_ATTENUATION, li->attenuation.x ? li->attenuation.x : FIX_ONE);
 			glLightx(iLight, GL_LINEAR_ATTENUATION, li->attenuation.y);
 			glLightx(iLight, GL_QUADRATIC_ATTENUATION, li->attenuation.z);
-			vals[0] = gf_mulfix(li->color.red, li->intensity); vals[1] = gf_mulfix(li->color.green, li->intensity); vals[2] = gf_mulfix(li->color.blue, li->intensity); vals[3] = FIX_ONE;
+			vals[0] = gf_mulfix(li->color.red, li->intensity);
+			vals[1] = gf_mulfix(li->color.green, li->intensity);
+			vals[2] = gf_mulfix(li->color.blue, li->intensity);
+			vals[3] = FIX_ONE;
 			glLightxv(iLight, GL_DIFFUSE, vals);
 			glLightxv(iLight, GL_SPECULAR, vals);
-			vals[0] = gf_mulfix(li->color.red, li->ambientIntensity); vals[1] = gf_mulfix(li->color.green, li->ambientIntensity); vals[2] = gf_mulfix(li->color.blue, li->ambientIntensity); vals[3] = FIX_ONE;
+			vals[0] = gf_mulfix(li->color.red, li->ambientIntensity);
+			vals[1] = gf_mulfix(li->color.green, li->ambientIntensity);
+			vals[2] = gf_mulfix(li->color.blue, li->ambientIntensity);
+			vals[3] = FIX_ONE;
 			glLightxv(iLight, GL_AMBIENT, vals);
 
 			if (!li->beamWidth) exp = FIX_ONE;
@@ -1262,17 +1298,29 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 			glLightx(iLight, GL_SPOT_EXPONENT,  exp*128);
 			glLightx(iLight, GL_SPOT_CUTOFF, gf_divfix(180*li->cutOffAngle, GF_PI) );
 #else
-			vals[0] = FIX2FLT(li->direction.x); vals[1] = FIX2FLT(li->direction.y); vals[2] = FIX2FLT(li->direction.z); vals[3] = 1;
+			vals[0] = FIX2FLT(li->direction.x);
+			vals[1] = FIX2FLT(li->direction.y);
+			vals[2] = FIX2FLT(li->direction.z);
+			vals[3] = 1;
 			glLightfv(iLight, GL_SPOT_DIRECTION, vals);
-			vals[0] = FIX2FLT(li->position.x); vals[1] = FIX2FLT(li->position.y); vals[2] = FIX2FLT(li->position.z); vals[3] = 1;
+			vals[0] = FIX2FLT(li->position.x);
+			vals[1] = FIX2FLT(li->position.y);
+			vals[2] = FIX2FLT(li->position.z);
+			vals[3] = 1;
 			glLightfv(iLight, GL_POSITION, vals);
 			glLightf(iLight, GL_CONSTANT_ATTENUATION, li->attenuation.x ? FIX2FLT(li->attenuation.x) : 1.0f);
 			glLightf(iLight, GL_LINEAR_ATTENUATION, FIX2FLT(li->attenuation.y));
 			glLightf(iLight, GL_QUADRATIC_ATTENUATION, FIX2FLT(li->attenuation.z));
-			vals[0] = FIX2FLT(li->color.red)*intensity; vals[1] = FIX2FLT(li->color.green)*intensity; vals[2] = FIX2FLT(li->color.blue)*intensity; vals[3] = 1;
+			vals[0] = FIX2FLT(li->color.red)*intensity;
+			vals[1] = FIX2FLT(li->color.green)*intensity;
+			vals[2] = FIX2FLT(li->color.blue)*intensity;
+			vals[3] = 1;
 			glLightfv(iLight, GL_DIFFUSE, vals);
 			glLightfv(iLight, GL_SPECULAR, vals);
-			vals[0] = FIX2FLT(li->color.red)*ambientIntensity; vals[1] = FIX2FLT(li->color.green)*ambientIntensity; vals[2] = FIX2FLT(li->color.blue)*ambientIntensity; vals[3] = 1;
+			vals[0] = FIX2FLT(li->color.red)*ambientIntensity;
+			vals[1] = FIX2FLT(li->color.green)*ambientIntensity;
+			vals[2] = FIX2FLT(li->color.blue)*ambientIntensity;
+			vals[3] = 1;
 			glLightfv(iLight, GL_AMBIENT, vals);
 
 			//glLightf(iLight, GL_SPOT_EXPONENT, 0.5f * (beamWidth+0.001f) /*(Float) (0.5 * log(0.5) / log(cos(beamWidth)) ) */);
@@ -1291,15 +1339,24 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 		//point light
 		case 2:
 #ifdef GPAC_USE_OGL_ES
-			vals[0] = li->position.x; vals[1] = li->position.y; vals[2] = li->position.z; vals[3] = FIX_ONE;
+			vals[0] = li->position.x;
+			vals[1] = li->position.y;
+			vals[2] = li->position.z;
+			vals[3] = FIX_ONE;
 			glLightxv(iLight, GL_POSITION, vals);
 			glLightx(iLight, GL_CONSTANT_ATTENUATION, li->attenuation.x ? li->attenuation.x : FIX_ONE);
 			glLightx(iLight, GL_LINEAR_ATTENUATION, li->attenuation.y);
 			glLightx(iLight, GL_QUADRATIC_ATTENUATION, li->attenuation.z);
-			vals[0] = gf_mulfix(li->color.red, li->intensity); vals[1] = gf_mulfix(li->color.green, li->intensity); vals[2] = gf_mulfix(li->color.blue, li->intensity); vals[3] = FIX_ONE;
+			vals[0] = gf_mulfix(li->color.red, li->intensity);
+			vals[1] = gf_mulfix(li->color.green, li->intensity);
+			vals[2] = gf_mulfix(li->color.blue, li->intensity);
+			vals[3] = FIX_ONE;
 			glLightxv(iLight, GL_DIFFUSE, vals);
 			glLightxv(iLight, GL_SPECULAR, vals);
-			vals[0] = gf_mulfix(li->color.red, li->ambientIntensity); vals[1] = gf_mulfix(li->color.green, li->ambientIntensity); vals[2] = gf_mulfix(li->color.blue, li->ambientIntensity); vals[3] = FIX_ONE;
+			vals[0] = gf_mulfix(li->color.red, li->ambientIntensity);
+			vals[1] = gf_mulfix(li->color.green, li->ambientIntensity);
+			vals[2] = gf_mulfix(li->color.blue, li->ambientIntensity);
+			vals[3] = FIX_ONE;
 			glLightxv(iLight, GL_AMBIENT, vals);
 
 			glLightx(iLight, GL_SPOT_EXPONENT, 0);
@@ -1308,21 +1365,30 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 			ambientIntensity = FIX2FLT(li->ambientIntensity);
 			intensity = FIX2FLT(li->intensity);
 
-			vals[0] = FIX2FLT(li->position.x); vals[1] = FIX2FLT(li->position.y); vals[2] = FIX2FLT(li->position.z); vals[3] = 1;
+			vals[0] = FIX2FLT(li->position.x);
+			vals[1] = FIX2FLT(li->position.y);
+			vals[2] = FIX2FLT(li->position.z);
+			vals[3] = 1;
 			glLightfv(iLight, GL_POSITION, vals);
 			glLightf(iLight, GL_CONSTANT_ATTENUATION, li->attenuation.x ? FIX2FLT(li->attenuation.x) : 1.0f);
 			glLightf(iLight, GL_LINEAR_ATTENUATION, FIX2FLT(li->attenuation.y));
 			glLightf(iLight, GL_QUADRATIC_ATTENUATION, FIX2FLT(li->attenuation.z));
-			vals[0] = FIX2FLT(li->color.red)*intensity; vals[1] = FIX2FLT(li->color.green)*intensity; vals[2] = FIX2FLT(li->color.blue)*intensity; vals[3] = 1;
+			vals[0] = FIX2FLT(li->color.red)*intensity;
+			vals[1] = FIX2FLT(li->color.green)*intensity;
+			vals[2] = FIX2FLT(li->color.blue)*intensity;
+			vals[3] = 1;
 			glLightfv(iLight, GL_DIFFUSE, vals);
 			glLightfv(iLight, GL_SPECULAR, vals);
-			vals[0] = FIX2FLT(li->color.red)*ambientIntensity; vals[1] = FIX2FLT(li->color.green)*ambientIntensity; vals[2] = FIX2FLT(li->color.blue)*ambientIntensity; vals[3] = 1;
+			vals[0] = FIX2FLT(li->color.red)*ambientIntensity;
+			vals[1] = FIX2FLT(li->color.green)*ambientIntensity;
+			vals[2] = FIX2FLT(li->color.blue)*ambientIntensity;
+			vals[3] = 1;
 			glLightfv(iLight, GL_AMBIENT, vals);
 
 			glLightf(iLight, GL_SPOT_EXPONENT, 0);
 			glLightf(iLight, GL_SPOT_CUTOFF, 180);
 #endif
-		break;
+			break;
 		}
 	}
 
@@ -1344,7 +1410,10 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 	glFogx(GL_FOG_DENSITY, visual->fog_density);
 	glFogx(GL_FOG_START, 0);
 	glFogx(GL_FOG_END, visual->fog_visibility);
-	vals[0] = visual->fog_color.red; vals[1] = visual->fog_color.green; vals[2] = visual->fog_color.blue; vals[3] = FIX_ONE;
+	vals[0] = visual->fog_color.red;
+	vals[1] = visual->fog_color.green;
+	vals[2] = visual->fog_color.blue;
+	vals[3] = FIX_ONE;
 	glFogxv(GL_FOG_COLOR, vals);
 	glHint(GL_FOG_HINT, visual->compositor->high_speed ? GL_FASTEST : GL_NICEST);
 #else
@@ -1356,7 +1425,10 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 	glFogf(GL_FOG_DENSITY, FIX2FLT(visual->fog_density));
 	glFogf(GL_FOG_START, 0);
 	glFogf(GL_FOG_END, FIX2FLT(visual->fog_visibility));
-	vals[0] = FIX2FLT(visual->fog_color.red); vals[1] = FIX2FLT(visual->fog_color.green); vals[2] = FIX2FLT(visual->fog_color.blue); vals[3] = 1;
+	vals[0] = FIX2FLT(visual->fog_color.red);
+	vals[1] = FIX2FLT(visual->fog_color.green);
+	vals[2] = FIX2FLT(visual->fog_color.blue);
+	vals[3] = 1;
 	glFogfv(GL_FOG_COLOR, vals);
 	glHint(GL_FOG_HINT, visual->compositor->high_speed ? GL_FASTEST : GL_NICEST);
 #endif
@@ -1437,7 +1509,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	if (visual->state_color_on) glEnable(GL_COLOR_MATERIAL);
 	else glDisable(GL_COLOR_MATERIAL);
-	
+
 	if (visual->state_blend_on) glEnable(GL_BLEND);
 
 
@@ -1467,7 +1539,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 				visual_3d_enable_antialias(visual, 0);
 			} else {
 				//disable blending only if no texture !
-				if (!tr_state->mesh_num_textures) 
+				if (!tr_state->mesh_num_textures)
 					glDisable(GL_BLEND);
 				visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0);
 			}
@@ -1484,23 +1556,34 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (visual->has_mat) {
 		u32 i;
 		GL_CHECK_ERR
-		for (i=0;i<4; i++) {
+		for (i=0; i<4; i++) {
 			GLenum mode;
 			Fixed *rgba = (Fixed *) & visual->materials[i];
 #if defined(GPAC_USE_OGL_ES)
 			Fixed *_rgba = (Fixed *) rgba;
 #elif defined(GPAC_FIXED_POINT)
 			Float _rgba[4];
-			_rgba[0] = FIX2FLT(rgba[0]); _rgba[1] = FIX2FLT(rgba[1]); _rgba[2] = FIX2FLT(rgba[2]); _rgba[3] = FIX2FLT(rgba[3]);
+			_rgba[0] = FIX2FLT(rgba[0]);
+			_rgba[1] = FIX2FLT(rgba[1]);
+			_rgba[2] = FIX2FLT(rgba[2]);
+			_rgba[3] = FIX2FLT(rgba[3]);
 #else
 			Float *_rgba = (Float *) rgba;
 #endif
 
 			switch (i) {
-			case 0: mode = GL_AMBIENT; break;
-			case 1: mode = GL_DIFFUSE; break;
-			case 2: mode = GL_SPECULAR; break;
-			default: mode = GL_EMISSION; break;
+			case 0:
+				mode = GL_AMBIENT;
+				break;
+			case 1:
+				mode = GL_DIFFUSE;
+				break;
+			case 2:
+				mode = GL_SPECULAR;
+				break;
+			default:
+				mode = GL_EMISSION;
+				break;
 			}
 
 #ifdef GPAC_USE_OGL_ES
@@ -1519,7 +1602,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 
 	//otherwise setup mesh color
-	if (!tr_state->mesh_num_textures && (mesh->flags & MESH_HAS_COLOR)) {		
+	if (!tr_state->mesh_num_textures && (mesh->flags & MESH_HAS_COLOR)) {
 		glEnable(GL_COLOR_MATERIAL);
 #if !defined (GPAC_USE_OGL_ES)
 		glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
@@ -1572,7 +1655,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
 #endif /*MESH_USE_SFCOLOR*/
 
-#else	
+#else
 
 #ifdef MESH_USE_SFCOLOR
 		if (mesh->flags & MESH_HAS_ALPHA) {
@@ -1648,7 +1731,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #if !defined(GPAC_USE_TINYGL) && !defined(GL_ES_CL_PROFILE)
 		glLineWidth(1.0f);
 #endif
-	
+
 	} else {
 		u32 normal_type = GL_FLOAT;
 		has_norm = 1;
@@ -1670,9 +1753,9 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glNormalPointer(normal_type, sizeof(GF_Vertex), ((char *)base_address + MESH_NORMAL_OFFSET));
 
 		if (!mesh->mesh_type) {
-			if (compositor->backcull 
-				&& (!tr_state->mesh_is_transparent || (compositor->backcull ==GF_BACK_CULL_ALPHA) )
-				&& (mesh->flags & MESH_IS_SOLID)) {
+			if (compositor->backcull
+			        && (!tr_state->mesh_is_transparent || (compositor->backcull ==GF_BACK_CULL_ALPHA) )
+			        && (mesh->flags & MESH_IS_SOLID)) {
 				glEnable(GL_CULL_FACE);
 				glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
 			} else {
@@ -1682,9 +1765,15 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 
 	switch (mesh->mesh_type) {
-	case MESH_LINESET: prim_type = GL_LINES; break;
-	case MESH_POINTSET: prim_type = GL_POINTS; break;
-	default: prim_type = GL_TRIANGLES; break;
+	case MESH_LINESET:
+		prim_type = GL_LINES;
+		break;
+	case MESH_POINTSET:
+		prim_type = GL_POINTS;
+		break;
+	default:
+		prim_type = GL_TRIANGLES;
+		break;
 	}
 
 #if 1
@@ -1696,8 +1785,8 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_INT, mesh->indices);
 #endif
 	} else {
-		/*otherwise cull aabb against frustum - after some testing it appears (as usual) that there must 
-		be a compromise: we're slowing down the compositor here, however the gain is really appreciable for 
+		/*otherwise cull aabb against frustum - after some testing it appears (as usual) that there must
+		be a compromise: we're slowing down the compositor here, however the gain is really appreciable for
 		large meshes, especially terrains/elevation grids*/
 
 		/*first get transformed frustum in local space*/
@@ -1725,7 +1814,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (has_tx) glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	if (has_norm) glDisableClientState(GL_NORMAL_ARRAY);
 
-	if (mesh->vbo) 
+	if (mesh->vbo)
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 #if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_OGL_ES)
@@ -1737,7 +1826,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 	glPopMatrix();
 #endif
-	
+
 
 	visual_3d_reset_lights(visual);
 
@@ -1815,17 +1904,17 @@ static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 			gf_vec_add(end, pt, end);
 
 #ifdef GPAC_USE_OGL_ES
-				va[0] = pt;
-				va[1] = end;
-				indices[0] = 0;
-				indices[1] = 1;
-				glVertexPointer(3, GL_FIXED, 0, va);
-				glDrawElements(GL_LINES, 2, GL_UNSIGNED_SHORT, indices);
+			va[0] = pt;
+			va[1] = end;
+			indices[0] = 0;
+			indices[1] = 1;
+			glVertexPointer(3, GL_FIXED, 0, va);
+			glDrawElements(GL_LINES, 2, GL_UNSIGNED_SHORT, indices);
 #else
-				glBegin(GL_LINES);
-				glVertex3f(FIX2FLT(pt.x), FIX2FLT(pt.y), FIX2FLT(pt.z));
-				glVertex3f(FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z));
-				glEnd();
+			glBegin(GL_LINES);
+			glVertex3f(FIX2FLT(pt.x), FIX2FLT(pt.y), FIX2FLT(pt.z));
+			glVertex3f(FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z));
+			glEnd();
 #endif
 			idx += 3;
 		}
@@ -1877,7 +1966,7 @@ void visual_3d_draw_bbox_ex(GF_TraverseState *tr_state, GF_BBox *box, Bool is_de
 	gf_mx_copy(mx, tr_state->model_matrix);
 	gf_mx_add_translation(&tr_state->model_matrix, c.x, c.y, c.z);
 	gf_mx_add_scale(&tr_state->model_matrix, s.x, s.y, s.z);
-	
+
 	visual_3d_draw_mesh(tr_state, tr_state->visual->compositor->unit_bbox);
 	gf_mx_copy(tr_state->model_matrix, mx);
 }
@@ -2063,12 +2152,24 @@ void visual_3d_mesh_hatch(GF_TraverseState *tr_state, GF_Mesh *mesh, u32 hatchSt
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	/*can't access ISO International Register of Graphical Items www site :)*/
 	switch (hatchStyle) {
-	case 5: glPolygonStipple(hatch_cross); break;
-	case 4: glPolygonStipple(hatch_up); break;
-	case 3: glPolygonStipple(hatch_down); break;
-	case 2: glPolygonStipple(hatch_vert); break;
-	case 1: glPolygonStipple(hatch_horiz); break;
-	default: glDisable(GL_POLYGON_STIPPLE); break;
+	case 5:
+		glPolygonStipple(hatch_cross);
+		break;
+	case 4:
+		glPolygonStipple(hatch_up);
+		break;
+	case 3:
+		glPolygonStipple(hatch_down);
+		break;
+	case 2:
+		glPolygonStipple(hatch_vert);
+		break;
+	case 1:
+		glPolygonStipple(hatch_horiz);
+		break;
+	default:
+		glDisable(GL_POLYGON_STIPPLE);
+		break;
 	}
 	glColor3f(FIX2FLT(hatchColor.red), FIX2FLT(hatchColor.green), FIX2FLT(hatchColor.blue));
 	glDrawElements(GL_TRIANGLES, mesh->i_count, GL_UNSIGNED_INT, mesh->indices);
@@ -2083,7 +2184,7 @@ void visual_3d_mesh_strike(GF_TraverseState *tr_state, GF_Mesh *mesh, Fixed widt
 #if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
 	u16 style;
 #endif
-	
+
 	if (mesh->mesh_type != MESH_LINESET) return;
 	if (line_scale) width = gf_mulfix(width, line_scale);
 	width/=2;
@@ -2094,11 +2195,21 @@ void visual_3d_mesh_strike(GF_TraverseState *tr_state, GF_Mesh *mesh, Fixed widt
 #if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
 
 	switch (dash_style) {
-	case GF_DASH_STYLE_DASH: style = 0x1F1F; break;
-	case GF_DASH_STYLE_DOT: style = 0x3333; break;
-	case GF_DASH_STYLE_DASH_DOT: style = 0x6767; break;
-	case GF_DASH_STYLE_DASH_DASH_DOT: style = 0x33CF; break;
-	case GF_DASH_STYLE_DASH_DOT_DOT: style = 0x330F; break;
+	case GF_DASH_STYLE_DASH:
+		style = 0x1F1F;
+		break;
+	case GF_DASH_STYLE_DOT:
+		style = 0x3333;
+		break;
+	case GF_DASH_STYLE_DASH_DOT:
+		style = 0x6767;
+		break;
+	case GF_DASH_STYLE_DASH_DASH_DOT:
+		style = 0x33CF;
+		break;
+	case GF_DASH_STYLE_DASH_DOT_DOT:
+		style = 0x330F;
+		break;
 	default:
 		style = 0;
 		break;
@@ -2107,10 +2218,10 @@ void visual_3d_mesh_strike(GF_TraverseState *tr_state, GF_Mesh *mesh, Fixed widt
 		u32 factor = FIX2INT(width);
 		if (!factor) factor = 1;
 		glEnable(GL_LINE_STIPPLE);
-		glLineStipple(factor, style); 
+		glLineStipple(factor, style);
 		visual_3d_mesh_paint(tr_state, mesh);
 		glDisable (GL_LINE_STIPPLE);
-	} else 
+	} else
 #endif
 		visual_3d_mesh_paint(tr_state, mesh);
 }
@@ -2142,14 +2253,18 @@ void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color
 		indices[1] = 1;
 		indices[2] = 2;
 
-		v[0] = rc.x; v[1] = rc.y;
-		v[2] = rc.x+rc.width; v[3] = rc.y-rc.height;
-		v[4] = rc.x+rc.width; v[5] = rc.y;
+		v[0] = rc.x;
+		v[1] = rc.y;
+		v[2] = rc.x+rc.width;
+		v[3] = rc.y-rc.height;
+		v[4] = rc.x+rc.width;
+		v[5] = rc.y;
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glVertexPointer(2, GL_FIXED, 0, v);
 		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, indices);
 
-		v[4] = rc.x; v[5] = rc.y-rc.height;
+		v[4] = rc.x;
+		v[5] = rc.y-rc.height;
 		glVertexPointer(2, GL_FIXED, 0, v);
 		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, indices);
 
@@ -2169,7 +2284,7 @@ void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color
 	glVertex3f(FIX2FLT(rc.x+rc.width), FIX2FLT(rc.y-rc.height), 0);
 	glVertex3f(FIX2FLT(rc.x+rc.width), FIX2FLT(rc.y), 0);
 	glEnd();
-	
+
 	glDisable(GL_COLOR_MATERIAL | GL_COLOR_MATERIAL_FACE);
 #endif
 
@@ -2202,20 +2317,20 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
 
 #ifndef GPAC_USE_TINYGL
-		//glPixelTransferf(GL_DEPTH_SCALE, FIX2FLT(compositor->OGLDepthGain) ); 
-		//glPixelTransferf(GL_DEPTH_BIAS, FIX2FLT(compositor->OGLDepthOffset) ); 
+		//glPixelTransferf(GL_DEPTH_SCALE, FIX2FLT(compositor->OGLDepthGain) );
+		//glPixelTransferf(GL_DEPTH_BIAS, FIX2FLT(compositor->OGLDepthOffset) );
 #endif
 
-		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, fb->video_buffer); 
-                //inversion - to check
-		for (i=0; i<fb->height*fb->width; i++) 
+		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, fb->video_buffer);
+		//inversion - to check
+		for (i=0; i<fb->height*fb->width; i++)
 			fb->video_buffer[i] = (char)(255 - (int) fb->video_buffer[i]) ;
 
 #endif	/*GPAC_USE_OGL_ES*/
-	}	
+	}
 
 	/* RGBDS or RGBD dump*/
-	else if (depth_dump_mode==2 || depth_dump_mode==3){
+	else if (depth_dump_mode==2 || depth_dump_mode==3) {
 #ifdef GPAC_USE_OGL_ES
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor]: RGB+Depth format not implemented in OpenGL ES\n"));
 		return GF_NOT_SUPPORTED;
@@ -2231,14 +2346,14 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 #endif
 
 
-		
-#ifndef GPAC_USE_TINYGL	
-		
+
+#ifndef GPAC_USE_TINYGL
+
 		glReadPixels(0, 0, fb->width, fb->height, GL_RGBA, GL_UNSIGNED_BYTE, fb->video_buffer);
 
 		/*
-		glPixelTransferf(GL_DEPTH_SCALE, FIX2FLT(compositor->OGLDepthGain)); 
-		glPixelTransferf(GL_DEPTH_BIAS, FIX2FLT(compositor->OGLDepthOffset)); 
+		glPixelTransferf(GL_DEPTH_SCALE, FIX2FLT(compositor->OGLDepthGain));
+		glPixelTransferf(GL_DEPTH_BIAS, FIX2FLT(compositor->OGLDepthOffset));
 		*/
 
 		depth_data = (char*) gf_malloc(sizeof(char)*fb->width*fb->height);
@@ -2247,32 +2362,32 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		if (depth_dump_mode==2) {
 			u32 i;
 			fb->pixel_format = GF_PIXEL_RGBDS;
-			
+
 			/*this corresponds to the RGBDS ordering*/
 			for (i=0; i<fb->height*fb->width; i++) {
 				u8 ds;
 				/* erase lowest-weighted depth bit */
-				u8 depth = depth_data[i] & 0xfe; 
+				u8 depth = depth_data[i] & 0xfe;
 				/*get alpha*/
 				ds = (fb->video_buffer[i*4 + 3]);
 				/* if heaviest-weighted alpha bit is set (>128) , turn on shape bit*/
 				if (ds & 0x80) depth |= 0x01;
-				fb->video_buffer[i*4+3] = depth; /*insert depth onto alpha*/ 
+				fb->video_buffer[i*4+3] = depth; /*insert depth onto alpha*/
 			}
-		/*this corresponds to RGBD ordering*/	
+			/*this corresponds to RGBD ordering*/
 		} else if (depth_dump_mode==3) {
 			u32 i;
 			fb->pixel_format = GF_PIXEL_RGBD;
-			for (i=0; i<fb->height*fb->width; i++) 
+			for (i=0; i<fb->height*fb->width; i++)
 				fb->video_buffer[i*4+3] = depth_data[i];
 		}
 #else
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor]: RGB+Depth format not implemented in TinyGL\n"));
 		return GF_NOT_SUPPORTED;
 #endif
-		
+
 #endif /*GPAC_USE_OGL_ES*/
-		
+
 	} else if (compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
 		fb->pitch_x = 4;
 		fb->pitch_y = 4*compositor->vp_width;
@@ -2381,19 +2496,25 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 		inc = 1;
 		if (!tr_state->pixel_metrics) inc /= FIX2FLT(tr_state->min_hsize);
 		x = 0;
-		y = 1; y = gf_mulfix(y, INT2FIX(txh->height/2));
+		y = 1;
+		y = gf_mulfix(y, INT2FIX(txh->height/2));
 		if (!tr_state->pixel_metrics) y = gf_divfix(y, tr_state->min_hsize);
 
 		glBegin(GL_POINTS);
 		for (h=0; h<txh->height; h++) {
-			x = -1; x = gf_mulfix(x, INT2FIX(txh->width/2));
+			x = -1;
+			x = gf_mulfix(x, INT2FIX(txh->width/2));
 			if (!tr_state->pixel_metrics) x = gf_divfix(x, tr_state->min_hsize);
 			for (w=0; w<txh->width; w++) {
 				u8 *p = data + h*stride + w*4;
-				r = p[0]; r /= 255;
-				g = p[1]; g /= 255;
-				b = p[2]; b /= 255;
-				z = p[3]; z = z / 255;
+				r = p[0];
+				r /= 255;
+				g = p[1];
+				g /= 255;
+				b = p[2];
+				b /= 255;
+				z = p[3];
+				z = z / 255;
 
 				glColor4f(r, g, b, 1.0);
 				glVertex3f(FIX2FLT(x), FIX2FLT(y), FIX2FLT(-z)*60);
@@ -2431,13 +2552,15 @@ restart:
 		inc = 1;
 		if (!tr_state->pixel_metrics) inc /= FIX2FLT(tr_state->min_hsize);
 		x = 0;
-		y = 1; y = gf_mulfix(y, INT2FIX(txh->height/2));;
+		y = 1;
+		y = gf_mulfix(y, INT2FIX(txh->height/2));;
 		if (!tr_state->pixel_metrics) y = gf_divfix(y, tr_state->min_hsize);
 
 		in_strip = 0;
 		for (h=0; h<txh->height - 1; h++) {
 			u8 *src = data + h*stride;
-			x = -1; x = gf_mulfix(x, INT2FIX(txh->width/2));
+			x = -1;
+			x = gf_mulfix(x, INT2FIX(txh->width/2));
 			if (!tr_state->pixel_metrics) x  = gf_divfix(x, tr_state->min_hsize);
 
 			for (w=0; w<txh->width; w++) {
@@ -2446,7 +2569,7 @@ restart:
 				Float z1 = p1[3];
 				Float z2 = p2[3];
 				if (first_pass==1) {
-					if ((z1>delta) || (z2>delta)) 
+					if ((z1>delta) || (z2>delta))
 					{
 						if (0 && in_strip) {
 							glEnd();
@@ -2456,7 +2579,7 @@ restart:
 						continue;
 					}
 				} else if (first_pass==0) {
-					if ((z1<=delta) || (z2<=delta)) 
+					if ((z1<=delta) || (z2<=delta))
 					{
 						if (in_strip) {
 							glEnd();
@@ -2518,12 +2641,14 @@ restart:
 		inc = 1;
 		if (!tr_state->pixel_metrics) inc /= FIX2FLT(tr_state->min_hsize);
 		x = 0;
-		y = 1; y = gf_mulfix(y, FLT2FIX(txh->height/2));
+		y = 1;
+		y = gf_mulfix(y, FLT2FIX(txh->height/2));
 		if (!tr_state->pixel_metrics) y = gf_divfix(y, tr_state->min_hsize);
 
 		for (h=0; h<txh->height; h++) {
 			u32 idx_offset = h ? ((h-1)*txh->width) : 0;
-			x = -1; x = gf_mulfix(x, FLT2FIX(txh->width/2));
+			x = -1;
+			x = gf_mulfix(x, FLT2FIX(txh->width/2));
 			if (!tr_state->pixel_metrics) x = gf_divfix(x, tr_state->min_hsize);
 
 			for (w=0; w<txh->width; w++) {

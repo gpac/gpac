@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -58,7 +58,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	GF_AudioInput *ai = (GF_AudioInput *) callback;
 	/*even if the stream is signaled as finished we must check it, because it may have been restarted by a mediaControl*/
 	if (!ai->stream) return NULL;
-	
+
 	frame = gf_mo_fetch_data(ai->stream, 0, &ai->stream_finished, &ts, size, NULL, NULL);
 	/*invalidate scene on end of stream to refresh audio graph*/
 	if (ai->stream_finished) gf_sc_invalidate(ai->compositor, NULL);
@@ -82,7 +82,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 		drift = (s32)obj_time;
 		drift -= (s32)ts;
 	}
-	
+
 #ifdef ENABLE_EARLY_FRAME_DETECTION
 	/*too early (silence insertions), skip*/
 	if (drift < 0) {
@@ -138,7 +138,7 @@ static Bool gf_audio_input_is_muted(void *callback)
 {
 	GF_AudioInput *ai = (GF_AudioInput *) callback;
 	if (!ai->stream) return 1;
-	if (ai->is_muted) 
+	if (ai->is_muted)
 		return 1;
 	return gf_mo_is_muted(ai->stream);
 }
@@ -149,7 +149,7 @@ static Bool gf_audio_input_get_config(GF_AudioInterface *aifc, Bool for_recf)
 	if (!ai->stream) return 0;
 	/*watchout for object reuse*/
 	if (aifc->samplerate && (gf_mo_get_flags(ai->stream) & GF_MO_IS_INIT)) return 1;
-	if (!for_recf) 
+	if (!for_recf)
 		return 0;
 
 	gf_mo_get_audio_info(ai->stream, &aifc->samplerate, &aifc->bps , &aifc->chan, &aifc->ch_cfg);
@@ -211,11 +211,11 @@ GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double 
 
 	if (ai->filter) gf_af_del(ai->filter);
 	ai->filter = NULL;
-	
+
 	for (i=0; i<url->count; i++) {
 		if (url->vals[i].url && !strnicmp(url->vals[i].url, "#filter=", 8)) {
 			ai->filter = gf_af_new(ai->compositor, &ai->input_ifce, url->vals[i].url+8);
-			if (ai->filter) 
+			if (ai->filter)
 				break;
 		}
 	}
@@ -226,7 +226,7 @@ GF_EXPORT
 void gf_sc_audio_stop(GF_AudioInput *ai)
 {
 	if (!ai->is_open) return;
-	
+
 	/*we must make sure audio mixer is not using the stream otherwise we may leave it dirty (with unrelease frame)*/
 	gf_mixer_lock(ai->compositor->audio_renderer->mixer, 1);
 
@@ -269,12 +269,12 @@ void gf_sc_audio_register(GF_AudioInput *ai, GF_TraverseState *tr_state)
 
 	/*check interface is valid*/
 	if (!ai->input_ifce.FetchFrame
-		|| !ai->input_ifce.GetChannelVolume
-		|| !ai->input_ifce.GetConfig
-		|| !ai->input_ifce.GetSpeed
-		|| !ai->input_ifce.IsMuted
-		|| !ai->input_ifce.ReleaseFrame
-		) return;
+	        || !ai->input_ifce.GetChannelVolume
+	        || !ai->input_ifce.GetConfig
+	        || !ai->input_ifce.GetSpeed
+	        || !ai->input_ifce.IsMuted
+	        || !ai->input_ifce.ReleaseFrame
+	   ) return;
 
 	aifce = &ai->input_ifce;
 	if (ai->filter) aifce = &ai->filter->input;
@@ -290,7 +290,7 @@ void gf_sc_audio_register(GF_AudioInput *ai, GF_TraverseState *tr_state)
 		ai->register_with_parent = 1;
 		ai->snd = tr_state->sound_holder;
 	} else if (!ai->register_with_renderer) {
-		
+
 		if (ai->register_with_parent) {
 			ai->register_with_parent = 0;
 			/*if used in a parent audio group, do a complete traverse to rebuild the group*/
@@ -331,7 +331,7 @@ static char *gf_af_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
 			u32 nb_bytes;
 			char *data = af->src->FetchFrame(af->src->callback, &nb_bytes, audio_delay_ms + af->filter_chain.delay_ms);
 			/*no input data*/
-			if (!data || !nb_bytes) 
+			if (!data || !nb_bytes)
 				return NULL;
 
 			if (nb_bytes > af->filter_chain.min_block_size) nb_bytes = af->filter_chain.min_block_size;
@@ -376,7 +376,7 @@ static Bool gf_af_is_muted(void *callback)
 static Bool gf_af_get_config(GF_AudioInterface *ai, Bool for_reconf)
 {
 	GF_AudioFilterItem *af = (GF_AudioFilterItem *)ai->callback;
-	
+
 	Bool res = af->src->GetConfig(af->src, for_reconf);
 	if (!res) return 0;
 	if (!for_reconf) return 1;

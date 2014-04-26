@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -34,14 +34,14 @@
 #define NUMBITS_EXPR_TYPE	6
 #define MAX_NUM_EXPR		100
 
-enum 
+enum
 {
-	ST_IF=0, 
-	ST_FOR=1, 
-	ST_WHILE=2, 
-	ST_RETURN=3, 
-	ST_BREAK=5, 
-	ST_CONTINUE=6, 
+	ST_IF=0,
+	ST_FOR=1,
+	ST_WHILE=2,
+	ST_RETURN=3,
+	ST_BREAK=5,
+	ST_CONTINUE=6,
 	ST_COMPOUND_EXPR=4,
 	ST_SWITCH=7
 };
@@ -90,7 +90,7 @@ enum
 	ET_MOD=39,
 	ET_LAND=40,
 	ET_LOR=41,
-    ET_AND=42,
+	ET_AND=42,
 	ET_OR=43,
 	ET_XOR=44,
 	ET_LSHIFT=45,

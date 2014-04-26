@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -93,7 +93,7 @@ static void EDEC_LoadCaps(GF_BaseDecoder *ifcg)
 		ctx->caps |= GF_EPOC_HAS_HEAAC;
 		delete codec;
 	}
-	
+
 	/*MP3*/
 	TRAP(err, codec = CMMFCodec::NewL(KMMFFourCCCodeMP3, KMMFFourCCCodePCM16));
 	if (err==KErrNone) {
@@ -115,17 +115,17 @@ static GF_Err EDEC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (ctx->dec) return GF_BAD_PARAM;
 
 
-	/*audio decs*/	
+	/*audio decs*/
 	switch (esd->decoderConfig->objectTypeIndication) {
 	/*MPEG2 aac*/
 	case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
 	case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
 	case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 	/*MPEG4 aac*/
-	case GPAC_OTI_AUDIO_AAC_MPEG4: 
+	case GPAC_OTI_AUDIO_AAC_MPEG4:
 		if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) return GF_NON_COMPLIANT_BITSTREAM;
 		if (gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg) != GF_OK) return GF_NON_COMPLIANT_BITSTREAM;
-		
+
 		aac_sbr_upsample = 0;
 #if !defined(__SYMBIAN32__) || defined(__SERIES60_3X__)
 		if (a_cfg.has_sbr && (ctx->caps & GF_EPOC_HAS_HEAAC)) {
@@ -147,7 +147,7 @@ static GF_Err EDEC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			configParams.Append(16);								//  8: Sample resolution, 8Khz (8-bit PCM) or 16Khz (16-bit)
 			configParams.Append(a_cfg.sbr_sr);						//  9: Output Sample Frequency
 			configParams.Append(5);									// 10: Extension Object Type
-		
+
 			TRAP(err, ctx->dec->ConfigureL(TUid::Uid(KUidMmfCodecAudioSettings), (TDesC8&) configParams));
 			if (err != KErrNone) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[EPOC Decoder] Failed to configure HE-AAC decoder (error %d) - retrying with AAC\n", err));
@@ -158,7 +158,7 @@ static GF_Err EDEC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			ctx->num_channels = a_cfg.nb_chan;
 			ctx->num_samples = aac_sbr_upsample ? 2048 : 1024;
 			ctx->sample_rate = a_cfg.sbr_sr;
-		} else 
+		} else
 #endif
 		{
 retry_no_sbr:
@@ -176,7 +176,7 @@ retry_no_sbr:
 			configParams.Append(0);                    // Aac decimation factor {0 - none, 2 - decimation by 2, 4 - decimation by 4}
 			configParams.Append(0);                    // Aac concealment - It can be {0 - none, 1 - basic}
 			configParams.Append(16);     // Sample resolution - It can be {16 - 16-bit resolution}
-			configParams.Append(0);                    // Sample Rate Conversion 0 : none 
+			configParams.Append(0);                    // Sample Rate Conversion 0 : none
 
 			TRAP(err, ctx->dec->ConfigureL(TUid::Uid(KUidMmfCodecAudioSettings), (TDesC8&) configParams));
 			if (err != KErrNone) {
@@ -298,11 +298,11 @@ static GF_Err EDEC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 }
 
 
-static GF_Err EDEC_ProcessData(GF_MediaDecoder *ifcg, 
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID, u32 *CTS,
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+static GF_Err EDEC_ProcessData(GF_MediaDecoder *ifcg,
+                               char *inBuffer, u32 inBufferLength,
+                               u16 ES_ID, u32 *CTS,
+                               char *outBuffer, u32 *outBufferLength,
+                               u8 PaddingBits, u32 mmlevel)
 {
 	TCodecProcessResult res;
 	EPOCCodec *ctx = (EPOCCodec *)ifcg->privateStack;
@@ -339,7 +339,7 @@ static u32 EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, GF_ESD *es
 	GF_M4ADecSpecInfo a_cfg;
 	EPOCCodec *ctx = (EPOCCodec *)ifcg->privateStack;
 
-	/*audio decs*/	
+	/*audio decs*/
 	if (StreamType == GF_STREAM_AUDIO) {
 		/*media type query*/
 		if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
@@ -350,7 +350,7 @@ static u32 EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, GF_ESD *es
 		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
 		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 		/*MPEG4 aac*/
-		case GPAC_OTI_AUDIO_AAC_MPEG4: 
+		case GPAC_OTI_AUDIO_AAC_MPEG4:
 			if (!dsi) return GF_CODEC_NOT_SUPPORTED;
 			if (gf_m4a_get_config(dsi, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg) != GF_OK) return GF_CODEC_MAYBE_SUPPORTED;
 			switch (a_cfg.base_object_type) {
@@ -401,7 +401,7 @@ GF_BaseDecoder *EPOC_codec_new()
 	GF_SAFEALLOC(ctx, EPOCCodec);
 	ifce->privateStack = ctx;
 
-	/*setup our own interface*/	
+	/*setup our own interface*/
 	ifce->AttachStream = EDEC_AttachStream;
 	ifce->DetachStream = EDEC_DetachStream;
 	ifce->GetCapabilities = EDEC_GetCapabilities;

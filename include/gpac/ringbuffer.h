@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -35,12 +35,12 @@ extern "C" {
 
 typedef struct
 {
-  u8           *buf;
-  volatile u32 write_ptr;
-  volatile u32 read_ptr;
-  u32          size;
-  u32          size_mask;
-  GF_Mutex *   mx;
+	u8           *buf;
+	volatile u32 write_ptr;
+	volatile u32 read_ptr;
+	u32          size;
+	u32          size_mask;
+	GF_Mutex *   mx;
 }
 GF_Ringbuffer ;
 
@@ -54,7 +54,7 @@ GF_Ringbuffer ;
  * \return a pointer to a new ringbuffer if successful, NULL otherwise.
  */
 GF_Ringbuffer * gf_ringbuffer_new(u32 sz);
- 
+
 /*!
  * Frees a previously allocated ringbuffer
  * \param ringbuffer The ringbuffer to free
@@ -87,7 +87,7 @@ u32 gf_ringbuffer_available_for_read (GF_Ringbuffer * rb);
  * \return Returns the actual number of bytes copied, may be lower than sz if ringbuffer is already full
  */
 u32 gf_ringbuffer_write (GF_Ringbuffer * rb, const u8 * src, u32 sz);
- 
+
 #ifdef __cplusplus
 }
 #endif

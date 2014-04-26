@@ -42,12 +42,12 @@ GF_HTML_MediaTimeRanges *gf_html_timeranges_new(u32 timescale)
 
 static GF_Err gf_html_timeranges_add_time(GF_HTML_MediaTimeRanges *timeranges, u64 time)
 {
-    u64 *t;
-    if (!timeranges) return GF_BAD_PARAM;
-    t = (u64 *)gf_malloc(sizeof(u64));
-    *t = time;
-    gf_list_add(timeranges->times, t);
-    return GF_OK;
+	u64 *t;
+	if (!timeranges) return GF_BAD_PARAM;
+	t = (u64 *)gf_malloc(sizeof(u64));
+	*t = time;
+	gf_list_add(timeranges->times, t);
+	return GF_OK;
 }
 
 GF_Err gf_html_timeranges_add_start(GF_HTML_MediaTimeRanges *timeranges, u64 start)
@@ -62,18 +62,18 @@ GF_Err gf_html_timeranges_add_end(GF_HTML_MediaTimeRanges *timeranges, u64 end)
 
 void gf_html_timeranges_reset(GF_HTML_MediaTimeRanges *ranges)
 {
-    while (gf_list_count(ranges->times))
-    {
-        u64 *d = (u64 *)gf_list_get(ranges->times, 0);
-        gf_free(d);
-        gf_list_rem(ranges->times, 0);
-    }
+	while (gf_list_count(ranges->times))
+	{
+		u64 *d = (u64 *)gf_list_get(ranges->times, 0);
+		gf_free(d);
+		gf_list_rem(ranges->times, 0);
+	}
 }
 
 void gf_html_timeranges_del(GF_HTML_MediaTimeRanges *ranges)
 {
 	gf_html_timeranges_reset(ranges);
-    gf_list_del(ranges->times);
+	gf_list_del(ranges->times);
 	ranges->times = NULL;
 	gf_free(ranges);
 }
@@ -124,7 +124,7 @@ GF_HTML_MediaTimeRanges *gf_html_timeranges_union(GF_HTML_MediaTimeRanges *a, GF
 	}
 	if (count_a == 0 && count_b == 0) {
 		return NULL;
-	} else if (count_a == 0) {		
+	} else if (count_a == 0) {
 		GF_HTML_MediaTimeRanges *tmp = a;
 		a = b;
 		b = tmp;
@@ -160,7 +160,7 @@ GF_HTML_MediaTimeRanges *gf_html_timeranges_union(GF_HTML_MediaTimeRanges *a, GF
 					if (*endb*a->timescale <= *enda*b->timescale) { /* b is contained in a */
 						/* ignore b, move on to the next b */
 						j+=2;
-					} else { /* *endb > *enda, the overlap is only at the start of b */ 
+					} else { /* *endb > *enda, the overlap is only at the start of b */
 						/* update start of b */
 						*startb = (u64)((*starta * b->timescale)*1.0 / a->timescale);
 						/* ignore a, move on to the next a */
@@ -239,7 +239,7 @@ GF_HTML_MediaTimeRanges *gf_html_timeranges_intersection(GF_HTML_MediaTimeRanges
 							*starta = (u64)((*endb * a->timescale)*1.0 / b->timescale);
 							/* move on to the next b */
 							j+=2;
-						} else { /* *endb > *enda, the intersection ends at the end of a */ 
+						} else { /* *endb > *enda, the intersection ends at the end of a */
 							gf_list_add(intersection_ranges->times, enda);
 							/* update start of b */
 							*startb = (u64)((*enda * b->timescale)*1.0 / a->timescale);
@@ -271,83 +271,83 @@ GF_HTML_MediaTimeRanges *gf_html_timeranges_intersection(GF_HTML_MediaTimeRanges
 }
 
 GF_HTML_Track *html_media_add_new_track_to_list(GF_HTML_TrackList *tracklist,
-                                                       GF_HTML_TrackType type, const char *mime, Bool enable_or_selected,
-                                                       const char *id, const char *kind, const char *label, const char *lang)
+        GF_HTML_TrackType type, const char *mime, Bool enable_or_selected,
+        const char *id, const char *kind, const char *label, const char *lang)
 {
-    GF_HTML_Track *track;
-    track = gf_html_media_track_new(type, mime, enable_or_selected, id, kind, label, lang);
-    gf_list_add(tracklist->tracks, track);
-    return track;
+	GF_HTML_Track *track;
+	track = gf_html_media_track_new(type, mime, enable_or_selected, id, kind, label, lang);
+	gf_list_add(tracklist->tracks, track);
+	return track;
 }
 
 Bool html_media_tracklist_has_track(GF_HTML_TrackList *tracklist, const char *id)
 {
-    GF_HTML_Track *track;
-    u32 i, count;
-    count = gf_list_count(tracklist->tracks);
-    for (i = 0; i < count; i++) 
-    {
-        track = (GF_HTML_Track *)gf_list_get(tracklist->tracks, i);
-        if (!strcmp(id, track->id)) 
-        {
-            return 1;
-        }
-    }
-    return 0;
+	GF_HTML_Track *track;
+	u32 i, count;
+	count = gf_list_count(tracklist->tracks);
+	for (i = 0; i < count; i++)
+	{
+		track = (GF_HTML_Track *)gf_list_get(tracklist->tracks, i);
+		if (!strcmp(id, track->id))
+		{
+			return 1;
+		}
+	}
+	return 0;
 }
 
 GF_HTML_Track *html_media_tracklist_get_track(GF_HTML_TrackList *tracklist, const char *id)
 {
-    GF_HTML_Track *track = NULL;
-    u32 i, count;
-    count = gf_list_count(tracklist->tracks);
-    for (i = 0; i < count; i++) 
-    {
-        track = (GF_HTML_Track *)gf_list_get(tracklist->tracks, i);
-        if (!strcmp(id, track->id)) 
-        {
-            return track;
-        }
-    }
-    return NULL;
+	GF_HTML_Track *track = NULL;
+	u32 i, count;
+	count = gf_list_count(tracklist->tracks);
+	for (i = 0; i < count; i++)
+	{
+		track = (GF_HTML_Track *)gf_list_get(tracklist->tracks, i);
+		if (!strcmp(id, track->id))
+		{
+			return track;
+		}
+	}
+	return NULL;
 }
 
 void gf_html_tracklist_del(GF_HTML_TrackList *tlist)
 {
-    while (gf_list_count(tlist->tracks))
-    {
-        GF_HTML_Track *track = (GF_HTML_Track *)gf_list_get(tlist->tracks, 0);
-        gf_html_track_del(track);
-        gf_list_rem(tlist->tracks, 0);
-    }
-    gf_list_del(tlist->tracks);
+	while (gf_list_count(tlist->tracks))
+	{
+		GF_HTML_Track *track = (GF_HTML_Track *)gf_list_get(tlist->tracks, 0);
+		gf_html_track_del(track);
+		gf_list_rem(tlist->tracks, 0);
+	}
+	gf_list_del(tlist->tracks);
 }
 
 GF_HTML_Track *gf_html_media_track_new(GF_HTML_TrackType type, const char *mime, Bool enable_or_selected,
                                        const char *id, const char *kind, const char *label, const char *lang)
 {
-    GF_HTML_Track *track;
-    GF_SAFEALLOC(track, GF_HTML_Track);
-    track->type     = type;
-    track->mime     = gf_strdup(mime);
-    track->id       = gf_strdup(id);
-    track->kind     = gf_strdup(kind);
-    track->label    = gf_strdup(label);
-    track->language = gf_strdup(lang);
-    track->enabled_or_selected = enable_or_selected;
-    /* TODO: empty MSE data */
-    return track;
+	GF_HTML_Track *track;
+	GF_SAFEALLOC(track, GF_HTML_Track);
+	track->type     = type;
+	track->mime     = gf_strdup(mime);
+	track->id       = gf_strdup(id);
+	track->kind     = gf_strdup(kind);
+	track->label    = gf_strdup(label);
+	track->language = gf_strdup(lang);
+	track->enabled_or_selected = enable_or_selected;
+	/* TODO: empty MSE data */
+	return track;
 }
 
 void gf_html_track_del(GF_HTML_Track *track)
 {
-    if (track->id)          gf_free(track->id);
-    if (track->kind)        gf_free(track->kind);
-    if (track->label)       gf_free(track->label);
-    if (track->language)    gf_free(track->language);
-    if (track->mime)        gf_free(track->mime);
+	if (track->id)          gf_free(track->id);
+	if (track->kind)        gf_free(track->kind);
+	if (track->label)       gf_free(track->label);
+	if (track->language)    gf_free(track->language);
+	if (track->mime)        gf_free(track->mime);
 
-    if (track->buffer_mutex) {
+	if (track->buffer_mutex) {
 		gf_mx_p(track->buffer_mutex);
 		while (gf_list_count(track->buffer))
 		{
@@ -366,55 +366,55 @@ void gf_html_track_del(GF_HTML_Track *track)
 
 GF_HTML_MediaElement *gf_html_media_element_new(GF_Node *media_node, GF_HTML_MediaController *mc)
 {
-    GF_HTML_MediaElement *me;
-    GF_SAFEALLOC(me, GF_HTML_MediaElement);
-    me->node                    = media_node;
-    me->controller              = mc; 
-    me->audioTracks.tracks      = gf_list_new();
-    me->videoTracks.tracks      = gf_list_new();
-    me->textTracks.tracks       = gf_list_new();
-    me->buffered					= gf_html_timeranges_new(1);
-    me->played		            = gf_html_timeranges_new(1);
-    me->seekable					= gf_html_timeranges_new(1);
-    return me;
+	GF_HTML_MediaElement *me;
+	GF_SAFEALLOC(me, GF_HTML_MediaElement);
+	me->node                    = media_node;
+	me->controller              = mc;
+	me->audioTracks.tracks      = gf_list_new();
+	me->videoTracks.tracks      = gf_list_new();
+	me->textTracks.tracks       = gf_list_new();
+	me->buffered					= gf_html_timeranges_new(1);
+	me->played		            = gf_html_timeranges_new(1);
+	me->seekable					= gf_html_timeranges_new(1);
+	return me;
 }
 
 void gf_html_media_element_del(GF_HTML_MediaElement *me)
 {
-    if (me->startDate) gf_free(me->startDate);
-    if (me->currentSrc) gf_free(me->currentSrc);
-    gf_html_tracklist_del(&me->audioTracks);
-    gf_html_tracklist_del(&me->videoTracks);
-    gf_html_tracklist_del(&me->textTracks);
-    gf_html_timeranges_del(me->buffered);
-    gf_html_timeranges_del(me->seekable);
-    gf_html_timeranges_del(me->played);
-    gf_free(me);
+	if (me->startDate) gf_free(me->startDate);
+	if (me->currentSrc) gf_free(me->currentSrc);
+	gf_html_tracklist_del(&me->audioTracks);
+	gf_html_tracklist_del(&me->videoTracks);
+	gf_html_tracklist_del(&me->textTracks);
+	gf_html_timeranges_del(me->buffered);
+	gf_html_timeranges_del(me->seekable);
+	gf_html_timeranges_del(me->played);
+	gf_free(me);
 }
 
 GF_HTML_MediaController *gf_html_media_controller_new()
 {
-    GF_HTML_MediaController *mc;
-    GF_SAFEALLOC(mc, GF_HTML_MediaController);
-    mc->buffered          = gf_html_timeranges_new(1);
-    mc->played            = gf_html_timeranges_new(1);
-    mc->seekable          = gf_html_timeranges_new(1);
-    return mc;
+	GF_HTML_MediaController *mc;
+	GF_SAFEALLOC(mc, GF_HTML_MediaController);
+	mc->buffered          = gf_html_timeranges_new(1);
+	mc->played            = gf_html_timeranges_new(1);
+	mc->seekable          = gf_html_timeranges_new(1);
+	return mc;
 }
 
 void gf_html_mediacontroller_del(GF_HTML_MediaController *mc)
 {
-    u32 i, count;
-    /* removing the pointer to that controller from the media elements using it */
-    count = gf_list_count(mc->media_elements);
-    for (i = 0; i < count; i++) {
-        GF_HTML_MediaElement *me = (GF_HTML_MediaElement *)gf_list_get(mc->media_elements, i);
-        me->controller =  NULL;
-    }
-    gf_html_timeranges_del(mc->buffered);
-    gf_html_timeranges_del(mc->seekable);
-    gf_html_timeranges_del(mc->played);
-    gf_free(mc);
+	u32 i, count;
+	/* removing the pointer to that controller from the media elements using it */
+	count = gf_list_count(mc->media_elements);
+	for (i = 0; i < count; i++) {
+		GF_HTML_MediaElement *me = (GF_HTML_MediaElement *)gf_list_get(mc->media_elements, i);
+		me->controller =  NULL;
+	}
+	gf_html_timeranges_del(mc->buffered);
+	gf_html_timeranges_del(mc->seekable);
+	gf_html_timeranges_del(mc->played);
+	gf_free(mc);
 }
 
 #endif

@@ -47,7 +47,7 @@ typedef enum {
 
 /*
  * Every node of the circular buffer has a data, plus
- * all the variables needed for multithread management. 
+ * all the variables needed for multithread management.
  */
 typedef struct {
 	/* Pointer to the data on the node */
@@ -80,18 +80,18 @@ typedef struct {
  */
 typedef struct {
 	/* The size of circular buffer */
-	u32 size;	
+	u32 size;
 	/* A list of all the nodes */
-	Node *list;	
+	Node *list;
 	/* The mode for multithread management. */
-	LockMode mode;	
+	LockMode mode;
 	/* The maximum number of the consumers using the circular buffer */
 	u32 max_num_consumers;
 } CircularBuffer;
 
 /*
  * Producer has an index to the circular buffer.
- */ 
+ */
 typedef struct {
 	/* The index where the producer is using */
 	int idx;
@@ -115,7 +115,7 @@ typedef struct {
 
 /*
  * Create a circular buffer
- * 
+ *
  * @param circular_buf [out] circular buffer to be created
  * @param size [in] size of circular buffer
  * @param mode [in] mode of multithread management (LIVE or OFFLINE)
@@ -130,9 +130,9 @@ void dc_circular_buffer_create(CircularBuffer *circular_buf, u32 size, LockMode 
  */
 void dc_circular_buffer_destroy(CircularBuffer *circular_buf);
 
-/* 
+/*
  * Initialize a consumer
- * 
+ *
  * @param consumer [out] the consumer to be initialize
  * @param num_consumers [in] maximum number of the consumers
  */
@@ -148,12 +148,12 @@ void * dc_consumer_consume(Consumer *consumer, CircularBuffer *circular_buf);
 
 /*
  * Consumer lock on circular buffer
- * 
+ *
  * @param consumer [in] consumer
  * @param circular_buf [in] circular buffer
  *
- * @return 0 on success, -1 if the node in question is the last node and not usable. 
- */ 
+ * @return 0 on success, -1 if the node in question is the last node and not usable.
+ */
 int dc_consumer_lock(Consumer *consumer, CircularBuffer *circular_buf);
 
 /*
@@ -178,14 +178,14 @@ int dc_consumer_unlock_previous(Consumer *consumer, CircularBuffer *circular_buf
 
 /*
  * Consumer leads its index
- * 
+ *
  * @param consumer [in] consumer
  */
 void dc_consumer_advance(Consumer *consumer);
 
-/* 
+/*
  * Initialize a producer
- * 
+ *
  * @param producer [out] the producer to be initialize
  * @param maxpro [in] maximum number of the producers
  */
@@ -201,12 +201,12 @@ void * dc_producer_produce(Producer *producer, CircularBuffer *circular_buf);
 
 /*
  * Producer lock on circular buffer
- * 
+ *
  * @param producer [in] producer
  * @param circular_buf [in] circular buffer
  *
  * @return 0 on success, -1 if the mode is live and cannot wait.
- */ 
+ */
 int dc_producer_lock(Producer *producer, CircularBuffer *circular_buf);
 
 /*
@@ -227,7 +227,7 @@ void dc_producer_unlock_previous(Producer *, CircularBuffer *);
 
 /*
  * Producer leads its index
- * 
+ *
  * @param producer [in] producer
  * @param circular_buf [in] circular buffer
  */
@@ -235,7 +235,7 @@ void dc_producer_advance(Producer *producer, CircularBuffer *);
 
 /*
  * Producer signal that the current node is the last node
- * 
+ *
  * @param producer [in] producer
  * @param circular_buf [in] circular buffer
  */

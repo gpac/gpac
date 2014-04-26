@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -31,10 +31,10 @@
 
 /*
  * Copyright (C) 1998,1999,2000 Nikos Mavroyanopoulos
- * 
- * This library is free software; you can redistribute it and/or modify it 
- * under the terms of the GNU Library General Public License as published 
- * by the Free Software Foundation; either version 2 of the License, or 
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Library General Public License as published
+ * by the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
@@ -67,7 +67,7 @@ extern "C" {
 typedef struct _tag_crypt_stream GF_Crypt;
 
 /*supported modes (case insensitive): "CBC", "CFB", "CTR", "ECB", "nCFB", "nOFB", "OFB", "STREAM"*/
-/*supported algos (case insensitive): 
+/*supported algos (case insensitive):
 	"AES-128" == "Rijndael-128"
 	"AES-192" == "Rijndael-192"
 	"AES-256" == "Rijndael-256"
@@ -80,11 +80,11 @@ GF_Crypt *gf_crypt_open(const char *algorithm, const char *mode);
 /*close crypto context*/
 void gf_crypt_close(GF_Crypt *gfc);
 
-/* sets the state of the algorithm. Can be used only with block algorithms and certain modes like CBC, CFB etc. 
-It is usefully if you want to restart or start a different encryption quickly. 
+/* sets the state of the algorithm. Can be used only with block algorithms and certain modes like CBC, CFB etc.
+It is usefully if you want to restart or start a different encryption quickly.
 */
 GF_Err gf_crypt_set_state(GF_Crypt *gfc, const void *iv, int size);
-/*gets the state of the algorithm. Can be used only certain modes and algorithms. 
+/*gets the state of the algorithm. Can be used only certain modes and algorithms.
 The size will hold the size of the state and the state must have enough bytes to hold it.
 */
 GF_Err gf_crypt_get_state(GF_Crypt *gfc, void *iv, int *size);
@@ -101,12 +101,12 @@ u32 gf_crypt_get_key_size(GF_Crypt *gfc);
 /*Returns the number of supported key sizes.
 @keys: array of at least MAX_KEY_SIZES size - will hold the supported sizes*/
 u32 gf_crypt_get_supported_key_sizes(GF_Crypt *gfc, u32 *key_sizes);
-/*Returns size (in bytes) of the IV of the algorithm specified for the context. 
-If it is '0' then the IV is ignored in that algorithm. 
+/*Returns size (in bytes) of the IV of the algorithm specified for the context.
+If it is '0' then the IV is ignored in that algorithm.
 IV is used in CBC, CFB, OFB modes, and in some algorithms in STREAM mode.
 */
 u32 gf_crypt_get_iv_size(GF_Crypt *gfc);
-/*Returns 1 if the mode needs an IV, 0 otherwise. 
+/*Returns 1 if the mode needs an IV, 0 otherwise.
 Some 'stream' algorithms may need an IV even if the mode itself does not need an IV.
 */
 Bool gf_crypt_mode_has_iv(GF_Crypt *gfc);
@@ -120,13 +120,13 @@ u32 gf_crypt_get_mode_version(GF_Crypt *gfc);
 
 /*
 This function initializes all buffers for the specified context
-@Lenofkey: key size in BYTES - maximum value of lenofkey should be the one obtained by 
+@Lenofkey: key size in BYTES - maximum value of lenofkey should be the one obtained by
 calling gf_crypt_get_key_size() and every value smaller than this is legal.
 @IV: usually size of the algorithms block size - get it by calling gf_crypt_get_iv_size().
 	IV is ignored in ECB. IV MUST exist in CFB, CBC, STREAM, nOFB and OFB modes.
 	It needs to be random and unique (but not secret). The same IV must be used
-	for encryption/decryption. 
-After calling this function you can use the descriptor for encryption or decryption (not both). 
+	for encryption/decryption.
+After calling this function you can use the descriptor for encryption or decryption (not both).
 */
 GF_Err gf_crypt_init(GF_Crypt *gfc, void *key, u32 lenofkey, const void *IV);
 /*releases context buffers - you may call gf_crypt_init after that, or gf_crypt_close*/
@@ -135,10 +135,10 @@ void gf_crypt_deinit(GF_Crypt *gfc);
 GF_Err gf_crypt_set_key(GF_Crypt *gfc, void *key, u32 keysize, const void *iv);
 
 /*
-main encryption function. 
+main encryption function.
 @Plaintext, @len: plaintext to encrypt - len should be  k*algorithms_block_size if used in a mode
 which operated in blocks (cbc, ecb, nofb), or whatever when used in cfb or ofb which operate in streams.
-The plaintext is replaced by the ciphertext. 
+The plaintext is replaced by the ciphertext.
 */
 GF_Err gf_crypt_encrypt(GF_Crypt *gfc, void *plaintext, int len);
 /*decryption function. It is almost the same with gf_crypt_generic.*/

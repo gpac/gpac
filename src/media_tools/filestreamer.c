@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre, Cyril Concolato 
+ *			Authors: Jean Le Feuvre, Cyril Concolato
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -56,7 +56,7 @@ typedef struct __tag_rtp_track
 
 	/*loaded AU info*/
 	GF_ISOSample  *au;
-	u32 current_au;		
+	u32 current_au;
 	u32 sample_duration;
 	u32 sample_desc_index;
 	/*normalized DTS in micro-sec*/
@@ -76,7 +76,7 @@ struct __isom_rtp_streamer
 	Bool loop;
 	Bool force_mpeg4_generic;
 	/*timeline origin of our session (all tracks) in microseconds*/
-	u32 timelineOrigin; 
+	u32 timelineOrigin;
 	/*list of streams in session*/
 	GF_RTPTrack *stream;
 
@@ -91,8 +91,8 @@ struct __isom_rtp_streamer
 
 
 
-static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpfilename, char **out_sdp_buffer) 
-{	
+static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpfilename, char **out_sdp_buffer)
+{
 	GF_RTPTrack *track;
 	FILE *sdp_out;
 	char filename[GF_MAX_PATH];
@@ -173,7 +173,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 
 		gf_isom_get_ismacryp_info(streamer->isom, track->track_num, 1, NULL, NULL, NULL, NULL, &KMS, NULL, NULL, NULL);
 
-	        /*TODO retrieve DIMS content encoding from track to set the flags */
+		/*TODO retrieve DIMS content encoding from track to set the flags */
 		gf_rtp_streamer_append_sdp_extended(track->rtp, gf_isom_get_track_id(streamer->isom, track->track_num), dsi, dsi_len, streamer->isom, track->track_num, (char *)KMS, w, h, &sdp_media);
 		if (streamer->base_track)
 			gf_rtp_streamer_append_sdp_decoding_dependency(streamer->isom, track->track_num, payload_type, &sdp_media);
@@ -183,7 +183,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 		}
 
 		if (dcd) gf_odf_desc_del((GF_Descriptor *)dcd);
-		
+
 		track = track->next;
 	}
 	fprintf(sdp_out, "\n");
@@ -204,15 +204,15 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 
 	gf_free(payload_type);
 	return GF_OK;
-} 
+}
 
 GF_EXPORT
-GF_Err gf_isom_streamer_write_sdp(GF_ISOMRTPStreamer *streamer, char*sdpfilename) 
+GF_Err gf_isom_streamer_write_sdp(GF_ISOMRTPStreamer *streamer, char*sdpfilename)
 {
 	return gf_isom_streamer_setup_sdp(streamer, sdpfilename, NULL);
 }
 
-GF_Err gf_isom_streamer_get_sdp(GF_ISOMRTPStreamer *streamer, char **out_sdp_buffer) 
+GF_Err gf_isom_streamer_get_sdp(GF_ISOMRTPStreamer *streamer, char **out_sdp_buffer)
 {
 	return gf_isom_streamer_setup_sdp(streamer, NULL, out_sdp_buffer);
 }
@@ -239,7 +239,7 @@ void gf_isom_streamer_reset(GF_ISOMRTPStreamer *streamer, Bool is_loop)
 }
 
 GF_EXPORT
-GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_ahead_delay, s32 max_sleep_time) 
+GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_ahead_delay, s32 max_sleep_time)
 {
 	GF_Err e = GF_OK;
 	GF_RTPTrack *track, *to_send;
@@ -248,7 +248,7 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 	u64 min_ts, dts, cts;
 
 	if (!streamer) return GF_BAD_PARAM;
-	
+
 	/*browse all sessions and locate most mature stream*/
 	to_send = NULL;
 	min_ts = (u64) -1;
@@ -300,7 +300,7 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 	/*no input data ...*/
 	if( !to_send) return GF_EOS;
 
-	
+
 	/*we are about to send scalable base: trigger RTCP reports with the same NTP. This avoids
 	NTP drift due to system clock precision which could break sync decoding*/
 	if (!streamer->first_RTCP_sent || (streamer->base_track && streamer->base_track==to_send->track_num)) {
@@ -321,8 +321,8 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 	min_ts /= 1000;
 
 	if (max_sleep_time) {
-		diff = ((u32) min_ts) - gf_sys_clock();	
-		if (diff>max_sleep_time) 
+		diff = ((u32) min_ts) - gf_sys_clock();
+		if (diff>max_sleep_time)
 			return GF_OK;
 	}
 
@@ -330,7 +330,7 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 	/*sleep until TS is mature*/
 	while (1) {
 		diff = ((u32) min_ts) - gf_sys_clock();
-		
+
 		if (diff > send_ahead_delay) {
 			gf_sleep(1);
 		} else {
@@ -406,8 +406,8 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 	GF_Err e = GF_OK;
 	const char *opt = NULL;
 	/*GF_Config *configFile = NULL;	*/
-	u32 i, max_ptime, au_sn_len;	
-	u8 payt;			
+	u32 i, max_ptime, au_sn_len;
+	u8 payt;
 	GF_ISOFile *file;
 	GF_RTPTrack *track, *prev_track;
 	u16 first_port;
@@ -438,14 +438,14 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 
 	sess_data_size = 0;
 	prev_track = NULL;
-	
+
 	nb_tracks = gf_isom_get_track_count(streamer->isom);
 	for (i=0; i<nb_tracks; i++) {
 		u32 mediaSize, mediaDuration, flags, MinSize, MaxSize, avgTS, streamType, oti, const_dur, nb_ch, samplerate, maxDTSDelta, TrackMediaSubType, TrackMediaType, bandwidth, IV_length, KI_length, dsi_len;
 		const char *url, *urn;
 		char *dsi;
 		Bool is_crypted;
-		
+
 		dsi_len = samplerate = streamType = oti = nb_ch = IV_length = KI_length = 0;
 		is_crypted = 0;
 		dsi = NULL;
@@ -496,10 +496,10 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 
 
 		switch (TrackMediaSubType) {
-		case GF_ISOM_SUBTYPE_MPEG4_CRYP: 
+		case GF_ISOM_SUBTYPE_MPEG4_CRYP:
 			is_crypted = 1;
 		case GF_ISOM_SUBTYPE_MPEG4:
-		{	
+		{
 			GF_ESD *esd = gf_isom_get_esd(streamer->isom, track->track_num, 1);
 			if (esd) {
 				streamType = esd->decoderConfig->streamType;
@@ -514,7 +514,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 					if (gf_isom_has_sync_shadows(streamer->isom, track->track_num) || gf_isom_has_sample_dependency(streamer->isom, track->track_num))
 						flags |= GP_RTP_PCK_SYSTEMS_CAROUSEL;
 				}
-				
+
 				if (esd->decoderConfig->decoderSpecificInfo) {
 					dsi = esd->decoderConfig->decoderSpecificInfo->data;
 					dsi_len = esd->decoderConfig->decoderSpecificInfo->dataLength;
@@ -524,7 +524,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 				gf_odf_desc_del((GF_Descriptor*)esd);
 			}
 		}
-			break;
+		break;
 		case GF_ISOM_SUBTYPE_AVC_H264:
 		case GF_ISOM_SUBTYPE_AVC2_H264:
 		case GF_ISOM_SUBTYPE_AVC3_H264:
@@ -550,7 +550,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 			}
 			break;
 		}
-			break;
+		break;
 		case GF_ISOM_SUBTYPE_HVC1:
 		case GF_ISOM_SUBTYPE_HEV1:
 		case GF_ISOM_SUBTYPE_HVC2:
@@ -575,13 +575,13 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 			flags |= GP_RTP_PCK_USE_MULTI;
 			break;
 		}
-			break;
+		break;
 		default:
 			streamType = GF_STREAM_4CC;
 			oti = TrackMediaSubType;
 			break;
 		}
-		
+
 		/*get sample info*/
 		gf_media_get_sample_average_infos(streamer->isom, track->track_num, &MinSize, &MaxSize, &avgTS, &maxDTSDelta, &const_dur, &bandwidth);
 
@@ -591,17 +591,17 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 			if (use_sel_enc) flags |= GP_RTP_PCK_SELECTIVE_ENCRYPTION;
 		}
 
-		track->rtp = gf_rtp_streamer_new_extended(streamType, oti, track->timescale, 
-									(char *) streamer->dest_ip, track->port, path_mtu, ttl, ifce_addr, 
-									flags, dsi, dsi_len, 								 
-									 payt, samplerate, nb_ch,
-									 is_crypted, IV_length, KI_length,
-									 MinSize, MaxSize, avgTS, maxDTSDelta, const_dur, bandwidth, max_ptime, au_sn_len);
+		track->rtp = gf_rtp_streamer_new_extended(streamType, oti, track->timescale,
+		             (char *) streamer->dest_ip, track->port, path_mtu, ttl, ifce_addr,
+		             flags, dsi, dsi_len,
+		             payt, samplerate, nb_ch,
+		             is_crypted, IV_length, KI_length,
+		             MinSize, MaxSize, avgTS, maxDTSDelta, const_dur, bandwidth, max_ptime, au_sn_len);
 
 		if (!track->rtp) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("Could not initialize RTP streamer: %s\n", gf_error_to_string(e)));
 			goto exit;
-		}		
+		}
 
 		payt++;
 		track->microsec_ts_scale = 1000000;
@@ -626,10 +626,10 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 exit:
 	gf_free(streamer);
 	return NULL;
-} 
+}
 
 GF_EXPORT
-void gf_isom_streamer_del(GF_ISOMRTPStreamer *streamer) 
+void gf_isom_streamer_del(GF_ISOMRTPStreamer *streamer)
 {
 	GF_RTPTrack *track = streamer->stream;
 	while (track) {

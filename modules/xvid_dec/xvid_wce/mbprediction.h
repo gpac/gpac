@@ -45,10 +45,10 @@ void predict_acdc(MACROBLOCK * pMBs, dword x, dword y, dword mb_width, dword blo
 
 VECTOR
 get_pmv2(const MACROBLOCK * const mbs,
-		const int mb_width,
-		const int bound,
-		const int x,
-		const int y,
-		const int block);
+         const int mb_width,
+         const int bound,
+         const int x,
+         const int y,
+         const int block);
 
 #endif							/* _MBPREDICTION_H_ */

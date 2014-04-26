@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -37,7 +37,7 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		/*unlink from OD*/
-		if (st->stream && st->stream->odm) 
+		if (st->stream && st->stream->odm)
 			gf_list_del_item(st->stream->odm->ms_stack, st);
 
 		gf_list_del(st->seg);
@@ -53,7 +53,7 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 		gf_odm_init_segments(st->stream->odm, st->seg, &st->sensor->url);
 		st->is_init = 1;
 		st->active_seg = 0;
-		
+
 	}
 	/*media sensor bound to natural media (audio, video) is updated when fetching the stream
 	data for rendering.*/
@@ -97,12 +97,12 @@ void MS_Modified(GF_Node *node)
 {
 	MediaSensorStack *st = (MediaSensorStack *)gf_node_get_private(node);
 	if (!st) return;
-	
+
 	while (gf_list_count(st->seg)) gf_list_rem(st->seg, 0);
 
 	if (st->stream) {
 		/*unlink from OD*/
-		if (st->stream->odm && st->stream->odm->ms_stack) 
+		if (st->stream->odm && st->stream->odm->ms_stack)
 			gf_list_del_item(st->stream->odm->ms_stack, st);
 
 		gf_mo_unregister(node, st->stream);
@@ -141,7 +141,7 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 	Double time;
 	ms_count = gf_list_count(odm->ms_stack);
 	if (!ms_count) return;
-	
+
 	time = odm->current_time / 1000.0;
 	//dirty hack to get timing of frame when very late (openhevc debug)
 	if (odm->subscene && odm->subscene->dyn_ck && odm->subscene->dyn_ck->last_TS_rendered)
@@ -151,7 +151,7 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 		MediaSensorStack *media_sens = (MediaSensorStack *)gf_list_get(odm->ms_stack, j);
 		if (!media_sens->is_init) continue;
 		count = gf_list_count(media_sens->seg);
-		
+
 		/*full object controled*/
 		if (!media_sens->active_seg && !count) {
 			/*check for end of scene (MediaSensor on inline)*/

@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -128,8 +128,8 @@ static void anurbs_init(anim_nurbs *nurbs, u32 type, u32 nCtrl, u32 nKnots, Fixe
 		break;
 	}
 	nurbs->p = nurbs->nknots - nurbs->npoints - 1;
-	if ((nurbs->p<=0) || (nurbs->p >= nurbs->nknots -1) 
-		|| ((nurbs->nweights>0) && (nurbs->npoints != nurbs->nweights)) ) {
+	if ((nurbs->p<=0) || (nurbs->p >= nurbs->nknots -1)
+	        || ((nurbs->nweights>0) && (nurbs->npoints != nurbs->nweights)) ) {
 		nurbs->valid = 0;
 	} else {
 		nurbs->valid = 1;
@@ -151,7 +151,7 @@ static void anurbs_basis(anim_nurbs *nurbs, s32 span, Fixed t)
 		nurbs->left[i] = t - nurbs->knots[span+1-i];
 		nurbs->right[i] = nurbs->knots[span+i]-t;
 		saved = 0;
-		
+
 		for(j=0; j<i; j++) {
 			temp = gf_divfix(nurbs->n[j], nurbs->right[j+1] + nurbs->left[i-j]);
 			nurbs->n[j] = saved + gf_mulfix(nurbs->right[j+1], temp);
@@ -172,18 +172,18 @@ static s32 anurbs_find_span(anim_nurbs *nurbs, Fixed u)
 	span--;
 	return span;
 #else
-	s32 low, high, mid;	
+	s32 low, high, mid;
 	if (u == nurbs->knots[nurbs->npoints]) return nurbs->npoints - 1;
-	low = nurbs->p; 
-	high = nurbs->npoints; 
+	low = nurbs->p;
+	high = nurbs->npoints;
 	mid = (low + high)/2;
-	
+
 	while (u < nurbs->knots[mid] || u >= nurbs->knots[mid+1]) {
-		if (u < nurbs->knots[mid]) high = mid; 
+		if (u < nurbs->knots[mid]) high = mid;
 		else low = mid;
 		mid = (low + high)/2;
-	}	
-	return (mid); 
+	}
+	return (mid);
 
 #endif
 }
@@ -196,7 +196,7 @@ static SFVec3f anurbs_get_vec3f(anim_nurbs *nurbs, s32 span, SFVec3f *pts)
 	tmp.x = tmp.y = tmp.z = 0;
 	res = tmp;
 	w=0;
-	for(i=0; i<=nurbs->p;i++) {
+	for(i=0; i<=nurbs->p; i++) {
 		tmp = pts[span - nurbs->p + i];
 		if (nurbs->nweights>0) {
 			wi = nurbs->weights[span - nurbs->p + i];
@@ -224,7 +224,7 @@ static SFVec2f anurbs_get_vec2f(anim_nurbs *nurbs, s32 span, SFVec2f *pts)
 	tmp.x = tmp.y = 0;
 	res = tmp;
 	w=0;
-	for(i=0; i<=nurbs->p;i++) {
+	for(i=0; i<=nurbs->p; i++) {
 		tmp = pts[span - nurbs->p + i];
 		if (nurbs->nweights>0) {
 			wi = nurbs->weights[span - nurbs->p + i];
@@ -252,7 +252,7 @@ static Fixed anurbs_get_float(anim_nurbs *nurbs, s32 span, Fixed *vals)
 	u32 i;
 	res = tmp = 0;
 	w=0;
-	for(i=0; i<=nurbs->p;i++) {
+	for(i=0; i<=nurbs->p; i++) {
 		tmp = vals[span - nurbs->p + i];
 		if (nurbs->nweights>0) {
 			wi = nurbs->weights[span - nurbs->p + i];
@@ -340,7 +340,7 @@ static void PA_Update(M_PositionAnimator *pa, AnimatorStack *stack)
 			d.z = pa->keyValue.vals[i+1].z - pa->keyValue.vals[i].z;
 			stack->length += gf_vec_len(d);
 		}
-	} 
+	}
 	Animator_Update(stack, pa->keyValueType, pa->keyValue.count, &pa->keySpline, pa->weight.count, pa->weight.vals);
 }
 static void PA_SetFraction(GF_Node *node, GF_Route *route)
@@ -368,8 +368,14 @@ static void PA_SetFraction(GF_Node *node, GF_Route *route)
 		switch (stack->anim_type) {
 		case ANIM_DEFAULT:
 			if (nbKeys != nbVals) return;
-			if (frac<pa->key.vals[0]) { i=0; frac = 0; }
-			else if (frac>pa->key.vals[nbKeys-1]) { i=nbVals-2; frac = FIX_ONE; }
+			if (frac<pa->key.vals[0]) {
+				i=0;
+				frac = 0;
+			}
+			else if (frac>pa->key.vals[nbKeys-1]) {
+				i=nbVals-2;
+				frac = FIX_ONE;
+			}
 			else {
 				for (i=0; i<nbKeys-1; i++) {
 					if ((frac>=pa->key.vals[i]) && (frac<pa->key.vals[i+1])) break;
@@ -436,7 +442,7 @@ static void PA_SetFraction(GF_Node *node, GF_Route *route)
 		/*nothing to do for this one here*/
 		case ANIM_DEFAULT:
 		/*not supported - use frac as is*/
-		case ANIM_PACED: 
+		case ANIM_PACED:
 		default:
 			break;
 		}
@@ -446,7 +452,7 @@ static void PA_SetFraction(GF_Node *node, GF_Route *route)
 		pa->value_changed = anurbs_get_vec3f(&stack->anurbs, i, pa->keyValue.vals);
 		break;
 	/*not supported*/
-	case ANIM_SPLINE: 
+	case ANIM_SPLINE:
 	default:
 		return;
 	}
@@ -463,15 +469,15 @@ void PA_Modified(GF_Node *node, GF_FieldInfo *field)
 	M_PositionAnimator *pa = (M_PositionAnimator *)node;
 
 	if ( /*all fields impacting cached path len / nurbs*/
-		(field->far_ptr == &pa->keyValue) 
-		|| (field->far_ptr == &pa->keyValueType) 
-		|| (field->far_ptr == &pa->key) 
-		|| (field->far_ptr == &pa->keyType) 
-		|| (field->far_ptr == &pa->keySpline) 
-		|| (field->far_ptr == &pa->weight) 
-		|| (field->far_ptr == &pa->key) 
-		
-		) stack->is_dirty = 1;
+	    (field->far_ptr == &pa->keyValue)
+	    || (field->far_ptr == &pa->keyValueType)
+	    || (field->far_ptr == &pa->key)
+	    || (field->far_ptr == &pa->keyType)
+	    || (field->far_ptr == &pa->keySpline)
+	    || (field->far_ptr == &pa->weight)
+	    || (field->far_ptr == &pa->key)
+
+	) stack->is_dirty = 1;
 }
 void PA_Init(GF_Node *n)
 {
@@ -500,7 +506,7 @@ static void PA2D_Update(M_PositionAnimator2D *pa, AnimatorStack *stack)
 			dy = pa->keyValue.vals[i+1].y - pa->keyValue.vals[i].y;
 			stack->length += gf_sqrt(gf_mulfix(dx, dx) + gf_mulfix(dy, dy));
 		}
-	} 
+	}
 	Animator_Update(stack, pa->keyValueType, pa->keyValue.count, &pa->keySpline, pa->weight.count, pa->weight.vals);
 }
 static void PA2D_SetFraction(GF_Node *node, GF_Route *route)
@@ -528,8 +534,14 @@ static void PA2D_SetFraction(GF_Node *node, GF_Route *route)
 		switch (stack->anim_type) {
 		case ANIM_DEFAULT:
 			if (nbKeys != nbVals) return;
-			if (frac<=pa->key.vals[0]) { i=0; frac = 0; }
-			else if (frac>=pa->key.vals[nbKeys-1]) { i=nbVals-2; frac=FIX_ONE; }
+			if (frac<=pa->key.vals[0]) {
+				i=0;
+				frac = 0;
+			}
+			else if (frac>=pa->key.vals[nbKeys-1]) {
+				i=nbVals-2;
+				frac=FIX_ONE;
+			}
 			else {
 				for (i=0; i<nbKeys-1; i++) {
 					if ((frac>=pa->key.vals[i]) && (frac<pa->key.vals[i+1])) break;
@@ -594,7 +606,7 @@ static void PA2D_SetFraction(GF_Node *node, GF_Route *route)
 		/*nothing to do for this one here*/
 		case ANIM_DEFAULT:
 		/*not supported - use frac as is*/
-		case ANIM_PACED: 
+		case ANIM_PACED:
 		default:
 			break;
 		}
@@ -604,7 +616,7 @@ static void PA2D_SetFraction(GF_Node *node, GF_Route *route)
 		pa->value_changed = anurbs_get_vec2f(&stack->anurbs, i, pa->keyValue.vals);
 		break;
 	/*not supported*/
-	case ANIM_SPLINE: 
+	case ANIM_SPLINE:
 	default:
 		return;
 	}
@@ -620,15 +632,15 @@ void PA2D_Modified(GF_Node *node, GF_FieldInfo *field)
 	M_PositionAnimator2D *pa = (M_PositionAnimator2D *)node;
 
 	if ( /*all fields impacting cached path len / nurbs*/
-		(field->far_ptr == &pa->keyValue) 
-		|| (field->far_ptr == &pa->keyValueType) 
-		|| (field->far_ptr == &pa->key) 
-		|| (field->far_ptr == &pa->keyType) 
-		|| (field->far_ptr == &pa->keySpline) 
-		|| (field->far_ptr == &pa->weight) 
-		|| (field->far_ptr == &pa->key) 
-		
-		) stack->is_dirty = 1;
+	    (field->far_ptr == &pa->keyValue)
+	    || (field->far_ptr == &pa->keyValueType)
+	    || (field->far_ptr == &pa->key)
+	    || (field->far_ptr == &pa->keyType)
+	    || (field->far_ptr == &pa->keySpline)
+	    || (field->far_ptr == &pa->weight)
+	    || (field->far_ptr == &pa->key)
+
+	) stack->is_dirty = 1;
 }
 void PA2D_Init(GF_Node *n)
 {
@@ -656,7 +668,7 @@ static void SA_Update(M_ScalarAnimator *sa, AnimatorStack *stack)
 			len = sa->keyValue.vals[i+1] - sa->keyValue.vals[i];
 			stack->length += ABS(len);
 		}
-	} 
+	}
 	Animator_Update(stack, sa->keyValueType, sa->keyValue.count, &sa->keySpline, sa->weight.count, sa->weight.vals);
 }
 
@@ -684,8 +696,14 @@ void SA_SetFraction(GF_Node *node, GF_Route *route)
 		switch (stack->anim_type) {
 		case ANIM_DEFAULT:
 			if (nbKeys != nbVals) return;
-			if (frac<sa->key.vals[0]) { i=0; frac = 0; }
-			else if (frac>sa->key.vals[nbKeys-1]) { i=nbVals-2; frac=FIX_ONE; }
+			if (frac<sa->key.vals[0]) {
+				i=0;
+				frac = 0;
+			}
+			else if (frac>sa->key.vals[nbKeys-1]) {
+				i=nbVals-2;
+				frac=FIX_ONE;
+			}
 			else {
 				for (i=0; i<nbKeys-1; i++) {
 					if ((frac>=sa->key.vals[i]) && (frac<sa->key.vals[i+1])) break;
@@ -746,7 +764,7 @@ void SA_SetFraction(GF_Node *node, GF_Route *route)
 		/*nothing to do for this one here*/
 		case ANIM_DEFAULT:
 		/*not supported - use frac as is*/
-		case ANIM_PACED: 
+		case ANIM_PACED:
 		default:
 			break;
 		}
@@ -756,7 +774,7 @@ void SA_SetFraction(GF_Node *node, GF_Route *route)
 		sa->value_changed = anurbs_get_float(&stack->anurbs, i, sa->keyValue.vals);
 		break;
 	/*not supported*/
-	case ANIM_SPLINE: 
+	case ANIM_SPLINE:
 	default:
 		return;
 	}
@@ -771,15 +789,15 @@ void SA_Modified(GF_Node *node, GF_FieldInfo *field)
 	M_ScalarAnimator *sa = (M_ScalarAnimator *)node;
 
 	if ( /*all fields impacting cached path len / nurbs*/
-		(field->far_ptr == &sa->keyValue) 
-		|| (field->far_ptr == &sa->keyValueType) 
-		|| (field->far_ptr == &sa->key) 
-		|| (field->far_ptr == &sa->keyType) 
-		|| (field->far_ptr == &sa->keySpline) 
-		|| (field->far_ptr == &sa->weight) 
-		|| (field->far_ptr == &sa->key) 
-		
-		) stack->is_dirty = 1;
+	    (field->far_ptr == &sa->keyValue)
+	    || (field->far_ptr == &sa->keyValueType)
+	    || (field->far_ptr == &sa->key)
+	    || (field->far_ptr == &sa->keyType)
+	    || (field->far_ptr == &sa->keySpline)
+	    || (field->far_ptr == &sa->weight)
+	    || (field->far_ptr == &sa->key)
+
+	) stack->is_dirty = 1;
 }
 
 void SA_Init(GF_Node *n)

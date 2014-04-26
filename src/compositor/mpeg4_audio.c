@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -111,7 +111,7 @@ static void audioclip_update_time(GF_TimeNode *tn)
 	}
 	time = gf_node_get_scene_time(tn->udta);
 	if ((time<st->start_time) || (st->start_time<0)) return;
-	
+
 	if (ac->isActive) {
 		if ( (ac->stopTime > st->start_time) && (time>=ac->stopTime)) {
 			audioclip_deactivate(st, ac);
@@ -165,7 +165,7 @@ void compositor_audioclip_modified(GF_Node *node)
 	}
 
 	/*make sure we are still registered*/
-	if (!st->time_handle.is_registered && !st->time_handle.needs_unregister) 
+	if (!st->time_handle.is_registered && !st->time_handle.needs_unregister)
 		gf_sc_register_time_node(st->input.compositor, &st->time_handle);
 	else
 		st->time_handle.needs_unregister = 0;
@@ -212,7 +212,7 @@ static void audiosource_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		gf_free(st);
 		return;
 	}
-	
+
 
 	/*check end of stream*/
 	if (st->input.stream && st->input.stream_finished) {
@@ -243,7 +243,7 @@ static void audiosource_update_time(GF_TimeNode *tn)
 	}
 	time = gf_node_get_scene_time(tn->udta);
 	if ((time<st->start_time) || (st->start_time<0)) return;
-	
+
 	if (st->input.input_ifce.GetSpeed(st->input.input_ifce.callback) && st->is_active) {
 		if ( (as->stopTime > st->start_time) && (time>=as->stopTime)) {
 			audiosource_deactivate(st, as);
@@ -292,7 +292,7 @@ void compositor_audiosource_modified(GF_Node *node)
 	}
 
 	/*make sure we are still registered*/
-	if (!st->time_handle.is_registered && !st->time_handle.needs_unregister) 
+	if (!st->time_handle.is_registered && !st->time_handle.needs_unregister)
 		gf_sc_register_time_node(st->input.compositor, &st->time_handle);
 	else
 		st->time_handle.needs_unregister = 0;
@@ -337,7 +337,7 @@ static void audiobuffer_traverse(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		gf_sc_audio_unregister(&st->output);
-		if (st->time_handle.is_registered) 
+		if (st->time_handle.is_registered)
 			gf_sc_unregister_time_node(st->output.compositor, &st->time_handle);
 
 		gf_mixer_del(st->am);
@@ -358,7 +358,7 @@ static void audiobuffer_traverse(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*if no new inputs don't change mixer config*/
 	update_mixer = gf_list_count(st->new_inputs) ? 1 : 0;
-	
+
 	if (gf_mixer_get_src_count(st->am) == gf_list_count(st->new_inputs)) {
 		u32 count = gf_list_count(st->new_inputs);
 		update_mixer = 0;
@@ -386,7 +386,7 @@ static void audiobuffer_traverse(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->audio_parent = parent;
 
 	/*Note the audio buffer is ALWAYS registered untill destroyed since buffer filling shall happen even when inactive*/
-	if (!st->output.register_with_parent || !st->output.register_with_renderer) 
+	if (!st->output.register_with_parent || !st->output.register_with_renderer)
 		gf_sc_audio_register(&st->output, tr_state);
 
 	/*store mute flag*/
@@ -423,7 +423,7 @@ static void audiobuffer_update_time(GF_TimeNode *tn)
 	}
 	time = gf_node_get_scene_time(tn->udta);
 	if ((time<st->start_time) || (st->start_time<0)) return;
-	
+
 	if (ab->isActive) {
 		if ( (ab->stopTime > st->start_time) && (time>=ab->stopTime)) {
 			audiobuffer_deactivate(st, ab);
@@ -598,11 +598,11 @@ void compositor_audiobuffer_modified(GF_Node *node)
 	if (!st) return;
 
 	//update state if we're active
-	if (ab->isActive) 
+	if (ab->isActive)
 		audiobuffer_update_time(&st->time_handle);
 
 	/*make sure we are still registered*/
-	if (!st->time_handle.is_registered && !st->time_handle.needs_unregister) 
+	if (!st->time_handle.is_registered && !st->time_handle.needs_unregister)
 		gf_sc_register_time_node(st->output.compositor, &st->time_handle);
 	else
 		st->time_handle.needs_unregister = 0;

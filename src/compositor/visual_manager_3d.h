@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -34,9 +34,9 @@
 #define GF_MAX_GL_CLIPS	12
 #define GF_MAX_GL_LIGHTS 12
 
- /*
- *	Visual 3D functions
- */
+/*
+*	Visual 3D functions
+*/
 
 /*draw frame, performing collisions, camera displacement and drawing*/
 Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState *tr_state, Bool is_root_visual);
@@ -44,7 +44,7 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 /*traverse the scene and picks the node under the current ray, if any*/
 void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children);
 
-/*checks a bounding box against the visual frustum. Returns true if box is visible, false otherwise. 
+/*checks a bounding box against the visual frustum. Returns true if box is visible, false otherwise.
 The cull_flag of the traversing state is updated to the box/frustum relation (in/out/intersect)*/
 Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_near);
 
@@ -78,7 +78,7 @@ void visual_3d_draw_2d(Drawable *st, GF_TraverseState *tr_state);
 #endif
 
 
-/*sets 2D strike aspect 
+/*sets 2D strike aspect
 	- exported for text drawing*/
 void visual_3d_set_2d_strike(GF_TraverseState *tr_state, DrawAspect2D *asp);
 /*sets 3D material. Returns false is object is not visible due to appearance
@@ -87,7 +87,7 @@ Bool visual_3d_setup_appearance(GF_TraverseState *tr_state);
 /*sets 3D texture. Returns true if a texture is found and successfully bound
 	- exported for text drawing*/
 Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha);
-/*disables texture 
+/*disables texture
 	- exported for text drawing*/
 void visual_3d_disable_texture(GF_TraverseState *tr_state);
 
@@ -95,8 +95,8 @@ void visual_3d_disable_texture(GF_TraverseState *tr_state);
 	- exported for Layer3D - try to harmonize*/
 void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *node_list);
 
-/*init drawing pass - exported for Layer3D 
-	@layer_type: 
+/*init drawing pass - exported for Layer3D
+	@layer_type:
 		0: not a layer
 		1: 3D layer in 3D context, depth clear but no color clear
 		2: 3D layer in 2D context (offscreen rendering), depth and color clear with alpha=0
@@ -107,7 +107,7 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer);
 
 
 /*base 3D drawable*/
-typedef struct 
+typedef struct
 {
 	/*3D object for drawable if needed - ALLOCATED BY DEFAULT*/
 	GF_Mesh *mesh;
@@ -123,7 +123,7 @@ void drawable_3d_base_traverse(GF_Node *n, void *rs, Bool is_destroy, void (*bui
 
 void drawable3d_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, GF_BBox *orig_bounds);
 
-typedef struct 
+typedef struct
 {
 	/*the directional light*/
 	GF_Node *dlight;
@@ -178,7 +178,7 @@ typedef struct
 
 
 /*
-	till end of file: all 3D specific calls. 
+	till end of file: all 3D specific calls.
 */
 
 /*setup visual (hint & co)*/
@@ -225,7 +225,7 @@ void visual_3d_set_scissor(GF_VisualManager *visual, GF_Rect *vp);
 
 /*setup rectangular cliper (clip: top-left, width, height)
 NOTE: 2D clippers can only be set from a 2D context, hence will always take the 4 first GL clip planes.
-In order to allow multiple Layer2D in Layer2D, THERE IS ALWAYS AT MOST ONE 2D CLIPPER USED AT ANY TIME, 
+In order to allow multiple Layer2D in Layer2D, THERE IS ALWAYS AT MOST ONE 2D CLIPPER USED AT ANY TIME,
 it is the caller responsability to restore previous 2D clipers
 
 the matrix is not copied, care should be taken to keep it unmodified until the cliper is reset (unless desired otherwise)
@@ -270,8 +270,8 @@ void visual_3d_remove_last_light(GF_VisualManager *visual);
 /*disables all lights*/
 void visual_3d_clear_all_lights(GF_VisualManager *visual);
 /*insert spot light - returns 0 if too many lights*/
-Bool visual_3d_add_spot_light(GF_VisualManager *visual, Fixed ambientIntensity, SFVec3f attenuation, Fixed beamWidth, 
-					   SFColor color, Fixed cutOffAngle, SFVec3f direction, Fixed intensity, SFVec3f location, GF_Matrix *light_mx);
+Bool visual_3d_add_spot_light(GF_VisualManager *visual, Fixed ambientIntensity, SFVec3f attenuation, Fixed beamWidth,
+                              SFColor color, Fixed cutOffAngle, SFVec3f direction, Fixed intensity, SFVec3f location, GF_Matrix *light_mx);
 /*insert point light - returns 0 if too many lights*/
 Bool visual_3d_add_point_light(GF_VisualManager *visual, Fixed ambientIntensity, SFVec3f attenuation, SFColor color, Fixed intensity, SFVec3f location, GF_Matrix *light_mx);
 /*insert directional light - returns 0 if too many lights*/

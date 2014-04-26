@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
- *			Copyright (c) Telecom ParisTech 2000-2012 
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / X3D Scene Graph Generator sub-project
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -37,12 +37,12 @@ static char *CurrentLine;
 void PrintUsage()
 {
 	printf("X3DGen [skip_file]\n"
-			"\nGPAC X3D Scene Graph generator\n"
-			"\n"
-			"\nskip_file: txt file with list of nodes to leave unimplemented"
-			"Generated Files are directly updated in the GPAC distribution - do NOT try to change this\n\n"
-			"Written by Jean Le Feuvre - (c) 2000-2005\n"
-			);
+	       "\nGPAC X3D Scene Graph generator\n"
+	       "\n"
+	       "\nskip_file: txt file with list of nodes to leave unimplemented"
+	       "Generated Files are directly updated in the GPAC distribution - do NOT try to change this\n\n"
+	       "Written by Jean Le Feuvre - (c) 2000-2005\n"
+	      );
 }
 
 //a node field
@@ -93,7 +93,7 @@ u32 GetNextToken(char *token, char *sep)
 	u32 i , j = 0;
 
 	strcpy(token, "");
-	
+
 	//skip separaors
 	while (*CurrentLine && strchr(sep, *CurrentLine)) {
 		CurrentLine = CurrentLine + 1;
@@ -179,7 +179,7 @@ FILE *BeginFile(u32 type)
 	} else {
 		sprintf(sPath, "..%c..%c..%csrc%cscenegraph%cx3d_nodes.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 	}
-	
+
 	f = fopen(sPath, "wt");
 	fprintf(f, "%s\n", COPYRIGHT);
 
@@ -231,7 +231,7 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs)
 
 	//write all tags
 	fprintf(f, "\n\nenum {\n");
-	
+
 	for (i=0; i<gf_list_count(BNodes); i++) {
 		n = gf_list_get(BNodes, i);
 		if (i)
@@ -258,12 +258,12 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs)
 		}
 		for (j=0; j<gf_list_count(n->Fields); j++) {
 			bf = gf_list_get(n->Fields, j);
-			
+
 			if (!strcmp(bf->name, "addChildren") || !strcmp(bf->name, "removeChildren")) continue;
 			if (strcmp(bf->type, "eventOut") && !strcmp(bf->name, "children")) continue;
 
-			if (strstr(bf->familly, "Node")) {		
-				//this is a POINTER to a node 
+			if (strstr(bf->familly, "Node")) {
+				//this is a POINTER to a node
 				if (strstr(bf->familly, "SF")) {
 					fprintf(f, "\tGF_Node *%s;\t/*%s*/\n", bf->name, bf->type);
 				} else {
@@ -273,7 +273,7 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs)
 			} else {
 				fprintf(f, "\t%s %s;\t/*%s*/\n", bf->familly, bf->name, bf->type);
 			}
-			if (!strcmp(bf->type, "eventIn")) 
+			if (!strcmp(bf->type, "eventIn"))
 				fprintf(f, "\tvoid (*on_%s)(GF_Node *pThis, struct _route *route);\t/*eventInHandler*/\n", bf->name);
 		}
 		fprintf(f, "} X_%s;\n\n\n", n->name);
@@ -291,11 +291,11 @@ void WriteNodeFields(FILE *f, X3DNode *n)
 
 	fprintf(f, "\nstatic u32 %s_get_field_count(GF_Node *node, u8 dummy)\n{\n\treturn %d;\n}\n\n", n->name, gf_list_count(n->Fields));
 	fprintf(f, "static GF_Err %s_get_field(GF_Node *node, GF_FieldInfo *info)\n{\n\tswitch (info->fieldIndex) {\n", n->name);
-	for (i=0;i<gf_list_count(n->Fields); i++) {
+	for (i=0; i<gf_list_count(n->Fields); i++) {
 		bf = gf_list_get(n->Fields, i);
 
 		fprintf(f, "\tcase %d:\n", i);
-		
+
 		fprintf(f, "\t\tinfo->name = \"%s\";\n", bf->name);
 
 		//skip all eventIn
@@ -335,7 +335,7 @@ void WriteNodeFields(FILE *f, X3DNode *n)
 	fprintf(f, "\tdefault:\n\t\treturn GF_BAD_PARAM;\n\t}\n}\n\n");
 
 	fprintf(f, "\nstatic s32 %s_get_field_index_by_name(char *name)\n{\n", n->name);
-	for (i=0;i<gf_list_count(n->Fields); i++) {
+	for (i=0; i<gf_list_count(n->Fields); i++) {
 		bf = gf_list_get(n->Fields, i);
 		fprintf(f, "\tif (!strcmp(\"%s\", name)) return %d;\n", bf->name, i);
 	}
@@ -367,42 +367,42 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 			//nothing on child events
 			if (!strcmp(bf->name, "addChildren")) continue;
 			if (!strcmp(bf->name, "removeChildren")) continue;
-			
+
 			//delete all children node
 			if (strcmp(bf->type, "eventOut") && !strcmp(bf->name, "children")) {
 				is_parent = 1;
 				continue;
 			}
 
-			//delete ALL fields that must be deleted: this includes eventIn and out since 
+			//delete ALL fields that must be deleted: this includes eventIn and out since
 			//all fields are defined in the node
 			if (!strcmp(bf->familly, "MFInt")
-				|| !strcmp(bf->familly, "MFFloat")
-				|| !strcmp(bf->familly, "MFDouble")
-				|| !strcmp(bf->familly, "MFBool")
-				|| !strcmp(bf->familly, "MFInt32")
-				|| !strcmp(bf->familly, "MFColor")
-				|| !strcmp(bf->familly, "MFRotation")
-				|| !strcmp(bf->familly, "MFString")
-				|| !strcmp(bf->familly, "MFTime")
-				|| !strcmp(bf->familly, "MFVec2f")
-				|| !strcmp(bf->familly, "MFVec3f")
-				|| !strcmp(bf->familly, "MFVec4f")
-				|| !strcmp(bf->familly, "MFVec2d")
-				|| !strcmp(bf->familly, "MFVec3d")
-				|| !strcmp(bf->familly, "MFURL")
-				|| !strcmp(bf->familly, "MFScript")
-				|| !strcmp(bf->familly, "SFString")
-				|| !strcmp(bf->familly, "SFURL")
-				|| !strcmp(bf->familly, "SFImage")
-				
-				) {
+			        || !strcmp(bf->familly, "MFFloat")
+			        || !strcmp(bf->familly, "MFDouble")
+			        || !strcmp(bf->familly, "MFBool")
+			        || !strcmp(bf->familly, "MFInt32")
+			        || !strcmp(bf->familly, "MFColor")
+			        || !strcmp(bf->familly, "MFRotation")
+			        || !strcmp(bf->familly, "MFString")
+			        || !strcmp(bf->familly, "MFTime")
+			        || !strcmp(bf->familly, "MFVec2f")
+			        || !strcmp(bf->familly, "MFVec3f")
+			        || !strcmp(bf->familly, "MFVec4f")
+			        || !strcmp(bf->familly, "MFVec2d")
+			        || !strcmp(bf->familly, "MFVec3d")
+			        || !strcmp(bf->familly, "MFURL")
+			        || !strcmp(bf->familly, "MFScript")
+			        || !strcmp(bf->familly, "SFString")
+			        || !strcmp(bf->familly, "SFURL")
+			        || !strcmp(bf->familly, "SFImage")
+
+			   ) {
 				char szName[500];
 				strcpy(szName, bf->familly);
 				strlwr(szName);
 				fprintf(vrml_code, "\tgf_sg_%s_del(p->%s);\n", szName, bf->name);
-			} else if (strstr(bf->familly, "Node")) {		
-				//this is a POINTER to a node 
+			} else if (strstr(bf->familly, "Node")) {
+				//this is a POINTER to a node
 				if (strstr(bf->familly, "SF")) {
 					fprintf(vrml_code, "\tgf_node_unregister((GF_Node *) p->%s, node);\t\n", bf->name);
 				} else {
@@ -434,8 +434,8 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				fprintf(vrml_code, "\tgf_sg_vrml_parent_setup((GF_Node *) p);\n");
 				break;
 			}
-			else if ( strstr(bf->familly, "Node") && strncmp(bf->type, "event", 5) ) {		
-				//this is a POINTER to a node 
+			else if ( strstr(bf->familly, "Node") && strncmp(bf->type, "event", 5) ) {
+				//this is a POINTER to a node
 				if (strstr(bf->familly, "MF")) {
 					//this is a POINTER to a chain
 					//fprintf(vrml_code, "\tp->%s = gf_list_new();\t\n", bf->name);
@@ -448,7 +448,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 		}
 
 		fprintf(vrml_code, "\n\t/*default field values*/\n");
-		
+
 		for (i=0; i<gf_list_count(n->Fields); i++) {
 			bf = gf_list_get(n->Fields, i);
 
@@ -461,14 +461,14 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 			//no default on nodes
 			if (strstr(bf->familly, "Node")) continue;
 			//extract default falue
-			
+
 			//
 			//		SF Fields
 			//
-			
+
 			//SFBool
 			if (!strcmp(bf->familly, "SFBool")) {
-				if (!strcmp(bf->def, "1") || !strcmp(bf->def, "TRUE")) 
+				if (!strcmp(bf->def, "1") || !strcmp(bf->def, "TRUE"))
 					fprintf(vrml_code, "\tp->%s = 1;\n", bf->name);
 			}
 			//SFFloat
@@ -569,7 +569,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				fprintf(vrml_code, "\tp->%s.buffer = (char*) gf_malloc(sizeof(char) * %d);\n", bf->name, strlen(bf->def)+1);
 				fprintf(vrml_code, "\tstrcpy(p->%s.buffer, \"%s\");\n", bf->name, bf->def);
 			}
-		
+
 			//
 			//		MF Fields
 			//
@@ -947,7 +947,7 @@ void WriteNDT(FILE *f, GF_List *XNodes, GF_List *NDTs)
 		NDTName = gf_list_get(NDTs, i);
 		count = GetNDTCount(NDTName, XNodes);
 		if (!count) continue;
-		
+
 		fprintf(f, "#define %s_X3D_Count\t%d\n", NDTName, count);
 		fprintf(f, "static const u32 %s_X3D_TypeToTag[%d] = {\n", NDTName, count);
 		first = 1;
@@ -955,7 +955,7 @@ void WriteNDT(FILE *f, GF_List *XNodes, GF_List *NDTs)
 		for (j=0; j<gf_list_count(XNodes); j++) {
 			n = gf_list_get(XNodes, j);
 			if (!IsNodeInTable(n, NDTName)) continue;
-			
+
 			if (first) {
 				fprintf(f, " TAG_X3D_%s", n->name);
 				first = 0;
@@ -1000,7 +1000,7 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs)
 		if (sLine[0] == '\n') continue;
 
 		CurrentLine = sLine;
-		
+
 		//parse the line till end of line
 		while (GetNextToken(token, " \t")) {
 
@@ -1042,7 +1042,7 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs)
 				}
 				f = BlankField();
 				gf_list_add(n->Fields, f);
-				
+
 				//get the field type
 				strcpy(f->type, token);
 				GetNextToken(f->familly, " \t");
@@ -1167,7 +1167,7 @@ void parse_profile(GF_List *nodes, FILE *prof)
 		//skip comment and empty lines
 		if (sLine[0] == '#') continue;
 		if (sLine[0] == '\n') continue;
-		if (strstr(sLine, "Proximity")) 
+		if (strstr(sLine, "Proximity"))
 			found = 0;
 		found = 1;
 		while (found) {
@@ -1228,12 +1228,12 @@ int main (int argc, char **argv)
 			fclose(pf);
 		}
 	}
-	
+
 	//write the nodes def
 	WriteNodesFile(XNodes, NDTs);
 
 	nodes = BeginFile(1);
-	
+
 	//write all nodes init stuff
 	WriteNodeCode(XNodes, nodes);
 

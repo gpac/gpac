@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -32,7 +32,7 @@
 	Notes about the mixer:
 	1- spatialization is out of scope for the mixer (eg that's the sound node responsability)
 	2- mixing is performed by resampling input source & deinterleaving its channels into dedicated buffer.
-	We could directly deinterleave in the main mixer ouput buffer, but this would prevent any future 
+	We could directly deinterleave in the main mixer ouput buffer, but this would prevent any future
 	gain correction.
 */
 typedef struct
@@ -44,7 +44,7 @@ typedef struct
 	u32 buffer_size;
 
 	u32 bytes_per_sec;
-	
+
 	Bool has_prev;
 	s32 last_channels[GF_SR_MAX_CHANNELS];
 
@@ -97,7 +97,7 @@ GF_AudioMixer *gf_mixer_new(struct _audio_render *ar)
 	return am;
 }
 
-Bool gf_mixer_must_reconfig(GF_AudioMixer *am) 
+Bool gf_mixer_must_reconfig(GF_AudioMixer *am)
 {
 	return am->must_reconfig;
 }
@@ -123,7 +123,7 @@ void gf_mixer_remove_all(GF_AudioMixer *am)
 		gf_free(in);
 	}
 	am->isEmpty = 1,
-	gf_mixer_lock(am, 0);
+	    gf_mixer_lock(am, 0);
 }
 
 Bool gf_mixer_is_src_present(GF_AudioMixer *am, GF_AudioInterface *ifce)
@@ -223,8 +223,8 @@ void gf_mixer_get_config(GF_AudioMixer *am, u32 *outSR, u32 *outCH, u32 *outBPS,
 GF_EXPORT
 void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outBPS, u32 outChCfg)
 {
-	if ((am->bits_per_sample == outBPS) && (am->nb_channels == outCH) 
-		&& (am->sample_rate==outSR) && (am->channel_cfg == outChCfg)) return;
+	if ((am->bits_per_sample == outBPS) && (am->nb_channels == outCH)
+	        && (am->sample_rate==outSR) && (am->channel_cfg == outChCfg)) return;
 
 	gf_mixer_lock(am, 1);
 	am->bits_per_sample = outBPS;
@@ -306,7 +306,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 			memset(&in->last_channels, 0, sizeof(s16)*GF_SR_MAX_CHANNELS);
 		}
 	}
-	
+
 	if (cfg_changed || (max_sample_rate && (max_sample_rate != am->sample_rate)) ) {
 		if (max_channels>2) {
 			if (ch_cfg != am->channel_cfg) {
@@ -328,7 +328,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 		}
 		gf_mixer_set_config(am, max_sample_rate, max_channels, max_bps, ch_cfg);
 	}
-	
+
 	if (numInit == count) am->must_reconfig = 0;
 
 	gf_mixer_lock(am, 0);
@@ -474,7 +474,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 		in_s8 = NULL;
 	}
 
-	/*just in case, if only 1 sample available in src, copy over and discard frame since we cannot 
+	/*just in case, if only 1 sample available in src, copy over and discard frame since we cannot
 	interpolate audio*/
 	if (src_samp==1) {
 		in->has_prev = 1;
@@ -494,14 +494,14 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 		next = prev+1;
 		frac = (i*ratio) - 255*prev;
 		if (frac && (next==src_samp)) break;
-		if (use_prev && prev) 
+		if (use_prev && prev)
 			use_prev = 0;
 
 		if (in_s16) {
 			for (j=0; j<in_ch; j++) {
 				inChan[j] = use_prev ? in->last_channels[j] : in_s16[in_ch*prev + j];
 				inChanNext[j] = in_s16[in_ch*next + j];
-				inChan[j] = (frac*inChanNext[j] + (255-frac)*inChan[j]) / 255;			
+				inChan[j] = (frac*inChanNext[j] + (255-frac)*inChan[j]) / 255;
 			}
 		} else {
 			for (j=0; j<in_ch; j++) {
@@ -592,7 +592,7 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 	single_source->muted = single_source->src->IsMuted(single_source->src->callback);
 	/*this happens if input SR cannot be mapped to output audio hardware*/
 	if (single_source->src->samplerate != am->sample_rate) goto do_mix;
-	/*note we don't check output cfg: if the number of channel is the same then the channel cfg is the 
+	/*note we don't check output cfg: if the number of channel is the same then the channel cfg is the
 	same*/
 	if (single_source->src->chan != am->nb_channels) goto do_mix;
 	if (single_source->src->GetSpeed(single_source->src->callback)!=FIX_ONE) goto do_mix;
@@ -654,16 +654,16 @@ do_mix:
 		in->muted = in->src->IsMuted(in->src->callback);
 		if (in->muted) continue;
 
-		if (in->buffer_size < nb_samples) { 
+		if (in->buffer_size < nb_samples) {
 			for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
-				if (in->ch_buf[j]) gf_free(in->ch_buf[j]); 
+				if (in->ch_buf[j]) gf_free(in->ch_buf[j]);
 				in->ch_buf[j] = (s32 *) gf_malloc(sizeof(s32) * nb_samples);
 			}
-			in->buffer_size = nb_samples; 
+			in->buffer_size = nb_samples;
 		}
 		in->speed = in->src->GetSpeed(in->src->callback);
 		if (in->speed<0) in->speed *= -1;
-		
+
 		in->out_samples_written = 0;
 		in->in_bytes_used = 0;
 
@@ -677,11 +677,11 @@ do_mix:
 				}
 				in->muted = 1;
 				continue;
-			} 
+			}
 			//otherwise fallthrou, mixer keeps the same config
 			force_mix = GF_TRUE;
-		} 
-		
+		}
+
 		if (in->speed==0) {
 			in->out_samples_to_write = 0;
 		} else {
@@ -692,9 +692,9 @@ do_mix:
 			} else {
 				if (!force_mix  && !in->src->GetChannelVolume(in->src->callback, in->pan)) {
 					/*track first active source with same cfg as mixer*/
-					if (!single_source && (in->src->samplerate == am->sample_rate) 
-						&& (in->src->chan == am->nb_channels) && (in->speed == FIX_ONE) 
-					) 
+					if (!single_source && (in->src->samplerate == am->sample_rate)
+					        && (in->src->chan == am->nb_channels) && (in->speed == FIX_ONE)
+					   )
 						single_source = in;
 				}
 			}
@@ -791,7 +791,7 @@ do_mix:
 	}
 
 	nb_written *= am->nb_channels*am->bits_per_sample/8;
-	if (buffer_size > nb_written) 
+	if (buffer_size > nb_written)
 		memset((char *)buffer + nb_written, 0, sizeof(char)*(buffer_size-nb_written));
 
 	gf_mixer_lock(am, 0);

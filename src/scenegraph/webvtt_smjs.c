@@ -32,18 +32,18 @@
 
 #include <gpac/internal/smjs_api.h>
 
-GF_EXPORT 
-GF_Err gf_webvtt_js_addCue(GF_Node *node, const char *id, 
-										  const char *start, const char *end,
-										  const char *settings, 
-										  const char *payload)
+GF_EXPORT
+GF_Err gf_webvtt_js_addCue(GF_Node *node, const char *id,
+                           const char *start, const char *end,
+                           const char *settings,
+                           const char *payload)
 {
 	GF_Err e;
 	JSBool found;
 	JSContext *c = node->sgprivate->scenegraph->svg_js->js_ctx;
 	JSObject *global = node->sgprivate->scenegraph->svg_js->global;
 	jsval fun_val;
-	
+
 	gf_sg_lock_javascript(c, GF_TRUE);
 	found = JS_LookupProperty(c, global, "addCue", &fun_val);
 	if (!found || JSVAL_IS_VOID(fun_val) || !JSVAL_IS_OBJECT(fun_val) ) {
@@ -76,7 +76,7 @@ GF_Err gf_webvtt_js_addCue(GF_Node *node, const char *id,
 	return e;
 }
 
-GF_EXPORT 
+GF_EXPORT
 GF_Err gf_webvtt_js_removeCues(GF_Node *node)
 {
 	GF_Err e;
@@ -84,7 +84,7 @@ GF_Err gf_webvtt_js_removeCues(GF_Node *node)
 	JSContext *c = node->sgprivate->scenegraph->svg_js->js_ctx;
 	JSObject *global = node->sgprivate->scenegraph->svg_js->global;
 	jsval fun_val;
-	
+
 	gf_sg_lock_javascript(c, GF_TRUE);
 	found = JS_LookupProperty(c, global, "removeCues", &fun_val);
 	if (!found || JSVAL_IS_VOID(fun_val) || !JSVAL_IS_OBJECT(fun_val) ) {
@@ -110,16 +110,16 @@ GF_Err gf_webvtt_js_removeCues(GF_Node *node)
 }
 
 #else
-GF_EXPORT 
-GF_Err gf_webvtt_js_addCue(GF_Node *node, const char *id, 
-										  const char *start, const char *end,
-										  const char *settings, 
-										  const char *payload)
+GF_EXPORT
+GF_Err gf_webvtt_js_addCue(GF_Node *node, const char *id,
+                           const char *start, const char *end,
+                           const char *settings,
+                           const char *payload)
 {
 	return GF_BAD_PARAM;
 }
 
-GF_EXPORT 
+GF_EXPORT
 GF_Err gf_webvtt_js_removeCues()
 {
 	return GF_BAD_PARAM;

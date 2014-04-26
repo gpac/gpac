@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -106,7 +106,7 @@ enum
 	/*!GPAC Private Media streams\n
 	*\n\note
 	*this stream type (MPEG-4 user-private) is reserved for media streams bypassing GPAC for decoding
-	and composition. The media decoder is only in charge of repositioning the video output, and the compositor will 
+	and composition. The media decoder is only in charge of repositioning the video output, and the compositor will
 	draw an empty rectangle if using alpha composition
 
 	*The decoderSpecificInfo carried only contains an opaque pointer in the data field, which depends on the underlying InputServce provider
@@ -183,13 +183,13 @@ typedef enum
 	/*!32 bit RGBA (openGL like). Component ordering in bytes is R-G-B-A.*/
 	GF_PIXEL_RGBA		=	GF_4CC('R','G','B', 'A'),
 	/*!RGB24 + depth plane. Component ordering in bytes is R-G-B-D.*/
-    GF_PIXEL_RGBD		=	GF_4CC('R', 'G', 'B', 'D'),
+	GF_PIXEL_RGBD		=	GF_4CC('R', 'G', 'B', 'D'),
 	/*!RGB24 + depth plane (7 lower bits) + shape mask. Component ordering in bytes is R-G-B-(S+D).*/
-    GF_PIXEL_RGBDS		=	GF_4CC('3', 'C', 'D', 'S'),
+	GF_PIXEL_RGBDS		=	GF_4CC('3', 'C', 'D', 'S'),
 	/*!Stereo RGB24 */
-    GF_PIXEL_RGBS		=	GF_4CC('R', 'G', 'B', 'S'),
+	GF_PIXEL_RGBS		=	GF_4CC('R', 'G', 'B', 'S'),
 	/*!Stereo RGBA. Component ordering in bytes is R-G-B-A. */
-    GF_PIXEL_RGBAS		=	GF_4CC('R', 'G', 'A', 'S'),
+	GF_PIXEL_RGBAS		=	GF_4CC('R', 'G', 'A', 'S'),
 
 	/*internal format for OpenGL using pachek RGB 24 bit plus planaer depth plane at the end of the image*/
 	GF_PIXEL_RGB_24_DEPTH = GF_4CC('R', 'G', 'B', 'd'),
@@ -255,11 +255,11 @@ enum
 	GPAC_OTI_SCENE_BIFS_EXTENDED = 0x04,
 	/*!OTI for AFX streams with AFXConfig*/
 	GPAC_OTI_SCENE_AFX = 0x05,
-    /*!OTI for Font data streams */
+	/*!OTI for Font data streams */
 	GPAC_OTI_FONT = 0x06,
-    /*!OTI for synthesized texture streams */
+	/*!OTI for synthesized texture streams */
 	GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE = 0x07,
-    /*!OTI for streaming text streams */
+	/*!OTI for streaming text streams */
 	GPAC_OTI_TEXT_MPEG4 = 0x08,
 	/*!OTI for LASeR streams*/
 	GPAC_OTI_SCENE_LASER = 0x09,
@@ -279,105 +279,105 @@ enum
 	/*!OTI for HEVC layered streams*/
 	GPAC_OTI_VIDEO_SHVC = 0x25,
 	/*!OTI for MPEG-4 AAC streams*/
-    GPAC_OTI_AUDIO_AAC_MPEG4 = 0x40,
+	GPAC_OTI_AUDIO_AAC_MPEG4 = 0x40,
 
 	/*!OTI for MPEG-2 Visual Simple Profile streams*/
-    GPAC_OTI_VIDEO_MPEG2_SIMPLE = 0x60,
+	GPAC_OTI_VIDEO_MPEG2_SIMPLE = 0x60,
 	/*!OTI for MPEG-2 Visual Main Profile streams*/
-    GPAC_OTI_VIDEO_MPEG2_MAIN = 0x61,
+	GPAC_OTI_VIDEO_MPEG2_MAIN = 0x61,
 	/*!OTI for MPEG-2 Visual SNR Profile streams*/
-    GPAC_OTI_VIDEO_MPEG2_SNR = 0x62,
+	GPAC_OTI_VIDEO_MPEG2_SNR = 0x62,
 	/*!OTI for MPEG-2 Visual SNR Profile streams*/
-    GPAC_OTI_VIDEO_MPEG2_SPATIAL = 0x63,
+	GPAC_OTI_VIDEO_MPEG2_SPATIAL = 0x63,
 	/*!OTI for MPEG-2 Visual SNR Profile streams*/
-    GPAC_OTI_VIDEO_MPEG2_HIGH = 0x64,
+	GPAC_OTI_VIDEO_MPEG2_HIGH = 0x64,
 	/*!OTI for MPEG-2 Visual SNR Profile streams*/
-    GPAC_OTI_VIDEO_MPEG2_422 = 0x65,
+	GPAC_OTI_VIDEO_MPEG2_422 = 0x65,
 
 
 	/*!OTI for MPEG-2 AAC Main Profile streams*/
-    GPAC_OTI_AUDIO_AAC_MPEG2_MP = 0x66,
+	GPAC_OTI_AUDIO_AAC_MPEG2_MP = 0x66,
 	/*!OTI for MPEG-2 AAC Low Complexity Profile streams*/
-    GPAC_OTI_AUDIO_AAC_MPEG2_LCP = 0x67,
+	GPAC_OTI_AUDIO_AAC_MPEG2_LCP = 0x67,
 	/*!OTI for MPEG-2 AAC Scaleable Sampling Rate Profile streams*/
-    GPAC_OTI_AUDIO_AAC_MPEG2_SSRP = 0x68,
+	GPAC_OTI_AUDIO_AAC_MPEG2_SSRP = 0x68,
 	/*!OTI for MPEG-2 Audio Part 3 streams*/
-    GPAC_OTI_AUDIO_MPEG2_PART3 = 0x69,
+	GPAC_OTI_AUDIO_MPEG2_PART3 = 0x69,
 	/*!OTI for MPEG-1 Video streams*/
-    GPAC_OTI_VIDEO_MPEG1 = 0x6A,
+	GPAC_OTI_VIDEO_MPEG1 = 0x6A,
 	/*!OTI for MPEG-1 Audio streams*/
-    GPAC_OTI_AUDIO_MPEG1 = 0x6B,
+	GPAC_OTI_AUDIO_MPEG1 = 0x6B,
 	/*!OTI for JPEG streams*/
-    GPAC_OTI_IMAGE_JPEG = 0x6C,
+	GPAC_OTI_IMAGE_JPEG = 0x6C,
 	/*!OTI for PNG streams*/
-    GPAC_OTI_IMAGE_PNG = 0x6D,
+	GPAC_OTI_IMAGE_PNG = 0x6D,
 	/*!OTI for JPEG-2000 streams*/
-    GPAC_OTI_IMAGE_JPEG_2000 = 0x6E,
+	GPAC_OTI_IMAGE_JPEG_2000 = 0x6E,
 
-/*!
- * \brief Extra ObjectTypeIndication
- *
- *	ObjectTypeIndication for media (audio/video) codecs not defined in MPEG-4. Since GPAC signals streams through MPEG-4 Descriptions,
- *	it needs extensions for non-MPEG-4 streams such as AMR, H263 , etc.\n
- *\note The decoder specific info for such streams is always carried encoded, with the following syntax:\n
- *	DSI Syntax for audio streams
- \code
- *	u32 codec_four_cc: the codec 4CC reg code / codec id for ffmpeg
- *	u32 sample_rate: sampling rate or 0 if unknown
- *	u16 nb_channels: num channels or 0 if unknown
- *	u16 frame_size: num audio samples per frame or 0 if unknown
- *	u8 nb_bits_per_sample: nb bits or 0 if unknown
- *	u8 num_frames_per_au: num audio frames per AU (used in 3GPP, max 15), 0 if unknown
- *	char *data: per-codec extensions till end of DSI bitstream
- \endcode
- \n
- *	DSI Syntax for video streams
- \code
- *	u32 codec_four_cc: the codec 4CC reg code  / codec id for ffmpeg
- *	u16 width: video width or 0 if unknown
- *	u16 height: video height or 0 if unknown
- *	char *data: per-codec extensions till end of DSI bitstream
- \endcode
-*/
-    GPAC_OTI_MEDIA_GENERIC = 0x80,
-/*!
- * \brief FFMPEG ObjectTypeIndication
- *
- *	ObjectTypeIndication for FFMPEG codecs not defined in MPEG-4. FFMPEG uses the base GPAC_OTI_MEDIA_GENERIC specific info formats, and extends it as follows:
- \code
- *	u32 bit_rate: the stream rate or 0 if unknown
- *	u32 codec_tag: FFMPEG codec tag as defined in libavcodec
- *	char *data: codec extensions till end of DSI bitstream
- \endcode
- */
-    GPAC_OTI_MEDIA_FFMPEG = 0x81,
+	/*!
+	 * \brief Extra ObjectTypeIndication
+	 *
+	 *	ObjectTypeIndication for media (audio/video) codecs not defined in MPEG-4. Since GPAC signals streams through MPEG-4 Descriptions,
+	 *	it needs extensions for non-MPEG-4 streams such as AMR, H263 , etc.\n
+	 *\note The decoder specific info for such streams is always carried encoded, with the following syntax:\n
+	 *	DSI Syntax for audio streams
+	 \code
+	 *	u32 codec_four_cc: the codec 4CC reg code / codec id for ffmpeg
+	 *	u32 sample_rate: sampling rate or 0 if unknown
+	 *	u16 nb_channels: num channels or 0 if unknown
+	 *	u16 frame_size: num audio samples per frame or 0 if unknown
+	 *	u8 nb_bits_per_sample: nb bits or 0 if unknown
+	 *	u8 num_frames_per_au: num audio frames per AU (used in 3GPP, max 15), 0 if unknown
+	 *	char *data: per-codec extensions till end of DSI bitstream
+	 \endcode
+	 \n
+	 *	DSI Syntax for video streams
+	 \code
+	 *	u32 codec_four_cc: the codec 4CC reg code  / codec id for ffmpeg
+	 *	u16 width: video width or 0 if unknown
+	 *	u16 height: video height or 0 if unknown
+	 *	char *data: per-codec extensions till end of DSI bitstream
+	 \endcode
+	*/
+	GPAC_OTI_MEDIA_GENERIC = 0x80,
+	/*!
+	 * \brief FFMPEG ObjectTypeIndication
+	 *
+	 *	ObjectTypeIndication for FFMPEG codecs not defined in MPEG-4. FFMPEG uses the base GPAC_OTI_MEDIA_GENERIC specific info formats, and extends it as follows:
+	 \code
+	 *	u32 bit_rate: the stream rate or 0 if unknown
+	 *	u32 codec_tag: FFMPEG codec tag as defined in libavcodec
+	 *	char *data: codec extensions till end of DSI bitstream
+	 \endcode
+	 */
+	GPAC_OTI_MEDIA_FFMPEG = 0x81,
 
-    /*!OTI for EVRC Voice streams*/
-    GPAC_OTI_AUDIO_EVRC_VOICE = 0xA0,
+	/*!OTI for EVRC Voice streams*/
+	GPAC_OTI_AUDIO_EVRC_VOICE = 0xA0,
 	/*!OTI for SMV Voice streams*/
-    GPAC_OTI_AUDIO_SMV_VOICE = 0xA1,
+	GPAC_OTI_AUDIO_SMV_VOICE = 0xA1,
 	/*!OTI for 3GPP2 CMF streams*/
-    GPAC_OTI_3GPP2_CMF = 0xA2,
+	GPAC_OTI_3GPP2_CMF = 0xA2,
 	/*!OTI for SMPTE VC-1 Video streams*/
-    GPAC_OTI_VIDEO_SMPTE_VC1 = 0xA3,
+	GPAC_OTI_VIDEO_SMPTE_VC1 = 0xA3,
 	/*!OTI for Dirac Video streams*/
-    GPAC_OTI_VIDEO_DIRAC = 0xA4,
+	GPAC_OTI_VIDEO_DIRAC = 0xA4,
 	/*!OTI for AC-3 audio streams*/
-    GPAC_OTI_AUDIO_AC3 = 0xA5,
+	GPAC_OTI_AUDIO_AC3 = 0xA5,
 	/*!OTI for enhanced AC-3 audio streams*/
-    GPAC_OTI_AUDIO_AC3_ENHANCED = 0xA6,
+	GPAC_OTI_AUDIO_AC3_ENHANCED = 0xA6,
 	/*!OTI for DRA audio streams*/
-    GPAC_OTI_AUDIO_DRA = 0xA7,
+	GPAC_OTI_AUDIO_DRA = 0xA7,
 	/*!OTI for ITU G719 audio streams*/
-    GPAC_OTI_AUDIO_ITU_G719 = 0xA8,
+	GPAC_OTI_AUDIO_ITU_G719 = 0xA8,
 	/*!OTI for DTS Coherent Acoustics audio streams*/
-    GPAC_OTI_AUDIO_DTS_CA = 0xA9,
+	GPAC_OTI_AUDIO_DTS_CA = 0xA9,
 	/*!OTI for DTS-HD High Resolution audio streams*/
-    GPAC_OTI_AUDIO_DTS_HD_HR = 0xAA,
+	GPAC_OTI_AUDIO_DTS_HD_HR = 0xAA,
 	/*!OTI for DTS-HD Master audio streams*/
-    GPAC_OTI_AUDIO_DTS_HD_MASTER = 0xAB,
+	GPAC_OTI_AUDIO_DTS_HD_MASTER = 0xAB,
 
-    /*!OTI for dummy streams (dsi = file name) using the generic context loader (BIFS/VRML/SWF/...) - GPAC internal*/
+	/*!OTI for dummy streams (dsi = file name) using the generic context loader (BIFS/VRML/SWF/...) - GPAC internal*/
 	GPAC_OTI_PRIVATE_SCENE_GENERIC = 0xC0,
 	/*!OTI for SVG dummy stream (dsi = file name) - GPAC internal*/
 	GPAC_OTI_PRIVATE_SCENE_SVG = 0xC1,
@@ -405,49 +405,49 @@ enum
 	/*!OTI for streaming simple text from MP4- GPAC internal*/
 	GPAC_OTI_SCENE_SIMPLE_TEXT_MP4 = 0xD5,
 
-/*!
- * \brief OGG ObjectTypeIndication
- *
- *	Object type indication for all OGG media. The DSI contains all intitialization ogg packets for the codec
- * and is formated as follows:\n
- *\code
-	while (dsi_size) {
-		bit(16) packet_size;
-		char packet[packet_size];
-		dsi_size -= packet_size;
-	}\endcode
-*/
-    GPAC_OTI_MEDIA_OGG = 0xDD,
-    GPAC_OTI_MEDIA_THEORA = 0xDF,
+	/*!
+	 * \brief OGG ObjectTypeIndication
+	 *
+	 *	Object type indication for all OGG media. The DSI contains all intitialization ogg packets for the codec
+	 * and is formated as follows:\n
+	 *\code
+		while (dsi_size) {
+			bit(16) packet_size;
+			char packet[packet_size];
+			dsi_size -= packet_size;
+		}\endcode
+	*/
+	GPAC_OTI_MEDIA_OGG = 0xDD,
+	GPAC_OTI_MEDIA_THEORA = 0xDF,
 
-    GPAC_OTI_MEDIA_SUBPIC = 0xE0,
+	GPAC_OTI_MEDIA_SUBPIC = 0xE0,
 
-    /*!OTI for 13K Voice / QCELP audio streams*/
-    GPAC_OTI_AUDIO_13K_VOICE = 0xE1,
+	/*!OTI for 13K Voice / QCELP audio streams*/
+	GPAC_OTI_AUDIO_13K_VOICE = 0xE1,
 
 	/*!OTI for RAW media streams. Input data is directly dispatched to the composition memory.  The DSI contains is formated (MSBF) as follows:\n
- *	DSI Syntax for audio streams
- \code
- *	u32 sample_rate: sampling rate
- *	u16 nb_channels: num channels 
- *	u16 nb_bits_per_sample: num of bits per audio sample
- *	u32 frame_size: max size of audio frame in byte
- *	u32 channel_config: GPAC mask of GF_AUDIO_CH_ constants, or 0 if unknown
- \endcode
- \n
- *	DSI Syntax for video streams
- \code
- *	u32 codec_four_cc: the codec 4CC reg code  / codec id for ffmpeg
- *	u16 width: video width or 0 if unknown
- *	u16 height: video height or 0 if unknown
- *	u32 frame_size: size of the video frame
- *	u32 stride: horizontal stride of the video frame
- \endcode
+	*	DSI Syntax for audio streams
+	\code
+	*	u32 sample_rate: sampling rate
+	*	u16 nb_channels: num channels
+	*	u16 nb_bits_per_sample: num of bits per audio sample
+	*	u32 frame_size: max size of audio frame in byte
+	*	u32 channel_config: GPAC mask of GF_AUDIO_CH_ constants, or 0 if unknown
+	\endcode
+	\n
+	*	DSI Syntax for video streams
+	\code
+	*	u32 codec_four_cc: the codec 4CC reg code  / codec id for ffmpeg
+	*	u16 width: video width or 0 if unknown
+	*	u16 height: video height or 0 if unknown
+	*	u32 frame_size: size of the video frame
+	*	u32 stride: horizontal stride of the video frame
+	\endcode
 	*/
 	GPAC_OTI_RAW_MEDIA_STREAM = 0x101,
 
 	/*!OTI for LIBPLAYER private streams. The data pointer in the DSI is the libplayer handle object*/
-    GPAC_OTI_PRIVATE_MEDIA_LIBPLAYER = 0xF1
+	GPAC_OTI_PRIVATE_MEDIA_LIBPLAYER = 0xF1
 };
 
 

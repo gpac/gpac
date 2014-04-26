@@ -39,24 +39,24 @@ extern "C" {
 #define PROF_S(n) prof.MarkS(n)
 #define PROF_E(n) prof.MarkE(n)
 
-enum{
-   PROF_TICK,
-   PROF_CONV,
-   PROF_UPD,
-   PROF_DECODE,
-   PROF_DRAWTXT,
-   PROF_FRM_I,
-   PROF_FRM_P,
-   PROF_BINT_MBI,
-   PROF_FRM_B,
-   PROF_0,
-   PROF_1,
-   PROF_2,
-   PROF_3,
-   PROF_4,
-   PROF_5,
-   PROF_6,
-   PROF_7,
+enum {
+	PROF_TICK,
+	PROF_CONV,
+	PROF_UPD,
+	PROF_DECODE,
+	PROF_DRAWTXT,
+	PROF_FRM_I,
+	PROF_FRM_P,
+	PROF_BINT_MBI,
+	PROF_FRM_B,
+	PROF_0,
+	PROF_1,
+	PROF_2,
+	PROF_3,
+	PROF_4,
+	PROF_5,
+	PROF_6,
+	PROF_7,
 };
 
 #else
@@ -119,7 +119,7 @@ enum{
  * error codes
  ****************************************************************************/
 
-	/*	all functions return values <0 indicate error */
+/*	all functions return values <0 indicate error */
 
 #define XVID_ERR_FAIL		-1		/* general fault */
 #define XVID_ERR_MEMORY		-2		/* memory allocation error */
@@ -253,17 +253,17 @@ typedef struct {
 int xvid_global(void *handle, int opt, void *param1, void *param2);
 
 
-class C_xvid_image{
+class C_xvid_image {
 public:
-   byte *y;
-   byte *u;
-   byte *v;
+	byte *y;
+	byte *u;
+	byte *v;
 
-   C_xvid_image():
-      y(NULL),
-      u(NULL),
-      v(NULL)
-   {}
+	C_xvid_image():
+		y(NULL),
+		u(NULL),
+		v(NULL)
+	{}
 };
 
 void * InitCodec(dword sx, dword sy, dword fcc);
@@ -290,7 +290,7 @@ typedef struct {
 	int height;    /* [in:opt] image width */
 	void *handle; /* [out]	   decore context handle */
 #ifdef PROFILE
-   C_profiler *prof;
+	C_profiler *prof;
 #endif
 } xvid_dec_create_t;
 
@@ -306,7 +306,7 @@ typedef struct {
 	const void *bitstream;     /* [in]     bitstream (read from)*/
 	int length;          /* [in]     bitstream length */
 	//xvid_image_t output; /* [in]     output image (written to) */
-   const C_xvid_image *img_out;
+	const C_xvid_image *img_out;
 } xvid_dec_frame_t;
 
 

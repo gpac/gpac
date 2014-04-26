@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 #include <gpac/nodes_mpeg4.h>
@@ -586,7 +586,7 @@ static void s2b_merge_curve2d(M_Curve2D *s, M_Curve2D *tomerge)
 		gf_sg_vrml_mf_append(&dest->point, GF_SG_VRML_MFVEC2F, &ptr);
 		*((SFVec2f *)ptr) = pt;
 	}
-	
+
 	i = 0;
 	if (tomerge->type.vals[0] == 0) i=1;
 	pt_idx = 1;
@@ -669,7 +669,7 @@ static void s2b_insert_rec_in_coord(M_Coordinate2D *c, SWFShapeRec *srec)
 			c->point.vals = gf_realloc(c->point.vals, sizeof(SFVec2f)*c->point.count);
 			c->point.vals[j] = srec->path->pts[i];
 		}
-		srec->path->idx[i] = j; 
+		srec->path->idx[i] = j;
 	}
 }
 
@@ -690,10 +690,10 @@ static GF_Err swf_bifs_define_shape(SWFReader *read, SWFShape *shape, SWFFont *p
 
 		/*empty shape - for fonts, not a mistake, that's likelly space char*/
 		if (!shape) {
-			if (!parent_font) 
+			if (!parent_font)
 				return GF_OK;
 			n = s2b_new_node(read, TAG_MPEG4_Shape);
-		} 
+		}
 		/*direct match, no top group*/
 		else if (last_sub_shape && (gf_list_count(shape->fill_left) + gf_list_count(shape->lines)<=1)) {
 			Bool is_fill = 1;
@@ -898,7 +898,7 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 			gf_free(str_w);
 
 			gl = (M_Shape *) s2b_new_node(read, TAG_MPEG4_Shape);
-			gl->appearance = s2b_get_appearance(read, (GF_Node *) gl, gr->col, 0, 0);				
+			gl->appearance = s2b_get_appearance(read, (GF_Node *) gl, gr->col, 0, 0);
 			gl->geometry = (GF_Node *) t;
 			gf_node_register(gl->geometry, (GF_Node *) gl);
 			gf_node_insert_child((GF_Node *) par, (GF_Node *)gl, -1);
@@ -1010,23 +1010,23 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 	gf_sg_vrml_mf_append(&f->justify, GF_SG_VRML_MFSTRING, (void**)&ptr);
 	switch (text->align) {
 	case 0:
-		((SFString*)ptr)->buffer = gf_strdup("BEGIN"); 
+		((SFString*)ptr)->buffer = gf_strdup("BEGIN");
 		break;
 	case 1:
-		((SFString*)ptr)->buffer = gf_strdup("END"); 
+		((SFString*)ptr)->buffer = gf_strdup("END");
 		break;
 	case 3:
-		((SFString*)ptr)->buffer = gf_strdup("JUSTIFY"); 
+		((SFString*)ptr)->buffer = gf_strdup("JUSTIFY");
 		break;
 	default:
-		((SFString*)ptr)->buffer = gf_strdup("MIDDLE"); 
+		((SFString*)ptr)->buffer = gf_strdup("MIDDLE");
 		break;
 	}
 
 	strcpy(styles, "");
 	if (!text->read_only) strcat(styles, "EDITABLE");
 	if (text->password) strcat(styles, "PASSWORD");
-	
+
 	if (f->style.buffer) gf_free(f->style.buffer);
 	f->style.buffer = gf_strdup(styles);
 
@@ -1055,25 +1055,25 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 
 
 	txt = (M_Shape *) s2b_new_node(read, TAG_MPEG4_Shape);
-	txt->appearance = s2b_get_appearance(read, (GF_Node *) txt, text->color, 0, 0);				
+	txt->appearance = s2b_get_appearance(read, (GF_Node *) txt, text->color, 0, 0);
 	txt->geometry = (GF_Node *) t;
 	gf_node_register(txt->geometry, (GF_Node *) txt);
 
-	if (layout) {		
+	if (layout) {
 		gf_sg_vrml_mf_reset(&layout->justify, GF_SG_VRML_MFSTRING);
 		gf_sg_vrml_mf_append(&layout->justify, GF_SG_VRML_MFSTRING, NULL);
 		switch (text->align) {
 		case 0:
-			layout->justify.vals[0] = gf_strdup("BEGIN"); 
+			layout->justify.vals[0] = gf_strdup("BEGIN");
 			break;
 		case 1:
-			layout->justify.vals[0] = gf_strdup("END"); 
+			layout->justify.vals[0] = gf_strdup("END");
 			break;
 		case 3:
-			layout->justify.vals[0] = gf_strdup("JUSTIFY"); 
+			layout->justify.vals[0] = gf_strdup("JUSTIFY");
 			break;
 		default:
-			layout->justify.vals[0] = gf_strdup("MIDDLE"); 
+			layout->justify.vals[0] = gf_strdup("MIDDLE");
 			break;
 		}
 		if (text->multiline || text->word_wrap) layout->wrap = 1;
@@ -1086,7 +1086,7 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 	} else {
 		gf_node_insert_child((GF_Node *) tr, (GF_Node *)txt, -1);
 		gf_node_register((GF_Node *) txt, (GF_Node *) tr);
-	} 
+	}
 	if (tr) {
 		char szDEF[1024];
 		u32 ID;
@@ -1109,7 +1109,7 @@ static void swf_bifs_end_of_clip(SWFReader *read)
 	GF_Command *com;
 	GF_CommandField *f;
 	GF_Node *empty;
-	
+
 	return;
 
 	empty = gf_sg_find_node_by_name(read->load->scene_graph, "Shape0");
@@ -1417,7 +1417,7 @@ static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd, Bool soundstr
 		/*if sprite always have the media active but controled by its mediaControl*/
 		if (read->current_sprite_id) {
 			((M_AudioClip*)n)->startTime = 0;
-		} 
+		}
 		/*otherwise start the media at the first soundstream block*/
 		else {
 			((M_AudioClip*)n)->startTime = snd->frame_delay_ms/1000.0;
@@ -1453,7 +1453,7 @@ static GF_Err swf_bifs_setup_image(SWFReader *read, u32 ID, char *fileName)
 	GF_Node *n, *par;
 	GF_FieldInfo info;
 	char szDEF[100];
-	
+
 	e = swf_init_od(read, 0);
 	if (e) return e;
 
@@ -1587,7 +1587,7 @@ static void s2b_set_field(SWFReader *read, GF_List *dst, GF_Node *n, char *field
 	f->pos = pos;
 	f->fieldIndex = info.fieldIndex;
 
-	if (insert) 
+	if (insert)
 		gf_list_insert(dst, com, 0);
 	else
 		gf_list_add(dst, com);
@@ -1773,7 +1773,7 @@ static GF_Err swf_bifs_show_frame(SWFReader *read)
 	*/
 	is_rap = (read->current_sprite_id || (read->flags & GF_SM_SWF_SPLIT_TIMELINE)) ? 1 : 0;
 #else
-	/*"The contents of the second frame are the cumulative effect of performing all the control tag operations from 
+	/*"The contents of the second frame are the cumulative effect of performing all the control tag operations from
 	the beginning of the file to the second ShowFrame tag, and so on"
 	using RAP=0 forces reprocessing of previous frames when seeking/jumping*/
 	is_rap = 0;
@@ -1788,10 +1788,10 @@ static GF_Err swf_bifs_show_frame(SWFReader *read)
 			read->bifs_dict_au = gf_sm_stream_au_new(read->bifs_dict_es, ts, 0, 0);
 		}
 		/*if wait_frame is specified, aggregate all dictionary commands until frame is reached*/
-		if (read->wait_frame && read->wait_frame<=read->current_frame) 
+		if (read->wait_frame && read->wait_frame<=read->current_frame)
 			read->wait_frame = 0;
 	}
-	
+
 	return GF_OK;
 }
 
@@ -1799,14 +1799,14 @@ static GF_Err swf_bifs_show_frame(SWFReader *read)
 static GF_Node *s2b_button_add_child(SWFReader *read, GF_Node *button, u32 tag, char *def_name, s32 pos)
 {
 	GF_Node *n = s2b_new_node(read, tag);
-	
+
 	if (def_name) {
 		u32 ID;
 		read->load->ctx->max_node_id++;
 		ID = read->load->ctx->max_node_id;
 		gf_node_set_id((GF_Node *)n, ID, def_name);
 	}
-	
+
 	gf_node_insert_child((GF_Node *)button, (GF_Node *)n, pos);
 	gf_node_register((GF_Node *) n, (GF_Node *) button);
 	return n;
@@ -1850,7 +1850,7 @@ static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 	gf_node_set_id((GF_Node *)btn_root, ID, szName);
 
 	n = s2b_button_add_child(read, btn_root, TAG_MPEG4_ColorTransform, NULL, -1);
-	((M_ColorTransform*)n)->maa = ((M_ColorTransform*)n)->mab = ((M_ColorTransform*)n)->mar = ((M_ColorTransform*)n)->mag = ((M_ColorTransform*)n)->ta = 0; 
+	((M_ColorTransform*)n)->maa = ((M_ColorTransform*)n)->mab = ((M_ColorTransform*)n)->mar = ((M_ColorTransform*)n)->mag = ((M_ColorTransform*)n)->ta = 0;
 
 	/*locate hit buttons and add them to the color transform*/
 	for (i=0; i<btn->count; i++) {
@@ -1973,7 +1973,7 @@ static void swf_bifs_finalize(SWFReader *read)
 {
 	u32 i, count;
 
-	swf_bifs_end_of_clip(read);	
+	swf_bifs_end_of_clip(read);
 
 	while (gf_list_count(read->buttons)) {
 		S2BBtnRec *btnrec = gf_list_get(read->buttons, 0);
@@ -1982,7 +1982,7 @@ static void swf_bifs_finalize(SWFReader *read)
 	}
 
 	count = gf_list_count(read->fonts);
-	for (i=0;i<count; i++) {
+	for (i=0; i<count; i++) {
 		SWFFont *ft = (SWFFont *)gf_list_get(read->fonts, i);
 		while (gf_list_count(ft->glyphs)) {
 			GF_Node *gl = (GF_Node *)gf_list_get(ft->glyphs, 0);
@@ -2024,8 +2024,10 @@ Bool swf_bifs_action(SWFReader *read, SWFAction *act)
 		break;
 	case GF_SWF_AS3_GET_URL:
 		n = gf_sg_find_node_by_name(read->load->scene_graph, "MOVIE_URL");
-		sfurl.OD_ID = 0; sfurl.url = act->url;
-		url.count = 1; url.vals = &sfurl;
+		sfurl.OD_ID = 0;
+		sfurl.url = act->url;
+		url.count = 1;
+		url.vals = &sfurl;
 		s2b_set_field(read, dst, n, "url", -1, GF_SG_VRML_MFURL, &url, 0);
 		s2b_set_field(read, dst, n, "parameter", -1, GF_SG_VRML_MFSTRING, &url, 0);
 		bval = 1;
@@ -2111,13 +2113,13 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	gf_node_set_id(n, 1, "BACKGROUND");
 	gf_node_insert_child(read->root, n, -1);
 	gf_node_register(n, read->root);
-	
+
 	/*movie anchor*/
 	n = s2b_new_node(read, TAG_MPEG4_Anchor);
 	gf_node_set_id(n, 2, "MOVIE_URL");
 	gf_node_insert_child(read->root, n, -1);
 	gf_node_register(n, read->root);
-	
+
 	/*dictionary*/
 	n = s2b_new_node(read, TAG_MPEG4_Switch);
 	gf_node_set_id(n, 3, "DICTIONARY");
@@ -2163,7 +2165,7 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 		url->url = gf_strdup("urn:inet:gpac:builtin:IndexedCurve2D");
 
 		gf_sg_proto_field_new(proto, GF_SG_VRML_SFNODE, GF_SG_EVENT_EXPOSED_FIELD, "coord");
-		
+
 		pfield = gf_sg_proto_field_new(proto, GF_SG_VRML_SFFLOAT, GF_SG_EVENT_EXPOSED_FIELD, "fineness");
 		gf_sg_proto_field_get_field(pfield, &info);
 		*((SFFloat*)info.far_ptr) = FIX_ONE/2;
@@ -2172,7 +2174,7 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 		ftMin = 0;
 		ftMax = 15*FIX_ONE;
 		gf_bifs_proto_field_set_aq_info(pfield, 13, 1, GF_SG_VRML_SFINT32, &ftMin, &ftMax, 4);
-		
+
 		pfield = gf_sg_proto_field_new(proto, GF_SG_VRML_MFINT32, GF_SG_EVENT_EXPOSED_FIELD, "coordIndex");
 		ftMin = 0;
 		ftMax = FIX_MAX;

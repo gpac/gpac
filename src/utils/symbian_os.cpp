@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -36,15 +36,15 @@
 #include <sys/times.h>
 #include <sys/resource.h>
 /*symbian stdlib*/
-#include <e32std.h> 
+#include <e32std.h>
 /*symbian core (for scheduler & trap cleanup)*/
-#include <e32base.h> 
+#include <e32base.h>
 /*hardware abstraction layer*/
 #include <hal.h>
- 
+
 /*gpac module internals*/
 #include "module_wrap.h"
-#include <gpac/thread.h> 
+#include <gpac/thread.h>
 
 
 //  Exported Functions (DLL entry point)
@@ -79,21 +79,21 @@ void gf_sleep(u32 ms)
 	TTimeIntervalMicroSeconds32 inter;
 	inter = (TInt) (1000*ms);
 #ifdef __SERIES60_3X__
-	User::AfterHighRes(inter); 
+	User::AfterHighRes(inter);
 #else
-	User::After(inter); 
+	User::After(inter);
 #endif
 
 #if 0
 	TInt error;
-    CActiveScheduler::RunIfReady(error, CActive::EPriorityIdle);
+	CActiveScheduler::RunIfReady(error, CActive::EPriorityIdle);
 
 	RTimer timer;
 	TRequestStatus timerStatus;
 	timer.CreateLocal();
-	
+
 	timer.After(timerStatus,ms*1000);
-	User::WaitForRequest(timerStatus); 
+	User::WaitForRequest(timerStatus);
 #endif
 }
 
@@ -125,7 +125,7 @@ u32 gf_rand()
 GF_EXPORT
 FILE *gf_temp_file_new()
 {
-	return tmpfile(); 
+	return tmpfile();
 }
 #endif
 
@@ -307,7 +307,7 @@ static void *RunThread(void *ptr)
 		t->status = GF_THREAD_STATUS_DEAD;
 		gf_sema_notify(t->_signal, 1);
 		goto exit;
-	} 
+	}
 #ifndef GPAC_DISABLE_LOG
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Thread %s] Installing ActiveScheduler\n", t->log_name));
 #endif
@@ -370,7 +370,7 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 
 	threadName.Format(_L("GTH%d"), (u32) t);
 	t->threadH = new RThread();
-	if ( t->threadH->Create(threadName, (TThreadFunction)RunThread, KDefaultStackSize, KThreadMinHeapSize, KThreadMaxHeapSize, (void *)t, EOwnerProcess) != KErrNone){
+	if ( t->threadH->Create(threadName, (TThreadFunction)RunThread, KDefaultStackSize, KThreadMinHeapSize, KThreadMaxHeapSize, (void *)t, EOwnerProcess) != KErrNone) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Unable to create thread\n"));
 		t->status = GF_THREAD_STATUS_DEAD;
 		return GF_IO_ERR;
@@ -378,7 +378,7 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 	t->threadH->Resume();
 
 	/*wait for the child function to call us - do NOT return before, otherwise the thread status would
-	be unknown*/ 	
+	be unknown*/
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Waiting for thread to start\n"));
 	gf_sema_wait(t->_signal);
 	gf_sema_del(t->_signal);
@@ -391,11 +391,11 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 static void Thread_Stop(GF_Thread *t, Bool Destroy)
 {
 	if (gf_th_status(t) == GF_THREAD_STATUS_RUN) {
-		if (Destroy){
+		if (Destroy) {
 			t->threadH->Terminate(0);
 			t->threadH = NULL;
 		}
-		else{
+		else {
 			t->threadH->Suspend();
 		}
 	}
@@ -468,9 +468,9 @@ GF_Mutex *gf_mx_new(const char *name)
 	GF_Mutex *tmp = (GF_Mutex *)gf_malloc(sizeof(GF_Mutex));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_Mutex));
-	
+
 	tmp->hMutex = new RMutex();
-	if( tmp->hMutex->CreateLocal() != KErrNone){
+	if( tmp->hMutex->CreateLocal() != KErrNone) {
 		gf_free(tmp);
 		return NULL;
 	}
@@ -671,7 +671,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	if (rti->sampling_instant + refresh_time_ms > now) return 0;
 	rti->sampling_period_duration = now - rti->sampling_instant;
 	rti->sampling_instant = now;
-	
+
 	if (cur_th.Process(cur_process) != KErrNone) {
 		return 0;
 	}
@@ -694,8 +694,8 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	rti->process_cpu_usage = 100*rti->process_cpu_time_diff / rti->sampling_period_duration;
 	if (rti->process_cpu_usage > 100) rti->process_cpu_usage = 100;
 
-	HAL::Get(HALData::EMemoryRAM, ram);		
-	HAL::Get(HALData::EMemoryRAMFree, ram_free);		
+	HAL::Get(HALData::EMemoryRAM, ram);
+	HAL::Get(HALData::EMemoryRAMFree, ram_free);
 	rti->physical_memory = ram;
 	rti->physical_memory_avail = ram_free;
 #ifdef GPAC_MEMORY_TRACKING
@@ -705,7 +705,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 }
 
 GF_EXPORT
-Bool gf_sys_get_battery_state(Bool *onBattery, u32 *state, u32*level) 
+Bool gf_sys_get_battery_state(Bool *onBattery, u32 *state, u32*level)
 {
 	return 1;
 }
@@ -720,7 +720,7 @@ void gf_modules_free_module(ModuleInstance *inst)
 		gf_list_rem(inst->interfaces, 0);
 		inst->destroy_func(objinterface);
 	}
-	if (inst->lib_handle){
+	if (inst->lib_handle) {
 		RLibrary* pLibrary = (RLibrary *) inst->lib_handle;
 		pLibrary->Close();
 	}
@@ -730,11 +730,11 @@ void gf_modules_free_module(ModuleInstance *inst)
 
 Bool gf_modules_load_library(ModuleInstance *inst)
 {
-	const TUid KGPACModuleUid={0x10000080};
+	const TUid KGPACModuleUid= {0x10000080};
 	char s_path[GF_MAX_PATH];
 	HBufC *path;
-    TInt e;
-	
+	TInt e;
+
 	if (inst->lib_handle) return 1;
 
 	sprintf(s_path, "%s%c%s", inst->plugman->dir, GF_PATH_SEPARATOR, inst->szName);
@@ -761,7 +761,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	inst->query_func = (QueryInterfaces) pLibrary->Lookup(1);
 	inst->load_func = (LoadInterface) pLibrary->Lookup(2);
 	inst->destroy_func = (ShutdownInterface) pLibrary->Lookup(3);
-	
+
 	if ((inst->query_func==NULL) || (inst->load_func==NULL) || (inst->destroy_func==NULL) ) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] Library %s has invalid interfaces", inst->szName));
 		pLibrary->Close();
@@ -775,7 +775,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	return 1;
 
 err_exit:
-	gf_cfg_set_key(inst->plugman->cfg, "SymbianDLLs", inst->szName, "no"); 
+	gf_cfg_set_key(inst->plugman->cfg, "SymbianDLLs", inst->szName, "no");
 	return 0;
 }
 
@@ -786,7 +786,7 @@ void gf_modules_unload_library(ModuleInstance *inst)
 	RLibrary* pLibrary = (RLibrary *) inst->lib_handle;
 	pLibrary->Close();
 	delete pLibrary;
-	
+
 	inst->lib_handle = NULL;
 	inst->load_func = NULL;
 	inst->destroy_func = NULL;
@@ -825,11 +825,11 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 	gf_enum_directory((char*)pm->dir, 0, enum_modules, pm, ".dll");
 #else
 	u32 i, mod_count;
-	
+
 	mod_count = gf_cfg_get_key_count(pm->cfg, "SymbianDLLs");
 	for (i=0; i<mod_count; i++) {
 		const char *mod = gf_cfg_get_key_name(pm->cfg, "SymbianDLLs", i);
-		if (stricmp(gf_cfg_get_key(pm->cfg, "SymbianDLLs", mod), "yes")) continue; 
+		if (stricmp(gf_cfg_get_key(pm->cfg, "SymbianDLLs", mod), "yes")) continue;
 		enum_modules(pm, (char*)mod, NULL);
 	}
 #endif

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -34,7 +34,7 @@ GF_Rect gf_rect_ft(GF_IRect *rc);
 Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2);
 
 /*@rc1 equales @rc2*/
-#define gf_rect_equal(rc1, rc2) ((rc1.width == rc2.width) && (rc1.height == rc2.height) && (rc1.x == rc2.x)  && (rc1.y == rc2.y)) 
+#define gf_rect_equal(rc1, rc2) ((rc1.width == rc2.width) && (rc1.height == rc2.height) && (rc1.x == rc2.x)  && (rc1.y == rc2.y))
 
 //#define TRACK_OPAQUE_REGIONS
 
@@ -42,7 +42,7 @@ Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2);
 #define RA_DEFAULT_STEP	10
 
 typedef struct
-{	
+{
 	GF_IRect rect;
 #ifdef TRACK_OPAQUE_REGIONS
 	/*list of nodes covering (no transparency) each rect, or 0 otherwise.*/
@@ -51,7 +51,7 @@ typedef struct
 } GF_RectArrayEntry;
 
 typedef struct
-{	
+{
 	GF_RectArrayEntry *list;
 	u32 count, alloc;
 } GF_RectArray;
@@ -126,7 +126,7 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 
 
 /*video overlay context*/
-typedef struct _video_overlay 
+typedef struct _video_overlay
 {
 	struct _video_overlay *next;
 	GF_Window src, dst;
@@ -134,7 +134,7 @@ typedef struct _video_overlay
 	GF_RectArray ra;
 } GF_OverlayStack;
 
-/*check if the object is over an overlay. If so, adds its cliper to the list of rectangles to redraw for the overlay 
+/*check if the object is over an overlay. If so, adds its cliper to the list of rectangles to redraw for the overlay
 and returns 1 (in which case it shouldn't be drawn)*/
 Bool visual_2d_overlaps_overlay(GF_VisualManager *visual, DrawableContext *ctx, GF_TraverseState *tr_state);
 /*draw all partial overlays in software and all overlaping objects*/

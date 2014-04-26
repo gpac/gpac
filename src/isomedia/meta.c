@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -83,7 +83,7 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 		}
 	}
 	if (!xml || !xml->xml || !xml->xml_length) return GF_BAD_PARAM;
-	
+
 	didfile = gf_f64_open(outName, "wb");
 	if (!didfile) return GF_IO_ERR;
 	gf_fwrite(xml->xml, xml->xml_length, 1, didfile);
@@ -125,10 +125,10 @@ u32 gf_isom_get_meta_item_count(GF_ISOFile *file, Bool root_meta, u32 track_num)
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num, 
-							u32 *itemID, u32 *protection_idx, Bool *is_self_reference,
-							const char **item_name, const char **item_mime_type, const char **item_encoding,
-							const char **item_url, const char **item_urn)
+GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num,
+                                  u32 *itemID, u32 *protection_idx, Bool *is_self_reference,
+                                  const char **item_name, const char **item_mime_type, const char **item_encoding,
+                                  const char **item_url, const char **item_urn)
 {
 	GF_ItemInfoEntryBox *iinf;
 	u32 i, count;
@@ -137,7 +137,7 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 
 	iinf = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, item_num-1);
 	if (!iinf) return GF_BAD_PARAM;
-	
+
 	if (itemID) (*itemID) = iinf->item_ID;
 	if (protection_idx) (*protection_idx) = iinf->item_protection_index;
 	if (item_name) (*item_name) = iinf->item_name;
@@ -165,9 +165,9 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 				GF_ItemExtentEntry *entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
 				if (!entry->extent_length
 #ifndef GPAC_DISABLE_ISOM_WRITE
-					&& !entry->original_extent_offset
+				        && !entry->original_extent_offset
 #endif
-					)
+				   )
 					*is_self_reference = 1;
 			}
 		}
@@ -204,7 +204,7 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta || !meta->item_infos || !meta->item_locations) return GF_BAD_PARAM;
-	
+
 	if (out_mime) *out_mime = NULL;
 
 	item_num = gf_isom_get_meta_item_by_id(file, root_meta, track_num, item_id);
@@ -212,7 +212,7 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 		GF_ItemInfoEntryBox *item_entry = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, item_num-1);
 		item_name = item_entry->item_name;
 		if (out_mime) *out_mime = item_entry->content_type;
-	} 
+	}
 
 	location_entry = NULL;
 	count = gf_list_count(meta->item_locations->location_entries);
@@ -241,11 +241,11 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 	count = gf_list_count(location_entry->extent_entries);
 	if (!location_entry->base_offset && (count==1)) {
 		extent_entry = (GF_ItemExtentEntry *)gf_list_get(location_entry->extent_entries, 0);
-		if (!extent_entry->extent_length 
+		if (!extent_entry->extent_length
 #ifndef GPAC_DISABLE_ISOM_WRITE
-			&& !extent_entry->original_extent_offset
+		        && !extent_entry->original_extent_offset
 #endif
-			) return GF_BAD_PARAM;
+		   ) return GF_BAD_PARAM;
 	}
 
 	item_bs = NULL;
@@ -262,7 +262,7 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 		resource = gf_f64_open(szPath, "wb");
 		item_bs = gf_bs_from_file(resource, GF_BITSTREAM_WRITE);
 	}
-		
+
 	for (i=0; i<count; i++) {
 		char buf_cache[4096];
 		u64 remain;
@@ -282,7 +282,7 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 	}
 	if (resource) {
 		fclose(resource);
-	} 
+	}
 	gf_bs_del(item_bs);
 	return GF_OK;
 }
@@ -358,7 +358,7 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 		return GF_OK;
 	}
 
-	if (!meta->handler) 
+	if (!meta->handler)
 		meta->handler = (GF_HandlerBox *)hdlr_New();
 
 	if (meta->handler->nameUTF8) gf_free(meta->handler->nameUTF8);
@@ -530,7 +530,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	}
 	memset(location_entry, 0, sizeof(GF_ItemLocationEntry));
 	location_entry->extent_entries = gf_list_new();
-		
+
 	/*Creates an mdat if it does not exist*/
 	if (!file->mdat) {
 		file->mdat = (GF_MediaDataBox *)mdat_New();
@@ -544,7 +544,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 		location_entry->item_ID = item_id;
 	} else {
 		location_entry->item_ID = lastItemID;
-	}	
+	}
 
 	if (!meta->item_infos) meta->item_infos = (GF_ItemInfoBox *) iinf_New();
 	e = gf_list_add(meta->item_infos->item_infos, infe);

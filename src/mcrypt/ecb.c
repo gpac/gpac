@@ -1,9 +1,9 @@
 /*
  * Copyright (C) 1998,1999,2000,2001 Nikos Mavroyanopoulos
- * 
- * This library is free software; you can redistribute it and/or modify it 
- * under the terms of the GNU Library General Public License as published 
- * by the Free Software Foundation; either version 2 of the License, or 
+ *
+ * This library is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Library General Public License as published
+ * by the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
  *
  * This library is distributed in the hope that it will be useful,
@@ -27,8 +27,12 @@ static GF_Err _init_mcrypt( void* ign, void *key, int lenofkey, void *IV, int si
 
 }
 
-static GF_Err _mcrypt_set_state( void* buf, void *IV, int size) { return GF_BAD_PARAM; }
-static GF_Err _mcrypt_get_state( void* buf, void *IV, int *size) { return GF_BAD_PARAM; }
+static GF_Err _mcrypt_set_state( void* buf, void *IV, int size) {
+	return GF_BAD_PARAM;
+}
+static GF_Err _mcrypt_get_state( void* buf, void *IV, int *size) {
+	return GF_BAD_PARAM;
+}
 
 static void _end_mcrypt (void* buf) {}
 
@@ -39,7 +43,7 @@ static GF_Err _mcrypt( void* ign, void *plaintext, int len, int blocksize, void*
 	void (*_mcrypt_block_encrypt) (void *, void *);
 
 	_mcrypt_block_encrypt = func;
-	
+
 	for (j = 0; j < len / blocksize; j++) {
 		_mcrypt_block_encrypt(akey, &plain[j * blocksize]);
 	}
@@ -56,7 +60,7 @@ static GF_Err _mdecrypt( void* ign, void *ciphertext, int len, int blocksize, vo
 	void (*_mcrypt_block_decrypt) (void *, void *);
 
 	_mcrypt_block_decrypt = func2;
-	
+
 	for (j = 0; j < len / blocksize; j++) {
 		_mcrypt_block_decrypt(akey, &cipher[j * blocksize]);
 	}

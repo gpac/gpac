@@ -35,57 +35,57 @@ extern "C" {
 #endif
 
 typedef struct {
-  s32 endbyte;
-  s32  endbit;
+	s32 endbyte;
+	s32  endbit;
 
-  unsigned char *buffer;
-  unsigned char *ptr;
-  s32 storage;
+	unsigned char *buffer;
+	unsigned char *ptr;
+	s32 storage;
 } oggpack_buffer;
 
 /* ogg_page is used to encapsulate the data in one Ogg bitstream page *****/
 
 typedef struct {
-  unsigned char *header;
-  s32 header_len;
-  unsigned char *body;
-  s32 body_len;
+	unsigned char *header;
+	s32 header_len;
+	unsigned char *body;
+	s32 body_len;
 } ogg_page;
 
 /* ogg_stream_state contains the current encode/decode state of a logical
    Ogg bitstream **********************************************************/
 
 typedef struct {
-  unsigned char   *body_data;    /* bytes from packet bodies */
-  s32    body_storage;          /* storage elements allocated */
-  s32    body_fill;             /* elements stored; fill mark */
-  s32    body_returned;         /* elements of fill returned */
+	unsigned char   *body_data;    /* bytes from packet bodies */
+	s32    body_storage;          /* storage elements allocated */
+	s32    body_fill;             /* elements stored; fill mark */
+	s32    body_returned;         /* elements of fill returned */
 
 
-  s32     *lacing_vals;      /* The values that will go to the segment table */
-  s64 *granule_vals; /* granulepos values for headers. Not compact
+	s32     *lacing_vals;      /* The values that will go to the segment table */
+	s64 *granule_vals; /* granulepos values for headers. Not compact
 				this way, but it is simple coupled to the
 				lacing fifo */
-  s32    lacing_storage;
-  s32    lacing_fill;
-  s32    lacing_packet;
-  s32    lacing_returned;
+	s32    lacing_storage;
+	s32    lacing_fill;
+	s32    lacing_packet;
+	s32    lacing_returned;
 
-  unsigned char    header[282];      /* working space for header encode */
-  s32              header_fill;
+	unsigned char    header[282];      /* working space for header encode */
+	s32              header_fill;
 
-  s32     e_o_s;          /* set when we have buffered the last packet in the
+	s32     e_o_s;          /* set when we have buffered the last packet in the
                              logical bitstream */
-  s32     b_o_s;          /* set after we've written the initial page
+	s32     b_o_s;          /* set after we've written the initial page
                              of a logical bitstream */
-  s32    serialno;
-  s32    pageno;
-  s64  packetno;      /* sequence number for decode; the framing
+	s32    serialno;
+	s32    pageno;
+	s64  packetno;      /* sequence number for decode; the framing
                              knows where there's a hole in the data,
                              but we need coupling so that the codec
                              (which is in a seperate abstraction
                              layer) also knows about the gap */
-  s64   granulepos;
+	s64   granulepos;
 
 } ogg_stream_state;
 
@@ -93,14 +93,14 @@ typedef struct {
    to a single raw Ogg/Vorbis packet *************************************/
 
 typedef struct {
-  unsigned char *packet;
-  s32  bytes;
-  s32  b_o_s;
-  s32  e_o_s;
+	unsigned char *packet;
+	s32  bytes;
+	s32  b_o_s;
+	s32  e_o_s;
 
-  s64  granulepos;
-  
-  s64  packetno;     /* sequence number for decode; the framing
+	s64  granulepos;
+
+	s64  packetno;     /* sequence number for decode; the framing
 				knows where there's a hole in the data,
 				but we need coupling so that the codec
 				(which is in a seperate abstraction
@@ -108,14 +108,14 @@ typedef struct {
 } ogg_packet;
 
 typedef struct {
-  unsigned char *data;
-  s32 storage;
-  s32 fill;
-  s32 returned;
+	unsigned char *data;
+	s32 storage;
+	s32 fill;
+	s32 returned;
 
-  s32 unsynced;
-  s32 headerbytes;
-  s32 bodybytes;
+	s32 unsynced;
+	s32 headerbytes;
+	s32 bodybytes;
 } ogg_sync_state;
 
 

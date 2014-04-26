@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -136,41 +136,41 @@ void Freenect_DepthCallback_ColorGradient(freenect_device *dev, void *v_depth, u
 			int pval = vcap->gamma[depth[i]];
 			int lb = pval & 0xff;
 			switch (pval>>8) {
-				case 0:
-					vcap->depth_buf[3*i+0] = 255;
-					vcap->depth_buf[3*i+1] = 255-lb;
-					vcap->depth_buf[3*i+2] = 255-lb;
-					break;
-				case 1:
-					vcap->depth_buf[3*i+0] = 255;
-					vcap->depth_buf[3*i+1] = lb;
-					vcap->depth_buf[3*i+2] = 0;
-					break;
-				case 2:
-					vcap->depth_buf[3*i+0] = 255-lb;
-					vcap->depth_buf[3*i+1] = 255;
-					vcap->depth_buf[3*i+2] = 0;
-					break;
-				case 3:
-					vcap->depth_buf[3*i+0] = 0;
-					vcap->depth_buf[3*i+1] = 255;
-					vcap->depth_buf[3*i+2] = lb;
-					break;
-				case 4:
-					vcap->depth_buf[3*i+0] = 0;
-					vcap->depth_buf[3*i+1] = 255-lb;
-					vcap->depth_buf[3*i+2] = 255;
-					break;
-				case 5:
-					vcap->depth_buf[3*i+0] = 0;
-					vcap->depth_buf[3*i+1] = 0;
-					vcap->depth_buf[3*i+2] = 255-lb;
-					break;
-				default:
-					vcap->depth_buf[3*i+0] = 0;
-					vcap->depth_buf[3*i+1] = 0;
-					vcap->depth_buf[3*i+2] = 0;
-					break;
+			case 0:
+				vcap->depth_buf[3*i+0] = 255;
+				vcap->depth_buf[3*i+1] = 255-lb;
+				vcap->depth_buf[3*i+2] = 255-lb;
+				break;
+			case 1:
+				vcap->depth_buf[3*i+0] = 255;
+				vcap->depth_buf[3*i+1] = lb;
+				vcap->depth_buf[3*i+2] = 0;
+				break;
+			case 2:
+				vcap->depth_buf[3*i+0] = 255-lb;
+				vcap->depth_buf[3*i+1] = 255;
+				vcap->depth_buf[3*i+2] = 0;
+				break;
+			case 3:
+				vcap->depth_buf[3*i+0] = 0;
+				vcap->depth_buf[3*i+1] = 255;
+				vcap->depth_buf[3*i+2] = lb;
+				break;
+			case 4:
+				vcap->depth_buf[3*i+0] = 0;
+				vcap->depth_buf[3*i+1] = 255-lb;
+				vcap->depth_buf[3*i+2] = 255;
+				break;
+			case 5:
+				vcap->depth_buf[3*i+0] = 0;
+				vcap->depth_buf[3*i+1] = 0;
+				vcap->depth_buf[3*i+2] = 255-lb;
+				break;
+			default:
+				vcap->depth_buf[3*i+0] = 0;
+				vcap->depth_buf[3*i+1] = 0;
+				vcap->depth_buf[3*i+2] = 0;
+				break;
 			}
 		}
 		vcap->depth_sl_header.compositionTimeStamp = timestamp;
@@ -294,7 +294,7 @@ GF_Err Freenect_ConnectService(GF_InputService *plug, GF_ClientService *serv, co
 		while (params) {
 			char *sep = (char *) strchr(params, '&');
 			if (sep) sep[0] = 0;
-	
+
 			GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[VideoCapture] Set camera option %s\n", params));
 
 			if (!strnicmp(params, "resolution=", 11)) {
@@ -393,7 +393,7 @@ GF_Err Freenect_ConnectService(GF_InputService *plug, GF_ClientService *serv, co
 
 	/*setup object descriptor*/
 	od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-	
+
 	esd = gf_odf_desc_esd_new(0);
 	esd->slConfig->timestampResolution = 1000;
 	if (!strnicmp(url, "camera://", 9) || !strnicmp(url, "video://", 8) || !strnicmp(url, "kinect://", 8)) {
@@ -412,7 +412,7 @@ GF_Err Freenect_ConnectService(GF_InputService *plug, GF_ClientService *serv, co
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 	}
 	esd->decoderConfig->objectTypeIndication = GPAC_OTI_RAW_MEDIA_STREAM;
-	
+
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u32(bs, (esd->ESID==2) ? vcap->color_pixel_format : vcap->depth_pixel_format);
 	gf_bs_write_u16(bs, vcap->width);
@@ -453,10 +453,13 @@ GF_Err Freenect_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 
 	switch (com->command_type) {
-	case GF_NET_CHAN_SET_PULL: return GF_NOT_SUPPORTED;
-	case GF_NET_CHAN_INTERACTIVE: return GF_OK;
+	case GF_NET_CHAN_SET_PULL:
+		return GF_NOT_SUPPORTED;
+	case GF_NET_CHAN_INTERACTIVE:
+		return GF_OK;
 	/*since data is file-based, no padding is needed (decoder plugin will handle it itself)*/
-	case GF_NET_CHAN_SET_PADDING: return GF_OK;
+	case GF_NET_CHAN_SET_PADDING:
+		return GF_OK;
 	case GF_NET_CHAN_BUFFER:
 		com->buffer.max = com->buffer.min = 500;
 		return GF_OK;
@@ -480,7 +483,8 @@ GF_Err Freenect_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			}
 		}
 		return GF_OK;
-	case GF_NET_CHAN_CONFIG: return GF_OK;
+	case GF_NET_CHAN_CONFIG:
+		return GF_OK;
 	case GF_NET_CHAN_GET_DSI:
 		com->get_dsi.dsi = NULL;
 		com->get_dsi.dsi_len = 0;
@@ -495,7 +499,7 @@ GF_Err Freenect_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, cons
 {
 	u32 ESID;
 	FreenectIn *vcap = (FreenectIn *) plug->priv;
-	
+
 	sscanf(url, "ES_ID=%u", &ESID);
 	if (ESID == 1) {
 		vcap->depth_channel = channel;
@@ -534,7 +538,7 @@ Bool Freenect_CanHandleURLInService(GF_InputService *plug, const char *url)
 
 
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_NET_CLIENT_INTERFACE,
@@ -566,7 +570,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 		GF_SAFEALLOC(vcap, FreenectIn);
 		plug->priv = vcap;
 		return (GF_BaseInterface *)plug;
-	} 
+	}
 	return NULL;
 }
 

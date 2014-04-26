@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -97,33 +97,33 @@ static void l3d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 
 	if (force_traverse) gf_node_traverse(l3d->background, tr_state);
 	btop = (GF_Node*)gf_list_get(tr_state->backgrounds, 0);
-	if (btop != l3d->background) { 
+	if (btop != l3d->background) {
 		gf_node_unregister(l3d->background, n);
-		gf_node_register(btop, n); 
+		gf_node_register(btop, n);
 		l3d->background = btop;
 		gf_node_event_out_str(n, "background");
 	}
 	if (force_traverse) gf_node_traverse(l3d->viewpoint, tr_state);
 	btop = (GF_Node*)gf_list_get(tr_state->viewpoints, 0);
-	if (btop != l3d->viewpoint) { 
+	if (btop != l3d->viewpoint) {
 		gf_node_unregister(l3d->viewpoint, n);
-		gf_node_register(btop, n); 
+		gf_node_register(btop, n);
 		l3d->viewpoint = btop;
 		gf_node_event_out_str(n, "viewpoint");
 	}
 	if (force_traverse) gf_node_traverse(l3d->navigationInfo, tr_state);
 	btop = (GF_Node*)gf_list_get(tr_state->navigations, 0);
-	if (btop != l3d->navigationInfo) { 
+	if (btop != l3d->navigationInfo) {
 		gf_node_unregister(l3d->navigationInfo, n);
-		gf_node_register(btop, n); 
+		gf_node_register(btop, n);
 		l3d->navigationInfo = btop;
 		gf_node_event_out_str(n, "navigationInfo");
 	}
 	if (force_traverse) gf_node_traverse(l3d->fog, tr_state);
 	btop = (GF_Node*)gf_list_get(tr_state->fogs, 0);
-	if (btop != l3d->fog) { 
+	if (btop != l3d->fog) {
 		gf_node_unregister(l3d->fog, n);
-		gf_node_register(btop, n); 
+		gf_node_register(btop, n);
 		l3d->fog = btop;
 		gf_node_event_out_str(n, "fog");
 	}
@@ -147,12 +147,12 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 	}
 #endif
 
-/*
-	if (tr_state->visual->compositor->recompute_ar) {
-		gf_node_dirty_set(node, 0, 0);
-		return 0;
-	}
-*/
+	/*
+		if (tr_state->visual->compositor->recompute_ar) {
+			gf_node_dirty_set(node, 0, 0);
+			return 0;
+		}
+	*/
 
 	new_pixel_format = GF_PIXEL_RGBA;
 #ifndef GPAC_USE_TINYGL
@@ -164,7 +164,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 	new_pixel_format = GF_PIXEL_RGBA;
 #else
 	/*no support for alpha in offscreen rendering*/
-	if (!(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA)) 
+	if (!(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
 		new_pixel_format = GF_PIXEL_RGB_24;
 #endif
 
@@ -174,7 +174,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 #if defined(GF_SR_USE_DEPTH) && !defined(GPAC_DISABLE_3D)
 	if (st->visual->type_3d && (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_DEPTH) ) new_pixel_format = GF_PIXEL_RGBDS;
 #endif
-	
+
 	w = (u32) FIX2INT(gf_ceil(width));
 	h = (u32) FIX2INT(gf_ceil(height));
 
@@ -189,12 +189,12 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 	if (!w || !h) return 0;
 
 	if (st->txh.tx_io
-		&& (new_pixel_format == st->txh.pixelformat)
-		&& (w == st->txh.width) 
-		&& (h == st->txh.height) 
-		&& (compositor->offscreen_width >= w) 
-		&& (compositor->offscreen_height >= h)
-	) 
+	        && (new_pixel_format == st->txh.pixelformat)
+	        && (w == st->txh.width)
+	        && (h == st->txh.height)
+	        && (compositor->offscreen_width >= w)
+	        && (compositor->offscreen_height >= h)
+	   )
 		return 2;
 
 	if (st->txh.tx_io) {
@@ -217,10 +217,10 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 	if (new_pixel_format==GF_PIXEL_RGBA) {
 		st->txh.stride = w * 4;
 		st->txh.transparent = 1;
-	} 
+	}
 	else if (new_pixel_format==GF_PIXEL_RGBDS) {
-			st->txh.stride = w * 4;
-			st->txh.transparent = 1;
+		st->txh.stride = w * 4;
+		st->txh.transparent = 1;
 	}
 	else {
 		st->txh.stride = w * 3;
@@ -258,7 +258,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 #endif
 	st->txh.data = (char*)gf_malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);
 	memset(st->txh.data, 0, sizeof(unsigned char) * st->txh.stride * st->txh.height);
-	
+
 	/*set stencil texture - we don't check error as an image could not be supported by the rasterizer
 	but still supported by the blitter (case of RGBD/RGBDS)*/
 	compositor->rasterizer->stencil_set_texture(stencil, st->txh.data, st->txh.width, st->txh.height, st->txh.stride, st->txh.pixelformat, st->txh.pixelformat, 0);
@@ -282,7 +282,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 static void layer3d_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
-	if (tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL)) 
+	if (tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL))
 		return;
 
 	visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
@@ -348,7 +348,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	M_Layer3D *l = (M_Layer3D *)node;
 	Layer3DStack *st = (Layer3DStack *) gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
-	
+
 	if (is_destroy) {
 		DestroyLayer3D(node);
 		return;
@@ -432,12 +432,12 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	} else {
 		gf_mx2d_apply_rect(&tr_state->transform, &rc);
 
-/*		if (tr_state->visual->compositor->visual==tr_state->visual) {
-			gf_mx2d_init(mx2d_backup);
-			gf_mx2d_add_scale(&mx2d_backup, tr_state->visual->compositor->scale_x, tr_state->visual->compositor->scale_y);
-			gf_mx2d_apply_rect(&mx2d_backup, &rc);
-		}
-*/
+		/*		if (tr_state->visual->compositor->visual==tr_state->visual) {
+					gf_mx2d_init(mx2d_backup);
+					gf_mx2d_add_scale(&mx2d_backup, tr_state->visual->compositor->scale_x, tr_state->visual->compositor->scale_y);
+					gf_mx2d_apply_rect(&mx2d_backup, &rc);
+				}
+		*/
 		/*switch visual*/
 		tr_state->visual = st->visual;
 	}
@@ -525,17 +525,17 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		/*!! we were in a 2D mode, create drawable context!!*/
 		if (!prev_cam) {
 			DrawableContext *ctx;
-			
+
 			/*with TinyGL we draw directly to the offscreen buffer*/
 #ifndef GPAC_USE_TINYGL
 			gf_sc_copy_to_stencil(&st->txh);
 #else
-			if (st->txh.pixelformat==GF_PIXEL_RGBDS) 
-				gf_get_tinygl_depth(&st->txh); 
+			if (st->txh.pixelformat==GF_PIXEL_RGBDS)
+				gf_get_tinygl_depth(&st->txh);
 #endif
 
-			if (tr_state->visual->compositor->rasterizer->stencil_texture_modified) 
-				tr_state->visual->compositor->rasterizer->stencil_texture_modified(gf_sc_texture_get_stencil(&st->txh) ); 
+			if (tr_state->visual->compositor->rasterizer->stencil_texture_modified)
+				tr_state->visual->compositor->rasterizer->stencil_texture_modified(gf_sc_texture_get_stencil(&st->txh) );
 			gf_sc_texture_set_stencil(&st->txh, gf_sc_texture_get_stencil(&st->txh) );
 			changed = 1;
 
@@ -545,7 +545,7 @@ layer3d_unchanged_2d:
 			tr_state->visual = old_visual;
 			tr_state->layer3d = NULL;
 			tr_state->appear = NULL;
-		//	tr_state->camera = prev_cam;
+			//	tr_state->camera = prev_cam;
 
 			ctx = drawable_init_context_mpeg4(st->drawable, tr_state);
 			if (!ctx) return;
@@ -573,8 +573,8 @@ layer3d_unchanged_2d:
 		}
 
 		if (!prev_cam) gf_mx_from_mx2d(&tr_state->model_matrix, &tr_state->transform);
-		
-		if (!do_pick && !gf_list_count(tr_state->visual->compositor->sensors)) 
+
+		if (!do_pick && !gf_list_count(tr_state->visual->compositor->sensors))
 			do_pick = gf_sc_pick_in_clipper(tr_state, &st->clip);
 
 		if (!do_pick) goto l3d_exit;
@@ -598,15 +598,21 @@ layer3d_unchanged_2d:
 		visual_3d_setup_projection(tr_state, 1);
 		in_x = 2 * gf_divfix(start.x, st->visual->camera.width);
 		in_y = 2 * gf_divfix(start.y, st->visual->camera.height);
-					
-		res.x = in_x; res.y = in_y; res.z = -FIX_ONE; res.q = FIX_ONE;
+
+		res.x = in_x;
+		res.y = in_y;
+		res.z = -FIX_ONE;
+		res.q = FIX_ONE;
 		gf_mx_apply_vec_4x4(&st->visual->camera.unprojection, &res);
 		if (!res.q) goto l3d_exit;
 		start.x = gf_divfix(res.x, res.q);
 		start.y = gf_divfix(res.y, res.q);
 		start.z = gf_divfix(res.z, res.q);
 
-		res.x = in_x; res.y = in_y; res.z = FIX_ONE; res.q = FIX_ONE;
+		res.x = in_x;
+		res.y = in_y;
+		res.z = FIX_ONE;
+		res.q = FIX_ONE;
 		gf_mx_apply_vec_4x4(&st->visual->camera.unprojection, &res);
 		if (!res.q) goto l3d_exit;
 		end.x = gf_divfix(res.x, res.q);
@@ -614,10 +620,10 @@ layer3d_unchanged_2d:
 		end.z = gf_divfix(res.z, res.q);
 		tr_state->ray = gf_ray(start, end);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer3D] Picking: cast ray\n\tOrigin %.4f %.4f %.4f - End %.4f %.4f %.4f\n\tDir %.4f %.4f %.4f\n", 
-			FIX2FLT(tr_state->ray.orig.x), FIX2FLT(tr_state->ray.orig.y), FIX2FLT(tr_state->ray.orig.z),
-			FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z),
-			FIX2FLT(tr_state->ray.dir.x), FIX2FLT(tr_state->ray.dir.y), FIX2FLT(tr_state->ray.dir.z)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer3D] Picking: cast ray\n\tOrigin %.4f %.4f %.4f - End %.4f %.4f %.4f\n\tDir %.4f %.4f %.4f\n",
+		                                      FIX2FLT(tr_state->ray.orig.x), FIX2FLT(tr_state->ray.orig.y), FIX2FLT(tr_state->ray.orig.z),
+		                                      FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z),
+		                                      FIX2FLT(tr_state->ray.dir.x), FIX2FLT(tr_state->ray.dir.y), FIX2FLT(tr_state->ray.dir.z)));
 
 		group_3d_traverse(node, (GroupingNode *)st, tr_state);
 		tr_state->ray = prev_r;

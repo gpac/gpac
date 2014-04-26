@@ -1,7 +1,7 @@
 /*
 *			GPAC - Multimedia Framework C SDK
 *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
 *					All rights reserved
 *
@@ -11,15 +11,15 @@
 *  it under the terms of the GNU Lesser General Public License as published by
 *  the Free Software Foundation; either version 2, or (at your option)
 *  any later version.
-*   
+*
 *  GPAC is distributed in the hope that it will be useful,
 *  but WITHOUT ANY WARRANTY; without even the implied warranty of
 *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 *  GNU Lesser General Public License for more details.
-*   
+*
 *  You should have received a copy of the GNU Lesser General Public
 *  License along with this library; see the file COPYING.  If not, write to
-*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 */
 
@@ -31,7 +31,7 @@
 #include "osmo_npapi.h"
 #include "osmozilla.h"
 
-#if defined(XP_UNIX) && !defined(XP_MACOS) 
+#if defined(XP_UNIX) && !defined(XP_MACOS)
 #include <malloc.h>
 #include <string.h>
 #endif
@@ -55,7 +55,7 @@ void Osmozilla_InitScripting(Osmozilla *osmo);
 #endif
 
 NPError NPOsmozilla_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16_t argc, char* argn[], char* argv[], NPSavedData* saved)
-{   
+{
 	Osmozilla *osmo;
 	NPError rv = NPERR_NO_ERROR;
 	if (instance == NULL)
@@ -108,7 +108,7 @@ NPError NPOsmozilla_Destroy (NPP instance, NPSavedData** save)
 // is about to be destroyed so we can do some gui specific
 // initialization and shutdown
 NPError NPOsmozilla_SetWindow (NPP instance, NPWindow* pNPWindow)
-{    
+{
 	Osmozilla *osmozilla;
 	void *os_wnd_handle, *os_wnd_display;
 	NPError rv = NPERR_NO_ERROR;
@@ -129,8 +129,8 @@ NPError NPOsmozilla_SetWindow (NPP instance, NPWindow* pNPWindow)
 		os_wnd_display = NULL;
 #elif defined(XP_UNIX)
 		os_wnd_handle = pNPWindow->window;
-		/*HACK - although we don't use the display in the X11 plugin, this is used to signal that 
-		the user is mozilla and prevent some X11 calls crashing the browser in file playing mode 
+		/*HACK - although we don't use the display in the X11 plugin, this is used to signal that
+		the user is mozilla and prevent some X11 calls crashing the browser in file playing mode
 		(eg, "firefox myfile.mp4" )*/
 		os_wnd_display =((NPSetWindowCallbackStruct *)pNPWindow->ws_info)->display;
 #endif
@@ -165,7 +165,7 @@ NPError NPOsmozilla_NewStream(NPP instance, NPMIMEType type, NPStream* stream, N
 		return NPERR_INVALID_INSTANCE_ERROR;
 
 	osmozilla = (Osmozilla *)instance->pdata;
-	if(osmozilla== NULL) 
+	if(osmozilla== NULL)
 		return NPERR_GENERIC_ERROR;
 
 	Osmozilla_ConnectTo(osmozilla, stream->url);
@@ -179,7 +179,7 @@ NPINT32 NPOsmozilla_WriteReady (NPP instance, NPStream *stream)
 }
 
 NPINT32 NPOsmozilla_Write (NPP instance, NPStream *stream, NPINT32 offset, NPINT32 len, void *buffer)
-{   
+{
 	return len;
 }
 
@@ -199,12 +199,12 @@ void NPOsmozilla_Print (NPP instance, NPPrint* printInfo)
 		return;
 
 	osmozilla = (Osmozilla *)instance->pdata;
-	if(osmozilla== NULL) 
+	if(osmozilla== NULL)
 		return;
 
-	Osmozilla_Print(osmozilla, (printInfo->mode == NP_EMBED) ? 1 : 0, printInfo->print.embedPrint.platformPrint, 
-		printInfo->print.embedPrint.window.x, printInfo->print.embedPrint.window.y,
-		printInfo->print.embedPrint.window.width, printInfo->print.embedPrint.window.height);
+	Osmozilla_Print(osmozilla, (printInfo->mode == NP_EMBED) ? 1 : 0, printInfo->print.embedPrint.platformPrint,
+	                printInfo->print.embedPrint.window.x, printInfo->print.embedPrint.window.y,
+	                printInfo->print.embedPrint.window.width, printInfo->print.embedPrint.window.height);
 }
 
 void NPOsmozilla_URLNotify(NPP instance, const char* url, NPReason reason, void* notifyData)
@@ -226,7 +226,7 @@ NPError	NPOsmozilla_GetValue(NPP instance, NPPVariable variable, void *value)
 #ifdef GECKO_XPCOM
 	case NPPVpluginScriptableInstance:
 		rv = NPOsmozilla_GetPeer(osmozilla, value);
-		break;	
+		break;
 
 	case NPPVpluginScriptableIID:
 		rv = NPOsmozilla_GetPeerIID(osmozilla, value);
@@ -280,7 +280,7 @@ static NPError fillPluginFunctionTable(NPPluginFuncs* aNPPFuncs)
 		return NPERR_INVALID_FUNCTABLE_ERROR;
 
 	// Set up the plugin function table that Netscape will use to
-	// call us. Netscape needs to know about our version and size   
+	// call us. Netscape needs to know about our version and size
 	// and have a UniversalProcPointer for every function we implement.
 
 	aNPPFuncs->version       = (NP_VERSION_MAJOR << 8) | NP_VERSION_MINOR;
@@ -371,7 +371,7 @@ NPError NS_PluginGetValue(NPPVariable aVariable, void *aValue)
 	"application/sdp:sdp:Streaming Media Session;" \
 	/* explicit plugin call */ \
 	"application/x-gpac::GPAC plugin;" \
-
+ 
 char * NP_GetMIMEDescription(void)
 {
 	return (char *) GPAC_PLUGIN_MIMETYPES;
@@ -384,7 +384,7 @@ NPError NP_GetValue(void *future, NPPVariable aVariable, void *aValue)
 }
 
 
-#if defined(XP_WIN) || defined(XP_MACOS) 
+#if defined(XP_WIN) || defined(XP_MACOS)
 
 NPError OSCALL NP_Initialize(NPNetscapeFuncs* aNPNFuncs)
 {
@@ -441,26 +441,40 @@ class nsClassInfoMixin : public nsIClassInfo
 	// These flags are used by the DOM and security systems to signal that
 	// JavaScript callers are allowed to call this object's scritable methods.
 	NS_IMETHOD GetFlags(PRUint32 *aFlags)
-	{*aFlags = nsIClassInfo::PLUGIN_OBJECT | nsIClassInfo::DOM_OBJECT;
-	return NS_OK;}
+	{	*aFlags = nsIClassInfo::PLUGIN_OBJECT | nsIClassInfo::DOM_OBJECT;
+		return NS_OK;
+	}
 
 	NS_IMETHOD GetImplementationLanguage(PRUint32 *aImplementationLanguage)
-	{*aImplementationLanguage = nsIProgrammingLanguage::CPLUSPLUS;
-	return NS_OK;}
+	{	*aImplementationLanguage = nsIProgrammingLanguage::CPLUSPLUS;
+		return NS_OK;
+	}
 
 	// The rest of the methods can safely return error codes...
-	NS_IMETHOD GetInterfaces(PRUint32 *count, nsIID * **array)
-	{return NS_ERROR_NOT_IMPLEMENTED;}
+	NS_IMETHOD GetInterfaces(PRUint32 *count, nsIID ***array)
+	{
+		return NS_ERROR_NOT_IMPLEMENTED;
+	}
 	NS_IMETHOD GetHelperForLanguage(PRUint32 language, nsISupports **_retval)
-	{return NS_ERROR_NOT_IMPLEMENTED;}
-	NS_IMETHOD GetContractID(char * *aContractID)
-	{return NS_ERROR_NOT_IMPLEMENTED;}
-	NS_IMETHOD GetClassDescription(char * *aClassDescription)
-	{return NS_ERROR_NOT_IMPLEMENTED;}
-	NS_IMETHOD GetClassID(nsCID * *aClassID)
-	{return NS_ERROR_NOT_IMPLEMENTED;}
+	{
+		return NS_ERROR_NOT_IMPLEMENTED;
+	}
+	NS_IMETHOD GetContractID(char **aContractID)
+	{
+		return NS_ERROR_NOT_IMPLEMENTED;
+	}
+	NS_IMETHOD GetClassDescription(char **aClassDescription)
+	{
+		return NS_ERROR_NOT_IMPLEMENTED;
+	}
+	NS_IMETHOD GetClassID(nsCID **aClassID)
+	{
+		return NS_ERROR_NOT_IMPLEMENTED;
+	}
 	NS_IMETHOD GetClassIDNoAlloc(nsCID *aClassIDNoAlloc)
-	{return NS_ERROR_NOT_IMPLEMENTED;}
+	{
+		return NS_ERROR_NOT_IMPLEMENTED;
+	}
 };
 
 
@@ -477,10 +491,10 @@ public:
 
 public:
 	NS_DECL_NSIOSMOZILLA
-		void SetInstance(Osmozilla *osmo);
+	void SetInstance(Osmozilla *osmo);
 
 protected:
-	nsrefcnt mRefCnt; 
+	nsrefcnt mRefCnt;
 	Osmozilla *mPlugin;
 };
 
@@ -502,35 +516,35 @@ nsOsmozillaPeer::~nsOsmozillaPeer()
 //NS_IMPL_ISUPPORTS2(nsOsmozillaPeer, nsITestPlugin, nsIClassInfo)
 
 // the following method will be callable from JavaScript
-NS_IMETHODIMP nsOsmozillaPeer::Pause() { 
-	Osmozilla_Pause(mPlugin); 
-	return NS_OK; 
+NS_IMETHODIMP nsOsmozillaPeer::Pause() {
+	Osmozilla_Pause(mPlugin);
+	return NS_OK;
 }
-NS_IMETHODIMP nsOsmozillaPeer::Play() { 
-	Osmozilla_Play(mPlugin); 
-	return NS_OK; 
+NS_IMETHODIMP nsOsmozillaPeer::Play() {
+	Osmozilla_Play(mPlugin);
+	return NS_OK;
 }
-NS_IMETHODIMP nsOsmozillaPeer::Stop() { 
-	Osmozilla_Stop(mPlugin); 
-	return NS_OK; 
-}
-
-NS_IMETHODIMP nsOsmozillaPeer::Update(const char *type, const char *commands) 
-{
-	Osmozilla_Update(mPlugin, type, commands); 
-	return NS_OK; 
+NS_IMETHODIMP nsOsmozillaPeer::Stop() {
+	Osmozilla_Stop(mPlugin);
+	return NS_OK;
 }
 
-NS_IMETHODIMP nsOsmozillaPeer::QualitySwitch(int switch_up) 
+NS_IMETHODIMP nsOsmozillaPeer::Update(const char *type, const char *commands)
 {
-	Osmozilla_QualitySwitch(mPlugin, switch_up); 
-	return NS_OK; 
+	Osmozilla_Update(mPlugin, type, commands);
+	return NS_OK;
 }
 
-NS_IMETHODIMP nsOsmozillaPeer::SetURL(const char *url) 
+NS_IMETHODIMP nsOsmozillaPeer::QualitySwitch(int switch_up)
 {
-	Osmozilla_SetURL(mPlugin, url); 
-	return NS_OK; 
+	Osmozilla_QualitySwitch(mPlugin, switch_up);
+	return NS_OK;
+}
+
+NS_IMETHODIMP nsOsmozillaPeer::SetURL(const char *url)
+{
+	Osmozilla_SetURL(mPlugin, url);
+	return NS_OK;
 }
 
 void nsOsmozillaPeer::SetInstance(Osmozilla *osmo)
@@ -557,7 +571,7 @@ NS_IMETHODIMP_(nsrefcnt) nsOsmozillaPeer::Release()
 // here nsOsmozillaPeer should return three interfaces it can be asked for by their iid's
 // static casts are necessary to ensure that correct pointer is returned
 NS_IMETHODIMP nsOsmozillaPeer::QueryInterface(const nsIID & aIID,
-											  void **aInstancePtr)
+        void **aInstancePtr)
 {
 	if (!aInstancePtr)
 		return NS_ERROR_NULL_POINTER;
@@ -657,7 +671,7 @@ enum
 	kOSMOZILLA_ID_METHOD_UPDATE,
 	kOSMOZILLA_ID_METHOD_QUALITY_SWITCH,
 	kOSMOZILLA_ID_METHOD_SET_URL,
-	
+
 	kOSMOZILLA_NUM_METHODS
 };
 
@@ -732,8 +746,8 @@ bool OSMOZILLA_Invoke(NPObject* obj, NPIdentifier name, const NPVariant* args, u
 		const char *mime = NULL;
 		const char *update = NULL;
 		if (argCount==2) {
-			mime = (args[0].type==NPVariantType_String) ? args[0].value.stringValue.UTF8Characters : NULL; 
-			update = (args[1].type==NPVariantType_String) ? args[1].value.stringValue.UTF8Characters : NULL; 
+			mime = (args[0].type==NPVariantType_String) ? args[0].value.stringValue.UTF8Characters : NULL;
+			update = (args[1].type==NPVariantType_String) ? args[1].value.stringValue.UTF8Characters : NULL;
 		}
 		if (!update) return 0;
 		Osmozilla_Update(npo->osmo, mime, update);
@@ -751,7 +765,7 @@ bool OSMOZILLA_Invoke(NPObject* obj, NPIdentifier name, const NPVariant* args, u
 	if (name == v_OSMOZILLA_MethodIdentifiers[kOSMOZILLA_ID_METHOD_SET_URL]) {
 		const char *url = "";
 		if (argCount>=1) {
-			if (args[0].type==NPVariantType_String) 
+			if (args[0].type==NPVariantType_String)
 				url = args[0].value.stringValue.UTF8Characters;
 		}
 		Osmozilla_SetURL(npo->osmo, url);

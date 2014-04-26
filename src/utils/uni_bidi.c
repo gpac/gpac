@@ -34,36 +34,36 @@
 ------------------------------------------------------------------------*/
 enum
 {
-    // input types
-			 // ON MUST be zero, code relies on ON = N = 0
-    ON = 0,  // Other Neutral
-    L,       // Left Letter
-    R,       // Right Letter
-    AN,      // Arabic Number
-    EN,      // European Number
-    AL,      // Arabic Letter (Right-to-left)
-    NSM,     // Non-spacing Mark
-    CS,      // Common Separator
-    ES,      // European Separator
-    ET,      // European Terminator (post/prefix e.g. $ and %)
+	// input types
+	// ON MUST be zero, code relies on ON = N = 0
+	ON = 0,  // Other Neutral
+	L,       // Left Letter
+	R,       // Right Letter
+	AN,      // Arabic Number
+	EN,      // European Number
+	AL,      // Arabic Letter (Right-to-left)
+	NSM,     // Non-spacing Mark
+	CS,      // Common Separator
+	ES,      // European Separator
+	ET,      // European Terminator (post/prefix e.g. $ and %)
 
 	// resolved types
-    BN,      // Boundary neutral (type of RLE etc after explicit levels)
+	BN,      // Boundary neutral (type of RLE etc after explicit levels)
 
 	// input types,
-    S,       // Segment Separator (TAB)		// used only in L1
-    WS,      // White space					// used only in L1
-    B,       // Paragraph Separator (aka as PS)
+	S,       // Segment Separator (TAB)		// used only in L1
+	WS,      // White space					// used only in L1
+	B,       // Paragraph Separator (aka as PS)
 
 	// types for explicit controls
-    RLO,     // these are used only in X1-X9
-    RLE,
-    LRO,
-    LRE,
-    PDF,
+	RLO,     // these are used only in X1-X9
+	RLE,
+	LRO,
+	LRE,
+	PDF,
 
 	// resolved types, also resolved directions
-    N = ON,  // alias, where ON, WS and S are treated the same
+	N = ON,  // alias, where ON, WS and S are treated the same
 };
 
 /*----------------------------------------------------------------------
@@ -94,12 +94,18 @@ Bool gf_utf8_is_right_to_left(u16 *utf_string)
 		u32 c = utf_string[i];
 		if (!c) return 0;
 		switch (bidi_get_class(c)) {
-		case L: return 0;
-		case R: return 1;
-		case AN: return 1;
-		case EN: return 0;
-		case AL: return 1;
-		default: break;
+		case L:
+			return 0;
+		case R:
+			return 1;
+		case AN:
+			return 1;
+		case EN:
+			return 0;
+		case AL:
+			return 1;
+		default:
+			break;
 		}
 		i++;
 	}

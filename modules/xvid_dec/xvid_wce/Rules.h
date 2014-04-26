@@ -5,7 +5,7 @@
    Copyright (c) Lonely Cat Games  All rights reserved.
    General types required for compilation of Insanity group of libraries.
 ----------------------------*/
-                              //warning settings for MS compiler
+//warning settings for MS compiler
 #ifdef _MSC_VER
 
 #pragma warning(disable: 4786)//trunc symbols to 255 chars
@@ -31,7 +31,7 @@
 
 
 
-                              //level4 warnings:
+//level4 warnings:
 #pragma warning(3: 4189)      //local variable is initialized but not referenced
 #pragma warning(3: 4305)      //truncation from const double to float
 //#pragma warning(3: 4244)      //conversion from ??? to ???, possible loss of data
@@ -58,7 +58,7 @@ typedef unsigned size_t;
 #endif
 
 #ifndef NULL
- #define NULL 0
+#define NULL 0
 #endif
 
 //----------------------------

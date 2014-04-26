@@ -39,7 +39,7 @@ static void load_all_modules(GF_ModuleManager *mgr)
 	} else {\
 		gf_list_add(mgr->plugin_registry, pr);	\
 	}	\
-	}	
+	}
 
 #ifdef GPAC_STATIC_MODULES
 	GF_InterfaceRegister *pr;
@@ -48,14 +48,14 @@ static void load_all_modules(GF_ModuleManager *mgr)
 	LOAD_PLUGIN(aac_in);
 #endif
 #ifdef GPAC_HAS_AC3
-    LOAD_PLUGIN(ac3);
+	LOAD_PLUGIN(ac3);
 #endif
 #ifdef GPAC_HAS_ALSA
-    LOAD_PLUGIN(alsa);
+	LOAD_PLUGIN(alsa);
 #endif
-    LOAD_PLUGIN(audio_filter);
+	LOAD_PLUGIN(audio_filter);
 	LOAD_PLUGIN(bifs);
-#ifndef GPAC_DISABLE_SMGR	
+#ifndef GPAC_DISABLE_SMGR
 	LOAD_PLUGIN(ctx_load);
 #endif
 #ifdef GPAC_HAS_DIRECTFB
@@ -78,27 +78,27 @@ static void load_all_modules(GF_ModuleManager *mgr)
 	LOAD_PLUGIN(gpac_js);
 #endif
 	LOAD_PLUGIN(img_in);
-    LOAD_PLUGIN(isma_ea);
+	LOAD_PLUGIN(isma_ea);
 	LOAD_PLUGIN(isom);
 #ifdef GPAC_HAS_JACK
 	LOAD_PLUGIN(jack);
 #endif
 #ifndef GPAC_DISABLE_SVG
 	LOAD_PLUGIN(laser);
-#endif	
+#endif
 #ifdef GPAC_HAS_MAD
 	LOAD_PLUGIN(mp3_in);
 #endif
-    LOAD_PLUGIN(mpd_in);
+	LOAD_PLUGIN(mpd_in);
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 	LOAD_PLUGIN(mpegts_in);
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
-    LOAD_PLUGIN(mse_in);
-#endif	
+	LOAD_PLUGIN(mse_in);
+#endif
 	LOAD_PLUGIN(odf_dec);
 #ifdef GPAC_HAS_OGG
-    LOAD_PLUGIN(ogg_in);
+	LOAD_PLUGIN(ogg_in);
 #endif
 #ifdef GPAC_HAS_OPENHEVC
 	LOAD_PLUGIN(openhevc);
@@ -115,21 +115,21 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_HAS_PULSEAUDIO
 	LOAD_PLUGIN(pulseaudio);
 #endif
-	LOAD_PLUGIN(raw_out);	
+	LOAD_PLUGIN(raw_out);
 #ifdef GPAC_HAS_FFMPEG
-	//    LOAD_PLUGIN(redirect_av);    
+	//    LOAD_PLUGIN(redirect_av);
 #endif
 	LOAD_PLUGIN(rtp_in);
-    LOAD_PLUGIN(saf_in);
+	LOAD_PLUGIN(saf_in);
 #ifdef GPAC_HAS_SDL
-    LOAD_PLUGIN(sdl_out);
+	LOAD_PLUGIN(sdl_out);
 #endif
 	LOAD_PLUGIN(soft_raster);
-#if !defined(GPAC_DISABLE_SMGR) && !defined(GPAC_DISABLE_SVG)	
+#if !defined(GPAC_DISABLE_SMGR) && !defined(GPAC_DISABLE_SVG)
 	LOAD_PLUGIN(svg_in);
-#endif		
-	LOAD_PLUGIN(timedtext);			
-    LOAD_PLUGIN(validator);
+#endif
+	LOAD_PLUGIN(timedtext);
+	LOAD_PLUGIN(validator);
 #ifdef GPAC_HAS_WAVEOUT
 	LOAD_PLUGIN(wave_out);
 #endif
@@ -143,9 +143,9 @@ static void load_all_modules(GF_ModuleManager *mgr)
 	LOAD_PLUGIN(x11_out);
 #endif
 #ifdef GPAC_HAS_XVID
-    LOAD_PLUGIN(xvid);
+	LOAD_PLUGIN(xvid);
 #endif
-					
+
 	//todo fix project for iOS
 #ifdef GPAC_IPHONE
 //    LOAD_PLUGIN(ios_cam);
@@ -156,7 +156,7 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #endif //GPAC_STATIC_MODULES
 
 #undef LOAD_PLUGIN
-	
+
 }
 
 
@@ -218,7 +218,7 @@ void gf_modules_del(GF_ModuleManager *pm)
 	}
 
 	/* Delete module directories*/
-	for (i = 0; i < pm->num_dirs; i++){
+	for (i = 0; i < pm->num_dirs; i++) {
 		gf_free((void*)pm->dirs[i]);
 	}
 
@@ -247,17 +247,17 @@ u32 gf_modules_get_count(GF_ModuleManager *pm)
 }
 
 GF_EXPORT
-const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_dirs){
+const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_dirs) {
 	char* directories;
 	char* tmp_dirs;
 	char * pch;
 	if (!pm) return NULL;
-	if (pm->num_dirs > 0 ){
+	if (pm->num_dirs > 0 ) {
 		*num_dirs = pm->num_dirs;
 		return pm->dirs;
 	}
 	if (!pm->cfg) return NULL;
-	
+
 	/* Get directory from config file */
 	directories = (char*)gf_cfg_get_key(pm->cfg, "General", "ModulesDirectory");
 	if (! directories) {
@@ -270,7 +270,7 @@ const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_di
 
 	while (pch != NULL)
 	{
-		if (pm->num_dirs == MAX_MODULE_DIRS){
+		if (pm->num_dirs == MAX_MODULE_DIRS) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Reach maximum number of module directories  - check the configuration file and the \"ModulesDirectory\" key.\n"));
 			break;
 		}
@@ -292,20 +292,20 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	ModuleInstance *inst;
 	GF_BaseInterface *ifce;
 
-	if (!pm){
+	if (!pm) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface() : No Module Manager set\n"));
 		return NULL;
 	}
 	gf_mx_p(pm->mutex);
 	inst = (ModuleInstance *) gf_list_get(pm->plug_list, whichplug);
-	if (!inst){
+	if (!inst) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface() : no module %d exist.\n", whichplug));
 		gf_mx_v(pm->mutex);
 		return NULL;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Load interface...%s\n", inst->name));
 	/*look in cache*/
-	if (!pm->cfg){
+	if (!pm->cfg) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] No pm->cfg has been set !!!\n"));
 		gf_mx_v(pm->mutex);
 		return NULL;
@@ -314,7 +314,7 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	if (opt) {
 		const char * ifce_str = gf_4cc_to_str(InterfaceFamily);
 		snprintf(szKey, 32, "%s:yes", ifce_str ? ifce_str : "(null)");
-		if (!strstr(opt, szKey)){
+		if (!strstr(opt, szKey)) {
 			gf_mx_v(pm->mutex);
 			return NULL;
 		}
@@ -389,7 +389,7 @@ GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const 
 	const char *file_name;
 	u32 i, count;
 	GF_BaseInterface *ifce;
-	if (!pm || !plug_name || !pm->plug_list || !pm->cfg){
+	if (!pm || !plug_name || !pm->plug_list || !pm->cfg) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface_by_name has bad parameters pm=%p, plug_name=%s.\n", pm, plug_name));
 		return NULL;
 	}

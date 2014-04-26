@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include "isom_in.h"
@@ -52,7 +52,7 @@ static GF_Err ISOW_Open(GF_StreamingCache *mc, GF_ClientService *serv, const cha
 			}
 		}
 	}
-	
+
 	/*create a new movie in write mode (eg no editing)*/
 	cache->mov = gf_isom_open(szPath, GF_ISOM_OPEN_WRITE, NULL);
 	if (!cache->mov) return gf_isom_last_error(NULL);
@@ -105,16 +105,35 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 
 		esd = (GF_ESD *)com.cache_esd.esd;
 		switch (esd->decoderConfig->streamType) {
-		case GF_STREAM_OD: mtype = GF_ISOM_MEDIA_OD; break;
-		case GF_STREAM_SCENE: mtype = GF_ISOM_MEDIA_SCENE; break;
-		case GF_STREAM_VISUAL: mtype = GF_ISOM_MEDIA_VISUAL; break;
-		case GF_STREAM_AUDIO: mtype = GF_ISOM_MEDIA_AUDIO; break;
-		case GF_STREAM_MPEG7: mtype = GF_ISOM_MEDIA_MPEG7; break;
-		case GF_STREAM_OCI: mtype = GF_ISOM_MEDIA_OCI; break;
-		case GF_STREAM_IPMP: mtype = GF_ISOM_MEDIA_IPMP; break;
-		case GF_STREAM_MPEGJ: mtype = GF_ISOM_MEDIA_MPEGJ; break;
-		case GF_STREAM_TEXT: mtype = GF_ISOM_MEDIA_TEXT; break;
-		default: return GF_NOT_SUPPORTED;
+		case GF_STREAM_OD:
+			mtype = GF_ISOM_MEDIA_OD;
+			break;
+		case GF_STREAM_SCENE:
+			mtype = GF_ISOM_MEDIA_SCENE;
+			break;
+		case GF_STREAM_VISUAL:
+			mtype = GF_ISOM_MEDIA_VISUAL;
+			break;
+		case GF_STREAM_AUDIO:
+			mtype = GF_ISOM_MEDIA_AUDIO;
+			break;
+		case GF_STREAM_MPEG7:
+			mtype = GF_ISOM_MEDIA_MPEG7;
+			break;
+		case GF_STREAM_OCI:
+			mtype = GF_ISOM_MEDIA_OCI;
+			break;
+		case GF_STREAM_IPMP:
+			mtype = GF_ISOM_MEDIA_IPMP;
+			break;
+		case GF_STREAM_MPEGJ:
+			mtype = GF_ISOM_MEDIA_MPEGJ;
+			break;
+		case GF_STREAM_TEXT:
+			mtype = GF_ISOM_MEDIA_TEXT;
+			break;
+		default:
+			return GF_NOT_SUPPORTED;
 		}
 		GF_SAFEALLOC(mch, ISOMChannel);
 		mch->time_scale = esd->slConfig->timestampResolution;
@@ -147,7 +166,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 				gf_isom_3gp_config_new(cache->mov, mch->track, &h263c, NULL, NULL, &di);
 				mapped = 1;
 			}
-		} 
+		}
 		if (!mapped) gf_isom_new_mpeg4_description(cache->mov, mch->track, esd, NULL, NULL, &di);
 		if (com.cache_esd.is_iod_stream) gf_isom_add_track_to_root_od(cache->mov, mch->track);
 		gf_list_add(cache->channels, mch);
@@ -184,7 +203,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		mch->cache_sample->DTS = mch->prev_dts + mch->frame_cts_offset;
 		mch->cache_sample->CTS_Offset += (u32) (CTS-mch->cache_sample->DTS);
 	}
-	/*deal with reference picture insertion: if no CTS offset and biggest CTS until now, this is 
+	/*deal with reference picture insertion: if no CTS offset and biggest CTS until now, this is
 	a reference insertion - we must check that in order to make sure we have strictly increasing DTSs*/
 	if (mch->max_cts && !mch->cache_sample->CTS_Offset && (mch->cache_sample->DTS+mch->cache_sample->CTS_Offset > mch->max_cts)) {
 		assert(mch->cache_sample->DTS > mch->prev_dts + mch->frame_cts_offset);
@@ -192,7 +211,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		mch->cache_sample->DTS = mch->prev_dts + mch->frame_cts_offset;
 		mch->cache_sample->CTS_Offset = (u32) (CTS-mch->cache_sample->DTS);
 	}
-	if (mch->cache_sample->CTS_Offset) 
+	if (mch->cache_sample->CTS_Offset)
 		mch->max_cts = mch->cache_sample->DTS+mch->cache_sample->CTS_Offset;
 
 	/*add cache*/

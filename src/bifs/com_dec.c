@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,21 +11,21 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
 #include "math.h"
 #include <gpac/internal/bifs_dev.h>
-#include "quant.h" 
+#include "quant.h"
 
 #ifndef GPAC_DISABLE_BIFS
 
@@ -185,7 +185,7 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 		}
 		gf_bifs_check_field_change(target, &targetField);
 		return GF_OK;
-	} 
+	}
 	switch (targetField.fieldType) {
 	case GF_SG_VRML_SFNODE:
 	{
@@ -243,9 +243,9 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 		if (e) return e;
 
 		if (fromNode) {
-			if (fromField.fieldType == targetField.fieldType) 
+			if (fromField.fieldType == targetField.fieldType)
 				gf_sg_vrml_field_clone(targetField.far_ptr, fromField.far_ptr, targetField.fieldType, codec->current_graph);
-		} else {	
+		} else {
 			e = gf_bifs_dec_field(codec, bs, target, &targetField, 0);
 		}
 		break;
@@ -288,7 +288,7 @@ static GF_Err BD_DecMultipleIndexReplace(GF_BifsDecoder * codec, GF_BitStream *b
 	GF_Node *node, *new_node;
 	GF_Err e;
 	GF_FieldInfo field, sffield;
-	
+
 	ID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
 	node = gf_sg_find_node(codec->current_graph, ID);
 	if (!node) return GF_NON_COMPLIANT_BITSTREAM;
@@ -307,7 +307,7 @@ static GF_Err BD_DecMultipleIndexReplace(GF_BifsDecoder * codec, GF_BitStream *b
 	/*cf index value replace */
 	if (field.fieldType == GF_SG_VRML_MFNODE) {
 		while (count) {
-			pos = gf_bs_read_int(bs, lenpos);		
+			pos = gf_bs_read_int(bs, lenpos);
 			/*first decode*/
 			new_node = gf_bifs_dec_node(codec, bs, field.NDTtype);
 			if (!new_node) return codec->LastError;
@@ -350,7 +350,7 @@ static GF_Err BD_DecMultipleReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	NodeID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
 	node = gf_sg_find_node(codec->current_graph, NodeID);
 	if (!node) return GF_NON_COMPLIANT_BITSTREAM;
-	
+
 	flag = gf_bs_read_int(bs, 1);
 	if (flag) {
 		e = gf_bifs_dec_node_mask(codec, bs, node, 0);
@@ -372,7 +372,7 @@ static GF_Err BD_DecGlobalQuantizer(GF_BifsDecoder * codec, GF_BitStream *bs)
 		codec->scenegraph->global_qp = NULL;
 	}
 	codec->ActiveQP = NULL;
-	
+
 	if (!node || (gf_node_get_tag(node) != TAG_MPEG4_QuantizationParameter)) {
 		if (node) gf_node_unregister(node, NULL);
 		return codec->LastError;
@@ -438,7 +438,7 @@ static GF_Err BD_DecOperandReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 		case 3:
 			/*-1 means append*/
 			pos = ((GenMFField *)field.far_ptr)->count;
-			if (!pos) 
+			if (!pos)
 				return GF_NON_COMPLIANT_BITSTREAM;
 			pos -= 1;
 			break;
@@ -483,7 +483,7 @@ static GF_Err BD_DecOperandReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 		case 3:
 			/*-1 means append*/
 			pos = ((GenMFField *)src_field.far_ptr)->count;
-			if (!pos) 
+			if (!pos)
 				return GF_NON_COMPLIANT_BITSTREAM;
 			pos -= 1;
 			break;
@@ -632,7 +632,7 @@ static GF_Err BD_DecIndexInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 		} else {
 			e = gf_node_list_insert_child((GF_ChildNodeItem **) field.far_ptr, node, pos);
 		}
-		
+
 		if (!e) gf_bifs_check_field_change(def, &field);
 	} else {
 		if (pos == -1) {
@@ -678,7 +678,7 @@ static GF_Err BD_DecIndexDelete(GF_BifsDecoder * codec, GF_BitStream *bs)
 	GF_Node *node;
 	GF_Err e;
 	GF_FieldInfo field;
-	
+
 	NodeID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
 	node = gf_sg_find_node(codec->current_graph, NodeID);
 	if (!node) return GF_NON_COMPLIANT_BITSTREAM;
@@ -713,7 +713,7 @@ static GF_Err BD_DecIndexDelete(GF_BifsDecoder * codec, GF_BitStream *bs)
 		GF_ChildNodeItem** nlist_ptr = (GF_ChildNodeItem**) field.far_ptr;
 		if (*nlist_ptr) {
 			e = gf_node_replace_child(node, nlist_ptr, pos, NULL);
-		} 
+		}
 	} else {
 		e = gf_sg_vrml_mf_remove(field.far_ptr, field.fieldType, pos);
 	}
@@ -760,16 +760,16 @@ static GF_Err BD_DecNodeReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	u32 NodeID;
 	GF_Node *node, *new_node;
 	GF_Err e;
-	
+
 	NodeID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
 	/*this is delete / new on a DEF node: replace ALL instances*/
 	node = gf_sg_find_node(codec->current_graph, NodeID);
 	if (!node) return GF_NON_COMPLIANT_BITSTREAM;
-	
+
 	/*and just parse a new GF_Node - it is encoded in SFWorldNode table */
 	new_node = gf_bifs_dec_node(codec, bs, NDT_SFWorldNode);
 	if (!new_node && codec->LastError) return codec->LastError;
-	
+
 	e = gf_node_replace(node, new_node, 0);
 	return e;
 }
@@ -858,7 +858,7 @@ static GF_Err BD_DecIndexValueReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	default:
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	
+
 	/*if MFNode remove the child and parse new node*/
 	if (field.fieldType == GF_SG_VRML_MFNODE) {
 		/*get the new node*/
@@ -904,14 +904,14 @@ static GF_Err BD_DecRouteReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	GF_Node *OutNode, *InNode;
 
 	RouteID = 1+gf_bs_read_int(bs, codec->info->config.RouteIDBits);
-	
+
 	r = gf_sg_route_find(codec->current_graph, RouteID);
 #ifdef MPEG4_STRICT
 	if (!r) return GF_NON_COMPLIANT_BITSTREAM;
 	ptr = gf_sg_route_get_name(r);
 	gf_sg_route_del(r);
 #else
-	ptr = NULL; 
+	ptr = NULL;
 	if (r) {
 		ptr = gf_sg_route_get_name(r);
 //		gf_sg_route_del(r);
@@ -1020,7 +1020,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 		/*create a proto in the current graph*/
 		proto = gf_sg_proto_new(codec->current_graph, ID, name, proto_list ? 1 : 0);
 		if (proto_list) gf_list_add(proto_list, proto);
-		
+
 		/*during parsing, this proto is the current active one - all nodes/proto defined/declared
 		below it will belong to its namespace*/
 		codec->current_graph = gf_sg_proto_get_graph(proto);
@@ -1031,7 +1031,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 		while (flag) {
 			event_type = gf_bs_read_int(bs, 2);
 			field_type = gf_bs_read_int(bs, 6);
-			
+
 			if (codec->UseName) {
 				gf_bifs_dec_name(bs, name);
 			} else {
@@ -1109,7 +1109,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 			if (e) goto exit;
 
 			flag = 1;
-			
+
 			while (flag) {
 				/*parse all nodes in SFWorldNode table*/
 				node = gf_bifs_dec_node(codec, bs, NDT_SFWorldNode);
@@ -1131,7 +1131,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 				gf_sg_proto_add_node_code(proto, node);
 				flag = gf_bs_read_int(bs, 1);
 			}
-			
+
 			/*routes*/
 			flag = gf_bs_read_int(bs, 1);
 			if (flag) {
@@ -1189,7 +1189,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 						break;
 					}
 					field.fieldType = qpsftype;
-					
+
 					qp_min_value = gf_sg_vrml_field_pointer_new(qpsftype);
 					field.name = "QPMinValue";
 					field.far_ptr = qp_min_value;
@@ -1319,7 +1319,7 @@ GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *pro
 	/*Parse the routes*/
 	flag = gf_bs_read_int(bs, 1);
 
-	
+
 	if (flag) {
 		flag = gf_bs_read_int(bs, 1);
 		if (flag) {

@@ -179,7 +179,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 	if (err && ((err!=GF_STREAM_NOT_FOUND) || (ch->esd->decoderConfig->streamType!=GF_STREAM_INTERACT))) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Channel %d connection error: %s\n", ch->esd->ESID, gf_error_to_string(err) ));
 		ch->es_state = GF_ESM_ES_UNAVAILABLE;
-/*		return;*/
+		/*		return;*/
 	}
 
 	if (ch->odm->mo) {
@@ -192,8 +192,8 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 		2-this is a channel of the root OD
 	*/
 	if ( (ch->odm->mo && ch->odm->mo->num_open)
-		|| !ch->odm->parentscene
-	) {
+	        || !ch->odm->parentscene
+	   ) {
 		gf_odm_start(ch->odm, 0);
 	}
 #if 0
@@ -285,12 +285,12 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 
 	root = service->owner;
 	if (!root) {
-	  GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Service %s] has not root, aborting !\n", service->url));
-	  return;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Service %s] has not root, aborting !\n", service->url));
+		return;
 	}
 	if (root->flags & GF_ODM_DESTROYED) {
-	  GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Service %s] root has been scheduled for destruction - aborting !\n", service->url));
-	  return;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Service %s] root has been scheduled for destruction - aborting !\n", service->url));
+		return;
 	}
 	scene = root->subscene ? root->subscene : root->parentscene;
 
@@ -314,7 +314,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 
 	gf_term_lock_net(term, 1);
 	/*object declared this way are not part of an OD stream and are considered as dynamic*/
-/*	od->objectDescriptorID = GF_MEDIA_EXTERNAL_ID; */
+	/*	od->objectDescriptorID = GF_MEDIA_EXTERNAL_ID; */
 
 	/*check if we have a mediaObject in the scene not attached and matching this object*/
 	the_mo = NULL;
@@ -327,7 +327,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		u32 match_esid = 0;
 		GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
 
-		if ((mo->OD_ID != GF_MEDIA_EXTERNAL_ID) && (min_od_id<mo->OD_ID)) 
+		if ((mo->OD_ID != GF_MEDIA_EXTERNAL_ID) && (min_od_id<mo->OD_ID))
 			min_od_id = mo->OD_ID;
 
 		if (!mo->odm) continue;
@@ -376,7 +376,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		if (ext) ext[0] = '#';
 
 		esd = gf_list_get(od->ESDescriptors, 0);
-		if (match_esid && (esd->ESID != match_esid)) 
+		if (match_esid && (esd->ESID != match_esid))
 			continue;
 		/*match type*/
 		switch (esd->decoderConfig->streamType) {
@@ -408,13 +408,13 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		break;
 	}
 
-	/*add a pass on scene->resource to check for min_od_id, 
+	/*add a pass on scene->resource to check for min_od_id,
 	otherwise we may have another modules declaring an object with ID 0 from
 	another thread, which will assert (only one object with a givne OD ID)*/
 	for (i=0; i<gf_list_count(scene->resources); i++) {
 		GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
 
-		if (an_odm->OD && (an_odm->OD->objectDescriptorID != GF_MEDIA_EXTERNAL_ID) && (min_od_id < an_odm->OD->objectDescriptorID)) 
+		if (an_odm->OD && (an_odm->OD->objectDescriptorID != GF_MEDIA_EXTERNAL_ID) && (min_od_id < an_odm->OD->objectDescriptorID))
 			min_od_id = an_odm->OD->objectDescriptorID;
 	}
 
@@ -432,11 +432,11 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	}
 
 	if (the_mo) the_mo->OD_ID = od->objectDescriptorID;
-	if (!scene->selected_service_id) 
+	if (!scene->selected_service_id)
 		scene->selected_service_id = od->ServiceID;
 
 
-	/*net is unlocked before seting up the object as this might trigger events going into JS and deadlocks 
+	/*net is unlocked before seting up the object as this might trigger events going into JS and deadlocks
 	with the compositor*/
 	gf_term_lock_net(term, 0);
 
@@ -516,7 +516,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		}
 		gf_mx_v(term->mm_mx);
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
-	
+
 		//in bench mode return the 1 if one of the buffer is full (eg sleep until all buffers are not full), 0 otherwise
 		if (term->bench_mode) {
 			com->buffer.occupancy = (max_buffer_time>com->buffer.max) ? 2 : 0;
@@ -588,7 +588,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 			if (com->map_time.reset_buffers) {
 				gf_es_reset_buffers(ch);
 			}
-			/*if we were reassembling an AU, do not perform clock init check when dispatching it since we computed its timestamps 
+			/*if we were reassembling an AU, do not perform clock init check when dispatching it since we computed its timestamps
 			according to the previous clock origin*/
 			else {
 				gf_mx_p(ch->mx);
@@ -691,7 +691,7 @@ static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code,
 			if (gf_dm_sess_get_status(sess)>=GF_NETIO_DATA_EXCHANGE) {
 				const char * mime = gf_dm_sess_mime_type(sess);
 				/* The mime type is returned lower case */
-				if (mime){
+				if (mime) {
 					ret = gf_strdup(mime);
 				}
 				break;
@@ -786,11 +786,11 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	}
 
 	if (mime_type &&
-		(!stricmp(mime_type, "text/plain")
-			|| !stricmp(mime_type, "video/quicktime")
-			|| !stricmp(mime_type, "application/octet-stream")
-		)
-	) {
+	        (!stricmp(mime_type, "text/plain")
+	         || !stricmp(mime_type, "video/quicktime")
+	         || !stricmp(mime_type, "application/octet-stream")
+	        )
+	   ) {
 		skip_mime = 1;
 	}
 
@@ -876,7 +876,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Trying module[%i]=%s, mime=%s\n", i, sPlug, sMime));
 			ifce = (GF_InputService *) gf_modules_load_interface_by_name(term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
-			if (!ifce){
+			if (!ifce) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] module[%i]=%s, mime=%s, cannot be loaded for GF_NET_CLIENT_INTERFACE.\n", i, sPlug, sMime));
 				continue;
 			}
@@ -911,11 +911,11 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		}
 	}
 exit:
-	if (!ifce){
-  	    GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Did not find any input plugin for URL %s (%s)\n", sURL ? sURL : url, mime_type ? mime_type : "no mime type"));
-	    if (sURL) gf_free(sURL);
+	if (!ifce) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Did not find any input plugin for URL %s (%s)\n", sURL ? sURL : url, mime_type ? mime_type : "no mime type"));
+		if (sURL) gf_free(sURL);
 		if ( (*ret_code) == GF_OK) (*ret_code) = GF_NOT_SUPPORTED;
-	    *out_url = NULL;
+		*out_url = NULL;
 
 		if (the_session && *the_session) {
 			gf_dm_sess_del(*the_session);
@@ -925,11 +925,11 @@ exit:
 		if (*out_mime_type) gf_free(*out_mime_type);
 		*out_mime_type = NULL;
 	} else {
-	    *out_url = sURL;
-	    GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Found input plugin %s for URL %s (%s)\n", ifce->module_name, sURL, mime_type ? mime_type : "no mime type"));
+		*out_url = sURL;
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Found input plugin %s for URL %s (%s)\n", ifce->module_name, sURL, mime_type ? mime_type : "no mime type"));
 	}
 	if (mime_type)
-	  *out_mime_type = mime_type;
+		*out_mime_type = mime_type;
 	return ifce;
 }
 
@@ -1094,9 +1094,9 @@ GF_DownloadSession *gf_term_download_new(GF_ClientService *service, const char *
 	GF_Err e;
 	GF_DownloadSession * sess;
 	char *sURL, *orig_url;
-	if (!service){
-                 GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] service is null, cannot create new download session for %s.\n", url));
-		 return NULL;
+	if (!service) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] service is null, cannot create new download session for %s.\n", url));
+		return NULL;
 	}
 
 	sURL = gf_url_concatenate(service->url, url);
@@ -1118,7 +1118,7 @@ GF_DownloadSession *gf_term_download_new(GF_ClientService *service, const char *
 	}
 	if (orig_url) gf_free(orig_url);
 
-	if (!sess){
+	if (!sess) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] session could not be created for %s : %s. service url=%s, url=%s.\n", sURL, gf_error_to_string(e), service->url, url));
 		gf_free(sURL);
 		sURL = NULL;
@@ -1317,7 +1317,11 @@ GF_Err gf_term_service_cache_load(GF_ClientService *ns)
 		if (sep) sep[0] = 0;
 		for (i=0; i<strlen(szURL); i++) {
 			switch (szURL[i]) {
-			case '/': case '\\': case '.': case ':': case '?':
+			case '/':
+			case '\\':
+			case '.':
+			case ':':
+			case '?':
 				szURL[i] = '_';
 				break;
 			}

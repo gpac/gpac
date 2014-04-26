@@ -9,7 +9,7 @@
 #endif // _MSC_VER >= 1000
 
 #ifndef __AFXWIN_H__
-	#error include 'stdafx.h' before including this file for PCH
+#error include 'stdafx.h' before including this file for PCH
 #endif
 
 #include "resource.h"       // main symbols
@@ -23,7 +23,7 @@
 #include <gpac/terminal.h>
 
 enum {
-	WM_SCENE_DONE = WM_USER + 1, 
+	WM_SCENE_DONE = WM_USER + 1,
 	WM_NAVIGATE,
 	WM_SETSIZE,
 	WM_OPENURL,
@@ -84,7 +84,7 @@ private:
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(COsmo4)
-	public:
+public:
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();
 	//}}AFX_VIRTUAL
@@ -101,7 +101,9 @@ private:
 	DECLARE_MESSAGE_MAP()
 };
 
-inline COsmo4 *GetApp() { return (COsmo4 *)AfxGetApp(); }
+inline COsmo4 *GetApp() {
+	return (COsmo4 *)AfxGetApp();
+}
 
 /////////////////////////////////////////////////////////////////////////////
 

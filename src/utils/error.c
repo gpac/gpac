@@ -90,7 +90,10 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 	}
 	if (done==total) {
 		u32 len = (u32) strlen(szT) + 40;
-		while (len) { fprintf(stderr, " "); len--; };
+		while (len) {
+			fprintf(stderr, " ");
+			len--;
+		};
 		fprintf(stderr, "\r");
 	}
 	else {
@@ -128,7 +131,11 @@ void gf_set_progress_callback(void *_user_cbk, gf_on_progress_cbk _prog_cbk)
 }
 
 /*ENTRIES MUST BE IN THE SAME ORDER AS LOG_TOOL DECLARATION IN <gpac/tools.h>*/
-static struct log_tool_info {u32 type;  const char *name; u32 level; } global_log_tools [] =
+static struct log_tool_info {
+	u32 type;
+	const char *name;
+	u32 level;
+} global_log_tools [] =
 {
 	{ GF_LOG_CORE, "core", GF_LOG_WARNING },
 	{ GF_LOG_CODING, "coding", GF_LOG_WARNING },
@@ -200,7 +207,7 @@ GF_Err gf_log_modify_tools_levels(const char *val)
 			fprintf(stderr, "Unknown log level specified: %s\n", sep_level+1);
 			return GF_BAD_PARAM;
 		}
-	
+
 		sep_level[0] = 0;
 		tools = val;
 		while (tools) {
@@ -210,7 +217,7 @@ GF_Err gf_log_modify_tools_levels(const char *val)
 			if (sep) sep[0] = 0;
 
 			if (!stricmp(tools, "all")) {
-				for (i=0; i<GF_LOG_TOOL_MAX; i++) 
+				for (i=0; i<GF_LOG_TOOL_MAX; i++)
 					global_log_tools[i].level = level;
 			}
 			else {
@@ -247,7 +254,7 @@ GF_Err gf_log_set_tools_levels(const char *val)
 {
 #ifndef GPAC_DISABLE_LOG
 	u32 i;
-	for (i=0; i<GF_LOG_TOOL_MAX; i++) 
+	for (i=0; i<GF_LOG_TOOL_MAX; i++)
 		global_log_tools[i].level = GF_LOG_WARNING;
 
 	return gf_log_modify_tools_levels(val);
@@ -264,7 +271,7 @@ char *gf_log_get_tools_levels()
 	char szLogs[GF_MAX_PATH];
 	char szLogTools[GF_MAX_PATH];
 	strcpy(szLogTools, "");
-	
+
 	level = GF_LOG_QUIET;
 	while (level <= GF_LOG_DEBUG) {
 		u32 nb_tools = 0;
@@ -321,7 +328,7 @@ u32 call_tool = 0;
 GF_EXPORT
 Bool gf_log_tool_level_on(u32 log_tool, u32 log_level)
 {
-	assert(log_tool<GF_LOG_TOOL_MAX); 
+	assert(log_tool<GF_LOG_TOOL_MAX);
 	if (global_log_tools[log_tool].level >= log_level) return GF_TRUE;
 	return GF_FALSE;
 }
@@ -329,7 +336,7 @@ Bool gf_log_tool_level_on(u32 log_tool, u32 log_level)
 void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_list vlist)
 {
 #ifndef _WIN32_WCE
-    vfprintf(stderr, fmt, vlist);
+	vfprintf(stderr, fmt, vlist);
 #endif
 }
 
@@ -357,7 +364,7 @@ void gf_log_set_strict_error(Bool strict)
 GF_EXPORT
 void gf_log_set_tool_level(u32 tool, u32 level)
 {
-	assert(tool<=GF_LOG_TOOL_MAX); 
+	assert(tool<=GF_LOG_TOOL_MAX);
 	if (tool==GF_LOG_ALL) {
 		u32 i;
 		for (i=0; i<GF_LOG_TOOL_MAX; i++)
@@ -558,13 +565,13 @@ static const u32 gf_crc_table[256] = {
 GF_EXPORT
 u32 gf_crc_32(const char *data, u32 len)
 {
-    register u32 i;
-    u32 crc = 0xffffffff;
+	register u32 i;
+	u32 crc = 0xffffffff;
 	if (!data) return 0;
-    for (i=0; i<len; i++)
-        crc = (crc << 8) ^ gf_crc_table[((crc >> 24) ^ *data++) & 0xff];
+	for (i=0; i<len; i++)
+		crc = (crc << 8) ^ gf_crc_table[((crc >> 24) ^ *data++) & 0xff];
 
-    return crc;
+	return crc;
 }
 
 
@@ -575,126 +582,126 @@ const char *gpac_features()
 {
 	const char *features = ""
 #ifdef GPAC_X64
-		"GPAC_X64 "
+	                       "GPAC_X64 "
 #endif
 
 #ifdef GPAC_FIXED_POINT
-		"GPAC_FIXED_POINT "
+	                       "GPAC_FIXED_POINT "
 #endif
 #ifdef GPAC_MEMORY_TRACKING
-		"GPAC_MEMORY_TRACKING "
+	                       "GPAC_MEMORY_TRACKING "
 #endif
 #ifdef GPAC_BIG_ENDIAN
-		"GPAC_BIG_ENDIAN "
+	                       "GPAC_BIG_ENDIAN "
 #endif
 #ifdef GPAC_HAS_SSL
-		"GPAC_HAS_SSL "
+	                       "GPAC_HAS_SSL "
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
-		"GPAC_HAS_SPIDERMONKEY "
+	                       "GPAC_HAS_SPIDERMONKEY "
 #endif
 #ifdef GPAC_HAS_JPEG
-		"GPAC_HAS_JPEG "
+	                       "GPAC_HAS_JPEG "
 #endif
 #ifdef GPAC_HAS_PNG
-		"GPAC_HAS_PNG "
+	                       "GPAC_HAS_PNG "
 #endif
 #ifdef GPAC_DISABLE_3D
-		"GPAC_DISABLE_3D "
+	                       "GPAC_DISABLE_3D "
 #endif
 #ifdef GPAC_USE_TINYGL
-		"GPAC_USE_TINYGL "
+	                       "GPAC_USE_TINYGL "
 #endif
 #ifdef GPAC_USE_OGL_ES
-		"GPAC_USE_OGL_ES "
+	                       "GPAC_USE_OGL_ES "
 #endif
 #if defined(_WIN32_WCE)
 #ifdef GPAC_USE_IGPP
-		"GPAC_USE_IGPP "
+	                       "GPAC_USE_IGPP "
 #endif
 #ifdef GPAC_USE_IGPP_HP
-		"GPAC_USE_IGPP_HP "
+	                       "GPAC_USE_IGPP_HP "
 #endif
 #endif
 #ifdef GPAC_DISABLE_SVG
-		"GPAC_DISABLE_SVG "
+	                       "GPAC_DISABLE_SVG "
 #endif
 #ifdef GPAC_DISABLE_VRML
-		"GPAC_DISABLE_VRML "
+	                       "GPAC_DISABLE_VRML "
 #endif
 #ifdef GPAC_MINIMAL_ODF
-		"GPAC_MINIMAL_ODF "
+	                       "GPAC_MINIMAL_ODF "
 #endif
 #ifdef GPAC_DISABLE_BIFS
-		"GPAC_DISABLE_BIFS "
+	                       "GPAC_DISABLE_BIFS "
 #endif
 #ifdef GPAC_DISABLE_QTVR
-		"GPAC_DISABLE_QTVR "
+	                       "GPAC_DISABLE_QTVR "
 #endif
 #ifdef GPAC_DISABLE_AVILIB
-		"GPAC_DISABLE_AVILIB "
+	                       "GPAC_DISABLE_AVILIB "
 #endif
 #ifdef GPAC_DISABLE_OGG
-		"GPAC_DISABLE_OGG "
+	                       "GPAC_DISABLE_OGG "
 #endif
 #ifdef GPAC_DISABLE_MPEG2PS
-		"GPAC_DISABLE_MPEG2PS "
+	                       "GPAC_DISABLE_MPEG2PS "
 #endif
 #ifdef GPAC_DISABLE_MPEG2PS
-		"GPAC_DISABLE_MPEG2TS "
+	                       "GPAC_DISABLE_MPEG2TS "
 #endif
 #ifdef GPAC_DISABLE_SENG
-		"GPAC_DISABLE_SENG "
+	                       "GPAC_DISABLE_SENG "
 #endif
 #ifdef GPAC_DISABLE_MEDIA_IMPORT
-		"GPAC_DISABLE_MEDIA_IMPORT "
+	                       "GPAC_DISABLE_MEDIA_IMPORT "
 #endif
 #ifdef GPAC_DISABLE_AV_PARSERS
-		"GPAC_DISABLE_AV_PARSERS "
+	                       "GPAC_DISABLE_AV_PARSERS "
 #endif
 #ifdef GPAC_DISABLE_MEDIA_EXPORT
-		"GPAC_DISABLE_MEDIA_EXPORT "
+	                       "GPAC_DISABLE_MEDIA_EXPORT "
 #endif
 #ifdef GPAC_DISABLE_SWF_IMPORT
-		"GPAC_DISABLE_SWF_IMPORT "
+	                       "GPAC_DISABLE_SWF_IMPORT "
 #endif
 #ifdef GPAC_DISABLE_SCENE_STATS
-		"GPAC_DISABLE_SCENE_STATS "
+	                       "GPAC_DISABLE_SCENE_STATS "
 #endif
 #ifdef GPAC_DISABLE_SCENE_DUMP
-		"GPAC_DISABLE_SCENE_DUMP "
+	                       "GPAC_DISABLE_SCENE_DUMP "
 #endif
 #ifdef GPAC_DISABLE_SCENE_ENCODER
-		"GPAC_DISABLE_SCENE_ENCODER "
+	                       "GPAC_DISABLE_SCENE_ENCODER "
 #endif
 #ifdef GPAC_DISABLE_LOADER_ISOM
-		"GPAC_DISABLE_LOADER_ISOM "
+	                       "GPAC_DISABLE_LOADER_ISOM "
 #endif
 #ifdef GPAC_DISABLE_OD_DUMP
-		"GPAC_DISABLE_OD_DUMP "
+	                       "GPAC_DISABLE_OD_DUMP "
 #endif
 #ifdef GPAC_DISABLE_MCRYPT
-		"GPAC_DISABLE_MCRYPT "
+	                       "GPAC_DISABLE_MCRYPT "
 #endif
 #ifdef GPAC_DISABLE_ISOM
-		"GPAC_DISABLE_MCRYPT "
+	                       "GPAC_DISABLE_MCRYPT "
 #endif
 #ifdef GPAC_DISABLE_ISOM_HINTING
-		"GPAC_DISABLE_ISOM_HINTING "
+	                       "GPAC_DISABLE_ISOM_HINTING "
 #endif
 #ifdef GPAC_DISABLE_ISOM_WRITE
-		"GPAC_DISABLE_ISOM_WRITE "
+	                       "GPAC_DISABLE_ISOM_WRITE "
 #endif
 #ifdef GPAC_DISABLE_ISOM_FRAGMENTS
-		"GPAC_DISABLE_ISOM_FRAGMENTS "
+	                       "GPAC_DISABLE_ISOM_FRAGMENTS "
 #endif
 #ifdef GPAC_DISABLE_LASER
-		"GPAC_DISABLE_LASER "
+	                       "GPAC_DISABLE_LASER "
 #endif
 #ifdef GPAC_DISABLE_STREAMING
-		"GPAC_DISABLE_STREAMING "
+	                       "GPAC_DISABLE_STREAMING "
 #endif
 
-;
+	                       ;
 	return features;
 }

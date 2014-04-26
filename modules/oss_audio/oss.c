@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 
@@ -51,7 +51,7 @@
 
 #define OSS_AUDIO_DEVICE	"/dev/dsp"
 
-typedef struct 
+typedef struct
 {
 	int audio_dev, sr, nb_ch;
 	u32 buf_size, delay, num_buffers, total_duration;
@@ -75,8 +75,8 @@ static GF_Err OSS_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u32
 	/*open OSS in non-blocking mode*/
 	audio = open(OSS_AUDIO_DEVICE, 0);
 	if (audio < 0) {
-	  GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[OSS] Cannot open audio device\n"));
-	  return GF_NOT_SUPPORTED;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[OSS] Cannot open audio device\n"));
+		return GF_NOT_SUPPORTED;
 	}
 
 	/*set blocking mode back*/
@@ -112,7 +112,7 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 	ctx->audio_dev=open(OSS_AUDIO_DEVICE,O_WRONLY|O_NONBLOCK);
 	if (!ctx->audio_dev) return GF_IO_ERR;
 
-	/* Make the file descriptor use blocking writes with fcntl() so that 
+	/* Make the file descriptor use blocking writes with fcntl() so that
 	 we don't have to handle sleep() ourselves*/
 	flags = fcntl(ctx->audio_dev, F_GETFL);
 	flags &= ~O_NONBLOCK;
@@ -123,26 +123,26 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 
 	blockalign = ctx->nb_ch;
 	if ((*nbBitsPerSample) == 16) {
-	  blockalign *= 2;
-	  format = AFMT_S16_LE;
+		blockalign *= 2;
+		format = AFMT_S16_LE;
 	} else {
-	  format = AFMT_S8;
+		format = AFMT_S8;
 	}
 	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SETFMT,&format)==-1) return GF_IO_ERR;
-        ctx->sr = (*SampleRate);
+	ctx->sr = (*SampleRate);
 	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SPEED,&ctx->sr)==-1) return GF_IO_ERR;
 
 	nb_bufs = ctx->num_buffers ? ctx->num_buffers : 8;
 	ctx->buf_size = (*SampleRate * blockalign * ctx->total_duration) / (1000 * nb_bufs);
 	frag_spec = 4;
-	while (ctx->buf_size > (1<<(frag_spec+1))) 
+	while (ctx->buf_size > (1<<(frag_spec+1)))
 		frag_spec++;
 
 	ctx->buf_size = 1<<frag_spec;
 
 	ctx->delay = (1000*ctx->buf_size) / (*SampleRate * blockalign);
 	frag_spec = ((nb_bufs<<16) & 0xFFFF0000) | frag_spec;
-	
+
 	ctx->delay = (1000*ctx->buf_size*nb_bufs) / (*SampleRate * blockalign);
 	if ( ioctl(ctx->audio_dev, SNDCTL_DSP_SETFRAGMENT, &frag_spec) < 0 ) return GF_IO_ERR;
 
@@ -159,10 +159,10 @@ static void OSS_WriteAudio(GF_AudioOutput*dr)
 	OSSCTX();
 	written = dr->FillBuffer(dr->audio_renderer, ctx->wav_buf, ctx->buf_size);
 	/*this will also perform sleep*/
-	if (written){
+	if (written) {
 		u32 reallyWritten = write(ctx->audio_dev, ctx->wav_buf, written);
-		if (reallyWritten != written){
-			 GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[OSS] Failed to write all audio to device, has written %u, should have %u", reallyWritten, written));
+		if (reallyWritten != written) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[OSS] Failed to write all audio to device, has written %u, should have %u", reallyWritten, written));
 		}
 	}
 }
@@ -172,8 +172,8 @@ static void OSS_SetPan(GF_AudioOutput*dr, u32 Pan) {}
 static void OSS_SetPriority(GF_AudioOutput*dr, u32 Priority) {}
 static u32 OSS_GetAudioDelay(GF_AudioOutput*dr)
 {
-  OSSCTX()
-  return ctx->delay;
+	OSSCTX()
+	return ctx->delay;
 }
 
 /*
@@ -186,18 +186,18 @@ static u32 OSS_GetAudioDelay(GF_AudioOutput*dr)
 static GF_Err OSS_QueryOutputSampleRate(GF_AudioOutput*dr, u32 *desired_sr, u32 *NbChannels, u32 *nbBitsPerSample)
 {
 #ifdef FORCE_SR_LIMIT
-  *NbChannels = 2;
-  if (!( *desired_sr % 11025)) return GF_OK;
-  if (*desired_sr<22050) *desired_sr = 22050;
-  else *desired_sr = 44100;
-  return GF_OK;
+	*NbChannels = 2;
+	if (!( *desired_sr % 11025)) return GF_OK;
+	if (*desired_sr<22050) *desired_sr = 22050;
+	else *desired_sr = 44100;
+	return GF_OK;
 #else
 	/* reset and reopen audio-device */
 	int i;
 	OSSCTX();
 	if (ctx->force_sr) {
-	  *desired_sr = ctx->force_sr;
-	  return GF_OK;
+		*desired_sr = ctx->force_sr;
+		return GF_OK;
 	}
 	i=*desired_sr;
 	if(ioctl(ctx->audio_dev, SNDCTL_DSP_SPEED,&i)==-1) return GF_IO_ERR;
@@ -259,7 +259,7 @@ void DeleteOSSRender(void *ifce)
  * interface
  */
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_AUDIO_OUTPUT_INTERFACE,
@@ -271,7 +271,7 @@ const u32 *QueryInterfaces()
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) 
+	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
 		return NewOSSRender();
 	return NULL;
 }

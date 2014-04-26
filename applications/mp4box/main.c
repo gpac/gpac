@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -125,7 +125,7 @@ const char *GetLanguageCode(char *lang);
 
 #ifndef GPAC_DISABLE_MPEG2TS
 void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num);
-#endif 
+#endif
 
 
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
@@ -152,7 +152,11 @@ Float swf_flatten_angle = 0;
 s32 laser_resolution = 0;
 
 
-typedef struct { u32 code; const char *name; const char *comment; } itunes_tag;
+typedef struct {
+	u32 code;
+	const char *name;
+	const char *comment;
+} itunes_tag;
 static const itunes_tag itags[] = {
 	{GF_ISOM_ITUNE_ALBUM_ARTIST, "album_artist", "usage: album_artist=album artist"},
 	{GF_ISOM_ITUNE_ALBUM, "album", "usage: album=name" },
@@ -181,576 +185,576 @@ u32 nb_itunes_tags = sizeof(itags) / sizeof(itunes_tag);
 void PrintVersion()
 {
 	fprintf(stderr, "MP4Box - GPAC version " GPAC_FULL_VERSION "\n"
-		"GPAC Copyright (c) Telecom ParisTech 2000-2012\n"
-		"GPAC Configuration: " GPAC_CONFIGURATION "\n"
-		"Features: %s\n", gpac_features());
+	        "GPAC Copyright (c) Telecom ParisTech 2000-2012\n"
+	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
+	        "Features: %s\n", gpac_features());
 }
 
 void PrintGeneralUsage()
 {
 	fprintf(stderr, "General Options:\n"
 #ifdef GPAC_MEMORY_TRACKING
-			" -mem-track:  enables memory tracker\n"
+	        " -mem-track:  enables memory tracker\n"
 #endif
-			" -strict-error        exits after the first error is reported\n"
-			" -inter time_in_ms    interleaves file data (track chunks of time_in_ms)\n"
-			"                       * Note 1: Interleaving is 0.5s by default\n"
-			"                       * Note 2: Performs drift checking accross tracks\n"
-			"                       * Note 3: a value of 0 disables interleaving\n"
-			" -old-inter time      same as -inter but doesn't perform drift checking\n"
-			" -tight               performs tight interleaving (sample based) of the file\n"
-			"                       * Note: reduces disk seek but increases file size\n"
-			" -flat                stores file with all media data first, non-interleaved\n"
-			" -frag time_in_ms     fragments file (track fragments of time_in_ms)\n"
-			"                       * Note: Always disables interleaving\n"
-			" -ffspace size        inserts free space before moof in fragmented files\n"
-			" -out filename        specifies output file name\n"
-			"                       * Note: By default input (MP4,3GP) file is overwritten\n"
-			" -tmp dirname         specifies directory for temporary file creation\n"
-			"                       * Note: Default temp dir is OS-dependent\n"
-			" -write-buffer SIZE   specifies write buffer in bytes for ISOBMF files\n"
-			" -no-sys              removes all MPEG-4 Systems info except IOD (profiles)\n"
-			"                       * Note: Set by default whith '-add' and '-cat'\n"
-			" -no-iod              removes InitialObjectDescriptor from file\n"
-			" -isma                rewrites the file as an ISMA 1.0 AV file\n"
-			" -ismax               same as \'-isma\' and removes all clock references\n"
-			" -3gp                 rewrites as 3GPP(2) file (no more MPEG-4 Systems Info)\n"
-			"                       * Note 1: some tracks may be removed in the process\n"
-			"                       * Note 2: always on for *.3gp *.3g2 *.3gpp\n"
-			" -ipod                rewrites the file for iPod\n"
-			" -psp                 rewrites the file for PSP devices\n" 
-			" -brand ABCD[:v]      sets major brand of file, with optional version\n"
-			" -ab ABCD             adds given brand to file's alternate brand list\n"
-			" -rb ABCD             removes given brand from file's alternate brand list\n"
-			" -cprt string         adds copyright string to movie\n"
-			" -chap file           adds chapter information contained in file\n"
-			" -rem trackID         removes track from file\n"
-			" -rap trackID         removes all non-RAP samples from track\n"
-			" -enable trackID      enables track\n"
-			" -disable trackID     disables track\n"
-			" -new                 forces creation of a new destination file\n"
-			" -lang [tkID=]LAN     sets track language. LAN is the ISO 639-2 code (eng, und)\n"
-			" -delay tkID=TIME     sets track start delay in ms.\n"
-			" -par tkID=PAR        sets visual track pixel aspect ratio (PAR=N:D or \"none\")\n"
-			" -name tkID=NAME      sets track handler name\n"
-			"                       * NAME can indicate a UTF-8 file (\"file://file name\"\n"
-			" -itags tag1[:tag2]   sets iTunes tags to file - more info: MP4Box -tag-list.\n"
-			" -split time_sec      splits in files of time_sec max duration\n"
-			"                       * Note: this removes all MPEG-4 Systems media\n"
-			" -split-size size     splits in files of max filesize kB. same as -splits.\n"
-			"                       * Note: this removes all MPEG-4 Systems media\n"
-			" -split-rap           splits in files begining at each RAP. same as -splitr.\n"
-			"                       * Note: this removes all MPEG-4 Systems media\n"
-			" -split-chunk S:E     extracts a new file from Start to End (in seconds). same as -splitx\n"
-			"                       * Note: this removes all MPEG-4 Systems media\n"
-			" -splitz S:E          same as -split-chunk, but adjust the end time to be before the last RAP sample\n"
-			"                       * Note: this removes all MPEG-4 Systems media\n"
-			" -group-add fmt       creates a new grouping information in the file. Format is\n"
-			"                      a colon-separated list of following options:\n"
-			"                      refTrack=ID: ID of the track used as a group reference.\n"
-			"                       If not set, the track will belong to the same group as the previous trackID specified.\n"
-			"                       If 0 or no previous track specified, a new alternate group will be created\n"
-			"                      switchID=ID: ID of the switch group to create.\n"
-			"                       If 0, a new ID will be computed for you\n"
-			"                       If <0, disables SwitchGroup\n"
-			"                      criteria=string: list of space-separated 4CCs.\n"
-			"                      trackID=ID: ID of the track to add to this group.\n"
-			"\n"
-			"                       *WARNING* Options modify state as they are parsed:\n"
-			"                        trackID=1:criteria=lang:trackID=2\n"
-			"                       is different from:\n"
-			"                        criteria=lang:trackID=1:trackID=2\n"
-			"\n"
-			" -group-rem-track ID  removes track from its group\n"
-			" -group-rem ID        removes the track's group\n"
-			" -group-clean         removes all group information from all tracks\n"
- 	        " -group-single        puts all tracks in a single group\n"
-			" -ref id:XXXX:refID   adds a reference of type 4CC from track ID to track refID\n"
-			" -keep-utc            keeps UTC timing in the file after edit\n"
-			"\n");
+	        " -strict-error        exits after the first error is reported\n"
+	        " -inter time_in_ms    interleaves file data (track chunks of time_in_ms)\n"
+	        "                       * Note 1: Interleaving is 0.5s by default\n"
+	        "                       * Note 2: Performs drift checking accross tracks\n"
+	        "                       * Note 3: a value of 0 disables interleaving\n"
+	        " -old-inter time      same as -inter but doesn't perform drift checking\n"
+	        " -tight               performs tight interleaving (sample based) of the file\n"
+	        "                       * Note: reduces disk seek but increases file size\n"
+	        " -flat                stores file with all media data first, non-interleaved\n"
+	        " -frag time_in_ms     fragments file (track fragments of time_in_ms)\n"
+	        "                       * Note: Always disables interleaving\n"
+	        " -ffspace size        inserts free space before moof in fragmented files\n"
+	        " -out filename        specifies output file name\n"
+	        "                       * Note: By default input (MP4,3GP) file is overwritten\n"
+	        " -tmp dirname         specifies directory for temporary file creation\n"
+	        "                       * Note: Default temp dir is OS-dependent\n"
+	        " -write-buffer SIZE   specifies write buffer in bytes for ISOBMF files\n"
+	        " -no-sys              removes all MPEG-4 Systems info except IOD (profiles)\n"
+	        "                       * Note: Set by default whith '-add' and '-cat'\n"
+	        " -no-iod              removes InitialObjectDescriptor from file\n"
+	        " -isma                rewrites the file as an ISMA 1.0 AV file\n"
+	        " -ismax               same as \'-isma\' and removes all clock references\n"
+	        " -3gp                 rewrites as 3GPP(2) file (no more MPEG-4 Systems Info)\n"
+	        "                       * Note 1: some tracks may be removed in the process\n"
+	        "                       * Note 2: always on for *.3gp *.3g2 *.3gpp\n"
+	        " -ipod                rewrites the file for iPod\n"
+	        " -psp                 rewrites the file for PSP devices\n"
+	        " -brand ABCD[:v]      sets major brand of file, with optional version\n"
+	        " -ab ABCD             adds given brand to file's alternate brand list\n"
+	        " -rb ABCD             removes given brand from file's alternate brand list\n"
+	        " -cprt string         adds copyright string to movie\n"
+	        " -chap file           adds chapter information contained in file\n"
+	        " -rem trackID         removes track from file\n"
+	        " -rap trackID         removes all non-RAP samples from track\n"
+	        " -enable trackID      enables track\n"
+	        " -disable trackID     disables track\n"
+	        " -new                 forces creation of a new destination file\n"
+	        " -lang [tkID=]LAN     sets track language. LAN is the ISO 639-2 code (eng, und)\n"
+	        " -delay tkID=TIME     sets track start delay in ms.\n"
+	        " -par tkID=PAR        sets visual track pixel aspect ratio (PAR=N:D or \"none\")\n"
+	        " -name tkID=NAME      sets track handler name\n"
+	        "                       * NAME can indicate a UTF-8 file (\"file://file name\"\n"
+	        " -itags tag1[:tag2]   sets iTunes tags to file - more info: MP4Box -tag-list.\n"
+	        " -split time_sec      splits in files of time_sec max duration\n"
+	        "                       * Note: this removes all MPEG-4 Systems media\n"
+	        " -split-size size     splits in files of max filesize kB. same as -splits.\n"
+	        "                       * Note: this removes all MPEG-4 Systems media\n"
+	        " -split-rap           splits in files begining at each RAP. same as -splitr.\n"
+	        "                       * Note: this removes all MPEG-4 Systems media\n"
+	        " -split-chunk S:E     extracts a new file from Start to End (in seconds). same as -splitx\n"
+	        "                       * Note: this removes all MPEG-4 Systems media\n"
+	        " -splitz S:E          same as -split-chunk, but adjust the end time to be before the last RAP sample\n"
+	        "                       * Note: this removes all MPEG-4 Systems media\n"
+	        " -group-add fmt       creates a new grouping information in the file. Format is\n"
+	        "                      a colon-separated list of following options:\n"
+	        "                      refTrack=ID: ID of the track used as a group reference.\n"
+	        "                       If not set, the track will belong to the same group as the previous trackID specified.\n"
+	        "                       If 0 or no previous track specified, a new alternate group will be created\n"
+	        "                      switchID=ID: ID of the switch group to create.\n"
+	        "                       If 0, a new ID will be computed for you\n"
+	        "                       If <0, disables SwitchGroup\n"
+	        "                      criteria=string: list of space-separated 4CCs.\n"
+	        "                      trackID=ID: ID of the track to add to this group.\n"
+	        "\n"
+	        "                       *WARNING* Options modify state as they are parsed:\n"
+	        "                        trackID=1:criteria=lang:trackID=2\n"
+	        "                       is different from:\n"
+	        "                        criteria=lang:trackID=1:trackID=2\n"
+	        "\n"
+	        " -group-rem-track ID  removes track from its group\n"
+	        " -group-rem ID        removes the track's group\n"
+	        " -group-clean         removes all group information from all tracks\n"
+	        " -group-single        puts all tracks in a single group\n"
+	        " -ref id:XXXX:refID   adds a reference of type 4CC from track ID to track refID\n"
+	        " -keep-utc            keeps UTC timing in the file after edit\n"
+	        "\n");
 }
 
 void PrintDASHUsage()
 {
 	fprintf(stderr, "DASH Options:\n"
-			" -dash dur            enables DASH-ing of the file(s) with a segment duration of DUR ms\n"
-			"                       Note: the duration of a fragment (subsegment) is set\n"
-			"						using the -frag switch.\n"
-			"                       Note: for onDemand profile, sets duration of a subsegment\n"
-			" -frag time_in_ms     Specifies a fragment duration of time_in_ms.\n"
-			"                       * Note: By default, this is the DASH duration\n"
-			" -out filename        specifies output MPD file name.\n"
-			" -tmp dirname         specifies directory for temporary file creation\n"
-			"                       * Note: Default temp dir is OS-dependent\n"
-			" -profile NAME   specifies the target DASH profile: \"onDemand\", \"live\", \"main\", \"simple\", \"full\"\n"
-			"                       * This will set default option values to ensure conformance to the desired profile\n"
-			"                       * Default profile is \"full\" in static mode, \"live\" in dynamic mode\n"
-			"\n"
-			"Input media files to dash can use the following modifiers\n"
-			" \"#trackID=N\"       only uses the track ID N from the source file\n"
-			" \"#video\"           only uses the first video track from the source file\n"
-			" \"#audio\"           only uses the first video track from the source file\n"
-			" \":id=NAME\"         sets the representation ID to NAME\n"
-			" \":period=NAME\"     sets the representation's period to NAME. Multiple periods may be used\n"
-			"                       period appear in the MPD in the same order as specified with this option\n"
-			" \":bandwidth=VALUE\" sets the representation's bandwidth to a given value\n"
-			" \":xlink=VALUE\"     sets the xlink value for the period containing this element\n"
-			"                       only the xlink declared on the first rep of a period will be used\n"
-			" \":role=VALUE\"      sets the role of this representation (cf DASH spec).\n"
-			"                       media with different roles belong to different adaptation sets.\n"
-			"\n"
-			" -rap                 segments begin with random access points\n"
-			"                       Note: segment duration may not be exactly what asked by\n"
-			"                       \"-dash\" since encoded video data is not modified\n"
-			" -frag-rap            All fragments begin with random access points\n"
-			"                       Note: fragment duration may not be exactly what is asked by\n"
-			"                       \"-frag\" since encoded video data is not modified\n"
-			" -segment-name name   sets the segment name for generated segments\n"
-			"                       If not set (default), segments are concatenated in output file\n"
-			"                        except in \"live\" profile where dash_%%s is used\n"
-			" -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
-			" -segment-timeline    Uses SegmentTimeline when generating segments. NOT SUPPORTED BY LIVE/CTX MODE YET.\n"
-			" -segment-marker MARK Adds a box of type \'MARK\' at the end of each DASH segment. MARK shall be a 4CC identifier\n"
-			" -base-url string     sets Base url at MPD level. Can be used several times.\n"
-			" -mpd-title string    sets MPD title.\n"
-			" -mpd-source string   sets MPD source.\n"
-			" -mpd-info-url string sets MPD info url.\n"
-			" -cprt string         adds copyright string to MPD\n"
-			" -dash-live[=F] dur   generates a live DASH session using dur segment duration, optionnally writing live context to F\n" 
-			"                       MP4Box will run the live session until \'q\' is pressed or a fatal error occurs.\n"
-			" -ddbg-live[=F] dur   same as -dash-live without time regulation for debug purposes.\n"
-			" -dash-ctx FILE       stores/restore DASH timing from FILE.\n"
-			" -dynamic             uses dynamic MPD type instead of static.\n"
-			" -mpd-refresh TIME    specifies MPD update time in seconds.\n"
-			" -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
-			" -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
-			"                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
-			" -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
-			" -ast-offset TIME     specifies MPD AvailabilityStartTime offset in seconds. Default is 1 sec delay\n"
-			" -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
-			" -mem-frags           fragments will be produced in memory rather than on disk before flushing to disk\n"
-			" -pssh-moof           stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box.\n"
-			" -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf) rather than in moof. By default sample group descriptions are stored in movie box.\n"		
-			
-			"\n"
-			"Advanced Options, should not be needed when using -dash-profile:\n"
-			" -subsegs-per-sidx N  sets the number of subsegments to be written in each SIDX box\n"
-			"                       If 0, a single SIDX box is used per segment\n"
-			"                       If -1, no SIDX box is used\n"
-			" -url-template        uses SegmentTemplate instead of explicit sources in segments.\n"
-			"                       Ignored if segments are stored in the output file.\n"
-			" -daisy-chain         uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
-			" -single-segment      uses a single segment for the whole file (OnDemand profile). \n"
-			" -single-file         uses a single file for the whole file (default). \n"
-			" -bs-switching MODE   sets bitstream switching to \"inband\" (default), \"merge\", \"no\" or \"single\" to test with single input.\n" 
-			" -moof-sn N           sets sequence number of first moof to N\n"
-			" -tfdt N              sets TFDT of first traf to N in SCALE units (cf -dash-scale)\n"
-			" -no-frags-default    disables default flags in fragments\n"
-			" -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
-			"\n");
+	        " -dash dur            enables DASH-ing of the file(s) with a segment duration of DUR ms\n"
+	        "                       Note: the duration of a fragment (subsegment) is set\n"
+	        "						using the -frag switch.\n"
+	        "                       Note: for onDemand profile, sets duration of a subsegment\n"
+	        " -frag time_in_ms     Specifies a fragment duration of time_in_ms.\n"
+	        "                       * Note: By default, this is the DASH duration\n"
+	        " -out filename        specifies output MPD file name.\n"
+	        " -tmp dirname         specifies directory for temporary file creation\n"
+	        "                       * Note: Default temp dir is OS-dependent\n"
+	        " -profile NAME   specifies the target DASH profile: \"onDemand\", \"live\", \"main\", \"simple\", \"full\"\n"
+	        "                       * This will set default option values to ensure conformance to the desired profile\n"
+	        "                       * Default profile is \"full\" in static mode, \"live\" in dynamic mode\n"
+	        "\n"
+	        "Input media files to dash can use the following modifiers\n"
+	        " \"#trackID=N\"       only uses the track ID N from the source file\n"
+	        " \"#video\"           only uses the first video track from the source file\n"
+	        " \"#audio\"           only uses the first video track from the source file\n"
+	        " \":id=NAME\"         sets the representation ID to NAME\n"
+	        " \":period=NAME\"     sets the representation's period to NAME. Multiple periods may be used\n"
+	        "                       period appear in the MPD in the same order as specified with this option\n"
+	        " \":bandwidth=VALUE\" sets the representation's bandwidth to a given value\n"
+	        " \":xlink=VALUE\"     sets the xlink value for the period containing this element\n"
+	        "                       only the xlink declared on the first rep of a period will be used\n"
+	        " \":role=VALUE\"      sets the role of this representation (cf DASH spec).\n"
+	        "                       media with different roles belong to different adaptation sets.\n"
+	        "\n"
+	        " -rap                 segments begin with random access points\n"
+	        "                       Note: segment duration may not be exactly what asked by\n"
+	        "                       \"-dash\" since encoded video data is not modified\n"
+	        " -frag-rap            All fragments begin with random access points\n"
+	        "                       Note: fragment duration may not be exactly what is asked by\n"
+	        "                       \"-frag\" since encoded video data is not modified\n"
+	        " -segment-name name   sets the segment name for generated segments\n"
+	        "                       If not set (default), segments are concatenated in output file\n"
+	        "                        except in \"live\" profile where dash_%%s is used\n"
+	        " -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
+	        " -segment-timeline    Uses SegmentTimeline when generating segments. NOT SUPPORTED BY LIVE/CTX MODE YET.\n"
+	        " -segment-marker MARK Adds a box of type \'MARK\' at the end of each DASH segment. MARK shall be a 4CC identifier\n"
+	        " -base-url string     sets Base url at MPD level. Can be used several times.\n"
+	        " -mpd-title string    sets MPD title.\n"
+	        " -mpd-source string   sets MPD source.\n"
+	        " -mpd-info-url string sets MPD info url.\n"
+	        " -cprt string         adds copyright string to MPD\n"
+	        " -dash-live[=F] dur   generates a live DASH session using dur segment duration, optionnally writing live context to F\n"
+	        "                       MP4Box will run the live session until \'q\' is pressed or a fatal error occurs.\n"
+	        " -ddbg-live[=F] dur   same as -dash-live without time regulation for debug purposes.\n"
+	        " -dash-ctx FILE       stores/restore DASH timing from FILE.\n"
+	        " -dynamic             uses dynamic MPD type instead of static.\n"
+	        " -mpd-refresh TIME    specifies MPD update time in seconds.\n"
+	        " -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
+	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
+	        "                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
+	        " -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
+	        " -ast-offset TIME     specifies MPD AvailabilityStartTime offset in seconds. Default is 1 sec delay\n"
+	        " -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
+	        " -mem-frags           fragments will be produced in memory rather than on disk before flushing to disk\n"
+	        " -pssh-moof           stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box.\n"
+	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf) rather than in moof. By default sample group descriptions are stored in movie box.\n"
+
+	        "\n"
+	        "Advanced Options, should not be needed when using -dash-profile:\n"
+	        " -subsegs-per-sidx N  sets the number of subsegments to be written in each SIDX box\n"
+	        "                       If 0, a single SIDX box is used per segment\n"
+	        "                       If -1, no SIDX box is used\n"
+	        " -url-template        uses SegmentTemplate instead of explicit sources in segments.\n"
+	        "                       Ignored if segments are stored in the output file.\n"
+	        " -daisy-chain         uses daisy-chain SIDX instead of hierarchical. Ignored if frags/sidx is 0.\n"
+	        " -single-segment      uses a single segment for the whole file (OnDemand profile). \n"
+	        " -single-file         uses a single file for the whole file (default). \n"
+	        " -bs-switching MODE   sets bitstream switching to \"inband\" (default), \"merge\", \"no\" or \"single\" to test with single input.\n"
+	        " -moof-sn N           sets sequence number of first moof to N\n"
+	        " -tfdt N              sets TFDT of first traf to N in SCALE units (cf -dash-scale)\n"
+	        " -no-frags-default    disables default flags in fragments\n"
+	        " -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
+	        "\n");
 }
 
 void PrintFormats()
 {
 	fprintf(stderr, "Suppported raw formats and file extensions:\n"
-			" NHNT                 .media .nhnt .info\n"
-			" NHML                 .nhml (opt: .media .info)\n"
-			" MPEG-1-2 Video       .m1v .m2v\n"
-			" MPEG-4 Video         .cmp .m4v\n"
-			" H263 Video           .263 .h263\n"
-			" AVC/H264 Video       .h264 .h26L .264 .26L\n"
-			" JPEG Images          .jpg .jpeg\n"
-			" PNG Images           .png\n"
-			" MPEG 1-2 Audio       .mp3, .m1a, .m2a\n"
-			" ADTS-AAC Audio       .aac\n"
-			" AMR(WB) Audio        .amr .awb\n"
-			" EVRC Audio           .evc\n"
-			" SMV Audio            .smv\n"
-			"\n"
-			"Supported containers and file extensions:\n"
-			" AVI                  .avi\n"
-			" MPEG-2 PS            .mpg .mpeg .vob .vcd .svcd\n"
-			" MPEG-2 TS            .ts .m2t\n"
-			" QCP                  .qcp\n"
-			" OGG                  .ogg\n"
-			" ISO-Media files      no extension checking\n"
-			"\n"
-			"Supported text formats:\n"
-			" SRT Subtitles        .srt\n"
-			" SUB Subtitles        .sub\n"
-			" GPAC Timed Text      .ttxt\n"
-			" QuickTime TeXML Text .xml  (cf QT documentation)\n"
-			"\n"
-			"Supported Scene formats:\n"
-			" MPEG-4 XMT-A         .xmt .xmta .xmt.gz .xmta.gz\n"
-			" MPEG-4 BT            .bt .bt.gz\n"
-			" VRML                 .wrl .wrl.gz\n"
-			" X3D-XML              .x3d .x3d.gz\n"
-			" X3D-VRML             .x3dv .x3dv.gz\n"
-			" MacroMedia Flash     .swf (very limited import support only)\n"
-			"\n"
-		);
+	        " NHNT                 .media .nhnt .info\n"
+	        " NHML                 .nhml (opt: .media .info)\n"
+	        " MPEG-1-2 Video       .m1v .m2v\n"
+	        " MPEG-4 Video         .cmp .m4v\n"
+	        " H263 Video           .263 .h263\n"
+	        " AVC/H264 Video       .h264 .h26L .264 .26L\n"
+	        " JPEG Images          .jpg .jpeg\n"
+	        " PNG Images           .png\n"
+	        " MPEG 1-2 Audio       .mp3, .m1a, .m2a\n"
+	        " ADTS-AAC Audio       .aac\n"
+	        " AMR(WB) Audio        .amr .awb\n"
+	        " EVRC Audio           .evc\n"
+	        " SMV Audio            .smv\n"
+	        "\n"
+	        "Supported containers and file extensions:\n"
+	        " AVI                  .avi\n"
+	        " MPEG-2 PS            .mpg .mpeg .vob .vcd .svcd\n"
+	        " MPEG-2 TS            .ts .m2t\n"
+	        " QCP                  .qcp\n"
+	        " OGG                  .ogg\n"
+	        " ISO-Media files      no extension checking\n"
+	        "\n"
+	        "Supported text formats:\n"
+	        " SRT Subtitles        .srt\n"
+	        " SUB Subtitles        .sub\n"
+	        " GPAC Timed Text      .ttxt\n"
+	        " QuickTime TeXML Text .xml  (cf QT documentation)\n"
+	        "\n"
+	        "Supported Scene formats:\n"
+	        " MPEG-4 XMT-A         .xmt .xmta .xmt.gz .xmta.gz\n"
+	        " MPEG-4 BT            .bt .bt.gz\n"
+	        " VRML                 .wrl .wrl.gz\n"
+	        " X3D-XML              .x3d .x3d.gz\n"
+	        " X3D-VRML             .x3dv .x3dv.gz\n"
+	        " MacroMedia Flash     .swf (very limited import support only)\n"
+	        "\n"
+	       );
 }
 
 void PrintImportUsage()
 {
 	fprintf(stderr, "Importing Options\n"
-			"\nFile importing syntax:\n"
-			" \"#video\" \"#audio\"  base import for most AV files\n"
-			" \"#trackID=ID\"        track import for IsoMedia and other files\n"
-			" \"#pid=ID\"            stream import from MPEG-2 TS\n"
-			" \":dur=D\"             imports only the first D seconds\n"
-			" \":lang=LAN\"          sets imported media language code\n"
-			" \":delay=delay_ms\"    sets imported media initial delay in ms\n"
-			" \":par=PAR\"           sets visual pixel aspect ratio (PAR=Num:Den)\n"
-			" \":name=NAME\"         sets track handler name\n"
-			" \":ext=EXT\"           overrides file extension when importing\n"
-			" \":hdlr=code\"         sets track handler type to the given code point (4CC)\n"
-			" \":disable\"           imported track(s) will be disabled\n"
-			" \":group=G\"           adds the track as part of the G alternate group.\n"
-			"                         If G is 0, the first available GroupID will be picked.\n"
-			" \":fps=VAL\"           same as -fps option\n"
-			" \":agg=VAL\"           same as -agg option\n"
-			" \":par=VAL\"           same as -par option\n"
-			" \":dref\"              same as -dref option\n"
-			" \":nodrop\"            same as -nodrop option\n"
-			" \":packed\"            same as -packed option\n"
-			" \":sbr\"               same as -sbr option\n"
-			" \":sbrx\"              same as -sbrx option\n"
-			" \":ps\"                same as -ps option\n"
-			" \":psx\"               same as -psx option\n"
-			" \":ovsbr\"             same as -ovsbr option\n" 
-			" \":mpeg4\"             same as -mpeg4 option\n"
-			" \":svc\"               import SVC with explicit signaling (no AVC base compatibility)\n"
-			" \":nosvc\"             discard SVC data when importing\n"
-			" \":svcmode=MODE\"      sets SVC import mode:\n"
-			" \"                       split : each AVC/SVC layer is in its own track\n"
-			" \"                       merge : all AVC/SVC layers are merged in a single track\n"
-			" \"                       splitbase : all SVC layers are merged in a track, and the AVC base in another\n"
-			" \":subsamples\"        adds SubSample information for AVC+SVC\n"
-			" \":forcesync\"         forces non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
-			"       !! RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
-			" \":font=name\"         specifies font name for text import (default \"Serif\")\n"
-			" \":size=s\"            specifies font size for text import (default 18)\n"
-			" \":stype=4CC\"         forces the sample description type to a different value\n"
-			"                         !! THIS MAY BREAK THE FILE WRITING !!\n"
-			" \":chap\"              specifies the track is a chapter track\n"
-			" \":chapter=NAME\"      adds a single chapter (old nero format) with given name lasting the entire file\n"
-			"                         This command can be used in -cat as well\n"
-			" \":chapfile=file\"     adds a chapter file (old nero format)\n"
-			"                         This command can be used in -cat as well\n"
-			" \":layout=WxHxXxY\"    specifies the track layout\n"
-			"                         - if W (resp H) = 0, the max width (resp height) of\n"
-			"                         the tracks in the file are used.\n"
-			"                         - if Y=-1, the layout is moved to the bottom of the\n"
-			"                         track area\n"
-			"                         - X and Y can be omitted (:layout=WxH)\n"
-			" \":rescale=TS\"        forces media timescale to TS !! changes the media duration\n"
-			" \":timescale=TS\"      sets import timescale to TS\n"
-			" \":swf-global\"        all SWF defines are placed in first scene replace\n"
-			"                         * Note: By default SWF defines are sent when needed\n"
-			" \":swf-no-ctrl\"       uses a single stream for movie control and dictionary\n"
-			"                         * Note: this will disable ActionScript\n"
-			" \":swf-no-text\"       removes all SWF text\n"
-			" \":swf-no-font\"       removes all embedded SWF Fonts (terminal fonts used)\n"
-			" \":swf-no-line\"       removes all lines from SWF shapes\n"
-			" \":swf-no-grad\"       removes all gradients from swf shapes\n"
-			" \":swf-quad\"          uses quadratic bezier curves instead of cubic ones\n"
-			" \":swf-xlp\"           support for lines transparency and scalability\n"
-			" \":swf-flatten=ang\"   complementary angle below which 2 lines are merged\n"
-			"                         * Note: angle \'0\' means no flattening\n"
-			"\n"
-			" \":negctts\"           uses negative CTS-DTS offsets (ISO4 brand)\n"
-			" -add file              add file tracks to (new) output file\n"
-			" -cat file              concatenates file samples to (new) output file\n"
-			"                         * Note: creates tracks if needed\n"
-			"                         * Note: aligns initial timestamp of the file to be concatenated.\n"
-			" -catx file             same as cat but new tracks can be imported before concatenation by specifying '+ADD_COMMAND'\n"
-			"                        where ADD_COMMAND is a regular -add syntax\n"
-			" -unalign-cat           does not attempt to align timestamps of samples inbetween tracks\n"
-			" -force-cat             skips media configuration check when concatenating file\n"
-			"                         !!! THIS MAY BREAK THE CONCATENATED TRACK(S) !!!\n"
-			" -keep-sys              keeps all MPEG-4 Systems info when using '-add' / 'cat'\n"
-			" -keep-all              keeps all existing tracks when using '-add'\n"
-			"                         * Note: only used when adding IsoMedia files\n"
-			"\n"
-			"All the following options can be specified as default or for each track.\n"
-			"When specified by track the syntax is \":opt\" or \":opt=val\".\n\n"
-			" -dref                  keeps media data in original file\n"
-			" -no-drop               forces constant FPS when importing AVI video\n"
-			" -packed                forces packed bitstream when importing raw ASP\n"
-			" -sbr                   backward compatible signaling of AAC-SBR\n"
-			" -sbrx                  non-backward compatible signaling of AAC-SBR\n"
-			" -ps                    backward compatible signaling of AAC-PS\n"
-			" -psx                   non-backward compatible signaling of AAC-PS\n"
-			" -ovsbr                 oversample SBR\n"
-			"                         * Note: SBR AAC, PS AAC and oversampled SBR cannot be detected at import time\n"
-			" -fps FPS               forces frame rate for video and SUB subtitles import\n"
-			"                         FPS is either a number or expressed as timescale-increment\n"
-			"                         * For raw H263 import, default FPS is 15\n"
-			"                         * For all other imports, default FPS is 25\n"
-			"                         !! THIS IS IGNORED FOR IsoMedia IMPORT !!\n"
-			" -mpeg4                 forces MPEG-4 sample descriptions when possible (3GPP2)\n"
-			"                         For AAC, forces MPEG-4 AAC signaling even if MPEG-2\n"
-			" -agg N                 aggregates N audio frames in 1 sample (3GP media only)\n"
-			"                         * Note: Maximum value is 15 - Disabled by default\n"
-			"\n"
-			);
+	        "\nFile importing syntax:\n"
+	        " \"#video\" \"#audio\"  base import for most AV files\n"
+	        " \"#trackID=ID\"        track import for IsoMedia and other files\n"
+	        " \"#pid=ID\"            stream import from MPEG-2 TS\n"
+	        " \":dur=D\"             imports only the first D seconds\n"
+	        " \":lang=LAN\"          sets imported media language code\n"
+	        " \":delay=delay_ms\"    sets imported media initial delay in ms\n"
+	        " \":par=PAR\"           sets visual pixel aspect ratio (PAR=Num:Den)\n"
+	        " \":name=NAME\"         sets track handler name\n"
+	        " \":ext=EXT\"           overrides file extension when importing\n"
+	        " \":hdlr=code\"         sets track handler type to the given code point (4CC)\n"
+	        " \":disable\"           imported track(s) will be disabled\n"
+	        " \":group=G\"           adds the track as part of the G alternate group.\n"
+	        "                         If G is 0, the first available GroupID will be picked.\n"
+	        " \":fps=VAL\"           same as -fps option\n"
+	        " \":agg=VAL\"           same as -agg option\n"
+	        " \":par=VAL\"           same as -par option\n"
+	        " \":dref\"              same as -dref option\n"
+	        " \":nodrop\"            same as -nodrop option\n"
+	        " \":packed\"            same as -packed option\n"
+	        " \":sbr\"               same as -sbr option\n"
+	        " \":sbrx\"              same as -sbrx option\n"
+	        " \":ps\"                same as -ps option\n"
+	        " \":psx\"               same as -psx option\n"
+	        " \":ovsbr\"             same as -ovsbr option\n"
+	        " \":mpeg4\"             same as -mpeg4 option\n"
+	        " \":svc\"               import SVC with explicit signaling (no AVC base compatibility)\n"
+	        " \":nosvc\"             discard SVC data when importing\n"
+	        " \":svcmode=MODE\"      sets SVC import mode:\n"
+	        " \"                       split : each AVC/SVC layer is in its own track\n"
+	        " \"                       merge : all AVC/SVC layers are merged in a single track\n"
+	        " \"                       splitbase : all SVC layers are merged in a track, and the AVC base in another\n"
+	        " \":subsamples\"        adds SubSample information for AVC+SVC\n"
+	        " \":forcesync\"         forces non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
+	        "       !! RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
+	        " \":font=name\"         specifies font name for text import (default \"Serif\")\n"
+	        " \":size=s\"            specifies font size for text import (default 18)\n"
+	        " \":stype=4CC\"         forces the sample description type to a different value\n"
+	        "                         !! THIS MAY BREAK THE FILE WRITING !!\n"
+	        " \":chap\"              specifies the track is a chapter track\n"
+	        " \":chapter=NAME\"      adds a single chapter (old nero format) with given name lasting the entire file\n"
+	        "                         This command can be used in -cat as well\n"
+	        " \":chapfile=file\"     adds a chapter file (old nero format)\n"
+	        "                         This command can be used in -cat as well\n"
+	        " \":layout=WxHxXxY\"    specifies the track layout\n"
+	        "                         - if W (resp H) = 0, the max width (resp height) of\n"
+	        "                         the tracks in the file are used.\n"
+	        "                         - if Y=-1, the layout is moved to the bottom of the\n"
+	        "                         track area\n"
+	        "                         - X and Y can be omitted (:layout=WxH)\n"
+	        " \":rescale=TS\"        forces media timescale to TS !! changes the media duration\n"
+	        " \":timescale=TS\"      sets import timescale to TS\n"
+	        " \":swf-global\"        all SWF defines are placed in first scene replace\n"
+	        "                         * Note: By default SWF defines are sent when needed\n"
+	        " \":swf-no-ctrl\"       uses a single stream for movie control and dictionary\n"
+	        "                         * Note: this will disable ActionScript\n"
+	        " \":swf-no-text\"       removes all SWF text\n"
+	        " \":swf-no-font\"       removes all embedded SWF Fonts (terminal fonts used)\n"
+	        " \":swf-no-line\"       removes all lines from SWF shapes\n"
+	        " \":swf-no-grad\"       removes all gradients from swf shapes\n"
+	        " \":swf-quad\"          uses quadratic bezier curves instead of cubic ones\n"
+	        " \":swf-xlp\"           support for lines transparency and scalability\n"
+	        " \":swf-flatten=ang\"   complementary angle below which 2 lines are merged\n"
+	        "                         * Note: angle \'0\' means no flattening\n"
+	        "\n"
+	        " \":negctts\"           uses negative CTS-DTS offsets (ISO4 brand)\n"
+	        " -add file              add file tracks to (new) output file\n"
+	        " -cat file              concatenates file samples to (new) output file\n"
+	        "                         * Note: creates tracks if needed\n"
+	        "                         * Note: aligns initial timestamp of the file to be concatenated.\n"
+	        " -catx file             same as cat but new tracks can be imported before concatenation by specifying '+ADD_COMMAND'\n"
+	        "                        where ADD_COMMAND is a regular -add syntax\n"
+	        " -unalign-cat           does not attempt to align timestamps of samples inbetween tracks\n"
+	        " -force-cat             skips media configuration check when concatenating file\n"
+	        "                         !!! THIS MAY BREAK THE CONCATENATED TRACK(S) !!!\n"
+	        " -keep-sys              keeps all MPEG-4 Systems info when using '-add' / 'cat'\n"
+	        " -keep-all              keeps all existing tracks when using '-add'\n"
+	        "                         * Note: only used when adding IsoMedia files\n"
+	        "\n"
+	        "All the following options can be specified as default or for each track.\n"
+	        "When specified by track the syntax is \":opt\" or \":opt=val\".\n\n"
+	        " -dref                  keeps media data in original file\n"
+	        " -no-drop               forces constant FPS when importing AVI video\n"
+	        " -packed                forces packed bitstream when importing raw ASP\n"
+	        " -sbr                   backward compatible signaling of AAC-SBR\n"
+	        " -sbrx                  non-backward compatible signaling of AAC-SBR\n"
+	        " -ps                    backward compatible signaling of AAC-PS\n"
+	        " -psx                   non-backward compatible signaling of AAC-PS\n"
+	        " -ovsbr                 oversample SBR\n"
+	        "                         * Note: SBR AAC, PS AAC and oversampled SBR cannot be detected at import time\n"
+	        " -fps FPS               forces frame rate for video and SUB subtitles import\n"
+	        "                         FPS is either a number or expressed as timescale-increment\n"
+	        "                         * For raw H263 import, default FPS is 15\n"
+	        "                         * For all other imports, default FPS is 25\n"
+	        "                         !! THIS IS IGNORED FOR IsoMedia IMPORT !!\n"
+	        " -mpeg4                 forces MPEG-4 sample descriptions when possible (3GPP2)\n"
+	        "                         For AAC, forces MPEG-4 AAC signaling even if MPEG-2\n"
+	        " -agg N                 aggregates N audio frames in 1 sample (3GP media only)\n"
+	        "                         * Note: Maximum value is 15 - Disabled by default\n"
+	        "\n"
+	       );
 }
 
 void PrintEncodeUsage()
 {
 	fprintf(stderr, "MPEG-4 Scene Encoding Options\n"
-			" -mp4                 specify input file is for encoding.\n"
-			" -def                 encode DEF names\n"
-			" -sync time_in_ms     forces BIFS sync sample generation every time_in_ms\n"
-			"                       * Note: cannot be used with -shadow\n"
-			" -shadow time_ms      forces BIFS sync shadow sample generation every time_ms.\n"
-			"                       * Note: cannot be used with -sync\n"
-			" -log                 generates scene codec log file if available\n"
-			" -ms file             specifies file for track importing\n"
-			"\nChunk Processing\n"
-			" -ctx-in file         specifies initial context (MP4/BT/XMT)\n"
-			"                       * Note: input file must be a commands-only file\n"
-			" -ctx-out file        specifies storage of updated context (MP4/BT/XMT)\n"
-			"\n"
-			"LASeR Encoding options\n"
-			" -resolution res      resolution factor (-8 to 7, default 0)\n"
-			"                       all coords are multiplied by 2^res before truncation\n"
-			" -coord-bits bits     bits used for encoding truncated coordinates\n"
-			"                       (0 to 31, default 12)\n"
-			" -scale-bits bits     extra bits used for encoding truncated scales\n"
-			"                       (0 to 4, default 0)\n"
-			" -auto-quant res      resolution is given as if using -resolution\n"
-			"                       but coord-bits and scale-bits are infered\n"
-			);
+	        " -mp4                 specify input file is for encoding.\n"
+	        " -def                 encode DEF names\n"
+	        " -sync time_in_ms     forces BIFS sync sample generation every time_in_ms\n"
+	        "                       * Note: cannot be used with -shadow\n"
+	        " -shadow time_ms      forces BIFS sync shadow sample generation every time_ms.\n"
+	        "                       * Note: cannot be used with -sync\n"
+	        " -log                 generates scene codec log file if available\n"
+	        " -ms file             specifies file for track importing\n"
+	        "\nChunk Processing\n"
+	        " -ctx-in file         specifies initial context (MP4/BT/XMT)\n"
+	        "                       * Note: input file must be a commands-only file\n"
+	        " -ctx-out file        specifies storage of updated context (MP4/BT/XMT)\n"
+	        "\n"
+	        "LASeR Encoding options\n"
+	        " -resolution res      resolution factor (-8 to 7, default 0)\n"
+	        "                       all coords are multiplied by 2^res before truncation\n"
+	        " -coord-bits bits     bits used for encoding truncated coordinates\n"
+	        "                       (0 to 31, default 12)\n"
+	        " -scale-bits bits     extra bits used for encoding truncated scales\n"
+	        "                       (0 to 4, default 0)\n"
+	        " -auto-quant res      resolution is given as if using -resolution\n"
+	        "                       but coord-bits and scale-bits are infered\n"
+	       );
 }
 
 void PrintEncryptUsage()
 {
 	fprintf(stderr, "ISMA Encryption/Decryption Options\n"
-			" -crypt drm_file      crypts a specific track using ISMA AES CTR 128\n"
-			" -decrypt [drm_file]  decrypts a specific track using ISMA AES CTR 128\n"
-			"                       * Note: drm_file can be omitted if keys are in file\n"
-			" -set-kms kms_uri     changes KMS location for all tracks or a given one.\n"
-			"                       * to adress a track, use \'tkID=kms_uri\'\n"
-			"\n"
-			"DRM file syntax for GPAC ISMACryp:\n"
-			"                      File is XML and shall start with xml header\n"
-			"                      File root is an \"ISMACryp\" element\n"
-			"                      File is a list of \"cryptrack\" elements\n"
-			"\n"
-			"cryptrack attributes are\n"
-			" TrackID              ID of track to en/decrypt\n"
-			" key                  AES-128 key formatted (hex string \'0x\'+32 chars)\n"
-			" salt                 CTR IV salt key (64 bits) (hex string \'0x\'+16 chars)\n"
-			"\nEncryption only attributes:\n"
-			" Scheme_URI           URI of scheme used\n"
-			" KMS_URI              URI of key management system\n"
-			"                       * Note: \'self\' writes key and salt in the file\n"
-			" selectiveType        selective encryption type - understood values are:\n"
-			"   \"None\"             all samples encrypted (default)\n"
-			"   \"RAP\"              only encrypts random access units\n"
-			"   \"Non-RAP\"          only encrypts non-random access units\n"
-			"   \"Rand\"             random selection is performed\n"
-			"   \"X\"                Encrypts every first sample out of X (uint)\n"
-			"   \"RandX\"            Encrypts one random sample out of X (uint)\n"
-			"\n"
-			" ipmpType             IPMP Signaling Type: None, IPMP, IPMPX\n"
-			" ipmpDescriptorID     IPMP_Descriptor ID to use if IPMP(X) is used\n"
-			"                       * If not set MP4Box will generate one for you\n"
-			"\n"
-		);
+	        " -crypt drm_file      crypts a specific track using ISMA AES CTR 128\n"
+	        " -decrypt [drm_file]  decrypts a specific track using ISMA AES CTR 128\n"
+	        "                       * Note: drm_file can be omitted if keys are in file\n"
+	        " -set-kms kms_uri     changes KMS location for all tracks or a given one.\n"
+	        "                       * to adress a track, use \'tkID=kms_uri\'\n"
+	        "\n"
+	        "DRM file syntax for GPAC ISMACryp:\n"
+	        "                      File is XML and shall start with xml header\n"
+	        "                      File root is an \"ISMACryp\" element\n"
+	        "                      File is a list of \"cryptrack\" elements\n"
+	        "\n"
+	        "cryptrack attributes are\n"
+	        " TrackID              ID of track to en/decrypt\n"
+	        " key                  AES-128 key formatted (hex string \'0x\'+32 chars)\n"
+	        " salt                 CTR IV salt key (64 bits) (hex string \'0x\'+16 chars)\n"
+	        "\nEncryption only attributes:\n"
+	        " Scheme_URI           URI of scheme used\n"
+	        " KMS_URI              URI of key management system\n"
+	        "                       * Note: \'self\' writes key and salt in the file\n"
+	        " selectiveType        selective encryption type - understood values are:\n"
+	        "   \"None\"             all samples encrypted (default)\n"
+	        "   \"RAP\"              only encrypts random access units\n"
+	        "   \"Non-RAP\"          only encrypts non-random access units\n"
+	        "   \"Rand\"             random selection is performed\n"
+	        "   \"X\"                Encrypts every first sample out of X (uint)\n"
+	        "   \"RandX\"            Encrypts one random sample out of X (uint)\n"
+	        "\n"
+	        " ipmpType             IPMP Signaling Type: None, IPMP, IPMPX\n"
+	        " ipmpDescriptorID     IPMP_Descriptor ID to use if IPMP(X) is used\n"
+	        "                       * If not set MP4Box will generate one for you\n"
+	        "\n"
+	       );
 }
 
 void PrintHintUsage()
 {
 	fprintf(stderr, "Hinting Options\n"
-			" -hint                hints the file for RTP/RTSP\n"
-			" -mtu size            specifies RTP MTU (max size) in bytes. Default size is 1450\n"
-			"                       * Note: this includes the RTP header (12 bytes)\n"
-			" -copy                copies media data to hint track rather than reference\n"
-			"                       * Note: speeds up server but takes much more space\n"
-			" -multi [maxptime]    enables frame concatenation in RTP packets if possible\n"
-			"        maxptime       max packet duration in ms (optional, default 100ms)\n"
-			" -rate ck_rate        specifies rtp rate in Hz when no default for payload\n"
-			"                       * Note: default value is 90000 (MPEG rtp rates)\n"
-			" -mpeg4               forces MPEG-4 generic payload whenever possible\n"
-			" -latm                forces MPG4-LATM transport for AAC streams\n"
-			" -static              enables static RTP payload IDs whenever possible\n"
-			"                       * By default, dynamic payloads are always used\n"
-			"\n"
-			"MPEG-4 Generic Payload Options\n"
-			" -ocr                 forces all streams to be synchronized\n"
-			"                       * Most RTSP servers only support synchronized streams\n"
-			" -rap                 signals random access points in RTP packets\n"
-			" -ts                  signals AU Time Stamps in RTP packets\n"
-			" -size                signals AU size in RTP packets\n"
-			" -idx                 signals AU sequence numbers in RTP packets\n"
-			" -iod                 prevents systems tracks embedding in IOD\n"
-			"                       * Note: shouldn't be used with -isma option\n"
-			"\n"
-			" -add-sdp string      adds sdp string to (hint) track (\"-add-sdp tkID:string\")\n"
-			"                       or movie. This will take care of SDP lines ordering\n"
-			" -unhint              removes all hinting information.\n"
-			"\n");
+	        " -hint                hints the file for RTP/RTSP\n"
+	        " -mtu size            specifies RTP MTU (max size) in bytes. Default size is 1450\n"
+	        "                       * Note: this includes the RTP header (12 bytes)\n"
+	        " -copy                copies media data to hint track rather than reference\n"
+	        "                       * Note: speeds up server but takes much more space\n"
+	        " -multi [maxptime]    enables frame concatenation in RTP packets if possible\n"
+	        "        maxptime       max packet duration in ms (optional, default 100ms)\n"
+	        " -rate ck_rate        specifies rtp rate in Hz when no default for payload\n"
+	        "                       * Note: default value is 90000 (MPEG rtp rates)\n"
+	        " -mpeg4               forces MPEG-4 generic payload whenever possible\n"
+	        " -latm                forces MPG4-LATM transport for AAC streams\n"
+	        " -static              enables static RTP payload IDs whenever possible\n"
+	        "                       * By default, dynamic payloads are always used\n"
+	        "\n"
+	        "MPEG-4 Generic Payload Options\n"
+	        " -ocr                 forces all streams to be synchronized\n"
+	        "                       * Most RTSP servers only support synchronized streams\n"
+	        " -rap                 signals random access points in RTP packets\n"
+	        " -ts                  signals AU Time Stamps in RTP packets\n"
+	        " -size                signals AU size in RTP packets\n"
+	        " -idx                 signals AU sequence numbers in RTP packets\n"
+	        " -iod                 prevents systems tracks embedding in IOD\n"
+	        "                       * Note: shouldn't be used with -isma option\n"
+	        "\n"
+	        " -add-sdp string      adds sdp string to (hint) track (\"-add-sdp tkID:string\")\n"
+	        "                       or movie. This will take care of SDP lines ordering\n"
+	        " -unhint              removes all hinting information.\n"
+	        "\n");
 }
 void PrintExtractUsage()
 {
 	fprintf(stderr, "Extracting Options:\n"
-			" -raw TrackID         extracts track in raw format when supported\n" 
-			"                      :output=FileName sets the output filename for this extraction \n" 
-			" -raws TrackID        extract each track sample to a file\n" 
-			"                       * Note: \"TrackID:N\" extracts Nth sample\n"
-			" -nhnt TrackID        extracts track in nhnt format\n" 
-			" -nhml TrackID        extracts track in nhml format (XML nhnt).\n" 
-			"                       * Note: \"-nhml TrackID:full\" for full dump\n"
-			" -webvtt-raw TrackID  extracts raw media track in WebVTT as metadata.\n" 
-			"                       * Note: \"-webvtt-raw TrackID:embedded\" to include media data in the WebVTT file\n"
-			" -six TrackID		   extracts raw media track in experimental XML streaming instructions.\n" 
-			" -single TrackID      extracts track to a new mp4 file\n"
-			" -avi TrackID         extracts visual track to an avi file\n"
-			" -qcp TrackID         same as \'-raw\' but defaults to QCP file for EVRC/SMV\n" 
-			" -aviraw TK           extracts AVI track in raw format\n"
-			"			            $TK can be one of \"video\" \"audio\" \"audioN\"\n" 
-			" -saf                 remux file to SAF multiplex\n"
-			" -dvbhdemux           demux DVB-H file into IP Datagrams\n"
-			"                       * Note: can be used when encoding scene descriptions\n"
-			" -raw-layer ID        same as -raw but skips SVC/MVC extractors when extracting\n" 
-			" -diod                extracts file IOD in raw format when supported\n" 
-			"\n"
+	        " -raw TrackID         extracts track in raw format when supported\n"
+	        "                      :output=FileName sets the output filename for this extraction \n"
+	        " -raws TrackID        extract each track sample to a file\n"
+	        "                       * Note: \"TrackID:N\" extracts Nth sample\n"
+	        " -nhnt TrackID        extracts track in nhnt format\n"
+	        " -nhml TrackID        extracts track in nhml format (XML nhnt).\n"
+	        "                       * Note: \"-nhml TrackID:full\" for full dump\n"
+	        " -webvtt-raw TrackID  extracts raw media track in WebVTT as metadata.\n"
+	        "                       * Note: \"-webvtt-raw TrackID:embedded\" to include media data in the WebVTT file\n"
+	        " -six TrackID		   extracts raw media track in experimental XML streaming instructions.\n"
+	        " -single TrackID      extracts track to a new mp4 file\n"
+	        " -avi TrackID         extracts visual track to an avi file\n"
+	        " -qcp TrackID         same as \'-raw\' but defaults to QCP file for EVRC/SMV\n"
+	        " -aviraw TK           extracts AVI track in raw format\n"
+	        "			            $TK can be one of \"video\" \"audio\" \"audioN\"\n"
+	        " -saf                 remux file to SAF multiplex\n"
+	        " -dvbhdemux           demux DVB-H file into IP Datagrams\n"
+	        "                       * Note: can be used when encoding scene descriptions\n"
+	        " -raw-layer ID        same as -raw but skips SVC/MVC extractors when extracting\n"
+	        " -diod                extracts file IOD in raw format when supported\n"
+	        "\n"
 #if !defined(GPAC_DISABLE_STREAMING)
-			" -grab-ts IP:port     grabs TS over UDP or RTP at IP:port location to output TS file\n"
+	        " -grab-ts IP:port     grabs TS over UDP or RTP at IP:port location to output TS file\n"
 #endif
-			"\n");
+	        "\n");
 }
 void PrintDumpUsage()
 {
 	fprintf(stderr, "Dumping Options\n"
-			" -stdb                dumps/write to stdout and assumes stdout is opened in binary mode\n"
-			" -std                 dumps/write to stdout and try to reopen stdout in binary mode.\n"
-			" -info [trackID]      prints movie info / track info if trackID specified\n"
-			"                       * Note: for non IsoMedia files, gets import options\n" 
-			" -bt                  scene to bt format - removes unknown MPEG4 nodes\n" 
-			" -xmt                 scene to XMT-A format - removes unknown MPEG4 nodes\n" 
-			" -wrl                 scene VRML format - removes unknown VRML nodes\n" 
-			" -x3d                 scene to X3D/XML format - removes unknown X3D nodes\n" 
-			" -x3dv                scene to X3D/VRML format - removes unknown X3D nodes\n" 
-			" -lsr                 scene to LASeR format\n" 
-			" -diso                scene IsoMedia file boxes in XML output\n"
-			" -drtp                rtp hint samples structure to XML output\n"
-			" -dts                 prints sample timing to text output\n"
-			" -dnal trackID        prints NAL sample info of given track\n"
-			" -sdp                 dumps SDP description of hinted file\n"
-			" -dcr                 ISMACryp samples structure to XML output\n"
-			" -dump-cover          Extracts cover art\n"
-			" -dump-chap           Extracts chapter file\n"
-			"\n"
+	        " -stdb                dumps/write to stdout and assumes stdout is opened in binary mode\n"
+	        " -std                 dumps/write to stdout and try to reopen stdout in binary mode.\n"
+	        " -info [trackID]      prints movie info / track info if trackID specified\n"
+	        "                       * Note: for non IsoMedia files, gets import options\n"
+	        " -bt                  scene to bt format - removes unknown MPEG4 nodes\n"
+	        " -xmt                 scene to XMT-A format - removes unknown MPEG4 nodes\n"
+	        " -wrl                 scene VRML format - removes unknown VRML nodes\n"
+	        " -x3d                 scene to X3D/XML format - removes unknown X3D nodes\n"
+	        " -x3dv                scene to X3D/VRML format - removes unknown X3D nodes\n"
+	        " -lsr                 scene to LASeR format\n"
+	        " -diso                scene IsoMedia file boxes in XML output\n"
+	        " -drtp                rtp hint samples structure to XML output\n"
+	        " -dts                 prints sample timing to text output\n"
+	        " -dnal trackID        prints NAL sample info of given track\n"
+	        " -sdp                 dumps SDP description of hinted file\n"
+	        " -dcr                 ISMACryp samples structure to XML output\n"
+	        " -dump-cover          Extracts cover art\n"
+	        " -dump-chap           Extracts chapter file\n"
+	        "\n"
 #ifndef GPAC_DISABLE_ISOM_WRITE
-			" -ttxt                Converts input subtitle to GPAC TTXT format\n"
+	        " -ttxt                Converts input subtitle to GPAC TTXT format\n"
 #endif
-			" -ttxt TrackID        Dumps Text track to GPAC TTXT format\n"
+	        " -ttxt TrackID        Dumps Text track to GPAC TTXT format\n"
 #ifndef GPAC_DISABLE_ISOM_WRITE
-			" -srt                 Converts input subtitle to SRT format\n"
+	        " -srt                 Converts input subtitle to SRT format\n"
 #endif
-			" -srt TrackID         Dumps Text track to SRT format\n"
-			"\n"
-			" -stat                generates node/field statistics for scene\n"
-			" -stats               generates node/field statistics per MPEG-4 Access Unit\n"
-			" -statx               generates node/field statistics for scene after each AU\n"
-			"\n"
-			" -hash                generates SHA-1 Hash of the input file\n"
-			"\n");
+	        " -srt TrackID         Dumps Text track to SRT format\n"
+	        "\n"
+	        " -stat                generates node/field statistics for scene\n"
+	        " -stats               generates node/field statistics per MPEG-4 Access Unit\n"
+	        " -statx               generates node/field statistics for scene after each AU\n"
+	        "\n"
+	        " -hash                generates SHA-1 Hash of the input file\n"
+	        "\n");
 }
 
 void PrintMetaUsage()
 {
 	fprintf(stderr, "Meta handling Options\n"
-			" -set-meta args       sets given meta type - syntax: \"ABCD[:tk=ID]\"\n"
-			"                       * ABCD: four char meta type (NULL or 0 to remove meta)\n"
-			"                       * [:tk=ID]: if not set use root (file) meta\n"
-			"                                if ID is 0 use moov meta\n"
-			"                                if ID is not 0 use track meta\n"
-			" -add-item args       adds resource to meta\n"
-			"                       * syntax: file_path + options (\':\' separated):\n"
-			"                        tk=ID: meta adressing (file, moov, track)\n"
-			"                        name=str: item name\n"
-			"                        mime=mtype: item mime type\n"
-			"                        encoding=enctype: item content-encoding type\n"
-			"                        id=id: item ID\n"
-			"                       * file_path \"this\" or \"self\": item is the file itself\n"
-			" -rem-item args       removes resource from meta - syntax: item_ID[:tk=ID]\n"
-			" -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
-			" -set-xml args        sets meta XML data\n"
-			"                       * syntax: xml_file_path[:tk=ID][:binary]\n"
-			" -rem-xml [tk=ID]     removes meta XML data\n"
-			" -dump-xml args       dumps meta XML to file - syntax file_path[:tk=ID]\n"
-			" -dump-item args      dumps item to file - syntax item_ID[:tk=ID][:path=fileName]\n"
-			" -package             packages input XML file into an ISO container\n"
-			"                       * all media referenced except hyperlinks are added to file\n"
-			" -mgt                 packages input XML file into an MPEG-U widget with ISO container.\n"
-			"                       * all files contained in the current folder are added to the widget package\n"
-			"\n");
+	        " -set-meta args       sets given meta type - syntax: \"ABCD[:tk=ID]\"\n"
+	        "                       * ABCD: four char meta type (NULL or 0 to remove meta)\n"
+	        "                       * [:tk=ID]: if not set use root (file) meta\n"
+	        "                                if ID is 0 use moov meta\n"
+	        "                                if ID is not 0 use track meta\n"
+	        " -add-item args       adds resource to meta\n"
+	        "                       * syntax: file_path + options (\':\' separated):\n"
+	        "                        tk=ID: meta adressing (file, moov, track)\n"
+	        "                        name=str: item name\n"
+	        "                        mime=mtype: item mime type\n"
+	        "                        encoding=enctype: item content-encoding type\n"
+	        "                        id=id: item ID\n"
+	        "                       * file_path \"this\" or \"self\": item is the file itself\n"
+	        " -rem-item args       removes resource from meta - syntax: item_ID[:tk=ID]\n"
+	        " -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
+	        " -set-xml args        sets meta XML data\n"
+	        "                       * syntax: xml_file_path[:tk=ID][:binary]\n"
+	        " -rem-xml [tk=ID]     removes meta XML data\n"
+	        " -dump-xml args       dumps meta XML to file - syntax file_path[:tk=ID]\n"
+	        " -dump-item args      dumps item to file - syntax item_ID[:tk=ID][:path=fileName]\n"
+	        " -package             packages input XML file into an ISO container\n"
+	        "                       * all media referenced except hyperlinks are added to file\n"
+	        " -mgt                 packages input XML file into an MPEG-U widget with ISO container.\n"
+	        "                       * all files contained in the current folder are added to the widget package\n"
+	        "\n");
 }
 
 void PrintSWFUsage()
 {
-	fprintf(stderr, 
-			"SWF Importer Options\n"
-			"\n"
-			"MP4Box can import simple Macromedia Flash files (\".SWF\")\n"
-			"You can specify a SWF input file with \'-bt\', \'-xmt\' and \'-mp4\' options\n"
-			"\n"
-			" -global              all SWF defines are placed in first scene replace\n"
-			"                       * Note: By default SWF defines are sent when needed\n"
-			" -no-ctrl             uses a single stream for movie control and dictionary\n"
-			"                       * Note: this will disable ActionScript\n"
-			" -no-text             removes all SWF text\n"
-			" -no-font             removes all embedded SWF Fonts (terminal fonts used)\n"
-			" -no-line             removes all lines from SWF shapes\n"
-			" -no-grad             removes all gradients from swf shapes\n"
-			" -quad                uses quadratic bezier curves instead of cubic ones\n"
-			" -xlp                 support for lines transparency and scalability\n"
-			" -flatten ang         complementary angle below which 2 lines are merged\n"
-			"                       * Note: angle \'0\' means no flattening\n"
-			"\n"
-		);
+	fprintf(stderr,
+	        "SWF Importer Options\n"
+	        "\n"
+	        "MP4Box can import simple Macromedia Flash files (\".SWF\")\n"
+	        "You can specify a SWF input file with \'-bt\', \'-xmt\' and \'-mp4\' options\n"
+	        "\n"
+	        " -global              all SWF defines are placed in first scene replace\n"
+	        "                       * Note: By default SWF defines are sent when needed\n"
+	        " -no-ctrl             uses a single stream for movie control and dictionary\n"
+	        "                       * Note: this will disable ActionScript\n"
+	        " -no-text             removes all SWF text\n"
+	        " -no-font             removes all embedded SWF Fonts (terminal fonts used)\n"
+	        " -no-line             removes all lines from SWF shapes\n"
+	        " -no-grad             removes all gradients from swf shapes\n"
+	        " -quad                uses quadratic bezier curves instead of cubic ones\n"
+	        " -xlp                 support for lines transparency and scalability\n"
+	        " -flatten ang         complementary angle below which 2 lines are merged\n"
+	        "                       * Note: angle \'0\' means no flattening\n"
+	        "\n"
+	       );
 }
 
 void PrintUsage()
 {
 	fprintf (stderr, "MP4Box [option] input [option]\n"
-			" -h general           general options help\n"
-			" -h hint              hinting options help\n"
-			" -h dash              DASH segmenter help\n"
-			" -h import            import options help\n"
-			" -h encode            encode options help\n"
-			" -h meta              meta handling options help\n"
-			" -h extract           extraction options help\n"
-			" -h dump              dump options help\n"
-			" -h swf               Flash (SWF) options help\n"
-			" -h crypt             ISMA E&A options help\n"
-			" -h format            supported formats help\n"
-			" -h rtp               file streamer help\n"
-			" -h live              BIFS streamer help\n"
-			" -h all               all options are printed\n"
-			"\n"
-			" -nodes               lists supported MPEG4 nodes\n"
-			" -node NodeName       gets MPEG4 node syntax and QP info\n"
-			" -xnodes              lists supported X3D nodes\n"
-			" -xnode NodeName      gets X3D node syntax\n"
-			" -snodes              lists supported SVG nodes\n"
-			" -snode NodeName      gets SVG node syntax\n"
-			" -languages           lists supported ISO 639 languages\n"
-			"\n"
-			" -quiet                quiet mode\n"
-			" -noprog               disables progress\n"
-			" -v                   verbose mode\n"
-			" -logs                set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
-			" -version             gets build version\n"
-			" -- INPUT             escape option if INPUT starts with - character\n"
-			"\n"
-			);
+	         " -h general           general options help\n"
+	         " -h hint              hinting options help\n"
+	         " -h dash              DASH segmenter help\n"
+	         " -h import            import options help\n"
+	         " -h encode            encode options help\n"
+	         " -h meta              meta handling options help\n"
+	         " -h extract           extraction options help\n"
+	         " -h dump              dump options help\n"
+	         " -h swf               Flash (SWF) options help\n"
+	         " -h crypt             ISMA E&A options help\n"
+	         " -h format            supported formats help\n"
+	         " -h rtp               file streamer help\n"
+	         " -h live              BIFS streamer help\n"
+	         " -h all               all options are printed\n"
+	         "\n"
+	         " -nodes               lists supported MPEG4 nodes\n"
+	         " -node NodeName       gets MPEG4 node syntax and QP info\n"
+	         " -xnodes              lists supported X3D nodes\n"
+	         " -xnode NodeName      gets X3D node syntax\n"
+	         " -snodes              lists supported SVG nodes\n"
+	         " -snode NodeName      gets SVG node syntax\n"
+	         " -languages           lists supported ISO 639 languages\n"
+	         "\n"
+	         " -quiet                quiet mode\n"
+	         " -noprog               disables progress\n"
+	         " -v                   verbose mode\n"
+	         " -logs                set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
+	         " -version             gets build version\n"
+	         " -- INPUT             escape option if INPUT starts with - character\n"
+	         "\n"
+	        );
 }
 
 
@@ -758,7 +762,7 @@ void scene_coding_log(void *cbk, u32 log_level, u32 log_tool, const char *fmt, v
 {
 	FILE *logs = cbk;
 	if (log_tool != GF_LOG_CODING) return;
-    vfprintf(logs, fmt, vlist);
+	vfprintf(logs, fmt, vlist);
 	fflush(logs);
 }
 
@@ -812,7 +816,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 	tot_bw = 0;
 	prev_ocr = 0;
 	single_ocr = 1;
-	
+
 	has_iod = 1;
 	iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(file);
 	if (!iod) has_iod = 0;
@@ -914,26 +918,26 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 				if (!nb_done) return e;
 			}
 			continue;
-		} 
+		}
 		bw = gf_hinter_track_get_bandwidth(hinter);
 		tot_bw += bw;
 		flags = gf_hinter_track_get_flags(hinter);
-	
+
 		//set extraction mode for AVC/SVC
 		gf_isom_set_nalu_extract_mode(file, i+1, GF_ISOM_NALU_EXTRACT_LAYER_ONLY);
 
 		gf_hinter_track_get_payload_name(hinter, szPayload);
 		fprintf(stderr, "Hinting track ID %d - Type \"%s:%s\" (%s) - BW %d kbps\n", gf_isom_get_track_id(file, i+1), gf_4cc_to_str(mtype), gf_4cc_to_str(mtype), szPayload, bw);
 		if (flags & GP_RTP_PCK_SYSTEMS_CAROUSEL) fprintf(stderr, "\tMPEG-4 Systems stream carousel enabled\n");
-/*
-		if (flags & GP_RTP_PCK_FORCE_MPEG4) fprintf(stderr, "\tMPEG4 transport forced\n");
-		if (flags & GP_RTP_PCK_USE_MULTI) fprintf(stderr, "\tRTP aggregation enabled\n");
-*/
+		/*
+				if (flags & GP_RTP_PCK_FORCE_MPEG4) fprintf(stderr, "\tMPEG4 transport forced\n");
+				if (flags & GP_RTP_PCK_USE_MULTI) fprintf(stderr, "\tRTP aggregation enabled\n");
+		*/
 		e = gf_hinter_track_process(hinter);
 
 		if (!e) e = gf_hinter_track_finalize(hinter, has_iod);
 		gf_hinter_track_del(hinter);
-		
+
 		if (e) {
 			fprintf(stderr, "Error while hinting (%s)\n", gf_error_to_string(e));
 			if (!nb_done) return e;
@@ -983,9 +987,9 @@ static void check_media_profile(GF_ISOFile *file, u32 track)
 	case 0x05:
 		PL = gf_isom_get_pl_indication(file, GF_ISOM_PL_AUDIO);
 		switch (esd->decoderConfig->objectTypeIndication) {
-		case GPAC_OTI_AUDIO_AAC_MPEG2_MP: 
-		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP: 
-		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP: 
+		case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 		case GPAC_OTI_AUDIO_AAC_MPEG4:
 			gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 			if (dsi.audioPL > PL) gf_isom_set_pl_indication(file, GF_ISOM_PL_AUDIO, dsi.audioPL);
@@ -1051,8 +1055,8 @@ void remove_systems_tracks(GF_ISOFile *file)
 #endif /*!defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_AV_PARSERS)*/
 
 /*return value:
-	0: not supported 
-	1: ISO media 
+	0: not supported
+	1: ISO media
 	2: input bt file (.bt, .wrl)
 	3: input XML file (.xmt)
 	4: input SVG file (.svg)
@@ -1157,18 +1161,36 @@ static Bool parse_meta_args(MetaAction *meta, u32 act_type, char *opts)
 		/*use ':' as separator, but beware DOS paths...*/
 		if (next && next[1]=='\\') next = strchr(szSlot+2, ':');
 		if (next) next[0] = 0;
-		
+
 		if (!strnicmp(szSlot, "tk=", 3)) {
 			sscanf(szSlot, "tk=%u", &meta->trackID);
 			meta->root_meta = 0;
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "id=", 3)) { meta->item_id = atoi(szSlot+3); ret = 1; }
-		else if (!strnicmp(szSlot, "name=", 5)) { strcpy(meta->szName, szSlot+5); ret = 1; }
-		else if (!strnicmp(szSlot, "path=", 5)) { strcpy(meta->szPath, szSlot+5); ret = 1; }
-		else if (!strnicmp(szSlot, "mime=", 5)) { strcpy(meta->mime_type, szSlot+5); ret = 1; }
-		else if (!strnicmp(szSlot, "encoding=", 9)) { strcpy(meta->enc_type, szSlot+9); ret = 1; }
-		else if (!strnicmp(szSlot, "dref", 4)) { meta->use_dref = 1; ret = 1; }
+		else if (!strnicmp(szSlot, "id=", 3)) {
+			meta->item_id = atoi(szSlot+3);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "name=", 5)) {
+			strcpy(meta->szName, szSlot+5);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "path=", 5)) {
+			strcpy(meta->szPath, szSlot+5);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "mime=", 5)) {
+			strcpy(meta->mime_type, szSlot+5);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "encoding=", 9)) {
+			strcpy(meta->enc_type, szSlot+9);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "dref", 4)) {
+			meta->use_dref = 1;
+			ret = 1;
+		}
 		else if (!stricmp(szSlot, "binary")) {
 			if (meta->act_type==4) meta->act_type=5;
 			ret = 1;
@@ -1180,16 +1202,16 @@ static Bool parse_meta_args(MetaAction *meta, u32 act_type, char *opts)
 				else meta->meta_4cc = GF_4CC(szSlot[0], szSlot[1], szSlot[2], szSlot[3]);
 				ret = 1;
 				break;
-			case 1: 
-			case 4: 
-			case 7: 
-				strcpy(meta->szPath, szSlot);  
+			case 1:
+			case 4:
+			case 7:
+				strcpy(meta->szPath, szSlot);
 				ret = 1;
 				break;
-			case 2: 
-			case 3: 
-			case 8: 
-				meta->item_id = atoi(szSlot);  
+			case 2:
+			case 3:
+			case 8:
+				meta->item_id = atoi(szSlot);
 				ret = 1;
 				break;
 			}
@@ -1204,7 +1226,7 @@ static Bool parse_meta_args(MetaAction *meta, u32 act_type, char *opts)
 
 
 typedef struct
-{	
+{
 	/*0: set tsel param - 1 remove tsel - 2 remove all tsel info in alternate group - 3 remove all tsel info in file*/
 	u32 act_type;
 	u32 trackID;
@@ -1230,7 +1252,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 
 	has_switch_id = 0;
 	act = tsel_list[*nb_tsel_act].act_type;
-			
+
 
 	if (!opts) return 0;
 	while (1) {
@@ -1243,19 +1265,19 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 		if (next) next[0] = 0;
 
 
-		if (!strnicmp(szSlot, "ref=", 4)) refTrackID = atoi(szSlot+4);  
+		if (!strnicmp(szSlot, "ref=", 4)) refTrackID = atoi(szSlot+4);
 		else if (!strnicmp(szSlot, "switchID=", 9)) {
 			if (atoi(szSlot+9)<0) {
-				switch_id = 0; 
+				switch_id = 0;
 				has_switch_id = 0;
 			} else {
-				switch_id = atoi(szSlot+9); 
+				switch_id = atoi(szSlot+9);
 				has_switch_id = 1;
 			}
 		}
 		else if (!strnicmp(szSlot, "switchID", 8)) {
-				switch_id = 0; 
-				has_switch_id = 1;
+			switch_id = 0;
+			has_switch_id = 1;
 		}
 		else if (!strnicmp(szSlot, "criteria=", 9)) {
 			u32 j=9;
@@ -1284,7 +1306,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 				refTrackID = tsel_act->trackID;
 
 			(*nb_tsel_act) ++;
-		}		
+		}
 		opts += strlen(szSlot);
 	}
 	return 1;
@@ -1306,7 +1328,7 @@ typedef struct
 	7: disables track
 	8: referenceTrack
 	9: raw extraction
-	10: remove non-rap 
+	10: remove non-rap
 	*/
 	u32 act_type;
 	/*track ID*/
@@ -1346,7 +1368,7 @@ enum
 	if (dash_inputs) gf_free(dash_inputs); \
 	gf_sys_close();	\
 	return __ret_code; \
-
+ 
 
 GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *name, u32 *nb_dash_inputs)
 {
@@ -1371,7 +1393,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				u32 i;
 				strncpy(di->representationID, opts+3, 99);
 				/* check to see if this representation Id has already been assigned */
-				for (i=0; i<(*nb_dash_inputs)-1;i++) {
+				for (i=0; i<(*nb_dash_inputs)-1; i++) {
 					GF_DashSegmenterInput *other_di;
 					other_di = &dash_inputs[i];
 					if (!strcmp(other_di->representationID, di->representationID)) {
@@ -1383,7 +1405,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] PeriodID cannot exceed 99 characters in MP4Box, truncating ...\n"));
 				}
 				strncpy(di->periodID, opts+7, 99);
-			} 
+			}
 			else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
 			else if (!strnicmp(opts, "role=", 5)) strncpy(di->role, opts+5, 99);
 			else if (!strnicmp(opts, "xlink=", 6)) {
@@ -1392,7 +1414,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				}
 				strncpy(di->xlink, opts+6, 199);
 			}
-			
+
 			if (!sep) break;
 			sep[0] = ':';
 			opts = sep+1;
@@ -1427,12 +1449,12 @@ static GF_Err parse_track_action_params(char *string, TrackAction *action)
 				action->sample_num = atoi(param);
 			}
 #endif
-		} 
+		}
 	}
 	if (!strcmp(string, "*")) {
 		action->trackID = (u32) -1;
 	} else {
-	    action->trackID = atoi(string);
+		action->trackID = atoi(string);
 	}
 	return GF_OK;
 }
@@ -1527,7 +1549,7 @@ int mp4boxMain(int argc, char **argv)
 	const char *grab_m2ts = NULL;
 #endif
 	FILE *logfile = NULL;
-	
+
 	nb_tsel_acts = nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = raw_sample_num = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = car_dur = minor_version = 0;
 	e = GF_OK;
 	split_duration = 0.0;
@@ -1579,7 +1601,7 @@ int mp4boxMain(int argc, char **argv)
 #ifdef GPAC_MEMORY_TRACKING
 			enable_mem_tracker = 1;
 #else
-			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
+			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
 #endif
 			break;
 		}
@@ -1604,9 +1626,9 @@ int mp4boxMain(int argc, char **argv)
 				i++;
 			}
 			if (argc < 3) {
-				fprintf(stderr, "Error - only one input file found as argument, please check usage\n"); 
-				MP4BOX_EXIT_WITH_CODE(1); 
-			} else if (inName) { 
+				fprintf(stderr, "Error - only one input file found as argument, please check usage\n");
+				MP4BOX_EXIT_WITH_CODE(1);
+			} else if (inName) {
 				if (dash_duration) {
 					if (!nb_dash_inputs) {
 						dash_inputs = set_dash_input(dash_inputs, inName, &nb_dash_inputs);
@@ -1614,18 +1636,24 @@ int mp4boxMain(int argc, char **argv)
 					dash_inputs = set_dash_input(dash_inputs, arg_val, &nb_dash_inputs);
 				} else {
 					fprintf(stderr, "Error - 2 input names specified, please check usage\n");
-					MP4BOX_EXIT_WITH_CODE(1); 
+					MP4BOX_EXIT_WITH_CODE(1);
 				}
 			} else {
 				inName = arg_val;
 			}
 		}
-		else if (!stricmp(arg, "-?")) { PrintUsage(); MP4BOX_EXIT_WITH_CODE(0); }
-		else if (!stricmp(arg, "-version")) { PrintVersion(); MP4BOX_EXIT_WITH_CODE(0); }
+		else if (!stricmp(arg, "-?")) {
+			PrintUsage();
+			MP4BOX_EXIT_WITH_CODE(0);
+		}
+		else if (!stricmp(arg, "-version")) {
+			PrintVersion();
+			MP4BOX_EXIT_WITH_CODE(0);
+		}
 		else if (!stricmp(arg, "-sdp")) print_sdp = 1;
 		else if (!stricmp(arg, "-quiet")) quiet = 2;
 		else if (!strcmp(argv[i], "-mem-track")) continue;
-		
+
 		else if (!stricmp(arg, "-logs")) {
 			CHECK_NEXT_ARG
 			gf_logs = argv[i+1];
@@ -1637,7 +1665,7 @@ int mp4boxMain(int argc, char **argv)
 			logfile = gf_f64_open(argv[i+1], "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
-		} 
+		}
 		else if (!stricmp(arg, "-noprog")) quiet = 1;
 		else if (!stricmp(arg, "-info")) {
 			print_info = 1;
@@ -1655,14 +1683,14 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			grab_m2ts = argv[i+1];
 			i++;
-		}		
+		}
 #endif
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
 		else if (!stricmp(arg, "-wget")) {
 			CHECK_NEXT_ARG
 			do_wget = argv[i+1];
 			i++;
-		}		
+		}
 #endif
 		/*******************************************************************************/
 		else if (!stricmp(arg, "-dvbhdemux")) {
@@ -1692,7 +1720,10 @@ int mp4boxMain(int argc, char **argv)
 				if (strlen(argv[i+1])==5) trackID = 2;
 				else trackID = 1 + atoi(argv[i+1] + 5);
 			}
-			else { fprintf(stderr, "Usage: \"-aviraw video\" or \"-aviraw audio\"\n"); MP4BOX_EXIT_WITH_CODE(1); }
+			else {
+				fprintf(stderr, "Usage: \"-aviraw video\" or \"-aviraw audio\"\n");
+				MP4BOX_EXIT_WITH_CODE(1);
+			}
 			track_dump_type = GF_EXPORT_AVI_NATIVE;
 			i++;
 		}
@@ -1739,14 +1770,32 @@ int mp4boxMain(int argc, char **argv)
 			dump_iod = 1;
 		}
 #ifndef GPAC_DISABLE_VRML
-		else if (!stricmp(arg, "-node")) { CHECK_NEXT_ARG PrintNode(argv[i+1], 0); MP4BOX_EXIT_WITH_CODE(0); }
-		else if (!stricmp(arg, "-xnode")) { CHECK_NEXT_ARG PrintNode(argv[i+1], 1); MP4BOX_EXIT_WITH_CODE(0); }
-		else if (!stricmp(arg, "-nodes")) { PrintBuiltInNodes(0); MP4BOX_EXIT_WITH_CODE(0); }
-		else if (!stricmp(arg, "-xnodes")) { PrintBuiltInNodes(1); MP4BOX_EXIT_WITH_CODE(0); } 
+		else if (!stricmp(arg, "-node")) {
+			CHECK_NEXT_ARG PrintNode(argv[i+1], 0);
+			MP4BOX_EXIT_WITH_CODE(0);
+		}
+		else if (!stricmp(arg, "-xnode")) {
+			CHECK_NEXT_ARG PrintNode(argv[i+1], 1);
+			MP4BOX_EXIT_WITH_CODE(0);
+		}
+		else if (!stricmp(arg, "-nodes")) {
+			PrintBuiltInNodes(0);
+			MP4BOX_EXIT_WITH_CODE(0);
+		}
+		else if (!stricmp(arg, "-xnodes")) {
+			PrintBuiltInNodes(1);
+			MP4BOX_EXIT_WITH_CODE(0);
+		}
 #endif
 #ifndef GPAC_DISABLE_SVG
-		else if (!stricmp(arg, "-snode")) { CHECK_NEXT_ARG PrintNode(argv[i+1], 2); MP4BOX_EXIT_WITH_CODE(0); }
-		else if (!stricmp(arg, "-snodes")) { PrintBuiltInNodes(2); MP4BOX_EXIT_WITH_CODE(0); } 
+		else if (!stricmp(arg, "-snode")) {
+			CHECK_NEXT_ARG PrintNode(argv[i+1], 2);
+			MP4BOX_EXIT_WITH_CODE(0);
+		}
+		else if (!stricmp(arg, "-snodes")) {
+			PrintBuiltInNodes(2);
+			MP4BOX_EXIT_WITH_CODE(0);
+		}
 #endif
 		else if (!stricmp(arg, "-std")) dump_std = 2;
 		else if (!stricmp(arg, "-stdb")) dump_std = 1;
@@ -1772,8 +1821,11 @@ int mp4boxMain(int argc, char **argv)
 
 #if 0
 		else if (!stricmp(arg, "-conf")) {
-			if (i+1==(u32)argc) { fprintf(stderr, "Missing arg - please check usage\n"); MP4BOX_EXIT_WITH_CODE(1); }
-			if (i+2==(u32)argc) { 
+			if (i+1==(u32)argc) {
+				fprintf(stderr, "Missing arg - please check usage\n");
+				MP4BOX_EXIT_WITH_CODE(1);
+			}
+			if (i+2==(u32)argc) {
 				gf_check_isom_files(NULL, argv[i+1]);
 			} else {
 				gf_check_isom_files(argv[i+1], argv[i+2]);
@@ -1794,7 +1846,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 		} else if (!stricmp(arg, "-dnal")) {
 			CHECK_NEXT_ARG
-				dump_nal = atoi(argv[i+1]);
+			dump_nal = atoi(argv[i+1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-dcr")) dump_cr = 1;
@@ -1808,7 +1860,10 @@ int mp4boxMain(int argc, char **argv)
 				trackID = 0;
 			}
 #ifdef GPAC_DISABLE_ISOM_WRITE
-			if (trackID) { fprintf(stderr, "Error: Read-Only version - subtitle conversion not available\n"); MP4BOX_EXIT_WITH_CODE(1); }
+			if (trackID) {
+				fprintf(stderr, "Error: Read-Only version - subtitle conversion not available\n");
+				MP4BOX_EXIT_WITH_CODE(1);
+			}
 #endif
 			if (!stricmp(arg, "-ttxt")) dump_ttxt = 1;
 			else dump_srt = 1;
@@ -1840,25 +1895,58 @@ int mp4boxMain(int argc, char **argv)
 		}
 #endif
 #ifndef GPAC_DISABLE_ISOM_WRITE
-		else if (!stricmp(arg, "-isma")) { conv_type = GF_ISOM_CONV_TYPE_ISMA; open_edit = 1; }
-		else if (!stricmp(arg, "-3gp")) { conv_type = GF_ISOM_CONV_TYPE_3GPP; open_edit = 1; }
-		else if (!stricmp(arg, "-ipod")) { conv_type = GF_ISOM_CONV_TYPE_IPOD; open_edit = 1; }
-		else if (!stricmp(arg, "-psp")) { conv_type = GF_ISOM_CONV_TYPE_PSP; open_edit = 1; }
-		else if (!stricmp(arg, "-ismax")) { conv_type = GF_ISOM_CONV_TYPE_ISMA_EX; open_edit = 1; }
+		else if (!stricmp(arg, "-isma")) {
+			conv_type = GF_ISOM_CONV_TYPE_ISMA;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-3gp")) {
+			conv_type = GF_ISOM_CONV_TYPE_3GPP;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-ipod")) {
+			conv_type = GF_ISOM_CONV_TYPE_IPOD;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-psp")) {
+			conv_type = GF_ISOM_CONV_TYPE_PSP;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-ismax")) {
+			conv_type = GF_ISOM_CONV_TYPE_ISMA_EX;
+			open_edit = 1;
+		}
 
-		else if (!stricmp(arg, "-no-sys") || !stricmp(arg, "-nosys")) { remove_sys_tracks = 1; open_edit = 1; }
-		else if (!stricmp(arg, "-no-iod")) { remove_root_od = 1; open_edit = 1; }
-		else if (!stricmp(arg, "-out")) { CHECK_NEXT_ARG outName = argv[i+1]; i++; }
+		else if (!stricmp(arg, "-no-sys") || !stricmp(arg, "-nosys")) {
+			remove_sys_tracks = 1;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-no-iod")) {
+			remove_root_od = 1;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-out")) {
+			CHECK_NEXT_ARG outName = argv[i+1];
+			i++;
+		}
 		else if (!stricmp(arg, "-tmp")) {
-			CHECK_NEXT_ARG tmpdir = argv[i+1]; i++; 
+			CHECK_NEXT_ARG tmpdir = argv[i+1];
+			i++;
 		}
 		else if (!stricmp(arg, "-write-buffer")) {
-			CHECK_NEXT_ARG 
+			CHECK_NEXT_ARG
 			gf_isom_set_output_buffering(NULL, atoi(argv[i+1]));
-			i++; 
+			i++;
 		}
-		else if (!stricmp(arg, "-cprt")) { CHECK_NEXT_ARG cprt = argv[i+1]; i++; if (!dash_duration) open_edit = 1; }
-		else if (!stricmp(arg, "-chap")) { CHECK_NEXT_ARG chap_file = argv[i+1]; i++; open_edit = 1; }
+		else if (!stricmp(arg, "-cprt")) {
+			CHECK_NEXT_ARG cprt = argv[i+1];
+			i++;
+			if (!dash_duration) open_edit = 1;
+		}
+		else if (!stricmp(arg, "-chap")) {
+			CHECK_NEXT_ARG chap_file = argv[i+1];
+			i++;
+			open_edit = 1;
+		}
 		else if (!strcmp(arg, "-strict-error")) {
 			gf_log_set_strict_error(1);
 		} else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
@@ -1919,7 +2007,9 @@ int mp4boxMain(int argc, char **argv)
 			else bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
 			i++;
 		}
-		else if (!stricmp(arg, "-dynamic")) { dash_dynamic = 1; }
+		else if (!stricmp(arg, "-dynamic")) {
+			dash_dynamic = 1;
+		}
 		else if (!strnicmp(arg, "-dash-live", 10) || !strnicmp(arg, "-ddbg-live", 10)) {
 			dash_dynamic = !strnicmp(arg, "-ddbg-live", 10) ? 2 : 1;
 			dash_live = 1;
@@ -1930,46 +2020,60 @@ int mp4boxMain(int argc, char **argv)
 			dash_duration = atof(argv[i+1]) / 1000;
 			i++;
 		}
-		else if (!stricmp(arg, "-mpd-refresh")) { CHECK_NEXT_ARG mpd_update_time = atoi(argv[i+1]); i++;   }
-		else if (!stricmp(arg, "-time-shift")) { 
-			CHECK_NEXT_ARG 
+		else if (!stricmp(arg, "-mpd-refresh")) {
+			CHECK_NEXT_ARG mpd_update_time = atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-time-shift")) {
+			CHECK_NEXT_ARG
 			time_shift_depth = (u32) atoi(argv[i+1]);
 			i++;
 		}
-		else if (!stricmp(arg, "-min-buffer")) { 
-			CHECK_NEXT_ARG 
+		else if (!stricmp(arg, "-min-buffer")) {
+			CHECK_NEXT_ARG
 			min_buffer = atoi(argv[i+1]);
 			min_buffer /= 1000;
 			i++;
 		}
-		else if (!stricmp(arg, "-ast-offset")) { 
-			CHECK_NEXT_ARG 
+		else if (!stricmp(arg, "-ast-offset")) {
+			CHECK_NEXT_ARG
 			ast_shift_sec = (u32) atoi(argv[i+1]);
 			i++;
 		}
-		else if (!stricmp(arg, "-moof-sn")) { 
-			CHECK_NEXT_ARG 
+		else if (!stricmp(arg, "-moof-sn")) {
+			CHECK_NEXT_ARG
 			initial_moof_sn = (u32) atoi(argv[i+1]);
 			i++;
 		}
-		else if (!stricmp(arg, "-tfdt")) { 
-			CHECK_NEXT_ARG 
+		else if (!stricmp(arg, "-tfdt")) {
+			CHECK_NEXT_ARG
 			sscanf(argv[i+1], LLU, &initial_tfdt);
 			i++;
 		}
-		else if (!stricmp(arg, "-no-frags-default")) { no_fragments_defaults = 1; }
-		else if (!stricmp(arg, "-mpd-title")) { CHECK_NEXT_ARG dash_title = argv[i+1]; i++; }
-		else if (!stricmp(arg, "-mpd-source")) { CHECK_NEXT_ARG dash_source = argv[i+1]; i++; }
-		else if (!stricmp(arg, "-mpd-info-url")) { CHECK_NEXT_ARG dash_more_info = argv[i+1]; i++; }
-		else if (!stricmp(arg, "-base-url")) { 
-			CHECK_NEXT_ARG 
-			dash_more_info = argv[i+1]; 
+		else if (!stricmp(arg, "-no-frags-default")) {
+			no_fragments_defaults = 1;
+		}
+		else if (!stricmp(arg, "-mpd-title")) {
+			CHECK_NEXT_ARG dash_title = argv[i+1];
+			i++;
+		}
+		else if (!stricmp(arg, "-mpd-source")) {
+			CHECK_NEXT_ARG dash_source = argv[i+1];
+			i++;
+		}
+		else if (!stricmp(arg, "-mpd-info-url")) {
+			CHECK_NEXT_ARG dash_more_info = argv[i+1];
+			i++;
+		}
+		else if (!stricmp(arg, "-base-url")) {
+			CHECK_NEXT_ARG
+			dash_more_info = argv[i+1];
 			mpd_base_urls = gf_realloc(mpd_base_urls, (nb_mpd_base_urls+1)*sizeof(char**));
 			mpd_base_urls[nb_mpd_base_urls] = argv[i+1];
 			nb_mpd_base_urls++;
-			i++; 
+			i++;
 		}
-		
+
 		else if (!stricmp(arg, "-dash-ctx")) {
 			CHECK_NEXT_ARG
 			dash_ctx_file = argv[i+1];
@@ -2011,10 +2115,20 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			m = argv[i+1];
 			segment_marker = GF_4CC(m[0], m[1], m[2], m[3]);
-		} else if (!stricmp(arg, "-itags")) { CHECK_NEXT_ARG itunes_tags = argv[i+1]; i++; open_edit = 1; }
+		} else if (!stricmp(arg, "-itags")) {
+			CHECK_NEXT_ARG itunes_tags = argv[i+1];
+			i++;
+			open_edit = 1;
+		}
 #ifndef GPAC_DISABLE_ISOM_HINTING
-		else if (!stricmp(arg, "-hint")) { open_edit = 1; HintIt = 1; }
-		else if (!stricmp(arg, "-unhint")) { open_edit = 1; remove_hint = 1; }
+		else if (!stricmp(arg, "-hint")) {
+			open_edit = 1;
+			HintIt = 1;
+		}
+		else if (!stricmp(arg, "-unhint")) {
+			open_edit = 1;
+			remove_hint = 1;
+		}
 		else if (!stricmp(arg, "-copy")) HintCopy = 1;
 		else if (!stricmp(arg, "-tight")) {
 			FullInter = 1;
@@ -2063,9 +2177,18 @@ int mp4boxMain(int argc, char **argv)
 #endif
 		}
 #ifndef GPAC_DISABLE_ISOM_HINTING
-		else if (!stricmp(arg, "-mtu")) { CHECK_NEXT_ARG MTUSize = atoi(argv[i+1]); i++; }
-		else if (!stricmp(arg, "-cardur")) { CHECK_NEXT_ARG car_dur = atoi(argv[i+1]); i++; }
-		else if (!stricmp(arg, "-rate")) { CHECK_NEXT_ARG rtp_rate = atoi(argv[i+1]); i++; }
+		else if (!stricmp(arg, "-mtu")) {
+			CHECK_NEXT_ARG MTUSize = atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-cardur")) {
+			CHECK_NEXT_ARG car_dur = atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-rate")) {
+			CHECK_NEXT_ARG rtp_rate = atoi(argv[i+1]);
+			i++;
+		}
 #ifndef GPAC_DISABLE_SENG
 		else if (!stricmp(arg, "-add-sdp") || !stricmp(arg, "-sdp_ex")) {
 			char *id;
@@ -2246,7 +2369,10 @@ int mp4boxMain(int argc, char **argv)
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
 			tracks[nb_track_act].act_type = 8;
-			ext[0] = 0; tracks[nb_track_act].trackID = atoi(szTK); ext[0] = ':'; szTK = ext+1;
+			ext[0] = 0;
+			tracks[nb_track_act].trackID = atoi(szTK);
+			ext[0] = ':';
+			szTK = ext+1;
 			ext = strchr(szTK, ':');
 			if (!ext) {
 				fprintf(stderr, "Bad format for track reference - expecting ID:XXXX:refID got %s\n", argv[i+1]);
@@ -2290,8 +2416,8 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-ps")) import_flags |= GF_IMPORT_PS_IMPLICIT;
 		else if (!stricmp(arg, "-psx")) import_flags |= GF_IMPORT_PS_EXPLICIT;
 		else if (!stricmp(arg, "-ovsbr")) import_flags |= GF_IMPORT_OVSBR;
-		else if (!stricmp(arg, "-fps")) { 
-			CHECK_NEXT_ARG 
+		else if (!stricmp(arg, "-fps")) {
+			CHECK_NEXT_ARG
 			if (!strcmp(argv[i+1], "auto")) import_fps = GF_IMPORT_AUTO_FPS;
 			else if (strchr(argv[i+1], '-')) {
 				u32 ticks, dts_inc;
@@ -2300,25 +2426,38 @@ int mp4boxMain(int argc, char **argv)
 				import_fps = ticks;
 				import_fps /= dts_inc;
 			} else import_fps = atof(argv[i+1]);
-			i++; 
+			i++;
 		}
-		else if (!stricmp(arg, "-agg")) { CHECK_NEXT_ARG agg_samples = atoi(argv[i+1]); i++; }
+		else if (!stricmp(arg, "-agg")) {
+			CHECK_NEXT_ARG agg_samples = atoi(argv[i+1]);
+			i++;
+		}
 		else if (!stricmp(arg, "-keep-all") || !stricmp(arg, "-keepall")) import_flags |= GF_IMPORT_KEEP_ALL_TRACKS;
 #endif /*!defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_MEDIA_IMPORT*/
 		else if (!stricmp(arg, "-keep-sys") || !stricmp(arg, "-keepsys")) keep_sys_tracks = 1;
-		else if (!stricmp(arg, "-ms")) { CHECK_NEXT_ARG mediaSource = argv[i+1]; i++; }
-		else if (!stricmp(arg, "-mp4")) { encode = 1; open_edit = 1; }
-		else if (!stricmp(arg, "-saf")) { do_saf = 1; }
-		else if (!stricmp(arg, "-log")) { do_log = 1; }
+		else if (!stricmp(arg, "-ms")) {
+			CHECK_NEXT_ARG mediaSource = argv[i+1];
+			i++;
+		}
+		else if (!stricmp(arg, "-mp4")) {
+			encode = 1;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-saf")) {
+			do_saf = 1;
+		}
+		else if (!stricmp(arg, "-log")) {
+			do_log = 1;
+		}
 #ifndef GPAC_DISABLE_MPD
-		else if (!stricmp(arg, "-mpd")) { 
-			do_mpd = 1; 
-			CHECK_NEXT_ARG 
-			outName = argv[i+1]; 
-			i++; 
+		else if (!stricmp(arg, "-mpd")) {
+			do_mpd = 1;
+			CHECK_NEXT_ARG
+			outName = argv[i+1];
+			i++;
 		}
 #endif
-		
+
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 		else if (!stricmp(arg, "-def")) opts.flags |= GF_SM_ENCODE_USE_NAMES;
 		else if (!stricmp(arg, "-sync")) {
@@ -2337,7 +2476,7 @@ int mp4boxMain(int argc, char **argv)
 			opts.flags &= ~(GF_SM_ENCODE_RAP_INBAND | GF_SM_ENCODE_RAP_SHADOW);
 			opts.rap_freq = atoi(argv[i+1]);
 			i++;
-		} 
+		}
 		/*LASeR options*/
 		else if (!stricmp(arg, "-resolution")) {
 			CHECK_NEXT_ARG
@@ -2369,7 +2508,10 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		/*chunk encoding*/
-		else if (!stricmp(arg, "-ctx-out") || !stricmp(arg, "-outctx")) { CHECK_NEXT_ARG output_ctx = argv[i+1]; i++; }
+		else if (!stricmp(arg, "-ctx-out") || !stricmp(arg, "-outctx")) {
+			CHECK_NEXT_ARG output_ctx = argv[i+1];
+			i++;
+		}
 		else if (!stricmp(arg, "-ctx-in") || !stricmp(arg, "-inctx")) {
 			CHECK_NEXT_ARG
 			chunk_mode = 1;
@@ -2417,96 +2559,96 @@ int mp4boxMain(int argc, char **argv)
 			nb_track_act++;
 			i++;
 		}
-		else if (!stricmp(arg, "-split")) { 
-			CHECK_NEXT_ARG 
+		else if (!stricmp(arg, "-split")) {
+			CHECK_NEXT_ARG
 			split_duration = atof(argv[i+1]);
 			if (split_duration<0) split_duration=0;;
 			i++;
 			split_size = 0;
 		}
-		else if (!stricmp(arg, "-split-rap") || !stricmp(arg, "-splitr")) { 
-			CHECK_NEXT_ARG 
+		else if (!stricmp(arg, "-split-rap") || !stricmp(arg, "-splitr")) {
+			CHECK_NEXT_ARG
 			split_duration = -1;
 			split_size = -1;
 		}
-		else if (!stricmp(arg, "-split-size") || !stricmp(arg, "-splits")) { 
-			CHECK_NEXT_ARG 
+		else if (!stricmp(arg, "-split-size") || !stricmp(arg, "-splits")) {
+			CHECK_NEXT_ARG
 			split_size = (u32) atoi(argv[i+1]);
-			i++; 
+			i++;
 			split_duration = 0;
 		}
-		else if (!stricmp(arg, "-split-chunk") || !stricmp(arg, "-splitx") || !stricmp(arg, "-splitz")) { 
-			CHECK_NEXT_ARG 
+		else if (!stricmp(arg, "-split-chunk") || !stricmp(arg, "-splitx") || !stricmp(arg, "-splitz")) {
+			CHECK_NEXT_ARG
 			if (!strstr(argv[i+1], ":")) {
 				fprintf(stderr, "Chunk extraction usage: \"-splitx start:end\" expressed in seconds\n");
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
 			if (strstr(argv[i+1], "end")) {
 				sscanf(argv[i+1], "%lf:end", &split_start);
-				split_duration = -2; 
+				split_duration = -2;
 			} else {
 				sscanf(argv[i+1], "%lf:%lf", &split_start, &split_duration);
-				split_duration -= split_start; 
+				split_duration -= split_start;
 			}
 			split_size = 0;
 			if (!stricmp(arg, "-splitz")) adjust_split_end = 1;
 			i++;
 		}
 		/*meta*/
-		else if (!stricmp(arg, "-set-meta")) { 
+		else if (!stricmp(arg, "-set-meta")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 			parse_meta_args(&metas[nb_meta_act], 0, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
-		else if (!stricmp(arg, "-add-item")) { 
+		else if (!stricmp(arg, "-add-item")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 			parse_meta_args(&metas[nb_meta_act], 1, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
-		else if (!stricmp(arg, "-rem-item")) { 
+		else if (!stricmp(arg, "-rem-item")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 			parse_meta_args(&metas[nb_meta_act], 2, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
-		else if (!stricmp(arg, "-set-primary")) { 
+		else if (!stricmp(arg, "-set-primary")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 			parse_meta_args(&metas[nb_meta_act], 3, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
-		else if (!stricmp(arg, "-set-xml")) { 
+		else if (!stricmp(arg, "-set-xml")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 			parse_meta_args(&metas[nb_meta_act], 4, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
-		else if (!stricmp(arg, "-rem-xml")) { 
+		else if (!stricmp(arg, "-rem-xml")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 			if (parse_meta_args(&metas[nb_meta_act], 6, argv[i+1])) i++;
 			nb_meta_act++;
 			open_edit = 1;
 		}
-		else if (!stricmp(arg, "-dump-xml")) { 
+		else if (!stricmp(arg, "-dump-xml")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 			parse_meta_args(&metas[nb_meta_act], 7, argv[i+1]);
 			nb_meta_act++;
 			i++;
 		}
-		else if (!stricmp(arg, "-dump-item")) { 
+		else if (!stricmp(arg, "-dump-item")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
 			parse_meta_args(&metas[nb_meta_act], 8, argv[i+1]);
 			nb_meta_act++;
 			i++;
 		}
-		else if (!stricmp(arg, "-group-add") || !stricmp(arg, "-group-rem-track") || !stricmp(arg, "-group-rem")) { 
+		else if (!stricmp(arg, "-group-add") || !stricmp(arg, "-group-rem-track") || !stricmp(arg, "-group-rem")) {
 			tsel_acts[nb_tsel_acts].act_type = !stricmp(arg, "-group-rem") ? 2 : ( !stricmp(arg, "-group-rem-track") ? 1 : 0 );
 			if (parse_tsel_args(&tsel_acts, argv[i+1], &nb_tsel_acts)==0) {
 				fprintf(stderr, "Invalid group syntax - check usage\n");
@@ -2515,37 +2657,37 @@ int mp4boxMain(int argc, char **argv)
 			open_edit=1;
 			i++;
 		}
-		else if (!stricmp(arg, "-group-clean")) { 
+		else if (!stricmp(arg, "-group-clean")) {
 			tsel_acts[nb_tsel_acts].act_type = 3;
 			nb_tsel_acts++;
 			open_edit=1;
 		}
- 		else if (!stricmp(arg, "-group-single")) {
- 		    single_group = 1;
- 		}
+		else if (!stricmp(arg, "-group-single")) {
+			single_group = 1;
+		}
 		else if (!stricmp(arg, "-package")) {
-			CHECK_NEXT_ARG 
+			CHECK_NEXT_ARG
 			pack_file  = argv[i+1];
 			i++;
 		}
 		else if (!stricmp(arg, "-mgt")) {
-			CHECK_NEXT_ARG 
+			CHECK_NEXT_ARG
 			pack_file  = argv[i+1];
 			pack_wgt = 1;
 			i++;
 		}
-		
-		else if (!stricmp(arg, "-brand")) { 
+
+		else if (!stricmp(arg, "-brand")) {
 			char *b = argv[i+1];
-			CHECK_NEXT_ARG 
+			CHECK_NEXT_ARG
 			major_brand = GF_4CC(b[0], b[1], b[2], b[3]);
 			open_edit = 1;
 			if (b[4]==':') minor_version = atoi(b+5);
 			i++;
 		}
-		else if (!stricmp(arg, "-ab")) { 
+		else if (!stricmp(arg, "-ab")) {
 			char *b = argv[i+1];
-			CHECK_NEXT_ARG 
+			CHECK_NEXT_ARG
 			brand_add = gf_realloc(brand_add, sizeof(u32) * (nb_alt_brand_add+1));
 
 			brand_add[nb_alt_brand_add] = GF_4CC(b[0], b[1], b[2], b[3]);
@@ -2553,9 +2695,9 @@ int mp4boxMain(int argc, char **argv)
 			open_edit = 1;
 			i++;
 		}
-		else if (!stricmp(arg, "-rb")) { 
+		else if (!stricmp(arg, "-rb")) {
 			char *b = argv[i+1];
-			CHECK_NEXT_ARG 
+			CHECK_NEXT_ARG
 			brand_rem = gf_realloc(brand_rem, sizeof(u32) * (nb_alt_brand_rem+1));
 
 			brand_rem[nb_alt_brand_rem] = GF_4CC(b[0], b[1], b[2], b[3]);
@@ -2564,7 +2706,7 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 #endif
-		else if (!stricmp(arg, "-languages")) { 
+		else if (!stricmp(arg, "-languages")) {
 			PrintLanguages();
 			MP4BOX_EXIT_WITH_CODE(0);
 		}
@@ -2618,7 +2760,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 
-	if (!inName && dump_std) 
+	if (!inName && dump_std)
 		inName = "std";
 
 	if (!inName) {
@@ -2633,20 +2775,20 @@ int mp4boxMain(int argc, char **argv)
 
 	if (!interleaving_time) {
 		/*by default use single fragment per dash segment*/
-		if (dash_duration) 
+		if (dash_duration)
 			interleaving_time = dash_duration;
 		else
 			interleaving_time = 0.5;
 	}
 
-	if (dump_std) 
+	if (dump_std)
 		outName = "std";
 
 	if (dump_std==2) {
 #ifdef WIN32
-		if ( _setmode(_fileno(stdout), _O_BINARY) == -1 ) 
+		if ( _setmode(_fileno(stdout), _O_BINARY) == -1 )
 #else
-		if ( freopen(NULL, "wb", stdout) == NULL) 
+		if ( freopen(NULL, "wb", stdout) == NULL)
 #endif
 		{
 			fprintf(stderr, "Fatal error: cannot reopen stdout in binary mode.\n");
@@ -2691,7 +2833,7 @@ int mp4boxMain(int argc, char **argv)
 		fclose(fout);
 		MP4BOX_EXIT_WITH_CODE(0);
 	}
-#if !defined(GPAC_DISABLE_STREAMING) 
+#if !defined(GPAC_DISABLE_STREAMING)
 	if (grab_m2ts) {
 		return grab_live_m2ts(grab_m2ts, inName);
 	}
@@ -2731,7 +2873,7 @@ int mp4boxMain(int argc, char **argv)
 		MP4BOX_EXIT_WITH_CODE(1);
 	}
 #endif
-    
+
 #ifndef GPAC_DISABLE_MPD
 	if (do_mpd) {
 		Bool remote = 0;
@@ -2748,12 +2890,12 @@ int mp4boxMain(int argc, char **argv)
 			remote = 1;
 #else
 			fprintf(stderr, "HTTP Downloader disabled in this build\n");
-            MP4BOX_EXIT_WITH_CODE(1);
+			MP4BOX_EXIT_WITH_CODE(1);
 #endif
 		}
-        e = gf_m3u8_to_mpd(inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t", 1, use_url_template, NULL);
+		e = gf_m3u8_to_mpd(inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t", 1, use_url_template, NULL);
 		gf_free(mpd_base_url);
-        
+
 		if (remote) {
 			//gf_delete_file("tmp_main.m3u8");
 		}
@@ -2773,7 +2915,9 @@ int mp4boxMain(int argc, char **argv)
 
 	if (do_saf && !encode) {
 		switch (get_file_type_by_ext(inName)) {
-		case 2: case 3: case 4: 
+		case 2:
+		case 3:
+		case 4:
 			encode = 1;
 			break;
 		}
@@ -2965,7 +3109,7 @@ int mp4boxMain(int argc, char **argv)
 			open_edit = 0;
 		}
 #endif
-	} 
+	}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	else if (pack_file) {
@@ -2980,7 +3124,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!outName) outName = inName;
 		needSave = 1;
 		open_edit = 1;
-	} 
+	}
 #endif
 
 	if (dash_duration) {
@@ -3002,7 +3146,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!dash_ctx_file && dash_live) {
 			dash_ctx = gf_cfg_new(NULL, NULL);
 		} else if (dash_ctx_file) {
-			if (force_new) 
+			if (force_new)
 				gf_delete_file(dash_ctx_file);
 
 			dash_ctx = gf_cfg_force_new(NULL, dash_ctx_file);
@@ -3028,12 +3172,12 @@ int mp4boxMain(int argc, char **argv)
 		while (!do_abort) {
 
 			e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
-										(const char **) mpd_base_urls, nb_mpd_base_urls, 
-									   use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
-									   seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
-									   interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
-									   dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer, 
-									   ast_shift_sec, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf);
+			                            (const char **) mpd_base_urls, nb_mpd_base_urls,
+			                            use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
+			                            seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
+			                            interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
+			                            dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
+			                            ast_shift_sec, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf);
 			if (e) break;
 
 			if (dash_live) {
@@ -3041,15 +3185,21 @@ int mp4boxMain(int argc, char **argv)
 				fprintf(stderr, "sleep for %d ms\n", sleep_for);
 				while (1) {
 					if (gf_prompt_has_input()) {
-						char c = (char) gf_prompt_get_char(); 
-						if (c=='q') { do_abort = 1; break; }
-						if (c=='s') { do_abort = 2; break; }
+						char c = (char) gf_prompt_get_char();
+						if (c=='q') {
+							do_abort = 1;
+							break;
+						}
+						if (c=='s') {
+							do_abort = 2;
+							break;
+						}
 					}
 
 					if (dash_dynamic == 2) {
 						break;
 					}
-					if (sleep_for<100) 
+					if (sleep_for<100)
 						break;
 					gf_sleep(100);
 
@@ -3059,7 +3209,7 @@ int mp4boxMain(int argc, char **argv)
 				break;
 			}
 		}
-		
+
 		if (dash_ctx) {
 			if (do_abort==2) {
 				char szName[1024];
@@ -3073,17 +3223,17 @@ int mp4boxMain(int argc, char **argv)
 		}
 		if (e) fprintf(stderr, "Error DASHing file: %s\n", gf_error_to_string(e));
 		if (file) gf_isom_delete(file);
-		if (del_file) 
+		if (del_file)
 			gf_delete_file(inName);
-	
+
 		MP4BOX_EXIT_WITH_CODE( (e!=GF_OK) ? 1 : 0 );
 	}
 
 	else if (!file
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
-		&& !(track_dump_type & GF_EXPORT_AVI_NATIVE)
+	         && !(track_dump_type & GF_EXPORT_AVI_NATIVE)
 #endif
-		) {
+	        ) {
 		FILE *st = gf_f64_open(inName, "rb");
 		Bool file_exists = 0;
 		if (st) {
@@ -3129,10 +3279,10 @@ int mp4boxMain(int argc, char **argv)
 
 		default:
 			if (!open_edit && file_exists && !gf_isom_probe_file(inName) && track_dump_type) {
-			} 
+			}
 #ifndef GPAC_DISABLE_ISOM_WRITE
 			else if (!open_edit && file_exists /* && !gf_isom_probe_file(inName) */ && !dump_mode) {
-		/*************************************************************************************************/
+				/*************************************************************************************************/
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 				if(dvbhdemux)
 				{
@@ -3190,13 +3340,13 @@ int mp4boxMain(int argc, char **argv)
 		char *szExt = strrchr(outfile, '.');
 
 		/*turn on 3GP saving*/
-		if (!stricmp(szExt, ".3gp") || !stricmp(szExt, ".3gpp") || !stricmp(szExt, ".3g2")) 
+		if (!stricmp(szExt, ".3gp") || !stricmp(szExt, ".3gpp") || !stricmp(szExt, ".3g2"))
 			conv_type = GF_ISOM_CONV_TYPE_3GPP;
 		else if (!stricmp(szExt, ".m4a") || !stricmp(szExt, ".m4v"))
 			conv_type = GF_ISOM_CONV_TYPE_IPOD;
 		else if (!stricmp(szExt, ".psp"))
 			conv_type = GF_ISOM_CONV_TYPE_PSP;
-		
+
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 	}
@@ -3249,7 +3399,7 @@ int mp4boxMain(int argc, char **argv)
 			if (e) goto err_exit;
 		}
 		MP4BOX_EXIT_WITH_CODE(0);
-	} 
+	}
 
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 
@@ -3286,7 +3436,7 @@ int mp4boxMain(int argc, char **argv)
 
 	if (dump_timestamps) dump_file_timestamps(file, dump_std ? NULL : outfile);
 	if (dump_nal) dump_file_nal(file, dump_nal, dump_std ? NULL : outfile);
-	
+
 	if (do_hash) {
 		u8 hash[20];
 		e = gf_media_get_file_hash(inName, hash);
@@ -3323,7 +3473,7 @@ int mp4boxMain(int argc, char **argv)
 				}
 				fclose(iodf);
 			}
-                        gf_free(bs);
+			gf_free(bs);
 		}
 	}
 
@@ -3399,12 +3549,12 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		case 1:
 			self_ref = !stricmp(meta->szPath, "NULL") || !stricmp(meta->szPath, "this") || !stricmp(meta->szPath, "self");
-			e = gf_isom_add_meta_item(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath, 
-					strlen(meta->szName) ? meta->szName : NULL,  
-					meta->item_id,
-					strlen(meta->mime_type) ? meta->mime_type : NULL,  
-					strlen(meta->enc_type) ? meta->enc_type : NULL,  
-					meta->use_dref ? meta->szPath : NULL,  NULL);
+			e = gf_isom_add_meta_item(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath,
+			                          strlen(meta->szName) ? meta->szName : NULL,
+			                          meta->item_id,
+			                          strlen(meta->mime_type) ? meta->mime_type : NULL,
+			                          strlen(meta->enc_type) ? meta->enc_type : NULL,
+			                          meta->use_dref ? meta->szPath : NULL,  NULL);
 			needSave = 1;
 			break;
 		case 2:
@@ -3455,12 +3605,12 @@ int mp4boxMain(int argc, char **argv)
 	for (i=0; i<nb_tsel_acts; i++) {
 		switch (tsel_acts[i].act_type) {
 		case 0:
-			e = gf_isom_set_track_switch_parameter(file, 
-				gf_isom_get_track_by_id(file, tsel_acts[i].trackID),
-				tsel_acts[i].refTrackID ? gf_isom_get_track_by_id(file, tsel_acts[i].refTrackID) : 0,
-				tsel_acts[i].is_switchGroup ? 1 : 0,
-				&tsel_acts[i].switchGroupID,
-				tsel_acts[i].criteria, tsel_acts[i].nb_criteria);
+			e = gf_isom_set_track_switch_parameter(file,
+			                                       gf_isom_get_track_by_id(file, tsel_acts[i].trackID),
+			                                       tsel_acts[i].refTrackID ? gf_isom_get_track_by_id(file, tsel_acts[i].refTrackID) : 0,
+			                                       tsel_acts[i].is_switchGroup ? 1 : 0,
+			                                       &tsel_acts[i].switchGroupID,
+			                                       tsel_acts[i].criteria, tsel_acts[i].nb_criteria);
 			if (e) goto err_exit;
 			needSave = 1;
 			break;
@@ -3605,7 +3755,7 @@ int mp4boxMain(int argc, char **argv)
 						/*this is a subtitle track*/
 						if (!is_chap)
 							gf_isom_set_media_type(file, i+1, GF_ISOM_MEDIA_SUBT);
-					} 
+					}
 					break;
 				}
 			}
@@ -3737,7 +3887,7 @@ int mp4boxMain(int argc, char **argv)
 			u32 tlen, itag = 0;
 			if (sep) {
 				while (sep) {
-					for (itag=0; itag<nb_itunes_tags;itag++) {
+					for (itag=0; itag<nb_itunes_tags; itag++) {
 						if (!strnicmp(sep+1, itags[itag].name, strlen(itags[itag].name))) break;
 					}
 					if (itag<nb_itunes_tags) {
@@ -3746,8 +3896,8 @@ int mp4boxMain(int argc, char **argv)
 					sep = strchr(sep+1, ':');
 				}
 				if (sep) sep[0] = 0;
-			} 
-			for (itag=0; itag<nb_itunes_tags;itag++) {
+			}
+			for (itag=0; itag<nb_itunes_tags; itag++) {
 				if (!strnicmp(tags, itags[itag].name, strlen(itags[itag].name))) {
 					break;
 				}
@@ -3782,13 +3932,13 @@ int mp4boxMain(int argc, char **argv)
 				d = gf_malloc(sizeof(char) * tlen);
 				tlen = (u32) fread(d, sizeof(char), tlen, t);
 				fclose(t);
-				
+
 				ext = strrchr(val, '.');
 				if (!stricmp(ext, ".png")) tlen |= 0x80000000;
 				e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, d, tlen);
 				gf_free(d);
 			}
-				break;
+			break;
 			case GF_ISOM_ITUNE_TEMPO:
 				gf_isom_apple_set_tag(file, itag, NULL, atoi(val) );
 				break;
@@ -3802,7 +3952,7 @@ int mp4boxMain(int argc, char **argv)
 					gf_isom_apple_set_tag(file, itag, val, (u32) strlen(val) );
 				}
 			}
-				break;
+			break;
 			case GF_ISOM_ITUNE_DISK:
 			case GF_ISOM_ITUNE_TRACKNUMBER:
 			{
@@ -3811,12 +3961,20 @@ int mp4boxMain(int argc, char **argv)
 				n = t = 0;
 				memset(_t, 0, sizeof(char)*8);
 				tlen = (itag==GF_ISOM_ITUNE_DISK) ? 6 : 8;
-				if (sscanf(val, "%u/%u", &n, &t) == 2) { _t[3]=n; _t[2]=n>>8; _t[5]=t; _t[4]=t>>8; }
-				else if (sscanf(val, "%u", &n) == 1) { _t[3]=n; _t[2]=n>>8;}
+				if (sscanf(val, "%u/%u", &n, &t) == 2) {
+					_t[3]=n;
+					_t[2]=n>>8;
+					_t[5]=t;
+					_t[4]=t>>8;
+				}
+				else if (sscanf(val, "%u", &n) == 1) {
+					_t[3]=n;
+					_t[2]=n>>8;
+				}
 				else tlen = 0;
 				if (tlen) gf_isom_apple_set_tag(file, itag, _t, tlen);
 			}
-				break;
+			break;
 			case GF_ISOM_ITUNE_GAPLESS:
 			case GF_ISOM_ITUNE_COMPILATION:
 			{
@@ -3825,7 +3983,7 @@ int mp4boxMain(int argc, char **argv)
 				else  _t[0] = 0;
 				gf_isom_apple_set_tag(file, itag, _t, 1);
 			}
-				break;
+			break;
 			default:
 				gf_isom_apple_set_tag(file, itag, val, tlen);
 				break;
@@ -3869,7 +4027,7 @@ int mp4boxMain(int argc, char **argv)
 	if (HintIt) {
 		if (force_ocr) SetupClockReferences(file);
 		fprintf(stderr, "Hinting file with Path-MTU %d Bytes\n", MTUSize);
-		MTUSize -= 12;		
+		MTUSize -= 12;
 		e = HintFile(file, MTUSize, max_ptime, rtp_rate, hint_flags, HintCopy, HintInter, regular_iod, single_group);
 		if (e) goto err_exit;
 		needSave = 1;
@@ -3987,7 +4145,7 @@ int mp4boxMain(int argc, char **argv)
 #endif
 err_exit:
 	/*close libgpac*/
-	if (file) gf_isom_delete(file);		
+	if (file) gf_isom_delete(file);
 	fprintf(stderr, "\n\tError: %s\n", gf_error_to_string(e));
 	MP4BOX_EXIT_WITH_CODE(1);
 }

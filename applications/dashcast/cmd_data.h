@@ -112,7 +112,7 @@ typedef struct {
 
 /*
  * Initilize the command data structure
- * 
+ *
  * @param cmd_data [out] structure to be initialize
  */
 void dc_cmd_data_init(CmdData *cmd_data);

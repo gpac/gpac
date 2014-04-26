@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -35,7 +35,7 @@ extern "C" {
 
 
 /*******************************************************************************
- * 
+ *
  *          DOM base scene graph
  *
  *******************************************************************************/
@@ -116,9 +116,9 @@ enum
 	TAG_XBL_ATT_preventdefault,
 	TAG_XBL_ATT_src,
 
-    TAG_GSVG_ATT_useAsPrimary,
-    TAG_GSVG_ATT_depthOffset,
-    TAG_GSVG_ATT_depthGain,
+	TAG_GSVG_ATT_useAsPrimary,
+	TAG_GSVG_ATT_depthOffset,
+	TAG_GSVG_ATT_depthGain,
 };
 
 
@@ -130,7 +130,7 @@ enum
 
 #define GF_DOM_FULL_ATTRIBUTE	\
 	GF_DOM_ATTRIBUTE	\
-
+ 
 typedef struct __dom_base_attribute
 {
 	GF_DOM_BASE_ATTRIBUTE
@@ -172,7 +172,7 @@ typedef enum
 	GF_XMLNS_SVG,
 	GF_XMLNS_XBL,
 
-    GF_XMLNS_SVG_GPAC_EXTENSION,
+	GF_XMLNS_SVG_GPAC_EXTENSION,
 
 	/*any other namespace uses the CRC32 of the namespace as an identifier*/
 } GF_NamespaceType;
@@ -235,7 +235,7 @@ typedef struct
 /*creates a new updates node and register node with parent*/
 GF_DOMUpdates *gf_dom_add_updates_node(GF_Node *parent);
 
-/* 
+/*
 	DOM event handling
 */
 typedef enum
@@ -266,7 +266,7 @@ typedef enum
 
 
 /* Structure representing the DOM EventTarget Interface */
-typedef struct 
+typedef struct
 {
 	GF_List *listeners;				// list of SVG Listener nodes attached to this Event Target
 	void *ptr;						// pointer to the object implementing the DOM Event Target Interface
@@ -299,15 +299,15 @@ typedef struct
 	u8 cancelable;
 	/*output only - indicates UI events (mouse) have been detected*/
 	u8 has_ui_events;
-	
+
 	/*we don't use a GF_DOMEventTarget here since the structure is only created when events are attached */
 	void *target;
 	GF_DOMEventTargetType target_type;
 
 	GF_DOMEventTarget *currentTarget;
 	Double timestamp;
-	/*UIEvent extension.	
-		For mouse extensions: number of clicks 
+	/*UIEvent extension.
+		For mouse extensions: number of clicks
 		For key event: the key code
 		For SMIL event: number of iteration (repeat)
 	*/
@@ -368,7 +368,7 @@ const char *gf_dom_get_key_name(GF_KeyCode key_identifier);
 GF_KeyCode gf_dom_get_key_type(char *key_name);
 
 
-/*listener is simply a node added to the node events list. 
+/*listener is simply a node added to the node events list.
 Only one observer can be attached to a listener. The listener will remove itself from the observer
 event list when destructed.*/
 #define GF_DOM_BASE_LISTENER 	\
@@ -382,9 +382,9 @@ event list when destructed.*/
 	/*compiled function for the case were CallFunction is needed*/\
 	void *js_fun; \
 	/* text content of the callback */ \
-	char *callback; 
+	char *callback;
 
-typedef struct __xml_ev_handler 
+typedef struct __xml_ev_handler
 {
 	GF_DOM_BASE_NODE
 	void (*handle_event)(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer);
@@ -437,7 +437,7 @@ GF_Err gf_node_dom_listener_add(GF_Node *node, GF_Node *listener);
 u32 gf_dom_listener_count(GF_Node *node);
 GF_Node *gf_dom_listener_get(GF_Node *node, u32 i);
 
-/*creates a default listener/handler for the given event on the given node, and return the 
+/*creates a default listener/handler for the given event on the given node, and return the
 handler element to allow for handler function override
 Listener/handler are stored at the node level*/
 GF_DOMHandler *gf_dom_listener_build(GF_Node *observer, GF_EventType event_type, u32 event_param);
@@ -457,7 +457,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 typedef struct {
 	/* Tiny 1.2 properties*/
 	SVG_Paint					*color;
-	SVG_Paint					*fill; 
+	SVG_Paint					*fill;
 	SVG_Paint					*stroke;
 	SVG_Paint					*solid_color;
 	SVG_Paint					*stop_color;
@@ -478,67 +478,67 @@ typedef struct {
 	SVG_RenderingHint			*shape_rendering;
 	SVG_RenderingHint			*text_rendering;
 
-	SVG_Display					*display; 
+	SVG_Display					*display;
 	SVG_Visibility				*visibility;
 	SVG_Overflow				*overflow; /* Restricted property in Tiny 1.2 */
-	
+
 	SVG_FontFamily				*font_family;
 	SVG_FontSize				*font_size;
-	SVG_FontStyle				*font_style; 
-	SVG_FontWeight				*font_weight; 
-	SVG_FontVariant				*font_variant; 
-	SVG_Number					*line_increment;	
+	SVG_FontStyle				*font_style;
+	SVG_FontWeight				*font_weight;
+	SVG_FontVariant				*font_variant;
+	SVG_Number					*line_increment;
 	SVG_TextAnchor				*text_anchor;
 	SVG_DisplayAlign			*display_align;
 	SVG_TextAlign				*text_align;
 
 	SVG_PointerEvents			*pointer_events;
-	
-	SVG_FillRule				*fill_rule; 
-	
+
+	SVG_FillRule				*fill_rule;
+
 	SVG_StrokeDashArray			*stroke_dasharray;
 	SVG_Length					*stroke_dashoffset;
-	SVG_StrokeLineCap			*stroke_linecap; 
-	SVG_StrokeLineJoin			*stroke_linejoin; 
-	SVG_Number					*stroke_miterlimit; 
+	SVG_StrokeLineCap			*stroke_linecap;
+	SVG_StrokeLineJoin			*stroke_linejoin;
+	SVG_Number					*stroke_miterlimit;
 	SVG_Length					*stroke_width;
 	SVG_VectorEffect			*vector_effect;
-	
+
 	/* Full 1.1 props, i.e. not implemented */
-/*
-	SVG_String *font;
-	SVG_String *font_size_adjust;
-	SVG_String *font_stretch;
-	SVG_String *direction;
-	SVG_String *letter_spacing;
-	SVG_String *text_decoration;
-	SVG_String *unicode_bidi;
-	SVG_String *word_spacing;
-	SVG_String *clip; 
-	SVG_String *cursor;
-	SVG_String *clip_path;
-	SVG_String *clip_rule;
-	SVG_String *mask;
-	SVG_String *enable_background;
-	SVG_String *filter;
-	SVG_String *flood_color;
-	SVG_String *flood_opacity;
-	SVG_String *lighting_color;
-	SVG_String *color_interpolation;
-	SVG_String *color_interpolation_filters;
-	SVG_String *color_profile;
-	SVG_String *marker;
-	SVG_String *marker_end;
-	SVG_String *marker_mid;
-	SVG_String *marker_start;
-	SVG_String *alignment_baseline;
-	SVG_String *baseline_shift;
-	SVG_String *dominant_baseline;
-	SVG_String *glyph_orientation_horizontal;
-	SVG_String *glyph_orientation_vertical;
-	SVG_String *kerning;
-	SVG_String *writing_mode;
-*/
+	/*
+		SVG_String *font;
+		SVG_String *font_size_adjust;
+		SVG_String *font_stretch;
+		SVG_String *direction;
+		SVG_String *letter_spacing;
+		SVG_String *text_decoration;
+		SVG_String *unicode_bidi;
+		SVG_String *word_spacing;
+		SVG_String *clip;
+		SVG_String *cursor;
+		SVG_String *clip_path;
+		SVG_String *clip_rule;
+		SVG_String *mask;
+		SVG_String *enable_background;
+		SVG_String *filter;
+		SVG_String *flood_color;
+		SVG_String *flood_opacity;
+		SVG_String *lighting_color;
+		SVG_String *color_interpolation;
+		SVG_String *color_interpolation_filters;
+		SVG_String *color_profile;
+		SVG_String *marker;
+		SVG_String *marker_end;
+		SVG_String *marker_mid;
+		SVG_String *marker_start;
+		SVG_String *alignment_baseline;
+		SVG_String *baseline_shift;
+		SVG_String *dominant_baseline;
+		SVG_String *glyph_orientation_horizontal;
+		SVG_String *glyph_orientation_vertical;
+		SVG_String *kerning;
+		SVG_String *writing_mode;
+	*/
 } SVGPropertiesPointers;
 
 /*************************************
@@ -606,8 +606,8 @@ enum
 	SMIL_TIMING_EVAL_DEACTIVATE,
 };
 
-void gf_smil_set_evaluation_callback(GF_Node *smil_time, 
-									 void (*smil_evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, u32 state));
+void gf_smil_set_evaluation_callback(GF_Node *smil_time,
+                                     void (*smil_evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, u32 state));
 
 void gf_smil_set_media_duration(SMIL_Timing_RTI *rti, Double media_duration);
 Double gf_smil_get_media_duration(SMIL_Timing_RTI *rti);
@@ -617,7 +617,7 @@ Bool gf_smil_timing_is_active(GF_Node *node);
 void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field);
 
 /*******************************************************************************
- * 
+ *
  *          SVG Scene Graph for dynamic allocation of attributes	           *
  *
  *******************************************************************************/

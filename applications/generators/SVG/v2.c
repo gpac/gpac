@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Cyril Concolato
- *			Copyright (c) Telecom ParisTech 2004-2012 
+ *			Copyright (c) Telecom ParisTech 2004-2012
  *					All rights reserved
  *
  *  This file is part of GPAC / SVG Scene Graph Generator sub-project
@@ -11,21 +11,21 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
 #include "svggen.h"
 
-void generateAttributes2(FILE *output, GF_List *attributes) 
+void generateAttributes2(FILE *output, GF_List *attributes)
 {
 	u32 i;
 	for (i = 0; i<gf_list_count(attributes); i++) {
@@ -35,7 +35,7 @@ void generateAttributes2(FILE *output, GF_List *attributes)
 	}
 }
 
-void generateNode2(FILE *output, SVGGenElement* svg_elt) 
+void generateNode2(FILE *output, SVGGenElement* svg_elt)
 {
 	fprintf(output, "typedef struct _tagSVG_SANI_%sElement\n{\n", svg_elt->implementation_name);
 
@@ -47,7 +47,7 @@ void generateNode2(FILE *output, SVGGenElement* svg_elt)
 
 	if (!strcmp(svg_elt->implementation_name, "conditional")) {
 		fprintf(output, "\tSVGCommandBuffer updates;\n");
-	} 
+	}
 
 	generateAttributes2(output, svg_elt->attributes);
 
@@ -113,47 +113,47 @@ u32 generateXYInfo2(FILE *output, SVGGenElement *elt, u32 start)
 	return i;
 }
 
-void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt) 
+void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 {
-	u32 i;	
+	u32 i;
 
 	/* Constructor */
 	fprintf(output, "void *gf_svg_sani_new_%s()\n{\n\tSVG_SANI_%sElement *p;\n", svg_elt->implementation_name,svg_elt->implementation_name);
 	fprintf(output, "\tGF_SAFEALLOC(p, SVG_SANI_%sElement);\n\tif (!p) return NULL;\n\tgf_node_setup((GF_Node *)p, TAG_SVG_SANI_%s);\n\tgf_sg_parent_setup((GF_Node *) p);\n",svg_elt->implementation_name,svg_elt->implementation_name);
 
-	fprintf(output, "\tgf_svg_sani_init_core((SVG_SANI_Element *)p);\n");		
+	fprintf(output, "\tgf_svg_sani_init_core((SVG_SANI_Element *)p);\n");
 	if (svg_elt->has_focus) {
-		fprintf(output, "\tgf_svg_sani_init_focus((SVG_SANI_Element *)p);\n");		
-	} 
-	if (svg_elt->has_xlink) {
-		fprintf(output, "\tgf_svg_sani_init_xlink((SVG_SANI_Element *)p);\n");		
-	} 
-	if (svg_elt->has_timing) {
-		fprintf(output, "\tgf_svg_sani_init_timing((SVG_SANI_Element *)p);\n");		
-	} 
-	if (svg_elt->has_sync) {
-		fprintf(output, "\tgf_svg_sani_init_sync((SVG_SANI_Element *)p);\n");		
+		fprintf(output, "\tgf_svg_sani_init_focus((SVG_SANI_Element *)p);\n");
 	}
-	if (svg_elt->has_animation){
-		fprintf(output, "\tgf_svg_sani_init_anim((SVG_SANI_Element *)p);\n");		
-	} 
+	if (svg_elt->has_xlink) {
+		fprintf(output, "\tgf_svg_sani_init_xlink((SVG_SANI_Element *)p);\n");
+	}
+	if (svg_elt->has_timing) {
+		fprintf(output, "\tgf_svg_sani_init_timing((SVG_SANI_Element *)p);\n");
+	}
+	if (svg_elt->has_sync) {
+		fprintf(output, "\tgf_svg_sani_init_sync((SVG_SANI_Element *)p);\n");
+	}
+	if (svg_elt->has_animation) {
+		fprintf(output, "\tgf_svg_sani_init_anim((SVG_SANI_Element *)p);\n");
+	}
 	if (svg_elt->has_conditional) {
-		fprintf(output, "\tgf_svg_sani_init_conditional((SVG_SANI_Element *)p);\n");		
-	} 
+		fprintf(output, "\tgf_svg_sani_init_conditional((SVG_SANI_Element *)p);\n");
+	}
 
 	if (svg_elt->has_transform) {
 		fprintf(output, "\tgf_mx2d_init(p->transform.mat);\n");
-	} 
+	}
 
 	if (!strcmp(svg_elt->implementation_name, "conditional")) {
 		fprintf(output, "\tgf_svg_sa_init_lsr_conditional(&p->updates);\n");
-		fprintf(output, "\tgf_svg_sani_init_timing((SVG_SANI_Element *)p);\n");		
+		fprintf(output, "\tgf_svg_sani_init_timing((SVG_SANI_Element *)p);\n");
 
-	} 
+	}
 
 	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
 		SVGGenAttribute *att = gf_list_get(svg_elt->attributes, i);
-		
+
 		/* forcing initialization of old-properties */
 		if (!strcmp("audio-level", att->svg_name)) {
 			fprintf(output, "\tp->audio_level.type = SVG_NUMBER_VALUE;\n");
@@ -236,9 +236,9 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 		}
 
 		/* Initialization of complex types */
-		if ( !strcmp("SVG_Points", att->impl_type) || 
-			 !strcmp("SVG_Coordinates", att->impl_type) ||
-			 !strcmp("SMIL_KeyPoints", att->impl_type)) {
+		if ( !strcmp("SVG_Points", att->impl_type) ||
+		        !strcmp("SVG_Coordinates", att->impl_type) ||
+		        !strcmp("SMIL_KeyPoints", att->impl_type)) {
 			fprintf(output, "\tp->%s = gf_list_new();\n", att->implementation_name);
 		} else if (!strcmp("SVG_PathData", att->impl_type) && !strcmp(svg_elt->svg_name, "animateMotion")) {
 			fprintf(output, "#ifdef USE_GF_PATH\n");
@@ -256,7 +256,7 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 			fprintf(output, "#endif\n");
 		} else if (!strcmp(att->svg_name, "lsr:enabled")) {
 			fprintf(output, "\tp->lsr_enabled = 1;\n");
-		} 
+		}
 	}
 	/*some default values*/
 	if (!strcmp(svg_elt->svg_name, "svg")) {
@@ -289,10 +289,10 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 
 	if (!strcmp(svg_elt->implementation_name, "conditional")) {
 		fprintf(output, "\tgf_svg_sa_reset_lsr_conditional(&p->updates);\n");
-	} 
+	}
 	else if (!strcmp(svg_elt->implementation_name, "a")) {
 		fprintf(output, "\tif (p->target) free(p->target);\n");
-	} 
+	}
 
 	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
 		SVGGenAttribute *att = gf_list_get(svg_elt->attributes, i);
@@ -318,7 +318,7 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 	}
 	if (svg_elt->has_transform) {
 		fprintf(output, "\tif (p->motionTransform) free(p->motionTransform);\n");
-	} 
+	}
 
 	fprintf(output, "\tgf_sg_parent_reset((GF_Node *) p);\n");
 	fprintf(output, "\tgf_node_free((GF_Node *)p);\n");
@@ -330,23 +330,23 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 	svg_elt->nb_atts = 0;
 	svg_elt->nb_atts = generateCoreInfo(output, svg_elt, svg_elt->nb_atts);
 
-	if (svg_elt->has_focus) 
+	if (svg_elt->has_focus)
 		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 4, "((SVG_SANI_Element *)node)->focus->", svg_elt->nb_atts);
-	if (svg_elt->has_xlink) 
+	if (svg_elt->has_xlink)
 		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 5, "((SVG_SANI_Element *)node)->xlink->", svg_elt->nb_atts);
-	if (svg_elt->has_timing) 
+	if (svg_elt->has_timing)
 		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 6, "((SVG_SANI_Element *)node)->timing->", svg_elt->nb_atts);
-	if (svg_elt->has_sync) 
+	if (svg_elt->has_sync)
 		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 7, "((SVG_SANI_Element *)node)->sync->", svg_elt->nb_atts);
-	if (svg_elt->has_animation) 
+	if (svg_elt->has_animation)
 		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 8, "((SVG_SANI_Element *)node)->anim->", svg_elt->nb_atts);
-	if (svg_elt->has_conditional) 
+	if (svg_elt->has_conditional)
 		svg_elt->nb_atts = generateGenericInfo(output, svg_elt, 9, "((SVG_SANI_Element *)node)->conditional->", svg_elt->nb_atts);
 	if (svg_elt->has_transform) {
 		svg_elt->nb_atts = generateTransformInfo2(output, svg_elt, svg_elt->nb_atts);
 		svg_elt->nb_atts = generateMotionTransformInfo2(output, svg_elt, svg_elt->nb_atts);
 	}
-	if (svg_elt->has_xy) 
+	if (svg_elt->has_xy)
 		svg_elt->nb_atts = generateXYInfo2(output, svg_elt, svg_elt->nb_atts);
 
 	for (i = 0; i < gf_list_count(svg_elt->attributes); i++) {
@@ -357,7 +357,7 @@ void generateNodeImpl2(FILE *output, SVGGenElement* svg_elt)
 
 }
 
-void generateSVGCode_V2(GF_List *svg_elements) 
+void generateSVGCode_V2(GF_List *svg_elements)
 {
 	FILE *output;
 	u32 i;
@@ -377,12 +377,12 @@ void generateSVGCode_V2(GF_List *svg_elements)
 			fprintf(output, ",\n\tTAG_SVG_SANI_%s", elt->implementation_name);
 		}
 	}
-	
+
 	fprintf(output, ",\n\t/*undefined elements (when parsing) use this tag*/\n\tTAG_SVG_SANI_UndefinedElement\n};\n\n");
 
 	fprintf(output, "/******************************************\n");
- 	fprintf(output, "*   SVG_SANI_ Elements structure definitions    *\n");
- 	fprintf(output, "*******************************************/\n");
+	fprintf(output, "*   SVG_SANI_ Elements structure definitions    *\n");
+	fprintf(output, "*******************************************/\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
 		SVGGenElement *elt = (SVGGenElement *)gf_list_get(svg_elements, i);
 		generateNode2(output, elt);
@@ -407,7 +407,7 @@ void generateSVGCode_V2(GF_List *svg_elements)
 		fprintf(output, "\t\tcase TAG_SVG_SANI_%s: return (SVG_SANI_Element*) gf_svg_sani_new_%s();\n",elt->implementation_name,elt->implementation_name);
 	}
 	fprintf(output, "\t\tdefault: return NULL;\n\t}\n}\n\n");
-	
+
 	fprintf(output, "void gf_svg_sani_element_del(SVG_SANI_Element *elt)\n{\n");
 	fprintf(output, "\tGF_Node *node = (GF_Node *)elt;\n");
 	fprintf(output, "\tswitch (node->sgprivate->tag) {\n");
@@ -424,7 +424,7 @@ void generateSVGCode_V2(GF_List *svg_elements)
 		fprintf(output, "\t\tcase TAG_SVG_SANI_%s: return %i;\n", elt->implementation_name, elt->nb_atts);
 	}
 	fprintf(output, "\t\tdefault: return 0;\n\t}\n}\n\n");
-	
+
 	fprintf(output, "GF_Err gf_svg_sani_get_attribute_info(GF_Node *node, GF_FieldInfo *info)\n{\n");
 	fprintf(output, "\tswitch (node->sgprivate->tag) {\n");
 	for (i=0; i<gf_list_count(svg_elements); i++) {
@@ -457,7 +457,7 @@ void generateSVGCode_V2(GF_List *svg_elements)
 	fprintf(output, "\tdefault: return 0;\n\t}\n}\n");
 
 	fprintf(output, "#endif /*GPAC_DISABLE_SVG*/\n\n");
-	EndFile(output, 1); 
+	EndFile(output, 1);
 
 	generate_laser_tables(svg_elements);
 }

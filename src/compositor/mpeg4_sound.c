@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -42,7 +42,7 @@ static void TraverseSound2D(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState*) rs;
 	M_Sound2D *snd = (M_Sound2D *)node;
 	Sound2DStack *st = (Sound2DStack *)gf_node_get_private(node);
-	
+
 	if (is_destroy) {
 		gf_free(st);
 		return;
@@ -54,12 +54,12 @@ static void TraverseSound2D(GF_Node *node, void *rs, Bool is_destroy)
 	st->pos.y = snd->location.y;
 	st->pos.z = 0;
 #ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d) 
+	if (tr_state->visual->type_3d)
 		gf_mx_apply_vec(&tr_state->model_matrix, &st->pos);
 	else
 #endif
 		gf_mx2d_apply_coords(&tr_state->transform, &st->pos.x, &st->pos.y);
-	
+
 
 	tr_state->sound_holder = &st->snd_ifce;
 	gf_node_traverse((GF_Node *) snd->source, tr_state);
@@ -93,7 +93,7 @@ void compositor_init_sound2d(GF_Compositor *compositor, GF_Node *node)
 #ifndef GPAC_DISABLE_3D
 
 static Fixed snd_compute_gain(Fixed min_b, Fixed min_f, Fixed max_b, Fixed max_f, SFVec3f pos)
-{	
+{
 	Fixed sqpos_x, sqpos_z;
 	Fixed y_pos, x_pos, dist_ellip, viewp_dist, dist_from_foci_min, dist_from_foci_max, d_min, d_max, sqb_min, sqb_max;
 	Fixed a_in = (min_f+min_b)/2;
@@ -114,7 +114,7 @@ static Fixed snd_compute_gain(Fixed min_b, Fixed min_f, Fixed max_b, Fixed max_f
 	sqpos_z = gf_mulfix(pos.z, pos.z);
 
 	dist_from_foci_min = gf_sqrt(sqpos_z + sqpos_x) + gf_sqrt( gf_mulfix(pos.z - dist_foci_min, pos.z - dist_foci_min) + sqpos_x);
-	dist_from_foci_max = gf_sqrt(sqpos_z + sqpos_x) + gf_sqrt( gf_mulfix(pos.z - dist_foci_max, pos.z - dist_foci_max) + sqpos_x);	
+	dist_from_foci_max = gf_sqrt(sqpos_z + sqpos_x) + gf_sqrt( gf_mulfix(pos.z - dist_foci_max, pos.z - dist_foci_max) + sqpos_x);
 	d_min = min_f+min_b;
 	d_max = max_f+max_b;
 	if(dist_from_foci_max > d_max) return 0;
@@ -210,7 +210,7 @@ static void TraverseSound(GF_Node *node, void *rs, Bool is_destroy)
 		mag = gf_vec_len(usr);
 		if (!mag) mag = FIX_ONE/10;
 		ang = gf_divfix(gf_vec_dot(snd_dir, usr), mag);
-	
+
 		usr.z = gf_mulfix(ang, mag);
 		usr.x = gf_sqrt(gf_mulfix(mag, mag) - gf_mulfix(usr.z, usr.z));
 		usr.y = 0;

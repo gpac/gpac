@@ -16,12 +16,12 @@ static unsigned short port_from_string(const char * port_to_parse)
 	unsigned long int v;
 	char * endptr = '\0';
 	const char * value = port_to_parse;
-	if (value == NULL || value[0] == '\0'){
+	if (value == NULL || value[0] == '\0') {
 		fprintf(stderr, "Value for port cannot be empty");
 		return 0;
 	}
 	v = strtoul(value, &endptr, 10);
-	if (*endptr != '\0' || v < 1 || v > 65535){
+	if (*endptr != '\0' || v < 1 || v > 65535) {
 		fprintf(stderr, "Value %s is not a valid port, port must be between 1 and 65535 !\n", value);
 		return 0;
 	}
@@ -29,8 +29,8 @@ static unsigned short port_from_string(const char * port_to_parse)
 }
 
 static int command_line_parsing(int argc, const char** argv, unsigned short * tcp_port,
-				char *config_file, int *config_flag, unsigned short * mtu_size,
-				int * debug, u32 * socketType_for_updates)
+                                char *config_file, int *config_flag, unsigned short * mtu_size,
+                                int * debug, u32 * socketType_for_updates)
 {
 	int counter = 1;
 	if (argc < 2 || argc%2 != 1) {
@@ -39,7 +39,7 @@ static int command_line_parsing(int argc, const char** argv, unsigned short * tc
 	}
 
 	for(counter = 1; counter < (argc - 1); counter+=2)
-	{	
+	{
 		const char * a = argv[counter];
 		if (!strcmp("-p", a) || !strcmp("--port", a))
 		{
@@ -57,7 +57,7 @@ static int command_line_parsing(int argc, const char** argv, unsigned short * tc
 				printIncompatibleOptions();
 				return -2;
 			}
-			strcpy(config_file, argv[counter+1]);	
+			strcpy(config_file, argv[counter+1]);
 			(*config_flag) = 1;
 		}
 		else if (!strcmp("-m", a) || !strcmp("--mtu", a))
@@ -103,7 +103,7 @@ u32 RAP_send(void *par)
 	RAP_Input *input = par;
 	PNC_CallbackData *data = input->data;
 	u32 *timer;
-	
+
 	input->status = 1;
 	while (input->status==1) {
 		gf_mx_p(input->carrousel_mutex);
@@ -111,7 +111,7 @@ u32 RAP_send(void *par)
 		timer = input->RAPtimer;
 		data->RAPsent++;
 		dprintf(DEBUG_broadcaster, "Sending RAP, will sleep for %d seconds\n", *timer);
-		data->RAP = 1; 
+		data->RAP = 1;
 		gf_seng_aggregate_context(data->codec, 0);
 		gf_seng_encode_context(data->codec, SampleCallBack);
 
@@ -122,7 +122,7 @@ u32 RAP_send(void *par)
 	return GF_OK;
 }
 
-GF_Err parse_config(GF_Config *gf_config_file, CONF_Data *conf, int debug) 
+GF_Err parse_config(GF_Config *gf_config_file, CONF_Data *conf, int debug)
 {
 	conf->scene_init_file = gf_cfg_get_key(gf_config_file, MAIN_SECTION, SCENE_INIT);
 	if (!conf->scene_init_file) {
@@ -147,14 +147,14 @@ GF_Err parse_config(GF_Config *gf_config_file, CONF_Data *conf, int debug)
 
 	conf->dest_ip = gf_cfg_get_key(gf_config_file, DEST_SECTION, DEST_ADDRESS);
 	if (!conf->dest_ip)
-		conf->dest_ip = "127.0.0.1";		
+		conf->dest_ip = "127.0.0.1";
 	conf->dest_port = gf_cfg_get_key(gf_config_file, DEST_SECTION, PORT_OUTPUT);
 	if (!conf->dest_port)
 		conf->dest_port = "7000";
 	dprintf(DEBUG_broadcaster, "Destination: %s:%s\n", conf->dest_ip, conf->dest_port);
 
 	conf->feedback_ip = gf_cfg_get_key(gf_config_file, FEEDBACK_SECTION, IP_FEEDBACK);
-	if (!conf->feedback_ip) conf->feedback_ip = "127.0.0.1";		
+	if (!conf->feedback_ip) conf->feedback_ip = "127.0.0.1";
 	conf->feedback_port = gf_cfg_get_key(gf_config_file, FEEDBACK_SECTION, PORT_FEEDBACK);
 	if (!conf->feedback_port) conf->feedback_port = "5757";
 	dprintf(DEBUG_broadcaster, "Feedback host: %s:%s\n", conf->feedback_ip, conf->feedback_port);
@@ -174,7 +174,7 @@ u32 tcp_server(void *par)
 	GF_Socket *TCP_socket;
 	GF_Socket *conn_socket;
 	GF_Err e;
-	
+
 	int debug = input->debug;
 	input->status = 1;
 
@@ -183,10 +183,10 @@ u32 tcp_server(void *par)
 	e = gf_sk_listen(TCP_socket, 1);
 	e = gf_sk_set_block_mode(TCP_socket, 1);
 	e = gf_sk_server_mode(TCP_socket, 0);
-	
+
 	while(input->status == 1)
-	{	
-		memset(buffer, 0, sizeof(buffer));	
+	{
+		memset(buffer, 0, sizeof(buffer));
 		e = gf_sk_accept(TCP_socket, &conn_socket);
 		if (e == GF_OK) {
 			memset(buffer, 0, sizeof(buffer));
@@ -194,15 +194,15 @@ u32 tcp_server(void *par)
 		}
 
 		switch (e) {
-			case GF_IP_NETWORK_EMPTY:
-				gf_sleep(33);
-				continue;
-			case GF_OK:					
-				break;
-			default:
-				fprintf(stderr, "Error with TCP socket : %s\n", gf_error_to_string(e));
-				exit(1);
-				break;
+		case GF_IP_NETWORK_EMPTY:
+			gf_sleep(33);
+			continue;
+		case GF_OK:
+			break;
+		default:
+			fprintf(stderr, "Error with TCP socket : %s\n", gf_error_to_string(e));
+			exit(1);
+			break;
 		}
 
 		if((*(input->config_flag)) == 0)
@@ -215,7 +215,7 @@ u32 tcp_server(void *par)
 			}
 			ret = gf_fwrite(buffer, 1, byte_read, fp);
 			fclose(fp);
-			
+
 			/* parsing config info */
 			gf_config_file = gf_cfg_new(".", "temp.cfg");
 			if (!gf_config_file) {
@@ -224,7 +224,7 @@ u32 tcp_server(void *par)
 			}
 			parse_config(gf_config_file, input->config, debug);
 
-			/* Acknowledging the configuration */ 
+			/* Acknowledging the configuration */
 			gf_sk_send(conn_socket, "OK\n", 3);
 
 			memset(temp, 0, sizeof(temp));
@@ -256,7 +256,7 @@ u32 tcp_server(void *par)
 		}
 		/* we only wait now for the config updates */
 		if ( (*(input->config_flag)) == 1) {
-			ret = sscanf(buffer, "DelaiMax=%d\n", timer);							
+			ret = sscanf(buffer, "DelaiMax=%d\n", timer);
 			fprintf(stdout, "RAP timer changed, now : %d\n", *timer);
 		}
 		gf_sk_del(conn_socket);
@@ -265,7 +265,7 @@ u32 tcp_server(void *par)
 	input->status = 2;
 	return GF_OK;
 }
-	
+
 u8 get_a_char();
 Bool has_input();
 
@@ -275,7 +275,7 @@ int main (const int argc, const char** argv)
 	Bool run;
 
 	/* location of the configuration file: 0 wait for config on a socket, 1 use the given file */
-	u32 config_flag;	
+	u32 config_flag;
 	char config_file_name[MAX_BUF];
 
 	int dest_port;
@@ -291,30 +291,30 @@ int main (const int argc, const char** argv)
 	RAP_Input *rap_conf;
 	GF_Thread *rap_thread;
 
-	CONF_Data *conf;	
+	CONF_Data *conf;
 	GF_Config *gf_config_file;
 	GF_Err res;
-	
+
 	GF_Socket *UDP_feedback_socket;
 	u32 socketType_for_updates;
-	
+
 	PNC_CallbackData * data;
 	GF_RTPChannel * chan;
 	GF_RTPHeader hdr;
 	u32 timer = -1;
-	
-	GF_Mutex *carrousel_mutex;	
+
+	GF_Mutex *carrousel_mutex;
 	char sdp_fmt[5000];
 	tcp_thread = NULL;
-	
+
 	/* init gpac lib */
 	gf_sys_init();
-	
+
 	GF_SAFEALLOC(conf, CONF_Data);
-		
+
 	tcp_port = config_flag = 0;
 	socketType_for_updates = GF_SOCK_TYPE_UDP;
-	if (command_line_parsing(argc, argv, &tcp_port, config_file_name, (int *) &config_flag, &mtu_size, &debug, &socketType_for_updates)){
+	if (command_line_parsing(argc, argv, &tcp_port, config_file_name, (int *) &config_flag, &mtu_size, &debug, &socketType_for_updates)) {
 		print_usage();
 		return -1;
 	}
@@ -325,7 +325,7 @@ int main (const int argc, const char** argv)
 		char *cfg_path;
 		char *cfg_fname;
 		char *tmp;
-		
+
 		cfg_fname = config_file_name;
 		cfg_path = config_file_name;
 		tmp = strrchr(cfg_fname, GF_PATH_SEPARATOR);
@@ -335,7 +335,7 @@ int main (const int argc, const char** argv)
 		} else {
 			cfg_path = ".";
 		}
-		gf_config_file = gf_cfg_new(cfg_path, cfg_fname);	
+		gf_config_file = gf_cfg_new(cfg_path, cfg_fname);
 		if (!gf_config_file) {
 			fprintf(stderr, "Cannot open config file %s\n", config_file_name);
 			return -1;
@@ -356,33 +356,33 @@ int main (const int argc, const char** argv)
 
 		/* Starting the thread which will write the received config in a temporary file */
 		th_err_tcp = gf_th_run(tcp_thread, tcp_server, tcp_conf);
-		
+
 		fprintf(stdout, "Waiting for configuration on port %d...\n", tcp_conf->port);
 
-		while(config_flag == 0) { 
-			gf_sleep(1000); 
+		while(config_flag == 0) {
+			gf_sleep(1000);
 		}
 		fprintf(stdout, "Configuration File received. Starting Streaming ...\n");
 	}
-	
+
 	timer = atoi(conf->rap_timer);
 	dest_port = atoi(conf->dest_port);
 	res = PNC_InitRTP(&chan, (char *)conf->dest_ip, dest_port, mtu_size);
- 	if (res != 0) {
-		fprintf(stderr, "Cannot initialize RTP output (error: %d)\n", res); 
+	if (res != 0) {
+		fprintf(stderr, "Cannot initialize RTP output (error: %d)\n", res);
 		exit(1);
-	} 
+	}
 
 	carrousel_mutex = gf_mx_new("Carrousel");
 	data = PNC_Init_SceneGenerator(chan, &hdr, (char *) conf->scene_init_file,
-								   socketType_for_updates, (u16) atoi(conf->modif_input_port), debug); 
+	                               socketType_for_updates, (u16) atoi(conf->modif_input_port), debug);
 	if (!data) {
-		fprintf(stderr, "Cannot initialize Scene Generator\n"); 
+		fprintf(stderr, "Cannot initialize Scene Generator\n");
 		exit(1);
 	}
 	data->carrousel_mutex = carrousel_mutex;
 	data->RAPsent = 1;
-	
+
 	UDP_feedback_socket = gf_sk_new(GF_SOCK_TYPE_UDP);
 	e = gf_sk_bind(UDP_feedback_socket, NULL, (u16)atoi(conf->feedback_port), (char*)conf->feedback_ip, (u16)atoi(conf->feedback_port), 0);
 	if (e) {
@@ -395,7 +395,7 @@ int main (const int argc, const char** argv)
 	}
 	data->feedback_socket = UDP_feedback_socket;
 
-	PNC_InitPacketiser(data, sdp_fmt, mtu_size); 
+	PNC_InitPacketiser(data, sdp_fmt, mtu_size);
 	PNC_SendInitScene(data);
 
 	GF_SAFEALLOC(rap_conf, RAP_Input);
@@ -406,11 +406,11 @@ int main (const int argc, const char** argv)
 	th_err_rap = gf_th_run(rap_thread, RAP_send, rap_conf);
 
 	sdp_generator(data, (char *)conf->dest_ip, sdp_fmt);
-	
+
 	run = 1;
 	while (run)
 	{
-		GF_Err e = PNC_processBIFSGenerator(data); 
+		GF_Err e = PNC_processBIFSGenerator(data);
 		if (e) {
 			fprintf(stderr, "Cannot Process BIFS data (%s)\n", gf_error_to_string(e));
 			break;
@@ -444,9 +444,9 @@ int main (const int argc, const char** argv)
 	}
 
 	PNC_Close_SceneGenerator(data);
-	
+
 	gf_free(conf);
-	
+
 	if (gf_config_file)
 		gf_cfg_del(gf_config_file);
 
@@ -466,7 +466,7 @@ u8 get_a_char()
 {
 	return getchar();
 }
-void set_echo_off(Bool echo_off) 
+void set_echo_off(Bool echo_off)
 {
 	DWORD flags;
 	HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
@@ -499,8 +499,8 @@ void close_keyboard(Bool new_line)
 	if (new_line) fprintf(stdout, "\n");
 }
 
-void set_echo_off(Bool echo_off) 
-{ 
+void set_echo_off(Bool echo_off)
+{
 	init_keyboard();
 	if (echo_off) t_orig.c_lflag &= ~ECHO;
 	else t_orig.c_lflag |= ECHO;

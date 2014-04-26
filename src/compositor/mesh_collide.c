@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -32,7 +32,7 @@
 	AABB tree syntax&construction code is a quick extract from OPCODE (c) Pierre Terdiman, http://www.codercorner.com/Opcode.htm
 */
 
-typedef struct 
+typedef struct
 {
 	/*max tree depth, 0 is unlimited*/
 	u32 max_depth;
@@ -55,13 +55,20 @@ static GFINLINE void update_node_bounds(GF_Mesh *mesh, AABBNode *node)
 		IDX_TYPE *idx = &mesh->indices[3*node->indices[i]];
 		for (j=0; j<3; j++) {
 			SFVec3f *v = &mesh->vertices[idx[j]].pos;
-			if (mx>v->x) mx=v->x; if (Mx<v->x) Mx=v->x;
-			if (my>v->y) my=v->y; if (My<v->y) My=v->y;
-			if (mz>v->z) mz=v->z; if (Mz<v->z) Mz=v->z;
+			if (mx>v->x) mx=v->x;
+			if (Mx<v->x) Mx=v->x;
+			if (my>v->y) my=v->y;
+			if (My<v->y) My=v->y;
+			if (mz>v->z) mz=v->z;
+			if (Mz<v->z) Mz=v->z;
 		}
 	}
-	node->min.x = mx; node->min.y = my; node->min.z = mz;
-	node->max.x = Mx; node->max.y = My; node->max.z = Mz;
+	node->min.x = mx;
+	node->min.y = my;
+	node->min.z = mz;
+	node->max.x = Mx;
+	node->max.y = My;
+	node->max.z = Mz;
 }
 
 static GFINLINE u32 gf_vec_main_axis(SFVec3f v)
@@ -125,7 +132,7 @@ static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node, AABSplitParam
 	if (node->nb_idx==1) return;
 	if (node->nb_idx <= aab_par->min_tri_limit) return;
 	if (aab_par->max_depth == aab_par->depth) {
-		aab_par->depth --; 
+		aab_par->depth --;
 		return;
 	}
 	do_split = 1;
@@ -141,11 +148,14 @@ static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node, AABSplitParam
 	else if (aab_par->split_type==AABB_BALANCED) {
 		Fixed res[3];
 		num_pos = aabb_split(mesh, node, 0);
-		res[0] = gf_divfix(INT2FIX(num_pos), INT2FIX(node->nb_idx)) - FIX_ONE/2; res[0] = gf_mulfix(res[0], res[0]);
+		res[0] = gf_divfix(INT2FIX(num_pos), INT2FIX(node->nb_idx)) - FIX_ONE/2;
+		res[0] = gf_mulfix(res[0], res[0]);
 		num_pos = aabb_split(mesh, node, 1);
-		res[1] = gf_divfix(INT2FIX(num_pos), INT2FIX(node->nb_idx)) - FIX_ONE/2; res[1] = gf_mulfix(res[1], res[1]);
+		res[1] = gf_divfix(INT2FIX(num_pos), INT2FIX(node->nb_idx)) - FIX_ONE/2;
+		res[1] = gf_mulfix(res[1], res[1]);
 		num_pos = aabb_split(mesh, node, 2);
-		res[2] = gf_divfix(INT2FIX(num_pos), INT2FIX(node->nb_idx)) - FIX_ONE/2; res[2] = gf_mulfix(res[2], res[2]);;
+		res[2] = gf_divfix(INT2FIX(num_pos), INT2FIX(node->nb_idx)) - FIX_ONE/2;
+		res[2] = gf_mulfix(res[2], res[2]);;
 
 		axis = 0;
 		if (res[1] < res[axis])	axis = 1;
@@ -289,14 +299,14 @@ Bool gf_mesh_aabb_ray_hit(GF_Mesh *mesh, AABBNode *n, GF_Ray *ray, Fixed *closes
 	/*check bbox intersection*/
 	inters = gf_ray_hit_box(ray, n->min, n->max, NULL);
 	if (!inters) return 0;
-	
+
 	if (n->pos) {
 		/*we really want to check all possible intersections to get the closest point on ray*/
 		Bool res = gf_mesh_aabb_ray_hit(mesh, n->pos, ray, closest, outPoint, outNormal, outTexCoords);
 		res += gf_mesh_aabb_ray_hit(mesh, n->neg, ray, closest, outPoint, outNormal, outTexCoords);
 		return res;
 
-	} 
+	}
 
 
 	inters_idx = 0;
@@ -307,9 +317,9 @@ Bool gf_mesh_aabb_ray_hit(GF_Mesh *mesh, AABBNode *n, GF_Ray *ray, Fixed *closes
 	for (i=0; i<n->nb_idx; i++) {
 		Fixed res;
 		IDX_TYPE *idx = &mesh->indices[3*n->indices[i]];
-		if (gf_ray_hit_triangle(ray, 
-					&mesh->vertices[idx[0]].pos, &mesh->vertices[idx[1]].pos, &mesh->vertices[idx[2]].pos,
-					&res)) {
+		if (gf_ray_hit_triangle(ray,
+		                        &mesh->vertices[idx[0]].pos, &mesh->vertices[idx[1]].pos, &mesh->vertices[idx[2]].pos,
+		                        &res)) {
 			if ((res>0) && (res<dist)) {
 				dist = res;
 				inters_idx = i;
@@ -337,9 +347,9 @@ Bool gf_mesh_aabb_ray_hit(GF_Mesh *mesh, AABBNode *n, GF_Ray *ray, Fixed *closes
 		}
 		if (outTexCoords) {
 			IDX_TYPE *idx = &mesh->indices[3*n->indices[inters_idx]];;
-			ray_hit_triangle_get_u_v(ray, 
-				&mesh->vertices[idx[0]].pos, &mesh->vertices[idx[1]].pos, &mesh->vertices[idx[2]].pos,
-				&outTexCoords->x, &outTexCoords->y);
+			ray_hit_triangle_get_u_v(ray,
+			                         &mesh->vertices[idx[0]].pos, &mesh->vertices[idx[1]].pos, &mesh->vertices[idx[2]].pos,
+			                         &outTexCoords->x, &outTexCoords->y);
 		}
 	}
 	return inters;
@@ -369,9 +379,9 @@ Bool gf_mesh_intersect_ray(GF_Mesh *mesh, GF_Ray *ray, SFVec3f *outPoint, SFVec3
 	for (i=0; i<mesh->i_count; i+=3) {
 		Fixed res;
 		IDX_TYPE *idx = &mesh->indices[i];
-		if (gf_ray_hit_triangle(ray, 
-					&mesh->vertices[idx[0]].pos, &mesh->vertices[idx[1]].pos, &mesh->vertices[idx[2]].pos,
-					&res)) {
+		if (gf_ray_hit_triangle(ray,
+		                        &mesh->vertices[idx[0]].pos, &mesh->vertices[idx[1]].pos, &mesh->vertices[idx[2]].pos,
+		                        &res)) {
 			if ((res>0) && (res<closest)) {
 				closest = res;
 				inters_idx = i;
@@ -504,9 +514,9 @@ Bool gf_mesh_closest_face_aabb(GF_Mesh *mesh, AABBNode *node, SFVec3f pos, Fixed
 		/*intersect inverse normal from position to face with face*/
 		r.dir = n;
 		gf_vec_rev(r.dir);
-		inters = mesh_collide_triangle(&r, 
-					&mesh->vertices[idx[0]].pos, &mesh->vertices[idx[1]].pos, &mesh->vertices[idx[2]].pos,
-					&d);
+		inters = mesh_collide_triangle(&r,
+		                               &mesh->vertices[idx[0]].pos, &mesh->vertices[idx[1]].pos, &mesh->vertices[idx[2]].pos,
+		                               &d);
 
 		if (inters) {
 			/*we're behind the face, get inverse normal*/
@@ -572,9 +582,9 @@ Bool gf_mesh_closest_face(GF_Mesh *mesh, SFVec3f pos, Fixed min_dist, SFVec3f *o
 		/*intersect inverse normal from position to face with face*/
 		r.dir = n;
 		gf_vec_rev(r.dir);
-		inters = mesh_collide_triangle(&r, 
-					&mesh->vertices[idx[0]].pos, &mesh->vertices[idx[1]].pos, &mesh->vertices[idx[2]].pos,
-					&d);
+		inters = mesh_collide_triangle(&r,
+		                               &mesh->vertices[idx[0]].pos, &mesh->vertices[idx[1]].pos, &mesh->vertices[idx[2]].pos,
+		                               &d);
 
 		if (inters) {
 			/*we're behind the face, get inverse normal*/

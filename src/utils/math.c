@@ -11,19 +11,19 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *
  *	fixed-point trigo routines taken from freetype
- *		Copyright 1996-2001, 2002, 2004 by                                   
+ *		Copyright 1996-2001, 2002, 2004 by
  *		David Turner, Robert Wilhelm, and Werner Lemberg.
  *	License: FTL or GPL
  *
@@ -84,15 +84,15 @@ static GFINLINE s32 gf_trig_prenorm(GF_Point2D *vec)
 	z     = ( ( x >= 0 ) ? x : - x ) | ( (y >= 0) ? y : -y );
 	shift = 0;
 	if ( z < ( 1L << 27 ) ) {
-      do {
-		  shift++;
-		  z <<= 1;
-      }
-	  while ( z < ( 1L << 27 ) );
+		do {
+			shift++;
+			z <<= 1;
+		}
+		while ( z < ( 1L << 27 ) );
 
-      vec->x = x << shift;
-      vec->y = y << shift;
-    }    
+		vec->x = x << shift;
+		vec->y = y << shift;
+	}
 	else if ( z > ( 1L << 28 ) ) {
 		do {
 			shift++;
@@ -102,8 +102,8 @@ static GFINLINE s32 gf_trig_prenorm(GF_Point2D *vec)
 		vec->x = x >> shift;
 		vec->y = y >> shift;
 		shift  = -shift;
-    }
-    return shift;
+	}
+	return shift;
 }
 
 #define ANGLE_RAD_TO_DEG(_th) ((s32) ( (((fix_s64)_th)*5729582)/100000))
@@ -165,7 +165,7 @@ static GFINLINE void gf_trig_pseudo_polarize(GF_Point2D *vec)
 	while ( ++i < GF_TRIG_MAX_ITERS );
 
 	/* round theta */
-	if ( theta >= 0 ) 
+	if ( theta >= 0 )
 		theta = GF_PAD_ROUND( theta, 32 );
 	else
 		theta = - GF_PAD_ROUND( -theta, 32 );
@@ -211,7 +211,7 @@ Fixed gf_divfix(Fixed a, Fixed b)
 {
 	Fixed res;
 	if (!a) return 0;
-    else if (!b) return (a<0) ? -(s32)0x7FFFFFFFL : (s32)0x7FFFFFFFL;
+	else if (!b) return (a<0) ? -(s32)0x7FFFFFFFL : (s32)0x7FFFFFFFL;
 	else if (a==FIX_ONE) gppInv_16_32s(b, &res);
 	else gppDiv_16_32s(a, b, &res);
 	return res;
@@ -287,8 +287,8 @@ GF_Point2D gf_v2d_from_polar(Fixed length, Fixed angle)
 #else
 	gppSinCosLP_16_32s(angle, &sina, &cosa);
 #endif
-    vec.x = gf_mulfix(length, cosa);
-    vec.y = gf_mulfix(length, sina);
+	vec.x = gf_mulfix(length, cosa);
+	vec.y = gf_mulfix(length, sina);
 	return vec;
 }
 
@@ -323,18 +323,24 @@ Fixed gf_divfix(Fixed a, Fixed b)
 	s32 s;
 	u32 q;
 	if (!a) return 0;
-    s = 1;
-    if ( a < 0 ) { a = -a; s = -1; }
-    if ( b < 0 ) { b = -b; s = -s; }
+	s = 1;
+	if ( a < 0 ) {
+		a = -a;
+		s = -1;
+	}
+	if ( b < 0 ) {
+		b = -b;
+		s = -s;
+	}
 
-    if ( b == 0 )
+	if ( b == 0 )
 		/* check for division by 0 */
 		q = 0x7FFFFFFFL;
-    else {
+	else {
 		/* compute result directly */
 		q = (u32)( ( ( (fix_s64)a << 16 ) + ( b >> 1 ) ) / b );
 	}
-    return ( s < 0 ? -(s32)q : (s32)q );
+	return ( s < 0 ? -(s32)q : (s32)q );
 }
 
 GF_EXPORT
@@ -345,8 +351,10 @@ Fixed gf_mulfix(Fixed a, Fixed b)
 	if ( !a || (b == 0x10000L)) return a;
 	if (!b) return 0;
 
-	s  = a; a = ABS(a);
-	s ^= b; b = ABS(b);
+	s  = a;
+	a = ABS(a);
+	s ^= b;
+	b = ABS(b);
 
 	ua = (u32)a;
 	ub = (u32)b;
@@ -407,45 +415,45 @@ static Fixed gf_trig_downscale(Fixed  val)
 
 static void gf_trig_pseudo_rotate(GF_Point2D*  vec, Fixed theta)
 {
-    s32 i;
-    Fixed x, y, xtemp;
-    const Fixed  *arctanptr;
+	s32 i;
+	Fixed x, y, xtemp;
+	const Fixed  *arctanptr;
 
 	/*trig funcs are in degrees*/
 	theta = ANGLE_RAD_TO_DEG(theta);
 
-    x = vec->x;
-    y = vec->y;
+	x = vec->x;
+	y = vec->y;
 
-    /* Get angle between -90 and 90 degrees */
-    while ( theta <= -GF_ANGLE_PI2 ) {
+	/* Get angle between -90 and 90 degrees */
+	while ( theta <= -GF_ANGLE_PI2 ) {
 		x = -x;
 		y = -y;
 		theta += GF_ANGLE_PI;
-    }
+	}
 
-    while ( theta > GF_ANGLE_PI2 ) {
+	while ( theta > GF_ANGLE_PI2 ) {
 		x = -x;
 		y = -y;
 		theta -= GF_ANGLE_PI;
-    }
+	}
 
-    /* Initial pseudorotation, with left shift */
-    arctanptr = gf_trig_arctan_table;
-    if ( theta < 0 ) {
+	/* Initial pseudorotation, with left shift */
+	arctanptr = gf_trig_arctan_table;
+	if ( theta < 0 ) {
 		xtemp  = x + ( y << 1 );
 		y      = y - ( x << 1 );
 		x      = xtemp;
 		theta += *arctanptr++;
-    } else {
+	} else {
 		xtemp  = x - ( y << 1 );
 		y      = y + ( x << 1 );
 		x      = xtemp;
 		theta -= *arctanptr++;
-    }
-    /* Subsequent pseudorotations, with right shifts */
-    i = 0;
-    do {
+	}
+	/* Subsequent pseudorotations, with right shifts */
+	i = 0;
+	do {
 		if ( theta < 0 ) {
 			xtemp  = x + ( y >> i );
 			y      = y - ( x >> i );
@@ -457,10 +465,10 @@ static void gf_trig_pseudo_rotate(GF_Point2D*  vec, Fixed theta)
 			x      = xtemp;
 			theta -= *arctanptr++;
 		}
-    } while ( ++i < GF_TRIG_MAX_ITERS );
+	} while ( ++i < GF_TRIG_MAX_ITERS );
 
-    vec->x = x;
-    vec->y = y;
+	vec->x = x;
+	vec->y = y;
 }
 
 /* these macros return 0 for positive numbers, and -1 for negative ones */
@@ -471,13 +479,13 @@ static void gf_trig_pseudo_rotate(GF_Point2D*  vec, Fixed theta)
 
 static void gf_v2d_rotate(GF_Point2D *vec, Fixed angle)
 {
-    s32 shift;
-    GF_Point2D v;
-    
+	s32 shift;
+	GF_Point2D v;
+
 	v.x   = vec->x;
-    v.y   = vec->y;
-	
-    if ( angle && ( v.x != 0 || v.y != 0 ) ) {
+	v.y   = vec->y;
+
+	if ( angle && ( v.x != 0 || v.y != 0 ) ) {
 		shift = gf_trig_prenorm( &v );
 		gf_trig_pseudo_rotate( &v, angle );
 		v.x = gf_trig_downscale( v.x );
@@ -493,57 +501,57 @@ static void gf_v2d_rotate(GF_Point2D *vec, Fixed angle)
 			vec->x = v.x << shift;
 			vec->y = v.y << shift;
 		}
-    }
+	}
 }
 
 GF_EXPORT
 Fixed gf_v2d_len(GF_Point2D *vec)
 {
-    s32 shift;
+	s32 shift;
 	GF_Point2D v;
-    v = *vec;
+	v = *vec;
 
-    /* handle trivial cases */
-    if ( v.x == 0 ) {
+	/* handle trivial cases */
+	if ( v.x == 0 ) {
 		return ( v.y >= 0 ) ? v.y : -v.y;
-    } else if ( v.y == 0 ) {
+	} else if ( v.y == 0 ) {
 		return ( v.x >= 0 ) ? v.x : -v.x;
-    }
+	}
 
-    /* general case */
-    shift = gf_trig_prenorm( &v );
-    gf_trig_pseudo_polarize( &v );
-    v.x = gf_trig_downscale( v.x );
-    if ( shift > 0 )
+	/* general case */
+	shift = gf_trig_prenorm( &v );
+	gf_trig_pseudo_polarize( &v );
+	v.x = gf_trig_downscale( v.x );
+	if ( shift > 0 )
 		return ( v.x + ( 1 << ( shift - 1 ) ) ) >> shift;
 
-    return v.x << -shift;
+	return v.x << -shift;
 }
 
 
 GF_EXPORT
 void gf_v2d_polarize(GF_Point2D *vec, Fixed *length, Fixed *angle)
 {
-    s32 shift;
+	s32 shift;
 	GF_Point2D v;
-    v = *vec;
-    if ( v.x == 0 && v.y == 0 )
+	v = *vec;
+	if ( v.x == 0 && v.y == 0 )
 		return;
 
-    shift = gf_trig_prenorm( &v );
-    gf_trig_pseudo_polarize( &v );
-    v.x = gf_trig_downscale( v.x );
-    *length = ( shift >= 0 ) ? ( v.x >> shift ) : ( v.x << -shift );
-    *angle  = v.y;
+	shift = gf_trig_prenorm( &v );
+	gf_trig_pseudo_polarize( &v );
+	v.x = gf_trig_downscale( v.x );
+	*length = ( shift >= 0 ) ? ( v.x >> shift ) : ( v.x << -shift );
+	*angle  = v.y;
 }
 
 GF_EXPORT
 GF_Point2D gf_v2d_from_polar(Fixed length, Fixed angle)
 {
 	GF_Point2D vec;
-    vec.x = length;
-    vec.y = 0;
-    gf_v2d_rotate(&vec, angle);
+	vec.x = length;
+	vec.y = 0;
+	gf_v2d_rotate(&vec, angle);
 	return vec;
 }
 
@@ -565,10 +573,10 @@ GF_EXPORT
 Fixed gf_tan(Fixed angle)
 {
 	GF_Point2D v;
-    v.x = GF_TRIG_COSCALE >> 2;
-    v.y = 0;
-    gf_trig_pseudo_rotate( &v, angle );
-    return gf_divfix( v.y, v.x );
+	v.x = GF_TRIG_COSCALE >> 2;
+	v.y = 0;
+	gf_trig_pseudo_rotate( &v, angle );
+	return gf_divfix( v.y, v.x );
 }
 
 #endif
@@ -577,15 +585,24 @@ Fixed gf_tan(Fixed angle)
 GF_EXPORT
 Fixed gf_muldiv(Fixed a, Fixed b, Fixed c)
 {
-    s32 s, d;
+	s32 s, d;
 	if (!b || !a) return 0;
-    s = 1;
-    if ( a < 0 ) { a = -a; s = -1; }
-    if ( b < 0 ) { b = -b; s = -s; }
-    if ( c < 0 ) { c = -c; s = -s; }
+	s = 1;
+	if ( a < 0 ) {
+		a = -a;
+		s = -1;
+	}
+	if ( b < 0 ) {
+		b = -b;
+		s = -s;
+	}
+	if ( c < 0 ) {
+		c = -c;
+		s = -s;
+	}
 
-    d = (s32)( c > 0 ? ( (fix_s64)a * b + ( c >> 1 ) ) / c : 0x7FFFFFFFL);
-    return (Fixed) (( s > 0 ) ? d : -d);
+	d = (s32)( c > 0 ? ( (fix_s64)a * b + ( c >> 1 ) ) / c : 0x7FFFFFFFL);
+	return (Fixed) (( s > 0 ) ? d : -d);
 }
 
 
@@ -598,7 +615,7 @@ Fixed gf_ceil(Fixed a)
 GF_EXPORT
 Fixed gf_floor(Fixed a)
 {
-    return (a >= 0) ? (a & ~0xFFFFL) : -((-a) & ~0xFFFFL);
+	return (a >= 0) ? (a & ~0xFFFFL) : -((-a) & ~0xFFFFL);
 }
 
 
@@ -624,8 +641,8 @@ GF_EXPORT
 GF_Point2D gf_v2d_from_polar(Fixed length, Fixed angle)
 {
 	GF_Point2D vec;
-    vec.x = length*(Float) cos(angle);
-    vec.y = length*(Float) sin(angle);
+	vec.x = length*(Float) cos(angle);
+	vec.y = length*(Float) sin(angle);
 	return vec;
 }
 
@@ -665,16 +682,16 @@ Fixed gf_v2d_distance(GF_Point2D *a, GF_Point2D *b)
 GF_EXPORT
 Fixed gf_angle_diff(Fixed angle1, Fixed angle2)
 {
-    Fixed delta = angle2 - angle1;
+	Fixed delta = angle2 - angle1;
 #ifdef GPAC_FIXED_POINT
-    delta %= GF_2PI;
+	delta %= GF_2PI;
 	if (delta < 0) delta += GF_2PI;
-    if (delta > GF_PI) delta -= GF_2PI;
+	if (delta > GF_PI) delta -= GF_2PI;
 #else
 	while (delta < 0) delta += GF_2PI;
-    while (delta > GF_PI) delta -= GF_2PI;
+	while (delta > GF_PI) delta -= GF_2PI;
 #endif
-    return delta;
+	return delta;
 }
 
 
@@ -745,7 +762,7 @@ void gf_mx2d_add_rotation(GF_Matrix2D *_this, Fixed cx, Fixed cy, Fixed angle)
 	gf_mx2d_init(tmp);
 
 	gf_mx2d_add_translation(_this, -cx, -cy);
-	
+
 	tmp.m[0] = gf_cos(angle);
 	tmp.m[4] = tmp.m[0];
 	tmp.m[3] = gf_sin(angle);
@@ -960,13 +977,22 @@ GF_IRect gf_rect_pixelize(GF_Rect *r)
 
 /*adds @rc2 to @rc1 - the new @rc1 contains the old @rc1 and @rc2*/
 GF_EXPORT
-void gf_rect_union(GF_Rect *rc1, GF_Rect *rc2) 
+void gf_rect_union(GF_Rect *rc1, GF_Rect *rc2)
 {
-	if (!rc1->width || !rc1->height) {*rc1=*rc2; return;}
+	if (!rc1->width || !rc1->height) {
+		*rc1=*rc2;
+		return;
+	}
 	if (!rc2->width || !rc2->height) return;
-	if (rc2->x < rc1->x) { rc1->width += rc1->x - rc2->x; rc1->x = rc2->x; }
+	if (rc2->x < rc1->x) {
+		rc1->width += rc1->x - rc2->x;
+		rc1->x = rc2->x;
+	}
 	if (rc2->x + rc2->width > rc1->x+rc1->width) rc1->width = rc2->x + rc2->width - rc1->x;
-	if (rc2->y > rc1->y) { rc1->height += rc2->y - rc1->y; rc1->y = rc2->y; }
+	if (rc2->y > rc1->y) {
+		rc1->height += rc2->y - rc1->y;
+		rc1->y = rc2->y;
+	}
 	if (rc2->y - rc2->height < rc1->y - rc1->height) rc1->height = rc1->y - rc2->y + rc2->height;
 }
 
@@ -974,7 +1000,10 @@ GF_EXPORT
 GF_Rect gf_rect_center(Fixed w, Fixed h)
 {
 	GF_Rect rc;
-	rc.x=-w/2; rc.y=h/2; rc.width=w; rc.height=h;
+	rc.x=-w/2;
+	rc.y=h/2;
+	rc.width=w;
+	rc.height=h;
 	return rc;
 }
 
@@ -990,8 +1019,8 @@ Bool gf_rect_overlaps(GF_Rect rc1, GF_Rect rc2)
 }
 
 GF_EXPORT
-Bool gf_rect_equal(GF_Rect rc1, GF_Rect rc2) 
-{ 
+Bool gf_rect_equal(GF_Rect rc1, GF_Rect rc2)
+{
 	if ( (rc1.x == rc2.x)  && (rc1.y == rc2.y) && (rc1.width == rc2.width) && (rc1.height == rc2.height) )
 		return GF_TRUE;
 	return GF_FALSE;
@@ -1052,7 +1081,7 @@ Fixed gf_vec_lensq(GF_Vec v)
 		return ( gf_mulfix(v.x, v.x) + gf_mulfix(v.y, v.y) + gf_mulfix(v.z, v.z) ) << 16;
 	}
 	return gf_mulfix(v.x, v.x) + gf_mulfix(v.y, v.y) + gf_mulfix(v.z, v.z);
-	
+
 #endif
 }
 
@@ -1072,8 +1101,12 @@ Fixed gf_vec_dot(GF_Vec v1, GF_Vec v2)
 	/*both high-magnitude vectors, use low precision on frac part to avoid overflow
 	if only one is, the dot product should still be in proper range*/
 	if (0&&VEC_HIGH_MAG(v1) && VEC_HIGH_MAG(v2)) {
-		v1.x>>=4; v1.y>>=4; v1.z>>=4;
-		v2.x>>=4; v2.y>>=4; v2.z>>=4;
+		v1.x>>=4;
+		v1.y>>=4;
+		v1.z>>=4;
+		v2.x>>=4;
+		v2.y>>=4;
+		v2.z>>=4;
 		return ( gf_mulfix(v1.x, v2.x) + gf_mulfix(v1.y, v2.y) + gf_mulfix(v1.z, v2.z) ) << 8;
 	}
 	return gf_mulfix(v1.x, v2.x) + gf_mulfix(v1.y, v2.y) + gf_mulfix(v1.z, v2.z);
@@ -1090,7 +1123,7 @@ void gf_vec_norm(GF_Vec *v)
 	gppVec3DNormalize_16_32s((GPP_VEC3D *) &v);
 #else
 	Fixed __res = gf_vec_len(*v);
-	v->x = gf_divfix(v->x, __res); 
+	v->x = gf_divfix(v->x, __res);
 	v->y = gf_divfix(v->y, __res);
 	v->z = gf_divfix(v->z, __res);
 #endif
@@ -1100,8 +1133,8 @@ GF_EXPORT
 GF_Vec gf_vec_scale(GF_Vec v, Fixed f)
 {
 	GF_Vec res;
-	res.x = gf_mulfix(v.x, f); 
-	res.y = gf_mulfix(v.y, f); 
+	res.x = gf_mulfix(v.x, f);
+	res.y = gf_mulfix(v.y, f);
 	res.z = gf_mulfix(v.z, f);
 	return res;
 }
@@ -1125,8 +1158,12 @@ GF_Vec gf_vec_cross(GF_Vec v1, GF_Vec v2)
 	/*both high-magnitude vectors, use low precision on frac part to avoid overflow
 	if only one is, the cross product should still be in proper range*/
 	if (VEC_HIGH_MAG(v1) && VEC_HIGH_MAG(v2)) {
-		v1.x>>=8; v1.y>>=8; v1.z>>=8;
-		v2.x>>=8; v2.y>>=8; v2.z>>=8;
+		v1.x>>=8;
+		v1.y>>=8;
+		v1.z>>=8;
+		v2.x>>=8;
+		v2.y>>=8;
+		v2.z>>=8;
 		res.x = gf_mulfix(v1.y, v2.z) - gf_mulfix(v2.y, v1.z);
 		res.y = gf_mulfix(v2.x, v1.z) - gf_mulfix(v1.x, v2.z);
 		res.z = gf_mulfix(v1.x, v2.y) - gf_mulfix(v2.x, v1.y);
@@ -1146,11 +1183,17 @@ GF_Vec gf_vec_cross(GF_Vec v1, GF_Vec v2)
 #else
 
 GF_EXPORT
-Fixed gf_vec_len(GF_Vec v) { return gf_sqrt(v.x*v.x + v.y*v.y + v.z*v.z); }
+Fixed gf_vec_len(GF_Vec v) {
+	return gf_sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+}
 GF_EXPORT
-Fixed gf_vec_lensq(GF_Vec v) { return v.x*v.x + v.y*v.y + v.z*v.z; }
+Fixed gf_vec_lensq(GF_Vec v) {
+	return v.x*v.x + v.y*v.y + v.z*v.z;
+}
 GF_EXPORT
-Fixed gf_vec_dot(GF_Vec v1, GF_Vec v2) { return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z; }
+Fixed gf_vec_dot(GF_Vec v1, GF_Vec v2) {
+	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
+}
 GF_EXPORT
 void gf_vec_norm(GF_Vec *v)
 {
@@ -1158,7 +1201,7 @@ void gf_vec_norm(GF_Vec *v)
 	if (!__res ) return;
 	if (__res == FIX_ONE) return;
 	__res = 1.0f/__res;
-	v->x *= __res; 
+	v->x *= __res;
 	v->y *= __res;
 	v->z *= __res;
 }
@@ -1167,8 +1210,8 @@ GF_EXPORT
 GF_Vec gf_vec_scale(GF_Vec v, Fixed f)
 {
 	GF_Vec res = v;
-	res.x *= f; 
-	res.y *= f; 
+	res.x *= f;
+	res.y *= f;
 	res.z *= f;
 	return res;
 }
@@ -1209,42 +1252,42 @@ void gf_mx_apply_rect(GF_Matrix *mat, GF_Rect *rc)
 GF_EXPORT
 void gf_mx_add_matrix(GF_Matrix *mat, GF_Matrix *mul)
 {
-    GF_Matrix tmp;
+	GF_Matrix tmp;
 	gf_mx_init(tmp);
 
-    tmp.m[0] = gf_mulfix(mat->m[0],mul->m[0]) + gf_mulfix(mat->m[4],mul->m[1]) + gf_mulfix(mat->m[8],mul->m[2]);
-    tmp.m[4] = gf_mulfix(mat->m[0],mul->m[4]) + gf_mulfix(mat->m[4],mul->m[5]) + gf_mulfix(mat->m[8],mul->m[6]);
-    tmp.m[8] = gf_mulfix(mat->m[0],mul->m[8]) + gf_mulfix(mat->m[4],mul->m[9]) + gf_mulfix(mat->m[8],mul->m[10]);
-    tmp.m[12]= gf_mulfix(mat->m[0],mul->m[12]) + gf_mulfix(mat->m[4],mul->m[13]) + gf_mulfix(mat->m[8],mul->m[14]) + mat->m[12];
-    tmp.m[1] = gf_mulfix(mat->m[1],mul->m[0]) + gf_mulfix(mat->m[5],mul->m[1]) + gf_mulfix(mat->m[9],mul->m[2]);
-    tmp.m[5] = gf_mulfix(mat->m[1],mul->m[4]) + gf_mulfix(mat->m[5],mul->m[5]) + gf_mulfix(mat->m[9],mul->m[6]);
-    tmp.m[9] = gf_mulfix(mat->m[1],mul->m[8]) + gf_mulfix(mat->m[5],mul->m[9]) + gf_mulfix(mat->m[9],mul->m[10]);
-    tmp.m[13]= gf_mulfix(mat->m[1],mul->m[12]) + gf_mulfix(mat->m[5],mul->m[13]) + gf_mulfix(mat->m[9],mul->m[14]) + mat->m[13];
-    tmp.m[2] = gf_mulfix(mat->m[2],mul->m[0]) + gf_mulfix(mat->m[6],mul->m[1]) + gf_mulfix(mat->m[10],mul->m[2]);
-    tmp.m[6] = gf_mulfix(mat->m[2],mul->m[4]) + gf_mulfix(mat->m[6],mul->m[5]) + gf_mulfix(mat->m[10],mul->m[6]);
-    tmp.m[10]= gf_mulfix(mat->m[2],mul->m[8]) + gf_mulfix(mat->m[6],mul->m[9]) + gf_mulfix(mat->m[10],mul->m[10]);
-    tmp.m[14]= gf_mulfix(mat->m[2],mul->m[12]) + gf_mulfix(mat->m[6],mul->m[13]) + gf_mulfix(mat->m[10],mul->m[14]) + mat->m[14];
+	tmp.m[0] = gf_mulfix(mat->m[0],mul->m[0]) + gf_mulfix(mat->m[4],mul->m[1]) + gf_mulfix(mat->m[8],mul->m[2]);
+	tmp.m[4] = gf_mulfix(mat->m[0],mul->m[4]) + gf_mulfix(mat->m[4],mul->m[5]) + gf_mulfix(mat->m[8],mul->m[6]);
+	tmp.m[8] = gf_mulfix(mat->m[0],mul->m[8]) + gf_mulfix(mat->m[4],mul->m[9]) + gf_mulfix(mat->m[8],mul->m[10]);
+	tmp.m[12]= gf_mulfix(mat->m[0],mul->m[12]) + gf_mulfix(mat->m[4],mul->m[13]) + gf_mulfix(mat->m[8],mul->m[14]) + mat->m[12];
+	tmp.m[1] = gf_mulfix(mat->m[1],mul->m[0]) + gf_mulfix(mat->m[5],mul->m[1]) + gf_mulfix(mat->m[9],mul->m[2]);
+	tmp.m[5] = gf_mulfix(mat->m[1],mul->m[4]) + gf_mulfix(mat->m[5],mul->m[5]) + gf_mulfix(mat->m[9],mul->m[6]);
+	tmp.m[9] = gf_mulfix(mat->m[1],mul->m[8]) + gf_mulfix(mat->m[5],mul->m[9]) + gf_mulfix(mat->m[9],mul->m[10]);
+	tmp.m[13]= gf_mulfix(mat->m[1],mul->m[12]) + gf_mulfix(mat->m[5],mul->m[13]) + gf_mulfix(mat->m[9],mul->m[14]) + mat->m[13];
+	tmp.m[2] = gf_mulfix(mat->m[2],mul->m[0]) + gf_mulfix(mat->m[6],mul->m[1]) + gf_mulfix(mat->m[10],mul->m[2]);
+	tmp.m[6] = gf_mulfix(mat->m[2],mul->m[4]) + gf_mulfix(mat->m[6],mul->m[5]) + gf_mulfix(mat->m[10],mul->m[6]);
+	tmp.m[10]= gf_mulfix(mat->m[2],mul->m[8]) + gf_mulfix(mat->m[6],mul->m[9]) + gf_mulfix(mat->m[10],mul->m[10]);
+	tmp.m[14]= gf_mulfix(mat->m[2],mul->m[12]) + gf_mulfix(mat->m[6],mul->m[13]) + gf_mulfix(mat->m[10],mul->m[14]) + mat->m[14];
 	memcpy(mat->m, tmp.m, sizeof(Fixed)*16);
 }
 
 GF_EXPORT
 void gf_mx_add_matrix_2d(GF_Matrix *mat, GF_Matrix2D *mat2D)
 {
-    GF_Matrix tmp;
+	GF_Matrix tmp;
 	gf_mx_init(tmp);
 
-    tmp.m[0] = gf_mulfix(mat->m[0],mat2D->m[0]) + gf_mulfix(mat->m[4],mat2D->m[3]);
-    tmp.m[4] = gf_mulfix(mat->m[0],mat2D->m[1]) + gf_mulfix(mat->m[4],mat2D->m[4]);
-    tmp.m[8] = mat->m[8];
-    tmp.m[12]= gf_mulfix(mat->m[0],mat2D->m[2]) + gf_mulfix(mat->m[4],mat2D->m[5]) + mat->m[12];
-    tmp.m[1] = gf_mulfix(mat->m[1],mat2D->m[0]) + gf_mulfix(mat->m[5],mat2D->m[3]);
-    tmp.m[5] = gf_mulfix(mat->m[1],mat2D->m[1]) + gf_mulfix(mat->m[5],mat2D->m[4]);
-    tmp.m[9] = mat->m[9];
-    tmp.m[13]= gf_mulfix(mat->m[1],mat2D->m[2]) + gf_mulfix(mat->m[5],mat2D->m[5]) + mat->m[13];
-    tmp.m[2] = gf_mulfix(mat->m[2],mat2D->m[0]) + gf_mulfix(mat->m[6],mat2D->m[3]);
-    tmp.m[6] = gf_mulfix(mat->m[2],mat2D->m[1]) + gf_mulfix(mat->m[6],mat2D->m[4]);
-    tmp.m[10]= mat->m[10];
-    tmp.m[14]= gf_mulfix(mat->m[2],mat2D->m[2]) + gf_mulfix(mat->m[6],mat2D->m[5]) + mat->m[14];
+	tmp.m[0] = gf_mulfix(mat->m[0],mat2D->m[0]) + gf_mulfix(mat->m[4],mat2D->m[3]);
+	tmp.m[4] = gf_mulfix(mat->m[0],mat2D->m[1]) + gf_mulfix(mat->m[4],mat2D->m[4]);
+	tmp.m[8] = mat->m[8];
+	tmp.m[12]= gf_mulfix(mat->m[0],mat2D->m[2]) + gf_mulfix(mat->m[4],mat2D->m[5]) + mat->m[12];
+	tmp.m[1] = gf_mulfix(mat->m[1],mat2D->m[0]) + gf_mulfix(mat->m[5],mat2D->m[3]);
+	tmp.m[5] = gf_mulfix(mat->m[1],mat2D->m[1]) + gf_mulfix(mat->m[5],mat2D->m[4]);
+	tmp.m[9] = mat->m[9];
+	tmp.m[13]= gf_mulfix(mat->m[1],mat2D->m[2]) + gf_mulfix(mat->m[5],mat2D->m[5]) + mat->m[13];
+	tmp.m[2] = gf_mulfix(mat->m[2],mat2D->m[0]) + gf_mulfix(mat->m[6],mat2D->m[3]);
+	tmp.m[6] = gf_mulfix(mat->m[2],mat2D->m[1]) + gf_mulfix(mat->m[6],mat2D->m[4]);
+	tmp.m[10]= mat->m[10];
+	tmp.m[14]= gf_mulfix(mat->m[2],mat2D->m[2]) + gf_mulfix(mat->m[6],mat2D->m[5]) + mat->m[14];
 	memcpy(mat->m, tmp.m, sizeof(Fixed)*16);
 }
 
@@ -1271,9 +1314,9 @@ void gf_mx_add_scale(GF_Matrix *mat, Fixed sx, Fixed sy, Fixed sz)
 	Fixed tmp[3];
 	u32 i, j;
 
-	tmp[0] = sx; 
-	tmp[1] = sy; 
-	tmp[2] = sz; 
+	tmp[0] = sx;
+	tmp[1] = sy;
+	tmp[2] = sz;
 
 	for (i=0; i<3; i++) {
 		for (j=0; j<3; j++) {
@@ -1292,24 +1335,29 @@ void gf_mx_add_rotation(GF_Matrix *mat, Fixed angle, Fixed x, Fixed y, Fixed z)
 	Fixed sin_a = gf_sin(angle);
 	Fixed icos_a = FIX_ONE - cos_a;
 
-	if (nor && (nor!=FIX_ONE)) { 
-		x = gf_divfix(x, nor); 
-		y = gf_divfix(y, nor); 
-		z = gf_divfix(z, nor); 
+	if (nor && (nor!=FIX_ONE)) {
+		x = gf_divfix(x, nor);
+		y = gf_divfix(y, nor);
+		z = gf_divfix(z, nor);
 	}
-	xx = gf_mulfix(x,x); yy = gf_mulfix(y,y); zz = gf_mulfix(z,z); xy = gf_mulfix(x,y); xz = gf_mulfix(x,z); yz = gf_mulfix(y,z);
+	xx = gf_mulfix(x,x);
+	yy = gf_mulfix(y,y);
+	zz = gf_mulfix(z,z);
+	xy = gf_mulfix(x,y);
+	xz = gf_mulfix(x,z);
+	yz = gf_mulfix(y,z);
 	gf_mx_init(tmp);
-    tmp.m[0] = gf_mulfix(icos_a,xx) + cos_a;
-    tmp.m[1] = gf_mulfix(xy,icos_a) + gf_mulfix(z,sin_a);
-    tmp.m[2] = gf_mulfix(xz,icos_a) - gf_mulfix(y,sin_a);
-    
+	tmp.m[0] = gf_mulfix(icos_a,xx) + cos_a;
+	tmp.m[1] = gf_mulfix(xy,icos_a) + gf_mulfix(z,sin_a);
+	tmp.m[2] = gf_mulfix(xz,icos_a) - gf_mulfix(y,sin_a);
+
 	tmp.m[4] = gf_mulfix(xy,icos_a) - gf_mulfix(z,sin_a);
-    tmp.m[5] = gf_mulfix(icos_a,yy) + cos_a;
-    tmp.m[6] = gf_mulfix(yz,icos_a) + gf_mulfix(x,sin_a);
+	tmp.m[5] = gf_mulfix(icos_a,yy) + cos_a;
+	tmp.m[6] = gf_mulfix(yz,icos_a) + gf_mulfix(x,sin_a);
 
 	tmp.m[8] = gf_mulfix(xz,icos_a) + gf_mulfix(y,sin_a);
-    tmp.m[9] = gf_mulfix(yz,icos_a) - gf_mulfix(x,sin_a);
-    tmp.m[10]= gf_mulfix(icos_a,zz) + cos_a;
+	tmp.m[9] = gf_mulfix(yz,icos_a) - gf_mulfix(x,sin_a);
+	tmp.m[10]= gf_mulfix(icos_a,zz) + cos_a;
 
 	gf_mx_add_matrix(mat, &tmp);
 }
@@ -1469,7 +1517,7 @@ GF_EXPORT
 void gf_mx_lookat(GF_Matrix *mx, GF_Vec eye, GF_Vec center, GF_Vec upVector)
 {
 	GF_Vec f, s, u;
-	
+
 	gf_vec_diff(f, center, eye);
 	gf_vec_norm(&f);
 	gf_vec_norm(&upVector);
@@ -1477,7 +1525,7 @@ void gf_mx_lookat(GF_Matrix *mx, GF_Vec eye, GF_Vec center, GF_Vec upVector)
 	s = gf_vec_cross(f, upVector);
 	u = gf_vec_cross(s, f);
 	gf_mx_init(*mx);
-	
+
 	mx->m[0] = s.x;
 	mx->m[1] = u.x;
 	mx->m[2] = -f.x;
@@ -1501,54 +1549,66 @@ void gf_mx_decompose(GF_Matrix *mx, GF_Vec *translate, GF_Vec *scale, GF_Vec4 *r
 	Fixed locmat[16];
 	GF_Matrix tmp;
 	GF_Vec row0, row1, row2;
-	Fixed shear_xy, shear_xz, shear_yz; 
+	Fixed shear_xy, shear_xz, shear_yz;
 	assert(mx->m[15]);
 
 	memcpy(locmat, mx->m, sizeof(Fixed)*16);
 	/*no perspective*/
-    locmat[3] = locmat[7] = locmat[11] = 0;
+	locmat[3] = locmat[7] = locmat[11] = 0;
 	/*normalize*/
-    for (i=0; i<4; i++) {
-        for (j=0; j<4; j++) {
-            locmat[4*i+j] = gf_divfix(locmat[4*i+j], locmat[15]);
-        }
-    }
-    translate->x = locmat[12];
-    translate->y = locmat[13];
-    translate->z = locmat[14];
-    locmat[12] = locmat[13] = locmat[14] = 0;
-    row0.x = locmat[0]; row0.y = locmat[1]; row0.z = locmat[2];
-    row1.x = locmat[4]; row1.y = locmat[5]; row1.z = locmat[6];
-    row2.x = locmat[8]; row2.y = locmat[9]; row2.z = locmat[10];
+	for (i=0; i<4; i++) {
+		for (j=0; j<4; j++) {
+			locmat[4*i+j] = gf_divfix(locmat[4*i+j], locmat[15]);
+		}
+	}
+	translate->x = locmat[12];
+	translate->y = locmat[13];
+	translate->z = locmat[14];
+	locmat[12] = locmat[13] = locmat[14] = 0;
+	row0.x = locmat[0];
+	row0.y = locmat[1];
+	row0.z = locmat[2];
+	row1.x = locmat[4];
+	row1.y = locmat[5];
+	row1.z = locmat[6];
+	row2.x = locmat[8];
+	row2.y = locmat[9];
+	row2.z = locmat[10];
 
-    scale->x = gf_vec_len(row0);
-    gf_vec_norm(&row0);
-    shear_xy = gf_vec_dot(row0, row1);
-    row1.x -= gf_mulfix(row0.x, shear_xy);
-    row1.y -= gf_mulfix(row0.y, shear_xy);
-    row1.z -= gf_mulfix(row0.z, shear_xy);
+	scale->x = gf_vec_len(row0);
+	gf_vec_norm(&row0);
+	shear_xy = gf_vec_dot(row0, row1);
+	row1.x -= gf_mulfix(row0.x, shear_xy);
+	row1.y -= gf_mulfix(row0.y, shear_xy);
+	row1.z -= gf_mulfix(row0.z, shear_xy);
 
-    scale->y = gf_vec_len(row1);
-    gf_vec_norm(&row1);
-    shear->x = gf_divfix(shear_xy, scale->y);
+	scale->y = gf_vec_len(row1);
+	gf_vec_norm(&row1);
+	shear->x = gf_divfix(shear_xy, scale->y);
 
-    shear_xz = gf_vec_dot(row0, row2);
-    row2.x -= gf_mulfix(row0.x, shear_xz);
-    row2.y -= gf_mulfix(row0.y, shear_xz);
-    row2.z -= gf_mulfix(row0.z, shear_xz);
-    shear_yz = gf_vec_dot(row1, row2);
-    row2.x -= gf_mulfix(row1.x, shear_yz);
-    row2.y -= gf_mulfix(row1.y, shear_yz);
-    row2.z -= gf_mulfix(row1.z, shear_yz);
+	shear_xz = gf_vec_dot(row0, row2);
+	row2.x -= gf_mulfix(row0.x, shear_xz);
+	row2.y -= gf_mulfix(row0.y, shear_xz);
+	row2.z -= gf_mulfix(row0.z, shear_xz);
+	shear_yz = gf_vec_dot(row1, row2);
+	row2.x -= gf_mulfix(row1.x, shear_yz);
+	row2.y -= gf_mulfix(row1.y, shear_yz);
+	row2.z -= gf_mulfix(row1.z, shear_yz);
 
-    scale->z = gf_vec_len(row2);
-    gf_vec_norm(&row2);
-    shear->y = gf_divfix(shear_xz, scale->z);
-    shear->z = gf_divfix(shear_yz, scale->z);
+	scale->z = gf_vec_len(row2);
+	gf_vec_norm(&row2);
+	shear->y = gf_divfix(shear_xz, scale->z);
+	shear->z = gf_divfix(shear_yz, scale->z);
 
-	locmat[0] = row0.x; locmat[4] = row1.x; locmat[8] = row2.x;
-	locmat[1] = row0.y; locmat[5] = row1.y; locmat[9] = row2.y;
-	locmat[2] = row0.z; locmat[6] = row1.z; locmat[10] = row2.z;
+	locmat[0] = row0.x;
+	locmat[4] = row1.x;
+	locmat[8] = row2.x;
+	locmat[1] = row0.y;
+	locmat[5] = row1.y;
+	locmat[9] = row2.y;
+	locmat[2] = row0.z;
+	locmat[6] = row1.z;
+	locmat[10] = row2.z;
 
 	memcpy(tmp.m, locmat, sizeof(Fixed)*16);
 	quat = gf_quat_from_matrix(&tmp);
@@ -1562,17 +1622,23 @@ void gf_mx_apply_bbox_sphere(GF_Matrix *mx, GF_BBox *box)
 	gf_mx_apply_vec(mx, &box->min_edge);
 	gf_mx_apply_vec(mx, &box->max_edge);
 
-	if (box->min_edge.x > box->max_edge.x) 
+	if (box->min_edge.x > box->max_edge.x)
 	{
-		var = box->min_edge.x; box->min_edge.x = box->max_edge.x; box->max_edge.x = var;
+		var = box->min_edge.x;
+		box->min_edge.x = box->max_edge.x;
+		box->max_edge.x = var;
 	}
-	if (box->min_edge.y > box->max_edge.y) 
+	if (box->min_edge.y > box->max_edge.y)
 	{
-		var = box->min_edge.y; box->min_edge.y = box->max_edge.y; box->max_edge.y = var;
+		var = box->min_edge.y;
+		box->min_edge.y = box->max_edge.y;
+		box->max_edge.y = var;
 	}
-	if (box->min_edge.z > box->max_edge.z) 
+	if (box->min_edge.z > box->max_edge.z)
 	{
-		var = box->min_edge.z; box->min_edge.z = box->max_edge.z; box->max_edge.z = var;
+		var = box->min_edge.z;
+		box->min_edge.z = box->max_edge.z;
+		box->max_edge.z = var;
 	}
 	gf_bbox_refresh(box);
 }
@@ -1583,12 +1649,15 @@ void gf_mx_apply_bbox(GF_Matrix *mx, GF_BBox *box)
 	u32 i;
 	GF_Vec v[4];
 	v[0] = box->min_edge;
-	v[1] = box->min_edge; v[1].x = box->max_edge.x;
-	v[2] = box->min_edge; v[2].y = box->max_edge.y;
-	v[3] = box->min_edge; v[3].z = box->max_edge.z;
+	v[1] = box->min_edge;
+	v[1].x = box->max_edge.x;
+	v[2] = box->min_edge;
+	v[2].y = box->max_edge.y;
+	v[3] = box->min_edge;
+	v[3].z = box->max_edge.z;
 	box->max_edge.x = box->max_edge.y = box->max_edge.z = -FIX_MAX;
 	box->min_edge.x = box->min_edge.y = box->min_edge.z = FIX_MAX;
-	for (i=0;i<4; i++) {
+	for (i=0; i<4; i++) {
 		gf_mx_apply_vec(mx, &v[i]);
 		if (box->min_edge.x > v[i].x) box->min_edge.x = v[i].x;
 		if (box->min_edge.y > v[i].y) box->min_edge.y = v[i].y;
@@ -1620,10 +1689,22 @@ void gf_mx_rotate_vector(GF_Matrix *mx, GF_Vec *pt)
 GF_EXPORT
 void gf_mx_rotation_matrix_from_vectors(GF_Matrix *mx, GF_Vec x, GF_Vec y, GF_Vec z)
 {
-    mx->m[0] = x.x; mx->m[1] = y.x; mx->m[2] = z.x; mx->m[3] = 0;
-    mx->m[4] = x.y; mx->m[5] = y.y; mx->m[6] = z.y; mx->m[7] = 0;
-    mx->m[8] = x.z; mx->m[9] = y.z; mx->m[10] = z.z; mx->m[11] = 0;
-    mx->m[12] = 0; mx->m[13] = 0; mx->m[14] = 0; mx->m[15] = FIX_ONE;
+	mx->m[0] = x.x;
+	mx->m[1] = y.x;
+	mx->m[2] = z.x;
+	mx->m[3] = 0;
+	mx->m[4] = x.y;
+	mx->m[5] = y.y;
+	mx->m[6] = z.y;
+	mx->m[7] = 0;
+	mx->m[8] = x.z;
+	mx->m[9] = y.z;
+	mx->m[10] = z.z;
+	mx->m[11] = 0;
+	mx->m[12] = 0;
+	mx->m[13] = 0;
+	mx->m[14] = 0;
+	mx->m[15] = FIX_ONE;
 }
 
 
@@ -1631,24 +1712,24 @@ void gf_mx_rotation_matrix_from_vectors(GF_Matrix *mx, GF_Vec x, GF_Vec y, GF_Ve
 GF_EXPORT
 void gf_mx_add_matrix_4x4(GF_Matrix *mat, GF_Matrix *mul)
 {
-    GF_Matrix tmp;
+	GF_Matrix tmp;
 	gf_mx_init(tmp);
-    tmp.m[0] = gf_mulfix(mat->m[0],mul->m[0]) + gf_mulfix(mat->m[4],mul->m[1]) + gf_mulfix(mat->m[8],mul->m[2]) + gf_mulfix(mat->m[12],mul->m[3]);
-    tmp.m[1] = gf_mulfix(mat->m[1],mul->m[0]) + gf_mulfix(mat->m[5],mul->m[1]) + gf_mulfix(mat->m[9],mul->m[2]) + gf_mulfix(mat->m[13],mul->m[3]);
-    tmp.m[2] = gf_mulfix(mat->m[2],mul->m[0]) + gf_mulfix(mat->m[6],mul->m[1]) + gf_mulfix(mat->m[10],mul->m[2]) + gf_mulfix(mat->m[14],mul->m[3]);
-    tmp.m[3] = gf_mulfix(mat->m[3],mul->m[0]) + gf_mulfix(mat->m[7],mul->m[1]) + gf_mulfix(mat->m[11],mul->m[2]) + gf_mulfix(mat->m[15],mul->m[3]);
-    tmp.m[4] = gf_mulfix(mat->m[0],mul->m[4]) + gf_mulfix(mat->m[4],mul->m[5]) + gf_mulfix(mat->m[8],mul->m[6]) + gf_mulfix(mat->m[12],mul->m[7]);
-    tmp.m[5] = gf_mulfix(mat->m[1],mul->m[4]) + gf_mulfix(mat->m[5],mul->m[5]) + gf_mulfix(mat->m[9],mul->m[6]) + gf_mulfix(mat->m[13],mul->m[7]);
-    tmp.m[6] = gf_mulfix(mat->m[2],mul->m[4]) + gf_mulfix(mat->m[6],mul->m[5]) + gf_mulfix(mat->m[10],mul->m[6]) + gf_mulfix(mat->m[14],mul->m[7]);
-    tmp.m[7] = gf_mulfix(mat->m[3],mul->m[4]) + gf_mulfix(mat->m[7],mul->m[5]) + gf_mulfix(mat->m[11],mul->m[6]) + gf_mulfix(mat->m[15],mul->m[7]);
-    tmp.m[8] = gf_mulfix(mat->m[0],mul->m[8]) + gf_mulfix(mat->m[4],mul->m[9]) + gf_mulfix(mat->m[8],mul->m[10]) + gf_mulfix(mat->m[12],mul->m[11]);
-    tmp.m[9] = gf_mulfix(mat->m[1],mul->m[8]) + gf_mulfix(mat->m[5],mul->m[9]) + gf_mulfix(mat->m[9],mul->m[10]) + gf_mulfix(mat->m[13],mul->m[11]);
-    tmp.m[10] = gf_mulfix(mat->m[2],mul->m[8]) + gf_mulfix(mat->m[6],mul->m[9]) + gf_mulfix(mat->m[10],mul->m[10]) + gf_mulfix(mat->m[14],mul->m[11]);
-    tmp.m[11] = gf_mulfix(mat->m[3],mul->m[8]) + gf_mulfix(mat->m[7],mul->m[9]) + gf_mulfix(mat->m[11],mul->m[10]) + gf_mulfix(mat->m[15],mul->m[11]);
-    tmp.m[12] = gf_mulfix(mat->m[0],mul->m[12]) + gf_mulfix(mat->m[4],mul->m[13]) + gf_mulfix(mat->m[8],mul->m[14]) + gf_mulfix(mat->m[12],mul->m[15]);
-    tmp.m[13] = gf_mulfix(mat->m[1],mul->m[12]) + gf_mulfix(mat->m[5],mul->m[13]) + gf_mulfix(mat->m[9],mul->m[14]) + gf_mulfix(mat->m[13],mul->m[15]);
-    tmp.m[14] = gf_mulfix(mat->m[2],mul->m[12]) + gf_mulfix(mat->m[6],mul->m[13]) + gf_mulfix(mat->m[10],mul->m[14]) + gf_mulfix(mat->m[14],mul->m[15]);
-    tmp.m[15] = gf_mulfix(mat->m[3],mul->m[12]) + gf_mulfix(mat->m[7],mul->m[13]) + gf_mulfix(mat->m[11],mul->m[14]) + gf_mulfix(mat->m[15],mul->m[15]);
+	tmp.m[0] = gf_mulfix(mat->m[0],mul->m[0]) + gf_mulfix(mat->m[4],mul->m[1]) + gf_mulfix(mat->m[8],mul->m[2]) + gf_mulfix(mat->m[12],mul->m[3]);
+	tmp.m[1] = gf_mulfix(mat->m[1],mul->m[0]) + gf_mulfix(mat->m[5],mul->m[1]) + gf_mulfix(mat->m[9],mul->m[2]) + gf_mulfix(mat->m[13],mul->m[3]);
+	tmp.m[2] = gf_mulfix(mat->m[2],mul->m[0]) + gf_mulfix(mat->m[6],mul->m[1]) + gf_mulfix(mat->m[10],mul->m[2]) + gf_mulfix(mat->m[14],mul->m[3]);
+	tmp.m[3] = gf_mulfix(mat->m[3],mul->m[0]) + gf_mulfix(mat->m[7],mul->m[1]) + gf_mulfix(mat->m[11],mul->m[2]) + gf_mulfix(mat->m[15],mul->m[3]);
+	tmp.m[4] = gf_mulfix(mat->m[0],mul->m[4]) + gf_mulfix(mat->m[4],mul->m[5]) + gf_mulfix(mat->m[8],mul->m[6]) + gf_mulfix(mat->m[12],mul->m[7]);
+	tmp.m[5] = gf_mulfix(mat->m[1],mul->m[4]) + gf_mulfix(mat->m[5],mul->m[5]) + gf_mulfix(mat->m[9],mul->m[6]) + gf_mulfix(mat->m[13],mul->m[7]);
+	tmp.m[6] = gf_mulfix(mat->m[2],mul->m[4]) + gf_mulfix(mat->m[6],mul->m[5]) + gf_mulfix(mat->m[10],mul->m[6]) + gf_mulfix(mat->m[14],mul->m[7]);
+	tmp.m[7] = gf_mulfix(mat->m[3],mul->m[4]) + gf_mulfix(mat->m[7],mul->m[5]) + gf_mulfix(mat->m[11],mul->m[6]) + gf_mulfix(mat->m[15],mul->m[7]);
+	tmp.m[8] = gf_mulfix(mat->m[0],mul->m[8]) + gf_mulfix(mat->m[4],mul->m[9]) + gf_mulfix(mat->m[8],mul->m[10]) + gf_mulfix(mat->m[12],mul->m[11]);
+	tmp.m[9] = gf_mulfix(mat->m[1],mul->m[8]) + gf_mulfix(mat->m[5],mul->m[9]) + gf_mulfix(mat->m[9],mul->m[10]) + gf_mulfix(mat->m[13],mul->m[11]);
+	tmp.m[10] = gf_mulfix(mat->m[2],mul->m[8]) + gf_mulfix(mat->m[6],mul->m[9]) + gf_mulfix(mat->m[10],mul->m[10]) + gf_mulfix(mat->m[14],mul->m[11]);
+	tmp.m[11] = gf_mulfix(mat->m[3],mul->m[8]) + gf_mulfix(mat->m[7],mul->m[9]) + gf_mulfix(mat->m[11],mul->m[10]) + gf_mulfix(mat->m[15],mul->m[11]);
+	tmp.m[12] = gf_mulfix(mat->m[0],mul->m[12]) + gf_mulfix(mat->m[4],mul->m[13]) + gf_mulfix(mat->m[8],mul->m[14]) + gf_mulfix(mat->m[12],mul->m[15]);
+	tmp.m[13] = gf_mulfix(mat->m[1],mul->m[12]) + gf_mulfix(mat->m[5],mul->m[13]) + gf_mulfix(mat->m[9],mul->m[14]) + gf_mulfix(mat->m[13],mul->m[15]);
+	tmp.m[14] = gf_mulfix(mat->m[2],mul->m[12]) + gf_mulfix(mat->m[6],mul->m[13]) + gf_mulfix(mat->m[10],mul->m[14]) + gf_mulfix(mat->m[14],mul->m[15]);
+	tmp.m[15] = gf_mulfix(mat->m[3],mul->m[12]) + gf_mulfix(mat->m[7],mul->m[13]) + gf_mulfix(mat->m[11],mul->m[14]) + gf_mulfix(mat->m[15],mul->m[15]);
 	memcpy(mat->m, tmp.m, sizeof(Fixed)*16);
 }
 
@@ -1682,17 +1763,37 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	Fixed *r0, *r1, *r2, *r3;
 	GF_Matrix res;
 	r0 = wtmp[0], r1 = wtmp[1], r2 = wtmp[2], r3 = wtmp[3];
-	r0[0] = mx->m[0]; r0[1] = mx->m[4]; r0[2] = mx->m[8]; r0[3] = mx->m[12]; r0[4] = FIX_ONE; r0[5] = r0[6] = r0[7] = 0;
-	r1[0] = mx->m[1]; r1[1] = mx->m[5]; r1[2] = mx->m[9]; r1[3] = mx->m[13]; r1[5] = FIX_ONE; r1[4] = r1[6] = r1[7] = 0;
-	r2[0] = mx->m[2]; r2[1] = mx->m[6]; r2[2] = mx->m[10]; r2[3] = mx->m[14]; r2[6] = FIX_ONE; r2[4] = r2[5] = r2[7] = 0;
-	r3[0] = mx->m[3]; r3[1] = mx->m[7]; r3[2] = mx->m[11]; r3[3] = mx->m[15]; r3[7] = FIX_ONE; r3[4] = r3[5] = r3[6] = 0;
+	r0[0] = mx->m[0];
+	r0[1] = mx->m[4];
+	r0[2] = mx->m[8];
+	r0[3] = mx->m[12];
+	r0[4] = FIX_ONE;
+	r0[5] = r0[6] = r0[7] = 0;
+	r1[0] = mx->m[1];
+	r1[1] = mx->m[5];
+	r1[2] = mx->m[9];
+	r1[3] = mx->m[13];
+	r1[5] = FIX_ONE;
+	r1[4] = r1[6] = r1[7] = 0;
+	r2[0] = mx->m[2];
+	r2[1] = mx->m[6];
+	r2[2] = mx->m[10];
+	r2[3] = mx->m[14];
+	r2[6] = FIX_ONE;
+	r2[4] = r2[5] = r2[7] = 0;
+	r3[0] = mx->m[3];
+	r3[1] = mx->m[7];
+	r3[2] = mx->m[11];
+	r3[3] = mx->m[15];
+	r3[7] = FIX_ONE;
+	r3[4] = r3[5] = r3[6] = 0;
 
 	/* choose pivot - or die */
 	if (ABS(r3[0]) > ABS(r2[0])) SWAP_ROWS(r3, r2);
 	if (ABS(r2[0]) > ABS(r1[0])) SWAP_ROWS(r2, r1);
 	if (ABS(r1[0]) > ABS(r0[0])) SWAP_ROWS(r1, r0);
 	if (r0[0]==0) return 0;
-	
+
 	/*eliminate first variable*/
 	m1 = gf_divfix(r1[0], r0[0]);
 	m2 = gf_divfix(r2[0], r0[0]);
@@ -1738,7 +1839,7 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	if (fabs(r3[1]) > fabs(r2[1])) SWAP_ROWS(r3, r2);
 	if (fabs(r2[1]) > fabs(r1[1])) SWAP_ROWS(r2, r1);
 	if (r1[1]==0) return 0;
-	
+
 	/* eliminate second variable */
 	m2 = gf_divfix(r2[1], r1[1]);
 	m3 = gf_divfix(r3[1], r1[1]);
@@ -1773,8 +1874,11 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 
 	/* eliminate third variable */
 	m3 = gf_divfix(r3[2], r2[2]);
-	r3[3] -= gf_mulfix(m3, r2[3]); r3[4] -= gf_mulfix(m3, r2[4]); r3[5] -= gf_mulfix(m3, r2[5]);
-	r3[6] -= gf_mulfix(m3, r2[6]); r3[7] -= gf_mulfix(m3, r2[7]);
+	r3[3] -= gf_mulfix(m3, r2[3]);
+	r3[4] -= gf_mulfix(m3, r2[4]);
+	r3[5] -= gf_mulfix(m3, r2[5]);
+	r3[6] -= gf_mulfix(m3, r2[6]);
+	r3[7] -= gf_mulfix(m3, r2[7]);
 	/* last check */
 	if (r3[3]==0) return 0;
 
@@ -1783,17 +1887,23 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	r3[5] = gf_mulfix(r3[5], s);
 	r3[6] = gf_mulfix(r3[6], s);
 	r3[7] = gf_mulfix(r3[7], s);
-	
+
 	m2 = r2[3];			/* now back substitute row 2 */
 	s = gf_invfix(r2[2]);
 	r2[4] = gf_mulfix(s, r2[4] - gf_mulfix(r3[4], m2));
 	r2[5] = gf_mulfix(s, r2[5] - gf_mulfix(r3[5], m2));
 	r2[6] = gf_mulfix(s, r2[6] - gf_mulfix(r3[6], m2));
 	r2[7] = gf_mulfix(s, r2[7] - gf_mulfix(r3[7], m2));
-	m1 = r1[3]; 
-	r1[4] -= gf_mulfix(r3[4], m1); r1[5] -= gf_mulfix(r3[5], m1); r1[6] -= gf_mulfix(r3[6], m1); r1[7] -= gf_mulfix(r3[7], m1);
+	m1 = r1[3];
+	r1[4] -= gf_mulfix(r3[4], m1);
+	r1[5] -= gf_mulfix(r3[5], m1);
+	r1[6] -= gf_mulfix(r3[6], m1);
+	r1[7] -= gf_mulfix(r3[7], m1);
 	m0 = r0[3];
-	r0[4] -= gf_mulfix(r3[4], m0); r0[5] -= gf_mulfix(r3[5], m0); r0[6] -= gf_mulfix(r3[6], m0); r0[7] -= gf_mulfix(r3[7], m0);
+	r0[4] -= gf_mulfix(r3[4], m0);
+	r0[5] -= gf_mulfix(r3[5], m0);
+	r0[6] -= gf_mulfix(r3[6], m0);
+	r0[7] -= gf_mulfix(r3[7], m0);
 
 	m1 = r1[2];			/* now back substitute row 1 */
 	s = gf_invfix(r1[1]);
@@ -1802,20 +1912,34 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	r1[6] = gf_mulfix(s, r1[6] - gf_mulfix(r2[6], m1));
 	r1[7] = gf_mulfix(s, r1[7] - gf_mulfix(r2[7], m1));
 	m0 = r0[2];
-	r0[4] -= gf_mulfix(r2[4], m0); r0[5] -= gf_mulfix(r2[5], m0); r0[6] -= gf_mulfix(r2[6], m0); r0[7] -= gf_mulfix(r2[7], m0);
+	r0[4] -= gf_mulfix(r2[4], m0);
+	r0[5] -= gf_mulfix(r2[5], m0);
+	r0[6] -= gf_mulfix(r2[6], m0);
+	r0[7] -= gf_mulfix(r2[7], m0);
 
 	m0 = r0[1];			/* now back substitute row 0 */
 	s = gf_invfix(r0[0]);
 	r0[4] = gf_mulfix(s, r0[4] - gf_mulfix(r1[4], m0));
-	r0[5] = gf_mulfix(s, r0[5] - gf_mulfix(r1[5], m0)); 
+	r0[5] = gf_mulfix(s, r0[5] - gf_mulfix(r1[5], m0));
 	r0[6] = gf_mulfix(s, r0[6] - gf_mulfix(r1[6], m0));
 	r0[7] = gf_mulfix(s, r0[7] - gf_mulfix(r1[7], m0));
 
 	gf_mx_init(res)
-	res.m[0] = r0[4]; res.m[4] = r0[5]; res.m[8] = r0[6]; res.m[12] = r0[7];
-	res.m[1] = r1[4]; res.m[5] = r1[5], res.m[9] = r1[6]; res.m[13] = r1[7];
-	res.m[2] = r2[4]; res.m[6] = r2[5]; res.m[10] = r2[6]; res.m[14] = r2[7];
-	res.m[3] = r3[4]; res.m[7] = r3[5]; res.m[11] = r3[6]; res.m[15] = r3[7];
+	res.m[0] = r0[4];
+	res.m[4] = r0[5];
+	res.m[8] = r0[6];
+	res.m[12] = r0[7];
+	res.m[1] = r1[4];
+	res.m[5] = r1[5], res.m[9] = r1[6];
+	res.m[13] = r1[7];
+	res.m[2] = r2[4];
+	res.m[6] = r2[5];
+	res.m[10] = r2[6];
+	res.m[14] = r2[7];
+	res.m[3] = r3[4];
+	res.m[7] = r3[5];
+	res.m[11] = r3[6];
+	res.m[15] = r3[7];
 	gf_mx_copy(*mx, res);
 	return 1;
 #undef SWAP_ROWS
@@ -1907,7 +2031,7 @@ Bool gf_ray_hit_box(GF_Ray *ray, GF_Vec box_min, GF_Vec box_max, GF_Vec *outPoin
 	Fixed t1, t2, tNEAR=FIX_MIN, tFAR=FIX_MAX;
 	Fixed temp;
 	//s8 xyorz, sign;
-	
+
 	if (ray->dir.x == 0) {
 		if ((ray->orig.x < box_min.x) || (ray->orig.x > box_max.x))
 			return 0;
@@ -1930,7 +2054,7 @@ Bool gf_ray_hit_box(GF_Ray *ray, GF_Vec box_min, GF_Vec box_max, GF_Vec *outPoin
 	}
 
 	if (ray->dir.y == 0) {
-		if ((ray->orig.y < box_min.y) || (ray->orig.y > box_max.y)) 
+		if ((ray->orig.y < box_min.y) || (ray->orig.y > box_max.y))
 			return 0;
 	} else {
 		tNEAR=FIX_MIN;
@@ -1997,10 +2121,10 @@ Bool gf_ray_hit_sphere(GF_Ray *ray, GF_Vec *center, Fixed radius, GF_Vec *outPoi
 	dist = gf_vec_len(radv);
 	center_proj = gf_vec_dot(radv, ray->dir);
 	if (radius + ABS(center_proj) < dist ) return 0;
-	
+
 	center_proj_sq = gf_mulfix(center_proj, center_proj);
 	hcord = center_proj_sq - gf_mulfix(dist, dist) + gf_mulfix(radius , radius);
-    if (hcord < 0) return 0;
+	if (hcord < 0) return 0;
 	if (center_proj_sq < hcord) return 0;
 	if (outPoint) {
 		center_proj -= gf_sqrt(hcord);
@@ -2012,7 +2136,7 @@ Bool gf_ray_hit_sphere(GF_Ray *ray, GF_Vec *center, Fixed radius, GF_Vec *outPoi
 
 /*
  *		Tomas M�ller and Ben Trumbore.
- *	 Fast, minimum storage ray-triangle intersection. 
+ *	 Fast, minimum storage ray-triangle intersection.
  *		Journal of graphics tools, 2(1):21-28, 1997
  *
  */
@@ -2098,32 +2222,41 @@ GF_Vec4 gf_quat_from_matrix(GF_Matrix *mx)
 {
 	GF_Vec4 res;
 	Fixed diagonal, s;
-    diagonal = mx->m[0] + mx->m[5] + mx->m[10];
+	diagonal = mx->m[0] + mx->m[5] + mx->m[10];
 
-    if (diagonal > 0) {
-        s = gf_sqrt(diagonal + FIX_ONE);
-        res.q = s / 2;
-        s = gf_invfix(2*s);
-        res.x = gf_mulfix(mx->m[6] - mx->m[9], s);
-        res.y = gf_mulfix(mx->m[8] - mx->m[2], s);
-        res.z = gf_mulfix(mx->m[1] - mx->m[4], s);
-    } else {
+	if (diagonal > 0) {
+		s = gf_sqrt(diagonal + FIX_ONE);
+		res.q = s / 2;
+		s = gf_invfix(2*s);
+		res.x = gf_mulfix(mx->m[6] - mx->m[9], s);
+		res.y = gf_mulfix(mx->m[8] - mx->m[2], s);
+		res.z = gf_mulfix(mx->m[1] - mx->m[4], s);
+	} else {
 		Fixed q[4];
-        u32 i, j, k;
-        static const u32 next[3] = { 1, 2, 0 };
-        i = 0;
-        if (mx->m[5] > mx->m[0]) { i = 1; }
-        if (mx->m[10] > mx->m[4*i+i]) { i = 2; }
-        j = next[i];
-        k = next[j];
-        s = gf_sqrt(FIX_ONE + mx->m[4*i + i] - (mx->m[4*j+j] + mx->m[4*k+k]) );
-        q[i] = s / 2;
-        if (s != 0) { s = gf_invfix(2*s); }
-        q[3] = gf_mulfix(mx->m[4*j+k] - mx->m[4*k+j], s);
-        q[j] = gf_mulfix(mx->m[4*i+j] + mx->m[4*j+i], s);
-        q[k] = gf_mulfix(mx->m[4*i+k] + mx->m[4*k+i], s);
-		res.x = q[0]; res.y = q[1]; res.z = q[2]; res.q = q[3];
-    }
+		u32 i, j, k;
+		static const u32 next[3] = { 1, 2, 0 };
+		i = 0;
+		if (mx->m[5] > mx->m[0]) {
+			i = 1;
+		}
+		if (mx->m[10] > mx->m[4*i+i]) {
+			i = 2;
+		}
+		j = next[i];
+		k = next[j];
+		s = gf_sqrt(FIX_ONE + mx->m[4*i + i] - (mx->m[4*j+j] + mx->m[4*k+k]) );
+		q[i] = s / 2;
+		if (s != 0) {
+			s = gf_invfix(2*s);
+		}
+		q[3] = gf_mulfix(mx->m[4*j+k] - mx->m[4*k+j], s);
+		q[j] = gf_mulfix(mx->m[4*i+j] + mx->m[4*j+i], s);
+		q[k] = gf_mulfix(mx->m[4*i+k] + mx->m[4*k+i], s);
+		res.x = q[0];
+		res.y = q[1];
+		res.z = q[2];
+		res.q = q[3];
+	}
 	return res;
 }
 
@@ -2131,23 +2264,23 @@ GF_EXPORT
 GF_Vec4 gf_quat_to_rotation(GF_Vec4 *quat)
 {
 	GF_Vec4 r;
-    Fixed val = gf_acos(quat->q);
-    if (val == 0) {
-        r.x = r.y = 0;
-        r.z = FIX_ONE;
+	Fixed val = gf_acos(quat->q);
+	if (val == 0) {
+		r.x = r.y = 0;
+		r.z = FIX_ONE;
 		r.q = 0;
-    } else {
+	} else {
 		GF_Vec axis;
-        Fixed sin_val = gf_sin(val);
-        axis.x = gf_divfix(quat->x, sin_val);
-        axis.y = gf_divfix(quat->y, sin_val);
-        axis.z = gf_divfix(quat->z, sin_val);
+		Fixed sin_val = gf_sin(val);
+		axis.x = gf_divfix(quat->x, sin_val);
+		axis.y = gf_divfix(quat->y, sin_val);
+		axis.z = gf_divfix(quat->z, sin_val);
 		gf_vec_norm(&axis);
 		r.x = axis.x;
 		r.y = axis.y;
 		r.z = axis.z;
-        r.q= 2 * val;
-    }
+		r.q= 2 * val;
+	}
 	return r;
 }
 
@@ -2181,7 +2314,9 @@ GF_Vec4 gf_quat_from_axis_cos(GF_Vec axis, Fixed cos_a)
 	GF_Vec4 r;
 	if (cos_a < -FIX_ONE) cos_a = -FIX_ONE;
 	else if (cos_a > FIX_ONE) cos_a = FIX_ONE;
-	r.x = axis.x; r.y = axis.y; r.z = axis.z;
+	r.x = axis.x;
+	r.y = axis.y;
+	r.z = axis.z;
 	r.q = gf_acos(cos_a);
 	return gf_quat_from_rotation(r);
 }
@@ -2347,8 +2482,8 @@ GF_EXPORT
 Bool gf_bbox_point_inside(GF_BBox *box, GF_Vec *p)
 {
 	return (p->x >= box->min_edge.x && p->x <= box->max_edge.x &&
-			p->y >= box->min_edge.y && p->y <= box->max_edge.y &&
-			p->z >= box->min_edge.z && p->z <= box->max_edge.z);
+	        p->y >= box->min_edge.y && p->y <= box->max_edge.y &&
+	        p->z >= box->min_edge.z && p->z <= box->max_edge.z);
 }
 
 /*vertices are ordered to respect p vertex indexes (vertex from bbox closer to plane)

@@ -48,7 +48,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 		return -1;
 	}
 
-	audio_output_file->codec_ctx = avcodec_alloc_context3(audio_output_file->codec);	
+	audio_output_file->codec_ctx = avcodec_alloc_context3(audio_output_file->codec);
 	audio_output_file->codec_ctx->codec_id = audio_output_file->codec->id;
 	audio_output_file->codec_ctx->codec_type = AVMEDIA_TYPE_AUDIO;
 	audio_output_file->codec_ctx->bit_rate = audio_data_conf->bitrate;
@@ -83,11 +83,11 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	audio_output_file->frame_bytes = audio_output_file->codec_ctx->frame_size * osize * audio_output_file->codec_ctx->channels;
 	avcodec_get_frame_defaults(audio_output_file->aframe);
 	audio_output_file->aframe->nb_samples = audio_output_file->frame_bytes
-					/ (audio_output_file->codec_ctx->channels * av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt));
+	                                        / (audio_output_file->codec_ctx->channels * av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt));
 
 	if (avcodec_fill_audio_frame(audio_output_file->aframe,
-			audio_output_file->codec_ctx->channels, audio_output_file->codec_ctx->sample_fmt,
-			audio_output_file->adata_buf, audio_output_file->frame_bytes, 1) < 0) {
+	                             audio_output_file->codec_ctx->channels, audio_output_file->codec_ctx->sample_fmt,
+	                             audio_output_file->adata_buf, audio_output_file->frame_bytes, 1) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Fill audio frame failed\n"));
 		return -1;
 	}
@@ -180,7 +180,7 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 		audio_output_file->packet.data = NULL;
 		audio_output_file->packet.size = 0;
 
-		/* 
+		/*
 		 * Set PTS (method 1)
 		 */
 		//audio_output_file->aframe->pts = audio_input_data->next_pts;
@@ -199,11 +199,11 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 		/* Resample if needed */
 		if ( audio_output_file->aframe->format != audio_codec_ctx->sample_fmt
 #ifndef GPAC_USE_LIBAV
-			|| audio_output_file->aframe->sample_rate != audio_codec_ctx->sample_rate
-			|| audio_output_file->aframe->channel_layout != audio_codec_ctx->channel_layout
+		        || audio_output_file->aframe->sample_rate != audio_codec_ctx->sample_rate
+		        || audio_output_file->aframe->channel_layout != audio_codec_ctx->channel_layout
 #endif
-		) {
-#ifndef DC_AUDIO_RESAMPLER			
+		   ) {
+#ifndef DC_AUDIO_RESAMPLER
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Audio resampling is needed, but not supported by your version of DashCast. Aborting.\n"));
 			exit(1);
 #else
@@ -221,7 +221,7 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 				av_opt_set_int(audio_output_file->aresampler, "out_sample_rate", audio_codec_ctx->sample_rate, 0);
 				av_opt_set_int(audio_output_file->aresampler, "in_channels", audio_output_file->aframe->channels, 0);
 				av_opt_set_int(audio_output_file->aresampler, "out_channels", audio_codec_ctx->channels, 0);
-				
+
 				if (avresample_open(audio_output_file->aresampler)) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not open the audio resampler. Aborting.\n"));
 					return -1;

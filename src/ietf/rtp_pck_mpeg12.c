@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -90,7 +90,7 @@ GF_Err gp_rtp_builder_do_mpeg12_audio(GP_RTPPacketizer *builder, char *data, u32
 			builder->bytesInPacket = 2;
 		}
 		/*add reference*/
-		if (builder->OnDataReference) 
+		if (builder->OnDataReference)
 			builder->OnDataReference(builder->cbk_obj, pck_size, offset);
 		else
 			gf_bs_write_data(builder->payload, data + offset, pck_size);
@@ -127,7 +127,7 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 	offset = 0;
 	have_seq = 0;
 
-    while (1) {
+	while (1) {
 		u32 oldoffset;
 		oldoffset = offset;
 		if (gf_mv12_next_start_code((unsigned char *) data + offset, data_size - offset, &offset, &startcode) < 0)
@@ -146,12 +146,12 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 	pic_type = (payload[1] >> 3) & 0x7;
 	/*first 6 bits (MBZ and T bit) not used*/
 	/*temp ref on 10 bits*/
-    mpv_hdr[0] = (payload[0] >> 6) & 0x3;
-    mpv_hdr[1] = (payload[0] << 2) | ((payload[1] >> 6) & 0x3);
-    mpv_hdr[2] = pic_type;
-    mpv_hdr[3] = 0;
+	mpv_hdr[0] = (payload[0] >> 6) & 0x3;
+	mpv_hdr[1] = (payload[0] << 2) | ((payload[1] >> 6) & 0x3);
+	mpv_hdr[2] = pic_type;
+	mpv_hdr[3] = 0;
 
-    if ((pic_type==2) || (pic_type== 3)) {
+	if ((pic_type==2) || (pic_type== 3)) {
 		mpv_hdr[3] = payload[3] << 5;
 		if ((payload[4] & 0x80) != 0) mpv_hdr[3] |= 0x10;
 		if (pic_type == 3) mpv_hdr[3] |= (payload[4] >> 3) & 0xf;
@@ -164,9 +164,9 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 	builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
 
 	buffer = data;
-    prev_slice = 0;
+	prev_slice = 0;
 	start_with_slice = (gf_mv12_next_slice_start((unsigned char *)buffer, offset, data_size, &next_slice) >= 0) ? 1 : 0;
-    offset = 0;
+	offset = 0;
 	slices_done = 0;
 	got_slice = start_with_slice;
 	first_slice = 1;
@@ -174,16 +174,16 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 	while (data_size > 0) {
 		Bool last_pck;
 		u32 len_to_write;
-		
+
 		if (data_size <= max_pck_size) {
 			len_to_write = data_size;
-			last_pck = 1; 
+			last_pck = 1;
 			prev_slice = 0;
 		} else {
 			got_slice = (!first_slice && !slices_done && (next_slice <= max_pck_size)) ? 1 : 0;
 			first_slice = 0;
 			last_pck = 0;
-			
+
 			while (!slices_done && (next_slice <= max_pck_size)) {
 				prev_slice = next_slice;
 				if (gf_mv12_next_slice_start((unsigned char *)buffer, next_slice + 4, data_size, &next_slice) >= 0) {
@@ -194,33 +194,33 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 			}
 			if (got_slice) len_to_write = prev_slice;
 			else len_to_write = MIN(max_pck_size, data_size);
-		} 
+		}
 
 		mpv_hdr[2] = pic_type;
-		
+
 		if (have_seq) {
 			mpv_hdr[2] |= 0x20;
 			have_seq = 0;
 		}
 		if (first_slice) mpv_hdr[2] |= 0x10;
-		
+
 		if (got_slice || last_pck) {
 			mpv_hdr[2] |= 0x08;
 			start_with_slice = 1;
 		} else {
 			start_with_slice = 0;
 		}
-		
+
 		builder->OnData(builder->cbk_obj, mpv_hdr, 4, 0);
 		if (builder->OnDataReference) {
 			builder->OnDataReference(builder->cbk_obj, len_to_write, offset);
 		} else {
 			builder->OnData(builder->cbk_obj, data + offset, len_to_write, 0);
 		}
-		
+
 		builder->rtp_header.Marker = last_pck ? 1 : 0;
 		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
-		
+
 		offset += len_to_write;
 		data_size -= len_to_write;
 		prev_slice = 0;
@@ -232,7 +232,7 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 			builder->rtp_header.SequenceNumber += 1;
 			builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
 		}
-    }
+	}
 	return GF_OK;
 }
 

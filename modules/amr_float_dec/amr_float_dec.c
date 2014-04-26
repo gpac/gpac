@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -69,7 +69,7 @@ typedef struct
 
 	/*AMR NB state vars*/
 	int *nb_destate;
-    void *wb_destate;
+	void *wb_destate;
 } AMRFTDec;
 
 #define AMRFTCTX() AMRFTDec *ctx = (AMRFTDec *) ifcg->privateStack
@@ -80,7 +80,7 @@ static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	GF_BitStream *bs;
 	u32 packed;
 	AMRFTCTX();
-	if (esd->dependsOnESID || !esd->decoderConfig->decoderSpecificInfo) return GF_NOT_SUPPORTED;	
+	if (esd->dependsOnESID || !esd->decoderConfig->decoderSpecificInfo) return GF_NOT_SUPPORTED;
 
 	/*AMRWB dec is another module*/
 	if (!strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "sawb", 4)) ctx->is_amr_wb = 1;
@@ -193,14 +193,14 @@ static GF_Err AMR_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capab
 }
 
 
-static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg, 
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID, u32 *CTS,
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
+                              char *inBuffer, u32 inBufferLength,
+                              u16 ES_ID, u32 *CTS,
+                              char *outBuffer, u32 *outBufferLength,
+                              u8 PaddingBits, u32 mmlevel)
 {
-    u32 offset;
-    u8 toc, ft;
+	u32 offset;
+	u8 toc, ft;
 	AMRFTCTX();
 
 	/*if late or seeking don't decode (each frame is a RAP)*/
@@ -217,10 +217,10 @@ static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
 		*outBufferLength = ctx->out_size;
 		return GF_BUFFER_TOO_SMALL;
 	}
-	
+
 	*outBufferLength = 0;
 
-    while (inBufferLength) {
+	while (inBufferLength) {
 		toc = inBuffer[0];
 		ft = (toc >> 3) & 0x0F;
 
@@ -289,7 +289,7 @@ GF_MediaDecoder *NewAMRFTDecoder()
 	ifce->privateStack = dec;
 	ifce->CanHandleStream = AMR_CanHandleStream;
 
-	/*setup our own interface*/	
+	/*setup our own interface*/
 	ifce->AttachStream = AMR_AttachStream;
 	ifce->DetachStream = AMR_DetachStream;
 	ifce->GetCapabilities = AMR_GetCapabilities;
@@ -314,7 +314,7 @@ GF_InputService *NewAESReader();
 void DeleteAESReader(void *ifce);
 
 GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_NET_CLIENT_INTERFACE,
@@ -328,9 +328,12 @@ GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
-	case GF_MEDIA_DECODER_INTERFACE: return (GF_BaseInterface *)NewAMRFTDecoder();
-	case GF_NET_CLIENT_INTERFACE: return (GF_BaseInterface *)NewAESReader();
-	default: return NULL;
+	case GF_MEDIA_DECODER_INTERFACE:
+		return (GF_BaseInterface *)NewAMRFTDecoder();
+	case GF_NET_CLIENT_INTERFACE:
+		return (GF_BaseInterface *)NewAESReader();
+	default:
+		return NULL;
 	}
 }
 
@@ -338,8 +341,12 @@ GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
-	case GF_MEDIA_DECODER_INTERFACE: DeleteAMRFTDecoder((GF_BaseDecoder *)ifce); break;
-	case GF_NET_CLIENT_INTERFACE:  DeleteAESReader(ifce); break;
+	case GF_MEDIA_DECODER_INTERFACE:
+		DeleteAMRFTDecoder((GF_BaseDecoder *)ifce);
+		break;
+	case GF_NET_CLIENT_INTERFACE:
+		DeleteAESReader(ifce);
+		break;
 	}
 }
 

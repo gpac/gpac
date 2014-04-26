@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -63,16 +63,16 @@ typedef enum
 	GF_NET_CHAN_BUFFER_QUERY,
 	/*retrieves DSI from channel (DSI may be caried by net with a != value than OD), app->module*/
 	GF_NET_CHAN_GET_DSI,
-	/*set media padding for all AUs fetched (pull mode only). 
+	/*set media padding for all AUs fetched (pull mode only).
 	If not supported the channel will have to run in push mode. app->module*/
 	GF_NET_CHAN_SET_PADDING,
 	/*sets input channel to pull mode if possible, app->module*/
 	GF_NET_CHAN_SET_PULL,
 	/*query channel capability to pause/resume and seek(play from an arbitrary range)
-	a non-interactive channel doesn't have to handle SET_SPEED, PAUSE and RESUME commands but can 
+	a non-interactive channel doesn't have to handle SET_SPEED, PAUSE and RESUME commands but can
 	still work in pull mode*/
 	GF_NET_CHAN_INTERACTIVE,
-	/*map net time (OTB) to media time (up only) - this is needed by some signaling protocols when the 
+	/*map net time (OTB) to media time (up only) - this is needed by some signaling protocols when the
 	real play range is not the requested one */
 	GF_NET_CHAN_MAP_TIME,
 	/*reconfiguration of channel comming from network (up only) - this is used to override the SL config
@@ -83,12 +83,12 @@ typedef enum
 
 	/*reset channel - this is need when we turn off this channel in rtp/mpeg2ts*/
 	GF_NET_CHAN_RESET,
-	
+
 	/*retrieves ESD for channel - net->term only, for cache configuration*/
 	GF_NET_CHAN_GET_ESD,
 	/*retrieves visual PAR as indicated in container if any*/
 	GF_NET_CHAN_GET_PIXEL_AR,
-	
+
 	/*service buffer query (for all channels running in service), app<-module*/
 	GF_NET_BUFFER_QUERY,
 	/*retrieves network stats for service/channel; app->module*/
@@ -113,7 +113,7 @@ typedef enum
 
 	/*When using DASH or playlists, query the next file to concatenate to thecurrent one net->proxy only*/
 	GF_NET_SERVICE_QUERY_NEXT,
-	/*When using DASH, query the media range of the url passed in ConnectService - this is only used for local 
+	/*When using DASH, query the media range of the url passed in ConnectService - this is only used for local
 	playback/validation of DASH sequences*/
 	GF_NET_SERVICE_QUERY_INIT_RANGE,
 	/* When using proxy between an input module and the terminal, exchange status using this command: input -> proxy */
@@ -172,10 +172,10 @@ typedef struct
 	LPNETCHANNEL on_channel;
 
 	/*SL config of the stream as delivered in OD (app->channel) or by network (channel->app)*/
-	GF_SLConfig sl_config;		
+	GF_SLConfig sl_config;
 	/*stream priority packet drops are more tolerable if low priority - app->channel only*/
 	u32 priority;
-	/*sync ID: all channels with the same sync ID run on the same timeline, thus the module should 
+	/*sync ID: all channels with the same sync ID run on the same timeline, thus the module should
 	try to match this - note this may not be possible (typically RTP/RTSP)*/
 	u32 sync_id;
 	/*audio frame duration and sample rate if any - this is needed by some RTP payload*/
@@ -189,7 +189,7 @@ typedef struct
 {
 	u32 command_type;
 	LPNETCHANNEL on_channel;
-	/*the recommended buffering limits in ms - this depends on the modules preferences and on the service 
+	/*the recommended buffering limits in ms - this depends on the modules preferences and on the service
 	type (multicast, vod, ...) - below buffer_min the stream will pause if possible until buffer_max is reached
 	note the app will fill in default values before querying*/
 	u32 min, max;
@@ -295,7 +295,7 @@ typedef struct
 
 /*GF_NET_GET_STATS
 Notes
-1: only channels using network must reply. All channels fetching data through a 
+1: only channels using network must reply. All channels fetching data through a
 file downloader (cf below) shall NOT answer, the app manages downloader bandwidth internally.
 2: BANDWIDTH USED BY SIGNALING PROTOCOL IS IGNORED IN GPAC
 */
@@ -312,8 +312,8 @@ typedef struct __netstatcom
 	u16 port, ctrl_port;
 	/*bandwidth used by channel & its control channel if any (both up and down) - expressed in bits per second*/
 	u32 bw_up, bw_down, ctrl_bw_down, ctrl_bw_up;
-	/*set to 0 if channel is not part of a multiplex. Otherwise set to the multiplex port, and 
-	above port info shall be identifiers in the multiplex - note that multiplexing overhead is ignored 
+	/*set to 0 if channel is not part of a multiplex. Otherwise set to the multiplex port, and
+	above port info shall be identifiers in the multiplex - note that multiplexing overhead is ignored
 	in GPAC for the current time*/
 	u16 multiplex_port;
 } GF_NetComStats;
@@ -366,7 +366,7 @@ typedef struct
 typedef struct
 {
 	u32 command_type;
-	//input 
+	//input
 
 	/*drops first segment */
 	Bool drop_first_segment;
@@ -392,8 +392,8 @@ typedef struct
 
 
 	Bool has_next;
-	/*module->proxy: indicates that currently downloaded segment should be checked.	
-	  proxy->module: indicates that the return URL is the currently downloaded one, not yet completed (progressive mode only).	
+	/*module->proxy: indicates that currently downloaded segment should be checked.
+	  proxy->module: indicates that the return URL is the currently downloaded one, not yet completed (progressive mode only).
 	*/
 	Bool current_download;
 	/*indicates that there is new data in the cache for the current URL (progressive mode only) - only valid if is_current_download is set.*/
@@ -522,36 +522,36 @@ typedef struct _netinterface
 	GF_DECL_MODULE_INTERFACE
 
 	/*returns 1 if module can process this URL, 0 otherwise. This is only called when the file extension/mimeType cannot be
-	retrieved in the cfg file, otherwise the mime type/file ext is used to load service. Typically a module would 
+	retrieved in the cfg file, otherwise the mime type/file ext is used to load service. Typically a module would
 	register its mime types in this function (cf gf_term_register_mime_type below)
 	*/
 	Bool (*CanHandleURL)(struct _netinterface *, const char *url);
 
-	/*connects the service to the desired URL - the service handle is used for callbacks. 
+	/*connects the service to the desired URL - the service handle is used for callbacks.
 	Only one service can be connected to a loaded interface.
 	*/
 	GF_Err (*ConnectService) (struct _netinterface *, GF_ClientService *serv, const char *url);
 
 	/*disconnects service - the module is no longer used after this call - if immediate_shutdown is set the module
 	shall not attempt to get confirmation from remote side, it will be deleted right away
-	
+
 	NOTE: depending on how the client/server exchange is happening, it may happen that the CloseService is called
-	in the same context as a reply from your module. This can result into deadlocks if you're using threads. 
+	in the same context as a reply from your module. This can result into deadlocks if you're using threads.
 	You should therefore only try to destroy threads used in the interface shutdown process, which is guarantee
 	to be in a different context call.
 	*/
 	GF_Err (*CloseService) (struct _netinterface *);
 
-	/*retrieves service decsriptor (expressed as an MPEG4 OD/IOD) for accessing this service 
+	/*retrieves service decsriptor (expressed as an MPEG4 OD/IOD) for accessing this service
 	descriptor is allocated by plugin and destroyed by user
 	the IOD shall refer to the service attached to the module
-	@expect_type is a hint in case the service regenerates an IOD. It indicates whether the entry point expected is 
+	@expect_type is a hint in case the service regenerates an IOD. It indicates whether the entry point expected is
 	INLINE, BIFS animation stream, video, audio or input sensor.
 	@sub_url: indicates fetching of an IOD for a given object in the service.
 	Only used for services handling the optional CanHandleURLInService below
 		NULL for main service
 		service extension for sub-service (cf CanHandleURLInService below). For ex,
-		"rtsp://myserver/file.mp4/ES_ID=3" and "rtsp://myserver/file.mp4/ES_ID=4" 
+		"rtsp://myserver/file.mp4/ES_ID=3" and "rtsp://myserver/file.mp4/ES_ID=4"
 		or "file.avi#audio" and "file.avi#video".In this case a partial IOD for the desired object is expected
 	Note: once a service is acknowledged as connected, this function must be executed synchronously
 	The service can return NULL for a descriptor:
@@ -559,14 +559,14 @@ typedef struct _netinterface
 		* if the expected media type is a scene, this means the terminalk shall create and manage the scene
 	*/
 	GF_Descriptor *(*GetServiceDescriptor) (struct _netinterface *, u32 expect_type, const char *sub_url);
-	
+
 
 	/*sends command to the service / channel - cf command structure*/
 	GF_Err (*ServiceCommand) (struct _netinterface *, GF_NetworkCommand *com);
 
 	/*data channel setup - url is either
 	"ES_ID=ID" where ID is the stream ID in this service
-	or a control string depending on the service/stream. The URL is first used to load a module able to handle it, 
+	or a control string depending on the service/stream. The URL is first used to load a module able to handle it,
 	so the module has no redirection to handle
 	*/
 	GF_Err (*ConnectChannel) (struct _netinterface *, LPNETCHANNEL channel, const char *url, Bool upstream);
@@ -574,7 +574,7 @@ typedef struct _netinterface
 	GF_Err (*DisconnectChannel) (struct _netinterface *, LPNETCHANNEL channel);
 
 	/*optional - fetch MPEG4 data from channel - data shall not be duplicated and must be released at ReleaseData
-	SL info shall be written to provided header - if the data is a real SL packet the flag sl_compressed shall be 
+	SL info shall be written to provided header - if the data is a real SL packet the flag sl_compressed shall be
 	set to signal the app this is a full SL pdu (@out_sl_hdr is then ignored)
 	set to NULL if not supported
 	*/
@@ -584,15 +584,15 @@ typedef struct _netinterface
 	set to NULL if not supported*/
 	GF_Err (*ChannelReleaseSLP) (struct _netinterface *, LPNETCHANNEL channel);
 
-	/*this is needed for modules to query other modules, the typical case being 2 ESD URLs pointing to the 
-	same media (audio and video streams in an RTSP session). This is always used on loaded modules but 
+	/*this is needed for modules to query other modules, the typical case being 2 ESD URLs pointing to the
+	same media (audio and video streams in an RTSP session). This is always used on loaded modules but
 	doesn't have to be declared*/
 	Bool (*CanHandleURLInService)(struct _netinterface *, const char *url);
 
-/*private*/
+	/*private*/
 	void *priv;
 
-/*proxy stuff*/
+	/*proxy stuff*/
 	GF_Err (*query_proxy)(struct _netinterface *, GF_NetworkCommand *param);
 	void *proxy_udta;
 	Bool proxy_type; /* 0 corresponds to a proxy without full command support */
@@ -615,14 +615,14 @@ void gf_term_on_connect(GF_ClientService *service, LPNETCHANNEL ns, GF_Err respo
 void gf_term_on_disconnect(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
 /* acknowledgement of service command - service commands handle both services and channels
 Most of the time commands are NOT acknowledged, typical acknowledgement are needed for setup and control
-with remote servers. 
+with remote servers.
 command can also be triggered from the service (QoS, broadcast announcements)
 cf above for command usage
 */
 void gf_term_on_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Err response);
-/*to call when data packet is received. 
+/*to call when data packet is received.
 @data, data_size: data received
-@hdr: uncompressed SL header passed with data for stream sync - if not present then data shall be a valid SL packet 
+@hdr: uncompressed SL header passed with data for stream sync - if not present then data shall be a valid SL packet
 	(header + PDU). Note that using an SLConfig resulting in an empty GF_SLHeader allows sending raw data directly
 @reception_status: data reception status. To signal end of stream, set this to GF_EOS
 */
@@ -646,7 +646,7 @@ void gf_term_register_mime_type(const GF_InputService *ifce, const char *mimeTyp
 
 GF_InputService *gf_term_get_service_interface(GF_ClientService *service);
 
-/*file downloading - can and MUST be used by any module (regardless of license) in order not to interfere 
+/*file downloading - can and MUST be used by any module (regardless of license) in order not to interfere
 with net management*/
 /*creates a new downloading session in the given service - if url is relative, it will be interpreted through
 the service URL*/

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,17 +11,17 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *		
+ *
  */
 
 #ifndef _OPTIONS_H
@@ -30,7 +30,7 @@
 #include "wx/wxprec.h"
 
 #ifndef WX_PRECOMP
-  #include "wx/wx.h"
+#include "wx/wx.h"
 #endif
 
 #include <wx/spinbutt.h>
@@ -56,10 +56,10 @@ enum
 };
 
 class wxOsmo4Frame;
-class wxGPACControl : public wxDialog 
+class wxGPACControl : public wxDialog
 {
 public:
-    wxGPACControl(wxWindow *parent);
+	wxGPACControl(wxWindow *parent);
 	virtual ~wxGPACControl();
 
 private:

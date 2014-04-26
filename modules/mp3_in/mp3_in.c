@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2005-2012
  *					All rights reserved
  *
@@ -79,24 +79,24 @@ static const char * MP3_DESC = "MP3 Music";
 
 static u32 MP3_RegisterMimeTypes(const GF_InputService *plug)
 {
-  u32 i;
-  for (i =0 ; MP3_MIME_TYPES[i] ; i++)
-	gf_term_register_mime_type(plug, MP3_MIME_TYPES[i], MP3_EXTENSIONS, MP3_DESC);
-  return i;
+	u32 i;
+	for (i =0 ; MP3_MIME_TYPES[i] ; i++)
+		gf_term_register_mime_type(plug, MP3_MIME_TYPES[i], MP3_EXTENSIONS, MP3_DESC);
+	return i;
 }
 
 static Bool MP3_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
-        if (!plug || !url)
-          return 0;
+	if (!plug || !url)
+		return 0;
 	sExt = strrchr(url, '.');
 	if (!strnicmp(url, "rtsp://", 7)) return 0;
 	{
-	  u32 i;
-	  for (i =0 ; MP3_MIME_TYPES[i] ; i++)
-	    if (gf_term_check_extension(plug, MP3_MIME_TYPES[i], MP3_EXTENSIONS, MP3_DESC, sExt))
-	      return 1;
+		u32 i;
+		for (i =0 ; MP3_MIME_TYPES[i] ; i++)
+			if (gf_term_check_extension(plug, MP3_MIME_TYPES[i], MP3_EXTENSIONS, MP3_DESC, sExt))
+				return 1;
 	}
 	return 0;
 }
@@ -143,17 +143,17 @@ static Bool MP3_ConfigureFromFile(MP3Reader *read, u32 *minSizeToRead)
 	u64 pos;
 	if (!read->stream) return 0;
 	/* ID3VVFFFFSIZE = 13bytes
-         * ID3 string
+	     * ID3 string
 	 * VV = Version
-         * F = Flags
-         * SIZE = 32bits size with first Most Significant bit set to 0 -> 28 bits
+	     * F = Flags
+	     * SIZE = 32bits size with first Most Significant bit set to 0 -> 28 bits
 	 * Size starts AFTER this header, meaning we have to add 10 bytes
 	 */
 	pos = fread(id3v2, sizeof(unsigned char), 10, read->stream);
 	*minSizeToRead = 0;
-	if (pos == 10){
+	if (pos == 10) {
 		/* Did we read an ID3v2 ? */
-		if (id3v2[0] == 'I' && id3v2[1] == 'D' && id3v2[2] == '3'){
+		if (id3v2[0] == 'I' && id3v2[1] == 'D' && id3v2[2] == '3') {
 			int sz = 10 + ((id3v2[9] & 0x7f) + ((id3v2[8] & 0x7f) << 7) + ((id3v2[7] & 0x7f) << 14) + ((id3v2[6] & 0x7f) << 21));
 			//printf("Size of id3v2 header = %d\n", sz);
 			*minSizeToRead = sz;
@@ -292,13 +292,13 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				if (sep) sep[0] = 0;
 
 				if (!strnicmp(meta, "StreamTitle=", 12)) {
-					 if (read->icy_track_name) gf_free(read->icy_track_name);
-					    read->icy_track_name = NULL;
+					if (read->icy_track_name) gf_free(read->icy_track_name);
+					read->icy_track_name = NULL;
 					read->icy_track_name = gf_strdup(meta+12);
-					if (!strcmp(read->icy_track_name, "''")){
-					  /* On some servers, '' means not track name */
-					  gf_free(read->icy_track_name);
-					  read->icy_track_name = NULL;
+					if (!strcmp(read->icy_track_name, "''")) {
+						/* On some servers, '' means not track name */
+						gf_free(read->icy_track_name);
+						read->icy_track_name = NULL;
 					}
 				}
 				if (!sep) break;
@@ -323,12 +323,12 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		}
 		/*looks like a live stream*/
 		if (read->is_live) {
-		  if (read->liveDataCopySize < param->size){
-		      read->liveDataCopy = gf_realloc(read->liveDataCopy, param->size);
-		  }
-		  memcpy(read->liveDataCopy, param->data, param->size);
-		  if (!e) MP3_OnLiveData(read, read->liveDataCopy, param->size);
-		  return;
+			if (read->liveDataCopySize < param->size) {
+				read->liveDataCopy = gf_realloc(read->liveDataCopy, param->size);
+			}
+			memcpy(read->liveDataCopy, param->data, param->size);
+			if (!e) MP3_OnLiveData(read, read->liveDataCopy, param->size);
+			return;
 		}
 
 		if (read->stream) return;
@@ -434,19 +434,19 @@ static GF_Err MP3_CloseService(GF_InputService *plug)
 
 	if (read->data) gf_free(read->data);
 	read->data = NULL;
-	if (read->liveDataCopy){
-	    gf_free(read->liveDataCopy);
-	    read->liveDataCopy = NULL;
-	    read->liveDataCopySize = 0;
+	if (read->liveDataCopy) {
+		gf_free(read->liveDataCopy);
+		read->liveDataCopy = NULL;
+		read->liveDataCopySize = 0;
 	}
 	if (read->icy_name)
-	  gf_free(read->icy_name);
+		gf_free(read->icy_name);
 	read->icy_name = NULL;
 	if (read->icy_genre)
-	  gf_free(read->icy_genre);
+		gf_free(read->icy_genre);
 	read->icy_genre = NULL;
 	if (read->icy_track_name)
-	  gf_free(read->icy_track_name);
+		gf_free(read->icy_track_name);
 	read->icy_track_name = NULL;
 	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	return GF_OK;

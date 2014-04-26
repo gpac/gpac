@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -57,8 +57,8 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 					break;
 				case GF_STREAM_SCENE:
 					if ((esd->decoderConfig->objectTypeIndication != GPAC_OTI_SCENE_AFX) &&
-						(esd->decoderConfig->objectTypeIndication != GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE) 
-					) {
+					        (esd->decoderConfig->objectTypeIndication != GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE)
+					   ) {
 						import = 0;
 					}
 					break;
@@ -75,7 +75,7 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 					mi->duration = (u32) (dur * 1000);
 					import = 0;
 				}
-					break;
+				break;
 				default:
 					break;
 				}
@@ -103,8 +103,8 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 				break;
 			case GF_STREAM_SCENE:
 				if ((esd->decoderConfig->objectTypeIndication != GPAC_OTI_SCENE_AFX) &&
-					(esd->decoderConfig->objectTypeIndication != GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE) 
-				) {
+				        (esd->decoderConfig->objectTypeIndication != GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE)
+				   ) {
 					import = 0;
 				}
 				break;
@@ -121,7 +121,7 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 				mi->duration = (u32) (dur * 1000);
 				import = 0;
 			}
-				break;
+			break;
 			default:
 				break;
 			}
@@ -210,8 +210,8 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 
 
 		if ((esd->decoderConfig->objectTypeIndication == GPAC_OTI_SCENE_AFX) ||
-			(esd->decoderConfig->objectTypeIndication == GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE) 
-		) {
+		        (esd->decoderConfig->objectTypeIndication == GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE)
+		   ) {
 			nb_samp += gf_isom_get_sample_count(load->isom, i+1);
 			continue;
 		}
@@ -226,7 +226,7 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 #ifndef GPAC_DISABLE_BIFS
 			/*BIFS*/
 			if (esd->decoderConfig->objectTypeIndication<=2) {
-				if (!esd->dependsOnESID && nbBifs && !i) 
+				if (!esd->dependsOnESID && nbBifs && !i)
 					mp4_report(load, GF_OK, "several scene namespaces used or improper scene dependencies in file - import may be incorrect");
 				if (!esd->decoderConfig->decoderSpecificInfo) {
 					/* Hack for T-DMB non compliant streams */
@@ -242,7 +242,7 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 #ifndef GPAC_DISABLE_LASER
 			/*LASER*/
 			if (esd->decoderConfig->objectTypeIndication==0x09) {
-				if (!esd->dependsOnESID && nbBifs && !i) 
+				if (!esd->dependsOnESID && nbBifs && !i)
 					mp4_report(load, GF_OK, "several scene namespaces used or improper scene dependencies in file - import may be incorrect");
 				e = gf_laser_decoder_configure_stream(lsr_dec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 				if (e) goto exit;
@@ -275,11 +275,11 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 
 			if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
 #ifndef GPAC_DISABLE_BIFS
-				if (esd->decoderConfig->objectTypeIndication<=2) 
+				if (esd->decoderConfig->objectTypeIndication<=2)
 					e = gf_bifs_decode_command_list(bifs_dec, esd->ESID, samp->data, samp->dataLength, au->commands);
 #endif
 #ifndef GPAC_DISABLE_LASER
-				if (esd->decoderConfig->objectTypeIndication==0x09) 
+				if (esd->decoderConfig->objectTypeIndication==0x09)
 					e = gf_laser_decode_command_list(lsr_dec, esd->ESID, samp->data, samp->dataLength, au->commands);
 #endif
 			} else {
@@ -350,7 +350,7 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 		gf_odf_desc_del((GF_Descriptor *) load->ctx->root_od);
 		load->ctx->root_od = NULL;
 	}
-	
+
 	esd = NULL;
 
 	/*get root scene stream*/

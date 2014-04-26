@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -73,7 +73,7 @@ typedef struct
 typedef struct
 {
 	/*position*/
-	SFVec3f pos;	
+	SFVec3f pos;
 	/*texture coordinates*/
 	SFVec2f texcoords;
 	/*normal*/
@@ -118,19 +118,19 @@ enum
 enum
 {
 	/*vertex.color is used*/
-	MESH_HAS_COLOR = 1, 
+	MESH_HAS_COLOR = 1,
 	/*mesh is 2D: normal should be ignored and a global normal set to 0 0 1*/
-	MESH_IS_2D = 1<<1, 
+	MESH_IS_2D = 1<<1,
 	/*mesh has no texture coords - disable texturing*/
-	MESH_NO_TEXTURE = 1<<2, 
+	MESH_NO_TEXTURE = 1<<2,
 	/*mesh faces are clockwise*/
-	MESH_IS_CW = 1<<3, 
+	MESH_IS_CW = 1<<3,
 	/*mesh is solid (back face culling + 2 side lighting)*/
-	MESH_IS_SOLID = 1<<4, 
+	MESH_IS_SOLID = 1<<4,
 	/*mesh has smoothed normals*/
-	MESH_IS_SMOOTHED = 1<<5, 
+	MESH_IS_SMOOTHED = 1<<5,
 	/*vertex.color is used with alpha channel*/
-	MESH_HAS_ALPHA = 1<<6, 
+	MESH_HAS_ALPHA = 1<<6,
 };
 
 /*indexes as used in glDrawElements - note that integer type is not allowed with oglES*/
@@ -224,7 +224,7 @@ void mesh_get_outline(GF_Mesh *mesh, GF_Path *path);
 begin_cap, end_cap: indicates whether start/end faces shall be added
 @spine_ori: orientation at spine points
 @spine_scale: scale at spine points
-@tx_along_spine: if set, texture coords are generated so that the texture is mapped on the side, 
+@tx_along_spine: if set, texture coords are generated so that the texture is mapped on the side,
 otherwise the same txcoords are used all along the extrusion spine
 */
 void mesh_extrude_path(GF_Mesh *mesh, GF_Path *path, MFVec3f *thespine, Fixed creaseAngle, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool tx_along_spine);
@@ -256,13 +256,13 @@ typedef struct __AABBNode
 enum
 {
 	/*AABB tree is not used*/
-	AABB_NONE, 
+	AABB_NONE,
 	/*longest box axis is used to divide an AABB node*/
-	AABB_LONGEST, 
+	AABB_LONGEST,
 	/*keep tree well-balanced*/
 	AABB_BALANCED,
 	/*best axis is use: test largest, then middle, then smallest axis*/
-	AABB_BEST_AXIS, 
+	AABB_BEST_AXIS,
 	/*use variance to pick axis*/
 	AABB_SPLATTER,
 	/*fifty/fifty point split*/
@@ -277,7 +277,7 @@ void gf_mesh_build_aabbtree(GF_Mesh *mesh);
  */
 
 /*appends given face (and tesselate if needed) to the mesh. Only vertices are used in the face
-indices are ignored. 
+indices are ignored.
 partially implemented on ogl-ES*/
 void TesselateFaceMesh(GF_Mesh *mesh, GF_Mesh *face);
 
@@ -291,7 +291,7 @@ for_outline:
 void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style);
 
 /*appends given face (and tesselate if needed) to the mesh. Only vertices are used in the face
-indices are ignored. 
+indices are ignored.
 Same as TesselateFaceMesh + faces info to determine where are the polygons in the face - used by extruder only
 */
 void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *ptsPerFaces);

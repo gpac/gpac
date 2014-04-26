@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -90,7 +90,7 @@ typedef HRESULT(WINAPI * DIRECTDRAWCREATEPROC) (GUID *, LPDIRECTDRAW *, IUnknown
 
 typedef struct
 {
-    LPDDRAWSURFACE pSurface;
+	LPDDRAWSURFACE pSurface;
 	u32 width, height, format, pitch;
 	Bool is_yuv;
 } DDSurface;
@@ -113,13 +113,13 @@ typedef struct
 	Bool switch_res;
 
 #ifdef USE_DX_3
-    LPDIRECTDRAW pDD;
-    LPDIRECTDRAWSURFACE pPrimary;
-    LPDIRECTDRAWSURFACE pBack;
+	LPDIRECTDRAW pDD;
+	LPDIRECTDRAWSURFACE pPrimary;
+	LPDIRECTDRAWSURFACE pBack;
 #else
-    LPDIRECTDRAW7 pDD;
-    LPDIRECTDRAWSURFACE7 pPrimary;
-    LPDIRECTDRAWSURFACE7 pBack;
+	LPDIRECTDRAW7 pDD;
+	LPDIRECTDRAWSURFACE7 pPrimary;
+	LPDIRECTDRAWSURFACE7 pBack;
 #endif
 	Bool ddraw_init;
 	Bool yuv_init;
@@ -161,10 +161,10 @@ typedef struct
 
 #ifdef GPAC_USE_OGL_ES
 	NativeDisplayType gl_HDC;
-    EGLDisplay egldpy;
-    EGLSurface surface;
-    EGLConfig eglconfig;
-    EGLContext eglctx;
+	EGLDisplay egldpy;
+	EGLSurface surface;
+	EGLConfig eglconfig;
+	EGLContext eglctx;
 #else
 	HDC gl_HDC, pb_HDC;
 	HGLRC gl_HRC, pb_HRC;
@@ -190,7 +190,7 @@ typedef struct
 	Bool force_video_mem_for_yuv;
 
 	HMODULE hDDrawLib;
-    DIRECTDRAWCREATEPROC DirectDrawCreate;
+	DIRECTDRAWCREATEPROC DirectDrawCreate;
 } DDContext;
 
 void DD_SetupWindow(GF_VideoOutput *dr, Bool hide);

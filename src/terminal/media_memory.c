@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -88,7 +88,7 @@ static GFINLINE void my_large_gf_free(void *ptr) {
 static void gf_cm_unit_del(GF_CMUnit *cb, Bool no_data_allocation)
 {
 	if (!cb)
-	  return;
+		return;
 	if (cb->next) gf_cm_unit_del(cb->next, no_data_allocation);
 	cb->next = NULL;
 	if (cb->data) {
@@ -106,7 +106,7 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity, Bool no_allocation)
 	GF_CMUnit *cu, *prev;
 	u32 i;
 	if (!capacity) return NULL;
-	
+
 	GF_SAFEALLOC(tmp, GF_CompositionMemory)
 
 	tmp->Capacity = capacity;
@@ -137,7 +137,7 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity, Bool no_allocation)
 	cu->next = tmp->input;
 	tmp->input->prev = cu;
 
-	/*close the loop. The output is the input as the first item 
+	/*close the loop. The output is the input as the first item
 	that will be ready for composition will be filled in the input*/
 	tmp->output = tmp->input;
 
@@ -153,11 +153,11 @@ void gf_cm_del(GF_CompositionMemory *cb)
 		gf_clock_buffer_off(cb->odm->codec->ck);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB destroy - ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 	}
-	if (cb->input){
-	  /*break the loop and destroy*/
-	  cb->input->prev->next = NULL;
-	  gf_cm_unit_del(cb->input, cb->no_allocation);
-	  cb->input = NULL;
+	if (cb->input) {
+		/*break the loop and destroy*/
+		cb->input->prev->next = NULL;
+		gf_cm_unit_del(cb->input, cb->no_allocation);
+		cb->input = NULL;
 	}
 	gf_odm_lock(cb->odm, 0);
 	gf_free(cb);
@@ -168,7 +168,7 @@ void gf_cm_rewind_input(GF_CompositionMemory *cb)
 	if (cb->UnitCount) {
 		cb->UnitCount--;
 		cb->input = cb->input->prev;
-		cb->input->dataLength = 0; 
+		cb->input->dataLength = 0;
 	}
 }
 
@@ -181,7 +181,7 @@ GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS, Bool codec_reorder
 #endif
 		/*there is still something in the input buffer*/
 		if (cb->input->dataLength) {
-			if (cb->input->TS==TS) 
+			if (cb->input->TS==TS)
 				return cb->input;
 			return NULL;
 		}
@@ -194,7 +194,7 @@ GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS, Bool codec_reorder
 	/*spatial scalable, go backward to fetch same TS*/
 	cu = cb->input;
 	while (1) {
-		if (cu->TS == TS) 
+		if (cu->TS == TS)
 			return cu;
 		cu = cu->prev;
 		if (cu == cb->input) break;
@@ -223,7 +223,7 @@ static void check_temporal(GF_CompositionMemory *cb)
 		if (cu->next==cb->output) break;
 		assert(!cu->next->dataLength || (cu->TS < cu->next->TS));
 		assert(!cu(>TS || (cu->TS >= cb->LastRenderedTS));
-		cu = cu->next;
+		       cu = cu->next;
 	}
 }
 #endif
@@ -270,9 +270,9 @@ static GF_CMUnit *gf_cm_reorder_unit(GF_CompositionMemory *cb, GF_CMUnit *unit, 
 			}
 			/*previous unit is the active one - check one further*/
 			if (cu->prev == unit) {
-				if (!unit->prev->dataLength || (unit->prev->TS < unit->TS)) 
+				if (!unit->prev->dataLength || (unit->prev->TS < unit->TS))
 					break;
-			} 
+			}
 			/*no previous unit or our unit is just after the previous unit*/
 			else if (!cu->prev->dataLength || (cu->prev->TS < unit->TS)) {
 				break;
@@ -283,10 +283,10 @@ static GF_CMUnit *gf_cm_reorder_unit(GF_CompositionMemory *cb, GF_CMUnit *unit, 
 		/*go on*/
 		cu = cu->prev;
 		/*done (should never happen)*/
-		if (cu == cb->input) 
+		if (cu == cb->input)
 			goto exit;
 	}
-	
+
 	/*remove unit from the list*/
 	unit->prev->next = unit->next;
 	unit->next->prev = unit->prev;
@@ -297,7 +297,7 @@ static GF_CMUnit *gf_cm_reorder_unit(GF_CompositionMemory *cb, GF_CMUnit *unit, 
 	unit->next->prev = unit;
 	unit->prev->next = unit;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("Swapping CU buffer\n"));
-	
+
 exit:
 
 	/*perform sanity check on output ordering*/
@@ -355,13 +355,13 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bo
 		cu->dataLength = cu_size;
 		cu->RenderedLength = 0;
 
-		/*turn off buffering for audio - this must be done now rather than when fetching first output frame since we're not 
+		/*turn off buffering for audio - this must be done now rather than when fetching first output frame since we're not
 		sure output is fetched (Switch node, ...)*/
 		if ( (cb->Status == CB_BUFFER) && (cb->UnitCount >= cb->Capacity) && (cb->odm->codec->type == GF_STREAM_AUDIO)) {
 			/*done with buffering, signal to the clock (ONLY ONCE !)*/
 			cb->Status = CB_BUFFER_DONE;
 			cb_set_buffer_off(cb);
-		} 
+		}
 
 		//new FPS regulation doesn't need this signaling
 #if 0
@@ -375,7 +375,7 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bo
 }
 
 
-/*Reset composition memory. Note we don't reset the content of each frame since it would lead to green frames 
+/*Reset composition memory. Note we don't reset the content of each frame since it would lead to green frames
 when using bitmap (visual), where data is not cached*/
 void gf_cm_reset(GF_CompositionMemory *cb)
 {
@@ -388,7 +388,7 @@ void gf_cm_reset(GF_CompositionMemory *cb)
 		cu->dataLength = 0;
 		gf_sema_notify(cb->odm->raw_frame_sema, 1);
 	}
-	
+
 	cu->dataLength = 0;
 	cu->TS = 0;
 	cu = cu->next;
@@ -454,8 +454,8 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 		}
 		cu->dataLength = 0;
 		cu = cu->next;
-	}	
-	
+	}
+
 	cb->UnitCount = 0;
 	cb->output = cb->input;
 	gf_odm_lock(cb->odm, 0);
@@ -471,11 +471,11 @@ void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity)
 	if (!Capacity || !UnitSize) return;
 
 	gf_odm_lock(cb->odm, 1);
-	if (cb->input){
-	  /*break the loop and destroy*/
-	  cb->input->prev->next = NULL;
-	  gf_cm_unit_del(cb->input, cb->no_allocation);
-	  cb->input = NULL;
+	if (cb->input) {
+		/*break the loop and destroy*/
+		cb->input->prev->next = NULL;
+		gf_cm_unit_del(cb->input, cb->no_allocation);
+		cb->input = NULL;
 	}
 
 	cu = NULL;
@@ -583,7 +583,7 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 		return;
 	}
 
-	/*WARNING: in RAW mode, we (for the moment) only have one unit - setting output->dataLength to 0 means the input is available 
+	/*WARNING: in RAW mode, we (for the moment) only have one unit - setting output->dataLength to 0 means the input is available
 	for the raw channel - we have to make sure the output is completely reseted before releasing the sema*/
 
 	/*on visual streams (except raw oness), always keep the last AU*/
@@ -605,7 +605,7 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 			}
 		}
 	}
-	
+
 	/*reset the output*/
 	cb->output->dataLength = 0;
 	cb->output->TS = 0;
@@ -623,7 +623,7 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 
 void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 {
-	if (cb->Status == Status) 
+	if (cb->Status == Status)
 		return;
 
 	gf_odm_lock(cb->odm, 1);
@@ -668,8 +668,8 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 void gf_cm_set_eos(GF_CompositionMemory *cb)
 {
 	gf_odm_lock(cb->odm, 1);
-	/*we may have a pb if the stream is so short that the EOS is signaled 
-	while we're buffering. In this case we shall turn the clock on and 
+	/*we may have a pb if the stream is so short that the EOS is signaled
+	while we're buffering. In this case we shall turn the clock on and
 	keep a trace of the EOS notif*/
 	if (cb->Status == CB_BUFFER) {
 		cb->Status = CB_BUFFER_DONE;
@@ -699,8 +699,8 @@ Bool gf_cm_is_running(GF_CompositionMemory *cb)
 	}
 
 	if ((cb->odm->codec->type == GF_STREAM_VISUAL)
-		&& (cb->Status == CB_STOP)
-		&& cb->output->dataLength) return 1;
+	        && (cb->Status == CB_STOP)
+	        && cb->output->dataLength) return 1;
 
 	return 0;
 }

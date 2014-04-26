@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -38,7 +38,7 @@ GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char 
 
 /*loads key and salt for MPEG4IP protected files*/
 Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt);
-	
+
 enum
 {
 	/*no selective encryption*/
@@ -89,7 +89,7 @@ typedef struct
 
 	/*CENC extensions*/
 	u32 IsEncrypted;
-	u8 IV_size; 
+	u8 IV_size;
 	bin128 default_KID;
 	u32 KID_count;
 	bin128 *KIDs;
@@ -127,13 +127,13 @@ GF_Err gf_adobe_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 GF_Err (*gf_encrypt_track)(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 GF_Err (*gf_decrypt_track)(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 
-/*decrypt a file 
+/*decrypt a file
 @drm_file: location of DRM data (cf MP4Box doc).
 @LogMsg: redirection for message or NULL for default
 */
 GF_Err gf_decrypt_file(GF_ISOFile *mp4file, const char *drm_file);
 
-/*Crypt a the file 
+/*Crypt a the file
 @drm_file: location of DRM data.
 @LogMsg: redirection for message or NULL for default
 */

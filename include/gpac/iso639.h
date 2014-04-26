@@ -1,25 +1,25 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
- *  This file is part of GPAC 
+ *  This file is part of GPAC
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -27,12 +27,12 @@
 #define _GF_ISO_639_H
 
 
-/*ISO 639 code names 
+/*ISO 639 code names
 	- first string is readable english name of the language
 	- second string is 3-char code of language as per ISO/IEC 639-2/T
-	- third string is 2-char code of language as per ISO/IEC 639-1, and may be empty 
+	- third string is 2-char code of language as per ISO/IEC 639-1, and may be empty
 */
-static const char *GF_ISO639_Lang[] = 
+static const char *GF_ISO639_Lang[] =
 {
 	"Abkhazian","abk","ab",
 	"Achinese","ace","",

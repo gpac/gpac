@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2006-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -35,7 +35,7 @@
 #include <s32file.h>
 #include <bacline.h>
 #include <eikbtgps.h>
-#include <aknquerydialog.h> 
+#include <aknquerydialog.h>
 
 
 #include "osmo4_ui.h"
@@ -57,11 +57,11 @@
 //
 void COsmo4AppUi::ConstructL()
 {
-    // Initialise app UI with standard value.
-    BaseConstructL(CAknAppUi::EAknEnableSkin);
+	// Initialise app UI with standard value.
+	BaseConstructL(CAknAppUi::EAknEnableSkin);
 
-    /*Create display*/
-    iAppView = COsmo4AppView::NewL( ClientRect() );
+	/*Create display*/
+	iAppView = COsmo4AppView::NewL( ClientRect() );
 	AddToStackL(iAppView);
 
 	/*create playlist*/
@@ -70,7 +70,7 @@ void COsmo4AppUi::ConstructL()
 
 	iPlaylist->MakeVisible(EFalse);
 #endif
-	
+
 	iAppView->MakeVisible(ETrue);
 	view_mode = 0;
 
@@ -114,9 +114,9 @@ void COsmo4AppUi::ConstructL()
 // -----------------------------------------------------------------------------
 //
 COsmo4AppUi::COsmo4AppUi()
-    {
-    // No implementation required
-    }
+{
+	// No implementation required
+}
 
 // -----------------------------------------------------------------------------
 // COsmo4AppUi::~COsmo4AppUi()
@@ -135,8 +135,8 @@ COsmo4AppUi::~COsmo4AppUi()
 		if (iPlaylist) RemoveFromStack(iPlaylist);
 		break;
 	}
-    if (iAppView) delete iAppView;
-    if (iPlaylist) delete iPlaylist;
+	if (iAppView) delete iAppView;
+	if (iPlaylist) delete iPlaylist;
 	if (m_title) gf_free(m_title);
 	m_title = NULL;
 }
@@ -201,11 +201,11 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 	case EAknSoftkeyBack:
 		if (view_mode==1) TogglePlaylist();
 		break;
-    case EEikCmdExit:
-    case EAknSoftkeyExit:
-        iAppView->Shutdown();
+	case EEikCmdExit:
+	case EAknSoftkeyExit:
+		iAppView->Shutdown();
 		Exit();
-        break;
+		break;
 	/*PLAYLIST commands*/
 	case EOsmo4PlayListAdd:
 		iPlaylist->PlaylistAct(Osmo4PLAdd);
@@ -243,7 +243,7 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 		if (statusPane->IsVisible()) statusPane->MakeVisible(EFalse);
 		else statusPane->MakeVisible(ETrue);
 	}
-		break;
+	break;
 	case EOsmo4AROriginal:
 		gf_term_set_option(iAppView->m_term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);
 		break;
@@ -297,8 +297,8 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 		iAppView->show_rti = !iAppView->show_rti;
 		break;
 
-    case EOsmo4OptEnableLogs:
-    {
+	case EOsmo4OptEnableLogs:
+	{
 		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "General", "Logs");
 		if (opt && !stricmp(opt, "@debug")) {
 			gf_cfg_set_key(iAppView->m_user.config, "General", "Logs", "all@error");
@@ -306,8 +306,8 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 			gf_cfg_set_key(iAppView->m_user.config, "General", "Logs", "all@debug");
 		}
 		iAppView->SetupLogs();
-    }
-        break;
+	}
+	break;
 	case EOsmo4OptOpenGL:
 	{
 		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "Compositor", "ForceOpenGL");
@@ -315,7 +315,7 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 		gf_cfg_set_key(iAppView->m_user.config, "Compositor", "ForceOpenGL", use_gl ? "no" : "yes");
 		gf_term_set_option(iAppView->m_term, GF_OPT_USE_OPENGL, !use_gl);
 	}
-		break;
+	break;
 	case EOsmo4OptDirectDraw:
 	{
 		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "Compositor", "DirectDraw");
@@ -323,7 +323,7 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 		gf_cfg_set_key(iAppView->m_user.config, "Compositor", "DirectDraw", use_dd ? "no" : "yes");
 		gf_term_set_option(iAppView->m_term, GF_OPT_DIRECT_DRAW, !use_dd);
 	}
-		break;
+	break;
 	case EOsmo4OptXMLProgressive:
 	{
 		const char *opt = gf_cfg_get_key(iAppView->m_user.config, "SAXLoader", "Progressive");
@@ -331,9 +331,9 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 		gf_cfg_set_key(iAppView->m_user.config, "SAXLoader", "Progressive", use_prog ? "no" : "yes");
 		gf_cfg_set_key(iAppView->m_user.config, "SAXLoader", "MaxDuration", "100");
 	}
-		break;
+	break;
 
-    default:
+	default:
 		if ((aCommand>=EOsmo4OpenRecentFirst) && (aCommand<=EOsmo4OpenRecentLast)) {
 			const char *sOpt = gf_cfg_get_key_name(iAppView->m_user.config, "RecentFiles", aCommand - EOsmo4OpenRecentFirst);
 			if (sOpt) iAppView->Connect(sOpt);
@@ -341,8 +341,8 @@ void COsmo4AppUi::HandleCommandL( TInt aCommand )
 			iAppView->MessageBox("Unandled command - panic", "Osmo4");
 			Panic( EOsmo4Ui );
 		}
-        break;
-    }
+		break;
+	}
 #endif
 }
 
@@ -359,7 +359,7 @@ void COsmo4AppUi::HandleStatusPaneSizeChange()
 #ifndef GPAC_GUI_ONLY
 	iPlaylist->SetRect( ClientRect() );
 #endif
-} 
+}
 
 void COsmo4AppUi::TogglePlaylist()
 {
@@ -373,7 +373,7 @@ void COsmo4AppUi::TogglePlaylist()
 		AddToStackL(iPlaylist);
 		if (cba) {
 			cba->SetCommandSetL(R_AVKON_SOFTKEYS_OPTIONS_BACK);
-       		cba->DrawDeferred();	
+			cba->DrawDeferred();
 		}
 		view_was_max = StatusPane()->IsVisible() ? 0 : 1;
 		if (view_was_max) StatusPane()->MakeVisible(ETrue);
@@ -386,7 +386,7 @@ void COsmo4AppUi::TogglePlaylist()
 		AddToStackL(iAppView);
 		if (cba) {
 			cba->SetCommandSetL(R_AVKON_SOFTKEYS_OPTIONS_EXIT);
-       		cba->DrawDeferred();	
+			cba->DrawDeferred();
 		}
 		iAppView->ShowHide(1);
 		if (view_was_max) StatusPane()->MakeVisible(EFalse);
@@ -413,8 +413,8 @@ void COsmo4AppUi::PlayURL(const char *url)
 void COsmo4AppUi::SetTitleInfo(const char *title)
 {
 #if 1
-    CEikStatusPane* statusPane = StatusPane();
-    CAknTitlePane *iTitlePane = (CAknTitlePane*) statusPane->ControlL(TUid::Uid(EEikStatusPaneUidTitle));
+	CEikStatusPane* statusPane = StatusPane();
+	CAknTitlePane *iTitlePane = (CAknTitlePane*) statusPane->ControlL(TUid::Uid(EEikStatusPaneUidTitle));
 
 	if (!title) title = "Osmo4";
 
@@ -453,7 +453,7 @@ void COsmo4AppUi::SetInfo(const char *info)
 		item.iFlags = has_sep ? EEikMenuItemSeparatorAfter : 0;	\
 		if (__check) item.iFlags |= EEikMenuItemCheckBox | EEikMenuItemSymbolOn; \
 		item.iCascadeId = __res;	\
-		aMenuPane->AddMenuItemL(item);	
+		aMenuPane->AddMenuItemL(item);
 
 
 void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
@@ -461,7 +461,7 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 	CEikMenuPaneItem::SData item;
 
 	if (aResourceId==R_OSMO4_MENU) {
-        
+
 		aMenuPane->Reset();
 
 		if (view_mode==1) {
@@ -496,12 +496,12 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 		}
 		smenu_id = 0;
 		return;
-	} 
+	}
 	else if (aResourceId==R_OSMO4_SM1) {
 		aMenuPane->Reset();
 		/*sort menu*/
 		if (view_mode==1) {
-		} 
+		}
 		/*file menu*/
 		else {
 			DECLARE_MENU_ITEM(_L("Open local"), EOsmo4PlayListView, 0, 0, 0);
@@ -514,10 +514,10 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 		}
 		smenu_id = 1;
 		return;
-	} 
+	}
 	/*not used*/
 	if (view_mode==1) return;
-	
+
 	/*View menu*/
 	if (aResourceId==R_OSMO4_SM2) {
 		aMenuPane->Reset();
@@ -546,11 +546,11 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 		DECLARE_MENU_ITEM(_L("Progressive XML"), EOsmo4OptXMLProgressive, (opt && !strcmp(opt, "yes")) ? 1 : 0, 0, 0);
 
 #endif
-		
+
 		DECLARE_MENU_ITEM(_L("Enable Logs"), EOsmo4OptEnableLogs, iAppView->do_log, 0, 0);
 		return;
 	}
-	
+
 	if (aResourceId==R_OSMO4_SSM1) {
 		aMenuPane->Reset();
 		if (smenu_id == 1) {
@@ -565,7 +565,8 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 				else sep += 1;
 				item.iText.Copy( TPtrC8(( TText8* ) sep)  );
 				item.iCommandId = EOsmo4OpenRecentFirst + i;
-				item.iFlags = 0; item.iCascadeId = 0;
+				item.iFlags = 0;
+				item.iCascadeId = 0;
 				aMenuPane->AddMenuItemL(item);
 				i++;
 				if (i>=10) break;
@@ -591,7 +592,7 @@ void COsmo4AppUi::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane* aMenuPane)
 		}
 		return;
 	}
-	
+
 	if (aResourceId==R_OSMO4_SSM2) {
 		aMenuPane->Reset();
 		DECLARE_MENU_ITEM(_L("Keep Original"), EOsmo4AROriginal, 0, 0, 0);

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include "rtp_in.h"
@@ -37,19 +37,19 @@ void RP_SendFailure(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 
 GF_Err RP_ProcessResponse(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 {
-	if (!strcmp(com->method, GF_RTSP_DESCRIBE)) 
+	if (!strcmp(com->method, GF_RTSP_DESCRIBE))
 		return RP_ProcessDescribe(sess, com, e);
-	else if (!strcmp(com->method, GF_RTSP_SETUP)) 
+	else if (!strcmp(com->method, GF_RTSP_SETUP))
 		RP_ProcessSetup(sess, com, e);
-	else if (!strcmp(com->method, GF_RTSP_TEARDOWN)) 
+	else if (!strcmp(com->method, GF_RTSP_TEARDOWN))
 		RP_ProcessTeardown(sess, com, e);
-	else if (!strcmp(com->method, GF_RTSP_PLAY) || !strcmp(com->method, GF_RTSP_PAUSE)) 
+	else if (!strcmp(com->method, GF_RTSP_PLAY) || !strcmp(com->method, GF_RTSP_PAUSE))
 		RP_ProcessUserCommand(sess, com, e);
 	return GF_OK;
 }
 
 /*access to command list is protected bymutex, BUT ONLY ACCESS - this way we're sure that command queueing
-from app will not deadlock if we're waiting for the app to release any mutex (don't forget play request may 
+from app will not deadlock if we're waiting for the app to release any mutex (don't forget play request may
 come on stream N while we're processing stream P setup)*/
 static GF_RTSPCommand *RP_GetCommand(RTSPSession *sess)
 {
@@ -108,10 +108,10 @@ void RP_ProcessCommands(RTSPSession *sess)
 
 			if (!strcmp(com->method, GF_RTSP_DESCRIBE) && (time_out < 10000) ) time_out = 10000;
 			/*don't waste time waiting for teardown ACK, half a sec is enough. If server is not replying
-			in time it is likely to never reply (happens with RTP over RTSP) -> kill session 
+			in time it is likely to never reply (happens with RTP over RTSP) -> kill session
 			and create new one*/
 			else if (!strcmp(com->method, GF_RTSP_TEARDOWN) && (time>=500) ) time = time_out;
-			
+
 			//signal what's going on
 			if (time >= time_out) {
 				if (!strcmp(com->method, GF_RTSP_TEARDOWN)) {
@@ -164,9 +164,9 @@ void RP_ProcessCommands(RTSPSession *sess)
 		}
 	}
 	/*preprocess play/stop/pause before sending (aggregation)*/
-	if (!strcmp(com->method, GF_RTSP_PLAY) 
-		|| !strcmp(com->method, GF_RTSP_PAUSE)
-		|| !strcmp(com->method, GF_RTSP_TEARDOWN)) {
+	if (!strcmp(com->method, GF_RTSP_PLAY)
+	        || !strcmp(com->method, GF_RTSP_PAUSE)
+	        || !strcmp(com->method, GF_RTSP_TEARDOWN)) {
 		//command is skipped
 		if (!RP_PreprocessUserCom(sess, com)) {
 			e = GF_BAD_PARAM;
@@ -274,7 +274,7 @@ RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 		gf_rtsp_set_buffer_size(rtsp, RTSP_BUFFER_SIZE);
 	}
 	tmp->rtsp_commands = gf_list_new();
-	tmp->rtsp_rsp = gf_rtsp_response_new();	
+	tmp->rtsp_rsp = gf_rtsp_response_new();
 
 	gf_list_add(rtp->sessions, tmp);
 
@@ -381,7 +381,7 @@ void RP_ResetSession(RTSPSession *sess, GF_Err e)
 		gf_rtsp_command_del(com);
 		//first = 0;
 	}
-	/*reset session state*/	
+	/*reset session state*/
 	gf_rtsp_session_reset(sess->session, 1);
 	sess->flags &= ~RTSP_WAIT_REPLY;
 }

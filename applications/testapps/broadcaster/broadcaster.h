@@ -77,7 +77,7 @@ typedef struct rap_input
 	PNC_CallbackData *data;
 	u32 status;
 } RAP_Input;
-	
+
 /*void command_line_parsing(int* argc, const char** argv, int *tcp_port, const char *config_file, int *config_flag);
 int server_command_line(char *arg_a, char *arg_b, char *value, int argument);*/
 u32 tcp_server(void *par);

@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -146,7 +146,7 @@ GF_Descriptor *gf_odf_create_descriptor(u8 tag)
 	default:
 		//ISO Reserved
 		if ( (tag >= GF_ODF_ISO_RES_BEGIN_TAG) &&
-			(tag <= GF_ODF_ISO_RES_END_TAG) ) {
+		        (tag <= GF_ODF_ISO_RES_END_TAG) ) {
 			return NULL;
 		}
 		desc = gf_odf_new_default();
@@ -345,7 +345,7 @@ GF_Err gf_odf_read_descriptor(GF_BitStream *bs, GF_Descriptor *desc, u32 DescSiz
 		return gf_odf_read_smpte_camera(bs, (GF_SMPTECamera *)desc, DescSize);
 	case GF_ODF_SCI_TAG:
 		return gf_odf_read_sup_cid(bs, (GF_SCIDesc *)desc, DescSize);
-		
+
 	case GF_ODF_IPMP_TL_TAG:
 		return gf_odf_read_ipmp_tool_list(bs, (GF_IPMP_ToolList *)desc, DescSize);
 	case GF_ODF_IPMP_TOOL_TAG:
@@ -370,13 +370,13 @@ GF_Err gf_odf_read_descriptor(GF_BitStream *bs, GF_Descriptor *desc, u32 DescSiz
 GF_Err gf_odf_size_descriptor(GF_Descriptor *desc, u32 *outSize)
 {
 	switch(desc->tag) {
-	case GF_ODF_IOD_TAG : 
+	case GF_ODF_IOD_TAG :
 		return gf_odf_size_iod((GF_InitialObjectDescriptor *)desc, outSize);
-	case GF_ODF_ESD_TAG : 
+	case GF_ODF_ESD_TAG :
 		return gf_odf_size_esd((GF_ESD *)desc, outSize);
-	case GF_ODF_DCD_TAG : 
+	case GF_ODF_DCD_TAG :
 		return gf_odf_size_dcd((GF_DecoderConfig *)desc, outSize);
-	case GF_ODF_SLC_TAG : 
+	case GF_ODF_SLC_TAG :
 		return gf_odf_size_slc((GF_SLConfig *)desc, outSize);
 
 	case GF_ODF_OD_TAG:
@@ -396,7 +396,7 @@ GF_Err gf_odf_size_descriptor(GF_Descriptor *desc, u32 *outSize)
 		return gf_odf_size_mediatime((GF_MediaTime *) desc, outSize);
 	case GF_ODF_MUXINFO_TAG:
 		return gf_odf_size_muxinfo((GF_MuxInfo *) desc, outSize);
-		
+
 	case GF_ODF_AUX_VIDEO_DATA:
 		return gf_odf_size_auxvid((GF_AuxVideoDescriptor *)desc, outSize);
 
@@ -469,13 +469,13 @@ GF_Err gf_odf_size_descriptor(GF_Descriptor *desc, u32 *outSize)
 GF_Err gf_odf_write_descriptor(GF_BitStream *bs, GF_Descriptor *desc)
 {
 	switch(desc->tag) {
-	case GF_ODF_IOD_TAG : 
+	case GF_ODF_IOD_TAG :
 		return gf_odf_write_iod(bs, (GF_InitialObjectDescriptor *)desc);
-	case GF_ODF_ESD_TAG : 
+	case GF_ODF_ESD_TAG :
 		return gf_odf_write_esd(bs, (GF_ESD *)desc);
-	case GF_ODF_DCD_TAG : 
+	case GF_ODF_DCD_TAG :
 		return gf_odf_write_dcd(bs, (GF_DecoderConfig *)desc);
-	case GF_ODF_SLC_TAG : 
+	case GF_ODF_SLC_TAG :
 		return gf_odf_write_slc(bs, (GF_SLConfig *)desc);
 	case GF_ODF_ESD_INC_TAG:
 		return gf_odf_write_esd_inc(bs, (GF_ES_ID_Inc *)desc);
@@ -586,8 +586,8 @@ GF_ODCom *gf_odf_create_command(u8 tag)
 		return gf_odf_new_ipmp_remove();
 
 	default:
-		if ( (tag >= GF_ODF_COM_ISO_BEGIN_TAG) && 
-			( tag <= GF_ODF_COM_ISO_END_TAG) ) {
+		if ( (tag >= GF_ODF_COM_ISO_BEGIN_TAG) &&
+		        ( tag <= GF_ODF_COM_ISO_END_TAG) ) {
 			return NULL;
 		}
 		com = gf_odf_new_base_command();
@@ -643,7 +643,7 @@ GF_Err gf_odf_read_command(GF_BitStream *bs, GF_ODCom *com, u32 gf_odf_size_comm
 	case GF_ODF_IPMP_UPDATE_TAG:
 		return gf_odf_read_ipmp_update(bs, (GF_IPMPUpdate *)com, gf_odf_size_command);
 	case GF_ODF_IPMP_REMOVE_TAG:
-		return gf_odf_read_ipmp_remove(bs, (GF_IPMPRemove *)com, gf_odf_size_command);	
+		return gf_odf_read_ipmp_remove(bs, (GF_IPMPRemove *)com, gf_odf_size_command);
 	default:
 		return gf_odf_read_base_command(bs, (GF_BaseODCom *)com, gf_odf_size_command);
 	}
@@ -698,7 +698,7 @@ GF_Err gf_odf_write_command(GF_BitStream *bs, GF_ODCom *com)
 		return gf_odf_write_ipmp_update(bs, (GF_IPMPUpdate *)com);
 	case GF_ODF_IPMP_REMOVE_TAG:
 		return gf_odf_write_ipmp_remove(bs, (GF_IPMPRemove *)com);
-	
+
 	default:
 		return gf_odf_write_base_command(bs, (GF_BaseODCom *)com);
 	}

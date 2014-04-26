@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 
@@ -111,7 +111,7 @@ static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 		driv->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
 
 		if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode", "PBuffer");
-	} else 
+	} else
 #endif
 	{
 		u32 gl_type = 1;
@@ -144,7 +144,7 @@ static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 #endif
 
 
-static void RestoreWindow(DDContext *dd) 
+static void RestoreWindow(DDContext *dd)
 {
 	if (!dd->NeedRestore) return;
 	dd->NeedRestore = 0;
@@ -154,10 +154,10 @@ static void RestoreWindow(DDContext *dd)
 #ifndef _WIN32_WCE
 		ChangeDisplaySettings(NULL,0);
 #endif
-	} else 
+	} else
 #endif
 
-	dd->pDD->lpVtbl->SetCooperativeLevel(dd->pDD, dd->cur_hwnd, DDSCL_NORMAL);
+		dd->pDD->lpVtbl->SetCooperativeLevel(dd->pDD, dd->cur_hwnd, DDSCL_NORMAL);
 	dd->NeedRestore = 0;
 
 //	SetForegroundWindow(dd->cur_hwnd);
@@ -200,7 +200,7 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 		dd->gl_HDC = 0L;
 		dd->egldpy = NULL;
 	}
-#elif !defined(_WIN32_WCE) 
+#elif !defined(_WIN32_WCE)
 
 	if (dd->pb_HRC) {
 		wglMakeCurrent(dd->pb_HDC, NULL);
@@ -216,7 +216,7 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 		wglDestroyPbufferARB(dd->pbuffer);
 		dd->pbuffer = NULL;
 	}
-	
+
 	if (dd->gl_HRC) {
 		//wglMakeCurrent(NULL, NULL);
 		wglDeleteContext(dd->gl_HRC);
@@ -239,7 +239,7 @@ void DestroyObjects(DDContext *dd)
 
 #ifndef GPAC_DISABLE_3D
 
-GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_height) 
+GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_height)
 {
 	const char *sOpt;
 	GF_Event evt;
@@ -257,15 +257,21 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsPerComponent");
 	nb_bits = sOpt ? atoi(sOpt) : 5;
 
-	egl_atts[i++] = EGL_RED_SIZE; egl_atts[i++] = nb_bits;
-	egl_atts[i++] = EGL_GREEN_SIZE; egl_atts[i++] = nb_bits;
-	egl_atts[i++] = EGL_BLUE_SIZE; egl_atts[i++] = nb_bits;
+	egl_atts[i++] = EGL_RED_SIZE;
+	egl_atts[i++] = nb_bits;
+	egl_atts[i++] = EGL_GREEN_SIZE;
+	egl_atts[i++] = nb_bits;
+	egl_atts[i++] = EGL_BLUE_SIZE;
+	egl_atts[i++] = nb_bits;
 	/*alpha for compositeTexture*/
-	egl_atts[i++] = EGL_ALPHA_SIZE; egl_atts[i++] = 1;
+	egl_atts[i++] = EGL_ALPHA_SIZE;
+	egl_atts[i++] = 1;
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
 	nb_bits = sOpt ? atoi(sOpt) : 5;
-	egl_atts[i++] = EGL_DEPTH_SIZE; egl_atts[i++] = nb_bits;
-	egl_atts[i++] = EGL_STENCIL_SIZE; egl_atts[i++] = EGL_DONT_CARE;
+	egl_atts[i++] = EGL_DEPTH_SIZE;
+	egl_atts[i++] = nb_bits;
+	egl_atts[i++] = EGL_STENCIL_SIZE;
+	egl_atts[i++] = EGL_DONT_CARE;
 	egl_atts[i++] = EGL_NONE;
 
 	/*already setup*/
@@ -276,14 +282,14 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	if (!eglChooseConfig(dd->egldpy, egl_atts, configs, 1, &n)) return GF_IO_ERR;
 	dd->eglconfig = configs[0];
 	dd->surface = eglCreateWindowSurface(dd->egldpy, dd->eglconfig, dd->cur_hwnd, 0);
-	if (!dd->surface) return GF_IO_ERR; 
+	if (!dd->surface) return GF_IO_ERR;
 	dd->eglctx = eglCreateContext(dd->egldpy, dd->eglconfig, NULL, NULL);
 	if (!dd->eglctx) {
 		eglDestroySurface(dd->egldpy, dd->surface);
 		dd->surface = 0L;
-		return GF_IO_ERR; 
+		return GF_IO_ERR;
 	}
-    if (!eglMakeCurrent(dd->egldpy, dd->surface, dd->surface, dd->eglctx)) {
+	if (!eglMakeCurrent(dd->egldpy, dd->surface, dd->surface, dd->eglctx)) {
 		eglDestroyContext(dd->egldpy, dd->eglctx);
 		dd->eglctx = 0L;
 		eglDestroySurface(dd->egldpy, dd->surface);
@@ -291,8 +297,8 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 		return GF_IO_ERR;
 	}
 #elif !defined(_WIN32_WCE)
-    PIXELFORMATDESCRIPTOR pfd; 
-    s32 pixelformat;
+	PIXELFORMATDESCRIPTOR pfd;
+	s32 pixelformat;
 	HWND highbpp_hwnd = NULL;
 	HWND target_hwnd = NULL;
 	int bits_depth = 24;
@@ -301,7 +307,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 
 	/*already setup*/
 	target_hwnd = (dd->gl_hwnd && (dd->output_3d_type==2)) ? dd->gl_hwnd : dd->cur_hwnd;
-	if ((dd->bound_hwnd == target_hwnd) && dd->gl_HRC) 
+	if ((dd->bound_hwnd == target_hwnd) && dd->gl_HRC)
 		goto exit;
 
 	hw_reset = GF_TRUE;
@@ -310,9 +316,9 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	/*cleanup*/
 	DestroyObjectsEx(dd, (dd->output_3d_type==1) ? 0 : 1);
 
-	//first time we init GL: create a dummy window to select pixel format for high bpp - we must do this because 
+	//first time we init GL: create a dummy window to select pixel format for high bpp - we must do this because
 	//- we must get a valid GL context to query the extensions for bpp > 8 (regular choosePixelFormat does not work for them)
-	//- we must call SetPixelFormat to create the GL context 
+	//- we must call SetPixelFormat to create the GL context
 	//- it is not possible to call several time SetPixelFormat on the same window with different PF properties ...
 	if (!dd->mode_high_bpp) {
 		sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsPerComponent");
@@ -330,11 +336,11 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 			pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
 			pfd.nVersion = 1;
 			pfd.dwFlags = PFD_SUPPORT_OPENGL;
-			if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 
-			
+			if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR;
+
 			if (SetPixelFormat(dd->gl_HDC, pixelformat, &pfd) == FALSE) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX GL] Cannot select pixel format: error %d- disabling GL\n", GetLastError() ));
-				return GF_IO_ERR; 
+				return GF_IO_ERR;
 			}
 			dd->gl_HRC = wglCreateContext(dd->gl_HDC);
 			if (!dd->gl_HRC) return GF_IO_ERR;
@@ -349,7 +355,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 			ReleaseDC(highbpp_hwnd, dd->gl_HDC);
 			DestroyWindow(highbpp_hwnd);
 
-			
+
 			dd->mode_high_bpp = wglChoosePixelFormatARB ? 1 : 2;
 		} else {
 			dd->mode_high_bpp = 2;
@@ -378,23 +384,23 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 		int pformats[200];
 		u32 nbformats=0;
 		Bool found = GF_FALSE;
-		float fattribs[1] = { 0.0f }; 
-		
+		float fattribs[1] = { 0.0f };
+
 		int hdcAttributes[] = {
 			WGL_SUPPORT_OPENGL_ARB, TRUE,
 			WGL_DRAW_TO_WINDOW_ARB, (dd->bound_hwnd != dd->fs_hwnd) ? TRUE : FALSE,
 			WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
-			WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB, 
+			WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
 			WGL_RED_BITS_ARB, dd->bpp,
 			WGL_GREEN_BITS_ARB, dd->bpp,
-			WGL_BLUE_BITS_ARB, dd->bpp, 
-			WGL_ALPHA_BITS_ARB, (dd->bpp==10) ? 2 : 0, 
+			WGL_BLUE_BITS_ARB, dd->bpp,
+			WGL_ALPHA_BITS_ARB, (dd->bpp==10) ? 2 : 0,
 			WGL_DEPTH_BITS_ARB, bits_depth,
-			WGL_DOUBLE_BUFFER_ARB, use_double_buffer ? TRUE : FALSE, 
+			WGL_DOUBLE_BUFFER_ARB, use_double_buffer ? TRUE : FALSE,
 			0,0
-		}; 
+		};
 
-		wglChoosePixelFormatARB(dd->gl_HDC, hdcAttributes, NULL, 200, pformats, &nbformats); 
+		wglChoosePixelFormatARB(dd->gl_HDC, hdcAttributes, NULL, 200, pformats, &nbformats);
 
 		for (i=0; i<nbformats; i++) {
 			if (SetPixelFormat(dd->gl_HDC, pformats[i], &pfd) != FALSE) {
@@ -439,11 +445,11 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 		/*we need alpha support for composite textures...*/
 		pfd.cAlphaBits = 8;
 
-		if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 
+		if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR;
 
 		if (SetPixelFormat(dd->gl_HDC, pixelformat, &pfd) == FALSE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX GL] Cannot select pixel format: error %d- disabling GL\n", GetLastError() ));
-			return GF_IO_ERR; 
+			return GF_IO_ERR;
 		}
 	}
 
@@ -480,14 +486,14 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 			WGL_DRAW_TO_PBUFFER_ARB, TRUE,
 			WGL_RED_BITS_ARB, 8,
 			WGL_GREEN_BITS_ARB, 8,
-			WGL_BLUE_BITS_ARB, 8, 
+			WGL_BLUE_BITS_ARB, 8,
 			WGL_DEPTH_BITS_ARB, bits_depth,
 			0
-		}; 
-		wglChoosePixelFormatARB(dd->gl_HDC, hdcAttributes, NULL, 20, pformats, &nbformats); 
+		};
+		wglChoosePixelFormatARB(dd->gl_HDC, hdcAttributes, NULL, 20, pformats, &nbformats);
 		// Create the PBuffer
 		for (i=0; i<nbformats; i++) {
-			dd->pbuffer = wglCreatePbufferARB(dd->gl_HDC, pformats[i], offscreen_width, offscreen_height, pbufferAttributes); 
+			dd->pbuffer = wglCreatePbufferARB(dd->gl_HDC, pformats[i], offscreen_width, offscreen_height, pbufferAttributes);
 			if (dd->pbuffer) break;
 		}
 		if (!dd->pbuffer) return GF_IO_ERR;
@@ -496,7 +502,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 		dd->pb_HRC = wglCreateContext(dd->pb_HDC);
 		if (!wglMakeCurrent(dd->pb_HDC, dd->pb_HRC)) return GF_IO_ERR;
 
-	
+
 	}
 #endif
 
@@ -504,7 +510,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	for our plugin window - avoid this by overriding the WindowProc once OpenGL is setup!!*/
 	if ((dd->bound_hwnd==dd->os_hwnd) && dd->orig_wnd_proc)
 #ifdef _WIN64
-        SetWindowLongPtr(dd->os_hwnd, GWLP_WNDPROC, (DWORD) DD_WindowProc);
+		SetWindowLongPtr(dd->os_hwnd, GWLP_WNDPROC, (DWORD) DD_WindowProc);
 #else
 		SetWindowLong(dd->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
 #endif
@@ -514,7 +520,7 @@ exit:
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
 		evt.setup.hw_reset = hw_reset;
-		dr->on_event(dr->evt_cbk_hdl, &evt);	
+		dr->on_event(dr->evt_cbk_hdl, &evt);
 	}
 	return GF_OK;
 }
@@ -529,7 +535,7 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 	DDCONTEXT
 	const char *opt;
 	dd->os_hwnd = (HWND) os_handle;
-	
+
 	DD_SetupWindow(dr, init_flags);
 	/*fatal error*/
 	if (!dd->os_hwnd) return GF_IO_ERR;
@@ -580,7 +586,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	dd->fullscreen = bOn;
 
 	if (!dd->width ||!dd->height) return GF_OK;
-	
+
 	/*whenever changing card display mode relocate fastest YUV format for blit (since it depends
 	on the dest pixel format)*/
 	dd->yuv_init = 0;
@@ -651,8 +657,8 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 		}
 
 		if (!e) e = DD_SetupOpenGL(dr, 0, 0);
-		
-	} else 
+
+	} else
 #endif
 	{
 
@@ -719,7 +725,7 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 		dr->LockOSContext(dr, 0);
 		return GF_OK;
 	}
-	
+
 	if (!dd->disable_vsync)
 		hr = dd->pDD->lpVtbl->WaitForVerticalBlank(dd->pDD, DDWAITVB_BLOCKBEGIN, NULL);
 
@@ -747,15 +753,15 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 HRESULT WINAPI EnumDisplayModes( LPDDSURFDESC lpDDDesc, LPVOID lpContext)
 {
 	DDContext *dd = (DDContext *) lpContext;
-	
+
 	//check W and H
 	if (dd->width <= lpDDDesc->dwWidth  && dd->height <= lpDDDesc->dwHeight
-		//check FSW and FSH
-		&& dd->fs_width > lpDDDesc->dwWidth && dd->fs_height > lpDDDesc->dwHeight) {
+	        //check FSW and FSH
+	        && dd->fs_width > lpDDDesc->dwWidth && dd->fs_height > lpDDDesc->dwHeight) {
 
 		if (lpDDDesc->dwHeight == 200)
 			return DDENUMRET_OK;
-		
+
 		dd->fs_width = lpDDDesc->dwWidth;
 		dd->fs_height = lpDDDesc->dwHeight;
 
@@ -812,8 +818,8 @@ static void *NewDXVideoOutput()
 		pCtx->DirectDrawCreate = (DIRECTDRAWCREATEPROC) GetProcAddress(pCtx->hDDrawLib, "DirectDrawCreate");
 	}
 
-    driv->max_screen_width = GetSystemMetrics(SM_CXSCREEN);
-    driv->max_screen_height = GetSystemMetrics(SM_CYSCREEN);
+	driv->max_screen_width = GetSystemMetrics(SM_CXSCREEN);
+	driv->max_screen_height = GetSystemMetrics(SM_CYSCREEN);
 	driv->max_screen_bpp = 8;
 	driv->hw_caps = GF_VIDEO_HW_OPENGL | GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA | GF_VIDEO_HW_HAS_HWND_HDC;
 

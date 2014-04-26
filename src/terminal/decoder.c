@@ -78,7 +78,7 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	tmp->Status = GF_ESM_CODEC_STOP;
 
 	if (tmp->type==GF_STREAM_PRIVATE_MEDIA) tmp->type = GF_STREAM_VISUAL;
-	
+
 	if (tmp->type==GF_STREAM_VISUAL) {
 		GF_CodecCapability cap;
 		cap.CapCode = GF_CODEC_DISPLAY_BPP;
@@ -209,7 +209,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 				max = 1;
 				no_alloc = 1;
 			}
-			//very low latency 
+			//very low latency
 			else if (ch->MaxBuffer<=300) {
 //				max /= MAX(max/2, 2);
 			}
@@ -232,7 +232,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			cap.CapCode = GF_CODEC_TRUSTED_CTS;
 			if (gf_codec_get_capability(codec, &cap) == GF_OK)
 				codec->trusted_cts = cap.cap.valueInt;
-		
+
 		}
 
 		if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) {
@@ -271,7 +271,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 					break;
 				}
 			}
-		
+
 		}
 	} else if (codec->flags & GF_ESM_CODEC_IS_RAW_MEDIA) {
 		cap.CapCode = GF_CODEC_OUTPUT_SIZE;
@@ -330,7 +330,7 @@ Bool gf_codec_is_scene_or_image(GF_Codec *codec)
 
 Bool gf_codec_remove_channel(GF_Codec *codec, struct _es_channel *ch)
 {
-  	s32 i;
+	s32 i;
 	assert( codec );
 	assert( codec->inChannels);
 	assert(ch);
@@ -396,7 +396,7 @@ browse_scalable:
 	if (!count) return;
 
 	/*browse from base to top layer*/
-	for (i=0;i<count;i++) {
+	for (i=0; i<count; i++) {
 		ch = (GF_Channel*)gf_list_get(src_channels, i);
 
 		if ((codec->type==GF_STREAM_OCR) && ch->IsClockInit) {
@@ -446,7 +446,7 @@ refetch_AU:
 			(*nextAU)->flags |= GF_DB_AU_REAGGREGATED;
 		}
 		//not the same TS for base and enhancement - either temporal scalability is used or we had a frame loss
-		else {		
+		else {
 			//we cannot rely on DTS - to check if this is temporal scalability, check next CTS
 			if (ch->recompute_dts) {
 				Bool au_match_base_ts = GF_FALSE;
@@ -461,7 +461,7 @@ refetch_AU:
 				}
 				//no AU found with the same CTS as the current base, we likely had a drop in the enhancement - aggregate from base
 				if (!au_match_base_ts) {
-				} 
+				}
 				// AU found with the same CTS as the current base, we either had a drop on the base or some temporal scalability - aggregate from current channel.
 				else {
 					//we cannot tell whether this is a loss or temporal scalable, don't attempt to discard the AU
@@ -474,16 +474,16 @@ refetch_AU:
 			//we can rely on DTS - if DTS is earlier on the enhencement, this is a loss or temporal scalability
 			else if (AU->DTS < (*nextAU)->DTS) {
 				//Sample with the same DTS of this AU has been decoded. This is a loss, we need to drop it and re-fetch this channel
-				if ((AU->DTS <= codec->last_unit_dts) 
-					//we also prevent detecting temporal scalability until at least one frame from the base has been decoded
-					|| !codec->first_frame_processed) {
+				if ((AU->DTS <= codec->last_unit_dts)
+				        //we also prevent detecting temporal scalability until at least one frame from the base has been decoded
+				        || !codec->first_frame_processed) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d %s AU DTS %d but base DTS %d: loss detected - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*nextAU)->DTS));
 					gf_es_drop_au(ch);
 					//restore stream state in case we got a RAP this time but we discard the AU, we need to wait again for the next RAP with the right timing
 					ch->stream_state = stream_state;
 
 					goto refetch_AU;
-				} 
+				}
 				//This is a temporal scalability so we re-aggregate from the enhencement
 				else {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %d selected as first layer (CTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, AU->CTS));
@@ -523,11 +523,11 @@ refetch_AU:
 				diff = codec->recomputed_cts - CTS;
 			}
 
-			prev_ts_diff = (CTS > codec->last_unit_cts) ? (CTS - codec->last_unit_cts) : (codec->last_unit_cts - CTS);			
+			prev_ts_diff = (CTS > codec->last_unit_cts) ? (CTS - codec->last_unit_cts) : (codec->last_unit_cts - CTS);
 			if (!diff) diff = prev_ts_diff;
 			else if (prev_ts_diff && (prev_ts_diff < diff) ) diff = prev_ts_diff;
 
-			if (!codec->min_au_duration || (diff < codec->min_au_duration)) 
+			if (!codec->min_au_duration || (diff < codec->min_au_duration))
 				codec->min_au_duration = diff;
 		} else {
 			codec->min_au_duration = 0;
@@ -552,7 +552,7 @@ static void Decoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, GF_DB
 
 	minDTS = 0;
 	/*reverse browsing to make sure we fill enhancement before base layer*/
-	for (i=count;i>0;i--) {
+	for (i=count; i>0; i--) {
 		ch = (GF_Channel*)gf_list_get(codec->inChannels, i-1);
 
 		if ((codec->type==GF_STREAM_OCR) && ch->IsClockInit) {
@@ -679,7 +679,7 @@ check_unit:
 	/*lock scene*/
 	if (!scene_locked) {
 		scene_locked = codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene;
-		if (!gf_mx_try_lock(scene_locked->root_od->term->compositor->mx)) 
+		if (!gf_mx_try_lock(scene_locked->root_od->term->compositor->mx))
 			return GF_OK;
 		/*if terminal is paused, force step-mode: it won't hurt in regular pause/play and ensures proper frame dumping*/
 		if (codec->odm->term->play_state) codec->odm->term->compositor->step_mode=1;
@@ -787,13 +787,13 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	if (!gf_mx_try_lock(scene_locked->root_od->term->compositor->mx)) return GF_OK;
 
-    now = gf_sys_clock_high_res();
+	now = gf_sys_clock_high_res();
 	if (codec->odm->term->bench_mode == 2) {
 		e = GF_OK;
 	} else {
 		e = sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);
 	}
-    now = gf_sys_clock_high_res() - now;
+	now = gf_sys_clock_high_res() - now;
 	codec->last_unit_dts ++;
 	/*resume on error*/
 	if (e && (codec->last_unit_dts<2) ) {
@@ -919,7 +919,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	}
 
 	entryTime = gf_sys_clock_high_res();
-	if (!codec->odm->term->bench_mode && (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) 
+	if (!codec->odm->term->bench_mode && (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES))
 		drop_late_frames = 1;
 
 
@@ -1004,7 +1004,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	/*try to refill the full buffer*/
 	first = 1;
 	while (codec->CB->Capacity > codec->CB->UnitCount) {
-	/*set media processing level*/
+		/*set media processing level*/
 		ch->last_au_was_seek = 0;
 		mmlevel = GF_CODEC_LEVEL_NORMAL;
 		/*SEEK: if the last frame had the same TS, we are seeking. Ask the codec to drop*/
@@ -1014,9 +1014,9 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			/*object clock is paused by media control or terminal is paused: exact frame seek*/
 			if (
 #ifndef GPAC_DISABLE_VRML
-				(codec->ck->mc && codec->ck->mc->paused) || 
+			    (codec->ck->mc && codec->ck->mc->paused) ||
 #endif
-				(codec->odm->term->play_state)
+			    (codec->odm->term->play_state)
 			) {
 				gf_cm_rewind_input(codec->CB);
 				mmlevel = GF_CODEC_LEVEL_NORMAL;
@@ -1109,9 +1109,9 @@ scalable_retry:
 				if (drop_late_frames) {
 					unit_size = 0;
 					codec->nb_droped++;
-				} else 
+				} else
 					ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
-			} 
+			}
 			e = UnlockCompositionUnit(codec, CU, unit_size);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded packed frame TS %d in "LLU" us\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now));
@@ -1226,9 +1226,9 @@ scalable_retry:
 			if (drop_late_frames || (mmlevel == GF_CODEC_LEVEL_SEEK) ) {
 				unit_size = 0;
 				if (drop_late_frames) codec->nb_droped++;
-			} else 
+			} else
 				ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
-		} 
+		}
 
 		UnlockCompositionUnit(codec, CU, unit_size);
 		if (!ch || !AU) {
@@ -1255,7 +1255,7 @@ scalable_retry:
 
 GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable)
 {
-	
+
 	if (codec->ck && codec->ck->Paused) {
 		u32 i;
 		for (i=0; i<gf_list_count(codec->odm->channels); i++) {
@@ -1265,7 +1265,7 @@ GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable)
 				gf_clock_buffer_off(ch->clock);
 			}
 		}
-		if (codec->CB) 
+		if (codec->CB)
 			gf_cm_abort_buffering(codec->CB);
 	}
 	return GF_OK;
@@ -1285,7 +1285,7 @@ GF_Err gf_codec_process_raw_media_pull(GF_Codec *codec, u32 TimeAvailable)
 				gf_clock_buffer_off(ch->clock);
 			}
 		}
-		if (codec->CB) 
+		if (codec->CB)
 			gf_cm_abort_buffering(codec->CB);
 	}
 
@@ -1357,7 +1357,7 @@ GF_Err gf_codec_get_capability(GF_Codec *codec, GF_CodecCapability *cap)
 			h = gf_bs_read_u16(bs);
 			out_size = gf_bs_read_u32(bs);
 			stride = gf_bs_read_u32(bs);
-            is_flipped = gf_bs_read_u8(bs);
+			is_flipped = gf_bs_read_u8(bs);
 		} else {
 			sr = gf_bs_read_u32(bs);
 			nb_ch = gf_bs_read_u16(bs);
@@ -1379,9 +1379,9 @@ GF_Err gf_codec_get_capability(GF_Codec *codec, GF_CodecCapability *cap)
 		case GF_CODEC_PIXEL_FORMAT:
 			cap->cap.valueInt = pf;
 			return GF_OK;
-        case GF_CODEC_FLIP:
-            cap->cap.valueInt = is_flipped;
-            return GF_OK;
+		case GF_CODEC_FLIP:
+			cap->cap.valueInt = is_flipped;
+			return GF_OK;
 		case GF_CODEC_OUTPUT_SIZE:
 			cap->cap.valueInt = out_size;
 			return GF_OK;
@@ -1479,17 +1479,17 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	case GF_STREAM_VISUAL:
 	case GF_STREAM_ND_SUBPIC:
 		ifce_type = GF_MEDIA_DECODER_INTERFACE;
-		codec->process = MediaCodec_Process;		
+		codec->process = MediaCodec_Process;
 		break;
 	case GF_STREAM_PRIVATE_MEDIA:
 		ifce_type = GF_PRIVATE_MEDIA_DECODER_INTERFACE;
-		codec->process = gf_codec_process_private_media;		
+		codec->process = gf_codec_process_private_media;
 		break;
 	case GF_STREAM_PRIVATE_SCENE:
 		ifce_type = GF_SCENE_DECODER_INTERFACE;
 		codec->process = PrivateScene_Process;
 		break;
-	default: 
+	default:
 		ifce_type = GF_SCENE_DECODER_INTERFACE;
 		codec->process = SystemCodec_Process;
 		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_SCENE_AFX) {
@@ -1583,7 +1583,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface(term->user->modules, i, ifce_type);
 		if (!ifce) continue;
 		if (ifce->CanHandleStream) {
-			u32 conf = ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL);			
+			u32 conf = ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL);
 
 			if ((conf!=GF_CODEC_NOT_SUPPORTED) && (conf>dec_confidence)) {
 				/*switch*/
@@ -1629,7 +1629,7 @@ GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	case GF_STREAM_AUDIO:
 		if (!esd->decoderConfig->objectTypeIndication)
 			return GF_NON_COMPLIANT_BITSTREAM;
-		
+
 		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_RAW_MEDIA_STREAM) {
 			codec->flags |= GF_ESM_CODEC_IS_RAW_MEDIA;
 			codec->process = gf_codec_process_private_media;
@@ -1644,12 +1644,12 @@ GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL)
 void gf_codec_del(GF_Codec *codec)
 {
 	if (!codec || !codec->inChannels)
-	  return;
+		return;
 	if (gf_list_count(codec->inChannels)) return;
 
 	if (!(codec->flags & GF_ESM_CODEC_IS_USE)) {
 		switch (codec->type) {
-		/*input sensor streams are handled internally for now*/
+			/*input sensor streams are handled internally for now*/
 #ifndef GPAC_DISABLE_VRML
 		case GF_STREAM_INTERACT:
 			gf_mx_p(codec->odm->term->net_mx);

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -180,11 +180,11 @@ static const char * sdp_exts = "sdp";
 
 static const char * sdp_desc = "OnDemand Media/Multicast Session";
 
-static u32 RP_RegisterMimeTypes(const GF_InputService *plug){
-    if (!plug)
-      return 0;
-    gf_term_register_mime_type(plug, sdp_mime, sdp_exts, sdp_desc);
-    return 1;
+static u32 RP_RegisterMimeTypes(const GF_InputService *plug) {
+	if (!plug)
+		return 0;
+	gf_term_register_mime_type(plug, sdp_mime, sdp_exts, sdp_desc);
+	return 1;
 }
 
 static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
@@ -200,8 +200,8 @@ static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 	if (strstr(url, "data:application/sdp")) return 1;
 	/*embedded data*/
 	if (strstr(url, "data:application/mpeg4-od-au;base64") ||
-		strstr(url, "data:application/mpeg4-bifs-au;base64") ||
-		strstr(url, "data:application/mpeg4-es-au;base64")) return 1;
+	        strstr(url, "data:application/mpeg4-bifs-au;base64") ||
+	        strstr(url, "data:application/mpeg4-es-au;base64")) return 1;
 
 	/*we need rtsp/tcp , rtsp/udp or direct RTP sender (no control)*/
 	if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8) || !strnicmp(url, "rtp://", 6)) return 1;
@@ -414,9 +414,9 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 	}
 	/*data: url*/
 	else if (strstr(url, "data:application/mpeg4-od-au;base64")
-		|| strstr(url, "data:application/mpeg4-bifs-au;base64")
-		|| strstr(url, "data:application/mpeg4-es-au;base64")
-		) {
+	         || strstr(url, "data:application/mpeg4-bifs-au;base64")
+	         || strstr(url, "data:application/mpeg4-es-au;base64")
+	        ) {
 
 		GF_SAFEALLOC(ch, RTPStream);
 		ch->control = gf_strdup(url);
@@ -469,7 +469,7 @@ static void gf_rtp_switch_quality(RTPClient *rtp, Bool switch_up)
 	u32 i,count;
 	RTPStream *ch, *cur_ch;
 	GF_NetworkCommand com;
-	
+
 	count = gf_list_count(rtp->channels);
 	/*find the current stream*/
 	ch = cur_ch = NULL;
@@ -505,9 +505,9 @@ static void gf_rtp_switch_quality(RTPClient *rtp, Bool switch_up)
 					rtp->cur_mid = ch->mid;
 					break;
 				}
-			
+
 			}
-		}	
+		}
 	}
 	else
 	{
@@ -531,9 +531,9 @@ static void gf_rtp_switch_quality(RTPClient *rtp, Bool switch_up)
 					gf_term_on_command(rtp->service, &com, GF_OK);
 					rtp->cur_mid = ch->mid;
 					break;
-				}		
+				}
 			}
-		}	
+		}
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("Switch from ES%d to ES %d\n", cur_ch->mid, ch->mid));
 	return;
@@ -709,9 +709,18 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			} else {
 				time = gf_sys_clock() - ch->stat_start_time;
 			}
-			bps = 8.0f * ch->rtp_bytes; bps *= 1000; bps /= time; com->net_stats.bw_down = (u32) bps;
-			bps = 8.0f * ch->rtcp_bytes; bps *= 1000; bps /= time; com->net_stats.ctrl_bw_down = (u32) bps;
-			bps = 8.0f * gf_rtp_get_tcp_bytes_sent(ch->rtp_ch); bps *= 1000; bps /= time; com->net_stats.ctrl_bw_up = (u32) bps;
+			bps = 8.0f * ch->rtp_bytes;
+			bps *= 1000;
+			bps /= time;
+			com->net_stats.bw_down = (u32) bps;
+			bps = 8.0f * ch->rtcp_bytes;
+			bps *= 1000;
+			bps /= time;
+			com->net_stats.ctrl_bw_down = (u32) bps;
+			bps = 8.0f * gf_rtp_get_tcp_bytes_sent(ch->rtp_ch);
+			bps *= 1000;
+			bps /= time;
+			com->net_stats.ctrl_bw_up = (u32) bps;
 		}
 		return GF_OK;
 	default:
@@ -781,9 +790,9 @@ static Bool RP_CanHandleURLInService(GF_InputService *plug, const char *url)
 	RTPClient *priv = (RTPClient *)plug->priv;
 
 	if (strstr(url, "data:application/mpeg4-od-au;base64")
-		|| strstr(url, "data:application/mpeg4-bifs-au;base64")
-		|| strstr(url, "data:application/mpeg4-es-au;base64")
-		) return 1;
+	        || strstr(url, "data:application/mpeg4-bifs-au;base64")
+	        || strstr(url, "data:application/mpeg4-es-au;base64")
+	   ) return 1;
 
 	if (url[0]=='#') {
 		Bool st_type = 0;

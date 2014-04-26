@@ -73,7 +73,7 @@ public:
 // Overrides
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(UserPassDialog)
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
 
@@ -106,7 +106,7 @@ void UserPassDialog::DoDataExchange(CDataExchange* pDX)
 	//}}AFX_DATA_MAP
 }
 
-BOOL UserPassDialog::OnInitDialog() 
+BOOL UserPassDialog::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	m_SiteURL.SetWindowText(m_site_url);
@@ -214,14 +214,14 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		if (evt->size.width && evt->size.height) {
 			gpac->orig_width = evt->size.width;
 			gpac->orig_height = evt->size.height;
-			if (gpac->m_term && !pFrame->m_bFullScreen) 
+			if (gpac->m_term && !pFrame->m_bFullScreen)
 				pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
 		}
 		break;
-	/*don't resize on win32 msg notif*/
+		/*don't resize on win32 msg notif*/
 #if 0
 	case GF_EVENT_SIZE:
-		if (/*gpac->m_term && !pFrame->m_bFullScreen && */gpac->orig_width && (evt->size.width < W32_MIN_WIDTH) ) 
+		if (/*gpac->m_term && !pFrame->m_bFullScreen && */gpac->orig_width && (evt->size.width < W32_MIN_WIDTH) )
 			pFrame->PostMessage(WM_SETSIZE, W32_MIN_WIDTH, (W32_MIN_WIDTH*gpac->orig_height) / gpac->orig_width);
 		else
 			pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
@@ -256,7 +256,7 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 	case GF_EVENT_MIGRATE:
 	{
 	}
-		break;
+	break;
 	case GF_EVENT_KEYDOWN:
 		gf_term_process_shortcut(gpac->m_term, evt);
 		/*update volume control*/
@@ -340,11 +340,11 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 
 /*here's the trick: use a storage section shared among all processes for the wnd handle and for the command line
 NOTE: this has to be static memory of course, don't try to alloc anything there...*/
-#pragma comment(linker, "/SECTION:.shr,RWS") 
-#pragma data_seg(".shr") 
-HWND static_gpac_hwnd = NULL; 
+#pragma comment(linker, "/SECTION:.shr,RWS")
+#pragma data_seg(".shr")
+HWND static_gpac_hwnd = NULL;
 char static_szCmdLine[MAX_PATH] = "";
-#pragma data_seg() 
+#pragma data_seg()
 
 const char *static_gpac_get_url()
 {
@@ -354,7 +354,7 @@ const char *static_gpac_get_url()
 static void osmo4_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_list list)
 {
 	FILE *logs = (FILE *) cbk;
-    vfprintf(logs, fmt, list);
+	vfprintf(logs, fmt, list);
 	fflush(logs);
 }
 
@@ -362,7 +362,7 @@ BOOL Osmo4::InitInstance()
 {
 	CCommandLineInfo cmdInfo;
 
-	afxAmbientActCtx = FALSE; 
+	afxAmbientActCtx = FALSE;
 
 	m_logs = NULL;
 
@@ -440,7 +440,7 @@ BOOL Osmo4::InitInstance()
 					::SendMessageTimeout(static_gpac_hwnd, WM_NEWINSTANCE, 0, 0, 0, 1000, &res);
 				}
 			}
-			
+
 			return FALSE;
 		}
 	}
@@ -568,7 +568,7 @@ BOOL Osmo4::InitInstance()
 	return TRUE;
 }
 
-int Osmo4::ExitInstance() 
+int Osmo4::ExitInstance()
 {
 	if (m_term) gf_term_del(m_term);
 	if (m_user.modules) gf_modules_del(m_user.modules);
@@ -607,7 +607,7 @@ public:
 
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CAboutDlg)
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	//}}AFX_VIRTUAL
 
@@ -639,21 +639,21 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
-void Osmo4::OnAbout() 
+void Osmo4::OnAbout()
 {
 	CAboutDlg aboutDlg;
 	aboutDlg.DoModal();
 }
 
-BOOL CAboutDlg::OnInitDialog() 
+BOOL CAboutDlg::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	CString str = "GPAC/Osmo4 - version " GPAC_FULL_VERSION;
 	SetWindowText(str);
-	return TRUE;  
+	return TRUE;
 }
 
-void CAboutDlg::OnGogpac() 
+void CAboutDlg::OnGogpac()
 {
 	ShellExecute(NULL, "open", "http://gpac.sourceforge.net", NULL, NULL, SW_SHOWNORMAL);
 }
@@ -677,7 +677,7 @@ void Osmo4::SetOptions()
 }
 
 
-void Osmo4::OnOpenUrl() 
+void Osmo4::OnOpenUrl()
 {
 	COpenUrl url;
 	if (url.DoModal() != IDOK) return;
@@ -741,7 +741,7 @@ CString Osmo4::GetFileFilter()
 
 		sOpt = CString(szKeyList);
 		while (1) {
-			
+
 			int pos = sOpt.Find(' ');
 			CString ext = (pos==-1) ? sOpt : sOpt.Left(pos);
 			/*WATCHOUT: we do have some "double" ext , eg .wrl.gz - these are NOT supported by windows*/
@@ -775,11 +775,11 @@ CString Osmo4::GetFileFilter()
 	return supportedFiles;
 }
 
-void Osmo4::OnOpenFile() 
+void Osmo4::OnOpenFile()
 {
 	CString sFiles = GetFileFilter();
 	u32 nb_items;
-	
+
 	/*looks like there's a bug here, main filter isn't used correctly while the others are*/
 	CFileDialog fd(TRUE,NULL,NULL, OFN_ALLOWMULTISELECT | OFN_HIDEREADONLY | OFN_FILEMUSTEXIST , sFiles);
 	fd.m_ofn.nMaxFile = 25000;
@@ -800,7 +800,7 @@ void Osmo4::OnOpenFile()
 		nb_items++;
 	}
 	/*if several items, act as playlist (replace playlist), otherwise as browser (lost all "next" context)*/
-	if (nb_items==1) 
+	if (nb_items==1)
 		pFrame->m_pPlayList->Truncate();
 	else
 		pFrame->m_pPlayList->Clear();
@@ -822,19 +822,19 @@ void Osmo4::Pause()
 	gf_term_set_option(m_term, GF_OPT_PLAY_STATE, (gf_term_get_option(m_term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) ? GF_STATE_PAUSED : GF_STATE_PLAYING);
 }
 
-void Osmo4::OnMainPause() 
+void Osmo4::OnMainPause()
 {
-	Pause();	
+	Pause();
 }
 
-void Osmo4::OnFileStep() 
+void Osmo4::OnFileStep()
 {
 	gf_term_set_option(m_term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 	((CMainFrame *) m_pMainWnd)->m_wndToolBar.SetButtonInfo(5, ID_FILE_PLAY, TBBS_BUTTON, 3);
 }
-void Osmo4::OnUpdateFileStep(CCmdUI* pCmdUI) 
+void Osmo4::OnUpdateFileStep(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable(m_isopen && !m_reset);	
+	pCmdUI->Enable(m_isopen && !m_reset);
 }
 
 void Osmo4::PlayFromTime(u32 time)
@@ -848,19 +848,19 @@ void Osmo4::PlayFromTime(u32 time)
 }
 
 
-void Osmo4::OnFileReload() 
+void Osmo4::OnFileReload()
 {
 	gf_term_disconnect(m_term);
 	m_pMainWnd->PostMessage(WM_OPENURL);
 }
 
-void Osmo4::OnFileMigrate() 
+void Osmo4::OnFileMigrate()
 {
 }
 
-void Osmo4::OnConfigReload() 
+void Osmo4::OnConfigReload()
 {
-	gf_term_set_option(m_term, GF_OPT_RELOAD_CONFIG, 1); 
+	gf_term_set_option(m_term, GF_OPT_RELOAD_CONFIG, 1);
 }
 
 void Osmo4::UpdatePlayButton(Bool force_play)
@@ -872,7 +872,7 @@ void Osmo4::UpdatePlayButton(Bool force_play)
 	}
 }
 
-void Osmo4::OnFilePlay() 
+void Osmo4::OnFilePlay()
 {
 	if (m_isopen) {
 		if (m_reset) {
@@ -888,10 +888,10 @@ void Osmo4::OnFilePlay()
 	}
 }
 
-void Osmo4::OnUpdateFilePlay(CCmdUI* pCmdUI) 
+void Osmo4::OnUpdateFilePlay(CCmdUI* pCmdUI)
 {
 	if (m_isopen) {
-		pCmdUI->Enable(TRUE);	
+		pCmdUI->Enable(TRUE);
 		if (pCmdUI->m_nID==ID_FILE_PLAY) {
 			if (!m_isopen) {
 				pCmdUI->SetText("Play/Pause\tCtrl+P");
@@ -902,12 +902,12 @@ void Osmo4::OnUpdateFilePlay(CCmdUI* pCmdUI)
 			}
 		}
 	} else {
-		pCmdUI->Enable(((CMainFrame *)m_pMainWnd)->m_pPlayList->HasValidEntries() );	
+		pCmdUI->Enable(((CMainFrame *)m_pMainWnd)->m_pPlayList->HasValidEntries() );
 		pCmdUI->SetText("Play\tCtrl+P");
 	}
 }
 
-void Osmo4::OnFileStop() 
+void Osmo4::OnFileStop()
 {
 	CMainFrame *pFrame = (CMainFrame *) m_pMainWnd;
 	if (m_reset) return;
@@ -919,12 +919,12 @@ void Osmo4::OnFileStop()
 	start_mode = 2;
 }
 
-void Osmo4::OnUpdateFileStop(CCmdUI* pCmdUI) 
+void Osmo4::OnUpdateFileStop(CCmdUI* pCmdUI)
 {
-//	pCmdUI->Enable(m_isopen);	
+//	pCmdUI->Enable(m_isopen);
 }
 
-void Osmo4::OnSwitchRender() 
+void Osmo4::OnSwitchRender()
 {
 	const char *opt = gf_cfg_get_key(m_user.config, "Compositor", "OpenGLMode");
 	Bool use_gl = (opt && !stricmp(opt, "always")) ? GF_TRUE : GF_FALSE;

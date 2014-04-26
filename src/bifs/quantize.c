@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -33,9 +33,9 @@ GF_Err gf_bifs_enc_qp_set(GF_BifsEncoder *codec, GF_Node *qp)
 	if (gf_node_get_tag(qp) != TAG_MPEG4_QuantizationParameter) return GF_BAD_PARAM;
 
 	/*if we have an active QP, push it into the stack*/
-	if (codec->ActiveQP && ((GF_Node*)codec->ActiveQP != codec->scene_graph->global_qp) ) 
+	if (codec->ActiveQP && ((GF_Node*)codec->ActiveQP != codec->scene_graph->global_qp) )
 		gf_list_insert(codec->QPs, codec->ActiveQP, 0);
-	
+
 	codec->ActiveQP = (M_QuantizationParameter *)qp;
 	return GF_OK;
 }
@@ -58,7 +58,7 @@ GF_Err gf_bifs_enc_qp_remove(GF_BifsEncoder *codec, Bool ActivatePrev)
 u32 gf_bifs_enc_qp14_get_bits(GF_BifsEncoder *codec)
 {
 	if (!codec->ActiveQP || !codec->coord_stored) return 0;
-	return (u32) ceil(log(codec->NumCoord+1) / log(2) ); 
+	return (u32) ceil(log(codec->NumCoord+1) / log(2) );
 }
 
 void gf_bifs_enc_qp14_enter(GF_BifsEncoder *codec, Bool Enter)
@@ -90,31 +90,31 @@ void gf_bifs_enc_mantissa_float(GF_BifsEncoder *codec, Fixed ft, GF_BitStream *b
 	s32 exp;
 
 	union
-	{	
+	{
 		Float f;
 		s32 l;
 	} ft_val;
 
 	if (ft == 0) {
-	    gf_bs_write_int(bs, 0, 4);
+		gf_bs_write_int(bs, 0, 4);
 		return;
 	}
 	ft_val.f = FIX2FLT(ft);
-  
+
 	mantSign = ((ft_val.l & 0x80000000) >> 31) & 0x1;
 	mantissa = (ft_val.l & 0x007FFFFF) >> 9;
 	mantLength = 15;
 	expSign=0;
 	exp =(((ft_val.l & 0x7F800000) >> 23)-127);
 	expLength = 8;
-  
+
 	if (mantissa == 0) mantLength = 1;
-  
+
 
 	if (exp) {
 		if (exp< 0) {
 			expSign = 1;
-			exp = -exp;	    
+			exp = -exp;
 		}
 		while ((exp & (1<<(--expLength)))==0) { }
 		exp &= ~(1<<expLength);
@@ -122,7 +122,7 @@ void gf_bifs_enc_mantissa_float(GF_BifsEncoder *codec, Fixed ft, GF_BitStream *b
 	} else {
 		expLength=0;
 	}
-  
+
 	nbBits=0;
 	for(i = mantissa; i>0; ++nbBits) i >>= 1;
 
@@ -207,7 +207,7 @@ GF_Err Q_EncInt(GF_BifsEncoder *codec, GF_BitStream *bs, u32 QType, SFInt32 b_mi
 	}
 }
 
-GF_Err Q_EncCoordOnUnitSphere(GF_BifsEncoder *codec, GF_BitStream *bs, u32 NbBits, u32 NbComp, Fixed *m_ft) 
+GF_Err Q_EncCoordOnUnitSphere(GF_BifsEncoder *codec, GF_BitStream *bs, u32 NbBits, u32 NbComp, Fixed *m_ft)
 {
 	u32 i;
 	u32 len = NbComp+1;
@@ -219,7 +219,7 @@ GF_Err Q_EncCoordOnUnitSphere(GF_BifsEncoder *codec, GF_BitStream *bs, u32 NbBit
 			orientation = i;
 		}
 	}
-	if(NbComp==2) gf_bs_write_int(bs, ((m_ft[orientation]>0) ? 0 : 1), 1); 
+	if(NbComp==2) gf_bs_write_int(bs, ((m_ft[orientation]>0) ? 0 : 1), 1);
 	gf_bs_write_int(bs, orientation, 2);
 	for (i=0; i<NbComp; i++) {
 		Fixed v = gf_mulfix(gf_divfix(INT2FIX(4), GF_PI) , gf_atan2(m_ft[orientation], m_ft[(orientation+i+1) % len]));
@@ -245,7 +245,7 @@ GF_Err Q_EncRotation(GF_BifsEncoder *codec, GF_BitStream *bs, u32 NbBits, void *
 {
 	GF_Vec4 quat;
 	Fixed comp[4];
-	
+
 	/*get quaternion*/
 	quat = gf_quat_from_rotation(*(SFRotation *)field_ptr);
 	comp[0] = quat.q;
@@ -279,7 +279,7 @@ GF_Err gf_bifs_enc_quant_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node 
 	default:
 		return GF_EOS;
 	}
-	
+
 	/*check NDT*/
 	HasQ = gf_bifs_get_aq_info(node, field->fieldIndex, &QType, &AType, &b_min, &b_max, &NbBits);
 	if (!HasQ || !QType) return GF_EOS;
@@ -288,7 +288,7 @@ GF_Err gf_bifs_enc_quant_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node 
 	if (QType == QC_COORD_INDEX) {
 		NbBits = gf_bifs_enc_qp14_get_bits(codec);
 		/*QP14 is always on, not having NbBits set means the coord field is set after the index field, hence not decodable*/
-		if (!NbBits) 
+		if (!NbBits)
 			return GF_NON_COMPLIANT_BITSTREAM;
 	}
 

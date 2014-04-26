@@ -12,7 +12,7 @@
  *	char kn[16][8];
  */
 
-/* modified in order to use the libmcrypt API by Nikos Mavroyanopoulos 
+/* modified in order to use the libmcrypt API by Nikos Mavroyanopoulos
  * All modifications are placed under the license of libmcrypt.
  */
 
@@ -112,52 +112,60 @@ static char pc2[] = {
 /* The (in)famous S-boxes */
 static char si[8][64] = {
 	/* S1 */
-	{14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7,
-	 0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8,
-	 4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0,
-	 15, 12, 8, 2, 4, 9, 1, 7, 5, 11, 3, 14, 10, 0, 6, 13},
+	{	14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7,
+		0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8,
+		4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0,
+		15, 12, 8, 2, 4, 9, 1, 7, 5, 11, 3, 14, 10, 0, 6, 13
+	},
 
 	/* S2 */
-	{15, 1, 8, 14, 6, 11, 3, 4, 9, 7, 2, 13, 12, 0, 5, 10,
-	 3, 13, 4, 7, 15, 2, 8, 14, 12, 0, 1, 10, 6, 9, 11, 5,
-	 0, 14, 7, 11, 10, 4, 13, 1, 5, 8, 12, 6, 9, 3, 2, 15,
-	 13, 8, 10, 1, 3, 15, 4, 2, 11, 6, 7, 12, 0, 5, 14, 9},
+	{	15, 1, 8, 14, 6, 11, 3, 4, 9, 7, 2, 13, 12, 0, 5, 10,
+		3, 13, 4, 7, 15, 2, 8, 14, 12, 0, 1, 10, 6, 9, 11, 5,
+		0, 14, 7, 11, 10, 4, 13, 1, 5, 8, 12, 6, 9, 3, 2, 15,
+		13, 8, 10, 1, 3, 15, 4, 2, 11, 6, 7, 12, 0, 5, 14, 9
+	},
 
 	/* S3 */
-	{10, 0, 9, 14, 6, 3, 15, 5, 1, 13, 12, 7, 11, 4, 2, 8,
-	 13, 7, 0, 9, 3, 4, 6, 10, 2, 8, 5, 14, 12, 11, 15, 1,
-	 13, 6, 4, 9, 8, 15, 3, 0, 11, 1, 2, 12, 5, 10, 14, 7,
-	 1, 10, 13, 0, 6, 9, 8, 7, 4, 15, 14, 3, 11, 5, 2, 12},
+	{	10, 0, 9, 14, 6, 3, 15, 5, 1, 13, 12, 7, 11, 4, 2, 8,
+		13, 7, 0, 9, 3, 4, 6, 10, 2, 8, 5, 14, 12, 11, 15, 1,
+		13, 6, 4, 9, 8, 15, 3, 0, 11, 1, 2, 12, 5, 10, 14, 7,
+		1, 10, 13, 0, 6, 9, 8, 7, 4, 15, 14, 3, 11, 5, 2, 12
+	},
 
 	/* S4 */
-	{7, 13, 14, 3, 0, 6, 9, 10, 1, 2, 8, 5, 11, 12, 4, 15,
-	 13, 8, 11, 5, 6, 15, 0, 3, 4, 7, 2, 12, 1, 10, 14, 9,
-	 10, 6, 9, 0, 12, 11, 7, 13, 15, 1, 3, 14, 5, 2, 8, 4,
-	 3, 15, 0, 6, 10, 1, 13, 8, 9, 4, 5, 11, 12, 7, 2, 14},
+	{	7, 13, 14, 3, 0, 6, 9, 10, 1, 2, 8, 5, 11, 12, 4, 15,
+		13, 8, 11, 5, 6, 15, 0, 3, 4, 7, 2, 12, 1, 10, 14, 9,
+		10, 6, 9, 0, 12, 11, 7, 13, 15, 1, 3, 14, 5, 2, 8, 4,
+		3, 15, 0, 6, 10, 1, 13, 8, 9, 4, 5, 11, 12, 7, 2, 14
+	},
 
 	/* S5 */
-	{2, 12, 4, 1, 7, 10, 11, 6, 8, 5, 3, 15, 13, 0, 14, 9,
-	 14, 11, 2, 12, 4, 7, 13, 1, 5, 0, 15, 10, 3, 9, 8, 6,
-	 4, 2, 1, 11, 10, 13, 7, 8, 15, 9, 12, 5, 6, 3, 0, 14,
-	 11, 8, 12, 7, 1, 14, 2, 13, 6, 15, 0, 9, 10, 4, 5, 3},
+	{	2, 12, 4, 1, 7, 10, 11, 6, 8, 5, 3, 15, 13, 0, 14, 9,
+		14, 11, 2, 12, 4, 7, 13, 1, 5, 0, 15, 10, 3, 9, 8, 6,
+		4, 2, 1, 11, 10, 13, 7, 8, 15, 9, 12, 5, 6, 3, 0, 14,
+		11, 8, 12, 7, 1, 14, 2, 13, 6, 15, 0, 9, 10, 4, 5, 3
+	},
 
 	/* S6 */
-	{12, 1, 10, 15, 9, 2, 6, 8, 0, 13, 3, 4, 14, 7, 5, 11,
-	 10, 15, 4, 2, 7, 12, 9, 5, 6, 1, 13, 14, 0, 11, 3, 8,
-	 9, 14, 15, 5, 2, 8, 12, 3, 7, 0, 4, 10, 1, 13, 11, 6,
-	 4, 3, 2, 12, 9, 5, 15, 10, 11, 14, 1, 7, 6, 0, 8, 13},
+	{	12, 1, 10, 15, 9, 2, 6, 8, 0, 13, 3, 4, 14, 7, 5, 11,
+		10, 15, 4, 2, 7, 12, 9, 5, 6, 1, 13, 14, 0, 11, 3, 8,
+		9, 14, 15, 5, 2, 8, 12, 3, 7, 0, 4, 10, 1, 13, 11, 6,
+		4, 3, 2, 12, 9, 5, 15, 10, 11, 14, 1, 7, 6, 0, 8, 13
+	},
 
 	/* S7 */
-	{4, 11, 2, 14, 15, 0, 8, 13, 3, 12, 9, 7, 5, 10, 6, 1,
-	 13, 0, 11, 7, 4, 9, 1, 10, 14, 3, 5, 12, 2, 15, 8, 6,
-	 1, 4, 11, 13, 12, 3, 7, 14, 10, 15, 6, 8, 0, 5, 9, 2,
-	 6, 11, 13, 8, 1, 4, 10, 7, 9, 5, 0, 15, 14, 2, 3, 12},
+	{	4, 11, 2, 14, 15, 0, 8, 13, 3, 12, 9, 7, 5, 10, 6, 1,
+		13, 0, 11, 7, 4, 9, 1, 10, 14, 3, 5, 12, 2, 15, 8, 6,
+		1, 4, 11, 13, 12, 3, 7, 14, 10, 15, 6, 8, 0, 5, 9, 2,
+		6, 11, 13, 8, 1, 4, 10, 7, 9, 5, 0, 15, 14, 2, 3, 12
+	},
 
 	/* S8 */
-	{13, 2, 8, 4, 6, 15, 11, 1, 10, 9, 3, 14, 5, 0, 12, 7,
-	 1, 15, 13, 8, 10, 3, 7, 4, 12, 5, 6, 11, 0, 14, 9, 2,
-	 7, 11, 4, 1, 9, 12, 14, 2, 0, 6, 10, 13, 15, 3, 5, 8,
-	 2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11},
+	{	13, 2, 8, 4, 6, 15, 11, 1, 10, 9, 3, 14, 5, 0, 12, 7,
+		1, 15, 13, 8, 10, 3, 7, 4, 12, 5, 6, 11, 0, 14, 9, 2,
+		7, 11, 4, 1, 9, 12, 14, 2, 0, 6, 10, 13, 15, 3, 5, 8,
+		2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11
+	},
 
 };
 
@@ -226,15 +234,15 @@ static GF_Err _mcrypt_set_key(TRIPLEDES_KEY * dkey, char *user_key, int len)
 		l = pc1[j] - 1;	/* integer bit location  */
 		m = l & 07;	/* find bit              */
 		pc1m[j] = (user_key1[l >> 3] &	/* find which key byte l is in */
-			   bytebit[m])	/* and which bit of that byte */
-		    ? 1 : 0;	/* and store 1-bit result */
+		           bytebit[m])	/* and which bit of that byte */
+		          ? 1 : 0;	/* and store 1-bit result */
 
 	}
 	for (i = 0; i < 16; i++) {	/* key chunk for each iteration */
 		for (j = 0; j < 56; j++)	/* rotate pc1 the right amount */
 			pcr[j] =
 			    pc1m[(l = j + totrot[i]) <
-				 (j < 28 ? 28 : 56) ? l : l - 28];
+			         (j < 28 ? 28 : 56) ? l : l - 28];
 		/* rotate left and right halves independently */
 		for (j = 0; j < 48; j++) {	/* select bits individually */
 			/* check bit that goes to kn[j] */
@@ -245,20 +253,20 @@ static GF_Err _mcrypt_set_key(TRIPLEDES_KEY * dkey, char *user_key, int len)
 			}
 		}
 	}
-/* DES 2 */
+	/* DES 2 */
 	for (j = 0; j < 56; j++) {	/* convert pc1 to bits of key */
 		l = pc1[j] - 1;	/* integer bit location  */
 		m = l & 07;	/* find bit              */
 		pc1m[j] = (user_key2[l >> 3] &	/* find which key byte l is in */
-			   bytebit[m])	/* and which bit of that byte */
-		    ? 1 : 0;	/* and store 1-bit result */
+		           bytebit[m])	/* and which bit of that byte */
+		          ? 1 : 0;	/* and store 1-bit result */
 
 	}
 	for (i = 0; i < 16; i++) {	/* key chunk for each iteration */
 		for (j = 0; j < 56; j++)	/* rotate pc1 the right amount */
 			pcr[j] =
 			    pc1m[(l = j + totrot[i]) <
-				 (j < 28 ? 28 : 56) ? l : l - 28];
+			         (j < 28 ? 28 : 56) ? l : l - 28];
 		/* rotate left and right halves independently */
 		for (j = 0; j < 48; j++) {	/* select bits individually */
 			/* check bit that goes to kn[j] */
@@ -269,20 +277,20 @@ static GF_Err _mcrypt_set_key(TRIPLEDES_KEY * dkey, char *user_key, int len)
 			}
 		}
 	}
-/* DES 3 */
+	/* DES 3 */
 	for (j = 0; j < 56; j++) {	/* convert pc1 to bits of key */
 		l = pc1[j] - 1;	/* integer bit location  */
 		m = l & 07;	/* find bit              */
 		pc1m[j] = (user_key3[l >> 3] &	/* find which key byte l is in */
-			   bytebit[m])	/* and which bit of that byte */
-		    ? 1 : 0;	/* and store 1-bit result */
+		           bytebit[m])	/* and which bit of that byte */
+		          ? 1 : 0;	/* and store 1-bit result */
 
 	}
 	for (i = 0; i < 16; i++) {	/* key chunk for each iteration */
 		for (j = 0; j < 56; j++)	/* rotate pc1 the right amount */
 			pcr[j] =
 			    pc1m[(l = j + totrot[i]) <
-				 (j < 28 ? 28 : 56) ? l : l - 28];
+			         (j < 28 ? 28 : 56) ? l : l - 28];
 		/* rotate left and right halves independently */
 		for (j = 0; j < 48; j++) {	/* select bits individually */
 			/* check bit that goes to kn[j] */
@@ -307,7 +315,7 @@ static void _mcrypt_encrypt(TRIPLEDES_KEY * key, char *block)
 	register char *knp;
 	u32 work[2];		/* Working data storage */
 
-/* DES 1 */
+	/* DES 1 */
 	permute(block, key->iperm, (char *) work);	/* Initial Permutation */
 #ifndef	WORDS_BIGENDIAN
 	left = byteswap32(work[0]);
@@ -355,7 +363,7 @@ static void _mcrypt_encrypt(TRIPLEDES_KEY * key, char *block)
 	knp += 8;
 	right ^= f(key, 0, left, knp);
 
-/* DES 2 */
+	/* DES 2 */
 
 	/* Do the 16 rounds in reverse order.
 	 * The rounds are numbered from 15 to 0. On even rounds
@@ -466,7 +474,7 @@ static void _mcrypt_decrypt(TRIPLEDES_KEY * key, char *block)
 	left = work[1];
 #endif
 
-/* DES 3 */
+	/* DES 3 */
 
 	/* Do the 16 rounds in reverse order.
 	 * The rounds are numbered from 15 to 0. On even rounds
@@ -507,7 +515,7 @@ static void _mcrypt_decrypt(TRIPLEDES_KEY * key, char *block)
 	left ^= f(key, 2, right, knp);
 
 
-/* DES 2*/
+	/* DES 2*/
 	/* Do the 16 rounds.
 	 * The rounds are numbered from 0 to 15. On even rounds
 	 * the right half is fed to f() and the result exclusive-ORs
@@ -546,7 +554,7 @@ static void _mcrypt_decrypt(TRIPLEDES_KEY * key, char *block)
 	knp += 8;
 	right ^= f(key, 1, left, knp);
 
-/* DES 1 */
+	/* DES 1 */
 	/* Do the 16 rounds in reverse order.
 	 * The rounds are numbered from 15 to 0. On even rounds
 	 * the right half is fed to f() and the result exclusive-ORs
@@ -630,7 +638,7 @@ static void permute(char *inblock, char perm[16][16][8], char *outblock)
 
 /* The nonlinear function f(r,k), the heart of DES */
 static u32 f(TRIPLEDES_KEY * key, int pos, register u32 r,
-		register char *subkey)
+             register char *subkey)
 {
 	register u32 *spp;
 	register u32 rval, rt;
@@ -638,9 +646,9 @@ static u32 f(TRIPLEDES_KEY * key, int pos, register u32 r,
 
 #ifdef	TRACE
 	fprintf(stderr, "f(%08lx, %02x %02x %02x %02x %02x %02x %02x %02x) = ",
-	       r,
-	       subkey[0], subkey[1], subkey[2],
-	       subkey[3], subkey[4], subkey[5], subkey[6], subkey[7]);
+	        r,
+	        subkey[0], subkey[1], subkey[2],
+	        subkey[3], subkey[4], subkey[5], subkey[6], subkey[7]);
 #endif
 	/* Run E(R) ^ K through the combined S & P boxes.
 	 * This code takes advantage of a convenient regularity in
@@ -729,7 +737,7 @@ static void spinit(TRIPLEDES_KEY * key, int pos)
 			 */
 			rowcol =
 			    (i & 32) | ((i & 1) ? 16 : 0) | ((i >> 1) &
-							     0xf);
+			                                     0xf);
 			for (j = 0; j < 4; j++) {	/* For each output bit */
 				if (si[s][rowcol] & (8 >> j)) {
 					val |=
@@ -749,7 +757,7 @@ void gf_crypt_register_3des(GF_Crypt *td)
 	td->algo_name = "3DES";
 	td->algo_version = 19991129;
 	td->num_key_sizes = 1;
-	td->key_sizes[0] = 24; 
+	td->key_sizes[0] = 24;
 	td->key_size = 24;
 	td->is_block_algo = 1;
 	td->algo_block_size = 8;

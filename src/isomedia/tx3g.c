@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -40,7 +40,7 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 	if (!descriptionIndex || !desc) return GF_BAD_PARAM;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
-	
+
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media || !desc->font_count) return GF_BAD_PARAM;
 
@@ -65,7 +65,7 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	txt->back_color = desc->back_color; 
+	txt->back_color = desc->back_color;
 	txt->default_box = desc->default_pos;
 	txt->default_style = desc->default_style;
 	txt->displayFlags = desc->displayFlags;
@@ -92,7 +92,7 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
-	
+
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media || !desc->font_count) return GF_BAD_PARAM;
 
@@ -119,7 +119,7 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 	gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, txt);
 	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 
-	txt->back_color = desc->back_color; 
+	txt->back_color = desc->back_color;
 	txt->default_box = desc->default_pos;
 	txt->default_style = desc->default_style;
 	txt->displayFlags = desc->displayFlags;
@@ -137,7 +137,7 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 }
 
 
-/*blindly adds text - note we don't rely on terminaison characters to handle utf8 and utf16 data 
+/*blindly adds text - note we don't rely on terminaison characters to handle utf8 and utf16 data
 in the same way. It is the user responsability to signal UTF16*/
 GF_Err gf_isom_text_add_text(GF_TextSample *samp, char *text_data, u32 text_len)
 {
@@ -196,9 +196,12 @@ GF_Err gf_isom_text_set_highlight_color(GF_TextSample *samp, u8 r, u8 g, u8 b, u
 		samp->highlight_color = (GF_TextHighlightColorBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HCLR);
 		if (!samp->highlight_color) return GF_OUT_OF_MEM;
 	}
-	samp->highlight_color->hil_color = a; samp->highlight_color->hil_color <<= 8;
-	samp->highlight_color->hil_color = r; samp->highlight_color->hil_color <<= 8;
-	samp->highlight_color->hil_color = g; samp->highlight_color->hil_color <<= 8;
+	samp->highlight_color->hil_color = a;
+	samp->highlight_color->hil_color <<= 8;
+	samp->highlight_color->hil_color = r;
+	samp->highlight_color->hil_color <<= 8;
+	samp->highlight_color->hil_color = g;
+	samp->highlight_color->hil_color <<= 8;
 	samp->highlight_color->hil_color = b;
 	return GF_OK;
 }
@@ -361,7 +364,7 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 	if (!desc) return GF_BAD_PARAM;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return GF_BAD_PARAM;
-	
+
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media || !desc->font_count) return GF_BAD_PARAM;
 
@@ -454,16 +457,17 @@ GF_EXPORT
 GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs)
 {
 	GF_TextSample *s = gf_isom_new_text_sample();
-	
+
 	/*empty sample*/
 	if (!bs || !gf_bs_available(bs)) return s;
 
 	s->len = gf_bs_read_u16(bs);
 	if (s->len) {
-		/*2 extra bytes for UTF-16 term char just in case (we don't know if a BOM marker is present or 
+		/*2 extra bytes for UTF-16 term char just in case (we don't know if a BOM marker is present or
 		not since this may be a sample carried over RTP*/
 		s->text = (char *) gf_malloc(sizeof(char)*(s->len+2) );
-		s->text[s->len] = 0; s->text[s->len+1] = 0;
+		s->text[s->len] = 0;
+		s->text[s->len+1] = 0;
 		gf_bs_read_data(bs, s->text, s->len);
 	}
 
@@ -528,7 +532,7 @@ GF_TextSample *gf_isom_parse_texte_sample_from_data(char *data, u32 dataLength)
 	if (!data || !dataLength) {
 		return gf_isom_new_text_sample();
 	}
-	
+
 	bs = gf_bs_new(data, dataLength, GF_BITSTREAM_READ);
 	s = gf_isom_parse_texte_sample(bs);
 	gf_bs_del(bs);
@@ -547,7 +551,7 @@ static void gf_isom_write_tx3g(GF_Tx3gSampleEntryBox *a, GF_BitStream *bs, u32 s
 	void gpp_write_box(GF_BitStream *bs, GF_BoxRecord *rec);
 	void gpp_write_style(GF_BitStream *bs, GF_StyleRecord *rec);
 
-	
+
 	if (sidx_offset) gf_bs_write_u8(bs, sidx + sidx_offset);
 
 	/*SINCE WINCE HAS A READONLY VERSION OF MP4 WE MUST DO IT BY HAND*/
@@ -576,7 +580,7 @@ static void gf_isom_write_tx3g(GF_Tx3gSampleEntryBox *a, GF_BitStream *bs, u32 s
 	size -= (8 + 18 + 8 + 12);
 	gf_bs_write_u32(bs, size);
 	gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_FTAB);
-	
+
 	gf_bs_write_u16(bs, fount_count);
 	for (j=0; j<fount_count; j++) {
 		gf_bs_write_u16(bs, a->font_table->fonts[j].fontID);
@@ -603,7 +607,7 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
 	sampleDesc = mdia->information->sampleTable->SampleDescription->other_boxes;
 	count = gf_list_count(sampleDesc);
 	if (!count) return GF_ISOM_INVALID_MEDIA;
-	
+
 	esd = gf_odf_desc_esd_new(2);
 	esd->decoderConfig->streamType = GF_STREAM_TEXT;
 	esd->decoderConfig->objectTypeIndication = 0x08;
@@ -650,9 +654,11 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
 		/*which video shall we pick for MPEG-4, and how is the associations indicated in 3GP ???*/
 		gf_bs_write_u16(bs, 0);
 		gf_bs_write_u16(bs, 0);
-		trans = mdia->mediaTrack->Header->matrix[6]; trans >>= 16;
+		trans = mdia->mediaTrack->Header->matrix[6];
+		trans >>= 16;
 		gf_bs_write_u16(bs, trans);
-		trans = mdia->mediaTrack->Header->matrix[7]; trans >>= 16;
+		trans = mdia->mediaTrack->Header->matrix[7];
+		trans >>= 16;
 		gf_bs_write_u16(bs, trans);
 	}
 
@@ -709,14 +715,14 @@ GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 
 	GF_BitStream *bs;
 	GF_TrackBox *trak;
 	GF_Tx3gSampleEntryBox *a;
-	
+
 	trak = gf_isom_get_track_from_file(file, track);
 	if (!trak) return GF_BAD_PARAM;
 
 	a = (GF_Tx3gSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, sidx-1);
 	if (!a) return GF_BAD_PARAM;
 	if ((a->type != GF_ISOM_BOX_TYPE_TX3G) && (a->type != GF_ISOM_BOX_TYPE_TEXT)) return GF_BAD_PARAM;
-	
+
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_isom_write_tx3g(a, bs, sidx, sidx_offset);
 	*tx3g = NULL;

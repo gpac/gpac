@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -235,7 +235,7 @@ GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, char *data, u32 data_siz
 			continue;
 		}
 		/*packet full or too long*/
-		if (builder->bytesInPacket + size > builder->Path_MTU) 
+		if (builder->bytesInPacket + size > builder->Path_MTU)
 			rtp_evrc_smv_flush(builder);
 
 		/*need new*/
@@ -290,7 +290,7 @@ GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, char *data, u32 data_si
 	u32 offset, size, max_size;
 
 	builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
-	
+
 	/*the H263 hinter doesn't perform inter-sample concatenation*/
 	if (!data) return GF_OK;
 
@@ -302,10 +302,10 @@ GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, char *data, u32 data_si
 	max_size = builder->Path_MTU - 2;
 
 	while(data_size > 0) {
-		if(data_size > max_size){
+		if(data_size > max_size) {
 			size = max_size;
 			builder->rtp_header.Marker = 0;
-		}else{
+		} else {
 			size = data_size;
 			builder->rtp_header.Marker = 1;
 		}
@@ -315,7 +315,7 @@ GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, char *data, u32 data_si
 		/*create new RTP Packet */
 		builder->rtp_header.SequenceNumber += 1;
 		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
-		
+
 		bs = gf_bs_new(hdr, 2, GF_BITSTREAM_WRITE);
 		gf_bs_write_int(bs, 0, 5);
 		gf_bs_write_int(bs, Pbit, 1);
@@ -325,7 +325,7 @@ GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, char *data, u32 data_si
 		/*add header*/
 		builder->OnData(builder->cbk_obj, (char*) hdr, 2, 1);
 		/*add payload*/
-		if (builder->OnDataReference) 
+		if (builder->OnDataReference)
 			builder->OnDataReference(builder->cbk_obj, size, offset);
 		else
 			builder->OnData(builder->cbk_obj, data + offset, size, 0);
@@ -344,7 +344,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 	char *hdr;
 	u32 samp_size, txt_size, pay_start, hdr_size, txt_done, cur_frag, nb_frag;
 	Bool is_utf_16 = 0;
-	
+
 	if (!data) {
 		/*flush packet*/
 		if (builder->bytesInPacket) {
@@ -354,7 +354,9 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 		return GF_OK;
 	}
 	/*cfg packet*/
-	txt_size = data[0]; txt_size <<= 8; txt_size |= (unsigned char) data[1];
+	txt_size = data[0];
+	txt_size <<= 8;
+	txt_size |= (unsigned char) data[1];
 	/*remove BOM*/
 	pay_start = 2;
 	if (txt_size>2) {
@@ -395,7 +397,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, 0);
 		builder->bytesInPacket += hdr_size;
 		gf_free(hdr);
-		
+
 		if (txt_size) {
 			if (builder->OnDataReference) {
 				builder->OnDataReference(builder->cbk_obj, samp_size, pay_start);
@@ -463,7 +465,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, 0);
 		builder->bytesInPacket += hdr_size;
 		gf_free(hdr);
-	
+
 		if (builder->OnDataReference) {
 			builder->OnDataReference(builder->cbk_obj, size, pay_start + txt_done);
 		} else {
@@ -471,7 +473,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 		}
 		builder->bytesInPacket += size;
 		cur_frag++;
-		
+
 		/*flush packet*/
 		if (cur_frag == nb_frag) {
 			txt_done = txt_size;
@@ -559,7 +561,7 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 		u32 du_offset = 0;
 		u32 hdr_offset = 0;
 		u32 orig_size, du_size;
-		
+
 		orig_size = du_size = 2+gf_bs_read_u16(bs);
 		/*if dims size is >0xFFFF, use our internal hack for large units*/
 		if (du_size==2) {
@@ -599,7 +601,7 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 				else frag_state = 2;
 
 				builder->rtp_header.Marker = 0;
-			} 
+			}
 			/*last fragment*/
 			else if (frag_state) {
 				size = du_size;
@@ -618,7 +620,7 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 			/*need a new packet*/
 			if (!builder->bytesInPacket) {
 				char dims_rtp_hdr[1];
-				
+
 				/*the unit is critical, increase counter (coded on 3 bits)*/
 				if (! (data[2+hdr_offset] & GF_DIMS_UNIT_P) && (frag_state <= 1) ) {
 					builder->last_au_sn++;
@@ -638,12 +640,12 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 			}
 
 			/*add payload*/
-			if (builder->OnDataReference) 
+			if (builder->OnDataReference)
 				builder->OnDataReference(builder->cbk_obj, size, offset+du_offset+size_offset);
 			else
 				builder->OnData(builder->cbk_obj, data+offset+du_offset+size_offset, size, 0);
 
-			/*if fragmentation, force packet flush even on last packet since aggregation unit do not 
+			/*if fragmentation, force packet flush even on last packet since aggregation unit do not
 			use the same packet format*/
 			if (frag_state) {
 				builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
@@ -692,21 +694,21 @@ GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, char *data, u32 data_siz
 		gf_rtp_ac3_flush(builder);
 		return GF_OK;
 	}
-	
+
 	if (
-		/*AU does not fit*/
-		(builder->bytesInPacket + data_size > builder->Path_MTU)
-	||
-		/*aggregation is not enabled*/
-		!(builder->flags & GP_RTP_PCK_USE_MULTI)
-	||
-		/*max ptime is exceeded*/
-		(builder->max_ptime && ( (u32) builder->sl_header.compositionTimeStamp >= builder->rtp_header.TimeStamp + builder->max_ptime) )
+	    /*AU does not fit*/
+	    (builder->bytesInPacket + data_size > builder->Path_MTU)
+	    ||
+	    /*aggregation is not enabled*/
+	    !(builder->flags & GP_RTP_PCK_USE_MULTI)
+	    ||
+	    /*max ptime is exceeded*/
+	    (builder->max_ptime && ( (u32) builder->sl_header.compositionTimeStamp >= builder->rtp_header.TimeStamp + builder->max_ptime) )
 
 	) {
 		gf_rtp_ac3_flush(builder);
 	}
-	
+
 	/*fits*/
 	if (builder->bytesInPacket + data_size < builder->Path_MTU) {
 		/*need a new packet*/
@@ -721,7 +723,7 @@ GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, char *data, u32 data_siz
 		}
 
 		/*add payload*/
-		if (builder->OnDataReference) 
+		if (builder->OnDataReference)
 			builder->OnDataReference(builder->cbk_obj, data_size, 0);
 		else
 			builder->OnData(builder->cbk_obj, data, data_size, 0);
@@ -759,7 +761,7 @@ GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, char *data, u32 data_siz
 		builder->OnData(builder->cbk_obj, hdr, 2, 1);
 
 		/*add payload*/
-		if (builder->OnDataReference) 
+		if (builder->OnDataReference)
 			builder->OnDataReference(builder->cbk_obj, pck_size, offset);
 		else
 			builder->OnData(builder->cbk_obj, data+offset, pck_size, 0);

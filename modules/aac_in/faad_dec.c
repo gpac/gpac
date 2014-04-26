@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -54,7 +54,7 @@ typedef struct
 	u16 ES_ID;
 	Bool signal_mc;
 	Bool is_sbr;
-	
+
 	char ch_reorder[16];
 } FAADDec;
 
@@ -68,7 +68,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	GF_M4ADecSpecInfo a_cfg;
 #endif
 	FAADCTX();
-	
+
 	if (ctx->ES_ID && ctx->ES_ID!=esd->ESID) return GF_NOT_SUPPORTED;
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->dataLength) return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -85,34 +85,34 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 	if (e) return e;
 #endif
-	if (faacDecInit2(ctx->codec, (unsigned char *)esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (unsigned long*)&ctx->sample_rate, (u8*)&ctx->num_channels) < 0) 
+	if (faacDecInit2(ctx->codec, (unsigned char *)esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (unsigned long*)&ctx->sample_rate, (u8*)&ctx->num_channels) < 0)
 	{
 #ifndef GPAC_DISABLE_AV_PARSERS
 		s8 res;
 		char *dsi, *s_base_object_type;
 		u32 dsi_len;
 		switch (a_cfg.base_object_type) {
-			case GF_M4A_AAC_MAIN:
-				s_base_object_type = gf_stringizer(GF_M4A_AAC_MAIN);
-				goto base_object_type_error;
-			case GF_M4A_AAC_LC:
-				s_base_object_type = gf_stringizer(GF_M4A_AAC_LC);
-				goto base_object_type_error;
-			case GF_M4A_AAC_SSR:
-				s_base_object_type = gf_stringizer(GF_M4A_AAC_SSR);
-				goto base_object_type_error;
-			case GF_M4A_AAC_LTP:
-				s_base_object_type = gf_stringizer(GF_M4A_AAC_LTP);
-				goto base_object_type_error;
-			case GF_M4A_AAC_SBR:
-				s_base_object_type = gf_stringizer(GF_M4A_AAC_SBR);
-				goto base_object_type_error;
-			case GF_M4A_AAC_PS:
-				s_base_object_type = gf_stringizer(GF_M4A_AAC_PS);
-				base_object_type_error: /*error case*/
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FAAD] Error: unsupported %s format for stream %d - defaulting to AAC LC\n", s_base_object_type, esd->ESID));
-			default:
-				break;
+		case GF_M4A_AAC_MAIN:
+			s_base_object_type = gf_stringizer(GF_M4A_AAC_MAIN);
+			goto base_object_type_error;
+		case GF_M4A_AAC_LC:
+			s_base_object_type = gf_stringizer(GF_M4A_AAC_LC);
+			goto base_object_type_error;
+		case GF_M4A_AAC_SSR:
+			s_base_object_type = gf_stringizer(GF_M4A_AAC_SSR);
+			goto base_object_type_error;
+		case GF_M4A_AAC_LTP:
+			s_base_object_type = gf_stringizer(GF_M4A_AAC_LTP);
+			goto base_object_type_error;
+		case GF_M4A_AAC_SBR:
+			s_base_object_type = gf_stringizer(GF_M4A_AAC_SBR);
+			goto base_object_type_error;
+		case GF_M4A_AAC_PS:
+			s_base_object_type = gf_stringizer(GF_M4A_AAC_PS);
+base_object_type_error: /*error case*/
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FAAD] Error: unsupported %s format for stream %d - defaulting to AAC LC\n", s_base_object_type, esd->ESID));
+		default:
+			break;
 		}
 		a_cfg.base_object_type = GF_M4A_AAC_LC;
 		a_cfg.has_sbr = 0;
@@ -121,7 +121,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		gf_m4a_write_config(&a_cfg, &dsi, &dsi_len);
 		res = faacDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
 		gf_free(dsi);
-		if (res < 0) 
+		if (res < 0)
 #endif
 		{
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error when initializing AAC decoder for stream %d\n", esd->ESID));
@@ -189,16 +189,35 @@ static GF_Err FAAD_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = 0;
 		for (i=0; i<ctx->num_channels; i++) {
 			switch (ctx->info.channel_position[i]) {
-			case FRONT_CHANNEL_CENTER: capability->cap.valueInt |= GF_AUDIO_CH_FRONT_CENTER; break;
-			case FRONT_CHANNEL_LEFT: capability->cap.valueInt |= GF_AUDIO_CH_FRONT_LEFT; break;
-			case FRONT_CHANNEL_RIGHT: capability->cap.valueInt |= GF_AUDIO_CH_FRONT_RIGHT; break;
-			case SIDE_CHANNEL_LEFT: capability->cap.valueInt |= GF_AUDIO_CH_SIDE_LEFT; break;
-			case SIDE_CHANNEL_RIGHT: capability->cap.valueInt |= GF_AUDIO_CH_SIDE_RIGHT; break;
-			case BACK_CHANNEL_LEFT: capability->cap.valueInt |= GF_AUDIO_CH_BACK_LEFT; break;
-			case BACK_CHANNEL_RIGHT: capability->cap.valueInt |= GF_AUDIO_CH_BACK_RIGHT; break;
-			case BACK_CHANNEL_CENTER: capability->cap.valueInt |= GF_AUDIO_CH_BACK_CENTER; break;
-			case LFE_CHANNEL: capability->cap.valueInt |= GF_AUDIO_CH_LFE; break;
-			default: break;
+			case FRONT_CHANNEL_CENTER:
+				capability->cap.valueInt |= GF_AUDIO_CH_FRONT_CENTER;
+				break;
+			case FRONT_CHANNEL_LEFT:
+				capability->cap.valueInt |= GF_AUDIO_CH_FRONT_LEFT;
+				break;
+			case FRONT_CHANNEL_RIGHT:
+				capability->cap.valueInt |= GF_AUDIO_CH_FRONT_RIGHT;
+				break;
+			case SIDE_CHANNEL_LEFT:
+				capability->cap.valueInt |= GF_AUDIO_CH_SIDE_LEFT;
+				break;
+			case SIDE_CHANNEL_RIGHT:
+				capability->cap.valueInt |= GF_AUDIO_CH_SIDE_RIGHT;
+				break;
+			case BACK_CHANNEL_LEFT:
+				capability->cap.valueInt |= GF_AUDIO_CH_BACK_LEFT;
+				break;
+			case BACK_CHANNEL_RIGHT:
+				capability->cap.valueInt |= GF_AUDIO_CH_BACK_RIGHT;
+				break;
+			case BACK_CHANNEL_CENTER:
+				capability->cap.valueInt |= GF_AUDIO_CH_BACK_CENTER;
+				break;
+			case LFE_CHANNEL:
+				capability->cap.valueInt |= GF_AUDIO_CH_LFE;
+				break;
+			default:
+				break;
 			}
 		}
 		break;
@@ -219,25 +238,43 @@ static s8 FAAD_GetChannelPos(FAADDec *ffd, u32 ch_cfg)
 	u32 i;
 	for (i=0; i<ffd->info.channels; i++) {
 		switch (ffd->info.channel_position[i]) {
-		case FRONT_CHANNEL_CENTER: if (ch_cfg==GF_AUDIO_CH_FRONT_CENTER) return i; break;
-		case FRONT_CHANNEL_LEFT: if (ch_cfg==GF_AUDIO_CH_FRONT_LEFT) return i; break;
-		case FRONT_CHANNEL_RIGHT: if (ch_cfg==GF_AUDIO_CH_FRONT_RIGHT) return i; break;
-		case SIDE_CHANNEL_LEFT: if (ch_cfg==GF_AUDIO_CH_SIDE_LEFT) return i; break;
-		case SIDE_CHANNEL_RIGHT: if (ch_cfg==GF_AUDIO_CH_SIDE_RIGHT) return i; break;
-		case BACK_CHANNEL_LEFT: if (ch_cfg==GF_AUDIO_CH_BACK_LEFT) return i; break;
-		case BACK_CHANNEL_RIGHT: if (ch_cfg==GF_AUDIO_CH_BACK_RIGHT) return i; break;
-		case BACK_CHANNEL_CENTER: if (ch_cfg==GF_AUDIO_CH_BACK_CENTER) return i; break;
-		case LFE_CHANNEL: if (ch_cfg==GF_AUDIO_CH_LFE) return i; break;
+		case FRONT_CHANNEL_CENTER:
+			if (ch_cfg==GF_AUDIO_CH_FRONT_CENTER) return i;
+			break;
+		case FRONT_CHANNEL_LEFT:
+			if (ch_cfg==GF_AUDIO_CH_FRONT_LEFT) return i;
+			break;
+		case FRONT_CHANNEL_RIGHT:
+			if (ch_cfg==GF_AUDIO_CH_FRONT_RIGHT) return i;
+			break;
+		case SIDE_CHANNEL_LEFT:
+			if (ch_cfg==GF_AUDIO_CH_SIDE_LEFT) return i;
+			break;
+		case SIDE_CHANNEL_RIGHT:
+			if (ch_cfg==GF_AUDIO_CH_SIDE_RIGHT) return i;
+			break;
+		case BACK_CHANNEL_LEFT:
+			if (ch_cfg==GF_AUDIO_CH_BACK_LEFT) return i;
+			break;
+		case BACK_CHANNEL_RIGHT:
+			if (ch_cfg==GF_AUDIO_CH_BACK_RIGHT) return i;
+			break;
+		case BACK_CHANNEL_CENTER:
+			if (ch_cfg==GF_AUDIO_CH_BACK_CENTER) return i;
+			break;
+		case LFE_CHANNEL:
+			if (ch_cfg==GF_AUDIO_CH_LFE) return i;
+			break;
 		}
 	}
 	return -1;
 }
 
-static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg, 
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID, u32 *CTS, 
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
+                               char *inBuffer, u32 inBufferLength,
+                               u16 ES_ID, u32 *CTS,
+                               char *outBuffer, u32 *outBufferLength,
+                               u8 PaddingBits, u32 mmlevel)
 {
 	void *buffer;
 	unsigned short *conv_in, *conv_out;
@@ -286,34 +323,61 @@ static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
 
 		/*get cfg*/
 		ch = FAAD_GetChannelPos(ctx, GF_AUDIO_CH_FRONT_LEFT);
-		if (ch>=0) { ctx->ch_reorder[idx] = ch; idx++; }
+		if (ch>=0) {
+			ctx->ch_reorder[idx] = ch;
+			idx++;
+		}
 		ch = FAAD_GetChannelPos(ctx, GF_AUDIO_CH_FRONT_RIGHT);
-		if (ch>=0) { ctx->ch_reorder[idx] = ch; idx++; }
+		if (ch>=0) {
+			ctx->ch_reorder[idx] = ch;
+			idx++;
+		}
 		ch = FAAD_GetChannelPos(ctx, GF_AUDIO_CH_FRONT_CENTER);
-		if (ch>=0) { ctx->ch_reorder[idx] = ch; idx++; }
+		if (ch>=0) {
+			ctx->ch_reorder[idx] = ch;
+			idx++;
+		}
 		ch = FAAD_GetChannelPos(ctx, GF_AUDIO_CH_LFE);
-		if (ch>=0) { ctx->ch_reorder[idx] = ch; idx++; }
+		if (ch>=0) {
+			ctx->ch_reorder[idx] = ch;
+			idx++;
+		}
 		ch = FAAD_GetChannelPos(ctx, GF_AUDIO_CH_BACK_LEFT);
-		if (ch>=0) { ctx->ch_reorder[idx] = ch; idx++; }
+		if (ch>=0) {
+			ctx->ch_reorder[idx] = ch;
+			idx++;
+		}
 		ch = FAAD_GetChannelPos(ctx, GF_AUDIO_CH_BACK_RIGHT);
-		if (ch>=0) { ctx->ch_reorder[idx] = ch; idx++; }
+		if (ch>=0) {
+			ctx->ch_reorder[idx] = ch;
+			idx++;
+		}
 		ch = FAAD_GetChannelPos(ctx, GF_AUDIO_CH_BACK_CENTER);
-		if (ch>=0) { ctx->ch_reorder[idx] = ch; idx++; }
+		if (ch>=0) {
+			ctx->ch_reorder[idx] = ch;
+			idx++;
+		}
 		ch = FAAD_GetChannelPos(ctx, GF_AUDIO_CH_SIDE_LEFT);
-		if (ch>=0) { ctx->ch_reorder[idx] = ch; idx++; }
+		if (ch>=0) {
+			ctx->ch_reorder[idx] = ch;
+			idx++;
+		}
 		ch = FAAD_GetChannelPos(ctx, GF_AUDIO_CH_SIDE_RIGHT);
-		if (ch>=0) { ctx->ch_reorder[idx] = ch; idx++; }
+		if (ch>=0) {
+			ctx->ch_reorder[idx] = ch;
+			idx++;
+		}
 
 		*outBufferLength = ctx->out_size;
 		if (sizeof(short) * ctx->info.samples > *outBufferLength) {
-			*outBufferLength = ctx->out_size = sizeof(short)*ctx->info.samples; 
+			*outBufferLength = ctx->out_size = sizeof(short)*ctx->info.samples;
 		}
 		return GF_BUFFER_TOO_SMALL;
 	}
 	if (sizeof(short) * ctx->info.samples > *outBufferLength) {
-		*outBufferLength = sizeof(short)*ctx->info.samples; 
+		*outBufferLength = sizeof(short)*ctx->info.samples;
 		return GF_BUFFER_TOO_SMALL;
-	} 
+	}
 
 	/*we assume left/right order*/
 	if (ctx->num_channels<=2) {
@@ -345,7 +409,7 @@ static u32 FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 	GF_M4ADecSpecInfo a_cfg;
 #endif
 
-	/*audio decs*/	
+	/*audio decs*/
 	if (StreamType != GF_STREAM_AUDIO) return GF_CODEC_NOT_SUPPORTED;
 	/*media type query*/
 	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
@@ -356,7 +420,7 @@ static u32 FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 	case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
 	case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 	/*MPEG4 aac*/
-	case GPAC_OTI_AUDIO_AAC_MPEG4: 
+	case GPAC_OTI_AUDIO_AAC_MPEG4:
 		break;
 	default:
 		return GF_CODEC_NOT_SUPPORTED;
@@ -398,7 +462,7 @@ GF_BaseDecoder *NewFAADDec()
 
 	ifce->privateStack = dec;
 
-	/*setup our own interface*/	
+	/*setup our own interface*/
 	ifce->AttachStream = FAAD_AttachStream;
 	ifce->DetachStream = FAAD_DetachStream;
 	ifce->GetCapabilities = FAAD_GetCapabilities;

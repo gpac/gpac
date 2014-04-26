@@ -1,7 +1,7 @@
 /*
  *					GPAC Multimedia Framework
  *
- *			Authors: Cyril Concolato 
+ *			Authors: Cyril Concolato
  *			Copyright (c) Telecom ParisTech 2013-
  *					All rights reserved
  *
@@ -48,14 +48,14 @@ typedef struct
 } VTTIn;
 
 const char * VTT_MIME_TYPES[] = {
-  "text/vtt", "vtt", "VTT SubTitles",
-  NULL
+	"text/vtt", "vtt", "VTT SubTitles",
+	NULL
 };
 
-static u32 VTT_RegisterMimeTypes(const GF_InputService *plug){
+static u32 VTT_RegisterMimeTypes(const GF_InputService *plug) {
 	u32 i;
 	if (!plug) return 0;
-	for (i = 0 ; VTT_MIME_TYPES[i]; i+=3){
+	for (i = 0 ; VTT_MIME_TYPES[i]; i+=3) {
 		gf_term_register_mime_type(plug, VTT_MIME_TYPES[i], VTT_MIME_TYPES[i+1], VTT_MIME_TYPES[i+2]);
 	}
 	return i/3;
@@ -68,8 +68,8 @@ static Bool VTT_CanHandleURL(GF_InputService *plug, const char *url)
 	if (!plug || !url) return GF_FALSE;
 	sExt = strrchr(url, '.');
 	if (!sExt) return GF_FALSE;
-	for (i = 0 ; VTT_MIME_TYPES[i]; i+=3){
-	  if (gf_term_check_extension(plug, VTT_MIME_TYPES[i], VTT_MIME_TYPES[i+1], VTT_MIME_TYPES[i+2], sExt)) return GF_TRUE;
+	for (i = 0 ; VTT_MIME_TYPES[i]; i+=3) {
+		if (gf_term_check_extension(plug, VTT_MIME_TYPES[i], VTT_MIME_TYPES[i+1], VTT_MIME_TYPES[i+2], sExt)) return GF_TRUE;
 	}
 	return GF_FALSE;
 }
@@ -116,8 +116,8 @@ void VTT_NetIO(void *cbk, GF_NETIO_Parameter *param)
 void VTT_download_file(GF_InputService *plug, const char *url)
 {
 	VTTIn *vttin = (VTTIn *) plug->priv;
-        if (!plug || !url)
-          return;
+	if (!plug || !url)
+		return;
 	vttin->needs_connection = GF_TRUE;
 	vttin->dnload = gf_term_download_new(vttin->service, url, 0, VTT_NetIO, plug);
 	if (!vttin->dnload) {
@@ -134,8 +134,8 @@ static GF_Err VTT_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 {
 	GF_Err e;
 	VTTIn *vttin = (VTTIn *)plug->priv;
-        if (!plug || !url)
-          return GF_BAD_PARAM;
+	if (!plug || !url)
+		return GF_BAD_PARAM;
 	vttin->service = serv;
 
 	if (vttin->dnload) gf_term_download_del(vttin->dnload);
@@ -158,7 +158,7 @@ static GF_Err VTT_CloseService(GF_InputService *plug)
 {
 	VTTIn *vttin;
 	if (!plug)	return GF_BAD_PARAM;
-	
+
 	vttin = (VTTIn *)plug->priv;
 	if (!vttin)	return GF_BAD_PARAM;
 
@@ -177,7 +177,7 @@ static GF_Err VTT_CloseService(GF_InputService *plug)
 		gf_term_on_disconnect(vttin->service, NULL, GF_OK);
 	}
 	vttin->service = NULL;
-	
+
 	return GF_OK;
 }
 
@@ -361,7 +361,7 @@ void DeleteVTTInput(void *ifce)
 	if (!plug)
 		return;
 	vttin = (VTTIn *)plug->priv;
-	if (vttin){
+	if (vttin) {
 		VTT_CloseService(plug);
 		gf_free(vttin);
 	}
@@ -379,10 +379,13 @@ GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
-	case GF_SCENE_DECODER_INTERFACE: return (GF_BaseInterface *)NewVTTDec();
-	case GF_NET_CLIENT_INTERFACE: return (GF_BaseInterface *)NewVTTInput();
+	case GF_SCENE_DECODER_INTERFACE:
+		return (GF_BaseInterface *)NewVTTDec();
+	case GF_NET_CLIENT_INTERFACE:
+		return (GF_BaseInterface *)NewVTTInput();
 //	case GF_JS_USER_EXT_INTERFACE: return (GF_BaseInterface *)NewVTTJS();
-	default: return NULL;
+	default:
+		return NULL;
 	}
 }
 
@@ -398,9 +401,9 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	case GF_NET_CLIENT_INTERFACE:
 		DeleteVTTInput(ifce);
 		break;
-	//case GF_JS_USER_EXT_INTERFACE: 
-	//	DeleteVTTJS(ifce);
-	//	break;
+		//case GF_JS_USER_EXT_INTERFACE:
+		//	DeleteVTTJS(ifce);
+		//	break;
 	}
 }
 

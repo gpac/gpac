@@ -2,7 +2,7 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *          Authors: Romain Bouqueau - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-20XX 
+ *			Copyright (c) Telecom ParisTech 2010-20XX
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -73,7 +73,7 @@
 #endif
 
 #if (USE_MALLOC==INTEL_MALLOC)
-#define CDECL	
+#define CDECL
 CDECL void * scalable_malloc(size_t size);
 CDECL void * scalable_realloc(void* ptr, size_t size);
 CDECL void * scalable_calloc(size_t num, size_t size);
@@ -91,8 +91,8 @@ CDECL void   scalable_free(void* ptr);
 
 #endif
 
-#ifndef CDECL	
-#define CDECL	
+#ifndef CDECL
+#define CDECL
 #endif
 
 #ifndef SYMBOL_EXPORT
@@ -317,25 +317,25 @@ MY_GF_EXPORT void *gf_mem_calloc(size_t num, size_t size_of, char *filename, int
 	return gf_mem_calloc_proto(num, size_of, filename, line);
 }
 
-MY_GF_EXPORT 
+MY_GF_EXPORT
 void *gf_mem_realloc(void *ptr, size_t size, char *filename, int line)
 {
 	return gf_mem_realloc_proto(ptr, size, filename, line);
 }
 
-MY_GF_EXPORT 
+MY_GF_EXPORT
 void gf_mem_free(void *ptr, char *filename, int line)
 {
 	gf_mem_free_proto(ptr, filename, line);
 }
 
-MY_GF_EXPORT 
+MY_GF_EXPORT
 char *gf_mem_strdup(const char *str, char *filename, int line)
 {
 	return gf_mem_strdup_proto(str, filename, line);
 }
 
-MY_GF_EXPORT 
+MY_GF_EXPORT
 void gf_mem_enable_tracker()
 {
 	gf_mem_malloc_proto = gf_mem_malloc_tracker;
@@ -548,7 +548,7 @@ static void register_address(void *ptr, size_t size, char *filename, int line)
 	/*update stats*/
 	gpac_allocated_memory += size;
 	gpac_nb_alloc_blocs++;
-	
+
 	/*gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] register   %6d bytes at %p (%8d Bytes in %4d Blocks allocated)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);*/
 
 	/*unlock*/
@@ -759,7 +759,7 @@ int gf_asprintf(char **strp, const char *fmt, ...)
 	size = gf_vasprintf(strp, fmt, args);
 #else
 	size = asprintf(strp, fmt, args);
-#endif	
+#endif
 	va_end(args);
 	return size;
 }

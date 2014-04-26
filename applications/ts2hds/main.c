@@ -13,15 +13,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -44,14 +44,14 @@
 #endif
 
 
-static GFINLINE void usage(const char * progname) 
+static GFINLINE void usage(const char * progname)
 {
 	fprintf(stderr, "USAGE: %s -i input -o output\n"
-					"\n"
+	        "\n"
 #ifdef GPAC_MEMORY_TRACKING
-					"\t-mem-track:  enables memory tracker\n"
+	        "\t-mem-track:  enables memory tracker\n"
 #endif
-		);
+	       );
 }
 
 
@@ -84,7 +84,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, char **input, char **ou
 			gf_sys_init(1);
 			gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 #else
-			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"); 
+			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
 #endif
 		} else {
 			error_msg = "unknown option \"%s\"";
@@ -103,7 +103,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, char **input, char **ou
 		return GF_BAD_PARAM;
 	}
 
-error:	
+error:
 	if (!arg) {
 		fprintf(stderr, "Error: %s\n\n", error_msg);
 	} else {
@@ -123,13 +123,13 @@ int main(int argc, char **argv)
 	AdobeHDSCtx ctx;
 	GF_Err e;
 	u32 i;
-	
+
 	/*****************/
 	/*   gpac init   */
 	/*****************/
 	gf_sys_init(0);
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
-	
+
 	/***********************/
 	/*   initialisations   */
 	/***********************/
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
 	memset(&import, 0, sizeof(GF_MediaImporter));
 	e = GF_OK;
 	memset(&ctx, 0, sizeof(ctx));
-	
+
 	ctx.curr_time = 0;
 	ctx.segnum = 1;
 
@@ -265,7 +265,7 @@ int main(int argc, char **argv)
 	}
 
 	//interleave data and remove imported file
-	//FIXME: set multiple fragments: 
+	//FIXME: set multiple fragments:
 	sprintf(tmpstr, "%s_HD_100_Seg%u-Frag1", output, ctx.segnum); //FIXME: "HD", "100" and fragnum: pass as arg
 	//e = gf_media_fragment_file(isom_file_in, tmpstr, 1.0);
 	e = gf_media_fragment_file(isom_file_in, tmpstr, 1.0+gf_isom_get_duration(isom_file_in)/gf_isom_get_timescale(isom_file_in));
@@ -299,7 +299,7 @@ exit:
 	}
 
 	gf_sys_close();
-	
+
 	return !e ? 0 : 1;
 }
 

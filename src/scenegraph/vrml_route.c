@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -207,7 +207,7 @@ GF_Err gf_sg_route_set_id(GF_Route *route, u32 ID)
 	route->ID = ID;
 	return GF_OK;
 }
-u32 gf_sg_route_get_id(GF_Route *route) 
+u32 gf_sg_route_get_id(GF_Route *route)
 {
 	return route->ID;
 }
@@ -227,7 +227,7 @@ char *gf_sg_route_get_name(GF_Route *route)
 	return route->name;
 }
 
-void gf_sg_route_setup(GF_Route *r) 
+void gf_sg_route_setup(GF_Route *r)
 {
 	gf_node_get_field(r->FromNode, r->FromField.fieldIndex, &r->FromField);
 	gf_node_get_field(r->ToNode, r->ToField.fieldIndex, &r->ToField);
@@ -248,9 +248,9 @@ void gf_node_event_out_proto(GF_Node *node, u32 FieldIndex)
 	u32 i;
 	GF_Route *r;
 	if (!node) return;
-	
+
 	if (!node->sgprivate->interact) return;
-	
+
 	//search for routes to activate in the order they where declared
 	i=0;
 	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->routes, &i))) {
@@ -275,13 +275,13 @@ Bool gf_sg_route_activate(GF_Route *r)
 			if (r->FromField.eventType == GF_SG_EVENT_OUT) return 0;
 			if (r->ToField.eventType == GF_SG_EVENT_OUT) return 0;
 		}
-		if (r->IS_route && ((r->ToNode->sgprivate->tag==TAG_MPEG4_Script) 
+		if (r->IS_route && ((r->ToNode->sgprivate->tag==TAG_MPEG4_Script)
 #ifndef GPAC_DISABLE_X3D
-			|| (r->ToNode->sgprivate->tag==TAG_X3D_Script)
+		                    || (r->ToNode->sgprivate->tag==TAG_X3D_Script)
 #endif
-			) && ((r->ToField.eventType==GF_SG_EVENT_IN) /*|| (r->ToField.eventType==GF_SG_EVENT_FIELD)*/)
-			&& r->FromField.eventType==GF_SG_EVENT_IN) {
-				return 0;
+		                   ) && ((r->ToField.eventType==GF_SG_EVENT_IN) /*|| (r->ToField.eventType==GF_SG_EVENT_FIELD)*/)
+		        && r->FromField.eventType==GF_SG_EVENT_IN) {
+			return 0;
 		}
 	}
 #ifndef GPAC_DISABLE_LOG
@@ -331,7 +331,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 			orig = orig->next;
 		}
 	}
-		break;
+	break;
 
 	default:
 		if (r->ToField.fieldType==r->FromField.fieldType) {
@@ -341,7 +341,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 			} else {
 				gf_sg_vrml_field_copy(r->ToField.far_ptr, r->FromField.far_ptr, r->FromField.fieldType);
 			}
-		} 
+		}
 		/*typecast URL <-> string if needed*/
 		else {
 			VRML_FieldCopyCast(r->ToField.far_ptr, r->ToField.fieldType, r->FromField.far_ptr, r->FromField.fieldType);
@@ -354,11 +354,11 @@ Bool gf_sg_route_activate(GF_Route *r)
 		r->ToField.on_event_in(r->ToNode, r);
 	}
 	//if this is a script eventIn call directly script
-	else if (((r->ToNode->sgprivate->tag==TAG_MPEG4_Script) 
+	else if (((r->ToNode->sgprivate->tag==TAG_MPEG4_Script)
 #ifndef GPAC_DISABLE_X3D
-		|| (r->ToNode->sgprivate->tag==TAG_X3D_Script)
+	          || (r->ToNode->sgprivate->tag==TAG_X3D_Script)
 #endif
-	) && ((r->ToField.eventType==GF_SG_EVENT_IN) /*|| (r->ToField.eventType==GF_SG_EVENT_FIELD)*/) ) {
+	         ) && ((r->ToField.eventType==GF_SG_EVENT_IN) /*|| (r->ToField.eventType==GF_SG_EVENT_FIELD)*/) ) {
 		gf_sg_script_event_in(r->ToNode, &r->ToField);
 	}
 	//check if ISed or not - this will notify the node of any changes
@@ -368,12 +368,12 @@ Bool gf_sg_route_activate(GF_Route *r)
 		if (r->ToField.eventType != GF_SG_EVENT_EXPOSED_FIELD)
 			gf_sg_proto_propagate_event(r->ToNode, r->ToField.fieldIndex, r->FromNode);
 		/*only happen on proto, an eventOut may route to an eventOut*/
-		if (r->IS_route && r->ToField.eventType==GF_SG_EVENT_OUT) 
+		if (r->IS_route && r->ToField.eventType==GF_SG_EVENT_OUT)
 			gf_node_event_out(r->ToNode, r->ToField.fieldIndex);
 	}
 
 	/*and signal routes on exposed fields if field changed*/
-	if (r->ToField.eventType == GF_SG_EVENT_EXPOSED_FIELD){
+	if (r->ToField.eventType == GF_SG_EVENT_EXPOSED_FIELD) {
 		if (r->IS_route)
 			gf_node_event_out_proto(r->ToNode, r->ToField.fieldIndex);
 		else
@@ -389,10 +389,10 @@ void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 	u32 i;
 	GF_Route *r;
 	if (!node) return;
-	
+
 	/*node has no routes*/
 	if (!node->sgprivate->interact || !node->sgprivate->interact->routes) return;
-	
+
 	//search for routes to activate in the order they where declared
 	i=0;
 	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->routes, &i))) {
@@ -401,7 +401,7 @@ void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 
 		/*no postpone for IS routes*/
 		if (r->IS_route) {
-			if (gf_sg_route_activate(r)) 
+			if (gf_sg_route_activate(r))
 				gf_node_changed(r->ToNode, &r->ToField);
 		}
 		//queue

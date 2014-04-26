@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -32,11 +32,11 @@
 
 typedef struct
 {
-    vorbis_info vi;
+	vorbis_info vi;
 	vorbis_dsp_state vd;
 	vorbis_block vb;
-    vorbis_comment vc;
-    ogg_packet op;
+	vorbis_comment vc;
+	ogg_packet op;
 
 	u16 ES_ID;
 	Bool has_reconfigured;
@@ -46,7 +46,7 @@ typedef struct
 
 static GF_Err VORB_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
-    ogg_packet oggpacket;
+	ogg_packet oggpacket;
 	GF_BitStream *bs;
 
 	VORBISCTX();
@@ -58,8 +58,8 @@ static GF_Err VORB_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 	ctx->ES_ID = esd->ESID;
 
-    vorbis_info_init(&ctx->vi);
-    vorbis_comment_init(&ctx->vc);
+	vorbis_info_init(&ctx->vi);
+	vorbis_comment_init(&ctx->vc);
 
 	oggpacket.granulepos = -1;
 	oggpacket.b_o_s = 1;
@@ -92,8 +92,8 @@ static GF_Err VORB_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 
 	vorbis_block_clear(&ctx->vb);
 	vorbis_dsp_clear(&ctx->vd);
-    vorbis_info_clear(&ctx->vi);
-    vorbis_comment_clear(&ctx->vc);
+	vorbis_info_clear(&ctx->vi);
+	vorbis_comment_clear(&ctx->vc);
 
 	ctx->ES_ID = 0;
 	return GF_OK;
@@ -134,7 +134,9 @@ static GF_Err VORB_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		break;
 	case GF_CODEC_CHANNEL_CONFIG:
 		switch (ctx->vi.channels) {
-		case 1: capability->cap.valueInt = GF_AUDIO_CH_FRONT_CENTER; break;
+		case 1:
+			capability->cap.valueInt = GF_AUDIO_CH_FRONT_CENTER;
+			break;
 		case 2:
 			capability->cap.valueInt = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
 			break;
@@ -173,7 +175,7 @@ static GFINLINE void vorbis_to_intern(u32 samples, Float **pcm, char *buf, u32 c
 	ogg_int16_t *ptr, *data = (ogg_int16_t*)buf ;
 	Float *mono;
 
-    for (i=0 ; i<channels ; i++) {
+	for (i=0 ; i<channels ; i++) {
 		ptr = &data[i];
 		if (channels>2) {
 			/*center is third in gpac*/
@@ -195,18 +197,18 @@ static GFINLINE void vorbis_to_intern(u32 samples, Float **pcm, char *buf, u32 c
 			*ptr = val;
 			ptr += channels;
 		}
-    }
+	}
 }
 
 static GF_Err VORB_ProcessData(GF_MediaDecoder *ifcg,
-		char *inBuffer, u32 inBufferLength,
-		u16 ES_ID, u32 *CTS,
-		char *outBuffer, u32 *outBufferLength,
-		u8 PaddingBits, u32 mmlevel)
+                               char *inBuffer, u32 inBufferLength,
+                               u16 ES_ID, u32 *CTS,
+                               char *outBuffer, u32 *outBufferLength,
+                               u8 PaddingBits, u32 mmlevel)
 {
 	ogg_packet op;
-    Float **pcm;
-    u32 samples, total_samples, total_bytes;
+	Float **pcm;
+	u32 samples, total_samples, total_bytes;
 
 	VORBISCTX();
 	/*not using scalabilty*/
@@ -216,8 +218,8 @@ static GF_Err VORB_ProcessData(GF_MediaDecoder *ifcg,
 	op.b_o_s = 0;
 	op.e_o_s = 0;
 	op.packetno = 0;
-    op.packet = inBuffer;
-    op.bytes = inBufferLength;
+	op.packet = inBuffer;
+	op.bytes = inBufferLength;
 
 
 	*outBufferLength = 0;
@@ -263,13 +265,13 @@ u32 NewVorbisDecoder(GF_BaseDecoder *ifcd)
 void DeleteVorbisDecoder(GF_BaseDecoder *ifcg)
 {
 	VorbDec *ctx;
-        if (!ifcg || !ifcg->privateStack)
-          return;
-        ctx = (VorbDec *) ((OGGWraper *)ifcg->privateStack)->opaque;
-        if (ctx){
-          gf_free(ctx);
-          ((OGGWraper *)ifcg->privateStack)->opaque = NULL;
-        }
+	if (!ifcg || !ifcg->privateStack)
+		return;
+	ctx = (VorbDec *) ((OGGWraper *)ifcg->privateStack)->opaque;
+	if (ctx) {
+		gf_free(ctx);
+		((OGGWraper *)ifcg->privateStack)->opaque = NULL;
+	}
 }
 
 #endif

@@ -87,12 +87,12 @@ typedef struct {
 	MessageQueue *send_seg_mq;
 } AudioThreadParam;
 
-/* 
+/*
  * Run controler runs all decoder, scalers, and encoders
  * of audio and video
- * 
- * @param cmd_data [in] command data 
- * 
+ *
+ * @param cmd_data [in] command data
+ *
  * @return 0 on success, -1 on failure
  */
 int dc_run_controler(CmdData *);

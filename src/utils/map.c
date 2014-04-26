@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 #include <gpac/map.h>
@@ -32,7 +32,7 @@ struct _tag_map
 };
 
 GF_EXPORT
-GF_Err gf_map_iter_set(GF_Map* map, GF_It_Map* it){
+GF_Err gf_map_iter_set(GF_Map* map, GF_It_Map* it) {
 	/* Iterator must be associated to a map */
 	if (!map || !it) return GF_BAD_PARAM;
 
@@ -44,15 +44,15 @@ GF_Err gf_map_iter_set(GF_Map* map, GF_It_Map* it){
 }
 
 GF_EXPORT
-void* gf_map_iter_has_next(GF_It_Map* it){
+void* gf_map_iter_has_next(GF_It_Map* it) {
 	GF_Pair* next_pair = NULL;
 
 	/* No iterator or iterator out of map */
 	if (!it || !(it->hash < it->map->hash_capacity)) return NULL;
 
 	next_pair = (GF_Pair*)gf_list_get(it->map->pairs[it->hash], it->ilist);
-	
-	if (next_pair){
+
+	if (next_pair) {
 		/* Next element founds in the same hash */
 		it->ilist++;
 		return next_pair->value;
@@ -65,7 +65,7 @@ void* gf_map_iter_has_next(GF_It_Map* it){
 }
 
 GF_EXPORT
-GF_Err gf_map_iter_reset(GF_It_Map* it){
+GF_Err gf_map_iter_reset(GF_It_Map* it) {
 	if (!it) return GF_BAD_PARAM;
 	it->hash = 0;
 	it->ilist = 0;
@@ -73,7 +73,7 @@ GF_Err gf_map_iter_reset(GF_It_Map* it){
 }
 
 
-GF_Pair* gf_pair_new(const char* key, u32 key_len, void* item){
+GF_Pair* gf_pair_new(const char* key, u32 key_len, void* item) {
 	GF_Pair* new_pair;
 
 	/* Allocate space for a new pair */
@@ -94,7 +94,7 @@ GF_Pair* gf_pair_new(const char* key, u32 key_len, void* item){
 	return new_pair;
 }
 
-void gf_pair_del(GF_Pair* pair){
+void gf_pair_del(GF_Pair* pair) {
 	gf_free(pair->key);
 	gf_free(pair);
 }
@@ -121,7 +121,7 @@ static Bool gf_pair_rem(GF_List* pairs, const char *key)
 	u32 index = 0;
 
 	while ((pair = (GF_Pair*)gf_list_get(pairs, index))) {
-		if (pair->key && !strcmp(pair->key, key)){
+		if (pair->key && !strcmp(pair->key, key)) {
 			gf_list_rem(pairs, index);
 			gf_pair_del(pair);
 			return GF_TRUE;
@@ -175,7 +175,7 @@ void gf_map_del(GF_Map *ptr)
 	if (!ptr) return;
 
 	/* Iterate through the map and delete content */
-	for (i = 0; i < ptr->hash_capacity; i++){
+	for (i = 0; i < ptr->hash_capacity; i++) {
 		bucket = ptr->pairs[i];
 
 		/* Bucket has not be allocated */
@@ -197,13 +197,13 @@ void gf_map_del(GF_Map *ptr)
 }
 
 GF_EXPORT
-void gf_map_reset(GF_Map *ptr){
+void gf_map_reset(GF_Map *ptr) {
 	u32 i, j;
 	GF_Pair *pair;
 	GF_List *bucket;
 
 	/* Iterate through the map and delete content */
-	for (i = 0; i < ptr->hash_capacity; i++){
+	for (i = 0; i < ptr->hash_capacity; i++) {
 		bucket = ptr->pairs[i];
 
 		/* Bucket has not be allocated */
@@ -224,7 +224,7 @@ void gf_map_reset(GF_Map *ptr){
 }
 
 GF_EXPORT
-void* gf_map_find(GF_Map *ptr, const char* key){
+void* gf_map_find(GF_Map *ptr, const char* key) {
 	u32 index;
 	GF_List *bucket;
 	GF_Pair *pair;
@@ -244,7 +244,7 @@ void* gf_map_find(GF_Map *ptr, const char* key){
 
 
 GF_EXPORT
-GF_Err gf_map_insert(GF_Map *ptr, const char* key, void* item){
+GF_Err gf_map_insert(GF_Map *ptr, const char* key, void* item) {
 	u32 key_len, index;
 	GF_List *bucket;
 	GF_Pair *pair;
@@ -264,7 +264,7 @@ GF_Err gf_map_insert(GF_Map *ptr, const char* key, void* item){
 		return GF_NOT_SUPPORTED;
 	}
 
-	if (!bucket){
+	if (!bucket) {
 		/* No bucket has been assigned yet */
 		bucket = gf_list_new();
 		if (!bucket) return GF_OUT_OF_MEM;
@@ -274,13 +274,13 @@ GF_Err gf_map_insert(GF_Map *ptr, const char* key, void* item){
 
 	pair = gf_pair_new(key, key_len, item);
 
-	if (!pair){
+	if (!pair) {
 		return GF_OUT_OF_MEM;
 	}
 
 	/* Store the new pair in the bucket */
 	err = gf_list_add(bucket, pair);
-	if(err != GF_OK){
+	if(err != GF_OK) {
 		gf_free(pair);
 		return GF_OUT_OF_MEM;
 	}
@@ -304,7 +304,7 @@ Bool gf_map_rem(GF_Map *ptr, const char* key)
 }
 
 GF_EXPORT
-u32 gf_map_count(const GF_Map *ptr){
+u32 gf_map_count(const GF_Map *ptr) {
 	u32 i = 0;
 	u32 count = 0;
 
@@ -312,7 +312,7 @@ u32 gf_map_count(const GF_Map *ptr){
 	if (!ptr) return GF_BAD_PARAM;
 
 	/* Iterate through all bucket of the map and count pair */
-	for (; i < ptr->hash_capacity; i++ ){
+	for (; i < ptr->hash_capacity; i++ ) {
 		count += gf_list_count(ptr->pairs[i]);
 	}
 
@@ -320,7 +320,7 @@ u32 gf_map_count(const GF_Map *ptr){
 }
 
 GF_EXPORT
-Bool gf_map_has_key(GF_Map *ptr, const char* key){
+Bool gf_map_has_key(GF_Map *ptr, const char* key) {
 	unsigned int index;
 	GF_List *bucket;
 

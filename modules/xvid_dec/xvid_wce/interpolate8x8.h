@@ -38,17 +38,17 @@ typedef void (INTERPOLATE8X8_AVG4)(byte *dst, const byte *src1, const byte *src2
 typedef INTERPOLATE8X8_AVG4 *INTERPOLATE8X8_AVG4_PTR;
 
 typedef void (INTERPOLATE_LOWPASS) (byte *dst,
-									   byte *src,
-									   int stride,
-									   int rounding);
+                                    byte *src,
+                                    int stride,
+                                    int rounding);
 
 typedef INTERPOLATE_LOWPASS *INTERPOLATE_LOWPASS_PTR;
 
 typedef void (INTERPOLATE_LOWPASS_HV) (byte *dst1,
-										  byte *dst2,
-										  byte *src,
-										  int stride,
-										  int rounding);
+                                       byte *dst2,
+                                       byte *src,
+                                       int stride,
+                                       int rounding);
 
 typedef INTERPOLATE_LOWPASS_HV *INTERPOLATE_LOWPASS_HV_PTR;
 
@@ -57,12 +57,12 @@ typedef void (INTERPOLATE8X8_6TAP_LOWPASS)(byte *dst, byte *src, int stride, boo
 typedef INTERPOLATE8X8_6TAP_LOWPASS *INTERPOLATE8X8_6TAP_LOWPASS_PTR;
 
 #ifdef _ARM_                  //PPC
-extern"C"{
+extern"C" {
 #endif
 
-INTERPOLATE8X8 interpolate8x8_halfpel_h;
-INTERPOLATE8X8 interpolate8x8_halfpel_hv;
-INTERPOLATE8X8 interpolate8x8_halfpel_v;
+	INTERPOLATE8X8 interpolate8x8_halfpel_h;
+	INTERPOLATE8X8 interpolate8x8_halfpel_hv;
+	INTERPOLATE8X8 interpolate8x8_halfpel_v;
 
 #ifdef _ARM_
 }
@@ -86,7 +86,7 @@ INTERPOLATE_LOWPASS_HV interpolate16x16_lowpass_hv;
 //    stride is always multiply of 4
 void interpolate8x8_switch(byte *cur, const byte *refn, dword x, dword y, int dx, int dy, dword stride, bool rounding);
 
-inline void interpolate16x16_switch(byte *cur, const byte *refn, dword x, dword y, int dx, int dy, dword stride, bool rounding){
+inline void interpolate16x16_switch(byte *cur, const byte *refn, dword x, dword y, int dx, int dy, dword stride, bool rounding) {
 
 	interpolate8x8_switch(cur, refn, x,   y,   dx, dy, stride, rounding);
 	interpolate8x8_switch(cur, refn, x+8, y,   dx, dy, stride, rounding);
@@ -94,7 +94,7 @@ inline void interpolate16x16_switch(byte *cur, const byte *refn, dword x, dword 
 	interpolate8x8_switch(cur, refn, x+8, y+8, dx, dy, stride, rounding);
 }
 
-inline void interpolate32x32_switch(byte *cur, const byte *refn, dword x, dword y, int dx, int dy, dword stride, bool rounding){
+inline void interpolate32x32_switch(byte *cur, const byte *refn, dword x, dword y, int dx, int dy, dword stride, bool rounding) {
 	interpolate16x16_switch(cur, refn, x,    y,    dx, dy, stride, rounding);
 	interpolate16x16_switch(cur, refn, x+16, y,    dx, dy, stride, rounding);
 	interpolate16x16_switch(cur, refn, x,    y+16, dx, dy, stride, rounding);

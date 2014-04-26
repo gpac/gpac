@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -61,17 +61,17 @@ typedef struct __tag_bitstream GF_BitStream;
  *
  *	Constructs a bitstream from a buffer (read or write mode)
  *	\param buffer buffer to read or write. In WRITE mode, this can be NULL to let the bitstream object dynamically allocate memory, in which case the size param is ignored.
- *	\param size size of the buffer given. 
+ *	\param size size of the buffer given.
  *	\param mode operation mode for this bitstream: GF_BITSTREAM_READ for read, GF_BITSTREAM_WRITE for write.
  *	\return new bitstream object
- *	\note In write mode on an existing data buffer, data overflow is never signaled but simply ignored, it is the caller responsability to ensure it 
+ *	\note In write mode on an existing data buffer, data overflow is never signaled but simply ignored, it is the caller responsability to ensure it
  *	does not write more than possible.
  */
 GF_BitStream *gf_bs_new(const char *buffer, u64 size, u32 mode);
 /*!
  *	\brief bitstream constructor from file handle
  *
- * Creates a bitstream from a file handle. 
+ * Creates a bitstream from a file handle.
  * \param f handle of the file to use. This handle must be created with binary mode.
  *	\param mode operation mode for this bitstream: GF_BITSTREAM_READ for read, GF_BITSTREAM_WRITE for write.
  *	\return new bitstream object
@@ -92,8 +92,8 @@ void gf_bs_del(GF_BitStream *bs);
 /*!
  *	\brief sets bitstream write cache size
  *
- * Sets the write cache size for file-based bitstreams.  
- *	\param bs the target bitstream 
+ * Sets the write cache size for file-based bitstreams.
+ *	\param bs the target bitstream
  *	\param size size of the write cache in bytes
  *	\return error if any.
  */
@@ -103,8 +103,8 @@ GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size);
 /*!
  *	\brief gets bitstream write cache size
  *
- * Gets the write cache size for file-based bitstreams.  
- *	\param bs the target bitstream 
+ * Gets the write cache size for file-based bitstreams.
+ *	\param bs the target bitstream
  *	\return size of the write cache in bytes, 0 if no cache
  */
 u32 gf_bs_get_output_buffering(GF_BitStream *bs);
@@ -113,7 +113,7 @@ u32 gf_bs_get_output_buffering(GF_BitStream *bs);
  *	\brief integer reading
  *
  *	Reads an integer coded on a number of bit.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param nBits the number of bits to read
  *	\return the integer value read.
  */
@@ -122,7 +122,7 @@ u32 gf_bs_read_int(GF_BitStream *bs, u32 nBits);
  *	\brief large integer reading
  *
  *	Reads a large integer coded on a number of bit bigger than 32.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param nBits the number of bits to read
  *	\return the large integer value read.
  */
@@ -131,7 +131,7 @@ u64 gf_bs_read_long_int(GF_BitStream *bs, u32 nBits);
  *	\brief float reading
  *
  *	Reads a float coded as IEEE 32 bit format.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\return the float value read.
  */
 Float gf_bs_read_float(GF_BitStream *bs);
@@ -139,7 +139,7 @@ Float gf_bs_read_float(GF_BitStream *bs);
  *	\brief double reading
  *
  *	Reads a double coded as IEEE 64 bit format.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\return the double value read.
  */
 Double gf_bs_read_double(GF_BitStream *bs);
@@ -147,7 +147,7 @@ Double gf_bs_read_double(GF_BitStream *bs);
  *	\brief data reading
  *
  *	Reads a data buffer
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param data the data buffer to be filled
  *	\param nbBytes the amount of bytes to read
  *	\return the number of bytes actually read.
@@ -160,7 +160,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes);
  *
  *	Reads an integer coded on 8 bits starting at a byte boundary in the bitstream.
  *	\warning you must not use this function if the bitstream is not aligned
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\return the char value read.
  */
 u32 gf_bs_read_u8(GF_BitStream *bs);
@@ -171,7 +171,7 @@ u32 gf_bs_read_u8(GF_BitStream *bs);
  *	Reads an integer coded on 8 bits starting at a byte boundary in the bitstream until
  *  the given appears on the bitstream.
  *	\note the bytes read in the bitstream will only be update if the delimiter is found
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param delimiter the stop condition
  *  \param out the resulting value
  *  \param max_length the maximum length of the output
@@ -184,7 +184,7 @@ u32 gf_bs_read_u8_until_delimiter(GF_BitStream *bs, u8 delimiter, u8* out, u32 m
  *
  *	Reads an integer coded on 16 bits starting at a byte boundary in the bitstream.
  *	\warning you must not use this function if the bitstream is not aligned
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\return the short value read.
  */
 u32 gf_bs_read_u16(GF_BitStream *bs);
@@ -193,7 +193,7 @@ u32 gf_bs_read_u16(GF_BitStream *bs);
  *
  *	Reads an integer coded on 24 bits starting at a byte boundary in the bitstream.
  *	\warning you must not use this function if the bitstream is not aligned
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\return the integer value read.
  */
 u32 gf_bs_read_u24(GF_BitStream *bs);
@@ -202,7 +202,7 @@ u32 gf_bs_read_u24(GF_BitStream *bs);
  *
  *	Reads an integer coded on 32 bits starting at a byte boundary in the bitstream.
  *	\warning you must not use this function if the bitstream is not aligned
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\return the integer value read.
  */
 u32 gf_bs_read_u32(GF_BitStream *bs);
@@ -211,7 +211,7 @@ u32 gf_bs_read_u32(GF_BitStream *bs);
  *
  *	Reads an integer coded on 64 bits starting at a byte boundary in the bitstream.
  *	\warning you must not use this function if the bitstream is not aligned
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\return the large integer value read.
  */
 u64 gf_bs_read_u64(GF_BitStream *bs);
@@ -219,7 +219,7 @@ u64 gf_bs_read_u64(GF_BitStream *bs);
  *	\brief little endian integer reading
  *
  *	Reads an integer coded on 32 bits in little-endian order.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\return the integer value read.
  */
 u32 gf_bs_read_u32_le(GF_BitStream *bs);
@@ -227,7 +227,7 @@ u32 gf_bs_read_u32_le(GF_BitStream *bs);
  *	\brief little endian integer reading
  *
  *	Reads an integer coded on 16 bits in little-endian order.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\return the integer value read.
  */
 u16 gf_bs_read_u16_le(GF_BitStream *bs);
@@ -237,7 +237,7 @@ u16 gf_bs_read_u16_le(GF_BitStream *bs);
  *	\brief variable length integer reading
  *
  *	Reads an integer coded on a variable number of 4-bits chunks. The number of chunks is given by the number of non-0 bits at the begining.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\return the integer value read.
  */
 u32 gf_bs_read_vluimsbf5(GF_BitStream *bs);
@@ -246,7 +246,7 @@ u32 gf_bs_read_vluimsbf5(GF_BitStream *bs);
  *	\brief bit position
  *
  *	Returns current bit position in the bitstream - only works in memory mode.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\return the integer value read.
  */
 u32 gf_bs_get_bit_offset(GF_BitStream *bs);
@@ -255,7 +255,7 @@ u32 gf_bs_get_bit_offset(GF_BitStream *bs);
  *	\brief current bit position
  *
  *	Returns bit position in the current byte of the bitstream - only works in memory mode.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\return the integer value read.
  */
 u32 gf_bs_get_bit_position(GF_BitStream *bs);
@@ -265,7 +265,7 @@ u32 gf_bs_get_bit_position(GF_BitStream *bs);
  *	\brief integer writing
  *
  *	Writes an integer on a given number of bits.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param value the integer to write
  *	\param nBits number of bits used to code the integer
  */
@@ -274,7 +274,7 @@ void gf_bs_write_int(GF_BitStream *bs, s32 value, s32 nBits);
  *	\brief large integer writing
  *
  *	Writes an integer on a given number of bits greater than 32.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param value the large integer to write
  *	\param nBits number of bits used to code the integer
  */
@@ -283,7 +283,7 @@ void gf_bs_write_long_int(GF_BitStream *bs, s64 value, s32 nBits);
  *	\brief float writing
  *
  *	Writes a float in IEEE 32 bits format.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param value the float to write
  */
 void gf_bs_write_float(GF_BitStream *bs, Float value);
@@ -291,7 +291,7 @@ void gf_bs_write_float(GF_BitStream *bs, Float value);
  *	\brief double writing
  *
  *	Writes a double in IEEE 64 bits format.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param value the double to write
  */
 void gf_bs_write_double(GF_BitStream *bs, Double value);
@@ -299,7 +299,7 @@ void gf_bs_write_double(GF_BitStream *bs, Double value);
  *	\brief data writing
  *
  *	Writes a data buffer.
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param data the data to write
  *	\param nbBytes number of data bytes to write
  */
@@ -310,7 +310,7 @@ u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes);
  *
  *	Writes an integer on 8 bits starting at a byte boundary in the bitstream.
  *	\warning you must not use this function if the bitstream is not aligned
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param value the char value to write
  */
 void gf_bs_write_u8(GF_BitStream *bs, u32 value);
@@ -319,7 +319,7 @@ void gf_bs_write_u8(GF_BitStream *bs, u32 value);
  *
  *	Writes an integer on 16 bits starting at a byte boundary in the bitstream.
  *	\warning you must not use this function if the bitstream is not aligned
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param value the short value to write
  */
 void gf_bs_write_u16(GF_BitStream *bs, u32 value);
@@ -328,7 +328,7 @@ void gf_bs_write_u16(GF_BitStream *bs, u32 value);
  *
  *	Writes an integer on 24 bits starting at a byte boundary in the bitstream.
  *	\warning you must not use this function if the bitstream is not aligned
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param value the integer value to write
  */
 void gf_bs_write_u24(GF_BitStream *bs, u32 value);
@@ -337,7 +337,7 @@ void gf_bs_write_u24(GF_BitStream *bs, u32 value);
  *
  *	Writes an integer on 32 bits starting at a byte boundary in the bitstream.
  *	\warning you must not use this function if the bitstream is not aligned
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param value the integer value to write
  */
 void gf_bs_write_u32(GF_BitStream *bs, u32 value);
@@ -347,7 +347,7 @@ void gf_bs_write_u32(GF_BitStream *bs, u32 value);
  *
  *	Writes an integer on 64 bits starting at a byte boundary in the bitstream.
  *	\warning you must not use this function if the bitstream is not aligned
- *	\param bs the target bitstream 
+ *	\param bs the target bitstream
  *	\param value the large integer value to write
  */
 void gf_bs_write_u64(GF_BitStream *bs, u64 value);
@@ -415,7 +415,7 @@ u64 gf_bs_available(GF_BitStream *bs);
  *	\param bs the target bitstream
  *	\param output address of a memory block to be allocated for bitstream data.
  *	\param outSize set to the size of the allocated memory block.
- *	\note 
+ *	\note
 	* It is the user responsability to destroy the allocated buffer
 	* Once this function has been called, the internal bitstream buffer is reseted.
  */
@@ -449,7 +449,7 @@ GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset);
 void gf_bs_truncate(GF_BitStream *bs);
 
 /*!
- *\brief bit peeking 
+ *\brief bit peeking
  *
  *Peeks a given number of bits (read without moving the position indicator) for read modes only.
  *\param bs the target bitstream

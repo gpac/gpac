@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -63,7 +63,7 @@ class wxPlaylist;
 
 class GPACLogs : public wxLogWindow {
 public:
-    GPACLogs(wxFrame *parent) : wxLogWindow(parent, wxT("GPAC Logs"), FALSE, FALSE) {
+	GPACLogs(wxFrame *parent) : wxLogWindow(parent, wxT("GPAC Logs"), FALSE, FALSE) {
 		m_pMain = (wxOsmo4Frame *) parent;
 	}
 	virtual bool OnFrameClose(wxFrame *frame);
@@ -202,14 +202,14 @@ DEFINE_EVENT_TYPE(GPAC_EVENT)
 
 class OpenURLDlg : public wxDialog {
 public:
-    OpenURLDlg(wxWindow *parent, GF_Config *cfg);
+	OpenURLDlg(wxWindow *parent, GF_Config *cfg);
 	wxString m_urlVal;
 private:
-    wxButton *m_go;
-    wxComboBox *m_url;
+	wxButton *m_go;
+	wxComboBox *m_url;
 	GF_Config *m_cfg;
 	void OnGo(wxCommandEvent& event);
-    DECLARE_EVENT_TABLE()
+	DECLARE_EVENT_TABLE()
 };
 
 class wxMyComboBox : public wxComboBox
@@ -227,8 +227,8 @@ private:
 
 class wxOsmo4Frame : public wxFrame {
 public:
-    wxOsmo4Frame();
-    virtual ~wxOsmo4Frame();
+	wxOsmo4Frame();
+	virtual ~wxOsmo4Frame();
 
 	char szAppPath[GF_MAX_PATH];
 
@@ -355,8 +355,8 @@ private:
 
 	void CheckVideoOut();
 
-    wxMenuBar* m_pMenubar;
-    wxStatusBar* m_pStatusbar;
+	wxMenuBar* m_pMenubar;
+	wxStatusBar* m_pStatusbar;
 	wxTimer *m_pTimer;
 	GPACLogs *m_pLogs;
 	wxBoxSizer *m_pAddBar;

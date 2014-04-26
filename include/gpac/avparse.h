@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -133,44 +133,44 @@ u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length);
 
 enum
 {
-    GF_M4A_AAC_MAIN = 1,
-    GF_M4A_AAC_LC = 2,
-    GF_M4A_AAC_SSR = 3,
-    GF_M4A_AAC_LTP = 4,
-    GF_M4A_AAC_SBR = 5,
-    GF_M4A_AAC_SCALABLE = 6,
-    GF_M4A_TWINVQ = 7,
-    GF_M4A_CELP = 8, 
-    GF_M4A_HVXC = 9,
-    GF_M4A_TTSI = 12,
-    GF_M4A_MAIN_SYNTHETIC = 13,
-    GF_M4A_WAVETABLE_SYNTHESIS = 14,
-    GF_M4A_GENERAL_MIDI = 15,
-    GF_M4A_ALGO_SYNTH_AUDIO_FX = 16,
-    GF_M4A_ER_AAC_LC = 17,
-    GF_M4A_ER_AAC_LTP = 19,
-    GF_M4A_ER_AAC_SCALABLE = 20,
-    GF_M4A_ER_TWINVQ = 21,
-    GF_M4A_ER_BSAC = 22,
-    GF_M4A_ER_AAC_LD = 23,
-    GF_M4A_ER_CELP = 24,
-    GF_M4A_ER_HVXC = 25,
-    GF_M4A_ER_HILN = 26,
-    GF_M4A_ER_PARAMETRIC = 27,
-    GF_M4A_SSC = 28,
-    GF_M4A_AAC_PS = 29,
-    GF_M4A_LAYER1 = 32,
-    GF_M4A_LAYER2 = 33,
-    GF_M4A_LAYER3 = 34,
-    GF_M4A_DST = 35,
-    GF_M4A_ALS = 36
+	GF_M4A_AAC_MAIN = 1,
+	GF_M4A_AAC_LC = 2,
+	GF_M4A_AAC_SSR = 3,
+	GF_M4A_AAC_LTP = 4,
+	GF_M4A_AAC_SBR = 5,
+	GF_M4A_AAC_SCALABLE = 6,
+	GF_M4A_TWINVQ = 7,
+	GF_M4A_CELP = 8,
+	GF_M4A_HVXC = 9,
+	GF_M4A_TTSI = 12,
+	GF_M4A_MAIN_SYNTHETIC = 13,
+	GF_M4A_WAVETABLE_SYNTHESIS = 14,
+	GF_M4A_GENERAL_MIDI = 15,
+	GF_M4A_ALGO_SYNTH_AUDIO_FX = 16,
+	GF_M4A_ER_AAC_LC = 17,
+	GF_M4A_ER_AAC_LTP = 19,
+	GF_M4A_ER_AAC_SCALABLE = 20,
+	GF_M4A_ER_TWINVQ = 21,
+	GF_M4A_ER_BSAC = 22,
+	GF_M4A_ER_AAC_LD = 23,
+	GF_M4A_ER_CELP = 24,
+	GF_M4A_ER_HVXC = 25,
+	GF_M4A_ER_HILN = 26,
+	GF_M4A_ER_PARAMETRIC = 27,
+	GF_M4A_SSC = 28,
+	GF_M4A_AAC_PS = 29,
+	GF_M4A_LAYER1 = 32,
+	GF_M4A_LAYER2 = 33,
+	GF_M4A_LAYER3 = 34,
+	GF_M4A_DST = 35,
+	GF_M4A_ALS = 36
 };
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
 static const u32 GF_M4ASampleRates[] =
 {
-    96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 
+	96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050,
 	16000, 12000, 11025, 8000, 7350, 0, 0, 0
 };
 
@@ -230,7 +230,7 @@ const char *gf_hevc_get_profile_name(u8 video_prof);
 
 
 
-/*gets image size (bs must contain the whole image) 
+/*gets image size (bs must contain the whole image)
 @OTI: image type (JPEG=0x6C, PNG=0x6D)
 @width, height: image resolution - for jpeg max size if thumbnail included*/
 void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height, char **dsi, u32 *dsi_len);

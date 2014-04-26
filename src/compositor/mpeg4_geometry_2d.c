@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -38,7 +38,8 @@ Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res)
 		res->z = 0;
 		return 1;
 	}
-	p.normal.x = p.normal.y = 0; p.normal.z = FIX_ONE;
+	p.normal.x = p.normal.y = 0;
+	p.normal.z = FIX_ONE;
 	p.d = 0;
 	t2 = gf_vec_dot(p.normal, ray->dir);
 	if (t2 == 0) return 0;
@@ -263,11 +264,11 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
 
-	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->data 
+	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->data
 #ifndef GPAC_DISABLE_3D
-		&& !tr_state->visual->compositor->hybrid_opengl
+	        && !tr_state->visual->compositor->hybrid_opengl
 #endif
-		) {
+	   ) {
 		Bool res;
 
 		/*get image size WITHOUT line size or antialias margin*/

@@ -55,7 +55,7 @@ typedef struct
 } WgtLoad;
 
 static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength,
-								u16 ES_ID, u32 stream_time, u32 mmlevel)
+                              u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
 	WgtLoad *wgtload = (WgtLoad *)plug->privateStack;
@@ -90,13 +90,13 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			gf_svg_parse_attribute(n, &info, "0 0 320 240", 0);
 			gf_node_get_attribute_by_name(n, "xmlns", 0, 1, 0, &info);
 			gf_svg_parse_attribute(n, &info, "http://www.w3.org/2000/svg", 0);
-/*
-			gf_sg_set_scene_size_info(wgtload->scene->graph, 800, 600, 1);
-			gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_width, 1, 0, &info);
-			gf_svg_parse_attribute(n, &info, "800", 0);
-			gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_height, 1, 0, &info);
-			gf_svg_parse_attribute(n, &info, "600", 0);
-*/
+			/*
+						gf_sg_set_scene_size_info(wgtload->scene->graph, 800, 600, 1);
+						gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_width, 1, 0, &info);
+						gf_svg_parse_attribute(n, &info, "800", 0);
+						gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_height, 1, 0, &info);
+						gf_svg_parse_attribute(n, &info, "600", 0);
+			*/
 			gf_node_init(n);
 
 			n = gf_node_new(wgtload->scene->graph, TAG_SVG_animation);
@@ -126,15 +126,15 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 				gf_svg_parse_attribute(n, &info, (char *) path, 0);
 			} else {
 				const char *load_fun = "function load_widget(wid_url) {\n"
-										"	var wid = WidgetManager.load(wid_url);\n"
-										"	var anim = document.getElementById('w_anim');\n"
-										"	if (wid != null) {\n"
-										"		wid.activate(anim);"
-										"		anim.setAttributeNS('http://www.w3.org/1999/xlink', 'href', wid.main);\n"
-										"	} else {\n"
-										"		alert('Widget ' + wid_url + ' is not valid');\n"
-										"	}\n"
-										"}\n";
+				                       "	var wid = WidgetManager.load(wid_url);\n"
+				                       "	var anim = document.getElementById('w_anim');\n"
+				                       "	if (wid != null) {\n"
+				                       "		wid.activate(anim);"
+				                       "		anim.setAttributeNS('http://www.w3.org/1999/xlink', 'href', wid.main);\n"
+				                       "	} else {\n"
+				                       "		alert('Widget ' + wid_url + ' is not valid');\n"
+				                       "	}\n"
+				                       "}\n";
 
 				gf_dom_add_text_node(n, gf_strdup(load_fun) );
 			}
@@ -290,12 +290,12 @@ void ShutdownWidgetReader(GF_BaseInterface *ifce)
 {
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)ifce;
 	WgtLoad *wgtload;
-        if (!ifce)
-          return;
-        wgtload = (WgtLoad *) sdec->privateStack;
-        if (wgtload)
-          gf_free(wgtload);
-        sdec->privateStack = NULL;
+	if (!ifce)
+		return;
+	wgtload = (WgtLoad *) sdec->privateStack;
+	if (wgtload)
+		gf_free(wgtload);
+	sdec->privateStack = NULL;
 	gf_free(sdec);
 }
 

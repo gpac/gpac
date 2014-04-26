@@ -5,21 +5,21 @@
  *			Copyright (c) Telecom ParisTech 2005-2012
  *					All rights reserved
  *
- *  This file is part of GPAC 
+ *  This file is part of GPAC
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -44,7 +44,7 @@ typedef void (*gf_seng_callback)(void *udta, u16 ESID, char *data, u32 size, u64
  * \param calling_object is the calling object on which call back will be called
  * \param inputContext is the name of a scene file (bt, xmt or mp4) to initialize the coding context
  * \param load_type is the prefered loader type for the content (e.g. SVG vs DIMS)
- * \param dump_path is the path where scenes are dumped 
+ * \param dump_path is the path where scenes are dumped
  * \param embed_resources indicates if images and scripts should be encoded inlined with the content
  *
  * must be called only one time (by process calling the DLL) before other calls
@@ -58,7 +58,7 @@ GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, u32 load_
  * \param width width of scene if no IOD is given in the context.
  * \param height height of scene if no IOD is given in the context.
  * \param usePixelMetrics metrics system used in the scene, if no IOD is given in the context.
- * \param dump_path the path where scenes are dumped 
+ * \param dump_path the path where scenes are dumped
  *
  * must be called only one time (by process calling the DLL) before other calls
  */
@@ -68,7 +68,7 @@ GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char *inputContex
 /**
  * \param calling_object the calling object on which call back will be called
  * \param ctx an already loaded scene manager
- * \param dump_path the path where scenes are dumped 
+ * \param dump_path the path where scenes are dumped
  *
  * must be called only one time (by process calling the DLL) before other calls
  */
@@ -84,7 +84,7 @@ u32 gf_seng_get_stream_count(GF_SceneEngine *seng);
 /**
  * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
  * \param ESID ID of the stream
- * \param carousel_period pointer to store the carousel_period 
+ * \param carousel_period pointer to store the carousel_period
  * \param aggregate_on_es_id pointer to store the target carousel stream ID
  *
  * must be called after gf_seng_init()
@@ -103,7 +103,7 @@ GF_Err gf_seng_get_stream_carousel_info(GF_SceneEngine *seng, u16 ESID, u32 *car
  *
  * must be called after gf_seng_init()
  */
-GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, char * * const config, u32 *config_len, u32 *streamType, u32 *objectType, u32 *timeScale);
+GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, char ** const config, u32 *config_len, u32 *streamType, u32 *objectType, u32 *timeScale);
 
 /**
  * Encodes the AU context which is not encoded when calling BENC_EncodeAUFromString/File
@@ -118,7 +118,7 @@ GF_Err gf_seng_encode_context(GF_SceneEngine *seng, gf_seng_callback callback);
 /**
  * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
  * \param ESID target streams when no indication is present in the file (eg, no atES_ID )
- * \param disable_aggregation 
+ * \param disable_aggregation
  * \param auFile name of a file containing a description for an access unit (BT or XMT)
  * \param callback pointer on a callback function to get the result of the coding the AU using the current context
  *
@@ -128,7 +128,7 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_agg
 /**
  * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
  * \param ESID target streams when no indication is present in the file (eg, no atES_ID )
- * \param disable_aggregation 
+ * \param disable_aggregation
  * \param auString a char string to encode (must one or several complete nodes in BT
  * \param callback pointer on a callback function to get the result of the coding the AU using the current context
  *
@@ -138,7 +138,7 @@ GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, u16 ESID, Bool disable_a
 /**
  * \param seng pointer to the GF_SceneEngine returned by gf_seng_init()
  * \param ESID indicates the stream to which these commands apply (0 if first scene stream)
- * \param disable_aggregation 
+ * \param disable_aggregation
  * \param time
  * \param commands the list of commands to encode
  * \param callback pointer on a callback function to get the result of the coding the AU using the current context
@@ -161,7 +161,7 @@ GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName);
  * \param ESID stream ID
  * \param onESID set stream aggragation on to the specified stream, or off if onESID is 0
  *
- * marks the stream as carrying its own "rap" in the first AU of the stream 
+ * marks the stream as carrying its own "rap" in the first AU of the stream
  */
 GF_Err gf_seng_enable_aggregation(GF_SceneEngine *seng, u16 ESID, u16 onESID);
 

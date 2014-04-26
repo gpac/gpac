@@ -64,102 +64,102 @@
 
 #define ADD(dst,src)  (dst) = CLIP((dst)+(src), 0, 255)
 
-inline void Filter_31(byte *Dst1, byte *Dst2, const int *Src1, const int *Src2){
+inline void Filter_31(byte *Dst1, byte *Dst2, const int *Src1, const int *Src2) {
 
-    /* Src[] is assumed to be >=0. So we can use ">>2" instead of "/2" */
-  int a = (3*Src1[0]+  Src2[0]+2) >> 2;
-  int b = (  Src1[0]+3*Src2[0]+2) >> 2;
-  Dst1[0] = CLIP(a, 0, 255);
-  Dst2[0] = CLIP(b, 0, 255);
+	/* Src[] is assumed to be >=0. So we can use ">>2" instead of "/2" */
+	int a = (3*Src1[0]+  Src2[0]+2) >> 2;
+	int b = (  Src1[0]+3*Src2[0]+2) >> 2;
+	Dst1[0] = CLIP(a, 0, 255);
+	Dst2[0] = CLIP(b, 0, 255);
 }
 
 //----------------------------
 
-inline void Filter_9331(byte *Dst1, byte *Dst2, const int *Src1, const int *Src2){
+inline void Filter_9331(byte *Dst1, byte *Dst2, const int *Src1, const int *Src2) {
 
-    /* Src[] is assumed to be >=0. So we can use ">>4" instead of "/16" */
-  int a = (9*Src1[0]+  3*Src1[1]+ 3*Src2[0] + 1*Src2[1] + 8) >> 4;
-  int b = (3*Src1[0]+  9*Src1[1]+ 1*Src2[0] + 3*Src2[1] + 8) >> 4;
-  int c = (3*Src1[0]+  1*Src1[1]+ 9*Src2[0] + 3*Src2[1] + 8) >> 4;
-  int d = (1*Src1[0]+  3*Src1[1]+ 3*Src2[0] + 9*Src2[1] + 8) >> 4;
-  Dst1[0] = CLIP(a, 0, 255);
-  Dst1[1] = CLIP(b, 0, 255);
-  Dst2[0] = CLIP(c, 0, 255);
-  Dst2[1] = CLIP(d, 0, 255);
+	/* Src[] is assumed to be >=0. So we can use ">>4" instead of "/16" */
+	int a = (9*Src1[0]+  3*Src1[1]+ 3*Src2[0] + 1*Src2[1] + 8) >> 4;
+	int b = (3*Src1[0]+  9*Src1[1]+ 1*Src2[0] + 3*Src2[1] + 8) >> 4;
+	int c = (3*Src1[0]+  1*Src1[1]+ 9*Src2[0] + 3*Src2[1] + 8) >> 4;
+	int d = (1*Src1[0]+  3*Src1[1]+ 3*Src2[0] + 9*Src2[1] + 8) >> 4;
+	Dst1[0] = CLIP(a, 0, 255);
+	Dst1[1] = CLIP(b, 0, 255);
+	Dst2[0] = CLIP(c, 0, 255);
+	Dst2[1] = CLIP(d, 0, 255);
 }
 
 //----------------------------
 
-void copy_upsampled_8x8_16to8(byte *Dst, const int *Src, int BpS){
-   int x, y;
-   
-   Dst[0] = CLIP(Src[0], 0, 255);
-   for(x=0; x<7; ++x)
-      Filter_31(Dst+2*x+1, Dst+2*x+2, Src+x, Src+x+1);
-   Dst[15] = CLIP(Src[7], 0, 255);
-   Dst += BpS;
-   for(y=0; y<7; ++y) {
-      byte *const Dst2 = Dst + BpS;
-      Filter_31(Dst, Dst2, Src, Src+8);
-      for(x=0; x<7; ++x)
-         Filter_9331(Dst+2*x+1, Dst2+2*x+1, Src+x, Src+x+8);
-      Filter_31(Dst+15, Dst2+15, Src+7, Src+7+8);
-      Src += 8;
-      Dst += 2*BpS;
-   }
-   Dst[0] = CLIP(Src[0], 0, 255);
-   for(x=0; x<7; ++x) Filter_31(Dst+2*x+1, Dst+2*x+2, Src+x, Src+x+1);
-   Dst[15] = CLIP(Src[7], 0, 255);
+void copy_upsampled_8x8_16to8(byte *Dst, const int *Src, int BpS) {
+	int x, y;
+
+	Dst[0] = CLIP(Src[0], 0, 255);
+	for(x=0; x<7; ++x)
+		Filter_31(Dst+2*x+1, Dst+2*x+2, Src+x, Src+x+1);
+	Dst[15] = CLIP(Src[7], 0, 255);
+	Dst += BpS;
+	for(y=0; y<7; ++y) {
+		byte *const Dst2 = Dst + BpS;
+		Filter_31(Dst, Dst2, Src, Src+8);
+		for(x=0; x<7; ++x)
+			Filter_9331(Dst+2*x+1, Dst2+2*x+1, Src+x, Src+x+8);
+		Filter_31(Dst+15, Dst2+15, Src+7, Src+7+8);
+		Src += 8;
+		Dst += 2*BpS;
+	}
+	Dst[0] = CLIP(Src[0], 0, 255);
+	for(x=0; x<7; ++x) Filter_31(Dst+2*x+1, Dst+2*x+2, Src+x, Src+x+1);
+	Dst[15] = CLIP(Src[7], 0, 255);
 }
 
 //----------------------------
 
-inline void Filter_Add_31(byte *Dst1, byte *Dst2, const int *Src1, const int *Src2){
+inline void Filter_Add_31(byte *Dst1, byte *Dst2, const int *Src1, const int *Src2) {
 
-    /* Here, we must use "/4", since Src[] is in [-256, 255] */
-  int a = (3*Src1[0]+  Src2[0] + 2) / 4;
-  int b = (  Src1[0]+3*Src2[0] + 2) / 4;
-  ADD(Dst1[0], a);
-  ADD(Dst2[0], b);
+	/* Here, we must use "/4", since Src[] is in [-256, 255] */
+	int a = (3*Src1[0]+  Src2[0] + 2) / 4;
+	int b = (  Src1[0]+3*Src2[0] + 2) / 4;
+	ADD(Dst1[0], a);
+	ADD(Dst2[0], b);
 }
 
 //----------------------------
 
-inline void Filter_Add_9331(byte *Dst1, byte *Dst2, const int *Src1, const int *Src2){
+inline void Filter_Add_9331(byte *Dst1, byte *Dst2, const int *Src1, const int *Src2) {
 
-  int a = (9*Src1[0]+  3*Src1[1]+ 3*Src2[0] + 1*Src2[1] + 8) / 16;
-  int b = (3*Src1[0]+  9*Src1[1]+ 1*Src2[0] + 3*Src2[1] + 8) / 16;
-  int c = (3*Src1[0]+  1*Src1[1]+ 9*Src2[0] + 3*Src2[1] + 8) / 16;
-  int d = (1*Src1[0]+  3*Src1[1]+ 3*Src2[0] + 9*Src2[1] + 8) / 16;
-  ADD(Dst1[0], a);
-  ADD(Dst1[1], b);
-  ADD(Dst2[0], c);
-  ADD(Dst2[1], d);
+	int a = (9*Src1[0]+  3*Src1[1]+ 3*Src2[0] + 1*Src2[1] + 8) / 16;
+	int b = (3*Src1[0]+  9*Src1[1]+ 1*Src2[0] + 3*Src2[1] + 8) / 16;
+	int c = (3*Src1[0]+  1*Src1[1]+ 9*Src2[0] + 3*Src2[1] + 8) / 16;
+	int d = (1*Src1[0]+  3*Src1[1]+ 3*Src2[0] + 9*Src2[1] + 8) / 16;
+	ADD(Dst1[0], a);
+	ADD(Dst1[1], b);
+	ADD(Dst2[0], c);
+	ADD(Dst2[1], d);
 }
 
 //----------------------------
 
-void add_upsampled_8x8_16to8(byte *Dst, const int *Src, const int BpS){
-   
-   int x, y;
-   
-   ADD(Dst[0], Src[0]);
-   for(x=0; x<7; ++x)
-      Filter_Add_31(Dst+2*x+1, Dst+2*x+2, Src+x, Src+x+1);
-   ADD(Dst[15], Src[7]);
-   Dst += BpS;
-   for(y=0; y<7; ++y) {
-      byte *const Dst2 = Dst + BpS;
-      Filter_Add_31(Dst, Dst2, Src, Src+8);
-      for(x=0; x<7; ++x)
-         Filter_Add_9331(Dst+2*x+1, Dst2+2*x+1, Src+x, Src+x+8);
-      Filter_Add_31(Dst+15, Dst2+15, Src+7, Src+7+8);
-      Src += 8;
-      Dst += 2*BpS;
-   }
-   ADD(Dst[0], Src[0]);
-   for(x=0; x<7; ++x) Filter_Add_31(Dst+2*x+1, Dst+2*x+2, Src+x, Src+x+1);
-   ADD(Dst[15], Src[7]);
+void add_upsampled_8x8_16to8(byte *Dst, const int *Src, const int BpS) {
+
+	int x, y;
+
+	ADD(Dst[0], Src[0]);
+	for(x=0; x<7; ++x)
+		Filter_Add_31(Dst+2*x+1, Dst+2*x+2, Src+x, Src+x+1);
+	ADD(Dst[15], Src[7]);
+	Dst += BpS;
+	for(y=0; y<7; ++y) {
+		byte *const Dst2 = Dst + BpS;
+		Filter_Add_31(Dst, Dst2, Src, Src+8);
+		for(x=0; x<7; ++x)
+			Filter_Add_9331(Dst+2*x+1, Dst2+2*x+1, Src+x, Src+x+8);
+		Filter_Add_31(Dst+15, Dst2+15, Src+7, Src+7+8);
+		Src += 8;
+		Dst += 2*BpS;
+	}
+	ADD(Dst[0], Src[0]);
+	for(x=0; x<7; ++x) Filter_Add_31(Dst+2*x+1, Dst+2*x+2, Src+x, Src+x+1);
+	ADD(Dst[15], Src[7]);
 }
 #undef ADD
 
@@ -167,29 +167,29 @@ void add_upsampled_8x8_16to8(byte *Dst, const int *Src, const int BpS){
  * horizontal and vertical deblocking
  *--------------------------------------------------------------------------*/
 
-void hfilter_31(byte *Src1, byte *Src2, int Nb_Blks){
+void hfilter_31(byte *Src1, byte *Src2, int Nb_Blks) {
 
-  Nb_Blks *= 8;
-  while(Nb_Blks-->0) {
-    byte a = ( 3*Src1[0] + 1*Src2[0] + 2 ) >> 2;
-    byte b = ( 1*Src1[0] + 3*Src2[0] + 2 ) >> 2;
-    *Src1++ = a;
-    *Src2++ = b;
-  }
+	Nb_Blks *= 8;
+	while(Nb_Blks-->0) {
+		byte a = ( 3*Src1[0] + 1*Src2[0] + 2 ) >> 2;
+		byte b = ( 1*Src1[0] + 3*Src2[0] + 2 ) >> 2;
+		*Src1++ = a;
+		*Src2++ = b;
+	}
 }
 
 //----------------------------
 
-void vfilter_31(byte *Src1, byte *Src2, const int BpS, int Nb_Blks){
-  Nb_Blks *= 8;
-  while(Nb_Blks-->0) {
-    byte a = ( 3*Src1[0] + 1*Src2[0] + 2 ) >> 2;
-    byte b = ( 1*Src1[0] + 3*Src2[0] + 2 ) >> 2;
-    *Src1 = a;
-    *Src2 = b;
-    Src1 += BpS;
-    Src2 += BpS;
-  }
+void vfilter_31(byte *Src1, byte *Src2, const int BpS, int Nb_Blks) {
+	Nb_Blks *= 8;
+	while(Nb_Blks-->0) {
+		byte a = ( 3*Src1[0] + 1*Src2[0] + 2 ) >> 2;
+		byte b = ( 1*Src1[0] + 3*Src2[0] + 2 ) >> 2;
+		*Src1 = a;
+		*Src2 = b;
+		Src1 += BpS;
+		Src2 += BpS;
+	}
 }
 
 //----------------------------

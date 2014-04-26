@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 
@@ -79,19 +79,19 @@ typedef struct
 	u32 off_x, off_y;
 
 	HBITMAP bitmap, old_bitmap;
-    DWORD * bits;
+	DWORD * bits;
 	HDC hdcBitmap, hdc;
 	BITMAPINFO*     bmi;
 
 #ifdef GPAC_USE_OGL_ES
 	u32 output_3d_type;
-    EGLDisplay egldpy;
-    EGLSurface surface;
-    EGLConfig eglconfig;
-    EGLContext eglctx;
+	EGLDisplay egldpy;
+	EGLSurface surface;
+	EGLConfig eglconfig;
+	EGLContext eglctx;
 
 	HBITMAP gl_bitmap;
-    DWORD *gl_bits;
+	DWORD *gl_bits;
 	HWND gl_hwnd;
 	Bool use_pbuffer;
 #endif
@@ -105,4 +105,4 @@ GF_Err GAPI_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 height) ;
 }
 #endif
 
-#endif 
+#endif

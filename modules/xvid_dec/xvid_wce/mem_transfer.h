@@ -48,7 +48,7 @@ void transfer8x8_copy(byte *const dst, const byte * const src, const dword strid
 
 //----------------------------
 
-inline void transfer16x16_copy(byte * const dst, const byte * const src, const dword stride){
+inline void transfer16x16_copy(byte * const dst, const byte * const src, const dword stride) {
 
 	transfer8x8_copy(dst, src, stride);
 	transfer8x8_copy(dst + 8, src + 8, stride);

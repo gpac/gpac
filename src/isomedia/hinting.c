@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -48,7 +48,7 @@ GF_Box *ghnt_New()
 void ghnt_del(GF_Box *s)
 {
 	GF_HintSampleEntryBox *ptr;
-	
+
 	ptr = (GF_HintSampleEntryBox *)s;
 	gf_isom_box_array_del(ptr->HintDataTable);
 	if (ptr->hint_sample) gf_isom_hint_sample_del(ptr->hint_sample);
@@ -102,7 +102,7 @@ GF_Err ghnt_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_HintSampleEntryBox *ptr = (GF_HintSampleEntryBox *)s;
-	
+
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
 	ptr->size += 16;
@@ -235,9 +235,9 @@ u32 gf_isom_hint_sample_size(GF_HintSample *ptr)
 GF_HintPacket *gf_isom_hint_pck_new(u8 HintType)
 {
 	switch (HintType) {
-	case GF_ISMO_HINT_RTP: 
+	case GF_ISMO_HINT_RTP:
 		return (GF_HintPacket *) gf_isom_hint_rtp_new();
-	default: 
+	default:
 		return NULL;
 	}
 }
@@ -394,16 +394,24 @@ GF_GenericDTE *NewDTE(u8 type)
 		Deletion of DataTable entries in the RTP sample
 ********************************************************************/
 void Del_EmptyDTE(GF_EmptyDTE *dte)
-{ gf_free(dte); }
+{
+	gf_free(dte);
+}
 
 void Del_ImmediateDTE(GF_ImmediateDTE *dte)
-{ gf_free(dte); }
+{
+	gf_free(dte);
+}
 
 void Del_SampleDTE(GF_SampleDTE *dte)
-{ gf_free(dte); }
+{
+	gf_free(dte);
+}
 
 void Del_StreamDescDTE(GF_StreamDescDTE *dte)
-{ gf_free(dte); }
+{
+	gf_free(dte);
+}
 
 //deletion of DTEs
 void DelDTE(GF_GenericDTE *dte)
@@ -561,7 +569,7 @@ GF_Err OffsetDTE(GF_GenericDTE *dte, u32 offset, u32 HintSampleNumber)
 	default:
 		return GF_OK;
 	}
-	
+
 	sDTE = (GF_SampleDTE *)dte;
 	//we only adjust for intra HintTrack reference
 	if (sDTE->trackRefIndex != (s8) -1) return GF_OK;
@@ -621,10 +629,10 @@ GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)
 	ptr->B_bit = gf_bs_read_int(bs, 1);
 	ptr->R_bit = gf_bs_read_int(bs, 1);
 	count = gf_bs_read_u16(bs);
-	
+
 	//read the TLV
 	if (hasTLV) {
-		tempSize = 4;	//TLVsize includes its field length 
+		tempSize = 4;	//TLVsize includes its field length
 		TLVsize = gf_bs_read_u32(bs);
 		while (tempSize < TLVsize) {
 			e = gf_isom_parse_box(&a, bs);
@@ -858,7 +866,7 @@ static GF_ISOSample *gf_isom_get_data_sample(GF_HintSample *hsamp, GF_TrackBox *
 	hdc->samp = samp;
 	hdc->sample_num = sample_num;
 	hdc->trak = trak;
-	/*we insert all new samples, since they're more likely to be fetched next (except for audio 
+	/*we insert all new samples, since they're more likely to be fetched next (except for audio
 	interleaving and other multiplex)*/
 	gf_list_insert(hsamp->sample_cache, hdc, 0);
 	return samp;
@@ -926,21 +934,21 @@ GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pc
 	ts = (u32) (entry->hint_sample->TransmissionTime + pck->relativeTransTime + entry->ts_offset + cts_off);
 	gf_bs_write_u32(bs, ts );
 	gf_bs_write_u32(bs, entry->ssrc);	/*SSRC*/
-	
+
 	/*then build all data*/
 	count = gf_list_count(pck->DataTable);
 	for (i=0; i<count; i++) {
 		GF_GenericDTE *dte = (GF_GenericDTE *)gf_list_get(pck->DataTable, i);
 		switch (dte->source) {
 		/*empty*/
-		case 0: 
+		case 0:
 			break;
 		/*immediate data*/
 		case 1:
 			gf_bs_write_data(bs, ((GF_ImmediateDTE *)dte)->data, ((GF_ImmediateDTE *)dte)->dataLength);
 			break;
 		/*sample data*/
-		case 2: 
+		case 2:
 		{
 			GF_ISOSample *samp;
 			GF_SampleDTE *sdte = (GF_SampleDTE *)dte;
@@ -963,9 +971,9 @@ GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pc
 			}
 			gf_bs_write_data(bs, samp->data + sdte->byteOffset, sdte->dataLength);
 		}
-			break;
+		break;
 		/*sample desc data - currently NOT SUPPORTED !!!*/
-		case 3: 
+		case 3:
 			break;
 		}
 	}

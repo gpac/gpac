@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -157,7 +157,10 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 	case TAG_MPEG4_CompositeTexture3D:
 	{
 		M_CompositeTexture3D*c3d = (M_CompositeTexture3D*)n;
-		if (force_check || gf_node_dirty_get(c3d->background)) { gf_node_traverse(c3d->background, tr_state); ret = 1; }
+		if (force_check || gf_node_dirty_get(c3d->background)) {
+			gf_node_traverse(c3d->background, tr_state);
+			ret = 1;
+		}
 		btop = (GF_Node*)gf_list_get(tr_state->backgrounds, 0);
 		if (btop != c3d->background) {
 			gf_node_unregister(c3d->background, n);
@@ -166,7 +169,10 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_event_out_str(n, "background");
 			ret = 1;
 		}
-		if (force_check || gf_node_dirty_get(c3d->viewpoint)) { gf_node_traverse(c3d->viewpoint, tr_state); ret = 1; }
+		if (force_check || gf_node_dirty_get(c3d->viewpoint)) {
+			gf_node_traverse(c3d->viewpoint, tr_state);
+			ret = 1;
+		}
 		btop = (GF_Node*)gf_list_get(tr_state->viewpoints, 0);
 		if (btop != c3d->viewpoint) {
 			gf_node_unregister(c3d->viewpoint, n);
@@ -176,7 +182,10 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			ret = 1;
 		}
 
-		if (force_check || gf_node_dirty_get(c3d->fog)) { gf_node_traverse(c3d->fog, tr_state); ret = 1; }
+		if (force_check || gf_node_dirty_get(c3d->fog)) {
+			gf_node_traverse(c3d->fog, tr_state);
+			ret = 1;
+		}
 		btop = (GF_Node*)gf_list_get(tr_state->fogs, 0);
 		if (btop != c3d->fog) {
 			gf_node_unregister(c3d->fog, n);
@@ -186,7 +195,10 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			ret = 1;
 		}
 
-		if (force_check || gf_node_dirty_get(c3d->navigationInfo)) { gf_node_traverse(c3d->navigationInfo, tr_state); ret = 1; }
+		if (force_check || gf_node_dirty_get(c3d->navigationInfo)) {
+			gf_node_traverse(c3d->navigationInfo, tr_state);
+			ret = 1;
+		}
 		btop = (GF_Node*)gf_list_get(tr_state->navigations, 0);
 		if (btop != c3d->navigationInfo) {
 			gf_node_unregister(c3d->navigationInfo, n);
@@ -201,7 +213,10 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 	case TAG_MPEG4_CompositeTexture2D:
 	{
 		M_CompositeTexture2D *c2d = (M_CompositeTexture2D*)n;
-		if (force_check || gf_node_dirty_get(c2d->background)) { gf_node_traverse(c2d->background, tr_state); ret = 1; }
+		if (force_check || gf_node_dirty_get(c2d->background)) {
+			gf_node_traverse(c2d->background, tr_state);
+			ret = 1;
+		}
 		btop = (GF_Node*)gf_list_get(tr_state->backgrounds, 0);
 		if (btop != c2d->background) {
 			gf_node_unregister(c2d->background, n);
@@ -211,7 +226,10 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			ret = 1;
 		}
 
-		if (force_check || gf_node_dirty_get(c2d->viewport)) { gf_node_traverse(c2d->viewport, tr_state); ret = 1; }
+		if (force_check || gf_node_dirty_get(c2d->viewport)) {
+			gf_node_traverse(c2d->viewport, tr_state);
+			ret = 1;
+		}
 		btop = (GF_Node*)gf_list_get(tr_state->viewpoints, 0);
 		if (btop != c2d->viewport) {
 			gf_node_unregister(c2d->viewport, n);
@@ -242,12 +260,12 @@ static void composite_update(GF_TextureHandler *txh)
 	if (st->unsupported) return;
 
 
-/*
-	if (compositor->recompute_ar) {
-		gf_node_dirty_set(txh->owner, 0, 0);
-		return;
-	}
-*/
+	/*
+		if (compositor->recompute_ar) {
+			gf_node_dirty_set(txh->owner, 0, 0);
+			return;
+		}
+	*/
 	if (!compositor->rebuild_offscreen_textures && (!compositor->text_edit_changed || !st->visual->has_text_edit ) && !gf_node_dirty_get(txh->owner)) {
 		txh->needs_refresh = 0;
 		return;
@@ -338,9 +356,9 @@ static void composite_update(GF_TextureHandler *txh)
 
 	/*rebuild stencil*/
 	if (!txh->tx_io
-		|| (w != (s32) txh->width) || ( h != (s32) txh->height)
-		|| (new_pixel_format != txh->pixelformat)
-		) {
+	        || (w != (s32) txh->width) || ( h != (s32) txh->height)
+	        || (new_pixel_format != txh->pixelformat)
+	   ) {
 
 		Bool needs_stencil = 1;
 		if (txh->tx_io) {
@@ -348,7 +366,7 @@ static void composite_update(GF_TextureHandler *txh)
 			if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
 #endif
 			gf_sc_texture_release(txh);
-			if (txh->data) 
+			if (txh->data)
 				gf_free(txh->data);
 			txh->data = NULL;
 		}
@@ -356,9 +374,9 @@ static void composite_update(GF_TextureHandler *txh)
 		/*we don't use rect ext because of no support for texture transforms*/
 		if (1
 #ifndef GPAC_DISABLE_3D
-			|| compositor->gl_caps.npot_texture
+		        || compositor->gl_caps.npot_texture
 #endif
-			) {
+		   ) {
 			st->txh.width = w;
 			st->txh.height = h;
 			st->sx = st->sy = FIX_ONE;
@@ -436,7 +454,7 @@ static void composite_update(GF_TextureHandler *txh)
 		if (needs_stencil) {
 			txh->data = (char*)gf_malloc(sizeof(unsigned char) * txh->stride * txh->height);
 			memset(txh->data, 0, sizeof(unsigned char) * txh->stride * txh->height);
-			
+
 			/*set stencil texture - we don't check error as an image could not be supported by the rasterizer
 			but still supported by the blitter (case of RGBD/RGBDS)*/
 			raster->stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat, txh->pixelformat, 0);
@@ -487,7 +505,7 @@ static void composite_update(GF_TextureHandler *txh)
 	txh->transparent = (st->visual->last_had_back==2) ? 0 : 1;
 
 
-	if (!compositor->edited_text && st->visual->has_text_edit) 
+	if (!compositor->edited_text && st->visual->has_text_edit)
 		st->visual->has_text_edit = 0;
 
 
@@ -662,8 +680,8 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 	stack = gf_node_get_private(ap->texture);
 	if (!stack->txh.tx_io) return 0;
 
-    tr_state = NULL;
-    children = NULL;
+	tr_state = NULL;
+	children = NULL;
 
 
 	if (!is_flush) {
@@ -674,8 +692,10 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 			/*tx coords are inverted when mapping, thus applying directly the matrix will give us the
 			untransformed coords*/
 			gf_mx_apply_vec(&mx, &txcoord);
-			while (txcoord.x<0) txcoord.x += FIX_ONE; while (txcoord.x>FIX_ONE) txcoord.x -= FIX_ONE;
-			while (txcoord.y<0) txcoord.y += FIX_ONE; while (txcoord.y>FIX_ONE) txcoord.y -= FIX_ONE;
+			while (txcoord.x<0) txcoord.x += FIX_ONE;
+			while (txcoord.x>FIX_ONE) txcoord.x -= FIX_ONE;
+			while (txcoord.y<0) txcoord.y += FIX_ONE;
+			while (txcoord.y>FIX_ONE) txcoord.y -= FIX_ONE;
 		}
 
 		/*convert to tx space*/
@@ -727,7 +747,7 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 	world_pt = compositor->hit_world_point;
 	gf_mx_copy(l2w_mx, compositor->hit_local_to_world);
 	gf_mx_copy(w2l_mx, compositor->hit_world_to_local);
-	
+
 	if (compositor->text_selection) had_text_sel=1;
 
 	if (is_flush) {
@@ -821,11 +841,11 @@ Bool compositor_is_composite_texture(GF_Node *appear)
 	u32 tag;
 	if (!appear) return 0;
 	tag = gf_node_get_tag(appear);
-	if ((tag==TAG_MPEG4_Appearance) 
+	if ((tag==TAG_MPEG4_Appearance)
 #ifndef GPAC_DISABLE_X3D
-		|| (tag==TAG_X3D_Appearance)
+	        || (tag==TAG_X3D_Appearance)
 #endif
-	) {
+	   ) {
 		M_Appearance *ap = (M_Appearance *)appear;
 		if (!ap->texture) return 0;
 		switch (gf_node_get_tag(((M_Appearance *)appear)->texture)) {

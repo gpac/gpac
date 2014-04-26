@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Jean Le Feuvre 
+ *			Authors: Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -44,30 +44,33 @@ Bool gf_irect_overlaps(GF_IRect *rc1, GF_IRect *rc2)
 void gf_irect_intersect(GF_IRect *rc1, GF_IRect *rc2)
 {
 	if (! gf_irect_overlaps(rc1, rc2)) {
-		rc1->width = rc1->height = 0; 
+		rc1->width = rc1->height = 0;
 		return;
 	}
 	if (rc2->x > rc1->x) {
 		rc1->width -= rc2->x - rc1->x;
 		rc1->x = rc2->x;
-	} 
+	}
 	if (rc2->x + rc2->width < rc1->x + rc1->width) {
 		rc1->width = rc2->width + rc2->x - rc1->x;
-	} 
+	}
 	if (rc2->y < rc1->y) {
-		rc1->height -= rc1->y - rc2->y; 
+		rc1->height -= rc1->y - rc2->y;
 		rc1->y = rc2->y;
-	} 
+	}
 	if (rc2->y - rc2->height > rc1->y - rc1->height) {
 		rc1->height = rc1->y - rc2->y + rc2->height;
-	} 
+	}
 }
 
 
 GF_Rect gf_rect_ft(GF_IRect *rc)
 {
 	GF_Rect rcft;
-	rcft.x = INT2FIX(rc->x); rcft.y = INT2FIX(rc->y); rcft.width = INT2FIX(rc->width); rcft.height = INT2FIX(rc->height); 
+	rcft.x = INT2FIX(rc->x);
+	rcft.y = INT2FIX(rc->y);
+	rcft.width = INT2FIX(rc->width);
+	rcft.height = INT2FIX(rc->height);
 	return rcft;
 }
 
@@ -147,7 +150,7 @@ void visual_2d_drawable_delete(GF_VisualManager *visual, struct _drawable *drawa
 		gf_free(it);
 		break;
 	}
-	
+
 	ctx = visual->context;
 	while (ctx && ctx->drawable) {
 		/*remove visual registration flag*/
@@ -243,7 +246,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	M_Background2D *bck;
 #endif
 	u32 draw_mode;
-	
+
 	/*reset display list*/
 	visual->cur_context = visual->context;
 	if (visual->context) visual->context->drawable = NULL;
@@ -251,7 +254,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	visual->has_overlays = 0;
 
 	visual_2d_setup_projection(visual, tr_state);
-	if (!visual->top_clipper.width || !visual->top_clipper.height) 
+	if (!visual->top_clipper.width || !visual->top_clipper.height)
 		return GF_OK;
 
 	tr_state->traversing_mode = TRAVERSE_SORT;
@@ -259,7 +262,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 
 	/*setup raster surface, brush and pen */
 	e = visual_2d_init_raster(visual);
-	if (e) 
+	if (e)
 		return e;
 
 	draw_mode = 0;
@@ -279,7 +282,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 		/*node was not drawn on this visual*/
 		if (!drawable_flush_bounds(it->drawable, visual, draw_mode)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Unregistering previously drawn node %s from visual\n", gf_node_get_class_name(it->drawable->node)));
-			
+
 			/*remove all bounds info related to this visual and unreg node */
 			drawable_reset_bounds(it->drawable, visual);
 
@@ -333,7 +336,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 
 
 /*@rc2 fully contained in @rc1*/
-Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2) 
+Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2)
 {
 	if (!rc1->width || !rc1->height) return 0;
 	if ( (rc1->x <= rc2->x)  && (rc1->y >= rc2->y)  && (rc1->x + rc1->width >= rc2->x + rc2->width) && (rc1->y - rc1->height <= rc2->y - rc2->height) )
@@ -349,9 +352,12 @@ Bool gf_irect_inside(GF_IRect *rc1, GF_IRect *rc2)
 #define ra_is_empty(ra) (!((ra)->count))
 
 /*adds @rc2 to @rc1 - the new @rc1 contains the old @rc1 and @rc2*/
-void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2) 
+void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2)
 {
-	if (!rc1->width || !rc1->height) {*rc1=*rc2; return;}
+	if (!rc1->width || !rc1->height) {
+		*rc1=*rc2;
+		return;
+	}
 
 	if (rc2->x < rc1->x) {
 		rc1->width += rc1->x - rc2->x;
@@ -367,19 +373,19 @@ void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2)
 
 
 /*adds rectangle to the list performing union test*/
-void ra_union_rect(GF_RectArray *ra, GF_IRect *rc) 
+void ra_union_rect(GF_RectArray *ra, GF_IRect *rc)
 {
 	u32 i;
 
 	assert(rc->width && rc->height);
 
-	for (i=0; i<ra->count; i++) { 
-		if (gf_irect_overlaps(&ra->list[i].rect, rc)) { 
-			gf_irect_union(&ra->list[i].rect, rc); 
-			return; 
-		} 
+	for (i=0; i<ra->count; i++) {
+		if (gf_irect_overlaps(&ra->list[i].rect, rc)) {
+			gf_irect_union(&ra->list[i].rect, rc);
+			return;
+		}
 	}
-	ra_add(ra, rc); 
+	ra_add(ra, rc);
 }
 
 /*returns relation between rc1 and rc2:
@@ -417,7 +423,7 @@ void ra_refresh(GF_RectArray *ra)
 				/*current dirty rect is no longer opaque*/
 				ra->list[i].opaque_node_index = 0;
 #endif
-				/*FALLTHROUGH*/
+			/*FALLTHROUGH*/
 			/*first rectangle covers second, just remove*/
 			case 2:
 				/*remove rect*/
@@ -425,7 +431,7 @@ void ra_refresh(GF_RectArray *ra)
 				if (k) {
 					memmove(&ra->list[j], & ra->list[j+1], sizeof(GF_IRect)*k);
 				}
-				ra->count--; 
+				ra->count--;
 				if (ra->count>=2)
 					ra_refresh(ra);
 				return;
@@ -463,23 +469,23 @@ static u32 register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx
 		if ((*first_opaque==NULL) && needs_redraw) *first_opaque = ctx;
 	}
 
-	for (i=0; i<ra->count; i++) { 
+	for (i=0; i<ra->count; i++) {
 		if (needs_redraw) {
-			switch (gf_irect_relation(&ra->list[i].rect, rc)) { 
+			switch (gf_irect_relation(&ra->list[i].rect, rc)) {
 			/*context intersects an existing rectangle, merge them and remove opaque idx info*/
 			case 1:
-				gf_irect_union(&ra->list[i].rect, rc); 
+				gf_irect_union(&ra->list[i].rect, rc);
 #ifdef TRACK_OPAQUE_REGIONS
-				ra->list[i].opaque_node_index = 0; 
+				ra->list[i].opaque_node_index = 0;
 #endif
-				return 1; 
+				return 1;
 			/*context covers an existing rectangle, replace rect and add opaque idx info*/
 			case 2:
-				ra->list[i].rect= *rc; 
+				ra->list[i].rect= *rc;
 #ifdef TRACK_OPAQUE_REGIONS
-				ra->list[i].opaque_node_index = is_transparent ? 0 : ctx_idx; 
+				ra->list[i].opaque_node_index = is_transparent ? 0 : ctx_idx;
 #endif
-				return 1; 
+				return 1;
 			}
 		}
 #ifdef TRACK_OPAQUE_REGIONS
@@ -490,16 +496,16 @@ static u32 register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx
 			if (k) {
 				memmove(&ra->list[i], & ra->list[i+1], sizeof(GF_RectArrayEntry)*k);
 			}
-			ra->count--; 
+			ra->count--;
 			i--;
 		}
 #endif
 	}
 	/*not found, add rect*/
 	if (needs_redraw) {
-		ra_add(ra, rc); 
+		ra_add(ra, rc);
 #ifdef TRACK_OPAQUE_REGIONS
-		ra->list[ra->count-1].opaque_node_index = is_transparent ? 0 : ctx_idx; 
+		ra->list[ra->count-1].opaque_node_index = is_transparent ? 0 : ctx_idx;
 #endif
 	}
 	return 1;
@@ -513,31 +519,31 @@ static void register_dirty_rect(GF_RectArray *ra, GF_IRect *rc)
 
 #ifdef TRACK_OPAQUE_REGIONS
 	u32 i;
-	for (i=0; i<ra->count; i++) { 
-		switch (gf_irect_relation(rc, &ra->list[i].rect)) { 
+	for (i=0; i<ra->count; i++) {
+		switch (gf_irect_relation(rc, &ra->list[i].rect)) {
 		/*dirty area intersects this dirty rectangle, merge them and remove opaque idx info*/
 		case 1:
-			gf_irect_union(&ra->list[i].rect, rc); 
-			ra->list[i].opaque_node_index = 0; 
-			return; 
+			gf_irect_union(&ra->list[i].rect, rc);
+			ra->list[i].opaque_node_index = 0;
+			return;
 		/*dirty area is covered by this dirty rectangle, nothing to do*/
 		case 2:
-			return; 
+			return;
 		}
 	}
 #endif
 	/*not found, add rect*/
-	ra_add(ra, rc); 
+	ra_add(ra, rc);
 #ifdef TRACK_OPAQUE_REGIONS
-	ra->list[ra->count-1].opaque_node_index = 0; 
+	ra->list[ra->count-1].opaque_node_index = 0;
 #endif
 
 #else
 
-	ra_add(ra, rc); 
+	ra_add(ra, rc);
 
 #ifdef TRACK_OPAQUE_REGIONS
-	ra->list[ra->count-1].opaque_node_index = 0; 
+	ra->list[ra->count-1].opaque_node_index = 0;
 #endif
 
 #endif
@@ -598,14 +604,14 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			}
 			visual->last_had_back = (bck_ctx->aspect.fill_texture && !bck_ctx->aspect.fill_texture->transparent) ? 2 : 1;
 		}
-	} else 
+	} else
 #endif
-	if (visual->last_had_back) {
-		visual->last_had_back = 0;
-		if (redraw_all_on_background_change) redraw_all = 1;
-		else hyb_force_redraw = 1;
-	}
-	
+		if (visual->last_had_back) {
+			visual->last_had_back = 0;
+			if (redraw_all_on_background_change) redraw_all = 1;
+			else hyb_force_redraw = 1;
+		}
+
 	num_nodes = 0;
 	ctx = visual->context;
 	while (ctx && ctx->drawable) {
@@ -714,7 +720,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		bck_ctx->flags |= CTX_BACKROUND_NOT_LAYER;
 		gf_node_traverse(bck_ctx->drawable->node, tr_state);
 		bck_ctx->flags &= ~CTX_BACKROUND_NOT_LAYER;
-	} else 
+	} else
 #endif /*GPAC_DISABLE_VRML*/
 	{
 		count = visual->to_redraw.count;
@@ -746,7 +752,7 @@ skip_background:
 		}
 	}
 #endif
-	
+
 	visual->draw_node_index = 0;
 
 	ctx = visual->context;
@@ -842,7 +848,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 
 	gf_mx2d_copy(tr_state->transform, backup);
 	res = visual_2d_terminate_draw(visual, tr_state);
-	
+
 #ifndef GPAC_DISABLE_LOG
 	if (!tr_state->immediate_draw) {
 		visual->compositor->indirect_draw_time = gf_sys_clock() - time;
@@ -869,7 +875,7 @@ void visual_2d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 	tr_state->ray.dir.x = 0;
 	tr_state->ray.dir.y = 0;
 	tr_state->ray.dir.z = -FIX_ONE;
-	
+
 	visual->compositor->hit_world_point = tr_state->ray.orig;
 	visual->compositor->hit_world_ray = tr_state->ray;
 	visual->compositor->hit_square_dist = 0;

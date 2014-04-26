@@ -34,12 +34,12 @@
 #define ESCAPE2 14
 #define ESCAPE3 15
 
-struct VLC{
+struct VLC {
 	int code;
 	byte len;
 };
 
-struct EVENT{
+struct EVENT {
 	byte last;
 	byte run;
 	char level;

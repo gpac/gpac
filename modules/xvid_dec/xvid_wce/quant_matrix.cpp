@@ -34,7 +34,7 @@
  ****************************************************************************/
 
 static const byte default_intra_matrix[64] = {
-	 8, 17, 18, 19, 21, 23, 25, 27,
+	8, 17, 18, 19, 21, 23, 25, 27,
 	17, 18, 19, 21, 23, 25, 27, 28,
 	20, 21, 22, 23, 24, 26, 28, 30,
 	21, 22, 23, 24, 26, 28, 30, 32,
@@ -59,19 +59,19 @@ static const byte default_inter_matrix[64] = {
 
 //----------------------------
 
-const byte *get_default_intra_matrix(){
+const byte *get_default_intra_matrix() {
 	return default_intra_matrix;
 }
 
 //----------------------------
 
-const byte *get_default_inter_matrix(){
+const byte *get_default_inter_matrix() {
 	return default_inter_matrix;
 }
 
 //----------------------------
 
-void set_intra_matrix(dword *mpeg_quant_matrices, const byte *matrix){
+void set_intra_matrix(dword *mpeg_quant_matrices, const byte *matrix) {
 
 	dword *intra_matrix = mpeg_quant_matrices + 0*64;
 	dword *intra_matrix1 = mpeg_quant_matrices + 1*64;
@@ -89,14 +89,14 @@ void set_intra_matrix(dword *mpeg_quant_matrices, const byte *matrix){
 
 //----------------------------
 
-void set_inter_matrix(dword *mpeg_quant_matrices, const byte *matrix){
+void set_inter_matrix(dword *mpeg_quant_matrices, const byte *matrix) {
 
 	dword *inter_matrix = mpeg_quant_matrices + 4*64;
 	dword *inter_matrix1 = mpeg_quant_matrices + 5*64;
 	dword *inter_matrix_fix = mpeg_quant_matrices + 6*64;
 	dword *inter_matrix_fixl = mpeg_quant_matrices + 7*64;
 
-	for(int i = 0; i < 64; i++){
+	for(int i = 0; i < 64; i++) {
 		inter_matrix1[i] = ((inter_matrix[i] = matrix[i])>>1);
 		inter_matrix1[i] += ((inter_matrix[i] == 1) ? 1: 0);
 		inter_matrix_fix[i] = FIX(inter_matrix[i]);
@@ -106,7 +106,7 @@ void set_inter_matrix(dword *mpeg_quant_matrices, const byte *matrix){
 
 //----------------------------
 
-void init_mpeg_matrix(dword *mpeg_quant_matrices){
+void init_mpeg_matrix(dword *mpeg_quant_matrices) {
 
 	set_intra_matrix(mpeg_quant_matrices, default_intra_matrix);
 	set_inter_matrix(mpeg_quant_matrices, default_inter_matrix);
