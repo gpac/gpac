@@ -1196,6 +1196,7 @@ GF_Err gf_isom_set_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_HVT1:
 		((GF_VisualSampleEntryBox*)entry)->Width = Width;
 		((GF_VisualSampleEntryBox*)entry)->Height = Height;
 		trak->Header->width = Width<<16;
@@ -1249,6 +1250,7 @@ GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_HVT1:
 		break;
 	default:
 		return GF_BAD_PARAM;
@@ -1619,7 +1621,8 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 		}
 	}
 
-	//remove the track ref from any "tref" box in all tracks (except the one to delete ;)
+	//remove the track ref from any "tref" box in all tracks, except the one to delete 
+	//note that we don't touch scal references, as we don't want to rewrite AVC/HEVC samples ...
 	i=0;
 	while ((trak = (GF_TrackBox *)gf_list_enum(movie->moov->trackList, &i))) {
 		if (trak == the_trak) continue;
@@ -1627,6 +1630,9 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 
 		j=0;
 		while ((tref = (GF_TrackReferenceTypeBox *)gf_list_enum(trak->References->other_boxes, &j))) {
+			if (tref->reference_type==GF_4CC('s','c','a','l'))
+				continue;
+
 			found = 0;
 			for (k=0; k<tref->trackIDCount; k++) {
 				if (tref->trackIDs[k] == the_trak->Header->trackID) found++;
@@ -3355,6 +3361,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			if (!esd1->decoderConfig->decoderSpecificInfo || !esd2->decoderConfig->decoderSpecificInfo) continue;
 			if (memcmp(esd1->decoderConfig->decoderSpecificInfo->data, esd2->decoderConfig->decoderSpecificInfo->data, sizeof(char)*esd1->decoderConfig->decoderSpecificInfo->dataLength)!=0) return 0;
 			break;
+		case GF_ISOM_BOX_TYPE_HVT1:
+			return 1;
 		case GF_ISOM_BOX_TYPE_AVC1:
 		case GF_ISOM_BOX_TYPE_AVC2:
 		case GF_ISOM_BOX_TYPE_AVC3:
@@ -4278,6 +4286,7 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_HVT1:
 		break;
 	default:
 		return GF_BAD_PARAM;
@@ -4385,15 +4394,11 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 }
 
 
-static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, GF_TrackFragmentBox *traf, u32 sample_number, u32 grouping_type, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
+static GF_SampleGroupDescriptionBox *get_sgdp(GF_SampleTableBox *stbl, GF_TrackFragmentBox *traf, u32 grouping_type)
 {
 	GF_List *groupList;
-	void *entry;
-	GF_SampleGroupDescriptionBox *sgdesc = NULL;
-	u32 i, count, entry_idx;
-
-	if (!stbl && !traf) return GF_BAD_PARAM;
-
+	GF_SampleGroupDescriptionBox *sgdesc=NULL;
+	u32 count, i;
 	/*look in stbl or traf for sample sampleGroupsDescription*/
 	if (traf) {
 		if (!traf->sampleGroupsDescription)
@@ -4416,6 +4421,21 @@ static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, GF_Track
 		sgdesc->grouping_type = grouping_type;
 		gf_list_add(groupList, sgdesc);
 	}
+	return sgdesc;
+}
+
+static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, GF_TrackFragmentBox *traf, u32 sample_number, u32 grouping_type, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
+{
+	GF_List *groupList;
+	void *entry;
+	GF_SampleGroupDescriptionBox *sgdesc = NULL;
+	u32 i, entry_idx;
+
+	if (!stbl && !traf) return GF_BAD_PARAM;
+
+	sgdesc = get_sgdp(stbl, traf, grouping_type);
+	if (!sgdesc) return GF_OUT_OF_MEM;
+
 	entry = NULL;
 	for (i=0; i<gf_list_count(sgdesc->group_descriptions); i++) {
 		entry = gf_list_get(sgdesc->group_descriptions, i);
@@ -4458,6 +4478,69 @@ static GF_Err gf_isom_set_sample_group_info(GF_ISOFile *movie, u32 track, u32 sa
 	if (!trak) return GF_BAD_PARAM;
 
 	return gf_isom_set_sample_group_info_ex(trak->Media->information->sampleTable, NULL, sample_number, grouping_type, udta, sg_create_entry, sg_compare_entry);
+}
+
+
+GF_EXPORT
+GF_Err gf_isom_add_sample_group_info(GF_ISOFile *movie, u32 track, u32 grouping_type, void *data, u32 data_size, Bool is_default, u32 *sampleGroupDescriptionIndex)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_DefaultSampleGroupDescriptionEntry *entry;
+	GF_SampleGroupDescriptionBox *sgdesc = NULL;
+
+	if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = 0;
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(movie, track);
+	if (!trak) return GF_BAD_PARAM;
+
+
+	sgdesc = get_sgdp(trak->Media->information->sampleTable, NULL, grouping_type);
+	if (!sgdesc) return GF_OUT_OF_MEM;
+
+	GF_SAFEALLOC(entry, GF_DefaultSampleGroupDescriptionEntry);
+	if (!entry) return GF_OUT_OF_MEM;
+	entry->data = gf_malloc(sizeof(char) * data_size);
+	if (!entry->data) {
+		gf_free(entry);
+		return GF_OUT_OF_MEM;
+	}
+	entry->length = data_size;
+	memcpy(entry->data, data, sizeof(char) * data_size);
+	e = gf_list_add(sgdesc->group_descriptions, entry);
+	if (e) {
+		gf_free(entry->data);
+		gf_free(entry);
+		return e;
+	}
+
+	if (is_default) {
+		sgdesc->default_description_index = 1 + gf_list_find(sgdesc->group_descriptions, entry);
+		sgdesc->version = 2;
+	}
+	if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = 1 + gf_list_find(sgdesc->group_descriptions, entry);
+
+	return GF_OK;
+}
+
+GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 sampleGroupDescriptionIndex)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_List *groupList;
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(movie, track);
+	if (!trak) return GF_BAD_PARAM;
+
+	if (!trak->Media->information->sampleTable->sampleGroups)
+			trak->Media->information->sampleTable->sampleGroups = gf_list_new();
+	
+	groupList = trak->Media->information->sampleTable->sampleGroups;
+	return gf_isom_add_sample_group_entry(groupList, sample_number, grouping_type, sampleGroupDescriptionIndex);
 }
 
 void *sg_rap_create_entry(void *udta)

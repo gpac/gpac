@@ -138,7 +138,7 @@ static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_
 
 
 #ifndef GPAC_DISABLE_3D
-void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor)
+void compositor_2d_hybgl_clear_surface_ex(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen_clear)
 {
 	SFColor rgb;
 	if (!visual->is_attached) return;
@@ -148,15 +148,22 @@ void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u
 			BackColor = visual->compositor->back_color & 0x00FFFFFF;
 		}
 	}
-	if (rc) {
+	if (is_offscreen_clear) {
 		visual->compositor->rasterizer->surface_clear(visual->raster_surface, rc, BackColor);
 	} else {
+		Fixed a;
 		rgb.red = INT2FIX( GF_COL_R(BackColor) ) / 255;
 		rgb.green = INT2FIX( GF_COL_G(BackColor) )/255;
 		rgb.blue = INT2FIX( GF_COL_B(BackColor) )/255;
-		visual_3d_clear(visual, rgb , GF_COL_A(BackColor));
+		a = INT2FIX( GF_COL_A(BackColor) )/255;
+		visual_3d_clear(visual, rgb , a);
 	}
 }
+void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor)
+{
+	compositor_2d_hybgl_clear_surface_ex(visual, rc, BackColor, 1);
+}
+
 
 void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area)
 {
@@ -402,7 +409,7 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 		callbacks.fill_run_no_alpha = c2d_gl_fill_no_alpha;
 		callbacks.fill_rect = c2d_gl_fill_rect;
 
-		visual->DrawBitmap = compositor_2d_hybgl_draw_bitmap;
+		visual->DrawBitmap = c2d_gl_draw_bitmap;
 
 		e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &callbacks, compositor->vp_width, compositor->vp_height);
 		if (e) return e;
@@ -971,7 +978,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 	}
 	visual->has_modif = GF_TRUE;
-//	if (is_attached) visual_2d_init_raster(visual);
+	if (is_attached) visual_2d_init_raster(visual);
 	return GF_TRUE;
 }
 

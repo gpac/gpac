@@ -794,6 +794,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_current_tfdt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_adobe_protection_media) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_adobe_protection_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_group_info) )
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
@@ -954,7 +955,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sample_cenc_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_composition_offset_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_output_buffering) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_group_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_info) )
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_hint_track) )

@@ -143,7 +143,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 	if (clear_all && !tr_state->visual->offscreen && tr_state->visual->compositor->hybrid_opengl) {
 		if (ctx->flags & CTX_BACKROUND_NOT_LAYER) {
 			color &= 0x00FFFFFF;
-			tr_state->visual->ClearSurface(tr_state->visual, NULL, color);
+			compositor_2d_hybgl_clear_surface_ex(tr_state->visual, NULL, color, GF_FALSE);
 			clear_all = GF_FALSE;
 		}
 	}

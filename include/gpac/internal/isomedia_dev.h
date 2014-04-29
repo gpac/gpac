@@ -215,6 +215,7 @@ enum
 	GF_ISOM_BOX_TYPE_HVCC	= GF_4CC( 'h', 'v', 'c', 'C' ),
 	GF_ISOM_BOX_TYPE_HVC1	= GF_4CC( 'h', 'v', 'c', '1' ),
 	GF_ISOM_BOX_TYPE_HEV1	= GF_4CC( 'h', 'e', 'v', '1' ),
+	GF_ISOM_BOX_TYPE_HVT1	= GF_4CC( 'h', 'v', 't', '1' ),
 
 	GF_ISOM_BOX_TYPE_HVC2	= GF_4CC( 'h', 'v', 'c', '2' ),
 	GF_ISOM_BOX_TYPE_HEV2	= GF_4CC( 'h', 'e', 'v', '2' ),
@@ -2178,6 +2179,7 @@ typedef struct
 	u32 grouping_type;
 	u32 default_length;
 
+	u32 default_description_index;
 	GF_List *group_descriptions;
 } GF_SampleGroupDescriptionBox;
 

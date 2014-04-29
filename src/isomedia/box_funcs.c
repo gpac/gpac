@@ -354,7 +354,10 @@ GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs)
 		a = (GF_Box *)gf_list_get(list, i);
 		if (a) {
 			e = gf_isom_box_write(a, bs);
-			if (e) return e;
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMF: Error %s writing box %s\n", gf_error_to_string(e), gf_4cc_to_str(a->type) ));
+				return e;
+			}
 		}
 	}
 	return GF_OK;
@@ -372,7 +375,10 @@ GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list)
 		a = (GF_Box *)gf_list_get(list, i);
 		if (a) {
 			e = gf_isom_box_size(a);
-			if (e) return e;
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMF: Error %s computing box %s size\n", gf_error_to_string(e), gf_4cc_to_str(a->type) ));
+				return e;
+			}
 			parent->size += a->size;
 		}
 	}
@@ -636,6 +642,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_HVT1:
 		return mp4v_encv_avc_hevc_new(boxType);
 
 	/*3GPP streaming text*/
@@ -1216,6 +1223,7 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_HVT1:
 		mp4v_del(a);
 		return;
 	case GF_ISOM_BOX_TYPE_HVCC:
@@ -1762,6 +1770,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_HVT1:
 		return mp4v_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_HVCC:
 	case GF_ISOM_BOX_TYPE_SHCC:
@@ -2229,6 +2238,7 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_HVT1:
 		return mp4v_Write(a, bs);
 
 	/*3GPP streaming text*/
@@ -2700,6 +2710,7 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_HVT1:
 		return mp4v_Size(a);
 
 	/*3GPP streaming text*/

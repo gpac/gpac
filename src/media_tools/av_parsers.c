@@ -3234,7 +3234,7 @@ static Bool parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u32 id
 }
 
 #define PARSE_FULL_HEADER	0
-static s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *si)
+s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *si)
 {
 #if PARSE_FULL_HEADER
 	u32 i, j;
@@ -4111,11 +4111,11 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 		pps->num_tile_rows = 1 + bs_get_ue(bs);
 		pps->uniform_spacing_flag = gf_bs_read_int(bs, 1);
 		if (!pps->uniform_spacing_flag ) {
-			for (i=0; i<pps->num_tile_columns; i++) {
+			for (i=0; i<pps->num_tile_columns-1; i++) {
 				pps->column_width[i] = 1 + bs_get_ue(bs);
 			}
-			for (i=0; i<pps->num_tile_rows; i++) {
-				pps->row_height[i] = bs_get_ue(bs);
+			for (i=0; i<pps->num_tile_rows-1; i++) {
+				pps->row_height[i] = 1+bs_get_ue(bs);
 			}
 		}
 		pps->loop_filter_across_tiles_enabled_flag = gf_bs_read_int(bs, 1);

@@ -107,7 +107,13 @@ void isor_declare_objects(ISOMReader *read)
 		default:
 			continue;
 		}
-
+		//some subtypes are not declared as readable objects
+		switch (gf_isom_get_media_subtype(read->mov, i+1, 1)) {
+		case GF_ISOM_SUBTYPE_HVT1:
+			continue;
+		default:
+			break;
+		}
 		/*we declare only the highest video track (i.e the track we play)*/
 		highest_stream = GF_TRUE;
 		track_id = gf_isom_get_track_id(read->mov, i+1);

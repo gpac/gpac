@@ -733,9 +733,11 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			rc = visual->to_redraw.list[k].rect;
 			visual->ClearSurface(visual, &rc, 0);
 		}
+#ifndef GPAC_DISABLE_3D
 		if (!count && hyb_force_redraw) {
-			visual->ClearSurface(visual, NULL, 0);
+			compositor_2d_hybgl_clear_surface_ex(tr_state->visual, NULL, 0, GF_FALSE);
 		}
+#endif
 	}
 	if (!redraw_all && !has_clear) visual->has_modif=0;
 

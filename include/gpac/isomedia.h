@@ -198,6 +198,7 @@ enum
 	GF_ISOM_SUBTYPE_HEV2			= GF_4CC( 'h', 'e', 'v', '2' ),
 	GF_ISOM_SUBTYPE_SHC1			= GF_4CC( 's', 'h', 'c', '1' ),
 	GF_ISOM_SUBTYPE_SHV1			= GF_4CC( 's', 'h', 'v', '1' ),
+	GF_ISOM_SUBTYPE_HVT1			= GF_4CC( 'h', 'v', 't', '1' ),
 
 	/*3GPP(2) extension subtypes*/
 	GF_ISOM_SUBTYPE_3GP_H263		= GF_4CC( 's', '2', '6', '3' ),
@@ -1709,6 +1710,9 @@ GF_Err gf_isom_avc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 
 /*sets hev1 entry type (inband SPS/PPS) instead of of hvc1 (SPS/PPS in avcC box)*/
 GF_Err gf_isom_hevc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
+/*sets hvt1 entry type (tile track) - cfg may be set to indicate sub-profile of the tile. It is the use responsability to set the tbas track reference to the base hevc track*/
+GF_Err gf_isom_hevc_set_tile_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg);
+
 
 /*creates new HEVC config*/
 GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
@@ -2281,6 +2285,9 @@ void gf_isom_set_next_moof_number(GF_ISOFile *movie, u32 value);
 /*returns 'rap ' and 'roll' group info for the given sample*/
 GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *is_rap, Bool *has_roll, s32 *roll_distance);
 
+/*returns 'rap ' and 'roll' group info for the given sample*/
+Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_description_index, u32 grouping_type, u32 *is_default, const char **data, u32 *size);
+
 /*sample groups information*/
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*sets rap flag for sample_number - this is used by non-IDR RAPs in AVC (also in USAC) were SYNC flag (stss table) cannot be used
@@ -2295,6 +2302,13 @@ GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_nu
 GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, Bool isEncrypted, u8 IV_size, bin128 KeyID);
 
 GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use_negative_offsets);
+
+//adds the given blob as a sample group description of the given grouping type. If default is set, the sample grouping will be marked as default.
+//sampleGroupDescriptionIndex is optional, used to retrieve the index
+GF_Err gf_isom_add_sample_group_info(GF_ISOFile *movie, u32 track, u32 grouping_type, void *data, u32 data_size, Bool is_default, u32 *sampleGroupDescriptionIndex);
+
+//tags the sample in the grouping adds the given blob as a sample group description of the given grouping type. If default is set, the sample grouping will be marked as default 
+GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 sampleGroupDescriptionIndex);
 
 #endif
 
