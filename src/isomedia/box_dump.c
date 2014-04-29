@@ -325,6 +325,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_HVT1:
 		return mp4v_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_PASP:
 		return pasp_dump(a, trace);
@@ -4155,6 +4156,7 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 
 	fprintf(trace, "<SampleGroupDescriptionBox grouping_type=\"%s\"", gf_4cc_to_str(ptr->grouping_type) );
 	if (ptr->version==1) fprintf(trace, " default_length=\"%d\"", ptr->default_length);
+	if ((ptr->version>=2) && ptr->default_description_index) fprintf(trace, " default_group_index=\"%d\"", ptr->default_description_index);
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
@@ -4173,6 +4175,24 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "<CENCSampleEncryptionGroupEntry IsEncrypted=\"%d\" IV_size=\"%d\" KID=\"", ((GF_CENCSampleEncryptionGroupEntry*)entry)->IsEncrypted, ((GF_CENCSampleEncryptionGroupEntry*)entry)->IV_size);
 			DumpDataHex(trace, (char *)((GF_CENCSampleEncryptionGroupEntry*)entry)->KID, 16);
 			fprintf(trace, "\"/>\n");
+			break;
+		case GF_4CC( 't', 'r', 'i', 'f' ):
+		{
+			GF_BitStream *bs = gf_bs_new(((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, GF_BITSTREAM_READ);
+			u16 x,y,w,h;
+			u16 id = gf_bs_read_u16(bs);
+			u32 independent = gf_bs_read_int(bs, 2);
+			u32 full_frame = gf_bs_read_int(bs, 1);
+			gf_bs_read_int(bs, 5);
+			x = full_frame ? 0 : gf_bs_read_u16(bs);
+			y = full_frame ? 0 : gf_bs_read_u16(bs);
+			w = gf_bs_read_u16(bs);
+			h = gf_bs_read_u16(bs);
+			gf_bs_del(bs);
+			fprintf(trace, "<TileRegionGroupEntry ID=\"%d\" independent=\"%d\"", id, independent);
+			if (!full_frame) fprintf(trace, " x=\"%d\" y=\"%d\"", x, y);
+			fprintf(trace, " w=\"%d\" h=\"%d\"/>\n", w, h);
+		}
 			break;
 		default:
 			fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);

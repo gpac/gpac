@@ -2562,6 +2562,7 @@ GF_Err gf_isom_get_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_HVT1:
 		*Width = ((GF_VisualSampleEntryBox*)entry)->Width;
 		*Height = ((GF_VisualSampleEntryBox*)entry)->Height;
 		return GF_OK;
@@ -2646,6 +2647,7 @@ GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_HVT1:
 		*hSpacing = ((GF_VisualSampleEntryBox*)entry)->pasp ? ((GF_VisualSampleEntryBox*)entry)->pasp->hSpacing : 0;
 		*vSpacing = ((GF_VisualSampleEntryBox*)entry)->pasp ? ((GF_VisualSampleEntryBox*)entry)->pasp->vSpacing : 0;
 		return GF_OK;
@@ -3125,6 +3127,7 @@ GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	case GF_ISOM_BOX_TYPE_HEV2:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_HVT1:
 		break;
 	default:
 		return GF_BAD_PARAM;
@@ -3256,6 +3259,49 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 	}
 	return GF_OK;
 }
+
+GF_EXPORT
+Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_description_index, u32 grouping_type, u32 *is_default, const char **data, u32 *size)
+{
+
+	GF_TrackBox *trak;
+	u32 i, count;
+
+	if (is_default) *is_default = 0;
+	if (size) *size = 0;
+	if (data) *data = NULL;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !sample_description_index) return 0;
+	if (!trak->Media->information->sampleTable->sampleGroupsDescription) return 0;
+
+	count = gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription);
+	for (i=0; i<count; i++) {
+		GF_DefaultSampleGroupDescriptionEntry *entry;
+		GF_SampleGroupDescriptionBox *sgdesc = gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
+		if (sgdesc->grouping_type != grouping_type) 
+			continue;
+
+		if (sgdesc->default_description_index && !sample_description_index) sample_description_index = sgdesc->default_description_index;
+		if (is_default) *is_default = sgdesc->default_description_index ;
+
+		if (!sample_description_index) return 0;
+
+		switch (grouping_type) {
+		case GF_4CC('r','a','p',' '):
+		case GF_4CC('r','o','l','l'):
+		case GF_4CC( 's', 'e', 'i', 'g' ):
+			return 1;
+		default:
+			entry = gf_list_get(sgdesc->group_descriptions, sample_description_index-1);
+			if (entry && data) *data = entry->data;
+			if (entry && size) *size = entry->length;
+			return 1;
+		}
+	}
+	return 0;
+}
+
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 //return the duration of the movie+fragments if known, 0 if error

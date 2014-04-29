@@ -1787,7 +1787,8 @@ GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *frame
 	gf_mx_p(compositor->mx);
 
 #ifndef GPAC_DISABLE_3D
-	if (compositor->visual->type_3d) e = compositor_3d_get_screen_buffer(compositor, framebuffer, depth_dump_mode);
+	if (compositor->visual->type_3d || compositor->hybrid_opengl)
+		e = compositor_3d_get_screen_buffer(compositor, framebuffer, depth_dump_mode);
 	else
 #endif
 		/*no depth dump in 2D mode*/
@@ -1821,7 +1822,8 @@ GF_Err gf_sc_release_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *f
 	if (!compositor || !framebuffer) return GF_BAD_PARAM;
 
 #ifndef GPAC_DISABLE_3D
-	if (compositor->visual->type_3d) e = compositor_3d_release_screen_buffer(compositor, framebuffer);
+	if (compositor->visual->type_3d || compositor->hybrid_opengl)
+		e = compositor_3d_release_screen_buffer(compositor, framebuffer);
 	else
 #endif
 		e = compositor->video_out->LockBackBuffer(compositor->video_out, framebuffer, 0);

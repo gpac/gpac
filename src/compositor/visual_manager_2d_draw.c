@@ -351,6 +351,7 @@ void visual_2d_texture_path_text(GF_VisualManager *visual, DrawableContext *txt_
 #ifndef GPAC_DISABLE_3D
 void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx, GF_TraverseState *tr_state)
 {
+	GF_Rect clipper;
 	u32 prev_mode = tr_state->traversing_mode;
 	u32 prev_type_3d = tr_state->visual->type_3d;
 
@@ -427,6 +428,13 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	tr_state->traversing_mode=TRAVERSE_DRAW_3D;
 	gf_mx_from_mx2d(&tr_state->model_matrix, &ctx->transform);
 
+
+	clipper.x = INT2FIX(ctx->bi->clip.x);
+	clipper.y = INT2FIX(ctx->bi->clip.y);
+	clipper.width = INT2FIX(ctx->bi->clip.width);
+	clipper.height = INT2FIX(ctx->bi->clip.height);
+	visual_3d_set_clipper_2d(tr_state->visual, clipper, NULL);
+
 	gf_node_allow_cyclic_traverse(ctx->drawable->node);
 	gf_node_traverse(ctx->drawable->node, tr_state);
 
@@ -435,6 +443,8 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	if (ctx->col_mat) gf_cmx_init(&tr_state->color_mat);
 
 	ctx->flags |= CTX_PATH_FILLED;
+
+	visual_3d_reset_clipper_2d(tr_state->visual);
 }
 #endif
 

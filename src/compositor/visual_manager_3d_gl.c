@@ -2388,20 +2388,21 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 #endif /*GPAC_USE_OGL_ES*/
 
-	} else if (compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
+	} else /*if (compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT))*/ {
 		fb->pitch_x = 4;
 		fb->pitch_y = 4*compositor->vp_width;
 		fb->video_buffer = (char*)gf_malloc(sizeof(char) * fb->pitch_y * fb->height);
 		fb->pixel_format = GF_PIXEL_RGBA;
 
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_RGBA, GL_UNSIGNED_BYTE, fb->video_buffer);
-	} else {
+/*	} else {
 		fb->pitch_x = 3;
 		fb->pitch_y = 3*compositor->vp_width;
 		fb->video_buffer = (char*)gf_malloc(sizeof(char) * fb->pitch_y * fb->height);
 		fb->pixel_format = GF_PIXEL_RGB_24;
 
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
+*/
 	}
 
 #ifndef GPAC_USE_TINYGL

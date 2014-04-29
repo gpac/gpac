@@ -3610,7 +3610,8 @@ GF_Err mp4v_Read(GF_Box *s, GF_BitStream *bs)
 	/*this is an AVC sample desc*/
 	if (mp4v->avc_config || mp4v->svc_config) AVC_RewriteESDescriptor(mp4v);
 	/*this is an HEVC sample desc*/
-	if (mp4v->hevc_config || mp4v->shvc_config) HEVC_RewriteESDescriptor(mp4v);
+	if (mp4v->hevc_config || mp4v->shvc_config || (mp4v->type==GF_ISOM_BOX_TYPE_HVT1))
+		HEVC_RewriteESDescriptor(mp4v);
 	return GF_OK;
 }
 
@@ -3698,7 +3699,7 @@ GF_Err mp4v_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->esd->size;
 	} else {
-		if (!ptr->avc_config && !ptr->svc_config && !ptr->hevc_config && !ptr->shvc_config) {
+		if (!ptr->avc_config && !ptr->svc_config && !ptr->hevc_config && !ptr->shvc_config && (ptr->type!=GF_ISOM_BOX_TYPE_HVT1) ) {
 			return GF_ISOM_INVALID_FILE;
 		}
 
@@ -4974,6 +4975,7 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_HEV1:
 	case GF_ISOM_BOX_TYPE_HVC2:
 	case GF_ISOM_BOX_TYPE_HEV2:
+	case GF_ISOM_BOX_TYPE_HVT1:
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
 	case GF_ISOM_BOX_TYPE_TX3G:
@@ -6219,6 +6221,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_HEV1:
 		case GF_ISOM_BOX_TYPE_HVC2:
 		case GF_ISOM_BOX_TYPE_HEV2:
+		case GF_ISOM_BOX_TYPE_HVT1:
 		case GF_ISOM_BOX_TYPE_SHC1:
 		case GF_ISOM_BOX_TYPE_SHV1:
 		case GF_ISOM_BOX_TYPE_TX3G:
@@ -8437,6 +8440,14 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		*total_bytes = 20;
 		return ptr;
 	}
+	case GF_4CC( 't', 'r', 'i', 'f' ):
+	{
+		u32 flags = gf_bs_peek_bits(bs, 24, 0);
+		flags &= 0x0000FF; 
+		if (flags & 0x20) entry_size=9;
+		else entry_size=11;
+		//fallthrough
+	}
 	default:
 	{
 		GF_DefaultSampleGroupDescriptionEntry *ptr;
@@ -8542,6 +8553,10 @@ GF_Err sgpd_Read(GF_Box *s, GF_BitStream *bs)
 		p->default_length = gf_bs_read_u32(bs);
 		p->size -= 4;
 	}
+	if (p->version>=2) {
+		p->default_description_index = gf_bs_read_u32(bs);
+		p->size -= 4;
+	}
 	entry_count = gf_bs_read_u32(bs);
 	p->size -= 4;
 
@@ -8574,6 +8589,7 @@ GF_Err sgpd_Write(GF_Box *s, GF_BitStream *bs)
 
 	gf_bs_write_u32(bs, p->grouping_type);
 	if (p->version==1) gf_bs_write_u32(bs, p->default_length);
+	if (p->version>=2) gf_bs_write_u32(bs, p->default_description_index);
 	gf_bs_write_u32(bs, gf_list_count(p->group_descriptions) );
 
 	for (i=0; i<gf_list_count(p->group_descriptions); i++) {
@@ -8596,6 +8612,7 @@ GF_Err sgpd_Size(GF_Box *s)
 	if (e) return e;
 	p->size += 8;
 	if (p->version==1) p->size += 4;
+	if (p->version>=2) p->size += 4;
 	p->default_length = 0;
 
 	for (i=0; i<gf_list_count(p->group_descriptions); i++) {

@@ -998,7 +998,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 			sample_offset = (s8) ptr[3];
 			data_offset = read_nal_size_hdr(&ptr[4], nalh_size);
 			data_size = read_nal_size_hdr(&ptr[4+nalh_size], nalh_size);
-			fprintf(dump, "\" track_ref_index=\"%d\" sample_offset=\"%d\" data_offset=\"%d\" data_size=\"%d\"", track_ref_index, sample_offset, data_offset, data_size);
+			fprintf(dump, "\" track_ref_index=\"%d\" sample_offset=\"%d\" data_offset=\"%d\" data_size=\"%d", track_ref_index, sample_offset, data_offset, data_size);
 			break;
 		default:
 			fputs("UNKNOWN", dump);
@@ -1145,6 +1145,12 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	svccfg = gf_isom_svc_config_get(file, track, 1);
 	hevccfg = gf_isom_hevc_config_get(file, track, 1);
 	shvccfg = gf_isom_shvc_config_get(file, track, 1);
+	//for tile tracks the hvcC is stored in the 'tbas' track
+	if (!hevccfg && gf_isom_get_reference_count(file, track, GF_4CC('t','b','a','s'))) {
+		u32 tk = 0;
+		gf_isom_get_reference(file, track, GF_4CC('t','b','a','s'), 1, &tk);
+		hevccfg = gf_isom_hevc_config_get(file, tk, 1);
+	}
 	fprintf(dump, " <NALUConfig>\n");
 
 #define DUMP_ARRAY(arr, name)\
@@ -1661,6 +1667,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	        || (msub_type==GF_ISOM_SUBTYPE_HEV1)
 	        || (msub_type==GF_ISOM_SUBTYPE_SHV1)
 	        || (msub_type==GF_ISOM_SUBTYPE_SHC1)
+	        || (msub_type==GF_ISOM_SUBTYPE_HVT1)
 	   )  {
 		esd = gf_isom_get_esd(file, trackNum, 1);
 		if (!esd) {
@@ -1773,7 +1780,29 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
 					hevccfg = gf_isom_hevc_config_get(file, trackNum, 1);
 					shvccfg = gf_isom_shvc_config_get(file, trackNum, 1);
-					if (!hevccfg && !shvccfg) {
+
+					if (msub_type==GF_ISOM_SUBTYPE_HVT1) {
+						u32 size, is_default;
+						const char *data;
+						if (gf_isom_get_sample_group_info(file, trackNum, 1, GF_4CC('t','r','i','f'), &is_default, &data, &size)) {
+							GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+							u16 x,y,w,h;
+							u16 id = gf_bs_read_u16(bs);
+							u32 independent = gf_bs_read_int(bs, 2);
+							u32 full_frame = gf_bs_read_int(bs, 1);
+							gf_bs_read_int(bs, 5);
+							x = full_frame ? 0 : gf_bs_read_u16(bs);
+							y = full_frame ? 0 : gf_bs_read_u16(bs);
+							w = gf_bs_read_u16(bs);
+							h = gf_bs_read_u16(bs);
+							gf_bs_del(bs);
+							fprintf(stderr, "\tHEVC Tile - ID %d independent %d (x,y,w,h)=%d,%d,%d,%d \n", id, independent, x, y, w, h);
+						} else if (gf_isom_get_sample_group_info(file, trackNum, 1, GF_4CC('t','r','i','f'), &is_default, &data, &size)) {
+							fprintf(stderr, "\tHEVC Tile track containing a tile set\n");
+						} else {
+							fprintf(stderr, "\tHEVC Tile track without tiling info\n");
+						}
+					} else if (!hevccfg && !shvccfg) {
 						fprintf(stderr, "\n\n\tNon-compliant HEVC track: No hvcC or shcC found in sample description\n");
 					}
 					if (hevccfg) {
