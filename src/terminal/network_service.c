@@ -447,7 +447,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	if (!no_scene_check && scene->is_dynamic_scene) gf_scene_regenerate(scene);
 }
 
-static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service, GF_NetworkCommand *com, s32 *max_buffer_time)
+static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service, GF_NetworkCommand *com, u32 *max_buffer_time)
 {
 	u32 j, count = gf_list_count(odm->channels);
 	for (j=0; j<count; j++) {

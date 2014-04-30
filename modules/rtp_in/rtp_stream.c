@@ -120,8 +120,8 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 	if (!ch->rtcp_init) return;
 	cts = hdr->compositionTimeStamp;
 	dts = hdr->decodingTimeStamp;
-	hdr->compositionTimeStamp += ch->ts_offset;
-	hdr->decodingTimeStamp += ch->ts_offset;
+	hdr->compositionTimeStamp -= ch->ts_offset;
+	hdr->decodingTimeStamp -= ch->ts_offset;
 
 	if (ch->rtp_ch->packet_loss) e = GF_REMOTE_SERVICE_ERROR;
 
@@ -456,10 +456,10 @@ void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 		if (!ch->owner->last_ntp) {
 			//add safety in case this RTCP report is received before another report
 			//that was supposed to come in earlier (with earlier NTP)
-			Double safety_offset, time = ch->rtp_ch->last_SR_rtp_time;
-			time /= ch->rtp_ch->TimeScale;
-			safety_offset = time/2;
-			ch->owner->last_ntp = ntp_clock - safety_offset;
+			//Double safety_offset, time = ch->rtp_ch->last_SR_rtp_time;
+			//time /= ch->rtp_ch->TimeScale;
+			//safety_offset = time/2;			
+			ch->owner->last_ntp = ntp_clock;	
 		}
 
 		if (ntp_clock >= ch->owner->last_ntp) {
@@ -468,7 +468,7 @@ void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 			ntp_clock = 0;
 		}
 
-		assert(ch->rtp_ch->last_SR_rtp_time >= (u64) (ntp_clock * ch->rtp_ch->TimeScale));
+		//assert(ch->rtp_ch->last_SR_rtp_time >= (u64) (ntp_clock * ch->rtp_ch->TimeScale));
 		ch->ts_offset = ch->rtp_ch->last_SR_rtp_time;
 		ch->ts_offset -= (s64) (ntp_clock * ch->rtp_ch->TimeScale);
 

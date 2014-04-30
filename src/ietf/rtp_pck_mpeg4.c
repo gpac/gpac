@@ -571,7 +571,7 @@ GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_si
 	/*at this point we're sure the NALU fits in current packet OR must be splitted*/
 	/*check that we should use single NALU packet mode or aggreation packets mode*/
 	if (builder->bytesInPacket+nalu_size+4 < builder->Path_MTU) {
-		Bool use_AP = 1;
+		Bool use_AP = (builder->flags & GP_RTP_PCK_USE_MULTI) ? 1 : 0;
 		/*if this is the AU end and no NALU in packet, go for single NALU packet mode*/
 		if (IsAUEnd && !builder->bytesInPacket) use_AP = 0;
 

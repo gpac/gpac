@@ -419,6 +419,11 @@ refetch_AU:
 				}
 			}
 			if (! (*activeChannel)) *activeChannel = ch;
+			/*we have received the first AU of enhencement layer, wait for a moment for aggregation
+			if (ch->AU_buffer_first && (ch->esd->dependsOnESID == (*activeChannel)->esd->ESID)) {
+				*nextAU = NULL;
+				return;
+			}*/
 			continue;
 		}
 
