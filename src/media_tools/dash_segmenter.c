@@ -135,6 +135,10 @@ struct _dash_segment_input
 	Double duration;
 	struct _dash_component components[20];
 	u32 nb_components;
+
+	//spatial info for tiling
+	u32 x, y, w, h;
+
 };
 
 
@@ -725,8 +729,12 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
 		}
 
-		if (dash_cfg->inband_param_set && (gf_isom_get_media_subtype(input, i+1, 1)==GF_ISOM_SUBTYPE_HVC1)) {
-			gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
+		if (gf_isom_get_media_subtype(input, i+1, 1)==GF_ISOM_SUBTYPE_HVC1) {
+			u32 mode = GF_ISOM_NALU_EXTRACT_INSPECT;
+			if (dash_cfg->inband_param_set) {
+				mode |= GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
+			}
+			gf_isom_set_nalu_extract_mode(input, i+1, mode);
 		}
 
 		if (mtype == GF_ISOM_MEDIA_VISUAL) nb_video++;
@@ -1930,6 +1938,11 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 
 		if (strcmp(dash_inputs[input_idx].role, dash_inputs[i].role))
 			continue;
+
+		if (dash_inputs[input_idx].x != dash_inputs[i].x) continue;
+		if (dash_inputs[input_idx].y != dash_inputs[i].y) continue;
+		if (dash_inputs[input_idx].w != dash_inputs[i].w) continue;
+		if (dash_inputs[input_idx].h != dash_inputs[i].h) continue;
 
 		in = gf_isom_open(dash_inputs[i].file_name, GF_ISOM_OPEN_READ, NULL);
 
@@ -3467,7 +3480,7 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 		if (!file) return gf_isom_last_error(NULL);
 		nb_track = gf_isom_get_track_count(file);
 
-		/*if this dash input file has only one track, or this has not the scalable track: let it be*/
+		/*if this dash input file has only one track, or this has not the scalable track: handle as one representation*/
 		if ((nb_track == 1) || !gf_isom_has_scalable_layer(file)) {
 
 			if (uri_frag) {
@@ -3503,10 +3516,13 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 
 		max_nb_deps = 0;
 		for (j = 0; j < nb_track; j++) {
+			//check scalability
 			if (gf_isom_get_media_type(file, j+1)==GF_ISOM_MEDIA_VISUAL) {
-				u32 count = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_SCAL);
-				if (count)
+				u32 count = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_BASE);
+				count += gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_TBAS);
+				if (count) {
 					max_nb_deps ++;
+				}
 			}
 		}
 		//scalable input file, realloc
@@ -3521,15 +3537,16 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 		rep_idx = 1;
 		cur_idx = idx+1;
 
+		//create dash inputs
 		for (j = 0; j < nb_track; j++) {
 			GF_DashSegInput *di;
-			u32 count, t, ref_track;
-			count = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_SCAL);
-			/*base track, done above*/
+			u32 count = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_BASE);
+			count += gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_TBAS);
 			if (!count) {
 				dash_input->trackNum = j+1;
 				continue;
 			}
+
 
 			di = &dash_inputs [cur_idx];
 			*nb_dash_inputs += 1;
@@ -3543,18 +3560,36 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 
 			di->protection_scheme_type = gf_isom_is_media_encrypted(file, di->trackNum, 1);
 
-			/*dependencyID - FIXME - the delaration of dependency and new dash_input entries should be in DEDENDENCY ORDER*/
 			di->idx_representations = rep_idx;
 			rep_idx ++;
-			sprintf(di->dependencyID, "%s", dash_input->representationID); //base track
+		
+			if (gf_isom_get_reference_count(file, di->trackNum, GF_ISOM_REF_TBAS)) {
+				u32 default_sample_group_index, id, independent;
+				Bool full_frame;
+				gf_isom_get_tile_info(file, di->trackNum, 1, &default_sample_group_index, &id, &independent, &full_frame, &di->x, &di->y, &di->w, &di->h);
+			}
+		}
+
+
+		/*dependencyID - FIXME - the delaration of dependency and new dash_input entries should be in DEDENDENCY ORDER*/
+		for (j = idx; j < *nb_dash_inputs; j++) {
+			GF_DashSegInput *di;
+			u32 count, t, ref_track;
+
+			di = &dash_inputs[j];
+			count = gf_isom_get_reference_count(file, di->trackNum, GF_ISOM_REF_SCAL);
+			if (!count) continue;
+
 			di->lower_layer_track = dash_input->trackNum;
-			for (t = 1; t < count; t++) {
-				gf_isom_get_reference(file, j+1, GF_ISOM_REF_SCAL, t+1, &ref_track);
-				if (j) strcat(di->dependencyID, " ");
+			strcpy(di->dependencyID, "");
+			for (t=0; t < count; t++) {
+				gf_isom_get_reference(file, di->trackNum, GF_ISOM_REF_SCAL, t+1, &ref_track);
+				if (t) strcat(di->dependencyID, " ");
 				strcat(di->dependencyID, gf_dash_get_representationID(dash_inputs, *nb_dash_inputs, di->file_name, ref_track));
 
 				di->lower_layer_track = ref_track;
 			}
+
 		}
 		gf_isom_close(file);
 		return GF_OK;

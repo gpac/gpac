@@ -2754,6 +2754,8 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u32 offset, u32 len);
 Bool gf_isom_cenc_has_saiz_saio(GF_SampleTableBox *stbl, GF_TrackFragmentBox *traf);
 
+void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independent, Bool *full_frame, u32 *x, u32 *y, u32 *w, u32 *h);
+
 #ifndef GPAC_DISABLE_ISOM_HINTING
 
 /*

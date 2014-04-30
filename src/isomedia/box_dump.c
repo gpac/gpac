@@ -4178,17 +4178,11 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			break;
 		case GF_4CC( 't', 'r', 'i', 'f' ):
 		{
-			GF_BitStream *bs = gf_bs_new(((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, GF_BITSTREAM_READ);
-			u16 x,y,w,h;
-			u16 id = gf_bs_read_u16(bs);
-			u32 independent = gf_bs_read_int(bs, 2);
-			u32 full_frame = gf_bs_read_int(bs, 1);
-			gf_bs_read_int(bs, 5);
-			x = full_frame ? 0 : gf_bs_read_u16(bs);
-			y = full_frame ? 0 : gf_bs_read_u16(bs);
-			w = gf_bs_read_u16(bs);
-			h = gf_bs_read_u16(bs);
-			gf_bs_del(bs);
+			u32 x,y,w,h, id, independent;
+			Bool full_frame;
+
+			gf_isom_parse_trif_info( ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, &id, &independent, &full_frame, &x, &y, &w, &h);
+
 			fprintf(trace, "<TileRegionGroupEntry ID=\"%d\" independent=\"%d\"", id, independent);
 			if (!full_frame) fprintf(trace, " x=\"%d\" y=\"%d\"", x, y);
 			fprintf(trace, " w=\"%d\" h=\"%d\"/>\n", w, h);

@@ -177,6 +177,15 @@ typedef struct
 } GF_LightInfo;
 
 
+typedef struct
+{
+	//0: directional - 1: spot - 2: point
+	GF_Plane p;
+	Bool is_2d_clip;
+	GF_Matrix *mx_clipper;
+} GF_ClipInfo;
+
+
 /*
 	till end of file: all 3D specific calls.
 */
@@ -230,14 +239,14 @@ it is the caller responsability to restore previous 2D clipers
 
 the matrix is not copied, care should be taken to keep it unmodified until the cliper is reset (unless desired otherwise)
 if NULL, no specific clipping transform will be used*/
-void visual_3d_set_clipper_2d(GF_VisualManager *visual, GF_Rect clip, GF_Matrix *mx_at_clipper);
+void visual_3d_set_clipper_2d(GF_VisualManager *visual, GF_Rect clip, GF_Matrix *mx_at_clipper, Bool is_2d_clip);
 /*remove 2D clipper*/
 void visual_3d_reset_clipper_2d(GF_VisualManager *visual);
 
 /*set clipping plane
 the matrix is not copied, care should be taken to keep it unmodified until the cliper is reset (unless desired otherwise)
 if NULL, no specific clipping transform will be used*/
-void visual_3d_set_clip_plane(GF_VisualManager *visual, GF_Plane p, GF_Matrix *mx_at_clipper);
+void visual_3d_set_clip_plane(GF_VisualManager *visual, GF_Plane p, GF_Matrix *mx_at_clipper, Bool is_2d_clip);
 
 /*reset last clipping plane set*/
 void visual_3d_reset_clip_plane(GF_VisualManager *visual);

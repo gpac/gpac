@@ -399,12 +399,7 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 				}
 
 				//erase all part of the canvas below us
-				if (!tr_state->immediate_draw) {
-					visual_2d_draw_path_extended(visual, ctx->drawable->path, ctx, NULL, NULL, tr_state, NULL, NULL, GF_TRUE);
-					//this part of the canvas is now dirty for next pass !
-					if (!tr_state->immediate_draw) {
-					}
-				}
+				visual_2d_draw_path_extended(visual, ctx->drawable->path, ctx, NULL, NULL, tr_state, NULL, NULL, GF_TRUE);
 			}
 			ctx->bi->clip = rc;
 		}
@@ -433,7 +428,7 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	clipper.y = INT2FIX(ctx->bi->clip.y);
 	clipper.width = INT2FIX(ctx->bi->clip.width);
 	clipper.height = INT2FIX(ctx->bi->clip.height);
-	visual_3d_set_clipper_2d(tr_state->visual, clipper, NULL);
+	visual_3d_set_clipper_2d(tr_state->visual, clipper, NULL, 1);
 
 	gf_node_allow_cyclic_traverse(ctx->drawable->node);
 	gf_node_traverse(ctx->drawable->node, tr_state);

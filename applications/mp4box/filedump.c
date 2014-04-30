@@ -1782,20 +1782,11 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					shvccfg = gf_isom_shvc_config_get(file, trackNum, 1);
 
 					if (msub_type==GF_ISOM_SUBTYPE_HVT1) {
-						u32 size, is_default;
 						const char *data;
-						if (gf_isom_get_sample_group_info(file, trackNum, 1, GF_4CC('t','r','i','f'), &is_default, &data, &size)) {
-							GF_BitStream *bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-							u16 x,y,w,h;
-							u16 id = gf_bs_read_u16(bs);
-							u32 independent = gf_bs_read_int(bs, 2);
-							u32 full_frame = gf_bs_read_int(bs, 1);
-							gf_bs_read_int(bs, 5);
-							x = full_frame ? 0 : gf_bs_read_u16(bs);
-							y = full_frame ? 0 : gf_bs_read_u16(bs);
-							w = gf_bs_read_u16(bs);
-							h = gf_bs_read_u16(bs);
-							gf_bs_del(bs);
+						u32 size;
+						u32  is_default, x,y,w,h, id, independent;
+						Bool full_frame;
+						if (gf_isom_get_tile_info(file, trackNum, 1, &is_default, &id, &independent, &full_frame, &x, &y, &w, &h)) {
 							fprintf(stderr, "\tHEVC Tile - ID %d independent %d (x,y,w,h)=%d,%d,%d,%d \n", id, independent, x, y, w, h);
 						} else if (gf_isom_get_sample_group_info(file, trackNum, 1, GF_4CC('t','r','i','f'), &is_default, &data, &size)) {
 							fprintf(stderr, "\tHEVC Tile track containing a tile set\n");

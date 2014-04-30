@@ -309,6 +309,7 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	/*create default unit sphere and box for bounds*/
 	compositor->unit_bbox = new_mesh();
 	mesh_new_unit_bbox(compositor->unit_bbox);
+	gf_mx_init(compositor->traverse_state->model_matrix);
 #endif
 
 	compositor->was_system_memory=1;

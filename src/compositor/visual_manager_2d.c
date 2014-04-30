@@ -231,6 +231,10 @@ void visual_2d_setup_projection(GF_VisualManager *visual, GF_TraverseState *tr_s
 	}
 #endif
 
+#ifndef GPAC_DISABLE_3D
+	gf_mx_init(tr_state->model_matrix);
+#endif
+
 	visual->top_clipper = gf_rect_pixelize(&rc);
 	tr_state->clipper = rc;
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Cliper setup - %d:%d@%dx%d\n", visual->top_clipper.x, visual->top_clipper.y, visual->top_clipper.width, visual->top_clipper.height));

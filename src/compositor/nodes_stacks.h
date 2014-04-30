@@ -108,6 +108,7 @@ typedef struct
 #ifndef GPAC_DISABLE_3D
 	GF_Mesh *mesh;
 	GF_BBox prev_bounds;
+	Bool hybgl_init;
 #endif
 	u32 flags;
 } Background2DStack;

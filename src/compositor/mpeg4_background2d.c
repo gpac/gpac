@@ -346,14 +346,15 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (back_use_texture(bck) ) {
+#ifndef GPAC_DISABLE_3D
+		if (stack->txh.compositor->hybrid_opengl && !tr_state->visual->offscreen && stack->hybgl_init) {
+			stack->flags |= CTX_HYBOGL_NO_CLEAR;
+		}
+		stack->hybgl_init = 1;
+#endif
 		if (stack->txh.tx_io && !(status->ctx.flags & CTX_APP_DIRTY) && stack->txh.needs_refresh) {
 			stack->flags |= CTX_TEXTURE_DIRTY;
 		}
-#ifndef GPAC_DISABLE_3D
-		if (stack->txh.compositor->hybrid_opengl && !tr_state->visual->offscreen) {
-			stack->flags |= CTX_HYBOGL_NO_CLEAR;
-		}
-#endif
 	}
 	status->ctx.flags = stack->flags;
 

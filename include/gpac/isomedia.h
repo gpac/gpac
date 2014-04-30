@@ -107,7 +107,8 @@ enum
 	GF_ISOM_REF_CHAP		= GF_4CC( 'c', 'h', 'a', 'p' ),
 	/*ref type for the SVC tracks*/
 	GF_ISOM_REF_BASE = GF_4CC( 's', 'b', 'a', 's' ),
-	GF_ISOM_REF_SCAL = GF_4CC( 's', 'c', 'a', 'l' )
+	GF_ISOM_REF_SCAL = GF_4CC( 's', 'c', 'a', 'l' ),
+	GF_ISOM_REF_TBAS = GF_4CC( 't', 'b', 'a', 's' )
 };
 
 /*Track Edition flag*/
@@ -2285,8 +2286,11 @@ void gf_isom_set_next_moof_number(GF_ISOFile *movie, u32 value);
 /*returns 'rap ' and 'roll' group info for the given sample*/
 GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *is_rap, Bool *has_roll, s32 *roll_distance);
 
-/*returns 'rap ' and 'roll' group info for the given sample*/
-Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_description_index, u32 grouping_type, u32 *is_default, const char **data, u32 *size);
+/*returns opaque data of sample group*/
+Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_description_index, u32 grouping_type, u32 *default_index, const char **data, u32 *size);
+
+/*returns tile info */
+Bool gf_isom_get_tile_info(GF_ISOFile *file, u32 trackNumber, u32 sample_description_index, u32 *default_sample_group_index, u32 *id, u32 *independent, Bool *full_frame, u32 *x, u32 *y, u32 *w, u32 *h);
 
 /*sample groups information*/
 #ifndef GPAC_DISABLE_ISOM_WRITE

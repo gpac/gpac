@@ -671,7 +671,7 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 		tr_state->traversing_mode = TRAVERSE_DRAW_3D;
 		/*layout/form clipper, set it in world coords only*/
 		if (tr_state->has_clip) {
-			visual_3d_set_clipper_2d(tr_state->visual, tr_state->clipper, NULL);
+			visual_3d_set_clipper_2d(tr_state->visual, tr_state->clipper, NULL, 0);
 		}
 
 		gf_node_traverse(geometry, tr_state);
@@ -765,12 +765,12 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 
 		/*clipper, set it in world coords only*/
 		if (ctx->has_clipper) {
-			visual_3d_set_clipper_2d(visual, ctx->clipper, NULL);
+			visual_3d_set_clipper_2d(visual, ctx->clipper, NULL, 0);
 		}
 
 		/*clip planes, set it in world coords only*/
 		for (i=0; i<ctx->num_clip_planes; i++)
-			visual_3d_set_clip_plane(visual, ctx->clip_planes[i], NULL);
+			visual_3d_set_clip_plane(visual, ctx->clip_planes[i], NULL, 0);
 
 		/*restore traversing state*/
 		memcpy(&tr_state->model_matrix, &ctx->model_matrix, sizeof(GF_Matrix));
@@ -1893,7 +1893,7 @@ void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
 	}
 }
 
-void visual_3d_set_clipper_2d(GF_VisualManager *visual, GF_Rect clip, GF_Matrix *mx_at_clipper)
+void visual_3d_set_clipper_2d(GF_VisualManager *visual, GF_Rect clip, GF_Matrix *mx_at_clipper, Bool is_2d_clip)
 {
 	GF_Plane p;
 
@@ -1904,20 +1904,20 @@ void visual_3d_set_clipper_2d(GF_VisualManager *visual, GF_Rect clip, GF_Matrix 
 	p.normal.y = 0;
 	p.normal.x = -FIX_ONE;
 	p.d = clip.x + clip.width;
-	visual_3d_set_clip_plane(visual, p, mx_at_clipper);
+	visual_3d_set_clip_plane(visual, p, mx_at_clipper, is_2d_clip);
 
 	p.normal.x = FIX_ONE;
 	p.d = -clip.x;
-	visual_3d_set_clip_plane(visual, p, mx_at_clipper);
+	visual_3d_set_clip_plane(visual, p, mx_at_clipper, is_2d_clip);
 
 	p.normal.x = 0;
 	p.normal.y = -FIX_ONE;
 	p.d = clip.y;
-	visual_3d_set_clip_plane(visual, p, mx_at_clipper);
+	visual_3d_set_clip_plane(visual, p, mx_at_clipper, is_2d_clip);
 
 	p.normal.y = FIX_ONE;
 	p.d = clip.height - clip.y;
-	visual_3d_set_clip_plane(visual, p, mx_at_clipper);
+	visual_3d_set_clip_plane(visual, p, mx_at_clipper, is_2d_clip);
 }
 
 void visual_3d_reset_clipper_2d(GF_VisualManager *visual)
@@ -1926,12 +1926,13 @@ void visual_3d_reset_clipper_2d(GF_VisualManager *visual)
 	visual->num_clips -= 4;
 }
 
-void visual_3d_set_clip_plane(GF_VisualManager *visual, GF_Plane p, GF_Matrix *mx_at_clipper)
+void visual_3d_set_clip_plane(GF_VisualManager *visual, GF_Plane p, GF_Matrix *mx_at_clipper, Bool is_2d_clip)
 {
 	if (visual->num_clips==GF_MAX_GL_CLIPS) return;
 	gf_vec_norm(&p.normal);
-	visual->clippers[visual->num_clips] = p;
-	visual->mx_clippers[visual->num_clips] = mx_at_clipper;
+	visual->clippers[visual->num_clips].p = p;
+	visual->clippers[visual->num_clips].is_2d_clip = is_2d_clip;
+	visual->clippers[visual->num_clips].mx_clipper = mx_at_clipper;
 	visual->num_clips++;
 }
 
