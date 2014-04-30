@@ -2439,6 +2439,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 		for (j=0; j<nb_tracks; j++) {
             tiles[j].data_offset = 0;
 			tiles[j].sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+            tiles[j].data_offset = 0;
 		}
 
 		sample->data = (char *) data;

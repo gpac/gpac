@@ -207,7 +207,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 		builder->flags &= 0x07;
 		/*disable aggregation for visual streams, except for AVC where STAP/MTAP can be used*/
 		if (StreamType==GF_STREAM_VISUAL) {
-			if ((OTI != GPAC_OTI_VIDEO_AVC) && (OTI != GPAC_OTI_VIDEO_SVC) && (OTI != GPAC_OTI_VIDEO_HEVC)) {
+			if ((OTI != GPAC_OTI_VIDEO_AVC) && (OTI != GPAC_OTI_VIDEO_SVC) && (OTI != GPAC_OTI_VIDEO_HEVC) && (OTI != GPAC_OTI_VIDEO_SHVC)) {
 				builder->flags &= ~GP_RTP_PCK_USE_MULTI;
 			}
 		}

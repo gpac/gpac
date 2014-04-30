@@ -544,6 +544,10 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
 	if (!e) {
 		//Update the channel record if no error - otherwise next RTCP will triger an RR
 		ch->last_num_pck_rcv = ch->last_num_pck_expected = ch->last_num_pck_loss = 0;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTCP] SSRC %d: sending RTCP report\n", ch->SSRC));
+	}
+	else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTCP] SSRC %d: error when sending RTCP report\n", ch->SSRC));
 	}
 	gf_rtp_get_next_report_time(ch);
 	return e;
