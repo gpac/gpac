@@ -1074,59 +1074,6 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 	}
 }
 
-static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *tr_state)
-{
-#ifdef GL_MAX_CLIP_PLANES
-	u32 i;
-
-	GF_Matrix inv_mx;
-	gf_mx_copy(inv_mx, tr_state->model_matrix);
-	gf_mx_inverse(&inv_mx);
-
-	for (i=0; i<visual->num_clips; i++) {
-		u32 idx = GL_CLIP_PLANE0 + i;
-#ifdef GPAC_USE_OGL_ES
-		Fixed g[4];
-#else
-		Double g[4];
-#endif
-		GF_Matrix mx;
-		GF_Plane p = visual->clippers[i];
-
-		gf_mx_copy(mx, inv_mx);
-		if (visual->mx_clippers[i] != NULL) {
-			gf_mx_add_matrix(&mx, visual->mx_clippers[i]);
-		}
-		gf_mx_apply_plane(&mx, &p);
-
-#ifdef GPAC_USE_OGL_ES
-		g[0] = p.normal.x;
-		g[1] = p.normal.y;
-		g[2] = p.normal.z;
-		g[3] = p.d;
-		glClipPlanex(idx, g);
-#else
-		g[0] = FIX2FLT(p.normal.x);
-		g[1] = FIX2FLT(p.normal.y);
-		g[2] = FIX2FLT(p.normal.z);
-		g[3] = FIX2FLT(p.d);
-		glClipPlane(idx, g);
-#endif
-		glEnable(idx);
-	}
-#endif
-}
-
-static void visual_3d_reset_clippers(GF_VisualManager *visual)
-{
-#ifdef GL_MAX_CLIP_PLANES
-	u32 i;
-	for (i=0; i<visual->num_clips; i++) {
-		glDisable(GL_CLIP_PLANE0 + i);
-	}
-#endif
-}
-
 static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 {
 #ifdef GPAC_USE_OGL_ES
@@ -1168,6 +1115,71 @@ static void visual_3d_update_matrices(GF_TraverseState *tr_state)
 	visual_3d_matrix_load(tr_state->visual, tr_state->camera->modelview.m);
 	visual_3d_matrix_add(tr_state->visual, tr_state->model_matrix.m);
 }
+
+
+static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *tr_state)
+{
+#ifdef GL_MAX_CLIP_PLANES
+	u32 i;
+
+	GF_Matrix inv_mx;
+	gf_mx_copy(inv_mx, tr_state->model_matrix);
+	gf_mx_inverse(&inv_mx);
+
+	for (i=0; i<visual->num_clips; i++) {
+		u32 idx = GL_CLIP_PLANE0 + i;
+#ifdef GPAC_USE_OGL_ES
+		Fixed g[4];
+#else
+		Double g[4];
+#endif
+		GF_Matrix mx;
+		GF_Plane p = visual->clippers[i].p;
+
+		if (visual->clippers[i].is_2d_clip) {
+			visual_3d_matrix_load(tr_state->visual, tr_state->camera->modelview.m);
+		} else {
+			gf_mx_copy(mx, inv_mx);
+			if (visual->clippers[i].mx_clipper != NULL) {
+				gf_mx_add_matrix(&mx, visual->clippers[i].mx_clipper);
+			}
+			gf_mx_apply_plane(&mx, &p);
+		}
+
+#ifdef GPAC_USE_OGL_ES
+		g[0] = p.normal.x;
+		g[1] = p.normal.y;
+		g[2] = p.normal.z;
+		g[3] = p.d;
+		glClipPlanex(idx, g);
+#else
+		g[0] = FIX2FLT(p.normal.x);
+		g[1] = FIX2FLT(p.normal.y);
+		g[2] = FIX2FLT(p.normal.z);
+		g[3] = FIX2FLT(p.d);
+		glClipPlane(idx, g);
+#endif
+		glEnable(idx);
+
+		if (visual->clippers[i].is_2d_clip) {
+			visual_3d_update_matrices(tr_state);
+		}
+
+	}
+#endif
+
+}
+
+static void visual_3d_reset_clippers(GF_VisualManager *visual)
+{
+#ifdef GL_MAX_CLIP_PLANES
+	u32 i;
+	for (i=0; i<visual->num_clips; i++) {
+		glDisable(GL_CLIP_PLANE0 + i);
+	}
+#endif
+}
+
 
 void visual_3d_reset_lights(GF_VisualManager *visual)
 {

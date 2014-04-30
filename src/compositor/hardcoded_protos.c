@@ -417,7 +417,7 @@ static void TraversePlaneClipper(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode == TRAVERSE_SORT) {
 		GF_Matrix mx;
 		gf_mx_copy(mx, tr_state->model_matrix);
-		visual_3d_set_clip_plane(tr_state->visual, stack->pc.plane, &mx);
+		visual_3d_set_clip_plane(tr_state->visual, stack->pc.plane, &mx, 0);
 		tr_state->num_clip_planes++;
 
 		group_3d_traverse((GF_Node*)&stack->pc, (GroupingNode*)stack, tr_state);

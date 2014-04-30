@@ -173,7 +173,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			if (had_clip) {
 				visual_3d_reset_clipper_2d(tr_state->visual);
 			}
-			visual_3d_set_clipper_2d(tr_state->visual, tr_state->layer_clipper, &mx3d);
+			visual_3d_set_clipper_2d(tr_state->visual, tr_state->layer_clipper, &mx3d, 0);
 
 			/*apply background BEFORE viewport*/
 			if (back) {
@@ -212,7 +212,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 			if (had_clip) {
 				tr_state->layer_clipper = prev_clipper;
 				gf_mx_copy(tr_state->layer_matrix, prev_layer_mx);
-				visual_3d_set_clipper_2d(tr_state->visual, tr_state->layer_clipper, &prev_layer_mx);
+				visual_3d_set_clipper_2d(tr_state->visual, tr_state->layer_clipper, &prev_layer_mx, 0);
 			}
 		} else
 #endif

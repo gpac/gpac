@@ -26,12 +26,14 @@
 
 #include "media_control.h"
 #include <gpac/constants.h>
+#include <gpac/internal/compositor_dev.h>
 
 #ifndef GPAC_DISABLE_VRML
 
 /*render : setup media sensor and update timing in case of inline scenes*/
 void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
+	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	GF_Clock *ck;
 	MediaSensorStack *st = (MediaSensorStack *)gf_node_get_private(node);
 
@@ -44,6 +46,8 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 		gf_free(st);
 		return;
 	}
+	//we need to disable culling otherwise we may never be called back again ...
+	tr_state->disable_cull = 1;
 
 	if (!st->stream) st->stream = gf_mo_register(node, &st->sensor->url, 0, 0);
 	if (!st->stream || !st->stream->odm) return;

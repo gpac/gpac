@@ -211,8 +211,7 @@ struct _visual_manager
 
 	Bool state_light_on, state_blend_on, state_color_on;
 
-	GF_Plane clippers[GF_MAX_GL_CLIPS];
-	GF_Matrix *mx_clippers[GF_MAX_GL_CLIPS];
+	GF_ClipInfo clippers[GF_MAX_GL_CLIPS];
 
 	Bool has_tx_matrix;
 	GF_Matrix tx_matrix;

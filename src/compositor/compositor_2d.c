@@ -150,6 +150,10 @@ void compositor_2d_hybgl_clear_surface_ex(GF_VisualManager *visual, GF_IRect *rc
 	}
 	if (is_offscreen_clear) {
 		visual->compositor->rasterizer->surface_clear(visual->raster_surface, rc, BackColor);
+		//if we clear the canvas with non-0 alpha, remember the area cleared in case we have to erase it later (overlapping bitmap)
+		if (GF_COL_A(BackColor)) {
+			ra_union_rect(&visual->hybgl_drawn, rc);
+		}
 	} else {
 		Fixed a;
 		rgb.red = INT2FIX( GF_COL_R(BackColor) ) / 255;

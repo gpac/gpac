@@ -87,8 +87,11 @@ enum {
 	/*drawable is an overlay surface*/
 	DRAWABLE_IS_OVERLAY = 1<<5,
 
-	/**/
+	/*drawable has a cache texture*/
 	DRAWABLE_IS_CACHED = 1<<6,
+
+	/*drawable has been initialized for hybrid GL mode - used to perform the initial clear of the overlay graphics*/
+	DRAWABLE_HYBGL_INIT = 1<<7,
 };
 
 struct _drawable

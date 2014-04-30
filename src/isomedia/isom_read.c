@@ -3261,13 +3261,13 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 }
 
 GF_EXPORT
-Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_description_index, u32 grouping_type, u32 *is_default, const char **data, u32 *size)
+Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_description_index, u32 grouping_type, u32 *default_index, const char **data, u32 *size)
 {
 
 	GF_TrackBox *trak;
 	u32 i, count;
 
-	if (is_default) *is_default = 0;
+	if (default_index) *default_index = 0;
 	if (size) *size = 0;
 	if (data) *data = NULL;
 
@@ -3283,7 +3283,7 @@ Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 			continue;
 
 		if (sgdesc->default_description_index && !sample_description_index) sample_description_index = sgdesc->default_description_index;
-		if (is_default) *is_default = sgdesc->default_description_index ;
+		if (default_index) *default_index = sgdesc->default_description_index ;
 
 		if (!sample_description_index) return 0;
 
@@ -3603,6 +3603,33 @@ u64 gf_isom_get_current_tfdt(GF_ISOFile *the_file, u32 trackNumber)
 	if (!trak) return 0;
 	return trak->dts_at_seg_start;
 #endif
+}
+
+void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independent, Bool *full_frame, u32 *x, u32 *y, u32 *w, u32 *h)
+{
+	GF_BitStream *bs;
+	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	*id = gf_bs_read_u16(bs);
+	*independent = gf_bs_read_int(bs, 2);
+	*full_frame = gf_bs_read_int(bs, 1);
+	gf_bs_read_int(bs, 5);
+	*x = *full_frame ? 0 : gf_bs_read_u16(bs);
+	*y = *full_frame ? 0 : gf_bs_read_u16(bs);
+	*w = gf_bs_read_u16(bs);
+	*h = gf_bs_read_u16(bs);
+	gf_bs_del(bs);
+
+}
+
+Bool gf_isom_get_tile_info(GF_ISOFile *file, u32 trackNumber, u32 sample_description_index, u32 *default_sample_group_index, u32 *id, u32 *independent, Bool *full_frame, u32 *x, u32 *y, u32 *w, u32 *h)
+{
+	const char *data;
+	u32 size;
+	
+	if (!gf_isom_get_sample_group_info(file, trackNumber, sample_description_index, GF_4CC('t','r','i','f'), default_sample_group_index, &data, &size)) 
+		return 0;
+	gf_isom_parse_trif_info(data, size, id, independent, full_frame, x, y, w, h);
+	return 1;
 }
 
 #endif /*GPAC_DISABLE_ISOM*/

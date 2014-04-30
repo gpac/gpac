@@ -26,6 +26,7 @@
 
 #include "media_control.h"
 #include <gpac/constants.h>
+#include <gpac/internal/compositor_dev.h>
 
 
 void mediacontrol_restart(GF_ObjectManager *odm)
@@ -268,6 +269,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 	Bool shall_restart, need_restart;
 	GF_MediaObject *prev;
 	GF_ObjectManager *odm;
+	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	MediaControlStack *stack =(MediaControlStack *) gf_node_get_private(node);
 
 	if (is_destroy) {
@@ -288,6 +290,8 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		gf_free(stack);
 		return;
 	}
+	//we need to disable culling otherwise we may never be called back again ...
+	tr_state->disable_cull = 1;
 
 	/*not changed nothing to do - note we need to register with stream yet for control switching...*/
 	if (stack->stream && (!stack->changed || !stack->control->enabled)) return;

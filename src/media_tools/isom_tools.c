@@ -2412,14 +2412,17 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 	if (! hevc.pps[pps_idx].tiles_enabled_flag) return GF_OK;
 	nb_tracks = hevc.pps[pps_idx].num_tile_columns * hevc.pps[pps_idx].num_tile_rows;
 	tiles = gf_malloc(sizeof(HEVCTileImport) * nb_tracks);
-	
+
+	//first clone tracks
     for (i=0; i<nb_tracks; i++) {
 		e = gf_isom_clone_track(file, track, file, 0, &tiles[i].track );
 		if (e) goto err_exit;
         tiles[i].track_id = gf_isom_get_track_id(file, tiles[i].track);
 		gf_isom_hevc_set_tile_config(file, tiles[i].track, 1, NULL);
-		gf_isom_set_track_reference(file, tiles[i].track, GF_4CC('t','b','a','s'), gf_isom_get_track_id(file, track) );
-
+	}
+	//then setup track references (done in two pass otherwise we would clone the tref box ...)
+    for (i=0; i<nb_tracks; i++) {
+		gf_isom_set_track_reference(file, tiles[i].track, GF_ISOM_REF_TBAS, gf_isom_get_track_id(file, track) );
 		gf_isom_set_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[i].track_id) ;
 	}
 
@@ -2537,6 +2540,9 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 
     for (i=0; i<nb_tracks; i++) {
 		char data[11];
+		u32 width, height;
+		s32 translation_x, translation_y;
+		s16 layer;
 		GF_BitStream *bs = gf_bs_new(data, 11, GF_BITSTREAM_WRITE);
 		gf_bs_write_u16(bs, tiles[i].track);
 		gf_bs_write_int(bs, 1, 2);
@@ -2551,6 +2557,9 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 		gf_isom_add_sample_group_info(file, tiles[i].track, GF_4CC('t','r','i','f'), data, 11, 1, &di);
 
 		gf_isom_set_visual_info(file, tiles[i].track, 1, tiles[i].tw, tiles[i].th);
+		
+		gf_isom_get_track_layout_info(file, track, &width, &height, &translation_x, &translation_y, &layer);	
+		gf_isom_set_track_layout_info(file, tiles[i].track, width<<16, height<<16, translation_x, translation_y, layer);
 	}
 
 
