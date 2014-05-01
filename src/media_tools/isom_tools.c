@@ -2458,6 +2458,8 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
             src_bs = gf_bs_new((const char *) data + nalu_size_length, nalu_size, GF_BITSTREAM_READ);          
             ret = gf_media_hevc_parse_nalu(src_bs, &hevc, &nal_type, &temporal_id, &layer_id);
             gf_bs_del(src_bs);
+		//error parsing NAL, set nal to fallback to regular import
+		if (ret<0) nal_type = GF_HEVC_NALU_VID_PARAM;
             
 			switch (nal_type) {
 			case GF_HEVC_NALU_SLICE_TRAIL_N:
