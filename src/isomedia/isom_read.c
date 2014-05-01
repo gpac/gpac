@@ -3621,6 +3621,7 @@ void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independe
 
 }
 
+GF_EXPORT
 Bool gf_isom_get_tile_info(GF_ISOFile *file, u32 trackNumber, u32 sample_description_index, u32 *default_sample_group_index, u32 *id, u32 *independent, Bool *full_frame, u32 *x, u32 *y, u32 *w, u32 *h)
 {
 	const char *data;
