@@ -832,7 +832,9 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 				evt.type = GF_EVENT_COPY_TEXT;
 				if (vout->on_event(vout->evt_cbk_hdl, &evt)==GF_TRUE) {
 					const char *txt = evt.message.message;
-					XChangeProperty(xWindow->display, DefaultRootWindow(xWindow->display), XA_CUT_BUFFER0, XA_STRING, 8, PropModeReplace, (const unsigned char *)txt, strlen(txt));
+					if (txt) {
+						XChangeProperty(xWindow->display, DefaultRootWindow(xWindow->display), XA_CUT_BUFFER0, XA_STRING, 8, PropModeReplace, (const unsigned char *)txt, strlen(txt));
+					}
 
 					if ((clipb_atom != None) && XGetSelectionOwner(xWindow->display, clipb_atom) != the_window) {
 						XSetSelectionOwner(xWindow->display, clipb_atom, the_window, CurrentTime);
