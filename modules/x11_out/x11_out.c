@@ -1433,6 +1433,13 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	Hints->flags |= USPosition;
 	XSetWMNormalHints (xWindow->display, xWindow->full_wnd, Hints);
 
+	{
+		XClassHint hint;
+		hint.res_name = "gpac";
+		hint.res_class = "gpac";
+		XSetClassHint(xWindow->display, xWindow->wnd, &hint);
+	}
+
 	autorepeat = 1;
 	XkbSetDetectableAutoRepeat(xWindow->display, autorepeat, &supported);
 
