@@ -216,12 +216,11 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 		pkt.data = video_output_file->vbuf;
 		pkt.size = video_output_file->vbuf_size;
 		pkt.pts = pkt.dts = video_data_node->vframe->pkt_dts = video_data_node->vframe->pkt_pts = video_data_node->vframe->pts;
-#ifdef GPAC_USE_LIBAV
-		video_output_file->encoded_frame_size = avcodec_encode_video(video_codec_ctx, video_output_file->vbuf, video_output_file->vbuf_size, video_data_node->vframe);
-		got_packet = video_output_file->encoded_frame_size>=0 ? 1 : 0;
-#else
+
 		video_output_file->encoded_frame_size = avcodec_encode_video2(video_codec_ctx, &pkt, video_data_node->vframe, &got_packet);
+
 		//this is not true with libav !
+#ifndef GPAC_USE_LIBAV
 		if (video_output_file->encoded_frame_size >= 0)
 			video_output_file->encoded_frame_size = pkt.size;
 #endif

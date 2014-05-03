@@ -103,6 +103,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "openhevc_dec", "openhevc.vcxproj", "{073E2381-4FDE-4C4D-B217-C489EF17C48B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dashcast", "dashcast.vcxproj", "{E10DBBE8-2A40-4CC8-8B72-B2A2854A1EE1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vtt_in", "vtt_in.vcxproj", "{E578716F-6663-4D83-AC79-57EA00D2F406}"
 EndProject
