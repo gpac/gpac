@@ -56,6 +56,7 @@ u8 gf_isom_get_mode(GF_ISOFile *the_file)
 	return the_file->openMode;
 }
 
+GF_EXPORT
 u64 gf_isom_get_file_size(GF_ISOFile *the_file)
 {
 	if (!the_file) return 0;
