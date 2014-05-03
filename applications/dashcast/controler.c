@@ -27,30 +27,20 @@
 
 
 #if (!defined(__DARWIN__) && !defined(__APPLE__))
-#include <malloc.h>
+# include <malloc.h>
 #endif
 
 #include <time.h>
-//FIXME: use GPAC utility functions
+
 #if defined(__GNUC__)
-#include <unistd.h>
-#include <sys/time.h>
+# include <unistd.h>
+# include <sys/time.h>
 #elif defined(WIN32)
-#include <Winsock.h>
-#include <sys/timeb.h>
-#define suseconds_t long
-
-s32 gettimeofday(struct timeval *tp, void *tz)
-{
-	struct _timeb timebuffer;
-
-	_ftime( &timebuffer );
-	tp->tv_sec  = (long) (timebuffer.time);
-	tp->tv_usec = timebuffer.millitm * 1000;
-	return 0;
-}
+# include <Winsock.h>
+# include <sys/timeb.h>
+# define suseconds_t long
 #else
-#error
+# error
 #endif
 
 
@@ -615,7 +605,7 @@ u32 video_decoder_thread(void *params)
 		//fprintf(stdout, "sourcenumber: %d\n", source_number);
 
 		if (video_input_file[source_number]->mode == LIVE_MEDIA) {
-			gettimeofday(&time_start, NULL);
+			gf_gettimeofday(&time_start, NULL);
 		}
 
 		ret = dc_video_decoder_read(video_input_file[source_number], video_input_data, source_number, in_data->use_source_timing, (in_data->mode == LIVE_CAMERA) ? 1 : 0, (const int *) &in_data->exit_signal);
@@ -638,16 +628,16 @@ u32 video_decoder_thread(void *params)
 		}
 
 		if (video_input_file[source_number]->mode == LIVE_MEDIA) {
-			gettimeofday(&time_end, NULL);
+			gf_gettimeofday(&time_end, NULL);
 			pick_packet_delay = ((time_end.tv_sec - time_start.tv_sec) * 1000000) + time_end.tv_usec - time_start.tv_usec;
 			time_wait.tv_sec = 0;
 			real_wait = total_wait_time - pick_packet_delay - select_delay - other_delays;
 			time_wait.tv_usec = real_wait;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("delay: %ld = %ld - %ld\n", time_wait.tv_usec, total_wait_time, pick_packet_delay));
 
-			gettimeofday(&time_start, NULL);
+			gf_gettimeofday(&time_start, NULL);
 			select(0, NULL, NULL, NULL, &time_wait);
-			gettimeofday(&time_end, NULL);
+			gf_gettimeofday(&time_end, NULL);
 
 			select_delay = (((time_end.tv_sec - time_start.tv_sec) * 1000000) + time_end.tv_usec - time_start.tv_usec) - real_wait;
 		}
@@ -688,7 +678,7 @@ u32 audio_decoder_thread(void *params)
 
 	while (1) {
 		if (audio_input_file->mode == LIVE_MEDIA) {
-			gettimeofday(&time_start, NULL);
+			gf_gettimeofday(&time_start, NULL);
 		}
 
 		ret = dc_audio_decoder_read(audio_input_file, audio_input_data);
@@ -711,15 +701,15 @@ u32 audio_decoder_thread(void *params)
 		}
 
 		if (audio_input_file->mode == LIVE_MEDIA) {
-			gettimeofday(&time_end, NULL);
+			gf_gettimeofday(&time_end, NULL);
 			pick_packet_delay = ((time_end.tv_sec - time_start.tv_sec) * 1000000) + time_end.tv_usec - time_start.tv_usec;
 			time_wait.tv_sec = 0;
 			real_wait = total_wait_time - pick_packet_delay - select_delay - other_delays;
 			time_wait.tv_usec = real_wait;
 
-			gettimeofday(&time_start, NULL);
+			gf_gettimeofday(&time_start, NULL);
 			select(0, NULL, NULL, NULL, &time_wait);
-			gettimeofday(&time_end, NULL);
+			gf_gettimeofday(&time_end, NULL);
 
 			select_delay = (((time_end.tv_sec - time_start.tv_sec) * 1000000) + time_end.tv_usec - time_start.tv_usec) - real_wait;
 		}

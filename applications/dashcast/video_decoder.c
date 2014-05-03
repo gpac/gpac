@@ -203,12 +203,12 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 	/* Read frames */
 	while (1) {
 #ifdef DASHCAST_DEBUG_TIME_
-		gettimeofday(&start, NULL);
+		gf_gettimeofday(&start, NULL);
 #endif
 		memset(&packet, 0, sizeof(AVPacket));
 		ret = av_read_frame(video_input_file->av_fmt_ctx, &packet);
 #ifdef DASHCAST_DEBUG_TIME_
-		gettimeofday(&end, NULL);
+		gf_gettimeofday(&end, NULL);
 		elapsed_time = (end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec);
 		fprintf(stdout, "fps: %f\n", 1000000.0/elapsed_time);
 #endif

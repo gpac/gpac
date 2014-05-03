@@ -2139,6 +2139,11 @@ void gf_fm_request_call(u32 type, u32 param, int *value) {
 
 #endif //GPAC_ANDROID
 
+GF_EXPORT
+s32 gf_gettimeofday(struct timeval *tp, void *tz) {
+	return gettimeofday(tp, tz);
+}
+
 /*
 		NTP tools
 */
