@@ -66,8 +66,9 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 {
 	video_output_file->vbuf_size = 9 * video_data_conf->width * video_data_conf->height + 10000;
 	video_output_file->vbuf = (uint8_t *) av_malloc(video_output_file->vbuf_size);
+	video_output_file->video_data_conf = video_data_conf;
 
-//	video_output_file->codec = avcodec_find_encoder_by_name("libx264"/*video_data_conf->codec*/);
+//TODO: video_output_file->codec = avcodec_find_encoder_by_name("libx264"/*video_data_conf->codec*/);
 	video_output_file->codec = avcodec_find_encoder(CODEC_ID_H264);
 	if (video_output_file->codec == NULL) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Output video codec %d not found\n", CODEC_ID_H264));
@@ -94,7 +95,7 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 
 	video_output_file->use_source_timing = use_source_timing;
 	if (use_source_timing) {
-		//for avcodec to do rate allcoation, we need to have ctx->timebase == 1/framerate
+		//for avcodec to do rate allocation, we need to have ctx->timebase == 1/framerate
 		video_output_file->codec_ctx->time_base.den = video_data_conf->time_base.den;
 		video_output_file->codec_ctx->time_base.num = video_data_conf->time_base.num * video_data_conf->time_base.den / video_data_conf->framerate;
 	}
@@ -153,12 +154,8 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 		av_opt_set_int(video_output_file->codec_ctx->priv_data, "key-int", video_output_file->gdr, 0);
 	}
 
-//	if (video_output_file->av_fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)
 	//the global header gives access to the extradata (SPS/PPS)
 	video_output_file->codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
-
-//	if (video_output_file->av_fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)
-//		video_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
 	video_output_file->vstream_idx = 0;//video_stream->index;
 
@@ -167,12 +164,6 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video codec\n"));
 		return -1;
 	}
-
-//	/* open the video codec */
-//	if (avcodec_open2(video_stream->codec, video_codec, NULL) < 0) {
-//		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video codec\n"));
-//		return -1;
-//	}
 
 	video_output_file->rep_id = video_data_conf->filename;
 	return 0;
@@ -216,12 +207,19 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 		pkt.data = video_output_file->vbuf;
 		pkt.size = video_output_file->vbuf_size;
 		pkt.pts = pkt.dts = video_data_node->vframe->pkt_dts = video_data_node->vframe->pkt_pts = video_data_node->vframe->pts;
-
+#ifdef LIBAV_ENCODE_OLD
+		video_output_file->encoded_frame_size = avcodec_encode_video(video_codec_ctx, video_output_file->vbuf, video_output_file->vbuf_size, video_data_node->vframe);
+		got_packet = video_output_file->encoded_frame_size>=0 ? 1 : 0;
+#else
 		video_output_file->encoded_frame_size = avcodec_encode_video2(video_codec_ctx, &pkt, video_data_node->vframe, &got_packet);
+#endif
 
 		//this is not true with libav !
 #ifndef GPAC_USE_LIBAV
 		if (video_output_file->encoded_frame_size >= 0)
+			video_output_file->encoded_frame_size = pkt.size;
+#else
+		if (got_packet)
 			video_output_file->encoded_frame_size = pkt.size;
 #endif
 		if (video_output_file->encoded_frame_size >= 0) {
