@@ -1883,6 +1883,8 @@
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*to be removed once TS fragmenter is moved to libgpac */
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_mpd_format_segment_name) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_get_rfc_6381_codec_name) )
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_fragment_file) )
 #endif
