@@ -98,17 +98,61 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 		avformat_close_input(&audio_input_file->av_fmt_ctx);
 		return -1;
 	}
-	
+
 #ifdef DC_AUDIO_RESAMPLER
 	audio_input_file->aresampler = NULL;
 #endif
 	audio_input_file->fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
-	
+
 	audio_data_conf->channels = codec_ctx->channels;
 	audio_data_conf->samplerate = codec_ctx->sample_rate;
 
 	audio_input_file->mode = mode;
 	audio_input_file->no_loop = no_loop;
+
+	return 0;
+}
+
+static int ensure_resampler(AudioInputFile *audio_input_file, int sample_rate, int num_channels, u64 channel_layout, enum AVSampleFormat sample_format)
+{
+	if (!audio_input_file->aresampler) {
+		audio_input_file->aresampler = avresample_alloc_context();
+		if (!audio_input_file->aresampler) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot allocate the audio resampler. Aborting.\n"));
+			return -1;
+		}
+		av_opt_set_int(audio_input_file->aresampler, "in_channel_layout", channel_layout, 0);
+		av_opt_set_int(audio_input_file->aresampler, "out_channel_layout", DC_AUDIO_CHANNEL_LAYOUT, 0);
+		av_opt_set_int(audio_input_file->aresampler, "in_sample_fmt", sample_format, 0);
+		av_opt_set_int(audio_input_file->aresampler, "out_sample_fmt", DC_AUDIO_SAMPLE_FORMAT, 0);
+		av_opt_set_int(audio_input_file->aresampler, "in_sample_rate", sample_rate, 0);
+		av_opt_set_int(audio_input_file->aresampler, "out_sample_rate", DC_AUDIO_SAMPLE_RATE, 0);
+		av_opt_set_int(audio_input_file->aresampler, "in_channels", num_channels, 0);
+		av_opt_set_int(audio_input_file->aresampler, "out_channels", DC_AUDIO_NUM_CHANNELS, 0);
+
+		if (avresample_open(audio_input_file->aresampler)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not open the audio resampler. Aborting.\n"));
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+//resample - see http://ffmpeg.org/pipermail/libav-user/2012-June/002164.html
+static int resample_audio(AudioInputFile *audio_input_file, AudioInputData *audio_input_data, AVCodecContext *audio_codec_ctx, uint8_t ***output, int *num_planes_out, int num_channels, enum AVSampleFormat sample_format)
+{
+	int i;
+	*num_planes_out = av_sample_fmt_is_planar(DC_AUDIO_SAMPLE_FORMAT) ? DC_AUDIO_NUM_CHANNELS : 1;
+	*output = (uint8_t**)av_malloc(*num_planes_out*sizeof(uint8_t*));
+	for (i=0; i<*num_planes_out; i++) {
+		*output[i] = (uint8_t*)av_malloc(DC_AUDIO_MAX_CHUNCK_SIZE); //FIXME: fix using size below av_samples_get_buffer_size()
+	}
+
+	if (avresample_convert(audio_input_file->aresampler, *output, DC_AUDIO_MAX_CHUNCK_SIZE, audio_input_data->aframe->nb_samples, audio_input_data->aframe->extended_data, audio_input_data->aframe->linesize[0], audio_input_data->aframe->nb_samples) < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not resample audio frame. Aborting.\n"));
+		return -1;
+	}
 
 	return 0;
 }
@@ -218,9 +262,9 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 #endif
 				enum AVSampleFormat sample_format = (enum AVSampleFormat)audio_input_data->aframe->format;
 				Bool resample = (sample_rate    != DC_AUDIO_SAMPLE_RATE
-											|| num_channels   != DC_AUDIO_NUM_CHANNELS
-											|| channel_layout != DC_AUDIO_CHANNEL_LAYOUT
-											|| sample_format  != DC_AUDIO_SAMPLE_FORMAT);
+				                 || num_channels   != DC_AUDIO_NUM_CHANNELS
+				                 || channel_layout != DC_AUDIO_CHANNEL_LAYOUT
+				                 || sample_format  != DC_AUDIO_SAMPLE_FORMAT);
 
 				/* Resample if needed */
 				if (resample) {
@@ -228,42 +272,14 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Audio resampling is needed at the decoding stage, but not supported by your version of DashCast. Aborting.\n"));
 					exit(1);
 #else
-					if (!audio_input_file->aresampler) {
-						audio_input_file->aresampler = avresample_alloc_context();
-						if (!audio_input_file->aresampler) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot allocate the audio resampler. Aborting.\n"));
-							return -1;
-						}
-						av_opt_set_int(audio_input_file->aresampler, "in_channel_layout", channel_layout, 0);
-						av_opt_set_int(audio_input_file->aresampler, "out_channel_layout", DC_AUDIO_CHANNEL_LAYOUT, 0);
-						av_opt_set_int(audio_input_file->aresampler, "in_sample_fmt", sample_format, 0);
-						av_opt_set_int(audio_input_file->aresampler, "out_sample_fmt", DC_AUDIO_SAMPLE_FORMAT, 0);
-						av_opt_set_int(audio_input_file->aresampler, "in_sample_rate", sample_rate, 0);
-						av_opt_set_int(audio_input_file->aresampler, "out_sample_rate", DC_AUDIO_SAMPLE_RATE, 0);
-						av_opt_set_int(audio_input_file->aresampler, "in_channels", num_channels, 0);
-						av_opt_set_int(audio_input_file->aresampler, "out_channels", DC_AUDIO_NUM_CHANNELS, 0);
-
-						if (avresample_open(audio_input_file->aresampler)) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not open the audio resampler. Aborting.\n"));
-							return -1;
-						}
+					uint8_t **output;
+					if (ensure_resampler(audio_input_file, sample_rate, num_channels, channel_layout, sample_format)) {
+						return -1;
 					}
 
-					//resample - see http://ffmpeg.org/pipermail/libav-user/2012-June/002164.html
-					{
-						int i;
-						uint8_t **output;
-						num_planes_out = av_sample_fmt_is_planar(DC_AUDIO_SAMPLE_FORMAT) ? DC_AUDIO_NUM_CHANNELS : 1;
-						output = (uint8_t**)av_malloc(num_planes_out*sizeof(uint8_t*));
-						for (i=0; i<num_planes_out; i++) {
-							output[i] = (uint8_t*)av_malloc(DC_AUDIO_MAX_CHUNCK_SIZE); //FIXME: fix using size below av_samples_get_buffer_size()
-						}
-						
-						if (avresample_convert(audio_input_file->aresampler, output, DC_AUDIO_MAX_CHUNCK_SIZE, audio_input_data->aframe->nb_samples, audio_input_data->aframe->extended_data, audio_input_data->aframe->linesize[0], audio_input_data->aframe->nb_samples) < 0) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not resample audio frame. Aborting.\n"));
-							return -1;
-						}
-
+					if (resample_audio(audio_input_file, audio_input_data, codec_ctx, &output, &num_planes_out, num_channels, sample_format)) {
+						return -1;
+					} else {
 						data = output;
 						av_samples_get_buffer_size(&data_size, num_channels, audio_input_data->aframe->nb_samples, sample_format, 0);
 					}
@@ -276,7 +292,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 
 				assert(!av_sample_fmt_is_planar(DC_AUDIO_SAMPLE_FORMAT));
 				av_fifo_generic_write(audio_input_file->fifo, data[0], data_size, NULL);
-				
+
 				if (/*audio_input_file->circular_buf.mode == OFFLINE*/audio_input_file->mode == ON_DEMAND || audio_input_file->mode == LIVE_MEDIA) {
 					dc_producer_lock(&audio_input_data->producer, &audio_input_data->circular_buf);
 
