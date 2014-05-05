@@ -157,6 +157,7 @@ int dc_audio_encoder_flush(AudioOutputFile *audio_output_file, AudioInputData *a
 }
 #endif
 
+#ifdef DC_AUDIO_RESAMPLER
 static int ensure_resampler(AudioOutputFile *audio_output_file, AVCodecContext *audio_codec_ctx)
 {
 	if (!audio_output_file->aresampler) {
@@ -209,6 +210,7 @@ static int resample_audio(AudioOutputFile *audio_output_file, AVCodecContext *au
 
 	return 0;
 }
+#endif
 
 int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *audio_input_data)
 {
@@ -216,8 +218,10 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 	AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
 
 	while (av_fifo_size(audio_output_file->fifo) >= audio_output_file->frame_bytes) {
+#ifdef DC_AUDIO_RESAMPLER
 		uint8_t **data; //mirror AVFRame::data
 		int num_planes_out;
+#endif
 		Bool resample;
 
 		av_fifo_generic_read(audio_output_file->fifo, audio_output_file->adata_buf, audio_output_file->frame_bytes, NULL);
@@ -270,6 +274,7 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 		/* Encode audio */
 		if (avcodec_encode_audio2(audio_codec_ctx, &audio_output_file->packet, audio_output_file->aframe, &got_pkt) != 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while encoding audio.\n"));
+#ifdef DC_AUDIO_RESAMPLER
 			if (resample) {
 				int i;
 				for (i=0; i<num_planes_out; ++i) {
@@ -278,9 +283,11 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 				av_free(audio_output_file->aframe->extended_data);
 				audio_output_file->aframe->extended_data = data;
 			}
+#endif
 			return -1;
 		}
-
+		
+#ifdef DC_AUDIO_RESAMPLER
 		if (resample) {
 			int i;
 			for (i=0; i<num_planes_out; ++i) {
@@ -289,6 +296,7 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 			av_free(audio_output_file->aframe->extended_data);
 			audio_output_file->aframe->extended_data = data;
 		}
+#endif
 
 		if (got_pkt) {
 			//audio_output_file->acc_samples += audio_output_file->aframe->nb_samples;

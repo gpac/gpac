@@ -113,6 +113,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 	return 0;
 }
 
+#ifdef DC_AUDIO_RESAMPLER
 static int ensure_resampler(AudioInputFile *audio_input_file, int sample_rate, int num_channels, u64 channel_layout, enum AVSampleFormat sample_format)
 {
 	if (!audio_input_file->aresampler) {
@@ -156,6 +157,7 @@ static int resample_audio(AudioInputFile *audio_input_file, AudioInputData *audi
 
 	return 0;
 }
+#endif
 
 int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audio_input_data)
 {
@@ -250,7 +252,10 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 			/* Did we get an audio frame? */
 			if (got_frame) {
 				uint8_t **data;
-				int data_size, num_planes_out;
+				int data_size;
+#ifdef DC_AUDIO_RESAMPLER
+				int num_planes_out;
+#endif
 #ifdef GPAC_USE_LIBAV
 				int sample_rate = codec_ctx->sample_rate;
 				int num_channels = codec_ctx->channels;
@@ -329,7 +334,8 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 						dc_producer_advance(&audio_input_data->producer, &audio_input_data->circular_buf);
 					}
 				}
-
+				
+#ifdef DC_AUDIO_RESAMPLER
 				if (resample) {
 					int i;
 					for (i=0; i<num_planes_out; ++i) {
@@ -337,6 +343,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 					}
 					av_free(data);
 				}
+#endif
 
 				return 0;
 			}

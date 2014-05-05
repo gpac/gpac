@@ -60,7 +60,9 @@ VideoScaledDataNode * dc_video_scaler_node_create(int width, int height, int cro
 
 void dc_video_scaler_node_destroy(VideoScaledDataNode *video_scaled_data_node)
 {
+#ifndef GPAC_USE_LIBAV
 	av_frame_free(&video_scaled_data_node->v_frame);
+#endif
 	gf_free(video_scaled_data_node);
 }
 
