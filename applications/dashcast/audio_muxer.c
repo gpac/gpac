@@ -70,6 +70,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 	ret = gf_m4a_write_config(&acfg, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 	assert(ret == GF_OK);
 #endif
+
 	//gf_isom_store_movie_config(video_output_file->isof, 0);
 	track = gf_isom_new_track(audio_output_file->isof, esd->ESID, GF_ISOM_MEDIA_AUDIO, audio_codec_ctx->sample_rate);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("TimeScale: %d \n", audio_codec_ctx->time_base.den));
@@ -106,11 +107,11 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	ret = gf_isom_set_pl_indication(audio_output_file->isof, GF_ISOM_PL_AUDIO, acfg.audioPL);
-#endif
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_set_pl_indication\n", gf_error_to_string(ret)));
 		return -1;
 	}
+#endif
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("time scale: %d  sample dur: %d \n", audio_codec_ctx->time_base.den, audio_output_file->codec_ctx->frame_size));
 

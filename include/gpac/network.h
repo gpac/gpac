@@ -137,6 +137,11 @@ Bool gf_url_remove_last_delimiter(const char *sURL, char *res_path);
 const char* gf_url_get_ressource_extension(const char *sURL);
 
 /*!
+ *\brief Portable version of UNIX gettimeofday()
+ */
+s32 gf_gettimeofday(struct timeval *tp, void *tz);
+
+/*!
  *\brief gets UTC time
  *
  *Gets UTC time since midnight Jan 1970
