@@ -51,7 +51,7 @@ typedef enum {
  * available in Consumer data structure.
  */
 typedef struct {
-	//VideoDataConf *video_data_conf;
+	VideoDataConf *video_data_conf;
 	VideoMuxerType muxer_type;
 
 	/* file format context structure */

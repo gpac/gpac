@@ -234,7 +234,7 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 			fprintf(f, "   <Representation id=\"%s\" mimeType=\"video/mp4\" codecs=\"%s\" "
 			        "width=\"%d\" height=\"%d\" frameRate=\"%d\" sar=\"1:1\" startWithSAP=\"1\" bandwidth=\"%d\">\n"
 			        "   </Representation>\n", video_data_conf->filename,
-			        VIDEO_MUXER == GPAC_INIT_VIDEO_MUXER_AVC1 ? "avc1.42e01e" : "avc3", //FIXME: hardcoded. We would need acces to the ISOFile to call gf_media_get_rfc_6381_codec_name()
+			        VIDEO_MUXER == GPAC_INIT_VIDEO_MUXER_AVC1 ? video_data_conf->codec6381 : "avc3",
 			        video_data_conf->width, video_data_conf->height, video_data_conf->framerate,
 			        video_data_conf->bitrate);
 		}

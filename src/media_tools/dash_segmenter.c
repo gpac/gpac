@@ -272,6 +272,7 @@ GF_Err gf_dasher_store_segment_info(GF_DASHSegmenterOptions *dash_cfg, const cha
 
 #ifndef GPAC_DISABLE_ISOM
 
+GF_EXPORT
 GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec)
 {
 	GF_ESD *esd;
