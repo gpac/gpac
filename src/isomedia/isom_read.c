@@ -3280,7 +3280,7 @@ Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 	for (i=0; i<count; i++) {
 		GF_DefaultSampleGroupDescriptionEntry *entry;
 		GF_SampleGroupDescriptionBox *sgdesc = gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
-		if (sgdesc->grouping_type != grouping_type) 
+		if (sgdesc->grouping_type != grouping_type)
 			continue;
 
 		if (sgdesc->default_description_index && !sample_description_index) sample_description_index = sgdesc->default_description_index;
@@ -3627,8 +3627,8 @@ Bool gf_isom_get_tile_info(GF_ISOFile *file, u32 trackNumber, u32 sample_descrip
 {
 	const char *data;
 	u32 size;
-	
-	if (!gf_isom_get_sample_group_info(file, trackNumber, sample_description_index, GF_4CC('t','r','i','f'), default_sample_group_index, &data, &size)) 
+
+	if (!gf_isom_get_sample_group_info(file, trackNumber, sample_description_index, GF_4CC('t','r','i','f'), default_sample_group_index, &data, &size))
 		return 0;
 	gf_isom_parse_trif_info(data, size, id, independent, full_frame, x, y, w, h);
 	return 1;

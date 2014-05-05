@@ -458,8 +458,8 @@ void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 			//that was supposed to come in earlier (with earlier NTP)
 			//Double safety_offset, time = ch->rtp_ch->last_SR_rtp_time;
 			//time /= ch->rtp_ch->TimeScale;
-			//safety_offset = time/2;			
-			ch->owner->last_ntp = ntp_clock;	
+			//safety_offset = time/2;
+			ch->owner->last_ntp = ntp_clock;
 		}
 
 		if (ntp_clock >= ch->owner->last_ntp) {

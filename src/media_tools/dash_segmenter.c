@@ -3562,7 +3562,7 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 
 			di->idx_representations = rep_idx;
 			rep_idx ++;
-		
+
 			if (gf_isom_get_reference_count(file, di->trackNum, GF_ISOM_REF_TBAS)) {
 				u32 default_sample_group_index, id, independent;
 				Bool full_frame;

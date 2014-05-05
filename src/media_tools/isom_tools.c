@@ -2285,64 +2285,64 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 
 static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile_width, u32 *tile_height)
 {
-    HEVCSliceInfo *si = &hevc->s_info;
-    u32 i, tbX, tbY, PicWidthInCtbsY, PicHeightInCtbsY, tileX, tileY, oX, oY, val;
-    PicWidthInCtbsY = si->sps->width / si->sps->max_CU_width;
-    PicHeightInCtbsY = si->sps->height / si->sps->max_CU_width;
+	HEVCSliceInfo *si = &hevc->s_info;
+	u32 i, tbX, tbY, PicWidthInCtbsY, PicHeightInCtbsY, tileX, tileY, oX, oY, val;
+	PicWidthInCtbsY = si->sps->width / si->sps->max_CU_width;
+	PicHeightInCtbsY = si->sps->height / si->sps->max_CU_width;
 
-    tbX = si->slice_segment_address % PicWidthInCtbsY;
-    tbY = si->slice_segment_address / PicWidthInCtbsY;
-    
-    tileX = tileY = 0;
-    oX = oY = 0;
-    for (i=0; i<si->pps->num_tile_columns; i++) {
-        if (si->pps->uniform_spacing_flag) {
-            if (i<si->pps->num_tile_columns-1) {
-                val = (i+1)*PicWidthInCtbsY / si->pps->num_tile_columns - (i)*PicWidthInCtbsY / si->pps->num_tile_columns;
-            } else {
-                val = (i)*PicWidthInCtbsY / si->pps->num_tile_columns - (i-1)*PicWidthInCtbsY / si->pps->num_tile_columns;
-            }
-        } else {
-            if (i<si->pps->num_tile_columns-1) {
-                val = si->pps->column_width[i];
-            } else {
-                val = (PicWidthInCtbsY - si->pps->column_width[i-1]);
-            }
-        }
-        *tile_x = oX;
-        *tile_width = val;
-        
-        if (oX >= tbX) break;     
-        oX += val;
-        tileX++;
-    }
-    for (i=0; i<si->pps->num_tile_rows; i++) {
-        if (si->pps->uniform_spacing_flag) {
-            if (i<si->pps->num_tile_rows-1) {
-                val = (i+1)*PicHeightInCtbsY / si->pps->num_tile_rows - (i)*PicHeightInCtbsY / si->pps->num_tile_rows;
-            } else {
-                val = (i)*PicHeightInCtbsY / si->pps->num_tile_rows - (i-1)*PicHeightInCtbsY / si->pps->num_tile_rows;
-            }
-        } else {
-            if (i<si->pps->num_tile_rows-1) {
-                val = si->pps->row_height[i];
-            } else {
-                val = (PicHeightInCtbsY - si->pps->row_height[i-1]);                    
-            }
-        }
-        *tile_y = oY;
-        *tile_height = val;
-        
-        if (oY >= tbY) break;     
-        oY += val;
-        tileY++;
-    }
-    *tile_x = *tile_x * si->sps->max_CU_width;
-    *tile_y = *tile_y * si->sps->max_CU_width;
-    *tile_width = *tile_width * si->sps->max_CU_width;
-    *tile_height = *tile_height * si->sps->max_CU_width;
-    
-    return tileX + tileY * si->pps->num_tile_columns;
+	tbX = si->slice_segment_address % PicWidthInCtbsY;
+	tbY = si->slice_segment_address / PicWidthInCtbsY;
+
+	tileX = tileY = 0;
+	oX = oY = 0;
+	for (i=0; i<si->pps->num_tile_columns; i++) {
+		if (si->pps->uniform_spacing_flag) {
+			if (i<si->pps->num_tile_columns-1) {
+				val = (i+1)*PicWidthInCtbsY / si->pps->num_tile_columns - (i)*PicWidthInCtbsY / si->pps->num_tile_columns;
+			} else {
+				val = (i)*PicWidthInCtbsY / si->pps->num_tile_columns - (i-1)*PicWidthInCtbsY / si->pps->num_tile_columns;
+			}
+		} else {
+			if (i<si->pps->num_tile_columns-1) {
+				val = si->pps->column_width[i];
+			} else {
+				val = (PicWidthInCtbsY - si->pps->column_width[i-1]);
+			}
+		}
+		*tile_x = oX;
+		*tile_width = val;
+
+		if (oX >= tbX) break;
+		oX += val;
+		tileX++;
+	}
+	for (i=0; i<si->pps->num_tile_rows; i++) {
+		if (si->pps->uniform_spacing_flag) {
+			if (i<si->pps->num_tile_rows-1) {
+				val = (i+1)*PicHeightInCtbsY / si->pps->num_tile_rows - (i)*PicHeightInCtbsY / si->pps->num_tile_rows;
+			} else {
+				val = (i)*PicHeightInCtbsY / si->pps->num_tile_rows - (i-1)*PicHeightInCtbsY / si->pps->num_tile_rows;
+			}
+		} else {
+			if (i<si->pps->num_tile_rows-1) {
+				val = si->pps->row_height[i];
+			} else {
+				val = (PicHeightInCtbsY - si->pps->row_height[i-1]);
+			}
+		}
+		*tile_y = oY;
+		*tile_height = val;
+
+		if (oY >= tbY) break;
+		oY += val;
+		tileY++;
+	}
+	*tile_x = *tile_x * si->sps->max_CU_width;
+	*tile_y = *tile_y * si->sps->max_CU_width;
+	*tile_width = *tile_width * si->sps->max_CU_width;
+	*tile_height = *tile_height * si->sps->max_CU_width;
+
+	return tileX + tileY * si->pps->num_tile_columns;
 }
 
 typedef struct
@@ -2361,7 +2361,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 #else
 	u32 i, j, cur_tile, count, stype, track, nb_tracks, di, nalu_size_length, tx, ty, tw, th;
 	s32 pps_idx=-1, ret;
-    u8 trefidx;
+	u8 trefidx;
 	GF_Err e;
 	HEVCState hevc;
 	HEVCTileImport *tiles;
@@ -2389,20 +2389,20 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 	count = gf_list_count(hvcc->param_array);
 	for (i=0; i<count; i++) {
 		GF_HEVCParamArray *ar = gf_list_get(hvcc->param_array, i);
-        for (j=0; j < gf_list_count(ar->nalus); j++) {
-            GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
-            if (!sl) continue;
-            switch (ar->type) {
-            case GF_HEVC_NALU_PIC_PARAM:
-                pps_idx = gf_media_hevc_read_pps(sl->data, sl->size, &hevc);
-                break;
-            case GF_HEVC_NALU_SEQ_PARAM:
-                pps_idx = gf_media_hevc_read_sps(sl->data, sl->size, &hevc);
-                break;
-            case GF_HEVC_NALU_VID_PARAM:
-                pps_idx = gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
-                break;
-            }
+		for (j=0; j < gf_list_count(ar->nalus); j++) {
+			GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
+			if (!sl) continue;
+			switch (ar->type) {
+			case GF_HEVC_NALU_PIC_PARAM:
+				pps_idx = gf_media_hevc_read_pps(sl->data, sl->size, &hevc);
+				break;
+			case GF_HEVC_NALU_SEQ_PARAM:
+				pps_idx = gf_media_hevc_read_sps(sl->data, sl->size, &hevc);
+				break;
+			case GF_HEVC_NALU_VID_PARAM:
+				pps_idx = gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
+				break;
+			}
 		}
 	}
 	gf_odf_hevc_cfg_del(hvcc);
@@ -2414,14 +2414,14 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 	tiles = gf_malloc(sizeof(HEVCTileImport) * nb_tracks);
 
 	//first clone tracks
-    for (i=0; i<nb_tracks; i++) {
+	for (i=0; i<nb_tracks; i++) {
 		e = gf_isom_clone_track(file, track, file, 0, &tiles[i].track );
 		if (e) goto err_exit;
-        tiles[i].track_id = gf_isom_get_track_id(file, tiles[i].track);
+		tiles[i].track_id = gf_isom_get_track_id(file, tiles[i].track);
 		gf_isom_hevc_set_tile_config(file, tiles[i].track, 1, NULL);
 	}
 	//then setup track references (done in two pass otherwise we would clone the tref box ...)
-    for (i=0; i<nb_tracks; i++) {
+	for (i=0; i<nb_tracks; i++) {
 		gf_isom_set_track_reference(file, tiles[i].track, GF_ISOM_REF_TBAS, gf_isom_get_track_id(file, track) );
 		gf_isom_set_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[i].track_id) ;
 	}
@@ -2440,27 +2440,27 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 		sample->dataLength = 0;
 
 		for (j=0; j<nb_tracks; j++) {
-            tiles[j].data_offset = 0;
+			tiles[j].data_offset = 0;
 			tiles[j].sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-            tiles[j].data_offset = 0;
+			tiles[j].data_offset = 0;
 		}
 
 		sample->data = (char *) data;
 		cur_tile = 0;
 
 		while (size) {
-            u8 temporal_id, layer_id;
+			u8 temporal_id, layer_id;
 			u8 nal_type = 0;
 			u32 nalu_size = 0;
 			for (j=0; j<nalu_size_length; j++) {
 				nalu_size = (nalu_size<<8) + data[j];
 			}
-            src_bs = gf_bs_new((const char *) data + nalu_size_length, nalu_size, GF_BITSTREAM_READ);          
-            ret = gf_media_hevc_parse_nalu(src_bs, &hevc, &nal_type, &temporal_id, &layer_id);
-            gf_bs_del(src_bs);
-		//error parsing NAL, set nal to fallback to regular import
-		if (ret<0) nal_type = GF_HEVC_NALU_VID_PARAM;
-            
+			src_bs = gf_bs_new((const char *) data + nalu_size_length, nalu_size, GF_BITSTREAM_READ);
+			ret = gf_media_hevc_parse_nalu(src_bs, &hevc, &nal_type, &temporal_id, &layer_id);
+			gf_bs_del(src_bs);
+			//error parsing NAL, set nal to fallback to regular import
+			if (ret<0) nal_type = GF_HEVC_NALU_VID_PARAM;
+
 			switch (nal_type) {
 			case GF_HEVC_NALU_SLICE_TRAIL_N:
 			case GF_HEVC_NALU_SLICE_TRAIL_R:
@@ -2476,37 +2476,37 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 			case GF_HEVC_NALU_SLICE_CRA:
 			case GF_HEVC_NALU_SLICE_RADL_R:
 			case GF_HEVC_NALU_SLICE_RASL_R:
-                cur_tile = hevc_get_tile_id(&hevc, &tx, &ty, &tw, &th);
-                if (cur_tile>=nb_tracks) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC Tiles] Tile index %d is greater than number of tiles %d in PPS\n", cur_tile, nb_tracks));                        
-                    e = GF_NON_COMPLIANT_BITSTREAM;
-                } else {
-                    gf_bs_write_data(tiles[cur_tile].sample_data, (char *) data, nalu_size + nalu_size_length);
-                    tiles[cur_tile].tx = tx;
-                    tiles[cur_tile].ty = ty;
-                    tiles[cur_tile].tw = tw;
-                    tiles[cur_tile].th = th;
-                }
+				cur_tile = hevc_get_tile_id(&hevc, &tx, &ty, &tw, &th);
+				if (cur_tile>=nb_tracks) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC Tiles] Tile index %d is greater than number of tiles %d in PPS\n", cur_tile, nb_tracks));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+				} else {
+					gf_bs_write_data(tiles[cur_tile].sample_data, (char *) data, nalu_size + nalu_size_length);
+					tiles[cur_tile].tx = tx;
+					tiles[cur_tile].ty = ty;
+					tiles[cur_tile].tw = tw;
+					tiles[cur_tile].th = th;
+				}
 				if (e)
 					goto err_exit;
-                    
-                //write extractor (12 = 2*nalu_size_length + 4 bytes)
-                gf_bs_write_int(bs, 2*nalu_size_length + 4, 8*nalu_size_length);
-                gf_bs_write_int(bs, 0, 1);
-                gf_bs_write_int(bs, 49, 6); //extractor
-                gf_bs_write_int(bs, layer_id, 6);
-                gf_bs_write_int(bs, temporal_id, 3);
-                //set ref track index
-                trefidx = (u8) gf_isom_has_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[cur_tile].track_id);
-                gf_bs_write_int(bs, trefidx, 8);
-                // no sample offset
-                gf_bs_write_int(bs, 0, 8);
-                // data offset: we start from last NAL written in this sample in this tile track
-                gf_bs_write_int(bs, tiles[cur_tile].data_offset, 8*nalu_size_length);
-                gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
-                tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
 
-                break;
+				//write extractor (12 = 2*nalu_size_length + 4 bytes)
+				gf_bs_write_int(bs, 2*nalu_size_length + 4, 8*nalu_size_length);
+				gf_bs_write_int(bs, 0, 1);
+				gf_bs_write_int(bs, 49, 6); //extractor
+				gf_bs_write_int(bs, layer_id, 6);
+				gf_bs_write_int(bs, temporal_id, 3);
+				//set ref track index
+				trefidx = (u8) gf_isom_has_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[cur_tile].track_id);
+				gf_bs_write_int(bs, trefidx, 8);
+				// no sample offset
+				gf_bs_write_int(bs, 0, 8);
+				// data offset: we start from last NAL written in this sample in this tile track
+				gf_bs_write_int(bs, tiles[cur_tile].data_offset, 8*nalu_size_length);
+				gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
+				tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
+
+				break;
 			default:
 				gf_bs_write_data(bs, (char *) data, nalu_size + nalu_size_length);
 				break;
@@ -2540,7 +2540,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 	}
 
 
-    for (i=0; i<nb_tracks; i++) {
+	for (i=0; i<nb_tracks; i++) {
 		char data[11];
 		u32 width, height;
 		s32 translation_x, translation_y;
@@ -2559,8 +2559,8 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 		gf_isom_add_sample_group_info(file, tiles[i].track, GF_4CC('t','r','i','f'), data, 11, 1, &di);
 
 		gf_isom_set_visual_info(file, tiles[i].track, 1, tiles[i].tw, tiles[i].th);
-		
-		gf_isom_get_track_layout_info(file, track, &width, &height, &translation_x, &translation_y, &layer);	
+
+		gf_isom_get_track_layout_info(file, track, &width, &height, &translation_x, &translation_y, &layer);
 		gf_isom_set_track_layout_info(file, tiles[i].track, width<<16, height<<16, translation_x, translation_y, layer);
 	}
 

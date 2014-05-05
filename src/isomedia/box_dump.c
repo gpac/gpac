@@ -4187,7 +4187,7 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			if (!full_frame) fprintf(trace, " x=\"%d\" y=\"%d\"", x, y);
 			fprintf(trace, " w=\"%d\" h=\"%d\"/>\n", w, h);
 		}
-			break;
+		break;
 		default:
 			fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
 			DumpData(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
