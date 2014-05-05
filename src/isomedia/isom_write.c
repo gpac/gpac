@@ -1621,7 +1621,7 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 		}
 	}
 
-	//remove the track ref from any "tref" box in all tracks, except the one to delete 
+	//remove the track ref from any "tref" box in all tracks, except the one to delete
 	//note that we don't touch scal references, as we don't want to rewrite AVC/HEVC samples ...
 	i=0;
 	while ((trak = (GF_TrackBox *)gf_list_enum(movie->moov->trackList, &i))) {
@@ -4537,8 +4537,8 @@ GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, 
 	if (!trak) return GF_BAD_PARAM;
 
 	if (!trak->Media->information->sampleTable->sampleGroups)
-			trak->Media->information->sampleTable->sampleGroups = gf_list_new();
-	
+		trak->Media->information->sampleTable->sampleGroups = gf_list_new();
+
 	groupList = trak->Media->information->sampleTable->sampleGroups;
 	return gf_isom_add_sample_group_entry(groupList, sample_number, grouping_type, sampleGroupDescriptionIndex);
 }

@@ -101,7 +101,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 
 		Track_FindRef(mdia->mediaTrack, GF_4CC('s','c','a','l'), &dpnd);
 		ref_track_num = 0;
-		if (dpnd && (ref_track_index<=dpnd->trackIDCount)) 
+		if (dpnd && (ref_track_index<=dpnd->trackIDCount))
 			ref_track_num = gf_isom_get_track_by_id(file, dpnd->trackIDs[ref_track_index-1]);
 
 		if (!ref_track_num) {
@@ -435,7 +435,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 					if (a_track && a_track->Media && a_track->Media->information && a_track->Media->information->sampleTable && a_track->Media->information->sampleTable->SampleDescription)
 						an_entry = gf_list_get(a_track->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 
-					if (an_entry) 
+					if (an_entry)
 						nalu_merge_ps(ps_bs, rewrite_start_codes, nal_unit_size_field, an_entry, is_hevc);
 				}
 			}
@@ -1249,7 +1249,7 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 	return e;
 }
 
-enum 
+enum
 {
 	GF_ISOM_HVCC_UPDATE = 0,
 	GF_ISOM_HVCC_SET_INBAND,
