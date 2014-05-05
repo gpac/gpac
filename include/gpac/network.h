@@ -139,6 +139,7 @@ const char* gf_url_get_ressource_extension(const char *sURL);
 /*!
  *\brief Portable version of UNIX gettimeofday()
  */
+struct timeval;
 s32 gf_gettimeofday(struct timeval *tp, void *tz);
 
 /*!
