@@ -30,6 +30,10 @@
 
 #include "libavformat/avformat.h"
 #include "libavutil/fifo.h"
+#ifdef DC_AUDIO_RESAMPLER
+#include "libavutil/opt.h"
+#include "libavresample/avresample.h"
+#endif
 
 
 /*
@@ -48,9 +52,15 @@ typedef struct {
 	/* The index of the audio stream in the file. */
 	int astream_idx;
 
+	/* This is the output FIFO linking the decoder to the other encoder: only conveys
+	 * stereo 44100 (and resample if needed) */
 	AVFifoBuffer *fifo;
+#ifdef DC_AUDIO_RESAMPLER
+	/* Optional audio resampling between the decoder and the encoder */
+	AVAudioResampleContext *aresampler;
+#endif
 
-	int mode;
+	LockMode mode;
 	int no_loop;
 } AudioInputFile;
 

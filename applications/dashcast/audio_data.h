@@ -40,6 +40,14 @@
 
 #include <time.h>
 
+//we force the number of channels between the decoder and the encoder: interleaved 16 bits stereo 44100Hz
+#define DC_AUDIO_SAMPLE_RATE 44100
+#define DC_AUDIO_NUM_CHANNELS 2
+#define DC_AUDIO_CHANNEL_LAYOUT AV_CH_LAYOUT_STEREO
+#define DC_AUDIO_SAMPLE_FORMAT AV_SAMPLE_FMT_S16
+
+#define DC_AUDIO_MAX_CHUNCK_SIZE 192000
+
 
 /*
  * AudioInputData is designed to keep the data of input audio in a circular buffer.

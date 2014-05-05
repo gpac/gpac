@@ -82,8 +82,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	osize = av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt);
 	audio_output_file->frame_bytes = audio_output_file->codec_ctx->frame_size * osize * audio_output_file->codec_ctx->channels;
 	avcodec_get_frame_defaults(audio_output_file->aframe);
-	audio_output_file->aframe->nb_samples = audio_output_file->frame_bytes
-	                                        / (audio_output_file->codec_ctx->channels * av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt));
+	audio_output_file->aframe->nb_samples = audio_output_file->frame_bytes / (audio_output_file->codec_ctx->channels * av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt));
 
 	if (avcodec_fill_audio_frame(audio_output_file->aframe,
 	                             audio_output_file->codec_ctx->channels, audio_output_file->codec_ctx->sample_fmt,
@@ -120,8 +119,6 @@ int dc_audio_encoder_read(AudioOutputFile *audio_output_file, AudioInputData *au
 	audio_output_file->aframe->format = audio_data_node->format;
 
 	/* Write audio sample on fifo */
-//	av_fifo_generic_write(audio_output_file->fifo, audio_data_node->aframe->data[0],
-//			audio_data_node->aframe->linesize[0], NULL);
 	av_fifo_generic_write(audio_output_file->fifo, audio_data_node->abuf, audio_data_node->abuf_size, NULL);
 
 	dc_consumer_advance(&audio_output_file->consumer);
@@ -163,14 +160,13 @@ int dc_audio_encoder_flush(AudioOutputFile *audio_output_file, AudioInputData *a
 int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *audio_input_data)
 {
 	int got_pkt;
-#ifdef DC_AUDIO_RESAMPLER
-	int i;
-#endif
-	//AVStream *audio_stream = audio_output_file->av_fmt_ctx->streams[audio_output_file->astream_idx];
-	//AVCodecContext *audio_codec_ctx = audio_stream->codec;
 	AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
 
 	while (av_fifo_size(audio_output_file->fifo) >= audio_output_file->frame_bytes) {
+		uint8_t **data; //mirror AVFRame::data
+		int num_planes_out;
+		Bool resample;
+
 		av_fifo_generic_read(audio_output_file->fifo, audio_output_file->adata_buf, audio_output_file->frame_bytes, NULL);
 
 		audio_output_file->aframe->data[0] = audio_output_file->adata_buf;
@@ -196,15 +192,14 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 		//	audio_output_file->aframe->pts = av_rescale_q(now, avr, audio_codec_ctx->time_base);
 		//}
 
+		resample = (DC_AUDIO_SAMPLE_FORMAT != audio_codec_ctx->sample_fmt
+		     || DC_AUDIO_SAMPLE_RATE != audio_codec_ctx->sample_rate
+		     || DC_AUDIO_NUM_CHANNELS != audio_codec_ctx->channels
+		     || DC_AUDIO_CHANNEL_LAYOUT != audio_codec_ctx->channel_layout);
 		/* Resample if needed */
-		if ( audio_output_file->aframe->format != audio_codec_ctx->sample_fmt
-#ifndef GPAC_USE_LIBAV
-		        || audio_output_file->aframe->sample_rate != audio_codec_ctx->sample_rate
-		        || audio_output_file->aframe->channel_layout != audio_codec_ctx->channel_layout
-#endif
-		   ) {
+		if (resample) {
 #ifndef DC_AUDIO_RESAMPLER
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Audio resampling is needed, but not supported by your version of DashCast. Aborting.\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Audio resampling is needed at the encoding stage, but not supported by your version of DashCast. Aborting.\n"));
 			exit(1);
 #else
 			if (!audio_output_file->aresampler) {
@@ -213,13 +208,13 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot allocate the audio resampler. Aborting.\n"));
 					return -1;
 				}
-				av_opt_set_int(audio_output_file->aresampler, "in_channel_layout", audio_output_file->aframe->channel_layout, 0);
+				av_opt_set_int(audio_output_file->aresampler, "in_channel_layout", DC_AUDIO_CHANNEL_LAYOUT, 0);
 				av_opt_set_int(audio_output_file->aresampler, "out_channel_layout", audio_codec_ctx->channel_layout, 0);
-				av_opt_set_int(audio_output_file->aresampler, "in_sample_fmt", audio_output_file->aframe->format, 0);
+				av_opt_set_int(audio_output_file->aresampler, "in_sample_fmt", DC_AUDIO_SAMPLE_FORMAT, 0);
 				av_opt_set_int(audio_output_file->aresampler, "out_sample_fmt", audio_codec_ctx->sample_fmt, 0);
-				av_opt_set_int(audio_output_file->aresampler, "in_sample_rate", audio_output_file->aframe->sample_rate, 0);
+				av_opt_set_int(audio_output_file->aresampler, "in_sample_rate", DC_AUDIO_SAMPLE_RATE, 0);
 				av_opt_set_int(audio_output_file->aresampler, "out_sample_rate", audio_codec_ctx->sample_rate, 0);
-				av_opt_set_int(audio_output_file->aresampler, "in_channels", audio_output_file->aframe->channels, 0);
+				av_opt_set_int(audio_output_file->aresampler, "in_channels", DC_AUDIO_NUM_CHANNELS, 0);
 				av_opt_set_int(audio_output_file->aresampler, "out_channels", audio_codec_ctx->channels, 0);
 
 				if (avresample_open(audio_output_file->aresampler)) {
@@ -230,25 +225,27 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 
 			//resample - see http://ffmpeg.org/pipermail/libav-user/2012-June/002164.html
 			{
-				int num_planes = av_sample_fmt_is_planar(audio_codec_ctx->sample_fmt) ? 1 : audio_codec_ctx->channels;
-				uint8_t **output = (uint8_t**)av_malloc(num_planes*sizeof(uint8_t*));
-				for (i=0; i<num_planes; i++) {
-					output[i] = (uint8_t*)av_malloc(192000);
+				int i;
+				uint8_t **output;
+				num_planes_out = av_sample_fmt_is_planar(audio_codec_ctx->sample_fmt) ? audio_codec_ctx->channels : 1;
+				output = (uint8_t**)av_malloc(num_planes_out*sizeof(uint8_t*));
+				for (i=0; i<num_planes_out; i++) {
+					output[i] = (uint8_t*)av_malloc(DC_AUDIO_MAX_CHUNCK_SIZE);
 				}
-				if (avresample_convert(audio_output_file->aresampler, output, 192000, audio_output_file->aframe->nb_samples, audio_output_file->aframe->extended_data, audio_output_file->aframe->linesize[0], audio_output_file->aframe->nb_samples) < 0) {
+
+				if (avresample_convert(audio_output_file->aresampler, output, DC_AUDIO_MAX_CHUNCK_SIZE, audio_output_file->aframe->nb_samples, audio_output_file->aframe->extended_data, audio_output_file->aframe->linesize[0], audio_output_file->aframe->nb_samples) < 0) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not resample audio frame. Aborting.\n"));
 					return -1;
 				}
-				num_planes = av_sample_fmt_is_planar(audio_codec_ctx->sample_fmt) ? audio_codec_ctx->channels : 1;
-				for (i=0; i<num_planes; i++) {
-					av_free(audio_output_file->aframe->extended_data[i]);
-				}
-				av_free(audio_output_file->aframe->extended_data);
+
+				data = audio_output_file->aframe->extended_data;
 				audio_output_file->aframe->extended_data = output;
 				audio_codec_ctx->channel_layout = audio_output_file->aframe->channel_layout;
 				audio_codec_ctx->sample_fmt = audio_output_file->aframe->format;
 				audio_codec_ctx->sample_rate = audio_output_file->aframe->sample_rate;
+#ifndef GPAC_USE_LIBAV
 				audio_codec_ctx->channels = audio_output_file->aframe->channels;
+#endif
 			}
 #endif
 		}
@@ -256,7 +253,24 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 		/* Encode audio */
 		if (avcodec_encode_audio2(audio_codec_ctx, &audio_output_file->packet, audio_output_file->aframe, &got_pkt) != 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while encoding audio.\n"));
+			if (resample) {
+				int i;
+				for (i=0; i<num_planes_out; ++i) {
+					av_free(audio_output_file->aframe->extended_data[i]);
+				}
+				av_free(audio_output_file->aframe->extended_data);
+				audio_output_file->aframe->extended_data = data;
+			}
 			return -1;
+		}
+
+		if (resample) {
+			int i;
+			for (i=0; i<num_planes_out; ++i) {
+				av_free(audio_output_file->aframe->extended_data[i]);
+			}
+			av_free(audio_output_file->aframe->extended_data);
+			audio_output_file->aframe->extended_data = data;
 		}
 
 		if (got_pkt) {
@@ -287,4 +301,8 @@ void dc_audio_encoder_close(AudioOutputFile *audio_output_file)
 
 	avcodec_close(audio_output_file->codec_ctx);
 	av_free(audio_output_file->codec_ctx);
+
+#ifdef DC_AUDIO_RESAMPLER
+	avresample_free(&audio_output_file->aresampler);
+#endif
 }
