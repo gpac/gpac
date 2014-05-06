@@ -20,7 +20,7 @@ ifeq ($(GPACREADONLY), yes)
 CFLAGS+=-DGPAC_READ_ONLY
 endif
 
-ifeq ($(CONFIG_LIBAV),yes)
+ifneq ($(CONFIG_LIBAV),no)
 CFLAGS+=-DGPAC_USE_LIBAV
 endif
 
