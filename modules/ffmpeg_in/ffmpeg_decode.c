@@ -25,6 +25,7 @@
 
 #include "ffmpeg_in.h"
 #include <gpac/avparse.h>
+#include <libavcodec/avcodec.h>
 
 
 #if (LIBAVCODEC_VERSION_MAJOR >= 55) && (LIBAVCODEC_VERSION_MINOR >= 38)

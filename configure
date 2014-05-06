@@ -1299,7 +1299,9 @@ fi
 
 cat > $TMPC << EOF
 #include <libavcodec/avcodec.h>
-int main(void) {return 0;}
+int main(void) {
+    return 0;
+}
 EOF
 
 if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags $LDFLAGS 2> /dev/null  ; then
@@ -1307,7 +1309,7 @@ if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags $LDFLAGS 2> /dev/null  ; the
 else
     old_ffmpeg_inc="yes"
 
-    cat > $TMPC << EOF
+cat > $TMPC << EOF
 #include <ffmpeg/avcodec.h>
 int main(void) {
     AVFrame *f1, *f2;
@@ -1318,6 +1320,14 @@ int main(void) {
 EOF
 
 fi
+
+cat > $TMPC << EOF
+#include <libavcodec/avcodec.h>
+int main(void) {
+    CODEC_ID_H264;
+    return 0;
+}
+EOF
 
 if test "$cross_prefix" = "" ; then 
     if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib $ffmpeg_lflags $LDFLAGS 2> /dev/null  ; then
@@ -1344,12 +1354,29 @@ fi
 
 cat > $TMPC << EOF
 #include <libavutil/frame.h>
-int main(void) {return 0;}
+#include <libavcodec/codec.h>
+int main(void) {
+    CODEC_ID_H264;
+    return 0;
+}
 EOF
 if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags 2> /dev/null  ; then
-	is_libav="no"
+    is_libav="no"
 else
-	is_libav="yes"
+
+cat > $TMPC << EOF
+#include <libavcodec/codec.h>
+int main(void) {
+    CODEC_ID_H264;
+    return 0;
+}
+EOF
+
+    if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags 2> /dev/null  ; then
+        is_libav="yes"
+    else
+        is_libav="new"
+    fi
 fi
 
 
@@ -2887,7 +2914,6 @@ echo "DISABLE_DASHCAST=yes" >> config.mak
 else
     echo "ffmpeg_cflags=$ffmpeg_cflags" >> config.mak
     echo "ffmpeg_lflags=$ffmpeg_lflags" >> config.mak
-#    echo "DISABLE_DASHCAST=$is_libav" >> config.mak
     echo "CONFIG_LIBAV=$is_libav" >> config.mak
 fi
 echo "CONFIG_FFMPEG_OLD=$old_ffmpeg_inc" >> config.mak
