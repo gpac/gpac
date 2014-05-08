@@ -839,7 +839,7 @@ EOF
 				mozjs_pkgcfg="mozjs185"
 	    fi
 
-	    if test mozjs_pkgcfg != "no" ; then
+	    if test $mozjs_pkgcfg != "no" ; then
                 js_flags=`$pkg_config --cflags $mozjs_pkgcfg`
                 js_lib_pkg=`$pkg_config --libs $mozjs_pkgcfg`
                 if $cc -o $TMPO $TMPC $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
