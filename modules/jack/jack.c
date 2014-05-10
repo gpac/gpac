@@ -32,7 +32,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <poll.h>
 #include <strings.h>
 #include <jack/types.h>
 #include <jack/jack.h>
@@ -47,11 +46,11 @@ getPid ()
 	return getpid ();
 }
 #else
-// FIXME : get handle under WIN32 ?
+#include <windows.h>
 int
 getPid ()
 {
-	return 1979;
+	return GetCurrentProcessId();
 }
 #endif
 
@@ -123,7 +122,7 @@ Jack_cleanup (JackContext * ctx)
 	}
 	ctx->numChannels = 0;
 	ctx->currentBlockSize = 0;
-	bzero (ctx->jackClientName, MAX_JACK_CLIENT_NAME_SZ);
+	memset (ctx->jackClientName, 0, MAX_JACK_CLIENT_NAME_SZ);
 	ctx->jack = NULL;
 }
 
@@ -133,7 +132,7 @@ Jack_cleanup (JackContext * ctx)
 static int
 process_callback (jack_nframes_t nframes, void *arg)
 {
-	uint channel, i;
+	unsigned int channel, i;
 	short *tmpBuffer;
 	size_t toRead;
 	size_t bytesToRead;
