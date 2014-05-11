@@ -992,8 +992,8 @@ u32 audio_encoder_thread(void *params)
 		return -1;
 	}
 
-	frame_per_seg  = (int)((audio_data_conf->samplerate / (double) audio_output_file.frame_size) * (in_data->seg_dur  / 1000.0));
-	frame_per_frag = (int)((audio_data_conf->samplerate / (double) audio_output_file.frame_size) * (in_data->frag_dur / 1000.0));
+	frame_per_seg  = (int)((audio_data_conf->samplerate / (double) audio_output_file.codec_ctx->frame_size) * (in_data->seg_dur  / 1000.0));
+	frame_per_frag = (int)((audio_data_conf->samplerate / (double) audio_output_file.codec_ctx->frame_size) * (in_data->frag_dur / 1000.0));
 	optimize_seg_frag_dur(&frame_per_seg, &frame_per_frag);
 
 	if (dc_audio_muxer_init(&audio_output_file, audio_data_conf, muxer_type, frame_per_seg, frame_per_frag, in_data->seg_marker) < 0) {
@@ -1115,8 +1115,8 @@ u32 audio_encoder_thread(void *params)
 	// Send the duration of the video
 	if (in_data->mode == ON_DEMAND) {
 		if (thread_params->audio_conf_idx == 0) {
-			int dur = (seg_nb * audio_output_file.frame_size * frame_per_seg * 1000) / audio_data_conf->samplerate;
-			int dur_tot = (audio_output_file.codec_ctx->frame_number * audio_output_file.frame_size * 1000) / audio_data_conf->samplerate;
+			int dur = (seg_nb * audio_output_file.codec_ctx->frame_size * frame_per_seg * 1000) / audio_data_conf->samplerate;
+			int dur_tot = (audio_output_file.codec_ctx->frame_number * audio_output_file.codec_ctx->frame_size * 1000) / audio_data_conf->samplerate;
 			if (dur > dur_tot)
 				dur = dur_tot;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Duration: %d \n", dur));

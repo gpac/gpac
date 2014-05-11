@@ -104,9 +104,6 @@ typedef struct {
 	int first_dts;
 
 	u32 seg_marker;
-
-	int frame_size;
-
 } AudioOutputFile;
 
 int dc_audio_muxer_init(AudioOutputFile *audio_output_file, AudioDataConf *audio_data_conf, AudioMuxerType muxer_type, int frame_per_seg, int frame_per_frag, u32 seg_marker);

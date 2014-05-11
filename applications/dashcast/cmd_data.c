@@ -61,9 +61,9 @@ int dc_str_to_resolution(char *str, int *width, int *height)
 #define DEFAULT_VIDEO_HEIGHT     480
 #define DEFAULT_VIDEO_CODEC      "libx264"
 #define DEFAULT_AUDIO_BITRATE    192000
-#define DEFAULT_AUDIO_SAMPLERATE 48000
+#define DEFAULT_AUDIO_SAMPLERATE 44100
 #define DEFAULT_AUDIO_CHANNELS   2
-#define DEFAULT_AUDIO_CODEC      "mp2"
+#define DEFAULT_AUDIO_CODEC      "aac"
 
 
 static void dc_create_configuration(CmdData *cmd_data)
@@ -452,10 +452,10 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 #endif
 	    "    -vcustom string         send custom parameters directly to the audio encoder\n"
 	    "* Audio encoding options:\n"
-	    "    -acodec string          set the output audio codec (default: mp2)\n"
+	    "    -acodec string          set the output audio codec (default: aac)\n"
 #if 0 //TODO: bind to option and params - test first how it binds to current input parameters
 	    "    -ab int                 set the output audio bitrate in bits (default: 192000)\n"
-	    "    -as int                 set the sample rate (default: 48000)\n"
+	    "    -as int                 set the sample rate (default: 44100)\n"
 	    "    -ach int                set the number of output audio channels (default: 2)\n"
 #endif
 	    "    -acustom string         send custom parameters directly to the audio encoder\n"

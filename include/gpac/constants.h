@@ -299,7 +299,7 @@ enum
 	GPAC_OTI_AUDIO_AAC_MPEG2_MP = 0x66,
 	/*!OTI for MPEG-2 AAC Low Complexity Profile streams*/
 	GPAC_OTI_AUDIO_AAC_MPEG2_LCP = 0x67,
-	/*!OTI for MPEG-2 AAC Scaleable Sampling Rate Profile streams*/
+	/*!OTI for MPEG-2 AAC Scalable Sampling Rate Profile streams*/
 	GPAC_OTI_AUDIO_AAC_MPEG2_SSRP = 0x68,
 	/*!OTI for MPEG-2 Audio Part 3 streams*/
 	GPAC_OTI_AUDIO_MPEG2_PART3 = 0x69,

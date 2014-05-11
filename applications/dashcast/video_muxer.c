@@ -139,9 +139,6 @@ static GF_Err avc_import_ffextradata(const u8 *extradata, const u64 extradata_si
 int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename)
 {
 	GF_Err ret;
-	//AVStream *video_stream = video_output_file->av_fmt_ctx->streams[video_output_file->vstream_idx];
-	//AVCodecContext *video_codec_ctx = video_stream->codec;
-
 	AVCodecContext *video_codec_ctx = video_output_file->codec_ctx;
 	GF_AVCConfig *avccfg;
 	u32 di, track;
@@ -198,7 +195,6 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 	}
 
 	gf_odf_avc_cfg_del(avccfg);
-	//fprintf(stdout, "time scale: %d \n", video_codec_ctx->time_base.den);
 
 	gf_isom_set_visual_info(video_output_file->isof, track, di, video_codec_ctx->width, video_codec_ctx->height);
 	gf_isom_set_sync_table(video_output_file->isof, track);
@@ -260,8 +256,6 @@ int dc_gpac_video_isom_open_seg(VideoOutputFile *video_output_file, char *filena
 int dc_gpac_video_isom_write(VideoOutputFile *video_output_file)
 {
 	GF_Err ret;
-	//AVStream *video_stream = video_output_file->av_fmt_ctx->streams[video_output_file->vstream_idx];
-	//AVCodecContext *video_codec_ctx = video_stream->codec;
 	AVCodecContext *video_codec_ctx = video_output_file->codec_ctx;
 
 	u32 sc_size = 0;

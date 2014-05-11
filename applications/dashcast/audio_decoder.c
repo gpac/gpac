@@ -373,6 +373,7 @@ void dc_audio_decoder_close(AudioInputFile *audio_input_file)
 			av_free_packet(pkt);
 			gf_list_rem_last(audio_input_file->av_pkt_list);
 		}
+		gf_list_del(audio_input_file->av_pkt_list);
 		gf_mx_v(audio_input_file->av_pkt_list_mutex);
 		gf_mx_del(audio_input_file->av_pkt_list_mutex);
 	}
