@@ -3144,7 +3144,7 @@ if test "$source_path_used" = "yes" ; then
     echo "Creating compilation tree image"
     SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/terminal src/mcrypt src/media_tools src/scene_manager src/compositor src/laser" 
 
-    APP_DIRS="applications/mp4box applications/mp4client applications/osmozilla applications/osmo4_wx applications/mp42ts"
+    APP_DIRS="applications/mp4box applications/mp4client applications/osmozilla applications/osmo4_wx applications/mp42ts applications/dashcast"
 
     for dir in $SRC_DIRS ; do
         mkdir -p "$dir"
