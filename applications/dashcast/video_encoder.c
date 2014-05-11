@@ -68,21 +68,13 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 	video_output_file->vbuf = (uint8_t *) av_malloc(video_output_file->vbuf_size);
 	video_output_file->video_data_conf = video_data_conf;
 
-//TODO: video_output_file->codec = avcodec_find_encoder_by_name("libx264"/*video_data_conf->codec*/);
-	video_output_file->codec = avcodec_find_encoder(CODEC_ID_H264);
+	video_output_file->codec = avcodec_find_encoder_by_name(video_data_conf->codec);
 	if (video_output_file->codec == NULL) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Output video codec %d not found\n", CODEC_ID_H264));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Output video codec %s not found\n", video_data_conf->codec));
 		return -1;
 	}
 
 	video_output_file->codec_ctx = avcodec_alloc_context3(video_output_file->codec);
-
-	//Create new video stream
-//	video_stream = avformat_new_stream(video_output_file->av_fmt_ctx, video_codec);
-//	if (!video_stream) {
-//		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot create output video stream\n"));
-//		return -1;
-//	}
 
 	video_output_file->codec_ctx->codec_id = video_output_file->codec->id;
 	video_output_file->codec_ctx->codec_type = AVMEDIA_TYPE_VIDEO;
@@ -174,10 +166,7 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 	//AVPacket pkt;
 	VideoDataNode *video_data_node;
 	int ret;
-	//int out_size;
 
-//	AVStream *video_stream = video_output_file->av_fmt_ctx->streams[video_output_file->vstream_idx];
-//	AVCodecContext *video_codec_ctx = video_stream->codec;
 	AVCodecContext *video_codec_ctx = video_output_file->codec_ctx;
 
 	//FIXME: deadlock when pressing 'q' with BigBuckBunny_640x360.m4v
@@ -245,7 +234,6 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 
 	/* if zero size, it means the image was buffered */
 //	if (out_size > 0) {
-//
 //		av_init_packet(&pkt);
 //		pkt.data = NULL;
 //		pkt.size = 0;

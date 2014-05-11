@@ -31,16 +31,16 @@ extern void build_dict(void *priv_data, const char *options);
 
 int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *audio_data_conf)
 {
-	int osize;
+	AVDictionary *opts = NULL;
 
 	audio_output_file->fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
 	audio_output_file->aframe = FF_ALLOC_FRAME();
 	audio_output_file->adata_buf = (uint8_t*) av_malloc(2 * MAX_AUDIO_PACKET_SIZE);
 #ifndef GPAC_USE_LIBAV
-	audio_output_file->aframe->channel_layout = 0;
-	audio_output_file->aframe->sample_rate = -1;
 	audio_output_file->aframe->channels = -1;
 #endif
+	audio_output_file->aframe->channel_layout = 0;
+	audio_output_file->aframe->sample_rate = -1;
 	audio_output_file->aframe->format = -1;
 	audio_output_file->codec = avcodec_find_encoder_by_name(audio_data_conf->codec);
 	if (audio_output_file->codec == NULL) {
@@ -61,7 +61,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	}
 	audio_output_file->codec_ctx->channels = audio_data_conf->channels;
 	audio_output_file->codec_ctx->channel_layout = AV_CH_LAYOUT_STEREO; /*FIXME: depends on channels -> http://ffmpeg.org/doxygen/trunk/channel__layout_8c_source.html#l00074*/
-	audio_output_file->codec_ctx->sample_fmt = AV_SAMPLE_FMT_S16;
+	audio_output_file->codec_ctx->sample_fmt = audio_output_file->codec->sample_fmts[0];
 #ifdef DC_AUDIO_RESAMPLER
 	audio_output_file->aresampler = NULL;
 #endif
@@ -73,26 +73,26 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	audio_output_file->astream_idx = 0;
 
 	/* open the audio codec */
-	if (avcodec_open2(audio_output_file->codec_ctx, audio_output_file->codec, NULL) < 0) {
+	av_dict_set(&opts, "strict", "experimental", 0);
+	if (avcodec_open2(audio_output_file->codec_ctx, audio_output_file->codec, &opts) < 0) {
 		/*FIXME: if we enter here (set "mp2" as a codec and "200000" as a bitrate -> deadlock*/
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output audio codec\n"));
+		av_dict_free(&opts);
 		return -1;
 	}
+	av_dict_free(&opts);
 
-	osize = av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt);
-	audio_output_file->frame_bytes = audio_output_file->codec_ctx->frame_size * osize * audio_output_file->codec_ctx->channels;
+	audio_output_file->frame_bytes = audio_output_file->codec_ctx->frame_size * av_get_bytes_per_sample(DC_AUDIO_SAMPLE_FORMAT) * DC_AUDIO_NUM_CHANNELS;
 	avcodec_get_frame_defaults(audio_output_file->aframe);
-	audio_output_file->aframe->nb_samples = audio_output_file->frame_bytes / (audio_output_file->codec_ctx->channels * av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt));
+	audio_output_file->aframe->nb_samples = audio_output_file->codec_ctx->frame_size;
 
-	if (avcodec_fill_audio_frame(audio_output_file->aframe,
-	                             audio_output_file->codec_ctx->channels, audio_output_file->codec_ctx->sample_fmt,
-	                             audio_output_file->adata_buf, audio_output_file->frame_bytes, 1) < 0) {
+	if (avcodec_fill_audio_frame(audio_output_file->aframe, audio_output_file->codec_ctx->channels, audio_output_file->codec_ctx->sample_fmt,
+		audio_output_file->adata_buf, audio_output_file->codec_ctx->frame_size * av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt) * audio_output_file->codec_ctx->channels, 1) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Fill audio frame failed\n"));
 		return -1;
 	}
 
 	//audio_output_file->acc_samples = 0;
-	audio_output_file->frame_size = audio_output_file->codec_ctx->frame_size;
 
 	return 0;
 }
@@ -112,11 +112,11 @@ int dc_audio_encoder_read(AudioOutputFile *audio_output_file, AudioInputData *au
 
 	audio_data_node = (AudioDataNode *) dc_consumer_consume(&audio_output_file->consumer, &audio_input_data->circular_buf);
 #ifndef GPAC_USE_LIBAV
-	audio_output_file->aframe->channels = audio_data_node->channels;
-	audio_output_file->aframe->channel_layout = audio_data_node->channel_layout;
-	audio_output_file->aframe->sample_rate = audio_data_node->sample_rate;
+	audio_output_file->aframe->channels = audio_output_file->codec_ctx->channels;
 #endif
-	audio_output_file->aframe->format = audio_data_node->format;
+	audio_output_file->aframe->channel_layout = audio_output_file->codec_ctx->channel_layout;
+	audio_output_file->aframe->sample_rate = audio_output_file->codec_ctx->sample_rate;
+	audio_output_file->aframe->format = audio_output_file->codec_ctx->sample_fmt;
 
 	/* Write audio sample on fifo */
 	av_fifo_generic_write(audio_output_file->fifo, audio_data_node->abuf, audio_data_node->abuf_size, NULL);
@@ -187,20 +187,24 @@ static int ensure_resampler(AudioOutputFile *audio_output_file, AVCodecContext *
 //resample - see http://ffmpeg.org/pipermail/libav-user/2012-June/002164.html
 static int resample_audio(AudioOutputFile *audio_output_file, AVCodecContext *audio_codec_ctx, int *num_planes_out)
 {
-	int i;
+	int i, linesize;
 	uint8_t **output;
-	*num_planes_out = av_sample_fmt_is_planar(audio_codec_ctx->sample_fmt) ? audio_codec_ctx->channels : 1;
+	*num_planes_out = av_sample_fmt_is_planar(audio_output_file->codec->sample_fmts[0]) ? audio_output_file->codec_ctx->channels : 1;
+	linesize = audio_output_file->codec_ctx->frame_size * av_get_bytes_per_sample(audio_output_file->codec->sample_fmts[0]) * audio_output_file->codec_ctx->channels / *num_planes_out;
 	output = (uint8_t**)av_malloc(*num_planes_out*sizeof(uint8_t*));
 	for (i=0; i<*num_planes_out; i++) {
-		output[i] = (uint8_t*)av_malloc(DC_AUDIO_MAX_CHUNCK_SIZE);
+		output[i] = (uint8_t*)av_malloc(linesize);
 	}
 
-	if (avresample_convert(audio_output_file->aresampler, output, DC_AUDIO_MAX_CHUNCK_SIZE, audio_output_file->aframe->nb_samples, audio_output_file->aframe->extended_data, audio_output_file->aframe->linesize[0], audio_output_file->aframe->nb_samples) < 0) {
+	if (avresample_convert(audio_output_file->aresampler, output, linesize, audio_output_file->aframe->nb_samples, audio_output_file->aframe->extended_data, audio_output_file->aframe->linesize[0], audio_output_file->aframe->nb_samples) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not resample audio frame. Aborting.\n"));
 		return -1;
 	}
 
 	audio_output_file->aframe->extended_data = output;
+	for (i=0; i<*num_planes_out; i++) {
+		audio_output_file->aframe->linesize[i] = linesize;
+	}
 	audio_codec_ctx->channel_layout = audio_output_file->aframe->channel_layout;
 	audio_codec_ctx->sample_fmt = audio_output_file->aframe->format;
 	audio_codec_ctx->sample_rate = audio_output_file->aframe->sample_rate;
@@ -219,7 +223,7 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 
 	while (av_fifo_size(audio_output_file->fifo) >= audio_output_file->frame_bytes) {
 #ifdef DC_AUDIO_RESAMPLER
-		uint8_t **data; //mirror AVFRame::data
+		uint8_t **data; //mirror AVFrame::data
 		int num_planes_out;
 #endif
 		Bool resample;
@@ -228,6 +232,7 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 
 		audio_output_file->aframe->data[0] = audio_output_file->adata_buf;
 		audio_output_file->aframe->linesize[0] = audio_output_file->frame_bytes;
+		audio_output_file->aframe->linesize[1] = 0;
 
 		av_init_packet(&audio_output_file->packet);
 		audio_output_file->packet.data = NULL;
@@ -263,10 +268,9 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 				return -1;
 			}
 
+			data = audio_output_file->aframe->extended_data;
 			if (resample_audio(audio_output_file, audio_codec_ctx, &num_planes_out)) {
 				return -1;
-			} else {
-				data = audio_output_file->aframe->extended_data;
 			}
 #endif
 		}

@@ -53,23 +53,46 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 	esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
 	esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 	esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-	esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG1;
-	esd->decoderConfig->bufferSizeDB = 20;
-	esd->slConfig->timestampResolution = audio_codec_ctx->sample_rate;
-	esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-	esd->ESID = 1;
+	if (!strcmp(audio_output_file->codec_ctx->codec->name, "aac")) { //TODO: find an automatic table
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG2_LCP;
+		esd->decoderConfig->bufferSizeDB = 20;
+		esd->slConfig->timestampResolution = audio_codec_ctx->sample_rate;
+		esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+		esd->ESID = 1;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
-	acfg.base_object_type = GF_M4A_LAYER2;
-	acfg.base_sr = audio_codec_ctx->sample_rate;
-	acfg.nb_chan = audio_codec_ctx->channels;
-	acfg.sbr_object_type = 0;
-	acfg.audioPL = gf_m4a_get_profile(&acfg);
+		memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
+		acfg.base_object_type = GF_M4A_AAC_LC;
+		acfg.base_sr = audio_codec_ctx->sample_rate;
+		acfg.nb_chan = audio_codec_ctx->channels;
+		acfg.sbr_object_type = 0;
+		acfg.audioPL = gf_m4a_get_profile(&acfg);
 
-	ret = gf_m4a_write_config(&acfg, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
-	assert(ret == GF_OK);
+		ret = gf_m4a_write_config(&acfg, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+		assert(ret == GF_OK);
 #endif
+	} else {
+		if (strcmp(audio_output_file->codec_ctx->codec->name, "mp2")) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("Unlisted codec, setting GPAC_OTI_AUDIO_MPEG1 descriptor.\n"));
+		}
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG1;
+		esd->decoderConfig->bufferSizeDB = 20;
+		esd->slConfig->timestampResolution = audio_codec_ctx->sample_rate;
+		esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+		esd->ESID = 1;
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+		memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
+		acfg.base_object_type = GF_M4A_LAYER2;
+		acfg.base_sr = audio_codec_ctx->sample_rate;
+		acfg.nb_chan = audio_codec_ctx->channels;
+		acfg.sbr_object_type = 0;
+		acfg.audioPL = gf_m4a_get_profile(&acfg);
+
+		ret = gf_m4a_write_config(&acfg, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+		assert(ret == GF_OK);
+#endif
+	}
 
 	//gf_isom_store_movie_config(video_output_file->isof, 0);
 	track = gf_isom_new_track(audio_output_file->isof, esd->ESID, GF_ISOM_MEDIA_AUDIO, audio_codec_ctx->sample_rate);
@@ -149,10 +172,6 @@ int dc_gpac_audio_isom_open_seg(AudioOutputFile *audio_output_file, char *filena
 int dc_gpac_audio_isom_write(AudioOutputFile *audio_output_file)
 {
 	GF_Err ret;
-	//AVStream *video_stream = video_output_file->av_fmt_ctx->streams[video_output_file->vstream_idx];
-	//AVCodecContext *video_codec_ctx = video_stream->codec;
-	//AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
-
 	audio_output_file->sample->data = (char *) audio_output_file->packet.data;
 	audio_output_file->sample->dataLength = audio_output_file->packet.size;
 
@@ -208,6 +227,7 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 {
 	AVStream *audio_stream;
 	AVOutputFormat *output_fmt;
+	AVDictionary *opts = NULL;
 
 	AVCodecContext *audio_codec_ctx = audio_output_file->codec_ctx;
 	audio_output_file->av_fmt_ctx = NULL;
@@ -253,7 +273,8 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 	audio_stream->codec->bit_rate = audio_codec_ctx->bit_rate;//audio_output_file->audio_data_conf->bitrate;
 	audio_stream->codec->sample_rate = audio_codec_ctx->sample_rate;//audio_output_file->audio_data_conf->samplerate;
 	audio_stream->codec->channels = audio_codec_ctx->channels;//audio_output_file->audio_data_conf->channels;
-	audio_stream->codec->sample_fmt = AV_SAMPLE_FMT_S16;
+  assert(audio_codec_ctx->codec->sample_fmts);
+	audio_stream->codec->sample_fmt = audio_codec_ctx->codec->sample_fmts[0];
 
 //	if (audio_output_file->av_fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)
 //		audio_output_file->codec_ctx->flags |= CODEC_FLAG_GLOBAL_HEADER;
@@ -261,10 +282,13 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 	//video_stream->codec = video_output_file->codec_ctx;
 
 	/* open the video codec */
-	if (avcodec_open2(audio_stream->codec, audio_output_file->codec, NULL) < 0) {
+	av_dict_set(&opts, "strict", "experimental", 0);
+	if (avcodec_open2(audio_stream->codec, audio_output_file->codec, &opts) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video codec\n"));
+		av_dict_free(&opts);
 		return -1;
 	}
+	av_dict_free(&opts);
 
 	avformat_write_header(audio_output_file->av_fmt_ctx, NULL);
 
@@ -388,7 +412,7 @@ int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
 	case GPAC_INIT_AUDIO_MUXER:
 		if (frame_nb % audio_output_file->frame_per_frag == 0) {
 			gf_isom_start_fragment(audio_output_file->isof, 1);
-			gf_isom_set_traf_base_media_decode_time(audio_output_file->isof, 1, audio_output_file->first_dts * audio_output_file->frame_size);
+			gf_isom_set_traf_base_media_decode_time(audio_output_file->isof, 1, audio_output_file->first_dts * audio_output_file->codec_ctx->frame_size);
 			audio_output_file->first_dts += audio_output_file->frame_per_frag;
 		}
 		dc_gpac_audio_isom_write(audio_output_file);
