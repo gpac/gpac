@@ -185,6 +185,8 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			cap.cap.valueInt = 1;
 			gf_codec_get_capability(codec, &cap);
 			max = cap.cap.valueInt;
+			//this may happen in sysetm bench mode since we dont configure codecs
+			if (!max) max = 1;
 			break;
 		case GF_STREAM_ND_SUBPIC:
 			max = 1;

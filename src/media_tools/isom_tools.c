@@ -2476,6 +2476,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 			case GF_HEVC_NALU_SLICE_CRA:
 			case GF_HEVC_NALU_SLICE_RADL_R:
 			case GF_HEVC_NALU_SLICE_RASL_R:
+				tx = ty = tw = th = 0;
 				cur_tile = hevc_get_tile_id(&hevc, &tx, &ty, &tw, &th);
 				if (cur_tile>=nb_tracks) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC Tiles] Tile index %d is greater than number of tiles %d in PPS\n", cur_tile, nb_tracks));

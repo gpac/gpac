@@ -912,7 +912,12 @@ static u32 gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 	/*check we don't find a sync point within what we should flush - this happens with looping TS streams and other nasty scenarii*/
 	next_hdr = gf_mp3_get_next_header_mem((char *)data, data_len, &pos);
 	if (next_hdr && remain && (pos<remain) ) {
-		remain = pos;
+		//only resync if the frame header matches our current config, otherwise this is likely an emulated header
+		if ((pes->aud_sr == gf_mp3_sampling_rate(pes->frame_state) )
+			&& (pes->aud_nb_ch == gf_mp3_num_channels(pes->frame_state))
+		) {
+			remain = pos;
+		}
 	}
 
 	if (remain) {
@@ -2650,9 +2655,12 @@ static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 				}
 				//copy over the remaining of previous PES payload before start of this PES payload
 				if (pes->prev_data_len) {
-					assert(pes->prev_data_len < len);
-					offset = len - pes->prev_data_len;
-					memcpy(pes->pck_data + offset, pes->prev_data, pes->prev_data_len);
+					if (pes->prev_data_len < len) {
+						offset = len - pes->prev_data_len;
+						memcpy(pes->pck_data + offset, pes->prev_data, pes->prev_data_len);
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PES reassembly buffer overflow (%d bytes not processed from previous PES) - discarding prev data\n", pes->pid, pes->prev_data_len ));
+					}
 				}
 
 				if (pes->temi_tc_desc_len)
