@@ -708,8 +708,8 @@ Bool gf_cm_is_running(GF_CompositionMemory *cb)
 
 Bool gf_cm_is_eos(GF_CompositionMemory *cb)
 {
-	if (cb->HasSeenEOS)
-		return ( (cb->Status == CB_STOP) || (cb->UnitCount==0)) ? 1 : 0;
+	if ( (cb->Status == CB_STOP) || (cb->HasSeenEOS && (cb->UnitCount==0)) )
+		return 1;
 	return 0;
 }
 

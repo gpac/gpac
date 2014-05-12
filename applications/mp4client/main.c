@@ -546,7 +546,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		char *szTitle = "";
 		if (evt->progress.progress_type==0) {
 			szTitle = "Buffer ";
-			if (bench_mode) {
+			if (bench_mode && (bench_mode!=3) ) {
 				if (evt->progress.done >= evt->progress.total) bench_buffer = 0;
 				else bench_buffer = 1 + 100*evt->progress.done / evt->progress.total;
 				break;
@@ -2003,7 +2003,7 @@ void PrintAVInfo(Bool final)
 		}
 	}
 
-	if (bench_buffer) {
+	if (0 && bench_buffer) {
 		fprintf(stderr, "Buffering %d %% ", bench_buffer-1);
 		return;
 	}
@@ -2035,7 +2035,7 @@ void PrintAVInfo(Bool final)
 		if (!video_odm) {
 			u32 nb_frames_drawn;
 			Double FPS = gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
-			fprintf(stderr, "Drawn %d frames FPS %.2f (simulation FPS %.2f) - duration %d ms\n", nb_frames_drawn, ((Float)nb_frames_drawn*1000)/tot_time, FPS, gf_term_get_time_in_ms(term)  );
+			fprintf(stderr, "Drawn %d frames FPS %.2f (simulation FPS %.2f) - duration %d ms\n", nb_frames_drawn, ((Float)nb_frames_drawn*1000)/tot_time,(Float) FPS, gf_term_get_time_in_ms(term)  );
 		}
 	}
 	if (print_codecs) {
@@ -2111,6 +2111,15 @@ void PrintAVInfo(Bool final)
 			FPS = gf_term_get_framerate(term, 1);
 			fprintf(stderr, "%d f FPS %.2f (abs %.2f) ", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
 		}
+	}
+	else if (audio_odm) {
+		if (!print_codecs) {
+			gf_term_get_object_info(term, audio_odm, &a_odi);
+		}
+		tot_time = a_odi.last_frame_time - a_odi.first_frame_time;
+		if (!tot_time) tot_time=1;
+		if (a_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*a_odi.current_time / a_odi.duration ) );
+		fprintf(stderr, "%d frames (ms/f %.2f avg %.2f max)", a_odi.nb_dec_frames, ((Float)tot_time)/a_odi.nb_dec_frames, a_odi.max_dec_time/1000.0);
 	}
 }
 
