@@ -324,7 +324,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 				}
 
 				if (video_data_node->vframe->pts==AV_NOPTS_VALUE) {
-					if (!use_source_timing ) {
+					if (!use_source_timing) {
 						video_data_node->vframe->pts = video_input_file->frame_decoded;
 					} else {
 						video_data_node->vframe->pts = video_data_node->vframe->pkt_pts;

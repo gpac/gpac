@@ -589,7 +589,7 @@ u32 video_decoder_thread(void *params)
 	VideoInputData *video_input_data = thread_params->video_input_data;
 	VideoInputFile **video_input_file = thread_params->video_input_file;
 
-	suseconds_t total_wait_time = 1000000 / in_data->video_data_conf.framerate;
+	suseconds_t total_wait_time = (int) (1000000.0 / (double) in_data->video_data_conf.framerate);
 	suseconds_t pick_packet_delay, select_delay = 0, real_wait, other_delays = 2;
 
 	Task t;
@@ -669,7 +669,7 @@ u32 audio_decoder_thread(void *params)
 		//FIXME: deadlock on the mpd thread. Reproduce with big_buck_bunny.mp4.
 		return 1;
 	}
-	total_wait_time = 1000000 / (in_data->audio_data_conf.samplerate / 1024);
+	total_wait_time = (int) (1000000.0 / (in_data->audio_data_conf.samplerate / (double) AUDIO_FRAME_SIZE));
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("wait time : %ld\n", total_wait_time));
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("sample-rate : %ld\n", in_data->audio_data_conf.samplerate));
 
@@ -691,7 +691,7 @@ u32 audio_decoder_thread(void *params)
 			break;
 		}
 		if (ret == -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("An error occurred while reading video frame.\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("An error occurred while reading audio frame.\n"));
 			break;
 		}
 
@@ -746,7 +746,7 @@ u32 video_scaler_thread(void *params)
 
 u32 video_encoder_thread(void *params)
 {
-	int ret, shift, frame_nb, seg_frame_max, frag_frame_max, seg_nb = 0, loss_state = 0, quit = 0;
+	int ret, shift, frame_nb, seg_frame_max, frag_frame_max, seg_nb = 0, loss_state = 0, quit = 0, real_video_seg_dur;
 	char name_to_delete[GF_MAX_PATH], name_to_send[GF_MAX_PATH];
 	u64 start_utc, seg_utc;
 	segtime time_at_segment_start;
@@ -774,6 +774,10 @@ u32 video_encoder_thread(void *params)
 	seg_frame_max = (int)(video_data_conf->framerate * (float) (in_data->seg_dur / 1000.0));
 	frag_frame_max = (int)(video_data_conf->framerate * (float) (in_data->frag_dur / 1000.0));
 	optimize_seg_frag_dur(&seg_frame_max, &frag_frame_max);
+
+	real_video_seg_dur = (int) (seg_frame_max * 1000.0 / (float) video_data_conf->framerate);
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[video_encoder] seg_frame_max=%d, frag_frame_max=%d, real_video_seg_dur=%d ms\n", seg_frame_max, frag_frame_max, real_video_seg_dur));
+
 
 	if (seg_frame_max <= 0)
 		seg_frame_max = -1;
@@ -829,7 +833,7 @@ u32 video_encoder_thread(void *params)
 			}
 
 			if (ret == -2) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Audio encoder has no more data to encode.\n"));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Video encoder has no more data to encode.\n"));
 				quit = 1;
 				break;
 			}
@@ -880,12 +884,13 @@ u32 video_encoder_thread(void *params)
 			int seg_diff;
 			seg_utc = gf_net_get_utc();
 			diff = (int) (seg_utc - start_utc);
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[video_encoder] UTC diff %d - cumulated segment duration %d -> %d\n", diff, (seg_nb+1) * real_video_seg_dur, diff - (seg_nb+1) * real_video_seg_dur));
 
 			//if seg UTC is after next segment UTC (current ends at seg_nb+1, next at seg_nb+2), adjust numbers
-			if (diff > (seg_nb+2) * in_data->seg_dur) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Rep %s UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", out_file.rep_id, diff, seg_nb));
+			if (diff > (seg_nb+2) * real_video_seg_dur) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[video_encoder] Rep %s UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", out_file.rep_id, diff, seg_nb));
 
-				while (diff > (seg_nb+2) * in_data->seg_dur) {
+				while (diff > (seg_nb+2) * real_video_seg_dur) {
 					seg_nb++;
 
 					//do a rough estimate of losses to adjust timing...
@@ -899,14 +904,14 @@ u32 video_encoder_thread(void *params)
 #define SYNC_SAFE	800
 
 				seg_diff = diff;
-				seg_diff -= (seg_nb+1) * in_data->seg_dur;
+				seg_diff -= (seg_nb+1) * real_video_seg_dur;
 				if (seg_diff > SYNC_SAFE) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Rep %s UTC diff at segment close: %d is higher than cumulated segment duration %d (diff %d) - frame rate is probably not correct !!\n", out_file.rep_id, diff, (seg_nb+1) * in_data->seg_dur, seg_diff));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[video_encoder] Rep %s UTC diff at segment close: %d is higher than cumulated segment duration %d (diff %d) - frame rate is probably not correct!\n", out_file.rep_id, diff, (seg_nb+1) * in_data->seg_dur, seg_diff));
 				}
 				else if (seg_diff < -SYNC_SAFE) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Rep %s UTC diff at segment close: %d is lower than cumulated segment duration %d (diff %d) - frame rate is probably not correct or frames were lost !!\n", out_file.rep_id, diff, (seg_nb+1) * in_data->seg_dur, seg_diff));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[video_encoder] Rep %s UTC diff at segment close: %d is lower than cumulated segment duration %d (diff %d) - frame rate is probably not correct or frames were lost!\n", out_file.rep_id, diff, (seg_nb+1) * in_data->seg_dur, seg_diff));
 				} else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Rep %s UTC diff at segment close: %d - cumulated segment duration %d (diff %d)\n", out_file.rep_id, diff, (seg_nb+1) * in_data->seg_dur, seg_diff));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[video_encoder] Rep %s UTC diff at segment close: %d - cumulated segment duration %d (diff %d)\n", out_file.rep_id, diff, (seg_nb+1) * in_data->seg_dur, seg_diff));
 				}
 			}
 
@@ -953,7 +958,7 @@ u32 video_encoder_thread(void *params)
 
 u32 audio_encoder_thread(void *params)
 {
-	int ret, exit_loop = 0, quit = 0, seg_nb = 0, frame_per_seg, frame_per_frag, frame_nb, shift;
+	int ret, exit_loop = 0, quit = 0, seg_nb = 0, frame_per_seg, frame_per_frag, frame_nb, shift, real_audio_seg_dur;
 	//int seg_frame_max;
 	//int frag_frame_max;
 	//int audio_frame_size = AUDIO_FRAME_SIZE;
@@ -995,6 +1000,9 @@ u32 audio_encoder_thread(void *params)
 	frame_per_seg  = (int)((audio_data_conf->samplerate / (double) audio_output_file.codec_ctx->frame_size) * (in_data->seg_dur  / 1000.0));
 	frame_per_frag = (int)((audio_data_conf->samplerate / (double) audio_output_file.codec_ctx->frame_size) * (in_data->frag_dur / 1000.0));
 	optimize_seg_frag_dur(&frame_per_seg, &frame_per_frag);
+	
+	real_audio_seg_dur = (int) (frame_per_seg * (double) audio_output_file.codec_ctx->frame_size * 1000.0 / (double) audio_data_conf->samplerate);
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH,("[audio_encoder] frame_per_seg=%d, frame_per_frag=%d, real_audio_seg_dur=%d ms\n", frame_per_seg, frame_per_frag, real_audio_seg_dur) );
 
 	if (dc_audio_muxer_init(&audio_output_file, audio_data_conf, muxer_type, frame_per_seg, frame_per_frag, in_data->seg_marker) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot init output audio.\n"));
@@ -1003,6 +1011,7 @@ u32 audio_encoder_thread(void *params)
 	}
 
 	start_utc = gf_net_get_utc();
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[audio_encoder] start_utc="LLU"\n", start_utc));
 	seg_utc = 0;
 	while (1) {
 		frame_nb = 0;
@@ -1085,13 +1094,13 @@ u32 audio_encoder_thread(void *params)
 				seg_utc = gf_net_get_utc();
 				diff = (int) (seg_utc - start_utc);
 				//if seg UTC is after next segment UTC (current ends at seg_nb+1, next at seg_nb+2), adjust numbers
-				if (diff > (seg_nb+2) * in_data->seg_dur) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", diff, seg_nb));
-					while (diff > (seg_nb+2) * in_data->seg_dur) {
+				if (diff > (seg_nb+2) * real_audio_seg_dur) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[audio_encoder] UTC diff %d bigger than segment duration %d - some frame where probably lost. Adjusting\n", diff, seg_nb));
+					while (diff > (seg_nb+2) * real_audio_seg_dur) {
 						seg_nb++;
 					}
 				}
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("UTC diff %d - cumulated segment duration %d\n", diff, (seg_nb+1) * in_data->seg_dur));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[audio_encoder] UTC diff %d - cumulated segment duration %d -> %d\n", diff, (seg_nb+1) * real_audio_seg_dur, diff - (seg_nb+1) * real_audio_seg_dur));
 				t.segnum = seg_nb;
 				t.time = gf_net_get_utc();
 				//time_t t = time(NULL);
