@@ -1379,6 +1379,20 @@ EOF
     fi
 fi
 
+#detect libavresample (libav only, but ffmpeg backported with '--enable-avresample') for dashcast only
+cat > $TMPC << EOF
+#include "libavresample/avresample.h"
+int main(void) {
+    AVAudioResampleContext *aresampler = avresample_alloc_context();
+    return 0;
+}
+EOF
+
+if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags 2> /dev/null  ; then
+    has_libavresample="yes"
+else
+    has_libavresample="no"
+fi
 
 
 #look for FREENECT support
@@ -2915,6 +2929,7 @@ else
     echo "ffmpeg_cflags=$ffmpeg_cflags" >> config.mak
     echo "ffmpeg_lflags=$ffmpeg_lflags" >> config.mak
     echo "CONFIG_LIBAV=$is_libav" >> config.mak
+    echo "CONFIG_LIBAVRESAMPLE=$has_libavresample" >> config.mak
 fi
 echo "CONFIG_FFMPEG_OLD=$old_ffmpeg_inc" >> config.mak
 

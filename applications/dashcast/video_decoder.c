@@ -342,9 +342,6 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 					video_data_node->nb_raw_frames_ref = video_input_file->nb_consumers;
 
 					video_data_node->raw_packet = packet;
-#ifndef GPAC_USE_LIBAV
-					video_data_node->vframe = av_frame_clone(video_data_node->vframe);
-#endif
 
 					dc_producer_advance(&video_input_data->producer, &video_input_data->circular_buf);
 					while (video_data_node->nb_raw_frames_ref && ! *exit_signal_addr) {
