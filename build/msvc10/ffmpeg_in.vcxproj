@@ -121,6 +121,7 @@
       <ProgramDatabaseFile>$(IntDir)gm_$(ProjectName).pdb</ProgramDatabaseFile>
       <ImportLibrary>$(IntDir)gm_$(ProjectName).lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalDependencies>avformat.lib;avutil.lib;avcodec.lib;swscale.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -162,6 +163,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(IntDir)gm_$(ProjectName).pdb</ProgramDatabaseFile>
       <ImportLibrary>$(IntDir)gm_$(ProjectName).lib</ImportLibrary>
+      <AdditionalDependencies>avformat.lib;avutil.lib;avcodec.lib;swscale.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -205,6 +207,7 @@
       <ProgramDatabaseFile>$(IntDir)gm_$(ProjectName).pdb</ProgramDatabaseFile>
       <ImportLibrary>$(IntDir)gm_$(ProjectName).lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalDependencies>avformat.lib;avutil.lib;avcodec.lib;swscale.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -247,8 +250,7 @@
       </ModuleDefinitionFile>
       <ProgramDatabaseFile>$(IntDir)gm_$(ProjectName).pdb</ProgramDatabaseFile>
       <ImportLibrary>$(IntDir)gm_$(ProjectName).lib</ImportLibrary>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>avformat.lib;avutil.lib;avcodec.lib;swscale.lib;</AdditionalDependencies>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
