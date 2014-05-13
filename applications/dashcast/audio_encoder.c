@@ -39,8 +39,10 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 #ifndef GPAC_USE_LIBAV
 	audio_output_file->aframe->channels = -1;
 #endif
+#ifndef LIBAV_FRAME_OLD
 	audio_output_file->aframe->channel_layout = 0;
 	audio_output_file->aframe->sample_rate = -1;
+#endif
 	audio_output_file->aframe->format = -1;
 	audio_output_file->codec = avcodec_find_encoder_by_name(audio_data_conf->codec);
 	if (audio_output_file->codec == NULL) {
@@ -114,8 +116,10 @@ int dc_audio_encoder_read(AudioOutputFile *audio_output_file, AudioInputData *au
 #ifndef GPAC_USE_LIBAV
 	audio_output_file->aframe->channels = audio_output_file->codec_ctx->channels;
 #endif
+#ifndef LIBAV_FRAME_OLD
 	audio_output_file->aframe->channel_layout = audio_output_file->codec_ctx->channel_layout;
 	audio_output_file->aframe->sample_rate = audio_output_file->codec_ctx->sample_rate;
+#endif
 	audio_output_file->aframe->format = audio_output_file->codec_ctx->sample_fmt;
 
 	/* Write audio sample on fifo */
