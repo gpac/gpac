@@ -404,6 +404,26 @@ GF_Err gf_delete_file(const char *fileName)
 #endif
 }
 
+/**
+ * Remove existing single-quote from a single-quoted string.
+ * The caller is responsible for deallocating the returns string with gf_free()
+ */
+static char* gf_sanetize_single_quoted_string(const char *src) {
+	int i, j;
+	char *out = gf_malloc(4*strlen(src)+3);
+	out[0] = '\'';
+	for (i=0, j=1; out[j]=src[i]; ++i, ++j) {
+		if (src[i]=='\'') {
+			out[++j]='\\';
+			out[++j]='\'';
+			out[++j]='\'';
+		}
+	}
+	out[j++] = '\'';
+	out[j++] = 0;
+	return out;
+}
+
 GF_EXPORT
 GF_Err gf_move_file(const char *fileName, const char *newFileName)
 {
@@ -417,12 +437,18 @@ GF_Err gf_move_file(const char *fileName, const char *newFileName)
 	/* success if != 0 */
 	return (MoveFile(fileName, newFileName) == 0 ) ? GF_IO_ERR : GF_OK;
 #else
-	/* success is == 0 */
-	char cmd[1024];
+	GF_Err e = GF_IO_ERR;
+	char cmd[1024], *arg1, *arg2;
 	if (!fileName || !newFileName)
 		return GF_IO_ERR;
-	snprintf(cmd, sizeof(cmd), "mv '%s' '%s' > /dev/null 2>&1", fileName, newFileName);
-	return ( system(cmd) == 0) ? GF_OK : GF_IO_ERR;
+	arg1 = gf_sanetize_single_quoted_string(fileName);
+	arg2 = gf_sanetize_single_quoted_string(newFileName);
+	if (snprintf(cmd, sizeof cmd, "mv %s %s", arg1, arg2) >= sizeof cmd) goto error;
+	e = (system(cmd) == 0) ? GF_OK : GF_IO_ERR;
+error:
+	gf_free(arg1);
+	gf_free(arg2);
+	return e;
 #endif
 }
 
