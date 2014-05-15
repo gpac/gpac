@@ -1354,7 +1354,7 @@ fi
 
 cat > $TMPC << EOF
 #include <libavutil/frame.h>
-#include <libavcodec/codec.h>
+#include <libavcodec/avcodec.h>
 int main(void) {
     CODEC_ID_H264;
     return 0;
@@ -1365,7 +1365,7 @@ if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags 2> /dev/null  ; then
 else
 
 cat > $TMPC << EOF
-#include <libavcodec/codec.h>
+#include <libavcodec/avcodec.h>
 int main(void) {
     CODEC_ID_H264;
     return 0;
