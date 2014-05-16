@@ -1255,7 +1255,7 @@ enum
 	GF_ISOM_HVCC_SET_INBAND,
 	GF_ISOM_HVCC_SET_TILE,
 	GF_ISOM_HVCC_SET_SHVC,
-	GF_ISOM_HVCC_REM_SHVC,
+	GF_ISOM_HVCC_SET_SHVC_REM_HEVC,
 } HevcConfigUpdateType;
 
 static
@@ -1305,7 +1305,8 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 			GF_HEVCParamArray *ar = gf_list_get(entry->hevc_config->config->param_array, i);
 
 			/*we want to force hev1*/
-			if (operand_type==1) ar->array_completeness = 0;
+			if (operand_type==GF_ISOM_HVCC_SET_INBAND) 
+				ar->array_completeness = 0;
 
 			if (!ar->array_completeness) {
 				array_incomplete = 1;
@@ -1327,7 +1328,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 	} else {
 
 		/*SVCC replacement*/
-		if (operand_type==2) {
+		if (operand_type==GF_ISOM_HVCC_SET_SHVC) {
 			if (!cfg) return GF_BAD_PARAM;
 			if (!entry->shvc_config) entry->shvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_SHCC);
 			if (entry->shvc_config->config) gf_odf_hevc_cfg_del(entry->shvc_config->config);
@@ -1335,7 +1336,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 			entry->type = GF_ISOM_BOX_TYPE_HVC1;
 		}
 		/*SVCC replacement and HEVC removal*/
-		else if (operand_type==3) {
+		else if (operand_type==GF_ISOM_HVCC_SET_SHVC_REM_HEVC) {
 			if (!cfg) {
 				if (entry->shvc_config) {
 					gf_isom_box_del((GF_Box*)entry->shvc_config);
@@ -1378,10 +1379,10 @@ GF_Err gf_isom_hevc_set_tile_config(GF_ISOFile *the_file, u32 trackNumber, u32 D
 	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_TILE);
 }
 
-GF_Err gf_isom_shvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, Bool is_add)
+GF_Err gf_isom_shvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, Bool is_additional)
 {
 	if (cfg) cfg->is_shvc = 1;
-	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, is_add ? GF_ISOM_HVCC_SET_SHVC : GF_ISOM_HVCC_REM_SHVC);
+	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, is_additional ? GF_ISOM_HVCC_SET_SHVC : GF_ISOM_HVCC_SET_SHVC_REM_HEVC);
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
