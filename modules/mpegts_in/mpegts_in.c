@@ -465,6 +465,7 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 	req_prog_count = gf_list_count(m2ts->ts->requested_progs);
 	for (i = 0; i < req_prog_count; i++) {
 		M2TSIn_Prog *req_prog = gf_list_get(m2ts->ts->requested_progs, i);
+
 		prog_id = atoi(req_prog->fragment);
 		count = gf_list_count(m2ts->ts->SDTs);
 		for (j=0; j<count; j++) {
@@ -488,6 +489,12 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 			for (j=0; j<count; j++) {
 				ts_prog = gf_list_get(m2ts->ts->programs, j);
 				if (ts_prog->number==req_prog->id) {
+					//PMT not yet received
+					if (!ts_prog->pcr_pid) {
+						gf_mx_v(m2ts->mx);
+						return;
+					}
+
 					MP2TS_SetupProgram(m2ts, ts_prog, 0, 0);
 					found++;
 					gf_free(req_prog->fragment);
@@ -1392,8 +1399,10 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSIn] Setting default reframing for PID %d\n", pes->pid));
 		/*this is a multplex, only trigger the play command for the first stream activated*/
 		if (!ts->nb_playing) {
-			ts->start_range = (u32) (com->play.start_range*1000);
-			ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
+			if (ts->file) {
+				ts->start_range = (u32) (com->play.start_range*1000);
+				ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
+			}
 
 			if (plug->query_proxy && ts->file)
 				ts->segment_switch = 1;
