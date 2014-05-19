@@ -766,17 +766,14 @@ redecode:
 		if (ffd->audio_frame->format==AV_SAMPLE_FMT_FLTP) {
 			s32 i, j;
 			s16 *output = (s16 *) outBuffer;
-			//for (j=0; j<ctx->channels; j++) 
-			{
-				s32 j=0;
+			for (j=0; j<ctx->channels; j++) {
 				Float* inputChannel = (Float*)ffd->audio_frame->extended_data[j];
 				for (i=0 ; i<ffd->audio_frame->nb_samples ; i++) {
 					Float sample = inputChannel[i];
 					if (sample<-1.0f) sample=-1.0f;
 					else if (sample>1.0f) sample=1.0f;
 
-					output[i*ctx->channels + 0] = (int16_t) (sample * GF_SHORT_MAX );
-					output[i*ctx->channels + 1] = 0;
+					output[i*ctx->channels + j] = (int16_t) (sample * GF_SHORT_MAX );
 				}
 			}
 		} else {
