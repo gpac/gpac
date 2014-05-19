@@ -56,6 +56,7 @@ typedef struct
 	Bool is_sbr;
 
 	char ch_reorder[16];
+	GF_ESD *esd;
 } FAADDec;
 
 
@@ -72,7 +73,10 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (ctx->ES_ID && ctx->ES_ID!=esd->ESID) return GF_NOT_SUPPORTED;
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->dataLength) return GF_NON_COMPLIANT_BITSTREAM;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Attaching stream %d\n", esd->ESID));
+	if (!ctx->esd) {
+		ctx->esd = esd;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Attaching stream %d\n", esd->ESID));
+	}
 
 	if (ctx->codec) faacDecClose(ctx->codec);
 	ctx->codec = faacDecOpen();
@@ -304,6 +308,8 @@ static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
 	if (ctx->info.error>0) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Error decoding AU %s\n", faacDecGetErrorMessage(ctx->info.error) ));
 		*outBufferLength = 0;
+		//reinit if error
+		FAAD_AttachStream((GF_BaseDecoder *)ifcg, ctx->esd);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (!ctx->info.samples || !buffer || !ctx->info.bytesconsumed) {

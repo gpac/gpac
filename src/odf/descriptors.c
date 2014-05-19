@@ -1154,7 +1154,7 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 			return "SMV Voice";
 		case GPAC_OTI_AUDIO_AC3:
 			return "AC-3 audio";
-		case GPAC_OTI_AUDIO_AC3_ENHANCED:
+		case GPAC_OTI_AUDIO_EAC3:
 			return "Enhanced AC-3 Audio";
 		case GPAC_OTI_AUDIO_DRA:
 			return "DRA Audio";

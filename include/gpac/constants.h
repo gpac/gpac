@@ -365,7 +365,7 @@ enum
 	/*!OTI for AC-3 audio streams*/
 	GPAC_OTI_AUDIO_AC3 = 0xA5,
 	/*!OTI for enhanced AC-3 audio streams*/
-	GPAC_OTI_AUDIO_AC3_ENHANCED = 0xA6,
+	GPAC_OTI_AUDIO_EAC3 = 0xA6,
 	/*!OTI for DRA audio streams*/
 	GPAC_OTI_AUDIO_DRA = 0xA7,
 	/*!OTI for ITU G719 audio streams*/

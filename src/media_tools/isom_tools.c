@@ -873,7 +873,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->ESID = gf_isom_get_track_id(mp4, track);
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		esd->decoderConfig->objectTypeIndication = (ac3 && ac3->is_ec3) ? GPAC_OTI_AUDIO_AC3_ENHANCED : GPAC_OTI_AUDIO_AC3;
+		esd->decoderConfig->objectTypeIndication = (ac3 && ac3->is_ec3) ? GPAC_OTI_AUDIO_EAC3 : GPAC_OTI_AUDIO_AC3;
 		gf_odf_desc_del((GF_Descriptor*)esd->decoderConfig->decoderSpecificInfo);
 		esd->decoderConfig->decoderSpecificInfo = NULL;
 		if (ac3) gf_free(ac3);

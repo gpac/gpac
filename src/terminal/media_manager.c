@@ -523,6 +523,7 @@ void gf_term_stop_codec(GF_Codec *codec, Bool is_pause)
 		if (!ce->thread)
 			term->cumulated_priority -= codec->Priority+1;
 	}
+	if (codec->CB) gf_cm_abort_buffering(codec->CB);
 
 	if (ce->mx) gf_mx_v(ce->mx);
 	/*cf note above*/

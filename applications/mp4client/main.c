@@ -86,7 +86,7 @@ u64 Duration;
 GF_Err last_error = GF_OK;
 static Bool enable_add_ons = GF_TRUE;
 
-static Bool request_next_playlist_item = GF_FALSE;
+static s32 request_next_playlist_item = GF_FALSE;
 FILE *playlist = NULL;
 static Bool readonly_playlist = GF_FALSE;
 
@@ -210,6 +210,7 @@ void PrintUsage()
 	        "\n"
 	        "\t-exit:          automatically exits when presentation is over\n"
 	        "\t-run-for TIME:  runs for TIME seconds and exits\n"
+	        "\t-service ID:    auto-tune to given service ID in a multiplex\n"
 	        "\t-no-addon:      disable automatic loading of media addons declared in source URL\n"
 	        "\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
 	        "\n"
@@ -973,6 +974,7 @@ int main (int argc, char **argv)
 	const char *str;
 	u32 i, times[100], nb_times, dump_mode;
 	u32 simulation_time_in_ms = 0;
+	u32 initial_service_id = 0;
 	Bool auto_exit = GF_FALSE;
 	Bool logs_set = GF_FALSE;
 	Bool start_fs = GF_FALSE;
@@ -987,7 +989,7 @@ int main (int argc, char **argv)
 #endif
 	Double fps = GF_IMPORT_DEFAULT_FPS;
 	Bool fill_ar, visible;
-	char *url_arg, *the_cfg, *rti_file, *views;
+	char *url_arg, *the_cfg, *rti_file, *views, *default_com;
 	FILE *logfile = NULL;
 	Float scale = 1;
 #ifndef WIN32
@@ -1001,7 +1003,7 @@ int main (int argc, char **argv)
 
 	dump_mode = 0;
 	fill_ar = visible = GF_FALSE;
-	url_arg = the_cfg = rti_file = views = NULL;
+	url_arg = the_cfg = rti_file = views = default_com = NULL;
 	nb_times = 0;
 	times[0] = 0;
 
@@ -1180,6 +1182,14 @@ int main (int argc, char **argv)
 			simulation_time_in_ms = atoi(argv[i+1]) * 1000;
 			if (!simulation_time_in_ms)
 				simulation_time_in_ms = 1; /*1ms*/
+			i++;
+		}
+		else if (!stricmp(arg, "-com")) {
+			default_com = argv[i+1];
+			i++;
+		}
+		else if (!stricmp(arg, "-service")) {
+			initial_service_id = atoi(argv[i+1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-help")) {
@@ -1402,6 +1412,7 @@ int main (int argc, char **argv)
 		bench_mode_start = gf_sys_clock();
 	}
 
+
 	while (Run) {
 		/*we don't want getchar to block*/
 		if (gui_mode || !gf_prompt_has_input()) {
@@ -1419,6 +1430,19 @@ int main (int argc, char **argv)
 				request_next_playlist_item = 0;
 				goto force_input;
 			}
+
+			if (default_com && is_connected) {
+				gf_term_scene_update(term, NULL, default_com);
+				default_com = NULL;
+			}
+			if (initial_service_id && is_connected) {
+				GF_ObjectManager *root_od = gf_term_get_root_object(term);
+				if (root_od) {
+					gf_term_select_service(term, root_od, initial_service_id);
+					initial_service_id = 0;
+				}
+			}
+
 			if (!use_rtix || display_rti) UpdateRTInfo(NULL);
 			if (term_step) {
 				gf_term_process_step(term);
@@ -1774,7 +1798,7 @@ force_input:
 			e = gf_term_scene_update(term, NULL, szCom);
 			if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 		}
-		break;
+			break;
 		case 'e':
 		{
 			GF_Err e;
@@ -1789,7 +1813,7 @@ force_input:
 			e = gf_term_scene_update(term, "application/ecmascript", jsCode);
 			if (e) fprintf(stderr, "Processing JS code failed: %s\n", gf_error_to_string(e));
 		}
-		break;
+			break;
 
 		case 'L':
 		{
@@ -1803,7 +1827,7 @@ force_input:
 			}
 			gf_log_modify_tools_levels(szLog);
 		}
-		break;
+			break;
 
 		case 'g':
 		{
@@ -1811,7 +1835,7 @@ force_input:
 			gf_sys_get_rti(rti_update_time_ms, &rti, 0);
 			fprintf(stderr, "GPAC allocated memory "LLD"\n", rti.gpac_memory);
 		}
-		break;
+			break;
 		case 'M':
 		{
 			u32 size;
@@ -1820,7 +1844,7 @@ force_input:
 			} while (1 > scanf("%ud", &size));
 			gf_term_set_option(term, GF_OPT_VIDEO_CACHE_SIZE, size);
 		}
-		break;
+			break;
 
 		case 'H':
 		{
@@ -1831,7 +1855,7 @@ force_input:
 
 			gf_term_set_option(term, GF_OPT_HTTP_MAX_RATE, http_bitrate);
 		}
-		break;
+			break;
 
 		case 'E':
 			gf_term_set_option(term, GF_OPT_RELOAD_CONFIG, 1);
@@ -1853,7 +1877,7 @@ force_input:
 			}
 			set_cfg_option(szOpt);
 		}
-		break;
+			break;
 
 		/*extract to PNG*/
 		case 'Z':
@@ -1919,6 +1943,33 @@ force_input:
 			fprintf(stderr, "Done: %s\n", szFileName);
 		}
 		break;
+
+		case 'G':
+		{
+			GF_ObjectManager *root_od, *odm;
+			u32 index;
+			char szOpt[8192];
+			fprintf(stderr, "Enter 0-based index of object to select or service ID:\n");
+			fflush(stdin);
+			szOpt[0] = 0;
+			if (1 > scanf("%[^\t\n]", szOpt)) {
+				fprintf(stderr, "Cannot read OD ID\n");
+				break;
+			}
+			index = atoi(szOpt);
+			odm = NULL;
+			root_od = gf_term_get_root_object(term);
+			if (root_od) {
+				odm = gf_term_get_object(term, root_od, index);	
+				if (odm) {
+					gf_term_select_object(term, odm);
+				} else {
+					fprintf(stderr, "Cannot find object at index %d - trying with serviceID\n", index);
+					gf_term_select_service(term, root_od, index);
+				}
+			}
+		}
+			break;
 
 		case 'h':
 			PrintHelp();

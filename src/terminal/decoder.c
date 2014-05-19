@@ -74,6 +74,7 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	}
 	/*remember codec type*/
 	tmp->type = base_layer->decoderConfig->streamType;
+	tmp->oti = base_layer->decoderConfig->objectTypeIndication;
 	tmp->inChannels = gf_list_new();
 	tmp->Status = GF_ESM_CODEC_STOP;
 

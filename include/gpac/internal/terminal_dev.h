@@ -426,6 +426,8 @@ struct _tag_terminal
 
 	/*bench mode type: 0-none 1: regular 2- systems layers only: all decoders inputs are discarded*/
 	u32 bench_mode;
+
+	u32 prefered_audio_codec_oti;
 };
 
 
@@ -516,6 +518,7 @@ struct _object_clock
 	u32 data_timeout;
 	Bool probe_ocr;
 	u32 last_TS_rendered;
+	u32 service_id;
 };
 
 /*destroys clock*/
@@ -776,8 +779,8 @@ enum
 
 struct _generic_codec
 {
-	/*codec type (streamType from base layer)*/
-	u32 type;
+	/*codec type (streamType and OTI from base layer)*/
+	u32 type, oti;
 	u32 flags;
 	/*decoder module interface */
 	GF_BaseDecoder *decio;
@@ -1142,6 +1145,8 @@ GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable);
 
 
 Bool gf_codec_is_scene_or_image(GF_Codec *codec);
+
+void gf_scene_set_service_id(GF_Scene *scene, u32 service_id);
 
 #ifdef __cplusplus
 }

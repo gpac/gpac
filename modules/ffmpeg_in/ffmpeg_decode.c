@@ -275,6 +275,12 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				(*ctx)->frame_size = 1152;
 				codec_id = CODEC_ID_MP2;
 				break;
+			case GPAC_OTI_AUDIO_AC3:
+				codec_id = CODEC_ID_AC3;
+				break;
+			case GPAC_OTI_AUDIO_EAC3:
+				codec_id = CODEC_ID_EAC3;
+				break;
 			}
 		}
 		else if ((ffd->st==GF_STREAM_ND_SUBPIC) && (ffd->oti==0xe0)) {
@@ -711,7 +717,11 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 			return GF_OK;
 		}
 		if (ffd->frame_start>inBufferLength) ffd->frame_start = 0;
-
+		//seek to last byte consumed by the previous decode4()
+		else if (ffd->frame_start) {
+			pkt.data += ffd->frame_start;
+			pkt.size -= ffd->frame_start;
+		}
 redecode:
 
 #if defined(USE_AVCTX3)
@@ -756,14 +766,17 @@ redecode:
 		if (ffd->audio_frame->format==AV_SAMPLE_FMT_FLTP) {
 			s32 i, j;
 			s16 *output = (s16 *) outBuffer;
-			for (j=0; j<ctx->channels; j++) {
+			//for (j=0; j<ctx->channels; j++) 
+			{
+				s32 j=0;
 				Float* inputChannel = (Float*)ffd->audio_frame->extended_data[j];
 				for (i=0 ; i<ffd->audio_frame->nb_samples ; i++) {
 					Float sample = inputChannel[i];
 					if (sample<-1.0f) sample=-1.0f;
 					else if (sample>1.0f) sample=1.0f;
 
-					output[i*ctx->channels + j] = (int16_t) (sample * GF_SHORT_MAX );
+					output[i*ctx->channels + 0] = (int16_t) (sample * GF_SHORT_MAX );
+					output[i*ctx->channels + 1] = 0;
 				}
 			}
 		} else {
@@ -1207,9 +1220,18 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 	}
 	else if (StreamType==GF_STREAM_AUDIO) {
 		/*std MPEG-2 audio*/
-		if ((ffd->oti==GPAC_OTI_AUDIO_MPEG2_PART3) || (ffd->oti==GPAC_OTI_AUDIO_MPEG1)) codec_id = CODEC_ID_MP2;
-		/*std AC3 audio*/
-		//if (ffd->oti==0xA5) codec_id = CODEC_ID_AC3;
+		switch (ffd->oti) {
+		case GPAC_OTI_AUDIO_MPEG2_PART3:
+		case GPAC_OTI_AUDIO_MPEG1:
+			codec_id = CODEC_ID_MP2;
+			break;
+		case GPAC_OTI_AUDIO_AC3:
+			codec_id = CODEC_ID_AC3;
+			break;
+		case GPAC_OTI_AUDIO_EAC3:
+			codec_id = CODEC_ID_EAC3;
+			break;
+		}
 	}
 
 	/*std MPEG-4 visual*/
@@ -1295,8 +1317,16 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 
 	if (avcodec_find_decoder(codec_id) != NULL) {
 		if (esd->decoderConfig->rvc_config || esd->decoderConfig->predefined_rvc_config) return GF_CODEC_MAYBE_SUPPORTED;
+
+		//for HEVC return MAYBE supported to fallback to openHEVC if present (more optimized for now)
+#ifdef HAS_HEVC
+		if (codec_id == AV_CODEC_ID_HEVC)
+			return GF_CODEC_MAYBE_SUPPORTED;
+#endif
+
 		return GF_CODEC_SUPPORTED;
 	}
+
 	return GF_CODEC_NOT_SUPPORTED;
 }
 
