@@ -1048,12 +1048,18 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 	u32 w, h;
 	SFURL *sfu;
 	Bool url_changed = 0;
+
 	/*scene url is not set, find the first one*/
-	if (!media_url->OD_ID) {
-		u32 i=0;
+	if (!media_url->OD_ID  ) {
+		u32 count, i;
 		GF_ObjectManager *odm = NULL;
-		while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
+		count = gf_list_count(scene->resources);
+		for (i=0;i<count; i++) {
+			odm = (GF_ObjectManager*)gf_list_get(scene->resources, i);
 			if (odm->scalable_addon)
+				continue;
+
+			if (scene->selected_service_id && (scene->selected_service_id != odm->OD->ServiceID))
 				continue;
 
 			if (type==GF_STREAM_TEXT) {
@@ -1067,6 +1073,18 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 			}
 			else {
 				if (!odm->codec || (odm->codec->type!=type)) continue;
+
+				//browse from this ODM on untill we find an object with the desired OTI (if any)
+				if ((type==GF_STREAM_AUDIO) && odm->term->prefered_audio_codec_oti) {
+					u32 j;
+					for (j=i; j<count; j++) {
+						GF_ObjectManager*an_odm = (GF_ObjectManager*)gf_list_get(scene->resources, j);
+						if (an_odm->codec && (an_odm->codec->oti==odm->term->prefered_audio_codec_oti)) {
+							odm = an_odm;
+							break;
+						}
+					}
+				}
 			}
 
 			media_url->OD_ID = odm->OD->objectDescriptorID;
@@ -1274,6 +1292,24 @@ static Bool check_odm_deactivate(SFURL *url, GF_ObjectManager *odm, GF_Node *n)
 	return 1;
 }
 
+void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
+{
+	if (!scene->is_dynamic_scene) return;
+
+	gf_sc_lock(scene->root_od->term->compositor, 1);
+	if (scene->selected_service_id != service_id) {
+		scene->selected_service_id = service_id;
+		scene->audio_url.OD_ID = 0;
+		scene->visual_url.OD_ID = 0;
+		scene->text_url.OD_ID = 0;
+		scene->dims_url.OD_ID = 0;
+		//reset clock since we change service IDs
+		scene->dyn_ck = NULL;
+		gf_scene_regenerate(scene);
+	}
+	gf_sc_lock(scene->root_od->term->compositor, 0);
+}
+
 void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 {
 	char *url;
@@ -1282,6 +1318,12 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	if (!odm->codec) {
 		if (!odm->addon) return;
 	}
+
+	if (scene->selected_service_id != odm->OD->ServiceID) {
+		gf_scene_set_service_id(scene, odm->OD->ServiceID);
+		return;
+	}
+
 
 	if (odm->state) {
 		if (check_odm_deactivate(&scene->audio_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO")) ) return;

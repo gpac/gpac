@@ -238,6 +238,10 @@ static GF_ESD *MP2TS_GetESD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 ds
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AC3;
 		break;
+	case GF_M2TS_AUDIO_EC3:
+		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_EAC3;
+		break;
 	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 	default:
 		gf_odf_desc_del((GF_Descriptor *)esd);
@@ -445,6 +449,18 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 
 	gf_mx_p(m2ts->mx);
 
+	count = gf_list_count(m2ts->ts->programs);
+	for (j=0; j<count; j++) {
+		GF_M2TS_Program *ts_prog = gf_list_get(m2ts->ts->programs, j);
+		//PMT not yet received, do not allow playback regulation
+		if (!ts_prog->pcr_pid) {
+			m2ts->ts->file_regulate = 0;
+			gf_mx_v(m2ts->mx);
+			return;
+		}
+	}
+
+
 	found = 0;
 	count = gf_list_count(m2ts->ts->requested_pids);
 	for (i=0; i<count; i++) {
@@ -489,12 +505,6 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 			for (j=0; j<count; j++) {
 				ts_prog = gf_list_get(m2ts->ts->programs, j);
 				if (ts_prog->number==req_prog->id) {
-					//PMT not yet received
-					if (!ts_prog->pcr_pid) {
-						gf_mx_v(m2ts->mx);
-						return;
-					}
-
 					MP2TS_SetupProgram(m2ts, ts_prog, 0, 0);
 					found++;
 					gf_free(req_prog->fragment);

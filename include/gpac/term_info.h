@@ -57,6 +57,9 @@ u32 gf_term_object_subscene_type(GF_Terminal *term, GF_ObjectManager *odm);
 /*select given object when stream selection is available*/
 void gf_term_select_object(GF_Terminal *term, GF_ObjectManager *odm);
 
+/*select service by given ID for multiplexed services (MPEG-2 TS)*/
+void gf_term_select_service(GF_Terminal *term, GF_ObjectManager *odm, u32 service_id);
+
 typedef struct
 {
 	GF_ObjectDescriptor *od;

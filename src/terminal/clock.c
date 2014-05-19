@@ -302,6 +302,9 @@ void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontin
 	}
 	j=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &j))) {
+		if (odm->state==GF_ODM_STATE_STOP)
+			continue;
+
 		i=0;
 		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 			if (ch->clock == ck) {

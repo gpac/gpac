@@ -854,6 +854,14 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		}
 	}
 
+	/*if object codec is prefered one, auto select*/
+	if (odm->parentscene && odm->parentscene->is_dynamic_scene 
+		&& odm->codec && (odm->codec->oti==odm->term->prefered_audio_codec_oti)
+		&& (odm->parentscene->selected_service_id == odm->OD->ServiceID)
+	) {
+		gf_scene_select_object(odm->parentscene, odm);
+	}
+
 	gf_term_lock_net(odm->term, GF_FALSE);
 }
 
@@ -931,8 +939,10 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 		GF_ObjectManager *parent_od = odm->parentscene->root_od;
 		if (parent_od->net_service && (gf_list_count(parent_od->net_service->Clocks)==1)) {
 			ck = (GF_Clock*)gf_list_get(parent_od->net_service->Clocks, 0);
-			esd->OCRESID = ck->clockID;
-			goto clock_setup;
+			if (!odm->OD->ServiceID || (odm->OD->ServiceID==ck->service_id)) {
+				esd->OCRESID = ck->clockID;
+				goto clock_setup;
+			}
 		}
 	}
 
@@ -968,6 +978,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	ck = gf_clock_attach(ck_namespace, scene, clockID, esd->ESID, flag);
 	if (!ck) return GF_OUT_OF_MEM;
 	esd->OCRESID = ck->clockID;
+	ck->service_id = odm->OD->ServiceID;
 	/*special case for non-dynamic scenes forcing clock share of all subscene, we assign the
 	parent scene clock to the first clock created in the sunscenes*/
 	if (scene->root_od->parentscene && scene->root_od->parentscene->force_single_timeline && !scene->root_od->parentscene->dyn_ck)

@@ -27,6 +27,7 @@
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
+#include <gpac/term_info.h>
 #include <gpac/constants.h>
 #include <gpac/options.h>
 #include <gpac/network.h>
@@ -348,6 +349,14 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 		}
 	} else {
 		gf_term_set_threading(term, GF_TERM_THREAD_SINGLE);
+	}
+
+	term->prefered_audio_codec_oti = 0;
+	sOpt = gf_cfg_get_key(term->user->config, "Systems", "DefAudioOTI");
+	if (sOpt) {
+		if (sscanf(sOpt, "0x%x", & term->prefered_audio_codec_oti) != 1) {
+			sscanf(sOpt, "%x", & term->prefered_audio_codec_oti);
+		}
 	}
 
 	/*default data timeout is 20 sec*/
@@ -1800,6 +1809,13 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 			addon_info.external_URL = com + 4;
 			addon_info.timeline_id = -1;
 			gf_scene_register_associated_media(term->root_scene, &addon_info);
+			return GF_OK;
+		}
+		//new add-on
+		if (term->root_scene && !strncmp(com, "select ", 7)) {
+			u32 idx = atoi(com+7);
+			gf_term_select_object(term, gf_list_get(term->root_scene->resources, idx));
+			return GF_OK;
 		}
 		return GF_OK;
 	}

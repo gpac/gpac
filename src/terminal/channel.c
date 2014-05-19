@@ -926,10 +926,10 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			pcr_diff = (s32) OCR_TS - (s32) ck;
 			pcr_pcrprev_diff = pcr_diff - ch->prev_pcr_diff;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u got OCR %u (original TS "LLU") - diff %d%s\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, pcr_diff, (hdr.m2ts_pcr==2) ? " - PCR Discontinuity flag" : "" ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u got OCR %u (original TS "LLU") - diff %d%s (diff with prev OCR %d)\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, pcr_diff, (hdr.m2ts_pcr==2) ? " - PCR Discontinuity flag" : "", pcr_pcrprev_diff));
 
 			//PCR loop or disc - use 10 sec as a threshold - it may happen that video is sent up to 4 or 5 seconds ahead of the PCR in some systems
-			if (ch->prev_pcr_diff && ABS(pcr_pcrprev_diff) > 10000) {
+			if (ch->IsClockInit && ABS(pcr_pcrprev_diff) > 10000) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u detected PCR %s (PCR diff %d - last PCR diff %d)\n", ch->esd->ESID, gf_clock_real_time(ch->clock), (hdr.m2ts_pcr==2) ? "discontinuity" : "looping", pcr_diff, ch->prev_pcr_diff));
 				gf_clock_discontinuity(ch->clock, ch->odm->parentscene, (hdr.m2ts_pcr==2) ? GF_TRUE : GF_FALSE);
 
