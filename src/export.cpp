@@ -1676,7 +1676,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_object_subscene_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_select_object) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_select_service) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_toggle_addons) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_object_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_download_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_channel_net_info) )

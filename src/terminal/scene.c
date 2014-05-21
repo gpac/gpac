@@ -1266,6 +1266,25 @@ void gf_scene_regenerate(GF_Scene *scene)
 		gf_term_invalidate_compositor(scene->root_od->term);
 	}
 }
+
+void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons)
+{
+	M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "ADDON_SCENE");
+
+	if (show_addons) {
+		GF_AssociatedContentLocation addon_info;
+		memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
+		addon_info.timeline_id = -100;
+		gf_scene_register_associated_media(scene, &addon_info);
+
+//		gf_sg_vrml_field_copy(&dscene->url, &scene->addon_url, GF_SG_VRML_MFURL);
+
+	} else {
+		gf_sg_vrml_mf_reset(&dscene->url, GF_SG_VRML_MFURL);
+	}
+	gf_node_changed((GF_Node *)dscene, NULL);
+}
+
 #else
 /*!!fixme - we would need an SVG scene in case no VRML support is present !!!*/
 void gf_scene_regenerate(GF_Scene *scene) {}
@@ -1334,7 +1353,6 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 
 	if (!odm->codec && odm->subscene) {
 		M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "ADDON_SCENE");
-
 		gf_sg_vrml_field_copy(&dscene->url, &odm->mo->URLs, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
 		IS_UpdateVideoPos(scene);
@@ -1821,8 +1839,7 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 	mo = gf_scene_get_media_object(scene, &url, GF_MEDIA_OBJECT_SCENE, GF_TRUE);
 
 	if (!mo) return;
-	gf_free(addon->url);
-	addon->url = NULL;
+
 	addon->root_od = mo->odm;
 	mo->odm->addon = addon;
 }
@@ -1841,6 +1858,10 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 		if (addon->timeline_id==addon_info->timeline_id) {
 			if (addon_info->reload_external) {
 				//send message to service handler
+			}
+			//restart addon
+			if (!addon->root_od && addon->timeline_ready) {
+				load_associated_media(scene, addon);
 			}
 			return;
 		}

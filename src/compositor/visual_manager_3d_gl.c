@@ -1121,8 +1121,8 @@ static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *t
 {
 #ifdef GL_MAX_CLIP_PLANES
 	u32 i;
-
 	GF_Matrix inv_mx;
+
 	gf_mx_copy(inv_mx, tr_state->model_matrix);
 	gf_mx_inverse(&inv_mx);
 
@@ -1693,11 +1693,13 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (tr_state->mesh_num_textures && !mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)) {
 		has_tx = 1;
 
+		glMatrixMode(GL_TEXTURE);
 		if (visual->has_tx_matrix) {
-			glMatrixMode(GL_TEXTURE);
 			visual_3d_matrix_load(visual, visual->tx_matrix.m);
-			glMatrixMode(GL_MODELVIEW);
+		} else {
+			glLoadIdentity();
 		}
+		glMatrixMode(GL_MODELVIEW);
 
 
 #if defined(GPAC_USE_OGL_ES)
