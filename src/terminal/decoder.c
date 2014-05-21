@@ -388,6 +388,7 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 	GF_ObjectManager *current_odm = codec->odm;
 	u32 count, curCTS, i, stream_state;
 	Bool scalable_check = 0;
+	s32 cts_diff;
 
 	*nextAU = NULL;
 	*activeChannel = NULL;
@@ -430,6 +431,10 @@ refetch_AU:
 			continue;
 		}
 
+		cts_diff = AU->CTS;
+		cts_diff -= curCTS;
+		if (cts_diff < 0) cts_diff = -cts_diff;
+
 		/*aggregate all AUs with the same timestamp on the base AU and delete the upper layers)*/
 		if (! *nextAU) {
 			if (ch->esd->dependsOnESID) {
@@ -440,7 +445,9 @@ refetch_AU:
 			*nextAU = AU;
 			*activeChannel = ch;
 			curCTS = AU->CTS;
-		} else if (AU->CTS == curCTS) {
+		} 
+		//we allow for +/- 1ms drift due to timestamp rounding when converting to milliseconds units
+		else if (cts_diff<=1) {
 			GF_DBUnit *baseAU = *nextAU;
 			assert(baseAU);
 
@@ -500,9 +507,11 @@ refetch_AU:
 					curCTS = AU->CTS;
 				}
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("AU in enhancement layer DTS "LLD" too early for this AU\n", AU->DTS));
-				if ((*nextAU)->flags & GF_DB_AU_REAGGREGATED)
+				if ((*nextAU)->flags & GF_DB_AU_REAGGREGATED) {
 					scalable_check = 2;
+				} else {
+					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("AU in enhancement layer DTS %d - CTS %d too early for this AU\n", AU->DTS, AU->CTS));
+				}
 			}
 		}
 	}
@@ -897,7 +906,7 @@ GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize)
 		dec->CB->Min = unit_count/3;
 		if (!dec->CB->Min) dec->CB->Min = 1;
 	}
-	if ((dec->type==GF_STREAM_VISUAL) && dec->odm->parentscene->is_dynamic_scene) {
+	if ((dec->type==GF_STREAM_VISUAL) && dec->odm->parentscene->is_dynamic_scene && !dec->odm->parentscene->root_od->addon) {
 		gf_scene_force_size_to_video(dec->odm->parentscene, dec->odm->mo);
 	}
 	return GF_OK;

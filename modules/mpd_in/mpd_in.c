@@ -927,9 +927,12 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 
 	case GF_NET_CHAN_PLAY:
-		/*don't seek if this command is the first PLAY request of objects declared by the subservice*/
-		if (!com->play.initial_broadcast_play) {
+		/*don't seek if this command is the first PLAY request of objects declared by the subservice 
+		not long ago*/
+		if (!com->play.initial_broadcast_play || (com->play.start_range>2.0) ) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Play command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
+
+			idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
 
 			if (!gf_dash_in_period_setup(mpdin->dash) && !com->play.dash_segment_switch && ! mpdin->in_seek) {
 				//Bool skip_seek;
@@ -949,8 +952,9 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			else if (mpdin->in_seek && (com->play.start_range==0)) {
 //				mpdin->in_seek = 0;
 			}
-			else if (gf_dash_in_period_setup(mpdin->dash) && (com->play.start_range==0)) {
-				com->play.start_range = gf_dash_get_playback_start_range(mpdin->dash);
+			else if (gf_dash_in_period_setup(mpdin->dash)) {
+				gf_dash_seek(mpdin->dash, com->play.start_range);
+//				com->play.start_range = gf_dash_get_playback_start_range(mpdin->dash);
 			}
 
 			idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);

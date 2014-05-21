@@ -60,6 +60,9 @@ void gf_term_select_object(GF_Terminal *term, GF_ObjectManager *odm);
 /*select service by given ID for multiplexed services (MPEG-2 TS)*/
 void gf_term_select_service(GF_Terminal *term, GF_ObjectManager *odm, u32 service_id);
 
+/*sets addon on or off (only one addon possible for now). When OFF , the associated service is shut down*/
+void gf_term_toggle_addons(GF_Terminal *term, Bool show_addons);
+
 typedef struct
 {
 	GF_ObjectDescriptor *od;

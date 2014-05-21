@@ -78,6 +78,7 @@ static u32 bench_mode = 0;
 static u32 bench_mode_start = 0;
 static u32 bench_buffer = 0;
 static Bool eos_seen = GF_FALSE;
+static Bool addon_visible = GF_TRUE;
 Bool is_connected = GF_FALSE;
 Bool startup_file = GF_FALSE;
 GF_User user;
@@ -677,6 +678,11 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			if (is_connected)
 				reload = 1;
 			break;
+		case GF_KEY_A:
+			addon_visible = !addon_visible;
+			gf_term_toggle_addons(term, addon_visible);
+			break;
+
 		}
 		break;
 
@@ -800,8 +806,10 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		return 1;
 	}
 	case GF_EVENT_ADDON_DETECTED:
-		if (enable_add_ons)
+		if (enable_add_ons) {
 			fprintf(stderr, "Media Addon %s detected - enabling it\n", evt->addon_connect.addon_url);
+			addon_visible = 1;
+		}
 		return enable_add_ons;
 	}
 	return 0;

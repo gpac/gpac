@@ -1654,6 +1654,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 #ifndef GPAC_USE_OGL_ES
 	if (txh->tx_io->yuv_shader) {
+		GLint loc;
 		/*use our program*/
 		Bool is_rect = txh->tx_io->flags & TX_IS_RECT;
 		compositor->visual->current_texture_glsl_program = is_rect ? compositor->visual->yuv_rect_glsl_program : compositor->visual->yuv_glsl_program;
@@ -1662,6 +1663,17 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		GL_CHECK_ERR
 
 		glEnable(txh->tx_io->gl_type);
+
+		loc = glGetUniformLocation(compositor->visual->current_texture_glsl_program, "width");
+		if (loc >=0) {
+			GLfloat w = (GLfloat) txh->width;
+			glUniform1f(loc, w);
+		}
+		loc = glGetUniformLocation(compositor->visual->current_texture_glsl_program, "height");
+		if (loc >= 0) {
+			GLfloat h = (GLfloat) txh->height;
+			glUniform1f(loc, h);
+		}
 
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);

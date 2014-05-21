@@ -1147,6 +1147,7 @@ GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable);
 Bool gf_codec_is_scene_or_image(GF_Codec *codec);
 
 void gf_scene_set_service_id(GF_Scene *scene, u32 service_id);
+void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons);
 
 #ifdef __cplusplus
 }

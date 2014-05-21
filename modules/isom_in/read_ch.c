@@ -184,7 +184,8 @@ next_segment:
 				gf_isom_reset_fragment_info(read->mov, 0);
 				for (i=0; i<count; i++) {
 					ISOMChannel *ch = gf_list_get(read->channels, i);
-					ch->sample_num = 0;
+					if (ch)
+						ch->sample_num = 0;
 				}
 
 				//cannot open file, don't change our state
@@ -364,10 +365,12 @@ static void init_reader(ISOMChannel *ch)
 			ch->last_state = (ch->owner->frag_type==1) ? GF_OK : GF_EOS;
 			ch->to_init = 0;
 		}
-	} else {
-		ch->sample_time = ch->sample->DTS;
-		ch->to_init = 0;
-	}
+		return;
+	} 
+
+	ch->sample_time = ch->sample->DTS;
+	ch->to_init = 0;
+
 	if (ch->disable_seek) {
 		ch->current_slh.decodingTimeStamp = ch->sample->DTS;
 		ch->current_slh.compositionTimeStamp = ch->sample->DTS + ch->sample->CTS_Offset;

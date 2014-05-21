@@ -446,7 +446,7 @@ typedef struct
 {
 	u32 command_type;
 	LPNETCHANNEL channel;
-
+	//negative values mean "timeline is ready no need for timing message"
 	s32 timeline_id;
 	const char *external_URL;
 	Bool is_announce, is_splicing;

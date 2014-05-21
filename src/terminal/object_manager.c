@@ -64,6 +64,10 @@ void gf_odm_del(GF_ObjectManager *odm)
 	MediaControlStack *media_ctrl;
 #endif
 
+	if (odm->addon && (odm->addon->root_od==odm)) {
+		odm->addon->root_od = NULL;
+		odm->addon->started = 0;
+	}
 	/*make sure we are not in the media queue*/
 	gf_term_lock_media_queue(odm->term, GF_TRUE);
 	gf_list_del_item(odm->term->media_queue, odm);

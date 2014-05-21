@@ -1807,7 +1807,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 			GF_AssociatedContentLocation addon_info;
 			memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
 			addon_info.external_URL = com + 4;
-			addon_info.timeline_id = -1;
+			addon_info.timeline_id = -100;
 			gf_scene_register_associated_media(term->root_scene, &addon_info);
 			return GF_OK;
 		}

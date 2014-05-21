@@ -124,6 +124,14 @@ void gf_term_select_service(GF_Terminal *term, GF_ObjectManager *odm, u32 servic
 }
 
 
+/*select given object when stream selection is available*/
+GF_EXPORT
+void gf_term_toggle_addons(GF_Terminal *term, Bool show_addons)
+{
+	if (!term || !term->root_scene || !term->root_scene->is_dynamic_scene) return;
+	gf_scene_toggle_addons(term->root_scene, show_addons);
+}
+
 GF_EXPORT
 u32 gf_term_get_current_service_id(GF_Terminal *term)
 {
