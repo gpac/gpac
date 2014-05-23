@@ -203,13 +203,13 @@ static u8 is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry
 	Bool is_hevc = 0;
 	u32 nalu_size_field = 0;
 	GF_BitStream *bs;
-	if (entry->avc_config) nalu_size_field = entry->avc_config->config->nal_unit_size;
-	else if (entry->svc_config) nalu_size_field = entry->svc_config->config->nal_unit_size;
-	else if (entry->hevc_config) {
+	if (entry->avc_config && entry->avc_config->config) nalu_size_field = entry->avc_config->config->nal_unit_size;
+	else if (entry->svc_config && entry->svc_config->config) nalu_size_field = entry->svc_config->config->nal_unit_size;
+	else if (entry->hevc_config && entry->hevc_config->config) {
 		nalu_size_field = entry->hevc_config->config->nal_unit_size;
 		is_hevc = 1;
 	}
-	else if (entry->shvc_config) {
+	else if (entry->shvc_config && entry->shvc_config->config) {
 		nalu_size_field = entry->shvc_config->config->nal_unit_size;
 		is_hevc = 1;
 	}
