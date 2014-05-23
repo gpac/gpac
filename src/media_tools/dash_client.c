@@ -947,16 +947,48 @@ retry:
 	return e;
 }
 
-static void gf_dash_get_timeline_duration(GF_MPD_SegmentTimeline *timeline, u32 *nb_segments, Double *max_seg_duration)
+static void gf_dash_get_timeline_duration(GF_MPD *mpd, GF_MPD_Period *period, GF_MPD_SegmentTimeline *timeline, u32 timescale, u32 *nb_segments, Double *max_seg_duration)
 {
 	u32 i, count;
+	u64 period_duration, start_time, dur;
+	if (period->duration) {
+		period_duration = period->duration;
+	} else {
+		period_duration = mpd->media_presentation_duration - period->start;
+	}
+	period_duration *= timescale;
+	period_duration /= 1000;
 
 	*nb_segments = 0;
 	if (max_seg_duration) *max_seg_duration = 0;
+	start_time = 0;
+	dur = 0;
 	count = gf_list_count(timeline->entries);
 	for (i=0; i<count; i++) {
 		GF_MPD_SegmentTimelineEntry *ent = gf_list_get(timeline->entries, i);
-		*nb_segments += 1 + ent->repeat_count;
+		if ((s32)ent->repeat_count >=0) {
+			*nb_segments += 1 + ent->repeat_count;
+			if (ent->start_time) {
+				start_time = ent->start_time;
+				dur = (1 + ent->repeat_count) * ent->duration;
+			} else {
+				dur += (1 + ent->repeat_count) * ent->duration;
+			}
+		} else {
+			u32 nb_seg = 0;
+			if (i+1<count) {
+				GF_MPD_SegmentTimelineEntry *ent2 = gf_list_get(timeline->entries, i+1);
+				if (ent2->start_time>0) {
+					nb_seg = (u32) ( (ent2->start_time - start_time - dur) / ent->duration);
+					dur += nb_seg * ent->duration;
+				}
+			} 
+			if (!nb_seg) {
+				nb_seg = (u32) ( (period_duration - start_time) / ent->duration );
+				dur += nb_seg * ent->duration;
+			}
+			*nb_segments += nb_seg;
+		}
 		if (max_seg_duration && (*max_seg_duration < ent->duration)) *max_seg_duration = ent->duration;
 	}
 }
@@ -994,7 +1026,7 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 		if (! timescale) timescale=1;
 
 		if (timeline) {
-			gf_dash_get_timeline_duration(timeline, nb_segments, max_seg_duration);
+			gf_dash_get_timeline_duration(mpd, period, timeline, timescale, nb_segments, max_seg_duration);
 			if (max_seg_duration) *max_seg_duration /= timescale;
 		} else {
 			if (segments)
@@ -1045,7 +1077,7 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 	}
 
 	if (timeline) {
-		gf_dash_get_timeline_duration(timeline, nb_segments, max_seg_duration);
+		gf_dash_get_timeline_duration(mpd, period, timeline, timescale, nb_segments, max_seg_duration);
 		if (max_seg_duration) *max_seg_duration /= timescale;
 	} else {
 		if (max_seg_duration) {

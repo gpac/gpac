@@ -58,6 +58,7 @@ typedef struct
 {
 	u64 start_time;
 	u32 duration; /*MANDATORY*/
+	//may be -1 (FIXME this needs further testing)
 	u32 repeat_count;
 } GF_MPD_SegmentTimelineEntry;
 

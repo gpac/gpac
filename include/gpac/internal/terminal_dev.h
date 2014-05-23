@@ -600,6 +600,7 @@ struct _es_channel
 	struct _decoding_buffer * AU_buffer_first, * AU_buffer_last;
 	/*static decoding buffer for pull mode*/
 	struct _decoding_buffer * AU_buffer_pull;
+	char *pull_reaggregated_buffer;
 	/*channel buffer flag*/
 	Bool BufferOn;
 	/*min level to trigger buffering on, max to trigger it off. */

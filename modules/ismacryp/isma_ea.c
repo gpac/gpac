@@ -405,7 +405,7 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 
 	if (!priv->crypt) return GF_SERVICE_ERROR;
 
-	if (!evt->is_encrypted || !evt->IV_size) return GF_OK;
+	if (!evt->is_encrypted || !evt->IV_size || !evt->saiz) return GF_OK;
 
 	cyphertext_bs = gf_bs_new(evt->data, evt->data_size, GF_BITSTREAM_READ);
 	sai_bs = gf_bs_new(evt->sai, evt->saiz, GF_BITSTREAM_READ);

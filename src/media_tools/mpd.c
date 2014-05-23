@@ -302,18 +302,18 @@ static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_MPD *mpd, GF_XML
 	while ( (child = gf_list_enum(root->content, &i))) {
 		if (!gf_mpd_valid_child(mpd, child)) continue;
 		if (!strcmp(child->name, "S")) {
-			GF_MPD_SegmentTimelineEntry *segent;
-			GF_SAFEALLOC(segent, GF_MPD_SegmentTimelineEntry);
-			gf_list_add(seg->entries, segent);
+			GF_MPD_SegmentTimelineEntry *seg_tl_ent;
+			GF_SAFEALLOC(seg_tl_ent, GF_MPD_SegmentTimelineEntry);
+			gf_list_add(seg->entries, seg_tl_ent);
 
 			j = 0;
 			while ( (att = gf_list_enum(child->attributes, &j)) ) {
 				if (!strcmp(att->name, "t"))
-					segent->start_time = gf_mpd_parse_long_int(att->value);
+					seg_tl_ent->start_time = gf_mpd_parse_long_int(att->value);
 				else if (!strcmp(att->name, "d"))
-					segent->duration = gf_mpd_parse_int(att->value);
+					seg_tl_ent->duration = gf_mpd_parse_int(att->value);
 				else if (!strcmp(att->name, "r"))
-					segent->repeat_count = gf_mpd_parse_int(att->value);
+					seg_tl_ent->repeat_count = (u32) gf_mpd_parse_int(att->value);
 			}
 		}
 	}
