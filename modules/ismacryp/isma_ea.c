@@ -472,7 +472,8 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	subsample_count = 0;
 	BSO = 0;
 	while (gf_bs_available(cyphertext_bs)) {
-		assert(subsample_count < sai->subsample_count);
+		if (subsample_count >= sai->subsample_count)
+			break;
 
 		/*read clear data and write it to pleintext bitstream*/
 		if (max_size < sai->subsamples[subsample_count].bytes_clear_data) {

@@ -715,7 +715,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 			for (i = 0; i < gf_list_count(traf->sai_offsets); i++) {
 				saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(traf->sai_offsets, i);
-				if (saio->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
+				/*if we have only 1 sai_offsets, assume that its type is cenc*/
+				if ((saio->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) || (gf_list_count(traf->sai_offsets) == 1)) {
 					offset = saio->offsets[0] + moof_offset;
 					nb_saio = saio->entry_count;
 					break;
@@ -723,7 +724,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			}
 			for (i = 0; i < gf_list_count(traf->sai_sizes); i++) {
 				saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(traf->sai_sizes, i);
-				if (saiz->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
+				/*if we have only 1 sai_sizes, assume that its type is cenc*/
+				if ((saiz->aux_info_type == GF_4CC('c', 'e', 'n', 'c'))  || (gf_list_count(traf->sai_sizes) == 1)) {
 					break;
 				}
 			}

@@ -432,6 +432,17 @@ static GF_Err gf_mpd_parse_content_component(GF_List *container, GF_XMLNode *roo
 
 static GF_Err gf_mpd_parse_descriptor(GF_List *container, GF_XMLNode *root)
 {
+	GF_XMLAttribute *att;
+	GF_MPD_Descriptor *mpd_desc;
+	u32 i = 0;
+
+	GF_SAFEALLOC(mpd_desc, GF_MPD_Descriptor);
+	while ( (att = gf_list_enum(root->attributes, &i)) ) {
+		if (!strcmp(att->name, "schemeIdUri")) mpd_desc->scheme_id_uri = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "value")) mpd_desc->value = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "id")) mpd_desc->id = gf_mpd_parse_string(att->value);
+	}
+	gf_list_add(container, mpd_desc);
 	return GF_OK;
 }
 
@@ -477,7 +488,13 @@ static void gf_mpd_parse_common_representation(GF_MPD *mpd, GF_MPD_CommonAttribu
 			gf_mpd_parse_content_component(com->audio_channels, child);
 		}
 		else if (!strcmp(child->name, "ContentProtection")) {
-			gf_mpd_parse_content_component(com->content_protection, child);
+			gf_mpd_parse_descriptor(com->content_protection, child);
+		}
+		else if (!strcmp(child->name, "EssentialProperty")) {
+			gf_mpd_parse_descriptor(com->essential_properties, child);
+		}
+		else if (!strcmp(child->name, "SupplementalProperty")) {
+			gf_mpd_parse_descriptor(com->supplemental_properties, child);
 		}
 	}
 }
@@ -486,6 +503,8 @@ static void gf_mpd_init_common_attributes(GF_MPD_CommonAttributes *com)
 {
 	com->audio_channels = gf_list_new();
 	com->content_protection = gf_list_new();
+	com->essential_properties = gf_list_new();
+	com->supplemental_properties = gf_list_new();
 	com->frame_packing = gf_list_new();
 }
 static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XMLNode *root)
@@ -790,8 +809,11 @@ void gf_mpd_segment_template_free(void *_item)
 }
 void gf_mpd_descriptor_free(void *item)
 {
-	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] descriptor not implemented\n"));
-	gf_free(item);
+	GF_MPD_Descriptor *mpd_desc = (GF_MPD_Descriptor*) item;
+	if (mpd_desc->id) gf_free(mpd_desc->id);
+	if (mpd_desc->scheme_id_uri) gf_free(mpd_desc->scheme_id_uri);
+	if (mpd_desc->value) gf_free(mpd_desc->value);
+	gf_free(mpd_desc);
 }
 
 void gf_mpd_content_component_free(void *item)
@@ -811,6 +833,8 @@ void gf_mpd_common_attributes_free(GF_MPD_CommonAttributes *ptr)
 	gf_mpd_del_list(ptr->frame_packing, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->audio_channels, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->content_protection, gf_mpd_descriptor_free, 0);
+	gf_mpd_del_list(ptr->essential_properties, gf_mpd_descriptor_free, 0);
+	gf_mpd_del_list(ptr->supplemental_properties, gf_mpd_descriptor_free, 0);
 }
 
 void gf_mpd_representation_free(void *_item)
