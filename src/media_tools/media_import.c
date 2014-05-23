@@ -7010,6 +7010,8 @@ static void m2ts_create_track(GF_TSImport *tsimp, u32 mtype, u32 stype, u32 oti,
 		import->esd->slConfig->timestampResolution = 90000;
 
 		gf_isom_set_track_enabled(import->dest, tsimp->track, 1);
+		//we store annexB format until we rewrite the sample, so don't inspect NALUs
+		gf_isom_set_nalu_extract_mode(import->dest, tsimp->track, GF_ISOM_NALU_EXTRACT_INSPECT);
 
 		if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, tsimp->track);
 		gf_isom_new_mpeg4_description(import->dest, tsimp->track, import->esd, NULL, NULL, &di);
