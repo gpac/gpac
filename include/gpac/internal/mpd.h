@@ -46,6 +46,7 @@ typedef struct
 {
 	char *scheme_id_uri; /*MANDATORY*/
 	char *value;
+	char *id;
 } GF_MPD_Descriptor;
 
 /*TODO*/
@@ -178,7 +179,8 @@ typedef enum
 	GF_List *frame_packing;	\
 	GF_List *audio_channels;	\
 	GF_List *content_protection;	\
- 
+	GF_List *essential_properties;	\
+	GF_List *supplemental_properties;	\
 
 typedef struct {
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS

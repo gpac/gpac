@@ -2753,6 +2753,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 		for (j=0; j<gf_list_count(set->representations); j++) {
 			Double dur;
 			u32 nb_seg, k;
+			Bool cp_supported;
 			GF_MPD_Representation *rep = gf_list_get(set->representations, j);
 			gf_dash_get_segment_duration(rep, set, period, dash->mpd, &nb_seg, &dur);
 			if (dur>seg_dur) seg_dur = dur;
@@ -2792,6 +2793,35 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 						continue;
 					}
 				}
+			}
+
+			for (k=0; k<gf_list_count(rep->essential_properties); k++) {
+				GF_MPD_Descriptor *mpd_desc = gf_list_get(rep->essential_properties, k);
+				//we don't know any defined scheme for now
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation with unrecognized EssentialProperty %s - ignoring because not supported\n", mpd_desc->scheme_id_uri));
+				rep->playback.disabled = 1;
+				break;
+			}
+			if (rep->playback.disabled) {
+				continue;
+			}
+
+			cp_supported = 1;
+			for (k=0; k<gf_list_count(rep->content_protection); k++) {
+				GF_MPD_Descriptor *mpd_desc = gf_list_get(rep->content_protection, k);
+				//we don't know any defined scheme for now
+				if (strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:mp4protection:2011")) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Representation with unrecognized ContentProtection %s\n", mpd_desc->scheme_id_uri));
+					cp_supported = 0;
+				} else {
+					cp_supported = 1;
+					break;
+				}
+			}
+			if (!cp_supported) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation with no supported ContentProtection\n"));
+				rep->playback.disabled = 1;
+				continue;
 			}
 
 			rep->playback.disabled = 0;
@@ -3138,7 +3168,7 @@ exit:
 static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 {
 	GF_MPD_Period *period;
-	u32 rep_i, group_i, nb_groups_ok;
+	u32 rep_i, group_i, j, nb_groups_ok;
 	/*setup all groups*/
 	gf_dash_setup_groups(dash);
 
@@ -3148,6 +3178,8 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 		u32 active_rep, nb_rep;
 		const char *mime_type;
 		u32 nb_rep_ok = 0;
+		Bool disabled = 0;
+		Bool cp_supported = 0;
 		GF_DASH_Group *group = gf_list_get(dash->groups, group_i);
 
 		if ((dash->debug_group_index>=0) && (group_i != (u32) dash->debug_group_index)) {
@@ -3165,6 +3197,35 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet with xlink:href to %s - ignoring because not supported\n", group->adaptation_set->xlink_href));
 			continue;
 		}
+
+		for (j=0; j<gf_list_count(group->adaptation_set->essential_properties); j++) {
+			GF_MPD_Descriptor *mpd_desc = gf_list_get(group->adaptation_set->essential_properties, j);
+			//we don't know any defined scheme for now
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet with unrecognized EssentialProperty %s - ignoring because not supported\n", mpd_desc->scheme_id_uri));
+			disabled = 1;
+			break;
+		}
+		if (disabled) {
+			continue;
+		}
+
+		cp_supported = 1;
+		for (j=0; j<gf_list_count(group->adaptation_set->content_protection); j++) {
+			GF_MPD_Descriptor *mpd_desc = gf_list_get(group->adaptation_set->content_protection, j);
+			//we don't know any defined scheme for now
+			if (strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:mp4protection:2011")) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AdaptationSet with unrecognized ContentProtection %s\n", mpd_desc->scheme_id_uri));
+				cp_supported = 0;
+			} else {
+				cp_supported = 1;
+				break;
+			}
+		}
+		if (!cp_supported) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet with no supported ContentProtection - ignoring\n"));
+			continue;
+		}
+
 
 		/*translate from single-indexed file to SegmentList*/
 		gf_dash_setup_single_index_mode(group);
