@@ -44,7 +44,7 @@ typedef struct __mpd_module
 	GF_InputService *plug;
 
 	GF_DashClient *dash;
-
+	Bool closed;
 	/*interface to mpd parser*/
 	GF_DASHFileIO dash_io;
 
@@ -586,6 +586,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 				} else {
 					group->service_connected = 1;
 				}
+				if (mpdin->closed) return GF_OK;
 			}
 		}
 
@@ -839,6 +840,8 @@ GF_Err MPD_CloseService(GF_InputService *plug)
 	GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
 	assert( mpdin );
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Close Service (%p) request from terminal\n", mpdin->service));
+
+	mpdin->closed = 1;
 
 	if (mpdin->dash)
 		gf_dash_close(mpdin->dash);

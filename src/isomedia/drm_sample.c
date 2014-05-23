@@ -1034,6 +1034,9 @@ Bool gf_isom_cenc_has_saiz_saio(GF_SampleTableBox *stbl, GF_TrackFragmentBox *tr
 			break;
 		}
 	}
+	//assume CENC if we find a senc box - hack for some ultraviolet files :(
+	if (!has_saiz && (traf->sample_encryption || traf->piff_sample_encryption) )
+		has_saiz = GF_TRUE;
 
 	for (i = 0; i < gf_list_count(sai_offsets); i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(sai_offsets, i);
@@ -1042,6 +1045,10 @@ Bool gf_isom_cenc_has_saiz_saio(GF_SampleTableBox *stbl, GF_TrackFragmentBox *tr
 			break;
 		}
 	}
+
+	//assume CENC if we find a senc box - hack for some ultraviolet files :(
+	if (!has_saio && (traf->sample_encryption || traf->piff_sample_encryption) )
+		has_saio = GF_TRUE;
 
 	return (has_saiz && has_saio);
 }

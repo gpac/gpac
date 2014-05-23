@@ -450,9 +450,15 @@ refetch_AU:
 		else if (cts_diff<=1) {
 			GF_DBUnit *baseAU = *nextAU;
 			assert(baseAU);
-
-			baseAU->data = gf_realloc(baseAU->data, baseAU->dataLength + AU->dataLength);
-			memcpy(baseAU->data + baseAU->dataLength , AU->data, AU->dataLength);
+			if ((*activeChannel)->is_pulling && !(baseAU->flags & GF_DB_AU_REAGGREGATED)) {
+				char *base_au = baseAU->data;
+				baseAU->data = gf_malloc(baseAU->dataLength + AU->dataLength);
+				memcpy(baseAU->data, base_au, baseAU->dataLength);
+				memcpy(baseAU->data + baseAU->dataLength , AU->data, AU->dataLength);
+			} else {
+				baseAU->data = gf_realloc(baseAU->data, baseAU->dataLength + AU->dataLength);
+				memcpy(baseAU->data + baseAU->dataLength , AU->data, AU->dataLength);
+			}
 			baseAU->dataLength += AU->dataLength;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %d reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*activeChannel)->esd->ESID));
 			gf_es_drop_au(ch);

@@ -1348,6 +1348,8 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	Bool comp, is_new_data;
 	GF_Err e, state;
 	GF_SLHeader slh;
+	char *reagg_au;
+	u32 reagg_au_size;
 
 	if (ch->es_state != GF_ESM_ES_RUNNING) return NULL;
 
@@ -1390,6 +1392,9 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	}
 
 	memset(&slh, 0, sizeof(GF_SLHeader));
+
+	reagg_au = ch->AU_buffer_pull->data;
+	reagg_au_size = ch->AU_buffer_pull->dataLength;
 
 	e = gf_term_channel_get_sl_packet(ch->service, ch, (char **) &ch->AU_buffer_pull->data, &ch->AU_buffer_pull->dataLength, &slh, &comp, &state, &is_new_data);
 	if (e) state = e;
@@ -1467,7 +1472,14 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 			}
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) at %d - Dispatch Pull AU DTS %d - CTS %d - size %d - RAP %d\n", ch->esd->ESID, ch->odm->net_service->url, gf_clock_real_time(ch->clock), ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, ch->AU_buffer_pull->flags&1 ? 1 : 0));
+
+		ch->AU_buffer_pull->flags = 0;
+		if (ch->IsRap) ch->AU_buffer_pull->flags |= GF_DB_AU_RAP;
+	} else if (reagg_au) {
+		ch->AU_buffer_pull->data = reagg_au;
+		ch->AU_buffer_pull->dataLength = reagg_au_size;
 	}
+
 
 	/*this may happen in file streaming when data has not arrived yet, in which case we discard the AU*/
 	if (!ch->AU_buffer_pull->data) {
@@ -1477,8 +1489,6 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	ch->AU_buffer_pull->CTS = (u32) ch->CTS;
 	ch->AU_buffer_pull->DTS = (u32) ch->DTS;
 	ch->AU_buffer_pull->PaddingBits = ch->padingBits;
-	ch->AU_buffer_pull->flags = 0;
-	if (ch->IsRap) ch->AU_buffer_pull->flags |= GF_DB_AU_RAP;
 
 	if (ch->pull_forced_buffer) {
 		assert(ch->BufferOn);
@@ -1520,6 +1530,10 @@ void gf_es_drop_au(GF_Channel *ch)
 
 	if (ch->is_pulling) {
 		if (ch->AU_buffer_pull) {
+			//we have made a copy of the AU !!
+			if (ch->AU_buffer_pull->flags & GF_DB_AU_REAGGREGATED) {
+				gf_free(ch->AU_buffer_pull->data);
+			}
 			gf_term_channel_release_sl_packet(ch->service, ch);
 			ch->AU_buffer_pull->data = NULL;
 			ch->AU_buffer_pull->dataLength = 0;
