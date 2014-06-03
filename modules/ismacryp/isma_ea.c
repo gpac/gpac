@@ -469,71 +469,78 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 		}
 	}
 
-	subsample_count = 0;
-	BSO = 0;
-	while (gf_bs_available(cyphertext_bs)) {
-		if (subsample_count >= sai->subsample_count)
-			break;
+	//sub-sample encryption
+	if (sai->subsample_count) {
+		subsample_count = 0;
+		BSO = 0;
+		while (gf_bs_available(cyphertext_bs)) {
+			if (subsample_count >= sai->subsample_count)
+				break;
 
-		/*read clear data and write it to pleintext bitstream*/
-		if (max_size < sai->subsamples[subsample_count].bytes_clear_data) {
-			buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_clear_data);
-			max_size = sai->subsamples[subsample_count].bytes_clear_data;
-		}
-		gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
-		gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
-
-		/*now read encrypted data, decrypted it and write to pleintext bitstream*/
-		if (max_size < sai->subsamples[subsample_count].bytes_encrypted_data) {
-			buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_encrypted_data);
-			max_size = sai->subsamples[subsample_count].bytes_encrypted_data;
-		}
-		gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-		gf_crypt_decrypt(priv->crypt, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-		gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-
-		/*update IV for next subsample*/
-		if (priv->is_cenc) {
-			BSO += sai->subsamples[subsample_count].bytes_encrypted_data;
-			if (gf_bs_available(cyphertext_bs)) {
-				char next_IV[17];
-				u64 prev_block_count, salt_portion, block_count_portion;
-				u32 remain;
-				GF_BitStream *bs, *tmp;
-
-				prev_block_count = BSO / 16;
-				remain = BSO % 16;
-				tmp = gf_bs_new((const char *)sai->IV, 16, GF_BITSTREAM_READ);
-				bs = gf_bs_new(next_IV, 17, GF_BITSTREAM_WRITE);
-				gf_bs_write_u8(bs, 0);	/*begin of counter*/
-
-				salt_portion = gf_bs_read_u64(tmp);
-				block_count_portion = gf_bs_read_u64(tmp);
-				/*reset the block counter to zero without affecting the other 64 bits of the IV*/
-				if (prev_block_count > 0xFFFFFFFFFFFFFFFFULL - block_count_portion)
-					block_count_portion = prev_block_count - (0xFFFFFFFFFFFFFFFFULL - block_count_portion) - 1;
-				else
-					block_count_portion +=  prev_block_count;
-				gf_bs_write_u64(bs, salt_portion);
-				gf_bs_write_u64(bs, block_count_portion);
-
-				gf_crypt_set_state(priv->crypt, next_IV, 17);
-				/*decrypt remain bytes*/
-				if (remain) {
-					char dummy[20];
-					gf_crypt_decrypt(priv->crypt, dummy, remain);
-				}
-
-				gf_bs_del(bs);
-				gf_bs_del(tmp);
+			/*read clear data and write it to pleintext bitstream*/
+			if (max_size < sai->subsamples[subsample_count].bytes_clear_data) {
+				buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_clear_data);
+				max_size = sai->subsamples[subsample_count].bytes_clear_data;
 			}
+			gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
+			gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
+
+			/*now read encrypted data, decrypted it and write to pleintext bitstream*/
+			if (max_size < sai->subsamples[subsample_count].bytes_encrypted_data) {
+				buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_encrypted_data);
+				max_size = sai->subsamples[subsample_count].bytes_encrypted_data;
+			}
+			gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+			gf_crypt_decrypt(priv->crypt, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+			gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+
+			/*update IV for next subsample*/
+			if (priv->is_cenc) {
+				BSO += sai->subsamples[subsample_count].bytes_encrypted_data;
+				if (gf_bs_available(cyphertext_bs)) {
+					char next_IV[17];
+					u64 prev_block_count, salt_portion, block_count_portion;
+					u32 remain;
+					GF_BitStream *bs, *tmp;
+
+					prev_block_count = BSO / 16;
+					remain = BSO % 16;
+					tmp = gf_bs_new((const char *)sai->IV, 16, GF_BITSTREAM_READ);
+					bs = gf_bs_new(next_IV, 17, GF_BITSTREAM_WRITE);
+					gf_bs_write_u8(bs, 0);	/*begin of counter*/
+
+					salt_portion = gf_bs_read_u64(tmp);
+					block_count_portion = gf_bs_read_u64(tmp);
+					/*reset the block counter to zero without affecting the other 64 bits of the IV*/
+					if (prev_block_count > 0xFFFFFFFFFFFFFFFFULL - block_count_portion)
+						block_count_portion = prev_block_count - (0xFFFFFFFFFFFFFFFFULL - block_count_portion) - 1;
+					else
+						block_count_portion +=  prev_block_count;
+					gf_bs_write_u64(bs, salt_portion);
+					gf_bs_write_u64(bs, block_count_portion);
+
+					gf_crypt_set_state(priv->crypt, next_IV, 17);
+					/*decrypt remain bytes*/
+					if (remain) {
+						char dummy[20];
+						gf_crypt_decrypt(priv->crypt, dummy, remain);
+					}
+
+					gf_bs_del(bs);
+					gf_bs_del(tmp);
+				}
+			}
+
+			subsample_count++;
 		}
-
-		subsample_count++;
+		if (buffer) gf_free(buffer);
+		gf_bs_get_content(pleintext_bs, &buffer, &evt->data_size);
 	}
-
-	if (buffer) gf_free(buffer);
-	gf_bs_get_content(pleintext_bs, &buffer, &evt->data_size);
+	//full sample encryption
+	else {
+		gf_bs_read_data(cyphertext_bs, buffer, evt->data_size);
+		gf_crypt_decrypt(priv->crypt, buffer, evt->data_size);
+	}
 	memmove(evt->data, buffer, evt->data_size);
 
 exit:
@@ -545,6 +552,7 @@ exit:
 	if (sai) gf_free(sai);
 	return e;
 }
+
 
 static GF_Err IPMP_Process(GF_IPMPTool *plug, GF_IPMPEvent *evt)
 {

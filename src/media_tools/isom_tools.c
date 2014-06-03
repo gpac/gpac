@@ -1960,6 +1960,32 @@ typedef struct
 	u32 temporal_id;
 } SHVCTrackInfo;
 
+static GF_Err gf_isom_adjust_visual_info(GF_ISOFile *file, u32 track) {
+	u32 width, height, i, j;
+	GF_HEVCConfig *shvccfg;
+	HEVCState hevc;
+
+	shvccfg = gf_isom_shvc_config_get(file, track, 1);
+	if (!shvccfg) return GF_OK;
+
+	for (i = 0; i < gf_list_count(shvccfg->param_array); i++) {
+		GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(shvccfg->param_array, i);
+		for (j = 0; j < gf_list_count(ar->nalus); j++) {
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+			if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
+				gf_hevc_get_sps_info_with_state(&hevc, sl->data, sl->size, NULL, &width, &height, NULL, NULL);
+			}
+			else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
+				gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
+			}
+		}
+	}
+
+	if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
+	
+	return gf_isom_set_visual_info(file, track, 1, width, height);
+}
+
 GF_EXPORT
 GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_extractors)
 {
@@ -2139,6 +2165,8 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('s','b','a','s'), track_id);
 
 				gf_isom_set_nalu_extract_mode(file, sti[j].track_num, GF_ISOM_NALU_EXTRACT_INSPECT);
+
+				gf_isom_adjust_visual_info(file, sti[j].track_num);
 
 				//get lower layer
 				for (k=j; k>0; k--) {

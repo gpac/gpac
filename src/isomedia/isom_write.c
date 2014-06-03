@@ -3382,6 +3382,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (avc1->hevc_config)
 				a = (GF_Box *) avc1->hevc_config;
+			else if (avc1->shvc_config)
+				a = (GF_Box *) avc1->shvc_config;
 			else if (avc1->svc_config)
 				a = (GF_Box *) avc1->svc_config;
 			else
@@ -3394,6 +3396,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (avc2->hevc_config)
 				a = (GF_Box *) avc2->hevc_config;
+			else if (avc2->shvc_config)
+				a = (GF_Box *) avc2->shvc_config;
 			else if (avc2->svc_config)
 				a = (GF_Box *) avc2->svc_config;
 			else

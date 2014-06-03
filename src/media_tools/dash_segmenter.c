@@ -4711,7 +4711,8 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				sep = strrchr(szOutName, '.');
 				if (sep) sep[0] = 0;
 
-				dash_opts.variable_seg_rad_name = 0;
+				/*in scalable case: seg_name is variable*/
+				dash_opts.variable_seg_rad_name = (nb_dash_inputs != nb_inputs) ? 1 : 0;
 				if (seg_name) {
 					if (strstr(seg_name, "%s")) {
 						sprintf(szSolvedSegName, seg_name, szOutName);
