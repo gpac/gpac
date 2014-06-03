@@ -1380,35 +1380,44 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			}
 		}
 
-		subsample_count = 0;
-		while (gf_bs_available(cyphertext_bs)) {
-			assert(subsample_count < sai->subsample_count);
+		//sub-sample encryption
+		if (sai->subsample_count) {
+			subsample_count = 0;
+			while (gf_bs_available(cyphertext_bs)) {
+				assert(subsample_count < sai->subsample_count);
 
-			/*read clear data and write it to pleintext bitstream*/
-			if (max_size < sai->subsamples[subsample_count].bytes_clear_data) {
-				buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_clear_data);
-				max_size = sai->subsamples[subsample_count].bytes_clear_data;
+				/*read clear data and write it to pleintext bitstream*/
+				if (max_size < sai->subsamples[subsample_count].bytes_clear_data) {
+					buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_clear_data);
+					max_size = sai->subsamples[subsample_count].bytes_clear_data;
+				}
+				gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
+				gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
+
+				/*now read encrypted data, decrypted it and write to pleintext bitstream*/
+				if (max_size < sai->subsamples[subsample_count].bytes_encrypted_data) {
+					buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_encrypted_data);
+					max_size = sai->subsamples[subsample_count].bytes_encrypted_data;
+				}
+				gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+				gf_crypt_decrypt(mc, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+				gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+
+				/*update IV for next subsample*/
+				if (tci->enc_type == 2) {
+					BSO += sai->subsamples[subsample_count].bytes_encrypted_data;
+					if (gf_bs_available(cyphertext_bs))
+						cenc_resync_IV(mc, (char *)sai->IV, BSO, tci->IV_size, GF_FALSE);
+				}
+
+				subsample_count++;
 			}
-			gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
-			gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
-
-			/*now read encrypted data, decrypted it and write to pleintext bitstream*/
-			if (max_size < sai->subsamples[subsample_count].bytes_encrypted_data) {
-				buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_encrypted_data);
-				max_size = sai->subsamples[subsample_count].bytes_encrypted_data;
-			}
-			gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-			gf_crypt_decrypt(mc, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-			gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-
-			/*update IV for next subsample*/
-			if (tci->enc_type == 2) {
-				BSO += sai->subsamples[subsample_count].bytes_encrypted_data;
-				if (gf_bs_available(cyphertext_bs))
-					cenc_resync_IV(mc, (char *)sai->IV, BSO, tci->IV_size, GF_FALSE);
-			}
-
-			subsample_count++;
+		}
+		//full sample encryption
+		else {
+			gf_bs_read_data(cyphertext_bs, buffer,samp->dataLength);
+			gf_crypt_decrypt(mc, buffer, samp->dataLength);
+			gf_bs_write_data(pleintext_bs, buffer, samp->dataLength);
 		}
 
 		gf_isom_cenc_samp_aux_info_del(sai);
