@@ -716,10 +716,10 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 #ifndef GPAC_DISABLE_3D
 		gf_mx_init(tr_state->model_matrix);
 #endif
-		/*collect sensors*/
+		/*collect sensors but not anchors*/
 		l = children = ((M_CompositeTexture2D*)ap->texture)->children;
 		while (l) {
-			GF_SensorHandler *hsens = compositor_mpeg4_get_sensor_handler(l->node);
+			GF_SensorHandler *hsens = compositor_mpeg4_get_sensor_handler_ex(l->node, GF_TRUE);
 			if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
 			l = l->next;
 		}

@@ -697,6 +697,7 @@ Bool compositor_mpeg4_is_sensor_node(GF_Node *node);
 /*returns associated sensor handler from traversable stack (the node handler is always responsible for creation/deletion)
 returns NULL if not a sensor or sensor is not activated*/
 GF_SensorHandler *compositor_mpeg4_get_sensor_handler(GF_Node *n);
+GF_SensorHandler *compositor_mpeg4_get_sensor_handler_ex(GF_Node *n, Bool skip_anchors);
 
 /*rendering modes*/
 enum
