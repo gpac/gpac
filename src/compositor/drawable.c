@@ -649,6 +649,9 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 {
 	DrawableContext *ctx;
 	Bool skipFill;
+#ifndef GPAC_DISABLE_3D
+	Bool texture_ready=0;
+#endif
 	assert(tr_state->visual);
 
 	/*switched-off geometry nodes are not drawn*/
@@ -711,10 +714,13 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 			if (!ctx->aspect.fill_texture->transparent && (alpha==0xFF) && !ctx->aspect.fill_texture->compute_gradient_matrix && (drawable->flags & DRAWABLE_HYBGL_INIT)) {
 				ctx->flags |= CTX_HYBOGL_NO_CLEAR;
 			}
-			//if texture is transparent, we need to redraw all object below, wether they changed ot not, because we have erased this part of the canvas
+			//otherwise, we need to redraw all object below, wether they changed ot not, because we have erased this part of the canvas
 			else {
 				ctx->flags |= CTX_TEXTURE_DIRTY;
 			}
+			//wait untill we have something to draw to decide that the texture is ready, otherwise we will not clear the canvas when texture is ready
+			if (ctx->aspect.fill_texture->compute_gradient_matrix || ctx->aspect.fill_texture->data)
+				texture_ready=1;
 		}
 #endif
 	}
@@ -730,13 +736,22 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 			u8 alpha = GF_COL_A(ctx->aspect.line_color);
 			if (!ctx->aspect.line_texture->transparent && (alpha==0xFF) && !ctx->aspect.line_texture->compute_gradient_matrix && (drawable->flags & DRAWABLE_HYBGL_INIT))
 				ctx->flags |= CTX_HYBOGL_NO_CLEAR;
-			//if texture is transparent, we need to redraw all object below, wether they changed ot not, bacause we have erased this part of the canvas
+			//otherwise, we need to redraw all object below, wether they changed ot not, bacause we have erased this part of the canvas
 			else
 				ctx->flags |= CTX_TEXTURE_DIRTY;
+
+			//wait untill we have something to draw to decide that the texture is ready, otherwise we will not clear the canvas when texture is ready
+			if (ctx->aspect.line_texture->compute_gradient_matrix || ctx->aspect.line_texture->data)
+				texture_ready=1;
 		}
 #endif
 	}
-	drawable->flags |= DRAWABLE_HYBGL_INIT;
+	
+#ifndef GPAC_DISABLE_3D
+	//from now on, we won't clear the canvas when updating this texture (unless transparent, cf above)
+	if (texture_ready)
+		drawable->flags |= DRAWABLE_HYBGL_INIT;
+#endif
 
 	/*not clear in the spec: what happens when a transparent node is in form/layout ?? this may
 	completely break layout of children. We consider the node should be drawn*/

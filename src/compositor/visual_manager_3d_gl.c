@@ -302,7 +302,7 @@ static char *default_glsl_vertex = "\
 		gfNormal = normalize(gl_NormalMatrix * gl_Normal);\
 		gl_ClipVertex = gl_Vertex;\
 		gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\
-		TexCoord = gl_MultiTexCoord0.st;\
+		TexCoord = vec2(gl_TextureMatrix[0] * gl_MultiTexCoord0);\
 	}";
 
 static char *glsl_view_anaglyph = "\
@@ -399,7 +399,6 @@ static char *glsl_yuv_shader = "\
 		vec2 texc;\n\
 		vec3 yuv, rgb;\n\
 		texc = TexCoord.st;\n\
-		texc.y = 1.0 - texc.y;\n\
 		yuv.x = texture2D(y_plane, texc).r;\n\
 		yuv.y = texture2D(u_plane, texc).r;\n\
 		yuv.z = texture2D(v_plane, texc).r;\n\
@@ -431,7 +430,6 @@ static char *glsl_yuv_rect_shader_strict = "\
 		vec2 texc;\n\
 		vec3 yuv, rgb;\n\
 		texc = TexCoord.st;\n\
-		texc.y = 1.0 - texc.y;\n\
 		texc.x *= width;\n\
 		texc.y *= height;\n\
 		yuv.x = texture2DRect(y_plane, texc).r;\n\
@@ -463,7 +461,6 @@ static char *glsl_yuv_rect_shader_relaxed= "\
 		vec2 texc;\n\
 		vec3 yuv, rgb;\n\
 		texc = TexCoord.st;\n\
-		texc.y = 1.0 - texc.y;\n\
 		texc.x *= width;\n\
 		texc.y *= height;\n\
 		yuv.x = texture2DRect(y_plane, texc).r;\n\
