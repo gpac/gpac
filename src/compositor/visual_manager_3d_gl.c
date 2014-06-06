@@ -296,34 +296,14 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 
 static char *default_glsl_vertex = "\
 	varying vec3 gfNormal;\
-	varying vec3 gfView;\
 	varying vec2 TexCoord;\
 	void main(void)\
 	{\
-		gfView = vec3(gl_ModelViewMatrix * gl_Vertex);\
 		gfNormal = normalize(gl_NormalMatrix * gl_Normal);\
+		gl_ClipVertex = gl_Vertex;\
 		gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\
 		TexCoord = gl_MultiTexCoord0.st;\
 	}";
-
-#ifdef GPAC_UNUSED_FUNC
-static char *default_glsl_lighting = "\
-	varying vec3 gfNormal;\
-	varying vec3 gfView;\
-	varying vec2 TexCoord;\
-	void gpac_lighting (void)  \
-	{  \
-	   vec3 L = normalize(gl_LightSource[0].position.xyz - gfView);\
-	   vec3 E = normalize(-gfView); \
-	   vec3 R = normalize(-reflect(L,gfNormal));\
-	   vec4 Iamb = gl_FrontLightProduct[0].ambient;\
-	   vec4 Idiff = gl_FrontLightProduct[0].diffuse * max(dot(gfNormal,L), 0.0);\
-	   Idiff = clamp(Idiff, 0.0, 1.0);\
-	   vec4 Ispec = gl_FrontLightProduct[0].specular * pow(max(dot(R,E),0.0),0.3*gl_FrontMaterial.shininess);\
-	   Ispec = clamp(Ispec, 0.0, 1.0);\
-	   gl_FragColor = gl_FrontLightModelProduct.sceneColor + Iamb + Idiff + Ispec;\
-	}";
-#endif /*GPAC_UNUSED_FUNC*/
 
 static char *glsl_view_anaglyph = "\
 	uniform sampler2D gfView1;\
