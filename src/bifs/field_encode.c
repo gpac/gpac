@@ -196,7 +196,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	break;
 
 	case GF_SG_VRML_SFNODE:
-		return gf_bifs_enc_node(codec, *((GF_Node **)field->far_ptr), field->NDTtype, bs);
+		return gf_bifs_enc_node(codec, *((GF_Node **)field->far_ptr), field->NDTtype, bs, node);
 
 	case GF_SG_VRML_SFSCRIPT:
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -278,7 +278,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			e = gf_bifs_enc_sf_field(codec, bs, node, &sffield);
 		} else {
 			assert(list);
-			e = gf_bifs_enc_node(codec, list->node, field->NDTtype, bs);
+			e = gf_bifs_enc_node(codec, list->node, field->NDTtype, bs, node);
 
 			/*activate QP*/
 			if (list->node->sgprivate->tag == TAG_MPEG4_QuantizationParameter) {
@@ -545,7 +545,7 @@ Bool BE_NodeIsUSE(GF_BifsEncoder * codec, GF_Node *node)
 	return 0;
 }
 
-GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_BitStream *bs)
+GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_BitStream *bs, GF_Node *parent_node)
 {
 	u32 NDTBits, node_type, node_tag, BVersion, node_id;
 	const char *node_name;
@@ -554,6 +554,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	GF_Err e;
 
 	assert(codec->info);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[BIFS] Encode node %s\n", gf_node_get_class_name(node) ));
 
 	/*NULL node is a USE of maxID*/
 	if (!node) {
@@ -603,7 +604,14 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 		if (node_type) break;
 
 		BVersion += 1;
-		if (BVersion > GF_BIFS_NUM_VERSION) return codec->LastError = GF_BIFS_UNKNOWN_VERSION;
+		if (BVersion > GF_BIFS_NUM_VERSION) {
+			if (parent_node) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[BIFS] Cannot encode node %s as a child of %s\n", gf_node_get_class_name(node), gf_node_get_class_name(parent_node) ));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[BIFS] Cannot encode node %s in the SFWorldNode context\n", gf_node_get_class_name(node) ));
+			}
+			return codec->LastError = GF_BIFS_UNKNOWN_VERSION;
+		}
 	}
 	if (BVersion==2 && node_type==1) {
 		GF_Proto *proto = ((GF_ProtoInstance *)node)->proto_interface;
