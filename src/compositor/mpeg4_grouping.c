@@ -69,7 +69,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		} else {
 			child = ((GF_ParentNode *)node)->children;
 			while (child) {
-				hsens = compositor_mpeg4_get_sensor_handler(child->node);
+				hsens = compositor_mpeg4_get_sensor_handler_ex(child->node, GF_TRUE);
 				if (hsens) {
 					if (!group->sensors) group->sensors = gf_list_new();
 					gf_list_add(group->sensors, hsens);
@@ -241,7 +241,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 		} else {
 			list = ((GF_ParentNode *)node)->children;
 			while (list) {
-				hsens = compositor_mpeg4_get_sensor_handler(list->node);
+				hsens = compositor_mpeg4_get_sensor_handler_ex(list->node, GF_TRUE);
 				if (hsens) {
 					if (!group->sensors) group->sensors = gf_list_new();
 					gf_list_add(group->sensors, hsens);
@@ -446,7 +446,7 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 
 			l = ((GF_ParentNode*)node)->children;
 			while (l) {
-				hsens = compositor_mpeg4_get_sensor_handler(l->node);
+				hsens = compositor_mpeg4_get_sensor_handler_ex(l->node, GF_TRUE);
 				if (hsens) {
 					group->flags |= GROUP_HAS_SENSORS;
 					break;
@@ -497,7 +497,7 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 
 		l = ((GF_ParentNode*)node)->children;
 		while (l) {
-			hsens = compositor_mpeg4_get_sensor_handler(l->node);
+			hsens = compositor_mpeg4_get_sensor_handler_ex(l->node, GF_TRUE);
 			if (hsens && hsens->IsEnabled(l->node))
 				gf_list_add(tr_state->vrml_sensors, hsens);
 
@@ -690,7 +690,8 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 		} else {
 			l = ((GF_ParentNode *)node)->children;
 			while (l) {
-				if (compositor_mpeg4_is_sensor_node(l->node)) {
+				GF_SensorHandler *hsens = compositor_mpeg4_get_sensor_handler_ex(l->node, GF_TRUE);
+				if (hsens) {
 					group->flags |= GROUP_HAS_SENSORS;
 					break;
 				}
@@ -720,7 +721,7 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 		/*add sensor(s) to traversing state*/
 		l = ((GF_ParentNode *)node)->children;
 		while (l) {
-			hsens = compositor_mpeg4_get_sensor_handler(l->node);
+			hsens = compositor_mpeg4_get_sensor_handler_ex(l->node, GF_TRUE);
 			if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
 			l = l->next;
 		}

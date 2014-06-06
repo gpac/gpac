@@ -1364,15 +1364,21 @@ void compositor_init_visibility_sensor(GF_Compositor *compositor, GF_Node *node)
 
 GF_SensorHandler *compositor_mpeg4_get_sensor_handler(GF_Node *n)
 {
+	return compositor_mpeg4_get_sensor_handler_ex(n, GF_FALSE);
+}
+GF_SensorHandler *compositor_mpeg4_get_sensor_handler_ex(GF_Node *n, Bool skip_anchors)
+{
 	GF_SensorHandler *hs;
 
 	switch (gf_node_get_tag(n)) {
 	/*anchor is not considered as a child sensor node when picking sensors*/
 	case TAG_MPEG4_Anchor:
+		if (skip_anchors) return NULL;
 		hs = gf_sc_anchor_get_handler(n);
 		break;
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Anchor:
+		if (skip_anchors) return NULL;
 		hs = gf_sc_anchor_get_handler(n);
 		break;
 #endif
