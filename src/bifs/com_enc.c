@@ -227,7 +227,7 @@ static GF_Err BE_GlobalQuantizer(GF_BifsEncoder * codec, GF_Command *com, GF_Bit
 	if (!gf_list_count(com->command_fields)) return GF_OK;
 	inf = (GF_CommandField *)gf_list_get(com->command_fields, 0);
 	if (inf->new_node) ((M_QuantizationParameter *)inf->new_node)->isLocal = 0;
-	e = gf_bifs_enc_node(codec, inf->new_node, NDT_SFWorldNode, bs);
+	e = gf_bifs_enc_node(codec, inf->new_node, NDT_SFWorldNode, bs, NULL);
 	if (e) return e;
 
 	/*reset global QP*/
@@ -326,7 +326,7 @@ GF_Err BE_NodeInsert(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *bs)
 		GF_BIFS_WRITE_INT(codec, bs, inf->pos, 8, "pos", NULL);
 		break;
 	}
-	return gf_bifs_enc_node(codec, inf->new_node, NDT, bs);
+	return gf_bifs_enc_node(codec, inf->new_node, NDT, bs, NULL);
 }
 
 GF_Err BE_IndexInsert(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *bs)
@@ -368,7 +368,7 @@ GF_Err BE_IndexInsert(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *bs)
 
 	/*rescale the MFField and parse the SFField*/
 	if (field.fieldType==GF_SG_VRML_MFNODE) {
-		return gf_bifs_enc_node(codec, inf->new_node, field.NDTtype, bs);
+		return gf_bifs_enc_node(codec, inf->new_node, field.NDTtype, bs, com->node);
 	} else {
 		return gf_bifs_enc_sf_field(codec, bs, com->node, &sffield);
 	}
@@ -412,7 +412,7 @@ GF_Err BE_NodeReplace(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *bs)
 	if (!gf_list_count(com->command_fields)) return GF_OK;
 	inf = (GF_CommandField *)gf_list_get(com->command_fields, 0);
 	GF_BIFS_WRITE_INT(codec, bs, gf_node_get_id(com->node) - 1, codec->info->config.NodeIDBits, "NodeID", NULL);
-	return gf_bifs_enc_node(codec, inf->new_node, NDT_SFWorldNode, bs);
+	return gf_bifs_enc_node(codec, inf->new_node, NDT_SFWorldNode, bs, NULL);
 }
 
 GF_Err BE_FieldReplace(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *bs)
@@ -475,7 +475,7 @@ GF_Err BE_IndexFieldReplace(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream
 	}
 
 	if (field.fieldType == GF_SG_VRML_MFNODE) {
-		e = gf_bifs_enc_node(codec, inf->new_node, field.NDTtype, bs);
+		e = gf_bifs_enc_node(codec, inf->new_node, field.NDTtype, bs, com->node);
 	} else {
 		memcpy(&sffield, &field, sizeof(GF_FieldInfo));
 		sffield.fieldType = gf_sg_vrml_get_sf_type(field.fieldType);
@@ -606,13 +606,13 @@ GF_Err BE_EncProtoList(GF_BifsEncoder *codec, GF_List *protoList, GF_BitStream *
 			count = gf_list_count(proto->node_code);
 			/*BIFS cannot encode empty protos ! We therefore encode a NULL node instead*/
 			if (!count) {
-				gf_bifs_enc_node(codec, NULL, NDT_SFWorldNode, bs);
+				gf_bifs_enc_node(codec, NULL, NDT_SFWorldNode, bs, NULL);
 				GF_BIFS_WRITE_INT(codec, bs, 0, 1, "moreNodes", NULL);
 			} else {
 				for (j=0; j<count; j++) {
 					/*parse all nodes in SFWorldNode table*/
 					node = (GF_Node*)gf_list_get(proto->node_code, j);
-					e = gf_bifs_enc_node(codec, node, NDT_SFWorldNode, bs);
+					e = gf_bifs_enc_node(codec, node, NDT_SFWorldNode, bs, NULL);
 					if (e) goto exit;
 					GF_BIFS_WRITE_INT(codec, bs, (j+1==count) ? 0 : 1, 1, "moreNodes", NULL);
 				}
@@ -755,7 +755,7 @@ GF_Err BE_SceneReplaceEx(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *b
 	}
 
 	/*NULL root is valid for ProtoLibraries*/
-	e = gf_bifs_enc_node(codec, com->node, NDT_SFTopNode, bs);
+	e = gf_bifs_enc_node(codec, com->node, NDT_SFTopNode, bs, NULL);
 	if (e || !gf_list_count(routes) ) {
 		GF_BIFS_WRITE_INT(codec, bs, 0, 1, "hasRoute", NULL);
 		return codec->LastError = e;
@@ -802,7 +802,7 @@ GF_Err BE_SceneReplace(GF_BifsEncoder *codec, GF_SceneGraph *graph, GF_BitStream
 	if (e) goto exit;
 
 	/*NULL root is valid for ProtoLibraries*/
-	e = gf_bifs_enc_node(codec, graph ? graph->RootNode : NULL, NDT_SFTopNode, bs);
+	e = gf_bifs_enc_node(codec, graph ? graph->RootNode : NULL, NDT_SFTopNode, bs, NULL);
 	if (e || !graph || !gf_list_count(graph->Routes) ) {
 		GF_BIFS_WRITE_INT(codec, bs, 0, 1, "hasRoute", NULL);
 		return codec->LastError = e;
