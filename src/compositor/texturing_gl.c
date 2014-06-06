@@ -1188,15 +1188,12 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 		ret = 1;
 	}
 
-	/*WATCHOUT: GL_TEXTURE_RECTANGLE coords are w, h not 1.0, 1.0*/
+	/*WATCHOUT: GL_TEXTURE_RECTANGLE coords are w, h not 1.0, 1.0 (but not with shaders, we do the txcoord conversion in the fragment shader*/
 	if (txh->tx_io->flags & TX_IS_RECT) {
-		if (!for_picking) {
+		if (!for_picking && !txh->tx_io->yuv_shader) {
 			gf_mx_add_scale(mx, INT2FIX(txh->width), INT2FIX(txh->height), FIX_ONE);
-//			gf_mx_add_translation(mx, 0, INT2FIX(txh->height), 0);
+			ret = 1;
 		}
-		/*disable any texture transforms when using RECT textures (no repeat) ??*/
-		/*tx_transform = NULL;*/
-		ret = 1;
 	}
 	else if (txh->tx_io->flags & TX_EMULE_POW2) {
 #ifndef GPAC_DISABLE_3D
@@ -1217,14 +1214,15 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 			GF_Matrix2D mat;
 			M_TextureTransform *tt = (M_TextureTransform *)tx_transform;
 			gf_mx2d_init(mat);
-			/*1- translate*/
-			gf_mx2d_add_translation(&mat, tt->translation.x, tt->translation.y);
-			/*2- rotate*/
-			if (fabs(tt->rotation) > FIX_EPSILON) gf_mx2d_add_rotation(&mat, tt->center.x, tt->center.y, tt->rotation);
-			/*3- centered-scale*/
+
+			/*cf VRML spec:  Tc' = -C × S × R × C × T × Tc*/
 			gf_mx2d_add_translation(&mat, -tt->center.x, -tt->center.y);
 			gf_mx2d_add_scale(&mat, tt->scale.x, tt->scale.y);
+			if (fabs(tt->rotation) > FIX_EPSILON) gf_mx2d_add_rotation(&mat, tt->center.x, tt->center.y, tt->rotation);
 			gf_mx2d_add_translation(&mat, tt->center.x, tt->center.y);
+
+			gf_mx2d_add_translation(&mat, tt->translation.x, tt->translation.y);
+
 			if (ret) {
 				gf_mx_from_mx2d(&tmp, &mat);
 				gf_mx_add_matrix(mx, &tmp);
