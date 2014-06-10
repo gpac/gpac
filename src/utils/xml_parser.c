@@ -23,9 +23,10 @@
  *
  */
 
-
 #include <gpac/xml.h>
 #include <gpac/utf.h>
+
+#ifndef GPAC_DISABLE_CORE_TOOLS
 
 #ifndef GPAC_DISABLE_ZLIB
 /*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
@@ -2059,3 +2060,5 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **specInfo, u32 *specI
 	return GF_OK;
 
 }
+
+#endif

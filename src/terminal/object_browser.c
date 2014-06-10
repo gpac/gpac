@@ -120,7 +120,9 @@ void gf_term_select_service(GF_Terminal *term, GF_ObjectManager *odm, u32 servic
 	if (!term || !odm || !odm->subscene) return;
 	if (!gf_term_check_odm(term, odm)) return;
 
+#ifndef GPAC_DISABLE_VRML
 	gf_scene_set_service_id(odm->subscene, service_id);
+#endif
 }
 
 
@@ -129,7 +131,9 @@ GF_EXPORT
 void gf_term_toggle_addons(GF_Terminal *term, Bool show_addons)
 {
 	if (!term || !term->root_scene || !term->root_scene->is_dynamic_scene) return;
+#ifndef GPAC_DISABLE_VRML
 	gf_scene_toggle_addons(term->root_scene, show_addons);
+#endif
 }
 
 GF_EXPORT

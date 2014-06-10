@@ -1190,10 +1190,12 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 
 	/*WATCHOUT: GL_TEXTURE_RECTANGLE coords are w, h not 1.0, 1.0 (but not with shaders, we do the txcoord conversion in the fragment shader*/
 	if (txh->tx_io->flags & TX_IS_RECT) {
+#ifndef GPAC_DISABLE_3D
 		if (!for_picking && !txh->tx_io->yuv_shader) {
 			gf_mx_add_scale(mx, INT2FIX(txh->width), INT2FIX(txh->height), FIX_ONE);
 			ret = 1;
 		}
+#endif
 	}
 	else if (txh->tx_io->flags & TX_EMULE_POW2) {
 #ifndef GPAC_DISABLE_3D

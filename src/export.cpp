@@ -276,10 +276,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_is_ipv6) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_mobileip_set_callback) )
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
 #pragma comment (linker, EXPORT_SYMBOL(gf_base64_encode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_base64_decode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_base16_encode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_base16_decode) )
+#endif
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_bin128_parse) )
 
@@ -330,6 +332,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_reorder_bidi) )
 #endif
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_new_simple) )
@@ -406,6 +409,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_parse_string) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_parse_bit_sequence) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_detach_root) )
+#endif
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_get_key_name) )
@@ -791,13 +795,15 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_composition_offset_shift) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_scalable_layer) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_last_producer_time_box) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sync_table) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_current_tfdt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_adobe_protection_media) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_adobe_protection_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_group_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_tile_info) )
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sync_table) )
+#endif
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
@@ -1096,9 +1102,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_set_position) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_flags) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_set_flag) )
+
+#ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_load_xlink_resource) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_unload_xlink_resource) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_scenegraph) )
+#endif
+
 #endif
 
 /*ietf.h exports*/
@@ -1332,8 +1342,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mp3_version) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mp3_version_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4a_object_type_name) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_m4a_get_profile) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4a_get_profile_name) )
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+#pragma comment (linker, EXPORT_SYMBOL(gf_m4a_get_profile) )
+#endif
 
 #if !defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)
 /*ismacryp.h exports*/
@@ -1857,9 +1870,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demuxer_setup))
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demuxer_play) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demuxer_close) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_socket) )
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
-#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_socket) )
 
 /*laser.h exports*/
 #ifndef GPAC_DISABLE_LASER
@@ -1878,9 +1891,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_laser_encoder_get_rap) )
 #endif /*GPAC_DISABLE_LASER*/
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
 /*download.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget_with_cache) )
+#endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*to be removed once TS fragmenter is moved to libgpac */
@@ -1892,8 +1907,10 @@
 #endif
 #endif
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_segment_files) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_next_update_time) )
+#endif
 
 /* dvb_mpe.h */
 #ifdef GPAC_ENST_PRIVATE
@@ -1958,7 +1975,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_user_buffer) )
 #endif
 
-#ifndef GPAC_DISABLE_VTT
+#ifndef GPAC_DISABLE_ISOM_WRITE
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_js_addCue) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_js_removeCues) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_parse_cues_from_data) )

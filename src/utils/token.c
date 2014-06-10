@@ -23,6 +23,8 @@
  *
  */
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 #include <gpac/token.h>
 
 static GFINLINE s32 gf_tok_is_char_in_set(const char TestChar, const char *TestSet)
@@ -131,3 +133,4 @@ s32 gf_token_find(const char *Buffer, u32 Start, u32 Size, const char *Pattern)
 	return -1;
 }
 
+#endif 

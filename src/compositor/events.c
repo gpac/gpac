@@ -2024,9 +2024,9 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	return ret;
 }
 
-#ifndef GPAC_DISABLE_VRML
 void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n)
 {
+#ifndef GPAC_DISABLE_VRML
 	GF_Node *par;
 	M_KeyNavigator *kn;
 
@@ -2048,8 +2048,8 @@ void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n)
 	if (par) par = gf_node_get_parent(par, 0);
 
 	gf_sc_focus_switch_ring(sr, 0, par, 1);
-}
 #endif
+}
 
 void gf_sc_key_navigator_del(GF_Compositor *sr, GF_Node *n)
 {

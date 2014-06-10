@@ -23,6 +23,8 @@
 *
 */
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 #include <gpac/cache.h>
 #include <gpac/network.h>
 #include <gpac/download.h>
@@ -929,3 +931,5 @@ Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry)
 		return 1;
 	return 0;
 }
+
+#endif

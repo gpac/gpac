@@ -23,6 +23,7 @@
  *
  */
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
 
 #ifdef GPAC_ANDROID
 #include <jni.h>
@@ -768,3 +769,5 @@ Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 	return 0;
 #endif
 }
+
+#endif

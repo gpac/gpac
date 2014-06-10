@@ -23,6 +23,8 @@
  *
  */
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 #include <gpac/config_file.h>
 
 
@@ -565,3 +567,4 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 	return cfg;
 }
 
+#endif

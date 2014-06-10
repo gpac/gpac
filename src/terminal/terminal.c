@@ -1100,7 +1100,9 @@ void gf_term_handle_services(GF_Terminal *term)
 			gf_scene_disconnect(odm->subscene, 0);
 			break;
 		case GF_ODM_ACTION_SCENE_INLINE_RESTART:
+#ifndef GPAC_DISABLE_VRML
 			gf_scene_mpeg4_inline_restart(odm->subscene);
+#endif
 			break;
 		}
 

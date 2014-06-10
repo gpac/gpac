@@ -973,6 +973,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 }
 Bool gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp)
 {
+	return GF_TRUE;
 }
 void gf_term_string_input(GF_Terminal *term, u32 character)
 {

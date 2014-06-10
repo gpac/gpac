@@ -33,6 +33,8 @@
 #include <gpac/tools.h>
 #include <gpac/cache.h>
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 #ifdef GPAC_HAS_SSL
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
@@ -3334,3 +3336,5 @@ const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name)
 	}
 	return NULL;
 }
+
+#endif
