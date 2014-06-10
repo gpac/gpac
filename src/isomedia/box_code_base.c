@@ -8505,7 +8505,7 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 	}
 }
 
-#if 0
+#ifndef GPAC_DISABLE_ISOM_WRITE
 static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 {
 	switch (grouping_type) {
