@@ -23,6 +23,7 @@
  *
  */
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 
@@ -1541,3 +1542,4 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 Seco
 }
 
 
+#endif /*GPAC_DISABLE_CORE_TOOLS*/

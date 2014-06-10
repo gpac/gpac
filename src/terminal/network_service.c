@@ -1203,7 +1203,9 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP Resource] Done retrieving file - resuming playback\n"));
 				if (serv->is_paused) {
 					serv->is_paused = 0;
+#ifndef GPAC_DISABLE_VRML
 					mediacontrol_resume(serv->owner);
+#endif
 				}
 			}
 		}

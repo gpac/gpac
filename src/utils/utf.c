@@ -23,6 +23,8 @@
  *
  */
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 #include <gpac/utf.h>
 
 
@@ -576,3 +578,4 @@ bad_input:
 }
 
 #endif
+#endif /* GPAC_DISABLE_CORE_TOOLS */

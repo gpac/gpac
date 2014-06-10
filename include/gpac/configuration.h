@@ -152,6 +152,18 @@
 #define GPAC_X64
 #endif
 
+/*disables player */
+//#define GPAC_DISABLE_PLAYER
+
+/*disables scene manager */
+//#define GPAC_DISABLE_SMGR
+
+/*disables core tools */
+//#define GPAC_DISABLE_CORE_TOOLS
+
+/*disables core tools */
+//#define GPAC_DISABLE_ZLIB
+
 /*disables SVG scene graph*/
 //#define GPAC_DISABLE_SVG
 
@@ -169,6 +181,7 @@
 
 /*disables LASeR coder*/
 //#define GPAC_DISABLE_LASER
+//#define GPAC_DISABLE_SAF
 
 /*disables BIFS Engine support - TODO - merge DIMS and LASeR into BENG and rename it*/
 //#define GPAC_DISABLE_SENG
@@ -250,6 +263,18 @@
 
 /*disables Timed Text support */
 //#define GPAC_DISABLE_TTXT
+
+/*disables TTML */
+//#define GPAC_DISABLE_TTML
+
+/*disables DASH MPD */
+//#define GPAC_DISABLE_MPD
+
+/*disables HEVC */
+//#define GPAC_DISABLE_HEVC
+
+/*disables VOBSUB */
+//#define GPAC_DISABLE_VOBSUB
 
 #endif		/*_GF_CONFIG_H_*/
 

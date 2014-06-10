@@ -26,6 +26,8 @@
 #include <gpac/base_coding.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 static const char base_64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 GF_EXPORT
@@ -274,3 +276,5 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 }
 
 #endif /*GPAC_DISABLE_ZLIB*/
+
+#endif /* GPAC_DISABLE_CORE_TOOLS*/
