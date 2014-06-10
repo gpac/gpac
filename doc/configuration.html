@@ -267,10 +267,6 @@ Allows to specify default media module (audio/video) per stream type and object 
 where <i>AA</i> is the hexadecimal MPEG-4 streamType value for the codec (04=visual, 05=audio) and <i>BB</i> is the hexadecimal MPEG-4 objectTypeIndication of the media (0x20 = MPEG-4 video, 0x40=MPEG-4 Audio, ...).
 The string is the name of the module to be used (same considerations as other modules, cf introduction).
 </p>
-<b>DefAudioOTI</b> [value: <i>hexa number with 0x prefix</i>]
-<p style="text-indent: 5%">
-Specifies the prefered object type indication in hexa for services offering several audio coding formats.
-</p>
 
 <a name="Compositor"></a>
 <span style="text-decoration: underline;"><b>Section "Compositor"</b></span> <i><a href="#Overview">Back to top</a></i>
@@ -844,6 +840,12 @@ Specifies the number of threads to allocate to the OpenHEVC decoder. Default is 
 <b>ThreadingType</b> [value: <i>frame</i> , <i>wpp</i> , <i>frame+wpp</i> ]
 <p style="text-indent: 5%">
 Specifies the threading type for the openHEVC decoder. Default is frame (wpp disabled).</p>
+<b>CBUnits</b> [value: <i>unsigned integer</i> ]
+<p style="text-indent: 5%">
+Specifies the number of decoded frames in memory before display. Default value is 4.</p>
+<b>PackHFR</b> [value: <i>yes</i>, <i>no</i> ]
+<p style="text-indent: 5%">
+Packs 4 consecutive frames in a single 4x frame.</p>
 
 
 <br/><br/>
