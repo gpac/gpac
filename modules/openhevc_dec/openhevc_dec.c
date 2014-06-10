@@ -184,6 +184,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		ctx->out_size /= 2;
 		ctx->chroma_bpp = ctx->luma_bpp = 8;
 		ctx->conv_to_8bit = 1;
+		ctx->pack_mode = 0;
 	}
 
 	return GF_OK;
@@ -385,12 +386,15 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 	*CTS = (u32) openHevcFrame.frameInfo.nTimeStamp;
 
 	if (!ctx->output_as_8bit) {
-		if ((ctx->luma_bpp>8) || (ctx->chroma_bpp>8)) a_stride *= 2;
+		if ((ctx->luma_bpp>8) || (ctx->chroma_bpp>8)) {
+			a_stride *= 2;
+			ctx->pack_mode = 0;
+		}
 	} else {
 		if (bit_depth>8) {
 			bit_depth=8;
-
 			ctx->conv_to_8bit = 1;
+			ctx->pack_mode = 0;
 		}
 	}
 

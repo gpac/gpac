@@ -2163,7 +2163,7 @@ static void compositor_release_textures(GF_Compositor *compositor, Bool frame_dr
 
 void gf_sc_simulation_tick(GF_Compositor *compositor)
 {
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_SCENEGRAPH
 	GF_SceneGraph *sg;
 #endif
 	GF_List *temp_queue;
@@ -2339,6 +2339,10 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		}
 	}
 #endif
+#endif //GPAC_DISABLE_SVG
+
+
+#ifndef GPAC_DISABLE_SCENEGRAPH
 
 #ifndef GPAC_DISABLE_LOG
 	smil_timing_time = gf_sys_clock();
@@ -2357,7 +2361,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	smil_timing_time = gf_sys_clock() - smil_timing_time;
 #endif
 
-#endif
+#endif //GPAC_DISABLE_SCENEGRAPH
 
 
 #ifndef GPAC_DISABLE_LOG

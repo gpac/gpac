@@ -2532,6 +2532,10 @@ if test "$disable_swf" = "yes" ; then
     echo "SWF import disabled"
     echo "#define GPAC_DISABLE_SWF_IMPORT" >> $TMPH
 fi
+if test "$disable_scenegraph" = "yes" ; then
+    echo "Scene Graph disabled"
+    echo "#define GPAC_DISABLE_SCENEGRAPH" >> $TMPH
+fi
 if test "$disable_scene_stats" = "yes" ; then
     echo "Scene statistics disabled"
     echo "#define GPAC_DISABLE_SCENE_STATS" >> $TMPH
