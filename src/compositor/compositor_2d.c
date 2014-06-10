@@ -29,10 +29,10 @@
 #include "nodes_stacks.h"
 #include <gpac/options.h>
 #include <gpac/internal/terminal_dev.h>
+#include "texturing.h"
 
 #ifdef OPENGL_RASTER
 #include "gl_inc.h"
-#include "texturing.h"
 
 static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color)
 {
@@ -277,6 +277,7 @@ Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, Dr
 	} else {
 		visual_3d_set_state(visual, V3D_STATE_BLEND, 0);
 	}
+#ifndef GPAC_DISABLE_VRML
 	/*ignore texture transform for bitmap*/
 	tr_state->mesh_num_textures = gf_sc_texture_enable(ctx->aspect.fill_texture, tr_state->appear ? ((M_Appearance *)tr_state->appear)->textureTransform : NULL);
 	if (tr_state->mesh_num_textures) {
@@ -296,6 +297,7 @@ Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, Dr
 		tr_state->mesh_num_textures = 0;
 		return 1;
 	}
+#endif
 	return 0;
 }
 

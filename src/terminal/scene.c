@@ -1705,6 +1705,7 @@ Bool gf_scene_is_dynamic_scene(GF_SceneGraph *sg)
 
 void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 {
+#ifndef GPAC_DISABLE_VRML
 	char *url_search;
 	Bool use_old_syntax = 1;
 	GF_Node *n1, *switcher;
@@ -1799,6 +1800,7 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 	evt.type = GF_EVENT_CONNECT;
 	evt.connect.is_connected = 1;
 	gf_term_send_event(scene->root_od->term, &evt);
+#endif
 }
 
 void scene_reset_addon(GF_AddonMedia *addon, Bool disconnect)

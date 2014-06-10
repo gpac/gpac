@@ -391,12 +391,8 @@ GF_WebVTTSampleEntryBox *gf_webvtt_isom_get_description(GF_ISOFile *movie, u32 t
 {
 	GF_WebVTTSampleEntryBox *wvtt;
 	GF_TrackBox *trak;
-	GF_Err e;
 
 	if (!descriptionIndex) return NULL;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_READ);
-	if (e) return NULL;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media) return NULL;
@@ -421,6 +417,7 @@ GF_WebVTTSampleEntryBox *gf_webvtt_isom_get_description(GF_ISOFile *movie, u32 t
 
 GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config)
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	GF_Err e;
 	GF_WebVTTSampleEntryBox *wvtt;
 	GF_TrackBox *trak;
@@ -455,10 +452,14 @@ GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32
 		e = GF_BAD_PARAM;
 	}
 	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname, u32 *outDescriptionIndex)
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 dataRefIndex;
@@ -492,6 +493,9 @@ GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_Tex
 	gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, wvtt);
 	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 #endif /*GPAC_DISABLE_ISOM*/

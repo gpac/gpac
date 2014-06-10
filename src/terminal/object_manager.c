@@ -1976,7 +1976,9 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	if (odm->oci_codec) gf_term_start_codec(odm->oci_codec, 1);
 #endif
 
+#ifndef GPAC_DISABLE_VRML
 	ctrl = gf_odm_get_mediacontrol(odm);
+#endif
 	com.command_type = GF_NET_CHAN_RESUME;
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
@@ -1985,10 +1987,12 @@ void gf_odm_resume(GF_ObjectManager *odm)
 		gf_term_service_command(ch->service, &com);
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting RESUME (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
 
+#ifndef GPAC_DISABLE_VRML
 		/*override speed with MC*/
 		if (ctrl) {
 			gf_clock_set_speed(ch->clock, ctrl->control->mediaSpeed);
 		}
+#endif
 	}
 
 #ifndef GPAC_DISABLE_VRML

@@ -1927,6 +1927,19 @@ GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 /*returns original format type of a protected media file*/
 GF_Err gf_isom_get_original_format_type(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat);
 
+typedef struct
+{
+	u16 bytes_clear_data;
+	u32 bytes_encrypted_data;
+} GF_CENCSubSampleEntry;
+
+typedef struct __cenc_sample_aux_info
+{
+	u8 IV_size; //0, 8 or 16; it MUST NOT be written to file
+	bin128 IV; /*can be 0, 64 or 128 bits - if 64, bytes 0-7 are used and 8-15 are 0-padded*/
+	u16 subsample_count;
+	GF_CENCSubSampleEntry *subsamples;
+} GF_CENCSampleAuxInfo;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*removes protection info (does not perform decryption :), for ISMA, OMA and CENC*/
@@ -1952,20 +1965,6 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u32 AlgorithmID, u8 IV_size, bin128 KID);
 GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, char *buf, u32 len);
 
-
-typedef struct
-{
-	u16 bytes_clear_data;
-	u32 bytes_encrypted_data;
-} GF_CENCSubSampleEntry;
-
-typedef struct __cenc_sample_aux_info
-{
-	u8 IV_size; //0, 8 or 16; it MUST NOT be written to file
-	bin128 IV; /*can be 0, 64 or 128 bits - if 64, bytes 0-7 are used and 8-15 are 0-padded*/
-	u16 subsample_count;
-	GF_CENCSubSampleEntry *subsamples;
-} GF_CENCSampleAuxInfo;
 
 
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type,

@@ -246,6 +246,7 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 		*pixelFormat = cap.cap.valueInt;
 
 		if (mo->odm && mo->odm->parentscene->is_dynamic_scene) {
+#ifndef GPAC_DISABLE_VRML
 			const char *name = gf_node_get_name(gf_event_target_get_node(gf_mo_event_target_get(mo, 0)));
 			if (name && !strcmp(name, "DYN_VIDEO")) {
 				const char *opt;
@@ -273,6 +274,7 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 					gf_node_dirty_set((GF_Node *)back, 0, GF_TRUE);
 				}
 			}
+#endif
 		}
 	}
 	/*get PAR settings*/

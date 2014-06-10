@@ -122,7 +122,9 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 			info.fieldIndex = (u32) -1;
 			if (compositor->focus_text_type>=3) {
 				gf_node_get_field(compositor->focus_node, 0, &info);
+#ifndef GPAC_DISABLE_VRML
 				gf_node_event_out(compositor->focus_node, 0);
+#endif
 			}
 			gf_node_changed(compositor->focus_node, &info);
 		}

@@ -526,10 +526,4 @@ GF_Err swf_to_svg_init(SWFReader *read, u32 swf_flags, Float swf_flatten_angle)
 
 #endif /*GPAC_DISABLE_SWF_IMPORT*/
 
-#else
-GF_Err swf_to_svg_init(SWFReader *read, u32 swf_flags, Float swf_flatten_angle)
-{
-	return GF_NOT_SUPPORTED;
-}
-
 #endif /*GPAC_DISABLE_VRML*/

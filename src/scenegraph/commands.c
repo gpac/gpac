@@ -164,13 +164,13 @@ GF_EXPORT
 GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_offset)
 {
 	GF_Err e;
-	GF_CommandField *inf;
 #ifndef GPAC_DISABLE_VRML
+	GF_CommandField *inf;
 	GF_FieldInfo field;
 	void *slot_ptr;
 	GF_Node *def;
-#endif
 	GF_Node *node;
+#endif
 
 	if (!com || !graph) return GF_BAD_PARAM;
 

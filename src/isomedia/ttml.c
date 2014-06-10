@@ -191,6 +191,8 @@ GF_Err stpp_dump(GF_Box *a, FILE * trace)
 
 #endif /* GPAC_DISABLE_ISOM_DUMP */
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
 GF_Err gf_isom_update_xml_subtitle_description( GF_ISOFile                          *movie,
         u32                                 trackNumber,
         u32                                 descriptionIndex,
@@ -268,6 +270,7 @@ GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie,
 	return e;
 }
 
+#endif 
 
 /* blindly adds text to a sample following 3GPP Timed Text style */
 GF_Err gf_isom_xml_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char *text_data, u32 text_len)

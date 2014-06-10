@@ -1962,8 +1962,9 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		}
 #endif
 
+#ifndef GPAC_DISABLE_VRML
 		compositor_evaluate_envtests(compositor, 0);
-
+#endif
 		//fullscreen was postponed, retry now that the AR has been recomputed
 		if (compositor->fullscreen_postponed) {
 			compositor->fullscreen_postponed = 0;
@@ -2162,7 +2163,9 @@ static void compositor_release_textures(GF_Compositor *compositor, Bool frame_dr
 
 void gf_sc_simulation_tick(GF_Compositor *compositor)
 {
+#ifndef GPAC_DISABLE_SVG
 	GF_SceneGraph *sg;
+#endif
 	GF_List *temp_queue;
 	u32 in_time, end_time, i, count;
 	Bool frame_drawn, has_timed_nodes=GF_FALSE, all_tx_done=GF_TRUE;
