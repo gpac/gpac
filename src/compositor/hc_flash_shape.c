@@ -438,7 +438,11 @@ static void fs_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		if (tr_state->visual->type_3d) return;
 #endif
 		/*finalize*/
+#ifndef GPAC_DISABLE_VRML
 		ctx = drawable_init_context_mpeg4(st->drawable, tr_state);
+#else
+		ctx = NULL;
+#endif
 		if (!ctx) return;
 
 		/*force width to max width used for clipper compute*/

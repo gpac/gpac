@@ -8504,6 +8504,8 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 	}
 	}
 }
+
+#if 0
 static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 {
 	switch (grouping_type) {
@@ -8517,6 +8519,7 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 		return ((GF_DefaultSampleGroupDescriptionEntry *)entry)->length;
 	}
 }
+#endif
 
 GF_Box *sgpd_New()
 {

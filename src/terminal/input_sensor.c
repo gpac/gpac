@@ -971,7 +971,7 @@ void InitStringSensor(GF_Scene *scene, GF_Node *node)
 void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 {
 }
-void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp)
+Bool gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp)
 {
 }
 void gf_term_string_input(GF_Terminal *term, u32 character)

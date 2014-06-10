@@ -2619,6 +2619,7 @@ typedef struct
 GF_EXPORT
 GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec)
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count;
 	u32 defaultDuration, defaultSize, defaultDescriptionIndex, defaultRandomAccess, nb_samp, nb_done;
@@ -2813,6 +2814,9 @@ err_exit:
 	else gf_isom_close(output);
 	gf_set_progress("ISO File Fragmenting", nb_samp, nb_samp);
 	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif /* GPAC_DISABLE_ISOM_WRITE */
 }
 
 

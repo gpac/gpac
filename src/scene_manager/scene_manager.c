@@ -211,6 +211,7 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 
 static Bool node_in_commands_subtree(GF_Node *node, GF_List *commands)
 {
+#ifndef GPAC_DISABLE_VRML
 	u32 i, j, count, nb_fields;
 
 	count = gf_list_count(commands);
@@ -246,11 +247,13 @@ static Bool node_in_commands_subtree(GF_Node *node, GF_List *commands)
 			}
 		}
 	}
+#endif
 	return 0;
 }
 
 static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *commands, Bool *has_modif)
 {
+#ifndef GPAC_DISABLE_VRML
 	u32 i, count, j, nb_fields;
 	GF_CommandField *field, *check_field;
 
@@ -345,6 +348,7 @@ static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *co
 	}
 	/*the command modifies another stream than associated current carousel stream, we have to store it.*/
 	if (has_modif) *has_modif=1;
+#endif
 	return 1;
 }
 

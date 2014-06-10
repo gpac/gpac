@@ -1690,8 +1690,10 @@ void gf_node_dirty_reset(GF_Node *node, Bool reset_children)
 		node->sgprivate->flags &= GF_NODE_INTERNAL_FLAGS;
 		if (reset_children) {
 			dirty_children(node);
+#ifndef GPAC_DISABLE_VRML
 		} else if (node->sgprivate->tag==TAG_MPEG4_Appearance) {
 			gf_node_dirty_reset( ((M_Appearance*)node)->material, 1);
+#endif
 		}
 	}
 }
@@ -1877,7 +1879,7 @@ const char *gf_node_get_class_name(GF_Node *node)
 GF_EXPORT
 u32 gf_sg_node_get_tag_by_class_name(const char *name, u32 ns)
 {
-	u32 tag;
+	u32 tag = TAG_UndefinedNode;
 
 	/* TODO: handle name spaces */
 #ifndef GPAC_DISABLE_VRML
@@ -1896,7 +1898,7 @@ u32 gf_sg_node_get_tag_by_class_name(const char *name, u32 ns)
 	if (tag != TAG_UndefinedNode) return tag;
 #endif
 
-	return 	TAG_UndefinedNode;
+	return 	tag;
 }
 
 GF_EXPORT

@@ -408,6 +408,7 @@ Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
 	if (!ptr1 || !ptr2)
 		return GF_FALSE;
 
+#ifndef GPAC_DISABLE_ISOM_WRITE 
 	bs1 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (grouping_type) {
 		sgpd_write_entry(grouping_type, ptr1, bs1);
@@ -432,7 +433,7 @@ Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
 
 	gf_free(buf1);
 	gf_free(buf2);
-
+#endif
 	return res;
 }
 

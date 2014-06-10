@@ -35,6 +35,7 @@
 #endif
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 #ifdef GPAC_DISABLE_ISOM
 /*we should need a better way to work with sidx when no isom is defined*/
 #define GPAC_DISABLE_MPEG2TS
@@ -2262,6 +2263,7 @@ static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *
 	gf_isom_close(in);
 	return e;
 }
+
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 #ifndef GPAC_DISABLE_MPEG2TS
@@ -4810,5 +4812,6 @@ exit:
 	return e;
 }
 
+#endif /* GPAC_DISABLE_ISOM_WRITE */
 
 

@@ -2252,10 +2252,4 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 
 #endif /*GPAC_DISABLE_SWF_IMPORT*/
 
-#else
-GF_Err swf_to_bifs_init(SWFReader *read)
-{
-	return GF_NOT_SUPPORTED;
-}
-
 #endif /*GPAC_DISABLE_VRML*/
