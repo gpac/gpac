@@ -3604,6 +3604,7 @@ GF_Box *encs_New();
 void meta_del(GF_Box *s);
 void xml_del(GF_Box *s);
 void bxml_del(GF_Box *s);
+void iloc_entry_del(GF_ItemLocationEntry *location);
 void iloc_del(GF_Box *s);
 void pitm_del(GF_Box *s);
 void ipro_del(GF_Box *s);

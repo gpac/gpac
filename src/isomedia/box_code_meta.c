@@ -296,22 +296,28 @@ GF_Box *iloc_New()
 	return (GF_Box *)tmp;
 }
 
+void iloc_entry_del(GF_ItemLocationEntry *location) 
+{
+	u32 j, extent_count;
+	extent_count = gf_list_count(location->extent_entries);
+	for (j = 0; j < extent_count; j++) {
+		GF_ItemExtentEntry *extent = (GF_ItemExtentEntry *)gf_list_get(location->extent_entries, j);
+		gf_free(extent);
+	}
+	gf_list_del(location->extent_entries);
+	gf_free(location);
+}
+
 void iloc_del(GF_Box *s)
 {
-	u32 i, j, item_count, extent_count;
+	u32 i, item_count;
 	GF_ItemLocationBox *ptr = (GF_ItemLocationBox *)s;
 	if (ptr == NULL) return;
 	item_count = gf_list_count(ptr->location_entries);
 	if (item_count) {
 		for (i = 0; i < item_count; i++) {
 			GF_ItemLocationEntry *location = (GF_ItemLocationEntry *)gf_list_get(ptr->location_entries, i);
-			extent_count = gf_list_count(location->extent_entries);
-			for (j = 0; j < extent_count; j++) {
-				GF_ItemExtentEntry *extent = (GF_ItemExtentEntry *)gf_list_get(location->extent_entries, j);
-				gf_free(extent);
-			}
-			gf_list_del(location->extent_entries);
-			gf_free(location);
+			iloc_entry_del(location);
 		}
 		gf_list_del(ptr->location_entries);
 	}
