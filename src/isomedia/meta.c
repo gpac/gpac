@@ -667,7 +667,7 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 			if (iloc->data_reference_index) { }
 
 			gf_list_rem(meta->item_locations->location_entries, i);
-			gf_isom_box_del((GF_Box *)iloc);
+			iloc_entry_del(iloc);
 			break;
 		}
 	}
