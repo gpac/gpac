@@ -227,6 +227,7 @@ void PrintUsage()
 	        "\t-depth:         dumps depthmap (z-buffer) frames\n"
 	        "                   with -avi [times]: dumps depthmap in grayscale .avi\n"
 	        "                   with -bmp: dumps depthmap in grayscale .bmp\n"
+	        "                   with -png: dumps depthmap in grayscale .png\n"
 	        "\t-fps FPS:       specifies frame rate for AVI dumping (default: %f)\n"
 	        "\t-scale s:       scales the visual size (default: 1)\n"
 	        "\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
@@ -1096,6 +1097,7 @@ int main (int argc, char **argv)
 			depth_dump = 1;
 			if (dump_mode==2) dump_mode=7; /* grayscale .bmp depth dump*/
 			else if (dump_mode==1) dump_mode=8; /* .avi depth dump*/
+			else if (dump_mode==11)dump_mode=12;
 			else dump_mode=4;   /*depth dump*/
 		} else if (!strcmp(arg, "-bmp")) {
 			if(depth_dump) dump_mode=7; /*grayscale depth .bmp dump*/

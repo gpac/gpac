@@ -2296,15 +2296,18 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 	/*depthmap-only dump*/
 	if (depth_dump_mode==1) {
-
+		Float *depthp;
+		Float zFar, zNear;
 #ifdef GPAC_USE_OGL_ES
 		return GF_NOT_SUPPORTED;
 #else
 
 		fb->pitch_x = 0;
-		fb->pitch_y = compositor->vp_width; /* multiply by 4 if float depthbuffer */
+		fb->pitch_y = compositor->vp_width;
 
 		fb->video_buffer = (char*)gf_malloc(sizeof(char)* fb->pitch_y * fb->height);
+		//read as float
+		depthp = (Float*)gf_malloc(sizeof(Float)* fb->pitch_y * fb->height);
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
 
 #ifndef GPAC_USE_TINYGL
@@ -2312,10 +2315,17 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		//glPixelTransferf(GL_DEPTH_BIAS, FIX2FLT(compositor->OGLDepthOffset) );
 #endif
 
-		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, fb->video_buffer);
-		//inversion - to check
-		for (i=0; i<fb->height*fb->width; i++)
-			fb->video_buffer[i] = (char)(255 - (int) fb->video_buffer[i]) ;
+		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_FLOAT, depthp);
+
+		//linearize z buffer, from 0 (zfar) to 1 (znear)
+		zFar = compositor->visual->camera.z_far;
+		zNear = compositor->visual->camera.z_near;
+		for (i=0; i<fb->height*fb->width; i++) {
+			Float res = ( (2.0f * zNear) / (zFar + zNear - depthp[i] * (zFar - zNear)) ) ;
+			fb->video_buffer[i] = (u8) ( 255.0 * (1.0 - res));
+		}
+
+		gf_free(depthp);
 
 #endif	/*GPAC_USE_OGL_ES*/
 	}
