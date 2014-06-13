@@ -417,7 +417,7 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 	case 2:
 		write_bmp(&fb, rad_name, frameNum);
 		break;
-	case 11:
+	case 12:
 		write_png(&fb, rad_name, frameNum);
 		break;
 	case 3:
@@ -739,7 +739,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 				gf_term_process_flush(term);
 			}
 
-			if (dump_mode==4 || dump_mode==7) {
+			if (dump_mode==4 || dump_mode==7 || dump_mode==12) {
 				dump_depth(term, szPath, dump_mode, i+1, NULL, NULL);
 			} else {
 				dump_frame(term, url, dump_mode, i+1, NULL, NULL);

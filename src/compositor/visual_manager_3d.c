@@ -197,8 +197,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 		z_far = max(vp_size.x, vp_size.y) * max(width, height) / (2*min(1, ar)*tg(fov/2)) )
 
 	to choose a z_far so that the size is more than one pixel, then z_far' = z_far/n_pixels*/
-	//if (tr_state->camera->z_far<=0)
-	{
+	if (tr_state->camera->z_far<0) {
 		Fixed ar = gf_divfix(tr_state->vp_size.x, tr_state->vp_size.y);
 		if (ar>FIX_ONE) ar = FIX_ONE;
 		tr_state->camera->z_far = gf_muldiv(
