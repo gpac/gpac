@@ -2342,7 +2342,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif //GPAC_DISABLE_SVG
 
 
-#ifndef GPAC_DISABLE_SCENEGRAPH
+#ifndef GPAC_DISABLE_SVG
 
 #ifndef GPAC_DISABLE_LOG
 	smil_timing_time = gf_sys_clock();
@@ -2361,7 +2361,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	smil_timing_time = gf_sys_clock() - smil_timing_time;
 #endif
 
-#endif //GPAC_DISABLE_SCENEGRAPH
+#endif //GPAC_DISABLE_SVG
 
 
 #ifndef GPAC_DISABLE_LOG
