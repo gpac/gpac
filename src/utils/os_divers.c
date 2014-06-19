@@ -348,7 +348,7 @@ s32 __gettimeofday(struct timeval *tp, void *tz)
 
 #elif defined(WIN32)
 
-s32 gettimeofday(struct timeval *tp, void *tz)
+static s32 gettimeofday(struct timeval *tp, void *tz)
 {
 	struct _timeb timebuffer;
 
@@ -2178,9 +2178,6 @@ void gf_net_get_ntp(u32 *sec, u32 *frac)
 {
 	u64 frac_part;
 	struct timeval now;
-#ifdef WIN32
-	s32 gettimeofday(struct timeval *tp, void *tz);
-#endif
 	gettimeofday(&now, NULL);
 	*sec = (u32) (now.tv_sec) + GF_NTP_SEC_1900_TO_1970;
 //	*frac = (u32) ( (now.tv_usec << 12) + (now.tv_usec << 8) - ((now.tv_usec * 3650) >> 6) );

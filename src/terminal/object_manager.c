@@ -1566,7 +1566,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 			gf_clock_set_speed(ch->clock, ctrl->control->mediaSpeed);
 			/*if requested seek time AND media control, adjust start range to current play time*/
-			if (odm->media_start_time) {
+			if ((com.play.speed>=0) && odm->media_start_time) {
 				if ((com.play.start_range>=0) && (com.play.end_range>com.play.start_range)) {
 					if (ctrl->control->loop) {
 						Double active_dur = com.play.end_range - com.play.start_range;

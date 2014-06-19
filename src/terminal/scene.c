@@ -865,7 +865,7 @@ existing:
 		gf_odm_start(odm, 0);
 		if (odm->mo->speed != FIX_ONE) gf_odm_set_speed(odm, odm->mo->speed);
 	}
-	if ((odm->mo->type==GF_MEDIA_OBJECT_VIDEO) && scene->is_dynamic_scene) {
+	if ((odm->mo->type==GF_MEDIA_OBJECT_VIDEO) && scene->is_dynamic_scene && !odm->parentscene->root_od->addon) {
 		gf_scene_force_size_to_video(scene, odm->mo);
 	}
 	/*invalidate scene for all nodes using the OD*/
