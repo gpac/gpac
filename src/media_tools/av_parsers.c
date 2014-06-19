@@ -3875,10 +3875,25 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	}
 
 	if (gf_bs_read_int(bs, 1)) {
+		u32 SubWidthC, SubHeightC;
+		SubWidthC = SubHeightC = 1;
+		if (sps->chroma_format_idc==1) {
+			SubWidthC = SubHeightC = 2;
+		}
+		else if (sps->chroma_format_idc==2) {
+			SubWidthC = 2;
+			SubHeightC = 1;
+		} else {
+			SubWidthC = SubHeightC = 1;
+		}
+		
 		sps->cw_left = bs_get_ue(bs);
 		sps->cw_right = bs_get_ue(bs);
 		sps->cw_top = bs_get_ue(bs);
 		sps->cw_bottom = bs_get_ue(bs);
+
+		sps->width -= SubWidthC * (sps->cw_left + sps->cw_right);
+		sps->height -= SubHeightC * (sps->cw_top + sps->cw_bottom);
 	}
 	if (layer_id == 0) {
 		sps->bit_depth_luma = 8 + bs_get_ue(bs);
