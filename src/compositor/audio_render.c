@@ -271,7 +271,7 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		}
 		if (e) return e;
 	}
-	gf_mixer_set_config(ar->mixer, in_freq, in_ch, in_bps, in_cfg);
+	gf_mixer_set_config(ar->mixer, freq, nb_chan, nb_bits, in_cfg);
 	ar->audio_delay = ar->audio_out->GetAudioDelay(ar->audio_out);
 
 	ar->audio_out->SetVolume(ar->audio_out, ar->volume);

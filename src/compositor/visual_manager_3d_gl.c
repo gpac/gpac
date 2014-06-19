@@ -300,7 +300,7 @@ static char *default_glsl_vertex = "\
 	void main(void)\
 	{\
 		gfNormal = normalize(gl_NormalMatrix * gl_Normal);\
-		gl_ClipVertex = gl_Vertex;\
+		gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;\
 		gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\
 		TexCoord = vec2(gl_TextureMatrix[0] * gl_MultiTexCoord0);\
 	}";
@@ -1053,6 +1053,10 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 
 static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 {
+	if (!mat) {
+		glLoadIdentity();
+		return;
+	}
 #ifdef GPAC_USE_OGL_ES
 	glLoadMatrixx(mat);
 #elif defined(GPAC_FIXED_POINT)

@@ -418,7 +418,7 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 
 	tr_state->visual->type_3d = 4;
 	tr_state->appear = ctx->appear;
-	if (ctx->col_mat) gf_cmx_copy(&tr_state->color_mat, ctx->col_mat);
+	if (ctx->col_mat) gf_cmx_copy(&tr_state->color_mat, ctx->col_mat);//
 
 	tr_state->traversing_mode=TRAVERSE_DRAW_3D;
 	gf_mx_from_mx2d(&tr_state->model_matrix, &ctx->transform);

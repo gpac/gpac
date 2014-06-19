@@ -473,7 +473,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		tx_id[2] = txh->tx_io->v_id;
 		nb_tx = 3;
 
-		if (txh->tx_io->flags & TX_IS_RECT) {
+		if (0 && txh->tx_io->flags & TX_IS_RECT) {
 			GLint loc;
 			glUseProgram(compositor->visual->yuv_rect_glsl_program);
 			loc = glGetUniformLocation(compositor->visual->yuv_rect_glsl_program, "width");
@@ -565,9 +565,10 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP);
 		} else
 #endif
+			//clamp to edge for NPOT textures
 		{
-			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, GL_CLAMP);
-			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, GL_CLAMP);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		}
 
 		if (txh->tx_io->gl_type == GL_TEXTURE_2D) {

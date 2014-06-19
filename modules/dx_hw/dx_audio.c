@@ -208,7 +208,14 @@ retry:
 		ctx->use_notif = 0;
 		dsbBufferDesc.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS;
 		hr = ctx->pDS->lpVtbl->CreateSoundBuffer(ctx->pDS, &dsbBufferDesc, &ctx->pOutput, NULL );
-		if (FAILED(hr)) return GF_IO_ERR;
+		if (FAILED(hr)) {
+			if (ctx->format.nChannels>2) {
+				 GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[DirectSound] failed to configure output for %d channels (error %08x) - falling back to stereo\n", *NbChannels, hr));
+				 *NbChannels = 2;
+				 return DS_ConfigureOutput(dr, SampleRate, NbChannels, nbBitsPerSample, 0);
+			}
+			return GF_IO_ERR;
+		}
 	}
 
 	for (i=0; i<ctx->num_audio_buffer; i++) ctx->frame_state[i] = 0;

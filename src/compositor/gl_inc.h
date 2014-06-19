@@ -174,6 +174,9 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #define GL_DISTANCE_ATTENUATION_EXT         0x8129
 #endif
 
+#ifndef GL_CLAMP_TO_EDGE
+#define GL_CLAMP_TO_EDGE 0x812F
+#endif
 
 #ifndef GL_VERSION_1_3
 
