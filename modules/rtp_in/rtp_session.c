@@ -32,7 +32,7 @@ void RP_SendFailure(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 {
 	char sMsg[1000];
 	sprintf(sMsg, "Cannot send %s", com->method);
-	gf_term_on_message(sess->owner->service, e, sMsg);
+	RP_SendMessage(sess->owner->service, e, sMsg);
 }
 
 GF_Err RP_ProcessResponse(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
@@ -93,7 +93,7 @@ void RP_ProcessCommands(RTSPSession *sess)
 			if (e!=GF_OK) {
 				RP_RemoveCommand(sess);
 				gf_rtsp_command_del(com);
-				gf_term_on_connect(sess->owner->service, NULL, e);
+				gf_service_connect_ack(sess->owner->service, NULL, e);
 				return;
 			}
 
@@ -147,7 +147,7 @@ void RP_ProcessCommands(RTSPSession *sess)
 		return;
 	}
 	/*process*/
-	com->User_Agent = (char*)gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(sess->owner->service), "Downloader", "UserAgent");
+	com->User_Agent = (char*)gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(sess->owner->service), "Downloader", "UserAgent");
 	if (!com->User_Agent) com->User_Agent = "GPAC " GPAC_VERSION " RTSP Client";
 	com->Accept_Language = RTSP_LANGUAGE;
 	/*if no session assigned and a session ID is valid, use it*/
@@ -225,7 +225,7 @@ RTSPSession *RP_CheckSession(RTPClient *rtp, char *control)
 	RTSPSession *sess;
 	if (!control) return NULL;
 
-	if (!strcmp(control, "*")) control = (char *) gf_term_get_service_url(rtp->service);
+	if (!strcmp(control, "*")) control = (char *) gf_service_get_url(rtp->service);
 
 	i=0;
 	while ( (sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i)) ) {
@@ -262,9 +262,9 @@ RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 	tmp->session = rtsp;
 
 
-	szCtrl = (char *)gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Network", "MobileIPEnabled");
+	szCtrl = (char *)gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(rtp->service), "Network", "MobileIPEnabled");
 	if (szCtrl && !strcmp(szCtrl, "yes")) {
-		char *ip = (char *)gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Network", "MobileIP");
+		char *ip = (char *)gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(rtp->service), "Network", "MobileIP");
 		gf_rtsp_set_mobile_ip(rtsp, ip);
 	}
 
@@ -398,5 +398,15 @@ void RP_DelSession(RTSPSession *sess)
 	gf_free(sess);
 }
 
+void RP_SendMessage(GF_ClientService *service, GF_Err e, const char *message)
+{
+	GF_NetworkCommand com;
+	memset(&com, 0, sizeof(com));
+	com.command_type = GF_NET_SERVICE_EVENT;
+	com.send_event.evt.type = GF_EVENT_MESSAGE;
+	com.send_event.evt.message.message = message;
+	com.send_event.evt.message.error = e;
+	gf_service_command(service, &com, GF_OK);
+}
 
 #endif /*GPAC_DISABLE_STREAMING*/

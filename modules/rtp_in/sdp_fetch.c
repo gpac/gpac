@@ -36,7 +36,7 @@ void RP_SDPFromData(RTPClient *rtp, char *s_url, RTPStream *stream)
 
 	url = strstr(s_url, ",");
 	if (!url) {
-		gf_term_on_connect(rtp->service, NULL, GF_URL_ERROR);
+		gf_service_connect_ack(rtp->service, NULL, GF_URL_ERROR);
 		return;
 	}
 	url += 1;
@@ -59,7 +59,7 @@ void RP_SDPFromFile(RTPClient *rtp, char *file_name, RTPStream *stream)
 
 	if (file_name && strstr(file_name, "file://")) file_name += strlen("file://");
 	if (!file_name || !(_sdp = gf_f64_open(file_name, "rt")) ) {
-		gf_term_on_connect(rtp->service, NULL, GF_URL_ERROR);
+		gf_service_connect_ack(rtp->service, NULL, GF_URL_ERROR);
 		return;
 	}
 
@@ -68,7 +68,7 @@ void RP_SDPFromFile(RTPClient *rtp, char *file_name, RTPStream *stream)
 	gf_f64_seek(_sdp, 0, SEEK_SET);
 	sdp_buf = (char*)gf_malloc(sdp_size);
 	if (1 > fread(sdp_buf, 1, sdp_size, _sdp)) {
-		gf_term_on_connect(rtp->service, NULL, GF_URL_ERROR);
+		gf_service_connect_ack(rtp->service, NULL, GF_URL_ERROR);
 	} else {
 		RP_LoadSDP(rtp, sdp_buf, sdp_size, stream);
 	}
@@ -82,7 +82,7 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	RTPClient *rtp = (RTPClient *)cbk;
 	SDPFetch *sdp = rtp->sdp_temp;
 
-	gf_term_download_update_stats(rtp->dnload);
+	gf_service_download_update_stats(rtp->dnload);
 
 	e = param->error;
 	switch (param->msg_type) {
@@ -93,7 +93,7 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	case GF_NETIO_GET_CONTENT:
 		if (sdp->original_url) {
 			char szBody[4096], *opt;
-			opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Network", "MobileIP");
+			opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(rtp->service), "Network", "MobileIP");
 			sprintf(szBody, "ipadd\n%s\n\nurl\n%s\n\n", opt, sdp->original_url);
 			param->data = szBody;
 			param->size = (u32) strlen(szBody);
@@ -128,17 +128,17 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		gf_free(sdp->remote_url);
 		gf_free(sdp);
 		rtp->sdp_temp = NULL;
-		gf_term_on_message(rtp->service, e, "Error fetching session state - restarting");
-		RP_ConnectServiceEx(gf_term_get_service_interface(rtp->service), rtp->service, url, 1);
+		RP_SendMessage(rtp->service, e, "Error fetching session state - restarting");
+		RP_ConnectServiceEx(gf_service_get_interface(rtp->service), rtp->service, url, 1);
 		gf_free(url);
 		return;
 	}
 
 	/*error*/
 	if (sdp->chan) {
-		gf_term_on_connect(rtp->service, sdp->chan->channel, e);
+		gf_service_connect_ack(rtp->service, sdp->chan->channel, e);
 	} else {
-		gf_term_on_connect(rtp->service, NULL, e);
+		gf_service_connect_ack(rtp->service, NULL, e);
 		rtp->sdp_temp = NULL;
 	}
 	gf_free(sdp->remote_url);
@@ -170,13 +170,13 @@ void RP_FetchSDP(RTPClient *rtp, char *url, RTPStream *stream, char *original_ur
 	}
 
 	/*otherwise setup download*/
-	if (rtp->dnload) gf_term_download_del(rtp->dnload);
+	if (rtp->dnload) gf_service_download_del(rtp->dnload);
 	rtp->dnload = NULL;
 
 	rtp->sdp_temp = sdp;
-	rtp->dnload = gf_term_download_new(rtp->service, url, 0, SDP_NetIO, rtp);
+	rtp->dnload = gf_service_download_new(rtp->service, url, 0, SDP_NetIO, rtp);
 	if (!rtp->dnload) {
-		gf_term_on_connect(rtp->service, NULL, GF_NOT_SUPPORTED);
+		gf_service_connect_ack(rtp->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
 		gf_dm_sess_process(rtp->dnload);

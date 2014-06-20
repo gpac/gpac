@@ -321,7 +321,6 @@ void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontin
 
 					gf_es_reset_buffers(ch);
 					ch->IsClockInit = 0;
-					gf_term_lock_codec(odm->codec, GF_FALSE, GF_FALSE);
 
 					GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] Reinitializing timing for ES%d\n", ch->esd->ESID));
 				}

@@ -110,7 +110,7 @@ static u32 LIBPLAYER_RegisterMimeTypes(const GF_InputService *plug) {
 	if (!plug)
 		return 0;
 	for (i = 0 ; LIBPLAYER_MIME_TYPES[i] ; i+=3)
-		gf_term_register_mime_type(plug, LIBPLAYER_MIME_TYPES[i], LIBPLAYER_MIME_TYPES[i+1], LIBPLAYER_MIME_TYPES[i+2]);
+		gf_service_register_mime(plug, LIBPLAYER_MIME_TYPES[i], LIBPLAYER_MIME_TYPES[i+1], LIBPLAYER_MIME_TYPES[i+2]);
 	return i / 3;
 }
 
@@ -198,7 +198,7 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 
 		if (!read->player) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[LibPlayerIN] Failed to instanciate libplayer instance %d\n", read->player_id));
-			gf_term_on_connect(serv, NULL, GF_REMOTE_SERVICE_ERROR);
+			gf_service_connect_ack(serv, NULL, GF_REMOTE_SERVICE_ERROR);
 			return GF_OK;
 		}
 #endif
@@ -303,7 +303,7 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 	if (start_dvb == 0) {
 		if (!mrl) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[LibPlayerIN] Failed to create MRL for url %s\n", url));
-			gf_term_on_connect(serv, NULL, GF_URL_ERROR);
+			gf_service_connect_ack(serv, NULL, GF_URL_ERROR);
 			return GF_OK;
 		}
 
@@ -315,7 +315,7 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 	read->service = serv;
 
 	/*ACK connection is OK*/
-	gf_term_on_connect(serv, NULL, GF_OK);
+	gf_service_connect_ack(serv, NULL, GF_OK);
 
 
 	/*setup LIBPLAYER object descriptor*/
@@ -334,7 +334,7 @@ GF_Err LIBPLAYER_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 #endif
 
 		gf_list_add(od->ESDescriptors, esd);
-		gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
+		gf_service_declare_media(read->service, (GF_Descriptor*)od, 0);
 	}
 
 	return GF_OK;
@@ -356,7 +356,7 @@ GF_Err LIBPLAYER_CloseService(GF_InputService *plug)
 
 		read->state = 0;
 
-		gf_term_on_disconnect(read->service, NULL, GF_OK);
+		gf_service_disconnect_ack(read->service, NULL, GF_OK);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIn] Closing libplayer instance %d\n", read->player_id));
 
 
@@ -452,9 +452,9 @@ GF_Err LIBPLAYER_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 	sscanf(url, "ES_ID=%ud", &ESID);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] instance %d connect channel %d\n", read->player_id, ESID));
 	if (ESID != 1+read->player_id) {
-		gf_term_on_connect(read->service, channel, GF_STREAM_NOT_FOUND);
+		gf_service_connect_ack(read->service, channel, GF_STREAM_NOT_FOUND);
 	} else {
-		gf_term_on_connect(read->service, channel, GF_OK);
+		gf_service_connect_ack(read->service, channel, GF_OK);
 	}
 	return GF_OK;
 }
@@ -463,7 +463,7 @@ GF_Err LIBPLAYER_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	LibPlayerIn *read = (LibPlayerIn *) plug->priv;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[LibPlayerIN] instance %d disconnect channel\n", read->player_id));
-	gf_term_on_disconnect(read->service, channel, GF_OK);
+	gf_service_disconnect_ack(read->service, channel, GF_OK);
 	return GF_OK;
 }
 

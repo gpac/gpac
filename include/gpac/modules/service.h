@@ -131,6 +131,8 @@ typedef enum
 	/*signal associated content timeline (from service to term)*/
 	GF_NET_ASSOCIATED_CONTENT_TIMING,
 
+	/*event send from service*/
+	GF_NET_SERVICE_EVENT,
 	//sets nalu mode
 	GF_NET_CHAN_NALU_MODE,
 } GF_NET_CHAN_CMD;
@@ -362,6 +364,16 @@ typedef struct
 	u32 data_len;
 } GF_NetComMigration;
 
+/*GF_NET_SERVICE_EVENT*/
+typedef struct 
+{
+	u32 command_type;
+
+	/*type of the event being sent*/
+	GF_Event evt;
+	Bool res;
+} GF_NetComSendEvent;
+
 /*GF_NET_SERVICE_QUERY_NEXT*/
 typedef struct
 {
@@ -507,6 +519,7 @@ typedef union __netcommand
 	GF_AssociatedContentLocation addon_info;
 	GF_AssociatedContentTiming addon_time;
 	GF_NALUExtractMode nalu_mode;
+	GF_NetComSendEvent send_event;
 } GF_NetworkCommand;
 
 /*
@@ -523,7 +536,7 @@ typedef struct _netinterface
 
 	/*returns 1 if module can process this URL, 0 otherwise. This is only called when the file extension/mimeType cannot be
 	retrieved in the cfg file, otherwise the mime type/file ext is used to load service. Typically a module would
-	register its mime types in this function (cf gf_term_register_mime_type below)
+	register its mime types in this function (cf gf_service_register_mime below)
 	*/
 	Bool (*CanHandleURL)(struct _netinterface *, const char *url);
 
@@ -598,63 +611,60 @@ typedef struct _netinterface
 	Bool proxy_type; /* 0 corresponds to a proxy without full command support */
 	/*!
 	 * This is needed for modules supporting mime types, when this method is called,
-	 * the module has to call gf_term_register_mime_type() for all the mime-types
+	 * the module has to call gf_service_register_mime() for all the mime-types
 	 * its supports.
 	 * \return The number of declared mime types
-	 * \see gf_term_register_mime_type(GF_InputService *, const char *, const char *, const char *)
+	 * \see gf_service_register_mime(GF_InputService *, const char *, const char *, const char *)
 	 */
 	u32 (*RegisterMimeTypes) (const struct _netinterface *);
 } GF_InputService;
 
 /*callback functions - these can be linked with non-LGPL modules*/
-/*message from service - error is set if error*/
-void gf_term_on_message(GF_ClientService *service, GF_Err error, const char *message);
+
 /*to call on service (if channel is NULL) or channel connect completed*/
-void gf_term_on_connect(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
+void gf_service_connect_ack(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
 /*to call on service (if channel is NULL) or channel disconnect completed*/
-void gf_term_on_disconnect(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
+void gf_service_disconnect_ack(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
 /* acknowledgement of service command - service commands handle both services and channels
 Most of the time commands are NOT acknowledged, typical acknowledgement are needed for setup and control
 with remote servers.
 command can also be triggered from the service (QoS, broadcast announcements)
 cf above for command usage
 */
-void gf_term_on_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Err response);
+void gf_service_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Err response);
 /*to call when data packet is received.
 @data, data_size: data received
 @hdr: uncompressed SL header passed with data for stream sync - if not present then data shall be a valid SL packet
 	(header + PDU). Note that using an SLConfig resulting in an empty GF_SLHeader allows sending raw data directly
 @reception_status: data reception status. To signal end of stream, set this to GF_EOS
 */
-void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status);
+void gf_service_send_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status);
 /*returns URL associated with service (so that you don't need to store it)*/
-const char *gf_term_get_service_url(GF_ClientService *service);
+const char *gf_service_get_url(GF_ClientService *service);
 
 /*adds a new media from network. !! The media descriptor is then owned/destroyed by the term!!
 media_desc: object descriptor for the new media. May be NULL to force scene rebuilt.
 no_scene_check: specifies if the scene description shall be rebuilt or not.
 */
-void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_update);
-
-Bool gf_term_on_service_event(GF_ClientService *service, GF_Event *service_event);
+void gf_service_declare_media(GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_update);
+//returns module interface of the service
+GF_InputService *gf_service_get_interface(GF_ClientService *service);
 
 
 /*check if @fileExt extension is supported for given mimeType, and if associated with module. If mimeType not registered, register it for given module*/
-Bool gf_term_check_extension(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description, const char *fileExt);
+Bool gf_service_check_mime_register(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description, const char *fileExt);
 /*register mime types & file extensions - most modules should only need the check version above*/
-void gf_term_register_mime_type(const GF_InputService *ifce, const char *mimeType, const char *extList, const char *description);
-
-GF_InputService *gf_term_get_service_interface(GF_ClientService *service);
+void gf_service_register_mime(const GF_InputService *ifce, const char *mimeType, const char *extList, const char *description);
 
 /*file downloading - can and MUST be used by any module (regardless of license) in order not to interfere
 with net management*/
 /*creates a new downloading session in the given service - if url is relative, it will be interpreted through
 the service URL*/
-GF_DownloadSession * gf_term_download_new(GF_ClientService *service, const char *url, u32 flags, gf_dm_user_io user_io, void *cbk);
+GF_DownloadSession * gf_service_download_new(GF_ClientService *service, const char *url, u32 flags, gf_dm_user_io user_io, void *cbk);
 /*closes the downloading session*/
-void gf_term_download_del(GF_DownloadSession * dnload);
+void gf_service_download_del(GF_DownloadSession * dnload);
 /*send progress and connection messages to user...*/
-void gf_term_download_update_stats(GF_DownloadSession * sess);
+void gf_service_download_update_stats(GF_DownloadSession * sess);
 
 
 /*MPEG-4 media cache interface name*/

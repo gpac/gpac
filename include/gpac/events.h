@@ -281,15 +281,15 @@ typedef struct {
 } GF_EventOpenFile;
 
 typedef struct {
-	/* GF_EVENT_FORWARDED*/
+	/*GF_EVENT_FROM_SERVICE*/
 	u8 type;
-	/*one of te above event*/
+	//cf GF_EVT_FORWARDED_ * 
 	u8 forward_type;
 	/*original type of event as forwarded by the service*/
 	u32 service_event_type;
 	/*parameter of event as forwarded by the service - creation/deletion is handled by the service*/
 	void *param;
-} GF_EventForwarded;
+} GF_EventFromService;
 
 typedef union
 {
@@ -311,9 +311,9 @@ typedef union
 	GF_EventMove move;
 	GF_EventVideoSetup setup;
 	GF_EventMutation mutation;
-	GF_EventForwarded forwarded_event;
 	GF_EventOpenFile open_file;
 	GF_EventAddonConnect addon_connect;
+	GF_EventFromService from_service;
 } GF_Event;
 
 

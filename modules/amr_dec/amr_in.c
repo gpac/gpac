@@ -71,9 +71,9 @@ static const char * AMR_MIMES[] = { "audio/ac3", "audio/x-ac3", NULL };
 
 static u32 AMR_RegisterMimeTypes(const GF_InputService *plug)
 {
-	gf_term_register_mime_type(plug, "audio/amr", "amr awb", "AMR Speech Data");
-	gf_term_register_mime_type(plug, "audio/evrc", "evc", "EVRC Speech Data");
-	gf_term_register_mime_type(plug, "audio/smv", "smv", "SMV Speech Data");
+	gf_service_register_mime(plug, "audio/amr", "amr awb", "AMR Speech Data");
+	gf_service_register_mime(plug, "audio/evrc", "evc", "EVRC Speech Data");
+	gf_service_register_mime(plug, "audio/smv", "smv", "SMV Speech Data");
 	return 3;
 }
 
@@ -115,7 +115,7 @@ static void AMR_SetupObject(AMR_Reader *read)
 	esd = AMR_GetESD(read);
 	esd->OCRESID = 0;
 	gf_list_add(od->ESDescriptors, esd);
-	gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
+	gf_service_declare_media(read->service, (GF_Descriptor*)od, 0);
 }
 
 static Bool AMR_CanHandleURL(GF_InputService *plug, const char *url)
@@ -123,9 +123,9 @@ static Bool AMR_CanHandleURL(GF_InputService *plug, const char *url)
 	char *sExt;
 	sExt = strrchr(url, '.');
 	if (!sExt) return 0;
-	if (gf_term_check_extension(plug, "audio/amr", "amr awb", "AMR Speech Data", sExt)) return 1;
-	if (gf_term_check_extension(plug, "audio/evrc", "evc", "EVRC Speech Data", sExt)) return 1;
-	if (gf_term_check_extension(plug, "audio/smv", "smv", "SMV Speech Data", sExt)) return 1;
+	if (gf_service_check_mime_register(plug, "audio/amr", "amr awb", "AMR Speech Data", sExt)) return 1;
+	if (gf_service_check_mime_register(plug, "audio/evrc", "evc", "EVRC Speech Data", sExt)) return 1;
+	if (gf_service_check_mime_register(plug, "audio/smv", "smv", "SMV Speech Data", sExt)) return 1;
 	return 0;
 }
 
@@ -223,7 +223,7 @@ static void AMR_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		}
 	} else {
 		/*handle service message*/
-		gf_term_download_update_stats(read->dnload);
+		gf_service_download_update_stats(read->dnload);
 		if (param->msg_type!=GF_NETIO_DATA_EXCHANGE) return;
 	}
 
@@ -259,7 +259,7 @@ static void AMR_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	/*OK confirm*/
 	if (read->needs_connection) {
 		read->needs_connection = 0;
-		gf_term_on_connect(read->service, NULL, e);
+		gf_service_connect_ack(read->service, NULL, e);
 		if (!e) AMR_SetupObject(read);
 	}
 }
@@ -270,10 +270,10 @@ static void AMR_DownloadFile(GF_InputService *plug, char *url)
 
 	read->needs_connection = 1;
 
-	read->dnload = gf_term_download_new(read->service, url, 0, AMR_NetIO, read);
+	read->dnload = gf_service_download_new(read->service, url, 0, AMR_NetIO, read);
 	if (!read->dnload) {
 		read->needs_connection = 0;
-		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+		gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
 		gf_dm_sess_process(read->dnload);
@@ -290,7 +290,7 @@ static GF_Err AMR_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	AMR_Reader *read = plug->priv;
 	read->service = serv;
 
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
 	strcpy(szURL, url);
@@ -313,7 +313,7 @@ static GF_Err AMR_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		read->stream = NULL;
 		reply = GF_NOT_SUPPORTED;
 	}
-	gf_term_on_connect(serv, NULL, reply);
+	gf_service_connect_ack(serv, NULL, reply);
 	if (!reply && read->is_inline) AMR_SetupObject(read);
 	return GF_OK;
 }
@@ -323,12 +323,12 @@ static GF_Err AMR_CloseService(GF_InputService *plug)
 	AMR_Reader *read = plug->priv;
 	if (read->stream) fclose(read->stream);
 	read->stream = NULL;
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
 	if (read->data) gf_free(read->data);
 	read->data = NULL;
-	gf_term_on_disconnect(read->service, NULL, GF_OK);
+	gf_service_disconnect_ack(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -375,7 +375,7 @@ static GF_Err AMR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	}
 
 exit:
-	gf_term_on_connect(read->service, channel, e);
+	gf_service_connect_ack(read->service, channel, e);
 	return e;
 }
 
@@ -390,7 +390,7 @@ static GF_Err AMR_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 		read->data = NULL;
 		e = GF_OK;
 	}
-	gf_term_on_disconnect(read->service, channel, e);
+	gf_service_disconnect_ack(read->service, channel, e);
 	return GF_OK;
 }
 
@@ -430,7 +430,7 @@ static GF_Err AMR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 					rcfg.base.command_type = GF_NET_CHAN_DURATION;
 					rcfg.duration.duration = read->duration;
 					rcfg.duration.duration /= read->sample_rate;
-					gf_term_on_command(read->service, &rcfg, GF_OK);
+					gf_service_command(read->service, &rcfg, GF_OK);
 				}
 			}
 		}

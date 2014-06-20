@@ -56,7 +56,7 @@ static u32 VTT_RegisterMimeTypes(const GF_InputService *plug) {
 	u32 i;
 	if (!plug) return 0;
 	for (i = 0 ; VTT_MIME_TYPES[i]; i+=3) {
-		gf_term_register_mime_type(plug, VTT_MIME_TYPES[i], VTT_MIME_TYPES[i+1], VTT_MIME_TYPES[i+2]);
+		gf_service_register_mime(plug, VTT_MIME_TYPES[i], VTT_MIME_TYPES[i+1], VTT_MIME_TYPES[i+2]);
 	}
 	return i/3;
 }
@@ -69,7 +69,7 @@ static Bool VTT_CanHandleURL(GF_InputService *plug, const char *url)
 	sExt = strrchr(url, '.');
 	if (!sExt) return GF_FALSE;
 	for (i = 0 ; VTT_MIME_TYPES[i]; i+=3) {
-		if (gf_term_check_extension(plug, VTT_MIME_TYPES[i], VTT_MIME_TYPES[i+1], VTT_MIME_TYPES[i+2], sExt)) return GF_TRUE;
+		if (gf_service_check_mime_register(plug, VTT_MIME_TYPES[i], VTT_MIME_TYPES[i+1], VTT_MIME_TYPES[i+2], sExt)) return GF_TRUE;
 	}
 	return GF_FALSE;
 }
@@ -90,7 +90,7 @@ void VTT_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	VTTIn *vttin = (VTTIn *) plug->priv;
 
 	if (!vttin)	return;
-	gf_term_download_update_stats(vttin->dnload);
+	gf_service_download_update_stats(vttin->dnload);
 
 	e = param->error;
 	/*done*/
@@ -108,7 +108,7 @@ void VTT_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	/*OK confirm*/
 	if (vttin->needs_connection) {
 		vttin->needs_connection = GF_FALSE;
-		gf_term_on_connect(vttin->service, NULL, e);
+		gf_service_connect_ack(vttin->service, NULL, e);
 		//if (!e && !vttin->od_done) tti_setup_object(vttin);
 	}
 }
@@ -119,10 +119,10 @@ void VTT_download_file(GF_InputService *plug, const char *url)
 	if (!plug || !url)
 		return;
 	vttin->needs_connection = GF_TRUE;
-	vttin->dnload = gf_term_download_new(vttin->service, url, 0, VTT_NetIO, plug);
+	vttin->dnload = gf_service_download_new(vttin->service, url, 0, VTT_NetIO, plug);
 	if (!vttin->dnload) {
 		vttin->needs_connection = GF_FALSE;
-		gf_term_on_connect(vttin->service, NULL, GF_NOT_SUPPORTED);
+		gf_service_connect_ack(vttin->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
 		gf_dm_sess_process(vttin->dnload);
@@ -138,7 +138,7 @@ static GF_Err VTT_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		return GF_BAD_PARAM;
 	vttin->service = serv;
 
-	if (vttin->dnload) gf_term_download_del(vttin->dnload);
+	if (vttin->dnload) gf_service_download_del(vttin->dnload);
 	vttin->dnload = NULL;
 
 	/*remote fetch*/
@@ -148,7 +148,7 @@ static GF_Err VTT_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	} else {
 		e = GF_OK;
 		//e = TTIn_LoadFile(plug, url, 0);
-		gf_term_on_connect(serv, NULL, e);
+		gf_service_connect_ack(serv, NULL, e);
 		//if (!e && !vttin->od_done) tti_setup_object(vttin);
 	}
 	return GF_OK;
@@ -169,12 +169,12 @@ static GF_Err VTT_CloseService(GF_InputService *plug)
 	//vttin->szFile = NULL;
 
 	if (vttin->dnload) {
-		gf_term_download_del(vttin->dnload);
+		gf_service_download_del(vttin->dnload);
 	}
 	vttin->dnload = NULL;
 
 	if (vttin->service) {
-		gf_term_on_disconnect(vttin->service, NULL, GF_OK);
+		gf_service_disconnect_ack(vttin->service, NULL, GF_OK);
 	}
 	vttin->service = NULL;
 
@@ -225,7 +225,7 @@ static GF_Err VTT_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	}
 
 exit:
-	gf_term_on_connect(vttin->service, channel, e);
+	gf_service_connect_ack(vttin->service, channel, e);
 	return e;
 }
 
@@ -240,7 +240,7 @@ static GF_Err VTT_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 		vttin->channel = NULL;
 		e = GF_OK;
 	}
-	gf_term_on_disconnect(vttin->service, channel, e);
+	gf_service_disconnect_ack(vttin->service, channel, e);
 	return GF_OK;
 }
 

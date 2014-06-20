@@ -2432,12 +2432,13 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 {
 	GF_M2TS_Mux_Program *program;
 	GF_M2TS_Mux_Stream *stream, *stream_to_process;
-	GF_M2TS_Time time;
+	GF_M2TS_Time time, max_time;
 	u32 nb_streams, nb_streams_done;
 	u64 now_us;
 	char *ret;
 	u32 res, highest_priority;
 	Bool flush_all_pes = 0;
+	Bool check_max_time = 0;
 
 	nb_streams = nb_streams_done = 0;
 	*status = GF_M2TS_STATE_IDLE;
@@ -2474,6 +2475,7 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 
 	stream_to_process = NULL;
 	time = muxer->time;
+	max_time.sec = max_time.nanosec = 0;
 
 	/*bitrate have changed*/
 	if (muxer->needs_reconfig) {
@@ -2542,8 +2544,12 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 	}
 
 	/*if non-fixed rate, just pick the earliest data on all streams*/
-	if (!muxer->real_time && !muxer->fixed_rate) {
-		time.sec = 0xFFFFFFFF;
+	if (!muxer->fixed_rate) {
+		if (!muxer->real_time) {
+			time.sec = 0xFFFFFFFF;
+		} else {
+			check_max_time = 1;
+		}
 	}
 
 #define FORCE_PCR_FIRST	0
@@ -2607,6 +2613,8 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 							goto send_pck;
 #endif
 						}
+					} else if (check_max_time && gf_m2ts_time_less(&max_time, &stream->time)) {
+						max_time = stream->time;
 					}
 				}
 			}
@@ -2674,9 +2682,10 @@ send_pck:
 			muxer->pck_sent_over_br_window=0;
 		}
 	} else if (muxer->real_time && !muxer->fixed_rate) {
-		u64 us_diff = gf_sys_clock_high_res() - muxer->init_sys_time;
-		muxer->time = muxer->init_ts_time;
-		gf_m2ts_time_inc(&muxer->time, us_diff, 1000000);
+//		u64 us_diff = gf_sys_clock_high_res() - muxer->init_sys_time;
+//		muxer->time = muxer->init_ts_time;
+//		gf_m2ts_time_inc(&muxer->time, us_diff, 1000000);
+		muxer->time = max_time;
 	}
 	return ret;
 }

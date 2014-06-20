@@ -65,7 +65,7 @@ static u32 TTIN_RegisterMimeTypes(const GF_InputService *plug) {
 	if (!plug)
 		return 0;
 	for (i = 0 ; TTIN_MIME_TYPES[i]; i+=3) {
-		gf_term_register_mime_type(plug, TTIN_MIME_TYPES[i], TTIN_MIME_TYPES[i+1], TTIN_MIME_TYPES[i+2]);
+		gf_service_register_mime(plug, TTIN_MIME_TYPES[i], TTIN_MIME_TYPES[i+1], TTIN_MIME_TYPES[i+2]);
 	}
 	return i/3;
 }
@@ -79,7 +79,7 @@ static Bool TTIn_CanHandleURL(GF_InputService *plug, const char *url)
 	sExt = strrchr(url, '.');
 	if (!sExt) return 0;
 	for (i = 0 ; TTIN_MIME_TYPES[i]; i+=3) {
-		if (gf_term_check_extension(plug, TTIN_MIME_TYPES[i], TTIN_MIME_TYPES[i+1], TTIN_MIME_TYPES[i+2], sExt)) return 1;
+		if (gf_service_check_mime_register(plug, TTIN_MIME_TYPES[i], TTIN_MIME_TYPES[i+1], TTIN_MIME_TYPES[i+2], sExt)) return 1;
 	}
 	return 0;
 }
@@ -104,7 +104,7 @@ static void tti_setup_object(TTIn *tti)
 	GF_ESD *esd = tti_get_esd(tti);
 	od->objectDescriptorID = esd->ESID;
 	gf_list_add(od->ESDescriptors, esd);
-	gf_term_add_media(tti->service, (GF_Descriptor *)od, 0);
+	gf_service_declare_media(tti->service, (GF_Descriptor *)od, 0);
 }
 
 
@@ -157,7 +157,7 @@ void TTIn_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	TTIn *tti = (TTIn *) plug->priv;
 	if (!tti)
 		return;
-	gf_term_download_update_stats(tti->dnload);
+	gf_service_download_update_stats(tti->dnload);
 
 	e = param->error;
 	/*done*/
@@ -174,7 +174,7 @@ void TTIn_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	/*OK confirm*/
 	if (tti->needs_connection) {
 		tti->needs_connection = 0;
-		gf_term_on_connect(tti->service, NULL, e);
+		gf_service_connect_ack(tti->service, NULL, e);
 		if (!e && !tti->od_done) tti_setup_object(tti);
 	}
 }
@@ -185,10 +185,10 @@ void TTIn_download_file(GF_InputService *plug, const char *url)
 	if (!plug || !url)
 		return;
 	tti->needs_connection = 1;
-	tti->dnload = gf_term_download_new(tti->service, url, 0, TTIn_NetIO, plug);
+	tti->dnload = gf_service_download_new(tti->service, url, 0, TTIn_NetIO, plug);
 	if (!tti->dnload) {
 		tti->needs_connection = 0;
-		gf_term_on_connect(tti->service, NULL, GF_NOT_SUPPORTED);
+		gf_service_connect_ack(tti->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
 		gf_dm_sess_process(tti->dnload);
@@ -204,7 +204,7 @@ static GF_Err TTIn_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 		return GF_BAD_PARAM;
 	tti->service = serv;
 
-	if (tti->dnload) gf_term_download_del(tti->dnload);
+	if (tti->dnload) gf_service_download_del(tti->dnload);
 	tti->dnload = NULL;
 
 	/*remote fetch*/
@@ -213,7 +213,7 @@ static GF_Err TTIn_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 		return GF_OK;
 	}
 	e = TTIn_LoadFile(plug, url, 0);
-	gf_term_on_connect(serv, NULL, e);
+	gf_service_connect_ack(serv, NULL, e);
 	if (!e && !tti->od_done) tti_setup_object(tti);
 	return GF_OK;
 }
@@ -238,10 +238,10 @@ static GF_Err TTIn_CloseService(GF_InputService *plug)
 		tti->szFile = NULL;
 	}
 	if (tti->dnload)
-		gf_term_download_del(tti->dnload);
+		gf_service_download_del(tti->dnload);
 	tti->dnload = NULL;
 	if (tti->service)
-		gf_term_on_disconnect(tti->service, NULL, GF_OK);
+		gf_service_disconnect_ack(tti->service, NULL, GF_OK);
 	tti->service = NULL;
 	return GF_OK;
 }
@@ -293,7 +293,7 @@ static GF_Err TTIn_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 	}
 
 exit:
-	gf_term_on_connect(tti->service, channel, e);
+	gf_service_connect_ack(tti->service, channel, e);
 	return e;
 }
 
@@ -306,7 +306,7 @@ static GF_Err TTIn_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel
 		tti->ch = NULL;
 		e = GF_OK;
 	}
-	gf_term_on_disconnect(tti->service, channel, e);
+	gf_service_disconnect_ack(tti->service, channel, e);
 	return GF_OK;
 }
 

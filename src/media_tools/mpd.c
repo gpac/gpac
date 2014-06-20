@@ -1098,7 +1098,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				getter->del_session(getter);
 
 #if 0
-				GF_DownloadSession *sess = gf_term_download_new(service, suburl, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL);
+				GF_DownloadSession *sess = gf_service_download_new(service, suburl, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL);
 				if (!sess) {
 					gf_free(suburl);
 					break;
@@ -1107,7 +1107,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				if (e==GF_OK) {
 					e = parse_sub_playlist(gf_dm_sess_get_cache_name(sess), &pl, suburl, prog, pe);
 				}
-				gf_term_download_del(sess);
+				gf_service_download_del(sess);
 #endif
 				gf_free(suburl);
 			} else { /* for use in MP4Box */

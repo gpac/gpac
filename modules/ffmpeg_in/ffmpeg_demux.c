@@ -116,7 +116,7 @@ static u32 FFDemux_Run(void *par)
 				slh.decodingTimeStamp = slh.compositionTimeStamp = seek_audio;
 			}
 #endif
-			gf_term_on_sl_packet(ffd->service, ffd->audio_ch, (char *) pkt.data, pkt.size, &slh, GF_OK);
+			gf_service_send_packet(ffd->service, ffd->audio_ch, (char *) pkt.data, pkt.size, &slh, GF_OK);
 		}
 		else if (ffd->video_ch && (pkt.stream_index == ffd->video_st)) {
 //			u64 seek_video = ffd->seek_time ? (u64) (s64) (ffd->seek_time*ffd->video_tscale.den) : 0;
@@ -128,7 +128,7 @@ static u32 FFDemux_Run(void *par)
 				slh.decodingTimeStamp = slh.compositionTimeStamp = seek_video;
 			}
 #endif
-			gf_term_on_sl_packet(ffd->service, ffd->video_ch, (char *) pkt.data, pkt.size, &slh, GF_OK);
+			gf_service_send_packet(ffd->service, ffd->video_ch, (char *) pkt.data, pkt.size, &slh, GF_OK);
 		}
 		gf_mx_v(ffd->mx);
 		av_free_packet(&pkt);
@@ -136,7 +136,7 @@ static u32 FFDemux_Run(void *par)
 		/*sleep untill the buffer occupancy is too low - note that this work because all streams in this
 		demuxer are synchronized*/
 		while (ffd->audio_run || ffd->video_run) {
-			gf_term_on_command(ffd->service, &com, GF_OK);
+			gf_service_command(ffd->service, &com, GF_OK);
 			if (com.buffer.occupancy < com.buffer.max)
 				break;
 			gf_sleep(10);
@@ -145,8 +145,8 @@ static u32 FFDemux_Run(void *par)
 		if (!ffd->audio_run && !ffd->video_run) break;
 	}
 	/*signal EOS*/
-	if (ffd->audio_ch) gf_term_on_sl_packet(ffd->service, ffd->audio_ch, NULL, 0, NULL, GF_EOS);
-	if (ffd->video_ch) gf_term_on_sl_packet(ffd->service, ffd->video_ch, NULL, 0, NULL, GF_EOS);
+	if (ffd->audio_ch) gf_service_send_packet(ffd->service, ffd->audio_ch, NULL, 0, NULL, GF_EOS);
+	if (ffd->video_ch) gf_service_send_packet(ffd->service, ffd->video_ch, NULL, 0, NULL, GF_EOS);
 	ffd->is_running = 2;
 
 	return 0;
@@ -183,7 +183,7 @@ static const char * FFD_MIME_TYPES[] = {
 static u32 FFD_RegisterMimeTypes(const GF_InputService *plug) {
 	u32 i;
 	for (i = 0 ; FFD_MIME_TYPES[i]; i+=3)
-		gf_term_register_mime_type(plug, FFD_MIME_TYPES[i], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2]);
+		gf_service_register_mime(plug, FFD_MIME_TYPES[i], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2]);
 	return i/3;
 }
 
@@ -250,7 +250,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		{
 			u32 i;
 			for (i = 0 ; FFD_MIME_TYPES[i]; i+=3) {
-				if (gf_term_check_extension(plug, FFD_MIME_TYPES[i], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2], ext))
+				if (gf_service_check_mime_register(plug, FFD_MIME_TYPES[i], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2], ext))
 					return 1;
 			}
 		}
@@ -290,7 +290,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 #else
 	fmt_out = av_guess_format(NULL, url, NULL);
 #endif
-	if (fmt_out) gf_term_register_mime_type(plug, fmt_out->mime_type, fmt_out->extensions, fmt_out->name);
+	if (fmt_out) gf_service_register_mime(plug, fmt_out->mime_type, fmt_out->extensions, fmt_out->name);
 	else {
 		ext = strrchr(szName, '.');
 		if (ext) {
@@ -299,7 +299,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 
 			szExtList = gf_modules_get_option((GF_BaseInterface *)plug, "MimeTypes", "application/x-ffmpeg");
 			if (!szExtList) {
-				gf_term_register_mime_type(plug, "application/x-ffmpeg", szExt, "Other Movies (FFMPEG)");
+				gf_service_register_mime(plug, "application/x-ffmpeg", szExt, "Other Movies (FFMPEG)");
 			} else if (!strstr(szExtList, szExt)) {
 				u32 len;
 				char *buf;
@@ -442,7 +442,7 @@ static void FFD_SetupObjects(FFDemux *ffd)
 		od->objectDescriptorID = esd->ESID;
 		audio_esid = esd->ESID;
 		gf_list_add(od->ESDescriptors, esd);
-		gf_term_add_media(ffd->service, (GF_Descriptor*)od, (ffd->video_st>=0) ? 1 : 0);
+		gf_service_declare_media(ffd->service, (GF_Descriptor*)od, (ffd->video_st>=0) ? 1 : 0);
 	}
 	if ((ffd->video_st>=0) && (ffd->service_type != 2)) {
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
@@ -450,7 +450,7 @@ static void FFD_SetupObjects(FFDemux *ffd)
 		od->objectDescriptorID = esd->ESID;
 		esd->OCRESID = audio_esid;
 		gf_list_add(od->ESDescriptors, esd);
-		gf_term_add_media(ffd->service, (GF_Descriptor*)od, 0);
+		gf_service_declare_media(ffd->service, (GF_Descriptor*)od, 0);
 	}
 }
 
@@ -564,7 +564,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		ffd->io.seekable = 1;
 #endif
 
-		ffd->dnload = gf_term_download_new(ffd->service, url, GF_NETIO_SESSION_NOT_THREADED  | GF_NETIO_SESSION_NOT_CACHED, NULL, ffd);
+		ffd->dnload = gf_service_download_new(ffd->service, url, GF_NETIO_SESSION_NOT_THREADED  | GF_NETIO_SESSION_NOT_CACHED, NULL, ffd);
 		if (!ffd->dnload) return GF_URL_ERROR;
 		while (1) {
 			u32 read;
@@ -693,7 +693,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	}
 
 	/*let's go*/
-	gf_term_on_connect(serv, NULL, GF_OK);
+	gf_service_connect_ack(serv, NULL, GF_OK);
 	/*if (!ffd->service_type)*/ FFD_SetupObjects(ffd);
 	ffd->service_type = 0;
 	return GF_OK;
@@ -702,7 +702,7 @@ err_exit:
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG] Error opening file %s: %s\n", url, gf_error_to_string(e)));
 	if (ffd->ctx) av_close_input_file(ffd->ctx);
 	ffd->ctx = NULL;
-	gf_term_on_connect(serv, NULL, e);
+	gf_service_connect_ack(serv, NULL, e);
 	return GF_OK;
 }
 
@@ -764,13 +764,13 @@ static GF_Err FFD_CloseService(GF_InputService *plug)
 			while (!ffd->is_running) gf_sleep(1);
 			ffd->is_running = 0;
 		}
-		gf_term_download_del(ffd->dnload);
+		gf_service_download_del(ffd->dnload);
 		ffd->dnload = NULL;
 	}
 	if (ffd->buffer) gf_free(ffd->buffer);
 	ffd->buffer = NULL;
 
-	gf_term_on_disconnect(ffd->service, NULL, GF_OK);
+	gf_service_disconnect_ack(ffd->service, NULL, GF_OK);
 #ifdef FFMPEG_DUMP_REMOTE
 	if (ffd->outdbg) fclose(ffd->outdbg);
 #endif
@@ -812,7 +812,7 @@ static GF_Err FFD_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	}
 
 exit:
-	gf_term_on_connect(ffd->service, channel, e);
+	gf_service_connect_ack(ffd->service, channel, e);
 	return GF_OK;
 }
 
@@ -832,7 +832,7 @@ static GF_Err FFD_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 		ffd->video_ch = NULL;
 		ffd->video_run = 0;
 	}
-	gf_term_on_disconnect(ffd->service, channel, e);
+	gf_service_disconnect_ack(ffd->service, channel, e);
 	return GF_OK;
 }
 
@@ -904,7 +904,7 @@ static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 	if (!plug || !url)
 		return GF_FALSE;
 	ffd = (FFDemux *)plug->priv;
-	this_url = gf_term_get_service_url(ffd->service);
+	this_url = gf_service_get_url(ffd->service);
 	if (!this_url)
 		return GF_FALSE;
 

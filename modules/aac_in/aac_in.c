@@ -97,7 +97,7 @@ static u32 AAC_RegisterMimeTypes(const GF_InputService *plug) {
 	if (!plug)
 		return 0;
 	for (i = 0 ; AAC_MIMES[i] ; i++)
-		gf_term_register_mime_type( plug, AAC_MIMES[i], AAC_EXTENSIONS, AAC_DESC);
+		gf_service_register_mime( plug, AAC_MIMES[i], AAC_EXTENSIONS, AAC_DESC);
 	return i;
 }
 
@@ -112,7 +112,7 @@ static Bool AAC_CanHandleURL(GF_InputService *plug, const char *url)
 	{
 		int i;
 		for (i = 0 ; AAC_MIMES[i] ; i++)
-			if (gf_term_check_extension(plug, AAC_MIMES[i], AAC_EXTENSIONS, AAC_DESC, sExt))
+			if (gf_service_check_mime_register(plug, AAC_MIMES[i], AAC_EXTENSIONS, AAC_DESC, sExt))
 				return 1;
 	}
 	return 0;
@@ -176,7 +176,7 @@ static void AAC_SetupObject(AACReader *read)
 	esd->OCRESID = 0;
 	gf_list_add(od->ESDescriptors, esd);
 
-	gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
+	gf_service_declare_media(read->service, (GF_Descriptor*)od, 0);
 }
 #endif
 
@@ -283,7 +283,7 @@ static void AAC_RegulateDataRate(AACReader *read)
 	com.command_type = GF_NET_CHAN_BUFFER_QUERY;
 	com.base.on_channel = read->ch;
 	while (read->ch) {
-		gf_term_on_command(read->service, &com, GF_OK);
+		gf_service_command(read->service, &com, GF_OK);
 		if (com.buffer.occupancy < com.buffer.max) break;
 		gf_sleep(2);
 	}
@@ -315,7 +315,7 @@ static void AAC_OnLiveData(AACReader *read, const char *data, u32 data_size)
 		read->is_live = 1;
 		memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 #ifndef DONT_USE_TERMINAL_MODULE_API
-		gf_term_on_connect(read->service, NULL, GF_OK);
+		gf_service_connect_ack(read->service, NULL, GF_OK);
 		AAC_SetupObject(read);
 #endif
 	}
@@ -336,7 +336,7 @@ static void AAC_OnLiveData(AACReader *read, const char *data, u32 data_size)
 		read->sl_hdr.compositionTimeStampFlag = 1;
 		read->sl_hdr.compositionTimeStamp += 1024;
 #ifndef DONT_USE_TERMINAL_MODULE_API
-		gf_term_on_sl_packet(read->service, read->ch, read->data + pos, hdr.frame_size, &read->sl_hdr, GF_OK);
+		gf_service_send_packet(read->service, read->ch, read->data + pos, hdr.frame_size, &read->sl_hdr, GF_OK);
 #else
 		SampleCallBack(audio_prog, AUDIO_DATA_ESID, read->data + pos, hdr.frame_size, read->sl_hdr.compositionTimeStamp);
 #endif
@@ -366,7 +366,7 @@ static void AAC_OnLiveData(AACReader *read, const char *data, u32 data_size)
 				com.map_time.timestamp = read->sl_hdr.compositionTimeStamp;
 				com.map_time.reset_buffers = 0;
 				com.base.on_channel = read->ch;
-				gf_term_on_command(read->service, &com, GF_OK);
+				gf_service_command(read->service, &com, GF_OK);
 				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AAC  In] Mapping WC  Time %04d/%02d/%02d %02d:%02d:%02d and AAC time "LLD" (audio delay %f)\n",
 				                                   (now_tm->tm_year + 1900), (now_tm->tm_mon + 1), now_tm->tm_mday, now_tm->tm_hour, now_tm->tm_min, now_tm->tm_sec,
 				                                   com.map_time.timestamp, hybrid_delay));
@@ -406,7 +406,7 @@ static void AAC_disconnect_from_http_and_free(AACReader * read)
 #ifdef DONT_USE_TERMINAL_MODULE_API
 		gf_dm_sess_del( read->dnload);
 #else
-		gf_term_download_del(read->dnload);
+		gf_service_download_del(read->dnload);
 #endif /* DONT_USE_TERMINAL_MODULE_API */
 	}
 	read->dnload = NULL;
@@ -463,14 +463,14 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			}
 #ifndef DONT_USE_TERMINAL_MODULE_API
 			com.base.command_type = GF_NET_SERVICE_INFO;
-			gf_term_on_command(read->service, &com, GF_OK);
+			gf_service_command(read->service, &com, GF_OK);
 #endif
 		}
 		return;
 	} else {
 		/*handle service message*/
 #ifndef DONT_USE_TERMINAL_MODULE_API
-		gf_term_download_update_stats(read->dnload);
+		gf_service_download_update_stats(read->dnload);
 #endif
 		if (param->msg_type!=GF_NETIO_DATA_EXCHANGE) return;
 	}
@@ -516,7 +516,7 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	if (read->needs_connection) {
 		read->needs_connection = 0;
 #ifndef DONT_USE_TERMINAL_MODULE_API
-		gf_term_on_connect(read->service, NULL, e);
+		gf_service_connect_ack(read->service, NULL, e);
 		if (!e) AAC_SetupObject(read);
 #endif
 	}
@@ -527,7 +527,7 @@ void aac_download_file(AACReader *read, char *url)
 	read->needs_connection = 1;
 	AAC_disconnect_from_http_and_free(read);
 #ifndef DONT_USE_TERMINAL_MODULE_API
-	read->dnload = gf_term_download_new(read->service, url, 0, AAC_NetIO, read);
+	read->dnload = gf_service_download_new(read->service, url, 0, AAC_NetIO, read);
 #else
 	{
 		GF_Err e;
@@ -541,7 +541,7 @@ void aac_download_file(AACReader *read, char *url)
 	if (!read->dnload ) {
 		read->needs_connection = 0;
 #ifndef DONT_USE_TERMINAL_MODULE_API
-		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+		gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
 #endif
 	}
 
@@ -633,7 +633,7 @@ static GF_Err AAC_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		read->stream = NULL;
 		reply = GF_NOT_SUPPORTED;
 	}
-	gf_term_on_connect(serv, NULL, reply);
+	gf_service_connect_ack(serv, NULL, reply);
 	if (!reply && read->is_inline ) AAC_SetupObject(read);
 	return GF_OK;
 }
@@ -646,7 +646,7 @@ static GF_Err AAC_CloseService(GF_InputService *plug)
 	read = plug->priv;
 	if (!read)
 		return GF_BAD_PARAM;
-	gf_term_on_disconnect(read->service, NULL, GF_OK);
+	gf_service_disconnect_ack(read->service, NULL, GF_OK);
 	AAC_Reader_del( read );
 	plug->priv = NULL;
 	return GF_OK;
@@ -700,7 +700,7 @@ static GF_Err AAC_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	}
 
 exit:
-	gf_term_on_connect(read->service, channel, e);
+	gf_service_connect_ack(read->service, channel, e);
 	return e;
 }
 
@@ -717,7 +717,7 @@ static GF_Err AAC_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 		read->data = NULL;
 		e = GF_OK;
 	}
-	gf_term_on_disconnect(read->service, channel, e);
+	gf_service_disconnect_ack(read->service, channel, e);
 	return GF_OK;
 }
 
@@ -774,7 +774,7 @@ static GF_Err AAC_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 					rcfg.base.command_type = GF_NET_CHAN_DURATION;
 					rcfg.duration.duration = read->duration;
 					rcfg.duration.duration /= read->sample_rate;
-					gf_term_on_command(read->service, &rcfg, GF_OK);
+					gf_service_command(read->service, &rcfg, GF_OK);
 				}
 			}
 		}

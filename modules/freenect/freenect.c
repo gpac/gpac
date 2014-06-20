@@ -89,7 +89,7 @@ void Freenect_DepthCallback_RGBD(freenect_device *dev, void *v_depth, uint32_t t
 			}
 		}
 		vcap->depth_sl_header.compositionTimeStamp = timestamp;
-		gf_term_on_sl_packet(vcap->service, vcap->depth_channel, (char *) vcap->depth_buf, vcap->out_depth_size, &vcap->depth_sl_header, GF_OK);
+		gf_service_send_packet(vcap->service, vcap->depth_channel, (char *) vcap->depth_buf, vcap->out_depth_size, &vcap->depth_sl_header, GF_OK);
 	}
 }
 
@@ -101,7 +101,7 @@ void Freenect_DepthCallback_GREY16(freenect_device *dev, void *v_depth, uint32_t
 		memcpy(vcap->depth_buf, v_depth, vcap->out_depth_size);
 
 		vcap->depth_sl_header.compositionTimeStamp = timestamp;
-		gf_term_on_sl_packet(vcap->service, vcap->depth_channel, (char *) vcap->depth_buf, vcap->out_depth_size, &vcap->depth_sl_header, GF_OK);
+		gf_service_send_packet(vcap->service, vcap->depth_channel, (char *) vcap->depth_buf, vcap->out_depth_size, &vcap->depth_sl_header, GF_OK);
 	}
 }
 
@@ -121,7 +121,7 @@ void Freenect_DepthCallback_GREY8(freenect_device *dev, void *v_depth, uint32_t 
 		}
 //		vcap->depth_sl_header.compositionTimeStamp = timestamp;
 		vcap->depth_sl_header.compositionTimeStamp ++;
-		gf_term_on_sl_packet(vcap->service, vcap->depth_channel, (char *) vcap->depth_buf, vcap->out_depth_size, &vcap->depth_sl_header, GF_OK);
+		gf_service_send_packet(vcap->service, vcap->depth_channel, (char *) vcap->depth_buf, vcap->out_depth_size, &vcap->depth_sl_header, GF_OK);
 	}
 }
 
@@ -174,7 +174,7 @@ void Freenect_DepthCallback_ColorGradient(freenect_device *dev, void *v_depth, u
 			}
 		}
 		vcap->depth_sl_header.compositionTimeStamp = timestamp;
-		gf_term_on_sl_packet(vcap->service, vcap->depth_channel, (char *) vcap->depth_buf, vcap->out_depth_size, &vcap->depth_sl_header, GF_OK);
+		gf_service_send_packet(vcap->service, vcap->depth_channel, (char *) vcap->depth_buf, vcap->out_depth_size, &vcap->depth_sl_header, GF_OK);
 	}
 }
 
@@ -183,7 +183,7 @@ void Freenect_RGBCallback(freenect_device *dev, void *rgb, uint32_t timestamp)
 	FreenectIn *vcap = freenect_get_user(dev);
 	if (vcap->color_channel) {
 		vcap->color_sl_header.compositionTimeStamp = timestamp;
-		gf_term_on_sl_packet(vcap->service, vcap->color_channel, (char *) rgb, vcap->out_color_size, &vcap->color_sl_header, GF_OK);
+		gf_service_send_packet(vcap->service, vcap->color_channel, (char *) rgb, vcap->out_color_size, &vcap->color_sl_header, GF_OK);
 	}
 }
 
@@ -388,7 +388,7 @@ GF_Err Freenect_ConnectService(GF_InputService *plug, GF_ClientService *serv, co
 	}
 
 	/*ACK connection is OK*/
-	gf_term_on_connect(serv, NULL, GF_OK);
+	gf_service_connect_ack(serv, NULL, GF_OK);
 
 
 	/*setup object descriptor*/
@@ -423,7 +423,7 @@ GF_Err Freenect_ConnectService(GF_InputService *plug, GF_ClientService *serv, co
 	gf_bs_del(bs);
 
 	gf_list_add(od->ESDescriptors, esd);
-	gf_term_add_media(vcap->service, (GF_Descriptor*)od, 0);
+	gf_service_declare_media(vcap->service, (GF_Descriptor*)od, 0);
 
 	return GF_OK;
 }
@@ -435,7 +435,7 @@ GF_Err Freenect_CloseService(GF_InputService *plug)
 	if (vcap->f_ctx) freenect_shutdown(vcap->f_ctx);
 	vcap->f_ctx = NULL;
 	vcap->f_dev = NULL;
-	gf_term_on_disconnect(vcap->service, NULL, GF_OK);
+	gf_service_disconnect_ack(vcap->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -505,15 +505,15 @@ GF_Err Freenect_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, cons
 		vcap->depth_channel = channel;
 		memset(&vcap->depth_sl_header, 0, sizeof(GF_SLHeader));
 		vcap->depth_sl_header.compositionTimeStampFlag = 1;
-		gf_term_on_connect(vcap->service, channel, GF_OK);
+		gf_service_connect_ack(vcap->service, channel, GF_OK);
 	} else if (ESID == 2) {
 		vcap->color_channel = channel;
 		memset(&vcap->color_sl_header, 0, sizeof(GF_SLHeader));
 		vcap->color_sl_header.compositionTimeStampFlag = 1;
-		gf_term_on_connect(vcap->service, channel, GF_OK);
+		gf_service_connect_ack(vcap->service, channel, GF_OK);
 	} else {
 		/*TODO*/
-		gf_term_on_connect(vcap->service, channel, GF_STREAM_NOT_FOUND);
+		gf_service_connect_ack(vcap->service, channel, GF_STREAM_NOT_FOUND);
 	}
 	return GF_OK;
 }
@@ -527,7 +527,7 @@ GF_Err Freenect_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	else if (vcap->color_channel == channel) {
 		vcap->color_channel = NULL;
 	}
-	gf_term_on_disconnect(vcap->service, channel, GF_OK);
+	gf_service_disconnect_ack(vcap->service, channel, GF_OK);
 	return GF_OK;
 }
 

@@ -85,7 +85,7 @@ static GF_Err ISMA_GetGPAC_KMS(ISMAEAPriv *priv, GF_Channel *ch, const char *kms
 	is supported as a proof of concept, crypto and IPMP being the last priority on gpac...*/
 	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[CENC/ISMA] Fetching ISMACryp key for channel %d\n", ch->esd->ESID) );
 
-	sess = gf_term_download_new(ch->service, kms_url, 0, ISMA_KMS_NetIO, ch);
+	sess = gf_service_download_new(ch->service, kms_url, 0, ISMA_KMS_NetIO, ch);
 	if (!sess) return GF_IO_ERR;
 	/*start our download (threaded)*/
 	gf_dm_sess_process(sess);
@@ -97,7 +97,7 @@ static GF_Err ISMA_GetGPAC_KMS(ISMAEAPriv *priv, GF_Channel *ch, const char *kms
 	if (e==GF_EOS) {
 		e = gf_ismacryp_gpac_get_info(ch->esd->ESID, (char *) gf_dm_sess_get_cache_name(sess), priv->key, priv->salt);
 	}
-	gf_term_download_del(sess);
+	gf_service_download_del(sess);
 	return e;
 }
 

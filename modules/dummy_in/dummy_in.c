@@ -98,7 +98,7 @@ static u32 DC_RegisterMimeTypes(const GF_InputService *plug) {
 	if (!plug)
 		return 0;
 	for (i = 0 ; DC_MIME_TYPES[i] ; i+=3)
-		gf_term_register_mime_type(plug, DC_MIME_TYPES[i], DC_MIME_TYPES[i+1], DC_MIME_TYPES[i+2]);
+		gf_service_register_mime(plug, DC_MIME_TYPES[i], DC_MIME_TYPES[i+1], DC_MIME_TYPES[i+2]);
 	return i / 3;
 }
 
@@ -119,7 +119,7 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 		{
 			u32 i;
 			for (i = 0 ; DC_MIME_TYPES[i] ; i+=3)
-				if (0 != (ok = gf_term_check_extension(plug, DC_MIME_TYPES[i], DC_MIME_TYPES[i+1], DC_MIME_TYPES[i+2], sExt)))
+				if (0 != (ok = gf_service_check_mime_register(plug, DC_MIME_TYPES[i], DC_MIME_TYPES[i+1], DC_MIME_TYPES[i+2], sExt)))
 					break;
 		}
 		if (cgi_par) cgi_par[0] = '?';
@@ -154,7 +154,7 @@ void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	DCReader *read = (DCReader *) cbk;
 
 	/*handle service message*/
-	gf_term_download_update_stats(read->dnload);
+	gf_service_download_update_stats(read->dnload);
 
 	e = param->error;
 
@@ -181,7 +181,7 @@ void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	/*OK confirm*/
 	if (!read->is_service_connected) {
 		if (!gf_dm_sess_get_cache_name(read->dnload)) e = GF_IO_ERR;
-		gf_term_on_connect(read->service, NULL, e);
+		gf_service_connect_ack(read->service, NULL, e);
 		read->is_service_connected = 1;
 	}
 }
@@ -190,9 +190,9 @@ void DC_DownloadFile(GF_InputService *plug, char *url)
 {
 	DCReader *read = (DCReader *) plug->priv;
 
-	read->dnload = gf_term_download_new(read->service, url, 0, DC_NetIO, read);
+	read->dnload = gf_service_download_new(read->service, url, 0, DC_NetIO, read);
 	if (!read->dnload) {
-		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+		gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
 		gf_dm_sess_process(read->dnload);
@@ -208,7 +208,7 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 
 	if (!read || !serv || !url) return GF_BAD_PARAM;
 
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
 	read->url = gf_strdup(url);
@@ -233,7 +233,7 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 
 	if (!strnicmp(url, "views://", 8)) {
 		read->is_views_url = 1;
-		gf_term_on_connect(serv, NULL, GF_OK);
+		gf_service_connect_ack(serv, NULL, GF_OK);
 		read->is_service_connected = 1;
 		return GF_OK;
 	}
@@ -297,12 +297,12 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 
 	test = gf_f64_open(read->url, "rt");
 	if (!test) {
-		gf_term_on_connect(serv, NULL, GF_URL_ERROR);
+		gf_service_connect_ack(serv, NULL, GF_URL_ERROR);
 		return GF_OK;
 	}
 	fclose(test);
 	if (!read->is_service_connected) {
-		gf_term_on_connect(serv, NULL, GF_OK);
+		gf_service_connect_ack(serv, NULL, GF_OK);
 		read->is_service_connected = 1;
 	}
 	return GF_OK;
@@ -311,9 +311,9 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 GF_Err DC_CloseService(GF_InputService *plug)
 {
 	DCReader *read = (DCReader *) plug->priv;
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
-	gf_term_on_disconnect(read->service, NULL, GF_OK);
+	gf_service_disconnect_ack(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -415,14 +415,14 @@ GF_Err DC_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char
 
 	sscanf(url, "ES_ID=%ud", &ESID);
 	if (!ESID) {
-		gf_term_on_connect(read->service, channel, GF_STREAM_NOT_FOUND);
+		gf_service_connect_ack(read->service, channel, GF_STREAM_NOT_FOUND);
 	} else {
 		DummyChannel *dc;
 		GF_SAFEALLOC(dc, DummyChannel);
 		dc->ch = channel;
 		dc->ESID = ESID;
 		gf_list_add(read->channels, dc);
-		gf_term_on_connect(read->service, channel, GF_OK);
+		gf_service_connect_ack(read->service, channel, GF_OK);
 	}
 	return GF_OK;
 }
@@ -433,7 +433,7 @@ GF_Err DC_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	DCReader *read = (DCReader *) plug->priv;
 
 	had_ch = DC_RemoveChannel(read, channel);
-	gf_term_on_disconnect(read->service, channel, had_ch ? GF_OK : GF_STREAM_NOT_FOUND);
+	gf_service_disconnect_ack(read->service, channel, had_ch ? GF_OK : GF_STREAM_NOT_FOUND);
 	return GF_OK;
 }
 

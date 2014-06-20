@@ -121,7 +121,7 @@ static u32 IMG_RegisterMimeTypes(const GF_InputService *plug) {
 		GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("IMG_RegisterMimeTypes : plug is NULL !!\n"));
 	}
 	for (i = 0 ; IMG_MIME_TYPES[i]; i+=3)
-		gf_term_register_mime_type(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2]);
+		gf_service_register_mime(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2]);
 	return i/3;
 }
 
@@ -135,7 +135,7 @@ static Bool IMG_CanHandleURL(GF_InputService *plug, const char *url)
 		return 0;
 	sExt = strrchr(url, '.');
 	for (i = 0 ; IMG_MIME_TYPES[i]; i+=3) {
-		if (gf_term_check_extension(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2], sExt))
+		if (gf_service_check_mime_register(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2], sExt))
 			return 1;
 	}
 	return 0;
@@ -156,7 +156,7 @@ static void IMG_SetupObject(IMGLoader *read)
 		GF_ESD *esd = IMG_GetESD(read);
 		od->objectDescriptorID = 1;
 		gf_list_add(od->ESDescriptors, esd);
-		gf_term_add_media(read->service, (GF_Descriptor *)od, 0);
+		gf_service_declare_media(read->service, (GF_Descriptor *)od, 0);
 	}
 }
 
@@ -169,7 +169,7 @@ void IMG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	if (!read->dnload) return;
 
 	/*handle service message*/
-	gf_term_download_update_stats(read->dnload);
+	gf_service_download_update_stats(read->dnload);
 
 	e = param->error;
 	/*wait to get the whole file*/
@@ -190,7 +190,7 @@ void IMG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		}
 	}
 	/*OK confirm*/
-	gf_term_on_connect(read->service, NULL, e);
+	gf_service_connect_ack(read->service, NULL, e);
 	if (!e) IMG_SetupObject(read);
 }
 
@@ -198,9 +198,9 @@ void jp_download_file(GF_InputService *plug, const char *url)
 {
 	IMGLoader *read = (IMGLoader *) plug->priv;
 
-	read->dnload = gf_term_download_new(read->service, url, 0, IMG_NetIO, read);
+	read->dnload = gf_service_download_new(read->service, url, 0, IMG_NetIO, read);
 	if (!read->dnload) {
-		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+		gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
 		gf_dm_sess_process(read->dnload);
@@ -224,7 +224,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	else if (!stricmp(sExt, ".pngs")) read->img_type = IMG_PNGS;
 	else if (!stricmp(sExt, ".bmp")) read->img_type = IMG_BMP;
 
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
 	/*remote fetch*/
@@ -239,7 +239,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		read->data_size = (u32) gf_f64_tell(read->stream);
 		gf_f64_seek(read->stream, 0, SEEK_SET);
 	}
-	gf_term_on_connect(serv, NULL, read->stream ? GF_OK : GF_URL_ERROR);
+	gf_service_connect_ack(serv, NULL, read->stream ? GF_OK : GF_URL_ERROR);
 	if (read->stream && read->is_inline) IMG_SetupObject(read);
 	return GF_OK;
 }
@@ -254,10 +254,10 @@ static GF_Err IMG_CloseService(GF_InputService *plug)
 		return GF_BAD_PARAM;
 	if (read->stream) fclose(read->stream);
 	read->stream = NULL;
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 	if (read->service)
-		gf_term_on_disconnect(read->service, NULL, GF_OK);
+		gf_service_disconnect_ack(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -308,7 +308,7 @@ static GF_Err IMG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	}
 
 exit:
-	gf_term_on_connect(read->service, channel, e);
+	gf_service_connect_ack(read->service, channel, e);
 	return e;
 }
 
@@ -321,7 +321,7 @@ static GF_Err IMG_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 		read->ch = NULL;
 		e = GF_OK;
 	}
-	gf_term_on_disconnect(read->service, channel, e);
+	gf_service_disconnect_ack(read->service, channel, e);
 	return GF_OK;
 }
 

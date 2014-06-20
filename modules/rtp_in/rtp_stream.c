@@ -36,7 +36,7 @@ void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 	clean up the command stack*/
 	if (!ch->channel) return;
 
-	gf_term_on_connect(ch->owner->service, ch->channel, e);
+	gf_service_connect_ack(ch->owner->service, ch->channel, e);
 	if (e != GF_OK || !ch->rtp_ch) return;
 
 	/*success, overwrite SL config*/
@@ -46,7 +46,7 @@ void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 
 	gf_rtp_depacketizer_get_slconfig(ch->depacketizer, &com.cfg.sl_config);
 	/*reconfig*/
-	gf_term_on_command(ch->owner->service, &com, GF_OK);
+	gf_service_command(ch->owner->service, &com, GF_OK);
 
 	/*ISMACryp config*/
 	if (ch->depacketizer->flags & GF_RTP_HAS_ISMACRYP) {
@@ -58,7 +58,7 @@ void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 		/*not transported in SDP!!!*/
 		com.drm_cfg.scheme_uri = NULL;
 		com.drm_cfg.kms_uri = ch->depacketizer->key;
-		gf_term_on_command(ch->owner->service, &com, GF_OK);
+		gf_service_command(ch->owner->service, &com, GF_OK);
 	}
 }
 
@@ -70,16 +70,16 @@ GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 		const char *ip_ifce = NULL;
 		u32 reorder_size = 0;
 		if (!ch->owner->transport_mode) {
-			const char *sOpt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ReorderSize");
+			const char *sOpt = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Streaming", "ReorderSize");
 			if (sOpt) reorder_size = atoi(sOpt);
 			else reorder_size = 10;
 
 
-			ip_ifce = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Network", "DefaultMCastInterface");
+			ip_ifce = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Network", "DefaultMCastInterface");
 			if (!ip_ifce) {
-				const char *mob_on = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Network", "MobileIPEnabled");
+				const char *mob_on = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Network", "MobileIPEnabled");
 				if (mob_on && !strcmp(mob_on, "yes")) {
-					ip_ifce = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Network", "MobileIP");
+					ip_ifce = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Network", "MobileIP");
 					ch->flags |= RTP_MOBILEIP;
 				}
 
@@ -127,9 +127,9 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 
 	if (ch->owner->first_packet_drop && (hdr->packetSequenceNumber >= ch->owner->first_packet_drop) ) {
 		if ( (hdr->packetSequenceNumber - ch->owner->first_packet_drop) % ch->owner->frequency_drop)
-			gf_term_on_sl_packet(ch->owner->service, ch->channel, payload, size, hdr, e);
+			gf_service_send_packet(ch->owner->service, ch->channel, payload, size, hdr, e);
 	} else {
-		gf_term_on_sl_packet(ch->owner->service, ch->channel, payload, size, hdr, e);
+		gf_service_send_packet(ch->owner->service, ch->channel, payload, size, hdr, e);
 	}
 	hdr->compositionTimeStamp = cts;
 	hdr->decodingTimeStamp = dts;
@@ -281,11 +281,11 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 
 //	tmp->status = NM_Disconnected;
 
-	ctrl = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Streaming", "DisableRTCP");
+	ctrl = (char *) gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(rtp->service), "Streaming", "DisableRTCP");
 	if (!ctrl || stricmp(ctrl, "yes")) tmp->flags |= RTP_ENABLE_RTCP;
 
 	/*setup NAT keep-alive*/
-	ctrl = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Streaming", "NATKeepAlive");
+	ctrl = (char *) gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(rtp->service), "Streaming", "NATKeepAlive");
 	if (ctrl) gf_rtp_enable_nat_keepalive(tmp->rtp_ch, atoi(ctrl));
 
 	tmp->range_start = Start;
@@ -357,7 +357,7 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 
 	/*corrupted or NULL data*/
 	if (e || (PayloadStart >= size)) {
-		//gf_term_on_sl_packet(ch->owner->service, ch->channel, NULL, 0, NULL, GF_CORRUPTED_DATA);
+		//gf_service_send_packet(ch->owner->service, ch->channel, NULL, 0, NULL, GF_CORRUPTED_DATA);
 		return;
 	}
 
@@ -398,7 +398,7 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 
 			com.map_time.timestamp = hdr.TimeStamp;
 			com.map_time.reset_buffers = 0;
-			gf_term_on_command(ch->owner->service, &com, GF_OK);
+			gf_service_command(ch->owner->service, &com, GF_OK);
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Mapping RTP Time seq %d TS %d Media Time %g - rtp info seq %d TS %d\n",
 			                                 hdr.SequenceNumber, hdr.TimeStamp, com.map_time.media_time, ch->rtp_ch->rtp_first_SN, ch->rtp_ch->rtp_time
@@ -429,7 +429,7 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 		if (ABSDIFF(ch->range_end, (ts + ch->current_start + gf_rtp_get_current_time(ch->rtp_ch)) ) < 0.2) {
 			ch->flags |= RTP_EOS;
 			ch->stat_stop_time = gf_sys_clock();
-			gf_term_on_sl_packet(ch->owner->service, ch->channel, NULL, 0, NULL, GF_EOS);
+			gf_service_send_packet(ch->owner->service, ch->channel, NULL, 0, NULL, GF_EOS);
 		}
 	}
 }
@@ -486,7 +486,7 @@ void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 		}
 		com.map_time.timestamp = ch->rtp_ch->last_SR_rtp_time;
 		com.map_time.reset_buffers = 1;
-		gf_term_on_command(ch->owner->service, &com, GF_OK);
+		gf_service_command(ch->owner->service, &com, GF_OK);
 #endif
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTCP] At %d Using Sender Report to map RTP TS %d to NTP clock %g - new TS offset "LLD" \n",
@@ -500,7 +500,7 @@ void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 	if (e == GF_EOS) {
 		ch->flags |= RTP_EOS;
 		ch->stat_stop_time = gf_sys_clock();
-		gf_term_on_sl_packet(ch->owner->service, ch->channel, NULL, 0, NULL, GF_EOS);
+		gf_service_send_packet(ch->owner->service, ch->channel, NULL, 0, NULL, GF_EOS);
 	}
 }
 
@@ -565,7 +565,7 @@ void RP_ReadStream(RTPStream *ch)
 				char szMessage[1024];
 				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] UDP Timeout after %d ms\n", diff));
 				sprintf(szMessage, "No data received in %d ms", diff);
-				gf_term_on_message(ch->owner->service, GF_IP_UDP_TIMEOUT, szMessage);
+				RP_SendMessage(ch->owner->service, GF_IP_UDP_TIMEOUT, szMessage);
 				ch->status = RTP_Unavailable;
 			}
 		}

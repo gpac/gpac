@@ -229,6 +229,8 @@ typedef enum {
 	GF_EVENT_TEXT_EDITING_START,
 	GF_EVENT_TEXT_EDITING_END,
 
+	GF_EVENT_FROM_SERVICE,
+
 	GF_EVENT_ADDON_DETECTED,
 } GF_EventType;
 
@@ -490,10 +492,10 @@ enum
 
 enum
 {
+	//regular even codes
+	GF_EVT_REGULAR = 0,
 	/*events forwarded from MPEG-2 stack*/
-	GF_EVT_FORWARDED_MPEG2 = 0,
-	/*events forwarded from RTP/RTSP/IP stack (not used yet)*/
-	GF_EVT_FORWARDED_RTP_RTSP
+	GF_EVT_MPEG2 = 1,
 };
 
 #endif

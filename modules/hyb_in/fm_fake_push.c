@@ -159,7 +159,7 @@ u32 ext_media_load_th(void *par) {
 	od->URLString = gf_strdup("http://gpac.sourceforge.net/screenshots/lion.jpg");
 	od->objectDescriptorID = 0;
 	gf_sleep(2000); //TODO: remove the sleep
-	gf_term_add_media(self->owner, (GF_Descriptor*)od, 0);
+	gf_service_declare_media(self->owner, (GF_Descriptor*)od, 0);
 	return 0;
 }
 
@@ -202,7 +202,7 @@ static u32 audio_gen_th(void *par)
 				com.map_time.timestamp = slh.compositionTimeStamp;
 				com.map_time.reset_buffers = 0;
 				com.base.on_channel = self->channel;
-				gf_term_on_command(self->owner, &com, GF_OK);
+				gf_service_command(self->owner, &com, GF_OK);
 				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[HYB In] Mapping WC  Time %04d/%02d/%02d %02d:%02d:%02d and Hyb time "LLD"\n",
 				                                   (now_tm->tm_year + 1900), (now_tm->tm_mon + 1), now_tm->tm_mday, now_tm->tm_hour, now_tm->tm_min, now_tm->tm_sec,
 				                                   com.map_time.timestamp));
@@ -232,7 +232,7 @@ static u32 audio_gen_th(void *par)
 #endif
 
 		e = GetData(self, &data, &data_size, &slh);
-		gf_term_on_sl_packet(self->owner, self->channel, data, data_size, &slh, e);
+		gf_service_send_packet(self->owner, self->channel, data, data_size, &slh, e);
 	}
 
 	self->state = HYB_STATE_STOPPED;

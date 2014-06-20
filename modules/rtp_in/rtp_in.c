@@ -141,7 +141,7 @@ u32 RP_Thread(void *param)
 			/*for interleaved channels don't read too fast, query the buffer occupancy*/
 			if (ch->flags & RTP_INTERLEAVED) {
 				com.base.on_channel = ch->channel;
-				gf_term_on_command(rtp->service, &com, GF_OK);
+				gf_service_command(rtp->service, &com, GF_OK);
 				/*if no buffering, use a default value (3 sec of data should do it)*/
 				if (!com.buffer.max) com.buffer.max = 3000;
 				if (com.buffer.occupancy <= com.buffer.max) ch->rtsp->flags |= RTSP_TCP_FLUSH;
@@ -156,7 +156,7 @@ u32 RP_Thread(void *param)
 			RP_ProcessCommands(sess);
 
 			if (sess->connect_error) {
-				gf_term_on_connect(sess->owner->service, NULL, sess->connect_error);
+				gf_service_connect_ack(sess->owner->service, NULL, sess->connect_error);
 				sess->connect_error = 0;
 			}
 
@@ -167,7 +167,7 @@ u32 RP_Thread(void *param)
 		gf_sleep(1);
 	}
 
-	if (rtp->dnload) gf_term_download_del(rtp->dnload);
+	if (rtp->dnload) gf_service_download_del(rtp->dnload);
 	rtp->dnload = NULL;
 
 	rtp->th_state = 2;
@@ -183,7 +183,7 @@ static const char * sdp_desc = "OnDemand Media/Multicast Session";
 static u32 RP_RegisterMimeTypes(const GF_InputService *plug) {
 	if (!plug)
 		return 0;
-	gf_term_register_mime_type(plug, sdp_mime, sdp_exts, sdp_desc);
+	gf_service_register_mime(plug, sdp_mime, sdp_exts, sdp_desc);
 	return 1;
 }
 
@@ -194,7 +194,7 @@ static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 		return 0;
 	sExt = strrchr(url, '.');
 
-	if (sExt && gf_term_check_extension(plug, sdp_mime, sdp_exts, sdp_desc, sExt)) return 1;
+	if (sExt && gf_service_check_mime_register(plug, sdp_mime, sdp_exts, sdp_desc, sExt)) return 1;
 
 	/*local */
 	if (strstr(url, "data:application/sdp")) return 1;
@@ -218,7 +218,7 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 	/*store user address*/
 	priv->service = serv;
 
-	if (priv->dnload) gf_term_download_del(priv->dnload);
+	if (priv->dnload) gf_service_download_del(priv->dnload);
 	priv->dnload = NULL;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Opening service %s\n", url));
@@ -266,7 +266,7 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 		sess = RP_NewSession(priv, (char *) the_url);
 		gf_free(the_url);
 		if (!sess) {
-			gf_term_on_connect(serv, NULL, GF_NOT_SUPPORTED);
+			gf_service_connect_ack(serv, NULL, GF_NOT_SUPPORTED);
 		} else {
 			RP_Describe(sess, 0, NULL);
 		}
@@ -275,7 +275,7 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 
 	/*direct RTP (no control) or embedded data - this means the service is attached to a single channel (no IOD)
 	reply right away*/
-	gf_term_on_connect(serv, NULL, GF_OK);
+	gf_service_connect_ack(serv, NULL, GF_OK);
 	RP_SetupObjects(priv);
 	return GF_OK;
 }
@@ -344,7 +344,7 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 	if (rtp->th_state==1) rtp->th_state = 0;
 
 	/*confirm close*/
-	gf_term_on_disconnect(rtp->service, NULL, GF_OK);
+	gf_service_disconnect_ack(rtp->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -460,7 +460,7 @@ static GF_Err RP_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	ch->flags &= ~RTP_CONNECTED;
 	ch->channel = NULL;
 	gf_mx_v(priv->mx);
-	gf_term_on_disconnect(priv->service, channel, GF_OK);
+	gf_service_disconnect_ack(priv->service, channel, GF_OK);
 	return GF_OK;
 }
 
@@ -528,7 +528,7 @@ static void gf_rtp_switch_quality(RTPClient *rtp, Bool switch_up)
 					cur_ch->status = RTP_Connected;
 					com.command_type = GF_NET_CHAN_RESET;
 					com.base.on_channel = cur_ch;
-					gf_term_on_command(rtp->service, &com, GF_OK);
+					gf_service_command(rtp->service, &com, GF_OK);
 					rtp->cur_mid = ch->mid;
 					break;
 				}

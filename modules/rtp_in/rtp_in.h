@@ -145,6 +145,8 @@ void RP_SetupObjects(RTPClient *rtp);
 
 void RP_ProcessCommands(RTSPSession *sess);
 
+void RP_SendMessage(GF_ClientService *service, GF_Err e, const char *message);
+
 /*RTP channel state*/
 enum
 {

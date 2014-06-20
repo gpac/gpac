@@ -74,7 +74,7 @@ static u32 AC3_RegisterMimeTypes(const GF_InputService *plug)
 {
 	u32 i;
 	for (i = 0 ; AC3_MIMES[i]; i++)
-		gf_term_register_mime_type(plug, AC3_MIMES[i], AC3_EXTS, AC3_DESC);
+		gf_service_register_mime(plug, AC3_MIMES[i], AC3_EXTS, AC3_DESC);
 	return i;
 }
 
@@ -84,7 +84,7 @@ static Bool AC3_CanHandleURL(GF_InputService *plug, const char *url)
 	u32 i;
 	sExt = strrchr(url, '.');
 	for (i = 0 ; AC3_MIMES[i]; i++) {
-		if (gf_term_check_extension(plug, AC3_MIMES[i], AC3_EXTS, AC3_DESC, sExt)) return 1;
+		if (gf_service_check_mime_register(plug, AC3_MIMES[i], AC3_EXTS, AC3_DESC, sExt)) return 1;
 	}
 	return 0;
 }
@@ -117,7 +117,7 @@ static void AC3_SetupObject(AC3Reader *read)
 	esd = AC3_GetESD(read);
 	esd->OCRESID = 0;
 	gf_list_add(od->ESDescriptors, esd);
-	gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
+	gf_service_declare_media(read->service, (GF_Descriptor*)od, 0);
 }
 
 
@@ -160,7 +160,7 @@ static void AC3_RegulateDataRate(AC3Reader *read)
 	com.command_type = GF_NET_CHAN_BUFFER_QUERY;
 	com.base.on_channel = read->ch;
 	while (read->ch) {
-		gf_term_on_command(read->service, &com, GF_OK);
+		gf_service_command(read->service, &com, GF_OK);
 		if (com.buffer.occupancy < com.buffer.max) break;
 		gf_sleep(2);
 	}
@@ -187,7 +187,7 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 		read->sample_rate = hdr.sample_rate;
 		read->is_live = 1;
 		memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
-		gf_term_on_connect(read->service, NULL, GF_OK);
+		gf_service_connect_ack(read->service, NULL, GF_OK);
 		AC3_SetupObject(read);
 	}
 	if (!read->ch) return;
@@ -205,7 +205,7 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 		read->sl_hdr.AU_sequenceNumber++;
 		read->sl_hdr.compositionTimeStampFlag = 1;
 		read->sl_hdr.compositionTimeStamp += 1536;
-		gf_term_on_sl_packet(read->service, read->ch, (char *) read->data + pos, hdr.framesize, &read->sl_hdr, GF_OK);
+		gf_service_send_packet(read->service, read->ch, (char *) read->data + pos, hdr.framesize, &read->sl_hdr, GF_OK);
 		gf_bs_skip_bytes(bs, hdr.framesize);
 	}
 
@@ -267,12 +267,12 @@ void AC3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			}
 
 			com.base.command_type = GF_NET_SERVICE_INFO;
-			gf_term_on_command(read->service, &com, GF_OK);
+			gf_service_command(read->service, &com, GF_OK);
 		}
 		return;
 	} else {
 		/*handle service message*/
-		gf_term_download_update_stats(read->dnload);
+		gf_service_download_update_stats(read->dnload);
 		if (param->msg_type!=GF_NETIO_DATA_EXCHANGE) return;
 	}
 
@@ -316,7 +316,7 @@ void AC3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	/*OK confirm*/
 	if (read->needs_connection) {
 		read->needs_connection = 0;
-		gf_term_on_connect(read->service, NULL, e);
+		gf_service_connect_ack(read->service, NULL, e);
 		if (!e) AC3_SetupObject(read);
 	}
 }
@@ -327,10 +327,10 @@ void ac3_download_file(GF_InputService *plug, char *url)
 
 	read->needs_connection = 1;
 
-	read->dnload = gf_term_download_new(read->service, url, 0, AC3_NetIO, read);
+	read->dnload = gf_service_download_new(read->service, url, 0, AC3_NetIO, read);
 	if (!read->dnload ) {
 		read->needs_connection = 0;
-		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+		gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
 		gf_dm_sess_process(read->dnload);
@@ -347,7 +347,7 @@ static GF_Err AC3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	AC3Reader *read = plug->priv;
 	read->service = serv;
 
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
 	strcpy(szURL, url);
@@ -370,7 +370,7 @@ static GF_Err AC3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		read->stream = NULL;
 		reply = GF_NOT_SUPPORTED;
 	}
-	gf_term_on_connect(serv, NULL, reply);
+	gf_service_connect_ack(serv, NULL, reply);
 	if (!reply && read->is_inline ) AC3_SetupObject(read);
 	return GF_OK;
 }
@@ -380,12 +380,12 @@ static GF_Err AC3_CloseService(GF_InputService *plug)
 	AC3Reader *read = plug->priv;
 	if (read->stream) fclose(read->stream);
 	read->stream = NULL;
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
 	if (read->data) gf_free(read->data);
 	read->data = NULL;
-	gf_term_on_disconnect(read->service, NULL, GF_OK);
+	gf_service_disconnect_ack(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -434,7 +434,7 @@ static GF_Err AC3_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	}
 
 exit:
-	gf_term_on_connect(read->service, channel, e);
+	gf_service_connect_ack(read->service, channel, e);
 	return e;
 }
 
@@ -449,7 +449,7 @@ static GF_Err AC3_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 		read->data = NULL;
 		e = GF_OK;
 	}
-	gf_term_on_disconnect(read->service, channel, e);
+	gf_service_disconnect_ack(read->service, channel, e);
 	return GF_OK;
 }
 
@@ -506,7 +506,7 @@ static GF_Err AC3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 					rcfg.base.command_type = GF_NET_CHAN_DURATION;
 					rcfg.duration.duration = read->duration;
 					rcfg.duration.duration /= read->sample_rate;
-					gf_term_on_command(read->service, &rcfg, GF_OK);
+					gf_service_command(read->service, &rcfg, GF_OK);
 				}
 			}
 		}

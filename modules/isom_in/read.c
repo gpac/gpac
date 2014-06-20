@@ -78,7 +78,7 @@ static const char * ISOR_MIME_TYPES[] = {
 u32 ISOR_RegisterMimeTypes(const GF_InputService *plug) {
 	u32 i;
 	for (i = 0 ; ISOR_MIME_TYPES[i]; i+=3)
-		gf_term_register_mime_type(plug, ISOR_MIME_TYPES[i], ISOR_MIME_TYPES[i+1], ISOR_MIME_TYPES[i+2]);
+		gf_service_register_mime(plug, ISOR_MIME_TYPES[i], ISOR_MIME_TYPES[i+1], ISOR_MIME_TYPES[i+2]);
 	return i/3;
 }
 
@@ -91,12 +91,12 @@ Bool ISOR_CanHandleURL(GF_InputService *plug, const char *url)
 		u32 i;
 		/* We don't start at 0 since first one is specific */
 		for (i = 3 ; ISOR_MIME_TYPES[i]; i+=3)
-			if (gf_term_check_extension(plug, ISOR_MIME_TYPES[i], ISOR_MIME_TYPES[i+1], ISOR_MIME_TYPES[i+2], ext))
+			if (gf_service_check_mime_register(plug, ISOR_MIME_TYPES[i], ISOR_MIME_TYPES[i+1], ISOR_MIME_TYPES[i+2], ext))
 				return GF_TRUE;
 	}
 
 	if (ext && gf_isom_probe_file(url)) {
-		gf_term_check_extension(plug, ISOR_MIME_TYPES[0], ext+1, ISOR_MIME_TYPES[2], ext);
+		gf_service_check_mime_register(plug, ISOR_MIME_TYPES[0], ext+1, ISOR_MIME_TYPES[2], ext);
 		return GF_TRUE;
 	}
 	return GF_FALSE;
@@ -187,7 +187,7 @@ void isor_check_buffer_level(ISOMReader *read)
 			memset(&com, 0, sizeof(GF_NetworkCommand));
 			com.command_type = do_buffer ? GF_NET_CHAN_PAUSE : GF_NET_CHAN_RESUME;
 			com.buffer.on_channel = ch->channel;
-			gf_term_on_command(read->service, &com, GF_OK);
+			gf_service_command(read->service, &com, GF_OK);
 			ch->buffering = do_buffer;
 		} else if (ch->buffering) {
 			memset(&com, 0, sizeof(GF_NetworkCommand));
@@ -196,7 +196,7 @@ void isor_check_buffer_level(ISOMReader *read)
 			com.buffer.min = ch->buffer_min;
 			com.buffer.max = ch->buffer_max;
 			com.buffer.occupancy = buffer_level;
-			gf_term_on_command(read->service, &com, GF_OK);
+			gf_service_command(read->service, &com, GF_OK);
 		}
 	}
 }
@@ -209,7 +209,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 	ISOMReader *read = (ISOMReader *) cbk;
 
 	/*handle service message*/
-	gf_term_download_update_stats(read->dnload);
+	gf_service_download_update_stats(read->dnload);
 
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 		e = GF_EOS;
@@ -227,7 +227,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 			if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 				send_proxy_command(read, GF_FALSE, GF_FALSE, e, NULL, NULL);
 			} else {
-				gf_term_on_connect(read->service, NULL, e);
+				gf_service_connect_ack(read->service, NULL, e);
 			}
 		}
 		return;
@@ -242,7 +242,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 			if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 				send_proxy_command(read, GF_FALSE, GF_FALSE, GF_SERVICE_ERROR, NULL, NULL);
 			} else {
-				gf_term_on_connect(read->service, NULL, GF_SERVICE_ERROR);
+				gf_service_connect_ack(read->service, NULL, GF_SERVICE_ERROR);
 			}
 			return;
 		}
@@ -253,7 +253,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 		if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 			send_proxy_command(read, GF_FALSE, GF_FALSE, GF_OK, NULL, NULL);
 		} else {
-			gf_term_on_connect(read->service, NULL, GF_OK);
+			gf_service_connect_ack(read->service, NULL, GF_OK);
 		}
 		if (read->no_service_desc) isor_declare_objects(read);
 	}
@@ -280,7 +280,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 		if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 			send_proxy_command(read, GF_FALSE, GF_FALSE, GF_SERVICE_ERROR, NULL, NULL);
 		} else {
-			gf_term_on_connect(read->service, NULL, GF_SERVICE_ERROR);
+			gf_service_connect_ack(read->service, NULL, GF_SERVICE_ERROR);
 		}
 		return;
 	}
@@ -301,7 +301,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 		if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 			send_proxy_command(read, GF_FALSE, GF_FALSE, e, NULL, NULL);
 		} else {
-			gf_term_on_connect(read->service, NULL, e);
+			gf_service_connect_ack(read->service, NULL, e);
 		}
 		return;
 	}
@@ -312,7 +312,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 		send_proxy_command(read, GF_FALSE, GF_FALSE, GF_OK, NULL, NULL);
 	} else {
-		gf_term_on_connect(read->service, NULL, GF_OK);
+		gf_service_connect_ack(read->service, NULL, GF_OK);
 	}
 
 	if (read->no_service_desc) isor_declare_objects(read);
@@ -322,12 +322,12 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 void isor_setup_download(GF_InputService *plug, const char *url)
 {
 	ISOMReader *read = (ISOMReader *) plug->priv;
-	read->dnload = gf_term_download_new(read->service, url, 0, isor_net_io, read);
+	read->dnload = gf_service_download_new(read->service, url, 0, isor_net_io, read);
 	if (!read->dnload) {
 		if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 			send_proxy_command(read, GF_FALSE, GF_FALSE, GF_NOT_SUPPORTED, NULL, NULL);
 		} else {
-			gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+			gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
 		}
 	} else {
 		/*start our download (threaded)*/
@@ -347,7 +347,7 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 	read->input = plug;
 	read->service = serv;
 
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
 	read->base_track_id = 0;
@@ -385,7 +385,7 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 			if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 				send_proxy_command(read, 0, 0, e, NULL, NULL);
 			} else {
-				gf_term_on_connect(read->service, NULL, e);
+				gf_service_connect_ack(read->service, NULL, e);
 			}
 			return GF_OK;
 		}
@@ -397,7 +397,7 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 		if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 			send_proxy_command(read, GF_FALSE, GF_FALSE, GF_OK, NULL, NULL);
 		} else {
-			gf_term_on_connect(read->service, NULL, GF_OK);
+			gf_service_connect_ack(read->service, NULL, GF_OK);
 		}
 
 		if (read->no_service_desc) isor_declare_objects(read);
@@ -427,13 +427,13 @@ GF_Err ISOR_CloseService(GF_InputService *plug)
 		isor_delete_channel(read, ch);
 	}
 
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
 	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 		send_proxy_command(read, GF_TRUE, GF_FALSE, reply, NULL, NULL);
 	} else {
-		gf_term_on_disconnect(read->service, NULL, reply);
+		gf_service_disconnect_ack(read->service, NULL, reply);
 	}
 	return GF_OK;
 }
@@ -685,7 +685,7 @@ void isor_send_cenc_config(ISOMChannel *ch)
 		read->input->query_proxy(read->input, &com);
 	} else
 #endif
-		gf_term_on_command(ch->owner->service, &com, GF_OK);
+		gf_service_command(ch->owner->service, &com, GF_OK);
 	//free our PSSH
 	if (com.drm_cfg.PSSHs) gf_free(com.drm_cfg.PSSHs);
 }
@@ -783,7 +783,7 @@ exit:
 	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 		send_proxy_command(read, GF_FALSE, GF_FALSE, e, NULL, channel);
 	} else {
-		gf_term_on_connect(read->service, channel, e);
+		gf_service_connect_ack(read->service, channel, e);
 	}
 	/*if esd url reconfig SL layer*/
 	if (!e && is_esd_url) {
@@ -804,7 +804,7 @@ exit:
 		if (read->input->query_proxy && read->input->proxy_udta) {
 			read->input->query_proxy(read->input, &com);
 		} else {
-			gf_term_on_command(read->service, &com, GF_OK);
+			gf_service_command(read->service, &com, GF_OK);
 		}
 	}
 	if (!e && track && gf_isom_is_track_encrypted(read->mov, track)) {
@@ -817,7 +817,7 @@ exit:
 			if (read->input->query_proxy && read->input->proxy_udta) {
 				read->input->query_proxy(read->input, &com);
 			} else {
-				gf_term_on_command(read->service, &com, GF_OK);
+				gf_service_command(read->service, &com, GF_OK);
 			}
 		} else if (gf_isom_is_omadrm_media(read->mov, track, 1)) {
 			gf_isom_get_omadrm_info(read->mov, track, 1, NULL, &com.drm_cfg.scheme_type, &com.drm_cfg.scheme_version, &com.drm_cfg.contentID, &com.drm_cfg.kms_uri, &com.drm_cfg.oma_drm_textual_headers, &com.drm_cfg.oma_drm_textual_headers_len, NULL, &com.drm_cfg.oma_drm_crypt_type, NULL, NULL, NULL);
@@ -826,7 +826,7 @@ exit:
 			if (read->input->query_proxy && read->input->proxy_udta) {
 				read->input->query_proxy(read->input, &com);
 			} else {
-				gf_term_on_command(read->service, &com, GF_OK);
+				gf_service_command(read->service, &com, GF_OK);
 			}
 		} else if (gf_isom_is_cenc_media(read->mov, track, 1)) {
 			ch->is_cenc = GF_TRUE;
@@ -860,7 +860,7 @@ exit:
 	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 		send_proxy_command(read, 1, 0, e, NULL, channel);
 	} else {
-		gf_term_on_disconnect(read->service, channel, e);
+		gf_service_disconnect_ack(read->service, channel, e);
 	}
 	return e;
 }
@@ -1165,7 +1165,7 @@ static Bool ISOR_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
 	char szURL[2048], *sep;
 	ISOMReader *read = (ISOMReader *)plug->priv;
-	const char *this_url = gf_term_get_service_url(read->service);
+	const char *this_url = gf_service_get_url(read->service);
 	if (!this_url || !url) return GF_FALSE;
 
 	if (!strcmp(this_url, url)) return GF_TRUE;

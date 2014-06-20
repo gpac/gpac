@@ -290,16 +290,16 @@ void RP_SetupObjects(RTPClient *rtp)
 		if (!rtp->media_type) {
 			od = RP_GetChannelOD(ch, i);
 			if (!od) continue;
-			gf_term_add_media(rtp->service, (GF_Descriptor*)od, 1);
+			gf_service_declare_media(rtp->service, (GF_Descriptor*)od, 1);
 		} else if (rtp->media_type==ch->depacketizer->sl_map.StreamType) {
 			od = RP_GetChannelOD(ch, i);
 			if (!od) continue;
-			gf_term_add_media(rtp->service, (GF_Descriptor*)od, 1);
+			gf_service_declare_media(rtp->service, (GF_Descriptor*)od, 1);
 			rtp->media_type = 0;
 			break;
 		}
 	}
-	gf_term_add_media(rtp->service, NULL, 0);
+	gf_service_declare_media(rtp->service, NULL, 0);
 }
 
 void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
@@ -366,14 +366,14 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 		}
 		/*attach service*/
 		has_iod = rtp->session_desc ? 1 : 0;
-		gf_term_on_connect(rtp->service, NULL, e);
+		gf_service_connect_ack(rtp->service, NULL, e);
 		if (!e && !has_iod && !rtp->media_type) RP_SetupObjects(rtp);
 		rtp->media_type = 0;
 	}
 	/*channel SDP */
 	else {
 		if (e) {
-			gf_term_on_connect(rtp->service, stream->channel, e);
+			gf_service_connect_ack(rtp->service, stream->channel, e);
 			stream->status = RTP_Unavailable;
 		} else {
 			/*connect*/
@@ -536,20 +536,20 @@ void RP_SaveSessionState(RTPClient *rtp)
 	gf_sdp_info_del(sdp);
 
 
-	opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Streaming", "SessionMigrationServer");
+	opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(rtp->service), "Streaming", "SessionMigrationServer");
 	if (opt) {
-		if (rtp->dnload) gf_term_download_del(rtp->dnload);
+		if (rtp->dnload) gf_service_download_del(rtp->dnload);
 		rtp->dnload = NULL;
 
 		if (strnicmp(opt, "http://", 7)) {
-			rtp->dnload = gf_term_download_new(rtp->service, opt, GF_NETIO_SESSION_NOT_THREADED, MigrateSDP_NetIO, rtp);
+			rtp->dnload = gf_service_download_new(rtp->service, opt, GF_NETIO_SESSION_NOT_THREADED, MigrateSDP_NetIO, rtp);
 			while (1) {
 				char buffer[100];
 				u32 read;
 				e = gf_dm_sess_fetch_data(rtp->dnload, buffer, 100, &read);
 				if (e && (e!=GF_IP_NETWORK_EMPTY)) break;
 			}
-			gf_term_download_del(rtp->dnload);
+			gf_service_download_del(rtp->dnload);
 			rtp->dnload = NULL;
 		} else {
 			FILE *f = gf_f64_open(opt, "wt");
@@ -562,7 +562,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 			}
 		}
 		if (e<0) {
-			gf_term_on_message(sess->owner->service, e, "Error saving session state");
+			RP_SendMessage(sess->owner->service, e, "Error saving session state");
 		}
 	}
 }

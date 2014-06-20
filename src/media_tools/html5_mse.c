@@ -956,7 +956,7 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
 					/* TODO: set active tracks and send addsourcebuffer event */
 					/* TODO: send media loadedmetadata event */
 				}
-				gf_term_add_media(sb->mediasource->service, command->status.desc, (command->status.desc ? GF_TRUE : GF_FALSE));
+				gf_service_declare_media(sb->mediasource->service, command->status.desc, (command->status.desc ? GF_TRUE : GF_FALSE));
 			}
 			/* general connection/disconnection messages from the media parser (not track related) */
 			else if (!command->status.channel) {
@@ -971,22 +971,22 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
 						/* wrong first init segment */
 						/* TODO: fire an error event */
 					}
-					gf_term_on_connect(sb->mediasource->service, command->status.channel, command->status.e);
+					gf_service_connect_ack(sb->mediasource->service, command->status.channel, command->status.e);
 				} else {
-					gf_term_on_disconnect(sb->mediasource->service, command->status.channel, command->status.e);
+					gf_service_disconnect_ack(sb->mediasource->service, command->status.channel, command->status.e);
 				}
 			}
 			/* channel (track related) specific connection/disconnection messages from the media parser */
 			else {
 				if (!command->status.is_disconnect) {
-					gf_term_on_connect(sb->mediasource->service, command->status.channel, command->status.e);
+					gf_service_connect_ack(sb->mediasource->service, command->status.channel, command->status.e);
 				} else {
-					gf_term_on_disconnect(sb->mediasource->service, command->status.channel, command->status.e);
+					gf_service_disconnect_ack(sb->mediasource->service, command->status.channel, command->status.e);
 				}
 			}
 			break;
 		default:
-			gf_term_on_command(sb->mediasource->service, command, GF_OK);
+			gf_service_command(sb->mediasource->service, command, GF_OK);
 			break;
 		}
 		return GF_OK;

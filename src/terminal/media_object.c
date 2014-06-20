@@ -476,6 +476,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		if (gf_clock_is_started(mo->odm->codec->ck) && (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time) ) {
 			gf_cm_drop_output(codec->CB);
 			CU = gf_cm_get_output(codec->CB);
+			if (!CU) {
+				gf_odm_lock(mo->odm, 0);
+				return NULL;
+			}
 		}
 	}
 

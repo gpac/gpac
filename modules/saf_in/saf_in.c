@@ -87,7 +87,7 @@ static u32 SAF_RegisterMimeTypes(const GF_InputService *plug)
 {
 	if (!plug)
 		return 0;
-	gf_term_register_mime_type(plug, SAF_MIME, SAF_MIME_EXT, SAF_MIME_DESC);
+	gf_service_register_mime(plug, SAF_MIME, SAF_MIME_EXT, SAF_MIME_DESC);
 	return 1;
 }
 
@@ -97,7 +97,7 @@ static Bool SAF_CanHandleURL(GF_InputService *plug, const char *url)
 	if (!plug || !url)
 		return 0;
 	sExt = strrchr(url, '.');
-	if (gf_term_check_extension(plug, SAF_MIME, SAF_MIME_EXT, SAF_MIME_DESC, sExt)) return 1;
+	if (gf_service_check_mime_register(plug, SAF_MIME, SAF_MIME_EXT, SAF_MIME_DESC, sExt)) return 1;
 	return 0;
 }
 
@@ -114,7 +114,7 @@ static void SAF_Regulate(SAFIn *read)
 		u32 i=0;
 		while ( (ch = (SAFChannel *)gf_list_enum(read->channels, &i))) {
 			com.base.on_channel = ch->ch;
-			gf_term_on_command(read->service, &com, GF_OK);
+			gf_service_command(read->service, &com, GF_OK);
 			if (com.buffer.occupancy < ch->buffer_min) return;
 			if (com.buffer.occupancy) min_occ = MIN(min_occ, com.buffer.occupancy - ch->buffer_min);
 		}
@@ -143,12 +143,12 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		return;
 	} else {
 		/*handle service message*/
-		gf_term_download_update_stats(read->dnload);
+		gf_service_download_update_stats(read->dnload);
 		if (param->msg_type!=GF_NETIO_DATA_EXCHANGE) {
 			if (e<0) {
 				if (read->needs_connection) {
 					read->needs_connection = 0;
-					gf_term_on_connect(read->service, NULL, e);
+					gf_service_connect_ack(read->service, NULL, e);
 				}
 				return;
 			}
@@ -245,7 +245,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				if (read->needs_connection && (ch->esd->decoderConfig->streamType==GF_STREAM_SCENE)) {
 					gf_list_add(read->channels, ch);
 					read->needs_connection = 0;
-					gf_term_on_connect(read->service, NULL, GF_OK);
+					gf_service_connect_ack(read->service, NULL, GF_OK);
 				} else if (read->needs_connection) {
 					gf_odf_desc_del((GF_Descriptor *) ch->esd);
 					gf_free(ch);
@@ -258,7 +258,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 					gf_list_add(od->ESDescriptors, ch->esd);
 					ch->esd = NULL;
 					od->objectDescriptorID = ch->stream_id;
-					gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
+					gf_service_declare_media(read->service, (GF_Descriptor*)od, 0);
 
 				}
 			}
@@ -275,19 +275,19 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				if (read->start_range && (read->start_range*ch->ts_res>cts*1000)) {
 					sl_hdr.compositionTimeStamp = read->start_range*ch->ts_res/1000;
 				}
-				gf_term_on_sl_packet(read->service, ch->ch, read->saf_data+bs_pos, au_size, &sl_hdr, GF_OK);
+				gf_service_send_packet(read->service, ch->ch, read->saf_data+bs_pos, au_size, &sl_hdr, GF_OK);
 			}
 			gf_bs_skip_bytes(bs, au_size);
 			break;
 		case 3:
-			if (ch) gf_term_on_sl_packet(read->service, ch->ch, NULL, 0, NULL, GF_EOS);
+			if (ch) gf_service_send_packet(read->service, ch->ch, NULL, 0, NULL, GF_EOS);
 			break;
 		case 5:
 			go = 0;
 			read->run_state = 0;
 			i=0;
 			while ((ch = (SAFChannel *)gf_list_enum(read->channels, &i))) {
-				gf_term_on_sl_packet(read->service, ch->ch, NULL, 0, NULL, GF_EOS);
+				gf_service_send_packet(read->service, ch->ch, NULL, 0, NULL, GF_EOS);
 			}
 			break;
 		}
@@ -328,10 +328,10 @@ static void SAF_DownloadFile(GF_InputService *plug, char *url)
 {
 	SAFIn *read = (SAFIn*) plug->priv;
 
-	read->dnload = gf_term_download_new(read->service, url, 0, SAF_NetIO, read);
+	read->dnload = gf_service_download_new(read->service, url, 0, SAF_NetIO, read);
 	if (!read->dnload) {
 		read->needs_connection = 0;
-		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+		gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
 		gf_dm_sess_process(read->dnload);
@@ -394,7 +394,7 @@ static GF_Err SAF_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	SAFIn *read = (SAFIn *)plug->priv;
 	read->service = serv;
 
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
 	strcpy(szURL, url);
@@ -414,7 +414,7 @@ static GF_Err SAF_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 	read->stream = gf_f64_open(szURL, "rb");
 	if (!read->stream) {
-		gf_term_on_connect(serv, NULL, GF_URL_ERROR);
+		gf_service_connect_ack(serv, NULL, GF_URL_ERROR);
 		return GF_OK;
 	}
 	SAF_CheckFile(read);
@@ -439,9 +439,9 @@ static GF_Err SAF_CloseService(GF_InputService *plug)
 
 	if (read->stream) fclose(read->stream);
 	read->stream = NULL;
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
-	gf_term_on_disconnect(read->service, NULL, GF_OK);
+	gf_service_disconnect_ack(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -486,7 +486,7 @@ static GF_Err SAF_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 		}
 	}
 
-	gf_term_on_connect(read->service, channel, e);
+	gf_service_connect_ack(read->service, channel, e);
 	return e;
 }
 
@@ -503,7 +503,7 @@ static GF_Err SAF_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 		gf_free(ch);
 		e = GF_OK;
 	}
-	gf_term_on_disconnect(read->service, channel, e);
+	gf_service_disconnect_ack(read->service, channel, e);
 	return GF_OK;
 }
 
