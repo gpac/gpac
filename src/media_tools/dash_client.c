@@ -817,9 +817,9 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 /*!
 * Download a file with possible retry if GF_IP_CONNECTION_FAILURE|GF_IP_NETWORK_FAILURE
 * (I discovered that with my WIFI connection, I had many issues with BFM-TV downloads)
-* Similar to gf_term_download_new() and gf_dm_sess_process().
-* Parameters are identical to the ones of gf_term_download_new.
-* \see gf_term_download_new()
+* Similar to gf_service_download_new() and gf_dm_sess_process().
+* Parameters are identical to the ones of gf_service_download_new.
+* \see gf_service_download_new()
 */
 GF_Err gf_dash_download_resource(GF_DASHFileIO *dash_io, GF_DASHFileIOSession *sess, const char *url, u64 start_range, u64 end_range, u32 persistent_mode, GF_DASH_Group *group)
 {

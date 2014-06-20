@@ -100,7 +100,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		GF_NetworkCommand com;
 		com.base.on_channel = ch;
 		com.base.command_type = GF_NET_CHAN_GET_ESD;
-		gf_term_on_command(cache->service, &com, GF_OK);
+		gf_service_command(cache->service, &com, GF_OK);
 		if (!com.cache_esd.esd) return GF_SERVICE_ERROR;
 
 		esd = (GF_ESD *)com.cache_esd.esd;

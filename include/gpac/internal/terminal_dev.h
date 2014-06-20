@@ -55,6 +55,15 @@ struct _net_service
 	/*the module handling this service - must be declared first to typecast with GF_DownlaodSession upon deletion*/
 	GF_InputService *ifce;
 
+	//function table of service
+	void (*fn_connect_ack) (GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
+	void (*fn_disconnect_ack) (GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
+	void (*fn_command) (GF_ClientService *service, GF_NetworkCommand *com, GF_Err response);
+	void (*fn_data_packet) (GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status);
+	void (*fn_add_media) (GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check);
+
+
+
 	/*the terminal*/
 	struct _tag_terminal *term;
 	/*service url*/

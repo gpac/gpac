@@ -184,7 +184,7 @@ static GF_Err MSE_CloseService(GF_InputService *plug)
 	assert( msein );
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE_IN] Received Close Service request on Service %p from terminal for URL '%s'\n", msein->mediasource->service, msein->mediasource->blobURI));
 	if (msein->mediasource) {
-		gf_term_on_disconnect(msein->mediasource->service, NULL, GF_OK);
+		gf_service_disconnect_ack(msein->mediasource->service, NULL, GF_OK);
 		gf_mse_mediasource_del(msein->mediasource, GF_FALSE);
 		msein->mediasource = NULL;
 	}

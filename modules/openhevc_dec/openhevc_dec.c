@@ -284,13 +284,6 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		break;
 	case GF_CODEC_STRIDE:
 		capability->cap.valueInt = ctx->stride;
-		if (ctx->direct_output && !ctx->conv_buffer) {
-			//to fix soon - currently hardcoded to 32 pixels
-			if ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8))
-				capability->cap.valueInt += 32;
-			else
-				capability->cap.valueInt += 64;
-		}
 
 		if (ctx->pack_mode) {
 			capability->cap.valueInt *= 2;
@@ -375,8 +368,10 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 	unsigned int a_w, a_h, a_stride, bit_depth;
 	OpenHevc_Frame_cpy openHevcFrame;
 
-	libOpenHevcGetPictureInfo(ctx->openHevcHandle, &openHevcFrame.frameInfo);
-
+	if (ctx->direct_output)
+        libOpenHevcGetPictureInfo(ctx->openHevcHandle, &openHevcFrame.frameInfo);
+    else
+        libOpenHevcGetPictureInfoCpy(ctx->openHevcHandle, &openHevcFrame.frameInfo);
 
 	a_w      = openHevcFrame.frameInfo.nWidth;
 	a_h      = openHevcFrame.frameInfo.nHeight;
@@ -451,7 +446,7 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 			if (libOpenHevcGetOutput(ctx->openHevcHandle, 1, &openHFrame)) {
 				u32 i, s_stride, qs_stride, d_stride, dd_stride, hd_stride;
 
-				s_stride = openHFrame.frameInfo.nYPitch + 32;
+				s_stride = openHFrame.frameInfo.nYPitch;
 				qs_stride = s_stride / 4;
 
 				d_stride = ctx->stride;

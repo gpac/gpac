@@ -665,7 +665,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 			memset(&com, 0, sizeof(GF_NetworkCommand));
 			com.command_type = GF_NET_BUFFER_QUERY;
 			com.base.on_channel = ch->channel;
-			gf_term_on_command(read->service, &com, GF_OK);
+			gf_service_command(read->service, &com, GF_OK);
 			if ((com.buffer.occupancy < MAX(com.buffer.max, 1000) )) {
 				buffer_full = 0;
 				break;
@@ -705,11 +705,11 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		while (!ch->sample) {
 			isor_reader_get_sample(ch);
 			if (!ch->sample) break;
-			gf_term_on_sl_packet(read->service, ch->channel, ch->sample->data, ch->sample->dataLength, &ch->current_slh, GF_OK);
+			gf_service_send_packet(read->service, ch->channel, ch->sample->data, ch->sample->dataLength, &ch->current_slh, GF_OK);
 			isor_reader_release_sample(ch);
 		}
 		if (!ch->sample && (ch->last_state==GF_EOS)) {
-			gf_term_on_sl_packet(read->service, ch->channel, NULL, 0, NULL, GF_EOS);
+			gf_service_send_packet(read->service, ch->channel, NULL, 0, NULL, GF_EOS);
 		}
 	}
 
@@ -731,7 +731,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		if (e==GF_EOS) {
 			for (i=0; i<count; i++) {
 				ch = (ISOMChannel *)gf_list_get(read->channels, i);
-				gf_term_on_sl_packet(read->service, ch->channel, NULL, 0, NULL, GF_EOS);
+				gf_service_send_packet(read->service, ch->channel, NULL, 0, NULL, GF_EOS);
 			}
 		}
 

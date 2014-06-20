@@ -42,34 +42,11 @@ static GFINLINE GF_Channel *gf_term_get_channel(GF_ClientService *service, LPNET
 	return ch;
 }
 
-static void term_on_message(void *user_priv, GF_ClientService *service, GF_Err error, const char *message)
-{
-	GET_TERM();
-
-	/*check for UDP timeout*/
-	if (error==GF_IP_UDP_TIMEOUT) {
-		const char *sOpt = gf_cfg_get_key(term->user->config, "Network", "AutoReconfigUDP");
-		if (sOpt && !stricmp(sOpt, "yes")) {
-			char szMsg[1024];
-			sprintf(szMsg, "!! UDP down (%s) - Retrying with TCP !!\n", message);
-			gf_term_message(term, service->url, szMsg, GF_IP_NETWORK_FAILURE);
-
-			/*reload scene - FIXME this shall work on inline nodes, not on the root !*/
-			if (term->reload_url) gf_free(term->reload_url);
-			term->reload_state = 1;
-			term->reload_url = gf_strdup(term->root_scene->root_od->net_service->url);
-			gf_cfg_set_key(term->user->config, "Network", "UDPNotAvailable", "yes");
-			return;
-		}
-	}
-	gf_term_message(term, service->url, message, error);
-}
-
-static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHANNEL netch, GF_Err err)
+static void term_on_connect(GF_ClientService *service, LPNETCHANNEL netch, GF_Err err)
 {
 	GF_Channel *ch;
 	GF_ObjectManager *root;
-	GET_TERM();
+	GF_Terminal *term = service->term;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] %s connection ACK received from %s - %s\n", netch ? "Channel" : "Service", service->url, gf_error_to_string(err) ));
 
@@ -95,7 +72,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 				root->net_service = NULL;
 				if (service->owner && service->nb_odm_users) service->nb_odm_users--;
 				service->owner = NULL;
-				/*depends on module: some module could forget to call gf_term_on_disconnect */
+				/*depends on module: some module could forget to call gf_service_disconnect_ack */
 				if ( gf_list_del_item(term->net_services, service) >= 0) {
 					/*and queue for destroy*/
 					gf_list_add(term->net_services_to_remove, service);
@@ -203,12 +180,12 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 #endif
 }
 
-static void term_on_disconnect(void *user_priv, GF_ClientService *service, LPNETCHANNEL netch, GF_Err response)
+static void term_on_disconnect(GF_ClientService *service, LPNETCHANNEL netch, GF_Err response)
 {
 	GF_ObjectManager *root;
 	GF_Channel *ch;
-	GET_TERM();
-
+	GF_Terminal *term = service->term;
+	
 	/*may be null upon destroy*/
 	root = service->owner;
 	if (root && (root->net_service != service)) {
@@ -243,10 +220,9 @@ static void term_on_disconnect(void *user_priv, GF_ClientService *service, LPNET
 	ch->es_state = GF_ESM_ES_DISCONNECTED;
 }
 
-static void term_on_slp_received(void *user_priv, GF_ClientService *service, LPNETCHANNEL netch, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
+static void term_on_data_packet(GF_ClientService *service, LPNETCHANNEL netch, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {
 	GF_Channel *ch;
-	GET_TERM();
 
 	ch = gf_term_get_channel(service, netch);
 	if (!ch)
@@ -274,14 +250,14 @@ static Bool is_same_od(GF_ObjectDescriptor *od1, GF_ObjectDescriptor *od2)
 	return 1;
 }
 
-static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check)
+static void term_on_media_add(GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check)
 {
 	u32 i, min_od_id;
 	GF_MediaObject *the_mo;
 	GF_Scene *scene;
 	GF_ObjectManager *odm, *root;
 	GF_ObjectDescriptor *od;
-	GET_TERM();
+	GF_Terminal *term = service->term;
 
 	root = service->owner;
 	if (!root) {
@@ -476,10 +452,10 @@ static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service
 	}
 }
 
-static void term_on_command(void *user_priv, GF_ClientService *service, GF_NetworkCommand *com, GF_Err response)
+static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Err response)
 {
 	GF_Channel *ch;
-	GET_TERM();
+	GF_Terminal *term = service->term;
 
 	if (com->command_type==GF_NET_BUFFER_QUERY) {
 		GF_List *od_list;
@@ -533,6 +509,28 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 	}
 	if (com->command_type==GF_NET_SERVICE_MEDIA_CAP_QUERY) {
 		gf_sc_get_av_caps(term->compositor, &com->mcaps.width, &com->mcaps.height, &com->mcaps.display_bit_depth, &com->mcaps.audio_bpp, &com->mcaps.channels, &com->mcaps.sample_rate);
+		return;
+	}
+	if (com->command_type==GF_NET_SERVICE_EVENT) {
+		/*check for UDP timeout*/
+		if (com->send_event.evt.message.error == GF_IP_UDP_TIMEOUT) {
+			const char *sOpt = gf_cfg_get_key(term->user->config, "Network", "AutoReconfigUDP");
+			if (sOpt && !stricmp(sOpt, "yes")) {
+				char szMsg[1024];
+				sprintf(szMsg, "!! UDP down (%s) - Retrying with TCP !!\n", com->send_event.evt.message);
+				gf_term_message(term, service->url, szMsg, GF_IP_NETWORK_FAILURE);
+
+				/*reload scene - FIXME this shall work on inline nodes, not on the root !*/
+				if (term->reload_url) gf_free(term->reload_url);
+				term->reload_state = 1;
+				term->reload_url = gf_strdup(term->root_scene->root_od->net_service->url);
+				gf_cfg_set_key(term->user->config, "Network", "UDPNotAvailable", "yes");
+				return;
+			}
+		}
+
+		com->send_event.res = 0;
+		if (term->user->EventProc) com->send_event.res = term->user->EventProc(term->user->opaque, &com->send_event.evt);
 		return;
 	}
 
@@ -954,6 +952,12 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 
 	gf_list_add(term->net_services, serv);
 
+
+	serv->fn_connect_ack = term_on_connect;
+	serv->fn_disconnect_ack = term_on_disconnect;
+	serv->fn_command = term_on_command;
+	serv->fn_data_packet = term_on_data_packet;
+	serv->fn_add_media = term_on_media_add;
 	return serv;
 }
 
@@ -1000,54 +1004,41 @@ GF_Err gf_term_channel_release_sl_packet(GF_ClientService *ns, LPNETCHANNEL chan
 }
 
 GF_EXPORT
-void gf_term_on_message(GF_ClientService *service, GF_Err error, const char *message)
+void gf_service_connect_ack(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response)
 {
 	assert(service);
-	term_on_message(service->term, service, error, message);
-}
-GF_EXPORT
-void gf_term_on_connect(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response)
-{
-	assert(service);
-	term_on_connect(service->term, service, ns, response);
-}
-GF_EXPORT
-void gf_term_on_disconnect(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response)
-{
-	assert(service);
-	term_on_disconnect(service->term, service, ns, response);
-}
-GF_EXPORT
-void gf_term_on_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Err response)
-{
-	assert(service);
-	term_on_command(service->term, service, com, response);
+	service->fn_connect_ack(service, ns, response);
 }
 
 GF_EXPORT
-Bool gf_term_on_service_event(GF_ClientService *service, GF_Event *service_event)
+void gf_service_disconnect_ack(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response)
 {
 	assert(service);
-	if (service->term->user->EventProc) return service->term->user->EventProc(service->term->user->opaque, service_event);
-	return 0;
+	service->fn_disconnect_ack(service, ns, response);
+}
+GF_EXPORT
+void gf_service_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Err response)
+{
+	assert(service);
+	service->fn_command(service, com, response);
 }
 
 GF_EXPORT
-void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
+void gf_service_send_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {
 	assert(service);
-	term_on_slp_received(service->term, service, ns, data, data_size, hdr, reception_status);
+	service->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
 }
 
 GF_EXPORT
-void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check)
+void gf_service_declare_media(GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check)
 {
 	assert(service);
-	term_on_media_add(service->term, service, media_desc, no_scene_check);
+	service->fn_add_media(service, media_desc, no_scene_check);
 }
 
 GF_EXPORT
-const char *gf_term_get_service_url(GF_ClientService *service)
+const char *gf_service_get_url(GF_ClientService *service)
 {
 	if (!service) return NULL;
 	return service->url;
@@ -1083,13 +1074,13 @@ void gf_term_delete_net_service(GF_ClientService *ns)
 }
 
 GF_EXPORT
-GF_InputService *gf_term_get_service_interface(GF_ClientService *serv)
+GF_InputService *gf_service_get_interface(GF_ClientService *serv)
 {
 	return serv ? serv->ifce : NULL;
 }
 
 GF_EXPORT
-GF_DownloadSession *gf_term_download_new(GF_ClientService *service, const char *url, u32 flags, gf_dm_user_io user_io, void *cbk)
+GF_DownloadSession *gf_service_download_new(GF_ClientService *service, const char *url, u32 flags, gf_dm_user_io user_io, void *cbk)
 {
 	GF_Err e;
 	GF_DownloadSession * sess;
@@ -1132,7 +1123,7 @@ GF_DownloadSession *gf_term_download_new(GF_ClientService *service, const char *
 }
 
 GF_EXPORT
-void gf_term_download_del(GF_DownloadSession * sess)
+void gf_service_download_del(GF_DownloadSession * sess)
 {
 	Bool locked;
 	GF_ClientService *serv;
@@ -1156,7 +1147,7 @@ void gf_term_download_del(GF_DownloadSession * sess)
 }
 
 GF_EXPORT
-void gf_term_download_update_stats(GF_DownloadSession * sess)
+void gf_service_download_update_stats(GF_DownloadSession * sess)
 {
 	GF_ClientService *serv;
 	const char *szURI;
@@ -1169,16 +1160,16 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 	serv = (GF_ClientService *)gf_dm_sess_get_private(sess);
 	switch (net_status) {
 	case GF_NETIO_SETUP:
-		gf_term_on_message(serv, GF_OK, "Connecting");
+		gf_term_message(serv->term, serv->url, "Connecting", GF_OK);
 		break;
 	case GF_NETIO_CONNECTED:
-		gf_term_on_message(serv, GF_OK, "Connected");
+		gf_term_message(serv->term, serv->url, "Connected", GF_OK);
 		break;
 	case GF_NETIO_WAIT_FOR_REPLY:
-		gf_term_on_message(serv, GF_OK, "Waiting for reply...");
+		gf_term_message(serv->term, serv->url, "Waiting for reply...", GF_OK);
 		break;
 	case GF_NETIO_PARSE_REPLY:
-		gf_term_on_message(serv, GF_OK, "Starting download...");
+		gf_term_message(serv->term, serv->url, "Starting download...", GF_OK);
 		break;
 	case GF_NETIO_DATA_EXCHANGE:
 		/*notify some connection / ...*/
@@ -1226,7 +1217,7 @@ void gf_term_service_del(GF_ClientService *ns)
 }
 
 GF_EXPORT
-void gf_term_register_mime_type(const GF_InputService *ifce, const char *mimeType, const char *extList, const char *description)
+void gf_service_register_mime(const GF_InputService *ifce, const char *mimeType, const char *extList, const char *description)
 {
 	u32 len;
 	char *buf;
@@ -1245,7 +1236,7 @@ void gf_term_register_mime_type(const GF_InputService *ifce, const char *mimeTyp
 }
 
 GF_EXPORT
-Bool gf_term_check_extension(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description, const char *fileExt)
+Bool gf_service_check_mime_register(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description, const char *fileExt)
 {
 	const char *szExtList;
 	char *ext, szExt[500];
@@ -1262,7 +1253,7 @@ Bool gf_term_check_extension(GF_InputService *ifce, const char *mimeType, const 
 
 	szExtList = gf_modules_get_option((GF_BaseInterface *)(GF_BaseInterface *)ifce, "MimeTypes", mimeType);
 	if (!szExtList) {
-		gf_term_register_mime_type(ifce, mimeType, extList, description);
+		gf_service_register_mime(ifce, mimeType, extList, description);
 		szExtList = gf_modules_get_option((GF_BaseInterface *)(GF_BaseInterface *)ifce, "MimeTypes", mimeType);
 	}
 	if (!strstr(szExtList, ifce->module_name)) return 0;

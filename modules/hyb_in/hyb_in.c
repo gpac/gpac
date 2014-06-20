@@ -122,7 +122,7 @@ static GF_Err HYB_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	e = hybmedia_sanity_check(hyb_in->master);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - object \"%s\" failed the sanity checks\n", hyb_in->master->name));
-		gf_term_on_connect(hyb_in->service, NULL, e);
+		gf_service_connect_ack(hyb_in->service, NULL, e);
 		return e;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Selected master object \"%s\" for URL: %s\n", hyb_in->master->name, url));
@@ -131,11 +131,11 @@ static GF_Err HYB_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	e = hyb_in->master->Connect(hyb_in->master, hyb_in->service, url);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - cannot connect service, wrong URL %s\n", url));
-		gf_term_on_connect(hyb_in->service, NULL, GF_BAD_PARAM);
+		gf_service_connect_ack(hyb_in->service, NULL, GF_BAD_PARAM);
 		return e;
 	}
-	gf_term_on_connect(hyb_in->service, NULL, GF_OK);
-	gf_term_add_media(hyb_in->service, (GF_Descriptor*)hyb_in->master->GetOD(), 0);
+	gf_service_connect_ack(hyb_in->service, NULL, GF_OK);
+	gf_service_declare_media(hyb_in->service, (GF_Descriptor*)hyb_in->master->GetOD(), 0);
 
 	return GF_OK;
 }
@@ -152,11 +152,11 @@ static GF_Err HYB_CloseService(GF_InputService *plug)
 	e = hyb_in->master->Disconnect(hyb_in->master);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[HYB_IN] Error - cannot disconnect service %p\n", hyb_in->service));
-		gf_term_on_connect(hyb_in->service, NULL, GF_BAD_PARAM);
+		gf_service_connect_ack(hyb_in->service, NULL, GF_BAD_PARAM);
 		return e;
 	}
 
-	gf_term_on_disconnect(hyb_in->service, NULL, GF_OK);
+	gf_service_disconnect_ack(hyb_in->service, NULL, GF_OK);
 
 	return GF_OK;
 }
@@ -182,7 +182,7 @@ static GF_Err HYB_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Channel Connection request from service %p for %s\n", channel, url));
 
 	master->channel = channel;
-	gf_term_on_connect(hyb_in->service, channel, GF_OK);
+	gf_service_connect_ack(hyb_in->service, channel, GF_OK);
 
 	return GF_OK;
 }
@@ -193,7 +193,7 @@ static GF_Err HYB_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[HYB_IN] Received Channel Disconnect Service (%p) request from terminal\n", hyb_in->service));
 
-	gf_term_on_disconnect(hyb_in->service, channel, GF_OK);
+	gf_service_disconnect_ack(hyb_in->service, channel, GF_OK);
 	hyb_in->master->channel = NULL;
 
 	return GF_OK;

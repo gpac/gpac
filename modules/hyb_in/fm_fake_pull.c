@@ -132,7 +132,7 @@ static u32 ext_media_load_th(void *par) {
 	od->URLString = gf_strdup("http://gpac.sourceforge.net/screenshots/lion.jpg");
 	od->objectDescriptorID = 0;
 	gf_sleep(2000); //TODO: remove the sleep
-	gf_term_add_media(self->owner, (GF_Descriptor*)od, 0);
+	gf_service_declare_media(self->owner, (GF_Descriptor*)od, 0);
 	return 0;
 }
 

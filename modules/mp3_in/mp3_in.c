@@ -81,7 +81,7 @@ static u32 MP3_RegisterMimeTypes(const GF_InputService *plug)
 {
 	u32 i;
 	for (i =0 ; MP3_MIME_TYPES[i] ; i++)
-		gf_term_register_mime_type(plug, MP3_MIME_TYPES[i], MP3_EXTENSIONS, MP3_DESC);
+		gf_service_register_mime(plug, MP3_MIME_TYPES[i], MP3_EXTENSIONS, MP3_DESC);
 	return i;
 }
 
@@ -95,7 +95,7 @@ static Bool MP3_CanHandleURL(GF_InputService *plug, const char *url)
 	{
 		u32 i;
 		for (i =0 ; MP3_MIME_TYPES[i] ; i++)
-			if (gf_term_check_extension(plug, MP3_MIME_TYPES[i], MP3_EXTENSIONS, MP3_DESC, sExt))
+			if (gf_service_check_mime_register(plug, MP3_MIME_TYPES[i], MP3_EXTENSIONS, MP3_DESC, sExt))
 				return 1;
 	}
 	return 0;
@@ -127,7 +127,7 @@ static void mp3_setup_object(MP3Reader *read)
 		od->objectDescriptorID = 1;
 		esd = MP3_GetESD(read);
 		gf_list_add(od->ESDescriptors, esd);
-		gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
+		gf_service_declare_media(read->service, (GF_Descriptor*)od, 0);
 	}
 }
 
@@ -194,7 +194,7 @@ static void MP3_RegulateDataRate(MP3Reader *read)
 	com.command_type = GF_NET_CHAN_BUFFER_QUERY;
 	com.base.on_channel = read->ch;
 	while (read->ch) {
-		gf_term_on_command(read->service, &com, GF_OK);
+		gf_service_command(read->service, &com, GF_OK);
 		if (com.buffer.occupancy < com.buffer.max) break;
 		gf_sleep(2);
 	}
@@ -214,7 +214,7 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 		memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 
 		read->needs_connection = 0;
-		gf_term_on_connect(read->service, NULL, GF_OK);
+		gf_service_connect_ack(read->service, NULL, GF_OK);
 		mp3_setup_object(read);
 	}
 	if (!data_size) return;
@@ -250,7 +250,7 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 		read->sl_hdr.AU_sequenceNumber++;
 		read->sl_hdr.compositionTimeStampFlag = 1;
 		read->sl_hdr.compositionTimeStamp += gf_mp3_window_size(hdr);
-		gf_term_on_sl_packet(read->service, read->ch, data + pos, size, &read->sl_hdr, GF_OK);
+		gf_service_send_packet(read->service, read->ch, data + pos, size, &read->sl_hdr, GF_OK);
 		data += pos + size;
 		assert(data_size>=pos+size);
 		data_size -= pos+size;
@@ -307,12 +307,12 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			}
 
 			com.base.command_type = GF_NET_SERVICE_INFO;
-			gf_term_on_command(read->service, &com, GF_OK);
+			gf_service_command(read->service, &com, GF_OK);
 		}
 		return;
 	} else {
 		/*handle service message*/
-		gf_term_download_update_stats(read->dnload);
+		gf_service_download_update_stats(read->dnload);
 		if (param->msg_type!=GF_NETIO_DATA_EXCHANGE) return;
 	}
 
@@ -363,7 +363,7 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	/*OK confirm*/
 	if (read->needs_connection) {
 		read->needs_connection = 0;
-		gf_term_on_connect(read->service, NULL, e);
+		gf_service_connect_ack(read->service, NULL, e);
 		if (!e) mp3_setup_object(read);
 	}
 }
@@ -374,10 +374,10 @@ void mp3_download_file(GF_InputService *plug, char *url)
 
 	read->needs_connection = 1;
 
-	read->dnload = gf_term_download_new(read->service, url, 0, MP3_NetIO, read);
+	read->dnload = gf_service_download_new(read->service, url, 0, MP3_NetIO, read);
 	if (!read->dnload) {
 		read->needs_connection = 0;
-		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+		gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
 		gf_dm_sess_process(read->dnload);
@@ -395,7 +395,7 @@ static GF_Err MP3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	MP3Reader *read = plug->priv;
 	read->service = serv;
 
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
 	strcpy(szURL, url);
@@ -418,7 +418,7 @@ static GF_Err MP3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		read->stream = NULL;
 		reply = GF_NOT_SUPPORTED;
 	}
-	gf_term_on_connect(serv, NULL, reply);
+	gf_service_connect_ack(serv, NULL, reply);
 	if (!reply) mp3_setup_object(read);
 	return GF_OK;
 }
@@ -429,7 +429,7 @@ static GF_Err MP3_CloseService(GF_InputService *plug)
 	if (read->stream) fclose(read->stream);
 	read->stream = NULL;
 
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
 	if (read->data) gf_free(read->data);
@@ -448,7 +448,7 @@ static GF_Err MP3_CloseService(GF_InputService *plug)
 	if (read->icy_track_name)
 		gf_free(read->icy_track_name);
 	read->icy_track_name = NULL;
-	gf_term_on_disconnect(read->service, NULL, GF_OK);
+	gf_service_disconnect_ack(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -493,7 +493,7 @@ static GF_Err MP3_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	}
 
 exit:
-	gf_term_on_connect(read->service, channel, e);
+	gf_service_connect_ack(read->service, channel, e);
 	return e;
 }
 
@@ -507,7 +507,7 @@ static GF_Err MP3_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 		read->data = NULL;
 		e = GF_OK;
 	}
-	gf_term_on_disconnect(read->service, channel, e);
+	gf_service_disconnect_ack(read->service, channel, e);
 	return GF_OK;
 }
 
@@ -564,7 +564,7 @@ static GF_Err MP3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 					rcfg.base.command_type = GF_NET_CHAN_DURATION;
 					rcfg.duration.duration = read->duration;
 					rcfg.duration.duration /= read->sample_rate;
-					gf_term_on_command(read->service, &rcfg, GF_OK);
+					gf_service_command(read->service, &rcfg, GF_OK);
 				}
 			}
 		}

@@ -139,13 +139,13 @@ void isor_declare_objects(ISOMReader *read)
 			if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 				send_proxy_command(read, GF_FALSE, GF_TRUE, GF_OK, (GF_Descriptor*)od, NULL);
 			} else {
-				gf_term_add_media(read->service, (GF_Descriptor*)od, GF_TRUE);
+				gf_service_declare_media(read->service, (GF_Descriptor*)od, GF_TRUE);
 			}
 		}
 	}
 	/*if cover art, extract it in cache*/
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
-		const char *cdir = gf_modules_get_option((GF_BaseInterface *)gf_term_get_service_interface(read->service), "General", "CacheDirectory");
+		const char *cdir = gf_modules_get_option((GF_BaseInterface *)gf_service_get_interface(read->service), "General", "CacheDirectory");
 		if (cdir) {
 			char szName[GF_MAX_PATH];
 			const char *sep;
@@ -188,7 +188,7 @@ void isor_declare_objects(ISOMReader *read)
 					if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 						send_proxy_command(read, GF_FALSE, GF_TRUE, GF_OK, (GF_Descriptor*)od, NULL);
 					} else {
-						gf_term_add_media(read->service, (GF_Descriptor*)od, GF_TRUE);
+						gf_service_declare_media(read->service, (GF_Descriptor*)od, GF_TRUE);
 					}
 				}
 			}
@@ -197,7 +197,7 @@ void isor_declare_objects(ISOMReader *read)
 	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 		send_proxy_command(read, GF_FALSE, GF_TRUE, GF_OK, NULL, NULL);
 	} else {
-		gf_term_add_media(read->service, NULL, GF_FALSE);
+		gf_service_declare_media(read->service, NULL, GF_FALSE);
 	}
 }
 

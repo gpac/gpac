@@ -103,9 +103,9 @@ void GPACCaptureHandler::handleCaptureEvent(IOBuffer* io_buf)
 		for (u32 i=0; i<m_height; i++) {
 			memcpy(m_data + (m_height - 1 - i) * m_stride, data + i*m_stride, m_stride);
 		}
-		gf_term_on_sl_packet(m_pService, m_pChannel, m_data, (u32)io_buf->getValidBytes(), &m_pSLHeader, GF_OK);
+		gf_service_send_packet(m_pService, m_pChannel, m_data, (u32)io_buf->getValidBytes(), &m_pSLHeader, GF_OK);
 	} else {
-		gf_term_on_sl_packet(m_pService, m_pChannel, (char *) io_buf->getPtr(), (u32)io_buf->getValidBytes(), &m_pSLHeader, GF_OK);
+		gf_service_send_packet(m_pService, m_pChannel, (char *) io_buf->getPtr(), (u32)io_buf->getValidBytes(), &m_pSLHeader, GF_OK);
 	}
 	io_buf->release();
 }
@@ -193,26 +193,26 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 
 		if (!vcap->device_desc) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[VideoCapture] Failed to instanciate AVCap\n"));
-			gf_term_on_connect(serv, NULL, GF_REMOTE_SERVICE_ERROR);
+			gf_service_connect_ack(serv, NULL, GF_REMOTE_SERVICE_ERROR);
 			return GF_OK;
 		}
 
 		vcap->device_desc->open();
 		if ( (!strnicmp(url, "camera://", 9) || !strnicmp(url, "video://", 8)) && !vcap->device_desc->isVideoCaptureDev()) {
 			vcap->device_desc->close();
-			gf_term_on_connect(serv, NULL, GF_URL_ERROR);
+			gf_service_connect_ack(serv, NULL, GF_URL_ERROR);
 			return GF_OK;
 		}
 		else if (!strnicmp(url, "audio://", 8) && !vcap->device_desc->isAudioDev()) {
 			vcap->device_desc->close();
-			gf_term_on_connect(serv, NULL, GF_URL_ERROR);
+			gf_service_connect_ack(serv, NULL, GF_URL_ERROR);
 			return GF_OK;
 		}
 		vcap->device = vcap->device_desc->getDevice();
 		if (!vcap->device) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[VideoCapture] Failed to initialize capture device\n"));
 			vcap->device_desc->close();
-			gf_term_on_connect(serv, NULL, GF_SERVICE_ERROR);
+			gf_service_connect_ack(serv, NULL, GF_SERVICE_ERROR);
 			return GF_OK;
 		}
 		vcap->device->getFormatMgr()->setFramerate(30);
@@ -294,14 +294,14 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 		default:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[VideoCapture] Unsupported 4CC %s (%08x) from capture device\n", gf_4cc_to_str(format->getFourcc()), format->getFourcc()));
 			vcap->device_desc->close();
-			gf_term_on_connect(serv, NULL, GF_NOT_SUPPORTED);
+			gf_service_connect_ack(serv, NULL, GF_NOT_SUPPORTED);
 			return GF_OK;
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[VideoCapture] Device configured - resolution %dx%d - Frame Rate %d - Pixel Format %s (Device 4CC %08x) \n", vcap->width, vcap->height, vcap->fps, gf_4cc_to_str(vcap->pixel_format), format->getFourcc()));
 	}
 
 	/*ACK connection is OK*/
-	gf_term_on_connect(serv, NULL, GF_OK);
+	gf_service_connect_ack(serv, NULL, GF_OK);
 
 
 	/*setup object descriptor*/
@@ -330,7 +330,7 @@ GF_Err AVCap_ConnectService(GF_InputService *plug, GF_ClientService *serv, const
 	gf_bs_del(bs);
 
 	gf_list_add(od->ESDescriptors, esd);
-	gf_term_add_media(vcap->service, (GF_Descriptor*)od, GF_FALSE);
+	gf_service_declare_media(vcap->service, (GF_Descriptor*)od, GF_FALSE);
 
 	return GF_OK;
 }
@@ -344,7 +344,7 @@ GF_Err AVCap_CloseService(GF_InputService *plug)
 	}
 
 	vcap->state = 0;
-	gf_term_on_disconnect(vcap->service, NULL, GF_OK);
+	gf_service_disconnect_ack(vcap->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -421,13 +421,13 @@ GF_Err AVCap_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const c
 		if (vcap->flip_video)
 			vcap->video_handler->AllocData(vcap->height, vcap->stride);
 
-		gf_term_on_connect(vcap->service, channel, GF_OK);
+		gf_service_connect_ack(vcap->service, channel, GF_OK);
 	} else if (ESID == 2) {
 		/*audio connect*/
 		vcap->audio_handler = new GPACCaptureHandler(vcap->service, channel);
-		gf_term_on_connect(vcap->service, channel, GF_OK);
+		gf_service_connect_ack(vcap->service, channel, GF_OK);
 	} else {
-		gf_term_on_connect(vcap->service, channel, GF_STREAM_NOT_FOUND);
+		gf_service_connect_ack(vcap->service, channel, GF_STREAM_NOT_FOUND);
 	}
 	return GF_OK;
 }
@@ -443,7 +443,7 @@ GF_Err AVCap_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 		delete vcap->audio_handler;
 		vcap->audio_handler = NULL;
 	}
-	gf_term_on_disconnect(vcap->service, channel, GF_OK);
+	gf_service_disconnect_ack(vcap->service, channel, GF_OK);
 	return GF_OK;
 }
 

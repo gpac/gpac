@@ -94,10 +94,10 @@ void RP_Setup(RTPStream *ch)
 	com->method = gf_strdup(GF_RTSP_SETUP);
 
 	def_first_port = 0;
-	opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceFirstPort");
+	opt = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Streaming", "ForceFirstPort");
 	if (opt) def_first_port = atoi(opt);
 
-	opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceMulticastIP");
+	opt = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Streaming", "ForceMulticastIP");
 
 	//setup ports if unicast non interleaved or multicast
 	if (gf_rtp_is_unicast(ch->rtp_ch) && (ch->owner->transport_mode != 1) && !gf_rtp_is_interleaved(ch->rtp_ch) ) {
@@ -114,11 +114,11 @@ void RP_Setup(RTPStream *ch)
 
 	/*override transport: */
 	/*1: multicast forced*/
-	opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceMulticastIP");
+	opt = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Streaming", "ForceMulticastIP");
 	if (opt) {
 		trans->IsUnicast = 0;
 		trans->destination = gf_strdup(opt);
-		opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceMulticastTTL");
+		opt = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Streaming", "ForceMulticastTTL");
 		trans->TTL = opt ? atoi(opt) : 127;
 		if (trans->Profile) gf_free(trans->Profile);
 		trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP);
@@ -225,7 +225,7 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	i=0;
 	while ((trans = (GF_RTSPTransport *)gf_list_enum(sess->rtsp_rsp->Transports, &i))) {
 		/*copy over previous ports (hack for some servers overriding client ports)*/
-		const char *opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceClientPorts");
+		const char *opt = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Streaming", "ForceClientPorts");
 		if (opt && !stricmp(opt, "yes"))
 			gf_rtp_get_ports(ch->rtp_ch, &trans->client_port_first, &trans->client_port_last);
 
@@ -272,7 +272,7 @@ Bool RP_PreprocessDescribe(RTSPSession *sess, GF_RTSPCommand *com)
 	ChannelDescribe *ch_desc;
 	/*not a channel describe*/
 	if (!com->user_data) {
-		gf_term_on_message(sess->owner->service, GF_OK, "Connecting...");
+		RP_SendMessage(sess->owner->service, GF_OK, "Connecting...");
 		return 1;
 	}
 
@@ -318,7 +318,7 @@ GF_Err RP_ProcessDescribe(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	if (ch_desc) {
 		ch = RP_FindChannel(sess->owner, ch_desc->channel, ch_desc->ES_ID, ch_desc->esd_url, 0);
 	} else {
-		gf_term_on_message(sess->owner->service, GF_OK, "Connected");
+		RP_SendMessage(sess->owner->service, GF_OK, "Connected");
 	}
 
 	/*error on loading SDP is done internally*/
@@ -340,7 +340,7 @@ exit:
 		} else if (ch) {
 			RP_ConfirmChannelConnect(ch, e);
 		} else {
-			gf_term_on_connect(sess->owner->service, ch_desc->channel, e);
+			gf_service_connect_ack(sess->owner->service, ch_desc->channel, e);
 		}
 	}
 	if (ch_desc) gf_free(ch_desc);
@@ -401,7 +401,7 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 	}
 
 	/*need better tuning ...*/
-	opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(sess->owner->service), "Network", "Bandwidth");
+	opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(sess->owner->service), "Network", "Bandwidth");
 	if (opt && !stricmp(opt, "yes")) com->Bandwidth = atoi(opt);
 
 	RP_QueueCommand(sess, NULL, com, 0);
@@ -463,7 +463,7 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 	/*check if aggregation discards this command*/
 	if (skip_it || ( (sess->flags & RTSP_AGG_CONTROL) && (ch->flags & RTP_SKIP_NEXT_COM) )) {
 		ch->flags &= ~RTP_SKIP_NEXT_COM;
-		gf_term_on_command(sess->owner->service, &ch_ctrl->com, GF_OK);
+		gf_service_command(sess->owner->service, &ch_ctrl->com, GF_OK);
 		gf_free(ch_ctrl);
 		com->user_data = NULL;
 		return 0;
@@ -474,7 +474,7 @@ err_exit:
 	gf_rtsp_reset_aggregation(ch->rtsp->session);
 	ch->status = RTP_Disconnected;
 	ch->check_rtp_time = RTP_SET_TIME_NONE;
-	gf_term_on_command(sess->owner->service, &ch_ctrl->com, e);
+	gf_service_command(sess->owner->service, &ch_ctrl->com, e);
 	gf_free(ch_ctrl);
 	com->user_data = NULL;
 	return 0;
@@ -533,7 +533,7 @@ void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 
 process_reply:
 
-	gf_term_on_command(sess->owner->service, &ch_ctrl->com, GF_OK);
+	gf_service_command(sess->owner->service, &ch_ctrl->com, GF_OK);
 
 	if ( (ch_ctrl->com.command_type==GF_NET_CHAN_PLAY)
 	        || (ch_ctrl->com.command_type==GF_NET_CHAN_SET_SPEED)
@@ -609,7 +609,7 @@ process_reply:
 
 
 err_exit:
-	gf_term_on_command(sess->owner->service, &ch_ctrl->com, e);
+	gf_service_command(sess->owner->service, &ch_ctrl->com, e);
 	if (ch) {
 		ch->status = RTP_Disconnected;
 		gf_rtsp_reset_aggregation(ch->rtsp->session);
@@ -667,7 +667,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 	case GF_NET_CHAN_STOP:
 		break;
 	default:
-		gf_term_on_command(sess->owner->service, command, GF_NOT_SUPPORTED);
+		gf_service_command(sess->owner->service, command, GF_NOT_SUPPORTED);
 		return;
 	}
 
@@ -802,7 +802,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 			if (ch->control) com->ControlString = gf_strdup(ch->control);
 		}
 	} else {
-		gf_term_on_command(sess->owner->service, command, GF_NOT_SUPPORTED);
+		gf_service_command(sess->owner->service, command, GF_NOT_SUPPORTED);
 		gf_rtsp_command_del(com);
 		return;
 	}

@@ -100,7 +100,7 @@ void OGG_EndOfFile(OGGReader *read)
 	OGGStream *st;
 	u32 i=0;
 	while ((st = gf_list_enum(read->streams, &i))) {
-		gf_term_on_sl_packet(read->service, st->ch, NULL, 0, NULL, GF_EOS);
+		gf_service_send_packet(read->service, st->ch, NULL, 0, NULL, GF_EOS);
 	}
 }
 
@@ -341,7 +341,7 @@ static void OGG_NewStream(OGGReader *read, ogg_page *oggpage)
 			}
 			ogg_stream_clear(&os);
 			/*nope streams are different, signal eos on this one*/
-			gf_term_on_sl_packet(read->service, st->ch, NULL, 0, NULL, GF_EOS);
+			gf_service_send_packet(read->service, st->ch, NULL, 0, NULL, GF_EOS);
 		}
 	}
 
@@ -381,13 +381,13 @@ static void OGG_NewStream(OGGReader *read, ogg_page *oggpage)
 	} else {
 		read->has_audio = 1;
 	}
-	if (st->got_headers && read->is_inline) gf_term_add_media(read->service, (GF_Descriptor*) OGG_GetOD(st), 0);
+	if (st->got_headers && read->is_inline) gf_service_declare_media(read->service, (GF_Descriptor*) OGG_GetOD(st), 0);
 }
 
 void OGG_SignalEndOfStream(OGGReader *read, OGGStream *st)
 {
 	if (st->eos_detected) {
-		gf_term_on_sl_packet(read->service, st->ch, NULL, 0, NULL, GF_EOS);
+		gf_service_send_packet(read->service, st->ch, NULL, 0, NULL, GF_EOS);
 		ogg_stream_clear(&st->os);
 	}
 }
@@ -402,7 +402,7 @@ void OGG_SendPackets(OGGReader *read, OGGStream *st, ogg_packet *oggpacket)
 		slh.randomAccessPointFlag = 1;
 		slh.compositionTimeStampFlag = 1;
 		slh.compositionTimeStamp = st->ogg_ts;
-		gf_term_on_sl_packet(read->service, st->ch, (char *) oggpacket->packet, oggpacket->bytes, &slh, GF_OK);
+		gf_service_send_packet(read->service, st->ch, (char *) oggpacket->packet, oggpacket->bytes, &slh, GF_OK);
 		st->ogg_ts += gf_vorbis_check_frame(&st->vp, (char *) oggpacket->packet, oggpacket->bytes);
 	}
 	else if (st->info.type==OGG_THEORA) {
@@ -415,7 +415,7 @@ void OGG_SendPackets(OGGReader *read, OGGStream *st, ogg_packet *oggpacket)
 			slh.randomAccessPointFlag = oggpackB_read(&opb, 1) ? 0 : 1;
 			slh.compositionTimeStampFlag = 1;
 			slh.compositionTimeStamp = st->ogg_ts;
-			gf_term_on_sl_packet(read->service, st->ch, (char *) oggpacket->packet, oggpacket->bytes, &slh, GF_OK);
+			gf_service_send_packet(read->service, st->ch, (char *) oggpacket->packet, oggpacket->bytes, &slh, GF_OK);
 			st->ogg_ts += 1000;
 		}
 	}
@@ -447,7 +447,7 @@ void OGG_Process(OGGReader *read)
 		if (!read->bos_done && read->is_live) {
 			u32 now = gf_sys_clock();
 			if (now-read->tune_in_time > 1000) {
-				gf_term_on_message(read->service, GF_OK, "Waiting for tune in...");
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[OGG]: Waiting for tune in...\n"));
 				read->tune_in_time = now;
 			}
 		}
@@ -478,7 +478,7 @@ void OGG_Process(OGGReader *read)
 			if (!st->parse_headers) {
 				st->got_headers = 1;
 				if (read->is_inline)
-					gf_term_add_media(read->service, (GF_Descriptor*) OGG_GetOD(st), 0);
+					gf_service_declare_media(read->service, (GF_Descriptor*) OGG_GetOD(st), 0);
 				break;
 			}
 		}
@@ -515,7 +515,7 @@ process_stream:
 				map.map_time.reset_buffers = (read->start_range>0.2) ? 1 : 0;
 				map.map_time.timestamp = st->ogg_ts = 0;
 				map.map_time.media_time = t;
-				gf_term_on_command(read->service, &map, GF_OK);
+				gf_service_command(read->service, &map, GF_OK);
 				st->map_time = 0;
 				OGG_SendPackets(read, st, &oggpacket);
 			}
@@ -540,7 +540,7 @@ static u32 OggDemux(void *par)
 
 	if (read->needs_connection) {
 		read->needs_connection=0;
-		gf_term_on_connect(read->service, NULL, GF_OK);
+		gf_service_connect_ack(read->service, NULL, GF_OK);
 	}
 
 	ogg_sync_init(&read->oy);
@@ -585,7 +585,7 @@ static u32 OggDemux(void *par)
 				st = gf_list_get(read->streams, i);
 				if (!st->ch) continue;
 				com.base.on_channel = st->ch;
-				gf_term_on_command(read->service, &com, GF_OK);
+				gf_service_command(read->service, &com, GF_OK);
 				if (com.buffer.occupancy < read->data_buffer_ms) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[OGG] channel %d needs fill (%d ms data, %d max buffer)\n", st->ESID, com.buffer.occupancy, read->data_buffer_ms));
 					go = 0;
@@ -675,10 +675,10 @@ static const char * OGG_MIMES_VIDEO_EXT = "ogg ogv oggm";
 static u32 OGG_RegisterMimeTypes(const GF_InputService *plug) {
 	u32 i, c;
 	for (i = 0 ; OGG_MIMES_AUDIO[i]; i++)
-		gf_term_register_mime_type(plug, OGG_MIMES_AUDIO[i], OGG_MIMES_AUDIO_EXT, OGG_MIMES_AUDIO_DESC);
+		gf_service_register_mime(plug, OGG_MIMES_AUDIO[i], OGG_MIMES_AUDIO_EXT, OGG_MIMES_AUDIO_DESC);
 	c = i;
 	for (i = 0 ; OGG_MIMES_VIDEO[i]; i++)
-		gf_term_register_mime_type(plug, OGG_MIMES_VIDEO[i], OGG_MIMES_VIDEO_EXT, OGG_MIMES_VIDEO_DESC);
+		gf_service_register_mime(plug, OGG_MIMES_VIDEO[i], OGG_MIMES_VIDEO_EXT, OGG_MIMES_VIDEO_DESC);
 	return c+i;
 }
 
@@ -688,11 +688,11 @@ static Bool OGG_CanHandleURL(GF_InputService *plug, const char *url)
 	u32 i;
 	sExt = strrchr(url, '.');
 	for (i = 0 ; OGG_MIMES_AUDIO[i]; i++) {
-		if (gf_term_check_extension(plug, OGG_MIMES_AUDIO[i], OGG_MIMES_AUDIO_EXT, OGG_MIMES_AUDIO_DESC, sExt))
+		if (gf_service_check_mime_register(plug, OGG_MIMES_AUDIO[i], OGG_MIMES_AUDIO_EXT, OGG_MIMES_AUDIO_DESC, sExt))
 			return 1;
 	}
 	for (i = 0 ; OGG_MIMES_VIDEO[i]; i++) {
-		if (gf_term_check_extension(plug, OGG_MIMES_VIDEO[i], OGG_MIMES_VIDEO_EXT, OGG_MIMES_VIDEO_DESC, sExt))
+		if (gf_service_check_mime_register(plug, OGG_MIMES_VIDEO[i], OGG_MIMES_VIDEO_EXT, OGG_MIMES_VIDEO_DESC, sExt))
 			return 1;
 	}
 	return 0;
@@ -709,7 +709,7 @@ void OGG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
 	OGGReader *read = (OGGReader *) cbk;
 
-	gf_term_download_update_stats(read->dnload);
+	gf_service_download_update_stats(read->dnload);
 
 	/*done*/
 	if ((param->msg_type==GF_NETIO_DATA_TRANSFERED) && read->ogfile) {
@@ -721,7 +721,7 @@ void OGG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	if (param->error && read->needs_connection) {
 		read->needs_connection = 0;
 		read->kill_demux = 2;
-		gf_term_on_connect(read->service, NULL, param->error);
+		gf_service_connect_ack(read->service, NULL, param->error);
 	}
 	/*we never receive data from here since the downloader is not threaded*/
 }
@@ -730,11 +730,11 @@ void OGG_DownloadFile(GF_InputService *plug, char *url)
 {
 	OGGReader *read = (OGGReader*) plug->priv;
 
-	read->dnload = gf_term_download_new(read->service, url, GF_NETIO_SESSION_NOT_THREADED, OGG_NetIO, read);
+	read->dnload = gf_service_download_new(read->service, url, GF_NETIO_SESSION_NOT_THREADED, OGG_NetIO, read);
 	if (!read->dnload) {
 		read->kill_demux=2;
 		read->needs_connection = 0;
-		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+		gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
 	}
 	/*service confirm is done once fetched, but start the demuxer thread*/
 	gf_th_run(read->demuxer, OggDemux, read);
@@ -749,7 +749,7 @@ static GF_Err OGG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	OGGReader *read = plug->priv;
 	read->service = serv;
 
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
 	read->service_type = 0;
@@ -787,7 +787,7 @@ static GF_Err OGG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	}
 	/*error*/
 	read->kill_demux=2;
-	gf_term_on_connect(serv, NULL, reply);
+	gf_service_connect_ack(serv, NULL, reply);
 	return GF_OK;
 }
 
@@ -801,9 +801,9 @@ static GF_Err OGG_CloseService(GF_InputService *plug)
 
 	if (read->ogfile) fclose(read->ogfile);
 	read->ogfile = NULL;
-	if (read->dnload) gf_term_download_del(read->dnload);
+	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
-	gf_term_on_disconnect(read->service, NULL, GF_OK);
+	gf_service_disconnect_ack(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -856,7 +856,7 @@ static GF_Err OGG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 			break;
 		}
 	}
-	gf_term_on_connect(read->service, channel, e);
+	gf_service_connect_ack(read->service, channel, e);
 	return e;
 }
 
@@ -875,7 +875,7 @@ static GF_Err OGG_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 			break;
 		}
 	}
-	gf_term_on_disconnect(read->service, channel, e);
+	gf_service_disconnect_ack(read->service, channel, e);
 	return GF_OK;
 }
 
@@ -927,7 +927,7 @@ static GF_Err OGG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			rcfg.base.on_channel = NULL;
 			rcfg.base.command_type = GF_NET_CHAN_DURATION;
 			rcfg.duration.duration = read->dur;
-			gf_term_on_command(read->service, &rcfg, GF_OK);
+			gf_service_command(read->service, &rcfg, GF_OK);
 		}
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
@@ -949,7 +949,7 @@ static Bool OGG_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
 	char szURL[2048], *sep;
 	OGGReader *read = (OGGReader *)plug->priv;
-	const char *this_url = gf_term_get_service_url(read->service);
+	const char *this_url = gf_service_get_url(read->service);
 	if (!this_url || !url) return 0;
 
 	strcpy(szURL, this_url);

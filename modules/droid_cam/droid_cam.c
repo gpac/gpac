@@ -323,7 +323,7 @@ GF_Err CAM_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	loadCameraControler(read);
 
 	/*reply to user*/
-	gf_term_on_connect(serv, NULL, GF_OK);
+	gf_service_connect_ack(serv, NULL, GF_OK);
 	//if (read->no_service_desc) isor_declare_objects(read);
 
 	return GF_OK;
@@ -345,7 +345,7 @@ GF_Err CAM_CloseService(GF_InputService *plug)
 
 	//unloadCameraControler(read);
 
-	gf_term_on_disconnect(read->service, NULL, reply);
+	gf_service_disconnect_ack(read->service, NULL, reply);
 	return GF_OK;
 }
 
@@ -424,7 +424,7 @@ GF_Err CAM_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const cha
 
 	camStartCamera(read);
 
-	gf_term_on_connect(read->service, channel, e);
+	gf_service_connect_ack(read->service, channel, e);
 	return e;
 }
 
@@ -441,7 +441,7 @@ GF_Err CAM_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 	camStopCamera(read);
 
-	gf_term_on_disconnect(read->service, channel, e);
+	gf_service_disconnect_ack(read->service, channel, e);
 	return e;
 }
 
@@ -522,7 +522,7 @@ void Java_com_gpac_Osmo4_Preview_processFrameBuf( JNIEnv* env, jobject thiz, jby
 		memset(&hdr, 0, sizeof(hdr));
 		hdr.compositionTimeStampFlag = 1;
 		hdr.compositionTimeStamp = cts;
-		gf_term_on_sl_packet(ctx->service, ctx->channel, (void*)data, datasize, &hdr, GF_OK);
+		gf_service_send_packet(ctx->service, ctx->channel, (void*)data, datasize, &hdr, GF_OK);
 
 		//gf_free(data);
 
