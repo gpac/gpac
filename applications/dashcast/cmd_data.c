@@ -872,7 +872,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		fprintf(stdout, "    audio format: %s\n", cmd_data->audio_data_conf.format);
 	}
 	fprintf(stdout, "\33[0m");
-//	fflush(stdout);
+	fflush(stdout);
 
 	if (!cmd_data->conf) {
 		cmd_data->conf = gf_cfg_force_new(NULL, "dashcast.conf");

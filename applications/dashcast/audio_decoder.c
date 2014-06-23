@@ -164,7 +164,6 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 	int ret;
 	AVPacket packet;
 	int got_frame = 0;
-	//int locked_already = 0;
 	AVCodecContext *codec_ctx;
 	AudioDataNode *audio_data_node;
 

@@ -1388,7 +1388,7 @@ int main(void) {
 }
 EOF
 
-if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags -lavresample 2> /dev/null  ; then
     has_libavresample="yes"
 else
     has_libavresample="no"
