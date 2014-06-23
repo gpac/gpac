@@ -4339,10 +4339,13 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		break;
 	case GF_DASH_PROFILE_AVC264_LIVE:
 		seg_at_rap = 1;
+		no_fragments_defaults = 1;
 		use_url_template = 1;
 		single_segment = single_file = 0;
 		break;
 	case GF_DASH_PROFILE_AVC264_ONDEMAND:
+		seg_at_rap = 1;
+		no_fragments_defaults = 1;
 		if (seg_name) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment-name not allowed in DASH-AVC/264 onDemand profile.\n"));
 			e = GF_NOT_SUPPORTED;
