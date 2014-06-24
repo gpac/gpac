@@ -86,6 +86,7 @@ GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
 static Bool enable_add_ons = GF_TRUE;
+static Fixed playback_speed = 1.0;
 
 static s32 request_next_playlist_item = GF_FALSE;
 FILE *playlist = NULL;
@@ -682,6 +683,20 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		case GF_KEY_A:
 			addon_visible = !addon_visible;
 			gf_term_toggle_addons(term, addon_visible);
+			break;
+		case GF_KEY_UP:
+			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
+				playback_speed *= 2;
+				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
+				gf_term_set_speed(term, playback_speed);
+			}
+			break;
+		case GF_KEY_DOWN:
+			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
+				playback_speed /= 2;
+				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
+				gf_term_set_speed(term, playback_speed);
+			}
 			break;
 
 		}

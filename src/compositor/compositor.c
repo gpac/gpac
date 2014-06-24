@@ -700,8 +700,18 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 		compositor->step_mode = 1;
 		if (!compositor->paused)
 			gf_term_set_option(compositor->term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
-		else
-			gf_term_step_clocks(compositor->term, compositor->frame_duration);
+		else {
+			u32 dur = compositor->frame_duration;
+			u32 i, count = gf_list_count(compositor->textures);
+			for (i=0; i<count; i++) {
+				GF_TextureHandler *txh = (GF_TextureHandler *) gf_list_get(compositor->textures, i);
+				if (txh->stream) {
+					u32 d = gf_mo_get_min_frame_dur(txh->stream);
+					if (d && d<dur) dur = d;
+				}
+			}
+			gf_term_step_clocks(compositor->term, dur);
+		}
 	} else {
 		compositor->step_mode = 0;
 		if (compositor->audio_renderer) gf_sc_ar_control(compositor->audio_renderer, (compositor->paused && (PlayState==0xFF)) ? 2 : compositor->paused);
@@ -2611,16 +2621,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	compositor->video_frame_pending=0;
 	gf_sc_lock(compositor, 0);
 
-#if 0
-	/*step mode on, pause and return*/
-	if (frame_drawn && compositor->step_mode) {
-		compositor->step_mode = 0;
-		if (compositor->term) gf_term_set_option(compositor->term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
-		return;
-	}
-#else
 	if (frame_drawn) compositor->step_mode = 0;
-#endif
 
 	/*let the owner decide*/
 	if (compositor->no_regulation)

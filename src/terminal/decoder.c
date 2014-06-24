@@ -355,11 +355,17 @@ static void codec_update_stats(GF_Codec *codec, u32 dataLength, u64 dec_time, u3
 {
 	codec->total_dec_time += dec_time;
 	codec->last_frame_time = gf_sys_clock();
-	if (!codec->nb_dec_frames)
+	if (!codec->nb_dec_frames) {
 		codec->first_frame_time = codec->last_frame_time;
+		codec->min_frame_dur = 0;
+	}
 
 	codec->nb_dec_frames++;
 	if (dec_time>codec->max_dec_time) codec->max_dec_time = dec_time;
+
+	if (DTS - codec->last_unit_dts > codec->min_frame_dur) {
+		codec->min_frame_dur = DTS - codec->last_unit_dts;
+	}
 
 	if (dataLength) {
 		if (codec->last_stat_start + 2000 <= DTS) {

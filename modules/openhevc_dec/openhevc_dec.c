@@ -353,6 +353,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		return GF_OK;
 	case GF_CODEC_DIRECT_OUTPUT:
 		ctx->direct_output = GF_TRUE;
+		ctx->pack_mode = 0;
 		if (ctx->conv_to_8bit && ctx->out_size)
 			ctx->conv_buffer = gf_realloc(ctx->conv_buffer, sizeof(char)*ctx->out_size);
 
@@ -382,13 +383,13 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 
 	if (!ctx->output_as_8bit) {
 		if ((ctx->luma_bpp>8) || (ctx->chroma_bpp>8)) {
-			a_stride *= 2;
 			ctx->pack_mode = 0;
 		}
 	} else {
 		if (bit_depth>8) {
 			bit_depth=8;
 			ctx->conv_to_8bit = 1;
+			a_stride /= 2;
 			ctx->pack_mode = 0;
 		}
 	}
@@ -423,7 +424,7 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 				dst.video_buffer = ctx->direct_output ? ctx->conv_buffer : outBuffer;
 				dst.pixel_format = GF_PIXEL_YV12;
 
-				gf_color_write_yv12_10_to_yuv(&dst, (u8 *) openHevcFramePtr.pvY, (u8 *) openHevcFramePtr.pvU, (u8 *) openHevcFramePtr.pvV, (openHevcFramePtr.frameInfo.nYPitch + 32)*2, ctx->width, ctx->height, NULL);
+				gf_color_write_yv12_10_to_yuv(&dst, (u8 *) openHevcFramePtr.pvY, (u8 *) openHevcFramePtr.pvU, (u8 *) openHevcFramePtr.pvV, openHevcFramePtr.frameInfo.nYPitch, ctx->width, ctx->height, NULL);
 				*outBufferLength = ctx->out_size;
 
 				if (ctx->direct_output )

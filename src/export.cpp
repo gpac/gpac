@@ -1088,6 +1088,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_set_position) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_flags) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_set_flag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_min_frame_dur) )
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_load_xlink_resource) )
