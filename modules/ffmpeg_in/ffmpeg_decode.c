@@ -327,7 +327,12 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				}
 			}
 		}
+#ifndef FF_API_AVFRAME_LAVC
 		*frame = avcodec_alloc_frame();
+#else
+		*frame = av_frame_alloc();
+#endif
+
 	}
 #ifdef HAS_HEVC
 	if (ffd->oti == GPAC_OTI_VIDEO_HEVC) {
@@ -392,7 +397,13 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		if (!(*ctx)->channels) (*ctx)->channels = 2;
 
 #if defined(USE_AVCTX3)
+
+#ifndef FF_API_AVFRAME_LAVC
 		ffd->audio_frame = avcodec_alloc_frame();
+#else
+		ffd->audio_frame = av_frame_alloc();
+#endif
+
 #endif
 
 	} else {
@@ -408,7 +419,12 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			break;
 
 		case CODEC_ID_DVD_SUBTITLE:
+#ifndef FF_API_AVFRAME_LAVC
 			*frame = avcodec_alloc_frame();
+#else
+			*frame = av_frame_alloc();
+#endif
+
 #ifdef USE_AVCODEC2
 			{
 				AVPacket pkt;

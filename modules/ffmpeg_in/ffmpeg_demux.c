@@ -314,7 +314,11 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	}
 
 exit:
+#ifndef FF_API_CLOSE_INPUT_FILE
 	if (ctx) av_close_input_file(ctx);
+#else
+	if (ctx) avformat_close_input(&ctx);
+#endif
 	return ret;
 }
 
@@ -685,7 +689,11 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 		ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? 0 : 1;
 		if (!ffd->seekable) {
+#ifndef FF_API_CLOSE_INPUT_FILE
 			av_close_input_file(ffd->ctx);
+#else
+			avformat_close_input(&ffd->ctx);
+#endif
 			ffd->ctx = NULL;
 			open_file(&ffd->ctx, szName, av_in);
 			av_find_stream_info(ffd->ctx);
@@ -700,7 +708,11 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 err_exit:
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG] Error opening file %s: %s\n", url, gf_error_to_string(e)));
+#ifndef FF_API_CLOSE_INPUT_FILE
 	if (ffd->ctx) av_close_input_file(ffd->ctx);
+#else
+	if (ffd->ctx) avformat_close_input(&ffd->ctx);
+#endif
 	ffd->ctx = NULL;
 	gf_service_connect_ack(serv, NULL, e);
 	return GF_OK;
@@ -754,7 +766,12 @@ static GF_Err FFD_CloseService(GF_InputService *plug)
 
 	ffd->is_running = 0;
 
+#ifndef FF_API_CLOSE_INPUT_FILE
 	if (ffd->ctx) av_close_input_file(ffd->ctx);
+#else
+	if (ffd->ctx) avformat_close_input(&ffd->ctx);
+#endif
+
 	ffd->ctx = NULL;
 	ffd->audio_ch = ffd->video_ch = NULL;
 	ffd->audio_run = ffd->video_run = 0;

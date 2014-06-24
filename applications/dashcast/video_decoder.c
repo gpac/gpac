@@ -244,7 +244,12 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 			video_data_node->source_number = source_number;
 			/* Flush decoder */
 			memset(&packet, 0, sizeof(AVPacket));
+#ifndef FF_API_AVFRAME_LAVC
 			avcodec_get_frame_defaults(video_data_node->vframe);
+#else
+			av_frame_unref(video_data_node->vframe);
+#endif
+
 			avcodec_decode_video2(codec_ctx, video_data_node->vframe, &got_frame, &packet);
 			if (got_frame) {
 				dc_producer_advance(&video_input_data->producer, &video_input_data->circular_buf);
@@ -278,7 +283,11 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 			video_data_node->source_number = source_number;
 
 			/* Set video frame to default */
+#ifndef FF_API_AVFRAME_LAVC
 			avcodec_get_frame_defaults(video_data_node->vframe);
+#else
+			av_frame_unref(video_data_node->vframe);
+#endif
 
 			/* Decode video frame */
 			if (avcodec_decode_video2(codec_ctx, video_data_node->vframe, &got_frame, &packet) < 0) {

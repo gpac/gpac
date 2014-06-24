@@ -517,7 +517,7 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 			const char *sOpt = gf_cfg_get_key(term->user->config, "Network", "AutoReconfigUDP");
 			if (sOpt && !stricmp(sOpt, "yes")) {
 				char szMsg[1024];
-				sprintf(szMsg, "!! UDP down (%s) - Retrying with TCP !!\n", com->send_event.evt.message);
+				sprintf(szMsg, "!! UDP down (%s) - Retrying with TCP !!\n", com->send_event.evt.message.message);
 				gf_term_message(term, service->url, szMsg, GF_IP_NETWORK_FAILURE);
 
 				/*reload scene - FIXME this shall work on inline nodes, not on the root !*/
