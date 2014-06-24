@@ -842,6 +842,8 @@ struct _generic_codec
 	u32 nb_droped;
 	/*we detect if the same image is sent again and again to the decoder (using last_unit_signature)*/
 	u32 nb_repeted_frames;
+	/*we detect if the same image is sent again and again to the decoder (using last_unit_signature)*/
+	u32 min_frame_dur;
 
 	/*for CTS reconstruction (channels not using SL): we cannot just update timing at each frame, not precise enough
 	since we use ms and not microsec TSs*/

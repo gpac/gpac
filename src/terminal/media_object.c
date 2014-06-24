@@ -473,7 +473,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	//no drop mode: all frames are presented, we discard the current output only if already presented and next frame time is mature
 	if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO)) {
 		resync=GF_FALSE;
-		if (gf_clock_is_started(mo->odm->codec->ck) && (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time) ) {
+		if (/*gf_clock_is_started(mo->odm->codec->ck) && */ (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time) ) {
 			gf_cm_drop_output(codec->CB);
 			CU = gf_cm_get_output(codec->CB);
 			if (!CU) {
@@ -989,6 +989,12 @@ GF_EXPORT
 Fixed gf_mo_get_current_speed(GF_MediaObject *mo)
 {
 	return (mo && mo->odm && mo->odm->codec && mo->odm->codec->ck) ? mo->odm->codec->ck->speed : FIX_ONE;
+}
+
+GF_EXPORT
+u32 gf_mo_get_min_frame_dur(GF_MediaObject *mo)
+{
+	return (mo && mo->odm && mo->odm->codec) ? mo->odm->codec->min_frame_dur : 0;
 }
 
 

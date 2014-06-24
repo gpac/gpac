@@ -94,6 +94,10 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url);
 Bool gf_mo_is_raw_memory(GF_MediaObject *mo);
 GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV);
 
+
+/*returns min frame duration for his object or 0 if unknown*/
+u32 gf_mo_get_min_frame_dur(GF_MediaObject *mo);
+
 /*fetch media data
 
 */
