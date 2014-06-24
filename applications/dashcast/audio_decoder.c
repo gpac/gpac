@@ -203,7 +203,13 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 			/* Flush decoder */
 			packet.data = NULL;
 			packet.size = 0;
+
+#ifndef FF_API_AVFRAME_LAVC
 			avcodec_get_frame_defaults(audio_input_data->aframe);
+#else
+			av_frame_unref(audio_input_data->aframe);
+#endif
+
 			avcodec_decode_audio4(codec_ctx, audio_input_data->aframe, &got_frame, &packet);
 
 			if (got_frame) {
@@ -232,7 +238,12 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 		/* Is this a packet from the audio stream? */
 		if (packet.stream_index == audio_input_file->astream_idx) {
 			/* Set audio frame to default */
+
+#ifndef FF_API_AVFRAME_LAVC
 			avcodec_get_frame_defaults(audio_input_data->aframe);
+#else
+			av_frame_unref(audio_input_data->aframe);
+#endif
 
 			/* Decode audio frame */
 			if (avcodec_decode_audio4(codec_ctx, audio_input_data->aframe, &got_frame, &packet) < 0) {

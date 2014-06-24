@@ -85,7 +85,14 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	av_dict_free(&opts);
 
 	audio_output_file->frame_bytes = audio_output_file->codec_ctx->frame_size * av_get_bytes_per_sample(DC_AUDIO_SAMPLE_FORMAT) * DC_AUDIO_NUM_CHANNELS;
+
+#ifndef FF_API_AVFRAME_LAVC
 	avcodec_get_frame_defaults(audio_output_file->aframe);
+#else
+	av_frame_unref(audio_output_file->aframe);
+#endif
+
+
 	audio_output_file->aframe->nb_samples = audio_output_file->codec_ctx->frame_size;
 
 	if (avcodec_fill_audio_frame(audio_output_file->aframe, audio_output_file->codec_ctx->channels, audio_output_file->codec_ctx->sample_fmt,
