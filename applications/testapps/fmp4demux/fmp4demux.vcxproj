@@ -112,7 +112,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>../../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>GPAC_DISABLE_MEDIA_IMPORT;GPAC_DISABLE_CORE_TOOLS;GPAC_DISABLE_ISOM_HINTING;GPAC_MINIMAL_ODF;GPAC_DISABLE_AV_PARSERS;GPAC_DISABLE_ISOM_DUMP;GPAC_DISABLE_ZILB;WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GPAC_DISABLE_MEDIA_IMPORT;GPAC_DISABLE_ISOM_HINTING;GPAC_MINIMAL_ODF;GPAC_DISABLE_AV_PARSERS;GPAC_DISABLE_ISOM_DUMP;GPAC_DISABLE_ZLIB;WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
