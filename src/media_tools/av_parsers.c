@@ -4164,6 +4164,7 @@ exit:
 }
 
 
+GF_EXPORT
 s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id)
 {
 	u32 reserved;

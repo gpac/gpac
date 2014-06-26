@@ -75,6 +75,8 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 	video_output_file->codec_ctx->bit_rate = video_data_conf->bitrate;
 	video_output_file->codec_ctx->width = video_data_conf->width;
 	video_output_file->codec_ctx->height = video_data_conf->height;
+	video_output_file->codec_ctx->sample_aspect_ratio.num = video_data_conf->width;
+	video_output_file->codec_ctx->sample_aspect_ratio.den = video_data_conf->height;
 
 	video_output_file->codec_ctx->time_base.num = 1;
 	video_output_file->codec_ctx->time_base.den = video_output_file->gop_size ? video_output_file->gop_size : video_data_conf->framerate;
@@ -157,7 +159,6 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 
 int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData *video_scaled_data)
 {
-	//AVPacket pkt;
 	VideoDataNode *video_data_node;
 	int ret;
 

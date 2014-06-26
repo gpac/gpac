@@ -595,6 +595,7 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_read) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_del) )
 
@@ -934,6 +935,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_config_update) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_set_inband_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_svc_config_update) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_config_update) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_set_inband_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_shvc_config_update) )
@@ -1264,6 +1266,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_get_sps_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_get_profile_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_hevc_get_sps_info_with_state) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_hevc_parse_nalu) )
 
 #endif //GPAC_DISABLE_HEVC
 
