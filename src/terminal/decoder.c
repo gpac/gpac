@@ -363,6 +363,7 @@ static void codec_update_stats(GF_Codec *codec, u32 dataLength, u64 dec_time, u3
 	codec->nb_dec_frames++;
 	if (dec_time>codec->max_dec_time) codec->max_dec_time = dec_time;
 
+
 	if (DTS - codec->last_unit_dts > codec->min_frame_dur) {
 		codec->min_frame_dur = DTS - codec->last_unit_dts;
 	}
@@ -1054,7 +1055,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			}
 		}
 		/*only perform drop in normal playback*/
-		else if (codec->CB->Status == CB_PLAY) {
+		else if ((codec->ck->speed>0) && (codec->CB->Status == CB_PLAY)) {
 			/*extremely late, set the level to drop
 			 NOTE: the 100 ms safety gard is to avoid discarding audio*/
 			if (!ch->skip_sl && (AU->CTS + (codec->is_reordering ? 1000 : 100) < obj_time) ) {

@@ -56,14 +56,32 @@ GF_ObjectManager *gf_odm_new()
 	return tmp;
 }
 
+void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset)
+ {
+ #ifndef GPAC_DISABLE_VRML
+ 	u32 i;
+ 	MediaSensorStack *media_sens;
+ 	MediaControlStack *media_ctrl;
+
+	i=0;
+	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i))) {
+		MS_Stop(media_sens);
+		/*and detach from stream object*/
+		media_sens->stream = NULL;
+	}
+
+	i=0;
+	while ((media_ctrl = (MediaControlStack *)gf_list_enum(odm->mc_stack, &i))) {
+		if (signal_reset) 
+			gf_odm_remove_mediacontrol(odm, media_ctrl);
+		media_ctrl->stream = NULL;
+		media_ctrl->ck = NULL;
+	}
+ #endif
+}
+
 void gf_odm_del(GF_ObjectManager *odm)
 {
-#ifndef GPAC_DISABLE_VRML
-	u32 i;
-	MediaSensorStack *media_sens;
-	MediaControlStack *media_ctrl;
-#endif
-
 	if (odm->addon && (odm->addon->root_od==odm)) {
 		odm->addon->root_od = NULL;
 		odm->addon->started = 0;
@@ -84,19 +102,8 @@ void gf_odm_del(GF_ObjectManager *odm)
 	gf_mx_p(odm->mx);
 
 #ifndef GPAC_DISABLE_VRML
-	i=0;
-	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i))) {
-		MS_Stop(media_sens);
-		/*and detach from stream object*/
-		media_sens->stream = NULL;
-	}
+	gf_odm_reset_media_control(odm, 0);
 	gf_list_del(odm->ms_stack);
-
-	i=0;
-	while ((media_ctrl = (MediaControlStack *)gf_list_enum(odm->mc_stack, &i))) {
-		media_ctrl->stream = NULL;
-		media_ctrl->ck = NULL;
-	}
 	gf_list_del(odm->mc_stack);
 #endif
 
@@ -1551,6 +1558,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 			}
 		}
 
+		com.play.speed = ch->clock->speed;
+
 #ifndef GPAC_DISABLE_VRML
 		/*if object shares parent scene clock, do not use media control*/
 		ctrl = parent_ck ? NULL : gf_odm_get_mediacontrol(odm);
@@ -1565,6 +1574,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 			if (ctrl->paused) media_control_paused = 1;
 
 			gf_clock_set_speed(ch->clock, ctrl->control->mediaSpeed);
+			if (odm->mo) odm->mo->speed = ctrl->control->mediaSpeed;
+
 			/*if requested seek time AND media control, adjust start range to current play time*/
 			if ((com.play.speed>=0) && odm->media_start_time) {
 				if ((com.play.start_range>=0) && (com.play.end_range>com.play.start_range)) {
@@ -1583,7 +1594,11 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 		/*full object playback*/
 		if (com.play.end_range<=0) {
-			odm->media_stop_time = odm->subscene ? 0 : odm->duration;
+			if (com.play.speed<0) {
+				odm->media_stop_time = 0;
+			} else {
+				odm->media_stop_time = odm->subscene ? 0 : odm->duration;
+			}
 		} else {
 			/*segment playback - since our timing is in ms whereas segment ranges are double precision,
 			make sure we have a LARGER range in ms, otherwise media sensors won't deactivate properly*/

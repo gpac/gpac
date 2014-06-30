@@ -698,6 +698,13 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				gf_term_set_speed(term, playback_speed);
 			}
 			break;
+		case GF_KEY_LEFT:
+			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
+				playback_speed = -playback_speed;
+				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
+				gf_term_set_speed(term, playback_speed);
+			}
+			break;
 
 		}
 		break;

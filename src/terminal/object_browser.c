@@ -188,7 +188,6 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 			} else {
 				info->current_time = gf_clock_time(odm->codec->ck);
 			}
-			info->current_time -= odm->codec->ck->init_time;
 		}
 		info->current_time /= 1000;
 		info->nb_droped = odm->codec->nb_droped;

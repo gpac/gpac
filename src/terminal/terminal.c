@@ -2076,6 +2076,9 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 	u32 i, j;
 	const char *opt;
 	GF_ClientService *ns;
+	Bool restart = 0;
+	u32 scene_time = gf_term_get_time_in_ms(term);
+
 	if (!speed) return;
 
 	/*adjust all clocks on all services*/
@@ -2084,9 +2087,20 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 		GF_Clock *ck;
 		j=0;
 		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
+			if ( gf_mulfix(ck->speed,speed) < 0) restart = 1;
 			gf_clock_set_speed(ck, speed);
 		}
 	}
+
+	if (restart) {
+		if (term->root_scene->is_dynamic_scene) {
+			gf_scene_restart_dynamic(term->root_scene, scene_time);
+		} else {
+		}
+	}
+
+	if (speed<0) 
+		speed = -speed;
 
 	opt = gf_cfg_get_key(term->user->config, "Systems", "TimeSlice");
 	if (!opt) opt="30";

@@ -256,7 +256,10 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 					GF_Scene *parent_scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) n) );
 					if (gf_list_del_item(parent_scene->scene_objects, mo)>=0) {
 						gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
-						if (mo->odm) mo->odm->mo = NULL;
+						if (mo->odm) {
+							gf_odm_reset_media_control(mo->odm, 1);
+							mo->odm->mo = NULL;
+						}
 						gf_mo_del(mo);
 					}
 					scene->root_od->action_type = GF_ODM_ACTION_DELETE;
