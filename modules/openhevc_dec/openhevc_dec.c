@@ -67,6 +67,7 @@ typedef struct
 
 	u32 frame_idx;
 	Bool pack_mode;
+
 } HEVCDec;
 
 static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
@@ -501,6 +502,13 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		if ( libOpenHevcDecode(ctx->openHevcHandle, NULL, 0, 0) ) {
 			return HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
 		}
+		//quick hack, we have an issue with openHEVC resuming after being flushed ...
+		ctx->had_pic = 0;
+		libOpenHevcClose(ctx->openHevcHandle);
+		ctx->openHevcHandle = NULL;
+		ctx->is_init = GF_FALSE;
+		HEVC_ConfigureStream(ctx, ctx->esd);
+
 		return GF_OK;
 	}
 
