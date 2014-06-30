@@ -471,7 +471,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	obj_time = gf_clock_time(codec->ck);
 
 	//no drop mode: all frames are presented, we discard the current output only if already presented and next frame time is mature
-	if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO)) {
+	if ((codec->ck->speed>0) && !(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO)) {
 		resync=GF_FALSE;
 		if (/*gf_clock_is_started(mo->odm->codec->ck) && */ (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time) ) {
 			gf_cm_drop_output(codec->CB);
@@ -485,8 +485,12 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 
 	if (resync) {
 		u32 nb_droped = 0;
-		while (CU->TS < obj_time) {
+		while (1) {
 			u32 diff;
+
+			if (CU->TS*codec->ck->speed >= obj_time*codec->ck->speed)
+				break;
+
 			if (!CU->next->dataLength) {
 				if (force_decode) {
 					obj_time = gf_clock_time(codec->ck);
@@ -502,16 +506,25 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 					break;
 				}
 			}
-			diff = CU->next->TS;
-			diff -= CU->TS;
-			if (CU->TS + codec->CB->Capacity*diff > obj_time) {
-				break;
+
+			diff = codec->ck->speed > 0 ? CU->next->TS - CU->TS : CU->TS - CU->next->TS;
+
+			if (codec->ck->speed>0) {
+				if (CU->TS + codec->CB->Capacity*diff > obj_time) {
+					break;
+				}
+			} else {
+				if (CU->TS + codec->CB->Capacity*diff < obj_time) {
+					break;
+				}
 			}
+
 			/*figure out closest time*/
-			if (CU->next->TS > obj_time) {
+			if (codec->ck->speed*CU->next->TS > codec->ck->speed*obj_time) {
 				*eos = GF_FALSE;
 				break;
 			}
+
 			nb_droped ++;
 			if (nb_droped>1) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At OTB %u dropped frame TS %u\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS));
@@ -536,8 +549,9 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	} else  {
 		mo->ms_until_next = 1;
 	}
-	diff = (s32) (CU->TS) - (s32) obj_time;
+	diff = mo->speed > 0 ? (s32) (CU->TS) - (s32) obj_time : (s32) obj_time - (s32) (CU->TS);
 	mo->ms_until_pres = FIX2INT(diff * mo->speed);
+
 
 	if (mo->timestamp != CU->TS) {
 #ifndef GPAC_DISABLE_VRML

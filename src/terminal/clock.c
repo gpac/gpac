@@ -223,7 +223,12 @@ u32 gf_clock_real_time(GF_Clock *ck)
 #ifdef GPAC_FIXED_POINT
 	time = ck->discontinuity_time + ck->init_time + (time - ck->StartTime) * FIX2INT(100*ck->speed) / 100;
 #else
-	time = ck->discontinuity_time + ck->init_time + (u32) (ck->speed * (time - ck->StartTime) );
+	if ((ck->speed < 0) && ((s32) ck->init_time < (-ck->speed) * (time - ck->StartTime))) {
+		time = 0;
+	}
+	else {
+		time = ck->discontinuity_time + (u32) ( ck->init_time + ck->speed * (time - ck->StartTime) );
+	}
 #endif
 	return time;
 }

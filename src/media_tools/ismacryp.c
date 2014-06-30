@@ -1415,6 +1415,10 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 		}
 		//full sample encryption
 		else {
+			if (max_size < samp->dataLength) {
+				buffer = (char*)gf_realloc(buffer, sizeof(char)*samp->dataLength);
+				max_size = samp->dataLength;
+			}
 			gf_bs_read_data(cyphertext_bs, buffer,samp->dataLength);
 			gf_crypt_decrypt(mc, buffer, samp->dataLength);
 			gf_bs_write_data(pleintext_bs, buffer, samp->dataLength);

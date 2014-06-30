@@ -1110,8 +1110,11 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				ch->end = check_round(ch, ch->end, com->play.end_range, 0);
 			}
 		} else if (com->play.speed<0) {
-			if (com->play.end_range>=com->play.start_range) ch->start = (u64) (s64) (com->play.start_range * ch->time_scale);
-			if (com->play.end_range >= 0) ch->end = (u64) (s64) (com->play.end_range*ch->time_scale);
+			Double end = com->play.end_range;
+			if (end==-1) end = 0;
+			ch->start = (u64) (s64) (com->play.start_range * ch->time_scale);
+			if (end <= com->play.start_range)
+				ch->end = (u64) (s64) (end  * ch->time_scale);
 		}
 		ch->is_playing = 1;
 		if (com->play.dash_segment_switch) ch->wait_for_segment_switch = 1;

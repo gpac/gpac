@@ -401,6 +401,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	if (ch->to_init) {
 		init_reader(ch);
+	} else if (ch->speed < 0) {
+		gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time - 1, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
+		if (ch->sample) ch->sample_time = ch->sample->DTS;
+
 	} else if (ch->has_edit_list) {
 		u32 prev_sample = ch->sample_num;
 		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &ivar, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
@@ -473,28 +477,33 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		}
 	} else {
 		ch->sample_num++;
-fetch_next:
+
 		ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &ivar);
 		/*if sync shadow / carousel RAP skip*/
 		if (ch->sample && (ch->sample->IsRAP==2)) {
 			gf_isom_sample_del(&ch->sample);
 			ch->sample_num++;
-			goto fetch_next;
-		}
-		if (ch->sample && ch->sample->IsRAP && ch->next_track) {
-			ch->track = ch->next_track;
-			ch->next_track = 0;
-			gf_isom_sample_del(&ch->sample);
-			goto fetch_next;
-		}
-		if (ch->sample && ch->dts_offset) {
-			if ( (ch->dts_offset<0) && (ch->sample->DTS < (u64) -ch->dts_offset)) {
-				ch->sample->DTS = 0;
-			} else {
-				ch->sample->DTS += ch->dts_offset;
-			}
+			isor_reader_get_sample(ch);
+			return;
+		}	
+	}
+
+	//check scalable track change
+	if (ch->sample && ch->sample->IsRAP && ch->next_track) {
+		ch->track = ch->next_track;
+		ch->next_track = 0;
+		gf_isom_sample_del(&ch->sample);
+		isor_reader_get_sample(ch);
+		return;
+	}
+	if (ch->sample && ch->dts_offset) {
+		if ( (ch->dts_offset<0) && (ch->sample->DTS < (u64) -ch->dts_offset)) {
+			ch->sample->DTS = 0;
+		} else {
+			ch->sample->DTS += ch->dts_offset;
 		}
 	}
+
 	if (!ch->sample) {
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
@@ -541,8 +550,12 @@ fetch_next:
 	ch->current_slh.accessUnitEndFlag = ch->current_slh.accessUnitStartFlag = 1;
 	ch->current_slh.accessUnitLength = ch->sample->dataLength;
 	ch->current_slh.au_duration = gf_isom_get_sample_duration(ch->owner->mov, ch->track, ch->sample_num);
-	/*still seeking or not ?*/
-	if (ch->start <= ch->sample->DTS + ch->sample->CTS_Offset) {
+
+	/*still seeking or not ?
+	 1- when speed is negative, the RAP found is "after" the seek point in playback order since we used backward RAP search: nothing to do
+	 2- otherwise set DTS+CTS to start value - !! FIXME we should not change the TS but rather signal the frame is a seek frame
+	 */
+	if ((ch->speed < 0) || (ch->start <= ch->sample->DTS + ch->sample->CTS_Offset)) {
 		ch->current_slh.decodingTimeStamp = ch->sample->DTS;
 		ch->current_slh.compositionTimeStamp = ch->sample->DTS + ch->sample->CTS_Offset;
 	} else {

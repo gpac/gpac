@@ -538,6 +538,10 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	}
 	//full sample encryption
 	else {
+		if (max_size < evt->data_size) {
+			buffer = (char*)gf_realloc(buffer, sizeof(char)*evt->data_size);
+			max_size = evt->data_size;
+		}
 		gf_bs_read_data(cyphertext_bs, buffer, evt->data_size);
 		gf_crypt_decrypt(priv->crypt, buffer, evt->data_size);
 	}
