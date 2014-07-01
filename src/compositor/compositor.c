@@ -2779,12 +2779,14 @@ void gf_sc_traverse_subscene_ex(GF_Compositor *compositor, GF_Node *inline_paren
 	if (flip_coords)
 		gf_mx2d_add_scale(&transf, FIX_ONE, -FIX_ONE);
 
-	/*if scene size is given in the child document, scale to fit the entire vp*/
+	/*if scene size is given in the child document, scale to fit the entire vp unless our VP is the full output*/
 	if (w && h) {
-		Fixed scale_w = tr_state->vp_size.x/w;
-		Fixed scale_h = tr_state->vp_size.y/h;
-		vp_scale = MIN(scale_w, scale_h);
-		gf_mx2d_add_scale(&transf, vp_scale, vp_scale);
+		if ((compositor->scene_width != tr_state->vp_size.x) || (compositor->scene_height != tr_state->vp_size.y)) {
+			Fixed scale_w = tr_state->vp_size.x/w;
+			Fixed scale_h = tr_state->vp_size.y/h;
+			vp_scale = MIN(scale_w, scale_h);
+			gf_mx2d_add_scale(&transf, vp_scale, vp_scale);
+		}
 	}
 	if (flip_coords) {
 		gf_mx2d_add_translation(&transf, flip_coords * tr_state->vp_size.x/2, tr_state->vp_size.y/2);
