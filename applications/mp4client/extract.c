@@ -464,7 +464,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 
 			switch (fb.pixel_format) {
 			case GF_PIXEL_RGB_32:
-			case GF_PIXEL_ARGB:
+			case GF_PIXEL_RGBA:
 				for (i=0; i<fb.width; i++) {
 					dst[0] = src[0];
 					dst[1] = src[1];
@@ -494,11 +494,19 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 				}
 				break;
 			case GF_PIXEL_BGR_32:
-			case GF_PIXEL_RGBA:
 				for (i=0; i<fb.width; i++) {
 					dst[0] = src[3];
 					dst[1] = src[2];
 					dst[2] = src[1];
+					src+=4;
+					dst+=3;
+				}
+				break;
+			case GF_PIXEL_ARGB:
+				for (i=0; i<fb.width; i++) {
+					dst[0] = src[1];
+					dst[1] = src[2];
+					dst[2] = src[3];
 					src+=4;
 					dst+=3;
 				}
