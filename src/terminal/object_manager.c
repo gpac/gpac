@@ -1516,6 +1516,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 		com.base.on_channel = ch;
 		com.play.speed = 1.0;
+		
 		/*play from requested time (seeking or non-mpeg4 media control)*/
 		if (odm->media_start_time && !ch->clock->clock_init) {
 			ck_time = (Double) (s64) odm->media_start_time;
@@ -1528,7 +1529,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 		/*play from current time*/
 		else {
 			if (odm->parentscene && odm->parentscene->root_od->addon) {
-				ck_time = gf_scene_adjust_time_for_addon(odm->parentscene, gf_clock_time(ch->clock), odm->parentscene->root_od->addon);
+				ck_time = gf_scene_adjust_time_for_addon(odm->parentscene, gf_clock_time(ch->clock), odm->parentscene->root_od->addon, &com.play.is_timestamp_based);
 
 				if (odm->scalable_addon) {
 					//this is a scalable extension to an object in the parent scene

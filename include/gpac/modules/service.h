@@ -159,8 +159,10 @@ typedef struct
 	/*params for GF_NET_CHAN_PLAY and GF_NET_CHAN_SPEED*/
 	Double speed;
 	Bool dash_segment_switch;
-	/*indicates theis is the first PLAY on an elemnt inserted from bcast*/
+	/*indicates this is the first PLAY on an elemnt inserted from bcast*/
 	Bool initial_broadcast_play;
+	/*indicates the range is given in timestamps, no media time */
+	Bool is_timestamp_based;
 } GF_NetComPlay;
 
 
@@ -410,6 +412,8 @@ typedef struct
 	Bool current_download;
 	/*indicates that there is new data in the cache for the current URL (progressive mode only) - only valid if is_current_download is set.*/
 	Bool has_new_data;
+	/*indicates that end of period is being reached (no new segements returned until period activates)*/
+	Bool in_end_of_period;
 
 } GF_NetURLQuery;
 

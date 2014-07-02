@@ -747,6 +747,12 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 				gf_service_send_packet(read->service, ch->channel, NULL, 0, NULL, GF_EOS);
 			}
 		}
+		//not enough data
+		else if (param.url_query.in_end_of_period) {
+			//act as if we have a pending segment to process at next call until we get to the next period
+			if (!read->has_pending_segments) 
+				read->has_pending_segments++;
+		}
 
 		/*close current segment*/
 		gf_isom_release_segment(read->mov, 1);

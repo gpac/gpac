@@ -1085,7 +1085,17 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 			*max_seg_duration /= timescale;
 		}
 		mediaDuration = period->duration;
-		if (!mediaDuration) mediaDuration = mpd->media_presentation_duration;
+		if (!mediaDuration) {
+			u32 i, count = gf_list_count(mpd->periods);
+			Double start = 0;
+			for (i=0; i<count; i++) {
+				GF_MPD_Period *ap = gf_list_get(mpd->periods, i);
+				if (ap==period) break;
+				if (ap->start) start = ap->start;
+				start += ap->duration;
+			}
+			mediaDuration = mpd->media_presentation_duration - start;
+		}
 		if (mediaDuration && duration) {
 			Double nb_seg = (Double) mediaDuration;
 			/*duration is given in ms*/
@@ -3545,6 +3555,7 @@ restart_period:
 
 					goto restart_period;
 				}
+
 				gf_sleep(30);
 			}
 		}
