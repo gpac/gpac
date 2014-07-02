@@ -40,6 +40,9 @@
 #endif
 
 
+#define XML_INPUT_SIZE	4096
+
+
 static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current);
 
 static char *xml_translate_xml_string(char *str)
@@ -742,7 +745,13 @@ restart:
 				}
 				i++;
 				if (c=='\n') parser->line++;
-				if (parser->current_pos+i==parser->line_size) goto exit;
+
+				if (parser->current_pos+i==parser->line_size) {
+					if ((parser->line_size>=2*XML_INPUT_SIZE) && !parser->init_state)
+						parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+
+					goto exit;
+				}
 			}
 			if (is_text && i) {
 				xml_sax_store_text(parser, i);
@@ -1119,7 +1128,6 @@ static void xml_sax_reset(GF_SAXParser *parser)
 	parser->nb_alloc_attrs = parser->nb_attrs = 0;
 }
 
-#define XML_INPUT_SIZE	4096
 
 static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 {

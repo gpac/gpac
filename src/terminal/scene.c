@@ -1056,7 +1056,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 		count = gf_list_count(scene->resources);
 		for (i=0;i<count; i++) {
 			odm = (GF_ObjectManager*)gf_list_get(scene->resources, i);
-			if (odm->scalable_addon)
+			if (odm->scalable_addon || !odm->OD)
 				continue;
 
 			if (scene->selected_service_id && (scene->selected_service_id != odm->OD->ServiceID))
@@ -1338,7 +1338,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 		if (!odm->addon) return;
 	}
 
-	if (scene->selected_service_id != odm->OD->ServiceID) {
+	if (odm->OD->ServiceID && scene->selected_service_id && (scene->selected_service_id != odm->OD->ServiceID)) {
 		gf_scene_set_service_id(scene, odm->OD->ServiceID);
 		return;
 	}
@@ -1998,13 +1998,16 @@ void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 
 }
 
-Double gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedia *addon)
+Double gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedia *addon, Bool *timestamp_based)
 {
 	Double media_time;
 	if (!addon->timeline_ready)
 		return clock_time;
 	assert(scene->root_od->addon);
 	assert(scene->root_od->addon==addon);
+
+	if (timestamp_based) 
+		*timestamp_based = (addon->timeline_id>=0) ? 0 : 1;
 
 	//get PTS diff (clock is in ms, pt is in 90k)
 	media_time = clock_time;

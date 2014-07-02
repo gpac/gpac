@@ -61,8 +61,7 @@ typedef struct __mpd_module
 
 	//we store here all callbacks to the parent services we need to intercept, and we will override our own ones
 	void (*fn_connect_ack) (GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
-	void (*fn_disconnect_ack) (GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
-	void (*fn_command) (GF_ClientService *service, GF_NetworkCommand *com, GF_Err response);
+	void (*fn_data_packet) (GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status);
 } GF_MPD_In;
 
 typedef struct
@@ -75,7 +74,7 @@ typedef struct
 	Bool has_new_data;
 	u32 idx;
 	GF_DownloadSession *sess;
-	Bool in_seek;
+	Bool in_seek, is_timestamp_based;
 } GF_MPDGroup;
 
 const char * MPD_MPD_DESC = "MPEG-DASH Streaming";
@@ -122,15 +121,46 @@ static void mpdin_connect_ack(GF_ClientService *service, LPNETCHANNEL ns, GF_Err
 	if (response==GF_OK)
 		mpdin->fn_connect_ack(mpdin->service, ns, response);
 }
-static void mpdin_disconnect_ack(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response)
+
+void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {
+	u32 i;
+	GF_InputService *ifce;
 	GF_MPD_In *mpdin = (GF_MPD_In*) service->ifce->priv;
-	mpdin->fn_disconnect_ack(mpdin->service, ns, response);
-}
-static void mpdin_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Err response)
-{
-	GF_MPD_In *mpdin = (GF_MPD_In*) service->ifce->priv;
-	mpdin->fn_command(mpdin->service, com, response);
+	GF_Channel *ch;
+	
+	if (!ns || !hdr) {
+		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
+		return;
+	}
+
+	ch = (GF_Channel *) ns;
+	assert(ch->odm && ch->odm->OD);
+	ifce = (GF_InputService *) ch->odm->OD->service_ifce;
+
+	for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
+		GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, i);
+		if (!group) continue;
+		if (group->segment_ifce == ifce) {
+			//if sync is based on timestamps do not adjust the timestamps back 
+			if (! group->is_timestamp_based) {
+				u32 idx, timescale;
+				u64 pto=0;
+				gf_dash_group_get_presentation_time_offset(mpdin->dash, i, &pto, &timescale);
+				if (timescale && (timescale != ch->esd->slConfig->timestampResolution)) {
+					pto *= ch->esd->slConfig->timestampResolution;
+					pto /= timescale;
+				}
+				if (hdr->decodingTimeStamp > pto) hdr->decodingTimeStamp -= pto;
+				else hdr->decodingTimeStamp = 0;
+				if (hdr->compositionTimeStamp> pto) hdr->compositionTimeStamp -= pto;
+				else hdr->compositionTimeStamp = 0;
+			}
+
+			mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
+			return;
+		}
+	}
 }
 
 static void MPD_NotifyData(GF_MPDGroup *group, Bool chunk_flush)
@@ -227,18 +257,22 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			if (group_done) {
 				if (!gf_dash_get_period_switch_status(mpdin->dash) && !gf_dash_in_last_period(mpdin->dash) ) {
 					GF_NetworkCommand com;
+					param->url_query.in_end_of_period = 1;
 					memset(&com, 0, sizeof(GF_NetworkCommand));
 					com.command_type = GF_NET_BUFFER_QUERY;
-					while (gf_dash_get_period_switch_status(mpdin->dash) != 1) {
-						mpdin->fn_command(mpdin->service, &com, GF_OK);
+					if (gf_dash_get_period_switch_status(mpdin->dash) != 1) {
+						gf_service_command(mpdin->service, &com, GF_OK);
+						//we only switch period once no more data is in our buffers
 						if (!com.buffer.occupancy) {
+							param->url_query.in_end_of_period = 0;
 							gf_dash_request_period_switch(mpdin->dash);
-							break;
 						}
-						gf_sleep(30);
 					}
+					if (param->url_query.in_end_of_period)
+						return GF_BUFFER_TOO_SMALL;
+				} else {
+					return GF_EOS;
 				}
-				return GF_EOS;
 			}
 
 			if (check_current_download && mpdin->use_low_latency) {
@@ -629,7 +663,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	if (dash_evt==GF_DASH_EVENT_DESTROY_PLAYBACK) {
 
 		mpdin->service->subservice_disconnect = 1;
-		mpdin->fn_disconnect_ack(mpdin->service, NULL, GF_OK);
+		gf_service_disconnect_ack(mpdin->service, NULL, GF_OK);
 		mpdin->service->subservice_disconnect = 2;
 
 		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
@@ -788,10 +822,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	//override all service callbacks
 	mpdin->fn_connect_ack = serv->fn_connect_ack;
 	serv->fn_connect_ack = mpdin_connect_ack;
-	mpdin->fn_disconnect_ack = serv->fn_disconnect_ack;
-	serv->fn_disconnect_ack = mpdin_disconnect_ack;
-	mpdin->fn_command = serv->fn_command;
-	serv->fn_disconnect_ack = mpdin_disconnect_ack;
+	mpdin->fn_data_packet = serv->fn_data_packet;
+	serv->fn_data_packet = mpdin_data_packet;
 
 	mpdin->dash = gf_dash_new(&mpdin->dash_io, max_cache_duration, auto_switch_count, keep_files, disable_switching, first_select_mode, (mpdin->buffer_mode == MPDIN_BUFFER_SEGMENTS) ? 1 : 0, init_timeshift);
 
@@ -811,7 +843,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		GF_NetworkCommand com;
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.command_type = GF_NET_SERVICE_MEDIA_CAP_QUERY;
-		mpdin->fn_command(serv, &com, GF_OK);
+		gf_service_command(serv, &com, GF_OK);
 
 		com.mcaps.width = 1920;
 		com.mcaps.height = 1080;
@@ -882,7 +914,7 @@ GF_Err MPD_CloseService(GF_InputService *plug)
 	if (mpdin->dash)
 		gf_dash_close(mpdin->dash);
 
-	mpdin->fn_disconnect_ack(mpdin->service, NULL, GF_OK);
+	gf_service_disconnect_ack(mpdin->service, NULL, GF_OK);
 
 	return GF_OK;
 }
@@ -992,11 +1024,26 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 //				mpdin->in_seek = 0;
 			}
 			else if (gf_dash_in_period_setup(mpdin->dash)) {
+				if (idx>=0) {
+					GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, idx);
+					group->is_timestamp_based = com->play.is_timestamp_based;
+
+					if (com->play.is_timestamp_based) {
+						u32 timescale;
+						u64 pto;
+						Double offset;
+						gf_dash_group_get_presentation_time_offset(mpdin->dash, idx, &pto, &timescale);
+						offset = pto;
+						offset /= timescale;
+						com->play.start_range -= offset;
+						if (com->play.start_range < 0) com->play.start_range = 0;
+					}
+				}
 				gf_dash_seek(mpdin->dash, com->play.start_range);
-//				com->play.start_range = gf_dash_get_playback_start_range(mpdin->dash);
+
+				com->play.start_range = gf_dash_get_playback_start_range(mpdin->dash);
 			}
 
-			idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
 			if (idx>=0) {
 				if (mpdin->in_seek) {
 					GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, idx);
