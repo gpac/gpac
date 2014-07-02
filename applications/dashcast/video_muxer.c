@@ -163,7 +163,7 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 	hevc.sps_active_idx = -1;
 
 	while (gf_bs_available(bs)) {
-		s32 res, idx;
+		s32 idx;
 		GF_AVCConfigSlot *slc;
 		u8 nal_unit_type, temporal_id, layer_id;
 		u64 nal_start;
@@ -187,7 +187,7 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 		gf_bs_read_data(bs, buffer, nal_size);
 		gf_bs_seek(bs, nal_start);
 
-		res = gf_media_hevc_parse_nalu(bs, &hevc, &nal_unit_type, &temporal_id, &layer_id);
+		gf_media_hevc_parse_nalu(bs, &hevc, &nal_unit_type, &temporal_id, &layer_id);
 		if (layer_id) {
 			gf_bs_del(bs);
 			gf_free(buffer);
