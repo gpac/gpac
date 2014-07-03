@@ -114,7 +114,7 @@ u32 last_x, last_y;
 Bool right_down = GF_FALSE;
 
 void dump_frame(GF_Terminal *term, char *rad_path, u32 dump_type, u32 frameNum);
-Bool dump_file(char *the_url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times);
+Bool dump_file(char *the_url, char *out_url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times);
 
 
 void hide_shell(u32 cmd_type)
@@ -221,6 +221,7 @@ void PrintUsage()
 	        "\t-png [times]:   dumps given frames to png\n"
 	        "\t-raw [times]:   dumps given frames to raw\n"
 	        "\t-avi [times]:   dumps given file to raw avi\n"
+			"\r-out filename:  name of the output file\n"
 	        "\t-rgbds:         dumps the RGBDS pixel format texture\n"
 	        "                   with -avi [times]: dumps an rgbds-format .avi\n"
 	        "\t-rgbd:          dumps the RGBD pixel format texture\n"
@@ -1020,7 +1021,7 @@ int main (int argc, char **argv)
 #endif
 	Double fps = GF_IMPORT_DEFAULT_FPS;
 	Bool fill_ar, visible;
-	char *url_arg, *the_cfg, *rti_file, *views, *default_com;
+	char *url_arg, *out_arg, *the_cfg, *rti_file, *views, *default_com;
 	FILE *logfile = NULL;
 	Float scale = 1;
 #ifndef WIN32
@@ -1034,7 +1035,7 @@ int main (int argc, char **argv)
 
 	dump_mode = 0;
 	fill_ar = visible = GF_FALSE;
-	url_arg = the_cfg = rti_file = views = default_com = NULL;
+	url_arg = out_arg = the_cfg = rti_file = views = default_com = NULL;
 	nb_times = 0;
 	times[0] = 0;
 
@@ -1191,6 +1192,9 @@ int main (int argc, char **argv)
 #else
 			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
 #endif
+		}
+		else if (!strcmp(arg, "-out")) {
+			out_arg = gf_strdup(argv[i+1]);
 		}
 		else if (!strcmp(arg, "-loop")) loop_at_end = 1;
 		else if (!strcmp(arg, "-bench")) bench_mode = 1;
@@ -1373,7 +1377,7 @@ int main (int argc, char **argv)
 			times[0] = 0;
 			nb_times++;
 		}
-		dump_file(url_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
+		dump_file(url_arg, out_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
 		Run = 0;
 	} else
 
