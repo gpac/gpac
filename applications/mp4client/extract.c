@@ -585,12 +585,13 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 	gf_sc_release_screen_buffer(term->compositor, &fb);
 }
 
-Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times)
+Bool dump_file(char *url, char *out_url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times)
 {
 	GF_Err e;
 	u32 i = 0;
 	GF_VideoSurface fb;
 	char szPath[GF_MAX_PATH];
+	char szOutPath[GF_MAX_PATH];
 	char *prev=NULL;
 
 	prev = strstr(url, "://");
@@ -603,6 +604,15 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 	strcpy(szPath, prev);
 	prev = strrchr(szPath, '.');
 	if (prev) prev[0] = 0;
+
+	if (out_url) {
+		strcpy(szOutPath, out_url);
+	} else {
+		strcpy(szOutPath, szPath);
+	}
+	prev = strrchr(szOutPath, '.');
+	if (prev) prev[0] = 0;
+
 
 	fprintf(stderr, "Opening URL %s\n", url);
 	/*connect in pause mode*/
@@ -669,18 +679,18 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 		avi_t *depth_avi_out = NULL;
 		char szPath_depth[GF_MAX_PATH];
 		char comp[5];
-		strcpy(szPath_depth, szPath);
-		strcat(szPath, ".avi");
-		avi_out = AVI_open_output_file(szPath);
+		strcpy(szPath_depth, szOutPath);
+		strcat(szOutPath, ".avi");
+		avi_out = AVI_open_output_file(szOutPath);
 		if (!avi_out) {
-			fprintf(stderr, "Error creating AVI file %s\n", szPath);
+			fprintf(stderr, "Error creating AVI file %s\n", szOutPath);
 			return 1;
 		}
 		if (dump_mode==8) {
 			strcat(szPath_depth, "_depth.avi");
 			depth_avi_out = AVI_open_output_file(szPath_depth);
 			if (!depth_avi_out) {
-				fprintf(stderr, "Error creating AVI file %s\n", szPath);
+				fprintf(stderr, "Error creating AVI file %s\n", szPath_depth);
 				return 1;
 			}
 		}
@@ -718,11 +728,11 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 				/*we'll dump both buffers at once*/
 				gf_mx_p(term->compositor->mx);
 				dump_depth(term, szPath_depth, dump_mode, i+1, conv_buf, depth_avi_out);
-				dump_frame(term, szPath, dump_mode, i+1, conv_buf, avi_out);
+				dump_frame(term, szOutPath, dump_mode, i+1, conv_buf, avi_out);
 				gf_mx_v(term->compositor->mx);
 
 			}
-			else dump_frame(term, szPath, dump_mode, i+1, conv_buf, avi_out);
+			else dump_frame(term, szOutPath, dump_mode, i+1, conv_buf, avi_out);
 
 			nb_frames++;
 			time = (u32) (nb_frames*1000/fps);
@@ -748,9 +758,9 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 			}
 
 			if (dump_mode==4 || dump_mode==7 || dump_mode==12) {
-				dump_depth(term, szPath, dump_mode, i+1, NULL, NULL);
+				dump_depth(term, szOutPath, dump_mode, i+1, NULL, NULL);
 			} else {
-				dump_frame(term, url, dump_mode, i+1, NULL, NULL);
+				dump_frame(term, out_url, dump_mode, i+1, NULL, NULL);
 			}
 
 			if (i+1<nb_times) gf_term_step_clocks(term, times[i+1] - times[i]);
