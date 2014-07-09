@@ -1073,7 +1073,7 @@ redecode:
 		dst.video_buffer = ffd->direct_output ? ffd->conv_buffer : outBuffer;
 		dst.pixel_format = GF_PIXEL_YV12;
 
-		gf_color_write_yv12_10_to_yuv(&dst, (u8 *) frame->data[0], frame->data[1], frame->data[2], frame->linesize[0], ctx->width, ctx->height, NULL);
+		gf_color_write_yv12_10_to_yuv(&dst, (u8 *) frame->data[0], frame->data[1], frame->data[2], frame->linesize[0], ctx->width, ctx->height, NULL, 0);
 		*outBufferLength = ffd->out_size;
 		return GF_OK;
 	}

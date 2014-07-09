@@ -413,76 +413,82 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 	if (!ctx->conv_to_8bit && ctx->direct_output) {
 		*outBufferLength = ctx->out_size;
 		ctx->has_pic = GF_TRUE;
-	} else {
-		if (ctx->conv_to_8bit) {
-			OpenHevc_Frame openHevcFramePtr;
-			if (libOpenHevcGetOutput(ctx->openHevcHandle, 1, &openHevcFramePtr)) {
-				GF_VideoSurface dst;
-				memset(&dst, 0, sizeof(GF_VideoSurface));
-				dst.width = ctx->width;
-				dst.height = ctx->height;
-				dst.pitch_y = ctx->width;
-				dst.video_buffer = ctx->direct_output ? ctx->conv_buffer : outBuffer;
-				dst.pixel_format = GF_PIXEL_YV12;
+		return GF_OK;
+	} 
 
-				gf_color_write_yv12_10_to_yuv(&dst, (u8 *) openHevcFramePtr.pvY, (u8 *) openHevcFramePtr.pvU, (u8 *) openHevcFramePtr.pvV, openHevcFramePtr.frameInfo.nYPitch, ctx->width, ctx->height, NULL);
-				*outBufferLength = ctx->out_size;
+	if (ctx->conv_to_8bit) {
+		OpenHevc_Frame openHevcFramePtr;
+		if (libOpenHevcGetOutput(ctx->openHevcHandle, 1, &openHevcFramePtr)) {
+			GF_VideoSurface dst;
+			memset(&dst, 0, sizeof(GF_VideoSurface));
+			dst.width = ctx->width;
+			dst.height = ctx->height;
+			dst.pitch_y = ctx->width;
+			dst.video_buffer = ctx->direct_output ? ctx->conv_buffer : outBuffer;
+			dst.pixel_format = GF_PIXEL_YV12;
 
-				if (ctx->direct_output )
-					ctx->has_pic = GF_TRUE;
-			}
-		} else if (ctx->pack_mode) {
-			OpenHevc_Frame openHFrame;
-			u8 *pY, *pU, *pV;
+			gf_color_write_yv12_10_to_yuv(&dst, (u8 *) openHevcFramePtr.pvY, (u8 *) openHevcFramePtr.pvU, (u8 *) openHevcFramePtr.pvV, openHevcFramePtr.frameInfo.nYPitch, ctx->width, ctx->height, NULL, 0);
+			*outBufferLength = ctx->out_size;
 
-			u32 idx_w, idx_h;
-			idx_w = ((ctx->frame_idx==0) || (ctx->frame_idx==2)) ? 0 : ctx->width;
-			idx_h = ((ctx->frame_idx==0) || (ctx->frame_idx==1)) ? 0 : ctx->height*2*ctx->stride;
-
-			pY = (void*) ( outBuffer + idx_h + idx_w );
-			pU = (void*) (outBuffer + 2*ctx->stride*2*ctx->height + idx_w/2 +  idx_h/4);
-			pV = (void*) (outBuffer + 2*ctx->stride*2*ctx->height + ctx->stride*ctx->height + idx_w/2 + idx_h/4);
-
-
-			*outBufferLength = 0;
-			if (libOpenHevcGetOutput(ctx->openHevcHandle, 1, &openHFrame)) {
-				u32 i, s_stride, qs_stride, d_stride, dd_stride, hd_stride;
-
-				s_stride = openHFrame.frameInfo.nYPitch;
-				qs_stride = s_stride / 4;
-
-				d_stride = ctx->stride;
-				dd_stride = 2*ctx->stride;
-				hd_stride = ctx->stride/2;
-
-				for (i=0; i<ctx->height; i++) {
-					memcpy(pY,  (u8 *) openHFrame.pvY + i*s_stride, d_stride);
-					pY += dd_stride;
-
-					if (! (i%2) ) {
-						memcpy(pU,  (u8 *) openHFrame.pvU + i*qs_stride, hd_stride);
-						pU += d_stride;
-
-						memcpy(pV,  (u8 *) openHFrame.pvV + i*qs_stride, hd_stride);
-						pV += d_stride;
-					}
-				}
-
-				ctx->frame_idx++;
-				if (ctx->frame_idx==4) {
-					*outBufferLength = 4 * ctx->out_size;
-					ctx->frame_idx = 0;
-				} 				
-			}
-		} else {
-			openHevcFrame.pvY = (void*) outBuffer;
-			openHevcFrame.pvU = (void*) (outBuffer + ctx->stride * ctx->height);
-			openHevcFrame.pvV = (void*) (outBuffer + 5*ctx->stride * ctx->height/4);
-			*outBufferLength = 0;
-			if (libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame)) {
-				*outBufferLength = ctx->out_size;
-			}
+			if (ctx->direct_output )
+				ctx->has_pic = GF_TRUE;
 		}
+		return GF_OK;
+	}
+	
+	if (ctx->pack_mode) {
+		OpenHevc_Frame openHFrame;
+		u8 *pY, *pU, *pV;
+
+		u32 idx_w, idx_h;
+		idx_w = ((ctx->frame_idx==0) || (ctx->frame_idx==2)) ? 0 : ctx->width;
+		idx_h = ((ctx->frame_idx==0) || (ctx->frame_idx==1)) ? 0 : ctx->height*2*ctx->stride;
+
+		pY = (void*) ( outBuffer + idx_h + idx_w );
+		pU = (void*) (outBuffer + 2*ctx->stride*2*ctx->height + idx_w/2 +  idx_h/4);
+		pV = (void*) (outBuffer + 2*ctx->stride*2*ctx->height + ctx->stride*ctx->height + idx_w/2 + idx_h/4);
+
+
+		*outBufferLength = 0;
+		if (libOpenHevcGetOutput(ctx->openHevcHandle, 1, &openHFrame)) {
+			u32 i, s_stride, qs_stride, d_stride, dd_stride, hd_stride;
+
+			s_stride = openHFrame.frameInfo.nYPitch;
+			qs_stride = s_stride / 4;
+
+			d_stride = ctx->stride;
+			dd_stride = 2*ctx->stride;
+			hd_stride = ctx->stride/2;
+
+			for (i=0; i<ctx->height; i++) {
+				memcpy(pY,  (u8 *) openHFrame.pvY + i*s_stride, d_stride);
+				pY += dd_stride;
+
+				if (! (i%2) ) {
+					memcpy(pU,  (u8 *) openHFrame.pvU + i*qs_stride, hd_stride);
+					pU += d_stride;
+
+					memcpy(pV,  (u8 *) openHFrame.pvV + i*qs_stride, hd_stride);
+					pV += d_stride;
+				}
+			}
+
+			ctx->frame_idx++;
+			if (ctx->frame_idx==4) {
+				*outBufferLength = 4 * ctx->out_size;
+				ctx->frame_idx = 0;
+			} 				
+		}
+		return GF_OK;
+	} 
+
+
+	openHevcFrame.pvY = (void*) outBuffer;
+	openHevcFrame.pvU = (void*) (outBuffer + ctx->stride * ctx->height);
+	openHevcFrame.pvV = (void*) (outBuffer + 5*ctx->stride * ctx->height/4);
+	*outBufferLength = 0;
+	if (libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame)) {
+		*outBufferLength = ctx->out_size;
 	}
 	return GF_OK;
 }
