@@ -1012,7 +1012,7 @@ int main(int argc, char **argv)
 	GF_SceneDumper *dump;
 	char *tmp;
 
-	gf_sys_init();
+	gf_sys_init(0);
 
 	GF_SAFEALLOC(converter, SVG2BIFS_Converter);
 
@@ -1030,7 +1030,7 @@ int main(int argc, char **argv)
 	fprintf(stdout, "Dumping BIFS scenegraph\n");
 	tmp = strchr(argv[1], '.');
 	tmp[0] = 0;
-	dump = gf_sm_dumper_new(converter->bifs_sg, argv[1], ' ', GF_SM_DUMP_XMTA);
+	dump = gf_sm_dumper_new(converter->bifs_sg, argv[1], ' ', GF_SM_DUMP_BT);
 	tmp[0] = '.';
 
 	gf_sm_dump_graph(dump, 1, 0);

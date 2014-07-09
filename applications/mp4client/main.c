@@ -100,7 +100,7 @@ static char the_url[GF_MAX_PATH];
 static char pl_path[GF_MAX_PATH];
 static Bool no_mime_check = GF_TRUE;
 static Bool be_quiet = GF_FALSE;
-static u32 log_time_start = 0;
+static u64 log_time_start = 0;
 static Bool log_utc_time = GF_FALSE;
 static Bool loop_at_end = GF_FALSE;
 static u32 forced_width=0;
@@ -182,7 +182,7 @@ void PrintUsage()
 	        "\t        \"mutex\"      : mutex\n"
 	        "\t        \"all\"        : all tools logged - other tools can be specified afterwards.\n"
 	        "\n"
-	        "\t-log-clock or -lc      : logs time in ms since start time of GPAC before each log line.\n"
+	        "\t-log-clock or -lc      : logs time in micro sec since start time of GPAC before each log line.\n"
 	        "\t-log-utc or -lu        : logs UTC time in ms before each log line.\n"
 	        "\t-ifce IPIFCE           : Sets default Multicast interface\n"
 	        "\t-size WxH:      specifies visual size (default: scene size)\n"
@@ -936,7 +936,7 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 		vsprintf(szMsg, fmt, list);
 		UpdateRTInfo(szMsg + 6 /*"[RTI] "*/);
 	} else {
-		if (log_time_start) fprintf(logs, "[At %d]", gf_sys_clock() - log_time_start);
+		if (log_time_start) fprintf(logs, "[At "LLD"]", gf_sys_clock_high_res() - log_time_start);
 		if (log_utc_time) {
 			u64 utc_clock = gf_net_get_utc() ;
 			time_t secs = utc_clock/1000;
@@ -966,7 +966,7 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
 		} else if (log_time_start) {
-			log_time_start = gf_sys_clock();
+			log_time_start = gf_sys_clock_high_res();
 		}
 	}
 }
