@@ -1956,7 +1956,7 @@ void gf_odm_pause(GF_ObjectManager *odm)
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i)) ) {
 		if (media_sens && media_sens->sensor->isActive) {
 			media_sens->sensor->isActive = 0;
-			gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
+			gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
 		}
 	}
 #endif
@@ -2017,7 +2017,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i)) ) {
 		if (media_sens && !media_sens->sensor->isActive) {
 			media_sens->sensor->isActive = 1;
-			gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
+			gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
 		}
 	}
 #endif

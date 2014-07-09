@@ -106,7 +106,7 @@ static void animationstream_activate(AnimationStreamStack *stack, M_AnimationStr
 {
 	animationstream_check_url(stack, as);
 	as->isActive = 1;
-	gf_node_event_out_str((GF_Node*)as, "isActive");
+	gf_node_event_out((GF_Node*)as, 6/*"isActive"*/);
 
 	gf_mo_play(stack->stream, 0, -1, 0);
 	gf_mo_set_speed(stack->stream, as->speed);
@@ -116,7 +116,7 @@ static void animationstream_deactivate(AnimationStreamStack *stack, M_AnimationS
 {
 	if (as->isActive) {
 		as->isActive = 0;
-		gf_node_event_out_str((GF_Node*)as, "isActive");
+		gf_node_event_out((GF_Node*)as, 6/*"isActive"*/);
 	}
 	if (stack->stream) {
 		if (gf_mo_url_changed(stack->stream, &as->url))

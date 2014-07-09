@@ -128,7 +128,7 @@ void TraverseCollision(GF_Node *node, void *rs, Bool is_destroy)
 		}
 		if (tr_state->camera->collide_flags & CF_COLLISION) {
 			col->collideTime = gf_node_get_scene_time(node);
-			gf_node_event_out_str(node, "collideTime");
+			gf_node_event_out(node, 5/*"collideTime"*/);
 			/*if not closer restore*/
 			if (collide_flags && (last_dist<tr_state->camera->collide_dist)) {
 				tr_state->camera->collide_flags = collide_flags;

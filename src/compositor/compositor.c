@@ -2177,15 +2177,16 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	GF_SceneGraph *sg;
 #endif
 	GF_List *temp_queue;
-	u32 in_time, end_time, i, count;
+	u32 in_time, end_time, i, count, frame_duration;
 	Bool frame_drawn, has_timed_nodes=GF_FALSE, all_tx_done=GF_TRUE;
 #ifndef GPAC_DISABLE_LOG
 	s32 event_time, route_time, smil_timing_time=0, time_node_time, texture_time, traverse_time, flush_time, txtime;
 #endif
 
-	in_time = gf_sys_clock();
 	/*lock compositor for the whole cycle*/
 	gf_sc_lock(compositor, 1);
+
+	in_time = gf_sys_clock();
 
 	gf_sc_texture_cleanup_hw(compositor);
 
@@ -2269,6 +2270,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	//first update all natural textures to figure out timing
 	compositor->frame_delay = (u32) -1;
 	compositor->next_frame_delay = (u32) -1;
+	frame_duration = compositor->frame_duration;
 
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock();
@@ -2285,7 +2287,12 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
 		txh->update_texture_fcnt(txh);
 
-		if (!txh->stream_finished) all_tx_done=0;
+		if (!txh->stream_finished) {
+			u32 d = gf_mo_get_min_frame_dur(txh->stream);
+			if (d && (d < frame_duration)) frame_duration = d;
+
+			all_tx_done=0;
+		}
 	}
 
 	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures
@@ -2299,57 +2306,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock() - texture_time;
 #endif
-
-	//this is correct but doesn't bring much and we may actually waste time while sleeping that could be used for texture upload - we prefer sleeping at the end of the pass
-#if 0
-	//if next video frame is due in this render cycle, wait until it matures
-	if ((compositor->frame_delay > 0) && (compositor->frame_delay != (u32) -1)) {
-		u32 diff=0;
-		compositor->frame_delay = MIN(compositor->frame_delay, (s32) compositor->frame_duration);
-		while (!compositor->video_frame_pending) {
-			gf_sleep(0);
-			diff = gf_sys_clock() - in_time;
-			if (diff >= (u32) compositor->frame_delay)
-				break;
-		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Compositor] Waited %d ms for next frame and %d ms was required\n", diff, compositor->frame_delay));
-		if (compositor->next_frame_delay != (u32) -1) {
-			if (diff < compositor->next_frame_delay) compositor->next_frame_delay -= diff;
-			else compositor->next_frame_delay = 1;
-		}
-	}
-#endif
-
-
-
-#ifndef GPAC_DISABLE_SVG
-#if SVG_FIXME
-	{	/* Experimental (Not SVG compliant system events (i.e. battery, cpu ...) triggered to the root node)*/
-		GF_Node *root = gf_sg_get_root_node(compositor->scene);
-		GF_DOM_Event evt;
-		if (gf_dom_listener_count(root)) {
-			u32 i, count;
-			count = gf_dom_listener_count(root);
-			for (i=0; i<count; i++) {
-				SVG_SA_listenerElement *l = gf_dom_listener_get(root, i);
-				if (l->event.type == GF_EVENT_CPU) {
-					GF_SystemRTInfo sys_rti;
-					if (gf_sys_get_rti(500, &sys_rti, GF_RTI_ALL_PROCESSES_TIMES)) {
-						evt.type = GF_EVENT_CPU;
-						evt.cpu_percentage = sys_rti.total_cpu_usage;
-						//fprintf(stderr, "%d\n",sys_rti.total_cpu_usage);
-						gf_dom_event_fire(root, NULL, &evt);
-					}
-				} else if (l->event.type == GF_EVENT_BATTERY) { //&& l->observer.target == (SVG_SA_Element *)node) {
-					evt.type = GF_EVENT_BATTERY;
-					gf_sys_get_battery_state(&evt.onBattery, &evt.batteryState, &evt.batteryLevel, NULL, NULL);
-					gf_dom_event_fire(root, NULL, &evt);
-				}
-			}
-		}
-	}
-#endif
-#endif //GPAC_DISABLE_SVG
 
 
 #ifndef GPAC_DISABLE_SVG
@@ -2436,7 +2392,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif /*GPAC_DISABLE_VRML*/
 
 
-
 	/*setup root visual BEFORE updating the composite textures (since they may depend on root setup)*/
 	gf_sc_setup_root_visual(compositor, gf_sg_get_root_node(compositor->scene));
 
@@ -2477,14 +2432,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	}
 
 	if (compositor->is_hidden) {
-#if 0
-		gf_sc_lock(compositor, 0);
-		if (compositor->no_regulation) return;
-		gf_sleep(compositor->frame_duration);
-		return;
-#else
 		compositor->frame_draw_type = 0;
-#endif
 	}
 
 	frame_drawn = (compositor->frame_draw_type==GF_SC_DRAW_FRAME) ? 1 : 0;
@@ -2616,7 +2564,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	}
 	if (compositor->bench_mode && (frame_drawn || (has_timed_nodes&&all_tx_done) )) {
 		//in bench mode we always increase the clock of the fixed target simulation rate - this needs refinement if video is used ...
-		compositor->scene_sampled_clock += compositor->frame_duration;
+		compositor->scene_sampled_clock += frame_duration;
 	}
 	compositor->video_frame_pending=0;
 	gf_sc_lock(compositor, 0);
@@ -2638,7 +2586,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		if (compositor->next_frame_delay>end_time) compositor->next_frame_delay-=end_time;
 		else compositor->next_frame_delay=0;
 
-		compositor->next_frame_delay = MIN(compositor->next_frame_delay, 2*compositor->frame_duration);
+		compositor->next_frame_delay = MIN(compositor->next_frame_delay, 2*frame_duration);
 		if (compositor->next_frame_delay>2) {
 			u32 diff=0;
 			while (! compositor->msg_type && ! compositor->video_frame_pending) {
@@ -2654,15 +2602,15 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		return;
 	}
 
-	if (end_time > compositor->frame_duration) {
+	if (end_time > frame_duration) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor did not go to sleep\n"));
 		return;
 	}
 
 	/*compute sleep time till next frame*/
-	end_time %= compositor->frame_duration;
-	gf_sleep(compositor->frame_duration - end_time);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor slept for %d ms\n", compositor->frame_duration - end_time));
+	end_time %= frame_duration;
+	gf_sleep(frame_duration - end_time);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor slept for %d ms\n", frame_duration - end_time));
 }
 
 Bool gf_sc_visual_is_registered(GF_Compositor *compositor, GF_VisualManager *visual)
@@ -2942,8 +2890,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 				if (from_user) compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 			} else {
 				/*remove pending resize notif*/
-				if (!compositor->new_width)
-					compositor->msg_type = 0;
+				compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
 			}
 			if (lock_ok) gf_sc_lock(compositor, GF_FALSE);
 		}

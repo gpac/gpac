@@ -69,7 +69,7 @@ static Bool movietexture_get_loop(MovieTextureStack *stack, M_MovieTexture *mt)
 static void movietexture_activate(MovieTextureStack *stack, M_MovieTexture *mt, Double scene_time)
 {
 	mt->isActive = 1;
-	gf_node_event_out_str((GF_Node*)mt, "isActive");
+	gf_node_event_out((GF_Node*)mt, 8/*"isActive"*/);
 	if (!stack->txh.is_open) {
 		scene_time -= mt->startTime;
 		gf_sc_texture_play_from_to(&stack->txh, &mt->url, scene_time, -1, gf_mo_get_loop(stack->txh.stream, mt->loop), 0);
@@ -81,7 +81,7 @@ static void movietexture_activate(MovieTextureStack *stack, M_MovieTexture *mt, 
 static void movietexture_deactivate(MovieTextureStack *stack, M_MovieTexture *mt)
 {
 	mt->isActive = 0;
-	gf_node_event_out_str((GF_Node*)mt, "isActive");
+	gf_node_event_out((GF_Node*)mt, 8/*"isActive"*/);
 	stack->time_handle.needs_unregister = 1;
 
 	if (stack->txh.is_open) {
@@ -113,7 +113,7 @@ static void movietexture_update(GF_TextureHandler *txh)
 	if (!st->first_frame_fetched && (txh->needs_refresh) ) {
 		st->first_frame_fetched = 1;
 		txnode->duration_changed = gf_mo_get_duration(txh->stream);
-		gf_node_event_out_str(txh->owner, "duration_changed");
+		gf_node_event_out(txh->owner, 7/*"duration_changed"*/);
 		/*stop stream if needed*/
 		if (!txnode->isActive && txh->is_open) {
 			gf_mo_pause(txh->stream);

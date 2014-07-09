@@ -101,7 +101,7 @@ static void l3d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 		gf_node_unregister(l3d->background, n);
 		gf_node_register(btop, n);
 		l3d->background = btop;
-		gf_node_event_out_str(n, "background");
+		gf_node_event_out(n, 4/*"background"*/);
 	}
 	if (force_traverse) gf_node_traverse(l3d->viewpoint, tr_state);
 	btop = (GF_Node*)gf_list_get(tr_state->viewpoints, 0);
@@ -109,7 +109,7 @@ static void l3d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 		gf_node_unregister(l3d->viewpoint, n);
 		gf_node_register(btop, n);
 		l3d->viewpoint = btop;
-		gf_node_event_out_str(n, "viewpoint");
+		gf_node_event_out(n, 7/*"viewpoint"*/);
 	}
 	if (force_traverse) gf_node_traverse(l3d->navigationInfo, tr_state);
 	btop = (GF_Node*)gf_list_get(tr_state->navigations, 0);
@@ -117,7 +117,7 @@ static void l3d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 		gf_node_unregister(l3d->navigationInfo, n);
 		gf_node_register(btop, n);
 		l3d->navigationInfo = btop;
-		gf_node_event_out_str(n, "navigationInfo");
+		gf_node_event_out(n, 6/*"navigationInfo"*/);
 	}
 	if (force_traverse) gf_node_traverse(l3d->fog, tr_state);
 	btop = (GF_Node*)gf_list_get(tr_state->fogs, 0);
@@ -125,7 +125,7 @@ static void l3d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 		gf_node_unregister(l3d->fog, n);
 		gf_node_register(btop, n);
 		l3d->fog = btop;
-		gf_node_event_out_str(n, "fog");
+		gf_node_event_out(n, 5/*"fog"*/);
 	}
 	tr_state->traversing_mode = mode;
 }
