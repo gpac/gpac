@@ -42,8 +42,8 @@ GLint memory_format=GL_UNSIGNED_BYTE;
 GLint pixel_format=GL_LUMINANCE;
 GLint texture_type=GL_TEXTURE_RECTANGLE_EXT;
 u32 gl_nb_frames = 1;
-u32 gl_upload_time = 0;
-u32 gl_draw_time = 0;
+u64 gl_upload_time = 0;
+u64 gl_draw_time = 0;
 Bool pbo_mode = GF_TRUE;
 Bool first_tx_load = GF_FALSE;
 Bool use_vsync=0;
@@ -381,12 +381,12 @@ void sdl_draw_quad()
 void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 stride)
 {
 	u32 needs_stride = 0;
-	u32 now, end;
+	u64 now, end;
 
 	if (stride != w) {
 		if (bit_depth==10) {
 			if (stride != 2*w) {
-				needs_stride = stride;
+				needs_stride = stride / 2;
 			}
 		} else {
 			needs_stride = stride;
@@ -395,7 +395,7 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 
 	glEnable(texture_type);
 
-	now = gf_sys_clock();
+	now = gf_sys_clock_high_res();
 
 
 	if (first_tx_load) {
@@ -432,7 +432,7 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 #elif (COPY_TYPE==4)
 #else
 		linesize = width*Bpp;
-		p_stride = stride*Bpp;
+		p_stride = stride;
 		count = h;
 #if (COPY_TYPE==2)
 		c2 = linesize/4;
@@ -467,7 +467,7 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 #elif (COPY_TYPE==4)
 #else
 		linesize = width*Bpp/2;
-		p_stride = stride*Bpp/2;
+		p_stride = stride/2;
 		count/=2;
 #if (COPY_TYPE==2)
 		c2 /= 2;
@@ -570,7 +570,7 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	}
-	end = gf_sys_clock() - now;
+	end = gf_sys_clock_high_res() - now;
 
 	if (!first_tx_load) {
 		gl_nb_frames ++;
@@ -601,7 +601,7 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 
 	SDL_GL_SwapWindow(window);
 
-	gl_draw_time += gf_sys_clock() - now;
+	gl_draw_time += gf_sys_clock_high_res() - now;
 	return;
 }
 
@@ -610,19 +610,19 @@ void sdl_bench()
 {
 	Double rate;
 	u32 i, count;
-	u32 start = gf_sys_clock();
+	u64 start = gf_sys_clock_high_res();
 
 	count = 600;
 	for (i=0; i<count; i++) {
-		sdl_draw_frame(pY, pU, pV, width, height, 8, width);
+		sdl_draw_frame(pY, pU, pV, width, height, bpp, width);
 	}
 
-	start = gf_sys_clock() - start;
+	start = gf_sys_clock_high_res() - start;
 	rate = 3*size/2;
-	rate *= count;
+	rate *= count*1000;
 	rate /= start; //in ms
 	rate /= 1000; //==*1000 (in s) / 1000 * 1000 in MB /s
-	fprintf(stdout, "gltext pushed %d frames in %d ms - FPS %g - data rate %g MB/s\n", count, start, 1000.0*count/start, rate);
+	fprintf(stdout, "gltext pushed %d frames in %d ms - FPS %g - data rate %g MB/s\n", count, start/1000, 1000000.0*count/start, rate);
 }
 
 void PrintUsage()
@@ -639,14 +639,17 @@ void PrintUsage()
 	       );
 }
 
+
+
 int main(int argc, char **argv)
 {
 	Bool sdl_bench_yuv = GF_FALSE;
 	Bool no_display = GF_FALSE;
-	u32 start, now, check_prompt;
+	u64 start, now;
+	u32 check_prompt;
 	Bool sdl_is_init=GF_FALSE, run;
 	Bool paused = GF_FALSE;
-	u32 pause_time = 0;
+	u64 pause_time = 0;
 	GF_ISOFile *isom;
 	u32 i, count, track = 0;
 	u32 nb_frames_at_start = 0;
@@ -671,6 +674,7 @@ int main(int argc, char **argv)
 			continue;
 		}
 		if (!strcmp(arg, "-bench-yuv")) sdl_bench_yuv=1;
+		else if (!strcmp(arg, "-bench-yuv10")) sdl_bench_yuv=2;
 		else if (!strcmp(arg, "-sys-mem")) use_raw_memory = 0;
 		else if (!strcmp(arg, "-vsync")) use_vsync = 1;
 		else if (!strcmp(arg, "-use-pbo")) use_pbo = 1;
@@ -702,7 +706,7 @@ int main(int argc, char **argv)
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 
 	if (sdl_bench_yuv) {
-		sdl_init(3840, 2160, 8, 3840, use_pbo);
+		sdl_init(3840, 2160, (sdl_bench_yuv==2) ? 10 : 8, 3840, use_pbo);
 		sdl_bench();
 		sdl_close();
 		gf_sys_close();
@@ -737,13 +741,17 @@ int main(int argc, char **argv)
 	}
 
 	count = gf_isom_get_sample_count(isom, track);
-	start = gf_sys_clock();
+	start = gf_sys_clock_high_res();
 
 	esd = gf_isom_get_esd(isom, track, 1);
 	ohevc = libOpenHevcInit(nb_threads, mode);
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 		libOpenHevcCopyExtraData(ohevc, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength+8);
 	}
+
+	libOpenHevcSetActiveDecoders(ohevc, 1);
+	libOpenHevcSetViewLayers(ohevc, 1);
+
 	libOpenHevcStartDecoder(ohevc);
 	gf_odf_desc_del((GF_Descriptor *)esd);
 	gf_isom_set_sample_padding(isom, track, 8);
@@ -756,16 +764,6 @@ int main(int argc, char **argv)
 			GF_ISOSample *sample = gf_isom_get_sample(isom, track, i+1, &di);
 
 			if ( libOpenHevcDecode(ohevc, sample->data, sample->dataLength, sample->DTS+sample->CTS_Offset) ) {
-				OpenHevc_Frame_cpy HVCFrame;
-
-				libOpenHevcGetPictureInfo(ohevc, &HVCFrame.frameInfo);
-				if (!sdl_is_init && !no_display) {
-					sdl_init(HVCFrame.frameInfo.nWidth, HVCFrame.frameInfo.nHeight, HVCFrame.frameInfo.nBitDepth, HVCFrame.frameInfo.nYPitch+32, use_pbo);
-					sdl_is_init=1;
-					start = gf_sys_clock();
-					nb_frames_at_start = i+1;
-				}
-
 				if (no_display) {
 					OpenHevc_Frame HVCFrame_ptr;
 					libOpenHevcGetOutput(ohevc, 1, &HVCFrame_ptr);
@@ -773,21 +771,42 @@ int main(int argc, char **argv)
 					OpenHevc_Frame HVCFrame_ptr;
 					libOpenHevcGetOutput(ohevc, 1, &HVCFrame_ptr);
 
-					sdl_draw_frame((u8 *) HVCFrame_ptr.pvY, (u8 *) HVCFrame_ptr.pvU, (u8 *) HVCFrame_ptr.pvV, HVCFrame.frameInfo.nWidth, HVCFrame.frameInfo.nHeight, HVCFrame.frameInfo.nBitDepth, HVCFrame.frameInfo.nYPitch+32);
+
+					if (!sdl_is_init && !no_display) {
+						sdl_init(HVCFrame_ptr.frameInfo.nWidth, HVCFrame_ptr.frameInfo.nHeight, HVCFrame_ptr.frameInfo.nBitDepth, HVCFrame_ptr.frameInfo.nYPitch, use_pbo);
+						sdl_is_init=1;
+						start = gf_sys_clock_high_res();
+						nb_frames_at_start = i+1;
+					}
+
+					sdl_draw_frame((u8 *) HVCFrame_ptr.pvY, (u8 *) HVCFrame_ptr.pvU, (u8 *) HVCFrame_ptr.pvV, HVCFrame_ptr.frameInfo.nWidth, HVCFrame_ptr.frameInfo.nHeight, HVCFrame_ptr.frameInfo.nBitDepth, HVCFrame_ptr.frameInfo.nYPitch);
 				} else {
-					memset(&HVCFrame, 0, sizeof(OpenHevc_Frame) );
+					OpenHevc_Frame_cpy HVCFrame;
+					memset(&HVCFrame, 0, sizeof(OpenHevc_Frame_cpy) );
+
+					libOpenHevcGetPictureInfoCpy(ohevc, &HVCFrame.frameInfo);
+
+					if (!sdl_is_init && !no_display) {
+						sdl_init(HVCFrame.frameInfo.nWidth, HVCFrame.frameInfo.nHeight, HVCFrame.frameInfo.nBitDepth, HVCFrame.frameInfo.nYPitch, use_pbo);
+						sdl_is_init=1;
+						start = gf_sys_clock_high_res();
+						nb_frames_at_start = i+1;
+					}
+
 					HVCFrame.pvY = (void*) pY;
 					HVCFrame.pvU = (void*) pU;
 					HVCFrame.pvV = (void*) pV;
+
 					libOpenHevcGetOutputCpy(ohevc, 1, &HVCFrame);
+
 					sdl_draw_frame(pY, pU, pV, HVCFrame.frameInfo.nWidth, HVCFrame.frameInfo.nHeight, HVCFrame.frameInfo.nBitDepth, HVCFrame.frameInfo.nYPitch);
 				}
 			}
 
 			gf_isom_sample_del(&sample);
 
-			now = gf_sys_clock();
-			fprintf(stderr, "%d %% %d frames in %d ms - FPS %02.2g - push time %d ms - draw %d ms\r", 100*(i+1-nb_frames_at_start)/count, i+1-nb_frames_at_start, now-start, 1000.0 * (i+1-nb_frames_at_start) / (now-start), gl_upload_time / gl_nb_frames , (gl_draw_time - gl_upload_time) / gl_nb_frames );
+			now = gf_sys_clock_high_res();
+			fprintf(stderr, "%d %% %d frames in %d ms - FPS %03.2f - push time "LLD" ms - draw "LLD" ms\r", 100*(i+1-nb_frames_at_start)/count, i+1-nb_frames_at_start, (now-start)/1000, 1000000.0 * (i+1-nb_frames_at_start) / (now-start), gl_upload_time / gl_nb_frames/1000 , (gl_draw_time - gl_upload_time) / gl_nb_frames/1000 );
 		} else {
 			gf_sleep(10);
 			i--;
@@ -805,14 +824,14 @@ int main(int argc, char **argv)
 				case 'p':
 					if (paused) {
 						paused=0;
-						start += gf_sys_clock()-pause_time;
+						start += gf_sys_clock_high_res()-pause_time;
 					} else {
 						paused = 1;
-						pause_time=gf_sys_clock();
+						pause_time=gf_sys_clock_high_res();
 					}
 					break;
 				case 'r':
-					start = gf_sys_clock();
+					start = gf_sys_clock_high_res();
 					nb_frames_at_start = i+1;
 					gl_upload_time = gl_draw_time = 0;
 					gl_nb_frames=1;
@@ -823,8 +842,8 @@ int main(int argc, char **argv)
 			check_prompt=0;
 		}
 	}
-	now = gf_sys_clock();
-	fprintf(stderr, "Decoded %d frames in %d ms - FPS %g\n", i+1, now-start, 1000.0 * (i+1) / (now-start) );
+	now = gf_sys_clock_high_res();
+	fprintf(stderr, "\nDecoded %d frames in %d ms - FPS %g\n", i+1, (now-start)/1000, 1000000.0 * (i+1) / (now-start) );
 
 	libOpenHevcClose(ohevc);
 	gf_isom_close(isom);
