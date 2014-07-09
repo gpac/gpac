@@ -44,7 +44,7 @@ static void audioclip_activate(AudioClipStack *st, M_AudioClip *ac)
 		return;
 	}
 	ac->isActive = 1;
-	gf_node_event_out_str((GF_Node *)ac, "isActive");
+	gf_node_event_out((GF_Node *)ac, 7/*"isActive"*/);
 
 	gf_mo_set_speed(st->input.stream, st->input.speed);
 	/*traverse all graph to get parent audio group*/
@@ -55,7 +55,7 @@ static void audioclip_deactivate(AudioClipStack *st, M_AudioClip *ac)
 {
 	gf_sc_audio_stop(&st->input);
 	ac->isActive = 0;
-	gf_node_event_out_str((GF_Node *)ac, "isActive");
+	gf_node_event_out((GF_Node *)ac, 7/*"isActive"*/);
 
 	st->time_handle.needs_unregister = 1;
 }
@@ -90,7 +90,7 @@ static void audioclip_traverse(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	if (st->set_duration && st->input.stream) {
 		ac->duration_changed = gf_mo_get_duration(st->input.stream);
-		gf_node_event_out_str(node, "duration_changed");
+		gf_node_event_out(node, 6/*"duration_changed"*/);
 		st->set_duration = 0;
 	}
 
@@ -398,7 +398,7 @@ static void audiobuffer_traverse(GF_Node *node, void *rs, Bool is_destroy)
 static void audiobuffer_activate(AudioBufferStack *st, M_AudioBuffer *ab)
 {
 	ab->isActive = 1;
-	gf_node_event_out_str((GF_Node *)ab, "isActive");
+	gf_node_event_out((GF_Node *)ab, 17/*"isActive"*/);
 	/*rerender all graph to get parent audio group*/
 	gf_sc_invalidate(st->output.compositor, NULL);
 	st->done = 0;
@@ -408,7 +408,7 @@ static void audiobuffer_activate(AudioBufferStack *st, M_AudioBuffer *ab)
 static void audiobuffer_deactivate(AudioBufferStack *st, M_AudioBuffer *ab)
 {
 	ab->isActive = 0;
-	gf_node_event_out_str((GF_Node *)ab, "isActive");
+	gf_node_event_out((GF_Node *)ab, 17/*"isActive"*/);
 	st->time_handle.needs_unregister = 1;
 }
 

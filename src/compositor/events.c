@@ -2035,13 +2035,13 @@ void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n)
 	if (sr->keynav_node) {
 		kn = (M_KeyNavigator*)sr->keynav_node;
 		kn->focusSet = 0;
-		gf_node_event_out_str(sr->keynav_node, "focusSet");
+		gf_node_event_out(sr->keynav_node, 9/*"focusSet"*/);
 	}
 	sr->keynav_node = n;
 	kn = (M_KeyNavigator*)n;
 	if (n) {
 		kn->focusSet = 1;
-		gf_node_event_out_str(sr->keynav_node, "focusSet");
+		gf_node_event_out(sr->keynav_node, 9/*"focusSet"*/);
 	}
 
 	par = n ? kn->sensor : NULL;

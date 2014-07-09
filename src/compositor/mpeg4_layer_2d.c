@@ -54,7 +54,7 @@ static void l2d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 		gf_node_unregister(l2d->background, n);
 		gf_node_register(btop, n);
 		l2d->background = btop;
-		gf_node_event_out_str(n, "background");
+		gf_node_event_out(n, 4/*"background"*/);
 	}
 	if (force_traverse) gf_node_traverse(l2d->viewport, tr_state);
 	btop = (GF_Node*)gf_list_get(tr_state->viewpoints, 0);
@@ -62,7 +62,7 @@ static void l2d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 		gf_node_unregister(l2d->viewport, n);
 		gf_node_register(btop, n);
 		l2d->viewport = btop;
-		gf_node_event_out_str(n, "viewport");
+		gf_node_event_out(n, 5/*"viewport"*/);
 	}
 }
 

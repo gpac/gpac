@@ -511,14 +511,14 @@ static void BooleanFilter_setValue(GF_Node *n, GF_Route *route)
 	X_BooleanFilter *bf = (X_BooleanFilter *)n;
 	if (!bf->set_boolean) {
 		bf->inputFalse = 1;
-		gf_node_event_out_str(n, "inputFalse");
+		gf_node_event_out(n, 1/*"inputFalse"*/);
 	}
 	if (bf->set_boolean) {
 		bf->inputTrue = 1;
-		gf_node_event_out_str(n, "inputTrue");
+		gf_node_event_out(n, 3/*"inputTrue"*/);
 	}
 	bf->inputNegate = bf->set_boolean ? 0 : 1;
-	gf_node_event_out_str(n, "inputNegate");
+	gf_node_event_out(n, 2/*"inputNegate"*/);
 }
 
 void InitBooleanFilter(GF_Node *n)
@@ -599,7 +599,7 @@ static void BooleanToggle_setValue(GF_Node *n, GF_Route *route)
 	X_BooleanToggle *bt = (X_BooleanToggle *)n;
 	if (bt->set_boolean) {
 		bt->toggle = !bt->toggle;
-		gf_node_event_out_str(n, "toggle");
+		gf_node_event_out(n, 1/*"toggle"*/);
 	}
 }
 void InitBooleanToggle(GF_Node *n)
@@ -612,7 +612,7 @@ static void BooleanTrigger_setTime(GF_Node *n, GF_Route *route)
 {
 	X_BooleanTrigger *bt = (X_BooleanTrigger *)n;
 	bt->triggerTrue = 1;
-	gf_node_event_out_str(n, "triggerTrue");
+	gf_node_event_out(n, 1/*"triggerTrue"*/);
 }
 void InitBooleanTrigger(GF_Node *n)
 {
@@ -692,7 +692,7 @@ static void IntegerTrigger_setTrigger(GF_Node *n, GF_Route *route)
 	X_IntegerTrigger *it = (X_IntegerTrigger *)n;
 	if (it->set_boolean) {
 		it->triggerValue = it->integerKey;
-		gf_node_event_out_str(n, "triggerValue");
+		gf_node_event_out(n, 2/*"triggerValue"*/);
 	}
 }
 void InitIntegerTrigger(GF_Node *n)
@@ -705,7 +705,7 @@ static void TimeTrigger_setTrigger(GF_Node *n, GF_Route *route)
 {
 	X_TimeTrigger *tt = (X_TimeTrigger *)n;
 	tt->triggerTime = gf_node_get_scene_time(n);
-	gf_node_event_out_str(n, "triggerTime");
+	gf_node_event_out(n, 1/*"triggerTime"*/);
 }
 void InitTimeTrigger(GF_Node *n)
 {

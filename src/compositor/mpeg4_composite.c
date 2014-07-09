@@ -166,7 +166,7 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_unregister(c3d->background, n);
 			gf_node_register(btop, n);
 			c3d->background = btop;
-			gf_node_event_out_str(n, "background");
+			gf_node_event_out(n, 5/*"background"*/);
 			ret = 1;
 		}
 		if (force_check || gf_node_dirty_get(c3d->viewpoint)) {
@@ -178,7 +178,7 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_unregister(c3d->viewpoint, n);
 			gf_node_register(btop, n);
 			c3d->viewpoint = btop;
-			gf_node_event_out_str(n, "viewpoint");
+			gf_node_event_out(n, 8/*"viewpoint"*/);
 			ret = 1;
 		}
 
@@ -191,7 +191,7 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_unregister(c3d->fog, n);
 			gf_node_register(btop, n);
 			c3d->fog = btop;
-			gf_node_event_out_str(n, "fog");
+			gf_node_event_out(n, 6/*"fog"*/);
 			ret = 1;
 		}
 
@@ -204,7 +204,7 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_unregister(c3d->navigationInfo, n);
 			gf_node_register(btop, n);
 			c3d->navigationInfo = btop;
-			gf_node_event_out_str(n, "navigationInfo");
+			gf_node_event_out(n, 7/*"navigationInfo"*/);
 			ret = 1;
 		}
 		return ret;
@@ -222,7 +222,7 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_unregister(c2d->background, n);
 			gf_node_register(btop, n);
 			c2d->background = btop;
-			gf_node_event_out_str(n, "background");
+			gf_node_event_out(n, 5/*"background"*/);
 			ret = 1;
 		}
 
@@ -235,7 +235,7 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_unregister(c2d->viewport, n);
 			gf_node_register(btop, n);
 			c2d->viewport = btop;
-			gf_node_event_out_str(n, "viewport");
+			gf_node_event_out(n, 6/*"viewport"*/);
 			ret = 1;
 		}
 

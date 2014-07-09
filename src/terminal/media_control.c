@@ -506,7 +506,7 @@ void gf_odm_set_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)
 			/*deactivate current control*/
 			if (ctrl && odm->subscene->dyn_ck->mc) {
 				odm->subscene->dyn_ck->mc->control->enabled = 0;
-				gf_node_event_out_str((GF_Node *)odm->subscene->dyn_ck->mc->control, "enabled");
+				gf_node_event_out((GF_Node *)odm->subscene->dyn_ck->mc->control, 7/*"enabled"*/);
 			}
 			odm->subscene->dyn_ck->mc = ctrl;
 		}
@@ -518,7 +518,7 @@ void gf_odm_set_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)
 				/*deactivate current control*/
 				if (ctrl && ch->clock->mc) {
 					ch->clock->mc->control->enabled = 0;
-					gf_node_event_out_str((GF_Node *)ch->clock->mc->control, "enabled");
+					gf_node_event_out((GF_Node *)ch->clock->mc->control, 7/*"enabled"*/);
 				}
 				/*and attach this control to the clock*/
 				ch->clock->mc = ctrl;
@@ -564,7 +564,7 @@ Bool gf_odm_switch_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)
 		if (st2 == ctrl) continue;
 		if (st2->control->enabled) {
 			st2->control->enabled = 0;
-			gf_node_event_out_str((GF_Node *) st2->control, "enabled");
+			gf_node_event_out((GF_Node *) st2->control, 7/*"enabled"*/);
 		}
 		st2->enabled = 0;
 	}

@@ -141,6 +141,7 @@ static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_
 void compositor_2d_hybgl_clear_surface_ex(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen_clear)
 {
 	SFColor rgb;
+	Fixed alpha = INT2FIX( GF_COL_A(BackColor) )/255;
 	if (!visual->is_attached) return;
 
 	if (!BackColor && !visual->offscreen) {
@@ -155,17 +156,15 @@ void compositor_2d_hybgl_clear_surface_ex(GF_VisualManager *visual, GF_IRect *rc
 			ra_union_rect(&visual->hybgl_drawn, rc);
 		}
 	} else {
-		Fixed a;
 		rgb.red = INT2FIX( GF_COL_R(BackColor) ) / 255;
 		rgb.green = INT2FIX( GF_COL_G(BackColor) )/255;
 		rgb.blue = INT2FIX( GF_COL_B(BackColor) )/255;
-		a = INT2FIX( GF_COL_A(BackColor) )/255;
-		visual_3d_clear(visual, rgb , a);
+		visual_3d_clear(visual, rgb , alpha);
 	}
 }
 void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor)
 {
-	compositor_2d_hybgl_clear_surface_ex(visual, rc, BackColor, 1);
+	compositor_2d_hybgl_clear_surface_ex(visual, rc, BackColor, BackColor ? 1 : 0);
 }
 
 

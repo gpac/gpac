@@ -285,7 +285,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 		}
 	}
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_DEBUG, GF_LOG_INTERACT)) {
+	if (gf_log_tool_level_on(GF_LOG_INTERACT, GF_LOG_DEBUG)) {
 		if (r->IS_route) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[VRML Event] executing %s.%s IS %s.%s", gf_node_get_name(r->FromNode), r->FromField.name, gf_node_get_name(r->ToNode), r->ToField.name));
 		} else {
@@ -349,6 +349,12 @@ Bool gf_sg_route_activate(GF_Route *r)
 		break;
 	}
 
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_INTERACT, GF_LOG_DEBUG)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[VRML Route] field copy/casted\n"));
+	}
+#endif
+
 	//if this is a supported eventIn call watcher
 	if (r->ToField.on_event_in) {
 		r->ToField.on_event_in(r->ToNode, r);
@@ -379,6 +385,13 @@ Bool gf_sg_route_activate(GF_Route *r)
 		else
 			gf_node_event_out(r->ToNode, r->ToField.fieldIndex);
 	}
+
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_INTERACT, GF_LOG_DEBUG)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[VRML Route] done executing (res %d)\n", ret));
+	}
+#endif
+
 	return ret;
 }
 

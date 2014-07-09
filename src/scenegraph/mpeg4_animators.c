@@ -460,7 +460,7 @@ static void PA_SetFraction(GF_Node *node, GF_Route *route)
 	pa->value_changed.x += pa->offset.x;
 	pa->value_changed.y += pa->offset.y;
 	pa->value_changed.z += pa->offset.z;
-	gf_node_event_out_str(node, "value_changed");
+	gf_node_event_out(node, 12/*"value_changed"*/);
 }
 
 void PA_Modified(GF_Node *node, GF_FieldInfo *field)
@@ -623,7 +623,7 @@ static void PA2D_SetFraction(GF_Node *node, GF_Route *route)
 
 	pa->value_changed.x += pa->offset.x;
 	pa->value_changed.y += pa->offset.y;
-	gf_node_event_out_str(node, "value_changed");
+	gf_node_event_out(node, 12/*"value_changed"*/);
 }
 
 void PA2D_Modified(GF_Node *node, GF_FieldInfo *field)
@@ -780,7 +780,7 @@ void SA_SetFraction(GF_Node *node, GF_Route *route)
 	}
 
 	sa->value_changed += sa->offset;
-	gf_node_event_out_str(node, "value_changed");
+	gf_node_event_out(node, 10/*"value_changed"*/);
 }
 
 void SA_Modified(GF_Node *node, GF_FieldInfo *field)

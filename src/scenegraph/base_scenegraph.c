@@ -1356,6 +1356,35 @@ GF_Err gf_node_list_insert_child(GF_ChildNodeItem **list, GF_Node *n, u32 pos)
 }
 
 GF_EXPORT
+GF_Err gf_node_list_append_child(GF_ChildNodeItem **list, GF_ChildNodeItem **last_child, GF_Node *n)
+{
+	GF_ChildNodeItem *child, *cur;
+	u32 cur_pos = 0;
+
+	child = *list;
+
+	cur = (GF_ChildNodeItem*) gf_malloc(sizeof(GF_ChildNodeItem));
+	if (!cur) return GF_OUT_OF_MEM;
+	cur->node = n;
+	cur->next = NULL;
+
+	if (!child) {
+		*list = cur;
+		*last_child = cur;
+	} else {
+		if (! *last_child) {
+			while (child->next) {
+				child = child->next;
+			}
+			*last_child = child;
+		}
+		(*last_child)->next = cur;
+		*last_child = cur;
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Node *gf_node_list_get_child(GF_ChildNodeItem *list, s32 pos)
 {
 	s32 cur_pos = 0;

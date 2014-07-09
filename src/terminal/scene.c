@@ -908,7 +908,7 @@ void gf_scene_set_duration(GF_Scene *scene)
 	while ((media_sens = (MediaSensorStack*)gf_list_enum(scene->root_od->ms_stack, &i))) {
 		if (media_sens->sensor->isActive) {
 			media_sens->sensor->mediaDuration = dur;
-			gf_node_event_out_str((GF_Node *) media_sens->sensor, "mediaDuration");
+			gf_node_event_out((GF_Node *) media_sens->sensor, 3/*"mediaDuration"*/);
 		}
 	}
 #endif

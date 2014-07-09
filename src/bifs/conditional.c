@@ -77,7 +77,7 @@ static void Conditional_execute(M_Conditional *node)
 
 	/*set isActive - to clarify in the specs*/
 	node->isActive = 1;
-	gf_node_event_out_str((GF_Node *)node, "isActive");
+	gf_node_event_out((GF_Node *)node, 3/*"isActive"*/);
 	if (!node->buffer.bufferSize) return;
 
 	/*we may replace ourselves*/
