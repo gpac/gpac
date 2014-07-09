@@ -2770,11 +2770,12 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 
 			if (dash->max_width && dash->max_height) {
 				if ((rep->width>dash->max_width) || (rep->height>dash->max_height)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation size %dx%d exceeds max display size allowed %dx%d - ignoring\n", rep->width, rep->height, dash->max_width, dash->max_height));
 					rep->playback.disabled = 1;
 					continue;
 				}
 			}
-			if (rep->codecs && dash->max_bit_per_pixel) {
+			if (rep->codecs && (dash->max_bit_per_pixel > 8) ) {
 				char *vid_type = strstr(rep->codecs, "hvc");
 				if (!vid_type) vid_type = strstr(rep->codecs, "hev");
 				if (!vid_type) vid_type = strstr(rep->codecs, "avc");
@@ -2787,6 +2788,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 					//Main 10 !!
 					if (!strncmp(pidc, "2.", 2)) {
 						rep->playback.disabled = 1;
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation bit depth higher than max display bit depth - ignoring\n"));
 						continue;
 					}
 				}
@@ -2800,6 +2802,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 					//Main 10
 					if (prof==0x6E) {
 						rep->playback.disabled = 1;
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation bit depth higher than max display bit depth - ignoring\n"));
 						continue;
 					}
 				}
