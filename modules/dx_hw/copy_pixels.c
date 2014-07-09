@@ -560,7 +560,7 @@ void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const 
 	} else if (get_yuv_base(src_s->pixel_format)==GF_PIXEL_YV12_10) {
 		if (format_is_yuv(dst_s->pixel_format)) {
 			/*generic YV planar to YUV (planar or not) */
-			gf_color_write_yv12_10_to_yuv(dst_s, src_s->video_buffer, src_s->u_ptr, src_s->v_ptr, src_s->pitch_y, src_s->width, src_s->height, src_wnd);
+			gf_color_write_yv12_10_to_yuv(dst_s, src_s->video_buffer, src_s->u_ptr, src_s->v_ptr, src_s->pitch_y, src_s->width, src_s->height, src_wnd, 1);
 			return;
 		}
 	} else if (format_is_yuv(src_s->pixel_format)) {

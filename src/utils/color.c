@@ -1491,7 +1491,7 @@ void gf_cmx_apply_fixed(GF_ColorMatrix *_this, Fixed *a, Fixed *r, Fixed *g, Fix
 
 #ifdef GPAC_HAS_SSE2
 
-static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd)
+static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
 	if (!pU) {
@@ -1511,6 +1511,13 @@ static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  uns
 		w = src_width;
 		h = src_height;
 	}
+
+	if (swap_uv) {
+		u8 *t = pV;
+		pV = pU;
+		pU = t;
+	}
+
 
 	if (vs_dst->pixel_format == GF_PIXEL_YV12) {
 		__m128i val1, val2, val_dst, *src1, *src2, *dst;
@@ -1566,7 +1573,7 @@ static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  uns
 
 
 GF_EXPORT
-GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd)
+GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
 
@@ -1593,7 +1600,7 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 	        && (GFINTCAST (pU + src_stride/2)%8 == 0)
 	        && (GFINTCAST (pV + src_stride/2)%8 == 0)
 	   ) {
-		return gf_color_write_yv12_10_to_yuv_intrin(vs_dst, pY, pU, pV, src_stride, src_width, src_height, _src_wnd);
+		return gf_color_write_yv12_10_to_yuv_intrin(vs_dst, pY, pU, pV, src_stride, src_width, src_height, _src_wnd, swap_uv);
 	}
 #endif
 
@@ -1608,6 +1615,12 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 		therefore force an even Y offset for U and V planes.*/
 		pU = pU + (src_stride * (_src_wnd->y / 2) + _src_wnd->x) / 2;
 		pV = pV + (src_stride * (_src_wnd->y / 2) + _src_wnd->x) / 2;
+	}
+	
+	if (swap_uv) {
+		u8 *t = pV;
+		pV = pU;
+		pU = t;
 	}
 
 	if (vs_dst->pixel_format == GF_PIXEL_YV12) {
