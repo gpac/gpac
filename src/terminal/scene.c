@@ -1840,7 +1840,7 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 	//we force the timeline of the addon to be locked with the main scene
 	mo = gf_scene_get_media_object(scene, &url, GF_MEDIA_OBJECT_SCENE, GF_TRUE);
 
-	if (!mo) return;
+	if (!mo || !mo->odm) return;
 
 	addon->root_od = mo->odm;
 	mo->odm->addon = addon;
@@ -1933,6 +1933,7 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 			load_associated_media(scene, addon);
 		}
 	}
+	if (!scene->active_addon->root_od) return;
 
 	gf_mx_p(scene->active_addon->root_od->mx);
 	prev_time = (Double) scene->active_addon->media_timestamp;
