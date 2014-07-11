@@ -104,6 +104,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 {
 	Bool clear_all = GF_TRUE;
 	u32 color;
+	Bool is_offscreen = GF_FALSE;
 	Background2DStack *stack;
 	if (!ctx || !ctx->drawable || !ctx->drawable->node) return;
 	stack = (Background2DStack *) gf_node_get_private(ctx->drawable->node);
@@ -132,6 +133,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 		//in opengl auto mode we still have to clear the canvas
 		if (!tr_state->immediate_draw && !tr_state->visual->offscreen && tr_state->visual->compositor->hybrid_opengl) {
 			clear_all = GF_FALSE;
+			is_offscreen = GF_TRUE;
 			color &= 0x00FFFFFF;
 		} else
 #endif
@@ -143,7 +145,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 	if (clear_all && !tr_state->visual->offscreen && tr_state->visual->compositor->hybrid_opengl) {
 		if (ctx->flags & CTX_BACKROUND_NOT_LAYER) {
 			color &= 0x00FFFFFF;
-			compositor_2d_hybgl_clear_surface_ex(tr_state->visual, NULL, color, GF_FALSE);
+			compositor_2d_hybgl_clear_surface(tr_state->visual, NULL, color, GF_FALSE);
 			clear_all = GF_FALSE;
 		}
 	}
@@ -153,7 +155,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 	   ) {
 		/*directly clear with specified color*/
 		if (clear_all)
-			tr_state->visual->ClearSurface(tr_state->visual, &ctx->bi->clip, color);
+			tr_state->visual->ClearSurface(tr_state->visual, &ctx->bi->clip, color, is_offscreen);
 	} else {
 		u32 i;
 		GF_IRect clip;
@@ -165,7 +167,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i].rect);
 			if (clip.width && clip.height) {
-				tr_state->visual->ClearSurface(tr_state->visual, &clip, color);
+				tr_state->visual->ClearSurface(tr_state->visual, &clip, color, is_offscreen);
 			}
 		}
 	}

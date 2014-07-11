@@ -968,6 +968,89 @@ void compositor_init_untransform(GF_Compositor *compositor, GF_Node *node)
 	}
 }
 
+
+
+/*StyleGroup: overrides appearance of all children*/
+typedef struct
+{
+	BASE_NODE
+	CHILDREN
+
+	GF_Node *appearance;
+} StyleGroup;
+
+typedef struct
+{
+	GROUPING_MPEG4_STACK_2D
+	StyleGroup sg;
+} StyleGroupStack;
+
+static Bool StyleGroup_GetNode(GF_Node *node, StyleGroup *sg)
+{
+	GF_FieldInfo field;
+	memset(sg, 0, sizeof(StyleGroup));
+	sg->sgprivate = node->sgprivate;
+
+	if (gf_node_get_field(node, 0, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_MFNODE) return 0;
+	sg->children = *(GF_ChildNodeItem **) field.far_ptr;
+
+	if (gf_node_get_field(node, 1, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_SFNODE) return 0;
+	sg->appearance = *(GF_Node **)field.far_ptr;
+
+	return 1;
+}
+
+
+static void TraverseStyleGroup(GF_Node *node, void *rs, Bool is_destroy)
+{
+	Bool set = 0;
+	StyleGroupStack *stack = (StyleGroupStack *)gf_node_get_private(node);
+	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
+
+	if (is_destroy) {
+		gf_free(stack);
+		return;
+	}
+
+	if (tr_state->traversing_mode==TRAVERSE_SORT) {
+		if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
+
+			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
+			/*flag is not set for PROTO*/
+			gf_node_dirty_set(node, GF_SG_CHILD_DIRTY, 0);
+		}
+	}
+	StyleGroup_GetNode(node, &stack->sg);
+
+	if (!tr_state->override_appearance) {
+		set = 1;
+		tr_state->override_appearance = stack->sg.appearance;
+	}
+	group_2d_traverse((GF_Node *)&stack->sg, (GroupingNode2D*)stack, tr_state);
+
+	if (set) {
+		tr_state->override_appearance = NULL;
+	}
+}
+
+void compositor_init_style_group(GF_Compositor *compositor, GF_Node *node)
+{
+	StyleGroup sg;
+	if (StyleGroup_GetNode(node, &sg)) {
+		StyleGroupStack *stack;
+		GF_SAFEALLOC(stack, StyleGroupStack);
+		gf_node_set_private(node, stack);
+		gf_node_set_callback_function(node, TraverseStyleGroup);
+		stack->sg = sg;
+		gf_node_proto_set_grouping(node);
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Unable to initialize style group\n"));
+	}
+}
+
+
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
 void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 {
@@ -1022,6 +1105,10 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 		}
 		if (!strcmp(url, "urn:inet:gpac:builtin:FlashShape")) {
 			compositor_init_hc_flashshape(compositor, node);
+			return;
+		}
+		if (!strcmp(url, "urn:inet:gpac:builtin:StyleGroup")) {
+			compositor_init_style_group(compositor, node);
 			return;
 		}
 

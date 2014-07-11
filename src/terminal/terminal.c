@@ -67,13 +67,36 @@ static Bool check_user(GF_User *user)
 	return 1;
 }
 
+void gf_term_message_ex(GF_Terminal *term, const char *service, const char *message, GF_Err error, Bool no_filtering)
+{
+	GF_Event evt;
+	if (!term || !term->user) return;
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_MESSAGE;
+	evt.message.service = service;
+	evt.message.message = message;
+	evt.message.error = error;
+
+	if (no_filtering) {
+		if (term->user->EventProc) 
+			term->user->EventProc(term->user->opaque, &evt);
+	} else {
+		gf_term_send_event(term, &evt);
+	}
+}
+
+void gf_term_message(GF_Terminal *term, const char *service, const char *message, GF_Err error)
+{
+	gf_term_message_ex(term, service, message, error, 0);
+}
+
 static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam *param)
 {
 	Bool ret;
 	GF_Terminal *term = (GF_Terminal *) opaque;
 
 	if (type==GF_JSAPI_OP_MESSAGE) {
-		gf_term_message(term, term->root_scene->root_od->net_service->url, param->info.msg, param->info.e);
+		gf_term_message_ex(term, term->root_scene->root_od->net_service->url, param->info.msg, param->info.e, 1);
 		return 1;
 	}
 	if (type==GF_JSAPI_OP_GET_TERM) {
@@ -801,17 +824,6 @@ GF_Err gf_term_del(GF_Terminal * term)
 }
 
 
-void gf_term_message(GF_Terminal *term, const char *service, const char *message, GF_Err error)
-{
-	GF_Event evt;
-	if (!term || !term->user) return;
-	memset(&evt, 0, sizeof(GF_Event));
-	evt.type = GF_EVENT_MESSAGE;
-	evt.message.service = service;
-	evt.message.message = message;
-	evt.message.error = error;
-	gf_term_send_event(term, &evt);
-}
 
 GF_EXPORT
 GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)

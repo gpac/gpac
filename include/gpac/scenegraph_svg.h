@@ -419,6 +419,8 @@ typedef enum
 	/*HTML Media Source events*/
 	GF_DOM_EVENT_MEDIASOURCE = 1<<11,
 
+	/*Internal GPAC events*/
+	GF_DOM_EVENT_GPAC = 1<<30,
 	/*fake events - these events are NEVER fired*/
 	GF_DOM_EVENT_FAKE = 1<<31,
 } GF_DOMEventCategory;

@@ -94,7 +94,7 @@ Bool visual_2d_node_cull(GF_TraverseState *tr_state, GF_Rect *bounds);
 
 void visual_2d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children);
 
-void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor);
+void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen);
 
 /*gets a drawable context on this visual*/
 DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual);

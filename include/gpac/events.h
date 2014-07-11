@@ -274,7 +274,7 @@ typedef struct {
 
 
 typedef struct {
-	/* GF_EVENT_OPENFILE*/
+	/* GF_EVENT_DROPFILE*/
 	u8 type;
 	u32 nb_files;
 	char **files;

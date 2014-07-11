@@ -585,7 +585,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 				}
 			}
 			owner->parent_graph->NodeCallback(owner->parent_graph->userpriv, GF_SG_CALLBACK_INIT, (GF_Node *) proto_node, NULL);
-			proto_node->flags |= GF_SG_PROTO_LOADED;
+			proto_node->flags |= GF_SG_PROTO_LOADED | GF_SG_PROTO_HARDCODED;
 			return;
 		}
 		/*not loaded yet*/

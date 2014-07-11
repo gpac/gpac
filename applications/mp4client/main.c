@@ -753,7 +753,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		ResetCaption();
 		break;
 
-	case GF_EVENT_OPENFILE:
+	case GF_EVENT_DROPFILE:
 	{
 		u32 i, pos;
 		/*todo - force playlist mode*/

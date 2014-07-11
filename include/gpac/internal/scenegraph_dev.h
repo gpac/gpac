@@ -508,6 +508,7 @@ enum
 {
 	GF_SG_PROTO_LOADED	=	1,
 	GF_SG_PROTO_IS_GROUPING =	2,
+	GF_SG_PROTO_HARDCODED =	4,
 };
 
 typedef struct _proto_instance

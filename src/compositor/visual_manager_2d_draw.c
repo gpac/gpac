@@ -52,7 +52,7 @@ void visual_2d_release_raster(GF_VisualManager *visual)
 }
 
 
-void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor)
+void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen)
 {
 #ifdef SKIP_DRAW
 	return;

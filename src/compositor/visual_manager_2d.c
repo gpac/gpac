@@ -327,12 +327,12 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 			tr_state->traversing_mode = TRAVERSE_SORT;
 			ctx->flags &= ~CTX_BACKROUND_NOT_LAYER;
 		} else {
-			visual->ClearSurface(visual, NULL, 0);
+			visual->ClearSurface(visual, NULL, 0, 0);
 		}
 	} else
 #endif
 	{
-		visual->ClearSurface(visual, NULL, 0);
+		visual->ClearSurface(visual, NULL, 0, 0);
 	}
 	return GF_OK;
 }
@@ -416,6 +416,7 @@ static u32 gf_irect_relation(GF_IRect *rc1, GF_IRect *rc2)
 void ra_refresh(GF_RectArray *ra)
 {
 	u32 i, j, k;
+restart:
 	for (i=0; i<ra->count; i++) {
 		for (j=i+1; j<ra->count; j++) {
 			switch (gf_irect_relation(&ra->list[j].rect, &ra->list[i].rect)) {
@@ -437,7 +438,7 @@ void ra_refresh(GF_RectArray *ra)
 				}
 				ra->count--;
 				if (ra->count>=2)
-					ra_refresh(ra);
+					goto restart;
 				return;
 			default:
 				break;
@@ -684,7 +685,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		ra_refresh(&visual->to_redraw);
 
 		if (visual->compositor->debug_defer) {
-			visual->ClearSurface(visual, &visual->top_clipper, 0);
+			visual->ClearSurface(visual, &visual->top_clipper, 0, 0);
 		}
 	}
 
@@ -735,11 +736,11 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			if (visual->to_redraw.list[k].opaque_node_index > 0) continue;
 #endif
 			rc = visual->to_redraw.list[k].rect;
-			visual->ClearSurface(visual, &rc, 0);
+			visual->ClearSurface(visual, &rc, 0, 0);
 		}
 #ifndef GPAC_DISABLE_3D
 		if (!count && hyb_force_redraw) {
-			compositor_2d_hybgl_clear_surface_ex(tr_state->visual, NULL, 0, GF_FALSE);
+			compositor_2d_hybgl_clear_surface(tr_state->visual, NULL, 0, GF_FALSE);
 		}
 #endif
 	}
