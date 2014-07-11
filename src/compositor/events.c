@@ -117,7 +117,7 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 		compositor->sel_buffer_len = compositor->sel_buffer_alloc = 0;
 		compositor->edited_text = NULL;
 
-		if (signal) {
+		if (compositor->focus_node && signal) {
 			memset(&info, 0, sizeof(GF_FieldInfo));
 			info.fieldIndex = (u32) -1;
 			if (compositor->focus_text_type>=3) {
@@ -249,7 +249,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 	} else
 #endif /*GPAC_DISABLE_VRML*/
 
-	{
+	if (compositor->focus_node) {
 #ifndef GPAC_DISABLE_SVG
 		GF_ChildNodeItem *child = ((GF_ParentNode *) compositor->focus_node)->children;
 
@@ -374,7 +374,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 		flush_text_node_edit(compositor, 1);
 	}
 
-	if (*res) {
+	if (res && *res) {
 		const char *src = *res;
 		compositor->sel_buffer_alloc = 2 + (u32) strlen(src);
 		compositor->sel_buffer = gf_realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);

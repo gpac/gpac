@@ -187,6 +187,7 @@ struct __tag_compositor
 	GF_List *time_nodes;
 	/*all textures (texture handlers)*/
 	GF_List *textures;
+	Bool texture_inserted;
 
 	/*all textures to be destroyed (needed for openGL context ...)*/
 	GF_List *textures_gc;
@@ -809,6 +810,9 @@ struct _traversing_state
 	/*parent group for composition: can be Form, Layout or Layer2D*/
 	struct _parent_node_2d *parent;
 
+	/*override appearance of all nodes with this one*/
+	GF_Node *override_appearance;
+
 	/*group/object bounds in local coordinate system*/
 	GF_Rect bounds;
 
@@ -1161,7 +1165,7 @@ GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_cl
 #ifndef GPAC_DISABLE_3D
 void compositor_2d_reset_gl_auto(GF_Compositor *compositor);
 void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area);
-void compositor_2d_hybgl_clear_surface_ex(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen_clear);
+void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen_clear);
 #endif
 
 Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *txh, GF_IRect *clip, GF_Rect *unclip, GF_Window *src, GF_Window *dst, Bool *disable_blit, Bool *has_scale);

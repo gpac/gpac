@@ -579,7 +579,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		u32 i;
 
 		HDROP hDrop = (HDROP) wParam;
-		evt.type = GF_EVENT_OPENFILE;
+		evt.type = GF_EVENT_DROPFILE;
 		evt.open_file.nb_files = DragQueryFile(hDrop, 0xFFFFFFFF, NULL, 0);
 		evt.open_file.files = gf_malloc(sizeof(char *)*evt.open_file.nb_files);
 		for (i=0; i<evt.open_file.nb_files; i++) {

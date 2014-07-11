@@ -45,6 +45,7 @@ void vrml_drawable_pick(Drawable *drawable, GF_TraverseState *tr_state)
 	StrikeInfo2D *si;
 	Fixed x, y;
 	u32 i, count;
+	GF_Node *appear = tr_state->override_appearance ? tr_state->override_appearance : tr_state->appear;
 	GF_Compositor *compositor = tr_state->visual->compositor;
 
 #ifndef GPAC_DISABLE_3D
@@ -73,7 +74,7 @@ void vrml_drawable_pick(Drawable *drawable, GF_TraverseState *tr_state)
 	}
 
 	if (asp.pen_props.width || asp.line_texture ) {
-		si = drawable_get_strikeinfo(tr_state->visual->compositor, drawable, &asp, tr_state->appear, NULL, 0, NULL);
+		si = drawable_get_strikeinfo(tr_state->visual->compositor, drawable, &asp, appear, NULL, 0, NULL);
 		if (si && si->outline && gf_path_point_over(si->outline, x, y)) {
 			goto picked;
 		}
@@ -97,8 +98,8 @@ picked:
 	compositor->hit_texcoords.y = FIX_ONE - gf_divfix(drawable->path->bbox.y - y, drawable->path->bbox.height);
 
 #ifndef GPAC_DISABLE_VRML
-	if (compositor_is_composite_texture(tr_state->appear)) {
-		compositor->hit_appear = tr_state->appear;
+	if (compositor_is_composite_texture(appear)) {
+		compositor->hit_appear = appear;
 	} else
 #endif
 	{
@@ -506,6 +507,7 @@ u32 drawable_get_aspect_2d_mpeg4(GF_Node *node, DrawAspect2D *asp, GF_TraverseSt
 	M_Material2D *m = NULL;
 	M_LineProperties *LP;
 	M_XLineProperties *XLP;
+	GF_Node *appear = tr_state->override_appearance ? tr_state->override_appearance : tr_state->appear;
 	u32 ret = 0;
 
 	asp->pen_props.cap = GF_LINE_CAP_FLAT;
@@ -515,14 +517,14 @@ u32 drawable_get_aspect_2d_mpeg4(GF_Node *node, DrawAspect2D *asp, GF_TraverseSt
 	asp->line_color = 0xFFCCCCCC;
 	asp->pen_props.width = 0;
 
-	if (tr_state->appear == NULL) goto check_default;
+	if (appear == NULL) goto check_default;
 
-	if ( ((M_Appearance *) tr_state->appear)->texture ) {
-		asp->fill_texture = gf_sc_texture_get_handler( ((M_Appearance *) tr_state->appear)->texture );
+	if ( ((M_Appearance *) appear)->texture ) {
+		asp->fill_texture = gf_sc_texture_get_handler( ((M_Appearance *) appear)->texture );
 	}
 
 
-	m = (M_Material2D *) ((M_Appearance *)tr_state->appear)->material;
+	m = (M_Material2D *) ((M_Appearance *)appear)->material;
 	if ( m == NULL) {
 		asp->fill_color &= 0x00FFFFFF;
 		goto check_default;
@@ -649,6 +651,7 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 {
 	DrawableContext *ctx;
 	Bool skipFill;
+	GF_Node *appear;
 #ifndef GPAC_DISABLE_3D
 	Bool texture_ready=0;
 #endif
@@ -666,14 +669,16 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 
 	ctx->drawable = drawable;
 
+	appear = tr_state->override_appearance ? tr_state->override_appearance : tr_state->appear;
+
 	/*usually set by colorTransform or changes in OrderedGroup*/
 	if (tr_state->invalidate_all)
 		ctx->flags |= CTX_APP_DIRTY;
 
 	ctx->aspect.fill_texture = NULL;
-	if (tr_state->appear) {
-		ctx->appear = tr_state->appear;
-		if (gf_node_dirty_get(tr_state->appear))
+	if (appear) {
+		ctx->appear = appear;
+		if (gf_node_dirty_get(appear))
 			ctx->flags |= CTX_APP_DIRTY;
 	}
 	/*todo cliper*/
@@ -867,6 +872,7 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 #endif
 	Fixed pw;
 	GF_Rect unclip, store_orig_bounds;
+	GF_Node *appear = tr_state->override_appearance ? tr_state->override_appearance : tr_state->appear;
 
 
 	drawable_check_bounds(ctx, tr_state->visual);
@@ -898,7 +904,7 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 #endif
 
 		/*get strike info & outline for exact bounds compute. If failure use default offset*/
-		si = drawable_get_strikeinfo(tr_state->visual->compositor, ctx->drawable, &ctx->aspect, tr_state->appear, ctx->drawable->path, ctx->flags, NULL);
+		si = drawable_get_strikeinfo(tr_state->visual->compositor, ctx->drawable, &ctx->aspect, appear, ctx->drawable->path, ctx->flags, NULL);
 		if (si && si->outline) {
 			gf_path_get_bounds(si->outline, &ctx->bi->unclip);
 			gf_mx2d_apply_rect(&tr_state->transform, &ctx->bi->unclip);
@@ -1441,6 +1447,11 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 {
 	DrawableContext *ctx;
 	assert(tr_state->visual);
+
+	/*setup SVG based on override appearance node */
+	if (tr_state->override_appearance) {
+		return drawable_init_context_mpeg4(drawable, tr_state);
+	}
 
 	/*switched-off geometry nodes are not drawn*/
 	if (tr_state->switched_off) return NULL;

@@ -224,7 +224,7 @@ typedef enum {
 	GF_EVENT_MIGRATE, /*indicates a session migration request*/
 	GF_EVENT_DISCONNECT, /*indicates the current url should be disconnected*/
 	GF_EVENT_RESOLUTION, /*indicates the screen resolution has changed*/
-	GF_EVENT_OPENFILE,
+	GF_EVENT_DROPFILE,
 	/* Events for Keyboad */
 	GF_EVENT_TEXT_EDITING_START,
 	GF_EVENT_TEXT_EDITING_END,

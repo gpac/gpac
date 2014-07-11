@@ -200,6 +200,7 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 
 			/*set major alignment (X) */
 			cg = (ChildGroup *)gf_list_get(st->groups, first);
+			if (!cg) continue;
 			switch (major) {
 			case L_END:
 				cg->final.x = st->clip.x + st->clip.width - li->width;

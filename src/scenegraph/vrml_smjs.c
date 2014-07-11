@@ -1227,9 +1227,16 @@ void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner
 		}
 		/*field has changed, set routes...*/
 		if (parent->sgprivate->tag == TAG_ProtoNode) {
+			GF_ProtoInstance *inst = (GF_ProtoInstance *)parent;
 			gf_sg_proto_propagate_event(parent, field->fieldIndex, (GF_Node*)JS_GetScript(c));
 			/* Node exposedField can also be routed to another field */
 			gf_node_event_out_proto(parent, field->fieldIndex);
+
+			//hardcoded protos be implemented in ways not inspecting the node_dirty propagation scheme (eg defining an SFNode in their interface, not linked with the graph).
+			//in this case handle the node as a regular one
+			if (inst->flags & GF_SG_PROTO_HARDCODED) {
+				gf_node_changed_internal(parent, field, 0);
+			}
 		} else {
 			gf_node_event_out(parent, field->fieldIndex);
 			gf_node_changed_internal(parent, field, 0);

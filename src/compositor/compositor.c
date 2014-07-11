@@ -2402,6 +2402,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	txtime = gf_sys_clock();
 #endif
 	/*update all composite textures*/
+	compositor->texture_inserted = GF_FALSE;
 	count = gf_list_count(compositor->textures);
 	for (i=0; i<count; i++) {
 		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
@@ -2411,6 +2412,11 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		/*signal graphics reset before updating*/
 		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
 		txh->update_texture_fcnt(txh);
+		if (compositor->texture_inserted) {
+			compositor->texture_inserted = GF_FALSE;
+			count = gf_list_count(compositor->textures);
+			i = gf_list_find(compositor->textures, txh);
+		}
 	}
 
 	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures update

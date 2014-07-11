@@ -138,7 +138,7 @@ static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_
 
 
 #ifndef GPAC_DISABLE_3D
-void compositor_2d_hybgl_clear_surface_ex(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen_clear)
+void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen_clear)
 {
 	SFColor rgb;
 	Fixed alpha = INT2FIX( GF_COL_A(BackColor) )/255;
@@ -161,10 +161,6 @@ void compositor_2d_hybgl_clear_surface_ex(GF_VisualManager *visual, GF_IRect *rc
 		rgb.blue = INT2FIX( GF_COL_B(BackColor) )/255;
 		visual_3d_clear(visual, rgb , alpha);
 	}
-}
-void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor)
-{
-	compositor_2d_hybgl_clear_surface_ex(visual, rc, BackColor, BackColor ? 1 : 0);
 }
 
 
@@ -875,7 +871,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 		o_rc.width = dst_wnd.w;
 		o_rc.height = dst_wnd.h;
-		visual->ClearSurface(visual, &o_rc, visual->compositor->video_out->overlay_color_key);
+		visual->ClearSurface(visual, &o_rc, visual->compositor->video_out->overlay_color_key, 0);
 		visual->has_overlays = GF_TRUE;
 		/*mark drawable as overlay*/
 		ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;

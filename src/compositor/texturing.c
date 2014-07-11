@@ -40,8 +40,10 @@ void gf_sc_texture_setup(GF_TextureHandler *txh, GF_Compositor *compositor, GF_N
 	txh->owner = owner;
 	txh->compositor = compositor;
 	/*insert texture in reverse order, so that textures in sub documents/scenes are updated before parent ones*/
-	if (gf_list_find(compositor->textures, txh)<0)
+	if (gf_list_find(compositor->textures, txh)<0) {
 		gf_list_insert(compositor->textures, txh, 0);
+		compositor->texture_inserted = GF_TRUE;
+	}
 	if (!txh->update_texture_fcnt) txh->update_texture_fcnt = update_texture_void;
 }
 
