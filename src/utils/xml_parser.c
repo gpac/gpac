@@ -1,4 +1,4 @@
-﻿/*
+/*
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
