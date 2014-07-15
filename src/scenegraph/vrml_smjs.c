@@ -1937,7 +1937,12 @@ if (!ptr) {
 }
 
 if (SMJS_ID_IS_INT(id)) {
+	if (! JSVAL_IS_NUMBER(*vp)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Value is not a number while assigning SFVec2f\n"));
+		return JS_FALSE;
+	}
 	JS_ValueToNumber(c, *vp, &d);
+
 	switch (SMJS_ID_TO_INT(id)) {
 	case 0:
 		v = FLT2FIX( d);
@@ -2131,6 +2136,11 @@ if (!ptr) {
 	if (! SMJS_ID_IS_STRING(id)) return JS_FALSE;
 	return JS_TRUE;
 }
+
+	if (! JSVAL_IS_NUMBER(*vp)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Value is not a number while assigning SFVec3f\n"));
+		return JS_FALSE;
+	}
 
 if (SMJS_ID_IS_INT(id) && SMJS_ID_TO_INT(id) >= 0 && SMJS_ID_TO_INT(id) < 3 && JS_ValueToNumber(c, *vp, &d)) {
 	switch (SMJS_ID_TO_INT(id)) {
@@ -2389,6 +2399,10 @@ if (!ptr) {
 	return JS_TRUE;
 }
 
+	if (! JSVAL_IS_NUMBER(*vp)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Value is not a number while assigning SFVec3f\n"));
+		return JS_FALSE;
+	}
 if (SMJS_ID_IS_INT(id) && SMJS_ID_TO_INT(id) >= 0 && SMJS_ID_TO_INT(id) < 4 && JS_ValueToNumber(c, *vp, &d)) {
 	switch (SMJS_ID_TO_INT(id)) {
 	case 0:
@@ -2595,6 +2609,10 @@ if (!ptr) {
 	return JS_TRUE;
 }
 
+	if (! JSVAL_IS_NUMBER(*vp)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Value is not a number while assigning SFVec3f\n"));
+		return JS_FALSE;
+	}
 if (SMJS_ID_IS_INT(id) && SMJS_ID_TO_INT(id) >= 0 && SMJS_ID_TO_INT(id) < 3 && JS_ValueToNumber(c, *vp, &d)) {
 	switch (SMJS_ID_TO_INT(id)) {
 	case 0:

@@ -43,6 +43,7 @@ typedef struct
 	/*for keyboard navigation*/
 	GF_SensorHandler hdl;
 	s32 key_scroll;
+	Bool keys_active;
 } LayoutStack;
 
 typedef struct
@@ -767,20 +768,31 @@ static Bool OnLayout(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Even
 
 	switch (ev->key.key_code) {
 	case GF_KEY_LEFT:
+		if (!st->keys_active) return 0;
+
 		if (vertical) return 0;
 		st->key_scroll = -1;
 		break;
 	case GF_KEY_RIGHT:
+		if (!st->keys_active) return 0;
+
 		if (vertical) return 0;
 		st->key_scroll = +1;
 		break;
 	case GF_KEY_UP:
+		if (!st->keys_active) return 0;
+
 		if (!vertical) return 0;
 		st->key_scroll = +1;
 		break;
 	case GF_KEY_DOWN:
+		if (!st->keys_active) return 0;
+
 		if (!vertical) return 0;
 		st->key_scroll = -1;
+		break;
+	case GF_KEY_ENTER:
+		st->keys_active = !st->keys_active;
 		break;
 	default:
 		st->key_scroll = 0;
