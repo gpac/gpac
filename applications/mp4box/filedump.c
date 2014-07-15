@@ -2128,7 +2128,9 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 			} else {
 				fprintf(stderr, "Unknown media type\n");
 			}
-			fprintf(stderr, "\tVendor code \"%s\" - Version %d - revision %d\n", gf_4cc_to_str(udesc->vendor_code), udesc->version, udesc->revision);
+			if (udesc->vendor_code)
+				fprintf(stderr, "\tVendor code \"%s\" - Version %d - revision %d\n", gf_4cc_to_str(udesc->vendor_code), udesc->version, udesc->revision);
+
 			if (udesc->extension_buf) {
 				fprintf(stderr, "\tCodec configuration data size: %d bytes\n", udesc->extension_buf_size);
 				gf_free(udesc->extension_buf);
