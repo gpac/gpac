@@ -212,6 +212,7 @@ GF_EventType gf_dom_event_type_by_name(const char *name)
 	return GF_EVENT_UNKNOWN;
 }
 
+GF_EXPORT
 const char *gf_dom_event_get_name(GF_EventType type)
 {
 	u32 i, count;
