@@ -3722,10 +3722,12 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 	/*TODO what should we put for minBufferTime */
 	fprintf(mpd, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" minBufferTime=\"PT%fS\" type=\"%s\"", min_buffer, dash_dynamic ? "dynamic" : "static");
 	if (dash_dynamic) {
-		//we only support profiles for which AST has to be the same
-		const char *opt = gf_cfg_get_key(dash_ctx, "DASH", "GenerationNTP");
-		sscanf(opt, "%u", &sec);
-		sec += ast_shift_sec;
+		if (dash_ctx) {
+			//we only support profiles for which AST has to be the same
+			const char *opt = gf_cfg_get_key(dash_ctx, "DASH", "GenerationNTP");
+			sscanf(opt, "%u", &sec);
+			sec += ast_shift_sec;
+		}
 
 #ifdef _WIN32_WCE
 		*(LONGLONG *) &filet = (sec - GF_NTP_SEC_1900_TO_1970) * 10000000 + TIMESPEC_TO_FILETIME_OFFSET;
