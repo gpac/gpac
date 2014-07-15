@@ -176,12 +176,15 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	GF_BitStream *bs;
 	GF_Err e;
 	Bool destroy_esd;
-	u32 size, track, di, w, h, dsi_len, mtype;
+	u32 size, track, di, w, h, dsi_len, mtype, id;
 	GF_ISOSample *samp;
 	u8 OTI;
 	char *dsi, *data;
 	FILE *src;
+	Bool import_mpeg4 = 0;
 
+	if (import->flags & GF_IMPORT_FORCE_MPEG4) import_mpeg4 = 1;
+	else if (import->esd)  import_mpeg4 = 1;
 
 	src = gf_f64_open(import->in_name, "rb");
 	if (!src) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
@@ -195,7 +198,8 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 
 	/*get image size*/
 	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-	gf_img_parse(bs, &OTI, &mtype, &w, &h, &dsi, &dsi_len);
+	dsi = NULL;
+	gf_img_parse(bs, &OTI, &mtype, &w, &h, import_mpeg4 ? &dsi : NULL, import_mpeg4 ? &dsi_len : NULL);
 	gf_bs_del(bs);
 
 	if (!OTI) {
@@ -225,43 +229,76 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 
 	e = GF_OK;
 	destroy_esd = 0;
-	if (!import->esd) {
-		import->esd = gf_odf_desc_esd_new(2);
-		destroy_esd = 1;
-	}
-	/*update stream type/oti*/
-	if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
-	if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
-	import->esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-	import->esd->decoderConfig->objectTypeIndication = OTI;
-	import->esd->decoderConfig->bufferSizeDB = size;
-	import->esd->decoderConfig->avgBitrate = 8*size;
-	import->esd->decoderConfig->maxBitrate = 8*size;
-	import->esd->slConfig->timestampResolution = 1000;
 
-	if (dsi) {
-		if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-		if (import->esd->decoderConfig->decoderSpecificInfo->data) gf_free(import->esd->decoderConfig->decoderSpecificInfo->data);
-		import->esd->decoderConfig->decoderSpecificInfo->data = dsi;
-		import->esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_len;
+	id = 0;
+	if (import_mpeg4) {
+
+		if (!import->esd) {
+			import->esd = gf_odf_desc_esd_new(2);
+			destroy_esd = 1;
+		}
+		/*update stream type/oti*/
+		if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
+		if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
+		import->esd->decoderConfig->streamType = GF_STREAM_VISUAL;
+		import->esd->decoderConfig->objectTypeIndication = OTI;
+		import->esd->decoderConfig->bufferSizeDB = size;
+		import->esd->decoderConfig->avgBitrate = 8*size;
+		import->esd->decoderConfig->maxBitrate = 8*size;
+		import->esd->slConfig->timestampResolution = 1000;
+
+		if (dsi) {
+			if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+			if (import->esd->decoderConfig->decoderSpecificInfo->data) gf_free(import->esd->decoderConfig->decoderSpecificInfo->data);
+			import->esd->decoderConfig->decoderSpecificInfo->data = dsi;
+			import->esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_len;
+		}
+		id = import->esd->ESID;
 	}
 
 
 	track = 0;
 	if (mult_desc_allowed)
-		track = gf_isom_get_track_by_id(import->dest, import->esd->ESID);
+		track = gf_isom_get_track_by_id(import->dest, id);
 	if (!track)
-		track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_VISUAL, 1000);
+		track = gf_isom_new_track(import->dest, id, GF_ISOM_MEDIA_VISUAL, 1000);
 	if (!track) {
 		e = gf_isom_last_error(import->dest);
 		goto exit;
 	}
 	gf_isom_set_track_enabled(import->dest, track, 1);
-	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
-	import->final_trackID = import->esd->ESID;
 
-	e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
-	if (e) goto exit;
+	if (import_mpeg4) {
+		if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+		import->final_trackID = import->esd->ESID;
+
+		e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
+		if (e) goto exit;
+	} else {
+		GF_GenericSampleDescription udesc;
+		memset(&udesc, 0, sizeof(GF_GenericSampleDescription));
+		switch (OTI) {
+		case GPAC_OTI_IMAGE_JPEG:
+			udesc.codec_tag = GF_4CC('j', 'p', 'e', 'g');
+			break;
+		case GPAC_OTI_IMAGE_PNG:
+			udesc.codec_tag = GF_4CC('p', 'n', 'g', ' ');
+			break;
+		case GPAC_OTI_IMAGE_JPEG_2000:
+			udesc.codec_tag = GF_4CC('j', 'p', '2', 'k');
+			break;
+		}
+		udesc.width = w;
+		udesc.height = h;
+		udesc.v_res = 72;
+		udesc.h_res = 72;
+		udesc.depth = 24;
+		memcpy(udesc.compressor_name, "\4JPEG", 5);
+
+		gf_isom_new_generic_sample_description(import->dest, track, NULL, NULL, &udesc, &di);
+		import->final_trackID = gf_isom_get_track_id(import->dest, track);
+	}
+
 	gf_isom_set_visual_info(import->dest, track, di, w, h);
 	samp = gf_isom_sample_new();
 	samp->IsRAP = 1;
@@ -287,6 +324,9 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	gf_set_progress("Importing Image", 1, 1);
 
 	gf_isom_sample_del(&samp);
+	if (import->duration) {
+		gf_isom_set_last_sample_duration(import->dest, track, import->duration);
+	}
 
 exit:
 	gf_free(data);
