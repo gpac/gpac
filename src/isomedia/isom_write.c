@@ -895,6 +895,7 @@ GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *movie, u32 trackNumber, u32 
 }
 
 //update a sample data in the media. Note that the sample MUST exists
+GF_EXPORT
 GF_Err gf_isom_update_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumber, GF_ISOSample *sample, Bool data_only)
 {
 	GF_Err e;
@@ -929,6 +930,7 @@ GF_Err gf_isom_update_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 
 //update a sample data in the media. Note that the sample MUST exists,
 //that sample->data MUST be NULL and sample->dataLength must be NON NULL;
+GF_EXPORT
 GF_Err gf_isom_update_sample_reference(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumber, GF_ISOSample *sample, u64 data_offset)
 {
 	GF_Err e;
