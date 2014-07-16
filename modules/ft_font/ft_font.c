@@ -114,7 +114,7 @@ void setBestFont(const char * listOfFonts[], char ** currentBestFont, const char
 	}
 }
 
-static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
+static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileEnumInfo *file_info)
 {
 	char *szfont;
 	FT_Face face;
@@ -195,7 +195,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 	return 0;
 }
 
-static Bool ft_enum_fonts_dir(void *cbck, char *file_name, char *file_path)
+static Bool ft_enum_fonts_dir(void *cbck, char *file_name, char *file_path, GF_FileEnumInfo *file_info)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Scanning directory %s (%s)\n", file_name, file_path));
 	gf_enum_directory(file_path, 0, ft_enum_fonts, cbck, "ttf;ttc");

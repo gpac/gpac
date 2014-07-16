@@ -64,7 +64,7 @@
 
 
 #ifdef GPAC_STATIC_MODULES
-static Bool enum_mod_dir(void *cbck, char *item_name, char *item_path)
+static Bool enum_mod_dir(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	if (!strnicmp(item_name, "gm_", 3)) {
 		printf("Found %s\n", item_name);

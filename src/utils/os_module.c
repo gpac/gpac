@@ -178,7 +178,7 @@ void gf_modules_unload_library(ModuleInstance *inst)
 }
 
 
-Bool enum_modules(void *cbck, char *item_name, char *item_path)
+static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	ModuleInstance *inst;
 #if CHECK_MODULE

@@ -57,7 +57,7 @@ static void switch_menu_pl()
 }
 
 
-Bool enum_dirs(void *cbk, char *name, char *path)
+Bool enum_dirs(void *cbk, char *name, char *path, GF_FileEnumInfo *file_info)
 {
 	TCHAR w_name[GF_MAX_PATH], w_str_name[GF_MAX_PATH];
 
@@ -69,7 +69,7 @@ Bool enum_dirs(void *cbk, char *name, char *path)
 	return GF_FALSE;
 }
 
-Bool enum_files(void *cbk, char *name, char *path)
+Bool enum_files(void *cbk, char *name, char *path, GF_FileEnumInfo *file_info)
 {
 	TCHAR w_name[GF_MAX_PATH];
 
@@ -180,7 +180,7 @@ void playlist_act(u32 act_type)
 	SetFocus(hList);
 }
 
-Bool add_files(void *cbk, char *name, char *path)
+Bool add_files(void *cbk, char *name, char *path, GF_FileEnumInfo *file_info)
 {
 	if (!bViewUnknownTypes && extension_list) {
 		char *ext = strrchr(name, '.');

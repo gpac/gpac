@@ -201,7 +201,7 @@ GF_Err gf_mkdir(char* DirPathName)
 	return GF_OK;
 }
 
-static Bool delete_dir(void *cbck, char *item_name, char *item_path)
+static Bool delete_dir(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	Bool directory_clean_mode = *(Bool*)cbck;
 
@@ -588,6 +588,7 @@ GF_EXPORT
 GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item enum_dir_fct, void *cbck, const char *filter)
 {
 	char item_path[GF_MAX_PATH];
+	GF_FileEnumInfo file_info;
 
 #if defined(_WIN32_WCE)
 	char _path[GF_MAX_PATH];
@@ -611,6 +612,8 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 
 	if (filter && (!strcmp(filter, "*") || !filter[0])) filter=NULL;
 
+	memset(&file_info, 0, sizeof(GF_FileEnumInfo) );
+
 	if (!strcmp(dir, "/")) {
 #if defined(WIN32) && !defined(_WIN32_WCE)
 		u32 len;
@@ -621,8 +624,10 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		GetLogicalDriveStrings(len, drives);
 		len = (u32) strlen(drives);
 		volume = drives;
+		file_info.directory = GF_TRUE;
+		file_info.drive = GF_TRUE;
 		while (len) {
-			enum_dir_fct(cbck, volume, "");
+			enum_dir_fct(cbck, volume, "", &file_info);
 			volume += len+1;
 			len = (u32) strlen(volume);
 		}
@@ -639,7 +644,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 				TChar aDrive;
 				iFs.DriveToChar(i, aDrive);
 				sprintf(szDrive, "%c:", (TUint)aDrive);
-				enum_dir_fct(cbck, szDrive, "");
+				enum_dir_fct(cbck, szDrive, "", &file_info);
 			}
 		}
 		iFs.Close();
@@ -700,6 +705,9 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 
 #endif
 
+		memset(&file_info, 0, sizeof(GF_FileEnumInfo) );
+
+
 #if defined (_WIN32_WCE)
 		if (!wcscmp(FindData.cFileName, _T(".") )) goto next;
 		if (!wcscmp(FindData.cFileName, _T("..") )) goto next;
@@ -712,8 +720,9 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #endif
 
 #ifdef WIN32
-		if (!enum_directory && (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) goto next;
-		if (enum_directory && !(FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) goto next;
+		file_info.directory = (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? GF_TRUE : GF_FALSE;
+		if (!enum_directory && file_info.directory) goto next;
+		if (enum_directory && !file_info.directory) goto next;
 #endif
 
 		if (filter) {
@@ -741,6 +750,16 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #endif
 		}
 
+#if defined(WIN32)
+		file_info.hidden = (FindData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) ? 1 : 0;
+		file_info.system = (FindData.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM) ? 1 : 0;
+		file_info.size = MAXDWORD;
+		file_info.size += 1;
+		file_info.size *= FindData.nFileSizeHigh;
+		file_info.size += FindData.nFileSizeLow;
+		file_info.last_modified = (u64) ((*(LONGLONG *) &FindData.ftLastWriteTime - TIMESPEC_TO_FILETIME_OFFSET) / 10000000);
+#endif
+
 #if defined (_WIN32_WCE)
 		CE_WideToChar(FindData.cFileName, file);
 		strcpy(item_path, _path);
@@ -755,11 +774,31 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Checking file %s for enum\n", item_path));
 
 		if (stat( item_path, &st ) != 0) goto next;
-		if (enum_directory && ( (st.st_mode & S_IFMT) != S_IFDIR)) goto next;
-		if (!enum_directory && ((st.st_mode & S_IFMT) == S_IFDIR)) goto next;
+
+		file_info.directory = ((st.st_mode & S_IFMT) == S_IFDIR) ? GF_TRUE : GF_FALSE;
+		if (enum_directory && !file_info.directory) goto next;
+		if (!enum_directory && file_info.directory) goto next;
+
+		file_info.size = st.st_size;
+
+		{
+			struct tm _t = * gmtime(& st.st_mtime);
+			file_info.last_modified = mktime(&_t);
+		}
 		file = the_file->d_name;
+		if (file && file[0]=='.') file_info.hidden = 1;
+
+		if (file_info.directory) {
+			struct stat st_parent;
+			char * parent_name = dirname(item_path);
+			if (stat(parent_name, &st_parent) == 0)  {
+				if ((st.st_dev != st_parent.st_dev) || ((st.st_dev == st_parent.st_dev) && (st.st_ino == st_parent.st_ino))) {
+					file_info.drive = GF_TRUE;
+				}
+			}
+
 #endif
-		if (enum_dir_fct(cbck, file, item_path)) {
+		if (enum_dir_fct(cbck, file, item_path, &file_info)) {
 #ifdef WIN32
 			BOOL ret = FindClose(SearchH);
 			if (!ret) {
