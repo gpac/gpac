@@ -789,14 +789,20 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		if (file && file[0]=='.') file_info.hidden = 1;
 
 		if (file_info.directory) {
-			struct stat st_parent;
-			char * parent_name = dirname(item_path);
-			if (stat(parent_name, &st_parent) == 0)  {
-				if ((st.st_dev != st_parent.st_dev) || ((st.st_dev == st_parent.st_dev) && (st.st_ino == st_parent.st_ino))) {
-					file_info.drive = GF_TRUE;
+			char * parent_name = strrchr(item_path, '/');
+			if (!parent_name) {
+				file_info.drive = GF_TRUE;
+			} else {
+				struct stat st_parent;
+				parent_name[0] = 0;
+				if (stat(parent_name, &st_parent) == 0)  {
+					if ((st.st_dev != st_parent.st_dev) || ((st.st_dev == st_parent.st_dev) && (st.st_ino == st_parent.st_ino))) {
+						file_info.drive = GF_TRUE;
+					}
 				}
+				parent_name[0] = '/';
 			}
-
+		}
 #endif
 		if (enum_dir_fct(cbck, file, item_path, &file_info)) {
 #ifdef WIN32
