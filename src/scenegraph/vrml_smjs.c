@@ -2678,7 +2678,7 @@ static JSBool SMJS_FUNCTION(color_getHSV)
 
 static void setup_js_array(JSContext *c, JSObject *obj, GF_JSField *ptr, uintN argc, jsval *argv)
 {
-	GF_ScriptPriv *priv = JS_GetScriptStack(c);
+//	GF_ScriptPriv *priv = JS_GetScriptStack(c);
 	ptr->obj = obj;
 	ptr->js_list = JS_NewArrayObject(c, (jsint) argc, argv);
 
