@@ -2422,6 +2422,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures update
 	//forced a relayout - do it right away
 	if (compositor->msg_type) {
+		//reset AR recompute flag, it will be reset when msg is handled
+		compositor->recompute_ar = 0;
 		gf_sc_lock(compositor, 0);
 		return;
 	}
