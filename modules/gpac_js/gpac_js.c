@@ -300,6 +300,7 @@ static JSBool SMJS_FUNCTION(gpac_getOption)
 {
 	const char *opt;
 	char *sec_name, *key_name;
+	s32 idx = -1;
 	JSString *s;
 	SMJS_OBJ
 	SMJS_ARGS
@@ -309,10 +310,15 @@ static JSBool SMJS_FUNCTION(gpac_getOption)
 	if (argc < 2) return JS_FALSE;
 
 	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
+	if (!JSVAL_IS_STRING(argv[1]) && !JSVAL_IS_INT(argv[1])) return JS_FALSE;
 
 	sec_name = SMJS_CHARS(c, argv[0]);
-	key_name = SMJS_CHARS(c, argv[1]);
+	key_name = NULL;
+	if (JSVAL_IS_INT(argv[1])) {
+		idx = JSVAL_TO_INT(argv[1]);
+	} else if (JSVAL_IS_STRING(argv[1]) ) {
+		key_name = SMJS_CHARS(c, argv[1]);
+	}
 
 	if (!stricmp(sec_name, "audiofilters")) {
 		if (!term->compositor->audio_renderer->filter_chain.enable_filters
@@ -322,15 +328,22 @@ static JSBool SMJS_FUNCTION(gpac_getOption)
 			return JS_TRUE;
 		}
 		opt = term->compositor->audio_renderer->filter_chain.filters->filter->GetOption(term->compositor->audio_renderer->filter_chain.filters->filter, key_name);
-	} else {
+	} else if (key_name) {
 		opt = gf_cfg_get_key(term->user->config, sec_name, key_name);
+	} else if (idx>=0) {
+		opt = gf_cfg_get_key_name(term->user->config, sec_name, idx);
 	}
-	SMJS_FREE(c, key_name);
+	if (key_name) {
+		SMJS_FREE(c, key_name);
+	}
 	SMJS_FREE(c, sec_name);
 
-	s = JS_NewStringCopyZ(c, opt ? opt : "");
-	if (!s) return JS_FALSE;
-	SMJS_SET_RVAL( STRING_TO_JSVAL(s) );
+	if (opt) {
+		s = JS_NewStringCopyZ(c, opt);
+		SMJS_SET_RVAL( STRING_TO_JSVAL(s) );
+	} else {
+		SMJS_SET_RVAL( JSVAL_NULL );
+	}
 	return JS_TRUE;
 }
 
@@ -375,7 +388,7 @@ typedef struct
 	Bool is_dir;
 } enum_dir_cbk;
 
-static Bool enum_dir_fct(void *cbck, char *file_name, char *file_path)
+static Bool enum_dir_fct(void *cbck, char *file_name, char *file_path, GF_FileEnumInfo *file_info)
 {
 	u32 i, len;
 	char *sep;
@@ -409,6 +422,11 @@ static Bool enum_dir_fct(void *cbck, char *file_name, char *file_path)
 	}
 	JS_DefineProperty(cbk->c, obj, "path", STRING_TO_JSVAL(s), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(cbk->c, obj, "directory", BOOLEAN_TO_JSVAL(cbk->is_dir ? JS_TRUE : JS_FALSE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(cbk->c, obj, "drive", BOOLEAN_TO_JSVAL(file_info->drive ? JS_TRUE : JS_FALSE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(cbk->c, obj, "hidden", BOOLEAN_TO_JSVAL(file_info->hidden ? JS_TRUE : JS_FALSE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(cbk->c, obj, "size", INT_TO_JSVAL(file_info->size), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(cbk->c, obj, "last_modified", INT_TO_JSVAL(file_info->last_modified), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+
 
 	JS_GetArrayLength(cbk->c, cbk->array, &idx);
 	v = OBJECT_TO_JSVAL(obj);
@@ -451,6 +469,7 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 				if ((dir[1]==':') && ((dir[2]=='/') || (dir[2]=='\\')) ) browse_root = 1;
 				else if (!strcmp(dir, "/")) browse_root = 1;
 			}
+			if (!strcmp(url, "/")) browse_root = 1;
 		}
 	}
 

@@ -3445,7 +3445,7 @@ exit:
 }
 
 
-static Bool wm_enum_widget(void *cbk, char *file_name, char *file_path)
+static Bool wm_enum_widget(void *cbk, char *file_name, char *file_path, GF_FileEnumInfo *file_info)
 {
 	GF_WidgetInstance *wid;
 	GF_WidgetManager *wm = (GF_WidgetManager *)cbk;
@@ -3459,7 +3459,7 @@ static Bool wm_enum_widget(void *cbk, char *file_name, char *file_path)
 	return 0;
 }
 
-static Bool wm_enum_dir(void *cbk, char *file_name, char *file_path)
+static Bool wm_enum_dir(void *cbk, char *file_name, char *file_path, GF_FileEnumInfo *file_info)
 {
 	return (gf_enum_directory(file_path, 0, wm_enum_widget, cbk, "mgt")==GF_OK) ? GF_FALSE : GF_TRUE;
 }

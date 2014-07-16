@@ -311,7 +311,7 @@ void wxPlaylist::OnAddFile(wxCommandEvent &WXUNUSED(event))
 }
 
 
-static Bool pl_enum_dir_item(void *cbck, char *item_name, char *item_path)
+static Bool pl_enum_dir_item(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	wxPlaylist *_this = (wxPlaylist *)cbck;
 
@@ -322,7 +322,7 @@ static Bool pl_enum_dir_item(void *cbck, char *item_name, char *item_path)
 	return 0;
 }
 
-static Bool pl_enum_dir_dirs(void *cbck, char *item_name, char *item_path)
+static Bool pl_enum_dir_dirs(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	gf_enum_directory(item_path, 0, pl_enum_dir_item, cbck, NULL);
 	gf_enum_directory(item_path, 1, pl_enum_dir_dirs, cbck, NULL);

@@ -514,7 +514,7 @@ void print_load_data(GF_LoadCompare *lc, LoadData *ld)
 	fflush(lc->out);
 }
 
-Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
+Bool loadcompare_one(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	GF_Err e;
 	GF_LoadCompare *lc = cbck;

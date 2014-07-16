@@ -1939,7 +1939,7 @@ typedef struct
 	Bool force_cat, align_timelines, allow_add_in_command;
 } CATEnum;
 
-Bool cat_enumerate(void *cbk, char *szName, char *szPath)
+Bool cat_enumerate(void *cbk, char *szName, char *szPath, GF_FileEnumInfo *file_info)
 {
 	GF_Err e;
 	u32 len_rad1;
@@ -2421,7 +2421,7 @@ void sax_node_start(void *sax_cbck, const char *node_name, const char *name_spac
 	}
 }
 
-static Bool wgt_enum_files(void *cbck, char *file_name, char *file_path)
+static Bool wgt_enum_files(void *cbck, char *file_name, char *file_path, GF_FileEnumInfo *file_info)
 {
 	WGTEnum *wgt = (WGTEnum *)cbck;
 
@@ -2431,7 +2431,7 @@ static Bool wgt_enum_files(void *cbck, char *file_name, char *file_path)
 	gf_list_add(wgt->imports, gf_strdup(file_path) );
 	return 0;
 }
-static Bool wgt_enum_dir(void *cbck, char *file_name, char *file_path)
+static Bool wgt_enum_dir(void *cbck, char *file_name, char *file_path, GF_FileEnumInfo *file_info)
 {
 	if (!stricmp(file_name, "cvs") || !stricmp(file_name, ".svn")) return 0;
 	gf_enum_directory(file_path, 0, wgt_enum_files, cbck, NULL);

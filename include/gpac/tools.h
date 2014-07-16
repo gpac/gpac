@@ -518,6 +518,27 @@ u32 gf_rand();
 */
 void gf_get_user_name(char *buf, u32 buf_size);
 
+
+/*!\brief FileEnum info object
+ *
+ *The FileEnumInfo object is used to get file attributes upon enumeration of a directory.
+*/
+typedef struct
+{
+	/*!File is marked as hidden*/
+	Bool hidden;
+	/*!File is a directory*/
+	Bool directory;
+	/*!File is a drive mountpoint*/
+	Bool drive;
+	/*!File is a system file*/
+	Bool system;
+	/*!File size in bytes*/
+	u64 size;
+	/*!File last modif time in UTC seconds*/
+	u64 last_modified;
+} GF_FileEnumInfo;
+
 /*!
  *	\brief Directory Enumeration Callback
  *
@@ -525,10 +546,11 @@ void gf_get_user_name(char *buf, u32 buf_size);
  *	\param cbck Opaque user data.
  *	\param item_name File or directory name.
  *	\param item_path File or directory full path and name from filesystem root.
+ *	\param file_info information for the file or directory.
  *	\return 1 to abort enumeration, 0 to continue enumeration.
  *
  */
-typedef Bool (*gf_enum_dir_item)(void *cbck, char *item_name, char *item_path);
+typedef Bool (*gf_enum_dir_item)(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info);
 /*!
  *	\brief Directory enumeration
  *
@@ -720,7 +742,7 @@ GF_Err gf_cleanup_dir(char* DirPathName);
  */
 u32 gf_crc_32(const char *data, u32 size);
 
-#ifdef _WIN32_WCE
+#ifdef WIN32
 /*!
  *	\brief WINCE time constant
  *	\hideinitializer

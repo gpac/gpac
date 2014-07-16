@@ -171,7 +171,7 @@ struct __DownloadedCacheEntryStruct
 	u8 *mem_storage;
 };
 
-Bool delete_cache_files(void *cbck, char *item_name, char *item_path) {
+Bool delete_cache_files(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info) {
 	const char * startPattern;
 	int sz;
 	assert( cbck );

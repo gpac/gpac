@@ -233,14 +233,14 @@ void CPlaylist::AddItem(const char *name, int is_directory)
 	array->AppendL(tmp);
 }
 
-static Bool enum_dirs(void *cbk, char *name, char *path)
+static Bool enum_dirs(void *cbk, char *name, char *path, GF_FileEnumInfo *file_info)
 {
 	CPlaylist *of = (CPlaylist *)cbk;
 	of->AddItem(name, 1);
 	return 0;
 }
 
-static Bool enum_files(void *cbk, char *name, char *path)
+static Bool enum_files(void *cbk, char *name, char *path, GF_FileEnumInfo *file_info)
 {
 	CPlaylist *of = (CPlaylist *)cbk;
 	of->AddItem(name, 0);
@@ -397,7 +397,7 @@ Bool CPlaylist::IsInPlaylist()
 	return 0;
 }
 
-static Bool dir_add_files(void *cbk, char *name, char *path)
+static Bool dir_add_files(void *cbk, char *name, char *path, GF_FileEnumInfo *file_info)
 {
 	CPlaylist *pl = (CPlaylist *)cbk;
 

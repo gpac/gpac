@@ -2182,7 +2182,7 @@ void wxOsmo4Frame::AddSubtitle(const char *fileName, Bool auto_play)
 	gf_term_add_object(m_term, fileName, auto_play);
 }
 
-static Bool subs_enum_dir_item(void *cbck, char *item_name, char *item_path)
+static Bool subs_enum_dir_item(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	wxOsmo4Frame *_this = (wxOsmo4Frame*)cbck;
 	_this->AddSubtitle(item_path, 0);
