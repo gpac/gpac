@@ -609,7 +609,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 		tr_state->depth_gain = gf_mulfix(scale, dscale);
 #endif
 
-		if (opacity < FIX_ONE) {
+		if (!tr_state->override_appearance && (opacity < FIX_ONE)) {
 			if (!group->cache) {
 				group->cache = group_cache_new(tr_state->visual->compositor, node);
 				group->cache->force_recompute = 1;

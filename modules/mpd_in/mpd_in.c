@@ -144,7 +144,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 		if (group->segment_ifce == ifce) {
 			//if sync is based on timestamps do not adjust the timestamps back 
 			if (! group->is_timestamp_based) {
-				u32 idx, timescale;
+				u32 timescale;
 				u64 pto=0;
 				gf_dash_group_get_presentation_time_offset(mpdin->dash, i, &pto, &timescale);
 				if (timescale && (timescale != ch->esd->slConfig->timestampResolution)) {
@@ -1031,7 +1031,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 						u64 pto;
 						Double offset;
 						gf_dash_group_get_presentation_time_offset(mpdin->dash, idx, &pto, &timescale);
-						offset = pto;
+						offset = (Double) pto;
 						offset /= timescale;
 						com->play.start_range -= offset;
 						if (com->play.start_range < 0) com->play.start_range = 0;
