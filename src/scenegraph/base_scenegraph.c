@@ -1359,7 +1359,6 @@ GF_EXPORT
 GF_Err gf_node_list_append_child(GF_ChildNodeItem **list, GF_ChildNodeItem **last_child, GF_Node *n)
 {
 	GF_ChildNodeItem *child, *cur;
-	u32 cur_pos = 0;
 
 	child = *list;
 
