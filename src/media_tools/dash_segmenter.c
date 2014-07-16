@@ -481,13 +481,15 @@ typedef struct
 	u64 segment_duration;
 } GF_DASHSementDuration;
 
-static void store_segment_duration(GF_List *segment_duration, u64 SegmentDuration)
+static void store_segment_duration(GF_List **segment_duration, u64 SegmentDuration)
 {
 	u32 k;
 	GF_DASHSementDuration *entry;
 
-	for (k = 0; k < gf_list_count(segment_duration); k++) {
-		entry = (GF_DASHSementDuration *)gf_list_get(segment_duration, k);
+	if (! *segment_duration) *segment_duration = gf_list_new();
+
+	for (k = 0; k < gf_list_count(*segment_duration); k++) {
+		entry = (GF_DASHSementDuration *)gf_list_get(*segment_duration, k);
 		if (SegmentDuration == entry->segment_duration) {
 			entry->nb_segment++;
 			return;
@@ -497,8 +499,7 @@ static void store_segment_duration(GF_List *segment_duration, u64 SegmentDuratio
 	GF_SAFEALLOC(entry, GF_DASHSementDuration);
 	entry->segment_duration = SegmentDuration;
 	entry->nb_segment = 1;
-	if (!segment_duration) segment_duration = gf_list_new();
-	gf_list_add(segment_duration, entry);
+	gf_list_add(*segment_duration, entry);
 }
 
 
@@ -1440,7 +1441,7 @@ restart_fragmentation_pass:
 
 		if (force_switch_segment || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap))) {
 
-			store_segment_duration(segment_duration, SegmentDuration);
+			store_segment_duration(&segment_duration, SegmentDuration);
 
 			if (mpd_timeline_bs) {
 				if (previous_segment_duration == SegmentDuration) {
@@ -1552,7 +1553,7 @@ restart_fragmentation_pass:
 	if (!switch_segment) {
 		u64 idx_start_range, idx_end_range;
 
-		store_segment_duration(segment_duration, SegmentDuration);
+		store_segment_duration(&segment_duration, SegmentDuration);
 
 		/*do not update on last segment, we're likely to have a different last GOP*/
 #if 0
@@ -1626,7 +1627,8 @@ restart_fragmentation_pass:
 			GF_DASHSementDuration *entry;
 			entry = (GF_DASHSementDuration *)gf_list_get(segment_duration, k);
 			if (entry->nb_segment > most_frequent_duration) {
-				max_segment_duration = (Double) ( entry->segment_duration / dash_cfg->dash_scale );
+				max_segment_duration = (Double) entry->segment_duration;
+				max_segment_duration /= dash_cfg->dash_scale;
 				most_frequent_duration = entry->nb_segment;
 			}
 		}
