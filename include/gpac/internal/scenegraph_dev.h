@@ -300,6 +300,8 @@ struct __tag_scene_graph
 	struct JSObject *document;
 
 	Bool dcci_doc;
+
+	Bool trigger_gc;
 #endif
 };
 

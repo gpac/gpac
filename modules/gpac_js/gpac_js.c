@@ -424,6 +424,7 @@ static Bool enum_dir_fct(void *cbck, char *file_name, char *file_path, GF_FileEn
 	JS_DefineProperty(cbk->c, obj, "directory", BOOLEAN_TO_JSVAL(cbk->is_dir ? JS_TRUE : JS_FALSE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(cbk->c, obj, "drive", BOOLEAN_TO_JSVAL(file_info->drive ? JS_TRUE : JS_FALSE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(cbk->c, obj, "hidden", BOOLEAN_TO_JSVAL(file_info->hidden ? JS_TRUE : JS_FALSE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(cbk->c, obj, "system", BOOLEAN_TO_JSVAL(file_info->system ? JS_TRUE : JS_FALSE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(cbk->c, obj, "size", INT_TO_JSVAL(file_info->size), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(cbk->c, obj, "last_modified", INT_TO_JSVAL(file_info->last_modified), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 
@@ -670,6 +671,18 @@ static JSBool SMJS_FUNCTION(gpac_get_scene_time)
 	}
 	SMJS_SET_RVAL( DOUBLE_TO_JSVAL( JS_NewDouble(c, sg->GetSceneTime(sg->userpriv) ) ) );
 
+	return JS_TRUE;
+}
+
+static JSBool SMJS_FUNCTION(gpac_trigger_gc)
+{
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_SceneGraph *sg = NULL;
+	GF_Terminal *term = gpac_get_term(c, obj);
+
+	sg = term->root_scene->graph;
+	sg->trigger_gc = GF_TRUE;
 	return JS_TRUE;
 }
 
@@ -959,6 +972,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("get_scene",			gpac_get_scene, 1),
 		SMJS_FUNCTION_SPEC("error_string",		gpac_error_string, 1),
 		SMJS_FUNCTION_SPEC("show_keyboard",		gpac_show_keyboard, 1),
+		SMJS_FUNCTION_SPEC("trigger_gc",		gpac_trigger_gc, 1),
 
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)
