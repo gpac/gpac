@@ -455,13 +455,17 @@ void gf_sg_js_call_gc(JSContext *c)
 	gf_sg_lock_javascript(c, 0);
 }
 
-#ifdef FORCE_GC
-void MyJSGC(JSContext *c)
+void do_js_gc(JSContext *c, GF_Node *node)
 {
-	gf_sg_js_call_gc(c);
-
-}
+#ifdef FORCE_GC
+	node->sgprivate->scenegraph->trigger_gc = GF_TRUE;
 #endif
+
+	if (node->sgprivate->scenegraph->trigger_gc) {
+		node->sgprivate->scenegraph->trigger_gc = GF_FALSE;
+		gf_sg_js_call_gc(c);
+	}
+}
 
 
 void SFColor_fromHSV(SFColor *col)
@@ -836,9 +840,7 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 
 	gf_sg_lock_javascript(priv->js_ctx, 0);
 
-#ifdef FORCE_GC
-	MyJSGC(priv->js_ctx);
-#endif
+	do_js_gc(priv->js_ctx, node);
 }
 
 static JSBool SMJS_FUNCTION(addRoute)
@@ -4529,9 +4531,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 
 	gf_js_vrml_flush_event_out(node, priv);
 
-#ifdef FORCE_GC
-	MyJSGC(priv->js_ctx);
-#endif
+	do_js_gc(priv->js_ctx, node);
 }
 
 
@@ -4724,9 +4724,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 
 	gf_sg_lock_javascript(priv->js_ctx, 0);
 
-#ifdef FORCE_GC
-	MyJSGC(priv->js_ctx);
-#endif
+	do_js_gc(priv->js_ctx, node);
 }
 
 static void JSScript_Load(GF_Node *node)
