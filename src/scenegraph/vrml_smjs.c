@@ -442,7 +442,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script);
 
-Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain);
+Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain, jsval *rval);
 
 void gf_sg_js_call_gc(JSContext *c)
 {
@@ -698,11 +698,7 @@ static JSBool SMJS_FUNCTION(loadScript)
 
 	url = SMJS_CHARS(c, argv[0]);
 	if (url) {
-		if ( JSScriptFromFile(node, url, no_complain) == 1) {
-			SMJS_SET_RVAL( BOOLEAN_TO_JSVAL(JS_TRUE) );
-		} else {
-			SMJS_SET_RVAL( BOOLEAN_TO_JSVAL(JS_FALSE) );
-		}
+		JSScriptFromFile(node, url, no_complain, rval);
 	}
 	SMJS_FREE(c, url);
 	return JS_TRUE;
@@ -2870,7 +2866,11 @@ static SMJS_FUNC_PROP_SET(array_setElement)
 
 	/*assign object*/
 	if (ptr->field.fieldType==GF_SG_VRML_MFNODE) {
-		if (JSVAL_IS_VOID(*vp) || JSVAL_IS_NULL(*vp) || !GF_JS_InstanceOf(c, JSVAL_TO_OBJECT(*vp), &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
+		JSObject *o;
+		if (JSVAL_IS_VOID(*vp)) return JS_FALSE;
+		if (JSVAL_IS_NULL(*vp) ) return JS_FALSE;
+		o = JSVAL_TO_OBJECT(*vp);
+		if (!GF_JS_InstanceOf(c, o, &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
 	} else if (the_sf_class) {
 		if (JSVAL_IS_VOID(*vp)) return JS_FALSE;
 		if (!GF_JS_InstanceOf(c, JSVAL_TO_OBJECT(*vp), the_sf_class, NULL) ) return JS_FALSE;
@@ -4535,14 +4535,14 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 }
 
 
-static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_script)
+static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_script, jsval *rval)
 {
 	FILE *jsf;
 	char *jsscript;
 	u64 fsize;
 	Bool success = 1;
 	JSBool ret;
-	jsval rval, fval;
+	jsval fval;
 	GF_ScriptPriv *priv = (GF_ScriptPriv *) script->sgprivate->UserPrivate;
 	uintN attr;
 	JSBool found;
@@ -4558,14 +4558,15 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	fclose(jsf);
 	jsscript[fsize] = 0;
 
-	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, (u32) (sizeof(char)*fsize), 0, 0, &rval);
+	*rval = JSVAL_NULL;
+	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, (u32) (sizeof(char)*fsize), 0, 0, rval);
 	if (ret==JS_FALSE) success = 0;
 
 	if (success && primary_script
 	        && JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval) && !JSVAL_IS_VOID(fval)
 	        && JS_GetPropertyAttributes(priv->js_ctx, priv->js_obj, "initialize", &attr, &found) && found == JS_TRUE) {
 
-		JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
+		JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, rval);
 		gf_js_vrml_flush_event_out((GF_Node *)script, priv);
 	}
 	gf_free(jsscript);
@@ -4573,7 +4574,7 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 }
 
 /*fetches each listed URL and attempts to load the script - this is SYNCHRONOUS*/
-Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
+Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain, jsval *rval)
 {
 	GF_JSAPIParam par;
 	u32 i;
@@ -4581,10 +4582,10 @@ Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 	char *url;
 	GF_Err e;
 	const char *ext;
-
 	M_Script *script = (M_Script *)node;
 
 	e = GF_SCRIPT_ERROR;
+	*rval = JSVAL_NULL;
 
 	par.dnld_man = NULL;
 	ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
@@ -4613,7 +4614,7 @@ Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 		}
 
 		if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
-			Bool res = vrml_js_load_script(script, url, opt_file ? 0 : 1);
+			Bool res = vrml_js_load_script(script, url, opt_file ? 0 : 1, rval);
 			gf_free(url);
 			if (res) return 1;
 			if (no_complain) return 0;
@@ -4623,7 +4624,7 @@ Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 				e = gf_dm_sess_process(sess);
 				if (e==GF_OK) {
 					const char *szCache = gf_dm_sess_get_cache_name(sess);
-					if (!vrml_js_load_script(script, (char *) szCache, opt_file ? 0 : 1))
+					if (!vrml_js_load_script(script, (char *) szCache, opt_file ? 0 : 1, rval))
 						e = GF_SCRIPT_ERROR;
 				}
 				gf_dm_sess_del(sess);
@@ -4705,7 +4706,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	priv->JS_EventIn = JS_EventIn;
 
 	if (!local_script) {
-		JSScriptFromFile(node, NULL, 0);
+		JSScriptFromFile(node, NULL, 0, &rval);
 		gf_sg_lock_javascript(priv->js_ctx, 0);
 		return;
 	}

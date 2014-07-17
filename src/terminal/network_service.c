@@ -78,6 +78,8 @@ static void term_on_connect(GF_ClientService *service, LPNETCHANNEL netch, GF_Er
 					gf_list_add(term->net_services_to_remove, service);
 				}
 
+				gf_term_lock_media_queue(term, 0);
+
 				if (!root->parentscene) {
 					GF_Event evt;
 					evt.type = GF_EVENT_CONNECT;
@@ -92,7 +94,6 @@ static void term_on_connect(GF_ClientService *service, LPNETCHANNEL netch, GF_Er
 					gf_scene_remove_object(root->parentscene, root, 0);
 					gf_odm_disconnect(root, 1);
 				}
-				gf_term_lock_media_queue(term, 0);
 				return;
 			}
 		}

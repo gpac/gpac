@@ -711,6 +711,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	if (bck_ctx) {
 		drawable_check_bounds(bck_ctx, visual);
 		tr_state->ctx = bck_ctx;
+		tr_state->appear = NULL;
 		visual->draw_node_index = 0;
 
 		/*force clearing entire zone, not just viewport, when using color. If texture, we MUST
