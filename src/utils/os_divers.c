@@ -795,11 +795,11 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 			} else {
 				struct stat st_parent;
 				parent_name[0] = 0;
-				if (stat(parent_name, &st_parent) == 0)  {
+				if (stat(item_path, &st_parent) == 0)  {
 					if ((st.st_dev != st_parent.st_dev) || ((st.st_dev == st_parent.st_dev) && (st.st_ino == st_parent.st_ino))) {
 						file_info.drive = GF_TRUE;
 					}
-				}
+				} 
 				parent_name[0] = '/';
 			}
 		}
