@@ -302,6 +302,13 @@ void PrintDASHUsage()
 	        "                       only the xlink declared on the first rep of a period will be used\n"
 	        " \":role=VALUE\"      sets the role of this representation (cf DASH spec).\n"
 	        "                       media with different roles belong to different adaptation sets.\n"
+	        " \":p_desc=VALUE\"    adds a descriptor at the Period level.\n"  
+			" \":as_desc=VALUE\"   adds a descriptor at the AdaptationSet level \n"
+			"                       two input files with different values will be in different AdaptationSet elements.\n"
+			" \":as_cdesc=VALUE\"  adds a descriptor at the AdaptationSet level \n"
+			"                       value is ignored to created AdaptationSet elements.\n"
+	        " \":rep_desc=VALUE\"  adds a descriptor at the Representation level.\n"
+	        "                       value is ignored to created AdaptationSet elements.\n"
 	        "\n"
 	        " -rap                 segments begin with random access points\n"
 	        "                       Note: segment duration may not be exactly what asked by\n"
@@ -1365,7 +1372,26 @@ enum
 	if (tsel_acts) gf_free(tsel_acts); \
 	if (brand_add) gf_free(brand_add); \
 	if (brand_rem) gf_free(brand_rem); \
-	if (dash_inputs) gf_free(dash_inputs); \
+	if (dash_inputs) { \
+		u32 input_index; \
+		for (input_index = 0; input_index < dash_inputs->nb_rep_descs; input_index++) { \
+			gf_free(dash_inputs->rep_descs[input_index]); \
+		} \
+		gf_free(dash_inputs->rep_descs); \
+		for (input_index = 0; input_index < dash_inputs->nb_as_descs; input_index++) { \
+			gf_free(dash_inputs->as_descs[input_index]); \
+		} \
+		gf_free(dash_inputs->as_descs); \
+		for (input_index = 0; input_index < dash_inputs->nb_as_c_descs; input_index++) { \
+			gf_free(dash_inputs->as_c_descs[input_index]); \
+		} \
+		gf_free(dash_inputs->as_c_descs); \
+		for (input_index = 0; input_index < dash_inputs->nb_p_descs; input_index++) { \
+			gf_free(dash_inputs->p_descs[input_index]); \
+		} \
+		gf_free(dash_inputs->p_descs); \
+		gf_free(dash_inputs); \
+	} \
 	gf_sys_close();	\
 	return __ret_code; \
  
@@ -1408,6 +1434,36 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			}
 			else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
 			else if (!strnicmp(opts, "role=", 5)) strncpy(di->role, opts+5, 99);
+			else if (!strnicmp(opts, "desc", 4)) {
+				u32 *nb_descs;
+				char ***descs;
+				u32 opt_offset;
+				u32 len;
+				if (!strnicmp(opts, "desc_p=", 7)) {
+					nb_descs = &di->nb_p_descs;
+					descs = &di->p_descs;
+					opt_offset = 7;
+				} else if (!strnicmp(opts, "desc_as=", 8)) {
+					nb_descs = &di->nb_as_descs;
+					descs = &di->as_descs;
+					opt_offset = 8;
+				} else if (!strnicmp(opts, "desc_as_c=", 8)) {
+					nb_descs = &di->nb_as_c_descs;
+					descs = &di->as_c_descs;
+					opt_offset = 10;
+				} else if (!strnicmp(opts, "desc_rep=", 8)) {
+					nb_descs = &di->nb_rep_descs;
+					descs = &di->rep_descs;
+					opt_offset = 9;
+				}
+				(*nb_descs)++;
+				opts += opt_offset;
+				len = strlen(opts);
+				(*descs) = (char **)gf_realloc((*descs), (*nb_descs)*sizeof(char *));
+				(*descs)[(*nb_descs)-1] = (char *)gf_malloc((len+1)*sizeof(char));
+				strncpy((*descs)[(*nb_descs)-1], opts, len);
+				(*descs)[(*nb_descs)-1][len] = 0;
+			}
 			else if (!strnicmp(opts, "xlink=", 6)) {
 				if (strlen(opts+6) > 199) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] XLink cannot exceed 99 characters in MP4Box, truncating ...\n"));
