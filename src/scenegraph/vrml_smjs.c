@@ -692,13 +692,15 @@ static JSBool SMJS_FUNCTION(loadScript)
 	char *url;
 	GF_Node *node = JS_GetContextPrivate(c);
 	SMJS_ARGS
+    jsval aval;
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_TRUE;
 
 	if ((argc>1) && JSVAL_IS_BOOLEAN(argv[1])) no_complain = (JSVAL_TO_BOOLEAN(argv[1])==JS_TRUE) ? 1 : 0;
 
 	url = SMJS_CHARS(c, argv[0]);
 	if (url) {
-		JSScriptFromFile(node, url, no_complain, rval);
+		JSScriptFromFile(node, url, no_complain, &aval);
+        SMJS_SET_RVAL(aval);
 	}
 	SMJS_FREE(c, url);
 	return JS_TRUE;
