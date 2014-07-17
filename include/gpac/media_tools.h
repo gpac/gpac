@@ -286,6 +286,14 @@ typedef struct
 	char periodID[100];
 	char xlink[100];
 	char role[100];
+	u32 nb_rep_descs;
+	char **rep_descs;
+	u32 nb_p_descs;
+	char **p_descs;
+	u32 nb_as_descs;
+	char **as_descs;
+	u32 nb_as_c_descs;
+	char **as_c_descs;
 	u32 bandwidth;
 } GF_DashSegmenterInput;
 

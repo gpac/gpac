@@ -101,6 +101,14 @@ struct _dash_segment_input
 	char periodID[100];
 	char xlink[100];
 	char role[100];
+	u32 nb_rep_descs;
+	char **rep_descs;
+	u32 nb_as_descs;
+	char **as_descs;
+	u32 nb_as_c_descs;
+	char **as_c_descs;
+	u32 nb_p_descs;
+	char **p_descs;
 	u32 bandwidth;
 	u32 dependency_bandwidth;
 	char dependencyID[100];
@@ -1744,6 +1752,13 @@ restart_fragmentation_pass:
 		fprintf(dash_cfg->mpd, " dependencyId=\"%s\"", dash_input->dependencyID);
 	fprintf(dash_cfg->mpd, ">\n");
 
+	/* writing Representation level descriptors */
+	if (dash_input->nb_rep_descs) {
+		for (i=0; i<dash_input->nb_rep_descs; i++) {
+			fprintf(dash_cfg->mpd, "    %s\n", dash_input->rep_descs[i]);
+		}
+	}
+
 	if (nb_channels && !is_bs_switching)
 		fprintf(dash_cfg->mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", nb_channels);
 
@@ -1990,6 +2005,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 	set_file = gf_isom_open(dash_inputs[input_idx].file_name, GF_ISOM_OPEN_READ, NULL);
 
 	for (i=input_idx+1; i<nb_dash_inputs; i++) {
+		Bool has_same_desc = GF_TRUE;
 		Bool valid_in_adaptation_set = 1;
 		Bool assign_to_group = 1;
 		GF_ISOFile *in;
@@ -2002,6 +2018,18 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 
 		if (strcmp(dash_inputs[input_idx].role, dash_inputs[i].role))
 			continue;
+
+		/* if two inputs don't have the same (number and value) as_desc they don't belong to the same AdaptationSet
+		   (use c_as_desc for AdaptationSet descriptors common to all inputs in an AS) */
+		if (dash_inputs[input_idx].nb_as_descs != dash_inputs[i].nb_as_descs)
+			continue;		
+		for (j = 0; j < dash_inputs[input_idx].nb_as_descs; j++) {
+			if (strcmp(dash_inputs[input_idx].as_descs[j], dash_inputs[i].as_descs[j])) {
+				has_same_desc= GF_FALSE;
+				break;
+			}
+		}
+		if (!has_same_desc) continue;
 
 		if (dash_inputs[input_idx].x != dash_inputs[i].x) continue;
 		if (dash_inputs[input_idx].y != dash_inputs[i].y) continue;
@@ -3287,6 +3315,12 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	fprintf(dash_cfg->mpd, " bandwidth=\"%d\"", bandwidth);
 	fprintf(dash_cfg->mpd, ">\n");
 
+	/* writing Representation level descriptors */
+	if (dash_input->nb_rep_descs) {
+		for (i=0; i<dash_input->nb_rep_descs; i++) {
+			fprintf(dash_cfg->mpd, "    %s\n", dash_input->rep_descs[i]);
+		}
+	}
 
 	if (dash_cfg->single_file_mode==1) {
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, 1, SegName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
@@ -3806,13 +3840,16 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 	return GF_OK;
 }
 
-static GF_Err write_period_header(FILE *mpd, const char *szID, Double period_start, Double period_duration, Bool dash_dynamic, const char *xlink)
+static GF_Err write_period_header(FILE *mpd, const char *szID, Double period_start, Double period_duration, 
+								  Bool dash_dynamic, const char *xlink, 
+								  GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 period_num)
 {
 	u32 h, m;
 	Double s;
+	u32 i,j;
 
 	fprintf(mpd, " <Period");
-	if (szID)
+	if (szID && strlen(szID))
 		fprintf(mpd, " id=\"%s\"", szID);
 
 	if (period_start || dash_dynamic) {
@@ -3831,11 +3868,25 @@ static GF_Err write_period_header(FILE *mpd, const char *szID, Double period_sta
 		fprintf(mpd, " xlink:href=\"%s\"", xlink);
 	}
 	fprintf(mpd, ">\n");
+
+	/* writing Period level descriptors */
+	for (i=0; i< nb_dash_inputs; i++) {
+		if (dash_inputs[i].adaptation_set && (dash_inputs[i].period==period_num)) {
+			for (j = 0; j < dash_inputs[i].nb_p_descs; j++) {
+				fprintf(mpd, "  %s\n", dash_inputs[i].p_descs[j]);
+			}
+		}
+	}
+
 	return GF_OK;
 }
 
-static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool use_url_template, u32 single_file_mode, GF_DashSegInput *first_rep, Bool bitstream_switching_mode, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang, const char *szInitSegment)
+static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool use_url_template, u32 single_file_mode, 
+									  GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 period_num, u32 adaptation_set_num, u32 first_rep_in_set, 
+									  Bool bitstream_switching_mode, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang, const char *szInitSegment)
 {
+	u32 i, j;
+	GF_DashSegInput *first_rep = &dash_inputs[first_rep_in_set];
 	fprintf(mpd, "  <AdaptationSet segmentAlignment=\"true\"");
 	if (bitstream_switching_mode) {
 		fprintf(mpd, " bitstreamSwitching=\"true\"");
@@ -3850,7 +3901,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 		gf_media_reduce_aspect_ratio(&max_width, &max_height);
 		fprintf(mpd, " par=\"%d:%d\"", max_width, max_height);
 	}
-	if (szLang && szLang[0]) {
+	if (szLang && szLang[0] && strcmp(szLang, "und")) {
 		fprintf(mpd, " lang=\"%s\"", szLang);
 	}
 	/*this should be fixed to use info collected during segmentation process*/
@@ -3862,8 +3913,21 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 
 	fprintf(mpd, ">\n");
 
+	/* writing AdaptationSet level descriptors specified only on one input (non discriminating during classification)*/
+	for (i=0; i< nb_dash_inputs; i++) {
+		if (dash_inputs[i].adaptation_set == adaptation_set_num && dash_inputs[i].period == period_num) {
+			for (j = 0; j < dash_inputs[i].nb_as_c_descs; j++) {
+				fprintf(mpd, "   %s\n", dash_inputs[i].as_c_descs[j]);
+			}
+		}
+	}
+
 	if (first_rep) {
-		u32 i;
+
+		/* writing AdaptationSet level descriptors specified only all inputs for that AdaptationSet*/
+		for (i=0; i<first_rep->nb_as_descs; i++) {
+			fprintf(mpd, "   %s\n", first_rep->as_descs[i]);
+		}
 
 		if (bitstream_switching_mode) {
 			for (i=0; i<first_rep->nb_components; i++) {
@@ -3885,7 +3949,6 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 				fprintf(mpd, "   <Role schemeIdUri=\"urn:gpac:dash:role:2013\" value=\"%s\"/>\n", first_rep->role);
 			}
 		}
-
 
 		if (first_rep->nb_components>1) {
 			for (i=0; i<first_rep->nb_components; i++) {
@@ -3909,7 +3972,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 					break;
 				}
 				/*if lang not specified at adaptationSet level, put it here*/
-				if ((!szLang || !szLang[0]) && comp->szLang[0]) {
+				if ((!szLang || !szLang[0]) && (comp->szLang[0] && strcmp(comp->szLang, "und"))) {
 					fprintf(mpd, " lang=\"%s\"", comp->szLang);
 				}
 				fprintf(mpd, "/>\n");
@@ -4214,7 +4277,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
                                GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
                                u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf)
 {
-	u32 i, j, segment_mode;
+	u32 i, j, k, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH];
 	char szPeriodXML[GF_MAX_PATH];
 	const char *opt;
@@ -4283,6 +4346,26 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		strcpy(dash_inputs[j].xlink, inputs[i].xlink);
 		if (strlen(dash_inputs[j].xlink)) uses_xlink = GF_TRUE;
 		strcpy(dash_inputs[j].role, inputs[i].role);
+		dash_inputs[j].nb_rep_descs = inputs[i].nb_rep_descs;
+		dash_inputs[j].rep_descs = (char **)gf_malloc(dash_inputs[j].nb_rep_descs*sizeof(char *));
+		for (k = 0; k < dash_inputs[j].nb_rep_descs; k++) {
+			dash_inputs[j].rep_descs[k] = inputs[i].rep_descs[k];
+		}
+		dash_inputs[j].nb_as_descs = inputs[i].nb_as_descs;
+		dash_inputs[j].as_descs = (char **)gf_malloc(dash_inputs[j].nb_as_descs*sizeof(char *));
+		for (k = 0; k < dash_inputs[j].nb_as_descs; k++) {
+			dash_inputs[j].as_descs[k] = inputs[i].as_descs[k];
+		}
+		dash_inputs[j].nb_as_c_descs = inputs[i].nb_as_c_descs;
+		dash_inputs[j].as_c_descs = (char **)gf_malloc(dash_inputs[j].nb_as_c_descs*sizeof(char *));
+		for (k = 0; k < dash_inputs[j].nb_as_c_descs; k++) {
+			dash_inputs[j].as_c_descs[k] = inputs[i].as_c_descs[k];
+		}
+		dash_inputs[j].nb_p_descs = inputs[i].nb_p_descs;
+		dash_inputs[j].p_descs = (char **)gf_malloc(dash_inputs[j].nb_p_descs*sizeof(char *));
+		for (k = 0; k < dash_inputs[j].nb_p_descs; k++) {
+			dash_inputs[j].p_descs[k] = inputs[i].p_descs[k];
+		}
 		dash_inputs[j].bandwidth = inputs[i].bandwidth;
 
 		if (strlen(inputs[i].role) && strcmp(inputs[i].role, "main"))
@@ -4635,7 +4718,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		const char *id=NULL;
 		const char *xlink = NULL;
 
-		/*for each identified adaptationSets, write MPD and perform segmentation of input files*/
+		/* Find period information for this period */
 		for (i=0; i< nb_dash_inputs; i++) {
 			if (dash_inputs[i].adaptation_set && (dash_inputs[i].period==cur_period+1)) {
 				period_duration = dash_inputs[i].period_duration;
@@ -4656,7 +4739,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		period_mpd = gf_f64_open(szPeriodXML, "wb");
 		dash_opts.mpd = period_mpd;
 
-		e = write_period_header(period_mpd, id, 0.0, period_duration, dash_dynamic, NULL);
+		e = write_period_header(period_mpd, id, 0.0, period_duration, dash_dynamic, NULL, dash_inputs, nb_dash_inputs, cur_period+1);
 		if (e) goto exit;
 
 
@@ -4764,7 +4847,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					sprintf(szFPS, "%d", fps_num);
 			}
 
-			e = write_adaptation_header(period_mpd, dash_profile, use_url_template, segment_mode, &dash_inputs[first_rep_in_set], use_bs_switching, max_width, max_height, szFPS, szLang, szInit);
+			e = write_adaptation_header(period_mpd, dash_profile, use_url_template, segment_mode, dash_inputs, nb_dash_inputs, cur_period+1, cur_adaptation_set+1, first_rep_in_set, use_bs_switching, max_width, max_height, szFPS, szLang, szInit);
 			if (e) goto exit;
 
 			is_first_rep = 1;
@@ -4838,7 +4921,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		fclose(period_mpd);
 
 		if (xlink) {
-			write_period_header(mpd, id, 0.0, period_duration, dash_dynamic, xlink);
+			write_period_header(mpd, id, 0.0, period_duration, dash_dynamic, xlink, dash_inputs, nb_dash_inputs, cur_period+1);
 		} else {
 			dash_insert_period_xml(mpd, szPeriodXML);
 		}
@@ -4859,7 +4942,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			sprintf(szOpt, "%g", active_period_start);
 			gf_cfg_set_key(dash_ctx, "DASH", "LastActivePeriodStart", szOpt);
 
-			purge_dash_context(dash_ctx);
+			if (dash_ctx) purge_dash_context(dash_ctx);
 		}
 	}
 	fprintf(mpd, "</MPD>");
@@ -4874,6 +4957,13 @@ exit:
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[DASH] Error moving file %s to %s: %s\n", szTempMPD, mpdfile, gf_error_to_string(e) ));
 			}
 		}
+	}
+	/* TODO free descriptors */
+	for (i=0; i < nb_dash_inputs; i++) {
+		if (dash_inputs[i].as_descs) gf_free(dash_inputs[i].as_descs);
+		if (dash_inputs[i].as_c_descs) gf_free(dash_inputs[i].as_c_descs);
+		if (dash_inputs[i].p_descs) gf_free(dash_inputs[i].p_descs);
+		if (dash_inputs[i].rep_descs) gf_free(dash_inputs[i].rep_descs);
 	}
 	gf_free(dash_inputs);
 	return e;
