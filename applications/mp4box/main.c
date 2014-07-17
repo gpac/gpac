@@ -1412,6 +1412,19 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 		sep[0] = 0;
 		while (opts) {
 			sep = strchr(opts, ':');
+			while (sep) {
+				/* this is a real separator if it is followed by a keyword we are looking for */
+				if (!strnicmp(sep, ":id=", 4) ||
+					!strnicmp(sep, ":period=", 8) ||
+					!strnicmp(sep, ":bandwidth=", 11) ||
+					!strnicmp(sep, ":role=", 6) ||
+					!strnicmp(sep, ":desc", 5) ||
+					!strnicmp(sep, ":xlink=", 7)) {
+						break;
+				} else {
+					sep = strchr(sep+1, ':');
+				}
+			}
 			if (sep && !strncmp(sep, "://", 3)) sep = strchr(sep+3, ':');
 			if (sep) sep[0] = 0;
 
