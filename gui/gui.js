@@ -103,7 +103,7 @@ function filter_event(evt)
   }
   return false;
   
- case GF_EVENT_OPENFILE:
+ case GF_EVENT_DROPFILE:
   var files = evt.files;
   /*todo - handle playlist*/
   if (files.length) {
