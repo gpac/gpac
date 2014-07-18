@@ -1471,7 +1471,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				}
 				(*nb_descs)++;
 				opts += opt_offset;
-				len = strlen(opts);
+				len = (u32) strlen(opts);
 				(*descs) = (char **)gf_realloc((*descs), (*nb_descs)*sizeof(char *));
 				(*descs)[(*nb_descs)-1] = (char *)gf_malloc((len+1)*sizeof(char));
 				strncpy((*descs)[(*nb_descs)-1], opts, len);
