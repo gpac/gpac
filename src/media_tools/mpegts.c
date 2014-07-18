@@ -1409,36 +1409,40 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		}
 
 		if (has_syntax_indicator) {
-			/*remove crc32*/
-			sec->length -= 4;
-			if (gf_m2ts_crc32_check((char *)data, sec->length)) {
-				s32 cur_sec_num;
-				t->version_number = (data[5] >> 1) & 0x1f;
-				if (t->last_section_number && t->section_number && (t->version_number != t->last_version_number)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] table transmission interrupted: previous table (v=%d) %d/%d sections - new table (v=%d) %d/%d sections\n", t->last_version_number, t->section_number, t->last_section_number, t->version_number, data[6] + 1, data[7] + 1) );
-					gf_m2ts_reset_sections(t->sections);
-					t->section_number = 0;
-				}
+			if (sec->length) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted section length %d less than CRC \n", sec->length));
+			} else {
+				/*remove crc32*/
+				sec->length -= 4;
+				if (gf_m2ts_crc32_check((char *)data, sec->length)) {
+					s32 cur_sec_num;
+					t->version_number = (data[5] >> 1) & 0x1f;
+					if (t->last_section_number && t->section_number && (t->version_number != t->last_version_number)) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] table transmission interrupted: previous table (v=%d) %d/%d sections - new table (v=%d) %d/%d sections\n", t->last_version_number, t->section_number, t->last_section_number, t->version_number, data[6] + 1, data[7] + 1) );
+						gf_m2ts_reset_sections(t->sections);
+						t->section_number = 0;
+					}
 
-				t->current_next_indicator = (data[5] & 0x1) ? 1 : 0;
-				/*add one to section numbers to detect if we missed or not the first section in the table*/
-				cur_sec_num = data[6] + 1;
-				t->last_section_number = data[7] + 1;
-				section_start = 8;
-				/*we missed something*/
-				if (!sec->process_individual && t->section_number + 1 != cur_sec_num) {
-					/* TODO - Check how to handle sections when the first complete section does
-					   not have its sec num 0 */
-					section_valid = 0;
-					if (t->is_init) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted table (lost section %d)\n", cur_sec_num ? cur_sec_num-1 : 31) );
+					t->current_next_indicator = (data[5] & 0x1) ? 1 : 0;
+					/*add one to section numbers to detect if we missed or not the first section in the table*/
+					cur_sec_num = data[6] + 1;
+					t->last_section_number = data[7] + 1;
+					section_start = 8;
+					/*we missed something*/
+					if (!sec->process_individual && t->section_number + 1 != cur_sec_num) {
+						/* TODO - Check how to handle sections when the first complete section does
+						   not have its sec num 0 */
+						section_valid = 0;
+						if (t->is_init) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted table (lost section %d)\n", cur_sec_num ? cur_sec_num-1 : 31) );
+						}
+					} else {
+						section_valid = 1;
+						t->section_number = cur_sec_num;
 					}
 				} else {
-					section_valid = 1;
-					t->section_number = cur_sec_num;
-				}
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted section (CRC32 failed)\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted section (CRC32 failed)\n"));
+				} 
 			}
 		} else {
 			section_valid = 1;
@@ -2291,7 +2295,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			data += len+2;
 			pos += len+2;
 			if (desc_len < len+2) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PMT es descriptor size for PID %d\n", pes->pid ) );
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PMT es descriptor size for PID %d\n", es->pid ) );
 				break;
 			}
 			desc_len-=len+2;
