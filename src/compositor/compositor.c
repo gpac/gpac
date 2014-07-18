@@ -3380,12 +3380,12 @@ static void sc_cleanup_event_queue(GF_List *evq, GF_Node *node, GF_SceneGraph *s
 		Bool del = 0;
 		GF_QueuedEvent *qev = gf_list_get(evq, i);
 		if (qev->node) {
-			if (node && qev->node)
+			if (node == qev->node)
 				del = 1;
 			if (sg && (gf_node_get_graph(qev->node)==sg))
 				del = 1;
 		}
-		if (qev->sg==sg)
+		if (qev->sg && (qev->sg==sg))
 			del = 1;
 		else if (qev->target && (qev->target->ptr_type == GF_DOM_EVENT_TARGET_NODE)) {
 			if (node && ((GF_Node *)qev->target->ptr==node))

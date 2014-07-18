@@ -59,23 +59,22 @@ GF_ObjectManager *gf_odm_new()
 void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset)
  {
  #ifndef GPAC_DISABLE_VRML
- 	u32 i;
  	MediaSensorStack *media_sens;
  	MediaControlStack *media_ctrl;
 
-	i=0;
-	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i))) {
+	while ((media_sens = (MediaSensorStack *)gf_list_last(odm->ms_stack))) {
 		MS_Stop(media_sens);
 		/*and detach from stream object*/
 		media_sens->stream = NULL;
+		gf_list_rem_last(odm->ms_stack);
 	}
 
-	i=0;
-	while ((media_ctrl = (MediaControlStack *)gf_list_enum(odm->mc_stack, &i))) {
+	while ((media_ctrl = (MediaControlStack *)gf_list_last(odm->mc_stack))) {
 		if (signal_reset) 
 			gf_odm_remove_mediacontrol(odm, media_ctrl);
 		media_ctrl->stream = NULL;
 		media_ctrl->ck = NULL;
+		gf_list_rem_last(odm->mc_stack);
 	}
  #endif
 }
