@@ -1409,7 +1409,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		}
 
 		if (has_syntax_indicator) {
-			if (sec->length) {
+			if (sec->length < 4) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted section length %d less than CRC \n", sec->length));
 			} else {
 				/*remove crc32*/
