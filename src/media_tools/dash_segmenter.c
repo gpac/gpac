@@ -487,24 +487,24 @@ typedef struct
 {
 	u32 nb_segment;
 	u64 segment_duration;
-} GF_DASHSementDuration;
+} GF_DASHSegmentDuration;
 
 static void store_segment_duration(GF_List **segment_duration, u64 SegmentDuration)
 {
 	u32 k;
-	GF_DASHSementDuration *entry;
+	GF_DASHSegmentDuration *entry;
 
 	if (! *segment_duration) *segment_duration = gf_list_new();
 
 	for (k = 0; k < gf_list_count(*segment_duration); k++) {
-		entry = (GF_DASHSementDuration *)gf_list_get(*segment_duration, k);
+		entry = (GF_DASHSegmentDuration *)gf_list_get(*segment_duration, k);
 		if (SegmentDuration == entry->segment_duration) {
 			entry->nb_segment++;
 			return;
 		}
 	}
 
-	GF_SAFEALLOC(entry, GF_DASHSementDuration);
+	GF_SAFEALLOC(entry, GF_DASHSegmentDuration);
 	entry->segment_duration = SegmentDuration;
 	entry->nb_segment = 1;
 	gf_list_add(*segment_duration, entry);
@@ -1632,8 +1632,8 @@ restart_fragmentation_pass:
 		u32 most_frequent_duration = 0;
 
 		for (k = 0; k < gf_list_count(segment_duration); k++) {
-			GF_DASHSementDuration *entry;
-			entry = (GF_DASHSementDuration *)gf_list_get(segment_duration, k);
+			GF_DASHSegmentDuration *entry;
+			entry = (GF_DASHSegmentDuration *)gf_list_get(segment_duration, k);
 			if (entry->nb_segment > most_frequent_duration) {
 				max_segment_duration = (Double) entry->segment_duration;
 				max_segment_duration /= dash_cfg->dash_scale;
@@ -1931,7 +1931,7 @@ err_exit:
 	if (mpd_timeline_bs) gf_bs_del(mpd_timeline_bs);
 	if (segment_duration) {
 		while (gf_list_count(segment_duration)) {
-			GF_DASHSementDuration *entry = (GF_DASHSementDuration *)gf_list_last(segment_duration);
+			GF_DASHSegmentDuration *entry = (GF_DASHSegmentDuration *)gf_list_last(segment_duration);
 			gf_free(entry);
 			gf_list_rem_last(segment_duration);
 		}
