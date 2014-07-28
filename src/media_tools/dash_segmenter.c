@@ -1361,7 +1361,7 @@ restart_fragmentation_pass:
 							if (next_sap_time) {
 								u32 scaler;
 								/*this is the fragment duration from last sample added to next SAP*/
-								frag_dur += (u32) (next_sap_time - tf->next_sample_dts - next_dur) * dash_cfg->dash_scale / tf->TimeScale;
+								frag_dur += (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dash_cfg->dash_scale / tf->TimeScale;
 								/*if media segment about to be produced is longer than max segment length, force segment split*/
 								if (SegmentDuration + frag_dur > MaxSegmentDuration) {
 									split_at_rap = GF_TRUE;
@@ -1491,7 +1491,6 @@ restart_fragmentation_pass:
 
 			if (!simulation_pass) {
 				u64 idx_start_range, idx_end_range;
-
 
 				gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, flush_all_samples ? GF_TRUE : GF_FALSE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
 
