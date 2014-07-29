@@ -147,7 +147,7 @@ static void gf_m2ts_estimate_duration(GF_M2TS_Demuxer *ts, u64 PCR, u16 pcr_pid)
 			ts->pcr_pid = pcr_pid;
 			ts->nb_pck_at_pcr = ts->nb_pck;
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Estimated duration based on instant bitrate: %g\n", ts->duration));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Estimated duration based on instant bitrate: %g sec\n", ts->duration));
 
 			if (ts->on_event && changed) {
 				GF_M2TS_PES_PCK pck;
@@ -2569,7 +2569,7 @@ static void gf_m2ts_flush_temi(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 	ts->on_event(ts, GF_M2TS_EVT_TEMI_TIMECODE, &temi_tc);
 }
 
-static void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
+void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 {
 	GF_M2TS_PESHeader pesh;
 

@@ -7944,6 +7944,9 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	break;
 	}
 }
+
+extern void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes);
+
 /* Warning: we start importing only after finding the PMT */
 GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 {
@@ -7952,7 +7955,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	char data[188];
 	GF_TSImport tsimp;
 	u64 fsize, done;
-	u32 size;
+	u32 size, i;
 	Bool do_import = 1;
 	FILE *mts;
 	char progress[1000];
@@ -8005,6 +8008,16 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		fclose(mts);
 		return e;
 	}
+
+	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
+		if (ts->ess[i]) {
+			if (ts->ess[i]->flags & GF_M2TS_ES_IS_PES) {
+				gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) ts->ess[i]);
+				ts->on_event(ts, GF_M2TS_EVT_EOS, (GF_M2TS_PES *) ts->ess[i]);
+			}
+		}
+	}
+
 	import->esd = NULL;
 	if (do_import) gf_set_progress(progress, (u32) (fsize/1024), (u32) (fsize/1024));
 
@@ -8364,7 +8377,7 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 	if (!in) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
 	bs = gf_bs_from_file(in, GF_BITSTREAM_READ);
 
-	if (!gf_ac3_parser_bs(bs, &hdr, 1)) {
+	if (!gf_ac3_parser_bs(bs, &hdr, GF_TRUE)) {
 		gf_bs_del(bs);
 		fclose(in);
 		return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Audio isn't AC3 audio");
