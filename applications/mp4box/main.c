@@ -357,6 +357,7 @@ void PrintDASHUsage()
 	        " -moof-sn N           sets sequence number of first moof to N\n"
 	        " -tfdt N              sets TFDT of first traf to N in SCALE units (cf -dash-scale)\n"
 	        " -no-frags-default    disables default flags in fragments\n"
+			" -single-traf         uses a single track fragment per moof (smooth streaming and derived specs may require this)\n"
 	        " -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 	        "\n");
 }
@@ -1565,7 +1566,7 @@ int mp4boxMain(int argc, char **argv)
 	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
 	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic, initial_moof_sn, dump_std, dump_mode, import_subtitle;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
-	Bool print_sdp, print_info, open_edit, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults;
+	Bool print_sdp, print_info, open_edit, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults, single_traf_per_moof;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
 	u32 track_dump_type;
 	u32 trackID;
@@ -1634,6 +1635,7 @@ int mp4boxMain(int argc, char **argv)
 	dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = 0;
 	no_fragments_defaults = 0;
+	single_traf_per_moof = 0,
 	dash_dynamic = 0;
 	/*align cat is the new default behaviour for -cat*/
 	align_cat = 1;
@@ -2121,6 +2123,9 @@ int mp4boxMain(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-no-frags-default")) {
 			no_fragments_defaults = 1;
+		}
+		else if (!stricmp(arg, "-single-traf")) {
+			single_traf_per_moof = 1;
 		}
 		else if (!stricmp(arg, "-mpd-title")) {
 			CHECK_NEXT_ARG dash_title = argv[i+1];
@@ -3246,7 +3251,7 @@ int mp4boxMain(int argc, char **argv)
 			                            seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
 			                            interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
 			                            dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
-			                            ast_shift_sec, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf);
+			                            ast_shift_sec, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf, single_traf_per_moof);
 			if (e) break;
 
 			if (dash_live) {
