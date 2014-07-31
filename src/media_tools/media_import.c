@@ -7452,7 +7452,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						import->tk_info[i].audio_info.sample_rate = pck->stream->aud_sr;
 						import->tk_info[i].audio_info.nb_channels = pck->stream->aud_nb_ch;
 						if ((pck->stream->stream_type==GF_M2TS_AUDIO_AAC) || (pck->stream->stream_type==GF_M2TS_AUDIO_LATM_AAC)) {
-							sprintf(import->tk_info[i].szCodecProfile, "mp4a.40.%02x", (u8) pck->stream->aud_obj_type);
+							sprintf(import->tk_info[i].szCodecProfile, "mp4a.40.%02x", (u8) pck->stream->aud_aac_obj_type);
 						}
 						import->tk_info[i].audio_info.sample_rate = pck->stream->aud_sr;
 						import->tk_info[i].audio_info.nb_channels = pck->stream->aud_nb_ch;

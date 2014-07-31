@@ -2666,17 +2666,45 @@ void m2ts_export_check(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	if (evt_type == GF_M2TS_EVT_PMT_REPEAT) ts->user = NULL;
 	else if (evt_type == GF_M2TS_EVT_PAT_FOUND) ts->segment_switch = 1;
 }
+
+struct _ts_export
+{
+	FILE *dst;
+	Bool is_latm;
+};
+
 void m2ts_export_dump(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 {
+	struct _ts_export *tsx = (struct _ts_export *) ts->user;
+
 	if (evt_type == GF_M2TS_EVT_PES_PCK) {
-		FILE *dst = (FILE*)ts->user;
 		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK *)par;
-		gf_fwrite(pck->data, pck->data_len, 1, dst);
+		
+		if (tsx->is_latm) {
+			GF_BitStream *bs = gf_bs_from_file(tsx->dst, GF_BITSTREAM_WRITE);
+
+			gf_bs_write_int(bs, 0xFFF, 12);/*sync*/
+			gf_bs_write_int(bs, 0, 1);/*mpeg2 aac*/
+			gf_bs_write_int(bs, 0, 2); /*layer*/
+			gf_bs_write_int(bs, 1, 1); /* protection_absent*/
+
+			gf_bs_write_int(bs, pck->stream->aud_aac_obj_type - 1 , 2);
+
+			gf_bs_write_int(bs, pck->stream->aud_aac_sr_idx, 4);
+			gf_bs_write_int(bs, 0, 1);
+			gf_bs_write_int(bs, pck->stream->aud_nb_ch, 3);
+			gf_bs_write_int(bs, 0, 4);
+			gf_bs_write_int(bs, 7+pck->data_len, 13);
+			gf_bs_write_int(bs, 0x7FF, 11);
+			gf_bs_write_int(bs, 0, 2);
+
+			gf_bs_del(bs);
+		}
+		gf_fwrite(pck->data, pck->data_len, 1, tsx->dst);
 	}
 	else if (evt_type == GF_M2TS_EVT_SL_PCK) {
-		FILE *dst = (FILE*)ts->user;
 		GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK *)par;
-		gf_fwrite(pck->data + 5, pck->data_len - 5, 1, dst);
+		gf_fwrite(pck->data + 5, pck->data_len - 5, 1, tsx->dst);
 	}
 }
 
@@ -2688,7 +2716,8 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	u64 size, fsize, fdone;
 	Bool is_stdout=0;
 	GF_M2TS_Demuxer *ts;
-	FILE *src, *dst;
+	FILE *src;
+	struct _ts_export tsx;
 
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
 
@@ -2735,6 +2764,7 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		return gf_export_message(dumper, GF_URL_ERROR, "Cannot find PID %d in transport stream", dumper->trackID);
 	}
 
+	tsx.is_latm = 0;
 	sprintf(szFile, "%s_pid%d", dumper->out_name ? dumper->out_name : "", stream->pid);
 	switch (stream->stream_type) {
 	case GF_M2TS_VIDEO_MPEG1:
@@ -2756,6 +2786,11 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	case GF_M2TS_AUDIO_AAC:
 		strcat(szFile, ".aac");
 		gf_export_message(dumper, GF_OK, "Extracting MPEG-4 Audio stream to aac");
+		break;
+	case GF_M2TS_AUDIO_LATM_AAC:
+		strcat(szFile, ".aac");
+		tsx.is_latm = 1;
+		gf_export_message(dumper, GF_OK, "Extracting MPEG-4 Audio LATM stream to aac");
 		break;
 	case GF_M2TS_VIDEO_MPEG4:
 		strcat(szFile, ".cmp");
@@ -2786,8 +2821,8 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	if (dumper->out_name && !strcmp(dumper->out_name, "std"))
 		is_stdout=1;
 
-	dst = is_stdout ? stdout : gf_f64_open(szFile, "wb");
-	if (!dst) {
+	tsx.dst = is_stdout ? stdout : gf_f64_open(szFile, "wb");
+	if (!tsx.dst) {
 		fclose(src);
 		gf_m2ts_demux_del(ts);
 		return gf_export_message(dumper, GF_IO_ERR, "Cannot open file %s for writing", szFile);
@@ -2796,7 +2831,7 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	gf_m2ts_reset_parsers(ts);
 	gf_f64_seek(src, 0, SEEK_SET);
 	fdone = 0;
-	ts->user = dst;
+	ts->user = &tsx;
 	ts->on_event = m2ts_export_dump;
 	while (!feof(src)) {
 		size = fread(data, 1, 188, src);
@@ -2810,7 +2845,7 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	gf_set_progress("MPEG-2 TS Extract", fsize, fsize);
 
 	if (!is_stdout)
-		fclose(dst);
+		fclose(tsx.dst);
 	fclose(src);
 	gf_m2ts_demux_del(ts);
 	return GF_OK;

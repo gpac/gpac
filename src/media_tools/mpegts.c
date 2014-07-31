@@ -265,7 +265,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 			sc_pos=1;
 		} else {
 
-			if (start_code_found==2) {
+			if (!full_au_pes_mode && (start_code_found==2)) {
 				pck.data = (char *)data-1;
 				pck.data[0]=0;
 				pck.data_len = sc_pos+1;
@@ -304,6 +304,14 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 							ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 							au_start = NULL;
 							full_au_pes_mode = 0;
+							if (start_code_found==2) {
+								pck.data = (char *)data-1;
+								pck.data[0]=0;
+								pck.data_len = sc_pos+1;
+							} else {
+								pck.data = (char *)data;
+								pck.data_len = sc_pos;
+							}
 						}
 
 						if (au_start_in_pes) {
@@ -371,6 +379,14 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 							ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 							au_start = NULL;
 							full_au_pes_mode = 0;
+							if (start_code_found==2) {
+								pck.data = (char *)data-1;
+								pck.data[0]=0;
+								pck.data_len = sc_pos+1;
+							} else {
+								pck.data = (char *)data;
+								pck.data_len = sc_pos;
+							}
 						}
 
 						if (au_start_in_pes) {
@@ -714,9 +730,10 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			gf_m4a_write_config(&cfg, &pck.data, &pck.data_len);
 			ts->on_event(ts, GF_M2TS_EVT_AAC_CFG, &pck);
 			gf_free(pck.data);
+			pes->aud_aac_sr_idx = cfg.base_sr_index;
 			pes->aud_sr = cfg.base_sr;
 			pes->aud_nb_ch = cfg.nb_chan;
-			pes->aud_obj_type = hdr.profile;
+			pes->aud_aac_obj_type = hdr.profile;
 		}
 
 		/*dispatch frame*/
@@ -770,6 +787,17 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	pck.PTS = pes->PTS;
 	pck.flags = 0;
 
+
+	if (data_len + pes->reassemble_len > pes->reassemble_alloc) {
+		pes->reassemble_alloc = data_len + pes->reassemble_len;
+		pes->reassemble_buf = gf_realloc(pes->reassemble_buf, sizeof(char)*pes->reassemble_alloc);
+	}
+	memcpy(pes->reassemble_buf + pes->reassemble_len, data, data_len);
+	pes->reassemble_len += data_len;
+	data_len = pes->reassemble_len;
+	data = pes->reassemble_buf;
+
+
 	/*fixme - we need to test this with more LATM sources were PES framing is on any boundaries*/
 	while (sc_pos+2<data_len) {
 		u32 size;
@@ -783,14 +811,51 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 
 		/*flush any pending data*/
 		if (start < sc_pos) {
-			/*...*/
-
+				assert(data_len >= sc_pos);
+			memmove(pes->reassemble_buf, pes->reassemble_buf + sc_pos, data_len - sc_pos);
+			pes->reassemble_len -= sc_pos;
+			sc_pos = 0;
+			data_len = pes->reassemble_len;
+			data = pes->reassemble_buf;
 		}
 
 		/*found a start code*/
 		amux_len = data[sc_pos+1] & 0x1F;
 		amux_len <<= 8;
 		amux_len |= data[sc_pos+2];
+		if (!amux_len) {
+			sc_pos+=3;
+			assert(data_len >= sc_pos);
+			memmove(pes->reassemble_buf, pes->reassemble_buf + sc_pos, data_len - sc_pos);
+			pes->reassemble_len -= sc_pos;
+			sc_pos = 0;
+			data_len = pes->reassemble_len;
+			data = pes->reassemble_buf;
+			continue;
+		}
+
+
+		//we cannot check sync wait for next frame
+		if (data_len < sc_pos+4+amux_len) {
+			if (pes->aud_sr) {
+				u32 tsinc = 1024*90000/pes->aud_sr;
+				pes->PTS += tsinc;
+			}
+			return 0;
+		}
+
+		//we are not sync, trash what is before the start code and continue
+		if ((data[sc_pos+3+amux_len] != 0x56) || ((data[sc_pos+3+amux_len + 1] & 0xE0) != 0xE0)) {
+			sc_pos+=2;
+			assert(data_len >= sc_pos);
+			memmove(pes->reassemble_buf , pes->reassemble_buf+ sc_pos, data_len - sc_pos);
+			pes->reassemble_len -= sc_pos;
+			sc_pos = 0;
+			data_len = pes->reassemble_len;
+			data = pes->reassemble_buf;
+			continue;
+		}
+
 
 		bs = gf_bs_new((char *)data+sc_pos+3, amux_len, GF_BITSTREAM_READ);
 
@@ -823,9 +888,10 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 
 							if (!pes->aud_sr) {
 								pck.stream = pes;
+								pes->aud_aac_sr_idx = cfg.base_sr_index;
 								pes->aud_sr = cfg.base_sr;
 								pes->aud_nb_ch = cfg.nb_chan;
-								pes->aud_obj_type = cfg.base_object_type;
+								pes->aud_aac_obj_type = cfg.base_object_type;
 
 								gf_m4a_write_config(&cfg, &pck.data, &pck.data_len);
 								ts->on_event(ts, GF_M2TS_EVT_AAC_CFG, &pck);
@@ -878,17 +944,23 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			pck.data_len = size;
 
 			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+		}
+		gf_bs_del(bs);
 
+		//trash dispatched AU, including 3 bytes header
+		sc_pos += amux_len+3;
+				assert(data_len >= sc_pos);
+		memmove(pes->reassemble_buf, pes->reassemble_buf + sc_pos, data_len - sc_pos);
+		pes->reassemble_len -= sc_pos;
+		sc_pos = 0;
+		data_len = pes->reassemble_len;
+		data = pes->reassemble_buf;
+
+		if ((data_len>3) && pes->aud_sr) {
 			/*update PTS in case we don't get any update*/
 			size = 1024*90000/pes->aud_sr;
 			pes->PTS += size;
 		}
-		gf_bs_del(bs);
-
-		/*parse amux*/
-		sc_pos += amux_len+3;
-		start = sc_pos;
-
 	}
 	/*we consumed all data*/
 	return 0;
@@ -1240,6 +1312,8 @@ static void gf_m2ts_section_filter_reset(GF_M2TS_SectionFilter *sf)
 	}
 	sf->cc = -1;
 	sf->length = sf->received = 0;
+	sf->demux_restarted = 1;
+
 }
 static void gf_m2ts_section_filter_del(GF_M2TS_SectionFilter *sf)
 {
@@ -1270,6 +1344,7 @@ void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts)
 		if (pes->pck_data) gf_free(pes->pck_data);
 		if (pes->prev_data) gf_free(pes->prev_data);
 		if (pes->buf) gf_free(pes->buf);
+		if (pes->reassemble_buf) gf_free(pes->reassemble_buf);
 		if (pes->temi_tc_desc) gf_free(pes->temi_tc_desc);
 	}
 	if (es->slcfg) gf_free(es->slcfg);
@@ -1717,7 +1792,7 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 				break;
 
 			default:
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping descriptor (0x%x) not supported\n", d_tag));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping descriptor (0x%x) not supported\n", d_tag));
 				d_pos += d_len;
 				if (d_len == 0) d_pos = descs_size;
 				break;
@@ -2016,6 +2091,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		return;
 	}
 
+	if (pmt->sec->demux_restarted) {
+		pmt->sec->demux_restarted = 0;
+		return;
+	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PMT Found or updated\n"));
 
 	nb_sections = gf_list_count(sections);
@@ -2254,7 +2333,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				case GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR:
 				{
 					es->component_tag = data[2];
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Component Tag: %d on Program %d\n", es->component_tag, es->program->number));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Component Tag: %d on Program %d\n", es->component_tag, es->program->number));
 				}
 				break;
 				case GF_M2TS_DVB_TELETEXT_DESCRIPTOR:
@@ -2378,10 +2457,13 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 	data_size = section->data_size;
 
 	if (!(status&GF_M2TS_TABLE_UPDATE) && gf_list_count(ts->programs)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Multiple different PAT on single TS found, ignoring new PAT declaration (table id %d - extended table id %d)\n", table_id, ex_table_id));
+		if (ts->pat->demux_restarted) {
+			ts->pat->demux_restarted = 0;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Multiple different PAT on single TS found, ignoring new PAT declaration (table id %d - extended table id %d)\n", table_id, ex_table_id));
+		}
 		return;
 	}
-
 	nb_progs = data_size / 4;
 
 	for (i=0; i<nb_progs; i++) {

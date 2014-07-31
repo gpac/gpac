@@ -460,6 +460,8 @@ typedef struct GF_M2TS_SectionFilter
 	u32 service_id;
 
 	gf_m2ts_section_callback process_section;
+
+	Bool demux_restarted;
 } GF_M2TS_SectionFilter;
 
 enum metadata_carriage {
@@ -651,7 +653,7 @@ typedef struct tag_m2ts_pes
 	u32 lang;
 
 	/*object info*/
-	u32 vid_w, vid_h, vid_par, aud_sr, aud_nb_ch, aud_obj_type;
+	u32 vid_w, vid_h, vid_par, aud_sr, aud_nb_ch, aud_aac_obj_type, aud_aac_sr_idx;
 
 	u32 depends_on_pid;
 
@@ -694,8 +696,9 @@ typedef struct tag_m2ts_pes
 	/*used by several reframers to store their parsing state*/
 	u32 frame_state;
 	/*LATM stuff - should be moved out of mpegts*/
-	unsigned char *buf;
+	unsigned char *buf, *reassemble_buf;
 	u32 buf_len;
+	u32 reassemble_len, reassemble_alloc;
 	u64 prev_PTS;
 
 	GF_M2TS_DVB_Subtitling_Descriptor sub;
@@ -930,6 +933,7 @@ struct tag_m2ts_demux
 	GF_List* dsmcc_controler;
 
 	Bool segment_switch;
+	Bool table_reset;
 
 	//duration estimation
 	u64 first_pcr_found;
