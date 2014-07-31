@@ -943,7 +943,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_DIMS:
-			gf_isom_get_track_layout_info(input, i+1, &_w, &_h, NULL, NULL, NULL);
+			gf_isom_get_visual_info(input, i+1, 1, &_w, &_h);
 			if (_w>width) width = _w;
 			if (_h>height) height = _h;
 			break;
