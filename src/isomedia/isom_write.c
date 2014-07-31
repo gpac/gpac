@@ -1204,6 +1204,13 @@ GF_Err gf_isom_set_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 		trak->Header->width = Width<<16;
 		trak->Header->height = Height<<16;
 		return GF_OK;
+	case GF_ISOM_BOX_TYPE_GNRV:
+		((GF_GenericVisualSampleEntryBox*)entry)->Width = Width;
+		((GF_GenericVisualSampleEntryBox*)entry)->Height = Height;
+		trak->Header->width = Width<<16;
+		trak->Header->height = Height<<16;
+		return GF_OK;
+
 	/*check BIFS*/
 	default:
 		if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_SCENE) {
