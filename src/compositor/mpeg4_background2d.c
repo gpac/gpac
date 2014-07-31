@@ -146,6 +146,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 		if (ctx->flags & CTX_BACKROUND_NOT_LAYER) {
 			color &= 0x00FFFFFF;
 			compositor_2d_hybgl_clear_surface(tr_state->visual, NULL, color, GF_FALSE);
+			is_offscreen = GF_TRUE;
 			clear_all = GF_FALSE;
 		}
 	}
