@@ -92,6 +92,7 @@ typedef struct
 	u64 initial_tfdt;
 	Bool no_fragments_defaults;
 	Bool samplegroups_in_traf;
+	Bool single_traf_per_moof;
 } GF_DASHSegmenterOptions;
 
 struct _dash_segment_input
@@ -1199,6 +1200,11 @@ restart_fragmentation_pass:
 				has_rap = GF_FALSE;
 
 			if (tf->done) continue;
+			//if not the first TRAF in our moof and single traf per moof is requested, start a new moof
+			if (dash_cfg->single_traf_per_moof && (i>0) ) {
+				e = gf_isom_start_fragment(output, 1);
+				if (e) goto err_exit;
+			}
 		
 			//ok write samples
 			while (1) {
@@ -1973,6 +1979,8 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 
 		input->components[input->nb_components].ID = gf_isom_get_track_id(in, i+1);
 		input->components[input->nb_components].media_type = mtype;
+		gf_isom_get_media_language(in, i+1, input->components[input->nb_components].szLang);
+
 		if (mtype == GF_ISOM_MEDIA_VISUAL) {
 			gf_isom_get_visual_info(in, i+1, 1, &input->components[input->nb_components].width, &input->components[input->nb_components].height);
 
@@ -1980,13 +1988,13 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 			/*get duration of 2nd sample*/
 			input->components[input->nb_components].fps_denum = gf_isom_get_sample_duration(in, i+1, 2);
 
+			input->components[input->nb_components].szLang[0] = 0;
 		}
 		/*non-video tracks, get lang*/
 		else if (mtype == GF_ISOM_MEDIA_AUDIO) {
 			u8 bps;
 			gf_isom_get_audio_info(in, i+1, 1, &input->components[input->nb_components].sample_rate, &input->components[input->nb_components].channels, &bps);
 		}
-		gf_isom_get_media_language(in, i+1, input->components[input->nb_components].szLang);
 
 		input->nb_components++;
 	}
@@ -4274,7 +4282,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
                                Bool seg_at_rap, Double dash_duration, char *seg_name, char *seg_ext, u32 segment_marker_4cc,
                                Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
                                GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
-                               u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf)
+                               u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof)
 {
 	u32 i, j, k, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH];
@@ -4554,6 +4562,8 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.memory_mode = fragments_in_memory;
 	dash_opts.pssh_moof = pssh_moof;
 	dash_opts.samplegroups_in_traf = samplegroups_in_traf;
+	dash_opts.single_traf_per_moof = single_traf_per_moof;
+
 
 	dash_opts.segment_duration = dash_duration * 1000 / dash_scale;
 	dash_opts.subduration = subduration * 1000 / dash_scale;
