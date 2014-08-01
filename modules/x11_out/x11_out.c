@@ -1157,6 +1157,21 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 			break;
 		case GF_EVENT_SHOWHIDE:
 			break;
+		case GF_EVENT_MOVE:
+			if (xWindow->fullscreen) return GF_OK; 
+
+			if (evt->move.relative == 2) {
+			}
+			else if (evt->move.relative) {
+				u32 x, y;
+				Window child;
+				x = y = 0;
+				XTranslateCoordinates(xWindow->display, xWindow->wnd, RootWindowOfScreen (xWindow->screenptr), 0, 0, &x, &y, &child );
+				XMoveWindow(xWindow->display, xWindow->wnd, x + evt->move.x, y + evt->move.y);
+			} else {
+				XMoveWindow(xWindow->display, xWindow->wnd, evt->move.x, evt->move.y);
+			}
+			break;
 		case GF_EVENT_SIZE:
 			/*if owning the window and not in fullscreen, resize it (initial scene size)*/
 			xWindow->w_width = evt->size.width;
