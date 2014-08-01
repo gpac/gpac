@@ -144,6 +144,18 @@ typedef u32 GF_Color;
 /*!\hideinitializer transfoms a 32-bits color into a 15-bits one.\note alpha component is lost*/
 #define GF_COL_TO_444(c) (((GF_COL_R(c) & 240)<<4) + ((GF_COL_G(c) & 240))  + ((GF_COL_B(c)>>4) & 240) )
 
+/*!Parses color from HTML name or hexa representation
+ *\param name name of the color to parse
+ *\return @GF_Color value with alpha set to 0xFF if successfull, 0 otherwise
+*/
+GF_Color gf_color_parse(const char *name);
+
+/*!Gets color from HTML name or hexa representation
+ *\param col color to identify
+ *\return name of the color if successfull, NULL otherwise
+*/
+const char *gf_color_get_name(GF_Color col);
+
 /*!Inits a color matrix to identity*/
 void gf_cmx_init(GF_ColorMatrix *_this);
 /*!Inits all coefficients of a color matrix

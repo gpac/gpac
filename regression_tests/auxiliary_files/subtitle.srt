@@ -9,7 +9,7 @@ on 2 lines
 
 3
 00:00:05,986 --> 00:00:06,419
-<b>and also bold</b>
+<b><font color="cyan">and</font> also bold</b>
 
 4
 00:00:07,223 --> 00:00:08,487

@@ -33,6 +33,7 @@
 #include <gpac/nodes_x3d.h>
 /*for key codes...*/
 #include <gpac/user.h>
+#include <gpac/color.h>
 
 
 #if !defined(GPAC_DISABLE_LOADER_BT) && !defined(GPAC_DISABLE_ZLIB)
@@ -678,28 +679,27 @@ GF_Err gf_bt_parse_bool(GF_BTParser *parser, const char *name, SFBool *val)
 GF_Err gf_bt_parse_color(GF_BTParser *parser, const char *name, SFColor *col)
 {
 	Float f;
+	u32 val;
 	char *str = gf_bt_get_next(parser, 0);
 	if (!str) return parser->last_error = GF_IO_ERR;
 	if (gf_bt_check_externproto_field(parser, str)) return GF_OK;
 
-	/*HTML code*/
-	if (str[0]=='$') {
-		u32 val;
-		sscanf(str+1, "%x", &val);
-		col->red = INT2FIX((val>>16) & 0xFF) / 255;
-		col->green = INT2FIX((val>>8) & 0xFF) / 255;
-		col->blue = INT2FIX(val & 0xFF) / 255;
+	if (sscanf(str, "%f", &f) == 1) {
+		col->red = FLT2FIX(f);
+		/*many VRML files use ',' separator*/
+		gf_bt_check_code(parser, ',');
+		gf_bt_parse_float(parser, name, & col->green);
+		gf_bt_check_code(parser, ',');
+		gf_bt_parse_float(parser, name, & col->blue);
 		return parser->last_error;
 	}
-	if (sscanf(str, "%f", &f) != 1) {
-		return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number expected", name);
+	val = gf_color_parse(str);
+	if (!val) {
+		return gf_bt_report(parser, GF_BAD_PARAM, "%s: Number or name expected", name);
 	}
-	col->red = FLT2FIX(f);
-	/*many VRML files use ',' separator*/
-	gf_bt_check_code(parser, ',');
-	gf_bt_parse_float(parser, name, & col->green);
-	gf_bt_check_code(parser, ',');
-	gf_bt_parse_float(parser, name, & col->blue);
+	col->red = INT2FIX((val>>16) & 0xFF) / 255;
+	col->green = INT2FIX((val>>8) & 0xFF) / 255;
+	col->blue = INT2FIX(val & 0xFF) / 255;
 	return parser->last_error;
 }
 
