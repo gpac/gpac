@@ -1350,7 +1350,7 @@ void dump_file_ismacryp(GF_ISOFile *file, char *inName)
 }
 
 
-void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_convert, u32 dump_type)
+void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, char *outName, Bool is_convert, u32 dump_type)
 {
 	FILE *dump;
 	GF_Err e;
@@ -1373,11 +1373,15 @@ void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_
 	}
 
 	if (inName) {
-		if (is_convert)
-			sprintf(szBuf, "%s.%s", inName, (dump_type==2) ? "svg" : ((dump_type==1) ? "srt" : "ttxt") ) ;
-		else
-			sprintf(szBuf, "%s_%d_text.%s", inName, trackID, (dump_type==2) ? "svg" : ((dump_type==1) ? "srt" : "ttxt") );
-		dump = gf_f64_open(szBuf, "wt");
+		if (outName) {
+			dump = gf_f64_open(outName, "wt");
+		} else {
+			if (is_convert)
+				sprintf(szBuf, "%s.%s", inName, (dump_type==2) ? "svg" : ((dump_type==1) ? "srt" : "ttxt") ) ;
+			else
+				sprintf(szBuf, "%s_%d_text.%s", inName, trackID, (dump_type==2) ? "svg" : ((dump_type==1) ? "srt" : "ttxt") );
+			dump = gf_f64_open(szBuf, "wt");
+		}
 	} else {
 		dump = stdout;
 	}

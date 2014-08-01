@@ -114,7 +114,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName);
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 void dump_file_ismacryp(GF_ISOFile *file, char *inName);
-void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_convert, u32 dump_type);
+void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, char *outName, Bool is_convert, u32 dump_type);
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
 
 
@@ -3018,13 +3018,13 @@ int mp4boxMain(int argc, char **argv)
 			gf_delete_file("ttxt_convert");
 			MP4BOX_EXIT_WITH_CODE(1);
 		}
-		strcpy(outfile, outName ? outName : inName);
+		strcpy(outfile, inName);
 		if (strchr(outfile, '.')) {
 			while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 			outfile[strlen(outfile)-1] = 0;
 		}
 #ifndef GPAC_DISABLE_ISOM_DUMP
-		dump_timed_text_track(file, gf_isom_get_track_id(file, 1), dump_std ? NULL : outfile, 1, (import_subtitle==2) ? 2 : dump_srt);
+		dump_timed_text_track(file, gf_isom_get_track_id(file, 1), dump_std ? NULL : outfile, outName, 1, (import_subtitle==2) ? 2 : dump_srt);
 #endif
 		gf_isom_delete(file);
 		gf_delete_file("ttxt_convert");
@@ -3502,7 +3502,7 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_ISOM_DUMP
 	if (dump_isom) dump_isom_xml(file, dump_std ? NULL : outfile);
 	if (dump_cr) dump_file_ismacryp(file, dump_std ? NULL : outfile);
-	if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, 0, dump_srt);
+	if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, outName, 0, dump_srt);
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	if (dump_rtp) dump_file_rtp(file, dump_std ? NULL : outfile);
 #endif
