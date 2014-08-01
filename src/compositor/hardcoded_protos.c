@@ -1051,6 +1051,94 @@ void compositor_init_style_group(GF_Compositor *compositor, GF_Node *node)
 }
 
 
+
+/*TestSensor: tests eventIn/eventOuts for hardcoded proto*/
+typedef struct
+{
+	BASE_NODE
+
+	Bool onTrigger;
+	Float value;
+} TestSensor;
+
+typedef struct
+{
+	TestSensor ts;
+} TestSensorStack;
+
+static Bool TestSensor_GetNode(GF_Node *node, TestSensor *ts)
+{
+	GF_FieldInfo field;
+	memset(ts, 0, sizeof(TestSensor));
+	ts->sgprivate = node->sgprivate;
+
+	if (gf_node_get_field(node, 0, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_SFBOOL) return 0;
+	if (field.eventType != GF_SG_EVENT_IN) return 0;
+	ts->onTrigger = *(SFBool *)field.far_ptr;
+
+	if (gf_node_get_field(node, 1, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_SFFLOAT) return 0;
+	if (field.eventType != GF_SG_EVENT_EXPOSED_FIELD) return 0;
+	ts->value = *(SFFloat *)field.far_ptr;
+
+	if (gf_node_get_field(node, 2, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_SFFLOAT) return 0;
+	if (field.eventType != GF_SG_EVENT_OUT) return 0;
+
+	return 1;
+}
+
+
+static void TraverseTestSensor(GF_Node *node, void *rs, Bool is_destroy)
+{
+	TestSensorStack *stack = (TestSensorStack *)gf_node_get_private(node);
+
+	if (is_destroy) {
+		gf_free(stack);
+		return;
+	}
+}
+
+void TestSensor_OnTrigger(GF_Node *node, struct _route *route)
+{
+	GF_FieldInfo field;
+	Float value;
+	TestSensorStack *stack = (TestSensorStack *)gf_node_get_private(node);
+	TestSensor_GetNode(node, &stack->ts);
+
+	if (stack->ts.onTrigger) {
+		value = stack->ts.value;
+	} else {
+		value = 1-stack->ts.value;
+	}
+
+	gf_node_get_field(node, 2, &field);
+	*(SFFloat*)field.far_ptr = value;
+	gf_node_event_out(node, 2);
+}
+
+void compositor_init_test_sensor(GF_Compositor *compositor, GF_Node *node)
+{
+	TestSensor ts;
+	if (TestSensor_GetNode(node, &ts)) {
+		GF_Err e;
+		TestSensorStack *stack;
+		GF_SAFEALLOC(stack, TestSensorStack);
+		gf_node_set_private(node, stack);
+		gf_node_set_callback_function(node, TraverseTestSensor);
+		stack->ts = ts;
+
+		e = gf_node_set_proto_eventin_handler(node, 0, TestSensor_OnTrigger);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to initialize Proto TestSensor callback: %s\n", gf_error_to_string(e) ));
+		}
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Unable to initialize test sensor\n"));
+	}
+}
+
+
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
 void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 {
@@ -1109,6 +1197,10 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 		}
 		if (!strcmp(url, "urn:inet:gpac:builtin:StyleGroup")) {
 			compositor_init_style_group(compositor, node);
+			return;
+		}
+		if (!strcmp(url, "urn:inet:gpac:builtin:TestSensor")) {
+			compositor_init_test_sensor(compositor, node);
 			return;
 		}
 

@@ -1632,6 +1632,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_proto_get_class_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_proto_field_is_sftime_offset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_proto_instance_set_ised) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_node_set_proto_eventin_handler) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_script_field_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_script_field_get_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_script_load) )

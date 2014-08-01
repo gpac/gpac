@@ -312,6 +312,7 @@ GF_Err gf_sg_proto_get_field(GF_Proto *proto, GF_Node *node, GF_FieldInfo *info)
 
 	info->fieldType = field->FieldType;
 	info->eventType = field->EventType;
+	info->on_event_in = field->on_event_in;
 	/*SF/MF nodes need pointers to field object - cf gf_sg_proto_create_node*/
 	if (gf_sg_vrml_get_sf_type(field->FieldType) == GF_SG_VRML_SFNODE) {
 		info->far_ptr = &field->field_pointer;
@@ -1309,5 +1310,24 @@ Bool gf_node_is_proto_root(GF_Node *node)
 	if (gf_list_find(node->sgprivate->scenegraph->pOwningProto->node_code, node)>=0) return 1;
 	return 0;
 }
+
+
+GF_EXPORT
+GF_Err gf_node_set_proto_eventin_handler(GF_Node *node, u32 fieldIndex, void (*event_in_cbk)(GF_Node *pThis, struct _route *route) )
+{
+	GF_ProtoInstance *inst;
+	GF_ProtoField *field;
+	if (!node || (node->sgprivate->tag!=TAG_ProtoNode)) return GF_BAD_PARAM;
+
+	inst = (GF_ProtoInstance *) node;
+	field = (GF_ProtoField*)gf_list_get(inst->fields, fieldIndex);
+	if (!field) return GF_BAD_PARAM;
+
+	if (field->EventType!=GF_SG_EVENT_IN) return GF_BAD_PARAM;
+	field->on_event_in = event_in_cbk;
+	return GF_OK;
+}
+
+
 
 #endif	/*GPAC_DISABLE_VRML*/

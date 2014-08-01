@@ -372,7 +372,7 @@ compatible with the base GF_ParentNode node
 All grouping nodes (with "children" field) implement the following:
 
 addChildren: chain containing nodes to add passed as eventIn - handled internally through ROUTE
-void (*on_addChildren)(GF_Node *pNode): add eventIn signaler - this is handled internally by the scene_graph and SHALL
+void (*on_addChildren)(GF_Node *pNode): add feventIn signaler - this is handled internally by the scene_graph and SHALL
 NOT BE OVERRIDEN since it takes care of node(s) routing
 
 removeChildren: chain containing nodes to remove passed as eventIn - handled internally through ROUTE
@@ -657,6 +657,10 @@ Bool gf_node_proto_is_grouping(GF_Node *node);
 
 /*tags a hardcoded proto as being a grouping node*/
 GF_Err gf_node_proto_set_grouping(GF_Node *node);
+
+/*assigns callback to an eventIn field of an hardcoded proto*/
+GF_Err gf_node_set_proto_eventin_handler(GF_Node *node, u32 fieldIndex, void (*event_in_cbk)(GF_Node *pThis, struct _route *route) );
+
 
 
 #ifdef __cplusplus
