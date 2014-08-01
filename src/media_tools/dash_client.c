@@ -2305,7 +2305,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 		if (format_tag) {
 			strcpy(szPrintFormat, format_tag);
 			format_tag[0] = 0;
-			if (!strchr(format_tag, 'd') && !strchr(format_tag, 'i')  && !strchr(format_tag, 'u'))
+			if (!strchr(szPrintFormat, 'd') && !strchr(szPrintFormat, 'i')  && !strchr(szPrintFormat, 'u'))
 				strcat(szPrintFormat, "d");
 		} else {
 			strcpy(szPrintFormat, "%d");
