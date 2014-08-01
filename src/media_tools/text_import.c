@@ -29,6 +29,7 @@
 #include <gpac/utf.h>
 #include <gpac/xml.h>
 #include <gpac/token.h>
+#include <gpac/color.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/internal/isomedia_dev.h>
 
@@ -278,9 +279,9 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	GF_TextSample * samp;
 	GF_ISOSample *s;
 	u32 sh, sm, ss, sms, eh, em, es, ems, txt_line, char_len, char_line, nb_samp, j, duration, rem_styles;
-	Bool set_start_char, set_end_char, first_samp;
+	Bool set_start_char, set_end_char, first_samp, rem_color;
 	u64 start, end, prev_end, file_size;
-	u32 state, curLine, line, len, ID, OCR_ES_ID;
+	u32 state, curLine, line, len, ID, OCR_ES_ID, default_color;
 	s32 unicode_type;
 	char szLine[2048], szText[2048], *ptr;
 	unsigned short uniLine[5000], uniText[5000], *sptr;
@@ -399,6 +400,8 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	}
 	gf_text_import_set_language(import, track);
 	duration = (u32) (((Double) import->duration)*timescale/1000.0);
+
+	default_color = rec.text_color;
 
 	e = GF_OK;
 	state = 0;
@@ -521,9 +524,62 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 			char_line = 0;
 			i=j=0;
 			rem_styles = 0;
+			rem_color = 0;
 			while (i<len) {
-				/*start of new style*/
+				u32 font_style = 0;
+				u32 style_nb_chars = 0;
+				u32 style_def_type = 0;
+
 				if ( (uniLine[i]=='<') && (uniLine[i+2]=='>')) {
+					style_nb_chars = 3;
+					style_def_type = 1;
+				}
+				else if ( (uniLine[i]=='<') && (uniLine[i+1]=='/') && (uniLine[i+3]=='>')) {
+					style_def_type = 2;
+					style_nb_chars = 4;
+				}
+				else if (uniLine[i]=='<')  {
+					const unsigned short* src = uniLine + i;
+					size_t alen = gf_utf8_wcstombs(szLine, 2048, (const unsigned short**) & src);
+					szLine[alen] = 0;
+					strlwr(szLine);
+					if (!strncmp(szLine, "<font ", 6) ) {
+						char *a_sep = strstr(szLine, "color");
+						if (a_sep) a_sep = strchr(a_sep, '"');
+						if (a_sep) {
+							char *e_sep = strchr(a_sep+1, '"');
+							if (e_sep) {
+								e_sep[0] = 0;
+								font_style = gf_color_parse(a_sep+1);
+								e_sep[0] = '"';
+								e_sep = strchr(e_sep+1, '>');
+								if (e_sep) {
+									style_nb_chars = 1 + e_sep - szLine;
+									style_def_type = 1;
+								}
+							}
+
+						}
+					}
+					else if (!strncmp(szLine, "</font>", 7) ) {
+						style_nb_chars = 7;
+						style_def_type = 2;
+						font_style = 0xFFFFFFFF;
+					}
+					//skip unknown
+					else {
+						char *a_sep = strstr(szLine, ">");
+						if (a_sep) {
+							style_nb_chars = a_sep - szLine;
+							i += style_nb_chars;
+							continue;
+						}
+					}
+
+				}
+
+				/*start of new style*/
+				if (style_def_type==1)  {
 					/*store prev style*/
 					if (set_end_char) {
 						assert(set_start_char);
@@ -531,6 +587,10 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 						set_end_char = set_start_char = GF_FALSE;
 						rec.style_flags &= ~rem_styles;
 						rem_styles = 0;
+						if (rem_color) {
+							rec.text_color = default_color;
+							rem_color = 0;
+						}
 					}
 					if (set_start_char && (rec.startCharOffset != j)) {
 						rec.endCharOffset = char_len + j;
@@ -555,13 +615,21 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 						set_start_char = GF_TRUE;
 						rec.startCharOffset = char_len + j;
 						break;
+					case 'f':
+					case 'F':
+						if (font_style) {
+							rec.text_color = font_style;
+							set_start_char = GF_TRUE;
+							rec.startCharOffset = char_len + j;
+						}
+						break;
 					}
-					i+=3;
+					i += style_nb_chars;
 					continue;
 				}
 
 				/*end of prev style*/
-				if ( (uniLine[i]=='<') && (uniLine[i+1]=='/') && (uniLine[i+3]=='>')) {
+				if (style_def_type==2)  {
 					switch (uniLine[i+2]) {
 					case 'b':
 					case 'B':
@@ -581,8 +649,15 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 						set_end_char = GF_TRUE;
 						rec.endCharOffset = char_len + j;
 						break;
+					case 'f':
+					case 'F':
+						if (font_style) {
+							rem_color = 1;
+							set_end_char = GF_TRUE;
+							rec.endCharOffset = char_len + j;
+						}
 					}
-					i+=4;
+					i+=style_nb_chars;
 					continue;
 				}
 				/*store style*/
@@ -593,6 +668,8 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 					rec.startCharOffset = char_len + j;
 					rec.style_flags &= ~rem_styles;
 					rem_styles = 0;
+					rec.text_color = default_color;
+					rem_color = 0;
 				}
 
 				uniText[j] = uniLine[i];

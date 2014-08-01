@@ -525,6 +525,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_multiply) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_apply) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_apply_fixed) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_color_parse) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_color_get_name) )
+
 
 /*path2d.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_path_new) )
