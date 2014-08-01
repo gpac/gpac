@@ -677,7 +677,6 @@ static JSBool SMJS_FUNCTION(gpac_get_scene_time)
 static JSBool SMJS_FUNCTION(gpac_trigger_gc)
 {
 	SMJS_OBJ
-	SMJS_ARGS
 	GF_SceneGraph *sg = NULL;
 	GF_Terminal *term = gpac_get_term(c, obj);
 
