@@ -451,8 +451,8 @@ typedef struct
 	u64 FragmentLength;
 	u32 OriginalTrack;
 	u32 finalSampleDescriptionIndex;
-	u32 TimeScale, MediaType, DefaultDuration, InitialTSOffset;
-	u64 last_sample_cts, next_sample_dts;
+	u32 TimeScale, MediaType, DefaultDuration;
+	u64 last_sample_cts, next_sample_dts, InitialTSOffset;
 	Bool all_sample_raps, splitable;
 	u32 split_sample_dts_shift;
 	s32 media_time_to_pres_time_shift;
@@ -926,7 +926,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			char *opt, sKey[100];
 			sprintf(sKey, "TKID_%d_NextDecodingTime", tf->TrackID);
 			opt = (char *)gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, sKey);
-			if (opt) tf->InitialTSOffset = atoi(opt);
+			if (opt) sscanf(opt, LLU, & tf->InitialTSOffset);
 
 			/*store presentationTimeOffset on the first rep*/
 			if (store_dash_params)
