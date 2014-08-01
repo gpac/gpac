@@ -940,8 +940,10 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			u32 ucs4_len;
 			assert( len < 5 );
 			ucs4_len = utf8_to_ucs4 (&(gpac_evt.character.unicode_char), len, (unsigned char*)(sdl_evt.text.text));
-			gpac_evt.type = GF_EVENT_TEXTINPUT;
-			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+			if (ucs4_len) {
+				gpac_evt.type = GF_EVENT_TEXTINPUT;
+				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+			}
 			break;
 		}
 #endif /* SDL_TEXTINPUTEVENT_TEXT_SIZE */
@@ -1206,13 +1208,14 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 #endif
 
 	if (ctx->fullscreen) {
-		u32 flags;
+#if ! ( SDL_VERSION_ATLEAST(2,0,0) )
+		u32 flags = (ctx->output_3d_type==1) ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
+#endif
 		Bool switch_res = GF_FALSE;
 		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "SwitchResolution");
 		if (sOpt && !stricmp(sOpt, "yes")) switch_res = 1;
 		if (!dr->max_screen_width || !dr->max_screen_height) switch_res = 1;
 
-		flags = (ctx->output_3d_type==1) ? SDL_GL_FULLSCREEN_FLAGS : SDL_FULLSCREEN_FLAGS;
 		ctx->store_width = *screen_width;
 		ctx->store_height = *screen_height;
 		if (switch_res) {
