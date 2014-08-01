@@ -471,6 +471,7 @@ typedef struct
 	u8 FieldType;
 	u8 has_been_accessed;
 	void *field_pointer;
+	void (*on_event_in)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
 } GF_ProtoField;
 
 
