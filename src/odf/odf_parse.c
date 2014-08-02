@@ -282,11 +282,11 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			/*XMT may use string*/
 			if (!ret) {
 				if (!stricmp(val, "MPEG4Systems1")) {
-					dcd->objectTypeIndication = 0x01;
+					dcd->objectTypeIndication = GPAC_OTI_OD_V1;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG4Systems2")) {
-					dcd->objectTypeIndication = 0x02;
+					dcd->objectTypeIndication = GPAC_OTI_SCENE_BIFS_V2;
 					ret = 1;
 				}
 				else if (!stricmp(val, "MPEG4Visual")) {

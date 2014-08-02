@@ -155,7 +155,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	src->slConfig->timestampResolution = 1000;
 	if (!src->decoderConfig) src->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
 	src->decoderConfig->streamType = GF_STREAM_SCENE;
-	src->decoderConfig->objectTypeIndication = 1;
+	src->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS;
 
 	e = GF_OK;
 	state = end = 0;
@@ -408,7 +408,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	src->slConfig->timestampResolution = 1000;
 	if (!src->decoderConfig) src->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
 	src->decoderConfig->streamType = GF_STREAM_SCENE;
-	src->decoderConfig->objectTypeIndication = 1;
+	src->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS;
 
 	e = GF_OK;
 	start = end = 0;
