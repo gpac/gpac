@@ -102,8 +102,8 @@ static GF_ESD *AMR_GetESD(AMR_Reader *read)
 		gf_bs_get_content(dsi, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(dsi);
 	}
-	else if (read->mtype==TYPE_EVRC) esd->decoderConfig->objectTypeIndication = 0xA0;
-	else if (read->mtype==TYPE_SMV) esd->decoderConfig->objectTypeIndication = 0xA1;
+	else if (read->mtype==TYPE_EVRC) esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_EVRC_VOICE;
+	else if (read->mtype==TYPE_SMV) esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_SMV_VOICE;
 	return esd;
 }
 

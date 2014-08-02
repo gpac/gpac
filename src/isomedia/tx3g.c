@@ -610,7 +610,7 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
 
 	esd = gf_odf_desc_esd_new(2);
 	esd->decoderConfig->streamType = GF_STREAM_TEXT;
-	esd->decoderConfig->objectTypeIndication = 0x08;
+	esd->decoderConfig->objectTypeIndication = GPAC_OTI_TEXT_MPEG4;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 

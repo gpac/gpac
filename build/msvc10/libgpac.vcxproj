@@ -114,6 +114,7 @@
     <ClInclude Include="..\..\include\gpac\user.h" />
     <ClInclude Include="..\..\include\gpac\utf.h" />
     <ClInclude Include="..\..\include\gpac\version.h" />
+    <ClInclude Include="..\..\include\gpac\webvtt.h" />
     <ClInclude Include="..\..\include\gpac\xml.h" />
     <ClInclude Include="..\..\include\win32\inttypes.h" />
     <ClInclude Include="..\..\include\win32\stdint.h" />

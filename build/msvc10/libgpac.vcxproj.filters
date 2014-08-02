@@ -393,6 +393,9 @@
     <ClInclude Include="..\..\include\gpac\version.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\include\gpac\webvtt.h">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\bifs\arith_decoder.c">

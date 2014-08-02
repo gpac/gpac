@@ -1310,7 +1310,7 @@ static GF_ESD *lsr_parse_header(GF_SVG_Parser *parser, const char *name, const c
 		gf_odf_desc_del((GF_Descriptor *)esd->decoderConfig->decoderSpecificInfo);
 		esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) lsrc;
 		esd->decoderConfig->streamType = GF_STREAM_SCENE;
-		esd->decoderConfig->objectTypeIndication = 0x09;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_LASER;
 		esd->slConfig->timestampResolution = lsrc->time_resolution ? lsrc->time_resolution : 1000;
 		return esd;
 	}
