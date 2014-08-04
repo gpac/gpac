@@ -126,14 +126,15 @@ static Bool AC3_ConfigureFromFile(AC3Reader *read)
 	Bool sync;
 	GF_BitStream *bs;
 	GF_AC3Header hdr;
+	memset(&hdr, 0, sizeof(GF_AC3Header));
 	if (!read->stream) return 0;
 	bs = gf_bs_from_file(read->stream, GF_BITSTREAM_READ);
 
 
-	sync = gf_ac3_parser_bs(bs, &hdr, 1);
+	sync = gf_ac3_parser_bs(bs, &hdr, GF_TRUE);
 	if (!sync) {
 		gf_bs_del(bs);
-		return 0;
+		return GF_FALSE;
 	}
 	read->nb_ch = hdr.channels;
 	read->sample_rate = hdr.sample_rate;
@@ -142,7 +143,7 @@ static Bool AC3_ConfigureFromFile(AC3Reader *read)
 	if (!read->is_remote) {
 		read->duration = 1536;
 		gf_bs_skip_bytes(bs, hdr.framesize);
-		while (gf_ac3_parser_bs(bs, &hdr, 0)) {
+		while (gf_ac3_parser_bs(bs, &hdr, GF_FALSE)) {
 			read->duration += 1536;
 			gf_bs_skip_bytes(bs, hdr.framesize);
 		}
@@ -173,6 +174,8 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 	GF_BitStream *bs;
 	GF_AC3Header hdr;
 
+	memset(&hdr, 0, sizeof(GF_AC3Header));
+
 	read->data = gf_realloc(read->data, sizeof(char)*(read->data_size+data_size) );
 	memcpy(read->data + read->data_size, data, sizeof(char)*data_size);
 	read->data_size += data_size;
@@ -180,7 +183,7 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 	if (read->needs_connection) {
 		read->needs_connection = 0;
 		bs = gf_bs_new((char *) read->data, read->data_size, GF_BITSTREAM_READ);
-		sync = gf_ac3_parser_bs(bs, &hdr, 1);
+		sync = gf_ac3_parser_bs(bs, &hdr, GF_TRUE);
 		gf_bs_del(bs);
 		if (!sync) return;
 		read->nb_ch = hdr.channels;
@@ -198,7 +201,7 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 	bs = gf_bs_new((char *) read->data, read->data_size, GF_BITSTREAM_READ);
 	hdr.framesize = 0;
 	pos = 0;
-	while (gf_ac3_parser_bs(bs, &hdr, 0)) {
+	while (gf_ac3_parser_bs(bs, &hdr, GF_FALSE)) {
 		pos = gf_bs_get_position(bs);
 		read->sl_hdr.accessUnitStartFlag = 1;
 		read->sl_hdr.accessUnitEndFlag = 1;
@@ -530,6 +533,7 @@ static GF_Err AC3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 	*out_reception_status = GF_OK;
 	*sl_compressed = 0;
 	*is_new_data = 0;
+	memset(&hdr, 0, sizeof(GF_AC3Header));
 
 	memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 	read->sl_hdr.randomAccessPointFlag = 1;
@@ -554,7 +558,7 @@ static GF_Err AC3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 
 fetch_next:
 		pos = gf_f64_tell(read->stream);
-		sync = gf_ac3_parser_bs(bs, &hdr, 0);
+		sync = gf_ac3_parser_bs(bs, &hdr, GF_FALSE);
 		if (!sync) {
 			gf_bs_del(bs);
 			if (!read->dnload) {

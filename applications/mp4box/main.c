@@ -1665,8 +1665,6 @@ int mp4boxMain(int argc, char **argv)
 	swf_flatten_angle = 0.0f;
 	tmpdir = NULL;
 
-
-
 	for (i = 1; i < (u32) argc ; i++) {
 		if (!strcmp(argv[i], "-mem-track")) {
 #ifdef GPAC_MEMORY_TRACKING
@@ -1677,7 +1675,8 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		}
 	}
-
+	
+	/*init libgpac*/
 	gf_sys_init(enable_mem_tracker);
 	if (argc < 2) {
 		PrintUsage();
@@ -2912,11 +2911,6 @@ int mp4boxMain(int argc, char **argv)
 		return grab_live_m2ts(grab_m2ts, inName);
 	}
 #endif
-	/*init libgpac*/
-	if (enable_mem_tracker) {
-		gf_sys_close();
-		gf_sys_init(enable_mem_tracker);
-	}
 
 	if (gf_logs) {
 		//gf_log_set_tools_levels(gf_logs);

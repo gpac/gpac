@@ -1350,7 +1350,7 @@ void dump_file_ismacryp(GF_ISOFile *file, char *inName)
 }
 
 
-void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, char *outName, Bool is_convert, u32 dump_type)
+void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_convert, u32 dump_type)
 {
 	FILE *dump;
 	GF_Err e;
@@ -1373,15 +1373,11 @@ void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, char *ou
 	}
 
 	if (inName) {
-		if (outName) {
-			dump = gf_f64_open(outName, "wt");
-		} else {
-			if (is_convert)
-				sprintf(szBuf, "%s.%s", inName, (dump_type==2) ? "svg" : ((dump_type==1) ? "srt" : "ttxt") ) ;
-			else
-				sprintf(szBuf, "%s_%d_text.%s", inName, trackID, (dump_type==2) ? "svg" : ((dump_type==1) ? "srt" : "ttxt") );
-			dump = gf_f64_open(szBuf, "wt");
-		}
+		if (is_convert)
+			sprintf(szBuf, "%s.%s", inName, (dump_type==2) ? "svg" : ((dump_type==1) ? "srt" : "ttxt") ) ;
+		else
+			sprintf(szBuf, "%s_%d_text.%s", inName, trackID, (dump_type==2) ? "svg" : ((dump_type==1) ? "srt" : "ttxt") );
+		dump = gf_f64_open(szBuf, "wt");
 	} else {
 		dump = stdout;
 	}
@@ -2061,7 +2057,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 #ifndef GPAC_DISABLE_AV_PARSERS
 		GF_AC3Config *ac3 = gf_isom_ac3_config_get(file, trackNum, 1);
 		if (ac3) {
+			int i;
 			nb_ch = gf_ac3_get_channels(ac3->streams[0].acmod);
+			for (i=0; i<ac3->streams[0].nb_dep_sub; ++i) {
+				assert(ac3->streams[0].nb_dep_sub == 1);
+				nb_ch += gf_ac3_get_channels(ac3->streams[0].chan_loc);
+			}
 			lfe = ac3->streams[0].lfon;
 			br = ac3->is_ec3 ? ac3->brcode : gf_ac3_get_bitrate(ac3->brcode);
 			is_ec3 = ac3->is_ec3;
