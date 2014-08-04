@@ -1316,6 +1316,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4a_write_config_bs) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_parser_bs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_eac3_parser_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_channels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_bitrate) )
 #ifndef GPAC_DISABLE_OGG

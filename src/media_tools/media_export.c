@@ -946,8 +946,14 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				strcat(szName, ".swf");
 		} else if (m_stype==GF_ISOM_SUBTYPE_AC3) {
 			gf_export_message(dumper, GF_OK, "Extracting AC3 Audio");
-			if (add_ext)
-				strcat(szName, ".ac3");
+			if (add_ext) {
+				GF_AC3Config *cfg = gf_isom_ac3_config_get(dumper->file, track, 1);
+				if (cfg->is_ec3)
+					strcat(szName, ".ec3");
+				else
+					strcat(szName, ".ac3");
+				gf_free(cfg);
+			}
 		} else if (m_stype==GF_ISOM_SUBTYPE_WVTT) {
 			gf_export_message(dumper, GF_OK, "Extracting WebVTT");
 			is_webvtt = GF_TRUE;

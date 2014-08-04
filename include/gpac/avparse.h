@@ -174,6 +174,11 @@ static const u32 GF_M4ASampleRates[] =
 	16000, 12000, 11025, 8000, 7350, 0, 0, 0
 };
 
+static const u32 GF_M4ANumChannels[] =
+{
+	1, 2, 3, 4, 5, 6, 8, 3, 4, 7, 8, 24, 8, 12, 10, 12, 14
+};
+
 /*get Audio type from dsi. return audio codec type:*/
 typedef struct
 {
@@ -210,12 +215,14 @@ typedef struct
 	u32 sample_rate;
 	u32 framesize;
 	u32 channels;
+	u16 substreams; //bit-mask, used for channel map > 5.1
 	/*only set if full parse*/
 	u8 fscod, bsid, bsmod, acmod, lfon, brcode;
 } GF_AC3Header;
 
 Bool gf_ac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Header *out_hdr, Bool full_parse);
 Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse);
+Bool gf_eac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse);
 u32 gf_ac3_get_channels(u32 acmod);
 u32 gf_ac3_get_bitrate(u32 brcode);
 

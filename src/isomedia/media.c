@@ -594,7 +594,12 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 	GF_ESD *esd;
 	u64 DTS;
 	GF_SttsEntry *ent;
-	u32 nbSamp = trak->Media->information->sampleTable->SampleSize->sampleCount;
+	u32 nbSamp;
+	
+	if (!trak->Media->information->sampleTable->SampleSize)
+		return GF_BAD_PARAM;
+	else
+		nbSamp = trak->Media->information->sampleTable->SampleSize->sampleCount;
 
 	//we need to check how many samples we have.
 	// == 1 -> last sample duration == default duration

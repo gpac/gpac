@@ -1047,7 +1047,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	                  (import->flags & (GF_IMPORT_PS_IMPLICIT|GF_IMPORT_PS_EXPLICIT)) ? "+PS" : "",
 	                  ((import->flags & (GF_IMPORT_SBR_EXPLICIT|GF_IMPORT_PS_EXPLICIT)) ? " (explicit) " : " "),
 	                  sr,
-	                  (oti==0x40) ? "MPEG-4" : "MPEG-2",
+	                  (oti==GPAC_OTI_AUDIO_AAC_MPEG4) ? "MPEG-4" : "MPEG-2",
 	                  hdr.nb_ch,
 	                  (hdr.nb_ch>1) ? "s" : "");
 
@@ -1880,7 +1880,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 		size = 4 + AVI_read_audio(in, &frame[4], size - 4, &continuous);
 
 		if ((import->flags & GF_IMPORT_USE_DATAREF) && !continuous) {
-			gf_import_message(import, GF_IO_ERR, "Cannot use media references, splited input audio frame found");
+			gf_import_message(import, GF_IO_ERR, "Cannot use media references, splitted input audio frame found");
 			e = GF_IO_ERR;
 			goto exit;
 		}
@@ -5204,10 +5204,13 @@ static GF_HEVCParamArray *get_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 type)
 
 static void hevc_set_parall_type(GF_HEVCConfig *hevc_cfg)
 {
-	u32 use_tiles, use_wpp, nb_pps;
+	u32 use_tiles, use_wpp, nb_pps, i, count;
 	HEVCState hevc;
 	GF_HEVCParamArray *ar = get_hevc_param_array(hevc_cfg, GF_HEVC_NALU_PIC_PARAM);
-	u32 i, count = gf_list_count(ar->nalus);
+	if (!ar)
+		return;
+
+	count = gf_list_count(ar->nalus);
 
 	memset(&hevc, 0, sizeof(HEVCState));
 	hevc.sps_active_idx = -1;
@@ -5215,7 +5218,6 @@ static void hevc_set_parall_type(GF_HEVCConfig *hevc_cfg)
 	use_tiles = 0;
 	use_wpp = 0;
 	nb_pps = 0;
-
 
 	for (i=0; i<count; i++) {
 		HEVC_PPS *pps;
@@ -8359,7 +8361,7 @@ error:
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-GF_Err gf_import_ac3(GF_MediaImporter *import)
+GF_Err gf_import_ac3(GF_MediaImporter *import, Bool is_EAC3)
 {
 	GF_AC3Header hdr;
 	GF_AC3Config cfg;
@@ -8372,15 +8374,22 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 	u32 max_size, track, di;
 	u64 tot_size, done, duration;
 	GF_ISOSample *samp;
+	Bool (*ac3_parser_bs)(GF_BitStream*, GF_AC3Header*, Bool) = gf_ac3_parser_bs;
 
 	in = gf_f64_open(import->in_name, "rb");
 	if (!in) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
 	bs = gf_bs_from_file(in, GF_BITSTREAM_READ);
 
-	if (!gf_ac3_parser_bs(bs, &hdr, GF_TRUE)) {
-		gf_bs_del(bs);
-		fclose(in);
-		return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Audio isn't AC3 audio");
+	memset(&hdr, 0, sizeof(GF_AC3Header));
+	memset(&cfg, 0, sizeof(GF_AC3Config));
+	if (is_EAC3 || !gf_ac3_parser_bs(bs, &hdr, GF_TRUE)) {
+		if (!gf_eac3_parser_bs(bs, &hdr, GF_TRUE)) {
+			gf_bs_del(bs);
+			fclose(in);
+			return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Audio is neither AC3 or E-AC3 audio");
+		}
+		is_EAC3 = GF_TRUE;
+		ac3_parser_bs = gf_eac3_parser_bs;
 	}
 	sr = hdr.sample_rate;
 
@@ -8407,13 +8416,13 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 	if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 	/*update stream type/oti*/
 	import->esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-	import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AC3;
+	import->esd->decoderConfig->objectTypeIndication = is_EAC3 ? GPAC_OTI_AUDIO_EAC3 : GPAC_OTI_AUDIO_AC3;
 	import->esd->decoderConfig->bufferSizeDB = 20;
 	import->esd->slConfig->timestampResolution = sr;
 
 	samp = NULL;
 	nb_chan = hdr.channels;
-	gf_import_message(import, GF_OK, "AC3 import - sample rate %d - %d%s channel%s", sr, hdr.lfon ? (nb_chan-1) : nb_chan, hdr.lfon?".1":"", (nb_chan>1) ? "s" : "");
+	gf_import_message(import, GF_OK, "%sAC3 import - sample rate %d - %d%s channel%s", is_EAC3 ? "Enhanced " : "", sr, hdr.lfon ? (nb_chan-1) : nb_chan, hdr.lfon?".1":"", (nb_chan>1) ? "s" : "");
 
 	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, sr);
 	if (!track) {
@@ -8426,7 +8435,7 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 	if (import->esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) import->esd->decoderConfig->decoderSpecificInfo);
 	import->esd->decoderConfig->decoderSpecificInfo = NULL;
 
-	cfg.is_ec3 = 0;
+	cfg.is_ec3 = is_EAC3;
 	cfg.nb_streams = 1;
 	cfg.brcode = hdr.brcode;
 	cfg.streams[0].acmod = hdr.acmod;
@@ -8451,9 +8460,11 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 
 	max_size = 0;
 	done = 0;
-	while (gf_ac3_parser_bs(bs, &hdr, 0)) {
-		samp->dataLength = hdr.framesize;
-
+	while (ac3_parser_bs(bs, &hdr, GF_FALSE)) {
+		if (is_EAC3)
+			samp->dataLength = 2*(1+hdr.framesize);
+		else
+			samp->dataLength = hdr.framesize;
 
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, gf_bs_get_position(bs) );
@@ -8466,14 +8477,17 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 			gf_bs_read_data(bs, samp->data, samp->dataLength);
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
-		if (e) goto exit;
+		if (e)
+			goto exit;
 
 		gf_set_progress("Importing AC3", done, tot_size);
 
 		samp->DTS += 1536;
-		done += samp->dataLength;
-		if (duration && (samp->DTS > duration)) break;
-		if (import->flags & GF_IMPORT_DO_ABORT) break;
+		done = gf_bs_get_position(bs);
+		if (duration && (samp->DTS > duration))
+			break;
+		if (import->flags & GF_IMPORT_DO_ABORT)
+			break;
 	}
 	MP4T_RecomputeBitRate(import->dest, track);
 	gf_set_progress("Importing AC3", tot_size, tot_size);
@@ -8484,6 +8498,7 @@ exit:
 		import->esd = NULL;
 	}
 	if (samp) gf_isom_sample_del(&samp);
+	gf_bs_del(bs);
 	fclose(in);
 	return e;
 }
@@ -8848,9 +8863,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!strnicmp(ext, ".hevc", 5) || !strnicmp(ext, ".hvc", 4) || !strnicmp(ext, ".265", 4) || !strnicmp(ext, ".shvc", 5)
 	        || !stricmp(fmt, "HEVC") || !stricmp(fmt, "SHVC") || !stricmp(fmt, "H265") )
 		return gf_import_hevc(importer);
-	/*AC3*/
+	/*AC3 and E-AC3*/
 	if (!strnicmp(ext, ".ac3", 4) || !stricmp(fmt, "AC3") )
-		return gf_import_ac3(importer);
+		return gf_import_ac3(importer, GF_FALSE);
+	if (!strnicmp(ext, ".ec3", 4) || !stricmp(fmt, "EC3") || !stricmp(fmt, "E-AC3") || !stricmp(fmt, "EAC3") )
+		return gf_import_ac3(importer, GF_TRUE);
 #endif
 
 	/*NHNT*/

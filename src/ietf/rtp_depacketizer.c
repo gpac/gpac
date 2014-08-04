@@ -1009,6 +1009,7 @@ static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *p
 
 	if (!ft) {
 		GF_AC3Header hdr;
+		memset(&hdr, 0, sizeof(GF_AC3Header));
 		rtp->sl_hdr.accessUnitStartFlag = rtp->sl_hdr.accessUnitEndFlag = 1;
 		while (size) {
 			u32 offset;
