@@ -765,6 +765,13 @@ Enables using <i>Server-UTC</i> HTTP header to compensate any drift between clie
 <p style="text-indent: 5%">
 Plays only the adaptation set indicated by its index in the MPD. If index is negative, all sets are used (default mode).
 </p>
+<b>SwitchProbeCount</b> [value: <i>unsigned integer</i>]
+<p style="text-indent: 5%">
+Sets how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations. 
+Default value is 1.
+</p>
+
+
 
 <br/><br/>
 

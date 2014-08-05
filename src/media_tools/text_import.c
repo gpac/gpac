@@ -554,7 +554,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 								e_sep[0] = '"';
 								e_sep = strchr(e_sep+1, '>');
 								if (e_sep) {
-									style_nb_chars = 1 + e_sep - szLine;
+									style_nb_chars = (u32) (1 + e_sep - szLine);
 									style_def_type = 1;
 								}
 							}
@@ -570,7 +570,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 					else {
 						char *a_sep = strstr(szLine, ">");
 						if (a_sep) {
-							style_nb_chars = a_sep - szLine;
+							style_nb_chars = (u32) (a_sep - szLine);
 							i += style_nb_chars;
 							continue;
 						}

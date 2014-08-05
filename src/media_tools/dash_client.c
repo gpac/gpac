@@ -118,6 +118,9 @@ struct __dash_client
 	Double playback_start_range;
 	Double start_range_in_segment_at_next_period;
 
+	Double speed;
+	u32 probe_times_before_switch;
+
 	Bool force_mpd_update;
 
 	u32 user_buffer_ms;
@@ -317,7 +320,7 @@ static u32 gf_dash_group_count_rep_needed(GF_DASH_Group *group)
 }
 
 GF_EXPORT
-void gf_dash_get_buffer_info_buffering(GF_DashClient *dash, u32 *total_buffer, u32 *media_buffered)
+void gf_dash_get_buffer_info(GF_DashClient *dash, u32 *total_buffer, u32 *media_buffered)
 {
 	u32 nb_buffering = 0;
 	if (dash->nb_buffering) {
@@ -3360,6 +3363,10 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 
 static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, GF_MPD_Representation *rep)
 {
+	Double bitrate, time, speed;
+	u32 k, dl_rate;
+	Bool go_up = 0;
+	u32 nb_inter_rep = 0;
 	GF_MPD_Representation *new_rep;
 	u32 total_size, bytes_per_sec;
 
@@ -3370,49 +3377,77 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 	group->last_segment_time = gf_sys_clock();
 
 	if (/*(!group->buffering || !group->min_bandwidth_selected) && */ total_size && bytes_per_sec && group->current_downloaded_segment_duration) {
-		Double bitrate, time;
-		u32 k, dl_rate;
-		Bool go_up = 0;
-		bitrate = 8*total_size;
-		bitrate /= group->current_downloaded_segment_duration;
-		time = total_size;
-		time /= bytes_per_sec;
+	} else {
+		return;
+	}
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloaded segment %d bytes in %g seconds - duration %g sec - Bandwidth (kbps): indicated %d - computed %d - download %d\n", total_size, time, group->current_downloaded_segment_duration/1000.0, rep->bandwidth/1000, (u32) bitrate, 8*bytes_per_sec/1000));
+	bitrate = 8*total_size;
+	bitrate /= group->current_downloaded_segment_duration;
+	time = total_size;
+	time /= bytes_per_sec;
 
-		dl_rate = 8*bytes_per_sec;
-		if (rep->bandwidth < dl_rate) {
-			go_up = 1;
-		}
-		if (dl_rate < group->min_representation_bitrate)
-			dl_rate = group->min_representation_bitrate;
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloaded segment %d bytes in %g seconds - duration %g sec - Bandwidth (kbps): indicated %d - computed %d - download %d\n", total_size, time, group->current_downloaded_segment_duration/1000.0, rep->bandwidth/1000, (u32) bitrate, 8*bytes_per_sec/1000));
 
-		/*find best bandwidth that fits our bitrate*/
-		new_rep = NULL;
+	//adjust the download rate according to the playback speed
+	speed = dash->speed;
+	if (speed<0) speed = -speed;
+	dl_rate = (u32)  (8*bytes_per_sec / speed);
 
-		for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
-			GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
-			if (arep->playback.disabled) continue;
+	if (rep->bandwidth < dl_rate) {
+		go_up = 1;
+	}
+	if (dl_rate < group->min_representation_bitrate)
+		dl_rate = group->min_representation_bitrate;
 
-			if (dl_rate >= arep->bandwidth) {
-				if (!new_rep) new_rep = arep;
-				else if (go_up) {
-					/*try to switch to highest bitrate below availble download rate*/
-					if (arep->bandwidth > new_rep->bandwidth) {
-						new_rep = arep;
+	/*find best bandwidth that fits our bitrate*/
+	new_rep = NULL;
+
+	for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
+		GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
+		if (arep->playback.disabled) continue;
+
+		if (dl_rate >= arep->bandwidth) {
+			if (!new_rep) new_rep = arep;
+			else if (go_up) {
+				/*try to switch to highest bitrate below available download rate*/
+				if (arep->bandwidth > new_rep->bandwidth) {
+					if (new_rep->bandwidth > rep->bandwidth) {
+						nb_inter_rep ++;
 					}
-				} else {
-					/*try to switch to highest bitrate below availble download rate*/
-					if (arep->bandwidth > new_rep->bandwidth) {
-						new_rep = arep;
-					}
+					new_rep = arep;
+				} else if (arep->bandwidth > rep->bandwidth) {
+					nb_inter_rep ++;
+				}
+			} else {
+				/*try to switch to highest bitrate below available download rate*/
+				if (arep->bandwidth > new_rep->bandwidth) {
+					new_rep = arep;
 				}
 			}
 		}
+	}
 
-		if (!dash->disable_switching && new_rep && (new_rep!=rep)) {
+	if (!dash->disable_switching && new_rep && (new_rep!=rep)) {
+		Bool do_switch = 1;
+		//if we're switching to the next upper bitrate (no intermediate bitrates), do not immediately switch 
+		//but for a given number of segments - this avoids fluctuation in the quality
+		if (go_up && ! nb_inter_rep) {
+			new_rep->playback.probe_switch_count++;
+			if (new_rep->playback.probe_switch_count > dash->probe_times_before_switch) {
+				new_rep->playback.probe_switch_count = 0;
+			} else {
+				do_switch = 0;
+			}
+		}
+		if (do_switch) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\n\n[DASH] Download rate %d - switching representation %s from bandwidth %d bps to %d bps at UTC "LLU" ms\n\n", dl_rate, go_up ? "up" : "down", rep->bandwidth, new_rep->bandwidth, gf_net_get_utc() ));
 			gf_dash_set_group_representation(group, new_rep);
+		}
+
+		for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
+			GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
+			if (new_rep==arep) continue;
+			arep->playback.probe_switch_count = 0;
 		}
 	}
 }
@@ -4304,7 +4339,9 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration, u32 a
 	GF_DashClient *dash;
 	GF_SAFEALLOC(dash, GF_DashClient);
 	dash->dash_io = dash_io;
-
+	dash->speed = 1.0;
+	//wait one segment to validate we have enough bandwidth
+	dash->probe_times_before_switch = 1;
 	dash->dash_thread = gf_th_new("MPD Segment Downloader Thread");
 	dash->dl_mutex = gf_mx_new("MPD Segment Downloader Mutex");
 	dash->mimeTypeForM3U8Segments = gf_strdup( "video/mp2t" );
@@ -4349,6 +4386,12 @@ GF_EXPORT
 void gf_dash_enable_utc_drift_compensation(GF_DashClient *dash, Bool estimate_utc_drift)
 {
 	dash->estimate_utc_drift = estimate_utc_drift;
+}
+
+GF_EXPORT
+void gf_dash_set_switching_probe_count(GF_DashClient *dash, u32 switch_probe_count)
+{
+	dash->probe_times_before_switch = switch_probe_count;
 }
 
 
@@ -4669,6 +4712,12 @@ GF_EXPORT
 Bool gf_dash_in_period_setup(GF_DashClient *dash)
 {
 	return dash->in_period_setup;
+}
+
+GF_EXPORT
+void gf_dash_set_speed(GF_DashClient *dash, Double speed)
+{
+	if (dash) dash->speed = speed;
 }
 
 GF_EXPORT

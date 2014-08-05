@@ -358,11 +358,12 @@ static JSBool SMJS_FUNCTION(gpac_setOption)
 
 	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[2])) return JS_FALSE;
 
 	sec_name = SMJS_CHARS(c, argv[0]);
 	key_name = SMJS_CHARS(c, argv[1]);
-	key_val = SMJS_CHARS(c, argv[2]);
+	key_val = NULL;
+	if (JSVAL_IS_STRING(argv[2])) 
+		key_val = SMJS_CHARS(c, argv[2]);
 
 	if (!stricmp(sec_name, "audiofilters")) {
 		if (term->compositor->audio_renderer->filter_chain.enable_filters
@@ -377,7 +378,9 @@ static JSBool SMJS_FUNCTION(gpac_setOption)
 	}
 	SMJS_FREE(c, sec_name);
 	SMJS_FREE(c, key_name);
-	SMJS_FREE(c, key_val);
+	if (key_val) {
+		SMJS_FREE(c, key_val);
+	}
 	return JS_TRUE;
 }
 
@@ -718,6 +721,88 @@ static JSBool SMJS_FUNCTION(gpac_migrate_url)
 	return JS_TRUE;
 }
 
+
+static JSBool SMJS_FUNCTION(gjs_odm_addon_layout)
+{
+	u32 pos, size;
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+
+	if (argc<2) return JS_TRUE;
+	if (! SMJS_ID_IS_INT(argv[0]) ) return JS_TRUE;
+	if (! SMJS_ID_IS_INT(argv[1]) ) return JS_TRUE;
+	pos = SMJS_ID_TO_INT(argv[0]);
+	size = SMJS_ID_TO_INT(argv[1]);
+
+	gf_scene_set_addon_layout_info(odm->subscene, pos, size);
+	return JS_TRUE;
+}
+
+static JSBool SMJS_FUNCTION(gjs_odm_declare_addon)
+{
+	char *addon_url = NULL;
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+
+	if (! SMJS_ID_IS_STRING(argv[0]) ) return JS_TRUE;
+		
+	addon_url = SMJS_CHARS(c, argv[0]);
+	if (addon_url) {
+		GF_AssociatedContentLocation addon_info;
+		memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
+		addon_info.external_URL = addon_url;
+		addon_info.timeline_id = -100;
+		addon_info.enable_if_defined = 1;
+		gf_scene_register_associated_media(odm->subscene ? odm->subscene : odm->parentscene, &addon_info);
+	}
+	return JS_TRUE;
+}
+
+static JSBool SMJS_FUNCTION(gpac_get_object_manager)
+{
+	u32 i, count;
+	GF_ObjectManager *odm = NULL;
+	const char *service_url;
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_GPACJSExt *gjs = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
+	GF_Terminal *term = gpac_get_term(c, obj);
+	GF_Scene *scene = term->root_scene;
+
+	if (SMJS_ID_IS_STRING(argv[0]) ) {
+		service_url = SMJS_CHARS(c, argv[0]);
+		if (!service_url) {
+			SMJS_SET_RVAL(JSVAL_NULL);
+			return JS_TRUE;
+		}
+		if (!strncmp(service_url, "gpac://", 7)) service_url += 7;
+		count = gf_list_count(scene->resources);
+		for (i=0; i<count; i++) {
+			odm = gf_list_get(scene->resources, i);
+			if (odm->net_service && !strcmp(odm->net_service->url, service_url)) break;
+			odm = NULL;
+		}
+	}
+
+	if (!odm) {
+		SMJS_SET_RVAL(JSVAL_NULL);
+		return JS_TRUE;
+	}
+
+	obj = JS_NewObject(c, &gjs->anyClass._class, 0, 0);
+	SMJS_SET_PRIVATE(c, obj, odm);
+
+	JS_DefineFunction(c, obj, "declare_addon", gjs_odm_declare_addon, 1, 0);
+	JS_DefineFunction(c, obj, "enable_addon", gjs_odm_declare_addon, 1, 0);
+	JS_DefineFunction(c, obj, "addon_layout", gjs_odm_addon_layout, 1, 0);
+
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(obj) );
+	return JS_TRUE;
+}
+
+
 static SMJS_FUNC_PROP_GET( gpacevt_getProperty)
 
 	GF_GPACJSExt *gjs = SMJS_GET_PRIVATE(c, obj);
@@ -972,6 +1057,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("error_string",		gpac_error_string, 1),
 		SMJS_FUNCTION_SPEC("show_keyboard",		gpac_show_keyboard, 1),
 		SMJS_FUNCTION_SPEC("trigger_gc",		gpac_trigger_gc, 1),
+		SMJS_FUNCTION_SPEC("get_object_manager",		gpac_get_object_manager, 1),
 
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)
@@ -1029,6 +1115,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		DECLARE_GPAC_CONST(GF_EVENT_NAVIGATE_INFO);
 		DECLARE_GPAC_CONST(GF_EVENT_NAVIGATE);
 		DECLARE_GPAC_CONST(GF_EVENT_DROPFILE);
+		DECLARE_GPAC_CONST(GF_EVENT_ADDON_DETECTED);
 
 		DECLARE_GPAC_CONST(GF_NAVIGATE_NONE);
 		DECLARE_GPAC_CONST(GF_NAVIGATE_WALK);

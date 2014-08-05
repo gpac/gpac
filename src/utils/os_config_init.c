@@ -514,7 +514,10 @@ static void check_modules_dir(GF_Config *cfg)
 #else
 			strcat(path, "/gui.bt");
 #endif
+
+#if defined(__DARWIN__) || defined(__APPLE__)
 			gf_cfg_set_key(cfg, "General", "StartupFile", path);
+#endif
 		}
 	}
 }

@@ -242,6 +242,9 @@ Bool gf_dash_group_segment_switch_forced(GF_DashClient *dash, u32 idx);
 /*get video info for this group if video*/
 GF_Err gf_dash_group_get_video_info(GF_DashClient *dash, u32 idx, u32 *max_width, u32 *max_height);
 
+/*sets playback speed of the session. Speed is used in adaptation logic*/
+void gf_dash_set_speed(GF_DashClient *dash, Double speed);
+
 /*returns the start_time of the first segment in the queue (usually the one being played)*/
 Double gf_dash_group_current_segment_start_time(GF_DashClient *dash, u32 idx);
 
@@ -252,7 +255,7 @@ void gf_dash_allow_local_mpd_update(GF_DashClient *dash, Bool allow_local_mpd_up
 GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 representation_idx, u32 *width, u32 *height, u32 *audio_samplerate, u32 *bandwidth, const char **codecs);
 
 /*gets media buffering info for all active representations*/
-void gf_dash_get_buffer_info_buffering(GF_DashClient *dash, u32 *total_buffer, u32 *media_buffered);
+void gf_dash_get_buffer_info(GF_DashClient *dash, u32 *total_buffer, u32 *media_buffered);
 
 /*updates media bandwidth for the given group*/
 GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx);
@@ -290,6 +293,11 @@ void gf_dash_debug_group(GF_DashClient *dash, s32 group_index);
 
 //indicates typical buffering used by the user app . This allows fetching data earlier in live mode, if the timeshiftbuffer allows for it
 void gf_dash_set_user_buffer(GF_DashClient *dash, u32 buffer_time_ms);
+
+//indicates the number of segments to wait before switching up bandwidth. The default value is 1 (ie stay in current
+//bandwidth or one more segment before switching up, event if download rate is enough)
+//seting to 0 means the switch will happen instantly, but this is more prone to quality changes due to network variations
+void gf_dash_set_switching_probe_count(GF_DashClient *dash, u32 switch_probe_count);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

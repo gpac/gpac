@@ -939,8 +939,10 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 	char *mime;
 	GF_ClientService *serv;
 	GF_InputService *ifce = gf_term_can_handle_service(term, url, parent_url, 0, &sURL, ret_code, &download_session, &mime);
-	if (!ifce) return NULL;
-
+	if (!ifce) {
+		if (owner->subscene) gf_scene_notify_event(owner->subscene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, *ret_code, GF_FALSE);
+		return NULL;
+	}
 	GF_SAFEALLOC(serv, GF_ClientService);
 	serv->term = term;
 	serv->owner = owner;

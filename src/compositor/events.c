@@ -416,13 +416,12 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 		load_text_node(compositor, 0);
 		return;
 	} else if (event->type==GF_EVENT_TEXTINPUT) {
-		switch (event->character.unicode_char) {
-		case '\r':
-		case '\n':
-		case '\t':
-		case '\b':
+		u32 unicode_char = event->character.unicode_char;
+		//filter all non-text symbols
+		if (unicode_char <= 31) {
 			return;
-		default:
+		}
+
 		{
 #ifndef GPAC_DISABLE_SVG
 			GF_DOM_Event evt;
@@ -433,7 +432,7 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 			evt.bubbles = 1;
 			evt.cancelable = 1;
 			evt.type = event->type;
-			evt.detail = event->character.unicode_char;
+			evt.detail = unicode_char;
 			target = compositor->focus_node;
 			if (!target) target = gf_sg_get_root_node(compositor->scene);
 			gf_dom_event_fire(target, &evt);
@@ -445,13 +444,11 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 				compositor->sel_buffer = gf_realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);
 			}
 			memmove(&compositor->sel_buffer[compositor->caret_pos+1], &compositor->sel_buffer[compositor->caret_pos], sizeof(u16)*(compositor->sel_buffer_len-compositor->caret_pos));
-			compositor->sel_buffer[compositor->caret_pos] = event->character.unicode_char;
+			compositor->sel_buffer[compositor->caret_pos] = unicode_char;
 			compositor->sel_buffer_len++;
 			compositor->caret_pos++;
 			compositor->sel_buffer[compositor->sel_buffer_len] = 0;
 #endif
-			break;
-		}
 		}
 	} else if (event->type==GF_EVENT_KEYDOWN) {
 		u32 prev_caret = compositor->caret_pos;

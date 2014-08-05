@@ -467,6 +467,7 @@ typedef struct
 	const char *external_URL;
 	Bool is_announce, is_splicing;
 	Bool reload_external;
+	Bool enable_if_defined;
 	Double activation_countdown;
 } GF_AssociatedContentLocation;
 

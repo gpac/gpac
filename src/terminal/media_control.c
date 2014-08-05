@@ -209,14 +209,14 @@ void MC_SetSpeed(GF_ObjectManager *odm, Fixed speed)
 	if (odm->subscene) {
 		assert(odm->subscene->root_od==odm);
 //		assert( gf_odm_shares_clock(odm, ck) );
-		gf_odm_set_speed(odm, speed);
+		gf_odm_set_speed(odm, speed, GF_TRUE);
 		in_scene = odm->subscene;
 	}
 
 	i=0;
 	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->resources, &i))) {
 		if (!gf_odm_shares_clock(ctrl_od, ck)) continue;
-		gf_odm_set_speed(ctrl_od, speed);
+		gf_odm_set_speed(ctrl_od, speed, GF_TRUE);
 	}
 }
 

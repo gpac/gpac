@@ -1907,6 +1907,10 @@ Bool gf_odm_shares_clock(GF_ObjectManager *odm, GF_Clock *ck)
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 		if (ch->clock == ck) return 1;
 	}
+	if (odm->subscene) {
+		if (odm->subscene->is_dynamic_scene && odm->subscene->dyn_ck == ck) return 1;
+		if (odm->subscene->scene_codec && odm->subscene->scene_codec->ck == ck) return 1;
+	}
 	return 0;
 }
 
@@ -2022,7 +2026,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 #endif
 }
 
-void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed)
+void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed, Bool adjust_clock_speed)
 {
 	u32 i;
 	GF_NetworkCommand com;
@@ -2034,7 +2038,9 @@ void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed)
 	com.play.speed = FIX2FLT(speed);
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
-		gf_clock_set_speed(ch->clock, speed);
+		if (adjust_clock_speed) 
+			gf_clock_set_speed(ch->clock, speed);
+
 		com.play.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
 	}
