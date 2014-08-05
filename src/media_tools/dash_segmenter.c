@@ -528,7 +528,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	GF_ISOSample *sample, *next;
 	GF_List *fragmenters;
 	u64 MaxFragmentDuration, MaxSegmentDuration, SegmentDuration, maxFragDurationOverSegment;
-	u32 presentationTimeOffset = 0;
+	u64 presentationTimeOffset = 0;
 	Double segment_start_time, file_duration, period_duration, max_segment_duration;
 	u32 nb_segments, width, height, sample_rate, nb_channels, sar_w, sar_h, fps_num, fps_denum, startNumber;
 	char langCode[5];
@@ -1673,7 +1673,7 @@ restart_fragmentation_pass:
 			}
 			fprintf(dash_cfg->mpd, " initialization=\"%s\"", SegmentName);
 			if (presentationTimeOffset)
-				fprintf(dash_cfg->mpd, " presentationTimeOffset=\"%d\"", presentationTimeOffset);
+				fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
 
 			if (mpd_timeline_bs) {
 				char *mpd_seg_info = NULL;
@@ -1692,7 +1692,7 @@ restart_fragmentation_pass:
 		else if (is_bs_switching && first_in_set) {
 			fprintf(dash_cfg->mpd, "   <SegmentTemplate initialization=\"%s\"", bs_switching_segment_name);
 			if (presentationTimeOffset)
-				fprintf(dash_cfg->mpd, " presentationTimeOffset=\"%d\"", presentationTimeOffset);
+				fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
 
 			if (mpd_timeline_bs) {
 				char *mpd_seg_info = NULL;
@@ -1823,14 +1823,14 @@ restart_fragmentation_pass:
 				fprintf(dash_cfg->mpd, " initialization=\"%s\"", SegmentName);
 			}
 			if (presentationTimeOffset)
-				fprintf(dash_cfg->mpd, " presentationTimeOffset=\"%d\"", presentationTimeOffset);
+				fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
 			fprintf(dash_cfg->mpd, "/>\n");
 		}
 	} else if (dash_cfg->single_file_mode==1) {
 		fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", gf_url_get_resource_name( gf_isom_get_filename(output) ) );
 		fprintf(dash_cfg->mpd, "    <SegmentBase indexRangeExact=\"true\" indexRange=\"%d-%d\"", index_start_range, index_end_range);
 		if (presentationTimeOffset)
-			fprintf(dash_cfg->mpd, " presentationTimeOffset=\"%d\"", presentationTimeOffset);
+			fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
 		fprintf(dash_cfg->mpd, "/>\n");
 	} else {
 		if (!seg_rad_name) {
@@ -1841,7 +1841,7 @@ restart_fragmentation_pass:
 			fprintf(dash_cfg->mpd, " timescale=\"%d\" duration=\"%d\"", mpd_timescale, (u32) (max_segment_duration * mpd_timescale));
 		}
 		if (presentationTimeOffset) {
-			fprintf(dash_cfg->mpd, " presentationTimeOffset=\"%d\"", presentationTimeOffset);
+			fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
 		}
 		fprintf(dash_cfg->mpd, ">\n");
 		/*we are not in bitstreamSwitching mode*/

@@ -1030,6 +1030,23 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	}
 
+
+	if (codec->nb_dec_frames && (codec->ck->speed <= 1)) {
+		codec->avg_dec_time = (Double) (codec->total_dec_time/1000);
+		codec->avg_dec_time /= codec->nb_dec_frames;
+		codec->check_speed = codec->ck->speed;
+		codec->decode_only_rap = 0;
+	} else if (codec->ck->speed != codec->check_speed) {
+		u32 dur = codec->min_frame_dur;
+		codec->check_speed = codec->ck->speed;
+		if (0.9 * codec->avg_dec_time * FIX2FLT(codec->ck->speed) > dur) {
+			codec->decode_only_rap = 1;
+		} else {
+			codec->decode_only_rap = 0;
+		}
+	}
+
+
 	TimeAvailable*=1000;
 	/*try to refill the full buffer*/
 	first = 1;
@@ -1107,6 +1124,8 @@ scalable_retry:
 		} else if (codec->odm->term->bench_mode==2) {
 			unit_size = 0;
 			gf_cm_abort_buffering(codec->CB);
+		} else if (codec->decode_only_rap && ! (AU->flags & GF_DB_AU_RAP)) {
+			unit_size = 0;
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoding frame DTS %d CTS %d size %d (%d in channels)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->DTS, AU->CTS, AU->dataLength, ch->AU_Count));
 			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, &CU->TS, CU->data, &unit_size, AU->PaddingBits, mmlevel);

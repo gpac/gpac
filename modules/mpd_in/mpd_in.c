@@ -685,7 +685,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 
 	if (dash_evt==GF_DASH_EVENT_BUFFERING) {
 		u32 tot, done;
-		gf_dash_get_buffer_info_buffering(mpdin->dash, &tot, &done);
+		gf_dash_get_buffer_info(mpdin->dash, &tot, &done);
 		fprintf(stderr, "DASH: Buffering %g%% out of %d ms\n", (100.0*done)/tot, tot);
 		return GF_OK;
 	}
@@ -860,6 +860,13 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		gf_dash_set_segment_expiration_threshold(mpdin->dash, atoi(opt));
 	}
 
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "SwitchProbeCount");
+	if (opt) {
+		gf_dash_set_switching_probe_count(mpdin->dash, atoi(opt));
+	} else {
+		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "SwitchProbeCount", "1");
+	}
+
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "DebugAdaptationSet");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "DebugAdaptationSet", "-1");
@@ -996,6 +1003,9 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 
 	case GF_NET_CHAN_PLAY:
+
+		gf_dash_set_speed(mpdin->dash, com->play.speed);
+
 		/*don't seek if this command is the first PLAY request of objects declared by the subservice 
 		not long ago*/
 		if (!com->play.initial_broadcast_play || (com->play.start_range>2.0) ) {
@@ -1078,6 +1088,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return segment_ifce->ServiceCommand(segment_ifce, com);
 
 	case GF_NET_CHAN_SET_SPEED:
+		gf_dash_set_speed(mpdin->dash, com->play.speed);
 		return segment_ifce->ServiceCommand(segment_ifce, com);
 
 	default:

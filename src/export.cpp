@@ -1742,6 +1742,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_force_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_process_anchor) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_disconnect) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_register_associated_media) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_set_addon_layout_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odm_setup_object) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odm_disconnect) )
@@ -1967,7 +1969,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_presentation_time_offset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_video_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_representation_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_buffer_info_buffering) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_buffer_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_check_bandwidth) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_resync_to_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_loop_detected) )
@@ -1980,6 +1982,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_min_timeout_between_404) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_segment_expiration_threshold) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_user_buffer) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_speed) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_switching_probe_count) )
+
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

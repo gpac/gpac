@@ -1432,6 +1432,11 @@ int main (int argc, char **argv)
 			}
 			if (url_arg) {
 				gf_cfg_set_key(cfg_file, "Temp", "GUIStartupFile", url_arg);
+
+				if (default_com && !strnicmp(default_com, "gpac add ", 9)) {
+					gf_cfg_set_key(cfg_file, "Temp", "GUIStartupAddon", default_com + 9);
+					default_com = NULL;
+				}
 			}
 		}
 	if (gui_mode==2) gui_mode=0;

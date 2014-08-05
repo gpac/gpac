@@ -863,7 +863,7 @@ existing:
 	/*media object playback has already been requested by the scene, trigger media start*/
 	if (odm->mo->num_open && !odm->state) {
 		gf_odm_start(odm, 0);
-		if (odm->mo->speed != FIX_ONE) gf_odm_set_speed(odm, odm->mo->speed);
+		if (odm->mo->speed != FIX_ONE) gf_odm_set_speed(odm, odm->mo->speed, GF_TRUE);
 	}
 	if ((odm->mo->type==GF_MEDIA_OBJECT_VIDEO) && scene->is_dynamic_scene && !odm->parentscene->root_od->addon) {
 		gf_scene_force_size_to_video(scene, odm->mo);
@@ -1355,7 +1355,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 		M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "ADDON_SCENE");
 		gf_sg_vrml_field_copy(&dscene->url, &odm->mo->URLs, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
-		IS_UpdateVideoPos(scene);
+		//do not update video pos for addons, this is done only when setting up the main video object
 		return;
 	}
 
@@ -1423,6 +1423,69 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	}
 }
 
+GF_EXPORT
+void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_factor)
+{
+	MFURL url;
+	M_Transform2D *tr;
+	M_Layer2D *layer;
+	GF_MediaObject *mo;
+	s32 w, h, v_w, v_h;
+	if (!scene->visual_url.OD_ID && !scene->visual_url.url) return;
+
+	url.count = 1;
+	url.vals = &scene->visual_url;
+	mo = IS_CheckExistingObject(scene, &url, GF_MEDIA_OBJECT_VIDEO);
+	if (!mo) return;
+
+	gf_scene_get_video_size(mo, (u32 *) &v_w, (u32 *) &v_h);
+	w = v_w;
+	h = v_h;
+	switch (size_factor) {
+	case 0:	
+		v_w /= 2;
+		v_h /= 2;
+		break;
+	case 1:	
+		v_w /= 3;
+		v_h /= 3;
+		break;
+	case 2:	
+	default:	
+		v_w /= 4;
+		v_h /= 4;
+		break;
+	}
+
+	layer = (M_Layer2D *) gf_sg_find_node_by_name(scene->graph, "ADDON_LAYER");
+	if (!layer) return;
+	layer->size.x = INT2FIX(v_w);
+	layer->size.y = INT2FIX(v_h);
+	gf_node_dirty_set((GF_Node *)layer, 0, 0);
+
+	tr = (M_Transform2D *) gf_sg_find_node_by_name(scene->graph, "ADDON_TRANS");
+	if (!tr) return;
+	switch (position) {
+	case 0:
+		tr->translation.x = INT2FIX(w - v_w) / 2;
+		tr->translation.y = INT2FIX(v_h - h) / 2;
+		break;
+	case 1: 
+		tr->translation.x = INT2FIX(w - v_w) / 2;
+		tr->translation.y = INT2FIX(h - v_h) / 2;
+		break;
+	case 2: 
+		tr->translation.x = INT2FIX(v_w - w) / 2;
+		tr->translation.y = INT2FIX(v_h - h) / 2;
+		break;
+	case 3: 
+		tr->translation.x = INT2FIX(v_w - w) / 2;
+		tr->translation.y = INT2FIX(h - v_h) / 2;
+		break;
+	}
+	gf_node_dirty_set((GF_Node *)tr, 0, 0);
+}
+
 void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
 {
 	u32 i;
@@ -1459,7 +1522,12 @@ void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
 		odm->media_start_time = from_time;
-		gf_odm_start(odm, 0);
+
+		if (odm->subscene && odm->subscene->is_dynamic_scene) {
+			gf_scene_restart_dynamic(odm->subscene, from_time);
+		} else {
+			gf_odm_start(odm, 0);
+		}
 	}
 	gf_list_del(to_restart);
 
@@ -1846,6 +1914,7 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 	mo->odm->addon = addon;
 }
 
+GF_EXPORT
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info)
 {
 	GF_AddonMedia *addon;
@@ -1856,11 +1925,19 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 
 	count = gf_list_count(scene->declared_addons);
 	for (i=0; i<count; i++) {
+		Bool my_addon = 0;
 		addon = gf_list_get(scene->declared_addons, i);
-		if (addon->timeline_id==addon_info->timeline_id) {
-			if (addon_info->reload_external) {
-				//send message to service handler
-			}
+		if ((addon_info->timeline_id>=0) && addon->timeline_id==addon_info->timeline_id) {
+			my_addon = 1;
+		} else if (!strcmp(addon->url, addon_info->external_URL)){
+			my_addon = 1;
+			//send message to service handler
+		}
+
+		if (my_addon) {
+			if (addon_info->enable_if_defined) 
+				addon->enabled = 1;
+
 			//restart addon
 			if (!addon->root_od && addon->timeline_ready) {
 				load_associated_media(scene, addon);
@@ -1889,12 +1966,23 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	gf_list_add(scene->declared_addons, addon);
 
 
-	evt.type = GF_EVENT_ADDON_DETECTED;
-	evt.addon_connect.addon_url = addon->url;
-	addon->enabled = gf_term_send_event(scene->root_od->term,&evt);
+	if (! scene->root_od->parentscene) {
+		evt.type = GF_EVENT_ADDON_DETECTED;
+		evt.addon_connect.addon_url = addon->url;
+		addon->enabled = gf_term_send_event(scene->root_od->term,&evt);
+		
+		if (addon->timeline_ready)
+			load_associated_media(scene, addon);
+	} else {
+		GF_DOM_Event devt;
+		memset(&devt, 0, sizeof(GF_DOM_Event));
+		devt.type = GF_EVENT_ADDON_DETECTED;
+		devt.addon_url = addon->url;
+		addon->enabled = 0;
 
-	if (addon->timeline_ready)
-		load_associated_media(scene, addon);
+		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, &devt, GF_OK, GF_TRUE);
+	}
+
 }
 
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time)

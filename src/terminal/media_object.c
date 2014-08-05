@@ -470,8 +470,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	/*resync*/
 	obj_time = gf_clock_time(codec->ck);
 
-	//no drop mode: all frames are presented, we discard the current output only if already presented and next frame time is mature
-	if ((codec->ck->speed>0) && !(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO)) {
+	//no drop mode, only for speed = 1: all frames are presented, we discard the current output only if already presented and next frame time is mature
+	if ((codec->ck->speed==1) && !(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO)) {
 		resync=GF_FALSE;
 		if (/*gf_clock_is_started(mo->odm->codec->ck) && */ (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time) ) {
 			gf_cm_drop_output(codec->CB);
@@ -996,7 +996,7 @@ void gf_mo_set_speed(GF_MediaObject *mo, Fixed speed)
 #endif
 	if (mo->odm->net_service && mo->odm->net_service->owner && (mo->odm->net_service->owner->flags & GF_ODM_INHERIT_TIMELINE))
 		return;
-	gf_odm_set_speed(mo->odm, speed);
+	gf_odm_set_speed(mo->odm, speed, GF_TRUE);
 }
 
 GF_EXPORT

@@ -836,14 +836,21 @@ struct _generic_codec
 	u32 last_stat_start, cur_bit_size, tot_bit_size, stat_start;
 	u32 avg_bit_rate, max_bit_rate;
 	u32 nb_dec_frames;
+	//decode times in us
 	u64 total_dec_time, max_dec_time;
 	u32 first_frame_time, last_frame_time;
 	/*number of frames dropped at the presentation*/
 	u32 nb_droped;
 	/*we detect if the same image is sent again and again to the decoder (using last_unit_signature)*/
 	u32 nb_repeted_frames;
-	/*we detect if the same image is sent again and again to the decoder (using last_unit_signature)*/
+	/*min frame duration based on DTS diff*/
 	u32 min_frame_dur;
+	/*speed at which the avg_dec_time was computed*/
+	Fixed check_speed;
+	/*average decode time when speed is <= 1.0. If above, not recomputed*/
+	Double avg_dec_time;
+	//when set, only I-frames are decoded
+	Bool decode_only_rap;
 
 	/*for CTS reconstruction (channels not using SL): we cannot just update timing at each frame, not precise enough
 	since we use ms and not microsec TSs*/
@@ -1026,7 +1033,7 @@ void gf_odm_pause(GF_ObjectManager *odm);
 /*resume object (mediaControl use only)*/
 void gf_odm_resume(GF_ObjectManager *odm);
 /*set object speed*/
-void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed);
+void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed, Bool adjust_clock_speed);
 /*returns the clock of the media stream (video, audio or bifs), NULL otherwise */
 struct _object_clock *gf_odm_get_media_clock(GF_ObjectManager *odm);
 /*adds segment descriptors targeted by the URL to the list and sort them - the input list must be empty*/
@@ -1117,6 +1124,10 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTy
 u32 gf_mo_get_od_id(MFURL *url);
 
 void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_url);
+//sets pos and size of addon 
+//	size is 1/2 height (0), 1/3 (1) or 1/4 (2)
+//	pos is bottom-left(0), top-left (1) bottom-right (2) or top-right (3)
+void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_factor);
 
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);

@@ -59,7 +59,7 @@ GF_Clock *gf_clock_find(GF_List *Clocks, u16 clockID, u16 ES_ID)
 	return NULL;
 }
 
-GF_Clock *CK_LookForClockDep(GF_Scene *scene, u16 clockID)
+static GF_Clock *gf_ck_look_for_clock_dep(GF_Scene *scene, u16 clockID)
 {
 	u32 i, j;
 	GF_Channel *ch;
@@ -82,7 +82,7 @@ GF_Clock *CK_LookForClockDep(GF_Scene *scene, u16 clockID)
 }
 
 /*remove clocks created due to out-of-order OCR dependencies*/
-void CK_ResolveClockDep(GF_List *clocks, GF_Scene *scene, GF_Clock *ck, u16 Clock_ESID)
+static void gf_ck_resolve_clock_dep(GF_List *clocks, GF_Scene *scene, GF_Clock *ck, u16 Clock_ESID)
 {
 	u32 i, j;
 	GF_Clock *clock;
@@ -135,7 +135,7 @@ GF_Clock *gf_clock_attach(GF_List *clocks, GF_Scene *scene, u16 clockID, u16 ES_
 	/*ck dep can only be solved if in the main service*/
 	check_dep = (scene->root_od->net_service && scene->root_od->net_service->Clocks==clocks) ? GF_TRUE : GF_FALSE;
 	/*this partly solves a->b->c*/
-	if (!tmp && check_dep) tmp = CK_LookForClockDep(scene, clockID);
+	if (!tmp && check_dep) tmp = gf_ck_look_for_clock_dep(scene, clockID);
 	if (!tmp) {
 		tmp = NewClock(scene->root_od->term);
 		tmp->clockID = clockID;
@@ -143,7 +143,7 @@ GF_Clock *gf_clock_attach(GF_List *clocks, GF_Scene *scene, u16 clockID, u16 ES_
 	} else {
 		if (tmp->clockID == ES_ID) tmp->clockID = clockID;
 		/*this finally solves a->b->c*/
-		if (check_dep && (tmp->clockID != ES_ID)) CK_ResolveClockDep(clocks, scene, tmp, ES_ID);
+		if (check_dep && (tmp->clockID != ES_ID)) gf_ck_resolve_clock_dep(clocks, scene, tmp, ES_ID);
 	}
 	if (hasOCR >= 0) tmp->use_ocr = hasOCR;
 	return tmp;
