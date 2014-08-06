@@ -128,7 +128,7 @@ static u32 FFDemux_Run(void *par)
 			gf_service_command(ffd->service, &com, GF_OK);
 			if (com.buffer.occupancy < com.buffer.max)
 				break;
-	
+
 			gf_sleep(1);
 		}
 

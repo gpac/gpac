@@ -218,12 +218,12 @@ void PrintUsage()
 	        "\t-no-addon:      disable automatic loading of media addons declared in source URL\n"
 	        "\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
 	        "\n"
-			"Dumper Options (times is a formated as start-end, with start being sec, h:m:s:f/fps or h:m:s:ms):\n"
+	        "Dumper Options (times is a formated as start-end, with start being sec, h:m:s:f/fps or h:m:s:ms):\n"
 	        "\t-bmp [times]:   dumps given frames to bmp\n"
 	        "\t-png [times]:   dumps given frames to png\n"
 	        "\t-raw [times]:   dumps given frames to raw\n"
 	        "\t-avi [times]:   dumps given file to raw avi\n"
-			"\r-out filename:  name of the output file\n"
+	        "\r-out filename:  name of the output file\n"
 	        "\t-rgbds:         dumps the RGBDS pixel format texture\n"
 	        "                   with -avi [times]: dumps an rgbds-format .avi\n"
 	        "\t-rgbd:          dumps the RGBD pixel format texture\n"
@@ -717,7 +717,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			is_connected = 1;
 			fprintf(stderr, "Service Connected\n");
 			eos_seen = GF_FALSE;
-			if (playback_speed != FIX_ONE) 
+			if (playback_speed != FIX_ONE)
 				gf_term_set_speed(term, playback_speed);
 		} else if (is_connected) {
 			fprintf(stderr, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
@@ -1193,7 +1193,7 @@ int main (int argc, char **argv)
 			playback_speed = FLT2FIX( atof((const char *) argv[i+1]) );
 			if (playback_speed <= 0) playback_speed = FIX_ONE;
 		}
-		
+
 		else if (!strcmp(arg, "-exit")) auto_exit = 1;
 		else if (!strcmp(arg, "-mem-track")) {
 #ifdef GPAC_MEMORY_TRACKING
@@ -1848,7 +1848,7 @@ force_input:
 			e = gf_term_scene_update(term, NULL, szCom);
 			if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 		}
-			break;
+		break;
 		case 'e':
 		{
 			GF_Err e;
@@ -1863,7 +1863,7 @@ force_input:
 			e = gf_term_scene_update(term, "application/ecmascript", jsCode);
 			if (e) fprintf(stderr, "Processing JS code failed: %s\n", gf_error_to_string(e));
 		}
-			break;
+		break;
 
 		case 'L':
 		{
@@ -1877,7 +1877,7 @@ force_input:
 			}
 			gf_log_modify_tools_levels(szLog);
 		}
-			break;
+		break;
 
 		case 'g':
 		{
@@ -1885,7 +1885,7 @@ force_input:
 			gf_sys_get_rti(rti_update_time_ms, &rti, 0);
 			fprintf(stderr, "GPAC allocated memory "LLD"\n", rti.gpac_memory);
 		}
-			break;
+		break;
 		case 'M':
 		{
 			u32 size;
@@ -1894,7 +1894,7 @@ force_input:
 			} while (1 > scanf("%ud", &size));
 			gf_term_set_option(term, GF_OPT_VIDEO_CACHE_SIZE, size);
 		}
-			break;
+		break;
 
 		case 'H':
 		{
@@ -1905,7 +1905,7 @@ force_input:
 
 			gf_term_set_option(term, GF_OPT_HTTP_MAX_RATE, http_bitrate);
 		}
-			break;
+		break;
 
 		case 'E':
 			gf_term_set_option(term, GF_OPT_RELOAD_CONFIG, 1);
@@ -1927,7 +1927,7 @@ force_input:
 			}
 			set_cfg_option(szOpt);
 		}
-			break;
+		break;
 
 		/*extract to PNG*/
 		case 'Z':
@@ -2010,7 +2010,7 @@ force_input:
 			odm = NULL;
 			root_od = gf_term_get_root_object(term);
 			if (root_od) {
-				odm = gf_term_get_object(term, root_od, index);	
+				odm = gf_term_get_object(term, root_od, index);
 				if (odm) {
 					gf_term_select_object(term, odm);
 				} else {
@@ -2019,7 +2019,7 @@ force_input:
 				}
 			}
 		}
-			break;
+		break;
 
 		case 'h':
 			PrintHelp();

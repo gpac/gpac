@@ -371,9 +371,9 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 	OpenHevc_Frame_cpy openHevcFrame;
 
 	if (ctx->direct_output)
-        libOpenHevcGetPictureInfo(ctx->openHevcHandle, &openHevcFrame.frameInfo);
-    else
-        libOpenHevcGetPictureInfoCpy(ctx->openHevcHandle, &openHevcFrame.frameInfo);
+		libOpenHevcGetPictureInfo(ctx->openHevcHandle, &openHevcFrame.frameInfo);
+	else
+		libOpenHevcGetPictureInfoCpy(ctx->openHevcHandle, &openHevcFrame.frameInfo);
 
 	a_w      = openHevcFrame.frameInfo.nWidth;
 	a_h      = openHevcFrame.frameInfo.nHeight;
@@ -414,7 +414,7 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		*outBufferLength = ctx->out_size;
 		ctx->has_pic = GF_TRUE;
 		return GF_OK;
-	} 
+	}
 
 	if (ctx->conv_to_8bit) {
 		OpenHevc_Frame openHevcFramePtr;
@@ -435,7 +435,7 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		}
 		return GF_OK;
 	}
-	
+
 	if (ctx->pack_mode) {
 		OpenHevc_Frame openHFrame;
 		u8 *pY, *pU, *pV;
@@ -477,10 +477,10 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 			if (ctx->frame_idx==4) {
 				*outBufferLength = 4 * ctx->out_size;
 				ctx->frame_idx = 0;
-			} 				
+			}
 		}
 		return GF_OK;
-	} 
+	}
 
 
 	openHevcFrame.pvY = (void*) outBuffer;

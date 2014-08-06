@@ -1019,8 +1019,8 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 	case GF_AVC_NALU_NON_IDR_SLICE:
 		res = gf_media_avc_parse_nalu(bs, ptr[0], avc);
 		fputs("Non IDR slice", dump);
-		
-		if (res>=0) 
+
+		if (res>=0)
 			fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
 		break;
 	case GF_AVC_NALU_DP_A_SLICE:
@@ -1035,7 +1035,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 	case GF_AVC_NALU_IDR_SLICE:
 		res = gf_media_avc_parse_nalu(bs, ptr[0], avc);
 		fputs("IDR slice", dump);
-		if (res>=0) 
+		if (res>=0)
 			fprintf(dump, "\" poc=\"%d", avc->s_info.poc);
 		break;
 	case GF_AVC_NALU_SEI:

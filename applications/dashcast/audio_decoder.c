@@ -344,7 +344,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 						dc_producer_advance(&audio_input_data->producer, &audio_input_data->circular_buf);
 					}
 				}
-				
+
 #ifdef DC_AUDIO_RESAMPLER
 				if (resample) {
 					int i;

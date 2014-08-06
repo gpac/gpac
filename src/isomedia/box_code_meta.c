@@ -296,7 +296,7 @@ GF_Box *iloc_New()
 	return (GF_Box *)tmp;
 }
 
-void iloc_entry_del(GF_ItemLocationEntry *location) 
+void iloc_entry_del(GF_ItemLocationEntry *location)
 {
 	u32 j, extent_count;
 	extent_count = gf_list_count(location->extent_entries);

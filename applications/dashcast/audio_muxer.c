@@ -273,7 +273,7 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 	audio_stream->codec->bit_rate = audio_codec_ctx->bit_rate;//audio_output_file->audio_data_conf->bitrate;
 	audio_stream->codec->sample_rate = audio_codec_ctx->sample_rate;//audio_output_file->audio_data_conf->samplerate;
 	audio_stream->codec->channels = audio_codec_ctx->channels;//audio_output_file->audio_data_conf->channels;
-  assert(audio_codec_ctx->codec->sample_fmts);
+	assert(audio_codec_ctx->codec->sample_fmts);
 	audio_stream->codec->sample_fmt = audio_codec_ctx->codec->sample_fmts[0];
 
 //	if (audio_output_file->av_fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER)

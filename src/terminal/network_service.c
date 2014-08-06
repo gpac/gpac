@@ -186,7 +186,7 @@ static void term_on_disconnect(GF_ClientService *service, LPNETCHANNEL netch, GF
 	GF_ObjectManager *root;
 	GF_Channel *ch;
 	GF_Terminal *term = service->term;
-	
+
 	/*may be null upon destroy*/
 	root = service->owner;
 	if (root && (root->net_service != service)) {

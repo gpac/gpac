@@ -158,7 +158,7 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 	bs = gf_bs_new(extradata, extradata_size, GF_BITSTREAM_READ);
 	if (!bs)
 		return GF_BAD_PARAM;
-	
+
 	memset(&hevc, 0, sizeof(HEVCState));
 	hevc.sps_active_idx = -1;
 
@@ -168,7 +168,7 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 		u8 nal_unit_type, temporal_id, layer_id;
 		u64 nal_start;
 		u32 nal_size;
-		
+
 		if (gf_bs_read_u32(bs) != 0x00000001) {
 			gf_bs_del(bs);
 			return GF_BAD_PARAM;
@@ -212,7 +212,7 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 				dst_cfg->constantFrameRate = hevc.vps[idx].rates[0].constand_pic_rate_idc;
 				dst_cfg->numTemporalLayers = hevc.vps[idx].max_sub_layers;
 				dst_cfg->temporalIdNested = hevc.vps[idx].temporal_id_nesting;
-				
+
 				if (!vpss) {
 					GF_SAFEALLOC(vpss, GF_HEVCParamArray);
 					vpss->nalus = gf_list_new();
@@ -237,13 +237,13 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 				gf_free(buffer);
 				return GF_BAD_PARAM;
 			}
-			
+
 			assert(!(hevc.sps[idx].state & AVC_SPS_DECLARED)); //we don't expect multiple SPS
 			if ((hevc.sps[idx].state & AVC_SPS_PARSED) && !(hevc.sps[idx].state & AVC_SPS_DECLARED)) {
 				hevc.sps[idx].state |= AVC_SPS_DECLARED;
 				hevc.sps[idx].crc = gf_crc_32(buffer, nal_size);
 			}
-			
+
 			dst_cfg->configurationVersion = 1;
 			dst_cfg->profile_space = hevc.sps[idx].ptl.profile_space;
 			dst_cfg->tier_flag = hevc.sps[idx].ptl.tier_flag;
@@ -260,7 +260,7 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 			dst_cfg->chromaFormat = hevc.sps[idx].chroma_format_idc;
 			dst_cfg->luma_bit_depth = hevc.sps[idx].bit_depth_luma;
 			dst_cfg->chroma_bit_depth = hevc.sps[idx].bit_depth_chroma;
-			
+
 			if (!spss) {
 				GF_SAFEALLOC(spss, GF_HEVCParamArray);
 				spss->nalus = gf_list_new();
@@ -283,7 +283,7 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 				gf_free(buffer);
 				return GF_BAD_PARAM;
 			}
-			
+
 			assert(hevc.pps[idx].state == 1); //we don't expect multiple PPS
 			if (hevc.pps[idx].state == 1) {
 				hevc.pps[idx].state = 2;

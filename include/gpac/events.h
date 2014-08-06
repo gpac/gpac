@@ -283,7 +283,7 @@ typedef struct {
 typedef struct {
 	/*GF_EVENT_FROM_SERVICE*/
 	u8 type;
-	//cf GF_EVT_FORWARDED_ * 
+	//cf GF_EVT_FORWARDED_ *
 	u8 forward_type;
 	/*original type of event as forwarded by the service*/
 	u32 service_event_type;

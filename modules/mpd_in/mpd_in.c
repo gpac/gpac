@@ -128,7 +128,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 	GF_InputService *ifce;
 	GF_MPD_In *mpdin = (GF_MPD_In*) service->ifce->priv;
 	GF_Channel *ch;
-	
+
 	if (!ns || !hdr) {
 		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
 		return;
@@ -142,7 +142,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 		GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, i);
 		if (!group) continue;
 		if (group->segment_ifce == ifce) {
-			//if sync is based on timestamps do not adjust the timestamps back 
+			//if sync is based on timestamps do not adjust the timestamps back
 			if (! group->is_timestamp_based) {
 				u32 timescale;
 				u64 pto=0;
@@ -1006,7 +1006,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 		gf_dash_set_speed(mpdin->dash, com->play.speed);
 
-		/*don't seek if this command is the first PLAY request of objects declared by the subservice 
+		/*don't seek if this command is the first PLAY request of objects declared by the subservice
 		not long ago*/
 		if (!com->play.initial_broadcast_play || (com->play.start_range>2.0) ) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Play command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));

@@ -557,7 +557,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 #if 0
 		send_m2ts_event(m2ts, evt_type, param);
 #endif
-	break;
+		break;
 	case GF_M2TS_EVT_AIT_FOUND:
 		forward_m2ts_event(m2ts, evt_type, param);
 		break;

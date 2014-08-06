@@ -3884,7 +3884,7 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 		} else {
 			SubWidthC = SubHeightC = 1;
 		}
-		
+
 		sps->cw_left = bs_get_ue(bs);
 		sps->cw_right = bs_get_ue(bs);
 		sps->cw_top = bs_get_ue(bs);
@@ -4569,7 +4569,7 @@ restart:
 		return GF_FALSE;
 	if (!AC3_FindSyncCodeBS(bs))
 		return GF_FALSE;
-	
+
 	pos = gf_bs_get_position(bs);
 	framesize = 0;
 	numblkscod = 0;
@@ -4633,7 +4633,7 @@ block:
 	channels = ac3_mod_to_chans[ac3_mod];
 	if (lfon)
 		channels += 1;
-	
+
 	if (substreamid) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[E-AC3] Detected additional %u channels in substream id=%u - may not be handled correctly. Skipping.\n", channels, substreamid));
 		gf_bs_seek(bs, pos+framesize);
@@ -4652,7 +4652,7 @@ block:
 			hdr->brcode = 0;
 		}
 	}
-	
+
 	if (numblkscod < 6) { //we need 6 blocks to make a sample
 		gf_bs_seek(bs, pos+2*framesize);
 		if ((gf_bs_available(bs) < 6) || !AC3_FindSyncCodeBS(bs))

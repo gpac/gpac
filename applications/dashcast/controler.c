@@ -1000,7 +1000,7 @@ u32 audio_encoder_thread(void *params)
 	frame_per_seg  = (int)((audio_data_conf->samplerate / (double) audio_output_file.codec_ctx->frame_size) * (in_data->seg_dur  / 1000.0));
 	frame_per_frag = (int)((audio_data_conf->samplerate / (double) audio_output_file.codec_ctx->frame_size) * (in_data->frag_dur / 1000.0));
 	optimize_seg_frag_dur(&frame_per_seg, &frame_per_frag);
-	
+
 	real_audio_seg_dur = (int) (frame_per_seg * (double) audio_output_file.codec_ctx->frame_size * 1000.0 / (double) audio_data_conf->samplerate);
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH,("[audio_encoder] frame_per_seg=%d, frame_per_frag=%d, real_audio_seg_dur=%d ms\n", frame_per_seg, frame_per_frag, real_audio_seg_dur) );
 

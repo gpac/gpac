@@ -367,7 +367,7 @@ typedef struct
 } GF_NetComMigration;
 
 /*GF_NET_SERVICE_EVENT*/
-typedef struct 
+typedef struct
 {
 	u32 command_type;
 

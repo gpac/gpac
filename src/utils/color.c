@@ -1616,7 +1616,7 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 		pU = pU + (src_stride * (_src_wnd->y / 2) + _src_wnd->x) / 2;
 		pV = pV + (src_stride * (_src_wnd->y / 2) + _src_wnd->x) / 2;
 	}
-	
+
 	if (swap_uv) {
 		u8 *t = pV;
 		pV = pU;

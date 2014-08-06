@@ -460,7 +460,7 @@ refetch_AU:
 			*nextAU = AU;
 			*activeChannel = ch;
 			curCTS = AU->CTS;
-		} 
+		}
 		//we allow for +/- 1ms drift due to timestamp rounding when converting to milliseconds units
 		else if (cts_diff<=1) {
 			GF_DBUnit *baseAU = *nextAU;
@@ -957,7 +957,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	}
 
 	entryTime = gf_sys_clock_high_res();
-	
+
 	if (!codec->odm->term->bench_mode && (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES))
 		drop_late_frames = 1;
 
@@ -1066,12 +1066,12 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	first = 1;
 	while (codec->CB->Capacity > codec->CB->UnitCount) {
 		Bool force_skip = 0;
-		
+
 		if (codec->decode_only_rap) {
 			//check whether we have to skip decoding this frame
 			if (AU->flags & GF_DB_AU_RAP) {
 				if (codec->decode_only_rap==2) {
-					if (AU->CTS > obj_time + 500) 
+					if (AU->CTS > obj_time + 500)
 						return GF_OK;
 					force_skip = 1;
 				} else if (codec->drop_modulo) {
@@ -1144,7 +1144,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 							GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: %d consecutive late frames at speed %g in I-frame only mode - decoding only one I-frame out of %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, codec->consecutive_late_frames, speed, codec->drop_modulo));
 						}
 						codec->consecutive_late_frames = 0;
-					}	
+					}
 					//very late even in I-frame mode, drop it
 					else if (codec->decode_only_rap) {
 						if (obj_time - AU->CTS > 2000) {
@@ -1207,7 +1207,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because no more space in composition buffer\n", codec->decio->module_name ));
 			return GF_OK;
 		}
-	
+
 
 scalable_retry:
 
@@ -1375,7 +1375,7 @@ scalable_retry:
 				ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
 		}
 
-		
+
 		if (!codec->decode_only_rap && codec->drop_modulo) {
 			codec->drop_count++;
 			if (codec->drop_count==codec->drop_modulo) {

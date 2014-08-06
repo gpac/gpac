@@ -286,7 +286,9 @@ void PrintDASHUsage()
 	        " -out filename        specifies output MPD file name.\n"
 	        " -tmp dirname         specifies directory for temporary file creation\n"
 	        "                       * Note: Default temp dir is OS-dependent\n"
-	        " -profile NAME   specifies the target DASH profile: \"onDemand\", \"live\", \"main\", \"simple\", \"full\"\n"
+	        " -profile NAME        specifies the target DASH profile: \"onDemand\",\n"
+	        "                       \"live\", \"main\", \"simple\", \"full\",\n"
+	        "                       \"dashavc264:live\","\"dashavc264:onDemand\"\n"
 	        "                       * This will set default option values to ensure conformance to the desired profile\n"
 	        "                       * Default profile is \"full\" in static mode, \"live\" in dynamic mode\n"
 	        "\n"
@@ -302,11 +304,11 @@ void PrintDASHUsage()
 	        "                       only the xlink declared on the first rep of a period will be used\n"
 	        " \":role=VALUE\"      sets the role of this representation (cf DASH spec).\n"
 	        "                       media with different roles belong to different adaptation sets.\n"
-	        " \":desc_p=VALUE\"    adds a descriptor at the Period level.\n"  
-			" \":desc_as=VALUE\"   adds a descriptor at the AdaptationSet level \n"
-			"                       two input files with different values will be in different AdaptationSet elements.\n"
-			" \":desc_as_c=VALUE\" adds a descriptor at the AdaptationSet level \n"
-			"                       value is ignored to created AdaptationSet elements.\n"
+	        " \":desc_p=VALUE\"    adds a descriptor at the Period level.\n"
+	        " \":desc_as=VALUE\"   adds a descriptor at the AdaptationSet level \n"
+	        "                       two input files with different values will be in different AdaptationSet elements.\n"
+	        " \":desc_as_c=VALUE\" adds a descriptor at the AdaptationSet level \n"
+	        "                       value is ignored to created AdaptationSet elements.\n"
 	        " \":desc_rep=VALUE\"  adds a descriptor at the Representation level.\n"
 	        "                       value is ignored to created AdaptationSet elements.\n"
 	        "\n"
@@ -357,7 +359,7 @@ void PrintDASHUsage()
 	        " -moof-sn N           sets sequence number of first moof to N\n"
 	        " -tfdt N              sets TFDT of first traf to N in SCALE units (cf -dash-scale)\n"
 	        " -no-frags-default    disables default flags in fragments\n"
-			" -single-traf         uses a single track fragment per moof (smooth streaming and derived specs may require this)\n"
+	        " -single-traf         uses a single track fragment per moof (smooth streaming and derived specs may require this)\n"
 	        " -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 	        "\n");
 }
@@ -1416,12 +1418,12 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			while (sep) {
 				/* this is a real separator if it is followed by a keyword we are looking for */
 				if (!strnicmp(sep, ":id=", 4) ||
-					!strnicmp(sep, ":period=", 8) ||
-					!strnicmp(sep, ":bandwidth=", 11) ||
-					!strnicmp(sep, ":role=", 6) ||
-					!strnicmp(sep, ":desc", 5) ||
-					!strnicmp(sep, ":xlink=", 7)) {
-						break;
+				        !strnicmp(sep, ":period=", 8) ||
+				        !strnicmp(sep, ":bandwidth=", 11) ||
+				        !strnicmp(sep, ":role=", 6) ||
+				        !strnicmp(sep, ":desc", 5) ||
+				        !strnicmp(sep, ":xlink=", 7)) {
+					break;
 				} else {
 					sep = strchr(sep+1, ':');
 				}
@@ -1675,7 +1677,7 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		}
 	}
-	
+
 	/*init libgpac*/
 	gf_sys_init(enable_mem_tracker);
 	if (argc < 2) {

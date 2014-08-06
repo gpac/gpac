@@ -210,9 +210,9 @@ retry:
 		hr = ctx->pDS->lpVtbl->CreateSoundBuffer(ctx->pDS, &dsbBufferDesc, &ctx->pOutput, NULL );
 		if (FAILED(hr)) {
 			if (ctx->format.nChannels>2) {
-				 GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[DirectSound] failed to configure output for %d channels (error %08x) - falling back to stereo\n", *NbChannels, hr));
-				 *NbChannels = 2;
-				 return DS_ConfigureOutput(dr, SampleRate, NbChannels, nbBitsPerSample, 0);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[DirectSound] failed to configure output for %d channels (error %08x) - falling back to stereo\n", *NbChannels, hr));
+				*NbChannels = 2;
+				return DS_ConfigureOutput(dr, SampleRate, NbChannels, nbBitsPerSample, 0);
 			}
 			return GF_IO_ERR;
 		}

@@ -57,10 +57,10 @@ GF_ObjectManager *gf_odm_new()
 }
 
 void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset)
- {
- #ifndef GPAC_DISABLE_VRML
- 	MediaSensorStack *media_sens;
- 	MediaControlStack *media_ctrl;
+{
+#ifndef GPAC_DISABLE_VRML
+	MediaSensorStack *media_sens;
+	MediaControlStack *media_ctrl;
 
 	while ((media_sens = (MediaSensorStack *)gf_list_last(odm->ms_stack))) {
 		MS_Stop(media_sens);
@@ -70,13 +70,13 @@ void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset)
 	}
 
 	while ((media_ctrl = (MediaControlStack *)gf_list_last(odm->mc_stack))) {
-		if (signal_reset) 
+		if (signal_reset)
 			gf_odm_remove_mediacontrol(odm, media_ctrl);
 		media_ctrl->stream = NULL;
 		media_ctrl->ck = NULL;
 		gf_list_rem_last(odm->mc_stack);
 	}
- #endif
+#endif
 }
 
 
@@ -866,10 +866,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	}
 
 	/*if object codec is prefered one, auto select*/
-	if (odm->parentscene && odm->parentscene->is_dynamic_scene 
-		&& odm->codec && (odm->codec->oti==odm->term->prefered_audio_codec_oti)
-		&& (odm->parentscene->selected_service_id == odm->OD->ServiceID)
-	) {
+	if (odm->parentscene && odm->parentscene->is_dynamic_scene
+	        && odm->codec && (odm->codec->oti==odm->term->prefered_audio_codec_oti)
+	        && (odm->parentscene->selected_service_id == odm->OD->ServiceID)
+	   ) {
 		gf_scene_select_object(odm->parentscene, odm);
 	}
 
@@ -1518,7 +1518,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 		com.base.on_channel = ch;
 		com.play.speed = 1.0;
-		
+
 		/*play from requested time (seeking or non-mpeg4 media control)*/
 		if (odm->media_start_time && !ch->clock->clock_init) {
 			ck_time = (Double) (s64) odm->media_start_time;
@@ -2042,7 +2042,7 @@ void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed, Bool adjust_clock_spee
 	com.play.speed = FIX2FLT(speed);
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
-		if (adjust_clock_speed) 
+		if (adjust_clock_speed)
 			gf_clock_set_speed(ch->clock, speed);
 
 		gf_es_reset_buffers(ch);

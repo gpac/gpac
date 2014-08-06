@@ -595,7 +595,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 	u64 DTS;
 	GF_SttsEntry *ent;
 	u32 nbSamp;
-	
+
 	if (!trak->Media->information->sampleTable->SampleSize)
 		return GF_BAD_PARAM;
 	else
