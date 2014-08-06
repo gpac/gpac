@@ -360,9 +360,17 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		gf_odf_avc_cfg_del(avcc);
 		return GF_OK;
 #ifndef GPAC_DISABLE_HEVC
-	case GF_4CC('h','v','c','1'):
-	case GF_4CC('h','e','v','1'):
+	case GF_ISOM_SUBTYPE_HVC1:
+	case GF_ISOM_SUBTYPE_HEV1:
+	case GF_ISOM_SUBTYPE_HVC2:
+	case GF_ISOM_SUBTYPE_HEV2:
+	case GF_ISOM_SUBTYPE_HVT1:
+	case GF_ISOM_SUBTYPE_SHC1:
+	case GF_ISOM_SUBTYPE_SHV1:
 		hvcc = gf_isom_hevc_config_get(movie, track, 1);
+		if (!hvcc) {
+			hvcc = gf_isom_shvc_config_get(movie, track, 1);
+		}
 		if (hvcc) {
 			u8 c;
 			char szTemp[40];
@@ -715,7 +723,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	mpd_timescale = nb_video = nb_audio = nb_text = nb_scene = 0;
 	//duplicates all tracks
 	for (i=0; i<gf_isom_get_track_count(input); i++) {
-		u32 _w, _h, _sr, _nb_ch, avctype;
+		u32 _w, _h, _sr, _nb_ch, vidtype;
 
 		u32 mtype = gf_isom_get_media_type(input, i+1);
 		if (mtype == GF_ISOM_MEDIA_HINT) continue;
@@ -760,23 +768,30 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		}
 
 		/*set extraction mode whether setup or not*/
-		avctype = gf_isom_get_avc_svc_type(input, i+1, 1);
-		if (avctype==GF_ISOM_AVCTYPE_AVC_ONLY) {
+		vidtype = gf_isom_get_avc_svc_type(input, i+1, 1);
+		if (vidtype==GF_ISOM_AVCTYPE_AVC_ONLY) {
 			/*for AVC we concatenate SPS/PPS unless SVC base*/
 			if (!dash_input->trackNum && dash_cfg->inband_param_set)
 				gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 		}
-		else if (avctype > GF_ISOM_AVCTYPE_AVC_ONLY) {
+		else if (vidtype > GF_ISOM_AVCTYPE_AVC_ONLY) {
 			/*for SVC we don't want any rewrite of extractors, and we don't concatenate SPS/PPS*/
 			gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
 		}
 
-		if (gf_isom_get_media_subtype(input, i+1, 1)==GF_ISOM_SUBTYPE_HVC1) {
-			u32 mode = GF_ISOM_NALU_EXTRACT_INSPECT;
-			if (dash_cfg->inband_param_set) {
+		vidtype = gf_isom_get_hevc_shvc_type(input, i+1, 1);
+		if (vidtype == GF_ISOM_HEVCTYPE_HEVC_ONLY) {
+
+			u32 mode = GF_ISOM_NALU_EXTRACT_INSPECT;	//because of tile tracks
+
+			/*concatenate SPS/PPS unless SHVC base*/
+			if (!dash_input->trackNum && dash_cfg->inband_param_set)
 				mode |= GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
-			}
+
 			gf_isom_set_nalu_extract_mode(input, i+1, mode);
+		}
+		else if (vidtype > GF_ISOM_HEVCTYPE_HEVC_ONLY) {
+			gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
 		}
 
 		if (mtype == GF_ISOM_MEDIA_VISUAL) nb_video++;
@@ -2212,24 +2227,29 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 					stype2 = gf_isom_get_media_subtype(init_seg, track, 1);
 					if (stype1 != stype2) merge_mode = 0;
 					switch (stype1) {
-					case GF_4CC( 'a', 'v', 'c', '1'):
-					case GF_4CC( 'a', 'v', 'c', '2'):
+					case GF_ISOM_SUBTYPE_AVC_H264:
+					case GF_ISOM_SUBTYPE_AVC2_H264:
 						if (use_avc3)
 							merge_mode = 2;
 						break;
-					case GF_4CC( 's', 'v', 'c', '1'):
+					case GF_ISOM_SUBTYPE_SVC_H264:
 						break;
-					case GF_4CC( 'a', 'v', 'c', '3'):
-					case GF_4CC( 'a', 'v', 'c', '4'):
+					case GF_ISOM_SUBTYPE_AVC3_H264:
+					case GF_ISOM_SUBTYPE_AVC4_H264:
 						/*we don't want to clone SPS/PPS since they are already inside the samples*/
 						merge_mode = 2;
 						break;
-					case GF_4CC( 'h', 'v', 'c', '1'):
+					case GF_ISOM_SUBTYPE_HVC1:
 						if (use_hevc)
 							merge_mode = 2;
 						break;
-					case GF_4CC( 'h', 'e', 'v', '1'):
+					case GF_ISOM_SUBTYPE_HEV1:
 						/*we don't want to clone SPS/PPS since they are already inside the samples*/
+						merge_mode = 2;
+						break;
+					case GF_ISOM_SUBTYPE_SHC1:
+						break;
+					case GF_ISOM_SUBTYPE_SHV1:
 						merge_mode = 2;
 						break;
 					default:
@@ -2288,21 +2308,23 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 				gf_isom_clone_track(in, j+1, init_seg, GF_FALSE, &track);
 
 				switch (gf_isom_get_media_subtype(in, j+1, 1)) {
-				case GF_4CC( 'a', 'v', 'c', '1'):
-				case GF_4CC( 'a', 'v', 'c', '2'):
-				case GF_4CC( 's', 'v', 'c', '1'):
+				case GF_ISOM_SUBTYPE_AVC_H264:
+				case GF_ISOM_SUBTYPE_AVC2_H264:
+				case GF_ISOM_SUBTYPE_SVC_H264:
 					if (use_inband_param_set) {
 						gf_isom_avc_set_inband_config(init_seg, track, 1);
 						use_avc3 = GF_TRUE;
 					}
 					break;
-				case GF_4CC( 'h', 'v', 'c', '1'):
+				case GF_ISOM_SUBTYPE_HVC1:
 					if (use_inband_param_set) {
 						gf_isom_hevc_set_inband_config(init_seg, track, 1);
 					}
 					use_hevc = GF_TRUE;
 					break;
 				}
+				if (gf_isom_has_sync_points(in, j+1)) 
+					gf_isom_set_sync_table(init_seg, track);
 
 
 				gf_isom_get_fragment_defaults(in, j+1, &defaultDuration, &defaultSize,

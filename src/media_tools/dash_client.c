@@ -3267,7 +3267,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 					ok = !strnicmp(rep->codecs, rep_sel->codecs, strlen(rep_sel->codecs) );
 					if (sep) sep[0] = '.';
 					if (!ok) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Different codec types (%s vs %s) in same AdaptationSet - disabling %s\n", rep_sel->codecs, rep->codecs, rep->codecs));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Different codec types (%s vs %s) in same AdaptationSet\n", rep_sel->codecs, rep->codecs));
 						//rep->playback.disabled = 1;
 						//continue;
 					}
