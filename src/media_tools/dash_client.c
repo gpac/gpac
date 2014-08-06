@@ -2189,7 +2189,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Media URL is not set in segment list\n"));
 				return GF_SERVICE_ERROR;
 			}
-			if (item_index >= segment_count) {
+			if ((item_index >= segment_count) || ((s32) item_index < 0)){
 				gf_free(url);
 				return GF_EOS;
 			}
@@ -3800,7 +3800,11 @@ restart_period:
 						group->maybe_end_of_stream++;
 					} else if (group->segment_in_valid_range) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - segment was lost at server/proxy side\n", new_base_seg_url, gf_error_to_string(e)));
-						group->download_segment_index++;
+						if (dash->speed > 0) {
+							group->download_segment_index++;
+						} else {
+							group->download_segment_index--;
+						}
 						group->segment_in_valid_range=0;
 					} else if (group->prev_segment_ok && !group->time_at_first_failure) {
 						if (!group->loop_detected) {
@@ -3827,7 +3831,11 @@ restart_period:
 #endif
 						{
 							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s\n", new_base_seg_url, gf_error_to_string(e)));
-							group->download_segment_index++;
+							if (dash->speed > 0) {
+								group->download_segment_index++;
+							} else {
+								group->download_segment_index--;
+							}
 						}
 					}
 					gf_free(new_base_seg_url);
@@ -3903,7 +3911,11 @@ restart_period:
 				/* if we have downloaded all enhancement representations of this segment, restart from base representation and increase dowloaded segment index by 1*/
 				else {
 					if (group->base_rep_index_plus_one) group->active_rep_index = group->base_rep_index_plus_one - 1;
-					group->download_segment_index++;
+					if (dash->speed > 0) {
+						group->download_segment_index++;
+					} else {
+						group->download_segment_index--;
+					}
 				}
 				if (dash->auto_switch_count) {
 					group->nb_segments_done++;

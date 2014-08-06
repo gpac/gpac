@@ -58,7 +58,7 @@ typedef struct
 	GF_DownloadSession * dnload;
 	u64 missing_bytes, last_size;
 	Bool no_service_desc;
-	u32 base_track_id;
+	u32 play_only_track_id;
 
 	/*0: not fragmented - 1 fragmented - 2 fragmented and last fragment received*/
 	u32 frag_type;
@@ -74,6 +74,7 @@ typedef struct
 
 	Bool clock_discontinuity;
 	Bool disconnected;
+	Bool no_order_check;
 } ISOMReader;
 
 

@@ -2322,7 +2322,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 }
 
 GF_EXPORT
-GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range, Bool is_scalable_segment)
+GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range, Bool is_scalable_segment, Bool no_order_check)
 {
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	return GF_NOT_SUPPORTED;
@@ -2372,6 +2372,7 @@ GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_r
 			trak->present_in_scalable_segment = 0;
 		}
 	}
+	if (no_order_check) movie->NextMoofNumber = 0;
 
 
 	//ok parse root boxes

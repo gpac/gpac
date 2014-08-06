@@ -350,7 +350,6 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
 
-	read->base_track_id = 0;
 	if (!url) return GF_URL_ERROR;
 
 	strcpy(szURL, url);
@@ -359,9 +358,9 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 		tmp = strchr(tmp, '#');
 		if (tmp) {
 			if (!strnicmp(tmp, "#trackID=", 9)) {
-				read->base_track_id = atoi(tmp+9);
+				read->play_only_track_id = atoi(tmp+9);
 			} else {
-				read->base_track_id = atoi(tmp+1);
+				read->play_only_track_id = atoi(tmp+1);
 			}
 			tmp[0] = 0;
 		}
@@ -531,8 +530,8 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 
 	trackID = 0;
 	if (!sub_url) {
-		trackID = read->base_track_id;
-		read->base_track_id = 0;
+		trackID = read->play_only_track_id;
+		read->play_only_track_id = 0;
 	} else {
 		char *ext = (char *)strrchr(sub_url, '#');
 		if (!ext) {
@@ -1098,7 +1097,9 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_PLAY:
 
 		isor_reset_reader(ch);
+		gf_mx_p(read->segment_mutex);
 		ch->speed = com->play.speed;
+		gf_mx_v(read->segment_mutex);
 		ch->start = ch->end = 0;
 		if (com->play.speed>0) {
 			if (com->play.start_range>=0) {
@@ -1127,6 +1128,11 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		isor_reset_reader(ch);
 		return GF_OK;
 
+	case GF_NET_CHAN_SET_SPEED:
+		gf_mx_p(read->segment_mutex);
+		ch->speed = com->play.speed;
+		gf_mx_v(read->segment_mutex);
+		return GF_OK;
 	/*nothing to do on MP4 for channel config*/
 	case GF_NET_CHAN_CONFIG:
 		return GF_OK;

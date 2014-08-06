@@ -404,12 +404,16 @@ static void Channel_UpdateBufferTime(GF_Channel *ch)
 			ch->BufferTime = 50*ch->AU_Count;
 		}
 	} else {
-		s32 bt = ch->AU_buffer_last->DTS - gf_clock_time(ch->clock);
+		s32 bt;
+		if (ch->clock->speed > 0)
+			bt = ch->AU_buffer_last->DTS - gf_clock_time(ch->clock);
+		else {
+			bt = gf_clock_time(ch->clock);
+			bt -= ch->AU_buffer_last->DTS;
+		}
+
 		if (bt>0) {
 			ch->BufferTime = (u32) bt;
-			if (ch->clock->speed != FIX_ONE) {
-				ch->BufferTime = FIX2INT( gf_divfix( INT2FIX(ch->AU_buffer_last->DTS - ch->AU_buffer_first->DTS) , ch->clock->speed)) ;
-			}
 		} else {
 			ch->BufferTime = 0;
 		}
@@ -504,7 +508,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		ch->AU_buffer_last = au;
 		ch->AU_Count = 1;
 	} else {
-		if (!ch->recompute_dts && (ch->AU_buffer_last->DTS<=au->DTS)) {
+		if (!ch->recompute_dts && ((s32) (ch->clock->speed * ch->AU_buffer_last->DTS) <= (s32) (ch->clock->speed * au->DTS)) ) {
 			ch->AU_buffer_last->next = au;
 			ch->AU_buffer_last = ch->AU_buffer_last->next;
 		}
@@ -621,7 +625,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 					au_prev = au_prev->next;
 				}
 				assert(au_prev);
-				if (au_prev->next->DTS==au->DTS) {
+				if (au_prev->next && (au_prev->next->DTS==au->DTS)) {
 					gf_free(au->data);
 					gf_free(au);
 				} else {
@@ -890,7 +894,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	}
 
 	/*we ignore OCRs for the moment*/
-	if (hdr.OCRflag) {
+	if (hdr.OCRflag==1) {
 		if (!ch->IsClockInit) {
 			/*channel is the OCR, re-initialize the clock with the proper OCR*/
 			if (gf_es_owns_clock(ch)) {
