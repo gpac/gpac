@@ -36,7 +36,7 @@ static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGP
 typedef struct
 {
 	GF_TextureHandler txh;
-	Drawable *graph;
+	Drawable *drawable;
 	MFURL txurl;
 	Bool first_frame_fetched;
 	GF_Node *audio;
@@ -93,11 +93,11 @@ static void SVG_Build_Bitmap_Graph(SVG_video_stack *stack, GF_TraverseState *tr_
 	Fixed rectx, recty, rectwidth, rectheight;
 	SVGAllAttributes atts;
 	SVG_PreserveAspectRatio pAR;
-	SVG_Element *e = (SVG_Element *)stack->graph->node;
+	SVG_Element *e = (SVG_Element *)stack->drawable->node;
 
 	gf_svg_flatten_attributes(e, &atts);
 
-	tag = gf_node_get_tag(stack->graph->node);
+	tag = gf_node_get_tag(stack->drawable->node);
 	switch (tag) {
 	case TAG_SVG_image:
 	case TAG_SVG_video:
@@ -201,16 +201,16 @@ static void SVG_Build_Bitmap_Graph(SVG_video_stack *stack, GF_TraverseState *tr_
 	}
 
 
-	gf_path_get_bounds(stack->graph->path, &rc);
-	drawable_reset_path(stack->graph);
-	gf_path_add_rect_center(stack->graph->path, rectx, recty, rectwidth, rectheight);
-	gf_path_get_bounds(stack->graph->path, &new_rc);
+	gf_path_get_bounds(stack->drawable->path, &rc);
+	drawable_reset_path(stack->drawable);
+	gf_path_add_rect_center(stack->drawable->path, rectx, recty, rectwidth, rectheight);
+	gf_path_get_bounds(stack->drawable->path, &new_rc);
 	if (!gf_rect_equal(rc, new_rc))
-		drawable_mark_modified(stack->graph, tr_state);
+		drawable_mark_modified(stack->drawable, tr_state);
 	else if (stack->txh.flags & GF_SR_TEXTURE_PRIVATE_MEDIA)
-		drawable_mark_modified(stack->graph, tr_state);
+		drawable_mark_modified(stack->drawable, tr_state);
 
-	gf_node_dirty_clear(stack->graph->node, GF_SG_SVG_GEOMETRY_DIRTY);
+	gf_node_dirty_clear(stack->drawable->node, GF_SG_SVG_GEOMETRY_DIRTY);
 }
 
 static void svg_open_texture(SVG_video_stack *stack)
@@ -254,7 +254,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 		gf_sc_texture_destroy(&stack->txh);
 		gf_sg_mfurl_del(stack->txurl);
 
-		drawable_del(stack->graph);
+		drawable_del(stack->drawable);
 		if (stack->audio) {
 			gf_node_unregister(stack->audio, NULL);
 		}
@@ -262,15 +262,24 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
-	/*TRAVERSE_DRAW is NEVER called in 3D mode*/
 	if (tr_state->traversing_mode==TRAVERSE_DRAW_2D) {
 		SVG_Draw_bitmap(tr_state);
 		return;
 	}
 	else if (tr_state->traversing_mode==TRAVERSE_PICK) {
-		svg_drawable_pick(node, stack->graph, tr_state);
+		svg_drawable_pick(node, stack->drawable, tr_state);
+		return;
+	} 
+#ifndef GPAC_DISABLE_3D
+	else if (tr_state->traversing_mode==TRAVERSE_DRAW_3D) {
+		if (!stack->drawable->mesh) {
+			stack->drawable->mesh = new_mesh();
+			mesh_from_path(stack->drawable->mesh, stack->drawable->path);
+		}
+		compositor_3d_draw_bitmap(stack->drawable, &tr_state->ctx->aspect, tr_state, 0, 0, FIX_ONE, FIX_ONE);
 		return;
 	}
+#endif
 
 	/*flatten attributes and apply animations + inheritance*/
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
@@ -304,7 +313,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		if (!compositor_svg_is_display_off(tr_state->svg_props)) {
-			gf_path_get_bounds(stack->graph->path, &tr_state->bounds);
+			gf_path_get_bounds(stack->drawable->path, &tr_state->bounds);
 			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
 			if (svg_video_get_transform_behavior(tr_state, &all_atts, &cx, &cy, &angle)) {
@@ -329,12 +338,12 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 
 			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, &mx_3d);
 
-			ctx = drawable_init_context_svg(stack->graph, tr_state);
+			ctx = drawable_init_context_svg(stack->drawable, tr_state);
 			if (!ctx || !ctx->aspect.fill_texture ) return;
 
 			if (svg_video_get_transform_behavior(tr_state, &all_atts, &cx, &cy, &angle)) {
-				drawable_reset_path(stack->graph);
-				gf_path_add_rect_center(stack->graph->path, cx, cy, INT2FIX(stack->txh.width), INT2FIX(stack->txh.height));
+				drawable_reset_path(stack->drawable);
+				gf_path_add_rect_center(stack->drawable->path, cx, cy, INT2FIX(stack->txh.width), INT2FIX(stack->txh.height));
 
 				gf_mx2d_copy(mx_bck, tr_state->transform);
 				restore_mx = GF_TRUE;
@@ -362,11 +371,11 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 
 #ifndef GPAC_DISABLE_3D
 			if (tr_state->visual->type_3d) {
-				if (!stack->graph->mesh) {
-					stack->graph->mesh = new_mesh();
-					mesh_from_path(stack->graph->mesh, stack->graph->path);
+				if (!stack->drawable->mesh) {
+					stack->drawable->mesh = new_mesh();
+					mesh_from_path(stack->drawable->mesh, stack->drawable->path);
 				}
-				compositor_3d_draw_bitmap(stack->graph, &ctx->aspect, tr_state, 0, 0, FIX_ONE, FIX_ONE);
+				compositor_3d_draw_bitmap(stack->drawable, &ctx->aspect, tr_state, 0, 0, FIX_ONE, FIX_ONE);
 				ctx->drawable = NULL;
 			} else
 #endif
@@ -415,9 +424,9 @@ void compositor_init_svg_image(GF_Compositor *compositor, GF_Node *node)
 {
 	SVG_video_stack *stack;
 	GF_SAFEALLOC(stack, SVG_video_stack)
-	stack->graph = drawable_new();
-	stack->graph->flags = DRAWABLE_USE_TRAVERSE_DRAW;
-	stack->graph->node = node;
+	stack->drawable = drawable_new();
+	stack->drawable->flags = DRAWABLE_USE_TRAVERSE_DRAW;
+	stack->drawable->node = node;
 
 	gf_sc_texture_setup(&stack->txh, compositor, node);
 	stack->txh.update_texture_fcnt = SVG_Update_image;
@@ -494,7 +503,7 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 		}
 	}
 
-	/*we have no choice but retraversing the graph until we're inactive since the movie framerate and
+	/*we have no choice but retraversing the drawable until we're inactive since the movie framerate and
 	the compositor framerate are likely to be different */
 	if (!txh->stream_finished)
 		if (txh->needs_refresh)
@@ -546,9 +555,9 @@ void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node)
 {
 	SVG_video_stack *stack;
 	GF_SAFEALLOC(stack, SVG_video_stack)
-	stack->graph = drawable_new();
-	stack->graph->flags = DRAWABLE_USE_TRAVERSE_DRAW;
-	stack->graph->node = node;
+	stack->drawable = drawable_new();
+	stack->drawable->flags = DRAWABLE_USE_TRAVERSE_DRAW;
+	stack->drawable->node = node;
 
 	gf_sc_texture_setup(&stack->txh, compositor, node);
 	stack->txh.update_texture_fcnt = SVG_Update_video;

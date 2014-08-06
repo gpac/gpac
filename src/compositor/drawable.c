@@ -645,64 +645,11 @@ static Bool check_transparent_skip(DrawableContext *ctx, Bool skipFill)
 }
 
 
-#ifndef GPAC_DISABLE_VRML
-
-DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseState *tr_state)
+static void check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_TraverseState *tr_state)
 {
-	DrawableContext *ctx;
-	Bool skipFill;
-	GF_Node *appear;
 #ifndef GPAC_DISABLE_3D
 	Bool texture_ready=0;
 #endif
-	assert(tr_state->visual);
-
-	/*switched-off geometry nodes are not drawn*/
-	if (tr_state->switched_off) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Drawable is switched off - skipping\n"));
-		return NULL;
-	}
-
-	//Get a empty context from the current visual
-	ctx = visual_2d_get_drawable_context(tr_state->visual);
-	if (!ctx) return NULL;
-
-	ctx->drawable = drawable;
-
-	appear = tr_state->override_appearance ? tr_state->override_appearance : tr_state->appear;
-
-	/*usually set by colorTransform or changes in OrderedGroup*/
-	if (tr_state->invalidate_all)
-		ctx->flags |= CTX_APP_DIRTY;
-
-	ctx->aspect.fill_texture = NULL;
-	if (appear) {
-		ctx->appear = appear;
-		if (gf_node_dirty_get(appear))
-			ctx->flags |= CTX_APP_DIRTY;
-	}
-	/*todo cliper*/
-
-	/*FIXME - only needed for texture*/
-	if (!tr_state->color_mat.identity) {
-		GF_SAFEALLOC(ctx->col_mat, GF_ColorMatrix);
-		gf_cmx_copy(ctx->col_mat, &tr_state->color_mat);
-	}
-
-	/*IndexedLineSet2D and PointSet2D ignores fill flag and texturing*/
-	skipFill = 0;
-	ctx->aspect.fill_texture = NULL;
-	switch (gf_node_get_tag(ctx->drawable->node) ) {
-#ifndef GPAC_DISABLE_VRML
-	case TAG_MPEG4_IndexedLineSet2D:
-		skipFill = 1;
-		break;
-#endif
-	default:
-		break;
-	}
-
-	ctx->flags |= drawable_get_aspect_2d_mpeg4(drawable->node, &ctx->aspect, tr_state);
 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
 	if (ctx->aspect.fill_texture) {
@@ -757,6 +704,65 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	if (texture_ready)
 		drawable->flags |= DRAWABLE_HYBGL_INIT;
 #endif
+}
+
+#ifndef GPAC_DISABLE_VRML
+
+DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseState *tr_state)
+{
+	DrawableContext *ctx;
+	Bool skipFill;
+	GF_Node *appear;
+	assert(tr_state->visual);
+
+	/*switched-off geometry nodes are not drawn*/
+	if (tr_state->switched_off) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Drawable is switched off - skipping\n"));
+		return NULL;
+	}
+
+	//Get a empty context from the current visual
+	ctx = visual_2d_get_drawable_context(tr_state->visual);
+	if (!ctx) return NULL;
+
+	ctx->drawable = drawable;
+
+	appear = tr_state->override_appearance ? tr_state->override_appearance : tr_state->appear;
+
+	/*usually set by colorTransform or changes in OrderedGroup*/
+	if (tr_state->invalidate_all)
+		ctx->flags |= CTX_APP_DIRTY;
+
+	ctx->aspect.fill_texture = NULL;
+	if (appear) {
+		ctx->appear = appear;
+		if (gf_node_dirty_get(appear))
+			ctx->flags |= CTX_APP_DIRTY;
+	}
+	/*todo cliper*/
+
+	/*FIXME - only needed for texture*/
+	if (!tr_state->color_mat.identity) {
+		GF_SAFEALLOC(ctx->col_mat, GF_ColorMatrix);
+		gf_cmx_copy(ctx->col_mat, &tr_state->color_mat);
+	}
+
+	/*IndexedLineSet2D and PointSet2D ignores fill flag and texturing*/
+	skipFill = 0;
+	ctx->aspect.fill_texture = NULL;
+	switch (gf_node_get_tag(ctx->drawable->node) ) {
+#ifndef GPAC_DISABLE_VRML
+	case TAG_MPEG4_IndexedLineSet2D:
+		skipFill = 1;
+		break;
+#endif
+	default:
+		break;
+	}
+
+	ctx->flags |= drawable_get_aspect_2d_mpeg4(drawable->node, &ctx->aspect, tr_state);
+
+	check_texture_dirty(ctx, drawable, tr_state);
 
 	/*not clear in the spec: what happens when a transparent node is in form/layout ?? this may
 	completely break layout of children. We consider the node should be drawn*/
@@ -1508,9 +1514,7 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 		}
 	}
 
-	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
-	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->needs_refresh)
-		ctx->flags |= CTX_TEXTURE_DIRTY;
+	check_texture_dirty(ctx, drawable, tr_state);
 
 	/*we are drawing on a centered coord surface, remember to flip the texture*/
 	if (tr_state->fliped_coords)
