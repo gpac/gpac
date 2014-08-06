@@ -4968,7 +4968,7 @@ exit:
 		}
 	}
 	/* TODO free descriptors */
-	for (i=0; i < nb_dash_inputs; i++) {
+	for (i=0; i < nb_inputs; i++) {
 		if (dash_inputs[i].as_descs) gf_free(dash_inputs[i].as_descs);
 		if (dash_inputs[i].as_c_descs) gf_free(dash_inputs[i].as_c_descs);
 		if (dash_inputs[i].p_descs) gf_free(dash_inputs[i].p_descs);
