@@ -95,7 +95,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 #endif
 	/*adjust drift*/
 	if (audio_delay_ms) {
-		s32 resync_delay = FIX2INT(speed * MAX_RESYNC_TIME);
+		s32 resync_delay = speed > 0 ? FIX2INT(speed * MAX_RESYNC_TIME) : FIX2INT(-speed * MAX_RESYNC_TIME);
 		/*CU is way too late, discard and fetch a new one - this usually happen when media speed is more than 1*/
 		if (drift>resync_delay) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] Audio data too late obj time %d - CTS %d - drift %d ms - resync forced\n", obj_time - audio_delay_ms, ts, drift));

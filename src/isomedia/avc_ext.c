@@ -226,10 +226,10 @@ static u8 is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry
 			nal_type = (nal_hdr&0x7E00) >> 9;
 
 			switch (nal_type) {
-			case GF_HEVC_NALU_VID_PARAM:
+/*			case GF_HEVC_NALU_VID_PARAM:
 			case GF_HEVC_NALU_SEQ_PARAM:
 			case GF_HEVC_NALU_PIC_PARAM:
-			case GF_HEVC_NALU_SLICE_BLA_W_LP:
+*/			case GF_HEVC_NALU_SLICE_BLA_W_LP:
 			case GF_HEVC_NALU_SLICE_BLA_W_DLP:
 			case GF_HEVC_NALU_SLICE_BLA_N_LP:
 			case GF_HEVC_NALU_SLICE_CRA:
@@ -254,11 +254,11 @@ static u8 is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry
 			nal_type = nal_hdr & 0x1F;
 
 			switch (nal_type) {
-			case GF_AVC_NALU_SEQ_PARAM:
+/*			case GF_AVC_NALU_SEQ_PARAM:
 			case GF_AVC_NALU_PIC_PARAM:
 			case GF_AVC_NALU_SEQ_PARAM_EXT:
 			case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
-			case GF_AVC_NALU_IDR_SLICE:
+*/			case GF_AVC_NALU_IDR_SLICE:
 				gf_bs_del(bs);
 				return 1;
 			case GF_AVC_NALU_ACCESS_UNIT:

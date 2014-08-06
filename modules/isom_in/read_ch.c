@@ -160,7 +160,7 @@ next_segment:
 				e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
 			}
 
-			e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range, scalable_segment);
+			e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range, scalable_segment, read->no_order_check);
 
 			if (param.url_query.current_download  && (e==GF_ISOM_INCOMPLETE_FILE)) {
 				e = GF_OK;
@@ -368,7 +368,17 @@ static void init_reader(ISOMChannel *ch)
 		return;
 	} 
 
-	ch->sample_time = ch->sample->DTS;
+	if (ch->has_edit_list) {
+		ch->sample_time = ch->sample->DTS;
+	} else {
+		//store movie time in media timescale in the sample time, eg no edit list is used but we may have a shift (dts_offset) between
+		//movie and media timelines
+
+		if ((ch->dts_offset<0) && (ch->sample->DTS  < (u64) -ch->dts_offset))	//should not happen 
+			ch->sample_time = 0;
+		else 
+			ch->sample_time = ch->sample->DTS + ch->dts_offset;
+	}
 	ch->to_init = 0;
 
 	if (ch->disable_seek) {
@@ -380,6 +390,8 @@ static void init_reader(ISOMChannel *ch)
 		ch->current_slh.compositionTimeStamp = ch->start;
 	}
 	ch->current_slh.randomAccessPointFlag = ch->sample ? ch->sample->IsRAP : 0;
+
+	ch->owner->no_order_check = ch->speed < 0 ? GF_TRUE : GF_FALSE;
 }
 
 
@@ -402,8 +414,30 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	if (ch->to_init) {
 		init_reader(ch);
 	} else if (ch->speed < 0) {
-		gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time - 1, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
-		if (ch->sample) ch->sample_time = ch->sample->DTS;
+		u32 prev_sample = ch->sample_num;
+		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time - 1, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
+		if (e) {
+			if (e==GF_EOS) {
+				ch->last_state = GF_EOS;
+				return;
+			}
+			return;
+		}
+		if (ch->sample_num == prev_sample) {
+			if (!ch->owner->frag_type) {
+				ch->last_state = GF_EOS;
+			} else {
+				if (ch->sample)
+					gf_isom_sample_del(&ch->sample);
+				ch->sample_num = 0;
+			}
+		}
+		if (ch->sample) {
+			if ((ch->dts_offset<0) && (ch->sample->DTS < (u64) -ch->dts_offset))	//should not happen 
+				ch->sample_time = 0;
+			else 
+				ch->sample_time = ch->sample->DTS + ch->dts_offset;
+		}
 
 	} else if (ch->has_edit_list) {
 		u32 prev_sample = ch->sample_num;

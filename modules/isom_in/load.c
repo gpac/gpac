@@ -117,6 +117,8 @@ void isor_declare_objects(ISOMReader *read)
 		/*we declare only the highest video track (i.e the track we play)*/
 		highest_stream = GF_TRUE;
 		track_id = gf_isom_get_track_id(read->mov, i+1);
+		if (read->play_only_track_id && (read->play_only_track_id != track_id)) continue;
+
 		for (j = 0; j < count; j++) {
 			if (gf_isom_has_track_reference(read->mov, j+1, GF_ISOM_REF_SCAL, track_id) > 0) {
 				highest_stream = GF_FALSE;

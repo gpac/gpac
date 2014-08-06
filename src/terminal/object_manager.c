@@ -79,6 +79,7 @@ void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset)
  #endif
 }
 
+
 void gf_odm_del(GF_ObjectManager *odm)
 {
 	if (odm->addon && (odm->addon->root_od==odm)) {
@@ -1564,7 +1565,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 #ifndef GPAC_DISABLE_VRML
 		/*if object shares parent scene clock, do not use media control*/
-		ctrl = parent_ck ? NULL : gf_odm_get_mediacontrol(odm);
+		//ctrl = parent_ck ? NULL : gf_odm_get_mediacontrol(odm);
+		ctrl = parent_ck ? parent_ck->mc : gf_odm_get_mediacontrol(odm);
 		/*override range and speed with MC*/
 		if (ctrl) {
 			MC_GetRange(ctrl, &com.play.start_range, &com.play.end_range);
@@ -2042,6 +2044,8 @@ void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed, Bool adjust_clock_spee
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
 		if (adjust_clock_speed) 
 			gf_clock_set_speed(ch->clock, speed);
+
+		gf_es_reset_buffers(ch);
 
 		com.play.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
