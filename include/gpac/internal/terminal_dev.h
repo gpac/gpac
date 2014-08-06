@@ -88,6 +88,8 @@ struct _net_service
 	GF_DownloadSession *pending_service_session;
 
 	Bool is_paused;
+	//used when term_set_speed is called before 
+	Fixed set_speed;
 
 	/*used by DASH until we rewrite the input module API:
 	if set to 1 during a disconnect() call, the root scene of the service and all sub-objects will be disconnected
@@ -835,9 +837,9 @@ struct _generic_codec
 	/*statistics*/
 	u32 last_stat_start, cur_bit_size, tot_bit_size, stat_start;
 	u32 avg_bit_rate, max_bit_rate;
-	u32 nb_dec_frames;
+	u32 nb_dec_frames, nb_iframes;
 	//decode times in us
-	u64 total_dec_time, max_dec_time;
+	u64 total_dec_time, max_dec_time, total_iframes_time, max_iframes_time;
 	u32 first_frame_time, last_frame_time;
 	/*number of frames dropped at the presentation*/
 	u32 nb_droped;
@@ -847,10 +849,11 @@ struct _generic_codec
 	u32 min_frame_dur;
 	/*speed at which the avg_dec_time was computed*/
 	Fixed check_speed;
-	/*average decode time when speed is <= 1.0. If above, not recomputed*/
-	Double avg_dec_time;
-	//when set, only I-frames are decoded
-	Bool decode_only_rap;
+	//when set, only I-frames are decoded, one out of drop_modulo if not 0.
+	//If set to 2, all frames are discarded
+	u32 decode_only_rap;
+	u32 drop_modulo, drop_count;
+	u32 consecutive_late_frames, consecutive_ontime_frames;
 
 	/*for CTS reconstruction (channels not using SL): we cannot just update timing at each frame, not precise enough
 	since we use ms and not microsec TSs*/
@@ -975,6 +978,8 @@ struct _od_manager
 	u64 media_start_time, media_stop_time;
 
 	u32 action_type;
+	
+	Fixed set_speed;
 
 //	u32 raw_media_frame_pending;
 	GF_Semaphore *raw_frame_sema;

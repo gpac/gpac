@@ -423,7 +423,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	if (! *eos && ((codec->ck->speed > FIX_ONE) || (codec->odm->term->bench_mode && !codec->CB->no_allocation) || (codec->type==GF_STREAM_AUDIO) ) )
 		force_decode = GF_TRUE;
 
-
 	if (force_decode) {
 		u32 retry=100;
 		gf_odm_lock(mo->odm, 0);
@@ -434,6 +433,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 				break;
 			}
 			retry--;
+			retry=0;
+				break;
 			gf_sleep(0);
 		}
 		if (!retry && codec->force_cb_resize) {
@@ -486,8 +487,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	if (resync) {
 		u32 nb_droped = 0;
 		while (1) {
-			u32 diff;
-
 			if (CU->TS*codec->ck->speed >= obj_time*codec->ck->speed)
 				break;
 
@@ -503,18 +502,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 					if (!CU->next->dataLength)
 						break;
 				} else {
-					break;
-				}
-			}
-
-			diff = codec->ck->speed > 0 ? CU->next->TS - CU->TS : CU->TS - CU->next->TS;
-
-			if (codec->ck->speed>0) {
-				if (CU->TS + codec->CB->Capacity*diff > obj_time) {
-					break;
-				}
-			} else {
-				if (CU->TS + codec->CB->Capacity*diff < obj_time) {
 					break;
 				}
 			}
@@ -988,6 +975,11 @@ void gf_mo_set_speed(GF_MediaObject *mo, Fixed speed)
 	if (!mo->odm) {
 		mo->speed = speed;
 		return;
+	}
+	//override startup speed if asked to
+	if (mo->odm->set_speed) {
+		speed = mo->odm->set_speed;
+		mo->odm->set_speed = 0;
 	}
 #ifndef GPAC_DISABLE_VRML
 	/*if media control forbidd that*/

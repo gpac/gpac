@@ -351,21 +351,29 @@ Bool gf_codec_remove_channel(GF_Codec *codec, struct _es_channel *ch)
 }
 
 
-static void codec_update_stats(GF_Codec *codec, u32 dataLength, u64 dec_time, u32 DTS)
+static void codec_update_stats(GF_Codec *codec, u32 dataLength, u64 dec_time, u32 DTS, Bool is_rap)
 {
 	codec->total_dec_time += dec_time;
 	codec->last_frame_time = gf_sys_clock();
 	if (!codec->nb_dec_frames) {
 		codec->first_frame_time = codec->last_frame_time;
-		codec->min_frame_dur = 0;
+		codec->min_frame_dur = (u32) -1;
 	}
 
 	codec->nb_dec_frames++;
+	if (is_rap) {
+		codec->nb_iframes ++;
+		if (dec_time>codec->max_iframes_time) codec->max_iframes_time = dec_time;
+		codec->total_iframes_time += dec_time;
+	}
+
 	if (dec_time>codec->max_dec_time) codec->max_dec_time = dec_time;
 
 
-	if (DTS - codec->last_unit_dts > codec->min_frame_dur) {
-		codec->min_frame_dur = DTS - codec->last_unit_dts;
+	if (DTS < codec->min_frame_dur + codec->last_unit_dts ) {
+		//might happen with some AVI with ffmpeg ...
+		if (DTS > codec->last_unit_dts)
+			codec->min_frame_dur = DTS - codec->last_unit_dts;
 	}
 
 	if (dataLength) {
@@ -729,7 +737,7 @@ check_unit:
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d at %d decoded AU TS %d in "LLU" us\n", sdec->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, codec->odm->current_time, AU->CTS, now));
 
-	codec_update_stats(codec, AU->dataLength, now, AU->DTS);
+	codec_update_stats(codec, AU->dataLength, now, AU->DTS, (AU->flags & GF_DB_AU_RAP));
 	codec->prev_au_size = AU->dataLength;
 
 	/*destroy this AU*/
@@ -835,7 +843,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 		gf_clock_resume(ch->clock);
 	}
 
-	codec_update_stats(codec, 0, now, codec->odm->current_time);
+	codec_update_stats(codec, 0, now, codec->odm->current_time, 0);
 
 	gf_mx_v(scene_locked->root_od->term->compositor->mx);
 
@@ -944,11 +952,12 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	//cannot output frame, do nothing (we force a channel query before for pull mode)
 	if (codec->CB->Capacity == codec->CB->UnitCount) {
-		if (codec->CB->UnitCount > 1)  return GF_OK;
-		else if (codec->direct_vout)  return GF_OK;
+		if (codec->CB->UnitCount > 1) return GF_OK;
+		else if (codec->direct_vout) return GF_OK;
 	}
 
 	entryTime = gf_sys_clock_high_res();
+	
 	if (!codec->odm->term->bench_mode && (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES))
 		drop_late_frames = 1;
 
@@ -1031,26 +1040,53 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	}
 
 
-	if (codec->nb_dec_frames && (codec->ck->speed <= 1)) {
-		codec->avg_dec_time = (Double) (codec->total_dec_time/1000);
-		codec->avg_dec_time /= codec->nb_dec_frames;
-		codec->check_speed = codec->ck->speed;
-		codec->decode_only_rap = 0;
-	} else if (codec->ck->speed != codec->check_speed) {
-		u32 dur = codec->min_frame_dur;
-		codec->check_speed = codec->ck->speed;
-		if (0.9 * codec->avg_dec_time * FIX2FLT(codec->ck->speed) > dur) {
-			codec->decode_only_rap = 1;
-		} else {
+	if (codec->ck->speed != codec->check_speed) {
+		//decrease in speed
+		if (ABS(codec->check_speed) > ABS(codec->ck->speed)) {
 			codec->decode_only_rap = 0;
+			codec->drop_modulo = 0;
+			codec->drop_count = 0;
+		}
+		codec->check_speed = codec->ck->speed;
+		codec->consecutive_late_frames = 0;
+		codec->consecutive_ontime_frames = 0;
+
+		if (codec->type==GF_STREAM_AUDIO) {
+			if (ABS(codec->ck->speed) >8) {
+				codec->decode_only_rap = 2;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] Speed %g too hight for audio decoder/renderer - skipping decode\n", codec->decio->module_name, FIX2FLT(codec->ck->speed)));
+			}
+		} else {
+			//dynamically decided based on late frames found
 		}
 	}
-
 
 	TimeAvailable*=1000;
 	/*try to refill the full buffer*/
 	first = 1;
 	while (codec->CB->Capacity > codec->CB->UnitCount) {
+		Bool force_skip = 0;
+		
+		if (codec->decode_only_rap) {
+			//check whether we have to skip decoding this frame
+			if (AU->flags & GF_DB_AU_RAP) {
+				if (codec->decode_only_rap==2) {
+					if (AU->CTS > obj_time + 500) 
+						return GF_OK;
+					force_skip = 1;
+				} else if (codec->drop_modulo) {
+					codec->drop_count ++;
+					if (codec->drop_count >= codec->drop_modulo) {
+						codec->drop_count = 0;
+					} else {
+						force_skip = 1;
+					}
+				}
+			} else {
+				force_skip = 1;
+			}
+		}
+
 		/*set media processing level*/
 		ch->last_au_was_seek = 0;
 		mmlevel = GF_CODEC_LEVEL_NORMAL;
@@ -1072,12 +1108,50 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			}
 		}
 		/*only perform drop in normal playback*/
-		else if ((codec->ck->speed>0) && (codec->CB->Status == CB_PLAY)) {
+		else if (!force_skip && (codec->ck->speed>0) && (codec->CB->Status == CB_PLAY)) {
 			/*extremely late, set the level to drop
 			 NOTE: the 100 ms safety gard is to avoid discarding audio*/
 			if (!ch->skip_sl && (AU->CTS + (codec->is_reordering ? 1000 : 100) < obj_time) ) {
 				mmlevel = GF_CODEC_LEVEL_DROP;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d: frame too late (%d vs %d) - using drop level\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: frame too late (CTS %d vs time %d) - using drop level\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
+
+//above 1 out of this threshold frames only shown, move to I-frame only mode. 50 = 1 frame shown out of 2 GOPs at 25hz
+#define IFRAME_MODE_THRESHOLD	50
+
+				codec->consecutive_late_frames++;
+				codec->consecutive_ontime_frames = 0;
+				if (codec->check_speed > 1) {
+					Double speed = (Double) FIX2FLT(codec->ck->speed);
+					u32 nb_check_frames = codec->decode_only_rap ? 5 : 30;
+
+					if (codec->consecutive_late_frames >= nb_check_frames) {
+						if (!codec->decode_only_rap) {
+							codec->drop_modulo += 2;
+							codec->drop_count = 0;
+
+							GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: %d consecutive late frames at speed %g - increasing frame drop modulo to %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, codec->consecutive_late_frames, speed, codec->drop_modulo));
+							if (codec->drop_modulo > IFRAME_MODE_THRESHOLD) {
+
+								GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: %d consecutive late frames at speed %g with drop modulo %d - moving to I-frame only decoding\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, codec->consecutive_late_frames, speed, codec->drop_modulo));
+								codec->drop_modulo = 0;
+								codec->drop_count = 0;
+								codec->decode_only_rap = 1;
+							}
+						} else {
+							codec->drop_modulo += 2;
+							codec->drop_count = 0;
+
+							GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: %d consecutive late frames at speed %g in I-frame only mode - decoding only one I-frame out of %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, codec->consecutive_late_frames, speed, codec->drop_modulo));
+						}
+						codec->consecutive_late_frames = 0;
+					}	
+					//very late even in I-frame mode, drop it
+					else if (codec->decode_only_rap) {
+						if (obj_time - AU->CTS > 2000) {
+							force_skip = 1;
+						}
+					}
+				}
 
 				if (ch->resync_drift && (AU->CTS + ch->resync_drift < obj_time)) {
 					ch->clock->StartTime += (obj_time - AU->CTS);
@@ -1088,17 +1162,37 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			/*we are late according to the media manager*/
 			else if (codec->PriorityBoost) {
 				mmlevel = GF_CODEC_LEVEL_VERY_LATE;
+				codec->consecutive_late_frames = 0;
+				codec->consecutive_ontime_frames ++;
 			}
 			/*otherwise we must have an idea of the load in order to set the right level
 			use the composition buffer for that, only on the first frame*/
-			else if (first) {
-				//if the CB is almost empty set to very late
-				if (codec->CB->UnitCount <= codec->CB->Min+1) {
-					mmlevel = GF_CODEC_LEVEL_VERY_LATE;
-				} else if (codec->CB->UnitCount * 2 <= codec->CB->Capacity) {
-					mmlevel = GF_CODEC_LEVEL_LATE;
+			else {
+				codec->consecutive_late_frames = 0;
+				codec->consecutive_ontime_frames ++;
+				if (first) {
+					//if the CB is almost empty set to very late
+					if (codec->CB->UnitCount <= codec->CB->Min+1) {
+						mmlevel = GF_CODEC_LEVEL_VERY_LATE;
+					} else if (codec->CB->UnitCount * 2 <= codec->CB->Capacity) {
+						mmlevel = GF_CODEC_LEVEL_LATE;
+					}
+					first = 0;
 				}
-				first = 0;
+			}
+
+			if (codec->check_speed > 1) {
+				u32 nb_check_frames = codec->decode_only_rap ? 5 : 30;
+				//try to decrease the drop rate, but never switch back from I-frame mode only for a given speed
+				if (codec->consecutive_ontime_frames > nb_check_frames) {
+					if (codec->drop_modulo) {
+						codec->drop_modulo -= 2;
+						codec->drop_count = 0;
+						GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: %d consecutive on-time frames - Decreasing drop modulo %d (I-frame only mode %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, codec->consecutive_ontime_frames, codec->drop_modulo, codec->decode_only_rap));
+						codec->consecutive_late_frames = 0;
+						codec->consecutive_ontime_frames = 0;
+					}
+				}
 			}
 		}
 
@@ -1113,6 +1207,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because no more space in composition buffer\n", codec->decio->module_name ));
 			return GF_OK;
 		}
+	
 
 scalable_retry:
 
@@ -1124,8 +1219,9 @@ scalable_retry:
 		} else if (codec->odm->term->bench_mode==2) {
 			unit_size = 0;
 			gf_cm_abort_buffering(codec->CB);
-		} else if (codec->decode_only_rap && ! (AU->flags & GF_DB_AU_RAP)) {
+		} else if (force_skip) {
 			unit_size = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d: force drop requested in fast playback for AU CTS %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, AU->CTS));
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoding frame DTS %d CTS %d size %d (%d in channels)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->DTS, AU->CTS, AU->dataLength, ch->AU_Count));
 			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, &CU->TS, CU->data, &unit_size, AU->PaddingBits, mmlevel);
@@ -1181,7 +1277,7 @@ scalable_retry:
 				}
 				AU->CTS += deltaTS;
 			}
-			codec_update_stats(codec, 0, now, 0);
+			codec_update_stats(codec, 0, now, 0, 0);
 			continue;
 
 		/*for all cases below, don't release the composition buffer until we are sure we are not
@@ -1206,7 +1302,7 @@ scalable_retry:
 			}
 #endif
 
-			codec_update_stats(codec, AU->dataLength, now, AU->DTS);
+			codec_update_stats(codec, AU->dataLength, now, AU->DTS, (AU->flags & GF_DB_AU_RAP));
 			if (ch->skip_sl) {
 				if (codec->bytes_per_sec) {
 					codec->cur_audio_bytes += unit_size;
@@ -1279,11 +1375,23 @@ scalable_retry:
 				ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
 		}
 
+		
+		if (!codec->decode_only_rap && codec->drop_modulo) {
+			codec->drop_count++;
+			if (codec->drop_count==codec->drop_modulo) {
+				codec->drop_count = 0;
+			} else {
+				unit_size = 0;
+			}
+		}
+
 		UnlockCompositionUnit(codec, CU, unit_size);
 		if (!ch || !AU) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because no more input data\n", codec->decio->module_name));
 			return GF_OK;
 		}
+		if (force_skip) continue;
+
 		now = gf_sys_clock_high_res() - entryTime;
 		/*escape from decoding loop only if above critical limit - this is to avoid starvation on audio*/
 		if (!ch->esd->dependsOnESID && (codec->CB->UnitCount > codec->CB->Min)) {
@@ -1479,6 +1587,8 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 		codec->Status = Status;
 		codec->last_stat_start = codec->cur_bit_size = codec->max_bit_rate = codec->avg_bit_rate = 0;
 		codec->nb_dec_frames = 0;
+		codec->nb_iframes = 0;
+		codec->max_iframes_time = codec->total_iframes_time = 0;
 		codec->total_dec_time = codec->max_dec_time = 0;
 		codec->cur_audio_bytes = codec->cur_video_frames = 0;
 		codec->nb_droped = 0;
