@@ -1201,7 +1201,7 @@ restart_fragmentation_pass:
 
 			if (tf->done) continue;
 			//if not the first TRAF in our moof and single traf per moof is requested, start a new moof
-			if (dash_cfg->single_traf_per_moof && (i>0) ) {
+			if (!simulation_pass && dash_cfg->single_traf_per_moof && (i>0) ) {
 				e = gf_isom_start_fragment(output, 1);
 				if (e) goto err_exit;
 			}
