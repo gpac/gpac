@@ -985,7 +985,7 @@ static void gf_dash_get_timeline_duration(GF_MPD *mpd, GF_MPD_Period *period, GF
 					nb_seg = (u32) ( (ent2->start_time - start_time - dur) / ent->duration);
 					dur += nb_seg * ent->duration;
 				}
-			} 
+			}
 			if (!nb_seg) {
 				nb_seg = (u32) ( (period_duration - start_time) / ent->duration );
 				dur += nb_seg * ent->duration;
@@ -2189,7 +2189,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Media URL is not set in segment list\n"));
 				return GF_SERVICE_ERROR;
 			}
-			if ((item_index >= segment_count) || ((s32) item_index < 0)){
+			if ((item_index >= segment_count) || ((s32) item_index < 0)) {
 				gf_free(url);
 				return GF_EOS;
 			}
@@ -3429,7 +3429,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 
 	if (!dash->disable_switching && new_rep && (new_rep!=rep)) {
 		Bool do_switch = 1;
-		//if we're switching to the next upper bitrate (no intermediate bitrates), do not immediately switch 
+		//if we're switching to the next upper bitrate (no intermediate bitrates), do not immediately switch
 		//but for a given number of segments - this avoids fluctuation in the quality
 		if (go_up && ! nb_inter_rep) {
 			new_rep->playback.probe_switch_count++;

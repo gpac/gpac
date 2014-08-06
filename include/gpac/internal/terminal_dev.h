@@ -88,7 +88,7 @@ struct _net_service
 	GF_DownloadSession *pending_service_session;
 
 	Bool is_paused;
-	//used when term_set_speed is called before 
+	//used when term_set_speed is called before
 	Fixed set_speed;
 
 	/*used by DASH until we rewrite the input module API:
@@ -978,7 +978,7 @@ struct _od_manager
 	u64 media_start_time, media_stop_time;
 
 	u32 action_type;
-	
+
 	Fixed set_speed;
 
 //	u32 raw_media_frame_pending;
@@ -1129,7 +1129,7 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTy
 u32 gf_mo_get_od_id(MFURL *url);
 
 void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_url);
-//sets pos and size of addon 
+//sets pos and size of addon
 //	size is 1/2 height (0), 1/3 (1) or 1/4 (2)
 //	pos is bottom-left(0), top-left (1) bottom-right (2) or top-right (3)
 void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_factor);

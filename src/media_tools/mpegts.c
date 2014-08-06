@@ -811,7 +811,7 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 
 		/*flush any pending data*/
 		if (start < sc_pos) {
-				assert(data_len >= sc_pos);
+			assert(data_len >= sc_pos);
 			memmove(pes->reassemble_buf, pes->reassemble_buf + sc_pos, data_len - sc_pos);
 			pes->reassemble_len -= sc_pos;
 			sc_pos = 0;
@@ -949,7 +949,7 @@ static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 
 		//trash dispatched AU, including 3 bytes header
 		sc_pos += amux_len+3;
-				assert(data_len >= sc_pos);
+		assert(data_len >= sc_pos);
 		memmove(pes->reassemble_buf, pes->reassemble_buf + sc_pos, data_len - sc_pos);
 		pes->reassemble_len -= sc_pos;
 		sc_pos = 0;
@@ -986,8 +986,8 @@ static u32 gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 	if (next_hdr && remain && (pos<remain) ) {
 		//only resync if the frame header matches our current config, otherwise this is likely an emulated header
 		if ((pes->aud_sr == gf_mp3_sampling_rate(pes->frame_state) )
-			&& (pes->aud_nb_ch == gf_mp3_num_channels(pes->frame_state))
-		) {
+		        && (pes->aud_nb_ch == gf_mp3_num_channels(pes->frame_state))
+		   ) {
 			remain = pos;
 		}
 	}
@@ -1517,7 +1517,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 					}
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted section (CRC32 failed)\n"));
-				} 
+				}
 			}
 		} else {
 			section_valid = 1;

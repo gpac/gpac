@@ -799,7 +799,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 					if ((st.st_dev != st_parent.st_dev) || ((st.st_dev == st_parent.st_dev) && (st.st_ino == st_parent.st_ino))) {
 						file_info.drive = GF_TRUE;
 					}
-				} 
+				}
 				parent_name[0] = '/';
 			}
 		}

@@ -181,7 +181,7 @@ typedef enum
 	GF_List *content_protection;	\
 	GF_List *essential_properties;	\
 	GF_List *supplemental_properties;	\
-
+ 
 typedef struct {
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
 } GF_MPD_CommonAttributes;

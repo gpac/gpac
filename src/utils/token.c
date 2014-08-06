@@ -133,4 +133,4 @@ s32 gf_token_find(const char *Buffer, u32 Start, u32 Size, const char *Pattern)
 	return -1;
 }
 
-#endif 
+#endif

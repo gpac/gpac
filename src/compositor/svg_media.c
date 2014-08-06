@@ -269,7 +269,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 	else if (tr_state->traversing_mode==TRAVERSE_PICK) {
 		svg_drawable_pick(node, stack->drawable, tr_state);
 		return;
-	} 
+	}
 #ifndef GPAC_DISABLE_3D
 	else if (tr_state->traversing_mode==TRAVERSE_DRAW_3D) {
 		if (!stack->drawable->mesh) {

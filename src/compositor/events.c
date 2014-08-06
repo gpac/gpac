@@ -249,126 +249,126 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 	} else
 #endif /*GPAC_DISABLE_VRML*/
 
-	if (compositor->focus_node) {
+		if (compositor->focus_node) {
 #ifndef GPAC_DISABLE_SVG
-		GF_ChildNodeItem *child = ((GF_ParentNode *) compositor->focus_node)->children;
+			GF_ChildNodeItem *child = ((GF_ParentNode *) compositor->focus_node)->children;
 
-		while (child) {
-			switch (gf_node_get_tag(child->node)) {
-			case TAG_DOMText:
-				break;
-			default:
+			while (child) {
+				switch (gf_node_get_tag(child->node)) {
+				case TAG_DOMText:
+					break;
+				default:
+					child = child->next;
+					continue;
+				}
+				compositor->dom_text_pos++;
+				if (!cmd_type) res = &((GF_DOMText *)child->node)->textContent;
+				else if (pos==compositor->dom_text_pos) {
+					if (append) {
+						u16 end;
+						const u16 *srcp;
+						size_t len;
+						GF_DOMText *cur, *ntext;
+						GF_ChildNodeItem *children = ((GF_ParentNode *) compositor->focus_node)->children;
+						GF_Node *t = gf_node_new(gf_node_get_graph(child->node), TAG_SVG_tbreak);
+
+						gf_node_init(t);
+						gf_node_register(t, compositor->focus_node);
+
+						pos = gf_node_list_find_child(children, child->node);
+
+						/*we're only inserting a tbreak*/
+						if (!compositor->caret_pos) {
+							gf_node_list_insert_child(&children, t, pos);
+							res = &((GF_DOMText *)child->node)->textContent;
+						} else {
+							gf_node_list_insert_child(&children, t, pos+1);
+							ntext = (GF_DOMText*) gf_node_new(gf_node_get_graph(child->node), TAG_DOMText);
+							gf_node_init(t);
+							gf_node_list_insert_child(&children, (GF_Node *)ntext, pos+2);
+							gf_node_register((GF_Node*)ntext, compositor->focus_node);
+
+							cur = (GF_DOMText*) child->node;
+
+							gf_free(cur->textContent);
+							end = compositor->sel_buffer[compositor->caret_pos];
+							compositor->sel_buffer[compositor->caret_pos] = 0;
+							len = gf_utf8_wcslen(compositor->sel_buffer);
+							cur->textContent = gf_malloc(sizeof(char)*(len+1));
+							srcp = compositor->sel_buffer;
+							len = gf_utf8_wcstombs(cur->textContent, len, &srcp);
+							cur->textContent[len] = 0;
+							compositor->sel_buffer[compositor->caret_pos] = end;
+
+							if (compositor->caret_pos+1<compositor->sel_buffer_len) {
+								len = gf_utf8_wcslen(compositor->sel_buffer + compositor->caret_pos + 1);
+								ntext->textContent = gf_malloc(sizeof(char)*(len+1));
+								srcp = compositor->sel_buffer + compositor->caret_pos + 1;
+								len = gf_utf8_wcstombs(ntext->textContent, len, &srcp);
+								ntext->textContent[len] = 0;
+							} else {
+								ntext->textContent = gf_strdup("");
+							}
+							res = &ntext->textContent;
+							compositor->dom_text_pos ++;
+							compositor->edited_text = NULL;
+						}
+
+					} else {
+						if (delete_cr && child->next) {
+							GF_Node *tbreak = child->next->node;
+							GF_ChildNodeItem *children = ((GF_ParentNode *) compositor->focus_node)->children;
+							gf_node_list_del_child(&children, tbreak);
+							gf_node_unregister(tbreak, compositor->focus_node);
+							if (child->next && (gf_node_get_tag(child->next->node)==TAG_DOMText) ) {
+								GF_DOMText *n1 = (GF_DOMText *)child->node;
+								GF_DOMText *n2 = (GF_DOMText *)child->next->node;
+
+								if (compositor->edited_text) {
+									flush_text_node_edit(compositor, 1);
+								}
+								if (!n1->textContent) n1->textContent = gf_strdup("");
+								caret_pos = (u32) strlen(n1->textContent);
+								if (n2->textContent) {
+									n1->textContent = gf_realloc(n1->textContent, sizeof(char)*(strlen(n1->textContent)+strlen(n2->textContent)+1));
+									strcat(n1->textContent, n2->textContent);
+								}
+								gf_node_list_del_child(&children, (GF_Node*)n2);
+								gf_node_unregister((GF_Node*)n2, compositor->focus_node);
+								compositor->edited_text = NULL;
+							}
+						}
+						res = &((GF_DOMText *)child->node)->textContent;
+					}
+					/*				if (1) {
+										GF_ChildNodeItem *child = ((GF_ParentNode *) compositor->focus_node)->children;
+										fprintf(stderr, "Dumping text tree:\n");
+										while (child) {
+											switch (gf_node_get_tag(child->node)) {
+											case TAG_SVG_tbreak: fprintf(stderr, "\ttbreak\n"); break;
+											case TAG_DOMText: fprintf(stderr, "\ttext: %s\n", ((GF_DOMText *)child->node)->textContent); break;
+											}
+											child = child->next;
+										}
+									}
+					*/
+					break;
+				}
 				child = child->next;
 				continue;
 			}
-			compositor->dom_text_pos++;
-			if (!cmd_type) res = &((GF_DOMText *)child->node)->textContent;
-			else if (pos==compositor->dom_text_pos) {
-				if (append) {
-					u16 end;
-					const u16 *srcp;
-					size_t len;
-					GF_DOMText *cur, *ntext;
-					GF_ChildNodeItem *children = ((GF_ParentNode *) compositor->focus_node)->children;
-					GF_Node *t = gf_node_new(gf_node_get_graph(child->node), TAG_SVG_tbreak);
-
-					gf_node_init(t);
-					gf_node_register(t, compositor->focus_node);
-
-					pos = gf_node_list_find_child(children, child->node);
-
-					/*we're only inserting a tbreak*/
-					if (!compositor->caret_pos) {
-						gf_node_list_insert_child(&children, t, pos);
-						res = &((GF_DOMText *)child->node)->textContent;
-					} else {
-						gf_node_list_insert_child(&children, t, pos+1);
-						ntext = (GF_DOMText*) gf_node_new(gf_node_get_graph(child->node), TAG_DOMText);
-						gf_node_init(t);
-						gf_node_list_insert_child(&children, (GF_Node *)ntext, pos+2);
-						gf_node_register((GF_Node*)ntext, compositor->focus_node);
-
-						cur = (GF_DOMText*) child->node;
-
-						gf_free(cur->textContent);
-						end = compositor->sel_buffer[compositor->caret_pos];
-						compositor->sel_buffer[compositor->caret_pos] = 0;
-						len = gf_utf8_wcslen(compositor->sel_buffer);
-						cur->textContent = gf_malloc(sizeof(char)*(len+1));
-						srcp = compositor->sel_buffer;
-						len = gf_utf8_wcstombs(cur->textContent, len, &srcp);
-						cur->textContent[len] = 0;
-						compositor->sel_buffer[compositor->caret_pos] = end;
-
-						if (compositor->caret_pos+1<compositor->sel_buffer_len) {
-							len = gf_utf8_wcslen(compositor->sel_buffer + compositor->caret_pos + 1);
-							ntext->textContent = gf_malloc(sizeof(char)*(len+1));
-							srcp = compositor->sel_buffer + compositor->caret_pos + 1;
-							len = gf_utf8_wcstombs(ntext->textContent, len, &srcp);
-							ntext->textContent[len] = 0;
-						} else {
-							ntext->textContent = gf_strdup("");
-						}
-						res = &ntext->textContent;
-						compositor->dom_text_pos ++;
-						compositor->edited_text = NULL;
-					}
-
-				} else {
-					if (delete_cr && child->next) {
-						GF_Node *tbreak = child->next->node;
-						GF_ChildNodeItem *children = ((GF_ParentNode *) compositor->focus_node)->children;
-						gf_node_list_del_child(&children, tbreak);
-						gf_node_unregister(tbreak, compositor->focus_node);
-						if (child->next && (gf_node_get_tag(child->next->node)==TAG_DOMText) ) {
-							GF_DOMText *n1 = (GF_DOMText *)child->node;
-							GF_DOMText *n2 = (GF_DOMText *)child->next->node;
-
-							if (compositor->edited_text) {
-								flush_text_node_edit(compositor, 1);
-							}
-							if (!n1->textContent) n1->textContent = gf_strdup("");
-							caret_pos = (u32) strlen(n1->textContent);
-							if (n2->textContent) {
-								n1->textContent = gf_realloc(n1->textContent, sizeof(char)*(strlen(n1->textContent)+strlen(n2->textContent)+1));
-								strcat(n1->textContent, n2->textContent);
-							}
-							gf_node_list_del_child(&children, (GF_Node*)n2);
-							gf_node_unregister((GF_Node*)n2, compositor->focus_node);
-							compositor->edited_text = NULL;
-						}
-					}
-					res = &((GF_DOMText *)child->node)->textContent;
-				}
-				/*				if (1) {
-									GF_ChildNodeItem *child = ((GF_ParentNode *) compositor->focus_node)->children;
-									fprintf(stderr, "Dumping text tree:\n");
-									while (child) {
-										switch (gf_node_get_tag(child->node)) {
-										case TAG_SVG_tbreak: fprintf(stderr, "\ttbreak\n"); break;
-										case TAG_DOMText: fprintf(stderr, "\ttext: %s\n", ((GF_DOMText *)child->node)->textContent); break;
-										}
-										child = child->next;
-									}
-								}
-				*/
-				break;
+			/*load of an empty text*/
+			if (!res && !cmd_type) {
+				GF_DOMText *t = gf_dom_add_text_node(compositor->focus_node, gf_strdup(""));
+				res = &t->textContent;
 			}
-			child = child->next;
-			continue;
-		}
-		/*load of an empty text*/
-		if (!res && !cmd_type) {
-			GF_DOMText *t = gf_dom_add_text_node(compositor->focus_node, gf_strdup(""));
-			res = &t->textContent;
-		}
 
-		if (!res) {
-			compositor->dom_text_pos = prev_pos;
-			return 0;
-		}
+			if (!res) {
+				compositor->dom_text_pos = prev_pos;
+				return 0;
+			}
 #endif
-	}
+		}
 
 	if (compositor->edited_text) {
 		flush_text_node_edit(compositor, 1);

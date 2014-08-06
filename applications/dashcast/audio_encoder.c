@@ -96,7 +96,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	audio_output_file->aframe->nb_samples = audio_output_file->codec_ctx->frame_size;
 
 	if (avcodec_fill_audio_frame(audio_output_file->aframe, audio_output_file->codec_ctx->channels, audio_output_file->codec_ctx->sample_fmt,
-		audio_output_file->adata_buf, audio_output_file->codec_ctx->frame_size * av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt) * audio_output_file->codec_ctx->channels, 1) < 0) {
+	                             audio_output_file->adata_buf, audio_output_file->codec_ctx->frame_size * av_get_bytes_per_sample(audio_output_file->codec_ctx->sample_fmt) * audio_output_file->codec_ctx->channels, 1) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Fill audio frame failed\n"));
 		return -1;
 	}
@@ -301,7 +301,7 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 #endif
 			return -1;
 		}
-		
+
 #ifdef DC_AUDIO_RESAMPLER
 		if (resample) {
 			int i;

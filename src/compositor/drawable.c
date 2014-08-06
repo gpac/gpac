@@ -698,7 +698,7 @@ static void check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_Tra
 		}
 #endif
 	}
-	
+
 #ifndef GPAC_DISABLE_3D
 	//from now on, we won't clear the canvas when updating this texture (unless transparent, cf above)
 	if (texture_ready)

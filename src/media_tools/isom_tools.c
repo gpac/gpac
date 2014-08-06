@@ -1995,7 +1995,7 @@ static GF_Err gf_isom_adjust_visual_info(GF_ISOFile *file, u32 track) {
 	}
 
 	if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
-	
+
 	return gf_isom_set_visual_info(file, track, 1, width, height);
 }
 

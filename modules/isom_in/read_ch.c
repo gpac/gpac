@@ -366,7 +366,7 @@ static void init_reader(ISOMChannel *ch)
 			ch->to_init = 0;
 		}
 		return;
-	} 
+	}
 
 	if (ch->has_edit_list) {
 		ch->sample_time = ch->sample->DTS;
@@ -374,9 +374,9 @@ static void init_reader(ISOMChannel *ch)
 		//store movie time in media timescale in the sample time, eg no edit list is used but we may have a shift (dts_offset) between
 		//movie and media timelines
 
-		if ((ch->dts_offset<0) && (ch->sample->DTS  < (u64) -ch->dts_offset))	//should not happen 
+		if ((ch->dts_offset<0) && (ch->sample->DTS  < (u64) -ch->dts_offset))	//should not happen
 			ch->sample_time = 0;
-		else 
+		else
 			ch->sample_time = ch->sample->DTS + ch->dts_offset;
 	}
 	ch->to_init = 0;
@@ -433,9 +433,9 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			}
 		}
 		if (ch->sample) {
-			if ((ch->dts_offset<0) && (ch->sample->DTS < (u64) -ch->dts_offset))	//should not happen 
+			if ((ch->dts_offset<0) && (ch->sample->DTS < (u64) -ch->dts_offset))	//should not happen
 				ch->sample_time = 0;
-			else 
+			else
 				ch->sample_time = ch->sample->DTS + ch->dts_offset;
 		}
 
@@ -519,7 +519,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			ch->sample_num++;
 			isor_reader_get_sample(ch);
 			return;
-		}	
+		}
 	}
 
 	//check scalable track change
@@ -784,7 +784,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		//not enough data
 		else if (param.url_query.in_end_of_period) {
 			//act as if we have a pending segment to process at next call until we get to the next period
-			if (!read->has_pending_segments) 
+			if (!read->has_pending_segments)
 				read->has_pending_segments++;
 		}
 

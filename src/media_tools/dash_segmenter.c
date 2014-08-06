@@ -1220,7 +1220,7 @@ restart_fragmentation_pass:
 				e = gf_isom_start_fragment(output, 1);
 				if (e) goto err_exit;
 			}
-		
+
 			//ok write samples
 			while (1) {
 				Bool stop_frag = GF_FALSE;
@@ -1661,7 +1661,7 @@ restart_fragmentation_pass:
 			}
 		}
 	}
-		
+
 
 	if (!bandwidth)
 		bandwidth = (u32) (file_size * 8 / file_duration);
@@ -2044,7 +2044,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 		/* if two inputs don't have the same (number and value) as_desc they don't belong to the same AdaptationSet
 		   (use c_as_desc for AdaptationSet descriptors common to all inputs in an AS) */
 		if (dash_inputs[input_idx].nb_as_descs != dash_inputs[i].nb_as_descs)
-			continue;		
+			continue;
 		for (j = 0; j < dash_inputs[input_idx].nb_as_descs; j++) {
 			if (strcmp(dash_inputs[input_idx].as_descs[j], dash_inputs[i].as_descs[j])) {
 				has_same_desc= GF_FALSE;
@@ -2323,7 +2323,7 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 					use_hevc = GF_TRUE;
 					break;
 				}
-				if (gf_isom_has_sync_points(in, j+1)) 
+				if (gf_isom_has_sync_points(in, j+1))
 					gf_isom_set_sync_table(init_seg, track);
 
 
@@ -3869,9 +3869,9 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 	return GF_OK;
 }
 
-static GF_Err write_period_header(FILE *mpd, const char *szID, Double period_start, Double period_duration, 
-								  Bool dash_dynamic, const char *xlink, 
-								  GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 period_num)
+static GF_Err write_period_header(FILE *mpd, const char *szID, Double period_start, Double period_duration,
+                                  Bool dash_dynamic, const char *xlink,
+                                  GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 period_num)
 {
 	u32 h, m;
 	Double s;
@@ -3910,9 +3910,9 @@ static GF_Err write_period_header(FILE *mpd, const char *szID, Double period_sta
 	return GF_OK;
 }
 
-static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool use_url_template, u32 single_file_mode, 
-									  GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 period_num, u32 adaptation_set_num, u32 first_rep_in_set, 
-									  Bool bitstream_switching_mode, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang, const char *szInitSegment)
+static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool use_url_template, u32 single_file_mode,
+                                      GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 period_num, u32 adaptation_set_num, u32 first_rep_in_set,
+                                      Bool bitstream_switching_mode, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang, const char *szInitSegment)
 {
 	u32 i, j;
 	GF_DashSegInput *first_rep = &dash_inputs[first_rep_in_set];

@@ -270,7 +270,7 @@ GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie,
 	return e;
 }
 
-#endif 
+#endif
 
 /* blindly adds text to a sample following 3GPP Timed Text style */
 GF_Err gf_isom_xml_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char *text_data, u32 text_len)

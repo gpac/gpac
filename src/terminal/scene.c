@@ -1054,7 +1054,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 		u32 count, i;
 		GF_ObjectManager *odm = NULL;
 		count = gf_list_count(scene->resources);
-		for (i=0;i<count; i++) {
+		for (i=0; i<count; i++) {
 			odm = (GF_ObjectManager*)gf_list_get(scene->resources, i);
 			if (odm->scalable_addon || !odm->OD)
 				continue;
@@ -1442,16 +1442,16 @@ void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_fact
 	w = v_w;
 	h = v_h;
 	switch (size_factor) {
-	case 0:	
+	case 0:
 		v_w /= 2;
 		v_h /= 2;
 		break;
-	case 1:	
+	case 1:
 		v_w /= 3;
 		v_h /= 3;
 		break;
-	case 2:	
-	default:	
+	case 2:
+	default:
 		v_w /= 4;
 		v_h /= 4;
 		break;
@@ -1470,15 +1470,15 @@ void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_fact
 		tr->translation.x = INT2FIX(w - v_w) / 2;
 		tr->translation.y = INT2FIX(v_h - h) / 2;
 		break;
-	case 1: 
+	case 1:
 		tr->translation.x = INT2FIX(w - v_w) / 2;
 		tr->translation.y = INT2FIX(h - v_h) / 2;
 		break;
-	case 2: 
+	case 2:
 		tr->translation.x = INT2FIX(v_w - w) / 2;
 		tr->translation.y = INT2FIX(v_h - h) / 2;
 		break;
-	case 3: 
+	case 3:
 		tr->translation.x = INT2FIX(v_w - w) / 2;
 		tr->translation.y = INT2FIX(h - v_h) / 2;
 		break;
@@ -1929,13 +1929,13 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 		addon = gf_list_get(scene->declared_addons, i);
 		if ((addon_info->timeline_id>=0) && addon->timeline_id==addon_info->timeline_id) {
 			my_addon = 1;
-		} else if (!strcmp(addon->url, addon_info->external_URL)){
+		} else if (!strcmp(addon->url, addon_info->external_URL)) {
 			my_addon = 1;
 			//send message to service handler
 		}
 
 		if (my_addon) {
-			if (addon_info->enable_if_defined) 
+			if (addon_info->enable_if_defined)
 				addon->enabled = 1;
 
 			//restart addon
@@ -1970,7 +1970,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 		evt.type = GF_EVENT_ADDON_DETECTED;
 		evt.addon_connect.addon_url = addon->url;
 		addon->enabled = gf_term_send_event(scene->root_od->term,&evt);
-		
+
 		if (addon->timeline_ready)
 			load_associated_media(scene, addon);
 	} else {
@@ -2095,7 +2095,7 @@ Double gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonM
 	assert(scene->root_od->addon);
 	assert(scene->root_od->addon==addon);
 
-	if (timestamp_based) 
+	if (timestamp_based)
 		*timestamp_based = (addon->timeline_id>=0) ? 0 : 1;
 
 	//get PTS diff (clock is in ms, pt is in 90k)

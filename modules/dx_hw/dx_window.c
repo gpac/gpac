@@ -786,7 +786,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		evt.type = GF_EVENT_TEXTINPUT;
 		evt.character.unicode_char = (u32) wParam;
 		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
-	break;
+		break;
 	/*
 		case WM_CANCELMODE:
 		case WM_CAPTURECHANGED:

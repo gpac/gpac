@@ -1158,7 +1158,7 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 		case GF_EVENT_SHOWHIDE:
 			break;
 		case GF_EVENT_MOVE:
-			if (xWindow->fullscreen) return GF_OK; 
+			if (xWindow->fullscreen) return GF_OK;
 
 			if (evt->move.relative == 2) {
 			}

@@ -78,7 +78,7 @@ void gf_term_message_ex(GF_Terminal *term, const char *service, const char *mess
 	evt.message.error = error;
 
 	if (no_filtering) {
-		if (term->user->EventProc) 
+		if (term->user->EventProc)
 			term->user->EventProc(term->user->opaque, &evt);
 	} else {
 		gf_term_send_event(term, &evt);
@@ -2105,7 +2105,7 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 				//we will have to reissue a PLAY command since playback direction changed
 				if ( gf_mulfix(ck->speed,speed) < 0) restart = 1;
 				gf_clock_set_speed(ck, speed);
-			
+
 				if (ns->owner) {
 					gf_odm_set_speed(ns->owner, speed, GF_FALSE);
 					if (ns->owner->subscene) {
@@ -2128,7 +2128,7 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 		}
 	}
 
-	if (speed<0) 
+	if (speed<0)
 		speed = -speed;
 
 	opt = gf_cfg_get_key(term->user->config, "Systems", "TimeSlice");

@@ -2685,7 +2685,7 @@ void m2ts_export_dump(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 	if (evt_type == GF_M2TS_EVT_PES_PCK) {
 		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK *)par;
-		
+
 		if (tsx->is_latm) {
 			GF_BitStream *bs = gf_bs_from_file(tsx->dst, GF_BITSTREAM_WRITE);
 
