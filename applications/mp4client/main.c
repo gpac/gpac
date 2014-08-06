@@ -200,6 +200,8 @@ void PrintUsage()
 	        "                   default alignment is top-left\n"
 	        "                   default alignment is top-left\n"
 	        "\t-pause:         pauses at first frame\n"
+	        "\t-play-from T:   starts from T seconds in media\n"
+	        "\t-speed S:       starts with speed S\n"
 	        "\t-loop:          loops presentation\n"
 	        "\t-no-regulation: disables framerate regulation\n"
 	        "\t-bench:         disable a/v output and bench source decoding (as fast as possible)\n"
@@ -715,6 +717,8 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			is_connected = 1;
 			fprintf(stderr, "Service Connected\n");
 			eos_seen = GF_FALSE;
+			if (playback_speed != FIX_ONE) 
+				gf_term_set_speed(term, playback_speed);
 		} else if (is_connected) {
 			fprintf(stderr, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
 			is_connected = 0;
@@ -1185,6 +1189,11 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-play-from")) {
 			play_from = atof((const char *) argv[i+1]);
 		}
+		else if (!strcmp(arg, "-speed")) {
+			playback_speed = FLT2FIX( atof((const char *) argv[i+1]) );
+			if (playback_speed <= 0) playback_speed = FIX_ONE;
+		}
+		
 		else if (!strcmp(arg, "-exit")) auto_exit = 1;
 		else if (!strcmp(arg, "-mem-track")) {
 #ifdef GPAC_MEMORY_TRACKING
@@ -2031,7 +2040,7 @@ force_input:
 	fprintf(stderr, "Deleting terminal... ");
 	if (playlist) fclose(playlist);
 	gf_term_del(term);
-	fprintf(stderr, "done (in %d ms)\n", gf_sys_clock() - i);
+	fprintf(stderr, "done (in %d ms) - ran for %d ms\n", gf_sys_clock() - i, gf_sys_clock());
 
 	fprintf(stderr, "GPAC cleanup ...\n");
 	gf_modules_del(user.modules);
@@ -2405,7 +2414,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 			avg_dec_time = (Float) odi.total_dec_time;
 			avg_dec_time /= odi.nb_dec_frames;
 		}
-		fprintf(stderr, "\tBitrate over last second: %d kbps\n\tMax bitrate over one second: %d kbps\n\tAverage Decoding Time %.2f ms ("LLU" max)\n\tTotal decoded frames %d\n",
+		fprintf(stderr, "\tBitrate over last second: %d kbps\n\tMax bitrate over one second: %d kbps\n\tAverage Decoding Time %.2f us ("LLU" max)\n\tTotal decoded frames %d\n",
 		        (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames);
 	}
 	if (odi.protection) fprintf(stderr, "Encrypted Media%s\n", (odi.protection==2) ? " NOT UNLOCKED" : "");
@@ -2658,7 +2667,7 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm)
 		avg_dec_time = (Float) odi.total_dec_time;
 		avg_dec_time /= odi.nb_dec_frames;
 	}
-	fprintf(stderr, " * Avg Bitrate %d kbps (%d max) - Avg Decoding Time %.2f ms ("LLU" max)\n",
+	fprintf(stderr, " * Avg Bitrate %d kbps (%d max) - Avg Decoding Time %.2f us ("LLU" max)\n",
 	        (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time);
 }
 

@@ -938,6 +938,8 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	scene = odm->subscene ? odm->subscene : odm->parentscene;
 
 	ck_namespace = odm->net_service->Clocks;
+	odm->set_speed = odm->net_service->set_speed;
+
 	/*little trick for non-OD addressing: if object is a remote one, and service owner already has clocks,
 	override OCR. This will solve addressing like file.avi#audio and file.avi#video*/
 	if (!esd->OCRESID && (odm->flags & GF_ODM_REMOTE_OD) && (gf_list_count(ck_namespace)==1) ) {

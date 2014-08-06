@@ -85,7 +85,8 @@ static u32 FFDemux_Run(void *par)
 	slh.compositionTimeStampFlag = slh.decodingTimeStampFlag = 1;
 
 	while (ffd->is_running) {
-		if ((!ffd->video_ch && (ffd->video_st>=0)) || (!ffd->audio_ch && (ffd->audio_st>=0))) {
+		//nothing connected, wait
+		if (!ffd->video_ch && !ffd->audio_ch) {
 			gf_sleep(100);
 			continue;
 		}
@@ -107,27 +108,15 @@ static u32 FFDemux_Run(void *par)
 		gf_mx_p(ffd->mx);
 		/*blindly send audio as soon as video is init*/
 		if (ffd->audio_ch && (pkt.stream_index == ffd->audio_st) ) {
-//			u64 seek_audio = ffd->seek_time ? (u64) (s64) (ffd->seek_time*ffd->audio_tscale.den) : 0;
 			slh.compositionTimeStamp *= ffd->audio_tscale.num;
 			slh.decodingTimeStamp *= ffd->audio_tscale.num;
 
-#if 0
-			if (slh.compositionTimeStamp < seek_audio) {
-				slh.decodingTimeStamp = slh.compositionTimeStamp = seek_audio;
-			}
-#endif
 			gf_service_send_packet(ffd->service, ffd->audio_ch, (char *) pkt.data, pkt.size, &slh, GF_OK);
 		}
 		else if (ffd->video_ch && (pkt.stream_index == ffd->video_st)) {
-//			u64 seek_video = ffd->seek_time ? (u64) (s64) (ffd->seek_time*ffd->video_tscale.den) : 0;
 			slh.compositionTimeStamp *= ffd->video_tscale.num;
 			slh.decodingTimeStamp *= ffd->video_tscale.num;
-
-#if 0
-			if (slh.compositionTimeStamp < seek_video) {
-				slh.decodingTimeStamp = slh.compositionTimeStamp = seek_video;
-			}
-#endif
+			slh.randomAccessPointFlag = pkt.flags&AV_PKT_FLAG_KEY ? 1 : 0;
 			gf_service_send_packet(ffd->service, ffd->video_ch, (char *) pkt.data, pkt.size, &slh, GF_OK);
 		}
 		gf_mx_v(ffd->mx);
@@ -139,9 +128,10 @@ static u32 FFDemux_Run(void *par)
 			gf_service_command(ffd->service, &com, GF_OK);
 			if (com.buffer.occupancy < com.buffer.max)
 				break;
-			gf_sleep(10);
-
+	
+			gf_sleep(1);
 		}
+
 		if (!ffd->audio_run && !ffd->video_run) break;
 	}
 	/*signal EOS*/
@@ -426,7 +416,11 @@ opaque_video:
 	} else {
 		/*only send full AUs*/
 		esd->slConfig->useAccessUnitStartFlag = esd->slConfig->useAccessUnitEndFlag = 0;
-		esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
+		if (for_audio) {
+			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
+		} else {
+			esd->slConfig->useRandomAccessPointFlag = 1;
+		}
 		esd->slConfig->useTimestampsFlag = 1;
 	}
 

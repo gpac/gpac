@@ -432,6 +432,14 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		return;
 	}
 
+	if (ch->odm->codec && ch->odm->codec->decode_only_rap && !ch->IsRap) {
+		if (ch->buffer) {
+			gf_free(ch->buffer);
+			ch->buffer = NULL;
+		}
+		return;
+	}
+
 	au = gf_db_unit_new();
 	if (!au) {
 		gf_free(ch->buffer);
@@ -469,6 +477,16 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	ch->len = ch->allocSize = 0;
 
 	gf_es_lock(ch, 1);
+
+
+	if (0 && ch->AU_Count>10000) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Something really wrong, too many AUs in decoding channel (%d) - trashing buffers\n", ch->esd->ESID, ch->odm->net_service->url, ch->AU_Count));
+		gf_db_unit_del(ch->AU_buffer_first->next);
+		ch->AU_buffer_first->next = NULL;
+		ch->AU_buffer_last = ch->AU_buffer_first;
+		ch->AU_Count = 1;
+		ch->BufferTime = 0;
+	}
 
 	if (ch->service && ch->service->cache) {
 		GF_SLHeader slh;
