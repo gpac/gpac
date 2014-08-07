@@ -118,6 +118,7 @@ next_segment:
 		u64 timestamp, ntp;
 		u32 trackID = 0;
 		if (param.url_query.next_url) {
+			u32 flags;
 
 			//previously loaded file has been aborted, reload segment !
 			if (refresh_type && param.url_query.discontinuity_type) {
@@ -160,7 +161,10 @@ next_segment:
 				e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
 			}
 
-			e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range, scalable_segment, read->no_order_check);
+			flags = 0;
+			if (read->no_order_check) flags |= GF_ISOM_SEGMENT_NO_ORDER_FLAG;
+			if (scalable_segment) flags |= GF_ISOM_SEGMENT_SCALABLE_FLAG;
+			e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range, flags);
 
 			if (param.url_query.current_download  && (e==GF_ISOM_INCOMPLETE_FILE)) {
 				e = GF_OK;
