@@ -2096,25 +2096,22 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 	/*adjust all clocks on all services*/
 	i=0;
 	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
-		if (gf_list_count(ns->Clocks)==0) {
-			ns->set_speed = speed;
-		} else {
-			GF_Clock *ck;
-			j=0;
-			while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
-				//we will have to reissue a PLAY command since playback direction changed
-				if ( gf_mulfix(ck->speed,speed) < 0) restart = 1;
-				gf_clock_set_speed(ck, speed);
+		GF_Clock *ck;
+		ns->set_speed = speed;
+		j=0;
+		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
+			//we will have to reissue a PLAY command since playback direction changed
+			if ( gf_mulfix(ck->speed,speed) < 0) restart = 1;
+			gf_clock_set_speed(ck, speed);
 
-				if (ns->owner) {
-					gf_odm_set_speed(ns->owner, speed, GF_FALSE);
-					if (ns->owner->subscene) {
-						u32 k=0;
-						GF_ObjectManager *odm;
-						GF_Scene *scene = ns->owner->subscene;
-						while ( (odm = gf_list_enum(scene->resources, &k))) {
-							gf_odm_set_speed(odm, speed, GF_FALSE);
-						}
+			if (ns->owner) {
+				gf_odm_set_speed(ns->owner, speed, GF_FALSE);
+				if (ns->owner->subscene) {
+					u32 k=0;
+					GF_ObjectManager *odm;
+					GF_Scene *scene = ns->owner->subscene;
+					while ( (odm = gf_list_enum(scene->resources, &k))) {
+						gf_odm_set_speed(odm, speed, GF_FALSE);
 					}
 				}
 			}

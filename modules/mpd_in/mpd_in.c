@@ -74,7 +74,9 @@ typedef struct
 	Bool has_new_data;
 	u32 idx;
 	GF_DownloadSession *sess;
-	Bool in_seek, is_timestamp_based;
+	Bool in_seek, is_timestamp_based, pto_setup;
+	u32 timescale;
+	s64 pto;
 } GF_MPDGroup;
 
 const char * MPD_MPD_DESC = "MPEG-DASH Streaming";
@@ -144,16 +146,22 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 		if (group->segment_ifce == ifce) {
 			//if sync is based on timestamps do not adjust the timestamps back
 			if (! group->is_timestamp_based) {
-				u32 timescale;
-				u64 pto=0;
-				gf_dash_group_get_presentation_time_offset(mpdin->dash, i, &pto, &timescale);
-				if (timescale && (timescale != ch->esd->slConfig->timestampResolution)) {
-					pto *= ch->esd->slConfig->timestampResolution;
-					pto /= timescale;
+				if (!group->pto_setup) {
+					s64 start;
+					gf_dash_group_get_presentation_time_offset(mpdin->dash, i, &group->pto, &group->timescale);
+					group->pto_setup = 1;
+
+					if (group->timescale && (group->timescale != ch->esd->slConfig->timestampResolution)) {
+						group->pto *= ch->esd->slConfig->timestampResolution;
+						group->pto /= group->timescale;
+					}
+					start = group->timescale * gf_dash_group_get_period_start(mpdin->dash) / 1000;
+					group->pto -= start;
 				}
-				if (hdr->decodingTimeStamp > pto) hdr->decodingTimeStamp -= pto;
+
+				if ((s64) hdr->decodingTimeStamp > group->pto) hdr->decodingTimeStamp -= group->pto;
 				else hdr->decodingTimeStamp = 0;
-				if (hdr->compositionTimeStamp> pto) hdr->compositionTimeStamp -= pto;
+				if ((s64) hdr->compositionTimeStamp> group->pto) hdr->compositionTimeStamp -= group->pto;
 				else hdr->compositionTimeStamp = 0;
 			}
 
