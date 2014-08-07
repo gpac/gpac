@@ -207,7 +207,7 @@ GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash
 /*returns 1 if segment numbers loops at this level (not allowed but happens when looping captures ...*/
 Bool gf_dash_group_loop_detected(GF_DashClient *dash, u32 idx);
 
-/*returns number of seconds at which playback shall start */
+/*returns number of seconds at which playback shall start in the first segment of the current period*/
 Double gf_dash_group_get_start_range(GF_DashClient *dash, u32 idx);
 
 /*discards the first media resource in the queue of this group*/
@@ -235,8 +235,6 @@ void gf_dash_request_period_switch(GF_DashClient *dash);
 Bool gf_dash_in_period_setup(GF_DashClient *dash);
 /*seeks playback to the given time. If period changes, all playback is stopped and restarted*/
 void gf_dash_seek(GF_DashClient *dash, Double start_range);
-/*gets playback start range for the first segment to play after the seek has been done. This is the amount of data to skip from the first segment to be played*/
-Double gf_dash_get_playback_start_range(GF_DashClient *dash);
 /*when seeking, this flag is set when the seek is outside of the previously playing segment.*/
 Bool gf_dash_group_segment_switch_forced(GF_DashClient *dash, u32 idx);
 /*get video info for this group if video*/
@@ -301,6 +299,8 @@ void gf_dash_set_switching_probe_count(GF_DashClient *dash, u32 switch_probe_cou
 
 /*returns active period start in ms*/
 u32 gf_dash_get_period_start(GF_DashClient *dash);
+/*returns active period duration in ms*/
+u32 gf_dash_get_period_duration(GF_DashClient *dash);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

@@ -407,6 +407,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_serialize) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_node_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_parse_string) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root_nodes_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root_idx) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_parse_bit_sequence) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_detach_root) )
 #endif
@@ -1962,7 +1964,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_group_done) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_in_period_setup) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_seek) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_playback_start_range) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_start_range) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_segment_switch_forced) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_current_segment_start_time) )
@@ -1985,6 +1986,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_speed) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_switching_probe_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_period_start) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_period_duration) )
+
 
 #endif
 

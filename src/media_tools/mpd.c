@@ -875,6 +875,7 @@ void gf_mpd_adaptation_set_free(void *_item)
 	gf_mpd_del_list(ptr->representations, gf_mpd_representation_free, 0);
 	gf_free(ptr);
 }
+
 void gf_mpd_period_free(void *_item)
 {
 	GF_MPD_Period *ptr = (GF_MPD_Period *)_item;
@@ -903,8 +904,9 @@ void gf_mpd_del(GF_MPD *mpd)
 	gf_free(mpd);
 }
 
+
 GF_EXPORT
-GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url)
+GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url)
 {
 	GF_Err e;
 	Bool ns_ok = 0;
@@ -914,18 +916,6 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 
 	if (!root || !mpd) return GF_BAD_PARAM;
 
-	assert( !mpd->periods );
-	mpd->periods = gf_list_new();
-	mpd->program_infos = gf_list_new();
-	mpd->base_URLs = gf_list_new();
-	mpd->locations = gf_list_new();
-	mpd->metrics = gf_list_new();
-	/*setup some defaults*/
-	mpd->type = GF_MPD_TYPE_STATIC;
-	/*infinite by default*/
-	mpd->time_shift_buffer_depth = (u32) -1;
-
-	mpd->xml_namespace = NULL;
 	att_index = 0;
 	child_index = gf_list_count(root->attributes);
 	for (att_index = 0 ; att_index < child_index; att_index++) {
@@ -940,7 +930,7 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 		else if (!strncmp(att->name, "xmlns:", 6)) {
 			if (root->ns && !strcmp(att->name+6, root->ns) && (!strcmp(att->value, "urn:mpeg:dash:schema:mpd:2011") || !strcmp(att->value, "urn:mpeg:DASH:schema:MPD:2011")) ) {
 				ns_ok = 1;
-				mpd->xml_namespace = root->ns;
+				if (!mpd->xml_namespace) mpd->xml_namespace = root->ns;
 				break;
 			}
 		}
@@ -948,6 +938,10 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 
 	if (!ns_ok) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Wrong namespace found for DASH MPD - cannot parse\n"));
+	}
+
+	if (!strcmp(root->name, "Period")) {
+		return gf_mpd_parse_period(mpd, root);
 	}
 
 	att_index = 0;
@@ -1015,6 +1009,30 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 		child_index++;
 	}
 	return GF_OK;
+}
+
+
+GF_EXPORT
+GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url)
+{
+	Bool ns_ok = 0;
+
+	if (!root || !mpd) return GF_BAD_PARAM;
+
+	assert( !mpd->periods );
+	mpd->periods = gf_list_new();
+	mpd->program_infos = gf_list_new();
+	mpd->base_URLs = gf_list_new();
+	mpd->locations = gf_list_new();
+	mpd->metrics = gf_list_new();
+	/*setup some defaults*/
+	mpd->type = GF_MPD_TYPE_STATIC;
+	/*infinite by default*/
+	mpd->time_shift_buffer_depth = (u32) -1;
+
+	mpd->xml_namespace = NULL;
+
+	return gf_mpd_complete_from_dom(root, mpd, default_base_url);
 }
 
 GF_EXPORT

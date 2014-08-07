@@ -197,7 +197,7 @@ typedef struct
 	type (multicast, vod, ...) - below buffer_min the stream will pause if possible until buffer_max is reached
 	note the app will fill in default values before querying*/
 	u32 min, max;
-	/*only used with GF_NET_CHAN_BUFFER_QUERY - amount of media in decoding buffer, in ms*/
+	/*only used with GF_NET_CHAN_BUFFER_QUERY and GF_NET_BUFFER_QUERY- amount of media in decoding buffer, in ms. This value is adjusted by the current playback speed, eg if playing at 2x the occupancy is (media time in buffers) / 2 */
 	u32 occupancy;
 } GF_NetComBuffer;
 

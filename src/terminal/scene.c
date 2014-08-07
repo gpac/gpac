@@ -1516,6 +1516,8 @@ void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
 
 	/*reset clock*/
 	gf_clock_reset(ck);
+
+	//used by SVG for JSAPIs..;
 	if (!scene->is_dynamic_scene) gf_clock_set_time(ck, 0);
 
 	/*restart objects*/

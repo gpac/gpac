@@ -57,7 +57,7 @@ typedef struct __mpd_module
 	Double previous_start_range;
 	/*max width & height in all active representations*/
 	u32 width, height;
-
+	
 
 	//we store here all callbacks to the parent services we need to intercept, and we will override our own ones
 	void (*fn_connect_ack) (GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
@@ -77,6 +77,7 @@ typedef struct
 	Bool in_seek, is_timestamp_based, pto_setup;
 	u32 timescale;
 	s64 pto;
+	s64 max_cts_in_period;
 } GF_MPDGroup;
 
 const char * MPD_MPD_DESC = "MPEG-DASH Streaming";
@@ -147,7 +148,8 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			//if sync is based on timestamps do not adjust the timestamps back
 			if (! group->is_timestamp_based) {
 				if (!group->pto_setup) {
-					s64 start;
+					Double scale;
+					s64 start, dur;
 					gf_dash_group_get_presentation_time_offset(mpdin->dash, i, &group->pto, &group->timescale);
 					group->pto_setup = 1;
 
@@ -155,14 +157,28 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 						group->pto *= ch->esd->slConfig->timestampResolution;
 						group->pto /= group->timescale;
 					}
-					start = group->timescale * gf_dash_get_period_start(mpdin->dash) / 1000;
-					group->pto -= start;
-				}
+					scale = ch->esd->slConfig->timestampResolution;
+					scale /= 1000;
+					dur = (u64) (scale * gf_dash_get_period_duration(mpdin->dash) );
+					group->max_cts_in_period = group->pto + dur;
 
-				if ((s64) hdr->decodingTimeStamp > group->pto) hdr->decodingTimeStamp -= group->pto;
-				else hdr->decodingTimeStamp = 0;
-				if ((s64) hdr->compositionTimeStamp> group->pto) hdr->compositionTimeStamp -= group->pto;
-				else hdr->compositionTimeStamp = 0;
+					start = (u64) (scale * gf_dash_get_period_start(mpdin->dash) );
+					group->pto -= start;				
+				}
+				//filter any packet outside the current period
+				if (hdr->compositionTimeStamp > group->max_cts_in_period) 
+					return;
+
+				//remap timestamps to our timeline
+				if ((s64) hdr->decodingTimeStamp >= group->pto) 
+					hdr->decodingTimeStamp -= group->pto;
+				else 
+					hdr->decodingTimeStamp = 0;
+
+				if ((s64) 
+					hdr->compositionTimeStamp >= group->pto) hdr->compositionTimeStamp -= group->pto;
+				else 
+					hdr->compositionTimeStamp = 0;
 			}
 
 			mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
@@ -910,7 +926,7 @@ static GF_Descriptor *MPD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 
 		desc = mudta->segment_ifce->GetServiceDescriptor(mudta->segment_ifce, expect_type, sub_url);
 		if (desc) mudta->service_descriptor_fetched = 1;
-		return desc;
+		gf_odf_desc_del(desc);
 	}
 	return NULL;
 }
@@ -1056,8 +1072,9 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 					}
 				}
 				gf_dash_seek(mpdin->dash, com->play.start_range);
-
-				com->play.start_range = gf_dash_get_playback_start_range(mpdin->dash);
+				if (idx>=0) {
+					com->play.start_range = gf_dash_group_get_start_range(mpdin->dash, idx);
+				}
 			}
 
 			if (idx>=0) {

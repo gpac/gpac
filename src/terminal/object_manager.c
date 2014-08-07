@@ -799,16 +799,17 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		gf_term_lock_net(odm->term, GF_TRUE);
 	}
 
-
 	/* start object*/
 	/*case 1: object is the root, always start*/
 	if (!odm->parentscene) {
 		assert(odm->subscene == odm->term->root_scene);
 		assert(odm->subscene->root_od==odm);
+		odm->flags &= ~GF_ODM_NOT_SETUP;
 		gf_odm_start(odm, 0);
 	}
 	/*case 2: object is a pure OCR object - connect*/
 	else if (odm->ocr_codec) {
+		odm->flags &= ~GF_ODM_NOT_SETUP;
 		gf_odm_start(odm, 0);
 	}
 	/*case 3: if the object is inserted from a broadcast, start it if not already done. This covers cases where the scene (BIFS, LASeR) and
@@ -818,6 +819,8 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	as can be the case with MPEG2 TS (first video packet right after the PMT) - this should be refined*/
 	else if ( ((odm->flags & GF_ODM_NO_TIME_CTRL) || (odm->flags & GF_ODM_NOT_IN_OD_STREAM)) && gf_odm_should_auto_select(odm) && (odm->parentscene->selected_service_id == odm->OD->ServiceID)) {
 		Bool force_play = GF_FALSE;
+		//since we're about to evaluate the play state, lock the queue
+		gf_term_lock_media_queue(odm->term, GF_TRUE);
 		if (odm->state==GF_ODM_STATE_STOP) {
 			odm->flags |= GF_ODM_PREFETCH;
 			force_play = GF_TRUE;
@@ -826,13 +829,17 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		else if ((odm->state==GF_ODM_STATE_PLAY) && (gf_list_del_item(odm->term->media_queue, odm)>=0) ) {
 			force_play = GF_TRUE;
 		}
+		gf_term_lock_media_queue(odm->term, GF_FALSE);
 
 		if (force_play) {
 			odm->flags |= GF_ODM_INITIAL_BROADCAST_PLAY;
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from broadcast or input service - forcing play\n", odm->OD->objectDescriptorID));
+			odm->flags &= ~GF_ODM_NOT_SETUP;
 			gf_odm_start(odm, 2);
 		}
 	}
+
+	odm->flags &= ~GF_ODM_NOT_SETUP;
 
 	/*for objects inserted by user (subs & co), auto select*/
 	if (odm->parentscene && odm->parentscene->is_dynamic_scene
@@ -1389,6 +1396,12 @@ void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state)
 {
 	Bool skip_register = 1;
 	gf_term_lock_media_queue(odm->term, 1);
+
+	if (odm->flags & GF_ODM_NOT_SETUP) {
+		gf_term_lock_media_queue(odm->term, 0);
+		return;
+	}
+
 
 	/*only if not open & ready (not waiting for ACK on channel setup)*/
 	if (!odm->pending_channels && odm->OD) {
