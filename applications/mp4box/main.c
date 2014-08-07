@@ -288,7 +288,7 @@ void PrintDASHUsage()
 	        "                       * Note: Default temp dir is OS-dependent\n"
 	        " -profile NAME        specifies the target DASH profile: \"onDemand\",\n"
 	        "                       \"live\", \"main\", \"simple\", \"full\",\n"
-	        "                       \"dashavc264:live\","\"dashavc264:onDemand\"\n"
+	        "                       \"dashavc264:live\", \"dashavc264:onDemand\"\n"
 	        "                       * This will set default option values to ensure conformance to the desired profile\n"
 	        "                       * Default profile is \"full\" in static mode, \"live\" in dynamic mode\n"
 	        "\n"

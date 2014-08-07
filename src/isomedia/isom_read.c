@@ -2322,7 +2322,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 }
 
 GF_EXPORT
-GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range, Bool is_scalable_segment, Bool no_order_check)
+GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range, u32 flags)
 {
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	return GF_NOT_SUPPORTED;
@@ -2331,6 +2331,8 @@ GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_r
 	GF_Err e;
 	u32 i;
 	Bool segment_map_assigned = 0;
+	Bool is_scalable_segment = (flags & GF_ISOM_SEGMENT_SCALABLE_FLAG) ? 1 : 0;
+	Bool no_order_check = (flags & GF_ISOM_SEGMENT_NO_ORDER_FLAG) ? 1: 0;
 	GF_DataMap *tmp = NULL;
 	GF_DataMap *orig_file_map = NULL;
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
