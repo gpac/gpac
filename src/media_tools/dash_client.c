@@ -5275,7 +5275,7 @@ void gf_dash_set_user_buffer(GF_DashClient *dash, u32 buffer_time_ms)
 
 /*returns active period start in ms*/
 GF_EXPORT
-u32 gf_dash_group_get_period_start(GF_DashClient *dash)
+u32 gf_dash_get_period_start(GF_DashClient *dash)
 {
 	u32 start;
 	u32 i;

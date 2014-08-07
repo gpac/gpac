@@ -1984,7 +1984,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_user_buffer) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_speed) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_switching_probe_count) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_period_start) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_period_start) )
 
 #endif
 

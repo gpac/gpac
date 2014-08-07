@@ -300,7 +300,7 @@ void gf_dash_set_user_buffer(GF_DashClient *dash, u32 buffer_time_ms);
 void gf_dash_set_switching_probe_count(GF_DashClient *dash, u32 switch_probe_count);
 
 /*returns active period start in ms*/
-u32 gf_dash_group_get_period_start(GF_DashClient *dash);
+u32 gf_dash_get_period_start(GF_DashClient *dash);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

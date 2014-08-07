@@ -155,7 +155,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 						group->pto *= ch->esd->slConfig->timestampResolution;
 						group->pto /= group->timescale;
 					}
-					start = group->timescale * gf_dash_group_get_period_start(mpdin->dash) / 1000;
+					start = group->timescale * gf_dash_get_period_start(mpdin->dash) / 1000;
 					group->pto -= start;
 				}
 
