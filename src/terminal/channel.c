@@ -275,6 +275,7 @@ void Channel_WaitRAP(GF_Channel *ch)
 
 void gf_es_reset_buffers(GF_Channel *ch)
 {
+	GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): reseting buffers (%d AUs)\n", ch->esd->ESID, ch->odm->net_service->url, ch->AU_Count));
 	gf_mx_p(ch->mx);
 
 	if (ch->buffer) gf_free(ch->buffer);
@@ -508,7 +509,8 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		ch->AU_buffer_last = au;
 		ch->AU_Count = 1;
 	} else {
-		if (!ch->recompute_dts && ((s32) (ch->clock->speed * ch->AU_buffer_last->DTS) <= (s32) (ch->clock->speed * au->DTS)) ) {
+		//if speed negative always append to buffer
+		if ((ch->clock->speed < 0) || (!ch->recompute_dts && (ch->AU_buffer_last->DTS <= au->DTS))) {
 			ch->AU_buffer_last->next = au;
 			ch->AU_buffer_last = ch->AU_buffer_last->next;
 		}

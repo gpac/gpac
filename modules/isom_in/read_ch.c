@@ -732,7 +732,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 			return;
 		}
 	}
-#if 1
+#if 0
 	//flush request from terminal: only process if nothing is opened and we have pending segments
 	if (!check_buffer_level && !read->seg_opened && !read->has_pending_segments && !read->drop_next_segment) {
 		read->in_data_flush = 0;

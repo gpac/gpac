@@ -3586,8 +3586,15 @@ restart_period:
 
 				if (all_groups_done && dash->request_period_switch) {
 					gf_dash_reset_groups(dash);
-					if (dash->request_period_switch == 1)
-						dash->active_period_index++;
+					if (dash->request_period_switch == 1) {
+						if (dash->speed<0) {
+							if (dash->active_period_index) {
+								dash->active_period_index--;
+							}
+						} else {
+							dash->active_period_index++;
+						}
+					}
 
 					dash->request_period_switch = 0;
 
@@ -5266,6 +5273,24 @@ void gf_dash_set_user_buffer(GF_DashClient *dash, u32 buffer_time_ms)
 	if (dash) dash->user_buffer_ms = buffer_time_ms;
 }
 
+/*returns active period start in ms*/
+GF_EXPORT
+u32 gf_dash_group_get_period_start(GF_DashClient *dash)
+{
+	u32 start;
+	u32 i;
+	GF_MPD_Period *period;
+	if (!dash || !dash->mpd) return 0;
+
+	start = 0;
+	for (i=0; i<=dash->active_period_index; i++) {
+		period = gf_list_get(dash->mpd->periods, i);
+		if (period->start) start = period->start;
+		
+		if (i<dash->active_period_index) start += period->duration;
+	}
+	return start;
+}
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

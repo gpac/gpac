@@ -2045,8 +2045,6 @@ void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed, Bool adjust_clock_spee
 		if (adjust_clock_speed)
 			gf_clock_set_speed(ch->clock, speed);
 
-		gf_es_reset_buffers(ch);
-
 		com.play.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
 	}
