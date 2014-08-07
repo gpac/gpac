@@ -335,12 +335,15 @@ typedef struct {
 } GF_MPD;
 
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url);
+GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url);
 
 GF_MPD *gf_mpd_new();
 void gf_mpd_del(GF_MPD *mpd);
 /*frees a GF_MPD_SegmentURL structure (type-casted to void *)*/
 void gf_mpd_segment_url_free(void *ptr);
 void gf_mpd_segment_base_free(void *ptr);
+
+void gf_mpd_period_free(void *_item);
 
 typedef struct _gf_file_get GF_FileDownload;
 struct _gf_file_get

@@ -141,6 +141,10 @@ GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, char *string);
 const char *gf_xml_dom_get_error(GF_DOMParser *parser);
 u32 gf_xml_dom_get_line(GF_DOMParser *parser);
 
+u32 gf_xml_dom_get_root_nodes_count(GF_DOMParser *parser);
+GF_XMLNode *gf_xml_dom_get_root_idx(GF_DOMParser *parser, u32 idx);
+
+
 /*
  *\brief Serialize a node
  *

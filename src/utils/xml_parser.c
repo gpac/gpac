@@ -1573,7 +1573,10 @@ struct _tag_dom_parser
 {
 	GF_SAXParser *parser;
 	GF_List *stack;
+	//root node being parsed
 	GF_XMLNode *root;
+	//usually only one :)
+	GF_List *root_nodes;
 	u32 depth;
 
 	void (*OnProgress)(void *cbck, u64 done, u64 tot);
@@ -1632,7 +1635,10 @@ static void on_dom_node_start(void *cbk, const char *name, const char *ns, const
 	node->name = gf_strdup(name);
 	if (ns) node->ns = gf_strdup(ns);
 	gf_list_add(par->stack, node);
-	if (!par->root) par->root = node;
+	if (!par->root) {
+		par->root = node;
+		gf_list_add(par->root_nodes, node);
+	}
 }
 
 static void on_dom_node_end(void *cbk, const char *name, const char *ns)
@@ -1676,6 +1682,7 @@ GF_DOMParser *gf_xml_dom_new()
 {
 	GF_DOMParser *dom;
 	GF_SAFEALLOC(dom, GF_DOMParser);
+	dom->root_nodes = gf_list_new();
 	return dom;
 }
 
@@ -1690,14 +1697,21 @@ static void gf_xml_dom_reset(GF_DOMParser *dom, Bool full_reset)
 		while (gf_list_count(dom->stack)) {
 			GF_XMLNode *n = (GF_XMLNode *)gf_list_last(dom->stack);
 			gf_list_rem_last(dom->stack);
-			if (dom->root==n) dom->root = NULL;
+			if (dom->root==n) {
+				gf_list_del_item(dom->root_nodes, n);
+				dom->root = NULL;
+			}
 			gf_xml_dom_node_del(n);
 		}
 		gf_list_del(dom->stack);
 		dom->stack = NULL;
 	}
-	if (full_reset && dom->root) {
-		gf_xml_dom_node_del(dom->root);
+	if (full_reset && gf_list_count(dom->root_nodes) ) {
+		while (gf_list_count(dom->root_nodes)) {
+			GF_XMLNode *n = (GF_XMLNode *)gf_list_last(dom->root_nodes);
+			gf_list_rem_last(dom->root_nodes);
+			gf_xml_dom_node_del(n);
+		}
 		dom->root = NULL;
 	}
 }
@@ -1706,6 +1720,7 @@ GF_EXPORT
 void gf_xml_dom_del(GF_DOMParser *parser)
 {
 	gf_xml_dom_reset(parser, 1);
+	gf_list_del(parser->root_nodes);
 	gf_free(parser);
 }
 
@@ -1776,6 +1791,19 @@ u32 gf_xml_dom_get_line(GF_DOMParser *parser)
 {
 	return gf_xml_sax_get_line(parser->parser);
 }
+
+GF_EXPORT
+u32 gf_xml_dom_get_root_nodes_count(GF_DOMParser *parser)
+{
+	return parser? gf_list_count(parser->root_nodes) : 0;
+}
+
+GF_EXPORT
+GF_XMLNode *gf_xml_dom_get_root_idx(GF_DOMParser *parser, u32 idx)
+{
+	return parser ? gf_list_get(parser->root_nodes, idx) : NULL;
+}
+
 
 static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char **str, u32 *alloc_size, u32 *size)
 {

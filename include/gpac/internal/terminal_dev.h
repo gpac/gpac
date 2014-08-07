@@ -909,6 +909,9 @@ enum
 
 	/*flag set for first play request*/
 	GF_ODM_INITIAL_BROADCAST_PLAY = (1<<11),
+
+	/*flag set until ODM is setup*/
+	GF_ODM_NOT_SETUP = (1<<12),
 };
 
 enum

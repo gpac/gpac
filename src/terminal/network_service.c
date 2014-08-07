@@ -193,6 +193,10 @@ static void term_on_disconnect(GF_ClientService *service, LPNETCHANNEL netch, GF
 		if (root->net_service) gf_term_message(term, service->url, "Incompatible module type", GF_SERVICE_ERROR);
 		return;
 	}
+	//reset global seek time
+	if (term->root_scene && term->root_scene->root_od)
+		term->root_scene->root_od->media_start_time = 0;
+
 	/*this is service disconnect*/
 	if (!netch) {
 		if (service->subservice_disconnect) {
@@ -401,6 +405,7 @@ static void term_on_media_add(GF_ClientService *service, GF_Descriptor *media_de
 		odm->parentscene = scene;
 		gf_list_add(scene->resources, odm);
 	}
+	odm->flags |= GF_ODM_NOT_SETUP;
 	odm->OD = od;
 	odm->mo = the_mo;
 	odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
@@ -438,14 +443,17 @@ static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service
 		if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
 		if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
 		if (ch->IsClockInit) {
-			if (ch->BufferTime > (s32) *max_buffer_time)
-				*max_buffer_time = ch->BufferTime;
+			s32 buf_time = (s32) (ch->BufferTime / FIX2FLT(ch->clock->speed) );
+			if (!buf_time && ch->BufferTime) buf_time = ch->BufferTime;
+
+			if (buf_time > (s32) *max_buffer_time)
+				*max_buffer_time = buf_time ;
 
 			/*if we don't have more units (compressed or not) than requested max for the composition memory, request more data*/
 			if (ch->odm->codec && ch->odm->codec->CB && (odm->codec->CB->UnitCount + ch->AU_Count <= odm->codec->CB->Capacity)) {
 				com->buffer.occupancy = 0;
-			} else if ( (u32) ch->BufferTime  < com->buffer.occupancy) {
-				com->buffer.occupancy = ch->BufferTime;
+			} else if ( (u32) buf_time < com->buffer.occupancy ) {
+				com->buffer.occupancy = buf_time;
 			}
 		} else {
 			com->buffer.occupancy = 0;
@@ -624,7 +632,7 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		} else {
 			com->buffer.max = ch->MaxBuffer;
 			com->buffer.min = ch->MinBuffer;
-			com->buffer.occupancy = ch->BufferTime;
+			com->buffer.occupancy = (u32) (ch->BufferTime / FIX2FLT(ch->clock->speed) );
 		}
 		break;
 	case GF_NET_CHAN_DRM_CFG:
