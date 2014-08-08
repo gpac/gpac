@@ -76,6 +76,10 @@ struct _gf_dash_io
 	/*signals errors or specific actions to perform*/
 	GF_Err (*on_dash_event)(GF_DASHFileIO *dashio, GF_DASHEventType evt, s32 group_idx, GF_Err setup_error);
 
+	/*used to check whether a representation is supported or not. Function returns 1 if supported, 0 otheriwse
+	if this callback is not set, the representation is assumed to be supported*/
+	Bool (*dash_codec_supported)(GF_DASHFileIO *dashio, const char *codec, u32 width, u32 height, Bool is_interlaced, u32 fps_num, u32 fps_denum, u32 sample_rate);
+
 	/*called whenever a file has to be deleted*/
 	void (*delete_cache_file)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *cache_url);
 
@@ -189,6 +193,31 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_3cc);
 const char *gf_dash_group_get_segment_mime(GF_DashClient *dash, u32 idx);
 /*returns the URL of tyhe first media resource to play (init segment or first media segment depending on format). start_range and end_range are optional*/
 const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64 *start_range, u64 *end_range);
+
+/*returns the language of the group, or NULL if none associated*/
+const char *gf_dash_group_get_language(GF_DashClient *dash, u32 idx);
+
+/*returns the language of the group, or NULL if none associated*/
+u32 gf_dash_group_get_audio_channels(GF_DashClient *dash, u32 idx);
+
+typedef enum
+{	
+	GF_MPD_DESC_ACCESSIBILITY,
+	GF_MPD_DESC_AUDIOCONFIG,
+	GF_MPD_DESC_CONTENT_PROTECTION,
+	GF_MPD_DESC_ESSENTIAL_PROPERTIES,
+	GF_MPD_DESC_SUPPLEMENTAL_PROPERTIES,
+	GF_MPD_DESC_FRAME_PACKING,
+	GF_MPD_DESC_ROLE,
+	GF_MPD_DESC_RATING,
+	GF_MPD_DESC_VIEWPOINT
+} GF_DashDescriptorType;
+
+//enumerate descriptors of the given type:
+//group_idx: index of the group for which descriptors are enumerated
+//desc_type: type of descriptor being checked, one of the above
+//desc_idx: index of the descriptor being checked for this type
+Bool gf_dash_group_enum_descriptor(GF_DashClient *dash, u32 group_idx, GF_DashDescriptorType desc_type, u32 role_idx, const char **desc_id, const char **desc_scheme, const char **desc_value);
 
 /*returns the URL and byte range of the next media resource to play in this group.
 If switching occured, sets switching_index to the new representation index.

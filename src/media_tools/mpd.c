@@ -482,10 +482,10 @@ static void gf_mpd_parse_common_representation(GF_MPD *mpd, GF_MPD_CommonAttribu
 	while ( (child = gf_list_enum(root->content, &i))) {
 		if (!gf_mpd_valid_child(mpd, child)) continue;
 		if (!strcmp(child->name, "FramePacking")) {
-			gf_mpd_parse_content_component(com->frame_packing, child);
+			gf_mpd_parse_descriptor(com->frame_packing, child);
 		}
 		else if (!strcmp(child->name, "AudioChannelConfiguration")) {
-			gf_mpd_parse_content_component(com->audio_channels, child);
+			gf_mpd_parse_descriptor(com->audio_channels, child);
 		}
 		else if (!strcmp(child->name, "ContentProtection")) {
 			gf_mpd_parse_descriptor(com->content_protection, child);
