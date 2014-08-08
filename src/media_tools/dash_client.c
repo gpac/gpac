@@ -402,9 +402,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		return;
 	}
 
-	//temp hack
-	mpd->media_presentation_duration = 0;
-
 	if (!fetch_time) fetch_time = group->dash->mpd_fetch_time;
 	if (group->dash->estimate_utc_drift && !group->dash->utc_drift_estimate && group->dash->mpd_dnload && group->dash->dash_io->get_header_value) {
 		const char *val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "Server-UTC");
@@ -2776,6 +2773,14 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 			gf_dash_get_segment_duration(rep, set, period, dash->mpd, &nb_seg, &dur);
 			if (dur>seg_dur) seg_dur = dur;
 
+			if (dash->dash_io->dash_codec_supported) {
+				Bool res = dash->dash_io->dash_codec_supported(dash->dash_io, rep->codecs, rep->width, rep->height, (rep->scan_type==GF_MPD_SCANTYPE_INTERLACED) ? 1 : 0, rep->framerate->num, rep->framerate->den, rep->samplerate);
+				if (!res) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation not supported by playback engine - ignoring\n"));
+					rep->playback.disabled = 1;
+					continue;
+				}
+			}
 			if (dash->max_width && dash->max_height) {
 				if ((rep->width>dash->max_width) || (rep->height>dash->max_height)) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation size %dx%d exceeds max display size allowed %dx%d - ignoring\n", rep->width, rep->height, dash->max_width, dash->max_height));
@@ -3763,8 +3768,12 @@ restart_period:
 			if (group->nb_segments_in_rep && (group->download_segment_index >= (s32) group->nb_segments_in_rep)) {
 				u32 timer = gf_sys_clock() - dash->last_update_time;
 				Bool update_playlist = 0;
+
+				/* this period is done*/
+				if ((dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && group->period->duration) {
+				}
 				/* update of the playlist, only if indicated */
-				if (dash->mpd->minimum_update_period && (timer > dash->mpd->minimum_update_period)) {
+				else if (dash->mpd->minimum_update_period && (timer > dash->mpd->minimum_update_period)) {
 					update_playlist = 1;
 				}
 				/* if media_presentation_duration is 0 and we are in live, force a refresh (not in the spec but safety check*/
@@ -3781,13 +3790,19 @@ restart_period:
 					group_count = gf_list_count(dash->groups);
 					rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 				} else {
-					gf_sleep(16);
+					gf_sleep(1);
 				}
 				/* Now that the playlist is up to date, we can check again */
 				if (group->download_segment_index >= (s32) group->nb_segments_in_rep) {
 					/* if there is a specified update period, we redo the whole process */
 					if (dash->mpd->minimum_update_period || dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
-						if (! group->maybe_end_of_stream) {
+						
+						if ((dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && group->period->duration) {
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Last segment in period (dynamic mode) - group is done\n"));
+							group->done = 1;
+							break;
+						}
+						else if (! group->maybe_end_of_stream) {
 							u32 now = gf_sys_clock();
 							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] End of segment list reached (%d segments but idx is %d), waiting for next MPD update\n", group->nb_segments_in_rep, group->download_segment_index));
 							if (group->nb_cached_segments)
@@ -3800,13 +3815,13 @@ restart_period:
 							if (now - group->time_at_first_reload_required < group->cache_duration)
 								continue;
 
-							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment list has not been updated for more than %d ms - assuming end of stream\n", now - group->time_at_first_reload_required));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment list has not been updated for more than %d ms - assuming end of period\n", now - group->time_at_first_reload_required));
 							group->done = 1;
 							break;
 						}
 					} else {
 						/* if not, we are really at the end of the playlist, we can quit */
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] End of playlist reached... downloading remaining elements..."));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] End of period reached for group\n"));
 						group->done = 1;
 						break;
 					}
@@ -5480,6 +5495,80 @@ u32 gf_dash_get_period_duration(GF_DashClient *dash)
 	return period->start - start;
 }
 
+GF_EXPORT
+const char *gf_dash_group_get_language(GF_DashClient *dash, u32 idx)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return NULL;
+	return group->adaptation_set->lang;
+}
+
+GF_EXPORT
+u32 gf_dash_group_get_audio_channels(GF_DashClient *dash, u32 idx)
+{
+	GF_MPD_Descriptor *mpd_desc;
+	u32 i=0;
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return 0;
+
+	while ((mpd_desc=gf_list_enum(group->adaptation_set->audio_channels, &i))) {
+		if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:23003:3:audio_channel_configuration:2011")) {
+			return atoi(mpd_desc->value);
+		}
+	}
+	return 0;
+}
+
+static Bool gf_dash_group_enum_descriptor_list(GF_DashClient *dash, u32 idx, GF_List *descs, const char **desc_id, const char **desc_scheme, const char **desc_value)
+{
+	GF_MPD_Descriptor *mpd_desc;
+	if (idx>=gf_list_count(descs)) return 0;
+	mpd_desc = gf_list_get(descs, idx);
+	*desc_value = mpd_desc->value;
+	*desc_scheme = mpd_desc->scheme_id_uri;
+	*desc_id = mpd_desc->id;
+	return 1;
+}
+
+GF_EXPORT
+Bool gf_dash_group_enum_descriptor(GF_DashClient *dash, u32 group_idx, GF_DashDescriptorType  desc_type, u32 desc_idx, const char **desc_id, const char **desc_scheme, const char **desc_value)
+{
+	GF_List *descs = NULL;
+	GF_DASH_Group *group = gf_list_get(dash->groups, group_idx);
+	if (!group) return 0;
+	switch (desc_type) {
+	case GF_MPD_DESC_ACCESSIBILITY:
+		descs = group->adaptation_set->accessibility;
+		break;
+	case GF_MPD_DESC_AUDIOCONFIG:
+		descs = group->adaptation_set->audio_channels;
+		break;
+	case GF_MPD_DESC_CONTENT_PROTECTION:
+		descs = group->adaptation_set->content_protection;
+		break;
+	case GF_MPD_DESC_ESSENTIAL_PROPERTIES:
+		descs = group->adaptation_set->essential_properties;
+		break;
+	case GF_MPD_DESC_SUPPLEMENTAL_PROPERTIES:
+		descs = group->adaptation_set->supplemental_properties;
+		break;
+	case GF_MPD_DESC_FRAME_PACKING:
+		descs = group->adaptation_set->frame_packing;
+		break;
+	case GF_MPD_DESC_ROLE:
+		descs = group->adaptation_set->role;
+		break;
+	case GF_MPD_DESC_RATING:
+		descs = group->adaptation_set->rating;
+		break;
+	case GF_MPD_DESC_VIEWPOINT:
+		descs = group->adaptation_set->viewpoint;
+		break;
+	default:
+		return 0;
+	}
+	return gf_dash_group_enum_descriptor_list(dash, desc_idx, descs, desc_id, desc_scheme, desc_value);
+}
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

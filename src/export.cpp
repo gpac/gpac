@@ -1987,6 +1987,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_switching_probe_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_period_start) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_period_duration) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_language) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_audio_channels) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_enum_descriptor) )
+
 
 
 #endif
