@@ -1015,8 +1015,6 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 GF_EXPORT
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url)
 {
-	Bool ns_ok = 0;
-
 	if (!root || !mpd) return GF_BAD_PARAM;
 
 	assert( !mpd->periods );
