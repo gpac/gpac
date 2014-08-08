@@ -6,9 +6,12 @@ ifeq ($(DISABLE_PLAYER), no)
 APPDIRS+=mp4client 
 endif
 
-
 ifeq ($(DISABLE_ISOFF), no)
 APPDIRS+=mp4box 
+ifeq ($(DISABLE_M2TS_MUX), no)
+APPDIRS+=mp42ts
+endif
+
 ifneq ($(CONFIG_FFMPEG), no)
 ifneq ($(DISABLE_CORE_TOOLS), yes)
 ifneq ($(DISABLE_AV_PARSERS), yes)
@@ -16,9 +19,8 @@ APPDIRS+=dashcast
 endif
 endif
 endif
-ifeq ($(DISABLE_M2TS_MUX), no)
-APPDIRS+=mp42ts
-endif
+
+
 endif
 
 V4STUDIODIR=
@@ -39,7 +41,6 @@ endif
 ALLDIRS=$(APPDIRS)
 
 all: apps
-
 
 apps: 
 	set -e; for i in $(APPDIRS) ; do $(MAKE) -C $$i all; done 
