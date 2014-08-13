@@ -1849,9 +1849,10 @@ restart_fragmentation_pass:
 		if (!is_bs_switching) {
 			fprintf(dash_cfg->mpd, ">\n");
 			fprintf(dash_cfg->mpd, "      <Initialization range=\"%d-%d\"/>\n", 0, index_start_range-1);
-			fprintf(dash_cfg->mpd, "    <SegmentBase");
+			fprintf(dash_cfg->mpd, "    </SegmentBase>\n");
+		} else {
+			fprintf(dash_cfg->mpd, "/>\n");
 		}
-		fprintf(dash_cfg->mpd, "/>\n");
 	} else {
 		if (!seg_rad_name) {
 			fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", gf_url_get_resource_name( gf_isom_get_filename(output) ) );
