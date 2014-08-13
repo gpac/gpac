@@ -1846,6 +1846,11 @@ restart_fragmentation_pass:
 		fprintf(dash_cfg->mpd, "    <SegmentBase indexRangeExact=\"true\" indexRange=\"%d-%d\"", index_start_range, index_end_range);
 		if (presentationTimeOffset)
 			fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
+		if (!is_bs_switching) {
+			fprintf(dash_cfg->mpd, ">\n");
+			fprintf(dash_cfg->mpd, "      <Initialization range=\"%d-%d\"/>\n", 0, index_start_range-1);
+			fprintf(dash_cfg->mpd, "    <SegmentBase");
+		}
 		fprintf(dash_cfg->mpd, "/>\n");
 	} else {
 		if (!seg_rad_name) {
