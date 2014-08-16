@@ -45,7 +45,6 @@ struct __tag_config
 	char *fileName;
 	GF_List *sections;
 	Bool hasChanged, skip_changes;
-
 };
 
 
