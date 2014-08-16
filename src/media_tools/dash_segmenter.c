@@ -1651,13 +1651,17 @@ restart_fragmentation_pass:
 		u32 k;
 		u32 most_frequent_duration = 0;
 
-		for (k = 0; k < gf_list_count(segment_duration); k++) {
-			GF_DASHSegmentDuration *entry;
-			entry = (GF_DASHSegmentDuration *)gf_list_get(segment_duration, k);
-			if (entry->nb_segment > most_frequent_duration) {
-				max_segment_duration = (Double) entry->segment_duration;
-				max_segment_duration /= dash_cfg->dash_scale;
-				most_frequent_duration = entry->nb_segment;
+		if (dash_cfg->dash_ctx) {
+			max_segment_duration = max_duration_sec;
+		} else {
+			for (k = 0; k < gf_list_count(segment_duration); k++) {
+				GF_DASHSegmentDuration *entry;
+				entry = (GF_DASHSegmentDuration *)gf_list_get(segment_duration, k);
+				if (entry->nb_segment > most_frequent_duration) {
+					max_segment_duration = (Double) entry->segment_duration;
+					max_segment_duration /= dash_cfg->dash_scale;
+					most_frequent_duration = entry->nb_segment;
+				}
 			}
 		}
 	}
