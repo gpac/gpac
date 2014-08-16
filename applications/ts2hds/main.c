@@ -51,7 +51,7 @@ static GFINLINE void usage(const char * progname)
 #ifdef GPAC_MEMORY_TRACKING
 	        "\t-mem-track:  enables memory tracker\n"
 #endif
-	       );
+	       , progname);
 }
 
 
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 	/*   declarations   */
 	/********************/
 	char *input, *output, tmpstr[GF_MAX_PATH];
-	GF_ISOFile *isom_file_in, *isom_file_out;
+	GF_ISOFile *isom_file_in;
 	GF_MediaImporter import;
 	AdobeHDSCtx ctx;
 	GF_Err e;
@@ -136,7 +136,6 @@ int main(int argc, char **argv)
 	input = NULL;
 	output = NULL;
 	isom_file_in = NULL;
-	isom_file_out = NULL;
 	memset(&import, 0, sizeof(GF_MediaImporter));
 	e = GF_OK;
 	memset(&ctx, 0, sizeof(ctx));

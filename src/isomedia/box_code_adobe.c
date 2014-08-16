@@ -175,6 +175,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Box *abst_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_AdobeBootstrapInfoBox, GF_ISOM_BOX_TYPE_ABST);
@@ -187,6 +188,7 @@ GF_Box *abst_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+GF_EXPORT
 GF_Err abst_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -246,7 +248,7 @@ GF_Err abst_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-
+GF_EXPORT
 GF_Err abst_Size(GF_Box *s)
 {
 	GF_Err e;
@@ -367,6 +369,7 @@ GF_Err afra_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Box *afra_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_AdobeFragRandomAccessBox, GF_ISOM_BOX_TYPE_AFRA);
@@ -499,6 +502,7 @@ GF_Err asrt_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Box *asrt_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_AdobeSegmentRunTableBox, GF_ISOM_BOX_TYPE_ASRT);
@@ -615,6 +619,7 @@ GF_Err afrt_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Box *afrt_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_AdobeFragmentRunTableBox, GF_ISOM_BOX_TYPE_AFRT);
