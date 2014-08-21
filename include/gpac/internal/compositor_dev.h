@@ -494,6 +494,8 @@ struct __tag_compositor
 
 	u32 offscreen_width, offscreen_height;
 
+	Bool shader_only_mode;
+
 #ifdef GPAC_USE_TINYGL
 	void *tgl_ctx;
 #endif

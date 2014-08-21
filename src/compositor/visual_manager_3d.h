@@ -308,7 +308,7 @@ void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box);
 GF_Err visual_3d_init_autostereo(GF_VisualManager *visual);
 void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual);
 
-void visual_3d_init_yuv_shader(GF_VisualManager *visual);
+void visual_3d_init_shaders(GF_VisualManager *visual);
 void visual_3d_reset_graphics(GF_VisualManager *visual);
 
 #endif /*GPAC_DISABLE_3D*/

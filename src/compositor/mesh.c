@@ -604,7 +604,7 @@ void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_s
 	}
 }
 
-#define SPHERE_SUBDIV	12
+#define SPHERE_SUBDIV	24
 void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 {
 	u32 i, j, num_steps, npts;

@@ -632,10 +632,8 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode, Double fps, u32 width, u
 		gf_term_process_flush(term);
 	}
 #ifndef GPAC_USE_TINYGL
-	fprintf(stderr, "not tinygl\n");
 	e = gf_sc_get_screen_buffer(term->compositor, &fb, 0);
 #else
-	fprintf(stderr, "tinygl\n");
 	e = gf_sc_get_screen_buffer(term->compositor, &fb, 1);
 #endif
 	if (e != GF_OK) {

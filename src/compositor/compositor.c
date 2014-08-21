@@ -1931,7 +1931,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d);
 			if (compositor->autoconfig_opengl) {
 #ifndef GPAC_USE_OGL_ES
-				visual_3d_init_yuv_shader(compositor->visual);
+				visual_3d_init_shaders(compositor->visual);
 #endif
 				compositor->autoconfig_opengl = 0;
 				compositor->visual->type_3d = 0;
@@ -1955,7 +1955,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			if (compositor->hybrid_opengl) {
 				gf_sc_load_opengl_extensions(compositor, GF_TRUE);
 #ifndef GPAC_USE_OGL_ES
-				visual_3d_init_yuv_shader(compositor->visual);
+				visual_3d_init_shaders(compositor->visual);
 #endif
 				if (!compositor->visual->hybgl_drawn.list) {
 					ra_init(&compositor->visual->hybgl_drawn);

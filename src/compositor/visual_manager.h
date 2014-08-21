@@ -203,10 +203,10 @@ struct _visual_manager
 	GF_SHADERID current_texture_glsl_program;
 
 
-	Bool has_mat_2d;
+	Bool has_material_2d;
 	SFColorRGBA mat_2d;
 
-	Bool has_mat;
+	Bool has_material;
 	SFColorRGBA materials[4];
 	Float shininess;
 
@@ -226,6 +226,11 @@ struct _visual_manager
 	u32 fog_type;
 	SFColor fog_color;
 	Fixed fog_density, fog_visibility;
+
+
+	GF_SHADERID glsl_vertex;
+	GF_SHADERID glsl_fragment;
+	GF_SHADERID glsl_program;
 
 #endif
 
