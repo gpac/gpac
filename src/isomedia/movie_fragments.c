@@ -1464,7 +1464,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 
 	if ((root_sidx || sidx) && !daisy_chain_sidx) {
 		if (index_start_range) *index_start_range = sidx_start;
-		if (index_end_range) *index_end_range = sidx_end;
+		if (index_end_range) *index_end_range = sidx_end - 1;
 	}
 
 	if (movie->append_segment) {
