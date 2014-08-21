@@ -136,7 +136,11 @@ GLDECL_STATIC(glUniformMatrix2x4fv);
 GLDECL_STATIC(glUniformMatrix4x2fv);
 GLDECL_STATIC(glUniformMatrix3x4fv);
 GLDECL_STATIC(glUniformMatrix4x3fv);
-
+GLDECL_STATIC(glEnableVertexAttribArray);
+GLDECL_STATIC(glDisableVertexAttribArray);
+GLDECL_STATIC(glVertexAttribPointer);
+GLDECL_STATIC(glVertexAttribIPointer);
+GLDECL_STATIC(glGetAttribLocation);
 
 #endif //LOAD_GL_2_0
 
@@ -269,7 +273,18 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		GET_GLFUN(glUniformMatrix3x4fv);
 		GET_GLFUN(glUniformMatrix4x3fv);
 
+		GET_GLFUN(glEnableVertexAttribArray);
+		GET_GLFUN(glDisableVertexAttribArray);
+		GET_GLFUN(glVertexAttribPointer);
+		GET_GLFUN(glVertexAttribIPointer);
+		GET_GLFUN(glGetAttribLocation);
+		
+
 		compositor->gl_caps.has_shaders = 1;
+		if (glGetAttribLocation != NULL) {
+			compositor->shader_only_mode = 0;
+		}
+
 	} else {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported\n"));
 	}
@@ -291,7 +306,6 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
-
 
 
 static char *default_glsl_vertex = "\
@@ -577,7 +591,7 @@ void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
 #define DEL_PROGRAM(_a) if (_a) { glDeleteProgram(_a); _a = 0; }
 
-void visual_3d_init_yuv_shader(GF_VisualManager *visual)
+static void visual_3d_init_yuv_shaders(GF_VisualManager *visual)
 {
 	u32 i;
 	GLint loc;
@@ -675,6 +689,25 @@ void visual_3d_init_yuv_shader(GF_VisualManager *visual)
 		}
 	}
 }
+
+//todo ...
+static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
+{
+	if (visual->glsl_program) return;
+
+}
+
+void visual_3d_init_shaders(GF_VisualManager *visual)
+{
+    if (!visual->compositor->gl_caps.has_shaders) return;
+
+	visual_3d_init_yuv_shaders(visual);
+	if (visual->compositor->shader_only_mode) {
+		visual_3d_init_generic_shaders(visual);
+	}
+
+}
+
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 
 
@@ -1431,10 +1464,207 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 }
 
 
+static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
+{
+	u32 prim_type;
+	GF_Matrix mx;
+	u32 i, p_idx[6];
+	GF_Plane fplanes[6];
+
+
+	switch (mesh->mesh_type) {
+	case MESH_LINESET: prim_type = GL_LINES; break;
+	case MESH_POINTSET: prim_type = GL_POINTS; break;
+	default: prim_type = GL_TRIANGLES; break;
+	}
+
+	/*if inside or no aabb for the mesh draw vertex array*/
+	if (tr_state->visual->compositor->disable_gl_cull || (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos)	{
+#ifdef GPAC_USE_OGL_ES
+		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_SHORT, mesh->indices);
+#else
+		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_INT, mesh->indices);
+#endif
+
+		return;
+	} 
+
+	/*otherwise cull aabb against frustum - after some testing it appears (as usual) that there must 
+	be a compromise: we're slowing down the compositor here, however the gain is really appreciable for 
+	large meshes, especially terrains/elevation grids*/
+
+	/*first get transformed frustum in local space*/
+	gf_mx_copy(mx, tr_state->model_matrix);
+	gf_mx_inverse(&mx);
+	for (i=0; i<6; i++) {
+		fplanes[i] = tr_state->camera->planes[i];
+		gf_mx_apply_plane(&mx, &fplanes[i]);
+		p_idx[i] = gf_plane_get_p_vertex_idx(&fplanes[i]);
+	}
+	/*then recursively cull & draw AABB tree*/
+	visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->pos);
+	visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg);
+}
+
+static GLint my_glGetUniformLocation(GF_SHADERID glsl_program, const char *uniform_name)
+{
+	GLint loc = glGetUniformLocation(glsl_program, uniform_name);
+	if (loc<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Cannot find uniform \"%s\" in GLSL program\n", uniform_name));
+	}
+	return loc;
+}
+
+static GLint my_glGetAttribLocation(GF_SHADERID glsl_program, const char *attrib_name)
+{
+	GLint loc = glGetAttribLocation(glsl_program, attrib_name);
+	if (loc<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Cannot find attrib \"%s\" in GLSL program\n", attrib_name));
+	}
+	return loc;
+}
+
+static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh *mesh, void *vertex_buffer_address)
+{
+	GF_VisualManager *visual = tr_state->visual;
+	GLint loc;
+	GF_Matrix mx;
+	GL_CHECK_ERR
+	glUseProgram(visual->glsl_program);
+	GL_CHECK_ERR
+
+	loc = my_glGetUniformLocation(visual->glsl_program, "gfModelViewMatrix");
+	if (loc<0) return;	
+	gf_mx_copy(mx, tr_state->camera->modelview);
+	gf_mx_add_matrix(&mx, &tr_state->model_matrix);
+	glUniformMatrix4fv(loc, 1, GL_FALSE, mx.m);
+	GL_CHECK_ERR
+
+	loc = my_glGetUniformLocation(visual->glsl_program, "gfProjectionMatrix");
+	if (loc<0) return;
+	glUniformMatrix4fv(loc, 1, GL_FALSE, tr_state->camera->projection.m);
+	GL_CHECK_ERR
+
+	loc = my_glGetAttribLocation(visual->glsl_program, "gfVertex");
+	if (loc<0) return;
+	glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), vertex_buffer_address);
+	glEnableVertexAttribArray(loc);
+	GL_CHECK_ERR
+
+	if (visual->has_material_2d) {
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
+		if (loc>=0)
+			glUniform4fv(loc, 1, (GLfloat *) & visual->mat_2d);
+
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumLights");
+		if (loc>=0)
+			glUniform1i(loc, 0);
+	}
+
+	if (visual->has_material) {
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfAmbientColor");
+		if (loc>=0)
+			glUniform4fv(loc, 1, (GLfloat *) & visual->materials[0] );
+
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfDiffuseColor");
+		if (loc>=0)
+			glUniform4fv(loc, 1, (GLfloat *) & visual->materials[1] );
+
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfSpecularColor");
+		if (loc>=0)
+			glUniform4fv(loc, 1, (GLfloat *) & visual->materials[2] );
+
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
+		if (loc>=0)
+			glUniform4fv(loc, 1, (GLfloat *) & visual->materials[3] );
+
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfShininess");
+		if (loc>=0)
+			glUniform1f(loc, visual->shininess );
+
+	}
+	
+	if (!visual->has_material_2d && visual->num_lights && !mesh->mesh_type) {
+		GF_Matrix normal_mx;
+		GF_Vec pt;
+		GF_LightInfo *li;
+		Float ambientIntensity, intensity;
+		Float vals[4];
+
+		gf_mx_copy(normal_mx, mx);
+		normal_mx.m[12] = normal_mx.m[13] = normal_mx.m[14] = 0;
+		gf_mx_inverse(&normal_mx);
+		normal_mx.m[12] = normal_mx.m[13] = normal_mx.m[14] = 0;
+
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfNormalMatrix");
+		//transpose the matrix when uploading
+		if (loc>=0) 
+			glUniformMatrix4fv(loc, 1, GL_TRUE, normal_mx.m);
+		GL_CHECK_ERR
+
+
+		loc = my_glGetAttribLocation(visual->glsl_program, "gfNormal");
+		if (loc>=0) {
+#ifdef MESH_USE_FIXED_NORMAL
+			glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex),  ((char *)vertex_buffer_address + MESH_NORMAL_OFFSET) );
+#else
+			glVertexAttribPointer(loc, 3, GL_BYTE, GL_TRUE, sizeof(GF_Vertex),  ((char *)vertex_buffer_address + MESH_NORMAL_OFFSET) );
+#endif
+			glEnableVertexAttribArray(loc);
+		}
+		GL_CHECK_ERR
+
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumLights");
+		if (loc>=0) 
+			glUniform1i(loc, 1);
+
+		li = &visual->lights[0];
+
+		//only one light for now
+		pt = li->direction;
+		gf_mx_copy(mx, tr_state->camera->modelview);
+		gf_mx_add_matrix(&mx, &li->light_mx);
+		gf_mx_apply_vec(&mx, &pt);
+		gf_vec_norm(&pt);
+		vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;
+//		vals[0] = FIX2FLT(pt.x); vals[1] = FIX2FLT(pt.y); vals[2] = FIX2FLT(pt.z); vals[3] = 0;
+
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfLightPosition");
+		if (loc>=0) 
+			glUniform4fv(loc, 1, vals);
+
+		ambientIntensity = FIX2FLT(li->ambientIntensity);
+		intensity = FIX2FLT(li->intensity);
+
+		vals[0] = FIX2FLT(li->color.red)*intensity; vals[1] = FIX2FLT(li->color.green)*intensity; vals[2] = FIX2FLT(li->color.blue)*intensity; vals[3] = 1;
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfLightDiffuse");
+		if (loc>=0) glUniform4fv(loc, 1, vals);
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfLightSpecular");
+		if (loc>=0) glUniform4fv(loc, 1, vals);
+
+		vals[0] = FIX2FLT(li->color.red)*ambientIntensity; vals[1] = FIX2FLT(li->color.green)*ambientIntensity; vals[2] = FIX2FLT(li->color.blue)*ambientIntensity; vals[3] = 1;
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfLightAmbiant");
+		if (loc>=0) glUniform4fv(loc, 1, vals);
+
+		if (visual->compositor->backcull 
+				&& (!tr_state->mesh_is_transparent || (visual->compositor->backcull ==GF_BACK_CULL_ALPHA) )
+				&& (mesh->flags & MESH_IS_SOLID)) {
+			glEnable(GL_CULL_FACE);
+			glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
+		} else {
+			glDisable(GL_CULL_FACE);
+		}
+	}
+
+	visual_3d_do_draw_mesh(tr_state, mesh);
+
+	GL_CHECK_ERR
+	glUseProgram(0);
+}
+
 static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
 	Bool has_col, has_tx, has_norm;
-	u32 prim_type;
 	GF_VisualManager *visual = tr_state->visual;
 	GF_Compositor *compositor = tr_state->visual->compositor;
 	void *base_address = NULL;
@@ -1447,24 +1677,20 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	has_col = has_tx = has_norm = 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
 
-	//set lights before pushing modelview matrix
-	visual_3d_set_lights(visual);
-
-	visual_3d_update_matrices(tr_state);
-
-	if (visual->has_fog) visual_3d_enable_fog(visual);
-
-
 	if ((compositor->reset_graphics==2) && mesh->vbo) {
 		/*we lost OpenGL context at previous frame, recreate VBO*/
 		mesh->vbo = 0;
 	}
 	/*rebuild VBO for large ojects only (we basically filter quads out)*/
 	if ((mesh->v_count>4) && !mesh->vbo && compositor->gl_caps.vbo) {
+	GL_CHECK_ERR
 		glGenBuffers(1, &mesh->vbo);
+	GL_CHECK_ERR
 		if (mesh->vbo) {
 			glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+	GL_CHECK_ERR
 			glBufferData(GL_ARRAY_BUFFER, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+	GL_CHECK_ERR
 			mesh->vbo_dirty = 0;
 		}
 	}
@@ -1472,6 +1698,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (mesh->vbo) {
 		base_address = NULL;
 		glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+	GL_CHECK_ERR
 	} else {
 		base_address = & mesh->vertices[0].pos;
 	}
@@ -1480,6 +1707,19 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glBufferSubData(GL_ARRAY_BUFFER, 0, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices);
 		mesh->vbo_dirty = 0;
 	}
+
+	if (visual->compositor->shader_only_mode) {
+		visual_3d_draw_mesh_shader_only(tr_state, mesh, base_address);
+		return;
+	}
+
+
+	//set lights before pushing modelview matrix
+	visual_3d_set_lights(visual);
+
+	visual_3d_update_matrices(tr_state);
+
+	if (visual->has_fog) visual_3d_enable_fog(visual);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 #if defined(GPAC_USE_OGL_ES)
@@ -1492,12 +1732,9 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #else
 	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex), base_address);
 #endif
+	
 
 	/*enable states*/
-#if 0
-	if (visual->state_light_on) glEnable(GL_LIGHTING);
-	else glDisable(GL_LIGHTING);
-#endif
 
 
 	if (visual->state_color_on) glEnable(GL_COLOR_MATERIAL);
@@ -1513,7 +1750,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	*	Enable colors:
 	 if mat2d is set, use mat2d and no lighting
 	*/
-	if (visual->has_mat_2d) {
+	if (visual->has_material_2d) {
 		glDisable(GL_LIGHTING);
 
 #if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
@@ -1546,7 +1783,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 
 	//setup material color
-	if (visual->has_mat) {
+	if (visual->has_material) {
 		u32 i;
 		GL_CHECK_ERR
 		for (i=0; i<4; i++) {
@@ -1759,48 +1996,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		}
 	}
 
-	switch (mesh->mesh_type) {
-	case MESH_LINESET:
-		prim_type = GL_LINES;
-		break;
-	case MESH_POINTSET:
-		prim_type = GL_POINTS;
-		break;
-	default:
-		prim_type = GL_TRIANGLES;
-		break;
-	}
-
-#if 1
-	/*if inside or no aabb for the mesh draw vertex array*/
-	if (compositor->disable_gl_cull || (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos)	{
-#ifdef GPAC_USE_OGL_ES
-		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_SHORT, mesh->indices);
-#else
-		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_INT, mesh->indices);
-#endif
-	} else {
-		/*otherwise cull aabb against frustum - after some testing it appears (as usual) that there must
-		be a compromise: we're slowing down the compositor here, however the gain is really appreciable for
-		large meshes, especially terrains/elevation grids*/
-
-		/*first get transformed frustum in local space*/
-		GF_Matrix mx;
-		u32 i, p_idx[6];
-		GF_Plane fplanes[6];
-		gf_mx_copy(mx, tr_state->model_matrix);
-		gf_mx_inverse(&mx);
-		for (i=0; i<6; i++) {
-			fplanes[i] = tr_state->camera->planes[i];
-			gf_mx_apply_plane(&mx, &fplanes[i]);
-			p_idx[i] = gf_plane_get_p_vertex_idx(&fplanes[i]);
-		}
-		/*then recursively cull & draw AABB tree*/
-		visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->pos);
-		visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg);
-	}
-
-#endif
+	visual_3d_do_draw_mesh(tr_state, mesh);
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 	if (has_col) glDisableClientState(GL_COLOR_ARRAY);
@@ -1830,8 +2026,8 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	//reset all our states
 	if (visual->num_clips)
 		visual_3d_reset_clippers(visual);
-	visual->has_mat_2d = 0;
-	visual->has_mat = 0;
+	visual->has_material_2d = 0;
+	visual->has_material = 0;
 	visual->state_color_on = 0;
 	if (tr_state->mesh_is_transparent) glDisable(GL_BLEND);
 	tr_state->mesh_is_transparent = 0;
@@ -2392,7 +2588,6 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 #endif
 
 #endif /*GPAC_USE_OGL_ES*/
-
 	} else { /*if (compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT))*/
 		fb->pitch_x = 4;
 		fb->pitch_y = 4*compositor->vp_width;

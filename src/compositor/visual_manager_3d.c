@@ -869,7 +869,7 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 		}
 
 #ifndef GPAC_USE_OGL_ES
-		visual_3d_init_yuv_shader(visual);
+		visual_3d_init_shaders(visual);
 #endif
 
 		for (visual->current_view=0; visual->current_view < visual->nb_views; visual->current_view++) {
@@ -1870,8 +1870,8 @@ void visual_3d_enable_headlight(GF_VisualManager *visual, Bool bOn, GF_Camera *c
 
 void visual_3d_set_material_2d(GF_VisualManager *visual, SFColor col, Fixed alpha)
 {
-	visual->has_mat_2d = alpha ? 1 : 0;
-	if (visual->has_mat_2d) {
+	visual->has_material_2d = alpha ? 1 : 0;
+	if (visual->has_material_2d) {
 		visual->mat_2d.red = col.red;
 		visual->mat_2d.green = col.green;
 		visual->mat_2d.blue = col.blue;
@@ -1883,8 +1883,8 @@ void visual_3d_set_material_2d(GF_VisualManager *visual, SFColor col, Fixed alph
 void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
 {
 	u32 a = GF_COL_A(col);
-	visual->has_mat_2d = a ? 1 : 0;
-	if (visual->has_mat_2d) {
+	visual->has_material_2d = a ? 1 : 0;
+	if (visual->has_material_2d) {
 		visual->mat_2d.red = INT2FIX( GF_COL_R(col) ) / 255;
 		visual->mat_2d.green = INT2FIX( GF_COL_G(col) ) / 255;
 		visual->mat_2d.blue = INT2FIX( GF_COL_B(col) ) / 255;
@@ -1948,7 +1948,7 @@ void visual_3d_set_material(GF_VisualManager *visual, u32 material_type, Fixed *
 	visual->materials[material_type].blue = rgba[2];
 	visual->materials[material_type].alpha = rgba[3];
 
-	visual->has_mat = 1;
+	visual->has_material = 1;
 }
 
 void visual_3d_set_shininess(GF_VisualManager *visual, Fixed shininess)
