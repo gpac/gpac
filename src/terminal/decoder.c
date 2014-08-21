@@ -47,7 +47,7 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 		case GPAC_OTI_VIDEO_SHVC:
 		case GPAC_OTI_VIDEO_SVC:
 			odm->scalable_addon = 1;
-			odm->parentscene->root_od->addon->scalable_type = 1;
+			odm->parentscene->root_od->addon->addon_type = GF_ADDON_TYPE_SCALABLE;
 			*e = GF_OK;
 			//fixme - we need a way to signal dependencies accross services!!
 			base_layer->dependsOnESID = 0xFFFF;

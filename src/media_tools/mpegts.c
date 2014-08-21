@@ -3526,6 +3526,11 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 #endif
 }
 
+GF_EXPORT
+void gf_m2ts_pause_demux(GF_M2TS_Demuxer *ts, Bool do_pause)
+{
+	if (ts) ts->paused = do_pause;
+}
 
 GF_EXPORT
 GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_byterange, u64 end_byterange, u32 refresh_type, Bool signal_end_of_stream)
@@ -3652,149 +3657,157 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 
 #ifdef GPAC_HAS_LINUX_DVB
 	if (ts->tuner) {
+		s32 ts_size;
 		// in case of DVB
 		while (ts->run_state) {
-			s32 ts_size = read(ts->tuner->ts_fd, dvbts, DVB_BUFFER_SIZE);
+			if (ts->paused) {
+				gf_sleep(1);
+				continue;
+			}
+
+			ts_size = read(ts->tuner->ts_fd, dvbts, DVB_BUFFER_SIZE);
 			if (ts_size>0) gf_m2ts_process_data(ts, dvbts, (u32) ts_size);
 		}
 	} else
 #endif
-		if (ts->sock) {
+	if (ts->sock) {
 #ifndef GPAC_DISABLE_STREAMING
-			u16 seq_num;
-			GF_RTPReorder *ch = NULL;
+		u16 seq_num;
+		GF_RTPReorder *ch = NULL;
 #endif
-			u32 nb_empty=0;
-			Bool first_run, is_rtp;
-			FILE *record_to = NULL;
-			if (ts->record_to)
-				record_to = gf_f64_open(ts->record_to, "wb");
+		u32 nb_empty=0;
+		Bool first_run, is_rtp;
+		FILE *record_to = NULL;
+		if (ts->record_to)
+			record_to = gf_f64_open(ts->record_to, "wb");
 
-			first_run = 1;
-			is_rtp = 0;
-			while (ts->run_state) {
-				size = 0;
-				/*m2ts chunks by chunks*/
-				e = gf_sk_receive(ts->sock, data, UDP_BUFFER_SIZE, 0, &size);
-				if (!size || e) {
-					nb_empty++;
-					if (nb_empty==1000) {
-						gf_sleep(1);
-						nb_empty=0;
-					}
-					continue;
+		first_run = 1;
+		is_rtp = 0;
+		while (ts->run_state) {
+			if (ts->paused) {
+				gf_sleep(1);
+				continue;
+			}
+			size = 0;
+			/*m2ts chunks by chunks*/
+			e = gf_sk_receive(ts->sock, data, UDP_BUFFER_SIZE, 0, &size);
+			if (!size || e) {
+				nb_empty++;
+				if (nb_empty==1000) {
+					gf_sleep(1);
+					nb_empty=0;
 				}
-				if (first_run) {
-					first_run = 0;
-					/*FIXME: we assume only simple RTP packaging (no CSRC nor extensions)*/
-					if ((data[0] != 0x47) && ((data[1] & 0x7F) == 33) ) {
-						is_rtp = 1;
+				continue;
+			}
+			if (first_run) {
+				first_run = 0;
+				/*FIXME: we assume only simple RTP packaging (no CSRC nor extensions)*/
+				if ((data[0] != 0x47) && ((data[1] & 0x7F) == 33) ) {
+					is_rtp = 1;
 #ifndef GPAC_DISABLE_STREAMING
-						ch = gf_rtp_reorderer_new(100, 500);
+					ch = gf_rtp_reorderer_new(100, 500);
 #endif
-					}
 				}
-				/*process chunk*/
-				if (is_rtp) {
+			}
+			/*process chunk*/
+			if (is_rtp) {
 #ifndef GPAC_DISABLE_STREAMING
-					char *pck;
-					seq_num = ((data[2] << 8) & 0xFF00) | (data[3] & 0xFF);
-					gf_rtp_reorderer_add(ch, (void *) data, size, seq_num);
+				char *pck;
+				seq_num = ((data[2] << 8) & 0xFF00) | (data[3] & 0xFF);
+				gf_rtp_reorderer_add(ch, (void *) data, size, seq_num);
 
-					pck = (char *) gf_rtp_reorderer_get(ch, &size);
-					if (pck) {
-						gf_m2ts_process_data(ts, pck+12, size-12);
-						if (record_to)
-							fwrite(data+12, size-12, 1, record_to);
-						gf_free(pck);
-					}
-#else
-					gf_m2ts_process_data(ts, data+12, size-12);
+				pck = (char *) gf_rtp_reorderer_get(ch, &size);
+				if (pck) {
+					gf_m2ts_process_data(ts, pck+12, size-12);
 					if (record_to)
 						fwrite(data+12, size-12, 1, record_to);
+					gf_free(pck);
+				}
+#else
+				gf_m2ts_process_data(ts, data+12, size-12);
+				if (record_to)
+					fwrite(data+12, size-12, 1, record_to);
 #endif
 
-				} else {
-					gf_m2ts_process_data(ts, data, size);
-					if (record_to)
-						fwrite(data, size, 1, record_to);
-				}
-			}
-			if (record_to)
-				fclose(record_to);
-
-#ifndef GPAC_DISABLE_STREAMING
-			if (ch)
-				gf_rtp_reorderer_del(ch);
-#endif
-
-		} else if (ts->dnload) {
-			while (ts->run_state) {
-				gf_dm_sess_process(ts->dnload);
-				gf_sleep(1);
-			}
-		} else {
-			u32 pos = 0;
-			GF_BitStream *ts_bs = NULL;
-
-			if (ts->file)
-				ts_bs = gf_bs_from_file(ts->file, GF_BITSTREAM_READ);
-			else
-				ts_bs = gf_bs_new(ts->ts_data_chunk, ts->ts_data_chunk_size, GF_BITSTREAM_READ);
-
-			while (ts->run_state && gf_bs_available(ts_bs) && !ts->force_file_refresh) {
-
-				if (ts->start_range && ts->duration) {
-					Double perc = ts->start_range / (1000 * ts->duration);
-					pos = (u32) (s64) (perc * ts->file_size);
-					/*align to TS packet size*/
-					pos/=188;
-					pos*=188;
-
-					if (pos>=ts->file_size) {
-						pos = 0;
-					}
-					ts->start_range = 0;
-					gf_bs_seek(ts_bs, pos);
-				}
-
-				/*m2ts chunks by chunks*/
-				size = gf_bs_read_data(ts_bs, data, 188);
-				if (!size && (ts->loop_demux == 1)) {
-					gf_bs_seek(ts_bs, pos);
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] Loop \n"));
-					size = gf_bs_read_data(ts_bs, data, 188);
-				}
-				if (!size) break;
-				if (size != 188) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] %u bytes read from file instead of 188.\n", size));
-				}
-				/*process chunk*/
+			} else {
 				gf_m2ts_process_data(ts, data, size);
-
-				ts->nb_pck++;
-
-				//gf_sleep(0);
-				/*if asked to regulate, wait until we get a play request*/
-				while (ts->run_state && !ts->nb_playing && (ts->file_regulate==1)) {
-					gf_sleep(50);
-					continue;
-				}
-
-				if (!gf_bs_available(ts_bs) && ts->loop_demux == 1) {
-					gf_bs_seek(ts_bs, pos);
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] Loop \n"));
-					gf_sleep(3000);
-				}
-			}
-			ts->force_file_refresh = 0;
-
-			if (ts_bs) {
-				pos = (u32) gf_bs_get_position(ts_bs);
-				gf_bs_del(ts_bs);
-				ts_bs = NULL;
+				if (record_to)
+					fwrite(data, size, 1, record_to);
 			}
 		}
+		if (record_to)
+			fclose(record_to);
+
+#ifndef GPAC_DISABLE_STREAMING
+		if (ch)
+			gf_rtp_reorderer_del(ch);
+#endif
+
+	} else if (ts->dnload) {
+		while (ts->run_state) {
+			gf_dm_sess_process(ts->dnload);
+			gf_sleep(1);
+		}
+	} else {
+		u32 pos = 0;
+		GF_BitStream *ts_bs = NULL;
+
+		if (ts->file)
+			ts_bs = gf_bs_from_file(ts->file, GF_BITSTREAM_READ);
+		else
+			ts_bs = gf_bs_new(ts->ts_data_chunk, ts->ts_data_chunk_size, GF_BITSTREAM_READ);
+
+		while (ts->run_state && gf_bs_available(ts_bs) && !ts->force_file_refresh) {
+
+			if (ts->paused) {
+				gf_sleep(1);
+				continue;
+			}
+
+			if (ts->start_range && ts->duration) {
+				Double perc = ts->start_range / (1000 * ts->duration);
+				pos = (u32) (s64) (perc * ts->file_size);
+				/*align to TS packet size*/
+				pos/=188;
+				pos*=188;
+
+				if (pos>=ts->file_size) {
+					pos = 0;
+				}
+				ts->start_range = 0;
+				gf_bs_seek(ts_bs, pos);
+			}
+
+			/*m2ts chunks by chunks*/
+			size = gf_bs_read_data(ts_bs, data, 188);
+			if (!size && (ts->loop_demux == 1)) {
+				gf_bs_seek(ts_bs, pos);
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] Loop \n"));
+				size = gf_bs_read_data(ts_bs, data, 188);
+			}
+			if (!size) break;
+			if (size != 188) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] %u bytes read from file instead of 188.\n", size));
+			}
+			/*process chunk*/
+			gf_m2ts_process_data(ts, data, size);
+
+			ts->nb_pck++;
+
+			if (!gf_bs_available(ts_bs) && ts->loop_demux == 1) {
+				gf_bs_seek(ts_bs, pos);
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] Loop \n"));
+				gf_sleep(3000);
+			}
+		}
+		ts->force_file_refresh = 0;
+
+		if (ts_bs) {
+			pos = (u32) gf_bs_get_position(ts_bs);
+			gf_bs_del(ts_bs);
+			ts_bs = NULL;
+		}
+	}
 
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 		if (ts->ess[i]) {
@@ -3809,6 +3822,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 	ts->run_state = 2;
 	return 0;
 }
+
 
 GF_EXPORT
 GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u32 buf_size, GF_Socket **out_socket)
@@ -4123,7 +4137,6 @@ static GF_Err gf_m2ts_demuxer_setup_file(GF_M2TS_Demuxer *ts, char *url)
 
 	/* reinitialization for seek */
 	ts->end_range = ts->start_range = 0;
-	ts->nb_playing = 0;
 	return  gf_m2ts_demuxer_play(ts);
 
 }
@@ -4133,8 +4146,6 @@ GF_Err gf_m2ts_demuxer_setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
 {
 	char szURL[2048];
 	char *frag;
-
-	ts->file_regulate = 0;
 	ts->duration = 0;
 
 	if(loop == 1) {

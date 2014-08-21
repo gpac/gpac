@@ -1145,6 +1145,18 @@ u64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMe
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
 void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
 
+enum
+{
+	//addon to overlay
+	GF_ADDON_TYPE_ADDITIONAL = 0,
+	//main content duplicated for PVR purposes
+	GF_ADDON_TYPE_MAIN,
+	//scalable decoding - reassembly before the decoder(s)
+	GF_ADDON_TYPE_SCALABLE,
+	//multiview reconstruction - reassembly after the decoder(s)
+	GF_ADDON_TYPE_MULTIVIEW,
+};
+
 struct _gf_addon_media
 {
 	char *url;
@@ -1168,10 +1180,7 @@ struct _gf_addon_media
 	u64 past_media_pts, past_media_pts_scaled;
 	Bool loop_detected;
 
-	//0: not scalable
-	//1: layered coding scalable enhancement (reassembly before the decoder)
-	//2: view enhancement (reassembly after the decoder)
-	u32 scalable_type;
+	u32 addon_type;
 };
 
 GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable);

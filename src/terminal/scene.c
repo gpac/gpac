@@ -1276,9 +1276,6 @@ void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons)
 		memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
 		addon_info.timeline_id = -100;
 		gf_scene_register_associated_media(scene, &addon_info);
-
-//		gf_sg_vrml_field_copy(&dscene->url, &scene->addon_url, GF_SG_VRML_MFURL);
-
 	} else {
 		gf_sg_vrml_mf_reset(&dscene->url, GF_SG_VRML_MFURL);
 	}
@@ -1353,6 +1350,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 
 	if (!odm->codec && odm->subscene) {
 		M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "ADDON_SCENE");
+
 		gf_sg_vrml_field_copy(&dscene->url, &odm->mo->URLs, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
 		//do not update video pos for addons, this is done only when setting up the main video object

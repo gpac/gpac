@@ -866,10 +866,6 @@ struct tag_m2ts_demux
 	u64 file_size;
 	u64 pos_in_stream;
 	Double duration;
-	u32 nb_playing;
-	Bool file_regulate;
-	u64 pcr_last;
-	u32 stb_at_last_pcr;
 	u32 nb_pck;
 	Bool loop_demux;
 	const char *ts_data_chunk;
@@ -939,6 +935,8 @@ struct tag_m2ts_demux
 	u64 first_pcr_found;
 	u16 pcr_pid;
 	u64 nb_pck_at_pcr;
+
+	Bool paused;
 };
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new();
@@ -952,6 +950,7 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size);
 u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url);
 void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts);
 
+void gf_m2ts_pause_demux(GF_M2TS_Demuxer *ts, Bool do_pause);
 
 GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *ts, u32 program_id);
 

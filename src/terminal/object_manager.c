@@ -847,19 +847,30 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	        && (odm->flags & GF_ODM_REMOTE_OD)
 	   ) {
 		GF_Event evt;
-		if (odm->OD_PL) {
-			gf_scene_select_object(odm->parentscene, odm);
-			odm->OD_PL = 0;
-			gf_term_lock_net(odm->term, GF_FALSE);
-			return;
-		}
 
 		if (odm->addon) {
 			gf_term_lock_net(odm->term, GF_FALSE);
 
-			if (! odm->addon->scalable_type) {
+			if (odm->addon->addon_type >= GF_ADDON_TYPE_MAIN) return;
+
+			//check role - for now look into URL, we need to inspect DASH roles
+			if (odm->mo->URLs.count && odm->mo->URLs.vals[0].url) {	
+				char *sep = strchr(odm->mo->URLs.vals[0].url, '&');
+				if (sep && strstr(sep, "role=main")) {
+					odm->addon->addon_type = GF_ADDON_TYPE_MAIN;
+				}
+			}
+
+			if (odm->addon->addon_type == GF_ADDON_TYPE_ADDITIONAL) {
 				gf_scene_select_object(odm->parentscene, odm);
 			}
+			return;
+		}
+
+		if (odm->OD_PL) {
+			gf_scene_select_object(odm->parentscene, odm);
+			odm->OD_PL = 0;
+			gf_term_lock_net(odm->term, GF_FALSE);
 			return;
 		}
 
