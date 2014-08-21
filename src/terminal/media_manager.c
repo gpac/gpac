@@ -449,7 +449,7 @@ void gf_term_start_codec(GF_Codec *codec, Bool is_resume)
 	if (ce->mx) gf_mx_p(ce->mx);
 
 	/*clean decoder memory and wait for RAP*/
-	if (codec->CB) gf_cm_reset(codec->CB);
+	if (!is_resume && codec->CB) gf_cm_reset(codec->CB);
 
 	if (!is_resume) {
 		cap.CapCode = GF_CODEC_WAIT_RAP;

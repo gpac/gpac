@@ -414,8 +414,9 @@ static Bool gf_term_get_user_pass(void *usr_cbk, const char *site_url, char *usr
 }
 
 
-void gf_term_pause_all_clocks(GF_Terminal *term, Bool pause)
+static void gf_term_pause_all_clocks(GF_Terminal *term, Bool pause)
 {
+#if 0
 	u32 i, j;
 	GF_ClientService *ns;
 	/*pause all clocks on all services*/
@@ -428,6 +429,14 @@ void gf_term_pause_all_clocks(GF_Terminal *term, Bool pause)
 			else gf_clock_resume(ck);
 		}
 	}
+#else
+	if (pause) {
+		mediacontrol_pause(term->root_scene->root_od);
+	} else {
+		mediacontrol_resume(term->root_scene->root_od);
+	}
+#endif
+
 }
 
 static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_audio, Bool pause_clocks)

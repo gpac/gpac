@@ -349,7 +349,7 @@ typedef struct __netinfocom
 	const char *provider;
 } GF_NetComInfo;
 
-/*GF_NET_CHAN_GET_PIXEL_AR*/
+/*GF_NET_SERVICE_HAS_AUDIO*/
 typedef struct
 {
 	u32 command_type;

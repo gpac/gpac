@@ -81,6 +81,12 @@ typedef struct
 
 	Bool flush_sdt;
 
+	u64 pcr_last;
+	u32 stb_at_last_pcr;
+
+	u32 nb_paused;
+	Bool file_regulate;
+	u32 nb_playing;
 } M2TSIn;
 
 
@@ -224,9 +230,10 @@ static GF_ESD *MP2TS_GetESD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 ds
 				NB: we removed "no file regulation" since we may get broken files where PMT declares an AAC stream but no AAC PID is in the MUX
 				(filtered out). In this case, "no regulation" will make the entire TS to be read as fast as possible
 			*/
-			if (m2ts->ts->file)
-				m2ts->ts->file_regulate = 2;
-
+			if (m2ts->ts->file) {
+				m2ts->file_regulate = 2;
+				gf_m2ts_pause_demux(m2ts->ts, 0);
+			}
 			gf_m2ts_set_pes_framing(stream, GF_M2TS_PES_FRAMING_DEFAULT);
 			gf_odf_desc_del((GF_Descriptor *)esd);
 			return NULL;
@@ -339,8 +346,10 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 #endif
 
 	/*TS is a file, start regulation regardless of how the TS is access (with or without fragment URI)*/
-	if (m2ts->ts->file || m2ts->ts->dnload)
-		m2ts->ts->file_regulate = 1;
+	if (m2ts->ts->file || m2ts->ts->dnload) {
+		m2ts->file_regulate = 1;
+		if (!m2ts->nb_playing) gf_m2ts_pause_demux(m2ts->ts, 1);
+	}
 
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
@@ -454,7 +463,8 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 		GF_M2TS_Program *ts_prog = gf_list_get(m2ts->ts->programs, j);
 		//PMT not yet received, do not allow playback regulation
 		if (!ts_prog->pcr_pid) {
-			m2ts->ts->file_regulate = 0;
+			m2ts->file_regulate = 0;
+			gf_m2ts_pause_demux(m2ts->ts, 0);
 			gf_mx_v(m2ts->mx);
 			return;
 		}
@@ -622,8 +632,11 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		if (!pck->stream->first_dts) {
 			gf_m2ts_set_pes_framing(pck->stream, GF_M2TS_PES_FRAMING_SKIP_NO_RESET);
 			MP2TS_DeclareStream(m2ts, pck->stream, pck->data, pck->data_len);
-			if (ts->file || ts->dnload)
-				ts->file_regulate = 1;
+			if (ts->file || ts->dnload) {
+				m2ts->file_regulate = 1;
+				if (!m2ts->nb_playing) gf_m2ts_pause_demux(m2ts->ts, 1);
+
+			}
 			pck->stream->first_dts=1;
 			/*force scene regeneration*/
 			gf_service_declare_media(m2ts->service, NULL, 0);
@@ -649,13 +662,13 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				ts->stb_at_last_pcr = gf_sys_clock();
 			}
 #endif
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] PCR discontinuity - switching from old STB "LLD" to new one "LLD"\n", ts->pcr_last, ((GF_M2TS_PES_PCK *) param)->PTS));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] PCR discontinuity - switching from old STB "LLD" to new one "LLD"\n", m2ts->pcr_last, ((GF_M2TS_PES_PCK *) param)->PTS));
 			/*FIXME - we need to find a way to treat PCR discontinuities correctly while ignoring broken PCR discontinuities
 			seen in many HLS solutions*/
 			return;
 		}
 
-		if (ts->file_regulate) {
+		if (m2ts->file_regulate) {
 			u64 pcr = ((GF_M2TS_PES_PCK *) param)->PTS;
 			u32 stb = gf_sys_clock();
 
@@ -668,25 +681,25 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			}
 
 
-			if (ts->pcr_last) {
+			if (m2ts->pcr_last) {
 				s32 diff;
-				if (pcr < ts->pcr_last) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] PCR "LLU" less than previous PCR "LLU"\n", ((GF_M2TS_PES_PCK *) param)->PTS, ts->pcr_last));
-					ts->pcr_last = pcr;
-					ts->stb_at_last_pcr = gf_sys_clock();
+				if (pcr < m2ts->pcr_last) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] PCR "LLU" less than previous PCR "LLU"\n", ((GF_M2TS_PES_PCK *) param)->PTS, m2ts->pcr_last));
+					m2ts->pcr_last = pcr;
+					m2ts->stb_at_last_pcr = gf_sys_clock();
 					diff = 0;
 				} else {
-					u64 pcr_diff = (pcr - ts->pcr_last);
+					u64 pcr_diff = (pcr - m2ts->pcr_last);
 					pcr_diff /= 27000;
 					if (pcr_diff>1000) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] PCR diff too big: "LLU" ms - PCR "LLU" - previous PCR "LLU" - error in TS ?\n", pcr_diff, ((GF_M2TS_PES_PCK *) param)->PTS, ts->pcr_last));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] PCR diff too big: "LLU" ms - PCR "LLU" - previous PCR "LLU" - error in TS ?\n", pcr_diff, ((GF_M2TS_PES_PCK *) param)->PTS, m2ts->pcr_last));
 						diff = 100;
 					} else {
-						diff = (u32) pcr_diff - (stb - ts->stb_at_last_pcr);
+						diff = (u32) pcr_diff - (stb - m2ts->stb_at_last_pcr);
 					}
 				}
 				if (diff<-400) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] Demux not going fast enough according to PCR (drift %d, pcr: "LLU", last pcr: "LLU")\n", diff, pcr, ts->pcr_last));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] Demux not going fast enough according to PCR (drift %d, pcr: "LLU", last pcr: "LLU")\n", diff, pcr, m2ts->pcr_last));
 				} else if (diff>0) {
 					u32 sleep_for=1;
 #ifndef GPAC_DISABLE_LOG
@@ -719,14 +732,14 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux resume after %d ms - current buffer occupancy %d ms\n", sleep_for*nb_sleep, com.buffer.occupancy));
 					}
 #endif
-					ts->pcr_last = pcr;
-					ts->stb_at_last_pcr = gf_sys_clock();
+					m2ts->pcr_last = pcr;
+					m2ts->stb_at_last_pcr = gf_sys_clock();
 				} else {
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux drift according to PCR (drift %d, pcr: "LLD", last pcr: "LLD")\n", diff, pcr, ts->pcr_last));
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux drift according to PCR (drift %d, pcr: "LLD", last pcr: "LLD")\n", diff, pcr, m2ts->pcr_last));
 				}
 			} else {
-				ts->pcr_last = pcr;
-				ts->stb_at_last_pcr = gf_sys_clock();
+				m2ts->pcr_last = pcr;
+				m2ts->stb_at_last_pcr = gf_sys_clock();
 			}
 		}
 		break;
@@ -844,8 +857,8 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 		}
 
 		/*if asked to regulate, wait until we get a play request*/
-		if (m2ts->ts->run_state && !m2ts->ts->nb_playing && (m2ts->ts->file_regulate==1)) {
-			while (m2ts->ts->run_state && !m2ts->ts->nb_playing && (m2ts->ts->file_regulate==1) ) {
+		if (m2ts->ts->paused) {
+			while (m2ts->ts->run_state && m2ts->ts->paused ) {
 				gf_sleep(50);
 				continue;
 			}
@@ -1176,7 +1189,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	/* restart the thread if the same service is reused and if the previous thread terminated */
 	if (!plug->query_proxy) {
 		if (m2ts->ts->run_state == 2) {
-			m2ts->ts->file_regulate = 0;
+			m2ts->file_regulate = 0;
 			gf_m2ts_demuxer_play(m2ts->ts);
 		}
 	}
@@ -1396,7 +1409,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSIn] Setting default reframing for PID %d\n", pes->pid));
 		/*this is a multplex, only trigger the play command for the first stream activated*/
-		if (!ts->nb_playing) {
+		if (!m2ts->nb_playing) {
 			if (ts->file) {
 				ts->start_range = (u32) (com->play.start_range*1000);
 				ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
@@ -1412,7 +1425,10 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				}
 			}
 		}
-		ts->nb_playing++;
+		if (!m2ts->nb_playing) {
+			gf_m2ts_pause_demux(ts, 0);
+		}
+		m2ts->nb_playing++;
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
 		pes = M2TS_GetChannel(m2ts, com->base.on_channel);
@@ -1423,15 +1439,15 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			return GF_STREAM_NOT_FOUND;
 		}
 		/* In case of EOS, we may receive a stop command after no one is playing */
-		if (ts->nb_playing)
-			ts->nb_playing--;
+		if (m2ts->nb_playing)
+			m2ts->nb_playing--;
 		/*stop demuxer*/
 		if (!plug->query_proxy) {
-			if (!ts->nb_playing && (ts->run_state==1)) {
+			if (!m2ts->nb_playing && (ts->run_state==1)) {
 				ts->run_state=0;
 				while (ts->run_state!=2) gf_sleep(2);
 				if (gf_list_count(m2ts->ts->requested_progs)) {
-					ts->file_regulate = 0;
+					m2ts->file_regulate = 0;
 					gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 					return gf_m2ts_demuxer_play(ts);
 				}
@@ -1450,6 +1466,23 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			pes->flags |= GF_M2TS_ES_SEND_REPEATED_SECTIONS;
 		}
 		return GF_OK;
+	case GF_NET_CHAN_PAUSE:
+		if (!m2ts->nb_paused) {
+			gf_m2ts_pause_demux(m2ts->ts, 1);
+		}
+		m2ts->nb_paused++;
+		return GF_OK;
+	case GF_NET_CHAN_RESUME:
+		if (m2ts->nb_paused) {
+			m2ts->nb_paused--;
+			if (!m2ts->nb_paused) {
+				m2ts->pcr_last = 0;
+				gf_m2ts_pause_demux(m2ts->ts, 0);
+
+			}
+		}
+		return GF_OK;
+
 	default:
 		return GF_OK;
 	}

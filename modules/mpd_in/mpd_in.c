@@ -117,6 +117,21 @@ Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
 }
 
 
+static s32 gf_dash_get_group_idx_from_service(GF_MPD_In *mpdin, GF_InputService *ifce)
+{
+	s32 i;
+
+	for (i=0; (u32) i < gf_dash_get_group_count(mpdin->dash); i++) {
+		GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, i);
+		if (!group) continue;
+		if (group->segment_ifce == ifce) {
+			return i;
+		}
+	}
+	return -1;
+}
+
+
 static void mpdin_connect_ack(GF_ClientService *service, LPNETCHANNEL ns, GF_Err response)
 {
 	GF_MPD_In *mpdin = (GF_MPD_In*) service->ifce->priv;
@@ -127,10 +142,10 @@ static void mpdin_connect_ack(GF_ClientService *service, LPNETCHANNEL ns, GF_Err
 
 void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {
-	u32 i;
-	GF_InputService *ifce;
+	s32 i;
 	GF_MPD_In *mpdin = (GF_MPD_In*) service->ifce->priv;
 	GF_Channel *ch;
+	GF_MPDGroup *group;
 
 	if (!ns || !hdr) {
 		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
@@ -139,53 +154,54 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 
 	ch = (GF_Channel *) ns;
 	assert(ch->odm && ch->odm->OD);
-	ifce = (GF_InputService *) ch->odm->OD->service_ifce;
 
-	for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
-		GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, i);
-		if (!group) continue;
-		if (group->segment_ifce == ifce) {
-			//if sync is based on timestamps do not adjust the timestamps back
-			if (! group->is_timestamp_based) {
-				if (!group->pto_setup) {
-					Double scale;
-					s64 start, dur;
-					gf_dash_group_get_presentation_time_offset(mpdin->dash, i, &group->pto, &group->timescale);
-					group->pto_setup = 1;
-
-					if (group->timescale && (group->timescale != ch->esd->slConfig->timestampResolution)) {
-						group->pto *= ch->esd->slConfig->timestampResolution;
-						group->pto /= group->timescale;
-					}
-					scale = ch->esd->slConfig->timestampResolution;
-					scale /= 1000;
-					dur = (u64) (scale * gf_dash_get_period_duration(mpdin->dash) );
-					group->max_cts_in_period = group->pto + dur;
-
-					start = (u64) (scale * gf_dash_get_period_start(mpdin->dash) );
-					group->pto -= start;				
-				}
-				//filter any packet outside the current period
-				if (hdr->compositionTimeStamp > group->max_cts_in_period) 
-					return;
-
-				//remap timestamps to our timeline
-				if ((s64) hdr->decodingTimeStamp >= group->pto) 
-					hdr->decodingTimeStamp -= group->pto;
-				else 
-					hdr->decodingTimeStamp = 0;
-
-				if ((s64) 
-					hdr->compositionTimeStamp >= group->pto) hdr->compositionTimeStamp -= group->pto;
-				else 
-					hdr->compositionTimeStamp = 0;
-			}
-
-			mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
-			return;
-		}
+	i = gf_dash_get_group_idx_from_service(mpdin,  (GF_InputService *) ch->odm->OD->service_ifce);
+	if (i<0) {
+		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
+		return;
 	}
+
+	group = gf_dash_get_group_udta(mpdin->dash, i);
+	//if sync is based on timestamps do not adjust the timestamps back
+	if (! group->is_timestamp_based) {
+		if (!group->pto_setup) {
+			Double scale;
+			s64 start, dur;
+			gf_dash_group_get_presentation_time_offset(mpdin->dash, i, &group->pto, &group->timescale);
+			group->pto_setup = 1;
+
+			if (group->timescale && (group->timescale != ch->esd->slConfig->timestampResolution)) {
+				group->pto *= ch->esd->slConfig->timestampResolution;
+				group->pto /= group->timescale;
+			}
+			scale = ch->esd->slConfig->timestampResolution;
+			scale /= 1000;
+			dur = (u64) (scale * gf_dash_get_period_duration(mpdin->dash) );
+			group->max_cts_in_period = group->pto + dur;
+
+			start = (u64) (scale * gf_dash_get_period_start(mpdin->dash) );
+			group->pto -= start;				
+		}
+		//filter any packet outside the current period
+		if ( (s64) hdr->compositionTimeStamp > group->max_cts_in_period) 
+			return;
+
+		//remap timestamps to our timeline
+		if ((s64) hdr->decodingTimeStamp >= group->pto) 
+			hdr->decodingTimeStamp -= group->pto;
+		else 
+			hdr->decodingTimeStamp = 0;
+
+		if ((s64) 
+			hdr->compositionTimeStamp >= group->pto) hdr->compositionTimeStamp -= group->pto;
+		else 
+			hdr->compositionTimeStamp = 0;
+	}
+
+	mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
+
 }
+
 
 static void MPD_NotifyData(GF_MPDGroup *group, Bool chunk_flush)
 {

@@ -4336,6 +4336,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 {
 	char local_path[GF_MAX_PATH];
 	const char *local_url;
+	char *sep = NULL;
 	GF_Err e;
 	GF_MPD_Period *period;
 	GF_DOMParser *mpd_parser;
@@ -4415,7 +4416,15 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 
 	if (is_local) {
 		FILE *f = fopen(local_url, "rt");
-		if (!f) return GF_URL_ERROR;
+		if (!f) {
+			sep = strchr(local_url, '&');
+			if (sep) {
+				sep[0] = 0;
+				f = fopen(local_url, "rt");
+			}
+			if (!f) 
+				return GF_URL_ERROR;
+		}
 		fclose(f);
 	}
 	dash->mpd_fetch_time = dash_get_fetch_time(dash);
@@ -4447,6 +4456,9 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	/* parse the MPD */
 	mpd_parser = gf_xml_dom_new();
 	e = gf_xml_dom_parse(mpd_parser, local_url, NULL, NULL);
+
+	if (sep) sep[0] = '&';
+
 	if (e != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: MPD parsing problem %s\n", gf_xml_dom_get_error(mpd_parser) ));
 		gf_xml_dom_del(mpd_parser);
