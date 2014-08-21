@@ -32,7 +32,7 @@
 #include <gpac/tools.h>
 #include <libavcodec/avcodec.h>
 
-#if (LIBAVCODEC_VERSION_MAJOR <= 52) && (LIBAVCODEC_VERSION_MINOR <= 20)
+#if ((LIBAVCODEC_VERSION_MAJOR == 52) && (LIBAVCODEC_VERSION_MINOR <= 20)) || (LIBAVCODEC_VERSION_MAJOR < 52)
 #undef USE_AVCODEC2
 #else
 #define USE_AVCODEC2	1

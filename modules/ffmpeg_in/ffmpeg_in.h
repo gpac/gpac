@@ -99,7 +99,7 @@ void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl);
 
 #ifndef FFMPEG_OLD_HEADERS
 
-#if (LIBAVCODEC_VERSION_MAJOR <= 52) && (LIBAVCODEC_VERSION_MINOR <= 20)
+#if ((LIBAVCODEC_VERSION_MAJOR == 52) && (LIBAVCODEC_VERSION_MINOR <= 20)) || (LIBAVCODEC_VERSION_MAJOR < 52)
 #undef USE_AVCODEC2
 #else
 #define USE_AVCODEC2	1

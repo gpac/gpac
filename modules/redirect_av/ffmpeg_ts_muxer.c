@@ -164,11 +164,11 @@ exit:
 }
 
 
-#if LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45
+#if ((LIBAVFORMAT_VERSION_MAJOR == 52) && (LIBAVFORMAT_VERSION_MINOR <= 47)) || (LIBAVFORMAT_VERSION_MAJOR < 52)
 #define GUESS_FORMAT guess_stream_format
 #else
 #define GUESS_FORMAT av_guess_format
-#endif /*  LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45 */
+#endif
 
 GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerSec, u32 width, u32 height, u32 audioBitRateInBitsPerSec) {
 	GF_AbstractTSMuxer * ts = gf_malloc( sizeof(GF_AbstractTSMuxer));
