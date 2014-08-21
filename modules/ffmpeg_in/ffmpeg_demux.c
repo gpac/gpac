@@ -54,13 +54,10 @@
 #endif /* AVERROR_NOFMT */
 
 
-#if (LIBAVFORMAT_VERSION_MAJOR >= 54) && (LIBAVFORMAT_VERSION_MINOR >= 20)
+#if ((LIBAVFORMAT_VERSION_MAJOR == 54) && (LIBAVFORMAT_VERSION_MINOR >= 20)) || (LIBAVFORMAT_VERSION_MAJOR > 54)
 
 #define av_find_stream_info(__c)	avformat_find_stream_info(__c, NULL)
-#ifndef FF_API_FORMAT_PARAMETERS
-#define FF_API_FORMAT_PARAMETERS	1
-#endif
-
+#define USE_AVFORMAT_OPEN_INPUT	1
 #endif
 
 
@@ -275,7 +272,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	}
 	if (!has_audio && !has_video) goto exit;
 	ret = 1;
-#if LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45
+#if ((LIBAVFORMAT_VERSION_MAJOR == 52) && (LIBAVFORMAT_VERSION_MINOR <= 47)) || (LIBAVFORMAT_VERSION_MAJOR < 52)
 	fmt_out = guess_stream_format(NULL, url, NULL);
 #else
 	fmt_out = av_guess_format(NULL, url, NULL);
@@ -588,7 +585,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 			}
 			/*setup downloader*/
 			av_in->flags |= AVFMT_NOFILE;
-#if FF_API_FORMAT_PARAMETERS /*commit ffmpeg 603b8bc2a109978c8499b06d2556f1433306eca7*/
+#ifdef USE_AVFORMAT_OPEN_INPUT /*commit ffmpeg 603b8bc2a109978c8499b06d2556f1433306eca7*/
 			res = avformat_open_input(&ffd->ctx, szName, av_in, NULL);
 #else
 			res = av_open_input_stream(&ffd->ctx, &ffd->io, szName, av_in, NULL);

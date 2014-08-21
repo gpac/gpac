@@ -28,7 +28,7 @@
 #include <libavcodec/avcodec.h>
 
 
-#if (LIBAVCODEC_VERSION_MAJOR >= 55) && (LIBAVCODEC_VERSION_MINOR >= 38)
+#if ((LIBAVCODEC_VERSION_MAJOR == 55) && (LIBAVCODEC_VERSION_MINOR >= 38)) || (LIBAVCODEC_VERSION_MAJOR > 55)
 #define HAS_HEVC
 
 #include <libavutil/opt.h>
