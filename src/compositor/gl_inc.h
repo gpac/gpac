@@ -471,11 +471,13 @@ GLDECL(void, glUniformMatrix4x2fv, (GLint location, GLsizei count, GLboolean tra
 GLDECL(void, glUniformMatrix3x4fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 GLDECL(void, glUniformMatrix4x3fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 
+#ifndef GPAC_ANDROID
 GLDECL(void, glEnableVertexAttribArray, (GLuint index) )
 GLDECL(void, glDisableVertexAttribArray, (GLuint index) )
 GLDECL(void, glVertexAttribPointer, (GLuint  index,  GLint  size,  GLenum  type,  GLboolean  normalized,  GLsizei  stride,  const GLvoid *  pointer) )
 GLDECL(void, glVertexAttribIPointer, (GLuint  index,  GLint  size,  GLenum  type,  GLsizei  stride,  const GLvoid *  pointer) )
 GLDECL(GLint, glGetAttribLocation, (GLuint prog, const char *name) )
+#endif
 
 
 #endif //GL_VERSION_2_0
