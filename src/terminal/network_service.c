@@ -565,6 +565,20 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 			gf_scene_notify_associated_media_timeline(scene, &com->addon_time);
 		return;
 	}
+	if (com->command_type==GF_NET_SERVICE_SEEK) {
+		GF_Scene *scene = NULL;
+		if (service->owner->subscene) {
+			scene = service->owner->subscene;
+		} else if (service->owner->parentscene) {
+			scene = service->owner->parentscene;
+		}
+		if (scene && scene->is_dynamic_scene) {
+			gf_sc_lock(term->compositor, 1);
+			gf_scene_restart_dynamic(scene, (u64) (com->play.start_range*1000) );
+			gf_sc_lock(term->compositor, 0);
+		}
+		return;
+	}
 
 
 	if (!com->base.on_channel) return;

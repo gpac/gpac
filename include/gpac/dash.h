@@ -236,7 +236,9 @@ GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash
 /*returns 1 if segment numbers loops at this level (not allowed but happens when looping captures ...*/
 Bool gf_dash_group_loop_detected(GF_DashClient *dash, u32 idx);
 
-/*returns number of seconds at which playback shall start in the first segment of the current period*/
+/*returns number of seconds at which playback shall start for the group in the current period
+the first segment available for the period will be so that gf_dash_group_get_start_range is in this range after the caller 
+adjusts it with PTO (eg the returned time is in period timeline, not media timeline */
 Double gf_dash_group_get_start_range(GF_DashClient *dash, u32 idx);
 
 /*discards the first media resource in the queue of this group*/

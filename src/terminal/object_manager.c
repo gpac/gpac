@@ -1620,6 +1620,9 @@ void gf_odm_play(GF_ObjectManager *odm)
 		}
 #endif
 
+		if ((com.play.end_range>com.play.start_range) && com.play.speed<0) 
+			com.play.end_range = 0;
+
 		/*full object playback*/
 		if (com.play.end_range<=0) {
 			if (com.play.speed<0) {

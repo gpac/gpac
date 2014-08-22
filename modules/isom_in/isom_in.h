@@ -53,6 +53,7 @@ typedef struct
 	/*input file*/
 	GF_ISOFile *mov;
 	u32 time_scale;
+	u32 nb_playing;
 
 	/*remote file handling*/
 	GF_DownloadSession * dnload;

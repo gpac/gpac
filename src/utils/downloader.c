@@ -2330,8 +2330,10 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 				/*update state*/
 				u32 runtime = gf_sys_clock() - sess->start_time;
 				u64 nb_bytes = sess->bytes_done;
-				sess->bytes_per_sec = (u32) (1000*nb_bytes / runtime);
-				if (sess->bytes_per_sec > sess->dm->limit_data_rate) return GF_OK;
+				if (runtime) {
+					sess->bytes_per_sec = (u32) (1000*nb_bytes / runtime);
+					if (sess->bytes_per_sec > sess->dm->limit_data_rate) return GF_OK;
+				}
 			}
 		}
 
