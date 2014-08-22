@@ -57,7 +57,8 @@ typedef struct __mpd_module
 	Double previous_start_range;
 	/*max width & height in all active representations*/
 	u32 width, height;
-	
+
+	Double seek_request;
 
 	//we store here all callbacks to the parent services we need to intercept, and we will override our own ones
 	void (*fn_connect_ack) (GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
@@ -220,13 +221,13 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 	GF_MPD_In *mpdin = (GF_MPD_In *) ifce->proxy_udta;
 	if (!param || !ifce || !ifce->proxy_udta) return GF_BAD_PARAM;
 
+	mpdin->in_seek = 0;
+
 	/*gets byte range of init segment (for local validation)*/
 	if (param->command_type==GF_NET_SERVICE_QUERY_INIT_RANGE) {
 		param->url_query.next_url = NULL;
 		param->url_query.start_range = 0;
 		param->url_query.end_range = 0;
-
-		mpdin->in_seek = 0;
 
 		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
 			GF_MPDGroup *group;
@@ -658,7 +659,6 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 
 	/*for all selected groups, create input service and connect to init/first segment*/
 	if (dash_evt==GF_DASH_EVENT_CREATE_PLAYBACK) {
-
 		/*select input services if possible*/
 		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
 			const char *mime, *init_segment;
@@ -695,6 +695,17 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		if (!mpdin->connection_ack_sent) {
 			mpdin->fn_connect_ack(mpdin->service, NULL, GF_OK);
 			mpdin->connection_ack_sent=1;
+		}
+
+		//we had a seek outside of the period we were setting up, during period setup !
+		//request the seek again from the player
+		if (mpdin->seek_request) {
+			GF_NetworkCommand com;
+			memset(&com, 0, sizeof(GF_NetworkCommand));
+			com.command_type = GF_NET_SERVICE_SEEK;
+			com.play.start_range = mpdin->seek_request;
+			mpdin->seek_request = 0;
+			gf_service_command(mpdin->service, &com, GF_OK);
 		}
 		return GF_OK;
 	}
@@ -756,6 +767,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		return GF_BAD_PARAM;
 
 	mpdin->service = serv;
+	mpdin->seek_request = -1;
 
 	mpdin->dash_io.udta = mpdin;
 	mpdin->dash_io.delete_cache_file = mpdin_dash_io_delete_cache_file;
@@ -852,7 +864,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	use_server_utc = (opt && !strcmp(opt, "yes")) ? 1 : 0;
 
 	mpdin->in_seek = 0;
-	mpdin->previous_start_range = -1;
+	mpdin->previous_start_range = 0;
 
 	init_timeshift = 0;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "InitialTimeshift");
@@ -1044,72 +1056,84 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	case GF_NET_CHAN_PLAY:
 
+		//we cannot handle seek request outside of a period being setup, this messes up our internal service setup
+		//we postpone the seek and will request it later on ...
+		if (gf_dash_in_period_setup(mpdin->dash)) {
+			u64 p_end = gf_dash_get_period_duration(mpdin->dash);
+			if (p_end) {
+				p_end += gf_dash_get_period_start(mpdin->dash);
+				if (p_end<1000*com->play.start_range) {
+					mpdin->seek_request = com->play.start_range;
+					return GF_OK;
+				}
+			}
+		}
+
+		idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
+		if (idx < 0) return GF_BAD_PARAM;
+
+
 		gf_dash_set_speed(mpdin->dash, com->play.speed);
 
-		/*don't seek if this command is the first PLAY request of objects declared by the subservice
-		not long ago*/
-		if (!com->play.initial_broadcast_play || (com->play.start_range>2.0) ) {
+		/*don't seek if this command is the first PLAY request of objects declared by the subservice*/
+		if (! mpdin->in_seek && (!com->play.initial_broadcast_play || (com->play.start_range>2.0) ) ) {
+			Bool skip_seek;
+			GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, idx);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Play command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
 
-			idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
+			mpdin->in_seek = 1;
 
-			if (!gf_dash_in_period_setup(mpdin->dash) && !com->play.dash_segment_switch && ! mpdin->in_seek) {
-				//Bool skip_seek;
+			/*if start range request is the same as previous one, don't process it
+			- this happens at period switch when new objects are declared*/
+			skip_seek = 0;
+			if (com->play.initial_broadcast_play && (mpdin->previous_start_range==com->play.start_range))
+				skip_seek = 1;
 
-				mpdin->in_seek = 1;
+			mpdin->previous_start_range = com->play.start_range;
 
-				/*if start range request is the same as previous one, don't process it
-				- this happens at period switch when new objects are declared*/
-				//skip_seek = (mpdin->previous_start_range==com->play.start_range) ? 1 : 0;
-				mpdin->previous_start_range = com->play.start_range;
+			if (!skip_seek) {
+
+				//adjust play range from media timestamps to MPD time
+				if (com->play.is_timestamp_based) {
+					u32 timescale;
+					u64 pto;
+					Double offset;
+					group->is_timestamp_based = 1;
+
+					gf_dash_group_get_presentation_time_offset(mpdin->dash, idx, &pto, &timescale);
+					offset = (Double) pto;
+					offset /= timescale;
+					com->play.start_range -= offset;
+					if (com->play.start_range < 0) com->play.start_range = 0;
+				} else {
+					if (com->play.start_range<0) com->play.start_range = 0;
+				}
 
 				gf_dash_seek(mpdin->dash, com->play.start_range);
-			}
-			/*For MPEG-2 TS or formats not using Init Seg: since objects are declared and started once the first
-			segment is playing, we will stay in playback_start_range!=-1 until next segment (because we won't have a query_next),
-			which will prevent seeking until then ... we force a reset of playback_start_range to allow seeking asap*/
-			else if (mpdin->in_seek && (com->play.start_range==0)) {
-//				mpdin->in_seek = 0;
-			}
-			else if (gf_dash_in_period_setup(mpdin->dash)) {
-				if (idx>=0) {
-					GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, idx);
-					group->is_timestamp_based = com->play.is_timestamp_based;
 
-					if (com->play.is_timestamp_based) {
-						u32 timescale;
-						u64 pto;
-						Double offset;
-						gf_dash_group_get_presentation_time_offset(mpdin->dash, idx, &pto, &timescale);
-						offset = (Double) pto;
-						offset /= timescale;
-						com->play.start_range -= offset;
-						if (com->play.start_range < 0) com->play.start_range = 0;
-					}
-				}
-				gf_dash_seek(mpdin->dash, com->play.start_range);
-				if (idx>=0) {
-					com->play.start_range = gf_dash_group_get_start_range(mpdin->dash, idx);
-				}
-			}
-
-			if (idx>=0) {
+				//we have issued a seek request, mark the group as seeking 
 				if (mpdin->in_seek) {
-					GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, idx);
-					group->in_seek = 1;
+					//group->in_seek = 1;
 				}
-				gf_dash_group_select(mpdin->dash, idx, GF_TRUE);
-				gf_dash_set_group_done(mpdin->dash, idx, 0);
+				//and check if current segment playback should be aborted
 				com->play.dash_segment_switch = gf_dash_group_segment_switch_forced(mpdin->dash, idx);
 			}
 
-			/*don't forward commands, we are killing the service anyway ...*/
+			//to remove once we manage to keep the service alive
+			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
 			if (gf_dash_get_period_switch_status(mpdin->dash) ) return GF_OK;
-		} else {
-			idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
-			if (idx>=0)
-				gf_dash_group_select(mpdin->dash, idx, GF_TRUE);
+		}
+
+		gf_dash_group_select(mpdin->dash, idx, GF_TRUE);
+		gf_dash_set_group_done(mpdin->dash, (u32) idx, 0);
+
+		//adjust start range from MPD time to media time
+		{
+			u64 pto;
+			u32 timescale;
 			com->play.start_range = gf_dash_group_get_start_range(mpdin->dash, idx);
+			gf_dash_group_get_presentation_time_offset(mpdin->dash, idx, &pto, &timescale);
+			com->play.start_range += ((Double)pto ) / timescale;
 		}
 
 		return segment_ifce->ServiceCommand(segment_ifce, com);
@@ -1120,6 +1144,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (idx>=0) {
 			gf_dash_set_group_done(mpdin->dash, (u32) idx, 1);
 		}
+		mpdin->previous_start_range = -1;
 	}
 	return segment_ifce->ServiceCommand(segment_ifce, com);
 

@@ -2219,7 +2219,7 @@ void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
 			case GF_ACTION_VERY_FAST_REWIND:
 			case GF_ACTION_FAST_REWIND:
 			case GF_ACTION_SLOW_REWIND:
-				if (term->root_scene && !(term->root_scene->root_od->flags & GF_ODM_NO_TIME_CTRL) ) {
+				if (0 && term->root_scene && !(term->root_scene->root_od->flags & GF_ODM_NO_TIME_CTRL) ) {
 					s32 res;
 					u32 dur = (u32) term->root_scene->duration ;
 					val  = gf_term_get_time_in_ms(term);

@@ -90,6 +90,8 @@ struct __dash_client
 	/* active period in MPD (only one currently supported) */
 	u32 active_period_index;
 	u32 request_period_switch;
+	
+	Bool next_period_checked;
 
 	u64 start_time_in_active_period;
 
@@ -115,8 +117,7 @@ struct __dash_client
 	s32 utc_drift_estimate;
 	s32 utc_shift;
 
-	Double playback_start_range_request;
-	Double start_range_in_segment_at_next_period;
+	Double start_range_period;
 
 	Double speed;
 	u32 probe_times_before_switch;
@@ -130,7 +131,7 @@ struct __dash_client
 	s32 debug_group_index;
 };
 
-static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group);
+static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to);
 
 
 typedef struct
@@ -208,7 +209,6 @@ struct __dash_group
 
 	GF_DASHFileIOSession segment_download;
 
-	const char *segment_local_url;
 	/*usually 0-0 (no range) but can be non-zero when playing local MPD/DASH sessions*/
 	u64 local_url_start_range, local_url_end_range;
 
@@ -2395,6 +2395,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 {
 	GF_Err e;
 	char *base_init_url;
+	char *init_segment_local_url;
 	GF_MPD_Representation *rep;
 	u64 start_range, end_range;
 	/* This variable is 0 if there is a initURL, the index of first segment downloaded otherwise */
@@ -2448,10 +2449,10 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		}
 
 		group->download_segment_index += nb_segment_read;
-		group->segment_local_url = group->cached[0].cache;
+		init_segment_local_url = group->cached[0].cache;
 		group->local_url_start_range = start_range;
 		group->local_url_end_range = end_range;
-		rep->playback.cached_init_segment_url = gf_strdup(group->segment_local_url);
+		rep->playback.cached_init_segment_url = gf_strdup(init_segment_local_url);
 		rep->playback.init_start_range = start_range;
 		rep->playback.init_end_range = end_range;
 
@@ -2477,7 +2478,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 				}
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] First segment is %s \n", group->segment_local_url));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] First segment is %s \n", init_segment_local_url));
 		gf_mx_v(dash->dl_mutex);
 		gf_free(base_init_url);
 		return GF_OK;
@@ -2566,14 +2567,14 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		}
 
 		if (group->segment_must_be_streamed ) {
-			group->segment_local_url = dash->dash_io->get_url(dash->dash_io, group->segment_download);
+			init_segment_local_url = (char *) dash->dash_io->get_url(dash->dash_io, group->segment_download);
 			e = GF_OK;
 		} else {
-			group->segment_local_url = dash->dash_io->get_cache_name(dash->dash_io, group->segment_download);
+			init_segment_local_url = (char *) dash->dash_io->get_cache_name(dash->dash_io, group->segment_download);
 		}
 
-		if ((e!=GF_OK) || !group->segment_local_url) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error with initialization segment: download result:%s, cache file:%s\n", gf_error_to_string(e), group->segment_local_url));
+		if ((e!=GF_OK) || !init_segment_local_url) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error with initialization segment: download result:%s, cache file: %s\n", gf_error_to_string(e), init_segment_local_url ? init_segment_local_url : "UNKNOWN"));
 			dash->mpd_stop_request = 1;
 			gf_mx_v(dash->dl_mutex);
 			gf_free(base_init_url);
@@ -2581,11 +2582,11 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		}
 
 		assert(!group->nb_cached_segments);
-		group->cached[0].cache = gf_strdup(group->segment_local_url);
+		group->cached[0].cache = gf_strdup(init_segment_local_url);
 		group->cached[0].url = gf_strdup( dash->dash_io->get_url(dash->dash_io, group->segment_download) );
 		group->cached[0].representation_index = group->active_rep_index;
 		group->cached[0].duration = (u32) group->current_downloaded_segment_duration;
-		rep->playback.cached_init_segment_url = gf_strdup(group->segment_local_url);
+		rep->playback.cached_init_segment_url = gf_strdup(init_segment_local_url);
 		rep->playback.init_start_range = 0;
 		rep->playback.init_end_range = 0;
 
@@ -2593,7 +2594,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		group->download_segment_index += nb_segment_read;
 		gf_dash_update_buffering(group, dash);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Adding initialization segment %s to cache: %s\n", group->segment_local_url, group->cached[0].url ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Adding initialization segment %s to cache: %s\n", init_segment_local_url, group->cached[0].url ));
 		gf_mx_v(dash->dl_mutex);
 		gf_free(base_init_url);
 
@@ -2774,7 +2775,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 			if (dur>seg_dur) seg_dur = dur;
 
 			if (dash->dash_io->dash_codec_supported) {
-				Bool res = dash->dash_io->dash_codec_supported(dash->dash_io, rep->codecs, rep->width, rep->height, (rep->scan_type==GF_MPD_SCANTYPE_INTERLACED) ? 1 : 0, rep->framerate->num, rep->framerate->den, rep->samplerate);
+				Bool res = dash->dash_io->dash_codec_supported(dash->dash_io, rep->codecs, rep->width, rep->height, (rep->scan_type==GF_MPD_SCANTYPE_INTERLACED) ? 1 : 0, rep->framerate ? rep->framerate->num : 0, rep->framerate ? rep->framerate->den : 0, rep->samplerate);
 				if (!res) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation not supported by playback engine - ignoring\n"));
 					rep->playback.disabled = 1;
@@ -3440,8 +3441,10 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 
 		gf_dash_set_group_representation(group, rep_sel);
 
-		if (dash->playback_start_range_request>=0)
-			gf_dash_seek_group(dash, group);
+		//adjust seek
+		if (dash->start_range_period) {
+			gf_dash_seek_group(dash, group, dash->start_range_period);
+		}
 
 		mime_type = gf_dash_get_mime_type(NULL, rep_sel, group->adaptation_set);
 
@@ -3463,6 +3466,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 		group->selection = GF_DASH_GROUP_NOT_SELECTED;
 		nb_groups_ok++;
 	}
+	dash->start_range_period = 0;
 
 	period = gf_list_get(dash->mpd->periods, dash->active_period_index);
 
@@ -3478,6 +3482,11 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 
 	/*and seek if needed*/
 	return GF_OK;
+}
+
+static Bool gf_dash_is_seamless_period_switch(GF_DashClient *dash)
+{
+	return 0;
 }
 
 static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, GF_MPD_Representation *rep)
@@ -3702,8 +3711,16 @@ restart_period:
 
 				if (!cache_full) break;
 
+				//seek request
 				if (dash->request_period_switch==2) all_groups_done = 1;
 
+				if (all_groups_done && dash->next_period_checked) {
+					dash->next_period_checked = 1;
+					//check if we can continue next period with the same groups
+					if (gf_dash_is_seamless_period_switch(dash)) {
+						all_groups_done = 0;
+					}
+				}
 				if (all_groups_done && dash->request_period_switch) {
 					gf_dash_reset_groups(dash);
 					if (dash->request_period_switch == 1) {
@@ -3939,8 +3956,10 @@ restart_period:
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - segment was lost at server/proxy side\n", new_base_seg_url, gf_error_to_string(e)));
 						if (dash->speed > 0) {
 							group->download_segment_index++;
-						} else {
+						} else if (group->download_segment_index) {
 							group->download_segment_index--;
+						} else {
+							group->done = 1;
 						}
 						group->segment_in_valid_range=0;
 					} else if (group->prev_segment_ok && !group->time_at_first_failure) {
@@ -4063,8 +4082,10 @@ restart_period:
 				}
 				gf_mx_v(dash->dl_mutex);
 
-
-				dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, gf_list_find(dash->groups, group), GF_OK);
+				//do not notify segments if there is a pending period switch - since these are decided by the user, we don't
+				//want to notify old segments
+				if (!dash->request_period_switch)
+					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, gf_list_find(dash->groups, group), GF_OK);
 
 			}
 			gf_free(new_base_seg_url);
@@ -4150,17 +4171,17 @@ static void gf_dash_download_stop(GF_DashClient *dash)
 
 
 
-Bool gf_dash_seek_periods(GF_DashClient *dash)
+Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 {
 	Double start_time;
 	u32 i, period_idx;
 	u32 nb_retry = 10;
 	gf_mx_p(dash->dl_mutex);
 
-	dash->start_range_in_segment_at_next_period = 0;
+	dash->start_range_period = 0;
 	start_time = 0;
 	period_idx = 0;
-	for (i=0; i<=gf_list_count(dash->mpd->periods); i++) {
+	for (i=0; i<gf_list_count(dash->mpd->periods); i++) {
 		GF_MPD_Period *period = gf_list_get(dash->mpd->periods, i);
 		Double dur;
 		
@@ -4179,8 +4200,8 @@ Bool gf_dash_seek_periods(GF_DashClient *dash)
 		}
 		dur = period->duration;
 		dur /= 1000;
-		if (dash->playback_start_range_request >= start_time) {
-			if ((i+1==gf_list_count(dash->mpd->periods)) || (dash->playback_start_range_request < start_time + dur) ) {
+		if (seek_time >= start_time) {
+			if ((i+1==gf_list_count(dash->mpd->periods)) || (seek_time < start_time + dur) ) {
 				period_idx = i;
 				break;
 			}
@@ -4188,39 +4209,23 @@ Bool gf_dash_seek_periods(GF_DashClient *dash)
 		start_time += dur;
 	}
 	if (period_idx != dash->active_period_index) {
-		dash->playback_start_range_request -= start_time;
+		seek_time -= start_time;
 		dash->active_period_index = period_idx;
 		dash->request_period_switch = 2;
 
-		/*figure out default segment duration and substract from our start range request*/
-		if (dash->playback_start_range_request) {
-			Double duration;
-			u32 nb_segs;
-			GF_MPD_Period *period = gf_list_get(dash->mpd->periods, period_idx);
-			GF_MPD_AdaptationSet *set = gf_list_get(period->adaptation_sets, 0);
-			GF_MPD_Representation *rep = gf_list_get(set->representations, 0);
-
-			gf_dash_get_segment_duration(rep, set, period, dash->mpd, &nb_segs, &duration);
-
-			if (duration) {
-				while (dash->playback_start_range_request - dash->start_range_in_segment_at_next_period >= duration)
-					dash->start_range_in_segment_at_next_period += duration;
-			}
-
-		}
+		dash->start_range_period = seek_time;
 	}
 	gf_mx_v(dash->dl_mutex);
 
 	return dash->request_period_switch ? 1 : 0;
 }
 
-static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group)
+static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to)
 {
 	Double seg_start;
 	u32 first_downloaded, last_downloaded, segment_idx, orig_idx;
 
 	group->force_segment_switch = 0;
-	if (!group->segment_duration) return;
 
 	/*figure out where to seek*/
 	orig_idx = group->download_segment_index;
@@ -4232,7 +4237,9 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group)
 			group->download_segment_index = segment_idx;
 			seg_start = gf_dash_get_segment_start_time(group, &dur);
 		}
-		if ((dash->playback_start_range_request >= seg_start) && (dash->playback_start_range_request < seg_start + group->segment_duration))
+		if (!dur)
+			break;
+		if ((seek_to >= seg_start) && (seek_to < seg_start + group->segment_duration))
 			break;
 		seg_start += group->segment_duration;
 		segment_idx++;
@@ -4240,10 +4247,7 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group)
 	group->download_segment_index = orig_idx;
 
 	/*remember to seek to given duration*/
-	group->start_playback_range = 0;
-	if (dash->playback_start_range_request > seg_start) {
-		group->start_playback_range = dash->playback_start_range_request - seg_start;
-	}
+	group->start_playback_range = seek_to;
 
 	first_downloaded = last_downloaded = group->download_segment_index;
 	if (group->download_segment_index + 1 >= (s32) group->nb_cached_segments) {
@@ -4265,6 +4269,7 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group)
 		gf_free(group->urlToDeleteNext);
 		group->urlToDeleteNext = NULL;
 	}
+
 	if (group->segment_download) {
 		dash->dash_io->del(dash->dash_io, group->segment_download);
 		group->segment_download = NULL;
@@ -4278,9 +4283,10 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group)
 		gf_free(group->cached[group->nb_cached_segments].url);
 		memset(&group->cached[group->nb_cached_segments], 0, sizeof(segment_cache_entry));
 	}
+	group->done = 0;
 }
 
-void gf_dash_seek_groups(GF_DashClient *dash)
+void gf_dash_seek_groups(GF_DashClient *dash, Double seek_time)
 {
 	u32 i;
 
@@ -4293,13 +4299,12 @@ void gf_dash_seek_groups(GF_DashClient *dash)
 			GF_MPD_Period *period = gf_list_get(dash->mpd->periods, dash->active_period_index-1);
 			dur += period->duration/1000.0;
 		}
-		dash->playback_start_range_request -= dur;
+		seek_time -= dur;
 	}
 	for (i=0; i<gf_list_count(dash->groups); i++) {
 		GF_DASH_Group *group = gf_list_get(dash->groups, i);
-		gf_dash_seek_group(dash, group);
+		gf_dash_seek_group(dash, group, seek_time);
 	}
-	dash->playback_start_range_request = 0;
 
 	gf_mx_v(dash->dl_mutex);
 }
@@ -4833,12 +4838,15 @@ const char *gf_dash_group_get_segment_mime(GF_DashClient *dash, u32 idx)
 GF_EXPORT
 const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64 *start_range, u64 *end_range)
 {
+	GF_MPD_Representation *rep;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return NULL;
+	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+	if (!rep) return NULL;
 
-	if (start_range) *start_range = group->local_url_start_range;
-	if (end_range) *end_range = group->local_url_end_range;
-	return group->segment_local_url;
+	if (start_range) *start_range = rep->playback.init_start_range;
+	if (end_range) *end_range = rep->playback.init_end_range;
+	return rep->playback.cached_init_segment_url;
 }
 
 GF_EXPORT
@@ -5154,11 +5162,10 @@ void gf_dash_seek(GF_DashClient *dash, Double start_range)
 	gf_mx_p(dash->dl_mutex);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Seek request - playing from %g\n", start_range));
-	dash->playback_start_range_request = start_range;
 	/*first check if we seek to another period*/
-	if (! gf_dash_seek_periods(dash)) {
+	if (! gf_dash_seek_periods(dash, start_range)) {
 		/*if no, seek in group*/
-		gf_dash_seek_groups(dash);
+		gf_dash_seek_groups(dash, start_range);
 	}
 	gf_mx_v(dash->dl_mutex);
 }

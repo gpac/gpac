@@ -1039,7 +1039,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	}
 	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {
-		if (plug->query_proxy)
+		if (read->nb_playing && plug->query_proxy)
 			isor_flush_data(read, 0, 0);
 		return GF_OK;
 	}
@@ -1123,8 +1123,10 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 		//and check buffer level on play request
 		isor_check_buffer_level(read);
+		read->nb_playing++;
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
+		if (read->nb_playing) read->nb_playing--;
 		isor_reset_reader(ch);
 		return GF_OK;
 

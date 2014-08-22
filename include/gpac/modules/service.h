@@ -135,6 +135,9 @@ typedef enum
 	GF_NET_SERVICE_EVENT,
 	//sets nalu mode
 	GF_NET_CHAN_NALU_MODE,
+
+	/*seek request from service on all channels*/
+	GF_NET_SERVICE_SEEK,
 } GF_NET_CHAN_CMD;
 
 /*channel command for all commands that don't need params:
