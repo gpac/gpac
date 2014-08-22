@@ -136,11 +136,14 @@ GLDECL_STATIC(glUniformMatrix2x4fv);
 GLDECL_STATIC(glUniformMatrix4x2fv);
 GLDECL_STATIC(glUniformMatrix3x4fv);
 GLDECL_STATIC(glUniformMatrix4x3fv);
+
+#ifndef GPAC_ANDROID
 GLDECL_STATIC(glEnableVertexAttribArray);
 GLDECL_STATIC(glDisableVertexAttribArray);
 GLDECL_STATIC(glVertexAttribPointer);
 GLDECL_STATIC(glVertexAttribIPointer);
 GLDECL_STATIC(glGetAttribLocation);
+#endif
 
 #endif //LOAD_GL_2_0
 
@@ -273,17 +276,20 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		GET_GLFUN(glUniformMatrix3x4fv);
 		GET_GLFUN(glUniformMatrix4x3fv);
 
+		compositor->gl_caps.has_shaders = 1;
+
+#ifndef GPAC_ANDROID
 		GET_GLFUN(glEnableVertexAttribArray);
 		GET_GLFUN(glDisableVertexAttribArray);
 		GET_GLFUN(glVertexAttribPointer);
 		GET_GLFUN(glVertexAttribIPointer);
 		GET_GLFUN(glGetAttribLocation);
-		
 
-		compositor->gl_caps.has_shaders = 1;
 		if (glGetAttribLocation != NULL) {
 			compositor->shader_only_mode = 0;
 		}
+#endif		
+
 
 	} else {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported\n"));
@@ -1506,6 +1512,8 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg);
 }
 
+#ifndef GPAC_ANDROID
+
 static GLint my_glGetUniformLocation(GF_SHADERID glsl_program, const char *uniform_name)
 {
 	GLint loc = glGetUniformLocation(glsl_program, uniform_name);
@@ -1662,6 +1670,8 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	glUseProgram(0);
 }
 
+#endif //GPAC_ANDROID
+
 static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
 	Bool has_col, has_tx, has_norm;
@@ -1708,11 +1718,12 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		mesh->vbo_dirty = 0;
 	}
 
+#ifndef GPAC_ANDROID
 	if (visual->compositor->shader_only_mode) {
 		visual_3d_draw_mesh_shader_only(tr_state, mesh, base_address);
 		return;
 	}
-
+#endif
 
 	//set lights before pushing modelview matrix
 	visual_3d_set_lights(visual);
