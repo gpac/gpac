@@ -961,6 +961,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		} else if (m_stype==GF_ISOM_SUBTYPE_STSE) {
 			gf_export_message(dumper, GF_OK, "Extracting Simple Text");
 			strcat(szName, ".txt");
+		} else if (m_stype==GF_ISOM_SUBTYPE_STPP) {
+			gf_export_message(dumper, GF_OK, "Extracting XML Subtitles");
+			strcat(szName, ".stpp");
+			return gf_export_message(dumper, GF_NOT_SUPPORTED, "XML Subtitles re-assembling is not supported yet.", dumper->trackID);
 		} else {
 			if (add_ext) {
 				strcat(szName, ".");

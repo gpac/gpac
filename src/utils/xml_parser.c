@@ -1724,6 +1724,9 @@ static void gf_xml_dom_reset(GF_DOMParser *dom, Bool full_reset)
 GF_EXPORT
 void gf_xml_dom_del(GF_DOMParser *parser)
 {
+	if (!parser)
+		return;
+
 	gf_xml_dom_reset(parser, 1);
 	gf_list_del(parser->root_nodes);
 	gf_free(parser);
@@ -1911,7 +1914,7 @@ GF_EXPORT
 GF_XMLAttribute *gf_xml_dom_get_attribute(GF_XMLNode *node, const char* name) {
 	u32 i = 0;
 	GF_XMLAttribute *att;
-	if (!node | !name) return NULL;
+	if (!node || !name) return NULL;
 
 	while ( (att = (GF_XMLAttribute*)gf_list_enum(node->attributes, &i))) {
 		if (!strcmp(att->name, name)) {
@@ -1924,12 +1927,21 @@ GF_XMLAttribute *gf_xml_dom_get_attribute(GF_XMLNode *node, const char* name) {
 
 GF_EXPORT
 GF_Err gf_xml_dom_append_child(GF_XMLNode *node, GF_XMLNode *child) {
-	if (!node | !child) return GF_BAD_PARAM;
+	if (!node || !child) return GF_BAD_PARAM;
 	if (!node->content) {
 		node->content = gf_list_new();
 		if (!node->content) return GF_OUT_OF_MEM;
 	}
 	return gf_list_add(node->content, child);
+}
+
+GF_EXPORT
+GF_Err gf_xml_dom_rem_child(GF_XMLNode *node, GF_XMLNode *child) {
+	s32 idx;
+	if (!node || !child || !node->content) return GF_BAD_PARAM;
+	idx = gf_list_find(node->content, child);
+	if (idx == -1) return GF_BAD_PARAM;
+	return gf_list_rem(node->content, idx);
 }
 
 GF_EXPORT
