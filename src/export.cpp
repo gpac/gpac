@@ -400,6 +400,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_attribute) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_set_attribute) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_append_child) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_rem_child) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_node_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_error) )

@@ -43,6 +43,7 @@ void stpp_del(GF_Box *s)
 	GF_XMLSubtitleSampleEntryBox *stpp= (GF_XMLSubtitleSampleEntryBox *)s;
 	if (stpp == NULL) return;
 	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
+	btrt_del((GF_Box*)stpp->bitrate);
 	if (stpp->xmlnamespace) gf_free(stpp->xmlnamespace);
 	if (stpp->schema_location) gf_free(stpp->schema_location);
 	if (stpp->auxiliary_mime_types) gf_free(stpp->auxiliary_mime_types);

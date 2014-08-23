@@ -1858,6 +1858,8 @@ GF_Err gf_isom_generic_subtitle_reset(GF_GenericSubtitleSample *samp);
 GF_ISOSample *gf_isom_generic_subtitle_to_sample(GF_GenericSubtitleSample * tx_samp);
 GF_Err gf_isom_generic_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char *text_data, u32 text_len);
 
+GF_GenericSubtitleSample *gf_isom_new_xml_subtitle_sample();
+void gf_isom_delete_xml_subtitle_sample(GF_GenericSubtitleSample * samp);
 GF_Err gf_isom_xml_subtitle_reset(GF_GenericSubtitleSample *samp);
 GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie,  u32 trackNumber, char *xmlnamespace, char *xml_schema_loc, char *mimes, u32 *outDescriptionIndex);
 GF_ISOSample *gf_isom_xml_subtitle_to_sample(GF_GenericSubtitleSample * tx_samp);
