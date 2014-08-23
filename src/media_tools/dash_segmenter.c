@@ -740,7 +740,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 			if (gf_isom_is_track_in_root_od(input, i+1)) gf_isom_add_track_to_root_od(output, TrackNum);
 
-			/*remove sgpd in stbl; it wuold be in traf*/
+			/*remove sgpd in stbl; it would be in traf*/
 			if (dash_cfg->samplegroups_in_traf) {
 				GF_TrackBox *trak = (GF_TrackBox *)gf_isom_get_track_from_file(output, TrackNum);
 				if (!trak) continue;
@@ -958,9 +958,14 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_DIMS:
-			gf_isom_get_visual_info(input, i+1, 1, &_w, &_h);
-			if (_w>width) width = _w;
-			if (_h>height) height = _h;
+			e = gf_isom_get_visual_info(input, i+1, 1, &_w, &_h);
+			if (e == GF_OK) {
+				if (_w>width) width = _w;
+				if (_h>height) height = _h;
+			} else {
+				width  = 0;
+				height = 0;
+			}
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
 			gf_isom_get_audio_info(input, i+1, 1, &_sr, &_nb_ch, NULL);
@@ -1384,7 +1389,7 @@ restart_fragmentation_pass:
 								/*this is the fragment duration from last sample added to next SAP*/
 								frag_dur += (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dash_cfg->dash_scale / tf->TimeScale;
 								/*if media segment about to be produced is longer than max segment length, force segment split*/
-								if (SegmentDuration + frag_dur > MaxSegmentDuration) {
+								if (!tf->splitable && (SegmentDuration + frag_dur > MaxSegmentDuration)) {
 									split_at_rap = GF_TRUE;
 									/*force new segment*/
 									force_switch_segment = GF_TRUE;
@@ -1751,7 +1756,7 @@ restart_fragmentation_pass:
 
 	fprintf(dash_cfg->mpd, " mimeType=\"%s/mp4\" codecs=\"%s\"", audio_only ? "audio" : "video", szCodecs);
 	if (width && height) {
-		fprintf(dash_cfg->mpd, " width=\"%d\" height=\"%d\"", width, height);
+		fprintf(dash_cfg->mpd, " width=\"%u\" height=\"%u\"", width, height);
 
 		/*this is a video track*/
 		if (fps_num || fps_denum) {
@@ -3347,7 +3352,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		strcat(szCodecs, dash_input->components[i].szCodec);
 
 		if (dash_input->components[i].width && dash_input->components[i].height)
-			fprintf(dash_cfg->mpd, " width=\"%d\" height=\"%d\"", dash_input->components[i].width, dash_input->components[i].height);
+			fprintf(dash_cfg->mpd, " width=\"%u\" height=\"%u\"", dash_input->components[i].width, dash_input->components[i].height);
 
 		if (dash_input->components[i].sample_rate)
 			fprintf(dash_cfg->mpd, " audioSamplingRate=\"%d\"", dash_input->components[i].sample_rate);
