@@ -543,7 +543,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 			case GF_HEVC_NALU_SLICE_IDR_N_LP:
 			case GF_HEVC_NALU_SLICE_CRA:
-				//insert xPS before CRA/BLS
+				//insert xPS before CRA/BLA
 				if (check_cra_bla && !sample->IsRAP) {
 					if (ref_samp) gf_isom_sample_del(&ref_samp);
 					if (src_bs) gf_bs_del(src_bs);

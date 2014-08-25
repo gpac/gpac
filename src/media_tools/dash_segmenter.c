@@ -1248,7 +1248,12 @@ restart_fragmentation_pass:
 
 					/*also get SAP type - this is not needed if sample is not NULL as SAP tye was computed for "next sample" in previous loop*/
 					if (sample->IsRAP) {
-						SAP_type = 1;
+						if (sample->IsRAP == 3) {
+							SAP_type = 3;
+						} else {
+							assert(sample->IsRAP == 1);
+							SAP_type = 1;
+						}
 					} else {
 						SAP_type = 0;
 						e = gf_isom_get_sample_rap_roll_info(input, tf->OriginalTrack, tf->SampleNum + 1, &is_rap, &has_roll, &roll_distance);
@@ -1356,7 +1361,12 @@ restart_fragmentation_pass:
 				/*compute SAP type*/
 				if (sample) {
 					if (sample->IsRAP) {
-						SAP_type = 1;
+						if (sample->IsRAP == 3) {
+							SAP_type = 3;
+						} else {
+							assert(sample->IsRAP == 1);
+							SAP_type = 1;
+						}
 					} else {
 						SAP_type = 0;
 						e = gf_isom_get_sample_rap_roll_info(input, tf->OriginalTrack, tf->SampleNum + 1, &is_rap, &has_roll, NULL);
