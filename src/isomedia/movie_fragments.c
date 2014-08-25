@@ -539,6 +539,7 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf=NULL;
 	GF_TrackFragmentRunBox *trun;
+	sap_type = 0;
 	*sap_delta = 0;
 	*starts_with_sap = 0;
 	for (i=0; i<gf_list_count(moof->TrackList); i++) {
@@ -546,9 +547,8 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 		if (traf->tfhd->trackID==refTrackID) break;
 		traf=NULL;
 	}
-	if (!traf) return 0;
+	if (!traf) return sap_type;
 	earliest_cts = 0;
-
 
 	/*first check if we have a roll/rap sample in this traf, and mark its sample count*/
 	sap_type = 0;
@@ -560,7 +560,6 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 		u32 j, first_sample;
 		Bool rap_type = 0;
 		sg = gf_list_get(traf->sampleGroups, i);
-
 
 		switch (sg->grouping_type) {
 		case GF_4CC('r','a','p',' '):
@@ -601,7 +600,8 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 				if (!delta) earliest_cts = ent->CTS_Offset;
 				*sap_delta = delta + ent->CTS_Offset - ent->CTS_Offset;
 				*starts_with_sap = first;
-				return 1;
+				sap_type = ent->SAP_type;
+				return sap_type;
 			}
 		}
 		j=0;
@@ -611,7 +611,8 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 			if (GF_ISOM_GET_FRAG_SYNC(ent->flags)) {
 				*sap_delta = delta + ent->CTS_Offset - earliest_cts;
 				*starts_with_sap = first;
-				return 1;
+				sap_type = ent->SAP_type;
+				return sap_type;
 			}
 			/*we found our roll or rap sample*/
 			if (cur_sample==sap_sample_num) {
@@ -654,7 +655,7 @@ u32 moof_get_duration(GF_MovieFragmentBox *moof, u32 refTrackID)
 	return duration;
 }
 
-u32 moof_get_earliest_cts(GF_MovieFragmentBox *moof, u32 refTrackID)
+static u32 moof_get_earliest_cts(GF_MovieFragmentBox *moof, u32 refTrackID)
 {
 	u32 i, j, cts, duration;
 	GF_TrunEntry *ent;
@@ -1731,6 +1732,10 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	ent->flags = GF_ISOM_FORMAT_FRAG_FLAGS(PaddingBits, sample->IsRAP, DegradationPriority);
 	if (sample->IsRAP) {
 		ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(0, 2, 0, (redundant_coding ? 1 : 0) );
+		if (sample->IsRAP == 3)
+			ent->SAP_type = 3;
+		else
+			ent->SAP_type = 1;
 	}
 	gf_list_add(trun->entries, ent);
 
