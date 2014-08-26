@@ -581,8 +581,8 @@ GF_EXPORT
 const char *gpac_features()
 {
 	const char *features = ""
-#ifdef GPAC_X64
-	                       "GPAC_X64 "
+#ifdef GPAC_64_BITS
+	                       "GPAC_64_BITS"
 #endif
 
 #ifdef GPAC_FIXED_POINT
