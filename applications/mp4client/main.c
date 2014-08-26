@@ -259,6 +259,7 @@ void PrintHelp()
 	        "\tP: jumps to a given number ahead in the playlist\n"
 	        "\tr: reload current presentation\n"
 	        "\tD: disconnects the current presentation\n"
+	        "\tG: selects object or service ID\n"
 	        "\n"
 	        "\tp: play/pause the presentation\n"
 	        "\ts: step one frame ahead\n"

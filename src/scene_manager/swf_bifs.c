@@ -1690,7 +1690,7 @@ static GF_Err swf_bifs_place_obj(SWFReader *read, u32 depth, u32 ID, u32 prev_id
 	f->pos = depth;
 	f->fieldIndex = 2;	/*children index*/
 	f->new_node = par;
-	gf_node_register(f->new_node, com->node);
+	gf_node_register(f->new_node, NULL);
 	gf_list_add(read->bifs_au->commands, com);
 
 	if (ID==prev_id) return GF_OK;
@@ -1735,7 +1735,7 @@ static GF_Err swf_bifs_remove_obj(SWFReader *read, u32 depth, u32 ID)
 	f->pos = depth;
 	f->fieldIndex = 2;	/*children index*/
 	f->new_node = gf_sg_find_node_by_name(read->load->scene_graph, "Shape0");
-	gf_node_register(f->new_node, com->node);
+	gf_node_register(f->new_node, NULL);
 	gf_list_add(read->bifs_au->commands, com);
 	/*check if this is a sprite*/
 	if (ID)

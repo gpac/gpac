@@ -2457,7 +2457,8 @@ void gf_swf_reader_del(SWFReader *read)
 	gf_bs_del(read->bs);
 	if (read->mem) gf_free(read->mem);
 
-	read->finalize(read);
+	if (read->finalize)
+		read->finalize(read);
 
 	while (gf_list_count(read->display_list)) {
 		DispShape *s = (DispShape *)gf_list_get(read->display_list, 0);

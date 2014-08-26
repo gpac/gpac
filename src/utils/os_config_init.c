@@ -489,7 +489,6 @@ static GF_Config *create_default_config(char *file_path)
 }
 
 /*check if modules directory has changed in the config file
-this is mainly intended for OSX where we can have an install in /usr/... and an install in /Applications/Osmo4.app
 */
 static void check_modules_dir(GF_Config *cfg)
 {
@@ -497,9 +496,43 @@ static void check_modules_dir(GF_Config *cfg)
 	const char *opt;
 
 	if ( get_default_install_path(path, GF_PATH_MODULES) ) {
-#if defined(__DARWIN__) || defined(__APPLE__)
 		opt = gf_cfg_get_key(cfg, "General", "ModulesDirectory");
-		if (!opt || strcmp(opt, path)) gf_cfg_set_key(cfg, "General", "ModulesDirectory", path);
+		//for OSX, we can have an install in /usr/... and an install in /Applications/Osmo4.app - always change
+#if defined(__DARWIN__) || defined(__APPLE__)
+		if (!opt || strcmp(opt, path)) 
+			gf_cfg_set_key(cfg, "General", "ModulesDirectory", path);
+#else
+
+		//otherwise only check we didn't switch between a 64 bit version and a 32 bit version
+		if (!opt) { 
+			gf_cfg_set_key(cfg, "General", "ModulesDirectory", path);
+		} else  {
+			Bool erase_modules_dir = 0;
+			const char *opt64 = gf_cfg_get_key(cfg, "Systems", "64bits");
+			if (!opt64) {
+				//first run or old versions, erase
+				erase_modules_dir = 1;
+			} else if (!strcmp(opt64, "yes") ) {
+#ifndef GPAC_64_BITS
+				erase_modules_dir = 1;
+#endif
+			} else {
+#ifdef GPAC_64_BITS				
+				erase_modules_dir = 1;
+#endif
+			}
+
+#ifdef GPAC_64_BITS
+			opt64 = "yes";
+#else
+			opt64 = "no";
+#endif
+			gf_cfg_set_key(cfg, "Systems", "64bits", opt64);
+
+			if (erase_modules_dir) {
+				gf_cfg_set_key(cfg, "General", "ModulesDirectory", path);
+			}
+		}
 #endif
 	}
 
