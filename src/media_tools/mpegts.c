@@ -2955,37 +2955,35 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 				switch (desc_tag) {
 				case GF_M2TS_AFDESC_LOCATION_DESCRIPTOR:
 				{
-					Bool external_url , use_base_temi_url;
+					Bool use_base_temi_url;
 					char URL[255];
 					GF_M2TS_TemiLocationDescriptor temi_loc;
 					memset(&temi_loc, 0, sizeof(GF_M2TS_TemiLocationDescriptor) );
 					temi_loc.reload_external = gf_bs_read_int(bs, 1);
 					temi_loc.is_announce = gf_bs_read_int(bs, 1);
 					temi_loc.is_splicing = gf_bs_read_int(bs, 1);
-					external_url = gf_bs_read_int(bs, 1);
 					use_base_temi_url = gf_bs_read_int(bs, 1);
-					gf_bs_read_int(bs, 3); //reserved
-					temi_loc.timeline_id = gf_bs_read_int(bs, 8);
-					if (!external_url) {
-						if (!use_base_temi_url) {
-							char *_url = URL;
-							u8 scheme = gf_bs_read_int(bs, 8);
-							u8 url_len = gf_bs_read_int(bs, 8);
-							switch (scheme) {
-							case 1:
-								strcpy(URL, "http://");
-								_url = URL+7;
-								break;
-							case 2:
-								strcpy(URL, "https://");
-								_url = URL+8;
-								break;
-							}
-							gf_bs_read_data(bs, _url, url_len);
-							_url[url_len] = 0;
+					gf_bs_read_int(bs, 5); //reserved
+					temi_loc.timeline_id = gf_bs_read_int(bs, 7);
+					if (!use_base_temi_url) {
+						char *_url = URL;
+						u8 scheme = gf_bs_read_int(bs, 8);
+						u8 url_len = gf_bs_read_int(bs, 8);
+						switch (scheme) {
+						case 1:
+							strcpy(URL, "http://");
+							_url = URL+7;
+							break;
+						case 2:
+							strcpy(URL, "https://");
+							_url = URL+8;
+							break;
 						}
-						temi_loc.external_URL = URL;
+						gf_bs_read_data(bs, _url, url_len);
+						_url[url_len] = 0;
 					}
+					temi_loc.external_URL = URL;
+
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d AF Location descriptor found - URL %s\n", pid, URL));
 					if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TEMI_LOCATION, &temi_loc);
 				}

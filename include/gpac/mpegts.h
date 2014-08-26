@@ -238,9 +238,9 @@ enum
 /*MPEG-2 Descriptor tags*/
 enum
 {
-	GF_M2TS_AFDESC_LOCATION_DESCRIPTOR	= 0x00,
-	GF_M2TS_AFDESC_TIMELINE_DESCRIPTOR	= 0x01,
-	GF_M2TS_AFDESC_BASEURL_DESCRIPTOR	= 0x02,
+	GF_M2TS_AFDESC_TIMELINE_DESCRIPTOR	= 0x04,
+	GF_M2TS_AFDESC_LOCATION_DESCRIPTOR	= 0x05,
+	GF_M2TS_AFDESC_BASEURL_DESCRIPTOR	= 0x06,
 };
 
 #define SECTION_HEADER_LENGTH 3 /* header till the last bit of the section_length field */
@@ -1138,7 +1138,6 @@ typedef struct __m2ts_mux_stream {
 	GF_SLHeader sl_header;
 
 	u32 last_aac_time;
-
 	/*list of GF_M2TSDescriptor to add to the MPEG-2 stream. By default set to NULL*/
 	GF_List *loop_descriptors;
 } GF_M2TS_Mux_Stream;
