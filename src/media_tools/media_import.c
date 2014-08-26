@@ -4300,7 +4300,7 @@ static GF_Err gf_import_avc_h264(GF_MediaImporter *import)
 	GF_AVCConfig *avccfg, *svccfg, *dstcfg;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
-	Bool flush_sample, sample_is_rap, sample_has_islice, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff, set_subsamples, slice_force_ref;
+	Bool flush_sample, sample_is_rap, sample_has_islice, is_islice, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff, set_subsamples, slice_force_ref;
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
@@ -4435,6 +4435,7 @@ restart_import:
 		is_subseq = 0;
 		skip_nal = 0;
 		copy_size = flush_sample = 0;
+		is_islice = 0;
 
 		if (nal_type == GF_AVC_NALU_SVC_SUBSEQ_PARAM || nal_type == GF_AVC_NALU_SVC_PREFIX_NALU || nal_type == GF_AVC_NALU_SVC_SLICE) {
 			avc.is_svc = 1;
@@ -4629,7 +4630,7 @@ restart_import:
 				case GF_AVC_TYPE_I:
 				case GF_AVC_TYPE2_I:
 					nb_i++;
-					sample_has_islice = 1;
+					is_islice = 1;
 					break;
 				case GF_AVC_TYPE_B:
 				case GF_AVC_TYPE2_B:
@@ -4789,9 +4790,9 @@ restart_import:
 			cur_samp++;
 
 			/*write sampleGroups info*/
-			if (!samp->IsRAP && (sei_recovery_frame_count>=0)) {
+			if (!samp->IsRAP && ( (sei_recovery_frame_count>=0) || sample_has_islice) ) {
 				/*generic GDR*/
-				if (sei_recovery_frame_count) {
+				if (sei_recovery_frame_count>=0) {
 					if (!use_opengop_gdr) use_opengop_gdr = 1;
 					e = gf_isom_set_sample_roll_group(import->dest, track, cur_samp, (s16) sei_recovery_frame_count);
 				}
@@ -4815,6 +4816,9 @@ restart_import:
 		}
 
 		if (copy_size) {
+			if (is_islice) 
+				sample_has_islice = 1;
+
 			if ((size_length<32) && ( (u32) (1<<size_length)-1 < copy_size)) {
 				u32 diff_size = 8;
 				while ((size_length<32) && ( (u32) (1<<(size_length+diff_size))-1 < copy_size)) diff_size+=8;
@@ -5264,7 +5268,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	GF_HEVCParamArray *spss, *ppss, *vpss;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
-	Bool flush_sample, flush_next_sample, is_empty_sample, sample_is_rap, sample_has_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
+	Bool flush_sample, flush_next_sample, is_empty_sample, sample_is_rap, sample_has_islice, is_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_hevc;
@@ -5405,6 +5409,8 @@ restart_import:
 		if (layer_id && (import->flags & GF_IMPORT_SVC_NONE)) {
 			goto next_nal;
 		}
+
+		is_islice = 0;
 
 		prev_cfg = dst_cfg;
 		//todo check layer type, for now only scalable (not 3D etc) ...
@@ -5663,7 +5669,7 @@ restart_import:
 					break;
 				case GF_HEVC_TYPE_I:
 					nb_i++;
-					sample_has_islice = 1;
+					is_islice = 1;
 					break;
 				case GF_HEVC_TYPE_B:
 					nb_b++;
@@ -5717,9 +5723,9 @@ restart_import:
 			cur_samp++;
 
 			/*write sampleGroups info*/
-			if (!samp->IsRAP && (sei_recovery_frame_count>=0)) {
+			if (!samp->IsRAP && ((sei_recovery_frame_count>=0) || sample_has_islice) ) {
 				/*generic GDR*/
-				if (sei_recovery_frame_count) {
+				if (sei_recovery_frame_count >= 0) {
 					if (!use_opengop_gdr) use_opengop_gdr = 1;
 					e = gf_isom_set_sample_roll_group(import->dest, track, cur_samp, (s16) sei_recovery_frame_count);
 				}
@@ -5744,6 +5750,9 @@ restart_import:
 		}
 
 		if (copy_size) {
+			if (is_islice) 
+				sample_has_islice = 1;
+
 			if ((size_length<32) && ( (u32) (1<<size_length)-1 < copy_size)) {
 				u32 diff_size = 8;
 				while ((size_length<32) && ( (u32) (1<<(size_length+diff_size))-1 < copy_size)) diff_size+=8;

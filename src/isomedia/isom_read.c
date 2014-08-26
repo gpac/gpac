@@ -3250,7 +3250,7 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 
 		switch (sgdesc->grouping_type) {
 		case GF_4CC('r','a','p',' '):
-			if (is_rap) *is_rap = 1;
+			if (is_rap) *is_rap = (group_desc_index-1) ? 1 : 0;
 			break;
 		case GF_4CC('r','o','l','l'):
 			if (has_roll) *has_roll = 1;
