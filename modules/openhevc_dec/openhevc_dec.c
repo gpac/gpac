@@ -68,6 +68,8 @@ typedef struct
 	u32 frame_idx;
 	Bool pack_mode;
 
+	u32 dec_frames;
+
 } HEVCDec;
 
 static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
@@ -187,7 +189,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		ctx->conv_to_8bit = 1;
 		ctx->pack_mode = 0;
 	}
-
+	ctx->dec_frames = 0;
 	return GF_OK;
 }
 
@@ -339,8 +341,14 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		ctx->display_bpp = capability.cap.valueInt;
 		return GF_OK;
 	case GF_CODEC_WAIT_RAP:
-		if (ctx->openHevcHandle)
-			libOpenHevcFlush(ctx->openHevcHandle);
+		if (ctx->dec_frames) {
+			//quick hack, we have an issue with openHEVC resuming after being flushed ...
+			ctx->had_pic = 0;
+			libOpenHevcClose(ctx->openHevcHandle);
+			ctx->openHevcHandle = NULL;
+			ctx->is_init = GF_FALSE;
+			HEVC_ConfigureStream(ctx, ctx->esd);
+		}
 		return GF_OK;
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
 		/*switch up*/
@@ -534,6 +542,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		ctx->had_pic = 0;
 		return HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
 	}
+	ctx->dec_frames++;
 	got_pic = libOpenHevcDecode(ctx->openHevcHandle, (u8 *) inBuffer, inBufferLength, *CTS);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Decode CTS %d - size %d - got pic %d\n", *CTS, inBufferLength, got_pic));
 	if (got_pic>0) {

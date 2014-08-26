@@ -356,15 +356,9 @@ u32 gf_ar_proc(void *p)
 	gf_mixer_lock(ar->mixer, 0);
 
 	while (ar->audio_th_state == 1) {
-		//GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Audio simulation step\n"));
-
-		/*THIS IS NEEDED FOR SYMBIAN - if no yield here, the audio module always grabs the
-		main mixer mutex and it takes forever before it can be grabed by another thread,
-		for instance when reconfiguring scene*/
-//		gf_sleep(1);
-
 		gf_mixer_lock(ar->mixer, 1);
-		if (ar->Frozen || gf_mixer_empty(ar->mixer) ) {
+		//do mix even if mixer is empty, otherwise we will push the same buffer over and over to the sound card
+		if (ar->Frozen ) {
 			gf_mixer_lock(ar->mixer, 0);
 			gf_sleep(33);
 		} else {

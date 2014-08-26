@@ -274,10 +274,15 @@ static void term_on_media_add(GF_ClientService *service, GF_Descriptor *media_de
 		return;
 	}
 	scene = root->subscene ? root->subscene : root->parentscene;
+	if (scene->root_od->addon && (scene->root_od->addon->addon_type == GF_ADDON_TYPE_MAIN)) {
+		no_scene_check = 1;
+		scene->root_od->flags |= GF_ODM_REGENERATE_SCENE;
+	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Service %s] %s\n", service->url, media_desc ? "Adding new media object" : "Regenerating scene graph"));
 	if (!media_desc) {
-		if (!no_scene_check) gf_scene_regenerate(scene);
+		if (!no_scene_check)
+			gf_scene_regenerate(scene);
 		return;
 	}
 
@@ -592,6 +597,19 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		gf_term_lock_net(term, 1);
 		gf_es_reconfig_sl(ch, &com->cfg.sl_config, com->cfg.use_m2ts_sections);
 		gf_term_lock_net(term, 0);
+		return;
+	case GF_NET_CHAN_SET_MEDIA_TIME:
+		if (gf_es_owns_clock(ch) || !ch->clock->has_media_time_shift) {
+			Double mtime = com->map_time.media_time;
+			if (ch->clock->clock_init) {
+				Double t = (Double) com->map_time.timestamp;
+				t /= ch->esd->slConfig->timestampResolution;
+				t -= ((Double) ch->clock->init_time) /1000;
+				mtime += t;
+			}
+			ch->clock->media_time_at_init = (u32) (1000*mtime);
+			ch->clock->has_media_time_shift = 1;
+		}
 		return;
 	/*time mapping (TS to media-time)*/
 	case GF_NET_CHAN_MAP_TIME:
@@ -933,7 +951,11 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	}
 exit:
 	if (!ifce) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Did not find any input plugin for URL %s (%s)\n", sURL ? sURL : url, mime_type ? mime_type : "no mime type"));
+		if (*ret_code) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Error fetching mime type for URL %s: %s\n", sURL ? sURL : url, gf_error_to_string(*ret_code) ));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Did not find any input plugin for URL %s (%s) \n", sURL ? sURL : url, mime_type ? mime_type : "no mime type"));
+		}
 		if (sURL) gf_free(sURL);
 		if ( (*ret_code) == GF_OK) (*ret_code) = GF_NOT_SUPPORTED;
 		*out_url = NULL;
@@ -1220,7 +1242,7 @@ void gf_service_download_update_stats(GF_DownloadSession * sess)
 				if (serv->is_paused) {
 					serv->is_paused = 0;
 #ifndef GPAC_DISABLE_VRML
-					mediacontrol_resume(serv->owner);
+					mediacontrol_resume(serv->owner, 0);
 #endif
 				}
 			}

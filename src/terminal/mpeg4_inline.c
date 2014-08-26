@@ -68,8 +68,10 @@ static Bool gf_inline_set_scene(M_Inline *root)
 	}
 	/*assign inline scene as private stack of inline node, and remember inline node for event propagation*/
 	gf_node_set_private((GF_Node *)root, mo->odm->subscene);
+
 	/*play*/
 	gf_mo_play(mo, 0, -1, GF_FALSE);
+
 	return GF_TRUE;
 }
 
@@ -125,8 +127,8 @@ void gf_inline_on_modified(GF_Node *node)
 					} else {
 						gf_term_lock_media_queue(scene->root_od->term, GF_TRUE);
 
-						/*external media are completely unloaded*/
-						if (scene->root_od->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID) {
+						/*external media are completely unloaded, except addons which are only declared once */
+						if (!scene->root_od->addon && (scene->root_od->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID)) {
 							scene->root_od->action_type = GF_ODM_ACTION_DELETE;
 						} else {
 							scene->root_od->action_type = GF_ODM_ACTION_STOP;

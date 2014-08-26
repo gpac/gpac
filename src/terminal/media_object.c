@@ -536,7 +536,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 	} else  {
 		mo->ms_until_next = 1;
 	}
-	diff = mo->speed > 0 ? (s32) (CU->TS) - (s32) obj_time : (s32) obj_time - (s32) (CU->TS);
+	diff = (mo->speed >= 0) ? (s32) (CU->TS) - (s32) obj_time : (s32) obj_time - (s32) (CU->TS);
 	mo->ms_until_pres = FIX2INT(diff * mo->speed);
 
 
@@ -546,8 +546,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 			mediasensor_update_timing(mo->odm, 0);
 #endif
 
-		if (mo->odm->parentscene->is_dynamic_scene)
-			mo->odm->parentscene->root_od->current_time = mo->odm->current_time;
+		if (mo->odm->parentscene->is_dynamic_scene) {
+			GF_Scene *s = mo->odm->parentscene;
+			while (s && s->root_od->addon) {
+				s = s->root_od->parentscene;
+			}
+			s->root_od->media_current_time = mo->odm->media_current_time;
+		}
 
 		mo->timestamp = CU->TS;
 		/*signal EOS after rendering last frame, not while rendering it*/
@@ -721,9 +726,6 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 		if (is_restart) {
 			mediacontrol_restart(mo->odm);
 		} else {
-			/*FIXME - this breaks inital loading on JPEG and PNG files ...*/
-//			if (mo->odm->subscene && mo->odm->subscene->is_dynamic_scene) mo->odm->flags |= GF_ODM_REGENERATE_SCENE;
-
 			gf_odm_start(mo->odm, (res>=0) ? 1 : 0);
 		}
 	} else if (mo->odm) {
@@ -895,13 +897,16 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 				}
 			}
 
+			gf_term_lock_media_queue(obj->odm->term, 1);
 			while ( (ns = (GF_ClientService*)gf_list_enum(obj->odm->term->net_services, &j)) ) {
 				/*sub-service of an existing service - don't touch any fragment*/
 				if (gf_term_service_can_handle_url(ns, an_url->vals[i].url)) {
 					*keep_fragment = GF_TRUE;
+					gf_term_lock_media_queue(obj->odm->term, 0);
 					return GF_FALSE;
 				}
 			}
+			gf_term_lock_media_queue(obj->odm->term, 0);
 		}
 	}
 
@@ -960,7 +965,7 @@ void gf_mo_resume(GF_MediaObject *mo)
 {
 #ifndef GPAC_DISABLE_VRML
 	if (!mo || !mo->num_open || !mo->odm) return;
-	mediacontrol_resume(mo->odm);
+	mediacontrol_resume(mo->odm, 0);
 #endif
 }
 

@@ -725,7 +725,7 @@ check_unit:
 
 	/*current media time for system objects is the clock time, since the media is likely to have random
 	updates in time*/
-	codec->odm->current_time = gf_clock_time(codec->ck);
+	codec->odm->media_current_time = obj_time	 - codec->ck->init_time;
 
 	now = gf_sys_clock_high_res();
 	if (codec->odm->term->bench_mode==2) {
@@ -735,7 +735,7 @@ check_unit:
 	}
 	now = gf_sys_clock_high_res() - now;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d at %d decoded AU TS %d in "LLU" us\n", sdec->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, codec->odm->current_time, AU->CTS, now));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d at %d decoded AU TS %d in "LLU" us\n", sdec->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, obj_time, AU->CTS, now));
 
 	codec_update_stats(codec, AU->dataLength, now, AU->DTS, (AU->flags & GF_DB_AU_RAP));
 	codec->prev_au_size = AU->dataLength;
@@ -818,10 +818,12 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 		if (!started) return GF_OK;
 	}
 
-	codec->odm->current_time = codec->last_unit_cts = gf_clock_time(codec->ck);
+	codec->odm->media_current_time = codec->last_unit_cts = gf_clock_time(codec->ck);
+	codec->odm->media_current_time += codec->ck->media_time_at_init;
+	codec->odm->media_current_time -= codec->ck->init_time;
 
 	/*lock scene*/
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[PrivateDec] Codec %s Processing at %d\n", sdec->module_name , codec->odm->current_time));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[PrivateDec] Codec %s Processing at %d\n", sdec->module_name, codec->last_unit_cts));
 
 	if (!gf_mx_try_lock(scene_locked->root_od->term->compositor->mx)) return GF_OK;
 
@@ -829,7 +831,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	if (codec->odm->term->bench_mode == 2) {
 		e = GF_OK;
 	} else {
-		e = sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);
+		e = sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, codec->last_unit_cts, GF_CODEC_LEVEL_NORMAL);
 	}
 	now = gf_sys_clock_high_res() - now;
 	codec->last_unit_dts ++;
@@ -843,7 +845,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 		gf_clock_resume(ch->clock);
 	}
 
-	codec_update_stats(codec, 0, now, codec->odm->current_time, 0);
+	codec_update_stats(codec, 0, now, codec->last_unit_cts, 0);
 
 	gf_mx_v(scene_locked->root_od->term->compositor->mx);
 
@@ -952,6 +954,9 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	//cannot output frame, do nothing (we force a channel query before for pull mode)
 	if (codec->CB->Capacity == codec->CB->UnitCount) {
+		if (codec->Status==GF_ESM_CODEC_PAUSE) {
+			gf_term_stop_codec(codec, 1);
+		}
 		if (codec->CB->UnitCount > 1) return GF_OK;
 		else if (codec->direct_vout) return GF_OK;
 	}
@@ -1108,7 +1113,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			}
 		}
 		/*only perform drop in normal playback*/
-		else if (!force_skip && (codec->ck->speed>0) && (codec->CB->Status == CB_PLAY)) {
+		else if (!force_skip && (codec->ck->speed >= 0) && (codec->CB->Status == CB_PLAY)) {
 			/*extremely late, set the level to drop
 			 NOTE: the 100 ms safety gard is to avoid discarding audio*/
 			if (!ch->skip_sl && (AU->CTS + (codec->is_reordering ? 1000 : 100) < obj_time) ) {
@@ -1579,7 +1584,10 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 {
 	if (!codec) return;
 
-	if (Status == GF_ESM_CODEC_PAUSE) codec->Status = GF_ESM_CODEC_STOP;
+	if (Status == GF_ESM_CODEC_PAUSE) {
+		//stay in PLAY mode if we have a composition buffer, so that the "pause" state still output an initial picture
+		codec->Status = codec->CB ? GF_ESM_CODEC_PAUSE : GF_ESM_CODEC_STOP;
+	}
 	else if (Status == GF_ESM_CODEC_BUFFER) codec->Status = GF_ESM_CODEC_PLAY;
 	else if (Status == GF_ESM_CODEC_PLAY) {
 		codec->last_unit_cts = 0;

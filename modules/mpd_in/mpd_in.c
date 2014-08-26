@@ -59,7 +59,7 @@ typedef struct __mpd_module
 	u32 width, height;
 
 	Double seek_request;
-
+	Double media_start_range;
 	//we store here all callbacks to the parent services we need to intercept, and we will override our own ones
 	void (*fn_connect_ack) (GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
 	void (*fn_data_packet) (GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status);
@@ -147,7 +147,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 	GF_MPD_In *mpdin = (GF_MPD_In*) service->ifce->priv;
 	GF_Channel *ch;
 	GF_MPDGroup *group;
-
+	Bool do_map_time = 0;
 	if (!ns || !hdr) {
 		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
 		return;
@@ -184,7 +184,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			group->pto -= start;				
 		}
 		//filter any packet outside the current period
-		if ( (s64) hdr->compositionTimeStamp > group->max_cts_in_period) 
+		if (group->max_cts_in_period && (s64) hdr->compositionTimeStamp > group->max_cts_in_period) 
 			return;
 
 		//remap timestamps to our timeline
@@ -197,10 +197,22 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			hdr->compositionTimeStamp >= group->pto) hdr->compositionTimeStamp -= group->pto;
 		else 
 			hdr->compositionTimeStamp = 0;
+	} else if (!group->pto_setup) {
+		do_map_time = 1;
+		group->pto_setup = 1;
 	}
 
 	mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
 
+	if (do_map_time) {
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(com));
+		com.command_type = GF_NET_CHAN_SET_MEDIA_TIME;
+		com.map_time.media_time = mpdin->media_start_range;
+		com.map_time.timestamp = hdr->compositionTimeStamp;
+		com.base.on_channel =  ns;
+		gf_service_command(service, &com, GF_OK);
+	}
 }
 
 
@@ -699,7 +711,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 
 		//we had a seek outside of the period we were setting up, during period setup !
 		//request the seek again from the player
-		if (mpdin->seek_request) {
+		if (mpdin->seek_request>=0) {
 			GF_NetworkCommand com;
 			memset(&com, 0, sizeof(GF_NetworkCommand));
 			com.command_type = GF_NET_SERVICE_SEEK;
@@ -1049,12 +1061,38 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 
 	case GF_NET_CHAN_DURATION:
-		/* Ignore the duration given by the input service and use the one given in the MPD
-		   Note: the duration of the initial segment will be 0 anyway (in MP4).*/
 		com->duration.duration = gf_dash_get_duration(mpdin->dash);
 		return GF_OK;
 
 	case GF_NET_CHAN_PLAY:
+
+		idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
+		if (idx < 0) return GF_BAD_PARAM;
+
+		//adjust play range from media timestamps to MPD time
+		if (com->play.timestamp_based) {
+			u32 timescale;
+			u64 pto;
+			Double offset;
+			GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, idx);
+
+			if (com->play.timestamp_based==1) {
+				gf_dash_group_get_presentation_time_offset(mpdin->dash, idx, &pto, &timescale);
+				offset = (Double) pto;
+				offset /= timescale;
+				com->play.start_range -= offset;
+				if (com->play.start_range < 0) com->play.start_range = 0;
+			}
+
+			group->is_timestamp_based = 1;
+			group->pto_setup = 0;
+			mpdin->media_start_range = com->play.start_range; 
+		} else {
+			GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, idx);
+			group->is_timestamp_based = 0;
+			group->pto_setup = 0;
+			if (com->play.start_range<0) com->play.start_range = 0;
+		}
 
 		//we cannot handle seek request outside of a period being setup, this messes up our internal service setup
 		//we postpone the seek and will request it later on ...
@@ -1068,9 +1106,6 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				}
 			}
 		}
-
-		idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
-		if (idx < 0) return GF_BAD_PARAM;
 
 
 		gf_dash_set_speed(mpdin->dash, com->play.speed);
@@ -1092,22 +1127,6 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			mpdin->previous_start_range = com->play.start_range;
 
 			if (!skip_seek) {
-
-				//adjust play range from media timestamps to MPD time
-				if (com->play.is_timestamp_based) {
-					u32 timescale;
-					u64 pto;
-					Double offset;
-					group->is_timestamp_based = 1;
-
-					gf_dash_group_get_presentation_time_offset(mpdin->dash, idx, &pto, &timescale);
-					offset = (Double) pto;
-					offset /= timescale;
-					com->play.start_range -= offset;
-					if (com->play.start_range < 0) com->play.start_range = 0;
-				} else {
-					if (com->play.start_range<0) com->play.start_range = 0;
-				}
 
 				gf_dash_seek(mpdin->dash, com->play.start_range);
 

@@ -339,7 +339,7 @@ typedef struct
 	/*DOM event used in VRML (GPAC's internal)*/
 	Bool is_vrml;
 	/*media event*/
-	GF_DOMMediaEvent *media_event;
+	GF_DOMMediaEvent media_event;
 
 	/*number of listeners triggered by the event*/
 	u32 consumed;

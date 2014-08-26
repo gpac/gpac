@@ -116,6 +116,9 @@ enum
 	THE RESULTING FILE IS NOT COMPLIANT*/
 	GF_IMPORT_FORCE_SYNC = 1<<16,
 
+	/*keep trailing 0 bytes in AU payloads when any*/
+	GF_IMPORT_KEEP_TRAILING = 1<<17,
+
 	/*when set, only updates tracks info and return*/
 	GF_IMPORT_PROBE_ONLY	= 1<<20,
 	/*only set when probing, signals several frames per sample possible*/

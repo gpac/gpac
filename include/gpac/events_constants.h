@@ -184,10 +184,12 @@ typedef enum {
 		if scene size hasn't changed (seeking or other) this event is not sent
 	*/
 	GF_EVENT_SCENE_SIZE,
-	GF_EVENT_SHOWHIDE,	/*window show/hide (minimized or other). This is also sent to the user to signal focus switch in fullscreen*/
+	GF_EVENT_SHOWHIDE,	/*window show/hide (minimized or other). */
+	GF_EVENT_SHOWHIDE_NOTIF,	/*window has been show/hide (minimized or other). This is sent to the user to signal focus switch in fullscreen*/
 	GF_EVENT_SET_CURSOR,	/*set mouse cursor*/
 	GF_EVENT_SET_CAPTION,	/*set window caption*/
 	GF_EVENT_MOVE,		/*move window*/
+	GF_EVENT_MOVE_NOTIF,		/*move window*/
 	GF_EVENT_REFRESH, /*window needs repaint (whenever needed, eg restore, hide->show, background refresh, paint)*/
 	GF_EVENT_QUIT,	/*app is being closed - associated structure is evt.message to carry any potential reason for quiting*/
 	/*video hw setup message:

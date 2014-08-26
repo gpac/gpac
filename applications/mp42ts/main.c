@@ -1961,14 +1961,11 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		} else if (CHECK_PARAM("-dst-file")) {
 			dst_found = 1;
 			*ts_out = gf_strdup(next_arg);
-		} else if (!strnicmp(arg, "-temi", 5)) {
-			*temi_url = "";
-			if (arg[5]=='=' || arg[5]==' ') {
-				*temi_url = arg+6;
-				if (strlen(arg+6) > 150) {
-					fprintf(stderr, "URLs longer than 150 bytes are not currently supported\n");
-					return GF_NOT_SUPPORTED;
-				}
+		} else if (CHECK_PARAM("-temi")) {
+			*temi_url = next_arg;
+			if (strlen(next_arg) > 150) {
+				fprintf(stderr, "URLs longer than 150 bytes are not currently supported\n");
+				return GF_NOT_SUPPORTED;
 			}
 		}
 		else if (CHECK_PARAM("-temi-delay")) {

@@ -475,14 +475,14 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 	case WM_SIZE:
 		/*always notify GPAC since we're not sure the owner of the window is listening to these events*/
 		if (wParam==SIZE_MINIMIZED) {
-			evt.type = GF_EVENT_SHOWHIDE;
+			evt.type = GF_EVENT_SHOWHIDE_NOTIF;
 			evt.show.show_type = 0;
 			ctx->hidden = 1;
 			vout->on_event(vout->evt_cbk_hdl, &evt);
 		} else {
 			if (ctx->hidden && wParam==SIZE_RESTORED) {
 				ctx->hidden = 0;
-				evt.type = GF_EVENT_SHOWHIDE;
+				evt.type = GF_EVENT_SHOWHIDE_NOTIF;
 				evt.show.show_type = 1;
 				vout->on_event(vout->evt_cbk_hdl, &evt);
 			}
@@ -493,7 +493,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		}
 		break;
 	case WM_MOVE:
-		evt.type = GF_EVENT_MOVE;
+		evt.type = GF_EVENT_MOVE_NOTIF;
 		evt.move.x = LOWORD(lParam);
 		evt.move.y = HIWORD(lParam);
 		vout->on_event(vout->evt_cbk_hdl, &evt);
@@ -533,7 +533,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		        && (ctx->output_3d_type!=2)
 #endif
 		   ) {
-			evt.type = GF_EVENT_SHOWHIDE;
+			evt.type = GF_EVENT_SHOWHIDE_NOTIF;
 			vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
 		/*fallthrough*/
@@ -999,6 +999,13 @@ u32 DD_WindowThread(void *par)
 			if (msg.message == WM_DESTROY) PostQuitMessage(0);	//WM_DESTROY: exit
 			TranslateMessage (&(msg));
 			DispatchMessage (&(msg));
+
+			if (ctx->caption) {
+				SetWindowText(ctx->os_hwnd, ctx->caption);
+				gf_free(ctx->caption);
+				ctx->caption = NULL;
+			}
+
 		}
 	}
 	ctx->th_state = 2;
@@ -1161,6 +1168,13 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	if (!evt) {
 		if (!ctx->th) {
 			MSG msg;
+
+			if (ctx->caption) {
+				SetWindowText(ctx->os_hwnd, ctx->caption);
+				gf_free(ctx->caption);
+				ctx->caption = NULL;
+			}
+
 			while (PeekMessage (&(msg), NULL, 0, 0, PM_REMOVE)) {
 				TranslateMessage (&(msg));
 				DispatchMessage (&(msg));
@@ -1175,7 +1189,7 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 		break;
 	case GF_EVENT_SET_CAPTION:
 #ifndef _WIN32_WCE
-		if (evt->caption.caption) SetWindowText(ctx->os_hwnd, evt->caption.caption);
+		if (evt->caption.caption && !ctx->caption) ctx->caption = gf_strdup(evt->caption.caption);
 #endif
 		break;
 	case GF_EVENT_MOVE:

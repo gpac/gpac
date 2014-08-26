@@ -3831,6 +3831,8 @@ restart_period:
 							}
 							if (now - group->time_at_first_reload_required < group->cache_duration)
 								continue;
+							if (dash->mpd->minimum_update_period && (now - group->time_at_first_reload_required < dash->mpd->minimum_update_period))
+								continue;
 
 							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment list has not been updated for more than %d ms - assuming end of period\n", now - group->time_at_first_reload_required));
 							group->done = 1;
@@ -3954,11 +3956,12 @@ restart_period:
 						group->maybe_end_of_stream++;
 					} else if (group->segment_in_valid_range) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - segment was lost at server/proxy side\n", new_base_seg_url, gf_error_to_string(e)));
-						if (dash->speed > 0) {
+						if (dash->speed >= 0) {
 							group->download_segment_index++;
 						} else if (group->download_segment_index) {
 							group->download_segment_index--;
 						} else {
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
 							group->done = 1;
 						}
 						group->segment_in_valid_range=0;
@@ -3987,10 +3990,13 @@ restart_period:
 #endif
 						{
 							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s\n", new_base_seg_url, gf_error_to_string(e)));
-							if (dash->speed > 0) {
+							if (dash->speed >= 0) {
 								group->download_segment_index++;
-							} else {
+							} else if (group->download_segment_index) {
 								group->download_segment_index--;
+							} else {
+								GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
+								group->done = 1;					
 							}
 						}
 					}
@@ -4067,10 +4073,13 @@ restart_period:
 				/* if we have downloaded all enhancement representations of this segment, restart from base representation and increase dowloaded segment index by 1*/
 				else {
 					if (group->base_rep_index_plus_one) group->active_rep_index = group->base_rep_index_plus_one - 1;
-					if (dash->speed > 0) {
+					if (dash->speed >= 0) {
 						group->download_segment_index++;
-					} else {
+					} else if (group->download_segment_index) {
 						group->download_segment_index--;
+					} else {
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
+						group->done = 1;					
 					}
 				}
 				if (dash->auto_switch_count) {
@@ -4318,7 +4327,10 @@ static GF_Err http_ifce_get(GF_FileDownload *getter, char *url)
 	if (!sess) return GF_IO_ERR;
 	getter->session = sess;
 	e = dash->dash_io->init(dash->dash_io, sess);
-	if (e) return e;
+	if (e) {
+		dash->dash_io->del(dash->dash_io, sess);
+		return e;
+	}
 	return dash->dash_io->run(dash->dash_io, sess);
 }
 
@@ -4341,7 +4353,8 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 {
 	char local_path[GF_MAX_PATH];
 	const char *local_url;
-	char *sep = NULL;
+	char *sep_cgi = NULL;
+	char *sep_frag = NULL;
 	GF_Err e;
 	GF_MPD_Period *period;
 	GF_DOMParser *mpd_parser;
@@ -4422,13 +4435,17 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	if (is_local) {
 		FILE *f = fopen(local_url, "rt");
 		if (!f) {
-			sep = strchr(local_url, '&');
-			if (sep) {
-				sep[0] = 0;
-				f = fopen(local_url, "rt");
-			}
-			if (!f) 
+			sep_cgi = strrchr(local_url, '?');
+			if (sep_cgi) sep_cgi[0] = 0;
+			sep_frag = strrchr(local_url, '#');
+			if (sep_frag) sep_frag[0] = 0;
+
+			f = fopen(local_url, "rt");
+			if (!f) {
+				if (sep_cgi) sep_cgi[0] = '?';
+				if (sep_frag) sep_frag[0] = '#';
 				return GF_URL_ERROR;
+			}
 		}
 		fclose(f);
 	}
@@ -4462,7 +4479,8 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	mpd_parser = gf_xml_dom_new();
 	e = gf_xml_dom_parse(mpd_parser, local_url, NULL, NULL);
 
-	if (sep) sep[0] = '&';
+	if (sep_cgi) sep_cgi[0] = '?';
+	if (sep_frag) sep_frag[0] = '#';
 
 	if (e != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: MPD parsing problem %s\n", gf_xml_dom_get_error(mpd_parser) ));
@@ -4928,7 +4946,7 @@ Bool gf_dash_in_period_setup(GF_DashClient *dash)
 GF_EXPORT
 void gf_dash_set_speed(GF_DashClient *dash, Double speed)
 {
-	if (dash) dash->speed = speed;
+	if (dash) dash->speed = speed ? speed : 1.0;
 }
 
 GF_EXPORT

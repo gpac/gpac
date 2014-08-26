@@ -130,7 +130,7 @@ Bool MC_URLChanged(MFURL *old_url, MFURL *new_url)
 
 
 /*resume all objects*/
-void mediacontrol_resume(GF_ObjectManager *odm)
+void mediacontrol_resume(GF_ObjectManager *odm, Bool resume_to_live)
 {
 	u32 i;
 	GF_ObjectManager *ctrl_od;
@@ -154,8 +154,18 @@ void mediacontrol_resume(GF_ObjectManager *odm)
 
 	i=0;
 	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->resources, &i))) {
-		if (!odm->subscene && !gf_odm_shares_clock(ctrl_od, ck)) continue;
-		gf_odm_resume(ctrl_od);
+		if (!odm->subscene && !gf_odm_shares_clock(ctrl_od, ck)) 
+			continue;
+
+		if (resume_to_live && ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
+			gf_scene_select_main_addon(in_scene, ctrl_od, GF_FALSE);
+		}
+
+		if (ctrl_od->subscene) {
+			mediacontrol_resume(ctrl_od, resume_to_live);
+		} else {
+			gf_odm_resume(ctrl_od);
+		}
 	}
 }
 
@@ -167,7 +177,7 @@ void mediacontrol_pause(GF_ObjectManager *odm)
 	GF_ObjectManager *ctrl_od;
 	GF_Scene *in_scene;
 	GF_Clock *ck;
-
+	
 	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
 
 	/*otherwise locate all objects sharing the clock*/
@@ -185,8 +195,18 @@ void mediacontrol_pause(GF_ObjectManager *odm)
 
 	i=0;
 	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->resources, &i))) {
-		if (!odm->subscene && !gf_odm_shares_clock(ctrl_od, ck)) continue;
-		gf_odm_pause(ctrl_od);
+		if (!odm->subscene && !gf_odm_shares_clock(ctrl_od, ck))
+			continue;
+
+		if (ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
+			gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE);
+		}
+
+		if (ctrl_od->subscene) {
+			mediacontrol_pause(ctrl_od);
+		} else {
+			gf_odm_pause(ctrl_od);
+		}
 	}
 }
 
@@ -332,7 +352,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			}
 			/*control has been removed and we were paused, resume*/
 			else if (stack->paused) {
-				mediacontrol_resume((GF_ObjectManager *) prev->odm);
+				mediacontrol_resume((GF_ObjectManager *) prev->odm, 0);
 				stack->paused = 0;
 			}
 			/*MediaControl has been detached*/
@@ -347,6 +367,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		if (!stack->stream || !stack->stream->odm) {
 			if (stack->control->url.count) gf_term_invalidate_compositor(stack->parent->root_od->term);
 			stack->stream = NULL;
+			stack->changed = 0;
 			return;
 		}
 		stack->ck = gf_odm_get_media_clock(stack->stream->odm);
@@ -415,7 +436,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		}
 		/*else resume if paused*/
 		else if (stack->control->mediaSpeed && stack->paused) {
-			mediacontrol_resume(odm);
+			mediacontrol_resume(odm, 0);
 			stack->paused = 0;
 			need_restart += shall_restart;
 		}
@@ -547,7 +568,7 @@ void gf_odm_remove_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)
 	if (odm->media_ctrl == ctrl) {
 		/*we're about to release the media control from this object - if paused, force a resume (as if no MC was set)*/
 		if (ctrl->paused)
-			mediacontrol_resume(odm);
+			mediacontrol_resume(odm, 0);
 		gf_odm_set_mediacontrol(odm, NULL);
 	}
 }
@@ -612,7 +633,7 @@ Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
 		    /*if next seg start is before cur seg end*/
 		    && (cur->startTime + cur->Duration > next->startTime)
 		    /*if next seg start is already passed*/
-		    && (1000*next->startTime < odm->current_time)
+		    && (1000*next->startTime < odm->media_current_time)
 		    /*then next segment was taken into account when requesting play*/
 		) {
 			cur = next;

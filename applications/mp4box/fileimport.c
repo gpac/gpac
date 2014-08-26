@@ -251,53 +251,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		if (ext2) ext2[0] = 0;
 
 		/*all extensions for track-based importing*/
-		if (!strnicmp(ext+1, "lang=", 5)) szLan = GetLanguageCode(ext+6);
+		if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32) (atof(ext+5) * 1000);
+		else if (!strnicmp(ext+1, "lang=", 5)) szLan = GetLanguageCode(ext+6);
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
-		else if (!strnicmp(ext+1, "fps=", 4)) {
-			if (!strcmp(ext+5, "auto")) force_fps = GF_IMPORT_AUTO_FPS;
-			else if (strchr(ext+5, '-')) {
-				u32 ticks, dts_inc;
-				sscanf(ext+5, "%u-%u", &ticks, &dts_inc);
-				if (!dts_inc) dts_inc=1;
-				force_fps = ticks;
-				force_fps /= dts_inc;
-			}
-			else force_fps = atof(ext+5);
-		}
-		else if (!strnicmp(ext+1, "timescale=", 10)) {
-			new_timescale = atoi(ext+11);
-		}
-		else if (!strnicmp(ext+1, "rescale=", 8)) {
-			rescale = atoi(ext+9);
-		}
-		else if (!stricmp(ext+1, "chap")) is_chap = 1;
-		else if (!stricmp(ext+1, "dref")) import_flags |= GF_IMPORT_USE_DATAREF;
-		else if (!stricmp(ext+1, "nodrop")) import_flags |= GF_IMPORT_NO_FRAME_DROP;
-		else if (!stricmp(ext+1, "packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
-		else if (!stricmp(ext+1, "sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
-		else if (!stricmp(ext+1, "sbrx")) import_flags |= GF_IMPORT_SBR_EXPLICIT;
-		else if (!stricmp(ext+1, "ovsbr")) import_flags |= GF_IMPORT_OVSBR;
-		else if (!stricmp(ext+1, "ps")) import_flags |= GF_IMPORT_PS_IMPLICIT;
-		else if (!stricmp(ext+1, "psx")) import_flags |= GF_IMPORT_PS_EXPLICIT;
-		else if (!stricmp(ext+1, "svc") || !stricmp(ext+1, "shvc") ) import_flags |= GF_IMPORT_SVC_EXPLICIT;
-		else if (!stricmp(ext+1, "nosvc") || !stricmp(ext+1, "noshvc")) import_flags |= GF_IMPORT_SVC_NONE;
-		else if (!stricmp(ext+1, "subsamples")) import_flags |= GF_IMPORT_SET_SUBSAMPLES;
-		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
-		else if (!stricmp(ext+1, "rap")) rap_only = 1;
-		else if (!stricmp(ext+1, "mpeg4")) import_flags |= GF_IMPORT_FORCE_MPEG4;
-		else if (!stricmp(ext+1, "swf-global")) import.swf_flags |= GF_SM_SWF_STATIC_DICT;
-		else if (!stricmp(ext+1, "swf-no-ctrl")) import.swf_flags &= ~GF_SM_SWF_SPLIT_TIMELINE;
-		else if (!stricmp(ext+1, "swf-no-text")) import.swf_flags |= GF_SM_SWF_NO_TEXT;
-		else if (!stricmp(ext+1, "swf-no-font")) import.swf_flags |= GF_SM_SWF_NO_FONT;
-		else if (!stricmp(ext+1, "swf-no-line")) import.swf_flags |= GF_SM_SWF_NO_LINE;
-		else if (!stricmp(ext+1, "swf-no-grad")) import.swf_flags |= GF_SM_SWF_NO_GRADIENT;
-		else if (!stricmp(ext+1, "swf-quad")) import.swf_flags |= GF_SM_SWF_QUAD_CURVE;
-		else if (!stricmp(ext+1, "swf-xlp")) import.swf_flags |= GF_SM_SWF_SCALABLE_LINE;
-		else if (!stricmp(ext+1, "swf-ic2d")) import.swf_flags |= GF_SM_SWF_USE_IC2D;
-		else if (!stricmp(ext+1, "swf-same-app")) import.swf_flags |= GF_SM_SWF_REUSE_APPEARANCE;
-		else if (!strnicmp(ext+1, "swf-flatten=", 12)) import.swf_flatten_angle = (Float) atof(ext+13);
-		else if (!strnicmp(ext+1, "agg=", 4)) frames_per_sample = atoi(ext+5);
-		else if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32) (atof(ext+5) * 1000);
 		else if (!strnicmp(ext+1, "par=", 4)) {
 			if (!stricmp(ext+5, "none")) {
 				par_n = par_d = -1;
@@ -309,14 +265,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 		}
 		else if (!strnicmp(ext+1, "name=", 5)) handler_name = gf_strdup(ext+6);
-		else if (!strnicmp(ext+1, "rvc=", 4)) {
-			if (sscanf(ext+5, "%d", &rvc_predefined) != 1) {
-				rvc_config = gf_strdup(ext+5);
-			}
-		}
-		else if (!strnicmp(ext+1, "font=", 5)) import.fontName = gf_strdup(ext+6);
-		else if (!strnicmp(ext+1, "size=", 5)) import.fontSize = atoi(ext+6);
-		else if (!strnicmp(ext+1, "fmt=", 4)) import.streamFormat = gf_strdup(ext+5);
 		else if (!strnicmp(ext+1, "ext=", 4)) {
 			/*extensions begin with '.'*/
 			if (*(ext+5) == '.')
@@ -327,42 +275,37 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				strcat(import.force_ext+1, ext+5);
 			}
 		}
+		else if (!strnicmp(ext+1, "hdlr=", 5)) handler = GF_4CC(ext[6], ext[7], ext[8], ext[9]);
 		else if (!strnicmp(ext+1, "disable", 7)) disable = 1;
 		else if (!strnicmp(ext+1, "group=", 6)) {
 			group = atoi(ext+7);
 			if (!group) group = gf_isom_get_next_alternate_group_id(dest);
 		}
-		else if (!strnicmp(ext+1, "hdlr=", 5))
-			handler = GF_4CC(ext[6], ext[7], ext[8], ext[9]);
-
-		else if (!strnicmp(ext+1, "layout=", 7)) {
-			if ( sscanf(ext+8, "%dx%dx%dx%d", &tw, &th, &tx, &ty)==4) {
-				track_layout = 1;
-			} else if ( sscanf(ext+8, "%dx%d", &tw, &th)==2) {
-				track_layout = 1;
-				tx = ty = 0;
+		else if (!strnicmp(ext+1, "fps=", 4)) {
+			if (!strcmp(ext+5, "auto")) force_fps = GF_IMPORT_AUTO_FPS;
+			else if (strchr(ext+5, '-')) {
+				u32 ticks, dts_inc;
+				sscanf(ext+5, "%u-%u", &ticks, &dts_inc);
+				if (!dts_inc) dts_inc=1;
+				force_fps = ticks;
+				force_fps /= dts_inc;
 			}
+			else force_fps = atof(ext+5);
 		}
-		else if (!strnicmp(ext+1, "text_layout=", 12)) {
-			if ( sscanf(ext+13, "%dx%dx%dx%d", &txtw, &txth, &txtx, &txty)==4) {
-				text_layout = 1;
-			} else if ( sscanf(ext+8, "%dx%d", &txtw, &txth)==2) {
-				track_layout = 1;
-				txtx = txty = 0;
-			}
-		}
-		else if (!strnicmp(ext+1, "stype=", 6)) {
-			stype = GF_4CC(ext[7], ext[8], ext[9], ext[10]);
-		}
-		else if (!strnicmp(ext+1, "profile=", 8)) profile = atoi(ext+9);
-		else if (!strnicmp(ext+1, "level=", 6)) level = atoi(ext+7);
-		else if (!strnicmp(ext+1, "chapter=", 8)) chapter_name = gf_strdup(ext+9);
-		else if (!strnicmp(ext+1, "chapfile=", 9)) {
-			chapter_name = gf_strdup(ext+10);
-			is_chap_file=1;
-		}
-		/*force all composition offsets to be positive*/
-		else if (!strnicmp(ext+1, "negctts", 7)) negative_cts_offset = 1;
+		else if (!stricmp(ext+1, "rap")) rap_only = 1;
+		else if (!stricmp(ext+1, "trailing")) import_flags |= GF_IMPORT_KEEP_TRAILING;
+		else if (!strnicmp(ext+1, "agg=", 4)) frames_per_sample = atoi(ext+5);
+		else if (!stricmp(ext+1, "dref")) import_flags |= GF_IMPORT_USE_DATAREF;
+		else if (!stricmp(ext+1, "nodrop")) import_flags |= GF_IMPORT_NO_FRAME_DROP;
+		else if (!stricmp(ext+1, "packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
+		else if (!stricmp(ext+1, "sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
+		else if (!stricmp(ext+1, "sbrx")) import_flags |= GF_IMPORT_SBR_EXPLICIT;
+		else if (!stricmp(ext+1, "ovsbr")) import_flags |= GF_IMPORT_OVSBR;
+		else if (!stricmp(ext+1, "ps")) import_flags |= GF_IMPORT_PS_IMPLICIT;
+		else if (!stricmp(ext+1, "psx")) import_flags |= GF_IMPORT_PS_EXPLICIT;
+		else if (!stricmp(ext+1, "mpeg4")) import_flags |= GF_IMPORT_FORCE_MPEG4;
+		else if (!stricmp(ext+1, "svc") || !stricmp(ext+1, "shvc") ) import_flags |= GF_IMPORT_SVC_EXPLICIT;
+		else if (!stricmp(ext+1, "nosvc") || !stricmp(ext+1, "noshvc")) import_flags |= GF_IMPORT_SVC_NONE;
 		/*split SVC layers*/
 		else if (!strnicmp(ext+1, "svcmode=", 8) || !strnicmp(ext+1, "shvcmode=", 9)) {
 			char *mode = ext+9;
@@ -377,9 +320,73 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			else if (!stricmp(mode, "merged"))
 				svc_mode = 0;
 		}
+		else if (!stricmp(ext+1, "subsamples")) import_flags |= GF_IMPORT_SET_SUBSAMPLES;
+		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
+		/*force all composition offsets to be positive*/
+		else if (!strnicmp(ext+1, "negctts", 7)) negative_cts_offset = 1;
+		else if (!strnicmp(ext+1, "stype=", 6)) {
+			stype = GF_4CC(ext[7], ext[8], ext[9], ext[10]);
+		}
+		else if (!stricmp(ext+1, "chap")) is_chap = 1;
+		else if (!strnicmp(ext+1, "chapter=", 8)) chapter_name = gf_strdup(ext+9);
+		else if (!strnicmp(ext+1, "chapfile=", 9)) {
+			chapter_name = gf_strdup(ext+10);
+			is_chap_file=1;
+		}
+		else if (!strnicmp(ext+1, "layout=", 7)) {
+			if ( sscanf(ext+8, "%dx%dx%dx%d", &tw, &th, &tx, &ty)==4) {
+				track_layout = 1;
+			} else if ( sscanf(ext+8, "%dx%d", &tw, &th)==2) {
+				track_layout = 1;
+				tx = ty = 0;
+			}
+		}
+		else if (!strnicmp(ext+1, "rescale=", 8)) {
+			rescale = atoi(ext+9);
+		}
+		else if (!strnicmp(ext+1, "timescale=", 10)) {
+			new_timescale = atoi(ext+11);
+		}
+
+
+		else if (!strnicmp(ext+1, "rvc=", 4)) {
+			if (sscanf(ext+5, "%d", &rvc_predefined) != 1) {
+				rvc_config = gf_strdup(ext+5);
+			}
+		}
+		else if (!strnicmp(ext+1, "fmt=", 4)) import.streamFormat = gf_strdup(ext+5);
+		else if (!strnicmp(ext+1, "profile=", 8)) profile = atoi(ext+9);
+		else if (!strnicmp(ext+1, "level=", 6)) level = atoi(ext+7);
+
+		else if (!strnicmp(ext+1, "font=", 5)) import.fontName = gf_strdup(ext+6);
+		else if (!strnicmp(ext+1, "size=", 5)) import.fontSize = atoi(ext+6);
+		else if (!strnicmp(ext+1, "text_layout=", 12)) {
+			if ( sscanf(ext+13, "%dx%dx%dx%d", &txtw, &txth, &txtx, &txty)==4) {
+				text_layout = 1;
+			} else if ( sscanf(ext+8, "%dx%d", &txtw, &txth)==2) {
+				track_layout = 1;
+				txtx = txty = 0;
+			}
+		}
+
+		else if (!stricmp(ext+1, "swf-global")) import.swf_flags |= GF_SM_SWF_STATIC_DICT;
+		else if (!stricmp(ext+1, "swf-no-ctrl")) import.swf_flags &= ~GF_SM_SWF_SPLIT_TIMELINE;
+		else if (!stricmp(ext+1, "swf-no-text")) import.swf_flags |= GF_SM_SWF_NO_TEXT;
+		else if (!stricmp(ext+1, "swf-no-font")) import.swf_flags |= GF_SM_SWF_NO_FONT;
+		else if (!stricmp(ext+1, "swf-no-line")) import.swf_flags |= GF_SM_SWF_NO_LINE;
+		else if (!stricmp(ext+1, "swf-no-grad")) import.swf_flags |= GF_SM_SWF_NO_GRADIENT;
+		else if (!stricmp(ext+1, "swf-quad")) import.swf_flags |= GF_SM_SWF_QUAD_CURVE;
+		else if (!stricmp(ext+1, "swf-xlp")) import.swf_flags |= GF_SM_SWF_SCALABLE_LINE;
+		else if (!stricmp(ext+1, "swf-ic2d")) import.swf_flags |= GF_SM_SWF_USE_IC2D;
+		else if (!stricmp(ext+1, "swf-same-app")) import.swf_flags |= GF_SM_SWF_REUSE_APPEARANCE;
+		else if (!strnicmp(ext+1, "swf-flatten=", 12)) import.swf_flatten_angle = (Float) atof(ext+13);
+
+
+		/*EXPERIMENTAL OPTIONS NOT DOCUMENTED*/
 		else if (!strnicmp(ext+1, "tiles", 5)) {
 			tile_mode = 1;
 		}
+
 		/*unrecognized, assume name has colon in it*/
 		else {
 			ext = ext2;

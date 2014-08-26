@@ -55,6 +55,9 @@ u32 gf_media_nalu_is_start_code(GF_BitStream *bs);
 /*returns size of chunk between current and next startcode (excluding startcode sizes), 0 if no more startcodes (eos)*/
 u32 gf_media_nalu_next_start_code_bs(GF_BitStream *bs);
 
+/*returns size of chunk between current startcode and end of payload (0x000000) - if no trailing bytes are found, returns the same as gf_media_nalu_next_start_code_bs*/
+u32 gf_media_nalu_payload_end_bs(GF_BitStream *bs);
+
 /*return nb bytes from current data until the next start code and set the size of the next start code (3 or 4 bytes)
 returns data_len if no startcode found and sets sc_size to 0 (last nal in payload)*/
 u32 gf_media_nalu_next_start_code(u8 *data, u32 data_len, u32 *sc_size);

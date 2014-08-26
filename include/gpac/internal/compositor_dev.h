@@ -551,6 +551,7 @@ typedef struct
 
 void gf_sc_queue_dom_event(GF_Compositor *compositor, GF_Node *node, GF_DOM_Event *evt);
 void gf_sc_queue_dom_event_on_target(GF_Compositor *compositor, GF_DOM_Event *evt, GF_DOMEventTarget *target, GF_SceneGraph *sg);
+void gf_sc_queue_event(GF_Compositor *compositor, GF_Event *evt);
 
 /*base stack for timed nodes (nodes that activate themselves at given times)
 	@UpdateTimeNode: shall be setup by the node handler and is called once per simulation frame

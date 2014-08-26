@@ -427,7 +427,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 		}
 		return ret;
 	}
-	ret = extractAttributes("#EXT-X-KEY:", line, 2);
+	ret = extractAttributes("#EXT-X-KEY:", line, 4);
 	if (ret) {
 		/* #EXT-X-KEY:METHOD=<method>[,URI="<URI>"] */
 		/* Not Supported for now */

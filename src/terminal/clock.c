@@ -160,6 +160,8 @@ void gf_clock_reset(GF_Clock *ck)
 	ck->init_time = 0;
 	ck->StartTime = 0;
 	ck->has_seen_eos = 0;
+	ck->media_time_at_init = 0;
+	ck->has_media_time_shift = 0;
 }
 
 void gf_clock_stop(GF_Clock *ck)
@@ -178,15 +180,6 @@ void gf_clock_set_time(GF_Clock *ck, u32 TS)
 		ck->PauseTime = ck->StartTime = gf_term_get_time(ck->term);
 		if (ck->term->play_state) ck->Paused ++;
 	}
-#if 0
-	/*TODO: test with pure OCR streams*/
-	else if (ck->use_ocr) {
-		/*just update the drift - we could also apply a drift algo*/
-		u32 now = gf_clock_real_time(ck);
-		s32 drift = (s32) TS - (s32) now;
-		ck->drift += drift;
-	}
-#endif
 }
 
 
@@ -240,10 +233,20 @@ u32 gf_clock_time(GF_Clock *ck)
 	return time - ck->drift;
 }
 
-u32 gf_clock_elapse_time(GF_Clock *ck)
+u32 gf_clock_media_time(GF_Clock *ck)
 {
-	if (ck->no_time_ctrl) return gf_clock_time(ck) - ck->init_time;
-	return gf_clock_time(ck);
+	u32 t;
+	if (!ck) return 0;
+	if (!ck->has_seen_eos && ck->last_TS_rendered) t = ck->last_TS_rendered;
+	else t = gf_clock_time(ck);
+	//if media time is not mapped, we consider that the timestamps are aligned with the media time
+	if (ck->has_media_time_shift) {
+		if (t>ck->init_time) t -= ck->init_time;
+		else t=0;
+
+		t += ck->media_time_at_init;
+	}
+	return t;
 }
 
 

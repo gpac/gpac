@@ -65,6 +65,8 @@ enum
 	GF_STATE_PLAYING = 0,	/*terminal is playing*/
 	GF_STATE_PAUSED, /*terminal is paused*/
 	GF_STATE_STEP_PAUSE, /*get/set only: terminal will pause after next frame (simulation tick). On get, indicates that rendering step hasn't performed yet*/
+
+	GF_STATE_PLAY_LIVE = 10 //set only: indicates resume shall restart from live point if any rather than pause point
 };
 
 /*refresh mode*/
@@ -246,6 +248,8 @@ enum
 	GF_OPT_MEDIA_CACHE,
 	/*get/set Play state - cf above states for set*/
 	GF_OPT_PLAY_STATE,
+	/*get only: returns 1 if main addon is playing, 0 if regular scene is playing*/
+	GF_OPT_MAIN_ADDON,
 	/*get/set benvch mode - if enabled, video frames are drawn as soon as possible witthout checking synchronisation*/
 	GF_OPT_VIDEO_BENCH,
 	/*get/set OpenGL force mode - returns error if OpenGL is not supported*/

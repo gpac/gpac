@@ -418,7 +418,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	if (ch->to_init) {
 		init_reader(ch);
 	} else if (ch->speed < 0) {
-		u32 prev_sample = ch->sample_num;
 		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time - 1, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
 		if (e) {
 			if (e==GF_EOS) {
@@ -427,13 +426,12 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			}
 			return;
 		}
-		if (ch->sample_num == prev_sample) {
+		if (ch->sample->DTS + ch->dts_offset == ch->sample_time) {
 			if (!ch->owner->frag_type) {
 				ch->last_state = GF_EOS;
 			} else {
 				if (ch->sample)
 					gf_isom_sample_del(&ch->sample);
-				ch->sample_num = 0;
 			}
 		}
 		if (ch->sample) {
@@ -558,7 +556,12 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			else if (ch->owner->input->query_proxy) {
 				ch->last_state = GF_OK;
 			}
-		} else if (!ch->sample_num || (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
+		} 
+		else if (!ch->sample_num 
+				|| ((ch->speed >= 0) && (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track)))
+				|| ((ch->speed < 0) && (ch->sample_time == gf_isom_get_current_tfdt(ch->owner->mov, ch->track) + ch->dts_offset)) 
+		) {
+
 			if (ch->owner->frag_type==1) {
 				//if segment is fully opened and no more data, this track is done, wait for next segment
 				if (!ch->wait_for_segment_switch && ch->owner->input->query_proxy && (ch->owner->seg_opened==2) ) {

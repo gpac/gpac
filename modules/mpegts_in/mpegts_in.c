@@ -87,6 +87,9 @@ typedef struct
 	u32 nb_paused;
 	Bool file_regulate;
 	u32 nb_playing;
+
+	Bool map_media_time;
+	Double media_start_range;
 } M2TSIn;
 
 
@@ -393,13 +396,6 @@ static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
 	memset(&slh, 0, sizeof(GF_SLHeader));
 	slh.accessUnitStartFlag = (pck->flags & GF_M2TS_PES_PCK_AU_START) ? 1 : 0;
 	if (slh.accessUnitStartFlag) {
-#if 0
-		slh.OCRflag = 1;
-		slh.m2ts_pcr = 1;
-		slh.objectClockReference = pck->stream->program->last_pcr_value;
-#else
-		slh.OCRflag = 0;
-#endif
 		slh.compositionTimeStampFlag = 1;
 		slh.compositionTimeStamp = pck->PTS;
 		if (pck->DTS != pck->PTS) {
@@ -409,6 +405,7 @@ static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
 		slh.randomAccessPointFlag = (pck->flags & GF_M2TS_PES_PCK_RAP) ? 1 : 0;
 	}
 	gf_service_send_packet(m2ts->service, pck->stream->user, pck->data, pck->data_len, &slh, GF_OK);
+
 }
 
 static GFINLINE void MP2TS_SendSLPacket(M2TSIn *m2ts, GF_M2TS_SL_PCK *pck)
@@ -652,6 +649,17 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			slh.m2ts_pcr = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 2 : 1;
 			slh.objectClockReference = ((GF_M2TS_PES_PCK *) param)->PTS;
 			gf_service_send_packet(m2ts->service, ((GF_M2TS_PES_PCK *) param)->stream->user, NULL, 0, &slh, GF_OK);
+
+			if ( m2ts->map_media_time && !ts->start_range) {
+				GF_NetworkCommand com;
+				memset(&com, 0, sizeof(com));
+				com.command_type = GF_NET_CHAN_SET_MEDIA_TIME;
+				com.map_time.media_time = m2ts->media_start_range;
+				com.map_time.timestamp = slh.objectClockReference / 300;
+				com.base.on_channel = ((GF_M2TS_PES_PCK *) param)->stream->user;
+				gf_service_command(m2ts->service, &com, GF_OK);
+				m2ts->map_media_time = 0;
+			}
 		}
 		((GF_M2TS_PES_PCK *) param)->stream->program->first_dts = 1;
 
@@ -1413,7 +1421,9 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			if (ts->file) {
 				ts->start_range = (u32) (com->play.start_range*1000);
 				ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
+				m2ts->media_start_range = com->play.start_range;
 			}
+			m2ts->map_media_time = 1;
 
 			if (plug->query_proxy && ts->file)
 				ts->segment_switch = 1;
