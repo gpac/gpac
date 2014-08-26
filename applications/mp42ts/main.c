@@ -252,16 +252,15 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 	if (!*last_url_time || (last_time - *last_url_time + 1 >= temi_url_insertion_delay) ) {
 		*last_url_time = last_time + 1;
 		len = 0;
-		gf_bs_write_int(bs,	0x00, 8);
+		gf_bs_write_int(bs,	GF_M2TS_AFDESC_LOCATION_DESCRIPTOR, 8);
 		gf_bs_write_int(bs,	len, 8);
 
 		gf_bs_write_int(bs,	0, 1); //force_reload
 		gf_bs_write_int(bs,	0, 1); //is_announcement
 		gf_bs_write_int(bs,	0, 1); //splicing_flag
-		gf_bs_write_int(bs,	strlen(temi_url) ? 0 : 1, 1); //external_url
 		gf_bs_write_int(bs,	0, 1); //use_base_temi_url
-		gf_bs_write_int(bs,	0xFF, 3); //reserved
-		gf_bs_write_int(bs,	0, 8); //timeline_id
+		gf_bs_write_int(bs,	0xFF, 5); //reserved
+		gf_bs_write_int(bs,	0, 7); //timeline_id
 
 		if (strlen(temi_url)) {
 			char *url = (char *)temi_url;
@@ -290,7 +289,7 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 		if (ntp) len += 8;
 
 		//write timeline descriptor
-		gf_bs_write_int(bs,	0x01, 8);
+		gf_bs_write_int(bs,	GF_M2TS_AFDESC_TIMELINE_DESCRIPTOR, 8);
 		gf_bs_write_int(bs,	len, 8);
 
 		gf_bs_write_int(bs,	timescale ? ((timecode > 0xFFFFFFUL) ? 2 : 1) : 0, 2); //has_timestamp
@@ -573,7 +572,6 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 		ifce->depends_on_stream = 0;
 	}
 
-	source->max_sample_size = 0;
 	if (compute_max_size) {
 		u32 i;
 		for (i=0; i < priv->sample_count; i++) {
@@ -2592,7 +2590,7 @@ call_flush:
 			u32 now=gf_sys_clock();
 			if (now > last_print_time + MP42TS_PRINT_TIME_MS) {
 				last_print_time = now;
-				fprintf(stderr, "M2TS: time %d - TS time %d - avg bitrate %d\r", gf_m2ts_get_sys_clock(muxer), gf_m2ts_get_ts_clock(muxer), muxer->average_birate_kbps);
+				fprintf(stderr, "M2TS: time % 6d - TS time % 6d - avg bitrate % 8d\r", gf_m2ts_get_sys_clock(muxer), gf_m2ts_get_ts_clock(muxer), muxer->average_birate_kbps);
 
 				if (gf_prompt_has_input()) {
 					char c = gf_prompt_get_char();
