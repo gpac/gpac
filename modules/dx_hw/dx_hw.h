@@ -155,7 +155,7 @@ typedef struct
 	HCURSOR curs_normal, curs_hand, curs_collide;
 	u32 cursor_type;
 	Bool is_setup, disable_vsync;
-
+	char *caption;
 	/*gl*/
 #ifndef GPAC_DISABLE_3D
 

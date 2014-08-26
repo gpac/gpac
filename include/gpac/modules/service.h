@@ -75,6 +75,8 @@ typedef enum
 	/*map net time (OTB) to media time (up only) - this is needed by some signaling protocols when the
 	real play range is not the requested one */
 	GF_NET_CHAN_MAP_TIME,
+	/*same as map time, but does not trigger realignment of timestamps in the terminal - only used to solve TS->OTB for display purposes*/
+	GF_NET_CHAN_SET_MEDIA_TIME,
 	/*reconfiguration of channel comming from network (up only) - this is used to override the SL config
 	if it differs from the one specified at config*/
 	GF_NET_CHAN_RECONFIG,
@@ -164,8 +166,12 @@ typedef struct
 	Bool dash_segment_switch;
 	/*indicates this is the first PLAY on an elemnt inserted from bcast*/
 	Bool initial_broadcast_play;
-	/*indicates the range is given in timestamps, no media time */
-	Bool is_timestamp_based;
+	/*
+		0: range is in media time
+		1: range is in timesatmps
+		2: range is in media time but timestamps should not be shifted (hybrid dash only for now)
+	*/
+	u32 timestamp_based;
 } GF_NetComPlay;
 
 

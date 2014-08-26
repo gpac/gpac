@@ -648,11 +648,26 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			if (evt->key.flags & GF_KEY_MOD_CTRL)
 				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);
 			break;
+		case GF_KEY_O:
+			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
+				if (gf_term_get_option(term, GF_OPT_MAIN_ADDON)) {
+					u32 is_pause = gf_term_get_option(term, GF_OPT_PLAY_STATE);
+					fprintf(stderr, "Resuming to main content\n");
+					gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PLAY_LIVE);
+				} else {
+					fprintf(stderr, "Main addon not enabled\n");
+				}
+			}
+			break;
 		case GF_KEY_P:
 			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
-				Bool is_pause = gf_term_get_option(term, GF_OPT_PLAY_STATE);
+				u32 is_pause = gf_term_get_option(term, GF_OPT_PLAY_STATE) ;
 				fprintf(stderr, "[Status: %s]\n", is_pause ? "Playing" : "Paused");
-				gf_term_set_option(term, GF_OPT_PLAY_STATE, (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) ? GF_STATE_PLAYING : GF_STATE_PAUSED);
+				if ((is_pause == GF_STATE_PAUSED) && (evt->key.flags & GF_KEY_MOD_SHIFT)) {
+					gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PLAY_LIVE);
+				} else {
+					gf_term_set_option(term, GF_OPT_PLAY_STATE, (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) ? GF_STATE_PLAYING : GF_STATE_PAUSED);
+				}
 			}
 			break;
 		case GF_KEY_S:
@@ -2374,10 +2389,9 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 	}
 	fprintf(stderr, "\n");
 
-	if (odi.owns_service) {
-		fprintf(stderr, "Service Handler: %s\n", odi.service_handler);
-		fprintf(stderr, "Service URL: %s\n", odi.service_url);
-	}
+	fprintf(stderr, "Service Handler: %s\n", odi.service_handler);
+	fprintf(stderr, "Service URL: %s\n", odi.service_url);
+
 	if (odi.codec_name) {
 		Float avg_dec_time;
 		switch (odi.od_type) {
@@ -2602,9 +2616,11 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 	}
 }
 
-void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm)
+void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 {
 	GF_MediaInfo odi;
+	u32 ind = indent;
+	u32 i, count;
 	if (!odm) return;
 
 	if (gf_term_get_object_info(term, odm, &odi) != GF_OK) return;
@@ -2612,31 +2628,50 @@ void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm)
 		fprintf(stderr, "Service not attached\n");
 		return;
 	}
-
-	fprintf(stderr, "OD %d: ", odi.od->objectDescriptorID);
-	switch (odi.status) {
-	case 1:
-		fprintf(stderr, "Playing - ");
-		break;
-	case 2:
-		fprintf(stderr, "Paused - ");
-		break;
-	default:
-		fprintf(stderr, "Stopped - ");
-		break;
+	while (ind) {
+		fprintf(stderr, " ");
+		ind--;
 	}
-	if (odi.buffer>=0) fprintf(stderr, "Buffer: %d ms - ", odi.buffer);
-	else fprintf(stderr, "Not buffering - ");
-	fprintf(stderr, "Clock drift: %d ms", odi.clock_drift);
-	fprintf(stderr, " - time: ");
-	PrintTime((u32) (odi.current_time*1000));
-	fprintf(stderr, "\n");
+
+	if (! odi.generated_scene) {
+
+		fprintf(stderr, "- OD %d: ", odi.od->objectDescriptorID);
+		switch (odi.status) {
+		case 1:
+			fprintf(stderr, "Playing - ");
+			break;
+		case 2:
+			fprintf(stderr, "Paused - ");
+			break;
+		default:
+			fprintf(stderr, "Stopped - ");
+			break;
+		}
+		if (odi.buffer>=0) fprintf(stderr, "Buffer: %d ms - ", odi.buffer);
+		else fprintf(stderr, "Not buffering - ");
+		fprintf(stderr, "Clock drift: %d ms", odi.clock_drift);
+		fprintf(stderr, " - time: ");
+		PrintTime((u32) (odi.current_time*1000));
+		fprintf(stderr, "\n");
+
+	} else {
+		fprintf(stderr, "+ Service %s:\n", odi.service_url);
+	}
+
+	count = gf_term_get_object_count(term, odm);
+	for (i=0; i<count; i++) {
+		GF_ObjectManager *an_odm = gf_term_get_object(term, odm, i);
+		PrintODTiming(term, an_odm, indent+1);
+	}
+	return;
+
 }
 
-void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm)
+void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 {
 	Float avg_dec_time;
 	GF_MediaInfo odi;
+	u32 ind, i, count;
 	if (!odm) return;
 
 	if (gf_term_get_object_info(term, odm, &odi) != GF_OK) return;
@@ -2645,51 +2680,72 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm)
 		return;
 	}
 
-	fprintf(stderr, "OD %d: ", odi.od->objectDescriptorID);
-	switch (odi.status) {
-	case 1:
-		fprintf(stderr, "Playing");
-		break;
-	case 2:
-		fprintf(stderr, "Paused");
-		break;
-	default:
-		fprintf(stderr, "Stopped");
-		break;
+	ind = indent;
+	while (ind) {
+		fprintf(stderr, " ");
+		ind--;
 	}
-	if (odi.buffer>=0) fprintf(stderr, " - Buffer: %d ms", odi.buffer);
-	if (odi.db_unit_count) fprintf(stderr, " - DB: %d AU", odi.db_unit_count);
-	if (odi.cb_max_count) fprintf(stderr, " - CB: %d/%d CUs", odi.cb_unit_count, odi.cb_max_count);
 
-	fprintf(stderr, "\n * %d decoded frames - %d dropped frames\n", odi.nb_dec_frames, odi.nb_droped);
-	avg_dec_time = 0;
-	if (odi.nb_dec_frames) {
-		avg_dec_time = (Float) odi.total_dec_time;
-		avg_dec_time /= odi.nb_dec_frames;
+	if (odi.generated_scene) {
+		fprintf(stderr, "+ Service %s:\n", odi.service_url);
+	} else {
+		fprintf(stderr, "- OD %d: ", odi.od->objectDescriptorID);
+		switch (odi.status) {
+		case 1:
+			fprintf(stderr, "Playing");
+			break;
+		case 2:
+			fprintf(stderr, "Paused");
+			break;
+		default:
+			fprintf(stderr, "Stopped");
+			break;
+		}
+		if (odi.buffer>=0) fprintf(stderr, " - Buffer: %d ms", odi.buffer);
+		if (odi.db_unit_count) fprintf(stderr, " - DB: %d AU", odi.db_unit_count);
+		if (odi.cb_max_count) fprintf(stderr, " - CB: %d/%d CUs", odi.cb_unit_count, odi.cb_max_count);
+
+		fprintf(stderr, "\n");
+		ind = indent;
+		while (ind) {
+			fprintf(stderr, " ");
+			ind--;
+		}
+
+		fprintf(stderr, " %d decoded frames - %d dropped frames\n", odi.nb_dec_frames, odi.nb_droped);
+
+			ind = indent;
+		while (ind) {
+			fprintf(stderr, " ");
+			ind--;
+		}
+
+		avg_dec_time = 0;
+		if (odi.nb_dec_frames) {
+			avg_dec_time = (Float) odi.total_dec_time;
+			avg_dec_time /= odi.nb_dec_frames;
+		}
+		fprintf(stderr, " Avg Bitrate %d kbps (%d max) - Avg Decoding Time %.2f us ("LLU" max)\n",
+				(u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time);
 	}
-	fprintf(stderr, " * Avg Bitrate %d kbps (%d max) - Avg Decoding Time %.2f us ("LLU" max)\n",
-	        (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time);
+
+	count = gf_term_get_object_count(term, odm);
+	for (i=0; i<count; i++) {
+		GF_ObjectManager *an_odm = gf_term_get_object(term, odm, i);
+		PrintODBuffer(term, an_odm, indent+1);
+	}
+
 }
 
 void ViewODs(GF_Terminal *term, Bool show_timing)
 {
-	u32 i, count;
-	GF_ObjectManager *odm, *root_odm = gf_term_get_root_object(term);
+	GF_ObjectManager *root_odm = gf_term_get_root_object(term);
 	if (!root_odm) return;
 
 	if (show_timing) {
-		PrintODTiming(term, root_odm);
+		PrintODTiming(term, root_odm, 0);
 	} else {
-		PrintODBuffer(term, root_odm);
-	}
-	count = gf_term_get_object_count(term, root_odm);
-	for (i=0; i<count; i++) {
-		odm = gf_term_get_object(term, root_odm, i);
-		if (show_timing) {
-			PrintODTiming(term, odm);
-		} else {
-			PrintODBuffer(term, odm);
-		}
+		PrintODBuffer(term, root_odm, 0);
 	}
 	fprintf(stderr, "\n");
 }

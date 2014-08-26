@@ -531,7 +531,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
 
 			cb->Status = CB_STOP;
-			cb->odm->current_time = (u32) cb->odm->media_stop_time;
+			cb->odm->media_current_time = (u32) cb->odm->media_stop_time;
 #ifndef GPAC_DISABLE_VRML
 			/*force update of media time*/
 			mediasensor_update_timing(cb->odm, 1);
@@ -543,13 +543,13 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 
 	/*update the timing*/
 	if ((cb->Status != CB_STOP) && cb->odm && cb->odm->codec) {
-		cb->odm->current_time = cb->output->TS;
+		cb->odm->media_current_time = cb->output->TS + cb->odm->codec->ck->media_time_at_init - cb->odm->codec->ck->init_time;
 
 		/*handle visual object - EOS if no more data (we keep the last CU for rendering, so check next one)*/
 		if (cb->HasSeenEOS && (!cb->output->next->dataLength || (cb->Capacity==1))) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
 			cb->Status = CB_STOP;
-			cb->odm->current_time = (u32) cb->odm->media_stop_time;
+			cb->odm->media_current_time = (u32) cb->odm->media_stop_time;
 #ifndef GPAC_DISABLE_VRML
 			/*force update of media time*/
 			mediasensor_update_timing(cb->odm, 1);

@@ -4413,7 +4413,12 @@ restart_import:
 
 	while (gf_bs_available(bs)) {
 		u8 nal_hdr, skip_nal, is_subseq, add_sps;
-		nal_size = gf_media_nalu_next_start_code_bs(bs);
+		u32 nal_and_trailing_size;
+
+		nal_and_trailing_size = nal_size = gf_media_nalu_next_start_code_bs(bs);
+		if (!(import->flags & GF_IMPORT_KEEP_TRAILING)) {
+			nal_size = gf_media_nalu_payload_end_bs(bs);
+		}
 
 		if (nal_size>max_size) {
 			buffer = (char*)gf_realloc(buffer, sizeof(char)*nal_size);
@@ -5000,9 +5005,9 @@ restart_import:
 		gf_bs_align(bs);
 		nal_end = gf_bs_get_position(bs);
 		assert(nal_start <= nal_end);
-		assert(nal_end <= nal_start + nal_size);
-		if (nal_end != nal_start + nal_size)
-			gf_bs_seek(bs, nal_start + nal_size);
+		assert(nal_end <= nal_start + nal_and_trailing_size);
+		if (nal_end != nal_start + nal_and_trailing_size)
+			gf_bs_seek(bs, nal_start + nal_and_trailing_size);
 
 		if (!gf_bs_available(bs)) break;
 		if (duration && (dts_inc*cur_samp > duration)) break;
@@ -5376,9 +5381,14 @@ restart_import:
 		GF_HEVCConfig *prev_cfg;
 		u8 nal_unit_type, temporal_id, layer_id;
 		Bool skip_nal, add_sps, is_slice, has_vcl_nal;
+		u32 nal_and_trailing_size;
 
 		has_vcl_nal = 0;
-		nal_size = gf_media_nalu_next_start_code_bs(bs);
+		nal_and_trailing_size = nal_size = gf_media_nalu_next_start_code_bs(bs);
+		if (!(import->flags & GF_IMPORT_KEEP_TRAILING)) {
+			nal_size = gf_media_nalu_payload_end_bs(bs);
+		}
+
 
 		if (nal_size>max_size) {
 			buffer = (char*)gf_realloc(buffer, sizeof(char)*nal_size);
@@ -5886,9 +5896,9 @@ next_nal:
 		gf_bs_align(bs);
 		nal_end = gf_bs_get_position(bs);
 		assert(nal_start <= nal_end);
-		assert(nal_end <= nal_start + nal_size);
-		if (nal_end != nal_start + nal_size)
-			gf_bs_seek(bs, nal_start + nal_size);
+		assert(nal_end <= nal_start + nal_and_trailing_size);
+		if (nal_end != nal_start + nal_and_trailing_size)
+			gf_bs_seek(bs, nal_start + nal_and_trailing_size);
 
 		if (!gf_bs_available(bs)) break;
 		if (duration && (dts_inc*cur_samp > duration)) break;

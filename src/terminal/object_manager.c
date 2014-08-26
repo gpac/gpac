@@ -625,6 +625,11 @@ static Bool gf_odm_should_auto_select(GF_ObjectManager *odm)
 
 	if (odm->parentscene && !odm->parentscene->is_dynamic_scene) return GF_TRUE;
 
+	if (odm->parentscene && odm->parentscene->root_od->addon) {
+		if (odm->parentscene->root_od->addon->addon_type == GF_ADDON_TYPE_MAIN) 
+			return GF_FALSE;
+	}
+
 	count = gf_list_count(odm->parentscene->resources);
 	for (i=0; i<count; i++) {
 		GF_ObjectManager *an_odm = gf_list_get(odm->parentscene->resources, i);
@@ -672,7 +677,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		char *parent_url = NULL;
 		odm->OD->URLString = NULL;
 		/*store original OD ID */
-		if (!odm->current_time) odm->current_time = odm->OD->objectDescriptorID;
+		if (!odm->media_current_time) odm->media_current_time = odm->OD->objectDescriptorID;
 
 		gf_odf_desc_del((GF_Descriptor *)odm->OD);
 		odm->OD = NULL;
@@ -697,9 +702,9 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		return;
 	}
 	/*restore OD ID */
-	if (odm->current_time) {
-		odm->OD->objectDescriptorID = odm->current_time;
-		odm->current_time = 0;
+	if (odm->media_current_time) {
+		odm->OD->objectDescriptorID = odm->media_current_time;
+		odm->media_current_time = 0;
 		odm->flags |= GF_ODM_REMOTE_OD;
 	}
 
@@ -764,8 +769,12 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	if (odm->parentscene) {
 		GF_Event evt;
 
-		if (!odm->scalable_addon)
+		//this may result in an attempt to lock the compositor, so release the net MX before
+		if (!odm->scalable_addon) {
+			gf_term_lock_net(odm->term, GF_FALSE);
 			gf_scene_setup_object(odm->parentscene, odm);
+			gf_term_lock_net(odm->term, GF_TRUE);
+		}
 
 		/*setup node decoder*/
 		if (odm->mo && odm->codec && odm->codec->decio && (odm->codec->decio->InterfaceType==GF_NODE_DECODER_INTERFACE) ) {
@@ -855,7 +864,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 
 			//check role - for now look into URL, we need to inspect DASH roles
 			if (odm->mo->URLs.count && odm->mo->URLs.vals[0].url) {	
-				char *sep = strchr(odm->mo->URLs.vals[0].url, '&');
+				char *sep = strchr(odm->mo->URLs.vals[0].url, '?');
 				if (sep && strstr(sep, "role=main")) {
 					odm->addon->addon_type = GF_ADDON_TYPE_MAIN;
 				}
@@ -1486,6 +1495,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	u64 range_end;
 	Bool skip_od_st;
 	Bool media_control_paused = 0;
+	Bool start_range_is_clock = 0;
 	GF_NetworkCommand com;
 #ifndef GPAC_DISABLE_VRML
 	MediaControlStack *ctrl;
@@ -1554,23 +1564,35 @@ void gf_odm_play(GF_ObjectManager *odm)
 		}
 		/*play from current time*/
 		else {
-			if (odm->parentscene && odm->parentscene->root_od->addon) {
-				ck_time = gf_scene_adjust_time_for_addon(odm->parentscene, gf_clock_time(ch->clock), odm->parentscene->root_od->addon, &com.play.is_timestamp_based);
+			ck_time = gf_clock_media_time(ch->clock);
+			ck_time /= 1000;
+			start_range_is_clock = 1;
+		}
 
-				if (odm->scalable_addon) {
-					//this is a scalable extension to an object in the parent scene
-					gf_scene_select_scalable_addon(odm->parentscene->root_od->parentscene, odm);
-				}
-			} else {
+		/*handle initial start - MPEG-4 is a bit annoying here, streams are not started through OD but through
+		scene nodes. If the stream runs on the BIFS/OD clock, the clock is already started at this point and we're
+		sure to get at least a one-frame delay in PLAY, so just remove it - note we're generous but this shouldn't hurt*/
+		if (ck_time<=0.5) ck_time = 0;
+
+
+		/*adjust time for addons*/
+		if (odm->parentscene && odm->parentscene->root_od->addon) {
+			//addon timing is resolved against timestamps, not media time
+			if (start_range_is_clock) {
 				ck_time = gf_clock_time(ch->clock);
 				ck_time /= 1000;
 			}
+			ck_time = gf_scene_adjust_time_for_addon(odm->parentscene, ck_time, odm->parentscene->root_od->addon, &com.play.timestamp_based);
+			//we are having a play request for an addon without the main content being active - we no longer have timestamp info from the main content
+			if (!ch->clock->clock_init && com.play.timestamp_based) 
+				com.play.timestamp_based = 2;
 
-			/*handle initial start - MPEG-4 is a bit annoying here, streams are not started through OD but through
-			scene nodes. If the stream runs on the BIFS/OD clock, the clock is already started at this point and we're
-			sure to get at least a one-frame delay in PLAY, so just remove it - note we're generous but this shouldn't hurt*/
-			if (ck_time<=0.5) ck_time = 0;
+			if (odm->scalable_addon) {
+				//this is a scalable extension to an object in the parent scene
+				gf_scene_select_scalable_addon(odm->parentscene->root_od->parentscene, odm);
+			}
 		}
+
 		com.play.start_range = ck_time;
 
 		if (range_end) {
@@ -1619,9 +1641,6 @@ void gf_odm_play(GF_ObjectManager *odm)
 			}
 		}
 #endif
-
-		if ((com.play.end_range>com.play.start_range) && com.play.speed<0) 
-			com.play.end_range = 0;
 
 		/*full object playback*/
 		if (com.play.end_range<=0) {
@@ -1676,13 +1695,21 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 		if (odm->flags & GF_ODM_REGENERATE_SCENE) {
 			odm->flags &= ~GF_ODM_REGENERATE_SCENE;
-			gf_scene_regenerate(odm->subscene);
+			if (!odm->subscene->graph_attached)
+				gf_scene_regenerate(odm->subscene);
+			else
+				gf_scene_restart_dynamic(odm->subscene, (u64) -1);
 		}
 	}
 	if (odm->ocr_codec) gf_term_start_codec(odm->ocr_codec, 0);
 #ifndef GPAC_MINIMAL_ODF
 	if (odm->oci_codec) gf_term_start_codec(odm->oci_codec, 0);
 #endif
+
+	if (odm->flags & GF_ODM_PAUSE_QUEUED) {
+		odm->flags &= ~GF_ODM_PAUSE_QUEUED;
+		media_control_paused = 1;
+	}
 
 	if (media_control_paused)
 		gf_odm_pause(odm);
@@ -1760,7 +1787,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 
 	/*object was not unlocked, decoders were not started*/
 	if (odm->state==GF_ODM_STATE_BLOCKED) {
-		odm->current_time = 0;
+		odm->media_current_time = 0;
 		gf_sema_notify(odm->raw_frame_sema, 1);
 		return;
 	}
@@ -1806,6 +1833,11 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH %d At OTB %u requesting STOP\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock)));
 		}
 	}
+
+	if (odm->parentscene && odm->parentscene->root_od->addon) {
+		odm->parentscene->root_od->addon->started = 0;
+	}
+
 	gf_term_service_media_event(odm, GF_EVENT_ABORT);
 
 	/*stop channels*/
@@ -1821,7 +1853,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 //	gf_term_lock_net(odm->term, 0);
 
 	odm->state = GF_ODM_STATE_STOP;
-	odm->current_time = 0;
+	odm->media_current_time = 0;
 
 #ifndef GPAC_DISABLE_VRML
 	/*reset media sensor(s)*/
@@ -1956,12 +1988,21 @@ void gf_odm_pause(GF_ObjectManager *odm)
 #endif
 	GF_Channel *ch;
 
-	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
+	//postpone until the PLAY request
+	if (odm->state != GF_ODM_STATE_PLAY) {
+		odm->flags |= GF_ODM_PAUSE_QUEUED;
+		return;
+	}
 
+	if (odm->flags & GF_ODM_PAUSED) return;
+	odm->flags |= GF_ODM_PAUSED;
+
+	//cleanup - we need to enter in stop state for broadcast modes
+	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
 
 	/*stop codecs, and update status for media codecs*/
 	if (odm->codec) {
-		gf_term_stop_codec(odm->codec, 1);
+		//we don't pause codec but only change its status to PUASE - this will allow decoding until CB is full, which will turn the codec in pause mdoe
 		gf_codec_set_status(odm->codec, GF_ESM_CODEC_PAUSE);
 	} else if (odm->subscene) {
 		if (odm->subscene->scene_codec) {
@@ -1979,9 +2020,12 @@ void gf_odm_pause(GF_ObjectManager *odm)
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 		gf_clock_pause(ch->clock);
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting PAUSE (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
+
+		if (odm->state != GF_ODM_STATE_PLAY) continue;
+
 		com.base.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting PAUSE (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
 	}
 
 #ifndef GPAC_DISABLE_VRML
@@ -2007,8 +2051,15 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	MediaControlStack *ctrl;
 #endif
 
-	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
+	if (odm->flags & GF_ODM_PAUSE_QUEUED) {
+		odm->flags &= ~GF_ODM_PAUSE_QUEUED;
+		return;
+	}
 
+	if (!(odm->flags & GF_ODM_PAUSED)) return;
+	odm->flags &= ~GF_ODM_PAUSED;
+
+	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
 
 	/*start codecs, and update status for media codecs*/
 	if (odm->codec) {
@@ -2033,9 +2084,12 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
 		gf_clock_resume(ch->clock);
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting RESUME (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
+		if (odm->state!= GF_ODM_STATE_PLAY) continue;
+
 		com.base.on_channel = ch;
 		gf_term_service_command(ch->service, &com);
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting RESUME (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
 
 #ifndef GPAC_DISABLE_VRML
 		/*override speed with MC*/

@@ -130,7 +130,7 @@ static void gf_m2ts_estimate_duration(GF_M2TS_Demuxer *ts, u64 PCR, u16 pcr_pid)
 			ts->first_pcr_found = PCR;
 			ts->pcr_pid = pcr_pid;
 			ts->nb_pck_at_pcr = ts->nb_pck;
-		} else if (PCR-ts->first_pcr_found > 2*27000000) {
+		} else if (PCR - ts->first_pcr_found > 2*27000000) {
 			Bool changed = GF_FALSE;
 			Double pck_dur = (Double) (PCR-ts->first_pcr_found);
 			pck_dur /= (ts->nb_pck - ts->nb_pck_at_pcr);
@@ -2909,17 +2909,33 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 		seamless_flag = af_extension[1] & 0x20 ? 1 : 0;
 		af_desc_not_present = af_extension[1] & 0x10 ? 1 : 0;
 		af_extension += 2;
+		if (!afext_bytes) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension fopund\n", pid));
+			return;
+		}
 		afext_bytes-=1;
 		if (ltw_flag) {
 			af_extension += 2;
+			if (!afext_bytes<2) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension fopund\n", pid));
+				return;
+			}
 			afext_bytes-=2;
 		}
 		if (pwr_flag) {
 			af_extension += 3;
+			if (!afext_bytes<3) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension fopund\n", pid));
+				return;
+			}
 			afext_bytes-=3;
 		}
 		if (seamless_flag) {
 			af_extension += 3;
+			if (!afext_bytes<3) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension fopund\n", pid));
+				return;
+			}
 			afext_bytes-=3;
 		}
 
@@ -3027,6 +3043,11 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 //#if DEBUG_TS_PACKET
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d\n", hdr.pid));
 //#endif
+
+	if (hdr.scrambling_ctrl) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet is encrypted (PID %d)\n", hdr.pid));
+		return;
+	}
 
 	paf = NULL;
 	payload_size = 184;
@@ -3756,6 +3777,8 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 			ts_bs = gf_bs_from_file(ts->file, GF_BITSTREAM_READ);
 		else
 			ts_bs = gf_bs_new(ts->ts_data_chunk, ts->ts_data_chunk_size, GF_BITSTREAM_READ);
+
+		gf_bs_seek(ts_bs, 0);
 
 		while (ts->run_state && gf_bs_available(ts_bs) && !ts->force_file_refresh) {
 

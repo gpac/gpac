@@ -306,7 +306,7 @@ static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Decoding AU\n"));
 	buffer = faacDecDecode(ctx->codec, &ctx->info, (unsigned char *) inBuffer, inBufferLength);
 	if (ctx->info.error>0) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Error decoding AU %s\n", faacDecGetErrorMessage(ctx->info.error) ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FAAD] Error decoding AU %s\n", faacDecGetErrorMessage(ctx->info.error) ));
 		*outBufferLength = 0;
 		//reinit if error
 		FAAD_AttachStream((GF_BaseDecoder *)ifcg, ctx->esd);

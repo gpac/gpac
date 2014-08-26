@@ -1751,8 +1751,8 @@ u32 gf_media_nalu_is_start_code(GF_BitStream *bs)
 
 /*read that amount of data at each IO access rather than fetching byte by byte...*/
 #define AVC_CACHE_SIZE	4096
-GF_EXPORT
-u32 gf_media_nalu_next_start_code_bs(GF_BitStream *bs)
+
+static u32 gf_media_nalu_locate_start_code_bs(GF_BitStream *bs, Bool locate_trailing)
 {
 	u32 v, bpos;
 	char avc_cache[AVC_CACHE_SIZE];
@@ -1777,12 +1777,28 @@ u32 gf_media_nalu_next_start_code_bs(GF_BitStream *bs)
 		}
 		v = ( (v<<8) & 0xFFFFFF00) | ((u32) avc_cache[bpos]);
 		bpos++;
+		if (locate_trailing) {
+			if ( (v & 0x00FFFFFF) == 0x00000000) end = cache_start+bpos-3;
+		} 
+
 		if (v == 0x00000001) end = cache_start+bpos-4;
 		else if ( (v & 0x00FFFFFF) == 0x00000001) end = cache_start+bpos-3;
 	}
 	gf_bs_seek(bs, start);
 	if (!end) end = gf_bs_get_size(bs);
 	return (u32) (end-start);
+}
+
+GF_EXPORT
+u32 gf_media_nalu_next_start_code_bs(GF_BitStream *bs)
+{
+	return gf_media_nalu_locate_start_code_bs(bs, 0);
+}
+
+GF_EXPORT
+u32 gf_media_nalu_payload_end_bs(GF_BitStream *bs)
+{
+	return gf_media_nalu_locate_start_code_bs(bs, 1);
 }
 
 GF_EXPORT

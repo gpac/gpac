@@ -35,6 +35,7 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	GF_Clock *ck;
+	Bool do_update_clock = 1;
 	MediaSensorStack *st = (MediaSensorStack *)gf_node_get_private(node);
 
 	if (is_destroy) {
@@ -71,6 +72,7 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 		else ck = st->stream->odm->subscene->dyn_ck;
 		/*since audio may be used alone through an inline scene, we need to refresh the graph*/
 		if (ck && !ck->has_seen_eos && st->stream->odm->state) gf_term_invalidate_compositor(st->stream->odm->term);
+		if (st->stream->odm->subscene->is_dynamic_scene) do_update_clock = 0;
 	}
 	/*check anim streams*/
 	else if (st->stream->odm->codec && (st->stream->odm->codec->type==GF_STREAM_SCENE)) ck = st->stream->odm->codec->ck;
@@ -78,7 +80,8 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 	else if (st->stream->odm->ocr_codec) ck = st->stream->odm->ocr_codec->ck;
 
 	if (ck && gf_clock_is_started(ck) ) {
-		st->stream->odm->current_time = gf_clock_time(ck);
+		if (do_update_clock)
+			st->stream->odm->media_current_time = gf_clock_media_time(ck);
 		mediasensor_update_timing(st->stream->odm, 0);
 	}
 }
@@ -121,7 +124,7 @@ void MS_Modified(GF_Node *node)
 }
 
 
-static void media_sensor_activate(MediaSensorStack *media_sens, GF_Segment *desc)
+static void media_sensor_activate_segment(MediaSensorStack *media_sens, GF_Segment *desc)
 {
 	media_sens->sensor->isActive = 1;
 	gf_node_event_out((GF_Node *) media_sens->sensor, 4/*"isActive"*/);
@@ -146,7 +149,7 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 	ms_count = gf_list_count(odm->ms_stack);
 	if (!ms_count) return;
 
-	time = odm->current_time / 1000.0;
+	time = odm->media_current_time / 1000.0;
 	//dirty hack to get timing of frame when very late (openhevc debug)
 	if (odm->subscene && odm->subscene->dyn_ck && odm->subscene->dyn_ck->last_TS_rendered)
 		time = odm->subscene->dyn_ck->last_TS_rendered / 1000.0;
@@ -236,7 +239,7 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 			}
 
 			if (!media_sens->sensor->isActive) {
-				media_sensor_activate(media_sens, desc);
+				media_sensor_activate_segment(media_sens, desc);
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[ODM%d] Activating media sensor time %g - segment %s\n", odm->OD->objectDescriptorID, time, desc->SegmentName));
 			}

@@ -406,7 +406,7 @@ static void Channel_UpdateBufferTime(GF_Channel *ch)
 		}
 	} else {
 		s32 bt;
-		if (ch->clock->speed > 0)
+		if (ch->clock->speed >= 0)
 			bt = ch->AU_buffer_last->DTS - gf_clock_time(ch->clock);
 		else {
 			bt = gf_clock_time(ch->clock);
@@ -706,6 +706,21 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	gf_es_lock(ch, 0);
 }
 
+
+static void gf_es_init_clock(GF_Channel *ch, u32 TS)
+{
+	ch->clock->clock_init = 0;
+
+	gf_clock_set_time(ch->clock, TS);
+	//once the clock is init, reset any seek request at parent scene level
+	if (ch->odm->parentscene) ch->odm->parentscene->root_od->media_start_time = 0;
+	//this is the root
+	else ch->odm->media_start_time = 0;
+
+	ch->IsClockInit = 1;
+}
+
+
 void Channel_ReceiveSkipSL(GF_ClientService *serv, GF_Channel *ch, const char *StreamBuf, u32 StreamLength)
 {
 	GF_DBUnit *au;
@@ -724,8 +739,7 @@ void Channel_ReceiveSkipSL(GF_ClientService *serv, GF_Channel *ch, const char *S
 	/*if channel owns the clock, start it*/
 	if (ch->clock && !ch->IsClockInit) {
 		if (gf_es_owns_clock(ch)) {
-			gf_clock_set_time(ch->clock, 0);
-			ch->IsClockInit = 1;
+			gf_es_init_clock(ch, 0);
 			ch->seed_ts = 0;
 		}
 		if (ch->clock->clock_init && !ch->IsClockInit) {
@@ -754,46 +768,33 @@ void Channel_ReceiveSkipSL(GF_ClientService *serv, GF_Channel *ch, const char *S
 }
 
 
-
 static void gf_es_check_timing(GF_Channel *ch)
 {
 	/*the first data received inits the clock - this is needed to handle clock dependencies on non-initialized
 	streams (eg, bifs/od depends on audio/video clock)*/
 	if (!ch->clock->clock_init) {
 		if (!ch->clock->use_ocr) {
-			gf_clock_set_time(ch->clock, ch->CTS);
+			gf_es_init_clock(ch, ch->DTS);
 			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Forcing clock initialization at STB %d - AU DTS %d CTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->CTS));
-			ch->IsClockInit = 1;
 		}
 	}
 	/*channel is the OCR, force a re-init of the clock since we cannot assume the AU used to init the clock was
 	not sent ahead of time*/
 	else if (gf_es_owns_clock(ch)) {
 		if (!ch->clock->use_ocr) {
-			ch->clock->clock_init = 0;
-			gf_clock_set_time(ch->clock, ch->DTS);
+			gf_es_init_clock(ch, ch->DTS);
 			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering, gf_clock_time(ch->clock) ));
-			ch->IsClockInit = 1;
 		}
 	}
-	/*if channel is not the OCR, shift all time stamps to match the current time at clock init*/
 	else if (!ch->IsClockInit ) {
-//		ch->ts_offset += gf_clock_real_time(ch->clock);
-		if (ch->clock->clock_init) {
-			ch->IsClockInit = 1;
-			if (ch->odm->flags & GF_ODM_INHERIT_TIMELINE) {
-//				ch->ts_offset += gf_clock_real_time(ch->clock) - ch->CTS;
-			}
-		}
+		ch->IsClockInit = 1;
 	}
 	/*deal with some broken DMB streams were the timestamps on BIFS/OD are not set (0) or completely out of sync
 	of the OCR clock (usually audio). If the audio codec (BSAC ...) is not found, we force re-initializing of the clock
 	so that video can play back correctly*/
 	else if (gf_clock_time(ch->clock) * 1000 < ch->DTS) {
-		ch->clock->clock_init = 0;
-		gf_clock_set_time(ch->clock, ch->DTS);
+		gf_es_init_clock(ch, ch->DTS);
 		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: re-initializing clock at STB %d - AU DTS %d - %d buffering\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering));
-		ch->IsClockInit = 1;
 	}
 }
 
@@ -809,8 +810,7 @@ void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size
 	now = gf_clock_real_time(ch->clock);
 	if (cts + ch->MinBuffer < now) {
 		if (ch->MinBuffer && (ch->is_raw_channel==2)) {
-			ch->clock->clock_init = 0;
-			gf_clock_set_time(ch->clock, cts);
+			gf_es_init_clock(ch, cts);
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %u but frame TS is %u ms - adjusting clock\n", ch->odm->OD->objectDescriptorID, now, cts));
 		} else {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %u but frame TS is %u ms - DROPPING\n", ch->odm->OD->objectDescriptorID, now, cts));
@@ -921,7 +921,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				ch->clock->clock_init = 0;
 				ch->prev_pcr_diff = 0;
 
-				gf_clock_set_time(ch->clock, OCR_TS);
+				gf_es_init_clock(ch, OCR_TS);
+
 				/*many TS streams deployed with HLS have broken PCRs - we will check their consistency
 				when receiving the first AU with DTS/CTS on this channel*/
 				ch->clock->probe_ocr = 1;
@@ -1099,8 +1100,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					diff_ts -= ch->clock->init_time;
 					if (ABS(diff_ts) > 10000) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d: invalid clock reference detected - DTS %d but OCR %d - using DTS as OCR\n", ch->esd->ESID, ch->DTS, ch->clock->init_time));
-						ch->clock->clock_init = 0;
-						gf_clock_set_time(ch->clock, ch->DTS-1000);
+						gf_es_init_clock(ch, ch->DTS-1000);
 					}
 					ch->clock->probe_ocr = 0;
 				}

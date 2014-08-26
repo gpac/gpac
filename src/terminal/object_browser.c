@@ -184,9 +184,9 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 		/*since we don't remove ODs that failed setup, check for clock*/
 		if (odm->codec->ck) {
 			if (odm->codec->CB) {
-				info->current_time = odm->current_time ? odm->current_time : odm->codec->last_unit_cts;
+				info->current_time = odm->media_current_time ? odm->media_current_time : odm->codec->last_unit_cts;
 			} else {
-				info->current_time = gf_clock_time(odm->codec->ck);
+				info->current_time = gf_clock_media_time(odm->codec->ck);
 			}
 		}
 		info->current_time /= 1000;
@@ -194,7 +194,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 	} else if (odm->subscene) {
 		if (odm->subscene->scene_codec) {
 			if (odm->subscene->scene_codec->ck) {
-				info->current_time = gf_clock_time(odm->subscene->scene_codec->ck);
+				info->current_time = gf_clock_media_time(odm->subscene->scene_codec->ck);
 				info->current_time /= 1000;
 			}
 			info->duration = (Double) (s64)odm->subscene->duration;
@@ -202,7 +202,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 			info->nb_droped = odm->subscene->scene_codec->nb_droped;
 		} else if (odm->subscene->is_dynamic_scene) {
 			if (odm->subscene->dyn_ck) {
-				info->current_time = gf_clock_time(odm->subscene->dyn_ck);
+				info->current_time = gf_clock_media_time(odm->subscene->dyn_ck);
 				info->current_time /= 1000;
 			}
 			info->generated_scene = 1;

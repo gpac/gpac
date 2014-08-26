@@ -1242,6 +1242,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_import_chapters) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_change_pl) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_nalu_next_start_code_bs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_nalu_payload_end_bs) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_avc_rewrite_samples) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_svc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_merge_svc) )

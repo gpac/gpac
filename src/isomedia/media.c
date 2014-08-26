@@ -623,6 +623,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 		stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS);
 		ent = &trak->Media->information->sampleTable->TimeToSample->entries[trak->Media->information->sampleTable->TimeToSample->nb_entries-1];
 		trak->Media->mediaHeader->duration = DTS;
+		trak->Media->mediaHeader->duration += trak->dts_at_seg_start;
 
 #if 1
 		trak->Media->mediaHeader->duration += ent->sampleDelta;

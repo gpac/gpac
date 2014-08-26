@@ -224,9 +224,12 @@ struct _scene
 	GF_List *keynavigators;
 #endif
 
+	u32 addon_position, addon_size_factor;
 
 	GF_AddonMedia *active_addon;
 	GF_List *declared_addons;
+	//set when content is replaced by an addon (DASH PVR mode)
+	Bool main_addon_selected;
 };
 
 GF_Scene *gf_scene_new(GF_Scene *parentScene);
@@ -269,6 +272,8 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *do
 void gf_scene_mpeg4_inline_restart(GF_Scene *scene);
 
 GF_Node *gf_scene_get_subscene_root(GF_Node *inline_node);
+
+void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on);
 
 #ifndef GPAC_DISABLE_VRML
 
@@ -530,6 +535,10 @@ struct _object_clock
 	Bool probe_ocr;
 	u32 last_TS_rendered;
 	u32 service_id;
+
+	//media time in ms corresponding to the init tmiestamp of the clock 
+	u32 media_time_at_init;
+	Bool has_media_time_shift;
 };
 
 /*destroys clock*/
@@ -548,8 +557,8 @@ void gf_clock_reset(GF_Clock *ck);
 void gf_clock_stop(GF_Clock *ck);
 /*return clock time in ms*/
 u32 gf_clock_time(GF_Clock *ck);
-/*return elapsed time in ms since start of the clock*/
-u32 gf_clock_elapse_time(GF_Clock *ck);
+/*return media time in ms*/
+u32 gf_clock_media_time(GF_Clock *ck);
 /*sets clock time - FIXME: drift updates for OCRs*/
 void gf_clock_set_time(GF_Clock *ck, u32 TS);
 /*return clock time in ms without drift adjustment - used by audio objects only*/
@@ -768,8 +777,8 @@ enum
 	For video, the output is kept alive, For audio, the output is reseted (don't want audio loop ;)*/
 	GF_ESM_CODEC_EOS	=	2,
 	/*pause: the decoder is stopped but the CB is kept intact
-	THIS IS NOT USED AS A CODEC STATUS, but only for signaling that the CB shouldn't
-	be reseted - the real status of a "paused" decoder is STOP*/
+	The decoder will be in PAUSE mode until its CB is full, and it will then move to STOP mode.
+	If no CB, this is equivalent to STOP mode*/
 	GF_ESM_CODEC_PAUSE	=	3,
 	/*Buffer: transition state: the decoder runs (fetch data/decode) but the clock
 	is not running (no composition). This is used for rebuffering channels (rtp...)*/
@@ -912,6 +921,12 @@ enum
 
 	/*flag set until ODM is setup*/
 	GF_ODM_NOT_SETUP = (1<<12),
+
+	/*flag set when ODM is setup*/
+	GF_ODM_PAUSED = (1<<13),
+
+	/*flag set when ODM is setup*/
+	GF_ODM_PAUSE_QUEUED = (1<<14),
 };
 
 enum
@@ -970,8 +985,8 @@ struct _od_manager
 	/*number of channels with connection not yet acknowledge*/
 	u32 pending_channels;
 	u32 state;
-	/* during playback: timing as evaluated by the composition memory or the scene codec */
-	u32 current_time;
+	/* during playback: timing as evaluated by the composition memory or the scene codec - this is the timestamp + media time at clock init*/
+	u32 media_current_time;
 	/*full object duration 0 if unknown*/
 	u64 duration;
 	/*
@@ -1140,7 +1155,7 @@ void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_fact
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
 //returns media time in sec for the addon - timestamp_based is set to 1 if no timeline has been found (eg sync is based on direct timestamp comp)
-Double gf_scene_adjust_time_for_addon(GF_Scene *scene, u32 clock_time, GF_AddonMedia *addon, Bool *timestamp_based);
+Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_AddonMedia *addon, u32 *timestamp_based);
 u64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon);
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
 void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
@@ -1167,6 +1182,7 @@ struct _gf_addon_media
 	Double activation_time;
 
 	Bool enabled;
+	//object(s) have been started (PLAY command sent) - used to filter out AUs in scalabmle addons
 	Bool started;
 	Bool timeline_ready;
 

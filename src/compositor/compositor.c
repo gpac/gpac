@@ -2853,7 +2853,13 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		return GF_FALSE;
 	}
 	switch (event->type) {
+	case GF_EVENT_SHOWHIDE:
+	case GF_EVENT_SET_CAPTION:
 	case GF_EVENT_MOVE:
+		compositor->video_out->ProcessEvent(compositor->video_out, event);
+		break;
+
+	case GF_EVENT_MOVE_NOTIF:
 	case GF_EVENT_REFRESH:
 		if (!compositor->frame_draw_type) {
 			/*when refreshing the window in 3D or with overlays we redraw the scene */
@@ -2949,12 +2955,8 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 
 		return gf_sc_handle_event_intern(compositor, event, from_user);
 	/*switch fullscreen off!!!*/
-	case GF_EVENT_SHOWHIDE:
+	case GF_EVENT_SHOWHIDE_NOTIF:
 		compositor->is_hidden = event->show.show_type ? GF_FALSE : GF_TRUE;
-		break;
-
-	case GF_EVENT_SET_CAPTION:
-		compositor->video_out->ProcessEvent(compositor->video_out, event);
 		break;
 
 	case GF_EVENT_MOUSEMOVE:
@@ -2996,6 +2998,10 @@ Bool gf_sc_user_event(GF_Compositor *compositor, GF_Event *event)
 	case GF_EVENT_SET_CAPTION:
 		compositor->video_out->ProcessEvent(compositor->video_out, event);
 		return GF_FALSE;
+
+//	case GF_EVENT_SET_CAPTION:
+//		gf_sc_queue_event(compositor, event);
+//		return GF_FALSE;
 	default:
 		return gf_sc_on_event_ex(compositor, event, GF_TRUE);
 	}
@@ -3325,6 +3331,27 @@ void gf_sc_set_system_pending_frame(GF_Compositor *compositor, Bool frame_pendin
 void gf_sc_set_video_pending_frame(GF_Compositor *compositor)
 {
 	compositor->video_frame_pending = GF_TRUE;
+}
+
+void gf_sc_queue_event(GF_Compositor *compositor, GF_Event *evt)
+{
+	u32 i, count;
+	GF_QueuedEvent *qev;
+	gf_mx_p(compositor->evq_mx);
+
+	count = gf_list_count(compositor->event_queue);
+	for (i=0; i<count; i++) {
+		qev = gf_list_get(compositor->event_queue, i);
+		if (!qev->node && (qev->evt.type==evt->type)) {
+			qev->evt = *evt;
+			gf_mx_v(compositor->evq_mx);
+			return;
+		}
+	}
+	GF_SAFEALLOC(qev, GF_QueuedEvent);
+	qev->evt = *evt;
+	gf_list_add(compositor->event_queue, qev);
+	gf_mx_v(compositor->evq_mx);
 }
 
 void gf_sc_queue_dom_event(GF_Compositor *compositor, GF_Node *node, GF_DOM_Event *evt)

@@ -862,6 +862,7 @@ struct tag_m2ts_demux
 	/*local file playing*/
 	FILE *file;
 	char filename[GF_MAX_PATH];
+	//start/end in ms
 	u32 start_range, end_range;
 	u64 file_size;
 	u64 pos_in_stream;

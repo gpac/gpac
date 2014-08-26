@@ -2522,28 +2522,22 @@ if (SMJS_ID_IS_INT(id)) {
 		*vp = INT_TO_JSVAL(evt->detail);
 		return JS_TRUE;
 	case EVENT_JSPROPERTY_LOADED:
-		if (!evt->media_event) return JS_TRUE;
-		*vp = INT_TO_JSVAL( evt->media_event->loaded_size);
+		*vp = INT_TO_JSVAL( evt->media_event.loaded_size);
 		return JS_TRUE;
 	case EVENT_JSPROPERTY_TOTAL:
-		if (!evt->media_event) return JS_TRUE;
-		*vp = INT_TO_JSVAL( evt->media_event->total_size);
+		*vp = INT_TO_JSVAL( evt->media_event.total_size);
 		return JS_TRUE;
 	case EVENT_JSPROPERTY_BUFFERLEVELVALID:
-		if (!evt->media_event) return JS_TRUE;
-		*vp = BOOLEAN_TO_JSVAL( evt->media_event->bufferValid ? JS_TRUE : JS_FALSE);
+		*vp = BOOLEAN_TO_JSVAL( evt->media_event.bufferValid ? JS_TRUE : JS_FALSE);
 		return JS_TRUE;
 	case EVENT_JSPROPERTY_BUFFERLEVEL:
-		if (!evt->media_event) return JS_TRUE;
-		*vp = INT_TO_JSVAL( evt->media_event->level);
+		*vp = INT_TO_JSVAL( evt->media_event.level);
 		return JS_TRUE;
 	case EVENT_JSPROPERTY_BUFFERREMAININGTIME:
-		if (!evt->media_event) return JS_TRUE;
-		*vp = JS_MAKE_DOUBLE(c, evt->media_event->remaining_time);
+		*vp = JS_MAKE_DOUBLE(c, evt->media_event.remaining_time);
 		return JS_TRUE;
 	case EVENT_JSPROPERTY_STATUS:
-		if (!evt->media_event) return JS_TRUE;
-		*vp = INT_TO_JSVAL( evt->media_event->status);
+		*vp = INT_TO_JSVAL( evt->media_event.status);
 		return JS_TRUE;
 
 	/*VRML ones*/

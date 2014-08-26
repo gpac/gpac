@@ -121,7 +121,6 @@ static CodecEntry *mm_get_codec(GF_List *list, GF_Codec *codec)
 void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 {
 	u32 i, count;
-	Bool locked;
 	Bool threaded;
 	CodecEntry *cd;
 	CodecEntry *ptr, *next;
@@ -132,7 +131,7 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 
 	/*caution: the mutex can be grabbed by a decoder waiting for a mutex owned by the calling thread
 	this happens when several scene codecs are running concurently and triggering play/pause on media*/
-	locked = gf_mx_try_lock(term->mm_mx);
+	gf_mx_p(term->mm_mx);
 
 	cd = mm_get_codec(term->codecs, codec);
 	if (cd) goto exit;
@@ -221,7 +220,7 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 	gf_list_add(term->codecs, cd);
 
 exit:
-	if (locked) gf_mx_v(term->mm_mx);
+	gf_mx_v(term->mm_mx);
 	return;
 }
 
