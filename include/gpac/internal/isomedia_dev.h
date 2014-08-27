@@ -1745,6 +1745,8 @@ typedef struct
 	u32 size;
 	u32 flags;
 	u32 CTS_Offset;
+
+	/*internal*/
 	u32 SAP_type;
 } GF_TrunEntry;
 
