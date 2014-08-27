@@ -70,7 +70,7 @@ typedef struct {
 	/* RFC6381 codec name, only valid when VIDEO_MUXER == GPAC_INIT_VIDEO_MUXER_AVC1 */
 	char codec6381[GF_MAX_PATH];
 	/* custom parameter to be passed directly to the encoder - free it once you're done */
-	char *custom;
+	char custom[GF_MAX_PATH];
 
 	/* used for source switching */
 	char source_id[GF_MAX_PATH];

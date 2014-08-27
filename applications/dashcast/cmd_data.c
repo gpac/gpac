@@ -187,7 +187,11 @@ int dc_read_configuration(CmdData *cmd_data)
 			opt = gf_cfg_get_key(conf, section_name, "crop_y");
 			video_data_conf->crop_x = opt ? atoi(opt) : 0;
 			opt = gf_cfg_get_key(conf, section_name, "custom");
-			video_data_conf->custom = opt ? gf_strdup(opt) : NULL;
+			if (opt) {
+				if (strlen(opt) >= GF_MAX_PATH)
+					fprintf(stderr, "Warning: video custom opt is too long. Truncating.\n");
+				strncpy(video_data_conf->custom, opt, GF_MAX_PATH);
+			}
 			gf_list_add(cmd_data->video_lst, (void *) video_data_conf);
 		}
 		else if (strcmp(section_type, "audio") == 0)
@@ -205,7 +209,11 @@ int dc_read_configuration(CmdData *cmd_data)
 			opt = gf_cfg_get_key(conf, section_name, "channels");
 			audio_data_conf->channels = opt ? atoi(opt) : DEFAULT_AUDIO_CHANNELS;
 			opt = gf_cfg_get_key(conf, section_name, "custom");
-			audio_data_conf->custom = opt ? gf_strdup(opt) : NULL;
+			if (opt) {
+				if (strlen(opt) >= GF_MAX_PATH)
+					fprintf(stderr, "Warning: audio custom opt is too long. Truncating.\n");
+				strncpy(audio_data_conf->custom, opt, GF_MAX_PATH);
+			}
 			gf_list_add(cmd_data->audio_lst, (void *) audio_data_conf);
 		} else {
 			fprintf(stderr, "Configuration file: type %s is not supported.\n", section_type);
@@ -604,11 +612,13 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			i++;
 		} else if (strcmp(argv[i], "-vcustom") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
-			if (strcmp(cmd_data->video_data_conf.custom, "") != 0) {
+			if (strlen(cmd_data->video_data_conf.custom)) {
 				fprintf(stderr, "Video custom has already been specified: appending\n");
 				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
+			if (strlen(argv[i]) >= GF_MAX_PATH)
+				fprintf(stderr, "Warning: video custom is too long. Truncating.\n");
 			strncpy(cmd_data->video_data_conf.custom, argv[i], GF_MAX_PATH);
 			i++;
 		} else if (strcmp(argv[i], "-acodec") == 0) {
@@ -622,11 +632,13 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			i++;
 		} else if (strcmp(argv[i], "-acustom") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
-			if (strcmp(cmd_data->audio_data_conf.custom, "") != 0) {
+			if (strlen(cmd_data->audio_data_conf.custom)) {
 				fprintf(stderr, "Audio custom has already been specified: appending\n");
 				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
+			if (strlen(argv[i]) >= GF_MAX_PATH)
+				fprintf(stderr, "Warning: audio custom is too long. Truncating.\n");
 			strncpy(cmd_data->audio_data_conf.custom, argv[i], GF_MAX_PATH);
 			i++;
 		} else if (strcmp(argv[i], "-conf") == 0) {

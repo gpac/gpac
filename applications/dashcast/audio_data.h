@@ -85,7 +85,7 @@ typedef struct {
 	/* audio codec */
 	char codec[GF_MAX_PATH];
 	/* custom parameter to be passed directly to the encoder - free it once you're done */
-	char *custom;
+	char custom[GF_MAX_PATH];
 
 	/* used for source switching */
 	char source_id[GF_MAX_PATH];
