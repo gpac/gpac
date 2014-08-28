@@ -41,7 +41,7 @@ void dc_task_add(TaskList *list, int source_number, char *id_name, time_t start,
 {
 	Task *task = gf_malloc(sizeof(Task));
 	task->source_number = source_number;
-	strncpy(task->id, id_name, MAX_ID_SIZE);
+	strncpy(task->id, id_name, MAX_ID_SIZE-1);
 	task->start_time_t = start;
 	task->end_time_t = end;
 	gf_list_add(list->tasks, task);
@@ -55,7 +55,7 @@ int dc_task_get_current(TaskList *list, Task *task)
 	for (i = 0; i<list->size; i++) {
 		Task *cur_task = gf_list_get(list->tasks, i);
 		if (now_time > cur_task->start_time_t && now_time < cur_task->end_time_t) {
-			//strncpy(task->id, cur_task->id, MAX_ID_SIZE);
+			//strncpy(task->id, cur_task->id, MAX_ID_SIZE-1);
 			//memcpy(&task->start_time, &cur_task->start_time, sizeof(struct tm));
 			//memcpy(&task->end_time, &cur_task->end_time, sizeof(struct tm));
 			task->source_number = cur_task->source_number;

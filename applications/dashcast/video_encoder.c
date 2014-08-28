@@ -129,8 +129,6 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 
 	if (video_data_conf->custom) {
 		build_dict(video_output_file->codec_ctx->priv_data, video_data_conf->custom);
-		gf_free(video_data_conf->custom);
-		video_data_conf->custom = NULL;
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Video Encoder: applying default options (preset=ultrafast tune=zerolatency)\n"));
 		av_opt_set(video_output_file->codec_ctx->priv_data, "preset", "ultrafast", 0);

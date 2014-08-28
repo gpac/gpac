@@ -626,7 +626,7 @@ static Bool gf_odm_should_auto_select(GF_ObjectManager *odm)
 	if (odm->parentscene && !odm->parentscene->is_dynamic_scene) return GF_TRUE;
 
 	if (odm->parentscene && odm->parentscene->root_od->addon) {
-		if (odm->parentscene->root_od->addon->addon_type == GF_ADDON_TYPE_MAIN) 
+		if (odm->parentscene->root_od->addon->addon_type == GF_ADDON_TYPE_MAIN)
 			return GF_FALSE;
 	}
 
@@ -863,7 +863,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			if (odm->addon->addon_type >= GF_ADDON_TYPE_MAIN) return;
 
 			//check role - for now look into URL, we need to inspect DASH roles
-			if (odm->mo->URLs.count && odm->mo->URLs.vals[0].url) {	
+			if (odm->mo->URLs.count && odm->mo->URLs.vals[0].url) {
 				char *sep = strchr(odm->mo->URLs.vals[0].url, '?');
 				if (sep && strstr(sep, "role=main")) {
 					odm->addon->addon_type = GF_ADDON_TYPE_MAIN;
@@ -1584,7 +1584,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 			}
 			ck_time = gf_scene_adjust_time_for_addon(odm->parentscene, ck_time, odm->parentscene->root_od->addon, &com.play.timestamp_based);
 			//we are having a play request for an addon without the main content being active - we no longer have timestamp info from the main content
-			if (!ch->clock->clock_init && com.play.timestamp_based) 
+			if (!ch->clock->clock_init && com.play.timestamp_based)
 				com.play.timestamp_based = 2;
 
 			if (odm->scalable_addon) {

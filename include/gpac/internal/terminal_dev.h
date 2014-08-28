@@ -536,7 +536,7 @@ struct _object_clock
 	u32 last_TS_rendered;
 	u32 service_id;
 
-	//media time in ms corresponding to the init tmiestamp of the clock 
+	//media time in ms corresponding to the init tmiestamp of the clock
 	u32 media_time_at_init;
 	Bool has_media_time_shift;
 };

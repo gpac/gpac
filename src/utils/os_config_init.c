@@ -499,12 +499,12 @@ static void check_modules_dir(GF_Config *cfg)
 		opt = gf_cfg_get_key(cfg, "General", "ModulesDirectory");
 		//for OSX, we can have an install in /usr/... and an install in /Applications/Osmo4.app - always change
 #if defined(__DARWIN__) || defined(__APPLE__)
-		if (!opt || strcmp(opt, path)) 
+		if (!opt || strcmp(opt, path))
 			gf_cfg_set_key(cfg, "General", "ModulesDirectory", path);
 #else
 
 		//otherwise only check we didn't switch between a 64 bit version and a 32 bit version
-		if (!opt) { 
+		if (!opt) {
 			gf_cfg_set_key(cfg, "General", "ModulesDirectory", path);
 		} else  {
 			Bool erase_modules_dir = 0;
@@ -517,7 +517,7 @@ static void check_modules_dir(GF_Config *cfg)
 				erase_modules_dir = 1;
 #endif
 			} else {
-#ifdef GPAC_64_BITS				
+#ifdef GPAC_64_BITS
 				erase_modules_dir = 1;
 #endif
 			}

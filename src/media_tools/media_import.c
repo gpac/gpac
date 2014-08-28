@@ -4816,7 +4816,7 @@ restart_import:
 		}
 
 		if (copy_size) {
-			if (is_islice) 
+			if (is_islice)
 				sample_has_islice = 1;
 
 			if ((size_length<32) && ( (u32) (1<<size_length)-1 < copy_size)) {
@@ -5750,7 +5750,7 @@ restart_import:
 		}
 
 		if (copy_size) {
-			if (is_islice) 
+			if (is_islice)
 				sample_has_islice = 1;
 
 			if ((size_length<32) && ( (u32) (1<<size_length)-1 < copy_size)) {

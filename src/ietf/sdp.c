@@ -453,16 +453,19 @@ s32 SDP_MakeSeconds(char *buf)
 	memset(num, 0, 30);
 	test = strstr(buf, "d");
 	if (test) {
+		assert(strlen(buf)-strlen(test) < sizeof(num));
 		strncpy(num, buf, strlen(buf)-strlen(test));
 		return (atoi(num)*sign*86400);
 	}
 	test = strstr(buf, "h");
 	if (test) {
+		assert(strlen(buf)-strlen(test) < sizeof(num));
 		strncpy(num, buf, strlen(buf)-strlen(test));
 		return (atoi(num)*sign*3600);
 	}
 	test = strstr(buf, "m");
 	if (test) {
+		assert(strlen(buf)-strlen(test) < sizeof(num));
 		strncpy(num, buf, strlen(buf)-strlen(test));
 		return (atoi(num)*sign*60);
 	}

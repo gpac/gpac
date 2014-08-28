@@ -90,7 +90,7 @@ struct __dash_client
 	/* active period in MPD (only one currently supported) */
 	u32 active_period_index;
 	u32 request_period_switch;
-	
+
 	Bool next_period_checked;
 
 	u64 start_time_in_active_period;
@@ -3265,7 +3265,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 	}
 
 	gf_list_rem(dash->mpd->periods, period_idx);
-	//insert all periods 
+	//insert all periods
 	while (gf_list_count(new_mpd->periods)) {
 		GF_MPD_Period *inserted_period = gf_list_get(new_mpd->periods, 0);
 		gf_list_rem(new_mpd->periods, 0);
@@ -3283,7 +3283,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 	gf_mpd_del(new_mpd);
 
 	gf_mx_v(dash->dl_mutex);
-	
+
 }
 
 static GF_Err gf_dash_setup_period(GF_DashClient *dash)
@@ -3292,7 +3292,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 	u32 rep_i, group_i, j, nb_groups_ok;
 	u32 retry = 10;
 
-	//solve xlink - if 
+	//solve xlink - if
 	while (retry) {
 		period = gf_list_get(dash->mpd->periods, dash->active_period_index);
 		if (!period->xlink_href) break;
@@ -3813,7 +3813,7 @@ restart_period:
 				if (group->download_segment_index >= (s32) group->nb_segments_in_rep) {
 					/* if there is a specified update period, we redo the whole process */
 					if (dash->mpd->minimum_update_period || dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
-						
+
 						if ((dash->mpd->type==GF_MPD_TYPE_DYNAMIC) && group->period->duration) {
 							GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Last segment in period (dynamic mode) - group is done\n"));
 							group->done = 1;
@@ -3996,7 +3996,7 @@ restart_period:
 								group->download_segment_index--;
 							} else {
 								GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
-								group->done = 1;					
+								group->done = 1;
 							}
 						}
 					}
@@ -4079,7 +4079,7 @@ restart_period:
 						group->download_segment_index--;
 					} else {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
-						group->done = 1;					
+						group->done = 1;
 					}
 				}
 				if (dash->auto_switch_count) {
@@ -4124,7 +4124,7 @@ restart:
 	count = gf_list_count(dash->mpd->periods);
 	for (i = 0; i<count; i++) {
 		period = gf_list_get(dash->mpd->periods, i);
-		
+
 		if (period->xlink_href) {
 			gf_dash_solve_period_xlink(dash, i);
 			goto restart;
@@ -4193,7 +4193,7 @@ Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 	for (i=0; i<gf_list_count(dash->mpd->periods); i++) {
 		GF_MPD_Period *period = gf_list_get(dash->mpd->periods, i);
 		Double dur;
-		
+
 		if (period->xlink_href) {
 			gf_dash_solve_period_xlink(dash, i);
 			if (nb_retry) {
@@ -5490,7 +5490,7 @@ u32 gf_dash_get_period_start(GF_DashClient *dash)
 	for (i=0; i<=dash->active_period_index; i++) {
 		period = gf_list_get(dash->mpd->periods, i);
 		if (period->start) start = period->start;
-		
+
 		if (i<dash->active_period_index) start += period->duration;
 	}
 	return start;

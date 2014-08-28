@@ -933,7 +933,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 	root_working_copy = NULL;
 	parser_working_copy = NULL;
 	e = GF_OK;
-	
+
 	/*setup track in 3GP format directly (no ES desc)*/
 	ID = (import->esd) ? import->esd->ESID : 0;
 	track = gf_isom_new_track(import->dest, ID, GF_ISOM_MEDIA_MPEG_SUBT, 1000);
@@ -968,8 +968,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 			xmlns = att->name;
 		} else if (!strcmp(att->name, "xml:lang")) {
 			if (import->esd && !import->esd->langDesc) {
-				char lang[4];
-				strncpy(lang, att->value, sizeof(lang));
+				char lang[5];
+				strncpy(lang, att->value, sizeof(lang)-1);
 				import->esd->langDesc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
 				gf_isom_set_media_language(import->dest, track, lang);
 			}
@@ -1022,20 +1022,20 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									sd->fonts[0].fontID = 1;
 									sd->fonts[0].fontName = gf_strdup(p_att->value);
 								} else if (!strcmp(p_att->name, "tts:backgroundColor")) {
-										GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("EBU-TTD style attribute \"%s\" ignored.\n", p_att->name));
-										//sd->back_color = ;
-									} else {
+									GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("EBU-TTD style attribute \"%s\" ignored.\n", p_att->name));
+									//sd->back_color = ;
+								} else {
 									if ( !strcmp(p_att->name, "tts:fontSize")
-										|| !strcmp(p_att->name, "tts:lineHeight")
-										|| !strcmp(p_att->name, "tts:textAlign")
-										|| !strcmp(p_att->name, "tts:color")
-										|| !strcmp(p_att->name, "tts:fontStyle")
-										|| !strcmp(p_att->name, "tts:fontWeight")
-										|| !strcmp(p_att->name, "tts:textDecoration")
-										|| !strcmp(p_att->name, "tts:unicodeBidi")
-										|| !strcmp(p_att->name, "tts:wrapOption")
-										|| !strcmp(p_att->name, "tts:multiRowAlign")
-										|| !strcmp(p_att->name, "tts:linePadding")) {
+									        || !strcmp(p_att->name, "tts:lineHeight")
+									        || !strcmp(p_att->name, "tts:textAlign")
+									        || !strcmp(p_att->name, "tts:color")
+									        || !strcmp(p_att->name, "tts:fontStyle")
+									        || !strcmp(p_att->name, "tts:fontWeight")
+									        || !strcmp(p_att->name, "tts:textDecoration")
+									        || !strcmp(p_att->name, "tts:unicodeBidi")
+									        || !strcmp(p_att->name, "tts:wrapOption")
+									        || !strcmp(p_att->name, "tts:multiRowAlign")
+									        || !strcmp(p_att->name, "tts:linePadding")) {
 										GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("EBU-TTD style attribute \"%s\" ignored.\n", p_att->name));
 									} else {
 										GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("EBU-TTD unknown style attribute: \"%s\". Ignoring.\n", p_att->name));
@@ -1062,7 +1062,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 #else
 	e = gf_isom_new_xml_subtitle_description(import->dest, track, xmlns, NULL, NULL, &desc_idx);
 #endif
-  if (e != GF_OK) {
+	if (e != GF_OK) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("TTML: incorrect sample description. Abort.\n"));
 		e = gf_isom_last_error(import->dest);
 		goto exit;
@@ -1071,7 +1071,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 	/*** body ***/
 	parser_working_copy = gf_xml_dom_new();
 	e = gf_xml_dom_parse(parser_working_copy, import->in_name, NULL, NULL);
-  assert (e == GF_OK);
+	assert (e == GF_OK);
 	root_working_copy = gf_xml_dom_get_root(parser_working_copy);
 	assert(root_working_copy);
 	last_sample_duration = 0;
@@ -1196,7 +1196,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									e = gf_import_message(import, GF_BAD_PARAM, "TTML: timing overlapping not supported: \"begin\" is "LLD" , last \"end\" was "LLD". Abort.\n", ts_begin, last_sample_end);
 									goto exit;
 								}
-								
+
 								str = ttxt_parse_string(import, samp_text, GF_TRUE);
 								len = (u32) strlen(str);
 								samp = gf_isom_new_xml_subtitle_sample();
@@ -1216,7 +1216,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 								last_sample_duration = ts_end - ts_begin;
 								last_sample_end = ts_end;
 								GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("ts_begin="LLD", ts_end="LLD", last_sample_duration="LLU" (real duration: "LLU"), last_sample_end="LLU"\n", ts_begin, ts_end, ts_end - last_sample_end, last_sample_duration, last_sample_end));
-								
+
 								e = gf_isom_add_sample(import->dest, track, desc_idx, s);
 								if (e) goto exit;
 								gf_isom_sample_del(&s);
@@ -1285,7 +1285,7 @@ static GF_Err gf_text_import_ttml(GF_MediaImporter *import)
 		GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("TTML file not recognized: found \"%s\" as root, \"%s\" expected\n", root->name, "tt"));
 		e = GF_BAD_PARAM;
 	}
-	
+
 	gf_xml_dom_del(parser);
 	return e;
 }

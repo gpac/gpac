@@ -154,7 +154,7 @@ void mediacontrol_resume(GF_ObjectManager *odm, Bool resume_to_live)
 
 	i=0;
 	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->resources, &i))) {
-		if (!odm->subscene && !gf_odm_shares_clock(ctrl_od, ck)) 
+		if (!odm->subscene && !gf_odm_shares_clock(ctrl_od, ck))
 			continue;
 
 		if (resume_to_live && ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
@@ -177,7 +177,7 @@ void mediacontrol_pause(GF_ObjectManager *odm)
 	GF_ObjectManager *ctrl_od;
 	GF_Scene *in_scene;
 	GF_Clock *ck;
-	
+
 	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
 
 	/*otherwise locate all objects sharing the clock*/
