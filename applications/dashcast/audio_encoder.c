@@ -69,8 +69,6 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 #endif
 	if (audio_data_conf->custom) {
 		build_dict(audio_output_file->codec_ctx->priv_data, audio_data_conf->custom);
-		gf_free(audio_data_conf->custom);
-		audio_data_conf->custom = NULL;
 	}
 	audio_output_file->astream_idx = 0;
 

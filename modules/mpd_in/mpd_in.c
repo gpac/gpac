@@ -181,21 +181,21 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			group->max_cts_in_period = group->pto + dur;
 
 			start = (u64) (scale * gf_dash_get_period_start(mpdin->dash) );
-			group->pto -= start;				
+			group->pto -= start;
 		}
 		//filter any packet outside the current period
-		if (group->max_cts_in_period && (s64) hdr->compositionTimeStamp > group->max_cts_in_period) 
+		if (group->max_cts_in_period && (s64) hdr->compositionTimeStamp > group->max_cts_in_period)
 			return;
 
 		//remap timestamps to our timeline
-		if ((s64) hdr->decodingTimeStamp >= group->pto) 
+		if ((s64) hdr->decodingTimeStamp >= group->pto)
 			hdr->decodingTimeStamp -= group->pto;
-		else 
+		else
 			hdr->decodingTimeStamp = 0;
 
-		if ((s64) 
-			hdr->compositionTimeStamp >= group->pto) hdr->compositionTimeStamp -= group->pto;
-		else 
+		if ((s64)
+		        hdr->compositionTimeStamp >= group->pto) hdr->compositionTimeStamp -= group->pto;
+		else
 			hdr->compositionTimeStamp = 0;
 	} else if (!group->pto_setup) {
 		do_map_time = 1;
@@ -1086,7 +1086,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 			group->is_timestamp_based = 1;
 			group->pto_setup = 0;
-			mpdin->media_start_range = com->play.start_range; 
+			mpdin->media_start_range = com->play.start_range;
 		} else {
 			GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, idx);
 			group->is_timestamp_based = 0;
@@ -1130,7 +1130,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 				gf_dash_seek(mpdin->dash, com->play.start_range);
 
-				//we have issued a seek request, mark the group as seeking 
+				//we have issued a seek request, mark the group as seeking
 				if (mpdin->in_seek) {
 					//group->in_seek = 1;
 				}

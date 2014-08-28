@@ -288,7 +288,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		if (glGetAttribLocation != NULL) {
 			compositor->shader_only_mode = 0;
 		}
-#endif		
+#endif
 
 
 	} else {
@@ -705,7 +705,7 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 
 void visual_3d_init_shaders(GF_VisualManager *visual)
 {
-    if (!visual->compositor->gl_caps.has_shaders) return;
+	if (!visual->compositor->gl_caps.has_shaders) return;
 
 	visual_3d_init_yuv_shaders(visual);
 	if (visual->compositor->shader_only_mode) {
@@ -1479,9 +1479,15 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 
 	switch (mesh->mesh_type) {
-	case MESH_LINESET: prim_type = GL_LINES; break;
-	case MESH_POINTSET: prim_type = GL_POINTS; break;
-	default: prim_type = GL_TRIANGLES; break;
+	case MESH_LINESET:
+		prim_type = GL_LINES;
+		break;
+	case MESH_POINTSET:
+		prim_type = GL_POINTS;
+		break;
+	default:
+		prim_type = GL_TRIANGLES;
+		break;
 	}
 
 	/*if inside or no aabb for the mesh draw vertex array*/
@@ -1493,10 +1499,10 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 
 		return;
-	} 
+	}
 
-	/*otherwise cull aabb against frustum - after some testing it appears (as usual) that there must 
-	be a compromise: we're slowing down the compositor here, however the gain is really appreciable for 
+	/*otherwise cull aabb against frustum - after some testing it appears (as usual) that there must
+	be a compromise: we're slowing down the compositor here, however the gain is really appreciable for
 	large meshes, especially terrains/elevation grids*/
 
 	/*first get transformed frustum in local space*/
@@ -1542,7 +1548,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	GL_CHECK_ERR
 
 	loc = my_glGetUniformLocation(visual->glsl_program, "gfModelViewMatrix");
-	if (loc<0) return;	
+	if (loc<0) return;
 	gf_mx_copy(mx, tr_state->camera->modelview);
 	gf_mx_add_matrix(&mx, &tr_state->model_matrix);
 	glUniformMatrix4fv(loc, 1, GL_FALSE, mx.m);
@@ -1591,7 +1597,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			glUniform1f(loc, visual->shininess );
 
 	}
-	
+
 	if (!visual->has_material_2d && visual->num_lights && !mesh->mesh_type) {
 		GF_Matrix normal_mx;
 		GF_Vec pt;
@@ -1606,7 +1612,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNormalMatrix");
 		//transpose the matrix when uploading
-		if (loc>=0) 
+		if (loc>=0)
 			glUniformMatrix4fv(loc, 1, GL_TRUE, normal_mx.m);
 		GL_CHECK_ERR
 
@@ -1623,7 +1629,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		GL_CHECK_ERR
 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumLights");
-		if (loc>=0) 
+		if (loc>=0)
 			glUniform1i(loc, 1);
 
 		li = &visual->lights[0];
@@ -1634,29 +1640,38 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		gf_mx_add_matrix(&mx, &li->light_mx);
 		gf_mx_apply_vec(&mx, &pt);
 		gf_vec_norm(&pt);
-		vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;
+		vals[0] = -FIX2FLT(pt.x);
+		vals[1] = -FIX2FLT(pt.y);
+		vals[2] = -FIX2FLT(pt.z);
+		vals[3] = 0;
 //		vals[0] = FIX2FLT(pt.x); vals[1] = FIX2FLT(pt.y); vals[2] = FIX2FLT(pt.z); vals[3] = 0;
 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfLightPosition");
-		if (loc>=0) 
+		if (loc>=0)
 			glUniform4fv(loc, 1, vals);
 
 		ambientIntensity = FIX2FLT(li->ambientIntensity);
 		intensity = FIX2FLT(li->intensity);
 
-		vals[0] = FIX2FLT(li->color.red)*intensity; vals[1] = FIX2FLT(li->color.green)*intensity; vals[2] = FIX2FLT(li->color.blue)*intensity; vals[3] = 1;
+		vals[0] = FIX2FLT(li->color.red)*intensity;
+		vals[1] = FIX2FLT(li->color.green)*intensity;
+		vals[2] = FIX2FLT(li->color.blue)*intensity;
+		vals[3] = 1;
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfLightDiffuse");
 		if (loc>=0) glUniform4fv(loc, 1, vals);
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfLightSpecular");
 		if (loc>=0) glUniform4fv(loc, 1, vals);
 
-		vals[0] = FIX2FLT(li->color.red)*ambientIntensity; vals[1] = FIX2FLT(li->color.green)*ambientIntensity; vals[2] = FIX2FLT(li->color.blue)*ambientIntensity; vals[3] = 1;
+		vals[0] = FIX2FLT(li->color.red)*ambientIntensity;
+		vals[1] = FIX2FLT(li->color.green)*ambientIntensity;
+		vals[2] = FIX2FLT(li->color.blue)*ambientIntensity;
+		vals[3] = 1;
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfLightAmbiant");
 		if (loc>=0) glUniform4fv(loc, 1, vals);
 
-		if (visual->compositor->backcull 
-				&& (!tr_state->mesh_is_transparent || (visual->compositor->backcull ==GF_BACK_CULL_ALPHA) )
-				&& (mesh->flags & MESH_IS_SOLID)) {
+		if (visual->compositor->backcull
+		        && (!tr_state->mesh_is_transparent || (visual->compositor->backcull ==GF_BACK_CULL_ALPHA) )
+		        && (mesh->flags & MESH_IS_SOLID)) {
 			glEnable(GL_CULL_FACE);
 			glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
 		} else {
@@ -1693,14 +1708,14 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 	/*rebuild VBO for large ojects only (we basically filter quads out)*/
 	if ((mesh->v_count>4) && !mesh->vbo && compositor->gl_caps.vbo) {
-	GL_CHECK_ERR
+		GL_CHECK_ERR
 		glGenBuffers(1, &mesh->vbo);
-	GL_CHECK_ERR
+		GL_CHECK_ERR
 		if (mesh->vbo) {
 			glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-	GL_CHECK_ERR
+			GL_CHECK_ERR
 			glBufferData(GL_ARRAY_BUFFER, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
-	GL_CHECK_ERR
+			GL_CHECK_ERR
 			mesh->vbo_dirty = 0;
 		}
 	}
@@ -1708,7 +1723,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (mesh->vbo) {
 		base_address = NULL;
 		glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-	GL_CHECK_ERR
+		GL_CHECK_ERR
 	} else {
 		base_address = & mesh->vertices[0].pos;
 	}
@@ -1743,7 +1758,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #else
 	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex), base_address);
 #endif
-	
+
 
 	/*enable states*/
 

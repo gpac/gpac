@@ -30,15 +30,14 @@
 #include <stdio.h>
 #include <gpac/network.h>
 
-/*#define MYLOG(xx) GF_LOG(GF_LOG_INFO, GF_LOG_DASH, xx )*/
-#define MYLOG(xx)
+#define MYLOG(msg) GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, msg)
 
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 #define bzero(a, b) memset(a, 0x0, b)
 #endif
 
-GF_Err cleanup_list_of_elements(GF_List * list) {
+static GF_Err cleanup_list_of_elements(GF_List * list) {
 	GF_Err result = GF_OK;
 	if (list == NULL)
 		return result;
@@ -52,7 +51,7 @@ GF_Err cleanup_list_of_elements(GF_List * list) {
 	return result;
 }
 
-GF_Err playlist_element_del(PlaylistElement * e) {
+static GF_Err playlist_element_del(PlaylistElement * e) {
 	GF_Err result = GF_OK;
 	if (e == NULL)
 		return result;
@@ -83,7 +82,7 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 	return result;
 }
 
-Program * program_new(int programId) {
+static Program * program_new(int programId) {
 	Program * program = (Program*)gf_malloc(sizeof(Program));
 	if (program == NULL) {
 		return NULL;
@@ -97,7 +96,7 @@ Program * program_new(int programId) {
 	return program;
 }
 
-GF_Err program_del(Program * program) {
+static GF_Err program_del(Program * program) {
 	GF_Err e = GF_OK;
 	if (program == NULL)
 		return e;
@@ -115,7 +114,7 @@ GF_Err program_del(Program * program) {
 }
 
 /*
-GF_Err playlist_del(Playlist * pl){
+static GF_Err playlist_del(Playlist * pl){
 GF_Err result = GF_OK;
 if (pl == NULL)
 return result;
@@ -127,7 +126,7 @@ gf_free(pl);
 return result;
 }*/
 
-PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, const char *codecs, int durationInfo, u64 byteRangeStart, u64 byteRangeEnd) {
+static PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, const char *codecs, int durationInfo, u64 byteRangeStart, u64 byteRangeEnd) {
 	PlaylistElement * e = gf_malloc(sizeof(PlaylistElement));
 	bzero(e, sizeof(PlaylistElement));
 	assert( url );
@@ -171,7 +170,7 @@ PlaylistElement * playlist_element_new(PlaylistElementType elementType, const ch
 	return e;
 }
 /*
-Playlist * playlist_new(){
+static Playlist * playlist_new(){
 Playlist * pl = gf_malloc(sizeof(Playlist));
 if (pl == NULL)
 return NULL;
@@ -189,7 +188,7 @@ return pl;
 }
 */
 
-VariantPlaylist * variant_playlist_new ()
+static VariantPlaylist * variant_playlist_new ()
 {
 	VariantPlaylist * pl = (VariantPlaylist*)gf_malloc( sizeof(VariantPlaylist) );
 	if (pl == NULL)
@@ -228,7 +227,7 @@ GF_Err variant_playlist_del (VariantPlaylist * playlist) {
 	return GF_OK;
 }
 
-GF_Err playlist_element_dump(const PlaylistElement * e, int indent) {
+static GF_Err playlist_element_dump(const PlaylistElement * e, int indent) {
 	int i;
 	GF_Err r = GF_OK;
 	for (i = 0 ; i < indent; i++)
@@ -259,7 +258,7 @@ GF_Err playlist_element_dump(const PlaylistElement * e, int indent) {
 	return r;
 }
 
-GF_Err variant_playlist_dump(const VariantPlaylist * pl) {
+static GF_Err variant_playlist_dump(const VariantPlaylist * pl) {
 	int i, count;
 	GF_Err e = GF_OK;
 	if (pl == NULL) {
@@ -287,7 +286,7 @@ GF_Err variant_playlist_dump(const VariantPlaylist * pl) {
 	return e;
 }
 
-Program * variant_playlist_find_matching_program(const VariantPlaylist * pl, const u32 programId) {
+static Program * variant_playlist_find_matching_program(const VariantPlaylist * pl, const u32 programId) {
 	u32 count, i;
 	assert( pl);
 	assert( pl->programs);
@@ -304,7 +303,7 @@ Program * variant_playlist_find_matching_program(const VariantPlaylist * pl, con
 	return NULL;
 }
 
-Program * variant_playlist_get_current_program(const VariantPlaylist * pl) {
+static Program * variant_playlist_get_current_program(const VariantPlaylist * pl) {
 	assert( pl );
 	return variant_playlist_find_matching_program(pl, pl->currentProgram);
 }

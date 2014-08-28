@@ -190,7 +190,7 @@ int dc_read_configuration(CmdData *cmd_data)
 			if (opt) {
 				if (strlen(opt) >= GF_MAX_PATH)
 					fprintf(stderr, "Warning: video custom opt is too long. Truncating.\n");
-				strncpy(video_data_conf->custom, opt, GF_MAX_PATH);
+				strncpy(video_data_conf->custom, opt, GF_MAX_PATH-1);
 			}
 			gf_list_add(cmd_data->video_lst, (void *) video_data_conf);
 		}
@@ -212,7 +212,7 @@ int dc_read_configuration(CmdData *cmd_data)
 			if (opt) {
 				if (strlen(opt) >= GF_MAX_PATH)
 					fprintf(stderr, "Warning: audio custom opt is too long. Truncating.\n");
-				strncpy(audio_data_conf->custom, opt, GF_MAX_PATH);
+				strncpy(audio_data_conf->custom, opt, GF_MAX_PATH-1);
 			}
 			gf_list_add(cmd_data->audio_lst, (void *) audio_data_conf);
 		} else {
@@ -363,7 +363,6 @@ void dc_cmd_data_destroy(CmdData *cmd_data)
 {
 	while (gf_list_count(cmd_data->audio_lst)) {
 		AudioDataConf *audio_data_conf = gf_list_last(cmd_data->audio_lst);
-		gf_free(audio_data_conf->custom);
 		gf_list_rem_last(cmd_data->audio_lst);
 		gf_free(audio_data_conf);
 	}
@@ -371,7 +370,6 @@ void dc_cmd_data_destroy(CmdData *cmd_data)
 
 	while (gf_list_count(cmd_data->video_lst)) {
 		VideoDataConf *video_data_conf = gf_list_last(cmd_data->video_lst);
-		gf_free(video_data_conf->custom);
 		gf_list_rem_last(cmd_data->video_lst);
 		gf_free(video_data_conf);
 	}
@@ -608,7 +606,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
-			strncpy(cmd_data->video_data_conf.codec, argv[i], GF_MAX_PATH);
+			strncpy(cmd_data->video_data_conf.codec, argv[i], GF_MAX_PATH-1);
 			i++;
 		} else if (strcmp(argv[i], "-vcustom") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
@@ -619,7 +617,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			}
 			if (strlen(argv[i]) >= GF_MAX_PATH)
 				fprintf(stderr, "Warning: video custom is too long. Truncating.\n");
-			strncpy(cmd_data->video_data_conf.custom, argv[i], GF_MAX_PATH);
+			strncpy(cmd_data->video_data_conf.custom, argv[i], GF_MAX_PATH-1);
 			i++;
 		} else if (strcmp(argv[i], "-acodec") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
@@ -628,7 +626,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
-			strncpy(cmd_data->audio_data_conf.codec, argv[i], GF_MAX_PATH);
+			strncpy(cmd_data->audio_data_conf.codec, argv[i], GF_MAX_PATH-1);
 			i++;
 		} else if (strcmp(argv[i], "-acustom") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
@@ -639,7 +637,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			}
 			if (strlen(argv[i]) >= GF_MAX_PATH)
 				fprintf(stderr, "Warning: audio custom is too long. Truncating.\n");
-			strncpy(cmd_data->audio_data_conf.custom, argv[i], GF_MAX_PATH);
+			strncpy(cmd_data->audio_data_conf.custom, argv[i], GF_MAX_PATH-1);
 			i++;
 		} else if (strcmp(argv[i], "-conf") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
@@ -677,7 +675,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
-			strncpy(cmd_data->mpd_filename, argv[i], GF_MAX_PATH);
+			strncpy(cmd_data->mpd_filename, argv[i], GF_MAX_PATH-1);
 			i++;
 		} else if (strcmp(argv[i], "-seg-dur") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
@@ -749,7 +747,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				fprintf(stderr, "%s", command_usage);
 				return -1;
 			}
-			strncpy(cmd_data->base_url, argv[i], GF_MAX_PATH);
+			strncpy(cmd_data->base_url, argv[i], GF_MAX_PATH-1);
 			i++;
 		} else if (strcmp(argv[i], "-live") == 0) {
 			cmd_data->mode = LIVE_CAMERA;

@@ -1689,7 +1689,7 @@ u32 gf_term_get_time_in_ms(GF_Terminal *term)
 	if (term->root_scene->scene_codec && term->root_scene->scene_codec->ck) ck = term->root_scene->scene_codec->ck;
 	else if (term->root_scene->dyn_ck) ck = term->root_scene->dyn_ck;
 
-	return gf_clock_media_time(ck);	
+	return gf_clock_media_time(ck);
 }
 
 GF_Node *gf_term_pick_node(GF_Terminal *term, s32 X, s32 Y)

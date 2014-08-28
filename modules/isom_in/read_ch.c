@@ -556,11 +556,11 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			else if (ch->owner->input->query_proxy) {
 				ch->last_state = GF_OK;
 			}
-		} 
-		else if (!ch->sample_num 
-				|| ((ch->speed >= 0) && (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track)))
-				|| ((ch->speed < 0) && (ch->sample_time == gf_isom_get_current_tfdt(ch->owner->mov, ch->track) + ch->dts_offset)) 
-		) {
+		}
+		else if (!ch->sample_num
+		         || ((ch->speed >= 0) && (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track)))
+		         || ((ch->speed < 0) && (ch->sample_time == gf_isom_get_current_tfdt(ch->owner->mov, ch->track) + ch->dts_offset))
+		        ) {
 
 			if (ch->owner->frag_type==1) {
 				//if segment is fully opened and no more data, this track is done, wait for next segment

@@ -2715,7 +2715,7 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 
 		fprintf(stderr, " %d decoded frames - %d dropped frames\n", odi.nb_dec_frames, odi.nb_droped);
 
-			ind = indent;
+		ind = indent;
 		while (ind) {
 			fprintf(stderr, " ");
 			ind--;
@@ -2727,7 +2727,7 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 			avg_dec_time /= odi.nb_dec_frames;
 		}
 		fprintf(stderr, " Avg Bitrate %d kbps (%d max) - Avg Decoding Time %.2f us ("LLU" max)\n",
-				(u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time);
+		        (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time);
 	}
 
 	count = gf_term_get_object_count(term, odm);

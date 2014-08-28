@@ -484,7 +484,7 @@ Bool dasher_thread(void *params)
 //	}
 //
 //	dash_profile = cmd_data->live ? GF_DASH_PROFILE_LIVE : GF_DASH_PROFILE_MAIN;
-//	strncpy(sz_mpd, cmd_data->mpd_filename, GF_MAX_PATH);
+//	strncpy(sz_mpd, cmd_data->mpd_filename, GF_MAX_PATH-1);
 //
 //	dash_duration = cmd_data->dash_dur ? cmd_data->dash_dur / 1000 : 1;
 //

@@ -51,7 +51,7 @@ static GFINLINE void usage(const char * progname)
 #ifdef GPAC_MEMORY_TRACKING
 	        "\t-mem-track:  enables memory tracker\n"
 #endif
-	       , progname);
+	        , progname);
 }
 
 

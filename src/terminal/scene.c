@@ -1378,7 +1378,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 
 		if (odm->addon && odm->addon->addon_type==GF_ADDON_TYPE_MAIN) {
 			return;
-		} 
+		}
 
 		gf_sg_vrml_field_copy(&dscene->url, &odm->mo->URLs, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
@@ -1955,7 +1955,7 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 
 void scene_reset_addon(GF_AddonMedia *addon, Bool disconnect)
 {
-	if (disconnect && addon->root_od) 
+	if (disconnect && addon->root_od)
 		gf_odm_disconnect(addon->root_od, 1);
 	if (addon->url) gf_free(addon->url);
 	gf_free(addon);

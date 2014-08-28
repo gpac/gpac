@@ -1779,7 +1779,7 @@ static u32 gf_media_nalu_locate_start_code_bs(GF_BitStream *bs, Bool locate_trai
 		bpos++;
 		if (locate_trailing) {
 			if ( (v & 0x00FFFFFF) == 0x00000000) end = cache_start+bpos-3;
-		} 
+		}
 
 		if (v == 0x00000001) end = cache_start+bpos-4;
 		else if ( (v & 0x00FFFFFF) == 0x00000001) end = cache_start+bpos-3;
