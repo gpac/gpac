@@ -3058,7 +3058,7 @@ static GF_Err dash_load_box_type(const char *cache_name, u32 offset, u32 *box_ty
 static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 {
 	u32 i;
-	GF_Err e;
+	GF_Err e = GF_OK;
 	char *init_url = NULL;
 	char *index_url = NULL;
 	GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, 0);

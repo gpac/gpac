@@ -37,7 +37,7 @@
 #define bzero(a, b) memset(a, 0x0, b)
 #endif
 
-static GF_Err cleanup_list_of_elements(GF_List * list) {
+GF_Err cleanup_list_of_elements(GF_List * list) {
 	GF_Err result = GF_OK;
 	if (list == NULL)
 		return result;
@@ -51,7 +51,7 @@ static GF_Err cleanup_list_of_elements(GF_List * list) {
 	return result;
 }
 
-static GF_Err playlist_element_del(PlaylistElement * e) {
+GF_Err playlist_element_del(PlaylistElement * e) {
 	GF_Err result = GF_OK;
 	if (e == NULL)
 		return result;
@@ -82,7 +82,7 @@ static GF_Err playlist_element_del(PlaylistElement * e) {
 	return result;
 }
 
-static Program * program_new(int programId) {
+Program * program_new(int programId) {
 	Program * program = (Program*)gf_malloc(sizeof(Program));
 	if (program == NULL) {
 		return NULL;
@@ -96,7 +96,7 @@ static Program * program_new(int programId) {
 	return program;
 }
 
-static GF_Err program_del(Program * program) {
+GF_Err program_del(Program * program) {
 	GF_Err e = GF_OK;
 	if (program == NULL)
 		return e;
@@ -126,7 +126,7 @@ gf_free(pl);
 return result;
 }*/
 
-static PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, const char *codecs, int durationInfo, u64 byteRangeStart, u64 byteRangeEnd) {
+PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, const char *codecs, int durationInfo, u64 byteRangeStart, u64 byteRangeEnd) {
 	PlaylistElement * e = gf_malloc(sizeof(PlaylistElement));
 	bzero(e, sizeof(PlaylistElement));
 	assert( url );
@@ -170,7 +170,7 @@ static PlaylistElement * playlist_element_new(PlaylistElementType elementType, c
 	return e;
 }
 /*
-static Playlist * playlist_new(){
+Playlist * playlist_new(){
 Playlist * pl = gf_malloc(sizeof(Playlist));
 if (pl == NULL)
 return NULL;
@@ -188,7 +188,7 @@ return pl;
 }
 */
 
-static VariantPlaylist * variant_playlist_new ()
+VariantPlaylist * variant_playlist_new ()
 {
 	VariantPlaylist * pl = (VariantPlaylist*)gf_malloc( sizeof(VariantPlaylist) );
 	if (pl == NULL)
@@ -227,7 +227,7 @@ GF_Err variant_playlist_del (VariantPlaylist * playlist) {
 	return GF_OK;
 }
 
-static GF_Err playlist_element_dump(const PlaylistElement * e, int indent) {
+GF_Err playlist_element_dump(const PlaylistElement * e, int indent) {
 	int i;
 	GF_Err r = GF_OK;
 	for (i = 0 ; i < indent; i++)
@@ -258,7 +258,7 @@ static GF_Err playlist_element_dump(const PlaylistElement * e, int indent) {
 	return r;
 }
 
-static GF_Err variant_playlist_dump(const VariantPlaylist * pl) {
+GF_Err variant_playlist_dump(const VariantPlaylist * pl) {
 	int i, count;
 	GF_Err e = GF_OK;
 	if (pl == NULL) {
@@ -286,7 +286,7 @@ static GF_Err variant_playlist_dump(const VariantPlaylist * pl) {
 	return e;
 }
 
-static Program * variant_playlist_find_matching_program(const VariantPlaylist * pl, const u32 programId) {
+Program * variant_playlist_find_matching_program(const VariantPlaylist * pl, const u32 programId) {
 	u32 count, i;
 	assert( pl);
 	assert( pl->programs);
@@ -303,7 +303,7 @@ static Program * variant_playlist_find_matching_program(const VariantPlaylist * 
 	return NULL;
 }
 
-static Program * variant_playlist_get_current_program(const VariantPlaylist * pl) {
+Program * variant_playlist_get_current_program(const VariantPlaylist * pl) {
 	assert( pl );
 	return variant_playlist_find_matching_program(pl, pl->currentProgram);
 }
