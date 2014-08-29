@@ -1282,6 +1282,7 @@ restart_fragmentation_pass:
 							split_sample_duration = defaultDuration;
 							defaultDuration = (u32) (tf->TimeScale * (MaxSegmentDuration - SegmentDuration) / dash_cfg->dash_scale - tf->FragmentLength);
 							split_sample_duration -= defaultDuration;
+							nb_samp++;
 						}
 					} else if (tfref /* tfref set to NULL after the last sample of tfref is processed */
 					           /*&& next do not split if no next sample */
@@ -1295,6 +1296,7 @@ restart_fragmentation_pass:
 
 						/*since we split this sample we have to stop fragmenting afterwards*/
 						stop_frag = GF_TRUE;
+						nb_samp++;
 					}
 				}
 
@@ -1489,7 +1491,7 @@ restart_fragmentation_pass:
 		}
 #endif
 
-		if (force_switch_segment || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap))) {
+		if (force_switch_segment || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap || tf->splitable))) {
 
 			store_segment_duration(&segment_duration, SegmentDuration);
 
