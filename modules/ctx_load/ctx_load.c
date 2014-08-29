@@ -74,7 +74,9 @@ static void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 	odm->OD = od;
 	odm->term = scene->root_od->term;
 	odm->parentscene = scene;
+	gf_mx_p(scene->mx_resources);
 	gf_list_add(scene->resources, odm);
+	gf_mx_v(scene->mx_resources);
 
 	/*locate service owner*/
 	gf_odm_setup_object(odm, scene->root_od->net_service);

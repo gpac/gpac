@@ -94,6 +94,7 @@ typedef struct
 		>=0: amount of media data present in buffer, in ms
 	*/
 	s32 buffer;
+	u32 min_buffer, max_buffer;
 	/*number of AUs in DB (cumulated on all input channels)*/
 	u32 db_unit_count;
 	/*number of CUs in composition memory (if any) and CM capacity*/
@@ -115,7 +116,10 @@ typedef struct
 	u32 avg_bitrate, instant_bitrate, max_bitrate;
 	u32 nb_dec_frames, nb_droped;
 	u32 first_frame_time, last_frame_time;
-	u64 max_dec_time, total_dec_time;
+	u64 total_dec_time, irap_total_dec_time;
+	u32 max_dec_time, irap_max_dec_time;
+	u32 au_duration;
+	u32 nb_iraps;
 
 	/*set if ISMACryp present on the object - will need refinement for IPMPX...
 	0: not protected - 1: protected and OK - 2: protected and DRM failed*/

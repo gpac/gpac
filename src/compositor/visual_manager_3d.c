@@ -63,6 +63,8 @@ void drawable3d_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state,
 	GF_Matrix cur;
 	GF_Compositor *compositor = tr_state->visual->compositor;
 
+	if (compositor->disable_focus_highlight) return;
+
 	if (compositor->focus_node!=node) return;
 
 	hlight = compositor->focus_highlight;

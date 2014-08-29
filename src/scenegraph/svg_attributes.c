@@ -196,7 +196,9 @@ static const struct dom_event_def {
 	{ GF_EVENT_DROPFILE, "gpac_dropfile", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_TEXT_EDITING_START, "gpac_textedit_start", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_TEXT_EDITING_END, "gpac_textedit_end", GF_DOM_EVENT_GPAC},
-	{ GF_EVENT_ADDON_DETECTED, "gpac_addon_found", GF_DOM_EVENT_GPAC}
+	{ GF_EVENT_ADDON_DETECTED, "gpac_addon_found", GF_DOM_EVENT_GPAC},
+	{ GF_EVENT_QUALITY_SWITCHED, "gpac_quality_switch", GF_DOM_EVENT_GPAC}
+	
 };
 
 GF_EXPORT

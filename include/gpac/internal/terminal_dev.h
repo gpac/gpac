@@ -142,6 +142,7 @@ struct _scene
 	/*OD codec - specific to MPEG-4*/
 	struct _generic_codec *od_codec;
 
+	GF_Mutex *mx_resources;
 	/*all sub resources of this scene (eg, list of GF_ObjectManager), namespace of this scene. This includes
 	both external resources (urls) and ODs sent in MPEG-4 systems*/
 	GF_List *resources;
@@ -848,7 +849,8 @@ struct _generic_codec
 	u32 avg_bit_rate, max_bit_rate;
 	u32 nb_dec_frames, nb_iframes;
 	//decode times in us
-	u64 total_dec_time, max_dec_time, total_iframes_time, max_iframes_time;
+	u64 total_dec_time, total_iframes_time;
+	u32 max_dec_time, max_iframes_time;
 	u32 first_frame_time, last_frame_time;
 	/*number of frames dropped at the presentation*/
 	u32 nb_droped;

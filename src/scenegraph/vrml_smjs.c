@@ -975,7 +975,7 @@ static JSBool SMJS_FUNCTION(deleteRoute)
 	SMJS_ARGS
 	if (argc!=4) return JS_FALSE;
 
-	if (!JSVAL_IS_OBJECT(argv[0]) || !GF_JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[0]), &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
+	if (!JSVAL_IS_OBJECT(argv[0]) || JSVAL_IS_NULL(argv[0]) || !GF_JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[0]), &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
 
 	if (JSVAL_IS_STRING(argv[1]) && JSVAL_IS_NULL(argv[2]) && JSVAL_IS_NULL(argv[3])) {
 		ptr = (GF_JSField *) SMJS_GET_PRIVATE(c, JSVAL_TO_OBJECT(argv[0]));

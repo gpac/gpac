@@ -842,7 +842,9 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 
 		if (force_play) {
 			odm->flags |= GF_ODM_INITIAL_BROADCAST_PLAY;
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from broadcast or input service - forcing play\n", odm->OD->objectDescriptorID));
+			odm->parentscene->selected_service_id = odm->OD->ServiceID;
+
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from input service %s - forcing play\n", odm->OD->objectDescriptorID, odm->net_service->url));
 			odm->flags &= ~GF_ODM_NOT_SETUP;
 			gf_odm_start(odm, 2);
 		}
@@ -1668,8 +1670,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 				gf_clock_buffer_off(ch->clock);
 			}
 		} else {
-			gf_term_service_command(ch->service, &com);
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting PLAY from %g to %g (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), com.play.start_range, com.play.end_range, ch->clock->clock_init));
+			gf_term_service_command(ch->service, &com);
 		}
 	}
 //	odm->media_start_time = 0;

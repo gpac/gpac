@@ -87,8 +87,9 @@ typedef struct
 	u32 nb_paused;
 	Bool file_regulate;
 	u32 nb_playing;
+	u32 nb_prog_to_setup;
 
-	Bool map_media_time;
+	u32 map_media_time_on_prog_id;
 	Double media_start_range;
 } M2TSIn;
 
@@ -383,6 +384,11 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 	/*force scene regeneration*/
 	if (!prog->pmt_iod && regenerate_scene)
 		gf_service_declare_media(m2ts->service, NULL, 0);
+
+
+	if (m2ts->nb_prog_to_setup) {
+		m2ts->nb_prog_to_setup--;
+	}
 }
 
 static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
@@ -576,6 +582,9 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 		/* Send the TS to the a user if needed. Useful to check the number of received programs*/
 		forward_m2ts_event(m2ts, evt_type, param);
+
+		m2ts->nb_prog_to_setup = gf_list_count(m2ts->ts->programs) ;
+
 		break;
 	case GF_M2TS_EVT_DSMCC_FOUND:
 		forward_m2ts_event(m2ts, evt_type, param);
@@ -648,9 +657,10 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			slh.OCRflag = 1;
 			slh.m2ts_pcr = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 2 : 1;
 			slh.objectClockReference = ((GF_M2TS_PES_PCK *) param)->PTS;
+
 			gf_service_send_packet(m2ts->service, ((GF_M2TS_PES_PCK *) param)->stream->user, NULL, 0, &slh, GF_OK);
 
-			if ( m2ts->map_media_time && !ts->start_range) {
+			if ( m2ts->map_media_time_on_prog_id && !ts->start_range && (m2ts->map_media_time_on_prog_id==((GF_M2TS_PES_PCK *) param)->stream->program->number)) {
 				GF_NetworkCommand com;
 				memset(&com, 0, sizeof(com));
 				com.command_type = GF_NET_CHAN_SET_MEDIA_TIME;
@@ -658,7 +668,8 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				com.map_time.timestamp = slh.objectClockReference / 300;
 				com.base.on_channel = ((GF_M2TS_PES_PCK *) param)->stream->user;
 				gf_service_command(m2ts->service, &com, GF_OK);
-				m2ts->map_media_time = 0;
+				m2ts->map_media_time_on_prog_id = 0;
+				m2ts->pcr_last = 0;
 			}
 		}
 		((GF_M2TS_PES_PCK *) param)->stream->program->first_dts = 1;
@@ -1423,7 +1434,8 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
 				m2ts->media_start_range = com->play.start_range;
 			}
-			m2ts->map_media_time = 1;
+			if (!m2ts->map_media_time_on_prog_id) 
+				m2ts->map_media_time_on_prog_id = pes->program->number;
 
 			if (plug->query_proxy && ts->file)
 				ts->segment_switch = 1;
@@ -1434,6 +1446,11 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 					gf_m2ts_demuxer_play(ts);
 				}
 			}
+		}
+		//remap media time for this program
+		else if (!m2ts->map_media_time_on_prog_id) { 
+			m2ts->media_start_range = com->play.start_range;
+			m2ts->map_media_time_on_prog_id = pes->program->number;
 		}
 		if (!m2ts->nb_playing) {
 			gf_m2ts_pause_demux(ts, 0);
@@ -1453,7 +1470,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			m2ts->nb_playing--;
 		/*stop demuxer*/
 		if (!plug->query_proxy) {
-			if (!m2ts->nb_playing && (ts->run_state==1)) {
+			if (!m2ts->nb_playing && (ts->run_state==1) && !m2ts->nb_prog_to_setup) {
 				ts->run_state=0;
 				while (ts->run_state!=2) gf_sleep(2);
 				if (gf_list_count(m2ts->ts->requested_progs)) {

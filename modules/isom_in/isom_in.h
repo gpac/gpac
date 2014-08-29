@@ -63,7 +63,7 @@ typedef struct
 
 	/*0: not fragmented - 1 fragmented - 2 fragmented and last fragment received*/
 	u32 frag_type;
-	Bool waiting_for_data;
+	Bool waiting_for_data, reset_frag_state;
 	GF_Mutex *segment_mutex;
 
 	Bool use_memory;

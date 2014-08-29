@@ -62,6 +62,9 @@ typedef enum
 	GF_DASH_EVENT_BUFFER_DONE,
 
 	GF_DASH_EVENT_SEGMENT_AVAILABLE,
+
+	/*event sent when quality has been switched for the given group*/
+	GF_DASH_EVENT_QUALITY_SWITCH,
 } GF_DASHEventType;
 
 /*structure used for all IO operations for DASH*/
@@ -332,6 +335,43 @@ void gf_dash_set_switching_probe_count(GF_DashClient *dash, u32 switch_probe_cou
 u32 gf_dash_get_period_start(GF_DashClient *dash);
 /*returns active period duration in ms*/
 u32 gf_dash_get_period_duration(GF_DashClient *dash);
+
+//returns number of quality available for the given group
+u32 gf_dash_group_get_num_qualities(GF_DashClient *dash, u32 idx);
+
+
+typedef struct
+{
+	u32 bandwidth;
+	const char *ID;
+	const char *mime;
+	const char *codec;
+	u32 width;
+	u32 height;
+	Bool interlaced;
+	u32 fps_den, fps_num;
+	u32 par_num;
+	u32 par_den;
+	u32 sample_rate;
+	u32 nb_channels;
+	Bool disabled;
+	Bool is_selected;
+} GF_DASHQualityInfo;
+
+//returns number of quality available for the given group
+GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 idx, u32 quality_idx, GF_DASHQualityInfo *quality);
+
+//returns 1 if automatic quality switching is enabled
+Bool gf_dash_get_automatic_switching(GF_DashClient *dash);
+
+//sets automatic quality switching enabled or disabled
+GF_Err gf_dash_set_automatic_switching(GF_DashClient *dash, Bool enable_switching);
+
+//selects quality of given ID
+GF_Err gf_dash_group_select_quality(GF_DashClient *dash, u32 idx, const char *ID);
+
+//gets download rate in bytes per second for the given group
+u32 gf_dash_group_get_download_rate(GF_DashClient *dash, u32 idx);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

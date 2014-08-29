@@ -1382,12 +1382,14 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTy
 	scene = odm->subscene ? odm->subscene : odm->parentscene;
 	/*get buffering on root OD*/
 	media_event_collect_info(odm->net_service, scene->root_od, &evt.media_event, &min_time, &min_buffer);
+	gf_mx_p(scene->mx_resources);
 	/*get buffering on all ODs*/
 	i=0;
 	while ((an_od = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
 		if (odm->net_service == an_od->net_service)
 			media_event_collect_info(odm->net_service, an_od, &evt.media_event, &min_time, &min_buffer);
 	}
+	gf_mx_v(scene->mx_resources);
 
 	evt.media_event.level = min_buffer;
 	evt.media_event.remaining_time = INT2FIX(min_time) / 60;
@@ -2375,7 +2377,7 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 	while (NULL != (odm = gf_list_enum(scene->resources, &i))) {
 		if (odm->codec)
 			odm->codec->decio->SetCapabilities(odm->codec->decio, caps);
-		if (odm->net_service && (odm->net_service != root_service) )
+		if (odm->net_service && (odm->net_service != root_service) && (!odm->subscene || !odm->subscene->is_dynamic_scene) )
 			odm->net_service->ifce->ServiceCommand(odm->net_service->ifce, &net_cmd);
 		if (odm->subscene)
 			gf_scene_switch_quality(odm->subscene, up);

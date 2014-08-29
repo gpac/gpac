@@ -79,6 +79,7 @@ GF_Scene *gf_scene_new(GF_Scene *parentScene)
 	GF_SAFEALLOC(tmp, GF_Scene);
 	if (! tmp) return NULL;
 
+	tmp->mx_resources = gf_mx_new("SceneResources");
 	tmp->resources = gf_list_new();
 	tmp->scene_objects = gf_list_new();
 	tmp->extra_scenes = gf_list_new();
@@ -169,6 +170,7 @@ void gf_scene_del(GF_Scene *scene)
 	if (scene->redirect_xml_base) gf_free(scene->redirect_xml_base);
 
 	gf_mx_v(scene->root_od->term->net_mx);
+	gf_mx_del(scene->mx_resources);
 	gf_free(scene);
 }
 
@@ -378,7 +380,9 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	if (sync_ref) odm->ocr_codec = (struct _generic_codec *)sync_ref;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] Inserting new MediaObject %08x for resource %s\n", odm->mo, url));
+	gf_mx_p(scene->mx_resources);
 	gf_list_add(scene->resources, odm);
+	gf_mx_v(scene->mx_resources);
 	if (original_parent_scene) {
 		gf_odm_setup_object(odm, original_parent_scene->root_od->net_service);
 	} else {
@@ -1000,8 +1004,17 @@ static void IS_UpdateVideoPos(GF_Scene *scene)
 	if (!w || !h) return;
 
 	gf_scene_get_video_size(mo, &v_w, &v_h);
-	tr->translation.x = INT2FIX((s32) (w - v_w)) / 2;
-	tr->translation.y = INT2FIX((s32) (h - v_h)) / 2;
+	if (scene->force_size_set) {
+		if (v_w && v_h) {
+			tr->scale.x = gf_divfix(INT2FIX(w), INT2FIX(v_w));
+			tr->scale.y = gf_divfix(INT2FIX(h), INT2FIX(v_h));
+		}
+		tr->translation.x = tr->translation.y = 0;
+	} else {
+		tr->scale.x = tr->scale.y = FIX_ONE;
+		tr->translation.x = INT2FIX((s32) (w - v_w)) / 2;
+		tr->translation.y = INT2FIX((s32) (h - v_h)) / 2;
+	}
 	gf_node_dirty_set((GF_Node *)tr, 0, 0);
 
 
@@ -1047,9 +1060,6 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 			if (odm->scalable_addon || !odm->OD)
 				continue;
 
-			if (scene->selected_service_id && (scene->selected_service_id != odm->OD->ServiceID))
-				continue;
-
 			if (type==GF_STREAM_TEXT) {
 				if (!odm->codec || ((odm->codec->type!=type) && (odm->codec->type!=GF_STREAM_ND_SUBPIC))) continue;
 			}
@@ -1075,6 +1085,24 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 				}
 			}
 
+			if (scene->selected_service_id && (scene->selected_service_id != odm->OD->ServiceID)) {
+				//objects inserted from broadcast may have been played but not yet registered with the scene, we need to force a stop
+				if ((odm->mo && !odm->mo->num_open) || !odm->mo) {
+					if (odm->state==GF_ODM_STATE_PLAY) {
+						/*do not stop directly*/
+						gf_term_lock_media_queue(odm->term, GF_TRUE);
+						/*if object not in media queue, add it*/
+						if (gf_list_find(odm->term->media_queue, odm)<0) {
+							gf_list_add(odm->term->media_queue, odm);
+						}
+						odm->action_type = GF_ODM_ACTION_STOP;
+						gf_term_lock_media_queue(odm->term, GF_FALSE);
+					}
+				}
+				continue;
+			}
+
+
 			media_url->OD_ID = odm->OD->objectDescriptorID;
 			if (media_url->OD_ID==GF_MEDIA_EXTERNAL_ID) media_url->url = gf_strdup(odm->net_service->url);
 
@@ -1088,7 +1116,8 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 
 			if (odm->mo && (type==GF_STREAM_VISUAL)) {
 				gf_scene_get_video_size(odm->mo, &w, &h);
-				gf_sg_set_scene_size_info(scene->graph, w, h, 1);
+				if (w && h)
+					gf_sg_set_scene_size_info(scene->graph, w, h, 1);
 			}
 			break;
 		}
@@ -1344,8 +1373,13 @@ void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
 		scene->visual_url.OD_ID = 0;
 		scene->text_url.OD_ID = 0;
 		scene->dims_url.OD_ID = 0;
-		//reset clock since we change service IDs
-		scene->dyn_ck = NULL;
+		scene->force_size_set = 0;
+		//reset clock since we change service IDs, but request a PLAY from the current time
+		if (scene->dyn_ck) {
+			scene->root_od->media_start_time = gf_clock_media_time(scene->dyn_ck);
+			scene->dyn_ck = NULL;
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Scene] Switching %s from service %d to service %d (media time %g)\n", scene->root_od->net_service->url, scene->selected_service_id, service_id, (Double)scene->root_od->media_start_time/1000.0));
 		gf_scene_regenerate(scene);
 	}
 	gf_sc_lock(scene->root_od->term->compositor, 0);
@@ -1603,7 +1637,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
 	/*restart objects*/
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
-		odm->media_start_time = from_time;
+		odm->media_start_time = 1 + from_time;
 
 		if (odm->subscene && odm->subscene->is_dynamic_scene) {
 			gf_scene_restart_dynamic(odm->subscene, from_time);
@@ -1644,27 +1678,40 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing scene size to %d x %d\n", width, height));
 
-	if (scene->root_od->term->root_scene == scene) {
+	if (scene->is_dynamic_scene) {
 		GF_NetworkCommand com;
 
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
 		gf_term_service_command(scene->root_od->net_service, &com);
 
-		if (com.par.width && com.par.height) {
-			gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, 1);
+		if (scene->root_od->term->root_scene == scene) {
+			if (com.par.width && com.par.height) {
+				gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, 1);
+				if (!scene->force_size_set) {
+					gf_sc_set_size(scene->root_od->term->compositor, com.par.width, com.par.height);
+					scene->force_size_set = 1;
+				} else {
+					gf_sc_set_size(scene->root_od->term->compositor, 0, 0);
+				}
+			} else {
+				/*need output resize*/
+				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
+				gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
+				gf_sc_set_size(scene->root_od->term->compositor, width, height);
+			}
+		
+		} else if (com.par.width && com.par.height) {
 			if (!scene->force_size_set) {
-				gf_sc_set_size(scene->root_od->term->compositor, com.par.width, com.par.height);
+				width = com.par.width;
+				height = com.par.height;
+				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
 				scene->force_size_set = 1;
 			} else {
-				gf_sc_set_size(scene->root_od->term->compositor, 0, 0);
+				gf_sg_get_scene_size_info(scene->graph, &width, &height);
 			}
-		} else {
-			/*need output resize*/
-			gf_sg_set_scene_size_info(scene->graph, width, height, gf_sg_use_pixel_metrics(scene->graph));
-			gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
-			gf_sc_set_size(scene->root_od->term->compositor, width, height);
 		}
+
 	}
 	else if (scene->root_od->parentscene && scene->root_od->parentscene->is_dynamic_scene) {
 		gf_sg_set_scene_size_info(scene->root_od->parentscene->graph, width, height, gf_sg_use_pixel_metrics(scene->root_od->parentscene->graph));

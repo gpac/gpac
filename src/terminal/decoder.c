@@ -363,11 +363,11 @@ static void codec_update_stats(GF_Codec *codec, u32 dataLength, u64 dec_time, u3
 	codec->nb_dec_frames++;
 	if (is_rap) {
 		codec->nb_iframes ++;
-		if (dec_time>codec->max_iframes_time) codec->max_iframes_time = dec_time;
+		if (dec_time>codec->max_iframes_time) codec->max_iframes_time = (u32) dec_time;
 		codec->total_iframes_time += dec_time;
 	}
 
-	if (dec_time>codec->max_dec_time) codec->max_dec_time = dec_time;
+	if (dec_time>codec->max_dec_time) codec->max_dec_time = (u32) dec_time;
 
 
 	if (DTS < codec->min_frame_dur + codec->last_unit_dts ) {
@@ -1596,8 +1596,10 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 		codec->last_stat_start = codec->cur_bit_size = codec->max_bit_rate = codec->avg_bit_rate = 0;
 		codec->nb_dec_frames = 0;
 		codec->nb_iframes = 0;
-		codec->max_iframes_time = codec->total_iframes_time = 0;
-		codec->total_dec_time = codec->max_dec_time = 0;
+		codec->max_iframes_time = 0;
+		codec->total_iframes_time = 0;
+		codec->total_dec_time = 0;
+		codec->max_dec_time = 0;
 		codec->cur_audio_bytes = codec->cur_video_frames = 0;
 		codec->nb_droped = 0;
 		codec->nb_repeted_frames = 0;
@@ -1607,7 +1609,8 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 		codec->nb_dispatch_skipped = 0;
 		memset(codec->last_unit_signature, 0, sizeof(codec->last_unit_signature));
 	}
-	else codec->Status = Status;
+	else 
+		codec->Status = Status;
 
 	if (!codec->CB) return;
 

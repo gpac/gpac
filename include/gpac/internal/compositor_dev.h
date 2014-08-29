@@ -401,6 +401,7 @@ struct __tag_compositor
 	/*highlight fill and stroke colors (ARGB)*/
 	u32 highlight_fill, highlight_stroke;
 	Fixed highlight_stroke_width;
+	Bool disable_focus_highlight;
 
 	/*picking info*/
 

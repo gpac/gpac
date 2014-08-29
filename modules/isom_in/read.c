@@ -1099,6 +1099,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		gf_mx_p(read->segment_mutex);
 		isor_reset_reader(ch);
 		ch->speed = com->play.speed;
+		read->reset_frag_state = 1;
 		gf_mx_v(read->segment_mutex);
 
 		ch->start = ch->end = 0;

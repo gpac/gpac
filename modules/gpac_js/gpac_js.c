@@ -61,6 +61,7 @@
 #include <gpac/modules/js_usr.h>
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
+#include <gpac/term_info.h>
 
 #define GPAC_JS_RTI_REFRESH_RATE	200
 
@@ -71,6 +72,7 @@ typedef struct
 
 	GF_JSClass gpacClass;
 	GF_JSClass gpacEvtClass;
+	GF_JSClass odmClass;
 	GF_JSClass anyClass;
 
 	jsval evt_fun;
@@ -94,206 +96,222 @@ static GF_Terminal *gpac_get_term(JSContext *c, JSObject *obj)
 
 static SMJS_FUNC_PROP_GET( gpac_getProperty)
 
-const char *res;
-char *prop_name;
-GF_Terminal *term = gpac_get_term(c, obj);
-if (!term) return JS_FALSE;
+	const char *res;
+	char *prop_name;
+	GF_Terminal *term = gpac_get_term(c, obj);
+	if (!term) return JS_FALSE;
 
-if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
-prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
-if (!prop_name) return JS_FALSE;
+	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
+	if (!prop_name) return JS_FALSE;
 
-if (!strcmp(prop_name, "last_working_directory")) {
-	res = gf_cfg_get_key(term->user->config, "General", "LastWorkingDir");
-	if (!res) res = gf_cfg_get_key(term->user->config, "General", "ModulesDirectory");
-	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, res));
-}
-else if (!strcmp(prop_name, "scale_x")) {
-	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_x)) );
-}
-else if (!strcmp(prop_name, "scale_y")) {
-	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_y)) );
-}
-else if (!strcmp(prop_name, "translation_x")) {
-	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_x)) );
-}
-else if (!strcmp(prop_name, "translation_y")) {
-	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_y)) );
-}
-else if (!strcmp(prop_name, "rectangular_textures")) {
-	Bool any_size = GF_FALSE;
-#ifndef GPAC_DISABLE_3D
-	if (term->compositor->gl_caps.npot_texture || term->compositor->gl_caps.rect_texture)
-		any_size = GF_TRUE;
-#endif
-	*vp = BOOLEAN_TO_JSVAL( any_size ? JS_TRUE : JS_FALSE );
-}
-else if (!strcmp(prop_name, "batteryOn")) {
-	Bool on_battery = GF_FALSE;
-	gf_sys_get_battery_state(&on_battery, NULL, NULL, NULL, NULL);
-	*vp = BOOLEAN_TO_JSVAL( on_battery ? JS_TRUE : JS_FALSE );
-}
-else if (!strcmp(prop_name, "batteryCharging")) {
-	u32 on_charge = 0;
-	gf_sys_get_battery_state(NULL, &on_charge, NULL, NULL, NULL);
-	*vp = BOOLEAN_TO_JSVAL( on_charge ? JS_TRUE : JS_FALSE );
-}
-else if (!strcmp(prop_name, "batteryPercent")) {
-	u32 level = 0;
-	gf_sys_get_battery_state(NULL, NULL, &level, NULL, NULL);
-	*vp = INT_TO_JSVAL( level );
-}
-else if (!strcmp(prop_name, "batteryLifeTime")) {
-	u32 level = 0;
-	gf_sys_get_battery_state(NULL, NULL, NULL, &level, NULL);
-	*vp = INT_TO_JSVAL( level );
-}
-else if (!strcmp(prop_name, "batteryFullLifeTime")) {
-	u32 level = 0;
-	gf_sys_get_battery_state(NULL, NULL, NULL, NULL, &level);
-	*vp = INT_TO_JSVAL( level );
-}
-else if (!strcmp(prop_name, "hostname")) {
-	char hostname[100];
-	gf_sk_get_host_name((char*)hostname);
-	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, hostname));
-}
-else if (!strcmp(prop_name, "fullscreen")) {
-	*vp = BOOLEAN_TO_JSVAL( term->compositor->fullscreen ? JS_TRUE : JS_FALSE);
-}
-else if (!strcmp(prop_name, "current_path")) {
-	char *url = gf_url_concatenate(term->root_scene->root_od->net_service->url, "");
-	if (!url) url = gf_strdup("");
-	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, url));
-	gf_free(url);
-}
-else if (!strcmp(prop_name, "volume")) {
-	*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_AUDIO_VOLUME));
-}
-else if (!strcmp(prop_name, "navigation")) {
-	*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION));
-}
-else if (!strcmp(prop_name, "navigation_type")) {
-	*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE) );
-}
-else if (!strcmp(prop_name, "hardware_yuv")) {
-	*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_YUV) ? 1 : 0 );
-}
-else if (!strcmp(prop_name, "hardware_rgb")) {
-	*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB) ? 1 : 0 );
-}
-else if (!strcmp(prop_name, "hardware_rgba")) {
-	u32 has_rgba = (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGBA) ? 1 : 0;
-#ifndef GPAC_DISABLE_3D
-	if (term->compositor->hybrid_opengl || term->compositor->is_opengl) has_rgba = 1;
-#endif
-	*vp = INT_TO_JSVAL( has_rgba  );
-}
-else if (!strcmp(prop_name, "hardware_stretch")) {
-	*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_STRETCH) ? 1 : 0 );
-}
-else if (!strcmp(prop_name, "screen_width")) {
-	*vp = INT_TO_JSVAL( term->compositor->video_out->max_screen_width);
-}
-else if (!strcmp(prop_name, "screen_height")) {
-	*vp = INT_TO_JSVAL( term->compositor->video_out->max_screen_height);
-}
-else if (!strcmp(prop_name, "http_bitrate")) {
-	*vp = INT_TO_JSVAL( gf_dm_get_data_rate(term->downloader)*8/1024);
-}
-else if (!strcmp(prop_name, "fps")) {
-	Double fps = gf_sc_get_fps(term->compositor, 0);
-	*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, fps) );
-}
-else if (!strcmp(prop_name, "cpu_load")) {
-	GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
-	gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
-	*vp = INT_TO_JSVAL(ext->rti.process_cpu_usage);
-}
-else if (!strcmp(prop_name, "memory")) {
-	GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
-	gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
-	*vp = INT_TO_JSVAL(ext->rti.process_memory);
-}
+	if (!strcmp(prop_name, "last_working_directory")) {
+		res = gf_cfg_get_key(term->user->config, "General", "LastWorkingDir");
+		if (!res) res = gf_cfg_get_key(term->user->config, "General", "ModulesDirectory");
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, res));
+	}
+	else if (!strcmp(prop_name, "scale_x")) {
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_x)) );
+	}
+	else if (!strcmp(prop_name, "scale_y")) {
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_y)) );
+	}
+	else if (!strcmp(prop_name, "translation_x")) {
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_x)) );
+	}
+	else if (!strcmp(prop_name, "translation_y")) {
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_y)) );
+	}
+	else if (!strcmp(prop_name, "rectangular_textures")) {
+		Bool any_size = GF_FALSE;
+	#ifndef GPAC_DISABLE_3D
+		if (term->compositor->gl_caps.npot_texture || term->compositor->gl_caps.rect_texture)
+			any_size = GF_TRUE;
+	#endif
+		*vp = BOOLEAN_TO_JSVAL( any_size ? JS_TRUE : JS_FALSE );
+	}
+	else if (!strcmp(prop_name, "batteryOn")) {
+		Bool on_battery = GF_FALSE;
+		gf_sys_get_battery_state(&on_battery, NULL, NULL, NULL, NULL);
+		*vp = BOOLEAN_TO_JSVAL( on_battery ? JS_TRUE : JS_FALSE );
+	}
+	else if (!strcmp(prop_name, "batteryCharging")) {
+		u32 on_charge = 0;
+		gf_sys_get_battery_state(NULL, &on_charge, NULL, NULL, NULL);
+		*vp = BOOLEAN_TO_JSVAL( on_charge ? JS_TRUE : JS_FALSE );
+	}
+	else if (!strcmp(prop_name, "batteryPercent")) {
+		u32 level = 0;
+		gf_sys_get_battery_state(NULL, NULL, &level, NULL, NULL);
+		*vp = INT_TO_JSVAL( level );
+	}
+	else if (!strcmp(prop_name, "batteryLifeTime")) {
+		u32 level = 0;
+		gf_sys_get_battery_state(NULL, NULL, NULL, &level, NULL);
+		*vp = INT_TO_JSVAL( level );
+	}
+	else if (!strcmp(prop_name, "batteryFullLifeTime")) {
+		u32 level = 0;
+		gf_sys_get_battery_state(NULL, NULL, NULL, NULL, &level);
+		*vp = INT_TO_JSVAL( level );
+	}
+	else if (!strcmp(prop_name, "hostname")) {
+		char hostname[100];
+		gf_sk_get_host_name((char*)hostname);
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, hostname));
+	}
+	else if (!strcmp(prop_name, "fullscreen")) {
+		*vp = BOOLEAN_TO_JSVAL( term->compositor->fullscreen ? JS_TRUE : JS_FALSE);
+	}
+	else if (!strcmp(prop_name, "current_path")) {
+		char *url = gf_url_concatenate(term->root_scene->root_od->net_service->url, "");
+		if (!url) url = gf_strdup("");
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, url));
+		gf_free(url);
+	}
+	else if (!strcmp(prop_name, "volume")) {
+		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_AUDIO_VOLUME));
+	}
+	else if (!strcmp(prop_name, "navigation")) {
+		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION));
+	}
+	else if (!strcmp(prop_name, "navigation_type")) {
+		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE) );
+	}
+	else if (!strcmp(prop_name, "hardware_yuv")) {
+		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_YUV) ? 1 : 0 );
+	}
+	else if (!strcmp(prop_name, "hardware_rgb")) {
+		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB) ? 1 : 0 );
+	}
+	else if (!strcmp(prop_name, "hardware_rgba")) {
+		u32 has_rgba = (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGBA) ? 1 : 0;
+	#ifndef GPAC_DISABLE_3D
+		if (term->compositor->hybrid_opengl || term->compositor->is_opengl) has_rgba = 1;
+	#endif
+		*vp = INT_TO_JSVAL( has_rgba  );
+	}
+	else if (!strcmp(prop_name, "hardware_stretch")) {
+		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_STRETCH) ? 1 : 0 );
+	}
+	else if (!strcmp(prop_name, "screen_width")) {
+		*vp = INT_TO_JSVAL( term->compositor->video_out->max_screen_width);
+	}
+	else if (!strcmp(prop_name, "screen_height")) {
+		*vp = INT_TO_JSVAL( term->compositor->video_out->max_screen_height);
+	}
+	else if (!strcmp(prop_name, "http_bitrate")) {
+		*vp = INT_TO_JSVAL( gf_dm_get_data_rate(term->downloader)*8/1024);
+	}
+	else if (!strcmp(prop_name, "fps")) {
+		Double fps = gf_sc_get_fps(term->compositor, 0);
+		*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, fps) );
+	}
+	else if (!strcmp(prop_name, "cpu_load") || !strcmp(prop_name, "cpu")) {
+		GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
+		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
+		*vp = INT_TO_JSVAL(ext->rti.process_cpu_usage);
+	}
+	else if (!strcmp(prop_name, "nb_cores")) {
+		GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
+		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
+		*vp = INT_TO_JSVAL(ext->rti.nb_cores);
+	}
+	else if (!strcmp(prop_name, "system_memory")) {
+		GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
+		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
+		*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, (Double) ext->rti.physical_memory ) );
+	}
+	else if (!strcmp(prop_name, "memory")) {
+		GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
+		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
+		*vp = INT_TO_JSVAL(ext->rti.process_memory);
+	}
+	else if (!strcmp(prop_name, "argc")) {
+		*vp = INT_TO_JSVAL(gf_sys_get_argc() );
+	}
 
 
-SMJS_FREE(c, prop_name);
-return JS_TRUE;
-}
+	SMJS_FREE(c, prop_name);
+	return JS_TRUE;
+	}
 
 
 static SMJS_FUNC_PROP_SET( gpac_setProperty)
 
-char *prop_name, *prop_val;
-GF_Terminal *term = gpac_get_term(c, obj);
-if (!term) return JS_FALSE;
+	char *prop_name, *prop_val;
+	GF_Terminal *term = gpac_get_term(c, obj);
+	if (!term) return JS_FALSE;
 
-if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
-prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
+	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 
-if (!strcmp(prop_name, "last_working_directory")) {
-	if (!JSVAL_IS_STRING(*vp)) {
-		SMJS_FREE(c, prop_name);
-		return JS_FALSE;
+	if (!strcmp(prop_name, "last_working_directory")) {
+		if (!JSVAL_IS_STRING(*vp)) {
+			SMJS_FREE(c, prop_name);
+			return JS_FALSE;
+		}
+		prop_val = SMJS_CHARS(c, *vp);
+		gf_cfg_set_key(term->user->config, "General", "LastWorkingDir", prop_val);
+		SMJS_FREE(c, prop_val);
 	}
-	prop_val = SMJS_CHARS(c, *vp);
-	gf_cfg_set_key(term->user->config, "General", "LastWorkingDir", prop_val);
-	SMJS_FREE(c, prop_val);
-}
-else if (!strcmp(prop_name, "caption")) {
-	GF_Event evt;
-	if (!JSVAL_IS_STRING(*vp)) {
-		SMJS_FREE(c, prop_name);
-		return JS_FALSE;
+	else if (!strcmp(prop_name, "caption")) {
+		GF_Event evt;
+		if (!JSVAL_IS_STRING(*vp)) {
+			SMJS_FREE(c, prop_name);
+			return JS_FALSE;
+		}
+		evt.type = GF_EVENT_SET_CAPTION;
+		evt.caption.caption = SMJS_CHARS(c, *vp);
+		gf_term_user_event(term, &evt);
+		SMJS_FREE(c, (char*)evt.caption.caption);
 	}
-	evt.type = GF_EVENT_SET_CAPTION;
-	evt.caption.caption = SMJS_CHARS(c, *vp);
-	gf_term_user_event(term, &evt);
-	SMJS_FREE(c, (char*)evt.caption.caption);
-}
-else if (!strcmp(prop_name, "fullscreen")) {
-	/*no fullscreen for iOS (always on)*/
-#ifndef GPAC_IPHONE
-	Bool res = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : 0;
-	if (term->compositor->fullscreen != res) {
-		gf_term_set_option(term, GF_OPT_FULLSCREEN, res);
+	else if (!strcmp(prop_name, "fullscreen")) {
+		/*no fullscreen for iOS (always on)*/
+	#ifndef GPAC_IPHONE
+		Bool res = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : 0;
+		if (term->compositor->fullscreen != res) {
+			gf_term_set_option(term, GF_OPT_FULLSCREEN, res);
+		}
+	#endif
 	}
-#endif
-}
-else if (!strcmp(prop_name, "volume")) {
-	if (JSVAL_IS_NUMBER(*vp)) {
-		jsdouble d;
-		JS_ValueToNumber(c, *vp, &d);
-		gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, (u32) d);
-	} else if (JSVAL_IS_INT(*vp)) {
-		gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, JSVAL_TO_INT(*vp));
+	else if (!strcmp(prop_name, "volume")) {
+		if (JSVAL_IS_NUMBER(*vp)) {
+			jsdouble d;
+			JS_ValueToNumber(c, *vp, &d);
+			gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, (u32) d);
+		} else if (JSVAL_IS_INT(*vp)) {
+			gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, JSVAL_TO_INT(*vp));
+		}
 	}
-}
-else if (!strcmp(prop_name, "navigation")) {
-	gf_term_set_option(term, GF_OPT_NAVIGATION, JSVAL_TO_INT(*vp) );
-}
-else if (!strcmp(prop_name, "navigation_type")) {
-	gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
-}
-else if (!strcmp(prop_name, "disable_hardware_blit")) {
-	term->compositor->disable_hardware_blit = JSVAL_TO_INT(*vp) ? 1 : 0;
-	gf_sc_set_option(term->compositor, GF_OPT_REFRESH, 0);
-}
-else if (!strcmp(prop_name, "disable_composite_blit")) {
-	Bool new_val = JSVAL_TO_INT(*vp) ? 1 : 0;
-	if (new_val != term->compositor->disable_composite_blit) {
-		term->compositor->disable_composite_blit = new_val;
-		term->compositor->rebuild_offscreen_textures = 1;
+	else if (!strcmp(prop_name, "navigation")) {
+		gf_term_set_option(term, GF_OPT_NAVIGATION, JSVAL_TO_INT(*vp) );
+	}
+	else if (!strcmp(prop_name, "navigation_type")) {
+		gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
+	}
+	else if (!strcmp(prop_name, "disable_hardware_blit")) {
+		term->compositor->disable_hardware_blit = JSVAL_TO_INT(*vp) ? 1 : 0;
 		gf_sc_set_option(term->compositor, GF_OPT_REFRESH, 0);
 	}
-}
-else if (!strcmp(prop_name, "http_bitrate")) {
-	u32 new_rate = JSVAL_TO_INT(*vp);
-	gf_dm_set_data_rate(term->downloader, new_rate);
-}
+	else if (!strcmp(prop_name, "disable_composite_blit")) {
+		Bool new_val = JSVAL_TO_INT(*vp) ? 1 : 0;
+		if (new_val != term->compositor->disable_composite_blit) {
+			term->compositor->disable_composite_blit = new_val;
+			term->compositor->rebuild_offscreen_textures = 1;
+			gf_sc_set_option(term->compositor, GF_OPT_REFRESH, 0);
+		}
+	}
+	else if (!strcmp(prop_name, "http_bitrate")) {
+		u32 new_rate = JSVAL_TO_INT(*vp);
+		gf_dm_set_data_rate(term->downloader, new_rate);
+	}
 
-SMJS_FREE(c, prop_name);
-return JS_TRUE;
+	else if (!strcmp(prop_name, "focus_highlight")) {
+		term->compositor->disable_focus_highlight = JSVAL_TO_BOOLEAN(*vp) ? 0 : 1;
+	}
+	SMJS_FREE(c, prop_name);
+	return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(gpac_getOption)
@@ -383,6 +401,32 @@ static JSBool SMJS_FUNCTION(gpac_setOption)
 	}
 	return JS_TRUE;
 }
+
+
+static JSBool SMJS_FUNCTION(gpac_get_arg)
+{
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_Terminal *term = gpac_get_term(c, obj);
+	if (!term) return JS_FALSE;
+
+	if (argc < 1) return JS_FALSE;
+
+	if (JSVAL_IS_INT(argv[0])) {
+		u32 idx = JSVAL_TO_INT(argv[0]);
+		const char *arg = gf_sys_get_arg(idx);
+		if (arg) {
+			SMJS_SET_RVAL( STRING_TO_JSVAL(JS_NewStringCopyZ(c, arg)) );
+		} else {
+			SMJS_SET_RVAL( JSVAL_NULL );
+		}
+		return JS_TRUE;
+	} else {
+		return JS_FALSE;
+	}
+	return JS_TRUE;
+}
+
 
 typedef struct
 {
@@ -688,6 +732,7 @@ static JSBool SMJS_FUNCTION(gpac_trigger_gc)
 	return JS_TRUE;
 }
 
+
 static JSBool SMJS_FUNCTION(gpac_migrate_url)
 {
 	char *url;
@@ -721,6 +766,282 @@ static JSBool SMJS_FUNCTION(gpac_migrate_url)
 	return JS_TRUE;
 }
 
+static SMJS_FUNC_PROP_GET( odm_getProperty)
+
+	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+	GF_MediaInfo odi;
+	char *str;
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+
+	gf_term_get_object_info(odm->term, odm, &odi);
+
+	switch (SMJS_ID_TO_INT(id)) {
+	case -1:
+		*vp = INT_TO_JSVAL(odi.od->objectDescriptorID);
+		break;
+	case -2:
+		*vp = INT_TO_JSVAL(odm->subscene ? gf_list_count(odm->subscene->resources) : 0);
+		break;
+	case -3:
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.service_url));
+		break;
+	case -4:
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, odi.duration) );
+		break;
+	case -5:
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, odi.current_time) );
+		break;
+	case -6:
+		*vp = INT_TO_JSVAL( odi.clock_drift);
+		break;
+	case -7:
+		if (odi.status==0) str = "Stopped";
+		else if (odi.status==1) str = "Playing";
+		else if (odi.status==2) str = "Paused";
+		else if (odi.status==3) str = "Not Setup";
+		else str = "Setup Failed";
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
+		break;
+	case -8:
+		*vp = INT_TO_JSVAL( odi.buffer);
+		break;
+	case -9:
+		*vp = INT_TO_JSVAL( odi.db_unit_count);
+		break;
+	case -10:
+		*vp = INT_TO_JSVAL( odi.cb_unit_count);
+		break;
+	case -11:
+		*vp = INT_TO_JSVAL( odi.cb_max_count);
+		break;
+	case -12:
+		if (odi.od_type==GF_STREAM_SCENE) str = "Scene";
+		else if (odi.od_type==GF_STREAM_OD) str = "Object Descriptor";
+		else if (odi.od_type==GF_STREAM_VISUAL) str = "Video";
+		else if (odi.od_type==GF_STREAM_AUDIO) str = "Audio";
+		else if (odi.od_type==GF_STREAM_TEXT) str = "Text";
+		else str = "Unknow";
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
+		break;
+	case -13:
+		*vp = INT_TO_JSVAL( odi.sample_rate);
+		break;
+	case -14:
+		*vp = INT_TO_JSVAL( odi.num_channels);
+		break;
+	case -15:
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_4cc_to_str(odi.lang) ) );
+		break;
+	case -16:
+		*vp = INT_TO_JSVAL( odi.width);
+		break;
+	case -17:
+		*vp = INT_TO_JSVAL( odi.height);
+		break;
+	case -18:
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_4cc_to_str(odi.pixelFormat) ) );
+		break;
+	case -19:
+		if (odi.par) {
+			char szPar[50];
+			sprintf(szPar, "%d:%d", (odi.par>>16)&0xFF, (odi.par)&0xFF );
+			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, szPar ) );
+		} else {
+			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "1:1" ) );
+		}
+		break;
+	case -20:
+		*vp = INT_TO_JSVAL(odi.nb_dec_frames);
+		break;
+	case -21:
+		*vp = INT_TO_JSVAL(odi.nb_droped);
+		break;
+	case -22:
+		*vp = INT_TO_JSVAL(odi.max_dec_time);
+		break;
+	case -23:
+		*vp = INT_TO_JSVAL(odi.total_dec_time);
+		break;
+	case -24:
+		*vp = INT_TO_JSVAL(odi.avg_bitrate);
+		break;
+	case -25:
+		*vp = INT_TO_JSVAL(odi.max_bitrate);
+		break;
+	case -26:
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.service_handler));
+		break;
+	case -27:
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.codec_name));
+		break;
+	case -28:
+	{
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
+		com.base.on_channel = gf_list_get(odm->channels, 0);
+
+		gf_term_service_command(odm->net_service, &com);
+		*vp = INT_TO_JSVAL(com.quality_query.index);
+	}
+		break;
+	case -29:
+		*vp = INT_TO_JSVAL(odi.max_buffer);
+		break;
+	case -30:
+		*vp = INT_TO_JSVAL(odi.min_buffer);
+		break;
+	case -31:
+		*vp = INT_TO_JSVAL(odi.au_duration);
+		break;
+	case -32:
+		*vp = INT_TO_JSVAL(odi.nb_iraps);
+		break;
+	case -33:
+		*vp = INT_TO_JSVAL(odi.irap_total_dec_time);
+		break;
+	case -34:
+		*vp = INT_TO_JSVAL(odi.irap_max_dec_time);
+		break;
+	case -35:
+		*vp = INT_TO_JSVAL(odi.od->ServiceID);
+		break;
+	case -36:
+		*vp = INT_TO_JSVAL( (!odm->addon && odm->subscene) ? odm->subscene->selected_service_id : odm->parentscene->selected_service_id);
+		break;
+	case -37:
+	{
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_GET_STATS;
+		com.base.on_channel = gf_list_get(odm->channels, 0);
+		gf_term_service_command(odm->net_service, &com);
+		*vp = INT_TO_JSVAL(com.net_stats.bw_down);
+	}
+		break;
+	}	
+	return JS_TRUE;
+}
+
+static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
+{
+	GF_NetworkCommand com;
+	GF_ObjectManager *an_odm = NULL;
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+
+	if (!odm) return JS_TRUE;
+	if (argc<1) return JS_TRUE;
+	if (! SMJS_ID_IS_INT(argv[0]) ) return JS_TRUE;
+
+	memset(&com, 0, sizeof(GF_NetworkCommand));
+	com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
+	com.quality_query.index = 1 + SMJS_ID_TO_INT(argv[0]);
+	com.base.on_channel = gf_list_get(odm->channels, 0);
+
+	if (gf_term_service_command(odm->net_service, &com) == GF_OK) {
+		JSObject *a = JS_NewObject(c, NULL, NULL, NULL);
+
+		JS_DefineProperty(c, a, "ID", STRING_TO_JSVAL(JS_NewStringCopyZ(c, com.quality_query.ID ? com.quality_query.ID : "")) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "mime", STRING_TO_JSVAL(JS_NewStringCopyZ(c, com.quality_query.mime ? com.quality_query.mime : "")) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "codec", STRING_TO_JSVAL(JS_NewStringCopyZ(c, com.quality_query.codec ? com.quality_query.codec : "")) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "width", INT_TO_JSVAL(com.quality_query.width), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "height", INT_TO_JSVAL(com.quality_query.height), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "bandwidth", INT_TO_JSVAL(com.quality_query.bandwidth), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "interlaced", BOOLEAN_TO_JSVAL(com.quality_query.interlaced), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "fps", DOUBLE_TO_JSVAL( JS_NewDouble(c, com.quality_query.fps) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "samplerate", INT_TO_JSVAL(com.quality_query.sample_rate), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "channels", INT_TO_JSVAL(com.quality_query.nb_channels), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "par_num", INT_TO_JSVAL(com.quality_query.par_num), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "par_den", INT_TO_JSVAL(com.quality_query.par_den), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "disabled", BOOLEAN_TO_JSVAL(com.quality_query.disabled), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "is_selected", BOOLEAN_TO_JSVAL(com.quality_query.is_selected), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "automatic", BOOLEAN_TO_JSVAL(com.quality_query.automatic), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+
+		SMJS_SET_RVAL( OBJECT_TO_JSVAL(a) );
+	} else {
+		SMJS_SET_RVAL(JSVAL_NULL);
+	}
+
+	return JS_TRUE;
+}
+
+static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
+{
+	GF_NetworkCommand com;
+	u32 sid;
+	char *ID = NULL;
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+
+	if (!odm) return JS_TRUE;
+	
+	if ((argc==1) && SMJS_ID_IS_STRING(argv[0])) {
+		ID = SMJS_CHARS(c, argv[0]);
+	} 
+	if (!ID) {
+		return JS_TRUE;
+	}
+
+	memset(&com, 0, sizeof(GF_NetworkCommand));
+	com.base.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
+	com.base.on_channel = gf_list_get(odm->channels, 0);
+	if (!strcmp(ID, "auto")) {
+		com.switch_quality.set_auto = 1;
+	} else {
+		com.switch_quality.ID = ID;
+	}
+	
+	gf_term_service_command(odm->net_service, &com);
+
+	SMJS_FREE(c, ID);
+	return JS_TRUE;
+}
+
+static JSBool SMJS_FUNCTION(gjs_odm_select_service)
+{
+	u32 sid;
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+
+	if (!odm) return JS_TRUE;
+	if (argc<1) return JS_TRUE;
+	if (! SMJS_ID_IS_INT(argv[0]) ) return JS_TRUE;
+	sid = SMJS_ID_TO_INT(argv[0]);
+
+	gf_term_select_service(odm->term, odm->subscene ? odm : odm->parentscene->root_od, sid);
+	return JS_TRUE;
+}
+
+static JSBool SMJS_FUNCTION(gjs_odm_get_resource)
+{
+	GF_ObjectManager *an_odm = NULL;
+	u32 idx;
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+
+	if (!odm) return JS_TRUE;
+	if (argc<1) return JS_TRUE;
+	if (! SMJS_ID_IS_INT(argv[0]) ) return JS_TRUE;
+	idx = SMJS_ID_TO_INT(argv[0]);
+
+	if (odm->subscene) {
+		an_odm = gf_list_get(odm->subscene->resources, idx);
+	}
+	if (an_odm) {
+		JSClass *_class = JS_GetClass (obj);
+		obj = JS_NewObject(c, _class , 0, 0);
+		SMJS_SET_PRIVATE(c, obj, an_odm);
+		SMJS_SET_RVAL( OBJECT_TO_JSVAL(obj) );
+	} else {
+		SMJS_SET_RVAL(JSVAL_NULL);
+	}
+	return JS_TRUE;
+}
 
 static JSBool SMJS_FUNCTION(gjs_odm_addon_layout)
 {
@@ -762,9 +1083,10 @@ static JSBool SMJS_FUNCTION(gjs_odm_declare_addon)
 
 static JSBool SMJS_FUNCTION(gpac_get_object_manager)
 {
+	JSObject *anobj;
 	u32 i, count;
 	GF_ObjectManager *odm = NULL;
-	const char *service_url;
+	const char *service_url = NULL;
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
@@ -786,19 +1108,17 @@ static JSBool SMJS_FUNCTION(gpac_get_object_manager)
 		}
 	}
 
+	SMJS_FREE(c, service_url);
+
 	if (!odm) {
 		SMJS_SET_RVAL(JSVAL_NULL);
 		return JS_TRUE;
 	}
 
-	obj = JS_NewObject(c, &gjs->anyClass._class, 0, 0);
-	SMJS_SET_PRIVATE(c, obj, odm);
+	anobj = JS_NewObject(c, &gjs->odmClass._class, 0, 0);
+	SMJS_SET_PRIVATE(c, anobj, odm);
 
-	JS_DefineFunction(c, obj, "declare_addon", gjs_odm_declare_addon, 1, 0);
-	JS_DefineFunction(c, obj, "enable_addon", gjs_odm_declare_addon, 1, 0);
-	JS_DefineFunction(c, obj, "addon_layout", gjs_odm_addon_layout, 1, 0);
-
-	SMJS_SET_RVAL( OBJECT_TO_JSVAL(obj) );
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(anobj) );
 	return JS_TRUE;
 }
 
@@ -1040,6 +1360,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("setOption",		gpac_setOption, 4),
 		SMJS_FUNCTION_SPEC("get_option",		gpac_getOption, 3),
 		SMJS_FUNCTION_SPEC("set_option",		gpac_setOption, 4),
+		SMJS_FUNCTION_SPEC("get_arg",		gpac_get_arg, 1),
 		SMJS_FUNCTION_SPEC("enum_directory",	gpac_enum_directory, 1),
 		SMJS_FUNCTION_SPEC("set_size",		gpac_set_size, 1),
 		SMJS_FUNCTION_SPEC("get_horizontal_dpi",	gpac_get_horizontal_dpi, 0),
@@ -1059,6 +1380,61 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("trigger_gc",		gpac_trigger_gc, 1),
 		SMJS_FUNCTION_SPEC("get_object_manager",		gpac_get_object_manager, 1),
 
+
+		SMJS_FUNCTION_SPEC(0, 0, 0)
+	};
+
+	JSPropertySpec odmClassProps[] = {
+		SMJS_PROPERTY_SPEC("ID",				-1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("nb_resources",			-2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("service_url",		-3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("duration",			-4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("clock_time",		-5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("clock_drift",		-6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("status",			-7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("buffer",			-8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("db_unit_count",		-9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("cb_unit_count",		-10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("cb_capacity",		-11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("type",				-12,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("samplerate",		-13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("channels",			-14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("lang",				-15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("width",				-16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("height",			-17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("pixelformt",		-18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("par",				-19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("dec_frames",		-20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("drop_frames",		-21,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("max_dec_time",		-22,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("total_dec_time",	-23,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("avg_bitrate",		-24,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("max_bitrate",		-25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("service_handler",	-26,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("codec",				-27,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("nb_qualities",		-28,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("max_buffer",		-29,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("min_buffer",		-30,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("frame_duration",	-31,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("irap_frames",		-32,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("irap_dec_time",		-33,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("irap_max_time",		-34,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("service_id",		-35,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("selected_service",	-36,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("bandwidth_down",	-37,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		
+
+		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
+	};
+
+	JSFunctionSpec odmClassFuncs[] = {
+		SMJS_FUNCTION_SPEC("declare_addon", gjs_odm_declare_addon, 1),
+		SMJS_FUNCTION_SPEC("enable_addon", gjs_odm_declare_addon, 1),
+		SMJS_FUNCTION_SPEC("addon_layout", gjs_odm_addon_layout, 1),
+		SMJS_FUNCTION_SPEC("get_resource", gjs_odm_get_resource, 1),
+		SMJS_FUNCTION_SPEC("get_quality", gjs_odm_get_quality, 1),
+		SMJS_FUNCTION_SPEC("select_service", gjs_odm_select_service, 1),
+		SMJS_FUNCTION_SPEC("select_quality", gjs_odm_select_quality, 1),
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
@@ -1091,6 +1467,9 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 			}
 		}
 		SMJS_SET_PRIVATE(c, gjs->gpac_obj, gjs);
+
+		JS_SETUP_CLASS(gjs->odmClass, "ODM", JSCLASS_HAS_PRIVATE, odm_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
+		GF_JS_InitClass(c, global, 0, &gjs->odmClass, 0, 0, odmClassProps, odmClassFuncs, 0, 0);
 	} else {
 		JS_DefineProperty(c, global, "gpac", OBJECT_TO_JSVAL(gjs->gpac_obj), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	}
@@ -1116,6 +1495,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		DECLARE_GPAC_CONST(GF_EVENT_NAVIGATE);
 		DECLARE_GPAC_CONST(GF_EVENT_DROPFILE);
 		DECLARE_GPAC_CONST(GF_EVENT_ADDON_DETECTED);
+		DECLARE_GPAC_CONST(GF_EVENT_QUALITY_SWITCHED);
 
 		DECLARE_GPAC_CONST(GF_NAVIGATE_NONE);
 		DECLARE_GPAC_CONST(GF_NAVIGATE_WALK);

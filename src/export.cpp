@@ -16,8 +16,7 @@
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *
- *  You should have received a copy of the GNU Lesser General Public
+ **  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
@@ -42,6 +41,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gpac_features) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_close) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_set_args) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_argc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sys_get_arg) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sleep) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mkdir) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rmdir) )
@@ -1066,6 +1068,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_service_download_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_service_download_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_service_download_update_stats) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_service_command) )
 
 /*mediaobject.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_register) )
@@ -1757,7 +1760,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_node_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_message) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_clock_time) )
-//for Ivica
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_get_media_object_ex) )
 
 #endif
@@ -1994,6 +1996,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_language) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_audio_channels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_enum_descriptor) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_num_qualities) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_quality_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_automatic_switching) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_automatic_switching) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_select_quality) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_download_rate) )
+
 
 
 

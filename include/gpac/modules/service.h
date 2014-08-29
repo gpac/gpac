@@ -110,8 +110,11 @@ typedef enum
 	/*instructs the service to get the migration info - term->net only*/
 	GF_NET_SERVICE_MIGRATION_INFO,
 
-	/*When using DASH or playlists, query the next file to concatenate to thecurrent one net->proxy only*/
+	/*switches quality up or down or a given ID*/
 	GF_NET_SERVICE_QUALITY_SWITCH,
+
+	/*queries quality in the service*/
+	GF_NET_SERVICE_QUALITY_QUERY,
 
 	/*When using DASH or playlists, query the next file to concatenate to thecurrent one net->proxy only*/
 	GF_NET_SERVICE_QUERY_NEXT,
@@ -323,7 +326,8 @@ typedef struct __netstatcom
 	Float pck_loss_percentage;
 	/*channel port, control channel port if any (eg RTCP)*/
 	u16 port, ctrl_port;
-	/*bandwidth used by channel & its control channel if any (both up and down) - expressed in bits per second*/
+	/*bandwidth used by channel & its control channel if any (both up and down) - expressed in bits per second
+	for HTTP connections, typically only bw_down is used*/
 	u32 bw_up, bw_down, ctrl_bw_down, ctrl_bw_up;
 	/*set to 0 if channel is not part of a multiplex. Otherwise set to the multiplex port, and
 	above port info shall be identifiers in the multiplex - note that multiplexing overhead is ignored
@@ -430,11 +434,45 @@ typedef struct
 typedef struct
 {
 	u32 command_type;
-	/*currently NULL only*/
+	/*NULL only when request, or channel for witch quality has been changed for notif*/
 	LPNETCHANNEL on_channel;
-	/*out: next url to play after current one*/
+	//switch quality up or down - request only
 	Bool up;
+
+	Bool set_auto;
+	//or ID of the quality to switch, as indicated in query quality
+	const char *ID;
 } GF_NetQualitySwitch;
+
+
+/*GF_NET_SERVICE_QUALITY_QUERY*/
+typedef struct
+{
+	u32 command_type;
+	/*media object for which qualities are checked*/
+	LPNETCHANNEL on_channel;
+
+	//1-based index of quality to query
+	//if 0, the command is used to query the number of quality for the object
+	u32 index;
+
+	//all out params
+	u32 bandwidth;
+	const char *ID;
+	const char *mime;
+	const char *codec;
+	u32 width;
+	u32 height;
+	Bool interlaced;
+	Double fps;
+	u32 par_num;
+	u32 par_den;
+	u32 sample_rate;
+	u32 nb_channels;
+	Bool disabled;
+	Bool is_selected;
+	Bool automatic;
+} GF_NetQualityQuery;
 
 /*GF_NET_SERVICE_STATUS_PROXY*/
 typedef struct
@@ -534,6 +572,7 @@ typedef union __netcommand
 	GF_AssociatedContentTiming addon_time;
 	GF_NALUExtractMode nalu_mode;
 	GF_NetComSendEvent send_event;
+	GF_NetQualityQuery quality_query;
 } GF_NetworkCommand;
 
 /*
