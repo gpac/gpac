@@ -127,6 +127,11 @@ next_segment:
 				refresh_type = 0;
 			}
 
+			if (read->reset_frag_state) {
+				read->reset_frag_state = 0;
+				gf_isom_reset_fragment_info(read->mov, 0);
+			}
+
 			//refresh file
 			if (refresh_type) {
 				//the url is the current download or we just finished downloaded it, refresh the parsing.
@@ -571,7 +576,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				/*if sample cannot be found and file is fragmented, rewind sample*/
 				if (ch->sample_num) ch->sample_num--;
 				ch->last_state = GF_OK;
-			} else if (!ch->owner->frag_type) {
+			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d end of stream reached\n", ch->track));
 				ch->last_state = GF_EOS;
 			}
@@ -735,7 +740,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 			return;
 		}
 	}
-#if 0
+#if 1
 	//flush request from terminal: only process if nothing is opened and we have pending segments
 	if (!check_buffer_level && !read->seg_opened && !read->has_pending_segments && !read->drop_next_segment) {
 		read->in_data_flush = 0;

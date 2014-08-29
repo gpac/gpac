@@ -969,6 +969,8 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	GF_Matrix2D cur;
 	GF_Compositor *compositor = tr_state->visual->compositor;
 
+	if (compositor->disable_focus_highlight) return;
+
 	if (compositor->focus_node!=node) return;
 	/*if key navigator, don't draw a focus highlight*/
 	if (compositor->keynav_node) return;

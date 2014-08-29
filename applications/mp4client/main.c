@@ -1072,8 +1072,11 @@ int main (int argc, char **argv)
 #else
 			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
 #endif
-		}
-		else if (!strcmp(arg, "-h") || !strcmp(arg, "-help")) {
+		} else if (!strcmp(arg, "-gui")) {
+			gui_mode = 1;
+		} else if (!strcmp(arg, "-guid")) {
+			gui_mode = 2;
+		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help")) {
 			PrintUsage();
 			return 1;
 		}
@@ -1084,6 +1087,7 @@ int main (int argc, char **argv)
 #else
 	gf_sys_init(GF_FALSE);
 #endif
+	gf_sys_set_args(argc, argv);
 
 	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
@@ -1101,69 +1105,19 @@ int main (int argc, char **argv)
 
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
-//		if (isalnum(arg[0]) || (arg[0]=='/') || (arg[0]=='.') || (arg[0]=='\\') ) {
-		if (arg[0] != '-') {
-			url_arg = arg;
-		} else if (!strcmp(arg, "-c") || !strcmp(arg, "-cfg")) {
-			the_cfg = argv[i+1];
-			i++;
-		} else if (!strcmp(arg, "-rti")) {
+		
+		if (!strcmp(arg, "-rti")) {
 			rti_file = argv[i+1];
 			i++;
 		} else if (!strcmp(arg, "-rtix")) {
 			rti_file = argv[i+1];
 			i++;
 			use_rtix = GF_TRUE;
-		} else if (!strcmp(arg, "-fill")) {
-			fill_ar = GF_TRUE;
-		} else if (!strcmp(arg, "-gui")) {
-			gui_mode = 1;
-		} else if (!strcmp(arg, "-guid")) {
-			gui_mode = 2;
-		} else if (!strcmp(arg, "-show")) {
-			visible = 1;
-		} else if (!strcmp(arg, "-avi")) {
-			if (rgbds_dump) dump_mode = 5;
-			else if (depth_dump) dump_mode = 8;
-			else if (rgbd_dump) dump_mode = 10;
-			else dump_mode=1;
-			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-		} else if (!strcmp(arg, "-rgbds")) { /*get dump in rgbds pixel format*/
-			rgbds_dump = 1;
-			dump_mode=6;                    /* rgbds texture directly*/
-			if (dump_mode==1) dump_mode = 5;    /* .avi rgbds dump*/
-		} else if (!strcmp(arg, "-rgbd")) { /*get dump in rgbd pixel format*/
-			rgbd_dump = 1;
-			dump_mode=9;  /* rgbd texture directly*/
-			if (dump_mode==1) dump_mode = 10;    /* .avi rgbds dump*/
-		} else if (!strcmp(arg, "-depth")) {
-			depth_dump = 1;
-			if (dump_mode==2) dump_mode=7; /* grayscale .bmp depth dump*/
-			else if (dump_mode==1) dump_mode=8; /* .avi depth dump*/
-			else if (dump_mode==11)dump_mode=12;
-			else dump_mode=4;   /*depth dump*/
-		} else if (!strcmp(arg, "-bmp")) {
-			if(depth_dump) dump_mode=7; /*grayscale depth .bmp dump*/
-			else dump_mode=2;
-			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-		} else if (!strcmp(arg, "-png")) {
-			dump_mode=11;
-			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-		} else if (!strcmp(arg, "-raw")) {
-			dump_mode = 3;
-			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-
 		} else if (!stricmp(arg, "-size")) {
 			/*usage of %ud breaks sscanf on MSVC*/
 			if (sscanf(argv[i+1], "%dx%d", &forced_width, &forced_height) != 2) {
 				forced_width = forced_height = 0;
 			}
-			i++;
-		} else if (!stricmp(arg, "-scale")) {
-			sscanf(argv[i+1], "%f", &scale);
-			i++;
-		} else if (!stricmp(arg, "-fps")) {
-			fps = atof(argv[i+1]);
 			i++;
 		} else if (!strcmp(arg, "-quiet")) {
 			be_quiet = 1;
@@ -1183,16 +1137,7 @@ int main (int argc, char **argv)
 			log_time_start = 1;
 		} else if (!strcmp(arg, "-log-utc") || !strcmp(arg, "-lu")) {
 			log_utc_time = 1;
-		} else if (!strcmp(arg, "-align")) {
-			if (argv[i+1][0]=='m') align_mode = 1;
-			else if (argv[i+1][0]=='b') align_mode = 2;
-			align_mode <<= 8;
-			if (argv[i+1][1]=='m') align_mode |= 1;
-			else if (argv[i+1][1]=='r') align_mode |= 2;
-			i++;
 		}
-		else if (!strcmp(arg, "-no-wnd")) user.init_flags |= GF_TERM_WINDOWLESS;
-		else if (!strcmp(arg, "-no-back")) user.init_flags |= GF_TERM_WINDOW_TRANSPARENT;
 #if defined(__DARWIN__) || defined(__APPLE__)
 		else if (!strcmp(arg, "-thread")) threading_flags = 0;
 #else
@@ -1201,31 +1146,6 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
-		else if (!strcmp(arg, "-pause")) pause_at_first = 1;
-		else if (!strcmp(arg, "-play-from")) {
-			play_from = atof((const char *) argv[i+1]);
-		}
-		else if (!strcmp(arg, "-speed")) {
-			playback_speed = FLT2FIX( atof((const char *) argv[i+1]) );
-			if (playback_speed <= 0) playback_speed = FIX_ONE;
-		}
-
-		else if (!strcmp(arg, "-exit")) auto_exit = 1;
-		else if (!strcmp(arg, "-mem-track")) {
-#ifdef GPAC_MEMORY_TRACKING
-			enable_mem_tracker = 1;
-#else
-			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
-#endif
-		}
-		else if (!strcmp(arg, "-out")) {
-			out_arg = gf_strdup(argv[i+1]);
-		}
-		else if (!strcmp(arg, "-loop")) loop_at_end = 1;
-		else if (!strcmp(arg, "-bench")) bench_mode = 1;
-		else if (!strcmp(arg, "-vbench")) bench_mode = 2;
-		else if (!strcmp(arg, "-sbench")) bench_mode = 3;
-		else if (!strcmp(arg, "-no-addon")) enable_add_ons = GF_FALSE;
 
 		else if (!strcmp(arg, "-opt")) {
 			set_cfg_option(argv[i+1]);
@@ -1235,29 +1155,105 @@ int main (int argc, char **argv)
 			gf_cfg_set_key(cfg_file, "Network", "DefaultMCastInterface", argv[i+1]);
 			i++;
 		}
-		else if (!stricmp(arg, "-views")) {
-			views = argv[i+1];
-			i++;
-		}
-		else if (!stricmp(arg, "-run-for")) {
-			simulation_time_in_ms = atoi(argv[i+1]) * 1000;
-			if (!simulation_time_in_ms)
-				simulation_time_in_ms = 1; /*1ms*/
-			i++;
-		}
-		else if (!stricmp(arg, "-com")) {
-			default_com = argv[i+1];
-			i++;
-		}
-		else if (!stricmp(arg, "-service")) {
-			initial_service_id = atoi(argv[i+1]);
-			i++;
-		}
 		else if (!stricmp(arg, "-help")) {
 			PrintUsage();
 			return 1;
-		} else {
-			fprintf(stderr, "Unrecognized option %s - skipping\n", arg);
+		}
+
+		/*arguments only used in non-gui mode*/
+		else if (!gui_mode) {
+			if (arg[0] != '-') {
+				url_arg = arg;
+			} 
+			else if (!strcmp(arg, "-out")) {
+				out_arg = gf_strdup(argv[i+1]);
+			}
+			else if (!stricmp(arg, "-fps")) {
+				fps = atof(argv[i+1]);
+				i++;
+			} else if (!strcmp(arg, "-avi")) {
+				if (rgbds_dump) dump_mode = 5;
+				else if (depth_dump) dump_mode = 8;
+				else if (rgbd_dump) dump_mode = 10;
+				else dump_mode=1;
+				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+			} else if (!strcmp(arg, "-rgbds")) { /*get dump in rgbds pixel format*/
+				rgbds_dump = 1;
+				dump_mode=6;                    /* rgbds texture directly*/
+				if (dump_mode==1) dump_mode = 5;    /* .avi rgbds dump*/
+			} else if (!strcmp(arg, "-rgbd")) { /*get dump in rgbd pixel format*/
+				rgbd_dump = 1;
+				dump_mode=9;  /* rgbd texture directly*/
+				if (dump_mode==1) dump_mode = 10;    /* .avi rgbds dump*/
+			} else if (!strcmp(arg, "-depth")) {
+				depth_dump = 1;
+				if (dump_mode==2) dump_mode=7; /* grayscale .bmp depth dump*/
+				else if (dump_mode==1) dump_mode=8; /* .avi depth dump*/
+				else if (dump_mode==11)dump_mode=12;
+				else dump_mode=4;   /*depth dump*/
+			} else if (!strcmp(arg, "-bmp")) {
+				if(depth_dump) dump_mode=7; /*grayscale depth .bmp dump*/
+				else dump_mode=2;
+				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+			} else if (!strcmp(arg, "-png")) {
+				dump_mode=11;
+				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+			} else if (!strcmp(arg, "-raw")) {
+				dump_mode = 3;
+				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+			} else if (!stricmp(arg, "-scale")) {
+				sscanf(argv[i+1], "%f", &scale);
+				i++;
+			}
+			else if (!strcmp(arg, "-loop")) loop_at_end = 1;
+			else if (!strcmp(arg, "-bench")) bench_mode = 1;
+			else if (!strcmp(arg, "-vbench")) bench_mode = 2;
+			else if (!strcmp(arg, "-sbench")) bench_mode = 3;
+			else if (!strcmp(arg, "-no-addon")) enable_add_ons = GF_FALSE;
+
+			else if (!strcmp(arg, "-pause")) pause_at_first = 1;
+			else if (!strcmp(arg, "-play-from")) {
+				play_from = atof((const char *) argv[i+1]);
+			}
+			else if (!strcmp(arg, "-speed")) {
+				playback_speed = FLT2FIX( atof((const char *) argv[i+1]) );
+				if (playback_speed <= 0) playback_speed = FIX_ONE;
+			}
+			else if (!strcmp(arg, "-no-wnd")) user.init_flags |= GF_TERM_WINDOWLESS;
+			else if (!strcmp(arg, "-no-back")) user.init_flags |= GF_TERM_WINDOW_TRANSPARENT;
+			else if (!strcmp(arg, "-align")) {
+				if (argv[i+1][0]=='m') align_mode = 1;
+				else if (argv[i+1][0]=='b') align_mode = 2;
+				align_mode <<= 8;
+				if (argv[i+1][1]=='m') align_mode |= 1;
+				else if (argv[i+1][1]=='r') align_mode |= 2;
+				i++;
+			} else if (!strcmp(arg, "-fill")) {
+				fill_ar = GF_TRUE;
+			} else if (!strcmp(arg, "-show")) {
+				visible = 1;
+			}
+			else if (!strcmp(arg, "-exit")) auto_exit = 1;
+			else if (!stricmp(arg, "-views")) {
+				views = argv[i+1];
+				i++;
+			}
+			else if (!stricmp(arg, "-run-for")) {
+				simulation_time_in_ms = atoi(argv[i+1]) * 1000;
+				if (!simulation_time_in_ms)
+					simulation_time_in_ms = 1; /*1ms*/
+				i++;
+			}
+			else if (!stricmp(arg, "-com")) {
+				default_com = argv[i+1];
+				i++;
+			}
+			else if (!stricmp(arg, "-service")) {
+				initial_service_id = atoi(argv[i+1]);
+				i++;
+			} else {
+				fprintf(stderr, "Unrecognized option %s - skipping\n", arg);
+			}
 		}
 	}
 	if (dump_mode && !url_arg ) {
@@ -1404,66 +1400,58 @@ int main (int argc, char **argv)
 		}
 		dump_file(url_arg, out_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
 		Run = 0;
-	} else
+	} 
+	else if (views) {
+	} 
+	/*connect if requested*/
+	else if (!gui_mode && url_arg) {
+		char *ext;
 
-		/*connect if requested*/
-		if (views) {
-		} else if (!gui_mode && url_arg) {
-			char *ext;
+		strcpy(the_url, url_arg);
+		ext = strrchr(the_url, '.');
+		if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
+			GF_Err e = GF_OK;
+			fprintf(stderr, "Opening Playlist %s\n", the_url);
 
-			strcpy(the_url, url_arg);
-			ext = strrchr(the_url, '.');
-			if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
-				GF_Err e = GF_OK;
-				fprintf(stderr, "Opening Playlist %s\n", the_url);
-
-				strcpy(pl_path, the_url);
-				/*this is not clean, we need to have a plugin handle playlist for ourselves*/
-				if (!strncmp("http:", the_url, 5)) {
-					GF_DownloadSession *sess = gf_dm_sess_new(term->downloader, the_url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
-					if (sess) {
-						e = gf_dm_sess_process(sess);
-						if (!e) strcpy(the_url, gf_dm_sess_get_cache_name(sess));
-						gf_dm_sess_del(sess);
-					}
+			strcpy(pl_path, the_url);
+			/*this is not clean, we need to have a plugin handle playlist for ourselves*/
+			if (!strncmp("http:", the_url, 5)) {
+				GF_DownloadSession *sess = gf_dm_sess_new(term->downloader, the_url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
+				if (sess) {
+					e = gf_dm_sess_process(sess);
+					if (!e) strcpy(the_url, gf_dm_sess_get_cache_name(sess));
+					gf_dm_sess_del(sess);
 				}
+			}
 
-				playlist = e ? NULL : gf_f64_open(the_url, "rt");
-				readonly_playlist = 1;
-				if (playlist) {
-					if (1 > fscanf(playlist, "%s", the_url))
-						fprintf(stderr, "Cannot read any URL from playlist\n");
-					else {
-						fprintf(stderr, "Opening URL %s\n", the_url);
-						gf_term_connect_with_path(term, the_url, pl_path);
-					}
-				} else {
-					if (e)
-						fprintf(stderr, "Failed to open playlist %s: %s\n", the_url, gf_error_to_string(e) );
-					fprintf(stderr, "Hit 'h' for help\n\n");
+			playlist = e ? NULL : gf_f64_open(the_url, "rt");
+			readonly_playlist = 1;
+			if (playlist) {
+				if (1 > fscanf(playlist, "%s", the_url))
+					fprintf(stderr, "Cannot read any URL from playlist\n");
+				else {
+					fprintf(stderr, "Opening URL %s\n", the_url);
+					gf_term_connect_with_path(term, the_url, pl_path);
 				}
 			} else {
-				fprintf(stderr, "Opening URL %s\n", the_url);
-				if (pause_at_first) fprintf(stderr, "[Status: Paused]\n");
-				gf_term_connect_from_time(term, the_url, (u64) (play_from*1000), pause_at_first);
+				if (e)
+					fprintf(stderr, "Failed to open playlist %s: %s\n", the_url, gf_error_to_string(e) );
+				fprintf(stderr, "Hit 'h' for help\n\n");
 			}
 		} else {
-			fprintf(stderr, "Hit 'h' for help\n\n");
-			str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
-			if (str) {
-				strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
-				gf_term_connect(term, str);
-				startup_file = 1;
-			}
-			if (url_arg) {
-				gf_cfg_set_key(cfg_file, "Temp", "GUIStartupFile", url_arg);
-
-				if (default_com && !strnicmp(default_com, "gpac add ", 9)) {
-					gf_cfg_set_key(cfg_file, "Temp", "GUIStartupAddon", default_com + 9);
-					default_com = NULL;
-				}
-			}
+			fprintf(stderr, "Opening URL %s\n", the_url);
+			if (pause_at_first) fprintf(stderr, "[Status: Paused]\n");
+			gf_term_connect_from_time(term, the_url, (u64) (play_from*1000), pause_at_first);
 		}
+	} else {
+		fprintf(stderr, "Hit 'h' for help\n\n");
+		str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
+		if (str) {
+			strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
+			gf_term_connect(term, str);
+			startup_file = 1;
+		}
+	}
 	if (gui_mode==2) gui_mode=0;
 
 	if (start_fs) gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
@@ -2162,7 +2150,7 @@ void PrintAVInfo(Bool final)
 				u32 dec_run_time = v_odi.last_frame_time - v_odi.first_frame_time;
 				if (!dec_run_time) dec_run_time = 1;
 				if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
-				fprintf(stderr, "%d frames FPS %.2f (max "LLU" us/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
+				fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
 				if (v_odi.nb_droped) {
 					fprintf(stderr, " (Error during bench: %d frames drop)", v_odi.nb_droped);
 				}
@@ -2190,7 +2178,7 @@ void PrintAVInfo(Bool final)
 				if (s_odi.nb_dec_frames>2 && s_odi.total_dec_time) {
 					u32 dec_run_time = s_odi.last_frame_time - s_odi.first_frame_time;
 					if (!dec_run_time) dec_run_time = 1;
-					fprintf(stderr, "%d frames FPS %.2f (max "LLD" us/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
+					fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", s_odi.nb_dec_frames, ((Float)s_odi.nb_dec_frames*1000) / dec_run_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000, (u32) s_odi.max_bitrate/1000);
 					fprintf(stderr, "\n");
 				} else {
 					u32 nb_frames_drawn;
@@ -2220,7 +2208,7 @@ void PrintAVInfo(Bool final)
 			avg_dec_time = (Float) 1000000 * s_odi.nb_dec_frames;
 			avg_dec_time /= s_odi.total_dec_time;
 			if (s_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*s_odi.current_time / s_odi.duration ) );
-			fprintf(stderr, "%d f %.2f ("LLU" us max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
+			fprintf(stderr, "%d f %.2f (%d us max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
 		} else {
 			u32 nb_frames_drawn;
 			Double FPS = gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
@@ -2429,7 +2417,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 			avg_dec_time = (Float) odi.total_dec_time;
 			avg_dec_time /= odi.nb_dec_frames;
 		}
-		fprintf(stderr, "\tBitrate over last second: %d kbps\n\tMax bitrate over one second: %d kbps\n\tAverage Decoding Time %.2f us ("LLU" max)\n\tTotal decoded frames %d\n",
+		fprintf(stderr, "\tBitrate over last second: %d kbps\n\tMax bitrate over one second: %d kbps\n\tAverage Decoding Time %.2f us %d max)\n\tTotal decoded frames %d\n",
 		        (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames);
 	}
 	if (odi.protection) fprintf(stderr, "Encrypted Media%s\n", (odi.protection==2) ? " NOT UNLOCKED" : "");
@@ -2726,7 +2714,7 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 			avg_dec_time = (Float) odi.total_dec_time;
 			avg_dec_time /= odi.nb_dec_frames;
 		}
-		fprintf(stderr, " Avg Bitrate %d kbps (%d max) - Avg Decoding Time %.2f us ("LLU" max)\n",
+		fprintf(stderr, " Avg Bitrate %d kbps (%d max) - Avg Decoding Time %.2f us (%d max)\n",
 		        (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time);
 	}
 

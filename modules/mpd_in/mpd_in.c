@@ -757,7 +757,20 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 			GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, group_idx);
 			if (group) MPD_NotifyData(group, 0);
 		}
+		return GF_OK;
 	}
+	if (dash_evt==GF_DASH_EVENT_QUALITY_SWITCH) {
+		if (group_idx>=0) {
+			GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, group_idx);
+			if (group) {
+				GF_NetworkCommand com;
+				memset(&com, 0, sizeof(GF_NetworkCommand) );
+				com.switch_quality.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
+				gf_service_command(mpdin->service, &com, GF_OK);
+			}
+		}
+	}
+	
 	return GF_OK;
 }
 
@@ -1030,7 +1043,19 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 
 	case GF_NET_SERVICE_QUALITY_SWITCH:
-		gf_dash_switch_quality(mpdin->dash, com->switch_quality.up, mpdin->immediate_switch);
+		if (com->switch_quality.set_auto) {
+			gf_dash_set_automatic_switching(mpdin->dash, 1);
+		} else if (com->base.on_channel) {
+			segment_ifce = MPD_GetInputServiceForChannel(mpdin, com->base.on_channel);
+			if (!segment_ifce) return GF_NOT_SUPPORTED;
+			idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
+			if (idx < 0) return GF_BAD_PARAM;
+
+			gf_dash_set_automatic_switching(mpdin->dash, 0);
+			gf_dash_group_select_quality(mpdin->dash, idx, com->switch_quality.ID);
+		} else {
+			gf_dash_switch_quality(mpdin->dash, com->switch_quality.up, mpdin->immediate_switch);
+		}
 		return GF_OK;
 
 	default:
@@ -1044,8 +1069,56 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	switch (com->command_type) {
 	case GF_NET_CHAN_INTERACTIVE:
-		/* we are interactive (that's the whole point of MPD) */
+		/* TODO - we are interactive if not live without timeshift */
 		return GF_OK;
+
+	case GF_NET_GET_STATS:
+	{
+		idx = MPD_GetGroupIndexForChannel(mpdin, com->base.on_channel);
+		if (idx < 0) return GF_BAD_PARAM;
+		com->net_stats.bw_down = 8 * gf_dash_group_get_download_rate(mpdin->dash, idx);
+	}
+		return GF_OK;
+
+	case GF_NET_SERVICE_QUALITY_QUERY:
+	{
+		GF_DASHQualityInfo qinfo;
+		GF_Err e;
+		u32 count;
+		idx = MPD_GetGroupIndexForChannel(mpdin, com->quality_query.on_channel);
+		if (idx < 0) return GF_BAD_PARAM;
+		count = gf_dash_group_get_num_qualities(mpdin->dash, idx);
+		if (!com->quality_query.index) {
+			com->quality_query.index = count;
+			return GF_OK;
+		}
+		if (com->quality_query.index>count) return GF_BAD_PARAM;
+	
+		e = gf_dash_group_get_quality_info(mpdin->dash, idx, com->quality_query.index-1, &qinfo);
+		if (e) return e;
+
+		com->quality_query.bandwidth = qinfo.bandwidth;
+		com->quality_query.ID = qinfo.ID;
+		com->quality_query.mime = qinfo.mime;
+		com->quality_query.codec = qinfo.codec;
+		com->quality_query.width = qinfo.width;
+		com->quality_query.height = qinfo.height;
+		com->quality_query.interlaced = qinfo.interlaced;
+		if (qinfo.fps_den) {
+			com->quality_query.fps = qinfo.fps_num;
+			com->quality_query.fps /= qinfo.fps_den;
+		}
+		com->quality_query.par_num = qinfo.par_num;
+		com->quality_query.par_den = qinfo.par_den;
+		com->quality_query.sample_rate = qinfo.sample_rate;
+		com->quality_query.nb_channels = qinfo.nb_channels;
+		com->quality_query.disabled = qinfo.disabled;
+		com->quality_query.is_selected = qinfo.is_selected;
+		com->quality_query.automatic = gf_dash_get_automatic_switching(mpdin->dash);
+		return GF_OK;
+	}
+
+		break;
 
 	case GF_NET_CHAN_BUFFER:
 		/*get it from MPD minBufferTime - if not in low latency mode, indicate the value given in MPD (not possible to fetch segments earlier) - to be more precise we should get the min segment duration for this group*/

@@ -164,6 +164,12 @@ static void get_codec_stats(GF_Codec *dec, GF_MediaInfo *info)
 	info->first_frame_time = dec->first_frame_time;
 	info->last_frame_time = dec->last_frame_time;
 	info->raw_media = dec->flags & GF_ESM_CODEC_IS_RAW_MEDIA;
+	info->au_duration = dec->min_frame_dur;
+	info->nb_iraps = dec->nb_iframes;
+	info->irap_max_dec_time = dec->max_iframes_time;
+	info->irap_total_dec_time = dec->total_iframes_time;
+
+
 }
 
 GF_EXPORT
@@ -233,6 +239,8 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 			info->clock_drift = ck->drift;
 
 			info->buffer = -1;
+			info->min_buffer = -1;
+			info->max_buffer = 0;
 			buf = 0;
 			i=0;
 			while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
@@ -240,6 +248,10 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 				if (!ch->is_pulling) {
 					if (ch->MaxBuffer) info->buffer = 0;
 					buf += ch->BufferTime;
+
+					if (ch->MaxBuffer> info->max_buffer) info->max_buffer = ch->MaxBuffer;
+					if (ch->MinBuffer < info->min_buffer) info->min_buffer = ch->MinBuffer;
+
 				}
 				if (ch->is_protected) info->protection = ch->ipmp_tool ? 1 : 2;
 

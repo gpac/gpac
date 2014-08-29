@@ -1249,6 +1249,32 @@ void gf_mem_enable_tracker();
 
 static u64 memory_at_gpac_startup = 0;
 
+static u32 gpac_argc = 0;
+const char **gpac_argv = NULL;
+
+GF_EXPORT
+void gf_sys_set_args(s32 argc, const char **argv)
+{
+	if (!gpac_argc && (argc>=0) ) {
+		gpac_argc = (u32) argc;
+		gpac_argv = argv;
+	}
+}
+GF_EXPORT
+u32 gf_sys_get_argc()
+{
+	return gpac_argc;
+}
+
+GF_EXPORT
+const char *gf_sys_get_arg(u32 arg)
+{
+	if (!gpac_argc || !gpac_argv) return NULL;
+	if (arg>=gpac_argc) return NULL;
+	return gpac_argv[arg];
+}
+
+
 GF_EXPORT
 void gf_sys_init(Bool enable_memory_tracker)
 {

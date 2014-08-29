@@ -209,7 +209,7 @@ void gf_scene_mpeg4_inline_restart(GF_Scene *scene)
 
 	if (scene->is_dynamic_scene) {
 		u32 from = 0;
-		if (scene->root_od->media_ctrl) {
+		if (scene->root_od->media_ctrl && (scene->root_od->media_ctrl->media_start>=0) ) {
 			scene->root_od->media_ctrl->current_seg = current_seg;
 			from = (u32) (scene->root_od->media_ctrl->media_start * 1000);
 		}

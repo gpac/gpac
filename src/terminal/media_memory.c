@@ -543,7 +543,11 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 
 	/*update the timing*/
 	if ((cb->Status != CB_STOP) && cb->odm && cb->odm->codec) {
-		cb->odm->media_current_time = cb->output->TS + cb->odm->codec->ck->media_time_at_init - cb->odm->codec->ck->init_time;
+		if (cb->odm->codec->ck->has_media_time_shift) {
+			cb->odm->media_current_time = cb->output->TS + cb->odm->codec->ck->media_time_at_init - cb->odm->codec->ck->init_time;
+		} else {
+			cb->odm->media_current_time = cb->output->TS;
+		}
 
 		/*handle visual object - EOS if no more data (we keep the last CU for rendering, so check next one)*/
 		if (cb->HasSeenEOS && (!cb->output->next->dataLength || (cb->Capacity==1))) {

@@ -68,6 +68,9 @@ static void term_on_connect(GF_ClientService *service, LPNETCHANNEL netch, GF_Er
 			/*destroy service only if attached*/
 			if (root) {
 				gf_term_lock_media_queue(term, 1);
+				//notify before disconnecting
+				if (root->subscene) gf_scene_notify_event(root->subscene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, err, GF_FALSE);
+
 				service->ifce->CloseService(service->ifce);
 				root->net_service = NULL;
 				if (service->owner && service->nb_odm_users) service->nb_odm_users--;
@@ -86,7 +89,6 @@ static void term_on_connect(GF_ClientService *service, LPNETCHANNEL netch, GF_Er
 					evt.connect.is_connected = 0;
 					gf_term_send_event(term, &evt);
 				} else {
-					if (root->subscene) gf_scene_notify_event(root->subscene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, err, GF_FALSE);
 					/*try to reinsert OD for VRML/X3D with multiple URLs:
 					1- first remove from parent scene without destroying object, this will trigger a re-setup
 					if other URLs are present
@@ -408,7 +410,9 @@ static void term_on_media_add(GF_ClientService *service, GF_Descriptor *media_de
 		odm = gf_odm_new();
 		odm->term = term;
 		odm->parentscene = scene;
+		gf_mx_p(scene->mx_resources);
 		gf_list_add(scene->resources, odm);
+		gf_mx_v(scene->mx_resources);
 	}
 	odm->flags |= GF_ODM_NOT_SETUP;
 	odm->OD = od;
@@ -584,7 +588,14 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		}
 		return;
 	}
-
+	if (com->command_type==GF_NET_SERVICE_QUALITY_SWITCH) {
+		GF_Event evt;
+		memset(&evt, 0, sizeof(GF_Event));
+		evt.type = GF_EVENT_QUALITY_SWITCHED;
+		gf_term_send_event(term, &evt);
+		return;
+	}
+		
 
 	if (!com->base.on_channel) return;
 
@@ -997,7 +1008,9 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 	serv->dnloads = gf_list_new();
 	serv->pending_service_session = download_session;
 
+	gf_term_lock_media_queue(term, 1);
 	gf_list_add(term->net_services, serv);
+	gf_term_lock_media_queue(term, 0);
 
 
 	serv->fn_connect_ack = term_on_connect;

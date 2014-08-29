@@ -55,6 +55,7 @@ typedef struct
 	GF_List *spans;
 	GF_Rect bounds;
 	u32 texture_text_flag;
+	Bool is_dirty;
 	GF_Compositor *compositor;
 } TextStack;
 
@@ -596,6 +597,7 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 	if (!txt->string.count) return;
 
 	if (tr_state->text_split_mode) {
+		st->is_dirty = gf_node_dirty_get(n) ? 1 : 0;
 		gf_node_dirty_clear(n, 0);
 		text_clean_paths(tr_state->visual->compositor, st);
 		build_text_split(st, txt, tr_state);
@@ -664,6 +666,8 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 				ctx->flags |= CTX_APP_DIRTY;
 			}
 		}
+	} else if (st->is_dirty) {
+		ctx->flags |= CTX_APP_DIRTY;
 	}
 
 	if (ctx->sub_path_index) {

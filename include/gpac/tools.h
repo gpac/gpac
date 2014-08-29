@@ -686,6 +686,32 @@ void gf_sys_init(Bool enable_memory_tracker);
  */
 void gf_sys_close();
 /*!
+ *	\brief System arguments
+ *
+ *	Sets the user app arguments (used by GUI mode)
+ *	\param argc Number of arguments
+ *	\param argv Array of arguments
+ */
+void gf_sys_set_args(s32 argc, const char **argv);
+
+/*!
+ *	\brief Get number of args
+ *
+ *	Gets the number of argument of the user application if any
+ *	\return number of argument of the user application
+ */
+u32 gf_sys_get_argc();
+
+/*!
+ *	\brief Get number of args
+ *
+ *	Gets the number of argument of the user application if any
+ *	\param arg Index of argument to retrieve
+ *	\return number of argument of the user application
+ */
+const char *gf_sys_get_arg(u32 arg);
+
+/*!
  *	\brief System clock query
  *
  *	Gets the system clock time.

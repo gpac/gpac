@@ -713,7 +713,8 @@ static void gf_es_init_clock(GF_Channel *ch, u32 TS)
 
 	gf_clock_set_time(ch->clock, TS);
 	//once the clock is init, reset any seek request at parent scene level
-	if (ch->odm->parentscene) ch->odm->parentscene->root_od->media_start_time = 0;
+	if (ch->odm->parentscene ) 
+		ch->odm->parentscene->root_od->media_start_time = 0;
 	//this is the root
 	else ch->odm->media_start_time = 0;
 

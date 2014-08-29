@@ -339,5 +339,15 @@ void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontin
 			}
 		}
 	}
-	gf_clock_reset(ck);
+
+	if (ck->has_media_time_shift) {
+		u32 new_media_time = ck->media_time_at_init + gf_clock_time(ck) - ck->init_time;
+
+		gf_clock_reset(ck);
+
+		ck->has_media_time_shift = 1;
+		ck->media_time_at_init = new_media_time;
+	} else {
+		gf_clock_reset(ck);
+	}
 }
