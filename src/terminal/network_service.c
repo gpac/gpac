@@ -1047,6 +1047,7 @@ Bool gf_term_service_can_handle_url(GF_ClientService *ns, char *url)
 	return ns->ifce->CanHandleURLInService(ns->ifce, url);
 }
 
+GF_EXPORT
 GF_Err gf_term_service_command(GF_ClientService *ns, GF_NetworkCommand *com)
 {
 	if (ns) return ns->ifce->ServiceCommand(ns->ifce, com);
