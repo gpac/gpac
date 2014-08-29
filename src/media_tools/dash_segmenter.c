@@ -149,6 +149,7 @@ struct _dash_segment_input
 	//spatial info for tiling
 	u32 x, y, w, h;
 
+	Bool disable_inband_param_set;
 };
 
 
@@ -771,7 +772,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		vidtype = gf_isom_get_avc_svc_type(input, i+1, 1);
 		if (vidtype==GF_ISOM_AVCTYPE_AVC_ONLY) {
 			/*for AVC we concatenate SPS/PPS unless SVC base*/
-			if (!dash_input->trackNum && dash_cfg->inband_param_set)
+			if (!dash_input->trackNum && dash_cfg->inband_param_set && !dash_input->disable_inband_param_set)
 				gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
 		}
 		else if (vidtype > GF_ISOM_AVCTYPE_AVC_ONLY) {
@@ -785,7 +786,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			u32 mode = GF_ISOM_NALU_EXTRACT_INSPECT;	//because of tile tracks
 
 			/*concatenate SPS/PPS unless SHVC base*/
-			if (!dash_input->trackNum && dash_cfg->inband_param_set)
+			if (!dash_input->trackNum && dash_cfg->inband_param_set && !dash_input->disable_inband_param_set)
 				mode |= GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
 
 			gf_isom_set_nalu_extract_mode(input, i+1, mode);
@@ -2199,9 +2200,17 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 	Bool use_avc3 = 0;
 	Bool use_hevc = 0;
 	Bool use_inband_param_set;
+	u32 probe_inband_param_set;
+	u32 first_track = 0;
 	Bool single_segment = (dash_opts->single_file_mode==1) ? 1 : 0;
-	GF_ISOFile *init_seg = gf_isom_open(szInitName, GF_ISOM_OPEN_WRITE, tmpdir);
+	GF_ISOFile *init_seg;
+	
 
+	probe_inband_param_set = dash_opts->inband_param_set ? 1 : 0;
+
+restart_init:
+
+	init_seg = gf_isom_open(szInitName, GF_ISOM_OPEN_WRITE, tmpdir);
 	for (i=0; i<nb_dash_inputs; i++) {
 		u32 j;
 		GF_ISOFile *in;
@@ -2248,7 +2257,7 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 					gf_isom_delete(in);
 					return e;
 				}
-
+retry_track:
 				/*if not the same sample desc we might need to clone it*/
 				if (! gf_isom_is_same_sample_description(in, j+1, 1, init_seg, track, 1)) {
 					u32 merge_mode = 1;
@@ -2326,9 +2335,38 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 						gf_odf_avc_cfg_del(avccfg2);
 					}
 
+					//check if we can get rid of inband params
+					if (!merge_mode && use_inband_param_set && probe_inband_param_set) {
+						probe_inband_param_set = 0;
+
+						switch (gf_isom_get_media_subtype(init_seg, first_track, 1)) {
+						case GF_ISOM_SUBTYPE_HVC1:
+							gf_isom_hevc_set_inband_config(init_seg, track, 1);
+							use_hevc = GF_TRUE;
+							gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','6'), 1);
+							break;
+						case GF_ISOM_SUBTYPE_AVC_H264:
+						case GF_ISOM_SUBTYPE_AVC2_H264:
+						case GF_ISOM_SUBTYPE_SVC_H264:
+							gf_isom_avc_set_inband_config(init_seg, track, 1);
+							use_avc3 = GF_TRUE;
+							gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','6'), 1);
+							break;
+						}
+						goto retry_track;
+					}
+
+
 					/*cannot merge, clone*/
-					if (merge_mode==0)
+					if (merge_mode==0) {
+
+						if (use_inband_param_set && (use_avc3 || use_hevc) ) {
+							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Couldn't merge %s parameter sets - using in-band config\n", use_hevc ? "HEVC" : "AVC" ));
+							gf_isom_delete(init_seg);
+							goto restart_init;
+						}
 						gf_isom_clone_sample_description(init_seg, track, in, j+1, 1, NULL, NULL, &outDescIndex);
+					}
 				}
 			} else {
 				u32 defaultDuration, defaultSize, defaultDescriptionIndex, defaultRandomAccess;
@@ -2341,16 +2379,29 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 				case GF_ISOM_SUBTYPE_AVC_H264:
 				case GF_ISOM_SUBTYPE_AVC2_H264:
 				case GF_ISOM_SUBTYPE_SVC_H264:
-					if (use_inband_param_set) {
-						gf_isom_avc_set_inband_config(init_seg, track, 1);
-						use_avc3 = GF_TRUE;
+					if (!probe_inband_param_set) {
+						if (use_inband_param_set) {
+							gf_isom_avc_set_inband_config(init_seg, track, 1);
+							use_avc3 = GF_TRUE;
+						} 
+					} else {
+						first_track = track;
 					}
 					break;
 				case GF_ISOM_SUBTYPE_HVC1:
+					//todo enble comparison of hevc xPS
+					probe_inband_param_set=0;
+
 					if (use_inband_param_set) {
 						gf_isom_hevc_set_inband_config(init_seg, track, 1);
 					}
 					use_hevc = GF_TRUE;
+					break;
+
+				case GF_ISOM_SUBTYPE_AVC3_H264:
+				case GF_ISOM_SUBTYPE_AVC4_H264:
+				case GF_ISOM_SUBTYPE_HEV1:
+					probe_inband_param_set = 0;
 					break;
 				}
 				if (gf_isom_has_sync_points(in, j+1))
@@ -2401,6 +2452,15 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 		return GF_OK;
 	} else {
 		e = gf_isom_close(init_seg);
+
+		if (probe_inband_param_set) {
+			for (i=0; i<nb_dash_inputs; i++) {
+				if (dash_inputs[i].adaptation_set != adaptation_set)
+					continue;
+
+				dash_inputs[i].disable_inband_param_set = 1;
+			}
+		}
 	}
 	return e;
 }
