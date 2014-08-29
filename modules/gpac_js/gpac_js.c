@@ -1033,7 +1033,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_resource)
 		an_odm = gf_list_get(odm->subscene->resources, idx);
 	}
 	if (an_odm) {
-		JSClass *_class = JS_GetClass (obj);
+		JSClass *_class = SMJS_GET_CLASS(c, obj);
 		obj = JS_NewObject(c, _class , 0, 0);
 		SMJS_SET_PRIVATE(c, obj, an_odm);
 		SMJS_SET_RVAL( OBJECT_TO_JSVAL(obj) );

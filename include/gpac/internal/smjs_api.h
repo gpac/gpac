@@ -179,6 +179,7 @@ typedef double jsdouble;
 #define SMJS_GET_PRIVATE(__ctx, __obj)	JS_GetPrivate(__obj)
 #define SMJS_SET_PRIVATE(__ctx, __obj, __val)	JS_SetPrivate(__obj, __val)
 #define SMJS_GET_PARENT(__ctx, __obj)	JS_GetParent(__obj)
+#define SMJS_GET_CLASS(__ctx, __obj)	JS_GetClass(__obj)
 
 
 #ifdef USE_FFDEV_15
@@ -198,6 +199,7 @@ typedef double jsdouble;
 #define SMJS_GET_PRIVATE(__ctx, __obj)	JS_GetPrivate(__ctx, __obj)
 #define SMJS_SET_PRIVATE(__ctx, __obj, __val)	JS_SetPrivate(__ctx, __obj, __val)
 #define SMJS_GET_PARENT(__ctx, __obj)	JS_GetParent(__ctx, __obj)
+#define SMJS_GET_CLASS(__ctx, __obj)	JS_GetClass(__ctx, __obj)
 
 #ifdef USE_FFDEV_11
 #define JS_ClearContextThread(__ctx)
@@ -250,6 +252,7 @@ typedef double jsdouble;
 #define SMJS_GET_PRIVATE(__ctx, __obj)	JS_GetPrivate(__ctx, __obj)
 #define SMJS_SET_PRIVATE(__ctx, __obj, __val)	JS_SetPrivate(__ctx, __obj, __val)
 #define SMJS_GET_PARENT(__ctx, __obj)	JS_GetParent(__ctx, __obj)
+#define SMJS_GET_CLASS(__obj)	JS_GetClass(__obj)
 
 #endif
 
