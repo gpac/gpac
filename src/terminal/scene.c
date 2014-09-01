@@ -1701,17 +1701,16 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				gf_sc_set_size(scene->root_od->term->compositor, width, height);
 			}
 		
-		} else if (com.par.width && com.par.height) {
-			if (!scene->force_size_set) {
-				width = com.par.width;
-				height = com.par.height;
-				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
-				scene->force_size_set = 1;
-			} else {
-				gf_sg_get_scene_size_info(scene->graph, &width, &height);
-			}
-		}
-
+		} else if (!scene->force_size_set) {
+            if (com.par.width && com.par.height) {
+                width = com.par.width;
+                height = com.par.height;
+            }
+            gf_sg_set_scene_size_info(scene->graph, width, height, 1);
+            scene->force_size_set = 1;
+        } else {
+            gf_sg_get_scene_size_info(scene->graph, &width, &height);
+        }
 	}
 	else if (scene->root_od->parentscene && scene->root_od->parentscene->is_dynamic_scene) {
 		gf_sg_set_scene_size_info(scene->root_od->parentscene->graph, width, height, gf_sg_use_pixel_metrics(scene->root_od->parentscene->graph));

@@ -1567,7 +1567,25 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	}
 	break;
 	case GF_EVENT_MOVE:
-		break;
+#ifndef GPAC_IPHONE
+        {
+            SDLVID();
+
+			if (ctx->fullscreen) return GF_OK;
+            
+			if (evt->move.relative == 2) {
+			}
+			else if (evt->move.relative) {
+				s32 x, y;
+				x = y = 0;
+                SDL_GetWindowPosition(ctx->screen, &x, &y);
+                SDL_SetWindowPosition(ctx->screen, x + evt->move.x, y + evt->move.y);
+			} else {
+                SDL_SetWindowPosition(ctx->screen, evt->move.x, evt->move.y);
+			}
+        }
+#endif
+            break;
 	case GF_EVENT_VIDEO_SETUP:
 	{
 		SDLVID();
