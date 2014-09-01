@@ -926,18 +926,17 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 {
 	GF_NetworkCommand com;
-	GF_ObjectManager *an_odm = NULL;
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
 
 	if (!odm) return JS_TRUE;
 	if (argc<1) return JS_TRUE;
-	if (! SMJS_ID_IS_INT(argv[0]) ) return JS_TRUE;
+	if (! JSVAL_IS_INT(argv[0]) ) return JS_TRUE;
 
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
-	com.quality_query.index = 1 + SMJS_ID_TO_INT(argv[0]);
+	com.quality_query.index = 1 + JSVAL_TO_INT(argv[0]);
 	com.base.on_channel = gf_list_get(odm->channels, 0);
 
 	if (gf_term_service_command(odm->net_service, &com) == GF_OK) {
@@ -970,7 +969,6 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 {
 	GF_NetworkCommand com;
-	u32 sid;
 	char *ID = NULL;
 	SMJS_OBJ
 	SMJS_ARGS
@@ -978,7 +976,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 
 	if (!odm) return JS_TRUE;
 	
-	if ((argc==1) && SMJS_ID_IS_STRING(argv[0])) {
+	if ((argc==1) && JSVAL_IS_STRING(argv[0])) {
 		ID = SMJS_CHARS(c, argv[0]);
 	} 
 	if (!ID) {
@@ -1009,8 +1007,8 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_service)
 
 	if (!odm) return JS_TRUE;
 	if (argc<1) return JS_TRUE;
-	if (! SMJS_ID_IS_INT(argv[0]) ) return JS_TRUE;
-	sid = SMJS_ID_TO_INT(argv[0]);
+	if (! JSVAL_IS_INT(argv[0]) ) return JS_TRUE;
+	sid = JSVAL_TO_INT(argv[0]);
 
 	gf_term_select_service(odm->term, odm->subscene ? odm : odm->parentscene->root_od, sid);
 	return JS_TRUE;
@@ -1026,17 +1024,18 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_resource)
 
 	if (!odm) return JS_TRUE;
 	if (argc<1) return JS_TRUE;
-	if (! SMJS_ID_IS_INT(argv[0]) ) return JS_TRUE;
-	idx = SMJS_ID_TO_INT(argv[0]);
+	if (! JSVAL_IS_INT(argv[0]) ) return JS_TRUE;
+	idx = JSVAL_TO_INT(argv[0]);
 
 	if (odm->subscene) {
 		an_odm = gf_list_get(odm->subscene->resources, idx);
 	}
 	if (an_odm) {
-		JSClass *_class = SMJS_GET_CLASS(c, obj);
-		obj = JS_NewObject(c, _class , 0, 0);
-		SMJS_SET_PRIVATE(c, obj, an_odm);
-		SMJS_SET_RVAL( OBJECT_TO_JSVAL(obj) );
+        JSObject *anobj;
+        JSClass *_class = SMJS_GET_CLASS(c, obj);
+        anobj = JS_NewObject(c, _class, 0, 0);
+        SMJS_SET_PRIVATE(c, anobj, an_odm);
+		SMJS_SET_RVAL( OBJECT_TO_JSVAL(anobj) );
 	} else {
 		SMJS_SET_RVAL(JSVAL_NULL);
 	}
@@ -1051,10 +1050,10 @@ static JSBool SMJS_FUNCTION(gjs_odm_addon_layout)
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
 
 	if (argc<2) return JS_TRUE;
-	if (! SMJS_ID_IS_INT(argv[0]) ) return JS_TRUE;
-	if (! SMJS_ID_IS_INT(argv[1]) ) return JS_TRUE;
-	pos = SMJS_ID_TO_INT(argv[0]);
-	size = SMJS_ID_TO_INT(argv[1]);
+	if (! JSVAL_IS_INT(argv[0]) ) return JS_TRUE;
+	if (! JSVAL_IS_INT(argv[1]) ) return JS_TRUE;
+	pos = JSVAL_TO_INT(argv[0]);
+	size = JSVAL_TO_INT(argv[1]);
 
 	gf_scene_set_addon_layout_info(odm->subscene, pos, size);
 	return JS_TRUE;
@@ -1067,7 +1066,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_declare_addon)
 	SMJS_ARGS
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
 
-	if (! SMJS_ID_IS_STRING(argv[0]) ) return JS_TRUE;
+	if (! JSVAL_IS_STRING(argv[0]) ) return JS_TRUE;
 
 	addon_url = SMJS_CHARS(c, argv[0]);
 	if (addon_url) {
@@ -1086,14 +1085,14 @@ static JSBool SMJS_FUNCTION(gpac_get_object_manager)
 	JSObject *anobj;
 	u32 i, count;
 	GF_ObjectManager *odm = NULL;
-	const char *service_url = NULL;
+	char *service_url = NULL;
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 	GF_Terminal *term = gpac_get_term(c, obj);
 	GF_Scene *scene = term->root_scene;
 
-	if (SMJS_ID_IS_STRING(argv[0]) ) {
+	if (JSVAL_IS_STRING(argv[0]) ) {
 		service_url = SMJS_CHARS(c, argv[0]);
 		if (!service_url) {
 			SMJS_SET_RVAL(JSVAL_NULL);
@@ -1454,7 +1453,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	gjs->nb_loaded++;
 
 	if (!scene) return;
-
+    
 	JS_SETUP_CLASS(gjs->gpacClass, "GPAC", JSCLASS_HAS_PRIVATE, gpac_getProperty, gpac_setProperty, JS_FinalizeStub);
 
 	if (!gjs->gpac_obj) {
