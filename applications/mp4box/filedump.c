@@ -178,6 +178,7 @@ GF_Err dump_file_text(char *file, char *inName, GF_SceneDumpFormat dump_mode, Bo
 	load.swf_import_flags = swf_flags;
 	if (dump_mode == GF_SM_DUMP_SVG) {
 		load.swf_import_flags |= GF_SM_SWF_USE_SVG;
+		load.svgOutFile = inName;
 	}
 	load.swf_flatten_limit = swf_flatten_angle;
 
@@ -227,7 +228,7 @@ GF_Err dump_file_text(char *file, char *inName, GF_SceneDumpFormat dump_mode, Bo
 		gf_log_set_callback(NULL, prev_logs);
 		fclose(logs);
 	}
-	if (!e) {
+	if (!e && dump_mode != GF_SM_DUMP_SVG) {
 		u32 count = gf_list_count(ctx->streams);
 		if (count)
 			fprintf(stderr, "Scene loaded - dumping %d systems streams\n", count);

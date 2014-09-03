@@ -633,12 +633,12 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 		} else
 #endif
 		{
-			ext = strrchr(load->fileName, '.');
+			ext = (char *)strrchr(load->fileName, '.');
 			if (!ext) return GF_NOT_SUPPORTED;
 			if (!stricmp(ext, ".gz")) {
 				char *anext;
 				ext[0] = 0;
-				anext = strrchr(load->fileName, '.');
+				anext = (char *)strrchr(load->fileName, '.');
 				ext[0] = '.';
 				ext = anext;
 			}

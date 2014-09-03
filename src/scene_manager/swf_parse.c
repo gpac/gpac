@@ -2574,7 +2574,7 @@ GF_Err gf_swf_read_header(SWFReader *read)
 	swf_align(read);
 	read->frame_rate = swf_get_16(read)>>8;
 	read->frame_count = swf_get_16(read);
-	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("SWF Import - Scene Size %gx%g - %d frames @ %d FPS", read->width, read->height, read->frame_count, read->frame_rate));
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("SWF Import - Scene Size %gx%g - %d frames @ %d FPS\n", read->width, read->height, read->frame_count, read->frame_rate));
 	return GF_OK;
 }
 
@@ -2607,13 +2607,17 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 	} else {
 		char svgFileName[GF_MAX_PATH];
 		FILE *svgFile;
-		if (load->localPath) {
-			sprintf(svgFileName, "%s%c%s.svg", load->localPath, GF_PATH_SEPARATOR, load->fileName);
+		if (load->svgOutFile) {
+			if (load->localPath) {
+				sprintf(svgFileName, "%s%c%s.svg", load->localPath, GF_PATH_SEPARATOR, load->svgOutFile);
+			} else {
+				sprintf(svgFileName, "%s.svg", load->svgOutFile);
+			}
+			svgFile = gf_f64_open(svgFileName, "wt");
+			if (!svgFile) return GF_BAD_PARAM;
 		} else {
-			sprintf(svgFileName, "%s.svg", load->fileName);
+			svgFile = stdout;
 		}
-		svgFile = gf_f64_open(svgFileName, "wt");
-		if (!svgFile) return GF_BAD_PARAM;
 		gf_swf_reader_set_user_mode(read, svgFile, swf_svg_write_text_sample, swf_svg_write_text_header);
 		e = swf_to_svg_init(read, read->flags, load->swf_flatten_limit);
 	}
