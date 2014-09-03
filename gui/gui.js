@@ -338,8 +338,6 @@ function initialize() {
      display_width = gpac.get_screen_width();
      display_height = gpac.get_screen_height();
     }
-    screen_dpi = gpac.get_horizontal_dpi();
-
 
     dictionary = gw_new_container(root);
     dictionary.hide();

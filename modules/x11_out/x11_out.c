@@ -749,7 +749,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 				xWindow->w_height = evt.size.height = xevent.xconfigure.height;
 				vout->on_event(vout->evt_cbk_hdl, &evt);
 			} else {
-				evt.type = GF_EVENT_MOVE;
+				evt.type = GF_EVENT_MOVE_NOTIF;
 				evt.move.x = xevent.xconfigure.x;
 				evt.move.y = xevent.xconfigure.y;
 				vout->on_event(vout->evt_cbk_hdl, &evt);
