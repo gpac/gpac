@@ -412,7 +412,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		gf_export_message(dumper, GF_OK, "Extracting WebVTT sample%s", szNum);
 		strcpy(szEXT, ".vtt");
 		is_wvtt = GF_TRUE;
-	} else if (m_stype==GF_ISOM_SUBTYPE_STSE) {
+	} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
 		gf_export_message(dumper, GF_OK, "Extracting Simple Text sample%s", szNum);
 		strcpy(szEXT, ".txt");
 	} else if (m_type==GF_ISOM_MEDIA_HINT) {
@@ -958,7 +958,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			gf_export_message(dumper, GF_OK, "Extracting WebVTT");
 			is_webvtt = GF_TRUE;
 			strcat(szName, ".vtt");
-		} else if (m_stype==GF_ISOM_SUBTYPE_STSE) {
+		} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
 			gf_export_message(dumper, GF_OK, "Extracting Simple Text");
 			strcat(szName, ".txt");
 		} else if (m_stype==GF_ISOM_SUBTYPE_STPP) {
@@ -2296,7 +2296,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 				if (mstype == GF_ISOM_SUBTYPE_WVTT) {
 					/* Warning: Just use -raw export */
 					mime = "text/vtt";
-				} else if (mstype == GF_ISOM_SUBTYPE_STSE) {
+				} else if (mstype == GF_ISOM_SUBTYPE_STXT) {
 					/* TODO: find the mime type from the ESD, assume SVG for now */
 					mime = "image/svg+xml";
 				} else if (mstype == GF_ISOM_SUBTYPE_STPP) {
@@ -2304,7 +2304,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 					mime = "application/ttml+xml";
 				}
 				if (dumper->flags & GF_EXPORT_WEBVTT_META_EMBEDDED) {
-					if (mstype == GF_ISOM_SUBTYPE_STSE) {
+					if (mstype == GF_ISOM_SUBTYPE_STXT) {
 						if (esd->decoderConfig->decoderSpecificInfo->dataLength) {
 							fprintf(vtt, "text-header: \n");
 							gf_webvtt_dump_header_boxed(vtt, esd->decoderConfig->decoderSpecificInfo->data+4, esd->decoderConfig->decoderSpecificInfo->dataLength, &headerLength);
@@ -2487,7 +2487,7 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 	if (esd) {
 		if (esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
 #ifndef GPAC_DISABLE_TTXT
-			if (mstype == GF_ISOM_SUBTYPE_WVTT || mstype == GF_ISOM_SUBTYPE_STSE) {
+			if (mstype == GF_ISOM_SUBTYPE_WVTT || mstype == GF_ISOM_SUBTYPE_STXT) {
 				gf_webvtt_dump_header_boxed(media,
 				                            esd->decoderConfig->decoderSpecificInfo->data+4,
 				                            esd->decoderConfig->decoderSpecificInfo->dataLength,

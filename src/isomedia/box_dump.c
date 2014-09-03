@@ -496,8 +496,8 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 			return defa_dump(a, trace);
 		}
 #ifndef GPAC_DISABLE_TTXT
-	case GF_ISOM_BOX_TYPE_STSE:
-		return stse_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STXT:
+		return stxt_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_STTC:
 	case GF_ISOM_BOX_TYPE_VTTC:
@@ -3919,7 +3919,7 @@ GF_Err metx_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-GF_Err stse_dump(GF_Box *a, FILE * trace)
+GF_Err stxt_dump(GF_Box *a, FILE * trace)
 {
 	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox*)a;
 	const char *name = "SimpleTextSampleEntryBox";

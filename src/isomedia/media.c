@@ -240,7 +240,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		/* TODO */
 	}
 	break;
-	case GF_ISOM_BOX_TYPE_STSE:
+	case GF_ISOM_BOX_TYPE_STXT:
 	{
 		GF_BitStream *bs;
 		esd =  gf_odf_desc_esd_new(2);

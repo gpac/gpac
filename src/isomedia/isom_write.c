@@ -3465,14 +3465,14 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			return 0;
 		}
 		break;
-		case GF_ISOM_BOX_TYPE_STSE:
+		case GF_ISOM_BOX_TYPE_STXT:
 		{
-			GF_SimpleTextSampleEntryBox *stse1 = (GF_SimpleTextSampleEntryBox *)ent1;
-			GF_SimpleTextSampleEntryBox *stse2 = (GF_SimpleTextSampleEntryBox *)ent2;
-			if (stse1->mime_type && stse2->mime_type &&
-			        ( (!stse1->config && !stse2->config) ||
-			          (stse1->config && stse2->config && stse1->config->string && stse2->config->string &&
-			           !strcmp(stse1->config->string, stse2->config->string)))) {
+			GF_SimpleTextSampleEntryBox *stxt1 = (GF_SimpleTextSampleEntryBox *)ent1;
+			GF_SimpleTextSampleEntryBox *stxt2 = (GF_SimpleTextSampleEntryBox *)ent2;
+			if (stxt1->mime_type && stxt2->mime_type &&
+			        ( (!stxt1->config && !stxt2->config) ||
+			          (stxt1->config && stxt2->config && stxt1->config->string && stxt2->config->string &&
+			           !strcmp(stxt1->config->string, stxt2->config->string)))) {
 				return 1;
 			}
 			return 0;
