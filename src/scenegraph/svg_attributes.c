@@ -168,6 +168,10 @@ static const struct dom_event_def {
 	/*GPAC internals*/
 	{ GF_EVENT_SCENE_ATTACHED, "gpac_scene_attached", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_VP_RESIZE, "gpac_vp_changed", GF_DOM_EVENT_GPAC},
+	{ GF_EVENT_ADDON_DETECTED, "gpac_addon_found", GF_DOM_EVENT_GPAC},
+	{ GF_EVENT_MAIN_ADDON_STATE, "gpac_main_addon_state", GF_DOM_EVENT_GPAC},
+	
+#if 0
 	{ GF_EVENT_DBLCLICK, "gpac_dbl_click", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_SIZE, "gpac_size_changed", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_SCENE_SIZE, "gpac_scene_size", GF_DOM_EVENT_GPAC},
@@ -178,7 +182,7 @@ static const struct dom_event_def {
 	{ GF_EVENT_REFRESH, "gpac_move", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_QUIT, "gpac_quit", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_PASTE_TEXT, "gpac_paste", GF_DOM_EVENT_GPAC},
-	{ GF_EVENT_COPY_TEXT, "gpac_paste", GF_DOM_EVENT_GPAC},
+	{ GF_EVENT_COPY_TEXT, "gpac_copy", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_CONNECT, "gpac_on_connect", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_DURATION, "gpac_on_duration", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_EOS, "gpac_eos", GF_DOM_EVENT_GPAC},
@@ -196,9 +200,11 @@ static const struct dom_event_def {
 	{ GF_EVENT_DROPFILE, "gpac_dropfile", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_TEXT_EDITING_START, "gpac_textedit_start", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_TEXT_EDITING_END, "gpac_textedit_end", GF_DOM_EVENT_GPAC},
-	{ GF_EVENT_ADDON_DETECTED, "gpac_addon_found", GF_DOM_EVENT_GPAC},
-	{ GF_EVENT_QUALITY_SWITCHED, "gpac_quality_switch", GF_DOM_EVENT_GPAC}
-	
+	{ GF_EVENT_QUALITY_SWITCHED, "gpac_quality_switch", GF_DOM_EVENT_GPAC},
+	{ GF_EVENT_TIMESHIFT_OVERFLOW, "gpac_timeshift_overflow", GF_DOM_EVENT_GPAC},
+	{ GF_EVENT_TIMESHIFT_UPDATE, "gpac_timeshift_update", GF_DOM_EVENT_GPAC}
+#endif
+
 };
 
 GF_EXPORT

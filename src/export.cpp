@@ -375,6 +375,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_set_range) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_setup_from_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_file_memory) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_global_rate) )
+
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_can_be_cached_on_disk) )
@@ -1761,6 +1763,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_message) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_clock_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_get_media_object_ex) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_resume_live) )
 
 #endif
 
@@ -1953,6 +1956,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_switch_quality) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_duration) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_time_shift_buffer_depth) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_check_mpd_root_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_init_url) )
@@ -2002,8 +2006,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_automatic_switching) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_select_quality) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_download_rate) )
-
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_timeshift) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_timeshift_buffer_pos) )
 
 
 #endif

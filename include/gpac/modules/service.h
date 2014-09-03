@@ -141,6 +141,9 @@ typedef enum
 	//sets nalu mode
 	GF_NET_CHAN_NALU_MODE,
 
+	/*request current position in TSB - 0 means 'at the live point'*/
+	GF_NET_GET_TIMESHIFT,
+
 	/*seek request from service on all channels*/
 	GF_NET_SERVICE_SEEK,
 } GF_NET_CHAN_CMD;
@@ -220,6 +223,8 @@ typedef struct
 	LPNETCHANNEL on_channel;
 	/*duration in sec*/
 	Double duration;
+	/*time shift buffer depth in ms, (u32) -1 is infinity*/
+	u32 time_shift_buffer;
 } GF_NetComDuration;
 
 /*GF_NET_CHAN_GET_DSI*/
@@ -239,6 +244,16 @@ typedef struct
 	LPNETCHANNEL on_channel;
 	u32 padding_bytes;
 } GF_NetComPadding;
+
+/*GF_NET_GET_TIMESHIFT*/
+typedef struct
+{
+	u32 command_type;
+	LPNETCHANNEL on_channel;
+	//time in sec in the timeshift buffer - 0 means live point
+	u32 time;
+} GF_NetComTimeShift;
+
 
 
 /*GF_NET_SERVICE_PROXY_DATA_RECEIVE*/
@@ -555,6 +570,7 @@ typedef union __netcommand
 	GF_NetComDuration duration;
 	GF_NetComGetDSI get_dsi;
 	GF_NetComPadding pad;
+	GF_NetComTimeShift timeshift;
 	GF_NetComMapTime map_time;
 	GF_NetComStats net_stats;
 	GF_NetComDRMConfig drm_cfg;

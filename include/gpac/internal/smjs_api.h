@@ -296,6 +296,19 @@ JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp)
 #define GF_JS_InitClass(cx, obj, parent_proto, clasp, constructor, nargs, ps, fs, static_ps, static_fs) \
 		(clasp)->_proto = JS_InitClass(cx, obj, parent_proto, &(clasp)->_class, constructor, nargs, ps, fs, static_ps, static_fs);
 
+
+#define SMJS_GET_NUMBER(val, _d)  {	\
+		if (!JSVAL_IS_NUMBER(val) || (val == JS_GetNaNValue(c)) ) { \
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JS] Value is not a number while assigning @ file %s line %d \n", __FILE__, __LINE__));	\
+			return JS_FALSE; \
+		}	\
+		JS_ValueToNumber(c, val, &_d);	\
+		if (_d != _d) { \
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JS] Value is not a number while assigning @ file %s line %d \n", __FILE__, __LINE__));	\
+			return JS_FALSE; \
+		} \
+	}	\
+
 JSObject *gf_sg_js_global_object(JSContext *cx, GF_JSClass *__class);
 
 #ifdef __cplusplus

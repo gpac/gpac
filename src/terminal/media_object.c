@@ -713,7 +713,7 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 			}
 			if (clipEnd>=clipBegin) {
 				mo->odm->media_stop_time = (u64) (clipEnd*1000);
-				if (mo->odm->duration && (mo->odm->media_stop_time > mo->odm->duration)) {
+				if (mo->odm->duration && (mo->odm->media_stop_time >=0) && ((u64) mo->odm->media_stop_time > mo->odm->duration)) {
 					mo->odm->media_stop_time = 0;
 				}
 			} else {

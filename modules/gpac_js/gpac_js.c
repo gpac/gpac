@@ -97,32 +97,38 @@ static GF_Terminal *gpac_get_term(JSContext *c, JSObject *obj)
 static SMJS_FUNC_PROP_GET( gpac_getProperty)
 
 	const char *res;
-	char *prop_name;
+	s32 prop_id;
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (!term) return JS_FALSE;
 
-	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
-	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
-	if (!prop_name) return JS_FALSE;
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+	prop_id = SMJS_ID_TO_INT(id);
 
-	if (!strcmp(prop_name, "last_working_directory")) {
+	switch (prop_id) {
+	case -1: //"last_working_directory"
 		res = gf_cfg_get_key(term->user->config, "General", "LastWorkingDir");
 		if (!res) res = gf_cfg_get_key(term->user->config, "General", "ModulesDirectory");
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, res));
-	}
-	else if (!strcmp(prop_name, "scale_x")) {
+		break;
+
+	case -2: //"scale_x")) 
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_x)) );
-	}
-	else if (!strcmp(prop_name, "scale_y")) {
+		break;
+
+	case -3: //"scale_y"
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_y)) );
-	}
-	else if (!strcmp(prop_name, "translation_x")) {
+		break;
+
+	case -4: //"translation_x"
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_x)) );
-	}
-	else if (!strcmp(prop_name, "translation_y")) {
+		break;
+
+	case -5: //"translation_y"
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_y)) );
-	}
-	else if (!strcmp(prop_name, "rectangular_textures")) {
+		break;
+
+	case -6: //"rectangular_textures"
+	{
 		Bool any_size = GF_FALSE;
 	#ifndef GPAC_DISABLE_3D
 		if (term->compositor->gl_caps.npot_texture || term->compositor->gl_caps.rect_texture)
@@ -130,123 +136,184 @@ static SMJS_FUNC_PROP_GET( gpac_getProperty)
 	#endif
 		*vp = BOOLEAN_TO_JSVAL( any_size ? JS_TRUE : JS_FALSE );
 	}
-	else if (!strcmp(prop_name, "batteryOn")) {
+		break;
+
+	case -7: //"batteryOn"
+	{
 		Bool on_battery = GF_FALSE;
 		gf_sys_get_battery_state(&on_battery, NULL, NULL, NULL, NULL);
 		*vp = BOOLEAN_TO_JSVAL( on_battery ? JS_TRUE : JS_FALSE );
 	}
-	else if (!strcmp(prop_name, "batteryCharging")) {
+		break;
+
+	case -8: //	"batteryCharging"
+	{
 		u32 on_charge = 0;
 		gf_sys_get_battery_state(NULL, &on_charge, NULL, NULL, NULL);
 		*vp = BOOLEAN_TO_JSVAL( on_charge ? JS_TRUE : JS_FALSE );
 	}
-	else if (!strcmp(prop_name, "batteryPercent")) {
+		break;
+
+	case -9: //	"batteryPercent"
+	{
 		u32 level = 0;
 		gf_sys_get_battery_state(NULL, NULL, &level, NULL, NULL);
 		*vp = INT_TO_JSVAL( level );
 	}
-	else if (!strcmp(prop_name, "batteryLifeTime")) {
+		break;
+
+	case -10: //"batteryLifeTime"
+	{
 		u32 level = 0;
 		gf_sys_get_battery_state(NULL, NULL, NULL, &level, NULL);
 		*vp = INT_TO_JSVAL( level );
 	}
-	else if (!strcmp(prop_name, "batteryFullLifeTime")) {
+		break;
+
+	case -11: //"batteryFullLifeTime"
+	{
 		u32 level = 0;
 		gf_sys_get_battery_state(NULL, NULL, NULL, NULL, &level);
 		*vp = INT_TO_JSVAL( level );
 	}
-	else if (!strcmp(prop_name, "hostname")) {
+		break;
+
+	case -12: //"hostname"
+	{
 		char hostname[100];
 		gf_sk_get_host_name((char*)hostname);
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, hostname));
 	}
-	else if (!strcmp(prop_name, "fullscreen")) {
+		break;
+
+	case -13: //"fullscreen"
 		*vp = BOOLEAN_TO_JSVAL( term->compositor->fullscreen ? JS_TRUE : JS_FALSE);
-	}
-	else if (!strcmp(prop_name, "current_path")) {
+		break;
+
+	case -14: //"current_path"
+	{
 		char *url = gf_url_concatenate(term->root_scene->root_od->net_service->url, "");
 		if (!url) url = gf_strdup("");
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, url));
 		gf_free(url);
 	}
-	else if (!strcmp(prop_name, "volume")) {
+		break;
+
+	case -15: //"volume"
 		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_AUDIO_VOLUME));
-	}
-	else if (!strcmp(prop_name, "navigation")) {
+		break;
+
+	case -16: //"navigation"
 		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION));
-	}
-	else if (!strcmp(prop_name, "navigation_type")) {
+		break;
+
+	case -17: //"navigation_type"
 		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE) );
-	}
-	else if (!strcmp(prop_name, "hardware_yuv")) {
+		break;
+
+	case -18: //"hardware_yuv"
 		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_YUV) ? 1 : 0 );
-	}
-	else if (!strcmp(prop_name, "hardware_rgb")) {
+		break;
+
+	case -19: //"hardware_rgb"
 		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB) ? 1 : 0 );
-	}
-	else if (!strcmp(prop_name, "hardware_rgba")) {
+		break;
+
+	case -20: //"hardware_rgba"
+	{
 		u32 has_rgba = (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGBA) ? 1 : 0;
 	#ifndef GPAC_DISABLE_3D
 		if (term->compositor->hybrid_opengl || term->compositor->is_opengl) has_rgba = 1;
 	#endif
 		*vp = INT_TO_JSVAL( has_rgba  );
 	}
-	else if (!strcmp(prop_name, "hardware_stretch")) {
+		break;
+
+	case -21: //"hardware_stretch"
 		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_STRETCH) ? 1 : 0 );
-	}
-	else if (!strcmp(prop_name, "screen_width")) {
+		break;
+
+	case -22: //"screen_width"
 		*vp = INT_TO_JSVAL( term->compositor->video_out->max_screen_width);
-	}
-	else if (!strcmp(prop_name, "screen_height")) {
+		break;
+
+	case -23: //"screen_height"
 		*vp = INT_TO_JSVAL( term->compositor->video_out->max_screen_height);
-	}
-	else if (!strcmp(prop_name, "http_bitrate")) {
-		*vp = INT_TO_JSVAL( gf_dm_get_data_rate(term->downloader)*8/1024);
-	}
-	else if (!strcmp(prop_name, "fps")) {
-		Double fps = gf_sc_get_fps(term->compositor, 0);
-		*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, fps) );
-	}
-	else if (!strcmp(prop_name, "cpu_load") || !strcmp(prop_name, "cpu")) {
+		break;
+
+	case -24: //"http_max_bitrate"
+		*vp = INT_TO_JSVAL( gf_dm_get_data_rate(term->downloader));
+		break;
+
+	case -25: //"http_bitrate"
+		*vp = INT_TO_JSVAL( gf_dm_get_global_rate(term->downloader));
+		break;
+
+	case -26: //"fps"
+		*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, gf_sc_get_fps(term->compositor, 0) ) );
+		break;
+
+	case -27: //"cpu_load" || "cpu"
+	{
 		GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
 		*vp = INT_TO_JSVAL(ext->rti.process_cpu_usage);
 	}
-	else if (!strcmp(prop_name, "nb_cores")) {
+		break;
+
+	case -28: //"nb_cores"
+	{
 		GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
 		*vp = INT_TO_JSVAL(ext->rti.nb_cores);
 	}
-	else if (!strcmp(prop_name, "system_memory")) {
+		break;
+
+	case -29: //"system_memory"
+	{
 		GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
 		*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, (Double) ext->rti.physical_memory ) );
 	}
-	else if (!strcmp(prop_name, "memory")) {
+		break;
+
+	case -30: //"memory"
+	{
 		GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 		gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
 		*vp = INT_TO_JSVAL(ext->rti.process_memory);
 	}
-	else if (!strcmp(prop_name, "argc")) {
+		break;
+
+	case -31: //"argc"
 		*vp = INT_TO_JSVAL(gf_sys_get_argc() );
+		break;
+
+	case -36://"dpi_x"
+		*vp = INT_TO_JSVAL(term->compositor->video_out->dpi_x);
+		break;
+
+	case -37://"dpi_y"
+		*vp = INT_TO_JSVAL(term->compositor->video_out->dpi_y);
+		break;
 	}
 
-
-	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
-	}
+}
 
 
 static SMJS_FUNC_PROP_SET( gpac_setProperty)
 
-	char *prop_name, *prop_val;
+	s32 prop_id;
+	char *prop_val;
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (!term) return JS_FALSE;
 
-	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
-	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+	prop_id = SMJS_ID_TO_INT(id);
 
-	if (!strcmp(prop_name, "last_working_directory")) {
+	switch (prop_id) {
+	case -1: //"last_working_directory"
 		if (!JSVAL_IS_STRING(*vp)) {
 			SMJS_FREE(c, prop_name);
 			return JS_FALSE;
@@ -254,8 +321,9 @@ static SMJS_FUNC_PROP_SET( gpac_setProperty)
 		prop_val = SMJS_CHARS(c, *vp);
 		gf_cfg_set_key(term->user->config, "General", "LastWorkingDir", prop_val);
 		SMJS_FREE(c, prop_val);
-	}
-	else if (!strcmp(prop_name, "caption")) {
+		break;
+	case -32://"caption"
+	{
 		GF_Event evt;
 		if (!JSVAL_IS_STRING(*vp)) {
 			SMJS_FREE(c, prop_name);
@@ -266,7 +334,9 @@ static SMJS_FUNC_PROP_SET( gpac_setProperty)
 		gf_term_user_event(term, &evt);
 		SMJS_FREE(c, (char*)evt.caption.caption);
 	}
-	else if (!strcmp(prop_name, "fullscreen")) {
+		break;
+	case -13://"fullscreen"
+	{
 		/*no fullscreen for iOS (always on)*/
 	#ifndef GPAC_IPHONE
 		Bool res = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : 0;
@@ -275,26 +345,29 @@ static SMJS_FUNC_PROP_SET( gpac_setProperty)
 		}
 	#endif
 	}
-	else if (!strcmp(prop_name, "volume")) {
+		break;
+	case -15: //"volume"
 		if (JSVAL_IS_NUMBER(*vp)) {
 			jsdouble d;
-			JS_ValueToNumber(c, *vp, &d);
+			SMJS_GET_NUMBER(*vp, d);
 			gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, (u32) d);
 		} else if (JSVAL_IS_INT(*vp)) {
 			gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, JSVAL_TO_INT(*vp));
 		}
-	}
-	else if (!strcmp(prop_name, "navigation")) {
+		break;
+
+	case -16: //"navigation"
 		gf_term_set_option(term, GF_OPT_NAVIGATION, JSVAL_TO_INT(*vp) );
-	}
-	else if (!strcmp(prop_name, "navigation_type")) {
+		break;
+	case -17: //"navigation_type"
 		gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
-	}
-	else if (!strcmp(prop_name, "disable_hardware_blit")) {
+		break;
+	case -33: //"disable_hardware_blit"
 		term->compositor->disable_hardware_blit = JSVAL_TO_INT(*vp) ? 1 : 0;
 		gf_sc_set_option(term->compositor, GF_OPT_REFRESH, 0);
-	}
-	else if (!strcmp(prop_name, "disable_composite_blit")) {
+		break;
+	case -34: //"disable_composite_blit"
+	{
 		Bool new_val = JSVAL_TO_INT(*vp) ? 1 : 0;
 		if (new_val != term->compositor->disable_composite_blit) {
 			term->compositor->disable_composite_blit = new_val;
@@ -302,13 +375,16 @@ static SMJS_FUNC_PROP_SET( gpac_setProperty)
 			gf_sc_set_option(term->compositor, GF_OPT_REFRESH, 0);
 		}
 	}
-	else if (!strcmp(prop_name, "http_bitrate")) {
+		break;
+	case -24:  //"http_max_bitrate"
+	{
 		u32 new_rate = JSVAL_TO_INT(*vp);
 		gf_dm_set_data_rate(term->downloader, new_rate);
 	}
-
-	else if (!strcmp(prop_name, "focus_highlight")) {
+		break;
+	case -35: //"focus_highlight"
 		term->compositor->disable_focus_highlight = JSVAL_TO_BOOLEAN(*vp) ? 0 : 1;
+		break;
 	}
 	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
@@ -581,11 +657,11 @@ static JSBool SMJS_FUNCTION(gpac_set_size)
 
 	w = h = 0;
 	if ((argc >= 1) && JSVAL_IS_NUMBER(argv[0])) {
-		JS_ValueToNumber(c, argv[0], &d);
+		SMJS_GET_NUMBER(argv[0], d);
 		w = (u32) d;
 	}
 	if ((argc >= 2) && JSVAL_IS_NUMBER(argv[1])) {
-		JS_ValueToNumber(c, argv[1], &d);
+		SMJS_GET_NUMBER(argv[1], d);
 		h = (u32) d;
 	}
 	if ((argc >= 3) && JSVAL_IS_BOOLEAN(argv[2]) && (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) )
@@ -627,22 +703,6 @@ static JSBool SMJS_FUNCTION(gpac_get_vertical_dpi)
 	SMJS_OBJ
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (term) SMJS_SET_RVAL( INT_TO_JSVAL(term->compositor->video_out->dpi_y) );
-	return JS_TRUE;
-}
-
-static JSBool SMJS_FUNCTION(gpac_get_screen_width)
-{
-	SMJS_OBJ
-	GF_Terminal *term = gpac_get_term(c, obj);
-	SMJS_SET_RVAL( INT_TO_JSVAL(term->compositor->video_out->max_screen_width));
-	return JS_TRUE;
-}
-
-static JSBool SMJS_FUNCTION(gpac_get_screen_height)
-{
-	SMJS_OBJ
-	GF_Terminal *term = gpac_get_term(c, obj);
-	SMJS_SET_RVAL( INT_TO_JSVAL(term->compositor->video_out->max_screen_height));
 	return JS_TRUE;
 }
 
@@ -820,6 +880,7 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		else if (odi.od_type==GF_STREAM_VISUAL) str = "Video";
 		else if (odi.od_type==GF_STREAM_AUDIO) str = "Audio";
 		else if (odi.od_type==GF_STREAM_TEXT) str = "Text";
+		else if (odm->subscene) str = "Subcene";
 		else str = "Unknow";
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
 		break;
@@ -919,7 +980,37 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		*vp = INT_TO_JSVAL(com.net_stats.bw_down);
 	}
 		break;
-	}	
+	case -38:
+		*vp = INT_TO_JSVAL(gf_list_count(odm->net_service->dnloads) );
+		break;
+	case -39:
+		if ((s32) odm->timeshift_depth >= 0) {
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, ((Double) odm->timeshift_depth) / 1000.0 ) );
+		} else {
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, -1) );
+		}
+		break;
+	case -40:
+	{
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_GET_TIMESHIFT;
+		//can be NULL
+		com.base.on_channel = gf_list_get(odm->channels, 0);
+		gf_term_service_command(odm->net_service, &com);
+		*vp = INT_TO_JSVAL(com.timeshift.time);
+	}
+		break;
+	case -41:
+		*vp = BOOLEAN_TO_JSVAL( (odm->addon || (!odm->subscene && odm->parentscene->root_od->addon)) ? JS_TRUE : JS_FALSE);
+		break;
+	case -42:
+	{
+		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
+		*vp = BOOLEAN_TO_JSVAL( scene->main_addon_selected ? JS_TRUE : JS_FALSE);
+	}
+		break;
+	}
 	return JS_TRUE;
 }
 
@@ -998,6 +1089,18 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 	return JS_TRUE;
 }
 
+static JSBool SMJS_FUNCTION(gjs_odm_disable_main_addon)
+{
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+
+	if (!odm || !odm->subscene || !odm->subscene->main_addon_selected) return JS_TRUE;
+	
+	gf_scene_resume_live(odm->subscene);
+	return JS_TRUE;
+}
+
 static JSBool SMJS_FUNCTION(gjs_odm_select_service)
 {
 	u32 sid;
@@ -1032,7 +1135,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_resource)
 	}
 	if (an_odm) {
         JSObject *anobj;
-        JSClass *_class = SMJS_GET_CLASS(c, obj);
+        JSClass *_class = JS_GET_CLASS(c, obj);
         anobj = JS_NewObject(c, _class, 0, 0);
         SMJS_SET_PRIVATE(c, anobj, an_odm);
 		SMJS_SET_RVAL( OBJECT_TO_JSVAL(anobj) );
@@ -1352,6 +1455,46 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	};
 
 	JSPropertySpec gpacClassProps[] = {
+
+		SMJS_PROPERTY_SPEC("last_working_directory",	-1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+		SMJS_PROPERTY_SPEC("scale_x",					-2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("scale_y",					-3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("translation_x",				-4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("translation_y",				-5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("rectangular_textures",		-6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("batteryOn",					-7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("batteryCharging",			-8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("batteryPercent",			-9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("batteryLifeTime",			-10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("batteryFullLifeTime",		-11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("hostname",					-12,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("fullscreen",				-13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+		SMJS_PROPERTY_SPEC("current_path",				-14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("volume",					-15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+		SMJS_PROPERTY_SPEC("navigation",				-16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+		SMJS_PROPERTY_SPEC("navigation_type",			-17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+		SMJS_PROPERTY_SPEC("hardware_yuv",				-18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("hardware_rgb",				-19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("hardware_rgba",				-20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("hardware_stretch",			-21,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("screen_width",				-22,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("screen_height",				-23,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("http_max_bitrate",			-24,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+		SMJS_PROPERTY_SPEC("http_bitrate",				-25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("fps",						-26,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("cpu_load",					-27,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("cpu",						-27,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("nb_cores",					-28,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("system_memory",				-29,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("memory",					-30,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("argc",						-31,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("caption",					-32,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+		SMJS_PROPERTY_SPEC("disable_hardware_blit",		-33,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+		SMJS_PROPERTY_SPEC("disable_composite_blit",	-34,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+		SMJS_PROPERTY_SPEC("focus_highlight",			-35,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+		SMJS_PROPERTY_SPEC("dpi_x",						-36,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("dpi_y",						-37,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};
 	JSFunctionSpec gpacClassFuncs[] = {
@@ -1362,10 +1505,6 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("get_arg",		gpac_get_arg, 1),
 		SMJS_FUNCTION_SPEC("enum_directory",	gpac_enum_directory, 1),
 		SMJS_FUNCTION_SPEC("set_size",		gpac_set_size, 1),
-		SMJS_FUNCTION_SPEC("get_horizontal_dpi",	gpac_get_horizontal_dpi, 0),
-		SMJS_FUNCTION_SPEC("get_vertical_dpi",	gpac_get_vertical_dpi, 0),
-		SMJS_FUNCTION_SPEC("get_screen_width",	gpac_get_screen_width, 0),
-		SMJS_FUNCTION_SPEC("get_screen_height",	gpac_get_screen_height, 0),
 		SMJS_FUNCTION_SPEC("exit",				gpac_exit, 0),
 		SMJS_FUNCTION_SPEC("set_3d",				gpac_set_3d, 1),
 		SMJS_FUNCTION_SPEC("move_window",			gpac_move_window, 2),
@@ -1421,6 +1560,11 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("service_id",		-35,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("selected_service",	-36,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("bandwidth_down",	-37,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("nb_http",			-38,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("timeshift_depth",	-39,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("timeshift_time",	-40,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("is_addon",			-41,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("main_addon_on",		-42,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		
 
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
@@ -1434,7 +1578,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("get_quality", gjs_odm_get_quality, 1),
 		SMJS_FUNCTION_SPEC("select_service", gjs_odm_select_service, 1),
 		SMJS_FUNCTION_SPEC("select_quality", gjs_odm_select_quality, 1),
-
+		SMJS_FUNCTION_SPEC("disable_main_addon", gjs_odm_disable_main_addon, 1),
+		
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
 
@@ -1495,7 +1640,9 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		DECLARE_GPAC_CONST(GF_EVENT_DROPFILE);
 		DECLARE_GPAC_CONST(GF_EVENT_ADDON_DETECTED);
 		DECLARE_GPAC_CONST(GF_EVENT_QUALITY_SWITCHED);
-
+		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_UPDATE);
+		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_OVERFLOW);
+		
 		DECLARE_GPAC_CONST(GF_NAVIGATE_NONE);
 		DECLARE_GPAC_CONST(GF_NAVIGATE_WALK);
 		DECLARE_GPAC_CONST(GF_NAVIGATE_FLY);

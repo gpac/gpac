@@ -765,10 +765,25 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 			if (group) {
 				GF_NetworkCommand com;
 				memset(&com, 0, sizeof(GF_NetworkCommand) );
-				com.switch_quality.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
+	
+				com.command_type = GF_NET_SERVICE_EVENT;
+				com.send_event.evt.type = GF_EVENT_QUALITY_SWITCHED;
 				gf_service_command(mpdin->service, &com, GF_OK);
 			}
 		}
+		return GF_OK;
+	}
+	if (dash_evt==GF_DASH_EVENT_TIMESHIFT_OVERFLOW) {
+		GF_NetworkCommand com;
+		com.command_type = GF_NET_SERVICE_EVENT;
+		com.send_event.evt.type = GF_EVENT_TIMESHIFT_OVERFLOW;
+		gf_service_command(mpdin->service, &com, GF_OK);
+	}
+	if (dash_evt==GF_DASH_EVENT_TIMESHIFT_UPDATE) {
+		GF_NetworkCommand com;
+		com.command_type = GF_NET_SERVICE_EVENT;
+		com.send_event.evt.type = GF_EVENT_TIMESHIFT_UPDATE;
+		gf_service_command(mpdin->service, &com, GF_OK);
 	}
 	
 	return GF_OK;
@@ -1058,6 +1073,10 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		}
 		return GF_OK;
 
+	case GF_NET_GET_TIMESHIFT:
+		com->timeshift.time = gf_dash_get_timeshift_buffer_pos(mpdin->dash);
+		return GF_OK;
+
 	default:
 		break;
 	}
@@ -1135,6 +1154,10 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	case GF_NET_CHAN_DURATION:
 		com->duration.duration = gf_dash_get_duration(mpdin->dash);
+		idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
+		if (idx >= 0) {
+			com->duration.time_shift_buffer = gf_dash_group_get_time_shift_buffer_depth(mpdin->dash, idx);
+		}
 		return GF_OK;
 
 	case GF_NET_CHAN_PLAY:
@@ -1200,7 +1223,11 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			mpdin->previous_start_range = com->play.start_range;
 
 			if (!skip_seek) {
-
+				if (com->play.end_range<=0) {
+					u32 ms = (u32) ( 1000 * (-com->play.end_range) );
+					if (ms<1000) ms = 0;
+					gf_dash_set_timeshift(mpdin->dash, ms);
+				}
 				gf_dash_seek(mpdin->dash, com->play.start_range);
 
 				//we have issued a seek request, mark the group as seeking

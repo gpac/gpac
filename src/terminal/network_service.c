@@ -548,7 +548,7 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		}
 
 		com->send_event.res = 0;
-		if (term->user->EventProc) com->send_event.res = term->user->EventProc(term->user->opaque, &com->send_event.evt);
+		gf_term_send_event(term, &com->send_event.evt);
 		return;
 	}
 
@@ -583,19 +583,11 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		}
 		if (scene && scene->is_dynamic_scene) {
 			gf_sc_lock(term->compositor, 1);
-			gf_scene_restart_dynamic(scene, (u64) (com->play.start_range*1000) );
+			gf_scene_restart_dynamic(scene, (u64) (com->play.start_range*1000), 0);
 			gf_sc_lock(term->compositor, 0);
 		}
 		return;
 	}
-	if (com->command_type==GF_NET_SERVICE_QUALITY_SWITCH) {
-		GF_Event evt;
-		memset(&evt, 0, sizeof(GF_Event));
-		evt.type = GF_EVENT_QUALITY_SWITCHED;
-		gf_term_send_event(term, &evt);
-		return;
-	}
-		
 
 	if (!com->base.on_channel) return;
 
