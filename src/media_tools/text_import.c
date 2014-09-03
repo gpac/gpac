@@ -1425,11 +1425,15 @@ static GF_Err swf_svg_add_iso_sample(void *user, const char *data, u32 length, u
 	return e;
 }
 
-static GF_Err swf_svg_add_iso_header(void *user, const char *data, u32 length)
+static GF_Err swf_svg_add_iso_header(void *user, const char *data, u32 length, Bool isHeader)
 {
 	GF_ISOFlusher		*flusher = (GF_ISOFlusher *)user;
 	if (!flusher) return GF_BAD_PARAM;
-	return gf_isom_update_simpletext_description(flusher->import->dest, flusher->track, flusher->descriptionIndex , data);
+	if (isHeader) {
+		return gf_isom_update_simpletext_description(flusher->import->dest, flusher->track, flusher->descriptionIndex , data);
+	} else {
+		return GF_OK;
+	}
 }
 
 GF_EXPORT

@@ -228,6 +228,29 @@ GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	return res;
 }
 
+GF_EXPORT
+GF_Err gf_isom_stxt_info_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, char **mime, char **config)
+{
+	GF_TrackBox *trak;
+	GF_SimpleTextSampleEntryBox *entry;
+	*mime = NULL;
+	*config = NULL;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !StreamDescriptionIndex) return GF_BAD_PARAM;
+
+	entry = (GF_SimpleTextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex-1);
+	if (!entry || (entry->type!=GF_ISOM_BOX_TYPE_STXT)) return GF_BAD_PARAM;
+
+	if (entry->config) {
+		*config = entry->config->string;
+	}
+	if (entry->mime_type) {
+		*mime = entry->mime_type;
+	}
+	return GF_OK;
+}
+
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_EXPORT

@@ -114,7 +114,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName);
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 void dump_file_ismacryp(GF_ISOFile *file, char *inName);
-void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, char *outName, Bool is_convert, u32 dump_type);
+void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, char *outName, Bool is_convert, GF_TextDumpType dump_type);
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
 
 
@@ -1954,8 +1954,8 @@ int mp4boxMain(int argc, char **argv)
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
 #endif
-			if (!stricmp(arg, "-ttxt")) dump_ttxt = 1;
-			else dump_srt = 1;
+			if (!stricmp(arg, "-ttxt")) dump_ttxt = GF_TRUE;
+			else dump_srt = GF_TRUE;
 			import_subtitle = 1;
 		} else if (!stricmp(arg, "-dm2ts")) {
 			dump_m2ts = 1;
@@ -3037,7 +3037,8 @@ int mp4boxMain(int argc, char **argv)
 			outfile[strlen(outfile)-1] = 0;
 		}
 #ifndef GPAC_DISABLE_ISOM_DUMP
-		dump_timed_text_track(file, gf_isom_get_track_id(file, 1), dump_std ? NULL : outfile, outName, 1, (import_subtitle==2) ? 2 : dump_srt);
+		dump_timed_text_track(file, gf_isom_get_track_id(file, 1), dump_std ? NULL : outfile, outName, 
+			GF_TRUE, (import_subtitle==2) ? GF_TEXTDUMPTYPE_SVG : (dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT));
 #endif
 		gf_isom_delete(file);
 		gf_delete_file("ttxt_convert");

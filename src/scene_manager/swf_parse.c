@@ -2537,7 +2537,7 @@ SWFReader *gf_swf_reader_new(const char *localPath, const char *inputName)
 
 GF_Err gf_swf_reader_set_user_mode(SWFReader *read, void *user,
                                    GF_Err (*add_sample)(void *user, const char *data, u32 length, u64 timestamp, Bool isRap),
-                                   GF_Err (*add_header)(void *user, const char *data, u32 length))
+                                   GF_Err (*add_header)(void *user, const char *data, u32 length, Bool isHeader))
 {
 	if (!read) return GF_BAD_PARAM;
 	read->user = user;
@@ -2605,6 +2605,16 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 	if (!(load->swf_import_flags & GF_SM_SWF_USE_SVG)) {
 		e = swf_to_bifs_init(read);
 	} else {
+		char svgFileName[GF_MAX_PATH];
+		FILE *svgFile;
+		if (load->localPath) {
+			sprintf(svgFileName, "%s%c%s.svg", load->localPath, GF_PATH_SEPARATOR, load->fileName);
+		} else {
+			sprintf(svgFileName, "%s.svg", load->fileName);
+		}
+		svgFile = gf_f64_open(svgFileName, "wt");
+		if (!svgFile) return GF_BAD_PARAM;
+		gf_swf_reader_set_user_mode(read, svgFile, swf_svg_write_text_sample, swf_svg_write_text_header);
 		e = swf_to_svg_init(read, read->flags, load->swf_flatten_limit);
 	}
 	if (e) goto exit;
