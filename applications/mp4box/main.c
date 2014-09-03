@@ -2999,10 +2999,15 @@ int mp4boxMain(int argc, char **argv)
 
 	if (do_saf && !encode) {
 		switch (get_file_type_by_ext(inName)) {
-		case 2:
-		case 3:
-		case 4:
+		case GF_FILE_TYPE_BT_WRL_X3DV:
+		case GF_FILE_TYPE_XMT_X3D:
+		case GF_FILE_TYPE_SVG:
 			encode = 1;
+			break;
+		case GF_FILE_TYPE_NOT_SUPPORTED:
+		case GF_FILE_TYPE_ISO_MEDIA:
+		case GF_FILE_TYPE_SWF:
+		case GF_FILE_TYPE_LSR_SAF:
 			break;
 		}
 	}
