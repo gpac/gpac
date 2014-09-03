@@ -1293,7 +1293,7 @@ static GF_Err gf_text_import_ttml(GF_MediaImporter *import)
 /* SimpleText Text tracks -related functions */
 GF_SimpleTextSampleEntryBox *gf_isom_get_simpletext_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex)
 {
-	GF_SimpleTextSampleEntryBox *stse;
+	GF_SimpleTextSampleEntryBox *stxt;
 	GF_TrackBox *trak;
 	GF_Err e;
 
@@ -1312,9 +1312,9 @@ GF_SimpleTextSampleEntryBox *gf_isom_get_simpletext_description(GF_ISOFile *movi
 		return NULL;
 	}
 
-	stse = (GF_SimpleTextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
-	if (!stse) return NULL;
-	return stse;
+	stxt = (GF_SimpleTextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
+	if (!stxt) return NULL;
+	return stxt;
 }
 
 GF_Box *boxstring_new_with_data(u32 type, const char *string);
@@ -1322,7 +1322,7 @@ GF_Box *boxstring_new_with_data(u32 type, const char *string);
 GF_Err gf_isom_update_simpletext_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config)
 {
 	GF_Err e;
-	GF_SimpleTextSampleEntryBox *stse;
+	GF_SimpleTextSampleEntryBox *stxt;
 	GF_TrackBox *trak;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
@@ -1338,12 +1338,12 @@ GF_Err gf_isom_update_simpletext_description(GF_ISOFile *movie, u32 trackNumber,
 		return GF_BAD_PARAM;
 	}
 
-	stse = (GF_SimpleTextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
-	if (!stse) {
+	stxt = (GF_SimpleTextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
+	if (!stxt) {
 		return GF_BAD_PARAM;
 	} else {
-		switch (stse->type) {
-		case GF_ISOM_BOX_TYPE_STSE:
+		switch (stxt->type) {
+		case GF_ISOM_BOX_TYPE_STXT:
 			break;
 		default:
 			return GF_BAD_PARAM;
@@ -1351,7 +1351,7 @@ GF_Err gf_isom_update_simpletext_description(GF_ISOFile *movie, u32 trackNumber,
 		if (!movie->keep_utc)
 			trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-		stse->config = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_STTC, config);
+		stxt->config = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_STTC, config);
 		return GF_OK;
 	}
 }
@@ -1362,7 +1362,7 @@ GF_Err gf_isom_new_simpletext_description(GF_ISOFile *movie, u32 trackNumber, GF
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 dataRefIndex;
-	GF_SimpleTextSampleEntryBox *stse;
+	GF_SimpleTextSampleEntryBox *stxt;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -1387,10 +1387,10 @@ GF_Err gf_isom_new_simpletext_description(GF_ISOFile *movie, u32 trackNumber, GF
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	stse = (GF_SimpleTextSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSE);
-	stse->dataReferenceIndex = dataRefIndex;
-	stse->mime_type = gf_strdup(mime);
-	gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, stse);
+	stxt = (GF_SimpleTextSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STXT);
+	stxt->dataReferenceIndex = dataRefIndex;
+	stxt->mime_type = gf_strdup(mime);
+	gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, stxt);
 	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	return e;
 }

@@ -4983,7 +4983,7 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_ENCT:
 	case GF_ISOM_BOX_TYPE_METX:
 	case GF_ISOM_BOX_TYPE_METT:
-	case GF_ISOM_BOX_TYPE_STSE:
+	case GF_ISOM_BOX_TYPE_STXT:
 	case GF_ISOM_BOX_TYPE_DIMS:
 	case GF_ISOM_BOX_TYPE_AC3:
 	case GF_ISOM_BOX_TYPE_LSR1:
@@ -6211,7 +6211,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_RTP_STSD:
 		case GF_ISOM_BOX_TYPE_METX:
 		case GF_ISOM_BOX_TYPE_METT:
-		case GF_ISOM_BOX_TYPE_STSE:
+		case GF_ISOM_BOX_TYPE_STXT:
 		case GF_ISOM_BOX_TYPE_AVC1:
 		case GF_ISOM_BOX_TYPE_AVC2:
 		case GF_ISOM_BOX_TYPE_AVC3:
@@ -7422,15 +7422,15 @@ GF_Err metx_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /* SimpleTextSampleEntry */
-GF_Box *stse_New()
+GF_Box *stxt_New()
 {
-	ISOM_DECL_BOX_ALLOC(GF_SimpleTextSampleEntryBox, GF_ISOM_BOX_TYPE_STSE);
+	ISOM_DECL_BOX_ALLOC(GF_SimpleTextSampleEntryBox, GF_ISOM_BOX_TYPE_STXT);
 	gf_isom_sample_entry_init((GF_SampleEntryBox*)tmp);
 	return (GF_Box *)tmp;
 }
 
 
-void stse_del(GF_Box *s)
+void stxt_del(GF_Box *s)
 {
 	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox*)s;
 	if (ptr == NULL) return;
@@ -7444,7 +7444,7 @@ void stse_del(GF_Box *s)
 }
 
 
-GF_Err stse_AddBox(GF_Box *s, GF_Box *a)
+GF_Err stxt_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox *)s;
 	switch (a->type) {
@@ -7465,7 +7465,7 @@ GF_Err stse_AddBox(GF_Box *s, GF_Box *a)
 	return GF_OK;
 }
 
-GF_Err stse_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err stxt_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 size, i;
 	char *str;
@@ -7500,13 +7500,13 @@ GF_Err stse_Read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->size = size;
 	gf_free(str);
-	return gf_isom_read_box_list(s, bs, stse_AddBox);
+	return gf_isom_read_box_list(s, bs, stxt_AddBox);
 }
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err stse_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err stxt_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox *)s;
 	GF_Err e = gf_isom_box_write_header(s, bs);
@@ -7534,7 +7534,7 @@ GF_Err stse_Write(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_box_array_write(s, ptr->protections, bs);
 }
 
-GF_Err stse_Size(GF_Box *s)
+GF_Err stxt_Size(GF_Box *s)
 {
 	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox *)s;
 	GF_Err e = gf_isom_box_get_size(s);

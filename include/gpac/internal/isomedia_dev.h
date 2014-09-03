@@ -386,7 +386,7 @@ enum
 	GF_ISOM_BOX_TYPE_STPP	= GF_4CC( 's', 't', 'p', 'p' ),
 	GF_ISOM_BOX_TYPE_SBTT	= GF_4CC( 's', 'b', 't', 't' ),
 
-	GF_ISOM_BOX_TYPE_STSE	= GF_4CC( 's', 't', 's', 'e' ),
+	GF_ISOM_BOX_TYPE_STXT	= GF_4CC( 's', 't', 'x', 't' ),
 	GF_ISOM_BOX_TYPE_STTC	= GF_4CC( 's', 't', 't', 'C' ),
 
 	GF_ISOM_BOX_TYPE_PRFT   = GF_4CC( 'p', 'r', 'f', 't' ),
@@ -3931,12 +3931,12 @@ GF_Err metx_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err metx_Size(GF_Box *s);
 GF_Err metx_dump(GF_Box *a, FILE * trace);
 
-GF_Box *stse_New();
-void stse_del(GF_Box *s);
-GF_Err stse_Read(GF_Box *s, GF_BitStream *bs);
-GF_Err stse_Write(GF_Box *s, GF_BitStream *bs);
-GF_Err stse_Size(GF_Box *s);
-GF_Err stse_dump(GF_Box *a, FILE * trace);
+GF_Box *stxt_New();
+void stxt_del(GF_Box *s);
+GF_Err stxt_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stxt_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err stxt_Size(GF_Box *s);
+GF_Err stxt_dump(GF_Box *a, FILE * trace);
 
 GF_Box *stpp_New();
 void stpp_del(GF_Box *s);
