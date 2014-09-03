@@ -671,6 +671,26 @@ static const char *QCP_QCELP_GUID_1 = "\x41\x6D\x7F\x5E\x15\xB1\xD0\x11\xBA\x91\
 static const char *QCP_EVRC_GUID = "\x8D\xD4\x89\xE6\x76\x90\xB5\x46\x91\xEF\x73\x6A\x51\x00\xCE\xB4";
 static const char *QCP_SMV_GUID = "\x75\x2B\x7C\x8D\x97\xA7\x46\xED\x98\x5E\xD5\x3C\x8C\xC7\x5F\x84";
 
+#define DUMP_AVCPARAM(_params) \
+		count = gf_list_count(_params); \
+		for (i=0;i<count;i++) { \
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(_params, i); \
+			gf_bs_write_u32(bs, 1); \
+			gf_bs_write_data(bs, sl->data, sl->size); \
+		} \
+ 
+#define DUMP_HEVCPARAM(_params) \
+	count = gf_list_count(_params->param_array); \
+	for (i=0;i<count;i++) { \
+		u32 j; \
+		GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(_params->param_array, i); \
+		for (j=0; j<gf_list_count(ar->nalus); j++) { \
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j); \
+			gf_bs_write_u32(bs, 1); \
+			gf_bs_write_data(bs, sl->data, sl->size); \
+		} \
+	} \
+ 
 
 GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 {
@@ -687,13 +707,14 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	GF_AVCConfig *avccfg, *svccfg;
 	GF_HEVCConfig *hevccfg, *shvccfg;
 	GF_M4ADecSpecInfo a_cfg;
+	char *stxtcfg;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, qcp_type;
 	Bool is_ogg, has_qcp_pad, is_vobsub;
-	u32 aac_type, is_aac;
+	u32 aac_type, aac_mode;
 	char *dsi;
 	QCPRateTable rtable[8];
-	Bool is_stdout=0;
+	Bool is_stdout = GF_FALSE;
 	Bool is_webvtt = GF_FALSE;
 
 	dsi_size = 0;
@@ -702,6 +723,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	avccfg = NULL;
 	svccfg = NULL;
 	shvccfg = NULL;
+	stxtcfg = NULL;
 
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong track ID %d for file %s \n", dumper->trackID, gf_isom_get_filename(dumper->file)));
@@ -710,21 +732,30 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 
 	m_type = gf_isom_get_media_type(dumper->file, track);
 	m_stype = gf_isom_get_media_subtype(dumper->file, track, 1);
-	has_qcp_pad = 0;
-	if (dumper->out_name && !strcmp(dumper->out_name, "std"))
-		is_stdout = 1;
+	has_qcp_pad = GF_FALSE;
+	if (dumper->out_name && !strcmp(dumper->out_name, "std")) {
+		is_stdout = GF_TRUE;
+	}
 
-	is_aac = aac_type = 0;
+	aac_mode = aac_type = 0;
 	qcp_type = 0;
-	is_ogg = 0;
-	is_vobsub = 0;
+	is_ogg = GF_FALSE;
+	is_vobsub = GF_FALSE;
 	udesc = NULL;
-	dcfg = NULL;
-	if ((m_stype==GF_ISOM_SUBTYPE_MPEG4) || (m_stype==GF_ISOM_SUBTYPE_MPEG4_CRYP))
-		dcfg = gf_isom_get_decoder_config(dumper->file, track, 1);
 
-	add_ext = (dumper->out_name && strrchr(dumper->out_name , '.')==NULL) ? 1 : 0;
+	/* check if the output file name needs an extension or already has one */
+	add_ext = (dumper->out_name && strrchr(dumper->out_name , '.')==NULL) ? GF_TRUE : GF_FALSE;
 	strcpy(szName, dumper->out_name ? dumper->out_name : "");
+
+	/* Find the decoder configuration:
+	   - Check first if the stream is carried according to MPEG-4 Systems, 
+	   i.e. using the Object Descriptor Framework, to get the Decoder Specific Info (dsi) 
+	   - Or get it specifically depending on the media type 
+	   */
+	dcfg = NULL;
+	if ((m_stype==GF_ISOM_SUBTYPE_MPEG4) || (m_stype==GF_ISOM_SUBTYPE_MPEG4_CRYP)) {
+		dcfg = gf_isom_get_decoder_config(dumper->file, track, 1);
+	}
 	if (dcfg) {
 		switch (dcfg->streamType) {
 		case GF_STREAM_VISUAL:
@@ -784,7 +815,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				if (add_ext)
 					strcat(szName, ".ogg");
 				gf_export_message(dumper, GF_OK, "Extracting Ogg video");
-				is_ogg = 1;
+				is_ogg = GF_TRUE;
 				break;
 			default:
 				gf_odf_desc_del((GF_Descriptor *) dcfg);
@@ -801,7 +832,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				dsi_size = dcfg->decoderSpecificInfo->dataLength;
 				if (add_ext)
 					strcat(szName, ".aac");
-				is_aac = 1;
+				aac_mode = 1;
 				aac_type = dcfg->objectTypeIndication - GPAC_OTI_AUDIO_AAC_MPEG2_MP;
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-2 AAC");
 				break;
@@ -814,7 +845,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				dsi = dcfg->decoderSpecificInfo->data;
 				dcfg->decoderSpecificInfo->data = NULL;
 				dsi_size = dcfg->decoderSpecificInfo->dataLength;
-				is_aac = 2;
+				aac_mode = 2;
 				if (add_ext)
 					strcat(szName, ".aac");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AAC");
@@ -828,7 +859,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			case GPAC_OTI_MEDIA_OGG:
 				if (add_ext)
 					strcat(szName, ".ogg");
-				is_ogg = 1;
+				is_ogg = GF_TRUE;
 				gf_export_message(dumper, GF_OK, "Extracting Ogg audio");
 				break;
 			case GPAC_OTI_AUDIO_13K_VOICE:
@@ -848,7 +879,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				memcpy(GUID, QCP_SMV_GUID, sizeof(char)*16);
 				if (dumper->flags & GF_EXPORT_PROBE_ONLY) dumper->flags |= GF_EXPORT_USE_QCP;
 				break;
-			case 0xD1:
+			case 0xD1: /* OTI in the user private range already assigned to GPAC's internal GPAC_OTI_SCENE_SVG_GZ */
 				if (dcfg->decoderSpecificInfo && (dcfg->decoderSpecificInfo->dataLength==8)
 				        && !strnicmp(dcfg->decoderSpecificInfo->data, "pvmm", 4)) {
 					qcp_type = 3;
@@ -866,7 +897,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			switch (dcfg->objectTypeIndication)
 			{
 			case GPAC_OTI_MEDIA_SUBPIC:
-				is_vobsub = 1;
+				is_vobsub = GF_TRUE;
 				dsi = dcfg->decoderSpecificInfo->data;
 				dcfg->decoderSpecificInfo->data = NULL;
 				dsi_size = dcfg->decoderSpecificInfo->dataLength;
@@ -885,6 +916,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		}
 		gf_odf_desc_del((GF_Descriptor *) dcfg);
 	} else {
+		/* Not using the MPEG-4 Descriptor Framework */
 		if (m_stype==GF_ISOM_SUBTYPE_3GP_AMR) {
 			if (add_ext)
 				strcat(szName, ".amr");
@@ -912,11 +944,11 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			if (add_ext)
 				strcat(szName, ".263");
 		} else if (m_stype==GF_4CC('x','d','v','b')) {
-			gf_export_message(dumper, GF_OK, "Extracting MPEG-2 Video");
+			gf_export_message(dumper, GF_OK, "Extracting MPEG-2 Video (xdvb)");
 			if (add_ext)
 				strcat(szName, ".m2v");
 		} else if (m_stype==GF_ISOM_SUBTYPE_3GP_DIMS) {
-			return gf_media_export_nhml(dumper, 1);
+			return gf_media_export_nhml(dumper, GF_TRUE);
 		} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264)
 		           || (m_stype==GF_ISOM_SUBTYPE_AVC2_H264)
 		           || (m_stype==GF_ISOM_SUBTYPE_AVC3_H264)
@@ -960,11 +992,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			if (add_ext)
 				strcat(szName, ".vtt");
 		} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
-			gf_export_message(dumper, GF_OK, "Extracting Simple Text");
+			gf_export_message(dumper, GF_OK, "Extracting Simple Text Stream");
 			if (add_ext) {
-				char *config;
 				char *mime;
-				if (gf_isom_stxt_info_get(dumper->file, track, 1, &mime, &config) == GF_OK) {
+				if (gf_isom_stxt_info_get(dumper->file, track, 1, &mime, &stxtcfg) == GF_OK) {
 					if (mime && !strcmp(mime, "image/svg+xml")) {
 						strcat(szName, ".svg");
 					} else {
@@ -1004,30 +1035,6 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			if (udesc) gf_free(udesc);
 		}
 	}
-	if (dumper->flags & GF_EXPORT_PROBE_ONLY) {
-		if (dsi) gf_free(dsi);
-		if (avccfg) gf_odf_avc_cfg_del(avccfg);
-		if (svccfg) gf_odf_avc_cfg_del(svccfg);
-		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
-		if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
-		return GF_OK;
-	}
-	if (dumper->flags & GF_EXPORT_SVC_LAYER)
-		gf_isom_set_nalu_extract_mode(dumper->file, track, GF_ISOM_NALU_EXTRACT_LAYER_ONLY);
-
-	if (is_ogg) return gf_dump_to_ogg(dumper, is_stdout ? NULL : szName, track);
-
-	if (is_vobsub) return gf_dump_to_vobsub(dumper, szName, track, dsi, dsi_size);
-
-	if (is_webvtt) {
-#ifndef GPAC_DISABLE_TTXT
-		GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 track, Bool merge);
-		return gf_webvtt_dump_iso_track(dumper, szName, track, (dumper->flags & GF_EXPORT_WEBVTT_NOMERGE? GF_FALSE : GF_TRUE));
-#else
-		return GF_NOT_SUPPORTED;
-#endif
-	}
-
 	if (qcp_type>1) {
 		if (dumper->flags & GF_EXPORT_USE_QCP) {
 			if (add_ext)
@@ -1042,6 +1049,41 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				strcat(szName, ".evc");
 			gf_export_message(dumper, GF_OK, "Extracting EVRC audio");
 		}
+	}
+	if (aac_mode) {
+		gf_m4a_get_config(dsi, dsi_size, &a_cfg);
+		if (aac_mode==2) aac_type = a_cfg.base_object_type - 1;
+		gf_free(dsi);
+		dsi = NULL;
+	}
+	if (dumper->flags & GF_EXPORT_SVC_LAYER) {
+		gf_isom_set_nalu_extract_mode(dumper->file, track, GF_ISOM_NALU_EXTRACT_LAYER_ONLY);
+	}
+	/* The stream can be extracted and we found its DSI or config (if any), and the file extension is set up */
+
+	if (dumper->flags & GF_EXPORT_PROBE_ONLY) {
+		/* We don't need to go further in this mode */
+		if (dsi) gf_free(dsi);
+		if (avccfg) gf_odf_avc_cfg_del(avccfg);
+		if (svccfg) gf_odf_avc_cfg_del(svccfg);
+		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
+		if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
+		return GF_OK;
+	}
+
+	if (is_ogg) {
+		return gf_dump_to_ogg(dumper, is_stdout ? NULL : szName, track);
+	}
+	if (is_vobsub) {
+		return gf_dump_to_vobsub(dumper, szName, track, dsi, dsi_size);
+	}
+	if (is_webvtt) {
+#ifndef GPAC_DISABLE_TTXT
+		GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 track, Bool merge);
+		return gf_webvtt_dump_iso_track(dumper, szName, track, (dumper->flags & GF_EXPORT_WEBVTT_NOMERGE? GF_FALSE : GF_TRUE));
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 
 	if (is_stdout) {
@@ -1060,38 +1102,14 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
+
+	/* Start writing the stream out */
 	bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
 
-	if (is_aac) {
-		gf_m4a_get_config(dsi, dsi_size, &a_cfg);
-		if (is_aac==2) aac_type = a_cfg.base_object_type - 1;
-		gf_free(dsi);
-		dsi = NULL;
-	}
 	if (dsi) {
 		gf_bs_write_data(bs, dsi, dsi_size);
 		gf_free(dsi);
 	}
-#define DUMP_AVCPARAM(_params) \
-		count = gf_list_count(_params); \
-		for (i=0;i<count;i++) { \
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(_params, i); \
-			gf_bs_write_u32(bs, 1); \
-			gf_bs_write_data(bs, sl->data, sl->size); \
-		} \
- 
-#define DUMP_HEVCPARAM(_params) \
-	count = gf_list_count(_params->param_array); \
-	for (i=0;i<count;i++) { \
-		u32 j; \
-		GF_HEVCParamArray *ar = gf_list_get(_params->param_array, i); \
-		for (j=0; j<gf_list_count(ar->nalus); j++) { \
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j); \
-			gf_bs_write_u32(bs, 1); \
-			gf_bs_write_data(bs, sl->data, sl->size); \
-		} \
-	} \
- 
 
 	if (avccfg) {
 		DUMP_AVCPARAM(avccfg->sequenceParameterSets);
@@ -1103,8 +1121,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	}
 
 	if (svccfg || shvccfg) {
-		if (!(dumper->flags & GF_EXPORT_SVC_LAYER))
-		{
+		if (!(dumper->flags & GF_EXPORT_SVC_LAYER)) {
 			GF_AVCConfig *cfg;
 			GF_HEVCConfig *hcfg;
 			u32 ref_track = 0, t;
@@ -1129,13 +1146,11 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 
 			// copy avcC and svcC from lower layer
 			countRef = gf_isom_get_reference_count(dumper->file, track, GF_ISOM_REF_SCAL);
-			if (countRef < 0)
-			{
+			if (countRef < 0) {
 				e = gf_isom_last_error(dumper->file);
 				goto exit;
 			}
-			for (t = 2; t <= (u32) countRef; t++) // referenceIndex 1 is the base layer
-			{
+			for (t = 2; t <= (u32) countRef; t++) { // referenceIndex 1 is the base layer
 				gf_isom_get_reference(dumper->file, track, GF_ISOM_REF_SCAL, t, &ref_track);
 				cfg = gf_isom_svc_config_get(dumper->file, ref_track, 1);
 				if (cfg) {
@@ -1162,19 +1177,25 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	}
 
 
-	qcp_rates = NULL;
-	count = gf_isom_get_sample_count(dumper->file, track);
-	rt_cnt = 0;
-
-	if (m_stype==GF_ISOM_SUBTYPE_3GP_AMR) gf_bs_write_data(bs, "#!AMR\n", 6);
-	else if (m_stype==GF_ISOM_SUBTYPE_3GP_AMR_WB) gf_bs_write_data(bs, "#!AMR-WB\n", 9);
-	else if ((qcp_type>1) && !(dumper->flags & GF_EXPORT_USE_QCP)) {
+	if (m_stype==GF_ISOM_SUBTYPE_3GP_AMR) {
+		gf_bs_write_data(bs, "#!AMR\n", 6);
+	} else if (m_stype==GF_ISOM_SUBTYPE_3GP_AMR_WB) {
+		gf_bs_write_data(bs, "#!AMR-WB\n", 9);
+	} else if ((qcp_type>1) && !(dumper->flags & GF_EXPORT_USE_QCP)) {
 		if (qcp_type==2) gf_bs_write_data(bs, "#!SMV\n", 6);
 		else gf_bs_write_data(bs, "#!EVRC\n", 7);
 		qcp_type = 0;
+	} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
+		if (stxtcfg) {
+			gf_bs_write_data(bs, stxtcfg, strlen(stxtcfg));
+		}
 	}
 
+	count = gf_isom_get_sample_count(dumper->file, track);
+
 	/*QCP formatting*/
+	qcp_rates = NULL;
+	rt_cnt = 0;
 	if (qcp_type) {
 		GF_ISOSample *samp;
 		Bool needs_rate_octet;
@@ -1210,17 +1231,17 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		}
 
 		/*check sample format - packetvideo doesn't include rate octet...*/
-		needs_rate_octet = 1;
+		needs_rate_octet = GF_TRUE;
 		samp = gf_isom_get_sample_info(dumper->file, track, 1, NULL, NULL);
 		for (i=0; i<rt_cnt; i++) {
 			if (qcp_rates[2*i+1]==samp->dataLength) {
-				needs_rate_octet = 0;
+				needs_rate_octet = GF_FALSE;
 				break;
 			}
 		}
 		gf_isom_sample_del(&samp);
 		if (needs_rate_octet) data_size += count;
-		has_qcp_pad = (data_size % 2) ? 1 : 0;
+		has_qcp_pad = (data_size % 2) ? GF_TRUE : GF_FALSE;
 
 		avg_rate = 8*data_size*sample_rate/count/block_size;
 		/*QLCM + fmt + vrat + data*/
@@ -1267,7 +1288,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		qcp_type = needs_rate_octet ? 1 : 0;
 	}
 
-
+	/* Start exporting samples */
 	for (i=0; i<count; i++) {
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
 		if (!samp) {
@@ -1307,9 +1328,9 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			}
 		}
 		/*adts frame header*/
-		else if (is_aac) {
+		else if (aac_mode > 0) {
 			gf_bs_write_int(bs, 0xFFF, 12);/*sync*/
-			gf_bs_write_int(bs, (is_aac==1) ? 1 : 0, 1);/*mpeg2 aac*/
+			gf_bs_write_int(bs, (aac_mode==1) ? 1 : 0, 1);/*mpeg2 aac*/
 			gf_bs_write_int(bs, 0, 2); /*layer*/
 			gf_bs_write_int(bs, 1, 1); /* protection_absent*/
 			gf_bs_write_int(bs, aac_type, 2);
@@ -1331,7 +1352,9 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				}
 			}
 		}
-		if (!avccfg && !svccfg && !hevccfg && !shvccfg &!is_webvtt) gf_bs_write_data(bs, samp->data, samp->dataLength);
+		if (!avccfg && !svccfg && !hevccfg && !shvccfg &!is_webvtt) {
+			gf_bs_write_data(bs, samp->data, samp->dataLength);
+		}
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Media Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
