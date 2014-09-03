@@ -534,7 +534,7 @@ GF_Err swf_svg_write_text_sample(void *user, const char *data, u32 length, u64 t
 	FILE *svgFile = (FILE *)user;
 	u32  lengthWritten;
 
-	lengthWritten = fwrite(data, 1, length, svgFile);
+	lengthWritten = (u32)fwrite(data, 1, length, svgFile);
 	if (length != lengthWritten) {
 		return GF_BAD_PARAM;
 	} else {
@@ -547,7 +547,7 @@ GF_Err swf_svg_write_text_header(void *user, const char *data, u32 length, Bool 
 	FILE *svgFile = (FILE *)user;
 	u32  lengthWritten;
 
-	lengthWritten = fwrite(data, 1, length, svgFile);
+	lengthWritten = (u32)fwrite(data, 1, length, svgFile);
 	if (length != lengthWritten) {
 		return GF_BAD_PARAM;
 	} else {

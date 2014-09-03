@@ -1187,7 +1187,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		qcp_type = 0;
 	} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
 		if (stxtcfg) {
-			gf_bs_write_data(bs, stxtcfg, strlen(stxtcfg));
+			gf_bs_write_data(bs, stxtcfg, (u32)strlen(stxtcfg));
 		}
 	}
 
