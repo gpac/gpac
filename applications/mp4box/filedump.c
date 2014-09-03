@@ -56,7 +56,7 @@
 
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
-extern u32 get_file_type_by_ext(char *inName);
+extern GF_FileType get_file_type_by_ext(char *inName);
 
 void scene_coding_log(void *cbk, u32 log_level, u32 log_tool, const char *fmt, va_list vlist);
 
@@ -165,7 +165,7 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	GF_SceneManager *ctx;
 	GF_SceneGraph *sg;
 	GF_SceneLoader load;
-	u32 ftype;
+	GF_FileType ftype;
 	gf_log_cbk prev_logs = NULL;
 	FILE *logs = NULL;
 	e = GF_OK;
@@ -182,7 +182,7 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	load.swf_flatten_limit = swf_flatten_angle;
 
 	ftype = get_file_type_by_ext(file);
-	if (ftype == 1) {
+	if (ftype == GF_FILE_TYPE_ISO_MEDIA) {
 		load.isom = gf_isom_open(file, GF_ISOM_OPEN_READ, NULL);
 		if (!load.isom) {
 			e = gf_isom_last_error(NULL);
@@ -191,9 +191,7 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 			gf_sg_del(sg);
 			return e;
 		}
-	}
-	/*SAF*/
-	else if (ftype==6) {
+	} else if (ftype==GF_FILE_TYPE_LSR_SAF) {
 		load.isom = gf_isom_open("saf_conv", GF_ISOM_WRITE_EDIT, NULL);
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 		if (load.isom)

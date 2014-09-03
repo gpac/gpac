@@ -40,6 +40,22 @@ extern "C" {
  *	@{
  */
 
+/*!
+ *	\brief Supported file types
+ *	\hideinitializer
+ *
+ * Supported file types in most operations (file playback, editing, saving ...).
+*/
+typedef enum {
+	GF_FILE_TYPE_NOT_SUPPORTED	= 0,
+	GF_FILE_TYPE_ISO_MEDIA		= 1,
+	GF_FILE_TYPE_BT_WRL_X3DV	= 2,
+	GF_FILE_TYPE_XMT_X3D		= 3,
+	GF_FILE_TYPE_SVG			= 4,
+	GF_FILE_TYPE_SWF			= 5,
+	GF_FILE_TYPE_LSR_SAF		= 6,
+} GF_FileType;
+
 
 /*!
  *	\brief Supported media stream types
@@ -75,6 +91,9 @@ enum
 	GF_STREAM_FONT		= 0x0C,
 	/*!MPEG-4 Streaming Text Stream*/
 	GF_STREAM_TEXT		= 0x0D,
+
+	/* From 0x20 to Ox3F, this is the user private range */
+
 	/*!Nero Digital Subpicture Stream*/
 	GF_STREAM_ND_SUBPIC = 0x38,
 
@@ -115,7 +134,7 @@ enum
 	*/
 	GF_STREAM_PRIVATE_MEDIA	= 0x21,
 
-	/*used internally to signal the the OTI carries a 4CC code, typically media subtype (stsd entry in file format)*/
+	/*used internally to signal that the OTI carries a 4CC code, typically media subtype (stsd entry in file format)*/
 	GF_STREAM_4CC		= 0xF0
 };
 

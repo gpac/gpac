@@ -1081,18 +1081,9 @@ void remove_systems_tracks(GF_ISOFile *file)
 
 #endif /*!defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_AV_PARSERS)*/
 
-/*return value:
-	0: not supported
-	1: ISO media
-	2: input bt file (.bt, .wrl)
-	3: input XML file (.xmt)
-	4: input SVG file (.svg)
-	5: input SWF file (.swf)
-	6: input LASeR file (.lsr or .saf)
-*/
-u32 get_file_type_by_ext(char *inName)
+GF_FileType get_file_type_by_ext(char *inName)
 {
-	u32 type = 0;
+	GF_FileType type = GF_FILE_TYPE_NOT_SUPPORTED;
 	char *ext = strrchr(inName, '.');
 	if (ext) {
 		char *sep;
@@ -1101,26 +1092,30 @@ u32 get_file_type_by_ext(char *inName)
 		sep = strchr(ext, '.');
 		if (sep) sep[0] = 0;
 
-		if (!stricmp(ext, "mp4") || !stricmp(ext, "3gp") || !stricmp(ext, "mov") || !stricmp(ext, "3g2") || !stricmp(ext, "3gs")) type = 1;
-		else if (!stricmp(ext, "bt") || !stricmp(ext, "wrl") || !stricmp(ext, "x3dv")) type = 2;
-		else if (!stricmp(ext, "xmt") || !stricmp(ext, "x3d")) type = 3;
-		else if (!stricmp(ext, "lsr") || !stricmp(ext, "saf")) type = 6;
-		else if (!stricmp(ext, "svg")) type = 4;
-		else if (!stricmp(ext, "xsr")) type = 4;
-		else if (!stricmp(ext, "xml")) type = 4;
-		else if (!stricmp(ext, "swf")) type = 5;
-		else if (!stricmp(ext, "jp2")) {
+		if (!stricmp(ext, "mp4") || !stricmp(ext, "3gp") || !stricmp(ext, "mov") || !stricmp(ext, "3g2") || !stricmp(ext, "3gs")) {
+			type = GF_FILE_TYPE_ISO_MEDIA;
+		} else if (!stricmp(ext, "bt") || !stricmp(ext, "wrl") || !stricmp(ext, "x3dv")) {
+			type = GF_FILE_TYPE_BT_WRL_X3DV;
+		} else if (!stricmp(ext, "xmt") || !stricmp(ext, "x3d")) {
+			type = GF_FILE_TYPE_XMT_X3D;
+		} else if (!stricmp(ext, "lsr") || !stricmp(ext, "saf")) {
+			type = GF_FILE_TYPE_LSR_SAF;
+		} else if (!stricmp(ext, "svg") || !stricmp(ext, "xsr") || !stricmp(ext, "xml")) {
+			type = GF_FILE_TYPE_SVG;
+		} else if (!stricmp(ext, "swf")) {
+			type = GF_FILE_TYPE_SWF;
+		} else if (!stricmp(ext, "jp2")) {
 			if (sep) sep[0] = '.';
-			return 0;
+			return GF_FILE_TYPE_NOT_SUPPORTED;
 		}
-		else type = 0;
+		else type = GF_FILE_TYPE_NOT_SUPPORTED;
 
 		if (sep) sep[0] = '.';
 	}
 
 
 	/*try open file in read mode*/
-	if (!type && gf_isom_probe_file(inName)) type = 1;
+	if (!type && gf_isom_probe_file(inName)) type = GF_FILE_TYPE_ISO_MEDIA;
 	return type;
 }
 
@@ -1128,8 +1123,8 @@ u32 get_file_type_by_ext(char *inName)
 static Bool can_convert_to_isma(GF_ISOFile *file)
 {
 	u32 spec = gf_isom_guess_specification(file);
-	if (spec==GF_4CC('I','S','M','A')) return 1;
-	return 0;
+	if (spec==GF_4CC('I','S','M','A')) return GF_TRUE;
+	return GF_FALSE;
 }
 #endif
 
