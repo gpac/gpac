@@ -743,7 +743,7 @@ redecode:
 #if defined(USE_AVCTX3)
 		len = avcodec_decode_audio4(ctx, ffd->audio_frame, &gotpic, &pkt);
 		if (gotpic) {
-			int inputDataSize = av_samples_get_buffer_size(NULL, ctx->channels, ffd->audio_frame->nb_samples, ctx->sample_fmt, 1);
+			//int inputDataSize = av_samples_get_buffer_size(NULL, ctx->channels, ffd->audio_frame->nb_samples, ctx->sample_fmt, 1);
 			gotpic = ffd->audio_frame->nb_samples * 2 * ctx->channels;
 			
 		}
@@ -767,9 +767,9 @@ redecode:
 		if (!ffd->out_size) {
 			u32 bpp = 2;
 
-			if (ctx->channels * ctx->frame_size* 2 < gotpic) ctx->frame_size = gotpic / (2 * ctx->channels);
+			if (ctx->channels * ctx->frame_size * bpp < gotpic) ctx->frame_size = gotpic / (bpp * ctx->channels);
 
-			ffd->out_size = ctx->channels * ctx->frame_size * 2 /* 16 / 8 */;
+			ffd->out_size = ctx->channels * ctx->frame_size * bpp;
 		}
 		if (ffd->out_size < (u32) gotpic) {
 			/*looks like relying on frame_size is not a good idea for all codecs, so we use gotpic*/

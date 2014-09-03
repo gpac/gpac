@@ -1838,13 +1838,12 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, char *body_start, u3
 
 static void dm_sess_update_download_rate(GF_DownloadSession * sess, Bool always_check) 
 {
-	u32 runtime, nb_bytes;
+	u32 runtime;
 	if (!always_check && (sess->bytes_done==sess->total_size)) return;
 
 	/*update state*/
 	runtime = (u32) (gf_sys_clock_high_res() - sess->start_time) / 1000;
 	if (!runtime) runtime=1;
-	nb_bytes = sess->bytes_done;
 	sess->bytes_per_sec = (u32) (1000 * (u64) sess->bytes_done / runtime);
 }
 
