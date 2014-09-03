@@ -652,7 +652,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		case GF_KEY_O:
 			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
 				if (gf_term_get_option(term, GF_OPT_MAIN_ADDON)) {
-					u32 is_pause = gf_term_get_option(term, GF_OPT_PLAY_STATE);
 					fprintf(stderr, "Resuming to main content\n");
 					gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PLAY_LIVE);
 				} else {
@@ -1087,7 +1086,7 @@ int main (int argc, char **argv)
 #else
 	gf_sys_init(GF_FALSE);
 #endif
-	gf_sys_set_args(argc, argv);
+	gf_sys_set_args(argc, (const char **) argv);
 
 	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
