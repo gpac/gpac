@@ -336,7 +336,7 @@ GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOp
 #ifndef GPAC_DISABLE_SCENE_DUMP
 
 /*scene dump mode*/
-enum
+typedef enum
 {
 	/*BT*/
 	GF_SM_DUMP_BT = 0,
@@ -358,12 +358,14 @@ enum
 	GF_SM_DUMP_AUTO_TXT,
 	/*automatic selection of MPEG4 vs X3D, xml mode*/
 	GF_SM_DUMP_AUTO_XML,
-};
+	/* disables dumping the scene */
+	GF_SM_DUMP_NONE
+} GF_SceneDumpFormat;
 
-/*dumps scene context to BT or XMT
+/*dumps scene context to a given format
 @rad_name: file name & loc without extension - if NULL dump will happen in stdout
 @dump_mode: one of the above*/
-GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode);
+GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, GF_SceneDumpFormat dump_mode);
 
 typedef struct _scenedump GF_SceneDumper;
 
@@ -374,7 +376,7 @@ typedef struct _scenedump GF_SceneDumper;
 @dump_mode: if set, dumps in XML format otherwise regular text
 returns NULL if can't create a file
 */
-GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char indent_char, u32 dump_mode);
+GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char indent_char, GF_SceneDumpFormat dump_mode);
 void gf_sm_dumper_set_extra_graph(GF_SceneDumper *sdump, GF_SceneGraph *extra);
 void gf_sm_dumper_del(GF_SceneDumper *bd);
 
