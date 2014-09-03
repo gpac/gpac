@@ -1567,6 +1567,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	}
 	break;
 	case GF_EVENT_MOVE:
+
 #if !defined(GPAC_IPHONE) && SDL_VERSION_ATLEAST(2,0,0)
         {
             SDLVID();
