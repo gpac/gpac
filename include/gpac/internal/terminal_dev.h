@@ -180,6 +180,9 @@ struct _scene
 	/*duration of inline scene*/
 	u64 duration;
 
+	/*max timeshift of all objects*/
+	u32 timeshift_depth;
+
 	/*WorldInfo node or <title> node*/
 	void *world_info;
 
@@ -244,8 +247,10 @@ void gf_scene_attach_to_compositor(GF_Scene *scene);
 struct _mediaobj *gf_scene_get_media_object(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
 struct _mediaobj *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref, Bool force_new_if_not_attached, GF_Node *node_ptr);
 void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm);
-/*updates scene duration based on settings*/
+/*updates scene duration based on sub objects*/
 void gf_scene_set_duration(GF_Scene *scene);
+/*updates scene timeshift based on sub objects*/
+void gf_scene_set_timeshift_depth(GF_Scene *scene);
 /*locate media object by ODID (non dynamic ODs) or URL (dynamic ODs)*/
 struct _mediaobj *gf_scene_find_object(GF_Scene *scene, u16 ODID, char *url);
 /*returns scene time in sec - exact meaning of time depends on standard used*/
@@ -260,7 +265,8 @@ void gf_scene_regenerate(GF_Scene *scene);
 void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm);
 /*restarts dynamic scene from given time: scene graph is not reseted, objects are just restarted
 instead of closed and reopened. If a media control is present on inline, from_time is overriden by MC range*/
-void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time);
+void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only);
+
 /*exported for compositor: handles filtering of "self" parameter indicating anchor only acts on container inline scene
 not root one. Returns 1 if handled (cf user.h, navigate event)*/
 Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt);
@@ -845,7 +851,7 @@ struct _generic_codec
 	Bool direct_vout;
 
 	/*statistics*/
-	u32 last_stat_start, cur_bit_size, tot_bit_size, stat_start;
+	u32 last_stat_start, cur_bit_size, stat_start;
 	u32 avg_bit_rate, max_bit_rate;
 	u32 nb_dec_frames, nb_iframes;
 	//decode times in us
@@ -995,7 +1001,11 @@ struct _od_manager
 	upon start: media start time as requested by scene compositor (eg not media control)
 	set to -1 upon stop to postpone stop request
 	*/
-	u64 media_start_time, media_stop_time;
+	u64 media_start_time;
+	s64 media_stop_time;
+
+	/*full object timeshift depth in ms, 0 if no timeshift, (u32) -1  is infinity */
+	u32 timeshift_depth;
 
 	u32 action_type;
 
@@ -1039,6 +1049,10 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 void gf_odm_remove_es(GF_ObjectManager *odm, u16 ES_ID);
 /*set stream duration - updates object duration accordingly*/
 void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *, u64 stream_duration);
+
+/*set time shift buffer duration */
+void gf_odm_set_timeshift_depth(GF_ObjectManager *odm, GF_Channel *, u32 time_shift_ms);
+
 /*signals end of stream on channels*/
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *);
 /*start Object streams and queue object for network PLAY
@@ -1161,6 +1175,9 @@ Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_Add
 u64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon);
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
 void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
+
+//exported for gpac.js, resumes to main content
+void gf_scene_resume_live(GF_Scene *subscene);
 
 enum
 {

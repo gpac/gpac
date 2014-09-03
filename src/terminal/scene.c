@@ -928,6 +928,52 @@ void gf_scene_set_duration(GF_Scene *scene)
 
 }
 
+GF_EXPORT
+void gf_scene_set_timeshift_depth(GF_Scene *scene)
+{
+	u32 i;
+	Double ts;
+	u32 max_timeshift;
+	GF_ObjectManager *odm;
+#ifndef GPAC_DISABLE_VRML
+	MediaSensorStack *media_sens;
+#endif
+	GF_Clock *ck;
+
+	ck = gf_odm_get_media_clock(scene->root_od);
+	max_timeshift = scene->root_od->timeshift_depth;
+	i=0;
+	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
+		if (!odm->codec) continue;
+		if (!ck || gf_odm_shares_clock(odm, ck)) {
+			if (odm->timeshift_depth > max_timeshift) max_timeshift = odm->timeshift_depth;
+		}
+	}
+	if (scene->timeshift_depth == max_timeshift) return;
+
+	scene->timeshift_depth = max_timeshift;
+	if (scene->is_dynamic_scene && !scene->root_od->timeshift_depth) scene->root_od->timeshift_depth = max_timeshift;
+
+	return;
+
+
+	//we notify the timeshift depth as a negative duration to media sensors
+	ts = (Double) scene->timeshift_depth;
+	ts /= 1000;
+	ts *= -1;
+
+#ifndef GPAC_DISABLE_VRML
+	i=0;
+	while ((media_sens = (MediaSensorStack*)gf_list_enum(scene->root_od->ms_stack, &i))) {
+		if (media_sens->sensor->isActive) {
+			media_sens->sensor->mediaDuration = ts;
+			gf_node_event_out((GF_Node *) media_sens->sensor, 3/*"mediaDuration"*/);
+		}
+	}
+#endif
+}
+
+
 GF_MediaObject *gf_scene_find_object(GF_Scene *scene, u16 ODID, char *url)
 {
 	u32 i;
@@ -1307,7 +1353,7 @@ void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons)
 #else
 /*!!fixme - we would need an SVG scene in case no VRML support is present !!!*/
 void gf_scene_regenerate(GF_Scene *scene) {}
-void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time) {}
+void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only) {}
 void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm) {}
 #endif	/*GPAC_DISABLE_VRML*/
 
@@ -1486,7 +1532,9 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 
 void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on)
 {
-	M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "ADDON_SCENE");
+	GF_DOM_Event devt;
+	const char *opt = gf_cfg_get_key(scene->root_od->term->user->config, "Systems", "DebugPVRScene");
+	M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, (opt && !strcmp(opt, "yes")) ? "ADDON_SCENE" : "PVR_SCENE");
 
 	if (scene->main_addon_selected==set_on) return;
 	scene->main_addon_selected = set_on;
@@ -1505,6 +1553,7 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 
 		gf_sg_vrml_field_copy(&dscene->url, &odm->mo->URLs, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
+
 	} else {
 		GF_Clock *ck = scene->scene_codec ? scene->scene_codec->ck : scene->dyn_ck;
 		//reactivating the main content will trigger a reset on the clock - remember where we are and resume from this point
@@ -1517,6 +1566,12 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 		gf_sg_vrml_mf_reset(&dscene->url, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
 	}
+
+	memset(&devt, 0, sizeof(GF_DOM_Event));
+	devt.type = GF_EVENT_MAIN_ADDON_STATE;
+	devt.detail = set_on;
+	gf_scene_notify_event(scene, GF_EVENT_MAIN_ADDON_STATE, NULL, &devt, GF_OK, GF_FALSE);
+
 }
 
 GF_EXPORT
@@ -1585,15 +1640,20 @@ void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_fact
 	gf_node_dirty_set((GF_Node *)tr, 0, 0);
 }
 
-void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
+GF_EXPORT
+void gf_scene_resume_live(GF_Scene *subscene)
+{
+	if (subscene->main_addon_selected)
+		mediacontrol_resume(subscene->root_od, 1);
+}
+
+void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only)
 {
 	u32 i;
 	GF_Clock *ck;
 	GF_List *to_restart;
 	GF_ObjectManager *odm;
-	Bool restart_only = 0;
-	if (from_time == (u64) -1) {
-		restart_only = 1;
+	if (restart_only) {
 		from_time = 0;
 	}
 
@@ -1637,10 +1697,14 @@ void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
 	/*restart objects*/
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
-		odm->media_start_time = 1 + from_time;
+		if (from_time<0) {
+			odm->media_stop_time = from_time;
+		} else {
+			odm->media_start_time = 1 + from_time;
+		}
 
 		if (odm->subscene && odm->subscene->is_dynamic_scene) {
-			gf_scene_restart_dynamic(odm->subscene, from_time);
+			gf_scene_restart_dynamic(odm->subscene, from_time, 0);
 		} else {
 			gf_odm_start(odm, 0);
 		}

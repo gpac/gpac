@@ -529,6 +529,16 @@ u32 gf_dm_get_data_rate(GF_DownloadManager *dm);
 
 
 /*
+ *\brief gets cumultaed download rate for all sessions
+ *
+ *Gets the cumultated bitrate in of all active sessions.
+ *\param dm the download manager object
+ *\return the cumulated rate in bits per sec. If 0, HTTP rate is not limited
+ */
+u32 gf_dm_get_global_rate(GF_DownloadManager *dm);
+
+
+/*
  *\brief fetches remote file in memory
  *
  *Fetches remote file in memory .

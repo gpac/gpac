@@ -1314,7 +1314,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				/*restart*/
 				if (evt.restart_requested) {
 					if (ch->odm->parentscene->is_dynamic_scene) {
-						gf_scene_restart_dynamic(ch->odm->parentscene, 0);
+						gf_scene_restart_dynamic(ch->odm->parentscene, 0, 0);
 					} else {
 						mediacontrol_restart(ch->odm);
 					}
@@ -1486,7 +1486,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 					/*restart*/
 					if (evt.restart_requested) {
 						if (ch->odm->parentscene->is_dynamic_scene) {
-							gf_scene_restart_dynamic(ch->odm->parentscene, 0);
+							gf_scene_restart_dynamic(ch->odm->parentscene, 0, 0);
 						} else {
 							mediacontrol_restart(ch->odm);
 						}
@@ -1738,11 +1738,17 @@ void gf_es_on_connect(GF_Channel *ch)
 	}
 
 	/*get duration*/
+	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.command_type = GF_NET_CHAN_DURATION;
 	com.base.on_channel = ch;
 	if (gf_term_service_command(ch->service, &com) == GF_OK) {
-		if (com.duration.duration>=0)
+		if (com.duration.duration>=0) {
 			gf_odm_set_duration(ch->odm, ch, (u64) (1000*com.duration.duration));
+		} 
+		
+		if ((com.duration.duration<=0) && (com.duration.time_shift_buffer>0)) {
+			gf_odm_set_timeshift_depth(ch->odm, ch, com.duration.time_shift_buffer);
+		}
 	}
 }
 

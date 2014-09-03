@@ -1700,7 +1700,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 			if (!odm->subscene->graph_attached)
 				gf_scene_regenerate(odm->subscene);
 			else
-				gf_scene_restart_dynamic(odm->subscene, (u64) -1);
+				gf_scene_restart_dynamic(odm->subscene, 0, 1);
 		}
 	}
 	if (odm->ocr_codec) gf_term_start_codec(odm->ocr_codec, 0);
@@ -1951,6 +1951,28 @@ void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *ch, u64 stream_durat
 
 	/*update scene duration*/
 	gf_scene_set_duration(odm->subscene ? odm->subscene : (odm->parentscene ? odm->parentscene : odm->term->root_scene));
+}
+
+
+void gf_odm_set_timeshift_depth(GF_ObjectManager *odm, GF_Channel *ch, u32 stream_timeshift)
+{
+	if (odm->codec) {
+		if (ch->esd->decoderConfig->streamType == odm->codec->type)
+			if (odm->timeshift_depth != stream_timeshift)
+				odm->timeshift_depth = stream_timeshift;
+	} else if (odm->ocr_codec) {
+		if (ch->esd->decoderConfig->streamType == odm->ocr_codec->type)
+			if (odm->timeshift_depth != stream_timeshift)
+				odm->timeshift_depth = stream_timeshift;
+	} else if (odm->subscene && odm->subscene->scene_codec) {
+		//if (gf_list_find(odm->subscene->scene_codec->inChannels, ch) >= 0) {
+		if (odm->timeshift_depth != stream_timeshift)
+			odm->timeshift_depth = stream_timeshift;
+		//}
+	}
+
+	/*update scene duration*/
+	gf_scene_set_timeshift_depth(odm->subscene ? odm->subscene : (odm->parentscene ? odm->parentscene : odm->term->root_scene));
 }
 
 

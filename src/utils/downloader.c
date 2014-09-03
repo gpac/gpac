@@ -136,7 +136,8 @@ struct __gf_download_session
 	GF_NetIOStatus status;
 
 	u32 flags;
-	u32 total_size, bytes_done, start_time, icy_metaint, icy_count, icy_bytes;
+	u32 total_size, bytes_done, icy_metaint, icy_count, icy_bytes;
+	u64 start_time;
 	u32 bytes_per_sec;
 	u64 start_time_utc;
 	Bool connection_close;
@@ -204,7 +205,6 @@ struct __gf_download_manager
 #ifdef GPAC_HAS_SSL
 	SSL_CTX *ssl_ctx;
 #endif
-
 };
 
 #ifdef GPAC_HAS_SSL
@@ -672,8 +672,14 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 	if (sess->connection_close) force_close=1;
 	sess->connection_close = 0;
 
-	if (sess->status >= GF_NETIO_DISCONNECTED)
+	if (sess->status >= GF_NETIO_DISCONNECTED) {
+		if (force_close) {
+			if (sess->use_cache_file) {
+				gf_cache_close_write_cache(sess->cache_entry, sess, 0);
+			}
+		}
 		return;
+	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Downloader] gf_dm_disconnect(%p)\n", sess ));
 	if (sess->mx)
 		gf_mx_p(sess->mx);
@@ -875,13 +881,17 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 				info->remotePath = gf_url_percent_encode(tmp);
 				gf_free( urlConcatenateWithBaseURL );
 				urlConcatenateWithBaseURL = NULL;
+				
+				if (!info->remotePath) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[PROTOCOL] : cannot find any protocol in url %s\n", url));
+					return GF_BAD_PARAM;
+				}
 				for (i=0; i<strlen(info->remotePath); i++)
 					if (info->remotePath[i]=='\\') info->remotePath[i]='/';
 				info->canonicalRepresentation = gf_malloc(strlen(info->protocol) + strlen(info->remotePath) + 1);
 				strcpy(info->canonicalRepresentation, info->protocol);
 				strcat(info->canonicalRepresentation, info->remotePath);
-				if (urlConcatenateWithBaseURL)
-					gf_free(urlConcatenateWithBaseURL);
+
 				return GF_OK;
 			} else {
 				/* We continue the parsing as usual */
@@ -1143,15 +1153,6 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 	}
 #endif
 
-
-#if 0
-	//reset bandwidth computation at start of each chunk
-	if (sess->chunked && !sess->nb_left_in_chunk) {
-		sess->start_time = gf_sys_clock();
-		sess->start_time_utc = gf_net_get_utc();
-		sess->bytes_done = 0;
-	}
-#endif
 
 	if (!sess->sock)
 		return GF_NETIO_DISCONNECTED;
@@ -1502,7 +1503,18 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 		case GF_NETIO_STATE_ERROR:
 			go = 0;
 			break;
+
+		case GF_NETIO_GET_METHOD:
+		case GF_NETIO_GET_HEADER:
+		case GF_NETIO_GET_CONTENT:
+		case GF_NETIO_PARSE_HEADER:
+		case GF_NETIO_PARSE_REPLY:
+		case GF_NETIO_DATA_TRANSFERED:
+			break;
+
 		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Downloader] Session in unknown state !! - aborting\n"));
+			go = 0;
 			break;
 		}
 	}
@@ -1601,7 +1613,7 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 
 	opt = cfg ? gf_cfg_get_key(cfg, "Downloader", "MaxRate") : NULL;
 	/*use it in in BYTES per second*/
-	if (opt) dm->limit_data_rate = 1000 * atoi(opt) / 8;
+	if (opt) dm->limit_data_rate = 1024 * atoi(opt) / 8;
 
 	if (cfg) {
 		opt = gf_cfg_get_key(cfg, "Downloader", "DisableCache");
@@ -1823,13 +1835,26 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, char *body_start, u3
 	return te_header+2;
 }
 
+
+static void dm_sess_update_download_rate(GF_DownloadSession * sess, Bool always_check) 
+{
+	u32 runtime, nb_bytes;
+	if (!always_check && (sess->bytes_done==sess->total_size)) return;
+
+	/*update state*/
+	runtime = (u32) (gf_sys_clock_high_res() - sess->start_time) / 1000;
+	if (!runtime) runtime=1;
+	nb_bytes = sess->bytes_done;
+	sess->bytes_per_sec = (u32) (1000 * (u64) sess->bytes_done / runtime);
+}
+
+
 static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size, Bool store_in_init, u32 *rewrite_size)
 {
 	u32 nbBytes, hdr_size, remaining;
 	u8 *data;
 	Bool flush_chunk = 0;
 	GF_NETIO_Parameter par;
-	u32 runtime, rcv;
 
 	nbBytes = payload_size;
 	hdr_size = 0;
@@ -1863,8 +1888,9 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 
 
 	if (nbBytes) {
-		rcv = nbBytes;
 		sess->bytes_done += nbBytes;
+		dm_sess_update_download_rate(sess, 1);
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] url %s received %d new bytes\n", gf_cache_get_url(sess->cache_entry), nbBytes ));
 		if (sess->total_size && (sess->bytes_done > sess->total_size)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] url %s received more bytes than planned!! Got %d bytes vs %d content length\n", gf_cache_get_url(sess->cache_entry), sess->bytes_done , sess->total_size ));
@@ -1885,16 +1911,6 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 			gf_dm_sess_user_io(sess, &par);
 		}
 
-		/*update state if not done*/
-		if (rcv) {
-			runtime = gf_sys_clock() - sess->start_time;
-			if (!runtime) {
-				sess->bytes_per_sec = 0;
-			} else {
-				u64 nb_bytes = sess->bytes_done;
-				sess->bytes_per_sec = (u32) (1000*nb_bytes / runtime);
-			}
-		}
 	}
 
 	if (sess->total_size && (sess->bytes_done == sess->total_size)) {
@@ -1909,7 +1925,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,
 			       ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in %d ms (%d kbps)\n", gf_cache_get_url(sess->cache_entry), gf_sys_clock() - sess->start_time, 8*sess->bytes_per_sec/1024 ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps)\n", gf_cache_get_url(sess->cache_entry), gf_sys_clock() - sess->start_time, 8*sess->bytes_per_sec/1024 ));
 	}
 
 	if (rewrite_size && sess->chunked) {
@@ -2312,34 +2328,57 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 }
 
 
+
+static Bool dm_exceeds_cap_rate(GF_DownloadSession * sess) 
+{
+	u32 cumul_rate = 0;
+	u32 i, count = gf_list_count(sess->dm->sessions);
+	
+	dm_sess_update_download_rate(sess, 0);
+	//we already exceed the max rate
+	if (sess->bytes_per_sec>sess->dm->limit_data_rate) return 1;
+
+	//check if this fits with all other sessions
+	for (i=0; i<count; i++) {
+		GF_DownloadSession * a_sess = gf_list_get(sess->dm->sessions, i);
+		if (sess == a_sess) continue;
+		//session done
+		if (a_sess->total_size==a_sess->bytes_done) {
+			continue;
+		}
+		dm_sess_update_download_rate(a_sess, 0);
+		cumul_rate += a_sess->bytes_per_sec;
+	}
+	if (sess->bytes_per_sec + cumul_rate >= sess->dm->limit_data_rate) return 1;
+	return 0;
+}
+
 /*!
  * Parse the remaining part of body
  * \param sess The session
  * \param sHTTP the data buffer
  * \return The error code if any
  */
-static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP) {
+static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP) 
+{
 	u32 size;
 	GF_Err e;
+	u32 buf_size = GF_DOWNLOAD_BUFFER_SIZE;
+	if (sess->dm && sess->dm->limit_data_rate)
+		buf_size = 1024;
+
 	while (1) {
 		if (sess->status>=GF_NETIO_DISCONNECTED)
 			return GF_REMOTE_SERVICE_ERROR;
 
 		if (sess->dm && sess->dm->limit_data_rate && sess->bytes_per_sec) {
-			if (sess->bytes_per_sec > sess->dm->limit_data_rate) {
-				/*update state*/
-				u32 runtime = gf_sys_clock() - sess->start_time;
-				u64 nb_bytes = sess->bytes_done;
-				if (runtime) {
-					sess->bytes_per_sec = (u32) (1000*nb_bytes / runtime);
-					if (sess->bytes_per_sec > sess->dm->limit_data_rate) return GF_OK;
-				}
-			}
+			if (dm_exceeds_cap_rate(sess)) 
+				return GF_OK;			
 		}
 
-		e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE, &size);
+		e = gf_dm_read_data(sess, sHTTP, buf_size, &size);
 		if (e!= GF_IP_CONNECTION_CLOSED && (!size || e == GF_IP_NETWORK_EMPTY)) {
-			if (e == GF_IP_CONNECTION_CLOSED || (!sess->total_size && !sess->chunked && (gf_sys_clock() - sess->start_time > 5000))) {
+			if (e == GF_IP_CONNECTION_CLOSED || (!sess->total_size && !sess->chunked && (gf_sys_clock_high_res() - sess->start_time > 5000000))) {
 				sess->total_size = sess->bytes_done;
 				gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
 				assert(sess->server_name);
@@ -2411,7 +2450,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 {
 	GF_NETIO_Parameter par;
 	s32 bytesRead, BodyStart;
-	u32 res, i;
+	u32 res, i, buf_size;
 	s32 LinePos, Pos;
 	u32 rsp_code, ContentLength, first_byte, last_byte, total_size, range, no_range;
 	Bool connection_closed = 0;
@@ -2426,12 +2465,16 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		sess->use_cache_file = 1;
 	}
 
+	buf_size = GF_DOWNLOAD_BUFFER_SIZE;
+	if (sess->dm && sess->dm->limit_data_rate)
+		buf_size = 1024;
+
 	//always set start time to the time at last attempt reply parsing
-	sess->start_time = gf_sys_clock();
+	sess->start_time = gf_sys_clock_high_res();
 	sess->start_time_utc = gf_net_get_utc();
 
 	while (1) {
-		e = gf_dm_read_data(sess, sHTTP + bytesRead, GF_DOWNLOAD_BUFFER_SIZE - bytesRead, &res);
+		e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 		switch (e) {
 		case GF_IP_NETWORK_EMPTY:
 			if (!bytesRead) {
@@ -2646,7 +2689,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	if (rsp_code>=300) {
 		u32 start = gf_sys_clock();
 		while (BodyStart + ContentLength > (u32) bytesRead) {
-			e = gf_dm_read_data(sess, sHTTP + bytesRead, GF_DOWNLOAD_BUFFER_SIZE - bytesRead, &res);
+			e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 			switch (e) {
 			case GF_IP_NETWORK_EMPTY:
 				gf_sleep(1);
@@ -3325,6 +3368,28 @@ u32 gf_dm_get_data_rate(GF_DownloadManager *dm)
 	return dm->limit_data_rate*8;
 }
 
+GF_EXPORT
+u32 gf_dm_get_global_rate(GF_DownloadManager *dm)
+{
+	u32 ret = 0;
+	u32 i, count;
+	if (!dm) return 0;
+	gf_mx_p(dm->cache_mx);
+	count = gf_list_count(dm->sessions);
+	
+	for (i=0; i<count; i++) {
+		GF_DownloadSession *sess = gf_list_get(dm->sessions, i);
+		if (sess->total_size==sess->bytes_done) {
+			if (gf_sys_clock_high_res() - sess->start_time>2000000) {
+				continue;
+			}
+		}
+		dm_sess_update_download_rate(sess, 0);
+		ret += sess->bytes_per_sec;
+	}
+	gf_mx_v(dm->cache_mx);
+	return 8*ret;
+}
 
 GF_EXPORT
 const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name)

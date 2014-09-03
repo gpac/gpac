@@ -65,6 +65,11 @@ typedef enum
 
 	/*event sent when quality has been switched for the given group*/
 	GF_DASH_EVENT_QUALITY_SWITCH,
+
+	/*position in timeshift buffer has changed (eg, paused)*/
+	GF_DASH_EVENT_TIMESHIFT_UPDATE,
+	/*event sent when timeshift buffer is overflown - the group_idx param contains the max number of droped segments of all representations droped by the client */
+	GF_DASH_EVENT_TIMESHIFT_OVERFLOW,
 } GF_DASHEventType;
 
 /*structure used for all IO operations for DASH*/
@@ -138,7 +143,7 @@ typedef enum
 	@disable_switching: turn off bandwidth switching algorithm
 	@first_select_mode: indicates which representation to select upon startup
 	@enable_buffering: forces buffering of segments for the duration indicated in the MPD before calling back the user
-	@initial_time_shift_percent: sets initial buffering: if between 0 and 100, this is a percentage of the time shift window of the session. If greater than 100, this is a time shift in milliseconds.
+	@initial_time_shift_value: sets initial buffering: if between 0 and 100, this is a percentage of the time shift window of the session. If greater than 100, this is a time shift in milliseconds.
 */
 GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io,
                            u32 max_cache_duration,
@@ -146,7 +151,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io,
                            Bool keep_files,
                            Bool disable_switching,
                            GF_DASHInitialSelectionMode first_select_mode,
-                           Bool enable_buffering, u32 initial_time_shift_percent);
+                           Bool enable_buffering, u32 initial_time_shift_value);
 
 /*delete the DASH client*/
 void gf_dash_del(GF_DashClient *dash);
@@ -172,7 +177,10 @@ Bool gf_dash_is_running(GF_DashClient *dash);
 Double gf_dash_get_duration(GF_DashClient *dash);
 /*check that the given file has the right XML root element*/
 Bool gf_dash_check_mpd_root_type(const char *local_url);
-
+/*sets timeshift for the presentation - this function does not trigger a seek, this has to be done by the caller
+	@ms_in_timeshift: if between 0 and 100, this is a percentage of the time shift window of the session. If greater than 100, this is a time shift in milliseconds.
+*/
+GF_Err gf_dash_set_timeshift(GF_DashClient *dash, u32 ms_in_timeshift);
 
 /*returns the number of groups. A group is a set of media resources that are alternate of each other in terms of bandwidth/quality.*/
 u32 gf_dash_get_group_count(GF_DashClient *dash);
@@ -202,6 +210,13 @@ const char *gf_dash_group_get_language(GF_DashClient *dash, u32 idx);
 
 /*returns the language of the group, or NULL if none associated*/
 u32 gf_dash_group_get_audio_channels(GF_DashClient *dash, u32 idx);
+
+/*get time shift buffer depth of the group - (u32) -1 means infinity*/
+u32 gf_dash_group_get_time_shift_buffer_depth(GF_DashClient *dash, u32 idx);
+
+/*get current time in time shift buffer in seconds - 0 means 'live point'
+this gets the maximum value (further in the past) of all representations playing*/
+u32 gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash);
 
 typedef enum
 {

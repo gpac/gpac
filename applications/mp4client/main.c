@@ -1961,7 +1961,7 @@ force_input:
 					sprintf(szFileName, "view%d_dump.png", offscreen_view);
 					e = gf_term_get_offscreen_buffer(term, &fb, offscreen_view-1, 0);
 				} else {
-					sprintf(szFileName, "video_dump.png");
+					sprintf(szFileName, "gpac_video_dump_"LLU".png", gf_net_get_utc() );
 					e = gf_term_get_screen_buffer(term, &fb);
 				}
 				offscreen_view++;

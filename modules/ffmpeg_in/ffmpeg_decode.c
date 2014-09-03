@@ -742,7 +742,11 @@ redecode:
 
 #if defined(USE_AVCTX3)
 		len = avcodec_decode_audio4(ctx, ffd->audio_frame, &gotpic, &pkt);
-		if (gotpic) gotpic = ffd->audio_frame->nb_samples * 2 * ctx->channels;
+		if (gotpic) {
+			int inputDataSize = av_samples_get_buffer_size(NULL, ctx->channels, ffd->audio_frame->nb_samples, ctx->sample_fmt, 1);
+			gotpic = ffd->audio_frame->nb_samples * 2 * ctx->channels;
+			
+		}
 #elif defined(USE_AVCODEC2)
 		gotpic = 192000;
 		len = avcodec_decode_audio3(ctx, (short *)ffd->audio_buf, &gotpic, &pkt);
@@ -761,6 +765,8 @@ redecode:
 
 		/*first config*/
 		if (!ffd->out_size) {
+			u32 bpp = 2;
+
 			if (ctx->channels * ctx->frame_size* 2 < gotpic) ctx->frame_size = gotpic / (2 * ctx->channels);
 
 			ffd->out_size = ctx->channels * ctx->frame_size * 2 /* 16 / 8 */;
@@ -792,8 +798,25 @@ redecode:
 					output[i*ctx->channels + j] = (int16_t) (sample * GF_SHORT_MAX );
 				}
 			}
-		} else {
+		} else if (ffd->audio_frame->format==AV_SAMPLE_FMT_U8) {
+			u32 i, size = ffd->audio_frame->nb_samples * ctx->channels;
+			s16 *output = (s16 *) outBuffer;
+			s8 *input = (s8 *) ffd->audio_frame->data;
+			for (i=0;i<size;i++) {
+				output [i] = input[i] * 128;
+			}
+		} else if (ffd->audio_frame->format==AV_SAMPLE_FMT_S32) {
+			u32 i, shift, size = ffd->audio_frame->nb_samples * ctx->channels;
+			s16 *output = (s16 *) outBuffer;
+			s32 *input = (s32*) ffd->audio_frame->data;
+			shift = 1<<31;
+			for (i=0;i<size;i++) {
+				output [i] = input[i] * shift;
+			}
+		} else if (ffd->audio_frame->format==AV_SAMPLE_FMT_S16) {
 			memcpy(outBuffer, ffd->audio_frame->data, sizeof(char) * ffd->audio_frame->nb_samples * ctx->channels*2);
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFMPEG Decoder] Raw Audio format %d not supoorted\n", ffd->audio_frame->format ));
 		}
 #else
 		/*we're sure to have at least gotpic bytes available in output*/
@@ -802,6 +825,7 @@ redecode:
 
 		(*outBufferLength) += gotpic;
 		outBuffer += gotpic;
+		ffd->audio_frame->nb_samples = 0;
 
 		ffd->frame_start += len;
 		if (inBufferLength <= ffd->frame_start) {

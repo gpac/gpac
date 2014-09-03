@@ -377,21 +377,18 @@ static void codec_update_stats(GF_Codec *codec, u32 dataLength, u64 dec_time, u3
 	}
 
 	if (dataLength) {
-		if (codec->last_stat_start + 2000 <= DTS) {
-			if (!codec->cur_bit_size) {
-				codec->last_stat_start = DTS;
-			} else {
+		if (!codec->cur_bit_size || (codec->stat_start > DTS)) {
+			codec->stat_start = DTS;
+			codec->cur_bit_size = 8*dataLength;
+		} else {
+			if (codec->last_stat_start + 2000 <= DTS) {
 				codec->avg_bit_rate = (u32) (codec->cur_bit_size * (1000.0 / (DTS-codec->last_stat_start) ) );
 				if (codec->avg_bit_rate > codec->max_bit_rate) codec->max_bit_rate = codec->avg_bit_rate;
 				codec->last_stat_start = DTS;
 				codec->cur_bit_size = 0;
 			}
+			codec->cur_bit_size += 8*dataLength;
 		}
-		codec->cur_bit_size += 8*dataLength;
-		if (!codec->tot_bit_size) {
-			codec->stat_start = DTS;
-		}
-		codec->tot_bit_size += 8*dataLength;
 	}
 }
 
@@ -929,6 +926,10 @@ GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize)
 		dec->CB->Min = unit_count/3;
 		if (!dec->CB->Min) dec->CB->Min = 1;
 	}
+
+	//reset bitrate compute
+	dec->cur_bit_size = 0;
+	dec->last_stat_start = 0;
 	if ((dec->type==GF_STREAM_VISUAL) && dec->odm->parentscene->is_dynamic_scene && !dec->odm->parentscene->root_od->addon) {
 		gf_scene_force_size_to_video(dec->odm->parentscene, dec->odm->mo);
 	}
@@ -1378,6 +1379,8 @@ scalable_retry:
 				if (drop_late_frames) codec->nb_droped++;
 			} else
 				ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
+		} else {
+			ch->clock->last_TS_rendered = 0;
 		}
 
 

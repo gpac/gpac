@@ -128,10 +128,12 @@ struct __dash_client
 
 	u32 min_timeout_between_404, segment_lost_after_ms;
 
+	u32 time_in_tsb, prev_time_in_tsb;
+	u32 tsb_exceeded;
 	s32 debug_group_index;
 };
 
-static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to);
+static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic);
 
 
 typedef struct
@@ -210,7 +212,8 @@ struct __dash_group
 	GF_DASHFileIOSession segment_download;
 
 	/*usually 0-0 (no range) but can be non-zero when playing local MPD/DASH sessions*/
-	u64 local_url_start_range, local_url_end_range;
+	u64 bs_switching_init_segment_url_start_range, bs_switching_init_segment_url_end_range;
+	char *bs_switching_init_segment_url;
 
 	u32 nb_segments_done;
 	u32 last_segment_time;
@@ -505,13 +508,14 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 			if (current_time < shift) current_time = 0;
 			else current_time -= shift;
-		} else if (group->dash->user_buffer_ms) {
+		} else if (0 && group->dash->user_buffer_ms) {
 			shift = MIN(group->dash->user_buffer_ms, mpd->time_shift_buffer_depth);
 
 			if (current_time < shift) current_time = 0;
 			else current_time -= shift;
 		}
 	}
+	group->dash->time_in_tsb = group->dash->prev_time_in_tsb = 0;
 
 	timeline = NULL;
 	timescale=1;
@@ -648,7 +652,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 			group->ast_at_init = availabilityStartTime - (u32) (ast_offset*1000);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At current time "LLD" ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g sec offset in segment %g sec\n", current_time, start_number, shift, group->segment_duration, group->start_playback_range ? group->start_playback_range - shift*group->segment_duration : 0));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] At current time "LLD" ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g sec offset in segment %g sec\n", current_time, start_number, shift, group->segment_duration, group->start_playback_range ? group->start_playback_range - shift*group->segment_duration : 0));
 		} else {
 			group->download_segment_index += start_number;
 			if (group->download_segment_index > group->start_number_at_last_ast) {
@@ -2057,6 +2061,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 	if (!group->timeline_setup) {
 		gf_dash_group_timeline_setup(mpd, group, 0);
 		group->timeline_setup = 1;
+		item_index = group->download_segment_index;
 	}
 
 	/*resolve base URLs from document base (download location) to representation (media)*/
@@ -2466,11 +2471,15 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 
 		group->download_segment_index += nb_segment_read;
 		init_segment_local_url = group->cached[0].cache;
-		group->local_url_start_range = start_range;
-		group->local_url_end_range = end_range;
-		rep->playback.cached_init_segment_url = gf_strdup(init_segment_local_url);
-		rep->playback.init_start_range = start_range;
-		rep->playback.init_end_range = end_range;
+		if (group->bitstream_switching) {
+			group->bs_switching_init_segment_url = gf_strdup(init_segment_local_url);
+			group->bs_switching_init_segment_url_start_range = start_range;
+			group->bs_switching_init_segment_url_end_range = end_range;
+		} else {
+			rep->playback.cached_init_segment_url = gf_strdup(init_segment_local_url);
+			rep->playback.init_start_range = start_range;
+			rep->playback.init_end_range = end_range;
+		}
 
 
 		/*finally download all init segments if any*/
@@ -2602,9 +2611,16 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		group->cached[0].url = gf_strdup( dash->dash_io->get_url(dash->dash_io, group->segment_download) );
 		group->cached[0].representation_index = group->active_rep_index;
 		group->cached[0].duration = (u32) group->current_downloaded_segment_duration;
-		rep->playback.cached_init_segment_url = gf_strdup(init_segment_local_url);
-		rep->playback.init_start_range = 0;
-		rep->playback.init_end_range = 0;
+
+		if (group->bitstream_switching) {
+			group->bs_switching_init_segment_url = gf_strdup(init_segment_local_url);
+			group->bs_switching_init_segment_url_start_range = 0;
+			group->bs_switching_init_segment_url_end_range = 0;
+		} else {
+			rep->playback.cached_init_segment_url = gf_strdup(init_segment_local_url);
+			rep->playback.init_start_range = 0;
+			rep->playback.init_end_range = 0;
+		}
 
 		group->nb_cached_segments = 1;
 		group->download_segment_index += nb_segment_read;
@@ -3459,7 +3475,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 
 		//adjust seek
 		if (dash->start_range_period) {
-			gf_dash_seek_group(dash, group, dash->start_range_period);
+			gf_dash_seek_group(dash, group, dash->start_range_period, 0);
 		}
 
 		mime_type = gf_dash_get_mime_type(NULL, rep_sel, group->adaptation_set);
@@ -3597,6 +3613,37 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 	}
 }
 
+static void gf_dash_group_check_time(GF_DASH_Group *group)
+{
+	s64 now = (s64) gf_net_get_utc();
+	u32 nb_droped = 0;
+
+	while (1) {
+		u32 seg_dur_ms;
+		u64 seg_ast = gf_dash_get_segment_availability_start_time(group->dash->mpd, group, group->download_segment_index, &seg_dur_ms);
+
+		now -= (s64) seg_ast;
+		now += (s64) seg_dur_ms;
+		if (now>group->time_shift_buffer_depth) {
+			group->download_segment_index ++;
+			nb_droped ++;
+			group->dash->time_in_tsb = 0;
+			continue;
+		}
+
+		if (nb_droped > group->dash->tsb_exceeded) {
+			group->dash->tsb_exceeded = nb_droped;
+		}
+
+		if (now<0) return;
+		now /= 1000;
+		if (now>group->dash->time_in_tsb) 
+			group->dash->time_in_tsb = (u32) now;
+		return;
+	}
+}
+
+
 static u32 dash_main_thread_proc(void *par)
 {
 	GF_Err e;
@@ -3714,16 +3761,29 @@ restart_period:
 
 				/*check if cache is not full*/
 				gf_mx_p(dash->dl_mutex);
+				dash->tsb_exceeded = 0;
 				for (i=0; i<group_count; i++) {
 					GF_DASH_Group *group = gf_list_get(dash->groups, i);
 					if ((group->selection != GF_DASH_GROUP_SELECTED) || group->done) continue;
 					all_groups_done = 0;
+					if (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
+						gf_dash_group_check_time(group);
+					}
 					if (group->nb_cached_segments<group->max_cached_segments) {
 						cache_full = 0;
 						break;
 					}
 				}
 				gf_mx_v(dash->dl_mutex);
+
+				if (dash->tsb_exceeded) {
+					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_TIMESHIFT_OVERFLOW, dash->tsb_exceeded, GF_OK);
+					dash->tsb_exceeded = 0;
+				} else if (dash->time_in_tsb != dash->prev_time_in_tsb) {
+					dash->prev_time_in_tsb = dash->time_in_tsb;
+					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_TIMESHIFT_UPDATE, 0, GF_OK);
+				}
+
 
 				if (!cache_full) break;
 
@@ -4196,7 +4256,7 @@ static void gf_dash_download_stop(GF_DashClient *dash)
 
 
 
-Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
+static Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 {
 	Double start_time;
 	u32 i, period_idx;
@@ -4245,45 +4305,53 @@ Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 	return dash->request_period_switch ? 1 : 0;
 }
 
-static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to)
+static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic)
 {
 	Double seg_start;
 	u32 first_downloaded, last_downloaded, segment_idx, orig_idx;
 
 	group->force_segment_switch = 0;
+	if (!is_dynamic) {
 
-	/*figure out where to seek*/
-	orig_idx = group->download_segment_index;
-	segment_idx = 0;
-	seg_start = 0.0;
-	while (1) {
-		Double dur = group->segment_duration;
-		if (!dur) {
-			group->download_segment_index = segment_idx;
-			//TODO this could be further optimized by directly querying the index for this start time ...
-			seg_start = gf_dash_get_segment_start_time(group, &dur);
+		/*figure out where to seek*/
+		orig_idx = group->download_segment_index;
+		segment_idx = 0;
+		seg_start = 0.0;
+		while (1) {
+			Double dur = group->segment_duration;
+			if (!dur) {
+				group->download_segment_index = segment_idx;
+				//TODO this could be further optimized by directly querying the index for this start time ...
+				seg_start = gf_dash_get_segment_start_time(group, &dur);
+			}
+			if (!dur)
+				break;
+			if ((seek_to >= seg_start) && (seek_to < seg_start + dur))
+				break;
+			seg_start += dur;
+			segment_idx++;
 		}
-		if (!dur)
-			break;
-		if ((seek_to >= seg_start) && (seek_to < seg_start + dur))
-			break;
-		seg_start += dur;
-		segment_idx++;
+		group->download_segment_index = orig_idx;
+
+		/*remember to seek to given duration*/
+		group->start_playback_range = seek_to;
+
+		first_downloaded = last_downloaded = group->download_segment_index;
+		if (group->download_segment_index + 1 >= (s32) group->nb_cached_segments) {
+			first_downloaded = group->download_segment_index + 1 - group->nb_cached_segments;
+		}
+		/*we are seeking in our download range, just go on*/
+		if ((segment_idx >= first_downloaded) && (segment_idx<=last_downloaded)) return;
+
+		group->force_segment_switch = 1;
+		group->download_segment_index = segment_idx;
+	} else {
+		group->timeline_setup = 0;
+		group->start_number_at_last_ast = 0;
+		/*remember to adjust time in timeline steup*/
+		group->start_playback_range = seek_to;
 	}
-	group->download_segment_index = orig_idx;
 
-	/*remember to seek to given duration*/
-	group->start_playback_range = seek_to;
-
-	first_downloaded = last_downloaded = group->download_segment_index;
-	if (group->download_segment_index + 1 >= (s32) group->nb_cached_segments) {
-		first_downloaded = group->download_segment_index + 1 - group->nb_cached_segments;
-	}
-	/*we are seeking in our download range, just go on*/
-	if ((segment_idx >= first_downloaded) && (segment_idx<=last_downloaded)) return;
-
-	group->force_segment_switch = 1;
-	group->download_segment_index = segment_idx;
 
 	if (group->segment_download)
 		dash->dash_io->abort(dash->dash_io, group->segment_download);
@@ -4312,7 +4380,7 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double
 	group->done = 0;
 }
 
-void gf_dash_seek_groups(GF_DashClient *dash, Double seek_time)
+static void gf_dash_seek_groups(GF_DashClient *dash, Double seek_time, Bool is_dynamic)
 {
 	u32 i;
 
@@ -4329,7 +4397,7 @@ void gf_dash_seek_groups(GF_DashClient *dash, Double seek_time)
 	}
 	for (i=0; i<gf_list_count(dash->groups); i++) {
 		GF_DASH_Group *group = gf_list_get(dash->groups, i);
-		gf_dash_seek_group(dash, group, seek_time);
+		gf_dash_seek_group(dash, group, seek_time, is_dynamic);
 	}
 
 	gf_mx_v(dash->dl_mutex);
@@ -4857,6 +4925,14 @@ Double gf_dash_get_duration(GF_DashClient *dash)
 }
 
 GF_EXPORT
+u32 gf_dash_group_get_time_shift_buffer_depth(GF_DashClient *dash, u32 idx)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return 0;
+	return group->time_shift_buffer_depth;
+}
+
+GF_EXPORT
 const char *gf_dash_get_url(GF_DashClient *dash)
 {
 	return dash->base_url;
@@ -4879,6 +4955,13 @@ const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64
 	GF_MPD_Representation *rep;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return NULL;
+
+	if (group->bs_switching_init_segment_url) {
+		if (start_range) *start_range = group->bs_switching_init_segment_url_start_range;
+		if (end_range) *end_range = group->bs_switching_init_segment_url_end_range;
+		return group->bs_switching_init_segment_url;
+	} 
+
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 	if (!rep) return NULL;
 
@@ -5197,13 +5280,36 @@ GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash
 GF_EXPORT
 void gf_dash_seek(GF_DashClient *dash, Double start_range)
 {
+	Bool is_dynamic = 0;
 	gf_mx_p(dash->dl_mutex);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Seek request - playing from %g\n", start_range));
+
+	//are we live ? if so adjust start range
+	if (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
+		u64 now, availabilityStartTime;
+		availabilityStartTime = dash->mpd->availabilityStartTime + dash->utc_shift;
+		if (dash->estimate_utc_drift) availabilityStartTime += dash->utc_drift_estimate;
+
+		now = gf_net_get_utc() - availabilityStartTime;
+//		now = dash->mpd_fetch_time - availabilityStartTime;
+		
+		if (dash->initial_time_shift_value<=100) {
+			now -= dash->mpd->time_shift_buffer_depth * dash->initial_time_shift_value / 100;
+		} else {
+			now -= dash->initial_time_shift_value;
+		}
+		now += (u64) (start_range*1000);
+		start_range = (Double) now;
+		start_range /= 1000;
+
+		is_dynamic = 1;
+	}
+
 	/*first check if we seek to another period*/
 	if (! gf_dash_seek_periods(dash, start_range)) {
 		/*if no, seek in group*/
-		gf_dash_seek_groups(dash, start_range);
+		gf_dash_seek_groups(dash, start_range, is_dynamic);
 	}
 	gf_mx_v(dash->dl_mutex);
 }
@@ -5716,6 +5822,20 @@ u32 gf_dash_group_get_download_rate(GF_DashClient *dash, u32 idx)
 	return dash->dash_io->get_bytes_per_sec(dash->dash_io, group->segment_download);
 }
 
+
+GF_EXPORT
+GF_Err gf_dash_set_timeshift(GF_DashClient *dash, u32 ms_in_timeshift)
+{
+	if (!dash) return GF_BAD_PARAM;
+	dash->initial_time_shift_value = ms_in_timeshift;
+	return GF_OK;
+}
+
+GF_EXPORT
+u32 gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash)
+{
+	return dash ? dash->prev_time_in_tsb : 0;
+}
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

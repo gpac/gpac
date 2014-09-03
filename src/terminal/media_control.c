@@ -65,7 +65,7 @@ void mediacontrol_restart(GF_ObjectManager *odm)
 	scene_ck = gf_odm_get_media_clock(odm->parentscene->root_od);
 	if (gf_odm_shares_clock(odm, scene_ck)) {
 		if (odm->parentscene->is_dynamic_scene)
-			gf_scene_restart_dynamic(odm->parentscene, 0);
+			gf_scene_restart_dynamic(odm->parentscene, 0, 0);
 		return;
 	}
 
@@ -502,6 +502,10 @@ void MC_Modified(GF_Node *node)
 		else if (stack->media_start != stack->control->mediaStartTime) {
 			/*do not reevaluate if mediaStartTime is reset to -1 (current time)*/
 			if (stack->control->mediaStartTime!=-1.0)
+				stack->changed = 2;
+		/*check mediaStopTime <0 (timeshift buffer control)*/
+		} else if (stack->media_stop != stack->control->mediaStopTime) {
+			if (stack->control->mediaStopTime<=0)
 				stack->changed = 2;
 		}
 //		else stack->changed = 1;
