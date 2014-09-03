@@ -315,7 +315,6 @@ static SMJS_FUNC_PROP_SET( gpac_setProperty)
 	switch (prop_id) {
 	case -1: //"last_working_directory"
 		if (!JSVAL_IS_STRING(*vp)) {
-			SMJS_FREE(c, prop_name);
 			return JS_FALSE;
 		}
 		prop_val = SMJS_CHARS(c, *vp);
@@ -326,7 +325,6 @@ static SMJS_FUNC_PROP_SET( gpac_setProperty)
 	{
 		GF_Event evt;
 		if (!JSVAL_IS_STRING(*vp)) {
-			SMJS_FREE(c, prop_name);
 			return JS_FALSE;
 		}
 		evt.type = GF_EVENT_SET_CAPTION;
@@ -386,7 +384,6 @@ static SMJS_FUNC_PROP_SET( gpac_setProperty)
 		term->compositor->disable_focus_highlight = JSVAL_TO_BOOLEAN(*vp) ? 0 : 1;
 		break;
 	}
-	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
 
@@ -690,21 +687,6 @@ static JSBool SMJS_FUNCTION(gpac_set_size)
 	return JS_TRUE;
 }
 
-static JSBool SMJS_FUNCTION(gpac_get_horizontal_dpi)
-{
-	SMJS_OBJ
-	GF_Terminal *term = gpac_get_term(c, obj);
-	if (term) SMJS_SET_RVAL( INT_TO_JSVAL(term->compositor->video_out->dpi_x) );
-	return JS_TRUE;
-}
-
-static JSBool SMJS_FUNCTION(gpac_get_vertical_dpi)
-{
-	SMJS_OBJ
-	GF_Terminal *term = gpac_get_term(c, obj);
-	if (term) SMJS_SET_RVAL( INT_TO_JSVAL(term->compositor->video_out->dpi_y) );
-	return JS_TRUE;
-}
 
 static JSBool SMJS_FUNCTION(gpac_exit)
 {
@@ -1092,7 +1074,6 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 static JSBool SMJS_FUNCTION(gjs_odm_disable_main_addon)
 {
 	SMJS_OBJ
-	SMJS_ARGS
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
 
 	if (!odm || !odm->subscene || !odm->subscene->main_addon_selected) return JS_TRUE;
