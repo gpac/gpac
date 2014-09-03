@@ -1751,7 +1751,12 @@ GF_Err gf_isom_text_set_streaming_mode(GF_ISOFile *the_file, Bool do_convert);
 /*exports text track to given format
 @dump_type: 0 for TTXT, 1 for srt, 2 for SVG
 */
-GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, u32 dump_type);
+typedef enum {
+	GF_TEXTDUMPTYPE_TTXT = 0,
+	GF_TEXTDUMPTYPE_SRT  = 1,
+	GF_TEXTDUMPTYPE_SVG  = 2,
+} GF_TextDumpType;
+GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDumpType dump_type);
 #endif
 
 /*returns encoded TX3G box (text sample description for 3GPP text streams) as needed by RTP or other standards:
@@ -1786,6 +1791,9 @@ void gf_isom_delete_generic_subtitle_sample(GF_GenericSubtitleSample *generic_su
 
 GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname, u32 *outDescriptionIndex);
 GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config);
+
+GF_Err gf_isom_stxt_info_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, char **mime, char **config);
+
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 

@@ -3349,13 +3349,14 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 }
 
 GF_EXPORT
-GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, u32 dump_type)
+GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDumpType dump_type)
 {
 	switch (dump_type) {
-	case 2:
+	case GF_TEXTDUMPTYPE_SVG:
 		return gf_isom_dump_svg_track(the_file, track, dump);
-	case 1:
+	case GF_TEXTDUMPTYPE_SRT:
 		return gf_isom_dump_srt_track(the_file, track, dump);
+	case GF_TEXTDUMPTYPE_TTXT:
 	default:
 		return gf_isom_dump_ttxt_track(the_file, track, dump);
 	}

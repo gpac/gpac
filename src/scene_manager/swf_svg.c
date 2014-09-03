@@ -468,6 +468,11 @@ static GF_Err swf_svg_show_frame(SWFReader *read)
 
 static void swf_svg_finalize(SWFReader *read)
 {
+	swf_svg_print(read, "</svg>\n");
+	read->add_header(read->user, read->svg_data, read->svg_data_size, GF_FALSE);
+	gf_free(read->svg_data);
+	read->svg_data = NULL;
+	read->svg_data_size = 0;
 }
 
 static GF_Err swf_svg_define_button(SWFReader *read, SWF_Button *btn)
@@ -475,7 +480,7 @@ static GF_Err swf_svg_define_button(SWFReader *read, SWF_Button *btn)
 	return GF_OK;
 }
 
-Bool swf_svg_action(SWFReader *read, SWFAction *act)
+static Bool swf_svg_action(SWFReader *read, SWFAction *act)
 {
 	return GF_TRUE;
 }
@@ -516,7 +521,7 @@ GF_Err swf_to_svg_init(SWFReader *read, u32 swf_flags, Float swf_flatten_angle)
 	read->print_stream_header = GF_FALSE;
 
 	/* update sample description */
-	read->add_header(read->user, read->svg_data, read->svg_data_size);
+	read->add_header(read->user, read->svg_data, read->svg_data_size, GF_TRUE);
 	gf_free(read->svg_data);
 	read->svg_data = NULL;
 	read->svg_data_size = 0;
@@ -524,6 +529,31 @@ GF_Err swf_to_svg_init(SWFReader *read, u32 swf_flags, Float swf_flatten_angle)
 	return GF_OK;
 }
 
+GF_Err swf_svg_write_text_sample(void *user, const char *data, u32 length, u64 timestamp, Bool isRap)
+{
+	FILE *svgFile = (FILE *)user;
+	u32  lengthWritten;
+
+	lengthWritten = fwrite(data, 1, length, svgFile);
+	if (length != lengthWritten) {
+		return GF_BAD_PARAM;
+	} else {
+		return GF_OK;
+	}
+}
+
+GF_Err swf_svg_write_text_header(void *user, const char *data, u32 length, Bool isHeader)
+{
+	FILE *svgFile = (FILE *)user;
+	u32  lengthWritten;
+
+	lengthWritten = fwrite(data, 1, length, svgFile);
+	if (length != lengthWritten) {
+		return GF_BAD_PARAM;
+	} else {
+		return GF_OK;
+	}
+}
 #endif /*GPAC_DISABLE_SWF_IMPORT*/
 
 #endif /*GPAC_DISABLE_VRML*/

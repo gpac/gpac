@@ -957,13 +957,27 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		} else if (m_stype==GF_ISOM_SUBTYPE_WVTT) {
 			gf_export_message(dumper, GF_OK, "Extracting WebVTT");
 			is_webvtt = GF_TRUE;
-			strcat(szName, ".vtt");
+			if (add_ext)
+				strcat(szName, ".vtt");
 		} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
 			gf_export_message(dumper, GF_OK, "Extracting Simple Text");
-			strcat(szName, ".txt");
+			if (add_ext) {
+				char *config;
+				char *mime;
+				if (gf_isom_stxt_info_get(dumper->file, track, 1, &mime, &config) == GF_OK) {
+					if (mime && !strcmp(mime, "image/svg+xml")) {
+						strcat(szName, ".svg");
+					} else {
+						strcat(szName, ".txt");
+					}
+				} else {
+					strcat(szName, ".txt");
+				}
+			}
 		} else if (m_stype==GF_ISOM_SUBTYPE_STPP) {
 			gf_export_message(dumper, GF_OK, "Extracting XML Subtitles");
-			strcat(szName, ".stpp");
+			if (add_ext)
+				strcat(szName, ".xml");
 			return gf_export_message(dumper, GF_NOT_SUPPORTED, "XML Subtitles re-assembling is not supported yet.", dumper->trackID);
 		} else {
 			if (add_ext) {
