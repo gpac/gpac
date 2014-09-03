@@ -53,7 +53,7 @@ struct _scenedump
 	u32 indent;
 	char *filename;
 
-	u32 dump_mode;
+	GF_SceneDumpFormat dump_mode;
 	u16 CurrentESID;
 	u8 ind_char;
 	Bool XMLDump, X3DDump, LSRDump;
@@ -81,7 +81,7 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 indent, Bool skip_first_replace);
 
 GF_EXPORT
-GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char indent_char, u32 dump_mode)
+GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char indent_char, GF_SceneDumpFormat dump_mode)
 {
 	GF_SceneDumper *tmp;
 	if (!graph) return NULL;
@@ -93,11 +93,13 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 #ifndef GPAC_DISABLE_SVG
 	if ((graph->RootNode && (graph->RootNode->sgprivate->tag>=GF_NODE_RANGE_LAST_VRML) )
 	        || (dump_mode==GF_SM_DUMP_LASER) || (dump_mode==GF_SM_DUMP_SVG)) {
-		tmp->XMLDump = 1;
-		if (dump_mode==GF_SM_DUMP_LASER) tmp->LSRDump = 1;
+		tmp->XMLDump = GF_TRUE;
+		if (dump_mode==GF_SM_DUMP_LASER) {
+			tmp->LSRDump = GF_TRUE;
+		}
 		if (_rad_name) {
 			const char* ext_name = tmp->LSRDump ? ".xsr" : ".svg";
-			tmp->filename = gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
+			tmp->filename = (char *)gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
 			strcpy(tmp->filename, _rad_name ? _rad_name : "");
 			strcat(tmp->filename, ext_name);
 			tmp->trace = gf_f64_open(tmp->filename, "wt");
@@ -132,16 +134,16 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 			switch (dump_mode) {
 			case GF_SM_DUMP_X3D_XML:
 				ext_name = ".x3d";
-				tmp->XMLDump = 1;
-				tmp->X3DDump = 1;
+				tmp->XMLDump = GF_TRUE;
+				tmp->X3DDump = GF_TRUE;
 				break;
 			case GF_SM_DUMP_XMTA:
 				ext_name = ".xmt";
-				tmp->XMLDump = 1;
+				tmp->XMLDump = GF_TRUE;
 				break;
 			case GF_SM_DUMP_X3D_VRML:
 				ext_name = ".x3dv";
-				tmp->X3DDump = 1;
+				tmp->X3DDump = GF_TRUE;
 				break;
 			case GF_SM_DUMP_VRML:
 				ext_name = ".wrl";
@@ -150,7 +152,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 				ext_name = ".bt";
 				break;
 			}
-			tmp->filename = gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
+			tmp->filename = (char *)gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
 			strcpy(tmp->filename, _rad_name ? _rad_name : "");
 			strcat(tmp->filename, ext_name);
 			tmp->trace = gf_f64_open(tmp->filename, "wt");
@@ -162,14 +164,14 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 			tmp->trace = stdout;
 			switch (dump_mode) {
 			case GF_SM_DUMP_X3D_XML:
-				tmp->XMLDump = 1;
-				tmp->X3DDump = 1;
+				tmp->XMLDump = GF_TRUE;
+				tmp->X3DDump = GF_TRUE;
 				break;
 			case GF_SM_DUMP_XMTA:
-				tmp->XMLDump = 1;
+				tmp->XMLDump = GF_TRUE;
 				break;
 			case GF_SM_DUMP_X3D_VRML:
-				tmp->X3DDump = 1;
+				tmp->X3DDump = GF_TRUE;
 				break;
 			default:
 				break;

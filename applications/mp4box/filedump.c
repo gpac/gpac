@@ -159,7 +159,7 @@ GF_Err set_cover_art(GF_ISOFile *file, char *inName)
 
 #ifndef GPAC_DISABLE_SCENE_DUMP
 
-GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
+GF_Err dump_file_text(char *file, char *inName, GF_SceneDumpFormat dump_mode, Bool do_log)
 {
 	GF_Err e;
 	GF_SceneManager *ctx;

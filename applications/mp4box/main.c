@@ -88,7 +88,7 @@ u32 id3_get_genre_tag(const char *name);
 
 /*in filedump.c*/
 #ifndef GPAC_DISABLE_SCENE_DUMP
-GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log);
+GF_Err dump_file_text(char *file, char *inName, GF_SceneDumpFormat dump_mode, Bool do_log);
 //void gf_check_isom_files(char *conf_rules, char *inName);
 #endif
 #ifndef GPAC_DISABLE_SCENE_STATS
@@ -1578,7 +1578,8 @@ int mp4boxMain(int argc, char **argv)
 	u32 *brand_add = NULL;
 	u32 *brand_rem = NULL;
 	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
-	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic, initial_moof_sn, dump_std, dump_mode, import_subtitle;
+	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic, initial_moof_sn, dump_std, import_subtitle;
+	GF_SceneDumpFormat dump_mode;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
 	Bool print_sdp, print_info, open_edit, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults, single_traf_per_moof;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
@@ -1646,7 +1647,8 @@ int mp4boxMain(int argc, char **argv)
 	movie_time = 0;
 	dump_nal = 0;
 	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
-	dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
+	dump_mode = GF_SM_DUMP_NONE;
+	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = 0;
 	no_fragments_defaults = 0;
 	single_traf_per_moof = 0,
@@ -1885,13 +1887,13 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-stdb")) dump_std = 1;
 
 #if !defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_SCENE_DUMP)
-		else if (!stricmp(arg, "-bt")) dump_mode = 1 + GF_SM_DUMP_BT;
-		else if (!stricmp(arg, "-xmt")) dump_mode = 1 + GF_SM_DUMP_XMTA;
-		else if (!stricmp(arg, "-wrl")) dump_mode = 1 + GF_SM_DUMP_VRML;
-		else if (!stricmp(arg, "-x3dv")) dump_mode = 1 + GF_SM_DUMP_X3D_VRML;
-		else if (!stricmp(arg, "-x3d")) dump_mode = 1 + GF_SM_DUMP_X3D_XML;
-		else if (!stricmp(arg, "-lsr")) dump_mode = 1 + GF_SM_DUMP_LASER;
-		else if (!stricmp(arg, "-svg")) dump_mode = 1 + GF_SM_DUMP_SVG;
+		else if (!stricmp(arg, "-bt")) dump_mode = GF_SM_DUMP_BT;
+		else if (!stricmp(arg, "-xmt")) dump_mode = GF_SM_DUMP_XMTA;
+		else if (!stricmp(arg, "-wrl")) dump_mode = GF_SM_DUMP_VRML;
+		else if (!stricmp(arg, "-x3dv")) dump_mode = GF_SM_DUMP_X3D_VRML;
+		else if (!stricmp(arg, "-x3d")) dump_mode = GF_SM_DUMP_X3D_XML;
+		else if (!stricmp(arg, "-lsr")) dump_mode = GF_SM_DUMP_LASER;
+		else if (!stricmp(arg, "-svg")) dump_mode = GF_SM_DUMP_SVG;
 #endif /*defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_SCENE_DUMP)*/
 
 		else if (!stricmp(arg, "-stat")) stat_level = 1;
@@ -3006,7 +3008,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 
 #ifndef GPAC_DISABLE_SCENE_DUMP
-	if (dump_mode == 1 + GF_SM_DUMP_SVG) {
+	if (dump_mode == GF_SM_DUMP_SVG) {
 		if (strstr(inName, ".srt") || strstr(inName, ".ttxt")) import_subtitle = 2;
 	}
 #endif
@@ -3355,7 +3357,7 @@ int mp4boxMain(int argc, char **argv)
 		/*used for .saf / .lsr dump*/
 		case 6:
 #ifndef GPAC_DISABLE_SCENE_DUMP
-			if ((dump_mode==1+GF_SM_DUMP_LASER) || (dump_mode==1+GF_SM_DUMP_SVG)) {
+			if ((dump_mode==GF_SM_DUMP_LASER) || (dump_mode==GF_SM_DUMP_SVG)) {
 				break;
 			}
 #endif
@@ -3364,7 +3366,7 @@ int mp4boxMain(int argc, char **argv)
 			if (!open_edit && file_exists && !gf_isom_probe_file(inName) && track_dump_type) {
 			}
 #ifndef GPAC_DISABLE_ISOM_WRITE
-			else if (!open_edit && file_exists /* && !gf_isom_probe_file(inName) */ && !dump_mode) {
+			else if (!open_edit && file_exists /* && !gf_isom_probe_file(inName) */ && dump_mode == GF_SM_DUMP_NONE) {
 				/*************************************************************************************************/
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 				if(dvbhdemux)
@@ -3487,8 +3489,8 @@ int mp4boxMain(int argc, char **argv)
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 
 #ifndef GPAC_DISABLE_SCENE_DUMP
-	if (dump_mode) {
-		e = dump_file_text(inName, dump_std ? NULL : outfile, dump_mode-1, do_log);
+	if (dump_mode != GF_SM_DUMP_NONE) {
+		e = dump_file_text(inName, dump_std ? NULL : outfile, dump_mode, do_log);
 		if (e) goto err_exit;
 	}
 #endif
