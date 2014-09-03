@@ -374,7 +374,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 		flush_text_node_edit(compositor, 1);
 	}
 
-	if (res && *res) {
+	if (res && *res && strlen(*res) ) {
 		const char *src = *res;
 		compositor->sel_buffer_alloc = 2 + (u32) strlen(src);
 		compositor->sel_buffer = gf_realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);

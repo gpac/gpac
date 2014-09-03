@@ -1107,7 +1107,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 						if (!strcmp(div_node->name, "p")) {
 							GF_XMLNode *p_node;
 							GF_XMLAttribute *p_att;
-							u32 p_idx = 0, samp_idx = 0, h, m, s, ms;
+							u32 p_idx = 0, h, m, s, ms;
 							s64 ts_begin = -1, ts_end = -1;
 
 							//sample is either in the <p> ...

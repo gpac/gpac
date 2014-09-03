@@ -1825,13 +1825,6 @@ GF_Color gf_color_parse(const char *name)
 {
 	u32 i, count;
 	u32 res;
-	count = sizeof(predefined_colors) / sizeof(struct predef_col);
-	for (i=0; i<count; i++) {
-		if (!strcmp(name, predefined_colors[i].name)) {
-			res = GF_COL_ARGB(0xFF, predefined_colors[i].r, predefined_colors[i].g, predefined_colors[i].b);
-			return res;
-		}
-	}
 	if ((name[0]=='$') || (name[0]=='#')) {
 		sscanf(name+1, "%x", &res);
 		return res | 0xFF000000;
@@ -1840,6 +1833,15 @@ GF_Color gf_color_parse(const char *name)
 		sscanf(name+2, "%x", &res);
 		return res | 0xFF000000;
 	}
+
+	count = sizeof(predefined_colors) / sizeof(struct predef_col);
+	for (i=0; i<count; i++) {
+		if (!strcmp(name, predefined_colors[i].name)) {
+			res = GF_COL_ARGB(0xFF, predefined_colors[i].r, predefined_colors[i].g, predefined_colors[i].b);
+			return res;
+		}
+	}
+
 	return 0;
 
 }
