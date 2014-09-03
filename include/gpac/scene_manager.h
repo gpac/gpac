@@ -212,7 +212,7 @@ enum
 };
 
 /*loader type, usually detected based on file ext*/
-enum
+typedef enum
 {
 	GF_SM_LOAD_BT = 1, /*BT loader*/
 	GF_SM_LOAD_VRML, /*VRML97 loader*/
@@ -226,14 +226,14 @@ enum
 	GF_SM_LOAD_QT, /*MOV->MPEG-4 converter (only cubic QTVR for now)*/
 	GF_SM_LOAD_MP4, /*MP4 memory loader*/
 	GF_SM_LOAD_XBL
-};
+} GF_SceneManager_LoadType;
 
 typedef struct __scene_loader GF_SceneLoader;
 
 struct __scene_loader
 {
 	/*loader type, one of the above value. If not set, detected based on file extension*/
-	u32 type;
+	GF_SceneManager_LoadType type;
 
 	/*scene graph worked on - may be NULL if ctx is present*/
 	GF_SceneGraph *scene_graph;
@@ -257,6 +257,9 @@ struct __scene_loader
 	/*swf extraction path: if set, swf media (mp3, jpeg) are extracted to this path. If not set
 	media are extracted to original file directory*/
 	const char *localPath;
+
+	/* carrying svgOutFile when the loader is used by a SceneDumper */
+	const char *svgOutFile;
 
 	/*loader flags*/
 	u32 flags;
