@@ -764,7 +764,8 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		while (!ch->sample) {
 			isor_reader_get_sample(ch);
 			if (!ch->sample) break;
-			gf_service_send_packet(read->service, ch->channel, ch->sample->data, ch->sample->dataLength, &ch->current_slh, GF_OK);
+			if (ch->is_playing)
+				gf_service_send_packet(read->service, ch->channel, ch->sample->data, ch->sample->dataLength, &ch->current_slh, GF_OK);
 			isor_reader_release_sample(ch);
 		}
 		if (!ch->sample && (ch->last_state==GF_EOS)) {

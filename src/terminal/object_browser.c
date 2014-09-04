@@ -245,7 +245,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 			i=0;
 			while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 				info->db_unit_count += ch->AU_Count;
-				if (!ch->is_pulling) {
+				if (!ch->is_pulling || ch->MaxBuffer) {
 					if (ch->MaxBuffer) info->buffer = 0;
 					buf += ch->BufferTime;
 

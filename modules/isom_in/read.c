@@ -128,8 +128,15 @@ void isor_check_buffer_level(ISOMReader *read)
 	gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total, &done, &Bps, &status);
 	if (!Bps) return;
 
+
+	gf_mx_p(read->segment_mutex);
+
 	dld_time_remaining = total-done;
 	dld_time_remaining /= Bps;
+
+	//we add 30 seconds to smooth out bitrate variations ..;
+	dld_time_remaining += 30;
+
 	mov_rate = total;
 	dur = gf_isom_get_duration(read->mov);
 	if (dur) {
@@ -171,12 +178,15 @@ void isor_check_buffer_level(ISOMReader *read)
 			gf_isom_sample_del(&samp);
 
 			time_remain_ch /= ch->time_scale;
-			//we add 2 seconds safety
-			if (time_remain_ch && (time_remain_ch < dld_time_remaining + 2)) {
+			if (time_remain_ch && (time_remain_ch < dld_time_remaining)) {
 				do_buffer = GF_TRUE;
-				buffer_level = (u32) (ch->buffer_max * time_remain_ch / dld_time_remaining);
+				if (!read->remain_at_buffering_start || (read->remain_at_buffering_start < dld_time_remaining)) {
+					buffer_level = 0;
+					read->remain_at_buffering_start = dld_time_remaining;
+				} else {
+					buffer_level = (u32) (100 * (read->remain_at_buffering_start - dld_time_remaining) / (read->remain_at_buffering_start - time_remain_ch) );
+				}
 			} else {
-				buffer_level = (u32) (1000 * (data_offset - done)/mov_rate);
 				do_buffer = GF_FALSE;
 			}
 		}
@@ -187,8 +197,11 @@ void isor_check_buffer_level(ISOMReader *read)
 			memset(&com, 0, sizeof(GF_NetworkCommand));
 			com.command_type = do_buffer ? GF_NET_CHAN_PAUSE : GF_NET_CHAN_RESUME;
 			com.buffer.on_channel = ch->channel;
+			com.buffer.min = ch->buffer_min;
+			com.buffer.max = ch->buffer_max;
 			gf_service_command(read->service, &com, GF_OK);
 			ch->buffering = do_buffer;
+			read->buffering = do_buffer;
 		} else if (ch->buffering) {
 			memset(&com, 0, sizeof(GF_NetworkCommand));
 			com.command_type = GF_NET_CHAN_BUFFER;
@@ -199,6 +212,7 @@ void isor_check_buffer_level(ISOMReader *read)
 			gf_service_command(read->service, &com, GF_OK);
 		}
 	}
+	gf_mx_v(read->segment_mutex);
 }
 
 void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
@@ -209,7 +223,8 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 	ISOMReader *read = (ISOMReader *) cbk;
 
 	/*handle service message*/
-	gf_service_download_update_stats(read->dnload);
+	if (!read->buffering) 
+		gf_service_download_update_stats(read->dnload);
 
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 		e = GF_EOS;
@@ -844,6 +859,7 @@ GF_Err ISOR_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	read = (ISOMReader *) plug->priv;
 	if (!read->mov) return GF_SERVICE_ERROR;
 
+	gf_mx_p(read->segment_mutex);
 	e = GF_OK;
 	ch = isor_get_channel(read, channel);
 	assert(ch);
@@ -861,6 +877,7 @@ exit:
 	} else {
 		gf_service_disconnect_ack(read->service, channel, e);
 	}
+	gf_mx_v(read->segment_mutex);
 	return e;
 }
 

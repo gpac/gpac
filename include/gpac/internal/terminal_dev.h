@@ -769,6 +769,8 @@ void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontin
 void gf_es_buffer_on(GF_Channel *ch);
 //turns off buffering on the stream
 void gf_es_buffer_off(GF_Channel *ch);
+//updates buffer info on the stream
+void gf_es_update_buffering(GF_Channel *ch, Bool update_info);
 
 /*
 		decoder stuff

@@ -685,14 +685,21 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		gf_es_reset_buffers(ch);
 		break;
 	case GF_NET_CHAN_PAUSE:
+		ch->MaxBuffer = com->buffer.max;
+		ch->MinBuffer = com->buffer.min;
+		ch->BufferTime = com->buffer.max;
 		gf_es_buffer_on(ch);
 		break;
 	case GF_NET_CHAN_RESUME:
+		ch->BufferTime = ch->MaxBuffer;
+		gf_es_update_buffering(ch, 1);
 		gf_es_buffer_off(ch);
 		break;
 	case GF_NET_CHAN_BUFFER:
-		ch->BufferTime = 100 * com->buffer.occupancy / com->buffer.max;
-		gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+		ch->MaxBuffer = com->buffer.max;
+		ch->MinBuffer = com->buffer.min;
+		ch->BufferTime = com->buffer.max * com->buffer.occupancy / 100;
+		gf_es_update_buffering(ch, 1);
 		break;
 	default:
 		return;

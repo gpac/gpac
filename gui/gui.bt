@@ -13,6 +13,12 @@ EXTERNPROTO OffscreenGroup [
 ]
 [ "urn:inet:gpac:builtin:OffscreenGroup"]
 
+EXTERNPROTO StyleGroup [
+    exposedField MFNode children []
+    exposedField SFNode appearance NULL
+]
+[ "urn:inet:gpac:builtin:StyleGroup"]
+
 
 
 #######################################################################################
@@ -23,29 +29,13 @@ DEF GPAC_UI OrderedGroup {
  children [
   Background2D {}
   
-  DEF MovieControl MediaControl {
-   loop FALSE
-  }
-  DEF MovieSensor MediaSensor {
-  }
-  DEF Movie Transform2D {
-   children [
-      Inline { url ""}
-   ] 
-  }
-
-  DEF UI_ROOT Untransform {
-   children [
-   ]
-  }
+  DEF MEDIA_ROOT OrderedGroup {}
+  DEF UI_ROOT Untransform {}
     
-  DEF GUIScript Script {
+  Script {
    field SFNode root USE GPAC_UI
    field SFNode ui_root USE UI_ROOT
-   field SFNode movie USE Movie
-   field SFNode movie_ctrl USE MovieControl
-   field SFNode movie_sensor USE MovieSensor
-   
+   field SFNode media_root USE MEDIA_ROOT
    url "gui.js"
   }
  ]

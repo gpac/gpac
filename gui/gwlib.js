@@ -5,2132 +5,3026 @@
 //
 /////////////////////////////////////////////////////////////////////////////////
 
-function gw_new_timer(progressive)
-{
-	var obj = new SFNode('TimeSensor');
-
-	obj.set_timeout = function(time, loop) {
-   this.cycleInterval = time ? time : 1;
-   this.loop = loop;
-  }
-  this.startTime = -1;
-	obj.start = function(when) {
-		this.startTime = when + this.getTime();
-	}
-	obj.stop = function(when) {
-		this.stopTime = when + this.getTime();
-	}
-	obj.on_event = function(val){};
-	obj._event = function(val) {
-		this.on_event( Math.floor(val/this.cycleInterval) );
-	}
-	Browser.addRoute(obj, 'cycleTime', obj, obj._event);
-
-  if (progressive) {
- 	 obj.on_fraction = function(val){}
-	 obj._fraction = function(frac) {
-		this.on_fraction(frac);
-	 }
-	 Browser.addRoute(obj, 'fraction_changed', obj, obj._fraction);
-  }
-  obj.on_active = function(val) {}
-  obj._active = function(val) {
-   this.on_active(val);
-  }
-  Browser.addRoute(obj, 'isActive', obj, obj._active);
-	return obj;
+/*log function*/
+function gwlog(lev, str) {
+    if (lev <= gw_log_level) alert('[GUI] ' + str);
 }
 
-function setup_gw_object(obj, name)
-{
- obj._name = name;
- obj.set_color = function() {}
- obj.set_size = function(width, height) {
-  this.width = width;
-  this.height = height;
- }
- obj.hide = function() { 
-  this.scale.x = this.scale.y = 0; 
-  this.visible = false;
-  if (arguments.length==1) {
-   arguments[0].apply(this);
-  } 
- }
- obj.show = function() { this.scale.x = this.scale.y = 1; this.visible = true;}
- obj.visible = true;
- obj.set_size = function(width, height) {
-  this.width = width;
-  this.height = height;
- }
- obj.move = function(x, y) {
-  this.translation.x = x;
-  this.translation.y = y;
- }
- obj.width = obj.height = 0;
+/*log levels*/
+l_err = 0;
+l_war = 1;
+l_inf = 2;
+l_deb = 3;
 
- obj.close = function() {
-  if (typeof this._pre_destroy != 'undefined') this._pre_destroy();
-  gw_detach_child(this);
- };
-}
-  
-function gw_object_set_dragable(obj)
-{
-  if (typeof (obj.on_drag) != 'undefined') return;
-  
-  var ps2d = new SFNode('PlaneSensor2D');
-  obj._ps2d_idx = obj.children.length;
-  obj.children[obj.children.length] = ps2d;
-  ps2d.maxPosition.x = ps2d.maxPosition.y = -1;
-  ps2d.autoOffset = FALSE;
-  obj._drag = false;
-  obj.begin_drag = null;
-  obj.end_drag = null;
-  obj._drag_active = function(val) {
-   if (val) {
-    this.startx = this.translation.x;
-    this.starty = this.translation.y;
-    if (this.begin_drag) this.begin_drag();
-   } else {
-    if (this.end_drag) this.end_drag();
-   }
-  }
-  obj.on_drag = null;
-  obj._on_drag = function(val) {
-   if (this.on_drag) {
-    this.on_drag(this.startx + val.x, this.starty + val.y);
-   } else {
-    this.translation.x = this.startx + val.x;
-    this.translation.y = this.starty + val.y;
-   }
-   if (!this._drag && (val.x || val.y)) this._drag = true;
-  }
-  Browser.addRoute(ps2d, 'isActive', obj, obj._drag_active); 
-  Browser.addRoute(ps2d, 'translation_changed', obj, obj._on_drag); 
-}
+/*default log level*/
+gw_log_level = l_inf;
 
-function gw_object_set_hitable(obj)
-{
-  if (typeof (obj._active) != 'undefined') return;
-  
-  var ts = new SFNode('TouchSensor');
-  obj._ts_idx = obj.children.length;
-  obj.children[obj.children.length] = ts;
-  obj._drag = false;
-  obj._over = false;
-  obj.on_over = null;
-  obj._on_over = function(val) {
-   this._over = val;
-   if (this.on_over) this.on_over(val);
-  }
-  obj.last_click = 0;
-  obj.on_click = null;
-  obj.on_down = null;
-  obj._on_active = function(val, timestamp) {
-   if (!this._over) return;
 
-   if (this.on_down) this.on_down(val);
+function gw_new_timer(progressive) {
+    var obj = new SFNode('TimeSensor');
 
-   if (!val) {
-    if (this._drag) {
-      this._drag = false;
-      return;
+    obj.set_timeout = function (time, loop) {
+        this.cycleInterval = time ? time : 1;
+        this.loop = loop;
     }
-    
-    if (this.last_click && (timestamp - this.last_click<gwskin.double_click_delay) ) {
-      this.last_click = timestamp;
-      if (this.on_double_click) {
-       this.on_double_click();
-       return;
-      }
+    this.startTime = -1;
+    obj.start = function (when) {
+        this.startTime = when + this.getTime();
     }
-    
-    this.last_click = timestamp;
-    if(this.on_click && this._over) this.on_click();
-   }
-  }
-  Browser.addRoute(ts, 'isOver', obj, obj._on_over); 
-  Browser.addRoute(ts, 'isActive', obj, obj._on_active); 
+    obj.stop = function (when) {
+        this.stopTime = when + this.getTime();
+    }
+    obj.on_event = function (val) { };
+    obj._event = function (val) {
+        this.on_event(Math.floor(val / this.cycleInterval));
+    }
+    Browser.addRoute(obj, 'cycleTime', obj, obj._event);
+
+    if (progressive) {
+        obj.on_fraction = function (val) { }
+        obj._fraction = function (frac) {
+            this.on_fraction(frac);
+        }
+        Browser.addRoute(obj, 'fraction_changed', obj, obj._fraction);
+    }
+    obj.on_active = function (val) { }
+    obj._active = function (val) {
+        this.on_active(val);
+    }
+    Browser.addRoute(obj, 'isActive', obj, obj._active);
+    return obj;
 }
 
+//static
+function setup_gw_object(obj, name) {
+    obj._name = name;
+    obj.set_color = function () { }
+    obj.set_size = function (width, height) {
+        this.width = width;
+        this.height = height;
+    }
+    obj.hide = function () {
+        this.scale.x = this.scale.y = 0;
+        this.visible = false;
+        if (arguments.length == 1) {
+            arguments[0].apply(this);
+        }
+    }
+    obj.show = function () { this.scale.x = this.scale.y = 1; this.visible = true; }
+    obj.visible = true;
+    obj.set_size = function (width, height) {
+        this.width = width;
+        this.height = height;
+    }
+    obj.move = function (x, y) {
+        this.translation.x = x;
+        this.translation.y = y;
+    }
+    obj.width = obj.height = 0;
 
-function gw_new_appearance(r, g, b)
-{
+    obj.close = function () {
+        if (typeof this._pre_destroy != 'undefined') this._pre_destroy();
+        gw_detach_child(this);
+    };
+}
+
+function gw_object_set_dragable(obj) {
+    if (typeof (obj.on_drag) != 'undefined') return;
+
+    var ps2d = new SFNode('PlaneSensor2D');
+    obj._ps2d_idx = obj.children.length;
+    obj.children[obj.children.length] = ps2d;
+    ps2d.maxPosition.x = ps2d.maxPosition.y = -1;
+    ps2d.autoOffset = FALSE;
+    obj._drag = false;
+    obj.begin_drag = null;
+    obj.end_drag = null;
+    obj._drag_active = function (val) {
+        if (val) {
+            this.startx = this.translation.x;
+            this.starty = this.translation.y;
+            if (this.begin_drag) this.begin_drag();
+        } else {
+            if (this.end_drag) this.end_drag();
+        }
+    }
+    obj.on_drag = null;
+    obj._on_drag = function (val) {
+        if (this.on_drag) {
+            this.on_drag(this.startx + val.x, this.starty + val.y);
+        } else {
+            this.translation.x = this.startx + val.x;
+            this.translation.y = this.starty + val.y;
+        }
+        if (!this._drag && (val.x || val.y)) this._drag = true;
+    }
+    Browser.addRoute(ps2d, 'isActive', obj, obj._drag_active);
+    Browser.addRoute(ps2d, 'translation_changed', obj, obj._on_drag);
+}
+
+//static
+function gw_object_set_hitable(obj) {
+    if (typeof (obj._active) != 'undefined') return;
+
+    var ts = new SFNode('TouchSensor');
+    obj._ts_idx = obj.children.length;
+    obj.children[obj.children.length] = ts;
+    obj._drag = false;
+    obj._over = false;
+    obj.on_over = null;
+    obj._on_over = function (val) {
+        this._over = val;
+        gw_reset_hit(this, val);
+        if (this.on_over) this.on_over(val);
+    }
+    obj.last_click = 0;
+    obj._nb_click = 0;
+    obj.on_long_click = null;
+    obj.on_click = null;
+    obj.on_down = null;
+    obj._on_active = function (val, timestamp) {
+        if (!this._over) return;
+
+        if (this.on_down) this.on_down(val);
+
+        if (!val) {
+            if (this._drag) {
+                this._drag = false;
+                return;
+            }
+            if (this.on_long_click && (timestamp - this.last_click > gwskin.long_click_delay)) this.on_long_click();
+            else if (this.on_click && this._over) this.on_click();
+        } else {
+            this.last_click = timestamp;
+        }
+    }
+    Browser.addRoute(ts, 'isOver', obj, obj._on_over);
+    Browser.addRoute(ts, 'isActive', obj, obj._on_active);
+
+    obj._disable_touch = function () {
+        this.children[this._ts_idx].enabled = false;
+    }
+    obj._enable_touch = function () {
+        this.children[this._ts_idx].enabled = true;
+    }
+}
+
+//static
+function gw_new_appearance(r, g, b) {
     var appearance = new SFNode('Appearance');
     appearance.material = new SFNode('Material2D');
     appearance.material.filled = TRUE;
     appearance.material.emissiveColor = new SFColor(r, g, b);
     return appearance;
 }
-
-function gw_make_gradient(type, keys, colors)
-{
- var i;
- var obj = new SFNode(type=='radial' ? 'RadialGradient' : 'LinearGradient');
- for (i=0; i<keys.length; i++) {
-  obj.key[i] = keys[i];
- }
- for (i=0; i<colors.length / 3; i++) {
-  obj.keyValue[i] = new SFColor(colors[3*i], colors[3*i+1], colors[3*i+2]);
- }
- if (type=='vertical') {
-  obj.endPoint.x = 0;
-  obj.endPoint.y = 1;
- }
- return obj;
+//static
+function gw_new_lineprops(red, green, blue) {
+    var lineProps = new SFNode('LineProperties');
+    lineProps.lineColor.r = red;
+    lineProps.lineColor.g = green;
+    lineProps.lineColor.b = blue;
+    return lineProps;
 }
 
-function gw_new_fontstyle(size, align)
-{
+//static
+function gw_make_gradient(type, keys, colors, opacities) {
+    var i;
+    var obj = new SFNode(type == 'radial' ? 'RadialGradient' : 'LinearGradient');
+    for (i = 0; i < keys.length; i++) {
+        obj.key[i] = keys[i];
+    }
+    for (i = 0; i < colors.length / 3; i++) {
+        obj.keyValue[i] = new SFColor(colors[3 * i], colors[3 * i + 1], colors[3 * i + 2]);
+        if (arguments.length == 4) {
+            obj.opacity[i] = opacities[i];
+        }
+    }
+    if (type == 'vertical') {
+        obj.endPoint.x = 0;
+        obj.endPoint.y = 1;
+    }
+    return obj;
+}
+
+//static
+function gw_new_fontstyle(size, align) {
     var fs = new SFNode('FontStyle');
     fs.size = size;
+    fs.family[0] = gwskin.default_font_family;
     switch (align) {
-    case 0:
-     fs.justify[0] = 'BEGIN';
-     break;
-    case 1:
-     fs.justify[0] = 'MIDDLE';
-     break;
-    case 2:
-     fs.justify[0] = 'END';
-     break;
-    default:
-     fs.justify[0] = 'MIDDLE';
-     break;
+        case 0:
+            fs.justify[0] = 'BEGIN';
+            break;
+        case 1:
+            fs.justify[0] = 'MIDDLE';
+            break;
+        case 2:
+            fs.justify[0] = 'END';
+            break;
+        default:
+            fs.justify[0] = 'MIDDLE';
+            break;
     }
-    fs.justify[1] = 'FIRST';
+    fs.justify[1] = 'MIDDLE';
     return fs;
 }
 
 gw_resources_bank = [];
 
-function gw_load_resource(url)
-{
-  var new_res;
-  if (gwskin.use_resource_bank) {
-   for (var i in gw_resources_bank) {
-    if (gw_resources_bank[i].url == url) {
-      gw_resources_bank[i].nb_instances++;
-      alert('Found existing resource for url '+url);
-      return gw_resources_bank[i];
+//static
+function gw_load_resource(url, is_icon) {
+    var new_res;
+
+    if (gwskin.use_resource_bank) {
+        for (var i in gw_resources_bank) {
+            if (gw_resources_bank[i].res_url == url) {
+                gw_resources_bank[i].nb_instances++;
+                return gw_resources_bank[i];
+            }
+        }
     }
-  }
- }
-  if (gwskin.use_offscreen_icons) {
-   new_res = new SFNode('OffscreenGroup');
-   new_res.offscreen_mode = 2;
-   new_res.children[0] = new SFNode('Inline');
-   new_res.children[0].url[0] = url;
-  } else {
-   new_res = new SFNode('Inline');
-   new_res.url[0] = url;
-  }
-  new_res.nb_instances = 1;
-  if (gwskin.use_resource_bank) {
-   new_res.url = url;
-   gw_resources_bank.push(new_res);
-   alert('Created resource for url '+url + ' nb loaded resources '+gw_resources_bank.length);
-  }
-  return new_res;
-}
 
-function gw_unload_resource(res)
-{
- if (!gwskin.use_resource_bank) return;
-
- if (!res.nb_instances) return;
- res.nb_instances--;
- if (res.nb_instances) return;
- 
- for (var i in gw_resources_bank) {
-  if (gw_resources_bank[i] == res) {
-   alert('Unloading resource '+ res  + ' nb loaded resources '+gw_resources_bank.length);
-   gw_resources_bank.splice(i, 1);
-   return;
-  }
- } 
- alert('Unloading resource for url '+res.children[0].url[0] + ' not found in resource bank');
-}
-
-
-function gw_window_show_hide()
-{
- if (typeof this.timer == 'undefined') {
-   this.timer = gw_new_timer(1);
-   this.timer.set_timeout(0.25, false);
-   this.timer.on_fraction = function(val) {
-    if (!this.wnd) return;
-    if (this.wnd.visible) {
-      this.wnd.scale.x = 1-val;
-      this.wnd.scale.y = 1-val;
-      this.wnd.set_alpha( (1-val) * this.wnd.alpha);
+    if (is_icon) {
+        new_res = new SFNode('StyleGroup');
+        new_res.children[0] = new SFNode('Inline');
+        new_res.children[0].url[0] = url;
+        new_res.set_style = function (app) {
+            this.appearance = app;
+        };
+        new_res.set_style(gwskin.styles[0].normal);
     } else {
-      this.wnd.scale.x = val;
-      this.wnd.scale.y = val;
-      this.wnd.set_alpha(val * this.wnd.alpha);
+//        new_res = new SFNode('OffscreenGroup');
+//        new_res.offscreen_mode = 2;
+//        new_res.children[0] = new SFNode('Inline');
+//        new_res.children[0].url[0] = url;
+           new_res = new SFNode('Inline');
+           new_res.url[0] = url;
+
+        new_res.set_style = function () { };
     }
-   }
-   this.timer.on_active = function(val) {
-    var fun;
-    if (val || !this.wnd) return;
-    var wnd = this.wnd;
-    this.wnd = null;
-    wnd.visible = !wnd.visible;
-    wnd.scale.x = wnd.visible ? 1 : 0;
-    wnd.scale.y = wnd.visible ? 1 : 0;
-    wnd.set_alpha(wnd.alpha);
-    fun = this.call_on_end;
-    this.call_on_end = null;
-    if (fun) {
-      fun.apply(wnd);
+
+    new_res.nb_instances = 1;
+    if (gwskin.use_resource_bank) {
+        new_res.res_url = url;
+        gw_resources_bank.push(new_res);
     }
-   }
- }
- /*not done yet! This can happen when the function is called faster than the animation duration*/
- if (this.timer.wnd) return;
- 
- this.alpha = this.get_alpha();
- this.set_alpha(1.0);
- this.timer.wnd = this;
- this.timer.start(0);
- this.timer.call_on_end = null;
- if (arguments.length) {
-  this.timer.call_on_end = arguments[0];
- }
+    return new_res;
 }
 
-function gw_window_show()
-{
- if (this.visible) return;
- gw_window_show_hide.call(this);
+//static
+function gw_unload_resource(res) {
+    if (!gwskin.use_resource_bank) return;
+
+    if (!res.nb_instances) return;
+    res.nb_instances--;
+    if (res.nb_instances) return;
+
+    for (var i in gw_resources_bank) {
+        if (gw_resources_bank[i] == res) {
+            gw_resources_bank.splice(i, 1);
+            return;
+        }
+    }
+    alert('Unloading resource for url ' + res.children[0].url[0] + ' not found in resource bank');
 }
 
-function gw_window_hide()
-{
- if (!this.visible) return;
- gw_window_show_hide.apply(this, arguments);
+
+//static
+function gw_window_show_hide() {
+    if (typeof this.timer == 'undefined') {
+        this.timer = gw_new_timer(1);
+        this.timer.wnd = null;
+        this.timer.set_timeout(0.25, false);
+        this.timer.on_fraction = function (val) {
+            if (!this.wnd) return;
+            if (!this.wnd.visible) {
+                this.wnd.scale.x = 1 - val;
+                this.wnd.scale.y = 1 - val;
+                this.wnd.set_alpha((1 - val) * this.wnd.alpha);
+            } else {
+                this.wnd.scale.x = val;
+                this.wnd.scale.y = val;
+                this.wnd.set_alpha(val * this.wnd.alpha);
+            }
+        }
+        this.timer.on_active = function (val) {
+            var fun;
+            if (val || !this.wnd) return;
+            var wnd = this.wnd;
+            this.wnd = null;
+            wnd.scale.x = wnd.visible ? 1 : 0;
+            wnd.scale.y = wnd.visible ? 1 : 0;
+            wnd.set_alpha(wnd.alpha);
+            fun = this.call_on_end;
+            this.call_on_end = null;
+            if (fun) {
+                fun.apply(wnd);
+            }
+        }
+    }
+    /*not done yet! This can happen when the function is called faster than the animation duration*/
+    if (this.timer.wnd) return;
+
+    this.visible = !this.visible;
+    this.alpha = this.get_alpha();
+    this.set_alpha(1.0);
+    this.timer.wnd = this;
+    this.timer.start(0);
+    this.timer.call_on_end = null;
+    if (arguments.length) {
+        this.timer.call_on_end = arguments[0];
+    }
 }
 
-gwskin = new Object();
+//static
+function gw_window_show() {
+    if (this.visible) return;
+    gw_window_show_hide.call(this);
+}
+
+//static
+function gw_window_hide() {
+    if (!this.visible) return;
+    gw_window_show_hide.apply(this, arguments);
+}
+
+//Skin definition
+var gwskin = new Object();
 gwskin.back_color = new SFColor(0.2, 0.2, 0.2);
 gwskin.pointing_device = true;
 gwskin.long_click_delay = 0.5;
-gwskin.double_click_delay = 0.5;
 gwskin.use_resource_bank = false;
-gwskin.use_offscreen_icons = false;
-gwskin.default_icon_size = 32;
+gwskin.default_window_alpha = 0.8;
+gwskin.default_message_timeout = 2.0;
+
 gwskin.appearance_transparent = gw_new_appearance(0, 0, 0);
 gwskin.appearance_transparent.material.transparency = 1;
 gwskin.appearance_transparent.skin = true;
 
 gwskin.tooltip_callback = null;
 
-gwskin.default_text_size = 18;
+gwskin.default_label_font_size = 14;
+gwskin.default_text_font_size = 14;
 
-gwskin.control = new Object();
-gwskin.control.normal = gw_new_appearance(0.6, 0.6, 0.6);
-gwskin.control.normal.skin = true;
+gwskin.default_font_family = 'SANS';
+gwskin.default_icon_text_spacing = 6;
+gwskin.default_control_height = 48;
+gwskin.default_icon_height = 24;
+
+
+//create styles
+gwskin.styles = [];
+var s = { name: 'default' };
+gwskin.styles.push(s);
+
+s.normal = gw_new_appearance(0.4, 0.6, 1);
+s.normal.texture = gw_make_gradient('vertical', [0, 1], [0.0, 0.2, 0.4, 0.0, 0.4, 0.6]);
+s.normal.skin = true;
 if (gwskin.pointing_device) {
- gwskin.control.over = gw_new_appearance(0.7, 0.7, 0.8);
- gwskin.control.over.material.transparency = 0.5;
- gwskin.control.over.skin = true;
+    s.over = gw_new_appearance(0.0, 1.0, 1);
+    s.over.texture = gw_make_gradient('vertical', [0, 1], [0.0, 0.2, 0.4, 0.0, 0.8, 1]);
+    s.over.skin = true;
 } else {
- gwskin.control.over = null;
+    s.over = null;
 }
-
-gwskin.button = new Object();
-gwskin.button.width = 48;
-gwskin.button.height = 48;
-gwskin.button.font_size = 12;
-gwskin.button.normal = gw_new_appearance(0.7, 0.7, 0.8);
-gwskin.button.normal.skin = true;
-if (gwskin.pointing_device) {
- gwskin.button.over = gw_new_appearance(0.7, 0.7, 0.8);
- gwskin.button.over.material.transparency = 0.4;
- gwskin.button.over.skin = true;
-} else {
- gwskin.button.over = null;
-}
-gwskin.button.down = gw_new_appearance(0.3, 0.3, 0.4);
-gwskin.button.down.material.transparency = 0.3;
-gwskin.button.down.skin = true;
-gwskin.button.text = gw_new_appearance(0, 0, 0);
-gwskin.button.text.skin = true;
-gwskin.button.font = gw_new_fontstyle(gwskin.button.font_size, 1);
-gwskin.button.font.skin = true;
+s.down = gw_new_appearance(0, 0, 1);
+s.down.texture = gw_make_gradient('vertical', [0, 1], [0.0, 0.2, 0.4, 0.0, 1, 1]);
+s.down.skin = true;
+s.text = gw_new_appearance(1, 1, 1);
+s.text.skin = true;
+s.font = gw_new_fontstyle(gwskin.default_label_font_size, 1);
+s.font.skin = true;
 
 
-gwskin.osdbutton = new Object();
-gwskin.osdbutton.width = 48;
-gwskin.osdbutton.height = 48;
-gwskin.osdbutton.font_size = 12;
-gwskin.osdbutton.normal = gw_new_appearance(0.7, 0.7, 0.8);
-gwskin.osdbutton.normal.skin = true;
-if (gwskin.pointing_device) {
- gwskin.osdbutton.over = gw_new_appearance(0.7, 0.7, 0.8);
- gwskin.osdbutton.over.material.transparency = 0.4;
- gwskin.osdbutton.over.skin = true;
-} else {
- gwskin.button.over = null;
-}
-gwskin.osdbutton.down = gw_new_appearance(0.3, 0.3, 0.4);
-gwskin.osdbutton.down.material.transparency = 0.3;
-gwskin.osdbutton.down.skin = true;
-gwskin.osdbutton.text = gw_new_appearance(1, 1, 1);
-gwskin.osdbutton.text.skin = true;
-gwskin.osdbutton.font = gw_new_fontstyle(gwskin.button.font_size, 1);
-gwskin.osdbutton.font.skin = true;
+//overrite style for button to have its own text color
+var s = { name: 'button' };
+gwskin.styles.push(s);
+s.text = gw_new_appearance(1, 1, 1);
+s.text.skin = true;
 
-gwskin.listitem = new Object();
-gwskin.listitem.width = 48;
-gwskin.listitem.height = 48;
-gwskin.listitem.font_size = 12;
-gwskin.listitem.normal = gwskin.button.normal;
-gwskin.listitem.over = gwskin.button.over;
-gwskin.listitem.down = gwskin.button.down;
-gwskin.listitem.text = gwskin.button.text;
-gwskin.listitem.font = gw_new_fontstyle(gwskin.listitem.font_size, 0);
-gwskin.listitem.font.skin = true;
+//override style for checkbox to have text alignment to 'begin'
+s = { name: 'checkbox' };
+gwskin.styles.push(s);
+s.font = gw_new_fontstyle(gwskin.default_label_font_size, 0);
+s.font.skin = true;
+s.over = gw_new_appearance(0.0, 1.0, 1);
+s.over.texture = gw_make_gradient('vertical', [0, 1], [0.0, 0.2, 0.4, 0.0, 0.8, 1]);
+s.over.material.lineProps = gw_new_lineprops(0.0, 0.8, 1);
+s.over.skin = true;
 
-gwskin.label = new Object();
-gwskin.label.font_size = 18;
-gwskin.label.text = gw_new_appearance(0, 0, 0);
-gwskin.label.text.skin = true;
-gwskin.label.font = gw_new_fontstyle(gwskin.label.font_size, 1);
-gwskin.label.font.skin = true;
+//override style for icon to have no text not fonts
+s = { name: 'icon' };
+gwskin.styles.push(s);
+s.text = null;
+s.font = null;
 
-gwskin.text = new Object();
-gwskin.text.font_size = 14;
-gwskin.text.text = gw_new_appearance(0, 0, 0);
-gwskin.text.text.skin = true;
-gwskin.text.font = gw_new_fontstyle(gwskin.text.font_size, 0);
-gwskin.text.font.skin = true;
+//override listitems to have text alignment to 'begin'
+s = { name: 'listitem' };
+gwskin.styles.push(s);
+s.font = gw_new_fontstyle(gwskin.default_label_font_size, 0);
+s.font.skin = true;
 
+s = { name: 'edit' };
+gwskin.styles.push(s);
+s.normal = gw_new_appearance(1, 1, 1);
+s.normal.texture = gw_make_gradient('vertical', [0, 1], [0.0, 0.2, 0.4, 0.0, 0.8, 1]);
+s.over = gw_new_appearance(1, 1, 1);
+s.over.texture = gw_make_gradient('vertical', [0, 1], [0.0, 0.2, 0.4, 0.0, 0.8, 1]);
+s.over.material.lineProps = gw_new_lineprops(0.0, 0.8, 1);
+s.text = gw_new_appearance(0, 0, 0);
+s.text.skin = true;
+s.font = gw_new_fontstyle(gwskin.default_text_font_size, 0);
+s.font.style += ' SIMPLE_EDIT';
+s.font.skin = true;
 
-gwskin.edit = new Object();
-gwskin.edit.normal = gw_new_appearance(1, 1, 1);
-gwskin.edit.font_size = 18;
-gwskin.edit.text = gwskin.label.text;
-gwskin.edit.font = gw_new_fontstyle(gwskin.edit.font_size, 0);
-gwskin.edit.font.style += ' SIMPLE_EDIT';
-gwskin.edit.font.skin = true;
+s = { name: 'window' };
+gwskin.styles.push(s);
+s.normal = gw_new_appearance(0.6, 0.6, 0.6);
+s.normal.texture = gw_make_gradient('vertical', [0, 0.05, 0.95, 1], [0.6, 0.6, 0.6, 0, 0, 0, 0, 0, 0, 0.6, 0.6, 0.6]);
+s.normal.skin = true;
+//override font to have middle alignment
+s.font = gw_new_fontstyle(gwskin.default_label_font_size, 1);
+s.font.skin = true;
+s.hide = gw_window_hide;
+s.show = gw_window_show;
 
-gwskin.window = new Object();
-gwskin.window.font_size = 14;
-gwskin.window.width = 320;
-gwskin.window.height = 240;
-gwskin.window.normal = gw_new_appearance(0.6, 0.6, 0.6);
-//gwskin.window.normal.texture = gw_make_gradient('vertical', [0, 0.85, 1], [0.6, 0.6, 0.6, 1, 1, 1, 0.6, 0.6, 0.6]);
-gwskin.window.normal.skin = true;
-gwskin.window.text = gwskin.label.text;
-gwskin.window.font = gw_new_fontstyle(gwskin.window.font_size, 1);
-gwskin.window.font.skin = true;
-gwskin.window.hide = gw_window_hide;
-gwskin.window.show = gw_window_show;
-
-gwskin.offscreen = new Object();
-gwskin.offscreen.font_size = 14;
-gwskin.offscreen.width = 100;
-gwskin.offscreen.height = 100;
-gwskin.offscreen.normal = gwskin.appearance_transparent;
-gwskin.offscreen.hide = gwskin.window.hide;
-gwskin.offscreen.show = gwskin.window.show;
+s = { name: 'progress' };
+gwskin.styles.push(s);
+s.normal = gw_new_appearance(0.6, 0.6, 0.6);
+s.normal.texture = gw_make_gradient('vertical', [0, 0.5, 1], [0.0, 0.4, 0.6, 0, 0, 0, 0.0, 0.4, 0.6]);
+s.normal.skin = true;
+s.over = gw_new_appearance(0.7, 0.7, 0.8);
+s.over.texture = gw_make_gradient('vertical', [0, 0.5, 1], [0.0, 1, 1, 0, 0.2, 0.4, 0.0, 1, 1]);
+s.over.skin = true;
+s.down = gw_new_appearance(0.7, 0.7, 0.8);
+s.down.texture = gw_make_gradient('vertical', [0, 0.5, 1], [0.8, 1, 1, 0, 0.4, 0.6, 0.8, 1, 1]);
+s.down.skin = true;
+//for gauge
+s.text = gw_new_appearance(1, 1, 1);
+s.text.skin = true;
+s.font = gw_new_fontstyle(gwskin.default_label_font_size, 0);
+s.font.skin = true;
 
 
-gwskin.osdwindow = new Object();
-gwskin.osdwindow.font_size = 14;
-gwskin.osdwindow.width = 320;
-gwskin.osdwindow.height = 240;
-gwskin.osdwindow.normal = gw_new_appearance(0.6, 0.6, 0.6);
-gwskin.osdwindow.normal.texture = gw_make_gradient('vertical', [0, 0.15, 0.85, 1], [0.6, 0.6, 0.6, 0, 0, 0, 0, 0, 0, 0.6, 0.6, 0.6]);
-gwskin.osdwindow.normal.skin = true;
-gwskin.osdwindow.text =  gw_new_appearance(1, 1, 1);
-gwskin.osdwindow.text.skin = true;
-gwskin.osdwindow.font = gw_new_fontstyle(gwskin.osdwindow.font_size, 1);
-gwskin.osdwindow.font.justify[1] = 'MIDDLE';
-gwskin.osdwindow.font.skin = true;
-gwskin.osdwindow.hide = gw_window_hide;
-gwskin.osdwindow.show = gw_window_show;
-gwskin.osdwindow.over = gwskin.button.over;
-gwskin.osdwindow.down = gwskin.button.down;
+s = { name: 'plot' };
+gwskin.styles.push(s);
+s.normal = gw_new_appearance(0.9, 0.9, 0.9);
+s.normal.skin = true;
+s.text = gw_new_appearance(0, 0, 0);
+s.text.skin = true;
+s.font = gw_new_fontstyle(gwskin.default_text_font_size, 0);
+s.font.skin = true;
 
-gwskin.progress = new Object();
-gwskin.progress.width = 200;
-gwskin.progress.height = 48;
-gwskin.progress.normal = gw_new_appearance(0.6, 0.6, 0.6);
-gwskin.progress.normal.texture = gw_make_gradient('vertical', [0, 0.5, 1], [0.6, 0.6, 0.6, 0, 0, 0, 0.6, 0.6, 0.6]);
-gwskin.progress.normal.skin = true;
-gwskin.progress.over = gw_new_appearance(0.7, 0.7, 0.8);
-gwskin.progress.over.texture = gw_make_gradient('vertical', [0, 0.5, 1], [0.6, 0.6, 0.6, 0, 0, 1, 0.6, 0.6, 0.6]);
-gwskin.progress.over.skin = true;
-gwskin.progress.down = gw_new_appearance(0.7, 0.7, 0.8);
-gwskin.progress.down.texture = gw_make_gradient('vertical', [0, 0.5, 1], [0.6, 0.6, 0.6, 1, 1, 1, 0.6, 0.6, 0.6]);
-gwskin.progress.down.skin = true;
-gwskin.progress.text = null;
-gwskin.progress.font = null;
 
-gwskin.icon = new Object();
-gwskin.icon.normal = gwskin.button.normal;
-gwskin.icon.over = gwskin.button.over;
-gwskin.icon.down = gwskin.button.down;
-gwskin.icon.text = null;
-gwskin.icon.font = null;
-gwskin.icon.width = 32;
-gwskin.icon.height = 32;
+s = { name: 'text' };
+gwskin.styles.push(s);
+s.font = gw_new_fontstyle(gwskin.default_text_font_size, 0);
+s.font.justify[1] = 'END';
+s.font.skin = true;
+
+s = { name: 'lefttext' };
+gwskin.styles.push(s);
+s.font = gw_new_fontstyle(gwskin.default_text_font_size, 0);
+s.font.skin = true;
+
+s = { name: 'righttext' };
+gwskin.styles.push(s);
+s.font = gw_new_fontstyle(gwskin.default_text_font_size, 0);
+s.font.skin = true;
 
 gwskin.images = new Object();
-gwskin.images.cancel = 'icons/emblem-unreadable.svg';
-gwskin.images.previous = 'icons/go-previous.svg';
-gwskin.images.next = 'icons/go-next.svg';
-gwskin.images.up = 'icons/go-up.svg';
-gwskin.images.scan_directory = 'icons/emblem-symbolic-link.svg';
-gwskin.images.folder = 'icons/folder.svg';
-gwskin.images.mime_generic = 'icons/applications-multimedia.svg';
-gwskin.images.trash = 'icons/user-trash.svg';
-gwskin.images.add = 'icons/list-add.svg';
-gwskin.images.remove = 'icons/list-remove.svg';
-gwskin.images.remote_display = 'icons/video-display.svg';
-gwskin.images.information = 'icons/dialog-information.svg';
-gwskin.images.resize = 'icons/media-record.svg';
-
 gwskin.labels = new Object();
-gwskin.labels.file_open = 'Open';
-gwskin.labels.close = 'Close';
-gwskin.labels.cancel = 'Cancel';
-gwskin.labels.up = 'Up';
-gwskin.labels.down = 'Down';
-gwskin.labels.left = 'Left';
-gwskin.labels.right = 'Right';
-gwskin.labels.scan_directory = 'Select directory';
-gwskin.labels.previous = 'Previous';
-gwskin.labels.next = 'Next';
+
+gwskin.images.trash = 'icons/trash.svg';
 gwskin.labels.trash = 'Delete';
-gwskin.labels.remote_display = 'Push to';
+gwskin.images.add = 'icons/add.svg';
+gwskin.labels.add = 'Add';
+gwskin.images.remove = 'icons/remove.svg';
+gwskin.labels.remove = 'Remove';
+gwskin.images.remote_display = 'icons/monitor.svg';
+gwskin.labels.remote_display = 'Push to remote device';
+gwskin.images.information = 'icons/info.svg';
 gwskin.labels.information = 'Information';
+gwskin.images.resize = 'icons/resize.svg';
 gwskin.labels.resize = 'Resize';
+gwskin.images.cancel = 'icons/cross.svg';
+gwskin.labels.cancel = 'Cancel';
+gwskin.images.previous = 'icons/previous.svg';
+gwskin.labels.previous = 'Previous';
+gwskin.images.next = 'icons/next.svg';
+gwskin.labels.next = 'Next';
+gwskin.images.left = 'icons/left.svg';
+gwskin.labels.left = 'Left';
+gwskin.images.right = 'icons/right.svg';
+gwskin.labels.right = 'Right';
+gwskin.images.up = 'icons/up.svg';
+gwskin.labels.next = 'Up';
+gwskin.images.down = 'icons/down.svg';
+gwskin.labels.down = 'Down';
+gwskin.images.scan_directory = 'icons/overflowing.svg';
+gwskin.labels.scan_directory = 'Select directory';
+gwskin.images.history = 'icons/overflowing.svg';
+gwskin.labels.history = 'Select directory';
+gwskin.images.media_next = 'icons/media_next.svg';
+gwskin.labels.media_next = 'Next Item';
+gwskin.images.media_prev = 'icons/media_prev.svg';
+gwskin.labels.media_prev = 'Previous Clip';
+gwskin.images.seek_forward = 'icons/seek_forward.svg';
+gwskin.labels.seek_forward = 'Fast Forward';
+gwskin.images.rewind = 'icons/seek_forward.svg';
+gwskin.labels.rewind = 'Rewind';
+gwskin.images.folder = 'icons/folder.svg';
+gwskin.labels.folder = 'Directory';
+gwskin.images.check = 'icons/check.svg';
+gwskin.labels.check = 'Check';
+gwskin.images.drive = 'icons/harddrive.svg';
+gwskin.labels.drive = 'Storage Drive';
+gwskin.images.device = 'icons/laptop.svg';
+gwskin.labels.device = 'Device';
+gwskin.images.home = 'icons/home.svg';
+gwskin.labels.home = 'Home';
+gwskin.images.favorite = 'icons/heart.svg';
+gwskin.labels.favorite = 'Favorites';
+gwskin.images.audio = 'icons/audio.svg';
+gwskin.labels.audio = 'Audio On';
+gwskin.images.audio_mute = 'icons/audio_mute.svg';
+gwskin.labels.audio_mute = 'Audio Mute';
+gwskin.images.play = 'icons/play.svg';
+gwskin.labels.play = 'Play';
+gwskin.images.pause = 'icons/pause.svg';
+gwskin.labels.pause = 'Pause';
+gwskin.images.stop = 'icons/stop2.svg';
+gwskin.labels.stop = 'Stop';
+gwskin.images.fullscreen = 'icons/expand.svg';
+gwskin.labels.fullscreen = 'Fullscreen';
+gwskin.images.play_once = 'icons/play_single.svg';
+gwskin.labels.play_once = 'Play once';
+gwskin.images.play_loop = 'icons/play_loop.svg';
+gwskin.labels.play_loop = 'Loop';
+gwskin.images.play_shuffle = 'icons/play_shuffle.svg';
+gwskin.labels.play_shuffle = 'Shuffle';
+gwskin.images.navigation = 'icons/navigation.svg';
+gwskin.labels.navigation = 'Navigation';
+gwskin.images.network = 'icons/network.svg';
+gwskin.labels.network = 'Network';
+gwskin.images.file_open = 'icons/tray.svg';
+gwskin.labels.file_open = 'Open';
+gwskin.images.exit = 'icons/power.svg';
+gwskin.labels.exit = 'Exit';
+gwskin.images.remote_location = 'icons/world.svg';
+gwskin.labels.remote_location = 'Enter URL';
+gwskin.images.statistics = 'icons/speed.svg';
+gwskin.labels.statistics = 'Statistics';
+gwskin.images.live = 'icons/live.svg';
+gwskin.labels.live = 'Back to live';
+
+
+gwskin.mime_video_default_ext = " mp4 mp4s m4s 3gp 3gpp m2ts ts trp m3u8 mpd avi mov ";
+gwskin.mime_audio_default_ext = " m4a mp3 aac wav ";
+gwskin.mime_image_default_ext = " jpg jpeg png ";
+gwskin.mime_model_default_ext = " bt xmt svg ";
+
+gwskin.images.mime_video = 'icons/film.svg';
+gwskin.images.mime_audio = 'icons/musical.svg';
+gwskin.images.mime_model = 'icons/app.svg';
+gwskin.images.mime_generic = 'icons/file.svg';
+gwskin.images.mime_image = 'icons/image.svg';
+
+
 
 gwskin.keys = new Object();
-gwskin.keys.close = 'Enter';
+gwskin.keys.close = 'U+0008';
+gwskin.keys.validate = 'Enter';
 
+gwskin.last_hitable_obj = null;
 
-function gw_add_child(container, child)
+//static
+function gwskin_set_white_blue()
 {
- if (container ==null) return;
- if (typeof (container.add_child) != 'undefined') {
-  container.add_child(child);
- } else {
-  container.children[container.children.length] = child;
- }
- child.parent = container;
+	var s = gwskin.get_class('default');
+
+ 	//s.normal.texture.keyValue = [0.0, 0.2, 0.4, 0.0, 0.4, 0.6];
+	//if (s.over && s.over.texture) s.over.texture.keyValue = [0.0, 0.2, 0.4, 0.0, 0.8, 1];
+	//s.down.texture.keyValue = [0.0, 0.2, 0.4, 0.0, 1, 1];
+
+	s.text.material.emissiveColor = new SFColor(0, 0, 0);
+
+	//override style for checkbox to have text alignment to 'begin'
+	s = gwskin.get_class('checkbox');
+//	s.over.texture.keyValue = [0.0, 0.2, 0.4, 0.0, 0.8, 1];
+
+	s = gwskin.get_class('edit');
+//	s.normal.texture.keyValue = [0.0, 0.2, 0.4, 0.0, 0.8, 1];
+//	s.over.texture.keyValue = [0.0, 0.2, 0.4, 0.0, 0.8, 1];
+	s.over.material.lineProps.lineColor = new SFColor(0.0, 0.8, 1);
+	s.text.material.emissiveColor = new SFColor(0, 0, 0);
+
+	s = gwskin.get_class('window');
+//	s.normal.texture.keyValue = [0.6, 0.6, 0.6, 0, 0, 0, 0, 0, 0, 0.6, 0.6, 0.6];
+	s.normal.texture.keyValue[1] = new SFColor(1, 1, 1);
+	s.normal.texture.keyValue[2] = new SFColor(1, 1, 1);
+
+	s = gwskin.get_class('progress');
+//	s.normal.texture.keyValue = [0.0, 0.4, 0.6, 0, 0, 0, 0.0, 0.4, 0.6];
+//	s.normal.texture.keyValue[1] = new SFColor(1, 1, 1);
+//	s.over.texture.keyValue = [0.0, 1, 1, 0, 0.2, 0.4, 0.0, 1, 1];
+//	s.over.texture.keyValue[1] = new SFColor(0.4, 0.8, 1);
+//	s.down.texture.keyValue = [0.0, 0.4, 0.6, 0, 0.2, 0.4, 0.0, 0.4, 0.6];
+//	s.down.texture.keyValue[1] = new SFColor(0.4, 0.8, 1);
+	s.text.material.emissiveColor = new SFColor(1, 1, 1);
+
 }
 
-function gw_detach_child(child)
-{
- /*detach all default routes*/
- Browser.deleteRoute(child, 'ALL', null, null); 
- if (typeof (child._ps2d_idx) != 'undefined') {
-  Browser.deleteRoute(child.children[child._ps2d_idx], 'ALL', null, null); 
- }
- if (typeof (child._ts_idx) != 'undefined') {
-  Browser.deleteRoute(child.children[child._ts_idx], 'ALL', null, null); 
- }
- if (typeof (child.dlg) != 'undefined') child.dlg = null;
- if (typeof (child.parent) == 'undefined') return;
 
- var p = child.parent;
- child.parent = null;
- if (typeof (p.remove_child) != 'undefined') {
-  p.remove_child(child);
- } else {
-  p.removeChildren[0] = child;
- }
+function gwskin_set_default_control_height(value) {
+    gwskin.default_control_height = value;
 }
 
-function gw_close_child_list(list)
-{
-  var count = list.length;
- if (!count) return;
- for (var i=0;i<count; i++) {
-  var child = list[i];
-  if (typeof child.close != 'undefined') child.close();
-  else gw_detach_child(child);
-    
-  if (list.length < count) {
-   i-= (count - list.length);
-   count = list.length;
-  }
- }
+function gwskin_set_default_icon_height(value) {
+    gwskin.default_icon_height = value;
+    for (var i = 0; i < gwskin.styles.length; i++) {
+        if ((typeof gwskin.styles[i].font != 'undefined') && gwskin.styles[i].font) {
+            gwskin.styles[i].font.size = (value > 10) ? value - 10 : 1;
+        }
+    }
 }
 
-gwskin.get_style = function(class_name, style_name)
-{
- if (arguments.length==1) style_name = 'normal';
- if (style_name=='invisible') return gwskin.appearance_transparent;
- 
- if (class_name=='null') return null;
- if (class_name=='self') return gw_new_appearance(0.6, 0.6, 0.6);
- if (typeof gwskin[class_name] == 'undefined') {
-  alert('Unknown class name ' + class_name);
-  return null;
- }
- if (typeof gwskin[class_name][style_name] != 'undefined') 
-  return gwskin[class_name][style_name];
-  
- alert('Unknown style '+style_name + ' in class ' + class_name);
- return null;
+
+//static
+function gwlib_filter_event(evt) {
+    if (gw_ui_top_wnd && gw_ui_top_wnd.on_event(evt)) return true;
+
+    if ((evt.type == GF_EVENT_KEYDOWN) && ((evt.keycode == 'Up') || (evt.keycode == 'Down') || (evt.keycode == 'Right') || (evt.keycode == 'Left')))
+        return false;
+
+    for (var i = 0; i < gw_event_filters.length; i++) {
+        if (gw_event_filters[i](evt)) return true;
+    }
+    return false;
 }
 
-gwskin.get_font = function(class_name)
-{
- if (class_name=='null') return null;
- if (class_name=='self') return gw_new_fontstyle(gwskin.default_text_size, 1);
+function gwlib_init(root_node) {
+    gw_ui_root = gw_new_container();
+    gw_ui_root._name = 'Root Display';
+    gw_add_child(root_node, gw_ui_root);
 
- if (typeof gwskin[class_name] == 'undefined') {
-  alert('Unknown class name ' + class_name);
-  return null;
- }
- if (typeof gwskin[class_name].font != 'undefined') 
-  return gwskin[class_name].font;
-  
- alert('No font style in class ' + class_name);
- return null;
+    gw_ui_root.add_child = function (child) {
+        this.children[this.children.length] = child;
+        gw_ui_top_wnd = null;
+        if (typeof child.on_event != 'undefined') {
+            gw_ui_top_wnd = child;
+        }
+        gpac.set_focus(gw_ui_top_wnd);
+    }
+
+    gw_ui_root.remove_child = function (child) {
+        gw_ui_top_wnd = null;
+        for (var i = this.children.length; i > 0; i--) {
+            var c = this.children[i - 1];
+            if (c == child) continue;
+            if (typeof c.on_event != 'undefined') {
+                gw_ui_top_wnd = c;
+                break;
+            }
+        }
+        this.removeChildren[0] = child;
+        gpac.set_focus(gw_ui_top_wnd);
+    }
+    gw_ui_top_wnd = null;
+    gw_event_filters = [];
+
+    gpac.set_event_filter(gwlib_filter_event);
+    gwskin.has_opengl = (gpac.get_option('Compositor', 'OpenGLMode') != 'disable') ? true : false;
+
+    gwskin.browser_mode = (gpac.getOption('Temp', 'BrowserMode') == 'yes') ? true : false;
+
+    gpac.focus_highlight = false;
+
+    gwskin.disable_transparency = false;
+    //remove window gradients 
+    if (!gwskin.has_opengl) {
+        s = gwskin.get_style('window', 'normal');
+        s.texture = null;
+        gwskin.disable_transparency = true;
+        gwskin.default_window_alpha = 1;
+    }
+
+	gwskin_set_white_blue();
+
+    //very basic JSON replacement for serializing simple arrays and objects
+    if (typeof JSON == 'undefined') {
+        JSON = {};
+
+        JSON._to_string = function (obj) {
+            var res = '';
+            if (obj instanceof Array) {
+                res = '[';
+                for (var i = 0; i < obj.length; i++) {
+                    if (i) res += ', ';
+                    res += JSON._to_string(obj[i]);
+                }
+                res += ']';
+            } else {
+                var first = true;
+                res = '{';
+                for (var prop in obj) {
+                    if (!first) res += ', ';
+                    res += '' + prop;
+                    res += ': ';
+                    if (typeof obj[prop] == 'string') {
+                        res += '"';
+                        res += obj[prop];
+                        res += '"';
+                    } else if (typeof obj[prop] == 'function') {
+                    } else if (typeof obj[prop] == 'object') {
+                        res += JSON._to_string(obj[prop]);
+                    } else {
+                        res += obj[prop];
+                    }
+                    first = false;
+                }
+                res += '}';
+            }
+            return res;
+        }
+
+        JSON.stringify = function (obj) {
+            return this._to_string(obj);
+        }
+        JSON.parse = function (serial_obj) {
+            return eval(serial_obj);
+        }
+    }
 }
 
-function gw_new_container()
-{
-  var obj = new SFNode('Transform2D');
-  setup_gw_object(obj, 'Container');
-  obj.push_to_top = function(wnd) {
-   this.removeChildren[0] = wnd;
-   this.addChildren[0] = wnd;
-  }
-  return obj;
-}
-  
-
-function gw_new_rectangle(class_name, style)
-{
-  var obj = new SFNode('Transform2D');
-  setup_gw_object(obj, 'Rectangle');
-  var shape = new SFNode('Shape');
-  obj.children[0] = shape;
-  if (arguments.length==1) style='normal';
-
-  shape.appearance = gwskin.get_style(class_name, style);
- 
-  if (shape.appearance && (typeof (shape.appearance.skin) == 'undefined')) {
-   obj.set_alpha = function(alpha) {
-    this.children[0].appearance.material.transparency = 1-alpha;
-   }
-   obj.get_alpha = function() {
-    return 1 - this.children[0].appearance.material.transparency;
-   } 
-   obj.set_fill_color = function(r, g, b) {
-    this.children[0].appearance.material.emissiveColor.r = r;
-    this.children[0].appearance.material.emissiveColor.g = g;
-    this.children[0].appearance.material.emissiveColor.b = b;
-   }
-   obj.set_strike_color = function(r, g, b) {
-    if (!this.children[0].appearance.material.lineProps) this.children[0].appearance.material.lineProps = new SFNode('LineProperties');
-    this.children[0].appearance.material.lineProps.lineColor.r = r;
-    this.children[0].appearance.material.lineProps.lineColor.g = g;
-    this.children[0].appearance.material.lineProps.lineColor.b = b;
-   }
-   obj.set_line_width = function(width) {
-    if (!this.children[0].appearance.material.lineProps) this.children[0].appearance.material.lineProps = new SFNode('LineProperties');
-    this.children[0].appearance.material.lineProps.width = width;
-   }
-  } else {
-   obj.set_alpha = function(alpha) {}
-   obj.set_fill_color = function(r, g, b) {}
-   obj.set_strike_color = function(r, g, b) {}
-   obj.set_line_width = function(width) {}
-   obj.get_alpha = function() { return 1; }
-  }
-  
-  obj.set_style = function(classname, style) {
-   var app = gwskin.get_style(classname, style);
-   if (app) this.children[0].appearance = app;
-  }
-
-
-  shape.geometry = new SFNode('Curve2D');
-  shape.geometry.point = new SFNode('Coordinate2D');
-
-  obj.corner_tl = true;
-  obj.corner_tr = true;
-  obj.corner_bl = true;
-  obj.corner_br = true;
-  obj.set_corners = function(tl, tr, br, bl) {
-    this.corner_tl = tl;
-    this.corner_tr = tr;
-    this.corner_bl = bl;
-    this.corner_br = br;
-  }
-
-  obj.set_size = function(w, h) {
-   var hw, hh, rx_bl, ry_bl, rx_br, ry_br, rx_tl, ry_tl, rx_tr, ry_tr, rx, ry;
-   var temp;
-   hw = w/2;
-   hh = h/2;
-   this.width = w;
-   this.height = h;
-  temp = this.children[0].geometry.type;
-  temp[0] = 7;
-  temp[1] = 1;
-  temp[2] = 7;
-  temp[3] = 1;
-  temp[4] = 7;
-  temp[5] = 1;
-  temp[6] = 7;
-  temp[7] = 6;/*close*/
-
-   /*compute default rx/ry*/   
-   ry = rx = 10;
-   if (rx>=hw) rx=hw;
-   if (ry>=hh) ry=hh;
-   rx_bl = rx_br = rx_tl = rx_tr = rx;
-   ry_bl = ry_br = ry_tl = ry_tr = ry;
-   if (!this.corner_tl) rx_tl = ry_tl = 0;
-   if (!this.corner_tr) rx_tr = ry_tr = 0;
-   if (!this.corner_bl) rx_bl = ry_bl = 0;
-   if (!this.corner_br) rx_br = ry_br = 0;
-
-   temp = this.children[0].geometry.point.point;
-   temp[0] = new SFVec2f(hw-rx_tr, hh);
-   temp[1] = new SFVec2f(hw, hh);/*bezier ctrl point or line-to*/
-   temp[2] = new SFVec2f(hw, hh-ry_tr);
-   temp[3] = new SFVec2f(hw, -hh+ry_br);
-   temp[4] = new SFVec2f(hw, -hh);/*bezier control point*/
-   temp[5] = new SFVec2f(hw-rx_br, -hh);
-   temp[6] = new SFVec2f(-hw+rx_bl, -hh);
-   temp[7] = new SFVec2f(-hw, -hh);/*bezier control point*/
-   temp[8] = new SFVec2f(-hw, -hh+ry_bl);
-   temp[9] = new SFVec2f(-hw, hh-ry_tl);
-   temp[10] = new SFVec2f(-hw, hh);/*bezier control point*/
-   temp[11] = new SFVec2f(-hw+rx_tl, hh);
-  }
-  return obj;
+function gwlib_add_event_filter(evt_filter) {
+    gw_event_filters.push(evt_filter);
 }
 
-function gw_new_text(parent, label, class_name)
+function gwlib_remove_event_filter(evt_filter) {
+    var idx = gw_event_filters.indexOf(evt_filter);
+    if (idx > -1) gw_event_filters.splice(idx, 1);
+}
+
+function gwlib_notify_display_size(width, height) {
+    for (var i = 0; i < gw_ui_root.children.length; i++) {
+        if (typeof gw_ui_root.children[i].on_display_size != 'undefined') {
+            gw_ui_root.children[i].on_display_size(width, height);
+        }
+    }
+}
+
+function gwlib_refresh_layout() {
+    for (var i = 0; i < gw_ui_root.children.length; i++) {
+        if (typeof gw_ui_root.children[i].layout != 'undefined') {
+            gw_ui_root.children[i].layout(gw_ui_root.children[i].width, gw_ui_root.children[i].height);
+        }
+    }
+}
+
+
+//static
+function gw_reset_hit(obj, is_over) {
+    if (is_over) {
+        if (gwskin.last_hitable_obj && (gwskin.last_hitable_obj != obj)) {
+            //reset isOver value of previous touch sensor
+            if (typeof (gwskin.last_hitable_obj._ts_idx) != 'undefined') {
+                gwskin.last_hitable_obj.children[gwskin.last_hitable_obj._ts_idx].isOver = false;
+            }
+            gwskin.last_hitable_obj._on_over(false);
+        }
+        gwskin.last_hitable_obj = obj;
+    } else if (gwskin.last_hitable_obj == obj) {
+        gwskin.last_hitable_obj = null;
+    }
+}
+
+//static
+function gw_add_child(container, child) {
+    if (container == null) container = gw_ui_root;
+
+    if (typeof (container.add_child) != 'undefined') {
+        container.add_child(child);
+    } else {
+        container.children[container.children.length] = child;
+    }
+    child.parent = container;
+}
+
+//static
+function gw_detach_child(child) {
+    /*detach all default routes*/
+    Browser.deleteRoute(child, 'ALL', null, null);
+    if (typeof (child._ps2d_idx) != 'undefined') {
+        Browser.deleteRoute(child.children[child._ps2d_idx], 'ALL', null, null);
+    }
+    if (typeof (child._ts_idx) != 'undefined') {
+        Browser.deleteRoute(child.children[child._ts_idx], 'ALL', null, null);
+    }
+    if (typeof (child.dlg) != 'undefined') child.dlg = null;
+    if (typeof (child.parent) == 'undefined') return;
+
+    var p = child.parent;
+    child.parent = null;
+    if (typeof (p.remove_child) != 'undefined') {
+        p.remove_child(child);
+    } else {
+        p.removeChildren[0] = child;
+    }
+    if (gwskin.last_hitable_obj == child) gwskin.last_hitable_obj = null;
+}
+
+//static
+function gw_close_child_list(list) {
+    var count = list.length;
+    if (!count) return;
+    for (var i = 0; i < count; i++) {
+        var child = list[i];
+        if (typeof child.close != 'undefined') child.close();
+        else gw_detach_child(child);
+
+        if (list.length < count) {
+            i -= (count - list.length);
+            count = list.length;
+        }
+    }
+    //trigger GC whenever we have closed a child list
+    gpac.trigger_gc();
+}
+
+
+//static
+gwskin.get_class = function (class_name) {
+    if (arguments.length < 1) class_name = 'default';
+
+    var styles = gwskin.styles.filter(function (obj) { return obj.name == class_name; });
+    if (styles.length > 0) {
+        return styles[0];
+	}
+	return null;
+}
+
+//static
+gwskin.get_style = function (class_name, style_name) {
+    if (arguments.length < 1) class_name = 'default';
+    if (arguments.length < 2) style_name = 'normal';
+    if (style_name == 'invisible') return gwskin.appearance_transparent;
+
+    var style = null;
+    var styles = gwskin.styles.filter(function (obj) { return obj.name == class_name; });
+    if (styles.length > 0) {
+        if (typeof styles[0][style_name] != 'undefined')
+            return styles[0][style_name];
+    } else {
+        alert('Non-existing class ' + class_name);
+    }
+
+    style = gwskin.styles[0];
+    if (typeof style[style_name] != 'undefined')
+        return style[style_name];
+
+    alert('Non-existing style ' + style_name + ' in default class');
+    return null;
+}
+
+//static
+gwskin.get_font = function (class_name) {
+    if (arguments.length < 1) class_name = 'default';
+
+    var styles = gwskin.styles.filter(function (obj) { return obj.name == class_name; });
+    if (styles.length > 0) {
+        if (typeof styles[0].font != 'undefined') {
+            return styles[0].font;
+        }
+    } else {
+        alert('Non-existing class ' + class_name);
+    }
+    return gwskin.styles[0].font;
+}
+
+function gw_new_container() {
+    var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'Container');
+    obj.push_to_top = function (wnd) {
+        this.removeChildren[0] = wnd;
+        this.addChildren[0] = wnd;
+    }
+    return obj;
+}
+
+function gw_new_curve2d(class_name) 
 {
     var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'Curve2D');
+    var shape = new SFNode('Shape');
+    obj.children[0] = shape;
+    shape.appearance = gw_new_appearance(0, 0, 0);
+    obj.children[0].appearance.material.filled = false;
+    obj.children[0].appearance.material.lineProps = new SFNode('LineProperties');
+
+    obj.set_color = function (r, g, b) {
+        this.children[0].appearance.material.lineProps.lineColor.r = r;
+        this.children[0].appearance.material.lineProps.lineColor.g = g;
+        this.children[0].appearance.material.lineProps.lineColor.b = b;
+    }
+    obj.set_line_width = function (width) {
+        if (!this.children[0].appearance.material.lineProps) this.children[0].appearance.material.lineProps = new SFNode('LineProperties');
+        this.children[0].appearance.material.lineProps.width = width;
+    }
+    shape.geometry = new SFNode('Curve2D');
+    shape.geometry.point = new SFNode('Coordinate2D');
+
+    obj.reset = function () {
+        this.children[0].geometry.point.point.length = 0;
+        this.children[0].geometry.type.length = 0;
+    }
+    obj._add_coord = function (x, y) {
+        var pts = this.children[0].geometry.point.point;
+        pts[pts.length] = new SFVec2f(x, y);
+    }
+    obj.add_move_to = function (x, y) {
+        this._add_coord(x, y);
+        //first moveto is implicit
+        if (this.children[0].geometry.type.length)
+            this.children[0].geometry.type[this.children[0].geometry.type.length] = 0;
+    }
+    obj.add_line_to = function (x, y) {
+        this._add_coord(x, y);
+        this.children[0].geometry.type[this.children[0].geometry.type.length] = 1;
+    }
+    obj.remove_first = function () {
+        var pts = this.children[0].geometry.point.point;
+        if (pts.length < 2) pts.length = 0;
+        else {
+
+            alert('pts before remove ' + pts);
+            for (var i = 0; i < pts.length - 1; i++) {
+                pts[i] = pts[i + 1];
+            }
+            pts.length = i;
+            alert('pts after remove ' + this.children[0].geometry.point.point);
+            
+            pts = this.children[0].geometry.type;
+            alert('type before remove ' + pts);
+            for (var i = 0; i < pts.length - 1; i++) {
+                pts[i] = pts[i + 1];
+            }
+            pts.length = i;
+            alert('type after remove ' + pts);
+        }
+    }
+    obj.get_num_points = function() {
+        return this.children[0].geometry.point.point.length;
+    }
+    return obj;
+}
+
+
+function gw_new_rectangle(class_name, style) {
+    var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'Rectangle');
+    var shape = new SFNode('Shape');
+    obj.children[0] = shape;
+    if (arguments.length == 1) style = 'normal';
+
+    shape.appearance = gwskin.get_style(class_name, style);
+
+    if (shape.appearance && (typeof (shape.appearance.skin) == 'undefined')) {
+        obj.set_alpha = function (alpha) {
+            this.children[0].appearance.material.transparency = 1 - alpha;
+        }
+        obj.get_alpha = function () {
+            return 1 - this.children[0].appearance.material.transparency;
+        }
+        obj.set_fill_color = function (r, g, b) {
+            this.children[0].appearance.material.emissiveColor.r = r;
+            this.children[0].appearance.material.emissiveColor.g = g;
+            this.children[0].appearance.material.emissiveColor.b = b;
+        }
+        obj.set_strike_color = function (r, g, b) {
+            if (!this.children[0].appearance.material.lineProps) this.children[0].appearance.material.lineProps = new SFNode('LineProperties');
+            this.children[0].appearance.material.lineProps.lineColor.r = r;
+            this.children[0].appearance.material.lineProps.lineColor.g = g;
+            this.children[0].appearance.material.lineProps.lineColor.b = b;
+        }
+        obj.set_line_width = function (width) {
+            if (!this.children[0].appearance.material.lineProps) this.children[0].appearance.material.lineProps = new SFNode('LineProperties');
+            this.children[0].appearance.material.lineProps.width = width;
+        }
+    } else {
+        obj.set_alpha = function (alpha) { }
+        obj.set_fill_color = function (r, g, b) { }
+        obj.set_strike_color = function (r, g, b) { }
+        obj.set_line_width = function (width) { }
+        obj.get_alpha = function () { return 1; }
+    }
+
+    obj.set_style = function (classname, style) {
+        var app = gwskin.get_style(classname, style);
+        if (app) this.children[0].appearance = app;
+    }
+
+
+    shape.geometry = new SFNode('Curve2D');
+    shape.geometry.point = new SFNode('Coordinate2D');
+
+    obj.corner_tl = true;
+    obj.corner_tr = true;
+    obj.corner_bl = true;
+    obj.corner_br = true;
+    obj.set_corners = function (tl, tr, br, bl) {
+        this.corner_tl = tl;
+        this.corner_tr = tr;
+        this.corner_bl = bl;
+        this.corner_br = br;
+    }
+
+    obj.set_size = function (w, h) {
+        var hw, hh, rx_bl, ry_bl, rx_br, ry_br, rx_tl, ry_tl, rx_tr, ry_tr, rx, ry;
+        var temp;
+        hw = w / 2;
+        hh = h / 2;
+        this.width = w;
+        this.height = h;
+        temp = this.children[0].geometry.type;
+        temp[0] = 7;
+        temp[1] = 1;
+        temp[2] = 7;
+        temp[3] = 1;
+        temp[4] = 7;
+        temp[5] = 1;
+        temp[6] = 7;
+        temp[7] = 6; /*close*/
+
+        /*compute default rx/ry*/
+        ry = rx = 6;
+        if (rx >= hw) rx = hw;
+        if (ry >= hh) ry = hh;
+        rx_bl = rx_br = rx_tl = rx_tr = rx;
+        ry_bl = ry_br = ry_tl = ry_tr = ry;
+        if (!this.corner_tl) rx_tl = ry_tl = 0;
+        if (!this.corner_tr) rx_tr = ry_tr = 0;
+        if (!this.corner_bl) rx_bl = ry_bl = 0;
+        if (!this.corner_br) rx_br = ry_br = 0;
+
+        temp = this.children[0].geometry.point.point;
+        temp[0] = new SFVec2f(hw - rx_tr, hh);
+        temp[1] = new SFVec2f(hw, hh); /*bezier ctrl point or line-to*/
+        temp[2] = new SFVec2f(hw, hh - ry_tr);
+        temp[3] = new SFVec2f(hw, -hh + ry_br);
+        temp[4] = new SFVec2f(hw, -hh); /*bezier control point*/
+        temp[5] = new SFVec2f(hw - rx_br, -hh);
+        temp[6] = new SFVec2f(-hw + rx_bl, -hh);
+        temp[7] = new SFVec2f(-hw, -hh); /*bezier control point*/
+        temp[8] = new SFVec2f(-hw, -hh + ry_bl);
+        temp[9] = new SFVec2f(-hw, hh - ry_tl);
+        temp[10] = new SFVec2f(-hw, hh); /*bezier control point*/
+        temp[11] = new SFVec2f(-hw + rx_tl, hh);
+    }
+    return obj;
+}
+
+function gw_new_text(parent, label, class_name) {
+    var obj = new SFNode('Transform2D');
+    if (arguments.length < 3) class_name = 'default';
+
     setup_gw_object(obj, 'Text');
     gw_add_child(parent, obj);
     obj.children[0] = new SFNode('Transform2D');
     obj.children[0].children[0] = new SFNode('Shape');
-    obj.children[0].children[0].appearance = gwskin.get_style(class_name, 'text');
-
     obj.children[0].children[0].geometry = new SFNode('Text');
-    obj.children[0].children[0].geometry.fontStyle = gwskin.get_font(class_name);
+
+    if (class_name == 'custom') {
+        class_name = 'default';
+        obj.children[0].children[0].appearance = gw_new_appearance(0, 0, 0);
+        obj.children[0].children[0].geometry.fontStyle = gw_new_fontstyle(gwskin.default_label_font_size, 1);
+    } else {
+        obj.children[0].children[0].appearance = gwskin.get_style(class_name, 'text');
+        obj.children[0].children[0].geometry.fontStyle = gwskin.get_font(class_name);
+    }
 
 
-    obj.set_label = function(value) {
-     this.children[0].children[0].geometry.string.length = 0;
-     this.children[0].children[0].geometry.string[0] = value;
+
+    obj.set_label = function (value) {
+        this.children[0].children[0].geometry.string.length = 0;
+        this.children[0].children[0].geometry.string[0] = value;
     }
 
-    obj.set_labels = function() {
-     this.children[0].children[0].geometry.string.length = 0;
-     for (var i=0; i<arguments.length; i++) {
-       this.children[0].children[0].geometry.string[i] = '' + arguments[i];
-     }
+    obj.set_labels = function () {
+        this.children[0].children[0].geometry.string.length = 0;
+        for (var i = 0; i < arguments.length; i++) {
+            this.children[0].children[0].geometry.string[i] = '' + arguments[i];
+        }
     }
-    obj.get_label = function() {
-     return this.children[0].children[0].geometry.string[0];
+    obj.get_label = function () {
+        return this.children[0].children[0].geometry.string[0];
     }
-    obj.set_width = function(value) {
-     this.children[0].children[0].geometry.maxExtent = -value;
-     this.width = value;
+    obj.set_width = function (value) {
+        this.children[0].children[0].geometry.maxExtent = -value;
+        this.width = value;
     }
-    obj.font_size = function(value) {
-     return this.children[0].children[0].geometry.fontStyle ? this.children[0].children[0].geometry.fontStyle.size : 1;
+    obj.font_size = function (value) {
+        return this.children[0].children[0].geometry.fontStyle ? this.children[0].children[0].geometry.fontStyle.size : 1;
     }
 
     if (obj.children[0].children[0].appearance && (typeof (obj.children[0].children[0].appearance.skin) == 'undefined')) {
-     obj.set_color = function(r, g, b) {
-      this.children[0].children[0].appearance.material.emissiveColor = new SFColor(r, g, b);
-     }
-     obj.children[0].set_alpha = function(a) {
-      this.children[0].children[0].appearance.material.transparency = 1-a;
-     }
+        obj.set_color = function (r, g, b) {
+            this.children[0].children[0].appearance.material.emissiveColor = new SFColor(r, g, b);
+        }
+        obj.children[0].set_alpha = function (a) {
+            this.children[0].children[0].appearance.material.transparency = 1 - a;
+        }
+        obj.set_align = function (val) {
+            this.children[0].children[0].geometry.fontStyle.justify[0] = val;
+        }
+        obj.set_font_size = function (val) {
+            this.children[0].children[0].geometry.fontStyle.size = val;
+        }
     } else {
-     obj.set_color = function(r, g, b) {}
-     obj.set_alpha = function(a) {}
+        obj.set_color = function (r, g, b) { }
+        obj.set_alpha = function (a) { }
+        obj.set_align = function (a) { }
+        obj.set_font_size = function (a) { }
     }
-    obj.set_size = function(width, height) {
-     var justify = this.children[0].children[0].geometry.fontStyle ? this.children[0].children[0].geometry.fontStyle.justify[0] : '';
-     if (justify=='BEGIN') {
-      this.children[0].translation.x = - width / 2;
-     } else if (justify=='END') {
-      this.children[0].translation.x = width / 2;
-     } else {
-      this.children[0].translation.x = 0;
-     }
-     this.width = width;
-     this.height = height;     
+    obj.set_size = function (width, height) {
+        var justify = this.children[0].children[0].geometry.fontStyle ? this.children[0].children[0].geometry.fontStyle.justify[0] : '';
+        if (justify == 'BEGIN') {
+            this.children[0].translation.x = -width / 2;
+        } else if (justify == 'END') {
+            this.children[0].translation.x = width / 2;
+        } else {
+            this.children[0].translation.x = 0;
+        }
+        this.children[0].children[0].geometry.maxExtent = -width;
+        this.width = width;
+        this.height = height;
     }
-
-    if (obj.children[0].children[0].geometry.fontStyle && (typeof (obj.children[0].children[0].geometry.fontStyle.skin) == 'undefined')) {
-     obj.children[0].set_font_size = function(value) {
-      this.children[0].children[0].geometry.fontStyle.size = value;
-     }
-     obj.children[0].set_align = function(value) {
-      this.children[0].children[0].geometry.fontStyle.justify[0] = (value==0) ? 'BEGIN' : (value==2) ? 'END' : 'MIDDLE';
-     }
-    } else {
-     obj.set_font_size = function(value) {}
-     obj.set_align = function(value) {}
-    }    
     if (label) obj.set_label(label);
     return obj;
 }
 
 
-function gw_new_window(parent, offscreen, class_name)
-{
-  var obj = new SFNode('Transform2D');  
-  setup_gw_object(obj, 'Window');
-  obj.rect = gw_new_rectangle(class_name);  
-  obj.visible = false;
-  obj.scale.x = obj.scale.y = 0;
-  
-  obj.on_event = function(evt) { return 0; }
-  
-  obj.set_style = function(classname, style) {
-    this.rect.set_style(classname, style);
-  }
-  if (! offscreen) {
-    gw_add_child(obj, rect);
-    var item = new SFNode('Layer2D');  
-    setup_gw_object(item, 'Layer');
-    gw_add_child(obj, item);
-    obj.set_size = function(width, height) { 
-     this.width = width;
-     this.height = height;
-     this.children[0].set_size(width, height);
-     this.children[1].size.x = width;
-     this.children[1].size.y = height;
-     this.layout(width, height);
-    }  
-    obj.set_alpha = function(alpha) {
-     this.children[0].set_alpha(alpha);
-    } 
-    obj.add_child = function(child) {
-     this.children[1].children[this.children[1].children.length] = child;
+function gw_new_window(parent, offscreen, background, class_name) {
+    var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'Window');
+    obj.background = null;
+
+    if (arguments.length < 4) class_name = 'window';
+
+    if (background)
+        obj.background = gw_new_rectangle(class_name);
+    obj.visible = false;
+    obj.scale.x = obj.scale.y = 0;
+    obj._disable_rect = gw_new_rectangle(class_name, 'invisible');
+
+    obj.on_event = function (evt) { return 0; }
+
+    obj.set_style = function (classname, style) {
+        if (this.background)
+            this.background.set_style(classname, style);
     }
-    obj.remove_child = function(child) {
-     this.children[1].removeChildren[0] = child;
-    }
-    obj._wnd_close = function() {
-     obj.rect = null;
-     gw_close_child_list(this.children);
-    }
-  } else {
-    var shape = new SFNode('Shape'); 
-    shape.appearance = new SFNode('Appearance');
-    shape.appearance.material = new SFNode('Material2D');
-    shape.appearance.material.filled = TRUE;
-    shape.appearance.texture = new SFNode('CompositeTexture2D');
-    shape.appearance.texture.children[0] = obj.rect;
-    shape.geometry = new SFNode('Bitmap');
-    obj.children[0] = shape;
-    
-    obj.set_size = function(width, height) { 
-     this.width = width;
-     this.height = height;
-     this.children[0].appearance.texture.pixelWidth = width;
-     this.children[0].appearance.texture.pixelHeight = height;
-     this.children[0].appearance.texture.children[0].set_size(width, height);
-     this.layout(width, height);
-    }
-  
-    obj.set_alpha = function(alpha) {
-     this.children[0].appearance.material.transparency = 1 - alpha;
-    } 
-    obj.get_alpha = function() {
-     return 1 - this.children[0].appearance.material.transparency;
-    } 
-
-    obj.add_child = function(child) {
-     this.children[0].appearance.texture.children[this.children[0].appearance.texture.children.length] = child;
-    }
-    obj.remove_child = function(child) {
-     this.children[0].appearance.texture.removeChildren[0] = child;
-    }
-    obj._wnd_close = function() {
-     obj.rect = null;
-     gw_close_child_list(this.children[0].appearance.texture.children);
-    }
-  }
-  obj._pre_destroy = obj._wnd_close;
-  obj.set_corners = function(tl, tr, br, bl) {
-   this.rect.set_corners(tl, tr, br, bl);
-  }
-  
-  if (typeof gwskin[class_name] != 'undefined') {
-   if (typeof gwskin[class_name].show != 'undefined') obj.show = gwskin[class_name].show;
-   if (typeof gwskin[class_name].hide != 'undefined') obj.hide = gwskin[class_name].hide;
-  }
-  obj._on_wnd_close = obj.close;
-  obj.close = function () {
-   this.hide(this._on_wnd_close);
-  }
- obj.layout = function (w, h) {}
-   
-  gw_add_child(parent, obj);
-  return obj;
-}
-
-function gw_new_icon_button(parent, icon_url, label, class_name, horizontal)
-{
-  var touch;
-  var obj = new SFNode('Transform2D');
-  setup_gw_object(obj, 'IconButton');       
-
-  if (arguments.length<5) horizontal = false;
-  
-  obj.children[0] = new SFNode('Transform2D');
-  obj.children[0].children[0] = new SFNode('Layer2D');    
-  obj.children[1] = gw_new_rectangle(class_name, 'invisible');  
-
-  obj.children[2] = new SFNode('TouchSensor');
-
-  if (gwskin.get_font(class_name) != null) {
-    obj.children[3] = gw_new_text(null, label, class_name);
-    if (horizontal) {
-      obj.set_size = function(width, height) { 
-       this.children[0].children[0].size.x = height; 
-       this.children[0].children[0].size.y = height;
-       this.children[0].translation.x = (height-width)/2;
-       this.children[1].set_size(width, height);
-       this.children[3].set_width(width-height);
-       this.children[3].translation.x = height - width/2;
-       this.width = width;
-       this.height = height;
-      };
-    } else {
-      obj.set_size = function(width, height) { 
-       var fsize = this.children[3].font_size();
-       var h = height - fsize;
-       this.children[0].children[0].size.x = h; 
-       this.children[0].children[0].size.y = h;
-       this.children[0].translation.y = (height-h)/2;
-       this.children[1].set_size(3*width/2, height);
-       this.children[3].set_width(3*width/2);
-       this.children[3].translation.y = -height/2+fsize/2; 
-       this.width = 3*width/2;
-       this.height = height;
-      };
-    }
-    obj.set_label = function(label) {
-     this.children[3].set_label(label);
-    } 
-    obj.get_label = function() {
-     return this.children[3].get_label();
-    } 
-  } else {
-    obj.set_size = function(width, height) { 
-     this.children[0].children[0].size.x = width; 
-     this.children[0].children[0].size.y = height;
-     this.children[1].set_size(width, height);
-     this.width = width;
-     this.height = height;
-    };
-    obj.set_label = function(label) {
-     this.label = label;
-    }
-    obj.get_label = function() {
-     return this.label;
-    }
-  }
-
-  obj._last_ts = 0;
-  obj.on_long_click = NULL;
-  obj.on_click = NULL;
-  obj.on_over = null;
-  obj.down = false;
-  obj.over = false;
-  obj._on_active = function(value, timestamp) { 
-   if (value) {
-    this.down = true;
-    this.children[1].set_style(class_name, 'down');
-    this._last_ts = timestamp;
-   } else {
-    if (this.down && this.over) {
-      if (this.on_long_click && (timestamp - this._last_ts > gwskin.long_click_delay)) this.on_long_click();
-      else if (this.on_click) this.on_click(); 
-    }
-    this.down = false;
-    this.children[1].set_style(class_name, (this.over && gwskin.pointing_device) ? 'over' : 'invisible');
-   }
-  };
-  obj._on_over = function(value) { 
-   this.over = value; 
-   if (gwskin.pointing_device) {
-    var app = gwskin.get_style(class_name, 'over');
-    if (app) {   
-     this.children[1].set_style(class_name, value ? 'over' : 'invisible');
-    }
-    if (this.on_over) this.on_over(value); 
-    if (gwskin.tooltip_callback) gwskin.tooltip_callback(value, this.get_label() );
-   }
-  };
-  Browser.addRoute(obj.children[2], 'isOver', obj, obj._on_over); 
-  Browser.addRoute(obj.children[2], 'isActive', obj, obj._on_active); 
-
-  obj.icons = [];
-  obj.add_icon = function(url) {
-  
-   if(typeof url == 'string') {
-     var inl = gw_load_resource(url);
-   } else {
-     var inl = url;
-   }
-   this.icons[this.icons.length] = inl;
-
-   if (this.children[0].children[0].children.length==0) {
-    this.children[0].children[0].children[0] = this.icons[0];
-   }
-  }
-  obj.switch_icon = function(idx) {
-   while (idx>this.icons.length) idx-=this.icons.length;
-   this.children[0].children[0].children[0] = this.icons[idx];
-  }
-  obj._pre_destroy = function() {
-   for (var i in this.icons) {
-    gw_unload_resource(this.icons[i]);
-   }
-   this.icons.length = 0;
-   Browser.deleteRoute(this.children[2], 'ALL',  null, null);
-  }
-   
-  
-  if (icon_url) obj.add_icon(icon_url);
-  obj.set_label(label);
-  
-  
-  if (typeof gwskin[class_name] != 'undefined') {
-    if (typeof gwskin[class_name].width == 'undefined') gwskin[class_name].width = control_icon_size;
-    if (typeof gwskin[class_name].height == 'undefined') gwskin[class_name].height = control_icon_size;
-    obj.set_size(gwskin[class_name].width, gwskin[class_name].height);
-  } else {
-   obj.set_size(gwskin.control_icon_size, gwskin.control_icon_size);
-  }
-  gw_add_child(parent, obj);
-  return obj;
-}
-
-
-function gw_new_subscene(parent)
-{
-	var inline = new SFNode('Inline');
-	inline._name = 'Subscene';
-	inline._pre_destroy = function() {
-    this.url[0]=''; 
-    this.url.length = 0;
-  }
-	inline.connect = function(url) {
-    this.url.length = 0;
-    this.url[0]=url; 
-	}
-	gw_add_child(parent, inline);
-	return inline;
-}
-
-function gw_new_button(parent, text, class_name)
-{
-  var label;
-  obj = gw_new_rectangle(class_name, 'normal');
-  label = gw_new_text(obj, text, class_name);
-  gw_object_set_hitable(obj);
-  obj.on_over = function(val) {
-    if (gwskin.pointing_device) {
-     this.set_style(class_name, val ? 'over' : 'normal');
-    }
-    if (gwskin.tooltip_callback) gwskin.tooltip_callback(value, this.get_label() );
-  }
-  obj.on_down = function(val) {
-    this.set_style(class_name, val ? 'down' : (this._over ? 'over' : 'normal') );
-  }
-  
-  obj._set_size = obj.set_size; 
-  obj.set_size = function(width, height) { 
-   this._set_size(width, height);
-   this.children[1].set_size(width, height);
-   this.children[1].set_width(width);
-  };
-  obj.set_label = function(label) {
-   this.children[1].set_label(label);
-  } 
-  obj.get_label = function() {
-   return this.children[1].get_label();
-  } 
-  obj.set_labels = function() {
-   this.children[1].set_labels.apply(this.children[1], arguments);
-  } 
-  gw_add_child(parent, obj);
-  return obj;
-}
-
-
-
-function grid_event_navigate(dlg, children, type) 
-{
- var i;
- if (dlg.current_focus==-1) {
-  for (i=0; i<children.length; i++) {
-   if (children[i].visible && (children[i].translation.x - children[i].width/2 >= -dlg.width/2)) {
-    dlg.current_focus = i;
-    gpac.set_focus(children[i]);
-    return true;
-   } 
-  }
- }
- if (type=='Right') {
-  var orig_focus = dlg.current_focus;
-  var switch_page = 0;
-  var tr = children[dlg.current_focus].translation.y - children[dlg.current_focus].height/2;
-  if (dlg.current_focus + 1 == children.length) return false;
-  /*goto right item*/
-  dlg.current_focus++;
-  /*check we are not going down*/
-  while (1) {
-   if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.y + children[dlg.current_focus].height/2>tr))
-    break;
-   if (dlg.current_focus + 1 == children.length) {
-    dlg.current_focus = orig_focus;
-    return false;
-   }
-   dlg.current_focus++;
-   switch_page=1;
-  }
-  /*check we haven't move to a new page*/
-  if (children[orig_focus].translation.y + children[orig_focus].height/2 <= children[dlg.current_focus].translation.y - children[dlg.current_focus].height/2) {
-   switch_page=1;
-  }       
-  gpac.set_focus(children[dlg.current_focus]);
-  if (switch_page) dlg._move_to(dlg.translate - dlg.width);
-  return true;
- }
- 
- if (type=='Left') {
-  var orig_focus = dlg.current_focus;
-  var switch_page = 0;
-  var tr = children[dlg.current_focus].translation.y + children[dlg.current_focus].height/2;
-  if (!dlg.current_focus) return false;
-  /*goto left item*/
-  dlg.current_focus--;
-  /*check we are not going up*/
-  while (1) {
-   if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.y - children[dlg.current_focus].height/2 < tr))
-     break;
-   if (!dlg.current_focus) {
-    dlg.current_focus = orig_focus;
-    return false;
-   }
-   dlg.current_focus--;
-   switch_page=1;
-  }
-  /*check we haven't move to a new page*/
-  if (children[orig_focus].translation.y - children[orig_focus].height/2 >= children[dlg.current_focus].translation.y + children[dlg.current_focus].height/2) {
-   switch_page=1;
-  }    
-  gpac.set_focus(children[dlg.current_focus]);
-  if (switch_page) dlg._move_to(dlg.translate + dlg.width);
-  return true;
- }
-
- if (type=='Down') {
-  var orig_focus = dlg.current_focus;
-  var switch_page = 0;
-  var ty = children[dlg.current_focus].translation.y - children[dlg.current_focus].height/2;
-  if (dlg.current_focus + 1 == children.length) return false;
-  dlg.current_focus++;
-  /*goto next line*/
-  while (1) {
-   if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.y - children[dlg.current_focus].height/2<ty))
-    break;
-   if (dlg.current_focus + 1 == children.length) {
-    dlg.current_focus = orig_focus;
-    return false;
-   }
-   dlg.current_focus++;
-  }
-  /*goto bottom child*/
-  var tx = children[orig_focus].translation.x - children[orig_focus].width/2;
-  while (1) {
-   if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.x + children[dlg.current_focus].width/2 > tx)) 
-      break;
-   if (dlg.current_focus + 1 == children.length) break;
-   dlg.current_focus++;
-  }
-  
-  gpac.set_focus(children[dlg.current_focus]);
-  return true;
- }
- 
- if (type=='Up') {
-  var orig_focus = dlg.current_focus;
-  var switch_page = 0;
-  var ty = children[dlg.current_focus].translation.y + children[dlg.current_focus].height/2;
-  if (!dlg.current_focus) return false;
-  dlg.current_focus--;
-  /*goto previous line*/
-  while (1) {
-   if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.y + children[dlg.current_focus].height/2>ty))
-     break;
-   if (!dlg.current_focus) {
-    dlg.current_focus = orig_focus;
-    return false;
-   }
-   dlg.current_focus--;
-  }
-  /*goto above child*/
-  var tx = children[orig_focus].translation.x + children[orig_focus].width/2;
-  while (1) {
-   if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.x - children[dlg.current_focus].width/2 < tx)) 
-    break;
-   if (!dlg.current_focus) {
-    dlg.current_focus = orig_focus;
-    return false;
-   }
-   dlg.current_focus--;
-  }
-  gpac.set_focus(children[dlg.current_focus]);
-  return true;
- }
- return false;
-}
-  
-function gw_new_grid_container(parent)
-{
-  var obj = new SFNode('Transform2D');  
-  setup_gw_object(obj, 'FlipContainer');       
-  
-  obj._ps2d = new SFNode('PlaneSensor2D');
-  obj._ps2d.maxPosition.x = obj._ps2d.maxPosition.y = -1;
-  obj._ps2d.autoOffset = TRUE;
-
-  obj.children[0] = new SFNode('Layer2D');  
-//  obj.children[0].children[0] = gw_new_rectangle('', 'invisible');
-  obj.children[0].children[0] = obj._ps2d;
-  obj.children[0].children[1] = new SFNode('Transform2D');
-    
-  obj._move_to = function(value) {
-   this.translate = value;
-   if (this.translate>0) this.translate = 0;
-   else if (this.translate<-this.max_width) this.translate = -this.max_width;
-   
-   if (0) {
-     this.timer = gw_new_timer(true);
-     this.timer.set_timeout(0.25, false);
-     this.timer.from = this.children[0].children[1].translation.x;
-     this.timer.dlg = this;
-     this.timer.on_fraction = function(val) {
-      var x = (1-val)*this.from + val*this.dlg.translate;
-      this.dlg.children[0].children[1].translation.x = x;
-      
-  /*
-      var children = obj.children[0].children[1].children;
-      for (var i=0; i<children.length; i++) {
-       children[i].scale.x = (val>0.5) ? (2*val - 1) : (1 - 2*val);
-      }
-  */
-     }
-     this.timer.on_active = function(val) {
-      if (!val) {
-       this.dlg.timer = null;
-       this.dlg = null;
-      }
-     }
-     this.timer.start(0);
-   } else {
-     this.children[0].children[1].translation.x = this.translate;
-   }
-   this._ps2d.offset.x = -this.translate;
-  }
-  
-  obj.translate = 0;
-  obj._on_slide = function(val) {
-   this.translate = - val.x;
-   if (this.translate>0) this.translate = 0;
-   else if (this.translate<-this.max_width) this.translate = -this.max_width;
-   this.children[0].children[1].translation.x = this.translate;
-  }
-  obj._on_active = function(val) {
-   if (!val) {
-    var off_x = 0;
-    while (off_x - this.width/2 > this.translate) off_x -= this.width;
-    this._move_to(off_x);
-   }
-  }
-  Browser.addRoute(obj._ps2d, 'translation_changed', obj, obj._on_slide);
-  Browser.addRoute(obj._ps2d, 'isActive', obj, obj._on_active);
-  obj.children[0].children[2] = obj._ps2d;
- 
-  obj.spread_h = false;
-  obj.spread_v = false;
-  obj.break_at_hidden = false;
-  obj.set_size = function(width, height) {  
-    this.width = width;
-    this.height = height;
-    this.children[0].size.x = width;
-    this.children[0].size.y = height;
-//    this.children[0].children[0].set_size(width, height);
-    this.nb_visible=0;
-    this.first_visible=0;
-    this.layout();
-  }
-  obj.max_width = 0;
-  obj.layout = function() {  
-   var spread_x, nb_wid_h, start_x, start_y, maxh, width, height, page_x, nb_on_line;
-   var children = obj.children[0].children[1].children;
-   width = this.width;
-   height = this.height;   
-
-   page_x = 0;   
-   maxh = 0;
-   spread_x = -1;
-   start_x = -width/2;
-   start_y = height/2;
-   nb_on_line = 0;
-   this.current_focus = -1;
-   for (var i=0; i<children.length; i++) {
-    //start of line: compute H spread and max V size
-    if (spread_x == -1) {
-      var j=0, len = 0, maxh = 0, nb_child = 0;
-      start_x = - width/2 + page_x;
-      while (1) {
-        if (!children[i+j].visible) {
-         j++;
-         if (i+j==children.length) break;
-         if (this.break_at_hidden) break;
-         continue;
+    if (!offscreen) {
+        if (obj.background) gw_add_child(obj, obj.background);
+        var item = new SFNode('Layer2D');
+        setup_gw_object(item, 'Layer');
+        gw_add_child(obj, item);
+        obj.set_size = function (width, height) {
+            this.width = width;
+            this.height = height;
+            var idx = 0;
+            if (this.background) {
+                this.children[0].set_size(width, height);
+                idx++;
+            }
+            this.children[idx].size.x = width;
+            this.children[idx].size.y = height;
+            this.layout(width, height);
         }
-        if (len + children[i+j].width > width) break;
-        len += children[i+j].width;
-        if (maxh < children[i+j].height) maxh = children[i+j].height;
-        j++;
-        nb_child++;
-        if (i+j==children.length) break;
-      }
-      if (nb_child<=1) {
-       maxh = children[i].height;
-       if (this.spread_h) start_x = -len/2;
-      }
-      else if (this.spread_h) {
-       spread_x = (width - len) / (nb_child);
-       start_x += spread_x/2;
-      } else {
-       spread_x = 0;
-      }
+        obj.set_alpha = function (alpha) {
+            if (this.background) {
+                this.children[0].set_alpha(alpha);
+            }
+        }
+        obj.get_alpha = function () {
+            if (this.background) {
+                return this.children[0].get_alpha();
+            }
+            return 0.0;
+        }
+        obj.add_child = function (child) {
+            var idx = this.background ? 1 : 0;
+            this.children[idx].children[this.children[idx].children.length] = child;
+        }
+        obj.remove_child = function (child) {
+            var idx = this.background ? 1 : 0;
+            this.children[idx].removeChildren[0] = child;
+        }
+        obj._wnd_close = function () {
+            obj.background = null;
+            obj._disable_rect = null;
+            gw_close_child_list(this.children);
+        }
+    } else {
+        var shape = new SFNode('Shape');
+        shape.appearance = new SFNode('Appearance');
+        shape.appearance.material = new SFNode('Material2D');
+        shape.appearance.material.filled = TRUE;
+        shape.appearance.texture = new SFNode('CompositeTexture2D');
+
+        if (obj.background) {
+            //use background to make sure the underlying texture is RGB, not RGBA
+            if (!gwskin.disable_transparency) {
+                shape.appearance.texture.children[0] = obj.background;
+            } else {
+                shape.appearance.texture.background = new SFNode('Background2D');
+            }
+        }
+        shape.geometry = new SFNode('Bitmap');
+        obj.children[0] = shape;
+
+        obj.set_size = function (width, height) {
+            this.width = width;
+            this.height = height;
+            this.children[0].appearance.texture.pixelWidth = width;
+            this.children[0].appearance.texture.pixelHeight = height;
+            this.children[0].appearance.texture.children[0].set_size(width, height);
+            this.layout(width, height);
+        }
+
+        obj.set_alpha = function (alpha) {
+            //disable image blending for offscreens with backgrounds
+            if (this.background && gwskin.disable_transparency) alpha = 1;
+
+            this.children[0].appearance.material.transparency = 1 - alpha;
+        }
+        obj.get_alpha = function () {
+            return 1 - this.children[0].appearance.material.transparency;
+        }
+
+        obj.add_child = function (child) {
+            this.children[0].appearance.texture.children[this.children[0].appearance.texture.children.length] = child;
+        }
+        obj.remove_child = function (child) {
+            this.children[0].appearance.texture.removeChildren[0] = child;
+        }
+        obj._wnd_close = function () {
+            obj.background = null;
+            obj._disable_rect = null;
+            gw_close_child_list(this.children[0].appearance.texture.children);
+        }
+    }
+    obj._pre_destroy = obj._wnd_close;
+    obj.set_corners = function (tl, tr, br, bl) {
+        if (this.background)
+            this.background.set_corners(tl, tr, br, bl);
     }
 
-    if (!children[i].visible) {
-     if (nb_on_line && this.break_at_hidden) {
-       nb_on_line = 0;
-       spread_x = -1;
-       start_y -= maxh/2;
-       start_x = - width/2;
-     }
-     continue;
-   }
-   if (start_y - maxh < - height/2) {
-     nb_on_line = 0;
-     page_x += width;
-     spread_x = -1;
-     start_y = height/2;
-     i--;
-     continue;
+    obj._is_disable = false;
+    obj.disable = function () {
+        if (this._is_disable) return;
+        this._is_disable = true;
+        this._disable_rect.set_size(this.width, this.height);
+        this.add_child(this._disable_rect);
     }
-    children[i].translation.x = start_x + children[i].width/2;
-    children[i].translation.y = start_y - maxh/2;
-
-//    alert('child i' + i + '/' + children.length + ' size ' + children[i].width + 'x' + children[i].height + ' translation ' + children[i].translation);
-    start_x += children[i].width + spread_x;
-     
-    nb_on_line++;
-
-    if (i+1==children.length) {
-     break;
+    obj.enable = function () {
+        if (!this._is_disable) return;
+        this._is_disable = false;
+        this.remove_child(this._disable_rect);
     }
-    if (start_x - page_x + children[i+1].width > width/2) {
-     nb_on_line = 0;
-     spread_x = -1;
-     start_y -= maxh;
-     start_x = - width/2;
+
+
+    if (typeof gwskin[class_name] != 'undefined') {
+        if (typeof gwskin[class_name].show != 'undefined') obj.show = gwskin[class_name].show;
+        if (typeof gwskin[class_name].hide != 'undefined') obj.hide = gwskin[class_name].hide;
     }
-   }
-   this.max_width = page_x;
-   this._ps2d.enabled = (this.max_width) ? TRUE : FALSE;
-  }
-  
-  obj.add_child = function(child) {
-   this.children[0].children[1].children[this.children[0].children[1].children.length] = child;
-   gw_add_child(child, this._ps2d);
-  }
-  obj.remove_child = function(child) {
-   /*remove ps2d from each child, otherwise we create references which screw up JS GC*/
-   if (typeof child.remove_child != 'undefined') child.remove_child(this._ps2d);
-   else child.removeChildren[0] = this._ps2d;
-   
-   this.children[0].children[1].removeChildren[0] = child;
-  }
 
-  obj.get_children = function() {
-  return this.children[0].children[1].children;
-  }
-  obj.reset_children = function () {
-   gw_close_child_list(this.children[0].children[1].children);
-   this.children[0].children[1].children.length = 0;
-  }
-  obj._pre_destroy = function() {
-    Browser.deleteRoute(this._ps2d, 'ALL', null, null);
-    this.reset_children();
-    this.children.length = 0;
-    this._ps2d = null;
-  }
-  
-  obj.set_focus = function(type) {
-   grid_event_navigate(this, this.children[0].children[1].children, type);
-  }
-
-  obj.on_event = function(evt) {
-   switch (evt.type) {
-   case GF_EVENT_MOUSEWHEEL:
-    if (evt.button==1) {
-      var tr = this.translate + (evt.wheel>0 ? this.width : -this.width);
-      this._move_to(this.translate + (evt.wheel<0 ? this.width : -this.width) );
-      return 1;
+    obj.on_close = null;
+    obj._orig_close = obj.close;
+    obj._on_wnd_close = function () {
+        if (this.on_close != null) this.on_close();
+        this._orig_close();
     }
-    return 0;
-   case GF_EVENT_KEYDOWN:
-    if ((evt.keycode=='Up') || (evt.keycode=='Down') || (evt.keycode=='Right') || (evt.keycode=='Left') ) {
-      return grid_event_navigate(this, this.children[0].children[1].children, evt.keycode);
-    } 
-   case GF_EVENT_KEYDOWN:
-    if ((evt.keycode=='Up') || (evt.keycode=='Down') || (evt.keycode=='Right') || (evt.keycode=='Left') ) {
-      return grid_event_navigate(this, this.children[0].children[1].children, evt.keycode);
-    } 
-    return 0;
-   }
-   return 0;
-  } 
+    obj.close = function () {
+        this.hide(this._on_wnd_close);
+    }
+    obj.layout = function (w, h) { }
 
-  gw_add_child(parent, obj);
-  return obj;
+    obj.set_alpha(gwskin.default_window_alpha);
+    gw_add_child(parent, obj);
+    return obj;
 }
 
-
-
-function gw_new_progress_bar(parent, vertical, with_progress, class_name)
-{
-  var obj = new SFNode('Transform2D');
-  setup_gw_object(obj, 'ProgressBar');
-  var ps2d;
-
-  if (arguments.length<=3) class_name = 'progress';
-  if (arguments.length<=2) with_progress = false;
-  if (arguments.length<=1) vertical = false;
-  
-  obj.children[0] = gw_new_rectangle(class_name, 'normal');
-  if (with_progress) {
-    obj.children[1] = gw_new_rectangle(class_name, 'down');
-
-    obj.set_progress = function(prog) {
-     if (prog<0) prog=0;
-     else if (prog>100) prog=100;
-     this.prog = prog;
-     prog/=100;
-     if (this.vertical) {
-       var pheight = prog*this.height;
-       this.children[1].set_size(this.width, pheight);
-       this.children[1].move(0, (this.height-pheight)/2, 0);
-     } else {
-       var pwidth = prog*this.width;
-       this.children[1].set_size(pwidth, this.height);
-       this.children[1].move((pwidth-this.width)/2, 0);
-     }
-    }
-  } else {
-    obj.set_progress = function(prog) {}
-  }
-  obj.slide_idx = obj.children.length;
-  obj.children[obj.slide_idx] = gw_new_rectangle(class_name, 'over');
-
-  obj.children[obj.slide_idx+1] = gw_new_rectangle(class_name, 'invisible');
-  ps2d = new SFNode('PlaneSensor2D');
-  obj.children[obj.slide_idx+1].children[1] = ps2d;
-  ps2d.maxPosition.x = -1;
-  ps2d.maxPosition.y = -1;
-  
-  obj.on_slide = function(value, type) { }
-
-  obj._with_progress = with_progress;
-  obj._sliding = false;
-  obj._slide_active = function(val) {
-   obj._sliding = val;
-   this.on_slide(this.min + (this.max-this.min) * this.frac, val ? 1 : 2);
-  }
-  Browser.addRoute(ps2d, 'isActive', obj, obj._slide_active);  
-
-  obj._set_trackpoint = function(value) {
-   if (this.vertical) {
-    this.frac = value.y/this.height;
-   } else {
-    this.frac = value.x/this.width;
-   }
-   this.frac += 0.5;
-   if (this.frac>1) this.frac=1;
-   else if (this.frac<0) this.frac=0;
-
-   this._set_frac();
-   this.on_slide(this.min + (this.max-this.min) * this.frac, 0);
-  }
-  Browser.addRoute(ps2d, 'trackPoint_changed', obj, obj._set_trackpoint);  
-
-  obj._set_frac = function() {
-   if (this.vertical) {
-     var pheight = this.frac*this.height;
-     if (pheight<this.width) pheight = this.width;
-     this.children[this.slide_idx].set_size(this.width, pheight);
-     this.children[this.slide_idx].move(0, (this.height-pheight)/2, 0);
-   } else {
-     var pwidth = this.frac*this.width;
-     if (pwidth<this.height) pwidth = this.height;
-     this.children[this.slide_idx].set_size(pwidth, this.height);
-     this.children[this.slide_idx].move((pwidth-this.width)/2, 0);
-   }
-  }
-
-  obj.set_value = function(value) {
-   if (this._sliding) return;
-   
-   value -= this.min;
-   if (value<0) value = 0;
-   else if (value>this.max-this.min) value = this.max-this.min;
-   if (this.max==this.min) value = 0;
-   else value /= (this.max-this.min);
-
-   this.frac = value;
-   this._set_frac();   
-  }
+function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
+    var touch;
     
+    var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'IconButton');
 
-  obj.vertical = vertical;
-  obj.set_size = function(w, h) {
-   this.width = w;
-   this.height = h;
-   this.children[0].set_size(w, h);
-   if (this._with_progress) {
-     this.children[3].set_size(w, h);
-   } else {
-     this.children[2].set_size(w, h);
-   }
-   this._set_frac();
-   this.set_progress(this.prog);
-  }
-  obj.min = 0;
-  obj.max = 100;
-  
-  obj.move = function(x,y) {
-   this.translation.x = x;
-   this.translation.y = y;
-  }
+    if (arguments.length == 3) {
+        horizontal = false;
+        class_name = 'default';
+    }
+    else if (arguments.length == 4) {
+        if (typeof arguments[3] == 'string') {
+            class_name = arguments[3];
+            horizontal = false;
+        } else {
+            class_name = 'default';
+        }
+    }
 
-  obj.prog = 0;
-  obj.frac = 0;
-  obj.set_size(vertical ? 10 : 200, vertical ? 200 : 10);
+    obj._icon_root = new SFNode('Transform2D');
+    obj._icon_root.children[0] = new SFNode('Layer2D');
+    obj._touch = new SFNode('TouchSensor');
+    obj._highlight = gw_new_rectangle(class_name, 'invisible');
+
+    obj._show_highlight = false;
+    obj._is_icon = false;
+    if (class_name == 'icon') {
+        obj._is_icon = true;
+    }
+    else if (class_name == 'icon_label') {
+        obj._is_icon = true;
+        obj._show_highlight = false;
+        class_name = 'checkbox';
+    }
+    else if (class_name == 'listitem') {
+        obj._is_icon = true;
+        obj._show_highlight = true;
+    } else {
+        obj._highlight = gw_new_rectangle(class_name, 'invisible');
+        obj._show_highlight = true;
+    }
+
+    if (obj._highlight)
+        obj.children[0] = obj._highlight;
+
+    obj.children[obj.children.length] = obj._icon_root;
+    obj.children[obj.children.length] = obj._touch;
+    obj._label = null;
+
+    var skip_label = (label == null) ? true : false;
+
+    if (!skip_label && gwskin.get_font(class_name) != null) {
+        obj._label = gw_new_text(obj, label, class_name);
+        if (horizontal) {
+            obj.set_size = function (width, height) {
+                this._icon_root.children[0].size.x = height;
+                this._icon_root.children[0].size.y = height;
+                this._icon_root.translation.x = (height - width) / 2;
+                if (this._highlight)
+                    this._highlight.set_size(width, height);
+                this._label.set_width(width - height);
+                this._label.translation.x = height - width / 2;
+                this.width = width;
+                this.height = height;
+            };
+        } else {
+            obj.set_size = function (width, height) {
+                var fsize = this._label.font_size();
+
+                var h = height - fsize - gwskin.default_icon_text_spacing;
+                this._icon_root.children[0].size.x = h;
+                this._icon_root.children[0].size.y = h;
+                this._icon_root.translation.y = (height - h) / 2;
+                var w = width;
+                if (this._highlight)
+                    this._highlight.set_size(w, height);
+                this._label.set_width(w);
+                this._label.translation.y = -height / 2 + fsize / 2;
+                this.width = w;
+                this.height = height;
+            };
+        }
+        obj.set_label = function (label) {
+            this._label.set_label(label);
+        }
+        obj.get_label = function () {
+            return this._label.get_label();
+        }
+    } else {
+        obj.set_size = function (width, height) {
+            this._icon_root.children[0].size.x = width;
+            this._icon_root.children[0].size.y = height;
+            if (this._highlight)
+                this._highlight.set_size(width, height);
+            this.width = width;
+            this.height = height;
+        };
+        obj.set_label = function (label) {
+            this.label = label;
+        }
+        obj.get_label = function () {
+            return this.label;
+        }
+    }
+
+    obj._last_ts = 0;
+    obj.on_long_click = NULL;
+    obj.on_click = NULL;
+    obj.on_over = null;
+    obj.down = false;
+    obj.over = false;
+    obj._on_active = function (value, timestamp) {
+        if (value) {
+            this.down = true;
+            if (this._is_icon) {
+                var app = gwskin.get_style(class_name, 'down');
+                this._icon_root.children[0].children[0].set_style(app);
+            }
+
+            if (this._show_highlight) {
+                this._highlight.set_style(class_name, 'down');
+            }
+
+            this._last_ts = timestamp;
+        } else {
+            if (this._is_icon) {
+                var app = gwskin.get_style(class_name, (this.over && gwskin.pointing_device) ? 'over' : 'normal');
+                this._icon_root.children[0].children[0].set_style(app);
+            }
+
+            if (this._show_highlight) {
+                this._highlight.set_style(class_name, (this.over && gwskin.pointing_device) ? 'over' : 'invisible');
+            }
+
+            if (this.down && this.over) {
+                if (this.on_long_click && (timestamp - this._last_ts > gwskin.long_click_delay)) this.on_long_click();
+                else if (this.on_click) this.on_click();
+            }
+            this.down = false;
+        }
+    };
+    obj._on_over = function (value) {
+        this.over = value;
+        gw_reset_hit(this, value);
+
+        if (gwskin.pointing_device) {
+            if (this._is_icon) {
+                var app = gwskin.get_style(class_name, value ? 'over' : 'normal');
+                if (app) {
+                    this._icon_root.children[0].children[0].set_style(app);
+                }
+            }
+
+            if (this._show_highlight) {
+                this._highlight.set_style(class_name, value ? 'over' : 'invisible');
+            }
+
+            if (this.on_over) this.on_over(value);
+            if (gwskin.tooltip_callback) gwskin.tooltip_callback(value, this.get_label());
+        }
+    };
+    Browser.addRoute(obj._touch, 'isOver', obj, obj._on_over);
+    Browser.addRoute(obj._touch, 'isActive', obj, obj._on_active);
+
+    obj.icons = [];
+    obj.add_icon = function (url) {
+
+        if (typeof url == 'string') {
+            var inl;
+            if (typeof gwskin.images[url] != 'undefined') {
+                inl = gw_load_resource(gwskin.images[url], this._is_icon);
+            } else {
+                inl = gw_load_resource(url, this._is_icon);
+            }
+        } else {
+            var inl = url;
+        }
+        this.icons[this.icons.length] = inl;
+
+        if (this._icon_root.children[0].children.length == 0) {
+            this._icon_root.children[0].children[0] = this.icons[0];
+        }
+    }
+    obj.switch_icon = function (idx) {
+        while (idx > this.icons.length) idx -= this.icons.length;
+        this._icon_root.children[0].children[0] = this.icons[idx];
+    }
+    obj._pre_destroy = function () {
+        for (var i in this.icons) {
+            gw_unload_resource(this.icons[i]);
+        }
+        this.icons.length = 0;
+        this._highlight = null;
+        this._icons = null;
+        this._label = null;
+        Browser.deleteRoute(this._touch, 'ALL', null, null);
+        this._touch = null;
+    }
+
+    if (icon_url) obj.add_icon(icon_url);
+    obj.set_label(label);
+
+    obj.on_event = function () { return false; }
+
+    if (0 && (typeof gwskin[class_name] != 'undefined') && (typeof gwskin[class_name].height != 'undefined')) {
+        obj.set_size(gwskin[class_name].height, gwskin[class_name].height);
+    } else {
+        obj.set_size(gwskin.default_control_height, gwskin.default_control_height);
+    }
+    gw_add_child(parent, obj);
+    return obj;
+}
+
+function gw_new_icon(parent, icon_name) {
+    return gw_new_icon_button(parent, gwskin.images[icon_name], gwskin.labels[icon_name], false, 'icon');
+}
+
+function gw_new_checkbox(parent, label) {
+    var touch;
+    var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'CheckBox');
+
+    obj._icon_root = new SFNode('Transform2D');
+    obj._icon_root.children[0] = new SFNode('Layer2D');
+    obj._touch = new SFNode('TouchSensor');
+
+    var class_name = 'checkbox';
+
+    obj.children[0] = gw_new_rectangle(class_name, 'invisible');
+    obj.children[1] = obj._icon_root;
+    gw_new_text(obj, label, class_name);
+    obj.children[3] = obj._touch;
+
+    obj.set_size = function (width, height) {
+        this._icon_root.children[0].size.x = height;
+        this._icon_root.children[0].size.y = height;
+        this._icon_root.translation.x = (height - width) / 2;
+        this.children[0].set_size(width, height);
+        this.children[2].set_width(width - height);
+        this.children[2].translation.x = (height - width) / 2 + height;
+        this.width = width;
+        this.height = height;
+    };
+
+    obj.set_label = function (label) {
+        this.children[2].set_label(label);
+    }
+    obj.get_label = function () {
+        return this.children[2].get_label();
+    }
+    obj.on_check = NULL;
+    obj.down = false;
+    obj.over = false;
+    obj._checked = false;
+    obj._on_active = function (value, timestamp) {
+        if (value) {
+            this.down = true;
+        } else {
+            if (this.down && this.over) {
+                this._set_checked(!this._checked);
+                if (this.on_check) this.on_check(this._checked);
+            }
+            this.down = false;
+        }
+    };
+    obj._on_over = function (value) {
+        this.over = value;
+        gw_reset_hit(this, value);
+
+        if (gwskin.pointing_device) {
+                        var app = gwskin.get_style(class_name, value ? 'over' : (this._checked ? 'down' : 'normal') );
+                        if (app) {
+                            this._icon_root.children[0].children[0].set_style(app);
+                        }
+            if (this.on_over) this.on_over(value);
+            if (gwskin.tooltip_callback) gwskin.tooltip_callback(value, this.get_label());
+        }
+    };
+    Browser.addRoute(obj._touch, 'isOver', obj, obj._on_over);
+    Browser.addRoute(obj._touch, 'isActive', obj, obj._on_active);
+
+
+    obj._set_checked = function (value) {
+        this._checked = value;
+        var app = gwskin.get_style(class_name, value ? 'down' : 'normal');
+        this._icon_root.children[0].children[0].set_style(app);
+    }
+    obj.set_checked = function (value) {
+        this._set_checked(value);
+    }
+    obj._icon_root.children[0].children[0] = gw_load_resource(gwskin.images.check, true);
+
+    obj._pre_destroy = function () {
+        for (var i in this.icons) {
+            gw_unload_resource(this.icons[i]);
+        }
+        Browser.deleteRoute(this._touch, 'ALL', null, null);
+        this._touch = null;
+        this._icon_root = null;
+    }
+    obj.set_label(label);
+
+    obj.on_event = function () { return false; }
+
+    if (0 && (typeof gwskin[class_name] != 'undefined') && (typeof gwskin[class_name].height != 'undefined')) {
+        obj.set_size(gwskin[class_name].height, gwskin[class_name].height);
+    } else {
+        obj.set_size(gwskin.default_control_height, gwskin.default_control_height);
+    }
+    gw_add_child(parent, obj);
+    return obj;
+}
+
+
+
+function gw_new_spincontrol(parent, horizontal) {
+    var touch;
+    var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'SpinControl');
+
+    obj.value = 0;
+    if (arguments.length < 2) horizontal = false;
+    obj._horizontal = horizontal;
+    obj.on_click = function () { }
+    var tool = gw_new_icon(obj, horizontal ? 'right' : 'up');
+
+    obj.min = 0;
+    obj.max = -1;
+    tool.on_click = function () {
+        if (this.parent.min < this.parent.max) {
+            if (this.parent.value >= this.parent.max) {
+                return;
+            }
+        }
+        this.parent.value++;
+        this.parent.on_click(this.parent.value);
+    }
+    tool = gw_new_icon(obj, horizontal ? 'left' : 'down');
+    tool.on_click = function () {
+        if (this.parent.min < this.parent.max) {
+            if (this.parent.value <= this.parent.min) {
+                return;
+            }
+        }
+        this.parent.value--;
+        this.parent.on_click(this.parent.value);
+    }
+
+    obj.set_size = function (width, height) {
+        if (this._horizontal) {
+            this.children[0].set_size(width / 2, height);
+            this.children[1].set_size(width / 2, height);
+            this.children[0].translation.x = width / 4;
+            this.children[1].translation.x = -width / 4;
+        } else {
+            this.children[0].set_size(width, height / 2);
+            this.children[1].set_size(width, height / 2);
+            this.children[0].translation.y = height / 4;
+            this.children[1].translation.y = -height / 4;
+        }
+        this.width = width;
+        this.height = height;
+    };
+    obj._idx = 0;
+    obj.on_event = function (evt) {
+        if (evt.type == GF_EVENT_KEYDOWN) {
+            var idx = this._idx;
+            if (this._horizontal) {
+                if (evt.keycode == 'Left') idx--;
+                else if (evt.keycode == 'Right') idx++;
+                else return false;
+            } else {
+                if (evt.keycode == 'Up') idx--;
+                else if (evt.keycode == 'Down') idx++;
+                else return false;
+            }
+            if (idx < 0) {
+                return false;
+            }
+            if (idx > 1) {
+                return false;
+            }
+            this._idx = idx;
+            gpac.set_focus(this.children[idx]);
+            return true;
+        }
+        return false;
+    }
+
+    gw_add_child(parent, obj);
+    return obj;
+}
+
+
+
+
+function gw_new_subscene(parent) {
+    var inline = new SFNode('Inline');
+    inline._name = 'Subscene';
+    inline._pre_destroy = function () {
+        this.url[0] = '';
+        this.url.length = 0;
+    }
+    inline.connect = function (url) {
+        this.url.length = 0;
+        this.url[0] = url;
+    }
+    gw_add_child(parent, inline);
+    return inline;
+}
+
+function gw_new_button(parent, text, class_name) {
+    var label;
+    if (arguments.length <= 3) class_name = 'button';
+    obj = gw_new_rectangle(class_name, 'normal');
+    label = gw_new_text(obj, text, class_name);
+    gw_object_set_hitable(obj);
+    obj.on_over = function (val) {
+        if (gwskin.pointing_device) {
+            this.set_style(class_name, val ? 'over' : 'normal');
+        }
+        if (gwskin.tooltip_callback) gwskin.tooltip_callback(value, this.get_label());
+    }
+    obj.on_down = function (val) {
+        this.set_style(class_name, val ? 'down' : (this._over ? 'over' : 'normal'));
+    }
+
+    obj._set_size = obj.set_size;
+    obj.set_size = function (width, height) {
+        this._set_size(width, height);
+        this.children[1].set_size(width, height);
+        this.children[1].set_width(width);
+    };
+    obj.set_label = function (label) {
+        this.children[1].set_label(label);
+    }
+    obj.get_label = function () {
+        return this.children[1].get_label();
+    }
+    obj.set_labels = function () {
+        this.children[1].set_labels.apply(this.children[1], arguments);
+    }
+    obj.on_event = function (x, y) { return false; }
+
+    obj.disable = function () {
+        this._disable_touch();
+    }
+    obj.enable = function () {
+        this._enable_touch();
+    }
+
+    gw_add_child(parent, obj);
+    return obj;
+}
+
+
+function gw_new_gauge(parent, text) {
+    var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'ProgressBar');
+
+    if (arguments.length <= 3) class_name = 'progress';
+
+    obj.children[0] = gw_new_rectangle(class_name, 'normal');
+    obj.children[1] = gw_new_rectangle(class_name, 'over');
+    gw_new_text(obj, text, class_name);
+
+
+    obj._value = 75;
+    obj._set_size = obj.set_size;
+    obj.set_size = function (width, height) {
+        this._set_size(width, height);
+        this.children[0].set_size(width, height);
+
+        this.children[1].set_size(this._value * width / 100, height);
+        this.children[1].move((this._value - 100) * width / 200, 0);
+
+        this.children[2].set_size(width, height);
+        this.children[2].set_width(width);
+    };
+    obj.set_label = function (label) {
+        this.children[2].set_label(label);
+    }
+    obj.get_label = function () {
+        return this.children[2].get_label();
+    }
+
+    obj.set_value = function (val) {
+        this._value = (val > 100) ? 100 : ((val < 0) ? 0 : val);
+        this.set_size(this.width, this.height);
+    }
+
+    obj.on_event = function (x, y) { return false; }
+
+    gw_add_child(parent, obj);
+    return obj;
+}
+
+
+
+function grid_event_navigate(dlg, children, type) {
+    var i;
+    if (dlg.current_focus == -1) {
+        if (type == 'Left') return false;
+        dlg.current_focus = 0;
+        gpac.set_focus(children[0]);
+        return true;
+    }
+
+    if (type == 'Right') {
+        var orig_focus = dlg.current_focus;
+        var switch_page = 0;
+        var tr = children[dlg.current_focus].translation.y - children[dlg.current_focus].height / 2;
+        if (dlg.current_focus + 1 == children.length) {
+            dlg.current_focus = orig_focus;
+            gpac.set_focus(children[dlg.current_focus]);
+            return false;
+        }
+        /*goto right item*/
+        dlg.current_focus++;
+        /*check we are not going down*/
+        while (1) {
+            if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.y + children[dlg.current_focus].height / 2 > tr))
+                break;
+            if (dlg.current_focus + 1 == children.length) {
+                dlg.current_focus = orig_focus;
+                gpac.set_focus(children[dlg.current_focus]);
+                return false;
+            }
+            dlg.current_focus++;
+            switch_page = 1;
+        }
+        /*check we haven't move to a new page*/
+        if (children[orig_focus].translation.y + children[orig_focus].height / 2 <= children[dlg.current_focus].translation.y - children[dlg.current_focus].height / 2) {
+            switch_page = 1;
+        }
+
+    }
+    else if (type == 'Left') {
+        var orig_focus = dlg.current_focus;
+        var switch_page = 0;
+        var tr = children[dlg.current_focus].translation.y + children[dlg.current_focus].height / 2;
+        if (!dlg.current_focus) {
+            dlg.current_focus = -1;
+            gpac.set_focus(null);
+            return false;
+        }
+        /*goto left item*/
+        dlg.current_focus--;
+        /*check we are not going up*/
+        while (1) {
+            if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.y - children[dlg.current_focus].height / 2 < tr))
+                break;
+            if (!dlg.current_focus) {
+                dlg.current_focus = orig_focus;
+                return false;
+            }
+            dlg.current_focus--;
+            switch_page = -1;
+        }
+        /*check we haven't move to a new page*/
+        if (children[orig_focus].translation.y - children[orig_focus].height / 2 >= children[dlg.current_focus].translation.y + children[dlg.current_focus].height / 2) {
+            switch_page = -1;
+        }
+    }
+    else if (type == 'Down') {
+        var orig_focus = dlg.current_focus;
+        var switch_page = 0;
+        var bottom_y = children[dlg.current_focus].translation.y - children[dlg.current_focus].height / 2;
+        var top_y = children[dlg.current_focus].translation.y + children[dlg.current_focus].height / 2;
+        if (dlg.current_focus + 1 == children.length) return false;
+        dlg.current_focus++;
+        /*goto next line*/
+        while (1) {
+            //next child below current
+            if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.y - children[dlg.current_focus].height / 2 < bottom_y))
+                break;
+            //next child above current - we need a page swicth
+            if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.y + children[dlg.current_focus].height / 2 > top_y)) {
+                switch_page = 1;
+                break;
+            }
+            //not found
+            if (dlg.current_focus + 1 == children.length) {
+                dlg.current_focus = orig_focus;
+                return false;
+            }
+            dlg.current_focus++;
+        }
+        /*find closest item on the left*/
+        var tx = children[orig_focus].translation.x - children[orig_focus].width / 2;
+        while (1) {
+            if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.x + children[dlg.current_focus].width / 2 > tx))
+                break;
+            if (dlg.current_focus + 1 == children.length) break;
+            dlg.current_focus++;
+        }
+    }
+    else if (type == 'Up') {
+        var orig_focus = dlg.current_focus;
+        var switch_page = 0;
+        var bottom_y = children[dlg.current_focus].translation.y + children[dlg.current_focus].height / 2;
+        var top_y = children[dlg.current_focus].translation.y + children[dlg.current_focus].height / 2;
+        if (!dlg.current_focus) return false;
+        dlg.current_focus--;
+        /*goto previous line*/
+        while (1) {
+            if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.y + children[dlg.current_focus].height / 2 > top_y))
+                break;
+            //next child below current - we need a page swicth
+            if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.y + children[dlg.current_focus].height / 2 < bottom_y)) {
+                switch_page = -1;
+                break;
+            }
+            if (!dlg.current_focus) {
+                dlg.current_focus = orig_focus;
+                return false;
+            }
+            dlg.current_focus--;
+        }
+        /*goto above child*/
+        var tx = children[orig_focus].translation.x + children[orig_focus].width / 2;
+        while (1) {
+            if (children[dlg.current_focus].visible && (children[dlg.current_focus].translation.x - children[dlg.current_focus].width / 2 < tx))
+                break;
+            if (!dlg.current_focus) {
+                dlg.current_focus = orig_focus;
+                return false;
+            }
+            dlg.current_focus--;
+        }
+    } else {
+        return false;
+    }
+    alert('grid current focus ' + dlg.current_focus);
+    if (switch_page == 1) return dlg.on_next_page();
+    else if (switch_page == -1) return dlg.on_prev_page();
+    if (typeof children[dlg.current_focus].on_event == 'undefined') {
+        return grid_event_navigate(dlg, children, type);
+    }
+
+    gpac.set_focus(children[dlg.current_focus]);
+    return true;
+}
+
+
+
+function gw_new_grid_container(parent) {
+    var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'Layout');
+
+    obj.children[0] = new SFNode('Layer2D');
+    obj._container = new SFNode('Transform2D');
+    obj.children[0].children[0] = obj._container;
+    obj._all_children = [];
+    obj._pages = [];
+
+    obj.on_page_changed = null;
+
+    obj.on_prev_page = function () {
+        this._move_page(-1);
+        return true;
+    };
+    obj.on_next_page = function () {
+        this._move_page(1);
+        return true;
+    };
+
+    obj.is_first_page = function () {
+        return this._page_idx == 0 ? true : false;
+    }
+    obj.is_last_page = function () {
+        return this._page_idx == (this._pages.length - 1) ? true : false;
+    }
+    obj._page_idx = 0;
+    obj._max_page_idx = 0;
+    obj._move_page = function (value) {
+        this._page_idx += value;
+        var i, child, last_child = 0;
+
+        if (this._page_idx <= 0) {
+            this._page_idx = 0;
+        }
+
+        if (this._page_idx * this.width >= this.max_width) {
+            this._page_idx = this.max_width / this.width;
+        }
+
+        this._container.translation.x = -this._page_idx * this.width;
+        this._container.children.length = 0;
+        if (this._page_idx + 1 >= this._pages.length) {
+            last_child = this._all_children.length;
+        } else {
+            last_child = this._pages[this._page_idx + 1];
+        }
+
+        i = 0;
+        child = this._pages[this._page_idx];
+        if (this.current_focus >= 0) {
+            if (this.current_focus < child) this.current_focus = child;
+            else if (this.current_focus >= last_child) this.current_focus = last_child - 1;
+            gpac.set_focus(this._all_children[this.current_focus]);
+        }
+
+
+        while (child < last_child) {
+            this._container.children[i] = this._all_children[child];
+            child++;
+            i++;
+        }
+        if (this.on_page_changed) this.on_page_changed();
+
+    }
+
+    obj.spread_h = false;
+    obj.spread_v = false;
+    obj.break_at_hidden = false;
+    obj.break_at_line = 0;
+
+    obj.set_focus_last = function () {
+        this._page_idx = this._pages.length ? this._pages.length - 1 : 0;
+        this.current_focus = this._all_children.length;
+        this._move_page(0);
+    }
+    obj.set_focus_first = function () {
+        this._page_idx = 0;
+        this.current_focus = 0;
+        this._move_page(0);
+    }
+
+    obj.set_size = function (width, height) {
+        this.width = width;
+        this.height = height;
+        this.children[0].size.x = width;
+        this.children[0].size.y = height;
+        this.nb_visible = 0;
+        this.current_focus = -1;
+        this.layout();
+    }
+    obj.max_width = 0;
+    obj.layout = function () {
+        var spread_x, nb_wid_h, start_x, start_y, maxh, width, height, page_x, nb_on_line;
+        var children = this._all_children;
+        var width = this.width;
+        var height = this.height;
+
+        if (width <= 0) return;
+        if (height <= 0) return;
+
+        if (typeof this.on_size != 'undefined')
+            this.on_size(width, height);
+
+        var page_x = 0;
+        var maxh = 0;
+        var spread_x = -1;
+        var start_x = -width / 2;
+        var init_y = this.height / 2;
+        var start_y = init_y;
+        var nb_on_line = 0;
+
+        this._pages = [0];
+
+        for (var i = 0; i < children.length; i++) {
+            //start of line: compute H spread and max V size
+            if (spread_x == -1) {
+                var j = 0, len = 0, maxh = 0, nb_child = 0;
+                start_x = -width / 2 + page_x;
+                while (1) {
+                    if (!children[i + j].visible) {
+                        j++;
+                        if (i + j == children.length) break;
+                        if (this.break_at_hidden) break;
+                        continue;
+                    }
+                    if (len + children[i + j].width > width) break;
+                    len += children[i + j].width;
+                    if (maxh < children[i + j].height) maxh = children[i + j].height;
+                    j++;
+                    nb_child++;
+                    if (this.break_at_line) break;
+                    if (i + j == children.length) break;
+                }
+                if (nb_child <= 1) {
+                    maxh = children[i].height;
+                    if (this.spread_h && !this.break_at_line) start_x = -len / 2;
+                }
+                else if (this.spread_h) {
+                    spread_x = (width - len) / (nb_child);
+                    start_x += spread_x / 2;
+                } else {
+                    spread_x = 0;
+                }
+            }
+            if (!children[i].visible) {
+                if (nb_on_line && this.break_at_hidden) {
+                    nb_on_line = 0;
+                    spread_x = -1;
+                    start_y -= maxh / 2;
+                    start_x = -width / 2;
+                }
+                continue;
+            }
+            if (start_y - maxh < -height / 2) {
+                //push new page only if not empty! (otherwise we've been asked to layout in a too small grid ...)
+                if (!this._pages.length || this._pages[this._pages.length - 1] < i) {
+                    nb_on_line = 0;
+                    page_x += width;
+                    spread_x = -1;
+                    start_y = init_y;
+                    this._pages.push(i);
+                    i--;
+                    continue;
+                }
+            }
+            children[i].translation.x = start_x + children[i].width / 2;
+            children[i].translation.y = start_y - maxh / 2;
+            start_x += children[i].width + spread_x;
+
+            nb_on_line++;
+
+            if (i + 1 == children.length) {
+                break;
+            }
+            if ((nb_on_line == nb_child) || (start_x - page_x + children[i + 1].width > width / 2)) {
+                nb_on_line = 0;
+                spread_x = -1;
+                start_y -= maxh;
+                start_x = -width / 2;
+            }
+        }
+        this.max_width = page_x;
+        this._move_page(0);
+    }
+
+    obj.add_child = function (child) {
+        this._all_children.push(child);
+    }
+    obj.remove_child = function (child) {
+        var index = this._all_children.indexOf(child);
+        if (index > -1) this._all_children.splice(index, 1);
+    }
+
+    obj.get_children = function () {
+        return this._all_children;
+    }
+    obj.reset_children = function () {
+        gw_close_child_list(this._all_children);
+        this._all_children.length = 0;
+        this._container.children.length = 0;
+    }
+
+
+    obj.on_event = function (evt) {
+        switch (evt.type) {
+            case GF_EVENT_MOUSEWHEEL:
+                if (this._pages.length <= 1) return 0;
+                if ((evt.wheel < 0) && (this._page_idx == 0)) return 0;
+                if ((evt.wheel > 0) && (this._page_idx >= this._pages.length - 1)) return 0;
+                this._move_page((evt.wheel < 0) ? -1 : 1);
+                return 1;
+            case GF_EVENT_KEYDOWN:
+                if ((evt.keycode == 'Up') || (evt.keycode == 'Down') || (evt.keycode == 'Right') || (evt.keycode == 'Left')) {
+
+                    if ((this.current_focus >= 0) && typeof this._all_children[this.current_focus].on_event != 'undefined') {
+                        var res = this._all_children[this.current_focus].on_event(evt);
+                        if (res) return res;
+                    }
+
+                    return grid_event_navigate(this, this._all_children, evt.keycode);
+                }
+                if ((evt.keycode == 'PageUp') && (this._page_idx > 0)) {
+                    return this.on_prev_page();
+                }
+                if ((evt.keycode == 'PageDown') && (this._page_idx < this._pages.length)) {
+                    return this.on_next_page();
+                }
+                return 0;
+        }
+        return 0;
+    }
+
+    obj._pre_destroy = function () {
+        this.reset_children();
+        this._container = null;
+        this._all_children.length = 0;
+    }
+
+    gw_add_child(parent, obj);
+    return obj;
+}
+
+function gw_new_separator(parent) {
+    var obj = gw_new_container();
+    obj.hide();
+    gw_add_child(parent, obj);
+    return obj;
+}
+
+function gw_new_progress_bar(parent, vertical, with_progress, class_name) {
+    var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'ProgressBar');
+    var ps2d;
+
+    if (arguments.length <= 3) class_name = 'progress';
+    if (arguments.length <= 2) with_progress = false;
+    if (arguments.length <= 1) vertical = false;
+
+    obj.children[0] = gw_new_rectangle(class_name, 'normal');
+
+    if (with_progress) {
+        obj.children[1] = gw_new_rectangle(class_name, 'down');
+        if (vertical) {
+            obj.children[1].set_corners(true, false, false, true);
+        } else {
+            obj.children[1].set_corners(true, false, false, true);
+        }
+        obj.set_progress = function (prog) {
+            if (prog < 0) prog = 0;
+            else if (prog > 100) prog = 100;
+            this.prog = prog;
+            prog /= 100;
+            if (this.vertical) {
+                var pheight = prog * this.height;
+                this.children[1].set_size(this.width, pheight);
+                this.children[1].move(0, (this.height - pheight) / 2, 0);
+            } else {
+                var pwidth = prog * this.width;
+                this.children[1].set_size(pwidth, this.height);
+                this.children[1].move((pwidth - this.width) / 2, 0);
+            }
+        }
+    } else {
+        obj.set_progress = function (prog) { }
+    }
+    obj.slide_idx = obj.children.length;
+    obj.children[obj.slide_idx] = gw_new_rectangle(class_name, 'over');
+    if (vertical) {
+        obj.children[obj.slide_idx].set_corners(true, false, false, true);
+    } else {
+        obj.children[obj.slide_idx].set_corners(true, false, false, true);
+    }
+    obj.children[obj.slide_idx + 1] = gw_new_rectangle(class_name, 'invisible');
+    ps2d = new SFNode('PlaneSensor2D');
+    obj.children[obj.slide_idx + 1].children[1] = ps2d;
+    ps2d.maxPosition.x = -1;
+    ps2d.maxPosition.y = -1;
+
+    obj.on_slide = function (value, type) { }
+
+    obj._with_progress = with_progress;
+    obj._sliding = false;
+    obj._slide_active = function (val) {
+        obj._sliding = val;
+        this.on_slide(this.min + (this.max - this.min) * this.frac, val ? 1 : 2);
+    }
+    Browser.addRoute(ps2d, 'isActive', obj, obj._slide_active);
+
+    obj._set_trackpoint = function (value) {
+        if (this.vertical) {
+            this.frac = value.y / this.height;
+        } else {
+            this.frac = value.x / this.width;
+        }
+        this.frac += 0.5;
+        if (this.frac > 1) this.frac = 1;
+        else if (this.frac < 0) this.frac = 0;
+
+        this._set_frac();
+        this.on_slide(this.min + (this.max - this.min) * this.frac, 0);
+    }
+    Browser.addRoute(ps2d, 'trackPoint_changed', obj, obj._set_trackpoint);
+
+    obj._set_frac = function () {
+        if (this.vertical) {
+            var pheight = this.frac * this.height;
+            if (pheight < this.width) pheight = this.width;
+            this.children[this.slide_idx].set_size(this.width, pheight);
+            this.children[this.slide_idx].move(0, (this.height - pheight) / 2, 0);
+        } else {
+            var pwidth = this.frac * this.width;
+            if (pwidth < this.height) pwidth = this.height;
+            this.children[this.slide_idx].set_size(pwidth, this.height);
+            this.children[this.slide_idx].move((pwidth - this.width) / 2, 0);
+        }
+    }
+
+    obj.set_value = function (value) {
+        if (this._sliding) return;
+
+        value -= this.min;
+        if (value < 0) value = 0;
+        else if (value > this.max - this.min) value = this.max - this.min;
+        if (this.max == this.min) value = 0;
+        else value /= (this.max - this.min);
+
+        this.frac = value;
+        this._set_frac();
+    }
+
+
+    obj.vertical = vertical;
+    obj.set_size = function (w, h) {
+        this.width = w;
+        this.height = h;
+        this.children[0].set_size(w, h);
+        if (this._with_progress) {
+            this.children[3].set_size(w, h);
+        } else {
+            this.children[2].set_size(w, h);
+        }
+        this._set_frac();
+        this.set_progress(this.prog);
+    }
+    obj.min = 0;
+    obj.max = 100;
+
+    obj.move = function (x, y) {
+        this.translation.x = x;
+        this.translation.y = y;
+    }
+    obj.on_event = function (x, y) { return false; }
+
+    obj.prog = 0;
+    obj.frac = 0;
+    obj.set_size(vertical ? 10 : 200, vertical ? 200 : 10);
+
+    gw_add_child(parent, obj);
+    return obj;
+}
+
+function gw_new_slider(parent, vertical, class_name) {
+    var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'Slider');
+
+    if (arguments.length <= 2) class_name = 'progress';
+    if (arguments.length <= 1) vertical = false;
+
+    obj.children[0] = gw_new_rectangle(class_name, 'normal');
+    obj.children[1] = gw_new_rectangle(class_name, 'over');
+    obj.children[2] = gw_new_rectangle(class_name, 'invisible');
+
+    var ps2d = new SFNode('PlaneSensor2D');
+    obj.children[2].children[1] = ps2d;
+    ps2d.maxPosition.x = -1;
+    ps2d.maxPosition.y = -1;
+    obj.on_slide = function (value, type) { }
+
+    obj.slide_active = function (val) {
+        this.on_slide(this.min + (this.max - this.min) * this.frac, val ? 1 : 2);
+    }
+    Browser.addRoute(ps2d, 'isActive', obj, obj.slide_active);
+    obj.set_trackpoint = function (value) {
+        if (vertical) {
+            this.frac = value.y / (this.height - this.children[1].height);
+        } else {
+            this.frac = value.x / (this.width - this.children[1].width);
+        }
+        this.frac += 0.5;
+        if (this.frac > 1) this.frac = 1;
+        else if (this.frac < 0) this.frac = 0;
+
+        if (vertical) {
+            value.y = (this.frac - 0.5) * (this.height - this.children[1].height);
+            value.x = 0;
+        } else {
+            value.x = (this.frac - 0.5) * (this.width - this.children[1].width);
+            value.y = 0;
+        }
+        this.children[1].translation = value;
+        this.on_slide(this.min + (this.max - this.min) * this.frac, 0);
+    }
+    Browser.addRoute(ps2d, 'trackPoint_changed', obj, obj.set_trackpoint);
+
+    obj.set_value = function (value) {
+        if (this.children[2].isActive) return;
+
+        value -= this.min;
+        if (value < 0) value = 0;
+        else if (value > this.max - this.min) value = this.max - this.min;
+        if (this.max == this.min) value = 0;
+        else value /= (this.max - this.min);
+
+        value -= 0.5;
+        value *= (vertical ? this.height : this.width);
+
+        if (vertical) {
+            this.children[1].translation.y = value;
+        } else {
+            this.children[1].translation.x = value;
+        }
+    }
+    obj.vertical = vertical;
+    obj.set_size = function (w, h, cursor_w, cursor_h) {
+        if (this.height && this.width) {
+            if (vertical) {
+                this.children[1].translation.y *= h;
+                this.children[1].translation.y /= this.height;
+            } else {
+                this.children[1].translation.x *= w;
+                this.children[1].translation.x /= this.width;
+            }
+        }
+
+        this.width = w;
+        this.height = h;
+        this.children[0].set_size(w, h);
+
+        if (typeof (cursor_w) == 'undefined') cursor_w = this.children[1].width;
+        if (typeof (cursor_h) == 'undefined') cursor_h = this.children[1].height;
+        this.children[1].set_size(cursor_w, cursor_h);
+
+        if (this.vertical) {
+            this.children[2].set_size(this.children[1].width, h);
+        } else {
+            this.children[2].set_size(w, this.children[1].height);
+        }
+    }
+    obj.set_cursor_size = function (w, h) {
+        this.children[1].set_size(w, h);
+    }
+    obj.min = 0;
+    obj.max = 100;
+    obj.frac = 0;
+    obj.set_size(vertical ? 10 : 200, vertical ? 200 : 10, 10, 10);
+
+    obj.set_trackpoint(0);
+
+    obj.move = function (x, y) {
+        this.translation.x = x;
+        this.translation.y = y;
+    }
+    obj.on_event = function (x, y) { return false; }
+
+    gw_add_child(parent, obj);
+    return obj;
+}
+
+
+function gw_new_text_edit(parent, text_data) {
+    var obj = new SFNode('Transform2D');
+    var rect, edit;
+    setup_gw_object(obj, 'TextEdit');
+    rect = gw_new_rectangle('edit');
+    gw_add_child(obj, rect);
+    gw_object_set_hitable(rect);
+    rect.on_down = function (val) {
+        if (val) gpac.set_focus(this.parent.children[1]);
+    }
+
+    edit = gw_new_text(obj, text_data, 'edit')
+    //    gw_add_child(obj, edit);
+    obj.on_text = null;
+    obj._text_edited = function (val) {
+        if (this.on_text) this.on_text(val[0]);
+    };
+    Browser.addRoute(obj.children[1].children[0].children[0].geometry, 'string', obj, obj._text_edited);
+
+    obj.set_size = function (w, h) {
+        this.width = w;
+        this.height = h;
+        this.children[0].set_size(w, h);
+        this.children[1].move(5 - w / 2, 0);
+    };
+    obj.on_event = function (x, y) { return false; }
+
+
+    gw_add_child(parent, obj);
+    return obj;
+}
+
+function gw_new_text_area(parent, text_data) {
+    var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'TextArea');
+
+    obj.children[0] = new SFNode('Layout');
+    obj.children[0].parent = obj;
+    obj.children[0].wrap = true;
+    obj.children[0].spacing = 1.1;
+    obj.children[0].justify[0] = "JUSTIFY";
+    obj.children[0].justify[1] = "FIRST";
+
+    gw_new_text(obj.children[0], text_data, 'text');
+    obj.set_size = function (width, height) {
+        this.children[0].size.x = width;
+        this.children[0].size.y = height;
+        this.width = width;
+        this.height = height;
+    }
+    obj.set_content = function (text) {
+        this.children[0].children[0].set_label(text);
+    }
+
+    obj.on_event = function (x, y) { return false; }
+
+    gw_add_child(parent, obj);
+    return obj;
+}
+
+
+
+function gw_new_scrolltext_area(parent, text_data) {
+    var obj = gw_new_text_area(parent, text_data);
+    /*erase the resize routine*/
+    obj._orig_set_size = obj.set_size;
+    obj.set_size = function (width, height) {
+        var bounds = this._bounds;
+        this.width = width;
+        this.height = Math.ceil(bounds.height);
+        this._orig_set_size(width, height);
+    }
+
+    obj.set_content = function (text) {
+        this.set_label(text);
+    }
+    return obj;
+}
+
+function gw_new_window_full(parent, offscreen, the_label, child_to_insert) {
+    var wnd = gw_new_window(parent, offscreen, true);
+
+    if (arguments.length <= 3) child_to_insert = null;
+    if (child_to_insert) {
+        gw_add_child(wnd, child_to_insert);
+    }
+
+    wnd.area = null;
+
+    wnd.tools = gw_new_grid_container(wnd);
+    wnd.tools._name = 'ToolBar';
+    wnd._has_extra_tools = false;
+
+    wnd.label = null;
+    if (the_label) {
+        wnd.label = gw_new_text(wnd.tools, the_label, 'window');
+        wnd.label._name = 'Label';
+    }
+
+    wnd.set_label = function (label) {
+        if (wnd.label) wnd.label.set_label(label);
+    }
+
+
+    wnd.add_tool = function (icon, name) {
+        var tool;
+        if (typeof gwskin.images[icon] != 'undefined') {
+            tool = gw_new_icon(this.tools, icon);
+        } else {
+            tool = gw_new_icon_button(this.tools, icon, name, false, 'icon');
+        }
+        if (this.label) {
+            this.tools.remove_child(this.label);
+            this.tools.add_child(this.label);
+        }
+        tool.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
+        tool._name = name;
+        tool.dlg = this;
+        this._has_extra_tools = true;
+        return tool;
+    }
+
+
+    var icon = wnd.add_tool('cancel');
+    icon.on_click = function () {
+        this.dlg.close();
+    }
+    wnd._has_extra_tools = false;
+
+    wnd._pre_destroy = function () {
+        if (typeof this.predestroy != 'undefined') this.predestroy();
+        this.tools = null;
+        this.label = null;
+        this.area = null;
+        this._wnd_close();
+    }
+
+    wnd.on_size = null;
+    wnd.layout = function (width, height) {
+        var i;
+        var tools = this.tools.get_children();
+        var tool_size = gwskin.default_icon_height;
+
+        if (this.on_size) this.on_size(width, height - tool_size);
+
+        if (this.area) {
+            this.area.set_size(width, height - tool_size);
+            this.area.move(0, (this.area.height - height) / 2);
+        }
+        for (i = 0; i < tools.length; i++) {
+            tools[i].set_size(tool_size, tool_size);
+        }
+
+        if (this.label) {
+            var textw = width;
+            for (i = 0; i < tools.length; i++) {
+                if ((tools[i] != this.label) && tools[i].visible)
+                    textw -= tools[i].width;
+            }
+            textw -= tool_size;
+            if (textw < 0) textw = 0;
+            this.label.set_size(textw, tool_size);
+            this.label.set_width(textw);
+        }
+
+        this.tools.move(0, (height - tool_size) / 2);
+        this.tools.set_size(width, tool_size);
+    }
+
+    wnd.on_event = function (evt) {
+        if ((evt.type == GF_EVENT_KEYUP) && (evt.keycode == gwskin.keys.close)) {
+            this.close();
+            return 1;
+        }
+        if ((evt.type == GF_EVENT_KEYUP) && (evt.keycode == gwskin.keys.validate)) {
+			if (typeof this.on_validate == 'function') {
+				this.on_validate();
+				return 1;
+			}
+			return 0;
+        }
+        if (!this._has_extra_tools) {
+            if (this.area) return this.area.on_event(evt);
+            return false;
+        }
+
+        if (!this.area) {
+            return this.tools.on_event(evt);
+        }
+
+        var is_left_or_right = (evt.type == GF_EVENT_KEYDOWN) && ((evt.keycode == 'Left') || (evt.keycode == 'Right')) ? 1 : 0;
+        if (this._focus_is_tools) {
+            if (this.tools.on_event(evt)) return 1;
+            if (this.area.on_event(evt)) {
+                //focus no longer on toolbar but on main content (means this is 'right'), switch order 
+                if (is_left_or_right) {
+                    this._focus_is_tools = false;
+                }
+                return 1;
+            }
+        } else {
+            if (this.area.on_event(evt)) return 1;
+            if (this.tools.on_event(evt)) {
+                //focus no longer on main but on toolbar content (means this is 'left'), switch order 
+                if (is_left_or_right) {
+                    this._focus_is_tools = true;
+                }
+                return 1;
+            }
+        }
+        return 0;
+    }
+    wnd._focus_is_tools = true;
+    return wnd;
+}
+
+function gw_new_message(container, label, content) {
+    var notif = gw_new_window_full(container, true, label);
+    notif.area = gw_new_text_area(notif, content);
+    notif.on_size = function (width, height) {
+        this.area.set_size(width - 10, height);
+    }
+    notif.set_size(0.8 * gw_display_width, 120);
+
+    notif.timer = gw_new_timer(false);
+    notif.timer.wnd = notif;
+    notif.timer.set_timeout(gwskin.default_message_timeout, false);
+    notif.timer.start(0);
+    notif.timer.on_active = function (val) {
+        if (!val) this.wnd.close();
+    }
+    return notif;
+}
+
+
+function gw_new_confirm_wnd(container, label, confirm_yes, confirm_no) {
+    if (arguments.length < 4) confirm_no = 'no';
+    if (arguments.length < 3) confirm_yes = 'yes';
+
+    var notif = gw_new_window_full(container, true, label);
+    notif.area = gw_new_grid_container(notif);
+    notif.area.spread_h = true;
     
-  gw_add_child(parent, obj);
-  return obj;
-}
-
-function gw_new_slider(parent, vertical, class_name)
-{
-  var obj = new SFNode('Transform2D');
-  setup_gw_object(obj, 'Slider');
-
-  if (arguments.length<=2) class_name = 'progress';
-  if (arguments.length<=1) vertical = false;
-
-  obj.children[0] = gw_new_rectangle(class_name, 'normal');
-  obj.children[1] = gw_new_rectangle(class_name, 'over');
-  obj.children[2] = gw_new_rectangle(class_name, 'invisible');
-
-  var ps2d = new SFNode('PlaneSensor2D');
-  obj.children[2].children[1] = ps2d;
-  ps2d.maxPosition.x = -1;
-  ps2d.maxPosition.y = -1;
-  obj.on_slide = function(value, type) { }
-
-  obj.slide_active = function(val) {
-   this.on_slide(this.min + (this.max-this.min) * this.frac, val ? 1 : 2);
-  }
-  Browser.addRoute(ps2d, 'isActive', obj, obj.slide_active);  
-  obj.set_trackpoint = function(value) {
-   if (vertical) {
-    this.frac = value.y/(this.height-this.children[1].height);
-   } else {
-    this.frac = value.x/(this.width-this.children[1].width);
-   }
-   this.frac += 0.5;
-   if (this.frac>1) this.frac=1;
-   else if (this.frac<0) this.frac=0;
-
-   if (vertical) {
-    value.y = (this.frac-0.5) * (this.height-this.children[1].height);
-    value.x = 0;
-   } else {
-    value.x = (this.frac-0.5) * (this.width-this.children[1].width);
-    value.y = 0;
-   }
-   this.children[1].translation = value;
-   this.on_slide(this.min + (this.max-this.min) * this.frac, 0);
-  }
-  Browser.addRoute(ps2d, 'trackPoint_changed', obj, obj.set_trackpoint);  
-
-  obj.set_value = function(value) {
-   if (this.children[2].isActive) return;
-   
-   value -= this.min;
-   if (value<0) value = 0;
-   else if (value>this.max-this.min) value = this.max-this.min;
-   if (this.max==this.min) value = 0;
-   else value /= (this.max-this.min);
-
-   value -= 0.5;
-   value *= (vertical ? this.height : this.width);
-
-   if (vertical) {
-    this.children[1].translation.y = value;
-   } else {
-    this.children[1].translation.x = value;
-   }   
-  }
-    
-  obj.vertical = vertical;
-  obj.set_size = function(w, h, cursor_w, cursor_h) {
-   this.width = w;
-   this.height = h;
-   this.children[0].set_size(w, h);
-
-   if (typeof(cursor_w)=='undefined') cursor_w = this.children[1].width;
-   if (typeof(cursor_h)=='undefined') cursor_h = this.children[1].height;
-   this.children[1].set_size(cursor_w, cursor_h);
-
-   if (this.vertical) {
-    this.children[2].set_size(this.children[1].width, h);
-   } else {
-    this.children[2].set_size(w, this.children[1].height);
-   }
-  }
-  obj.set_cursor_size = function(w, h) {
-   this.children[1].set_size(w, h);
-  }
-  obj.min = 0;
-  obj.max = 100;
-  obj.frac = 0;
-  obj.set_trackpoint(0);
-  
-  obj.move = function(x,y) {
-   this.translation.x = x;
-   this.translation.y = y;
-  }
-  obj.set_size(vertical ? 10 : 200, vertical ? 200 : 10, 10, 10);
-
-  gw_add_child(parent, obj);
-  return obj;
-}
-
-
-function gw_new_window_full(parent, offscreen, the_label, class_name, child_to_insert)
-{
- var wnd = gw_new_window(parent, offscreen, class_name);
-
- if (arguments.length<=4) child_to_insert = null;
- if (child_to_insert) {
-  gw_add_child(wnd, child_to_insert);
- }
- 
- wnd.area = null;
-
- wnd.tools = gw_new_grid_container(wnd); 
- wnd.tools._name = 'ToolBar';
- wnd.tool_size = gwskin.icon.width;
-
- wnd.label = null;
- if (the_label) {
-  wnd.label = gw_new_text(wnd.tools, the_label, class_name);
-  wnd.label.set_size(wnd.tool_size, wnd.tool_size);
-  wnd.label.set_width(wnd.tool_size);
- }
- 
- wnd.set_label = function(label) {
-  if (wnd.label) wnd.label.set_label(label);
- }
-
- 
- wnd.add_tool = function(icon, name) {
-  var tool = gw_new_icon_button(this.tools, icon, name, 'icon');
-  if (this.label) {
-   this.tools.remove_child(this.label);
-   this.tools.add_child(this.label);
-  }
-  tool.set_size(wnd.tool_size, wnd.tool_size);
-  tool._name = name;
-  tool.dlg = this;
-  return tool;
- }
-
- 
- wnd.on_close = null;
- var icon = wnd.add_tool(gwskin.images.cancel, gwskin.labels.close);
- icon.on_click = function() {
-  if (this.dlg.on_close) this.dlg.on_close();
-  this.dlg.close(); 
- }
-
- wnd._pre_destroy = function() {
-  if (typeof this.predestroy != 'undefined') this.predestroy();
-  this.tools = null;
-  this.label = null;
-  this.area = null;
-  this._wnd_close();
- }
- 
- wnd.on_size = null;
- wnd.layout = function(width, height) {  
-  var i;
-  var tools = this.tools.get_children();
-
-  if (this.area) {
-    this.area.set_size(width, height - this.tool_size);
-    this.area.move(0, (this.area.height-height)/2);
-  }
-  if (wnd.on_size) wnd.on_size(width, tools.length ? (height - this.tool_size) : height);
-  
-  if (this.label) {
-    var textw = width;
-    for (i=0; i<tools.length-1; i++) {
-     if (tools[i].visible) textw -= tools[i].width;
+    notif.on_confirm = null;
+    notif.btn_yes = gw_new_button(notif.area, confirm_yes);
+    notif.btn_yes.dlg = notif;
+    notif.btn_yes.on_click = function () {
+        if (this.dlg.on_confirm) this.dlg.on_confirm(true);
+        this.dlg.close();
     }
-    if (textw<0) textw=0;
-    this.label.set_size(textw, this.tool_size);
-	  this.label.set_width(textw);
-  }
 
-  this.tools.move(0, (height - this.tool_size)/2);
-  this.tools.set_size(width, this.tool_size);
- }
+    notif.btn_no = gw_new_button(notif.area, confirm_no);
+    notif.btn_no.dlg = notif;
+    notif.btn_no.on_click = function () {
+        if (this.dlg.on_confirm) this.dlg.on_confirm(false);
+        this.dlg.close();
+    }
+    notif.on_close = function () {
+        if (this.on_confirm) this.on_confirm(false);
+    }
+
+    notif.on_display_size = function (width, height) {
+        var w = 0.9*width;
+        if (w>500) w=500;
+        this.btn_yes.set_size(w / 3, gwskin.default_control_height);
+        this.btn_no.set_size(w / 3, gwskin.default_control_height);
+        this.set_size(w, 2 * gwskin.default_control_height);
+    }
+    notif.on_display_size(gw_display_width, gw_display_height);
+    return notif;
+}
+
+
+function gw_new_file_dialog(container, label) {
+    var dlg = gw_new_window_full(container, true, label);
+
+    dlg.area = gw_new_grid_container(dlg);
+    dlg.area.break_at_line = true;
+    dlg.area.dlg = dlg;
+
+    dlg.on_close = function () {
+        if (this.on_browse) {
+            this.on_browse(null, false);
+        }
+    }
+
+    dlg.go_up = dlg.add_tool('up');
+    dlg.go_up.on_click = function () {
+        this.dlg._browse(null, true);
+    }
+
+    dlg.go_prev = dlg.add_tool('previous');
+    dlg.go_prev.on_click = function () {
+        this.dlg.area._move_page(-1);
+    }
+
+    dlg.go_next = dlg.add_tool('next');
+    dlg.go_next.on_click = function () {
+        this.dlg.area._move_page(1);
+    }
+
+    dlg.go_root = dlg.add_tool('device');
+    dlg.go_root.on_click = function () {
+        this.dlg._browse('/');
+    }
+
+    dlg.predestroy = function () {
+        this.go_up = null;
+        this.go_next = null;
+        this.go_prev = null;
+        this.go_root = null;
+        this.area.dlg = null;
+    }
+
+    dlg.directory = '';
+    dlg.show_directory = false;
+    dlg.filter = '*';
+
+    dlg._on_dir_browse = function () {
+		if (this.path) {
+			this.dlg._browse(this.path, false);
+		} else {
+			this.dlg._browse(this.dlg.path + this.filename, false);
+		}
+    }
+    dlg._on_file_select = function () {
+        if (this.dlg.on_browse) {
+			if (this.path) {
+				this.dlg.on_browse(this.path, null);
+			} else {
+				this.dlg.on_browse(this.dlg.path + this.filename, this.dlg.directory);
+			}
+        }
+        this.dlg.close();
+    }
+
+    dlg.area.on_page_changed = function () {
+        if (this.is_first_page()) this.dlg.go_prev.hide();
+        else this.dlg.go_prev.show();
+
+        if (this.is_last_page()) this.dlg.go_next.hide();
+        else this.dlg.go_next.show();
+
+        this.dlg.tools.layout(this.dlg.tools.width, this.dlg.tools.height);
+    }
+
+    dlg.on_long_click = null;
+
+    dlg.browse = function (dir) {
+		if (typeof dir == 'string') this.directory = dir;
+		
+        this._browse(dir, false);
+    }
+    dlg._browse = function (dir, up) {
+        var w, h, i, y;
+        var filelist;
+        var is_listing = ((dir==null) || (typeof dir == 'string')) ? false : true;
+
+        if (is_listing) {
+            filelist = dir;
+            this.path = null;
+        } else {
+            if (dir) this.directory = dir;
+            if (up && !this.path) up = false;
+            filelist = gpac.enum_directory(this.directory, this.filter, up);
+
+            if (filelist.length) {
+                this.directory = filelist[0].path;
+                this.set_label(this.directory);
+            } else {
+                this.set_label('');
+            }
+            this.path = filelist.length ? filelist[0].path : '';
+        }
+
+        this.area.reset_children();
+
+        for (i = 0; i < filelist.length; i++) {
+            if (!is_listing && (filelist[i].hidden || filelist[i].system)) continue;
+
+            var icon_name = gwskin.images.mime_generic;
+
+            if ( (!is_listing || (typeof filelist[i].directory == 'boolean'))  && (filelist[i].directory || (filelist[i].name.indexOf('.') < 0))) {
+                if (filelist[i].drive) icon_name = gwskin.images.drive;
+                else icon_name = gwskin.images.folder;
+            } else {
+                var ext = is_listing ? filelist[i].path : filelist[i].name;
+                ext = ext.split('.').pop();
+
+                var reg = new RegExp(' ' + ext + ' ', "gi");
+                //check default extensions
+                if (gwskin.mime_video_default_ext.match(reg)) icon_name = gwskin.images.mime_video;
+                else if (gwskin.mime_audio_default_ext.match(reg)) icon_name = gwskin.images.mime_audio;
+                else if (gwskin.mime_image_default_ext.match(reg)) icon_name = gwskin.images.mime_image;
+                else if (gwskin.mime_model_default_ext.match(reg)) icon_name = gwskin.images.mime_model;
+
+                else {
+                    var idx = 0;
+                    while (1) {
+                        var mime = gpac.getOption('MimeTypes', idx);
+                        if (mime == null) break;
+                        idx++;
+                        var mime_ext = gpac.getOption('MimeTypes', mime).split('"')[1];
+                        if (!mime_ext.match(reg)) continue;
+
+                        if (mime.indexOf('video') != -1) icon_name = gwskin.images.mime_video;
+                        else if (mime.indexOf('audio') != -1) icon_name = gwskin.images.mime_audio;
+                        else if (mime.indexOf('model') != -1) icon_name = gwskin.images.mime_model;
+                        else if (mime.indexOf('image') != -1) icon_name = gwskin.images.mime_image;
+                        else if (mime.indexOf('application') != -1) icon_name = gwskin.images.mime_model;
+
+                        break;
+                    }
+                }
+            }
+
+            var item = gw_new_icon_button(this.area, icon_name, filelist[i].name, true, 'listitem');
+            item.dlg = this;
+            item.filename = filelist[i].name;
+            item.directory = filelist[i].directory;
+            item.set_size(this.width, gwskin.default_control_height);
+            item.path = is_listing ? filelist[i].path : null;
+
+            if (filelist[i].directory) {
+                item.on_click = this._on_dir_browse;
+            } else {
+                item.on_click = this._on_file_select;
+            }
+            item.on_long_click = function () {
+                if (this.dlg.on_long_click) {
+					var path = this.path ? this.path : (this.dlg.directory + this.filename+'/');
+                    this.dlg.on_long_click(this.filename, path, this.directory);
+				}
+            }
+        }
+        this.layout(this.width, this.height);
+
+        if (this.directory == '/') this.go_up.hide();
+        else this.go_up.show();
+
+        this.tools.layout(this.tools.width, this.tools.height);
+    }
+
+    dlg.on_size = function (width, height) {
+        var __children = this.area.get_children();
+        for (var i = 0; i < __children.length; i++) {
+            __children[i].set_size(width, gwskin.default_control_height);
+        }
+        dlg.area.set_size(width, height);
+    }
+
+    return dlg;
+}
+
+
+
+function gw_new_plotter(parent) {
+    var touch;
+    var obj = new SFNode('Transform2D');
+    setup_gw_object(obj, 'Plotter');
+
+    obj.children[0] = new SFNode('Layer2D');
+
+    var class_name = 'plot';
+
+    obj.children[0].children[0] = gw_new_rectangle(class_name, 'normal');
+
+    obj.set_size = function (width, height) {
+        this.children[0].size.x = width;
+        this.children[0].size.y = height;
+        this.children[0].children[0].set_size(width, height);
+
+        var w = 0.9;
+        var h = 0.9;
+        this.axis.reset();
+        this.axis.add_move_to(-w / 2, -h / 2);
+        this.axis.add_line_to(w / 2, -h / 2);
+        this.axis.add_move_to(-w / 2, -h / 2);
+        this.axis.add_line_to(-w / 2, h / 2);
+        this.axis.scale.x = width - this.label_width;
+        this.axis.scale.y = height;
+        this.axis.translation.x = - this.label_width/2;
+
+        for (var i = 0; i < this.series.length; i++) {
+            var s = this.series[i];
+            s.scale = new SFVec2f(width - this.label_width, height);
+            s.but.set_size(this.label_width, 0.8*gwskin.default_text_font_size);
+            s.but.set_font_size(0.8 * gwskin.default_text_font_size);
+            s.translation.x = -this.label_width / 2;
+        }
+        this.width = width;
+        this.height = height;
+    }
+
+    obj.axis = gw_new_curve2d(class_name);
+    obj.children[0].children[1] = obj.axis;
+    obj.label_width = 100;
+
+    obj.series = [];
+    obj.add_serie = function (legend, units, r, g, b) {
+        var s = gw_new_curve2d('plot');
+        s.set_color(r, g, b);
+
+        s.dlg = this;
+        s.legend = legend;
+        s.units = units;
+        s.max_y = 0;
+        s.nb_refresh = 0;
+
+        s.refresh_serie = function (serie, name_x, name_y, nb_x, factor) {
+            var s = serie[0];
+            var count = serie.length;
+
+            var first_x = s[name_x];
  
-  wnd.set_tool_size = function(widget_tool_size) {
-   var i;
-   var tools = this.tools.get_children();
-   this.tool_size = widget_tool_size;
-   for (i=0; i<tools.length; i++) {
-    tools[i].set_size(this.tool_size, this.tool_size);
-   }
-   this.tools.set_size(this.width, widget_tool_size);
-  }
-
- return wnd; 
-}
-
-function gw_new_listbox(container)
-{
-  var obj = new SFNode('Transform2D');
-  setup_gw_object(obj, 'List');
-  obj.children[0] = new SFNode('Layer2D');
-
-  obj._ps2d = new SFNode('PlaneSensor2D');
-  obj._ps2d.maxPosition.x = obj._ps2d.maxPosition.y = -1;
-  obj._ps2d.autoOffset = FALSE;
-  obj._on_slide = function(val) {
-   this._translation_y = -val.y;
-   this.layout();
-  }
-  Browser.addRoute(obj._ps2d, 'translation_changed', obj, obj._on_slide);
-
-  obj.max_height = 0;
-  obj.set_size = function(width, height) {
-   for (var i=0; i<this.children[0].children.length; i++) {
-     this.children[0].children[i].set_size(width, this.children[0].children[i].height);
-   }
-   this.width = width;
-   this.height = height;
-   this.children[0].size.x = width;
-   this.children[0].size.y = height;
-   this._translation_y = 0;
-   this.selected_idx = 0;   
-   this.layout_changed();
-  }
-  obj.layout_changed = function() {
-   this.max_height = 0;
-   for (i=0; i<this.children[0].children.length; i++) {
-    if (this.children[0].children[i].visible) {
-      this.max_height += this.children[0].children[i].height;
-    }
-   }
-   this.max_height -= this.height;
-   if (this.max_height < 0) this.max_height=0;
-   this.layout();
-  }
-
-  obj.get_selection = function() {
-   if (this.selected_idx<this.children[0].children.length) return this.children[0].children[this.selected_idx];
-   return null;
-  }
-
-  obj._translation_y = 0;
-  obj.width = obj.height = 0;
-  obj.first_visible = -1;
-  obj.last_visible = -1;
-  
-  obj.layout = function() {
-   var children = this.children[0].children;
-   var start_y = this.height/2;
-   
-   if (this._translation_y < 0) this._translation_y = 0;
-   else if (this._translation_y > this.max_height) this._translation_y = this.max_height;
-
-   this.first_visible = -1;
-   this.last_visible = -1;
-   
-   for (var i=0; i<children.length; i++) {
-     var y = this._translation_y + start_y;
-     if (! children[i].visible) continue;
-     
-     if (y  - children[i].height > this.height/2) {
-       children[i].scale.x = 0;
-     } else if (y  + children[i].height < -this.height/2) {
-       children[i].scale.x = 0;
-     } else {
-       children[i].move(0, y - children[i].height/2);
-       children[i].scale.x = 1;
-
-       if (this.first_visible == -1) {
-        if (y  <= this.height/2) this.first_visible = i;
-       }
-       if (y - children[i].height >= -this.height/2) this.last_visible = i;
-
-       if (this.selected_idx == i) {
-        gpac.set_focus(children[i]);
-       }
-     }
-     start_y -= children[i].height;
-   }
-//   if (this.selected_idx < this.first_visible) this.selected_idx = this.first_visible;
-//   else if (this.selected_idx > this.last_visible) this.selected_idx = this.last_visible;
-
-   if (this.selected_idx < this.first_visible) this.selected_idx = -1;
-   else if (this.selected_idx > this.last_visible) this.selected_idx = -1;
-  }
-  obj.add_child = function(child) {
-   this.children[0].children[this.children[0].children.length] = child;
-   gw_add_child(child, this._ps2d);
-  }
-  obj.remove_child = function(child) {
-   /*remove ps2d from each child, otherwise we create references which screw up JS GC*/
-   if (typeof child.remove_child != 'undefined') child.remove_child(this._ps2d);
-   else child.removeChildren[0] = this._ps2d;
-   this.children[0].removeChildren[0] = child;
-  }
-
-  obj.get_children = function () {
-   return this.children[0].children;
-  }
-  obj.reset_children = function () {
-   gw_close_child_list(this.children[0].children);
-   this.children[0].children.length = 0;
-  }
-  obj._pre_destroy = function() {
-    this.reset_children();
-    this._ps2d = null;
-  }
-  
-  obj.on_event = function(evt) {
-   switch (evt.type) {
-   case GF_EVENT_MOUSEWHEEL:
-    this._translation_y += (evt.wheel>0) ? -this.height/20 : this.height/20;
-    this.layout();
-    return 1;
-   case GF_EVENT_KEYDOWN:
-    var children = this.get_children();
-
-   if (this.selected_idx < this.first_visible) this.selected_idx = this.first_visible;
-   else if (this.selected_idx > this.last_visible) this.selected_idx = this.last_visible;
-
-    if (evt.keycode=='Up') {
-//      alert('sel '+ this.selected_idx + ' first '+this.first_visible+ ' last '+this.last_visible);
-      if (children[this.selected_idx].translation.y + children[this.selected_idx].height/2 > this.height/2  ) {
-       this._translation_y -= this.height;
-       this.layout();
-       return 1;
-      }
-      if (!this.selected_idx) return 0;
-      this.selected_idx--;
-      if (this.selected_idx<this.first_visible)
-        this._translation_y -= children[this.last_visible].height;
-      this.layout();
-      return 1;
-    } else if (evt.keycode=='Down') {
-//      alert('sel '+ this.selected_idx + ' first '+this.first_visible+ ' last '+this.last_visible);
-      if (this.selected_idx==children.length) return 0;
-  
-      if (children[this.selected_idx].translation.y - children[this.selected_idx].height/2 < -this.height/2  ) {
-       this._translation_y += this.height;
-       this.layout();
-       return 1;
-      }
-      this.selected_idx++;
-      if (this.selected_idx>this.last_visible)
-        this._translation_y += children[this.first_visible].height;
-      this.layout();
-      return 1;
-    }
-    return 0;
-   }
-   return 0;
-  } 
-
-  
-  gw_add_child(container, obj);
-  return obj;
-}
-
-
-function gw_new_file_open(class_name)
-{
-  if (arguments.length==0) class_name = 'window';
-  
-  var dlg = gw_new_window_full(null, true, 'Browse FileSystem', 'window');
-  
-  dlg.area = gw_new_listbox(dlg);
-
-  dlg.on_event = function(evt) {
-   if (evt.type==GF_EVENT_KEYDOWN) {
-    if (evt.keycode=='Left') {
-     this._browse(null, true);
-     return 1;
-    }
-    else if (evt.keycode=='Enter') {
-     var child = this.area.get_selection();
-     if (child) child.on_click();
-     return 1;
-    }    
-   }
-   if (this.area && typeof this.area.on_event != 'undefined') {
-    return this.area.on_event(evt); 
-   }
-  }
-
-  dlg.on_close = function () {
-    if (this.on_browse) {
-      this.on_browse(null, false);
-    }
-  }
-  
-  dlg.go_up = dlg.add_tool(gwskin.images.previous, gwskin.labels.up);
-  dlg.go_up.on_click = function() {
-   this.dlg._browse(null, true);
-	}
-
-  dlg.on_directory = null;
-  dlg.scan_dir = dlg.add_tool(gwskin.images.scan_directory, gwskin.labels.scan_directory);
-  dlg.scan_dir.on_click = function() {
-   if (this.dlg.on_directory) this.dlg.on_directory(this.dlg.directory);
-   this.dlg.close(); 
-	}
-	
-  dlg.predestroy = function() {
-   this.scan_dir = null;
-   this.go_up = null;
-  }
-
-  dlg.directory = '';
-  dlg.show_directory = false;
-  dlg.filter = '*';
-
-  dlg._on_dir_browse = function() {
-    this.dlg._browse(this.dlg.path + this.filename, false);
-  }
-  dlg._on_file_select = function() {
-    if (this.dlg.on_browse) {
-      this.dlg.on_browse(this.dlg.path + this.filename, this.dlg.directory);
-    }
-    this.dlg.close(); 
-  }
+            this.nb_refresh += 1;
+            if (this.nb_refresh == 50) {
+                this.max_y = 0;
+                this.nb_refresh += 1;
+            }
+            var max_y = this.max_y;
  
-  dlg.browse = function(dir) {
-    this.directory = dir;
-    this._browse(dir, false);
-  }
-  dlg._browse = function(dir, up) {
-   var w, h, i, y;
-   if (dir) this.directory = dir;
- 
-   var filelist = gpac.enum_directory(this.directory, this.filter, up);
 
-   if (filelist.length) {
-    this.directory = filelist[0].path;
-    this.set_label(this.directory);
-   } else {
-    this.set_label('');
-   }
+            if (!factor) factor = 1;
+            for (var i = 0; i < serie.length; i++) {
+                var s = serie[i];
+                if (max_y < s[name_y]) max_y = s[name_y];
+            }
+            s = serie[0];
 
-   this.area.reset_children();
-   
-   this.set_label(this.directory);
+            this.reset();
+            for (var i = 0; i < count; i++) {
+                s = serie[i];
+                //get x and y between -0.5 and 0.5, and scale to width
+                var x = s[name_x] - first_x;
+                x /= nb_x;
+                x -= 0.5;
+                x *= 0.9;
 
-   this.path = filelist.length ? filelist[0].path : '';
+                var y = s[name_y];
+                if (max_y) y /= max_y;
+                y = -0.8 / 2 + 0.8 * y / factor;
 
-   for (i=0; i<filelist.length; i++) {
-    var item = gw_new_icon_button(this.area, filelist[i].directory ? gwskin.images.folder : gwskin.images.mime_generic, filelist[i].name, 'listitem', true);
-    item.dlg = this;
-    item.filename = filelist[i].name;
+                if (i) {
+                    this.add_line_to(x, y);
+                } else {
+                    this.add_move_to(x, y);
+                }
 
-    if (filelist[i].directory) {
-      item.on_click = this._on_dir_browse;
-    } else {      
-      item.on_click = this._on_file_select;
+                if (i + 1 == count) {
+                    this.but.move(0.5 * this.dlg.width - this.but.width / 2, (-0.8 / 2 + 0.8 / factor) * this.dlg.height);
+                    this.but.set_label('' + this.legend + ':' + s[name_y] + ' ' + units);
+                    this.but.show();
+                }
+            }
+        }
+        this.children[0].children[this.children[0].children.length] = s;
+        this.series.push(s);
+
+        s.scale.x = this.width;
+        s.scale.y = this.height;
+
+
+        s.but = gw_new_text(this, '' + legend, 'custom');
+        s.but.set_align('END');
+        s.but.set_color(r, g, b);
+        s.but.set_size(this.label_width, gwskin.default_text_font_size);
+        s.but.hide();
+        return s;
+
     }
-   }  
-   this.layout(this.width, this.height);
 
- 	 if (this.directory == '') this.go_up.hide();
-   else this.go_up.show();
 
-   if (this.show_directory || (this.filter == 'dir')) this.scan_dir.show();
-   else this.scan_dir.hide();
-
-   this.tools.layout(this.tools.width, this.tools.height);
-  }
-  dlg.scan_dir.hide();
-
-  dlg.on_size = function(width, height) {
-    dlg.area.set_size(width, height);
-  }
-  dlg.set_size(20, 20);
-  return dlg;
+    gw_add_child(parent, obj);
+    return obj;
 }
 
-
-function gw_new_text_input(text_data, class_name)
-{
-  var obj = gw_new_text(null, text_data, 'edit');
-  obj.on_text = null;
-  obj._text_edited = function(val) {
-   if (this.on_text) this.on_text(val[0]);
-  }
-  Browser.addRoute(obj.children[0].children[0].geometry, 'string', obj, obj._text_edited);
-  return obj;
-}
-
-function gw_new_text_edit(parent, text_data)
-{
-  var obj = new SFNode('Transform2D');
-  var rect, edit;
-  setup_gw_object(obj, 'TextEdit');
-  rect = gw_new_rectangle('edit');
-  gw_add_child(obj, rect);
-  gw_object_set_hitable(rect);
-  rect.on_down = function(val) {
-   if (val) gpac.set_focus( this.parent.children[1] );
-  }
-
-  edit = gw_new_text(null, text_data, 'edit')
-  gw_add_child(obj, edit);
-  obj.on_text = null;
-  obj._text_edited = function(val) {
-   if (this.on_text) this.on_text(val[0]);
-  };  
-  Browser.addRoute(obj.children[1].children[0].children[0].geometry, 'string', obj, obj._text_edited);
-
-  obj.set_size = function(w, h) {
-   this.width = w;
-   this.height = h;
-   this.children[0].set_size(w, h);
-   this.children[1].move(5-w/2, 0);
-  };
-  
-  gw_add_child(parent, obj);
-
-  /*set focus to our edit node*/
-  gpac.set_focus(edit);
-
-  return obj;
-}
-
-function gw_new_text_area(parent, text_data, class_name)
-{
-  var obj = new SFNode('Transform2D');
-  setup_gw_object(obj, 'TextEdit');
-
-  obj.children[0] = new SFNode('Layout');
-  obj.children[0].parent = obj;
-  obj.children[0].wrap = true;
-  obj.children[0].justify[0] = "JUSTIFY";
-  obj.children[0].justify[1] = "FIRST";
-
-  gw_new_text(obj.children[0], text_data,class_name);
-  obj.set_size = function(width, height) {
-    this.children[0].size.x = width;
-    this.children[0].size.y = height;
-    this.width = width;
-    this.height = height;
-  }
-  obj.set_content = function(text) {
-    this.children[0].children[0].set_label(text);
-  }
-
-  gw_add_child(parent, obj);
-  return obj;
-}
-
-
-
-function gw_new_scrolltext_area(parent, text_data, class_name)
-{
-  var obj = gw_new_listbox(parent);
-  var child = gw_new_text_area(obj, text_data, class_name);
-  /*erase the resize routine*/
-  child.set_size = function(width, height) {
-    var bounds = this.children[0]._bounds;
-    this.children[0].size.x = width;
-    this.children[0].size.y = Math.ceil(bounds.height);
-    this.width = width;
-    this.height = this.children[0].size.y;
-  }
-  
-  obj._orig_set_size = obj.set_size;
-  obj.set_size = function(width, height) {
-    this.get_children()[0].set_size(width, height);
-    this._orig_set_size(width, height);
-  }
-  obj.set_content = function(text) {
-    this.get_children()[0].set_label(text);
-  }
-  return obj;
-}
-
-
-function gw_new_message(container, label, content)
-{
-  var notif = gw_new_window_full(null, true, label, 'window');  
-  notif.area = gw_new_scrolltext_area(notif, content, 'window');
-  notif.on_size = function(width, height) {
-   this.area.set_size(width-10, height);
-  } 
-  notif.on_event = function(evt) { 
-    if ((evt.type==GF_EVENT_KEYUP) && evt.keycode==gwskin.keys.close) {
-     this.close();
-     return 1;
-    }
-    return this.area.on_event(evt); 
-  }
-	notif.set_size(240, 120);
-	return notif;
-}

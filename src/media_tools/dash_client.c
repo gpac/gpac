@@ -210,7 +210,8 @@ struct __dash_group
 	segment_cache_entry *cached;
 
 	GF_DASHFileIOSession segment_download;
-
+	//0: not set, 1: abort because group has been stoped - 2: abort because bandwidth was too low
+	u32 download_abort_type;
 	/*usually 0-0 (no range) but can be non-zero when playing local MPD/DASH sessions*/
 	u64 bs_switching_init_segment_url_start_range, bs_switching_init_segment_url_end_range;
 	char *bs_switching_init_segment_url;
@@ -227,7 +228,7 @@ struct __dash_group
 	u32 force_representation_idx_plus_one;
 
 	Bool force_segment_switch;
-	Bool is_downloading, download_aborted;
+	Bool is_downloading;
 	Bool loop_detected;
 
 	u32 time_at_first_failure;
@@ -405,7 +406,10 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		return;
 	}
 
-	if (!fetch_time) fetch_time = group->dash->mpd_fetch_time;
+	if (!fetch_time) {
+		u32 diff = gf_sys_clock() - group->dash->last_update_time;
+		fetch_time = group->dash->mpd_fetch_time + diff;
+	}
 	if (group->dash->estimate_utc_drift && !group->dash->utc_drift_estimate && group->dash->mpd_dnload && group->dash->dash_io->get_header_value) {
 		const char *val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "Server-UTC");
 		if (val) {
@@ -508,7 +512,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 			if (current_time < shift) current_time = 0;
 			else current_time -= shift;
-		} else if (0 && group->dash->user_buffer_ms) {
+		} else if (group->dash->user_buffer_ms) {
 			shift = MIN(group->dash->user_buffer_ms, mpd->time_shift_buffer_depth);
 
 			if (current_time < shift) current_time = 0;
@@ -783,8 +787,8 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 
 	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is %d kbps - %d/%d in cache - killing connection and switching\n", set_idx, download_rate/1024, group->active_bitrate/1024, group->nb_cached_segments, group->max_cached_segments ));
 
+	group->download_abort_type = 2;
 	group->dash->dash_io->abort(group->dash->dash_io, group->segment_download);
-	group->download_aborted = GF_TRUE;
 
 	//in live we just abort current download and go to next. In onDemand, we may want to rebuffer
 	default_switch_mode = (group->dash->mpd->type==GF_MPD_TYPE_DYNAMIC) ? 0 : 1;
@@ -917,6 +921,10 @@ retry:
 
 		/*we can download the file*/
 		e = dash_io->run(dash_io, *sess);
+	}
+	if (group && group->download_abort_type) {
+		group->is_downloading = 0;
+		return GF_IP_CONNECTION_CLOSED;
 	}
 	switch (e) {
 	case GF_IP_CONNECTION_FAILURE:
@@ -1622,6 +1630,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		} else {
 			dash->last_update_time = gf_sys_clock();
 		}
+		dash->mpd_fetch_time = fetch_time;
 		return GF_OK;
 	}
 
@@ -2515,13 +2524,14 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	e = gf_dash_download_resource(dash->dash_io, &(group->segment_download), base_init_url, start_range, end_range, 1, group);
 
 	if ((e==GF_OK) && group->force_switch_bandwidth && !dash->auto_switch_count) {
+		gf_free(base_init_url);
 		gf_dash_switch_group_representation(dash, group);
 		gf_mx_v(dash->dl_mutex);
 		return gf_dash_download_init_segment(dash, group);
 	}
 
 
-	if (e == GF_URL_ERROR && !base_init_url) { /* We have a 404 and started with segments */
+	if (e == GF_URL_ERROR && !base_init_url && !group->download_abort_type) { /* We have a 404 and started with segments */
 		/* It is possible that the first segment has been deleted while we made the first request...
 		* so we try with the next segment on some M3U8 servers */
 
@@ -2537,6 +2547,14 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		/*use persistent connection for segment downloads*/
 		e = gf_dash_download_resource(dash->dash_io, &(group->segment_download), base_init_url, 0, 0, 1, group);
 	} /* end of 404 */
+
+
+	if ((e==GF_IP_CONNECTION_CLOSED) && group->download_abort_type) {
+		group->download_abort_type = 0;
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Aborted while downloading init segment (seek ?)%s \n", base_init_url));
+		gf_free(base_init_url);
+		return GF_OK;
+	}
 
 	if (e!= GF_OK && !group->segment_must_be_streamed) {
 		dash->mpd_stop_request = 1;
@@ -2643,6 +2661,14 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 				e = gf_dash_resolve_url(dash->mpd, a_rep, group, dash->base_url, GF_DASH_RESOLVE_URL_INIT, 0, &a_base_init_url, &a_start, &a_end, &a_dur, NULL);
 				if (!e && a_base_init_url) {
 					e = gf_dash_download_resource(dash->dash_io, &(group->segment_download), a_base_init_url, a_start, a_end, 1, group);
+
+					if ((e==GF_IP_CONNECTION_CLOSED) && group->download_abort_type) {
+						group->download_abort_type = 0;
+						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Aborted while downloading init segment (seek ?)%s \n", a_base_init_url));
+						gf_free(a_base_init_url);
+						return GF_OK;
+					}
+
 					if (e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot retrieve initialization segment %s for representation: %s - discarding representation\n", a_base_init_url, gf_error_to_string(e) ));
 						a_rep->playback.disabled = 1;
@@ -3615,15 +3641,24 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 
 static void gf_dash_group_check_time(GF_DASH_Group *group)
 {
-	s64 now = (s64) gf_net_get_utc();
+	s64 check_time = (s64) gf_net_get_utc();
 	u32 nb_droped = 0;
 
 	while (1) {
 		u32 seg_dur_ms;
 		u64 seg_ast = gf_dash_get_segment_availability_start_time(group->dash->mpd, group, group->download_segment_index, &seg_dur_ms);
 
+		s64 now = check_time + (s64) seg_dur_ms;
+		if (now <= (s64) seg_ast) {
+			group->dash->tsb_exceeded = (u32) -1;
+			return;
+		}
+
 		now -= (s64) seg_ast;
-		now += (s64) seg_dur_ms;
+		if (now <= (s64) seg_dur_ms) {
+			group->dash->tsb_exceeded = (u32) -1;
+			return;
+		}
 		if (now>group->time_shift_buffer_depth) {
 			group->download_segment_index ++;
 			nb_droped ++;
@@ -3635,6 +3670,7 @@ static void gf_dash_group_check_time(GF_DASH_Group *group)
 			group->dash->tsb_exceeded = nb_droped;
 		}
 
+		now -= group->dash->user_buffer_ms;
 		if (now<0) return;
 		now /= 1000;
 		if (now>group->dash->time_in_tsb) 
@@ -3762,6 +3798,7 @@ restart_period:
 				/*check if cache is not full*/
 				gf_mx_p(dash->dl_mutex);
 				dash->tsb_exceeded = 0;
+				dash->time_in_tsb = 0;
 				for (i=0; i<group_count; i++) {
 					GF_DASH_Group *group = gf_list_get(dash->groups, i);
 					if ((group->selection != GF_DASH_GROUP_SELECTED) || group->done) continue;
@@ -3777,7 +3814,7 @@ restart_period:
 				gf_mx_v(dash->dl_mutex);
 
 				if (dash->tsb_exceeded) {
-					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_TIMESHIFT_OVERFLOW, dash->tsb_exceeded, GF_OK);
+					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_TIMESHIFT_OVERFLOW, (s32) dash->tsb_exceeded, GF_OK);
 					dash->tsb_exceeded = 0;
 				} else if (dash->time_in_tsb != dash->prev_time_in_tsb) {
 					dash->prev_time_in_tsb = dash->time_in_tsb;
@@ -4017,6 +4054,15 @@ restart_period:
 					e = gf_dash_download_resource(dash->dash_io, &(group->segment_download), new_base_seg_url, 0, 0, 1, group);
 				}
 
+				if ((e==GF_IP_CONNECTION_CLOSED) && group->download_abort_type) {
+					group->download_abort_type = 0;
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Aborted while downloading segment (seek ?)%s \n", new_base_seg_url));
+					gf_free(new_base_seg_url);
+					new_base_seg_url = NULL;
+					continue;
+				}
+
+
 				/*TODO decide what is the best, fetch from another representation or ignore ...*/
 				if (e != GF_OK) {
 					clock_time = gf_sys_clock();
@@ -4121,6 +4167,7 @@ restart_period:
 
 			if (local_file_name && (e == GF_OK || group->segment_must_be_streamed )) {
 				gf_mx_p(dash->dl_mutex);
+
 				assert(group->nb_cached_segments<group->max_cached_segments);
 				assert( local_file_name );
 				if (! empty_file) {
@@ -4165,12 +4212,13 @@ restart_period:
 						gf_dash_skip_disabled_representation(group, rep, GF_TRUE);
 					}
 				}
-				gf_mx_v(dash->dl_mutex);
 
 				//do not notify segments if there is a pending period switch - since these are decided by the user, we don't
 				//want to notify old segments
 				if (!dash->request_period_switch)
 					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, gf_list_find(dash->groups, group), GF_OK);
+
+				gf_mx_v(dash->dl_mutex);
 
 			}
 			gf_free(new_base_seg_url);
@@ -4365,6 +4413,7 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double
 	}
 
 	if (group->segment_download) {
+		dash->dash_io->abort(dash->dash_io, group->segment_download);
 		dash->dash_io->del(dash->dash_io, group->segment_download);
 		group->segment_download = NULL;
 	}
@@ -5144,8 +5193,13 @@ void gf_dash_set_group_done(GF_DashClient *dash, u32 idx, Bool done)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (group) {
+		gf_mx_p(dash->dl_mutex);
 		group->done = done;
-		if (done && group->segment_download) dash->dash_io->abort(dash->dash_io, group->segment_download);
+		if (done && group->segment_download) {
+			group->download_abort_type = 1;
+			dash->dash_io->abort(dash->dash_io, group->segment_download);
+		}
+		gf_mx_v(dash->dl_mutex);
 	}
 }
 
@@ -5258,8 +5312,8 @@ GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash
 	}
 
 	*switched = GF_FALSE;
-	if (group->download_aborted) {
-		group->download_aborted = 0;
+	if (group->download_abort_type==2) {
+		group->download_abort_type = 0;
 		*switched = GF_TRUE;
 	}
 
@@ -5291,8 +5345,7 @@ void gf_dash_seek(GF_DashClient *dash, Double start_range)
 		availabilityStartTime = dash->mpd->availabilityStartTime + dash->utc_shift;
 		if (dash->estimate_utc_drift) availabilityStartTime += dash->utc_drift_estimate;
 
-		now = gf_net_get_utc() - availabilityStartTime;
-//		now = dash->mpd_fetch_time - availabilityStartTime;
+		now = dash->mpd_fetch_time + (gf_sys_clock() - dash->last_update_time) - availabilityStartTime;
 		
 		if (dash->initial_time_shift_value<=100) {
 			now -= dash->mpd->time_shift_buffer_depth * dash->initial_time_shift_value / 100;
