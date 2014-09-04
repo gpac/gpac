@@ -621,8 +621,10 @@ function gwskin_set_white_blue()
 
 	s = gwskin.get_class('window');
 //	s.normal.texture.keyValue = [0.6, 0.6, 0.6, 0, 0, 0, 0, 0, 0, 0.6, 0.6, 0.6];
-	s.normal.texture.keyValue[1] = new SFColor(1, 1, 1);
-	s.normal.texture.keyValue[2] = new SFColor(1, 1, 1);
+	if (s.normal.texture) {
+		s.normal.texture.keyValue[1] = new SFColor(1, 1, 1);
+		s.normal.texture.keyValue[2] = new SFColor(1, 1, 1);
+	}
 
 	s = gwskin.get_class('progress');
 //	s.normal.texture.keyValue = [0.0, 0.4, 0.6, 0, 0, 0, 0.0, 0.4, 0.6];
