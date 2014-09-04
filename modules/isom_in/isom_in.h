@@ -76,6 +76,10 @@ typedef struct
 	Bool clock_discontinuity;
 	Bool disconnected;
 	Bool no_order_check;
+
+
+	Double remain_at_buffering_start;
+	Bool buffering;
 } ISOMReader;
 
 

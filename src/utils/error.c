@@ -412,6 +412,7 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
 }
 #endif
 
+static char szErrMsg[20];
 
 GF_EXPORT
 const char *gf_error_to_string(GF_Err e)
@@ -512,7 +513,8 @@ const char *gf_error_to_string(GF_Err e)
 	case GF_WRONG_DATAFORMAT:
 		return "Unexpected data format";
 	default:
-		return "Unknown Error";
+		sprintf(szErrMsg, "Unknown Error (%d)", e);
+		return szErrMsg;
 	}
 }
 

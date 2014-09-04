@@ -68,7 +68,7 @@ typedef enum
 
 	/*position in timeshift buffer has changed (eg, paused)*/
 	GF_DASH_EVENT_TIMESHIFT_UPDATE,
-	/*event sent when timeshift buffer is overflown - the group_idx param contains the max number of droped segments of all representations droped by the client */
+	/*event sent when timeshift buffer is overflown - the group_idx param contains the max number of droped segments of all representations droped by the client, or -1 if play pos is ahead of live */
 	GF_DASH_EVENT_TIMESHIFT_OVERFLOW,
 } GF_DASHEventType;
 

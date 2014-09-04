@@ -254,10 +254,11 @@ static GF_Err HEVC_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 
-	if (ctx->is_init) {
+	if (ctx->openHevcHandle) {
 		libOpenHevcClose(ctx->openHevcHandle);
-		ctx->is_init = GF_FALSE;
+		ctx->openHevcHandle = NULL;
 	}
+	ctx->is_init = 0;
 	ctx->width = ctx->height = ctx->out_size = 0;
 	if (ctx->conv_buffer) gf_free(ctx->conv_buffer);
 	ctx->conv_buffer = NULL;

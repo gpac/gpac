@@ -776,7 +776,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	if (dash_evt==GF_DASH_EVENT_TIMESHIFT_OVERFLOW) {
 		GF_NetworkCommand com;
 		com.command_type = GF_NET_SERVICE_EVENT;
-		com.send_event.evt.type = GF_EVENT_TIMESHIFT_OVERFLOW;
+		com.send_event.evt.type = (group_idx>=0) ? GF_EVENT_TIMESHIFT_OVERFLOW : GF_EVENT_TIMESHIFT_UNDERRUN;
 		gf_service_command(mpdin->service, &com, GF_OK);
 	}
 	if (dash_evt==GF_DASH_EVENT_TIMESHIFT_UPDATE) {

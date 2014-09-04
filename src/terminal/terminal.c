@@ -2362,6 +2362,7 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 	if (!scene) return;
 
 	/*send network command*/
+	memset(&net_cmd, 0, sizeof(GF_NetworkCommand));
 	net_cmd.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
 	net_cmd.switch_quality.on_channel = NULL;
 	net_cmd.switch_quality.up = up;

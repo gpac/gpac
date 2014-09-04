@@ -347,7 +347,15 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 				gf_odm_init_segments((GF_ObjectManager *) stack->stream->odm, stack->seg, &stack->control->url);
 
 				stack->current_seg = 0;
-				shall_restart = need_restart = 1;
+				//do not restart if no mediaStartTime
+				if ((stack->control->mediaStartTime>0) && !gf_list_count(stack->seg) ) {
+					shall_restart = need_restart = 1;
+				} else {
+					shall_restart = need_restart = 0;
+					//URL changed, wa are by default in PLAY mode.
+					stack->media_speed = 1;
+				}
+
 				stack->ck = gf_odm_get_media_clock(stack->stream->odm);
 			}
 			/*control has been removed and we were paused, resume*/

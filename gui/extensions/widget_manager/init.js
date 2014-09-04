@@ -61,10 +61,11 @@ widman_cfg_dlg = null;
 function open_widget_manager(extension)
 {
   if (widman_cfg_dlg) return;
-  
-  widman_cfg_dlg = gw_new_window_full(null, true, 'Widget Manager', 'window');  
+
+  widman_cfg_dlg = gw_new_window_full(null, true, 'Widget Manager');
   widman_cfg_dlg.area = gw_new_grid_container(widman_cfg_dlg);
-  var icon = gw_new_icon_button(widman_cfg_dlg.area, gwskin.images.add, 'Add widget', 'button');
+
+  var icon = gw_new_icon_button(widman_cfg_dlg.area, gwskin.images.add, 'Add widget', 'icon_label');
   icon.on_click = function() {
     widman_cfg_dlg.close();
     widman_cfg_dlg = null;
@@ -90,7 +91,7 @@ function open_widget_manager(extension)
     filebrowse.set_size(320 , 240);
     gpacui_show_window(filebrowse);
   }
-  var icon = gw_new_icon_button(widman_cfg_dlg.area, gwskin.images.trash, 'Remove all widgets', 'button');
+var icon = gw_new_icon_button(widman_cfg_dlg.area, gwskin.images.trash, 'Remove all widgets', 'icon_label');
   icon.on_click = function() {
 		while (1) {
 			var wid = WidgetManager.get(0);
@@ -110,7 +111,6 @@ function open_widget_manager(extension)
 }
 
 function widget_insert_icon(new_wid) {
-	//var icon = gw_new_icon_button(dock, widget_get_icon(new_wid), new_wid.name, 'button');
 	var icon = gpacui_insert_dock_icon(new_wid.name, widget_get_icon(new_wid) );
 	new_wid.in_panel = true;
 	new_wid.visible = false;
@@ -361,7 +361,7 @@ function select_mpegu_target(callback)
 		var target = WidgetManager.get_mpegu_service_providers(i);
 		if (!target) break;
 		var	icon = 'icons/applications-internet.svg';
-    var item = gw_new_icon_button(this.area, icon, target.Name, 'button');
+    var item = gw_new_icon_button(this.area, icon, target.Name);
     item.set_size(item.width, item.height);
     item.render_idx = i;
     item.on_click = this._on_mpegu_click;
@@ -550,7 +550,7 @@ function new_widget_control(widget)
   }
 	ctrl.inline.addEventListener('gpac_vp_changed', ctrl.on_widget_vp_changed, 0);
 		
-  ctrl.set_tool_size(widget_tool_size);  
+//  ctrl.set_tool_size(widget_tool_size);  
 	ctrl.set_size(widget.width, widget.height);
 	if (widget.x < -display_width/2) widget.x = 0;
 	else if (widget.x > display_width/2) widget.x = 0;

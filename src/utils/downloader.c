@@ -578,6 +578,8 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) {
 		sess->cache_entry = NULL;
 	} else {
+		Bool found=0;
+		u32 i, count;
 		entry = gf_dm_find_cached_entry_by_url(sess);
 		if (!entry) {
 			entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url, sess->range_start, sess->range_end, (sess->flags&GF_NETIO_SESSION_MEMORY_CACHE) ? 1 : 0);
@@ -589,7 +591,21 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 		assert( entry );
 		sess->cache_entry = entry;
 		sess->reused_cache_entry = 	gf_cache_is_in_progress(entry);
-		assert(!sess->reused_cache_entry);
+		count = gf_list_count(sess->dm->sessions);
+		for (i=0; i<count; i++) {
+			GF_DownloadSession *a_sess = gf_list_get(sess->dm->sessions, i);
+			if (a_sess==sess) continue;
+			if (a_sess->cache_entry==entry) {
+				found = 1;
+				break;
+			}
+		}
+		if (!found) {
+			sess->reused_cache_entry = 0;
+			gf_cache_close_write_cache(sess->cache_entry, sess, 0);
+		} else {
+			assert(!sess->reused_cache_entry);
+		}
 		gf_cache_add_session_to_cache_entry(sess->cache_entry, sess);
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
 	}
@@ -697,6 +713,9 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 			sess->sock = NULL;
 			gf_sk_del(sx);
 		}
+	}
+	if (force_close && sess->use_cache_file) {
+		gf_cache_close_write_cache(sess->cache_entry, sess, 0);
 	}
 	sess->status = GF_NETIO_DISCONNECTED;
 	if (sess->num_retry) sess->num_retry--;
@@ -1154,8 +1173,10 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 #endif
 
 
-	if (!sess->sock)
-		return GF_NETIO_DISCONNECTED;
+	if (!sess->sock) {
+		sess->status = GF_NETIO_DISCONNECTED;
+		return GF_IP_CONNECTION_CLOSED;
+	}
 	e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
 
 	if (e==GF_IP_NETWORK_EMPTY) {
@@ -2388,7 +2409,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 		}
 
 		if (e) {
-			if (e == GF_IP_CONNECTION_CLOSED) {
+			if (sess->sock && (e == GF_IP_CONNECTION_CLOSED)) {
 				u32 len = gf_cache_get_content_length(sess->cache_entry);
 				if (size > 0)
 					gf_dm_data_received(sess, (u8 *) sHTTP, size, 0, NULL);
