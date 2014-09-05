@@ -361,6 +361,9 @@ gwskin.appearance_transparent = gw_new_appearance(0, 0, 0);
 gwskin.appearance_transparent.material.transparency = 1;
 gwskin.appearance_transparent.skin = true;
 
+gwskin.no_gl_window_back = new SFNode('Background2D')
+gwskin.no_gl_window_back.backColor = new SFColor(0, 0, 0);
+
 gwskin.tooltip_callback = null;
 
 gwskin.default_label_font_size = 14;
@@ -620,6 +623,8 @@ function gwskin_set_white_blue()
 	s.text.material.emissiveColor = new SFColor(0, 0, 0);
 
 	s = gwskin.get_class('window');
+	s.normal.material.emissiveColor = new SFColor(1, 1, 1);
+	gwskin.no_gl_window_back.backColor = new SFColor(1, 1, 1);
 //	s.normal.texture.keyValue = [0.6, 0.6, 0.6, 0, 0, 0, 0, 0, 0, 0.6, 0.6, 0.6];
 	if (s.normal.texture) {
 		s.normal.texture.keyValue[1] = new SFColor(1, 1, 1);
@@ -1238,7 +1243,8 @@ function gw_new_window(parent, offscreen, background, class_name) {
             if (!gwskin.disable_transparency) {
                 shape.appearance.texture.children[0] = obj.background;
             } else {
-                shape.appearance.texture.background = new SFNode('Background2D');
+                shape.appearance.texture.background = gwskin.no_gl_window_back;
+
             }
         }
         shape.geometry = new SFNode('Bitmap');
