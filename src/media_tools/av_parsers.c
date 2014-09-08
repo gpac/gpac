@@ -1108,7 +1108,14 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 	} else {
 		cfg->base_sr = GF_M4ASampleRates[cfg->base_sr_index];
 	}
-	cfg->nb_chan = GF_M4ANumChannels[gf_bs_read_int(bs, 4)];
+	{
+		u32 nb_chan = gf_bs_read_int(bs, 4);
+		if (nb_chan == 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[M4A config] invalid value 0, setting default 2 instead.\n"));
+			nb_chan = 2;
+		}
+		cfg->nb_chan = GF_M4ANumChannels[nb_chan-1];
+	}
 
 	if (cfg->base_object_type==5 || cfg->base_object_type==29) {
 		if (cfg->base_object_type==29) {

@@ -174,9 +174,10 @@ static const u32 GF_M4ASampleRates[] =
 	16000, 12000, 11025, 8000, 7350, 0, 0, 0
 };
 
+/*new values should now be defined in 23001-8*/
 static const u32 GF_M4ANumChannels[] =
 {
-	1, 2, 3, 4, 5, 6, 8, 3, 4, 7, 8, 24, 8, 12, 10, 12, 14
+	1, 2, 3, 4, 5, 6, 8, 2, 3, 4, 7, 8, 24, 8, 12, 10, 12, 14
 };
 
 /*get Audio type from dsi. return audio codec type:*/
