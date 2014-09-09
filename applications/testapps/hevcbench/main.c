@@ -631,6 +631,7 @@ void PrintUsage()
 	        "\n"
 	        "Options:\n"
 	        "-bench-yuv: only bench YUV upload rate\n"
+	        "-bench-yuv10: only bench YUV10 upload rate\n"
 	        "-sys-mem: uses  copy from decoder mem to system mem before upload (removes stride)\n"
 	        "-use-pbo: uses PixelBufferObject for texture transfer\n"
 	        "-no-display: disables video output\n"
