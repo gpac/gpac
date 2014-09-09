@@ -231,7 +231,7 @@ extension = {
         }
 
         this.movie.children[0].on_media_waiting = function (evt) {
-//            alert('URL is now buffering');
+            //            alert('URL is now buffering');
         }
         this.movie.children[0].on_main_addon = function (evt) {
             this.extension.controler.layout();
@@ -300,6 +300,7 @@ extension = {
         wnd.snd_low.extension = this;
         wnd.snd_ctrl = gw_new_slider(wnd.infobar);
         wnd.snd_ctrl.extension = this;
+        wnd.snd_ctrl.stick_to_previous = true;
         wnd.snd_low.add_icon('audio_mute');
         wnd.snd_low.on_click = function () {
             if (this.extension.muted) {
@@ -401,18 +402,18 @@ extension = {
             }
             gw_background_control(false);
             switch (type) {
-                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                      
+                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                       
                 case 1:
                     this.extension.set_state(this.extension.GF_STATE_PAUSE);
                     this.extension.set_speed(0);
                     break;
-                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                      
+                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                       
                 case 2:
                     this.extension.set_state(this.extension.GF_STATE_PLAY);
                     this.extension.movie_control.mediaStartTime = time;
                     this.extension.set_speed(1);
                     break;
-                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                      
+                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                       
                 default:
                     if (this.extension.state == this.extension.GF_STATE_STOP)
                         this.extension.set_state(this.extension.GF_STATE_PLAY);
@@ -520,7 +521,7 @@ extension = {
             }
             if (this.time) this.time.set_size(4 * wnd.time.font_size(), control_icon_size);
             if (this.snd_ctrl) {
-                this.snd_ctrl.set_size(2 * control_icon_size, 2, control_icon_size / 3, control_icon_size / 3);
+                this.snd_ctrl.set_size(2 * control_icon_size, control_icon_size / 2, control_icon_size / 3, control_icon_size );
                 this.snd_ctrl.set_value(gpac.volume);
             }
 
@@ -587,9 +588,8 @@ extension = {
                 if (this.rewind) full_w += control_icon_size;
                 if (this.forward) full_w += control_icon_size;
                 if (this.loop) full_w += control_icon_size;
-            }
-
-            if (this.extension.movie_control.mediaStopTime < 0) {
+            } 
+            else if (this.extension.movie_control.mediaStopTime < 0) {
                 if (this.forward) full_w += control_icon_size;
             }
 
@@ -620,14 +620,14 @@ extension = {
 
                 if (this.snd_low) this.snd_low.show();
                 if (this.snd_ctrl) this.snd_ctrl.show();
+
                 if (this.extension.duration) {
                     if (this.rewind) this.rewind.show();
                     if (this.forward) this.forward.show();
                     if (this.loop) this.loop.show();
                     if (this.stop) this.stop.show();
                 }
-
-                if (this.extension.movie_control.mediaStopTime < 0) {
+                else if (this.extension.movie_control.mediaStopTime < 0) {
                     if (this.forward) this.forward.show();
                 } else {
                     if (this.forward) this.forward.hide();
@@ -774,11 +774,11 @@ extension = {
             var pos = 0;
             if (this.timeshift_depth > time_in_tsb) {
                 pos = 100 * (this.timeshift_depth - time_in_tsb) / this.timeshift_depth;
-/*                if (pos > 95) {
-                    pos = 100;
-                    time_in_tsb = 0;
+                /*                if (pos > 95) {
+                pos = 100;
+                time_in_tsb = 0;
                 }
-*/
+                */
             }
             this.controler.media_line.set_value(pos);
             if (!time_in_tsb) {
