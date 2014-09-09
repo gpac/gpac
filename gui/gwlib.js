@@ -2086,7 +2086,7 @@ function gw_new_grid_container(parent) {
         for (var i = 0; i < children.length; i++) {
             //start of line: compute H spread and max V size
             if (spread_x == -1) {
-                var j = 0, len = 0, maxh = 0, nb_child = 0;
+                var j = 0, len = 0, maxh = 0, nb_child = 0, nb_spread_child = 0;
                 start_x = -width / 2 + page_x;
                 while (1) {
                     if (!children[i + j].visible) {
@@ -2100,6 +2100,11 @@ function gw_new_grid_container(parent) {
                     if (maxh < children[i + j].height) maxh = children[i + j].height;
                     j++;
                     nb_child++;
+                    if ((i + j < children.length) && (typeof children[i+j].stick_to_previous == 'boolean') && children[i+j].stick_to_previous) {
+                    } else {
+                        nb_spread_child++;
+                    }
+
                     if (this.break_at_line) break;
                     if (i + j == children.length) break;
                 }
@@ -2107,8 +2112,8 @@ function gw_new_grid_container(parent) {
                     maxh = children[i].height;
                     if (this.spread_h && !this.break_at_line) start_x = -len / 2;
                 }
-                else if (this.spread_h) {
-                    spread_x = (width - len) / (nb_child);
+                else if (this.spread_h && nb_spread_child) {
+                    spread_x = (width - len) / (nb_spread_child);
                     start_x += spread_x / 2;
                 } else {
                     spread_x = 0;
@@ -2137,7 +2142,12 @@ function gw_new_grid_container(parent) {
             }
             children[i].translation.x = start_x + children[i].width / 2;
             children[i].translation.y = start_y - maxh / 2;
-            start_x += children[i].width + spread_x;
+
+            if ((i + 1 < children.length) && (typeof children[i + 1].stick_to_previous == 'boolean') && children[i+1].stick_to_previous) {
+                start_x += children[i].width;
+            } else {
+                start_x += children[i].width + spread_x;
+            }
 
             nb_on_line++;
 
@@ -2367,21 +2377,23 @@ function gw_new_slider(parent, vertical, class_name) {
     ps2d.maxPosition.x = -1;
     ps2d.maxPosition.y = -1;
     obj.on_slide = function (value, type) { }
-
+    
     obj.slide_active = function (val) {
         this.on_slide(this.min + (this.max - this.min) * this.frac, val ? 1 : 2);
     }
     Browser.addRoute(ps2d, 'isActive', obj, obj.slide_active);
     obj.set_trackpoint = function (value) {
         if (vertical) {
+            if (this.height == this.children[1].height) return;
             this.frac = value.y / (this.height - this.children[1].height);
         } else {
+            if (this.width == this.children[1].width) return;
+
             this.frac = value.x / (this.width - this.children[1].width);
         }
         this.frac += 0.5;
         if (this.frac > 1) this.frac = 1;
         else if (this.frac < 0) this.frac = 0;
-
         if (vertical) {
             value.y = (this.frac - 0.5) * (this.height - this.children[1].height);
             value.x = 0;
@@ -2403,6 +2415,8 @@ function gw_new_slider(parent, vertical, class_name) {
         if (this.max == this.min) value = 0;
         else value /= (this.max - this.min);
 
+        this.frac = value;
+
         value -= 0.5;
         value *= (vertical ? this.height : this.width);
 
@@ -2415,7 +2429,7 @@ function gw_new_slider(parent, vertical, class_name) {
     obj.vertical = vertical;
     obj.set_size = function (w, h, cursor_w, cursor_h) {
         if (this.height && this.width) {
-            if (vertical) {
+            if (this.vertical) {
                 this.children[1].translation.y *= h;
                 this.children[1].translation.y /= this.height;
             } else {
@@ -2443,7 +2457,9 @@ function gw_new_slider(parent, vertical, class_name) {
     }
     obj.min = 0;
     obj.max = 100;
-    obj.frac = 0;
+    obj.frac = 0.0;
+    obj.height = 0;
+    obj.width = 0;
     obj.set_size(vertical ? 10 : 200, vertical ? 200 : 10, 10, 10);
 
     obj.set_trackpoint(0);
