@@ -992,6 +992,12 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		*vp = BOOLEAN_TO_JSVAL( scene->main_addon_selected ? JS_TRUE : JS_FALSE);
 	}
 		break;
+	case -43:
+	{
+		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
+		*vp = BOOLEAN_TO_JSVAL( gf_sc_is_over(odm->term->compositor, scene->graph) ? JS_TRUE : JS_FALSE);
+	}
+		break;
 	}
 	return JS_TRUE;
 }
@@ -1546,6 +1552,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("timeshift_time",	-40,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("is_addon",			-41,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("main_addon_on",		-42,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("is_over",			-43,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};

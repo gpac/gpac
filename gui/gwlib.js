@@ -2947,30 +2947,20 @@ function gw_new_plotter(parent) {
         this.children[0].size.y = height;
         this.children[0].children[0].set_size(width, height);
 
-        var w = 0.9;
-        var h = 0.9;
-        this.axis.reset();
-        this.axis.add_move_to(-w / 2, -h / 2);
-        this.axis.add_line_to(w / 2, -h / 2);
-        this.axis.add_move_to(-w / 2, -h / 2);
-        this.axis.add_line_to(-w / 2, h / 2);
-        this.axis.scale.x = width - this.label_width;
-        this.axis.scale.y = height;
-        this.axis.translation.x = - this.label_width/2;
+        var w = 1;
+        var h = 1;
 
         for (var i = 0; i < this.series.length; i++) {
             var s = this.series[i];
             s.scale = new SFVec2f(width - this.label_width, height);
-            s.but.set_size(this.label_width, 0.8*gwskin.default_text_font_size);
-            s.but.set_font_size(0.8 * gwskin.default_text_font_size);
+            s.but.set_size(this.label_width, 0.9*gwskin.default_text_font_size);
+            s.but.set_font_size(0.9 * gwskin.default_text_font_size);
             s.translation.x = -this.label_width / 2;
         }
         this.width = width;
         this.height = height;
     }
 
-    obj.axis = gw_new_curve2d(class_name);
-    obj.children[0].children[1] = obj.axis;
     obj.label_width = 100;
 
     obj.series = [];
@@ -3012,11 +3002,11 @@ function gw_new_plotter(parent) {
                 var x = s[name_x] - first_x;
                 x /= nb_x;
                 x -= 0.5;
-                x *= 0.9;
+                //x *= 0.9;
 
                 var y = s[name_y];
                 if (max_y) y /= max_y;
-                y = -0.8 / 2 + 0.8 * y / factor;
+                y = -0.9 / 2 + 0.9 * y / factor;
 
                 if (i) {
                     this.add_line_to(x, y);
@@ -3025,7 +3015,7 @@ function gw_new_plotter(parent) {
                 }
 
                 if (i + 1 == count) {
-                    this.but.move(0.5 * this.dlg.width - this.but.width / 2, (-0.8 / 2 + 0.8 / factor) * this.dlg.height);
+                    this.but.move(0.5 * this.dlg.width - this.but.width / 2, (-0.9 / 2 + 0.9 / factor) * this.dlg.height);
                     this.but.set_label('' + this.legend + ':' + s[name_y] + ' ' + units);
                     this.but.show();
                 }
