@@ -215,7 +215,7 @@ function initialize() {
         all_extensions[i].icon.on_click();
       }
     }
-    
+
   //let's do the layout   
     layout();
 }

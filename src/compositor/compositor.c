@@ -1638,6 +1638,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 	return e;
 }
 
+GF_EXPORT
 Bool gf_sc_is_over(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 {
 	u32 i, count;

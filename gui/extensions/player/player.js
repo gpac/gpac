@@ -32,6 +32,7 @@ extension = {
     history: [],
     bookmarks: [],
     root_odm: null,
+    navigation_wnd: null,
 
     ext_filter_event: function (evt) {
         switch (evt.type) {
@@ -453,9 +454,10 @@ extension = {
             wnd.loop = null;
         }
 
-        wnd.view = gw_new_icon(wnd.infobar, 'navigation');
-        wnd.view.on_click = function () {
-            select_navigation_type();
+        wnd.navigate = gw_new_icon(wnd.infobar, 'navigation');
+        wnd.navigate.extension = this;
+        wnd.navigate.on_click = function () {
+            this.extension.select_navigation_type();
         }
 
         wnd.stats = gw_new_icon(wnd.infobar, 'statistics');
@@ -539,7 +541,8 @@ extension = {
         wnd.layout = function (width, height) {
             var min_w, full_w, time_w;
             var control_icon_size = gwskin.default_icon_height;
-
+			var is_over = true;
+			var show_navigate = false;
             if (arguments.length == 0) {
                 width = this.width;
                 height = this.height;
@@ -560,9 +563,10 @@ extension = {
             if (this.fullscreen) full_w += control_icon_size;
 
 
-            if (this.view) {
-                this.view.hide();
+            if (this.navigate) {
+                this.navigate.hide();
                 if (!this.extension.dynamic_scene && this.extension.movie_connected && (gpac.navigation_type != GF_NAVIGATE_TYPE_NONE)) {
+					show_navigate = true;
                     full_w += control_icon_size;
                 }
             }
@@ -578,6 +582,9 @@ extension = {
                 this.stop.show();
                 full_w += control_icon_size;
                 this.play.show();
+                
+                if (this.extension.root_odm && !this.extension.dynamic_scene && ! this.extension.root_odm.is_over)
+					is_over = false;
             } else {
                 this.stats.hide();
                 this.stop.hide();
@@ -591,7 +598,9 @@ extension = {
             } 
             else if (this.extension.movie_control.mediaStopTime < 0) {
                 if (this.forward) full_w += control_icon_size;
-            }
+            } else if (!is_over) {
+                if (this.forward) full_w += control_icon_size;
+			}
 
             if ((this.extension.root_odm && this.extension.root_odm.main_addon_on) || this.extension.movie_control.mediaStopTime < 0) {
                 full_w += control_icon_size;
@@ -629,6 +638,8 @@ extension = {
                 }
                 else if (this.extension.movie_control.mediaStopTime < 0) {
                     if (this.forward) this.forward.show();
+                } else if (!is_over) {
+                    if (this.forward) this.forward.show();
                 } else {
                     if (this.forward) this.forward.hide();
                 }
@@ -642,8 +653,8 @@ extension = {
                     }
                 }
 
-                if (this.view && !this.extension.dynamic_scene && this.extension.movie_connected && (gpac.navigation_type != GF_NAVIGATE_TYPE_NONE)) {
-                    this.view.show();
+                if (show_navigate) {
+                    this.navigate.show();
                 }
             } else {
 
@@ -655,10 +666,10 @@ extension = {
                 if (this.fullscreen) this.fullscreen.hide();
                 if (this.remote) this.remote.hide();
 
-                if (this.view && !this.extension.dynamic_scene && this.extension.movie_connected && (gpac.navigation_type != GF_NAVIGATE_TYPE_NONE)) {
-                    if (min_w + time_w + this.view.width < width) {
-                        min_w += this.view.width;
-                        this.view.show();
+                if (show_navigate) {
+                    if (min_w + time_w + this.navigate.width < width) {
+                        min_w += this.navigate.width;
+                        this.navigate.show();
                     }
                 }
 
@@ -689,7 +700,7 @@ extension = {
             if (this.infobar.on_event(evt)) return true;
             return false;
         }
-        //make the bar hotable so that clicking on it does not make it disappear
+        //make the bar hitable so that clicking on it does not make it disappear
         gw_object_set_hitable(wnd);
         wnd.set_size(gw_display_width, 1.2 * gwskin.default_icon_height);
         this.set_duration(0);
@@ -1264,17 +1275,25 @@ extension = {
         wnd.area.spread_h = false;
         wnd.area.spread_v = true;
 
-        wnd.root_odm = gpac.get_object_manager(wnd.extension.current_url);
-        var nb_http = wnd.root_odm.nb_http;
+        var root_odm = this.root_odm;
+        var nb_http = root_odm.nb_http;
         var nb_buffering = 0;
 
         wnd.has_select = false;
         wnd.objs = [];
-        for (var res_i = 0; res_i < wnd.root_odm.nb_resources; res_i++) {
+        //if not dynamic scene, add main OD to satts
+        if (! this.dynamic_scene) {
+            wnd.objs.push(root_odm);
+		}
+            
+        for (var res_i = 0; res_i < root_odm.nb_resources; res_i++) {
             var m = wnd.root_odm.get_resource(res_i);
             if (!m) continue;
             wnd.objs.push(m);
-
+		}
+		
+        for (var res_i = 0; res_i < wnd.objs.length; res_i++) {
+			var m = wnd.objs[res_i];
             m.gui = {};
 
             var label = '' + m.type;
@@ -1325,7 +1344,8 @@ extension = {
 
                     if (m.width) {
                         var fps = m.frame_duration;
-                        label += '' + m.width + 'x' + m.height + ' (' + m.par + ' ' + m.pixelformt + ')';
+                        label += 'Size:' + m.width + 'x' + m.height;
+                        if (m.pixelformat) label +=' (' + m.par + ' ' + m.pixelformat + ')';
                     } else {
                         label += '' + m.samplerate + 'Hz ' + m.channels + ' channels';
                     }
@@ -1644,9 +1664,12 @@ extension = {
         wnd.timer = gw_new_timer(false);
         wnd.timer.wnd = wnd;
         wnd.timer.set_timeout(0.25, true);
-        wnd.timer.cores = gpac.nb_cores;
-        if (gpac.system_memory > 1000000000) wnd.timer.mem = '' + Math.round(gpac.system_memory / 1024 / 1024 / 1024) + ' GB';
-        else wnd.timer.mem = '' + Math.round(gpac.system_memory / 1024 / 1024) + ' MB';
+        
+		var label = 'Statistics (' + gpac.nb_cores + ' cores - ';
+        if (gpac.system_memory > 1000000000) label += '' + Math.round(gpac.system_memory / 1024 / 1024 / 1024) + ' GB RAM)';
+        else label += '' + Math.round(gpac.system_memory / 1024 / 1024) + ' MB RAM)';
+
+        wnd.set_label(label);
 
         wnd.stats = [];
         wnd.stats_window = 32;
@@ -1663,12 +1686,14 @@ extension = {
                 wnd.s_buf = wnd.plot.add_serie('Buffer', 's', 0, 0, 0.8);
             else
                 wnd.s_buf = null;
+
+            wnd.s_cpu = wnd.plot.add_serie('CPU', '%', 0, 0.5, 0.5);
+            wnd.s_mem = wnd.plot.add_serie('MEM', 'MB', 0.5, 0.5, 0);
+
         }
 
         wnd.timer.on_event = function (val) {
             var wnd = this.wnd;
-
-            wnd.set_label('Stats FPS ' + Math.round(100 * gpac.fps) / 100 + ' CPU ' + gpac.cpu + '% RAM ' + Math.round(gpac.memory / 1024 / 1024) + ' MB  ' + this.cores + ' cores ' + this.mem + ' RAM');
 
             var stat_obj = null;
             //stats every second
@@ -1683,7 +1708,7 @@ extension = {
                 stat_obj.time = Math.round(t.getTime() / 1000);
                 stat_obj.fps = Math.round(100 * gpac.fps) / 100;
                 stat_obj.cpu = gpac.cpu;
-                stat_obj.memory = gpac.memory;
+                stat_obj.memory = Math.round(100*gpac.memory / 1024 / 1024)/100;
                 stat_obj.bitrate = 0;
                 if (wnd.s_bw) {
                     var b = gpac.http_bitrate / 1024 / 1024;
@@ -1730,14 +1755,20 @@ extension = {
             }
 
             if (stat_obj && wnd.stats.length) {
-                wnd.s_fps.refresh_serie(wnd.stats, 'time', 'fps', wnd.stats_window, 8);
+                wnd.s_fps.refresh_serie(wnd.stats, 'time', 'fps', wnd.stats_window, 4);
                 if (wnd.s_bw) {
                     wnd.s_bw.refresh_serie(this.wnd.stats, 'time', 'http_bandwidth', wnd.stats_window, 1);
                 }
                 if (wnd.s_buf) {
-                    wnd.s_buf.refresh_serie(this.wnd.stats, 'time', 'buffer', wnd.stats_window, 2);
+                    wnd.s_buf.refresh_serie(this.wnd.stats, 'time', 'buffer', wnd.stats_window, 1.5);
                 }
-                wnd.s_bitrate.refresh_serie(this.wnd.stats, 'time', 'bitrate', wnd.stats_window, 4);
+                if (stat_obj.bitrate) {
+					wnd.s_bitrate.refresh_serie(this.wnd.stats, 'time', 'bitrate', wnd.stats_window, 2);
+				} else {
+					wnd.s_bitrate.hide();
+				}
+                wnd.s_cpu.refresh_serie(wnd.stats, 'time', 'cpu', wnd.stats_window, 10);
+                wnd.s_mem.refresh_serie(wnd.stats, 'time', 'memory', wnd.stats_window, 6);
             }
         }
 
@@ -1787,7 +1818,64 @@ extension = {
         }
 
         this.buffer_wnd.txt.set_label('Buffering ' + level + ' %');
-    }
+    },
 
+	select_navigation_type: function() {
+	  var nb_items = 0;
+	  var type = gpac.navigation;
+	  if (this.navigation_wnd) return;
+//	  var wnd = gw_new_window(null, true, true);
+	  var wnd = gw_new_window_full(null, true, 'Navigation');
+	  this.navigation_wnd = wnd;
+	  
+	  wnd.area = gw_new_grid_container(wnd);
+	  wnd.extension = this;
+	  wnd.select = function(type) {
+		this.close();
+		this.extension.navigation_wnd = null;
+		if (type=='reset') {
+		  gpac.navigation_type = 0;
+		} else {
+		  gpac.navigation = type;
+		}
+	  }
+	  wnd.make_select_item = function(text, type, current_type) {
+		  if (current_type==type) text = '* ' + text+ ' *';
+		  var info = gw_new_button(this.area, text);
+		  info.wnd = this;
+		  info.on_click = function() { this.wnd.select(type); };
+		  info.set_size(120, 20);
+		}
+
+	  var info = gw_new_button(wnd.area, 'Reset');
+	  info.wnd = wnd;
+	  info.on_click = function() { 
+		this.wnd.select('reset');
+	  };	
+	  info.set_size(120, 20);
+	  wnd.nb_items = 1;
+		
+
+	  wnd.make_select_item('None', GF_NAVIGATE_NONE, type);	
+	  wnd.make_select_item('Slide', GF_NAVIGATE_SLIDE, type);	
+	  wnd.make_select_item('Examine', GF_NAVIGATE_EXAMINE, type);	
+	  wnd.nb_items += 3;
+
+	  if (gpac.navigation_type==GF_NAVIGATE_TYPE_3D) {
+		wnd.make_select_item('Walk', GF_NAVIGATE_WALK, type);	
+		wnd.make_select_item('Fly', GF_NAVIGATE_FLY, type);	
+		wnd.make_select_item('Pan', GF_NAVIGATE_PAN, type);	
+		wnd.make_select_item('Game', GF_NAVIGATE_GAME, type);	
+		wnd.make_select_item('Orbit', GF_NAVIGATE_ORBIT, type);	
+		wnd.make_select_item('VR', GF_NAVIGATE_VR, type);	
+		wnd.nb_items += 6;
+	  }
+
+      wnd.on_display_size = function (w, h) {
+         this.set_size(10 * gwskin.default_text_font_size, 2*this.nb_items * gwskin.default_text_font_size);
+      }
+      wnd.on_display_size(gw_display_width, gw_display_height);
+	  wnd.show();
+	}
 };
 
