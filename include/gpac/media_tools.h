@@ -119,6 +119,9 @@ enum
 	/*keep trailing 0 bytes in AU payloads when any*/
 	GF_IMPORT_KEEP_TRAILING = 1<<17,
 
+	/*do not compute edit list for B-frames video tracks*/
+	GF_IMPORT_NO_EDIT_LIST = 1<<18,
+
 	/*when set, only updates tracks info and return*/
 	GF_IMPORT_PROBE_ONLY	= 1<<20,
 	/*only set when probing, signals several frames per sample possible*/

@@ -462,6 +462,7 @@ void PrintImportUsage()
 	        "                         - X and Y can be omitted (:layout=WxH)\n"
 	        " \":rescale=TS\"        forces media timescale to TS !! changes the media duration\n"
 	        " \":timescale=TS\"      sets import timescale to TS\n"
+	        " \":noedit\"            do not set edit list when importing B-frames video tracks\n"
 	        " \":rvc=FILENAME\"      sets TVC configuration for the media\n"
 			" \":fmt=FORMAT\"        overrides format detection with given format (cf BT/XMTA doc)\n"
 			" \":profile=INT\"       overrides AVC profile\n"
