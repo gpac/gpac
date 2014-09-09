@@ -200,7 +200,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, tile_mode;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
-	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only;
+	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only, no_edit;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_shvc;
 	const char *szLan;
 	GF_Err e;
@@ -347,6 +347,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "timescale=", 10)) {
 			new_timescale = atoi(ext+11);
 		}
+		else if (!stricmp(ext+1, "noedit")) import_flags |= GF_IMPORT_NO_EDIT_LIST;
 
 
 		else if (!strnicmp(ext+1, "rvc=", 4)) {

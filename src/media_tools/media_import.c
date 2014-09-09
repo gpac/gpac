@@ -1127,6 +1127,37 @@ exit:
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 
+
+static void update_edit_list_for_bframes(GF_ISOFile *file, u32 track)
+{
+	u32 i, count, di;
+	u64 max_cts, min_cts, doff;
+
+	count = gf_isom_get_sample_count(file, track);
+	max_cts = 0;
+	min_cts = (u64) -1;
+	for (i=0; i<count; i++) {
+		GF_ISOSample *s = gf_isom_get_sample_info(file, track, i+1, &di, &doff);
+		if (s->DTS + s->CTS_Offset > max_cts)
+			max_cts = s->DTS + s->CTS_Offset;
+
+		if (min_cts > s->DTS + s->CTS_Offset)
+			min_cts = s->DTS + s->CTS_Offset;
+
+		gf_isom_sample_del(&s);
+	}
+
+	if (min_cts) {
+		max_cts -= min_cts;
+		max_cts += gf_isom_get_sample_duration(file, track, count);
+
+		max_cts *= gf_isom_get_timescale(file);
+		max_cts /= gf_isom_get_media_timescale(file, track);
+		gf_isom_set_edit_segment(file, track, 0, max_cts, min_cts, GF_ISOM_EDIT_NORMAL);
+	}
+}
+
+
 #ifndef GPAC_DISABLE_AV_PARSERS
 
 static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
@@ -1356,6 +1387,11 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	if (has_cts_offset) {
 		gf_import_message(import, GF_OK, "Has B-Frames (%d max consecutive B-VOPs)", max_b);
 		gf_isom_set_cts_packing(import->dest, track, 0);
+
+
+		if (!(import->flags & GF_IMPORT_NO_EDIT_LIST))
+			update_edit_list_for_bframes(import->dest, track);
+
 		/*this is plain ugly but since some encoders (divx) don't use the video PL correctly
 		we force the system video_pl to ASP@L5 since we have I, P, B in base layer*/
 		if (PL<=3) {
@@ -1718,6 +1754,10 @@ proceed:
 		gf_import_message(import, GF_OK, "Has B-Frames (%d max consecutive B-VOPs%s)", max_b, is_packed ? " - packed bitstream" : "");
 		/*repack CTS tables and adjust offsets for B-frames*/
 		gf_isom_set_cts_packing(import->dest, track, 0);
+
+		if (!(import->flags & GF_IMPORT_NO_EDIT_LIST))
+			update_edit_list_for_bframes(import->dest, track);
+
 		/*this is plain ugly but since some encoders (divx) don't use the video PL correctly
 		we force the system video_pl to ASP@L5 since we have I, P, B in base layer*/
 		if (PL<=3) {
@@ -2352,6 +2392,9 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
 	gf_isom_set_cts_packing(import->dest, track, 0);
+	if (!(import->flags & GF_IMPORT_NO_EDIT_LIST))
+		update_edit_list_for_bframes(import->dest, track);
+
 	if (last_pos!=file_size) gf_set_progress("Importing MPEG-PS Video", frames, frames);
 
 	MP4T_RecomputeBitRate(import->dest, track);
@@ -5055,7 +5098,7 @@ restart_import:
 	/*recompute all CTS offsets*/
 	if (has_cts_offset) {
 		u32 i, last_cts_samp;
-		u64 last_dts, max_cts;
+		u64 last_dts, max_cts, min_cts;
 		if (!poc_diff) poc_diff = 1;
 		/*no b-frame references, no need to cope with negative poc*/
 		if (!max_total_delay) {
@@ -5066,6 +5109,7 @@ restart_import:
 		min_poc *= -1;
 		last_dts = 0;
 		max_cts = 0;
+		min_cts = (u64) -1;
 		last_cts_samp = 0;
 
 		for (i=0; i<cur_samp; i++) {
@@ -5097,6 +5141,10 @@ restart_import:
 				max_cts = samp->DTS + samp->CTS_Offset;
 				last_cts_samp = i;
 			}
+			if (min_cts >= samp->DTS + samp->CTS_Offset)
+				min_cts = samp->DTS + samp->CTS_Offset;
+
+
 			/*this should never happen, however some streams seem to do weird POC increases (cf sorenson streams, last 2 frames),
 			this should hopefully take care of some bugs and ensure proper CTS...*/
 			if ((s32)samp->CTS_Offset<0) {
@@ -5124,6 +5172,14 @@ restart_import:
 		}
 		/*and repack table*/
 		gf_isom_set_cts_packing(import->dest, track, 0);
+
+		if (!(import->flags & GF_IMPORT_NO_EDIT_LIST) && min_cts) {
+			last_dts = max_cts - min_cts + gf_isom_get_sample_duration(import->dest, track, gf_isom_get_sample_count(import->dest, track) );
+
+			last_dts *= gf_isom_get_timescale(import->dest);
+			last_dts /= gf_isom_get_media_timescale(import->dest, track);
+			gf_isom_set_edit_segment(import->dest, track, 0, last_dts, min_cts, GF_ISOM_EDIT_NORMAL);
+		}
 	} else {
 		gf_isom_remove_cts_info(import->dest, track);
 	}
@@ -5951,7 +6007,7 @@ next_nal:
 	/*recompute all CTS offsets*/
 	if (has_cts_offset) {
 		u32 last_cts_samp;
-		u64 last_dts, max_cts;
+		u64 last_dts, max_cts, min_cts;
 		if (!poc_diff) poc_diff = 1;
 		/*no b-frame references, no need to cope with negative poc*/
 		if (!max_total_delay) {
@@ -5962,6 +6018,7 @@ next_nal:
 		min_poc *= -1;
 		last_dts = 0;
 		max_cts = 0;
+		min_cts = (u64) -1;
 		last_cts_samp = 0;
 
 		for (i=0; i<cur_samp; i++) {
@@ -5993,6 +6050,10 @@ next_nal:
 				max_cts = samp->DTS + samp->CTS_Offset;
 				last_cts_samp = i;
 			}
+			if (min_cts > samp->DTS + samp->CTS_Offset) {
+				min_cts = samp->DTS + samp->CTS_Offset;
+			}
+
 			/*this should never happen, however some streams seem to do weird POC increases (cf sorenson streams, last 2 frames),
 			this should hopefully take care of some bugs and ensure proper CTS...*/
 			if ((s32)samp->CTS_Offset<0) {
@@ -6020,6 +6081,13 @@ next_nal:
 		}
 		/*and repack table*/
 		gf_isom_set_cts_packing(import->dest, track, 0);
+
+		if (!(import->flags & GF_IMPORT_NO_EDIT_LIST) && min_cts) {
+			last_dts = max_cts - min_cts + gf_isom_get_sample_duration(import->dest, track, gf_isom_get_sample_count(import->dest, track) );
+			last_dts *= gf_isom_get_timescale(import->dest);
+			last_dts /= gf_isom_get_media_timescale(import->dest, track);
+			gf_isom_set_edit_segment(import->dest, track, 0, last_dts, min_cts, GF_ISOM_EDIT_NORMAL);
+		}
 	} else {
 		gf_isom_remove_cts_info(import->dest, track);
 	}
