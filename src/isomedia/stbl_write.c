@@ -900,12 +900,12 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 			} else if (DTSs[i+1] - DTSs[i] == stts->entries[j].sampleDelta) {
 				stts->entries[j].sampleCount += 1;
 			} else {
-				j++;
 				stts->nb_entries++;
 				if (j+1==stts->alloc_size) {
 					stts->alloc_size++;
 					stts->entries = gf_realloc(stts->entries, sizeof(GF_SttsEntry) * stts->alloc_size);
 				}
+				j++;
 				stts->entries[j].sampleCount = 1;
 				stts->entries[j].sampleDelta = (u32) (DTSs[i+1] - DTSs[i]);
 			}
