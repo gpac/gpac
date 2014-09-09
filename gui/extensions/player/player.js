@@ -122,8 +122,6 @@ extension = {
 
                 if (evt.error) return;
 
-                alert('Movie setup ' + this.extension.movie_connected + ' to URL ' + ext.movie.children[0].url[0]);
-
                 //success !
                 ext.current_url = this.url[0];
                 ext.set_speed(1);
@@ -162,7 +160,6 @@ extension = {
             }
 
             if (!this.extension.movie_connected) {
-                alert('movie connected');
                 this.extension.movie_connected = true;
                 gpac.set_3d(evt.type3d ? 1 : 0);
                 this.extension.controler.play.switch_icon(this.extension.icon_pause);
@@ -186,7 +183,6 @@ extension = {
             }
         }
         this.movie.children[0].on_addon_found = function (evt) {
-            alert('Addon found!');
             var e = {};
             e.type = GF_EVENT_ADDON_DETECTED;
             e.addon_url = evt.url;
@@ -224,9 +220,6 @@ extension = {
         }
 
         this.movie.children[0].on_media_end = function (evt) {
-            alert('ended ');
-            alert('ended ' + this.extension.duration);
-
             if (this.extension.duration) {
                 if (this.extension.movie_control.loop) {
                     this.extension.movie_control.mediaStartTime = 0;
@@ -238,10 +231,9 @@ extension = {
         }
 
         this.movie.children[0].on_media_waiting = function (evt) {
-            alert('URL is now buffering');
+//            alert('URL is now buffering');
         }
         this.movie.children[0].on_main_addon = function (evt) {
-            alert('Main addon is ' + evt.detail);
             this.extension.controler.layout();
         }
 
@@ -393,7 +385,6 @@ extension = {
                 time = value * duration / 100;
             } else if (this.extension.timeshift_depth) {
                 time = (100 - value) * this.extension.timeshift_depth / 100;
-                alert('Going ' + time + ' ms in timeshift buffer');
 
                 if (this.extension.controlled_renderer) {
                     return;
