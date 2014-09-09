@@ -825,7 +825,10 @@ redecode:
 
 		(*outBufferLength) += gotpic;
 		outBuffer += gotpic;
+
+#if defined(USE_AVCTX3)
 		ffd->audio_frame->nb_samples = 0;
+#endif
 
 		ffd->frame_start += len;
 		if (inBufferLength <= ffd->frame_start) {
