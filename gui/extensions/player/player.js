@@ -37,6 +37,7 @@ extension = {
     ext_filter_event: function (evt) {
         switch (evt.type) {
             case GF_EVENT_MOUSEUP:
+                alert('click '+ this.file_open_dlg);
                 if (this.file_open_dlg) return false;
                 gw_hide_dock();
                 if (this.controler.visible) {
@@ -523,7 +524,7 @@ extension = {
             }
             if (this.time) this.time.set_size(4 * wnd.time.font_size(), control_icon_size);
             if (this.snd_ctrl) {
-                this.snd_ctrl.set_size(2 * control_icon_size, control_icon_size / 2, control_icon_size / 3, control_icon_size );
+                this.snd_ctrl.set_size(2 * control_icon_size, control_icon_size / 2, control_icon_size / 3, control_icon_size/2 );
                 this.snd_ctrl.set_value(gpac.volume);
             }
 
@@ -764,6 +765,14 @@ extension = {
                 this.default_addon = def_addon;
                 return;
             }
+            
+            var label = '';
+            for (i = 1; i < argc; i++) {
+                label += '#'+i + ': ' + gpac.get_arg(i) + '\n';
+            }
+            var notif = gw_new_message(null, 'GPAC Arguments', label);
+            notif.show();
+ 
         }
 
         this.controler.show();
@@ -1287,7 +1296,7 @@ extension = {
 		}
             
         for (var res_i = 0; res_i < root_odm.nb_resources; res_i++) {
-            var m = wnd.root_odm.get_resource(res_i);
+            var m = root_odm.get_resource(res_i);
             if (!m) continue;
             wnd.objs.push(m);
 		}
