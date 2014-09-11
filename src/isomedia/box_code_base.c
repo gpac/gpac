@@ -6721,7 +6721,11 @@ GF_Err trun_Read(GF_Box *s, GF_BitStream *bs)
 			trun_size += 4;
 		}
 		if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) {
-			p->CTS_Offset = gf_bs_read_u32(bs);
+			if (ptr->version==0) {
+				p->CTS_Offset = (u32) gf_bs_read_u32(bs);
+			} else {
+				p->CTS_Offset = (s32) gf_bs_read_u32(bs);
+			}
 		}
 		gf_list_add(ptr->entries, p);
 		if (ptr->size<trun_size) return GF_ISOM_INVALID_FILE;
@@ -6780,7 +6784,11 @@ GF_Err trun_Write(GF_Box *s, GF_BitStream *bs)
 			gf_bs_write_u32(bs, p->flags);
 		}
 		if (ptr->flags & GF_ISOM_TRUN_CTS_OFFSET) {
-			gf_bs_write_u32(bs, p->CTS_Offset);
+			if (ptr->version==0) {
+				gf_bs_write_u32(bs, p->CTS_Offset);
+			} else {
+				gf_bs_write_u32(bs, (u32) p->CTS_Offset);
+			}
 		}
 	}
 	return GF_OK;
