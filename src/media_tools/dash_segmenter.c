@@ -2165,8 +2165,29 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 				gf_isom_get_track_layout_info(in, track, &w2, &h2, NULL, NULL, NULL);
 
 				if (h1*w2 != h2*w1) {
-					valid_in_adaptation_set = 0;
-					break;
+					u32 hs1, hs2, vs1, vs2, vw1, vh1, vw2, vh2;
+					u64 ar1, ar2;
+
+					//check same sample aspect ratio
+					gf_isom_get_pixel_aspect_ratio(set_file, j+1, 1, &hs1, &vs1);
+					gf_isom_get_pixel_aspect_ratio(in, track, 1, &hs2, &vs2);
+
+					//check same image aspect ratio
+					gf_isom_get_visual_info(set_file, j+1, 1, &vw1, &vh1);
+					gf_isom_get_visual_info(in, track, 1, &vw2, &vh2);
+
+					ar1 = vh1*vw2; 
+					ar1*= hs2*vs1;
+					
+					ar2 = vh2*vw1;
+					ar2 *= hs1*vs2;
+					if (ar1 != ar2) {
+						gf_isom_get_track_layout_info(in, track, &w2, &h2, NULL, NULL, NULL);
+						valid_in_adaptation_set = 0;
+						break;
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Files have non-proportional track layouts (%dx%d vs %dx%d) but sample size and aspect ratio match, assuming precision issue\n", w1, h1, w2, h2));
+					}
 				}
 
 				gf_isom_get_sample_rap_roll_info(in, track, 0, &rap, &roll, &roll_dist);
