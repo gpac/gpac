@@ -1739,6 +1739,9 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	}
 	gf_list_add(trun->entries, ent);
 
+	if (sample->CTS_Offset<0) {
+		trun->version = 1;
+	}
 	trun->sample_count += 1;
 
 	//rewrite OD frames
