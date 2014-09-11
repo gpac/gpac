@@ -3768,6 +3768,7 @@ void mvex_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->mehd) gf_isom_box_del((GF_Box*)ptr->mehd);
 	gf_isom_box_array_del(ptr->TrackExList);
+	gf_isom_box_array_del(ptr->TrackExPropList);
 	gf_free(ptr);
 }
 
@@ -3779,6 +3780,8 @@ GF_Err mvex_AddBox(GF_Box *s, GF_Box *a)
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_TREX:
 		return gf_list_add(ptr->TrackExList, a);
+	case GF_ISOM_BOX_TYPE_TREP:
+		return gf_list_add(ptr->TrackExPropList, a);
 	case GF_ISOM_BOX_TYPE_MEHD:
 		if (ptr->mehd) break;
 		ptr->mehd = (GF_MovieExtendsHeaderBox*)a;
@@ -3804,6 +3807,12 @@ GF_Box *mvex_New()
 		gf_free(tmp);
 		return NULL;
 	}
+	tmp->TrackExPropList = gf_list_new();
+	if (!tmp->TrackExPropList) {
+		gf_list_del(tmp->TrackExList);
+		gf_free(tmp);
+		return NULL;
+	}
 	return (GF_Box *)tmp;
 }
 
@@ -3823,7 +3832,9 @@ GF_Err mvex_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)ptr->mehd, bs);
 		if (e) return e;
 	}
-	return gf_isom_box_array_write(s, ptr->TrackExList, bs);
+	e = gf_isom_box_array_write(s, ptr->TrackExList, bs);
+	if (e) return e;
+	return gf_isom_box_array_write(s, ptr->TrackExPropList, bs);
 }
 
 GF_Err mvex_Size(GF_Box *s)
@@ -3837,7 +3848,9 @@ GF_Err mvex_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->mehd->size;
 	}
-	return gf_isom_box_array_size(s, ptr->TrackExList);
+	e = gf_isom_box_array_size(s, ptr->TrackExList);
+	if (e) return e;
+	return gf_isom_box_array_size(s, ptr->TrackExPropList);
 }
 
 
@@ -6645,6 +6658,68 @@ GF_Err trex_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size += 20;
+	return GF_OK;
+}
+
+
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+void trep_del(GF_Box *s)
+{
+	GF_TrackExtensionPropertiesBox *ptr = (GF_TrackExtensionPropertiesBox *)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+
+GF_Err trep_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_TrackExtensionPropertiesBox *ptr = (GF_TrackExtensionPropertiesBox *)s;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	ptr->trackID = gf_bs_read_u32(bs);
+	ptr->size-=4;
+
+	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
+}
+
+GF_Box *trep_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TrackExtensionPropertiesBox, GF_ISOM_BOX_TYPE_TREP);
+	tmp->other_boxes = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+
+GF_Err trep_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_TrackExtensionPropertiesBox *ptr = (GF_TrackExtensionPropertiesBox *) s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u32(bs, ptr->trackID);
+	return GF_OK;
+}
+
+GF_Err trep_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_TrackExtensionPropertiesBox *ptr = (GF_TrackExtensionPropertiesBox *)s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	ptr->size += 4;
 	return GF_OK;
 }
 

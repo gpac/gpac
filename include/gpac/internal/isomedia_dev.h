@@ -178,6 +178,7 @@ enum
 	GF_ISOM_BOX_TYPE_MVEX	= GF_4CC( 'm', 'v', 'e', 'x' ),
 	GF_ISOM_BOX_TYPE_MEHD	= GF_4CC( 'm', 'e', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_TREX	= GF_4CC( 't', 'r', 'e', 'x' ),
+	GF_ISOM_BOX_TYPE_TREP	= GF_4CC( 't', 'r', 'e', 'p' ),
 	GF_ISOM_BOX_TYPE_MOOF	= GF_4CC( 'm', 'o', 'o', 'f' ),
 	GF_ISOM_BOX_TYPE_MFHD	= GF_4CC( 'm', 'f', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_TRAF	= GF_4CC( 't', 'r', 'a', 'f' ),
@@ -1614,6 +1615,7 @@ typedef struct __tag_mvex_box
 {
 	GF_ISOM_BOX
 	GF_List *TrackExList;
+	GF_List *TrackExPropList;
 	GF_MovieExtendsHeaderBox *mehd;
 	GF_ISOFile *mov;
 } GF_MovieExtendsBox;
@@ -1629,6 +1631,13 @@ typedef struct
 	u32 def_sample_flags;
 	GF_TrackBox *track;
 } GF_TrackExtendsBox;
+
+/*the TrackExtends contains default values for the track fragments*/
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 trackID;
+} GF_TrackExtensionPropertiesBox;
 
 /*indicates the seq num of this fragment*/
 typedef struct
@@ -4134,6 +4143,14 @@ GF_Err prft_dump(GF_Box *a, FILE * trace);
 
 //exported for sgpd comparison in traf merge
 void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs);
+
+GF_Box *trep_New();
+void trep_del(GF_Box *);
+GF_Err trep_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err trep_Size(GF_Box *s);
+GF_Err trep_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err trep_dump(GF_Box *a, FILE * trace);
+
 
 /*
 	Adobe's protection boxes
