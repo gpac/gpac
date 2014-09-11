@@ -1744,7 +1744,7 @@ typedef struct
 	u32 Duration;
 	u32 size;
 	u32 flags;
-	u32 CTS_Offset;
+	s32 CTS_Offset;
 
 	/*internal*/
 	u32 SAP_type;
