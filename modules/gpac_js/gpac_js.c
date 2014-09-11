@@ -1183,16 +1183,17 @@ static JSBool SMJS_FUNCTION(gpac_get_object_manager)
 	GF_Scene *scene = term->root_scene;
 
 	if (JSVAL_IS_STRING(argv[0]) ) {
-		service_url = SMJS_CHARS(c, argv[0]);
+		char *url;
+		url = service_url = SMJS_CHARS(c, argv[0]);
 		if (!service_url) {
 			SMJS_SET_RVAL(JSVAL_NULL);
 			return JS_TRUE;
 		}
-		if (!strncmp(service_url, "gpac://", 7)) service_url += 7;
+		if (!strncmp(service_url, "gpac://", 7)) url = service_url + 7;
 		count = gf_list_count(scene->resources);
 		for (i=0; i<count; i++) {
 			odm = gf_list_get(scene->resources, i);
-			if (odm->net_service && !strcmp(odm->net_service->url, service_url)) break;
+			if (odm->net_service && !strcmp(odm->net_service->url, url)) break;
 			odm = NULL;
 		}
 	}
