@@ -347,12 +347,12 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 				gf_odm_init_segments((GF_ObjectManager *) stack->stream->odm, stack->seg, &stack->control->url);
 
 				stack->current_seg = 0;
-				//do not restart if no mediaStartTime
-				if ((stack->control->mediaStartTime>0) && !gf_list_count(stack->seg) ) {
+				//do not restart if no mediaStartTime and speed is 1
+				if ((stack->control->mediaStartTime>0) || gf_list_count(stack->seg) || (stack->control->mediaSpeed != FIX_ONE) ) {
 					shall_restart = need_restart = 1;
 				} else {
 					shall_restart = need_restart = 0;
-					//URL changed, wa are by default in PLAY mode.
+					//URL changed, we are by default in PLAY mode.
 					stack->media_speed = 1;
 				}
 
@@ -426,7 +426,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		stack->paused = 0;
 		/*the object has already been started, and media start time is not 0, restart*/
 		if (stack->stream->num_open) {
-			if ( (stack->media_start > 0) || (gf_list_count(stack->seg)>0 ) ) {
+			if ( (stack->media_start > 0) || (gf_list_count(stack->seg)>0 )  || (stack->media_speed!=FIX_ONE ) ) {
 				mediacontrol_restart(odm);
 			} else if (stack->media_speed == 0) {
 				mediacontrol_pause(odm);

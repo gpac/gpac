@@ -33,11 +33,16 @@ extension = {
     bookmarks: [],
     root_odm: null,
     navigation_wnd: null,
+    initial_loop: false,
+    initial_speed: 1,
+    initial_start: 0,
+    show_stats_init: 0,
+
 
     ext_filter_event: function (evt) {
         switch (evt.type) {
             case GF_EVENT_MOUSEUP:
-                alert('click '+ this.file_open_dlg);
+                //alert('click '+ this.file_open_dlg);
                 if (this.file_open_dlg) return false;
                 gw_hide_dock();
                 if (this.controler.visible) {
@@ -126,11 +131,18 @@ extension = {
 
                 //success !
                 ext.current_url = this.url[0];
-                ext.set_speed(1);
-                ext.movie_control.mediaStartTime = 0;
+                ext.set_speed(ext.initial_speed);
+                ext.movie_control.mediaStartTime = ext.initial_start;
+                ext.movie_control.loop = ext.initial_loop;
+
                 ext.movie_control.url[0] = ext.current_url;
                 ext.movie_sensor.url[0] = ext.current_url;
+
                 ext.timeshift_depth = 0;
+                ext.initial_loop = false;
+                ext.initial_speed = 1;
+                ext.initial_start = 0;
+
 
                 if ((ext.current_url.indexOf('gpac://') == 0) && ((ext.current_url.indexOf('://') < 0) || (ext.current_url.indexOf('file://') == 0))) {
                     ext.local_url = true;
@@ -157,8 +169,10 @@ extension = {
                     var odm = gpac.get_object_manager(ext.current_url);
                     if (odm) odm.select_service(ext.initial_service_id);
                     ext.initial_service_id = 0;
-
                 }
+		if (ext.show_stats_init) {
+	            ext.view_stats();
+		}
             }
 
             if (!this.extension.movie_connected) {
@@ -480,7 +494,7 @@ extension = {
 
 
         if (!gwskin.browser_mode) {
-            wnd.home = gw_new_icon(wnd.infobar, 'home');
+            wnd.home = gw_new_icon(wnd.infobar, 'osmo');
             wnd.home.extension = this;
             wnd.home.on_click = function () {
                 this.extension.controler.hide();
@@ -738,9 +752,9 @@ extension = {
                     else url_arg = arg;
                 }
 
-                //MP4Client options ...
+                //MP4Client options taking 2 args
                 else if ((arg == '-rti') || (arg == '-rtix') || (arg == '-c') || (arg == '-cfg') || (arg == '-size') || (arg == '-lf') || (arg == '-log-file') || (arg == '-logs')
-                    || (arg == '-opt') || (arg == '-ifce') || (arg == '-play-from') || (arg == '-speed') || (arg == '-views') || (arg == '-run-for')
+                    || (arg == '-opt') || (arg == '-ifce') || (arg == '-views') || (arg == '-run-for')
                 ) {
                     i++;
                 } else if (arg == '-service') {
@@ -755,6 +769,16 @@ extension = {
                     }
 
                     i++;
+                } else if (arg == '-loop') {
+			this.initial_loop = true;
+                } else if (arg == '-stats') {
+			this.show_stats_init = true;
+                } else if (arg == '-speed') {
+			this.initial_speed = Number( gpac.get_arg(i + 1) );
+			i++;
+                } else if (arg == '-play-from') {
+			this.initial_start = Number( gpac.get_arg(i + 1) );
+			i++;
                 }
             }
 
@@ -766,13 +790,14 @@ extension = {
                 return;
             }
             
-            var label = '';
+ /*
+           var label = '';
             for (i = 1; i < argc; i++) {
                 label += '#'+i + ': ' + gpac.get_arg(i) + '\n';
             }
             var notif = gw_new_message(null, 'GPAC Arguments', label);
             notif.show();
- 
+*/ 
         }
 
         this.controler.show();
