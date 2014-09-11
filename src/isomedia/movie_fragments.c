@@ -40,6 +40,17 @@ GF_TrackExtendsBox *GetTrex(GF_MovieBox *moov, u32 TrackID)
 	return NULL;
 }
 
+GF_TrackExtensionPropertiesBox *GetTrep(GF_MovieBox *moov, u32 TrackID)
+{
+	u32 i;
+	GF_TrackExtensionPropertiesBox *trep;
+	i=0;
+	while ((trep = (GF_TrackExtensionPropertiesBox*) gf_list_enum(moov->mvex->TrackExPropList, &i))) {
+		if (trep->trackID == TrackID) return trep;
+	}
+	return NULL;
+}
+
 GF_TrackFragmentBox *GetTraf(GF_ISOFile *mov, u32 TrackID)
 {
 	u32 i;
@@ -66,6 +77,7 @@ GF_Err gf_isom_set_movie_duration(GF_ISOFile *movie, u64 duration)
 	movie->moov->mvhd->duration = 0;
 	return GF_OK;
 }
+
 
 GF_EXPORT
 GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
@@ -102,6 +114,32 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 
 		i=0;
 		while ((trex = (GF_TrackExtendsBox *)gf_list_enum(movie->moov->mvex->TrackExList, &i))) {
+			GF_TrackExtensionPropertiesBox *trep;
+			if (trex->type != GF_ISOM_BOX_TYPE_TREX) continue;
+			trep = GetTrep(movie->moov, trex->trackID);
+
+			if (!trep) {
+				trep = (GF_TrackExtensionPropertiesBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREP);
+				trep->trackID = trex->trackID;
+				gf_list_add(movie->moov->mvex->TrackExPropList, trep);
+			}
+
+			if (trex->track->Media->information->sampleTable->CompositionToDecode) {
+
+				if (!trex->track->Media->information->sampleTable->SampleSize || ! trex->track->Media->information->sampleTable->SampleSize->sampleCount) {
+					gf_list_add(trep->other_boxes, trex->track->Media->information->sampleTable->CompositionToDecode);
+					trex->track->Media->information->sampleTable->CompositionToDecode = NULL;
+				} else {
+					GF_CompositionToDecodeBox *cslg;
+
+					//clone it!
+					GF_SAFEALLOC(cslg, GF_CompositionToDecodeBox);
+					memcpy(cslg, trex->track->Media->information->sampleTable->CompositionToDecode, sizeof(GF_CompositionToDecodeBox) );
+					cslg->other_boxes = gf_list_new();
+					gf_list_add(trep->other_boxes, trex->track->Media->information->sampleTable->CompositionToDecode);
+				}
+			}
+		
 			if (movie->moov->mvex->mehd && movie->moov->mvex->mehd->fragment_duration) {
 				trex->track->Header->duration = 0;
 				Media_SetDuration(trex->track);

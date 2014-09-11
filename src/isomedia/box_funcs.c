@@ -584,6 +584,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return mehd_New();
 	case GF_ISOM_BOX_TYPE_TREX:
 		return trex_New();
+	case GF_ISOM_BOX_TYPE_TREP:
+		return trep_New();
 	case GF_ISOM_BOX_TYPE_MOOF:
 		return moof_New();
 	case GF_ISOM_BOX_TYPE_MFHD:
@@ -1163,6 +1165,9 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TREX:
 		trex_del(a);
 		return;
+	case GF_ISOM_BOX_TYPE_TREP:
+		trep_del(a);
+		return;
 	case GF_ISOM_BOX_TYPE_MOOF:
 		moof_del(a);
 		return;
@@ -1721,6 +1726,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return mehd_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TREX:
 		return trex_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TREP:
+		return trep_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_MOOF:
 		return moof_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_MFHD:
@@ -2187,6 +2194,8 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return mehd_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TREX:
 		return trex_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_TREP:
+		return trep_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_MOOF:
 		return moof_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_MFHD:
@@ -2659,6 +2668,8 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return mehd_Size(a);
 	case GF_ISOM_BOX_TYPE_TREX:
 		return trex_Size(a);
+	case GF_ISOM_BOX_TYPE_TREP:
+		return trep_Size(a);
 	case GF_ISOM_BOX_TYPE_MOOF:
 		return moof_Size(a);
 	case GF_ISOM_BOX_TYPE_MFHD:

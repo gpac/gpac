@@ -2547,7 +2547,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	/*also clone sampleGroups description tables if any*/
 	stbl_temp->sampleGroupsDescription = stbl->sampleGroupsDescription;
 	trak->Media->information->sampleTable = stbl_temp;
-	/*clone CompositionToDecode table*/
+	/*clone CompositionToDecode table, we may remove it later*/
 	stbl_temp->CompositionToDecode = stbl->CompositionToDecode;
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);

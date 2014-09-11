@@ -265,6 +265,8 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 		return mehd_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_TREX:
 		return trex_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TREP:
+		return trep_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_MOOF:
 		return moof_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_MFHD:
@@ -2463,6 +2465,7 @@ GF_Err mvex_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	if (p->mehd) gf_box_dump(p->mehd, trace);
 	gf_box_array_dump(p->TrackExList, trace);
+	gf_box_array_dump(p->TrackExPropList, trace);
 	gf_box_dump_done("MovieExtendsBox", a, trace);
 	return GF_OK;
 }
@@ -2503,6 +2506,16 @@ GF_Err trex_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 	gf_box_dump_done("TrackExtendsBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err trep_dump(GF_Box *a, FILE * trace)
+{
+	GF_TrackExtensionPropertiesBox *p = (GF_TrackExtensionPropertiesBox*)a;
+	fprintf(trace, "<TrackExtensionPropertiesBox TrackID=\"%d\">\n", p->trackID);
+	DumpBox(a, trace);
+	gf_full_box_dump(a, trace);
+	gf_box_dump_done("TrackExtensionPropertiesBox", a, trace);
 	return GF_OK;
 }
 
