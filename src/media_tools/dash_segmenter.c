@@ -2061,8 +2061,8 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 
 	for (i=input_idx+1; i<nb_dash_inputs; i++) {
 		Bool has_same_desc = GF_TRUE;
-		Bool valid_in_adaptation_set = 1;
-		Bool assign_to_group = 1;
+		Bool valid_in_adaptation_set = GF_TRUE;
+		Bool assign_to_group = GF_TRUE;
 		GF_ISOFile *in;
 
 		if (dash_inputs[input_idx].period != dash_inputs[i].period)
@@ -2095,12 +2095,12 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 
 		for (j=0; j<gf_isom_get_track_count(set_file); j++) {
 			u32 mtype, msub_type;
-			Bool same_codec = 1;
+			Bool same_codec = GF_TRUE;
 			u32 track = gf_isom_get_track_by_id(in, gf_isom_get_track_id(set_file, j+1));
 
 			if (!track) {
-				valid_in_adaptation_set = 0;
-				assign_to_group = 0;
+				valid_in_adaptation_set = GF_FALSE;
+				assign_to_group = GF_FALSE;
 				break;
 			}
 
@@ -2113,8 +2113,8 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 
 			mtype = gf_isom_get_media_type(set_file, j+1);
 			if (mtype != gf_isom_get_media_type(in, track)) {
-				valid_in_adaptation_set = 0;
-				assign_to_group = 0;
+				valid_in_adaptation_set = GF_FALSE;
+				assign_to_group = GF_FALSE;
 				break;
 			}
 			msub_type = gf_isom_get_media_subtype(set_file, j+1, 1);
@@ -2133,16 +2133,16 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 				GF_DecoderConfig *dcd1 = gf_isom_get_decoder_config(set_file, j+1, 1);
 				GF_DecoderConfig *dcd2 = gf_isom_get_decoder_config(in, track, 1);
 				if (dcd1 && dcd2 && (dcd1->streamType==dcd2->streamType) && (dcd1->objectTypeIndication==dcd2->objectTypeIndication)) {
-					same_codec = 1;
+					same_codec = GF_TRUE;
 				} else {
-					same_codec = 0;
+					same_codec = GF_FALSE;
 				}
 				if (dcd1) gf_odf_desc_del((GF_Descriptor *)dcd1);
 				if (dcd2) gf_odf_desc_del((GF_Descriptor *)dcd2);
 			}
 
 			if (!same_codec) {
-				valid_in_adaptation_set = 0;
+				valid_in_adaptation_set = GF_FALSE;
 				break;
 			}
 
@@ -2152,7 +2152,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 				gf_isom_get_media_language(set_file, j+1, szLang1);
 				gf_isom_get_media_language(in, track, szLang2);
 				if (stricmp(szLang1, szLang2)) {
-					valid_in_adaptation_set = 0;
+					valid_in_adaptation_set = GF_FALSE;
 					break;
 				}
 			}
@@ -2183,7 +2183,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 					ar2 *= hs1*vs2;
 					if (ar1 != ar2) {
 						gf_isom_get_track_layout_info(in, track, &w2, &h2, NULL, NULL, NULL);
-						valid_in_adaptation_set = 0;
+						valid_in_adaptation_set = GF_FALSE;
 						break;
 					} else {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Files have non-proportional track layouts (%dx%d vs %dx%d) but sample size and aspect ratio match, assuming precision issue\n", w1, h1, w2, h2));
@@ -2534,8 +2534,8 @@ static GF_Err dasher_generic_classify_input(GF_DashSegInput *dash_inputs, u32 nb
 		e = gf_media_import(&probe);
 		if (e) return e;
 
-		if (in.nb_progs != probe.nb_progs) valid_in_adaptation_set = 0;
-		if (in.nb_tracks != probe.nb_tracks) valid_in_adaptation_set = 0;
+		if (in.nb_progs != probe.nb_progs) valid_in_adaptation_set = GF_FALSE;
+		if (in.nb_tracks != probe.nb_tracks) valid_in_adaptation_set = GF_FALSE;
 
 		for (j=0; j<in.nb_tracks; j++) {
 			struct __track_import_info *src_tk, *probe_tk;
