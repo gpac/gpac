@@ -90,6 +90,7 @@ void vtcu_del(GF_Box *s)
 	if (box->id) gf_isom_box_del((GF_Box *)box->id);
 	if (box->settings) gf_isom_box_del((GF_Box *)box->settings);
 	if (box->payload) gf_isom_box_del((GF_Box *)box->payload);
+	if (box->time) gf_isom_box_del((GF_Box *)box->time);
 	gf_free(s);
 }
 
@@ -191,6 +192,10 @@ GF_Err vtcu_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)cuebox->id, bs);
 		if (e) return e;
 	}
+	if (cuebox->time) {
+		e = gf_isom_box_write((GF_Box *)cuebox->time, bs);
+		if (e) return e;
+	}
 	if (cuebox->settings) {
 		e = gf_isom_box_write((GF_Box *)cuebox->settings, bs);
 		if (e) return e;
@@ -242,6 +247,11 @@ GF_Err vtcu_Size(GF_Box *s)
 		if (e) return e;
 		cuebox->size += cuebox->id->size;
 	}
+	if (cuebox->time) {
+		e = gf_isom_box_size((GF_Box *)cuebox->time);
+		if (e) return e;
+		cuebox->size += cuebox->time->size;
+	}
 	if (cuebox->settings) {
 		e = gf_isom_box_size((GF_Box *)cuebox->settings);
 		if (e) return e;
@@ -291,7 +301,7 @@ static GF_Err webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)
 	if (cue->text) {
 		cuebox->payload = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_PAYL, cue->text);
 	}
-
+	/* TODO: check if a time box should be written */
 	e = gf_isom_box_size((GF_Box *)cuebox);
 	if (!e) e = gf_isom_box_write((GF_Box *)cuebox, bs);
 
@@ -364,6 +374,7 @@ GF_Err vtcu_dump(GF_Box *a, FILE * trace)
 	if (cuebox->id) boxstring_dump((GF_Box *)cuebox->id, trace);
 	if (cuebox->settings) boxstring_dump((GF_Box *)cuebox->settings, trace);
 	if (cuebox->payload) boxstring_dump((GF_Box *)cuebox->payload, trace);
+	if (cuebox->time) boxstring_dump((GF_Box *)cuebox->time, trace);
 	gf_box_dump_done("WebVTTCueBox", a, trace);
 	return GF_OK;
 }
@@ -570,8 +581,11 @@ static GF_Err gf_webvtt_cue_add_property(GF_WebVTTCue *cue, GF_WebVTTCueProperty
 	case WEBVTT_PAYLOAD:
 		prop = &cue->text;
 		break;
-	case WEBVTT_TIME:
-		prop = &cue->time;
+	case WEBVTT_POSTCUE_TEXT:
+		prop = &cue->post_text;
+		break;
+	case WEBVTT_PRECUE_TEXT:
+		prop = &cue->pre_text;
 		break;
 	}
 	if (*prop) {
@@ -598,8 +612,9 @@ void gf_webvtt_cue_del(GF_WebVTTCue * cue)
 	if (cue) {
 		if (cue->id)        gf_free(cue->id);
 		if (cue->settings)  gf_free(cue->settings);
-		if (cue->time)      gf_free(cue->time);
 		if (cue->text)      gf_free(cue->text);
+		if (cue->pre_text)  gf_free(cue->pre_text);
+		if (cue->post_text) gf_free(cue->post_text);
 		gf_free(cue);
 	}
 }
@@ -1226,7 +1241,7 @@ GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, u32 index)
 	GF_WebVTTSampleEntryBox *wvtt;
 	wvtt = gf_webvtt_isom_get_description(file, track, index);
 	if (!wvtt) return GF_BAD_PARAM;
-	fprintf(dump, "%s\n", wvtt->config->string);
+	fprintf(dump, "%s\n\n", wvtt->config->string);
 	return GF_OK;
 }
 
@@ -1256,6 +1271,8 @@ GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sa
 			gf_webvtt_timestamp_set(&ts, (iso_sample->DTS * 1000) / timescale);
 			gf_webvtt_timestamp_dump(&ts, dump, GF_FALSE);
 			fprintf(dump, " --> NEXT\n\n");
+		} else if (box->type == GF_ISOM_BOX_TYPE_VTTA) {
+			fprintf(dump, "%s\n\n", ((GF_StringBox *)box)->string);
 		}
 		gf_isom_box_del(box);
 	}
@@ -1276,6 +1293,9 @@ GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 st
 	GF_WebVTTCue    *cue;
 	GF_VTTCueBox    *cuebox;
 	GF_BitStream    *bs;
+	char			*pre_text;
+	cue = NULL;
+	pre_text = NULL;
 	cues = gf_list_new();
 	bs = gf_bs_new(data, dataLength, GF_BITSTREAM_READ);
 	while(gf_bs_available(bs))
@@ -1287,6 +1307,11 @@ GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 st
 		if (box->type == GF_ISOM_BOX_TYPE_VTCU) {
 			cuebox = (GF_VTTCueBox *)box;
 			cue   = gf_webvtt_cue_new();
+			if (pre_text) {
+				gf_webvtt_cue_add_property(cue, WEBVTT_PRECUE_TEXT, pre_text, (u32) strlen(pre_text));
+				gf_free(pre_text);
+				pre_text = NULL;
+			}
 			gf_list_add(cues, cue);
 			gf_webvtt_timestamp_set(&cue->start, start);
 			if (cuebox->id) {
@@ -1297,6 +1322,13 @@ GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 st
 			}
 			if (cuebox->payload) {
 				gf_webvtt_cue_add_property(cue, WEBVTT_PAYLOAD, cuebox->payload->string, (u32) strlen(cuebox->payload->string));
+			}
+		} else if (box->type == GF_ISOM_BOX_TYPE_VTTA) {
+			GF_StringBox *sbox = (GF_StringBox *)box;
+			if (cue) {
+				gf_webvtt_cue_add_property(cue, WEBVTT_POSTCUE_TEXT, sbox->string, (u32) strlen(sbox->string));
+			} else {
+				pre_text = gf_strdup(sbox->string);
 			}
 		}
 		gf_isom_box_del(box);
@@ -1317,42 +1349,48 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 	wsample->start = start;
 
 	prev_wsample = (GF_WebVTTSample *)gf_list_last(parser->samples);
-	if (gf_list_count(cues)) {
-		while (gf_list_count(cues)) {
-			GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, 0);
-			gf_list_rem(cues, 0);
-			/* add the cue to the current sample */
-			gf_list_add(wsample->cues, cue);
-			/* update with the previous sample */
-			if (prev_wsample) {
-				Bool  found = GF_FALSE;
-				while (!found && gf_list_count(prev_wsample->cues)) {
-					GF_WebVTTCue *old_cue = (GF_WebVTTCue *)gf_list_get(prev_wsample->cues, 0);
-					gf_list_rem(prev_wsample->cues, 0);
-					if (
-					    ((!cue->id && !old_cue->id) || (old_cue->id && cue->id && !strcmp(old_cue->id, cue->id))) &&
-					    ((!cue->settings && !old_cue->settings) || (old_cue->settings && cue->settings && !strcmp(old_cue->settings, cue->settings))) &&
-					    ((!cue->text && !old_cue->text) || (old_cue->text && cue->text && !strcmp(old_cue->text, cue->text)))
-					) {
-						/* if it is the same cue, update its start with the initial start */
-						cue->start = old_cue->start;
-						has_continuation_cue = GF_TRUE;
-						found = GF_TRUE;
-						/* delete the old cue */
-						gf_webvtt_cue_del(old_cue);
+	while (gf_list_count(cues)) {
+		GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, 0);
+		gf_list_rem(cues, 0);
+		/* add the cue to the current sample */
+		gf_list_add(wsample->cues, cue);
+		/* update with the previous sample */
+		if (prev_wsample) {
+			Bool  found = GF_FALSE;
+			while (!found && gf_list_count(prev_wsample->cues)) {
+				GF_WebVTTCue *old_cue = (GF_WebVTTCue *)gf_list_get(prev_wsample->cues, 0);
+				gf_list_rem(prev_wsample->cues, 0);
+				if (
+					((!cue->id && !old_cue->id) || (old_cue->id && cue->id && !strcmp(old_cue->id, cue->id))) &&
+					((!cue->settings && !old_cue->settings) || (old_cue->settings && cue->settings && !strcmp(old_cue->settings, cue->settings))) &&
+					((!cue->text && !old_cue->text) || (old_cue->text && cue->text && !strcmp(old_cue->text, cue->text)))
+				) {
+					/* if it is the same cue, update its start with the initial start */
+					cue->start = old_cue->start;
+					has_continuation_cue = GF_TRUE;
+					found = GF_TRUE;
+					if (old_cue->pre_text) {
+						cue->pre_text = old_cue->pre_text;
+						old_cue->pre_text = NULL;
+					}
+					if (old_cue->post_text) {
+						cue->post_text = old_cue->post_text;
+						old_cue->post_text = NULL;
+					}
+					/* delete the old cue */
+					gf_webvtt_cue_del(old_cue);
+				} else {
+					/* finalize the end cue time */
+					if (gf_webvtt_timestamp_is_zero(&old_cue->end)) {
+						gf_webvtt_timestamp_set(&old_cue->end, wsample->start);
+					}
+					/* transfer the cue */
+					if (!has_continuation_cue) {
+						/* the cue can be safely serialized while keeping the order */
+						parser->on_cue_read(parser->user, old_cue);
 					} else {
-						/* finalize the end cue time */
-						if (gf_webvtt_timestamp_is_zero(&old_cue->end)) {
-							gf_webvtt_timestamp_set(&old_cue->end, wsample->start);
-						}
-						/* transfer the cue */
-						if (!has_continuation_cue) {
-							/* the cue can be safely serialized while keeping the order */
-							parser->on_cue_read(parser->user, old_cue);
-						} else {
-							/* keep the cue in the current sample to respect cue start ordering */
-							gf_list_add(wsample->cues, old_cue);
-						}
+						/* keep the cue in the current sample to respect cue start ordering */
+						gf_list_add(wsample->cues, old_cue);
 					}
 				}
 			}
@@ -1432,7 +1470,12 @@ static void gf_webvtt_dump_cue(void *user, GF_WebVTTCue *cue)
 {
 	FILE *dump = (FILE *)user;
 	if (!cue || !dump) return;
-	if (cue->id) fprintf(dump, "%s", cue->id);
+	if (cue->pre_text) {
+		fprintf(dump, "%s", cue->pre_text);
+		fprintf(dump, "\n");
+		fprintf(dump, "\n");
+	}
+	if (cue->id) fprintf(dump, "%s\n", cue->id);
 	if (cue->start.hour || cue->end.hour) {
 		gf_webvtt_timestamp_dump(&cue->start, dump, GF_TRUE);
 		fprintf(dump, " --> ");
@@ -1448,6 +1491,12 @@ static void gf_webvtt_dump_cue(void *user, GF_WebVTTCue *cue)
 	fprintf(dump, "\n");
 	if (cue->text) fprintf(dump, "%s", cue->text);
 	fprintf(dump, "\n");
+	fprintf(dump, "\n");
+	if (cue->post_text) {
+		fprintf(dump, "%s", cue->post_text);
+		fprintf(dump, "\n");
+		fprintf(dump, "\n");
+	}
 }
 
 static GF_Err gf_webvtt_dump_cues(FILE *dump, GF_List *cues)

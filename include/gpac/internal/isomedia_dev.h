@@ -378,6 +378,7 @@ enum
 	GF_ISOM_BOX_TYPE_VTTC	= GF_4CC( 'v', 't', 't', 'C' ),
 	GF_ISOM_BOX_TYPE_VTCU	= GF_4CC( 'v', 't', 't', 'c' ),
 	GF_ISOM_BOX_TYPE_VTTE	= GF_4CC( 'v', 't', 't', 'e' ),
+	GF_ISOM_BOX_TYPE_VTTA	= GF_4CC( 'v', 't', 't', 'a' ),
 	GF_ISOM_BOX_TYPE_CTIM	= GF_4CC( 'c', 't', 'i', 'm' ),
 	GF_ISOM_BOX_TYPE_IDEN	= GF_4CC( 'i', 'd', 'e', 'n' ),
 	GF_ISOM_BOX_TYPE_STTG	= GF_4CC( 's', 't', 't', 'g' ),

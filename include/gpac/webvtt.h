@@ -35,7 +35,8 @@ typedef enum {
 	WEBVTT_ID,
 	WEBVTT_SETTINGS,
 	WEBVTT_PAYLOAD,
-	WEBVTT_TIME
+	WEBVTT_POSTCUE_TEXT,
+	WEBVTT_PRECUE_TEXT,
 } GF_WebVTTCuePropertyType;
 
 typedef struct _webvtt_timestamp {
@@ -52,7 +53,8 @@ typedef struct _webvtt_cue
 	char *id;
 	char *settings;
 	char *text;
-	char *time;
+	char *pre_text;
+	char *post_text;
 
 	Bool split;
 	/* original times before split, if applicable */
