@@ -507,6 +507,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_IDEN:
 	case GF_ISOM_BOX_TYPE_STTG:
 	case GF_ISOM_BOX_TYPE_PAYL:
+	case GF_ISOM_BOX_TYPE_VTTA:
 		return boxstring_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_VTCU:
 		return vtcu_dump(a, trace);

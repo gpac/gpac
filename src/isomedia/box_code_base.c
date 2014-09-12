@@ -628,6 +628,7 @@ GF_Err defa_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 bytesToRead;
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Ignoring %s box, not supported\n", gf_4cc_to_str(ptr->type) ));
 	if (ptr->size > 0xFFFFFFFF) return GF_ISOM_INVALID_FILE;
 	bytesToRead = (u32) (ptr->size);
 
