@@ -114,7 +114,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName);
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 void dump_file_ismacryp(GF_ISOFile *file, char *inName);
-void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, char *outName, Bool is_convert, GF_TextDumpType dump_type);
+void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_convert, GF_TextDumpType dump_type);
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
 
 
@@ -3021,12 +3021,17 @@ int mp4boxMain(int argc, char **argv)
 
 
 	if (import_subtitle && !trackID) {
+		/* We import the subtitle file, 
+		   i.e. we parse it and store the content as samples of a 3GPP Timed Text track in an ISO file,
+		   possibly for later export (e.g. when converting SRT to TTXT, ...) */
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 		GF_MediaImporter import;
+		/* Prepare the importer */
 		file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
 		memset(&import, 0, sizeof(GF_MediaImporter));
 		import.dest = file;
 		import.in_name = inName;
+		/* Start the import */
 		e = gf_media_import(&import);
 		if (e) {
 			fprintf(stderr, "Error importing %s: %s\n", inName, gf_error_to_string(e));
@@ -3034,15 +3039,20 @@ int mp4boxMain(int argc, char **argv)
 			gf_delete_file("ttxt_convert");
 			MP4BOX_EXIT_WITH_CODE(1);
 		}
+		/* Prepare the export */
 		strcpy(outfile, inName);
 		if (strchr(outfile, '.')) {
 			while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 			outfile[strlen(outfile)-1] = 0;
 		}
 #ifndef GPAC_DISABLE_ISOM_DUMP
-		dump_timed_text_track(file, gf_isom_get_track_id(file, 1), dump_std ? NULL : outfile, outName, 
-			GF_TRUE, (import_subtitle==2) ? GF_TEXTDUMPTYPE_SVG : (dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT));
+		/* Start the export of the track #1, in the appropriate dump type, indicating it's a conversion */
+		dump_timed_text_track(file, gf_isom_get_track_id(file, 1), 
+							  dump_std ? NULL : outfile, 
+							  GF_TRUE, 
+							  (import_subtitle==2) ? GF_TEXTDUMPTYPE_SVG : (dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT));
 #endif
+		/* Clean the importer */
 		gf_isom_delete(file);
 		gf_delete_file("ttxt_convert");
 		if (e) {
@@ -3519,7 +3529,7 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_ISOM_DUMP
 	if (dump_isom) dump_isom_xml(file, dump_std ? NULL : outfile);
 	if (dump_cr) dump_file_ismacryp(file, dump_std ? NULL : outfile);
-	if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, outName, 0, dump_srt);
+	if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, 0, dump_srt);
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	if (dump_rtp) dump_file_rtp(file, dump_std ? NULL : outfile);
 #endif
