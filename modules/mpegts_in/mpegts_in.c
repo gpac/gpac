@@ -650,13 +650,32 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	}
 	break;
 	case GF_M2TS_EVT_PES_PCR:
+	{
+		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
 		/*send pcr*/
 		if (((GF_M2TS_PES_PCK *) param)->stream && ((GF_M2TS_PES_PCK *) param)->stream->user) {
 			GF_SLHeader slh;
 			memset(&slh, 0, sizeof(GF_SLHeader) );
 			slh.OCRflag = 1;
-			slh.m2ts_pcr = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 2 : 1;
+			slh.m2ts_pcr = discontinuity ? 2 : 1;
 			slh.objectClockReference = ((GF_M2TS_PES_PCK *) param)->PTS;
+			
+			//check if our buffer level is low enough otherwise we would send the OCR_disc way too early
+			//we have to do this because the terminal doesn't "queue" clock discontinuities
+			if (m2ts->file_regulate && discontinuity) {
+				/*query buffer level, don't sleep if too low*/
+				GF_NetworkCommand com;
+				memset(&com, 0, sizeof(GF_NetworkCommand));
+				com.command_type = GF_NET_BUFFER_QUERY;
+				com.base.on_channel = NULL;
+				while (ts->run_state) {
+					gf_service_command(m2ts->service, &com, GF_OK);
+					if (!com.buffer.occupancy) {
+						break;
+					}
+					gf_sleep(1);
+				}
+			}
 
 			gf_service_send_packet(m2ts->service, ((GF_M2TS_PES_PCK *) param)->stream->user, NULL, 0, &slh, GF_OK);
 
@@ -674,7 +693,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 		((GF_M2TS_PES_PCK *) param)->stream->program->first_dts = 1;
 
-		if ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) {
+		if (discontinuity) {
 #if 0
 			if (ts->pcr_last) {
 				ts->pcr_last = ((GF_M2TS_PES_PCK *) param)->PTS;
@@ -761,6 +780,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				m2ts->stb_at_last_pcr = gf_sys_clock();
 			}
 		}
+	}
 		break;
 	case GF_M2TS_EVT_TDT:
 		if (m2ts->hybrid_on) {
