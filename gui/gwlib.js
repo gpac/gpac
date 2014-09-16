@@ -720,17 +720,13 @@ function gwlib_init(root_node) {
 
 	gwskin_set_white_blue();
 
-    //very basic JSON replacement for serializing simple arrays and objects
-    if (typeof JSON == 'undefined') {
-        JSON = {};
-
-        JSON._to_string = function (obj) {
+    gwskin._to_string = function (obj) {
             var res = '';
             if (obj instanceof Array) {
                 res = '[';
                 for (var i = 0; i < obj.length; i++) {
                     if (i) res += ', ';
-                    res += JSON._to_string(obj[i]);
+                    res += gwskin._to_string(obj[i]);
                 }
                 res += ']';
             } else {
@@ -746,7 +742,7 @@ function gwlib_init(root_node) {
                         res += '"';
                     } else if (typeof obj[prop] == 'function') {
                     } else if (typeof obj[prop] == 'object') {
-                        res += JSON._to_string(obj[prop]);
+                        res += gwskin._to_string(obj[prop]);
                     } else {
                         res += obj[prop];
                     }
@@ -757,13 +753,13 @@ function gwlib_init(root_node) {
             return res;
         }
 
-        JSON.stringify = function (obj) {
+        gwskin.stringify = function (obj) {
             return this._to_string(obj);
         }
-        JSON.parse = function (serial_obj) {
+        gwskin.parse = function (serial_obj) {
             return eval(serial_obj);
         }
-    }
+    
 }
 
 function gwlib_add_event_filter(evt_filter) {

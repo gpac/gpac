@@ -290,12 +290,12 @@ extension = {
 
         var hist = gpac.get_option('GUI', 'PlaybackHistory');
         if ((hist != null) && (hist != '')) {
-            this.history = JSON.parse(hist);
+            this.history = gwskin.parse(hist);
         }
 
         var bmarks = gpac.get_option('GUI', 'Bookmarks');
         if ((bmarks != null) && (bmarks != '')) {
-            this.bookmarks = JSON.parse(bmarks);
+            this.bookmarks = gwskin.parse(bmarks);
         }
 
         /*create player control UI*/
@@ -1084,7 +1084,7 @@ extension = {
                 item.on_click = function () {
                     var fb_dlg = this.dlg.dlg;
                     fb_dlg.extension.history.splice(this.index, 1);
-                    gpac.set_option('GUI', 'PlaybackHistory', JSON.stringify(fb_dlg.extension.history));
+                    gpac.set_option('GUI', 'PlaybackHistory', gwskin.stringify(fb_dlg.extension.history));
                     fb_dlg.go_hist.on_click();
                     this.dlg.close();
                 }
@@ -1098,7 +1098,7 @@ extension = {
                 item.on_click = function () {
                     var fb_dlg = this.dlg.dlg;
                     fb_dlg.extension.history = [];
-                    gpac.set_option('GUI', 'PlaybackHistory', JSON.stringify(fb_dlg.extension.history));
+                    gpac.set_option('GUI', 'PlaybackHistory', gwskin.stringify(fb_dlg.extension.history));
                     fb_dlg.close();
                     this.dlg.close();
                 }
@@ -1113,7 +1113,7 @@ extension = {
                 var fb_dlg = this.dlg.dlg;
                 if (this.index > -1) {
                     fb_dlg.extension.bookmarks.splice(this.index, 1);
-                    gpac.set_option('GUI', 'Bookmarks', JSON.stringify(fb_dlg.extension.bookmarks));
+                    gpac.set_option('GUI', 'Bookmarks', gwskin.stringify(fb_dlg.extension.bookmarks));
                     if (fb_dlg.extension.bookmarks.length == 0) {
                         fb_dlg.go_fav.hide();
                         fb_dlg.browse(fb_dlg.directory);
@@ -1289,7 +1289,7 @@ extension = {
             }
         }
 
-        gpac.set_option('GUI', is_history ? 'PlaybackHistory' : 'Bookmarks', JSON.stringify(store));
+        gpac.set_option('GUI', is_history ? 'PlaybackHistory' : 'Bookmarks', gwskin.stringify(store));
     },
 
     view_stats: function () {
