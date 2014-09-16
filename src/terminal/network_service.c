@@ -449,8 +449,12 @@ static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service
 		if (/*!ch->MaxBuffer || */ch->dispatch_after_db || ch->bypass_sl_and_db || ch->IsEndOfStream) continue;
 		//perform buffer management only on base layer  -this is because we don't signal which ESs are on/off in the underlying service ...
 		if (ch->esd->dependsOnESID) continue;
+
+		gf_es_update_buffering(ch, 0);
+
 		if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
 		if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
+
 		if (ch->IsClockInit) {
 			s32 buf_time = (s32) (ch->BufferTime / FIX2FLT(ch->clock->speed) );
 			if (!buf_time && ch->BufferTime) buf_time = ch->BufferTime;
@@ -464,8 +468,6 @@ static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service
 			} else if ( (u32) buf_time < com->buffer.occupancy ) {
 				com->buffer.occupancy = buf_time;
 			}
-		} else {
-			com->buffer.occupancy = 0;
 		}
 	}
 }
