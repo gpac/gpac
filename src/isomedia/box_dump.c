@@ -4196,7 +4196,7 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			u32 x,y,w,h, id, independent;
 			Bool full_frame;
 
-			gf_isom_parse_trif_info( ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, &id, &independent, &full_frame, &x, &y, &w, &h);
+			gf_isom_parse_trif_info( (const char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, &id, &independent, &full_frame, &x, &y, &w, &h);
 
 			fprintf(trace, "<TileRegionGroupEntry ID=\"%d\" independent=\"%d\"", id, independent);
 			if (!full_frame) fprintf(trace, " x=\"%d\" y=\"%d\"", x, y);

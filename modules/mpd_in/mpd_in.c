@@ -168,7 +168,9 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 		if (!group->pto_setup) {
 			Double scale;
 			s64 start, dur;
-			gf_dash_group_get_presentation_time_offset(mpdin->dash, i, &group->pto, &group->timescale);
+            u64 pto;
+			gf_dash_group_get_presentation_time_offset(mpdin->dash, i, &pto, &group->timescale);
+            group->pto = (s64) pto;
 			group->pto_setup = 1;
 
 			if (group->timescale && (group->timescale != ch->esd->slConfig->timestampResolution)) {
@@ -1209,7 +1211,6 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		/*don't seek if this command is the first PLAY request of objects declared by the subservice*/
 		if (! mpdin->in_seek && (!com->play.initial_broadcast_play || (com->play.start_range>2.0) ) ) {
 			Bool skip_seek;
-			GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, idx);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Play command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
 
 			mpdin->in_seek = 1;

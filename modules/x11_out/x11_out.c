@@ -1163,7 +1163,7 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 			if (evt->move.relative == 2) {
 			}
 			else if (evt->move.relative) {
-				u32 x, y;
+				s32 x, y;
 				Window child;
 				x = y = 0;
 				XTranslateCoordinates(xWindow->display, xWindow->wnd, RootWindowOfScreen (xWindow->screenptr), 0, 0, &x, &y, &child );
