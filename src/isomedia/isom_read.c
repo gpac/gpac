@@ -3298,7 +3298,7 @@ Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 			return 1;
 		default:
 			entry = gf_list_get(sgdesc->group_descriptions, sample_description_index-1);
-			if (entry && data) *data = entry->data;
+			if (entry && data) *data = (char *) entry->data;
 			if (entry && size) *size = entry->length;
 			return 1;
 		}
