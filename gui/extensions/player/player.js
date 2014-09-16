@@ -1446,18 +1446,19 @@ extension = {
 
             m.gui.buffer = null;
             m.gui.play = null;
-            if (m.max_buffer) {
-                nb_buffering++;
-                if (m.selected_service == m.service_id) {
+
+            if (m.selected_service == m.service_id) {
+                if (m.max_buffer) {
+                    nb_buffering++;
                     m.gui.buffer = gw_new_gauge(wnd.area, 'Buffer');
-                } else if (!m.is_addon) {
-                    m.gui.play = gw_new_icon(wnd.area, 'play');
-                    m.gui.play.odm = m;
-                    m.gui.play.wnd = wnd;
-                    m.gui.play.on_click = function () {
-                        this.odm.select_service(this.odm.service_id);
-                        this.wnd.close_all();
-                    }
+                }
+            } else if (!m.is_addon) {
+                m.gui.play = gw_new_icon(wnd.area, 'play');
+                m.gui.play.odm = m;
+                m.gui.play.wnd = wnd;
+                m.gui.play.on_click = function () {
+                    this.odm.select_service(this.odm.service_id);
+                    this.wnd.close_all();
                 }
             }
 
