@@ -1276,7 +1276,7 @@ u32 gf_isom_get_sample_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNum
 GF_EXPORT
 u8 gf_isom_get_sample_sync(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber)
 {
-	u8 is_rap;
+	SAPType is_rap;
 	GF_Err e;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !sampleNumber) return 0;
@@ -1513,7 +1513,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 		shadow = gf_isom_get_sample(the_file, trackNumber, shadowSync, StreamDescriptionIndex);
 		//if no sample, the shadowSync is broken, return the sample
 		if (!shadow) return GF_OK;
-		(*sample)->IsRAP = 1;
+		(*sample)->IsRAP = RAP;
 		gf_free((*sample)->data);
 		(*sample)->dataLength = shadow->dataLength;
 		(*sample)->data = shadow->data;

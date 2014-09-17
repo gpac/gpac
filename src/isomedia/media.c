@@ -362,22 +362,22 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		if (e) return e;
 	} else {
 		//if no SyncSample, all samples are sync (cf spec)
-		(*samp)->IsRAP = 1;
+		(*samp)->IsRAP = RAP;
 	}
 	/*overwrite sync sample with sample dep if any*/
 	if (mdia->information->sampleTable->SampleDep) {
 		u32 dependsOn, dependedOn, redundant;
 		e = stbl_GetSampleDepType(mdia->information->sampleTable->SampleDep, sampleNumber, &dependsOn, &dependedOn, &redundant);
 		if (!e) {
-			if (dependsOn==1) (*samp)->IsRAP = 0;
-			else if (dependsOn==2) (*samp)->IsRAP = 1;
+			if (dependsOn==1) (*samp)->IsRAP = RAP_NO;
+			else if (dependsOn==2) (*samp)->IsRAP = RAP;
 			/*if not depended upon and redundant, mark as carousel sample*/
-			if ((dependedOn==2) && (redundant==1)) (*samp)->IsRAP = 2;
+			if ((dependedOn==2) && (redundant==1)) (*samp)->IsRAP = RAP_REDUNDANT;
 			/*TODO FIXME - we must enhance the IsRAP semantics to carry disposable info ... */
 		}
 	}
 	/*get sync shadow*/
-	if (Media_IsSampleSyncShadow(mdia->information->sampleTable->ShadowSync, sampleNumber)) (*samp)->IsRAP = 2;
+	if (Media_IsSampleSyncShadow(mdia->information->sampleTable->ShadowSync, sampleNumber)) (*samp)->IsRAP = RAP_REDUNDANT;
 
 	//the data info
 	if (!sIDX && !no_data) return GF_BAD_PARAM;
@@ -513,7 +513,7 @@ Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 //look for a sync sample from a given point in media time
 GF_Err Media_FindSyncSample(GF_SampleTableBox *stbl, u32 searchFromSample, u32 *sampleNumber, u8 mode)
 {
-	u8 isRAP;
+	SAPType isRAP;
 	u32 next, prev;
 	if (!stbl || !stbl->SyncSample) return GF_BAD_PARAM;
 
@@ -769,7 +769,7 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, GF_ISOSample *sample,
 	//The first non sync sample we see must create a syncTable
 	if (sample->IsRAP) {
 		//insert it only if we have a sync table and if we have an IDR slice
-		if (stbl->SyncSample && (sample->IsRAP == 1)) {
+		if (stbl->SyncSample && (sample->IsRAP == RAP)) {
 			e = stbl_AddRAP(stbl->SyncSample, sampleNumber);
 			if (e) return e;
 		}
@@ -786,7 +786,7 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, GF_ISOSample *sample,
 			}
 		}
 	}
-	if (sample->IsRAP==2) {
+	if (sample->IsRAP==RAP_REDUNDANT) {
 		e = stbl_AddRedundant(stbl, sampleNumber);
 		if (e) return e;
 	}

@@ -2209,8 +2209,8 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 		} else {
 			fprintf(nhml, "<NHNTSample DTS=\""LLU"\" dataLength=\"%d\" ", LLU_CAST samp->DTS, samp->dataLength);
 			if (full_dump || samp->CTS_Offset) fprintf(nhml, "CTSOffset=\"%u\" ", samp->CTS_Offset);
-			if (samp->IsRAP==1) fprintf(nhml, "isRAP=\"yes\" ");
-			else if (samp->IsRAP==2) fprintf(nhml, "isSyncShadow=\"yes\" ");
+			if (samp->IsRAP==RAP) fprintf(nhml, "isRAP=\"yes\" ");
+			else if (samp->IsRAP==RAP_REDUNDANT) fprintf(nhml, "isSyncShadow=\"yes\" ");
 			else if (full_dump) fprintf(nhml, "isRAP=\"no\" ");
 			if (full_dump) fprintf(nhml, "mediaOffset=\"%d\" ", pos);
 			fprintf(nhml, "/>\n");
@@ -2428,8 +2428,8 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 				fprintf(vtt, "dataLength:%d ", samp->dataLength);
 			}
 			if (samp->CTS_Offset) fprintf(vtt, "CTS: "LLD"", samp->DTS+samp->CTS_Offset);
-			if (samp->IsRAP==1) fprintf(vtt, "isRAP:true ");
-			else if (samp->IsRAP==2) fprintf(vtt, "isSyncShadow: true ");
+			if (samp->IsRAP==RAP) fprintf(vtt, "isRAP:true ");
+			else if (samp->IsRAP==RAP_REDUNDANT) fprintf(vtt, "isSyncShadow: true ");
 			else fprintf(vtt, "isRAP:false ");
 			fprintf(vtt, "\n");
 		}
@@ -2557,8 +2557,8 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 		}
 
 		fprintf(six, "<unit time=\""LLU"\" ", LLU_CAST samp->DTS);
-		if (samp->IsRAP==1) fprintf(six, "rap=\"1\" ");
-		else if (samp->IsRAP==0) fprintf(six, "rap=\"0\" ");
+		if (samp->IsRAP==RAP) fprintf(six, "rap=\"1\" ");
+		else if (samp->IsRAP==RAP_NO) fprintf(six, "rap=\"0\" ");
 		fprintf(six, "range-begin=\"%d\" ", pos);
 		fprintf(six, "range-end=\"%d\" ", pos+samp->dataLength-1);
 		fprintf(six, "/>\n");

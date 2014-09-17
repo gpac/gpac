@@ -429,7 +429,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 						gf_isom_delete_text_sample(empty_samp);
 						if (state<=2) {
 							s->DTS = (u64) ((timescale*prev_end)/1000);
-							s->IsRAP = 1;
+							s->IsRAP = RAP;
 							gf_isom_add_sample(import->dest, track, 1, s);
 							nb_samp++;
 						}
@@ -439,7 +439,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 					s = gf_isom_text_to_sample(samp);
 					if (state<=2) {
 						s->DTS = (u64) ((timescale*start)/1000);
-						s->IsRAP = 1;
+						s->IsRAP = RAP;
 						gf_isom_add_sample(import->dest, track, 1, s);
 						gf_isom_sample_del(&s);
 						nb_samp++;
@@ -742,7 +742,7 @@ static void gf_webvtt_flush_sample_to_iso(void *user, GF_WebVTTSample *samp)
 	s = gf_isom_webvtt_to_sample(samp);
 	if (s) {
 		s->DTS = (u64) (flusher->timescale*gf_webvtt_sample_get_start(samp)/1000);
-		s->IsRAP = 1;
+		s->IsRAP = RAP;
 		gf_isom_add_sample(flusher->import->dest, flusher->track, flusher->descriptionIndex, s);
 		gf_isom_sample_del(&s);
 	}
@@ -1743,7 +1743,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		if (start && first_samp) {
 			s = gf_isom_text_to_sample(samp);
 			s->DTS = 0;
-			s->IsRAP = 1;
+			s->IsRAP = RAP;
 			gf_isom_add_sample(import->dest, track, 1, s);
 			gf_isom_sample_del(&s);
 			first_samp = GF_FALSE;

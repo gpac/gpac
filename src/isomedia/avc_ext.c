@@ -198,22 +198,39 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 	return GF_OK;
 }
 
-static u8 is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
+/* returns the SAP type as defined in the 14496-12 specification */
+static SAPType sap_type_from_nal_type(u8 nal_type) {
+	switch (nal_type) {
+	case GF_HEVC_NALU_SLICE_CRA:
+		return SAP_TYPE_3;
+	case GF_HEVC_NALU_SLICE_IDR_N_LP:
+	case GF_HEVC_NALU_SLICE_BLA_N_LP:
+		return SAP_TYPE_1;
+	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
+	case GF_HEVC_NALU_SLICE_BLA_W_DLP:
+	case GF_HEVC_NALU_SLICE_BLA_W_LP:
+		return SAP_TYPE_2;
+	default:
+		return RAP_NO;
+	}
+}
+
+static SAPType is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
 {
-	Bool is_hevc = 0;
+	Bool is_hevc = GF_FALSE;
 	u32 nalu_size_field = 0;
 	GF_BitStream *bs;
 	if (entry->avc_config && entry->avc_config->config) nalu_size_field = entry->avc_config->config->nal_unit_size;
 	else if (entry->svc_config && entry->svc_config->config) nalu_size_field = entry->svc_config->config->nal_unit_size;
 	else if (entry->hevc_config && entry->hevc_config->config) {
 		nalu_size_field = entry->hevc_config->config->nal_unit_size;
-		is_hevc = 1;
+		is_hevc = GF_TRUE;
 	}
 	else if (entry->shvc_config && entry->shvc_config->config) {
 		nalu_size_field = entry->shvc_config->config->nal_unit_size;
-		is_hevc = 1;
+		is_hevc = GF_TRUE;
 	}
-	if (!nalu_size_field) return 0;
+	if (!nalu_size_field) return RAP_NO;
 
 	bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
@@ -226,16 +243,18 @@ static u8 is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry
 			nal_type = (nal_hdr&0x7E00) >> 9;
 
 			switch (nal_type) {
-			case GF_HEVC_NALU_SLICE_BLA_W_LP:
-			case GF_HEVC_NALU_SLICE_BLA_W_DLP:
-			case GF_HEVC_NALU_SLICE_BLA_N_LP:
 			case GF_HEVC_NALU_SLICE_CRA:
 				gf_bs_del(bs);
-				return 3;
-			case GF_HEVC_NALU_SLICE_IDR_W_DLP:
+				return SAP_TYPE_3;
 			case GF_HEVC_NALU_SLICE_IDR_N_LP:
+			case GF_HEVC_NALU_SLICE_BLA_N_LP:
 				gf_bs_del(bs);
-				return 1;
+				return SAP_TYPE_1;
+			case GF_HEVC_NALU_SLICE_IDR_W_DLP:
+			case GF_HEVC_NALU_SLICE_BLA_W_DLP:
+			case GF_HEVC_NALU_SLICE_BLA_W_LP:
+				gf_bs_del(bs);
+				return SAP_TYPE_2;
 			case GF_HEVC_NALU_ACCESS_UNIT:
 			case GF_HEVC_NALU_FILLER_DATA:
 			case GF_HEVC_NALU_SEI_PREFIX:
@@ -245,7 +264,7 @@ static u8 is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry
 				break;
 			default:
 				gf_bs_del(bs);
-				return 0;
+				return RAP_NO;
 			}
 			gf_bs_skip_bytes(bs, size - 2);
 #endif
@@ -260,20 +279,20 @@ static u8 is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry
 						case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 		*/			case GF_AVC_NALU_IDR_SLICE:
 				gf_bs_del(bs);
-				return 1;
+				return SAP_TYPE_1;
 			case GF_AVC_NALU_ACCESS_UNIT:
 			case GF_AVC_NALU_FILLER_DATA:
 			case GF_AVC_NALU_SEI:
 				break;
 			default:
 				gf_bs_del(bs);
-				return 0;
+				return RAP_NO;
 			}
 			gf_bs_skip_bytes(bs, size - 2);
 		}
 	}
 	gf_bs_del(bs);
-	return 0;
+	return RAP_NO;
 }
 
 static void nalu_merge_ps(GF_BitStream *ps_bs, Bool rewrite_start_codes, u32 nal_unit_size_field, GF_MPEGVisualSampleEntryBox *entry, Bool is_hevc)
@@ -312,7 +331,7 @@ static void nalu_merge_ps(GF_BitStream *ps_bs, Bool rewrite_start_codes, u32 nal
 
 GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 sampleNumber, GF_MPEGVisualSampleEntryBox *entry)
 {
-	Bool is_hevc = 0;
+	Bool is_hevc = GF_FALSE;
 	//if only one sync given in the sample sync table, insert sps/pps/vps before cra/bla in hevc
 //	Bool check_cra_bla = (mdia->information->sampleTable->SyncSample && mdia->information->sampleTable->SyncSample->nb_entries>1) ? 0 : 1;
 	Bool check_cra_bla = 1;
@@ -335,7 +354,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	buffer = NULL;
 	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? 1 : 0;
 
-	if (sample->IsRAP!= 3) {
+	if (sample->IsRAP < SAP_TYPE_2) {
 		if (mdia->information->sampleTable->no_sync_found || (!sample->IsRAP && check_cra_bla) ) {
 			sample->IsRAP = is_sample_idr(sample, entry);
 		}
@@ -368,7 +387,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	/*if shvc rewrite*/
 	else if (entry->shvc_config && entry->shvc_config->config)  {
-		is_hevc = 1;
+		is_hevc = GF_TRUE;
 		nal_unit_size_field = entry->shvc_config->config->nal_unit_size;
 	}
 
@@ -381,7 +400,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		if (entry->avc_config) nal_unit_size_field = entry->avc_config->config->nal_unit_size;
 		else if (entry->hevc_config || entry->shvc_config ) {
 			nal_unit_size_field = entry->shvc_config ? entry->shvc_config->config->nal_unit_size : entry->hevc_config->config->nal_unit_size;
-			is_hevc = 1;
+			is_hevc = GF_TRUE;
 		}
 	}
 
@@ -551,7 +570,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 					if (dst_bs) gf_bs_del(dst_bs);
 					if (buffer) gf_free(buffer);
 
-					sample->IsRAP=3;
+					sample->IsRAP = sap_type_from_nal_type(nal_type);
 					return gf_isom_nalu_sample_rewrite(mdia, sample, sampleNumber, entry);
 				}
 			default:

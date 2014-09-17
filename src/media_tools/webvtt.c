@@ -348,7 +348,7 @@ GF_ISOSample *gf_isom_webvtt_to_sample(void *s)
 	}
 	gf_bs_get_content(bs, &res->data, &res->dataLength);
 	gf_bs_del(bs);
-	res->IsRAP = 1;
+	res->IsRAP = RAP;
 	return res;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

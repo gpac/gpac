@@ -339,7 +339,7 @@ static void init_reader(ISOMChannel *ch)
 	if (ch->streamType==GF_STREAM_OCR) {
 		assert(!ch->sample);
 		ch->sample = gf_isom_sample_new();
-		ch->sample->IsRAP = 1;
+		ch->sample->IsRAP = RAP;
 		ch->sample->DTS = ch->start;
 		ch->last_state=GF_OK;
 	} else {
@@ -521,7 +521,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 		ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &ivar);
 		/*if sync shadow / carousel RAP skip*/
-		if (ch->sample && (ch->sample->IsRAP==2)) {
+		if (ch->sample && (ch->sample->IsRAP==RAP_REDUNDANT)) {
 			gf_isom_sample_del(&ch->sample);
 			ch->sample_num++;
 			isor_reader_get_sample(ch);

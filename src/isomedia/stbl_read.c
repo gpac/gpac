@@ -229,13 +229,13 @@ GF_Err stbl_GetSampleDTS(GF_TimeToSampleBox *stts, u32 SampleNumber, u64 *DTS)
 	return stbl_GetSampleDTS_and_Duration(stts, SampleNumber, DTS, NULL);
 }
 //Retrieve closes RAP for a given sample - if sample is RAP, sets the RAP flag
-GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 *IsRAP, u32 *prevRAP, u32 *nextRAP)
+GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, SAPType *IsRAP, u32 *prevRAP, u32 *nextRAP)
 {
 	u32 i;
 	if (prevRAP) *prevRAP = 0;
 	if (nextRAP) *nextRAP = 0;
 
-	(*IsRAP) = 0;
+	(*IsRAP) = RAP_NO;
 	if (!stss || !SampleNumber) return GF_BAD_PARAM;
 
 	if (stss->r_LastSyncSample && (stss->r_LastSyncSample < SampleNumber) ) {
@@ -249,7 +249,7 @@ GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 *IsRAP, u3
 			//update the cache
 			stss->r_LastSyncSample = SampleNumber;
 			stss->r_LastSampleIndex = i;
-			(*IsRAP) = 1;
+			(*IsRAP) = RAP;
 		}
 		else if (stss->sampleNumbers[i] > SampleNumber) {
 			if (nextRAP) *nextRAP = stss->sampleNumbers[i];
@@ -260,12 +260,12 @@ GF_Err stbl_GetSampleRAP(GF_SyncSampleBox *stss, u32 SampleNumber, u8 *IsRAP, u3
 	return GF_OK;
 }
 
-GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, u8 *IsRAP, u32 *prevRAP, u32 *nextRAP)
+GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP, u32 *prevRAP, u32 *nextRAP)
 {
 	u32 i, j, count, count2;
 	assert(prevRAP);
 	assert(nextRAP);
-	(*IsRAP) = 0;
+	(*IsRAP) = RAP_NO;
 
 	if (!stbl->sampleGroups || !stbl->sampleGroupsDescription) return GF_OK;
 
@@ -333,13 +333,13 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, u8 *IsRAP, u32
 			/*sample lies in this (rap) group, it is rap*/
 			if (is_rap_group) {
 				if ((first_rap_in_entry <= SampleNumber) && (SampleNumber <= last_rap_in_entry)) {
-					(*IsRAP) = 1;
+					(*IsRAP) = RAP;
 					return GF_OK;
 				}
 			} else {
 				/*prevRAP or nextRAP matches SampleNumber, sample is RAP*/
 				if ((*prevRAP == SampleNumber) || (*nextRAP == SampleNumber)) {
-					(*IsRAP) = 1;
+					(*IsRAP) = RAP;
 					return GF_OK;
 				}
 			}

@@ -301,7 +301,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 
 	gf_isom_set_visual_info(import->dest, track, di, w, h);
 	samp = gf_isom_sample_new();
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 	samp->dataLength = size;
 	if (import->initial_time_offset) samp->DTS = (u64) (import->initial_time_offset*1000);
 
@@ -413,7 +413,7 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 	if (e) goto exit;
 	//gf_isom_set_visual_info(import->dest, track, di, w, h);
 	samp = gf_isom_sample_new();
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 	samp->dataLength = size;
 	if (import->initial_time_offset) samp->DTS = (u64) (import->initial_time_offset*1000);
 
@@ -524,7 +524,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 
 	e = GF_OK;
 	samp = gf_isom_sample_new();
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 
 	duration = import->duration;
 	duration *= sr;
@@ -820,7 +820,7 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 	e = GF_OK;
 	/*add first sample*/
 	samp = gf_isom_sample_new();
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 	samp->dataLength = nbbytes;
 	samp->data = (char *) aac_buf;
 
@@ -1065,7 +1065,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	e = GF_OK;
 	/*add first sample*/
 	samp = gf_isom_sample_new();
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 	max_size = samp->dataLength = hdr.frame_size;
 	samp->data = (char*)gf_malloc(sizeof(char)*hdr.frame_size);
 	offset = gf_bs_get_position(bs);
@@ -1328,7 +1328,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 			}
 			/*policy is to keep non coded frame (constant frame rate), add*/
 		}
-		samp->IsRAP = 0;
+		samp->IsRAP = RAP_NO;
 
 		if (ftype==2) {
 			b_frames++;
@@ -1343,7 +1343,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 			}
 		} else {
 			if (ftype==0) {
-				samp->IsRAP = 1;
+				samp->IsRAP = RAP;
 				nbI++;
 			} else {
 				nbP++;
@@ -1684,7 +1684,7 @@ proceed:
 					else is_packed = 1;
 					nb_f++;
 
-					samp->IsRAP = 0;
+					samp->IsRAP = RAP_NO;
 
 					if (ftype==2) {
 						b_frames ++;
@@ -1699,7 +1699,7 @@ proceed:
 						}
 					} else {
 						if (!ftype) {
-							samp->IsRAP = 1;
+							samp->IsRAP = RAP;
 							nbI++;
 						} else {
 							nbP++;
@@ -1924,7 +1924,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 			e = GF_IO_ERR;
 			goto exit;
 		}
-		samp->IsRAP = 1;
+		samp->IsRAP = RAP;
 		samp->data = frame;
 		samp->dataLength = size;
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
@@ -2372,7 +2372,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 		samp->data = buf;
 		samp->dataLength = buf_len;
 		samp->DTS = (u64)dts_inc*(frames-1);
-		samp->IsRAP = (ftype==1) ? 1 : 0;
+		samp->IsRAP = (ftype==1) ? RAP : RAP_NO;
 		samp->CTS_Offset = 0;
 		e = gf_isom_add_sample(import->dest, track, di, samp);
 		samp->data = NULL;
@@ -2495,7 +2495,7 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 	duration = (u64) ((Double)import->duration/1000.0 * sr);
 
 	samp = gf_isom_sample_new();
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 	samp->DTS = 0;
 
 	file_size = mpeg2ps_get_ps_size(ps);
@@ -3341,7 +3341,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	}
 	media_done = 0;
 
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 	i=0;
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
 		u32 j, dims_flags;
@@ -3374,9 +3374,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			}
 			else if (!stricmp(att->name, "CTSOffset")) samp->CTS_Offset = atoi(att->value);
 			else if (!stricmp(att->name, "isRAP") && !samp->IsRAP) {
-				samp->IsRAP = (!stricmp(att->value, "yes")) ? 1 : 0;
+				samp->IsRAP = (!stricmp(att->value, "yes")) ? RAP : RAP_NO;
 			}
-			else if (!stricmp(att->name, "isSyncShadow")) samp->IsRAP = !stricmp(att->value, "yes") ? 2 : 0;
+			else if (!stricmp(att->name, "isSyncShadow")) samp->IsRAP = !stricmp(att->value, "yes") ? RAP_REDUNDANT : RAP_NO;
 			else if (!stricmp(att->name, "mediaOffset")) offset = (s64) atof(att->value) ;
 			else if (!stricmp(att->name, "dataLength")) samp->dataLength = atoi(att->value);
 			else if (!stricmp(att->name, "mediaFile")) strcpy(szMediaTemp, att->value);
@@ -3387,7 +3387,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				dims_flags |= GF_DIMS_UNIT_S;
 			else if (!stricmp(att->name, "is-RAP") && !stricmp(att->value, "yes")) {
 				dims_flags |= GF_DIMS_UNIT_M;
-				samp->IsRAP = 1;
+				samp->IsRAP = RAP;
 			}
 			else if (!stricmp(att->name, "is-redundant") && !stricmp(att->value, "yes"))
 				dims_flags |= GF_DIMS_UNIT_I;
@@ -3400,7 +3400,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			else if (!stricmp(att->name, "duration") )
 				sscanf(att->value, ""LLU, &sample_duration);
 		}
-		if (samp->IsRAP==1)
+		if (samp->IsRAP==RAP)
 			dims_flags |= GF_DIMS_UNIT_M;
 		if (!count && samp->DTS) samp->DTS = 0;
 
@@ -3535,7 +3535,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		}
 
 
-		if ((samp->IsRAP==2) && !is_dims) {
+		if ((samp->IsRAP==RAP_REDUNDANT) && !is_dims) {
 			e = gf_isom_add_sample_shadow(import->dest, track, samp);
 		} else if (append) {
 			e = gf_isom_append_sample_data(import->dest, track, samp->data, samp->dataLength);
@@ -3543,7 +3543,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		if (e) goto exit;
-		samp->IsRAP = 0;
+		samp->IsRAP = RAP_NO;
 		samp->CTS_Offset = 0;
 		if (sample_duration)
 			samp->DTS += sample_duration;
@@ -3728,7 +3728,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 
 	samp = gf_isom_sample_new();
 	samp->data = (char*)gf_malloc(sizeof(char) * 200);
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 	offset = gf_f64_tell(mdia);
 	gf_f64_seek(mdia, 0, SEEK_END);
 	media_size = gf_f64_tell(mdia) - offset;
@@ -3994,7 +3994,7 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 
 	samp = gf_isom_sample_new();
 	samp->data = (char*)gf_malloc(sizeof(char) * 200);
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 	max_size = 200;
 	offset = gf_f64_tell(mdia);
 	gf_f64_seek(mdia, 0, SEEK_END);
@@ -4257,7 +4257,7 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 		}
 		gf_bs_read_data(bs, samp_data, samp->dataLength);
 		/*we ignore pict number and import at const FPS*/
-		samp->IsRAP = (samp_data[4]&0x02) ? 0 : 1;
+		samp->IsRAP = (samp_data[4]&0x02) ? RAP_NO : RAP;
 		samp->data = samp_data;
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
@@ -4782,7 +4782,7 @@ restart_import:
 			samp->IsRAP = sample_is_rap;
 			if (!sample_is_rap) {
 				if (sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0)) {
-					samp->IsRAP = 1;
+					samp->IsRAP = RAP;
 					if (!use_opengop_gdr) {
 						use_opengop_gdr = 1;
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[AVC Import] Forcing non-IDR samples with I slices to be marked as sync points - resulting file will not be ISO conformant\n"));
@@ -5080,7 +5080,7 @@ restart_import:
 		samp->DTS = (u64)dts_inc*cur_samp;
 		samp->IsRAP = sample_is_rap;
 		if (!sample_is_rap && sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC)) {
-			samp->IsRAP = 1;
+			samp->IsRAP = RAP;
 		}
 		/*we store the frame order (based on the POC) as the CTS offset and update the whole table at the end*/
 		samp->CTS_Offset = last_poc - poc_shift;
@@ -5758,7 +5758,7 @@ restart_import:
 			samp->IsRAP = sample_is_rap;
 			if (!sample_is_rap) {
 				if (sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0)) {
-					samp->IsRAP = 1;
+					samp->IsRAP = RAP;
 					if (!use_opengop_gdr) {
 						use_opengop_gdr = 1;
 						GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[HEVC Import] Forcing non-IDR samples with I slices to be marked as sync points - resulting file will not be ISO conformant\n"));
@@ -5989,7 +5989,7 @@ next_nal:
 		samp->DTS = (u64)dts_inc*cur_samp;
 		samp->IsRAP = sample_is_rap;
 		if (!sample_is_rap && sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC)) {
-			samp->IsRAP = 1;
+			samp->IsRAP = RAP;
 		}
 		/*we store the frame order (based on the POC) as the CTS offset and update the whole table at the end*/
 		samp->CTS_Offset = last_poc - poc_shift;
@@ -6442,7 +6442,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 			flag = oggpackB_read(&opb, 1);
 			if (flag==0) {
 				/*add packet*/
-				samp->IsRAP = oggpackB_read(&opb, 1) ? 0 : 1;
+				samp->IsRAP = oggpackB_read(&opb, 1) ? RAP_NO : RAP;
 				samp->data = (char *)oggpacket.packet;
 				samp->dataLength = oggpacket.bytes;
 				e = gf_isom_add_sample(import->dest, track, di, samp);
@@ -6521,7 +6521,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 	tot_size = gf_f64_tell(f_in);
 	gf_f64_seek(f_in, 0, SEEK_SET);
 
-	destroy_esd = 0;
+	destroy_esd = GF_FALSE;
 	samp = gf_isom_sample_new();
 	/*avoids gcc warnings*/
 	track = num_headers = 0;
@@ -6624,7 +6624,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 			if (!block_size) continue;
 
 			/*add packet*/
-			samp->IsRAP = 1;
+			samp->IsRAP = RAP;
 			samp->data = (char *)oggpacket.packet;
 			samp->dataLength = oggpacket.bytes;
 			e = gf_isom_add_sample(import->dest, track, di, samp);
@@ -6745,7 +6745,7 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 	assert(gf_f64_tell(src) < 1<<31);
 	samp->dataLength = (u32) gf_f64_tell(src);
 	gf_f64_seek(src, 0, SEEK_SET);
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 	samp->data = (char *)gf_malloc(sizeof(char)*samp->dataLength);
 	readen = (u32) fread(samp->data, sizeof(char), samp->dataLength, src);
 	assert( readen == samp->dataLength );
@@ -7853,7 +7853,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 		if (samp->DTS >= pck->stream->first_dts) {
 			samp->DTS -= pck->stream->first_dts;
-			samp->IsRAP = (pck->flags & GF_M2TS_PES_PCK_RAP) ? 1 : 0;
+			samp->IsRAP = (pck->flags & GF_M2TS_PES_PCK_RAP) ? RAP : RAP_NO;
 			samp->data = pck->data;
 			samp->dataLength = pck->data_len;
 
@@ -7998,7 +7998,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				samp->CTS_Offset = (u32) (hdr.compositionTimeStamp - samp->DTS);
 				if (samp->DTS >= sl_pck->stream->first_dts) {
 					samp->DTS -= sl_pck->stream->first_dts;
-					samp->IsRAP = import->esd->slConfig->useRandomAccessPointFlag ? hdr.randomAccessPointFlag: 1;
+					samp->IsRAP = import->esd->slConfig->useRandomAccessPointFlag ? hdr.randomAccessPointFlag : RAP;
 
 					/*fix for some DMB streams where TSs are not coded*/
 					if ((tsimp->last_dts == samp->DTS) && gf_isom_get_sample_count(import->dest, tsimp->track))
@@ -8539,7 +8539,7 @@ GF_Err gf_import_ac3(GF_MediaImporter *import, Bool is_EAC3)
 
 	e = GF_OK;
 	samp = gf_isom_sample_new();
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 
 	duration = import->duration;
 	duration *= sr;
