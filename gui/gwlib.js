@@ -393,6 +393,8 @@ if (gwskin.pointing_device) {
 s.down = gw_new_appearance(0, 0, 1);
 s.down.texture = gw_make_gradient('vertical', [0, 1], [0.0, 0.2, 0.4, 0.0, 1, 1]);
 s.down.skin = true;
+s.disable = gw_new_appearance(0.4, 0.4, 0.4);
+s.disable.skin = true;
 s.text = gw_new_appearance(1, 1, 1);
 s.text.skin = true;
 s.font = gw_new_fontstyle(gwskin.default_label_font_size, 1);
@@ -1454,7 +1456,7 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
                 this._highlight.set_style(class_name, (this.over && gwskin.pointing_device) ? 'over' : 'invisible');
             }
 
-            if (this.down && this.over) {
+            if (this.down) {
                 if (this.on_long_click && (timestamp - this._last_ts > gwskin.long_click_delay)) this.on_long_click();
                 else if (this.on_click) this.on_click();
             }
@@ -1521,6 +1523,19 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
 
     if (icon_url) obj.add_icon(icon_url);
     obj.set_label(label);
+
+    obj.enable = function() {
+		this._touch.enabled = true;
+		this._on_over(false);
+	}
+    obj.disable = function() {
+		this._touch.enabled = false;
+		var app = gwskin.get_style(class_name, 'disable');
+		if (app) {
+			this._icon_root.children[0].children[0].set_style(app);
+		}
+	}
+
 
     obj.on_event = function () { return false; }
 
@@ -2178,16 +2193,19 @@ function gw_new_grid_container(parent) {
         gw_close_child_list(this._all_children);
         this._all_children.length = 0;
         this._container.children.length = 0;
+	this._page_idx = 0;
+	this._max_page_idx = 0;
     }
 
 
     obj.on_event = function (evt) {
         switch (evt.type) {
             case GF_EVENT_MOUSEWHEEL:
+		var inc = -evt.wheel;
                 if (this._pages.length <= 1) return 0;
-                if ((evt.wheel < 0) && (this._page_idx == 0)) return 0;
-                if ((evt.wheel > 0) && (this._page_idx >= this._pages.length - 1)) return 0;
-                this._move_page((evt.wheel < 0) ? -1 : 1);
+                if ((inc < 0) && (this._page_idx == 0)) return 0;
+                if ((inc > 0) && (this._page_idx >= this._pages.length - 1)) return 0;
+                this._move_page((inc < 0) ? -1 : 1);
                 return 1;
             case GF_EVENT_KEYDOWN:
                 if ((evt.keycode == 'Up') || (evt.keycode == 'Down') || (evt.keycode == 'Right') || (evt.keycode == 'Left')) {
@@ -2810,11 +2828,11 @@ function gw_new_file_dialog(container, label) {
     }
 
     dlg.area.on_page_changed = function () {
-        if (this.is_first_page()) this.dlg.go_prev.hide();
-        else this.dlg.go_prev.show();
+        if (this.is_first_page()) this.dlg.go_prev.disable();
+        else this.dlg.go_prev.enable();
 
-        if (this.is_last_page()) this.dlg.go_next.hide();
-        else this.dlg.go_next.show();
+        if (this.is_last_page()) this.dlg.go_next.disable();
+        else this.dlg.go_next.enable();
 
         this.dlg.tools.layout(this.dlg.tools.width, this.dlg.tools.height);
     }
@@ -2910,8 +2928,8 @@ function gw_new_file_dialog(container, label) {
         }
         this.layout(this.width, this.height);
 
-        if (this.directory == '/') this.go_up.hide();
-        else this.go_up.show();
+        if (this.directory == '/') this.go_up.disable();
+        else this.go_up.enable();
 
         this.tools.layout(this.tools.width, this.tools.height);
     }
