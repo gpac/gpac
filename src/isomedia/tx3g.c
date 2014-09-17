@@ -347,7 +347,7 @@ GF_ISOSample *gf_isom_text_to_sample(GF_TextSample *samp)
 	}
 	gf_bs_get_content(bs, &res->data, &res->dataLength);
 	gf_bs_del(bs);
-	res->IsRAP = 1;
+	res->IsRAP = RAP;
 	return res;
 }
 

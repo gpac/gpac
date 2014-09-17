@@ -3160,9 +3160,9 @@ Bool gf_media_hevc_slice_is_intra(HEVCState *hevc)
 	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
 	case GF_HEVC_NALU_SLICE_CRA:
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -3171,14 +3171,14 @@ Bool gf_media_hevc_slice_is_IDR(HEVCState *hevc)
 	if (hevc->sei.recovery_point.valid)
 	{
 		hevc->sei.recovery_point.valid = 0;
-		return 1;
+		return GF_TRUE;
 	}
 	switch (hevc->s_info.nal_unit_type) {
 	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -3263,22 +3263,22 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	HEVC_PPS *pps;
 	HEVC_SPS *sps;
 	s32 pps_id;
-	Bool RapPicFlag = 0;
-	Bool IDRPicFlag = 0;
+	Bool RapPicFlag = GF_FALSE;
+	Bool IDRPicFlag = GF_FALSE;
 
 	si->first_slice_segment_in_pic_flag = gf_bs_read_int(bs, 1);
 
 	switch (si->nal_unit_type) {
 	case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 	case GF_HEVC_NALU_SLICE_IDR_N_LP:
-		IDRPicFlag = 1;
-		RapPicFlag = 1;
+		IDRPicFlag = GF_TRUE;
+		RapPicFlag = GF_TRUE;
 		break;
 	case GF_HEVC_NALU_SLICE_BLA_W_LP:
 	case GF_HEVC_NALU_SLICE_BLA_W_DLP:
 	case GF_HEVC_NALU_SLICE_BLA_N_LP:
 	case GF_HEVC_NALU_SLICE_CRA:
-		RapPicFlag = 1;
+		RapPicFlag = GF_TRUE;
 		break;
 	}
 
@@ -3296,7 +3296,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	if (!si->first_slice_segment_in_pic_flag && pps->dependent_slice_segments_enabled_flag) {
 		si->dependent_slice_segment_flag = gf_bs_read_int(bs, 1);
 	} else {
-		si->dependent_slice_segment_flag = 0;
+		si->dependent_slice_segment_flag = GF_FALSE;
 	}
 
 	if (!si->first_slice_segment_in_pic_flag) {

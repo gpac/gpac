@@ -302,6 +302,19 @@ enum
 /*the isomedia file*/
 typedef struct __tag_isom GF_ISOFile;
 
+/*Random Access Point flag*/
+typedef enum {
+	RAP_REDUNDANT = -1,
+	RAP_NO = 0,
+	RAP = 1,
+	SAP_TYPE_1 = 1,
+	SAP_TYPE_2 = 2,
+	SAP_TYPE_3 = 3,
+	SAP_TYPE_4 = 4,
+	SAP_TYPE_5 = 5,
+	SAP_TYPE_6 = 6
+} SAPType;
+
 /*media sample object*/
 typedef struct
 {
@@ -313,13 +326,7 @@ typedef struct
 	u64 DTS;
 	/*relative offset for composition if needed*/
 	s32 CTS_Offset;
-	/*Random Access Point flag:
-	 0: not random access
-	 1: regular RAP,
-	 2: sample is a redundant RAP. If set when adding the sample, this will create a sample dependency entry
-	 3: specific RAP (CRA/BLA in HEVC)
-	*/
-	u8 IsRAP;
+	SAPType IsRAP;
 } GF_ISOSample;
 
 

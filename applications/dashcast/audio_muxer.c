@@ -175,7 +175,7 @@ int dc_gpac_audio_isom_write(AudioOutputFile *audio_output_file)
 	audio_output_file->sample->dataLength = audio_output_file->packet.size;
 
 	audio_output_file->sample->DTS = audio_output_file->dts; //audio_output_file->aframe->pts;
-	audio_output_file->sample->IsRAP = 1; //audio_output_file->aframe->key_frame;//audio_codec_ctx->coded_frame->key_frame;
+	audio_output_file->sample->IsRAP = RAP; //audio_output_file->aframe->key_frame;//audio_codec_ctx->coded_frame->key_frame;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("RAP %d , DTS %ld \n", audio_output_file->sample->IsRAP, audio_output_file->sample->DTS));
 
 	ret = gf_isom_fragment_add_sample(audio_output_file->isof, 1, audio_output_file->sample, 1, audio_output_file->codec_ctx->frame_size, 0, 0, 0);

@@ -3564,7 +3564,7 @@ GF_Err gf_isom_set_sync_shadow(GF_ISOFile *movie, u32 trackNumber, u32 sampleNum
 {
 	GF_TrackBox *trak;
 	GF_SampleTableBox *stbl;
-	u8 isRAP;
+	SAPType isRAP;
 	GF_Err e;
 
 	if (movie->openMode == GF_ISOM_OPEN_READ) return GF_ISOM_INVALID_MODE;

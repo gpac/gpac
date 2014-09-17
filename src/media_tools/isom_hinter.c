@@ -695,9 +695,9 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 
 		/*keep same AU indicator if sync shadow - TODO FIXME: this assumes shadows are placed interleaved with
 		the track content which is the case for GPAC scene carousel generation, but may not always be true*/
-		if (samp->IsRAP==2) {
+		if (samp->IsRAP==RAP_REDUNDANT) {
 			tkHint->rtp_p->sl_header.AU_sequenceNumber -= 1;
-			samp->IsRAP = 1;
+			samp->IsRAP = RAP;
 		}
 
 		ts = (u64) (ft * (s64) (samp->DTS+samp->CTS_Offset));

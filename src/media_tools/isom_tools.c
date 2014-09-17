@@ -453,7 +453,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	gf_odf_codec_del(codec);
 	samp->CTS_Offset = 0;
 	samp->DTS = 0;
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 
 	/*create the OD track*/
 	odT = gf_isom_new_track(mp4file, odID, GF_ISOM_MEDIA_OD, gf_isom_get_timescale(mp4file));
@@ -530,7 +530,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 		break;
 	}
 
-	samp->IsRAP = 1;
+	samp->IsRAP = RAP;
 
 	gf_isom_add_sample(mp4file, bifsT, 1, samp);
 	samp->data = NULL;

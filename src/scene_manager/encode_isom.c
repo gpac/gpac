@@ -710,7 +710,7 @@ force_scene_rap:
 
 		if (!sc) {
 			samp = gf_isom_sample_new();
-			samp->IsRAP = 1;
+			samp->IsRAP = RAP;
 
 #ifndef GPAC_DISABLE_BIFS_ENC
 			if (bifs_enc)
@@ -790,7 +790,7 @@ force_scene_rap:
 #endif
 
 					rap_sample->DTS = last_rap + rap_delay;
-					rap_sample->IsRAP = 1;
+					rap_sample->IsRAP = RAP;
 					last_rap = rap_sample->DTS;
 
 
@@ -828,7 +828,7 @@ force_scene_rap:
 					if (lsr_enc)
 						e = gf_laser_encoder_get_rap(lsr_enc, &car_samp->data, &car_samp->dataLength);
 #endif
-					car_samp->IsRAP = 2;
+					car_samp->IsRAP = RAP_REDUNDANT;
 					while (1) {
 						car_samp->DTS = last_rap+rap_delay;
 						if (car_samp->DTS==prev_dts) car_samp->DTS++;
@@ -885,7 +885,7 @@ force_scene_rap:
 
 				samp = gf_isom_sample_new();
 				last_rap = samp->DTS = au->timing - init_offset;
-				samp->IsRAP = 1;
+				samp->IsRAP = RAP;
 				/*RAP generation*/
 #ifndef GPAC_DISABLE_BIFS_ENC
 				if (bifs_enc)
@@ -1164,7 +1164,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 				while (samp->DTS >= rap_delay + last_rap) {
 					GF_ISOSample *rap_sample = gf_isom_sample_new();
 					rap_sample->DTS = last_rap + rap_delay;
-					rap_sample->IsRAP = 1;
+					rap_sample->IsRAP = RAP;
 
 					if (samp->DTS == last_rap + rap_delay) {
 						GF_ODCom *com;
@@ -1228,7 +1228,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 				samp->dataLength = 0;
 				e = gf_odf_codec_get_au(rap_codec, &samp->data, &samp->dataLength);
 				if (e) goto err_exit;
-				samp->IsRAP = 1;
+				samp->IsRAP = RAP;
 				e = gf_isom_add_sample_shadow(mp4, track, samp);
 				if (e) goto err_exit;
 
@@ -1263,7 +1263,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 			if (last_not_shadow && rap_shadow) {
 				samp = gf_isom_sample_new();
 				samp->DTS = last_not_shadow;
-				samp->IsRAP = 1;
+				samp->IsRAP = RAP;
 				e = gf_odf_codec_encode(rap_codec, 2);
 				if (!e) e = gf_odf_codec_get_au(rap_codec, &samp->data, &samp->dataLength);
 				if (!e) e = gf_isom_add_sample_shadow(mp4, track, samp);
