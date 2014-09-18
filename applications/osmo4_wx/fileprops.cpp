@@ -453,25 +453,16 @@ void wxFileProps::SetStreamsInfo()
 
 		/*check language*/
 		if (esd->langDesc) {
-			u32 i=0;
-			char lan[4], *szLang;
+			s32 idx;
+			char lan[4];
 			lan[0] = esd->langDesc->langCode>>16;
 			lan[1] = (esd->langDesc->langCode>>8)&0xFF;
 			lan[2] = (esd->langDesc->langCode)&0xFF;
 			lan[3] = 0;
-
-			if ((lan[0]=='u') && (lan[1]=='n') && (lan[2]=='d')) szLang = (char*) "Undetermined";
-			else {
-				szLang = lan;
-				while (GF_ISO639_Lang[i]) {
-					if (GF_ISO639_Lang[i+2][0] && strstr(GF_ISO639_Lang[i+1], lan)) {
-						szLang = (char*) GF_ISO639_Lang[i];
-						break;
-					}
-					i+=3;
-				}
+			idx = gf_lang_find(lan);
+			if (idx>=0) {
+				info += wxString::Format(wxT("\tStream Language: %s\n"), gf_lang_get_name(idx) );
 			}
-			info += wxString::Format(wxT("\tStream Language: %s\n"), szLang);
 		}
 
 	}

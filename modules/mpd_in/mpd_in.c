@@ -650,6 +650,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	}
 
 	if (dash_evt==GF_DASH_EVENT_SELECT_GROUPS) {
+		const char *opt;
 		//configure buffer in dynamic mode without low latency: we indicate how much the player will buffer
 		if (gf_dash_is_dynamic_mpd(mpdin->dash) && !mpdin->use_low_latency) {
 			u32 buffer_ms = 0;
@@ -668,6 +669,12 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 			}
 		}
 		//let the player decide which group to play: we declare everything
+
+		//however select the default languague
+		opt = gf_modules_get_option((GF_BaseInterface *)mpdin->plug, "Systems", "LanguageName");
+		if (opt) 
+			gf_dash_groups_set_language(mpdin->dash, opt);
+
 		return GF_OK;
 	}
 

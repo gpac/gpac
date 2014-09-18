@@ -3380,6 +3380,12 @@ GF_EXPORT
 void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 {
 	dm->limit_data_rate = rate_in_bits_per_sec/8;
+
+	if (dm->cfg) {
+		char opt[100];
+		sprintf(opt, "%d", rate_in_bits_per_sec / 1024);
+		gf_cfg_set_key(dm->cfg, "Downloader", "MaxRate", opt);
+	}
 }
 
 GF_EXPORT

@@ -334,6 +334,14 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_reorder_bidi) )
 #endif
 
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_lang_get_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_lang_find) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_lang_get_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_lang_get_2cc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_lang_get_3cc) )
+
+
 #ifndef GPAC_DISABLE_CORE_TOOLS
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_new) )

@@ -198,7 +198,7 @@ Bool gf_dash_is_group_selectable(GF_DashClient *dash, u32 idx);
 void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select);
 
 /*performs selection of representations based on language code*/
-void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_3cc);
+void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_5646);
 
 /*returns the mime type of the media resources in this group*/
 const char *gf_dash_group_get_segment_mime(GF_DashClient *dash, u32 idx);
