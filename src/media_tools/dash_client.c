@@ -86,7 +86,7 @@ struct __dash_client
 	/* number of time the MPD has been reloaded and last update time*/
 	u32 reload_count, last_update_time;
 	/*signature of last MPD*/
-	u8 lastMPDSignature[20];
+	u8 lastMPDSignature[GF_SHA1_DIGEST_SIZE];
 	/*mime type of media segments (m3u8)*/
 	char *mimeTypeForM3U8Segments;
 
@@ -1526,7 +1526,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	u32 group_idx, rep_idx, i, j;
 	u64 fetch_time=0;
 	GF_DOMParser *mpd_parser;
-	u8 signature[sizeof(dash->lastMPDSignature)];
+	u8 signature[GF_SHA1_DIGEST_SIZE];
 	GF_MPD_Period *period, *new_period;
 	const char *local_url;
 	char mime[128];
@@ -1621,7 +1621,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		return GF_IO_ERR;
 	}
 
-	if (! memcmp( signature, dash->lastMPDSignature, sizeof(dash->lastMPDSignature))) {
+	if (! memcmp( signature, dash->lastMPDSignature, GF_SHA1_DIGEST_SIZE)) {
 
 		dash->reload_count++;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] MPD file did not change for %d consecutive reloads\n", dash->reload_count));
@@ -1638,7 +1638,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	}
 
 	dash->reload_count = 0;
-	memccpy(dash->lastMPDSignature, signature, sizeof(char), sizeof(dash->lastMPDSignature));
+	memcpy(dash->lastMPDSignature, signature, GF_SHA1_DIGEST_SIZE);
 
 	/* It means we have to reparse the file ... */
 	/* parse the MPD */
@@ -4499,7 +4499,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 
 	if (!dash || !manifest_url) return GF_BAD_PARAM;
 
-	memset( dash->lastMPDSignature, 0, sizeof(dash->last_update_time));
+	memset( dash->lastMPDSignature, 0, GF_SHA1_DIGEST_SIZE);
 	dash->reload_count = 0;
 
 	if (dash->base_url) gf_free(dash->base_url);
