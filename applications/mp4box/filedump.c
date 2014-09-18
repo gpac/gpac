@@ -66,46 +66,26 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 void PrintLanguages()
 {
-	u32 i=0;
+	u32 i=0, count = gf_lang_get_count();
 	fprintf(stderr, "Supported ISO 639 languages and codes:\n\n");
-	while (GF_ISO639_Lang[i]) {
-		if (!GF_ISO639_Lang[i+2][0]) {
-			i+=3;
-			continue;
+	for (i=0; i<count; i++) {
+		if (gf_lang_get_2cc(i)) {
+			fprintf(stderr, "%s (%s - %s)\n", gf_lang_get_name(i), gf_lang_get_3cc(i), gf_lang_get_2cc(i));
 		}
-		fprintf(stderr, "%s (%s - %s)\n", GF_ISO639_Lang[i], GF_ISO639_Lang[i+1], GF_ISO639_Lang[i+2]);
-		i+=3;
 	}
 }
 
 static const char *GetLanguage(char *lcode)
 {
-	u32 i=0;
-	if ((lcode[0]=='u') && (lcode[1]=='n') && (lcode[2]=='d')) return "Undetermined";
-	while (GF_ISO639_Lang[i]) {
-		if (GF_ISO639_Lang[i+2][0] && strstr(GF_ISO639_Lang[i+1], lcode)) return GF_ISO639_Lang[i];
-		i+=3;
-	}
-	return "Unknown";
+	s32 idx = gf_lang_find(lcode);
+	if (idx>=0) return gf_lang_get_name(idx);
+	return lcode;
 }
 
 const char *GetLanguageCode(char *lang)
 {
-	u32 i;
-	Bool check_2cc = 0;
-	i = (u32) strlen(lang);
-	if (i==3) return lang;
-	if (i==2) check_2cc = 1;
-
-	i=0;
-	while (GF_ISO639_Lang[i]) {
-		if (GF_ISO639_Lang[i+2][0]) {
-			if (check_2cc) {
-				if (!stricmp(GF_ISO639_Lang[i+2], lang) ) return GF_ISO639_Lang[i+1];
-			} else if (!stricmp(GF_ISO639_Lang[i], lang)) return GF_ISO639_Lang[i+1];
-		}
-		i+=3;
-	}
+	s32 idx = gf_lang_find(lang);
+	if (idx>=0) return gf_lang_get_3cc(idx);
 	return "und";
 }
 

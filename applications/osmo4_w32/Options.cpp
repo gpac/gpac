@@ -318,14 +318,14 @@ BOOL COptSystems::OnInitDialog()
 	if (!sOpt) sOpt = "eng";
 	s32 select = 0;
 	while (m_Lang.GetCount()) m_Lang.DeleteString(0);
-	s32 i = 0;
-	while (GF_ISO639_Lang[i]) {
-		/*only use common languages (having both 2- and 3-char code names)*/
-		if (GF_ISO639_Lang[i+2][0]) {
-			m_Lang.AddString(GF_ISO639_Lang[i]);
-			if (sOpt && !stricmp(sOpt, GF_ISO639_Lang[i+1])) select = m_Lang.GetCount() - 1;
-		}
-		i += 3;
+	u32 i, count = gf_lang_get_count();
+	for (i=0; i<count; i++) {
+		const char *n2c = gf_lang_get_2cc(i);
+		const char *n3c = gf_lang_get_3cc(i);
+
+		m_Lang.AddString(gf_lang_get_name(i) );
+		if (sOpt && n3c && !stricmp(sOpt, n3c)) 
+			select = m_Lang.GetCount() - 1;
 	}
 	m_Lang.SetCurSel(select);
 
@@ -366,17 +366,10 @@ void COptSystems::SaveOptions()
 
 	s32 sel = m_Lang.GetCurSel();
 	u32 i=0;
-	while (GF_ISO639_Lang[i]) {
-		/*only use common languages (having both 2- and 3-char code names)*/
-		if (GF_ISO639_Lang[i+2][0]) {
-			if (!sel) break;
-			sel--;
-		}
-		i+=3;
-	}
-	gf_cfg_set_key(gpac->m_user.config, "Systems", "LanguageName", GF_ISO639_Lang[i]);
-	gf_cfg_set_key(gpac->m_user.config, "Systems", "Language3CC", GF_ISO639_Lang[i+1]);
-	gf_cfg_set_key(gpac->m_user.config, "Systems", "Language2CC", GF_ISO639_Lang[i+2]);
+
+	gf_cfg_set_key(gpac->m_user.config, "Systems", "LanguageName", gf_lang_get_name(i) );
+	gf_cfg_set_key(gpac->m_user.config, "Systems", "Language3CC", gf_lang_get_3cc(i) );
+	gf_cfg_set_key(gpac->m_user.config, "Systems", "Language2CC", gf_lang_get_2cc(i) );
 
 	sel = m_Threading.GetCurSel();
 	gf_cfg_set_key(gpac->m_user.config, "Systems", "ThreadingPolicy", (sel==0) ? "Single" : ( (sel==1) ? "Multi" : "Free"));

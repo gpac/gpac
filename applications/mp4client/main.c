@@ -2478,25 +2478,17 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 
 		/*check language*/
 		if (esd->langDesc) {
-			u32 i=0;
-			char lan[4], *szLang;
+			s32 lang_idx;
+			char lan[4];
 			lan[0] = esd->langDesc->langCode>>16;
 			lan[1] = (esd->langDesc->langCode>>8)&0xFF;
 			lan[2] = (esd->langDesc->langCode)&0xFF;
 			lan[3] = 0;
 
-			if ((lan[0]=='u') && (lan[1]=='n') && (lan[2]=='d')) szLang = "Undetermined";
-			else {
-				szLang = lan;
-				while (GF_ISO639_Lang[i]) {
-					if (GF_ISO639_Lang[i+2][0] && strstr(GF_ISO639_Lang[i+1], lan)) {
-						szLang = (char*) GF_ISO639_Lang[i];
-						break;
-					}
-					i+=3;
-				}
+			lang_idx = gf_lang_find(lan);
+			if (lang_idx>=0) {
+				fprintf(stderr, "\tStream Language: %s\n", gf_lang_get_name(lang_idx));
 			}
-			fprintf(stderr, "\tStream Language: %s\n", szLang);
 		}
 	}
 	fprintf(stderr, "\n");

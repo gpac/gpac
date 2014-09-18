@@ -39,6 +39,9 @@
 
 #ifndef GPAC_DISABLE_DASH_CLIENT
 
+/*ISO 639 languages*/
+#include <gpac/iso639.h>
+
 /*set to 1 if you want MPD to use SegmentTemplate if possible instead of SegmentList*/
 #define M3U8_TO_MPD_USE_TEMPLATE	0
 
@@ -5054,17 +5057,76 @@ void gf_dash_group_select(GF_DashClient *dash, u32 idx, Bool select)
 }
 
 GF_EXPORT
-void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_3cc)
+void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_5646)
 {
-	u32 i;
-	if (!lang_3cc) return;
+	u32 i, len;
+	s32 lang_idx;
+	char *sep;
+	GF_List *groups_selected;
+	if (!lang_code_rfc_5646) return;
+
+	groups_selected = gf_list_new();
+
+	gf_mx_p(dash->dl_mutex);
+
+	//first pass, check exact match
 	for (i=0; i<gf_list_count(dash->groups); i++) {
 		GF_DASH_Group *group = gf_list_get(dash->groups, i);
 		if (group->selection==GF_DASH_GROUP_NOT_SELECTABLE) continue;
-		if (group->adaptation_set->lang && !stricmp(group->adaptation_set->lang, lang_3cc)) {
+		if (!group->adaptation_set->lang) continue;
+		
+		if (!stricmp(group->adaptation_set->lang, lang_code_rfc_5646)) {
 			gf_dash_group_select(dash, i, 1);
+			gf_list_add(groups_selected, group);
 		}
 	}
+
+	lang_idx = gf_lang_find(lang_code_rfc_5646);
+	if (lang_idx>=0) {
+		const char *n2cc = gf_lang_get_2cc(lang_idx);
+		const char *n3cc = gf_lang_get_3cc(lang_idx);
+
+		for (i=0; i<gf_list_count(dash->groups); i++) {
+			GF_DASH_Group *group = gf_list_get(dash->groups, i);
+			if (group->selection==GF_DASH_GROUP_NOT_SELECTABLE) continue;
+			if (!group->adaptation_set->lang) continue;
+			if (gf_list_find(groups_selected, group) >= 0) continue;
+
+			//check we didn't select one AS in this group in the previous pass or in this pass
+			if (group->adaptation_set->group>=0) {
+				u32 k;
+				Bool found = 0;
+				for (k=0; k<gf_list_count(groups_selected); k++) {
+					GF_DASH_Group *ag = gf_list_get(groups_selected, k);
+
+					if (ag->adaptation_set->group == group->adaptation_set->group) {
+						found = 1;
+						break;
+					}
+				}
+				if (found) continue;
+			}
+			//get the 2 or 3 land code
+			sep = strchr(group->adaptation_set->lang, '-');
+			if (sep) {
+				sep[0] = 0;
+			}
+			len = (u32) strlen(group->adaptation_set->lang);
+			//compare with what we found
+			if ( ((len==3) && !stricmp(group->adaptation_set->lang, n3cc))
+				|| ((len==2) && !stricmp(group->adaptation_set->lang, n2cc))
+			) {
+				gf_dash_group_select(dash, i, 1);
+				gf_list_add(groups_selected, group);
+			}
+
+			if (sep) sep[0] = '-';
+		}
+	}
+
+	gf_mx_v(dash->dl_mutex);
+
+	gf_list_del(groups_selected);
 }
 
 GF_EXPORT

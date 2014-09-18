@@ -369,20 +369,19 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	sOpt = gf_cfg_get_key(cfg, "General", "ViewXMT");
 	m_viewxmt->SetValue((sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 
-	/*systems config*/
+	/*lang config*/
+	u32 count = gf_lang_get_count();
+	for (i=0; i<count;i++) {
+		m_lang->Append(wxString(gf_lang_get_name(i), wxConvUTF8) );
+	}
+
 	sOpt = gf_cfg_get_key(cfg, "Systems", "Language3CC");
 	if (!sOpt) sOpt = "eng";
-	u32 select = 0;
-	i=0;
-	while (GF_ISO639_Lang[i]) {
-		/*only use common languages (having both 2- and 3-char code names)*/
-		if (GF_ISO639_Lang[i+2][0]) {
-			m_lang->Append(wxString(GF_ISO639_Lang[i], wxConvUTF8) );
-			if (sOpt && !stricmp(sOpt, GF_ISO639_Lang[i+1])) select = m_lang->GetCount() - 1;
-		}
-		i+=3;
-	}
+	s32 select = gf_lang_find(sOpt);
+	if (select<0) select = 0;
 	m_lang->SetSelection(select);
+
+	/*systems config*/
 	sOpt = gf_cfg_get_key(cfg, "Systems", "ThreadingPolicy");
 	select = 0;
 	m_thread->Append(wxT("Single Thread"));
@@ -923,18 +922,9 @@ void wxGPACControl::Apply(wxCommandEvent &WXUNUSED(event))
 	gf_cfg_set_key(cfg, "General", "ViewXMT", m_viewxmt->GetValue() ? "yes" : "no");
 
 	s32 sel = m_lang->GetSelection();
-	u32 i=0;
-	while (GF_ISO639_Lang[i]) {
-		/*only use common languages (having both 2- and 3-char code names)*/
-		if (GF_ISO639_Lang[i+2][0]) {
-			if (!sel) break;
-			sel--;
-		}
-		i+=3;
-	}
-	gf_cfg_set_key(cfg, "Systems", "LanguageName", GF_ISO639_Lang[i]);
-	gf_cfg_set_key(cfg, "Systems", "Language3CC", GF_ISO639_Lang[i+1]);
-	gf_cfg_set_key(cfg, "Systems", "Language2CC", GF_ISO639_Lang[i+2]);
+	gf_cfg_set_key(cfg, "Systems", "LanguageName", gf_lang_get_name(sel) );
+	gf_cfg_set_key(cfg, "Systems", "Language3CC", gf_lang_get_3cc(sel) );
+	gf_cfg_set_key(cfg, "Systems", "Language2CC", gf_lang_get_2cc(sel) );
 
 
 	sel = m_thread->GetSelection();
