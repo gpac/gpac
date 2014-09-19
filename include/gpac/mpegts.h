@@ -1109,7 +1109,7 @@ typedef struct __m2ts_mux_stream {
 
 	GF_ESIPacket curr_pck; /*current packet being processed - does not belong to the packet fifo*/
 	u32 pck_offset;
-	u32 next_payload_size, copy_from_next_packets;
+	u32 next_payload_size, copy_from_next_packets, next_next_payload_size;
 	u32 pes_data_len, pes_data_remain;
 	Bool force_new;
 	Bool discard_data;

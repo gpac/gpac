@@ -7254,7 +7254,6 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 		if (import->flags & GF_IMPORT_PROBE_ONLY) {
 			import->probe_duration = ((GF_M2TS_PES_PCK *) par)->PTS;
-			//import->flags |= GF_IMPORT_DO_ABORT;
 		}
 		break;
 
