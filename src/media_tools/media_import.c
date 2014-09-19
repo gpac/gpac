@@ -965,7 +965,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	memset(&acfg, 0, sizeof(GF_M4ADecSpecInfo));
 	acfg.base_object_type = hdr.profile;
 	acfg.base_sr = sr;
-	acfg.nb_chan = hdr.nb_ch;
+	acfg.nb_chan = gf_m4a_get_channel_cfg(hdr.nb_ch);
 	acfg.sbr_object_type = 0;
 	if (import->flags & GF_IMPORT_SBR_EXPLICIT) {
 		acfg.has_sbr = 1;

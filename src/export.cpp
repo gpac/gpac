@@ -1330,6 +1330,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mp3_get_next_header) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mp3_get_next_header_mem) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4a_get_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m4a_get_channel_cfg) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4a_write_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4a_write_config_bs) )
 

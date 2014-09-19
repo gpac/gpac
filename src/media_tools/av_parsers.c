@@ -1254,6 +1254,16 @@ u32 gf_latm_get_value(GF_BitStream *bs)
 }
 
 GF_EXPORT
+u32 gf_m4a_get_channel_cfg(u32 nb_chan)
+{
+	u32 i, count = sizeof(GF_M4ANumChannels)/sizeof(u32);
+	for (i=0; i<count; i++) {
+		if (GF_M4ANumChannels[i] == nb_chan) return i+1;
+	}
+	return 0;
+}
+
+GF_EXPORT
 GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 {
 	if (!cfg->base_sr_index) {
@@ -1285,7 +1295,7 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 	if (cfg->nb_chan == 8) {
 		gf_bs_write_int(bs, 7, 4);
 	} else {
-		gf_bs_write_int(bs, cfg->nb_chan, 4);
+		gf_bs_write_int(bs, gf_m4a_get_channel_cfg( cfg->nb_chan) , 4);
 	}
 
 	if (cfg->base_object_type==5 || cfg->base_object_type==29) {
