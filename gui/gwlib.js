@@ -356,6 +356,7 @@ gwskin.long_click_delay = 0.5;
 gwskin.use_resource_bank = false;
 gwskin.default_window_alpha = 0.8;
 gwskin.default_message_timeout = 2.0;
+gwskin.default_tooltip_timeout = 0.75;
 
 gwskin.appearance_transparent = gw_new_appearance(0, 0, 0);
 gwskin.appearance_transparent.material.transparency = 1;
@@ -364,7 +365,72 @@ gwskin.appearance_transparent.skin = true;
 gwskin.no_gl_window_back = new SFNode('Background2D')
 gwskin.no_gl_window_back.backColor = new SFColor(0, 0, 0);
 
-gwskin.tooltip_callback = null;
+
+//static
+function gw_get_abs_pos(child) {
+    var pos = new SFVec2f(0, 0);
+    while (1) {
+        if (typeof (child.translation) != 'undefined') {
+            pos.x += child.translation.x;
+            pos.y += child.translation.y;
+        }
+        if (typeof (child.parent) == 'undefined') break;
+        if (typeof (child._is_window) == 'boolean') break;
+        child = child.parent;
+    }
+    return pos;
+}
+
+
+gwskin.tooltip_wnd = null;
+
+gwskin.tooltip_callback = function (obj, show) {
+
+    if (!show) return;
+
+    if (!gwskin.tooltip_wnd) {
+        wnd = gw_new_window(null, true, true, true);
+        gwskin.tooltip_wnd = wnd;
+        wnd.txt = gw_new_text(gwskin.tooltip_wnd, '');
+        wnd.on_display_size = function (w, h) {
+            width = 10 * gwskin.default_text_font_size;
+            this.set_size(width, 2 * gwskin.default_text_font_size);
+            this.txt.set_width(width);
+            this.move(-w / 2 + width / 2, h / 2 - gwskin.default_text_font_size);
+        }
+        wnd.on_close = function () {
+            this.timer = null;
+            gwskin.tooltip_wnd = null;
+        }
+        wnd.on_display_size(gw_display_width, gw_display_height);
+        wnd.set_alpha(0.9);
+        wnd.show();
+
+        wnd.timer = gw_new_timer(false);
+        wnd.timer.set_timeout(gwskin.default_tooltip_timeout, false);
+        wnd.timer.start(0);
+        wnd.timer.on_active = function (val) {
+            if (!val) gwskin.tooltip_wnd.close();
+        }
+    }
+    var pos = gw_get_abs_pos(obj); ;
+    var tt = gwskin.tooltip_wnd;
+    var dy = 1.2 * tt.height;
+
+    if (pos.x - tt.width / 2 < -gw_display_width / 2)
+        pos.x = -gw_display_width / 2 + tt.width / 2;
+    else if (pos.x + tt.width / 2 > gw_display_width / 2)
+        pos.x = gw_display_width / 2 - tt.width / 2;
+
+    if (pos.y + dy > gw_display_height / 2)
+        pos.y -= dy;
+    else
+        pos.y += dy;
+
+    tt.move(pos.x, pos.y);
+
+    gwskin.tooltip_wnd.txt.set_label('' + obj.get_label());
+}
 
 gwskin.default_label_font_size = 14;
 gwskin.default_text_font_size = 14;
@@ -514,6 +580,8 @@ gwskin.images.resize = 'icons/resize.svg';
 gwskin.labels.resize = 'Resize';
 gwskin.images.cancel = 'icons/cross.svg';
 gwskin.labels.cancel = 'Cancel';
+gwskin.images.close = 'icons/cross.svg';
+gwskin.labels.close = 'Close';
 gwskin.images.previous = 'icons/previous.svg';
 gwskin.labels.previous = 'Previous';
 gwskin.images.next = 'icons/next.svg';
@@ -523,13 +591,13 @@ gwskin.labels.left = 'Left';
 gwskin.images.right = 'icons/right.svg';
 gwskin.labels.right = 'Right';
 gwskin.images.up = 'icons/up.svg';
-gwskin.labels.next = 'Up';
+gwskin.labels.up = 'Up';
 gwskin.images.down = 'icons/down.svg';
 gwskin.labels.down = 'Down';
 gwskin.images.scan_directory = 'icons/overflowing.svg';
 gwskin.labels.scan_directory = 'Select directory';
 gwskin.images.history = 'icons/overflowing.svg';
-gwskin.labels.history = 'Select directory';
+gwskin.labels.history = 'History';
 gwskin.images.media_next = 'icons/media_next.svg';
 gwskin.labels.media_next = 'Next Item';
 gwskin.images.media_prev = 'icons/media_prev.svg';
@@ -685,6 +753,7 @@ function gwlib_init(root_node) {
         if (typeof child.on_event != 'undefined') {
             gw_ui_top_wnd = child;
         }
+        if (typeof (child._no_focus) == 'boolean') return;
         gpac.set_focus(gw_ui_top_wnd);
     }
 
@@ -699,6 +768,7 @@ function gwlib_init(root_node) {
             }
         }
         this.removeChildren[0] = child;
+        if (typeof (child._no_focus) == 'boolean') return;
         gpac.set_focus(gw_ui_top_wnd);
     }
     gw_ui_top_wnd = null;
@@ -963,21 +1033,17 @@ function gw_new_curve2d(class_name)
         var pts = this.children[0].geometry.point.point;
         if (pts.length < 2) pts.length = 0;
         else {
-
-            alert('pts before remove ' + pts);
             for (var i = 0; i < pts.length - 1; i++) {
                 pts[i] = pts[i + 1];
             }
             pts.length = i;
-            alert('pts after remove ' + this.children[0].geometry.point.point);
             
             pts = this.children[0].geometry.type;
-            alert('type before remove ' + pts);
+
             for (var i = 0; i < pts.length - 1; i++) {
                 pts[i] = pts[i + 1];
             }
             pts.length = i;
-            alert('type after remove ' + pts);
         }
     }
     obj.get_num_points = function() {
@@ -1171,12 +1237,18 @@ function gw_new_text(parent, label, class_name) {
 }
 
 
-function gw_new_window(parent, offscreen, background, class_name) {
+function gw_new_window(parent, offscreen, background, class_name, no_focus) {
     var obj = new SFNode('Transform2D');
     setup_gw_object(obj, 'Window');
     obj.background = null;
+    obj._is_window = true;
 
     if (arguments.length < 4) class_name = 'window';
+    else if ((arguments.length == 4) && typeof (arguments[3]) == 'boolean') {
+        obj._no_focus = true;
+        class_name = 'window';
+    }
+    else if (arguments.length == 5) obj._no_focus = true;
 
     if (background)
         obj.background = gw_new_rectangle(class_name);
@@ -1348,6 +1420,7 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
 
     obj._show_highlight = false;
     obj._is_icon = false;
+    obj._tooltip = true;
     if (class_name == 'icon') {
         obj._is_icon = true;
     }
@@ -1359,6 +1432,7 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
     else if (class_name == 'listitem') {
         obj._is_icon = true;
         obj._show_highlight = true;
+        obj._tooltip = false;
     } else {
         obj._highlight = gw_new_rectangle(class_name, 'invisible');
         obj._show_highlight = true;
@@ -1480,7 +1554,7 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
             }
 
             if (this.on_over) this.on_over(value);
-            if (gwskin.tooltip_callback) gwskin.tooltip_callback(value, this.get_label());
+            if (this._tooltip && gwskin.tooltip_callback) gwskin.tooltip_callback(this, value);
         }
     };
     Browser.addRoute(obj._touch, 'isOver', obj, obj._on_over);
@@ -1610,7 +1684,7 @@ function gw_new_checkbox(parent, label) {
                             this._icon_root.children[0].children[0].set_style(app);
                         }
             if (this.on_over) this.on_over(value);
-            if (gwskin.tooltip_callback) gwskin.tooltip_callback(value, this.get_label());
+            if (gwskin.tooltip_callback) gwskin.tooltip_callback(this, value);
         }
     };
     Browser.addRoute(obj._touch, 'isOver', obj, obj._on_over);
@@ -1752,11 +1826,11 @@ function gw_new_button(parent, text, class_name) {
     obj = gw_new_rectangle(class_name, 'normal');
     label = gw_new_text(obj, text, class_name);
     gw_object_set_hitable(obj);
-    obj.on_over = function (val) {
+    obj.on_over = function (value) {
         if (gwskin.pointing_device) {
-            this.set_style(class_name, val ? 'over' : 'normal');
+            this.set_style(class_name, value ? 'over' : 'normal');
         }
-        if (gwskin.tooltip_callback) gwskin.tooltip_callback(value, this.get_label());
+        //if (gwskin.tooltip_callback) gwskin.tooltip_callback(this, value);
     }
     obj.on_down = function (val) {
         this.set_style(class_name, val ? 'down' : (this._over ? 'over' : 'normal'));
@@ -1968,7 +2042,6 @@ function grid_event_navigate(dlg, children, type) {
     } else {
         return false;
     }
-    alert('grid current focus ' + dlg.current_focus);
     if (switch_page == 1) return dlg.on_next_page();
     else if (switch_page == -1) return dlg.on_prev_page();
     if (typeof children[dlg.current_focus].on_event == 'undefined') {
@@ -2614,7 +2687,7 @@ function gw_new_window_full(parent, offscreen, the_label, child_to_insert) {
     }
 
 
-    var icon = wnd.add_tool('cancel');
+    var icon = wnd.add_tool('close');
     icon.on_click = function () {
         this.dlg.close();
     }
