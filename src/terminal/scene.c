@@ -107,6 +107,17 @@ GF_Scene *gf_scene_new(GF_Scene *parentScene)
 	return tmp;
 }
 
+static void gf_scene_reset_urls(GF_Scene *scene)
+{
+#define SFURL_RESET(__url) if (__url.url) gf_free(__url.url);\
+	memset(&__url, 0, sizeof(SFURL));
+
+	SFURL_RESET(scene->audio_url);
+	SFURL_RESET(scene->visual_url);
+	SFURL_RESET(scene->text_url);
+	SFURL_RESET(scene->dims_url);
+}
+
 void gf_scene_del(GF_Scene *scene)
 {
 	gf_mx_p(scene->root_od->term->net_mx);
@@ -162,10 +173,8 @@ void gf_scene_del(GF_Scene *scene)
 
 	gf_list_del(scene->declared_addons);
 
-	if (scene->audio_url.url) gf_free(scene->audio_url.url);
-	if (scene->visual_url.url) gf_free(scene->visual_url.url);
-	if (scene->text_url.url) gf_free(scene->text_url.url);
-	if (scene->dims_url.url) gf_free(scene->dims_url.url);
+	gf_scene_reset_urls(scene);
+
 	if (scene->fragment_uri) gf_free(scene->fragment_uri);
 	if (scene->redirect_xml_base) gf_free(scene->redirect_xml_base);
 
@@ -309,6 +318,9 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 		gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 		gf_mo_del(obj);
 	}
+
+	//reset URLs
+	gf_scene_reset_urls(scene);
 	gf_term_lock_compositor(scene->root_od->term, GF_FALSE);
 }
 

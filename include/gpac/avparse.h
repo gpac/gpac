@@ -186,7 +186,7 @@ u32 gf_m4a_get_channel_cfg(u32 nb_chan);
 /*get Audio type from dsi. return audio codec type:*/
 typedef struct
 {
-	u32 nb_channels;
+	u32 nb_chan;
 	u32 base_object_type, base_sr, base_sr_index;
 	/*SBR*/
 	Bool has_sbr;

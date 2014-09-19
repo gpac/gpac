@@ -478,7 +478,8 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 	GF_Terminal *term = service->term;
 
 	if (com->command_type==GF_NET_BUFFER_QUERY) {
-		GF_List *od_list;
+		GF_Scene *scene;
+
 		u32 i, max_buffer_time;
 		GF_ObjectManager *odm;
 		com->buffer.max = 0;
@@ -489,28 +490,28 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		}
 
 		/*browse all channels in the scene, running on this service, and get buffer info*/
-		od_list = NULL;
+		scene = NULL;
 		if (service->owner->subscene) {
-			od_list = service->owner->subscene->resources;
+			scene = service->owner->subscene;
 		} else if (service->owner->parentscene) {
-			od_list = service->owner->parentscene->resources;
+			scene = service->owner->parentscene;
 		}
-		if (!od_list) {
+		if (!scene) {
 			com->buffer.occupancy = 0;
 			return;
 		}
-		/*get exclusive access to media scheduler, to make sure ODs are not being
-		manipulated*/
-		gf_mx_p(term->mm_mx);
+		/*get exclusive access to scene resources , to make sure ODs are not being inserted/remove*/
+		gf_mx_p(scene->mx_resources);
+
 		max_buffer_time=0;
-		if (!gf_list_count(od_list))
+		if (!gf_list_count(scene->resources))
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM] No object manager found for the scene (URL: %s), buffer occupancy will remain unchanged\n", service->url));
 		i=0;
-		while ((odm = (GF_ObjectManager*)gf_list_enum(od_list, &i))) {
+		while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
 			if (!odm->codec) continue;
 			gather_buffer_level(odm, service, com, &max_buffer_time);
 		}
-		gf_mx_v(term->mm_mx);
+		gf_mx_v(scene->mx_resources);
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
 
 		//in bench mode return the 1 if one of the buffer is full (eg sleep until all buffers are not full), 0 otherwise
