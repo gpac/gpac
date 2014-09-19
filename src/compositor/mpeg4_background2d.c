@@ -147,7 +147,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 			color &= 0x00FFFFFF;
 			compositor_2d_hybgl_clear_surface(tr_state->visual, NULL, color, GF_FALSE);
 			is_offscreen = GF_TRUE;
-			clear_all = GF_FALSE;
+			//we may need to clear the canvas for immediate mode
 		}
 	}
 #endif
@@ -359,7 +359,11 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 			stack->flags |= CTX_TEXTURE_DIRTY;
 		}
 	}
-	status->ctx.flags = stack->flags;
+	if (status->ctx.flags & CTX_BACKROUND_NOT_LAYER) {
+		status->ctx.flags = stack->flags | CTX_BACKROUND_NOT_LAYER;
+	} else {
+		status->ctx.flags = stack->flags;
+	}
 
 
 	if (tr_state->traversing_mode != TRAVERSE_BINDABLE) return;
