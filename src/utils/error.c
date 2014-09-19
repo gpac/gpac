@@ -1213,7 +1213,6 @@ GF_EXPORT
 s32 gf_lang_find(const char *lang_or_rfc_5646_code)
 {
 	//find the language ISO639 entry for the given code
-	u32 idx=0;
 	u32 i=0;
 	u32 len=0;
 	char *sep;
@@ -1249,12 +1248,14 @@ const char *gf_lang_get_name(u32 idx)
 	return defined_languages[idx].name;
 }
 
+GF_EXPORT
 const char *gf_lang_get_2cc(u32 idx)
 {
 	if (idx>=sizeof(defined_languages) / sizeof(struct lang_def)) return NULL;
 	return defined_languages[idx].two_char_code;
 }
 
+GF_EXPORT
 const char *gf_lang_get_3cc(u32 idx)
 {
 	if (idx>=sizeof(defined_languages) / sizeof(struct lang_def)) return NULL;
