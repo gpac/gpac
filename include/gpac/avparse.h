@@ -180,10 +180,13 @@ static const u32 GF_M4ANumChannels[] =
 	1, 2, 3, 4, 5, 6, 8, 2, 3, 4, 7, 8, 24, 8, 12, 10, 12, 14
 };
 
+/*returns channel config value (as written in AAC DSI) for the given number of channels*/
+u32 gf_m4a_get_channel_cfg(u32 nb_chan);
+
 /*get Audio type from dsi. return audio codec type:*/
 typedef struct
 {
-	u32 nb_chan;
+	u32 nb_channels;
 	u32 base_object_type, base_sr, base_sr_index;
 	/*SBR*/
 	Bool has_sbr;

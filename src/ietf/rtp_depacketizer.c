@@ -1223,7 +1223,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 #ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_RTP_PAYT_LATM:
 	{
-		u32 AudioMuxVersion, AllStreamsSameTime, numSubFrames, numPrograms, numLayers;
+		u32 AudioMuxVersion, AllStreamsSameTime, numSubFrames, numPrograms, numLayers, ch_cfg;
 		GF_M4ADecSpecInfo cfg;
 		char *latm_dsi = rtp->sl_map.config;
 		GF_BitStream *bs = gf_bs_new(latm_dsi, rtp->sl_map.configSize, GF_BITSTREAM_READ);
@@ -1245,7 +1245,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		} else {
 			cfg.base_sr = GF_M4ASampleRates[cfg.base_sr_index];
 		}
-		cfg.nb_chan = gf_bs_read_int(bs, 4);
+		ch_cfg = gf_bs_read_int(bs, 4);
 		if (cfg.base_object_type==5 || cfg.base_object_type==29) {
 			if (cfg.base_object_type==29) {
 				cfg.has_ps = 1;
@@ -1266,7 +1266,8 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*write as regular AAC*/
 		gf_bs_write_int(bs, cfg.base_object_type, 5);
 		gf_bs_write_int(bs, cfg.base_sr_index, 4);
-		gf_bs_write_int(bs, cfg.nb_chan, 4);
+
+		gf_bs_write_int(bs, ch_cfg, 4);
 		gf_bs_align(bs);
 		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
 		gf_bs_del(bs);
