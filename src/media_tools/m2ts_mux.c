@@ -1282,6 +1282,8 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 {
 	Bool ignore_next=0;
 	stream->next_payload_size = 0;
+	stream->next_next_payload_size = 0;
+	
 	stream->next_pck_flags = 0;
 	stream->copy_from_next_packets = 0;
 
@@ -1315,6 +1317,12 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 			stream->next_pck_cts = stream->pck_first->cts;
 			stream->next_pck_dts = stream->pck_first->dts;
 			stream->next_pck_flags = stream->pck_first->flags;
+
+			if (!stream->pck_first->next && stream->ifce->input_ctrl) stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_FLUSH, NULL);
+			if (stream->pck_first->next) {
+				stream->next_next_payload_size = stream->pck_first->next->data_len;
+			}
+
 		}
 	}
 	/*consider we don't have the next AU if:
@@ -1337,6 +1345,8 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 
 	if (stream->next_payload_size) {
 		stream->next_payload_size += stream->reframe_overhead;
+		if (stream->next_next_payload_size) 
+			stream->next_next_payload_size += stream->reframe_overhead;
 
 		gf_m2ts_remap_timestamps_for_pes(stream, stream->next_pck_flags, &stream->next_pck_dts, &stream->next_pck_cts, NULL);
 
@@ -1378,8 +1388,11 @@ Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_l
 			while (ts_bytes < pck_size + stream->next_payload_size) {
 				ts_bytes += 184;
 			}
-			/*don't end next AU in next PES if we don't want to start 2 AUs in one PES*/
-			if (stream->prevent_two_au_start_in_pes && (ts_bytes>pck_size + stream->next_payload_size)) {
+			/*don't end next AU in next PES if we don't want to start 2 AUs in one PES
+			if we don't have the N+2 AU size, don't try to pack it*/
+			if ((stream->prevent_two_au_start_in_pes && (ts_bytes>pck_size + stream->next_payload_size))  
+				|| !stream->next_next_payload_size
+			) {
 				if (ts_bytes>184)
 					ts_bytes -= 184;
 				else

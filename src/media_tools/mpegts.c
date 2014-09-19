@@ -626,10 +626,10 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	ADTSHeader hdr;
 	u32 sc_pos = 0;
 	u32 start = 0;
-
 	u32 hdr_size = 0;
 	u64 PTS;
 	Bool first = 1;
+	Bool garbage_bytes = 0;
 	GF_M2TS_PES_PCK pck;
 
 	/*dispatch frame*/
@@ -639,7 +639,7 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 	pck.PTS = PTS;
 	pck.flags = 0;
 
-	if (pes->frame_state && ((pes->frame_state==data_len) || ((data[pes->frame_state]==0xFF) && ((data[pes->frame_state+1] & 0xF0) == 0xF0)))) {
+	if (pes->frame_state && ((pes->frame_state==data_len) || (((pes->frame_state+1<data_len)) && (data[pes->frame_state]==0xFF) && ((data[pes->frame_state+1] & 0xF0) == 0xF0)))) {
 		assert(pes->frame_state<=data_len);
 		/*dispatch frame*/
 		pck.stream = pes;
@@ -664,8 +664,11 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			continue;
 		}
 
+		if (garbage_bytes) {
+			garbage_bytes = 0;
+		}
 		/*flush any pending data*/
-		if (start < sc_pos) {
+		else if (start < sc_pos) {
 			/*dispatch frame*/
 			pck.stream = pes;
 			pck.DTS = PTS;
@@ -724,7 +727,16 @@ static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool 
 			pck.stream = pes;
 			memset(&cfg, 0, sizeof(GF_M4ADecSpecInfo));
 			cfg.base_object_type = hdr.profile;
-			pes->aud_sr = cfg.base_sr = GF_M4ASampleRates[hdr.sr_idx];
+			cfg.base_sr = GF_M4ASampleRates[hdr.sr_idx];
+
+
+			if (!cfg.base_sr) {
+				sc_pos++;
+				garbage_bytes = 1;
+				continue;
+			}
+
+			pes->aud_sr = cfg.base_sr;
 			pes->aud_nb_ch = cfg.nb_chan = hdr.nb_ch;
 			cfg.sbr_object_type = 0;
 			gf_m4a_write_config(&cfg, &pck.data, &pck.data_len);

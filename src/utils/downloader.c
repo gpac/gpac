@@ -2712,8 +2712,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 			switch (e) {
 			case GF_IP_NETWORK_EMPTY:
-				gf_sleep(1);
-				continue;
+				gf_sleep(0);
+				break;
 			case GF_OK:
 				bytesRead += res;
 				break;
