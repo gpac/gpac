@@ -1555,6 +1555,26 @@ static u32 create_new_track_action(char *string, TrackAction **actions, u32 *nb_
 	return dump_type;
 }
 
+
+
+static GF_Err hash_file(char *name, u32 dump_std)
+{
+	u32 i;
+	u8 hash[20];
+	GF_Err e = gf_media_get_file_hash(name, hash);
+	if (e) return e;
+	if (dump_std==2) {
+		fwrite(hash, 1, 20, stdout);
+	} else if (dump_std==1) {
+		for (i=0; i<20; i++) fprintf(stdout, "%02X", hash[i]);
+	}
+	fprintf(stderr, "File %s hash (SHA-1): ", name);
+	for (i=0; i<20; i++) fprintf(stderr, "%02X", hash[i]);
+	fprintf(stderr, "\n");
+
+	return GF_OK;
+}
+
 static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
 	FILE *logs = cbk;
@@ -3412,6 +3432,8 @@ int mp4boxMain(int argc, char **argv)
 					dump_mpeg2_ts(inName, pes_dump, program_number);
 #endif
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
+				} else if (do_hash) {
+					hash_file(inName, dump_std);
 				} else {
 					convert_file_info(inName, info_track_id);
 #endif
@@ -3539,12 +3561,8 @@ int mp4boxMain(int argc, char **argv)
 	if (dump_nal) dump_file_nal(file, dump_nal, dump_std ? NULL : outfile);
 
 	if (do_hash) {
-		u8 hash[20];
-		e = gf_media_get_file_hash(inName, hash);
+		e = hash_file(inName, dump_std);
 		if (e) goto err_exit;
-		fprintf(stderr, "File %s hash (SHA-1): ", inName);
-		for (i=0; i<20; i++) fprintf(stderr, "%02X", hash[i]);
-		fprintf(stderr, "\n");
 	}
 	if (dump_cart) dump_cover_art(file, outfile);
 	if (dump_chap) dump_chapters(file, outfile, (dump_chap==2) ? 1 : 0);
