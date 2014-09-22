@@ -32,9 +32,13 @@
 
 static GF_Err apple_tag_dump(GF_Box *a, FILE * trace);
 
-void NullBoxErr(FILE * trace)
+void NullBoxErr(FILE * trace, u32 box_4cc)
 {
-	fprintf(trace, "<!--ERROR: NULL Box Found-->\n");
+	if (box_4cc) {
+		fprintf(trace, "<!--ERROR: NULL Box Found, expecting %s -->\n", gf_4cc_to_str(box_4cc) );
+	} else {
+		fprintf(trace, "<!--ERROR: NULL Box Found-->\n");
+	}
 }
 
 void BadTopBoxErr(GF_Box *a, FILE * trace)
@@ -81,12 +85,12 @@ GF_Err DumpBox(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-GF_Err gf_box_dump(void *ptr, FILE * trace)
+GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 {
 	GF_Box *a = (GF_Box *) ptr;
 
 	if (!a) {
-		NullBoxErr(trace);
+		NullBoxErr(trace, box_4cc);
 		return GF_OK;
 	}
 
@@ -543,6 +547,12 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	}
 }
 
+
+GF_Err gf_box_dump(void *ptr, FILE * trace)
+{
+	return gf_box_dump_ex(ptr, trace, 0);
+}
+
 GF_Err gf_box_array_dump(GF_List *list, FILE * trace)
 {
 	u32 i;
@@ -694,7 +704,7 @@ GF_Err moov_dump(GF_Box *a, FILE * trace)
 
 	if (p->iods) gf_box_dump(p->iods, trace);
 	if (p->meta) gf_box_dump(p->meta, trace);
-	gf_box_dump(p->mvhd, trace);
+	gf_box_dump_ex(p->mvhd, trace,GF_ISOM_BOX_TYPE_MVHD);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (p->mvex) gf_box_dump(p->mvex, trace);
@@ -798,15 +808,15 @@ GF_Err stbl_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<SampleTableBox>\n");
 	DumpBox(a, trace);
 
-	gf_box_dump(p->SampleDescription, trace);
-	gf_box_dump(p->TimeToSample, trace);
+	gf_box_dump_ex(p->SampleDescription, trace, GF_ISOM_BOX_TYPE_STSD);
+	gf_box_dump_ex(p->TimeToSample, trace, GF_ISOM_BOX_TYPE_STTS);
 	if (p->CompositionOffset) gf_box_dump(p->CompositionOffset, trace);
 	if (p->CompositionToDecode) gf_box_dump(p->CompositionToDecode, trace);
 	if (p->SyncSample) gf_box_dump(p->SyncSample, trace);
 	if (p->ShadowSync) gf_box_dump(p->ShadowSync, trace);
-	gf_box_dump(p->SampleToChunk, trace);
-	gf_box_dump(p->SampleSize, trace);
-	gf_box_dump(p->ChunkOffset, trace);
+	gf_box_dump_ex(p->SampleToChunk, trace, GF_ISOM_BOX_TYPE_STSC);
+	gf_box_dump_ex(p->SampleSize, trace, GF_ISOM_BOX_TYPE_STSZ);
+	gf_box_dump_ex(p->ChunkOffset, trace, GF_ISOM_BOX_TYPE_STCO);
 	if (p->DegradationPriority) gf_box_dump(p->DegradationPriority, trace);
 	if (p->SampleDep) gf_box_dump(p->SampleDep, trace);
 	if (p->PaddingBits) gf_box_dump(p->PaddingBits, trace);
@@ -840,7 +850,7 @@ GF_Err dinf_dump(GF_Box *a, FILE * trace)
 	p = (GF_DataInformationBox *)a;
 	fprintf(trace, "<DataInformationBox>");
 	DumpBox(a, trace);
-	gf_box_dump(p->dref, trace);
+	gf_box_dump_ex(p->dref, trace, GF_ISOM_BOX_TYPE_DREF);
 	gf_box_dump_done("DataInformationBox", a, trace);
 	return GF_OK;
 }
@@ -1141,7 +1151,7 @@ GF_Err edts_dump(GF_Box *a, FILE * trace)
 	p = (GF_EditBox *)a;
 	fprintf(trace, "<EditBox>\n");
 	DumpBox(a, trace);
-	gf_box_dump(p->editList, trace);
+	gf_box_dump_ex(p->editList, trace, GF_ISOM_BOX_TYPE_ELST);
 	gf_box_dump_done("EditBox", a, trace);
 	return GF_OK;
 }
@@ -1509,9 +1519,9 @@ GF_Err minf_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<MediaInformationBox>\n");
 	DumpBox(a, trace);
 
-	gf_box_dump(p->InfoHeader, trace);
-	gf_box_dump(p->dataInformation, trace);
-	gf_box_dump(p->sampleTable, trace);
+	gf_box_dump_ex(p->InfoHeader, trace, GF_ISOM_BOX_TYPE_NMHD);
+	gf_box_dump_ex(p->dataInformation, trace, GF_ISOM_BOX_TYPE_DINF);
+	gf_box_dump_ex(p->sampleTable, trace, GF_ISOM_BOX_TYPE_STBL);
 	gf_box_dump_done("MediaInformationBox", a, trace);
 	return GF_OK;
 }
@@ -1562,9 +1572,9 @@ GF_Err mdia_dump(GF_Box *a, FILE * trace)
 	GF_MediaBox *p = (GF_MediaBox *)a;
 	fprintf(trace, "<MediaBox>\n");
 	DumpBox(a, trace);
-	gf_box_dump(p->mediaHeader, trace);
-	gf_box_dump(p->handler, trace);
-	gf_box_dump(p->information, trace);
+	gf_box_dump_ex(p->mediaHeader, trace, GF_ISOM_BOX_TYPE_MDHD);
+	gf_box_dump_ex(p->handler, trace,GF_ISOM_BOX_TYPE_HDLR);
+	gf_box_dump_ex(p->information, trace, GF_ISOM_BOX_TYPE_MINF);
 	gf_box_dump_done("MediaBox", a, trace);
 	return GF_OK;
 }
@@ -1946,7 +1956,7 @@ GF_Err tx3g_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<DefaultStyle>\n");
 	gpp_dump_style(trace, &p->default_style);
 	fprintf(trace, "</DefaultStyle>\n");
-	gf_box_dump(p->font_table, trace);
+	gf_box_dump_ex(p->font_table, trace, GF_ISOM_BOX_TYPE_FTAB);
 	gf_box_dump_done("Tx3gSampleEntryBox", a, trace);
 	return GF_OK;
 }
@@ -3385,9 +3395,9 @@ GF_Err sinf_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<ProtectionInfoBox>\n");
 	DumpBox(a, trace);
 
-	gf_box_dump(p->original_format, trace);
-	gf_box_dump(p->scheme_type, trace);
-	gf_box_dump(p->info, trace);
+	gf_box_dump_ex(p->original_format, trace, GF_ISOM_BOX_TYPE_FRMA);
+	gf_box_dump_ex(p->scheme_type, trace, GF_ISOM_BOX_TYPE_SCHM);
+	gf_box_dump_ex(p->info, trace, GF_ISOM_BOX_TYPE_SCHI);
 	gf_box_dump_done("ProtectionInfoBox", a, trace);
 	return GF_OK;
 }
@@ -4027,7 +4037,7 @@ GF_Err ac3_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	if (p->is_ec3)
 		a->type = GF_ISOM_BOX_TYPE_AC3;
-	gf_box_dump(p->info, trace);
+	gf_box_dump_ex(p->info, trace, p->is_ec3 ? GF_ISOM_BOX_TYPE_DEC3 : GF_ISOM_BOX_TYPE_DAC3);
 	gf_box_dump_done(p->is_ec3 ? "EC3SampleEntryBox" : "AC3SampleEntryBox", a, trace);
 	return GF_OK;
 }
