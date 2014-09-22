@@ -920,7 +920,7 @@ GF_Err edts_Write(GF_Box *s, GF_BitStream *bs)
 	GF_EditBox *ptr = (GF_EditBox *)s;
 
 	//here we have a trick: if editList is empty, skip the box
-	if (gf_list_count(ptr->editList->entryList)) {
+	if (ptr->editList && gf_list_count(ptr->editList->entryList)) {
 		e = gf_isom_box_write_header(s, bs);
 		if (e) return e;
 		e = gf_isom_box_write((GF_Box *) ptr->editList, bs);
@@ -935,7 +935,7 @@ GF_Err edts_Size(GF_Box *s)
 	GF_EditBox *ptr = (GF_EditBox *)s;
 
 	//here we have a trick: if editList is empty, skip the box
-	if (! gf_list_count(ptr->editList->entryList)) {
+	if (!ptr->editList || ! gf_list_count(ptr->editList->entryList)) {
 		ptr->size = 0;
 	} else {
 		e = gf_isom_box_get_size(s);
@@ -6205,6 +6205,12 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 	GF_GenericSampleEntryBox *genm;
 	GF_UnknownBox *a;
 	u32 i;
+
+	if (!trak->Media->information->sampleTable->SampleDescription) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no sample description box !\n" ));
+		trak->Media->information->sampleTable->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSD);
+		return;
+	}
 
 	i=0;
 	while ((a = (GF_UnknownBox*)gf_list_enum(trak->Media->information->sampleTable->SampleDescription->other_boxes, &i))) {
