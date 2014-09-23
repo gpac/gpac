@@ -1,0 +1,4 @@
+language: c
+compiler: gcc
+#script: configure --use-zlib=no --use-js=no --use-png=no --use-jpeg=no --use-faad=no --use-mad=no --use-xvid=no --use-ogg=no --use-vorbis=no --use-theora=no --use-openjpeg=no --disable-streaming --disable-isoff-frag --disable-isoff-hint --disable-isoff-write --disable-loader-xmt --disable-loader-bt --disable-loader-isoff --disable-scene-encode --disable-mcrypt --disable-od-dump --disable-scene-dump --disable-scene-stats --disable-swf --disable-export --disable-import --disable-m2ps --disable-ogg --disable-avi --disable-qtvr --disable-seng --disable-smgr --disable-x3d --disable-3d --disable-ssl --disable-jack --disable-pulse --use-a52=no --disable-odf --disable-isoff --disable-m2ts-mux --disable-dvbx --disable-saf --disable-vobsub --disable-ttxt --disable-od-parse && make 
+script: ./configure --disable-all && make
