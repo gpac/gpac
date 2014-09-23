@@ -1137,20 +1137,21 @@ typedef struct
 	char *line;
 } SDPLine;
 
+typedef enum {
+	META_ACTION_SET_TYPE			= 0,
+	META_ACTION_ADD_ITEM			= 1,
+	META_ACTION_REM_ITEM			= 2,
+	META_ACTION_SET_PRIMARY_ITEM	= 3,
+	META_ACTION_SET_XML				= 4,
+	META_ACTION_SET_BINARY_XML		= 5,
+	META_ACTION_REM_XML				= 6,
+	META_ACTION_DUMP_ITEM			= 7,
+	META_ACTION_DUMP_XML			= 8,
+} MetaActionType;
+
 typedef struct
 {
-	/*actions:
-		0: set meta type
-		1: add item
-		2: rem item
-		3: set item primary
-		4: set XML
-		5: set binary XML
-		6: rem XML
-		7: dump item
-		8: dump XML
-	*/
-	u32 act_type;
+	MetaActionType act_type;
 	Bool root_meta, use_dref;
 	u32 trackID;
 	u32 meta_4cc;
@@ -1160,7 +1161,7 @@ typedef struct
 } MetaAction;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-static Bool parse_meta_args(MetaAction *meta, u32 act_type, char *opts)
+static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opts)
 {
 	Bool ret = 0;
 	char szSlot[1024], *next;
@@ -1214,27 +1215,29 @@ static Bool parse_meta_args(MetaAction *meta, u32 act_type, char *opts)
 			ret = 1;
 		}
 		else if (!stricmp(szSlot, "binary")) {
-			if (meta->act_type==4) meta->act_type=5;
+			if (meta->act_type==META_ACTION_SET_XML) meta->act_type=META_ACTION_SET_BINARY_XML;
 			ret = 1;
 		}
 		else if (!strchr(szSlot, '=')) {
 			switch (meta->act_type) {
-			case 0:
+			case META_ACTION_SET_TYPE:
 				if (!stricmp(szSlot, "null") || !stricmp(szSlot, "0")) meta->meta_4cc = 0;
 				else meta->meta_4cc = GF_4CC(szSlot[0], szSlot[1], szSlot[2], szSlot[3]);
 				ret = 1;
 				break;
-			case 1:
-			case 4:
-			case 7:
+			case META_ACTION_ADD_ITEM:
+			case META_ACTION_SET_XML:
+			case META_ACTION_DUMP_ITEM:
 				strcpy(meta->szPath, szSlot);
 				ret = 1;
 				break;
-			case 2:
-			case 3:
-			case 8:
+			case META_ACTION_REM_ITEM:
+			case META_ACTION_SET_PRIMARY_ITEM:
+			case META_ACTION_DUMP_XML:
 				meta->item_id = atoi(szSlot);
 				ret = 1;
+				break;
+			default:
 				break;
 			}
 		}
@@ -1245,12 +1248,16 @@ static Bool parse_meta_args(MetaAction *meta, u32 act_type, char *opts)
 #endif
 
 
-
+typedef enum {
+	TSEL_ACTION_SET_PARAM = 0,
+	TSEL_ACTION_REMOVE_TSEL = 1,
+	TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP = 2,
+	TSEL_ACTION_REMOVE_ALL_TSEL_IN_FILE = 3,
+} TSELActionType;
 
 typedef struct
 {
-	/*0: set tsel param - 1 remove tsel - 2 remove all tsel info in alternate group - 3 remove all tsel info in file*/
-	u32 act_type;
+	TSELActionType act_type;
 	u32 trackID;
 
 	u32 refTrackID;
@@ -1262,7 +1269,7 @@ typedef struct
 
 static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_act)
 {
-	u32 act;
+	TSELActionType act;
 	u32 refTrackID = 0;
 	Bool has_switch_id;
 	u32 switch_id = 0;
@@ -1337,23 +1344,23 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 
 #define CHECK_NEXT_ARG	if (i+1==(u32)argc) { fprintf(stderr, "Missing arg - please check usage\n"); MP4BOX_EXIT_WITH_CODE(1); }
 
+typedef enum {
+	TRAC_ACTION_REM_TRACK		= 0,
+	TRAC_ACTION_SET_LANGUAGE	= 1,
+	TRAC_ACTION_SET_DELAY		= 2,
+	TRAC_ACTION_SET_KMS_URI		= 3,
+	TRAC_ACTION_SET_PAR			= 4,
+	TRAC_ACTION_SET_HANDLER_NAME= 5,
+	TRAC_ACTION_ENABLE			= 6,
+	TRAC_ACTION_DISABLE			= 7,
+	TRAC_ACTION_REFERENCE		= 8,
+	TRAC_ACTION_RAW_EXTRACT		= 9,
+	TRAC_ACTION_REM_NON_RAP		= 10,
+} TrackActionType;
+
 typedef struct
 {
-	/*
-	0: rem track
-	1: set track language
-	2: set track delay
-	3: set track KMS URI
-	4: set visual track PAR if possible
-	5: set track handler name
-	6: enables track
-	7: disables track
-	8: referenceTrack
-	9: raw extraction
-	10: remove non-rap
-	*/
-	u32 act_type;
-	/*track ID*/
+	TrackActionType act_type;
 	u32 trackID;
 	char *lang;
 	s32 delay_ms;
@@ -1547,7 +1554,7 @@ static u32 create_new_track_action(char *string, TrackAction **actions, u32 *nb_
 {
 	*actions = (TrackAction *)gf_realloc(*actions, sizeof(TrackAction) * (*nb_track_act+1));
 	memset(&(*actions)[*nb_track_act], 0, sizeof(TrackAction) );
-	(*actions)[*nb_track_act].act_type = 9;
+	(*actions)[*nb_track_act].act_type = TRAC_ACTION_RAW_EXTRACT;
 	(*actions)[*nb_track_act].dump_type = dump_type;
 	parse_track_action_params(string, &(*actions)[*nb_track_act]);
 	(*nb_track_act)++;
@@ -2250,7 +2257,7 @@ int mp4boxMain(int argc, char **argv)
 				if (sscanf(argv[i+1], "%d", &trackID) == 1) {
 					tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 					memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-					tracks[nb_track_act].act_type = 10;
+					tracks[nb_track_act].act_type = TRAC_ACTION_REM_NON_RAP;
 					tracks[nb_track_act].trackID = trackID;
 					nb_track_act++;
 					i++;
@@ -2332,7 +2339,7 @@ int mp4boxMain(int argc, char **argv)
 			track_dump_type = GF_EXPORT_MP4;
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-			tracks[nb_track_act].act_type = 9;
+			tracks[nb_track_act].act_type = TRAC_ACTION_RAW_EXTRACT;
 			tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			tracks[nb_track_act].dump_type = GF_EXPORT_MP4;
 			nb_track_act++;
@@ -2380,10 +2387,9 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-
-			if (!stricmp(arg, "-enable")) tracks[nb_track_act].act_type = 6;
-			else if (!stricmp(arg, "-disable")) tracks[nb_track_act].act_type = 7;
-			else tracks[nb_track_act].act_type = 0;
+			if (!stricmp(arg, "-enable")) tracks[nb_track_act].act_type = TRAC_ACTION_ENABLE;
+			else if (!stricmp(arg, "-disable")) tracks[nb_track_act].act_type = TRAC_ACTION_DISABLE;
+			else tracks[nb_track_act].act_type = TRAC_ACTION_REM_TRACK;
 			tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			open_edit = 1;
 			nb_track_act++;
@@ -2395,7 +2401,7 @@ int mp4boxMain(int argc, char **argv)
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 
-			tracks[nb_track_act].act_type = 4;
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_PAR;
 			assert(strlen(argv[i+1])+1 <= sizeof(szTK));
 			strncpy(szTK, argv[i+1], sizeof(szTK));
 			ext = strchr(szTK, '=');
@@ -2426,7 +2432,7 @@ int mp4boxMain(int argc, char **argv)
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 
-			tracks[nb_track_act].act_type = 1;
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_LANGUAGE;
 			tracks[nb_track_act].trackID = 0;
 			strcpy(szTK, argv[i+1]);
 			ext = strchr(szTK, '=');
@@ -2456,7 +2462,7 @@ int mp4boxMain(int argc, char **argv)
 				fprintf(stderr, "Bad format for track delay - expecting ID=DLAY got %s\n", argv[i+1]);
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
-			tracks[nb_track_act].act_type = 2;
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_DELAY;
 			tracks[nb_track_act].delay_ms = atoi(ext+1);
 			ext[0] = 0;
 			tracks[nb_track_act].trackID = atoi(szTK);
@@ -2476,7 +2482,7 @@ int mp4boxMain(int argc, char **argv)
 				fprintf(stderr, "Bad format for track reference - expecting ID:XXXX:refID got %s\n", argv[i+1]);
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
-			tracks[nb_track_act].act_type = 8;
+			tracks[nb_track_act].act_type = TRAC_ACTION_REFERENCE;
 			ext[0] = 0;
 			tracks[nb_track_act].trackID = atoi(szTK);
 			ext[0] = ':';
@@ -2506,7 +2512,7 @@ int mp4boxMain(int argc, char **argv)
 				fprintf(stderr, "Bad format for track name - expecting ID=name got %s\n", argv[i+1]);
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
-			tracks[nb_track_act].act_type = 5;
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_HANDLER_NAME;
 			tracks[nb_track_act].hdl_name = strchr(argv[i+1], '=') + 1;
 			ext[0] = 0;
 			tracks[nb_track_act].trackID = atoi(szTK);
@@ -2651,7 +2657,7 @@ int mp4boxMain(int argc, char **argv)
 
 			strncpy(szTK, argv[i+1], 19);
 			ext = strchr(szTK, '=');
-			tracks[nb_track_act].act_type = 3;
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_KMS_URI;
 			tracks[nb_track_act].trackID = 0;
 			if (!strnicmp(argv[i+1], "all=", 4)) {
 				tracks[nb_track_act].kms = argv[i+1] + 4;
@@ -2705,59 +2711,65 @@ int mp4boxMain(int argc, char **argv)
 		/*meta*/
 		else if (!stricmp(arg, "-set-meta")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], 0, argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_SET_TYPE, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
 		else if (!stricmp(arg, "-add-item")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], 1, argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_ITEM, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
 		else if (!stricmp(arg, "-rem-item")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], 2, argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_REM_ITEM, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
 		else if (!stricmp(arg, "-set-primary")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], 3, argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_SET_PRIMARY_ITEM, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
 		else if (!stricmp(arg, "-set-xml")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], 4, argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_SET_XML, argv[i+1]);
 			nb_meta_act++;
 			open_edit = 1;
 			i++;
 		}
 		else if (!stricmp(arg, "-rem-xml")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			if (parse_meta_args(&metas[nb_meta_act], 6, argv[i+1])) i++;
+			if (parse_meta_args(&metas[nb_meta_act], META_ACTION_REM_XML, argv[i+1])) i++;
 			nb_meta_act++;
 			open_edit = 1;
 		}
 		else if (!stricmp(arg, "-dump-xml")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], 7, argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_DUMP_XML, argv[i+1]);
 			nb_meta_act++;
 			i++;
 		}
 		else if (!stricmp(arg, "-dump-item")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], 8, argv[i+1]);
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_DUMP_ITEM, argv[i+1]);
 			nb_meta_act++;
 			i++;
 		}
 		else if (!stricmp(arg, "-group-add") || !stricmp(arg, "-group-rem-track") || !stricmp(arg, "-group-rem")) {
-			tsel_acts[nb_tsel_acts].act_type = !stricmp(arg, "-group-rem") ? 2 : ( !stricmp(arg, "-group-rem-track") ? 1 : 0 );
+			if (!stricmp(arg, "-group-rem")) {
+				tsel_acts[nb_tsel_acts].act_type = TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP;
+			} else if ( !stricmp(arg, "-group-rem-track")) {
+				tsel_acts[nb_tsel_acts].act_type = TSEL_ACTION_REMOVE_TSEL;
+			} else {
+				tsel_acts[nb_tsel_acts].act_type = TSEL_ACTION_SET_PARAM;
+			}
 			if (parse_tsel_args(&tsel_acts, argv[i+1], &nb_tsel_acts)==0) {
 				fprintf(stderr, "Invalid group syntax - check usage\n");
 				MP4BOX_EXIT_WITH_CODE(1);
@@ -2766,7 +2778,7 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-group-clean")) {
-			tsel_acts[nb_tsel_acts].act_type = 3;
+			tsel_acts[nb_tsel_acts].act_type = TSEL_ACTION_REMOVE_ALL_TSEL_IN_FILE;
 			nb_tsel_acts++;
 			open_edit=1;
 		}
@@ -3501,7 +3513,7 @@ int mp4boxMain(int argc, char **argv)
 		char szFile[1024];
 		for (i=0; i<nb_track_act; i++) {
 			TrackAction *tka = &tracks[i];
-			if (tka->act_type != 9) continue;
+			if (tka->act_type != TRAC_ACTION_RAW_EXTRACT) continue;
 			memset(&mdump, 0, sizeof(mdump));
 			mdump.in_name = inName;
 			mdump.flags = tka->dump_type;
@@ -3609,7 +3621,7 @@ int mp4boxMain(int argc, char **argv)
 		GF_MediaExporter mdump;
 		for (i=0; i<nb_track_act; i++) {
 			TrackAction *tka = &tracks[i];
-			if (tka->act_type != 9) continue;
+			if (tka->act_type != TRAC_ACTION_RAW_EXTRACT) continue;
 			memset(&mdump, 0, sizeof(mdump));
 			mdump.file = file;
 			mdump.flags = tka->dump_type;
@@ -3658,13 +3670,13 @@ int mp4boxMain(int argc, char **argv)
 
 		switch (meta->act_type) {
 #ifndef GPAC_DISABLE_ISOM_WRITE
-		case 0:
+		case META_ACTION_SET_TYPE:
 			/*note: we don't handle file brand modification, this is an author stuff and cannot be guessed from meta type*/
 			e = gf_isom_set_meta_type(file, meta->root_meta, tk, meta->meta_4cc);
 			gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_ISO2, 1);
 			needSave = 1;
 			break;
-		case 1:
+		case META_ACTION_ADD_ITEM:
 			self_ref = !stricmp(meta->szPath, "NULL") || !stricmp(meta->szPath, "this") || !stricmp(meta->szPath, "self");
 			e = gf_isom_add_meta_item(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath,
 			                          strlen(meta->szName) ? meta->szName : NULL,
@@ -3674,20 +3686,20 @@ int mp4boxMain(int argc, char **argv)
 			                          meta->use_dref ? meta->szPath : NULL,  NULL);
 			needSave = 1;
 			break;
-		case 2:
+		case META_ACTION_REM_ITEM:
 			e = gf_isom_remove_meta_item(file, meta->root_meta, tk, meta->item_id);
 			needSave = 1;
 			break;
-		case 3:
+		case META_ACTION_SET_PRIMARY_ITEM:
 			e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
 			needSave = 1;
 			break;
-		case 4:
-		case 5:
-			e = gf_isom_set_meta_xml(file, meta->root_meta, tk, meta->szPath, (meta->act_type==5) ? 1 : 0);
+		case META_ACTION_SET_XML:
+		case META_ACTION_SET_BINARY_XML:
+			e = gf_isom_set_meta_xml(file, meta->root_meta, tk, meta->szPath, (meta->act_type==META_ACTION_SET_BINARY_XML) ? 1 : 0);
 			needSave = 1;
 			break;
-		case 6:
+		case META_ACTION_REM_XML:
 			if (gf_isom_get_meta_item_count(file, meta->root_meta, tk)) {
 				e = gf_isom_remove_meta_xml(file, meta->root_meta, tk);
 				needSave = 1;
@@ -3695,7 +3707,7 @@ int mp4boxMain(int argc, char **argv)
 				fprintf(stderr, "No meta box in input file\n");
 			}
 			break;
-		case 8:
+		case META_ACTION_DUMP_XML:
 			if (gf_isom_get_meta_item_count(file, meta->root_meta, tk)) {
 				e = gf_isom_extract_meta_item(file, meta->root_meta, tk, meta->item_id, strlen(meta->szPath) ? meta->szPath : NULL);
 			} else {
@@ -3703,12 +3715,14 @@ int mp4boxMain(int argc, char **argv)
 			}
 			break;
 #endif
-		case 7:
+		case META_ACTION_DUMP_ITEM:
 			if (gf_isom_has_meta_xml(file, meta->root_meta, tk)) {
 				e = gf_isom_extract_meta_xml(file, meta->root_meta, tk, meta->szPath, NULL);
 			} else {
 				fprintf(stderr, "No meta box in input file\n");
 			}
+			break;
+		default: 
 			break;
 		}
 		if (e) goto err_exit;
@@ -3721,7 +3735,7 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	for (i=0; i<nb_tsel_acts; i++) {
 		switch (tsel_acts[i].act_type) {
-		case 0:
+		case TSEL_ACTION_SET_PARAM:
 			e = gf_isom_set_track_switch_parameter(file,
 			                                       gf_isom_get_track_by_id(file, tsel_acts[i].trackID),
 			                                       tsel_acts[i].refTrackID ? gf_isom_get_track_by_id(file, tsel_acts[i].refTrackID) : 0,
@@ -3731,20 +3745,22 @@ int mp4boxMain(int argc, char **argv)
 			if (e) goto err_exit;
 			needSave = 1;
 			break;
-		case 1:
+		case TSEL_ACTION_REMOVE_TSEL:
 			e = gf_isom_reset_track_switch_parameter(file, gf_isom_get_track_by_id(file, tsel_acts[i].trackID), 0);
 			if (e) goto err_exit;
 			needSave = 1;
 			break;
-		case 2:
+		case TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP:
 			e = gf_isom_reset_track_switch_parameter(file, gf_isom_get_track_by_id(file, tsel_acts[i].trackID), 1);
 			if (e) goto err_exit;
 			needSave = 1;
 			break;
-		case 3:
+		case TSEL_ACTION_REMOVE_ALL_TSEL_IN_FILE:
 			e = gf_isom_reset_switch_parameters(file);
 			if (e) goto err_exit;
 			needSave = 1;
+			break;
+		default:
 			break;
 		}
 	}
@@ -3907,7 +3923,7 @@ int mp4boxMain(int argc, char **argv)
 		u32 track = tka->trackID ? gf_isom_get_track_by_id(file, tka->trackID) : 0;
 		u32 timescale = gf_isom_get_timescale(file);
 		switch (tka->act_type) {
-		case 0:
+		case TRAC_ACTION_REM_TRACK:
 			e = gf_isom_remove_track(file, track);
 			if (e) {
 				fprintf(stderr, "Error Removing track ID %d: %s\n", tka->trackID, gf_error_to_string(e));
@@ -3916,7 +3932,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 			needSave = 1;
 			break;
-		case 1:
+		case TRAC_ACTION_SET_LANGUAGE:
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
 				if (track && (track != i+1)) continue;
 				e = gf_isom_set_media_language(file, i+1, tka->lang);
@@ -3925,7 +3941,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 			needSave = 1;
 			break;
-		case 2:
+		case TRAC_ACTION_SET_DELAY:
 			if (tka->delay_ms) {
 				u64 tk_dur;
 
@@ -3952,7 +3968,7 @@ int mp4boxMain(int argc, char **argv)
 				needSave = 1;
 			}
 			break;
-		case 3:
+		case TRAC_ACTION_SET_KMS_URI:
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
 				if (track && (track != i+1)) continue;
 				if (!gf_isom_is_media_encrypted(file, i+1, 1)) continue;
@@ -3962,34 +3978,36 @@ int mp4boxMain(int argc, char **argv)
 				needSave = 1;
 			}
 			break;
-		case 4:
+		case TRAC_ACTION_SET_PAR:
 			e = gf_media_change_par(file, track, tka->par_num, tka->par_den);
 			needSave = 1;
 			break;
-		case 5:
+		case TRAC_ACTION_SET_HANDLER_NAME:
 			e = gf_isom_set_handler_name(file, track, tka->hdl_name);
 			needSave = 1;
 			break;
-		case 6:
+		case TRAC_ACTION_ENABLE:
 			if (!gf_isom_is_track_enabled(file, track)) {
 				e = gf_isom_set_track_enabled(file, track, 1);
 				needSave = 1;
 			}
 			break;
-		case 7:
+		case TRAC_ACTION_DISABLE:
 			if (gf_isom_is_track_enabled(file, track)) {
 				e = gf_isom_set_track_enabled(file, track, 0);
 				needSave = 1;
 			}
 			break;
-		case 8:
+		case TRAC_ACTION_REFERENCE:
 			e = gf_isom_set_track_reference(file, track, GF_4CC(tka->lang[0], tka->lang[1], tka->lang[2], tka->lang[3]), (u32) tka->delay_ms);
 			needSave = 1;
 			break;
-		case 10:
+		case TRAC_ACTION_REM_NON_RAP:
 			fprintf(stderr, "Removing non-rap samples from track %d\n", tka->trackID);
 			e = gf_media_remove_non_rap(file, track);
 			needSave = 1;
+			break;
+		default:
 			break;
 		}
 		if (e) goto err_exit;
