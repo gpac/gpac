@@ -129,6 +129,7 @@ enum
 	GF_ISOM_BOX_TYPE_HMHD	= GF_4CC( 'h', 'm', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_HINT	= GF_4CC( 'h', 'i', 'n', 't' ),
 	GF_ISOM_BOX_TYPE_MDIA	= GF_4CC( 'm', 'd', 'i', 'a' ),
+	GF_ISOM_BOX_TYPE_ELNG	= GF_4CC( 'e', 'l', 'n', 'g' ),
 	GF_ISOM_BOX_TYPE_MDAT	= GF_4CC( 'm', 'd', 'a', 't' ),
 	GF_ISOM_BOX_TYPE_MDHD	= GF_4CC( 'm', 'd', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_MINF	= GF_4CC( 'm', 'i', 'n', 'f' ),
@@ -611,6 +612,12 @@ typedef struct __tag_media_box
 	struct __tag_media_info_box *information;
 	u64 BytesMissing;
 } GF_MediaBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	char *extended_language;
+} GF_ExtendedLanguageBox;
 
 typedef struct
 {
@@ -4210,6 +4217,13 @@ GF_Err adaf_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err adaf_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err adaf_Size(GF_Box *s);
 GF_Err adaf_dump(GF_Box *a, FILE * trace);
+
+GF_Box *elng_New();
+void elng_del(GF_Box *s);
+GF_Err elng_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err elng_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err elng_Size(GF_Box *s);
+GF_Err elng_dump(GF_Box *a, FILE * trace);
 
 #endif /*GPAC_DISABLE_ISOM*/
 

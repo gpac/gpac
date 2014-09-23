@@ -192,6 +192,8 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		return tref_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_MDIA:
 		return mdia_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ELNG:
+		return elng_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_CHPL:
 		return chpl_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_PDIN:
@@ -1576,6 +1578,15 @@ GF_Err mdia_dump(GF_Box *a, FILE * trace)
 	gf_box_dump_ex(p->handler, trace,GF_ISOM_BOX_TYPE_HDLR);
 	gf_box_dump_ex(p->information, trace, GF_ISOM_BOX_TYPE_MINF);
 	gf_box_dump_done("MediaBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err elng_dump(GF_Box *a, FILE * trace)
+{
+	GF_ExtendedLanguageBox *p = (GF_ExtendedLanguageBox *)a;
+	fprintf(trace, "<ExtendedLanguageBox LanguageCode=\"%s\">\n", p->extended_language);
+	DumpBox(a, trace);
+	gf_box_dump_done("ExtendedLanguageBox", a, trace);
 	return GF_OK;
 }
 

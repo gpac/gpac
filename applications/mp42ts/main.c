@@ -458,7 +458,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_num, u32 bifs_use_pes, Bool compute_max_size)
 {
 	GF_ESIMP4 *priv;
-	char _lan[4];
+	char *_lan;
 	GF_ESD *esd;
 	u64 avg_rate, duration;
 	s32 ref_count;
@@ -511,11 +511,15 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 		}
 		gf_odf_desc_del((GF_Descriptor *)esd);
 	}
-	gf_isom_get_media_language(mp4, track_num, _lan);
-	if (!strcmp(_lan, "und"))
+	gf_isom_get_media_language(mp4, track_num, &_lan);
+	if (!_lan || !strcmp(_lan, "und")) {
 		ifce->lang = 0;
-	else
+	} else {
 		ifce->lang = GF_4CC(_lan[0],_lan[1],_lan[2],' ');
+	}
+	if (_lan) {
+		gf_free(_lan);
+	}
 
 	ifce->timescale = gf_isom_get_media_timescale(mp4, track_num);
 	ifce->duration = gf_isom_get_media_timescale(mp4, track_num);

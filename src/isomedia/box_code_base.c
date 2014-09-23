@@ -2886,6 +2886,71 @@ GF_Err mdia_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void elng_del(GF_Box *s)
+{
+	GF_ExtendedLanguageBox *ptr = (GF_ExtendedLanguageBox *)s;
+	if (ptr == NULL) return;
+	if (ptr->extended_language) gf_free(ptr->extended_language);
+	gf_free(ptr);
+}
+
+GF_Err elng_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ExtendedLanguageBox *ptr = (GF_ExtendedLanguageBox *)s;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	if (ptr->size) {
+		ptr->extended_language = (char*)gf_malloc((u32) ptr->size);
+		if (ptr->extended_language == NULL) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, ptr->extended_language, (u32) ptr->size);
+		/*safety check in case the string is not null-terminated*/
+		if (ptr->extended_language[ptr->size-1]) {
+			char *str = (char*)gf_malloc((u32) ptr->size + 1);
+			memcpy(str, ptr->extended_language, (u32) ptr->size);
+			str[ptr->size] = 0;
+			gf_free(ptr->extended_language);
+			ptr->extended_language = str;
+		}
+	}
+	return GF_OK;
+}
+
+GF_Box *elng_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_MediaBox, GF_ISOM_BOX_TYPE_ELNG);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err elng_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ExtendedLanguageBox *ptr = (GF_ExtendedLanguageBox *)s;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	if (ptr->extended_language) {
+		gf_bs_write_data(bs, ptr->extended_language, (u32)(strlen(ptr->extended_language)+1));
+	}
+	return GF_OK;
+}
+
+GF_Err elng_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_ExtendedLanguageBox *ptr = (GF_ExtendedLanguageBox *)s;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	ptr->size += 4;
+	if (ptr->extended_language) {
+		ptr->size += strlen(ptr->extended_language)+1;
+	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
@@ -5004,6 +5069,7 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_WVTT:
 	case GF_ISOM_BOX_TYPE_STPP:
 	case GF_ISOM_BOX_TYPE_SBTT:
+	case GF_ISOM_BOX_TYPE_ELNG:
 		return gf_isom_box_add_default((GF_Box*)ptr, a);
 	/*for 3GP config, we must set the type*/
 	case GF_ISOM_SUBTYPE_3GP_AMR:

@@ -968,8 +968,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 			xmlns = att->name;
 		} else if (!strcmp(att->name, "xml:lang")) {
 			if (import->esd && !import->esd->langDesc) {
-				char lang[5];
-				strncpy(lang, att->value, sizeof(lang)-1);
+				char *lang;
+				lang = gf_strdup(att->value);
 				import->esd->langDesc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
 				gf_isom_set_media_language(import->dest, track, lang);
 			}

@@ -495,6 +495,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return tref_New();
 	case GF_ISOM_BOX_TYPE_MDIA:
 		return mdia_New();
+	case GF_ISOM_BOX_TYPE_ELNG:
+		return elng_New();
 
 	case GF_ISOM_BOX_TYPE_FTYP:
 	case GF_ISOM_BOX_TYPE_STYP:
@@ -1042,6 +1044,9 @@ void gf_isom_box_del(GF_Box *a)
 		return;
 	case GF_ISOM_BOX_TYPE_MDIA:
 		mdia_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_ELNG:
+		elng_del(a);
 		return;
 	case GF_ISOM_BOX_TYPE_FTYP:
 	case GF_ISOM_BOX_TYPE_STYP:
@@ -1635,6 +1640,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return tref_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_MDIA:
 		return mdia_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ELNG:
+		return elng_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_CHPL:
 		return chpl_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_FTYP:
@@ -2102,6 +2109,8 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return tref_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_MDIA:
 		return mdia_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_ELNG:
+		return elng_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_FTYP:
 	case GF_ISOM_BOX_TYPE_STYP:
 		return ftyp_Write(a, bs);
@@ -2572,6 +2581,8 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return tref_Size(a);
 	case GF_ISOM_BOX_TYPE_MDIA:
 		return mdia_Size(a);
+	case GF_ISOM_BOX_TYPE_ELNG:
+		return elng_Size(a);
 	case GF_ISOM_BOX_TYPE_FTYP:
 	case GF_ISOM_BOX_TYPE_STYP:
 		return ftyp_Size(a);
