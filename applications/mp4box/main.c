@@ -121,7 +121,6 @@ void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_
 void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump);
 void DumpMovieInfo(GF_ISOFile *file);
 void PrintLanguages();
-const char *GetLanguageCode(char *lang);
 
 #ifndef GPAC_DISABLE_MPEG2TS
 void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num);
@@ -233,7 +232,7 @@ void PrintGeneralUsage()
 	        " -enable trackID      enables track\n"
 	        " -disable trackID     disables track\n"
 	        " -new                 forces creation of a new destination file\n"
-	        " -lang [tkID=]LAN     sets track language. LAN is the ISO 639-2 code (eng, und)\n"
+	        " -lang [tkID=]LAN     sets track language. LAN is the BCP-47 code (eng, en-UK, ...)\n"
 	        " -delay tkID=TIME     sets track start delay in ms.\n"
 	        " -par tkID=PAR        sets visual track pixel aspect ratio (PAR=N:D or \"none\")\n"
 	        " -name tkID=NAME      sets track handler name\n"
@@ -1356,7 +1355,7 @@ typedef struct
 	u32 act_type;
 	/*track ID*/
 	u32 trackID;
-	char lang[4];
+	char *lang;
 	s32 delay_ms;
 	const char *kms;
 	const char *hdl_name;
@@ -2428,16 +2427,15 @@ int mp4boxMain(int argc, char **argv)
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 
 			tracks[nb_track_act].act_type = 1;
-			tracks[nb_track_act].lang[3] = 0;
 			tracks[nb_track_act].trackID = 0;
 			strcpy(szTK, argv[i+1]);
 			ext = strchr(szTK, '=');
 			if (!strnicmp(argv[i+1], "all=", 4)) {
-				strncpy(tracks[nb_track_act].lang, argv[i+1]+1, 3);
+				tracks[nb_track_act].lang = gf_strdup(argv[i+1]+4);
 			} else if (!ext) {
-				strncpy(tracks[nb_track_act].lang, argv[i+1], 3);
+				tracks[nb_track_act].lang = gf_strdup(argv[i+1]);
 			} else {
-				strncpy(tracks[nb_track_act].lang, ext+1, 3);
+				tracks[nb_track_act].lang = gf_strdup(ext+1);
 				ext[0] = 0;
 				tracks[nb_track_act].trackID = atoi(szTK);
 				ext[0] = '=';
@@ -2489,7 +2487,7 @@ int mp4boxMain(int argc, char **argv)
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
 			ext[0] = 0;
-			strncpy(tracks[nb_track_act].lang, szTK, 4);
+			tracks[nb_track_act].lang = gf_strdup(szTK);
 			ext[0] = ':';
 			tracks[nb_track_act].delay_ms = (s32) atoi(ext+1);
 			open_edit = 1;
@@ -3921,7 +3919,7 @@ int mp4boxMain(int argc, char **argv)
 		case 1:
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
 				if (track && (track != i+1)) continue;
-				e = gf_isom_set_media_language(file, i+1, (char *) GetLanguageCode(tka->lang));
+				e = gf_isom_set_media_language(file, i+1, tka->lang);
 				if (e) goto err_exit;
 				needSave = 1;
 			}

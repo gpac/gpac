@@ -236,7 +236,7 @@ GF_Err gf_isom_set_track_enabled(GF_ISOFile *movie, u32 trackNumber, u8 enableTr
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_media_language(GF_ISOFile *movie, u32 trackNumber, char *three_char_code)
+GF_Err gf_isom_set_media_language(GF_ISOFile *movie, u32 trackNumber, char *code)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -244,7 +244,14 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *movie, u32 trackNumber, char *thre
 	if (!trak) return GF_BAD_PARAM;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
-	memcpy(trak->Media->mediaHeader->packedLanguage, three_char_code, sizeof(char)*3);
+	if (strlen(code) == 3) {
+		memcpy(trak->Media->mediaHeader->packedLanguage, code, sizeof(char)*3);
+	} else {
+		GF_ExtendedLanguageBox *elng = (GF_ExtendedLanguageBox *)elng_New();
+		elng->extended_language = gf_strdup(code);
+		trak->Media->other_boxes = gf_list_new();
+		gf_list_add(trak->Media->other_boxes, elng);
+	}
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 	return GF_OK;

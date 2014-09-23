@@ -55,7 +55,7 @@ struct _dash_component
 	/*for audio*/
 	u32 sample_rate, channels;
 	/*apply to any media. We use 5 bytes because we may use copy data converted from gf_4cc_to_str which is 5 bytes*/
-	char szLang[5];
+	char *lang;
 };
 
 typedef struct
@@ -540,7 +540,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u64 presentationTimeOffset = 0;
 	Double segment_start_time, file_duration, period_duration, max_segment_duration;
 	u32 nb_segments, width, height, sample_rate, nb_channels, sar_w, sar_h, fps_num, fps_denum, startNumber;
-	char langCode[5];
+	char *langCode;
 	u32 index_start_range, index_end_range;
 	Bool force_switch_segment = GF_FALSE;
 	Bool switch_segment = GF_FALSE;
@@ -716,8 +716,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	tf = tfref = NULL;
 	file_duration = 0;
 	width = height = sample_rate = nb_channels = sar_w = sar_h = fps_num = fps_denum = 0;
-	langCode[0]=0;
-	langCode[4]=0;
+	langCode = NULL;
 	szCodecs[0] = 0;
 
 
@@ -955,7 +954,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		case GF_ISOM_MEDIA_SUBT:
 		case GF_ISOM_MEDIA_MPEG_SUBT:
 			tf->splitable = GF_TRUE;
-			gf_isom_get_media_language(input, i+1, langCode);
+			gf_isom_get_media_language(input, i+1, &langCode);
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_DIMS:
@@ -972,7 +971,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			gf_isom_get_audio_info(input, i+1, 1, &_sr, &_nb_ch, NULL);
 			if (_sr>sample_rate) sample_rate=_sr;
 			if (_nb_ch>nb_channels) nb_channels = _nb_ch;
-			gf_isom_get_media_language(input, i+1, langCode);
+			gf_isom_get_media_language(input, i+1, &langCode);
 			break;
 		}
 
@@ -1955,6 +1954,9 @@ restart_fragmentation_pass:
 	}
 
 err_exit:
+	if (langCode) {
+		gf_free(langCode);
+	}
 	if (fragmenters) {
 		while (gf_list_count(fragmenters)) {
 			tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, 0);
@@ -2017,7 +2019,7 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 
 		input->components[input->nb_components].ID = gf_isom_get_track_id(in, i+1);
 		input->components[input->nb_components].media_type = mtype;
-		gf_isom_get_media_language(in, i+1, input->components[input->nb_components].szLang);
+		gf_isom_get_media_language(in, i+1, &input->components[input->nb_components].lang);
 
 		if (mtype == GF_ISOM_MEDIA_VISUAL) {
 			gf_isom_get_visual_info(in, i+1, 1, &input->components[input->nb_components].width, &input->components[input->nb_components].height);
@@ -2025,8 +2027,6 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 			input->components[input->nb_components].fps_num = gf_isom_get_media_timescale(in, i+1);
 			/*get duration of 2nd sample*/
 			input->components[input->nb_components].fps_denum = gf_isom_get_sample_duration(in, i+1, 2);
-
-			input->components[input->nb_components].szLang[0] = 0;
 		}
 		/*non-video tracks, get lang*/
 		else if (mtype == GF_ISOM_MEDIA_AUDIO) {
@@ -2137,14 +2137,18 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 			}
 
 			if ((mtype!=GF_ISOM_MEDIA_VISUAL) && (mtype!=GF_ISOM_MEDIA_HINT)) {
-				char szLang1[4], szLang2[4];
-				szLang1[3] = szLang2[3] = 0;
-				gf_isom_get_media_language(set_file, j+1, szLang1);
-				gf_isom_get_media_language(in, track, szLang2);
-				if (stricmp(szLang1, szLang2)) {
+				char *lang1, *lang2;
+				lang1 = lang2 = NULL;
+				gf_isom_get_media_language(set_file, j+1, &lang1);
+				gf_isom_get_media_language(in, track, &lang2);
+				if (lang1 && lang2 && stricmp(lang1, lang2)) {
 					valid_in_adaptation_set = GF_FALSE;
+					gf_free(lang1);
+					gf_free(lang2);
 					break;
 				}
+				if (lang1) gf_free(lang1);
+				if (lang2) gf_free(lang2);
 			}
 			if (mtype==GF_ISOM_MEDIA_VISUAL) {
 				u32 w1, h1, w2, h2, sap_type;
@@ -2611,8 +2615,9 @@ static GF_Err dasher_generic_get_components_info(GF_DashSegInput *input, GF_DASH
 		input->components[i].channels = in.tk_info[i].audio_info.nb_channels;
 		input->components[i].sample_rate = in.tk_info[i].audio_info.sample_rate;
 		input->components[i].ID = in.tk_info[i].track_num;
-		if (in.tk_info[i].lang)
-			strcpy(input->components[i].szLang, gf_4cc_to_str(in.tk_info[i].lang) );
+		if (in.tk_info[i].lang) {
+			input->components[i].lang = gf_strdup( gf_4cc_to_str(in.tk_info[i].lang) );
+		}
 		strcpy(input->components[i].szCodec, in.tk_info[i].szCodecProfile);
 		input->components[i].fps_denum = 1000;
 		input->components[i].fps_num = (u32) (in.tk_info[i].video_info.FPS*1000);
@@ -4033,7 +4038,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 		gf_media_reduce_aspect_ratio(&max_width, &max_height);
 		fprintf(mpd, " par=\"%d:%d\"", max_width, max_height);
 	}
-	if (szLang && szLang[0] && strcmp(szLang, "und")) {
+	if (szLang && strcmp(szLang, "und")) {
 		fprintf(mpd, " lang=\"%s\"", szLang);
 	}
 	/*this should be fixed to use info collected during segmentation process*/
@@ -4104,8 +4109,8 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 					break;
 				}
 				/*if lang not specified at adaptationSet level, put it here*/
-				if ((!szLang || !szLang[0]) && (comp->szLang[0] && strcmp(comp->szLang, "und"))) {
-					fprintf(mpd, " lang=\"%s\"", comp->szLang);
+				if ((!szLang) && (comp->lang && strcmp(comp->lang, "und"))) {
+					fprintf(mpd, " lang=\"%s\"", comp->lang);
 				}
 				fprintf(mpd, "/>\n");
 			}
@@ -4886,7 +4891,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			u32 fps_num = 0;
 			u32 fps_denum = 0;
 			Bool use_bs_switching = bitstream_switching ? 1 : 0;
-			char szLang[4];
+			char *lang;
 			char szFPS[100];
 			Bool is_first_rep=0;
 			Bool skip_init_segment_creation = 0;
@@ -4941,7 +4946,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			dash_opts.use_url_template = seg_name ? use_url_template : 0;
 
 			szFPS[0] = 0;
-			szLang[0] = 0;
+			lang = NULL;
 			/*compute some max defaults*/
 			for (i=0; i<nb_dash_inputs && !e; i++) {
 
@@ -4963,11 +4968,11 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 						fps_denum = dash_inputs[i].components[j].fps_denum;
 					}
 
-					if (dash_inputs[i].components[j].szLang && dash_inputs[i].components[j].szLang[0] && strncmp(szLang, dash_inputs[i].components[j].szLang, 3) ) {
-						if (szLang[0]) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] two languages in adaptation set: %s will be kept %s will be ignored\n", szLang, dash_inputs[i].components[j].szLang));
-						} else {
-							memcpy(szLang, dash_inputs[i].components[j].szLang, 4*sizeof(char));
+					if (dash_inputs[i].components[j].lang) {
+						if (lang && strcmp(lang, dash_inputs[i].components[j].lang)) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] two languages in adaptation set: %s will be kept %s will be ignored\n", lang, dash_inputs[i].components[j].lang));
+						} else  if (!lang) {
+							lang = gf_strdup(dash_inputs[i].components[j].lang);
 						}
 					}
 				}
@@ -4981,7 +4986,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					sprintf(szFPS, "%d", fps_num);
 			}
 
-			e = write_adaptation_header(period_mpd, dash_profile, use_url_template, segment_mode, dash_inputs, nb_dash_inputs, cur_period+1, cur_adaptation_set+1, first_rep_in_set, use_bs_switching, max_width, max_height, szFPS, szLang, szInit);
+			e = write_adaptation_header(period_mpd, dash_profile, use_url_template, segment_mode, dash_inputs, nb_dash_inputs, cur_period+1, cur_adaptation_set+1, first_rep_in_set, use_bs_switching, max_width, max_height, szFPS, lang, szInit);
 			if (e) goto exit;
 
 			is_first_rep = 1;
@@ -5092,12 +5097,16 @@ exit:
 			}
 		}
 	}
-	/* TODO free descriptors */
 	for (i=0; i < nb_inputs; i++) {
 		if (dash_inputs[i].as_descs) gf_free(dash_inputs[i].as_descs);
 		if (dash_inputs[i].as_c_descs) gf_free(dash_inputs[i].as_c_descs);
 		if (dash_inputs[i].p_descs) gf_free(dash_inputs[i].p_descs);
 		if (dash_inputs[i].rep_descs) gf_free(dash_inputs[i].rep_descs);
+		for (j = 0; j < dash_inputs[i].nb_components; j++) {
+			if (dash_inputs[i].components[j].lang) {
+				gf_free(dash_inputs[i].components[j].lang);
+			}
+		}
 	}
 	gf_free(dash_inputs);
 	return e;

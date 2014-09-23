@@ -82,13 +82,6 @@ static const char *GetLanguage(char *lcode)
 	return lcode;
 }
 
-const char *GetLanguageCode(char *lang)
-{
-	s32 idx = gf_lang_find(lang);
-	if (idx>=0) return gf_lang_get_3cc(idx);
-	return "und";
-}
-
 GF_Err dump_cover_art(GF_ISOFile *file, char *inName)
 {
 	const char *tag;
@@ -1590,7 +1583,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	u64 time_slice, dur, size;
 	u8 bps;
 	GF_ESD *esd;
-	char sType[5], szDur[50];
+	char szDur[50];
+	char *lang;
 
 	trackNum = gf_isom_get_track_by_id(file, trackID);
 	if (!trackNum) {
@@ -1606,8 +1600,9 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 
 	if (gf_isom_is_track_in_root_od(file, trackNum) ) fprintf(stderr, "Track is present in Root OD\n");
 	if (!gf_isom_is_track_enabled(file, trackNum))  fprintf(stderr, "Track is disabled\n");
-	gf_isom_get_media_language(file, trackNum, sType);
-	fprintf(stderr, "Media Info: Language \"%s\" - ", GetLanguage(sType) );
+	gf_isom_get_media_language(file, trackNum, &lang);
+	fprintf(stderr, "Media Info: Language \"%s (%s)\" - ", GetLanguage(lang), lang );
+	gf_free(lang);
 	mtype = gf_isom_get_media_type(file, trackNum);
 	fprintf(stderr, "Type \"%s:", gf_4cc_to_str(mtype));
 	msub_type = gf_isom_get_mpeg4_subtype(file, trackNum, 1);

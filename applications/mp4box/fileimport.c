@@ -60,7 +60,6 @@ extern u32 swf_flags;
 extern Float swf_flatten_angle;
 extern Bool keep_sys_tracks;
 
-const char *GetLanguageCode(char *lang);
 void scene_coding_log(void *cbk, u32 log_level, u32 log_tool, const char *fmt, va_list vlist);
 
 void convert_file_info(char *inName, u32 trackID)
@@ -252,7 +251,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 		/*all extensions for track-based importing*/
 		if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32) (atof(ext+5) * 1000);
-		else if (!strnicmp(ext+1, "lang=", 5)) szLan = GetLanguageCode(ext+6);
+		else if (!strnicmp(ext+1, "lang=", 5)) szLan = ext+6;
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
 		else if (!strnicmp(ext+1, "par=", 4)) {
 			if (!stricmp(ext+5, "none")) {
@@ -1658,12 +1657,21 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 					/*check language code*/
 					else if (!skip_lang_test && (mtype==GF_ISOM_MEDIA_AUDIO)) {
 						u32 lang_src, lang_dst;
-						char lang[4];
-						lang[3]=0;
-						gf_isom_get_media_language(orig, i+1, lang);
-						lang_src = GF_4CC(lang[0], lang[1], lang[2], lang[3]);
-						gf_isom_get_media_language(dest, j+1, lang);
-						lang_dst = GF_4CC(lang[0], lang[1], lang[2], lang[3]);
+						char *lang = NULL;
+						gf_isom_get_media_language(orig, i+1, &lang);
+						if (lang) {
+							lang_src = GF_4CC(lang[0], lang[1], lang[2], lang[3]);
+							gf_free(lang);
+						} else {
+							lang_src = 0;
+						}
+						gf_isom_get_media_language(dest, j+1, &lang);
+						if (lang) {
+							lang_dst = GF_4CC(lang[0], lang[1], lang[2], lang[3]);
+							gf_free(lang);
+						} else {
+							lang_dst = 0;
+						}
 						if (lang_dst==lang_src) {
 							dst_tk = j+1;
 							break;

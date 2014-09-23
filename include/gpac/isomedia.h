@@ -755,8 +755,8 @@ you musty pass (userData != NULL && *userData=NULL)*/
 GF_Err gf_isom_get_user_data(GF_ISOFile *the_file, u32 trackNumber, u32 UserDataType, bin128 UUID, u32 UserDataIndex, char **userData, u32 *userDataSize);
 
 
-/*gets 3char media language code - @three_char_code must be at least 4 char long*/
-GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char *three_char_code);
+/*gets the media language code (3 chars if old files, longer if BCP-47 */
+GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char **lang);
 
 /*Unknown sample description*/
 typedef struct
@@ -1074,8 +1074,8 @@ GF_Err gf_isom_modify_cts_offset(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 /*remove CTS offset table (used for B-frames)*/
 GF_Err gf_isom_remove_cts_info(GF_ISOFile *the_file, u32 trackNumber);
 
-/*set 3char code media language*/
-GF_Err gf_isom_set_media_language(GF_ISOFile *the_file, u32 trackNumber, char *three_char_code);
+/*set 3-char or BCP-47 code media language*/
+GF_Err gf_isom_set_media_language(GF_ISOFile *the_file, u32 trackNumber, char *code);
 
 /*removes given stream description*/
 GF_Err gf_isom_remove_sample_description(GF_ISOFile *the_file, u32 trackNumber, u32 streamDescIndex);

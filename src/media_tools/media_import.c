@@ -1973,7 +1973,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	s32 trans_x, trans_y;
 	s16 layer;
 	u8 bps;
-	char lang[4];
+	char *lang;
 	const char *orig_name = gf_url_get_resource_name(gf_isom_get_filename(import->orig));
 	Bool sbr, ps;
 	GF_ISOSample *samp;
@@ -1991,9 +1991,11 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			} else if (import->tk_info[i].type == GF_ISOM_MEDIA_AUDIO) {
 				gf_isom_get_audio_info(import->orig, i+1, 1, &import->tk_info[i].audio_info.sample_rate, &import->tk_info[i].audio_info.nb_channels, NULL);
 			}
-			lang[3] = 0;
-			gf_isom_get_media_language(import->orig, i+1, lang);
-			import->tk_info[i].lang = GF_4CC(' ', lang[0], lang[1], lang[2]);
+			lang = NULL;
+			gf_isom_get_media_language(import->orig, i+1, &lang);
+			if (lang) {
+				import->tk_info[i].lang = GF_4CC(' ', lang[0], lang[1], lang[2]);
+			}
 			import->nb_tracks ++;
 		}
 		return GF_OK;
