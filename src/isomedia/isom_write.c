@@ -247,10 +247,28 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *movie, u32 trackNumber, char *code
 	if (strlen(code) == 3) {
 		memcpy(trak->Media->mediaHeader->packedLanguage, code, sizeof(char)*3);
 	} else {
-		GF_ExtendedLanguageBox *elng = (GF_ExtendedLanguageBox *)elng_New();
+		u32 i, count;
+		GF_ExtendedLanguageBox *elng;
+		elng = NULL;
+		count = gf_list_count(trak->Media->other_boxes);
+		for (i = 0; i < count; i++) {
+			GF_Box *box = (GF_Box *)gf_list_get(trak->Media->other_boxes, i);
+			if (box->type == GF_ISOM_BOX_TYPE_ELNG) {
+				elng = (GF_ExtendedLanguageBox *)box;
+				break;
+			}
+		}
+		if (!elng) {
+			elng = (GF_ExtendedLanguageBox *)elng_New();
+			if (!count) {
+				trak->Media->other_boxes = gf_list_new();
+			}
+			gf_list_add(trak->Media->other_boxes, elng);
+		}
+		if (elng->extended_language) {
+			gf_free(elng->extended_language);
+		}
 		elng->extended_language = gf_strdup(code);
-		trak->Media->other_boxes = gf_list_new();
-		gf_list_add(trak->Media->other_boxes, elng);
 	}
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
