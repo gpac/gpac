@@ -615,14 +615,16 @@ else
 	$(RANLIB) ../bin/gcc/libgpac_static.a
 	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o $@ $(OBJS) $(EXTRALIBS)
 ifeq (,$(findstring yes, $(CONFIG_WIN32)))
-	ln -sf $@ $@.a
 	mv $@ $@.$(VERSION_SONAME)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@.$(VERSION_MAJOR)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@
+else
+	ln -sf $@ $(notdir $@).a
+	mv $(notdir $@).a $@.a
 endif
 endif
 ifeq ($(shell fgrep "Libs.private:" ../gpac.pc),)
-	echo Libs.private: $(LINKLIBS) $(EXTRALIBS) $(OBJS) >> ../gpac.pc
+	@echo "Libs.private: $(EXTRALIBS)" >> ../gpac.pc
 endif
 
 dep:
