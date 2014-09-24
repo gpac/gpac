@@ -114,6 +114,9 @@ uninstall:
 	$(MAKE) -C applications uninstall
 	rm -rf $(DESTDIR)$(moddir)
 	rm -rf $(DESTDIR)$(prefix)/$(libdir)/libgpac*
+ifeq ($(CONFIG_WIN32),yes)
+	rm -rf "$(DESTDIR)$(prefix)/bin/libgpac*"
+endif
 	rm -rf $(DESTDIR)$(prefix)/$(libdir)/pkgconfig/gpac.pc
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Box
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Client
@@ -126,7 +129,8 @@ uninstall:
 
 installdylib:
 ifeq ($(CONFIG_WIN32),yes)
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(prefix)/$(libdir)
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll.a $(DESTDIR)$(prefix)/$(libdir)
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(DESTDIR)$(prefix)/bin
 else
 ifeq ($(DEBUGBUILD),no)
 	$(STRIP) bin/gcc/libgpac.$(DYN_LIB_SUFFIX)
