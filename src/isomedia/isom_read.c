@@ -665,7 +665,8 @@ GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char **
 	*lang = NULL;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
-	if (count = gf_list_count(trak->Media->other_boxes)>0) {
+	count = gf_list_count(trak->Media->other_boxes);
+    if (count>0) {
 		u32 i;
 		for (i = 0; i < count; i++) {
 			GF_Box *box = (GF_Box *)gf_list_get(trak->Media->other_boxes, i);
