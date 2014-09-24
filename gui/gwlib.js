@@ -167,6 +167,9 @@ function gw_object_set_hitable(obj) {
     obj._enable_touch = function () {
         this.children[this._ts_idx].enabled = true;
     }
+    obj.new_over_handler = function(callback) {
+        Browser.addRoute(this.children[this._ts_idx], 'isOver', this, callback);
+    }
 }
 
 //static
@@ -315,6 +318,11 @@ function gw_window_show_hide() {
             wnd.scale.x = wnd.visible ? 1 : 0;
             wnd.scale.y = wnd.visible ? 1 : 0;
             wnd.set_alpha(wnd.alpha);
+            if (wnd.visible) {
+//                gw_ui_root.set_focus(wnd);
+            } else {
+//                gw_ui_root.remove_focus(wnd);
+            }
             fun = this.call_on_end;
             this.call_on_end = null;
             if (fun) {
@@ -381,6 +389,30 @@ function gw_get_abs_pos(child) {
     return pos;
 }
 
+function gw_get_adjusted_abs_pos(child, width, height, type)
+{
+    var pos = gw_get_abs_pos(child);
+
+    if (type == 0) {
+        pos.y += child.height/2 + height/2; 
+    } else if (type==1) {
+        pos.y -= child.height/2 + height/2; 
+    }
+    
+    
+    if (pos.x - width / 2 < - gw_display_width / 2)
+        pos.x = - gw_display_width / 2 + width / 2;
+    else if (pos.x + width / 2 > gw_display_width / 2)
+        pos.x = gw_display_width / 2 - width / 2;
+    
+    if (pos.y + height/2 > gw_display_height / 2)
+        pos.y = gw_display_height / 2 - height/2;
+    else if (pos.y - height/2 < -gw_display_height / 2)
+        pos.y = height/2 - gw_display_height / 2;
+
+    return pos;
+}
+
 
 gwskin.tooltip_wnd = null;
 
@@ -389,11 +421,12 @@ gwskin.tooltip_callback = function (obj, show) {
     if (!show) return;
 
     if (!gwskin.tooltip_wnd) {
-        wnd = gw_new_window(null, true, true, true);
+        wnd = gw_new_window(null, true, true, 'tooltip', true);
         gwskin.tooltip_wnd = wnd;
         wnd.txt = gw_new_text(gwskin.tooltip_wnd, '');
+        wnd.label = '';
         wnd.on_display_size = function (w, h) {
-            width = 10 * gwskin.default_text_font_size;
+            width = this.label.length * gwskin.default_text_font_size;
             this.set_size(width, 2 * gwskin.default_text_font_size);
             this.txt.set_width(width);
             this.move(-w / 2 + width / 2, h / 2 - gwskin.default_text_font_size);
@@ -413,23 +446,16 @@ gwskin.tooltip_callback = function (obj, show) {
             if (!val) gwskin.tooltip_wnd.close();
         }
     }
-    var pos = gw_get_abs_pos(obj); ;
+    
+    gwskin.tooltip_wnd.label = obj.get_label();
+    gwskin.tooltip_wnd.txt.set_label(gwskin.tooltip_wnd.label);
+    gwskin.tooltip_wnd.on_display_size(gw_display_width, gw_display_height);
+    
+
     var tt = gwskin.tooltip_wnd;
     var dy = 1.2 * tt.height;
-
-    if (pos.x - tt.width / 2 < -gw_display_width / 2)
-        pos.x = -gw_display_width / 2 + tt.width / 2;
-    else if (pos.x + tt.width / 2 > gw_display_width / 2)
-        pos.x = gw_display_width / 2 - tt.width / 2;
-
-    if (pos.y + dy > gw_display_height / 2)
-        pos.y -= dy;
-    else
-        pos.y += dy;
-
+    var pos = gw_get_adjusted_abs_pos(obj, tt.width, 1.2*tt.height, 0);
     tt.move(pos.x, pos.y);
-
-    gwskin.tooltip_wnd.txt.set_label('' + obj.get_label());
 }
 
 gwskin.default_label_font_size = 14;
@@ -518,6 +544,16 @@ s.font = gw_new_fontstyle(gwskin.default_label_font_size, 1);
 s.font.skin = true;
 s.hide = gw_window_hide;
 s.show = gw_window_show;
+
+tt_s = { name: 'tooltip' };
+gwskin.styles.push(tt_s);
+tt_s.normal = gw_new_appearance(0.6, 0.6, 0.6);
+tt_s.normal.texture = s.normal.texture;
+tt_s.normal.material.lineProps = gw_new_lineprops(0, 0, 0);
+tt_s.normal.material.lineProps.width = 0.5;
+tt_s.font = s.font;
+//tt_s.hide = gw_window_hide;
+//tt_s.show = gw_window_show;
 
 s = { name: 'progress' };
 gwskin.styles.push(s);
@@ -652,6 +688,14 @@ gwskin.images.statistics = 'icons/speed.svg';
 gwskin.labels.statistics = 'Statistics';
 gwskin.images.live = 'icons/live.svg';
 gwskin.labels.live = 'Back to live';
+gwskin.images.sort = 'icons/sort.svg';
+gwskin.labels.sort = 'Sort';
+gwskin.images.playlist = 'icons/list.svg';
+gwskin.labels.playlist = 'Playlist';
+gwskin.images.playlist_next = 'icons/pl_next.svg';
+gwskin.labels.playlist_next = 'Next';
+gwskin.images.playlist_prev = 'icons/pl_prev.svg';
+gwskin.labels.playlist_prev = 'Previous';
 
 
 gwskin.mime_video_default_ext = " mp4 mp4s m4s 3gp 3gpp m2ts ts trp m3u8 mpd avi mov ";
@@ -731,6 +775,20 @@ function gwskin_set_default_icon_height(value) {
 
 //static
 function gwlib_filter_event(evt) {
+
+    if (gw_ui_root.has_popup && (evt.type == GF_EVENT_MOUSEDOWN)) {
+        //close all open popups
+        var count = gw_ui_root.children.length;
+        for (var i = count; i > 0; i--) {
+            var c = gw_ui_root.children[i - 1];
+            if (typeof c._popup != 'undefined') {
+                c.close();
+                if (count>gw_ui_root.children.length) i--;
+            }
+        }
+        gw_ui_root.has_popup = false;
+    }
+
     if (gw_ui_top_wnd && gw_ui_top_wnd.on_event(evt)) return true;
 
     if ((evt.type == GF_EVENT_KEYDOWN) && ((evt.keycode == 'Up') || (evt.keycode == 'Down') || (evt.keycode == 'Right') || (evt.keycode == 'Left')))
@@ -745,31 +803,42 @@ function gwlib_filter_event(evt) {
 function gwlib_init(root_node) {
     gw_ui_root = gw_new_container();
     gw_ui_root._name = 'Root Display';
+    gw_ui_root.has_popup = false;
     gw_add_child(root_node, gw_ui_root);
 
-    gw_ui_root.add_child = function (child) {
-        this.children[this.children.length] = child;
+    gw_ui_root.set_focus = function(wnd) {
         gw_ui_top_wnd = null;
-        if (typeof child.on_event != 'undefined') {
-            gw_ui_top_wnd = child;
+        if (typeof wnd.on_event != 'undefined') {
+            gw_ui_top_wnd = wnd;
         }
-        if (typeof (child._no_focus) == 'boolean') return;
+        if (typeof (wnd._no_focus) == 'boolean') return;
         gpac.set_focus(gw_ui_top_wnd);
     }
-
-    gw_ui_root.remove_child = function (child) {
+    
+    gw_ui_root.remove_focus = function(wnd) {
         gw_ui_top_wnd = null;
         for (var i = this.children.length; i > 0; i--) {
             var c = this.children[i - 1];
-            if (c == child) continue;
+            if (c == wnd) continue;
+            if (!c.visible) continue;
+            
             if (typeof c.on_event != 'undefined') {
                 gw_ui_top_wnd = c;
                 break;
             }
         }
-        this.removeChildren[0] = child;
-        if (typeof (child._no_focus) == 'boolean') return;
+        if (typeof (wnd._no_focus) == 'boolean') return;
         gpac.set_focus(gw_ui_top_wnd);
+    }
+    
+    gw_ui_root.add_child = function (child) {
+        this.children[this.children.length] = child;
+        this.set_focus(child);
+    }
+
+    gw_ui_root.remove_child = function (child) {
+        this.remove_focus(child);
+        this.removeChildren[0] = child;
     }
     gw_ui_top_wnd = null;
     gw_event_filters = [];
@@ -1190,7 +1259,8 @@ function gw_new_text(parent, label, class_name) {
         }
     }
     obj.get_label = function () {
-        return this.children[0].children[0].geometry.string[0];
+        var mfs = this.children[0].children[0].geometry.string;
+        return mfs.length ? this.children[0].children[0].geometry.string[0] : '';
     }
     obj.set_width = function (value) {
         this.children[0].children[0].geometry.maxExtent = -value;
@@ -1372,10 +1442,11 @@ function gw_new_window(parent, offscreen, background, class_name, no_focus) {
         this.remove_child(this._disable_rect);
     }
 
+    var s = gwskin.get_class(class_name);
 
-    if (typeof gwskin[class_name] != 'undefined') {
-        if (typeof gwskin[class_name].show != 'undefined') obj.show = gwskin[class_name].show;
-        if (typeof gwskin[class_name].hide != 'undefined') obj.hide = gwskin[class_name].hide;
+    if (s) {
+        if (typeof s.show != 'undefined') obj.show = s.show;
+        if (typeof s.hide != 'undefined') obj.hide = s.hide;
     }
 
     obj.on_close = null;
@@ -1822,7 +1893,7 @@ function gw_new_subscene(parent) {
 
 function gw_new_button(parent, text, class_name) {
     var label;
-    if (arguments.length <= 3) class_name = 'button';
+    if (arguments.length < 3) class_name = 'button';
     obj = gw_new_rectangle(class_name, 'normal');
     label = gw_new_text(obj, text, class_name);
     gw_object_set_hitable(obj);
@@ -2266,8 +2337,8 @@ function gw_new_grid_container(parent) {
         gw_close_child_list(this._all_children);
         this._all_children.length = 0;
         this._container.children.length = 0;
-	this._page_idx = 0;
-	this._max_page_idx = 0;
+        this._page_idx = 0;
+        this._max_page_idx = 0;
     }
 
 
@@ -2798,7 +2869,6 @@ function gw_new_message(container, label, content) {
     return notif;
 }
 
-
 function gw_new_confirm_wnd(container, label, confirm_yes, confirm_no) {
     if (arguments.length < 4) confirm_no = 'no';
     if (arguments.length < 3) confirm_yes = 'yes';
@@ -2837,6 +2907,37 @@ function gw_new_confirm_wnd(container, label, confirm_yes, confirm_no) {
 }
 
 
+function gw_guess_mime_icon(name)
+{
+
+    var ext = name.split('.').pop();
+    var reg = new RegExp(' ' + ext + ' ', "gi");
+    //check default extensions
+    if (gwskin.mime_video_default_ext.match(reg)) return gwskin.images.mime_video;
+    else if (gwskin.mime_audio_default_ext.match(reg)) return gwskin.images.mime_audio;
+    else if (gwskin.mime_image_default_ext.match(reg)) return gwskin.images.mime_image;
+    else if (gwskin.mime_model_default_ext.match(reg)) return gwskin.images.mime_model;
+
+    var idx = 0;
+    while (1) {
+        var mime = gpac.getOption('MimeTypes', idx);
+        if (mime == null) break;
+        idx++;
+        var mime_ext = gpac.getOption('MimeTypes', mime).split('"')[1];
+        if (!mime_ext.match(reg)) continue;
+                
+        if (mime.indexOf('video') != -1) return gwskin.images.mime_video;
+        else if (mime.indexOf('audio') != -1) return gwskin.images.mime_audio;
+        else if (mime.indexOf('model') != -1) return gwskin.images.mime_model;
+        else if (mime.indexOf('image') != -1) return gwskin.images.mime_image;
+        else if (mime.indexOf('application') != -1) return gwskin.images.mime_model;
+
+        break;
+    }
+    return gwskin.images.mime_generic;
+}
+
+
 function gw_new_file_dialog(container, label) {
     var dlg = gw_new_window_full(container, true, label);
 
@@ -2845,9 +2946,41 @@ function gw_new_file_dialog(container, label) {
     dlg.area.dlg = dlg;
 
     dlg.on_close = function () {
+        if (this.do_sort_wnd) {
+            this.do_sort_wnd.close();
+        }
         if (this.on_browse) {
             this.on_browse(null, false);
         }
+    }
+
+
+    dlg._sort_type = 0;
+    dlg.do_sort = function(value) {        
+        this._page_idx = 0;
+        this._max_page_idx = 0;
+        
+        switch (value) {
+        case 0:
+            this.area._all_children.sort( function(a, b) { return a.filename > b.filename} );
+            break;
+        case 1:
+            this.area._all_children.sort( function(a, b) { return a.filename < b.filename} );
+            break;
+        case 2:
+            this.area._all_children.sort( function(a, b) { return a.size > b.size} );
+            break;
+        case 3:
+            this.area._all_children.sort( function(a, b) { return a.size < b.size} );
+            break;
+        case 4:
+            this.area._all_children.sort( function(a, b) { return a.date > b.date} );
+            break;
+        case 5:
+            this.area._all_children.sort( function(a, b) { return a.date < b.date} );
+            break;
+        }        
+        this.area.layout();
     }
 
     dlg.go_up = dlg.add_tool('up');
@@ -2868,6 +3001,46 @@ function gw_new_file_dialog(container, label) {
     dlg.go_root = dlg.add_tool('device');
     dlg.go_root.on_click = function () {
         this.dlg._browse('/');
+    }
+
+    dlg.sort = dlg.add_tool('sort');
+    dlg.sort_wnd = null;
+    dlg.sort.on_click = function() {
+        if (this.dlg.sort_wnd) {
+            this.dlg.sort_wnd.close();
+            this.dlg.sort_wnd = null;
+            return;
+        }
+        var wnd = gw_new_popup(this.dlg.sort, 'down');
+        this.dlg.sort_wnd = wnd;
+            
+        wnd.dlg = this.dlg;
+        wnd.on_close = function() {
+            this.dlg.sort_wnd = null;
+        }
+        wnd.add_menu_item('by Name',  function () { 
+            var wnd = this.dlg;
+            if (wnd._sort_type==0) wnd._sort_type = 1;
+            else wnd._sort_type = 0;
+            wnd.do_sort(wnd._sort_type);
+        } );
+
+        wnd.add_menu_item('by Size',  function () { 
+            var wnd = this.dlg;
+            if (wnd._sort_type==2) wnd._sort_type = 3;
+            else wnd._sort_type = 2;
+            wnd.do_sort(wnd._sort_type);
+        } );
+
+        wnd.add_menu_item('by Date',  function () { 
+            var wnd = this.dlg;
+            if (wnd._sort_type==4) wnd._sort_type = 5;
+            else wnd._sort_type = 4;
+            wnd.do_sort(wnd._sort_type);
+        } );
+
+        wnd.on_display_size(gw_display_width, gw_display_height);
+        wnd.show();
     }
 
     dlg.predestroy = function () {
@@ -2950,34 +3123,7 @@ function gw_new_file_dialog(container, label) {
                 if (filelist[i].drive) icon_name = gwskin.images.drive;
                 else icon_name = gwskin.images.folder;
             } else {
-                var ext = is_listing ? filelist[i].path : filelist[i].name;
-                ext = ext.split('.').pop();
-
-                var reg = new RegExp(' ' + ext + ' ', "gi");
-                //check default extensions
-                if (gwskin.mime_video_default_ext.match(reg)) icon_name = gwskin.images.mime_video;
-                else if (gwskin.mime_audio_default_ext.match(reg)) icon_name = gwskin.images.mime_audio;
-                else if (gwskin.mime_image_default_ext.match(reg)) icon_name = gwskin.images.mime_image;
-                else if (gwskin.mime_model_default_ext.match(reg)) icon_name = gwskin.images.mime_model;
-
-                else {
-                    var idx = 0;
-                    while (1) {
-                        var mime = gpac.getOption('MimeTypes', idx);
-                        if (mime == null) break;
-                        idx++;
-                        var mime_ext = gpac.getOption('MimeTypes', mime).split('"')[1];
-                        if (!mime_ext.match(reg)) continue;
-
-                        if (mime.indexOf('video') != -1) icon_name = gwskin.images.mime_video;
-                        else if (mime.indexOf('audio') != -1) icon_name = gwskin.images.mime_audio;
-                        else if (mime.indexOf('model') != -1) icon_name = gwskin.images.mime_model;
-                        else if (mime.indexOf('image') != -1) icon_name = gwskin.images.mime_image;
-                        else if (mime.indexOf('application') != -1) icon_name = gwskin.images.mime_model;
-
-                        break;
-                    }
-                }
+                icon_name = gw_guess_mime_icon(is_listing ? filelist[i].path : filelist[i].name);
             }
 
             var item = gw_new_icon_button(this.area, icon_name, filelist[i].name, true, 'listitem');
@@ -2986,6 +3132,8 @@ function gw_new_file_dialog(container, label) {
             item.directory = filelist[i].directory;
             item.set_size(this.width, gwskin.default_control_height);
             item.path = is_listing ? filelist[i].path : null;
+            item.size = typeof filelist[i].size != 'undefined' ? filelist[i].size : 0;
+            item.date = typeof filelist[i].last_modified != 'undefined' ? filelist[i].last_modified : 0;
 
             if (filelist[i].directory) {
                 item.on_click = this._on_dir_browse;
@@ -2994,12 +3142,13 @@ function gw_new_file_dialog(container, label) {
             }
             item.on_long_click = function () {
                 if (this.dlg.on_long_click) {
-					var path = this.path ? this.path : (this.dlg.directory + this.filename+'/');
+					var path = this.path ? this.path : (this.dlg.directory + this.filename);
                     this.dlg.on_long_click(this.filename, path, this.directory);
 				}
             }
+
         }
-        this.layout(this.width, this.height);
+        this.do_sort(this._sort_type);
 
         if (this.directory == '/') this.go_up.disable();
         else this.go_up.enable();
@@ -3012,7 +3161,7 @@ function gw_new_file_dialog(container, label) {
         for (var i = 0; i < __children.length; i++) {
             __children[i].set_size(width, gwskin.default_control_height);
         }
-        dlg.area.set_size(width, height);
+        this.area.set_size(width, height);
     }
 
     return dlg;
@@ -3130,4 +3279,65 @@ function gw_new_plotter(parent) {
     gw_add_child(parent, obj);
     return obj;
 }
+
+function gw_new_popup(anchor, type)
+{
+    var popup = gw_new_window(null, true, false);
+    popup._popup = true;
+    popup.area = gw_new_grid_container(popup);
+    popup.anchor = anchor;
+    popup.type = (type=='up') ? 0 : 1;
+    
+    popup._nb_over = 0;
+    popup.add_menu_item = function(label, callback) {
+        var item = gw_new_button(this.area, label, 'window');
+        item.wnd = this;
+        item.on_click = function() {
+            callback.call(this.wnd);
+            this.wnd.close();
+        }
+        item.on_over_ex = function(value) {
+            this.wnd.update_visibility();
+        }
+        item.new_over_handler(item.on_over_ex);
+        
+        item.set_corners(false, false, false, false);
+    }
+    popup.reposition = function() {
+        var pos = gw_get_adjusted_abs_pos(this.anchor, this.width, this.height, this.type);
+        this.move(pos.x, pos.y);
+    }
+
+    popup.update_visibility = function() {
+        var nb_over = 0;
+        var children = this.area.get_children();
+        for (var i=0; i<children.length; i++) {
+            if (children[i]._over) nb_over++;
+        }
+        if (!nb_over) this.close();
+    }
+
+    
+    popup.on_display_size = function (w, h) {
+        var children = this.area.get_children();
+        var max_s = 0;
+        for (var i=0; i<children.length; i++) {
+          var s = children[i].get_label().length;
+          if (s>max_s) max_s = s;
+        }
+        
+        for (var i=0; i<children.length; i++) {
+          children[i].set_size(s * 0.9*gwskin.default_text_font_size, gwskin.default_icon_height);
+        }
+        this.area.set_size(s * gwskin.default_text_font_size, children.length * gwskin.default_icon_height);
+        this.set_size(s * gwskin.default_text_font_size, children.length * gwskin.default_icon_height);
+        this.reposition();
+    }
+    gw_ui_root.has_popup = true;
+          
+     
+    popup.set_alpha(0.9);
+    return popup;
+}
+
 

@@ -182,9 +182,16 @@ function initialize() {
       }
       extension.icon.on_click = function () {
           if (!this.extension_obj) {
-              gwlog(l_deb, 'Loading UI extension ' + this.ext_description.name + ' - Executing JS ' + this.ext_description.path + this.ext_description.execjs);
-              this.extension_obj = Browser.loadScript(this.ext_description.path + this.ext_description.execjs);
-              this.compatible = (this.extension_obj != null) ? true : false;
+              for (var i=0; i<this.ext_description.execjs.length; i++) {
+                gwlog(l_deb, 'Loading UI extension ' + this.ext_description.name + ' - Executing JS ' + this.ext_description.path + this.ext_description.execjs[i]);
+                if (!i) {
+                    this.extension_obj = Browser.loadScript(this.ext_description.path + this.ext_description.execjs[i]);
+                    this.compatible = (this.extension_obj != null) ? true : false;
+                    if (!this.compatible) break;
+                } else {
+                    Browser.loadScript(this.ext_description.path + this.ext_description.execjs[i]);
+                }
+              }
 
               if (this.compatible) {
                     this.extension_obj.get_option = extension_option_getter(this.ext_description);
