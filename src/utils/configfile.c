@@ -121,14 +121,16 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 	memset(line, 0, sizeof(char)*line_alloc);
 
 	while (!feof(file)) {
-		u32 read;
+		u32 read, nb_pass;
 		ret = fgets(line, line_alloc, file);
 		read = (u32) strlen(line);
-		while (read + 1 == line_alloc) {
+		nb_pass = 1;
+		while (read + nb_pass == line_alloc) {
 			line_alloc += MAX_INI_LINE;
 			line = gf_realloc(line, sizeof(char)*line_alloc);
 			ret = fgets(line+read, MAX_INI_LINE, file);
 			read = (u32) strlen(line);
+			nb_pass++;
 		}
 		if (!ret) continue;
 
