@@ -711,6 +711,8 @@ gwskin.images.playlist_next = 'icons/pl_next.svg';
 gwskin.labels.playlist_next = 'Next';
 gwskin.images.playlist_prev = 'icons/pl_prev.svg';
 gwskin.labels.playlist_prev = 'Previous';
+gwskin.images.channels = 'icons/tv.svg';
+gwskin.labels.channels = 'TV Channels';
 
 
 gwskin.mime_video_default_ext = " mp4 mp4s m4s 3gp 3gpp m2ts ts trp m3u8 mpd avi mov ";
@@ -3304,19 +3306,20 @@ function gw_new_popup(anchor, type)
     popup.type = (type=='up') ? 0 : 1;
     
     popup._nb_over = 0;
-    popup.add_menu_item = function(label, callback) {
+    popup.add_menu_item = function (label, callback) {
         var item = gw_new_button(this.area, label, 'window');
         item.wnd = this;
-        item.on_click = function() {
+        item.on_click = function () {
             callback.call(this.wnd);
             this.wnd.close();
         }
-        item.on_over_ex = function(value) {
+        item.on_over_ex = function (value) {
             this.wnd.update_visibility();
         }
         item.new_over_handler(item.on_over_ex);
-        
+
         item.set_corners(false, false, false, false);
+        return item;
     }
     popup.reposition = function() {
         var pos = gw_get_adjusted_abs_pos(this.anchor, this.width, this.height, this.type);

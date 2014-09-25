@@ -299,14 +299,13 @@ extension.set_playlist_mode = function(value)
     }
 }
 
-extension.playlist_play = function(pl_item)
-{
+extension.playlist_play = function (pl_item) {
     this.set_playlist_mode(true);
     this.set_movie_url(pl_item.path + pl_item.name);
 
     //save current index
     this.playlist_idx = this.playlist.indexOf(pl_item);
-    gpac.set_option('GUI', 'PlaylistIndex', ''+ this.playlist_idx);
+    gpac.set_option('GUI', 'PlaylistIndex', '' + this.playlist_idx);
 }
 
 extension.playlist_next = function()

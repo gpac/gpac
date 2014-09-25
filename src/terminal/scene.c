@@ -1341,8 +1341,8 @@ void gf_scene_regenerate(GF_Scene *scene)
 		gf_term_send_event(scene->root_od->term, &evt);
 		IS_UpdateVideoPos(scene);
 	} else {
+		gf_scene_notify_event(scene, scene->graph_attached ? GF_EVENT_STREAMLIST : GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK, GF_FALSE);
 		scene->graph_attached = 1;
-		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK, GF_FALSE);
 		gf_term_invalidate_compositor(scene->root_od->term);
 	}
 }
@@ -1785,7 +1785,14 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
             gf_sg_set_scene_size_info(scene->graph, width, height, 1);
             scene->force_size_set = 1;
         } else {
-            gf_sg_get_scene_size_info(scene->graph, &width, &height);
+			u32 w, h;
+            gf_sg_get_scene_size_info(scene->graph, &w, &h);
+			if (!com.par.width && !com.par.height && ((w<width) || (h<height)) ) {
+	            gf_sg_set_scene_size_info(scene->graph, width, height, 1);
+			} else {
+				width = w;
+				height = h;
+			}
         }
 	}
 	else if (scene->root_od->parentscene && scene->root_od->parentscene->is_dynamic_scene) {

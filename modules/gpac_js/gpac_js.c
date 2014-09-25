@@ -919,13 +919,26 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		break;
 	case -28:
 	{
+		//first check network
 		GF_NetworkCommand com;
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
 		com.base.on_channel = gf_list_get(odm->channels, 0);
 
 		gf_term_service_command(odm->net_service, &com);
-		*vp = INT_TO_JSVAL(com.quality_query.index);
+		if (com.quality_query.index) {
+			*vp = INT_TO_JSVAL(com.quality_query.index);
+			break;
+		}
+	
+#if 0
+		//otherwise use input channels
+		if (odm->codec->type==GF_STREAM_VISUAL) {
+			*vp = INT_TO_JSVAL(gf_list_count(odm->codec->inChannels));
+		} else {
+			*vp = INT_TO_JSVAL(0);
+		}
+#endif
 	}
 		break;
 	case -29:
@@ -996,6 +1009,11 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 	{
 		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 		*vp = BOOLEAN_TO_JSVAL( gf_sc_is_over(odm->term->compositor, scene->graph) ? JS_TRUE : JS_FALSE);
+	}
+	case -44:
+	{
+		GF_Channel *ch = gf_list_get(odm->channels, 0);
+		*vp = BOOLEAN_TO_JSVAL((ch && ch->is_pulling) ? 1 : 0);
 	}
 		break;
 	}
@@ -1554,6 +1572,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("is_addon",			-41,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("main_addon_on",		-42,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("is_over",			-43,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("is_pulling",		-44,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};

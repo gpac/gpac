@@ -37,8 +37,10 @@ extension = {
     initial_speed: 1,
     initial_start: 0,
     show_stats_init: 0,
-    
-    do_show_controler: function() {
+    services: [],
+    channels_wnd: null,
+
+    do_show_controler: function () {
         if (this.file_open_dlg) {
             alert('Cannot show - File dialog is open');
             return false;
@@ -60,7 +62,7 @@ extension = {
                 if (evt.keycode == gwskin.keys.close) {
                     this.do_show_controler();
                     return 1;
-                }   
+                }
                 return 0;
             case GF_EVENT_QUALITY_SWITCHED:
                 if (this.stat_wnd) {
@@ -218,8 +220,14 @@ extension = {
             gwlib_filter_event(e);
         }
 
+        this.movie.children[0].on_streamlist_changed = function (evt) {
+            this.extension.streamlist_changed();
+        }
+
         this.movie.children[0].addEventListener('gpac_scene_attached', this.movie.children[0].on_scene_size, 0);
         this.movie.children[0].addEventListener('gpac_addon_found', this.movie.children[0].on_addon_found, 0);
+        this.movie.children[0].addEventListener('gpac_streamlist_changed', this.movie.children[0].on_streamlist_changed, 0);
+
 
         this.movie.children[0].on_media_progress = function (evt) {
             if (evt.buffering) {
@@ -251,11 +259,10 @@ extension = {
                 if (this.extension.movie_control.loop) {
                     this.extension.movie_control.mediaStartTime = 0;
                     this.extension.current_time = 0;
+                } else if (this.extension.playlist_mode && (this.extension.playlist_idx + 1 < this.extension.playlist.length)) {
+                    this.extension.playlist_next();
                 } else {
                     this.extension.set_state(this.extension.GF_STATE_STOP);
-                    if (this.extension.playlist_mode && (this.extension.playlist_idx + 1 < this.extension.playlist.length)) {
-                        this.extension.playlist_next();
-                    }
                 }
             }
         }
@@ -432,18 +439,18 @@ extension = {
             }
             gw_background_control(false);
             switch (type) {
-                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                        
+                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                          
                 case 1:
                     this.extension.set_state(this.extension.GF_STATE_PAUSE);
                     this.extension.set_speed(0);
                     break;
-                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                        
+                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                          
                 case 2:
                     this.extension.set_state(this.extension.GF_STATE_PLAY);
                     this.extension.movie_control.mediaStartTime = time;
                     this.extension.set_speed(1);
                     break;
-                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                        
+                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                          
                 default:
                     if (this.extension.state == this.extension.GF_STATE_STOP)
                         this.extension.set_state(this.extension.GF_STATE_PLAY);
@@ -482,6 +489,10 @@ extension = {
         } else {
             wnd.loop = null;
         }
+
+        wnd.channels = gw_new_icon(wnd.infobar, 'channels');
+        wnd.channels.extension = this;
+        wnd.channels.hide();
 
         wnd.playlist = gw_new_icon(wnd.infobar, 'playlist');
         wnd.playlist.extension = this;
@@ -1059,6 +1070,7 @@ extension = {
             }
 
             this.default_addon = null;
+            this.root_odm = null;
 
             /*create a temp inline holding the previous scene, use it as the main movie and use the old inline to test the resource. 
             This avoids messing up with event targets already setup*/
@@ -1133,7 +1145,7 @@ extension = {
         this.navigation_wnd = wnd;
         wnd.extension = this;
 
-        wnd.on_close = function() {
+        wnd.on_close = function () {
             this.extension.navigation_wnd = null;
         }
 
@@ -1147,24 +1159,79 @@ extension = {
         }
         wnd.make_select_item = function (text, type, current_type) {
             if (current_type == type) text = '* ' + text;
-            wnd.add_menu_item(text,  function () { this.select(type); } );
+            wnd.add_menu_item(text, function () { this.select(type); });
         }
-        wnd.add_menu_item('Reset',  function () { this.select('reset'); } );
+        wnd.add_menu_item('Reset', function () { this.select('reset'); });
 
-       wnd.make_select_item('None', GF_NAVIGATE_NONE, type);
-       wnd.make_select_item('Slide', GF_NAVIGATE_SLIDE, type);
-       wnd.make_select_item('Examine', GF_NAVIGATE_EXAMINE, type);
-       
-       if (gpac.navigation_type == GF_NAVIGATE_TYPE_3D) {
+        wnd.make_select_item('None', GF_NAVIGATE_NONE, type);
+        wnd.make_select_item('Slide', GF_NAVIGATE_SLIDE, type);
+        wnd.make_select_item('Examine', GF_NAVIGATE_EXAMINE, type);
+
+        if (gpac.navigation_type == GF_NAVIGATE_TYPE_3D) {
             wnd.make_select_item('Walk', GF_NAVIGATE_WALK, type);
             wnd.make_select_item('Fly', GF_NAVIGATE_FLY, type);
             wnd.make_select_item('Pan', GF_NAVIGATE_PAN, type);
             wnd.make_select_item('Game', GF_NAVIGATE_GAME, type);
             wnd.make_select_item('Orbit', GF_NAVIGATE_ORBIT, type);
             wnd.make_select_item('VR', GF_NAVIGATE_VR, type);
-       }
+        }
         wnd.on_display_size(gw_display_width, gw_display_height);
         wnd.show();
-    }    
+    },
+
+    streamlist_changed: function () {
+        this.services = [];
+
+        var root_odm = this.root_odm;
+        for (var res_i = 0; res_i < root_odm.nb_resources; res_i++) {
+            var m = root_odm.get_resource(res_i);
+            if (!m.service_id) continue;
+
+            if (this.services.indexOf(m.service_id) < 0) {
+                this.services.push(m.service_id);
+            }
+        }
+
+        if (this.services.length && !this.controler.channels.visible) {
+            this.controler.channels.show();
+        } else if (!this.service.length && this.controler.channels.visible) {
+            this.controler.channels.hide();
+            this.controler.channels.on_click = function () { }
+            return;
+        }
+
+        this.controler.channels.on_click = function () {
+
+            if (this.channels_wnd) {
+                this.channels_wnd.close();
+                return;
+            }
+            var wnd = gw_new_popup(this.extension.controler.channels, 'up');
+            this.channels_wnd = wnd;
+            wnd.extension = this.extension;
+
+            wnd.on_close = function () {
+                this.extension.channels_wnd = null;
+            }
+
+            wnd.make_item = function (text, i) {
+                wnd.add_menu_item(text, function () {
+                    this.extension.root_odm.select_service(this.extension.services[i]);
+                });
+           }
+            for (var i = 0; i < this.extension.services.length; i++) {
+                var text = '';
+                if (this.extension.root_odm.selected_service == this.extension.services[i]) text += '* ';
+                text += 'Service ' + this.extension.services[i];
+                wnd.make_item(text, i);
+                
+            }
+            wnd.on_display_size(gw_display_width, gw_display_height);
+            wnd.show();
+        }
+
+    }
+
+
 };
 
