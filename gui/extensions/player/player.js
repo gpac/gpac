@@ -186,6 +186,7 @@ extension = {
                 if (ext.show_stats_init) {
                     ext.view_stats();
                 }
+                ext.streamlist_changed();
             }
 
             if (!this.extension.movie_connected) {
@@ -439,18 +440,18 @@ extension = {
             }
             gw_background_control(false);
             switch (type) {
-                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                          
+                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                            
                 case 1:
                     this.extension.set_state(this.extension.GF_STATE_PAUSE);
                     this.extension.set_speed(0);
                     break;
-                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                          
+                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                            
                 case 2:
                     this.extension.set_state(this.extension.GF_STATE_PLAY);
                     this.extension.movie_control.mediaStartTime = time;
                     this.extension.set_speed(1);
                     break;
-                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                          
+                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                            
                 default:
                     if (this.extension.state == this.extension.GF_STATE_STOP)
                         this.extension.set_state(this.extension.GF_STATE_PLAY);
@@ -1194,9 +1195,10 @@ extension = {
 
         if (this.services.length && !this.controler.channels.visible) {
             this.controler.channels.show();
-        } else if (!this.service.length && this.controler.channels.visible) {
+        } else if (!this.services.length) {
             this.controler.channels.hide();
             this.controler.channels.on_click = function () { }
+            this.controler.layout();
             return;
         }
 
@@ -1218,13 +1220,13 @@ extension = {
                 wnd.add_menu_item(text, function () {
                     this.extension.root_odm.select_service(this.extension.services[i]);
                 });
-           }
+            }
             for (var i = 0; i < this.extension.services.length; i++) {
                 var text = '';
                 if (this.extension.root_odm.selected_service == this.extension.services[i]) text += '* ';
                 text += 'Service ' + this.extension.services[i];
                 wnd.make_item(text, i);
-                
+
             }
             wnd.on_display_size(gw_display_width, gw_display_height);
             wnd.show();
