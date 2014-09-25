@@ -2400,27 +2400,41 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 		if (!es) continue;
 
-		/*watchout for pmt update - FIXME this likely won't work in most cases*/
 		if (ts->ess[pid]) {
-			GF_M2TS_ES *o_es = ts->ess[es->pid];
+			//this is component reuse across programs, overwrite the previously declared stream ...
+			if (status & GF_M2TS_TABLE_FOUND) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d reused across programs %d and %d, not completely supported\n", pid, ts->ess[pid]->program->number, es->program->number ) );
 
-			if ((o_es->stream_type == es->stream_type)
-			        && ((o_es->flags & GF_M2TS_ES_STATIC_FLAGS_MASK) == (es->flags & GF_M2TS_ES_STATIC_FLAGS_MASK))
-			        && (o_es->mpeg4_es_id == es->mpeg4_es_id)
-			        && ((o_es->flags & GF_M2TS_ES_IS_SECTION) || ((GF_M2TS_PES *)o_es)->lang == ((GF_M2TS_PES *)es)->lang)
-			   ) {
-				gf_free(es);
+				//add stream to program but don't reassign the pid table until the stream is playing (>GF_M2TS_PES_FRAMING_SKIP)
+				gf_list_add(pmt->program->streams, es);
+				if (!(es->flags & GF_M2TS_ES_IS_SECTION) ) gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
+
+				nb_es++;
+				//skip assignment below
 				es = NULL;
-			} else {
-				gf_m2ts_es_del(o_es, ts);
-				ts->ess[es->pid] = NULL;
+			} 
+			/*watchout for pmt update - FIXME this likely won't work in most cases*/
+			else {
+
+				GF_M2TS_ES *o_es = ts->ess[es->pid];
+
+				if ((o_es->stream_type == es->stream_type)
+						&& ((o_es->flags & GF_M2TS_ES_STATIC_FLAGS_MASK) == (es->flags & GF_M2TS_ES_STATIC_FLAGS_MASK))
+						&& (o_es->mpeg4_es_id == es->mpeg4_es_id)
+						&& ((o_es->flags & GF_M2TS_ES_IS_SECTION) || ((GF_M2TS_PES *)o_es)->lang == ((GF_M2TS_PES *)es)->lang)
+				   ) {
+					gf_free(es);
+					es = NULL;
+				} else {
+					gf_m2ts_es_del(o_es, ts);
+					ts->ess[es->pid] = NULL;
+				}
 			}
 		}
 
 		if (es) {
 			ts->ess[es->pid] = es;
 			gf_list_add(pmt->program->streams, es);
-
 			if (!(es->flags & GF_M2TS_ES_IS_SECTION) ) gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 
 			nb_es++;
@@ -2492,6 +2506,7 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 			prog->streams = gf_list_new();
 			prog->pmt_pid = pid;
 			prog->number = number;
+			prog->ts = ts;
 			gf_list_add(ts->programs, prog);
 			GF_SAFEALLOC(pmt, GF_M2TS_SECTION_ES);
 			pmt->flags = GF_M2TS_ES_IS_SECTION;
@@ -3139,7 +3154,11 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				if (!es->program->last_pcr_value) es->program->last_pcr_value =  1;
 				pck.PTS = es->program->last_pcr_value;
 				pck.stream = (GF_M2TS_PES *)es;
-				if (paf->discontinuity_indicator) pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
+				if (es->program->last_pcr_value < es->program->before_last_pcr_value) {
+					pck.stream = (GF_M2TS_PES *)es;
+				}
+				if (paf->discontinuity_indicator)
+					pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
 				if (ts->on_event) {
 					gf_m2ts_estimate_duration(ts, es->program->last_pcr_value, hdr.pid);
 					ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
@@ -3365,6 +3384,16 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 	}
 
 	if (pes->pid==pes->program->pmt_pid) return GF_BAD_PARAM;
+
+	//if component reuse, disable previous pes
+	if ((mode > GF_M2TS_PES_FRAMING_SKIP) && (pes->program->ts->ess[pes->pid] != (GF_M2TS_ES *) pes)) {
+		GF_M2TS_PES *o_pes = (GF_M2TS_PES *) pes->program->ts->ess[pes->pid];
+		if (o_pes->flags & GF_M2TS_ES_IS_PES)
+			gf_m2ts_set_pes_framing(o_pes, GF_M2TS_PES_FRAMING_SKIP);
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Reassinging PID %d from program %d to program %d\n", pes->pid, o_pes->program->number, pes->program->number) );
+		pes->program->ts->ess[pes->pid] = (GF_M2TS_ES *) pes;
+	}
 
 	switch (mode) {
 	case GF_M2TS_PES_FRAMING_RAW:

@@ -333,7 +333,7 @@ GF_Err kind_Read(GF_Box *s,GF_BitStream *bs)
 			bytesToRead++;
 		}
 		ptr->schemeURI = gf_strdup(data);
-		schemeURIlen = strlen(data);
+		schemeURIlen = (u32) strlen(data);
 		if (bytesToRead > schemeURIlen+1) {
 			/* read the value */
 			char *data_value = data + schemeURIlen +1;

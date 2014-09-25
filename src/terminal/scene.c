@@ -1683,7 +1683,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only)
 
 				//object is not an addon and main addon is selected, do not add
 				if (!odm->addon && (odm->state == GF_ODM_STATE_STOP) && scene->main_addon_selected) {
-				} else {
+				} else if (!scene->selected_service_id || (scene->selected_service_id==odm->OD->ServiceID)) {
 					gf_list_add(to_restart, odm);
 				}
 

@@ -850,7 +850,7 @@ exit:
 
 #endif /*defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)*/
 
-u32 grab_live_m2ts(const char *grab_m2ts, const char *outName)
+u32 grab_live_m2ts(const char *grab_m2ts, const char *grab_ifce, const char *outName)
 {
 	char data[0x80000];
 	u32 check = 50;
@@ -862,7 +862,7 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *outName)
 	GF_RTPReorder *ch = NULL;
 #endif
 	GF_Socket *sock;
-	GF_Err e = gf_m2ts_get_socket(grab_m2ts, NULL, 0x80000, &sock);
+	GF_Err e = gf_m2ts_get_socket(grab_m2ts, grab_ifce, 0x80000, &sock);
 
 	if (e) {
 		fprintf(stderr, "Cannot open %s: %s\n", grab_m2ts, gf_error_to_string(e));
