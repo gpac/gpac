@@ -2695,6 +2695,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 		e = gf_isom_clone_track(input, i+1, output, 0, &TrackNum);
 		if (e) goto err_exit;
 
+		for (j = 0; j < gf_isom_get_track_kind_count(input, i+1); j++) {
+			char *scheme, *value;
+			gf_isom_get_track_kind(input, i+1, j, &scheme, &value);
+			gf_isom_add_track_kind(output, TrackNum, scheme, value);
+		}
+
 		//if few samples don't fragment track
 		count = gf_isom_get_sample_count(input, i+1);
 		if (count<=2) {

@@ -432,6 +432,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return urn_New();
 	case GF_ISOM_BOX_TYPE_CPRT:
 		return cprt_New();
+	case GF_ISOM_BOX_TYPE_KIND:
+		return kind_New();
 	case GF_ISOM_BOX_TYPE_CHPL:
 		return chpl_New();
 	case GF_ISOM_BOX_TYPE_HDLR:
@@ -952,6 +954,9 @@ void gf_isom_box_del(GF_Box *a)
 		return;
 	case GF_ISOM_BOX_TYPE_CPRT:
 		cprt_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_KIND:
+		kind_del(a);
 		return;
 	case GF_ISOM_BOX_TYPE_HDLR:
 		hdlr_del(a);
@@ -1585,6 +1590,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return urn_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_CPRT:
 		return cprt_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_KIND:
+		return kind_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_HDLR:
 		return hdlr_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_IODS:
@@ -2048,6 +2055,8 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return chpl_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_CPRT:
 		return cprt_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_KIND:
+		return kind_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_HDLR:
 		return hdlr_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_IODS:
@@ -2522,6 +2531,8 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return chpl_Size(a);
 	case GF_ISOM_BOX_TYPE_CPRT:
 		return cprt_Size(a);
+	case GF_ISOM_BOX_TYPE_KIND:
+		return kind_Size(a);
 	case GF_ISOM_BOX_TYPE_HDLR:
 		return hdlr_Size(a);
 	case GF_ISOM_BOX_TYPE_IODS:

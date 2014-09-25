@@ -1356,6 +1356,8 @@ typedef enum {
 	TRAC_ACTION_REFERENCE		= 8,
 	TRAC_ACTION_RAW_EXTRACT		= 9,
 	TRAC_ACTION_REM_NON_RAP		= 10,
+	TRAC_ACTION_SET_KIND		= 11,
+	TRAC_ACTION_REM_KIND		= 12,
 } TrackActionType;
 
 typedef struct
@@ -1369,6 +1371,7 @@ typedef struct
 	s32 par_num, par_den;
 	u32 dump_type, sample_num;
 	char *out_name;
+	char *kind_scheme, *kind_value;
 } TrackAction;
 
 enum
@@ -1388,6 +1391,10 @@ enum
 		for (i=0; i<nb_track_act; i++) { \
 			if (tracks[i].out_name) \
 				gf_free(tracks[i].out_name); \
+			if (tracks[i].kind_scheme) \
+				gf_free(tracks[i].kind_scheme); \
+			if (tracks[i].kind_value) \
+				gf_free(tracks[i].kind_value); \
 		} \
 		gf_free(tracks); \
 	}\
@@ -2446,6 +2453,56 @@ int mp4boxMain(int argc, char **argv)
 				tracks[nb_track_act].trackID = atoi(szTK);
 				ext[0] = '=';
 			}
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-kind") || !stricmp(arg, "-kind-rem")) {
+			char szTK[200], *ext;
+			char *scheme_start = NULL;
+			Bool has_track_id = GF_FALSE;
+			CHECK_NEXT_ARG
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
+
+			if (!stricmp(arg, "-kind")) {
+				tracks[nb_track_act].act_type = TRAC_ACTION_SET_KIND;
+			} else {
+				tracks[nb_track_act].act_type = TRAC_ACTION_REM_KIND;
+			}
+			tracks[nb_track_act].trackID = 0;
+			if (!strnicmp(argv[i+1], "all=", 4)) {
+				scheme_start = argv[i+1]+4;
+				has_track_id = GF_TRUE;
+			}
+			if (!scheme_start) {
+				if (strlen(argv[i+1])>200) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_ALL, ("Warning: track kind parameter is too long!"));
+				}
+				strncpy(szTK, argv[i+1], 200);
+				ext = strchr(szTK, '=');
+				if (ext && !has_track_id) {
+					ext[0] = 0;
+					has_track_id = (sscanf(szTK, "%d", &tracks[nb_track_act].trackID) == 1 ? GF_TRUE : GF_FALSE);
+					if (has_track_id) {
+						scheme_start = ext+1;
+					} else {
+						scheme_start = szTK;
+					}
+					ext[0] = '=';
+				} else {
+					scheme_start = szTK;
+				}
+			}
+			ext = strchr(scheme_start, '=');
+			if (!ext) {
+				tracks[nb_track_act].kind_scheme = gf_strdup(scheme_start);
+			} else {
+				ext[0] = 0;
+				tracks[nb_track_act].kind_scheme = gf_strdup(scheme_start);
+				ext[0] = '=';
+				tracks[nb_track_act].kind_value = gf_strdup(ext+1);				
+			}						
 			open_edit = 1;
 			nb_track_act++;
 			i++;
@@ -3936,6 +3993,24 @@ int mp4boxMain(int argc, char **argv)
 			for (i=0; i<gf_isom_get_track_count(file); i++) {
 				if (track && (track != i+1)) continue;
 				e = gf_isom_set_media_language(file, i+1, tka->lang);
+				if (e) goto err_exit;
+				needSave = 1;
+			}
+			needSave = 1;
+			break;
+		case TRAC_ACTION_SET_KIND:
+			for (i=0; i<gf_isom_get_track_count(file); i++) {
+				if (track && (track != i+1)) continue;
+				e = gf_isom_add_track_kind(file, i+1, tka->kind_scheme, tka->kind_value);
+				if (e) goto err_exit;
+				needSave = 1;
+			}
+			needSave = 1;
+			break;
+		case TRAC_ACTION_REM_KIND:
+			for (i=0; i<gf_isom_get_track_count(file); i++) {
+				if (track && (track != i+1)) continue;
+				e = gf_isom_remove_track_kind(file, i+1, tka->kind_scheme, tka->kind_value);
 				if (e) goto err_exit;
 				needSave = 1;
 			}

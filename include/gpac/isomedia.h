@@ -758,6 +758,10 @@ GF_Err gf_isom_get_user_data(GF_ISOFile *the_file, u32 trackNumber, u32 UserData
 /*gets the media language code (3 chars if old files, longer if BCP-47 */
 GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char **lang);
 
+/* gets the i-th track kind (0-based) */
+u32 gf_isom_get_track_kind_count(GF_ISOFile *the_file, u32 trackNumber);
+GF_Err gf_isom_get_track_kind(GF_ISOFile *the_file, u32 trackNumber, u32 index, char **scheme, char **value);
+
 /*Unknown sample description*/
 typedef struct
 {
@@ -942,6 +946,11 @@ GF_Err gf_isom_set_copyright(GF_ISOFile *the_file, const char *threeCharCode, ch
 
 /*deletes copyright (1-based indexes)*/
 GF_Err gf_isom_remove_copyright(GF_ISOFile *the_file, u32 index);
+
+/*add a kind type to the track */
+GF_Err gf_isom_add_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *schemeURI, const char *value);
+/*removes a kind type to the track, all if NULL params */
+GF_Err gf_isom_remove_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *schemeURI, const char *value);
 
 /*changes the handler type of the media*/
 GF_Err gf_isom_set_media_type(GF_ISOFile *movie, u32 trackNumber, u32 new_type);

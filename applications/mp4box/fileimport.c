@@ -196,7 +196,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
-	u32 track_id, i, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, tile_mode;
+	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, tile_mode;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only;
@@ -205,6 +205,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	GF_Err e;
 	GF_MediaImporter import;
 	char *ext, szName[1000], *handler_name, *rvc_config, *chapter_name;
+	GF_List *kinds;
+
 	rvc_predefined = 0;
 	chapter_name = NULL;
 	new_timescale = 1;
@@ -225,6 +227,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	disable = 0;
 	chap_ref = 0;
 	is_chap = 0;
+	kinds = gf_list_new();
 	track_layout = 0;
 	szLan = NULL;
 	delay = 0;
@@ -381,6 +384,23 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "swf-same-app")) import.swf_flags |= GF_SM_SWF_REUSE_APPEARANCE;
 		else if (!strnicmp(ext+1, "swf-flatten=", 12)) import.swf_flatten_angle = (Float) atof(ext+13);
 
+		else if (!strnicmp(ext+1, "kind=", 5)) {
+			char *kind_scheme, *kind_value;
+			char *kind_data = ext+6;
+			char *sep = strchr(kind_data, '=');
+			if (sep) {
+				*sep = 0;
+			}
+			kind_scheme = gf_strdup(kind_data);
+			if (sep) {
+				*sep = '=';
+				kind_value = gf_strdup(sep+1);
+			} else {
+				kind_value = NULL;
+			}
+			gf_list_add(kinds, kind_scheme);
+			gf_list_add(kinds, kind_value);
+		}
 
 		/*EXPERIMENTAL OPTIONS NOT DOCUMENTED*/
 		else if (!strnicmp(ext+1, "tiles", 5)) {
@@ -551,6 +571,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				set_chapter_track(import.dest, i+1, chap_ref);
 			}
 
+			for (j = 0; j < gf_list_count(kinds); j+=2) {
+				char *kind_scheme = (char *)gf_list_get(kinds, j);
+				char *kind_value = (char *)gf_list_get(kinds, j+1);
+				gf_isom_add_track_kind(import.dest, i+1, kind_scheme, kind_value);
+			}
+
 			if (profile || level)
 				gf_media_change_pl(import.dest, i+1, profile, level);
 
@@ -650,6 +676,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (is_chap && chap_ref) {
 				set_chapter_track(import.dest, track, chap_ref);
+			}
+
+			for (j = 0; j < gf_list_count(kinds); j+=2) {
+				char *kind_scheme = (char *)gf_list_get(kinds, j);
+				char *kind_value = (char *)gf_list_get(kinds, j+1);
+				gf_isom_add_track_kind(import.dest, i+1, kind_scheme, kind_value);
 			}
 
 			if (profile || level)
@@ -762,6 +794,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 
 exit:
+	while (gf_list_count(kinds)) {
+		char *kind = (char *)gf_list_get(kinds, 0);
+		gf_list_rem(kinds, 0);
+		if (kind) gf_free(kind);
+	}
 	if (handler_name) gf_free(handler_name);
 	if (chapter_name ) gf_free(chapter_name );
 	if (import.fontName) gf_free(import.fontName);
