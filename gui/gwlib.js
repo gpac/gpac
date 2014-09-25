@@ -29,10 +29,12 @@ function gw_new_timer(progressive) {
     }
     this.startTime = -1;
     obj.start = function (when) {
-        this.startTime = when + this.getTime();
+        if (arguments.length==0) this.startTime = this.getTime();
+        else this.startTime = when + this.getTime();
     }
     obj.stop = function (when) {
-        this.stopTime = when + this.getTime();
+        if (arguments.length==0) this.stopTime = this.getTime();
+        else this.stopTime = when + this.getTime();
     }
     obj.on_event = function (val) { };
     obj._event = function (val) {
@@ -294,11 +296,11 @@ function gw_unload_resource(res) {
 
 //static
 function gw_window_show_hide() {
-    if (typeof this.timer == 'undefined') {
-        this.timer = gw_new_timer(1);
-        this.timer.wnd = null;
-        this.timer.set_timeout(0.25, false);
-        this.timer.on_fraction = function (val) {
+    if (typeof this._wnd_timer == 'undefined') {
+        this._wnd_timer = gw_new_timer(1);
+        this._wnd_timer.wnd = null;
+        this._wnd_timer.set_timeout(0.25, false);
+        this._wnd_timer.on_fraction = function (val) {
             if (!this.wnd) return;
             if (!this.wnd.visible) {
                 this.wnd.scale.x = 1 - val;
@@ -310,7 +312,7 @@ function gw_window_show_hide() {
                 this.wnd.set_alpha(val * this.wnd.alpha);
             }
         }
-        this.timer.on_active = function (val) {
+        this._wnd_timer.on_active = function (val) {
             var fun;
             if (val || !this.wnd) return;
             var wnd = this.wnd;
@@ -319,9 +321,9 @@ function gw_window_show_hide() {
             wnd.scale.y = wnd.visible ? 1 : 0;
             wnd.set_alpha(wnd.alpha);
             if (wnd.visible) {
-//                gw_ui_root.set_focus(wnd);
+                gw_ui_root.set_focus(wnd);
             } else {
-//                gw_ui_root.remove_focus(wnd);
+                gw_ui_root.remove_focus(wnd);
             }
             fun = this.call_on_end;
             this.call_on_end = null;
@@ -331,16 +333,16 @@ function gw_window_show_hide() {
         }
     }
     /*not done yet! This can happen when the function is called faster than the animation duration*/
-    if (this.timer.wnd) return;
+    if (this._wnd_timer.wnd) return;
 
     this.visible = !this.visible;
     this.alpha = this.get_alpha();
     this.set_alpha(1.0);
-    this.timer.wnd = this;
-    this.timer.start(0);
-    this.timer.call_on_end = null;
+    this._wnd_timer.wnd = this;
+    this._wnd_timer.start(0);
+    this._wnd_timer.call_on_end = null;
     if (arguments.length) {
-        this.timer.call_on_end = arguments[0];
+        this._wnd_timer.call_on_end = arguments[0];
     }
 }
 
@@ -392,7 +394,7 @@ function gw_get_abs_pos(child) {
 function gw_get_adjusted_abs_pos(child, width, height, type)
 {
     var pos = gw_get_abs_pos(child);
-
+    
     if (type == 0) {
         pos.y += child.height/2 + height/2; 
     } else if (type==1) {
@@ -405,10 +407,20 @@ function gw_get_adjusted_abs_pos(child, width, height, type)
     else if (pos.x + width / 2 > gw_display_width / 2)
         pos.x = gw_display_width / 2 - width / 2;
     
-    if (pos.y + height/2 > gw_display_height / 2)
-        pos.y = gw_display_height / 2 - height/2;
-    else if (pos.y - height/2 < -gw_display_height / 2)
-        pos.y = height/2 - gw_display_height / 2;
+    if (pos.y + height/2 > gw_display_height / 2) {
+        if (type == 0) {
+            pos.y -= child.height + height;
+        } else {
+            pos.y = gw_display_height / 2 - height/2;
+        }
+    }
+    else if (pos.y - height/2 < -gw_display_height / 2) {
+        if (type==1) {
+            pos.y += child.height + height;
+        } else {
+            pos.y = height/2 - gw_display_height / 2;
+        }
+    }
 
     return pos;
 }
@@ -419,7 +431,10 @@ gwskin.tooltip_wnd = null;
 gwskin.tooltip_callback = function (obj, show) {
 
     if (!show) return;
-
+    
+    if (typeof obj.tooltip_shown == 'boolean') return;
+    obj.tooltip_shown = true;
+    
     if (!gwskin.tooltip_wnd) {
         wnd = gw_new_window(null, true, true, 'tooltip', true);
         gwskin.tooltip_wnd = wnd;
