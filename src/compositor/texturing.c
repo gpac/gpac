@@ -207,6 +207,8 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 
 	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
 		needs_reload = 1;
+	} else if (size && txh->size && (size != txh->size)) {
+		needs_reload = 1;
 	}
 
 	if (needs_reload) {
@@ -245,6 +247,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	}
 	txh->needs_release = 1;
 	txh->last_frame_time = ts;
+	txh->size = size;
 	if (txh->raw_memory) {
 		gf_mo_get_raw_image_planes(txh->stream, (u8 **) &txh->data, (u8 **) &txh->pU, (u8 **) &txh->pV);
 	}

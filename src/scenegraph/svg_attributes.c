@@ -170,6 +170,7 @@ static const struct dom_event_def {
 	{ GF_EVENT_VP_RESIZE, "gpac_vp_changed", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_ADDON_DETECTED, "gpac_addon_found", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_MAIN_ADDON_STATE, "gpac_main_addon_state", GF_DOM_EVENT_GPAC},
+	{ GF_EVENT_STREAMLIST, "gpac_streamlist_changed", GF_DOM_EVENT_GPAC},
 	
 #if 0
 	{ GF_EVENT_DBLCLICK, "gpac_dbl_click", GF_DOM_EVENT_GPAC},
