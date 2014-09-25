@@ -299,6 +299,89 @@ GF_Err cprt_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void kind_del(GF_Box *s)
+{
+	GF_KindBox *ptr = (GF_KindBox *) s;
+	if (ptr == NULL) return;
+	if (ptr->schemeURI) gf_free(ptr->schemeURI);
+	if (ptr->value) gf_free(ptr->value);
+	gf_free(ptr);
+}
+
+GF_Err kind_Read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_KindBox *ptr = (GF_KindBox *)s;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	if (ptr->size) {
+		u32 bytesToRead = (u32) ptr->size;
+		char *data;
+		u32 schemeURIlen;
+		data = (char*)gf_malloc(bytesToRead * sizeof(char));
+		if (data == NULL) return GF_OUT_OF_MEM;
+		gf_bs_read_data(bs, data, bytesToRead);
+		/*safety check in case the string is not null-terminated*/
+		if (data[bytesToRead-1]) {
+			char *str = (char*)gf_malloc((u32) bytesToRead + 1);
+			memcpy(str, data, (u32) bytesToRead);
+			str[ptr->size] = 0;
+			gf_free(data);
+			data = str;
+			bytesToRead++;
+		}
+		ptr->schemeURI = gf_strdup(data);
+		schemeURIlen = strlen(data);
+		if (bytesToRead > schemeURIlen+1) {
+			/* read the value */
+			char *data_value = data + schemeURIlen +1;
+			ptr->value = gf_strdup(data_value);
+		}
+		gf_free(data);
+	}
+	return GF_OK;
+}
+
+GF_Box *kind_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_KindBox, GF_ISOM_BOX_TYPE_KIND);
+	gf_isom_full_box_init((GF_Box *)tmp);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err kind_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_KindBox *ptr = (GF_KindBox *) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_data(bs, ptr->schemeURI, (unsigned long)strlen(ptr->schemeURI) + 1);
+	if (ptr->value) {
+		gf_bs_write_data(bs, ptr->value, (unsigned long)strlen(ptr->value) + 1);
+	}
+	return GF_OK;
+}
+
+GF_Err kind_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_KindBox *ptr = (GF_KindBox *)s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	ptr->size += strlen(ptr->schemeURI) + 1;
+	if (ptr->value) {
+		ptr->size += strlen(ptr->value) + 1;
+	}
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 void ctts_del(GF_Box *s)
 {
 	GF_CompositionOffsetBox *ptr = (GF_CompositionOffsetBox *)s;

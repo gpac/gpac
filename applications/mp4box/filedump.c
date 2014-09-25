@@ -1609,6 +1609,13 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	if (!msub_type) msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
 	fprintf(stderr, "%s\" - %d samples\n", gf_4cc_to_str(msub_type), gf_isom_get_sample_count(file, trackNum));
 
+	count = gf_isom_get_track_kind_count(file, trackNum);
+	for (i = 0; i < count; i++) {
+		char *kind_scheme, *kind_value;
+		gf_isom_get_track_kind(file, trackNum, i, &kind_scheme, &kind_value);
+		fprintf(stderr, "Kind: %s - %s\n", kind_scheme, kind_value);
+	}
+
 	if (gf_isom_is_track_fragmented(file, trackID) ) {
 		u32 frag_samples;
 		u64 frag_duration;

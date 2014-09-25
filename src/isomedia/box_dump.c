@@ -131,6 +131,8 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		return urn_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_CPRT:
 		return cprt_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_KIND:
+		return kind_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_HDLR:
 		return hdlr_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_IODS:
@@ -904,6 +906,18 @@ GF_Err cprt_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 	gf_box_dump_done("CopyrightBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err kind_dump(GF_Box *a, FILE * trace)
+{
+	GF_KindBox *p;
+
+	p = (GF_KindBox *)a;
+	fprintf(trace, "<KindBox schemeURI=\"%s\" value=\"%s\">\n", p->schemeURI, (p->value ? p->value : ""));
+	DumpBox(a, trace);
+	gf_full_box_dump(a, trace);
+	gf_box_dump_done("KindBox", a, trace);
 	return GF_OK;
 }
 

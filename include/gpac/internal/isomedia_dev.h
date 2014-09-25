@@ -114,6 +114,7 @@ enum
 	GF_ISOM_BOX_TYPE_CRHD	= GF_4CC( 'c', 'r', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_CTTS	= GF_4CC( 'c', 't', 't', 's' ),
 	GF_ISOM_BOX_TYPE_CPRT	= GF_4CC( 'c', 'p', 'r', 't' ),
+	GF_ISOM_BOX_TYPE_KIND	= GF_4CC( 'k', 'i', 'n', 'd' ),
 	GF_ISOM_BOX_TYPE_CHPL	= GF_4CC( 'c', 'h', 'p', 'l' ),
 	GF_ISOM_BOX_TYPE_URL	= GF_4CC( 'u', 'r', 'l', ' ' ),
 	GF_ISOM_BOX_TYPE_URN	= GF_4CC( 'u', 'r', 'n', ' ' ),
@@ -1290,6 +1291,13 @@ typedef struct
 	char packedLanguageCode[4];
 	char *notice;
 } GF_CopyrightBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	char *schemeURI;
+	char *value;
+} GF_KindBox;
 
 
 typedef struct
@@ -2987,6 +2995,7 @@ GF_Box *dinf_New();
 GF_Box *url_New();
 GF_Box *urn_New();
 GF_Box *cprt_New();
+GF_Box *kind_New();
 GF_Box *chpl_New();
 GF_Box *hdlr_New();
 GF_Box *iods_New();
@@ -3038,6 +3047,7 @@ void url_del(GF_Box *);
 void urn_del(GF_Box *);
 void chpl_del(GF_Box *);
 void cprt_del(GF_Box *);
+void kind_del(GF_Box *);
 void hdlr_del(GF_Box *);
 void iods_del(GF_Box *);
 void trak_del(GF_Box *);
@@ -3089,6 +3099,7 @@ GF_Err url_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err urn_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err chpl_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err cprt_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err kind_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err hdlr_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err iods_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err trak_Write(GF_Box *s, GF_BitStream *bs);
@@ -3140,6 +3151,7 @@ GF_Err url_Size(GF_Box *);
 GF_Err urn_Size(GF_Box *);
 GF_Err chpl_Size(GF_Box *);
 GF_Err cprt_Size(GF_Box *);
+GF_Err kind_Size(GF_Box *);
 GF_Err hdlr_Size(GF_Box *);
 GF_Err iods_Size(GF_Box *);
 GF_Err trak_Size(GF_Box *);
@@ -3191,6 +3203,7 @@ GF_Err url_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err urn_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err chpl_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err cprt_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err kind_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err iods_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err trak_Read(GF_Box *s, GF_BitStream *bs);
@@ -3756,6 +3769,7 @@ GF_Err dinf_dump(GF_Box *a, FILE * trace);
 GF_Err url_dump(GF_Box *a, FILE * trace);
 GF_Err urn_dump(GF_Box *a, FILE * trace);
 GF_Err cprt_dump(GF_Box *a, FILE * trace);
+GF_Err kind_dump(GF_Box *a, FILE * trace);
 GF_Err hdlr_dump(GF_Box *a, FILE * trace);
 GF_Err iods_dump(GF_Box *a, FILE * trace);
 GF_Err trak_dump(GF_Box *a, FILE * trace);
