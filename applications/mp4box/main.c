@@ -135,7 +135,7 @@ void PrintLiveUsage();
 #endif
 
 #if !defined(GPAC_DISABLE_STREAMING)
-u32 grab_live_m2ts(const char *grab_m2ts, const char *outName);
+u32 grab_live_m2ts(const char *grab_m2ts, const char *ifce_name, const char *outName);
 #endif
 
 int mp4boxTerminal(int argc, char **argv);
@@ -652,6 +652,7 @@ void PrintExtractUsage()
 	        "\n"
 #if !defined(GPAC_DISABLE_STREAMING)
 	        " -grab-ts IP:port     grabs TS over UDP or RTP at IP:port location to output TS file\n"
+	        " -ifce IFCE           indicates default ifce for grab operations\n"
 #endif
 	        "\n");
 }
@@ -1666,6 +1667,7 @@ int mp4boxMain(int argc, char **argv)
 	const char *dash_more_info = NULL;
 #if !defined(GPAC_DISABLE_STREAMING)
 	const char *grab_m2ts = NULL;
+	const char *grab_ifce = NULL;
 #endif
 	FILE *logfile = NULL;
 
@@ -1804,6 +1806,12 @@ int mp4boxMain(int argc, char **argv)
 			grab_m2ts = argv[i+1];
 			i++;
 		}
+		else if (!stricmp(arg, "-ifce")) {
+			CHECK_NEXT_ARG
+			grab_ifce = argv[i+1];
+			i++;
+		}
+		
 #endif
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
 		else if (!stricmp(arg, "-wget")) {
@@ -3012,7 +3020,7 @@ int mp4boxMain(int argc, char **argv)
 	}
 #if !defined(GPAC_DISABLE_STREAMING)
 	if (grab_m2ts) {
-		return grab_live_m2ts(grab_m2ts, inName);
+		return grab_live_m2ts(grab_m2ts, grab_ifce, inName);
 	}
 #endif
 

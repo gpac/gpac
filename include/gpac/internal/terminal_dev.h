@@ -715,6 +715,7 @@ struct _es_channel
 
 	u32 resync_drift;
 	s32 prev_pcr_diff;
+	u64 last_pcr;
 
 	/*TSs as received from network - these are used for cache storage*/
 	u64 net_dts, net_cts;

@@ -1279,17 +1279,27 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 		if (ES_ID == 18) {
 			e = GF_OK; /* 18 is the PID of EIT packets */
 			m2ts->eit_channel = channel;
-		} else if ((ES_ID<GF_M2TS_MAX_STREAMS) && m2ts->ts->ess[ES_ID]) {
-			GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[ES_ID];
-			if (pes->user) {
-				e = GF_SERVICE_ERROR;
-			} else {
-				pes->user = channel;
-				e = GF_OK;
+		} else if (ES_ID<GF_M2TS_MAX_STREAMS) {
+			u32 i, j, count, count2;
+			GF_M2TS_PES *pes = NULL;
+
+			e = GF_SERVICE_ERROR;
+			count = gf_list_count(m2ts->ts->programs);
+			for (i=0; i<count; i++) {
+				GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, i);
+				count2 = gf_list_count(prog->streams);
+				for (j=0; j<count2; j++) {
+					GF_M2TS_PES *pes = (GF_M2TS_PES *)gf_list_get(prog->streams, j);
+					if ((pes->pid == ES_ID) && !pes->user) {
+						pes->user = channel;
+						/*we try to play the highest layer*/
+						if (pes->program->pid_playing < pes->pid)
+							pes->program->pid_playing = pes->pid;
+						e = GF_OK;
+						break;
+					}
+				}
 			}
-			/*we try to play the highest layer*/
-			if (pes->program->pid_playing < pes->pid)
-				pes->program->pid_playing = pes->pid;
 		}
 	}
 	gf_service_connect_ack(m2ts->service, channel, e);
@@ -1298,11 +1308,15 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 
 static GF_M2TS_PES *M2TS_GetChannel(M2TSIn *m2ts, LPNETCHANNEL channel)
 {
-	u32 i;
-	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
-		GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[i];
-		if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
-		if (pes->user == channel) return pes;
+	u32 i, j, count, count2;
+	count = gf_list_count(m2ts->ts->programs);
+	for (i=0; i<count; i++) {
+		GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, i);
+		count2 = gf_list_count(prog->streams);
+		for (j=0; j<count2; j++) {
+			GF_M2TS_PES *pes = (GF_M2TS_PES *)gf_list_get(prog->streams, j);
+			if (pes->user == channel) return pes;
+		}
 	}
 	return NULL;
 }

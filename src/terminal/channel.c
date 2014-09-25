@@ -971,9 +971,11 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				gf_es_receive_sl_packet(serv, ch, payload, payload_size, header, reception_status);
 				//do not probe OCR after a discontinuity
 				ch->clock->probe_ocr = 0;
+				ch->last_pcr = hdr.objectClockReference;
 				return;
 			} else {
 				ch->prev_pcr_diff = pcr_diff;
+				ch->last_pcr = hdr.objectClockReference;
 			}
 		}
 		if (!payload_size) return;

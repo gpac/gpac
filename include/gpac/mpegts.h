@@ -513,6 +513,8 @@ typedef struct
 /*MPEG-2 TS program object*/
 typedef struct
 {
+	GF_M2TS_Demuxer *ts;
+
 	GF_List *streams;
 	u32 pmt_pid;
 	u32 pcr_pid;
