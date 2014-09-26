@@ -3154,9 +3154,6 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				if (!es->program->last_pcr_value) es->program->last_pcr_value =  1;
 				pck.PTS = es->program->last_pcr_value;
 				pck.stream = (GF_M2TS_PES *)es;
-				if (es->program->last_pcr_value < es->program->before_last_pcr_value) {
-					pck.stream = (GF_M2TS_PES *)es;
-				}
 				if (paf->discontinuity_indicator)
 					pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
 				if (ts->on_event) {
