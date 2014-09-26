@@ -579,7 +579,7 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 	GF_TrackFragmentRunBox *trun;
 	sap_type = 0;
 	*sap_delta = 0;
-	*starts_with_sap = 0;
+	*starts_with_sap = GF_FALSE;
 	for (i=0; i<gf_list_count(moof->TrackList); i++) {
 		traf = gf_list_get(moof->TrackList, i);
 		if (traf->tfhd->trackID==refTrackID) break;
@@ -596,12 +596,12 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 	for (i=0; i<count; i++) {
 		GF_SampleGroupBox *sg;
 		u32 j, first_sample;
-		Bool rap_type = 0;
+		Bool rap_type = GF_FALSE;
 		sg = gf_list_get(traf->sampleGroups, i);
 
 		switch (sg->grouping_type) {
 		case GF_4CC('r','a','p',' '):
-			rap_type = 1;
+			rap_type = GF_TRUE;
 			break;
 		case GF_4CC('r','o','l','l'):
 			break;
@@ -616,7 +616,7 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 				continue;
 			}
 			if (!j) {
-				*starts_with_sap = 1;
+				*starts_with_sap = GF_TRUE;
 				sap_sample_num = 0;
 			}
 			if (!sap_sample_num || (sap_sample_num>first_sample)) {
@@ -1770,10 +1770,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	ent->flags = GF_ISOM_FORMAT_FRAG_FLAGS(PaddingBits, sample->IsRAP, DegradationPriority);
 	if (sample->IsRAP) {
 		ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(0, 2, 0, (redundant_coding ? 1 : 0) );
-		if (sample->IsRAP == 3)
-			ent->SAP_type = 3;
-		else
-			ent->SAP_type = 1;
+		ent->SAP_type = sample->IsRAP;
 	}
 	gf_list_add(trun->entries, ent);
 
