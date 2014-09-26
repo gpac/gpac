@@ -1329,6 +1329,10 @@ GF_Err ftyp_Read(GF_Box *s,GF_BitStream *bs)
 	u32 i;
 	GF_FileTypeBox *ptr = (GF_FileTypeBox *)s;
 
+	if (ptr->size < 8) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Found ftyp with size < 8, likely broken!\n"));
+		return GF_BAD_PARAM;
+	}
 	ptr->majorBrand = gf_bs_read_u32(bs);
 	ptr->minorVersion = gf_bs_read_u32(bs);
 	ptr->size -= 8;
