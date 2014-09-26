@@ -904,6 +904,11 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		hdr = *header;
 	}
 
+	//if PCR is not trusted and this is not a PCR discontinuity, ignore it
+	if (ch->clock->broken_pcr && (hdr.m2ts_pcr == 1)) {
+		hdr.OCRflag = 0;
+	}
+
 	/*we ignore OCRs for the moment*/
 	if (hdr.OCRflag==1) {
 		if (!ch->IsClockInit) {
@@ -950,6 +955,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			u32 ck;
 			u32 OCR_TS;
 			s32 pcr_diff, pcr_pcrprev_diff;
+
 			if (hdr.m2ts_pcr) {
 				OCR_TS = (u32) ( hdr.objectClockReference / 27000);
 			} else {
@@ -970,7 +976,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				//and re-init timing
 				gf_es_receive_sl_packet(serv, ch, payload, payload_size, header, reception_status);
 				//do not probe OCR after a discontinuity
-				ch->clock->probe_ocr = 0;
+				ch->clock->probe_ocr = (hdr.m2ts_pcr==2) ? 0 : 1;
 				ch->last_pcr = hdr.objectClockReference;
 				return;
 			} else {
@@ -1112,10 +1118,10 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					if (ABS(diff_ts) > 10000) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d: invalid clock reference detected - DTS %d but OCR %d - using DTS as OCR\n", ch->esd->ESID, ch->DTS, ch->clock->init_time));
 						gf_es_init_clock(ch, ch->DTS-1000);
+						ch->clock->broken_pcr = 1;
 					}
 					ch->clock->probe_ocr = 0;
 				}
-
 				ch->no_timestamps = 0;
 			} else {
 				ch->no_timestamps = 1;

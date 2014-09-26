@@ -540,6 +540,7 @@ struct _object_clock
 	s32 drift;
 	u32 data_timeout;
 	Bool probe_ocr;
+	Bool broken_pcr;
 	u32 last_TS_rendered;
 	u32 service_id;
 
