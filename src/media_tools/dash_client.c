@@ -4503,7 +4503,10 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	dash->reload_count = 0;
 
 	if (dash->base_url) gf_free(dash->base_url);
+	sep_cgi = strrchr(manifest_url, '?');
+	if (sep_cgi) sep_cgi[0] = 0;
 	dash->base_url = gf_strdup(manifest_url);
+	if (sep_cgi) sep_cgi[0] = '?';
 
 	dash->getter.udta = dash;
 	dash->getter.new_session = http_ifce_get;
@@ -5414,7 +5417,7 @@ void gf_dash_seek(GF_DashClient *dash, Double start_range)
 		} else {
 			now -= dash->initial_time_shift_value;
 		}
-		now += (u64) (start_range*1000);
+//		now += (u64) (start_range*1000);
 		start_range = (Double) now;
 		start_range /= 1000;
 

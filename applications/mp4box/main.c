@@ -3374,6 +3374,13 @@ int mp4boxMain(int argc, char **argv)
 			                            interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
 			                            dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
 			                            ast_shift_sec, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf, single_traf_per_moof);
+
+			//this happens when reading file while writing them (local playback of the live session ...)
+			if (dash_live && (e==GF_IO_ERR) ) {
+				fprintf(stderr, "Error dashing file (%s) but continuing ...\n", gf_error_to_string(e) );
+				e = GF_OK;
+			}
+
 			if (e) break;
 
 			if (dash_live) {

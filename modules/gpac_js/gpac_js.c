@@ -862,7 +862,7 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		else if (odi.od_type==GF_STREAM_VISUAL) str = "Video";
 		else if (odi.od_type==GF_STREAM_AUDIO) str = "Audio";
 		else if (odi.od_type==GF_STREAM_TEXT) str = "Text";
-		else if (odm->subscene) str = "Subcene";
+		else if (odm->subscene) str = "Subscene";
 		else str = "Unknow";
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
 		break;
@@ -1010,11 +1010,15 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 		*vp = BOOLEAN_TO_JSVAL( gf_sc_is_over(odm->term->compositor, scene->graph) ? JS_TRUE : JS_FALSE);
 	}
+		break;
 	case -44:
 	{
 		GF_Channel *ch = gf_list_get(odm->channels, 0);
-		*vp = BOOLEAN_TO_JSVAL((ch && ch->is_pulling) ? 1 : 0);
+		*vp = BOOLEAN_TO_JSVAL((ch && ch->is_pulling) ? JS_TRUE : JS_FALSE);
 	}
+		break;
+	case -45:
+		*vp = BOOLEAN_TO_JSVAL(odm->subscene && odm->subscene->is_dynamic_scene ? JS_TRUE : JS_FALSE);
 		break;
 	}
 	return JS_TRUE;
@@ -1138,7 +1142,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_resource)
 	if (odm->subscene) {
 		an_odm = gf_list_get(odm->subscene->resources, idx);
 	}
-	if (an_odm) {
+	if (an_odm && an_odm->net_service) {
         JSObject *anobj;
         JSClass *_class = JS_GET_CLASS(c, obj);
         anobj = JS_NewObject(c, _class, 0, 0);
@@ -1573,6 +1577,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("main_addon_on",		-42,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("is_over",			-43,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("is_pulling",		-44,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("dynamic_scene",		-45,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};

@@ -282,7 +282,8 @@ u32 gf_dash_get_period_switch_status(GF_DashClient *dash);
 void gf_dash_request_period_switch(GF_DashClient *dash);
 /*returns 1 if the DASH engine is currently setting up a period (creating groups and fetching initial segments)*/
 Bool gf_dash_in_period_setup(GF_DashClient *dash);
-/*seeks playback to the given time. If period changes, all playback is stopped and restarted*/
+/*seeks playback to the given time. If period changes, all playback is stopped and restarted
+If the session is dynamic (live), the start_range is ignored and recomputed from current UTC clock to be at the live point. If timeshifting is desired, use @gf_dash_set_timeshift before seeking.*/
 void gf_dash_seek(GF_DashClient *dash, Double start_range);
 /*when seeking, this flag is set when the seek is outside of the previously playing segment.*/
 Bool gf_dash_group_segment_switch_forced(GF_DashClient *dash, u32 idx);

@@ -214,7 +214,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 			info->generated_scene = 1;
 		}
 	}
-	if (info->current_time>info->duration)
+	if (info->duration && info->current_time>info->duration)
 		info->current_time = info->duration;
 
 	info->buffer = -2;
