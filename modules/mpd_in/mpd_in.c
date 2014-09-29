@@ -195,8 +195,8 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 		else
 			hdr->decodingTimeStamp = 0;
 
-		if ((s64)
-		        hdr->compositionTimeStamp >= group->pto) hdr->compositionTimeStamp -= group->pto;
+		if ((s64) hdr->compositionTimeStamp >= group->pto) 
+			hdr->compositionTimeStamp -= group->pto;
 		else
 			hdr->compositionTimeStamp = 0;
 	} else if (!group->pto_setup) {
@@ -1312,7 +1312,7 @@ Bool MPD_CanHandleURLInService(GF_InputService *plug, const char *url)
 	*/
 	GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Can Handle URL In Service (%p) request from terminal for %s\n", mpdin->service, url));
-	if (!plug || !plug->priv) return GF_FALSE;
+	if (!plug || !plug->priv || !mpdin->dash) return GF_FALSE;
 	if (gf_dash_get_url(mpdin->dash) && !strcmp(gf_dash_get_url(mpdin->dash) , url)) {
 		return 1;
 	} else {

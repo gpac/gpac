@@ -930,7 +930,9 @@ GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize)
 	//reset bitrate compute
 	dec->cur_bit_size = 0;
 	dec->last_stat_start = 0;
-	if ((dec->type==GF_STREAM_VISUAL) && dec->odm->parentscene->is_dynamic_scene && !dec->odm->parentscene->root_od->addon) {
+
+	//if dynamic scene, set size
+	if ((dec->type==GF_STREAM_VISUAL) && dec->odm->parentscene->is_dynamic_scene) {
 		gf_scene_force_size_to_video(dec->odm->parentscene, dec->odm->mo);
 	}
 	return GF_OK;

@@ -1560,7 +1560,7 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 	if (net_locked)
 		gf_term_lock_net(term, 0);
 
-	odm->net_service = gf_term_service_new(term, odm, serviceURL, reloc_result ? NULL : parent_url, &e);
+	odm->net_service = gf_term_service_new(term, odm, serviceURL, (odm->addon || reloc_result) ? NULL : parent_url, &e);
 	if (!odm->net_service) {
 		gf_term_message(term, serviceURL, "Cannot open service", e);
 		gf_odm_disconnect(odm, 1);

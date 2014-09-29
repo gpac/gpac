@@ -22,17 +22,30 @@ extension.view_stats = function () {
 
     wnd.has_select = false;
     wnd.objs = [];
-    //if not dynamic scene, add main OD to satts
-    if (!this.dynamic_scene) {
-        wnd.objs.push(root_odm);
-    }
 
+    wnd.gather_res = function (root) {
+        //if not dynamic scene, add main OD to satts
+        if (!root.dynamic_scene)
+            this.objs.push(root);
 
-    for (var res_i = 0; res_i < root_odm.nb_resources; res_i++) {
-        var m = root_odm.get_resource(res_i);
-        if (!m) continue;
-        wnd.objs.push(m);
+        for (var res_i = 0; res_i < root.nb_resources; res_i++) {
+            var m = root.get_resource(res_i);
+            if (!m) continue;
+
+            alert('dynscene ' + m.dynamic_scene);
+            if (!m.dynamic_scene) {
+                this.objs.push(m);
+            }
+
+            alert('type ' + m.type);
+            if (m.type == 'Scene' || m.type == 'Subscene') {
+                this.gather_res(m);
+            }
+        }
     }
+    alert('dynscene ' + root_odm.dynamic_scene);
+
+    wnd.gather_res(root_odm);
 
     for (var res_i = 0; res_i < wnd.objs.length; res_i++) {
         var m = wnd.objs[res_i];
