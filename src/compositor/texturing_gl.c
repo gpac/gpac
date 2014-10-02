@@ -138,6 +138,8 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 	}
 
 	if (txh->tx_io) {
+		gf_sc_lock(txh->compositor, 1);
+
 		if (txh->tx_io->tx_raster) {
 			txh->compositor->rasterizer->stencil_delete(txh->tx_io->tx_raster);
 			txh->tx_io->tx_raster = NULL;
@@ -148,7 +150,9 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 		} else {
 			gf_list_add(txh->compositor->textures_gc, txh->tx_io);
 		}
-		txh->tx_io=NULL;
+		txh->tx_io = NULL;
+
+		gf_sc_lock(txh->compositor, 0);
 	}
 }
 

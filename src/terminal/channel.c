@@ -38,7 +38,7 @@ void gf_es_buffer_off(GF_Channel *ch)
 	if (ch->BufferOn) {
 		ch->BufferOn = 0;
 		gf_clock_buffer_off(ch->clock);
-		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: buffering off at STB %d (OTB %d) (nb buffering on clock: %d)\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), gf_clock_time(ch->clock), ch->clock->Buffering));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) : buffering off at STB %d (OTB %d) (nb buffering on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_term_get_time(ch->odm->term), gf_clock_time(ch->clock), ch->clock->Buffering));
 		//if one of the stream is done buffering, force data timeout for the clock to be the buffer time 
 		//at the end of the buffering period
 		if ((ch->clock->data_timeout==ch->odm->term->net_data_timeout) && (ch->BufferTime>=(s32) ch->MaxBuffer))
@@ -57,7 +57,7 @@ void gf_es_buffer_on(GF_Channel *ch)
 	if (!ch->BufferOn) {
 		ch->BufferOn = 1;
 		gf_clock_buffer_on(ch->clock);
-		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: buffering on at %d (nb buffering on clock: %d)\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->clock->Buffering));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): buffering on at %d (nb buffering on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_term_get_time(ch->odm->term), ch->clock->Buffering));
 	}
 }
 

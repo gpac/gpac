@@ -268,7 +268,7 @@ typedef struct __gf_dvb_tuner GF_Tuner;
 #define GF_M2TS_MAX_SERVICES	65535
 
 /*Maximum size of the buffer in UDP */
-#define UDP_BUFFER_SIZE	0x40000
+#define UDP_BUFFER_SIZE	0x4000
 
 /*returns readable name for given stream type*/
 const char *gf_m2ts_get_stream_name(u32 streamType);
@@ -878,6 +878,8 @@ struct tag_m2ts_demux
 	/* "Network" =  "MobileIP", "DefaultMCastInterface" */
 	Bool MobileIPEnabled;
 	const char *network_type;
+	//for sockets, we need to reopen them after resume/restart....
+	char *socket_url;
 	/* Set it to 1 if the TS is meant to be played during the demux */
 	Bool demux_and_play;
 	/* End of M2TSIn */
@@ -1300,8 +1302,6 @@ void gf_m2ts_mux_enable_sdt(GF_M2TS_Mux *mux, u32 refresh_rate_ms);
 
 /******************* Demux DVB ****************************/
 
-
-#define UDP_BUFFER_SIZE	0x40000
 
 
 #ifdef GPAC_HAS_LINUX_DVB

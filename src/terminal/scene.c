@@ -944,12 +944,8 @@ GF_EXPORT
 void gf_scene_set_timeshift_depth(GF_Scene *scene)
 {
 	u32 i;
-	Double ts;
 	u32 max_timeshift;
 	GF_ObjectManager *odm;
-#ifndef GPAC_DISABLE_VRML
-	MediaSensorStack *media_sens;
-#endif
 	GF_Clock *ck;
 
 	ck = gf_odm_get_media_clock(scene->root_od);
@@ -965,24 +961,12 @@ void gf_scene_set_timeshift_depth(GF_Scene *scene)
 
 	scene->timeshift_depth = max_timeshift;
 	if (scene->is_dynamic_scene && !scene->root_od->timeshift_depth) scene->root_od->timeshift_depth = max_timeshift;
-
-	return;
-
-
-	//we notify the timeshift depth as a negative duration to media sensors
-	ts = (Double) scene->timeshift_depth;
-	ts /= 1000;
-	ts *= -1;
-
-#ifndef GPAC_DISABLE_VRML
-	i=0;
-	while ((media_sens = (MediaSensorStack*)gf_list_enum(scene->root_od->ms_stack, &i))) {
-		if (media_sens->sensor->isActive) {
-			media_sens->sensor->mediaDuration = ts;
-			gf_node_event_out((GF_Node *) media_sens->sensor, 3/*"mediaDuration"*/);
+	if (scene->root_od->addon && (scene->root_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
+		if (scene->root_od->parentscene->is_dynamic_scene && (scene->root_od->parentscene->timeshift_depth < max_timeshift)) {
+			scene->root_od->parentscene->timeshift_depth = max_timeshift;
+			scene->root_od->parentscene->root_od->timeshift_depth = max_timeshift;
 		}
 	}
-#endif
 }
 
 
@@ -1673,16 +1657,35 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only)
 	if (scene->scene_codec) ck = scene->scene_codec->ck;
 	if (!ck) return;
 
+	//first pass to check if we need to enable the addon acting as time shifting
+	i=0;
+	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
+
+		if (odm->addon && (odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
+			//assign clock if not yet available
+			if (odm->addon->root_od->subscene && !odm->addon->root_od->subscene->dyn_ck)
+				odm->addon->root_od->subscene->dyn_ck = scene->dyn_ck;
+
+			//we're timeshifting through the main addon, activate it
+			if (from_time < -1) {
+				gf_scene_select_main_addon(scene, odm, GF_TRUE);
+			} else if (scene->main_addon_selected) {
+				gf_scene_select_main_addon(scene, odm, GF_FALSE);
+			}
+		}
+	}
+
 	to_restart = gf_list_new();
-
-
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
 		if (gf_odm_shares_clock(odm, ck)) {
 			if (odm->state != GF_ODM_STATE_BLOCKED) {
 
 				//object is not an addon and main addon is selected, do not add
-				if (!odm->addon && (odm->state == GF_ODM_STATE_STOP) && scene->main_addon_selected) {
+				if (!odm->addon && scene->main_addon_selected) {
+				//object is not an addon and main addon is selected, do not add
+				} else if (odm->addon && (odm->addon->addon_type==GF_ADDON_TYPE_MAIN) && scene->main_addon_selected) {
+					gf_list_add(to_restart, odm);
 				} else if (!scene->selected_service_id || (scene->selected_service_id==odm->OD->ServiceID)) {
 					gf_list_add(to_restart, odm);
 				}
@@ -1710,9 +1713,9 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only)
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
 		if (from_time<0) {
-			odm->media_stop_time = from_time;
+			odm->media_stop_time = from_time + 1;
 		} else {
-			odm->media_start_time = 1 + from_time;
+			odm->media_start_time = from_time;
 		}
 
 		if (odm->subscene && odm->subscene->is_dynamic_scene) {
