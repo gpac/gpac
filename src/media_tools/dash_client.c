@@ -3204,12 +3204,32 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Done downloading init segment and SIDX\n"));
 
 				GF_SAFEALLOC(rep->segment_list, GF_MPD_SegmentList);
-				rep->segment_list->segment_URLs  =gf_list_new();
+				rep->segment_list->segment_URLs = gf_list_new();
 
 				cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
 				if (init_in_base) {
 					GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
-					rep->segment_list->initialization_segment->sourceURL = gf_strdup(cache_name);
+					//we need to store the init segment since it has the same name as the rest of the segments and will be destroyed when cleaning up the cache ..
+					if (!strnicmp(cache_name, "gmem://", 7)) {
+						char szName[100];
+						char *mem_address;
+						if (sscanf(cache_name, "gmem://%d@%p", &rep->playback.init_segment_size, &mem_address) != 2) {
+							e = GF_IO_ERR;
+							goto exit;
+						}
+						rep->playback.init_segment_data = gf_malloc(sizeof(char) * rep->playback.init_segment_size);
+						memcpy(rep->playback.init_segment_data, mem_address, sizeof(char) * rep->playback.init_segment_size);
+
+						sprintf(szName, "gmem://%d@%p", rep->playback.init_segment_size, rep->playback.init_segment_data);
+						rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
+						cache_name = rep->segment_list->initialization_segment->sourceURL;
+						//cleanup cache right away
+						group->dash->dash_io->delete_cache_file(group->dash->dash_io, group->segment_download, init_url);
+
+					} else {
+						rep->segment_list->initialization_segment->sourceURL = gf_strdup(cache_name);
+					}
+					
 				}
 				if (index_in_base) {
 					sidx_file = (char *)cache_name;

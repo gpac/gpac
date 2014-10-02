@@ -201,6 +201,8 @@ typedef struct
 	char *cached_init_segment_url;
 	u64 init_start_range, init_end_range;
 	u32 probe_switch_count;
+	char *init_segment_data;
+	u32 init_segment_size;
 } GF_DASH_RepresentationPlayback;
 
 typedef struct {

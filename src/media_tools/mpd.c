@@ -846,6 +846,7 @@ void gf_mpd_representation_free(void *_item)
 	if (ptr->media_stream_structure_id) gf_free(ptr->media_stream_structure_id);
 
 	if (ptr->playback.cached_init_segment_url) gf_free(ptr->playback.cached_init_segment_url);
+	if (ptr->playback.init_segment_data) gf_free(ptr->playback.init_segment_data);
 
 	gf_mpd_del_list(ptr->base_URLs, gf_mpd_base_url_free, 0);
 	gf_mpd_del_list(ptr->sub_representations, NULL/*TODO*/, 0);
