@@ -2098,6 +2098,7 @@ static GFINLINE char *http_is_header(char *line, char *header_name)
 static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	GF_Err e;
 	GF_NETIO_Parameter par;
+	Bool no_cache = 0;
 	char range_buf[1024];
 	char pass_buf[1024];
 	const char *user_agent;
@@ -2193,8 +2194,9 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	if (!has_range && sess->needs_range) {
 		if (!sess->range_end) sprintf(range_buf, "Range: bytes="LLD"-\r\n", sess->range_start);
 		else sprintf(range_buf, "Range: bytes="LLD"-"LLD"\r\n", sess->range_start, sess->range_end);
-		/* FIXME : cache should not be used here */
 		strcat(sHTTP, range_buf);
+
+		no_cache = 1;
 	}
 	if (!has_language) {
 		const char *opt;
@@ -2265,7 +2267,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		strcat(sHTTP, "Icy-Metadata: 1\r\n");
 
 		/*cached headers are not appended in POST*/
-		if (!sess->disable_cache && (GF_OK < appendHttpCacheHeaders( sess->cache_entry, sHTTP)) ) {
+		if (!no_cache && !sess->disable_cache && (GF_OK < appendHttpCacheHeaders( sess->cache_entry, sHTTP)) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Cache Entry : %p, FAILED to append cache directives.", sess->cache_entry));
 		}
 	}

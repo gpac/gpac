@@ -159,31 +159,35 @@ next_segment:
 				gf_isom_reset_fragment_info(read->mov, 0);
 				read->clock_discontinuity = 1;
 			}
-
+			e = GF_OK;
 			if (param.url_query.next_url_init_or_switch_segment) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s\n", param.url_query.next_url_init_or_switch_segment));
 				if (read->mov) gf_isom_close(read->mov);
 				e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
+				if (e<0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening init segment %s at UTC "LLU": %s\n", param.url_query.next_url_init_or_switch_segment, gf_net_get_utc(), gf_error_to_string(e) ));
+				}
 			}
+			if (!e) {
+				flags = 0;
+				if (read->no_order_check) flags |= GF_ISOM_SEGMENT_NO_ORDER_FLAG;
+				if (scalable_segment) flags |= GF_ISOM_SEGMENT_SCALABLE_FLAG;
+				e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range, flags);
 
-			flags = 0;
-			if (read->no_order_check) flags |= GF_ISOM_SEGMENT_NO_ORDER_FLAG;
-			if (scalable_segment) flags |= GF_ISOM_SEGMENT_SCALABLE_FLAG;
-			e = gf_isom_open_segment(read->mov, param.url_query.next_url, param.url_query.start_range, param.url_query.end_range, flags);
-
-			if (param.url_query.current_download  && (e==GF_ISOM_INCOMPLETE_FILE)) {
-				e = GF_OK;
-			}
+				if (param.url_query.current_download  && (e==GF_ISOM_INCOMPLETE_FILE)) {
+					e = GF_OK;
+				}
 
 #ifndef GPAC_DISABLE_LOG
-			if (e<0) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening new segment %s at UTC "LLU": %s\n", param.url_query.next_url, gf_net_get_utc(), gf_error_to_string(e) ));
-			} else if (param.url_query.end_range) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", param.url_query.next_url, param.url_query.start_range, param.url_query.end_range ));
-			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] playing new segment %s\n", param.url_query.next_url));
-			}
+				if (e<0) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening new segment %s at UTC "LLU": %s\n", param.url_query.next_url, gf_net_get_utc(), gf_error_to_string(e) ));
+				} else if (param.url_query.end_range) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", param.url_query.next_url, param.url_query.start_range, param.url_query.end_range ));
+				} else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] playing new segment %s\n", param.url_query.next_url));
+				}
 #endif
+			}
 
 			if (e<0) {
 				gf_isom_release_segment(read->mov, 1);
