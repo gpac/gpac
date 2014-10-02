@@ -637,6 +637,7 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 		case CB_STOP:
 			cb->Status = CB_BUFFER;
 			gf_clock_buffer_on(cb->odm->codec->ck);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB status changed - ODM%d: buffering on at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 			break;
 		case CB_PAUSE:
 			cb->Status = CB_PLAY;
@@ -662,6 +663,7 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 		cb->Status = Status;
 		if (Status==CB_BUFFER) {
 			gf_clock_buffer_on(cb->odm->codec->ck);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB status changed - ODM%d: buffering on at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 		}
 	}
 

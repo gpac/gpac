@@ -2815,7 +2815,8 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		if (!hdr->payload_start || (hdr->adaptation_field!=3) ) return;
 	} else {
 		expect_cc = (pes->cc<0) ? hdr->continuity_counter : (pes->cc + 1) & 0xf;
-		if (expect_cc != hdr->continuity_counter) disc = 1;
+		if (expect_cc != hdr->continuity_counter) 
+			disc = 1;
 	}
 	pes->cc = hdr->continuity_counter;
 
@@ -3066,11 +3067,11 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		return;
 	}
 //#if DEBUG_TS_PACKET
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d\n", hdr.pid));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d CC %d Encrypted %d\n", hdr.pid, hdr.continuity_counter, hdr.scrambling_ctrl));
 //#endif
 
 	if (hdr.scrambling_ctrl) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet is encrypted (PID %d)\n", hdr.pid));
+		//TODO add decyphering
 		return;
 	}
 
@@ -3152,6 +3153,9 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				es->program->last_pcr_value_pck_number = ts->pck_number;
 				es->program->last_pcr_value = paf->PCR_base * 300 + paf->PCR_ext;
 				if (!es->program->last_pcr_value) es->program->last_pcr_value =  1;
+
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PCR found "LLU" ("LLU" at 90kHz) - PCR diff is %d us\n", es->program->last_pcr_value, es->program->last_pcr_value/300, (u32) (es->program->last_pcr_value - es->program->before_last_pcr_value)/27 ));
+
 				pck.PTS = es->program->last_pcr_value;
 				pck.stream = (GF_M2TS_PES *)es;
 				if (paf->discontinuity_indicator)
@@ -3573,6 +3577,8 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 
 	if (ts->th)
 		gf_th_del(ts->th);
+
+	if (ts->socket_url) gf_free(ts->socket_url);
 	gf_free(ts);
 }
 
@@ -3712,6 +3718,11 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 
 	gf_m2ts_reset_parsers(ts);
 
+	//recreate the socket if needed
+	if (ts->socket_url && !ts->sock) {
+		gf_m2ts_get_socket(ts->socket_url, ts->network_type, UDP_BUFFER_SIZE, &ts->sock);
+	}
+
 #ifdef GPAC_HAS_LINUX_DVB
 	if (ts->tuner) {
 		s32 ts_size;
@@ -3800,6 +3811,8 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 				gf_rtp_reorderer_del(ch);
 #endif
 
+			if (ts->sock) gf_sk_del(ts->sock);
+			ts->sock = NULL;
 		} else if (ts->dnload) {
 			while (ts->run_state) {
 				gf_dm_sess_process(ts->dnload);
@@ -3944,6 +3957,9 @@ static GF_Err gf_m2ts_demuxer_setup_live(GF_M2TS_Demuxer *ts, char *url)
 	GF_Err e;
 	e = gf_m2ts_get_socket(url, ts->network_type, UDP_BUFFER_SIZE, &ts->sock);
 	if (e) return e;
+
+	if (ts->socket_url) gf_free(ts->socket_url);
+	ts->socket_url = gf_strdup(url);
 
 	//gf_th_set_priority(ts->th, GF_THREAD_PRIORITY_HIGHEST);
 	return gf_m2ts_demuxer_play(ts);
@@ -4259,7 +4275,8 @@ GF_Err gf_m2ts_demuxer_close(GF_M2TS_Demuxer *ts)
 }
 
 GF_EXPORT
-GF_Err gf_m2ts_demuxer_play(GF_M2TS_Demuxer *ts) {
+GF_Err gf_m2ts_demuxer_play(GF_M2TS_Demuxer *ts) 
+{
 
 	/*set the state variable outside the TS thread. If inside, we may get called for shutdown before the TS thread has started
 	and we would overwrite the run_state when entering the TS thread, which would make the thread run forever and the stop() wait forever*/

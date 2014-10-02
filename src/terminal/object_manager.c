@@ -1673,7 +1673,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 				gf_clock_buffer_off(ch->clock);
 			}
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting PLAY from %g to %g (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), com.play.start_range, com.play.end_range, ch->clock->clock_init));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH%d: At OTB %u requesting PLAY from %g to %g (clock init %d)\n", odm->OD->objectDescriptorID, odm->net_service->url, ch->esd->ESID, gf_clock_time(ch->clock), com.play.start_range, com.play.end_range, ch->clock->clock_init));
 			gf_term_service_command(ch->service, &com);
 		}
 	}
@@ -1835,7 +1835,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 		if (ch->service) {
 			com.base.on_channel = ch;
 			gf_term_service_command(ch->service, &com);
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH %d At OTB %u requesting STOP\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock)));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH %d At OTB %u requesting STOP\n", odm->OD->objectDescriptorID, odm->net_service->url, ch->esd->ESID, gf_clock_time(ch->clock)));
 		}
 	}
 
@@ -2047,7 +2047,7 @@ void gf_odm_pause(GF_ObjectManager *odm)
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 		gf_clock_pause(ch->clock);
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting PAUSE (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH%d: At OTB %u requesting PAUSE (clock init %d)\n", odm->OD->objectDescriptorID, odm->net_service->url, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
 
 		if (odm->state != GF_ODM_STATE_PLAY) continue;
 
@@ -2112,7 +2112,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
 		gf_clock_resume(ch->clock);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting RESUME (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH%d: At OTB %u requesting RESUME (clock init %d)\n", odm->OD->objectDescriptorID, odm->net_service->url, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
 		if (odm->state!= GF_ODM_STATE_PLAY) continue;
 
 		com.base.on_channel = ch;

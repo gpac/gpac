@@ -988,8 +988,16 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 	case -40:
 	{
 		GF_NetworkCommand com;
+		GF_Scene *scene;
+		scene = odm->subscene ? odm->subscene : odm->parentscene;
+
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.command_type = GF_NET_GET_TIMESHIFT;
+
+		if (scene->main_addon_selected) {
+			odm = scene->active_addon->root_od;
+		}
+
 		//can be NULL
 		com.base.on_channel = gf_list_get(odm->channels, 0);
 		gf_term_service_command(odm->net_service, &com);

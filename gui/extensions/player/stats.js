@@ -32,18 +32,15 @@ extension.view_stats = function () {
             var m = root.get_resource(res_i);
             if (!m) continue;
 
-            alert('dynscene ' + m.dynamic_scene);
             if (!m.dynamic_scene) {
                 this.objs.push(m);
             }
 
-            alert('type ' + m.type);
             if (m.type == 'Scene' || m.type == 'Subscene') {
                 this.gather_res(m);
             }
         }
     }
-    alert('dynscene ' + root_odm.dynamic_scene);
 
     wnd.gather_res(root_odm);
 
