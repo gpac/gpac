@@ -23,7 +23,7 @@ extension.view_stats = function () {
     wnd.has_select = false;
     wnd.objs = [];
 
-    wnd.gather_res = function (root) {
+    wnd.gather_res = function (root, selected_service) {
         //if not dynamic scene, add main OD to satts
         if (!root.dynamic_scene)
             this.objs.push(root);
@@ -31,6 +31,7 @@ extension.view_stats = function () {
         for (var res_i = 0; res_i < root.nb_resources; res_i++) {
             var m = root.get_resource(res_i);
             if (!m) continue;
+            if (m.service_id && (m.service_id != selected_service)) continue;
 
             if (!m.dynamic_scene) {
                 this.objs.push(m);
@@ -42,7 +43,7 @@ extension.view_stats = function () {
         }
     }
 
-    wnd.gather_res(root_odm);
+    wnd.gather_res(root_odm, root_odm.selected_service);
 
     for (var res_i = 0; res_i < wnd.objs.length; res_i++) {
         var m = wnd.objs[res_i];

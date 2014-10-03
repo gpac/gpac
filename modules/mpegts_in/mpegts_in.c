@@ -1417,9 +1417,13 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	}
 	//get info on the first running program
 	if (com->command_type==GF_NET_SERVICE_INFO) {
-		pes = M2TS_GetFirstRunningChannel(m2ts);
-		if (pes) {
-			GF_M2TS_SDT *sdt = gf_m2ts_get_sdt_info(ts, pes->program->number);
+		u32 id = com->info.service_id;
+		if (!id) {
+			pes = M2TS_GetFirstRunningChannel(m2ts);
+			if (pes) id = pes->program->number;
+		}
+		if (id) {
+			GF_M2TS_SDT *sdt = gf_m2ts_get_sdt_info(ts, id);
 			if (sdt) {
 				com->info.name = sdt->service;
 				com->info.provider = sdt->provider;

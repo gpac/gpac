@@ -1337,6 +1337,11 @@ function gw_new_window(parent, offscreen, background, class_name, no_focus) {
     }
     else if (arguments.length == 5) obj._no_focus = true;
 
+    if (class_name == 'popup') {
+        class_name = 'window';
+        obj._popup = true;
+    }
+
     if (background)
         obj.background = gw_new_rectangle(class_name);
     obj.visible = false;
@@ -1459,11 +1464,13 @@ function gw_new_window(parent, offscreen, background, class_name, no_focus) {
         this.remove_child(this._disable_rect);
     }
 
-    var s = gwskin.get_class(class_name);
+    if (typeof obj._popup != 'boolean') {
+        var s = gwskin.get_class(class_name);
 
-    if (s) {
-        if (typeof s.show != 'undefined') obj.show = s.show;
-        if (typeof s.hide != 'undefined') obj.hide = s.hide;
+        if (s) {
+            if (typeof s.show != 'undefined') obj.show = s.show;
+            if (typeof s.hide != 'undefined') obj.hide = s.hide;
+        }
     }
 
     obj.on_close = null;
@@ -3299,8 +3306,7 @@ function gw_new_plotter(parent) {
 
 function gw_new_popup(anchor, type)
 {
-    var popup = gw_new_window(null, true, false);
-    popup._popup = true;
+    var popup = gw_new_window(null, true, false, 'popup');
     popup.area = gw_new_grid_container(popup);
     popup.anchor = anchor;
     popup.type = (type=='up') ? 0 : 1;

@@ -183,7 +183,6 @@ extension = {
                 if (ext.show_stats_init) {
                     ext.view_stats();
                 }
-                ext.streamlist_changed();
             }
 
             if (!ext.movie_connected) {
@@ -208,6 +207,7 @@ extension = {
                 h = r_w * h;
                 gpac.set_size(w, h);
             }
+            ext.streamlist_changed();
         }
         this.movie.children[0].on_addon_found = function (evt) {
             var e = {};
@@ -442,18 +442,18 @@ extension = {
             }
             gw_background_control(false);
             switch (type) {
-                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                              
+                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                     
                 case 1:
                     this.extension.set_state(this.extension.GF_STATE_PAUSE);
                     this.extension.set_speed(0);
                     break;
-                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                              
+                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                     
                 case 2:
                     this.extension.set_state(this.extension.GF_STATE_PLAY);
                     this.extension.movie_control.mediaStartTime = time;
                     this.extension.set_speed(1);
                     break;
-                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                              
+                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                     
                 default:
                     if (this.extension.state == this.extension.GF_STATE_STOP)
                         this.extension.set_state(this.extension.GF_STATE_PLAY);
@@ -1230,9 +1230,15 @@ extension = {
             for (var res_i = 0; res_i < root_odm.nb_resources; res_i++) {
                 var m = root_odm.get_resource(res_i);
                 if (!m || !m.service_id) continue;
-
-                if (this.services.indexOf(m.service_id) < 0) {
-                    this.services.push(m.service_id);
+                var res = null;
+                for (var k = 0; k < this.services.length; k++) {
+                    if (this.services[k].service_id == m.service_id) {
+                        res = this.services[k];
+                        break;
+                    }
+                }
+                if (res == null) {
+                    this.services.push(m);
                 }
             }
         }
@@ -1250,12 +1256,12 @@ extension = {
 
         this.controler.channels.on_click = function () {
 
-            if (this.channels_wnd) {
-                this.channels_wnd.close();
+            if (this.extension.channels_wnd) {
+                this.extension.channels_wnd.close();
                 return;
             }
             var wnd = gw_new_popup(this.extension.controler.channels, 'up');
-            this.channels_wnd = wnd;
+            this.extension.channels_wnd = wnd;
             wnd.extension = this.extension;
 
             wnd.on_close = function () {
@@ -1264,15 +1270,16 @@ extension = {
 
             wnd.make_item = function (text, i) {
                 wnd.add_menu_item(text, function () {
-                    this.extension.root_odm.select_service(this.extension.services[i]);
+                    this.extension.root_odm.select_service(this.extension.services[i].service_id);
                 });
             }
             for (var i = 0; i < this.extension.services.length; i++) {
                 var text = '';
-                if (this.extension.root_odm.selected_service == this.extension.services[i]) text += '* ';
-                text += 'Service ' + this.extension.services[i];
+                var n = this.extension.services[i].service_name;
+                if (this.extension.root_odm.selected_service == this.extension.services[i].service_id) text += '* ';
+                if (n == null) n = 'Service ' + this.extension.services[i].service_id;
+                text += n;
                 wnd.make_item(text, i);
-
             }
             wnd.on_display_size(gw_display_width, gw_display_height);
             wnd.show();
