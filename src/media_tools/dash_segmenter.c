@@ -254,7 +254,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		}
 	}
 
-	if (is_template && ! use_segment_timeline && !strstr(seg_rad_name, "$Number"))
+	if (is_template && ( ! use_segment_timeline || !strstr(seg_rad_name, "$Time")) && !strstr(seg_rad_name, "$Number"))
 		strcat(segment_name, "$Number$");
 
 	if (needs_init)
@@ -493,34 +493,6 @@ static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count
 	return time;
 }
 
-typedef struct
-{
-	u32 nb_segment;
-	u64 segment_duration;
-} GF_DASHSegmentDuration;
-
-static void store_segment_duration(GF_List **segment_duration, u64 SegmentDuration)
-{
-	u32 k;
-	GF_DASHSegmentDuration *entry;
-
-	if (! *segment_duration) *segment_duration = gf_list_new();
-
-	for (k = 0; k < gf_list_count(*segment_duration); k++) {
-		entry = (GF_DASHSegmentDuration *)gf_list_get(*segment_duration, k);
-		if (SegmentDuration == entry->segment_duration) {
-			entry->nb_segment++;
-			return;
-		}
-	}
-
-	GF_SAFEALLOC(entry, GF_DASHSegmentDuration);
-	entry->segment_duration = SegmentDuration;
-	entry->nb_segment = 1;
-	gf_list_add(*segment_duration, entry);
-}
-
-
 static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec, GF_DASHSegmenterOptions *dash_cfg, GF_DashSegInput *dash_input, Bool first_in_set)
 {
 	u8 NbBits;
@@ -575,13 +547,13 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u32 *segments_info = NULL;
 	u32 nb_segments_info = 0;
 	u32 protected_track = 0;
+	u64 min_seg_dur, max_seg_dur, total_seg_dur;
 	Bool audio_only = GF_TRUE;
 	Bool is_bs_switching = GF_FALSE;
 	Bool use_url_template = dash_cfg->use_url_template;
 	const char *seg_rad_name = dash_cfg->seg_rad_name;
 	const char *seg_ext = dash_cfg->seg_ext;
 	const char *bs_switching_segment_name = NULL;
-	GF_List *segment_duration = NULL;
 
 	SegmentName[0] = 0;
 	SegmentDuration = 0;
@@ -629,11 +601,11 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 	opt = dash_cfg->dash_ctx ? gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "InitializationSegment") : NULL;
 	if (opt) {
-		output = gf_isom_open(opt, GF_ISOM_OPEN_CAT_FRAGMENTS, NULL);
+		output = gf_isom_open(opt, GF_ISOM_OPEN_CAT_FRAGMENTS, dash_cfg->tmpdir);
 		dash_moov_setup = 1;
 	} else {
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switching, SegmentName, output_file, dash_input->representationID, seg_rad_name, !stricmp(seg_ext, "null") ? NULL : "mp4", 0, bandwidth, 0, dash_cfg->use_segment_timeline);
-		output = gf_isom_open(SegmentName, GF_ISOM_OPEN_WRITE, NULL);
+		output = gf_isom_open(SegmentName, GF_ISOM_OPEN_WRITE, dash_cfg->tmpdir);
 	}
 	if (!output) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISOBMF DASH] Cannot open %s for writing\n", opt ? opt : SegmentName));
@@ -1123,6 +1095,7 @@ restart_fragmentation_pass:
 
 
 	max_segment_duration = 0;
+	min_seg_dur = max_seg_dur = total_seg_dur = 0;
 
 	while ( (count = gf_list_count(fragmenters)) ) {
 		Bool store_pssh = GF_FALSE;
@@ -1470,7 +1443,7 @@ restart_fragmentation_pass:
 		}
 
 
-		//this is now disabled - we try to keek segment duration as constant and close to the requested duration as possible
+		//this is now disabled - we try to keep segment duration as constant and close to the requested duration as possible
 		//this code was producing much shorter segments in case segment duration was way greater than fragment duration
 		//this means we will typically end up with one shorter fragment at the end of the segment
 #if 0
@@ -1482,7 +1455,9 @@ restart_fragmentation_pass:
 
 		if (force_switch_segment || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap || tf->splitable))) {
 
-			store_segment_duration(&segment_duration, SegmentDuration);
+			if (!min_seg_dur || (min_seg_dur>SegmentDuration)) min_seg_dur = SegmentDuration;
+			if (max_seg_dur < SegmentDuration) max_seg_dur = SegmentDuration;
+			total_seg_dur += SegmentDuration;
 
 			if (mpd_timeline_bs) {
 				if (previous_segment_duration == SegmentDuration) {
@@ -1593,15 +1568,9 @@ restart_fragmentation_pass:
 	if (!switch_segment) {
 		u64 idx_start_range, idx_end_range;
 
-		store_segment_duration(&segment_duration, SegmentDuration);
-
-		/*do not update on last segment, we're likely to have a different last GOP*/
-#if 0
-		if (max_segment_duration * dash_cfg->dash_scale <= SegmentDuration) {
-			max_segment_duration = (Double) (s64) SegmentDuration;
-			max_segment_duration /= dash_cfg->dash_scale;
-		}
-#endif
+		if (!min_seg_dur || (min_seg_dur>SegmentDuration)) min_seg_dur = SegmentDuration;
+		if (max_seg_dur < SegmentDuration) max_seg_dur = SegmentDuration;
+		total_seg_dur += SegmentDuration;
 
 		segment_start_time += SegmentDuration;
 
@@ -1659,22 +1628,15 @@ restart_fragmentation_pass:
 		sprintf(szMPDTempLine, "    </SegmentTimeline>\n");
 		gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 	}
-	else {
-		u32 k;
-		u32 most_frequent_duration = 0;
-
+	else if (!dash_cfg->use_segment_timeline) {
 		if (dash_cfg->dash_ctx) {
 			max_segment_duration = max_duration_sec;
 		} else {
-			for (k = 0; k < gf_list_count(segment_duration); k++) {
-				GF_DASHSegmentDuration *entry;
-				entry = (GF_DASHSegmentDuration *)gf_list_get(segment_duration, k);
-				if (entry->nb_segment > most_frequent_duration) {
-					max_segment_duration = (Double) entry->segment_duration;
-					max_segment_duration /= dash_cfg->dash_scale;
-					most_frequent_duration = entry->nb_segment;
-				}
+			if (3*min_seg_dur < max_seg_dur) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Segment duration variation is higher than the +/- 50%% allowed by DASH-IF (min %g, max %g) - please reconsider encoding\n", (Double) min_seg_dur / dash_cfg->dash_scale, (Double) max_seg_dur / dash_cfg->dash_scale));
 			}
+			max_segment_duration = (Double) total_seg_dur;
+			max_segment_duration /= nb_segments * dash_cfg->dash_scale;
 		}
 	}
 
@@ -1691,7 +1653,7 @@ restart_fragmentation_pass:
 			const char *rad_name = gf_url_get_resource_name(seg_rad_name);
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, 0, 0, dash_cfg->use_segment_timeline);
 			fprintf(dash_cfg->mpd, "   <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", mpd_timeline_bs ? dash_cfg->dash_scale : mpd_timescale, SegmentName, startNumber);
-			if (!mpd_timeline_bs) {
+			if (!dash_cfg->use_segment_timeline) {
 				if (!max_segment_duration)
 					max_segment_duration = dash_cfg->segment_duration;
 				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale));
@@ -1720,10 +1682,13 @@ restart_fragmentation_pass:
 			}
 		}
 		/*in BS switching we share the same IS for all reps, write the SegmentTemplate for the init segment*/
-		else if (is_bs_switching && first_in_set) {
-			fprintf(dash_cfg->mpd, "   <SegmentTemplate initialization=\"%s\"", bs_switching_segment_name);
-			if (presentationTimeOffset)
-				fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
+		else if ((is_bs_switching || mpd_timeline_bs) && first_in_set ) {
+			fprintf(dash_cfg->mpd, "   <SegmentTemplate");
+			if (is_bs_switching) {
+				fprintf(dash_cfg->mpd, " initialization=\"%s\"", bs_switching_segment_name);
+				if (presentationTimeOffset)
+					fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
+			}
 
 			if (mpd_timeline_bs) {
 				char *mpd_seg_info = NULL;
@@ -1844,7 +1809,7 @@ restart_fragmentation_pass:
 			const char *rad_name = gf_url_get_resource_name(seg_rad_name);
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, bandwidth, 0, dash_cfg->use_segment_timeline);
 			fprintf(dash_cfg->mpd, "    <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", mpd_timescale, SegmentName, startNumber);
-			if (!mpd_timeline_bs) {
+			if (!dash_cfg->use_segment_timeline) {
 				if (!max_segment_duration)
 					max_segment_duration = dash_cfg->segment_duration;
 				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale));
@@ -1974,14 +1939,6 @@ err_exit:
 	gf_set_progress("ISO File Fragmenting", nb_samp, nb_samp);
 	if (mpd_bs) gf_bs_del(mpd_bs);
 	if (mpd_timeline_bs) gf_bs_del(mpd_timeline_bs);
-	if (segment_duration) {
-		while (gf_list_count(segment_duration)) {
-			GF_DASHSegmentDuration *entry = (GF_DASHSegmentDuration *)gf_list_last(segment_duration);
-			gf_free(entry);
-			gf_list_rem_last(segment_duration);
-		}
-		gf_list_del(segment_duration);
-	}
 	return e;
 }
 
