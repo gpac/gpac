@@ -1028,6 +1028,20 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 	case -45:
 		*vp = BOOLEAN_TO_JSVAL(odm->subscene && odm->subscene->is_dynamic_scene ? JS_TRUE : JS_FALSE);
 		break;
+	case -46:
+	{
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_SERVICE_INFO;
+		com.info.service_id = odi.od->ServiceID;
+		gf_term_service_command(odm->net_service, &com);
+		if (com.info.name) {
+			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, com.info.name ) );
+		} else {
+			*vp = JSVAL_NULL;
+		}
+	}
+		break;
 	}
 	return JS_TRUE;
 }
@@ -1586,6 +1600,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("is_over",			-43,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("is_pulling",		-44,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("dynamic_scene",		-45,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("service_name",		-46,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};

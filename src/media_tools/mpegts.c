@@ -1742,7 +1742,6 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 	}
 
 	if (table_id != GF_M2TS_TABLE_ID_SDT_ACTUAL) {
-		gf_m2ts_reset_sdt(ts);
 		return;
 	}
 
