@@ -52,9 +52,6 @@
 
 #endif
 
-
-#define UDP_BUFFER_SIZE	0x40000
-
 #define MP42TS_PRINT_TIME_MS 500 /*refresh printed info every CLOCK_REFRESH ms*/
 #define MP42TS_VIDEO_FREQ 1000 /*meant to send AVC IDR only every CLOCK_REFRESH ms*/
 
