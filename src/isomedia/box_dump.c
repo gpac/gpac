@@ -937,6 +937,15 @@ static char *format_duration(u64 dur, u32 timescale, char *szDur)
 	return szDur;
 }
 
+static void dump_escape_string(FILE * trace, char *name)
+{
+	u32 i, len = (u32) strlen(name);
+	for (i=0; i<len; i++) {
+		if (name[i]=='"') fprintf(trace, "&quot;");
+		else fputc(name[i], trace);
+	}
+}
+
 GF_Err chpl_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, count;
@@ -949,7 +958,9 @@ GF_Err chpl_dump(GF_Box *a, FILE * trace)
 	count = gf_list_count(p->list);
 	for (i=0; i<count; i++) {
 		GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(p->list, i);
-		fprintf(trace, "<Chapter name=\"%s\" startTime=\"%s\" />\n", ce->name, format_duration(ce->start_time, 1000*10000, szDur));
+		fprintf(trace, "<Chapter name=\"");
+		dump_escape_string(trace, ce->name);
+		fprintf(trace, "\" startTime=\"%s\" />\n", format_duration(ce->start_time, 1000*10000, szDur));
 	}
 
 	gf_box_dump_done("ChapterListBox", a, trace);
@@ -1961,7 +1972,7 @@ static void gpp_dump_style(FILE * trace, GF_StyleRecord *rec)
 		if (rec->style_flags & 4) fprintf(trace, "Underlined ");
 	}
 	fprintf(trace, "\" fontSize=\"%d\" ", rec->font_size);
-	gpp_dump_rgba8(trace, "text-color", rec->text_color);
+	gpp_dump_rgba8(trace, "textColor", rec->text_color);
 	fprintf(trace, "/>\n");
 }
 
@@ -1971,7 +1982,7 @@ GF_Err tx3g_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<Tx3gSampleEntryBox dataReferenceIndex=\"%d\" displayFlags=\"%x\" horizontal-justification=\"%d\" vertical-justification=\"%d\" ",
 	        p->dataReferenceIndex, p->displayFlags, p->horizontal_justification, p->vertical_justification);
 
-	gpp_dump_rgba8(trace, "background-color", p->back_color);
+	gpp_dump_rgba8(trace, "backgroundColor", p->back_color);
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 
@@ -1992,9 +2003,9 @@ GF_Err text_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<TextSampleEntryBox dataReferenceIndex=\"%d\" displayFlags=\"%x\" textJustification=\"%d\"  ",
 	        p->dataReferenceIndex, p->displayFlags, p->textJustification);
 	if (p->textName)
-		fprintf(trace, "textName=%s ", p->textName);
+		fprintf(trace, "textName=\"%s\" ", p->textName);
 	gpp_dump_rgb16(trace, "background-color", p->background_color);
-	gpp_dump_rgb16(trace, "foreground-color", p->foreground_color);
+	gpp_dump_rgb16(trace, " foreground-color", p->foreground_color);
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 
@@ -2891,8 +2902,8 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	txt = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 	switch (txt->type) {
 	case GF_ISOM_BOX_TYPE_TX3G:
-		break;
 	case GF_ISOM_BOX_TYPE_TEXT:
+		break;
 	case GF_ISOM_BOX_TYPE_STPP:
 	case GF_ISOM_BOX_TYPE_SBTT:
 	default:
@@ -2913,83 +2924,121 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	for (i=0; i<nb_descs; i++) {
 		GF_Tx3gSampleEntryBox *txt = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, i);
 
-		fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
-		switch (txt->horizontal_justification) {
-		case 1:
-			fprintf(dump, "center");
-			break;
-		case -1:
-			fprintf(dump, "right");
-			break;
-		default:
-			fprintf(dump, "left");
-			break;
-		}
-		fprintf(dump, "\" verticalJustification=\"");
-		switch (txt->vertical_justification) {
-		case 1:
-			fprintf(dump, "center");
-			break;
-		case -1:
-			fprintf(dump, "bottom");
-			break;
-		default:
-			fprintf(dump, "top");
-			break;
-		}
-		fprintf(dump, "\" ");
-		gpp_dump_rgba8(dump, "backColor", txt->back_color);
-		fprintf(dump, " verticalText=\"%s\"", (txt->displayFlags & GF_TXT_VERTICAL) ? "yes" : "no");
-		fprintf(dump, " fillTextRegion=\"%s\"", (txt->displayFlags & GF_TXT_FILL_REGION) ? "yes" : "no");
-		fprintf(dump, " continuousKaraoke=\"%s\"", (txt->displayFlags & GF_TXT_KARAOKE) ? "yes" : "no");
-		has_scroll = 0;
-		if (txt->displayFlags & GF_TXT_SCROLL_IN) {
-			has_scroll = 1;
-			if (txt->displayFlags & GF_TXT_SCROLL_OUT) fprintf(dump, " scroll=\"InOut\"");
-			else fprintf(dump, " scroll=\"In\"");
-		} else if (txt->displayFlags & GF_TXT_SCROLL_OUT) {
-			has_scroll = 1;
-			fprintf(dump, " scroll=\"Out\"");
-		} else {
-			fprintf(dump, " scroll=\"None\"");
-		}
-		if (has_scroll) {
-			u32 mode = (txt->displayFlags & GF_TXT_SCROLL_DIRECTION)>>7;
-			switch (mode) {
-			case GF_TXT_SCROLL_CREDITS:
-				fprintf(dump, " scrollMode=\"Credits\"");
+		if (txt->type==GF_ISOM_BOX_TYPE_TX3G) {
+			fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
+			switch (txt->horizontal_justification) {
+			case 1:
+				fprintf(dump, "center");
 				break;
-			case GF_TXT_SCROLL_MARQUEE:
-				fprintf(dump, " scrollMode=\"Marquee\"");
-				break;
-			case GF_TXT_SCROLL_DOWN:
-				fprintf(dump, " scrollMode=\"Down\"");
-				break;
-			case GF_TXT_SCROLL_RIGHT:
-				fprintf(dump, " scrollMode=\"Right\"");
+			case -1:
+				fprintf(dump, "right");
 				break;
 			default:
-				fprintf(dump, " scrollMode=\"Unknown\"");
+				fprintf(dump, "left");
 				break;
 			}
-		}
-		fprintf(dump, ">\n");
-		fprintf(dump, "<FontTable>\n");
-		if (txt->font_table) {
-			for (j=0; j<txt->font_table->entry_count; j++) {
-				fprintf(dump, "<FontTableEntry fontName=\"%s\" fontID=\"%d\"/>\n", txt->font_table->fonts[j].fontName, txt->font_table->fonts[j].fontID);
-
+			fprintf(dump, "\" verticalJustification=\"");
+			switch (txt->vertical_justification) {
+			case 1:
+				fprintf(dump, "center");
+				break;
+			case -1:
+				fprintf(dump, "bottom");
+				break;
+			default:
+				fprintf(dump, "top");
+				break;
 			}
+			fprintf(dump, "\" ");
+			gpp_dump_rgba8(dump, "backColor", txt->back_color);
+			fprintf(dump, " verticalText=\"%s\"", (txt->displayFlags & GF_TXT_VERTICAL) ? "yes" : "no");
+			fprintf(dump, " fillTextRegion=\"%s\"", (txt->displayFlags & GF_TXT_FILL_REGION) ? "yes" : "no");
+			fprintf(dump, " continuousKaraoke=\"%s\"", (txt->displayFlags & GF_TXT_KARAOKE) ? "yes" : "no");
+			has_scroll = 0;
+			if (txt->displayFlags & GF_TXT_SCROLL_IN) {
+				has_scroll = 1;
+				if (txt->displayFlags & GF_TXT_SCROLL_OUT) fprintf(dump, " scroll=\"InOut\"");
+				else fprintf(dump, " scroll=\"In\"");
+			} else if (txt->displayFlags & GF_TXT_SCROLL_OUT) {
+				has_scroll = 1;
+				fprintf(dump, " scroll=\"Out\"");
+			} else {
+				fprintf(dump, " scroll=\"None\"");
+			}
+			if (has_scroll) {
+				u32 mode = (txt->displayFlags & GF_TXT_SCROLL_DIRECTION)>>7;
+				switch (mode) {
+				case GF_TXT_SCROLL_CREDITS:
+					fprintf(dump, " scrollMode=\"Credits\"");
+					break;
+				case GF_TXT_SCROLL_MARQUEE:
+					fprintf(dump, " scrollMode=\"Marquee\"");
+					break;
+				case GF_TXT_SCROLL_DOWN:
+					fprintf(dump, " scrollMode=\"Down\"");
+					break;
+				case GF_TXT_SCROLL_RIGHT:
+					fprintf(dump, " scrollMode=\"Right\"");
+					break;
+				default:
+					fprintf(dump, " scrollMode=\"Unknown\"");
+					break;
+				}
+			}
+			fprintf(dump, ">\n");
+			fprintf(dump, "<FontTable>\n");
+			if (txt->font_table) {
+				for (j=0; j<txt->font_table->entry_count; j++) {
+					fprintf(dump, "<FontTableEntry fontName=\"%s\" fontID=\"%d\"/>\n", txt->font_table->fonts[j].fontName, txt->font_table->fonts[j].fontID);
+
+				}
+			}
+			fprintf(dump, "</FontTable>\n");
+			if ((txt->default_box.bottom == txt->default_box.top) || (txt->default_box.right == txt->default_box.left)) {
+				txt->default_box.top = txt->default_box.left = 0;
+				txt->default_box.right = trak->Header->width / 65536;
+				txt->default_box.bottom = trak->Header->height / 65536;
+			}
+			gpp_dump_box_nobox(dump, &txt->default_box);
+			gpp_dump_style_nobox(dump, &txt->default_style, NULL, 0);
+			fprintf(dump, "</TextSampleDescription>\n");
+		} else {
+			GF_TextSampleEntryBox *text = (GF_TextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, i);
+			fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
+			switch (text->textJustification) {
+			case 1:
+				fprintf(dump, "center");
+				break;
+			case -1:
+				fprintf(dump, "right");
+				break;
+			default:
+				fprintf(dump, "left");
+				break;
+			}
+			fprintf(dump, "\"");
+
+			gpp_dump_rgb16(dump, " backColor", text->background_color);
+
+			if ((text->default_box.bottom == text->default_box.top) || (text->default_box.right == text->default_box.left)) {
+				text->default_box.top = text->default_box.left = 0;
+				text->default_box.right = trak->Header->width / 65536;
+				text->default_box.bottom = trak->Header->height / 65536;
+			}
+
+			if (text->displayFlags & GF_TXT_SCROLL_IN) {
+				if (text->displayFlags & GF_TXT_SCROLL_OUT) fprintf(dump, " scroll=\"InOut\"");
+				else fprintf(dump, " scroll=\"In\"");
+			} else if (text->displayFlags & GF_TXT_SCROLL_OUT) {
+				fprintf(dump, " scroll=\"Out\"");
+			} else {
+				fprintf(dump, " scroll=\"None\"");
+			}
+			fprintf(dump, ">\n");
+
+			gpp_dump_box_nobox(dump, &text->default_box);
+			fprintf(dump, "</TextSampleDescription>\n");
 		}
-		fprintf(dump, "</FontTable>\n");
-		if ((txt->default_box.bottom == txt->default_box.top) || (txt->default_box.right == txt->default_box.left)) {
-			txt->default_box.top = txt->default_box.left = 0;
-			txt->default_box.right = trak->Header->width / 65536;
-			txt->default_box.bottom = trak->Header->height / 65536;
-		}
-		gpp_dump_box_nobox(dump, &txt->default_box);
-		gpp_dump_style_nobox(dump, &txt->default_style, NULL, 0);
-		fprintf(dump, "</TextSampleDescription>\n");
 	}
 	fprintf(dump, "</TextStreamHeader>\n");
 
