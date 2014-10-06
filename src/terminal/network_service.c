@@ -447,8 +447,12 @@ static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service
 		if (ch->es_state != GF_ESM_ES_RUNNING) continue;
 		if (com->base.on_channel && (com->base.on_channel != ch)) continue;
 		if (/*!ch->MaxBuffer || */ch->dispatch_after_db || ch->bypass_sl_and_db || ch->IsEndOfStream) continue;
-		//perform buffer management only on base layer  -this is because we don't signal which ESs are on/off in the underlying service ...
-		if (ch->esd->dependsOnESID) continue;
+
+		//if not in hybrid mode, perform buffer management only on base layer  -this is because we don't signal which ESs are on/off in the underlying service ...
+		if (ch->esd->dependsOnESID) {
+			if (!ch->odm->lower_layer_odm) continue;
+			if (ch->odm->net_service == ch->odm->lower_layer_odm->net_service) continue;
+		}
 
 		gf_es_update_buffering(ch, 0);
 
@@ -508,7 +512,6 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM] No object manager found for the scene (URL: %s), buffer occupancy will remain unchanged\n", service->url));
 		i=0;
 		while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-			if (!odm->codec) continue;
 			gather_buffer_level(odm, service, com, &max_buffer_time);
 		}
 		gf_mx_v(scene->mx_resources);

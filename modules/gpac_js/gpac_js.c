@@ -989,13 +989,26 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 	{
 		GF_NetworkCommand com;
 		GF_Scene *scene;
+
+		if (!odm->timeshift_depth) {
+			*vp = INT_TO_JSVAL(0);
+			break;
+		}
+
 		scene = odm->subscene ? odm->subscene : odm->parentscene;
 
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.command_type = GF_NET_GET_TIMESHIFT;
 
+		//we may need to check the main addon for timeshifting
 		if (scene->main_addon_selected) {
-			odm = scene->active_addon->root_od;
+			u32 i, count = gf_list_count(scene->resources);
+			for (i=0; i < count; i++) {
+				GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
+				if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
+					odm = an_odm;
+				}
+			}
 		}
 
 		//can be NULL

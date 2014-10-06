@@ -1160,6 +1160,11 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		} else {
 			ch->AULength = 0;
 		}
+
+		//temp hack
+		if (ch->odm->lower_layer_odm)
+			hdr.randomAccessPointFlag = 1;
+
 		/*carousel for repeated AUs.*/
 		if (ch->carousel_type) {
 			/* not used :			Bool use_rap = hdr.randomAccessPointFlag; */
@@ -1244,15 +1249,19 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		/*no carousel signaling, tune-in at first RAP*/
 		else if (hdr.randomAccessPointFlag) {
 			if (ch->stream_state) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP AU received\n", ch->esd->ESID));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): RAP AU received\n", ch->esd->ESID, ch->odm->net_service->url));
+				ch->stream_state = 0;
 			}
-
-			ch->stream_state = 0;
 		}
 		/*waiting for RAP, return*/
 		else if (ch->stream_state) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Waiting for RAP - skipping AU (DTS %d)\n", ch->esd->ESID, ch->DTS));
-			return;
+			if (ch->esd->dependsOnESID || ch->odm->lower_layer_odm) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Considering AU is RAP on enhancement layer\n", ch->esd->ESID, ch->odm->net_service->url));
+				ch->stream_state = 0;
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Waiting for RAP - skipping AU (DTS %d)\n", ch->esd->ESID, ch->odm->net_service->url, ch->DTS));
+				return;
+			}
 		}
 	}
 
@@ -1413,14 +1422,8 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 		if (ch->BufferOn && ch->AU_buffer_first) gf_es_update_buffering(ch, 0);
 		gf_mx_v(ch->mx);
 
-#if 0
-		if (ch->odm->parentscene->active_addon && !ch->odm->parentscene->active_addon->started) {
-			return NULL;
-		}
-#endif
-
 		if (ch->BufferOn) {
-			if (ch->first_au_fetched || !ch->AU_buffer_first || !ch->AU_buffer_first->next || !ch->odm->parentscene->active_addon || !ch->odm->parentscene->active_addon->started)
+			if (ch->first_au_fetched || !ch->AU_buffer_first || !ch->AU_buffer_first->next)
 				return NULL;
 		}
 		return ch->AU_buffer_first;

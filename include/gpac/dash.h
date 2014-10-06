@@ -234,7 +234,7 @@ typedef enum
 //enumerate descriptors of the given type:
 //group_idx: index of the group for which descriptors are enumerated
 //desc_type: type of descriptor being checked, one of the above
-//desc_idx: index of the descriptor being checked for this type
+//role_idx: index of the descriptor being checked for this type
 Bool gf_dash_group_enum_descriptor(GF_DashClient *dash, u32 group_idx, GF_DashDescriptorType desc_type, u32 role_idx, const char **desc_id, const char **desc_scheme, const char **desc_value);
 
 /*returns the URL and byte range of the next media resource to play in this group.

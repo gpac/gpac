@@ -2098,11 +2098,9 @@ void gf_scene_reset_addons(GF_Scene *scene)
 	while (gf_list_count(scene->declared_addons)) {
 		GF_AddonMedia *addon = gf_list_last(scene->declared_addons);
 		gf_list_rem_last(scene->declared_addons);
-		if (addon==scene->active_addon) continue;
 
 		scene_reset_addon(addon, 0);
 	}
-	if (scene->active_addon) scene_reset_addon(scene->active_addon, 0);
 }
 
 static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
@@ -2132,9 +2130,10 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 GF_EXPORT
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info)
 {
-	GF_AddonMedia *addon;
+	GF_AddonMedia *addon = NULL;
 	GF_Event evt;
 	u32 i, count;
+	Bool new_addon = 0;
 
 	if (!scene->is_dynamic_scene) return;
 
@@ -2144,11 +2143,11 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 		addon = gf_list_get(scene->declared_addons, i);
 		if ((addon_info->timeline_id>=0) && addon->timeline_id==addon_info->timeline_id) {
 			my_addon = 1;
-		} else if (!strcmp(addon->url, addon_info->external_URL)) {
+		} else if (addon->url && addon_info->external_URL && !strcmp(addon->url, addon_info->external_URL)) {
 			my_addon = 1;
 			//send message to service handler
 		}
-
+		//this is an already received addon
 		if (my_addon) {
 			if (addon_info->enable_if_defined)
 				addon->enabled = 1;
@@ -2157,29 +2156,39 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 			if (!addon->root_od && addon->timeline_ready) {
 				load_associated_media(scene, addon);
 			}
+			//nothing associated, deactivate addon
+			if (!addon_info->external_URL) {
+				scene_reset_addon(addon, 1);
+			} else if (strcmp(addon_info->external_URL, addon->url)) {
+				//reconfigure addon
+				gf_free(addon->url);
+				addon->url = NULL;
+				break;
+			}
 			return;
 		}
 	}
 
 	if (!addon_info->external_URL) {
-		//NULL (nothing) will be active soon
-		if (addon_info->activation_countdown) return;
-		//otherwise reset addon
-		if (scene->active_addon) scene_reset_addon(scene->active_addon, 1);
-		scene->active_addon = NULL;
 		return;
 	}
 
-	GF_SAFEALLOC(addon, GF_AddonMedia);
-	addon->timeline_id = addon_info->timeline_id;
+	if (!addon) {
+		GF_SAFEALLOC(addon, GF_AddonMedia);
+		addon->timeline_id = addon_info->timeline_id;
+		gf_list_add(scene->declared_addons, addon);
+		new_addon = 1;
+	}
+
 	addon->is_splicing = addon_info->is_splicing;
 	addon->activation_time = gf_scene_get_time(scene)+addon_info->activation_countdown;
 	addon->url = gf_strdup(addon_info->external_URL);
 	addon->media_timescale = 1;
 	addon->timeline_ready = (addon_info->timeline_id<0) ? 1 : 0;
-	if (addon->timeline_ready && !scene->active_addon) scene->active_addon = addon;
-	gf_list_add(scene->declared_addons, addon);
 
+	if (!new_addon) return;
+
+	//notify we found a new addon
 
 	if (! scene->root_od->parentscene) {
 		evt.type = GF_EVENT_ADDON_DETECTED;
@@ -2203,65 +2212,62 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time)
 {
 	Double prev_time;
-	GF_AddonMedia *addon = scene->active_addon;
-	//locate the active timeline
-	if (!scene->active_addon || (scene->active_addon->timeline_id!=addon_time->timeline_id)) {
-		u32 i, count = gf_list_count(scene->declared_addons);
-		for (i=0; i<count; i++) {
-			addon = gf_list_get(scene->declared_addons, i);
-			if (addon->timeline_id==addon_time->timeline_id)
-				break;
-			addon = NULL;
-		}
-		if (!addon) return;
+	GF_AddonMedia *addon = NULL;
 
-		count = i;
-		for (i=0; i<count; i++) {
-			GF_AddonMedia *prev_addon = gf_list_get(scene->declared_addons, i);
-			//we are adding a non splicing point: discard all previously declared addons
-			if (!addon->is_splicing
-			        //this is a splicing point, discard all previsously declared splicing addons
-			        || prev_addon->is_splicing
-			   ) {
-				scene_reset_addon(prev_addon, GF_TRUE);
-				gf_list_rem(scene->declared_addons, i);
-				i--;
-				count--;
-			}
-		}
+	u32 i, count = gf_list_count(scene->declared_addons);
+	for (i=0; i<count; i++) {
+		addon = gf_list_get(scene->declared_addons, i);
+		if (addon->timeline_id==addon_time->timeline_id)
+			break;
+		addon = NULL;
+	}
+	if (!addon) return;
 
-		scene->active_addon = addon;
-		if (!scene->active_addon->timeline_ready) {
-			scene->active_addon->timeline_ready = GF_TRUE;
-			load_associated_media(scene, addon);
+	count = i;
+	for (i=0; i<count; i++) {
+		GF_AddonMedia *prev_addon = gf_list_get(scene->declared_addons, i);
+		//we are adding a non splicing point: discard all previously declared addons
+		if (!addon->is_splicing
+		        //this is a splicing point, discard all previsously declared splicing addons
+		        || prev_addon->is_splicing
+		   ) {
+			scene_reset_addon(prev_addon, GF_TRUE);
+			gf_list_rem(scene->declared_addons, i);
+			i--;
+			count--;
 		}
 	}
-	if (!scene->active_addon->root_od) return;
 
-	gf_mx_p(scene->active_addon->root_od->mx);
-	prev_time = (Double) scene->active_addon->media_timestamp;
-	prev_time /= scene->active_addon->media_timescale;
 
-	assert(scene->active_addon->timeline_id == addon_time->timeline_id);
+	if (!addon->timeline_ready) {
+		addon->timeline_ready = GF_TRUE;
+		load_associated_media(scene, addon);
+	}
+
+	if (!addon->root_od) return;
+
+	gf_mx_p(addon->root_od->mx);
+	prev_time = (Double) addon->media_timestamp;
+	prev_time /= addon->media_timescale;
 
 	//loop has been detected
 	if ( prev_time  * addon_time->media_timescale > addon_time->media_timestamp + 1.5 * addon_time->media_timescale ) {
-		if (!scene->active_addon->loop_detected) {
-			scene->active_addon->loop_detected = GF_TRUE;
+		if (!addon->loop_detected) {
+			addon->loop_detected = GF_TRUE;
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Loop detected in addon - PTS "LLD" (CTS %d) - media time "LLD"\n", addon_time->media_pts, addon_time->media_pts/90, addon_time->media_timestamp));
-			scene->active_addon->past_media_pts = addon_time->media_pts;
-			scene->active_addon->past_media_timestamp = addon_time->media_timestamp;
-			scene->active_addon->past_media_timescale = addon_time->media_timescale;
-			scene->active_addon->past_media_pts_scaled = addon_time->media_pts/90;
+			addon->past_media_pts = addon_time->media_pts;
+			addon->past_media_timestamp = addon_time->media_timestamp;
+			addon->past_media_timescale = addon_time->media_timescale;
+			addon->past_media_pts_scaled = addon_time->media_pts/90;
 		}
-	} else if (!scene->active_addon->loop_detected) {
-		scene->active_addon->media_pts = addon_time->media_pts;
-		scene->active_addon->media_timestamp = addon_time->media_timestamp;
-		scene->active_addon->media_timescale = addon_time->media_timescale;
+	} else if (!addon->loop_detected) {
+		addon->media_pts = addon_time->media_pts;
+		addon->media_timestamp = addon_time->media_timestamp;
+		addon->media_timescale = addon_time->media_timescale;
 		assert(addon_time->media_timescale);
-		assert(!scene->active_addon->loop_detected);
+		assert(!addon->loop_detected);
 	}
-	gf_mx_v(scene->active_addon->root_od->mx);
+	gf_mx_v(addon->root_od->mx);
 }
 
 void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
@@ -2315,10 +2321,9 @@ Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_Add
 
 	//get PTS diff (clock is in ms, pt is in 90k)
 	media_time = clock_time;
-	media_time -= addon->media_pts/90;
-	media_time *= addon->media_timescale;
-	media_time += addon->media_timestamp;
-	media_time /= addon->media_timescale;
+	media_time -= addon->media_pts/90000.0;
+
+	media_time += ((Double)addon->media_timestamp) / addon->media_timescale;
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Addon about to start - media time %g\n", media_time));
 	return media_time;
 }
@@ -2354,11 +2359,14 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 		if ((mtype==odm_base->codec->type) && odm_base->codec)
 			break;
 		odm_base=NULL;
-		//todo check if we use compatible formats, for now we only do demos with hevc/shvc
+		//todo 
+		//1- check if we use compatible formats, for now we only do demos with hevc/shvc
+		//2- check dependency IDs if any, for now we only do demos with 2 layers hevc/shvc
 	}
 	if (!odm_base) return;
 
-	odm_base->scalable_odm = odm;
+	odm_base->upper_layer_odm = odm;
+	odm->lower_layer_odm = odm_base;
 
 	nalu_annex_b = 1;
 	base_ch = gf_list_get(odm_base->channels, 0);

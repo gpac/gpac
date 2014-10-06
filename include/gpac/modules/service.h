@@ -376,6 +376,10 @@ typedef struct __netinfocom
 	const char *name;
 	const char *writer;
 	const char *provider;
+	//as in MPEG_DASH role
+	const char *role;
+	const char *accessibility;
+	const char *rating;
 } GF_NetComInfo;
 
 /*GF_NET_SERVICE_HAS_AUDIO*/

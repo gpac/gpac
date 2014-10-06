@@ -175,28 +175,39 @@ static void get_codec_stats(GF_Codec *dec, GF_MediaInfo *info)
 GF_EXPORT
 GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_MediaInfo *info)
 {
+	GF_ObjectManager *an_odm;
 	GF_Channel *ch;
-
-	if (!term || !odm || !odm->OD || !info) return GF_BAD_PARAM;
-	if (!gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
+	GF_Codec *codec;
 
 	memset(info, 0, sizeof(GF_MediaInfo));
+
+	if (!term || !odm || !info) return GF_BAD_PARAM;
+	if (!gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
+
 	info->od = odm->OD;
 
 	info->duration = (Double) (s64)odm->duration;
 	info->duration /= 1000;
 
-	if (odm->codec) {
+	codec = odm->codec;
+	an_odm = odm;
+	while (!codec) {
+		if (!an_odm->lower_layer_odm) break;
+		an_odm = an_odm->lower_layer_odm;
+		codec = an_odm->codec;
+	}
+
+	if (codec) {
 		/*since we don't remove ODs that failed setup, check for clock*/
-		if (odm->codec->ck) {
-			if (odm->codec->CB) {
-				info->current_time = odm->media_current_time ? odm->media_current_time : odm->codec->last_unit_cts;
+		if (codec->ck) {
+			if (codec->CB) {
+				info->current_time = odm->media_current_time ? odm->media_current_time : codec->last_unit_cts;
 			} else {
-				info->current_time = gf_clock_media_time(odm->codec->ck);
+				info->current_time = gf_clock_media_time(codec->ck);
 			}
 		}
 		info->current_time /= 1000;
-		info->nb_droped = odm->codec->nb_droped;
+		info->nb_droped = codec->nb_droped;
 	} else if (odm->subscene) {
 		if (odm->subscene->scene_codec) {
 			if (odm->subscene->scene_codec->ck) {
@@ -206,6 +217,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 			info->duration = (Double) (s64)odm->subscene->duration;
 			info->duration /= 1000;
 			info->nb_droped = odm->subscene->scene_codec->nb_droped;
+			codec = odm->subscene->scene_codec;
 		} else if (odm->subscene->is_dynamic_scene) {
 			if (odm->subscene->dyn_ck) {
 				info->current_time = gf_clock_media_time(odm->subscene->dyn_ck);
@@ -280,31 +292,25 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 		info->service_url = "Service not found or error";
 	}
 
-	if (odm->codec && odm->codec->decio) {
-		if (!odm->codec->decio->GetName) {
-			info->codec_name = odm->codec->decio->module_name;
+	if (codec) {
+		if (codec->decio && codec->decio->GetName) {
+			info->codec_name = codec->decio->GetName(codec->decio);
 		} else {
-			info->codec_name = odm->codec->decio->GetName(odm->codec->decio);
+			info->codec_name = codec->decio->module_name;
 		}
-		info->od_type = odm->codec->type;
-		if (odm->codec->CB) {
-			info->cb_max_count = odm->codec->CB->Capacity;
-			info->cb_unit_count = odm->codec->CB->UnitCount;
-			if (odm->codec->direct_vout) {
+		info->od_type = codec->type;
+
+		if (codec->CB) {
+			info->cb_max_count = codec->CB->Capacity;
+			info->cb_unit_count = codec->CB->UnitCount;
+			if (codec->direct_vout) {
 				info->direct_video_memory = 1;
 			}
 		}
+		get_codec_stats(codec, info);
 	}
 
-	if (odm->subscene && odm->subscene->scene_codec) {
-		GF_BaseDecoder *dec = odm->subscene->scene_codec->decio;
-		assert(odm->subscene->root_od==odm) ;
-		info->od_type = odm->subscene->scene_codec->type;
-		if (!dec->GetName) {
-			info->codec_name = dec->module_name;
-		} else {
-			info->codec_name = dec->GetName(dec);
-		}
+	if (odm->subscene) {
 		gf_sg_get_scene_size_info(odm->subscene->graph, &info->width, &info->height);
 	} else if (odm->mo) {
 		switch (info->od_type) {
@@ -320,8 +326,6 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 			break;
 		}
 	}
-	if (odm->subscene && odm->subscene->scene_codec) get_codec_stats(odm->subscene->scene_codec, info);
-	else if (odm->codec) get_codec_stats(odm->codec, info);
 
 	ch = (GF_Channel*)gf_list_get(odm->channels, 0);
 	if (ch && ch->esd->langDesc) info->lang = ch->esd->langDesc->langCode;
