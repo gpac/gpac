@@ -534,11 +534,11 @@ refetch_AU:
 		}
 	}
 	//scalable addon, browse channels in scalable object
-	if (current_odm->scalable_odm) {
+	if (current_odm->upper_layer_odm) {
 		if (*nextAU) {
-			gf_scene_check_addon_restart(current_odm->scalable_odm->parentscene->root_od->addon, (*nextAU)->CTS, (*nextAU)->DTS);
+			gf_scene_check_addon_restart(current_odm->upper_layer_odm->parentscene->root_od->addon, (*nextAU)->CTS, (*nextAU)->DTS);
 		}
-		current_odm = current_odm->scalable_odm;
+		current_odm = current_odm->upper_layer_odm;
 		src_channels = current_odm->channels;
 		scalable_check = 1;
 		goto browse_scalable;

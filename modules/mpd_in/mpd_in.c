@@ -1039,6 +1039,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	switch (com->command_type) {
 	case GF_NET_SERVICE_INFO:
 	{
+		s32 idx;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Info command from terminal on Service (%p)\n", mpdin->service));
 
 		e = GF_OK;
@@ -1049,6 +1050,19 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 		if (e!= GF_OK || !com->info.name || 2 > strlen(com->info.name)) {
 			gf_dash_get_info(mpdin->dash, &com->info.name, &com->info.comment);
+		}
+		idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
+		if (idx>=0) {
+			//gather role and co
+			if (!com->info.role) {
+				gf_dash_group_enum_descriptor(mpdin->dash, idx, GF_MPD_DESC_ROLE, 0, NULL, NULL, &com->info.role);
+			}
+			if (!com->info.accessibility) {
+				gf_dash_group_enum_descriptor(mpdin->dash, idx, GF_MPD_DESC_ACCESSIBILITY, 0, NULL, NULL, &com->info.accessibility);
+			}
+			if (!com->info.rating) {
+				gf_dash_group_enum_descriptor(mpdin->dash, idx, GF_MPD_DESC_RATING, 0, NULL, NULL, &com->info.rating);
+			}
 		}
 		return GF_OK;
 	}

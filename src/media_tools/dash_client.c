@@ -5870,9 +5870,9 @@ static Bool gf_dash_group_enum_descriptor_list(GF_DashClient *dash, u32 idx, GF_
 	GF_MPD_Descriptor *mpd_desc;
 	if (idx>=gf_list_count(descs)) return 0;
 	mpd_desc = gf_list_get(descs, idx);
-	*desc_value = mpd_desc->value;
-	*desc_scheme = mpd_desc->scheme_id_uri;
-	*desc_id = mpd_desc->id;
+	if (desc_value) *desc_value = mpd_desc->value;
+	if (desc_scheme) *desc_scheme = mpd_desc->scheme_id_uri;
+	if (desc_id) *desc_id = mpd_desc->id;
 	return 1;
 }
 

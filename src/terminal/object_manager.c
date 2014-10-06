@@ -860,6 +860,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		GF_Event evt;
 
 		if (odm->addon) {
+			Bool role_set = 0;
 			gf_term_lock_net(odm->term, GF_FALSE);
 
 			if (odm->addon->addon_type >= GF_ADDON_TYPE_MAIN) return;
@@ -869,8 +870,22 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 				char *sep = strchr(odm->mo->URLs.vals[0].url, '?');
 				if (sep && strstr(sep, "role=main")) {
 					odm->addon->addon_type = GF_ADDON_TYPE_MAIN;
+					role_set = 1;
+				}
+			} 
+
+			if (!role_set) {
+				GF_NetworkCommand com;
+				memset(&com, 0, sizeof(GF_NetworkCommand));
+				com.base.command_type = GF_NET_SERVICE_INFO;
+				com.info.on_channel = gf_list_get(odm->channels, 0);
+				gf_term_service_command(odm->net_service, &com);
+				
+				if (com.info.role && !strcmp(com.info.role, "main")) {
+					odm->addon->addon_type = GF_ADDON_TYPE_MAIN;
 				}
 			}
+
 
 			if (odm->addon->addon_type == GF_ADDON_TYPE_ADDITIONAL) {
 				gf_scene_select_object(odm->parentscene, odm);
@@ -1981,10 +1996,14 @@ void gf_odm_set_timeshift_depth(GF_ObjectManager *odm, GF_Channel *ch, u32 strea
 
 GF_Clock *gf_odm_get_media_clock(GF_ObjectManager *odm)
 {
+	while (odm->lower_layer_odm) {
+		odm = odm->lower_layer_odm;
+	}
 	if (odm->codec) return odm->codec->ck;
 	if (odm->ocr_codec) return odm->ocr_codec->ck;
 	if (odm->subscene && odm->subscene->scene_codec) return odm->subscene->scene_codec->ck;
 	if (odm->subscene && odm->subscene->dyn_ck) return odm->subscene->dyn_ck;
+	if (odm->parentscene && odm->parentscene->dyn_ck) return odm->parentscene->dyn_ck;
 	return NULL;
 }
 

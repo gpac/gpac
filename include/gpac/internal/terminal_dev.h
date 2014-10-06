@@ -230,7 +230,6 @@ struct _scene
 
 	u32 addon_position, addon_size_factor;
 
-	GF_AddonMedia *active_addon;
 	GF_List *declared_addons;
 	//set when content is replaced by an addon (DASH PVR mode)
 	Bool main_addon_selected;
@@ -1033,9 +1032,10 @@ struct _od_manager
 	Bool scalable_addon;
 
 	//for a regular ODM, this indicates that the current scalable_odm associated
-	struct _od_manager *scalable_odm;
+	struct _od_manager *upper_layer_odm;
+	//for a scalable ODM, this indicates the lower layer odm associated
+	struct _od_manager *lower_layer_odm;
 };
-
 
 GF_ObjectManager *gf_odm_new();
 void gf_odm_del(GF_ObjectManager *ODMan);
