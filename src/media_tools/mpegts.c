@@ -2354,8 +2354,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					es->stream_type = GF_M2TS_DVB_VBI;
 					break;
 				case GF_M2TS_HIERARCHY_DESCRIPTOR:
-					if (pes)
-						pes->depends_on_pid = (data[4] & 0x3F) + es->program->pmt_pid;
+					if (pes) {
+						u8 hierarchy_layer_idx = (data[3] & 0x3F);
+						pes->depends_on_pid = (data[4] & 0x3F);
+					}
 					break;
 				case GF_M2TS_METADATA_DESCRIPTOR:
 				{
@@ -2442,6 +2444,18 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 
 	if (nb_es) {
+		u32 i;
+		//translate hierarchy descriptors indexes into PIDs - check whether the PMT-index rules are the same for HEVC
+		for (i=0; i<gf_list_count(pmt->program->streams); i++) {
+			GF_M2TS_PES *an_es = (GF_M2TS_PES *)gf_list_get(pmt->program->streams, i);
+			GF_M2TS_PES *es = (GF_M2TS_PES *)gf_list_get(pmt->program->streams, i);
+			if ( !(es->flags & GF_M2TS_ES_IS_PES)) continue;
+			if (!es->depends_on_pid) continue;
+
+			an_es =  (GF_M2TS_PES *)gf_list_get(pmt->program->streams, es->depends_on_pid);
+			if (an_es) es->depends_on_pid = an_es->pid;
+		}
+		
 		evt_type = (status&GF_M2TS_TABLE_FOUND) ? GF_M2TS_EVT_PMT_FOUND : GF_M2TS_EVT_PMT_UPDATE;
 		if (ts->on_event) ts->on_event(ts, evt_type, pmt->program);
 	} else {
