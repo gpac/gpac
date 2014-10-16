@@ -905,11 +905,6 @@ GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize)
 		u32 unit_size, audio_buf_len, unit_count;
 		GF_CodecCapability cap;
 		unit_size = NewSize;
-		/*a bit ugly, make some extra provision for speed >1. this is the drawback of working with pre-allocated memory
-		for composition, we may get into cases where there will never be enough data for high speeds...
-		FIXME - WE WILL NEED TO MOVE TO DYNAMIC CU BLOCKS IN ORDER TO SUPPORT ANY SPEED, BUT WHAT IS THE IMPACT
-		FOR LOW RESOURCES DEVICES ??*/
-//		audio_buf_len = 1000;
 		audio_buf_len = 200;
 
 		cap.CapCode = GF_CODEC_BUFFER_MAX;

@@ -1681,8 +1681,13 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	//OK, we have a sample so fetch it
 	e = gf_isom_get_sample_for_media_time(the_file, trackNumber, mediaTime, StreamDescriptionIndex, SearchMode, sample, &sampNum);
 	if (e) {
-		if ((e==GF_EOS) && nextMediaTime) {
-			return gf_isom_get_sample_for_movie_time(the_file, trackNumber, nextMediaTime-1, StreamDescriptionIndex, SearchMode, sample, sampleNumber);
+		if (e==GF_EOS) {
+			//movie is fragmented and samples not yet received, return EOS 
+			if (the_file->moov->mvex && !trak->Media->information->sampleTable->SampleSize->sampleCount) 
+				return e;
+
+			if (nextMediaTime) 
+				return gf_isom_get_sample_for_movie_time(the_file, trackNumber, nextMediaTime-1, StreamDescriptionIndex, SearchMode, sample, sampleNumber);
 		}
 		return e;
 	}

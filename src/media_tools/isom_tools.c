@@ -2107,9 +2107,12 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 		GF_BitStream *bs;
 		u32 di;
 		GF_ISOSample *sample;
+		Bool is_irap, has_roll;
+		s32 roll_distance;
 		u8 cur_max_layer_id = 0;
 
 		sample = gf_isom_get_sample(file, track, i+1, &di);
+		gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_irap, &has_roll, &roll_distance);
 
 		bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
 		while (gf_bs_available(bs)) {
@@ -2263,6 +2266,15 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 			gf_bs_del(sti[j].bs);
 			sti[j].bs = NULL;
+
+			if (sample->IsRAP>SAP_TYPE_1) {
+				if (is_irap) {
+					gf_isom_set_sample_rap_group(file, sti[j].track_num, i+1, 0);
+				}
+				else if (has_roll) {
+					gf_isom_set_sample_roll_group(file, sti[j].track_num, i+1, (s16) roll_distance);
+				}
+			}
 
 			if (sample->data) {
 				gf_free(sample->data);
