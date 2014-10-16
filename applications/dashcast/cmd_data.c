@@ -116,6 +116,9 @@ static void dc_create_configuration(CmdData *cmd_data)
 				snprintf(value, sizeof(value), "%d", cmd_data->video_data_conf.crop_x);
 				gf_cfg_set_key(conf, section_name, "crop_x", value);
 			}
+			if (!gf_cfg_get_key(conf, section_name, "low_delay")) {
+				gf_cfg_set_key(conf, section_name, "low_delay", cmd_data->video_data_conf.low_delay ? "yes" : "no");
+			}
 
 			if (!gf_cfg_get_key(conf, section_name, "crop_y")) {
 				if (cmd_data->video_data_conf.crop_y == -1)
@@ -186,6 +189,8 @@ int dc_read_configuration(CmdData *cmd_data)
 			video_data_conf->crop_x = opt ? atoi(opt) : 0;
 			opt = gf_cfg_get_key(conf, section_name, "crop_y");
 			video_data_conf->crop_x = opt ? atoi(opt) : 0;
+			opt = gf_cfg_get_key(conf, section_name, "low_delay");
+			video_data_conf->low_delay = (opt && !strcmp(opt, "yes")) ? 1 : 0;
 			opt = gf_cfg_get_key(conf, section_name, "custom");
 			if (opt) {
 				if (strlen(opt) >= GF_MAX_PATH)
@@ -443,8 +448,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    -vfr N                   force the input video framerate\n"
 	    "    -vres WxH                force the video resolution (e.g. 640x480)\n"
 	    "    -vcrop XxY               crop the source video from X pixels left and Y pixels top. Must be used with -vres.\n"
-	    "    -gdr                     use Gradual Decoder Refresh feature for video encoding (h264 codec only)\n"
-	    "* Audio options:\n"
+		"* Audio options:\n"
 	    "    -a string                set the source name for an audio input\n"
 	    "                                - if input is from microphone, use \"plughw:[x],[y]\"\n"
 	    "                                  where x is the card number and y is the device number\n"
@@ -456,7 +460,10 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 #if 0 //TODO: bind to option and params - test first how it binds to current input parameters
 	    "    -vb int                 set the output video bitrate (in bits)\n"
 #endif
-	    "    -vcustom string         send custom parameters directly to the audio encoder\n"
+	    "    -vcustom string         send custom parameters directly to the video encoder\n"
+	    "    -gdr                    use Gradual Decoder Refresh feature for video encoding (h264 codec only)\n"
+		"    -gop                    specify GOP size in frames - default is framerate (1 sec gop)\n"
+		"    -low-delay               specify that low delay settings should be used (no B-frames, fast encoding)\n"
 	    "* Audio encoding options:\n"
 	    "    -acodec string          set the output audio codec (default: aac)\n"
 #if 0 //TODO: bind to option and params - test first how it binds to current input parameters
@@ -469,10 +476,10 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "DASH options:\n"
 	    "    -seg-dur dur:int         set the segment duration in millisecond (default value: 1000)\n"
 	    "    -frag-dur dur:int        set the fragment duration in millisecond (default value: 1000)\n"
-	    "    -seg-marker marker:str   add a marker box named marker at the end of DASH segment\n"
+	    "    -seg-marker marker:4cc   add a marker box named marker at the end of DASH segment\n"
 	    "    -out outdir:str          outdir is the output data directory (default: output)\n"
 	    "    -mpd mpdname:str         mpdname is the MPD file name (default: dashcast.mpd)\n"
-	    "    -ast-offset dur:int      dur is the MPD availabilityStartTime shift in milliseconds (default value: 1000)\n"
+	    "    -ast-offset dur:int      dur is the MPD availabilityStartTime shift in milliseconds (default value: 0)\n"
 	    "    -mpd-refresh dur:int     dur is the MPD minimumUpdatePeriod in seconds\n"
 	    "    -time-shift dur:int      dur is the MPD TimeShiftBufferDepth in seconds\n"
 	    "                                - the default value is 10. Specify -1 to keep all files.\n"
@@ -748,6 +755,9 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				return -1;
 			}
 			strncpy(cmd_data->base_url, argv[i], GF_MAX_PATH-1);
+			i++;
+		} else if (strcmp(argv[i], "-low-delay") == 0) {
+			cmd_data->video_data_conf.low_delay = 1;
 			i++;
 		} else if (strcmp(argv[i], "-live") == 0) {
 			cmd_data->mode = LIVE_CAMERA;

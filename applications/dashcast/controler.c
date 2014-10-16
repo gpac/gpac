@@ -798,7 +798,7 @@ u32 video_encoder_thread(void *params)
 		return -1;
 	}
 
-	if (dc_video_encoder_open(&out_file, video_data_conf, in_data->use_source_timing) < 0) {
+	if (dc_video_encoder_open(&out_file, video_data_conf, in_data->use_source_timing, video_scaled_data->sar) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video stream.\n"));
 		in_data->exit_signal = 1;
 		return -1;
@@ -1225,7 +1225,7 @@ int dc_run_controler(CmdData *in_data)
 		}
 
 		for (i=0; i<gf_list_count(in_data->vsrc) + 1; i++) {
-			dc_video_input_data_set_prop(&video_input_data, i, video_input_file[i]->width, video_input_file[i]->height, in_data->video_data_conf.crop_x, in_data->video_data_conf.crop_y, video_input_file[i]->pix_fmt);
+			dc_video_input_data_set_prop(&video_input_data, i, video_input_file[i]->width, video_input_file[i]->height, in_data->video_data_conf.crop_x, in_data->video_data_conf.crop_y, video_input_file[i]->pix_fmt, video_input_file[i]->sar);
 		}
 
 		for (i=0; i<video_scaled_data_list.size; i++) {

@@ -143,6 +143,8 @@ int dc_video_scaler_data_set_prop(VideoInputData *video_input_data, VideoScaledD
 	video_scaled_data->vsprop[index].in_height  = video_input_data->vprop[index].height - video_input_data->vprop[index].crop_y;
 	video_scaled_data->vsprop[index].in_pix_fmt = video_input_data->vprop[index].pix_fmt;
 
+	video_scaled_data->sar  = video_input_data->vprop[index].sar;
+
 	video_scaled_data->vsprop[index].sws_ctx = sws_getContext(
 	            video_scaled_data->vsprop[index].in_width,
 	            video_scaled_data->vsprop[index].in_height,
@@ -164,18 +166,25 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 	VideoScaledDataNode *video_scaled_data_node;
 	AVFrame *src_vframe;
 
-	ret = dc_consumer_lock(&video_scaled_data->consumer, &video_input_data->circular_buf);
-	if (ret < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Video scaler got an end of buffer!\n"));
-		return -2;
-	}
-
+	//step 1: try to lock output slot. If none available, return ....
 	if (video_input_data->circular_buf.size > 1)
 		dc_consumer_unlock_previous(&video_scaled_data->consumer, &video_input_data->circular_buf);
 
-	dc_producer_lock(&video_scaled_data->producer, &video_scaled_data->circular_buf);
+	ret = dc_producer_lock(&video_scaled_data->producer, &video_scaled_data->circular_buf);
+	//not ready
+	if (ret<0) {
+		return -1;
+	}
 	dc_producer_unlock_previous(&video_scaled_data->producer, &video_scaled_data->circular_buf);
 
+	//step 2: lock input
+	ret = dc_consumer_lock(&video_scaled_data->consumer, &video_input_data->circular_buf);
+	if (ret < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Video scaler got an end of input tbuffer!\n"));
+		return -2;
+	}
+
+	//step 3 - grab source and dest images
 	video_data_node = (VideoDataNode*)dc_consumer_consume(&video_scaled_data->consumer, &video_input_data->circular_buf);
 	video_scaled_data_node = (VideoScaledDataNode*)dc_producer_produce(&video_scaled_data->producer, &video_scaled_data->circular_buf);
 	index = video_data_node->source_number;
@@ -201,11 +210,16 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 		src_height = video_input_data->vprop[index].height;
 	}
 
+
 	//rescale the cropped frame
-	sws_scale(video_scaled_data->vsprop[index].sws_ctx,
+	ret = sws_scale(video_scaled_data->vsprop[index].sws_ctx,
 	          (const uint8_t * const *)src_vframe->data, src_vframe->linesize, 0, src_height,
 	          video_scaled_data_node->v_frame->data, video_scaled_data_node->v_frame->linesize);
 
+	if (!ret) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Video scaler: error while resizing picture.\n"));
+		return -1;
+	}
 	video_scaled_data_node->v_frame->pts = video_data_node->vframe->pts;
 
 	if (video_data_node->nb_raw_frames_ref) {
