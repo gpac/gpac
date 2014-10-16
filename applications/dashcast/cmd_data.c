@@ -406,6 +406,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 
 	const char *command_usage =
 	    "Usage: DashCast [options]\n"
+	    "GPAC version " GPAC_FULL_VERSION"\n"
 	    "\n"
 	    "General options:\n"
 	    "    -log-file filename       set output log file. Also works with -lf\n"
