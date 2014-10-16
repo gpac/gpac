@@ -71,7 +71,7 @@ typedef struct
 	u32 seg_opened;
 	Bool drop_next_segment;
 	Bool in_data_flush;
-	s32 has_pending_segments;
+	u32 has_pending_segments, nb_force_flush;
 
 	Bool clock_discontinuity;
 	Bool disconnected;

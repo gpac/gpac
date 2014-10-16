@@ -56,7 +56,7 @@ void build_dict(void *priv_data, const char *options) {
 	gf_free(opt);
 }
 
-int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, Bool use_source_timing)
+int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, Bool use_source_timing, AVRational sar)
 {
 	video_output_file->vbuf_size = 9 * video_data_conf->width * video_data_conf->height + 10000;
 	video_output_file->vbuf = (uint8_t *) av_malloc(video_output_file->vbuf_size);
@@ -75,8 +75,7 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 	video_output_file->codec_ctx->bit_rate = video_data_conf->bitrate;
 	video_output_file->codec_ctx->width = video_data_conf->width;
 	video_output_file->codec_ctx->height = video_data_conf->height;
-	video_output_file->codec_ctx->sample_aspect_ratio.num = video_data_conf->width;
-	video_output_file->codec_ctx->sample_aspect_ratio.den = video_data_conf->height;
+	video_output_file->codec_ctx->sample_aspect_ratio = sar;
 
 	video_output_file->codec_ctx->time_base.num = 1;
 	video_output_file->codec_ctx->time_base.den = video_output_file->gop_size ? video_output_file->gop_size : video_data_conf->framerate;
@@ -127,9 +126,9 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 	 *
 	 */
 
-	if (video_data_conf->custom) {
+	if ( strlen(video_data_conf->custom) ) {
 		build_dict(video_output_file->codec_ctx->priv_data, video_data_conf->custom);
-	} else {
+	} else if (video_data_conf->low_delay) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Video Encoder: applying default options (preset=ultrafast tune=zerolatency)\n"));
 		av_opt_set(video_output_file->codec_ctx->priv_data, "preset", "ultrafast", 0);
 		av_opt_set(video_output_file->codec_ctx->priv_data, "tune", "zerolatency", 0);

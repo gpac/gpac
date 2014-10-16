@@ -744,15 +744,13 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 			return;
 		}
 	}
-	//FIXME - we have to keep the polling event when no segments are pending, in order to detect period switch :(
-#if 0
 	//flush request from terminal: only process if nothing is opened and we have pending segments
-	if (!check_buffer_level && !read->seg_opened && !read->has_pending_segments && !read->drop_next_segment) {
+	//we have to keep the polling event when no segments are pending, in order to detect period switch - we therefore tolerate a couble of requests even though no segments are pending
+	if (!check_buffer_level && !read->seg_opened && !read->has_pending_segments && (read->nb_force_flush > 2) && !read->drop_next_segment) {
 		read->in_data_flush = 0;
 		gf_mx_v(read->segment_mutex);
 		return;
 	}
-#endif
 
 	//if this is a request from terminal to flush pending segments, do not attempt to open the current download one, only open the first available in the cache
 	if (!check_buffer_level && !in_progressive_mode)
@@ -788,7 +786,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		param.url_query.drop_first_segment = 1;
 		e = read->input->query_proxy(read->input, &param);
 
-
+		read->nb_force_flush = 0;
 		if (read->has_pending_segments) {
 			read->has_pending_segments--;
 		}
@@ -812,6 +810,10 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Done playing segment \n"));
 	}
 	read->in_data_flush = 0;
+
+	if (!read->has_pending_segments) {
+		read->nb_force_flush ++;
+	}
 	gf_mx_v(read->segment_mutex);
 }
 

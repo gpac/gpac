@@ -37,7 +37,7 @@
  *
  * @return 0 on success, -1 on failure
  */
-int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, Bool use_source_timing);
+int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, Bool use_source_timing, AVRational sar);
 
 /*
  * Read the decoded video frames from circular buffer

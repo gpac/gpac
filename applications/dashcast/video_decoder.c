@@ -153,6 +153,8 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 
 	video_input_file->width = codec_ctx->width;
 	video_input_file->height = codec_ctx->height;
+	video_input_file->sar = codec_ctx->sample_aspect_ratio;
+
 	video_input_file->pix_fmt = codec_ctx->pix_fmt;
 	if (video_data_conf->framerate >= 0 && codec_ctx->time_base.num) {
 		video_data_conf->framerate = codec_ctx->time_base.den / codec_ctx->time_base.num;
