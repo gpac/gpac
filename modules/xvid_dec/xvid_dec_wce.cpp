@@ -296,7 +296,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( xvid_dec_wce )
+GPAC_MODULE_STATIC_DECLARATION( xvid_dec_wce )
 
 #ifdef __cplusplus
 }

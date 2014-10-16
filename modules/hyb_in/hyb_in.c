@@ -309,4 +309,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( hyb_in )
+GPAC_MODULE_STATIC_DECLARATION( hyb_in )

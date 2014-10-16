@@ -66,7 +66,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( platinum )
+GPAC_MODULE_STATIC_DECLARATION( platinum )
 
 #ifdef __cplusplus
 }

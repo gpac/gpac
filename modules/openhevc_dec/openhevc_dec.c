@@ -667,4 +667,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( openhevc )
+GPAC_MODULE_STATIC_DECLARATION( openhevc )

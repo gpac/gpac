@@ -659,5 +659,5 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( isma_ea )
+GPAC_MODULE_STATIC_DECLARATION( isma_ea )
 

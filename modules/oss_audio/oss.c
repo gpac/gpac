@@ -283,4 +283,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		DeleteOSSRender((GF_AudioOutput*)ifce);
 }
 
-GPAC_MODULE_STATIC_DELARATION( oss )
+GPAC_MODULE_STATIC_DECLARATION( oss )

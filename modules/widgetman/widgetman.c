@@ -3667,4 +3667,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 }
 
 
-GPAC_MODULE_STATIC_DELARATION( widgetman )
+GPAC_MODULE_STATIC_DECLARATION( widgetman )

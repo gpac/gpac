@@ -249,4 +249,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( ui_rec )
+GPAC_MODULE_STATIC_DECLARATION( ui_rec )

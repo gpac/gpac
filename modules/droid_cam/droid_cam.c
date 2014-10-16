@@ -744,4 +744,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( droid_cam )
+GPAC_MODULE_STATIC_DECLARATION( droid_cam )

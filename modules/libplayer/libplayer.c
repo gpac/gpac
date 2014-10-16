@@ -661,4 +661,4 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( libplayer )
+GPAC_MODULE_STATIC_DECLARATION( libplayer )

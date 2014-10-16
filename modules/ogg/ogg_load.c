@@ -159,4 +159,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( ogg_in )
+GPAC_MODULE_STATIC_DECLARATION( ogg_in )

@@ -101,6 +101,6 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( soft_raster )
+GPAC_MODULE_STATIC_DECLARATION( soft_raster )
 
 #endif

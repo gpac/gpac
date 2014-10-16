@@ -441,4 +441,4 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GPAC_MODULE_STATIC_DELARATION( vtt_in )
+GPAC_MODULE_STATIC_DECLARATION( vtt_in )

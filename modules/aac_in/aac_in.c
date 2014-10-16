@@ -986,6 +986,6 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( aac_in )
+GPAC_MODULE_STATIC_DECLARATION( aac_in )
 
 #endif

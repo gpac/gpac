@@ -917,4 +917,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( rtp_in )
+GPAC_MODULE_STATIC_DECLARATION( rtp_in )

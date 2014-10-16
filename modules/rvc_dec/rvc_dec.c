@@ -496,4 +496,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 }
 
 
-GPAC_MODULE_STATIC_DELARATION( rev_dec )
+GPAC_MODULE_STATIC_DECLARATION( rev_dec )

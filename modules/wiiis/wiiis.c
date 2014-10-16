@@ -261,4 +261,4 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	gf_free(bi);
 }
 
-GPAC_MODULE_STATIC_DELARATION( wiiis )
+GPAC_MODULE_STATIC_DECLARATION( wiiis )
