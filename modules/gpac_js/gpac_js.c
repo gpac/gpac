@@ -1778,4 +1778,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( gpac_js )
+GPAC_MODULE_STATIC_DECLARATION( gpac_js )
