@@ -516,4 +516,4 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( dummy_in )
+GPAC_MODULE_STATIC_DECLARATION( dummy_in )

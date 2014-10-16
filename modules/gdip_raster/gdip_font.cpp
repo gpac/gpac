@@ -400,7 +400,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( gdiplus )
+GPAC_MODULE_STATIC_DECLARATION( gdiplus )
 
 #ifdef __cplusplus
 }

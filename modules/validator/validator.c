@@ -1017,4 +1017,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( validator )
+GPAC_MODULE_STATIC_DECLARATION( validator )

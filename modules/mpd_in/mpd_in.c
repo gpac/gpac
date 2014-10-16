@@ -1398,6 +1398,6 @@ void ShutdownInterface(GF_BaseInterface *bi)
 }
 
 
-GPAC_MODULE_STATIC_DELARATION( mpd_in )
+GPAC_MODULE_STATIC_DECLARATION( mpd_in )
 
 #endif //GPAC_DISABLE_DASH_CLIENT

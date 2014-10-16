@@ -218,4 +218,4 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( opencv_is )
+GPAC_MODULE_STATIC_DECLARATION( opencv_is )

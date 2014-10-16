@@ -1691,4 +1691,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( mpegts_in )
+GPAC_MODULE_STATIC_DECLARATION( mpegts_in )

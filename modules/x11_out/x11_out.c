@@ -1817,4 +1817,4 @@ void ShutdownInterface (GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( x11_out )
+GPAC_MODULE_STATIC_DECLARATION( x11_out )

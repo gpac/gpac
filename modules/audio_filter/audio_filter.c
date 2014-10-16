@@ -285,4 +285,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		DeleteAudioFilter((GF_AudioFilter*)ifce);
 }
 
-GPAC_MODULE_STATIC_DELARATION( audio_filter )
+GPAC_MODULE_STATIC_DECLARATION( audio_filter )

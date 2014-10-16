@@ -501,7 +501,7 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( avcap )
+GPAC_MODULE_STATIC_DECLARATION( avcap )
 
 #ifdef __cplusplus
 }

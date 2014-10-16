@@ -848,4 +848,4 @@ void ShutdownInterface ( GF_BaseInterface *ifce )
 }
 
 
-GPAC_MODULE_STATIC_DELARATION( redirect_av )
+GPAC_MODULE_STATIC_DECLARATION( redirect_av )

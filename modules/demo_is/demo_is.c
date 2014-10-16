@@ -101,4 +101,4 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( demo_is )
+GPAC_MODULE_STATIC_DECLARATION( demo_is )

@@ -458,4 +458,4 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GPAC_MODULE_STATIC_DELARATION( svg_in )
+GPAC_MODULE_STATIC_DECLARATION( svg_in )

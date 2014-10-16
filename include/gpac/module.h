@@ -150,7 +150,7 @@ typedef struct
 */
 #ifdef GPAC_STATIC_MODULES
 
-#define GPAC_MODULE_STATIC_DELARATION(__name)	\
+#define GPAC_MODULE_STATIC_DECLARATION(__name)	\
 	GF_InterfaceRegister *gf_register_module_##__name()	{	\
 		GF_InterfaceRegister *reg;	\
 		GF_SAFEALLOC(reg, GF_InterfaceRegister);	\
@@ -162,7 +162,7 @@ typedef struct
 	}	\
  
 #else
-#define GPAC_MODULE_STATIC_DELARATION(__name)
+#define GPAC_MODULE_STATIC_DECLARATION(__name)
 #endif
 /*!
  *\brief module manager construtcor

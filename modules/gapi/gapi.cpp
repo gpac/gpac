@@ -1667,7 +1667,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( gapi )
+GPAC_MODULE_STATIC_DECLARATION( gapi )
 
 #ifdef __cplusplus
 }

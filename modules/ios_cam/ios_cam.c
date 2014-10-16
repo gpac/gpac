@@ -430,4 +430,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( ios_cam )
+GPAC_MODULE_STATIC_DECLARATION( ios_cam )

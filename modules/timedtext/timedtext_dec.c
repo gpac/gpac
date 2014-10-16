@@ -1244,4 +1244,4 @@ const u32 *QueryInterfaces()
 	return si;
 }
 
-GPAC_MODULE_STATIC_DELARATION( timedtext )
+GPAC_MODULE_STATIC_DECLARATION( timedtext )

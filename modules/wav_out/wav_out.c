@@ -492,4 +492,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( wave_out )
+GPAC_MODULE_STATIC_DECLARATION( wave_out )

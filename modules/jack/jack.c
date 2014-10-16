@@ -569,4 +569,4 @@ void ShutdownInterface (GF_BaseInterface * ifce)
 		DeleteJackOutput ((GF_AudioOutput *) ifce);
 }
 
-GPAC_MODULE_STATIC_DELARATION( jack )
+GPAC_MODULE_STATIC_DECLARATION( jack )

@@ -823,4 +823,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( ctx_load )
+GPAC_MODULE_STATIC_DECLARATION( ctx_load )
