@@ -166,7 +166,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 
 
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->nb_layers);
+		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1/*ctx->nb_layers*/);
 		libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->nb_layers-1);
 
 		libOpenHevcCopyExtraData(ctx->openHevcHandle, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);

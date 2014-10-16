@@ -433,8 +433,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 				break;
 			}
 			retry--;
-			retry=0;
-			break;
 			gf_sleep(0);
 		}
 		if (!retry && codec->force_cb_resize) {

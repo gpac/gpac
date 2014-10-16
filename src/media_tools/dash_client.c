@@ -4959,7 +4959,7 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 						group->active_rep_index = switch_to_rep_idx - 1;
 						group->download_segment_index--;
 					}
-					else {
+					else if (group->nb_cached_segments) {
 						/* we remove highest scalable enhancements of the dowloaded segments, and keep another segments*/
 						for (k = group->nb_cached_segments - 1; k > keep_seg_index; k--) {
 							if (group->cached[k].representation_index != current_idx)
