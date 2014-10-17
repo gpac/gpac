@@ -965,7 +965,10 @@ void gf_scene_set_timeshift_depth(GF_Scene *scene)
 		if (scene->root_od->parentscene->is_dynamic_scene && (scene->root_od->parentscene->timeshift_depth < max_timeshift)) {
 			scene->root_od->parentscene->timeshift_depth = max_timeshift;
 			scene->root_od->parentscene->root_od->timeshift_depth = max_timeshift;
+			gf_scene_notify_event(scene->root_od->parentscene, GF_EVENT_TIMESHIFT_DEPTH, NULL, NULL, GF_OK, GF_FALSE);
 		}
+	} else {
+		gf_scene_notify_event(scene, GF_EVENT_TIMESHIFT_DEPTH, NULL, NULL, GF_OK, GF_FALSE);
 	}
 }
 

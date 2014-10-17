@@ -56,6 +56,7 @@
 #define MP42TS_VIDEO_FREQ 1000 /*meant to send AVC IDR only every CLOCK_REFRESH ms*/
 
 u32 temi_url_insertion_delay = 1000;
+Bool temi_disable_loop = 0;
 FILE *logfile = NULL;
 
 static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
@@ -120,6 +121,7 @@ static GFINLINE void usage()
 	        "-ifce IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
 	        "-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optionnal\n"
 	        "-temi-delay DelayMS    Specifies delay between two TEMI url descriptors\n"
+	        "-temi-noloop           Do not restart the TEMI timeline at the end of the source\n"
 	        "-sdt-rate MS           Gives the SDT carrousel rate in milliseconds. If 0 (default), SDT is not sent\n"
 	        "\n"
 	        "MPEG-4/T-DMB options:\n"
@@ -342,6 +344,10 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		if (priv->is_repeat) pck.flags |= GF_ESI_DATA_REPEAT;
 
 		if (priv->temi_url) {
+			u64 tc = priv->sample->DTS + priv->sample->CTS_Offset;
+			if (temi_disable_loop) {
+				tc += priv->ts_offset;
+			}
 			pck.mpeg2_af_descriptors_size = format_af_descriptor(af_data, priv->sample->DTS + priv->sample->CTS_Offset, ifce->timescale, 0, priv->temi_url, &priv->last_temi_url);
 			pck.mpeg2_af_descriptors = af_data;
 		}
@@ -1969,6 +1975,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		}
 		else if (CHECK_PARAM("-temi-delay")) {
 			temi_url_insertion_delay = atoi(next_arg);
+		} else if (!stricmp(arg, "-temi-noloop")) {
+			temi_disable_loop = 1;
 		}
 		else if (CHECK_PARAM("-dst-udp")) {
 			char *sep = strchr(next_arg, ':');
