@@ -285,6 +285,17 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			break;
 		}
 
+	case GF_ISOM_SUBTYPE_MP3:
+		if (true_desc_only) {
+			return GF_ISOM_INVALID_MEDIA;
+		} else {
+			esd =  gf_odf_desc_esd_new(2);
+			*out_esd = esd;
+			esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG1;
+			break;
+		}
+
 	case GF_ISOM_SUBTYPE_LSR1:
 		if (true_desc_only) {
 			return GF_ISOM_INVALID_MEDIA;

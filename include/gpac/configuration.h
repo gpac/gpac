@@ -50,7 +50,9 @@
 #define GPAC_HAS_SPIDERMONKEY
 #ifdef GPAC_CONFIG_DARWIN
 #define MOZILLA_1_8_BRANCH
+#ifndef XP_UNIX
 #define XP_UNIX
+#endif
 #endif
 
 /*libjpeg enabled*/

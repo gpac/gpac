@@ -3415,7 +3415,7 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_du
 
 
 GF_EXPORT
-GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
+GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, GF_SceneDumpFormat dump_mode)
 {
 	GF_Err e;
 	GF_List *sample_list;
