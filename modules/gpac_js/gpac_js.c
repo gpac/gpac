@@ -960,7 +960,7 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		*vp = INT_TO_JSVAL(odi.irap_max_dec_time);
 		break;
 	case -35:
-		*vp = INT_TO_JSVAL(odi.od->ServiceID);
+		*vp = INT_TO_JSVAL(odi.od ? odi.od->ServiceID : 0);
 		break;
 	case -36:
 		*vp = INT_TO_JSVAL( (!odm->addon && odm->subscene) ? odm->subscene->selected_service_id : odm->parentscene->selected_service_id);
@@ -1689,6 +1689,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		DECLARE_GPAC_CONST(GF_EVENT_DROPFILE);
 		DECLARE_GPAC_CONST(GF_EVENT_ADDON_DETECTED);
 		DECLARE_GPAC_CONST(GF_EVENT_QUALITY_SWITCHED);
+		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_DEPTH);
 		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_UPDATE);
 		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_OVERFLOW);
 		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_UNDERRUN);
