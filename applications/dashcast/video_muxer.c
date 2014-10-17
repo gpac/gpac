@@ -837,7 +837,7 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool 
 			video_output_file->last_pts = video_output_file->codec_ctx->coded_frame->pts;
 			video_output_file->last_dts = video_output_file->codec_ctx->coded_frame->pkt_dts;
 
-			if (( video_output_file->last_dts - video_output_file->first_dts + video_output_file->frame_dur) /video_output_file->timescale >= video_output_file->frag_dur / 1000) {
+			if (( video_output_file->last_dts - video_output_file->first_dts + video_output_file->frame_dur) * 1000 >= video_output_file->frag_dur * video_output_file->timescale) {
 				gf_isom_flush_fragments(video_output_file->isof, 1);
 				video_output_file->fragment_started = 0;
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Flushed fragment to disk at UTC "LLU" ms - last coded frame PTS %d\n", gf_net_get_utc(), video_output_file->codec_ctx->coded_frame->pts));
