@@ -5157,6 +5157,7 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_STPP:
 	case GF_ISOM_BOX_TYPE_SBTT:
 	case GF_ISOM_BOX_TYPE_ELNG:
+	case GF_ISOM_BOX_TYPE_MP3:
 		return gf_isom_box_add_default((GF_Box*)ptr, a);
 	/*for 3GP config, we must set the type*/
 	case GF_ISOM_SUBTYPE_3GP_AMR:

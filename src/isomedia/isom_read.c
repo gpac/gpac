@@ -2690,6 +2690,7 @@ GF_Err gf_isom_get_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	case GF_ISOM_SUBTYPE_3GP_SMV:
 	case GF_ISOM_BOX_TYPE_AC3:
+	case GF_ISOM_BOX_TYPE_GNRA:
 		if (SampleRate) (*SampleRate) = ((GF_AudioSampleEntryBox*)entry)->samplerate_hi;
 		if (Channels) (*Channels) = ((GF_AudioSampleEntryBox*)entry)->channel_count;
 		if (bitsPerSample) (*bitsPerSample) = (u8) ((GF_AudioSampleEntryBox*)entry)->bitspersample;

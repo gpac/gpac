@@ -2028,11 +2028,13 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 		fprintf(stderr, "\tMotionJPEG2000 stream - Resolution %d x %d\n", w, h);
 	} else if ((msub_type == GF_ISOM_SUBTYPE_3GP_AMR) || (msub_type == GF_ISOM_SUBTYPE_3GP_AMR_WB)) {
-		fprintf(stderr, "\t3GPP AMR%s stream - Sample Rate %d - %d channel(s) %d bits per samples\n", (msub_type == GF_ISOM_SUBTYPE_3GP_AMR_WB) ? " Wide Band" : "", sr, nb_ch, (u32) bps);
+		fprintf(stderr, "\t3GPP AMR%s stream - Sample Rate %d - %d channel(s) %d bps\n", (msub_type == GF_ISOM_SUBTYPE_3GP_AMR_WB) ? " Wide Band" : "", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_EVRC) {
-		fprintf(stderr, "\t3GPP EVRC stream - Sample Rate %d - %d channel(s) %d bits per samples\n", sr, nb_ch, (u32) bps);
+		fprintf(stderr, "\t3GPP EVRC stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_QCELP) {
-		fprintf(stderr, "\t3GPP QCELP stream - Sample Rate %d - %d channel(s) %d bits per samples\n", sr, nb_ch, (u32) bps);
+		fprintf(stderr, "\t3GPP QCELP stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
+	} else if (msub_type == GF_ISOM_SUBTYPE_MP3) {
+		fprintf(stderr, "\tMPEG 1/2 Audio stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_AC3) {
 		u32 br = 0;
 		Bool lfe = 0;
