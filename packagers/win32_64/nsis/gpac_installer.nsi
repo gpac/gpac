@@ -245,8 +245,8 @@ lbl_xp:
 lbl_done:
 FunctionEnd
 
-;osmo4 install
-Section "Osmo4/GPAC Player" SecOsmo4
+;GPAC core
+Section "GPAC Core" SecGPAC
   SectionIn RO
   SetOutPath $INSTDIR
 
@@ -255,23 +255,35 @@ Section "Osmo4/GPAC Player" SecOsmo4
   File /oname=Changelog.txt "${GPAC_ROOT}\Changelog"
   File "${GPAC_ROOT}\doc\configuration.html"
   File "${GPAC_ROOT}\doc\gpac.mp4"
-
-  !ifndef IS_WIN64
-  File "${GPAC_BIN}\Osmo4.exe"
-  !endif
   File "${GPAC_ROOT}\doc\osmo4.ico"
   File "${GPAC_BIN}\libgpac.dll"
-  File "${GPAC_BIN}\gm_dummy_in.dll"
-  File "${GPAC_BIN}\gm_dx_hw.dll"
   File "${GPAC_BIN}\js.dll"
-  File "${GPAC_BIN}\gm_gpac_js.dll"
   File "${GPAC_BIN}\libeay32.dll"
   File "${GPAC_BIN}\ssleay32.dll"
-  File "${GPAC_BIN}\gm_ismacryp.dll"
 
   ;create default cache
   SetOutPath $INSTDIR\cache
 
+  SetOutPath $INSTDIR
+  
+  ${WriteRegStrAuth} HKCU "SOFTWARE\GPAC" "InstallDir" "$INSTDIR"
+  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "DisplayName" "GPAC (remove only)"
+  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "UninstallString" "$INSTDIR\uninstall.exe"
+  WriteUninstaller "uninstall.exe"
+
+SectionEnd
+
+;player install
+Section "GPAC Player" SecOsmo4
+  SectionIn 1
+
+  !ifndef IS_WIN64
+  File "${GPAC_BIN}\Osmo4.exe"
+  !endif
+  File "${GPAC_BIN}\gm_dummy_in.dll"
+  File "${GPAC_BIN}\gm_dx_hw.dll"
+  File "${GPAC_BIN}\gm_gpac_js.dll"
+  File "${GPAC_BIN}\gm_ismacryp.dll"
 
   ;copy GUI
   SetOutPath $INSTDIR\gui
@@ -286,12 +298,6 @@ Section "Osmo4/GPAC Player" SecOsmo4
   File /r /x .svn ${GPAC_ROOT}\gui\extensions\*
 
   SetOutPath $INSTDIR
-  
-  ${WriteRegStrAuth} HKCU "SOFTWARE\GPAC" "InstallDir" "$INSTDIR"
-  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osmo4" "DisplayName" "Osmo4/GPAC (remove only)"
-  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osmo4" "UninstallString" "$INSTDIR\uninstall.exe"
-  WriteUninstaller "uninstall.exe"
-
 SectionEnd
 
 SubSection "GPAC Plugins" SecPlugins
@@ -481,9 +487,22 @@ Section "MP4Box" SecMP4B
   SectionIn 1
   SetOutPath $INSTDIR
   File "${GPAC_BIN}\MP4Box.exe"
-  File "${GPAC_BIN}\MP42TS.exe"
-  File "${GPAC_BIN}\dashcast.exe"
+  Push $INSTDIR
+  Call AddToPath
+SectionEnd
 
+Section "MP42TS" SecMP42TS
+  SectionIn 1
+  SetOutPath $INSTDIR
+  File "${GPAC_BIN}\MP42TS.exe"
+  Push $INSTDIR
+  Call AddToPath
+SectionEnd
+
+Section "DashCast" SecDC
+  SectionIn 1
+  SetOutPath $INSTDIR
+  File "${GPAC_BIN}\dashcast.exe"
   Push $INSTDIR
   Call AddToPath
 SectionEnd
@@ -544,7 +563,7 @@ SectionEnd
 
 
 
-SubSection "Osmo4 Shortcuts"
+SubSection "GPAC Shortcuts"
 
 Section "Add Start Menu Shortcuts"
   SectionIn 1
@@ -553,23 +572,23 @@ Section "Add Start Menu Shortcuts"
   Pop $0
   StrCmp $0 "Admin" +1 +2
   SetShellVarContext all
-  CreateDirectory "$SMPROGRAMS\Osmo4"
-  CreateShortCut "$SMPROGRAMS\Osmo4\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
+  CreateDirectory "$SMPROGRAMS\GPAC"
+  CreateShortCut "$SMPROGRAMS\GPAC\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
+  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4/MP4Client.lnk" "$INSTDIR\MP4Client.exe" "-gui" 
+  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4/MP4Client (with Console).lnk" "$INSTDIR\MP4Client.exe" ""
   !ifndef IS_WIN64
-  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (Classic UI).lnk" "$INSTDIR\Osmo4.exe" ""
+  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4 (Old UI).lnk" "$INSTDIR\Osmo4.exe" ""
   !endif
-  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (New UI).lnk" "$INSTDIR\MP4Client.exe" "-gui" 
-  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (New UI With Console).lnk" "$INSTDIR\MP4Client.exe" ""
-  CreateShortCut "$SMPROGRAMS\Osmo4\Readme.lnk" "$INSTDIR\ReadMe.txt"
-  CreateShortCut "$SMPROGRAMS\Osmo4\License.lnk" "$INSTDIR\License.txt"
-  CreateShortCut "$SMPROGRAMS\Osmo4\History.lnk" "$INSTDIR\changelog.txt"
-  CreateShortCut "$SMPROGRAMS\Osmo4\Configuration Info.lnk" "$INSTDIR\configuration.html"
+  CreateShortCut "$SMPROGRAMS\GPAC\Readme.lnk" "$INSTDIR\ReadMe.txt"
+  CreateShortCut "$SMPROGRAMS\GPAC\License.lnk" "$INSTDIR\License.txt"
+  CreateShortCut "$SMPROGRAMS\GPAC\History.lnk" "$INSTDIR\changelog.txt"
+  CreateShortCut "$SMPROGRAMS\GPAC\Configuration Info.lnk" "$INSTDIR\configuration.html"
 SectionEnd
 
 !ifndef IS_WIN64
 Section "Add shortcut to QuickLaunch"
   SectionIn 1
-  CreateShortCut "$QUICKLAUNCH\Osmo4.lnk" "$INSTDIR\Osmo4.exe" "" "$INSTDIR\Osmo4.exe" 0
+  CreateShortCut "$QUICKLAUNCH\GPAC.lnk" "$INSTDIR\Osmo4.exe" "" "$INSTDIR\Osmo4.exe" 0
 SectionEnd
 
 Section "Add shortcut to Desktop"
@@ -614,7 +633,8 @@ SubSectionEnd
 
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecOsmo4} "Osmo4 player"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAC} "GPAC Core"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecOsmo4} "GPAC Player"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecPlugins} "GPAC Plugins"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecBIFS} "MPEG-4 BIFS Scene Decoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecODF} "MPEG-4 Object Descriptor Decoder"
@@ -648,6 +668,8 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMobIP} "UNIGE Mobile IP Framework"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOffisComp} "OFFIS Audio Compressor"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for various multimedia operations"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecMP42TS} "MP42TS command-line tool for MPEG-2 TS multiplexing"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecDC} "DashCast offline and live MPEG-DASH Encoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecSDK} "GPAC SDK: headers and library files needed to develop modules for GPAC or appllication based on GPAC"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecZILLA} "GPAC playback support NPAPI-based browsers (FireFox/Gecko, Safari/WebKit)"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAX} "GPAC playback support using ActiveX component (Internet Explorer)"
@@ -657,7 +679,7 @@ SubSectionEnd
 
 
 Function .onInstSuccess
-;  MessageBox MB_YESNO "GPAC Framework installation complete. Do you want to launch the Osmo4 player?" IDNO NoLaunch
+;  MessageBox MB_YESNO "GPAC Framework installation complete. Do you want to launch the player?" IDNO NoLaunch
 ;  Exec $INSTDIR\Osmo4.exe
 ;  NoLaunch:
 FunctionEnd
@@ -668,12 +690,12 @@ FunctionEnd
 
 ; uninstall stuff
 
-UninstallText "This will uninstall OSMO4/GPAC from your computer. Hit next to continue."
+UninstallText "This will uninstall GPAC from your computer. Hit next to continue."
 
 ; special uninstall section.
 Section "Uninstall"
   ; remove registry keys
-  ${DeleteRegKeyAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osmo4"
+  ${DeleteRegKeyAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC"
   ${DeleteRegKeyAuth} HKCU "SOFTWARE\GPAC"
   ${DeleteRegKeyAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0"
   ${DeleteRegKeyAuth} HKCR GPAC\mp4\DefaultIcon
@@ -699,8 +721,8 @@ Section "Uninstall"
   Pop $0
   StrCmp $0 "Admin" +1 +2
   SetShellVarContext all
-  Delete "$SMPROGRAMS\Osmo4\*.*"
-  RMDir "$SMPROGRAMS\Osmo4"
+  Delete "$SMPROGRAMS\GPAC\*.*"
+  RMDir "$SMPROGRAMS\GPAC"
   Delete "$QUICKLAUNCH\Osmo4.lnk"
   Delete "$DESKTOP\Osmo4.lnk"
 
