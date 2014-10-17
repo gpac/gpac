@@ -447,6 +447,7 @@ extension.view_stats = function () {
 
     wnd.timer.on_event = function (val) {
         var wnd = this.wnd;
+        var nb_buff = 0;
 
         var stat_obj = null;
         //stats every second
@@ -490,9 +491,12 @@ extension.view_stats = function () {
                     bl = 100 * buf / m.max_buffer;
 
                     if (stat_obj) {
-                        if (stat_obj.buffer < buf) {
-                            stat_obj.buffer = buf;
-                        }
+//                        if (stat_obj.buffer < buf) {
+//                            stat_obj.buffer = buf;
+//                        }
+
+                        stat_obj.buffer += buf;
+                        nb_buff++;
                     }
                 }
                 else bl = 100;
@@ -513,6 +517,9 @@ extension.view_stats = function () {
                 wnd.s_bw.refresh_serie(this.wnd.stats, 'time', 'http_bandwidth', wnd.stats_window, 1);
             }
             if (wnd.s_buf) {
+                if (nb_buff) {
+                    stat_obj.buffer /= nb_buff;
+                }
                 wnd.s_buf.refresh_serie(this.wnd.stats, 'time', 'buffer', wnd.stats_window, 1.5);
             }
             if (stat_obj.bitrate) {
