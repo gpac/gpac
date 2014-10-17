@@ -84,7 +84,7 @@ extension = {
                 }
                 return 1;
             case GF_EVENT_TIMESHIFT_UNDERRUN:
-                if (this.movie_control.mediaSpeed != 1) {
+                if (this.movie_control.mediaSpeed > 1) {
                     this.set_speed(1);
                     var msg = gw_new_message(null, 'Timeshift Underrun', 'Resuming to normal speed');
                     msg.set_size(380, gwskin.default_icon_height + 2 * gwskin.default_text_font_size);
@@ -328,89 +328,13 @@ extension = {
         this.controler = wnd;
         wnd.extension = this;
 
-        this.stoped_url = null;
         wnd.set_corners(true, true, false, false);
-
+        
         /*first set of controls*/
         wnd.infobar = gw_new_grid_container(wnd);
         wnd.infobar.spread_h = true;
 
         /*add our controls in order*/
-        wnd.snd_low = gw_new_icon(wnd.infobar, 'audio');
-        wnd.snd_low.extension = this;
-        wnd.snd_ctrl = gw_new_slider(wnd.infobar);
-        wnd.snd_ctrl.extension = this;
-        wnd.snd_ctrl.stick_to_previous = true;
-        wnd.snd_low.add_icon('audio_mute');
-        wnd.snd_low.on_click = function () {
-            if (this.extension.muted) {
-                gpac.volume = this.extension.muted;
-                this.extension.muted = 0;
-                this.switch_icon(0);
-            } else {
-                this.extension.muted = gpac.volume ? gpac.volume : 1;
-                gpac.volume = 0;
-                this.switch_icon(1);
-            }
-        }
-        wnd.snd_ctrl.on_slide = function (value, type) {
-            if (this.extension.muted) this.extension.controler.snd_low.on_click();
-            gpac.volume = value;
-        }
-        wnd.snd_ctrl.set_value(gpac.volume);
-
-
-        wnd.stop = gw_new_icon(wnd.infobar, 'stop');
-        wnd.stop.extension = this;
-        wnd.stop.on_click = function () {
-            this.extension.set_state(this.extension.GF_STATE_STOP);
-        }
-
-        if (0) {
-            wnd.rewind = gw_new_icon(wnd.infobar, 'rewind');
-        } else {
-            wnd.rewind = null;
-        }
-
-        wnd.play = gw_new_icon(wnd.infobar, 'play');
-        wnd.play.extension = this;
-        this.state = this.GF_STATE_PLAY;
-        wnd.play.add_icon(gwskin.images.pause);
-        wnd.play.on_click = function () {
-            this.extension.set_state((this.extension.state == this.extension.GF_STATE_PLAY) ? this.extension.GF_STATE_PAUSE : this.extension.GF_STATE_PLAY);
-        }
-
-        wnd.back_live = gw_new_icon(wnd.infobar, 'live');
-        wnd.back_live.extension = this;
-        wnd.back_live.on_click = function () {
-            if (0 && this.extension.root_odm && this.extension.root_odm.main_addon_on) {
-                this.extension.root_odm.disable_main_addon();
-            }
-            else if (this.extension.movie_control.mediaStopTime < 0) {
-                this.extension.movie_control.mediaStopTime = 0;
-                this.extension.controler.layout();
-            }
-        }
-
-
-        if (!gwskin.browser_mode) {
-            wnd.forward = gw_new_icon_button(wnd.infobar, 'seek_forward', '', true, 'icon_label');
-            wnd.forward.extension = this;
-            wnd.forward.on_click = function () {
-                if (this.extension.movie_control.mediaSpeed) {
-                    this.extension.set_state(this.extension.GF_STATE_TRICK);
-                    this.extension.set_speed(2 * this.extension.movie_control.mediaSpeed);
-                }
-            }
-            wnd.forward.on_long_click = function () {
-                if (this.extension.movie_control.mediaSpeed) {
-                    this.extension.set_state(this.extension.GF_STATE_TRICK);
-                    this.extension.set_speed(this.extension.movie_control.mediaSpeed / 2);
-                }
-            }
-        } else {
-            wnd.forward = null;
-        }
 
         wnd.media_line = gw_new_progress_bar(wnd.infobar, false, true);
         wnd.media_line.extension = this;
@@ -480,22 +404,122 @@ extension = {
             }
         }
 
-        if (1) {
-            wnd.loop = gw_new_icon(wnd.infobar, 'play_once');
-            wnd.loop.extension = this;
-            wnd.loop.add_icon(gwskin.images.play_loop);
-            //            wnd.loop.add_icon(gwskin.images.play_shuffle);
-            wnd.loop.on_click = function () {
-                this.extension.movie_control.loop = this.extension.movie_control.loop ? FALSE : TRUE;
-                this.switch_icon(this.extension.movie_control.loop ? 1 : 0);
+        wnd.back_live = gw_new_icon(wnd.infobar, 'live');
+        wnd.back_live.extension = this;
+        wnd.back_live.on_click = function () {
+            if (0 && this.extension.root_odm && this.extension.root_odm.main_addon_on) {
+                this.extension.root_odm.disable_main_addon();
             }
-        } else {
-            wnd.loop = null;
+            else if (this.extension.movie_control.mediaStopTime < 0) {
+                this.extension.movie_control.mediaStopTime = 0;
+                this.extension.controler.layout();
+            }
         }
 
+        gw_new_separator(wnd.infobar);
+
+
+        wnd.stop = gw_new_icon(wnd.infobar, 'stop');
+        wnd.stop.extension = this;
+        wnd.stop.on_click = function () {
+            this.extension.set_state(this.extension.GF_STATE_STOP);
+        }
+
+        if (0) {
+            wnd.rewind = gw_new_icon(wnd.infobar, 'rewind');
+        } else {
+            wnd.rewind = null;
+        }
+
+        wnd.play = gw_new_icon(wnd.infobar, 'play');
+        wnd.play.extension = this;
+        this.state = this.GF_STATE_PLAY;
+        wnd.play.add_icon(gwskin.images.pause);
+        wnd.play.on_click = function () {
+            this.extension.set_state((this.extension.state == this.extension.GF_STATE_PLAY) ? this.extension.GF_STATE_PAUSE : this.extension.GF_STATE_PLAY);
+        }
+
+
+        wnd.forward = gw_new_icon_button(wnd.infobar, 'seek_forward', '', true, 'icon_label');
+        wnd.forward.extension = this;
+        wnd.forward.on_click = function () {
+            if (this.extension.movie_control.mediaSpeed) {
+                this.extension.set_state(this.extension.GF_STATE_TRICK);
+                this.extension.set_speed(2 * this.extension.movie_control.mediaSpeed);
+            }
+        }
+        wnd.forward.on_long_click = function () {
+            if (this.extension.movie_control.mediaSpeed) {
+                this.extension.set_state(this.extension.GF_STATE_TRICK);
+                this.extension.set_speed(this.extension.movie_control.mediaSpeed / 2);
+            }
+        }
+        
+        wnd.loop = gw_new_icon(wnd.infobar, 'play_once');
+        wnd.loop.extension = this;
+        wnd.loop.add_icon(gwskin.images.play_loop);
+        //            wnd.loop.add_icon(gwskin.images.play_shuffle);
+        wnd.loop.on_click = function () {
+            this.extension.movie_control.loop = this.extension.movie_control.loop ? FALSE : TRUE;
+            this.switch_icon(this.extension.movie_control.loop ? 1 : 0);
+        }
+        
+        wnd.media_list = gw_new_icon(wnd.infobar, 'media');
+        wnd.media_list.extension = this;
+        wnd.media_list.hide();
+        
         wnd.channels = gw_new_icon(wnd.infobar, 'channels');
         wnd.channels.extension = this;
         wnd.channels.hide();
+
+
+        wnd.navigate = gw_new_icon(wnd.infobar, 'navigation');
+        wnd.navigate.extension = this;
+        wnd.navigate.on_click = function () {
+            this.extension.select_navigation_type();
+        }
+
+        wnd.stats = gw_new_icon(wnd.infobar, 'statistics');
+        wnd.stats.extension = this;
+        wnd.stats.on_click = function () {
+            this.extension.view_stats();
+        }
+
+
+        gw_new_separator(wnd.infobar);
+
+
+        wnd.snd_low = gw_new_icon(wnd.infobar, 'audio');
+        wnd.snd_low.extension = this;
+        wnd.snd_ctrl = gw_new_slider(wnd.infobar);
+        wnd.snd_ctrl.extension = this;
+        wnd.snd_ctrl.stick_to_previous = true;
+        wnd.snd_low.add_icon('audio_mute');
+        wnd.snd_low.on_click = function () {
+            if (this.extension.muted) {
+                gpac.volume = this.extension.muted;
+                this.extension.muted = 0;
+                this.switch_icon(0);
+            } else {
+                this.extension.muted = gpac.volume ? gpac.volume : 1;
+                gpac.volume = 0;
+                this.switch_icon(1);
+            }
+        }
+        wnd.snd_ctrl.on_slide = function (value, type) {
+            if (this.extension.muted) this.extension.controler.snd_low.on_click();
+            gpac.volume = value;
+        }
+        wnd.snd_ctrl.set_value(gpac.volume);
+
+        wnd.open = null;
+        if (!gwskin.browser_mode) {
+            wnd.open = gw_new_icon(wnd.infobar, 'file_open');
+            wnd.open.extension = this;
+            wnd.open.on_click = function () {
+                this.extension.open_local_file();
+            }
+        }
 
         wnd.playlist = gw_new_icon(wnd.infobar, 'playlist');
         wnd.playlist.extension = this;
@@ -515,30 +539,8 @@ extension = {
             this.extension.playlist_next();
         }
 
-        wnd.navigate = gw_new_icon(wnd.infobar, 'navigation');
-        wnd.navigate.extension = this;
-        wnd.navigate.on_click = function () {
-            this.extension.select_navigation_type();
-        }
 
-        wnd.stats = gw_new_icon(wnd.infobar, 'statistics');
-        wnd.stats.extension = this;
-        wnd.stats.on_click = function () {
-            this.extension.view_stats();
-        }
-
-
-        if (!gwskin.browser_mode) {
-            wnd.open = gw_new_icon(wnd.infobar, 'file_open');
-            wnd.open.extension = this;
-            wnd.open.on_click = function () {
-                this.extension.open_local_file();
-            }
-        } else {
-            wnd.open = null;
-        }
-
-
+        wnd.home = null;
         if (!gwskin.browser_mode) {
             wnd.home = gw_new_icon(wnd.infobar, 'osmo');
             wnd.home.extension = this;
@@ -550,8 +552,6 @@ extension = {
                 }
                 gw_show_dock();
             }
-        } else {
-            wnd.home = null;
         }
 
 
@@ -562,12 +562,14 @@ extension = {
             wnd.remote = null;
         }
 
-        if (1) {
-            wnd.fullscreen = gw_new_icon(wnd.infobar, 'fullscreen');
-            wnd.fullscreen.on_click = function () { gpac.fullscreen = !gpac.fullscreen; }
-        } else {
-            wnd.fullscreen = null;
+        wnd.fullscreen = gw_new_icon(wnd.infobar, 'fullscreen');
+        wnd.fullscreen.add_icon(gwskin.images.fullscreen_back);
+        wnd.fullscreen.on_click = function () { 
+            var fs = gpac.fullscreen;
+            gpac.fullscreen = !fs; 
+            this.switch_icon(fs ? 0 : 1);
         }
+        wnd.fullscreen.switch_icon(gpac.fullscreen ? 1 : 0);
 
         if (!gwskin.browser_mode) {
             wnd.exit = gw_new_icon(wnd.infobar, 'exit');
@@ -760,12 +762,24 @@ extension = {
 
             }
 
-            this.infobar.set_size(width, control_icon_size);
+            this.media_line.show();
+            this.time.show();
+            //this.time.set_size(width - 6*control_icon_size, control_icon_size / 3);
+            this.media_line.set_size(width - this.time.width - 2*control_icon_size, control_icon_size / 3);
+            
+//            this.infobar.set_size(width, control_icon_size);
+            this.infobar.set_size(width, height);
             this.infobar.move(0, -0.1 * control_icon_size);
         }
 
         wnd.on_display_size = function (w, h) {
-            this.set_size(w, 1.2 * gwskin.default_icon_height);
+//            this.set_size(w, 1.2 * gwskin.default_icon_height);
+
+            if (this.extension.movie_connected) h = 3.3*gwskin.default_icon_height;
+            else h = 2.2 * gwskin.default_icon_height;
+
+            this.set_size(480, h);
+            
             this.layout();
         }
 
@@ -775,7 +789,7 @@ extension = {
         }
         //make the bar hitable so that clicking on it does not make it disappear
         gw_object_set_hitable(wnd);
-        wnd.set_size(gw_display_width, 1.2 * gwskin.default_icon_height);
+        wnd.set_size(gw_display_width, 2.2 * gwskin.default_icon_height);
         this.set_duration(0);
         this.set_time(0);
 
@@ -853,14 +867,14 @@ extension = {
             }
             this.set_playlist_mode(true);
 
-            /*
+/*
             var label = '';
             for (i = 1; i < argc; i++) {
             label += '#'+i + ': ' + gpac.get_arg(i) + '\n';
             }
             var notif = gw_new_message(null, 'GPAC Arguments', label);
             notif.show();
-            */
+*/
         }
 
         this.controler.show();
@@ -1063,6 +1077,12 @@ extension = {
 
     set_speed: function (value) {
         this.movie_control.mediaSpeed = value;
+
+        if (!this.duration && this.timeshift_depth && !value) {
+            this.movie_control.mediaStopTime = -0.1;
+            //
+            this.movie_control.mediaStartTime = -1;
+        }
         if (value && value != 1) {
             if (value > 1)
                 this.controler.forward.set_label('x' + value);

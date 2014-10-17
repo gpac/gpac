@@ -22,6 +22,8 @@ function my_filter_event(evt)
   if (gpac.navigation != GF_NAVIGATE_NONE) return false;
   if (!gpac.fullscreen)  in_drag = 1;
   return true;
+ case GF_EVENT_DBLCLICK:
+  return true;
 case GF_EVENT_MOUSEMOVE:
     if (in_drag) {
         in_drag = 2;
@@ -60,7 +62,7 @@ function gw_show_dock() {
 function insert_dock_icon(label, icon)
 {
     var wnd = gw_new_window(dock, true, false);
-    var icon = gw_new_icon_button(wnd, icon, (label=='') ? null : label);
+    var icon = gw_new_icon_button(wnd, icon, (label=='') ? null : label, 'root_icon');
     wnd.set_size(icon.width, icon.height);
     wnd.show();
     return icon;
@@ -236,22 +238,41 @@ function layout()
 //resize event callback
 function on_resize(evt) {
     if ((gw_display_width == evt.width) && (gw_display_height == evt.height)) return;
-  if (evt.width <=100) {
-      gpac.set_size(100, gw_display_height);
-    return;
-  }
-  if (evt.height <=80) {
-      gpac.set_size(gw_display_width, 40);
-    return;
-}
+    if (evt.width <=100) {
+        gpac.set_size(100, gw_display_height);
+        return;
+    }
+    if (evt.height <=80) {
+        gpac.set_size(gw_display_width, 40);
+        return;
+    }
 
-gw_display_width = evt.width;
-gw_display_height = evt.height;
-  if (!gpac.fullscreen) {
-      gpac.setOption('General', 'LastWidth', '' + gw_display_width);
-      gpac.setOption('General', 'LastHeight', '' + gw_display_height);
-  }
-  layout();
+    gw_display_width = evt.width;
+    gw_display_height = evt.height;
+    if (!gpac.fullscreen) {
+        gpac.setOption('General', 'LastWidth', '' + gw_display_width);
+        gpac.setOption('General', 'LastHeight', '' + gw_display_height);
+    }
+/*
+    var v = 12;
+    if (gw_display_height<160) {
+    }
+    else if (gw_display_height<576) {
+        v = 24;
+    }
+    else if (gw_display_height<720) {
+        v = 32;
+    }
+    else {
+        v = 48;
+    }
+    gwskin_set_default_control_height(v*2);
+    gwskin_set_default_icon_height(v);
+    gwlib_refresh_layout();
+    
+*/
+
+    layout();
 }
 
 function gw_background_control(enable) {

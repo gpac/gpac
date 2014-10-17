@@ -254,6 +254,8 @@ struct __dash_group
 	u32 current_timescale;
 
 	void *udta;
+	
+	Bool has_pending_enhancement;
 };
 
 static const char *gf_dash_get_mime_type(GF_MPD_SubRepresentation *subrep, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set)
@@ -4214,8 +4216,10 @@ restart_period:
 				}
 
 				/* download enhancement representation of this segment*/
-				if ((representation_index != group->force_max_rep_index) && rep->enhancement_rep_index_plus_one)
+				if ((representation_index != group->force_max_rep_index) && rep->enhancement_rep_index_plus_one) {
 					group->active_rep_index = rep->enhancement_rep_index_plus_one - 1;
+					group->has_pending_enhancement = GF_TRUE;
+				}
 				/* if we have downloaded all enhancement representations of this segment, restart from base representation and increase dowloaded segment index by 1*/
 				else {
 					if (group->base_rep_index_plus_one) group->active_rep_index = group->base_rep_index_plus_one - 1;
@@ -4227,6 +4231,7 @@ restart_period:
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing in backward - start of playlist reached - assuming end of stream\n"));
 						group->done = 1;
 					}
+					group->has_pending_enhancement = GF_FALSE;
 				}
 				if (dash->auto_switch_count) {
 					group->nb_segments_done++;
@@ -4238,7 +4243,7 @@ restart_period:
 
 				//do not notify segments if there is a pending period switch - since these are decided by the user, we don't
 				//want to notify old segments
-				if (!dash->request_period_switch)
+				if (!dash->request_period_switch && !group->has_pending_enhancement)
 					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, gf_list_find(dash->groups, group), GF_OK);
 
 				gf_mx_v(dash->dl_mutex);

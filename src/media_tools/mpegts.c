@@ -2355,7 +2355,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					break;
 				case GF_M2TS_HIERARCHY_DESCRIPTOR:
 					if (pes) {
-						u8 hierarchy_layer_idx = (data[3] & 0x3F);
+						//u8 hierarchy_layer_idx = (data[3] & 0x3F);
 						pes->depends_on_pid = (data[4] & 0x3F);
 					}
 					break;

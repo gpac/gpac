@@ -1281,8 +1281,6 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 			m2ts->eit_channel = channel;
 		} else if (ES_ID<GF_M2TS_MAX_STREAMS) {
 			u32 i, j, count, count2;
-			GF_M2TS_PES *pes = NULL;
-
 			e = GF_SERVICE_ERROR;
 			count = gf_list_count(m2ts->ts->programs);
 			for (i=0; i<count; i++) {

@@ -530,6 +530,12 @@ gwskin.styles.push(s);
 s.text = null;
 s.font = null;
 
+s = { name: 'root_icon' };
+gwskin.styles.push(s);
+s.text = gw_new_appearance(1, 1, 1);
+s.text.skin = true;
+
+
 //override listitems to have text alignment to 'begin'
 s = { name: 'listitem' };
 gwskin.styles.push(s);
@@ -669,6 +675,8 @@ gwskin.images.home = 'icons/home.svg';
 gwskin.labels.home = 'Home';
 gwskin.images.osmo = 'icons/osmo.svg';
 gwskin.labels.osmo = 'Home';
+gwskin.images.media = 'icons/more.svg';
+gwskin.labels.media = 'Media';
 gwskin.images.favorite = 'icons/heart.svg';
 gwskin.labels.favorite = 'Favorites';
 gwskin.images.audio = 'icons/audio.svg';
@@ -683,6 +691,8 @@ gwskin.images.stop = 'icons/stop2.svg';
 gwskin.labels.stop = 'Stop';
 gwskin.images.fullscreen = 'icons/expand.svg';
 gwskin.labels.fullscreen = 'Fullscreen';
+gwskin.images.fullscreen_back = 'icons/shrink.svg';
+gwskin.labels.fullscreen_back = 'Exit Fullscreen';
 gwskin.images.play_once = 'icons/play_single.svg';
 gwskin.labels.play_once = 'Play once';
 gwskin.images.play_loop = 'icons/play_loop.svg';
@@ -771,6 +781,9 @@ function gwskin_set_white_blue()
 //	s.over.texture.keyValue[1] = new SFColor(0.4, 0.8, 1);
 //	s.down.texture.keyValue = [0.0, 0.4, 0.6, 0, 0.2, 0.4, 0.0, 0.4, 0.6];
 //	s.down.texture.keyValue[1] = new SFColor(0.4, 0.8, 1);
+	s.text.material.emissiveColor = new SFColor(1, 1, 1);
+
+	s = gwskin.get_class('root_icon');
 	s.text.material.emissiveColor = new SFColor(1, 1, 1);
 
 }
@@ -1216,7 +1229,7 @@ function gw_new_rectangle(class_name, style) {
         temp[7] = 6; /*close*/
 
         /*compute default rx/ry*/
-        ry = rx = 6;
+        ry = rx = 10;
         if (rx >= hw) rx = hw;
         if (ry >= hh) ry = hh;
         rx_bl = rx_br = rx_tl = rx_tr = rx;
@@ -2265,6 +2278,7 @@ function gw_new_grid_container(parent) {
         this._pages = [0];
 
         for (var i = 0; i < children.length; i++) {
+            
             //start of line: compute H spread and max V size
             if (spread_x == -1) {
                 var j = 0, len = 0, maxh = 0, nb_child = 0, nb_spread_child = 0;
@@ -2274,6 +2288,7 @@ function gw_new_grid_container(parent) {
                         j++;
                         if (i + j == children.length) break;
                         if (this.break_at_hidden) break;
+                        if (typeof (children[i+j-1].__separator) == 'boolean') break;
                         continue;
                     }
                     if (len + children[i + j].width > width) break;
@@ -2300,8 +2315,10 @@ function gw_new_grid_container(parent) {
                     spread_x = 0;
                 }
             }
+
             if (!children[i].visible) {
-                if (nb_on_line && this.break_at_hidden) {
+                if (nb_on_line && ( this.break_at_hidden || (typeof (children[i].__separator) == 'boolean')) ) {
+
                     nb_on_line = 0;
                     spread_x = -1;
                     start_y -= maxh / 2;
@@ -2409,6 +2426,8 @@ function gw_new_grid_container(parent) {
 function gw_new_separator(parent) {
     var obj = gw_new_container();
     obj.hide();
+    obj.show = function() {};
+    obj.__separator = true;
     gw_add_child(parent, obj);
     return obj;
 }

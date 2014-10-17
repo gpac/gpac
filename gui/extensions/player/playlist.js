@@ -275,15 +275,18 @@ extension.view_playlist = function () {
 extension.playlist_mode = false;
 extension.set_playlist_mode = function(value)
 {
-    if (!value) {
-        this.controler.playlist_next.hide();
-        this.controler.playlist_prev.hide();
-    } else if (this.playlist.length<=1) {
-        this.controler.playlist_next.hide();
-        this.controler.playlist_prev.hide();
+    if (!value || (this.playlist.length<=1)) {
+        if (this.controler.playlist_next.visible) {
+            this.controler.playlist_next.hide();
+            this.controler.playlist_prev.hide();
+            extension.controler.layout();
+        }
     } else {
-        this.controler.playlist_next.show();
-        this.controler.playlist_prev.show();
+        if (!this.controler.playlist_next.visible) {
+            this.controler.playlist_next.show();
+            this.controler.playlist_prev.show();
+            extension.controler.layout();
+        }
         if (this.playlist_idx == 0) {
             this.controler.playlist_next.enable();
             this.controler.playlist_prev.disable();
@@ -293,10 +296,7 @@ extension.set_playlist_mode = function(value)
         }
     }
 
-    if (extension.playlist_mode != value) {
-        extension.playlist_mode = value;
-        extension.controler.layout();
-    }
+    extension.playlist_mode = value;
 }
 
 extension.playlist_play = function (pl_item) {
