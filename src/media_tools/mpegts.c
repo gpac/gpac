@@ -2413,16 +2413,16 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				nb_es++;
 				//skip assignment below
 				es = NULL;
-			} 
+			}
 			/*watchout for pmt update - FIXME this likely won't work in most cases*/
 			else {
 
 				GF_M2TS_ES *o_es = ts->ess[es->pid];
 
 				if ((o_es->stream_type == es->stream_type)
-						&& ((o_es->flags & GF_M2TS_ES_STATIC_FLAGS_MASK) == (es->flags & GF_M2TS_ES_STATIC_FLAGS_MASK))
-						&& (o_es->mpeg4_es_id == es->mpeg4_es_id)
-						&& ((o_es->flags & GF_M2TS_ES_IS_SECTION) || ((GF_M2TS_PES *)o_es)->lang == ((GF_M2TS_PES *)es)->lang)
+				        && ((o_es->flags & GF_M2TS_ES_STATIC_FLAGS_MASK) == (es->flags & GF_M2TS_ES_STATIC_FLAGS_MASK))
+				        && (o_es->mpeg4_es_id == es->mpeg4_es_id)
+				        && ((o_es->flags & GF_M2TS_ES_IS_SECTION) || ((GF_M2TS_PES *)o_es)->lang == ((GF_M2TS_PES *)es)->lang)
 				   ) {
 					gf_free(es);
 					es = NULL;
@@ -2455,7 +2455,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			an_es =  (GF_M2TS_PES *)gf_list_get(pmt->program->streams, es->depends_on_pid);
 			if (an_es) es->depends_on_pid = an_es->pid;
 		}
-		
+
 		evt_type = (status&GF_M2TS_TABLE_FOUND) ? GF_M2TS_EVT_PMT_FOUND : GF_M2TS_EVT_PMT_UPDATE;
 		if (ts->on_event) ts->on_event(ts, evt_type, pmt->program);
 	} else {
@@ -2828,7 +2828,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		if (!hdr->payload_start || (hdr->adaptation_field!=3) ) return;
 	} else {
 		expect_cc = (pes->cc<0) ? hdr->continuity_counter : (pes->cc + 1) & 0xf;
-		if (expect_cc != hdr->continuity_counter) 
+		if (expect_cc != hdr->continuity_counter)
 			disc = 1;
 	}
 	pes->cc = hdr->continuity_counter;
@@ -4288,7 +4288,7 @@ GF_Err gf_m2ts_demuxer_close(GF_M2TS_Demuxer *ts)
 }
 
 GF_EXPORT
-GF_Err gf_m2ts_demuxer_play(GF_M2TS_Demuxer *ts) 
+GF_Err gf_m2ts_demuxer_play(GF_M2TS_Demuxer *ts)
 {
 
 	/*set the state variable outside the TS thread. If inside, we may get called for shutdown before the TS thread has started

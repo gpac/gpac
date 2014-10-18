@@ -139,7 +139,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 					gf_list_add(trep->other_boxes, trex->track->Media->information->sampleTable->CompositionToDecode);
 				}
 			}
-		
+
 			if (movie->moov->mvex->mehd && movie->moov->mvex->mehd->fragment_duration) {
 				trex->track->Header->duration = 0;
 				Media_SetDuration(trex->track);

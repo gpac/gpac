@@ -254,7 +254,7 @@ struct __dash_group
 	u32 current_timescale;
 
 	void *udta;
-	
+
 	Bool has_pending_enhancement;
 };
 
@@ -3231,7 +3231,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 					} else {
 						rep->segment_list->initialization_segment->sourceURL = gf_strdup(cache_name);
 					}
-					
+
 				}
 				if (index_in_base) {
 					sidx_file = (char *)cache_name;
@@ -3698,7 +3698,7 @@ static void gf_dash_group_check_time(GF_DASH_Group *group)
 		now -= group->dash->user_buffer_ms;
 		if (now<0) return;
 		now /= 1000;
-		if (now>group->dash->time_in_tsb) 
+		if (now>group->dash->time_in_tsb)
 			group->dash->time_in_tsb = (u32) now;
 		return;
 	}
@@ -5040,7 +5040,7 @@ const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64
 		if (start_range) *start_range = group->bs_switching_init_segment_url_start_range;
 		if (end_range) *end_range = group->bs_switching_init_segment_url_end_range;
 		return group->bs_switching_init_segment_url;
-	} 
+	}
 
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 	if (!rep) return NULL;
@@ -5102,7 +5102,7 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_
 		GF_DASH_Group *group = gf_list_get(dash->groups, i);
 		if (group->selection==GF_DASH_GROUP_NOT_SELECTABLE) continue;
 		if (!group->adaptation_set->lang) continue;
-		
+
 		if (!stricmp(group->adaptation_set->lang, lang_code_rfc_5646)) {
 			gf_dash_group_select(dash, i, 1);
 			gf_list_add(groups_selected, group);
@@ -5142,8 +5142,8 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_
 			len = (u32) strlen(group->adaptation_set->lang);
 			//compare with what we found
 			if ( ((len==3) && !stricmp(group->adaptation_set->lang, n3cc))
-				|| ((len==2) && !stricmp(group->adaptation_set->lang, n2cc))
-			) {
+			        || ((len==2) && !stricmp(group->adaptation_set->lang, n2cc))
+			   ) {
 				gf_dash_group_select(dash, i, 1);
 				gf_list_add(groups_selected, group);
 			}
@@ -5436,7 +5436,7 @@ void gf_dash_seek(GF_DashClient *dash, Double start_range)
 		if (dash->estimate_utc_drift) availabilityStartTime += dash->utc_drift_estimate;
 
 		now = dash->mpd_fetch_time + (gf_sys_clock() - dash->last_update_time) - availabilityStartTime;
-		
+
 		if (dash->initial_time_shift_value<=100) {
 			now -= dash->mpd->time_shift_buffer_depth * dash->initial_time_shift_value / 100;
 		} else {
@@ -5865,7 +5865,7 @@ GF_Err gf_dash_group_get_quality_info(GF_DashClient *dash, u32 idx, u32 quality_
 	quality->ID = rep->id;
 	quality->interlaced = (rep->scan_type == GF_MPD_SCANTYPE_INTERLACED) ? 1 : ( (group->adaptation_set->scan_type == GF_MPD_SCANTYPE_INTERLACED) ? 1 : 0);
 	quality->is_selected = (quality_idx==group->active_rep_index) ? 1 : 0;
-	
+
 	return GF_OK;
 }
 

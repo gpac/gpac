@@ -1358,9 +1358,9 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTy
 
 		//for dynamic scenes, check if we have listeners on the root object of the scene containing this media
 		if (odm->parentscene
-		    && odm->parentscene->is_dynamic_scene
-		    && odm->parentscene->root_od->mo
-		    && (odm->parentscene->root_od->net_service==odm->net_service)
+		        && odm->parentscene->is_dynamic_scene
+		        && odm->parentscene->root_od->mo
+		        && (odm->parentscene->root_od->net_service==odm->net_service)
 		   ) {
 			odm = odm->parentscene->root_od;
 			count = gf_mo_event_target_count(odm->mo);
