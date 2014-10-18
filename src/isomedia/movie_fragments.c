@@ -1533,7 +1533,7 @@ GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 }
 
 GF_EXPORT
-GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName, Bool memory_mode)
+GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory_mode)
 {
 	GF_Err e;
 	//and only at setup
