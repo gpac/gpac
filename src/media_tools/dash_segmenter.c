@@ -93,6 +93,7 @@ typedef struct
 	Bool no_fragments_defaults;
 	Bool samplegroups_in_traf;
 	Bool single_traf_per_moof;
+	Bool content_protection_in_rep;
 } GF_DASHSegmenterOptions;
 
 struct _dash_segment_input
@@ -491,6 +492,33 @@ static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count
 	time = samp->DTS;
 	gf_isom_sample_del(&samp);
 	return time;
+}
+
+static GF_Err gf_isom_write_content_protection(GF_ISOFile *input, FILE *mpd, u32 protected_track, u8 indent)
+{
+	u32 prot_scheme	= gf_isom_is_media_encrypted(input, protected_track, 1);
+	if (gf_isom_is_cenc_media(input, protected_track, 1)) {
+		bin128 default_KID;
+		u8 i;
+		gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID);
+		for (i=0; i<indent; i++)
+			fprintf(mpd, " ");
+		fprintf(mpd, "<ContentProtection schemeIdUri=\"urn:mpeg:dash:mp4protection:2011\" value=\"%s\" cenc:default_KID=\"", gf_4cc_to_str(prot_scheme) );
+		/* Output canonical UIID form */
+		for (i=0; i<4; i++) fprintf(mpd, "%02x", default_KID[i]);
+		fprintf(mpd, "-");
+		for (i=4; i<6; i++) fprintf(mpd, "%02x", default_KID[i]);
+		fprintf(mpd, "-");
+		for (i=6; i<8; i++) fprintf(mpd, "%02x", default_KID[i]);
+		fprintf(mpd, "-");
+		for (i=8; i<10; i++) fprintf(mpd, "%02x", default_KID[i]);
+		fprintf(mpd, "-");
+		for (i=10; i<16; i++) fprintf(mpd, "%02x", default_KID[i]);
+		fprintf(mpd, "\"/>\n");
+	}
+	//todo for ISMA or OMA DRM
+
+	return GF_OK;
 }
 
 static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec, GF_DASHSegmenterOptions *dash_cfg, GF_DashSegInput *dash_input, Bool first_in_set)
@@ -1716,6 +1744,10 @@ restart_fragmentation_pass:
 		fprintf(dash_cfg->mpd, "   </SegmentList>\n");
 	}
 
+	/* Write adaptation set content protection element */
+	if (protected_track && first_in_set && !dash_cfg->content_protection_in_rep) {
+		gf_isom_write_content_protection(input, dash_cfg->mpd, protected_track, 3);
+	}
 
 	fprintf(dash_cfg->mpd, "   <Representation ");
 	if (dash_input->representationID) fprintf(dash_cfg->mpd, "id=\"%s\"", dash_input->representationID);
@@ -1763,26 +1795,9 @@ restart_fragmentation_pass:
 	if (nb_channels && !is_bs_switching)
 		fprintf(dash_cfg->mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", nb_channels);
 
-
-	if (protected_track) {
-		u32 prot_scheme	= gf_isom_is_media_encrypted(input, protected_track, 1);
-		if (gf_isom_is_cenc_media(input, protected_track, 1)) {
-			bin128 default_KID;
-			gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID);
-			fprintf(dash_cfg->mpd, "    <ContentProtection schemeIdUri=\"urn:mpeg:dash:mp4protection:2011\" value=\"%s\" cenc:default_KID=\"", gf_4cc_to_str(prot_scheme) );
-			/* Output canonical UIID form */
-			for (i=0; i<4; i++) fprintf(dash_cfg->mpd, "%02x", default_KID[i]);
-			fprintf(dash_cfg->mpd, "-");
-			for (i=4; i<6; i++) fprintf(dash_cfg->mpd, "%02x", default_KID[i]);
-			fprintf(dash_cfg->mpd, "-");
-			for (i=6; i<8; i++) fprintf(dash_cfg->mpd, "%02x", default_KID[i]);
-			fprintf(dash_cfg->mpd, "-");
-			for (i=8; i<10; i++) fprintf(dash_cfg->mpd, "%02x", default_KID[i]);
-			fprintf(dash_cfg->mpd, "-");
-			for (i=10; i<16; i++) fprintf(dash_cfg->mpd, "%02x", default_KID[i]);
-			fprintf(dash_cfg->mpd, "\"/>\n");
-		}
-		//todo for ISMA or OMA DRM
+	/* Write content protection element in representation */
+	if (protected_track && dash_cfg->content_protection_in_rep) {
+		gf_isom_write_content_protection(input, dash_cfg->mpd, protected_track, 4);
 	}
 
 	if (dash_cfg->dash_ctx) {
@@ -2127,9 +2142,9 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 					gf_isom_get_visual_info(set_file, j+1, 1, &vw1, &vh1);
 					gf_isom_get_visual_info(in, track, 1, &vw2, &vh2);
 
-					ar1 = vh1*vw2; 
+					ar1 = vh1*vw2;
 					ar1*= hs2*vs1;
-					
+
 					ar2 = vh2*vw1;
 					ar2 *= hs1*vs2;
 					if (ar1 != ar2) {
@@ -2178,7 +2193,7 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 	u32 first_track = 0;
 	Bool single_segment = (dash_opts->single_file_mode==1) ? 1 : 0;
 	GF_ISOFile *init_seg;
-	
+
 
 	probe_inband_param_set = dash_opts->inband_param_set ? 1 : 0;
 
@@ -2357,7 +2372,7 @@ retry_track:
 						if (use_inband_param_set) {
 							gf_isom_avc_set_inband_config(init_seg, track, 1);
 							use_avc3 = GF_TRUE;
-						} 
+						}
 					} else {
 						first_track = track;
 					}
@@ -4386,6 +4401,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	Bool none_supported = GF_TRUE;
 	Bool has_mpeg2 = GF_FALSE;
 	Bool has_role = GF_FALSE;
+	Bool content_protection_in_rep = GF_TRUE; /*if not in rep, then in the adptation set*/
 	Double presentation_duration = 0;
 	Double active_period_start = 0;
 	GF_Err e = GF_OK;
@@ -4583,10 +4599,12 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		no_fragments_defaults = 1;
 		use_url_template = 1;
 		single_segment = single_file = 0;
+		content_protection_in_rep = GF_FALSE;
 		break;
 	case GF_DASH_PROFILE_AVC264_ONDEMAND:
 		seg_at_rap = 1;
 		no_fragments_defaults = 1;
+		content_protection_in_rep = GF_FALSE;
 		if (seg_name) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment-name not allowed in DASH-AVC/264 onDemand profile.\n"));
 			e = GF_NOT_SUPPORTED;
@@ -4650,6 +4668,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.pssh_moof = pssh_moof;
 	dash_opts.samplegroups_in_traf = samplegroups_in_traf;
 	dash_opts.single_traf_per_moof = single_traf_per_moof;
+	dash_opts.content_protection_in_rep = content_protection_in_rep;
 
 
 	dash_opts.segment_duration = dash_duration * 1000 / dash_scale;
