@@ -511,7 +511,7 @@ void MC_Modified(GF_Node *node)
 			/*do not reevaluate if mediaStartTime is reset to -1 (current time)*/
 			if (stack->control->mediaStartTime!=-1.0)
 				stack->changed = 2;
-		/*check mediaStopTime <0 (timeshift buffer control)*/
+			/*check mediaStopTime <0 (timeshift buffer control)*/
 		} else if (stack->media_stop != stack->control->mediaStopTime) {
 			if (stack->control->mediaStopTime<=0)
 				stack->changed = 2;

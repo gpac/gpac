@@ -752,9 +752,9 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	strcpy(szName, dumper->out_name ? dumper->out_name : "");
 
 	/* Find the decoder configuration:
-	   - Check first if the stream is carried according to MPEG-4 Systems, 
-	   i.e. using the Object Descriptor Framework, to get the Decoder Specific Info (dsi) 
-	   - Or get it specifically depending on the media type 
+	   - Check first if the stream is carried according to MPEG-4 Systems,
+	   i.e. using the Object Descriptor Framework, to get the Decoder Specific Info (dsi)
+	   - Or get it specifically depending on the media type
 	   */
 	dcfg = NULL;
 	if ((m_stype==GF_ISOM_SUBTYPE_MPEG4) || (m_stype==GF_ISOM_SUBTYPE_MPEG4_CRYP)) {
@@ -982,7 +982,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				strcat(szName, ".swf");
 		} else if (m_stype==GF_ISOM_SUBTYPE_MP3) {
 			gf_export_message(dumper, GF_OK, "Extracting MPEG-1/2 Audio");
-			if (add_ext) 
+			if (add_ext)
 				strcat(szName, ".mp3");
 		} else if (m_stype==GF_ISOM_SUBTYPE_AC3) {
 			gf_export_message(dumper, GF_OK, "Extracting AC3 Audio");

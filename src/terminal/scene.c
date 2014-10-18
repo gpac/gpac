@@ -1686,7 +1686,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only)
 
 				//object is not an addon and main addon is selected, do not add
 				if (!odm->addon && scene->main_addon_selected) {
-				//object is not an addon and main addon is selected, do not add
+					//object is not an addon and main addon is selected, do not add
 				} else if (odm->addon && (odm->addon->addon_type==GF_ADDON_TYPE_MAIN) && scene->main_addon_selected) {
 					gf_list_add(to_restart, odm);
 				} else if (!scene->selected_service_id || (scene->selected_service_id==odm->OD->ServiceID)) {
@@ -1782,24 +1782,24 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 				gf_sc_set_size(scene->root_od->term->compositor, width, height);
 			}
-		
+
 		} else if (!scene->force_size_set) {
-            if (com.par.width && com.par.height) {
-                width = com.par.width;
-                height = com.par.height;
-            }
-            gf_sg_set_scene_size_info(scene->graph, width, height, 1);
-            scene->force_size_set = 1;
-        } else {
+			if (com.par.width && com.par.height) {
+				width = com.par.width;
+				height = com.par.height;
+			}
+			gf_sg_set_scene_size_info(scene->graph, width, height, 1);
+			scene->force_size_set = 1;
+		} else {
 			u32 w, h;
-            gf_sg_get_scene_size_info(scene->graph, &w, &h);
+			gf_sg_get_scene_size_info(scene->graph, &w, &h);
 			if (!com.par.width && !com.par.height && ((w<width) || (h<height)) ) {
-	            gf_sg_set_scene_size_info(scene->graph, width, height, 1);
+				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
 			} else {
 				width = w;
 				height = h;
 			}
-        }
+		}
 	}
 	else if (scene->root_od->parentscene && scene->root_od->parentscene->is_dynamic_scene) {
 		gf_sg_set_scene_size_info(scene->root_od->parentscene->graph, width, height, gf_sg_use_pixel_metrics(scene->root_od->parentscene->graph));
@@ -2362,7 +2362,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 		if ((mtype==odm_base->codec->type) && odm_base->codec)
 			break;
 		odm_base=NULL;
-		//todo 
+		//todo
 		//1- check if we use compatible formats, for now we only do demos with hevc/shvc
 		//2- check dependency IDs if any, for now we only do demos with 2 layers hevc/shvc
 	}

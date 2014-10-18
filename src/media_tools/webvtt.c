@@ -1361,9 +1361,9 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 				GF_WebVTTCue *old_cue = (GF_WebVTTCue *)gf_list_get(prev_wsample->cues, 0);
 				gf_list_rem(prev_wsample->cues, 0);
 				if (
-					((!cue->id && !old_cue->id) || (old_cue->id && cue->id && !strcmp(old_cue->id, cue->id))) &&
-					((!cue->settings && !old_cue->settings) || (old_cue->settings && cue->settings && !strcmp(old_cue->settings, cue->settings))) &&
-					((!cue->text && !old_cue->text) || (old_cue->text && cue->text && !strcmp(old_cue->text, cue->text)))
+				    ((!cue->id && !old_cue->id) || (old_cue->id && cue->id && !strcmp(old_cue->id, cue->id))) &&
+				    ((!cue->settings && !old_cue->settings) || (old_cue->settings && cue->settings && !strcmp(old_cue->settings, cue->settings))) &&
+				    ((!cue->text && !old_cue->text) || (old_cue->text && cue->text && !strcmp(old_cue->text, cue->text)))
 				) {
 					/* if it is the same cue, update its start with the initial start */
 					cue->start = old_cue->start;

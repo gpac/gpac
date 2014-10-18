@@ -2998,95 +2998,95 @@ return JS_TRUE;
 
 static SMJS_FUNC_PROP_SET( array_setLength)
 
-	u32 len, i, sftype, old_len;
-	JSBool ret;
-	GF_JSClass *the_sf_class;
-	GF_JSField *ptr = (GF_JSField *) SMJS_GET_PRIVATE(c, obj);
-	if (!JSVAL_IS_INT(*vp) || JSVAL_TO_INT(*vp) < 0) return JS_FALSE;
-	/*avoids gcc warning*/
-	#ifndef GPAC_CONFIG_DARWIN
-	if (!id) id=0;
-	#endif
-	len = JSVAL_TO_INT(*vp);
+u32 len, i, sftype, old_len;
+JSBool ret;
+GF_JSClass *the_sf_class;
+GF_JSField *ptr = (GF_JSField *) SMJS_GET_PRIVATE(c, obj);
+if (!JSVAL_IS_INT(*vp) || JSVAL_TO_INT(*vp) < 0) return JS_FALSE;
+/*avoids gcc warning*/
+#ifndef GPAC_CONFIG_DARWIN
+if (!id) id=0;
+#endif
+len = JSVAL_TO_INT(*vp);
 
 
-	if (!len) {
-		if (ptr->field.fieldType==GF_SG_VRML_MFNODE) {
-			gf_node_unregister_children(ptr->owner, *(GF_ChildNodeItem**)ptr->field.far_ptr);
-			*(GF_ChildNodeItem**)ptr->field.far_ptr = NULL;
-		} else {
-			gf_sg_vrml_mf_reset(ptr->field.far_ptr, ptr->field.fieldType);
-		}
-		JS_SetArrayLength(c, ptr->js_list, 0);
-		Script_FieldChanged(c, NULL, ptr, NULL);
-		return JS_TRUE;
+if (!len) {
+	if (ptr->field.fieldType==GF_SG_VRML_MFNODE) {
+		gf_node_unregister_children(ptr->owner, *(GF_ChildNodeItem**)ptr->field.far_ptr);
+		*(GF_ChildNodeItem**)ptr->field.far_ptr = NULL;
+	} else {
+		gf_sg_vrml_mf_reset(ptr->field.far_ptr, ptr->field.fieldType);
 	}
-
-	ret = JS_GetArrayLength(c, ptr->js_list, &old_len);
-	if (ret==JS_FALSE) return ret;
-
-	ret = JS_SetArrayLength(c, ptr->js_list, len);
-	if (ret==JS_FALSE) return ret;
-
-	the_sf_class = NULL;
-	switch (ptr->field.fieldType) {
-	case GF_SG_VRML_MFVEC2F:
-		the_sf_class = &js_rt->SFVec2fClass;
-		break;
-	case GF_SG_VRML_MFVEC3F:
-		the_sf_class = &js_rt->SFVec3fClass;
-		break;
-	case GF_SG_VRML_MFCOLOR:
-		the_sf_class = &js_rt->SFColorClass;
-		break;
-	case GF_SG_VRML_MFROTATION:
-		the_sf_class = &js_rt->SFRotationClass;
-		break;
-	case GF_SG_VRML_MFNODE:
-	{
-		u32 c = gf_node_list_get_count(*(GF_ChildNodeItem**)ptr->field.far_ptr);
-		while (len < c) {
-			GF_Node *n = gf_node_list_del_child_idx((GF_ChildNodeItem**)ptr->field.far_ptr, c-1);
-			if (n) gf_node_unregister(n, ptr->owner);
-			c--;
-		}
-		if (len>c) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML] MFARRAY EXPANSION NOT SUPPORTED!!!\n"));
-		}
-	}
+	JS_SetArrayLength(c, ptr->js_list, 0);
+	Script_FieldChanged(c, NULL, ptr, NULL);
 	return JS_TRUE;
-	}
+}
 
-	sftype = gf_sg_vrml_get_sf_type(ptr->field.fieldType);
-	for (i=old_len; i<len; i++) {
-		jsval a_val;
-		if (the_sf_class) {
-			JSObject *an_obj = SMJS_CONSTRUCT_OBJECT(c, the_sf_class, obj);
-			a_val = OBJECT_TO_JSVAL(an_obj );
-		} else {
-			switch (sftype) {
-			case GF_SG_VRML_SFBOOL:
-				a_val = BOOLEAN_TO_JSVAL(0);
-				break;
-			case GF_SG_VRML_SFINT32:
-				a_val = INT_TO_JSVAL(0);
-				break;
-			case GF_SG_VRML_SFFLOAT:
-			case GF_SG_VRML_SFTIME:
-				a_val = JS_MAKE_DOUBLE(c, 0);
-				break;
-			case GF_SG_VRML_SFSTRING:
-			case GF_SG_VRML_SFURL:
-				a_val = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "") );
-				break;
-			default:
-				a_val = INT_TO_JSVAL(0);
-				break;
-			}
-		}
-		JS_SetElement(c, ptr->js_list, i, &a_val);
+ret = JS_GetArrayLength(c, ptr->js_list, &old_len);
+if (ret==JS_FALSE) return ret;
+
+ret = JS_SetArrayLength(c, ptr->js_list, len);
+if (ret==JS_FALSE) return ret;
+
+the_sf_class = NULL;
+switch (ptr->field.fieldType) {
+case GF_SG_VRML_MFVEC2F:
+	the_sf_class = &js_rt->SFVec2fClass;
+	break;
+case GF_SG_VRML_MFVEC3F:
+	the_sf_class = &js_rt->SFVec3fClass;
+	break;
+case GF_SG_VRML_MFCOLOR:
+	the_sf_class = &js_rt->SFColorClass;
+	break;
+case GF_SG_VRML_MFROTATION:
+	the_sf_class = &js_rt->SFRotationClass;
+	break;
+case GF_SG_VRML_MFNODE:
+{
+	u32 c = gf_node_list_get_count(*(GF_ChildNodeItem**)ptr->field.far_ptr);
+	while (len < c) {
+		GF_Node *n = gf_node_list_del_child_idx((GF_ChildNodeItem**)ptr->field.far_ptr, c-1);
+		if (n) gf_node_unregister(n, ptr->owner);
+		c--;
 	}
-	return JS_TRUE;
+	if (len>c) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML] MFARRAY EXPANSION NOT SUPPORTED!!!\n"));
+	}
+}
+return JS_TRUE;
+}
+
+sftype = gf_sg_vrml_get_sf_type(ptr->field.fieldType);
+for (i=old_len; i<len; i++) {
+	jsval a_val;
+	if (the_sf_class) {
+		JSObject *an_obj = SMJS_CONSTRUCT_OBJECT(c, the_sf_class, obj);
+		a_val = OBJECT_TO_JSVAL(an_obj );
+	} else {
+		switch (sftype) {
+		case GF_SG_VRML_SFBOOL:
+			a_val = BOOLEAN_TO_JSVAL(0);
+			break;
+		case GF_SG_VRML_SFINT32:
+			a_val = INT_TO_JSVAL(0);
+			break;
+		case GF_SG_VRML_SFFLOAT:
+		case GF_SG_VRML_SFTIME:
+			a_val = JS_MAKE_DOUBLE(c, 0);
+			break;
+		case GF_SG_VRML_SFSTRING:
+		case GF_SG_VRML_SFURL:
+			a_val = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "") );
+			break;
+		default:
+			a_val = INT_TO_JSVAL(0);
+			break;
+		}
+	}
+	JS_SetElement(c, ptr->js_list, i, &a_val);
+}
+return JS_TRUE;
 }
 
 static SMJS_FUNC_PROP_GET( array_getLength)

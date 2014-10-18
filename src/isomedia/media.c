@@ -350,7 +350,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 
 
 	if (!mdia || !mdia->information->sampleTable) return GF_BAD_PARAM;
-	if (!mdia->information->sampleTable->SampleSize) 
+	if (!mdia->information->sampleTable->SampleSize)
 		return GF_ISOM_INVALID_FILE;
 
 	//OK, here we go....

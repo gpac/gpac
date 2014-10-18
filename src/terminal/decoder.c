@@ -1609,7 +1609,7 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 		codec->nb_dispatch_skipped = 0;
 		memset(codec->last_unit_signature, 0, sizeof(codec->last_unit_signature));
 	}
-	else 
+	else
 		codec->Status = Status;
 
 	if (!codec->CB) return;

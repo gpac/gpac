@@ -666,7 +666,7 @@ GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char **
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 	count = gf_list_count(trak->Media->other_boxes);
-    if (count>0) {
+	if (count>0) {
 		u32 i;
 		for (i = 0; i < count; i++) {
 			GF_Box *box = (GF_Box *)gf_list_get(trak->Media->other_boxes, i);
@@ -676,7 +676,7 @@ GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char **
 				return GF_OK;
 			}
 		}
-	} 
+	}
 	if (!elng_found) {
 		*lang = gf_strdup(trak->Media->mediaHeader->packedLanguage);
 	}
@@ -1682,11 +1682,11 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	e = gf_isom_get_sample_for_media_time(the_file, trackNumber, mediaTime, StreamDescriptionIndex, SearchMode, sample, &sampNum);
 	if (e) {
 		if (e==GF_EOS) {
-			//movie is fragmented and samples not yet received, return EOS 
-			if (the_file->moov->mvex && !trak->Media->information->sampleTable->SampleSize->sampleCount) 
+			//movie is fragmented and samples not yet received, return EOS
+			if (the_file->moov->mvex && !trak->Media->information->sampleTable->SampleSize->sampleCount)
 				return e;
 
-			if (nextMediaTime) 
+			if (nextMediaTime)
 				return gf_isom_get_sample_for_movie_time(the_file, trackNumber, nextMediaTime-1, StreamDescriptionIndex, SearchMode, sample, sampleNumber);
 		}
 		return e;

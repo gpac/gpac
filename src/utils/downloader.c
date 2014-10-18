@@ -900,7 +900,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 				info->remotePath = gf_url_percent_encode(tmp);
 				gf_free( urlConcatenateWithBaseURL );
 				urlConcatenateWithBaseURL = NULL;
-				
+
 				if (!info->remotePath) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[PROTOCOL] : cannot find any protocol in url %s\n", url));
 					return GF_BAD_PARAM;
@@ -1857,7 +1857,7 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, char *body_start, u3
 }
 
 
-static void dm_sess_update_download_rate(GF_DownloadSession * sess, Bool always_check) 
+static void dm_sess_update_download_rate(GF_DownloadSession * sess, Bool always_check)
 {
 	u32 runtime;
 	if (!always_check && (sess->bytes_done==sess->total_size)) return;
@@ -2351,11 +2351,11 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 
 
-static Bool dm_exceeds_cap_rate(GF_DownloadSession * sess) 
+static Bool dm_exceeds_cap_rate(GF_DownloadSession * sess)
 {
 	u32 cumul_rate = 0;
 	u32 i, count = gf_list_count(sess->dm->sessions);
-	
+
 	dm_sess_update_download_rate(sess, 0);
 	//we already exceed the max rate
 	if (sess->bytes_per_sec>sess->dm->limit_data_rate) return 1;
@@ -2381,7 +2381,7 @@ static Bool dm_exceeds_cap_rate(GF_DownloadSession * sess)
  * \param sHTTP the data buffer
  * \return The error code if any
  */
-static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP) 
+static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 {
 	u32 size;
 	GF_Err e;
@@ -2394,8 +2394,8 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 			return GF_REMOTE_SERVICE_ERROR;
 
 		if (sess->dm && sess->dm->limit_data_rate && sess->bytes_per_sec) {
-			if (dm_exceeds_cap_rate(sess)) 
-				return GF_OK;			
+			if (dm_exceeds_cap_rate(sess))
+				return GF_OK;
 		}
 
 		e = gf_dm_read_data(sess, sHTTP, buf_size, &size);
@@ -3404,7 +3404,7 @@ u32 gf_dm_get_global_rate(GF_DownloadManager *dm)
 	if (!dm) return 0;
 	gf_mx_p(dm->cache_mx);
 	count = gf_list_count(dm->sessions);
-	
+
 	for (i=0; i<count; i++) {
 		GF_DownloadSession *sess = gf_list_get(dm->sessions, i);
 		if (sess->total_size==sess->bytes_done) {

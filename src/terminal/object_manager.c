@@ -872,7 +872,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 					odm->addon->addon_type = GF_ADDON_TYPE_MAIN;
 					role_set = 1;
 				}
-			} 
+			}
 
 			if (!role_set) {
 				GF_NetworkCommand com;
@@ -880,7 +880,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 				com.base.command_type = GF_NET_SERVICE_INFO;
 				com.info.on_channel = gf_list_get(odm->channels, 0);
 				gf_term_service_command(odm->net_service, &com);
-				
+
 				if (com.info.role && !strcmp(com.info.role, "main")) {
 					odm->addon->addon_type = GF_ADDON_TYPE_MAIN;
 				}

@@ -1789,10 +1789,10 @@ GF_Err gf_isom_add_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *sc
 			GF_Box *b = (GF_Box *)gf_list_get(map->other_boxes, i);
 			if (b->type == GF_ISOM_BOX_TYPE_KIND) {
 				GF_KindBox *kb = (GF_KindBox *)b;
-				if (!strcmp(kb->schemeURI, schemeURI) && 
-					((value && kb->value && !strcmp(value, kb->value)) || (!value && !kb->value))) {
-						// Already there 
-						return GF_OK;
+				if (!strcmp(kb->schemeURI, schemeURI) &&
+				        ((value && kb->value && !strcmp(value, kb->value)) || (!value && !kb->value))) {
+					// Already there
+					return GF_OK;
 				}
 			}
 		}
@@ -1835,9 +1835,9 @@ GF_Err gf_isom_remove_track_kind(GF_ISOFile *movie, u32 trackNumber, const char 
 			GF_Box *b = (GF_Box *)gf_list_get(map->other_boxes, i);
 			if (b->type == GF_ISOM_BOX_TYPE_KIND) {
 				GF_KindBox *kb = (GF_KindBox *)b;
-				if (!schemeURI || 
-					(!strcmp(kb->schemeURI, schemeURI) && 
-						((value && kb->value && !strcmp(value, kb->value)) || (!value && !kb->value)))) {
+				if (!schemeURI ||
+				        (!strcmp(kb->schemeURI, schemeURI) &&
+				         ((value && kb->value && !strcmp(value, kb->value)) || (!value && !kb->value)))) {
 					gf_isom_box_del(b);
 					gf_list_rem(map->other_boxes, i);
 					i--;

@@ -39,7 +39,7 @@ void gf_es_buffer_off(GF_Channel *ch)
 		ch->BufferOn = 0;
 		gf_clock_buffer_off(ch->clock);
 		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) : buffering off at STB %d (OTB %d) (nb buffering on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_term_get_time(ch->odm->term), gf_clock_time(ch->clock), ch->clock->Buffering));
-		//if one of the stream is done buffering, force data timeout for the clock to be the buffer time 
+		//if one of the stream is done buffering, force data timeout for the clock to be the buffer time
 		//at the end of the buffering period
 		if ((ch->clock->data_timeout==ch->odm->term->net_data_timeout) && (ch->BufferTime>=(s32) ch->MaxBuffer))
 			ch->clock->data_timeout = ch->BufferTime;
@@ -318,7 +318,7 @@ void gf_es_reset_timing(GF_Channel *ch)
 
 static Bool gf_es_needs_buffering(GF_Channel *ch, u32 ForRebuffering)
 {
-	if (!ch->MaxBuffer || ch->IsEndOfStream) 
+	if (!ch->MaxBuffer || ch->IsEndOfStream)
 		return 0;
 	//not controled by the buffer level but by the service
 	if (ch->is_pulling)
@@ -721,7 +721,7 @@ static void gf_es_init_clock(GF_Channel *ch, u32 TS)
 
 	gf_clock_set_time(ch->clock, TS);
 	//once the clock is init, reset any seek request at parent scene level
-	if (ch->odm->parentscene ) 
+	if (ch->odm->parentscene )
 		ch->odm->parentscene->root_od->media_start_time = 0;
 	//this is the root
 	else ch->odm->media_start_time = 0;
@@ -1766,8 +1766,8 @@ void gf_es_on_connect(GF_Channel *ch)
 	if (gf_term_service_command(ch->service, &com) == GF_OK) {
 		if (com.duration.duration>=0) {
 			gf_odm_set_duration(ch->odm, ch, (u64) (1000*com.duration.duration));
-		} 
-		
+		}
+
 		if ((com.duration.duration<=0) && (com.duration.time_shift_buffer>0)) {
 			gf_odm_set_timeshift_depth(ch->odm, ch, com.duration.time_shift_buffer);
 		}

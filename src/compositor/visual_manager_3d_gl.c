@@ -1806,7 +1806,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 		}
 	}
-	
+
 #if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
 	else if (visual->compositor->visual->current_texture_glsl_program) {
 		int loc = glGetUniformLocation(visual->compositor->visual->current_texture_glsl_program, "alpha");
