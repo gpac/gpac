@@ -476,6 +476,7 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 	au->data = ch->buffer;
 	au->dataLength = ch->len;
 	au->PaddingBits = ch->padingBits;
+	au->sender_ntp = ch->sender_ntp;
 
 	ch->IsRap = 0;
 	ch->padingBits = 0;
@@ -1077,6 +1078,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	}
 
 	if (init_ts) {
+		if (hdr.sender_ntp) ch->sender_ntp = hdr.sender_ntp;
 		/*Get CTS */
 		if (ch->esd->slConfig->useTimestampsFlag) {
 			if (hdr.compositionTimeStampFlag) {
@@ -1535,6 +1537,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	}
 	ch->AU_buffer_pull->CTS = (u32) ch->CTS;
 	ch->AU_buffer_pull->DTS = (u32) ch->DTS;
+	ch->AU_buffer_pull->sender_ntp = ch->sender_ntp;
 	ch->AU_buffer_pull->PaddingBits = ch->padingBits;
 
 	if (ch->pull_forced_buffer) {

@@ -718,7 +718,7 @@ struct _es_channel
 	u64 last_pcr;
 
 	/*TSs as received from network - these are used for cache storage*/
-	u64 net_dts, net_cts;
+	u64 net_dts, net_cts, sender_ntp;
 
 	Bool last_au_was_seek;
 	Bool no_timestamps;

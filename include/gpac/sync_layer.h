@@ -120,6 +120,8 @@ typedef struct
 	u8 m2ts_pcr;
 	/* HTML5 MSE Packet info */
 	s64 timeStampOffset;
+	//ntp at sender/producer side for this packet, 0 otherwise
+	u64 sender_ntp;
 } GF_SLHeader;
 
 

@@ -27,6 +27,7 @@
 
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/constants.h>
+#include <gpac/network.h>
 #include "media_memory.h"
 #include "media_control.h"
 
@@ -561,6 +562,11 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 			gf_odm_signal_eos(cb->odm);
 		}
 	}
+	if (cb->output->sender_ntp) {
+		cb->LastRenderedNTPDiff = gf_net_get_ntp_diff_ms(cb->output->sender_ntp);
+		cb->LastRenderedNTP = cb->output->sender_ntp;
+	}
+
 	return cb->output;
 }
 

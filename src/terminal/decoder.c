@@ -1295,6 +1295,7 @@ scalable_retry:
 						gf_sc_set_video_pending_frame(codec->odm->term->compositor);
 					}
 				}
+				CU->sender_ntp = AU->sender_ntp;
 			}
 #if 0
 			/*if no size and the decoder is not using the composition memory - if the object is in intitial buffering resume it!!*/

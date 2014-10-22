@@ -120,6 +120,7 @@ typedef struct
 	u32 max_dec_time, irap_max_dec_time;
 	u32 au_duration;
 	u32 nb_iraps;
+	s32 ntp_diff;
 
 	/*set if ISMACryp present on the object - will need refinement for IPMPX...
 	0: not protected - 1: protected and OK - 2: protected and DRM failed*/

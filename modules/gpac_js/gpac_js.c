@@ -1055,6 +1055,9 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		}
 	}
 		break;
+	case -47:
+		*vp = INT_TO_JSVAL( odi.ntp_diff);
+		break;
 	}
 	return JS_TRUE;
 }
@@ -1614,6 +1617,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("is_pulling",		-44,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("dynamic_scene",		-45,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("service_name",		-46,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("ntp_diff",			-47,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};
