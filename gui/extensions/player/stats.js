@@ -19,6 +19,7 @@ extension.view_stats = function () {
     var root_odm = this.root_odm;
     var nb_http = root_odm.nb_http;
     var nb_buffering = 0;
+    var nb_ntp_diff = 0;
 
     wnd.has_select = false;
     wnd.objs = [];
@@ -171,6 +172,7 @@ extension.view_stats = function () {
                 nb_buffering++;
                 m.gui.buffer = gw_new_gauge(wnd.area, 'Buffer');
             }
+            if (m.ntp_diff) nb_ntp_diff++;
         } else if (!m.is_addon) {
             m.gui.play = gw_new_icon(wnd.area, 'play');
             m.gui.play.odm = m;
@@ -440,6 +442,11 @@ extension.view_stats = function () {
         else
             wnd.s_buf = null;
 
+        if (nb_ntp_diff)
+            wnd.s_ntp = wnd.plot.add_serie('NTP diff', 'ms', 0, 0.3, 0.8);
+        else
+            wnd.s_ntp = null;
+
         wnd.s_cpu = wnd.plot.add_serie('CPU', '%', 0, 0.5, 0.5);
         wnd.s_mem = wnd.plot.add_serie('MEM', 'MB', 0.5, 0.5, 0);
 
@@ -448,7 +455,7 @@ extension.view_stats = function () {
     wnd.timer.on_event = function (val) {
         var wnd = this.wnd;
         var nb_buff = 0;
-
+       
         var stat_obj = null;
         //stats every second
         if (!(val % 4)) {
@@ -470,11 +477,12 @@ extension.view_stats = function () {
             }
             stat_obj.buffer = 0;
             stat_obj.cumulated_bandwidth = 0;
+            stat_obj.ntp_diff = 0;
         }
 
         for (var i = 0; i < wnd.objs.length; i++) {
             var m = wnd.objs[i];
-
+            
             if (m.gui.buffer) {
                 var label = ' ' + m.type;
                 label += ' ID ' + m.ID;
@@ -503,6 +511,12 @@ extension.view_stats = function () {
                 m.gui.buffer.set_value(bl);
 
                 m.gui.buffer.set_label('' + Math.round(m.buffer / 10) / 100 + ' s');
+
+                if (stat_obj) {
+                  bl = m.ntp_diff;
+                  if (bl > stat_obj.ntp_diff) 
+                    stat_obj.ntp_diff = bl;
+                }
             }
 
             if (stat_obj) {
@@ -527,6 +541,10 @@ extension.view_stats = function () {
             } else {
                 wnd.s_bitrate.hide();
             }
+            if (wnd.s_ntp) {
+                wnd.s_ntp.refresh_serie(this.wnd.stats, 'time', 'ntp_diff', wnd.stats_window, 3);
+            }
+            
             wnd.s_cpu.refresh_serie(wnd.stats, 'time', 'cpu', wnd.stats_window, 10);
             wnd.s_mem.refresh_serie(wnd.stats, 'time', 'memory', wnd.stats_window, 6);
         }

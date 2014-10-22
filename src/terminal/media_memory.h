@@ -59,6 +59,7 @@ typedef struct _decoding_buffer
 	u8 flags;
 	/*amount of padding bits*/
 	u8 PaddingBits;
+	u64 sender_ntp;
 
 	u32 dataLength;
 	char *data;
@@ -95,6 +96,8 @@ typedef struct _composition_unit {
 
 	u32 dataLength;
 	char* data;
+
+	u64 sender_ntp;
 } GF_CMUnit;
 
 
@@ -130,6 +133,9 @@ struct _composition_memory
 	u32 LastRenderedTS;
 
 	u8 *pY, *pU, *pV;
+
+	u64 LastRenderedNTP;
+	s32 LastRenderedNTPDiff;
 };
 
 /*a composition buffer only has fixed-size unit*/

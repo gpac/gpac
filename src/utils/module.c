@@ -265,7 +265,8 @@ const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_di
 		return NULL;
 	}
 
-	tmp_dirs = gf_strdup(directories);
+//	tmp_dirs = gf_strdup(directories);
+	tmp_dirs = directories;
 	pch = strtok (tmp_dirs,";");
 
 	while (pch != NULL)
@@ -279,7 +280,7 @@ const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_di
 		pm->num_dirs++;
 		pch = strtok (NULL, ";");
 	}
-	gf_free(tmp_dirs);
+//	gf_free(tmp_dirs);
 	*num_dirs = pm->num_dirs;
 	return pm->dirs;
 }

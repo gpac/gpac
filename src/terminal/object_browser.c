@@ -202,6 +202,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 		if (codec->ck) {
 			if (codec->CB) {
 				info->current_time = odm->media_current_time ? odm->media_current_time : codec->last_unit_cts;
+				info->ntp_diff = codec->CB->LastRenderedNTPDiff;
 			} else {
 				info->current_time = gf_clock_media_time(codec->ck);
 			}
