@@ -203,6 +203,8 @@ typedef struct
 	/*extensions are loaded for the lifetime of the runtime NOT of the context - this avoids nasty
 	crashes with multiple contexts in SpiderMonkey (root'ing bug with InitStandardClasses)*/
 	GF_List *extensions;
+
+	GF_List *allocated_contexts;
 } GF_JSRuntime;
 
 static GF_JSRuntime *js_rt = NULL;
@@ -341,6 +343,7 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 		}
 		GF_SAFEALLOC(js_rt, GF_JSRuntime);
 		js_rt->js_runtime = js_runtime;
+		js_rt->allocated_contexts = gf_list_new();
 		js_rt->mx = gf_mx_new("JavaScript");
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated %p\n", js_runtime));
 		gf_sg_load_script_modules(sg);
@@ -363,6 +366,8 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 		JS_ClearRuntimeThread(js_rt->js_runtime);
 	}
 #endif
+
+	gf_list_add(js_rt->allocated_contexts, ctx);
 	gf_mx_v(js_rt->mx);
 
 	return ctx;
@@ -378,6 +383,9 @@ void gf_sg_ecmascript_del(JSContext *ctx)
 #endif
 #endif
 
+	gf_sg_js_call_gc(ctx);
+
+	gf_list_del_item(js_rt->allocated_contexts, ctx);
 	JS_DestroyContext(ctx);
 	if (js_rt) {
 		js_rt->nb_inst --;
@@ -385,6 +393,7 @@ void gf_sg_ecmascript_del(JSContext *ctx)
 			JS_DestroyRuntime(js_rt->js_runtime);
 			JS_ShutDown();
 			gf_sg_unload_script_modules();
+			gf_list_del(js_rt->allocated_contexts);
 			gf_mx_del(js_rt->mx);
 			gf_free(js_rt);
 			js_rt = NULL;
@@ -1377,7 +1386,11 @@ static void JS_ObjectDestroyed(JSContext *c, JSObject *obj, GF_JSField *ptr, Boo
 		*/
 		if (ptr->obj && is_js_call) {
 			GF_ScriptPriv *priv;
-			if (ptr->js_ctx) c = ptr->js_ctx;
+			if (ptr->js_ctx) {
+				if (gf_list_find(js_rt->allocated_contexts, ptr->js_ctx) < 0) 
+					return;
+				c = ptr->js_ctx;
+			}
 			priv = JS_GetScriptStack(c);
 			gf_list_del_item(priv->js_cache, obj);
 		}
@@ -4049,8 +4062,8 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 	}
 	}
 
+	obj =  NULL;
 
-#if 1
 	/*look into object bank in case we already have this object*/
 	if (parent && parent->sgprivate->interact && parent->sgprivate->interact->js_binding) {
 		i=0;
@@ -4068,17 +4081,37 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 			    && (jsf->field.far_ptr==field->far_ptr)
 #endif
 			) {
+				Bool do_rebuild = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] found cached jsobj %p (field %s) in script %s bank (%d entries)\n", obj, field->name, gf_node_get_log_name((GF_Node*)JS_GetScript(priv->js_ctx)), gf_list_count(priv->js_cache) ) );
 				if (!force_evaluate && !jsf->field.NDTtype) return OBJECT_TO_JSVAL(obj);
+
+				switch (field->fieldType) {
+				//we need to rewrite these
+				case GF_SG_VRML_MFVEC2F:
+				case GF_SG_VRML_MFVEC3F:
+				case GF_SG_VRML_MFROTATION:
+				case GF_SG_VRML_MFCOLOR:
+					if (force_evaluate) {
+						do_rebuild = 1;
+						break;
+					}
+				default:
+					break;
+				}
+				if (do_rebuild) {
+					JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
+					break;
+				}
 
 				gf_sg_script_update_cached_object(priv, obj, jsf, field, parent);
 				return OBJECT_TO_JSVAL(obj);
 			}
 		}
 	}
-#endif
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] creating jsobj %s.%s\n", gf_node_get_name(parent), field->name) );
+	if (!obj) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] creating jsobj %s.%s\n", gf_node_get_name(parent), field->name) );
+	}
 
 	switch (field->fieldType) {
 	case GF_SG_VRML_SFVEC2F:
@@ -4192,8 +4225,10 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 	case GF_SG_VRML_MFVEC2F:
 	{
 		MFVec2f *f = (MFVec2f *) field->far_ptr;
-		obj = SMJS_CONSTRUCT_OBJECT(priv->js_ctx, &js_rt->MFVec2fClass, priv->js_obj);
-		SETUP_MF_FIELD
+		if (!obj) {
+			obj = SMJS_CONSTRUCT_OBJECT(priv->js_ctx, &js_rt->MFVec2fClass, priv->js_obj);
+			SETUP_MF_FIELD
+		}
 		for (i=0; i<f->count; i++) {
 			JSObject *pf = JS_NewObject(priv->js_ctx, &js_rt->SFVec2fClass._class, 0, obj);
 			newVal = OBJECT_TO_JSVAL(pf);
@@ -4206,8 +4241,10 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 	case GF_SG_VRML_MFVEC3F:
 	{
 		MFVec3f *f = (MFVec3f *) field->far_ptr;
-		obj = SMJS_CONSTRUCT_OBJECT(priv->js_ctx, &js_rt->MFVec3fClass, priv->js_obj);
-		SETUP_MF_FIELD
+		if (!obj) {
+			obj = SMJS_CONSTRUCT_OBJECT(priv->js_ctx, &js_rt->MFVec3fClass, priv->js_obj);
+			SETUP_MF_FIELD
+		}
 		for (i=0; i<f->count; i++) {
 			JSObject *pf = JS_NewObject(priv->js_ctx, &js_rt->SFVec3fClass._class, 0, obj);
 			newVal = OBJECT_TO_JSVAL(pf);
@@ -4220,8 +4257,10 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 	case GF_SG_VRML_MFROTATION:
 	{
 		MFRotation *f = (MFRotation*) field->far_ptr;
-		obj = SMJS_CONSTRUCT_OBJECT(priv->js_ctx, &js_rt->MFRotationClass, priv->js_obj);
-		SETUP_MF_FIELD
+		if (!obj) {
+			obj = SMJS_CONSTRUCT_OBJECT(priv->js_ctx, &js_rt->MFRotationClass, priv->js_obj);
+			SETUP_MF_FIELD
+		}
 		for (i=0; i<f->count; i++) {
 			JSObject *pf = JS_NewObject(priv->js_ctx, &js_rt->SFRotationClass._class, 0, obj);
 			newVal = OBJECT_TO_JSVAL(pf);
@@ -4234,8 +4273,10 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 	case GF_SG_VRML_MFCOLOR:
 	{
 		MFColor *f = (MFColor *) field->far_ptr;
-		obj = SMJS_CONSTRUCT_OBJECT(priv->js_ctx, &js_rt->MFColorClass, priv->js_obj);
-		SETUP_MF_FIELD
+		if (!obj) {
+			obj = SMJS_CONSTRUCT_OBJECT(priv->js_ctx, &js_rt->MFColorClass, priv->js_obj);
+			SETUP_MF_FIELD
+		}
 		for (i=0; i<f->count; i++) {
 			JSObject *pf = JS_NewObject(priv->js_ctx, &js_rt->SFColorClass._class, 0, obj);
 			newVal = OBJECT_TO_JSVAL(pf);
