@@ -455,6 +455,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 	GF_Err e;
 	u16 sr;
 	u32 nb_chan;
+	Bool force_mpeg4 = 0;
 	FILE *in;
 	u32 hdr, size, max_size, track, di;
 	u64 done, tot_size, offset, duration;
@@ -492,7 +493,12 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 	if (!import->esd) {
 		import->esd = gf_odf_desc_esd_new(2);
 		destroy_esd = 1;
+	} else {
+		force_mpeg4 = 1;
 	}
+	if (import->flags & GF_IMPORT_FORCE_MPEG4) 
+		force_mpeg4 = 1;
+
 	if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
 	if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 	/*update stream type/oti*/
@@ -515,7 +521,17 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 	import->final_trackID = import->esd->ESID;
 	if (import->esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) import->esd->decoderConfig->decoderSpecificInfo);
 	import->esd->decoderConfig->decoderSpecificInfo = NULL;
-	gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
+
+	if (force_mpeg4) {
+		gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
+	} else {
+		GF_GenericSampleDescription udesc;
+		memset(&udesc, 0, sizeof(GF_GenericSampleDescription));
+		udesc.codec_tag = GF_4CC('.', 'm', 'p', '3');
+		memcpy(udesc.compressor_name, "\3MP3", 4);
+		gf_isom_new_generic_sample_description(import->dest, track, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &udesc, &di);
+	}
+
 	gf_isom_set_audio_info(import->dest, track, di, sr, nb_chan, 16);
 
 	gf_f64_seek(in, 0, SEEK_END);

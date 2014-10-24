@@ -4204,7 +4204,7 @@ int mp4boxMain(int argc, char **argv)
 			case GF_ISOM_ITUNE_COMPILATION:
 			{
 				char _t[1];
-				if (!stricmp(val, "yes")) _t[0] = 1;
+				if (val && !stricmp(val, "yes")) _t[0] = 1;
 				else  _t[0] = 0;
 				gf_isom_apple_set_tag(file, itag, _t, 1);
 			}
