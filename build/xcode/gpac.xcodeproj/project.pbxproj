@@ -287,6 +287,8 @@
 		9225733218D7269700D6FD98 /* theora_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9225732D18D7269700D6FD98 /* theora_dec.c */; };
 		9225733318D7269700D6FD98 /* vorbis_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9225732E18D7269700D6FD98 /* vorbis_dec.c */; };
 		9225733418D726D800D6FD98 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		929F891C19FE83AE0076FC13 /* carbon_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 929F891B19FE83AE0076FC13 /* carbon_events.c */; };
+		929F891F19FE84AB0076FC13 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 929F891E19FE84AB0076FC13 /* Carbon.framework */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
 		92AAF0E518D6DB8600E2FF12 /* sdl_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */; };
 		92AAF0E618D6DB8600E2FF12 /* sdl_out.h in Headers */ = {isa = PBXBuildFile; fileRef = 92AAF0DB18D6DB5500E2FF12 /* sdl_out.h */; };
@@ -1032,6 +1034,8 @@
 		9225732C18D7269700D6FD98 /* ogg_load.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ogg_load.c; path = ../../modules/ogg/ogg_load.c; sourceTree = "<group>"; };
 		9225732D18D7269700D6FD98 /* theora_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = theora_dec.c; path = ../../modules/ogg/theora_dec.c; sourceTree = "<group>"; };
 		9225732E18D7269700D6FD98 /* vorbis_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vorbis_dec.c; path = ../../modules/ogg/vorbis_dec.c; sourceTree = "<group>"; };
+		929F891B19FE83AE0076FC13 /* carbon_events.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
+		929F891E19FE84AB0076FC13 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = SDKs/MacOSX10.6.sdk/System/Library/Frameworks/Carbon.framework; sourceTree = DEVELOPER_DIR; };
 		92AAF0D318D6DB2D00E2FF12 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF0D818D6DB5500E2FF12 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio.c; path = ../../modules/sdl_out/audio.c; sourceTree = "<group>"; };
 		92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sdl_out.c; path = ../../modules/sdl_out/sdl_out.c; sourceTree = "<group>"; };
@@ -1236,6 +1240,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				929F891F19FE84AB0076FC13 /* Carbon.framework in Frameworks */,
 				92BE50D518D6D66C00AA59D8 /* libgpac.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1449,6 +1454,7 @@
 		9201F92718D5A359003D1ACA = {
 			isa = PBXGroup;
 			children = (
+				929F891E19FE84AB0076FC13 /* Carbon.framework */,
 				92BE50AE18D6378C00AA59D8 /* xcode */,
 				92BE50AC18D6375100AA59D8 /* applications */,
 				92BE50AD18D6376A00AA59D8 /* modules */,
@@ -2340,6 +2346,7 @@
 		92BE50AC18D6375100AA59D8 /* applications */ = {
 			isa = PBXGroup;
 			children = (
+				929F891B19FE83AE0076FC13 /* carbon_events.c */,
 				92BE50C918D6D60100AA59D8 /* MP4Client */,
 				92BE50B518D6D53000AA59D8 /* MP42TS */,
 				92BE509218D6325E00AA59D8 /* MP4Box */,
@@ -3238,6 +3245,7 @@
 			files = (
 				92BE50D318D6D62600AA59D8 /* extract.c in Sources */,
 				92BE50D418D6D62600AA59D8 /* main.c in Sources */,
+				929F891C19FE83AE0076FC13 /* carbon_events.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
