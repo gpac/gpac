@@ -1098,7 +1098,7 @@ int main (int argc, char **argv)
 #else
 	gf_sys_init(GF_FALSE);
 #endif
-//	gf_sys_set_args(argc, (const char **) argv);
+	gf_sys_set_args(argc, (const char **) argv);
 
 	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
