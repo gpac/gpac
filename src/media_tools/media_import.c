@@ -2183,7 +2183,12 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		}
 		sampDTS = samp->DTS;
 		gf_isom_sample_del(&samp);
+		
+		gf_isom_copy_sample_info(import->dest, track, import->orig, track_in, i+1);
+
 		gf_set_progress("Importing ISO File", i+1, num_samples);
+
+
 		if (duration && (sampDTS > duration) ) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 		if (e)

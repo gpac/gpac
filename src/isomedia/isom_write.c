@@ -4942,6 +4942,82 @@ GF_Err gf_isom_set_sync_table(GF_ISOFile *file, u32 track)
 	return GF_OK;
 }
 
+
+GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src, u32 src_track, u32 sampleNumber)
+{
+	u32 i, count;
+	GF_SubSampleInfoEntry *sub_sample;
+	GF_Err e;
+	GF_TrackBox *src_trak, *dst_trak;
+
+	src_trak = gf_isom_get_track_from_file(src, src_track);
+	if (!src_trak) return GF_BAD_PARAM;
+
+	dst_trak = gf_isom_get_track_from_file(dst, dst_track);
+	if (!dst_trak) return GF_BAD_PARAM;
+
+	/*modify depends flags*/
+	if (src_trak->Media->information->sampleTable->SampleDep) {
+		u32 dependsOn, dependedOn, redundant;
+
+		dependsOn = dependedOn = redundant = 0;
+
+		e = stbl_GetSampleDepType(src_trak->Media->information->sampleTable->SampleDep, sampleNumber, &dependsOn, &dependedOn, &redundant);
+		if (e) return e;
+
+		e = stbl_AppendDependencyType(dst_trak->Media->information->sampleTable, dependsOn, dependedOn, redundant);
+		if (e) return e;
+	}
+
+	/*copy subsample info if any*/
+	if ( gf_isom_sample_get_subsample_entry(src, src_track, sampleNumber, &sub_sample)) {
+
+		/*create subsample if needed*/
+		if (!dst_trak->Media->information->sampleTable->SubSamples) {
+			dst_trak->Media->information->sampleTable->SubSamples = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
+			dst_trak->Media->information->sampleTable->SubSamples->version = 0;
+		}
+
+		count = gf_list_count(sub_sample->SubSamples);
+		for (i=0; i<count; i++) {
+			GF_SubSampleEntry *entry = gf_list_get(sub_sample->SubSamples, i);
+			e = gf_isom_add_subsample_info(dst_trak->Media->information->sampleTable->SubSamples, sampleNumber, entry->subsample_size, entry->subsample_priority, entry->reserved, entry->discardable);
+			if (e) return e;
+		}
+	}
+
+	/*copy sampleToGroup info if any*/
+	if (src_trak->Media->information->sampleTable->sampleGroups) {
+		count = gf_list_count(src_trak->Media->information->sampleTable->sampleGroups);
+		for (i=0; i<count; i++) {
+			GF_SampleGroupBox *sg;
+			u32 j;
+			u32 first_sample_in_entry, last_sample_in_entry;
+			first_sample_in_entry = 1;
+
+			sg = gf_list_get(src_trak->Media->information->sampleTable->sampleGroups, i);
+			for (j=0; j<sg->entry_count; j++) {
+				last_sample_in_entry = first_sample_in_entry + sg->sample_entries[j].sample_count - 1;
+				if ((sampleNumber<first_sample_in_entry) || (sampleNumber>last_sample_in_entry)) {
+					first_sample_in_entry = last_sample_in_entry+1;
+					continue;
+				}
+
+				if (!dst_trak->Media->information->sampleTable->sampleGroups)
+					dst_trak->Media->information->sampleTable->sampleGroups = gf_list_new();
+
+				/*found our sample, add it to trak->sampleGroups*/
+				e = gf_isom_add_sample_group_entry(dst_trak->Media->information->sampleTable->sampleGroups, sampleNumber, sg->grouping_type, sg->sample_entries[j].group_description_index);
+				if (e) return e;
+
+				break;
+			}
+		}
+	}
+	return GF_OK;
+}
+
+
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
 
