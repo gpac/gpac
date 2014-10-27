@@ -91,6 +91,9 @@ extension = {
                     msg.show();
                 }
                 return 1;
+            case GF_EVENT_NAVIGATE:
+                this.set_movie_url(evt.target_url);
+                return 1;
         }
     },
 
@@ -280,7 +283,9 @@ extension = {
             //            alert('URL is now buffering');
         }
         this.movie.children[0].on_tsb_change = function (evt) {
-            this.extension.set_timeshift_depth(this.extension.root_odm.timeshift_depth);
+            if (this.extension.root_odm) {
+                this.extension.set_timeshift_depth(this.extension.root_odm.timeshift_depth);
+            }
         }
         this.movie.children[0].on_main_addon = function (evt) {
             this.extension.controler.layout();
@@ -579,9 +584,7 @@ extension = {
         wnd.fullscreen = gw_new_icon(wnd.infobar, 'fullscreen');
         wnd.fullscreen.add_icon(gwskin.images.fullscreen_back);
         wnd.fullscreen.on_click = function () {
-            var fs = gpac.fullscreen;
-            gpac.fullscreen = !fs;
-            this.switch_icon(fs ? 0 : 1);
+            gpac.fullscreen = !gpac.fullscreen;
         }
         wnd.fullscreen.switch_icon(gpac.fullscreen ? 1 : 0);
 
@@ -627,6 +630,9 @@ extension = {
             this.move(0, Math.floor((height - gw_display_height) / 2));
 
             this.on_size(width, height);
+
+            this.fullscreen.switch_icon(gpac.fullscreen ? 1 : 0);
+
 
             width -= control_icon_size / 2;
             min_w = control_icon_size;
@@ -674,10 +680,14 @@ extension = {
 
                 if (this.extension.root_odm && !this.extension.dynamic_scene && !this.extension.root_odm.is_over)
                     is_over = false;
+
+                this.media_list.show();
+
             } else {
                 this.stats.hide();
                 this.stop.hide();
                 this.play.hide();
+                this.media_list.hide();
             }
 
             if (this.extension.duration) {
@@ -775,7 +785,6 @@ extension = {
                     this.media_line.set_size(width - min_w - 5, control_icon_size / 3);
 
             }
-
 
             if (this.extension.duration || this.extension.timeshift_depth) {
                 this.media_line.show();
@@ -1113,6 +1122,7 @@ extension = {
             this.controler.forward.set_label('');
         }
         this.controler.layout();
+        alert('speed is '+ this.movie_control.mediaSpeed);
     },
 
     set_movie_url: function (url) {

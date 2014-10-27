@@ -23,6 +23,7 @@
  *
  */
 
+
 /*includes both terminal and od browser*/
 #include <gpac/terminal.h>
 #include <gpac/term_info.h>
@@ -47,6 +48,10 @@
 #if defined(__DARWIN__) || defined(__APPLE__)
 #include <sys/types.h>
 #include <sys/stat.h>
+
+void carbon_init();
+void carbon_uninit();
+
 #endif
 
 #else
@@ -130,7 +135,14 @@ void hide_shell(u32 cmd_type)
 }
 
 
-
+void send_open_url(const char *url)
+{
+    GF_Event evt;
+    memset(&evt, 0, sizeof(GF_Event));
+    evt.type = GF_EVENT_NAVIGATE;
+    evt.navigate.to_url = url;
+    gf_term_forward_event(term, &evt, 0, 0);
+}
 
 void PrintUsage()
 {
@@ -1086,7 +1098,7 @@ int main (int argc, char **argv)
 #else
 	gf_sys_init(GF_FALSE);
 #endif
-	gf_sys_set_args(argc, (const char **) argv);
+//	gf_sys_set_args(argc, (const char **) argv);
 
 	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
@@ -1353,6 +1365,10 @@ int main (int argc, char **argv)
 	}
 	fprintf(stderr, "Terminal Loaded in %d ms\n", gf_sys_clock()-i);
 
+#if defined(__DARWIN__) || defined(__APPLE__)
+    carbon_init();
+#endif
+    
 	if (bench_mode) {
 		display_rti = 2;
 		gf_term_set_option(term, GF_OPT_VIDEO_BENCH, (bench_mode==3) ? 2 : 1);
@@ -1467,7 +1483,8 @@ int main (int argc, char **argv)
 
 
 	while (Run) {
-		/*we don't want getchar to block*/
+		
+        /*we don't want getchar to block*/
 		if (gui_mode || !gf_prompt_has_input()) {
 			if (reload) {
 				reload = 0;
@@ -2042,7 +2059,12 @@ force_input:
 
 	fprintf(stderr, "Deleting terminal... ");
 	if (playlist) fclose(playlist);
-	gf_term_del(term);
+
+#if defined(__DARWIN__) || defined(__APPLE__)
+    carbon_uninit();
+#endif
+	
+    gf_term_del(term);
 	fprintf(stderr, "done (in %d ms) - ran for %d ms\n", gf_sys_clock() - i, gf_sys_clock());
 
 	fprintf(stderr, "GPAC cleanup ...\n");
