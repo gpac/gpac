@@ -2355,12 +2355,13 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 
 					base = gf_isom_get_track_from_file(movie, on_track);
 					if (!base) scalable = GF_FALSE;
+
+					base_track_sample_count = base->Media->information->sampleTable->SampleSize->sampleCount;
 				}
 			}
 
-			if (scalable && !gf_isom_get_reference_count(movie, i+1, GF_ISOM_REF_SCAL))
-				base_track_sample_count = stbl->SampleSize->sampleCount;
-			trak->sample_count_at_seg_start += scalable ? base_track_sample_count : stbl->SampleSize->sampleCount;
+			trak->sample_count_at_seg_start += base_track_sample_count ? base_track_sample_count : stbl->SampleSize->sampleCount;
+
 			if (trak->sample_count_at_seg_start) {
 				GF_Err e;
 				e = stbl_GetSampleDTS_and_Duration(stbl->TimeToSample, stbl->SampleSize->sampleCount, &dts, &dur);
