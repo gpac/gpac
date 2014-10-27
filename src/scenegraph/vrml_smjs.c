@@ -4073,13 +4073,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 			    /*make sure we use the same JS context*/
 			    (jsf->js_ctx == priv->js_ctx)
 			    && (jsf->owner == parent)
-#if 0
-			    && (jsf->field.fieldIndex == field->fieldIndex)
-			    /*type check needed for MFNode entries*/
-			    && (jsf->field.fieldType==field->fieldType)
-#else
 			    && (jsf->field.far_ptr==field->far_ptr)
-#endif
 			) {
 				Bool do_rebuild = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] found cached jsobj %p (field %s) in script %s bank (%d entries)\n", obj, field->name, gf_node_get_log_name((GF_Node*)JS_GetScript(priv->js_ctx)), gf_list_count(priv->js_cache) ) );
@@ -4106,6 +4100,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 				gf_sg_script_update_cached_object(priv, obj, jsf, field, parent);
 				return OBJECT_TO_JSVAL(obj);
 			}
+			obj = NULL;
 		}
 	}
 
