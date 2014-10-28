@@ -460,7 +460,7 @@ static const struct predef_keyid {
 
 
 GF_EXPORT
-const char *gf_dom_get_key_name(u32 key_identifier)
+const char *gf_dom_get_key_name(GF_KeyCode key_identifier)
 {
 	u32 count = sizeof(predefined_key_identifiers) / sizeof(struct predef_keyid);
 	if (!key_identifier || count<=key_identifier) return "Unknown";
