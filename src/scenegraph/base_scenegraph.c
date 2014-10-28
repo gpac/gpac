@@ -2173,7 +2173,7 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 	return NULL;
 }
 
-u32 gf_xml_get_namespace_id(char *name)
+GF_NamespaceType gf_xml_get_namespace_id(char *name)
 {
 	if (!strcmp(name, "http://www.w3.org/XML/1998/namespace")) return GF_XMLNS_XML;
 	else if (!strcmp(name, "http://www.w3.org/2001/xml-events")) return GF_XMLNS_XMLEV;
@@ -2263,7 +2263,7 @@ u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name)
 	return GF_XMLNS_UNDEFINED;
 }
 
-const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, u32 xmlns_id)
+const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, GF_NamespaceType xmlns_id)
 {
 	GF_XMLNS *ns;
 	u32 i, count;
@@ -2278,7 +2278,7 @@ const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, u32 xmlns_id)
 }
 
 
-const char *gf_sg_get_namespace(GF_SceneGraph *sg, u32 xmlns_id)
+const char *gf_sg_get_namespace(GF_SceneGraph *sg, GF_NamespaceType xmlns_id)
 {
 	GF_XMLNS *ns;
 	u32 i, count;

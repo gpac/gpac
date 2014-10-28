@@ -657,7 +657,7 @@ const char *gf_xml_get_element_name(GF_Node *n)
 	return "UndefinedNode";
 }
 
-u32 gf_xml_get_element_namespace(GF_Node *n)
+GF_NamespaceType gf_xml_get_element_namespace(GF_Node *n)
 {
 	u32 i, count;
 	if (n->sgprivate->tag==TAG_DOMFullNode) {
