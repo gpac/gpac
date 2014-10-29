@@ -186,19 +186,24 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			group->pto -= start;
 		}
 		//filter any packet outside the current period
-		if (group->max_cts_in_period && (s64) hdr->compositionTimeStamp > group->max_cts_in_period)
+		if (group->max_cts_in_period && (s64) hdr->compositionTimeStamp > group->max_cts_in_period) {
+            GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet timestamp "LLU" larger than max CTS in period "LLU" - skipping\n", hdr->compositionTimeStamp, group->max_cts_in_period));
 			return;
+        }
 
 		//remap timestamps to our timeline
 		if ((s64) hdr->decodingTimeStamp >= group->pto)
 			hdr->decodingTimeStamp -= group->pto;
-		else
+		else {
+            GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Packet DTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
 			hdr->decodingTimeStamp = 0;
-
+        }
 		if ((s64) hdr->compositionTimeStamp >= group->pto) 
 			hdr->compositionTimeStamp -= group->pto;
-		else
+		else {
+            GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
 			hdr->compositionTimeStamp = 0;
+        }
 	} else if (!group->pto_setup) {
 		do_map_time = 1;
 		group->pto_setup = 1;
