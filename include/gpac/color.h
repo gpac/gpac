@@ -32,7 +32,7 @@ extern "C" {
 #endif
 
 #include <gpac/constants.h>
-#include <gpac/math.h>
+#include <gpac/maths.h>
 
 
 /*!

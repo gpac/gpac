@@ -32,7 +32,6 @@
 extern "C" {
 #endif
 
-//#include <gpac/math.h>
 #include <gpac/events.h>
 #include <gpac/module.h>
 
