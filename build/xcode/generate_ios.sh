@@ -16,11 +16,17 @@ fi
 echo "*** Clean previous build files ***"
 #xcodebuild -alltargets -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj clean
 xcodebuild -alltargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj clean
+if [ $? != 0 ] ; then
+	exit 1
+fi
 
 echo "*** Compile osmo4ios for iOS (arm) ***"
 #link must occur at debug to avoid optimizing that leads to freezes
 #xcodebuild -target osmo4ios -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj
 xcodebuild -target osmo4ios -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
+if [ $? != 0 ] ; then
+	exit 1
+fi
 
 echo "*** Copy the generated libs (arm only) ***"
 cp build/Release-iphoneos/osmo4ios.app/osmo4ios ../../bin/iOS/osmo4ios.app/
