@@ -25,7 +25,7 @@
 
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
-#include <gpac/math.h>
+#include <gpac/maths.h>
 
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_STREAMING)
 

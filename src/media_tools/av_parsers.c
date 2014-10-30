@@ -29,7 +29,7 @@
 
 #ifndef GPAC_DISABLE_OGG
 #include <gpac/internal/ogg.h>
-#include <gpac/math.h>
+#include <gpac/maths.h>
 #endif
 
 static const struct {

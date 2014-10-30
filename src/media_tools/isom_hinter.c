@@ -27,7 +27,7 @@
 #include <gpac/base_coding.h>
 #include <gpac/mpeg4_odf.h>
 #include <gpac/constants.h>
-#include <gpac/math.h>
+#include <gpac/maths.h>
 #include <gpac/ietf.h>
 
 #ifndef GPAC_DISABLE_ISOM

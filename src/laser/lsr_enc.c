@@ -26,7 +26,6 @@
 #include <gpac/internal/laser_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/bitstream.h>
-#include <gpac/math.h>
 
 #ifndef GPAC_DISABLE_LASER
 

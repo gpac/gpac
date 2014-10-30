@@ -28,7 +28,7 @@
 #ifndef GPAC_DISABLE_STREAMING
 
 #include <gpac/constants.h>
-#include <gpac/math.h>
+#include <gpac/maths.h>
 
 void InitSL_RTP(GF_SLConfig *slc);
 
