@@ -468,7 +468,7 @@ static u32 gf_m2ts_add_adaptation(GF_M2TS_Mux_Program *prog, GF_BitStream *bs, u
 		gf_bs_write_int(bs,	0, 1);			// piecewise_rate_flag
 		gf_bs_write_int(bs,	0, 1);			// seamless_splice_flag
 		gf_bs_write_int(bs,	0, 1);			// af_descriptor_not_present_flag
-		gf_bs_write_int(bs,	1, 4);			// reserved
+		gf_bs_write_int(bs,	0xF, 4);			// reserved
 
 		gf_bs_write_data(bs, af_descriptors, af_descriptors_size);
 	}
