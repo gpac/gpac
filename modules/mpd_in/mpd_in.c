@@ -180,7 +180,11 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			scale = ch->esd->slConfig->timestampResolution;
 			scale /= 1000;
 			dur = (u64) (scale * gf_dash_get_period_duration(mpdin->dash) );
-			group->max_cts_in_period = group->pto + dur;
+			if (dur) {
+				group->max_cts_in_period = group->pto + dur;
+			} else {
+				group->max_cts_in_period = 0;
+			}
 
 			start = (u64) (scale * gf_dash_get_period_start(mpdin->dash) );
 			group->pto -= start;
@@ -195,13 +199,13 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 		if ((s64) hdr->decodingTimeStamp >= group->pto)
 			hdr->decodingTimeStamp -= group->pto;
 		else {
-            GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Packet DTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
+            GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet DTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
 			hdr->decodingTimeStamp = 0;
         }
 		if ((s64) hdr->compositionTimeStamp >= group->pto) 
 			hdr->compositionTimeStamp -= group->pto;
 		else {
-            GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
+            GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
 			hdr->compositionTimeStamp = 0;
         }
 	} else if (!group->pto_setup) {
