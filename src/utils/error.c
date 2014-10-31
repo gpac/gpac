@@ -584,7 +584,7 @@ const char *gpac_features()
 {
 	const char *features = ""
 #ifdef GPAC_64_BITS
-	                       "GPAC_64_BITS"
+	                       "GPAC_64_BITS "
 #endif
 
 #ifdef GPAC_FIXED_POINT
