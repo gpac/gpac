@@ -463,7 +463,7 @@ GF_EXPORT
 const char *gf_dom_get_key_name(GF_KeyCode key_identifier)
 {
 	u32 count = sizeof(predefined_key_identifiers) / sizeof(struct predef_keyid);
-	if (!key_identifier || count<=key_identifier) return "Unknown";
+	if (!key_identifier || count<= (u32) key_identifier) return "Unknown";
 	return predefined_key_identifiers[key_identifier-1].name;
 }
 
