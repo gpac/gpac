@@ -137,11 +137,11 @@ void hide_shell(u32 cmd_type)
 
 void send_open_url(const char *url)
 {
-    GF_Event evt;
-    memset(&evt, 0, sizeof(GF_Event));
-    evt.type = GF_EVENT_NAVIGATE;
-    evt.navigate.to_url = url;
-    gf_term_send_event(term, &evt);
+	GF_Event evt;
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_NAVIGATE;
+	evt.navigate.to_url = url;
+	gf_term_send_event(term, &evt);
 }
 
 void PrintUsage()
@@ -155,7 +155,7 @@ void PrintUsage()
 	        "\t-rtix fileName: same as -rti but driven by GPAC logs\n"
 	        "\t-quiet:         removes script message, buffering and downloading status\n"
 	        "\t-strict-error:  exit when the player reports its first error\n"
-	        "\t-opt	option:    Overrides an option in the configuration file. String format is section:key=value\n"
+	        "\t-opt option:    Overrides an option in the configuration file. String format is section:key=value\n"
 	        "\t-log-file file: sets output log file. Also works with -lf\n"
 	        "\t-logs log_args: sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 	        "\t                 levelX can be one of:\n"
@@ -203,14 +203,14 @@ void PrintUsage()
 #else
 	        "\t-no-thread:     disables thread usage (except for audio)\n"
 #endif
-	        "\t-no-audio:	   disables audio \n"
+	        "\t-no-audio:      disables audio \n"
 	        "\t-no-wnd:        uses windowless mode (Win32 only)\n"
 	        "\t-no-back:       uses transparent background for output window when no background is specified (Win32 only)\n"
 	        "\t-align vh:      specifies v and h alignment for windowless mode\n"
-	        "                   possible v values: t(op), m(iddle), b(ottom)\n"
-	        "                   possible h values: l(eft), m(iddle), r(ight)\n"
-	        "                   default alignment is top-left\n"
-	        "                   default alignment is top-left\n"
+	        "\t                 possible v values: t(op), m(iddle), b(ottom)\n"
+	        "\t                 possible h values: l(eft), m(iddle), r(ight)\n"
+	        "\t                 default alignment is top-left\n"
+	        "\t                 default alignment is top-left\n"
 	        "\t-pause:         pauses at first frame\n"
 	        "\t-play-from T:   starts from T seconds in media\n"
 	        "\t-speed S:       starts with speed S\n"
@@ -219,10 +219,10 @@ void PrintUsage()
 	        "\t-bench:         disable a/v output and bench source decoding (as fast as possible)\n"
 	        "\t-vbench:        disable audio output, video sync bench source decoding/display (as fast as possible)\n"
 	        "\t-sbench:        disable all decoders and bench systems layer (as fast as possible)\n"
-	        "\t-fs:	           starts in fullscreen mode\n"
-	        "\t-views v1:.:vN: creates an auto-stereo scene of N views. vN can be any type of URL supported by GPAC. \n"
-	        "                    in this mode, URL argument of GPAC is ignored, GUI as well.\n"
-	        "                    this is equivalent as using views://v1:.:N as an URL.\n"
+	        "\t-fs:            starts in fullscreen mode\n"
+	        "\t-views v1:.:vN: creates an auto-stereo scene of N views. vN can be any type of URL supported by GPAC.\n"
+	        "\t                 in this mode, URL argument of GPAC is ignored, GUI as well.\n"
+	        "\t                 this is equivalent as using views://v1:.:N as an URL.\n"
 	        "\n"
 	        "\t-exit:          automatically exits when presentation is over\n"
 	        "\t-run-for TIME:  runs for TIME seconds and exits\n"
@@ -237,19 +237,19 @@ void PrintUsage()
 	        "\t-avi [times]:   dumps given file to raw avi\n"
 	        "\r-out filename:  name of the output file\n"
 	        "\t-rgbds:         dumps the RGBDS pixel format texture\n"
-	        "                   with -avi [times]: dumps an rgbds-format .avi\n"
+	        "\t                 with -avi [times]: dumps an rgbds-format .avi\n"
 	        "\t-rgbd:          dumps the RGBD pixel format texture\n"
-	        "					with -avi [times]: dumps an rgbd-format .avi\n"
+	        "\t                 with -avi [times]: dumps an rgbd-format .avi\n"
 	        "\t-depth:         dumps depthmap (z-buffer) frames\n"
-	        "                   with -avi [times]: dumps depthmap in grayscale .avi\n"
-	        "                   with -bmp: dumps depthmap in grayscale .bmp\n"
-	        "                   with -png: dumps depthmap in grayscale .png\n"
+	        "\t                 with -avi [times]: dumps depthmap in grayscale .avi\n"
+	        "\t                 with -bmp: dumps depthmap in grayscale .bmp\n"
+	        "\t                 with -png: dumps depthmap in grayscale .png\n"
 	        "\t-fps FPS:       specifies frame rate for AVI dumping (default: %f)\n"
 	        "\t-scale s:       scales the visual size (default: 1)\n"
 	        "\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
-	        "\t-show:          show window while dumping (default: no)\n"
+	        "\t-show:          shows window while dumping (default: no)\n"
 	        "\n"
-	        "\t-help:          show this screen\n"
+	        "\t-help:          shows this screen\n"
 	        "\n"
 	        "MP4Client - GPAC command line player and dumper - version "GPAC_FULL_VERSION"\n"
 	        "GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n"
