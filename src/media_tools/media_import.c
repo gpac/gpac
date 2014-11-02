@@ -496,7 +496,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 	} else {
 		force_mpeg4 = 1;
 	}
-	if (import->flags & GF_IMPORT_FORCE_MPEG4) 
+	if (import->flags & GF_IMPORT_FORCE_MPEG4)
 		force_mpeg4 = 1;
 
 	if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
@@ -2183,7 +2183,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		}
 		sampDTS = samp->DTS;
 		gf_isom_sample_del(&samp);
-		
+
 		gf_isom_copy_sample_info(import->dest, track, import->orig, track_in, i+1);
 
 		gf_set_progress("Importing ISO File", i+1, num_samples);
@@ -4579,7 +4579,7 @@ restart_import:
 				memcpy(slc->data, buffer, sizeof(char)*slc->size);
 				gf_list_add(dstcfg->sequenceParameterSets, slc);
 				/*disable frame rate scan, most bitstreams have wrong values there*/
-				if (detect_fps && avc.sps[idx].vui.timing_info_present_flag && avc.sps[idx].vui.fixed_frame_rate_flag
+				if (detect_fps && avc.sps[idx].vui.timing_info_present_flag
 				        /*if detected FPS is greater than 1000, assume wrong timing info*/
 				        && (avc.sps[idx].vui.time_scale <= 1000*avc.sps[idx].vui.num_units_in_tick)
 				   ) {
@@ -4599,7 +4599,11 @@ restart_import:
 					timescale = 2 * avc.sps[idx].vui.time_scale;
 					dts_inc =   2 * avc.sps[idx].vui.num_units_in_tick * DeltaTfiDivisorIdx;
 					FPS = (Double)timescale / dts_inc;
-					detect_fps = 0;
+					detect_fps = GF_FALSE;
+
+					if (avc.sps[idx].vui.fixed_frame_rate_flag)
+						GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[avc-h264] Possible Variable Frame Rate: VUI \"fixed_frame_rate_flag\" absent.\n"));
+
 					gf_isom_remove_track(import->dest, track);
 					if (sample_data) gf_bs_del(sample_data);
 					gf_odf_avc_cfg_del(avccfg);
