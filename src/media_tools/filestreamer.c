@@ -374,12 +374,12 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 			remain -= size;
 			au_end = remain ? 0 : 1;
 
-			e = gf_rtp_streamer_send_data(to_send->rtp, ptr, size, to_send->au->dataLength, cts, dts, to_send->au->IsRAP, au_start, au_end, to_send->current_au, duration, to_send->sample_desc_index);
+			e = gf_rtp_streamer_send_data(to_send->rtp, ptr, size, to_send->au->dataLength, cts, dts, (to_send->au->IsRAP==RAP) ? 1 : 0, au_start, au_end, to_send->current_au, duration, to_send->sample_desc_index);
 			ptr += size;
 			au_start = 0;
 		}
 	} else {
-		e = gf_rtp_streamer_send_data(to_send->rtp, to_send->au->data, to_send->au->dataLength, to_send->au->dataLength, cts, dts, to_send->au->IsRAP, 1, 1, to_send->current_au, duration, to_send->sample_desc_index);
+		e = gf_rtp_streamer_send_data(to_send->rtp, to_send->au->data, to_send->au->dataLength, to_send->au->dataLength, cts, dts, (to_send->au->IsRAP==RAP) ? 1 : 0, 1, 1, to_send->current_au, duration, to_send->sample_desc_index);
 	}
 	/*delete sample*/
 	gf_isom_sample_del(&to_send->au);

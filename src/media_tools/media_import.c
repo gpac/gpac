@@ -4806,7 +4806,7 @@ restart_import:
 		if (flush_sample && sample_data) {
 			GF_ISOSample *samp = gf_isom_sample_new();
 			samp->DTS = (u64)dts_inc*cur_samp;
-			samp->IsRAP = sample_is_rap;
+			samp->IsRAP = sample_is_rap ? RAP : RAP_NO;
 			if (!sample_is_rap) {
 				if (sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0)) {
 					samp->IsRAP = RAP;
@@ -5105,7 +5105,7 @@ restart_import:
 	if (sample_data) {
 		GF_ISOSample *samp = gf_isom_sample_new();
 		samp->DTS = (u64)dts_inc*cur_samp;
-		samp->IsRAP = sample_is_rap;
+		samp->IsRAP = sample_is_rap ? RAP : RAP_NO;
 		if (!sample_is_rap && sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC)) {
 			samp->IsRAP = RAP;
 		}
@@ -5782,7 +5782,7 @@ restart_import:
 		if (flush_sample && sample_data) {
 			GF_ISOSample *samp = gf_isom_sample_new();
 			samp->DTS = (u64)dts_inc*cur_samp;
-			samp->IsRAP = sample_is_rap;
+			samp->IsRAP = sample_is_rap ? RAP : RAP_NO;
 			if (!sample_is_rap) {
 				if (sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0)) {
 					samp->IsRAP = RAP;
@@ -6014,7 +6014,7 @@ next_nal:
 	if (sample_data) {
 		GF_ISOSample *samp = gf_isom_sample_new();
 		samp->DTS = (u64)dts_inc*cur_samp;
-		samp->IsRAP = sample_is_rap;
+		samp->IsRAP = sample_is_rap ? RAP : RAP_NO;
 		if (!sample_is_rap && sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC)) {
 			samp->IsRAP = RAP;
 		}
@@ -6967,7 +6967,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 			GF_ISOSample *samp = gf_isom_sample_new();
 			samp->dataLength = au_size;
 			samp->DTS = cts;
-			samp->IsRAP = is_rap;
+			samp->IsRAP = is_rap ? RAP : RAP_NO;
 			if (import->flags & GF_IMPORT_USE_DATAREF) {
 				e = gf_isom_add_sample_reference(import->dest, track, 1, samp, gf_bs_get_position(bs) );
 			} else {

@@ -322,7 +322,7 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 			GF_SAFEALLOC(att, GF_XMLAttribute);
 			att->name = gf_strdup("wheel_pos");
 			att->value = gf_malloc(100);
-			sprintf(att->value, "%f", event->mouse.wheel_pos);
+			sprintf(att->value, "%f", FIX2FLT( event->mouse.wheel_pos) );
 			gf_list_add(evt_node->attributes, att);
 		}
 		if (event->mouse.key_states & GF_KEY_MOD_SHIFT) {
