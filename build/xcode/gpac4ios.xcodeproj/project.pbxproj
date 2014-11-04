@@ -2635,7 +2635,7 @@
 				);
 				GCC_THUMB_SUPPORT = NO;
 				GCC_USE_STANDARD_INCLUDE_SEARCHING = YES;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../../extra_lib/include;
@@ -2665,7 +2665,7 @@
 				);
 				GCC_THUMB_SUPPORT = NO;
 				GCC_USE_STANDARD_INCLUDE_SEARCHING = YES;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../../extra_lib/include;
