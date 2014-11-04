@@ -269,7 +269,6 @@
 		71CCF32C1277045100339E12 /* bitstream.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF22B1277045100339E12 /* bitstream.c */; };
 		71CCF32D1277045100339E12 /* color.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF22C1277045100339E12 /* color.c */; };
 		71CCF32E1277045100339E12 /* configfile.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF22D1277045100339E12 /* configfile.c */; };
-		71CCF32F1277045100339E12 /* dlmalloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF22E1277045100339E12 /* dlmalloc.c */; };
 		71CCF3301277045100339E12 /* downloader.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF22F1277045100339E12 /* downloader.c */; };
 		71CCF3311277045100339E12 /* error.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2301277045100339E12 /* error.c */; };
 		71CCF3331277045100339E12 /* list.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2321277045100339E12 /* list.c */; };
@@ -377,6 +376,9 @@
 		929A92A016EF8BC200B7C64F /* icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929A16EF8BC200B7C64F /* icon.png */; };
 		92A3A03E16F0C10C004EE581 /* extract.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A3A03D16F0C10C004EE581 /* extract.c */; };
 		92B039F716F2050100B2568F /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B039F616F2050100B2568F /* libSDL2.a */; };
+		92B32CA41A08ABBF0065F44A /* webvtt_smjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B32CA31A08ABBF0065F44A /* webvtt_smjs.c */; };
+		92B32CA91A08AC130065F44A /* vtt_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B32CA71A08AC130065F44A /* vtt_dec.c */; };
+		92B32CAA1A08AC130065F44A /* vtt_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B32CA81A08AC130065F44A /* vtt_in.c */; };
 		92BC210216EF8E7A000E0620 /* aac_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199071278765600ACFF58 /* aac_in.c */; };
 		92BC210316EF8E7A000E0620 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199991278778800ACFF58 /* audio.c */; };
 		92BC210416EF8E7A000E0620 /* bifs_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1990E1278767B00ACFF58 /* bifs_dec.c */; };
@@ -874,7 +876,6 @@
 		71CCF22B1277045100339E12 /* bitstream.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bitstream.c; sourceTree = "<group>"; };
 		71CCF22C1277045100339E12 /* color.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = color.c; sourceTree = "<group>"; };
 		71CCF22D1277045100339E12 /* configfile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = configfile.c; sourceTree = "<group>"; };
-		71CCF22E1277045100339E12 /* dlmalloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dlmalloc.c; sourceTree = "<group>"; };
 		71CCF22F1277045100339E12 /* downloader.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = downloader.c; sourceTree = "<group>"; };
 		71CCF2301277045100339E12 /* error.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = error.c; sourceTree = "<group>"; };
 		71CCF2321277045100339E12 /* list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = list.c; sourceTree = "<group>"; };
@@ -988,6 +989,9 @@
 		929A929A16EF8BC200B7C64F /* icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon.png; path = ../../applications/osmo4_ios/Resources/icon.png; sourceTree = SOURCE_ROOT; };
 		92A3A03D16F0C10C004EE581 /* extract.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = extract.c; path = ../../applications/osmo4_ios/extract.c; sourceTree = SOURCE_ROOT; };
 		92B039F616F2050100B2568F /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = ../../extra_lib/lib/iOS/libSDL2.a; sourceTree = SOURCE_ROOT; };
+		92B32CA31A08ABBF0065F44A /* webvtt_smjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = webvtt_smjs.c; sourceTree = "<group>"; };
+		92B32CA71A08AC130065F44A /* vtt_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vtt_dec.c; path = ../../modules/vtt_in/vtt_dec.c; sourceTree = "<group>"; };
+		92B32CA81A08AC130065F44A /* vtt_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vtt_in.c; path = ../../modules/vtt_in/vtt_in.c; sourceTree = "<group>"; };
 		92FA813A16F235520002629E /* cam_wrap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cam_wrap.h; path = ../../modules/ios_cam/cam_wrap.h; sourceTree = SOURCE_ROOT; };
 		92FA813C16F235520002629E /* CameraObject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CameraObject.h; path = ../../modules/ios_cam/CameraObject.h; sourceTree = SOURCE_ROOT; };
 		92FA813E16F235520002629E /* ios_cam.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ios_cam.c; path = ../../modules/ios_cam/ios_cam.c; sourceTree = SOURCE_ROOT; };
@@ -1646,6 +1650,7 @@
 		71CCF1FD1277045100339E12 /* scenegraph */ = {
 			isa = PBXGroup;
 			children = (
+				92B32CA31A08ABBF0065F44A /* webvtt_smjs.c */,
 				970FBA7F16F9F0910052216D /* html5_media_smjs.c */,
 				970FBA8016F9F0920052216D /* html5_mse_smjs.c */,
 				71CCF1FE1277045100339E12 /* base_scenegraph.c */,
@@ -1716,7 +1721,6 @@
 				71CCF22B1277045100339E12 /* bitstream.c */,
 				71CCF22C1277045100339E12 /* color.c */,
 				71CCF22D1277045100339E12 /* configfile.c */,
-				71CCF22E1277045100339E12 /* dlmalloc.c */,
 				71CCF22F1277045100339E12 /* downloader.c */,
 				71CCF2301277045100339E12 /* error.c */,
 				71CCF2321277045100339E12 /* list.c */,
@@ -1881,6 +1885,7 @@
 				71A1996A1278774A00ACFF58 /* rtp_in */,
 				71A199981278778800ACFF58 /* sdl_out */,
 				71A199141278769100ACFF58 /* soft_raster */,
+				92B32CA61A08ABF10065F44A /* vtt */,
 				71A199871278777A00ACFF58 /* widgetman */,
 				71A199071278765600ACFF58 /* aac_in.c */,
 				71A1990E1278767B00ACFF58 /* bifs_dec.c */,
@@ -1899,6 +1904,15 @@
 				71A19933127876C300ACFF58 /* svg_in.c */,
 			);
 			name = modules;
+			sourceTree = "<group>";
+		};
+		92B32CA61A08ABF10065F44A /* vtt */ = {
+			isa = PBXGroup;
+			children = (
+				92B32CA71A08AC130065F44A /* vtt_dec.c */,
+				92B32CA81A08AC130065F44A /* vtt_in.c */,
+			);
+			name = vtt;
 			sourceTree = "<group>";
 		};
 		92FA813816F235470002629E /* camera */ = {
@@ -2405,7 +2419,6 @@
 				71CCF32C1277045100339E12 /* bitstream.c in Sources */,
 				71CCF32D1277045100339E12 /* color.c in Sources */,
 				71CCF32E1277045100339E12 /* configfile.c in Sources */,
-				71CCF32F1277045100339E12 /* dlmalloc.c in Sources */,
 				71CCF3301277045100339E12 /* downloader.c in Sources */,
 				71CCF3311277045100339E12 /* error.c in Sources */,
 				71CCF3331277045100339E12 /* list.c in Sources */,
@@ -2451,6 +2464,9 @@
 				28F2240617D6369700E9D2BE /* ffmpeg_demux.c in Sources */,
 				28F2240A17D636DA00E9D2BE /* ffmpeg_load.c in Sources */,
 				97A8DDC41896AFF300F4680F /* ttml.c in Sources */,
+				92B32CA41A08ABBF0065F44A /* webvtt_smjs.c in Sources */,
+				92B32CA91A08AC130065F44A /* vtt_dec.c in Sources */,
+				92B32CAA1A08AC130065F44A /* vtt_in.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
