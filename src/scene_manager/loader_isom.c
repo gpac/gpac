@@ -271,7 +271,7 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 			}
 			samp->DTS += init_offset;
 
-			au = gf_sm_stream_au_new(sc, samp->DTS, ((Double)(s64) samp->DTS) / sc->timeScale, samp->IsRAP);
+			au = gf_sm_stream_au_new(sc, samp->DTS, ((Double)(s64) samp->DTS) / sc->timeScale, (samp->IsRAP==RAP) ? 1 : 0);
 
 			if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
 #ifndef GPAC_DISABLE_BIFS

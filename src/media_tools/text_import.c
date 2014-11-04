@@ -1415,7 +1415,7 @@ static GF_Err swf_svg_add_iso_sample(void *user, const char *data, u32 length, u
 	if (s) {
 		gf_bs_get_content(bs, &s->data, &s->dataLength);
 		s->DTS = (u64) (flusher->timescale*timestamp/1000);
-		s->IsRAP = isRap;
+		s->IsRAP = isRap ? RAP : RAP_NO;
 		gf_isom_add_sample(flusher->import->dest, flusher->track, flusher->descriptionIndex, s);
 		gf_isom_sample_del(&s);
 	} else {
@@ -2607,7 +2607,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 
 			s = gf_isom_text_to_sample(samp);
 			gf_isom_delete_text_sample(samp);
-			s->IsRAP = isRAP;
+			s->IsRAP = isRAP ? RAP : RAP_NO;
 			s->DTS = DTS;
 			gf_isom_add_sample(import->dest, track, descIndex, s);
 			gf_isom_sample_del(&s);
