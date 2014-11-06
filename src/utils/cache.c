@@ -560,14 +560,35 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 	if (entry->writeFilePtr) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK,
 		       ("[CACHE] Closing file %s, %d bytes written.\n", entry->cache_filename, entry->written_in_cache));
-		if (fflush( entry->writeFilePtr ) || fclose( entry->writeFilePtr ))
+		
+		if (fflush( entry->writeFilePtr ) || fclose( entry->writeFilePtr )) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to flush/close file on disk\n"));
 			e = GF_IO_ERR;
-		e|= gf_cache_flush_disk_cache(entry);
-		if (e == GF_OK && success) {
-			e|= gf_cache_set_last_modified_on_disk( entry, gf_cache_get_last_modified_on_server(entry));
-			e|= gf_cache_set_etag_on_disk( entry, gf_cache_get_etag_on_server(entry));
 		}
-		e|= gf_cache_flush_disk_cache(entry);
+		if (!e) {
+			e = gf_cache_flush_disk_cache(entry);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to flush cache entry on disk\n"));
+			}
+		}
+		if (!e && success) {
+			e = gf_cache_set_last_modified_on_disk( entry, gf_cache_get_last_modified_on_server(entry));
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to set last-modified\n"));
+			} else {
+				e = gf_cache_set_etag_on_disk( entry, gf_cache_get_etag_on_server(entry));
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to set etag\n"));
+				}
+			}
+		}
+		if (!e) {
+			e = gf_cache_flush_disk_cache(entry);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to flush cache entry on disk after etag/last-modified\n"));
+			}
+		}
+
 #if defined(_BSD_SOURCE) || _XOPEN_SOURCE >= 500
 		/* On  UNIX, be sure to flush all the data */
 		sync();
