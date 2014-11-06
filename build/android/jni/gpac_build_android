@@ -164,7 +164,7 @@ echo "[OK] success extra lib MP4box."
 if [ $ANT -eq 1 ]
 then
 echo "\nSelf-updating project"
-android update project -p "$BASEPATH/applications/osmo4_android/"
+android update project -p "$BASEPATH/applications/osmo4_android/" --target android-18
 
 echo -e "\nBuiding Osmo4.apk" 
 cd $BASEPATH/applications/osmo4_android/
