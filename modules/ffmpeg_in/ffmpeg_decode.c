@@ -327,7 +327,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				}
 			}
 		}
-#ifndef FF_API_AVFRAME_LAVC
+#if !defined(FF_API_AVFRAME_LAVC) || defined (GPAC_IPHONE)
 		*frame = avcodec_alloc_frame();
 #else
 		*frame = av_frame_alloc();
@@ -398,7 +398,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 
 #if defined(USE_AVCTX3)
 
-#ifndef FF_API_AVFRAME_LAVC
+#if !defined(FF_API_AVFRAME_LAVC) || defined (GPAC_IPHONE)
 		ffd->audio_frame = avcodec_alloc_frame();
 #else
 		ffd->audio_frame = av_frame_alloc();
@@ -419,7 +419,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			break;
 
 		case CODEC_ID_DVD_SUBTITLE:
-#ifndef FF_API_AVFRAME_LAVC
+#if !defined(FF_API_AVFRAME_LAVC) || defined (GPAC_IPHONE)
 			*frame = avcodec_alloc_frame();
 #else
 			*frame = av_frame_alloc();

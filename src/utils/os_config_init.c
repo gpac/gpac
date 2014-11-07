@@ -397,11 +397,16 @@ static GF_Config *create_default_config(char *file_path)
 	if (!f) return NULL;
 	fclose(f);
 
+#ifndef GPAC_IPHONE
 	if (! get_default_install_path(szPath, GF_PATH_MODULES)) {
 		gf_delete_file(szPath);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] default modules not found\n"));
 		return NULL;
 	}
+#else
+	get_default_install_path(szPath, GF_PATH_APP);
+    strcpy(szPath, "");
+#endif
 
 	cfg = gf_cfg_new(file_path, CFG_FILE_NAME);
 	if (!cfg) return NULL;
@@ -579,19 +584,21 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 		fprintf(stderr, "Fatal error: Cannot create a configuration file in application or user home directory - no write access\n");
 		return NULL;
 	}
+
 	cfg = gf_cfg_new(szPath, CFG_FILE_NAME);
 	if (!cfg) {
 		fprintf(stderr, "GPAC config file %s not found in %s - creating new file\n", CFG_FILE_NAME, szPath);
 		cfg = create_default_config(szPath);
 	}
-
 	if (!cfg) {
 		fprintf(stderr, "Cannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath);
 		return NULL;
 	}
 
+#ifndef GPAC_IPHONE
 	fprintf(stderr, "Using config file in %s directory\n", szPath);
-
+#endif
+    
 	check_modules_dir(cfg);
 
 	if (new_cfg) *new_cfg = 1;

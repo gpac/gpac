@@ -902,6 +902,7 @@ static void gf_text_import_ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode *
 {
 	u32 idx = 0, body_num = 0;
 	GF_XMLNode *node = NULL, *body_node = NULL;
+    *sample_list_node = NULL;
 	while ( (node = (GF_XMLNode*)gf_list_enum(root->content, &idx))) {
 		if (!strcmp(node->name, "body")) {
 			*sample_list_node = node;
@@ -1129,7 +1130,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 										ts_end = (h*3600 + m*60+s)*1000+ms;
 									}
 								}
-								if ((ts_begin != -1) && (ts_end != -1) && !samp_text) {
+								if ((ts_begin != -1) && (ts_end != -1) && !samp_text && sample_list_node) {
 									e = gf_xml_dom_append_child(sample_list_node, div_node);
 									assert(e == GF_OK);
 									assert(!samp_text);
@@ -1163,7 +1164,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 												ts_end = (h*3600 + m*60+s)*1000+ms;
 											}
 										}
-										if ((ts_begin != -1) && (ts_end != -1) && !samp_text) {
+										if ((ts_begin != -1) && (ts_end != -1) && !samp_text && sample_list_node) {
 											if (samp_text) {
 												e = gf_import_message(import, GF_BAD_PARAM, "TTML: duplicated sample text under <span>. Abort.\n");
 												goto exit;

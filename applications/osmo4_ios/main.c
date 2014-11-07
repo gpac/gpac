@@ -715,7 +715,7 @@ int main (int argc, char *argv[])
 	FILE *playlist = NULL;
 	FILE *logfile = NULL;
 	Float scale = 1;
-
+    
 	/*by default use current dir*/
 	strcpy(the_url, ".");
 
@@ -735,6 +735,8 @@ int main (int argc, char *argv[])
 			i++;
 		}
 		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = 1;
+        
+        fprintf(stdout, "arg is %s\n", arg);
 	}
 
 	gf_sys_init(enable_mem_tracker);
@@ -891,6 +893,7 @@ int main (int argc, char *argv[])
 		init_w = forced_width;
 		init_h = forced_height;
 	}
+    
 
 	fprintf(stderr, "Loading modules\n");
 	str = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");

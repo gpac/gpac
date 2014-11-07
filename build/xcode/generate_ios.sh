@@ -7,7 +7,7 @@ version=`grep '#define GPAC_VERSION ' ../../include/gpac/version.h | cut -d '"' 
 rev=`LANG=en_US svn info | grep Revision | tr -d 'Revision: '`
 if [ "$rev" != "" ]
 then
-	svn revert ../../applications/osmo4_ios/osmo4ios-Info.plist
+#	svn revert ../../applications/osmo4_ios/osmo4ios-Info.plist
 	sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$version"'<\/string>/' ../../applications/osmo4_ios/osmo4ios-Info.plist > ../../applications/osmo4_ios/osmo4ios-Info.plist.new
 	sed 's/<string>.*<\/string><!-- BUILD_REV_REPLACE -->/<string>'"$rev"'<\/string>/' ../../applications/osmo4_ios/osmo4ios-Info.plist.new > ../../applications/osmo4_ios/osmo4ios-Info.plist
 	rm ../../applications/osmo4_ios/osmo4ios-Info.plist.new
@@ -23,7 +23,7 @@ fi
 echo "*** Compile osmo4ios for iOS (arm) ***"
 #link must occur at debug to avoid optimizing that leads to freezes
 #xcodebuild -target osmo4ios -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj
-xcodebuild -target osmo4ios -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
+xcodebuild -target osmo4ios -configuration Release -project gpac4ios.xcodeproj
 if [ $? != 0 ] ; then
 	exit 1
 fi
@@ -69,4 +69,4 @@ rm -rf osmo4ios.app
 svn up -r $rev
 cd ../../build/xcode/
 
-echo "*** Extra Libs generation for iOS completed (full_version)! ***"
+echo "*** GPAC generation for iOS completed ($full_version)! ***"

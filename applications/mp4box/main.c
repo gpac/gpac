@@ -1481,9 +1481,9 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
 			else if (!strnicmp(opts, "role=", 5)) strncpy(di->role, opts+5, 99);
 			else if (!strnicmp(opts, "desc", 4)) {
-				u32 *nb_descs;
-				char ***descs;
-				u32 opt_offset;
+				u32 *nb_descs=NULL;
+				char ***descs=NULL;
+				u32 opt_offset=0;
 				u32 len;
 				if (!strnicmp(opts, "desc_p=", 7)) {
 					nb_descs = &di->nb_p_descs;
@@ -1502,19 +1502,22 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					descs = &di->rep_descs;
 					opt_offset = 9;
 				}
-				(*nb_descs)++;
-				opts += opt_offset;
-				len = (u32) strlen(opts);
-				(*descs) = (char **)gf_realloc((*descs), (*nb_descs)*sizeof(char *));
-				(*descs)[(*nb_descs)-1] = (char *)gf_malloc((len+1)*sizeof(char));
-				strncpy((*descs)[(*nb_descs)-1], opts, len);
-				(*descs)[(*nb_descs)-1][len] = 0;
+                if (opt_offset) {
+                    (*nb_descs)++;
+                    opts += opt_offset;
+                    len = (u32) strlen(opts);
+                    (*descs) = (char **)gf_realloc((*descs), (*nb_descs)*sizeof(char *));
+                    (*descs)[(*nb_descs)-1] = (char *)gf_malloc((len+1)*sizeof(char));
+                    strncpy((*descs)[(*nb_descs)-1], opts, len);
+                    (*descs)[(*nb_descs)-1][len] = 0;                
+                }
+                
 			}
 			else if (!strnicmp(opts, "xlink=", 6)) {
-				if (strlen(opts+6) > 199) {
+				if (strlen(opts+6) > 99) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] XLink cannot exceed 99 characters in MP4Box, truncating ...\n"));
 				}
-				strncpy(di->xlink, opts+6, 199);
+				strncpy(di->xlink, opts+6, 99);
 			}
 
 			if (!sep) break;
