@@ -23,7 +23,9 @@
  *
  */
 
-#include "dx_hw.h"
+#include <gpac/setup.h>
+#include <gpac/constants.h>
+#include <gpac/color.h>
 
 
 static u32 get_yuv_base(u32 in_pf)
