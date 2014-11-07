@@ -245,7 +245,7 @@
 //#define GPAC_DISABLE_ISOM_FRAGMENTS
 
 /*disables scene graph */
-//GPAC_DISABLE_SCENEGRAPH
+//#define GPAC_DISABLE_SCENEGRAPH
 
 /*disables scene graph textual dump*/
 //#define GPAC_DISABLE_SCENE_DUMP
