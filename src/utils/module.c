@@ -148,6 +148,7 @@ static void load_all_modules(GF_ModuleManager *mgr)
 
 	//todo fix project for iOS
 #ifdef GPAC_IPHONE
+    //these do not compile with xcode 4.2
 //    LOAD_PLUGIN(ios_cam);
 //    LOAD_PLUGIN(ios_mpegv);
 #endif

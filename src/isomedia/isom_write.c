@@ -3135,6 +3135,7 @@ GF_Err gf_isom_remove_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32
 
 
 //changes track ID
+GF_EXPORT
 GF_Err gf_isom_set_track_id(GF_ISOFile *movie, u32 trackNumber, u32 trackID)
 {
 	GF_TrackReferenceTypeBox *ref;
