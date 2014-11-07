@@ -227,6 +227,7 @@ void PrintGeneralUsage()
 	        " -rb ABCD             removes given brand from file's alternate brand list\n"
 	        " -cprt string         adds copyright string to movie\n"
 	        " -chap file           adds chapter information contained in file\n"
+			" -set-track-id id1:id2 changes the id of a track from id1 to id2\n"
 	        " -rem trackID         removes track from file\n"
 	        " -rap trackID         removes all non-RAP samples from track\n"
 	        " -enable trackID      enables track\n"
@@ -1359,6 +1360,7 @@ typedef enum {
 	TRAC_ACTION_REM_NON_RAP		= 10,
 	TRAC_ACTION_SET_KIND		= 11,
 	TRAC_ACTION_REM_KIND		= 12,
+	TRAC_ACTION_SET_ID			= 13,
 } TrackActionType;
 
 typedef struct
@@ -1373,6 +1375,7 @@ typedef struct
 	u32 dump_type, sample_num;
 	char *out_name;
 	char *kind_scheme, *kind_value;
+	u32 newTrackID;
 } TrackAction;
 
 enum
@@ -2406,6 +2409,22 @@ int mp4boxMain(int argc, char **argv)
 			else if (!stricmp(arg, "-disable")) tracks[nb_track_act].act_type = TRAC_ACTION_DISABLE;
 			else tracks[nb_track_act].act_type = TRAC_ACTION_REM_TRACK;
 			tracks[nb_track_act].trackID = atoi(argv[i+1]);
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-set-track-id")) {
+			char *sep;
+			CHECK_NEXT_ARG
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_ID;
+			sep = strchr(argv[i+1], ':');
+			*sep = 0;
+			tracks[nb_track_act].trackID = atoi(argv[i+1]);
+			*sep = ':';
+			sep++;
+			tracks[nb_track_act].newTrackID = atoi(sep);
 			open_edit = 1;
 			nb_track_act++;
 			i++;
@@ -4066,6 +4085,20 @@ int mp4boxMain(int argc, char **argv)
 				e = gf_isom_change_ismacryp_protection(file, i+1, 1, NULL, (char *) tka->kms);
 				if (e) goto err_exit;
 				needSave = 1;
+			}
+			break;
+		case TRAC_ACTION_SET_ID:
+			if (track) {
+				u32 newTrack;
+				newTrack = gf_isom_get_track_by_id(file, tka->newTrackID);
+				if (newTrack != 0) {
+					fprintf(stderr, "Error: Cannot set track id with value %d because a track already exists - ignoring", tka->newTrackID);
+				} else {
+					e = gf_isom_set_track_id(file, track, tka->newTrackID);
+					needSave = 1;
+				}
+			} else {
+				fprintf(stderr, "Error: Cannot change id for track %d because it does not exist - ignoring", tka->trackID);
 			}
 			break;
 		case TRAC_ACTION_SET_PAR:
