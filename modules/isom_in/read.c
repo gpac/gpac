@@ -223,7 +223,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 	ISOMReader *read = (ISOMReader *) cbk;
 
 	/*handle service message*/
-	if (!read->buffering) 
+	if (!read->buffering)
 		gf_service_download_update_stats(read->dnload);
 
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {

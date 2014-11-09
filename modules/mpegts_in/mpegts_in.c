@@ -659,7 +659,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			slh.OCRflag = 1;
 			slh.m2ts_pcr = discontinuity ? 2 : 1;
 			slh.objectClockReference = ((GF_M2TS_PES_PCK *) param)->PTS;
-			
+
 			//check if our buffer level is low enough otherwise we would send the OCR_disc way too early
 			//we have to do this because the terminal doesn't "queue" clock discontinuities
 			if (m2ts->file_regulate && discontinuity) {
@@ -781,7 +781,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			}
 		}
 	}
-		break;
+	break;
 	case GF_M2TS_EVT_TDT:
 		if (m2ts->hybrid_on) {
 			u32 i, count;
@@ -1470,7 +1470,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
 				m2ts->media_start_range = com->play.start_range;
 			}
-			if (!m2ts->map_media_time_on_prog_id) 
+			if (!m2ts->map_media_time_on_prog_id)
 				m2ts->map_media_time_on_prog_id = pes->program->number;
 
 			if (plug->query_proxy && ts->file)
@@ -1484,7 +1484,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			}
 		}
 		//remap media time for this program
-		else if (!m2ts->map_media_time_on_prog_id) { 
+		else if (!m2ts->map_media_time_on_prog_id) {
 			m2ts->media_start_range = com->play.start_range;
 			m2ts->map_media_time_on_prog_id = pes->program->number;
 		}

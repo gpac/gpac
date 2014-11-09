@@ -370,8 +370,8 @@ GF_Err CAM_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		com->get_dsi.dsi_len = buf_size;
 		return GF_OK;
 	}
-    default:
-        return GF_NOT_SUPPORTED;
+	default:
+		return GF_NOT_SUPPORTED;
 	}
 	return GF_NOT_SUPPORTED;
 }

@@ -745,7 +745,7 @@ redecode:
 		if (gotpic) {
 			//int inputDataSize = av_samples_get_buffer_size(NULL, ctx->channels, ffd->audio_frame->nb_samples, ctx->sample_fmt, 1);
 			gotpic = ffd->audio_frame->nb_samples * 2 * ctx->channels;
-			
+
 		}
 #elif defined(USE_AVCODEC2)
 		gotpic = 192000;
@@ -802,7 +802,7 @@ redecode:
 			u32 i, size = ffd->audio_frame->nb_samples * ctx->channels;
 			s16 *output = (s16 *) outBuffer;
 			s8 *input = (s8 *) ffd->audio_frame->data;
-			for (i=0;i<size;i++) {
+			for (i=0; i<size; i++) {
 				output [i] = input[i] * 128;
 			}
 		} else if (ffd->audio_frame->format==AV_SAMPLE_FMT_S32) {
@@ -810,7 +810,7 @@ redecode:
 			s16 *output = (s16 *) outBuffer;
 			s32 *input = (s32*) ffd->audio_frame->data;
 			shift = 1<<31;
-			for (i=0;i<size;i++) {
+			for (i=0; i<size; i++) {
 				output [i] = input[i] * shift;
 			}
 		} else if (ffd->audio_frame->format==AV_SAMPLE_FMT_S16) {

@@ -902,7 +902,7 @@ static void gf_text_import_ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode *
 {
 	u32 idx = 0, body_num = 0;
 	GF_XMLNode *node = NULL, *body_node = NULL;
-    *sample_list_node = NULL;
+	*sample_list_node = NULL;
 	while ( (node = (GF_XMLNode*)gf_list_enum(root->content, &idx))) {
 		if (!strcmp(node->name, "body")) {
 			*sample_list_node = node;

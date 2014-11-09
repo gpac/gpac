@@ -1387,7 +1387,7 @@ static void JS_ObjectDestroyed(JSContext *c, JSObject *obj, GF_JSField *ptr, Boo
 		if (ptr->obj && is_js_call) {
 			GF_ScriptPriv *priv;
 			if (ptr->js_ctx) {
-				if (gf_list_find(js_rt->allocated_contexts, ptr->js_ctx) < 0) 
+				if (gf_list_find(js_rt->allocated_contexts, ptr->js_ctx) < 0)
 					return;
 				c = ptr->js_ctx;
 			}

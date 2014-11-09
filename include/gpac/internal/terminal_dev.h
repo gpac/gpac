@@ -1093,7 +1093,7 @@ void gf_odm_signal_eos(GF_ObjectManager *odm);
 void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset);
 
 /*GF_MediaObject: link between real object manager and scene. although there is a one-to-one mapping between a
-MediaObject and an ObjectManager, we have to keep them seperated in order to handle OD remove commands which destroy
+MediaObject and an ObjectManager, we have to keep them separated in order to handle OD remove commands which destroy
 ObjectManagers. */
 struct _mediaobj
 {

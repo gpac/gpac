@@ -560,7 +560,7 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 	if (entry->writeFilePtr) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK,
 		       ("[CACHE] Closing file %s, %d bytes written.\n", entry->cache_filename, entry->written_in_cache));
-		
+
 		if (fflush( entry->writeFilePtr ) || fclose( entry->writeFilePtr )) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to flush/close file on disk\n"));
 			e = GF_IO_ERR;
