@@ -405,7 +405,7 @@ static GF_Config *create_default_config(char *file_path)
 	}
 #else
 	get_default_install_path(szPath, GF_PATH_APP);
-    strcpy(szPath, "");
+	strcpy(szPath, "");
 #endif
 
 	cfg = gf_cfg_new(file_path, CFG_FILE_NAME);
@@ -598,7 +598,7 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 #ifndef GPAC_IPHONE
 	fprintf(stderr, "Using config file in %s directory\n", szPath);
 #endif
-    
+
 	check_modules_dir(cfg);
 
 	if (new_cfg) *new_cfg = 1;

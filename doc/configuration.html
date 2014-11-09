@@ -43,8 +43,10 @@ The config file is based on the win32 .ini file model, thus is ordered by sectio
 <b><a href="#DASH" style="text-decoration: underline;">DASH</a></b>
 <b><a href="#ALSA" style="text-decoration: underline;">ALSA</a></b>
 <b><a href="#SHORTCUTS" style="text-decoration: underline;">Shortcuts</a></b>
-<b><a href="#OpenHEVC" style="text-decoration: underline;">OpenHEVC</a></b>
 <b><a href="#DSMCC" style="text-decoration: underline;">DSMCC</a></b>
+<b><a href="#OpenHEVC" style="text-decoration: underline;">OpenHEVC</a></b>
+<b><a href="#DirectFB" style="text-decoration: underline;">DirectFB</a></b>
+<b><a href="#DektecVideo" style="text-decoration: underline;">DektecVideo</a></b>
 
 </p>
 <br/><br/>
@@ -877,6 +879,18 @@ Forces to disable hardware blitting.</p>
 <b>WindowMode</b> [value: <i>"X11"</i> <i>"SDL"</i>]
 <p style="text-indent: 5%">
 Specifies the underlying windowing library.</p>
+
+
+<br/><br/>
+
+<a name="DektecVideo"></a>
+<span style="text-decoration: underline;"><b>Section "DektecVideo"</b></span> <i><a href="#Overview">Back to top</a></i>
+<p>
+The "DektecVideo" section of the config file holds the configuration options for the Dektec SDI video output module.</a>
+</p>
+<b>SDIOutput</b> [value: <i>unsigned integer</i>]
+<p style="text-indent: 5%">
+Specifies the output port of the card. Default value is 1.</p>
 
 </body>
 </html>

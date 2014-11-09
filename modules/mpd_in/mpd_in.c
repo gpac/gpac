@@ -168,9 +168,9 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 		if (!group->pto_setup) {
 			Double scale;
 			s64 start, dur;
-            u64 pto;
+			u64 pto;
 			gf_dash_group_get_presentation_time_offset(mpdin->dash, i, &pto, &group->timescale);
-            group->pto = (s64) pto;
+			group->pto = (s64) pto;
 			group->pto_setup = 1;
 
 			if (group->timescale && (group->timescale != ch->esd->slConfig->timestampResolution)) {
@@ -191,23 +191,23 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 		}
 		//filter any packet outside the current period
 		if (group->max_cts_in_period && (s64) hdr->compositionTimeStamp > group->max_cts_in_period) {
-            GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet timestamp "LLU" larger than max CTS in period "LLU" - skipping\n", hdr->compositionTimeStamp, group->max_cts_in_period));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet timestamp "LLU" larger than max CTS in period "LLU" - skipping\n", hdr->compositionTimeStamp, group->max_cts_in_period));
 			return;
-        }
+		}
 
 		//remap timestamps to our timeline
 		if ((s64) hdr->decodingTimeStamp >= group->pto)
 			hdr->decodingTimeStamp -= group->pto;
 		else {
-            GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet DTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet DTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
 			hdr->decodingTimeStamp = 0;
-        }
-		if ((s64) hdr->compositionTimeStamp >= group->pto) 
+		}
+		if ((s64) hdr->compositionTimeStamp >= group->pto)
 			hdr->compositionTimeStamp -= group->pto;
 		else {
-            GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
 			hdr->compositionTimeStamp = 0;
-        }
+		}
 	} else if (!group->pto_setup) {
 		do_map_time = 1;
 		group->pto_setup = 1;
@@ -681,7 +681,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 
 		//however select the default languague
 		opt = gf_modules_get_option((GF_BaseInterface *)mpdin->plug, "Systems", "LanguageName");
-		if (opt) 
+		if (opt)
 			gf_dash_groups_set_language(mpdin->dash, opt);
 
 		return GF_OK;
@@ -783,7 +783,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 			if (group) {
 				GF_NetworkCommand com;
 				memset(&com, 0, sizeof(GF_NetworkCommand) );
-	
+
 				com.command_type = GF_NET_SERVICE_EVENT;
 				com.send_event.evt.type = GF_EVENT_QUALITY_SWITCHED;
 				gf_service_command(mpdin->service, &com, GF_OK);
@@ -803,7 +803,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		com.send_event.evt.type = GF_EVENT_TIMESHIFT_UPDATE;
 		gf_service_command(mpdin->service, &com, GF_OK);
 	}
-	
+
 	return GF_OK;
 }
 
@@ -1129,7 +1129,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (idx < 0) return GF_BAD_PARAM;
 		com->net_stats.bw_down = 8 * gf_dash_group_get_download_rate(mpdin->dash, idx);
 	}
-		return GF_OK;
+	return GF_OK;
 
 	case GF_NET_SERVICE_QUALITY_QUERY:
 	{
@@ -1144,7 +1144,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			return GF_OK;
 		}
 		if (com->quality_query.index>count) return GF_BAD_PARAM;
-	
+
 		e = gf_dash_group_get_quality_info(mpdin->dash, idx, com->quality_query.index-1, &qinfo);
 		if (e) return e;
 
@@ -1169,7 +1169,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	}
 
-		break;
+	break;
 
 	case GF_NET_CHAN_BUFFER:
 		/*get it from MPD minBufferTime - if not in low latency mode, indicate the value given in MPD (not possible to fetch segments earlier) - to be more precise we should get the min segment duration for this group*/

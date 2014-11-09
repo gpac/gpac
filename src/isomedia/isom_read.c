@@ -2269,7 +2269,7 @@ GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start)
         gf_isom_box_del((GF_Box *)_a);\
         _a = __cast gf_isom_box_new(type);\
     }\
-
+ 
 
 GF_EXPORT
 GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count)
@@ -2292,7 +2292,7 @@ GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count)
 				trak->dts_at_seg_start += dts + dur;
 			}
 		}
- 
+
 		RECREATE_BOX(stbl->ChunkOffset, (GF_Box *));
 		RECREATE_BOX(stbl->CompositionOffset, (GF_CompositionOffsetBox *));
 		RECREATE_BOX(stbl->DegradationPriority, (GF_DegradationPriorityBox *));
@@ -2311,7 +2311,7 @@ GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count)
 #endif
 		}
 
-    }
+	}
 
 #endif
 	return GF_OK;
@@ -2371,7 +2371,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 					trak->dts_at_seg_start += dts + dur;
 				}
 			}
- 
+
 			RECREATE_BOX(stbl->ChunkOffset, (GF_Box *));
 			RECREATE_BOX(stbl->CompositionOffset, (GF_CompositionOffsetBox *));
 			RECREATE_BOX(stbl->DegradationPriority, (GF_DegradationPriorityBox *));
@@ -2383,7 +2383,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 			RECREATE_BOX(stbl->SyncSample, (GF_SyncSampleBox *));
 			RECREATE_BOX(stbl->TimeToSample, (GF_TimeToSampleBox *));
 
-        }
+		}
 
 
 		j = 0;
