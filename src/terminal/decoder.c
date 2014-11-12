@@ -1055,7 +1055,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		codec->consecutive_ontime_frames = 0;
 
 		if (codec->type==GF_STREAM_AUDIO) {
-			if (ABS(codec->ck->speed) >8) {
+			if (ABS(FIX2FLT(codec->ck->speed)) > 8) {
 				codec->decode_only_rap = 2;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] Speed %g too hight for audio decoder/renderer - skipping decode\n", codec->decio->module_name, FIX2FLT(codec->ck->speed)));
 			}

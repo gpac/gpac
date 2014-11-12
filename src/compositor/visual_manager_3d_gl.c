@@ -1096,7 +1096,7 @@ static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 		glLoadIdentity();
 		return;
 	}
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 	glLoadMatrixx(mat);
 #elif defined(GPAC_FIXED_POINT)
 	Float _mat[16];
@@ -1110,7 +1110,7 @@ static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 
 static void visual_3d_matrix_add(GF_VisualManager *visual, Fixed *mat)
 {
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 	glMultMatrixx(mat);
 #elif defined(GPAC_FIXED_POINT)
 	u32 i;
@@ -1166,7 +1166,7 @@ static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *t
 			gf_mx_apply_plane(&mx, &p);
 		}
 
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 		g[0] = p.normal.x;
 		g[1] = p.normal.y;
 		g[2] = p.normal.z;
@@ -1177,7 +1177,13 @@ static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *t
 		g[1] = FIX2FLT(p.normal.y);
 		g[2] = FIX2FLT(p.normal.z);
 		g[3] = FIX2FLT(p.d);
+
+#if defined(GPAC_USE_OGL_ES)
+		glClipPlanef(idx, g);
+#else
 		glClipPlane(idx, g);
+#endif
+        
 #endif
 		glEnable(idx);
 
@@ -1215,7 +1221,7 @@ void visual_3d_reset_lights(GF_VisualManager *visual)
 static void visual_3d_set_lights(GF_VisualManager *visual)
 {
 	u32 i;
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 	Fixed vals[4], exp;
 #else
 	Float vals[4], intensity, cutOffAngle, beamWidth, ambientIntensity, exp;
@@ -1235,7 +1241,7 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 		switch (li->type) {
 		//directionnal light
 		case 0:
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 			vals[0] = -li->direction.x;
 			vals[1] = -li->direction.y;
 			vals[2] = -li->direction.z;
@@ -1295,7 +1301,7 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 			beamWidth = FIX2FLT(li->beamWidth);
 #endif
 
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 			vals[0] = li->direction.x;
 			vals[1] = li->direction.y;
 			vals[2] = li->direction.z;
@@ -1370,7 +1376,7 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 
 		//point light
 		case 2:
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 			vals[0] = li->position.x;
 			vals[1] = li->position.y;
 			vals[2] = li->position.z;
@@ -1433,7 +1439,7 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 
 #ifndef GPAC_USE_TINYGL
 
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 	Fixed vals[4];
 	glEnable(GL_FOG);
 	if (!visual->fog_type) glFogx(GL_FOG_MODE, GL_LINEAR);
@@ -1451,10 +1457,18 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 #else
 	Float vals[4];
 	glEnable(GL_FOG);
-	if (!visual->fog_type) glFogi(GL_FOG_MODE, GL_LINEAR);
+
+#if defined(GPAC_USE_OGL_ES)
+    if (!visual->fog_type) glFogf(GL_FOG_MODE, GL_LINEAR);
+	else if (visual->fog_type==1) glFogf(GL_FOG_MODE, GL_EXP);
+	else if (visual->fog_type==2) glFogf(GL_FOG_MODE, GL_EXP2);
+#else
+    if (!visual->fog_type) glFogi(GL_FOG_MODE, GL_LINEAR);
 	else if (visual->fog_type==1) glFogi(GL_FOG_MODE, GL_EXP);
 	else if (visual->fog_type==2) glFogi(GL_FOG_MODE, GL_EXP2);
-	glFogf(GL_FOG_DENSITY, FIX2FLT(visual->fog_density));
+#endif
+    
+    glFogf(GL_FOG_DENSITY, FIX2FLT(visual->fog_density));
 	glFogf(GL_FOG_START, 0);
 	glFogf(GL_FOG_END, FIX2FLT(visual->fog_visibility));
 	vals[0] = FIX2FLT(visual->fog_color.red);
@@ -1518,7 +1532,7 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg);
 }
 
-#ifndef GPAC_ANDROID
+#if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE)
 
 static GLint my_glGetUniformLocation(GF_SHADERID glsl_program, const char *uniform_name)
 {
@@ -1733,7 +1747,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		mesh->vbo_dirty = 0;
 	}
 
-#ifndef GPAC_ANDROID
+#if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE)
 	if (visual->compositor->shader_only_mode) {
 		visual_3d_draw_mesh_shader_only(tr_state, mesh, base_address);
 		return;
@@ -1853,7 +1867,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 				break;
 			}
 
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 			glMaterialxv(GL_FRONT_AND_BACK, mode, _rgba);
 #else
 			glMaterialfv(GL_FRONT_AND_BACK, mode, _rgba);
@@ -2533,11 +2547,12 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 	/*depthmap-only dump*/
 	if (depth_dump_mode==1) {
-		Float *depthp;
-		Float zFar, zNear;
+        //depth reading not supported on gles <= 1.1
 #ifdef GPAC_USE_OGL_ES
 		return GF_NOT_SUPPORTED;
 #else
+		Float *depthp;
+		Float zFar, zNear;
 
 		fb->pitch_x = 0;
 		fb->pitch_y = compositor->vp_width;

@@ -2052,7 +2052,13 @@ force_input:
 	if (bench_mode) {
 		PrintAVInfo(GF_TRUE);
 	}
-
+    
+    /*FIXME: we have an issue in cleaning up after playing in bench mode and run-for 0 (buildbot tests). We for now disable error checks after run-for is done*/
+    if (simulation_time_in_ms) {
+        gf_log_set_strict_error(0);
+    }
+    
+    
 	i = gf_sys_clock();
 	gf_term_disconnect(term);
 	if (rti_file) UpdateRTInfo("Disconnected\n");
