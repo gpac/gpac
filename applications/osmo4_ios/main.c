@@ -81,11 +81,6 @@ static void UpdateRTInfo(const char *legend)
 	if (display_rti) {
 		if (!rti.process_memory) rti.process_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
 		if (!rti.gpac_memory) rti.gpac_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
-
-		if (display_rti==2) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("FPS %02.2f - CPU %02d (%02d) - Mem %d kB\r",
-			        gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) ));
-		} 
 	}
 	if (rti_logs) {
 		fprintf(rti_logs, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t%s",

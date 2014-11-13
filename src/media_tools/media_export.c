@@ -1429,9 +1429,9 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 
 		max_size = 0;
 		frame = NULL;
-		num_samples = AVI_video_frames(in);
+		num_samples = (u32) AVI_video_frames(in);
 		for (i=0; i<num_samples; i++) {
-			size = AVI_frame_size(in, i);
+			size = (s32) AVI_frame_size(in, i);
 			if (!size) {
 				AVI_read_frame(in, NULL, (int*)&key);
 				continue;
@@ -1452,7 +1452,7 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 	}
 	i = 0;
 	tot_size = max_size = 0;
-	while ((size = AVI_audio_size(in, i) )>0) {
+	while ((size = (s32) AVI_audio_size(in, i) )>0) {
 		if (max_size<(u32) size) max_size=size;
 		tot_size += size;
 		i++;
@@ -1524,7 +1524,7 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 	num_samples = 0;
 	while (1) {
 		Bool continuous;
-		size = AVI_read_audio(in, frame, max_size, (int*)&continuous);
+		size = (s32) AVI_read_audio(in, frame, max_size, (int*)&continuous);
 		if (!size) break;
 		num_samples += size;
 		gf_fwrite(frame, 1, size, fout);
@@ -2190,7 +2190,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 							svg_data[d_stream.total_out - done] = 0;
 							fprintf(nhml, "%s", svg_data);
 							if (err== Z_STREAM_END) break;
-							done = d_stream.total_out;
+							done = (u32) d_stream.total_out;
 							d_stream.avail_out = 2048;
 							d_stream.next_out = (Bytef*)svg_data;
 						}

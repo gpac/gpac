@@ -84,7 +84,7 @@ u32 gf_sys_clock()
 {
 	struct timeval now;
 	gettimeofday(&now, NULL);
-	return ( (now.tv_sec)*1000 + (now.tv_usec) / 1000) - sys_start_time;
+	return (u32) ( ( (now.tv_sec)*1000 + (now.tv_usec) / 1000) - sys_start_time );
 }
 
 GF_EXPORT
@@ -554,7 +554,7 @@ void gf_utc_time_since_1970(u32 *sec, u32 *msec)
 #else
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	*sec = tv.tv_sec;
+	*sec = (u32) tv.tv_sec;
 	*msec = tv.tv_usec/1000;
 #endif
 }
@@ -1047,7 +1047,7 @@ Bool gf_prompt_has_input()
 	if (ch_peek != -1) return 1;
 	t_new.c_cc[VMIN]=0;
 	tcsetattr(0, TCSANOW, &t_new);
-	nread = read(0, &ch, 1);
+	nread = (s32) read(0, &ch, 1);
 	t_new.c_cc[VMIN]=1;
 	tcsetattr(0, TCSANOW, &t_new);
 	if(nread == 1) {
@@ -1381,7 +1381,7 @@ void gf_sys_init(Bool enable_memory_tracker)
 			}
 		}
 #else
-		the_rti.nb_cores = sysconf( _SC_NPROCESSORS_ONLN );
+		the_rti.nb_cores = (u32) sysconf( _SC_NPROCESSORS_ONLN );
 #endif
 
 		sys_start_time = gf_sys_clock();
@@ -1942,12 +1942,12 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 
 	if (last_update_time) {
 		the_rti.sampling_period_duration = (entry_time - last_update_time);
-		the_rti.process_cpu_time_diff = (process_u_k_time - last_process_k_u_time) * 10;
+		the_rti.process_cpu_time_diff = (u32) (process_u_k_time - last_process_k_u_time) * 10;
 
 		/*oops, we have no choice but to assume 100% cpu usage during this period*/
 		if (!u_k_time) {
 			the_rti.total_cpu_time_diff = the_rti.sampling_period_duration;
-			u_k_time = last_cpu_u_k_time + the_rti.sampling_period_duration;
+			u_k_time = (u32) (last_cpu_u_k_time + the_rti.sampling_period_duration);
 			the_rti.cpu_idle_time = 0;
 			the_rti.total_cpu_usage = 100;
 			if (!the_rti.process_cpu_time_diff) the_rti.process_cpu_time_diff = the_rti.total_cpu_time_diff;
@@ -1955,7 +1955,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		} else {
 			u64 samp_sys_time;
 			/*move to ms (/proc/stat gives times in 100 ms unit*/
-			the_rti.total_cpu_time_diff = (u_k_time - last_cpu_u_k_time)*10;
+			the_rti.total_cpu_time_diff = (u32) (u_k_time - last_cpu_u_k_time)*10;
 
 			/*we're not that accurate....*/
 			if (the_rti.total_cpu_time_diff > the_rti.sampling_period_duration)
@@ -1964,7 +1964,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 
 			if (!idle_time) idle_time = (the_rti.sampling_period_duration - the_rti.total_cpu_time_diff)/10;
 			samp_sys_time = u_k_time - last_cpu_u_k_time;
-			the_rti.cpu_idle_time = idle_time - last_cpu_idle_time;
+			the_rti.cpu_idle_time = (u32) (idle_time - last_cpu_idle_time);
 			the_rti.total_cpu_usage = (u32) ( 100 * samp_sys_time / (the_rti.cpu_idle_time + samp_sys_time ) );
 			/*move to ms (/proc/stat gives times in 100 ms unit*/
 			the_rti.cpu_idle_time *= 10;

@@ -21,6 +21,7 @@
 		285DBBA11712C80E00AF2B9B /* libavformat.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9C1712C80E00AF2B9B /* libavformat.a */; };
 		285DBBA21712C80E00AF2B9B /* libavutil.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9D1712C80E00AF2B9B /* libavutil.a */; };
 		285DBBA41712C80E00AF2B9B /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 285DBB9F1712C80E00AF2B9B /* libswscale.a */; };
+		2897039C1A13C4050063E9C0 /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2897039B1A13C4050063E9C0 /* libswresample.a */; };
 		28F2240417D6367000E9D2BE /* ffmpeg_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = 28F2240317D6367000E9D2BE /* ffmpeg_decode.c */; };
 		28F2240617D6369700E9D2BE /* ffmpeg_demux.c in Sources */ = {isa = PBXBuildFile; fileRef = 28F2240517D6369700E9D2BE /* ffmpeg_demux.c */; };
 		28F2240A17D636DA00E9D2BE /* ffmpeg_load.c in Sources */ = {isa = PBXBuildFile; fileRef = 28F2240917D636DA00E9D2BE /* ffmpeg_load.c */; };
@@ -376,18 +377,6 @@
 		92B32CA41A08ABBF0065F44A /* webvtt_smjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B32CA31A08ABBF0065F44A /* webvtt_smjs.c */; };
 		92B32CA91A08AC130065F44A /* vtt_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B32CA71A08AC130065F44A /* vtt_dec.c */; };
 		92B32CAA1A08AC130065F44A /* vtt_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B32CA81A08AC130065F44A /* vtt_in.c */; };
-		92B69EB71A091CFC004E74AA /* h2b2vs.js in Sources */ = {isa = PBXBuildFile; fileRef = 92B69DB31A091CFC004E74AA /* h2b2vs.js */; };
-		92B69EB81A091CFC004E74AA /* init.js in Sources */ = {isa = PBXBuildFile; fileRef = 92B69DB51A091CFC004E74AA /* init.js */; };
-		92B69EB91A091CFC004E74AA /* fileopen.js in Sources */ = {isa = PBXBuildFile; fileRef = 92B69DB81A091CFC004E74AA /* fileopen.js */; };
-		92B69EBA1A091CFC004E74AA /* init.js in Sources */ = {isa = PBXBuildFile; fileRef = 92B69DB91A091CFC004E74AA /* init.js */; };
-		92B69EBB1A091CFC004E74AA /* player.js in Sources */ = {isa = PBXBuildFile; fileRef = 92B69DBA1A091CFC004E74AA /* player.js */; };
-		92B69EBC1A091CFC004E74AA /* playlist.js in Sources */ = {isa = PBXBuildFile; fileRef = 92B69DBB1A091CFC004E74AA /* playlist.js */; };
-		92B69EBD1A091CFC004E74AA /* stats.js in Sources */ = {isa = PBXBuildFile; fileRef = 92B69DBC1A091CFC004E74AA /* stats.js */; };
-		92B69EBE1A091CFC004E74AA /* init.js in Sources */ = {isa = PBXBuildFile; fileRef = 92B69DBF1A091CFC004E74AA /* init.js */; };
-		92B69EBF1A091CFC004E74AA /* gui.js in Sources */ = {isa = PBXBuildFile; fileRef = 92B69DC11A091CFC004E74AA /* gui.js */; };
-		92B69EC11A091CFC004E74AA /* gwlib.js in Sources */ = {isa = PBXBuildFile; fileRef = 92B69DC41A091CFC004E74AA /* gwlib.js */; };
-		92B69EC31A091CFC004E74AA /* mpegu-core.js in Sources */ = {isa = PBXBuildFile; fileRef = 92B69E011A091CFC004E74AA /* mpegu-core.js */; };
-		92B69EC61A091CFC004E74AA /* webvtt-renderer.js in Sources */ = {isa = PBXBuildFile; fileRef = 92B69EB61A091CFC004E74AA /* webvtt-renderer.js */; };
 		92BC210216EF8E7A000E0620 /* aac_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199071278765600ACFF58 /* aac_in.c */; };
 		92BC210316EF8E7A000E0620 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199991278778800ACFF58 /* audio.c */; };
 		92BC210416EF8E7A000E0620 /* bifs_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1990E1278767B00ACFF58 /* bifs_dec.c */; };
@@ -437,7 +426,6 @@
 		92BC213516EF8E7A000E0620 /* unzip.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A199891278777A00ACFF58 /* unzip.c */; };
 		92BC213616EF8E7A000E0620 /* unzip.h in Headers */ = {isa = PBXBuildFile; fileRef = 71A1998A1278777A00ACFF58 /* unzip.h */; };
 		92BC213716EF8E7A000E0620 /* video.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999E1278778800ACFF58 /* video.c */; };
-		92BC213816EF8E7A000E0620 /* video2d.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1999F1278778800ACFF58 /* video2d.c */; };
 		92BC213916EF8E7A000E0620 /* wgt_load.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998B1278777A00ACFF58 /* wgt_load.c */; };
 		92BC213A16EF8E7A000E0620 /* widget.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998D1278777A00ACFF58 /* widget.c */; };
 		92BC213B16EF8E7A000E0620 /* widgetman.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998E1278777A00ACFF58 /* widgetman.c */; };
@@ -502,6 +490,7 @@
 		285DBB9C1712C80E00AF2B9B /* libavformat.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavformat.a; path = ../../extra_lib/lib/iOS/libavformat.a; sourceTree = "<group>"; };
 		285DBB9D1712C80E00AF2B9B /* libavutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libavutil.a; path = ../../extra_lib/lib/iOS/libavutil.a; sourceTree = "<group>"; };
 		285DBB9F1712C80E00AF2B9B /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswscale.a; path = ../../extra_lib/lib/iOS/libswscale.a; sourceTree = "<group>"; };
+		2897039B1A13C4050063E9C0 /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libswresample.a; path = ../../extra_lib/lib/iOS/libswresample.a; sourceTree = "<group>"; };
 		28F2240317D6367000E9D2BE /* ffmpeg_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ffmpeg_decode.c; path = ../../modules/ffmpeg_in/ffmpeg_decode.c; sourceTree = "<group>"; };
 		28F2240517D6369700E9D2BE /* ffmpeg_demux.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ffmpeg_demux.c; path = ../../modules/ffmpeg_in/ffmpeg_demux.c; sourceTree = "<group>"; };
 		28F2240717D636C300E9D2BE /* ffmpeg_in.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ffmpeg_in.h; path = ../../modules/ffmpeg_in/ffmpeg_in.h; sourceTree = "<group>"; };
@@ -563,7 +552,6 @@
 		71A1999C1278778800ACFF58 /* sdl_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sdl_out.c; sourceTree = "<group>"; };
 		71A1999D1278778800ACFF58 /* sdl_out.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sdl_out.h; sourceTree = "<group>"; };
 		71A1999E1278778800ACFF58 /* video.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = video.c; sourceTree = "<group>"; };
-		71A1999F1278778800ACFF58 /* video2d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = video2d.c; sourceTree = "<group>"; };
 		71A19B1A12796B5600ACFF58 /* osmo4ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = osmo4ios.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		71A19B1C12796B5700ACFF58 /* osmo4ios-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "osmo4ios-Info.plist"; path = "../../applications/osmo4_ios/osmo4ios-Info.plist"; sourceTree = "<group>"; };
 		71A19B2012796B6F00ACFF58 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/osmo4_ios/main.c; sourceTree = SOURCE_ROOT; };
@@ -1044,6 +1032,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2897039C1A13C4050063E9C0 /* libswresample.a in Frameworks */,
 				925730A41A0916DB0057FF04 /* libbz2.dylib in Frameworks */,
 				925730A21A0916D20057FF04 /* libiconv.dylib in Frameworks */,
 				285DBBA01712C80E00AF2B9B /* libavcodec.a in Frameworks */,
@@ -1109,6 +1098,7 @@
 		7184780712785F7B00917298 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				2897039B1A13C4050063E9C0 /* libswresample.a */,
 				925730A31A0916DB0057FF04 /* libbz2.dylib */,
 				925730A11A0916D20057FF04 /* libiconv.dylib */,
 				285DBB9B1712C80E00AF2B9B /* libavcodec.a */,
@@ -1220,7 +1210,6 @@
 				71A1999C1278778800ACFF58 /* sdl_out.c */,
 				71A1999D1278778800ACFF58 /* sdl_out.h */,
 				71A1999E1278778800ACFF58 /* video.c */,
-				71A1999F1278778800ACFF58 /* video2d.c */,
 			);
 			name = sdl_out;
 			path = ../../modules/sdl_out;
@@ -2097,7 +2086,12 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0460;
+				LastUpgradeCheck = 0510;
+				TargetAttributes = {
+					71A19B1912796B5600ACFF58 = {
+						DevelopmentTeam = Q46G522WGV;
+					};
+				};
 			};
 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "gpac4ios" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -2171,7 +2165,6 @@
 				92BC213A16EF8E7A000E0620 /* widget.c in Sources */,
 				92BC213B16EF8E7A000E0620 /* widgetman.c in Sources */,
 				92BC213716EF8E7A000E0620 /* video.c in Sources */,
-				92BC213816EF8E7A000E0620 /* video2d.c in Sources */,
 				92BC212916EF8E7A000E0620 /* rtp_in.c in Sources */,
 				92BC212B16EF8E7A000E0620 /* rtp_session.c in Sources */,
 				92BC212C16EF8E7A000E0620 /* rtp_signaling.c in Sources */,
@@ -2467,18 +2460,6 @@
 				92B32CA41A08ABBF0065F44A /* webvtt_smjs.c in Sources */,
 				92B32CA91A08AC130065F44A /* vtt_dec.c in Sources */,
 				92B32CAA1A08AC130065F44A /* vtt_in.c in Sources */,
-				92B69EB71A091CFC004E74AA /* h2b2vs.js in Sources */,
-				92B69EB81A091CFC004E74AA /* init.js in Sources */,
-				92B69EB91A091CFC004E74AA /* fileopen.js in Sources */,
-				92B69EBA1A091CFC004E74AA /* init.js in Sources */,
-				92B69EBB1A091CFC004E74AA /* player.js in Sources */,
-				92B69EBC1A091CFC004E74AA /* playlist.js in Sources */,
-				92B69EBD1A091CFC004E74AA /* stats.js in Sources */,
-				92B69EBE1A091CFC004E74AA /* init.js in Sources */,
-				92B69EBF1A091CFC004E74AA /* gui.js in Sources */,
-				92B69EC11A091CFC004E74AA /* gwlib.js in Sources */,
-				92B69EC31A091CFC004E74AA /* mpegu-core.js in Sources */,
-				92B69EC61A091CFC004E74AA /* webvtt-renderer.js in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2497,6 +2478,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = (
+					armv7,
+					armv7s,
+					armv6,
+				);
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
@@ -2507,7 +2493,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				GCC_VERSION = "";
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
@@ -2515,10 +2501,11 @@
 				);
 				INFOPLIST_FILE = "../../applications/osmo4_ios/osmo4ios-Info.plist";
 				INSTALL_PATH = /Applications;
-				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
+					/Users/enst_devs/project/gpac/trunk/gpac_public/extra_lib/lib/iOS,
 				);
 				MACOSX_DEPLOYMENT_TARGET = "";
 				OTHER_CFLAGS = "";
@@ -2536,14 +2523,18 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				ARCHS = (
+					armv7,
+					armv7s,
+					armv6,
+				);
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEPLOYMENT_LOCATION = YES;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				GCC_VERSION = "";
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
@@ -2551,12 +2542,14 @@
 				);
 				INFOPLIST_FILE = "../../applications/osmo4_ios/osmo4ios-Info.plist";
 				INSTALL_PATH = /Applications;
-				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
+					/Users/enst_devs/project/gpac/trunk/gpac_public/extra_lib/lib/iOS,
 				);
 				MACOSX_DEPLOYMENT_TARGET = "";
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				OTHER_LDFLAGS = "";
@@ -2581,7 +2574,7 @@
 					GPAC_IPHONE,
 				);
 				GCC_THUMB_SUPPORT = NO;
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				GCC_VERSION = "";
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
@@ -2595,7 +2588,7 @@
 					../../extra_lib/include/freetype,
 					../../extra_lib/include,
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
@@ -2617,7 +2610,7 @@
 					GPAC_IPHONE,
 				);
 				GCC_THUMB_SUPPORT = NO;
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				GCC_VERSION = "";
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
@@ -2631,7 +2624,7 @@
 					../../extra_lib/include/freetype,
 					../../extra_lib/include,
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
@@ -2647,7 +2640,6 @@
 		C01FCF4F08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				CLANG_CXX_LIBRARY = "compiler-default";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
@@ -2667,7 +2659,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../include;
 				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
-				ONLY_ACTIVE_ARCH = NO;
+				ONLY_ACTIVE_ARCH = YES;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
@@ -2678,7 +2670,6 @@
 		C01FCF5008A954540054247B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				CLANG_CXX_LIBRARY = "compiler-default";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";

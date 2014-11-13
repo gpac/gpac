@@ -462,8 +462,8 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 		png_set_tRNS_to_alpha(png_ptr);
 		png_read_update_info(png_ptr, info_ptr);
 	}
-	*width = png_get_image_width(png_ptr, info_ptr);
-	*height = png_get_image_height(png_ptr, info_ptr);
+	*width = (u32) png_get_image_width(png_ptr, info_ptr);
+	*height = (u32) png_get_image_height(png_ptr, info_ptr);
 
 	switch (png_get_color_type(png_ptr, info_ptr)) {
 	case PNG_COLOR_TYPE_GRAY:
@@ -485,7 +485,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 
 	}
 
-	out_size = png_get_rowbytes(png_ptr, info_ptr) * png_get_image_height(png_ptr, info_ptr);
+	out_size = (u32) (png_get_rowbytes(png_ptr, info_ptr) * png_get_image_height(png_ptr, info_ptr));
 	/*new cfg, reset*/
 	if (*dst_size != out_size) {
 		*dst_size  = out_size;
@@ -496,7 +496,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	*dst_size  = out_size;
 
 	/*read*/
-	stride = png_get_rowbytes(png_ptr, info_ptr);
+	stride = (u32) png_get_rowbytes(png_ptr, info_ptr);
 	rows = (png_bytepp) gf_malloc(sizeof(png_bytep) * png_get_image_height(png_ptr, info_ptr));
 	for (i=0; i<png_get_image_height(png_ptr, info_ptr); i++) {
 		rows[i] = (png_bytep)dst + i*stride;

@@ -393,7 +393,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 	if (ret) {
 		/* #EXT-X-TARGETDURATION:<seconds> */
 		if (ret[0]) {
-			intValue = strtol(ret[0], &endPtr, 10);
+			intValue = (s32) strtol(ret[0], &endPtr, 10);
 			if (endPtr != ret[0]) {
 				attributes->targetDurationInSeconds = intValue;
 			}
@@ -404,7 +404,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 	if (ret) {
 		/* #EXT-X-MEDIA-SEQUENCE:<number> */
 		if (ret[0]) {
-			intValue = strtol(ret[0], &endPtr, 10);
+			intValue = (s32) strtol(ret[0], &endPtr, 10);
 			if (endPtr != ret[0]) {
 				attributes->minMediaSequence = intValue;
 				attributes->currentMediaSequence = intValue;
@@ -416,7 +416,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 	if (ret) {
 		/* #EXTINF:<duration>,<title> */
 		if (ret[0]) {
-			intValue = strtol(ret[0], &endPtr, 10);
+			intValue = (s32) strtol(ret[0], &endPtr, 10);
 			if (endPtr != ret[0]) {
 				attributes->durationInSeconds = intValue;
 			}
@@ -440,12 +440,12 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 		while (ret[i] != NULL) {
 			if (safe_start_equals("BANDWIDTH=", ret[i])) {
 				utility = &(ret[i][10]);
-				intValue = strtol(utility, &endPtr, 10);
+				intValue = (s32) strtol(utility, &endPtr, 10);
 				if (endPtr != utility)
 					attributes->bandwidth = intValue;
 			} else if (safe_start_equals("PROGRAM-ID=", ret[i])) {
 				utility = &(ret[i][11]);
-				intValue = strtol(utility, &endPtr, 10);
+				intValue = (s32) strtol(utility, &endPtr, 10);
 				if (endPtr != utility)
 					attributes->programId = intValue;
 			} else if (safe_start_equals("CODECS=\"", ret[i])) {

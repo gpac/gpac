@@ -73,7 +73,7 @@
 /*lazy definition of extra libs for iOS*/
 #define GPAC_HAS_FAAD
 #define GPAC_HAS_MAD
-//#define GPAC_HAS_FFMPEG
+#define GPAC_HAS_FFMPEG
 #define GPAC_HAS_SDL
 #define GPAC_HAS_FREETYPE
 
