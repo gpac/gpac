@@ -757,7 +757,7 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 			FILE *f = fopen(url, "rb");
 			if (f) {
 				fseek(f, 0, SEEK_END);
-				data_size = ftell(f);
+				data_size = (u32) ftell(f);
 				fseek(f, 0, SEEK_SET);
 				data = gf_malloc(sizeof(char)*data_size);
 				if (data) {

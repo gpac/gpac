@@ -1498,8 +1498,8 @@ static GF_Err gf_import_avi_video(GF_MediaImporter *import)
 			import->tk_info[i+1].track_num = i+2;
 			import->tk_info[i+1].type = GF_ISOM_MEDIA_AUDIO;
 			import->tk_info[i+1].flags = GF_IMPORT_USE_DATAREF;
-			import->tk_info[i+1].audio_info.sample_rate = AVI_audio_rate(in);
-			import->tk_info[i+1].audio_info.nb_channels = AVI_audio_channels(in);
+			import->tk_info[i+1].audio_info.sample_rate = (u32) AVI_audio_rate(in);
+			import->tk_info[i+1].audio_info.nb_channels = (u32) AVI_audio_channels(in);
 			import->nb_tracks ++;
 		}
 		AVI_close(in);
@@ -1562,7 +1562,7 @@ static GF_Err gf_import_avi_video(GF_MediaImporter *import)
 	max_size = 0;
 	samp_offset = 0;
 	frame = NULL;
-	num_samples = AVI_video_frames(in);
+	num_samples = (u32) AVI_video_frames(in);
 	samp = gf_isom_sample_new();
 	PL = 0;
 	track = 0;
@@ -1904,7 +1904,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 
 	i = 0;
 	tot_size = max_size = 0;
-	while ((size = AVI_audio_size(in, i) )>0) {
+	while ((size = (s32) AVI_audio_size(in, i) )>0) {
 		if (max_size<size) max_size=size;
 		tot_size += size;
 		i++;
@@ -1933,7 +1933,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 			if (max_size) is_cbr = 0;
 			max_size = size;
 		}
-		size = 4 + AVI_read_audio(in, &frame[4], size - 4, &continuous);
+		size = 4 + (s32) AVI_read_audio(in, &frame[4], size - 4, &continuous);
 
 		if ((import->flags & GF_IMPORT_USE_DATAREF) && !continuous) {
 			gf_import_message(import, GF_IO_ERR, "Cannot use media references, splitted input audio frame found");
@@ -2990,7 +2990,7 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 	}
 
 	memcpy(samp->data + offset, dest, sizeof(char)*stream.total_out);
-	samp->dataLength = offset + stream.total_out;
+	samp->dataLength = (u32) (offset + stream.total_out);
 	gf_free(dest);
 
 	deflateEnd(&stream);

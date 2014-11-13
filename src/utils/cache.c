@@ -859,7 +859,7 @@ Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry)
 		entry->cacheSize = ( u32 ) gf_f64_tell ( the_cache );
 		fclose ( the_cache );
 		if (keyValue) {
-			entry->contentLength = strtoul( keyValue, &endPtr, 10);
+			entry->contentLength = (u32) strtoul( keyValue, &endPtr, 10);
 			if (*endPtr!='\0' || entry->contentLength != entry->cacheSize) {
 				entry->flags |= CORRUPTED;
 				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, Cache corrupted: file and cache info size mismatch.\n", __LINE__));

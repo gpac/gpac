@@ -15,10 +15,10 @@ fi
 
 echo "*** Clean previous build files ***"
 #xcodebuild -alltargets -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj clean
-xcodebuild -alltargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj clean
-if [ $? != 0 ] ; then
-	exit 1
-fi
+#xcodebuild -alltargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj clean
+#if [ $? != 0 ] ; then
+#	exit 1
+#fi
 
 echo "*** Compile osmo4ios for iOS (arm) ***"
 #link must occur at debug to avoid optimizing that leads to freezes

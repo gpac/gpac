@@ -85,7 +85,7 @@ static GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len)
 			svg_data[d_stream.total_out - done] = 0;
 			e = gf_sm_load_string(&svgin->loader, svg_data, 0);
 			if (e || (err== Z_STREAM_END)) break;
-			done = d_stream.total_out;
+			done = (u32) d_stream.total_out;
 			d_stream.avail_out = 2048;
 			d_stream.next_out = (Bytef*)svg_data;
 		}

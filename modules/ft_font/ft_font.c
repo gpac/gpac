@@ -127,7 +127,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 	if (FT_New_Face(ftpriv->library, file_path, 0, & face )) return 0;
 	if (!face || !face->family_name) return 0;
 
-	num_faces = face->num_faces;
+	num_faces = (u32) face->num_faces;
 	/*locate right font in collection if several*/
 	for (i=0; i<num_faces; i++) {
 
@@ -560,8 +560,8 @@ int ft_move_to( FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_move_to(ftol->path, INT2FIX(to->x), INT2FIX(to->y) );
-	ftol->last_x = to->x;
-	ftol->last_y = to->y;
+	ftol->last_x = (s32) to->x;
+	ftol->last_y = (s32) to->y;
 	return 0;
 }
 
@@ -645,14 +645,14 @@ static GF_Glyph *ft_load_glyph(GF_FontReader *dr, u32 glyph_name)
 
 	glyph->ID = glyph_name;
 	glyph->utf_name = glyph_name;
-	glyph->horiz_advance = ftpriv->active_face->glyph->metrics.horiAdvance;
-	glyph->vert_advance = ftpriv->active_face->glyph->metrics.vertAdvance;
+	glyph->horiz_advance = (s32) ftpriv->active_face->glyph->metrics.horiAdvance;
+	glyph->vert_advance = (s32) ftpriv->active_face->glyph->metrics.vertAdvance;
 	/*
 		glyph->x = bbox.xMin;
 		glyph->y = bbox.yMax;
 	*/
-	glyph->width = ftpriv->active_face->glyph->metrics.width;
-	glyph->height = ftpriv->active_face->glyph->metrics.height;
+	glyph->width = (u32) ftpriv->active_face->glyph->metrics.width;
+	glyph->height = (u32) ftpriv->active_face->glyph->metrics.height;
 	FT_Done_Glyph((FT_Glyph) outline);
 	return glyph;
 }

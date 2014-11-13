@@ -858,9 +858,9 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 	count = 0;
 	while (count < length) {
 		if (sock->flags & GF_SOCK_HAS_PEER) {
-			res = sendto(sock->socket, (char *) buffer+count,  length - count, 0, (struct sockaddr *) &sock->dest_addr, sock->dest_addr_len);
+			res = (s32) sendto(sock->socket, (char *) buffer+count,  length - count, 0, (struct sockaddr *) &sock->dest_addr, sock->dest_addr_len);
 		} else {
-			res = send(sock->socket, (char *) buffer+count, length - count, 0);
+			res = (s32) send(sock->socket, (char *) buffer+count, length - count, 0);
 		}
 		if (res == SOCKET_ERROR) {
 			switch (res = LASTSOCKERROR) {
@@ -1058,7 +1058,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 		struct sockaddr_in local_address;
 
 		local_address.sin_family = AF_INET;
-		local_address.sin_addr.s_addr = local_add_id;
+		local_address.sin_addr.s_addr = (u32) local_add_id;
 		local_address.sin_port = htons( MultiPortNumber);
 
 		ret = bind(sock->socket, (struct sockaddr *) &local_address, sizeof(local_address));
@@ -1078,7 +1078,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 
 	/*now join the multicast*/
 	M_req.imr_multiaddr.s_addr = inet_addr(multi_IPAdd);
-	M_req.imr_interface.s_addr = local_add_id;
+	M_req.imr_interface.s_addr = (u32) local_add_id;
 
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
 	if (ret == SOCKET_ERROR) {
@@ -1158,9 +1158,9 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 	}
 #endif
 	if (sock->flags & GF_SOCK_HAS_PEER)
-		res = recvfrom(sock->socket, (char *) buffer + startFrom, length - startFrom, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
+		res = (s32) recvfrom(sock->socket, (char *) buffer + startFrom, length - startFrom, 0, (struct sockaddr *)&sock->dest_addr, &sock->dest_addr_len);
 	else {
-		res = recv(sock->socket, (char *) buffer + startFrom, length - startFrom, 0);
+		res = (s32) recv(sock->socket, (char *) buffer + startFrom, length - startFrom, 0);
 		if (res == 0)
 			return GF_IP_CONNECTION_CLOSED;
 	}
@@ -1416,7 +1416,7 @@ GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remo
 #endif
 	count = 0;
 	while (count < length) {
-		res = sendto(sock->socket, (char *) buffer+count, length - count, 0, (struct sockaddr *) &remote_add, remote_add_len);
+		res = (s32) sendto(sock->socket, (char *) buffer+count, length - count, 0, (struct sockaddr *) &remote_add, remote_add_len);
 		if (res == SOCKET_ERROR) {
 			switch (LASTSOCKERROR) {
 			case EAGAIN:
@@ -1469,7 +1469,7 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFr
 #endif
 
 
-	res = recv(sock->socket, (char *) buffer + startFrom, length - startFrom, 0);
+	res = (s32) recv(sock->socket, (char *) buffer + startFrom, length - startFrom, 0);
 	if (res == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EAGAIN:
@@ -1523,7 +1523,7 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 Seco
 	//direct writing
 	count = 0;
 	while (count < length) {
-		res = send(sock->socket, (char *) buffer+count, length - count, 0);
+		res = (s32) send(sock->socket, (char *) buffer+count, length - count, 0);
 		if (res == SOCKET_ERROR) {
 			switch (LASTSOCKERROR) {
 			case EAGAIN:

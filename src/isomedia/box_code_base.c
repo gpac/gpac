@@ -280,7 +280,7 @@ GF_Err cprt_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_int(bs, 0, 15);
 	}
 	if (ptr->notice) {
-		gf_bs_write_data(bs, ptr->notice, (unsigned long)strlen(ptr->notice) + 1);
+		gf_bs_write_data(bs, ptr->notice, (u32) (strlen(ptr->notice) + 1) );
 	}
 	return GF_OK;
 }
@@ -360,9 +360,9 @@ GF_Err kind_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gf_bs_write_data(bs, ptr->schemeURI, (unsigned long)strlen(ptr->schemeURI) + 1);
+	gf_bs_write_data(bs, ptr->schemeURI, (u32) (strlen(ptr->schemeURI) + 1 ));
 	if (ptr->value) {
-		gf_bs_write_data(bs, ptr->value, (unsigned long)strlen(ptr->value) + 1);
+		gf_bs_write_data(bs, ptr->value, (u32) (strlen(ptr->value) + 1) );
 	}
 	return GF_OK;
 }

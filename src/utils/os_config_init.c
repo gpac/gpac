@@ -364,7 +364,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		/*iOS app is distributed with embedded GUI*/
 		get_default_install_path(app_path, GF_PATH_APP);
 		strcat(app_path, "/gui");
-		if (check_file_exists("gui_old.bt", app_path, file_path)) return 1;
+		if (check_file_exists("gui.bt", app_path, file_path)) return 1;
 #endif
 	}
 	else { // (path_type==GF_PATH_MODULES)

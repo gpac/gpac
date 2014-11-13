@@ -166,7 +166,7 @@ void gf_bt_check_line(GF_BTParser *parser)
 		}
 
 next_line:
-		parser->line_start_pos = gztell(parser->gz_in);
+		parser->line_start_pos = (s32) gztell(parser->gz_in);
 		parser->line_buffer[0] = 0;
 		if (parser->unicode_type) {
 			u8 c1, c2;
@@ -202,13 +202,13 @@ next_line:
 					break;
 				}
 				else if (is_ret && wchar!='\n') {
-					u32 fpos = gztell(parser->gz_in);
+					u32 fpos = (u32) gztell(parser->gz_in);
 					gzseek(parser->gz_in, fpos-2, SEEK_SET);
 					is_ret = 1;
 					break;
 				}
 				if (wchar==' ') {
-					last_space_pos_stream = gztell(parser->gz_in);
+					last_space_pos_stream = (u32) gztell(parser->gz_in);
 					last_space_pos = (u32) (dst - l);
 				}
 				dst++;
@@ -260,7 +260,7 @@ next_line:
 						break;
 					}
 				}
-				pos = gztell(parser->gz_in);
+				pos = (u32) gztell(parser->gz_in);
 				gzseek(parser->gz_in, pos-rew, SEEK_SET);
 			}
 		}
@@ -281,7 +281,7 @@ next_line:
 		parser->line++;
 
 		{
-			u32 pos = gztell(parser->gz_in);
+			u32 pos = (u32) gztell(parser->gz_in);
 			if (pos>=parser->file_pos) {
 				parser->file_pos = pos;
 				if (parser->line>1) gf_set_progress("BT Parsing", pos, parser->file_size);

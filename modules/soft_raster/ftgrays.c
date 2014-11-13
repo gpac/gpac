@@ -155,7 +155,7 @@ static GFINLINE void gray_record_cell( TRaster *raster )
 {
 	if (( raster->area | raster->cover) && (raster->ey<raster->max_ey)) {
 		AACell *cell;
-		int y = raster->ey - raster->min_ey;
+		long y = raster->ey - raster->min_ey;
 		if (y>=0) {
 			AAScanline *sl = &raster->scanlines[y];
 			if (sl->num >= sl->alloc) {
@@ -695,7 +695,7 @@ static void gray_sweep_line( TRaster *raster, AAScanline *sl, int y, Bool zero_n
 		if ( cur->x > x )
 			gray_hline( raster, x, y, cover * ( ONE_PIXEL * 2 ), cur->x - x, zero_non_zero_rule);
 	}
-	raster->render_span(y + raster->min_ey, raster->num_gray_spans, raster->gray_spans, raster->render_span_data );
+	raster->render_span((int) (y + raster->min_ey), raster->num_gray_spans, raster->gray_spans, raster->render_span_data );
 }
 
 
@@ -720,15 +720,15 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 	raster->mx = params->mx;
 #endif
 
-	size_y = raster->max_ey - raster->min_ey;
+	size_y = (int) (raster->max_ey - raster->min_ey);
 	if (raster->max_lines < size_y) {
 		raster->scanlines = (AAScanline*)gf_realloc(raster->scanlines, sizeof(AAScanline)*size_y);
 		memset(&raster->scanlines[raster->max_lines], 0, sizeof(AAScanline)*(size_y-raster->max_lines) );
 		raster->max_lines = size_y;
 	}
 
-	raster->ex = raster->max_ex+1;
-	raster->ey = raster->max_ey+1;
+	raster->ex = (int) (raster->max_ex+1);
+	raster->ey = (int) (raster->max_ey+1);
 	raster->cover = 0;
 	raster->area = 0;
 	EVG_Outline_Decompose(outline, raster);
