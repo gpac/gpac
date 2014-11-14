@@ -1269,9 +1269,8 @@ typedef struct
 	u32 switchGroupID;
 } TSELAction;
 
-static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_act)
+static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_act, TSELActionType act)
 {
-	TSELActionType act;
 	u32 refTrackID = 0;
 	Bool has_switch_id;
 	u32 switch_id = 0;
@@ -1282,7 +1281,6 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 	TSELAction *tsel_list = *__tsel_list;
 
 	has_switch_id = 0;
-	act = tsel_list[*nb_tsel_act].act_type;
 
 
 	if (!opts) return 0;
@@ -1320,7 +1318,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 			}
 		}
 		else if (!strnicmp(szSlot, "trackID=", 8) || !strchr(szSlot, '=') ) {
-			__tsel_list = gf_realloc(__tsel_list, sizeof(TSELAction) * (*nb_tsel_act + 1));
+			*__tsel_list = gf_realloc(*__tsel_list, sizeof(TSELAction) * (*nb_tsel_act + 1));
 			tsel_list = *__tsel_list;
 
 			tsel_act = &tsel_list[*nb_tsel_act];
@@ -2850,14 +2848,15 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-group-add") || !stricmp(arg, "-group-rem-track") || !stricmp(arg, "-group-rem")) {
+			TSELActionType act_type;
 			if (!stricmp(arg, "-group-rem")) {
-				tsel_acts[nb_tsel_acts].act_type = TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP;
+				act_type = TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP;
 			} else if ( !stricmp(arg, "-group-rem-track")) {
-				tsel_acts[nb_tsel_acts].act_type = TSEL_ACTION_REMOVE_TSEL;
+				act_type = TSEL_ACTION_REMOVE_TSEL;
 			} else {
-				tsel_acts[nb_tsel_acts].act_type = TSEL_ACTION_SET_PARAM;
+				act_type = TSEL_ACTION_SET_PARAM;
 			}
-			if (parse_tsel_args(&tsel_acts, argv[i+1], &nb_tsel_acts)==0) {
+			if (parse_tsel_args(&tsel_acts, argv[i+1], &nb_tsel_acts, act_type)==0) {
 				fprintf(stderr, "Invalid group syntax - check usage\n");
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
