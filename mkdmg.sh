@@ -41,8 +41,7 @@ cp bin/gcc/libgpac.dylib tmpdmg/Osmo4.app/Contents/MacOS/lib
 cp bin/gcc/MP4Client tmpdmg/Osmo4.app/Contents/MacOS/Osmo4
 cp bin/gcc/MP4Box tmpdmg/Osmo4.app/Contents/MacOS/MP4Box
 cp bin/gcc/MP42TS tmpdmg/Osmo4.app/Contents/MacOS/MP42TS
-
-if [ -e bin/gcc/DashCast ];
+if [ -f bin/gcc/DashCast ]
 then
 cp bin/gcc/DashCast tmpdmg/Osmo4.app/Contents/MacOS/DashCast
 fi
@@ -64,6 +63,11 @@ install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib MP42TS
 
+if [ -f DashCast ]
+then
+install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib DashCast
+install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib DashCast
+fi
 
 cd ../../../..
 
