@@ -42,6 +42,11 @@ cp bin/gcc/MP4Client tmpdmg/Osmo4.app/Contents/MacOS/Osmo4
 cp bin/gcc/MP4Box tmpdmg/Osmo4.app/Contents/MacOS/MP4Box
 cp bin/gcc/MP42TS tmpdmg/Osmo4.app/Contents/MacOS/MP42TS
 
+if [ -e bin/gcc/DashCast ];
+then
+cp bin/gcc/DashCast tmpdmg/Osmo4.app/Contents/MacOS/DashCast
+fi
+
 cd tmpdmg/Osmo4.app/Contents/MacOS/
 
 #check all external deps, and copy them
@@ -93,7 +98,7 @@ echo "Adding licence"
 hdiutil convert -format UDCO -o gpac_sla.dmg gpac.dmg
 rm gpac.dmg
 hdiutil unflatten gpac_sla.dmg
-/Developer/Tools/Rez /Developer/Headers/FlatCarbon/*.r $source_path/build/osxdmg/SLA.r -a -o gpac_sla.dmg
+Rez /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CarbonCore.framework/Versions/A/Headers/*.r $source_path/build/osxdmg/SLA.r -a -o gpac_sla.dmg
 hdiutil flatten gpac_sla.dmg
 hdiutil internet-enable -yes gpac_sla.dmg
 

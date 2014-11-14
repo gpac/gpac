@@ -251,10 +251,10 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 	got_pic = 0;
 	nalu_size = 0;
 	ptr = (u8 *) inBuffer;
+    sc_size = 0;
 
 	if (!ctx->nalu_size_length) {
 		u32 size;
-		sc_size = 0;
 		size = gf_media_nalu_next_start_code((u8 *) inBuffer, inBufferLength, &sc_size);
 		if (sc_size) {
 			ptr += size+sc_size;
@@ -274,7 +274,6 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 			}
 			ptr += ctx->nalu_size_length;
 		} else {
-			u32 sc_size;
 			nalu_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
 		}
 #ifndef GPAC_DISABLE_LOG

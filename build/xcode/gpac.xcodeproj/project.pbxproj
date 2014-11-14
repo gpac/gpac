@@ -7,6 +7,34 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2839E2821A162C48002D73E1 /* opensvc_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1D018D70D4B00E2FF12 /* opensvc_dec.c */; };
+		2839E2831A162CC9002D73E1 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		2839E28D1A1635F7002D73E1 /* DashCast.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2839E28C1A1635F7002D73E1 /* DashCast.1 */; };
+		2839E2B21A16363E002D73E1 /* audio_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2921A16363E002D73E1 /* audio_data.c */; };
+		2839E2B31A16363E002D73E1 /* audio_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2941A16363E002D73E1 /* audio_decoder.c */; };
+		2839E2B41A16363E002D73E1 /* audio_encoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2961A16363E002D73E1 /* audio_encoder.c */; };
+		2839E2B51A16363E002D73E1 /* audio_muxer.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2981A16363E002D73E1 /* audio_muxer.c */; };
+		2839E2B61A16363E002D73E1 /* circular_buffer.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E29A1A16363E002D73E1 /* circular_buffer.c */; };
+		2839E2B71A16363E002D73E1 /* cmd_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E29C1A16363E002D73E1 /* cmd_data.c */; };
+		2839E2B81A16363E002D73E1 /* controler.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E29E1A16363E002D73E1 /* controler.c */; };
+		2839E2B91A16363E002D73E1 /* dashcast.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2A01A16363E002D73E1 /* dashcast.c */; };
+		2839E2BA1A16363E002D73E1 /* message_queue.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2A21A16363E002D73E1 /* message_queue.c */; };
+		2839E2BB1A16363E002D73E1 /* register.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2A41A16363E002D73E1 /* register.c */; };
+		2839E2BC1A16363E002D73E1 /* task.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2A61A16363E002D73E1 /* task.c */; };
+		2839E2BD1A16363E002D73E1 /* video_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2A81A16363E002D73E1 /* video_data.c */; };
+		2839E2BE1A16363E002D73E1 /* video_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2AA1A16363E002D73E1 /* video_decoder.c */; };
+		2839E2BF1A16363E002D73E1 /* video_encoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2AC1A16363E002D73E1 /* video_encoder.c */; };
+		2839E2C01A16363E002D73E1 /* video_muxer.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2AE1A16363E002D73E1 /* video_muxer.c */; };
+		2839E2C11A16363E002D73E1 /* video_scaler.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2B01A16363E002D73E1 /* video_scaler.c */; };
+		2839E2C21A1636A7002D73E1 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		2839E2C31A163700002D73E1 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA641A15240800372C59 /* AVFoundation.framework */; };
+		2839E2C51A163712002D73E1 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2C41A163711002D73E1 /* CoreMedia.framework */; };
+		2839E2CB1A16375C002D73E1 /* QTKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2CA1A16375C002D73E1 /* QTKit.framework */; };
+		2839E2CD1A163E1E002D73E1 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2CC1A163E1E002D73E1 /* Foundation.framework */; };
+		28C5AA651A15240800372C59 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA641A15240800372C59 /* AVFoundation.framework */; };
+		28C5AA671A152BB700372C59 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA661A152BB700372C59 /* CoreFoundation.framework */; };
+		28C5AA691A152BC400372C59 /* VideoDecodeAcceleration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA681A152BC400372C59 /* VideoDecodeAcceleration.framework */; };
+		28C5AA801A16277200372C59 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA741A15FF0000372C59 /* Carbon.framework */; };
 		920100B018D5A444003D1ACA /* arith_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8A18D5A444003D1ACA /* arith_decoder.c */; };
 		920100B118D5A444003D1ACA /* bifs_codec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8B18D5A444003D1ACA /* bifs_codec.c */; };
 		920100B218D5A444003D1ACA /* bifs_node_tables.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201FF8C18D5A444003D1ACA /* bifs_node_tables.c */; };
@@ -288,7 +316,6 @@
 		9225733318D7269700D6FD98 /* vorbis_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9225732E18D7269700D6FD98 /* vorbis_dec.c */; };
 		9225733418D726D800D6FD98 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		929F891C19FE83AE0076FC13 /* carbon_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 929F891B19FE83AE0076FC13 /* carbon_events.c */; };
-		929F891F19FE84AB0076FC13 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 929F891E19FE84AB0076FC13 /* Carbon.framework */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
 		92AAF0E518D6DB8600E2FF12 /* sdl_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */; };
 		92AAF0E618D6DB8600E2FF12 /* sdl_out.h in Headers */ = {isa = PBXBuildFile; fileRef = 92AAF0DB18D6DB5500E2FF12 /* sdl_out.h */; };
@@ -364,13 +391,8 @@
 		92AAF1B918D70A5200E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92AAF1C518D70B4600E2FF12 /* openhevc_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1C318D70B4100E2FF12 /* openhevc_dec.c */; };
 		92AAF1C618D70BAE00E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
-		92AAF1D218D70D5100E2FF12 /* opensvc_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1D018D70D4B00E2FF12 /* opensvc_dec.c */; };
-		92AAF1D318D70DE500E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92AAF1D918D710A000E2FF12 /* vtt_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1D518D7109A00E2FF12 /* vtt_dec.c */; };
 		92AAF1DA18D710A000E2FF12 /* vtt_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1D618D7109A00E2FF12 /* vtt_in.c */; };
-		92AAF1E318D7129A00E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
-		92AAF1EA18D712C500E2FF12 /* x11_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1E718D712C500E2FF12 /* x11_out.c */; };
-		92AAF1EB18D712C500E2FF12 /* x11_out.h in Headers */ = {isa = PBXBuildFile; fileRef = 92AAF1E818D712C500E2FF12 /* x11_out.h */; };
 		92BE50A318D632DA00AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92BE50A818D6348A00AA59D8 /* filedump.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BE50A418D6348A00AA59D8 /* filedump.c */; };
 		92BE50A918D6348A00AA59D8 /* fileimport.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BE50A518D6348A00AA59D8 /* fileimport.c */; };
@@ -424,20 +446,6 @@
 			remoteGlobalIDString = 92AAF1BD18D70B1C00E2FF12;
 			remoteInfo = openhevc_dec;
 		};
-		9225731618D717BA00D6FD98 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 9201F92918D5A359003D1ACA /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 92AAF1CA18D70C3100E2FF12;
-			remoteInfo = opensvc_dec;
-		};
-		9225731818D717BD00D6FD98 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 9201F92918D5A359003D1ACA /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 92AAF1DE18D7126900E2FF12;
-			remoteInfo = x11_out;
-		};
 		9225733518D727B500D6FD98 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 9201F92918D5A359003D1ACA /* Project object */;
@@ -469,6 +477,16 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		2839E2861A1635F7002D73E1 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+				2839E28D1A1635F7002D73E1 /* DashCast.1 in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		92BE508E18D6325E00AA59D8 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -499,6 +517,61 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2839E27E1A162C24002D73E1 /* libopensvc.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libopensvc.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		2839E2881A1635F7002D73E1 /* DashCast */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DashCast; sourceTree = BUILT_PRODUCTS_DIR; };
+		2839E28A1A1635F7002D73E1 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		2839E28C1A1635F7002D73E1 /* DashCast.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = DashCast.1; sourceTree = "<group>"; };
+		2839E2921A16363E002D73E1 /* audio_data.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio_data.c; path = ../../applications/dashcast/audio_data.c; sourceTree = "<group>"; };
+		2839E2931A16363E002D73E1 /* audio_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = audio_data.h; path = ../../applications/dashcast/audio_data.h; sourceTree = "<group>"; };
+		2839E2941A16363E002D73E1 /* audio_decoder.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio_decoder.c; path = ../../applications/dashcast/audio_decoder.c; sourceTree = "<group>"; };
+		2839E2951A16363E002D73E1 /* audio_decoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = audio_decoder.h; path = ../../applications/dashcast/audio_decoder.h; sourceTree = "<group>"; };
+		2839E2961A16363E002D73E1 /* audio_encoder.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio_encoder.c; path = ../../applications/dashcast/audio_encoder.c; sourceTree = "<group>"; };
+		2839E2971A16363E002D73E1 /* audio_encoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = audio_encoder.h; path = ../../applications/dashcast/audio_encoder.h; sourceTree = "<group>"; };
+		2839E2981A16363E002D73E1 /* audio_muxer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio_muxer.c; path = ../../applications/dashcast/audio_muxer.c; sourceTree = "<group>"; };
+		2839E2991A16363E002D73E1 /* audio_muxer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = audio_muxer.h; path = ../../applications/dashcast/audio_muxer.h; sourceTree = "<group>"; };
+		2839E29A1A16363E002D73E1 /* circular_buffer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = circular_buffer.c; path = ../../applications/dashcast/circular_buffer.c; sourceTree = "<group>"; };
+		2839E29B1A16363E002D73E1 /* circular_buffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = circular_buffer.h; path = ../../applications/dashcast/circular_buffer.h; sourceTree = "<group>"; };
+		2839E29C1A16363E002D73E1 /* cmd_data.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = cmd_data.c; path = ../../applications/dashcast/cmd_data.c; sourceTree = "<group>"; };
+		2839E29D1A16363E002D73E1 /* cmd_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = cmd_data.h; path = ../../applications/dashcast/cmd_data.h; sourceTree = "<group>"; };
+		2839E29E1A16363E002D73E1 /* controler.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = controler.c; path = ../../applications/dashcast/controler.c; sourceTree = "<group>"; };
+		2839E29F1A16363E002D73E1 /* controler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = controler.h; path = ../../applications/dashcast/controler.h; sourceTree = "<group>"; };
+		2839E2A01A16363E002D73E1 /* dashcast.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dashcast.c; path = ../../applications/dashcast/dashcast.c; sourceTree = "<group>"; };
+		2839E2A11A16363E002D73E1 /* libav_compat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = libav_compat.h; path = ../../applications/dashcast/libav_compat.h; sourceTree = "<group>"; };
+		2839E2A21A16363E002D73E1 /* message_queue.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = message_queue.c; path = ../../applications/dashcast/message_queue.c; sourceTree = "<group>"; };
+		2839E2A31A16363E002D73E1 /* message_queue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = message_queue.h; path = ../../applications/dashcast/message_queue.h; sourceTree = "<group>"; };
+		2839E2A41A16363E002D73E1 /* register.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = register.c; path = ../../applications/dashcast/register.c; sourceTree = "<group>"; };
+		2839E2A51A16363E002D73E1 /* register.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = register.h; path = ../../applications/dashcast/register.h; sourceTree = "<group>"; };
+		2839E2A61A16363E002D73E1 /* task.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = task.c; path = ../../applications/dashcast/task.c; sourceTree = "<group>"; };
+		2839E2A71A16363E002D73E1 /* task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = task.h; path = ../../applications/dashcast/task.h; sourceTree = "<group>"; };
+		2839E2A81A16363E002D73E1 /* video_data.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = video_data.c; path = ../../applications/dashcast/video_data.c; sourceTree = "<group>"; };
+		2839E2A91A16363E002D73E1 /* video_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = video_data.h; path = ../../applications/dashcast/video_data.h; sourceTree = "<group>"; };
+		2839E2AA1A16363E002D73E1 /* video_decoder.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = video_decoder.c; path = ../../applications/dashcast/video_decoder.c; sourceTree = "<group>"; };
+		2839E2AB1A16363E002D73E1 /* video_decoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = video_decoder.h; path = ../../applications/dashcast/video_decoder.h; sourceTree = "<group>"; };
+		2839E2AC1A16363E002D73E1 /* video_encoder.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = video_encoder.c; path = ../../applications/dashcast/video_encoder.c; sourceTree = "<group>"; };
+		2839E2AD1A16363E002D73E1 /* video_encoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = video_encoder.h; path = ../../applications/dashcast/video_encoder.h; sourceTree = "<group>"; };
+		2839E2AE1A16363E002D73E1 /* video_muxer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = video_muxer.c; path = ../../applications/dashcast/video_muxer.c; sourceTree = "<group>"; };
+		2839E2AF1A16363E002D73E1 /* video_muxer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = video_muxer.h; path = ../../applications/dashcast/video_muxer.h; sourceTree = "<group>"; };
+		2839E2B01A16363E002D73E1 /* video_scaler.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = video_scaler.c; path = ../../applications/dashcast/video_scaler.c; sourceTree = "<group>"; };
+		2839E2B11A16363E002D73E1 /* video_scaler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = video_scaler.h; path = ../../applications/dashcast/video_scaler.h; sourceTree = "<group>"; };
+		2839E2C41A163711002D73E1 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+		2839E2C61A16371B002D73E1 /* CoreMediaIO.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMediaIO.framework; path = System/Library/Frameworks/CoreMediaIO.framework; sourceTree = SDKROOT; };
+		2839E2C81A16373B002D73E1 /* QuickTime.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickTime.framework; path = System/Library/Frameworks/QuickTime.framework; sourceTree = SDKROOT; };
+		2839E2CA1A16375C002D73E1 /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = System/Library/Frameworks/QTKit.framework; sourceTree = SDKROOT; };
+		2839E2CC1A163E1E002D73E1 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		28C5AA621A1523A600372C59 /* libOpenSVCDec.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libOpenSVCDec.a; path = ../../extra_lib/lib/gcc/libOpenSVCDec.a; sourceTree = "<group>"; };
+		28C5AA641A15240800372C59 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
+		28C5AA661A152BB700372C59 /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		28C5AA681A152BC400372C59 /* VideoDecodeAcceleration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoDecodeAcceleration.framework; path = System/Library/Frameworks/VideoDecodeAcceleration.framework; sourceTree = SDKROOT; };
+		28C5AA6A1A15FCD200372C59 /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = System/Library/Frameworks/ApplicationServices.framework; sourceTree = SDKROOT; };
+		28C5AA6C1A15FE4A00372C59 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
+		28C5AA6E1A15FE7300372C59 /* AudioUnit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioUnit.framework; path = System/Library/Frameworks/AudioUnit.framework; sourceTree = SDKROOT; };
+		28C5AA701A15FE8C00372C59 /* ForceFeedback.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ForceFeedback.framework; path = System/Library/Frameworks/ForceFeedback.framework; sourceTree = SDKROOT; };
+		28C5AA721A15FED100372C59 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		28C5AA741A15FF0000372C59 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = System/Library/Frameworks/Carbon.framework; sourceTree = SDKROOT; };
+		28C5AA761A15FF2600372C59 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		28C5AA781A15FF3600372C59 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
+		28C5AA7A1A15FF4700372C59 /* libiconv.2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.dylib; path = usr/lib/libiconv.2.dylib; sourceTree = SDKROOT; };
+		28C5AA7C1A15FF5700372C59 /* libiconv.2.4.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.2.4.0.dylib; path = usr/lib/libiconv.2.4.0.dylib; sourceTree = SDKROOT; };
 		9201000018D5A444003D1ACA /* isom_intern.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_intern.c; sourceTree = "<group>"; };
 		9201000118D5A444003D1ACA /* isom_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_read.c; sourceTree = "<group>"; };
 		9201000218D5A444003D1ACA /* isom_store.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = isom_store.c; sourceTree = "<group>"; };
@@ -1035,7 +1108,6 @@
 		9225732D18D7269700D6FD98 /* theora_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = theora_dec.c; path = ../../modules/ogg/theora_dec.c; sourceTree = "<group>"; };
 		9225732E18D7269700D6FD98 /* vorbis_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vorbis_dec.c; path = ../../modules/ogg/vorbis_dec.c; sourceTree = "<group>"; };
 		929F891B19FE83AE0076FC13 /* carbon_events.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
-		929F891E19FE84AB0076FC13 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = SDKs/MacOSX10.6.sdk/System/Library/Frameworks/Carbon.framework; sourceTree = DEVELOPER_DIR; };
 		92AAF0D318D6DB2D00E2FF12 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF0D818D6DB5500E2FF12 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio.c; path = ../../modules/sdl_out/audio.c; sourceTree = "<group>"; };
 		92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sdl_out.c; path = ../../modules/sdl_out/sdl_out.c; sourceTree = "<group>"; };
@@ -1102,13 +1174,9 @@
 		92AAF1B418D70A0A00E2FF12 /* mp3_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mp3_in.c; path = ../../modules/mp3_in/mp3_in.c; sourceTree = "<group>"; };
 		92AAF1BE18D70B1C00E2FF12 /* gm_openhevc_dec.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_openhevc_dec.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF1C318D70B4100E2FF12 /* openhevc_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = openhevc_dec.c; path = ../../modules/openhevc_dec/openhevc_dec.c; sourceTree = "<group>"; };
-		92AAF1CB18D70C3100E2FF12 /* gm_opensvc_dec.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_opensvc_dec.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF1D018D70D4B00E2FF12 /* opensvc_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = opensvc_dec.c; path = ../../modules/opensvc_dec/opensvc_dec.c; sourceTree = "<group>"; };
 		92AAF1D518D7109A00E2FF12 /* vtt_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vtt_dec.c; path = ../../modules/vtt_in/vtt_dec.c; sourceTree = "<group>"; };
 		92AAF1D618D7109A00E2FF12 /* vtt_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vtt_in.c; path = ../../modules/vtt_in/vtt_in.c; sourceTree = "<group>"; };
-		92AAF1DF18D7126900E2FF12 /* gm_x11_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_x11_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
-		92AAF1E718D712C500E2FF12 /* x11_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = x11_out.c; path = ../../modules/x11_out/x11_out.c; sourceTree = "<group>"; };
-		92AAF1E818D712C500E2FF12 /* x11_out.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = x11_out.h; path = ../../modules/x11_out/x11_out.h; sourceTree = "<group>"; };
 		92BE509018D6325E00AA59D8 /* MP4Box */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MP4Box; sourceTree = BUILT_PRODUCTS_DIR; };
 		92BE50A418D6348A00AA59D8 /* filedump.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filedump.c; path = ../../applications/mp4box/filedump.c; sourceTree = SOURCE_ROOT; };
 		92BE50A518D6348A00AA59D8 /* fileimport.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = fileimport.c; path = ../../applications/mp4box/fileimport.c; sourceTree = SOURCE_ROOT; };
@@ -1131,6 +1199,26 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		2839E27B1A162C24002D73E1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2839E2831A162CC9002D73E1 /* libgpac.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2839E2851A1635F7002D73E1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2839E2CD1A163E1E002D73E1 /* Foundation.framework in Frameworks */,
+				2839E2CB1A16375C002D73E1 /* QTKit.framework in Frameworks */,
+				2839E2C51A163712002D73E1 /* CoreMedia.framework in Frameworks */,
+				2839E2C31A163700002D73E1 /* AVFoundation.framework in Frameworks */,
+				2839E2C21A1636A7002D73E1 /* libgpac.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9201F93418D5A38A003D1ACA /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -1184,6 +1272,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				28C5AA691A152BC400372C59 /* VideoDecodeAcceleration.framework in Frameworks */,
+				28C5AA671A152BB700372C59 /* CoreFoundation.framework in Frameworks */,
+				28C5AA651A15240800372C59 /* AVFoundation.framework in Frameworks */,
 				92AAF19C18D6FDD900E2FF12 /* libgpac.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1201,22 +1292,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				92AAF1C618D70BAE00E2FF12 /* libgpac.dylib in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		92AAF1C818D70C3100E2FF12 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				92AAF1D318D70DE500E2FF12 /* libgpac.dylib in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		92AAF1DC18D7126900E2FF12 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				92AAF1E318D7129A00E2FF12 /* libgpac.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1240,7 +1315,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				929F891F19FE84AB0076FC13 /* Carbon.framework in Frameworks */,
+				28C5AA801A16277200372C59 /* Carbon.framework in Frameworks */,
 				92BE50D518D6D66C00AA59D8 /* libgpac.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1248,6 +1323,54 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2839E2891A1635F7002D73E1 /* DashCast */ = {
+			isa = PBXGroup;
+			children = (
+				2839E28A1A1635F7002D73E1 /* main.c */,
+				2839E28C1A1635F7002D73E1 /* DashCast.1 */,
+			);
+			path = DashCast;
+			sourceTree = "<group>";
+		};
+		2839E2911A1635FE002D73E1 /* DashCast */ = {
+			isa = PBXGroup;
+			children = (
+				2839E2921A16363E002D73E1 /* audio_data.c */,
+				2839E2931A16363E002D73E1 /* audio_data.h */,
+				2839E2941A16363E002D73E1 /* audio_decoder.c */,
+				2839E2951A16363E002D73E1 /* audio_decoder.h */,
+				2839E2961A16363E002D73E1 /* audio_encoder.c */,
+				2839E2971A16363E002D73E1 /* audio_encoder.h */,
+				2839E2981A16363E002D73E1 /* audio_muxer.c */,
+				2839E2991A16363E002D73E1 /* audio_muxer.h */,
+				2839E29A1A16363E002D73E1 /* circular_buffer.c */,
+				2839E29B1A16363E002D73E1 /* circular_buffer.h */,
+				2839E29C1A16363E002D73E1 /* cmd_data.c */,
+				2839E29D1A16363E002D73E1 /* cmd_data.h */,
+				2839E29E1A16363E002D73E1 /* controler.c */,
+				2839E29F1A16363E002D73E1 /* controler.h */,
+				2839E2A01A16363E002D73E1 /* dashcast.c */,
+				2839E2A11A16363E002D73E1 /* libav_compat.h */,
+				2839E2A21A16363E002D73E1 /* message_queue.c */,
+				2839E2A31A16363E002D73E1 /* message_queue.h */,
+				2839E2A41A16363E002D73E1 /* register.c */,
+				2839E2A51A16363E002D73E1 /* register.h */,
+				2839E2A61A16363E002D73E1 /* task.c */,
+				2839E2A71A16363E002D73E1 /* task.h */,
+				2839E2A81A16363E002D73E1 /* video_data.c */,
+				2839E2A91A16363E002D73E1 /* video_data.h */,
+				2839E2AA1A16363E002D73E1 /* video_decoder.c */,
+				2839E2AB1A16363E002D73E1 /* video_decoder.h */,
+				2839E2AC1A16363E002D73E1 /* video_encoder.c */,
+				2839E2AD1A16363E002D73E1 /* video_encoder.h */,
+				2839E2AE1A16363E002D73E1 /* video_muxer.c */,
+				2839E2AF1A16363E002D73E1 /* video_muxer.h */,
+				2839E2B01A16363E002D73E1 /* video_scaler.c */,
+				2839E2B11A16363E002D73E1 /* video_scaler.h */,
+			);
+			name = DashCast;
+			sourceTree = "<group>";
+		};
 		9201000E18D5A444003D1ACA /* laser */ = {
 			isa = PBXGroup;
 			children = (
@@ -1454,11 +1577,30 @@
 		9201F92718D5A359003D1ACA = {
 			isa = PBXGroup;
 			children = (
-				929F891E19FE84AB0076FC13 /* Carbon.framework */,
+				2839E2CC1A163E1E002D73E1 /* Foundation.framework */,
+				2839E2CA1A16375C002D73E1 /* QTKit.framework */,
+				2839E2C81A16373B002D73E1 /* QuickTime.framework */,
+				2839E2C61A16371B002D73E1 /* CoreMediaIO.framework */,
+				2839E2C41A163711002D73E1 /* CoreMedia.framework */,
+				28C5AA7C1A15FF5700372C59 /* libiconv.2.4.0.dylib */,
+				28C5AA7A1A15FF4700372C59 /* libiconv.2.dylib */,
+				28C5AA781A15FF3600372C59 /* libiconv.dylib */,
+				28C5AA761A15FF2600372C59 /* Cocoa.framework */,
+				28C5AA741A15FF0000372C59 /* Carbon.framework */,
+				28C5AA721A15FED100372C59 /* IOKit.framework */,
+				28C5AA701A15FE8C00372C59 /* ForceFeedback.framework */,
+				28C5AA6E1A15FE7300372C59 /* AudioUnit.framework */,
+				28C5AA6C1A15FE4A00372C59 /* CoreAudio.framework */,
+				28C5AA6A1A15FCD200372C59 /* ApplicationServices.framework */,
+				28C5AA681A152BC400372C59 /* VideoDecodeAcceleration.framework */,
+				28C5AA661A152BB700372C59 /* CoreFoundation.framework */,
+				28C5AA641A15240800372C59 /* AVFoundation.framework */,
+				28C5AA621A1523A600372C59 /* libOpenSVCDec.a */,
 				92BE50AE18D6378C00AA59D8 /* xcode */,
 				92BE50AC18D6375100AA59D8 /* applications */,
 				92BE50AD18D6376A00AA59D8 /* modules */,
 				9201FE7E18D5A444003D1ACA /* libgpac */,
+				2839E2891A1635F7002D73E1 /* DashCast */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1476,9 +1618,9 @@
 				92AAF19818D6FDC300E2FF12 /* gm_ffmpeg_in.dylib */,
 				92AAF1AE18D709D900E2FF12 /* gm_mp3_in.dylib */,
 				92AAF1BE18D70B1C00E2FF12 /* gm_openhevc_dec.dylib */,
-				92AAF1CB18D70C3100E2FF12 /* gm_opensvc_dec.dylib */,
-				92AAF1DF18D7126900E2FF12 /* gm_x11_out.dylib */,
 				9225732418D7267900D6FD98 /* gm_ogg_in.dylib */,
+				2839E27E1A162C24002D73E1 /* libopensvc.dylib */,
+				2839E2881A1635F7002D73E1 /* DashCast */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -2323,15 +2465,6 @@
 			name = vtt_in;
 			sourceTree = "<group>";
 		};
-		92AAF1E418D712A300E2FF12 /* x11_out */ = {
-			isa = PBXGroup;
-			children = (
-				92AAF1E718D712C500E2FF12 /* x11_out.c */,
-				92AAF1E818D712C500E2FF12 /* x11_out.h */,
-			);
-			name = x11_out;
-			sourceTree = "<group>";
-		};
 		92BE509218D6325E00AA59D8 /* MP4Box */ = {
 			isa = PBXGroup;
 			children = (
@@ -2346,6 +2479,7 @@
 		92BE50AC18D6375100AA59D8 /* applications */ = {
 			isa = PBXGroup;
 			children = (
+				2839E2911A1635FE002D73E1 /* DashCast */,
 				929F891B19FE83AE0076FC13 /* carbon_events.c */,
 				92BE50C918D6D60100AA59D8 /* MP4Client */,
 				92BE50B518D6D53000AA59D8 /* MP42TS */,
@@ -2366,7 +2500,6 @@
 				92AAF1C218D70B3000E2FF12 /* openhevc_dec */,
 				92AAF1CF18D70D3E00E2FF12 /* opensvc_dec */,
 				92AAF0D718D6DB3400E2FF12 /* sdl_out */,
-				92AAF1E418D712A300E2FF12 /* x11_out */,
 			);
 			name = modules;
 			sourceTree = "<group>";
@@ -2424,6 +2557,13 @@
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
+		2839E27C1A162C24002D73E1 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9201F93518D5A38A003D1ACA /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
@@ -2513,24 +2653,43 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		92AAF1C918D70C3100E2FF12 /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		92AAF1DD18D7126900E2FF12 /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				92AAF1EB18D712C500E2FF12 /* x11_out.h in Headers */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		2839E27D1A162C24002D73E1 /* opensvc */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2839E27F1A162C24002D73E1 /* Build configuration list for PBXNativeTarget "opensvc" */;
+			buildPhases = (
+				2839E27A1A162C24002D73E1 /* Sources */,
+				2839E27B1A162C24002D73E1 /* Frameworks */,
+				2839E27C1A162C24002D73E1 /* Headers */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = opensvc;
+			productName = opensvc;
+			productReference = 2839E27E1A162C24002D73E1 /* libopensvc.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
+		2839E2871A1635F7002D73E1 /* DashCast */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2839E28E1A1635F7002D73E1 /* Build configuration list for PBXNativeTarget "DashCast" */;
+			buildPhases = (
+				2839E2841A1635F7002D73E1 /* Sources */,
+				2839E2851A1635F7002D73E1 /* Frameworks */,
+				2839E2861A1635F7002D73E1 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = DashCast;
+			productName = DashCast;
+			productReference = 2839E2881A1635F7002D73E1 /* DashCast */;
+			productType = "com.apple.product-type.tool";
+		};
 		9201F93618D5A38A003D1ACA /* libgpac */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9201F93B18D5A38A003D1ACA /* Build configuration list for PBXNativeTarget "libgpac" */;
@@ -2685,40 +2844,6 @@
 			productReference = 92AAF1BE18D70B1C00E2FF12 /* gm_openhevc_dec.dylib */;
 			productType = "com.apple.product-type.library.dynamic";
 		};
-		92AAF1CA18D70C3100E2FF12 /* opensvc_dec */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 92AAF1CC18D70C3100E2FF12 /* Build configuration list for PBXNativeTarget "opensvc_dec" */;
-			buildPhases = (
-				92AAF1C718D70C3100E2FF12 /* Sources */,
-				92AAF1C818D70C3100E2FF12 /* Frameworks */,
-				92AAF1C918D70C3100E2FF12 /* Headers */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = opensvc_dec;
-			productName = opensvc_dec;
-			productReference = 92AAF1CB18D70C3100E2FF12 /* gm_opensvc_dec.dylib */;
-			productType = "com.apple.product-type.library.dynamic";
-		};
-		92AAF1DE18D7126900E2FF12 /* x11_out */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 92AAF1E018D7126900E2FF12 /* Build configuration list for PBXNativeTarget "x11_out" */;
-			buildPhases = (
-				92AAF1DB18D7126900E2FF12 /* Sources */,
-				92AAF1DC18D7126900E2FF12 /* Frameworks */,
-				92AAF1DD18D7126900E2FF12 /* Headers */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = x11_out;
-			productName = x11_out;
-			productReference = 92AAF1DF18D7126900E2FF12 /* gm_x11_out.dylib */;
-			productType = "com.apple.product-type.library.dynamic";
-		};
 		92BE508F18D6325E00AA59D8 /* MP4Box */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 92BE509918D6325E00AA59D8 /* Build configuration list for PBXNativeTarget "MP4Box" */;
@@ -2765,8 +2890,6 @@
 			);
 			dependencies = (
 				9225733618D727B500D6FD98 /* PBXTargetDependency */,
-				9225731918D717BD00D6FD98 /* PBXTargetDependency */,
-				9225731718D717BA00D6FD98 /* PBXTargetDependency */,
 				9225731518D717B400D6FD98 /* PBXTargetDependency */,
 				9225731318D717B100D6FD98 /* PBXTargetDependency */,
 				9225731118D717AE00D6FD98 /* PBXTargetDependency */,
@@ -2786,7 +2909,7 @@
 		9201F92918D5A359003D1ACA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0420;
+				LastUpgradeCheck = 0510;
 				ORGANIZATIONNAME = "Telecom ParisTech";
 			};
 			buildConfigurationList = 9201F92C18D5A359003D1ACA /* Build configuration list for PBXProject "gpac" */;
@@ -2805,6 +2928,7 @@
 				92BE508F18D6325E00AA59D8 /* MP4Box */,
 				92BE50B218D6D53000AA59D8 /* MP42TS */,
 				92BE50C618D6D60100AA59D8 /* MP4Client */,
+				2839E2871A1635F7002D73E1 /* DashCast */,
 				92AAF0D218D6DB2D00E2FF12 /* sdl_out */,
 				92AAF16418D6F40400E2FF12 /* ft_font */,
 				92AAF17718D6F89B00E2FF12 /* aac_in */,
@@ -2812,14 +2936,44 @@
 				92AAF19718D6FDC300E2FF12 /* ffmpeg_in */,
 				92AAF1AD18D709D900E2FF12 /* mp3_in */,
 				92AAF1BD18D70B1C00E2FF12 /* openhevc_dec */,
-				92AAF1CA18D70C3100E2FF12 /* opensvc_dec */,
-				92AAF1DE18D7126900E2FF12 /* x11_out */,
 				9225732318D7267900D6FD98 /* ogg_in */,
+				2839E27D1A162C24002D73E1 /* opensvc */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		2839E27A1A162C24002D73E1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2839E2821A162C48002D73E1 /* opensvc_dec.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2839E2841A1635F7002D73E1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2839E2B91A16363E002D73E1 /* dashcast.c in Sources */,
+				2839E2BB1A16363E002D73E1 /* register.c in Sources */,
+				2839E2B21A16363E002D73E1 /* audio_data.c in Sources */,
+				2839E2B41A16363E002D73E1 /* audio_encoder.c in Sources */,
+				2839E2BE1A16363E002D73E1 /* video_decoder.c in Sources */,
+				2839E2C01A16363E002D73E1 /* video_muxer.c in Sources */,
+				2839E2B51A16363E002D73E1 /* audio_muxer.c in Sources */,
+				2839E2B81A16363E002D73E1 /* controler.c in Sources */,
+				2839E2B61A16363E002D73E1 /* circular_buffer.c in Sources */,
+				2839E2BF1A16363E002D73E1 /* video_encoder.c in Sources */,
+				2839E2BA1A16363E002D73E1 /* message_queue.c in Sources */,
+				2839E2C11A16363E002D73E1 /* video_scaler.c in Sources */,
+				2839E2BD1A16363E002D73E1 /* video_data.c in Sources */,
+				2839E2B31A16363E002D73E1 /* audio_decoder.c in Sources */,
+				2839E2BC1A16363E002D73E1 /* task.c in Sources */,
+				2839E2B71A16363E002D73E1 /* cmd_data.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9201F93318D5A38A003D1ACA /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -3204,22 +3358,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		92AAF1C718D70C3100E2FF12 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				92AAF1D218D70D5100E2FF12 /* opensvc_dec.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		92AAF1DB18D7126900E2FF12 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				92AAF1EA18D712C500E2FF12 /* x11_out.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		92BE508C18D6325E00AA59D8 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -3272,16 +3410,6 @@
 			target = 92AAF1BD18D70B1C00E2FF12 /* openhevc_dec */;
 			targetProxy = 9225731418D717B400D6FD98 /* PBXContainerItemProxy */;
 		};
-		9225731718D717BA00D6FD98 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 92AAF1CA18D70C3100E2FF12 /* opensvc_dec */;
-			targetProxy = 9225731618D717BA00D6FD98 /* PBXContainerItemProxy */;
-		};
-		9225731918D717BD00D6FD98 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 92AAF1DE18D7126900E2FF12 /* x11_out */;
-			targetProxy = 9225731818D717BD00D6FD98 /* PBXContainerItemProxy */;
-		};
 		9225733618D727B500D6FD98 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 9225732318D7267900D6FD98 /* ogg_in */;
@@ -3305,11 +3433,216 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		2839E2801A162C24002D73E1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				EXECUTABLE_PREFIX = lib;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LD_DYLIB_INSTALL_NAME = gm_opensvc.dylib;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				OTHER_LDFLAGS = "-lOpenSVCDec";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		2839E2811A162C24002D73E1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				EXECUTABLE_PREFIX = lib;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LD_DYLIB_INSTALL_NAME = gm_opensvc.dylib;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				OTHER_LDFLAGS = "-lOpenSVCDec";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		2839E28F1A1635F7002D73E1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					/opt/local/lib,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				OTHER_LDFLAGS = (
+					"-lz",
+					"-lavcodec",
+					"-lavformat",
+					"-lavutil",
+					"-lswscale",
+					"-lbz2",
+					"-lswresample",
+					"-lx264",
+					"-lx265",
+					"-lavdevice",
+					"-lavfilter",
+					"-lavresample",
+					"-lpostproc",
+					"-liconv",
+					"-weak_framework",
+					VideoDecodeAcceleration,
+					"-weak_framework",
+					CoreFoundation,
+					"-weak_framework",
+					QuartzCore,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		2839E2901A1635F7002D73E1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					/opt/local/lib,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				OTHER_LDFLAGS = (
+					"-lz",
+					"-lavcodec",
+					"-lavformat",
+					"-lavutil",
+					"-lswscale",
+					"-lbz2",
+					"-lswresample",
+					"-lx264",
+					"-lx265",
+					"-lavdevice",
+					"-lavfilter",
+					"-lavresample",
+					"-lpostproc",
+					"-liconv",
+					"-weak_framework",
+					VideoDecodeAcceleration,
+					"-weak_framework",
+					CoreFoundation,
+					"-weak_framework",
+					QuartzCore,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
 		9201F92E18D5A359003D1ACA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				HEADER_SEARCH_PATHS = ../../include;
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../extra_lib/include,
+				);
+				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/gcc;
 				OBJROOT = build;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "-Wno-conversion";
 				SYMROOT = ../../bin/osx/;
 			};
@@ -3318,7 +3651,11 @@
 		9201F92F18D5A359003D1ACA /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				HEADER_SEARCH_PATHS = ../../include;
+				HEADER_SEARCH_PATHS = (
+					../../include,
+					../../extra_lib/include,
+				);
+				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/gcc;
 				OBJROOT = build;
 				OTHER_CFLAGS = "-Wno-conversion";
 				SYMROOT = ../../bin/osx/;
@@ -3329,7 +3666,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_PREFIX = lib;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -3384,7 +3720,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_PREFIX = lib;
@@ -3394,6 +3729,8 @@
 					GPAC_STATIC_MODULES,
 					GPAC_CONFIG_DARWIN,
 					CONFIG_DARWIN_GL,
+					NO_JS_RUNTIMETHREAD,
+					SPIDERMONKEY_NEW_API,
 				);
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -3433,7 +3770,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -3454,6 +3790,7 @@
 					../../include,
 					/opt/local/include,
 				);
+				INSTALL_PATH = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -3465,7 +3802,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_PREFIX = gm_;
@@ -3480,6 +3816,7 @@
 					../../include,
 					/opt/local/include,
 				);
+				INSTALL_PATH = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3490,9 +3827,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_PREFIX = gm_;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(LOCAL_LIBRARY_DIR)/Frameworks",
+				);
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
@@ -3510,8 +3850,13 @@
 				HEADER_SEARCH_PATHS = (
 					/usr/local/include/SDL2,
 					../../include,
+					/opt/local/include/SDL2,
 				);
-				LIBRARY_SEARCH_PATHS = /usr/local/lib;
+				INSTALL_PATH = "";
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					/opt/local/lib,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = "-lSDL2";
@@ -3524,10 +3869,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_PREFIX = gm_;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(LOCAL_LIBRARY_DIR)/Frameworks",
+				);
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -3538,8 +3886,13 @@
 				HEADER_SEARCH_PATHS = (
 					/usr/local/include/SDL2,
 					../../include,
+					/opt/local/include/SDL2,
 				);
-				LIBRARY_SEARCH_PATHS = /usr/local/lib;
+				INSTALL_PATH = "";
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					/opt/local/lib,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OTHER_LDFLAGS = "-lSDL2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -3551,7 +3904,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -3573,6 +3925,7 @@
 					/usr/include/freetype2,
 					/opt/local/include/freetype2,
 				);
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
@@ -3586,7 +3939,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_PREFIX = gm_;
@@ -3602,6 +3954,7 @@
 					/usr/include/freetype2,
 					/opt/local/include/freetype2,
 				);
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OTHER_LDFLAGS = "-lfreetype";
@@ -3614,7 +3967,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -3635,6 +3987,7 @@
 					/opt/local/include,
 					../../include,
 				);
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
@@ -3648,7 +4001,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_PREFIX = gm_;
@@ -3664,6 +4016,7 @@
 					/opt/local/include,
 					../../include,
 				);
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OTHER_LDFLAGS = "-lfaad";
@@ -3676,7 +4029,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -3697,6 +4049,7 @@
 					/opt/local/include/a52dec,
 					../../include,
 				);
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
@@ -3710,7 +4063,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_PREFIX = gm_;
@@ -3725,6 +4077,7 @@
 					/opt/local/include/a52dec,
 					../../include,
 				);
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OTHER_LDFLAGS = "-la52";
@@ -3737,7 +4090,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -3759,6 +4111,7 @@
 					/usr/local/include/,
 					/opt/local/include/,
 				);
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/opt/local/lib,
@@ -3772,6 +4125,16 @@
 					"-lavutil",
 					"-lswscale",
 					"-lbz2",
+					"-lswresample",
+					"-lx264",
+					"-lx265",
+					"-liconv",
+					"-weak_framework",
+					VideoDecodeAcceleration,
+					"-weak_framework",
+					CoreFoundation,
+					"-weak_framework",
+					QuartzCore,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3782,7 +4145,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_PREFIX = gm_;
@@ -3798,6 +4160,7 @@
 					/usr/local/include/,
 					/opt/local/include/,
 				);
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
 					/opt/local/lib,
@@ -3810,6 +4173,16 @@
 					"-lavutil",
 					"-lswscale",
 					"-lbz2",
+					"-lswresample",
+					"-lx264",
+					"-lx265",
+					"-liconv",
+					"-weak_framework",
+					VideoDecodeAcceleration,
+					"-weak_framework",
+					CoreFoundation,
+					"-weak_framework",
+					QuartzCore,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -3820,7 +4193,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -3842,6 +4214,7 @@
 					/opt/local/include,
 					../../include,
 				);
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
@@ -3855,7 +4228,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_PREFIX = gm_;
@@ -3871,6 +4243,7 @@
 					/opt/local/include,
 					../../include,
 				);
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = /opt/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OTHER_LDFLAGS = "-lmad";
@@ -3883,7 +4256,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -3903,8 +4275,14 @@
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					/usr/local/include,
+					../../extra_lib/include,
 				);
-				LIBRARY_SEARCH_PATHS = /usr/local/lib;
+				INSTALL_PATH = "";
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					../../extra_lib/lib/gcc,
+					/opt/local/lib,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = "-lLibOpenHevcWrapper";
@@ -3917,7 +4295,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_PREFIX = gm_;
@@ -3931,142 +4308,16 @@
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					/usr/local/include,
+					../../extra_lib/include,
 				);
-				LIBRARY_SEARCH_PATHS = /usr/local/lib;
+				INSTALL_PATH = "";
+				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
+					../../extra_lib/lib/gcc,
+					/opt/local/lib,
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OTHER_LDFLAGS = "-lLibOpenHevcWrapper";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
-		92AAF1CD18D70C3100E2FF12 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_PREFIX = gm_;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = (
-					../../include,
-					/usr/local/include,
-				);
-				LIBRARY_SEARCH_PATHS = /usr/local/lib;
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = "-lOpenSVCDec";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
-		92AAF1CE18D70C3100E2FF12 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				EXECUTABLE_PREFIX = gm_;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = (
-					../../include,
-					/usr/local/include,
-				);
-				LIBRARY_SEARCH_PATHS = /usr/local/lib;
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				OTHER_LDFLAGS = "-lOpenSVCDec";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
-		92AAF1E118D7126900E2FF12 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				COPY_PHASE_STRIP = NO;
-				EXECUTABLE_PREFIX = gm_;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-					GPAC_CONFIG_DARWIN,
-					CONFIG_DARWIN_GL,
-				);
-				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = (
-					../../include,
-					/usr/X11R6/include,
-				);
-				LIBRARY_SEARCH_PATHS = "/usr/X11R6/lib\n/usr/X11R6/lib\n/usr/X11R6/lib";
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				ONLY_ACTIVE_ARCH = YES;
-				OTHER_LDFLAGS = (
-					"-lX11",
-					"-lGL",
-					"-lGLU",
-				);
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
-		92AAF1E218D7126900E2FF12 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
-				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				EXECUTABLE_PREFIX = gm_;
-				GCC_C_LANGUAGE_STANDARD = gnu99;
-				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = (
-					../../include,
-					/usr/X11R6/include,
-				);
-				LIBRARY_SEARCH_PATHS = "/usr/X11R6/lib\n/usr/X11R6/lib\n/usr/X11R6/lib";
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				OTHER_LDFLAGS = (
-					"-lX11",
-					"-lGL",
-					"-lGLU",
-				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 			};
@@ -4076,7 +4327,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -4093,6 +4343,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../include;
+				INSTALL_PATH = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
 				ONLY_ACTIVE_ARCH = YES;
@@ -4106,7 +4357,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -4117,6 +4367,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../include;
+				INSTALL_PATH = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -4129,7 +4380,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -4145,6 +4395,7 @@
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				INSTALL_PATH = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
 				ONLY_ACTIVE_ARCH = YES;
@@ -4157,7 +4408,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -4167,6 +4417,7 @@
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				INSTALL_PATH = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OBJROOT = build;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -4178,7 +4429,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -4194,6 +4444,7 @@
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				INSTALL_PATH = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -4205,7 +4456,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -4215,6 +4465,7 @@
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				INSTALL_PATH = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -4224,6 +4475,22 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		2839E27F1A162C24002D73E1 /* Build configuration list for PBXNativeTarget "opensvc" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2839E2801A162C24002D73E1 /* Debug */,
+				2839E2811A162C24002D73E1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+		2839E28E1A1635F7002D73E1 /* Build configuration list for PBXNativeTarget "DashCast" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2839E28F1A1635F7002D73E1 /* Debug */,
+				2839E2901A1635F7002D73E1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
 		9201F92C18D5A359003D1ACA /* Build configuration list for PBXProject "gpac" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -4310,24 +4577,6 @@
 			buildConfigurations = (
 				92AAF1C018D70B1C00E2FF12 /* Debug */,
 				92AAF1C118D70B1C00E2FF12 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		92AAF1CC18D70C3100E2FF12 /* Build configuration list for PBXNativeTarget "opensvc_dec" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				92AAF1CD18D70C3100E2FF12 /* Debug */,
-				92AAF1CE18D70C3100E2FF12 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		92AAF1E018D7126900E2FF12 /* Build configuration list for PBXNativeTarget "x11_out" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				92AAF1E118D7126900E2FF12 /* Debug */,
-				92AAF1E218D7126900E2FF12 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

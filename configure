@@ -184,7 +184,7 @@ OSS_CFLAGS=""
 OSS_LDFLAGS=""
 INSTFLAGS=""
 is_64="no"
-
+ffmpeg_extra_ldflags=“”
 
 
 #configure usage
@@ -216,6 +216,7 @@ GPAC configuration options:
   --dxsdk-path=DX_PATH     specify directX SDK for MinGW [$dxsdk_path]
   --xulsdk-path=XUL_PATH   specify Mozilla XUL (Gecko) SDK include path [$xulsdk_path]
   --mozdir=MOZ_PATH        specify mozilla main directory path for system install
+  --extra-ff-ldflags=ELDFLAGS add ELDFLAGS to FFMPEG LDFLAGS [$ffmpeg_extra_ldflags]
 
   --enable-debug           produce debug version
   --enable-gprof           enable profiling
@@ -339,6 +340,8 @@ for opt do
             ;;
         --extra-ldflags=*) LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
             ;;
+        --extra-ff-ldflags=*) ffmpeg_extra_ldflags=`echo $opt | cut -d '=' -f 2`
+            ;;
         --extra-libs=*) extralibs=${opt#--extra-libs=}
             ;;
         --cpu=*) cpu=`echo $opt | cut -d '=' -f 2`
@@ -353,6 +356,7 @@ for opt do
             ;;
     esac
 done
+
 
 cc="${cc_orig}"
 cxx="${cxx_orig}"
@@ -1288,7 +1292,8 @@ fi
 #look for FFMPEG support
 
 ffmpeg_cflags=""
-ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale -lavdevice"
+ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale -lavdevice $ffmpeg_extra_ldflags"
+
 if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
   if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil 2> /dev/null  ; then
     ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil libavdevice`
