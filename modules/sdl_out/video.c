@@ -26,8 +26,6 @@
 #include "sdl_out.h"
 #include <gpac/user.h>
 
-//#include "unicode.h"
-
 #ifdef WIN32
 #include <windows.h>
 #endif
