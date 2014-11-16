@@ -1819,7 +1819,7 @@ u32 gf_media_nalu_payload_end_bs(GF_BitStream *bs)
 }
 
 GF_EXPORT
-u32 gf_media_nalu_next_start_code(u8 *data, u32 data_len, u32 *sc_size)
+u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size)
 {
 	u32 v, bpos;
 	u32 end;

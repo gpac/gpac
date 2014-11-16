@@ -60,7 +60,7 @@ u32 gf_media_nalu_payload_end_bs(GF_BitStream *bs);
 
 /*return nb bytes from current data until the next start code and set the size of the next start code (3 or 4 bytes)
 returns data_len if no startcode found and sets sc_size to 0 (last nal in payload)*/
-u32 gf_media_nalu_next_start_code(u8 *data, u32 data_len, u32 *sc_size);
+u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size);
 
 /*returns NAL unit type - bitstream must be sync'ed!!*/
 u8 AVC_NALUType(GF_BitStream *bs);
