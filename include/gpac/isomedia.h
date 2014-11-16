@@ -870,7 +870,7 @@ GF_Err gf_isom_set_track_id(GF_ISOFile *the_file, u32 trackNumber, u32 trackID);
 GF_Err gf_isom_rewrite_track_dependencies(GF_ISOFile *movie, u32 trackNumber);
 
 /*Add samples to a track. Use streamDescriptionIndex to specify the desired stream (if several)*/
-GF_Err gf_isom_add_sample(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_ISOSample *sample);
+GF_Err gf_isom_add_sample(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, const GF_ISOSample *sample);
 
 //copies all sample dependency, subSample and sample group information from the given sampleNumber in source file to the last added sample in dest file
 GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src, u32 src_track, u32 sampleNumber);
@@ -1348,7 +1348,7 @@ MUST be provided (in case of regular tracks, this was computed internally by the
 
 */
 
-GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, GF_ISOSample *sample,
+GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, const GF_ISOSample *sample,
                                    u32 StreamDescriptionIndex,
                                    u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redundantCoding);
 

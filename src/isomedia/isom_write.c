@@ -616,7 +616,7 @@ GF_Err gf_isom_new_mpeg4_description(GF_ISOFile *movie,
 
 //Add samples to a track. Use streamDescriptionIndex to specify the desired stream (if several)
 GF_EXPORT
-GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_ISOSample *sample)
+GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, const GF_ISOSample *sample)
 {
 	GF_Err e;
 	GF_TrackBox *trak;

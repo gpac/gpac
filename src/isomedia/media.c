@@ -750,7 +750,7 @@ GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNna
 }
 
 
-GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, GF_ISOSample *sample, u32 StreamDescIndex, u32 syncShadowNumber)
+GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *sample, u32 StreamDescIndex, u32 syncShadowNumber)
 {
 	GF_Err e;
 	GF_SampleTableBox *stbl;
