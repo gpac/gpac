@@ -184,7 +184,7 @@ OSS_CFLAGS=""
 OSS_LDFLAGS=""
 INSTFLAGS=""
 is_64="no"
-ffmpeg_extra_ldflags=“”
+ffmpeg_extra_ldflags=""
 
 
 #configure usage
