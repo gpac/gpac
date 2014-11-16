@@ -2689,8 +2689,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 u8 RequestTrack(GF_MovieBox *moov, u32 TrackID);
 /*Track-Media setup*/
 GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale);
-GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample, GF_ISOSample **od_samp);
-GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, GF_ISOSample *sample, u32 StreamDescIndex, u32 syncShadowNumber);
+GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOSample **od_samp);
+GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *sample, u32 StreamDescIndex, u32 syncShadowNumber);
 GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname, u32 *dataRefIndex);
 /*update a media sample. ONLY in edit mode*/
 GF_Err Media_UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample *sample, Bool data_only);

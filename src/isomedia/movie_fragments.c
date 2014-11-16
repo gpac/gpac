@@ -1670,7 +1670,7 @@ u32 GetRunSize(GF_TrackFragmentRunBox *trun)
 }
 
 GF_EXPORT
-GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample *sample, u32 DescIndex,
+GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOSample *sample, u32 DescIndex,
                                    u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redundant_coding)
 {
 	u32 count, buffer_size;
@@ -2088,7 +2088,7 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *the_file, u32 free_data_insert_size)
 	return GF_NOT_SUPPORTED;
 }
 
-GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, GF_ISOSample *sample, u32 DescIndex,
+GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, const GF_ISOSample *sample, u32 DescIndex,
                                    u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redCoded)
 {
 	return GF_NOT_SUPPORTED;
