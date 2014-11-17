@@ -112,7 +112,14 @@ extern "C" {
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[Dektec Out] Written frame "LLD" [(0x%X,0x%X,0x%X,0x%X)(0x%X,0x%X,0x%X,0x%X)(0x%X,0x%X,0x%X,0x%X)(0x%X,0x%X,0x%X,0x%X)]\n", dtc->frameNum, DWIDTH, DHEIGHT,
 		                                     dtc->pixels_UYVY[0], dtc->pixels_UYVY[1], dtc->pixels_UYVY[2], dtc->pixels_UYVY[3], dtc->pixels_UYVY[4], dtc->pixels_UYVY[5], dtc->pixels_UYVY[6], dtc->pixels_UYVY[7],
-		                                     dtc->pixels_UYVY[8], dtc->pixels_UYVY[9], dtc->pixels_UYVY[10], dtc->pixels_UYVY[11], dtc->pixels_UYVY[12], dtc->pixels_UYVY[13], dtc->pixels_UYVY[14], dtc->pixels_UYVY[15]));
+																				 dtc->pixels_UYVY[8], dtc->pixels_UYVY[9], dtc->pixels_UYVY[10], dtc->pixels_UYVY[11], dtc->pixels_UYVY[12], dtc->pixels_UYVY[13], dtc->pixels_UYVY[14], dtc->pixels_UYVY[15]));
+
+		// commit HANC/VANC - mandatory to form a valid frame
+		res = dtf->AncCommit(dtc->frameNum);
+		if (res != DTAPI_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Dektec Out] Can't write VANC for frame "LLD": %s\n", dtc->frameNum, DtapiResult2Str(res)));
+			return GF_BAD_PARAM;
+		}
 
 		dtc->frameNum++;
 
