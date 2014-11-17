@@ -308,7 +308,7 @@ JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp)
 			return JS_FALSE; \
 		} \
 	}	\
-
+ 
 JSObject *gf_sg_js_global_object(JSContext *cx, GF_JSClass *__class);
 
 #ifdef __cplusplus

@@ -42,66 +42,66 @@ static AEEventHandlerUPP	open_app_UPP, open_doc_UPP;
 
 static pascal OSErr ae_open_app (const AppleEvent *ae_event, AppleEvent *ae_reply, long ae_ref_count)
 {
-    if (main_evt_loop_run) {
-        QuitApplicationEventLoop();
-        main_evt_loop_run = 0;
-    }
-    return (noErr);
+	if (main_evt_loop_run) {
+		QuitApplicationEventLoop();
+		main_evt_loop_run = 0;
+	}
+	return (noErr);
 }
 
 static pascal OSErr ae_open_doc (const AppleEvent *ae_event, AppleEvent *ae_reply, long ae_ref_count)
 {
-    OSErr err;
-    FSRef	ref;
-    AEDescList	docList;
-    long	count;
+	OSErr err;
+	FSRef	ref;
+	AEDescList	docList;
+	long	count;
 
-    err = AEGetParamDesc(ae_event, keyDirectObject, typeAEList, &docList);
-    if (err)
-        return (noErr);
-    
-    err = AECountItems(&docList, &count);
-    if (err == noErr) {
-        err = AEGetNthPtr(&docList, 1, typeFSRef, NULL, NULL, &ref, sizeof(FSRef), NULL);
-        if (err == noErr) {
-            char path[4096];
-            FSRefMakePath(&ref, (UInt8 *) path, 4096);
-            if (main_evt_loop_run) {
-                my_argv[1] = strdup(path);
-                gf_sys_set_args(2, (const char **) my_argv);
-            } else {
-                send_open_url(path);
-            }
-        }
-    }
-    err = AEDisposeDesc(&docList);
+	err = AEGetParamDesc(ae_event, keyDirectObject, typeAEList, &docList);
+	if (err)
+		return (noErr);
 
-    if (main_evt_loop_run) {
-        QuitApplicationEventLoop();
-        main_evt_loop_run = 0;
-    }
-    return (noErr);
+	err = AECountItems(&docList, &count);
+	if (err == noErr) {
+		err = AEGetNthPtr(&docList, 1, typeFSRef, NULL, NULL, &ref, sizeof(FSRef), NULL);
+		if (err == noErr) {
+			char path[4096];
+			FSRefMakePath(&ref, (UInt8 *) path, 4096);
+			if (main_evt_loop_run) {
+				my_argv[1] = strdup(path);
+				gf_sys_set_args(2, (const char **) my_argv);
+			} else {
+				send_open_url(path);
+			}
+		}
+	}
+	err = AEDisposeDesc(&docList);
+
+	if (main_evt_loop_run) {
+		QuitApplicationEventLoop();
+		main_evt_loop_run = 0;
+	}
+	return (noErr);
 }
 
 void carbon_init ()
 {
-    my_argv[0] = "GPAC";
-    my_argv[1] = NULL;
-    open_app_UPP = NewAEEventHandlerUPP(ae_open_app);
-    AEInstallEventHandler(kCoreEventClass, kAEOpenApplication, open_app_UPP, 0L, false);
-    open_doc_UPP = NewAEEventHandlerUPP(ae_open_doc);
-    AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments, open_doc_UPP, 0L, false);
-    
-    main_evt_loop_run = 1;
-    RunApplicationEventLoop();
+	my_argv[0] = "GPAC";
+	my_argv[1] = NULL;
+	open_app_UPP = NewAEEventHandlerUPP(ae_open_app);
+	AEInstallEventHandler(kCoreEventClass, kAEOpenApplication, open_app_UPP, 0L, false);
+	open_doc_UPP = NewAEEventHandlerUPP(ae_open_doc);
+	AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments, open_doc_UPP, 0L, false);
+
+	main_evt_loop_run = 1;
+	RunApplicationEventLoop();
 }
 
 void carbon_uninit()
 {
-    DisposeAEEventHandlerUPP(open_app_UPP);
-    DisposeAEEventHandlerUPP(open_doc_UPP);
-    
-    if (my_argv[1]) free(my_argv[1]);
+	DisposeAEEventHandlerUPP(open_app_UPP);
+	DisposeAEEventHandlerUPP(open_doc_UPP);
+
+	if (my_argv[1]) free(my_argv[1]);
 }
 
 
