@@ -1291,11 +1291,21 @@ void senc_del(GF_Box *s)
 	gf_free(s);
 }
 
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *ptr)
+#else
+GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncryptionBox *ptr)
+#endif
 {
 	GF_Err e;
 	u32 i, j, count;
 	u64 pos = gf_bs_get_position(bs);
+
+#ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (!traf)
+		return GF_BAD_PARAM;
+#endif
+
 	gf_bs_seek(bs, ptr->bs_offset);
 
 	count = gf_bs_read_u32(bs);

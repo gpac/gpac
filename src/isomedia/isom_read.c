@@ -3550,7 +3550,11 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 }
 
 GF_EXPORT
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID)
+#else
+GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID)
+#endif
 {
 	GF_SampleGroupBox *sample_group;
 	u32 j, group_desc_index;
@@ -3565,6 +3569,11 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *t
 	if (IsEncrypted) *IsEncrypted = 0;
 	if (IV_size) *IV_size = 0;
 	if (KID) memset(*KID, 0, 16);
+
+#ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (!traf)
+		return GF_BAD_PARAM;
+#endif
 
 	if (trak->Media->information->sampleTable->SampleSize && trak->Media->information->sampleTable->SampleSize->sampleCount>=sample_number) {
 		stbl_GetSampleInfos(trak->Media->information->sampleTable, sample_number, &offset, &chunkNum, &descIndex, &edit);
