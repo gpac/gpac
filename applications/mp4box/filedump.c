@@ -1091,13 +1091,13 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	u32 i, count, track, nalh_size, timescale, cur_extract_mode;
 	FILE *dump;
 	s32 countRef;
+	Bool is_adobe_protection = GF_FALSE;
 #ifndef GPAC_DISABLE_AV_PARSERS
-	Bool is_hevc = 0;
+	Bool is_hevc = GF_FALSE;
 	AVCState avc;
 	GF_AVCConfig *avccfg, *svccfg;
 	GF_HEVCConfig *hevccfg, *shvccfg;
 	GF_AVCConfigSlot *slc;
-	Bool is_adobe_protection = GF_FALSE;
 
 	memset(&avc, 0, sizeof(AVCState));
 #endif
