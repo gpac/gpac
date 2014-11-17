@@ -2340,7 +2340,11 @@ GF_PIFFSampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, 
 GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags);
 
 void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID);
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID);
+#else
+GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID);
+#endif
 
 GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *ptr);
 
