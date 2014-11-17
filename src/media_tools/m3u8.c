@@ -203,7 +203,7 @@ VariantPlaylist * variant_playlist_new ()
 	return pl;
 }
 
-GF_Err variant_playlist_del (VariantPlaylist * playlist) {
+GF_Err variant_playlist_del(VariantPlaylist * playlist) {
 	if (playlist == NULL)
 		return GF_OK;
 	assert( playlist->programs);
