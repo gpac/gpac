@@ -939,7 +939,13 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 	2: query next segment except currently downloading one
 	3: drop next segment
 */
-static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_url, u64 *out_start_range, u64 *out_end_range, u32 *refresh_type)
+typedef enum {
+	INIT_RANGE = 0,
+	NEXT_SEGMENT,
+	NEXT_SEGMENT_EXCEPT_DL,
+	DROP_NEXT_SEGMENT,
+} DASHQueryType;
+static GF_Err M2TS_QueryNextFile(void *udta, DASHQueryType query_type, const char **out_url, u64 *out_start_range, u64 *out_end_range, u32 *refresh_type)
 {
 	GF_NetworkCommand param;
 	GF_Err query_ret;
@@ -952,9 +958,9 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 	if (out_end_range) *out_end_range = 0;
 
 	memset(&param, 0, sizeof(GF_NetworkCommand));
-	param.command_type = (query_type==0) ? GF_NET_SERVICE_QUERY_INIT_RANGE : GF_NET_SERVICE_QUERY_NEXT;
-	param.url_query.drop_first_segment = (query_type==3) ? 1 : 0;
-	param.url_query.current_download = (query_type==2) ? 0 : 1;
+	param.command_type = (query_type == INIT_RANGE) ? GF_NET_SERVICE_QUERY_INIT_RANGE : GF_NET_SERVICE_QUERY_NEXT;
+	param.url_query.drop_first_segment = (query_type == DROP_NEXT_SEGMENT) ? 1 : 0;
+	param.url_query.current_download = (query_type == NEXT_SEGMENT_EXCEPT_DL) ? 0 : 1;
 
 	//we are downloading the segment we play, don't delete it
 	if (m2ts->in_segment_download)
@@ -1045,7 +1051,7 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 		}
 	}
 
-	e = M2TS_QueryNextFile(m2ts, (flush_type==GF_M2TS_FLUSH_DATA) ? 2 : 1, &url, &start_byterange, &end_byterange, &refresh_type);
+	e = M2TS_QueryNextFile(m2ts, (flush_type==GF_M2TS_FLUSH_DATA) ? NEXT_SEGMENT_EXCEPT_DL : NEXT_SEGMENT, &url, &start_byterange, &end_byterange, &refresh_type);
 	if (e) {
 		m2ts->in_data_flush = 0;
 		gf_mx_v(m2ts->mx);
@@ -1055,7 +1061,7 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 
 	//done, drop segment
 	if (!m2ts->in_segment_download) {
-		e = M2TS_QueryNextFile(m2ts, 3, &url, &start_byterange, &end_byterange, &refresh_type);
+		e = M2TS_QueryNextFile(m2ts, DROP_NEXT_SEGMENT, &url, &start_byterange, &end_byterange, &refresh_type);
 
 		if (m2ts->has_pending_segments)
 			m2ts->has_pending_segments--;
@@ -1109,9 +1115,9 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 				u64 start_byterange, end_byterange;
 				gf_mx_p(m2ts->mx);
 				m2ts->in_data_flush = 1;
-				M2TS_QueryNextFile(m2ts, 0, NULL, &start_byterange, &end_byterange, NULL);
+				M2TS_QueryNextFile(m2ts, INIT_RANGE, NULL, &start_byterange, &end_byterange, NULL);
 				e = gf_m2ts_demux_file(m2ts->ts, url, start_byterange, end_byterange, 0, 0);
-				M2TS_QueryNextFile(m2ts, 3, NULL, NULL, NULL, NULL);
+				M2TS_QueryNextFile(m2ts, DROP_NEXT_SEGMENT, NULL, NULL, NULL, NULL);
 				m2ts->in_data_flush = 0;
 				gf_mx_v(m2ts->mx);
 			} else {
