@@ -66,7 +66,7 @@ typedef struct
 	SDL_Cursor *curs_def, *curs_hand, *curs_collide;
 	Bool use_systems_memory;
 
-    
+
 #if SDL_VERSION_ATLEAST(2,0,0)
 	SDL_GLContext gl_context;
 	SDL_Renderer *renderer;

@@ -1116,7 +1116,7 @@ int main (int argc, char **argv)
 
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
-		
+
 		if (!strcmp(arg, "-rti")) {
 			rti_file = argv[i+1];
 			i++;
@@ -1175,7 +1175,7 @@ int main (int argc, char **argv)
 		else if (!gui_mode) {
 			if (arg[0] != '-') {
 				url_arg = arg;
-			} 
+			}
 			else if (!strcmp(arg, "-out")) {
 				out_arg = gf_strdup(argv[i+1]);
 			}
@@ -1366,9 +1366,9 @@ int main (int argc, char **argv)
 	fprintf(stderr, "Terminal Loaded in %d ms\n", gf_sys_clock()-i);
 
 #if defined(__DARWIN__) || defined(__APPLE__)
-    carbon_init();
+	carbon_init();
 #endif
-    
+
 	if (bench_mode) {
 		display_rti = 2;
 		gf_term_set_option(term, GF_OPT_VIDEO_BENCH, (bench_mode==3) ? 2 : 1);
@@ -1415,9 +1415,9 @@ int main (int argc, char **argv)
 		}
 		dump_file(url_arg, out_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
 		Run = 0;
-	} 
+	}
 	else if (views) {
-	} 
+	}
 	/*connect if requested*/
 	else if (!gui_mode && url_arg) {
 		char *ext;
@@ -1483,8 +1483,8 @@ int main (int argc, char **argv)
 
 
 	while (Run) {
-		
-        /*we don't want getchar to block*/
+
+		/*we don't want getchar to block*/
 		if (gui_mode || !gf_prompt_has_input()) {
 			if (reload) {
 				reload = 0;
@@ -2052,13 +2052,13 @@ force_input:
 	if (bench_mode) {
 		PrintAVInfo(GF_TRUE);
 	}
-    
-    /*FIXME: we have an issue in cleaning up after playing in bench mode and run-for 0 (buildbot tests). We for now disable error checks after run-for is done*/
-    if (simulation_time_in_ms) {
-        gf_log_set_strict_error(0);
-    }
-    
-    
+
+	/*FIXME: we have an issue in cleaning up after playing in bench mode and run-for 0 (buildbot tests). We for now disable error checks after run-for is done*/
+	if (simulation_time_in_ms) {
+		gf_log_set_strict_error(0);
+	}
+
+
 	i = gf_sys_clock();
 	gf_term_disconnect(term);
 	if (rti_file) UpdateRTInfo("Disconnected\n");
@@ -2067,10 +2067,10 @@ force_input:
 	if (playlist) fclose(playlist);
 
 #if defined(__DARWIN__) || defined(__APPLE__)
-    carbon_uninit();
+	carbon_uninit();
 #endif
-	
-    gf_term_del(term);
+
+	gf_term_del(term);
 	fprintf(stderr, "done (in %d ms) - ran for %d ms\n", gf_sys_clock() - i, gf_sys_clock());
 
 	fprintf(stderr, "GPAC cleanup ...\n");

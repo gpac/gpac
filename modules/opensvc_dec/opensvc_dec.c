@@ -251,7 +251,7 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 	got_pic = 0;
 	nalu_size = 0;
 	ptr = (u8 *) inBuffer;
-    sc_size = 0;
+	sc_size = 0;
 
 	if (!ctx->nalu_size_length) {
 		u32 size;

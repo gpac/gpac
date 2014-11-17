@@ -46,21 +46,21 @@ s32 gf_lang_find(const char *lang_or_rfc_5646_code);
 
 /*!
  *	Gets the langauge name for the given index
- *	\param lang_idx the langauge 0-based IDX 
+ *	\param lang_idx the langauge 0-based IDX
  *	\return the name of the language
 */
 const char *gf_lang_get_name(u32 lang_idx);
 
 /*!
  *	Gets the 2 character code for the given index
- *	\param lang_idx the langauge 0-based IDX 
+ *	\param lang_idx the langauge 0-based IDX
  *	\return the 2 character code of the language
 */
 const char *gf_lang_get_2cc(u32 lang_idx);
 
 /*!
  *	Gets the 3 character code for the given index
- *	\param lang_idx the langauge 0-based IDX 
+ *	\param lang_idx the langauge 0-based IDX
  *	\return the 3 character code of the language
 */
 const char *gf_lang_get_3cc(u32 lang_idx);

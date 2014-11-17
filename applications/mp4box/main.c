@@ -3509,9 +3509,9 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 			else if (!open_edit && file_exists /* && !gf_isom_probe_file(inName) */
 #ifndef GPAC_DISABLE_SCENE_DUMP
-				&& dump_mode == GF_SM_DUMP_NONE
+			         && dump_mode == GF_SM_DUMP_NONE
 #endif
-				) {
+			        ) {
 				/*************************************************************************************************/
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 				if(dvbhdemux)

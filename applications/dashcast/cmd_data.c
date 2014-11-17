@@ -449,7 +449,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    -vfr N                   force the input video framerate\n"
 	    "    -vres WxH                force the video resolution (e.g. 640x480)\n"
 	    "    -vcrop XxY               crop the source video from X pixels left and Y pixels top. Must be used with -vres.\n"
-		"* Audio options:\n"
+	    "* Audio options:\n"
 	    "    -a string                set the source name for an audio input\n"
 	    "                                - if input is from microphone, use \"plughw:[x],[y]\"\n"
 	    "                                  where x is the card number and y is the device number\n"
@@ -463,8 +463,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 #endif
 	    "    -vcustom string         send custom parameters directly to the video encoder\n"
 	    "    -gdr                    use Gradual Decoder Refresh feature for video encoding (h264 codec only)\n"
-		"    -gop                    specify GOP size in frames - default is framerate (1 sec gop)\n"
-		"    -low-delay               specify that low delay settings should be used (no B-frames, fast encoding)\n"
+	    "    -gop                    specify GOP size in frames - default is framerate (1 sec gop)\n"
+	    "    -low-delay               specify that low delay settings should be used (no B-frames, fast encoding)\n"
 	    "* Audio encoding options:\n"
 	    "    -acodec string          set the output audio codec (default: aac)\n"
 #if 0 //TODO: bind to option and params - test first how it binds to current input parameters

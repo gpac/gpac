@@ -213,8 +213,8 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 
 	//rescale the cropped frame
 	ret = sws_scale(video_scaled_data->vsprop[index].sws_ctx,
-	          (const uint8_t * const *)src_vframe->data, src_vframe->linesize, 0, src_height,
-	          video_scaled_data_node->v_frame->data, video_scaled_data_node->v_frame->linesize);
+	                (const uint8_t * const *)src_vframe->data, src_vframe->linesize, 0, src_height,
+	                video_scaled_data_node->v_frame->data, video_scaled_data_node->v_frame->linesize);
 
 	if (!ret) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Video scaler: error while resizing picture.\n"));

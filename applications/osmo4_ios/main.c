@@ -180,7 +180,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("%s (%s): %s\n", evt->message.message, servName, gf_error_to_string(evt->message.error) ));
 		} else if (!be_quiet) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("(%s) %s\r", servName, evt->message.message ));
-        }
+		}
 	}
 	break;
 
@@ -275,7 +275,7 @@ int main (int argc, char *argv[])
 	char *url_arg, *the_cfg, *rti_file;
 	GF_SystemRTInfo rti;
 	FILE *logfile = NULL;
-    
+
 	/*by default use current dir*/
 	strcpy(the_url, ".");
 
@@ -296,7 +296,7 @@ int main (int argc, char *argv[])
 	gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "Logs") );
 
 
-    
+
 	if (!logfile) {
 		const char *opt = gf_cfg_get_key(cfg_file, "General", "LogFile");
 		if (opt) {
@@ -310,9 +310,9 @@ int main (int argc, char *argv[])
 	memory_at_gpac_startup = rti.physical_memory_avail;
 	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
 
-    init_w = forced_width;
-    init_h = forced_height;
-    
+	init_w = forced_width;
+	init_h = forced_height;
+
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Loading modules\n" ));
 	str = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
@@ -350,18 +350,18 @@ int main (int argc, char *argv[])
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Terminal Loaded\n"));
 
 
-    /*check video output*/
-    str = gf_cfg_get_key(cfg_file, "Video", "DriverName");
-    if (!strcmp(str, "Raw Video Output")) {
-            GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("WARNING: using raw output video (memory only) - no display used\n"));
-    }
-    /*check audio output*/
-    str = gf_cfg_get_key(cfg_file, "Audio", "DriverName");
-    if (!str || !strcmp(str, "No Audio Output Available")) {
-        GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("WARNING: no audio output availble - make sure no other program is locking the sound card\n"));
-    }
-    str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
-    no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
+	/*check video output*/
+	str = gf_cfg_get_key(cfg_file, "Video", "DriverName");
+	if (!strcmp(str, "Raw Video Output")) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("WARNING: using raw output video (memory only) - no display used\n"));
+	}
+	/*check audio output*/
+	str = gf_cfg_get_key(cfg_file, "Audio", "DriverName");
+	if (!str || !strcmp(str, "No Audio Output Available")) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("WARNING: no audio output availble - make sure no other program is locking the sound card\n"));
+	}
+	str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
+	no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
 
 	str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Enabled");
 	if (str && !strcmp(str, "yes")) {
@@ -382,15 +382,15 @@ int main (int argc, char *argv[])
 	Run = 1;
 	ret = 1;
 
-    str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
-    if (str) {
-        strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
-        gf_term_connect(term, str);
-        startup_file = 1;
-    }
-    
+	str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
+	if (str) {
+		strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
+		gf_term_connect(term, str);
+		startup_file = 1;
+	}
+
 	/*force fullscreen*/
-    //gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
+	//gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
 
 	while (Run) {
 		if (restart) {
@@ -437,5 +437,5 @@ int main (int argc, char *argv[])
 	if (rti_logs) fclose(rti_logs);
 	if (logfile) fclose(logfile);
 
-    return 0;
+	return 0;
 }

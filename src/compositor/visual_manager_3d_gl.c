@@ -1183,7 +1183,7 @@ static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *t
 #else
 		glClipPlane(idx, g);
 #endif
-        
+
 #endif
 		glEnable(idx);
 
@@ -1459,16 +1459,16 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 	glEnable(GL_FOG);
 
 #if defined(GPAC_USE_OGL_ES)
-    if (!visual->fog_type) glFogf(GL_FOG_MODE, GL_LINEAR);
+	if (!visual->fog_type) glFogf(GL_FOG_MODE, GL_LINEAR);
 	else if (visual->fog_type==1) glFogf(GL_FOG_MODE, GL_EXP);
 	else if (visual->fog_type==2) glFogf(GL_FOG_MODE, GL_EXP2);
 #else
-    if (!visual->fog_type) glFogi(GL_FOG_MODE, GL_LINEAR);
+	if (!visual->fog_type) glFogi(GL_FOG_MODE, GL_LINEAR);
 	else if (visual->fog_type==1) glFogi(GL_FOG_MODE, GL_EXP);
 	else if (visual->fog_type==2) glFogi(GL_FOG_MODE, GL_EXP2);
 #endif
-    
-    glFogf(GL_FOG_DENSITY, FIX2FLT(visual->fog_density));
+
+	glFogf(GL_FOG_DENSITY, FIX2FLT(visual->fog_density));
 	glFogf(GL_FOG_START, 0);
 	glFogf(GL_FOG_END, FIX2FLT(visual->fog_visibility));
 	vals[0] = FIX2FLT(visual->fog_color.red);
@@ -2547,7 +2547,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 	/*depthmap-only dump*/
 	if (depth_dump_mode==1) {
-        //depth reading not supported on gles <= 1.1
+		//depth reading not supported on gles <= 1.1
 #ifdef GPAC_USE_OGL_ES
 		return GF_NOT_SUPPORTED;
 #else
