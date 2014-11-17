@@ -227,7 +227,7 @@ void PrintGeneralUsage()
 	        " -rb ABCD             removes given brand from file's alternate brand list\n"
 	        " -cprt string         adds copyright string to movie\n"
 	        " -chap file           adds chapter information contained in file\n"
-			" -set-track-id id1:id2 changes the id of a track from id1 to id2\n"
+	        " -set-track-id id1:id2 changes the id of a track from id1 to id2\n"
 	        " -rem trackID         removes track from file\n"
 	        " -rap trackID         removes all non-RAP samples from track\n"
 	        " -enable trackID      enables track\n"
@@ -446,7 +446,7 @@ void PrintImportUsage()
 	        " \":subsamples\"        adds SubSample information for AVC+SVC\n"
 	        " \":forcesync\"         forces non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
 	        "       !! RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
-	        " \":negctts\"           uses negative CTTS table\n"			
+	        " \":negctts\"           uses negative CTTS table\n"
 	        " \":stype=4CC\"         forces the sample description type to a different value\n"
 	        "                         !! THIS MAY BREAK THE FILE WRITING !!\n"
 	        " \":chap\"              specifies the track is a chapter track\n"
@@ -464,9 +464,9 @@ void PrintImportUsage()
 	        " \":timescale=TS\"      sets import timescale to TS\n"
 	        " \":noedit\"            do not set edit list when importing B-frames video tracks\n"
 	        " \":rvc=FILENAME\"      sets TVC configuration for the media\n"
-			" \":fmt=FORMAT\"        overrides format detection with given format (cf BT/XMTA doc)\n"
-			" \":profile=INT\"       overrides AVC profile\n"
-			" \":level=INT\"         overrides AVC level\n"
+	        " \":fmt=FORMAT\"        overrides format detection with given format (cf BT/XMTA doc)\n"
+	        " \":profile=INT\"       overrides AVC profile\n"
+	        " \":level=INT\"         overrides AVC level\n"
 
 	        " \":font=name\"         specifies font name for text import (default \"Serif\")\n"
 	        " \":size=s\"            specifies font size for text import (default 18)\n"
@@ -477,7 +477,7 @@ void PrintImportUsage()
 	        "                         track area\n"
 	        "                         - X and Y can be omitted (:layout=WxH)\n"
 
-			" \":swf-global\"        all SWF defines are placed in first scene replace\n"
+	        " \":swf-global\"        all SWF defines are placed in first scene replace\n"
 	        "                         * Note: By default SWF defines are sent when needed\n"
 	        " \":swf-no-ctrl\"       uses a single stream for movie control and dictionary\n"
 	        "                         * Note: this will disable ActionScript\n"
@@ -1500,16 +1500,16 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					descs = &di->rep_descs;
 					opt_offset = 9;
 				}
-                if (opt_offset) {
-                    (*nb_descs)++;
-                    opts += opt_offset;
-                    len = (u32) strlen(opts);
-                    (*descs) = (char **)gf_realloc((*descs), (*nb_descs)*sizeof(char *));
-                    (*descs)[(*nb_descs)-1] = (char *)gf_malloc((len+1)*sizeof(char));
-                    strncpy((*descs)[(*nb_descs)-1], opts, len);
-                    (*descs)[(*nb_descs)-1][len] = 0;                
-                }
-                
+				if (opt_offset) {
+					(*nb_descs)++;
+					opts += opt_offset;
+					len = (u32) strlen(opts);
+					(*descs) = (char **)gf_realloc((*descs), (*nb_descs)*sizeof(char *));
+					(*descs)[(*nb_descs)-1] = (char *)gf_malloc((len+1)*sizeof(char));
+					strncpy((*descs)[(*nb_descs)-1], opts, len);
+					(*descs)[(*nb_descs)-1][len] = 0;
+				}
+
 			}
 			else if (!strnicmp(opts, "xlink=", 6)) {
 				if (strlen(opts+6) > 99) {
@@ -1618,7 +1618,9 @@ int mp4boxMain(int argc, char **argv)
 	u32 *brand_rem = NULL;
 	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
 	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic, initial_moof_sn, dump_std, import_subtitle;
+#ifndef GPAC_DISABLE_SCENE_DUMP
 	GF_SceneDumpFormat dump_mode;
+#endif
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
 	Bool print_sdp, print_info, open_edit, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults, single_traf_per_moof;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
@@ -1687,7 +1689,9 @@ int mp4boxMain(int argc, char **argv)
 	movie_time = 0;
 	dump_nal = 0;
 	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
+#ifndef GPAC_DISABLE_SCENE_DUMP
 	dump_mode = GF_SM_DUMP_NONE;
+#endif
 	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = 0;
 	no_fragments_defaults = 0;
@@ -1815,7 +1819,7 @@ int mp4boxMain(int argc, char **argv)
 			grab_ifce = argv[i+1];
 			i++;
 		}
-		
+
 #endif
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
 		else if (!stricmp(arg, "-wget")) {
@@ -2229,10 +2233,8 @@ int mp4boxMain(int argc, char **argv)
 			else if (!stricmp(argv[i+1], "onDemand")) dash_profile = GF_DASH_PROFILE_ONDEMAND;
 			else if (!stricmp(argv[i+1], "dashavc264:live")) {
 				dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
-				no_fragments_defaults = 1;
 			} else if (!stricmp(argv[i+1], "dashavc264:onDemand")) {
 				dash_profile = GF_DASH_PROFILE_AVC264_ONDEMAND;
-				no_fragments_defaults = 1;
 			} else if (!stricmp(argv[i+1], "main")) dash_profile = GF_DASH_PROFILE_MAIN;
 			else dash_profile = GF_DASH_PROFILE_FULL;
 			i++;
@@ -2529,8 +2531,8 @@ int mp4boxMain(int argc, char **argv)
 				ext[0] = 0;
 				tracks[nb_track_act].kind_scheme = gf_strdup(scheme_start);
 				ext[0] = '=';
-				tracks[nb_track_act].kind_value = gf_strdup(ext+1);				
-			}						
+				tracks[nb_track_act].kind_value = gf_strdup(ext+1);
+			}
 			open_edit = 1;
 			nb_track_act++;
 			i++;
@@ -3137,7 +3139,7 @@ int mp4boxMain(int argc, char **argv)
 
 
 	if (import_subtitle && !trackID) {
-		/* We import the subtitle file, 
+		/* We import the subtitle file,
 		   i.e. we parse it and store the content as samples of a 3GPP Timed Text track in an ISO file,
 		   possibly for later export (e.g. when converting SRT to TTXT, ...) */
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
@@ -3163,10 +3165,10 @@ int mp4boxMain(int argc, char **argv)
 		}
 #ifndef GPAC_DISABLE_ISOM_DUMP
 		/* Start the export of the track #1, in the appropriate dump type, indicating it's a conversion */
-		dump_timed_text_track(file, gf_isom_get_track_id(file, 1), 
-							  dump_std ? NULL : outfile, 
-							  GF_TRUE, 
-							  (import_subtitle==2) ? GF_TEXTDUMPTYPE_SVG : (dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT));
+		dump_timed_text_track(file, gf_isom_get_track_id(file, 1),
+		                      dump_std ? NULL : outfile,
+		                      GF_TRUE,
+		                      (import_subtitle==2) ? GF_TEXTDUMPTYPE_SVG : (dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT));
 #endif
 		/* Clean the importer */
 		gf_isom_delete(file);
@@ -3505,7 +3507,11 @@ int mp4boxMain(int argc, char **argv)
 			if (!open_edit && file_exists && !gf_isom_probe_file(inName) && track_dump_type) {
 			}
 #ifndef GPAC_DISABLE_ISOM_WRITE
-			else if (!open_edit && file_exists /* && !gf_isom_probe_file(inName) */ && dump_mode == GF_SM_DUMP_NONE) {
+			else if (!open_edit && file_exists /* && !gf_isom_probe_file(inName) */
+#ifndef GPAC_DISABLE_SCENE_DUMP
+				&& dump_mode == GF_SM_DUMP_NONE
+#endif
+				) {
 				/*************************************************************************************************/
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 				if(dvbhdemux)
@@ -3815,7 +3821,7 @@ int mp4boxMain(int argc, char **argv)
 				fprintf(stderr, "No meta box in input file\n");
 			}
 			break;
-		default: 
+		default:
 			break;
 		}
 		if (e) goto err_exit;
