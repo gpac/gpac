@@ -1236,7 +1236,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	GF_Err e;
 	u16 proxy_port = 0;
 	const char *proxy, *ip;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("gf_dm_connect"":%d\n", __LINE__));
+
 	if (!sess->sock) {
 		sess->num_retry = 40;
 		sess->sock = gf_sk_new(GF_SOCK_TYPE_TCP);
@@ -1312,6 +1312,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		}
 
 		sess->status = GF_NETIO_CONNECTED;
+        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connected to %s:%d\n", proxy, proxy_port));
 		gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
 		gf_sk_set_buffer_size(sess->sock, 1, GF_DOWNLOAD_BUFFER_SIZE);
 		gf_sk_set_buffer_size(sess->sock, 0, GF_DOWNLOAD_BUFFER_SIZE);
@@ -1945,7 +1946,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,
 			       ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps)\n", gf_cache_get_url(sess->cache_entry), gf_sys_clock() - sess->start_time, 8*sess->bytes_per_sec/1024 ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps)\n", gf_cache_get_url(sess->cache_entry), gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1024 ));
 	}
 
 	if (rewrite_size && sess->chunked) {

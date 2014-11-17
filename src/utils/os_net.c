@@ -379,9 +379,9 @@ GF_Err gf_sk_set_buffer_size(GF_Socket *sock, Bool SendBuffer, u32 NewSize)
 		res = setsockopt(sock->socket, SOL_SOCKET, SO_RCVBUF, (char *) &NewSize, sizeof(u32) );
 	}
 	if (res<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Core] Couldn't set socket %s buffer size: %d\n", SendBuffer ? "send" : "receive", res));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Socket] Couldn't set socket %s buffer size to %d: %d\n", SendBuffer ? "send" : "receive", NewSize, res));
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Core] Set socket %s buffer size\n", SendBuffer ? "send" : "receive"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Socket] Set socket %s buffer size to %d\n", SendBuffer ? "send" : "receive", NewSize));
 	}
 	return GF_OK;
 }
@@ -483,8 +483,10 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 
 	gf_sk_free(sock);
 
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Solving %s address\n", PeerName));
 	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, AI_PASSIVE, type);
 	if (!res) return GF_IP_CONNECTION_FAILURE;
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Host %s found\n", PeerName));
 
 	/*turn on MobileIP*/
 	if (local_ip && MobileIPAdd && !strcmp(MobileIPAdd, local_ip) ) {
@@ -525,12 +527,14 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 			}
 		}
 
+        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connecting to %s:%d\n", PeerName, PortNumber));
 		ret = connect(sock->socket, aip->ai_addr, (int) aip->ai_addrlen);
 		if (ret == SOCKET_ERROR) {
 			closesocket(sock->socket);
 			sock->socket = NULL_SOCKET;
 			continue;
 		}
+        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV6] Connected to %s:%d\n", PeerName, PortNumber));
 
 		memcpy(&sock->dest_addr, aip->ai_addr, aip->ai_addrlen);
 		sock->dest_addr_len = (u32) aip->ai_addrlen;
@@ -562,6 +566,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 	/*get the server IP*/
 	sock->dest_addr.sin_addr.s_addr = inet_addr(PeerName);
 	if (sock->dest_addr.sin_addr.s_addr==INADDR_NONE) {
+        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Solving %s address\n", PeerName));
 		Host = gethostbyname(PeerName);
 		if (Host == NULL) {
 			switch (LASTSOCKERROR) {
@@ -574,14 +579,16 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 				return GF_IP_NETWORK_FAILURE;
 			}
 		}
+        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Host %s found\n", PeerName));
 		memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
 	}
 
 	if (sock->flags & GF_SOCK_IS_TCP) {
+        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connecting to %s:%d\n", PeerName, PortNumber));
 		ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
 		if (ret == SOCKET_ERROR) {
 			u32 res = LASTSOCKERROR;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Core] Couldn't connect socket - last sock error %d\n", res));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Sock_IPV4] Couldn't connect socket - last sock error %d\n", res));
 			switch (res) {
 			case EAGAIN:
 				return GF_IP_SOCK_WOULD_BLOCK;
@@ -606,6 +613,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 				return GF_IP_CONNECTION_FAILURE;
 			}
 		}
+        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Sock_IPV4] Connected to %s:%d\n", PeerName, PortNumber));
 	}
 #endif
 	return GF_OK;
