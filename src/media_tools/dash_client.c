@@ -3666,8 +3666,13 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 
 static void gf_dash_group_check_time(GF_DASH_Group *group)
 {
-	s64 check_time = (s64) gf_net_get_utc();
-	u32 nb_droped = 0;
+	s64 check_time;
+	u32 nb_droped;
+	
+	if (group->dash->is_m3u8) return;
+	
+	check_time = (s64) gf_net_get_utc();
+	nb_droped = 0;
 
 	while (1) {
 		u32 seg_dur_ms;
@@ -3684,7 +3689,7 @@ static void gf_dash_group_check_time(GF_DASH_Group *group)
 			group->dash->tsb_exceeded = (u32) -1;
 			return;
 		}
-		if (now>group->time_shift_buffer_depth) {
+		if (((s32) group->time_shift_buffer_depth > 0) && (now > group->time_shift_buffer_depth)) {
 			group->download_segment_index ++;
 			nb_droped ++;
 			group->dash->time_in_tsb = 0;
