@@ -399,6 +399,7 @@ enum
 	GF_M2TS_TABLE_END		= 1<<1,
 	GF_M2TS_TABLE_FOUND		= 1<<2,
 	GF_M2TS_TABLE_UPDATE	= 1<<3,
+	//both update and repeat flags may be set if data has changed
 	GF_M2TS_TABLE_REPEAT	= 1<<4,
 };
 
@@ -432,6 +433,7 @@ typedef struct __m2ts_demux_table
 
 	GF_List *sections;
 
+	u32 table_size;
 } GF_M2TS_Table;
 
 
@@ -574,7 +576,10 @@ enum
 	GF_M2TS_ES_FIRST_DTS = 1<<17,
 
 	/*flag used to signal next discontinuity on stream should be ignored*/
-	GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY = 1<<18
+	GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY = 1<<18,
+
+	/*Flag used by importers/readers to mark streams that have been seen already in PMT process (update/found)*/
+	GF_M2TS_ES_ALREADY_DECLARED = 1<<19
 };
 
 /*Abstract Section/PES stream object, only used for type casting*/
