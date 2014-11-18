@@ -375,7 +375,10 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
 
 		if (!prog->pmt_iod && !no_declare) {
-			MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
+			if (! (es->flags & GF_M2TS_ES_ALREADY_DECLARED)) {
+				MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
+				es->flags |= GF_M2TS_ES_ALREADY_DECLARED;
+			}
 		}
 		/*if IOD, streams not declared through OD framework are refered to by pid:// scheme, and will be declared upon
 		request by the terminal through GetServiceDesc*/
@@ -601,9 +604,12 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		forward_m2ts_event(m2ts, evt_type, param);
 		break;
 	case GF_M2TS_EVT_PMT_REPEAT:
-//	case GF_M2TS_EVT_PMT_UPDATE:
 		M2TS_FlushRequested(m2ts);
 		break;
+	case GF_M2TS_EVT_PMT_UPDATE:
+		MP2TS_SetupProgram(m2ts, param, GF_TRUE, GF_FALSE);
+		break;
+
 	case GF_M2TS_EVT_SDT_FOUND:
 	case GF_M2TS_EVT_SDT_UPDATE:
 		m2ts->flush_sdt = 1;

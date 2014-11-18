@@ -1438,7 +1438,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		Bool has_syntax_indicator;
 		u8 table_id;
 		u16 extended_table_id;
-		u32 status, section_start;
+		u32 status, section_start, i;
 		GF_M2TS_Table *t, *prev_t;
 		unsigned char *data;
 		Bool section_valid = 0;
@@ -1568,11 +1568,32 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			}
 
 			if (t->last_section_number == t->section_number) {
+				u32 table_size;
+				
 				status |= GF_M2TS_TABLE_END;
+
+				table_size = 0;
+				for (i=0; i<gf_list_count(t->sections); i++) {
+					GF_M2TS_Section *section = gf_list_get(t->sections, i);
+					table_size += section->data_size;
+				}
+				if (t->is_repeat) {
+					if (t->table_size != table_size) {
+						status |= GF_M2TS_TABLE_UPDATE;
+						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Repeated section found with different sizes (old table %d bytes, new table %d bytes)\n", t->table_size, table_size) );
+
+						t->table_size = table_size;
+					}
+				} else {
+					t->table_size = table_size;
+				}
+
 				t->is_init = 1;
 				/*reset section number*/
 				t->section_number = 0;
+
 				t->is_repeat = 0;
+
 			}
 
 			if (sec->process_individual) {
@@ -2096,8 +2117,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 	nb_es = 0;
 
-	/*skip if already received*/
-	if (status&GF_M2TS_TABLE_REPEAT) {
+	/*skip if already received but no update detected (eg same data) */
+	if ((status&GF_M2TS_TABLE_REPEAT) && !(status&GF_M2TS_TABLE_UPDATE))  {
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PMT_REPEAT, pmt->program);
 		return;
 	}
@@ -3145,6 +3166,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			if (!es) {
 				u32 i, j;
 				for(i=0; i<gf_list_count(ts->programs); i++) {
+					GF_M2TS_PES *first_pes = NULL;
 					GF_M2TS_Program *program = (GF_M2TS_Program *)gf_list_get(ts->programs,i);
 					if(program->pcr_pid != hdr.pid) continue;
 					for (j=0; j<gf_list_count(program->streams); j++) {
@@ -3153,10 +3175,17 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 							ts->ess[hdr.pid] = (GF_M2TS_ES *) pes;
 							break;
 						}
+						if (pes->flags & GF_M2TS_ES_IS_PES) 
+							first_pes = pes;
+					}
+					//non found, use the first media stream as a PCR destination - Q: is it legal to have PCR only streams not declared in PMT ?
+					if (!es) {
+						es = (GF_M2TS_ES *) first_pes;
 					}
 					break;
 				}
-				es = ts->ess[hdr.pid];
+				if (!es) 
+					es = ts->ess[hdr.pid];
 			}
 			if (es) {
 				GF_M2TS_PES_PCK pck;
