@@ -61,6 +61,15 @@
 #endif
 
 
+#if defined(GPAC_ANDROID) && (LIBAVFORMAT_VERSION_MAJOR <= 52) 
+
+#ifndef FF_API_CLOSE_INPUT_FILE
+define FF_API_CLOSE_INPUT_FILE	1
+#endif
+
+#endif
+
+
 
 static u32 FFDemux_Run(void *par)
 {
