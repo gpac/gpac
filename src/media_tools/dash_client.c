@@ -4554,7 +4554,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		local_url = manifest_url + 7;
 		is_local = 1;
 		if (strstr(manifest_url, ".m3u8")) {
-			dash->is_m3u8 = 1;
+			dash->is_m3u8 = GF_TRUE;
 		}
 	} else if (strstr(manifest_url, "://")) {
 		const char *reloc_url, *mtype;
@@ -5021,6 +5021,11 @@ GF_EXPORT
 const char *gf_dash_get_url(GF_DashClient *dash)
 {
 	return dash->base_url;
+}
+
+GF_EXPORT
+Bool gf_dash_is_m3u8(GF_DashClient *dash) {
+	return dash->is_m3u8;
 }
 
 GF_EXPORT

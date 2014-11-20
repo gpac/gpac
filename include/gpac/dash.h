@@ -164,6 +164,9 @@ void gf_dash_close(GF_DashClient *dash);
 /*returns URL of the DASH manifest file*/
 const char *gf_dash_get_url(GF_DashClient *dash);
 
+/*tells whether we are playing some Apple HLS M3U8*/
+Bool gf_dash_is_m3u8(GF_DashClient *dash);
+
 /*get title and source for this MPD*/
 void gf_dash_get_info(GF_DashClient *dash, const char **title, const char **source);
 

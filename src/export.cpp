@@ -1963,6 +1963,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_open) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_close) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_is_m3u8) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_group_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_group_udta) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_group_udta) )

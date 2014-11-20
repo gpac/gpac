@@ -1243,13 +1243,15 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			Bool skip_seek;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Play command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
 
-			mpdin->in_seek = 1;
+			mpdin->in_seek = GF_TRUE;
 
 			/*if start range request is the same as previous one, don't process it
 			- this happens at period switch when new objects are declared*/
-			skip_seek = 0;
+			skip_seek = GF_FALSE;
 			if (com->play.initial_broadcast_play && (mpdin->previous_start_range==com->play.start_range))
-				skip_seek = 1;
+				skip_seek = GF_TRUE;
+			if (gf_dash_is_m3u8(mpdin->dash) == GF_TRUE)
+				skip_seek = GF_TRUE;
 
 			mpdin->previous_start_range = com->play.start_range;
 
