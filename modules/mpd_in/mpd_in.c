@@ -1239,7 +1239,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		gf_dash_set_speed(mpdin->dash, com->play.speed);
 
 		/*don't seek if this command is the first PLAY request of objects declared by the subservice*/
-		if (! mpdin->in_seek && (!com->play.initial_broadcast_play || (com->play.start_range>2.0) ) ) {
+		if (! mpdin->in_seek && !com->play.initial_broadcast_play /*&& (com->play.start_range>2.0) */) {
 			Bool skip_seek;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Play command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
 

@@ -2320,7 +2320,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
-			u32 len = strlen(sHTTP);
+			u32 len = (u32) strlen(sHTTP);
 			e = GF_OK;
 			if (len != SSL_write(sess->ssl, sHTTP, len))
 				e = GF_IP_NETWORK_FAILURE;
