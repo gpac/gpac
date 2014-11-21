@@ -41,8 +41,8 @@
 #define GPAC_MEMORY_TRACKING
 #endif
 
-/*SSL enabled - no 64 bit support yet*/
-#if defined(WIN32) && !defined(_WIN64)
+/*SSL enabled*/
+#if defined(WIN32)
 #define GPAC_HAS_SSL
 #endif
 
