@@ -1692,6 +1692,10 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only)
 				} else if (!scene->selected_service_id || (scene->selected_service_id==odm->OD->ServiceID)) {
 					gf_list_add(to_restart, odm);
 				}
+				//addon are inserted from outside the parent service, and won't share the same service_ID - restart if addon is enabled
+				else if (odm->addon && odm->subscene && odm->addon->enabled) {
+					gf_list_add(to_restart, odm);
+				}
 
 				if (odm->state == GF_ODM_STATE_PLAY) {
 					gf_odm_stop(odm, 1);
@@ -2156,7 +2160,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 				addon->enabled = 1;
 
 			//restart addon
-			if (!addon->root_od && addon->timeline_ready) {
+			if (!addon->root_od && addon->timeline_ready && addon->enabled) {
 				load_associated_media(scene, addon);
 			}
 			//nothing associated, deactivate addon
