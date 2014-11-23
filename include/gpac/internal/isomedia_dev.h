@@ -631,7 +631,8 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
-	u32 reserved;
+	u16 balance;
+	u16 reserved;
 } GF_SoundMediaHeaderBox;
 
 typedef struct
