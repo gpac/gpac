@@ -1901,6 +1901,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_to_mpd) )
 #pragma comment (linker, EXPORT_SYMBOL(parse_root_playlist) )
 #pragma comment (linker, EXPORT_SYMBOL(variant_playlist_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_write_file) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_url) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demuxer_setup))
