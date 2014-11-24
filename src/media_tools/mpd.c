@@ -430,9 +430,22 @@ static GF_Err gf_mpd_parse_content_component(GF_List *container, GF_XMLNode *roo
 	return GF_OK;
 }
 
+#define MPD_STORE_EXTENSION_ATTR(_elem)	\
+			if (!_elem->attributes) _elem->attributes = gf_list_new();	\
+			i--;	\
+			gf_list_rem(root->attributes, i);	\
+			gf_list_add(_elem->attributes, att);	\
+
+#define MPD_STORE_EXTENSION_NODE(_elem)	\
+		if (!_elem->children) _elem->children = gf_list_new();	\
+		i--;	\
+		gf_list_rem(root->content, i);	\
+		gf_list_add(_elem->children, child);	\
+
 static GF_Err gf_mpd_parse_descriptor(GF_List *container, GF_XMLNode *root)
 {
 	GF_XMLAttribute *att;
+	GF_XMLNode *child;
 	GF_MPD_Descriptor *mpd_desc;
 	u32 i = 0;
 
@@ -441,8 +454,20 @@ static GF_Err gf_mpd_parse_descriptor(GF_List *container, GF_XMLNode *root)
 		if (!strcmp(att->name, "schemeIdUri")) mpd_desc->scheme_id_uri = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "value")) mpd_desc->value = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "id")) mpd_desc->id = gf_mpd_parse_string(att->value);
+		else {
+			MPD_STORE_EXTENSION_ATTR(mpd_desc)
+		}
 	}
 	gf_list_add(container, mpd_desc);
+
+	i = 0;
+	while ( (child = gf_list_enum(root->content, &i))) {
+		if (child->type != GF_XML_NODE_TYPE) continue;
+
+		MPD_STORE_EXTENSION_NODE(mpd_desc)
+
+	}
+
 	return GF_OK;
 }
 
@@ -807,12 +832,37 @@ void gf_mpd_segment_template_free(void *_item)
 	if (ptr->bitstream_switching) gf_free(ptr->bitstream_switching);
 	gf_free(ptr);
 }
+
+void gf_mpd_extensible_free(GF_MPD_ExtensibleVirtual *item)
+{
+	if (item->attributes) {
+		while (gf_list_count(item->attributes)) {
+			GF_XMLAttribute *att = gf_list_last(item->attributes);
+			gf_list_rem_last(item->attributes);
+			if (att->name) gf_free(att->name);
+			if (att->value) gf_free(att->value);
+			gf_free(att);
+		}
+		gf_list_del(item->attributes);
+	}
+	if (item->children) {
+		while (gf_list_count(item->children)) {
+			GF_XMLNode *child = gf_list_last(item->children);
+			gf_list_rem_last(item->children);
+			gf_xml_dom_node_del(child);
+		}
+		gf_list_del(item->children);
+	}
+}
+
 void gf_mpd_descriptor_free(void *item)
 {
 	GF_MPD_Descriptor *mpd_desc = (GF_MPD_Descriptor*) item;
 	if (mpd_desc->id) gf_free(mpd_desc->id);
 	if (mpd_desc->scheme_id_uri) gf_free(mpd_desc->scheme_id_uri);
 	if (mpd_desc->value) gf_free(mpd_desc->value);
+	gf_mpd_extensible_free((GF_MPD_ExtensibleVirtual *)mpd_desc);
+
 	gf_free(mpd_desc);
 }
 
@@ -902,6 +952,7 @@ void gf_mpd_del(GF_MPD *mpd)
 	gf_mpd_del_list(mpd->periods, gf_mpd_period_free, 0);
 	if (mpd->profiles) gf_free(mpd->profiles);
 	if (mpd->ID) gf_free(mpd->ID);
+	gf_mpd_extensible_free((GF_MPD_ExtensibleVirtual*) mpd);
 	gf_free(mpd);
 }
 
@@ -910,18 +961,14 @@ GF_EXPORT
 GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url)
 {
 	GF_Err e;
+	u32 i;
 	Bool ns_ok = 0;
-	u32 att_index, child_index;
 	GF_XMLAttribute *att;
 	GF_XMLNode *child;
 
 	if (!root || !mpd) return GF_BAD_PARAM;
-
-	att_index = 0;
-	child_index = gf_list_count(root->attributes);
-	for (att_index = 0 ; att_index < child_index; att_index++) {
-		att = gf_list_get(root->attributes, att_index);
-		if (!att) continue;
+	i=0;
+	while ((att = gf_list_enum(root->attributes, &i))) {
 		if (!strcmp(att->name, "xmlns")) {
 			if (!root->ns && (!strcmp(att->value, "urn:mpeg:dash:schema:mpd:2011") || !strcmp(att->value, "urn:mpeg:DASH:schema:MPD:2011")) ) {
 				ns_ok = 1;
@@ -945,13 +992,8 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 		return gf_mpd_parse_period(mpd, root);
 	}
 
-	att_index = 0;
-	for (att_index = 0 ; att_index < child_index; att_index++) {
-		att = gf_list_get(root->attributes, att_index);
-		if (!att) {
-			continue;
-		}
-
+	i = 0;
+	while ((att = gf_list_enum(root->attributes, &i))) {
 		if (!strcmp(att->name, "id")) {
 			mpd->ID = gf_mpd_parse_string(att->value);
 		} else if (!strcmp(att->name, "profiles")) {
@@ -979,35 +1021,36 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 			mpd->max_segment_duration = gf_mpd_parse_duration(att->value);
 		} else if (!strcmp(att->name, "maxSubsegmentDuration")) {
 			mpd->max_subsegment_duration = gf_mpd_parse_duration(att->value);
+		} else {
+			MPD_STORE_EXTENSION_ATTR(mpd)
 		}
 	}
 	if (mpd->type == GF_MPD_TYPE_STATIC)
 		mpd->minimum_update_period = mpd->time_shift_buffer_depth = 0;
 
-	child_index = 0;
-	while (1) {
-		child = gf_list_get(root->content, child_index);
-		if (!child) {
-			break;
-		} else if (gf_mpd_valid_child(mpd, child) ) {
-			if (!strcmp(child->name, "ProgramInformation")) {
-				e = gf_mpd_parse_program_info(mpd, child);
-				if (e) return e;
-			} else if (!strcmp(child->name, "Location")) {
-				e = gf_mpd_parse_location(mpd, child);
-				if (e) return e;
-			} else if (!strcmp(child->name, "Period")) {
-				e = gf_mpd_parse_period(mpd, child);
-				if (e) return e;
-			} else if (!strcmp(child->name, "Metrics")) {
-				e = gf_mpd_parse_metrics(mpd, child);
-				if (e) return e;
-			} else if (!strcmp(child->name, "BaseURL")) {
-				e = gf_mpd_parse_base_url(mpd->base_URLs, child);
-				if (e) return e;
-			}
+	i = 0;
+	while ( ( child = gf_list_enum(root->content, &i )) ) {
+		if (! gf_mpd_valid_child(mpd, child) ) 
+			continue;
+
+		if (!strcmp(child->name, "ProgramInformation")) {
+			e = gf_mpd_parse_program_info(mpd, child);
+			if (e) return e;
+		} else if (!strcmp(child->name, "Location")) {
+			e = gf_mpd_parse_location(mpd, child);
+			if (e) return e;
+		} else if (!strcmp(child->name, "Period")) {
+			e = gf_mpd_parse_period(mpd, child);
+			if (e) return e;
+		} else if (!strcmp(child->name, "Metrics")) {
+			e = gf_mpd_parse_metrics(mpd, child);
+			if (e) return e;
+		} else if (!strcmp(child->name, "BaseURL")) {
+			e = gf_mpd_parse_base_url(mpd->base_URLs, child);
+			if (e) return e;
+		} else {
+			MPD_STORE_EXTENSION_NODE(mpd)
 		}
-		child_index++;
 	}
 	return GF_OK;
 }
@@ -1698,6 +1741,31 @@ static void gf_mpd_print_segment_template(FILE *out, GF_MPD_SegmentTemplate *s, 
 	fprintf(out, "%s</SegmentTemplate>\n", indent);
 }
 
+static void gf_mpd_extensible_print_attr(FILE *out, GF_MPD_ExtensibleVirtual *item)
+{
+	if (item->attributes) {
+		u32 j=0;
+		GF_XMLAttribute *att;
+		while ((att = (GF_XMLAttribute *)gf_list_enum(item->attributes, &j))) {
+			fprintf(out, " %s=\"%s\"", att->name, att->value);
+		}
+	}
+}
+
+static void gf_mpd_extensible_print_nodes(FILE *out, GF_MPD_ExtensibleVirtual *item)
+{
+	if (item->children) {
+		u32 j=0;
+		GF_XMLNode *child;
+		fprintf(out, ">\n");
+		while ((child = (GF_XMLNode *)gf_list_enum(item->children, &j))) {
+			char *txt = gf_xml_dom_serialize(child, 0);
+			fprintf(out, "%s", txt);
+			gf_free(txt);
+		}
+	}
+}
+
 static void gf_mpd_print_descriptors(FILE *out, GF_List *desc_list, char *desc_name, char *indent)
 {
 	u32 i=0;
@@ -1707,7 +1775,15 @@ static void gf_mpd_print_descriptors(FILE *out, GF_List *desc_list, char *desc_n
 		if (desc->id) fprintf(out, " id=\"%s\"", desc->id);
 		if (desc->scheme_id_uri) fprintf(out, " schemeIdUri=\"%s\"", desc->scheme_id_uri);
 		if (desc->value) fprintf(out, " value=\"%s\"", desc->value);
-		fprintf(out, "/>\n");
+	
+		if (desc->attributes) gf_mpd_extensible_print_attr(out, (GF_MPD_ExtensibleVirtual*)desc);
+
+		if (desc->children) {
+			gf_mpd_extensible_print_nodes(out, (GF_MPD_ExtensibleVirtual*)desc);
+			fprintf(out, "%s</%s>\n", indent, desc_name);
+		} else {
+			fprintf(out, "/>\n");
+		}
 	}
 }
 
@@ -1738,7 +1814,7 @@ static u32 gf_mpd_print_common_representation(FILE *out, GF_MPD_CommonAttributes
 	if (ca->isobmf_tracks) {
 		u32 k=0;
 		GF_MPD_ISOBMFInfo *info;
-		fprintf(out, "%s <ISOBMFInfo>\n", indent);
+		fprintf(out, "%s<ISOBMFInfo>\n", indent);
 		while ((info = (GF_MPD_ISOBMFInfo *) gf_list_enum(ca->isobmf_tracks, &k))) {
 			fprintf(out, "%s  <ISOBMFTrack", indent);
 			if (info->trackID) fprintf(out, " ID=\"%d\"", info->trackID);
@@ -1746,7 +1822,7 @@ static u32 gf_mpd_print_common_representation(FILE *out, GF_MPD_CommonAttributes
 			if (info->mediaOffset) fprintf(out, " offset=\"%d\"", info->mediaOffset);
 			fprintf(out, "/>\n");
 		}
-		fprintf(out, "%s </ISOBMFInfo>\n", indent);
+		fprintf(out, "%s</ISOBMFInfo>\n", indent);
 	}
 
 	gf_mpd_print_descriptors(out, ca->frame_packing, "Framepacking", indent);
@@ -1906,7 +1982,7 @@ static GF_Err gf_mpd_write(GF_MPD *mpd, FILE *out)
 		fprintf(out, " ID=\"%s\"", mpd->ID);
 	
 	if (mpd->profiles)
-		fprintf(out, " profiles=\"%s\"", mpd->ID);
+		fprintf(out, " profiles=\"%s\"", mpd->profiles);
 	if (mpd->availabilityStartTime)
 		gf_mpd_print_date(out, "availabilityStartTime", mpd->availabilityStartTime);
 	if (mpd->availabilityEndTime)
@@ -1928,7 +2004,13 @@ static GF_Err gf_mpd_write(GF_MPD *mpd, FILE *out)
 	if (mpd->max_subsegment_duration) 
 		gf_mpd_print_duration(out, "maxSubsegmentDuration", mpd->max_subsegment_duration);
 
+	if (mpd->attributes) gf_mpd_extensible_print_attr(out, (GF_MPD_ExtensibleVirtual*)mpd);
+
 	fprintf(out, ">\n");
+
+	if (mpd->children) {
+		gf_mpd_extensible_print_nodes(out, (GF_MPD_ExtensibleVirtual*)mpd);
+	} 
 
 	i=0; 
 	while ((info = (GF_MPD_ProgramInfo *)gf_list_enum(mpd->program_infos, &i))) {

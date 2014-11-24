@@ -41,12 +41,26 @@ typedef struct
 	u32 dummy;
 } GF_MPD_ContentComponent;
 
-/*TODO*/
+
+//some elments are typically overloaded in XML, we keep the attributes / childrne nodes here. The attributes list is NULL if no extensions were found, otherwise it is a list of @GF_XMLAttribute.
+//The children list is NULL if no extensions were found, otherwise it is a list of @GF_XMLNode
+#define MPD_EXTENSIBLE	\
+	GF_List *attributes;	\
+	GF_List *children;	\
+
 typedef struct
 {
+	MPD_EXTENSIBLE
+} GF_MPD_ExtensibleVirtual;
+
+typedef struct
+{
+	MPD_EXTENSIBLE
+
 	char *scheme_id_uri; /*MANDATORY*/
 	char *value;
 	char *id;
+
 } GF_MPD_Descriptor;
 
 /*TODO*/
@@ -312,6 +326,8 @@ typedef enum {
 } GF_MPD_Type;
 
 typedef struct {
+	MPD_EXTENSIBLE
+
 	char *ID;
 	char *profiles;	/*MANDATORY*/
 	GF_MPD_Type type;
