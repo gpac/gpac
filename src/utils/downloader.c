@@ -3100,7 +3100,7 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
 	GF_DownloadSession *dnload;
 	if (!filename || !url || !dm)
 		return GF_BAD_PARAM;
-	f= fopen(filename, "w");
+	f= fopen(filename, "wb");
 	if (!f) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[WGET] Failed to open file %s for write.\n", filename));
 		return GF_IO_ERR;
@@ -3109,7 +3109,7 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
 	if (!dnload) {
 		return GF_BAD_PARAM;
 	}
-	dnload->use_cache_file = 1;
+	dnload->use_cache_file = 0;
 	dnload->force_data_write_callback = 1;
 	if (end_range) {
 		dnload->range_start = start_range;
