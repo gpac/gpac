@@ -799,6 +799,7 @@ exit:
 		gf_list_rem(kinds, 0);
 		if (kind) gf_free(kind);
 	}
+	gf_list_del(kinds);
 	if (handler_name) gf_free(handler_name);
 	if (chapter_name ) gf_free(chapter_name );
 	if (import.fontName) gf_free(import.fontName);
