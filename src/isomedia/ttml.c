@@ -249,8 +249,8 @@ GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie,
 		return GF_BAD_PARAM;
 	}
 
-	if (!xmlnamespace) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("XML Subtitle SampleEntry: missing namespace. Abort.\n"));
+	if (!xmlnamespace || !xml_schema_loc || !mimes) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("XML Subtitle SampleEntry: namespace, schema and location are mandatory. Abort.\n"));
 		return GF_BAD_PARAM;
 	}
 
