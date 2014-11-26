@@ -141,8 +141,8 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *ifce_name, const char *out
 int mp4boxTerminal(int argc, char **argv);
 
 u32 quiet = 0;
-Bool dvbhdemux =0;
-Bool keep_sys_tracks = 0;
+Bool dvbhdemux = GF_FALSE;
+Bool keep_sys_tracks = GF_FALSE;
 
 
 /*some global vars for swf import :(*/
@@ -565,7 +565,7 @@ void PrintEncryptUsage()
 	        " -decrypt [drm_file]  decrypts a specific track using ISMA AES CTR 128\n"
 	        "                       * Note: drm_file can be omitted if keys are in file\n"
 	        " -set-kms kms_uri     changes KMS location for all tracks or a given one.\n"
-	        "                       * to adress a track, use \'tkID=kms_uri\'\n"
+	        "                       * to address a track, use \'tkID=kms_uri\'\n"
 	        "\n"
 	        "DRM file syntax for GPAC ISMACryp:\n"
 	        "                      File is XML and shall start with xml header\n"
@@ -706,7 +706,7 @@ void PrintMetaUsage()
 	        "                                if ID is not 0 use track meta\n"
 	        " -add-item args       adds resource to meta\n"
 	        "                       * syntax: file_path + options (\':\' separated):\n"
-	        "                        tk=ID: meta adressing (file, moov, track)\n"
+	        "                        tk=ID: meta addressing (file, moov, track)\n"
 	        "                        name=str: item name\n"
 	        "                        mime=mtype: item mime type\n"
 	        "                        encoding=enctype: item content-encoding type\n"

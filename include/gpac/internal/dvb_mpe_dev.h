@@ -81,7 +81,7 @@ typedef struct {
 	u32 address_mask;
 	u8 address[4];
 	u8 slash_mask;
-	u32 rx_port[10];   /* list of the adress port */
+	u32 rx_port[10];   /* list of the address port */
 } GF_M2TS_IP_Target;
 
 typedef struct
@@ -131,8 +131,8 @@ typedef struct
 	u32 u32_TTL;                       /* (Time To Live) when = 0 , the packet is ignored and error message */
 	u32 u32_protocol;                  /* TCP = 6, UDP = 17, ICMP = 1 */
 	u32 u32_crc;
-	u8 u8_tx_adr[4];                   /* source adress */
-	u8 u8_rx_adr[4];                   /* destination adress */
+	u8 u8_tx_adr[4];                   /* source address */
+	u8 u8_rx_adr[4];                   /* destination address */
 	u32 u32_size_option;               /* size of the option before payload */
 	u32 u32_padding;                   /* = 1 if where read padding columns */
 	u32 u32_sum;
@@ -200,7 +200,7 @@ void gf_m2ts_ip_platform_init(GF_M2TS_IP_PLATFORM * ip_platform);
 
 u32 gf_m2ts_ipdatagram_reader(u8 *datagram, GF_M2TS_IP_Packet *ip_packet, u32 offset);
 void gf_m2ts_process_ipdatagram(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *ts);
-Bool gf_m2ts_compare_ip(u8 rx_ip_adress[4], u8 ip_adress_bootstrap[4]);
+Bool gf_m2ts_compare_ip(u8 rx_ip_address[4], u8 ip_address_bootstrap[4]);
 
 struct _sock_entry
 {

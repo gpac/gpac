@@ -1256,7 +1256,7 @@ void gf_term_close_service(GF_Terminal *term, GF_ClientService *ns)
 
 	/*prevent the media manager / term to access the list of services to destroy, otherwise
 	we could unload the module while poping its CloseService() call stack which can lead to
-	random crashes (return adresses no longer valid) - cf any "stress mode" playback of a playlist*/
+	random crashes (return addresses no longer valid) - cf any "stress mode" playback of a playlist*/
 	gf_term_lock_media_queue(term, 1);
 
 #if 0
