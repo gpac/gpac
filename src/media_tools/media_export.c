@@ -748,7 +748,22 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	udesc = NULL;
 
 	/* check if the output file name needs an extension or already has one */
-	add_ext = (dumper->out_name && strrchr(dumper->out_name , '.')==NULL) ? GF_TRUE : GF_FALSE;
+	if (dumper->out_name) {
+		char *lastPathPart;
+		lastPathPart = strrchr(dumper->out_name , GF_PATH_SEPARATOR);
+		if (!lastPathPart) {
+			lastPathPart = dumper->out_name;
+		} else {
+			lastPathPart++;
+		}
+		if (strrchr(lastPathPart , '.')==NULL) {
+			add_ext =  GF_TRUE;
+		} else {
+			add_ext =  GF_FALSE;
+		}
+	} else {
+		add_ext = GF_FALSE;
+	}
 	strcpy(szName, dumper->out_name ? dumper->out_name : "");
 
 	/* Find the decoder configuration:
