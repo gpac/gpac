@@ -249,8 +249,8 @@ GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie,
 		return GF_BAD_PARAM;
 	}
 
-	if (!xmlnamespace || !xml_schema_loc || !mimes) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("XML Subtitle SampleEntry: namespace, schema and location are mandatory. Abort.\n"));
+	if (!xmlnamespace) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("XML Subtitle SampleEntry: namespace is mandatory. Abort.\n"));
 		return GF_BAD_PARAM;
 	}
 
@@ -271,8 +271,8 @@ GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie,
 
 	stpp->bitrate = (GF_MPEG4BitRateBox *)btrt_New();
 	stpp->xmlnamespace = gf_strdup(xmlnamespace);
-	stpp->schema_location = gf_strdup(xml_schema_loc);
-	stpp->auxiliary_mime_types = gf_strdup(mimes);
+	if (xml_schema_loc) stpp->schema_location = gf_strdup(xml_schema_loc); //optional
+	if (mimes) stpp->auxiliary_mime_types = gf_strdup(mimes); //optional
 	return e;
 }
 
