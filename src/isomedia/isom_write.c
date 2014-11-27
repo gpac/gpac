@@ -4959,11 +4959,11 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 
 	/*modify depends flags*/
 	if (src_trak->Media->information->sampleTable->SampleDep) {
-		u32 dependsOn, dependedOn, redundant;
+		u32 isLeading, dependsOn, dependedOn, redundant;
 
-		dependsOn = dependedOn = redundant = 0;
+		isLeading = dependsOn = dependedOn = redundant = 0;
 
-		e = stbl_GetSampleDepType(src_trak->Media->information->sampleTable->SampleDep, sampleNumber, &dependsOn, &dependedOn, &redundant);
+		e = stbl_GetSampleDepType(src_trak->Media->information->sampleTable->SampleDep, sampleNumber, &isLeading, &dependsOn, &dependedOn, &redundant);
 		if (e) return e;
 
 		e = stbl_AppendDependencyType(dst_trak->Media->information->sampleTable, dependsOn, dependedOn, redundant);

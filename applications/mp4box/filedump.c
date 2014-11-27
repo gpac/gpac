@@ -806,19 +806,21 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		u32 has_cts_offset = gf_isom_has_time_offset(file, i+1);
 
-		fprintf(dump, "#dumping track ID %d timing: Num DTS CTS Size RAP Offset DependsOn DependedOn Redundant\n", gf_isom_get_track_id(file, i+1));
+		fprintf(dump, "#dumping track ID %d timing: Num DTS CTS Size RAP Offset isLeading DependsOn DependedOn Redundant RAP-SampleGroup Roll-SampleGroup Roll-Distance\n", gf_isom_get_track_id(file, i+1));
 		count = gf_isom_get_sample_count(file, i+1);
 
 		for (j=0; j<count; j++) {
 			u64 dts, cts, offset;
-			u32 dependsOn, dependedOn, redundant;
+			u32 isLeading, dependsOn, dependedOn, redundant;
+			Bool is_rap, has_roll;
+			s32 roll_distance;
 			u32 index;
 			GF_ISOSample *samp = gf_isom_get_sample_info(file, i+1, j+1, &index, &offset);
-			gf_isom_get_sample_flags(file, i+1, j+1, &dependsOn, &dependedOn, &redundant);
+			gf_isom_get_sample_flags(file, i+1, j+1, &isLeading, &dependsOn, &dependedOn, &redundant);
+			gf_isom_get_sample_rap_roll_info(file, i+1, j+1, &is_rap, &has_roll, &roll_distance);
 			dts = samp->DTS;
 			cts = dts + (s32) samp->CTS_Offset;
-
-			fprintf(dump, "Sample %d\tDTS "LLD"\tCTS "LLD"\t%d\t%d\t"LLD"\t%d\t%d\t%d", j+1, LLD_CAST dts, LLD_CAST cts, samp->dataLength, samp->IsRAP, offset, dependsOn, dependedOn, redundant);
+			fprintf(dump, "Sample %d\tDTS "LLD"\tCTS "LLD"\t%d\t%d\t"LLD"\t%d\t%d\t%d\t%d\t%d\t%d\t%d", j+1, LLD_CAST dts, LLD_CAST cts, samp->dataLength, samp->IsRAP, offset, isLeading, dependsOn, dependedOn, redundant, is_rap, has_roll, roll_distance);
 			if (cts<dts) {
 				fprintf(dump, " #NEGATIVE CTS OFFSET!!!");
 				has_error = 1;
