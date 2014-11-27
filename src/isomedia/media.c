@@ -379,8 +379,8 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	}
 	/*overwrite sync sample with sample dep if any*/
 	if (mdia->information->sampleTable->SampleDep) {
-		u32 dependsOn, dependedOn, redundant;
-		e = stbl_GetSampleDepType(mdia->information->sampleTable->SampleDep, sampleNumber, &dependsOn, &dependedOn, &redundant);
+		u32 isLeading, dependsOn, dependedOn, redundant;
+		e = stbl_GetSampleDepType(mdia->information->sampleTable->SampleDep, sampleNumber, &isLeading, &dependsOn, &dependedOn, &redundant);
 		if (!e) {
 			if (dependsOn==1) (*samp)->IsRAP = RAP_NO;
 			else if (dependsOn==2) (*samp)->IsRAP = RAP;

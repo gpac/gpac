@@ -560,7 +560,7 @@ u32 gf_isom_get_sample_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNum
 /*returns sync flag of sample*/
 u8 gf_isom_get_sample_sync(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
 
-GF_Err gf_isom_get_sample_flags(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *dependsOn, u32 *dependedOn, u32 *redundant);
+GF_Err gf_isom_get_sample_flags(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *is_leading, u32 *dependsOn, u32 *dependedOn, u32 *redundant);
 
 /*gets a sample given a desired decoding time IN MEDIA TIME SCALE
 and set the StreamDescIndex of this sample

@@ -1949,9 +1949,9 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 
 	/*modify depends flags*/
 	if (trak->Media->information->sampleTable->SampleDep) {
-		u32 dependsOn, dependedOn, redundant;
+		u32 isLeading, dependsOn, dependedOn, redundant;
 
-		dependsOn = dependedOn = redundant = 0;
+		isLeading = dependsOn = dependedOn = redundant = 0;
 		count = gf_list_count(traf->TrackRuns);
 		if (!count) return GF_BAD_PARAM;
 		trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, count-1);
@@ -1959,7 +1959,7 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 		if (!count) return GF_BAD_PARAM;
 
 		ent = (GF_TrunEntry *)gf_list_get(trun->entries, count-1);
-		e = stbl_GetSampleDepType(trak->Media->information->sampleTable->SampleDep, sampleNumber, &dependsOn, &dependedOn, &redundant);
+		e = stbl_GetSampleDepType(trak->Media->information->sampleTable->SampleDep, sampleNumber, &isLeading, &dependsOn, &dependedOn, &redundant);
 		if (e) return e;
 
 		GF_ISOM_RESET_FRAG_DEPEND_FLAGS(ent->flags);
