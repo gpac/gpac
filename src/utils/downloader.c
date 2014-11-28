@@ -1621,6 +1621,8 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 		opt = gf_cfg_get_key(cfg, "General", "CacheDirectory");
 	else
 		opt = NULL;
+
+retry_cache:
 	if (!opt) {
 		default_cache_dir = gf_get_default_cache_directory();
 		opt = default_cache_dir;
@@ -1630,7 +1632,27 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 		sprintf(dm->cache_directory, "%s%c", opt, GF_PATH_SEPARATOR);
 	} else {
 		dm->cache_directory = gf_strdup(opt);
+	}
 
+	//check cache exists
+	if (!default_cache_dir) {
+		FILE *test;
+		char szTemp[GF_MAX_PATH];
+		strcpy(szTemp, dm->cache_directory);
+		strcat(szTemp, "gpaccache.test");
+		test = fopen(szTemp, "wb");
+		if (!test) {
+			gf_mkdir(dm->cache_directory);
+			test = fopen(szTemp, "wb");
+			if (!test) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Cache] Cannot write to %s directory, using system temp cache\n", dm->cache_directory ));
+				gf_free(dm->cache_directory);
+				dm->cache_directory = NULL;
+				opt = NULL;
+				goto retry_cache;
+			}
+		}
+		if (test) fclose(test);
 	}
 
 	opt = cfg ? gf_cfg_get_key(cfg, "Downloader", "MaxRate") : NULL;
@@ -2784,6 +2806,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	case 304:
 	{
 		sess->status = GF_NETIO_PARSE_REPLY;
+		assert(sess->cache_entry);
+		sess->total_size = gf_cache_get_cache_filesize(sess->cache_entry);
+
 		gf_dm_sess_notify_state(sess, GF_NETIO_PARSE_REPLY, GF_OK);
 		gf_dm_disconnect(sess, 0);
 		if (sess->user_proc) {
