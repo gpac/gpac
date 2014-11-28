@@ -55,6 +55,11 @@ do
   rewrite_deps $dylib
 done
 
+if [ -f DashCast ]
+  rewrite_deps DashCast
+then
+fi
+
 echo rewriting APPS dependencies
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
