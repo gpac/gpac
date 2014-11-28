@@ -177,7 +177,7 @@ struct __gf_download_session
 	Bool chunked;
 	u32 nb_left_in_chunk;
 
-	u32 request_time;
+	u64 request_start_time;
 	/*private extension*/
 	void *ext;
 };
@@ -1946,7 +1946,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,
 			       ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps)\n", gf_cache_get_url(sess->cache_entry), gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1024 ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps) (%d us since request)\n", gf_cache_get_url(sess->cache_entry), gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1024, gf_sys_clock_high_res() - sess->request_start_time ));
 	}
 
 	if (rewrite_size && sess->chunked) {
@@ -2304,6 +2304,8 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 			}
 		}
 
+		sess->request_start_time = gf_sys_clock_high_res();
+
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
 			u32 writelen = len+par.size;
@@ -2317,6 +2319,8 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request %s\n\n", tmp_buf));
 		gf_free(tmp_buf);
 	} else {
+
+		sess->request_start_time = gf_sys_clock_high_res();
 
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
@@ -2336,7 +2340,6 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		}
 #endif
 	}
-	sess->request_time = gf_sys_clock();
 
 	if (e) {
 		sess->status = GF_NETIO_STATE_ERROR;
@@ -2501,7 +2504,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		switch (e) {
 		case GF_IP_NETWORK_EMPTY:
 			if (!bytesRead) {
-				if (gf_sys_clock() - sess->request_time > sess->dm->request_timeout) {
+				if (gf_sys_clock_high_res() - sess->request_start_time > 1000 * sess->dm->request_timeout) {
 					sess->last_error = GF_IP_NETWORK_EMPTY;
 					sess->status = GF_NETIO_STATE_ERROR;
 					return GF_IP_NETWORK_EMPTY;
