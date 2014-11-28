@@ -1,4 +1,9 @@
 language: c
 compiler: gcc
-#script: configure --use-zlib=no --use-js=no --use-png=no --use-jpeg=no --use-faad=no --use-mad=no --use-xvid=no --use-ogg=no --use-vorbis=no --use-theora=no --use-openjpeg=no --disable-streaming --disable-isoff-frag --disable-isoff-hint --disable-isoff-write --disable-loader-xmt --disable-loader-bt --disable-loader-isoff --disable-scene-encode --disable-mcrypt --disable-od-dump --disable-scene-dump --disable-scene-stats --disable-swf --disable-export --disable-import --disable-m2ps --disable-ogg --disable-avi --disable-qtvr --disable-seng --disable-smgr --disable-x3d --disable-3d --disable-ssl --disable-jack --disable-pulse --use-a52=no --disable-odf --disable-isoff --disable-m2ts-mux --disable-dvbx --disable-saf --disable-vobsub --disable-ttxt --disable-od-parse && make 
-script: ./configure --disable-all && make
+before_install: 
+ - sudo apt-get update -qq
+install:
+ - sudo apt-get install -y pkg-config g++ zlib1g-dev libfreetype6-dev libjpeg62-dev libpng12-dev libopenjpeg-dev libmad0-dev libfaad-dev libogg-dev libvorbis-dev libtheora-dev liba52-0.7.4-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libxv-dev x11proto-video-dev libgl1-mesa-dev x11proto-gl-dev linux-sound-base libxvidcore-dev libssl-dev libjack-dev libasound2-dev libpulse-dev libsdl1.2-dev dvb-apps libavcodec-extra-53 libavdevice-dev libmozjs185-dev
+script: 
+ - ./configure --disable-all && make
+ - ./configure && make
