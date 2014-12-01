@@ -56,8 +56,8 @@ do
 done
 
 if [ -f DashCast ]
-  rewrite_deps DashCast
 then
+  rewrite_deps DashCast
 fi
 
 echo rewriting APPS dependencies
