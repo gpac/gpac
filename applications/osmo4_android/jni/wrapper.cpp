@@ -496,7 +496,7 @@ displayInAndroidlogs:
 			snprintf(unknTag, 32, "GPAC_UNKNOWN[%d]", lm);
 			tag = unknTag;
 		}
-		__android_log_print(debug, tag, szMsg);
+		__android_log_print(debug, tag, "%s\n", szMsg);
 	}
 }
 //-------------------------------
