@@ -115,7 +115,7 @@ static GFINLINE void usage()
 	        "-rap                   forces RAP/IDR to be aligned with PES start for video streams (disabled by default)\n"
 	        "                          in this mode, PAT, PMT and PCR will be inserted before the first TS packet of the RAP PES\n"
 	        "-flush-rap             same as -rap but flushes all other streams (sends remaining PES packets) before inserting PAT/PMT\n"
-	        "-nb-pack N             specifies to pack N TS packets together before sending on network or writing to file\n"
+	        "-nb-pack N             specifies to pack up to N TS packets together before sending on network or writing to file\n"
 	        "-pcr-ms N              sets max interval in ms between 2 PCR. Default is 100 ms\n"
 	        "-ttl N                 specifies Time-To-Live for multicast. Default is 1.\n"
 	        "-ifce IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
