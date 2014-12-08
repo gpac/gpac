@@ -2048,7 +2048,6 @@ static void gf_dash_switch_group_representation(GF_DashClient *mpd, GF_DASH_Grou
 static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DASH_Group *group, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url)
 {
 	GF_Err e;
-	u32 start_number = 1;
 	GF_MPD_AdaptationSet *set = group->adaptation_set;
 	GF_MPD_Period *period = group->period;
 	u32 timescale;

@@ -758,6 +758,9 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			}
 		}
 		SDL_SetWindowSize(ctx->screen, width, height);
+        SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 0, 255);
+        SDL_RenderClear(ctx->renderer);
+
 #else
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
 #endif

@@ -2111,6 +2111,8 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 
 	if (!top_node && !compositor->visual->last_had_back && !compositor->visual->cur_context) {
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Scene has no root node, nothing to draw\n"));
+        //nothing to draw, skip flush
+        compositor->skip_flush = 1;
 		return;
 	}
 
