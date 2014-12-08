@@ -586,17 +586,11 @@ void gf_sema_del(GF_Semaphore *sm)
 }
 
 GF_EXPORT
-u32 gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
+Bool gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 {
-	u32 prevCount;
-	if (!sm) return 0;
+    if (!sm) return GF_FALSE;
 	sm->hSemaphore->Signal(NbRelease);
-#ifdef __SERIES60_3X__
-	prevCount = 0;
-#else
-	prevCount = sm->hSemaphore->Count();
-#endif
-	return (u32) prevCount;
+	return GF_TRUE;
 }
 
 GF_EXPORT

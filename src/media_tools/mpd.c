@@ -1625,7 +1625,7 @@ static void gf_mpd_print_base_url(FILE *out, GF_List *base_URLs, char *indent)
 		if (url->service_location)
 			fprintf(out, " serviceLocation=\"%s\"", url->service_location);
 		if (url->byte_range)
-			fprintf(out, " byteRange=\"%s\"", url->byte_range);
+			fprintf(out, " byteRange=\""LLD"-"LLD"\"", url->byte_range->start_range, url->byte_range->end_range);
 		fprintf(out, ">%s</BaseURL>\n", url->URL);
 	}
 }
@@ -1682,7 +1682,7 @@ static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentB
 {
 	gf_mpd_print_segment_base_attr(out, (GF_MPD_SegmentBase *)ms);
 
-	if (ms->duration) fprintf(out, " duration=\"%d\"", ms->duration);
+	if (ms->duration) fprintf(out, " duration=\""LLD"\"", ms->duration);
 	if (ms->start_number != (u32) -1) fprintf(out, " startNumber=\"%d\"", ms->start_number);
 
 
@@ -1793,7 +1793,7 @@ static u32 gf_mpd_print_common_representation(FILE *out, GF_MPD_CommonAttributes
 	if (ca->width) fprintf(out, " width=\"%d\"", ca->width);
 	if (ca->height) fprintf(out, " height=\"%d\"", ca->height);
 	if (ca->sar) fprintf(out, " sar=\"%d:%d\"", ca->sar->num, ca->sar->den);
-	if (ca->framerate) fprintf(out, " frameRate=\"%d\"", ca->framerate);
+	if (ca->framerate) fprintf(out, " frameRate=\"%d:%d\"", ca->framerate->num, ca->framerate->den);
 	if (ca->samplerate) fprintf(out, " audioSamplingRate=\"%d\"", ca->samplerate);
 	if (ca->mime_type) fprintf(out, " mimeType=\"%s\"", ca->mime_type);
 	if (ca->segmentProfiles) fprintf(out, " segmentProfiles=\"%s\"", ca->segmentProfiles);
@@ -1819,7 +1819,7 @@ static u32 gf_mpd_print_common_representation(FILE *out, GF_MPD_CommonAttributes
 			fprintf(out, "%s  <ISOBMFTrack", indent);
 			if (info->trackID) fprintf(out, " ID=\"%d\"", info->trackID);
 			if (info->stsd) fprintf(out, " stsd=\"%s\"", info->stsd);
-			if (info->mediaOffset) fprintf(out, " offset=\"%d\"", info->mediaOffset);
+			if (info->mediaOffset) fprintf(out, " offset=\""LLD"\"", info->mediaOffset);
 			fprintf(out, "/>\n");
 		}
 		fprintf(out, "%s</ISOBMFInfo>\n", indent);
