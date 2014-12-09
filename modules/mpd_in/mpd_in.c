@@ -89,10 +89,10 @@ const char * MPD_M3U8_EXT = "m3u8 m3u";
 static u32 MPD_RegisterMimeTypes(const GF_InputService *plug)
 {
 	u32 i, c;
-	for (i = 0 ; GF_DASH_MPD_MIME_TYPES[i]; i++)
+	for (i=0; GF_DASH_MPD_MIME_TYPES[i]; i++)
 		gf_service_register_mime (plug, GF_DASH_MPD_MIME_TYPES[i], MPD_MPD_EXT, MPD_MPD_DESC);
 	c = i;
-	for (i = 0 ; GF_DASH_M3U8_MIME_TYPES[i]; i++)
+	for (i=0; GF_DASH_M3U8_MIME_TYPES[i]; i++)
 		gf_service_register_mime(plug, GF_DASH_M3U8_MIME_TYPES[i], MPD_M3U8_EXT, MPD_M3U8_DESC);
 	return c+i;
 }
@@ -102,16 +102,16 @@ Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
 	u32 i;
 	char *sExt;
 	if (!plug || !url)
-		return 0;
+		return GF_FALSE;
 	sExt = strrchr(url, '.');
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Can Handle URL request from terminal for %s\n", url));
-	for (i = 0 ; GF_DASH_MPD_MIME_TYPES[i]; i++) {
+	for (i=0; GF_DASH_MPD_MIME_TYPES[i]; i++) {
 		if (gf_service_check_mime_register(plug, GF_DASH_MPD_MIME_TYPES[i], MPD_MPD_EXT, MPD_MPD_DESC, sExt))
-			return 1;
+			return GF_TRUE;
 	}
-	for (i = 0 ; GF_DASH_M3U8_MIME_TYPES[i]; i++) {
+	for (i=0; GF_DASH_M3U8_MIME_TYPES[i]; i++) {
 		if (gf_service_check_mime_register(plug, GF_DASH_M3U8_MIME_TYPES[i], MPD_M3U8_EXT, MPD_M3U8_DESC, sExt))
-			return 1;
+			return GF_TRUE;
 	}
 
 	return gf_dash_check_mpd_root_type(url);
@@ -147,7 +147,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 	GF_MPD_In *mpdin = (GF_MPD_In*) service->ifce->priv;
 	GF_Channel *ch;
 	GF_MPDGroup *group;
-	Bool do_map_time = 0;
+	Bool do_map_time = GF_FALSE;
 	if (!ns || !hdr) {
 		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
 		return;
@@ -179,14 +179,14 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			}
 			scale = ch->esd->slConfig->timestampResolution;
 			scale /= 1000;
-			dur = (u64) (scale * gf_dash_get_period_duration(mpdin->dash) );
+			dur = (u64) (scale * gf_dash_get_period_duration(mpdin->dash));
 			if (dur) {
 				group->max_cts_in_period = group->pto + dur;
 			} else {
 				group->max_cts_in_period = 0;
 			}
 
-			start = (u64) (scale * gf_dash_get_period_start(mpdin->dash) );
+			start = (u64) (scale * gf_dash_get_period_start(mpdin->dash));
 			group->pto -= start;
 		}
 		//filter any packet outside the current period
@@ -312,14 +312,14 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			gf_dash_group_discard_segment(mpdin->dash, group_idx);
 		}
 
-		while (gf_dash_is_running(mpdin->dash) ) {
+		while (gf_dash_is_running(mpdin->dash)) {
 			group_done=0;
 			nb_segments_cached = gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done);
 			if (nb_segments_cached>=1)
 				break;
 
 			if (group_done) {
-				if (!gf_dash_get_period_switch_status(mpdin->dash) && !gf_dash_in_last_period(mpdin->dash) ) {
+				if (!gf_dash_get_period_switch_status(mpdin->dash) && !gf_dash_in_last_period(mpdin->dash)) {
 					GF_NetworkCommand com;
 					param->url_query.in_end_of_period = 1;
 					memset(&com, 0, sizeof(GF_NetworkCommand));
@@ -378,7 +378,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 
 #ifndef GPAC_DISABLE_LOG
 		{
-			u32 timer2 = gf_sys_clock() - timer ;
+			u32 timer2 = gf_sys_clock() - timer;
 			if (timer2 > 1000) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waiting for download to end took a long time : %u ms\n", timer2));
 			}
@@ -387,7 +387,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			} else {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] Next Segment is %s\n", src_url));
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waited %d ms - Elements in cache: %u/%u\n\tCache file name %s\n\tsegment start time %g sec\n", timer2, gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done), gf_dash_group_get_max_segments_in_cache(mpdin->dash, group_idx), param->url_query.next_url, gf_dash_group_current_segment_start_time(mpdin->dash, group_idx)  ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waited %d ms - Elements in cache: %u/%u\n\tCache file name %s\n\tsegment start time %g sec\n", timer2, gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done), gf_dash_group_get_max_segments_in_cache(mpdin->dash, group_idx), param->url_query.next_url, gf_dash_group_current_segment_start_time(mpdin->dash, group_idx)));
 		}
 #endif
 	}
@@ -506,7 +506,7 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 
 	if (param->msg_type == GF_NETIO_PARSE_HEADER) {
 		if (!strcmp(param->name, "Dash-Newest-Segment")) {
-			gf_dash_resync_to_segment(group->mpdin->dash, param->value, gf_dm_sess_get_header(param->sess, "Dash-Oldest-Segment") );
+			gf_dash_resync_to_segment(group->mpdin->dash, param->value, gf_dm_sess_get_header(param->sess, "Dash-Oldest-Segment"));
 		}
 	}
 
@@ -561,7 +561,7 @@ GF_DASHFileIOSession mpdin_dash_io_create(GF_DASHFileIO *dashio, Bool persistent
 	} else {
 		sess = gf_service_download_new(mpdin->service, url, flags, NULL, NULL);
 	}
-	return (GF_DASHFileIOSession ) sess;
+	return (GF_DASHFileIOSession) sess;
 }
 void mpdin_dash_io_del(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
 {
@@ -782,7 +782,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 			GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, group_idx);
 			if (group) {
 				GF_NetworkCommand com;
-				memset(&com, 0, sizeof(GF_NetworkCommand) );
+				memset(&com, 0, sizeof(GF_NetworkCommand));
 
 				com.command_type = GF_NET_SERVICE_EVENT;
 				com.send_event.evt.type = GF_EVENT_QUALITY_SWITCHED;
@@ -901,12 +901,11 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	else if (opt && !strcmp(opt, "none")) mpdin->buffer_mode = MPDIN_BUFFER_NONE;
 	else mpdin->buffer_mode = MPDIN_BUFFER_MIN;
 
-
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "LowLatency");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "LowLatency", "no");
 
-	if (opt && !strcmp(opt, "chunk") ) mpdin->use_low_latency = 1;
-	else if (opt && !strcmp(opt, "always") ) mpdin->use_low_latency = 2;
+	if (opt && !strcmp(opt, "chunk")) mpdin->use_low_latency = 1;
+	else if (opt && !strcmp(opt, "always")) mpdin->use_low_latency = 2;
 	else mpdin->use_low_latency = 0;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "AllowAbort");
@@ -987,7 +986,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	/*dash thread starts at the end of gf_dash_open */
 	e = gf_dash_open(mpdin->dash, url);
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD_IN] Error - cannot initialize DASH Client for %s: %s\n", url, gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD_IN] Error - cannot initialize DASH Client for %s: %s\n", url, gf_error_to_string(e)));
 		mpdin->fn_connect_ack(mpdin->service, NULL, e);
 		return GF_OK;
 	}
@@ -1021,7 +1020,7 @@ static GF_Descriptor *MPD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 GF_Err MPD_CloseService(GF_InputService *plug)
 {
 	GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
-	assert( mpdin );
+	assert(mpdin);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Close Service (%p) request from terminal\n", mpdin->service));
 
 	mpdin->closed = 1;
@@ -1041,7 +1040,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	GF_MPD_In *mpdin = (GF_MPD_In*) plug->priv;
 	GF_InputService *segment_ifce = NULL;
 
-	if (!plug || !plug->priv || !com ) return GF_SERVICE_ERROR;
+	if (!plug || !plug->priv || !com) return GF_SERVICE_ERROR;
 
 	segment_ifce = MPD_GetInputServiceForChannel(mpdin, com->base.on_channel);
 
@@ -1173,7 +1172,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	case GF_NET_CHAN_BUFFER:
 		/*get it from MPD minBufferTime - if not in low latency mode, indicate the value given in MPD (not possible to fetch segments earlier) - to be more precise we should get the min segment duration for this group*/
-		if (!mpdin->use_low_latency && (mpdin->buffer_mode>=MPDIN_BUFFER_MIN) ) {
+		if (!mpdin->use_low_latency && (mpdin->buffer_mode>=MPDIN_BUFFER_MIN)) {
 			u32 max = gf_dash_get_min_buffer_time(mpdin->dash);
 			if (max>com->buffer.max)
 				com->buffer.max = max;
@@ -1273,7 +1272,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 			//to remove once we manage to keep the service alive
 			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
-			if (gf_dash_get_period_switch_status(mpdin->dash) ) return GF_OK;
+			if (gf_dash_get_period_switch_status(mpdin->dash)) return GF_OK;
 		}
 
 		gf_dash_group_select(mpdin->dash, idx, GF_TRUE);
@@ -1285,7 +1284,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			u32 timescale;
 			com->play.start_range = gf_dash_group_get_start_range(mpdin->dash, idx);
 			gf_dash_group_get_presentation_time_offset(mpdin->dash, idx, &pto, &timescale);
-			com->play.start_range += ((Double)pto ) / timescale;
+			com->play.start_range += ((Double)pto) / timescale;
 		}
 
 		return segment_ifce->ServiceCommand(segment_ifce, com);
@@ -1399,7 +1398,7 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	if (bi->InterfaceType!=GF_NET_CLIENT_INTERFACE) return;
 
 	mpdin = (GF_MPD_In*) ((GF_InputService*)bi)->priv;
-	assert( mpdin );
+	assert(mpdin);
 
 	if (mpdin->dash)
 		gf_dash_del(mpdin->dash);
