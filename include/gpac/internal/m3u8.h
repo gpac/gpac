@@ -153,14 +153,14 @@ PlaylistElement * playlist_element_new(PlaylistElementType elementType, const ch
  * Creates a new VariantPlaylist
  * \return NULL if VariantPlaylist element could not be allocated
  */
-VariantPlaylist * variant_playlist_new ();
+VariantPlaylist * variant_playlist_new();
 
 /**
  * Deletes the given VariantPlaylist and all of its sub elements
  */
 GF_Err variant_playlist_del(VariantPlaylist *);
 
-GF_Err playlist_element_dump(const PlaylistElement * e, int indent);
+GF_Err playlist_element_dump(const PlaylistElement *e, int indent);
 
 GF_Err variant_playlist_dump(const VariantPlaylist *);
 
@@ -171,13 +171,14 @@ Program * variant_playlist_get_current_program(const VariantPlaylist *);
 
 
 /**
- * Parse the given playlist file
+ * Parse the given m3u8 playlist file
  * \param file The file from cache to parse
  * \param playlist The playlist to fill. If argument is null, and file is valid, playlist will be allocated
  * \param baseURL The base URL of the playlist
  * \return GF_OK if playlist valid
  */
-GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL);
+GF_Err gf_m3u8_parse_master_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL);
+
 /**
  * Parse the given playlist file as a subplaylist of an existing playlist
  * \param file The file from cache to parse

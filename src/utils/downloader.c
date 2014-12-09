@@ -2290,7 +2290,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		strcat(sHTTP, "Icy-Metadata: 1\r\n");
 
 		/*cached headers are not appended in POST*/
-		if (!no_cache && !sess->disable_cache && (GF_OK < appendHttpCacheHeaders( sess->cache_entry, sHTTP)) ) {
+		if (!no_cache && !sess->disable_cache && (GF_OK < gf_cache_append_http_headers( sess->cache_entry, sHTTP)) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Cache Entry : %p, FAILED to append cache directives.", sess->cache_entry));
 		}
 	}

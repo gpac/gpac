@@ -486,7 +486,8 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 
 #define M3U8_BUF_SIZE 2048
 
-GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL)
+GF_EXPORT
+GF_Err gf_m3u8_parse_master_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL)
 {
 	return parse_sub_playlist(file, playlist, baseURL, NULL, NULL);
 }

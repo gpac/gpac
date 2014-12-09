@@ -2558,7 +2558,7 @@ void html_media_js_api_del();
 
 void gf_svg_script_context_del(GF_SVGJS *svg_js, GF_SceneGraph *scenegraph)
 {
-	dom_js_pre_destroy(svg_js->js_ctx, scenegraph, NULL);
+	gf_sg_js_dom_pre_destroy(svg_js->js_ctx, scenegraph, NULL);
 	/*user-defined extensions*/
 	gf_sg_load_script_extensions(scenegraph, svg_js->js_ctx, svg_js->global, GF_TRUE);
 	gf_sg_ecmascript_del(svg_js->js_ctx);
@@ -2586,7 +2586,7 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 			svg_js->nb_scripts--;
 
 			/*detach this script from our object cache*/
-			dom_js_pre_destroy(svg_js->js_ctx, n->sgprivate->scenegraph, n);
+			gf_sg_js_dom_pre_destroy(svg_js->js_ctx, n->sgprivate->scenegraph, n);
 
 			if (!svg_js->nb_scripts) {
 				gf_svg_script_context_del(svg_js, n->sgprivate->scenegraph);

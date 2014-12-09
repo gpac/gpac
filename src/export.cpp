@@ -369,7 +369,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_get_cache_filename) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_create_entry) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_get_mime_type) )
-#pragma comment (linker, EXPORT_SYMBOL(appendHttpCacheHeaders) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cache_append_http_headers) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_open_write_cache) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_set_last_modified_on_server) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_set_etag_on_server) )
@@ -1596,7 +1596,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_try_lock_javascript) )
 
 #ifndef GPAC_DISABLE_SVG
-#pragma comment (linker, EXPORT_SYMBOL(dom_js_pre_destroy) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_dom_pre_destroy) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_add_listener) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_remove_listener) )
 #endif
@@ -1900,8 +1900,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_init_from_dom) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_to_mpd) )
-#pragma comment (linker, EXPORT_SYMBOL(parse_root_playlist) )
-#pragma comment (linker, EXPORT_SYMBOL(variant_playlist_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_parse_master_playlist) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_write_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_url) )
 
