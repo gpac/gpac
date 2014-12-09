@@ -181,10 +181,12 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	u8 OTI;
 	char *dsi, *data;
 	FILE *src;
-	Bool import_mpeg4 = 0;
+	Bool import_mpeg4 = GF_FALSE;
 
-	if (import->flags & GF_IMPORT_FORCE_MPEG4) import_mpeg4 = 1;
-	else if (import->esd)  import_mpeg4 = 1;
+	if (import->flags & GF_IMPORT_FORCE_MPEG4)
+		import_mpeg4 = GF_TRUE;
+	else if (import->esd)
+		import_mpeg4 = GF_TRUE;
 
 	src = gf_f64_open(import->in_name, "rb");
 	if (!src) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
@@ -455,7 +457,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 	GF_Err e;
 	u16 sr;
 	u32 nb_chan;
-	Bool force_mpeg4 = 0;
+	Bool force_mpeg4 = GF_FALSE;
 	FILE *in;
 	u32 hdr, size, max_size, track, di;
 	u64 done, tot_size, offset, duration;
@@ -697,7 +699,7 @@ static Bool LOAS_LoadFrame(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u32 *nb_by
 					num_lay = gf_bs_read_int(bs, 3);
 					for (j=0; j<=num_lay; j++) {
 						u32 frameLengthType;
-						Bool same_cfg = 0;
+						Bool same_cfg = GF_FALSE;
 						if (i || j) same_cfg = gf_bs_read_int(bs, 1);
 
 						if (!same_cfg) {
@@ -3477,11 +3479,11 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			e = gf_xml_parse_bit_sequence(node, &samp->data, &samp->dataLength);
 			max_size = samp->dataLength;
 		} else {
-			Bool close = 0;
+			Bool close = GF_FALSE;
 			FILE *f = mdia;
 			if (strlen(szMediaTemp)) {
 				f = gf_f64_open(szMediaTemp, "rb");
-				close = 1;
+				close = GF_TRUE;
 				if (offset) gf_f64_seek(f, offset, SEEK_SET);
 			} else {
 				if (!offset) offset = media_done;
@@ -5455,16 +5457,16 @@ restart_import:
 	last_poc = max_last_poc = max_last_b_poc = prev_last_poc = 0;
 	max_total_delay = 0;
 
-	gf_isom_set_cts_packing(import->dest, track, 1);
-	has_cts_offset = 0;
+	gf_isom_set_cts_packing(import->dest, track, GF_TRUE);
+	has_cts_offset = GF_FALSE;
 	min_poc = 0;
 	poc_shift = 0;
-	flush_next_sample = 0;
-	is_empty_sample = 1;
+	flush_next_sample = GF_FALSE;
+	is_empty_sample = GF_TRUE;
 
 	while (gf_bs_available(bs)) {
 		s32 res;
-		Bool force_shvc = 0;
+		Bool force_shvc = GF_FALSE;
 		GF_HEVCConfig *prev_cfg;
 		u8 nal_unit_type, temporal_id, layer_id;
 		Bool skip_nal, add_sps, is_slice, has_vcl_nal;
@@ -6824,7 +6826,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 		if (!stream_id) stream_id = 1000;
 
 		if ((type==1) || (type==2) || (type==7)) {
-			Bool in_root_od = 0;
+			Bool in_root_od = GF_FALSE;
 			u32 mtype, stype;
 			char *name = "Unknown";
 
@@ -6922,10 +6924,10 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 					import->nb_tracks++;
 				}
 			} else if ((stream_id==import->trackID) && !track) {
-				Bool delete_esd = 0;
+				Bool delete_esd = GF_FALSE;
 				if (!import->esd) {
 					import->esd = gf_odf_desc_esd_new(0);
-					delete_esd = 1;
+					delete_esd = GF_TRUE;
 					if (import->esd->URLString) gf_free(import->esd->URLString);
 					import->esd->URLString = NULL;
 				}
@@ -7143,7 +7145,7 @@ static void m2ts_create_track(GF_TSImport *tsimp, u32 mtype, u32 stype, u32 oti,
 	GF_MediaImporter *import= (GF_MediaImporter *)tsimp->import;
 	if (mtype != GF_ISOM_MEDIA_ESM) {
 		u32 di;
-		Bool destroy_esd = 0;
+		Bool destroy_esd = GF_FALSE;
 		if (import->esd) mpeg4_es_id = import->esd->ESID;
 		else if (!mpeg4_es_id) mpeg4_es_id = import->trackID;
 
@@ -7637,26 +7639,26 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		if (tsimp->avccfg && !pck->data[0] && !pck->data[1]) {
 			GF_AVCConfigSlot *slc;
 			s32 idx;
-			Bool add_sps, is_subseq = 0;
+			Bool add_sps, is_subseq = GF_FALSE;
 			u32 nal_type = pck->data[4] & 0x1F;
 
 			switch (nal_type) {
 			case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
-				is_subseq = 1;
+				is_subseq = GF_TRUE;
 			case GF_AVC_NALU_SEQ_PARAM:
 				idx = gf_media_avc_read_sps(pck->data+4, pck->data_len-4, &tsimp->avc, is_subseq, NULL);
 
-				add_sps = 0;
+				add_sps = GF_FALSE;
 				if (idx>=0) {
 					if (is_subseq) {
 						if ((tsimp->avc.sps[idx].state & AVC_SUBSPS_PARSED) && !(tsimp->avc.sps[idx].state & AVC_SUBSPS_DECLARED)) {
 							tsimp->avc.sps[idx].state |= AVC_SUBSPS_DECLARED;
-							add_sps = 1;
+							add_sps = GF_TRUE;
 						}
 					} else {
 						if ((tsimp->avc.sps[idx].state & AVC_SPS_PARSED) && !(tsimp->avc.sps[idx].state & AVC_SPS_DECLARED)) {
 							tsimp->avc.sps[idx].state |= AVC_SPS_DECLARED;
-							add_sps = 1;
+							add_sps = GF_TRUE;
 						}
 					}
 					if (add_sps) {
@@ -7693,7 +7695,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				return;
 			/*remove*/
 			case GF_AVC_NALU_ACCESS_UNIT:
-				tsimp->force_next_au_start = 1;
+				tsimp->force_next_au_start = GF_TRUE;
 				return;
 			case GF_AVC_NALU_FILLER_DATA:
 			case GF_AVC_NALU_END_OF_SEQ:
@@ -7709,8 +7711,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			}
 
 			if (tsimp->force_next_au_start) {
-				is_au_start = 1;
-				tsimp->force_next_au_start = 0;
+				is_au_start = GF_TRUE;
+				tsimp->force_next_au_start = GF_FALSE;
 			}
 		}
 
@@ -7719,7 +7721,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 #ifndef GPAC_DISABLE_HEVC
 		else if (tsimp->hevccfg && !pck->data[0] && !pck->data[1]) {
 			s32 idx;
-			Bool add_sps, is_subseq = 0;
+			Bool add_sps, is_subseq = GF_FALSE;
 			u32 nal_type = (pck->data[4] & 0x7E) >> 1;
 
 			switch (nal_type) {
@@ -8071,7 +8073,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	GF_TSImport tsimp;
 	u64 fsize, done;
 	u32 size, i;
-	Bool do_import = 1;
+	Bool do_import = GF_TRUE;
 	FILE *mts;
 	char progress[1000];
 
@@ -8222,7 +8224,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 	int		  version;
 	vobsub_file	  *vobsub = NULL;
 	u32		  c, trackID, track, di;
-	Bool		  destroy_esd = 0;
+	Bool		  destroy_esd = GF_FALSE;
 	GF_Err		  err = GF_OK;
 	GF_ISOSample	 *samp = NULL;
 	GF_List		 *subpic;
@@ -8658,7 +8660,7 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 	gf_f64_seek(f, offset, SEEK_SET);
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
-		Bool is_chap_or_sub = 0;
+		Bool is_chap_or_sub = GF_FALSE;
 		import->nb_tracks = 0;
 		while (!is_chap_or_sub && (fgets(line, 1024, f) != NULL)) {
 			char *sep;

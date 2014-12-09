@@ -1,8 +1,8 @@
 /**
  *			GPAC - Multimedia Framework C SDK
  *
- *					Authors: Pierre Souchay - Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2010-2012
+ *					Authors: Pierre Souchay - Jean Le Feuvre - Romain Bouqueau
+ *			Copyright (c) Telecom ParisTech 2010-2012, Romain Bouqueau
  *					All rights reserved
  *
  *  This file is part of GPAC
@@ -24,150 +24,70 @@
  */
 #ifndef M3U8_PLAYLIST_H
 #define M3U8_PLAYLIST_H
+
 #include <gpac/tools.h>
 #include <gpac/list.h>
 
-/**
- * Global Structure
- *
- * For a stream with multiple bandwidths and multiple programs
- *
- * VariantPlayList
- *  |
- *  |_ program id 1
- *  |     |
- *  |     |_ bandwidth X : playlistElement1
- *  |     |- bandwidth Y : playlistElement2
- *  |
- *  |- program id 2
- *        |
- *        |_ bandwidth Z : playlistElement
- *
- * For a "normal" playlist
- *
- * VariantPlayList
- *  |
- *  |_ program id 1
- *        |
- *        |_ bandwidth 0 : playlistElement1
- *
- * Where PlaylistElement can be :
- *  - a stream (real resource)
- *  - a playlist (list of PlaylistElements itself)
- */
 
-#define M3U8_UNKOWN_MIME_TYPE "unknown"
+#define M3U8_UNKNOWN_MIME_TYPE "unknown"
 
 /**
- * Basic Stream structure
+ * Basic Media structure
  */
-typedef struct s_stream {
-	u8 i;
-} Stream;
+typedef struct s_media {
+	int i; //unused: C requires that a struct or union has at least one member
+} Media;
 
 /**
  * The playlist contains a list of elements to play
  */
-typedef struct s_playList {
-	int currentMediaSequence;
+struct s_playList {
+	int current_media_seq;
 	int target_duration;
-	int mediaSequenceMin;
-	int mediaSequenceMax;
+	int media_seq_min;
+	int media_seq_max;
 	int computed_duration;
-	char is_ended;
-	GF_List * elements;
-} Playlist;
+	Bool is_ended;
+	GF_List *elements; /*PlaylistElement*/
+};
+typedef struct s_playList Playlist;
 
-typedef enum e_playlistElementType  { TYPE_PLAYLIST, TYPE_STREAM, TYPE_UNKNOWN} PlaylistElementType;
+typedef enum e_playlistElementType  { TYPE_PLAYLIST, TYPE_MEDIA, TYPE_UNKNOWN } PlaylistElementType;
 
 /**
  * The Structure containing the playlist element
  */
-typedef struct s_playlistElement {
-	int durationInfo;
-	u64 byteRangeStart, byteRangeEnd;
+struct s_playlistElement {
+	int duration_info;
+	u64 byte_range_start, byte_range_end;
 	int bandwidth, width, height;
-	char * title;
-	char * codecs;
-	char * url;
-	PlaylistElementType elementType;
+	char *title;
+	char *codecs;
+	char *url;
+	PlaylistElementType element_type;
 	union {
 		Playlist playlist;
-		Stream stream;
+		Media media;
 	} element;
+};
+typedef struct s_playlistElement PlaylistElement;
 
-} PlaylistElement;
-
-typedef struct s_program {
-	int programId;
-	GF_List * bitrates;
-	int currentBitrateIndex;
+struct s_stream {
+	int program_id;
+	GF_List *variants; /*PlaylistElement*/
 	int computed_duration;
-} Program;
-
+};
+typedef struct s_stream Stream;
 
 /**
  * The root playlist, can contains several PlaylistElements structures
  */
-typedef struct s_variantPlaylist {
-	GF_List * programs;
-	int currentProgram;
-	Bool playlistNeedsRefresh;
-} VariantPlaylist;
-
-/**
- * Creates a new playlist
- * \return NULL if playlist could not be allocated
- *
-Playlist * playlist_new();
-*/
-/**
- * Deletes a given playlist and all of its sub elements
- *
-GF_Err playlist_del(Playlist *);
-*/
-
-/**
- * Deletes an Playlist element
- */
-GF_Err playlist_element_del(PlaylistElement *);
-
-/**
- * Creates a new program properly initialized
- */
-Program * program_new(int programId);
-
-/**
- * Deletes the specified program
- */
-GF_Err program_del(Program * program);
-
-/**
- * Creates an Playlist element.
- * This element can be either a playlist of a stream according to first parameter.
- * \return NULL if element could not be created. Elements will be deleted recusively
- */
-PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, const char *codecs, int durationInfo, u64 byteRangeStart, u64 byteRangeEnd);
-
-/**
- * Creates a new VariantPlaylist
- * \return NULL if VariantPlaylist element could not be allocated
- */
-VariantPlaylist * variant_playlist_new();
-
-/**
- * Deletes the given VariantPlaylist and all of its sub elements
- */
-GF_Err variant_playlist_del(VariantPlaylist *);
-
-GF_Err playlist_element_dump(const PlaylistElement *e, int indent);
-
-GF_Err variant_playlist_dump(const VariantPlaylist *);
-
-Program * variant_playlist_find_matching_program(const VariantPlaylist *, const u32 programId);
-
-Program * variant_playlist_get_current_program(const VariantPlaylist *);
-
+struct s_masterPlaylist {
+	GF_List *streams; /*Stream*/
+	int current_stream;
+	Bool playlist_needs_refresh;
+};
+typedef struct s_masterPlaylist MasterPlaylist;
 
 
 /**
@@ -177,7 +97,7 @@ Program * variant_playlist_get_current_program(const VariantPlaylist *);
  * \param baseURL The base URL of the playlist
  * \return GF_OK if playlist valid
  */
-GF_Err gf_m3u8_parse_master_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL);
+GF_Err gf_m3u8_parse_master_playlist(const char *file, MasterPlaylist **playlist, const char *baseURL);
 
 /**
  * Parse the given playlist file as a subplaylist of an existing playlist
@@ -188,7 +108,11 @@ GF_Err gf_m3u8_parse_master_playlist(const char * file, VariantPlaylist ** playl
  * \param sub_playlist existing subplaylist element in the playlist in which the playlist is parsed
  * \return GF_OK if playlist valid
  */
-GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Program * in_program, PlaylistElement *sub_playlist);
+GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, const char *baseURL, Stream *in_program, PlaylistElement *sub_playlist);
+
+/**
+ * Deletes the given MasterPlaylist and all of its sub elements
+ */
+GF_Err gf_m3u8_variant_playlist_del(MasterPlaylist *playlist);
 
 #endif /* M3U8_PLAYLIST_H */
-
