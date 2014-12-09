@@ -4542,6 +4542,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 
 void html_media_element_js_finalize(JSContext *c, GF_Node *n);
 
+GF_EXPORT
 void gf_sg_js_dom_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 {
 	u32 i, count;
