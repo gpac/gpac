@@ -1015,7 +1015,7 @@ void dom_js_load(GF_SceneGraph *scene, struct JSContext *c, struct JSObject *glo
 to releases all resources used by DOM JS)*/
 void dom_js_unload();
 /*unloads DOM core before the JSContext is being destroyed */
-void dom_js_pre_destroy(struct JSContext *c, GF_SceneGraph *sg, GF_Node *script_or_handler_node);
+void gf_sg_js_dom_pre_destroy(struct JSContext *c, GF_SceneGraph *sg, GF_Node *script_or_handler_node);
 
 /*defines a new global object "document" of type Document*/
 void dom_js_define_document(struct JSContext *c, struct JSObject *global, GF_SceneGraph *doc);

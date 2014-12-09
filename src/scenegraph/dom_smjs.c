@@ -993,7 +993,7 @@ if (!n->sgprivate) return;
 SMJS_SET_PRIVATE(c, obj, NULL);
 gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
 
-dom_js_pre_destroy(c, n->sgprivate->scenegraph, n);
+gf_sg_js_dom_pre_destroy(c, n->sgprivate->scenegraph, n);
 dom_unregister_node(n);
 }
 
@@ -2877,7 +2877,7 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 		/*we're sure the graph is a "nomade" one since we initially put the refcount to 1 ourselves*/
 		ctx->document->reference_count--;
 		if (!ctx->document->reference_count) {
-			dom_js_pre_destroy(ctx->c, ctx->document, NULL);
+			gf_sg_js_dom_pre_destroy(ctx->c, ctx->document, NULL);
 			gf_sg_del(ctx->document);
 		}
 	}
@@ -4542,7 +4542,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 
 void html_media_element_js_finalize(JSContext *c, GF_Node *n);
 
-void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
+void gf_sg_js_dom_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 {
 	u32 i, count;
 	if (n) {

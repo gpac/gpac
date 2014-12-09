@@ -346,7 +346,7 @@ const char * gf_cache_get_cache_filename( const DownloadedCacheEntry entry )
 	return entry ? entry->cache_filename : NULL;
 }
 
-GF_Err appendHttpCacheHeaders(const DownloadedCacheEntry entry, char * httpRequest) {
+GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * httpRequest) {
 	if (!entry || !httpRequest)
 		return GF_BAD_PARAM;
 	if (entry->flags)
