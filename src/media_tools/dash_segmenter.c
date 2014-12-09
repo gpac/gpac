@@ -734,7 +734,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		if (dash_input->single_track_num && ((i+1) != dash_input->single_track_num))
 			continue;
 
-		if (! dash_moov_setup) {
+		if (!dash_moov_setup) {
 			e = gf_isom_clone_track(input, i+1, output, GF_FALSE, &TrackNum);
 			if (e) goto err_exit;
 
@@ -1266,7 +1266,7 @@ restart_fragmentation_pass:
 				if (next) {
 					defaultDuration = (u32) (next->DTS - sample->DTS);
 				} else {
-					defaultDuration = (u32) (gf_isom_get_media_duration(input, tf->OriginalTrack)- sample->DTS);
+					defaultDuration = (u32) (gf_isom_get_media_duration(input, tf->OriginalTrack) - sample->DTS);
 				}
 
 				if (tf->splitable) {
@@ -1276,6 +1276,7 @@ restart_fragmentation_pass:
 						if (SegmentDuration + frag_dur > MaxSegmentDuration) {
 							split_sample_duration = defaultDuration;
 							defaultDuration = (u32) (tf->TimeScale * (MaxSegmentDuration - SegmentDuration) / dash_cfg->dash_scale - tf->FragmentLength);
+							assert(defaultDuration);
 							split_sample_duration -= defaultDuration;
 							nb_samp++;
 						}
@@ -1296,9 +1297,9 @@ restart_fragmentation_pass:
 				}
 
 				if (tf==tfref) {
-					if (segments_start_with_sap && first_sample_in_segment ) {
+					if (segments_start_with_sap && first_sample_in_segment) {
 						first_sample_in_segment = GF_FALSE;
-						if (! SAP_type) segments_start_with_sap = GF_FALSE;
+						if (!SAP_type) segments_start_with_sap = GF_FALSE;
 					}
 					if (ref_track_first_dts > sample->DTS)
 						ref_track_first_dts = sample->DTS;
@@ -1421,7 +1422,7 @@ restart_fragmentation_pass:
 					stop_frag = GF_TRUE;
 				} else if (tf==tfref) {
 					/*fragmenting on "clock" track: no drift control*/
-					if (!dash_cfg->fragments_start_with_rap || ( (next && next->IsRAP) || split_at_rap) ) {
+					if (!dash_cfg->fragments_start_with_rap || ( tf->splitable && split_sample_duration ) || ( (next && next->IsRAP) || split_at_rap) ) {
 						if (tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale) {
 							stop_frag = GF_TRUE;
 						}
