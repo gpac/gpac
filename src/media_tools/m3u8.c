@@ -48,7 +48,7 @@ static GF_Err cleanup_list_of_elements(GF_List *list) {
 /**
  * Deletes an Playlist element
  */
-static GF_Err playlist_element_del(PlaylistElement * e) {
+GF_Err playlist_element_del(PlaylistElement * e) {
 	GF_Err result = GF_OK;
 	if (e == NULL)
 		return result;
