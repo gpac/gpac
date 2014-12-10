@@ -43,10 +43,10 @@ typedef struct s_media {
  */
 struct s_playList {
 	int current_media_seq;
-	int target_duration;
 	int media_seq_min;
 	int media_seq_max;
-	int computed_duration;
+	double target_duration;
+	double computed_duration;
 	Bool is_ended;
 	GF_List *elements; /*PlaylistElement*/
 };
@@ -58,7 +58,7 @@ typedef enum e_playlistElementType  { TYPE_PLAYLIST, TYPE_MEDIA, TYPE_UNKNOWN } 
  * The Structure containing the playlist element
  */
 struct s_playlistElement {
-	int duration_info;
+	double duration_info;
 	u64 byte_range_start, byte_range_end;
 	int bandwidth, width, height;
 	char *title;
@@ -73,9 +73,9 @@ struct s_playlistElement {
 typedef struct s_playlistElement PlaylistElement;
 
 struct s_stream {
-	int program_id;
+	int stream_id;
 	GF_List *variants; /*PlaylistElement*/
-	int computed_duration;
+	double computed_duration;
 };
 typedef struct s_stream Stream;
 
@@ -113,6 +113,6 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 /**
  * Deletes the given MasterPlaylist and all of its sub elements
  */
-GF_Err gf_m3u8_variant_playlist_del(MasterPlaylist *playlist);
+GF_Err gf_m3u8_master_playlist_del(MasterPlaylist *playlist);
 
 #endif /* M3U8_PLAYLIST_H */

@@ -82,12 +82,12 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 /**
  * Creates a new program properly initialized
  */
-static Stream* program_new(int program_id) {
+static Stream* program_new(int stream_id) {
 	Stream *program = (Stream *) gf_malloc(sizeof(Stream));
 	if (program == NULL) {
 		return NULL;
 	}
-	program->program_id = program_id;
+	program->stream_id = stream_id;
 	program->variants = gf_list_new();
 	if (program->variants == NULL) {
 		gf_free(program);
@@ -121,7 +121,7 @@ static GF_Err program_del(Stream *program) {
  * This element can be either a playlist of a stream according to first parameter.
  * \return NULL if element could not be created. Elements will be deleted recursively
  */
-static PlaylistElement* playlist_element_new(PlaylistElementType element_type, const char *url, const char *title, const char *codecs, int duration_info, u64 byte_range_start, u64 byte_range_end) {
+static PlaylistElement* playlist_element_new(PlaylistElementType element_type, const char *url, const char *title, const char *codecs, double duration_info, u64 byte_range_start, u64 byte_range_end) {
 	PlaylistElement *e = gf_malloc(sizeof(PlaylistElement));
 	memset(e, 0, sizeof(PlaylistElement));
 	assert(url);
@@ -169,7 +169,7 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
  * Creates a new MasterPlaylist
  * \return NULL if MasterPlaylist element could not be allocated
  */
-MasterPlaylist* variant_playlist_new()
+MasterPlaylist* master_playlist_new()
 {
 	MasterPlaylist *pl = (MasterPlaylist*)gf_malloc(sizeof(MasterPlaylist));
 	if (pl == NULL)
@@ -184,7 +184,7 @@ MasterPlaylist* variant_playlist_new()
 	return pl;
 }
 
-GF_Err gf_m3u8_variant_playlist_del(MasterPlaylist *playlist) {
+GF_Err gf_m3u8_master_playlist_del(MasterPlaylist *playlist) {
 	if (playlist == NULL)
 		return GF_OK;
 	assert(playlist->streams);
@@ -235,16 +235,16 @@ static GF_Err playlist_element_dump(const PlaylistElement *e, int indent) {
 	return r;
 }
 
-static Stream* variant_playlist_find_matching_program(const MasterPlaylist *pl, const u32 program_id) {
+static Stream* master_playlist_find_matching_stream(const MasterPlaylist *pl, const u32 stream_id) {
 	u32 count, i;
 	assert(pl);
 	assert(pl->streams);
-	assert(program_id >= 0);
+	assert(stream_id >= 0);
 	count = gf_list_count(pl->streams);
 	for (i=0; i<count; i++) {
 		Stream *cur = gf_list_get(pl->streams, i);
 		assert(cur);
-		if (program_id == cur->program_id) {
+		if (stream_id == cur->stream_id) {
 			/* We found the program */
 			return cur;
 		}
@@ -254,16 +254,19 @@ static Stream* variant_playlist_find_matching_program(const MasterPlaylist *pl, 
 
 
 typedef struct _s_accumulated_attributes {
+	//TODO: store as a structure with: { attribute, version, mandatory }
 	char *title;
-	int duration_in_seconds;
+	double duration_in_seconds;
 	int bandwidth;
 	int width, height;
-	int program_id;
+	int stream_id;
 	char *codecs;
 	int target_duration_in_seconds;
 	int min_media_sequence;
 	int current_media_seq;
-	Bool is_variant_playlist;
+	int version;
+	int compatibility_version; /*compute version required by the M3U8 content*/
+	Bool is_master_playlist;
 	Bool is_playlist_ended;
 	u64 byte_range_start, byte_range_end;
 } s_accumulated_attributes;
@@ -319,11 +322,16 @@ static char** extractAttributes(const char *name, const char *line, const int nu
 	return ret;
 }
 
+#define M3U8_COMPATIBILITY_VERSION(v) \
+	if (v > attributes->compatibility_version) \
+		attributes->compatibility_version = v;
+
 /**
  * Parses the attributes and accumulate into the attributes structure
  */
 static char** parseAttributes(const char *line, s_accumulated_attributes *attributes) {
 	int int_value, i;
+	double double_value;
 	char **ret;
 	char *end_ptr;
 	char *utility;
@@ -333,6 +341,7 @@ static char** parseAttributes(const char *line, s_accumulated_attributes *attrib
 		return NULL;
 	if (safe_start_equals("#EXT-X-ENDLIST", line)) {
 		attributes->is_playlist_ended = GF_TRUE;
+		M3U8_COMPATIBILITY_VERSION(1);
 		return NULL;
 	}
 	ret = extractAttributes("#EXT-X-TARGETDURATION:", line, 1);
@@ -344,6 +353,7 @@ static char** parseAttributes(const char *line, s_accumulated_attributes *attrib
 				attributes->target_duration_in_seconds = int_value;
 			}
 		}
+		M3U8_COMPATIBILITY_VERSION(1);
 		return ret;
 	}
 	ret = extractAttributes("#EXT-X-MEDIA-SEQUENCE:", line, 1);
@@ -356,15 +366,32 @@ static char** parseAttributes(const char *line, s_accumulated_attributes *attrib
 				attributes->current_media_seq = int_value;
 			}
 		}
+		M3U8_COMPATIBILITY_VERSION(1);
+		return ret;
+	}
+	ret = extractAttributes("#EXT-X-VERSION:", line, 1);
+	if (ret) {
+		/* #EXT-X-VERSION:<number> */
+		if (ret[0]) {
+			int_value = (s32)strtol(ret[0], &end_ptr, 10);
+			if (end_ptr != ret[0]) {
+				attributes->version = int_value;
+			}
+			M3U8_COMPATIBILITY_VERSION(2);
+		}
 		return ret;
 	}
 	ret = extractAttributes("#EXTINF:", line, 2);
 	if (ret) {
+		M3U8_COMPATIBILITY_VERSION(1);
 		/* #EXTINF:<duration>,<title> */
 		if (ret[0]) {
-			int_value = (s32) strtol(ret[0], &end_ptr, 10);
+			double_value = strtod(ret[0], &end_ptr);
 			if (end_ptr != ret[0]) {
-				attributes->duration_in_seconds = int_value;
+				attributes->duration_in_seconds = double_value;
+			}
+			if (strstr(ret[0], ".") || (double_value > (int)double_value)) {
+				M3U8_COMPATIBILITY_VERSION(3);
 			}
 		}
 		if (ret[1]) {
@@ -375,14 +402,43 @@ static char** parseAttributes(const char *line, s_accumulated_attributes *attrib
 	ret = extractAttributes("#EXT-X-KEY:", line, 4);
 	if (ret) {
 		/* #EXT-X-KEY:METHOD=<method>[,URI="<URI>"] */
-		/* Not Supported for now */
+		const char *method = "METHOD=";
+		const size_t method_len = strlen(method);
+		if (safe_start_equals(method, ret[0])) {
+			if (strncmp(ret[0]+method_len, "NONE", 4)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] EXT-X-KEY not supported.\n", line));
+			}
+		}
+		M3U8_COMPATIBILITY_VERSION(1);
+		return ret;
+	}
+	ret = extractAttributes("#EXT-X-PROGRAM-DATE-TIME:", line, 1);
+	if (ret) {
+		/* #EXT-X-PROGRAM-DATE-TIME:<YYYY-MM-DDThh:mm:ssZ> */
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] EXT-X-PROGRAM-DATE-TIME not supported.\n", line));
+		M3U8_COMPATIBILITY_VERSION(1);
+		return ret;
+	}
+	ret = extractAttributes("#EXT-X-ALLOW-CACHE:", line, 1);
+	if (ret) {
+		/* #EXT-X-ALLOW-CACHE:<YES|NO> */
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] EXT-X-ALLOW-CACHE not supported.\n", line));
+		M3U8_COMPATIBILITY_VERSION(1);
+		return ret;
+	}
+	ret = extractAttributes("#EXT-X-PLAYLIST-TYPE", line, 1);
+	if (ret) {
+		/* #EXT-X-PLAYLIST-TYPE:<EVENT|VOD> */
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] EXT-X-PLAYLIST-TYPE not supported.\n", line));
+		M3U8_COMPATIBILITY_VERSION(3);
 		return ret;
 	}
 	ret = extractAttributes("#EXT-X-STREAM-INF:", line, 10);
 	if (ret) {
 		/* #EXT-X-STREAM-INF:[attribute=value][,attribute=value]* */
 		i = 0;
-		attributes->is_variant_playlist = GF_TRUE;
+		attributes->is_master_playlist = GF_TRUE;
+		M3U8_COMPATIBILITY_VERSION(1);
 		while (ret[i] != NULL) {
 			if (safe_start_equals("BANDWIDTH=", ret[i])) {
 				utility = &(ret[i][10]);
@@ -393,7 +449,7 @@ static char** parseAttributes(const char *line, s_accumulated_attributes *attrib
 				utility = &(ret[i][11]);
 				int_value = (s32) strtol(utility, &end_ptr, 10);
 				if (end_ptr != utility)
-					attributes->program_id = int_value;
+					attributes->stream_id = int_value;
 			} else if (safe_start_equals("CODECS=\"", ret[i])) {
 				int_value = (u32) strlen(ret[i]);
 				if (ret[i][int_value-1] == '"') {
@@ -406,9 +462,17 @@ static char** parseAttributes(const char *line, s_accumulated_attributes *attrib
 					attributes->width = w;
 					attributes->height = h;
 				}
+				M3U8_COMPATIBILITY_VERSION(2);
 			}
 			i++;
 		}
+		return ret;
+	}
+	ret = extractAttributes("#EXT-X-DISCONTINUITY", line, 0);
+	if (ret) {
+		/* #EXT-X-DISCONTINUITY */
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] EXT-X-DISCONTINUITY not supported.\n", line));
+		M3U8_COMPATIBILITY_VERSION(1);
 		return ret;
 	}
 	ret = extractAttributes("#EXT-X-BYTERANGE:", line, 1);
@@ -425,8 +489,10 @@ static char** parseAttributes(const char *line, s_accumulated_attributes *attrib
 				}
 			}
 		}
+		M3U8_COMPATIBILITY_VERSION(4);
 		return ret;
 	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Unknown line in M3U8 file %s\n", line));
 	return NULL;
 }
 
@@ -438,7 +504,7 @@ GF_Err gf_m3u8_parse_master_playlist(const char *file, MasterPlaylist **playlist
 	return gf_m3u8_parse_sub_playlist(file, playlist, baseURL, NULL, NULL);
 }
 
-GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, const char *baseURL, Stream *in_program, PlaylistElement *sub_playlist)
+GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, const char *baseURL, Stream *in_stream, PlaylistElement *sub_playlist)
 {
 	int len, i, currentLineNumber;
 	FILE *f = NULL;
@@ -462,7 +528,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 		}
 	}
 	if (*playlist == NULL) {
-		*playlist = variant_playlist_new();
+		*playlist = master_playlist_new();
 		if (!(*playlist)) {
 			if (f) fclose(f);
 			return GF_OUT_OF_MEM;
@@ -474,10 +540,12 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 	attribs.bandwidth = 0;
 	attribs.duration_in_seconds = 0;
 	attribs.target_duration_in_seconds = 0;
-	attribs.is_variant_playlist = GF_FALSE;
+	attribs.is_master_playlist = GF_FALSE;
 	attribs.is_playlist_ended = GF_FALSE;
 	attribs.min_media_sequence = 1;
 	attribs.current_media_seq = 0;
+	attribs.version = 0;
+	attribs.compatibility_version = 1;
 	m3u8pos = 0;
 	while (1) {
 		char *eof;
@@ -510,14 +578,13 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 			continue;
 		if (currentLineNumber == 1) {
 			/* Playlist MUST start with #EXTM3U */
-			/*			if (len < 7 || strncmp("#EXTM3U", currentLine, 7)!=0) {
-							fclose(f);
-							gf_m3u8_variant_playlist_del(pl);
-							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Failed to parse M3U8 File, it should start with #EXTM3U, but was : %s\n", currentLine));
-							return GF_STREAM_NOT_FOUND;
-						}
-						continue;
-			*/
+			if (len < 7 || (strncmp("#EXTM3U", currentLine, 7) != 0)) {
+				fclose(f);
+				gf_m3u8_master_playlist_del(pl);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Failed to parse M3U8 File, it should start with #EXTM3U, but was : %s\n", currentLine));
+				return GF_STREAM_NOT_FOUND;
+			}
+			continue;
 		}
 		if (currentLine[0] == '#') {
 			/* A comment or a directive */
@@ -555,7 +622,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 				num_chars = asprintf(&fullURL, "%s/%s", baseURL, currentLine);
 				}
 				if (num_chars < 0 || fullURL == NULL){
-				gf_m3u8_variant_playlist_del(*playlist);
+				gf_m3u8_master_playlist_del(*playlist);
 				playlist = NULL;
 				return GF_OUT_OF_MEM;
 				}
@@ -568,32 +635,32 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 				u32 count;
 				PlaylistElement *curr_playlist = sub_playlist;
 				/* First, we have to find the matching program */
-				Stream *program = in_program;
-				if (!in_program)
-					program = variant_playlist_find_matching_program(pl, attribs.program_id);
+				Stream *stream = in_stream;
+				if (!in_stream)
+					stream = master_playlist_find_matching_stream(pl, attribs.stream_id);
 				/* We did not found the program, we create it */
-				if (program == NULL) {
-					program = program_new(attribs.program_id);
-					if (program == NULL) {
+				if (stream == NULL) {
+					stream = program_new(attribs.stream_id);
+					if (stream == NULL) {
 						/* OUT of memory */
-						gf_m3u8_variant_playlist_del(*playlist);
+						gf_m3u8_master_playlist_del(*playlist);
 						if (f) fclose(f);
 						playlist = NULL;
 						return GF_OUT_OF_MEM;
 					}
-					gf_list_add(pl->streams, program);
+					gf_list_add(pl->streams, stream);
 					if (pl->current_stream < 0)
-						pl->current_stream = program->program_id;
+						pl->current_stream = stream->stream_id;
 				}
 
 				/* OK, we have a program, we have to choose the elements with the same bandwidth */
-				assert(program);
-				assert(program->variants);
-				count = gf_list_count(program->variants);
+				assert(stream);
+				assert(stream->variants);
+				count = gf_list_count(stream->variants);
 
 				if (!curr_playlist) {
 					for (i=0; i<(s32)count; i++) {
-						PlaylistElement *i_playlist_element = gf_list_get(program->variants, i);
+						PlaylistElement *i_playlist_element = gf_list_get(stream->variants, i);
 						assert(i_playlist_element);
 						if (i_playlist_element->bandwidth == attribs.bandwidth) {
 							curr_playlist = i_playlist_element;
@@ -602,8 +669,8 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 					}
 				}
 
-				if (attribs.is_variant_playlist) {
-					/* We are the Variant Playlist */
+				if (attribs.is_master_playlist) {
+					/* We are the Master Playlist */
 					if (curr_playlist != NULL) {
 						/* should not happen, it means we redefine something previously added */
 						//assert(0);
@@ -617,7 +684,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 					                      attribs.byte_range_start, attribs.byte_range_end);
 					if (curr_playlist == NULL) {
 						/* OUT of memory */
-						gf_m3u8_variant_playlist_del(*playlist);
+						gf_m3u8_master_playlist_del(*playlist);
 						playlist = NULL;
 						if (f) fclose(f);
 						return GF_OUT_OF_MEM;
@@ -626,7 +693,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 					curr_playlist->url = gf_strdup(fullURL);
 					curr_playlist->title = attribs.title ? gf_strdup(attribs.title):NULL;
 					curr_playlist->codecs = attribs.codecs ? gf_strdup(attribs.codecs):NULL;
-					gf_list_add(program->variants, curr_playlist);
+					gf_list_add(stream->variants, curr_playlist);
 					curr_playlist->width = attribs.width;
 					curr_playlist->height = attribs.height;
 				} else {
@@ -645,7 +712,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 						                      attribs.byte_range_start, attribs.byte_range_end);
 						if (curr_playlist == NULL) {
 							/* OUT of memory */
-							gf_m3u8_variant_playlist_del(*playlist);
+							gf_m3u8_master_playlist_del(*playlist);
 							playlist = NULL;
 							if (f) fclose(f);
 							return GF_OUT_OF_MEM;
@@ -663,17 +730,17 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 						                 attribs.duration_in_seconds,
 						                 attribs.byte_range_start, attribs.byte_range_end);
 						if (subElement == NULL) {
-							gf_m3u8_variant_playlist_del(*playlist);
+							gf_m3u8_master_playlist_del(*playlist);
 							playlist_element_del(curr_playlist);
 							playlist = NULL;
 							if (f) fclose(f);
 							return GF_OUT_OF_MEM;
 						}
 						gf_list_add(curr_playlist->element.playlist.elements, subElement);
-						gf_list_add(program->variants, curr_playlist);
+						gf_list_add(stream->variants, curr_playlist);
 						curr_playlist->element.playlist.computed_duration += subElement->duration_info;
-						assert(program);
-						assert(program->variants);
+						assert(stream);
+						assert(stream->variants);
 						assert(curr_playlist);
 
 					} else {
@@ -690,7 +757,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 								curr_playlist->element.playlist.elements = gf_list_new();
 						}
 						if (subElement == NULL) {
-							gf_m3u8_variant_playlist_del(*playlist);
+							gf_m3u8_master_playlist_del(*playlist);
 							playlist_element_del(curr_playlist);
 							playlist = NULL;
 							if (f) fclose(f);
@@ -729,7 +796,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 			}
 			attribs.duration_in_seconds = 0;
 			attribs.bandwidth = 0;
-			attribs.program_id = 0;
+			attribs.stream_id = 0;
 			if (attribs.codecs != NULL) {
 				gf_free(attribs.codecs);
 				attribs.codecs = NULL;
@@ -752,6 +819,10 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 					prog->computed_duration = ple->element.playlist.computed_duration;
 			}
 		}
+	}
+
+	if (attribs.version < attribs.compatibility_version) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Version %d specified but tags from version %d detected\n", attribs.version, attribs.compatibility_version));
 	}
 	return GF_OK;
 }
