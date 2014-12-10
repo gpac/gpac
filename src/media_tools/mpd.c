@@ -1086,7 +1086,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	Double update_interval;
 	MasterPlaylist *pl = NULL;
 	Bool use_template;
-	Stream *prog;
+	Stream *stream;
 	PlaylistElement *pe, *the_pe, *elt;
 	FILE *fmpd;
 	Bool is_end;
@@ -1095,7 +1095,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	e = gf_m3u8_parse_master_playlist(m3u8_file, &pl, base_url);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse root playlist '%s', error = %s\n", m3u8_file, gf_error_to_string(e)));
-		if (pl) gf_m3u8_variant_playlist_del(pl);
+		if (pl) gf_m3u8_master_playlist_del(pl);
 		pl = NULL;
 		return e;
 	}
@@ -1109,8 +1109,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	i = 0, j = 0, k = 0;
 	assert(pl);
 	assert(pl->streams);
-	while ((prog = gf_list_enum(pl->streams, &i))) {
-		while (NULL != (pe = gf_list_enum(prog->variants, &j))) {
+	while ((stream = gf_list_enum(pl->streams, &i))) {
+		while (NULL != (pe = gf_list_enum(stream->variants, &j))) {
 			Bool found = GF_FALSE;
 			char *suburl;
 			if (!pe->url)
@@ -1118,7 +1118,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 			/* filter out duplicated entries (seen on M6 m3u8) */
 			for (k=0; k<j-1; ++k) {
-				PlaylistElement *a_pe = gf_list_get(prog->variants, k);
+				PlaylistElement *a_pe = gf_list_get(stream->variants, k);
 				if (a_pe->url && pe->url && !strcmp(a_pe->url, pe->url)) {
 					found = GF_TRUE;
 					break;
@@ -1149,7 +1149,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					break;
 				}
 				if (e == GF_OK) {
-					e = gf_m3u8_parse_sub_playlist(getter->get_cache_name(getter), &pl, suburl, prog, pe);
+					e = gf_m3u8_parse_sub_playlist(getter->get_cache_name(getter), &pl, suburl, stream, pe);
 				}
 				getter->del_session(getter);
 
@@ -1170,16 +1170,16 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				if (strstr(suburl, "://")) {
 					e = gf_dm_wget(suburl, "tmp.m3u8", 0, 0);
 					if (e == GF_OK) {
-						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, prog, pe);
+						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, stream, pe);
 					}
 					gf_delete_file("tmp.m3u8");
 				} else {
-					e = gf_m3u8_parse_sub_playlist(suburl, &pl, suburl, prog, pe);
+					e = gf_m3u8_parse_sub_playlist(suburl, &pl, suburl, stream, pe);
 				}
 			}
 		}
-		if (max_dur < (u32) prog->computed_duration) {
-			max_dur = (u32) prog->computed_duration;
+		if (max_dur < (u32) stream->computed_duration) {
+			max_dur = (u32) stream->computed_duration;
 		}
 	}
 
@@ -1213,7 +1213,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	fmpd = gf_f64_open(mpd_file, "wt");
 	if (!fmpd) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD Generator] Cannot write to temp file %s!\n", mpd_file));
-		gf_m3u8_variant_playlist_del(pl);
+		gf_m3u8_master_playlist_del(pl);
 		return GF_IO_ERR;
 	}
 
@@ -1258,11 +1258,11 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	template_idx_start = 0;
 	for (i=0; i<count; i++) {
 		u32 count_variants;
-		prog = gf_list_get(pl->streams, i);
-		count_variants = gf_list_count(prog->variants);
+		stream = gf_list_get(pl->streams, i);
+		count_variants = gf_list_count(stream->variants);
 		for (j=0; j<count_variants; j++) {
 			u32 count_elements;
-			pe = gf_list_get(prog->variants, j);
+			pe = gf_list_get(stream->variants, j);
 			if (pe->element_type != TYPE_PLAYLIST)
 				continue;
 
@@ -1403,9 +1403,9 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	for (i=0; i<count; i++) {
 		u32 count_variants;
 		u32 width, height, samplerate, num_channels;
-		prog = gf_list_get(pl->streams, i);
-		count_variants = gf_list_count(prog->variants);
-		for (j = 0; j<count_variants; j++) {
+		stream = gf_list_get(pl->streams, i);
+		count_variants = gf_list_count(stream->variants);
+		for (j=0; j<count_variants; j++) {
 			char *base_url;
 			u32 count_elements;
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
@@ -1413,7 +1413,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 #endif
 			Bool is_aac = GF_FALSE;
 			char *byte_range_media_file = NULL;
-			pe = gf_list_get(prog->variants, j);
+			pe = gf_list_get(stream->variants, j);
 
 			if (pe->element_type == TYPE_MEDIA) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 Media\n"));
@@ -1608,7 +1608,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	fprintf(fmpd, "</MPD>");
 
 	fclose(fmpd);
-	gf_m3u8_variant_playlist_del(pl);
+	gf_m3u8_master_playlist_del(pl);
 
 	return GF_OK;
 }

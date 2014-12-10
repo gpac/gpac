@@ -1040,7 +1040,7 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 			if (rep->segment_list->segment_URLs) segments = rep->segment_list->segment_URLs;
 			if (rep->segment_list->segment_timeline) timeline = rep->segment_list->segment_timeline;
 		}
-		if (! timescale) timescale=1;
+		if (!timescale) timescale=1;
 
 		if (timeline) {
 			gf_dash_get_timeline_duration(mpd, period, timeline, timescale, nb_segments, max_seg_duration);
