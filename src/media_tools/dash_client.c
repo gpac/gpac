@@ -2178,14 +2178,12 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	}
 
 
-	if (e == GF_URL_ERROR && !base_init_url && !group->download_abort_type) { /* We have a 404 and started with segments */
+	if ((e==GF_URL_ERROR) && base_init_url && !group->download_abort_type) { /* We have a 404 and started with segments */
 		/* It is possible that the first segment has been deleted while we made the first request...
-		* so we try with the next segment on some M3U8 servers */
-
+		 * so we try with the next segment on some M3U8 servers */
 		gf_free(base_init_url);
-
 		e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index + 1, &base_init_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL);
-		if (!e) {
+		if (e != GF_OK) {
 			gf_mx_v(dash->dl_mutex);
 			return e;
 		}
