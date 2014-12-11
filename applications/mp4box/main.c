@@ -3079,7 +3079,7 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_MPD
 	if (do_mpd) {
-		Bool remote = 0;
+		Bool remote = GF_FALSE;
 		char *mpd_base_url = gf_strdup(inName);
 		if (!strnicmp(inName, "http://", 7)) {
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
@@ -3090,13 +3090,14 @@ int mp4boxMain(int argc, char **argv)
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
 			inName = "tmp_main.m3u8";
-			remote = 1;
+			remote = GF_TRUE;
 #else
+			gf_free(mpd_base_url);
 			fprintf(stderr, "HTTP Downloader disabled in this build\n");
 			MP4BOX_EXIT_WITH_CODE(1);
 #endif
 		}
-		e = gf_m3u8_to_mpd(inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t", 1, use_url_template, NULL);
+		e = gf_m3u8_to_mpd(inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t", GF_TRUE, use_url_template, NULL);
 		gf_free(mpd_base_url);
 
 		if (remote) {

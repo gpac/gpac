@@ -1107,10 +1107,11 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 	the_pe = NULL;
 	pe = NULL;
-	i = 0, j = 0, k = 0;
+	i = 0;
 	assert(pl);
 	assert(pl->streams);
 	while ((stream = gf_list_enum(pl->streams, &i))) {
+		j = 0;
 		while (NULL != (pe = gf_list_enum(stream->variants, &j))) {
 			Bool found = GF_FALSE;
 			char *suburl;
@@ -1166,18 +1167,21 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				}
 				gf_service_download_del(sess);
 #endif
-				gf_free(suburl);
 			} else { /* for use in MP4Box */
 				if (strstr(suburl, "://")) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Downloading %s...\n", suburl));
 					e = gf_dm_wget(suburl, "tmp.m3u8", 0, 0);
 					if (e == GF_OK) {
 						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, stream, pe);
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] Download faile for %s\n", suburl));
 					}
 					gf_delete_file("tmp.m3u8");
 				} else {
 					e = gf_m3u8_parse_sub_playlist(suburl, &pl, suburl, stream, pe);
 				}
 			}
+			gf_free(suburl);
 		}
 		if (max_dur < (u32) stream->computed_duration) {
 			max_dur = (u32) stream->computed_duration;
@@ -1334,77 +1338,77 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 		}
 	}
-
-	fprintf(fmpd, "  <AdaptationSet segmentAlignment=\"true\">\n");
-
-	/*if we use templates, put the SegmentTemplate element at the adaptationSet level*/
-	if (use_template) {
-		fprintf(fmpd, "   <SegmentTemplate");
-
-		fprintf(fmpd, " duration=\"%d\"", pe->duration_info);
-		if (template_width > 1) {
-			fprintf(fmpd, " media=\"%s$%%0%ddNumber$%s\"", template_base, template_width, template_ext);
-		} else {
-			fprintf(fmpd, " media=\"%s$Number$%s\"", template_base, template_ext);
-		}
-		fprintf(fmpd, " startNumber=\"%d\"", template_idx_start);
-		fprintf(fmpd, "/>\n");
-	}
-
-	if (elt && do_import) {
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
-		GF_Err e;
-		GF_MediaImporter import;
-		char *tmp_file = NULL;
-		elt = gf_list_get(pe->element.playlist.elements, 0);
-		memset(&import, 0, sizeof(GF_MediaImporter));
-		import.trackID = 0;
-		import.flags = GF_IMPORT_PROBE_ONLY;
-
-		if (strstr(elt->url, "://") && !strstr(elt->url, "file://")) {
-			tmp_file = strrchr(elt->url, '/');
-			if (!tmp_file) tmp_file = strrchr(elt->url, '\\');
-			if (tmp_file) {
-				e = gf_dm_wget(elt->url, tmp_file, 0, 0);
-				if (e==GF_OK) {
-					import.in_name = tmp_file;
-					e = gf_media_import(&import);
-				}
-			}
-		} else {
-			import.in_name = elt->url;
-			e = gf_media_import(&import);
-		}
-
-		if (import.nb_tracks > 1) {
-			for (k=0; k<import.nb_tracks; k++) {
-				fprintf(fmpd, "   <ContentComponent id=\"%d\"", import.tk_info[k].track_num);
-				if (import.tk_info[k].lang)
-					fprintf(fmpd, " lang=\"%s\"", gf_4cc_to_str(import.tk_info[k].lang));
-				switch (import.tk_info[k].type) {
-				case GF_ISOM_MEDIA_VISUAL:
-					fprintf(fmpd, " contentType=\"video\"");
-					break;
-				case GF_ISOM_MEDIA_AUDIO:
-					fprintf(fmpd, " contentType=\"audio\"");
-					break;
-				default:
-					fprintf(fmpd, " contentType=\"application\"");
-					break;
-				}
-				fprintf(fmpd, "/>\n");
-			}
-		}
-		if (tmp_file)
-			gf_delete_file(tmp_file);
-#endif
-	}
-
-	/*check if we use templates*/
+	
 	nb_streams = gf_list_count(pl->streams);
 	for (i=0; i<nb_streams; i++) {
 		u32 count_variants;
 		u32 width, height, samplerate, num_channels;
+		fprintf(fmpd, "  <AdaptationSet segmentAlignment=\"true\">\n");
+
+		/*if we use templates, put the SegmentTemplate element at the adaptationSet level*/
+		if (use_template) {
+			fprintf(fmpd, "   <SegmentTemplate");
+
+			fprintf(fmpd, " duration=\"%d\"", pe->duration_info);
+			if (template_width > 1) {
+				fprintf(fmpd, " media=\"%s$%%0%ddNumber$%s\"", template_base, template_width, template_ext);
+			} else {
+				fprintf(fmpd, " media=\"%s$Number$%s\"", template_base, template_ext);
+			}
+			fprintf(fmpd, " startNumber=\"%d\"", template_idx_start);
+			fprintf(fmpd, "/>\n");
+		}
+
+		if (elt && do_import) {
+	#ifndef GPAC_DISABLE_MEDIA_IMPORT
+			GF_Err e;
+			GF_MediaImporter import;
+			char *tmp_file = NULL;
+			elt = gf_list_get(pe->element.playlist.elements, 0);
+			memset(&import, 0, sizeof(GF_MediaImporter));
+			import.trackID = 0;
+			import.flags = GF_IMPORT_PROBE_ONLY;
+
+			if (strstr(elt->url, "://") && !strstr(elt->url, "file://")) {
+				tmp_file = strrchr(elt->url, '/');
+				if (!tmp_file) tmp_file = strrchr(elt->url, '\\');
+				if (tmp_file) {
+					e = gf_dm_wget(elt->url, tmp_file, 0, 0);
+					if (e==GF_OK) {
+						import.in_name = tmp_file;
+						e = gf_media_import(&import);
+					}
+				}
+			} else {
+				import.in_name = elt->url;
+				e = gf_media_import(&import);
+			}
+
+			if (import.nb_tracks > 1) {
+				for (k=0; k<import.nb_tracks; k++) {
+					fprintf(fmpd, "   <ContentComponent id=\"%d\"", import.tk_info[k].track_num);
+					if (import.tk_info[k].lang)
+						fprintf(fmpd, " lang=\"%s\"", gf_4cc_to_str(import.tk_info[k].lang));
+					switch (import.tk_info[k].type) {
+					case GF_ISOM_MEDIA_VISUAL:
+						fprintf(fmpd, " contentType=\"video\"");
+						break;
+					case GF_ISOM_MEDIA_AUDIO:
+						fprintf(fmpd, " contentType=\"audio\"");
+						break;
+					default:
+						fprintf(fmpd, " contentType=\"application\"");
+						break;
+					}
+					fprintf(fmpd, "/>\n");
+				}
+			}
+			if (tmp_file)
+				gf_delete_file(tmp_file);
+	#endif
+		}
+
+		/*check if we use templates*/
 		stream = gf_list_get(pl->streams, i);
 		count_variants = gf_list_count(stream->variants);
 		for (j=0; j<count_variants; j++) {
@@ -1441,8 +1445,13 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			}
 #endif
 
+			k = 0;
+try_next_segment:
+			k++;
+			elt = gf_list_get(pe->element.playlist.elements, k);
+			if (!elt)
+				break;
 			/*get rid of level 0 aac*/
-			elt = gf_list_get(pe->element.playlist.elements, 0);
 			if (elt && strstr(elt->url, ".aac"))
 				is_aac = GF_TRUE;
 
@@ -1457,7 +1466,6 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				GF_Err e;
 				GF_MediaImporter import;
 				char *tmp_file = NULL;
-				elt = gf_list_get(pe->element.playlist.elements, 0);
 				memset(&import, 0, sizeof(GF_MediaImporter));
 				import.trackID = 0;
 				import.flags = GF_IMPORT_PROBE_ONLY;
@@ -1477,6 +1485,10 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					import.in_name = elt->url;
 				}
 				e = gf_media_import(&import);
+				if (!e) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] M3U8 missing Media Element %s (Playlist %s) %s \n", import.in_name, base_url));
+					goto try_next_segment;
+				}
 
 				if (import.in_name && !pe->bandwidth && pe->duration_info) {
 					u64 pos = 0;
@@ -1599,14 +1611,14 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			if (is_aac)
 				fprintf(fmpd, " -->\n");
 		}
-	}
 
-	if (template_base) {
-		gf_free(template_base);
-		template_base = NULL;
-	}
+		if (template_base) {
+			gf_free(template_base);
+			template_base = NULL;
+		}
 
-	fprintf(fmpd, "  </AdaptationSet>\n");
+		fprintf(fmpd, "  </AdaptationSet>\n");
+	}
 	fprintf(fmpd, " </Period>\n");
 	fprintf(fmpd, "</MPD>");
 
