@@ -1545,6 +1545,8 @@ try_next_segment:
 			}
 			if (pe->codecs)
 				fprintf(fmpd, " codecs=\"%s\"", pe->codecs);
+			if (pe->language)
+				fprintf(fmpd, " lang=\"%s\"", pe->language);
 			if (width && height) {
 				fprintf(fmpd, " width=\"%d\" height=\"%d\"", width, height);
 			}

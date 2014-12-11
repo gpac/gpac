@@ -63,6 +63,10 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 		gf_free(e->codecs);
 		e->codecs = NULL;
 	}
+	if (e->language) {
+		gf_free(e->language);
+		e->language = NULL;
+	}
 	if (e->audio_group) {
 		gf_free(e->audio_group);
 		e->audio_group = NULL;
@@ -95,7 +99,7 @@ GF_Err playlist_element_del(PlaylistElement * e) {
  * This element can be either a playlist of a stream according to first parameter.
  * \return NULL if element could not be created. Elements will be deleted recursively.
  */
-static PlaylistElement* playlist_element_new(PlaylistElementType element_type, const char *url, const char *title, const char *codecs, double duration_info, u64 byte_range_start, u64 byte_range_end) {
+static PlaylistElement* playlist_element_new(PlaylistElementType element_type, const char *url, const char *title, const char *codecs, const char *language, double duration_info, u64 byte_range_start, u64 byte_range_end) {
 	PlaylistElement *e = gf_malloc(sizeof(PlaylistElement));
 	memset(e, 0, sizeof(PlaylistElement));
 	if (e == NULL)
@@ -106,6 +110,7 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 
 	e->title = (title ? gf_strdup(title) : NULL);
 	e->codecs = (codecs ? gf_strdup(codecs) : NULL);
+	e->language = (language ? gf_strdup(language) : NULL);
 	assert(url);
 	e->url = gf_strdup(url);
 	e->bandwidth = 0;
@@ -122,6 +127,8 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 				gf_free(e->title);
 			if (e->codecs)
 				gf_free(e->codecs);
+			if (e->language)
+				gf_free(e->language);
 			if (e->audio_group)
 				gf_free(e->audio_group);
 			if (e->video_group)
@@ -131,6 +138,7 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 			e->url = NULL;
 			e->title = NULL;
 			e->codecs = NULL;
+			e->language = NULL;
 			e->audio_group = NULL;
 			e->video_group = NULL;
 			gf_free(e);
@@ -230,6 +238,7 @@ typedef struct _s_accumulated_attributes {
 	int width, height;
 	int stream_id;
 	char *codecs;
+	char *language;
 	MediaType type;
 	union {
 		char *audio;
@@ -521,9 +530,15 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA:GROUP-ID=%s. Ignoring the line.\n", ret[i]+9));
 					return NULL;
 				}
-			} else if (safe_start_equals("LANGUAGE=", ret[i])) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH,("[M3U8] EXT-X-MEDIA:LANGUAGE not supported\n"));
-				//attributes->language = gf_strdup(ret[i]+9);
+			} else if (safe_start_equals("LANGUAGE=\"", ret[i])) {
+				size_t len;
+				attributes->language = gf_strdup(ret[i]+9);
+				len = strlen(attributes->language);
+				if (len && (attributes->language[len-1] == '"')) {
+					attributes->language[len-1] = '\0';
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Misformed #EXT-X-MEDIA:LANGUAGE=%s. Quotes are incorrect.\n", ret[i]+5));
+				}
 			} else if (safe_start_equals("NAME=", ret[i])) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH,("[M3U8] EXT-X-MEDIA:NAME not supported\n"));
 				//attributes->name = gf_strdup(ret[i]+5);
@@ -745,6 +760,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				fullURL,
 				attribs->title,
 				attribs->codecs,
+				attribs->language,
 				attribs->duration_in_seconds,
 				attribs->byte_range_start, attribs->byte_range_end);
 			if (curr_playlist == NULL) {
@@ -781,6 +797,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 					baseURL,
 					attribs->title,
 					attribs->codecs,
+					attribs->language,
 					attribs->duration_in_seconds,
 					attribs->byte_range_start, attribs->byte_range_end);
 				if (curr_playlist == NULL) {
@@ -799,6 +816,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 					fullURL,
 					attribs->title,
 					attribs->codecs,
+					attribs->language,
 					attribs->duration_in_seconds,
 					attribs->byte_range_start, attribs->byte_range_end);
 				if (subElement == NULL) {
@@ -819,6 +837,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 					fullURL,
 					attribs->title,
 					attribs->codecs,
+					attribs->language,
 					attribs->duration_in_seconds,
 					attribs->byte_range_start, attribs->byte_range_end);
 				if (curr_playlist->element_type != TYPE_PLAYLIST) {
@@ -869,6 +888,10 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 	if (attribs->codecs != NULL) {
 		gf_free(attribs->codecs);
 		attribs->codecs = NULL;
+	}
+	if (attribs->language != NULL) {
+		gf_free(attribs->language);
+		attribs->language = NULL;
 	}
 	if (attribs->group.audio != NULL) {
 		gf_free(attribs->group.audio);

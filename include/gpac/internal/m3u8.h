@@ -63,6 +63,7 @@ struct s_playlistElement {
 	int bandwidth, width, height;
 	char *title;
 	char *codecs;
+	char *language;
 	char *audio_group;
 	char *video_group;
 	char *url;
