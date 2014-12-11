@@ -292,7 +292,7 @@ static const u8 sha1_padding[64] =
 /*
  * SHA-1 final digest
  */
-void gf_sha1_finish(GF_SHA1Context *ctx, u8 output[20] )
+void gf_sha1_finish(GF_SHA1Context *ctx, u8 output[GF_SHA1_DIGEST_SIZE] )
 {
 	u32 last, padn;
 	u32 high, low;
@@ -661,7 +661,7 @@ void gf_sha1_update(GF_SHA1Context *context, u8 *message_array, u32 length )
 		message_array++;
 	}
 }
-void gf_sha1_finish(GF_SHA1Context *context, u8 output[20] )
+void gf_sha1_finish(GF_SHA1Context *context, u8 output[GF_SHA1_DIGEST_SIZE] )
 {
 	if (context->Corrupted)
 	{
@@ -688,7 +688,7 @@ void gf_sha1_finish(GF_SHA1Context *context, u8 output[20] )
  * Output = SHA-1( file contents )
  */
 GF_EXPORT
-s32 gf_sha1_file( const char *path, u8 output[20] )
+s32 gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
 {
 	FILE *f;
 	size_t n;
@@ -723,7 +723,7 @@ s32 gf_sha1_file( const char *path, u8 output[20] )
  * Output = SHA-1( input buffer )
  */
 GF_EXPORT
-void gf_sha1_csum( u8 *input, u32 ilen, u8 output[20] )
+void gf_sha1_csum( u8 *input, u32 ilen, u8 output[GF_SHA1_DIGEST_SIZE] )
 {
 	GF_SHA1Context *ctx;
 
@@ -733,13 +733,13 @@ void gf_sha1_csum( u8 *input, u32 ilen, u8 output[20] )
 }
 
 GF_EXPORT
-void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[41]) {
-	u8 tmp[20];
+void gf_sha1_csum_hexa(u8 *buf, u32 buflen, u8 digest[GF_SHA1_DIGEST_SIZE_HEXA]) {
+	u8 tmp[GF_SHA1_DIGEST_SIZE];
 	gf_sha1_csum (buf, buflen, tmp );
 	digest[0] = 0;
 	{
 		int i;
-		for ( i=0; i<20; i++ )
+		for ( i=0; i<GF_SHA1_DIGEST_SIZE; i++ )
 		{
 			char t[3];
 			t[2] = 0;

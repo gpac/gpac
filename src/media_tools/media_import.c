@@ -9059,7 +9059,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		gf_free(xml_type);
 	}
 
-	return gf_import_message(importer, e, "Unknown input file type");
+	return gf_import_message(importer, e, "[Importer] Unknown input file type for \"%s\"", importer->in_name);
 }
 
 

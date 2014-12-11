@@ -63,6 +63,8 @@ struct s_playlistElement {
 	int bandwidth, width, height;
 	char *title;
 	char *codecs;
+	char *audio_group;
+	char *video_group;
 	char *url;
 	PlaylistElementType element_type;
 	union {
@@ -73,7 +75,7 @@ struct s_playlistElement {
 typedef struct s_playlistElement PlaylistElement;
 
 struct s_stream {
-	int stream_id;
+	int stream_id; //may be a real PROGRAM_ID, or a converted GROUP_ID with GROUP_ID_TO_PROGRAM_ID
 	GF_List *variants; /*PlaylistElement*/
 	double computed_duration;
 };

@@ -1,27 +1,27 @@
-/*
-*			GPAC - Multimedia Framework C SDK
-*
+/**
+ *			GPAC - Multimedia Framework C SDK
+ *
  *			Authors: Jean Le Feuvre, Cyril COncolato
  *			Copyright (c) Telecom ParisTech 2000-2012
-*					All rights reserved
-*
-*  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
-*
-*  GPAC is free software; you can redistribute it and/or modify
-*  it under the terms of the GNU Lesser General Public License as published by
-*  the Free Software Foundation; either version 2, or (at your option)
-*  any later version.
-*
-*  GPAC is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*  GNU Lesser General Public License for more details.
-*
-*  You should have received a copy of the GNU Lesser General Public
-*  License along with this library; see the file COPYING.  If not, write to
-*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
-*
-*/
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / 3GPP/MPEG Media Presentation Description input module
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
 
 #include <gpac/internal/mpd.h>
 #include <gpac/download.h>
@@ -1082,7 +1082,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 {
 	GF_Err e;
 	char *sep, *template_base, *template_ext;
-	u32 i, count, j, k, template_width, template_idx_start;
+	u32 i, nb_streams, j, k, template_width, template_idx_start;
 	Double update_interval;
 	MasterPlaylist *pl = NULL;
 	Bool use_template;
@@ -1095,7 +1095,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	e = gf_m3u8_parse_master_playlist(m3u8_file, &pl, base_url);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse root playlist '%s', error = %s\n", m3u8_file, gf_error_to_string(e)));
-		if (pl) gf_m3u8_master_playlist_del(pl);
+		if (pl)
+			gf_m3u8_master_playlist_del(pl);
 		pl = NULL;
 		return e;
 	}
@@ -1249,14 +1250,15 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	if (is_end) fprintf(fmpd, " duration=\"PT%dS\"", max_dur);
 	fprintf(fmpd, " >\n");
 	
-	count = gf_list_count(pl->streams);
+	nb_streams = gf_list_count(pl->streams);
 	/*check if we use templates*/
 	template_base = NULL;
 	template_ext = NULL;
 	use_template = use_mpd_templates;
 	template_width = 0;
 	template_idx_start = 0;
-	for (i=0; i<count; i++) {
+	elt = NULL;
+	for (i=0; i<nb_streams; i++) {
 		u32 count_variants;
 		stream = gf_list_get(pl->streams, i);
 		count_variants = gf_list_count(stream->variants);
@@ -1349,7 +1351,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		fprintf(fmpd, "/>\n");
 	}
 
-	if (do_import) {
+	if (elt && do_import) {
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 		GF_Err e;
 		GF_MediaImporter import;
@@ -1399,8 +1401,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	}
 
 	/*check if we use templates*/
-	count = gf_list_count(pl->streams);
-	for (i=0; i<count; i++) {
+	nb_streams = gf_list_count(pl->streams);
+	for (i=0; i<nb_streams; i++) {
 		u32 count_variants;
 		u32 width, height, samplerate, num_channels;
 		stream = gf_list_get(pl->streams, i);
@@ -1418,7 +1420,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			if (pe->element_type == TYPE_MEDIA) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 Media\n"));
 			} else if (pe->element_type != TYPE_PLAYLIST) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 unknown type\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 unknown type for %s\n", pe->url));
 			}
 
 			count_elements = gf_list_count(pe->element.playlist.elements);
@@ -1476,8 +1478,9 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				}
 				e = gf_media_import(&import);
 
-				if (!pe->bandwidth && pe->duration_info) {
+				if (import.in_name && !pe->bandwidth && pe->duration_info) {
 					u64 pos = 0;
+
 					Double bw;
 					FILE *t = gf_f64_open(import.in_name, "rb");
 					if (t) {
@@ -1562,7 +1565,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				fprintf(fmpd, "    <BaseURL>%s</BaseURL>\n", base_url);
 			}
 
-			fprintf(fmpd, "    <SegmentList duration=\"%d\">\n", pe->duration_info);
+			fprintf(fmpd, "    <SegmentList duration=\"%lf\">\n", pe->duration_info);
 			update_interval = (count_elements - 1) * pe->duration_info * 1000;
 			for (k=0; k<count_elements; k++) {
 				u32 cmp = 0;
