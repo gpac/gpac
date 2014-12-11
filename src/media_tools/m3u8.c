@@ -773,8 +773,11 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 			if (curr_playlist->url)
 				gf_free(curr_playlist->url);
 			curr_playlist->url = gf_strdup(fullURL);
-			assert(!curr_playlist->title && !curr_playlist->codecs);
+			if (curr_playlist->title)
+				gf_free(curr_playlist->title);
 			curr_playlist->title = attribs->title ? gf_strdup(attribs->title) : NULL;
+			if (curr_playlist->codecs)
+				gf_free(curr_playlist->codecs);
 			curr_playlist->codecs = attribs->codecs ? gf_strdup(attribs->codecs) : NULL;
 			if (curr_playlist->audio_group) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Warning: found an AUDIO group in the master playlist."));
