@@ -1861,7 +1861,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		if (new_mpd->availabilityStartTime != dash->mpd->availabilityStartTime) {
 			s64 diff = new_mpd->availabilityStartTime;
 			diff -= dash->mpd->availabilityStartTime;
-			if (diff < 0) diff = diff;
+			if (diff < 0) diff = -diff;
 			if (diff>3000)
 				gf_dash_group_timeline_setup(new_mpd, group, fetch_time);
 		}

@@ -46,6 +46,7 @@ typedef struct
 	GF_SystemRTInfo rti;
 } GF_OSD;
 
+#if 0
 static GFINLINE GF_Node *create_node(GF_OSD *osd, u32 tag, GF_Node *par)
 {
 	GF_Node *n = gf_node_new(osd->odm->subscene->graph, tag);
@@ -58,6 +59,8 @@ static GFINLINE GF_Node *create_node(GF_OSD *osd, u32 tag, GF_Node *par)
 	}
 	return n;
 }
+#endif
+
 const char *osd_scene_graph = "\
 EXTERNPROTO Untransform [\
     exposedField MFNode children []\

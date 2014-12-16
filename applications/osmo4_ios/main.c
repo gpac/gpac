@@ -336,7 +336,8 @@ int main (int argc, char *argv[])
 	if (not_threaded) user.init_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
-
+    user.init_flags |= GF_TERM_NO_DECODER_THREAD;
+    
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Loading GPAC Terminal\n"));
 	term = gf_term_new(&user);
 	if (!term) {

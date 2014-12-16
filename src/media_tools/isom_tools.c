@@ -214,8 +214,6 @@ static const u32 ISMA_AUDIO_OD_ID = 10;
 static const u32 ISMA_VIDEO_ES_ID = 201;
 static const u32 ISMA_AUDIO_ES_ID = 101;
 
-static const char ISMA_BIFS_CONFIG[] = {0x00, 0x00, 0x60 };
-
 /*ISMA audio*/
 static const u8 ISMA_BIFS_AUDIO[] =
 {
@@ -477,7 +475,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	if (!bifsT) return gf_isom_last_error(mp4file);
 
 	_esd = gf_odf_desc_esd_new(SLPredef_MP4);
-	_esd->decoderConfig->bufferSizeDB = sizeof(ISMA_BIFS_CONFIG);
+	_esd->decoderConfig->bufferSizeDB = 20;
 	_esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS_V2;
 	_esd->decoderConfig->streamType = GF_STREAM_SCENE;
 	_esd->ESID = bifsID;

@@ -265,7 +265,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #ifdef GPAC_IPHONE
 		res = realpath(user_home, buf);
 		if (res) {
-			strcpy(file_path, buf);
+            strcpy(file_path, buf);
+            strcat(file_path, "/Documents");
 		} else
 #endif
 			strcpy(file_path, user_home);
@@ -543,10 +544,10 @@ static void check_modules_dir(GF_Config *cfg)
 
 	/*if startup file was disabled, do not attempt to correct it*/
 	if (gf_cfg_get_key(cfg, "General", "StartupFile")==NULL) return;
-
+    
 	if ( get_default_install_path(path, GF_PATH_GUI) ) {
 		opt = gf_cfg_get_key(cfg, "General", "StartupFile");
-		if (strstr(opt, "gui.bt") && strcmp(opt, path)) {
+		if (strstr(opt, "gui.bt") && strcmp(opt, path) && strstr(path, ".app") ) {
 #if defined(__DARWIN__) || defined(__APPLE__)
 			strcat(path, "/gui.bt");
 			gf_cfg_set_key(cfg, "General", "StartupFile", path);
@@ -591,7 +592,7 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 		cfg = create_default_config(szPath);
 	}
 	if (!cfg) {
-		fprintf(stderr, "Cannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath);
+		fprintf(stderr, "\nCannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath);
 		return NULL;
 	}
 
