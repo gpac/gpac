@@ -147,6 +147,8 @@ struct __gf_download_session
 	/* Range information if needed for the download (cf flag) */
 	Bool needs_range;
 	u64 range_start, range_end;
+	
+	u32 connect_time, ssl_setup_time, reply_time, total_time_since_req, req_hdr_size, rsp_hdr_size;
 
 	/*0: GET
 	  1: HEAD
@@ -1294,6 +1296,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connecting to %s:%d\n", proxy, proxy_port));
 
 	if (sess->status == GF_NETIO_SETUP) {
+		u64 now  =gf_sys_clock_high_res();
 		e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port, (char *)ip);
 
 		/*retry*/
@@ -1311,6 +1314,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			return;
 		}
 
+		sess->connect_time = (u32) (gf_sys_clock_high_res() - now);
 		sess->status = GF_NETIO_CONNECTED;
         GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connected to %s:%d\n", proxy, proxy_port));
 		gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
@@ -1320,6 +1324,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 #ifdef GPAC_HAS_SSL
 	if (!sess->ssl && (sess->flags & GF_DOWNLOAD_SESSION_USE_SSL)) {
+		u64 now  =gf_sys_clock_high_res();
 		if (!sess->dm->ssl_ctx)
 			ssl_init(sess->dm, 0);
 		/*socket is connected, configure SSL layer*/
@@ -1369,6 +1374,8 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 					gf_dm_sess_notify_state(sess, sess->status, sess->last_error);
 				}
 			}
+
+			sess->ssl_setup_time = (u32) (gf_sys_clock_high_res() - now);
 		}
 	}
 #endif
@@ -1968,7 +1975,9 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,
 			       ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps) (%d us since request)\n", gf_cache_get_url(sess->cache_entry), gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1024, gf_sys_clock_high_res() - sess->request_start_time ));
+		sess->total_time_since_req = (u32) (gf_sys_clock_high_res() - sess->request_start_time);
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps) (%d us since request)\n", gf_cache_get_url(sess->cache_entry), gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1024, sess->total_time_since_req ));
 	}
 
 	if (rewrite_size && sess->chunked) {
@@ -2318,6 +2327,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		}
 
 		sess->request_start_time = gf_sys_clock_high_res();
+		sess->req_hdr_size = len+par.size;
 
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
@@ -2332,18 +2342,19 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request %s\n\n", tmp_buf));
 		gf_free(tmp_buf);
 	} else {
+		u32 len = (u32) strlen(sHTTP);
 
 		sess->request_start_time = gf_sys_clock_high_res();
+		sess->req_hdr_size = len;
 
 #ifdef GPAC_HAS_SSL
 		if (sess->ssl) {
-			u32 len = (u32) strlen(sHTTP);
 			e = GF_OK;
 			if (len != SSL_write(sess->ssl, sHTTP, len))
 				e = GF_IP_NETWORK_FAILURE;
 		} else
 #endif
-			e = gf_sk_send(sess->sock, sHTTP, (u32) strlen(sHTTP));
+			e = gf_sk_send(sess->sock, sHTTP, len);
 
 #ifndef GPAC_DISABLE_LOG
 		if (e) {
@@ -2571,6 +2582,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 
 	sHTTP[BodyStart-1] = 0;
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] %s\n\n", sHTTP));
+
+	sess->reply_time = (u32) (gf_sys_clock_high_res() - sess->request_start_time);
+	sess->rsp_hdr_size = BodyStart;
 
 	LinePos = gf_token_get_line(sHTTP, 0, bytesRead, buf, 1024);
 	Pos = gf_token_get(buf, 0, " \t\r\n", comp, 400);
@@ -3451,5 +3465,19 @@ const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name)
 	}
 	return NULL;
 }
+
+GF_EXPORT
+GF_Err gf_dm_sess_get_header_sizes_and_times(GF_DownloadSession *sess, u32 *req_hdr_size, u32 *rsp_hdr_size, u32 *connect_time, u32 *reply_time, u32 *download_time)
+{
+	if (!sess) return GF_BAD_PARAM;
+
+	if (req_hdr_size) *req_hdr_size = sess->req_hdr_size;
+	if (rsp_hdr_size) *rsp_hdr_size = sess->rsp_hdr_size;
+	if (connect_time) *connect_time = sess->connect_time;
+	if (reply_time) *reply_time = sess->reply_time;
+	if (download_time) *download_time = sess->total_time_since_req;
+	return GF_OK;
+}
+
 
 #endif
