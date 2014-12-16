@@ -2103,15 +2103,6 @@ static GFINLINE u32 http_skip_space(char *val)
 	return ret;
 }
 
-static GFINLINE char *http_is_header(char *line, char *header_name)
-{
-	char *res;
-	if (strnicmp(line, header_name, strlen(header_name))) return NULL;
-	res = line + strlen(header_name);
-	while ((res[0] == ':') || (res[0] == ' ')) res+=1;
-	return res;
-}
-
 /*!
  * Sends the HTTP headers
  * \param sess The GF_DownloadSession

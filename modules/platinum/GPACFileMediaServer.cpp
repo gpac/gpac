@@ -112,7 +112,7 @@ GPAC_FileMediaServer::OnBrowseDirectChildren(PLT_ActionReference&          actio
 }
 
 NPT_Result
-GPAC_FileMediaServer::ServeFile(NPT_HttpRequest&              request,
+GPAC_FileMediaServer::ServeFile(const NPT_HttpRequest&              request,
                                 const NPT_HttpRequestContext& context,
                                 NPT_HttpResponse&             response,
                                 const NPT_String&             _file_path)
@@ -221,7 +221,8 @@ PLT_MediaObject*
 GPAC_FileMediaServer::BuildFromFilePath(const NPT_String&        filepath,
                                         const PLT_HttpRequestContext &context,
                                         bool                     with_count,
-                                        bool                     keep_extension_in_title)
+                                        bool                     keep_extension_in_title,
+                                        bool                          allip)
 {
 	return BuildFromFilePathAndHost(filepath, &context, with_count, keep_extension_in_title, NULL);
 

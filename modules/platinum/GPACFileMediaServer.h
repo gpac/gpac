@@ -108,7 +108,7 @@ protected:
 
 	virtual NPT_Result GetFilePath(const char* object_id, NPT_String& filepath);
 
-	virtual NPT_Result ServeFile(NPT_HttpRequest&              request,
+	virtual NPT_Result ServeFile(const NPT_HttpRequest&              request,
 	                             const NPT_HttpRequestContext& context,
 	                             NPT_HttpResponse&             response,
 	                             const NPT_String&             file_path);
@@ -116,7 +116,8 @@ protected:
 	virtual PLT_MediaObject* BuildFromFilePath(const NPT_String&             filepath,
 	        const PLT_HttpRequestContext& context,
 	        bool                          with_count = true,
-	        bool                          keep_extension_in_title = false);
+	        bool                          keep_extension_in_title = false,
+            bool                          allip = false);
 
 	PLT_MediaObject* BuildFromFilePathAndHost(const NPT_String&        filepath,
 	        const PLT_HttpRequestContext *context = NULL,

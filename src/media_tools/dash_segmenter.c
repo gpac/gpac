@@ -540,7 +540,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u64 presentationTimeOffset = 0;
 	Double segment_start_time, file_duration, period_duration, max_segment_duration;
 	u32 nb_segments, width, height, sample_rate, nb_channels, sar_w, sar_h, fps_num, fps_denum, startNumber;
-	char *langCode;
+	char *langCode = NULL;
 	u32 index_start_range, index_end_range;
 	Bool force_switch_segment = GF_FALSE;
 	Bool switch_segment = GF_FALSE;

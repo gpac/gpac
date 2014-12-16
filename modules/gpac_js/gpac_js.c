@@ -423,7 +423,9 @@ static JSBool SMJS_FUNCTION(gpac_getOption)
 		opt = gf_cfg_get_key(term->user->config, sec_name, key_name);
 	} else if (idx>=0) {
 		opt = gf_cfg_get_key_name(term->user->config, sec_name, idx);
-	}
+    } else {
+        opt = NULL;
+    }
 	if (key_name) {
 		SMJS_FREE(c, key_name);
 	}

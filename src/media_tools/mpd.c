@@ -1349,7 +1349,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		if (use_template) {
 			fprintf(fmpd, "   <SegmentTemplate");
 
-			fprintf(fmpd, " duration=\"%d\"", pe->duration_info);
+			fprintf(fmpd, " duration=\"%d\"", (u32) pe->duration_info);
 			if (template_width > 1) {
 				fprintf(fmpd, " media=\"%s$%%0%ddNumber$%s\"", template_base, template_width, template_ext);
 			} else {

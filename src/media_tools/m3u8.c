@@ -213,6 +213,7 @@ static GFINLINE int string2num(const char *s) {
 	return (int)(ret % MEDIA_TYPE_AUDIO);
 }
 
+
 #define GROUP_ID_TO_PROGRAM_ID(type, group_id) (\
 	MEDIA_TYPE_##type + \
 	string2num(group_id) \

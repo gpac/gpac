@@ -150,7 +150,7 @@ typedef struct
 	u8 type;
 	s32 x, y;
 	/*0: absolute positionning, 1: relative move, 2: use alignment constraints*/
-	Bool relative;
+	u32 relative;
 	/*0: left/top, 1: middle, 2: right/bottom*/
 	u8 align_x, align_y;
 } GF_EventMove;

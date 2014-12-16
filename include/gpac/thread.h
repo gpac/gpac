@@ -254,14 +254,14 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount);
  */
 void gf_sema_del(GF_Semaphore *sm);
 /*
- *\brief semaphore notifivation
+ *\brief semaphore notification. 
  *
  *Notifies the semaphore of a certain amount of releases.
  *\param sm the semaphore object
  *\param nb_rel sm the number of release to notify
- *\return the number of previous notification count in the semaphore
+ *\return GF_TRUE if success, GF_FALSE otherwise
 */
-u32 gf_sema_notify(GF_Semaphore *sm, u32 nb_rel);
+Bool gf_sema_notify(GF_Semaphore *sm, u32 nb_rel);
 /*
  *\brief semaphore wait
  *

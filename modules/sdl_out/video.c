@@ -1257,7 +1257,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 		}
 #if SDL_VERSION_ATLEAST(2,0,0)
 		SDL_SetWindowDisplayMode(ctx->screen, &goodMode);
-		SDL_SetWindowFullscreen(ctx->screen, SDL_TRUE);
+		SDL_SetWindowFullscreen(ctx->screen, SDL_WINDOW_FULLSCREEN_DESKTOP);
 #else
 		ctx->screen = SDL_SetVideoMode(ctx->fs_width, ctx->fs_height, pref_bpp, flags);
 #endif
@@ -1275,12 +1275,12 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 		}
 	} else {
 #if SDL_VERSION_ATLEAST(2,0,0)
-		SDL_SetWindowFullscreen(ctx->screen, SDL_FALSE);
+		SDL_SetWindowFullscreen(ctx->screen, 0);
 #endif
 		SDLVid_ResizeWindow(dr, ctx->store_width, ctx->store_height);
 		*screen_width = ctx->store_width;
 		*screen_height = ctx->store_height;
-	}
+    }
 	gf_mx_v(ctx->evt_mx);
 	if (!ctx->screen) return GF_IO_ERR;
 	return GF_OK;
@@ -1555,8 +1555,8 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	{
 		SDLVID();
 		if (ctx->fullscreen) {
-			ctx->store_width = evt->size.width;
-			ctx->store_height = evt->size.height;
+			//ctx->store_width = evt->size.width;
+			//ctx->store_height = evt->size.height;
 		} else {
 #ifdef GPAC_IPHONE
 //            SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
