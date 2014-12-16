@@ -549,6 +549,23 @@ u32 gf_dm_get_global_rate(GF_DownloadManager *dm);
  *\return error code if any
  */
 GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, char **out_mime);
+
+
+/*
+ *\brief Get header sizes and times stats for the session
+ *
+ *Get header sizes and times stats for the session
+ *\param sess the current session
+ *\param req_hdr_size request header size in bytes. May be NULL.
+ *\param rsp_hdr_size response header size in bytes. May be NULL.
+ *\param connect_time connection time in micro seconds. May be NULL.
+ *\param reply_time ellapsed time between request sent and response header received, in micro seconds. May be NULL.
+ *\param download_time download time since request sent, in micro seconds. May be NULL.
+ *\return error code if any
+ */
+GF_Err gf_dm_sess_get_header_sizes_and_times(GF_DownloadSession *sess, u32 *req_hdr_size, u32 *rsp_hdr_size, u32 *connect_time, u32 *reply_time, u32 *download_time);
+
+
 /*! @} */
 
 #ifdef __cplusplus
