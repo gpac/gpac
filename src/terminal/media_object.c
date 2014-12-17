@@ -424,19 +424,24 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		force_decode = GF_TRUE;
 
 	if (force_decode) {
-		u32 retry=100;
+		u32 retry = 100;
 		gf_odm_lock(mo->odm, 0);
 		while (retry) {
 			if (gf_term_lock_codec(codec, GF_TRUE, GF_TRUE)) {
 				gf_codec_process(codec, 1);
 				gf_term_lock_codec(codec, GF_FALSE, GF_TRUE);
-				break;
 			}
+
+			CU = gf_cm_get_output(codec->CB);
+			if (CU)
+				break;
+
 			retry--;
-			gf_sleep(0);
+			//we will wait max 100 ms for the CB to be re-fill
+			gf_sleep(1);
 		}
-		if (!retry && codec->force_cb_resize) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not resize and decode next frame in one pass - blank frame after TS %d\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), mo->timestamp));
+		if (!retry) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not resize, decode and fetch next frame in 100 ms - blank frame after TS %d\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), mo->timestamp));
 		}
 		if (!gf_odm_lock_mo(mo))
 			return NULL;
