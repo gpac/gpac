@@ -389,7 +389,7 @@ return JS_TRUE;
 
 static JSBool SMJS_FUNCTION(gpac_getOption)
 {
-	const char *opt;
+	const char *opt = NULL;
 	char *sec_name, *key_name;
 	s32 idx = -1;
 	JSString *s;
