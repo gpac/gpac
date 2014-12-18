@@ -117,7 +117,17 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 	u64 cts, dts;
 	RTPStream *ch = (RTPStream *)udta;
 
-	if (!ch->rtcp_init) return;
+	if (!ch->rtcp_init) {
+		if (!ch->rtcp_check_start) {
+			ch->rtcp_check_start = gf_sys_clock();
+			return;
+		}
+		else if (gf_sys_clock() - ch->rtcp_check_start <= RTCP_DEFAULT_TIMEOUT_MS) {
+			return;
+		}
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Timeout for RTCP: no SR recevied after %d ms - forcing playback, sync may be broken\n", RTCP_DEFAULT_TIMEOUT_MS));
+		ch->rtcp_init = 1;
+	}
 	cts = hdr->compositionTimeStamp;
 	dts = hdr->decodingTimeStamp;
 	hdr->compositionTimeStamp -= ch->ts_offset;

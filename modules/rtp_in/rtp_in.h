@@ -204,6 +204,8 @@ enum
 	RTP_SET_TIME_RTP_SEEK,
 };
 
+#define RTCP_DEFAULT_TIMEOUT_MS	5000
+
 /*rtp channel*/
 typedef struct
 {
@@ -256,6 +258,8 @@ typedef struct
 	u32 prev_stream;
 	u32 next_stream;
 	u32 base_stream;
+
+	u32 rtcp_check_start;
 
 	u64 ts_offset;
 
