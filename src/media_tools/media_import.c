@@ -476,7 +476,10 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 				u32 sz = ((id3v2[9] & 0x7f) + ((id3v2[8] & 0x7f) << 7) + ((id3v2[7] & 0x7f) << 14) + ((id3v2[6] & 0x7f) << 21));
 
 				while (sz) {
-					fread(id3v2, sizeof(unsigned char), 1, in);
+					u32 r = (u32) fread(id3v2, sizeof(unsigned char), 1, in);
+					if (r != 1) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[MP3 import] failed to read ID3\n"));
+					}
 					sz--;
 				}
 				id3_end = ftell(in); 

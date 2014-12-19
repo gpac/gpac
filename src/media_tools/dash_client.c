@@ -2867,15 +2867,19 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 					} else {
 						FILE *t = fopen(cache_name, "rb");
 						if (t) {
+							u32 res;
 							fseek(t, 0, SEEK_END);
 							rep->playback.init_segment_size = ftell(t);
 							fseek(t, 0, SEEK_SET);
 
 							rep->playback.init_segment_data = gf_malloc(sizeof(char) * rep->playback.init_segment_size);
-							fread(rep->playback.init_segment_data, sizeof(char), rep->playback.init_segment_size, t);
-
-							sprintf(szName, "gmem://%d@%p", rep->playback.init_segment_size, rep->playback.init_segment_data);
-							rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
+							res = (u32) fread(rep->playback.init_segment_data, sizeof(char), rep->playback.init_segment_size, t);
+							if (res != rep->playback.init_segment_size) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to store init segment\n"));
+							} else {
+								sprintf(szName, "gmem://%d@%p", rep->playback.init_segment_size, rep->playback.init_segment_data);
+								rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
+							}
 						}
 					}
 
