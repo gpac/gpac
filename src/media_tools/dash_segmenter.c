@@ -2258,6 +2258,7 @@ retry_track:
 					switch (stype1) {
 					case GF_ISOM_SUBTYPE_AVC_H264:
 					case GF_ISOM_SUBTYPE_AVC2_H264:
+					case GF_ISOM_SUBTYPE_MPEG4_CRYP:
 						if (use_avc3)
 							merge_mode = 2;
 						break;
@@ -2423,7 +2424,7 @@ retry_track:
 			}
 
 			if (!dash_opts->pssh_moof) {
-				e = gf_isom_clone_pssh(init_seg, in, GF_TRUE);
+				e = gf_isom_clone_pssh(init_seg, in, GF_FALSE);
 			}
 		}
 		gf_isom_close(in);
