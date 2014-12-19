@@ -4094,7 +4094,11 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 	if (!meta) return GF_BAD_PARAM;
 
 	ilst = gf_ismo_locate_box(meta->other_boxes, GF_ISOM_BOX_TYPE_ILST, NULL);
-	if (!ilst) return GF_NOT_SUPPORTED;
+	if (!ilst) {
+		ilst = (GF_ItemListBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_ILST);
+		if (!meta->other_boxes) meta->other_boxes = gf_list_new();
+		gf_list_add(meta->other_boxes, ilst);
+	}
 
 	if (tag==GF_ISOM_ITUNE_GENRE) {
 		btype = data ? GF_ISOM_BOX_TYPE_0xA9GEN : GF_ISOM_BOX_TYPE_GNRE;
@@ -4107,6 +4111,7 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 		if (info->type==btype) {
 			gf_list_rem(ilst->other_boxes, i-1);
 			gf_isom_box_del((GF_Box *) info);
+			info = NULL;
 			break;
 		}
 	}
@@ -4164,6 +4169,15 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 		info->data->flags = 0x15;
 		gf_bs_del(bs);
 	}
+
+	if (!info || (tag==GF_ISOM_ITUNE_ALL) ) {
+		if (!gf_list_count(ilst->other_boxes) || (tag==GF_ISOM_ITUNE_ALL) ) {
+			gf_list_del_item(meta->other_boxes, ilst);
+			gf_isom_box_del((GF_Box *) ilst);
+		}
+		return GF_OK;	
+	}
+
 	return gf_list_add(ilst->other_boxes, info);
 }
 
