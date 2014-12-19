@@ -176,6 +176,7 @@ static const itunes_tag itags[] = {
 	{GF_ISOM_ITUNE_COVER_ART, "cover", "usage: cover=file.jpg,file.png"},
 	{GF_ISOM_ITUNE_ENCODER, "encoder", "usage: encoder=name"},
 	{GF_ISOM_ITUNE_GAPLESS, "gapless", "usage: gapless=yes,no"},
+	{GF_ISOM_ITUNE_ALL, "all", "usage: all=NULL"},
 };
 
 u32 nb_itunes_tags = sizeof(itags) / sizeof(itunes_tag);
