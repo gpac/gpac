@@ -5032,6 +5032,42 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_text_set_display_flags(GF_ISOFile *file, u32 track, u32 desc_index, u32 flags, GF_TextFlagsMode op_type)
+{
+	u32 i;
+	GF_Err e;
+	GF_TrackBox *trak;
+
+	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(file, track);
+	if (!trak) return GF_BAD_PARAM;
+
+	for (i=0; i < gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes); i++) {
+		GF_Tx3gSampleEntryBox *txt;
+		if (desc_index && (i+1 != desc_index)) continue;
+
+		txt = gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, i);
+		if (txt->type != GF_ISOM_BOX_TYPE_TX3G) continue;
+
+		switch (op_type) {
+		case GF_ISOM_TEXT_FLAGS_TOGGLE:
+			txt->displayFlags |= flags;
+			break;
+		case GF_ISOM_TEXT_FLAGS_UNTOGGLE:
+			txt->displayFlags &= ~flags;
+			break;
+		default:
+			txt->displayFlags = flags;
+			break;
+		}
+	}
+	return GF_OK;
+	
+}
+
 
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
