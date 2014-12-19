@@ -1434,8 +1434,15 @@ enum
 GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *name, u32 *nb_dash_inputs)
 {
 	GF_DashSegmenterInput *di;
-	char *sep = strchr(name, ':');
-	if (sep && (sep[1]=='\\')) sep = strchr(sep+1, ':');
+    char *sep;
+    // skip ./ and ../, and look for first . to figure out extension
+    if ((name[1]=='/') || (name[2]=='/') || (name[1]=='\\') || (name[2]=='\\') ) sep = strchr(name+3, '.');
+    else sep = strchr(name, '.');
+    
+    //then look for our opt separator :
+    sep = strchr(sep ? sep : name, ':');
+    
+    if (sep && (sep[1]=='\\')) sep = strchr(sep+1, ':');
 
 	dash_inputs = gf_realloc(dash_inputs, sizeof(GF_DashSegmenterInput) * (*nb_dash_inputs + 1) );
 	memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(GF_DashSegmenterInput) );
@@ -3665,11 +3672,12 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_ISOM_DUMP
 	if (dump_isom) dump_isom_xml(file, dump_std ? NULL : outfile);
 	if (dump_cr) dump_file_ismacryp(file, dump_std ? NULL : outfile);
-	if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, 0, dump_srt);
+    if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, 0, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	if (dump_rtp) dump_file_rtp(file, dump_std ? NULL : outfile);
 #endif
 #endif
+
 
 	if (dump_timestamps) dump_file_timestamps(file, dump_std ? NULL : outfile);
 	if (dump_nal) dump_file_nal(file, dump_nal, dump_std ? NULL : outfile);
