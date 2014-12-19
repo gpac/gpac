@@ -1816,6 +1816,14 @@ GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32
 
 GF_Err gf_isom_stxt_info_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, char **mime, char **config);
 
+typedef enum
+{
+	GF_ISOM_TEXT_FLAGS_OVERWRITE = 0,
+	GF_ISOM_TEXT_FLAGS_TOGGLE,
+	GF_ISOM_TEXT_FLAGS_UNTOGGLE,
+} GF_TextFlagsMode;
+//sets text display flags according to given mode. If SampleDescriptionIndex is 0, sets the flags for all text descriptions.
+GF_Err gf_isom_text_set_display_flags(GF_ISOFile *file, u32 track, u32 SampleDescriptionIndex, u32 flags, GF_TextFlagsMode op_type);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 

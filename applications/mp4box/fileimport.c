@@ -196,7 +196,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
-	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, tile_mode;
+	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, tile_mode, txt_flags;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only;
@@ -206,6 +206,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	GF_MediaImporter import;
 	char *ext, szName[1000], *handler_name, *rvc_config, *chapter_name;
 	GF_List *kinds;
+	GF_TextFlagsMode txt_mode = GF_ISOM_TEXT_FLAGS_OVERWRITE;
 
 	rvc_predefined = 0;
 	chapter_name = NULL;
@@ -237,6 +238,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	negative_cts_offset = 0;
 	tile_mode = 0;
 	rap_only = 0;
+	txt_flags = 0;
 
 	tw = th = tx = ty = txtw = txth = txtx = txty = 0;
 	par_d = par_n = -2;
@@ -400,6 +402,19 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 			gf_list_add(kinds, kind_scheme);
 			gf_list_add(kinds, kind_value);
+		}
+		else if (!strnicmp(ext+1, "txtflags", 8)) {
+			if (!strnicmp(ext+1, "txtflags=", 9)) {
+				sscanf(ext+10, "%x", &txt_flags);
+			}
+			else if (!strnicmp(ext+1, "txtflags+=", 10)) {
+				sscanf(ext+11, "%x", &txt_flags);
+				txt_mode = GF_ISOM_TEXT_FLAGS_TOGGLE;
+			}
+			else if (!strnicmp(ext+1, "txtflags-=", 10)) {
+				sscanf(ext+11, "%x", &txt_flags);
+				txt_mode = GF_ISOM_TEXT_FLAGS_UNTOGGLE;
+			}
 		}
 
 		/*EXPERIMENTAL OPTIONS NOT DOCUMENTED*/
@@ -591,6 +606,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (gf_isom_get_hevc_shvc_type(import.dest, i+1, 1)>=GF_ISOM_HEVCTYPE_HEVC_SHVC)
 				check_track_for_shvc = i+1;
 
+			if (txt_flags) {
+				gf_isom_text_set_display_flags(import.dest, i+1, 0, txt_flags, txt_mode);
+			}
+
+
 			if (tile_mode) {
 				switch (gf_isom_get_media_subtype(import.dest, i+1, 1)) {
 				case GF_ISOM_SUBTYPE_HVC1:
@@ -738,6 +758,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (gf_isom_get_hevc_shvc_type(import.dest, track, 1)>=GF_ISOM_HEVCTYPE_HEVC_SHVC)
 				check_track_for_shvc = track;
+
+			if (txt_flags) {
+				gf_isom_text_set_display_flags(import.dest, track, 0, txt_flags, txt_mode);
+			}
 
 			if (tile_mode) {
 				switch (gf_isom_get_media_subtype(import.dest, track, 1)) {
