@@ -1483,9 +1483,10 @@ restart_fragmentation_pass:
 #endif
 
 		if (force_switch_segment || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap || tf->splitable))) {
-
-			if (!min_seg_dur || (min_seg_dur>SegmentDuration)) min_seg_dur = SegmentDuration;
-			if (max_seg_dur < SegmentDuration) max_seg_dur = SegmentDuration;
+			if (!min_seg_dur || (min_seg_dur>SegmentDuration))
+				min_seg_dur = SegmentDuration;
+			if (max_seg_dur < SegmentDuration)
+				max_seg_dur = SegmentDuration;			
 			total_seg_dur += SegmentDuration;
 
 			if (mpd_timeline_bs) {
@@ -1597,10 +1598,8 @@ restart_fragmentation_pass:
 	if (!switch_segment) {
 		u64 idx_start_range, idx_end_range;
 
-		if (!min_seg_dur || (min_seg_dur>SegmentDuration)) min_seg_dur = SegmentDuration;
-		if (max_seg_dur < SegmentDuration) max_seg_dur = SegmentDuration;
 		total_seg_dur += SegmentDuration;
-
+		
 		segment_start_time += SegmentDuration;
 
 		gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, 1, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
@@ -1770,7 +1769,6 @@ restart_fragmentation_pass:
 			if (!sar_h) sar_h = 1;
 			fprintf(dash_cfg->mpd, " sar=\"%d:%d\"", sar_w, sar_h);
 		}
-
 	}
 	if (sample_rate) fprintf(dash_cfg->mpd, " audioSamplingRate=\"%d\"", sample_rate);
 	if (segments_start_with_sap || split_seg_at_rap) {
