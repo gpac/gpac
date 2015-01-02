@@ -259,6 +259,12 @@ DEP_CPP_OS_DI=\
 	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
+
+SOURCE=..\..\src\utils\os_file.c
+DEP_CPP_OS_DI=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_OS_DI=\
 	"..\..\include\gpac\config.h"\

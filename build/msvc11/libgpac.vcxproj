@@ -378,6 +378,7 @@
     <ClCompile Include="..\..\src\utils\module.c" />
     <ClCompile Include="..\..\src\utils\os_config_init.c" />
     <ClCompile Include="..\..\src\utils\os_divers.c" />
+    <ClCompile Include="..\..\src\utils\os_file.c" />
     <ClCompile Include="..\..\src\utils\os_module.c" />
     <ClCompile Include="..\..\src\utils\os_net.c" />
     <ClCompile Include="..\..\src\utils\os_thread.c" />

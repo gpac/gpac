@@ -273,6 +273,7 @@
 		71CCF3351277045100339E12 /* module.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2341277045100339E12 /* module.c */; };
 		71CCF3361277045100339E12 /* module_wrap.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF2351277045100339E12 /* module_wrap.h */; };
 		71CCF3371277045100339E12 /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2361277045100339E12 /* os_divers.c */; };
+		71CCF3371277045100339E12 /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2361277045100339E12 /* os_file.c */; };
 		71CCF3381277045100339E12 /* os_module.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2371277045100339E12 /* os_module.c */; };
 		71CCF3391277045100339E12 /* os_net.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2381277045100339E12 /* os_net.c */; };
 		71CCF33A1277045100339E12 /* os_thread.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2391277045100339E12 /* os_thread.c */; };
@@ -801,6 +802,7 @@
 		71CCF2341277045100339E12 /* module.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = module.c; sourceTree = "<group>"; };
 		71CCF2351277045100339E12 /* module_wrap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = module_wrap.h; sourceTree = "<group>"; };
 		71CCF2361277045100339E12 /* os_divers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
+		71CCF2361277045100339E12 /* os_file.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 		71CCF2371277045100339E12 /* os_module.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
 		71CCF2381277045100339E12 /* os_net.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_net.c; sourceTree = "<group>"; };
 		71CCF2391277045100339E12 /* os_thread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_thread.c; sourceTree = "<group>"; };
@@ -1612,6 +1614,7 @@
 				71CCF2341277045100339E12 /* module.c */,
 				71CCF2351277045100339E12 /* module_wrap.h */,
 				71CCF2361277045100339E12 /* os_divers.c */,
+				71CCF2361277045100339E12 /* os_file.c */,
 				71CCF2371277045100339E12 /* os_module.c */,
 				71CCF2381277045100339E12 /* os_net.c */,
 				71CCF2391277045100339E12 /* os_thread.c */,
@@ -2418,6 +2421,7 @@
 				71CCF3341277045100339E12 /* math.c in Sources */,
 				71CCF3351277045100339E12 /* module.c in Sources */,
 				71CCF3371277045100339E12 /* os_divers.c in Sources */,
+				71CCF3371277045100339E12 /* os_file.c in Sources */,
 				71CCF3381277045100339E12 /* os_module.c in Sources */,
 				71CCF3391277045100339E12 /* os_net.c in Sources */,
 				71CCF33A1277045100339E12 /* os_thread.c in Sources */,

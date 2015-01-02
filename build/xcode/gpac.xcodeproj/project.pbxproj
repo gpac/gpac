@@ -294,6 +294,7 @@
 		920101B418D5A445003D1ACA /* module_wrap.h in Headers */ = {isa = PBXBuildFile; fileRef = 9201009B18D5A444003D1ACA /* module_wrap.h */; };
 		920101B518D5A445003D1ACA /* os_config_init.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009C18D5A444003D1ACA /* os_config_init.c */; };
 		920101B618D5A445003D1ACA /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009D18D5A444003D1ACA /* os_divers.c */; };
+		920101B618D5A445003D1ACA /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009D18D5A444003D1ACA /* os_file.c */; };
 		920101B718D5A445003D1ACA /* os_module.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009E18D5A444003D1ACA /* os_module.c */; };
 		920101B818D5A445003D1ACA /* os_net.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009F18D5A444003D1ACA /* os_net.c */; };
 		920101B918D5A445003D1ACA /* os_thread.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100A018D5A444003D1ACA /* os_thread.c */; };
@@ -720,6 +721,7 @@
 		9201009B18D5A444003D1ACA /* module_wrap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = module_wrap.h; sourceTree = "<group>"; };
 		9201009C18D5A444003D1ACA /* os_config_init.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_config_init.c; sourceTree = "<group>"; };
 		9201009D18D5A444003D1ACA /* os_divers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
+		9201009D18D5A444003D1ACA /* os_file.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 		9201009E18D5A444003D1ACA /* os_module.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
 		9201009F18D5A444003D1ACA /* os_net.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_net.c; sourceTree = "<group>"; };
 		920100A018D5A444003D1ACA /* os_thread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_thread.c; sourceTree = "<group>"; };
@@ -975,6 +977,7 @@
 		9201FF7918D5A444003D1ACA /* module.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = module.dep; sourceTree = "<group>"; };
 		9201FF7A18D5A444003D1ACA /* os_config_init.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os_config_init.dep; sourceTree = "<group>"; };
 		9201FF7B18D5A444003D1ACA /* os_divers.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os_divers.dep; sourceTree = "<group>"; };
+		9201FF7B18D5A444003D1ACA /* os_file.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os_file.dep; sourceTree = "<group>"; };
 		9201FF7C18D5A444003D1ACA /* os_module.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os_module.dep; sourceTree = "<group>"; };
 		9201FF7D18D5A444003D1ACA /* os_net.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os_net.dep; sourceTree = "<group>"; };
 		9201FF7E18D5A444003D1ACA /* os_thread.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os_thread.dep; sourceTree = "<group>"; };
@@ -1557,6 +1560,7 @@
 				9201009B18D5A444003D1ACA /* module_wrap.h */,
 				9201009C18D5A444003D1ACA /* os_config_init.c */,
 				9201009D18D5A444003D1ACA /* os_divers.c */,
+				9201009D18D5A444003D1ACA /* os_file.c */,
 				9201009E18D5A444003D1ACA /* os_module.c */,
 				9201009F18D5A444003D1ACA /* os_net.c */,
 				920100A018D5A444003D1ACA /* os_thread.c */,
@@ -1985,6 +1989,7 @@
 				9201FF7918D5A444003D1ACA /* module.dep */,
 				9201FF7A18D5A444003D1ACA /* os_config_init.dep */,
 				9201FF7B18D5A444003D1ACA /* os_divers.dep */,
+				9201FF7B18D5A444003D1ACA /* os_file.dep */,
 				9201FF7C18D5A444003D1ACA /* os_module.dep */,
 				9201FF7D18D5A444003D1ACA /* os_net.dep */,
 				9201FF7E18D5A444003D1ACA /* os_thread.dep */,
@@ -3221,6 +3226,7 @@
 				920101B318D5A445003D1ACA /* module.c in Sources */,
 				920101B518D5A445003D1ACA /* os_config_init.c in Sources */,
 				920101B618D5A445003D1ACA /* os_divers.c in Sources */,
+				920101B618D5A445003D1ACA /* os_file.c in Sources */,
 				920101B718D5A445003D1ACA /* os_module.c in Sources */,
 				920101B818D5A445003D1ACA /* os_net.c in Sources */,
 				920101B918D5A445003D1ACA /* os_thread.c in Sources */,
