@@ -418,7 +418,8 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 
 #ifndef GF_EXPORT
 #if defined(__GNUC__) && __GNUC__ >= 4 && !defined(TARGET_OS_IPHONE) && !defined(TARGET_IPHONE_SIMULATOR)
-#define GF_EXPORT __attribute__((visibility("default")))
+//#define GF_EXPORT __attribute__((visibility("default")))
+#define GF_EXPORT
 #else
 /*use def files for windows or let compiler decide*/
 #define GF_EXPORT
