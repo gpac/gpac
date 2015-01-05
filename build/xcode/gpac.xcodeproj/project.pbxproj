@@ -284,7 +284,6 @@
 		920101A918D5A445003D1ACA /* cache.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009018D5A444003D1ACA /* cache.c */; };
 		920101AA18D5A445003D1ACA /* color.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009118D5A444003D1ACA /* color.c */; };
 		920101AB18D5A445003D1ACA /* configfile.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009218D5A444003D1ACA /* configfile.c */; };
-		920101AC18D5A445003D1ACA /* dlmalloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009318D5A444003D1ACA /* dlmalloc.c */; };
 		920101AD18D5A445003D1ACA /* downloader.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009418D5A444003D1ACA /* downloader.c */; };
 		920101AE18D5A445003D1ACA /* error.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009518D5A444003D1ACA /* error.c */; };
 		920101B018D5A445003D1ACA /* list.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009718D5A444003D1ACA /* list.c */; };
@@ -293,8 +292,6 @@
 		920101B318D5A445003D1ACA /* module.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009A18D5A444003D1ACA /* module.c */; };
 		920101B418D5A445003D1ACA /* module_wrap.h in Headers */ = {isa = PBXBuildFile; fileRef = 9201009B18D5A444003D1ACA /* module_wrap.h */; };
 		920101B518D5A445003D1ACA /* os_config_init.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009C18D5A444003D1ACA /* os_config_init.c */; };
-		920101B618D5A445003D1ACA /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009D18D5A444003D1ACA /* os_divers.c */; };
-		920101B618D5A445003D1ACA /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009D18D5A444003D1ACA /* os_file.c */; };
 		920101B718D5A445003D1ACA /* os_module.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009E18D5A444003D1ACA /* os_module.c */; };
 		920101B818D5A445003D1ACA /* os_net.c in Sources */ = {isa = PBXBuildFile; fileRef = 9201009F18D5A444003D1ACA /* os_net.c */; };
 		920101B918D5A445003D1ACA /* os_thread.c in Sources */ = {isa = PBXBuildFile; fileRef = 920100A018D5A444003D1ACA /* os_thread.c */; };
@@ -404,6 +401,8 @@
 		92BE50D418D6D62600AA59D8 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BE50D218D6D62600AA59D8 /* main.c */; };
 		92BE50D518D6D66C00AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92BE50D618D6D6C100AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		92F930821A5ADB870072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930801A5ADB870072A85C /* os_divers.c */; };
+		92F930831A5ADB870072A85C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930811A5ADB870072A85C /* os_file.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -608,7 +607,6 @@
 		9201002418D5A444003D1ACA /* av_parsers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = av_parsers.c; sourceTree = "<group>"; };
 		9201002518D5A444003D1ACA /* avilib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = avilib.c; sourceTree = "<group>"; };
 		9201002618D5A444003D1ACA /* dash_client.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dash_client.c; sourceTree = "<group>"; };
-		9201002718D5A444003D1ACA /* dash_client.c alias */ = {isa = PBXFileReference; lastKnownFileType = file; path = "dash_client.c alias"; sourceTree = "<group>"; };
 		9201002818D5A444003D1ACA /* dash_segmenter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dash_segmenter.c; sourceTree = "<group>"; };
 		9201002918D5A444003D1ACA /* dsmcc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dsmcc.c; sourceTree = "<group>"; };
 		9201002A18D5A444003D1ACA /* dvb_mpe.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dvb_mpe.c; sourceTree = "<group>"; };
@@ -720,8 +718,6 @@
 		9201009A18D5A444003D1ACA /* module.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = module.c; sourceTree = "<group>"; };
 		9201009B18D5A444003D1ACA /* module_wrap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = module_wrap.h; sourceTree = "<group>"; };
 		9201009C18D5A444003D1ACA /* os_config_init.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_config_init.c; sourceTree = "<group>"; };
-		9201009D18D5A444003D1ACA /* os_divers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
-		9201009D18D5A444003D1ACA /* os_file.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 		9201009E18D5A444003D1ACA /* os_module.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
 		9201009F18D5A444003D1ACA /* os_net.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_net.c; sourceTree = "<group>"; };
 		920100A018D5A444003D1ACA /* os_thread.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_thread.c; sourceTree = "<group>"; };
@@ -976,8 +972,6 @@
 		9201FF7818D5A444003D1ACA /* math.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = math.dep; sourceTree = "<group>"; };
 		9201FF7918D5A444003D1ACA /* module.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = module.dep; sourceTree = "<group>"; };
 		9201FF7A18D5A444003D1ACA /* os_config_init.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os_config_init.dep; sourceTree = "<group>"; };
-		9201FF7B18D5A444003D1ACA /* os_divers.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os_divers.dep; sourceTree = "<group>"; };
-		9201FF7B18D5A444003D1ACA /* os_file.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os_file.dep; sourceTree = "<group>"; };
 		9201FF7C18D5A444003D1ACA /* os_module.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os_module.dep; sourceTree = "<group>"; };
 		9201FF7D18D5A444003D1ACA /* os_net.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os_net.dep; sourceTree = "<group>"; };
 		9201FF7E18D5A444003D1ACA /* os_thread.dep */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = os_thread.dep; sourceTree = "<group>"; };
@@ -1110,6 +1104,7 @@
 		9225732C18D7269700D6FD98 /* ogg_load.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ogg_load.c; path = ../../modules/ogg/ogg_load.c; sourceTree = "<group>"; };
 		9225732D18D7269700D6FD98 /* theora_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = theora_dec.c; path = ../../modules/ogg/theora_dec.c; sourceTree = "<group>"; };
 		9225732E18D7269700D6FD98 /* vorbis_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vorbis_dec.c; path = ../../modules/ogg/vorbis_dec.c; sourceTree = "<group>"; };
+		922B48781A5ADAB3006CBBBA /* os_module.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
 		929F891B19FE83AE0076FC13 /* carbon_events.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
 		92AAF0D318D6DB2D00E2FF12 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF0D818D6DB5500E2FF12 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio.c; path = ../../modules/sdl_out/audio.c; sourceTree = "<group>"; };
@@ -1199,6 +1194,8 @@
 		92BE510E18D6DA6300AA59D8 /* raster_rgb.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raster_rgb.c; path = ../../modules/soft_raster/raster_rgb.c; sourceTree = "<group>"; };
 		92BE510F18D6DA6300AA59D8 /* stencil.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = stencil.c; path = ../../modules/soft_raster/stencil.c; sourceTree = "<group>"; };
 		92BE511018D6DA6300AA59D8 /* surface.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = surface.c; path = ../../modules/soft_raster/surface.c; sourceTree = "<group>"; };
+		92F930801A5ADB870072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
+		92F930811A5ADB870072A85C /* os_file.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1412,7 +1409,6 @@
 				9201002418D5A444003D1ACA /* av_parsers.c */,
 				9201002518D5A444003D1ACA /* avilib.c */,
 				9201002618D5A444003D1ACA /* dash_client.c */,
-				9201002718D5A444003D1ACA /* dash_client.c alias */,
 				9201002818D5A444003D1ACA /* dash_segmenter.c */,
 				9201002918D5A444003D1ACA /* dsmcc.c */,
 				9201002A18D5A444003D1ACA /* dvb_mpe.c */,
@@ -1544,6 +1540,9 @@
 		9201008C18D5A444003D1ACA /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				92F930801A5ADB870072A85C /* os_divers.c */,
+				92F930811A5ADB870072A85C /* os_file.c */,
+				922B48781A5ADAB3006CBBBA /* os_module.c */,
 				9201008D18D5A444003D1ACA /* alloc.c */,
 				9201008E18D5A444003D1ACA /* base_encoding.c */,
 				9201008F18D5A444003D1ACA /* bitstream.c */,
@@ -1559,8 +1558,6 @@
 				9201009A18D5A444003D1ACA /* module.c */,
 				9201009B18D5A444003D1ACA /* module_wrap.h */,
 				9201009C18D5A444003D1ACA /* os_config_init.c */,
-				9201009D18D5A444003D1ACA /* os_divers.c */,
-				9201009D18D5A444003D1ACA /* os_file.c */,
 				9201009E18D5A444003D1ACA /* os_module.c */,
 				9201009F18D5A444003D1ACA /* os_net.c */,
 				920100A018D5A444003D1ACA /* os_thread.c */,
@@ -1988,8 +1985,6 @@
 				9201FF7818D5A444003D1ACA /* math.dep */,
 				9201FF7918D5A444003D1ACA /* module.dep */,
 				9201FF7A18D5A444003D1ACA /* os_config_init.dep */,
-				9201FF7B18D5A444003D1ACA /* os_divers.dep */,
-				9201FF7B18D5A444003D1ACA /* os_file.dep */,
 				9201FF7C18D5A444003D1ACA /* os_module.dep */,
 				9201FF7D18D5A444003D1ACA /* os_net.dep */,
 				9201FF7E18D5A444003D1ACA /* os_thread.dep */,
@@ -2983,6 +2978,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				92F930821A5ADB870072A85C /* os_divers.c in Sources */,
+				92F930831A5ADB870072A85C /* os_file.c in Sources */,
+				920101B718D5A445003D1ACA /* os_module.c in Sources */,
 				920100B018D5A444003D1ACA /* arith_decoder.c in Sources */,
 				920100B118D5A444003D1ACA /* bifs_codec.c in Sources */,
 				920100B218D5A444003D1ACA /* bifs_node_tables.c in Sources */,
@@ -3217,7 +3215,6 @@
 				920101A918D5A445003D1ACA /* cache.c in Sources */,
 				920101AA18D5A445003D1ACA /* color.c in Sources */,
 				920101AB18D5A445003D1ACA /* configfile.c in Sources */,
-				920101AC18D5A445003D1ACA /* dlmalloc.c in Sources */,
 				920101AD18D5A445003D1ACA /* downloader.c in Sources */,
 				920101AE18D5A445003D1ACA /* error.c in Sources */,
 				920101B018D5A445003D1ACA /* list.c in Sources */,
@@ -3225,9 +3222,6 @@
 				920101B218D5A445003D1ACA /* math.c in Sources */,
 				920101B318D5A445003D1ACA /* module.c in Sources */,
 				920101B518D5A445003D1ACA /* os_config_init.c in Sources */,
-				920101B618D5A445003D1ACA /* os_divers.c in Sources */,
-				920101B618D5A445003D1ACA /* os_file.c in Sources */,
-				920101B718D5A445003D1ACA /* os_module.c in Sources */,
 				920101B818D5A445003D1ACA /* os_net.c in Sources */,
 				920101B918D5A445003D1ACA /* os_thread.c in Sources */,
 				920101BA18D5A445003D1ACA /* path2d.c in Sources */,
@@ -4488,6 +4482,7 @@
 				2839E2811A162C24002D73E1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		2839E28E1A1635F7002D73E1 /* Build configuration list for PBXNativeTarget "DashCast" */ = {
 			isa = XCConfigurationList;
@@ -4496,6 +4491,7 @@
 				2839E2901A1635F7002D73E1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		9201F92C18D5A359003D1ACA /* Build configuration list for PBXProject "gpac" */ = {
 			isa = XCConfigurationList;
