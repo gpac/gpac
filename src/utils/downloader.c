@@ -871,7 +871,7 @@ static s32 gf_dm_parse_protocol(const char * url, GF_URL_Info * info) {
 
 GF_EXPORT
 GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * baseURL) {
-	char *tmp, *tmp_url, *current_pos, *urlConcatenateWithBaseURL;
+	char *tmp, *tmp_url, *current_pos, *urlConcatenateWithBaseURL, *ipv6;
 	char * copyOfUrl;
 	s32 proto_offset;
 	gf_dm_url_info_del(info);
@@ -954,7 +954,10 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 		info->server_name = gf_strdup(tmp_url);
 	}
 
-	tmp = strrchr(current_pos, ':');
+	//scan for port number after IPv6 adress ']' end char
+	ipv6 = strrchr(current_pos, ']');
+	tmp = strrchr(ipv6 ? ipv6 : current_pos, ':');
+
 	if (tmp) {
 		info->port = atoi(tmp+1);
 		tmp[0] = 0;
