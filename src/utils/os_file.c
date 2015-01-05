@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Romain Bouqueau
- *			Copyright (c) Romain Bouqueau 2015
+ *			Authors: Jean Le Feuvre - Copyright (c) Telecom ParisTech 2000-2012
+ *			         Romain Bouqueau - Copyright (c) Romain Bouqueau 2015
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -40,6 +40,9 @@
 
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <time.h>
+#include <sys/time.h>
 
 #ifndef __BEOS__
 #include <errno.h>
@@ -148,6 +151,26 @@ GF_Err gf_delete_file(const char *fileName)
 	/* success is == 0 */
 	return ( remove(fileName) == 0) ? GF_OK : GF_IO_ERR;
 #endif
+}
+
+/**
+ * Remove existing single-quote from a single-quoted string.
+ * The caller is responsible for deallocating the returns string with gf_free()
+ */
+static char* gf_sanetize_single_quoted_string(const char *src) {
+    int i, j;
+    char *out = gf_malloc(4*strlen(src)+3);
+    out[0] = '\'';
+    for (i=0, j=1; (out[j]=src[i]); ++i, ++j) {
+        if (src[i]=='\'') {
+            out[++j]='\\';
+            out[++j]='\'';
+            out[++j]='\'';
+        }
+    }
+    out[j++] = '\'';
+    out[j++] = 0;
+    return out;
 }
 
 GF_EXPORT

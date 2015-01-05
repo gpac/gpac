@@ -272,7 +272,6 @@
 		71CCF3341277045100339E12 /* math.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2331277045100339E12 /* math.c */; };
 		71CCF3351277045100339E12 /* module.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2341277045100339E12 /* module.c */; };
 		71CCF3361277045100339E12 /* module_wrap.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF2351277045100339E12 /* module_wrap.h */; };
-		71CCF3371277045100339E12 /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2361277045100339E12 /* os_divers.c */; };
 		71CCF3371277045100339E12 /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2361277045100339E12 /* os_file.c */; };
 		71CCF3381277045100339E12 /* os_module.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2371277045100339E12 /* os_module.c */; };
 		71CCF3391277045100339E12 /* os_net.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2381277045100339E12 /* os_net.c */; };
@@ -437,6 +436,7 @@
 		92E8C78E1A0CD57A00E0436D /* saf_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825D16F254C60002629E /* saf_in.c */; };
 		92E8C78F1A0CD57A00E0436D /* audio_filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825B16F254AF0002629E /* audio_filter.c */; };
 		92E8C7901A0CD58300E0436D /* validator.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825916F2549D0002629E /* validator.c */; };
+		92F930861A5ADC1A0072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930841A5ADC1A0072A85C /* os_divers.c */; };
 		970A26C913434D2C0007362C /* m3u8.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26C713434D2C0007362C /* m3u8.c */; };
 		970A26CA13434D2C0007362C /* mpd.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26C813434D2C0007362C /* mpd.c */; };
 		970A26CD13434D780007362C /* m3u8.h in Headers */ = {isa = PBXBuildFile; fileRef = 970A26CB13434D780007362C /* m3u8.h */; };
@@ -801,7 +801,6 @@
 		71CCF2331277045100339E12 /* math.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = math.c; sourceTree = "<group>"; };
 		71CCF2341277045100339E12 /* module.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = module.c; sourceTree = "<group>"; };
 		71CCF2351277045100339E12 /* module_wrap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = module_wrap.h; sourceTree = "<group>"; };
-		71CCF2361277045100339E12 /* os_divers.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
 		71CCF2361277045100339E12 /* os_file.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 		71CCF2371277045100339E12 /* os_module.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
 		71CCF2381277045100339E12 /* os_net.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_net.c; sourceTree = "<group>"; };
@@ -986,6 +985,8 @@
 		92B69DFE1A091CFC004E74AA /* world.svg */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = world.svg; sourceTree = "<group>"; };
 		92B69E011A091CFC004E74AA /* mpegu-core.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "mpegu-core.js"; sourceTree = "<group>"; };
 		92B69EB61A091CFC004E74AA /* webvtt-renderer.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "webvtt-renderer.js"; sourceTree = "<group>"; };
+		92F930841A5ADC1A0072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
+		92F930851A5ADC1A0072A85C /* os_file.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 		92FA825916F2549D0002629E /* validator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = validator.c; path = ../../modules/validator/validator.c; sourceTree = SOURCE_ROOT; };
 		92FA825B16F254AF0002629E /* audio_filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio_filter.c; path = ../../modules/audio_filter/audio_filter.c; sourceTree = SOURCE_ROOT; };
 		92FA825D16F254C60002629E /* saf_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = saf_in.c; path = ../../modules/saf_in/saf_in.c; sourceTree = SOURCE_ROOT; };
@@ -1597,6 +1598,8 @@
 		71CCF2291277045100339E12 /* utils */ = {
 			isa = PBXGroup;
 			children = (
+				92F930841A5ADC1A0072A85C /* os_divers.c */,
+				92F930851A5ADC1A0072A85C /* os_file.c */,
 				97DDAFEE1569631900528219 /* sha1.c */,
 				97FF065F138CE4C400D6C707 /* os_config_init.c */,
 				970A26D513434DAC0007362C /* ringbuffer.c */,
@@ -1613,7 +1616,6 @@
 				71CCF2331277045100339E12 /* math.c */,
 				71CCF2341277045100339E12 /* module.c */,
 				71CCF2351277045100339E12 /* module_wrap.h */,
-				71CCF2361277045100339E12 /* os_divers.c */,
 				71CCF2361277045100339E12 /* os_file.c */,
 				71CCF2371277045100339E12 /* os_module.c */,
 				71CCF2381277045100339E12 /* os_net.c */,
@@ -2147,6 +2149,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				92F930861A5ADC1A0072A85C /* os_divers.c in Sources */,
+				71CCF3371277045100339E12 /* os_file.c in Sources */,
 				92E8C7901A0CD58300E0436D /* validator.c in Sources */,
 				92E8C78B1A0CD57A00E0436D /* timedtext_dec.c in Sources */,
 				92E8C78C1A0CD57A00E0436D /* timedtext_in.c in Sources */,
@@ -2420,7 +2424,6 @@
 				71CCF3331277045100339E12 /* list.c in Sources */,
 				71CCF3341277045100339E12 /* math.c in Sources */,
 				71CCF3351277045100339E12 /* module.c in Sources */,
-				71CCF3371277045100339E12 /* os_divers.c in Sources */,
 				71CCF3371277045100339E12 /* os_file.c in Sources */,
 				71CCF3381277045100339E12 /* os_module.c in Sources */,
 				71CCF3391277045100339E12 /* os_net.c in Sources */,
@@ -2482,11 +2485,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = (
-					armv7,
-					armv7s,
-					armv6,
-				);
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
@@ -2509,7 +2508,6 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
-					/Users/enst_devs/project/gpac/trunk/gpac_public/extra_lib/lib/iOS,
 				);
 				MACOSX_DEPLOYMENT_TARGET = "";
 				OTHER_CFLAGS = "";
@@ -2527,11 +2525,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = (
-					armv7,
-					armv7s,
-					armv6,
-				);
+				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
@@ -2550,7 +2544,6 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
-					/Users/enst_devs/project/gpac/trunk/gpac_public/extra_lib/lib/iOS,
 				);
 				MACOSX_DEPLOYMENT_TARGET = "";
 				ONLY_ACTIVE_ARCH = YES;
@@ -2593,13 +2586,14 @@
 					../../extra_lib/include,
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				ONLY_ACTIVE_ARCH = NO;
+				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/iOS;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
 					"-fms-extensions",
 					"-D__IPHONEOS__",
 				);
 				PRODUCT_NAME = libgpac_static;
+				VALID_ARCHS = "arm64 armv7 armv7s";
 			};
 			name = Debug;
 		};
@@ -2629,14 +2623,15 @@
 					../../extra_lib/include,
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				ONLY_ACTIVE_ARCH = NO;
+				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/iOS;
+				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
 					"-fms-extensions",
 					"-DNS_BLOCK_ASSERTIONS=1",
 					"-D__IPHONEOS__",
 				);
 				PRODUCT_NAME = libgpac_static;
+				VALID_ARCHS = "arm64 armv7 armv7s";
 				ZERO_LINK = NO;
 			};
 			name = Release;

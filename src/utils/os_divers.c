@@ -301,26 +301,6 @@ void CE_CharToWide(char *str, unsigned short *w_str)
 
 #endif
 
-/**
- * Remove existing single-quote from a single-quoted string.
- * The caller is responsible for deallocating the returns string with gf_free()
- */
-static char* gf_sanetize_single_quoted_string(const char *src) {
-	int i, j;
-	char *out = gf_malloc(4*strlen(src)+3);
-	out[0] = '\'';
-	for (i=0, j=1; (out[j]=src[i]); ++i, ++j) {
-		if (src[i]=='\'') {
-			out[++j]='\\';
-			out[++j]='\'';
-			out[++j]='\'';
-		}
-	}
-	out[j++] = '\'';
-	out[j++] = 0;
-	return out;
-}
-
 GF_EXPORT
 void gf_rand_init(Bool Reset)
 {
