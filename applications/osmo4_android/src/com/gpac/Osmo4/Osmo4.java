@@ -956,6 +956,8 @@ public class Osmo4 extends Activity implements GpacCallback {
     @Override
     public void onLog(int level, int module, String message) {
         logger.onLog(level, module, message);
+		if (level == Log.ERROR)
+			displayPopup(message, "Error");
     }
 
     /**
