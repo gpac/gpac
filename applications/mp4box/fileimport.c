@@ -27,13 +27,13 @@
 #include <gpac/tools.h>
 #include <gpac/media_tools.h>
 #include <gpac/constants.h>
+#include <gpac/scene_manager.h>
+#include <gpac/network.h>
 
 #if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_X3D) && !defined(GPAC_DISABLE_SVG)
 #include <gpac/scenegraph.h>
 #endif
-#ifndef GPAC_DISABLE_SMGR
-#include <gpac/scene_manager.h>
-#endif
+
 
 #ifndef GPAC_DISABLE_BIFS
 #include <gpac/bifs.h>
@@ -41,7 +41,6 @@
 #ifndef GPAC_DISABLE_VRML
 #include <gpac/nodes_mpeg4.h>
 #endif
-#include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 

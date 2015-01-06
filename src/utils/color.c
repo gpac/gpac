@@ -28,6 +28,7 @@
 #include <gpac/constants.h>
 #include <gpac/color.h>
 
+#ifndef GPAC_DISABLE_PLAYER
 
 /* YUV -> RGB conversion loading two lines at each call */
 
@@ -1660,6 +1661,8 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 	}
 	return GF_NOT_SUPPORTED;
 }
+
+#endif
 
 
 /* Basic SVG datatype parsing functions */
