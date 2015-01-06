@@ -234,6 +234,7 @@ void PrintGeneralUsage()
 	        " -enable trackID      enables track\n"
 	        " -disable trackID     disables track\n"
 	        " -new                 forces creation of a new destination file\n"
+			" -timescale VAL       sets movie timescale to VAL ticks per second (default is 600).\n"
 	        " -lang [tkID=]LAN     sets track language. LAN is the BCP-47 code (eng, en-UK, ...)\n"
 	        " -delay tkID=TIME     sets track start delay in ms.\n"
 	        " -par tkID=PAR        sets visual track pixel aspect ratio (PAR=N:D or \"none\")\n"
@@ -1674,6 +1675,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool adjust_split_end = 0;
 	Bool memory_frags = 1;
 	Bool keep_utc = 0;
+	u32 timescale = 0;
 	const char *do_wget = NULL;
 	GF_DashSegmenterInput *dash_inputs = NULL;
 	u32 nb_dash_inputs = 0;
@@ -2382,6 +2384,13 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-flat")) do_flat = 1;
 		else if (!stricmp(arg, "-keep-utc")) keep_utc = 1;
 		else if (!stricmp(arg, "-new")) force_new = 1;
+		else if (!stricmp(arg, "-timescale")) {
+			CHECK_NEXT_ARG
+			timescale = atoi(argv[i+1]);
+			open_edit = 1;
+			i++;
+		}
+		
 		else if (!stricmp(arg, "-add") || !stricmp(arg, "-import") || !stricmp(arg, "-convert")) {
 			CHECK_NEXT_ARG
 			if (!stricmp(arg, "-import")) fprintf(stderr, "\tWARNING: \"-import\" is deprecated - use \"-add\"\n");
@@ -3158,6 +3167,8 @@ int mp4boxMain(int argc, char **argv)
 		GF_MediaImporter import;
 		/* Prepare the importer */
 		file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
+		if (timescale && file) gf_isom_set_timescale(file, timescale);
+
 		memset(&import, 0, sizeof(GF_MediaImporter));
 		import.dest = file;
 		import.in_name = inName;
@@ -3221,6 +3232,7 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
 			MP4BOX_EXIT_WITH_CODE(1);
 		}
+
 		for (i=0; i<(u32) argc; i++) {
 			if (!strcmp(argv[i], "-add")) {
 				char *src = argv[i+1];
@@ -3255,8 +3267,6 @@ int mp4boxMain(int argc, char **argv)
 		/*unless explicitly asked, remove all systems tracks*/
 		if (!keep_sys_tracks) remove_systems_tracks(file);
 		needSave = 1;
-		/*JLF commented: if you want ISMA, just ask for it, no more auto-detect*/
-//		if (!conv_type && can_convert_to_isma(file)) conv_type = GF_ISOM_CONV_TYPE_ISMA;
 	}
 
 	if (nb_cat) {
@@ -3902,6 +3912,10 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif
 
+	if (timescale && (timescale != gf_isom_get_timescale(file))) {
+		gf_isom_set_timescale(file, timescale);
+		needSave = 1;
+	}
 
 	if (!encode) {
 		if (!file) {
