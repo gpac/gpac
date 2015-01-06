@@ -4573,19 +4573,6 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		}
 		dash_profile = 0;
 	}
-	if ((dash_profile==GF_DASH_PROFILE_LIVE) && !seg_name) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: WARNING! DASH Live profile requested but no -segment-name\n\tusing \"%%s_dash\" by default\n\n"));
-		seg_name = "%s_dash";
-	}
-
-	/*if output id not in the current working dir, concatenate output path to segment name*/
-	szSegName[0] = 0;
-	if (seg_name) {
-		if (gf_url_get_resource_path(mpdfile, szSegName)) {
-			strcat(szSegName, seg_name);
-			seg_name = szSegName;
-		}
-	}
 
 	/*adjust params based on profiles*/
 	switch (dash_profile) {
@@ -4624,6 +4611,20 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	default:
 		break;
 	}
+
+	if (use_url_template && !seg_name) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: WARNING! DASH Live profile requested but no -segment-name\n\tusing \"%%s_dash\" by default\n\n"));
+		seg_name = "%s_dash";
+	}
+	/*if output id not in the current working dir, concatenate output path to segment name*/
+	szSegName[0] = 0;
+	if (seg_name) {
+		if (gf_url_get_resource_path(mpdfile, szSegName)) {
+			strcat(szSegName, seg_name);
+			seg_name = szSegName;
+		}
+	}
+
 
 	segment_mode = single_segment ? 1 : (single_file ? 2 : 0);
 
