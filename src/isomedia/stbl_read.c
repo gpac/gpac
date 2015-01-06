@@ -218,9 +218,6 @@ GF_Err stbl_GetSampleDTS_and_Duration(GF_TimeToSampleBox *stts, u32 SampleNumber
 found:
 	(*DTS) = stts->r_CurrentDTS + j * (u64) ent->sampleDelta;
 	if (duration) *duration = ent->sampleDelta;
-	if (stts->r_FirstSampleInEntry == 1)
-		stts->r_FirstSampleInEntry = 1;
-
 	return GF_OK;
 }
 
