@@ -4010,7 +4010,8 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 		gf_media_reduce_aspect_ratio(&max_width, &max_height);
 		fprintf(mpd, " par=\"%d:%d\"", max_width, max_height);
 	}
-	if (szLang && strcmp(szLang, "und")) {
+	//add lang even if "und" to comply with dash-if 
+	if (szLang) {
 		fprintf(mpd, " lang=\"%s\"", szLang);
 	}
 	/*this should be fixed to use info collected during segmentation process*/
