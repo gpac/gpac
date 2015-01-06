@@ -346,13 +346,36 @@ GF_Err gf_isom_add_desc_to_root_od(GF_ISOFile *movie, GF_Descriptor *theDesc)
 GF_EXPORT
 GF_Err gf_isom_set_timescale(GF_ISOFile *movie, u32 timeScale)
 {
+	Double ts_scale;
+	GF_TrackBox *trak;
+	u32 i;
 	GF_Err e;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	gf_isom_insert_moov(movie);
 
+	if (movie->moov->mvhd->timeScale == timeScale) return GF_OK;
+
+	/*rewrite all durations and edit lists*/
+	ts_scale = timeScale;
+	ts_scale /= movie->moov->mvhd->timeScale;
+
 	movie->moov->mvhd->timeScale = timeScale;
 	movie->interleavingTime = timeScale;
+
+	movie->moov->mvhd->duration = (u64) (s64) ((s64) movie->moov->mvhd->duration * ts_scale);
+
+	i=0;
+	while ((trak = gf_list_enum(movie->moov->trackList, &i))) {
+		trak->Header->duration = (u64) (s64) ((s64) trak->Header->duration * ts_scale);
+		if (trak->editBox && trak->editBox->editList) {
+			u32 j, count = gf_list_count(trak->editBox->editList->entryList);
+			for (j=0; j<count; j++) {
+				GF_EdtsEntry *ent = (GF_EdtsEntry *)gf_list_get(trak->editBox->editList->entryList, j);
+				ent->segmentDuration = (u64) (s64) ((s64) ent->segmentDuration * ts_scale);
+			}
+		}
+	}
 	return GF_OK;
 }
 

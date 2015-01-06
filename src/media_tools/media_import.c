@@ -2112,6 +2112,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	}
 
 	gf_odf_desc_del((GF_Descriptor *) iod);
+	if ( ! gf_isom_get_track_count(import->dest)) {
+		u32 timescale = gf_isom_get_timescale(import->orig);
+		gf_isom_set_timescale(import->dest, timescale);
+	}
 
 	e = gf_isom_clone_track(import->orig, track_in, import->dest, (import->flags & GF_IMPORT_USE_DATAREF), &track);
 	if (e) goto exit;
