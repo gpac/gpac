@@ -368,7 +368,7 @@ GF_EXPORT
 char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next)
 {
 	GF_Codec *codec;
-	Bool force_decode = GF_FALSE;
+	u32 force_decode_mode = 0;
 	u32 obj_time;
 	GF_CMUnit *CU;
 	s32 diff;
@@ -415,15 +415,17 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: Resizing output buffer %d -> %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, codec->CB->UnitSize, codec->force_cb_resize));
 			gf_codec_resize_composition_buffer(codec, codec->force_cb_resize);
 			codec->force_cb_resize=0;
-			force_decode = GF_TRUE;
+            //decode and resize CB
+			force_decode_mode = 1;
 		}
 	}
 
-	/*fast forward, bench mode with composition memory: force decode if no data is available*/
-	if (! *eos && ((codec->ck->speed > FIX_ONE) || (codec->odm->term->bench_mode && !codec->CB->no_allocation) || (codec->type==GF_STREAM_AUDIO) ) )
-		force_decode = GF_TRUE;
+	/*fast forward, bench mode with composition memory: force one decode if no data is available*/
+    if (! *eos && ((codec->ck->speed > FIX_ONE) || (codec->odm->term->bench_mode && !codec->CB->no_allocation) || (codec->type==GF_STREAM_AUDIO) ) ) {
+        force_decode_mode = 2;
+    }
 
-	if (force_decode) {
+	if (force_decode_mode) {
 		u32 retry = 100;
 		gf_odm_lock(mo->odm, 0);
 		while (retry) {
@@ -431,6 +433,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 				gf_codec_process(codec, 1);
 				gf_term_lock_codec(codec, GF_FALSE, GF_TRUE);
 			}
+            if (force_decode_mode==2)
+                break;
 
 			CU = gf_cm_get_output(codec->CB);
 			if (CU)
@@ -494,7 +498,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 				break;
 
 			if (!CU->next->dataLength) {
-				if (force_decode) {
+				if (force_decode_mode) {
 					obj_time = gf_clock_time(codec->ck);
 					gf_odm_lock(mo->odm, 0);
 					if (gf_term_lock_codec(codec, GF_TRUE, GF_TRUE)) {

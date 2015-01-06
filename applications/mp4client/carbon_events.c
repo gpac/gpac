@@ -87,7 +87,8 @@ void carbon_init ()
 {
 	my_argv[0] = "GPAC";
 	my_argv[1] = NULL;
-	open_app_UPP = NewAEEventHandlerUPP(ae_open_app);
+
+    open_app_UPP = NewAEEventHandlerUPP(ae_open_app);
 	AEInstallEventHandler(kCoreEventClass, kAEOpenApplication, open_app_UPP, 0L, false);
 	open_doc_UPP = NewAEEventHandlerUPP(ae_open_doc);
 	AEInstallEventHandler(kCoreEventClass, kAEOpenDocuments, open_doc_UPP, 0L, false);
@@ -98,7 +99,8 @@ void carbon_init ()
 
 void carbon_uninit()
 {
-	DisposeAEEventHandlerUPP(open_app_UPP);
+
+    DisposeAEEventHandlerUPP(open_app_UPP);
 	DisposeAEEventHandlerUPP(open_doc_UPP);
 
 	if (my_argv[1]) free(my_argv[1]);
