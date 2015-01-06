@@ -25,6 +25,7 @@
 
 #include "video_muxer.h"
 #include "libavutil/opt.h"
+#include <gpac/network.h>
 
 
 /**

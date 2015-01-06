@@ -1095,7 +1095,6 @@
 		9201FFFA18D5A444003D1ACA /* box_funcs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = box_funcs.c; sourceTree = "<group>"; };
 		9201FFFB18D5A444003D1ACA /* data_map.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = data_map.c; sourceTree = "<group>"; };
 		9201FFFC18D5A444003D1ACA /* drm_sample.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = drm_sample.c; sourceTree = "<group>"; };
-		9201FFFD18D5A444003D1ACA /* generic_subtitle.o */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.objfile"; path = generic_subtitle.o; sourceTree = "<group>"; };
 		9201FFFE18D5A444003D1ACA /* hint_track.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hint_track.c; sourceTree = "<group>"; };
 		9201FFFF18D5A444003D1ACA /* hinting.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hinting.c; sourceTree = "<group>"; };
 		9225732418D7267900D6FD98 /* gm_ogg_in.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_ogg_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -2136,7 +2135,6 @@
 				9201FFFA18D5A444003D1ACA /* box_funcs.c */,
 				9201FFFB18D5A444003D1ACA /* data_map.c */,
 				9201FFFC18D5A444003D1ACA /* drm_sample.c */,
-				9201FFFD18D5A444003D1ACA /* generic_subtitle.o */,
 				9201FFFE18D5A444003D1ACA /* hint_track.c */,
 				9201FFFF18D5A444003D1ACA /* hinting.c */,
 				9201000018D5A444003D1ACA /* isom_intern.c */,
