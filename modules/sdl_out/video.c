@@ -687,7 +687,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		assert(height);
 #if SDL_VERSION_ATLEAST(2,0,0)
 		if (!ctx->screen) {
-			if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags))) {
+			if (!(ctx->screen = SDL_CreateWindow("", 0, 0, width, height, flags))) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
@@ -736,6 +736,8 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		if (ctx->os_handle) flags &= ~SDL_WINDOW_RESIZABLE;
 
 #if SDL_VERSION_ATLEAST(2,0,0)
+        flags |= SDL_WINDOW_RESIZABLE;
+        
 		if (!ctx->screen) {
 			if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags))) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
@@ -743,6 +745,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				return GF_IO_ERR;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
+            SDL_RaiseWindow(ctx->screen);
 		}
 		if ( !ctx->renderer ) {
 			u32 flags = SDL_RENDERER_ACCELERATED;

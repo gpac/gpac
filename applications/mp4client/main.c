@@ -73,8 +73,10 @@ static Bool reload = GF_FALSE;
 #if defined(__DARWIN__) || defined(__APPLE__)
 //we keep no decoder thread because of JS_GC deadlocks between threads ...
 static u32 threading_flags = GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_DECODER_THREAD;
+#define VK_MOD  GF_KEY_MOD_ALT
 #else
 static u32 threading_flags = 0;
+#define VK_MOD  GF_KEY_MOD_CTRL
 #endif
 static Bool no_audio = GF_FALSE;
 static Bool term_step = GF_FALSE;
@@ -715,21 +717,21 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			gf_term_toggle_addons(term, addon_visible);
 			break;
 		case GF_KEY_UP:
-			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
+			if (evt->key.flags & VK_MOD && is_connected) {
 				playback_speed *= 2;
 				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
 				gf_term_set_speed(term, playback_speed);
 			}
 			break;
 		case GF_KEY_DOWN:
-			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
+			if (evt->key.flags & VK_MOD && is_connected) {
 				playback_speed /= 2;
 				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
 				gf_term_set_speed(term, playback_speed);
 			}
 			break;
 		case GF_KEY_LEFT:
-			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
+			if (evt->key.flags & VK_MOD && is_connected) {
 				playback_speed = -playback_speed;
 				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
 				gf_term_set_speed(term, playback_speed);
@@ -1289,6 +1291,10 @@ int main (int argc, char **argv)
 		}
 	}
 
+#if defined(__DARWIN__) || defined(__APPLE__)
+    carbon_init();
+#endif
+    
 
 	if (dump_mode) rti_file = NULL;
 
@@ -1364,10 +1370,6 @@ int main (int argc, char **argv)
 		return 1;
 	}
 	fprintf(stderr, "Terminal Loaded in %d ms\n", gf_sys_clock()-i);
-
-#if defined(__DARWIN__) || defined(__APPLE__)
-	carbon_init();
-#endif
 
 	if (bench_mode) {
 		display_rti = 2;
