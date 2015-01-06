@@ -1736,7 +1736,7 @@ for opt do
             ;;
         --enable-sdl-static=*) sdl_static="yes"
             ;;
-        --enable-jack=*) has_jack="yes"
+        --enable-jack) has_jack="yes"
             ;;
         --X11-path=*) X11_PATH=`echo $opt | cut -d '=' -f 2`
             ;;
@@ -1748,7 +1748,7 @@ for opt do
             ;;
         --enable-amr-nb-fixed) has_amr_nb_fixed="yes"
             ;;
-        --disable-pulseaudio=*) has_pulseaudio="no"
+        --disable-pulseaudio) has_pulseaudio="no"
             ;;
         --enable-amr-nb) has_amr_nb="yes"
             ;;
@@ -1758,7 +1758,7 @@ for opt do
             ;;
         --disable-oggvorbis) has_oggvorbis="no"
             ;;
-        --disable-jack=*) has_jack="no"
+        --disable-jack) has_jack="no"
             ;;
         --disable-alsa) has_alsa="no"
             ;;
@@ -1859,7 +1859,7 @@ for opt do
             ;;
         --enable-joystick) enable_joystick="yes"
             ;;
-        --enable-pulseaudio=*) has_pulseaudio="yes"
+        --enable-pulseaudio) has_pulseaudio="yes"
             ;;
         --disable-all) has_pulseaudio="no"; has_alsa="no"; disable_core_tools="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_seng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_od_parse="yes"; disable_isom_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"; has_dvb4linux="no"; disable_player="yes"; disable_vobsub="yes"; disable_scenegraph="yes"; disable_dvbx="yes"; disable_ttxt="yes"; disable_ttml="yes"; disable_saf="yes"; disable_smgr="yes"; disable_mpd="yes"; disable_dash="yes"; disable_isoff_hds="yes"; disable_hevc="yes"
             ;;
