@@ -23,6 +23,7 @@
  *
  */
 
+#include <gpac/list.h>
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/webvtt.h>
