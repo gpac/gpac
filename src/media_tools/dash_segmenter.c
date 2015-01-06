@@ -2333,6 +2333,7 @@ retry_track:
 							gf_isom_hevc_set_inband_config(init_seg, track, 1);
 							use_hevc = GF_TRUE;
 							gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','6'), 1);
+							sps_merge_failed = 0;
 							break;
 						case GF_ISOM_SUBTYPE_AVC_H264:
 						case GF_ISOM_SUBTYPE_AVC2_H264:
@@ -2340,6 +2341,7 @@ retry_track:
 							gf_isom_avc_set_inband_config(init_seg, track, 1);
 							use_avc3 = GF_TRUE;
 							gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','6'), 1);
+							sps_merge_failed = 0;
 							break;
 						}
 						goto retry_track;
@@ -2434,7 +2436,7 @@ retry_track:
 		gf_delete_file(szInitName);
 		return GF_OK;
 	} else if (sps_merge_failed) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Couldnt merge AVC|H264 SPS from different files (same SPS ID used) - different sample descriptions will be used\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Could not merge AVC|H264 SPS from different files (same SPS ID used) - disabling bitstream switching\n"));
 		*disable_bs_switching = GF_TRUE;
 		gf_isom_delete(init_seg);
 		gf_delete_file(szInitName);
@@ -4397,6 +4399,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	u32 max_period = 0;
 	u32 cur_group_id = 0;
 	u32 max_sap_type = 0;
+	u32 max_comp_per_input;
 	u32 last_period_rep_idx_plus_one = 0;
 	Bool use_cenc = GF_FALSE;
 	Bool none_supported = GF_TRUE;
@@ -4681,6 +4684,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.no_fragments_defaults = no_fragments_defaults;
 
 
+	max_comp_per_input = 0;
 	for (cur_period=0; cur_period<max_period; cur_period++) {
 		u32 first_in_period = 0;
 		Double period_duration=0;
@@ -4710,11 +4714,22 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				use_cenc = GF_TRUE;
 				break;
 			}
+			if (max_comp_per_input < dash_inputs[i].nb_components)
+				max_comp_per_input = dash_inputs[i].nb_components;
 		}
 		if (first_in_period) {
 			dash_inputs[first_in_period-1].period_duration = period_duration;
 		}
 		presentation_duration += period_duration;
+	}
+
+	if ((max_comp_per_input>1) && (dash_profile==GF_DASH_PROFILE_AVC264_LIVE)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Muxed representations not allowed in DASH-IF AVC264 live profile\n\tswitching to regular live profile\n"));
+		dash_profile = GF_DASH_PROFILE_LIVE;
+	}
+	if ((max_comp_per_input>1) && (dash_profile==GF_DASH_PROFILE_AVC264_ONDEMAND)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Muxed representations not allowed in DASH-IF AVC264 onDemand profile\n\tswitching to regular onDemand profile\n"));
+		dash_profile = GF_DASH_PROFILE_ONDEMAND;
 	}
 
 	active_period_start = 0;
@@ -4821,7 +4836,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			strcat(szPeriodXML, ".mpd");
 
 			if (xlink) {
-				//TODOD !
+				//TODO !
 				//write_period_header(mpd, id, 0.0, period_duration, dash_dynamic, xlink);
 			} else {
 				dash_insert_period_xml(mpd, szPeriodXML);
