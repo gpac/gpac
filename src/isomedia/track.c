@@ -456,7 +456,6 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	void stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap);
 	void stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding);
 	void stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority);
-	GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 	if (trak->Header->trackID != traf->tfhd->trackID) return GF_OK;
 
@@ -549,7 +548,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			degr = GF_ISOM_GET_FRAG_DEG(flags);
 			if (degr) stbl_AppendDegradation(trak->Media->information->sampleTable, degr);
 
-			stbl_AppendDependencyType(trak->Media->information->sampleTable, GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
+			stbl_AppendDependencyType(trak->Media->information->sampleTable, GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
 		}
 	}
 	/*merge sample groups*/

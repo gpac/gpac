@@ -497,7 +497,7 @@ GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber)
 	return GF_OK;
 }
 
-GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 dependsOn, u32 dependedOn, u32 redundant)
+GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant)
 {
 	GF_SampleDependencyTypeBox *sdtp;
 	u32 flags;
@@ -508,7 +508,8 @@ GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 dependsOn, u32 dep
 	sdtp = stbl->SampleDep;
 
 	flags = 0;
-	flags |= dependsOn << 4;
+    flags |= isLeading << 6;
+    flags |= dependsOn << 4;
 	flags |= dependedOn << 2;
 	flags |= redundant;
 

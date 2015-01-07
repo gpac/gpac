@@ -1280,7 +1280,7 @@ typedef struct __tag_media_info_box
 	u32 dataEntryIndex;
 } GF_MediaInformationBox;
 
-GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 dependsOn, u32 dependedOn, u32 redundant);
+GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant);
 
 typedef struct
 {
