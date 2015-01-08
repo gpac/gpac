@@ -494,6 +494,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 		return GF_BUFFER_TOO_SMALL;
 	}
 	*dst_size  = out_size;
+	if (!dst) return GF_BAD_PARAM;
 
 	/*read*/
 	stride = (u32) png_get_rowbytes(png_ptr, info_ptr);
@@ -719,6 +720,8 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *heigh
 		if (!ext) return GF_NOT_SUPPORTED;
 		if (!stricmp(ext, ".png")) oti = GPAC_OTI_IMAGE_PNG;
 		else if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) oti = GPAC_OTI_IMAGE_JPEG;
+	} else if (hint_oti) {
+		oti = *hint_oti;
 	}
 	gf_f64_seek(f, 0, SEEK_END);
 	fsize = (u32)gf_f64_tell(f);
@@ -735,7 +738,7 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *heigh
 		e = gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);
 		if (*dst_size) {
 			*dst = gf_malloc(*dst_size);
-			return gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);
+			return gf_img_jpeg_dec(data, fsize, width, height, pixel_format, *dst, dst_size, 0);
 		}
 #endif
 	} else if (oti == GPAC_OTI_IMAGE_PNG) {

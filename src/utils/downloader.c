@@ -1662,7 +1662,10 @@ retry_cache:
 				goto retry_cache;
 			}
 		}
-		if (test) fclose(test);
+		if (test) {
+			fclose(test);
+			gf_delete_file(szTemp);
+		}
 	}
 
 	opt = cfg ? gf_cfg_get_key(cfg, "Downloader", "MaxRate") : NULL;

@@ -327,6 +327,7 @@ void gf_bifs_encoder_del(GF_BifsEncoder *codec)
 	}
 	gf_list_del(codec->streamInfo);
 	gf_list_del(codec->encoded_nodes);
+	if (codec->src_url) gf_free(codec->src_url);
 //	gf_mx_del(codec->mx);
 	gf_free(codec);
 }
@@ -468,6 +469,17 @@ u8 gf_bifs_encoder_get_version(GF_BifsEncoder *codec, u16 ESID)
 //	gf_mx_v(codec->mx);
 	return ret;
 }
+
+GF_EXPORT
+GF_Err gf_bifs_encoder_set_source_url(GF_BifsEncoder *codec, const char *src_url)
+{
+	if (!codec) return GF_BAD_PARAM;
+	if (codec->src_url) gf_free(codec->src_url);
+	codec->src_url = gf_strdup(src_url);
+	return GF_OK;
+}
+
+
 #endif /*GPAC_DISABLE_BIFS_ENC*/
 
 

@@ -288,47 +288,61 @@ static void imagetexture_update(GF_TextureHandler *txh)
 			u32 out_size;
 			GF_Err e;
 
-			/*BT/XMT playback*/
+			/*BT/XMT playback: load to memory*/
 			if (ct->image.buffer) {
-				e = gf_img_file_dec(ct->image.buffer, (u32 *) &ct->objectTypeIndication, &txh->width, &txh->height, &txh->pixelformat, &txh->data, &out_size);
-				if (e==GF_OK) {
-					txh->needs_refresh = 1;
-					txh->stride = out_size / txh->height;
+				char *par = (char *) gf_scene_get_service_url( gf_node_get_graph(txh->owner ) );
+				char *src_url = gf_url_concatenate(par, ct->image.buffer);
+				FILE *test = fopen( src_url ? src_url : ct->image.buffer, "rb");
+				if (test) {
+					fseek(test, 0, SEEK_END);
+					ct->data_len = ftell(test);
+					ct->data = gf_malloc(sizeof(char)*ct->data_len);
+					fseek(test, 0, SEEK_SET);
+					fread(ct->data, 1, ct->data_len, test);
+					fclose(test);
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to load CacheTexture data from file %s: not found\n", src_url ? src_url : ct->image.buffer ) );
 				}
+				ct->image.buffer = NULL;
+				if (src_url) gf_free(src_url);
 			}
-			/*BIFS decoded playback*/
-			else {
-				switch (ct->objectTypeIndication) {
-				case GPAC_OTI_IMAGE_JPEG:
-					out_size = 0;
-					e = gf_img_jpeg_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size, 3);
-					if (e==GF_BUFFER_TOO_SMALL) {
-						u32 BPP;
-						txh->data = gf_malloc(sizeof(char) * out_size);
-						if (txh->pixelformat==GF_PIXEL_GREYSCALE) BPP = 1;
-						else BPP = 3;
 
-						e = gf_img_jpeg_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size, BPP);
-						if (e==GF_OK) {
-							txh->needs_refresh = 1;
-							txh->stride = out_size / txh->height;
-						}
+			/*BIFS decoded playback*/
+			switch (ct->objectTypeIndication) {
+			case GPAC_OTI_IMAGE_JPEG:
+				out_size = 0;
+				e = gf_img_jpeg_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size, 3);
+				if (e==GF_BUFFER_TOO_SMALL) {
+					u32 BPP;
+					txh->data = gf_malloc(sizeof(char) * out_size);
+					if (txh->pixelformat==GF_PIXEL_GREYSCALE) BPP = 1;
+					else BPP = 3;
+
+					e = gf_img_jpeg_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size, BPP);
+					if (e==GF_OK) {
+						gf_sc_texture_allocate(txh);
+						gf_sc_texture_set_data(txh);
+						txh->needs_refresh = 1;
+						txh->stride = out_size / txh->height;
 					}
-					break;
-				case GPAC_OTI_IMAGE_PNG:
-					out_size = 0;
-					e = gf_img_png_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size);
-					if (e==GF_BUFFER_TOO_SMALL) {
-						txh->data = gf_malloc(sizeof(char) * out_size);
-						e = gf_img_png_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size);
-						if (e==GF_OK) {
-							txh->needs_refresh = 1;
-							txh->stride = out_size / txh->height;
-						}
-					}
-					break;
 				}
+				break;
+			case GPAC_OTI_IMAGE_PNG:
+				out_size = 0;
+				e = gf_img_png_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, NULL, &out_size);
+				if (e==GF_BUFFER_TOO_SMALL) {
+					txh->data = gf_malloc(sizeof(char) * out_size);
+					e = gf_img_png_dec((char *) ct->data, ct->data_len, &txh->width, &txh->height, &txh->pixelformat, txh->data, &out_size);
+					if (e==GF_OK) {
+						gf_sc_texture_allocate(txh);
+						gf_sc_texture_set_data(txh);
+						txh->needs_refresh = 1;
+						txh->stride = out_size / txh->height;
+					}
+				}
+				break;
 			}
+			
 #endif // GPAC_DISABLE_AV_PARSERS
 
 			/*cacheURL is specified, store the image*/
