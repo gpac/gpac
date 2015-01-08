@@ -551,7 +551,7 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	if ((tmp->user->init_flags & GF_TERM_NO_REGULATION) || !tmp->VisualThread)
 		tmp->no_regulation = GF_TRUE;
 
-#if 0
+#if 1
     /*set default size if owning output*/
 	if (!tmp->user->os_window_handler) {
 		gf_sc_set_size(tmp, SC_DEF_WIDTH, SC_DEF_HEIGHT);
