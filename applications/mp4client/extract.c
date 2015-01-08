@@ -87,16 +87,9 @@ static u32 put_pixel(FILE *fout, u32 type, u32 pf, char *ptr)
 
 	case GF_PIXEL_BGR_32:
 	case GF_PIXEL_RGBA:
-		//probably due to tinygl bug - verify
-#ifndef GPAC_USE_TINYGL
-		fputc(ptr[3], fout);
-		fputc(ptr[2], fout);
-		fputc(ptr[1], fout);
-#else
 		fputc(ptr[2], fout);
 		fputc(ptr[1], fout);
 		fputc(ptr[0], fout);
-#endif
 		return 4;
 
 	case GF_PIXEL_RGB_24:
@@ -177,7 +170,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	if (fb->pixel_format==GF_PIXEL_GREYSCALE) fi.biBitCount = 24;
 	else fi.biBitCount = 24;
 	fi.biCompression = BI_RGB;
-	fi.biSizeImage = fb->pitch_y * fb->height;
+	fi.biSizeImage = fb->width * fb->height * 3;
 
 	/*NOT ALIGNED!!*/
 	gf_fwrite(&fh.bfType, 2, 1, fout);
@@ -594,6 +587,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode, Double fps, u32 width, u
 	char szOutPath[GF_MAX_PATH];
 	char *prev=NULL;
 
+    if (!out_url) out_url = url;
 	prev = strstr(url, "://");
 	if (prev) {
 		prev = strrchr(url, '/');

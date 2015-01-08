@@ -70,8 +70,6 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 		if (st->stream->odm->subscene->scene_codec) ck = st->stream->odm->subscene->scene_codec->ck;
 		/*dynamic scene*/
 		else ck = st->stream->odm->subscene->dyn_ck;
-		/*since audio may be used alone through an inline scene, we need to refresh the graph*/
-		if (ck && !ck->has_seen_eos && st->stream->odm->state) gf_term_invalidate_compositor(st->stream->odm->term);
 		if (st->stream->odm->subscene->is_dynamic_scene) do_update_clock = 0;
 	}
 	/*check anim streams*/

@@ -77,6 +77,7 @@ endif
 endif
 ifeq ($(DISABLE_ISOFF), no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP42TS "$(DESTDIR)$(prefix)/bin"
 endif
 ifeq ($(DISABLE_PLAYER), no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client "$(DESTDIR)$(prefix)/bin"
@@ -110,6 +111,25 @@ endif
 	rm -rf "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/*.svn" ; \
 	fi
 
+lninstall:
+	$(INSTALL) -d "$(DESTDIR)$(prefix)"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
+ifeq ($(DISABLE_ISOFF), no) 
+ifneq ($(CONFIG_FFMPEG), no)
+	ln -s $(SRC_PATH)/bin/gcc/DashCast "$(DESTDIR)$(prefix)/bin/DashCast"
+endif
+endif
+ifeq ($(DISABLE_ISOFF), no)
+	ln -s $(SRC_PATH)/bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin/MP4Box"
+	ln -s $(SRC_PATH)/bin/gcc/MP42TS "$(DESTDIR)$(prefix)/bin/MP42TS"
+endif
+ifeq ($(DISABLE_PLAYER), no)
+	ln -s $(SRC_PATH)/bin/gcc/MP4Client "$(DESTDIR)$(prefix)/bin/MP4Client"
+endif
+	ln -s $(SRC_PATH)/bin/gcc/libgpac.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)"
+
+
 uninstall:
 	$(MAKE) -C applications uninstall
 	rm -rf $(DESTDIR)$(moddir)
@@ -120,6 +140,7 @@ endif
 	rm -rf $(DESTDIR)$(prefix)/$(libdir)/pkgconfig/gpac.pc
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Box
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Client
+	rm -rf $(DESTDIR)$(prefix)/bin/MP42TS
 	rm -rf $(DESTDIR)$(prefix)/bin/DashCast
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4box.1
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4client.1

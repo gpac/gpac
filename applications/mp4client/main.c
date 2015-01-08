@@ -229,6 +229,7 @@ void PrintUsage()
 	        "\t-exit:          automatically exits when presentation is over\n"
 	        "\t-run-for TIME:  runs for TIME seconds and exits\n"
 	        "\t-service ID:    auto-tune to given service ID in a multiplex\n"
+            "\t-noprog:        disable progress report\n"
 	        "\t-no-addon:      disable automatic loading of media addons declared in source URL\n"
 	        "\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
 	        "\n"
@@ -1033,6 +1034,8 @@ void set_cfg_option(char *opt_string)
 #include <wincon.h>
 #endif
 
+static void progress_quiet(const void *cbck, const char *title, u64 done, u64 total) { }
+
 int main (int argc, char **argv)
 {
 	char c;
@@ -1168,10 +1171,13 @@ int main (int argc, char **argv)
 			gf_cfg_set_key(cfg_file, "Network", "DefaultMCastInterface", argv[i+1]);
 			i++;
 		}
-		else if (!stricmp(arg, "-help")) {
-			PrintUsage();
-			return 1;
-		}
+        else if (!stricmp(arg, "-help")) {
+            PrintUsage();
+            return 1;
+        }
+        else if (!stricmp(arg, "-noprog")) {
+            gf_set_progress_callback(NULL, progress_quiet);
+        }
 
 		/*arguments only used in non-gui mode*/
 		else if (!gui_mode) {
@@ -1179,7 +1185,8 @@ int main (int argc, char **argv)
 				url_arg = arg;
 			}
 			else if (!strcmp(arg, "-out")) {
-				out_arg = gf_strdup(argv[i+1]);
+				out_arg = argv[i+1];
+                i++;
 			}
 			else if (!stricmp(arg, "-fps")) {
 				fps = atof(argv[i+1]);
