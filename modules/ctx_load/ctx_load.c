@@ -589,6 +589,16 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 								}
 								continue;
 							}
+                            //solve url before import
+                            if (mux->src_url) {
+                                char *res_url = gf_url_concatenate(mux->src_url, mux->file_name);
+                                if (res_url) {
+                                    gf_free(mux->file_name);
+                                    mux->file_name = res_url;
+                                }
+                                gf_free(mux->src_url);
+                                mux->src_url = NULL;
+                            }
 							/*text import*/
 							if (mux->textNode) {
 #ifdef GPAC_DISABLE_MEDIA_IMPORT

@@ -1640,6 +1640,7 @@ GF_Err gf_odf_del_muxinfo(GF_MuxInfo *mi)
 {
 	if (!mi) return GF_BAD_PARAM;
 	if (mi->file_name) gf_free(mi->file_name);
+    if (mi->src_url) gf_free(mi->src_url);
 	if (mi->streamFormat) gf_free(mi->streamFormat);
 	if (mi->textNode) gf_free(mi->textNode);
 	if (mi->fontNode) gf_free(mi->fontNode);
