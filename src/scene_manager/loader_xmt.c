@@ -893,7 +893,7 @@ static u32 xmt_parse_sf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node 
 		break;
 	case GF_SG_VRML_SFTIME:
 		res = xmt_parse_time(parser, info->name, (SFTime *)info->far_ptr, a_value);
-		xmt_check_time_offset(parser, n, info);
+		if (n) xmt_check_time_offset(parser, n, info);
 		break;
 	case GF_SG_VRML_SFCOLOR:
 		res = xmt_parse_float(parser, info->name, & ((SFColor *)info->far_ptr)->red, a_value);
