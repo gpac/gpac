@@ -1478,6 +1478,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_get_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_get_version) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_get_rap) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_set_source_url) )
 #endif
 #endif /*GPAC_DISABLE_BIFS*/
 

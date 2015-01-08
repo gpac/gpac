@@ -493,6 +493,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 			is_in_iod = 1;
 			goto force_scene_rap;
 		}
+		gf_bifs_encoder_set_source_url(bifs_enc, opts->src_url);
 #else
 		return GF_NOT_SUPPORTED;
 #endif

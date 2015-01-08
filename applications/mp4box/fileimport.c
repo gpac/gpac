@@ -2191,6 +2191,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 			gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_DEBUG);
 			prev_logs = gf_log_set_callback(logs, scene_coding_log);
 		}
+		opts->src_url = in;
 		e = gf_sm_encode_to_file(ctx, mp4, opts);
 		if (logs) {
 			gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_ERROR);

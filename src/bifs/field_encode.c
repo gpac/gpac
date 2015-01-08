@@ -94,8 +94,17 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		if (node && (node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
 			u32 size, val;
 			char buf[4096];
-			FILE *f = gf_f64_open(((SFString*)field->far_ptr)->buffer, "rb");
-			if (!f) return GF_URL_ERROR;
+			char *res_src = NULL;
+			const char *src = ((SFString*)field->far_ptr)->buffer;
+			FILE *f;
+			if (codec->src_url) res_src = gf_url_concatenate(codec->src_url, src);
+
+			f = gf_f64_open(res_src ? res_src : src, "rb");
+			if (!f) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[BIFS] Cannot open source file %s for encoding CacheTexture\n", res_src ? res_src : src));
+				return GF_URL_ERROR;
+			}
+			if (res_src) gf_free(res_src);
 			gf_f64_seek(f, 0, SEEK_END);
 			size = (u32) gf_f64_tell(f);
 			val = gf_get_bit_size(size);
