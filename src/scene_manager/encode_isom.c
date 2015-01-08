@@ -228,8 +228,14 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	if (!mux->file_name) return GF_OK;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
-	strcpy(szName, mux->file_name);
-	ext = strrchr(szName, '.');
+    if (mux->src_url) {
+        ext = gf_url_concatenate(mux->src_url, mux->file_name);
+        strcpy(szName, ext ? ext : mux->file_name);
+        if (ext) gf_free(ext);
+    } else {
+        strcpy(szName, mux->file_name);
+    }
+    ext = strrchr(szName, '.');
 
 	/*get track types for AVI*/
 	if (ext && !strnicmp(ext, ".avi", 4)) {

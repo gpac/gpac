@@ -551,10 +551,13 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	if ((tmp->user->init_flags & GF_TERM_NO_REGULATION) || !tmp->VisualThread)
 		tmp->no_regulation = GF_TRUE;
 
-	/*set default size if owning output*/
+#if 0
+    /*set default size if owning output*/
 	if (!tmp->user->os_window_handler) {
 		gf_sc_set_size(tmp, SC_DEF_WIDTH, SC_DEF_HEIGHT);
 	}
+#endif
+    
 	/*try to load GL extensions*/
 #ifndef GPAC_DISABLE_3D
 	gf_sc_load_opengl_extensions(tmp, GF_FALSE);
@@ -2908,6 +2911,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			} else {
 				/*remove pending resize notif*/
 				compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
+                compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 			}
 			if (lock_ok) gf_sc_lock(compositor, GF_FALSE);
 		}
