@@ -2705,7 +2705,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 					parser->command_buffer = NULL;
 				} else {
 					//empty <Insert>
-					if ((parser->command->tag==GF_SG_ROUTE_INSERT) && !parser->command->fromNodeID) {
+					if (parser->command && (parser->command->tag==GF_SG_ROUTE_INSERT) && !parser->command->fromNodeID) {
 						gf_list_del_item(parser->scene_au->commands, parser->command);
 					}
 					parser->command = NULL;
