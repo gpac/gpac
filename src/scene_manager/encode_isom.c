@@ -301,17 +301,16 @@ static GF_Err gf_sm_import_stream_special(GF_SceneManager *ctx, GF_ESD *esd)
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo
 	        && (esd->decoderConfig->decoderSpecificInfo->tag==GF_ODF_TEXT_CFG_TAG)) return GF_OK;
 
-    if (mux->src_url) {
-        char *src = gf_url_concatenate(mux->src_url, mux->file_name);
-		if (src) {
-			gf_free(mux->file_name);
-			mux->file_name = src;
-		}
-    } 
-
 	e = GF_OK;
 	/*SRT/SUB BIFS import if text node unspecified*/
 	if (mux->textNode) {
+        if (mux->src_url) {
+            char *src = gf_url_concatenate(mux->src_url, mux->file_name);
+            if (src) {
+                gf_free(mux->file_name);
+                mux->file_name = src;
+            }
+        } 
 		e = gf_sm_import_bifs_subtitle(ctx, esd, mux);
 		gf_sm_remove_mux_info(esd);
 	}
