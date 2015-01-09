@@ -701,7 +701,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	has_changed = 1;
 	tr_state->traversing_mode = TRAVERSE_DRAW_2D;
 
-	if (first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0].rect)) {
+	if (!hyb_force_redraw && first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0].rect)) {
 		visual->has_modif=0;
 		goto skip_background;
 	}

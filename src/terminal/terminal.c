@@ -989,7 +989,7 @@ u32 gf_term_check_end_of_scene(GF_Terminal *term, Bool skip_interactions)
 		if (gf_list_count(term->x3d_sensors)) return 0;
 	}
 	/*check no clocks are still running*/
-	if (!gf_scene_check_clocks(term->root_scene->root_od->net_service, term->root_scene)) return 0;
+	if (!gf_scene_check_clocks(term->root_scene->root_od->net_service, term->root_scene, 0)) return 0;
 	if (term->root_scene->is_dynamic_scene) return 1;
 
 	/*ask compositor if there are sensors*/

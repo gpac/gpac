@@ -1923,29 +1923,43 @@ GF_Node *gf_scene_get_subscene_root(GF_Node *node)
 }
 
 /*returns 0 if any of the clock still hasn't seen EOS*/
-Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene)
+Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buffering)
 {
 	GF_Clock *ck;
 	u32 i;
 	if (scene) {
 		GF_ObjectManager *odm;
 		if (scene->root_od->net_service != ns) {
-			if (!gf_scene_check_clocks(scene->root_od->net_service, scene)) return 0;
+			if (!gf_scene_check_clocks(scene->root_od->net_service, scene, check_buffering)) return 0;
 		}
 		i=0;
 		while ( (odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i)) ) {
 			if (odm->net_service && (odm->net_service != ns)) {
-				if (!gf_scene_check_clocks(odm->net_service, NULL)) return 0;
-			} else if (odm->codec && odm->codec->CB && !gf_cm_is_eos(odm->codec->CB) ) {
-				return 0;
+				if (!gf_scene_check_clocks(odm->net_service, NULL, check_buffering)) return 0;
+			} else if (odm->codec && odm->codec->CB) {
+				if (!check_buffering) {
+					if (!gf_cm_is_eos(odm->codec->CB) ) {
+						return 0;
+					}
+				} else {
+					if (odm->codec->ck->Buffering) {
+						return 0;
+					}
+				}
 			}
 		}
 	}
 	i=0;
 	while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &i) ) ) {
-		if (!ck->has_seen_eos) return 0;
+		if (!check_buffering) {
+			if (!ck->has_seen_eos) return 0;
+		} else {
+			if (ck->Buffering) return 0;
+		}
+
 	}
-	if (scene) {
+
+	if (!check_buffering && scene) {
 		if (scene->scene_codec && (scene->scene_codec->Status != GF_ESM_CODEC_STOP)) return 0;
 		if (scene->od_codec && (scene->od_codec->Status != GF_ESM_CODEC_STOP)) return 0;
 	}

@@ -372,7 +372,7 @@ u32 MM_Loop(void *par)
 		if (do_scene) {
 			u32 ms_until_next=0;
 			u32 time_taken = gf_sys_clock();
-			gf_sc_draw_frame(term->compositor, &ms_until_next);
+			gf_sc_draw_frame(term->compositor, 0, &ms_until_next);
 			time_taken = gf_sys_clock() - time_taken;
 			if (ms_until_next<term->frame_duration/2) {
 				left = 0;
@@ -665,7 +665,7 @@ u32 gf_term_process_step(GF_Terminal *term)
 
 	if (term->flags & GF_TERM_NO_COMPOSITOR_THREAD) {
 		u32 ms_until_next;
-		gf_sc_draw_frame(term->compositor, &ms_until_next);
+		gf_sc_draw_frame(term->compositor, 0, &ms_until_next);
 		if (ms_until_next<term->compositor->frame_duration/2) {
 			time_taken=0;
 		}
@@ -705,8 +705,13 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 			gf_mx_v(term->mm_mx);
 		}
 
-		if (!gf_sc_draw_frame(term->compositor, NULL))
-			break;
+		if (!gf_sc_draw_frame(term->compositor, 1, NULL)) {
+			if (!term->root_scene || !term->root_scene->root_od)
+				break;
+			//force end of buffer
+			if (gf_scene_check_clocks(term->root_scene->root_od->net_service, term->root_scene, 1))
+				break;
+		}
 
 		if (! (term->user->init_flags & GF_TERM_NO_REGULATION))
 			break;
@@ -714,3 +719,10 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_term_process_flush_video(GF_Terminal *term)
+{
+	if (!(term->flags & GF_TERM_NO_COMPOSITOR_THREAD) ) return GF_BAD_PARAM;
+	gf_sc_flush_video(term->compositor);
+	return GF_OK;
+}

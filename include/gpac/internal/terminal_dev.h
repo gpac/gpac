@@ -271,7 +271,10 @@ not root one. Returns 1 if handled (cf user.h, navigate event)*/
 Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt);
 void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo);
 
-Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene);
+//check clock status. 
+//If @check_buffering is 0, returns 1 if all clocks have seen eos, 0 otherwise
+//If @check_buffering is 1, returns 1 if no clock is buffering, 0 otheriwse
+Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buffering);
 
 void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt, GF_Err code, Bool no_queueing);
 

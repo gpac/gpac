@@ -328,7 +328,11 @@ static void term_on_media_add(GF_ClientService *service, GF_Descriptor *media_de
 		if (mo->odm->OD) {
 			if (od->objectDescriptorID && is_same_od(mo->odm->OD, od)) {
 				/*reassign OD ID*/
-				mo->OD_ID = od->objectDescriptorID;
+				if (mo->OD_ID != GF_MEDIA_EXTERNAL_ID) {
+					od->objectDescriptorID = mo->OD_ID;
+				} else {
+					mo->OD_ID = od->objectDescriptorID;
+				}
 				gf_odf_desc_del(media_desc);
 				gf_term_lock_net(term, 0);
 				return;

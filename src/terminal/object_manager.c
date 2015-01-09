@@ -2265,7 +2265,7 @@ void gf_odm_signal_eos(GF_ObjectManager *odm)
 		GF_ObjectManager *root = odm->parentscene->root_od;
 		Bool is_over = 0;
 
-		if (!gf_scene_check_clocks(root->net_service, root->subscene)) return;
+		if (!gf_scene_check_clocks(root->net_service, root->subscene, 0)) return;
 		if (root->subscene->is_dynamic_scene)
 			is_over = 1;
 		else

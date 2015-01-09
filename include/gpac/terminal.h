@@ -148,10 +148,16 @@ for until next frame should be drawn before returning.
 */
 u32 gf_term_process_step(GF_Terminal *term);
 
-/*decodes all pending media and render frame until no scene changes are detected.
+/*decodes all pending media and render frame until no scene changes are detected and no clocks is buffering.
+This does not flush the backbuffer to the front buffer, you have to call @gf_term_process_flush_video for this
 NOTE: This can only be used when the terminal runs without visual thread (GF_TERM_NO_VISUAL_THREAD flag set)
 */
 GF_Err gf_term_process_flush(GF_Terminal *term);
+
+/*flushes video backbuffer to screen. This is typically used after gf_term_process_flush, once the screen buffer is no longer needed
+NOTE: This can only be used when the terminal runs without visual thread (GF_TERM_NO_VISUAL_THREAD flag set)
+*/
+GF_Err gf_term_process_flush_video(GF_Terminal *term);
 
 /*post user interaction to terminal*/
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/

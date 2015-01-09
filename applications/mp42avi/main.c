@@ -365,9 +365,9 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 	for (viewpoint_index = 1; viewpoint_index <= nb_viewpoints; viewpoint_index++) {
 		GF_SAFEALLOC(rendered_frames[viewpoint_index-1], fb.width*fb.height*3);
 		gf_sc_set_viewpoint(b2v.sr, viewpoint_index, NULL);
-		gf_sc_draw_frame(b2v.sr);
+		gf_sc_draw_frame(b2v.sr, 0, NULL);
 		/*needed for background2D !!*/
-		gf_sc_draw_frame(b2v.sr);
+		gf_sc_draw_frame(b2v.sr, 0, NULL);
 		strcpy(out_path, "");
 		if (out_dir) {
 			strcat(out_path, out_dir);
@@ -583,7 +583,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	}
 
 	gf_sc_set_size(b2v.sr, width, height);
-	gf_sc_draw_frame(b2v.sr);
+	gf_sc_draw_frame(b2v.sr, 0, NULL);
 
 	gf_sc_get_screen_buffer(b2v.sr, &fb);
 	width = fb.width;
@@ -613,10 +613,10 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 		if ((frameID>=0) && (j<(u32)frameID)) continue;
 		if ((dump_time>=0) && ((u32) dump_time>b2v.cts)) continue;
 		/*render frame*/
-		gf_sc_draw_frame(b2v.sr);
+		gf_sc_draw_frame(b2v.sr, 0, NULL);
 		/*needed for background2D !!*/
 		if (first_dump) {
-			gf_sc_draw_frame(b2v.sr);
+			gf_sc_draw_frame(b2v.sr, 0, NULL);
 			first_dump = 0;
 		}
 
