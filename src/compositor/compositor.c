@@ -2187,7 +2187,7 @@ void gf_sc_flush_video(GF_Compositor *compositor)
 	rc.x = rc.y = 0;
 	rc.w = compositor->display_width;
 	rc.h = compositor->display_height;
-//	compositor->video_out->Flush(compositor->video_out, &rc);
+	compositor->video_out->Flush(compositor->video_out, &rc);
 	gf_sc_lock(compositor, 1);
 }
 

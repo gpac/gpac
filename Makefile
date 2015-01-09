@@ -55,6 +55,21 @@ distclean:
 	$(MAKE) -C modules distclean
 	rm -f config.mak config.h
 
+lcov_clean:
+	lcov --directory . --zerocounters
+
+lcov:
+	lcov --capture --directory . --output-file all.info
+	rm -rf coverage/
+	lcov  --remove all.info /usr/pkg/include/gtest/* /usr/pkg/include/gtest/internal/gtest-* \
+ /usr/pkg/gcc44/include/c++/4.4.1/backward/binders.h /usr/pkg/gcc44/include/c++/4.4.1/bits/* \
+ /usr/pkg/gcc44/include/c++/4.4.1/ext/*.h \
+ /usr/pkg/gcc44/include/c++/4.4.1/x86_64-unknown-netbsd4.99.62/bits/gthr-default.h \
+ /usr/include/machine/byte_swap.h /usr/pkg/gcc44/include/c++/4.4.1/* \
+ /opt/local/include/mozjs185/*.h /usr/include/libkern/i386/*.h /usr/include/sys/_types/*.h /usr/include/*.h \
+ --output cover.info
+	genhtml -o coverage cover.info 
+
 dep:	depend
 
 # tar release (use 'make -k tar' on a checkouted tree)
