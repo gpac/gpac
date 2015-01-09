@@ -1732,6 +1732,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_simulation_frame_rate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_step_clocks) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_process_flush) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_process_flush_video) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_service_get_interface) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_service_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_text_selection) )

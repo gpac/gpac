@@ -212,8 +212,10 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 }
 
 GF_EXPORT
-Bool gf_sc_draw_frame(GF_Compositor *compositor, u32 *ms_till_next)
+Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, u32 *ms_till_next)
 {
+	if (no_flush)
+		compositor->skip_flush=1;
 	gf_sc_simulation_tick(compositor);
 	if (ms_till_next) {
 		if ((s32) compositor->next_frame_delay == -1)
@@ -2176,6 +2178,18 @@ static void compositor_release_textures(GF_Compositor *compositor, Bool frame_dr
 	}
 }
 
+void gf_sc_flush_video(GF_Compositor *compositor)
+{
+	GF_Window rc;
+
+	//release compositor in case we have vsync
+	gf_sc_lock(compositor, 0);
+	rc.x = rc.y = 0;
+	rc.w = compositor->display_width;
+	rc.h = compositor->display_height;
+//	compositor->video_out->Flush(compositor->video_out, &rc);
+	gf_sc_lock(compositor, 1);
+}
 
 void gf_sc_simulation_tick(GF_Compositor *compositor)
 {
@@ -2453,7 +2467,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	/*if invalidated, draw*/
 	if (compositor->frame_draw_type) {
-		GF_Window rc;
 		Bool textures_released = 0;
 
 #ifndef GPAC_DISABLE_LOG
@@ -2500,14 +2513,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		}
 
 		if (compositor->skip_flush!=1) {
-
-			//release compositor in case we have vsync
-			gf_sc_lock(compositor, 0);
-			rc.x = rc.y = 0;
-			rc.w = compositor->display_width;
-			rc.h = compositor->display_height;
-			compositor->video_out->Flush(compositor->video_out, &rc);
-			gf_sc_lock(compositor, 1);
+			gf_sc_flush_video(compositor);
 		} else {
 			compositor->skip_flush = 0;
 		}

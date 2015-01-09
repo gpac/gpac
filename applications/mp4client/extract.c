@@ -488,11 +488,19 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fram
 
 			switch (fb.pixel_format) {
 			case GF_PIXEL_RGB_32:
-			case GF_PIXEL_RGBA:
 				for (i=0; i<fb.width; i++) {
 					dst[0] = src[0];
 					dst[1] = src[1];
 					dst[2] = src[2];
+					src+=4;
+					dst += 3;
+				}
+				break;
+			case GF_PIXEL_RGBA:
+				for (i=0; i<fb.width; i++) {
+					dst[0] = src[2];
+					dst[1] = src[1];
+					dst[2] = src[0];
 					src+=4;
 					dst += 3;
 				}
@@ -616,6 +624,18 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	char szPath[GF_MAX_PATH];
 	char szOutPath[GF_MAX_PATH];
 	char *prev=NULL;
+	u32 time, prev_time, nb_frames;
+	u64 dump_dur;
+	char *conv_buf = NULL;
+#ifndef GPAC_DISABLE_AVILIB
+	avi_t *avi_out = NULL;
+	avi_t *depth_avi_out = NULL;
+#endif
+	FILE *sha_out = NULL;
+	FILE *sha_depth_out = NULL;
+	char szPath_depth[GF_MAX_PATH];
+	char comp[5];
+	u32 cur_time_idx;
 	u32 mode = dump_mode_flags & 0x0000FFFF;
 
     if (!out_url) out_url = url;
@@ -690,90 +710,100 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		gf_sc_release_screen_buffer(term->compositor, &fb);
 	}
 
-	if ((mode==DUMP_AVI) || (mode==DUMP_SHA1))  {
+
+	strcpy(szPath_depth, szOutPath);
+
+	if (mode==DUMP_AVI) {
 #ifdef GPAC_DISABLE_AVILIB
 		fprintf(stderr, "AVILib is disabled in this build of GPAC\n");
 		return 0;
 #else
-		u32 time, prev_time, nb_frames;
-		u64 dump_dur;
-		char *conv_buf;
-		avi_t *avi_out = NULL;
-		avi_t *depth_avi_out = NULL;
-		FILE *sha_out = NULL;
-		FILE *sha_depth_out = NULL;
-		char szPath_depth[GF_MAX_PATH];
-		char comp[5];
-		strcpy(szPath_depth, szOutPath);
+		strcat(szOutPath, ".avi");
+		avi_out = AVI_open_output_file(szOutPath);
+		if (!avi_out) {
+			fprintf(stderr, "Error creating AVI file %s\n", szOutPath);
+			return 1;
+		}
+#endif
+	}
+	
+	if (mode==DUMP_SHA1) {
+		strcat(szOutPath, ".sha1");
+		sha_out = fopen(szOutPath, "wb");
+		if (!sha_out) {
+			fprintf(stderr, "Error creating SHA file %s\n", szOutPath);
+			return 1;
+		}
+	}
 
+	if (dump_mode_flags & DUMP_DEPTH_ONLY) {
 		if (mode==DUMP_AVI) {
-			strcat(szOutPath, ".avi");
-			avi_out = AVI_open_output_file(szOutPath);
-			if (!avi_out) {
-				fprintf(stderr, "Error creating AVI file %s\n", szOutPath);
+#ifndef GPAC_DISABLE_AVILIB
+			strcat(szPath_depth, "_depth.avi");
+			depth_avi_out = AVI_open_output_file(szPath_depth);
+			if (!depth_avi_out) {
+				fprintf(stderr, "Error creating depth AVI file %s\n", szPath_depth);
 				return 1;
 			}
-		} else {
-			strcat(szOutPath, ".hash");
-			sha_out = fopen(szOutPath, "wb");
-			if (!sha_out) {
-				fprintf(stderr, "Error creating SHA file %s\n", szOutPath);
+#endif
+		}
+		if (mode==DUMP_SHA1) {
+			strcat(szPath_depth, "_depth.sha1");
+			sha_depth_out = fopen(szPath_depth, "wb");
+			if (!sha_depth_out) {
+				fprintf(stderr, "Error creating depgth SHA file %s\n", szPath_depth);
 				return 1;
 			}
 		}
-		if (dump_mode_flags & DUMP_DEPTH_ONLY) {
-			if (mode==DUMP_AVI) {
-				strcat(szPath_depth, "_depth.avi");
-				depth_avi_out = AVI_open_output_file(szPath_depth);
-				if (!depth_avi_out) {
-					fprintf(stderr, "Error creating depth AVI file %s\n", szPath_depth);
-					return 1;
-				}
-			} else {
-				strcat(szPath_depth, "_depth.sha");
-				sha_depth_out = fopen(szPath_depth, "wb");
-				if (!sha_depth_out) {
-					fprintf(stderr, "Error creating depgth SHA file %s\n", szPath_depth);
-					return 1;
-				}
-			}
-		}
+	}
 
-		if (!fps) fps = GF_IMPORT_DEFAULT_FPS;
-		time = prev_time = 0;
-		nb_frames = 0;
 
-		if (nb_times==2) {
-			prev_time = times[0];
-			dump_dur = times[1] - times[0];
-		} else {
-			dump_dur = times[0] ? times[0] : Duration;
-		}
-		if (!dump_dur) {
-			fprintf(stderr, "Warning: file has no duration, defaulting to 1 sec\n");
-			dump_dur = 1000;
-		}
+	if (!fps) fps = GF_IMPORT_DEFAULT_FPS;
+	time = prev_time = 0;
+	nb_frames = 0;
 
-		if (mode==DUMP_AVI) {
-			comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
-			AVI_set_video(avi_out, width, height, fps, comp);
-			if (dump_mode_flags & DUMP_DEPTH_ONLY) 
-				AVI_set_video(depth_avi_out, width, height, fps, comp);
-		}
+	if (nb_times==2) {
+		prev_time = times[0];
+		dump_dur = times[1] - times[0];
+	} else if ((mode==DUMP_AVI) || (mode==DUMP_SHA1)) {
+		dump_dur = times[0] ? times[0] : Duration;
+	} else {
+		dump_dur = times[nb_times-1];
+		dump_dur ++;
+	}
+	if (!dump_dur) {
+		fprintf(stderr, "Warning: file has no duration, defaulting to 1 sec\n");
+		dump_dur = 1000;
+	}
 
+	if (mode==DUMP_AVI) {
+#ifndef GPAC_DISABLE_AVILIB
+		comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
+		AVI_set_video(avi_out, width, height, fps, comp);
+		if (dump_mode_flags & DUMP_DEPTH_ONLY) 
+			AVI_set_video(depth_avi_out, width, height, fps, comp);
+#endif
+	}
+
+	if ((mode==DUMP_AVI) || (mode==DUMP_SHA1)) {
 		
 		if (dump_mode_flags & (DUMP_RGB_DEPTH | DUMP_RGB_DEPTH_SHAPE) ) 
 			conv_buf = gf_malloc(sizeof(char) * width * height * 4);
 		else
 			conv_buf = gf_malloc(sizeof(char) * width * height * 3);
+	}
 
-		/*step to first frame*/
-		if (prev_time) gf_term_step_clocks(term, prev_time);
+	cur_time_idx = 0;
+	/*step to first frame*/
+	if (prev_time) gf_term_step_clocks(term, prev_time);
 
-		while (time < dump_dur) {
-			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
-				gf_term_process_flush(term);
-			}
+	while (time < dump_dur) {
+		while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
+			gf_term_process_flush(term);
+		}
+
+		if ((mode==DUMP_AVI) || (mode==DUMP_SHA1)) {
+
 			fprintf(stderr, "Dumping %02d/100 %% - time %.02f sec\r", (u32) ((100.0*prev_time)/dump_dur), prev_time/1000.0 );
 
 			if (dump_mode_flags & DUMP_DEPTH_ONLY) {
@@ -785,42 +815,44 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			} else {
 				dump_frame(term, szOutPath, dump_mode_flags, i+1, conv_buf, avi_out, sha_out);
 			}
+		} else {
+			if ( times[cur_time_idx] <= time) {
+				if (dump_mode_flags & (DUMP_DEPTH_ONLY | DUMP_RGB_DEPTH | DUMP_RGB_DEPTH_SHAPE) ) {
+					dump_depth(term, szOutPath, dump_mode_flags, cur_time_idx+1, NULL, NULL, NULL);
+				} else {
+					dump_frame(term, out_url, dump_mode_flags, cur_time_idx+1, NULL, NULL, NULL);
+				}
 
-			nb_frames++;
-			time = (u32) (nb_frames*1000/fps);
-			gf_term_step_clocks(term, time - prev_time);
-			prev_time = time;
-
-			if (gf_prompt_has_input() && (gf_prompt_get_char()=='q')) {
-				fprintf(stderr, "Aborting dump\n");
-				break;
+				cur_time_idx++;
+				if (cur_time_idx>=nb_times)
+					break;
 			}
 		}
-		if (avi_out) AVI_close(avi_out);
-		if (depth_avi_out) AVI_close(depth_avi_out);
-		if (sha_out) fclose(sha_out);
-		if (sha_depth_out) fclose(sha_depth_out);
 
-		gf_free(conv_buf);
-		fprintf(stderr, "Dumping done: %d frames at %g FPS\n", nb_frames, fps);
-#endif /*GPAC_DISABLE_AVILIB*/
-	} else {
-		if (times[0]) gf_term_step_clocks(term, times[0]);
+		nb_frames++;
+		time = (u32) (nb_frames*1000/fps);
+		gf_term_step_clocks(term, time - prev_time);
+		prev_time = time;
 
-		for (i=0; i<nb_times; i++) {
-			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
-				gf_term_process_flush(term);
-			}
-
-			if (dump_mode_flags & (DUMP_DEPTH_ONLY | DUMP_RGB_DEPTH | DUMP_RGB_DEPTH_SHAPE) ) {
-				dump_depth(term, szOutPath, dump_mode_flags, i+1, NULL, NULL, NULL);
-			} else {
-				dump_frame(term, out_url, dump_mode_flags, i+1, NULL, NULL, NULL);
-			}
-
-			if (i+1<nb_times) gf_term_step_clocks(term, times[i+1] - times[i]);
+		if (gf_prompt_has_input() && (gf_prompt_get_char()=='q')) {
+			fprintf(stderr, "Aborting dump\n");
+			break;
 		}
 	}
+
+#ifndef GPAC_DISABLE_AVILIB
+	if (avi_out) AVI_close(avi_out);
+	if (depth_avi_out) AVI_close(depth_avi_out);
+#endif
+
+	if (sha_out) fclose(sha_out);
+	if (sha_depth_out) fclose(sha_depth_out);
+
+	if (conv_buf) {
+		gf_free(conv_buf);
+		fprintf(stderr, "Dumping done: %d frames at %g FPS\n", nb_frames, fps);
+	}
+
 	return 0;
 }
 
