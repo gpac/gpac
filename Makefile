@@ -127,8 +127,14 @@ endif
 ifeq ($(DISABLE_PLAYER), no)
 	ln -s $(SRC_PATH)/bin/gcc/MP4Client "$(DESTDIR)$(prefix)/bin/MP4Client"
 endif
-	ln -s $(SRC_PATH)/bin/gcc/libgpac.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(prefix)/lib/libgpac.$(DYN_LIB_SUFFIX)"
-
+ifeq ($(CONFIG_DARWIN),yes)
+	ln -s $(SRC_PATH)/bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION).$(DYN_LIB_SUFFIX)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
+else
+	ln -s $(SRC_PATH)/bin/gcc/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
+endif
 
 uninstall:
 	$(MAKE) -C applications uninstall

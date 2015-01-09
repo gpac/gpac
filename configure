@@ -2331,6 +2331,22 @@ if test "$static_mp4box" = "yes"; then
     has_js="no"
     has_jpeg="no"
     has_png="no"
+    has_mad="no"
+    has_ft="no"
+    has_openjpeg="no"
+    has_mad="no"
+    has_faad="no"
+    has_xvid="no"
+    has_ffmpeg="no"
+    has_ogg="no"
+    has_theora="no"
+    has_vorbis="no"
+    has_a52="no"
+    has_opensvc="no"
+    has_openhevc="no"
+    has_freenect="no"
+    has_platinum="no"
+    disable_player="yes"
 fi
 
 if test "$cpu" = "sh4"; then
@@ -2975,6 +2991,7 @@ echo "DISABLE_DVBX=$disable_dvbx" >> config.mak
 echo "DISABLE_AVILIB=$disable_avi" >> config.mak
 echo "DISABLE_M2PS=$disable_m2ps" >> config.mak
 echo "DISABLE_OGG=$disable_ogg" >> config.mak
+echo "DISABLE_ISOFF=$disable_isoff" >> config.mak
 echo "DISABLE_ISOFF_HINT=$disable_isoff_hint" >> config.mak
 echo "DISABLE_VOBSUB=$disable_vobsub" >> config.mak
 echo "DISABLE_TTXT=$disable_ttxt" >> config.mak
@@ -3000,12 +3017,6 @@ echo "DISABLE_M2TS=$disable_m2ts" >> config.mak
 
 echo "GPAC_USE_TINYGL=$has_tinygl" >> config.mak
 echo "OGL_INCLS=$INCL3D" >> config.mak
-
-if test "$disable_isoff" = "yes" -o "$disable_isoff_write" = "yes" ; then
-	echo "DISABLE_ISOFF=yes" >> config.mak
-else
-        echo "DISABLE_ISOFF=no" >> config.mak
-fi
 
 echo "HAS_OPENGL=$has_opengl" >> config.mak
 

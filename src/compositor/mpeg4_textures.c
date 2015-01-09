@@ -298,7 +298,12 @@ static void imagetexture_update(GF_TextureHandler *txh)
 					ct->data_len = ftell(test);
 					ct->data = gf_malloc(sizeof(char)*ct->data_len);
 					fseek(test, 0, SEEK_SET);
-					fread(ct->data, 1, ct->data_len, test);
+					if (ct->data_len != fread(ct->data, 1, ct->data_len, test)) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to load CacheTexture data from file %s: IO err\n", src_url ? src_url : ct->image.buffer ) );
+						gf_free(ct->data);
+						ct->data = NULL;
+						ct->data_len = 0;
+					}
 					fclose(test);
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to load CacheTexture data from file %s: not found\n", src_url ? src_url : ct->image.buffer ) );
