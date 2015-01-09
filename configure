@@ -102,6 +102,7 @@ has_openjpeg="no"
 gprof_build="no"
 static_build="no"
 want_pic="no"
+want_gcov="no"
 has_joystick="no"
 has_xul="no"
 enable_joystick="no"
@@ -220,6 +221,7 @@ GPAC configuration options:
 
   --enable-debug           produce debug version
   --enable-gprof           enable profiling
+  --enable-gcov            enable coverage
   --enable-pic             enable Position Independant Code for shared objects
   --strip                  enable strip
   --std-allocator          uses standard lib memory allocator
@@ -351,6 +353,8 @@ for opt do
         --disable-opt) no_gcc_opt="yes"
             ;;
         --enable-pic) want_pic="yes";
+            ;;
+        --enable-gcov) want_gcov="yes";
             ;;
         --verbose) verbose="yes";
             ;;
@@ -662,6 +666,11 @@ if test "$want_pic"  = "yes" ; then
     CXXFLAGS="$CXXFLAGS -fPIC -DPIC"
 fi
 
+if test "$want_gcov"  = "yes" ; then
+    CFLAGS="$CFLAGS --coverage"
+    CXXFLAGS="$CXXFLAGS --coverage"
+    LDFLAGS="$LDFLAGS --coverage"
+fi
 
 #force use of cflags with cc
 cc_naked=$cc
