@@ -442,12 +442,12 @@ Section "OpenHEVC Decoder" SecOHEVC
   File "${GPAC_BIN}\gm_openhevc_dec.dll"
 SectionEnd
 
-Section "MPEG DASH Suppport" SecDASH
+Section "MPEG DASH Support" SecDASH
   SectionIn 1
   File "${GPAC_BIN}\gm_mpd_in.dll"
 SectionEnd
 
-Section "HTML 5 Media Source Extensions Suppport" SecMSE
+Section "HTML 5 Media Source Extensions Support" SecMSE
   SectionIn 1
   File "${GPAC_BIN}\gm_mse_in.dll"
 SectionEnd
