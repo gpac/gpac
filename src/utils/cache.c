@@ -678,7 +678,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		memset(entry->mem_storage + entry->written_in_cache, 0, 2);
 		sprintf(entry->cache_filename, "gmem://%d@%p", entry->written_in_cache, entry->mem_storage);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Writing %d bytes to cache\n", size));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Storing %d bytes to memory\n", size));
 		return GF_OK;
 	}
 
@@ -832,8 +832,8 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 		gf_cfg_del ( entry->properties );
 		entry->properties = NULL;
 		if (propfile) {
-			if (GF_OK !=  gf_delete_file( propfile ))
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, failed to delete file %s\n", __LINE__, propfile));
+			//this may fil becaus ethe prop file is not yet flushed to disk
+			gf_delete_file( propfile );
 			gf_free ( propfile );
 		}
 	}

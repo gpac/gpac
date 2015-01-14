@@ -1554,7 +1554,13 @@ int main (int argc, char **argv)
 force_input:
 		switch (c) {
 		case 'q':
-			Run = 0;
+			{
+				GF_Event evt;
+				memset(&evt, 0, sizeof(GF_Event));
+				evt.type = GF_EVENT_QUIT;
+				gf_term_send_event(term, &evt);
+			}
+//			Run = 0;
 			break;
 		case 'X':
 			exit(0);
@@ -2096,12 +2102,20 @@ force_input:
 	gf_cfg_del(cfg_file);
 
 	gf_sys_close();
+
 	if (rti_logs) fclose(rti_logs);
 	if (logfile) fclose(logfile);
 
 	if (gui_mode) {
 		hide_shell(2);
 	}
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (enable_mem_tracker && (gf_memory_size() != 0)) {
+		return 2;
+	}
+#endif
+
 	return 0;
 }
 

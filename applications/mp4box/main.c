@@ -1445,7 +1445,8 @@ enum
 		gf_free(dash_inputs); \
 	} \
 	gf_sys_close();	\
-	return __ret_code; \
+	if (__ret_code) return __ret_code; \
+	goto exit; \
  
 
 GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *name, u32 *nb_dash_inputs)
@@ -4554,6 +4555,15 @@ err_exit:
 	if (file) gf_isom_delete(file);
 	fprintf(stderr, "\n\tError: %s\n", gf_error_to_string(e));
 	MP4BOX_EXIT_WITH_CODE(1);
+
+exit:
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (enable_mem_tracker && (gf_memory_size() != 0)) {
+		return 2;
+	}
+#endif	
+	return 0;
 }
 
 int main( int argc, char** argv )

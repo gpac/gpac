@@ -173,7 +173,15 @@ function initialize() {
 
       gwlog(l_deb, 'Loading UI extension ' + extension.name + ' ' + ' icon ' + extension.path + extension.icon + ' Author ' + extension.author);
 
-      all_extensions.push(extension);
+      if (extension.name == 'Player') {
+          all_extensions.unshift(extension);
+      } else {
+          all_extensions.push(extension);
+      }
+    }
+
+    for (i = 0; i < all_extensions.length; i++) {
+      var extension = all_extensions[i];
 
       extension.icon = insert_dock_icon(extension.name, extension.path + extension.icon);
       extension.icon.ext_description = extension;

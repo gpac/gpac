@@ -3143,12 +3143,6 @@ static void xml_http_terminate(XMLHTTPContext *ctx, GF_Err error)
 		ctx->sess = NULL;
 	}
 
-	/*error, complete reset*/
-	if (error) {
-		xml_http_reset(ctx);
-	} else {
-		ctx->html_status = 200;
-	}
 	/*but stay in loaded mode*/
 	ctx->readyState = XHR_READYSTATE_DONE;
 	xml_http_state_change(ctx);

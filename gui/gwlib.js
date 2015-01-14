@@ -7,7 +7,13 @@
 
 /*log function*/
 function gwlog(lev, str) {
-    if (lev <= gw_log_level) alert('[GUI] ' + str);
+    if (lev <= gw_log_level) {
+        if (str.charAt(0) != '[') {
+            alert('[GUI] ' + str);
+        } else {
+            alert(str);
+        }
+    }
 }
 
 /*log levels*/
@@ -473,13 +479,12 @@ gwskin.tooltip_callback = function (obj, show) {
     tt.move(pos.x, pos.y);
 }
 
-gwskin.default_label_font_size = 14;
-gwskin.default_text_font_size = 14;
-
+gwskin.default_label_font_size = 18;
+gwskin.default_text_font_size = 18;
 gwskin.default_font_family = 'SANS';
-gwskin.default_icon_text_spacing = 6;
-gwskin.default_control_height = 48;
-gwskin.default_icon_height = 24;
+gwskin.default_icon_text_spacing = 8;
+gwskin.default_control_height = 64;
+gwskin.default_icon_height = 48;
 
 
 //create styles
@@ -928,6 +933,9 @@ function gwlib_init(root_node) {
             return this._to_string(obj);
         }
         gwskin.parse = function (serial_obj) {
+            if (serial_obj.charAt(0) != '(') {
+                return eval('(' + serial_obj + ')' );
+            }
             return eval(serial_obj);
         }
     

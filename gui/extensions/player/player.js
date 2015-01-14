@@ -149,7 +149,13 @@ extension = {
                 //success !
                 ext.current_url = this.url[0];
                 ext.set_speed(ext.initial_speed);
-                ext.movie_control.mediaStartTime = ext.initial_start;
+                if (ext.initial_start >= 0) {
+                    ext.movie_control.mediaStartTime = ext.initial_start;
+                } else {
+                    ext.movie_control.mediaStartTime = 0;
+                    ext.movie_control.mediaStopTime = ext.initial_start;
+                    alert('MC stopTime is ' + ext.movie_control.mediaStopTime + ' TS buffer is ' + ext.timeshift_depth);
+                }
                 ext.movie_control.loop = ext.initial_loop;
 
                 ext.movie_control.url[0] = ext.current_url;
@@ -285,6 +291,10 @@ extension = {
         this.movie.children[0].on_tsb_change = function (evt) {
             if (this.extension.root_odm) {
                 this.extension.set_timeshift_depth(this.extension.root_odm.timeshift_depth);
+
+                var main_addon_url = this.extension.root_odm.main_addon_url;
+                if (main_addon_url != null) gwskin.pvr_url = main_addon_url;
+
             }
         }
         this.movie.children[0].on_main_addon = function (evt) {
@@ -345,6 +355,7 @@ extension = {
         wnd.extension = this;
 
         wnd.set_corners(true, true, false, false);
+        wnd.set_alpha(0.95);
 
         /*first set of controls*/
         wnd.infobar = gw_new_grid_container(wnd);
@@ -371,7 +382,7 @@ extension = {
                     return;
                 }
                 if (type != 2) return;
-                alert('set media stop time to ' + (-time));
+
                 this.extension.movie_control.mediaStopTime = -time;
                 this.extension.controler.layout();
                 return;
@@ -383,18 +394,18 @@ extension = {
             }
             gw_background_control(false);
             switch (type) {
-                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
                 case 1:
                     this.extension.set_state(this.extension.GF_STATE_PAUSE);
                     this.extension.set_speed(0);
                     break;
-                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
                 case 2:
                     this.extension.set_state(this.extension.GF_STATE_PLAY);
                     this.extension.movie_control.mediaStartTime = time;
                     this.extension.set_speed(1);
                     break;
-                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
                 default:
                     if (this.extension.state == this.extension.GF_STATE_STOP)
                         this.extension.set_state(this.extension.GF_STATE_PLAY);
@@ -428,10 +439,9 @@ extension = {
                 this.extension.root_odm.disable_main_addon();
             }
             else if (this.extension.movie_control.mediaStopTime < 0) {
+                this.extension.set_time(0);
                 this.extension.movie_control.mediaStopTime = 0;
                 this.extension.controler.layout();
-                this.extension.set_time(0);
-
             }
         }
 
@@ -681,7 +691,7 @@ extension = {
                 if (this.extension.root_odm && !this.extension.dynamic_scene && !this.extension.root_odm.is_over)
                     is_over = false;
 
-                this.media_list.show();
+                //                this.media_list.show();
 
             } else {
                 this.stats.hide();
@@ -722,7 +732,8 @@ extension = {
                 }
             }
 
-            if (min_w + full_w + time_w < width) {
+            //            if (min_w + full_w + time_w < width) {
+            if (1) {
                 if (this.media_line.visible)
                     this.media_line.set_size(width - min_w - full_w, control_icon_size / 3);
 
@@ -802,12 +813,24 @@ extension = {
         }
 
         wnd.on_display_size = function (w, h) {
+            var def_width = 640;
+            if (!gpac.fullscreen) {
+                if (w < def_width) {
+                    gpac.set_size(480, h);
+                    return;
+                }
+            } else {
+                if (w < def_width) {
+                    def_width = w;
+                }
+            }
+
             //            this.set_size(w, 1.2 * gwskin.default_icon_height);
 
             if (this.extension.movie_connected) h = 3.3 * gwskin.default_icon_height;
-            else h = 2.2 * gwskin.default_icon_height;
+            else h = 1.1 * gwskin.default_icon_height;
 
-            this.set_size(480, h);
+            this.set_size(def_width, h);
 
             this.layout();
         }
@@ -886,6 +909,12 @@ extension = {
                 }
             }
 
+            gwskin.media_url = '';
+            gwskin.pvr_url = '';
+            gwskin.media_time = 0;
+            gwskin.media_clock = 0;
+            gwskin.restore_session = this.create_restore_session(this);
+
             if (url_arg != null) {
                 this.set_playlist_mode(false);
                 var def_addon = this.default_addon;
@@ -904,6 +933,7 @@ extension = {
             var notif = gw_new_message(null, 'GPAC Arguments', label);
             notif.show();
             */
+
         }
 
         this.controler.show();
@@ -916,8 +946,22 @@ extension = {
         }
     },
 
+    create_restore_session: function (__anobj) {
+        return function (url, media_time, media_clock) {
+            __anobj.set_movie_url(url);
+            if (media_clock) {
+                var time_in_tsb = (new Date()).getTime() - media_clock;
+                if (time_in_tsb >= 0) {
+                    __anobj.initial_start = -time_in_tsb / 1000;
+                }
+
+            } else {
+                __anobj.initial_start = media_time;
+            }
+        }
+    },
+
     declare_addons: function () {
-        alert('addon is ' + this.default_addon);
         if (this.default_addon && (this.default_addon != '')) {
             var addon_url = this.default_addon;
             if (addon_url.indexOf('://') < 0) addon_url = 'gpac://' + addon_url;
@@ -927,12 +971,11 @@ extension = {
 
     set_time: function (value) {
         var h, m, s, str;
-
         str = '';
         if (this.timeshift_depth) {
             var pos = 100;
             var time_in_tsb = 0;
-            
+
             if (this.movie_control.mediaStopTime < 0) {
                 time_in_tsb = this.root_odm.timeshift_time;
                 if (this.timeshift_depth > time_in_tsb) {
@@ -940,7 +983,11 @@ extension = {
                 }
             }
             this.controler.media_line.set_value(pos);
+
+            gwskin.media_clock = (new Date()).getTime() - time_in_tsb * 1000;
+
             if (!time_in_tsb) {
+                this.controler.time.set_label('live');
                 this.controler.time.hide();
                 this.controler.layout();
                 return;
@@ -952,10 +999,13 @@ extension = {
             }
             str = '-';
             value = time_in_tsb;
+
         } else {
             if (!this.duration) return;
 
             this.current_time = value;
+            gwskin.media_time = value;
+
             if (this.duration) {
                 this.controler.media_line.set_value(100 * value / this.duration);
             }
@@ -1014,7 +1064,6 @@ extension = {
         dlg.layout();
     },
     set_timeshift_depth: function (value) {
-        alert('timeshift is ' + value);
         if (this.timeshift_depth == value) return;
 
         this.timeshift_depth = value;
@@ -1093,6 +1142,8 @@ extension = {
             if (this.controlled_renderer) this.controlled_renderer.Play();
             this.state = state;
             this.controler.play.switch_icon(this.icon_pause);
+            if (this.movie_control.mediaSpeed != 1);
+            this.movie_control.mediaStartTime = -1;
             this.set_speed(1);
             return;
         }
@@ -1122,11 +1173,13 @@ extension = {
             this.controler.forward.set_label('');
         }
         this.controler.layout();
-        alert('speed is '+ this.movie_control.mediaSpeed);
     },
 
     set_movie_url: function (url) {
         this.initial_play_done = false;
+
+        gwskin.media_url = url;
+        gwskin.pvr_url = '';
 
         if ((url == '') || (url == this.current_url)) {
             this.movie.children[0].url[0] = url;

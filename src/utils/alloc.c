@@ -663,10 +663,16 @@ static void gf_memory_log(unsigned int level, const char *fmt, ...)
 }
 
 /*prints allocations sum-up*/
-void gf_memory_size()
+static void print_memory_size()
 {
 	unsigned int level = gpac_nb_alloc_blocs ? GF_MEMORY_ERROR : GF_MEMORY_INFO;
 	gf_memory_log(level, "[MemTracker] Total: %d bytes allocated in %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
+}
+
+GF_EXPORT
+u64 gf_memory_size()
+{
+	return (u64) gpac_allocated_memory;
 }
 
 /*prints the state of current allocations*/
@@ -702,7 +708,7 @@ void gf_memory_print()
 				curr_element = next_element;
 			}
 		}
-		gf_memory_size();
+		print_memory_size();
 
 		/*unlock*/
 		gf_mx_v(gpac_allocations_lock);

@@ -812,255 +812,275 @@ static JSBool SMJS_FUNCTION(gpac_migrate_url)
 
 static SMJS_FUNC_PROP_GET( odm_getProperty)
 
-GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
-GF_MediaInfo odi;
-char *str;
-if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+	GF_MediaInfo odi;
+	char *str;
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
-gf_term_get_object_info(odm->term, odm, &odi);
+	gf_term_get_object_info(odm->term, odm, &odi);
 
-switch (SMJS_ID_TO_INT(id)) {
-case -1:
-	*vp = INT_TO_JSVAL(odi.od->objectDescriptorID);
-	break;
-case -2:
-	*vp = INT_TO_JSVAL(odm->subscene ? gf_list_count(odm->subscene->resources) : 0);
-	break;
-case -3:
-	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.service_url));
-	break;
-case -4:
-	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, odi.duration) );
-	break;
-case -5:
-	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, odi.current_time) );
-	break;
-case -6:
-	*vp = INT_TO_JSVAL( odi.clock_drift);
-	break;
-case -7:
-	if (odi.status==0) str = "Stopped";
-	else if (odi.status==1) str = "Playing";
-	else if (odi.status==2) str = "Paused";
-	else if (odi.status==3) str = "Not Setup";
-	else str = "Setup Failed";
-	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
-	break;
-case -8:
-	*vp = INT_TO_JSVAL( odi.buffer);
-	break;
-case -9:
-	*vp = INT_TO_JSVAL( odi.db_unit_count);
-	break;
-case -10:
-	*vp = INT_TO_JSVAL( odi.cb_unit_count);
-	break;
-case -11:
-	*vp = INT_TO_JSVAL( odi.cb_max_count);
-	break;
-case -12:
-	if (odi.od_type==GF_STREAM_SCENE) str = "Scene";
-	else if (odi.od_type==GF_STREAM_OD) str = "Object Descriptor";
-	else if (odi.od_type==GF_STREAM_VISUAL) str = "Video";
-	else if (odi.od_type==GF_STREAM_AUDIO) str = "Audio";
-	else if (odi.od_type==GF_STREAM_TEXT) str = "Text";
-	else if (odm->subscene) str = "Subscene";
-	else str = "Unknow";
-	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
-	break;
-case -13:
-	*vp = INT_TO_JSVAL( odi.sample_rate);
-	break;
-case -14:
-	*vp = INT_TO_JSVAL( odi.num_channels);
-	break;
-case -15:
-	*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_4cc_to_str(odi.lang) ) );
-	break;
-case -16:
-	*vp = INT_TO_JSVAL( odi.width);
-	break;
-case -17:
-	*vp = INT_TO_JSVAL( odi.height);
-	break;
-case -18:
-	*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_4cc_to_str(odi.pixelFormat) ) );
-	break;
-case -19:
-	if (odi.par) {
-		char szPar[50];
-		sprintf(szPar, "%d:%d", (odi.par>>16)&0xFF, (odi.par)&0xFF );
-		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, szPar ) );
-	} else {
-		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "1:1" ) );
-	}
-	break;
-case -20:
-	*vp = INT_TO_JSVAL(odi.nb_dec_frames);
-	break;
-case -21:
-	*vp = INT_TO_JSVAL(odi.nb_droped);
-	break;
-case -22:
-	*vp = INT_TO_JSVAL(odi.max_dec_time);
-	break;
-case -23:
-	*vp = INT_TO_JSVAL(odi.total_dec_time);
-	break;
-case -24:
-	*vp = INT_TO_JSVAL(odi.avg_bitrate);
-	break;
-case -25:
-	*vp = INT_TO_JSVAL(odi.max_bitrate);
-	break;
-case -26:
-	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.service_handler));
-	break;
-case -27:
-	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.codec_name));
-	break;
-case -28:
-{
-	//first check network
-	GF_NetworkCommand com;
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
-	com.base.on_channel = gf_list_get(odm->channels, 0);
-
-	gf_term_service_command(odm->net_service, &com);
-	if (com.quality_query.index) {
-		*vp = INT_TO_JSVAL(com.quality_query.index);
+	switch (SMJS_ID_TO_INT(id)) {
+	case -1:
+		*vp = INT_TO_JSVAL(odi.od->objectDescriptorID);
 		break;
-	}
-
-#if 0
-	//otherwise use input channels
-	if (odm->codec->type==GF_STREAM_VISUAL) {
-		*vp = INT_TO_JSVAL(gf_list_count(odm->codec->inChannels));
-	} else {
-		*vp = INT_TO_JSVAL(0);
-	}
-#endif
-}
-break;
-case -29:
-	*vp = INT_TO_JSVAL(odi.max_buffer);
-	break;
-case -30:
-	*vp = INT_TO_JSVAL(odi.min_buffer);
-	break;
-case -31:
-	*vp = INT_TO_JSVAL(odi.au_duration);
-	break;
-case -32:
-	*vp = INT_TO_JSVAL(odi.nb_iraps);
-	break;
-case -33:
-	*vp = INT_TO_JSVAL(odi.irap_total_dec_time);
-	break;
-case -34:
-	*vp = INT_TO_JSVAL(odi.irap_max_dec_time);
-	break;
-case -35:
-	*vp = INT_TO_JSVAL(odi.od ? odi.od->ServiceID : 0);
-	break;
-case -36:
-	*vp = INT_TO_JSVAL( (!odm->addon && odm->subscene) ? odm->subscene->selected_service_id : odm->parentscene->selected_service_id);
-	break;
-case -37:
-{
-	GF_NetworkCommand com;
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.command_type = GF_NET_GET_STATS;
-	com.base.on_channel = gf_list_get(odm->channels, 0);
-	gf_term_service_command(odm->net_service, &com);
-	*vp = INT_TO_JSVAL(com.net_stats.bw_down);
-}
-break;
-case -38:
-	*vp = INT_TO_JSVAL(gf_list_count(odm->net_service->dnloads) );
-	break;
-case -39:
-	if ((s32) odm->timeshift_depth >= 0) {
-		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, ((Double) odm->timeshift_depth) / 1000.0 ) );
-	} else {
-		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, -1) );
-	}
-	break;
-case -40:
-{
-	GF_NetworkCommand com;
-	GF_Scene *scene;
-
-	if (!odm->timeshift_depth) {
-		*vp = INT_TO_JSVAL(0);
+	case -2:
+		*vp = INT_TO_JSVAL(odm->subscene ? gf_list_count(odm->subscene->resources) : 0);
 		break;
+	case -3:
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.service_url));
+		break;
+	case -4:
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, odi.duration) );
+		break;
+	case -5:
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, odi.current_time) );
+		break;
+	case -6:
+		*vp = INT_TO_JSVAL( odi.clock_drift);
+		break;
+	case -7:
+		if (odi.status==0) str = "Stopped";
+		else if (odi.status==1) str = "Playing";
+		else if (odi.status==2) str = "Paused";
+		else if (odi.status==3) str = "Not Setup";
+		else str = "Setup Failed";
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
+		break;
+	case -8:
+		*vp = INT_TO_JSVAL( odi.buffer);
+		break;
+	case -9:
+		*vp = INT_TO_JSVAL( odi.db_unit_count);
+		break;
+	case -10:
+		*vp = INT_TO_JSVAL( odi.cb_unit_count);
+		break;
+	case -11:
+		*vp = INT_TO_JSVAL( odi.cb_max_count);
+		break;
+	case -12:
+		if (odi.od_type==GF_STREAM_SCENE) str = "Scene";
+		else if (odi.od_type==GF_STREAM_OD) str = "Object Descriptor";
+		else if (odi.od_type==GF_STREAM_VISUAL) str = "Video";
+		else if (odi.od_type==GF_STREAM_AUDIO) str = "Audio";
+		else if (odi.od_type==GF_STREAM_TEXT) str = "Text";
+		else if (odm->subscene) str = "Subscene";
+		else str = "Unknow";
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
+		break;
+	case -13:
+		*vp = INT_TO_JSVAL( odi.sample_rate);
+		break;
+	case -14:
+		*vp = INT_TO_JSVAL( odi.num_channels);
+		break;
+	case -15:
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_4cc_to_str(odi.lang) ) );
+		break;
+	case -16:
+		*vp = INT_TO_JSVAL( odi.width);
+		break;
+	case -17:
+		*vp = INT_TO_JSVAL( odi.height);
+		break;
+	case -18:
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_4cc_to_str(odi.pixelFormat) ) );
+		break;
+	case -19:
+		if (odi.par) {
+			char szPar[50];
+			sprintf(szPar, "%d:%d", (odi.par>>16)&0xFF, (odi.par)&0xFF );
+			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, szPar ) );
+		} else {
+			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "1:1" ) );
+		}
+		break;
+	case -20:
+		*vp = INT_TO_JSVAL(odi.nb_dec_frames);
+		break;
+	case -21:
+		*vp = INT_TO_JSVAL(odi.nb_droped);
+		break;
+	case -22:
+		*vp = INT_TO_JSVAL(odi.max_dec_time);
+		break;
+	case -23:
+		*vp = INT_TO_JSVAL(odi.total_dec_time);
+		break;
+	case -24:
+		*vp = INT_TO_JSVAL(odi.avg_bitrate);
+		break;
+	case -25:
+		*vp = INT_TO_JSVAL(odi.max_bitrate);
+		break;
+	case -26:
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.service_handler));
+		break;
+	case -27:
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.codec_name));
+		break;
+	case -28:
+	{
+		//first check network
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
+		com.base.on_channel = gf_list_get(odm->channels, 0);
+
+		gf_term_service_command(odm->net_service, &com);
+		if (com.quality_query.index) {
+			*vp = INT_TO_JSVAL(com.quality_query.index);
+			break;
+		}
+
+	#if 0
+		//otherwise use input channels
+		if (odm->codec->type==GF_STREAM_VISUAL) {
+			*vp = INT_TO_JSVAL(gf_list_count(odm->codec->inChannels));
+		} else {
+			*vp = INT_TO_JSVAL(0);
+		}
+	#endif
 	}
+	break;
+	case -29:
+		*vp = INT_TO_JSVAL(odi.max_buffer);
+		break;
+	case -30:
+		*vp = INT_TO_JSVAL(odi.min_buffer);
+		break;
+	case -31:
+		*vp = INT_TO_JSVAL(odi.au_duration);
+		break;
+	case -32:
+		*vp = INT_TO_JSVAL(odi.nb_iraps);
+		break;
+	case -33:
+		*vp = INT_TO_JSVAL(odi.irap_total_dec_time);
+		break;
+	case -34:
+		*vp = INT_TO_JSVAL(odi.irap_max_dec_time);
+		break;
+	case -35:
+		*vp = INT_TO_JSVAL(odi.od ? odi.od->ServiceID : 0);
+		break;
+	case -36:
+		*vp = INT_TO_JSVAL( (!odm->addon && odm->subscene) ? odm->subscene->selected_service_id : odm->parentscene->selected_service_id);
+		break;
+	case -37:
+	{
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_GET_STATS;
+		com.base.on_channel = gf_list_get(odm->channels, 0);
+		gf_term_service_command(odm->net_service, &com);
+		*vp = INT_TO_JSVAL(com.net_stats.bw_down);
+	}
+	break;
+	case -38:
+		*vp = INT_TO_JSVAL(gf_list_count(odm->net_service->dnloads) );
+		break;
+	case -39:
+		if ((s32) odm->timeshift_depth >= 0) {
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, ((Double) odm->timeshift_depth) / 1000.0 ) );
+		} else {
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, -1) );
+		}
+		break;
+	case -40:
+	{
+		GF_NetworkCommand com;
+		GF_Scene *scene;
 
-	scene = odm->subscene ? odm->subscene : odm->parentscene;
+		if (!odm->timeshift_depth) {
+			*vp = INT_TO_JSVAL(0);
+			break;
+		}
 
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.command_type = GF_NET_GET_TIMESHIFT;
+		scene = odm->subscene ? odm->subscene : odm->parentscene;
 
-	//we may need to check the main addon for timeshifting
-	if (scene->main_addon_selected) {
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_GET_TIMESHIFT;
+
+		//we may need to check the main addon for timeshifting
+		if (scene->main_addon_selected) {
+			u32 i, count = gf_list_count(scene->resources);
+			for (i=0; i < count; i++) {
+				GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
+				if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
+					odm = an_odm;
+				}
+			}
+		}
+
+		//can be NULL
+		com.base.on_channel = gf_list_get(odm->channels, 0);
+		gf_term_service_command(odm->net_service, &com);
+		*vp = INT_TO_JSVAL(com.timeshift.time);
+	}
+	break;
+	case -41:
+		*vp = BOOLEAN_TO_JSVAL( (odm->addon || (!odm->subscene && odm->parentscene->root_od->addon)) ? JS_TRUE : JS_FALSE);
+		break;
+	case -42:
+	{
+		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
+		*vp = BOOLEAN_TO_JSVAL( scene->main_addon_selected ? JS_TRUE : JS_FALSE);
+	}
+	break;
+	case -43:
+	{
+		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
+		*vp = BOOLEAN_TO_JSVAL( gf_sc_is_over(odm->term->compositor, scene->graph) ? JS_TRUE : JS_FALSE);
+	}
+	break;
+	case -44:
+	{
+		GF_Channel *ch = gf_list_get(odm->channels, 0);
+		*vp = BOOLEAN_TO_JSVAL((ch && ch->is_pulling) ? JS_TRUE : JS_FALSE);
+	}
+	break;
+	case -45:
+		*vp = BOOLEAN_TO_JSVAL(odm->subscene && odm->subscene->is_dynamic_scene ? JS_TRUE : JS_FALSE);
+		break;
+	case -46:
+	{
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_SERVICE_INFO;
+		com.info.service_id = odi.od->ServiceID;
+		gf_term_service_command(odm->net_service, &com);
+		if (com.info.name) {
+			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, com.info.name ) );
+		} else {
+			*vp = JSVAL_NULL;
+		}
+	}
+	break;
+	case -47:
+		*vp = INT_TO_JSVAL( odi.ntp_diff);
+		break;
+
+	case -48:
+	{
+		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 		u32 i, count = gf_list_count(scene->resources);
+		*vp = JSVAL_NULL;
 		for (i=0; i < count; i++) {
 			GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
 			if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
-				odm = an_odm;
+				if (!strstr(an_odm->addon->url, "://")) {
+					char szURL[GF_MAX_PATH];
+					sprintf(szURL, "gpac://%s", an_odm->addon->url);
+					*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, szURL) );
+				} else {
+					*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, an_odm->addon->url) );
+				}
 			}
 		}
 	}
-
-	//can be NULL
-	com.base.on_channel = gf_list_get(odm->channels, 0);
-	gf_term_service_command(odm->net_service, &com);
-	*vp = INT_TO_JSVAL(com.timeshift.time);
-}
-break;
-case -41:
-	*vp = BOOLEAN_TO_JSVAL( (odm->addon || (!odm->subscene && odm->parentscene->root_od->addon)) ? JS_TRUE : JS_FALSE);
 	break;
-case -42:
-{
-	GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
-	*vp = BOOLEAN_TO_JSVAL( scene->main_addon_selected ? JS_TRUE : JS_FALSE);
-}
-break;
-case -43:
-{
-	GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
-	*vp = BOOLEAN_TO_JSVAL( gf_sc_is_over(odm->term->compositor, scene->graph) ? JS_TRUE : JS_FALSE);
-}
-break;
-case -44:
-{
-	GF_Channel *ch = gf_list_get(odm->channels, 0);
-	*vp = BOOLEAN_TO_JSVAL((ch && ch->is_pulling) ? JS_TRUE : JS_FALSE);
-}
-break;
-case -45:
-	*vp = BOOLEAN_TO_JSVAL(odm->subscene && odm->subscene->is_dynamic_scene ? JS_TRUE : JS_FALSE);
-	break;
-case -46:
-{
-	GF_NetworkCommand com;
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.command_type = GF_NET_SERVICE_INFO;
-	com.info.service_id = odi.od->ServiceID;
-	gf_term_service_command(odm->net_service, &com);
-	if (com.info.name) {
-		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, com.info.name ) );
-	} else {
-		*vp = JSVAL_NULL;
 	}
-}
-break;
-case -47:
-	*vp = INT_TO_JSVAL( odi.ntp_diff);
-	break;
-}
 return JS_TRUE;
 }
 
@@ -1641,6 +1661,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("dynamic_scene",		-45,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("service_name",		-46,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("ntp_diff",			-47,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("main_addon_url",	-48,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+
 
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};
@@ -1720,6 +1742,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_UPDATE);
 		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_OVERFLOW);
 		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_UNDERRUN);
+		DECLARE_GPAC_CONST(GF_EVENT_QUIT);
 
 		DECLARE_GPAC_CONST(GF_NAVIGATE_NONE);
 		DECLARE_GPAC_CONST(GF_NAVIGATE_WALK);

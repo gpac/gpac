@@ -528,6 +528,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 
 	/* Initialize command data */
 	dc_cmd_data_init(cmd_data);
+	cmd_data->use_mem_track = use_mem_track;
 
 	i = 1;
 	while (i < argc) {
