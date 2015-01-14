@@ -2021,7 +2021,7 @@ static GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs)
 				sscanf(att->value, "%f", &val_float);
 				has_float = GF_TRUE;
 			} else if (!stricmp(att->name, "double")) {
-				sscanf(att->value, "%g", &val_double);
+				sscanf(att->value, "%lf", &val_double);
 				has_double = GF_TRUE;
 			} else if (!stricmp(att->name, "mediaOffset") || !stricmp(att->name, "dataOffset")) {
 				XML_SCAN_INT(LLU, offset);
