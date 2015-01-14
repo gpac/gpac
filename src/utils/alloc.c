@@ -181,8 +181,8 @@ size_t gpac_nb_alloc_blocs = 0;
 #define assert(p)
 #endif
 
-static void register_address(void *ptr, size_t size, char *filename, int line);
-static int unregister_address(void *ptr, char *filename, int line);
+static void register_address(void *ptr, size_t size, const char *filename, int line);
+static int unregister_address(void *ptr, const char *filename, int line);
 
 static void gf_memory_log(unsigned int level, const char *fmt, ...);
 enum
@@ -199,28 +199,28 @@ enum
 	GF_MEMORY_DEBUG,
 };
 
-static void *gf_mem_malloc_basic(size_t size, char *filename, int line)
+static void *gf_mem_malloc_basic(size_t size, const char *filename, int line)
 {
 	return MALLOC(size);
 }
-static void *gf_mem_calloc_basic(size_t num, size_t size_of, char *filename, int line)
+static void *gf_mem_calloc_basic(size_t num, size_t size_of, const char *filename, int line)
 {
 	return CALLOC(num, size_of);
 }
-static void *gf_mem_realloc_basic(void *ptr, size_t size, char *filename, int line)
+static void *gf_mem_realloc_basic(void *ptr, size_t size, const char *filename, int line)
 {
 	return REALLOC(ptr, size);
 }
-static void gf_mem_free_basic(void *ptr, char *filename, int line)
+static void gf_mem_free_basic(void *ptr, const char *filename, int line)
 {
 	FREE(ptr);
 }
-static char *gf_mem_strdup_basic(const char *str, char *filename, int line)
+static char *gf_mem_strdup_basic(const char *str, const char *filename, int line)
 {
 	STRDUP(str);
 }
 
-void *gf_mem_malloc_tracker(size_t size, char *filename, int line)
+void *gf_mem_malloc_tracker(size_t size, const char *filename, int line)
 {
 	void *ptr = MALLOC(size);
 	if (!ptr) {
@@ -233,7 +233,7 @@ void *gf_mem_malloc_tracker(size_t size, char *filename, int line)
 	return ptr;
 }
 
-void *gf_mem_calloc_tracker(size_t num, size_t size_of, char *filename, int line)
+void *gf_mem_calloc_tracker(size_t num, size_t size_of, const char *filename, int line)
 {
 	size_t size = num*size_of;
 	void *ptr = CALLOC(num, size_of);
@@ -247,7 +247,7 @@ void *gf_mem_calloc_tracker(size_t num, size_t size_of, char *filename, int line
 	return ptr;
 }
 
-void gf_mem_free_tracker(void *ptr, char *filename, int line)
+void gf_mem_free_tracker(void *ptr, const char *filename, int line)
 {
 	int size_prev;
 	if (ptr && (size_prev=unregister_address(ptr, filename, line))) {
@@ -256,7 +256,7 @@ void gf_mem_free_tracker(void *ptr, char *filename, int line)
 	}
 }
 
-void *gf_mem_realloc_tracker(void *ptr, size_t size, char *filename, int line)
+void *gf_mem_realloc_tracker(void *ptr, size_t size, const char *filename, int line)
 {
 	void *ptr_g;
 	int size_prev;
@@ -283,7 +283,7 @@ void *gf_mem_realloc_tracker(void *ptr, size_t size, char *filename, int line)
 	return ptr_g;
 }
 
-char *gf_mem_strdup_tracker(const char *str, char *filename, int line)
+char *gf_mem_strdup_tracker(const char *str, const char *filename, int line)
 {
 	char *ptr;
 	if (!str) return NULL;
@@ -292,11 +292,11 @@ char *gf_mem_strdup_tracker(const char *str, char *filename, int line)
 	return ptr;
 }
 
-static void *(*gf_mem_malloc_proto)(size_t size, char *filename, int line) = gf_mem_malloc_basic;
-static void *(*gf_mem_calloc_proto)(size_t num, size_t size_of, char *filename, int line) = gf_mem_calloc_basic;
-static void *(*gf_mem_realloc_proto)(void *ptr, size_t size, char *filename, int line) = gf_mem_realloc_basic;
-static void (*gf_mem_free_proto)(void *ptr, char *filename, int line) = gf_mem_free_basic;
-static char *(*gf_mem_strdup_proto)(const char *str, char *filename, int line) = gf_mem_strdup_basic;
+static void *(*gf_mem_malloc_proto)(size_t size, const char *filename, int line) = gf_mem_malloc_basic;
+static void *(*gf_mem_calloc_proto)(size_t num, size_t size_of, const char *filename, int line) = gf_mem_calloc_basic;
+static void *(*gf_mem_realloc_proto)(void *ptr, size_t size, const char *filename, int line) = gf_mem_realloc_basic;
+static void (*gf_mem_free_proto)(void *ptr, const char *filename, int line) = gf_mem_free_basic;
+static char *(*gf_mem_strdup_proto)(const char *str, const char *filename, int line) = gf_mem_strdup_basic;
 
 #ifndef MY_GF_EXPORT
 #if defined(__GNUC__) && __GNUC__ >= 4
@@ -307,30 +307,30 @@ static char *(*gf_mem_strdup_proto)(const char *str, char *filename, int line) =
 #endif
 #endif
 
-MY_GF_EXPORT void *gf_mem_malloc(size_t size, char *filename, int line)
+MY_GF_EXPORT void *gf_mem_malloc(size_t size, const char *filename, int line)
 {
 	return gf_mem_malloc_proto(size, filename, line);
 }
 
-MY_GF_EXPORT void *gf_mem_calloc(size_t num, size_t size_of, char *filename, int line)
+MY_GF_EXPORT void *gf_mem_calloc(size_t num, size_t size_of, const char *filename, int line)
 {
 	return gf_mem_calloc_proto(num, size_of, filename, line);
 }
 
 MY_GF_EXPORT
-void *gf_mem_realloc(void *ptr, size_t size, char *filename, int line)
+void *gf_mem_realloc(void *ptr, size_t size, const char *filename, int line)
 {
 	return gf_mem_realloc_proto(ptr, size, filename, line);
 }
 
 MY_GF_EXPORT
-void gf_mem_free(void *ptr, char *filename, int line)
+void gf_mem_free(void *ptr, const char *filename, int line)
 {
 	gf_mem_free_proto(ptr, filename, line);
 }
 
 MY_GF_EXPORT
-char *gf_mem_strdup(const char *str, char *filename, int line)
+char *gf_mem_strdup(const char *str, const char *filename, int line)
 {
 	return gf_mem_strdup_proto(str, filename, line);
 }
@@ -386,7 +386,7 @@ typedef memory_element* memory_list;
 
 
 /*base functions (add, find, del_item, del) are implemented upon a stack model*/
-static void gf_memory_add_stack(memory_element **p, void *ptr, int size, char *filename, int line)
+static void gf_memory_add_stack(memory_element **p, void *ptr, int size, const char *filename, int line)
 {
 	memory_element *element = (memory_element*)MALLOC(sizeof(memory_element)+strlen(filename)+1);
 	element->ptr = ptr;
@@ -447,7 +447,7 @@ static void gf_memory_del_stack(memory_element **p)
 #if GPAC_MEMORY_TRACKING_HASH_TABLE
 
 /*this list is implemented as a stack to minimise the cost of freeing recent allocations*/
-static void gf_memory_add(memory_list *p, void *ptr, int size, char *filename, int line)
+static void gf_memory_add(memory_list *p, void *ptr, int size, const char *filename, int line)
 {
 	unsigned int hash;
 	if (!*p) *p = (memory_list) CALLOC(HASH_ENTRIES, sizeof(memory_element*));
@@ -525,7 +525,7 @@ static void gf_memory_del(memory_list *p)
 memory_list memory_add = NULL, memory_rem = NULL;
 GF_Mutex *gpac_allocations_lock = NULL;
 
-static void register_address(void *ptr, size_t size, char *filename, int line)
+static void register_address(void *ptr, size_t size, const char *filename, int line)
 {
 	/*mutex initialization*/
 	if (gpac_allocations_lock == 0) {
@@ -580,7 +580,7 @@ void gf_check_address(void *ptr)
 #endif
 
 /*returns the size of the unregistered block*/
-static int unregister_address(void *ptr, char *filename, int line)
+static int unregister_address(void *ptr, const char *filename, int line)
 {
 	int size = 0; /*default: failure*/
 

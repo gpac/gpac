@@ -685,13 +685,6 @@ void gf_sys_init(Bool enable_memory_tracker);
  *	\note This can be called several times but the system will be closed when no more users are counted.
  */
 void gf_sys_close();
-/*!
- *	\brief Memory size
- *
- *	Gets the number of bytes currently allocated
- *	\return number of bytes currently allocated
- */
-u64 gf_memory_size();
 
 /*!
  *	\brief System arguments

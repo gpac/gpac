@@ -2054,7 +2054,7 @@ found:
 
 		gf_bs_write_u32(bs, s);
 		gf_bs_write_u32(bs, ptr->type);
-		if (ptr->type==GF_ISOM_BOX_TYPE_UUID) gf_bs_write_data(bs, map->uuid, 16);
+		if (ptr->type==GF_ISOM_BOX_TYPE_UUID) gf_bs_write_data(bs, (char *) map->uuid, 16);
 		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
 	}
 	gf_bs_get_content(bs, userData, userDataSize);
