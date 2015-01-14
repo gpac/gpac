@@ -2274,6 +2274,7 @@ found:
 }
 
 
+GF_EXPORT
 GF_Err gf_isom_reset_alt_brands(GF_ISOFile *movie)
 {
 	u32 *p;
@@ -2301,6 +2302,7 @@ GF_Err gf_isom_reset_alt_brands(GF_ISOFile *movie)
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_set_sample_padding_bits(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumber, u8 NbBits)
 {
 	GF_TrackBox *trak;
@@ -2317,6 +2319,7 @@ GF_Err gf_isom_set_sample_padding_bits(GF_ISOFile *movie, u32 trackNumber, u32 s
 }
 
 
+GF_EXPORT
 GF_Err gf_isom_remove_user_data_item(GF_ISOFile *movie, u32 trackNumber, u32 UserDataType, bin128 UUID, u32 UserDataIndex)
 {
 	GF_UserDataMap *map;
@@ -2370,6 +2373,7 @@ found:
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_remove_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataType, bin128 UUID)
 {
 	GF_UserDataMap *map;
@@ -2412,6 +2416,7 @@ found:
 	return GF_OK;
 }
 
+GF_EXPORT
 GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataType, bin128 UUID, char *data, u32 DataLength)
 {
 	GF_UnknownBox *a;
@@ -2451,6 +2456,7 @@ GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 	return udta_AddBox(udta, (GF_Box *) a);
 }
 
+GF_EXPORT
 GF_Err gf_isom_add_user_data_boxes(GF_ISOFile *movie, u32 trackNumber, char *data, u32 DataLength)
 {
 	GF_Err e;
