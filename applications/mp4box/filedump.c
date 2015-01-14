@@ -1504,7 +1504,7 @@ GF_Err dump_udta(GF_ISOFile *file, char *inName, u32 dump_udta_type, u32 dump_ud
 	if (count != res) {
 		fprintf(stderr, "Error writing udta to file\n");
 		gf_free(data);
-		return;
+		return GF_IO_ERR;
 	}
 	return GF_OK;
 }
