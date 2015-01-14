@@ -29,6 +29,7 @@
 
 int main(int argc, char **argv)
 {
+	Bool use_mem_track = 0;
 	s32 res;
 	CmdData cmd_data;
 
@@ -41,9 +42,18 @@ int main(int argc, char **argv)
 
 	res = dc_run_controler(&cmd_data);
 
+	use_mem_track = cmd_data.use_mem_track;
+
 	/* Destroy command data */
 	dc_cmd_data_destroy(&cmd_data);
 
-	return res;
+	if (res) return res;
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (use_mem_track && (gf_memory_size() != 0)) {
+		return 2;
+	}
+#endif	
+	return 0;
 }
 

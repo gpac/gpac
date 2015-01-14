@@ -691,10 +691,8 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 	sess->connection_close = 0;
 
 	if (sess->status >= GF_NETIO_DISCONNECTED) {
-		if (force_close) {
-			if (sess->use_cache_file) {
-				gf_cache_close_write_cache(sess->cache_entry, sess, 0);
-			}
+		if (force_close && sess->use_cache_file && sess->cache_entry) {
+			gf_cache_close_write_cache(sess->cache_entry, sess, 0);
 		}
 		return;
 	}
@@ -2495,6 +2493,15 @@ static void notify_headers(GF_DownloadSession *sess, char * sHTTP, s32 bytesRead
 		par.msg_type = GF_NETIO_PARSE_HEADER;
 		gf_dm_sess_user_io(sess, &par);
 	}
+
+	if (sHTTP) {
+		sHTTP[bytesRead]=0;
+		par.error = 0;
+		par.data = sHTTP + BodyStart;
+		par.size = (u32) strlen(par.data);
+		par.msg_type = GF_NETIO_DATA_EXCHANGE;
+		gf_dm_sess_user_io(sess, &par);
+	}
 }
 
 /*!
@@ -2514,6 +2521,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	char comp[400];
 	GF_Err e;
 	char * new_location;
+	const char * mime_type;
 	assert( sess->status == GF_NETIO_WAIT_FOR_REPLY );
 	bytesRead = res = 0;
 	new_location = NULL;
@@ -2655,29 +2663,29 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 
 		}
 		else if (!stricmp(hdrp->name, "Content-Type")) {
-			char * mime_type = gf_strdup(hdrp->value);
+			char *mime = gf_strdup(hdrp->value);
 			while (1) {
-				u32 len = (u32) strlen(mime_type);
-				char c = len ? mime_type[len-1] : 0;
+				u32 len = (u32) strlen(mime);
+				char c = len ? mime[len-1] : 0;
 				if ((c=='\r') || (c=='\n')) {
-					mime_type[len-1] = 0;
+					mime[len-1] = 0;
 				} else {
 					break;
 				}
 			}
-			val = strchr(mime_type, ';');
+			val = strchr(mime, ';');
 			if (val) val[0] = 0;
 
-			strlwr(mime_type);
+			strlwr(mime);
 			if (rsp_code<300) {
 				if (sess->cache_entry) {
-					gf_cache_set_mime_type(sess->cache_entry, mime_type);
+					gf_cache_set_mime_type(sess->cache_entry, mime);
 				} else {
-					sess->mime_type = mime_type;
-					mime_type = NULL;
+					sess->mime_type = mime;
+					mime = NULL;
 				}
 			}
-			if (mime_type) gf_free(mime_type);
+			if (mime) gf_free(mime);
 		}
 		else if (!stricmp(hdrp->name, "Content-Range")) {
 			range = 1;
@@ -2967,7 +2975,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		goto exit;
 	}
 
-	notify_headers(sess, sHTTP, bytesRead, BodyStart);
+	notify_headers(sess, NULL, bytesRead, BodyStart);
 
 	if (sess->http_read_type != GET)
 		sess->use_cache_file = 0;
@@ -2977,58 +2985,61 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
 		sess->http_read_type = 0;
 		return GF_OK;
+
+
 	}
-	{
-		const char * mime_type = gf_cache_get_mime_type(sess->cache_entry);
-		if (!ContentLength && mime_type && ((strstr(mime_type, "ogg") || (!strcmp(mime_type, "audio/mpeg"))))) {
-			if (0 == sess->icy_metaint)
-				sess->icy_metaint = -1;
-			sess->use_cache_file = 0;
-		}
+
+
+	mime_type = gf_cache_get_mime_type(sess->cache_entry);
+	if (!ContentLength && mime_type && ((strstr(mime_type, "ogg") || (!strcmp(mime_type, "audio/mpeg"))))) {
+		if (0 == sess->icy_metaint)
+			sess->icy_metaint = -1;
+		sess->use_cache_file = 0;
+	}
 
 #ifndef GPAC_DISABLE_LOGS
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Error connecting to %s: %s\n", sess->server_name, gf_error_to_string(e) ) );
-		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connected to %s\n", sess->server_name ) );
-		}
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Error processing rely from %s: %s\n", sess->server_name, gf_error_to_string(e) ) );
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] Reply processed from %s\n", sess->server_name ) );
+	}
 #endif
 
-		/*some servers may reply without content length, but we MUST have it*/
-		if (e) goto exit;
-		if (sess->icy_metaint != 0) {
-			assert( ! sess->use_cache_file );
-			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] ICY protocol detected\n"));
-			if (mime_type && !stricmp(mime_type, "video/nsv")) {
-				gf_cache_set_mime_type(sess->cache_entry, "audio/aac");
-			}
-			sess->icy_bytes = 0;
+	/*some servers may reply without content length, but we MUST have it*/
+	if (e) goto exit;
+	if (sess->icy_metaint != 0) {
+		assert( ! sess->use_cache_file );
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] ICY protocol detected\n"));
+		if (mime_type && !stricmp(mime_type, "video/nsv")) {
+			gf_cache_set_mime_type(sess->cache_entry, "audio/aac");
+		}
+		sess->icy_bytes = 0;
+		sess->total_size = SIZE_IN_STREAM;
+		sess->status = GF_NETIO_DATA_EXCHANGE;
+	} else if (!ContentLength && !sess->chunked) {
+		if (sess->http_read_type == GET) {
 			sess->total_size = SIZE_IN_STREAM;
-			sess->status = GF_NETIO_DATA_EXCHANGE;
-		} else if (!ContentLength && !sess->chunked) {
-			if (sess->http_read_type == GET) {
-				sess->total_size = SIZE_IN_STREAM;
-				sess->use_cache_file = 0;
-				sess->status = GF_NETIO_DATA_EXCHANGE;
-				sess->bytes_done = 0;
-			} else {
-				gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
-				gf_dm_disconnect(sess, 0);
-				return GF_OK;
-			}
-		} else {
-			sess->total_size = ContentLength;
-			if (sess->use_cache_file && sess->http_read_type == GET ) {
-				e = gf_cache_open_write_cache(sess->cache_entry, sess);
-				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ( "[CACHE] Failed to open cache, error=%d\n", e));
-					goto exit;
-				}
-			}
+			sess->use_cache_file = 0;
 			sess->status = GF_NETIO_DATA_EXCHANGE;
 			sess->bytes_done = 0;
+		} else {
+			gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
+			gf_dm_disconnect(sess, 0);
+			return GF_OK;
 		}
+	} else {
+		sess->total_size = ContentLength;
+		if (sess->use_cache_file && sess->http_read_type == GET ) {
+			e = gf_cache_open_write_cache(sess->cache_entry, sess);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ( "[CACHE] Failed to open cache, error=%d\n", e));
+				goto exit;
+			}
+		}
+		sess->status = GF_NETIO_DATA_EXCHANGE;
+		sess->bytes_done = 0;
 	}
+	
 
 	/* we may have existing data in this buffer ... */
 	if (!e && (BodyStart < (s32) bytesRead)) {

@@ -686,6 +686,14 @@ void gf_sys_init(Bool enable_memory_tracker);
  */
 void gf_sys_close();
 /*!
+ *	\brief Memory size
+ *
+ *	Gets the number of bytes currently allocated
+ *	\return number of bytes currently allocated
+ */
+u64 gf_memory_size();
+
+/*!
  *	\brief System arguments
  *
  *	Sets the user app arguments (used by GUI mode)
