@@ -325,12 +325,13 @@ typedef enum {
 /*GPAC memory tracking*/
 #if defined(GPAC_MEMORY_TRACKING)
 
-void *gf_mem_malloc(size_t size, char *filename, int line);
-void *gf_mem_calloc(size_t num, size_t size_of, char *filename, int line);
-void *gf_mem_realloc(void *ptr, size_t size, char *filename, int line);
-void gf_mem_free(void *ptr, char *filename, int line);
-char *gf_mem_strdup(const char *str, char *filename, int line);
+void *gf_mem_malloc(size_t size, const char *filename, int line);
+void *gf_mem_calloc(size_t num, size_t size_of, const char *filename, int line);
+void *gf_mem_realloc(void *ptr, size_t size, const char *filename, int line);
+void gf_mem_free(void *ptr, const char *filename, int line);
+char *gf_mem_strdup(const char *str, const char *filename, int line);
 void gf_memory_print(void); /*prints the state of current allocations*/
+u64 gf_memory_size(); /*gets memory allocated in bytes*/
 
 #define gf_free(ptr) gf_mem_free(ptr, __FILE__, __LINE__)
 #define gf_malloc(size) gf_mem_malloc(size, __FILE__, __LINE__)
