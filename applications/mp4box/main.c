@@ -276,7 +276,7 @@ void PrintGeneralUsage()
 	        " -ref id:XXXX:refID   adds a reference of type 4CC from track ID to track refID\n"
 	        " -keep-utc            keeps UTC timing in the file after edit\n"
 			" -udta ID:[OPTS]      sets udta for given track or movie if ID is 0. OPTS is a colon separated list of:\n"
-			"        type=CODE     where code i sthe 4CC code of the UDTA (not needed for box= option)\n"
+			"        type=CODE     where code is the 4CC code of the UDTA (not needed for box= option)\n"
 			"        box=FILE	          where FILE is the location of the udta data, formatted as serialized boxes\n"
 			"        box=base64,DATA      where DATA is the base64 encoded udta data, formatted as serialized boxes\n"
 			"        src=FILE	          where FILE is the location of the udta data (will be stored in a single box of type CODE)\n"
