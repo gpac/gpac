@@ -342,10 +342,10 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	fclose(fout);
 }
 
-void write_hash(FILE *sha_out, u8 *buf, u32 size)
+void write_hash(FILE *sha_out, char *buf, u32 size)
 {
 	u8 hash[20];
-	gf_sha1_csum(buf, size, hash);
+	gf_sha1_csum((u8 *)buf, size, hash);
 	fwrite(hash, 1, 20, sha_out);
 }
 

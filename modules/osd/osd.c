@@ -231,7 +231,7 @@ static Bool osd_process(GF_TermExt *termext, u32 action, void *param)
 		return 1;
 
 	case GF_TERM_EXT_STOP:
-		osd->text->string.vals[0] = NULL;
+        osd->text->string.vals[0] = NULL;
 		/*remove scene to compositor*/
 		gf_sc_register_extra_graph(osd->term->compositor, osd->odm->subscene->graph, 1);
 		gf_odm_disconnect(osd->odm, 1);
