@@ -217,13 +217,19 @@ void gf_modules_del(GF_ModuleManager *pm)
 		gf_modules_free_module(inst);
 		gf_list_rem(pm->plug_list, 0);
 	}
+    gf_list_del(pm->plug_list);
 
 	/* Delete module directories*/
 	for (i = 0; i < pm->num_dirs; i++) {
 		gf_free((void*)pm->dirs[i]);
 	}
 
-	gf_list_del(pm->plug_list);
+    /*remove all static modules registry*/
+    while (gf_list_count(pm->plugin_registry)) {
+        GF_InterfaceRegister *reg  = (GF_InterfaceRegister *) gf_list_get(pm->plugin_registry, 0);
+        gf_free(reg);
+        gf_list_rem(pm->plugin_registry, 0);
+    }
 
 	if (pm->plugin_registry) gf_list_del(pm->plugin_registry);
 	gf_mx_del(pm->mutex);

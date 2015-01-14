@@ -226,9 +226,12 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	}
 	gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "RescanFonts", "no");
 
-	ftpriv->font_serif = NULL;
-	ftpriv->font_sans = NULL;
-	ftpriv->font_fixed = NULL;
+    if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
+    ftpriv->font_fixed = NULL;
+    if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
+    ftpriv->font_sans = NULL;
+    if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
+    ftpriv->font_serif = NULL;
 
 	font_dir = ftpriv->font_dir;
 	ftpriv->font_dir = NULL;
@@ -344,15 +347,20 @@ static GF_Err ft_init_font_engine(GF_FontReader *dr)
 	if (!sOpt || !strcmp(sOpt, "yes") )
 		ft_rescan_fonts(dr);
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif");
-	ftpriv->font_serif = gf_strdup(sOpt ? sOpt : "");
+    if (!ftpriv->font_serif) {
+        sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif");
+        ftpriv->font_serif = gf_strdup(sOpt ? sOpt : "");
+    }
+    
+    if (!ftpriv->font_sans) {
+        sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSans");
+        ftpriv->font_sans = gf_strdup(sOpt ? sOpt : "");
+    }
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSans");
-	ftpriv->font_sans = gf_strdup(sOpt ? sOpt : "");
-
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed");
-	ftpriv->font_fixed = gf_strdup(sOpt ? sOpt : "");
-
+    if (!ftpriv->font_fixed) {
+        sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed");
+        ftpriv->font_fixed = gf_strdup(sOpt ? sOpt : "");
+    }
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Init OK - font directory %s\n", ftpriv->font_dir));
 
 	return GF_OK;

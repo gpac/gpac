@@ -3634,6 +3634,7 @@
 		9201F92E18D5A359003D1ACA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_PREPROCESSOR_DEFINITIONS = GPAC_CONFIG_DARWIN;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include,
@@ -3649,6 +3650,7 @@
 		9201F92F18D5A359003D1ACA /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				GCC_PREPROCESSOR_DEFINITIONS = GPAC_CONFIG_DARWIN;
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include,
