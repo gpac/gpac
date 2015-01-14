@@ -1923,6 +1923,46 @@ Bool gf_isom_has_padding_bits(GF_ISOFile *the_file, u32 trackNumber)
 	return 0;
 }
 
+GF_EXPORT
+u32 gf_isom_get_udta_count(GF_ISOFile *movie, u32 trackNumber)
+{
+	GF_TrackBox *trak;
+	GF_UserDataBox *udta;
+	if (!movie || !movie->moov) return 0;
+
+	if (trackNumber) {
+		trak = gf_isom_get_track_from_file(movie, trackNumber);
+		if (!trak) return 0;
+		udta = trak->udta;
+	} else {
+		udta = movie->moov->udta;
+	}
+	if (udta) return gf_list_count(udta->recordList);
+	return 0;
+}
+
+GF_EXPORT
+GF_Err gf_isom_get_udta_type(GF_ISOFile *movie, u32 trackNumber, u32 udta_idx, u32 *UserDataType, bin128 *UUID)
+{
+	GF_TrackBox *trak;
+	GF_UserDataBox *udta;
+	GF_UserDataMap *map;
+	if (!movie || !movie->moov || !udta_idx) return GF_BAD_PARAM;
+
+	if (trackNumber) {
+		trak = gf_isom_get_track_from_file(movie, trackNumber);
+		if (!trak) return 0;
+		udta = trak->udta;
+	} else {
+		udta = movie->moov->udta;
+	}
+	if (!udta) return GF_BAD_PARAM;
+	if (udta_idx>gf_list_count(udta->recordList)) return GF_BAD_PARAM;
+	map = gf_list_get(udta->recordList, udta_idx - 1);
+	if (UserDataType) *UserDataType = map->boxType;
+	if (UUID) memcpy(*UUID, map->uuid, 16);
+	return GF_OK;
+}
 
 GF_EXPORT
 u32 gf_isom_get_user_data_count(GF_ISOFile *movie, u32 trackNumber, u32 UserDataType, bin128 UUID)
@@ -1962,6 +2002,7 @@ GF_Err gf_isom_get_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 {
 	GF_UserDataMap *map;
 	GF_UnknownBox *ptr;
+	GF_BitStream *bs;
 	u32 i;
 	bin128 t;
 	GF_TrackBox *trak;
@@ -1981,7 +2022,6 @@ GF_Err gf_isom_get_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 	if (UserDataType == GF_ISOM_BOX_TYPE_UUID) UserDataType = 0;
 	memset(t, 1, 16);
 
-	if (!UserDataIndex) return GF_BAD_PARAM;
 	if (!userData || !userDataSize || *userData) return GF_BAD_PARAM;
 
 	i=0;
@@ -1993,15 +2033,32 @@ GF_Err gf_isom_get_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 	return GF_BAD_PARAM;
 
 found:
+	if (UserDataIndex) {
+		if (UserDataIndex > gf_list_count(map->other_boxes) ) return GF_BAD_PARAM;
+		ptr = (GF_UnknownBox*)gf_list_get(map->other_boxes, UserDataIndex-1);
 
-	if (UserDataIndex > gf_list_count(map->other_boxes) ) return GF_BAD_PARAM;
-	ptr = (GF_UnknownBox*)gf_list_get(map->other_boxes, UserDataIndex-1);
+		//ok alloc the data
+		*userData = (char *)gf_malloc(sizeof(char)*ptr->dataSize);
+		if (!*userData) return GF_OUT_OF_MEM;
+		memcpy(*userData, ptr->data, sizeof(char)*ptr->dataSize);
+		*userDataSize = ptr->dataSize;
+		return GF_OK;
+	}
 
-	//ok alloc the data
-	*userData = (char *)gf_malloc(sizeof(char)*ptr->dataSize);
-	if (!*userData) return GF_OUT_OF_MEM;
-	memcpy(*userData, ptr->data, sizeof(char)*ptr->dataSize);
-	*userDataSize = ptr->dataSize;
+	//serialize all boxes
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	i=0;
+	while ( (ptr = gf_list_enum(map->other_boxes, &i))) {
+		u32 s = ptr->dataSize+8;
+		if (ptr->type==GF_ISOM_BOX_TYPE_UUID) s += 16;
+
+		gf_bs_write_u32(bs, s);
+		gf_bs_write_u32(bs, ptr->type);
+		if (ptr->type==GF_ISOM_BOX_TYPE_UUID) gf_bs_write_data(bs, map->uuid, 16);
+		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
+	}
+	gf_bs_get_content(bs, userData, userDataSize);
+	gf_bs_del(bs);
 	return GF_OK;
 }
 

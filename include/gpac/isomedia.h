@@ -749,12 +749,21 @@ GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	User Data Manipulation (cf write API too)
 */
 
+//returns the number of entries in UDTA of the track if trackNumber is not 0, or of the movie otherwise
+u32 gf_isom_get_udta_count(GF_ISOFile *movie, u32 trackNumber);
+
+//returns the type (box 4CC and UUID if any) of the given entry in UDTA of the track if trackNumber is not 0, or of the movie otherwise. udta_idx is 1-based index.
+GF_Err gf_isom_get_udta_type(GF_ISOFile *movie, u32 trackNumber, u32 udta_idx, u32 *UserDataType, bin128 *UUID);
+
 /* Gets the number of UserDataItems with the same ID / UUID in the desired track or
 in the movie if trackNumber is set to 0*/
 u32 gf_isom_get_user_data_count(GF_ISOFile *the_file, u32 trackNumber, u32 UserDataType, bin128 UUID);
 /* Gets the UserData for the specified item from the track or the movie if trackNumber is set to 0
 data is allocated by the function and is yours to free
-you musty pass (userData != NULL && *userData=NULL)*/
+you musty pass (userData != NULL && *userData=NULL)
+
+if UserDataIndex is 0, all boxes with type==UserDataType will be serialized (including box header and size) in the buffer
+*/
 GF_Err gf_isom_get_user_data(GF_ISOFile *the_file, u32 trackNumber, u32 UserDataType, bin128 UUID, u32 UserDataIndex, char **userData, u32 *userDataSize);
 
 
@@ -1032,6 +1041,9 @@ GF_Err gf_isom_remove_user_data_item(GF_ISOFile *the_file, u32 trackNumber, u32 
 GF_Err gf_isom_remove_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID);
 /*adds track, moov (trackNumber=0) or file-level (trackNumber=0xFFFFFFFF) UUID box of given type*/
 GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, char *data, u32 data_size);
+
+/*Add a user data item in the desired track or in the movie if TrackNumber is 0, using a serialzed buffer of ISOBMFF boxes*/
+GF_Err gf_isom_add_user_data_boxes(GF_ISOFile *the_file, u32 trackNumber, char *data, u32 DataLength);
 
 /*
 		Update of the Writing API for IsoMedia Version 2

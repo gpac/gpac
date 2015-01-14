@@ -84,6 +84,8 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 
 GF_Err dump_cover_art(GF_ISOFile *file, char *inName);
 GF_Err dump_chapters(GF_ISOFile *file, char *inName, Bool dump_ogg);
+void dump_udta(GF_ISOFile *file, char *inName, u32 dump_udta_type, u32 dump_udta_track);
+GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, Bool is_box_array);
 u32 id3_get_genre_tag(const char *name);
 
 /*in filedump.c*/
@@ -273,6 +275,13 @@ void PrintGeneralUsage()
 	        " -group-single        puts all tracks in a single group\n"
 	        " -ref id:XXXX:refID   adds a reference of type 4CC from track ID to track refID\n"
 	        " -keep-utc            keeps UTC timing in the file after edit\n"
+			" -udta ID:[OPTS]      sets udta for given track or movie if ID is 0. OPTS is a colon separated list of:\n"
+			"        type=CODE     where code i sthe 4CC code of the UDTA (not needed for box= option)\n"
+			"        box=FILE	          where FILE is the location of the udta data, formatted as serialized boxes\n"
+			"        box=base64,DATA      where DATA is the base64 encoded udta data, formatted as serialized boxes\n"
+			"        src=FILE	          where FILE is the location of the udta data (will be stored in a single box of type CODE)\n"
+			"        src=base64,DATA      where DATA is the base64 encoded udta data (will be stored in a single box of type CODE)\n"
+			"	                   If no source is set, UDTA of type CODE will be removed\n"
 	        "\n");
 }
 
@@ -683,6 +692,7 @@ void PrintDumpUsage()
 	        " -dcr                 ISMACryp samples structure to XML output\n"
 	        " -dump-cover          Extracts cover art\n"
 	        " -dump-chap           Extracts chapter file\n"
+			" -dump-udta [ID:]4cc  Extracts udta for the given 4CC. If ID is given, dumps from UDTA of the given track ID, otherwise moov is used.\n"
 	        "\n"
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	        " -ttxt                Converts input subtitle to GPAC TTXT format\n"
@@ -698,6 +708,7 @@ void PrintDumpUsage()
 	        " -statx               generates node/field statistics for scene after each AU\n"
 	        "\n"
 	        " -hash                generates SHA-1 Hash of the input file\n"
+	        " -bin                 converts input XML file using NHML bitstream syntax to binary\n"
 	        "\n");
 }
 
@@ -1364,6 +1375,7 @@ typedef enum {
 	TRAC_ACTION_SET_KIND		= 11,
 	TRAC_ACTION_REM_KIND		= 12,
 	TRAC_ACTION_SET_ID			= 13,
+	TRAC_ACTION_SET_UDTA		= 14,
 } TrackActionType;
 
 typedef struct
@@ -1377,6 +1389,8 @@ typedef struct
 	s32 par_num, par_den;
 	u32 dump_type, sample_num;
 	char *out_name;
+	char *src_name;
+	u32 udta_type;
 	char *kind_scheme, *kind_value;
 	u32 newTrackID;
 } TrackAction;
@@ -1398,6 +1412,8 @@ enum
 		for (i=0; i<nb_track_act; i++) { \
 			if (tracks[i].out_name) \
 				gf_free(tracks[i].out_name); \
+			if (tracks[i].src_name) \
+				gf_free(tracks[i].src_name); \
 			if (tracks[i].kind_scheme) \
 				gf_free(tracks[i].kind_scheme); \
 			if (tracks[i].kind_value) \
@@ -1560,6 +1576,13 @@ static GF_Err parse_track_action_params(char *string, TrackAction *action)
 				action->dump_type |= GF_EXPORT_WEBVTT_META_EMBEDDED;
 			} else if (!strncmp("output=", param, 7)) {
 				action->out_name = gf_strdup(param+7);
+			} else if (!strncmp("src=", param, 4)) {
+				action->src_name = gf_strdup(param+4);
+			} else if (!strncmp("box=", param, 4)) {
+				action->src_name = gf_strdup(param+4);
+				action->sample_num = 1;
+			} else if (!strncmp("type=", param, 4)) {
+				action->udta_type = GF_4CC(param[5], param[6], param[7], param[8]);
 			} else if (action->dump_type == GF_EXPORT_RAW_SAMPLES) {
 				action->sample_num = atoi(param);
 			}
@@ -1585,6 +1608,60 @@ static u32 create_new_track_action(char *string, TrackAction **actions, u32 *nb_
 	return dump_type;
 }
 
+static GF_Err nhml_bs_to_bin(char *inName, char *outName, u32 dump_std)
+{
+	GF_Err e;
+	GF_XMLNode *root;
+	char *data = NULL;
+	u32 data_size;
+
+	GF_DOMParser *dom = gf_xml_dom_new();
+	e = gf_xml_dom_parse(dom, inName, NULL, NULL);
+	if (e) {	
+		gf_xml_dom_del(dom);
+		fprintf(stderr, "Failed to parse XML file: %s\n", gf_error_to_string(e));
+		return e;
+	}
+	root = gf_xml_dom_get_root_idx(dom, 0);
+	if (!root) {
+		gf_xml_dom_del(dom);
+		return GF_OK;
+	}
+
+	e = gf_xml_parse_bit_sequence(root, &data, &data_size);
+	gf_xml_dom_del(dom);
+
+	if (e) {	
+		fprintf(stderr, "Failed to parse binary sequence: %s\n", gf_error_to_string(e));
+		return e;
+	}
+
+	if (dump_std) {
+		fwrite(data, 1, data_size, stdout);
+	} else {
+		FILE *t;
+		char szFile[GF_MAX_PATH];
+		if (outName) {
+			strcpy(szFile, outName);
+		} else {
+			strcpy(szFile, inName);
+			strcat(szFile, ".bin");
+		}
+		t = fopen(szFile, "wb");
+		if (!t) {
+			fprintf(stderr, "Failed to open file %s\n", szFile);
+			e = GF_IO_ERR;
+		} else {
+			if (fwrite(data, 1, data_size, t) != data_size) {
+				fprintf(stderr, "Failed to write output to file %s\n", szFile);
+				e = GF_IO_ERR;
+			}
+			fclose(t);
+		}
+	}
+	gf_free(data);
+	return e;
+}
 
 
 static GF_Err hash_file(char *name, u32 dump_std)
@@ -1641,6 +1718,8 @@ int mp4boxMain(int argc, char **argv)
 	Double min_buffer = 1.5;
 	u32 ast_shift_sec = 1;
 	u32 dump_chap = 0;
+	u32 dump_udta_type = 0;
+	u32 dump_udta_track = 0;
 	char **mpd_base_urls = NULL;
 	u32 nb_mpd_base_urls=0;
 	u32 dash_scale = 1000;
@@ -1675,6 +1754,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool adjust_split_end = 0;
 	Bool memory_frags = 1;
 	Bool keep_utc = 0;
+	Bool do_bin_nhml = 0;
 	u32 timescale = 0;
 	const char *do_wget = NULL;
 	GF_DashSegmenterInput *dash_inputs = NULL;
@@ -1967,6 +2047,23 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-dump-chap")) dump_chap = 1;
 		else if (!stricmp(arg, "-dump-chap-ogg")) dump_chap = 2;
 		else if (!stricmp(arg, "-hash")) do_hash = 1;
+		else if (!stricmp(arg, "-bin")) do_bin_nhml = 1;
+		else if (!stricmp(arg, "-dump-udta")) {
+			char *sep, *code;
+			CHECK_NEXT_ARG 
+			sep = strchr(argv[i+1], ':');
+			if (sep) {
+				sep[0] = 0;
+				dump_udta_track = atoi(argv[i+1]);
+				sep[0] = ':';
+				code = &sep[1];
+			} else {
+				code = argv[i+1];
+			}
+			dump_udta_type = GF_4CC(code[0], code[1], code[2], code[3]);
+			i++;
+		}
+
 
 #if 0
 		else if (!stricmp(arg, "-conf")) {
@@ -2225,7 +2322,6 @@ int mp4boxMain(int argc, char **argv)
 			nb_mpd_base_urls++;
 			i++;
 		}
-
 		else if (!stricmp(arg, "-dash-ctx")) {
 			CHECK_NEXT_ARG
 			dash_ctx_file = argv[i+1];
@@ -2390,7 +2486,13 @@ int mp4boxMain(int argc, char **argv)
 			open_edit = 1;
 			i++;
 		}
-		
+		else if (!stricmp(arg, "-udta")) {
+			CHECK_NEXT_ARG
+			create_new_track_action(argv[i+1], &tracks, &nb_track_act, 0);
+			tracks[nb_track_act-1].act_type = TRAC_ACTION_SET_UDTA;
+			open_edit = 1;
+			i++;
+		}
 		else if (!stricmp(arg, "-add") || !stricmp(arg, "-import") || !stricmp(arg, "-convert")) {
 			CHECK_NEXT_ARG
 			if (!stricmp(arg, "-import")) fprintf(stderr, "\tWARNING: \"-import\" is deprecated - use \"-add\"\n");
@@ -3562,10 +3664,12 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_MPEG2TS
 					dump_mpeg2_ts(inName, pes_dump, program_number);
 #endif
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
+				} else if (do_bin_nhml) {
+					nhml_bs_to_bin(inName, outName, dump_std);
 				} else if (do_hash) {
 					hash_file(inName, dump_std);
 				} else {
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 					convert_file_info(inName, info_track_id);
 #endif
 				}
@@ -3688,7 +3792,6 @@ int mp4boxMain(int argc, char **argv)
 #endif
 #endif
 
-
 	if (dump_timestamps) dump_file_timestamps(file, dump_std ? NULL : outfile);
 	if (dump_nal) dump_file_nal(file, dump_nal, dump_std ? NULL : outfile);
 
@@ -3696,8 +3799,14 @@ int mp4boxMain(int argc, char **argv)
 		e = hash_file(inName, dump_std);
 		if (e) goto err_exit;
 	}
+	if (do_bin_nhml) {
+		e = nhml_bs_to_bin(inName, outName, dump_std);
+		if (e) goto err_exit;
+	}
+
 	if (dump_cart) dump_cover_art(file, outfile);
 	if (dump_chap) dump_chapters(file, outfile, (dump_chap==2) ? 1 : 0);
+	if (dump_udta_type) dump_udta(file, outfile, dump_udta_type, dump_udta_track);
 
 	if (dump_iod) {
 		GF_InitialObjectDescriptor *iod = (GF_InitialObjectDescriptor *)gf_isom_get_root_od(file);
@@ -4163,6 +4272,10 @@ int mp4boxMain(int argc, char **argv)
 		case TRAC_ACTION_REM_NON_RAP:
 			fprintf(stderr, "Removing non-rap samples from track %d\n", tka->trackID);
 			e = gf_media_remove_non_rap(file, track);
+			needSave = 1;
+			break;
+		case TRAC_ACTION_SET_UDTA:
+			set_file_udta(file, track, tka->udta_type, tka->src_name, tka->sample_num ? GF_TRUE : GF_FALSE);
 			needSave = 1;
 			break;
 		default:

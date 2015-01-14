@@ -1195,9 +1195,7 @@ GF_Err udta_dump(GF_Box *a, FILE * trace)
 
 	i=0;
 	while ((map = (GF_UserDataMap *)gf_list_enum(p->recordList, &i))) {
-		fprintf(trace, "<UDTARecord Type=\"%s\">\n", gf_4cc_to_str(map->boxType));
 		gf_box_array_dump(map->other_boxes, trace);
-		fprintf(trace, "</UDTARecord>\n");
 	}
 	gf_box_dump_done("UserDataBox", a, trace);
 	return GF_OK;
