@@ -51,6 +51,7 @@ int main(int argc, char **argv)
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (use_mem_track && (gf_memory_size() != 0)) {
+        gf_memory_print();
 		return 2;
 	}
 #endif	

@@ -676,6 +676,7 @@ u64 gf_memory_size()
 }
 
 /*prints the state of current allocations*/
+GF_EXPORT
 void gf_memory_print()
 {
 	/*if lists are empty, the mutex is also NULL*/
