@@ -505,6 +505,19 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			streamType = GF_STREAM_AUDIO;
 			gf_isom_get_audio_info(file, TrackNum, 1, NULL, &nb_ch, NULL);
 			break;
+		case GF_ISOM_SUBTYPE_MP3:
+		{
+			GF_ISOSample *samp = gf_isom_get_sample(file, TrackNum, 1, NULL);
+			u32 hdr = GF_4CC((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
+			u32 sample_rate = gf_mp3_sampling_rate(hdr);
+			nb_ch = gf_mp3_num_channels(hdr);
+			gf_isom_sample_del(&samp);
+			hintType = GF_RTP_PAYT_MPEG12_AUDIO;
+			/*use official RTP/AVP payload type*/
+			OfficialPayloadID = 14;
+			required_rate = 90000;
+		}
+			break;
 		default:
 			/*ERROR*/
 			hintType = 0;

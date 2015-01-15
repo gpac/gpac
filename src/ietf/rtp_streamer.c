@@ -387,6 +387,12 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			oti = (oti==GF_ISOM_SUBTYPE_3GP_EVRC) ? GPAC_OTI_AUDIO_EVRC_VOICE : GPAC_OTI_AUDIO_SMV_VOICE;
 			nb_ch = 1;
 			break;
+		case GF_ISOM_SUBTYPE_MP3:
+			rtp_type = GF_RTP_PAYT_MPEG12_AUDIO;
+			/*use official RTP/AVP payload type*/
+			OfficialPayloadType = 14;
+			required_rate = 90000;
+			break;
 		}
 		break;
 
