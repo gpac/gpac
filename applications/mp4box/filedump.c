@@ -757,8 +757,9 @@ void dump_isom_xml(GF_ISOFile *file, char *inName)
 
 void dump_file_rtp(GF_ISOFile *file, char *inName)
 {
-	u32 i, j;
+	u32 i, j, size;
 	FILE *dump;
+	const char *sdp;
 	char szBuf[1024];
 
 	if (inName) {
@@ -777,6 +778,9 @@ void dump_file_rtp(GF_ISOFile *file, char *inName)
 		if (gf_isom_get_media_type(file, i+1) != GF_ISOM_MEDIA_HINT) continue;
 
 		fprintf(dump, "<RTPHintTrack trackID=\"%d\">\n", gf_isom_get_track_id(file, i+1));
+		gf_isom_sdp_track_get(file, i+1, &sdp, &size);
+		fprintf(dump, "<SDPInfo>%s</SDPInfo>", sdp);
+
 		for (j=0; j<gf_isom_get_sample_count(file, i+1); j++) {
 			gf_isom_dump_hint_sample(file, i+1, j+1, dump);
 		}
