@@ -2112,6 +2112,7 @@ force_input:
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (enable_mem_tracker && (gf_memory_size() != 0)) {
+        gf_memory_print();
 		return 2;
 	}
 #endif
