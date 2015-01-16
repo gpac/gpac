@@ -217,12 +217,14 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, u32 *ms_till_nex
 	if (no_flush)
 		compositor->skip_flush=1;
 	gf_sc_simulation_tick(compositor);
+
 	if (ms_till_next) {
 		if ((s32) compositor->next_frame_delay == -1)
 			*ms_till_next = compositor->frame_duration;
 		else
 			*ms_till_next = MIN(compositor->next_frame_delay, compositor->frame_duration);
 	}
+	if (compositor->frame_delay<0) return 1;
 	if (compositor->frame_draw_type) return 1;
 	if (compositor->fonts_pending) return 1;
 	return GF_FALSE;
@@ -2290,7 +2292,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 
 	//first update all natural textures to figure out timing
-	compositor->frame_delay = (u32) -1;
+	compositor->frame_delay = 0;
 	compositor->next_frame_delay = (u32) -1;
 	frame_duration = compositor->frame_duration;
 

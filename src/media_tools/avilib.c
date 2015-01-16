@@ -681,6 +681,7 @@ void AVI_set_video(avi_t *AVI, int width, int height, double fps, char *compress
 	avi_update_header(AVI);
 }
 
+GF_EXPORT
 void AVI_set_audio(avi_t *AVI, int channels, long rate, int bits, int format, long mp3rate)
 {
 	/* may only be called if file is open for writing */
@@ -1627,6 +1628,7 @@ int AVI_dup_frame(avi_t *AVI)
 	return 0;
 }
 
+GF_EXPORT
 int AVI_write_audio(avi_t *AVI, char *data, long bytes)
 {
 	if(AVI->mode==AVI_MODE_READ) {
