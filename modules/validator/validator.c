@@ -35,6 +35,7 @@ typedef struct __validation_module
 	GF_Terminal *term;
 
 	Bool is_recording;
+	Bool no_associated_test;
 	char *prev_fps;
 	char *prev_alias;
 
@@ -101,13 +102,14 @@ static void validator_xvs_add_snapshot_node(GF_Validator *validator, const char 
 	gf_list_add(validator->xvs_node->content, snap_node);
 }
 
-static char *validator_get_snapshot_name(char *test_filename, Bool is_reference, u32 number)
+static char *validator_get_snapshot_name(GF_Validator *validator, Bool is_reference, u32 number)
 {
+	char *name = validator->test_filename ? validator->test_filename : validator->xvs_filename;
 	char *dot;
 	char dumpname[GF_MAX_PATH];
-	dot = strrchr(test_filename, '.');
+	dot = strrchr(name, '.');
 	dot[0] = 0;
-	sprintf(dumpname, "%s-%s-%03d.png", test_filename, (is_reference?"reference":"newest"), number);
+	sprintf(dumpname, "%s-%s-%03d.png", name, (is_reference?"reference":"newest"), number);
 	dot[0] = '.';
 	return gf_strdup(dumpname);
 }
@@ -119,7 +121,7 @@ static char *validator_create_snapshot(GF_Validator *validator)
 	GF_Terminal *term = validator->term;
 	char *dumpname;
 
-	dumpname = validator_get_snapshot_name(validator->test_filename, validator->is_recording, validator->snapshot_number);
+	dumpname = validator_get_snapshot_name(validator, validator->is_recording, validator->snapshot_number);
 
 	e = gf_term_get_screen_buffer(term, &fb);
 	if (e) {
@@ -159,8 +161,8 @@ static Bool validator_compare_snapshots(GF_Validator *validator)
 	u32 i;
 
 	u32 snap_number = validator->snapshot_number - 1;
-	ref_name = validator_get_snapshot_name(validator->test_filename, 1, snap_number);
-	new_name = validator_get_snapshot_name(validator->test_filename, 0, snap_number);
+	ref_name = validator_get_snapshot_name(validator, 1, snap_number);
+	new_name = validator_get_snapshot_name(validator, 0, snap_number);
 
 	e = gf_img_file_dec(ref_name, NULL, &ref_width, &ref_height, &ref_pixel_format, &ref_data, &ref_data_size);
 	if (e) {
@@ -221,7 +223,10 @@ Bool validator_on_event_play(void *udta, GF_Event *event, Bool consumed_by_compo
 	switch (event->type) {
 	case GF_EVENT_CONNECT:
 		if (event->connect.is_connected) {
-			gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
+			if (!validator->no_associated_test) {
+				gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
+			}
+
 			validator->ck = validator->term->root_scene->scene_codec ?
 			                validator->term->root_scene->scene_codec->ck :
 			                validator->term->root_scene->dyn_ck;
@@ -394,7 +399,9 @@ Bool validator_on_event_record(void *udta, GF_Event *event, Bool consumed_by_com
 	switch (event->type) {
 	case GF_EVENT_CONNECT:
 		if (event->connect.is_connected) {
-			gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
+			if (!validator->no_associated_test) {
+				gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
+			}
 			validator->ck = validator->term->root_scene->scene_codec ? validator->term->root_scene->scene_codec->ck : validator->term->root_scene->dyn_ck;
 		}
 		break;
@@ -574,6 +581,7 @@ static Bool validator_xvs_open(GF_Validator *validator)
 			}
 			att_index++;
 		}
+
 		if (!att_file) {
 			gf_xml_dom_del(validator->xvs_parser);
 			validator->xvs_parser = NULL;
@@ -685,17 +693,20 @@ static void validator_xvs_close(GF_Validator *validator)
 static void validator_test_open(GF_Validator *validator)
 {
 	char filename[100];
-	if (validator->test_base)
-		sprintf(filename, "%s%c%s", validator->test_base, GF_PATH_SEPARATOR, validator->test_filename);
-	else
-		sprintf(filename, "%s", validator->test_filename);
-	gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
-	if (validator->is_recording)
-		validator->snapshot_next_frame = 1;
-	gf_term_connect(validator->term, filename);
-	validator->ck = validator->term->root_scene->scene_codec ?
-	                validator->term->root_scene->scene_codec->ck :
-	                validator->term->root_scene->dyn_ck;
+	
+	if (!validator->no_associated_test) {
+		if (validator->test_base)
+			sprintf(filename, "%s%c%s", validator->test_base, GF_PATH_SEPARATOR, validator->test_filename);
+		else
+			sprintf(filename, "%s", validator->test_filename);
+
+		gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
+		if (validator->is_recording)
+			validator->snapshot_next_frame = 1;
+		gf_term_connect(validator->term, filename);
+
+	}
+//	validator->ck = validator->term->root_scene->scene_codec ? validator->term->root_scene->scene_codec->ck : validator->term->root_scene->dyn_ck;
 }
 
 static Bool validator_xvs_next(GF_Validator *validator, Bool reverse)
@@ -835,8 +846,14 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 		if (!validator->xvl_filename) {
 			validator->xvs_filename = (char *)gf_modules_get_option((GF_BaseInterface*)termext, "Validator", "XVS");
 			if (!validator->xvs_filename) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("Validator configuration without input, stopping.\n"));
-				return 0;
+				validator->xvs_filename = (char *)gf_modules_get_option((GF_BaseInterface*)termext, "Validator", "Trace");
+				if (!validator->xvs_filename) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("Validator configuration without input, stopping.\n"));
+					return 0;
+				}
+				validator->test_filename = validator->xvs_filename;
+				validator->no_associated_test = 1;
+				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator using trace file: %s\n", validator->xvs_filename));
 			} else {
 				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator using scenario file: %s\n", validator->xvs_filename));
 			}
@@ -845,21 +862,9 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 		}
 
 		/* since we changed parameters of the compositor, we need to trigger a reconfiguration */
-		gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "FrameRate", "5.0");
-		gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "AntiAlias", "None");
-		gf_term_set_option(validator->term, GF_OPT_RELOAD_CONFIG, 1);
-
-		validator->evt_filter.udta = validator;
-		if (!validator->is_recording) {
-			validator->evt_filter.on_event = validator_on_event_play;
-			termext->caps |= GF_TERM_EXTENSION_NOT_THREADED;
-		} else {
-			validator->evt_filter.on_event = validator_on_event_record;
-		}
-		gf_term_add_event_filter(validator->term, &validator->evt_filter);
-		validator->video_listener.udta = validator;
-		validator->video_listener.on_video_frame = validator_on_video_frame;
-		validator->video_listener.on_video_reconfig = validator_on_video_reconfig;
+//		gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "FrameRate", "5.0");
+//		gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "AntiAlias", "None");
+//		gf_term_set_option(validator->term, GF_OPT_RELOAD_CONFIG, 1);
 
 		/* TODO: if start returns 0, the module is not loaded, so the above init (filter registration) is not removed,
 		   should probably return 1 all the time, to make sure stop is called */
@@ -886,6 +891,20 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 		} else {
 			return 0;
 		}
+
+		validator->evt_filter.udta = validator;
+		if (!validator->is_recording) {
+			validator->evt_filter.on_event = validator_on_event_play;
+			termext->caps |= GF_TERM_EXTENSION_NOT_THREADED;
+		} else {
+			validator->evt_filter.on_event = validator_on_event_record;
+		}
+		gf_term_add_event_filter(validator->term, &validator->evt_filter);
+		validator->video_listener.udta = validator;
+		validator->video_listener.on_video_frame = validator_on_video_frame;
+		validator->video_listener.on_video_reconfig = validator_on_video_reconfig;
+
+
 		if (!validator->is_recording) {
 			validator_load_event(validator);
 		}
@@ -904,10 +923,12 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 			validator->test_base = NULL;
 		}
 		/*auto-disable the recording by default*/
-		if (validator->is_recording) {
-			gf_modules_set_option((GF_BaseInterface*)termext, "Validator", "Mode", "Play");
-		} else {
-			gf_modules_set_option((GF_BaseInterface*)termext, "Validator", "Mode", "Disable");
+		if (!validator->no_associated_test) {
+			if (validator->is_recording ) {
+				gf_modules_set_option((GF_BaseInterface*)termext, "Validator", "Mode", "Play");
+			} else {
+				gf_modules_set_option((GF_BaseInterface*)termext, "Validator", "Mode", "Disable");
+			}
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Stopping validator\n"));
 		if (validator->prev_fps) {

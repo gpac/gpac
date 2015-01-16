@@ -246,6 +246,7 @@ void PrintUsage()
 	        "\t-run-for TIME:  runs for TIME seconds and exits\n"
 	        "\t-service ID:    auto-tune to given service ID in a multiplex\n"
             "\t-noprog:        disable progress report\n"
+            "\t-no-save:       disable saving config file on exit\n"
 	        "\t-no-addon:      disable automatic loading of media addons declared in source URL\n"
 	        "\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
 	        "\n"
@@ -552,8 +553,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 
 	switch (evt->type) {
 	case GF_EVENT_DURATION:
-		Duration = 1000;
-		Duration = (u64) (((s64) Duration) * evt->duration.duration);
+		Duration = (u64) ( 1000 * (s64) evt->duration.duration);
 		CanSeek = evt->duration.can_seek;
 		break;
 	case GF_EVENT_MESSAGE:
@@ -1065,6 +1065,8 @@ int main (int argc, char **argv)
 	Bool start_fs = GF_FALSE;
 	Bool use_rtix = GF_FALSE;
 	Bool pause_at_first = GF_FALSE;
+	Bool no_cfg_safe = GF_FALSE;
+
 	Double play_from = 0;
 #ifdef GPAC_MEMORY_TRACKING
 	Bool enable_mem_tracker = GF_FALSE;
@@ -1192,6 +1194,10 @@ int main (int argc, char **argv)
         else if (!stricmp(arg, "-noprog")) {
             gf_set_progress_callback(NULL, progress_quiet);
         }
+        else if (!stricmp(arg, "--no-save")) {
+			no_cfg_safe=1;
+        }
+		
 
 		/*arguments only used in non-gui mode*/
 		else if (!gui_mode) {
@@ -1329,8 +1335,10 @@ int main (int argc, char **argv)
 
 	/*setup dumping options*/
 	if (dump_mode) {
-		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
+		user.init_flags |= GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
 		if (visible || dump_mode==8) user.init_flags |= GF_TERM_INIT_HIDE;
+		gf_cfg_set_key(cfg_file, "Audio", "DriverName", "Raw Audio Output");
+		no_cfg_safe=GF_TRUE;
 	} else {
 		init_w = forced_width;
 		init_h = forced_height;
@@ -2099,6 +2107,10 @@ force_input:
 
 	fprintf(stderr, "GPAC cleanup ...\n");
 	gf_modules_del(user.modules);
+
+	if (no_cfg_safe)
+		gf_cfg_discard_changes(cfg_file);
+
 	gf_cfg_del(cfg_file);
 
 	gf_sys_close();

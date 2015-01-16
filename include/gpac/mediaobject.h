@@ -98,10 +98,22 @@ GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u
 /*returns min frame duration for his object or 0 if unknown*/
 u32 gf_mo_get_min_frame_dur(GF_MediaObject *mo);
 
+typedef enum
+{	
+	//never resync the content of the decoded media buffer (used fo audio)
+	//if clock is paused do not fetch
+	GF_MO_FETCH = 0,
+	//always resync the content of the decoded media buffer to the current time (used for video)
+	GF_MO_FETCH_RESYNC,
+	//never resync the content of the decoded media buffer (used fo audio)
+	//if clock is paused,  do fetch (used for audio extraction)
+	GF_MO_FETCH_PAUSED
+} GF_MOFetchMode;
+
 /*fetch media data
 
 */
-char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next);
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next);
 
 /*release given amount of media data - nb_bytes is used for audio  - drop_mode can take the following values:
 -1: do not drop

@@ -616,6 +616,49 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fram
 	gf_sc_release_screen_buffer(term->compositor, &fb);
 }
 
+#ifndef GPAC_DISABLE_AVILIB
+
+typedef struct 
+{
+	GF_AudioListener al;
+	GF_Mutex *mx;
+	avi_t *avi;
+	u32 time_scale;
+	u32 video_time, video_next_time, video_time_init, audio_time, flush_retry;
+} AVI_AudioListener;
+
+void avi_audio_frame(void *udta, char *buffer, u32 buffer_size, u32 time, u32 delay)
+{
+	AVI_AudioListener *avil = (AVI_AudioListener *)udta;
+
+	gf_mx_p(avil->mx);
+	AVI_write_audio(avil->avi, buffer, buffer_size);
+	
+	if (!avil->video_time_init) {
+		avil->audio_time = avil->video_time;
+		avil->video_time_init=1;
+	}
+
+	avil->audio_time += 1000*buffer_size/avil->time_scale;
+	//we are behind video dump, force audio flush 
+	if (avil->audio_time < avil->video_next_time)  {
+		gf_sc_flush_next_audio(term->compositor);
+	}
+	avil->flush_retry=0;
+	gf_mx_v(avil->mx);
+}
+
+void avi_audio_reconfig(void *udta, u32 samplerate, u32 bits_per_sample, u32 nb_channel, u32 channel_cfg)
+{
+	AVI_AudioListener *avil = (AVI_AudioListener *)udta;
+
+	gf_mx_p(avil->mx);
+	AVI_set_audio(avil->avi, nb_channel, samplerate, bits_per_sample, WAVE_FORMAT_PCM, 0);
+	avil->time_scale = nb_channel*bits_per_sample*samplerate/8;
+	gf_mx_v(avil->mx);
+}
+#endif
+
 Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times)
 {
 	GF_Err e;
@@ -630,6 +673,8 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 #ifndef GPAC_DISABLE_AVILIB
 	avi_t *avi_out = NULL;
 	avi_t *depth_avi_out = NULL;
+	GF_Mutex *avi_mx;
+	AVI_AudioListener avi_al;
 #endif
 	FILE *sha_out = NULL;
 	FILE *sha_depth_out = NULL;
@@ -780,6 +825,20 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 #ifndef GPAC_DISABLE_AVILIB
 		comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
 		AVI_set_video(avi_out, width, height, fps, comp);
+
+		avi_mx = gf_mx_new("AVIMutex");
+		
+		if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
+			memset(&avi_al, 0, sizeof(avi_al));
+			avi_al.al.udta = &avi_al;
+			avi_al.al.on_audio_frame = avi_audio_frame;
+			avi_al.al.on_audio_reconfig = avi_audio_reconfig;
+			avi_al.mx = avi_mx;
+			avi_al.avi = avi_out;
+
+			gf_sc_add_audio_listener(term->compositor, &avi_al.al);
+		}
+
 		if (dump_mode_flags & DUMP_DEPTH_ONLY) 
 			AVI_set_video(depth_avi_out, width, height, fps, comp);
 #endif
@@ -806,7 +865,10 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 			fprintf(stderr, "Dumping %02d/100 %% - time %.02f sec\r", (u32) ((100.0*prev_time)/dump_dur), prev_time/1000.0 );
 
+			if (avi_mx) gf_mx_p(avi_mx);
+
 			if (dump_mode_flags & DUMP_DEPTH_ONLY) {
+
 				/*we'll dump both buffers at once*/
 				gf_mx_p(term->compositor->mx);
 				dump_depth(term, szPath_depth, dump_mode_flags, i+1, conv_buf, depth_avi_out, sha_depth_out);
@@ -815,6 +877,9 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			} else {
 				dump_frame(term, szOutPath, dump_mode_flags, i+1, conv_buf, avi_out, sha_out);
 			}
+
+			if (avi_mx) gf_mx_v(avi_mx);
+
 		} else {
 			if ( times[cur_time_idx] <= time) {
 				if (dump_mode_flags & (DUMP_DEPTH_ONLY | DUMP_RGB_DEPTH | DUMP_RGB_DEPTH_SHAPE) ) {
@@ -829,20 +894,37 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			}
 		}
 
+		avi_al.video_time = prev_time;
 		nb_frames++;
 		time = (u32) (nb_frames*1000/fps);
+		avi_al.video_next_time = time;
 		gf_term_step_clocks(term, time - prev_time);
 		prev_time = time;
 
 		if (gf_prompt_has_input() && (gf_prompt_get_char()=='q')) {
 			fprintf(stderr, "Aborting dump\n");
+			dump_dur=0;
 			break;
 		}
 	}
 
+	//flush audio dump
+	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
+		avi_al.flush_retry=0;
+		while ((avi_al.flush_retry <100) && (avi_al.audio_time < dump_dur)) {
+			gf_sc_flush_next_audio(term->compositor);
+			gf_sleep(1);
+			avi_al.flush_retry++;
+		}
+	}
+
 #ifndef GPAC_DISABLE_AVILIB
+	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
+		gf_sc_remove_audio_listener(term->compositor, &avi_al.al);
+	}
 	if (avi_out) AVI_close(avi_out);
 	if (depth_avi_out) AVI_close(depth_avi_out);
+	gf_mx_del(avi_mx);
 #endif
 
 	if (sha_out) fclose(sha_out);

@@ -55,13 +55,17 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	u32 obj_time, ts;
 	s32 drift;
 	Fixed speed;
+	Bool done;
 	GF_AudioInput *ai = (GF_AudioInput *) callback;
 	/*even if the stream is signaled as finished we must check it, because it may have been restarted by a mediaControl*/
 	if (!ai->stream) return NULL;
 
-	frame = gf_mo_fetch_data(ai->stream, 0, &ai->stream_finished, &ts, size, NULL, NULL);
+	done = ai->stream_finished;
+	frame = gf_mo_fetch_data(ai->stream, ai->compositor->audio_renderer->step_mode ? GF_MO_FETCH_PAUSED : GF_MO_FETCH, &ai->stream_finished, &ts, size, NULL, NULL);
 	/*invalidate scene on end of stream to refresh audio graph*/
-	if (ai->stream_finished) gf_sc_invalidate(ai->compositor, NULL);
+	if (done != ai->stream_finished) {
+		gf_sc_invalidate(ai->compositor, NULL);
+	}
 
 	/*no more data or not enough data, reset syncro drift*/
 	if (!frame) {
@@ -71,6 +75,10 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 		return NULL;
 	}
 	ai->need_release = 1;
+
+	//step mode, return the frame without sync check
+	if (ai->compositor->audio_renderer->step_mode) 
+		return frame;
 
 	speed = gf_mo_get_current_speed(ai->stream);
 

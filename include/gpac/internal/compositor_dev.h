@@ -1058,6 +1058,8 @@ typedef struct _audio_render
 
 	GF_AudioFilterChain filter_chain;
 	u32 nb_filled, nb_used;
+
+	Bool step_mode;
 } GF_AudioRenderer;
 
 /*creates audio renderer*/
@@ -1089,6 +1091,8 @@ void gf_sc_ar_remove_src(GF_AudioRenderer *ar, GF_AudioInterface *source);
 /*reconfig audio hardware if needed*/
 void gf_sc_ar_reconfig(GF_AudioRenderer *ar);
 u32 gf_sc_ar_get_delay(GF_AudioRenderer *ar);
+
+void gf_sc_flush_next_audio(GF_Compositor *compositor);
 
 /*the sound node interface for intensity & spatialization*/
 typedef struct _soundinterface

@@ -846,6 +846,8 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 		}
 	}
 	term->compositor->step_mode = 1;
+	term->compositor->audio_renderer->step_mode = 1;
+
 	gf_sc_next_frame_state(term->compositor, GF_SC_DRAW_FRAME);
 	gf_sc_lock(term->compositor, 0);
 	return GF_OK;

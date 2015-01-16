@@ -123,7 +123,7 @@ static GF_ESD *AAC_GetESD(AACReader *read)
 {
 	GF_BitStream *dsi;
 	GF_ESD *esd;
-	u32 i, sbr_sr_idx;
+	u32 i, sbr_sr_idx, sbr_oti;
 
 	esd = gf_odf_desc_esd_new(0);
 	if (!esd)
@@ -142,16 +142,20 @@ static GF_ESD *AAC_GetESD(AACReader *read)
 	gf_bs_write_int(dsi, read->nb_ch, 4);
 	gf_bs_align(dsi);
 
-	/*always signal implicit S	BR in case it's used*/
-	sbr_sr_idx = read->sr_idx;
-	for (i=0; i<16; i++) {
-		if (GF_M4ASampleRates[i] == (u32) 2*read->sample_rate) {
-			sbr_sr_idx = i;
-			break;
+	sbr_sr_idx = 0;
+	sbr_oti = 0;
+	/*always signal implicit SBR for <=24000,  in case it's used*/
+	if (read->sample_rate<=24000) {
+		sbr_sr_idx = read->sr_idx;
+		for (i=0; i<16; i++) {
+			if (GF_M4ASampleRates[i] == (u32) 2*read->sample_rate) {
+				sbr_sr_idx = i;
+				break;
+			}
 		}
 	}
 	gf_bs_write_int(dsi, 0x2b7, 11);
-	gf_bs_write_int(dsi, 5, 5);
+	gf_bs_write_int(dsi, sbr_oti, 5);
 	gf_bs_write_int(dsi, 1, 1);
 	gf_bs_write_int(dsi, sbr_sr_idx, 4);
 
@@ -260,7 +264,7 @@ static Bool AAC_ConfigureFromFile(AACReader *read)
 
 	read->duration = 0;
 
-	if (0 && !read->is_remote) {
+	if (!read->is_remote) {
 		read->duration = 1024;
 		gf_bs_skip_bytes(bs, hdr.frame_size);
 		while (ADTS_SyncFrame(bs, !read->is_remote, &hdr)) {

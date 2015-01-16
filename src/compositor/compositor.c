@@ -703,6 +703,7 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 	/*step mode*/
 	if (PlayState==GF_STATE_STEP_PAUSE) {
 		compositor->step_mode = 1;
+		compositor->audio_renderer->step_mode = 1;
 		if (!compositor->paused)
 			gf_term_set_option(compositor->term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
 		else {
@@ -2236,6 +2237,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			gf_sleep(compositor->bench_mode ? 2 : compositor->frame_duration);
 		}
 		compositor->force_bench_frame=0;
+		compositor->frame_draw_type = 0;
 		return;
 	}
 
