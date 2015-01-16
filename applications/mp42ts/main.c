@@ -1749,7 +1749,9 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		}
 }
 
+#ifdef GPAC_MEMORY_TRACKING
 static Bool enable_mem_tracker = GF_FALSE;
+#endif
 
 /*macro to keep retro compatibility with '=' and spaces in parse_args*/
 #define CHECK_PARAM(param) (!strnicmp(arg, param, strlen(param)) \
