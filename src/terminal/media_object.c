@@ -365,7 +365,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 
 
 GF_EXPORT
-char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next)
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next)
 {
 	GF_Codec *codec;
 	u32 force_decode_mode = 0;
@@ -405,6 +405,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		gf_odm_lock(mo->odm, 0);
 		return NULL;
 	}
+	if (resync==GF_MO_FETCH_PAUSED)
+		resync=GF_MO_FETCH;
 
 	bench_mode = mo->odm->term->bench_mode;
 

@@ -295,6 +295,8 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 	if (!ar->need_reconfig) {
 		u32 delay_ms = ar->disable_resync ?	0 : ar->audio_delay;
 
+		gf_mixer_lock(ar->mixer, 1);
+
 		if (ar->filter_chain.enable_filters) {
 			char *ptr = buffer;
 			u32 res = buffer_size;
@@ -330,7 +332,10 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 		} else {
 			written = gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
 		}
-		if (ar->audio_listeners) {
+		ar->step_mode = 0;
+		gf_mixer_lock(ar->mixer, 0);
+
+		if (ar->audio_listeners && written) {
 			u32 k=0;
 			GF_AudioListener *l;
 			while ((l = gf_list_enum(ar->audio_listeners, &k))) {
@@ -340,6 +345,14 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 		return written;
 	}
 	return 0;
+}
+
+GF_EXPORT
+void gf_sc_flush_next_audio(GF_Compositor *compositor)
+{
+	gf_mixer_lock(compositor->audio_renderer->mixer, 1);
+	compositor->audio_renderer->step_mode = 1;
+	gf_mixer_lock(compositor->audio_renderer->mixer, 0);
 }
 
 u32 gf_ar_proc(void *p)
