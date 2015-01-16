@@ -221,7 +221,6 @@ static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg,
 	/*if late or seeking don't decode*/
 	switch (mmlevel) {
 	case GF_CODEC_LEVEL_SEEK:
-	case GF_CODEC_LEVEL_DROP:
 		*outBufferLength = 0;
 		return GF_OK;
 	default:

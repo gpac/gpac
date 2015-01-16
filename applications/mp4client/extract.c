@@ -624,27 +624,34 @@ typedef struct
 	GF_Mutex *mx;
 	avi_t *avi;
 	u32 time_scale;
-	u32 video_time, video_next_time, video_time_init, audio_time, flush_retry;
+	u64 max_dur, nb_bytes, audio_time;
+	u32 video_time, video_next_time, video_time_init, audio_time_init, flush_retry, nb_write;
 } AVI_AudioListener;
 
 void avi_audio_frame(void *udta, char *buffer, u32 buffer_size, u32 time, u32 delay)
 {
 	AVI_AudioListener *avil = (AVI_AudioListener *)udta;
 
+	if (avil->audio_time >= avil->audio_time_init + avil->max_dur)
+		return;
+
 	gf_mx_p(avil->mx);
-	AVI_write_audio(avil->avi, buffer, buffer_size);
 	
-	if (!avil->video_time_init) {
-		avil->audio_time = avil->video_time;
-		avil->video_time_init=1;
+	avil->nb_bytes+=buffer_size;
+	avil->flush_retry=0;
+
+	if (avil->audio_time >= avil->audio_time_init) {
+		avil->nb_write++;
+		AVI_write_audio(avil->avi, buffer, buffer_size);
 	}
 
-	avil->audio_time += 1000*buffer_size/avil->time_scale;
+
+	avil->audio_time = 1000*avil->nb_bytes/avil->time_scale;
+
 	//we are behind video dump, force audio flush 
 	if (avil->audio_time < avil->video_next_time)  {
 		gf_sc_flush_next_audio(term->compositor);
 	}
-	avil->flush_retry=0;
 	gf_mx_v(avil->mx);
 }
 
@@ -667,13 +674,13 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	char szPath[GF_MAX_PATH];
 	char szOutPath[GF_MAX_PATH];
 	char *prev=NULL;
-	u32 time, prev_time, nb_frames;
+	u32 time, prev_time, nb_frames, init_time;
 	u64 dump_dur;
 	char *conv_buf = NULL;
 #ifndef GPAC_DISABLE_AVILIB
 	avi_t *avi_out = NULL;
 	avi_t *depth_avi_out = NULL;
-	GF_Mutex *avi_mx;
+	GF_Mutex *avi_mx = NULL;
 	AVI_AudioListener avi_al;
 #endif
 	FILE *sha_out = NULL;
@@ -835,6 +842,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			avi_al.al.on_audio_reconfig = avi_audio_reconfig;
 			avi_al.mx = avi_mx;
 			avi_al.avi = avi_out;
+			avi_al.max_dur=dump_dur;
 
 			gf_sc_add_audio_listener(term->compositor, &avi_al.al);
 		}
@@ -854,7 +862,12 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 	cur_time_idx = 0;
 	/*step to first frame*/
-	if (prev_time) gf_term_step_clocks(term, prev_time);
+	if (prev_time) {
+		gf_term_step_clocks(term, prev_time);
+		init_time = avi_al.audio_time_init = prev_time;
+		avi_al.video_next_time = avi_al.video_time = init_time;
+		prev_time=0;
+	}
 
 	while (time < dump_dur) {
 		while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
@@ -894,10 +907,10 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			}
 		}
 
-		avi_al.video_time = prev_time;
+		avi_al.video_time = init_time + (u32) (nb_frames*1000/fps);
 		nb_frames++;
 		time = (u32) (nb_frames*1000/fps);
-		avi_al.video_next_time = time;
+		avi_al.video_next_time = init_time + time;
 		gf_term_step_clocks(term, time - prev_time);
 		prev_time = time;
 
@@ -924,7 +937,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	}
 	if (avi_out) AVI_close(avi_out);
 	if (depth_avi_out) AVI_close(depth_avi_out);
-	gf_mx_del(avi_mx);
+	if (avi_mx) gf_mx_del(avi_mx);
 #endif
 
 	if (sha_out) fclose(sha_out);

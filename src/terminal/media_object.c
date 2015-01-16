@@ -464,10 +464,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	/*note this assert is NOT true when recomputing DTS from CTS on the fly (MPEG1/2 RTP and H264/AVC RTP)*/
 	//assert(CU->TS >= codec->CB->LastRenderedTS);
 
-	if (codec->CB->UnitCount<=1) resync = GF_FALSE;
+	if (codec->CB->UnitCount<=1) resync = GF_MO_FETCH;
 
 	if (bench_mode && resync) {
-		resync = GF_FALSE;
+		resync = GF_MO_FETCH;
 		if (mo->timestamp == CU->TS) {
 			if (CU->next->dataLength) {
 				gf_cm_drop_output(codec->CB);
@@ -481,8 +481,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	obj_time = gf_clock_time(codec->ck);
 
 	//no drop mode, only for speed = 1: all frames are presented, we discard the current output only if already presented and next frame time is mature
-	if ((codec->ck->speed==1) && !(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO)) {
-		resync=GF_FALSE;
+	if (!codec->ck->Paused && (codec->ck->speed==1) && !(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO)) {
+		resync=GF_MO_FETCH;
 		if (/*gf_clock_is_started(mo->odm->codec->ck) && */ (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time) ) {
 			gf_cm_drop_output(codec->CB);
 			CU = gf_cm_get_output(codec->CB);
@@ -568,6 +568,9 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 		*eos = GF_FALSE;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %d) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, gf_clock_time(codec->ck), CU->TS, mo->framesize, mo->timestamp, codec->CB->UnitCount, gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
+	} else if (*eos) {
+		//already rendered the last frame, consider we no longer have pending late frame on this stream
+		mo->ms_until_pres = 0;
 	}
 
 	/*also adjust CU time based on consummed bytes in input, since some codecs output very large audio chunks*/
