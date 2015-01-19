@@ -9000,7 +9000,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	        || !stricmp(fmt, "AVC") || !stricmp(fmt, "H264") )
 		return gf_import_avc_h264(importer);
 	/*HEVC video*/
-	if (!strnicmp(ext, ".hevc", 5) || !strnicmp(ext, ".hvc", 4) || !strnicmp(ext, ".265", 4) || !strnicmp(ext, ".shvc", 5)
+	if (!strnicmp(ext, ".hevc", 5) || !strnicmp(ext, ".hvc", 4) || !strnicmp(ext, ".265", 4) || !strnicmp(ext, ".h265", 5) || !strnicmp(ext, ".shvc", 5)
 	        || !stricmp(fmt, "HEVC") || !stricmp(fmt, "SHVC") || !stricmp(fmt, "H265") )
 		return gf_import_hevc(importer);
 	/*AC3 and E-AC3*/
