@@ -377,13 +377,14 @@ void PrintDASHUsage()
 
 void PrintFormats()
 {
-	fprintf(stderr, "Suppported raw formats and file extensions:\n"
+	fprintf(stderr, "Supported raw formats and file extensions:\n"
 	        " NHNT                 .media .nhnt .info\n"
 	        " NHML                 .nhml (opt: .media .info)\n"
 	        " MPEG-1-2 Video       .m1v .m2v\n"
 	        " MPEG-4 Video         .cmp .m4v\n"
 	        " H263 Video           .263 .h263\n"
-	        " AVC/H264 Video       .h264 .h26L .264 .26L\n"
+            " AVC/H264 Video       .h264 .h26L .264 .26L .x264 .svc\n"
+            " HEVC Video          .hevc .h265 .265 .hvc .shvc\n"
 	        " JPEG Images          .jpg .jpeg\n"
 	        " PNG Images           .png\n"
 	        " MPEG 1-2 Audio       .mp3, .m1a, .m2a\n"

@@ -8274,9 +8274,9 @@ GF_Err pcrb_Read(GF_Box *s,GF_BitStream *bs)
 	ptr->pcr_values = gf_malloc(sizeof(u64)*ptr->subsegment_count);
 	for (i=0; i<ptr->subsegment_count; i++) {
 		u64 data1 = gf_bs_read_u32(bs);
-		u64 data2 = gf_bs_read_u32(bs);
-		ptr->size -= 8;
-		ptr->pcr_values[i] = (data1 << 10) | (data2 >> 22);
+		u64 data2 = gf_bs_read_u16(bs);
+		ptr->size -= 6;
+		ptr->pcr_values[i] = (data1 << 10) | (data2 >> 6);
 
 	}
 	return GF_OK;
@@ -8297,10 +8297,10 @@ GF_Err pcrb_Write(GF_Box *s, GF_BitStream *bs)
 
 	for (i=0; i<ptr->subsegment_count; i++ ) {
 		u32 data1 = (u32) (ptr->pcr_values[i] >> 10);
-		u32 data2 = (u32) ((ptr->pcr_values[i]& 0x3FF) << 22);
+		u16 data2 = (u16) (ptr->pcr_values[i] << 6);
 
 		gf_bs_write_u32(bs, data1);
-		gf_bs_write_u32(bs, data2);
+		gf_bs_write_u16(bs, data2);
 	}
 	return GF_OK;
 }
@@ -8313,7 +8313,7 @@ GF_Err pcrb_Size(GF_Box *s)
 	if (e) return e;
 
 	ptr->size += 4;
-	ptr->size += ptr->subsegment_count * 8;
+	ptr->size += ptr->subsegment_count * 6;
 
 	return GF_OK;
 }

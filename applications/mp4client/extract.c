@@ -626,6 +626,7 @@ typedef struct
 	u32 time_scale;
 	u64 max_dur, nb_bytes, audio_time;
 	u32 video_time, video_next_time, video_time_init, audio_time_init, flush_retry, nb_write;
+    u32 samplerate, bits_per_sample, nb_channel;
 } AVI_AudioListener;
 
 void avi_audio_frame(void *udta, char *buffer, u32 buffer_size, u32 time, u32 delay)
@@ -636,7 +637,12 @@ void avi_audio_frame(void *udta, char *buffer, u32 buffer_size, u32 time, u32 de
 		return;
 
 	gf_mx_p(avil->mx);
-	
+
+    if (!avil->time_scale) {
+        AVI_set_audio(avil->avi, avil->nb_channel, avil->samplerate, avil->bits_per_sample, WAVE_FORMAT_PCM, 0);
+        avil->time_scale = avil->nb_channel*avil->bits_per_sample*avil->samplerate/8;
+    }
+    
 	avil->nb_bytes+=buffer_size;
 	avil->flush_retry=0;
 
@@ -659,10 +665,9 @@ void avi_audio_reconfig(void *udta, u32 samplerate, u32 bits_per_sample, u32 nb_
 {
 	AVI_AudioListener *avil = (AVI_AudioListener *)udta;
 
-	gf_mx_p(avil->mx);
-	AVI_set_audio(avil->avi, nb_channel, samplerate, bits_per_sample, WAVE_FORMAT_PCM, 0);
-	avil->time_scale = nb_channel*bits_per_sample*samplerate/8;
-	gf_mx_v(avil->mx);
+    avil->nb_channel = nb_channel;
+    avil->samplerate = samplerate;
+    avil->bits_per_sample = bits_per_sample;
 }
 #endif
 
