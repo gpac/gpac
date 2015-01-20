@@ -391,7 +391,7 @@ enum
 	GF_ISOM_BOX_TYPE_SBTT	= GF_4CC( 's', 'b', 't', 't' ),
 
 	GF_ISOM_BOX_TYPE_STXT	= GF_4CC( 's', 't', 'x', 't' ),
-	GF_ISOM_BOX_TYPE_STTC	= GF_4CC( 's', 't', 't', 'C' ),
+	GF_ISOM_BOX_TYPE_STTC	= GF_4CC( 't', 'x', 't', 'C' ),
 
 	GF_ISOM_BOX_TYPE_PRFT   = GF_4CC( 'p', 'r', 'f', 't' ),
 
@@ -3558,6 +3558,7 @@ GF_Err twrp_Size(GF_Box *s);
 #ifndef GPAC_DISABLE_VTT
 /*WebVTT boxes*/
 GF_Box *boxstring_New(u32 type);
+GF_Box *boxstring_new_with_data(u32 type, const char *string);
 GF_Box *vtcu_New();
 GF_Box *vtte_New();
 GF_Box *wvtt_New();
@@ -3603,6 +3604,8 @@ typedef struct
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 	GF_StringBox *config;
 } GF_WebVTTSampleEntryBox;
+
+GF_WebVTTSampleEntryBox *gf_webvtt_isom_get_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex);
 
 typedef struct
 {
