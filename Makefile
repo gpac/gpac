@@ -10,19 +10,19 @@ all:	version
 	$(MAKE) -C applications all
 	$(MAKE) -C modules all
 
-SVNREV_PATH:=$(SRC_PATH)/include/gpac/revision.h
+GITREV_PATH:=$(SRC_PATH)/include/gpac/revision.h
+VERSION:=$(shell echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | cut -d '-' -f2-)
+BRANCH:=$(shell git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
 
 version:
-	@if [ -d $(SRC_PATH)/".svn" ]; then \
-		if which svnversion >/dev/null; then \
-			echo "#define GPAC_SVN_REVISION	\"$(shell svnversion $(SRC_PATH) )\"" > $(SVNREV_PATH).new ; \
-			if ! diff -q $(SVNREV_PATH) $(SVNREV_PATH).new >/dev/null ; then \
-				mv $(SVNREV_PATH).new  $(SVNREV_PATH) ;  \
-			fi ; \
-		fi \
+	@if [ -d $(SRC_PATH)/".git" ]; then \
+		echo "#define GPAC_GIT_REVISION	\"$(VERSION)-$(BRANCH)\"" > $(GITREV_PATH).new; \
+		if ! diff -q $(GITREV_PATH) $(GITREV_PATH).new >/dev/null ; then \
+			mv $(GITREV_PATH).new  $(GITREV_PATH); \
+		fi; \
 	else \
-		echo "No SVN Version found" ; \
-	fi \
+		echo "No GIT Version found" ; \
+	fi
 
 lib:	version
 	$(MAKE) -C src all
@@ -123,7 +123,7 @@ endif
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
 	$(INSTALL) $(INSTFLAGS) -m 644 gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" ; \
 	cp -R gui/extensions "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
-	rm -rf "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/*.svn" ; \
+	rm -rf "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/*.git" ; \
 	fi
 
 lninstall:
@@ -214,6 +214,11 @@ uninstall-lib:
 
 ifeq ($(CONFIG_DARWIN),yes)
 dmg:
+	@if [ ! -z "$(shell git diff  master..origin/master)" ]; then \
+		echo "Local revision and remote revision are not congruent; you may have local commit."; \
+		echo "Please consider pushing your commit before generating an installer"; \
+		exit 1; \
+	fi
 	rm "bin/gcc/MP4Client"
 	$(MAKE) -C applications/mp4client
 	./mkdmg.sh
@@ -221,13 +226,18 @@ endif
 
 ifeq ($(CONFIG_LINUX),yes)
 deb:
+	@if [ ! -z "$(shell git diff  master..origin/master)" ]; then \
+		echo "Local revision and remote revision are not congruent; you may have local commit."; \
+		echo "Please consider pushing your commit before generating an installer"; \
+		exit 1; \
+	fi
 	fakeroot debian/rules clean
-	sed -i "s/.DEV/.DEV-r`svnversion \"$(SRC_PATH)\"`/" debian/changelog
+	sed -i "s/0.5.1/0.5.2/" debian/changelog
+	sed -i "s/.DEV/.DEV-r$(VERSION)-$(BRANCH)/" debian/changelog
 	fakeroot debian/rules configure
 	fakeroot debian/rules binary
 	rm -rf debian/
-	svn cleanup
-	svn up
+	git checkout debian
 endif
 
 help:
