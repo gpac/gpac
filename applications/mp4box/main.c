@@ -3345,7 +3345,11 @@ int mp4boxMain(int argc, char **argv)
 				if (e) {
 					while (src) {
 						char *sep = strchr(src, '+');
-						if (sep) sep[0] = 0;
+						if (sep) {
+							sep[0] = 0;
+						} else {
+							break;
+						}
 
 						e = import_file(file, src, import_flags, import_fps, agg_samples);
 

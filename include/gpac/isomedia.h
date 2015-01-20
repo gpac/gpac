@@ -202,10 +202,10 @@ enum
 	GF_ISOM_SUBTYPE_HVT1			= GF_4CC( 'h', 'v', 't', '1' ),
 
 	/*3GPP(2) extension subtypes*/
-	GF_ISOM_SUBTYPE_3GP_H263		= GF_4CC( 's', '2', '6', '3' ),
+	GF_ISOM_SUBTYPE_3GP_H263	= GF_4CC( 's', '2', '6', '3' ),
 	GF_ISOM_SUBTYPE_3GP_AMR		= GF_4CC( 's', 'a', 'm', 'r' ),
 	GF_ISOM_SUBTYPE_3GP_AMR_WB	= GF_4CC( 's', 'a', 'w', 'b' ),
-	GF_ISOM_SUBTYPE_3GP_EVRC		= GF_4CC( 's', 'e', 'v', 'c' ),
+	GF_ISOM_SUBTYPE_3GP_EVRC	= GF_4CC( 's', 'e', 'v', 'c' ),
 	GF_ISOM_SUBTYPE_3GP_QCELP	= GF_4CC( 's', 'q', 'c', 'p' ),
 	GF_ISOM_SUBTYPE_3GP_SMV		= GF_4CC( 's', 's', 'm', 'v' ),
 
@@ -220,6 +220,8 @@ enum
 	GF_ISOM_SUBTYPE_STXT		= GF_4CC( 's', 't', 'x', 't' ),
 	GF_ISOM_SUBTYPE_STPP		= GF_4CC( 's', 't', 'p', 'p' ),
 	GF_ISOM_SUBTYPE_SBTT		= GF_4CC( 's', 'b', 't', 't' ),
+	GF_ISOM_SUBTYPE_METT		= GF_4CC( 'm', 'e', 't', 't' ),
+	GF_ISOM_SUBTYPE_METX		= GF_4CC( 'm', 'e', 't', 'x' ),
 };
 
 
@@ -1826,7 +1828,19 @@ void gf_isom_delete_generic_subtitle_sample(GF_GenericSubtitleSample *generic_su
 GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname, u32 *outDescriptionIndex);
 GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config);
 
-GF_Err gf_isom_stxt_info_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, char **mime, char **config);
+GF_Err gf_isom_stxt_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, const char **mime, const char **encoding, const char **config);
+GF_Err gf_isom_new_stxt_description(GF_ISOFile *movie, u32 trackNumber, u32 type, const char *mime, const char *encoding, const char *config, u32 *outDescriptionIndex);
+GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber, const char *encoding, const char *config, u32 DescriptionIndex);
+
+GF_Err gf_isom_xml_subtitle_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, 
+											const char **xmlnamespace, const char **xml_schema_loc, const char **mimes);
+GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie, u32 trackNumber,
+											const char *xmlnamespace, const char *xml_schema_loc, const char *auxiliary_mimes,
+											u32 *outDescriptionIndex);
+GF_Err gf_isom_update_xml_subtitle_description(GF_ISOFile *movie, u32 trackNumber,
+											   u32 descriptionIndex, GF_GenericSubtitleSampleDescriptor *desc);
+
+
 
 typedef enum
 {
@@ -1904,14 +1918,10 @@ text sample content is kept untouched*/
 GF_ISOSample *gf_isom_text_to_sample(GF_TextSample * tx_samp);
 
 
-GF_Err gf_isom_generic_subtitle_reset(GF_GenericSubtitleSample *samp);
-GF_ISOSample *gf_isom_generic_subtitle_to_sample(GF_GenericSubtitleSample * tx_samp);
-GF_Err gf_isom_generic_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char *text_data, u32 text_len);
 
 GF_GenericSubtitleSample *gf_isom_new_xml_subtitle_sample();
 void gf_isom_delete_xml_subtitle_sample(GF_GenericSubtitleSample * samp);
 GF_Err gf_isom_xml_subtitle_reset(GF_GenericSubtitleSample *samp);
-GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie,  u32 trackNumber, char *xmlnamespace, char *xml_schema_loc, char *mimes, u32 *outDescriptionIndex);
 GF_ISOSample *gf_isom_xml_subtitle_to_sample(GF_GenericSubtitleSample * tx_samp);
 GF_Err gf_isom_xml_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char *text_data, u32 text_len);
 
@@ -2179,11 +2189,11 @@ GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track
 				Timed Meta-Data extensions
 ********************************************************************/
 
-GF_Err gf_isom_get_timed_meta_data_info(GF_ISOFile *file, u32 track, u32 sampleDescription, Bool *is_xml, const char **mime_or_namespace, const char **content_encoding, const char **schema_loc);
+GF_Err gf_isom_get_xml_metadata_description(GF_ISOFile *file, u32 track, u32 sampleDescription, const char **_namespace, const char **schema_loc, const char **content_encoding);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*create a new timed metat data sample description for this track*/
-GF_Err gf_isom_timed_meta_data_config_new(GF_ISOFile *movie, u32 trackNumber, Bool is_xml, char *mime_or_namespace, char *content_encoding, char *schema_loc, char *URLname, char *URNname, u32 *outDescriptionIndex);
+GF_Err gf_isom_new_xml_metadata_description(GF_ISOFile *movie, u32 trackNumber, const char *_namespace, const char *schema_loc, const char *content_encoding, u32 *outDescriptionIndex);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 

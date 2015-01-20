@@ -2162,18 +2162,76 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		u32 w, h;
 		s16 l;
 		s32 tx, ty;
-		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, &l);
-		fprintf(stderr, "Timed Text - Size %d x %d - Translation X=%d Y=%d - Layer %d\n", w, h, tx, ty, l);
-	} else if (mtype == GF_ISOM_MEDIA_META) {
-		Bool is_xml = 0;
-		const char *mime_or_namespace = NULL;
 		const char *content_encoding = NULL;
+		const char *mime = NULL;
+		const char *config  = NULL;
+		const char *_namespace = NULL;
 		const char *schema_loc = NULL;
-		gf_isom_get_timed_meta_data_info(file, trackNum, 1, &is_xml, &mime_or_namespace, &content_encoding, &schema_loc);
-		fprintf(stderr, "%s Metadata stream\n\t%s %s\n\tencoding %s", is_xml ? "Xml" : "Text", is_xml ? "namespace" : "mime-type", mime_or_namespace, content_encoding);
-		if (is_xml && schema_loc != NULL)
-			fprintf(stderr, "\n\tschema %s\n", schema_loc);
-		fprintf(stderr, "\n");
+		const char *auxiliary_mimes = NULL;
+		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, &l);
+		if (msub_type == GF_ISOM_SUBTYPE_SBTT) {
+			gf_isom_stxt_get_description(file, trackNum, 1, &mime, &content_encoding, &config);
+			fprintf(stderr, "Textual Subtitle Stream ");
+			fprintf(stderr, "- mime %s", mime);
+			if (content_encoding != NULL) {
+				fprintf(stderr, " - encoding %s", content_encoding);
+			}
+			if (config != NULL) {
+				fprintf(stderr, " - has config");
+			}
+		} else if (msub_type == GF_ISOM_SUBTYPE_STXT) {
+			gf_isom_stxt_get_description(file, trackNum, 1, &mime, &content_encoding, &config);
+			fprintf(stderr, "Simple Timed Text Stream ");
+			fprintf(stderr, "- mime %s", mime);
+			if (content_encoding != NULL) {
+				fprintf(stderr, " - encoding %s", content_encoding);
+			}
+			if (config != NULL) {
+				fprintf(stderr, " - has config");
+			}
+		} else if (msub_type == GF_ISOM_SUBTYPE_STPP) {
+			gf_isom_xml_subtitle_get_description(file, trackNum, 1, &_namespace, &schema_loc, &auxiliary_mimes);
+			fprintf(stderr, "XML Subtitle Stream ");
+			fprintf(stderr, "- namespace %s", _namespace);
+			if (schema_loc != NULL) {
+				fprintf(stderr, " - schema-location %s", schema_loc);
+			}
+			if (auxiliary_mimes != NULL) {
+				fprintf(stderr, " - auxiliary-mime-types %s", auxiliary_mimes);
+			}
+		} else {
+			fprintf(stderr, "Unknown Text Stream");
+		}
+		fprintf(stderr, "\n Size %d x %d - Translation X=%d Y=%d - Layer %d\n", w, h, tx, ty, l);
+	} else if (mtype == GF_ISOM_MEDIA_META) {
+		const char *content_encoding = NULL;
+		if (msub_type == GF_ISOM_SUBTYPE_METT) {
+			const char *mime = NULL;
+			const char *config  = NULL;
+			gf_isom_stxt_get_description(file, trackNum, 1, &mime, &content_encoding, &config);
+			fprintf(stderr, "Textual Metadata Stream - mime %s", mime);
+			if (content_encoding != NULL) {
+				fprintf(stderr, " - encoding %s", content_encoding);
+			}
+			if (config != NULL) {
+				fprintf(stderr, " - has config");
+			}
+			fprintf(stderr, "\n");
+		} else if (msub_type == GF_ISOM_SUBTYPE_METX) {
+			const char *_namespace = NULL;
+			const char *schema_loc = NULL;
+			gf_isom_get_xml_metadata_description(file, trackNum, 1, &_namespace, &schema_loc, &content_encoding);
+			fprintf(stderr, "XML Metadata Stream - namespace %s", _namespace);
+			if (content_encoding != NULL) {
+				fprintf(stderr, " - encoding %s", content_encoding);
+			}
+			if (schema_loc != NULL) {
+				fprintf(stderr, " - schema-location %s", schema_loc);
+			} 
+			fprintf(stderr, "\n");
+		} else {
+			fprintf(stderr, "Unknown Metadata Stream\n");
+		}
 	} else {
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(file, trackNum, 1);
 		if (udesc) {
