@@ -4401,46 +4401,6 @@ GF_Err gf_isom_reset_switch_parameters(GF_ISOFile *movie)
 	return GF_OK;
 }
 
-GF_Err gf_isom_timed_meta_data_config_new(GF_ISOFile *movie, u32 trackNumber, Bool is_xml, char *mime_or_namespace, char *content_encoding, char *schema_loc, char *URLname, char *URNname, u32 *outDescriptionIndex)
-{
-	GF_TrackBox *trak;
-	GF_Err e;
-	u32 dataRefIndex;
-	GF_MetaDataSampleEntryBox *metad;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !trak->Media || !mime_or_namespace)
-		return GF_BAD_PARAM;
-
-	if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_META)
-		return GF_BAD_PARAM;
-
-	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
-	if (e) return e;
-	if (!dataRefIndex) {
-		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
-		if (e) return e;
-	}
-	if (!movie->keep_utc)
-		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
-
-	metad = (GF_MetaDataSampleEntryBox*) gf_isom_box_new(is_xml ? GF_ISOM_BOX_TYPE_METX : GF_ISOM_BOX_TYPE_METT);
-	if (!metad) return GF_OUT_OF_MEM;
-
-	metad->dataReferenceIndex = dataRefIndex;
-	metad->mime_type_or_namespace = gf_strdup(mime_or_namespace);
-	if (content_encoding) metad->content_encoding = gf_strdup(content_encoding);
-	if (schema_loc) metad->xml_schema_loc = gf_strdup(schema_loc);
-
-	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, metad);
-	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
-	return e;
-}
-
 
 GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable)
 {

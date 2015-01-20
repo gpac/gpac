@@ -3071,7 +3071,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		return GF_OK;
 	}
 	nhml = gf_f64_open(import->in_name, "rt");
-	if (!nhml) return gf_import_message(import, GF_URL_ERROR, "Cannot find %s file %s", szImpName, szMedia);
+	if (!nhml) return gf_import_message(import, GF_URL_ERROR, "Cannot find %s file %s", szImpName, import->in_name);
 
 	strcpy(szName, import->in_name);
 	ext = strrchr(szName, '.');
@@ -3194,7 +3194,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 																								else if (!stricmp(att->name, "mime_type")) dims.mime_type = att->value;
 																								else if (!stricmp(att->name, "media_namespace")) dims.mime_type = att->value;
 																								else if (!stricmp(att->name, "media_schema_location")) dims.xml_schema_loc = att->value;
-																								else if (!stricmp(att->name, "xml_namespace")) dims.contentEncoding = att->value;
+																								else if (!stricmp(att->name, "xml_namespace")) dims.mime_type = att->value;
 																								else if (!stricmp(att->name, "xml_schema_location")) dims.xml_schema_loc = att->value;
 
 	}
@@ -3332,17 +3332,46 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		if (e) goto exit;
 
 		gf_import_message(import, GF_OK, "3GPP DIMS import");
-	} else if (mtype == GF_ISOM_MEDIA_MPEG_SUBT) {
+	} else if (mtype == GF_ISOM_MEDIA_MPEG_SUBT || mtype == GF_ISOM_MEDIA_SUBT || mtype == GF_ISOM_MEDIA_TEXT) {
 		track = gf_isom_new_track(import->dest, tkID, mtype, timescale);
 		if (!track) {
 			e = gf_isom_last_error(import->dest);
 			goto exit;
 		}
-		e = gf_isom_new_xml_subtitle_description(import->dest, track,
-		        (char *)dims.contentEncoding, (char *)dims.xml_schema_loc, (char *)dims.mime_type,
-		        &di);
+		if(sdesc.codec_tag == GF_ISOM_SUBTYPE_STPP) {
+			e = gf_isom_new_xml_subtitle_description(import->dest, track,
+													 dims.mime_type, dims.xml_schema_loc, NULL,
+													 &di);
+		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_SBTT) {
+			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_SBTT,
+											 dims.mime_type, dims.textEncoding, NULL,
+											 &di);
+		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_STXT) {
+			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_STXT,
+											 dims.mime_type, dims.textEncoding, NULL,
+											 &di);
+		} else {
+			e = GF_NOT_SUPPORTED;
+		}
 		if (e) goto exit;
-
+	} else if (mtype == GF_ISOM_MEDIA_META) {
+		track = gf_isom_new_track(import->dest, tkID, mtype, timescale);
+		if (!track) {
+			e = gf_isom_last_error(import->dest);
+			goto exit;
+		}
+		if(sdesc.codec_tag == GF_ISOM_SUBTYPE_METX) {
+			e = gf_isom_new_xml_metadata_description(import->dest, track,
+													 dims.mime_type, dims.xml_schema_loc, dims.textEncoding, 
+													 &di);
+		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_METT) {
+			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_METT,
+											 dims.mime_type, dims.textEncoding, NULL,
+											 &di);
+		} else {
+			e = GF_NOT_SUPPORTED;
+		}
+		if (e) goto exit;
 	} else {
 		char szT[5];
 		sdesc.extension_buf = specInfo;

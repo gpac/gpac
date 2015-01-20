@@ -966,7 +966,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 				e = gf_import_message(import, GF_BAD_PARAM, "Found invalid EBU-TTD root attribute name %s, value %s (shall be \"%s\")\n", att->name, att->value, "http://www.w3.org/ns/ttml");
 				goto exit;
 			}
-			xmlns = att->name;
+			xmlns = att->value;
 		} else if (!strcmp(att->name, "xml:lang")) {
 			if (import->esd && !import->esd->langDesc) {
 				char *lang;
@@ -1292,110 +1292,7 @@ static GF_Err gf_text_import_ttml(GF_MediaImporter *import)
 }
 
 /* SimpleText Text tracks -related functions */
-GF_SimpleTextSampleEntryBox *gf_isom_get_simpletext_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex)
-{
-	GF_SimpleTextSampleEntryBox *stxt;
-	GF_TrackBox *trak;
-	GF_Err e;
-
-	if (!descriptionIndex) return NULL;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_READ);
-	if (e) return NULL;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !trak->Media) return NULL;
-
-	switch (trak->Media->handler->handlerType) {
-	case GF_ISOM_MEDIA_TEXT:
-		break;
-	default:
-		return NULL;
-	}
-
-	stxt = (GF_SimpleTextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
-	if (!stxt) return NULL;
-	return stxt;
-}
-
 GF_Box *boxstring_new_with_data(u32 type, const char *string);
-
-GF_Err gf_isom_update_simpletext_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config)
-{
-	GF_Err e;
-	GF_SimpleTextSampleEntryBox *stxt;
-	GF_TrackBox *trak;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return GF_BAD_PARAM;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !trak->Media) return GF_BAD_PARAM;
-
-	switch (trak->Media->handler->handlerType) {
-	case GF_ISOM_MEDIA_TEXT:
-		break;
-	default:
-		return GF_BAD_PARAM;
-	}
-
-	stxt = (GF_SimpleTextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
-	if (!stxt) {
-		return GF_BAD_PARAM;
-	} else {
-		switch (stxt->type) {
-		case GF_ISOM_BOX_TYPE_STXT:
-			break;
-		default:
-			return GF_BAD_PARAM;
-		}
-		if (!movie->keep_utc)
-			trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
-
-		stxt->config = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_STTC, config);
-		return GF_OK;
-	}
-}
-
-GF_Err gf_isom_new_simpletext_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname,
-        const char *content_encoding, const char *mime, u32 *outDescriptionIndex)
-{
-	GF_TrackBox *trak;
-	GF_Err e;
-	u32 dataRefIndex;
-	GF_SimpleTextSampleEntryBox *stxt;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !trak->Media) return GF_BAD_PARAM;
-
-	switch (trak->Media->handler->handlerType) {
-	case GF_ISOM_MEDIA_TEXT:
-		break;
-	default:
-		return GF_BAD_PARAM;
-	}
-
-	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
-	if (e) return e;
-	if (!dataRefIndex) {
-		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
-		if (e) return e;
-	}
-	if (!movie->keep_utc)
-		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
-
-	stxt = (GF_SimpleTextSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STXT);
-	stxt->dataReferenceIndex = dataRefIndex;
-	stxt->mime_type = gf_strdup(mime);
-	gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, stxt);
-	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
-	return e;
-}
-
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
 
@@ -1431,7 +1328,7 @@ static GF_Err swf_svg_add_iso_header(void *user, const char *data, u32 length, B
 	GF_ISOFlusher		*flusher = (GF_ISOFlusher *)user;
 	if (!flusher) return GF_BAD_PARAM;
 	if (isHeader) {
-		return gf_isom_update_simpletext_description(flusher->import->dest, flusher->track, flusher->descriptionIndex , data);
+		return gf_isom_update_stxt_description(flusher->import->dest, flusher->track, NULL, data, flusher->descriptionIndex);
 	} else {
 		return GF_OK;
 	}
@@ -1504,7 +1401,7 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 		/*and set sample descriptions*/
 		count =	gf_list_count(cfg->sample_descriptions);
 		for	(i=0; i<count; i++)	{
-			gf_isom_new_simpletext_description(import->dest, track, NULL, NULL, NULL, NULL, mime, &descIndex);
+			gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_STXT, mime, NULL, NULL, &descIndex);
 		}
 		gf_import_message(import, GF_OK, "SWF import - text track %d	x %d", cfg->text_width,	cfg->text_height);
 		gf_odf_desc_del((GF_Descriptor *)cfg);
@@ -1515,7 +1412,7 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 		gf_text_get_video_size(import, &w, &h);
 		gf_isom_set_track_layout_info(import->dest,	track, w<<16, h<<16, 0,	0, 0);
 
-		gf_isom_new_simpletext_description(import->dest, track,	NULL, NULL,	NULL, NULL, mime, &descIndex);
+		gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_STXT, mime, NULL,	NULL, &descIndex);
 
 		gf_import_message(import, GF_OK, "SWF import (as text - type: %s)", import->streamFormat);
 	}
@@ -2636,8 +2533,8 @@ GF_Err gf_import_timed_text(GF_MediaImporter *import)
 	if (import->streamFormat) {
 		if (!strcmp(import->streamFormat, "VTT")) fmt = GF_TEXT_IMPORT_WEBVTT;
 		else if (!strcmp(import->streamFormat, "TTML")) fmt = GF_TEXT_IMPORT_TTML;
+		if ((strstr(import->in_name, ".swf") || strstr(import->in_name, ".SWF")) && !stricmp(import->streamFormat, "SVG")) fmt = GF_TEXT_IMPORT_SWF_SVG;
 	}
-	if ((strstr(import->in_name, ".swf") || strstr(import->in_name, ".SWF")) && !stricmp(import->streamFormat, "SVG")) fmt = GF_TEXT_IMPORT_SWF_SVG;
 	if (!fmt) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTXT Import] Input %s does not look like a supported text format - ignoring\n", import->in_name));
 		return GF_NOT_SUPPORTED;

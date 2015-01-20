@@ -1018,7 +1018,8 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			gf_export_message(dumper, GF_OK, "Extracting Simple Text Stream");
 			if (add_ext) {
 				char *mime;
-				if (gf_isom_stxt_info_get(dumper->file, track, 1, &mime, &stxtcfg) == GF_OK) {
+				char *encoding;
+				if (gf_isom_stxt_get_description(dumper->file, track, 1, &mime, &encoding, &stxtcfg) == GF_OK) {
 					if (mime && !strcmp(mime, "image/svg+xml")) {
 						strcat(szName, ".svg");
 					} else {
