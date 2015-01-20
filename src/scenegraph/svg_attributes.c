@@ -468,6 +468,7 @@ const char *gf_dom_get_key_name(GF_KeyCode key_identifier)
 }
 
 
+GF_EXPORT
 GF_KeyCode gf_dom_get_key_type(char *key_name)
 {
 	if (strlen(key_name) == 1) {

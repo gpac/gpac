@@ -227,6 +227,7 @@ u32 gf_clock_real_time(GF_Clock *ck)
 	return time;
 }
 
+GF_EXPORT
 u32 gf_clock_time(GF_Clock *ck)
 {
 	u32 time = gf_clock_real_time(ck);
