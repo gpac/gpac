@@ -681,12 +681,12 @@ GF_Terminal *gf_term_new(GF_User *user)
 			gf_list_add(tmp->unthreaded_extensions, ifce);
 	}
 
-	gf_term_lock_media_queue(tmp, 1);
+	gf_mx_p(tmp->mm_mx);
 	if (!gf_list_count(tmp->unthreaded_extensions)) {
 		gf_list_del(tmp->unthreaded_extensions);
 		tmp->unthreaded_extensions = NULL;
 	}
-	gf_term_lock_media_queue(tmp, 0);
+	gf_mx_v(tmp->mm_mx);
 
 	if (0 == gf_cfg_get_key_count(user->config, "MimeTypes")) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Initializing Mime Types..."));
@@ -1186,7 +1186,7 @@ void gf_term_handle_services(GF_Terminal *term)
 	}
 
 	/*extensions*/
-	gf_term_lock_media_queue(term, 1);
+	gf_mx_p(term->mm_mx);
 	if (!term->reload_state && term->unthreaded_extensions) {
 		u32 i, count;
 		count = gf_list_count(term->unthreaded_extensions);
@@ -1195,7 +1195,7 @@ void gf_term_handle_services(GF_Terminal *term)
 			ifce->process(ifce, GF_TERM_EXT_PROCESS, NULL);
 		}
 	}
-	gf_term_lock_media_queue(term, 0);
+	gf_mx_v(term->mm_mx);
 
 
 	/*need to reload*/

@@ -485,6 +485,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 				id3_end = ftell(in); 
 			}
 		}
+		fseek(in, 0, SEEK_SET);
 	}
 
 	hdr = gf_mp3_get_next_header(in);
