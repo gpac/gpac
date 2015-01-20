@@ -1,9 +1,12 @@
 set OLDDIR=%CD%
 cd /d %~dp0
 
-for /f "delims=" %%a in ('svnversion') do set gpac_revision=%%a
+for /f "delims=" %%a in ('git describe --tags --long') do set VERSION=%%a
+for /f "delims=" %%a in ('git rev-parse --abbrev-ref HEAD') do set BRANCH=%%a
+REM remove anotated tag "v0.5.2-" from VERSION
+set revision="%VERSION:~7%-%BRANCH%"
 
-set gpac_version="0.5.1-DEV-r%gpac_revision%"
+set gpac_version="0.5.2-DEV-r%gpac_revision%"
 
 ECHO [Version] > gpaccab.inf
 ECHO Provider = "GPAC %gpac_version%" >> gpaccab.inf
