@@ -704,7 +704,7 @@ GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pi
 }
 #endif	/*GPAC_HAS_PNG*/
 
-
+GF_EXPORT
 GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
 {
 	u32 fsize, read, oti;

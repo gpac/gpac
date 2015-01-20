@@ -34,7 +34,7 @@ OrderedGroup {
   }
   WorldInfo {
    info ["This shows usage of MediaSensor" "without media segments defined" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
-   title "Media Sensor Test #1"
+   title "MediaSensor Test #1"
   }
   Shape {
    appearance Appearance {

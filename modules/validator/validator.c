@@ -35,7 +35,7 @@ typedef struct __validation_module
 	GF_Terminal *term;
 
 	Bool is_recording;
-	Bool no_associated_test;
+	Bool trace_mode;
 	char *prev_fps;
 	char *prev_alias;
 
@@ -223,7 +223,7 @@ Bool validator_on_event_play(void *udta, GF_Event *event, Bool consumed_by_compo
 	switch (event->type) {
 	case GF_EVENT_CONNECT:
 		if (event->connect.is_connected) {
-			if (!validator->no_associated_test) {
+			if (!validator->trace_mode) {
 				gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
 			}
 
@@ -399,7 +399,7 @@ Bool validator_on_event_record(void *udta, GF_Event *event, Bool consumed_by_com
 	switch (event->type) {
 	case GF_EVENT_CONNECT:
 		if (event->connect.is_connected) {
-			if (!validator->no_associated_test) {
+			if (!validator->trace_mode) {
 				gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
 			}
 			validator->ck = validator->term->root_scene->scene_codec ? validator->term->root_scene->scene_codec->ck : validator->term->root_scene->dyn_ck;
@@ -694,7 +694,7 @@ static void validator_test_open(GF_Validator *validator)
 {
 	char filename[100];
 	
-	if (!validator->no_associated_test) {
+	if (!validator->trace_mode) {
 		if (validator->test_base)
 			sprintf(filename, "%s%c%s", validator->test_base, GF_PATH_SEPARATOR, validator->test_filename);
 		else
@@ -852,7 +852,7 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 					return 0;
 				}
 				validator->test_filename = validator->xvs_filename;
-				validator->no_associated_test = 1;
+				validator->trace_mode = 1;
 				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator using trace file: %s\n", validator->xvs_filename));
 			} else {
 				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Validator using scenario file: %s\n", validator->xvs_filename));
@@ -923,7 +923,7 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 			validator->test_base = NULL;
 		}
 		/*auto-disable the recording by default*/
-		if (!validator->no_associated_test) {
+		if (!validator->trace_mode) {
 			if (validator->is_recording ) {
 				gf_modules_set_option((GF_BaseInterface*)termext, "Validator", "Mode", "Play");
 			} else {
@@ -965,18 +965,20 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 			has_more_events = validator_load_event(validator);
 			if (!has_more_events) {
 				validator_xvs_close(validator);
-				gf_term_disconnect(validator->term);
-				gf_sc_remove_video_listener(validator->term->compositor, &validator->video_listener);
-				validator_xvs_next(validator, 0);
-				if (!validator->xvs_node) {
-					GF_Event evt;
-					memset(&evt, 0, sizeof(GF_Event));
-					evt.type = GF_EVENT_QUIT;
-					validator->term->compositor->video_out->on_event(validator->term->compositor->video_out->evt_cbk_hdl, &evt);
-				} else {
-					if (!validator->is_recording) {
-						validator_load_event(validator);
-					}
+                if (! validator->trace_mode) {
+                    gf_term_disconnect(validator->term);
+                    gf_sc_remove_video_listener(validator->term->compositor, &validator->video_listener);
+                    validator_xvs_next(validator, 0);
+                    if (!validator->xvs_node) {
+                        GF_Event evt;
+                        memset(&evt, 0, sizeof(GF_Event));
+                        evt.type = GF_EVENT_QUIT;
+                        validator->term->compositor->video_out->on_event(validator->term->compositor->video_out->evt_cbk_hdl, &evt);
+                    } else {
+                        if (!validator->is_recording) {
+                            validator_load_event(validator);
+                        }
+                    }
 				}
 			}
 		}
