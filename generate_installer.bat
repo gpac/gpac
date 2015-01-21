@@ -44,8 +44,13 @@ if "%diff"=="" goto RevisionAbort
 
 REM execute git and check if the result if found within revision.h
 for /f "delims=" %%a in ('git describe --tags --long') do @set VERSION=%%a
+for /f "delims=" %%a in ('git describe --tags --abbrev=0') do @set TAG=%%a-
 for /f "delims=" %%a in ('git rev-parse --abbrev-ref HEAD') do @set BRANCH=%%a
-SET VarRevisionGIT=%VERSION:~7%-%BRANCH%
+REM remove anotated tag from VERSION
+setlocal enabledelayedexpansion
+call set VERSION=%%VERSION:!TAG!=%%
+setlocal disabledelayedexpansion
+SET VarRevisionGIT=%VERSION%-%BRANCH%
 for /f "delims=" %%i in ('type include\gpac\revision.h ^| findstr /i /r "%VarRevisionGIT%"') do Set VarRevisionBuild=%%i
 echo VarRevisionBuild = %VarRevisionBuild%
 echo VarRevisionGIT  = %VarRevisionGIT%
@@ -94,3 +99,4 @@ set VarRevisionSVN=
 set VarRevisionBuild=
 cd /d %OLDDIR%
 exit/b 1
+

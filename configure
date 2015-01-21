@@ -2423,7 +2423,8 @@ soname_version="${version_major}.${version_minor}.${version_micro}"
 
 
 if [ -d ".git" ]; then
-	VERSION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | cut -d '-' -f2-)
+	TAG=$(git describe --tags --abbrev=0 2> /dev/null)
+	VERSION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
 	BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
 	revision="$VERSION-$BRANCH"
 	echo "#define GPAC_GIT_REVISION	\"$revision\"" > $source_path/include/gpac/revision.h

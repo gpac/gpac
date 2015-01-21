@@ -11,7 +11,8 @@ all:	version
 	$(MAKE) -C modules all
 
 GITREV_PATH:=$(SRC_PATH)/include/gpac/revision.h
-VERSION:=$(shell echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | cut -d '-' -f2-)
+TAG:=$(shell git describe --tags --abbrev=0 2> /dev/null)
+VERSION:=$(shell echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$(TAG)-//")
 BRANCH:=$(shell git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
 
 version:
@@ -232,7 +233,6 @@ deb:
 		exit 1; \
 	fi
 	fakeroot debian/rules clean
-	sed -i "s/0.5.1/0.5.2/" debian/changelog
 	sed -i "s/.DEV/.DEV-r$(VERSION)-$(BRANCH)/" debian/changelog
 	fakeroot debian/rules configure
 	fakeroot debian/rules binary
