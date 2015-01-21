@@ -629,6 +629,8 @@ void gf_sc_del(GF_Compositor *compositor)
 
 #ifndef GPAC_DISABLE_3D
 	if (compositor->unit_bbox) mesh_free(compositor->unit_bbox);
+
+	if (compositor->screen_buffer) gf_free(compositor->screen_buffer);
 #endif
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Unloading visual compositor module\n"));
@@ -705,7 +707,8 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 	/*step mode*/
 	if (PlayState==GF_STATE_STEP_PAUSE) {
 		compositor->step_mode = 1;
-		compositor->audio_renderer->step_mode = 1;
+		gf_sc_flush_next_audio(compositor);
+
 		if (!compositor->paused)
 			gf_term_set_option(compositor->term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
 		else {
@@ -1486,6 +1489,13 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		compositor->freeze_display = value;
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
+	case GF_OPT_FORCE_AUDIO_CONFIG:
+		if (value) {
+			compositor->audio_renderer->config_forced++;
+		} else if (compositor->audio_renderer->config_forced) {
+			compositor->audio_renderer->config_forced --;
+		}
+		break;
 	case GF_OPT_RELOAD_CONFIG:
 		gf_sc_reload_config(compositor);
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
@@ -1917,6 +1927,7 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 
 static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 {
+	Bool force_pause = compositor->audio_renderer->Frozen ? 0 : 1;
 
 #ifndef GPAC_DISABLE_LOG
 	compositor->visual_config_time = 0;
@@ -1929,8 +1940,9 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			time = gf_sys_clock();
 		}
 #endif
+		if (force_pause )
+			gf_sc_ar_control(compositor->audio_renderer, 0);
 
-		gf_sc_ar_control(compositor->audio_renderer, 0);
 #ifndef GPAC_DISABLE_3D
 		if (compositor->autoconfig_opengl) {
 			compositor->visual->type_3d = 1;
@@ -1973,7 +1985,8 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #endif
 		}
 
-		gf_sc_ar_control(compositor->audio_renderer, 1);
+		if (force_pause )
+			gf_sc_ar_control(compositor->audio_renderer, 1);
 
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) {

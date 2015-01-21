@@ -435,8 +435,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 				gf_codec_process(codec, 1);
 				gf_term_lock_codec(codec, GF_FALSE, GF_TRUE);
 			}
-            if (force_decode_mode==2)
-                break;
+//            if (force_decode_mode==2) break;
 
 			CU = gf_cm_get_output(codec->CB);
 			if (CU)
@@ -446,7 +445,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 			//we will wait max 100 ms for the CB to be re-fill
 			gf_sleep(1);
 		}
-		if (!retry) {
+		if (!retry && (force_decode_mode==1)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not resize, decode and fetch next frame in 100 ms - blank frame after TS %d\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), mo->timestamp));
 		}
 		if (!gf_odm_lock_mo(mo))

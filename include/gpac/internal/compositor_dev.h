@@ -512,6 +512,9 @@ struct __tag_compositor
 	struct _gf_sc_texture_handler *hybgl_txh;
 	GF_Mesh *hybgl_mesh;
 	GF_Mesh *hybgl_mesh_background;
+
+	char *screen_buffer;
+	u32 screen_buffer_alloc_size;
 #endif
 
 	Bool texture_from_decoder_memory;
@@ -1028,6 +1031,7 @@ u32 gf_afc_process(GF_AudioFilterChain *afc, u32 nb_bytes);
 void gf_afc_unload(GF_AudioFilterChain *afc);
 void gf_afc_reset(GF_AudioFilterChain *afc);
 
+
 /*the audio renderer*/
 typedef struct _audio_render
 {
@@ -1036,17 +1040,24 @@ typedef struct _audio_render
 	Bool disable_resync;
 	Bool disable_multichannel;
 
-	/*startup time (the audio renderer is used when present as the system clock)*/
-	u32 startTime;
 	/*frozen time counter if set*/
 	Bool Frozen;
-	u32 FreezeTime;
+	/*startup time, used when no audio output is set*/
+	u32 start_time;
+	/*freeze time, used when no audio output is set*/
+	u32 freeze_time;
+
+	/*system clock compute when audio output is present*/
+	u32 current_time, bytes_per_second, time_at_last_config;
+	//number of bytes requested by sound card since last reconfig
+	u64 bytes_requested;
 
 	/*final output*/
 	GF_AudioMixer *mixer;
 	Bool need_reconfig;
 	/*client*/
 	GF_User *user;
+	u32 config_forced;
 
 	GF_List *audio_listeners;
 	/*audio thread if output not self-threaded*/
@@ -1060,6 +1071,7 @@ typedef struct _audio_render
 	u32 nb_filled, nb_used;
 
 	Bool step_mode;
+
 } GF_AudioRenderer;
 
 /*creates audio renderer*/
@@ -1093,6 +1105,7 @@ void gf_sc_ar_reconfig(GF_AudioRenderer *ar);
 u32 gf_sc_ar_get_delay(GF_AudioRenderer *ar);
 
 void gf_sc_flush_next_audio(GF_Compositor *compositor);
+Bool gf_sc_check_audio_pending(GF_Compositor *compositor);
 
 /*the sound node interface for intensity & spatialization*/
 typedef struct _soundinterface

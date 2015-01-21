@@ -355,6 +355,7 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fra
 {
 	GF_Err e;
 	u32 i, k;
+
 	GF_VideoSurface fb;
 	u32 dump_mode = dump_mode_flags & 0x0000FFFF;
 
@@ -625,13 +626,16 @@ typedef struct
 	avi_t *avi;
 	u32 time_scale;
 	u64 max_dur, nb_bytes, audio_time;
-	u32 video_time, video_next_time, video_time_init, audio_time_init, flush_retry, nb_write;
+	u32 next_video_time, audio_time_init, flush_retry, nb_write, audio_clock_at_video_init;
     u32 samplerate, bits_per_sample, nb_channel;
 } AVI_AudioListener;
 
 void avi_audio_frame(void *udta, char *buffer, u32 buffer_size, u32 time, u32 delay)
 {
 	AVI_AudioListener *avil = (AVI_AudioListener *)udta;
+
+	if (avil->audio_clock_at_video_init > time) 
+		return;
 
 	if (avil->audio_time >= avil->audio_time_init + avil->max_dur)
 		return;
@@ -641,6 +645,7 @@ void avi_audio_frame(void *udta, char *buffer, u32 buffer_size, u32 time, u32 de
     if (!avil->time_scale) {
         AVI_set_audio(avil->avi, avil->nb_channel, avil->samplerate, avil->bits_per_sample, WAVE_FORMAT_PCM, 0);
         avil->time_scale = avil->nb_channel*avil->bits_per_sample*avil->samplerate/8;
+		gf_term_set_option(term, GF_OPT_FORCE_AUDIO_CONFIG, 1);
     }
     
 	avil->nb_bytes+=buffer_size;
@@ -655,8 +660,8 @@ void avi_audio_frame(void *udta, char *buffer, u32 buffer_size, u32 time, u32 de
 	avil->audio_time = 1000*avil->nb_bytes/avil->time_scale;
 
 	//we are behind video dump, force audio flush 
-	if (avil->audio_time < avil->video_next_time)  {
-		gf_sc_flush_next_audio(term->compositor);
+	if (avil->audio_time < avil->next_video_time)  {
+		gf_term_step_clocks(term, 0);
 	}
 	gf_mx_v(avil->mx);
 }
@@ -866,13 +871,17 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	}
 
 	cur_time_idx = 0;
+	init_time = 0;
 	/*step to first frame*/
 	if (prev_time) {
 		gf_term_step_clocks(term, prev_time);
-		init_time = avi_al.audio_time_init = prev_time;
-		avi_al.video_next_time = avi_al.video_time = init_time;
+		init_time = prev_time;
 		prev_time=0;
 	}
+#ifndef GPAC_DISABLE_AVILIB
+	avi_al.audio_time_init = avi_al.next_video_time = init_time;
+	avi_al.audio_clock_at_video_init = gf_term_get_clock(term);
+#endif
 
 	while (time < dump_dur) {
 		while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
@@ -912,10 +921,9 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			}
 		}
 
-		avi_al.video_time = init_time + (u32) (nb_frames*1000/fps);
 		nb_frames++;
 		time = (u32) (nb_frames*1000/fps);
-		avi_al.video_next_time = init_time + time;
+		avi_al.next_video_time = init_time + time;
 		gf_term_step_clocks(term, time - prev_time);
 		prev_time = time;
 
@@ -930,7 +938,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
 		avi_al.flush_retry=0;
 		while ((avi_al.flush_retry <100) && (avi_al.audio_time < dump_dur)) {
-			gf_sc_flush_next_audio(term->compositor);
+			gf_term_step_clocks(term, 0);
 			gf_sleep(1);
 			avi_al.flush_retry++;
 		}

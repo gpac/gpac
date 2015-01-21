@@ -209,6 +209,10 @@ this will call all decoders to adjust their quality levels
 VERY BASIC INTERFACE*/
 void gf_term_switch_quality(GF_Terminal *term, Bool up);
 
+
+/*get global clock in milliseconds*/
+u32 gf_term_get_clock(GF_Terminal *term);
+
 #ifdef __cplusplus
 }
 #endif

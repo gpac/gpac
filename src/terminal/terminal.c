@@ -834,22 +834,26 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 	GF_ClientService *ns;
 	/*only play/pause if connected*/
 	if (!term || !term->root_scene || !term->root_scene->root_od) return GF_BAD_PARAM;
-	if (term->play_state == GF_STATE_PLAYING) return GF_BAD_PARAM;
 
-	gf_sc_lock(term->compositor, 1);
-	i=0;
-	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
-		GF_Clock *ck;
-		j=0;
-		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
-			ck->init_time += ms_diff;
+	if (ms_diff) {
+		if (term->play_state == GF_STATE_PLAYING) return GF_BAD_PARAM;
+
+		gf_sc_lock(term->compositor, 1);
+		i=0;
+		while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
+			GF_Clock *ck;
+			j=0;
+			while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
+				ck->init_time += ms_diff;
+			}
 		}
-	}
-	term->compositor->step_mode = 1;
-	term->compositor->audio_renderer->step_mode = 1;
+		term->compositor->step_mode = 1;
 
-	gf_sc_next_frame_state(term->compositor, GF_SC_DRAW_FRAME);
-	gf_sc_lock(term->compositor, 0);
+		gf_sc_next_frame_state(term->compositor, GF_SC_DRAW_FRAME);
+		gf_sc_lock(term->compositor, 0);
+	}
+
+	gf_sc_flush_next_audio(term->compositor);
 	return GF_OK;
 }
 
@@ -2403,4 +2407,10 @@ GF_Err gf_term_get_visual_output_size(GF_Terminal *term, u32 *width, u32 *height
 	if (width) *width = term->compositor->vp_width;
 	if (height) *height = term->compositor->vp_height;
 	return GF_OK;
+}
+
+GF_EXPORT
+u32 gf_term_get_clock(GF_Terminal *term)
+{
+	return gf_sc_ar_get_clock(term->compositor->audio_renderer);
 }

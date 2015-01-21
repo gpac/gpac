@@ -2557,7 +2557,13 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		fb->pitch_x = 0;
 		fb->pitch_y = compositor->vp_width;
 
-		fb->video_buffer = (char*)gf_malloc(sizeof(char)* fb->pitch_y * fb->height);
+		if (compositor->screen_buffer_alloc_size < fb->pitch_y * fb->height) {
+			compositor->screen_buffer_alloc_size = fb->pitch_y * fb->height;
+			compositor->screen_buffer = gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
+		}
+
+		fb->video_buffer = compositor->screen_buffer;
+		
 		//read as float
 		depthp = (Float*)gf_malloc(sizeof(Float)* fb->pitch_y * fb->height);
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
@@ -2589,16 +2595,20 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		return GF_NOT_SUPPORTED;
 #else
 		char *depth_data=NULL;
+		u32 size;
 		fb->pitch_x = 4;
 		fb->pitch_y = compositor->vp_width*4; /* 4 bytes for each rgbds pixel */
 
 #ifndef GPAC_USE_TINYGL
-		fb->video_buffer = (char*)gf_malloc(sizeof(char)* fb->pitch_y * fb->height);
+		size = fb->pitch_y * fb->height;
 #else
-		fb->video_buffer = (char*)gf_malloc(sizeof(char)* 2 * fb->pitch_y * fb->height);
+		size = 2 * fb->pitch_y * fb->height;
 #endif
-
-
+		if (compositor->screen_buffer_alloc_size < size) {
+			compositor->screen_buffer_alloc_size = size;
+			compositor->screen_buffer = gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
+		}
+		fb->video_buffer = compositor->screen_buffer;
 
 #ifndef GPAC_USE_TINYGL
 
@@ -2641,9 +2651,16 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 #endif /*GPAC_USE_OGL_ES*/
 	} else { /*if (compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT))*/
+		u32 size;
 		fb->pitch_x = 4;
 		fb->pitch_y = 4*compositor->vp_width;
-		fb->video_buffer = (char*)gf_malloc(sizeof(char) * fb->pitch_y * fb->height);
+		size = fb->pitch_y * fb->height;
+		if (compositor->screen_buffer_alloc_size < size) {
+			compositor->screen_buffer_alloc_size = size;
+			compositor->screen_buffer = gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
+		}
+
+		fb->video_buffer = compositor->screen_buffer;
 		fb->pixel_format = GF_PIXEL_RGBA;
 
 		glReadPixels(0, 0, fb->width, fb->height, GL_RGBA, GL_UNSIGNED_BYTE, fb->video_buffer);
@@ -2673,7 +2690,6 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 GF_Err compositor_3d_release_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer)
 {
-	gf_free(framebuffer->video_buffer);
 	framebuffer->video_buffer = 0;
 	return GF_OK;
 }

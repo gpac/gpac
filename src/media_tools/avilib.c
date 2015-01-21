@@ -1767,8 +1767,18 @@ int AVI_close(avi_t *AVI)
 	{
 		if(AVI->track[j].audio_index) gf_free(AVI->track[j].audio_index);
 		if(AVI->track[j].audio_superindex) {
-			if(AVI->track[j].audio_superindex->aIndex) gf_free(AVI->track[j].audio_superindex->aIndex);
-			gf_free(AVI->track[j].audio_superindex);
+			avisuperindex_chunk *asi = AVI->track[j].audio_superindex;
+			if (asi->aIndex) gf_free(asi->aIndex);
+
+			if (asi->stdindex) {
+				for (j=0; j < NR_IXNN_CHUNKS; j++) {
+					if (asi->stdindex[j]->aIndex)
+						gf_free(asi->stdindex[j]->aIndex);
+					gf_free(asi->stdindex[j]);
+				}
+				gf_free(asi->stdindex);
+			}
+			gf_free(asi);
 		}
 	}
 
