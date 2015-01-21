@@ -71,7 +71,8 @@ export BUILDPATH=$(dirname "$0")
 cd $BUILDPATH
 export BUILDPATH=$(pwd)
 echo "Current Dir = $BUILDPATH"
-REVISION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | cut -d '-' -f2-)
+TAG=$(git describe --tags --abbrev=0 2> /dev/null)
+REVISION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
 version="$REVISION-$BRANCH"
 echo "*** Build path is $BUILDPATH, setting revision number $version"
