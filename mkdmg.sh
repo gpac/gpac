@@ -31,7 +31,7 @@ then
 rm -fr tmpdmg
 fi
 mkdir -p tmpdmg/Osmo4.app
-rsync -r --exclude=.svn $source_path/build/osxdmg/Osmo4.app/ ./tmpdmg/Osmo4.app/
+rsync -r --exclude=.git $source_path/build/osxdmg/Osmo4.app/ ./tmpdmg/Osmo4.app/
 ln -s /Applications ./tmpdmg/Applications
 cp $source_path/README ./tmpdmg
 cp $source_path/COPYING ./tmpdmg
@@ -77,14 +77,17 @@ fi
 cd ../../../..
 
 echo Copying GUI
-rsync -r --exclude=.svn $source_path/gui ./tmpdmg/Osmo4.app/Contents/MacOS/
+rsync -r --exclude=.git $source_path/gui ./tmpdmg/Osmo4.app/Contents/MacOS/
 
 echo Building DMG
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/version.h | cut -d '"' -f 2`
 
 cur_dir=`pwd`
 cd $source_path
-rev=`LANG=en_US svn info | grep Revision | tr -d 'Revision: '`
+TAG=$(git describe --tags --abbrev=0 2> /dev/null)
+REVISION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
+rev="$REVISION-$BRANCH"
 cd $cur_dir
 
 full_version=$version
