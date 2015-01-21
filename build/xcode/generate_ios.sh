@@ -4,7 +4,10 @@ cd "`dirname $0`"
 
 echo "*** Set version within Info.plist application file ***"
 version=`grep '#define GPAC_VERSION ' ../../include/gpac/version.h | cut -d '"' -f 2`
-rev=`LANG=en_US svn info | grep Revision | tr -d 'Revision: '`
+TAG=$(git describe --tags --abbrev=0 2> /dev/null)
+REVISION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
+rev="$REVISION-$BRANCH"
 if [ "$rev" != "" ]
 then
 #	svn revert ../../applications/osmo4_ios/osmo4ios-Info.plist
@@ -63,10 +66,10 @@ cp ../../gui/gwlib.js osmo4ios.app/gui/
 cp ../../gui/mpegu-core.js osmo4ios.app/gui/
 cp -r ../../gui/icons osmo4ios.app/gui/
 cp -r ../../gui/extensions osmo4ios.app/gui/
-find osmo4ios.app | fgrep .svn | fgrep -v svn/ | xargs rm -rf 
+find osmo4ios.app | fgrep .git | fgrep -v git/ | xargs rm -rf
 tar -czf "osmo4ios-$full_version.tar.gz" osmo4ios.app/
 rm -rf osmo4ios.app
-svn up -r $rev
+git pull
 cd ../../build/xcode/
 
 echo "*** GPAC generation for iOS completed ($full_version)! ***"
