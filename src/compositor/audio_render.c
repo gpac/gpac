@@ -277,6 +277,10 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 	ar->audio_out->SetVolume(ar->audio_out, ar->volume);
 	ar->audio_out->SetPan(ar->audio_out, ar->pan);
 
+	ar->time_at_last_config = ar->current_time;
+	ar->bytes_requested = 0;
+	ar->bytes_per_second = freq * nb_chan * nb_bits / 8;
+
 	if (ar->audio_listeners) {
 		u32 k=0;
 		GF_AudioListener *l;
@@ -285,6 +289,25 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		}
 	}
 	return GF_OK;
+}
+
+static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, Bool reset_hw_buffer)
+{
+	gf_mixer_lock(ar->mixer, 1);
+	if (DoFreeze) {
+		if (!ar->Frozen) {
+			ar->freeze_time = gf_sys_clock();
+			if (!for_reconfig && ar->audio_out && ar->audio_out->Play) ar->audio_out->Play(ar->audio_out, 0);
+			ar->Frozen = 1;
+		}
+	} else {
+		if (ar->Frozen) {
+			if (!for_reconfig && ar->audio_out && ar->audio_out->Play) ar->audio_out->Play(ar->audio_out, reset_hw_buffer ? 2 : 1);
+			ar->Frozen = 0;
+			ar->start_time += gf_sys_clock() - ar->freeze_time;
+		}
+	}
+	gf_mixer_lock(ar->mixer, 0);
 }
 
 
@@ -332,27 +355,54 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 		} else {
 			written = gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
 		}
-		ar->step_mode = 0;
+		//done with one sim step, go back in pause
+		if (ar->step_mode) {
+			ar->step_mode = 0;
+			gf_ar_pause(ar, 1, 0, 0);
+		}
 		gf_mixer_lock(ar->mixer, 0);
 
-		if (ar->audio_listeners && written) {
-			u32 k=0;
-			GF_AudioListener *l;
-			while ((l = gf_list_enum(ar->audio_listeners, &k))) {
-				l->on_audio_frame(l->udta, buffer, written, gf_sc_ar_get_clock(ar), delay_ms);
+		if (!ar->need_reconfig) {
+			if (ar->audio_listeners) {
+				u32 k=0;
+				GF_AudioListener *l;
+				while ((l = gf_list_enum(ar->audio_listeners, &k))) {
+					l->on_audio_frame(l->udta, buffer, buffer_size, gf_sc_ar_get_clock(ar), delay_ms);
+				}
 			}
+
+			ar->bytes_requested += buffer_size;
+			ar->current_time = ar->time_at_last_config + (u32) (ar->bytes_requested * 1000 / ar->bytes_per_second);
 		}
+
 		return written;
 	}
 	return 0;
 }
 
-GF_EXPORT
 void gf_sc_flush_next_audio(GF_Compositor *compositor)
 {
+	if (!compositor->audio_renderer->audio_out)
+		return;
+
 	gf_mixer_lock(compositor->audio_renderer->mixer, 1);
 	compositor->audio_renderer->step_mode = 1;
+	//resume for one frame
+	if (compositor->audio_renderer->Frozen) {
+		gf_ar_pause(compositor->audio_renderer, 0, 0, 0);
+	}
 	gf_mixer_lock(compositor->audio_renderer->mixer, 0);
+}
+
+Bool gf_sc_check_audio_pending(GF_Compositor *compositor) 
+{
+	Bool res = 0;
+	gf_mixer_lock(compositor->audio_renderer->mixer, 1);
+	if (compositor->audio_renderer->step_mode) 
+		res = 1;
+	gf_mixer_lock(compositor->audio_renderer->mixer, 0);
+
+	return res;
 }
 
 u32 gf_ar_proc(void *p)
@@ -373,7 +423,7 @@ u32 gf_ar_proc(void *p)
 		//do mix even if mixer is empty, otherwise we will push the same buffer over and over to the sound card
 		if (ar->Frozen ) {
 			gf_mixer_lock(ar->mixer, 0);
-			gf_sleep(33);
+			gf_sleep(0);
 		} else {
 			if (ar->need_reconfig) gf_sc_ar_reconfig(ar);
 			ar->audio_out->WriteAudio(ar->audio_out);
@@ -489,7 +539,8 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 	}
 
 	/*init compositor timer*/
-	ar->startTime = gf_sys_clock();
+	ar->start_time = gf_sys_clock();
+	ar->current_time = 0;
 	return ar;
 }
 
@@ -535,28 +586,9 @@ void gf_sc_ar_reset(GF_AudioRenderer *ar)
 	gf_mixer_remove_all(ar->mixer);
 }
 
-static void gf_ar_freeze_intern(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, Bool reset_hw_buffer)
-{
-	gf_mixer_lock(ar->mixer, 1);
-	if (DoFreeze) {
-		if (!ar->Frozen) {
-			ar->FreezeTime = gf_sys_clock();
-			if (!for_reconfig && ar->audio_out && ar->audio_out->Play) ar->audio_out->Play(ar->audio_out, 0);
-			ar->Frozen = 1;
-		}
-	} else {
-		if (ar->Frozen) {
-			if (!for_reconfig && ar->audio_out && ar->audio_out->Play) ar->audio_out->Play(ar->audio_out, reset_hw_buffer ? 2 : 1);
-			ar->Frozen = 0;
-			ar->startTime += gf_sys_clock() - ar->FreezeTime;
-		}
-	}
-	gf_mixer_lock(ar->mixer, 0);
-}
-
 void gf_sc_ar_control(GF_AudioRenderer *ar, u32 PauseType)
 {
-	gf_ar_freeze_intern(ar, !PauseType, 0, (PauseType==2) ? 1 : 0);
+	gf_ar_pause(ar, !PauseType, 0, (PauseType==2) ? 1 : 0);
 }
 
 void gf_sc_ar_set_volume(GF_AudioRenderer *ar, u32 Volume)
@@ -630,10 +662,10 @@ void gf_sc_ar_reconfig(GF_AudioRenderer *ar)
 	/*lock mixer*/
 	gf_mixer_lock(ar->mixer, 1);
 
-	gf_ar_freeze_intern(ar, 1, 1, 0);
+	gf_ar_pause(ar, 1, 1, 0);
 	ar->need_reconfig = 0;
 	gf_ar_setup_output_format(ar);
-	gf_ar_freeze_intern(ar, 0, 1, 0);
+	gf_ar_pause(ar, 0, 1, 0);
 
 	/*unlock mixer*/
 	gf_mixer_lock(ar->mixer, 0);
@@ -647,8 +679,11 @@ u32 gf_sc_ar_get_delay(GF_AudioRenderer *ar)
 
 u32 gf_sc_ar_get_clock(GF_AudioRenderer *ar)
 {
-	if (ar->Frozen) return ar->FreezeTime - ar->startTime;
-	return gf_sys_clock() - ar->startTime;
+	if (ar->audio_out) return ar->current_time;
+
+	if (ar->Frozen) return ar->freeze_time - ar->start_time;
+
+	return gf_sys_clock() - ar->start_time;
 }
 
 GF_EXPORT
@@ -662,10 +697,10 @@ void gf_sc_reload_audio_filters(GF_Compositor *compositor)
 	gf_afc_unload(&ar->filter_chain);
 	gf_afc_load(&ar->filter_chain, ar->user, (char*)gf_cfg_get_key(ar->user->config, "Audio", "Filter"));
 
-	gf_ar_freeze_intern(ar, 1, 1, 0);
+	gf_ar_pause(ar, 1, 1, 0);
 	ar->need_reconfig = 0;
 	gf_ar_setup_output_format(ar);
-	gf_ar_freeze_intern(ar, 0, 1, 0);
+	gf_ar_pause(ar, 0, 1, 0);
 
 	gf_mixer_lock(ar->mixer, 0);
 }

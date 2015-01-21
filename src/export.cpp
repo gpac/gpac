@@ -1761,6 +1761,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_remove_event_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_lock_media_queue) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_current_service_id) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_clock) )
 
 /*terminal_dev exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_new) )
@@ -1822,7 +1823,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_remove_audio_listener) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_focus_switch_ring) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_is_over) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sc_flush_next_audio) )
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_animation_get_scenegraph) )

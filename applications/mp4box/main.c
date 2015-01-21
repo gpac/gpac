@@ -1677,7 +1677,7 @@ static GF_Err hash_file(char *name, u32 dump_std)
 	} else if (dump_std==1) {
 		for (i=0; i<20; i++) fprintf(stdout, "%02X", hash[i]);
 	}
-	fprintf(stderr, "File %s hash (SHA-1): ", name);
+	fprintf(stderr, "File hash (SHA-1): ");
 	for (i=0; i<20; i++) fprintf(stderr, "%02X", hash[i]);
 	fprintf(stderr, "\n");
 

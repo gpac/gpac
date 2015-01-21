@@ -708,6 +708,11 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 		if (!gf_sc_draw_frame(term->compositor, 1, NULL)) {
 			if (!term->root_scene || !term->root_scene->root_od)
 				break;
+
+			//wait for audio to be flushed
+			if (gf_sc_check_audio_pending(term->compositor) ) 
+				continue;
+
 			//force end of buffer
 			if (gf_scene_check_clocks(term->root_scene->root_od->net_service, term->root_scene, 1))
 				break;

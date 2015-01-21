@@ -249,6 +249,13 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 		gf_mixer_lock(am, 0);
 		return 0;
 	}
+
+	if (am->ar && am->ar->config_forced) {
+		am->must_reconfig=0;
+		gf_mixer_lock(am, 0);
+		return 0;
+	}
+
 	numInit = 0;
 	max_sample_rate = am->sample_rate;
 	max_channels = am->nb_channels;
@@ -330,6 +337,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 	}
 
 	if (numInit == count) am->must_reconfig = 0;
+	if (am->ar) cfg_changed = 1;
 
 	gf_mixer_lock(am, 0);
 	return cfg_changed;
@@ -563,13 +571,15 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 	s32 *out_mix, nb_act_src;
 	char *data, *ptr;
 
+	//reset buffer whatever the state of the mixer is
+	memset(buffer, 0, buffer_size);
+
 	/*the config has changed we don't write to output since settings change*/
 	if (gf_mixer_reconfig(am)) return 0;
 
 	gf_mixer_lock(am, 1);
 	count = gf_list_count(am->sources);
 	if (!count) {
-		memset(buffer, 0, buffer_size);
 		gf_mixer_lock(am, 0);
 		return 0;
 	}
@@ -583,7 +593,6 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 		if (am->ar) {
 			am->must_reconfig = 1;
 			gf_mixer_reconfig(am);
-			memset(buffer, 0, buffer_size);
 			gf_mixer_lock(am, 0);
 			return 0;
 		}
@@ -610,9 +619,7 @@ single_source_mix:
 		if (!data || !size) break;
 		/*don't copy more than possible*/
 		if (size > buffer_size) size = buffer_size;
-		if (is_muted) {
-			memset(ptr, 0, size);
-		} else {
+		if (!is_muted) {
 			memcpy(ptr, data, size);
 		}
 		buffer_size -= size;
@@ -627,7 +634,6 @@ single_source_mix:
 			if (!data) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioMixer] not enough input data (%d still to fill)\n", buffer_size));
 			}
-			memset(ptr, 0, buffer_size);
 		}
 		gf_mixer_lock(am, 0);
 		return (in_size - buffer_size);
@@ -702,7 +708,6 @@ do_mix:
 		}
 	}
 	if (!nb_act_src) {
-		memset(buffer, 0, sizeof(char)*buffer_size);
 		gf_mixer_lock(am, 0);
 		return 0;
 	}
@@ -757,7 +762,6 @@ do_mix:
 	}
 
 	if (!nb_written) {
-		memset(buffer, 0, sizeof(char)*buffer_size);
 		gf_mixer_lock(am, 0);
 		return 0;
 	}
@@ -791,8 +795,6 @@ do_mix:
 	}
 
 	nb_written *= am->nb_channels*am->bits_per_sample/8;
-	if (buffer_size > nb_written)
-		memset((char *)buffer + nb_written, 0, sizeof(char)*(buffer_size-nb_written));
 
 	gf_mixer_lock(am, 0);
 	return nb_written;
