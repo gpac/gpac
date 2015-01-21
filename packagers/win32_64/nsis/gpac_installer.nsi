@@ -1,6 +1,6 @@
 ;--------------------------------
 ;General
-!define GPAC_VERSION	0.5.1-DEV
+!define GPAC_VERSION	0.5.2-DEV
 !include default.out
 
 !define GPAC_ROOT ..\..\..
@@ -293,9 +293,9 @@ Section "GPAC Player" SecOsmo4
   File "${GPAC_ROOT}\gui\mpegu-core.js"
   File "${GPAC_ROOT}\gui\webvtt-renderer.js"
   SetOutPath $INSTDIR\gui\icons
-  File /r /x .svn ${GPAC_ROOT}\gui\icons\*
+  File /r /x .git ${GPAC_ROOT}\gui\icons\*
   SetOutPath $INSTDIR\gui\extensions
-  File /r /x .svn ${GPAC_ROOT}\gui\extensions\*
+  File /r /x .git ${GPAC_ROOT}\gui\extensions\*
 
   SetOutPath $INSTDIR
 SectionEnd
