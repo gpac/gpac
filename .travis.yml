@@ -8,4 +8,4 @@ env:
   - GPAC_CONFIGURE_OPTIONS=--disable-all
   - GPAC_CONFIGURE_OPTIONS=
 script: 
-  - ./configure $GPAC_CONFIGURE_OPTIONS && make
+  - ./configure $GPAC_CONFIGURE_OPTIONS && make deb
