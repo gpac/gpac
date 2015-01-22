@@ -357,7 +357,9 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	case GF_EVENT_LONGKEYPRESS:
 		GF_SAFEALLOC(att, GF_XMLAttribute);
 		att->name = gf_strdup("key_identifier");
+#ifndef GPAC_DISABLE_SVG
 		att->value = gf_strdup(gf_dom_get_key_name(event->key.key_code));
+#endif
 		gf_list_add(evt_node->attributes, att);
 		if (event->key.flags & GF_KEY_MOD_SHIFT) {
 			GF_SAFEALLOC(att, GF_XMLAttribute);
