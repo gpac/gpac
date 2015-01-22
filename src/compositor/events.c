@@ -566,11 +566,12 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 	tag = gf_node_get_tag(text);
 
 #ifndef GPAC_DISABLE_VRML
-	if ( (tag==TAG_MPEG4_Text)
+    switch (tag) {
+    case TAG_MPEG4_Text:
 #ifndef GPAC_DISABLE_X3D
-	        || (tag==TAG_X3D_Text)
+    case TAG_X3D_Text:
 #endif
-	   ) {
+    {
 		M_FontStyle *fs = (M_FontStyle *) ((M_Text *)text)->fontStyle;
 		if (!fs || !fs->style.buffer) return 0;
 		if (strstr(fs->style.buffer, "editable") || strstr(fs->style.buffer, "EDITABLE")) {
@@ -584,6 +585,9 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 		compositor->focus_node = text;
 		fireTermEvent(compositor, compositor->focus_text_type > 2 ? GF_EVENT_TEXT_EDITING_START : GF_EVENT_TEXT_EDITING_END);
 		return 1;
+    }
+    default:
+        break;
 	}
 #endif /*GPAC_DISABLE_VRML*/
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) return 0;
@@ -896,6 +900,7 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	stype = GF_CURSOR_NORMAL;
 	for (i=0; i<count; i++) {
 		GF_Node *keynav;
+        Bool check_anchor=0;
 		hs = (GF_SensorHandler*)gf_list_get(compositor->sensors, i);
 
 		/*try to remove this sensor from the previous sensor list*/
@@ -907,11 +912,11 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 		/*call the sensor LAST, as this may triger a destroy of the scene the sensor is in
 		this is only true for anchors, as other other sensors output events are queued as routes untill next pass*/
 		res += hs->OnUserEvent(hs, 1, 0, ev, compositor);
-		if ((stype == TAG_MPEG4_Anchor)
+        if (stype == TAG_MPEG4_Anchor) check_anchor=1;
 #ifndef GPAC_DISABLE_X3D
-		        || (stype == TAG_X3D_Anchor)
+		else if (stype == TAG_X3D_Anchor) check_anchor=1;
 #endif
-		   ) {
+		if (check_anchor) {
 			/*subscene with active sensor has been deleted, we cannot continue process the sensors stack*/
 			if (count != gf_list_count(compositor->sensors))
 				break;

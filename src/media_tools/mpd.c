@@ -1446,8 +1446,10 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 #endif
 
 			k = 0;
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 try_next_segment:
-			k++;
+#endif
+            k++;
 			elt = gf_list_get(pe->element.playlist.elements, k);
 			if (!elt)
 				break;
