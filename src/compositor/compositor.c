@@ -2712,13 +2712,14 @@ void gf_sc_traverse_subscene_ex(GF_Compositor *compositor, GF_Node *inline_paren
 			of bindable stacks and gives us free 2D/3D integration*/
 			if (tag==TAG_MPEG4_OrderedGroup) {
 				new_tag = TAG_MPEG4_Layer2D;
-			} else if ((tag==TAG_MPEG4_Group)
+			} else if (tag==TAG_MPEG4_Group) {
+                new_tag = TAG_MPEG4_Layer3D;
+            }
 #ifndef GPAC_DISABLE_X3D
-			           || (tag==TAG_X3D_Group)
+            else if (tag==TAG_X3D_Group) {
+                new_tag = TAG_MPEG4_Layer3D;
+            }
 #endif
-			          ) {
-				new_tag = TAG_MPEG4_Layer3D;
-			}
 		}
 #if !defined(GPAC_DISABLE_X3D) && !defined(GPAC_DISABLE_3D)
 		/*if the inlined root node is a 3D one except Layer3D and we are not in a 3D context, insert

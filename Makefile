@@ -39,7 +39,7 @@ mods:
 
 instmoz:
 	$(MAKE) -C applications/osmozilla install
-
+	
 depend:
 	$(MAKE) -C src dep
 	$(MAKE) -C applications dep
@@ -150,6 +150,9 @@ else
 	ln -s $(BUILD_PATH)/bin/gcc/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
 	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
 	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
+ifeq ($(DESTDIR)$(prefix),$(prefix))
+	ldconfig || true
+endif
 endif
 
 uninstall:

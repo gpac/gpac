@@ -272,8 +272,10 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	case GF_EVENT_KEYUP:
 	case GF_EVENT_KEYDOWN:
 	case GF_EVENT_TEXTINPUT:
-		evt_node->name = gf_strdup(gf_dom_event_get_name(event->type));
-		break;
+#ifndef GPAC_DISABLE_SVG
+        evt_node->name = gf_strdup(gf_dom_event_get_name(event->type));
+#endif
+        break;
 	}
 
 	if (!evt_node->name) {

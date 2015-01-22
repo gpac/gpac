@@ -2418,9 +2418,9 @@ echo "#define GF_CONFIG_H" >> $TMPH
 echo "#define GPAC_CONFIGURATION \"$GPAC_CONFIGURATION\"" >> $TMPH
 
 version="`grep '#define GPAC_VERSION ' \"$source_path/include/gpac/version.h\" | cut -d '"' -f 2`"
-version_major=`grep '#define GPAC_VERSION_MAJOR ' $source_path/include/gpac/version.h | sed -e 's/.*\([0-9]\)\+$/\1/'`
-version_minor=`grep '#define GPAC_VERSION_MINOR ' $source_path/include/gpac/version.h | sed -e 's/.*\([0-9]\)\+$/\1/'`
-version_micro=`grep '#define GPAC_VERSION_MICRO ' $source_path/include/gpac/version.h | sed -e 's/.*\([0-9]\)\+$/\1/'`
+version_major=`grep '#define GPAC_VERSION_MAJOR ' $source_path/include/gpac/version.h | sed 's/[^0-9]*//g'`
+version_minor=`grep '#define GPAC_VERSION_MINOR ' $source_path/include/gpac/version.h | sed 's/[^0-9]*//g'`
+version_micro=`grep '#define GPAC_VERSION_MICRO ' $source_path/include/gpac/version.h | sed 's/[^0-9]*//g'`
 soname_version="${version_major}.${version_minor}.${version_micro}"
 
 

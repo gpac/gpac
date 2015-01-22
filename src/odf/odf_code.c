@@ -28,6 +28,7 @@
 
 #define DATE_CODING_BIT_LEN	40
 
+#ifndef GPAC_MINIMAL_ODF
 
 static GFINLINE GF_Err OD_ReadUTF8String(GF_BitStream *bs, char **string, Bool isUTF8, u32 *read)
 {
@@ -61,6 +62,8 @@ static GFINLINE void OD_WriteUTF8String(GF_BitStream *bs, char *string, Bool isU
 		gf_bs_write_data(bs, string, len*2);
 	}
 }
+
+#endif // GPAC_MINIMAL_ODF
 
 /*use to parse strings read the length as well - Warning : the alloc is done here !!*/
 GF_Err gf_odf_read_url_string(GF_BitStream *bs, char **string, u32 *readBytes)
@@ -1735,9 +1738,6 @@ GF_Err gf_odf_del_ui_cfg(GF_UIConfig *desc)
 }
 
 #ifndef GPAC_MINIMAL_ODF
-
-
-
 
 
 
