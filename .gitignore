@@ -78,7 +78,6 @@ bld/
 config.h
 include/gpac/revision.h
 include/gpac/revision.h.new
-extra_lib/lib/
 config.mak
 configure-stamp
 gpac.pc
