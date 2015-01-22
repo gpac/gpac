@@ -1990,12 +1990,12 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 	if (node->sgprivate->tag==TAG_UndefinedNode) return GF_BAD_PARAM;
 #ifndef GPAC_DISABLE_VRML
 	else if (node->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_get_field(NULL, node, info);
-	else if ((node->sgprivate->tag == TAG_MPEG4_Script)
+	else if (node->sgprivate->tag == TAG_MPEG4_Script)
+             return gf_sg_script_get_field(node, info);
 #ifndef GPAC_DISABLE_X3D
-	         || (node->sgprivate->tag == TAG_X3D_Script)
+    else if (node->sgprivate->tag == TAG_X3D_Script)
+    return gf_sg_script_get_field(node, info);
 #endif
-	        )
-		return gf_sg_script_get_field(node, info);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_field(node, info);
 #ifndef GPAC_DISABLE_X3D
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_field(node, info);
@@ -2036,13 +2036,12 @@ GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 	else if (node->sgprivate->tag == TAG_ProtoNode) {
 		res = gf_sg_proto_get_field_index_by_name(NULL, node, name);
 	}
-	else if ((node->sgprivate->tag == TAG_MPEG4_Script)
+	else if (node->sgprivate->tag == TAG_MPEG4_Script)
+        return gf_node_get_field_by_name_enum(node, name, field);
 #ifndef GPAC_DISABLE_X3D
-	         || (node->sgprivate->tag == TAG_X3D_Script)
-#endif
-	        ) {
+   else if (node->sgprivate->tag == TAG_X3D_Script)
 		return gf_node_get_field_by_name_enum(node, name, field);
-	}
+#endif
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) res = gf_sg_mpeg4_node_get_field_index_by_name(node, name);
 #ifndef GPAC_DISABLE_X3D
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) res = gf_sg_x3d_node_get_field_index_by_name(node, name);
