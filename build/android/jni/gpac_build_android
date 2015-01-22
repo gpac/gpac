@@ -79,7 +79,7 @@ echo "*** Build path is $BUILDPATH, setting revision number $version"
 if grep "$version" ../../../include/gpac/revision.h >/dev/null 2>&1 ; then
   echo "Version $version already set"
 else
-  echo "#define GPAC_SVN_REVISION \"$version\"" > ../../../include/gpac/revision.h
+  echo "#define GPAC_GIT_REVISION \"$version\"" > ../../../include/gpac/revision.h
 fi
 echo "Building lib gpac ..."
 cd ../../../
