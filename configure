@@ -464,8 +464,10 @@ source_path_used="yes"
 if test -z "$source_path" -o "$source_path" = "." ; then
     source_path="`pwd`"
     source_path_used="no"
+    build_path=$source_path
 else
     source_path="`cd \"$source_path\"; pwd`"
+    build_path="`pwd`"
 fi
 
 
@@ -3232,6 +3234,7 @@ else
 fi
 
 echo "SRC_PATH=$source_path" >> config.mak
+echo "BUILD_PATH=$build_path" >> config.mak
 echo "LOCAL_INC_PATH=$local_inc" >> config.mak
 
 
