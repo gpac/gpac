@@ -838,9 +838,9 @@ void compositor_adjust_scale(GF_Node *node, Fixed *sx, Fixed *sy)
 
 Bool compositor_is_composite_texture(GF_Node *appear)
 {
+    M_Appearance *ap = NULL;
 	u32 tag;
 	if (!appear) return 0;
-    M_Appearance *ap = NULL;
     
 	tag = gf_node_get_tag(appear);
 	if (tag==TAG_MPEG4_Appearance) ap = (M_Appearance *)appear;
