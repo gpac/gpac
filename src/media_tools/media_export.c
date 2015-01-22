@@ -711,7 +711,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	GF_AVCConfig *avccfg, *svccfg;
 	GF_HEVCConfig *hevccfg, *shvccfg;
 	GF_M4ADecSpecInfo a_cfg;
-	char *stxtcfg;
+	const char *stxtcfg;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, qcp_type;
 	Bool is_ogg, has_qcp_pad, is_vobsub;
@@ -1017,8 +1017,8 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
 			gf_export_message(dumper, GF_OK, "Extracting Simple Text Stream");
 			if (add_ext) {
-				char *mime;
-				char *encoding;
+				const char *mime;
+				const char *encoding;
 				if (gf_isom_stxt_get_description(dumper->file, track, 1, &mime, &encoding, &stxtcfg) == GF_OK) {
 					if (mime && !strcmp(mime, "image/svg+xml")) {
 						strcat(szName, ".svg");
