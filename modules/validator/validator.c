@@ -760,8 +760,11 @@ static Bool validator_load_event(GF_Validator *validator)
 	if (!strcmp(event_node->name, "snapshot")) {
 		validator->next_event_snapshot = 1;
 	} else {
-		validator->next_event.type = gf_dom_event_type_by_name(event_node->name);
-		if (validator->next_event.type == GF_EVENT_UNKNOWN) {
+#ifndef GPAC_DISABLE_SVG
+        validator->next_event.type = gf_dom_event_type_by_name(event_node->name);
+		if (validator->next_event.type == GF_EVENT_UNKNOWN)
+#endif
+        {
 			return 1;
 		}
 	}
@@ -792,9 +795,11 @@ static Bool validator_load_event(GF_Validator *validator)
 			validator->next_event.mouse.key_states |= GF_KEY_MOD_ALT;
 		} else if (!strcmp(att->name, "ctrl") && !strcmp(att->value, "true")) {
 			validator->next_event.mouse.key_states |= GF_KEY_MOD_CTRL;
-		} else if (!strcmp(att->name, "key_identifier")) {
+#ifndef GPAC_DISABLE_SVG
+        } else if (!strcmp(att->name, "key_identifier")) {
 			validator->next_event.key.key_code = gf_dom_get_key_type(att->value);
-		} else if (!strcmp(att->name, "unicode-char")) {
+#endif
+        } else if (!strcmp(att->name, "unicode-char")) {
 			validator->next_event.character.unicode_char = atoi(att->value);
 		}
 		att_index++;
