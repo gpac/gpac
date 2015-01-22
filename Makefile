@@ -11,9 +11,9 @@ all:	version
 	$(MAKE) -C modules all
 
 GITREV_PATH:=$(SRC_PATH)/include/gpac/revision.h
-TAG:=$(shell git describe --tags --abbrev=0 2> /dev/null)
-VERSION:=$(shell echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$(TAG)-//")
-BRANCH:=$(shell git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
+TAG:=$(shell git --git-dir=$(SRC_PATH)/.git describe --tags --abbrev=0 2> /dev/null)
+VERSION:=$(shell echo `git --git-dir=$(SRC_PATH)/.git describe --tags --long  || echo "UNKNOWN"` | sed "s/^$(TAG)-//")
+BRANCH:=$(shell git --git-dir=$(SRC_PATH)/.git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
 
 version:
 	@if [ -d $(SRC_PATH)/".git" ]; then \
@@ -133,21 +133,21 @@ lninstall:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
 ifeq ($(DISABLE_ISOFF), no) 
 ifneq ($(CONFIG_FFMPEG), no)
-	ln -s $(SRC_PATH)/bin/gcc/DashCast "$(DESTDIR)$(prefix)/bin/DashCast"
+	ln -sf $(BUILD_PATH)/bin/gcc/DashCast $(DESTDIR)$(prefix)/bin/DashCast
 endif
 endif
 ifeq ($(DISABLE_ISOFF), no)
-	ln -s $(SRC_PATH)/bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin/MP4Box"
-	ln -s $(SRC_PATH)/bin/gcc/MP42TS "$(DESTDIR)$(prefix)/bin/MP42TS"
+	ln -sf $(BUILD_PATH)/bin/gcc/MP4Box $(DESTDIR)$(prefix)/bin/MP4Box
+	ln -sf $(BUILD_PATH)/bin/gcc/MP42TS $(DESTDIR)$(prefix)/bin/MP42TS
 endif
 ifeq ($(DISABLE_PLAYER), no)
-	ln -s $(SRC_PATH)/bin/gcc/MP4Client "$(DESTDIR)$(prefix)/bin/MP4Client"
+	ln -sf $(BUILD_PATH)/bin/gcc/MP4Client $(DESTDIR)$(prefix)/bin/MP4Client
 endif
 ifeq ($(CONFIG_DARWIN),yes)
-	ln -s $(SRC_PATH)/bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION).$(DYN_LIB_SUFFIX)
-	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
+	ln -s $(BUILD_PATH)/bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_MAJOR)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_MAJOR) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
 else
-	ln -s $(SRC_PATH)/bin/gcc/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
+	ln -s $(BUILD_PATH)/bin/gcc/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
 	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
 	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
 endif
