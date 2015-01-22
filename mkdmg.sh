@@ -36,6 +36,9 @@ ln -s /Applications ./tmpdmg/Applications
 cp $source_path/README ./tmpdmg
 cp $source_path/COPYING ./tmpdmg
 
+mkdir -p tmpdmg/Osmo4.app/Contents/MacOS/modules
+mkdir -p tmpdmg/Osmo4.app/Contents/MacOS/lib
+
 cp bin/gcc/gm* tmpdmg/Osmo4.app/Contents/MacOS/modules
 cp bin/gcc/libgpac.dylib tmpdmg/Osmo4.app/Contents/MacOS/lib
 cp bin/gcc/MP4Client tmpdmg/Osmo4.app/Contents/MacOS/Osmo4
