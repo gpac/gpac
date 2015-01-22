@@ -66,6 +66,10 @@ bld/
 *.exe 
 *.out 
 *.app
+*.apk
+*.dmg
+*.gz
+*.deb
 
 .depend
 .deps/
