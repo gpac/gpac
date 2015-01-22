@@ -20,6 +20,7 @@ if [ ! $basefile == 'libgpac.dylib' ] &&  [ ! -e lib/$basefile ];
 then
 #  echo copying $1 to bundle
   cp $1 lib/
+  chmod +w lib/$basefile
   rewrite_deps lib/$basefile
 fi
 }
