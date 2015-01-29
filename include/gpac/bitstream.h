@@ -459,7 +459,7 @@ void gf_bs_truncate(GF_BitStream *bs);
 	* otherwise, bitstream is not aligned and bits are peeked from current state
  *\return the integer value read
 */
-u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u32 byte_offset);
+u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u64 byte_offset);
 
 /*!
  *\brief bit reservoir query
