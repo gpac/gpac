@@ -298,6 +298,7 @@ Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, Dr
 
 Bool compositor_2d_hybgl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx)
 {
+#ifndef GPAC_DISABLE_VRML
 	//for anything but background use regular routines
 	if (!(ctx->flags & CTX_IS_BACKGROUND)) return GF_FALSE;
 
@@ -316,6 +317,9 @@ Bool compositor_2d_hybgl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState 
 		tr_state->mesh_num_textures = 0;
 	}
 	return GF_TRUE;
+#else
+	return GF_FALSE;;
+#endif
 }
 #endif
 
@@ -568,7 +572,7 @@ Bool compositor_2d_check_attached(GF_VisualManager *visual)
 	if (!visual->is_attached) {
 		c2d_get_video_access_normal(visual);
 	}
-	
+
 	return visual->is_attached;
 }
 
@@ -1352,7 +1356,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 		compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Reconfigured display size %d x %d done\n", evt.setup.width, evt.setup.height));
-	
+
 	/*set scale factor*/
 	compositor_set_ar_scale(compositor, scaleX, scaleY);
 	return GF_OK;

@@ -125,7 +125,7 @@ Bool MC_URLChanged(MFURL *old_url, MFURL *new_url)
 	}
 	return 0;
 }
-
+#endif
 
 
 
@@ -210,7 +210,7 @@ void mediacontrol_pause(GF_ObjectManager *odm)
 	}
 }
 
-
+#ifndef GPAC_DISABLE_VRML
 /*pause all objects*/
 void mediacontrol_set_speed(GF_ObjectManager *odm, Fixed speed)
 {

@@ -1510,6 +1510,7 @@ void visual_3d_set_2d_strike(GF_TraverseState *tr_state, DrawAspect2D *asp)
 {
 	if (asp->line_texture) {
 		GF_Node *txtrans = NULL;
+#ifndef GPAC_DISABLE_VRML
 		if (tr_state->appear
 		        && (gf_node_get_tag( ((M_Appearance *)tr_state->appear)->material) == TAG_MPEG4_Material2D)
 		        && (gf_node_get_tag(((M_Material2D *) ((M_Appearance *)tr_state->appear)->material)->lineProps) == TAG_MPEG4_XLineProperties)
@@ -1530,6 +1531,7 @@ void visual_3d_set_2d_strike(GF_TraverseState *tr_state, DrawAspect2D *asp)
 #endif
 		tr_state->mesh_num_textures = gf_sc_texture_enable(asp->line_texture, txtrans);
 		if (tr_state->mesh_num_textures) return;
+#endif
 	}
 	/*no texture or not ready, use color*/
 	if (asp->line_color)
@@ -2049,4 +2051,3 @@ void visual_3d_set_fog(GF_VisualManager *visual, const char *type, SFColor color
 }
 
 #endif
-
