@@ -890,7 +890,7 @@ GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset)
 
 /*peek bits (as int!!) from orig position (ON BYTE BOUNDARIES, from 0) - only for read ...*/
 GF_EXPORT
-u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u32 byte_offset)
+u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u64 byte_offset)
 {
 	u64 curPos;
 	u32 curBits, ret, current;
