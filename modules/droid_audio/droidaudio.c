@@ -66,18 +66,6 @@ static JavaVM *jvm;
 static Bool configured;
 static __thread Bool attached;
 
-#include <android/log.h>
-#define TAG "GPAC Android Audio"
-#define LOGV(X, Y)  __android_log_print(ANDROID_LOG_VERBOSE, TAG, X, Y)
-#define LOGV3(X, Y, Z, K)  __android_log_print(ANDROID_LOG_VERBOSE, TAG, X, Y, Z, K)
-#define LOGD(X, Y)  __android_log_print(ANDROID_LOG_DEBUG, TAG, X, Y)
-#define LOGD2(X, Y, Z)  __android_log_print(ANDROID_LOG_DEBUG, TAG, X, Y, Z)
-#define LOGE(X, Y)  __android_log_print(ANDROID_LOG_ERROR, TAG, X, Y)
-#define LOGE3(X, Y, Z, W)  __android_log_print(ANDROID_LOG_ERROR, TAG, X, Y, Z, W)
-#define LOGW(X, Y)  __android_log_print(ANDROID_LOG_WARN, TAG, X, Y)
-#define LOGI(X, Y)  __android_log_print(ANDROID_LOG_INFO, TAG, X, Y)
-
-
 /* Uncomment the next line if you want to debug */
 /* #define DROID_EXTREME_LOGS */
 
@@ -159,7 +147,7 @@ static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u3
 	int channels;
 	int bytes;
 
-	LOGV("[Android Audio] Setup for %d buffers", num_buffers);
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Android Audio] Setup for %d buffers", num_buffers));
 
 	ctx->force_config = (num_buffers && total_duration) ? 1 : 0;
 	ctx->cfg_num_buffers = num_buffers;
@@ -213,12 +201,13 @@ static void WAV_Deconfigure(DroidContext *ctx)
 // Called by the audio thread
 static void WAV_Shutdown(GF_AudioOutput *dr)
 {
-	LOGV("[Android Audio] Shutdown START 1.", 0);
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Android Audio] Shutdown"));
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 	JNIEnv* env = gf_droidaudio_jni_attach_current_thread();
 	WAV_Deconfigure(ctx);
 	(*env)->DeleteGlobalRef(env, cAudioTrack);
 	cAudioTrack = NULL;
+
 	if (attached)
 		gf_droidaudio_jni_detach_current_thread();
 }
@@ -232,7 +221,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	u32 i;
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 
-	LOGI("[Android Audio] Configure Output for %u channels...", *NbChannels);
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Android Audio] Configure Output for %u channels...", *NbChannels));
 
 	if (!ctx) return GF_BAD_PARAM;
 
@@ -242,8 +231,8 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	ctx->sampleRateInHz = *SampleRate;
 	ctx->channelConfig = (*NbChannels == 1) ? CHANNEL_CONFIGURATION_MONO : CHANNEL_CONFIGURATION_STEREO; //AudioFormat.CHANNEL_CONFIGURATION_MONO
 	ctx->audioFormat = (*nbBitsPerSample == 8)? ENCODING_PCM_8BIT : ENCODING_PCM_16BIT; //AudioFormat.ENCODING_PCM_16BIT
-	LOGV("[Android Audio] SampleRate : %d",ctx->sampleRateInHz);
-	LOGV("[Android Audio] BitPerSample : %d", *nbBitsPerSample);
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Android Audio] SampleRate : %d",ctx->sampleRateInHz));
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Android Audio] BitPerSample : %d", *nbBitsPerSample));
 
 	(*env)->PushLocalFrame(env, 2);
 
@@ -253,7 +242,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 
 	//ctx->mbufferSizeInBytes *= 3;
 
-	LOGV("[Android Audio] Buffer Size : %d", ctx->mbufferSizeInBytes);
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Android Audio] Buffer Size : %d", ctx->mbufferSizeInBytes));
 
 	i = 1;
 	if ( ctx->channelConfig == CHANNEL_CONFIGURATION_STEREO )
@@ -263,7 +252,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 
 	ctx->total_length_ms =  1000 * ctx->num_buffers * ctx->mbufferSizeInBytes / i / ctx->sampleRateInHz;
 
-	LOGV("[Android Audio] Buffer Length ms : %d", ctx->total_length_ms);
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Android Audio] Buffer Length ms : %d", ctx->total_length_ms));
 
 	/*initial delay is full buffer size*/
 	ctx->delay = ctx->total_length_ms;
@@ -276,7 +265,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 		(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mPlay);
 //	  (*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mStop);
 	}  else {
-		LOGV("[Android Audio] mtrack = %p", mtrack);
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Android Audio] mtrack = %p", mtrack));
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -287,12 +276,12 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	if ( ctx->buff ) {
 		ctx->buff = (*env)->NewGlobalRef(env, ctx->buff);
 	} else {
-		LOGV("[Android Audio] ctx->buff = %p", ctx->buff );
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Android Audio] ctx->buff = %p", ctx->buff));
 		return GF_NOT_SUPPORTED;
 	}
 
 	configured = GF_TRUE;
-	LOGV("[Android Audio] ConfigureOutput DONE.", *nbBitsPerSample);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Android Audio] ConfigureOutput DONE."));
 	return GF_OK;
 }
 
@@ -308,7 +297,7 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 	if (!env)
 		return;
 #ifdef DROID_EXTREME_LOGS
-	LOGV("[Android Audio] WAV_WriteAudio() : entering",ctx->sampleRateInHz);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Android Audio] WAV_WriteAudio() : entering"));
 #endif /* DROID_EXTREME_LOGS */
 	pBuffer = (*env)->GetPrimitiveArrayCritical(env, ctx->buff, NULL);
 	if (pBuffer)
@@ -325,10 +314,10 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 	}
 	else
 	{
-		LOGV("[Android Audio] Failed to get pointer to array bytes = %p", pBuffer);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[Android Audio] Failed to get pointer to array bytes = %p", pBuffer));
 	}
 #ifdef DROID_EXTREME_LOGS
-	LOGV("[Android Audio] WAV_WriteAudio() : done",ctx->sampleRateInHz);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Android Audio] WAV_WriteAudio() : done"));
 #endif /* DROID_EXTREME_LOGS */
 }
 
@@ -338,7 +327,7 @@ static void WAV_Play(GF_AudioOutput *dr, u32 PlayType)
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 	JNIEnv* env = gf_droidaudio_jni_get_thread_env();
 
-	LOGV("[Android Audio] Play: %d\n", PlayType);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Android Audio] Play: %d", PlayType));
 
 	int detach = 0;
 	if (!env) {
@@ -360,7 +349,7 @@ static void WAV_Play(GF_AudioOutput *dr, u32 PlayType)
 		(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mPlay);
 		break;
 	default:
-		LOGW("[Android Audio] Unknown Play method=%d.\n", PlayType);
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Android Audio] Unknown Play method=%d", PlayType));
 	}
 
 	if (detach)
@@ -385,9 +374,9 @@ static void WAV_UpdateVolume(DroidContext *ctx) {
 	if (env && setStereoVolume && mtrack && cAudioTrack) {
 		int success;
 		if (0!= (success=((*env)->CallNonvirtualIntMethod(env, mtrack, cAudioTrack, setStereoVolume, lV, rV))))
-			LOGE3("SetVolume(%f,%f) returned Error code %d", lV, rV, success );
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("SetVolume(%f,%f) returned Error code %d", lV, rV, success ));
 	} else {
-		LOGD2("SetVolume(%f,%f)", lV, rV );
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("SetVolume(%f,%f)", lV, rV));
 	}
 }
 
@@ -410,17 +399,15 @@ static GF_Err WAV_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_sampler
 	JNIEnv* env = gf_droidaudio_jni_get_thread_env();
 	u32 sampleRateInHz, channelConfig, audioFormat;
 
-	LOGV("Query sample=%d", *desired_samplerate );
-
 #ifdef TEST_QUERY_SAMPLE
 	sampleRateInHz = *desired_samplerate;
 	channelConfig = (*NbChannels == 1) ? CHANNEL_CONFIGURATION_MONO : CHANNEL_CONFIGURATION_STEREO;
 	audioFormat = (*nbBitsPerSample == 8)? ENCODING_PCM_8BIT : ENCODING_PCM_16BIT;
 
-	LOGV3("[Android Audio] Query: SampleRate ChannelConfig AudioFormat: %d %d %d \n",
-	      sampleRateInHz,
-	      (channelConfig == CHANNEL_CONFIGURATION_MONO)? 1 : 2,
-	      (ctx->audioFormat == ENCODING_PCM_8BIT)? 8 : 16);
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Android Audio] Query: SampleRate ChannelConfig AudioFormat: %d %d %d",
+					   sampleRateInHz,
+					   (channelConfig == CHANNEL_CONFIGURATION_MONO)? 1 : 2,
+					   (ctx->audioFormat == ENCODING_PCM_8BIT)? 8 : 16));
 
 	switch (*desired_samplerate) {
 	case 11025:
