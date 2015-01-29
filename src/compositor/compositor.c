@@ -2431,9 +2431,11 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	gf_sg_activate_routes(compositor->scene);
 	i = 0;
+#ifndef GPAC_DISABLE_SCENEGRAPH
 	while ((sg = (GF_SceneGraph*)gf_list_enum(compositor->extra_scenes, &i))) {
 		gf_sg_activate_routes(sg);
 	}
+#endif
 
 #ifndef GPAC_DISABLE_LOG
 	route_time = gf_sys_clock() - route_time;
