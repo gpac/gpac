@@ -1148,10 +1148,11 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				e = getter->new_session(getter, suburl);
 				if (e) {
 					gf_free(suburl);
-					break;
+					pe->load_error = e;
+					continue;
 				}
 				if (e == GF_OK) {
-					e = gf_m3u8_parse_sub_playlist(getter->get_cache_name(getter), &pl, suburl, stream, pe);
+					pe->load_error = gf_m3u8_parse_sub_playlist(getter->get_cache_name(getter), &pl, suburl, stream, pe);
 				}
 				getter->del_session(getter);
 
@@ -1423,6 +1424,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 			if (pe->element_type == TYPE_MEDIA) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 Media\n"));
+			} else if (pe->load_error) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error loading playlist elemnt %s: %s\n", pe->url, gf_error_to_string(e) ));
 			} else if (pe->element_type != TYPE_PLAYLIST) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 unknown type for %s\n", pe->url));
 			}

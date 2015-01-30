@@ -216,11 +216,16 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	while (strchr(" \r\n\t", tmp[strlen(tmp)-1])) {
 		tmp[strlen(tmp)-1] = 0;
 	}
+	//strip query part or fragment part
+	rad = strchr(tmp, '?');
+	if (rad) rad[0] = 0;
+	rad = strchr(tmp, '#');
+	if (rad) rad[0] = 0;
 
 	/*remove the last /*/
-	for (i = (u32) strlen(parentName); i > 0; i--) {
+	for (i = (u32) strlen(tmp); i > 0; i--) {
 		//break our path at each separator
-		if ((parentName[i-1] == GF_PATH_SEPARATOR) || (parentName[i-1] == '/'))  {
+		if ((tmp[i-1] == GF_PATH_SEPARATOR) || (tmp[i-1] == '/'))  {
 			tmp[i-1] = 0;
 			if (!pathSepCount) break;
 			pathSepCount--;

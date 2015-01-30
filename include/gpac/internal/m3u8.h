@@ -67,6 +67,7 @@ struct s_playlistElement {
 	char *audio_group;
 	char *video_group;
 	char *url;
+	GF_Err load_error;
 	PlaylistElementType element_type;
 	union {
 		Playlist playlist;
