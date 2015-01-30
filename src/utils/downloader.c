@@ -196,7 +196,7 @@ struct __gf_download_manager
 	u32 head_timeout, request_timeout;
 	GF_Config *cfg;
 	GF_List *sessions;
-	Bool disable_cache;
+	Bool disable_cache, simulate_no_connection;
 	u32 limit_data_rate;
 
 	GF_List *skip_proxy_servers;
@@ -596,6 +596,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 		count = gf_list_count(sess->dm->sessions);
 		for (i=0; i<count; i++) {
 			GF_DownloadSession *a_sess = gf_list_get(sess->dm->sessions, i);
+			assert(a_sess);
 			if (a_sess==sess) continue;
 			if (a_sess->cache_entry==entry) {
 				found = 1;
@@ -1157,8 +1158,17 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 {
 	GF_Err e;
 
+
+	if (sess->dm && sess->dm->simulate_no_connection) {
+		if (sess->sock) {
+			sess->status = GF_NETIO_DISCONNECTED;
+		}
+		return GF_IP_NETWORK_FAILURE;
+	}
+
 	if (!sess)
 		return GF_BAD_PARAM;
+
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
 		s32 size = SSL_read(sess->ssl, data, data_size);
@@ -1181,10 +1191,6 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		return GF_IP_CONNECTION_CLOSED;
 	}
 	e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
-
-	if (e==GF_IP_NETWORK_EMPTY) {
-		gf_sleep(1);
-	}
 
 	return e;
 }
@@ -1297,7 +1303,15 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connecting to %s:%d\n", proxy, proxy_port));
 
 	if (sess->status == GF_NETIO_SETUP) {
-		u64 now  =gf_sys_clock_high_res();
+		u64 now;
+		if (sess->dm && sess->dm->simulate_no_connection) {
+			sess->status = GF_NETIO_STATE_ERROR;
+			sess->last_error = GF_IP_NETWORK_FAILURE;
+			gf_dm_sess_notify_state(sess, sess->status, sess->last_error);
+			return;
+		}
+
+		now  =gf_sys_clock_high_res();
 		e = gf_sk_connect(sess->sock, (char *) proxy, proxy_port, (char *)ip);
 
 		/*retry*/
@@ -3432,12 +3446,17 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 GF_EXPORT
 void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 {
-	dm->limit_data_rate = rate_in_bits_per_sec/8;
+	if (rate_in_bits_per_sec == 0xFFFFFFFF) {
+		dm->simulate_no_connection=1;
+	} else {
+		dm->simulate_no_connection=0;
+		dm->limit_data_rate = rate_in_bits_per_sec/8;
 
-	if (dm->cfg) {
-		char opt[100];
-		sprintf(opt, "%d", rate_in_bits_per_sec / 1024);
-		gf_cfg_set_key(dm->cfg, "Downloader", "MaxRate", opt);
+		if (dm->cfg) {
+			char opt[100];
+			sprintf(opt, "%d", rate_in_bits_per_sec / 1024);
+			gf_cfg_set_key(dm->cfg, "Downloader", "MaxRate", opt);
+		}
 	}
 }
 

@@ -670,37 +670,10 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 {
 	int i;
 
-	char *fullURL = strstr(currentLine, "?");
-	if (fullURL) {
-		/*some URL contains garbage after the filename*/
-		size_t len = fullURL-currentLine;
-		fullURL = gf_malloc(len+1);
-		strncpy(fullURL, currentLine, len);
-		fullURL[len] = '\0';
-	} else {
-		fullURL = currentLine;
-	}
-	if (gf_url_is_local(fullURL)) {
-		/*
-		if (gf_url_is_local(baseURL)){
-		int num_chars = -1;
-		if (baseURL[strlen(baseURL)-1] == '/'){
-		num_chars = gf_asprintf(&fullURL, "%s%s", baseURL, currentLine);
-		} else {
-		num_chars = gf_asprintf(&fullURL, "%s/%s", baseURL, currentLine);
-		}
-		if (num_chars < 0 || fullURL == NULL){
-		gf_m3u8_master_playlist_del(*playlist);
-		playlist = NULL;
-		return GF_OUT_OF_MEM;
-		}
-		} else */ {
-			char *currFullURL = fullURL;
-			fullURL = gf_url_concatenate(baseURL, currFullURL);
-			if (currFullURL != currentLine)
-				gf_free(currFullURL);
-		}
+	char *fullURL = currentLine;
 
+	if (gf_url_is_local(fullURL)) {
+		fullURL = gf_url_concatenate(baseURL, fullURL);
 		assert(fullURL);
 	}
 	

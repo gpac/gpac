@@ -76,6 +76,9 @@ struct __dash_client
 	Bool keep_files, disable_switching, allow_local_mpd_update, enable_buffering, estimate_utc_drift;
 	Bool is_m3u8;
 
+	//set when MPD downloading fails. Will resetup DASH live once MPD is sync again
+	Bool in_error;
+
 	u64 mpd_fetch_time;
 	GF_DASHInitialSelectionMode first_select_mode;
 
@@ -834,12 +837,13 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 * Parameters are identical to the ones of gf_service_download_new.
 * \see gf_service_download_new()
 */
-GF_Err gf_dash_download_resource(GF_DASHFileIO *dash_io, GF_DASHFileIOSession *sess, const char *url, u64 start_range, u64 end_range, u32 persistent_mode, GF_DASH_Group *group)
+GF_Err gf_dash_download_resource(GF_DashClient *dash, GF_DASHFileIOSession *sess, const char *url, u64 start_range, u64 end_range, u32 persistent_mode, GF_DASH_Group *group)
 {
 	s32 group_idx = -1;
 	Bool had_sess = GF_FALSE;
 	Bool retry = GF_TRUE;
 	GF_Err e;
+	GF_DASHFileIO *dash_io = dash->dash_io;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading %s starting at UTC "LLU" ms\n", url, gf_net_get_utc() ));
 
@@ -876,7 +880,7 @@ retry:
 			if (had_sess) {
 				dash_io->del(dash_io, *sess);
 				*sess = NULL;
-				return gf_dash_download_resource(dash_io, sess, url, start_range, end_range, persistent_mode ? 1 : 0, group);
+				return gf_dash_download_resource(dash, sess, url, start_range, end_range, persistent_mode ? 1 : 0, group);
 			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot setup byte-range download for %s: %s\n", url, gf_error_to_string(e) ));
 			if (group)
@@ -934,24 +938,26 @@ retry:
 	switch (e) {
 	case GF_IP_CONNECTION_FAILURE:
 	case GF_IP_NETWORK_FAILURE:
-	{
-		dash_io->del(dash_io, *sess);
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] failed to download, retrying once with %s...\n", url));
-		*sess = dash_io->create(dash_io, 0, url, group_idx);
-		if (! (*sess)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot retry to download %s... OUT of memory ?\n", url));
-			if (group)
-				group->is_downloading = 0;
-			return GF_OUT_OF_MEM;
-		}
+		if (!dash->in_error || group) {
+			dash_io->del(dash_io, *sess);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] failed to download, retrying once with %s...\n", url));
+			*sess = dash_io->create(dash_io, 0, url, group_idx);
+			if (! (*sess)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot retry to download %s... OUT of memory ?\n", url));
+				if (group)
+					group->is_downloading = 0;
+				return GF_OUT_OF_MEM;
+			}
 
-		if (retry) {
-			retry = 0;
-			goto retry;
+			if (retry) {
+				retry = 0;
+				goto retry;
+			}
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] two consecutive failures, aborting the download %s.\n", url));
+		} else if (dash->in_error) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downlod still in error for %s.\n", url));
 		}
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] two consecutive failures, aborting the download %s.\n", url));
 		break;
-	}
 	case GF_OK:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Download %s complete at UTC "LLU" ms\n", url, gf_net_get_utc() ));
 		break;
@@ -1525,6 +1531,7 @@ static u32 gf_dash_purge_segment_timeline(GF_DASH_Group *group, Double min_start
 static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 {
 	GF_Err e;
+	Bool force_timeline_setup;
 	u32 group_idx, rep_idx, i, j;
 	u64 fetch_time=0;
 	GF_DOMParser *mpd_parser;
@@ -1564,11 +1571,10 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		}
 	} else {
 		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
-		if (!local_url) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: wrong cache file %s\n", local_url));
-			return GF_IO_ERR;
+		if (local_url) {
+			gf_delete_file(local_url);
 		}
-		gf_delete_file(local_url);
+		//use the redirected url
 		purl = gf_strdup( dash->dash_io->get_url(dash->dash_io, dash->mpd_dnload) );
 	}
 
@@ -1586,10 +1592,15 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	if (purl) {
 		const char *mime_type;
 		/*use non-persistent connection for MPD*/
-		e = gf_dash_download_resource(dash->dash_io, &(dash->mpd_dnload), purl, 0, 0, 0, NULL);
+		e = gf_dash_download_resource(dash, &(dash->mpd_dnload), purl, 0, 0, 0, NULL);
 		if (e!=GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: download problem %s for MPD file\n", gf_error_to_string(e)));
+			if (!dash->in_error) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: download problem %s for MPD file\n", gf_error_to_string(e)));
+				dash->in_error = GF_TRUE;
+			}
 			gf_free(purl);
+			//try to refetch MPD every second
+			dash->last_update_time+=1000;
 			return e;
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playlist %s updated with success\n", purl));
@@ -1609,7 +1620,18 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		}
 
 		gf_free(purl);
+
+		purl = (char *) dash->dash_io->get_url(dash->dash_io, dash->mpd_dnload) ;
+
+		/*if relocated, reassign MPD base URL*/
+		if (strcmp(purl, dash->base_url)) {
+			gf_free(dash->base_url);
+			dash->base_url = gf_strdup(purl);
+		}
+
 		purl = NULL;
+
+
 	}
 	fetch_time = dash_get_fetch_time(dash);
 
@@ -1623,7 +1645,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		return GF_IO_ERR;
 	}
 
-	if (! memcmp( signature, dash->lastMPDSignature, GF_SHA1_DIGEST_SIZE)) {
+	if (!dash->in_error && ! memcmp( signature, dash->lastMPDSignature, GF_SHA1_DIGEST_SIZE)) {
 
 		dash->reload_count++;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] MPD file did not change for %d consecutive reloads\n", dash->reload_count));
@@ -1635,10 +1657,13 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		} else {
 			dash->last_update_time = gf_sys_clock();
 		}
+
 		dash->mpd_fetch_time = fetch_time;
 		return GF_OK;
 	}
 
+	force_timeline_setup = dash->in_error;
+	dash->in_error = GF_FALSE;
 	dash->reload_count = 0;
 	memcpy(dash->lastMPDSignature, signature, GF_SHA1_DIGEST_SIZE);
 
@@ -1858,7 +1883,12 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 			}
 		}
 
-		if (new_mpd->availabilityStartTime != dash->mpd->availabilityStartTime) {
+		if (force_timeline_setup) {
+			group->timeline_setup = 0;
+			group->start_number_at_last_ast = 0;
+			gf_dash_group_timeline_setup(new_mpd, group, fetch_time);
+		}
+		else if (new_mpd->availabilityStartTime != dash->mpd->availabilityStartTime) {
 			s64 diff = new_mpd->availabilityStartTime;
 			diff -= dash->mpd->availabilityStartTime;
 			if (diff < 0) diff = -diff;
@@ -2168,7 +2198,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	group->max_bitrate = 0;
 	group->min_bitrate = (u32)-1;
 	/*use persistent connection for segment downloads*/
-	e = gf_dash_download_resource(dash->dash_io, &(group->segment_download), base_init_url, start_range, end_range, 1, group);
+	e = gf_dash_download_resource(dash, &(group->segment_download), base_init_url, start_range, end_range, 1, group);
 
 	if ((e==GF_OK) && group->force_switch_bandwidth && !dash->auto_switch_count) {
 		gf_free(base_init_url);
@@ -2190,7 +2220,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("Download of first segment failed... retrying with second one : %s\n", base_init_url));
 		nb_segment_read = 2;
 		/*use persistent connection for segment downloads*/
-		e = gf_dash_download_resource(dash->dash_io, &(group->segment_download), base_init_url, 0, 0, 1, group);
+		e = gf_dash_download_resource(dash, &(group->segment_download), base_init_url, 0, 0, 1, group);
 	} /* end of 404 */
 
 
@@ -2305,7 +2335,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 
 				e = gf_dash_resolve_url(dash->mpd, a_rep, group, dash->base_url, GF_MPD_RESOLVE_URL_INIT, 0, &a_base_init_url, &a_start, &a_end, &a_dur, NULL);
 				if (!e && a_base_init_url) {
-					e = gf_dash_download_resource(dash->dash_io, &(group->segment_download), a_base_init_url, a_start, a_end, 1, group);
+					e = gf_dash_download_resource(dash, &(group->segment_download), a_base_init_url, a_start, a_end, 1, group);
 
 					if ((e==GF_IP_CONNECTION_CLOSED) && group->download_abort_type) {
 						group->download_abort_type = 0;
@@ -2812,7 +2842,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloading init segment and SIDX for representation %s\n", init_url));
 
 				/*download first 8 bytes and check if we do have a box starting there*/
-				e = gf_dash_download_resource(group->dash->dash_io, &(group->segment_download), init_url, offset, 7, 1, group);
+				e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, 7, 1, group);
 				if (e) goto exit;
 				cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
 				e = dash_load_box_type(cache_name, offset, &box_type, &box_size);
@@ -2820,10 +2850,10 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				while (box_type) {
 					/*we got the moov , stop here */
 					if (!index_in_base && (box_type==GF_4CC('m','o','o','v'))) {
-						e = gf_dash_download_resource(group->dash->dash_io, &(group->segment_download), init_url, offset, offset+box_size-8, 2, group);
+						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-8, 2, group);
 						break;
 					} else {
-						e = gf_dash_download_resource(group->dash->dash_io, &(group->segment_download), init_url, offset, offset+box_size-1, 2, group);
+						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-1, 2, group);
 						offset += box_size;
 						/*we need to refresh the cache name because of our memory astorage thing ...*/
 						cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
@@ -2895,7 +2925,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 		}
 		/*we have index url, download it*/
 		if (! index_in_base) {
-			e = gf_dash_download_resource(group->dash->dash_io, &(group->segment_download), index_url, index_start_range, index_end_range, 1, group);
+			e = gf_dash_download_resource(group->dash, &(group->segment_download), index_url, index_start_range, index_end_range, 1, group);
 			if (e) goto exit;
 			sidx_file = (char *)group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
 		}
@@ -2935,6 +2965,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 	u32 count, i;
 	GF_Err e;
 	const char *local_url;
+	char *url;
 	GF_DOMParser *parser;
 	GF_MPD *new_mpd;
 	GF_MPD_Period *period;
@@ -2957,10 +2988,16 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 		return;
 	}
 
+	//xlink relative to our MPD base URL
+	url = gf_url_concatenate(dash->base_url, period->xlink_href);
+
 	/*use non-persistent connection for MPD*/
-	e = gf_dash_download_resource(dash->dash_io, &(dash->mpd_dnload), period->xlink_href, 0, 0, 0, NULL);
+	e = gf_dash_download_resource(dash, &(dash->mpd_dnload), url ? url : period->xlink_href, 0, 0, 0, NULL);
+
+	gf_free(url);
+
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot download xlink periods: error %s\n", gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot download xlink from periods %s: error %s\n", period->xlink_href, gf_error_to_string(e)));
 		gf_free(period->xlink_href);
 		period->xlink_href = NULL;
 		gf_mx_v(dash->dl_mutex);
@@ -3465,7 +3502,9 @@ restart_period:
 				group_count = gf_list_count(dash->groups);
 				diff = gf_sys_clock() - diff;
 				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error updating MPD %s\n", gf_error_to_string(e)));
+					if (!dash->in_error) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error updating MPD %s\n", gf_error_to_string(e)));
+					}
 				} else {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updated MPD in %d ms\n", diff));
 				}
@@ -3734,9 +3773,9 @@ restart_period:
 
 				/*use persistent connection for segment downloads*/
 				if (use_byterange) {
-					e = gf_dash_download_resource(dash->dash_io, &(group->segment_download), new_base_seg_url, start_range, end_range, 1, group);
+					e = gf_dash_download_resource(dash, &(group->segment_download), new_base_seg_url, start_range, end_range, 1, group);
 				} else {
-					e = gf_dash_download_resource(dash->dash_io, &(group->segment_download), new_base_seg_url, 0, 0, 1, group);
+					e = gf_dash_download_resource(dash, &(group->segment_download), new_base_seg_url, 0, 0, 1, group);
 				}
 
 				if ((e==GF_IP_CONNECTION_CLOSED) && group->download_abort_type) {
@@ -4214,7 +4253,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	} else if (strstr(manifest_url, "://")) {
 		const char *reloc_url, *mtype;
 		char mime[128];
-		e = gf_dash_download_resource(dash->dash_io, &(dash->mpd_dnload), manifest_url, 0, 0, 1, NULL);
+		e = gf_dash_download_resource(dash, &(dash->mpd_dnload), manifest_url, 0, 0, 1, NULL);
 		if (e!=GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: MPD downloading problem %s for %s\n", gf_error_to_string(e), manifest_url));
 			dash->dash_io->del(dash->dash_io, dash->mpd_dnload);
@@ -4287,7 +4326,10 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			gf_m3u8_to_mpd(local_url, manifest_url, local_path, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter);
 			local_url = local_path;
 		} else {
-			gf_m3u8_to_mpd(local_url, manifest_url, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter);
+			const char *redirected_url = dash->dash_io->get_url(dash->dash_io, dash->mpd_dnload);
+			if (!redirected_url) redirected_url=manifest_url;
+
+			gf_m3u8_to_mpd(local_url, redirected_url, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter);
 		}
 	}
 
