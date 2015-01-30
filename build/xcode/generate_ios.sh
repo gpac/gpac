@@ -32,6 +32,7 @@ if [ $? != 0 ] ; then
 fi
 
 echo "*** Copy the generated libs (arm only) ***"
+mkdir -p ../../bin/iOS/osmo4ios.app/
 cp build/Release-iphoneos/osmo4ios.app/osmo4ios ../../bin/iOS/osmo4ios.app/
 cp build/Release-iphoneos/osmo4ios.app/PkgInfo ../../bin/iOS/osmo4ios.app/
 cp build/Release-iphoneos/osmo4ios.app/Info.plist ../../bin/iOS/osmo4ios.app/
