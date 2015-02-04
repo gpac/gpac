@@ -59,7 +59,7 @@ if !"%VarRevisionBuild%"==!"%VarRevisionGIT%" goto Abort
 
 move packagers\win32_64\nsis\default.out packagers\win32_64\nsis\default.out_
 echo Name "GPAC Framework ${GPAC_VERSION} for %1 revision %VarRevisionGIT%" > packagers\win32_64\nsis\default.out
-echo OutFile "GPAC.Framework.Setup-${GPAC_VERSION}-rev%VarRevisionGIT%-%1.exe" >> packagers\win32_64\nsis\default.out
+echo OutFile "gpac-${GPAC_VERSION}-rev%VarRevisionGIT%-%1.exe" >> packagers\win32_64\nsis\default.out
 IF "%1"=="x64" echo !define IS_WIN64 >> packagers\win32_64\nsis\default.out
 
 echo:
