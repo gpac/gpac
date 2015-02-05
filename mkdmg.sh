@@ -1,5 +1,10 @@
 #!/bin/sh -e
 
+if [ "$1" != "leopard" -a "$1" != "mavericks" ]; then
+	echo "You must specified target architecture : leopard or mavericks"
+	exit 1
+fi
+
 source_path=.
 
 function rewrite_deps {
@@ -118,8 +123,8 @@ Rez /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Carb
 hdiutil flatten gpac_sla.dmg
 hdiutil internet-enable -yes gpac_sla.dmg
 
-echo "GPAC-$full_version.dmg ready"
+echo "gpac-$full_version-$1.dmg ready"
 chmod o+rx gpac_sla.dmg
 chmod g+rx gpac_sla.dmg
-mv gpac_sla.dmg GPAC-$full_version.dmg
+mv gpac_sla.dmg gpac-$full_version-$1.dmg
 

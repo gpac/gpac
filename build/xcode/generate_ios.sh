@@ -49,7 +49,7 @@ echo "*** Test the presence of target files ***"
 cd ../..
 if [ "$rev" != "" ]
 then
-	full_version="$version-r$rev"
+	full_version="$version-rev$rev"
 else
 	#if no revision can be extracted from SVN, use date
 	full_version="$version-$(date +%Y%m%d)"
@@ -68,7 +68,7 @@ cp ../../gui/mpegu-core.js osmo4ios.app/gui/
 cp -r ../../gui/icons osmo4ios.app/gui/
 cp -r ../../gui/extensions osmo4ios.app/gui/
 find osmo4ios.app | fgrep .git | fgrep -v git/ | xargs rm -rf
-tar -czf "osmo4ios-$full_version.tar.gz" osmo4ios.app/
+tar -czf "osmo4-$full_version-ios.tar.gz" osmo4ios.app/
 rm -rf osmo4ios.app
 git pull
 cd ../../build/xcode/
