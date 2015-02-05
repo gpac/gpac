@@ -418,6 +418,18 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
 		gf_export_message(dumper, GF_OK, "Extracting Simple Text sample%s", szNum);
 		strcpy(szEXT, ".txt");
+	} else if (m_stype==GF_ISOM_SUBTYPE_METT) {
+		gf_export_message(dumper, GF_OK, "Extracting Metadata Text sample%s", szNum);
+		strcpy(szEXT, ".txt");
+	} else if (m_stype==GF_ISOM_SUBTYPE_SBTT) {
+		gf_export_message(dumper, GF_OK, "Extracting Subtitle Text sample%s", szNum);
+		strcpy(szEXT, ".txt");
+	} else if (m_stype==GF_ISOM_SUBTYPE_METX) {
+		gf_export_message(dumper, GF_OK, "Extracting Metadata XML sample%s", szNum);
+		strcpy(szEXT, ".xml");
+	} else if (m_stype==GF_ISOM_SUBTYPE_STPP) {
+		gf_export_message(dumper, GF_OK, "Extracting Subtitle XML sample%s", szNum);
+		strcpy(szEXT, ".xml");
 	} else if (m_type==GF_ISOM_MEDIA_HINT) {
 		return gf_export_hint(dumper);
 	} else if (m_stype==GF_4CC('m','j','p','2')) {
@@ -1029,11 +1041,23 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 					strcat(szName, ".txt");
 				}
 			}
+		} else if (m_stype==GF_ISOM_SUBTYPE_SBTT) {
+			gf_export_message(dumper, GF_OK, "Extracting Text-based Subtitle Stream");
+			if (add_ext)
+				strcat(szName, ".txt");
+		} else if (m_stype==GF_ISOM_SUBTYPE_METT) {
+			gf_export_message(dumper, GF_OK, "Extracting Text-based Metadata Stream");
+			if (add_ext)
+				strcat(szName, ".txt");
 		} else if (m_stype==GF_ISOM_SUBTYPE_STPP) {
-			gf_export_message(dumper, GF_OK, "Extracting XML Subtitles");
+			gf_export_message(dumper, GF_OK, "Extracting XML Subtitle Stream");
 			if (add_ext)
 				strcat(szName, ".xml");
 			return gf_export_message(dumper, GF_NOT_SUPPORTED, "XML Subtitles re-assembling is not supported yet.", dumper->trackID);
+		} else if (m_stype==GF_ISOM_SUBTYPE_METX) {
+			gf_export_message(dumper, GF_OK, "Extracting XML Metadata Stream");
+			if (add_ext)
+				strcat(szName, ".xml");
 		} else {
 			if (add_ext) {
 				strcat(szName, ".");
