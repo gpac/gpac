@@ -3046,14 +3046,15 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	GF_Err e;
 	GF_DIMSDescription dims;
 	Bool destroy_esd, inRootOD, do_compress, use_dict, is_dims;
-	u32 i, track, tkID, di, mtype, max_size, count, streamType, oti, timescale, specInfoSize, dts_inc, par_den, par_num;
+	u32 i, track, tkID, di, mtype, max_size, count, streamType, oti, timescale, specInfoSize, header_end, dts_inc, par_den, par_num;
 	GF_ISOSample *samp;
 	GF_XMLAttribute *att;
 	s64 media_size, media_done, offset;
 	u64 duration, sample_duration;
 	FILE *nhml, *mdia, *info;
 	char *dictionary = NULL;
-	char *ext, szName[1000], szMedia[1000], szMediaTemp[1000], szInfo[1000], szXmlFrom[1000], szXmlTo[1000], *specInfo;
+	char *ext, szName[1000], szMedia[1000], szMediaTemp[1000], szInfo[1000], szXmlFrom[1000], szXmlTo[1000], szXmlHeaderEnd[1000];
+	char *specInfo;
 	GF_GenericSampleDescription sdesc;
 	GF_DOMParser *parser;
 	GF_XMLNode *root, *node, *childnode;
@@ -3119,87 +3120,133 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	tkID = mtype = streamType = oti = par_den = par_num = 0;
 	timescale = 1000;
 	i=0;
+	strcpy(szXmlHeaderEnd, "");
+	header_end = 0;
+
 	while ((att = (GF_XMLAttribute *)gf_list_enum(root->attributes, &i))) {
-		if (!stricmp(att->name, "streamType")) NHML_SCAN_INT("%u", streamType)
-			else if (!stricmp(att->name, "mediaType") && (strlen(att->value)==4)) {
-				mtype = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
+		if (!stricmp(att->name, "streamType")) {
+			NHML_SCAN_INT("%u", streamType)
+		} else if (!stricmp(att->name, "mediaType") && (strlen(att->value)==4)) {
+			mtype = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
+		} else if (!stricmp(att->name, "mediaSubType") && (strlen(att->value)==4)) {
+			sdesc.codec_tag = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
+		} else if (!stricmp(att->name, "objectTypeIndication")) {
+			NHML_SCAN_INT("%u", oti)
+		} else if (!stricmp(att->name, "timeScale")) {
+			NHML_SCAN_INT("%u", timescale)
+		} else if (!stricmp(att->name, "width")) {
+			NHML_SCAN_INT("%hu", sdesc.width)
+		} else if (!stricmp(att->name, "height")) {
+			NHML_SCAN_INT("%hu", sdesc.height)
+		} else if (!stricmp(att->name, "parNum")) {
+			NHML_SCAN_INT("%u", par_num)
+		} else if (!stricmp(att->name, "parDen")) {
+			NHML_SCAN_INT("%u", par_den)
+		} else if (!stricmp(att->name, "sampleRate")) {
+			NHML_SCAN_INT("%u", sdesc.samplerate)
+		} else if (!stricmp(att->name, "numChannels")) {
+			NHML_SCAN_INT("%hu", sdesc.nb_channels)
+		} else if (!stricmp(att->name, "baseMediaFile")) {
+			strcpy(szMedia, att->value);
+		} else if (!stricmp(att->name, "specificInfoFile")) {
+			strcpy(szInfo, att->value);
+		} else if (!stricmp(att->name, "headerEnd")) {
+			NHML_SCAN_INT("%u", header_end)
+		} else if (!stricmp(att->name, "trackID")) {
+			NHML_SCAN_INT("%u", tkID)
+		} else if (!stricmp(att->name, "inRootOD")) {
+			inRootOD = (!stricmp(att->value, "yes") );
+		} else if (!stricmp(att->name, "DTS_increment")) {
+			NHML_SCAN_INT("%u", dts_inc)
+		} else if (!stricmp(att->name, "gzipSamples")) {
+			do_compress = (!stricmp(att->value, "yes")) ? 1 : 0;
+		} else if (!stricmp(att->name, "gzipDictionary")) {
+			u64 d_size;
+			if (stricmp(att->value, "self")) {
+				FILE *d = gf_f64_open(att->value, "rb");
+				if (!d) {
+					gf_import_message(import, GF_IO_ERR, "Cannot open dictionary file %s", att->value);
+					continue;
+				}
+				gf_f64_seek(d, 0, SEEK_END);
+				d_size = gf_f64_tell(d);
+				dictionary = (char*)gf_malloc(sizeof(char)*(size_t)(d_size+1));
+				gf_f64_seek(d, 0, SEEK_SET);
+				d_size = fread(dictionary, sizeof(char), (size_t)d_size, d);
+				dictionary[d_size]=0;
 			}
-			else if (!stricmp(att->name, "mediaSubType") && (strlen(att->value)==4)) {
-				sdesc.codec_tag = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
-			}
-			else if (!stricmp(att->name, "objectTypeIndication")) NHML_SCAN_INT("%u", oti)
-				else if (!stricmp(att->name, "timeScale")) NHML_SCAN_INT("%u", timescale)
-					else if (!stricmp(att->name, "width")) NHML_SCAN_INT("%hu", sdesc.width)
-						else if (!stricmp(att->name, "height")) NHML_SCAN_INT("%hu", sdesc.height)
-							else if (!stricmp(att->name, "parNum")) NHML_SCAN_INT("%u", par_num)
-								else if (!stricmp(att->name, "parDen")) NHML_SCAN_INT("%u", par_den)
-									else if (!stricmp(att->name, "sampleRate")) NHML_SCAN_INT("%u", sdesc.samplerate)
-										else if (!stricmp(att->name, "numChannels")) NHML_SCAN_INT("%hu", sdesc.nb_channels)
-											else if (!stricmp(att->name, "baseMediaFile")) strcpy(szMedia, att->value);
-											else if (!stricmp(att->name, "specificInfoFile")) strcpy(szInfo, att->value);
-											else if (!stricmp(att->name, "trackID")) NHML_SCAN_INT("%u", tkID)
-												else if (!stricmp(att->name, "inRootOD")) inRootOD = (!stricmp(att->value, "yes") );
-												else if (!stricmp(att->name, "DTS_increment")) NHML_SCAN_INT("%u", dts_inc)
-													else if (!stricmp(att->name, "gzipSamples")) do_compress = (!stricmp(att->value, "yes")) ? 1 : 0;
-													else if (!stricmp(att->name, "gzipDictionary")) {
-														u64 d_size;
-														if (stricmp(att->value, "self")) {
-															FILE *d = gf_f64_open(att->value, "rb");
-															if (!d) {
-																gf_import_message(import, GF_IO_ERR, "Cannot open dictionary file %s", att->value);
-																continue;
-															}
-															gf_f64_seek(d, 0, SEEK_END);
-															d_size = gf_f64_tell(d);
-															dictionary = (char*)gf_malloc(sizeof(char)*(size_t)(d_size+1));
-															gf_f64_seek(d, 0, SEEK_SET);
-															d_size = fread(dictionary, sizeof(char), (size_t)d_size, d);
-															dictionary[d_size]=0;
-														}
-														use_dict = 1;
-													}
+			use_dict = 1;
+		}
 		/*unknow desc related*/
-													else if (!stricmp(att->name, "compressorName")) strcpy(sdesc.compressor_name, att->value);
-													else if (!stricmp(att->name, "codecVersion")) NHML_SCAN_INT("%hu", sdesc.version)
-														else if (!stricmp(att->name, "codecRevision")) NHML_SCAN_INT("%hu", sdesc.revision)
-															else if (!stricmp(att->name, "codecVendor") && (strlen(att->value)==4)) {
-																sdesc.vendor_code = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
-															}
-															else if (!stricmp(att->name, "temporalQuality")) NHML_SCAN_INT("%u", sdesc.temporal_quality)
-																else if (!stricmp(att->name, "spatialQuality")) NHML_SCAN_INT("%u", sdesc.spatial_quality)
-																	else if (!stricmp(att->name, "horizontalResolution")) NHML_SCAN_INT("%u", sdesc.h_res)
-																		else if (!stricmp(att->name, "verticalResolution")) NHML_SCAN_INT("%u", sdesc.v_res)
-																			else if (!stricmp(att->name, "bitDepth")) NHML_SCAN_INT("%hu", sdesc.depth)
-																				else if (!stricmp(att->name, "bitsPerSample")) NHML_SCAN_INT("%hu", sdesc.bits_per_sample)
-
-																					/*DIMS stuff*/
-																					else if (!stricmp(att->name, "profile")) NHML_SCAN_INT("%c", dims.profile)
-																						else if (!stricmp(att->name, "level")) NHML_SCAN_INT("%c", dims.level)
-																							else if (!stricmp(att->name, "pathComponents")) NHML_SCAN_INT("%c", dims.pathComponents)
-																								else if (!stricmp(att->name, "useFullRequestHost") && !stricmp(att->value, "yes")) dims.fullRequestHost = 1;
-																								else if (!stricmp(att->name, "stream_type") && !stricmp(att->value, "secondary")) dims.streamType = 0;
-																								else if (!stricmp(att->name, "contains_redundant")) {
-																									if (!stricmp(att->value, "main")) dims.containsRedundant = 1;
-																									else if (!stricmp(att->value, "redundant")) dims.containsRedundant = 2;
-																									else if (!stricmp(att->value, "main+redundant")) dims.containsRedundant = 3;
-																								}
-																								else if (!stricmp(att->name, "text_encoding")) dims.textEncoding = att->value;
-																								else if (!stricmp(att->name, "content_encoding")) {
-																									if (!strcmp(att->value, "deflate")) {
-																										dims.contentEncoding = att->value;
-																										do_compress = 1;
-																									}
-																								}
-																								else if (!stricmp(att->name, "content_script_types")) dims.content_script_types = att->value;
-																								else if (!stricmp(att->name, "mime_type")) dims.mime_type = att->value;
-																								else if (!stricmp(att->name, "media_namespace")) dims.mime_type = att->value;
-																								else if (!stricmp(att->name, "media_schema_location")) dims.xml_schema_loc = att->value;
-																								else if (!stricmp(att->name, "xml_namespace")) dims.mime_type = att->value;
-																								else if (!stricmp(att->name, "xml_schema_location")) dims.xml_schema_loc = att->value;
-
+		else if (!stricmp(att->name, "compressorName")) {
+			strcpy(sdesc.compressor_name, att->value);
+		} else if (!stricmp(att->name, "codecVersion")) {
+			NHML_SCAN_INT("%hu", sdesc.version)
+		} else if (!stricmp(att->name, "codecRevision")) {
+			NHML_SCAN_INT("%hu", sdesc.revision)
+		} else if (!stricmp(att->name, "codecVendor") && (strlen(att->value)==4)) {
+			sdesc.vendor_code = GF_4CC(att->value[0], att->value[1], att->value[2], att->value[3]);
+		} else if (!stricmp(att->name, "temporalQuality")) {
+			NHML_SCAN_INT("%u", sdesc.temporal_quality)
+		} else if (!stricmp(att->name, "spatialQuality")) {
+			NHML_SCAN_INT("%u", sdesc.spatial_quality)
+		} else if (!stricmp(att->name, "horizontalResolution")) {
+			NHML_SCAN_INT("%u", sdesc.h_res)
+		} else if (!stricmp(att->name, "verticalResolution")) {
+			NHML_SCAN_INT("%u", sdesc.v_res)
+		} else if (!stricmp(att->name, "bitDepth")) {
+			NHML_SCAN_INT("%hu", sdesc.depth)
+		} else if (!stricmp(att->name, "bitsPerSample")) {
+			NHML_SCAN_INT("%hu", sdesc.bits_per_sample)
+		}
+		/*DIMS stuff*/
+		else if (!stricmp(att->name, "profile")) {
+			NHML_SCAN_INT("%c", dims.profile)
+		} else if (!stricmp(att->name, "level")) {
+			NHML_SCAN_INT("%c", dims.level)
+		} else if (!stricmp(att->name, "pathComponents")) {
+			NHML_SCAN_INT("%c", dims.pathComponents)
+		} else if (!stricmp(att->name, "useFullRequestHost") && !stricmp(att->value, "yes")) {
+			dims.fullRequestHost = 1;
+		} else if (!stricmp(att->name, "stream_type") && !stricmp(att->value, "secondary")) {
+			dims.streamType = 0;
+		} else if (!stricmp(att->name, "contains_redundant")) {
+			if (!stricmp(att->value, "main")) {
+				dims.containsRedundant = 1;
+			} else if (!stricmp(att->value, "redundant")) {
+				dims.containsRedundant = 2;
+			} else if (!stricmp(att->value, "main+redundant")) {
+				dims.containsRedundant = 3;
+			}
+		} else if (!stricmp(att->name, "text_encoding")) {
+			dims.textEncoding = att->value;
+		} else if (!stricmp(att->name, "content_encoding")) {
+			if (!strcmp(att->value, "deflate")) {
+				dims.contentEncoding = att->value;
+				do_compress = 1;
+			}
+		} else if (!stricmp(att->name, "content_script_types")) {
+			dims.content_script_types = att->value;
+		} else if (!stricmp(att->name, "mime_type")) {
+			dims.mime_type = att->value;
+		} else if (!stricmp(att->name, "media_namespace")) {
+			dims.mime_type = att->value;
+		} else if (!stricmp(att->name, "media_schema_location")) {
+			dims.xml_schema_loc = att->value;
+		} else if (!stricmp(att->name, "xml_namespace")) {
+			dims.mime_type = att->value;
+		} else if (!stricmp(att->name, "xml_schema_location")) {
+			dims.xml_schema_loc = att->value;
+		} else if (!stricmp(att->name, "xmlHeaderEnd")) {
+			strcpy(szXmlHeaderEnd, att->value);
+		}
 	}
-	if (sdesc.samplerate && !timescale) timescale = sdesc.samplerate;
-	if (!sdesc.bits_per_sample) sdesc.bits_per_sample = 16;
+	if (sdesc.samplerate && !timescale) {
+		timescale = sdesc.samplerate;
+	} 
+	if (!sdesc.bits_per_sample) {
+		sdesc.bits_per_sample = 16;
+	}
 
 	if (dims_doc || (sdesc.codec_tag==GF_ISOM_SUBTYPE_3GP_DIMS)) {
 		mtype = GF_ISOM_MEDIA_DIMS;
@@ -3225,6 +3272,23 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		gf_f64_seek(info, 0, SEEK_SET);
 		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, info);
 		fclose(info);
+	} else if (header_end) {
+		/* for text based streams, the decoder specific info can be at the beginning of the file */
+		specInfoSize = header_end;
+		specInfo = (char*)gf_malloc(sizeof(char) * (specInfoSize+1));
+		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, mdia);		
+		specInfo[specInfoSize] = 0;
+		header_end = specInfoSize;
+	} else if (strlen(szXmlHeaderEnd)) {
+		/* for XML based streams, the decoder specific info can be up to some element in the file */
+		samp = gf_isom_sample_new();
+		max_size = 0;
+		e = gf_import_sample_from_xml(import, samp, szMedia, "doc.start", szXmlHeaderEnd, &max_size);
+		specInfo = (char*)gf_malloc(sizeof(char) * (samp->dataLength+1));
+		memcpy(specInfo, samp->data, samp->dataLength);
+		specInfoSize = samp->dataLength;
+		specInfo[specInfoSize] = 0;
+		gf_isom_sample_del(&samp);
 	}
 
 	i=0;
@@ -3344,11 +3408,11 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 													 &di);
 		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_SBTT) {
 			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_SBTT,
-											 dims.mime_type, dims.textEncoding, NULL,
+											 dims.mime_type, dims.textEncoding, specInfo,
 											 &di);
 		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_STXT) {
 			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_STXT,
-											 dims.mime_type, dims.textEncoding, NULL,
+											 dims.mime_type, dims.textEncoding, specInfo,
 											 &di);
 		} else {
 			e = GF_NOT_SUPPORTED;
@@ -3366,7 +3430,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 													 &di);
 		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_METT) {
 			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_METT,
-											 dims.mime_type, dims.textEncoding, NULL,
+											 dims.mime_type, dims.textEncoding, specInfo,
 											 &di);
 		} else {
 			e = GF_NOT_SUPPORTED;
@@ -3419,7 +3483,8 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		media_size = gf_f64_tell(mdia);
 		gf_f64_seek(mdia, 0, SEEK_SET);
 	}
-	media_done = 0;
+	/* if we've read the header from the same file, mark the header data as used */
+	media_done = header_end;
 
 	samp->IsRAP = RAP;
 	i=0;
@@ -3581,7 +3646,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 					max_size = samp->dataLength;
 				}
 				if (samp->dataLength != fread( samp->data, sizeof(char), samp->dataLength, f)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHML import dims] Failed to fully read samp->dataLength\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHML import] Failed to fully read samp->dataLength\n"));
 				}
 			}
 			if (close) fclose(f);

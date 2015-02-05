@@ -2177,7 +2177,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				fprintf(stderr, " - encoding %s", content_encoding);
 			}
 			if (config != NULL) {
-				fprintf(stderr, " - has config");
+				fprintf(stderr, " - %d bytes config", strlen(config));
 			}
 		} else if (msub_type == GF_ISOM_SUBTYPE_STXT) {
 			gf_isom_stxt_get_description(file, trackNum, 1, &mime, &content_encoding, &config);
@@ -2187,7 +2187,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				fprintf(stderr, " - encoding %s", content_encoding);
 			}
 			if (config != NULL) {
-				fprintf(stderr, " - has config");
+				fprintf(stderr, " - %d bytes config", strlen(config));
 			}
 		} else if (msub_type == GF_ISOM_SUBTYPE_STPP) {
 			gf_isom_xml_subtitle_get_description(file, trackNum, 1, &_namespace, &schema_loc, &auxiliary_mimes);
@@ -2214,7 +2214,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				fprintf(stderr, " - encoding %s", content_encoding);
 			}
 			if (config != NULL) {
-				fprintf(stderr, " - has config");
+				fprintf(stderr, " - %d bytes config", strlen(config));
 			}
 			fprintf(stderr, "\n");
 		} else if (msub_type == GF_ISOM_SUBTYPE_METX) {
