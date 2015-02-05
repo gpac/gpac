@@ -225,7 +225,7 @@ dmg:
 	fi
 	rm "bin/gcc/MP4Client"
 	$(MAKE) -C applications/mp4client
-	./mkdmg.sh
+	./mkdmg.sh $(arch)
 endif
 
 ifeq ($(CONFIG_LINUX),yes)
@@ -236,7 +236,7 @@ deb:
 		exit 1; \
 	fi
 	fakeroot debian/rules clean
-	sed -i "s/.DEV/.DEV-r$(VERSION)-$(BRANCH)/" debian/changelog
+	sed -i "s/-DEV/-DEV-rev$(VERSION)-$(BRANCH)/" debian/changelog
 	fakeroot debian/rules configure
 	fakeroot debian/rules binary
 	rm -rf debian/
