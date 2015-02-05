@@ -374,8 +374,8 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 			ar->bytes_requested += buffer_size;
 			ar->current_time = ar->time_at_last_config + (u32) (ar->bytes_requested * 1000 / ar->bytes_per_second);
 		}
-
-		return written;
+		//always return buffer size (eg requested input size to be filled), since the clock is always increased by buffer_size (cf above line)
+		return buffer_size;
 	}
 	return 0;
 }

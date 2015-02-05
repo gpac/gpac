@@ -1928,6 +1928,8 @@ static u32 avc_emulation_bytes_add_count(char *buffer, u32 nal_size)
 			/*emulation code found*/
 			num_zero = 0;
 			emulation_bytes_count++;
+			if (!buffer[i])
+				num_zero = 1;
 		} else {
 			if (!buffer[i])
 				num_zero++;
@@ -3295,6 +3297,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	if (RapPicFlag) {
 		/*Bool no_output_of_prior_pics_flag = */gf_bs_read_int(bs, 1);
 	}
+
 	pps_id = bs_get_ue(bs);
 	if (pps_id>=64) return -1;
 
