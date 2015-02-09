@@ -120,7 +120,7 @@ static GFINLINE void usage()
 	        "-ttl N                 specifies Time-To-Live for multicast. Default is 1.\n"
 	        "-ifce IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
 	        "-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optionnal\n"
-	        "-temi-delay DelayMS    Specifies delay between two TEMI url descriptors\n"
+	        "-temi-delay DelayMS    Specifies delay between two TEMI url descriptors (default is 1000)\n"
 	        "-temi-noloop           Do not restart the TEMI timeline at the end of the source\n"
 	        "-sdt-rate MS           Gives the SDT carrousel rate in milliseconds. If 0 (default), SDT is not sent\n"
 	        "\n"

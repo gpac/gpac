@@ -70,6 +70,9 @@ static u32 gui_mode = 0;
 
 static Bool restart = GF_FALSE;
 static Bool reload = GF_FALSE;
+
+Bool no_prog = 0;
+
 #if defined(__DARWIN__) || defined(__APPLE__)
 //we keep no decoder thread because of JS_GC deadlocks between threads ...
 static u32 threading_flags = GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_DECODER_THREAD;
@@ -174,6 +177,7 @@ void PrintUsage()
 	        "\t-quiet:         removes script message, buffering and downloading status\n"
 	        "\t-strict-error:  exit when the player reports its first error\n"
 	        "\t-opt option:    Overrides an option in the configuration file. String format is section:key=value\n"
+	        "\t-conf option:   Same as -opt but does not start player.\n"
 	        "\t-log-file file: sets output log file. Also works with -lf\n"
 	        "\t-logs log_args: sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 	        "\t                 levelX can be one of:\n"
@@ -1065,7 +1069,8 @@ int main (int argc, char **argv)
 	Bool start_fs = GF_FALSE;
 	Bool use_rtix = GF_FALSE;
 	Bool pause_at_first = GF_FALSE;
-	Bool no_cfg_safe = GF_FALSE;
+	Bool no_cfg_save = GF_FALSE;
+	Bool is_cfg_only = GF_FALSE;
 
 	Double play_from = 0;
 #ifdef GPAC_MEMORY_TRACKING
@@ -1182,6 +1187,10 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-opt")) {
 			set_cfg_option(argv[i+1]);
 			i++;
+		} else if (!strcmp(arg, "-conf")) {
+			set_cfg_option(argv[i+1]);
+			is_cfg_only=GF_TRUE;
+			i++;
 		}
 		else if (!strcmp(arg, "-ifce")) {
 			gf_cfg_set_key(cfg_file, "Network", "DefaultMCastInterface", argv[i+1]);
@@ -1192,10 +1201,11 @@ int main (int argc, char **argv)
             return 1;
         }
         else if (!stricmp(arg, "-noprog")) {
+            no_prog=1;
             gf_set_progress_callback(NULL, progress_quiet);
         }
         else if (!stricmp(arg, "--no-save")) {
-			no_cfg_safe=1;
+			no_cfg_save=1;
         }
 		
 
@@ -1293,6 +1303,11 @@ int main (int argc, char **argv)
 			}
 		}
 	}
+    if (is_cfg_only) {
+        gf_cfg_del(cfg_file);
+        fprintf(stderr, "GPAC Config updated\n");
+        return 0;
+    }
 	if (dump_mode && !url_arg ) {
 		fprintf(stderr, "Missing argument for dump\n");
 		PrintUsage();
@@ -1340,7 +1355,7 @@ int main (int argc, char **argv)
 		user.init_flags |= GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
 		if (visible || dump_mode==8) user.init_flags |= GF_TERM_INIT_HIDE;
 		gf_cfg_set_key(cfg_file, "Audio", "DriverName", "Raw Audio Output");
-		no_cfg_safe=GF_TRUE;
+		no_cfg_save=GF_TRUE;
 	} else {
 		init_w = forced_width;
 		init_h = forced_height;
@@ -2110,7 +2125,7 @@ force_input:
 	fprintf(stderr, "GPAC cleanup ...\n");
 	gf_modules_del(user.modules);
 
-	if (no_cfg_safe)
+	if (no_cfg_save)
 		gf_cfg_discard_changes(cfg_file);
 
 	gf_cfg_del(cfg_file);
