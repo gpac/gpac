@@ -39,6 +39,7 @@
 *.gcno
 *.gcda
 *.gcov
+*.DS_Store
 
 [Dd]ebug/
 [Dd]ebugPublic/
