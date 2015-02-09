@@ -84,6 +84,8 @@ extern Bool is_connected;
 extern GF_Terminal *term;
 extern u64 Duration;
 extern GF_Err last_error;
+extern Bool no_prog;
+
 
 static GFINLINE u8 colmask(s32 a, s32 n)
 {
@@ -890,7 +892,8 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 		if ((mode==DUMP_AVI) || (mode==DUMP_SHA1)) {
 
-			fprintf(stderr, "Dumping %02d/100 %% - time %.02f sec\r", (u32) ((100.0*prev_time)/dump_dur), prev_time/1000.0 );
+            if (!no_prog)
+                fprintf(stderr, "Dumping %02d/100 %% - time %.02f sec\r", (u32) ((100.0*prev_time)/dump_dur), prev_time/1000.0 );
 
 			if (avi_mx) gf_mx_p(avi_mx);
 
