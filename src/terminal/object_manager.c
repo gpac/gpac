@@ -1334,7 +1334,7 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 		com.play.speed = FIX2FLT(ch->clock->speed);
 		com.play.start_range = gf_clock_time(ch->clock);
 		com.play.start_range /= 1000;
-		com.play.end_range = -1.0;
+		com.play.end_range = 0;
 		gf_term_service_command(ch->service, &com);
 		if (dec && (dec->Status!=GF_ESM_CODEC_PLAY)) gf_term_start_codec(dec, 0);
 		gf_term_lock_net(ch->odm->term, 0);
@@ -1598,6 +1598,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 		/*adjust time for addons*/
 		if (odm->parentscene && odm->parentscene->root_od->addon) {
+			com.play.initial_broadcast_play = 0;
 			//addon timing is resolved against timestamps, not media time
 			if (start_range_is_clock) {
 				ck_time = gf_clock_time(ch->clock);
@@ -1624,7 +1625,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 			   ) {
 				com.play.end_range = (s64) odm->parentscene->root_od->media_stop_time / 1000.0;
 			} else {
-				com.play.end_range = -1;
+				com.play.end_range = 0;
 			}
 		}
 
