@@ -4438,7 +4438,7 @@ static void JS_PreDestroy(GF_Node *node)
 
 	gf_sg_lock_javascript(priv->js_ctx, 1);
 
-	if (priv->event) gf_js_remove_root(priv->js_ctx, &priv->event, GF_JSGC_OBJECT);
+	if (priv->the_event) gf_js_remove_root(priv->js_ctx, &priv->the_event, GF_JSGC_OBJECT);
 
 	/*unprotect all cached objects from GC*/
 	JS_ReleaseRootObjects(priv);
@@ -4740,8 +4740,8 @@ static void JSScript_LoadVRML(GF_Node *node)
 	/*initialize DOM*/
 	dom_js_load(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj);
 	/*create event object, and remember it*/
-	priv->event = dom_js_define_event(priv->js_ctx, priv->js_obj);
-	gf_js_add_root(priv->js_ctx, &priv->event, GF_JSGC_OBJECT);
+	priv->the_event = dom_js_define_event(priv->js_ctx, priv->js_obj);
+	gf_js_add_root(priv->js_ctx, &priv->the_event, GF_JSGC_OBJECT);
 #endif
 
 	gf_sg_load_script_extensions(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj, 0);
@@ -4948,12 +4948,14 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events] Executing script code from VRML handler\n"));
 
 	priv = JS_GetScriptStack(hdl->js_context);
-	prev_event = SMJS_GET_PRIVATE(priv->js_ctx, priv->event);
-	/*break loops*/
-	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target))
-		return;
-
 	gf_sg_lock_javascript(priv->js_ctx, 1);
+
+	prev_event = SMJS_GET_PRIVATE(priv->js_ctx, priv->the_event);
+	/*break loops*/
+	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target)) {
+		gf_sg_lock_javascript(priv->js_ctx, 0);
+		return;
+	}
 
 	evt = gf_dom_new_event(priv->js_ctx);
 	if (!evt) {
@@ -4964,8 +4966,7 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 
 	prev_type = event->is_vrml;
 	event->is_vrml = 1;
-	SMJS_SET_PRIVATE(priv->js_ctx, priv->event, event);
-
+	SMJS_SET_PRIVATE(priv->js_ctx, priv->the_event, event);
 
 	SMJS_SET_PRIVATE(priv->js_ctx, evt, event);
 	argv[0] = OBJECT_TO_JSVAL(evt);
@@ -4984,7 +4985,7 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 	}
 
 	event->is_vrml = prev_type;
-	SMJS_SET_PRIVATE(priv->js_ctx, priv->event, prev_event);
+	SMJS_SET_PRIVATE(priv->js_ctx, priv->the_event, prev_event);
 
 	gf_sg_lock_javascript(priv->js_ctx, 0);
 

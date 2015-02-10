@@ -874,7 +874,8 @@ typedef struct
 	allocate them again and again when getting properties. Garbage collection is performed (if needed)
 	on these objects after each eventIn execution*/
 	GF_List *js_cache;
-	struct JSObject *event;
+	//Event object, whose private is the pointer to current event being executed
+	struct JSObject *the_event;
 #endif
 
 	void (*JS_PreDestroy)(GF_Node *node);
