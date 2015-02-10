@@ -376,16 +376,21 @@ static Bool gf_es_needs_buffering(GF_Channel *ch, u32 ForRebuffering)
 
 void gf_es_update_buffering(GF_Channel *ch, Bool update_info)
 {
-	if (update_info && ch->MaxBuffer) gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+	if (update_info) {
+		if (ch->MaxBuffer) gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 
-	gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PROGRESS);
-	gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_TIME_UPDATE);
+		gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PROGRESS);
+		gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_TIME_UPDATE);
+	}
 
 	if (!gf_es_needs_buffering(ch, 0)) {
 		gf_es_buffer_off(ch);
-		if (ch->MaxBuffer && update_info) gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 
-		gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PLAYING);
+		if (update_info) {
+			if (ch->MaxBuffer && update_info) gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+
+			gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PLAYING);
+		}
 	}
 }
 
@@ -1113,8 +1118,14 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				}
 
 				if (ch->odm->parentscene && ch->odm->parentscene->root_od->addon) {
-					ch->DTS = (u32) gf_scene_adjust_timestamp_for_addon(ch->odm->parentscene, ch->DTS, ch->odm->parentscene->root_od->addon);
-					ch->CTS = (u32) gf_scene_adjust_timestamp_for_addon(ch->odm->parentscene, ch->CTS, ch->odm->parentscene->root_od->addon);
+					s64 res = gf_scene_adjust_timestamp_for_addon(ch->odm->parentscene, ch->CTS, ch->odm->parentscene->root_od->addon);
+					if (res<0) return;
+					ch->CTS = (u32) res;
+
+					res = gf_scene_adjust_timestamp_for_addon(ch->odm->parentscene, ch->DTS, ch->odm->parentscene->root_od->addon);
+					if (res<0) res=0;
+					ch->DTS = (u32) res;
+					
 				}
 
 				if (ch->clock->probe_ocr && gf_es_owns_clock(ch)) {
