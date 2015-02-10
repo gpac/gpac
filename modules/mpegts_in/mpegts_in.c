@@ -566,7 +566,7 @@ static void forward_m2ts_event(M2TSIn *m2ts, u32 evt_type, void *param)
 static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
 	M2TSIn *m2ts = (M2TSIn *) ts->user;
-
+				
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_UPDATE:
 		/*	example code showing how to forward an event from MPEG-2 TS input service to GPAC user*/
@@ -1485,8 +1485,8 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			if (!m2ts->map_media_time_on_prog_id)
 				m2ts->map_media_time_on_prog_id = pes->program->number;
 
-			if (plug->query_proxy && ts->file)
-				ts->segment_switch = 1;
+			if (com->play.dash_segment_switch)
+				ts->abort_parsing = 1;
 
 			/*start demuxer*/
 			if (!plug->query_proxy) {
