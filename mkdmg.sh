@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
-if [ "$1" != "leopard" -a "$1" != "mavericks" ]; then
-	echo "You must specified target architecture : leopard or mavericks"
+if [ "$1" != "snow-leopard" -a "$1" != "mavericks" ]; then
+	echo "You must specified target architecture : snow-leopard or mavericks"
 	exit 1
 fi
 
@@ -102,7 +102,7 @@ cd $cur_dir
 full_version=$version
 if [ "$rev" != "" ]
 then
-	full_version="$full_version-r$rev"
+	full_version="$full_version-rev$rev"
 else
 	#if no revision can be extracted from SVN, use date
    	$rev = $(date +%Y%m%d)
