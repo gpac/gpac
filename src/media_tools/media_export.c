@@ -2759,7 +2759,7 @@ void m2ts_export_check(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 {
 //	if (evt_type == GF_M2TS_EVT_PAT_REPEAT) ts->user = NULL;
 	if (evt_type == GF_M2TS_EVT_PMT_REPEAT) ts->user = NULL;
-	else if (evt_type == GF_M2TS_EVT_PAT_FOUND) ts->segment_switch = 1;
+	else if (evt_type == GF_M2TS_EVT_PAT_FOUND) ts->abort_parsing = 1;
 }
 
 struct _ts_export
@@ -2834,12 +2834,12 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		gf_m2ts_process_data(ts, data, (u32)size);
 		if (!ts->user) break;
 	}
-	if (!ts->segment_switch && ts->user) {
+	if (!ts->abort_parsing && ts->user) {
 		fclose(src);
 		gf_m2ts_demux_del(ts);
 		return gf_export_message(dumper, GF_URL_ERROR, "Cannot locate program association table");
 	}
-	ts->segment_switch = 0;
+	ts->abort_parsing = 0;
 
 	stream = NULL;
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {

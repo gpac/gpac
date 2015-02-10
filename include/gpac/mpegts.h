@@ -711,9 +711,13 @@ typedef struct tag_m2ts_pes
 	GF_M2TS_DVB_Subtitling_Descriptor sub;
 	GF_M2TS_MetadataDescriptor *metadata_descriptor;
 
-
+	//pointer to last received temi
 	char *temi_tc_desc;
 	u32 temi_tc_desc_len, temi_tc_desc_alloc_size;
+
+	//last decoded temi (may be one ahead of time as the last received TEMI)
+	GF_M2TS_TemiTimecodeDescriptor temi_tc;
+	Bool temi_pending;
 } GF_M2TS_PES;
 
 /*SDT information object*/
@@ -938,7 +942,7 @@ struct tag_m2ts_demux
 	char* dsmcc_root_dir;
 	GF_List* dsmcc_controler;
 
-	Bool segment_switch;
+	Bool abort_parsing;
 	Bool table_reset;
 
 	//duration estimation
