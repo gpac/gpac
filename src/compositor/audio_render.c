@@ -355,12 +355,13 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 		} else {
 			written = gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
 		}
+		gf_mixer_lock(ar->mixer, 0);
+
 		//done with one sim step, go back in pause
 		if (ar->step_mode) {
 			ar->step_mode = 0;
 			gf_ar_pause(ar, 1, 0, 0);
 		}
-		gf_mixer_lock(ar->mixer, 0);
 
 		if (!ar->need_reconfig) {
 			if (ar->audio_listeners) {
@@ -419,15 +420,12 @@ u32 gf_ar_proc(void *p)
 	gf_mixer_lock(ar->mixer, 0);
 
 	while (ar->audio_th_state == 1) {
-		gf_mixer_lock(ar->mixer, 1);
 		//do mix even if mixer is empty, otherwise we will push the same buffer over and over to the sound card
 		if (ar->Frozen ) {
-			gf_mixer_lock(ar->mixer, 0);
 			gf_sleep(0);
 		} else {
 			if (ar->need_reconfig) gf_sc_ar_reconfig(ar);
 			ar->audio_out->WriteAudio(ar->audio_out);
-			gf_mixer_lock(ar->mixer, 0);
 		}
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Exiting audio thread\n"));

@@ -159,10 +159,11 @@ static Bool gf_audio_input_get_config(GF_AudioInterface *aifc, Bool for_recf)
 	if (!ai->stream) return 0;
 	/*watchout for object reuse*/
 	if (aifc->samplerate && (gf_mo_get_flags(ai->stream) & GF_MO_IS_INIT)) return 1;
-	if (!for_recf)
-		return aifc->samplerate ? 1 : 0;
 
 	gf_mo_get_audio_info(ai->stream, &aifc->samplerate, &aifc->bps , &aifc->chan, &aifc->ch_cfg);
+
+	if (!for_recf)
+		return aifc->samplerate ? 1 : 0;
 
 	if (aifc->samplerate * aifc->chan * aifc->bps && ((aifc->chan<=2) || aifc->ch_cfg))  {
 		gf_mo_set_flag(ai->stream, GF_MO_IS_INIT, 1);
