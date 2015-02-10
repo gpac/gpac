@@ -196,18 +196,34 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 		}
 
 		//remap timestamps to our timeline
-		if ((s64) hdr->decodingTimeStamp >= group->pto)
-			hdr->decodingTimeStamp -= group->pto;
-		else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet DTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
-			hdr->decodingTimeStamp = 0;
+		if (hdr->decodingTimeStampFlag) {
+			if ((s64) hdr->decodingTimeStamp >= group->pto)
+				hdr->decodingTimeStamp -= group->pto;
+			else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet DTS "LLU" less than PTO "LLU" - forcing DTS to 0\n", hdr->compositionTimeStamp, group->pto));
+				hdr->decodingTimeStamp = 0;
+			}
 		}
-		if ((s64) hdr->compositionTimeStamp >= group->pto)
-			hdr->compositionTimeStamp -= group->pto;
-		else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
-			hdr->compositionTimeStamp = 0;
+		if (hdr->compositionTimeStampFlag) {
+			if ((s64) hdr->compositionTimeStamp >= group->pto)
+				hdr->compositionTimeStamp -= group->pto;
+			else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
+				hdr->compositionTimeStamp = 0;
+			}
 		}
+
+		if (hdr->OCRflag) {
+			u32 scale = hdr->m2ts_pcr ? 300 : 1;
+			u64 pto = scale*group->pto;
+			if (hdr->objectClockReference >= pto)
+				hdr->objectClockReference -= pto;
+			else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet OCR/PCR "LLU" less than PTO "LLU" - discarding PCR\n", hdr->objectClockReference/scale, group->pto));
+				return;
+			}
+		}
+
 	} else if (!group->pto_setup) {
 		do_map_time = 1;
 		group->pto_setup = 1;
