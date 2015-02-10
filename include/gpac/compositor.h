@@ -54,8 +54,9 @@ void gf_sc_set_fps(GF_Compositor *sr, Double fps);
 /*set the root scene graph of the compositor - if NULL remove current and reset simulation time*/
 GF_Err gf_sc_set_scene(GF_Compositor *sr, GF_SceneGraph *scene_graph);
 
-/*if the compositor doesn't use its own thread for visual, this will perform a render pass*/
-Bool gf_sc_draw_frame(GF_Compositor *sr, Bool no_video_flush, u32 *ms_till_next);
+/*if the compositor doesn't use its own thread for visual, this will perform a render pass
+return 1 if there are pending tasks (frame late, fonts pending, etc) or 0 if everything was ready while drawing the frame*/
+Bool gf_sc_draw_frame(GF_Compositor *sr, Bool no_video_flush, s32 *ms_till_next);
 
 /*flushes the video to screen - typically used after @gf_sc_draw_frame without flush*/
 void gf_sc_flush_video(GF_Compositor *compositor);

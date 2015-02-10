@@ -212,19 +212,20 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 }
 
 GF_EXPORT
-Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, u32 *ms_till_next)
+Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_next)
 {
 	if (no_flush)
 		compositor->skip_flush=1;
 	gf_sc_simulation_tick(compositor);
 
 	if (ms_till_next) {
-		if ((s32) compositor->next_frame_delay == -1)
+		if ( compositor->ms_until_next_frame == GF_INT_MAX)
 			*ms_till_next = compositor->frame_duration;
-		else
-			*ms_till_next = MIN(compositor->next_frame_delay, compositor->frame_duration);
+		else 
+			*ms_till_next = compositor->ms_until_next_frame;
 	}
-	if (compositor->frame_delay<0) return 1;
+	//next frame is late, we should redraw
+	if (compositor->ms_until_next_frame < 0) return 1;
 	if (compositor->frame_draw_type) return 1;
 	if (compositor->fonts_pending) return 1;
 	return GF_FALSE;
@@ -2306,7 +2307,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	//first update all natural textures to figure out timing
 	compositor->frame_delay = 0;
-	compositor->next_frame_delay = (u32) -1;
+	compositor->ms_until_next_frame = GF_INT_MAX;
 	frame_duration = compositor->frame_duration;
 
 #ifndef GPAC_DISABLE_LOG
@@ -2619,22 +2620,27 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	}
 
 	//we have a pending frame, return asap - we could sleep until frames matures but this give weird regulation
-	if (compositor->next_frame_delay != (u32) -1) {
-		if (compositor->next_frame_delay>end_time) compositor->next_frame_delay-=end_time;
-		else compositor->next_frame_delay=0;
+	if (compositor->ms_until_next_frame != GF_INT_MAX) {
+		if (compositor->ms_until_next_frame<0) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Next frame already due (%d ms late) - not going to sleep\n", - compositor->ms_until_next_frame));
+			return;
+		}
 
-		compositor->next_frame_delay = MIN(compositor->next_frame_delay, 2*frame_duration);
-		if (compositor->next_frame_delay>2) {
+		if (compositor->ms_until_next_frame > (s32) end_time) compositor->ms_until_next_frame -= end_time;
+		else compositor->ms_until_next_frame = 0;
+
+		compositor->ms_until_next_frame = MIN(compositor->ms_until_next_frame, (s32) (2*frame_duration) );
+		if (compositor->ms_until_next_frame > 2) {
 			u32 diff=0;
 			while (! compositor->msg_type && ! compositor->video_frame_pending) {
 				gf_sleep(1);
 				diff = gf_sys_clock() - in_time;
-				if (diff >= (u32) compositor->next_frame_delay)
+				if (diff >= (u32) compositor->ms_until_next_frame)
 					break;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor slept %d ms until next frame due in %d ms\n", diff, compositor->next_frame_delay));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor slept %d ms until next frame due in %d ms\n", diff, compositor->ms_until_next_frame));
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Next frame due in %d ms - not going to sleep\n", compositor->next_frame_delay));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Next frame due in %d ms - not going to sleep\n", compositor->ms_until_next_frame));
 		}
 		return;
 	}
