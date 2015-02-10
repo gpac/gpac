@@ -699,7 +699,7 @@ GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 ob
 	OD_ID = gf_mo_get_od_id(url);
 	if (!OD_ID) return NULL;
 
-	gf_term_lock_net(scene->root_od->term, GF_TRUE);
+	gf_mx_p(scene->mx_resources);
 
 	/*we may have overriden the time lines in parent scene, thus all objects in this scene have the same clock*/
 	if (scene->root_od->parentscene && scene->root_od->parentscene->force_single_timeline)
@@ -763,12 +763,12 @@ restart:
 		if (!first_pass && !force_new_if_not_attached) {
 			if (node && (gf_mo_event_target_find_by_node(obj, node)<0))
 				gf_mo_event_target_add_node(obj, node);
-			gf_term_lock_net(scene->root_od->term, GF_FALSE);
+			gf_mx_v(scene->mx_resources);
 			return obj;
 		}
 		/*special case where the URL is requested twice for the same node: use the existing resource*/
 		else if (node && (gf_mo_event_target_find_by_node(obj, node)>=0)) {
-			gf_term_lock_net(scene->root_od->term, GF_FALSE);
+			gf_mx_v(scene->mx_resources);
 			return obj;
 		}
 	}
@@ -779,7 +779,7 @@ restart:
 
 	/*we cannot create an OD manager at this point*/
 	if (obj_type_hint==GF_MEDIA_OBJECT_UNDEF) {
-		gf_term_lock_net(scene->root_od->term, GF_FALSE);
+		gf_mx_v(scene->mx_resources);
 		return NULL;
 	}
 
@@ -807,19 +807,19 @@ restart:
 		gf_scene_insert_object(scene, obj, lock_timelines, sync_ref, keep_fragment, original_parent_scene);
 		/*safety check!!!*/
 		if (gf_list_find(scene->scene_objects, obj)<0) {
-			gf_term_lock_net(scene->root_od->term, GF_FALSE);
+			gf_mx_v(scene->mx_resources);
 			return NULL;
 		}
 
 		if (obj->odm==NULL) {
 			gf_list_del_item(scene->scene_objects, obj);
 			gf_mo_del(obj);
-			gf_term_lock_net(scene->root_od->term, GF_FALSE);
+			gf_mx_v(scene->mx_resources);
 			return NULL;
 		}
 	}
 
-	gf_term_lock_net(scene->root_od->term, GF_FALSE);
+	gf_mx_v(scene->mx_resources);
 	return obj;
 }
 
@@ -2260,14 +2260,6 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 	}
 
 
-	if (!addon->timeline_ready) {
-		addon->timeline_ready = GF_TRUE;
-		load_associated_media(scene, addon);
-	}
-
-	if (!addon->root_od) return;
-
-	gf_mx_p(addon->root_od->mx);
 	prev_time = (Double) addon->media_timestamp;
 	prev_time /= addon->media_timescale;
 
@@ -2288,7 +2280,11 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 		assert(addon_time->media_timescale);
 		assert(!addon->loop_detected);
 	}
-	gf_mx_v(addon->root_od->mx);
+
+	if (!addon->timeline_ready) {
+		addon->timeline_ready = GF_TRUE;
+		load_associated_media(scene, addon);
+	}
 }
 
 void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
@@ -2349,7 +2345,7 @@ Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_Add
 	return media_time;
 }
 
-u64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon)
+s64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon)
 {
 	s64 media_ts_ms;
 	assert(addon->timeline_ready);
@@ -2359,8 +2355,7 @@ u64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMe
 	media_ts_ms = orig_ts;
 	media_ts_ms -= (addon->media_timestamp*1000) / addon->media_timescale;
 	media_ts_ms += (addon->media_pts/90);
-
-	return (u64) media_ts_ms;
+	return media_ts_ms;
 }
 
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
