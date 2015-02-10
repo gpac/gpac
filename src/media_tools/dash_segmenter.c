@@ -3413,10 +3413,13 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	if (first_in_set && dash_cfg->seg_rad_name && dash_cfg->use_url_template && !dash_cfg->variable_seg_rad_name) {
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, 1, SegName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 		fprintf(dash_cfg->mpd, "   <SegmentTemplate timescale=\"90000\" duration=\"%d\" startNumber=\"%d\" media=\"%s\"", (u32) (90000*dash_cfg->segment_duration), segment_index, SegName);
+				//the SIDX we have is not compatible with the spec - until fixed, disable this
+#if 0
 		if (!dash_cfg->dash_ctx) {
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE, 1, IdxName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "six", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 			fprintf(dash_cfg->mpd, " index=\"%s\"", IdxName);
 		}
+#endif
 		fprintf(dash_cfg->mpd, "/>\n");
 	}
 
@@ -3464,10 +3467,14 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			if (dash_cfg->variable_seg_rad_name) {
 				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, 1, SegName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 				fprintf(dash_cfg->mpd, "    <SegmentTemplate timescale=\"90000\" duration=\"%d\" startNumber=\"%d\" media=\"%s\"", (u32) (90000*dash_cfg->segment_duration), segment_index, SegName);
+
+				//the SIDX we have is not compatible with the spec - until fixed, disable this
+#if 0
 				if (!dash_cfg->dash_ctx) {
 					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE, 1, IdxName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "six", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 					fprintf(dash_cfg->mpd, " index=\"%s\"", IdxName);
 				}
+#endif
 
 				if (presentationTimeOffset > 1)
 					fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset - 1);
@@ -3660,8 +3667,12 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 exit:
 	if (ts_seg.sidx) gf_isom_box_del((GF_Box *)ts_seg.sidx);
 	if (ts_seg.pcrb) gf_isom_box_del((GF_Box *)ts_seg.pcrb);
-	if (ts_seg.index_file) fclose(ts_seg.index_file);
 	if (ts_seg.index_bs) gf_bs_del(ts_seg.index_bs);
+	if (ts_seg.index_file) {
+		fclose(ts_seg.index_file);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, 1, IdxName, szOutName, dash_input->representationID, dash_cfg->seg_rad_name, "six", 0, 0, 0, dash_cfg->use_segment_timeline);
+		gf_delete_file(IdxName);
+	}
 	dasher_del_ts_demux(&ts_seg);
 	return e;
 }
