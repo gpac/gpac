@@ -56,6 +56,7 @@
 #define MP42TS_VIDEO_FREQ 1000 /*meant to send AVC IDR only every CLOCK_REFRESH ms*/
 
 u32 temi_url_insertion_delay = 1000;
+u32 temi_offset = 0;
 Bool temi_disable_loop = 0;
 FILE *logfile = NULL;
 
@@ -121,6 +122,7 @@ static GFINLINE void usage()
 	        "-ifce IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
 	        "-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optionnal\n"
 	        "-temi-delay DelayMS    Specifies delay between two TEMI url descriptors (default is 1000)\n"
+			"-temi-offset OffsetMS  Specifies an offset in ms to add to TEMI (by default TEMI starts at 0)\n"
 	        "-temi-noloop           Do not restart the TEMI timeline at the end of the source\n"
 	        "-sdt-rate MS           Gives the SDT carrousel rate in milliseconds. If 0 (default), SDT is not sent\n"
 	        "\n"
@@ -195,6 +197,7 @@ typedef struct
 
 	const char *temi_url;
 	u32 last_temi_url;
+	Bool insert_temi;
 
 } GF_ESIMP4;
 
@@ -248,7 +251,7 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 	} else {
 		last_time = (u32) (1000*timecode/timescale);
 	}
-	if (!*last_url_time || (last_time - *last_url_time + 1 >= temi_url_insertion_delay) ) {
+	if (temi_url && (!*last_url_time || (last_time - *last_url_time + 1 >= temi_url_insertion_delay)) ) {
 		*last_url_time = last_time + 1;
 		len = 0;
 		gf_bs_write_int(bs,	GF_M2TS_AFDESC_LOCATION_DESCRIPTOR, 8);
@@ -299,7 +302,7 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 		gf_bs_write_int(bs,	0, 1); //paused
 		gf_bs_write_int(bs,	0, 1); //discontinuity
 		gf_bs_write_int(bs,	0xFF, 7); //reserved
-		gf_bs_write_int(bs,	0, 8); //timeline_id
+		gf_bs_write_int(bs,	temi_url ? 0 : 150, 8); //timeline_id
 		if (timescale) {
 			gf_bs_write_u32(bs,	timescale); //timescale
 			if (timecode > 0xFFFFFFUL)
@@ -343,12 +346,17 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		pck.cts = priv->sample->DTS + priv->ts_offset;
 		if (priv->is_repeat) pck.flags |= GF_ESI_DATA_REPEAT;
 
-		if (priv->temi_url) {
+		if (priv->insert_temi) {
 			u64 tc = priv->sample->DTS + priv->sample->CTS_Offset;
 			if (temi_disable_loop) {
 				tc += priv->ts_offset;
 			}
-			pck.mpeg2_af_descriptors_size = format_af_descriptor(af_data, priv->sample->DTS + priv->sample->CTS_Offset, ifce->timescale, 0, priv->temi_url, &priv->last_temi_url);
+
+			if (temi_offset) {
+				tc += ((u64) temi_offset) * ifce->timescale / 1000;
+			}
+
+			pck.mpeg2_af_descriptors_size = format_af_descriptor(af_data, tc, ifce->timescale, 0, priv->temi_url, &priv->last_temi_url);
 			pck.mpeg2_af_descriptors = af_data;
 		}
 
@@ -1409,7 +1417,11 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 						/*get first visual stream as PCR*/
 						if (!source->pcr_idx) {
 							source->pcr_idx = i+1;
-							((GF_ESIMP4 *)source->streams[i].input_udta)->temi_url = temi_url;
+							if (temi_url) {
+								((GF_ESIMP4 *)source->streams[i].input_udta)->insert_temi = 1;
+								if (strcmp(temi_url, "NOTEMIURL"))
+									((GF_ESIMP4 *)source->streams[i].input_udta)->temi_url = temi_url;
+							}
 						}
 					}
 					break;
@@ -1972,14 +1984,21 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			dst_found = 1;
 			*ts_out = gf_strdup(next_arg);
 		} else if (CHECK_PARAM("-temi")) {
-			*temi_url = next_arg;
-			if (strlen(next_arg) > 150) {
-				fprintf(stderr, "URLs longer than 150 bytes are not currently supported\n");
-				return GF_NOT_SUPPORTED;
+			if (next_arg[0]=='-') {
+				*temi_url = "NOTEMIURL";
+				i--;
+			} else {
+				*temi_url = next_arg;
+				if (strlen(next_arg) > 150) {
+					fprintf(stderr, "URLs longer than 150 bytes are not currently supported\n");
+					return GF_NOT_SUPPORTED;
+				}
 			}
 		}
 		else if (CHECK_PARAM("-temi-delay")) {
 			temi_url_insertion_delay = atoi(next_arg);
+		} else if (CHECK_PARAM("-temi-offset")) {
+			temi_offset = atoi(next_arg);
 		} else if (!stricmp(arg, "-temi-noloop")) {
 			temi_disable_loop = 1;
 		}
