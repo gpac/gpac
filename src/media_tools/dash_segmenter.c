@@ -389,6 +389,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 				u32 i, res = 0;
 				for (i=0; i<32; i++) {
 					res |= val & 1;
+					if (i==31) break;
 					res <<= 1;
 					val >>=1;
 				}
@@ -3255,7 +3256,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	const char *opt;
 	u32 i;
 	GF_Err e;
-	u64 start, pcr_shift, next_pcr_shift;
+	u64 start, pcr_shift, next_pcr_shift, presentationTimeOffset;
 	Double cumulated_duration = 0;
 	u32 bandwidth = 0;
 	u32 segment_index;
@@ -3276,6 +3277,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	segment_index = 1;
 	ts_seg.index_file = NULL;
 	ts_seg.index_bs = NULL;
+	presentationTimeOffset=0;
 	if (!dash_cfg->dash_ctx && (dash_cfg->use_url_template != 2)) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		GF_SegmentTypeBox *styp;
@@ -3335,6 +3337,12 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, szSectionName, "InitialDTSOffset");
 		if (opt) sscanf(opt, LLU, &ts_seg.PCR_DTS_initial_diff);
 
+		opt = gf_cfg_get_key(dash_cfg->dash_ctx, szSectionName, "PresentationTimeOffset");
+		if (opt) {
+			sscanf(opt, LLU, &presentationTimeOffset);
+			presentationTimeOffset++;
+		}
+
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, szSectionName, "DurationAtLastPass");
 		if (opt) sscanf(opt, LLD, &ts_seg.duration_at_last_pass);
 	}
@@ -3347,6 +3355,14 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		if (size<NB_TSPCK_IO_BYTES) break;
 	}
 	if (feof(ts_seg.src)) ts_seg.suspend_indexing = 0;
+
+	if (!presentationTimeOffset) {
+		presentationTimeOffset = 1 + ts_seg.first_PTS;
+		if (dash_cfg->dash_ctx) {
+			sprintf(szOpt, LLU, ts_seg.first_PTS);
+			gf_cfg_set_key(dash_cfg->dash_ctx, szSectionName, "PresentationTimeOffset", szOpt);
+		}
+	}
 
 	next_pcr_shift = 0;
 	if (!ts_seg.suspend_indexing) {
@@ -3453,20 +3469,23 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 					fprintf(dash_cfg->mpd, " index=\"%s\"", IdxName);
 				}
 
-				if (dash_cfg->time_shift_depth>=0)
-					fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", ts_seg.sidx->earliest_presentation_time + pcr_shift);
+				if (presentationTimeOffset > 1)
+					fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset - 1);
+
 				fprintf(dash_cfg->mpd, "/>\n");
-			} else if (dash_cfg->time_shift_depth>=0) {
-				fprintf(dash_cfg->mpd, "    <SegmentTemplate presentationTimeOffset=\""LLD"\"/>\n", ts_seg.sidx->earliest_presentation_time + pcr_shift);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH]: PTSOffset "LLD" - startNumber %d - time %g\n", ts_seg.sidx->earliest_presentation_time + pcr_shift, segment_index, (Double) (s64) (ts_seg.sidx->earliest_presentation_time + pcr_shift) / 90000.0));
+			} else if (presentationTimeOffset > 1) {
+				fprintf(dash_cfg->mpd, "    <SegmentTemplate presentationTimeOffset=\""LLD"\"/>\n", presentationTimeOffset - 1);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH]: PTSOffset "LLD" - startNumber %d - time %g\n", presentationTimeOffset - 1, segment_index, (Double) (s64) (ts_seg.sidx->earliest_presentation_time + pcr_shift) / 90000.0));
 			}
 		} else {
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, 1, SegName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 			if (dash_cfg->single_file_mode)
 				fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n",SegName);
 			fprintf(dash_cfg->mpd, "    <SegmentList timescale=\"90000\" duration=\"%d\"", (u32) (90000*dash_cfg->segment_duration));
-			if (dash_cfg->time_shift_depth>=0)
-				fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", ts_seg.sidx->earliest_presentation_time + pcr_shift);
+
+			if (presentationTimeOffset > 1)
+				fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset - 1);
+
 			fprintf(dash_cfg->mpd, ">\n");
 
 			if (!dash_cfg->dash_ctx) {
