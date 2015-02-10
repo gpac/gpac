@@ -243,8 +243,8 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
 		if (!txh->stream_finished) {
-			if (ms_until_next>0 && (txh->compositor->next_frame_delay > (u32) ms_until_next))
-				txh->compositor->next_frame_delay = ms_until_next;
+			if (txh->compositor->ms_until_next_frame > ms_until_next)
+				txh->compositor->ms_until_next_frame = ms_until_next;
 		}
 		return;
 	}
@@ -263,7 +263,8 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		else ms_until_pres -= push_delay;
 	}
 
-	txh->compositor->next_frame_delay = 1;
+	if (txh->compositor->ms_until_next_frame > ms_until_next)
+		txh->compositor->ms_until_next_frame = ms_until_next;
 
 	if (!txh->tx_io) {
 		setup_texture_object(txh, 0);

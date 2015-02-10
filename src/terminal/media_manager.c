@@ -370,11 +370,11 @@ u32 MM_Loop(void *par)
 		else left = term->frame_duration;
 
 		if (do_scene) {
-			u32 ms_until_next=0;
+			s32 ms_until_next=0;
 			u32 time_taken = gf_sys_clock();
 			gf_sc_draw_frame(term->compositor, 0, &ms_until_next);
 			time_taken = gf_sys_clock() - time_taken;
-			if (ms_until_next<term->frame_duration/2) {
+			if (ms_until_next< (s32) term->frame_duration/2) {
 				left = 0;
 			} else if (left>time_taken)
 				left -= time_taken;
@@ -664,12 +664,11 @@ u32 gf_term_process_step(GF_Terminal *term)
 	}
 
 	if (term->flags & GF_TERM_NO_COMPOSITOR_THREAD) {
-		u32 ms_until_next;
+		s32 ms_until_next;
 		gf_sc_draw_frame(term->compositor, 0, &ms_until_next);
-		if (ms_until_next<term->compositor->frame_duration/2) {
+		if (ms_until_next < (s32) term->compositor->frame_duration/2) {
 			time_taken=0;
 		}
-
 	}
 	time_taken = gf_sys_clock() - time_taken;
 	if (time_taken > term->compositor->frame_duration) {
