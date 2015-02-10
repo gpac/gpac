@@ -213,7 +213,7 @@ struct __tag_compositor
 	Bool text_edit_changed;
 	u32 scene_sampled_clock;
 	u32 last_click_time;
-	u32 next_frame_delay;
+	s32 ms_until_next_frame;
 	s32 frame_delay;
 	Bool video_frame_pending;
 	Bool fullscreen_postponed;
