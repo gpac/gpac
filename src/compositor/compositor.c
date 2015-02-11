@@ -480,13 +480,8 @@ static u32 gf_sc_proc(void *par)
 
 	compositor->video_th_state = GF_COMPOSITOR_THREAD_RUN;
 	while (compositor->video_th_state == GF_COMPOSITOR_THREAD_RUN) {
-		if (compositor->is_hidden==1) {
-			if (!compositor->bench_mode) {
-				compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
-			}
-			gf_sleep(compositor->frame_duration);
-		} else
-			gf_sc_simulation_tick(compositor);
+		//simulation tick is self-regulating. Call it regardless of the visibility status
+		gf_sc_simulation_tick(compositor);
 	}
 
 #ifndef GPAC_DISABLE_3D
@@ -2477,7 +2472,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		compositor->frame_draw_type=GF_SC_DRAW_FRAME;
 	}
 
-	if (compositor->is_hidden) {
+	//if hidden and no listener, do not draw the scene
+	if (compositor->is_hidden && !compositor->video_listeners) {
 		compositor->frame_draw_type = 0;
 	}
 
