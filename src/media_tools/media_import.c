@@ -3283,7 +3283,8 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		/* for XML based streams, the decoder specific info can be up to some element in the file */
 		samp = gf_isom_sample_new();
 		max_size = 0;
-		e = gf_import_sample_from_xml(import, samp, szMedia, "doc.start", szXmlHeaderEnd, &max_size);
+		strcpy(szXmlFrom, "doc.start");
+		e = gf_import_sample_from_xml(import, samp, szMedia, szXmlFrom, szXmlHeaderEnd, &max_size);
 		specInfo = (char*)gf_malloc(sizeof(char) * (samp->dataLength+1));
 		memcpy(specInfo, samp->data, samp->dataLength);
 		specInfoSize = samp->dataLength;
