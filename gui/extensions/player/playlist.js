@@ -80,6 +80,7 @@ extension.view_playlist = function () {
             popup.area.break_at_line = true;
 
             popup.set_size(0.9 * this.width, 0.9 * this.height);
+            popup.move(this.translation.x, this.translation.y);
             
             if (directory) {
                 var item = gw_new_icon_button(popup.area, 'scan_directory', 'Add directory', true, 'listitem');
@@ -120,7 +121,7 @@ extension.view_playlist = function () {
                 }
             }
             popup.area.layout();
-            //popup.set_alpha(this.get_alpha());
+            popup.set_alpha(1);
             
             popup.on_close = function () {
                 this.fb.enable();
