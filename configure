@@ -26,6 +26,7 @@ TMPCXX="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.cpp"
 TMPE="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}"
 TMPO="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.o"
 TMPS="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.S"
+TMPL="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.LOG"
 
 
 #default parameters
@@ -186,6 +187,9 @@ OSS_LDFLAGS=""
 INSTFLAGS=""
 is_64="no"
 ffmpeg_extra_ldflags=""
+
+logs="config.log"
+echo "Logs for GPAC configure $GPAC_CONFIGURATION" > $logs
 
 
 #configure usage
@@ -452,7 +456,7 @@ windres="${cross_prefix}${windres}"
 
 #check pkg_config
 if test "$cross_prefix" = "" ; then
-    if ! $pkg_config --version >/dev/null 2>&1 ; then
+    if ! $pkg_config --version >/dev/null 2>>$logs ; then
 		pkg_config="no"
     fi
 fi
@@ -482,7 +486,7 @@ case $targetos in
         prefix="/boot/home/config"
         CFLAGS="$CFLAGS -DPIC -fomit-frame-pointer"
         # 3 gcc releases known for BeOS, each with ugly bugs
-        gcc_version="$($cc -v 2>&1 | grep version | cut -d ' ' -f3-)"
+        gcc_version="$($cc -v 2>>$logs | grep version | cut -d ' ' -f3-)"
         case "$gcc_version" in
             2.9-beos-991026*|2.9-beos-000224*) echo "R5/GG gcc"
                 ;;
@@ -511,10 +515,11 @@ case $targetos in
         cat > $TMPC << EOF
 #include <stdio.h>
 int main( void ) { return 0; }
+
 EOF
 
         CFLAGS_NO_LTO=$(echo ${CFLAGS} | sed -e 's/\ -flto[-A-Za-z0-9=]*//g')
-        $cc ${CFLAGS_NO_LTO} -o $TMPO $TMPC 2>/dev/null && $($readelf -h $TMPO | grep "Class:.*ELF64$" >/dev/null 2>&1)
+        $cc ${CFLAGS_NO_LTO} -o $TMPO $TMPC 2>>$logs && $($readelf -h $TMPO | grep "Class:.*ELF64$" >/dev/null 2>>$logs)
         if test $? -eq 0; then
           is_64="yes"
         fi
@@ -567,7 +572,7 @@ EOF
             LDFLAGS="$LDFLAGS"
         fi
         darwin="yes"
-        gcc_version=`$cc -v 2>&1 | grep version | cut -d ' ' -f3`
+        gcc_version=`$cc -v 2>>$logs | grep version | cut -d ' ' -f3`
         case "$gcc_version" in
             *2.95*) 
                 CFLAGS="$CFLAGS -no-cpp-precomp -pipe -fomit-frame-pointer"
@@ -618,7 +623,7 @@ esac
 #defines directory for binaries and libs (ex. for TinyGL)
 target_bin_dir="" 
 if test "$cross_prefix" = "" ; then
-    target_bin_dir=`${cc} -v 2>&1 | sed -n '2p' | awk ' {print $2}'`-${cc_orig}
+    target_bin_dir=`${cc} -v 2>>$logs | sed -n '2p' | awk ' {print $2}'`-${cc_orig}
 else
     target_bin_dir=${cross_prefix}${cc_orig}
 fi
@@ -636,17 +641,45 @@ local_inc=$source_path/extra_lib/include
 local_lib=extra_lib/lib/gcc
 
 
+dolog() {
+ rv=$?
+ if [ $rv -eq 0 ] ; then
+ return 0;
+ fi
+
+ echo "*** CC/CXX Test Failed (args $@) : ">>$logs
+ echo "">>$logs
+ cat $TMPL >> $logs
+ echo "">>$logs
+ echo "Source was: ">>$logs
+ cat $TMPC >> $logs
+ echo "">>$logs
+ echo "">>$logs
+ return 1;
+}
+
+docc() {
+ $cc -o $TMPO $TMPC $@ 0>/dev/null 2>$TMPL
+ dolog $@
+}
+
+
+docxx() {
+ $cc -o $TMPO $TMPC $@ 0>/dev/null 2>$TMPL
+ dolog $@
+}
+
 #check GCC flags support
 cat > $TMPC << EOF
 #include <stdio.h>
 int main( void ) { return 0; }
 EOF
 CFLAGS="$CFLAGS -Wall"
-if $cc -o $TMPO $TMPC -fno-strict-aliasing 2> /dev/null  ; then
+if docc -fno-strict-aliasing ; then
     CFLAGS="$CFLAGS -fno-strict-aliasing"
 fi
 CXXFLAGS="$CFLAGS"
-if $cc -o $TMPO $TMPC -lz -Wno-pointer-sign 2> /dev/null  ; then
+if docc -lz -Wno-pointer-sign ; then
     CFLAGS="$CFLAGS -Wno-pointer-sign"
 fi
 
@@ -683,27 +716,29 @@ cxx="$cxx $CXXFLAGS"
 #look for zlib
 cat > $TMPC << EOF
 #include <emmintrin.h>
-int main( void ) {  }
+int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -msse2 $LDFLAGS 2> /dev/null  ; then
+if docc -msse2 $LDFLAGS ; then
   CFLAGS="$CFLAGS -msse2"
 fi
 
 
 #look for zlib
 cat > $TMPC << EOF
+#include <string.h>
+#include <stdio.h>
 #include <zlib.h>
 int main( void ) { if (strcmp(zlibVersion(), ZLIB_VERSION)) { puts("zlib version differs !!!"); return 1; } return 0; }
 EOF
 has_zlib="no"
 #if test "$cross_prefix" = "" ; then
-  if $cc -o $TMPO $TMPC -lz $LDFLAGS 2> /dev/null  ; then
+  if docc -lz $LDFLAGS ; then
       has_zlib="system"
   fi
 #fi
 if test "$has_zlib" = "no" ; then
-  if $cc -o $TMPO $TMPC -I"$local_inc/zlib" -L$local_lib -lz 2> /dev/null  ; then
+  if docc -I"$local_inc/zlib" -L$local_lib -lz ; then
     has_zlib="local"
   fi
 fi
@@ -711,12 +746,12 @@ fi
 #check dlopen
 cat > $TMPC << EOF
 #include <dlfcn.h>
-int main( void ) { return (int) dlopen("foo", 0); }
+int main( void ) { dlopen("foo", 0); return 0; }
 EOF
 
-if $cc -o $TMPE $TMPC > /dev/null 2>&1 ; then
+if docc ; then
     dlopen="yes"
-elif $cc -o $TMPE $TMPC $LDFLAGS -ldl > /dev/null 2>&1 ; then
+elif docc $LDFLAGS -ldl ; then
     GPAC_SH_FLAGS="$GPAC_SH_FLAGS -ldl"
 fi
 
@@ -731,43 +766,43 @@ if test "$has_js" = "no" ; then
 
 cat > $TMPC << EOF
 #include <jsapi.h>
-int main( void ) { JSContext *cx; jsval *rp; return JS_AddValueRoot(cx, rp); }
+int main( void ) { JSContext *cx=NULL; jsval rp; return JS_AddValueRoot(cx, &rp); }
 EOF
 
     #try local
     js_inc="$local_inc/js"
     js_flags="-DXP_UNIX -I$local_inc/js"
-    if $cc -o $TMPO $TMPC $js_flags -L$local_lib -ljs -lpthread 2> /dev/null  ; then
+    if docc $js_flags -L$local_lib -ljs -lpthread ; then
         has_js="local"
         #dc added
     elif test "$pkg_config" != "no"; then
         #try pkg-config
-        if $pkg_config --exists mozilla-js 2> /dev/null  ; then
+        if $pkg_config --exists mozilla-js ; then
             mozjs_pkgcfg="mozilla-js"
-        elif $pkg_config --exists mozjs 2> /dev/null  ; then
+        elif $pkg_config --exists mozjs ; then
             mozjs_pkgcfg="mozjs"
-        elif $pkg_config --exists mozjs185 2> /dev/null  ; then
+        elif $pkg_config --exists mozjs185 ; then
             mozjs_pkgcfg="mozjs185"
 	fi
 
         if test $mozjs_pkgcfg != "no" ; then
             js_flags=`$pkg_config --cflags $mozjs_pkgcfg`
             js_lib_pkg=`$pkg_config --libs $mozjs_pkgcfg`
-            if $cc -o $TMPO $TMPC $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
+            if docc $js_flags $js_lib_pkg $LDFLAGS -lpthread ; then
                 has_js="system"
                 js_lib=`$pkg_config --libs $mozjs_pkgcfg`
             fi
         #try firefox folders (starting at ubuntu 11.10, no pkg-config)
-        elif ls -d /usr/lib/firefox* > /dev/null 2>&1 ; then
+        elif ls -d /usr/lib/firefox* > /dev/null 2>>$logs ; then
             firefox_version=`cd /usr/lib ; ls -d firefox* | grep -v addons | grep -v devel ; cd - > /dev/null`
             for i in $firefox_version ; do
                 if test "$has_js" = "no" ; then
                     js_inc="/usr/include/$i"
                     js_flags="-DXP_UNIX -I$js_inc"
                     js_lib="-L/usr/lib/$i/ -lxul -lmozsqlite3 -lmozalloc -lnssutil3 -lnss3 -lnspr4 -lsmime3"
-                    if $cc -o $TMPO $TMPC $js_flags $js_lib 2> /dev/null  ; then
+                    if docc $js_flags $js_lib ; then
                         has_js="$i"
-                    elif $cc -o $TMPO $TMPC $js_flags -lnssutil3 $js_lib -lssl3 2> /dev/null  ; then
+                    elif docc $js_flags -lnssutil3 $js_lib -lssl3 ; then
                         #firefox 11 compatibility
                         has_js="$i"
                         js_lib="-lnssutil3 $js_lib -lssl3"
@@ -780,14 +815,14 @@ EOF
             #try prefix (DC)
             js_inc="$prefix/include/js"
             js_flags="-DXP_UNIX -I$prefix/include/js"
-            if $cc -o $TMPO $TMPC $js_flags -L$prefix/lib -ljs -lpthread 2> /dev/null  ; then
+            if docc $js_flags -L$prefix/lib -ljs -lpthread ; then
                 has_js="prefix"
                 #dc added end
             else
-                if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -ljs -lpthread 2> /dev/null  ; then
+                if docc $js_flags $LDFLAGS -ljs -lpthread ; then
                     js_inc="/usr/include"
                     has_js="system"
-                elif $cc -o $TMPO $TMPC -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib $LDFLAGS -ljs -lpthread 2> /dev/null ; then
+                elif docc -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib $LDFLAGS -ljs -lpthread 2>>$logs ; then
                     has_js="system"
                     js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
                     js_lib="-L$alt_macosx_dir/lib -ljs"
@@ -796,14 +831,14 @@ EOF
                     #debian spidermonkey (smjs)
                     js_flags="-DXP_UNIX -I/usr/include/smjs"
                     js_inc="/usr/include/smjs"
-                    if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -lsmjs -lpthread 2> /dev/null  ; then
+                    if docc $js_flags $LDFLAGS -lsmjs -lpthread ; then
                         has_js="system"
                         js_lib="-lsmjs"
                     else
                         #debian spidermonkey (mozjs)
                         js_flags="-DXP_UNIX -I/usr/include/mozjs"
                         js_inc="/usr/include/mozjs"
-                        if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -lmozjs -lpthread 2> /dev/null  ; then
+                        if docc $js_flags $LDFLAGS -lmozjs -lpthread ; then
                             has_js="system"
                             js_lib="-lmozjs"
                         fi
@@ -823,7 +858,7 @@ fi
 #spidermonkey test for regular API
 if test "$has_js" = "no" ; then
 
-    cat > $TMPC << EOF
+cat > $TMPC << EOF
 #include <jsapi.h>
 int main( void ) { return 0; }
 EOF
@@ -834,7 +869,7 @@ EOF
     if test "$cpu" = "sh4" ; then
         lm_lib="-lm"
     fi
-    if $cc -o $TMPO $TMPC $js_flags $lm_lib -L$local_lib -ljs 2> /dev/null  ; then
+    if docc $js_flags $lm_lib -L$local_lib -ljs ; then
         has_js="local"
         #dc added
     else
@@ -842,32 +877,32 @@ EOF
         #try prefix (DC)
         js_inc="$prefix/include/js"
         js_flags="-DXP_UNIX -I$prefix/include/js"
-        if $cc -o $TMPO $TMPC $js_flags -L$prefix/lib -ljs 2> /dev/null  ; then
+        if docc $js_flags -L$prefix/lib -ljs ; then
             has_js="prefix"
             #dc added end
         elif test "$pkg_config" != "no"; then
-            if $pkg_config --exists mozilla-js 2> /dev/null  ; then
+            if $pkg_config --exists mozilla-js ; then
 				mozjs_pkgcfg="mozilla-js"
-            elif $pkg_config --exists mozjs 2> /dev/null  ; then
+            elif $pkg_config --exists mozjs ; then
 				mozjs_pkgcfg="mozjs"
-            elif $pkg_config --exists mozjs185 2> /dev/null  ; then
+            elif $pkg_config --exists mozjs185 ; then
 				mozjs_pkgcfg="mozjs185"
 	    fi
 
 	    if test $mozjs_pkgcfg != "no" ; then
                 js_flags=`$pkg_config --cflags $mozjs_pkgcfg`
                 js_lib_pkg=`$pkg_config --libs $mozjs_pkgcfg`
-                if $cc -o $TMPO $TMPC $js_flags $js_lib_pkg $LDFLAGS -lpthread 2> /dev/null  ; then
+                if docc $js_flags $js_lib_pkg $LDFLAGS -lpthread ; then
                     has_js="system"
                     js_lib=`$pkg_config --libs $mozjs_pkgcfg`
                 fi
             fi
         fi
 	    if test "$has_js" = "no" ; then
-                if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -ljs 2> /dev/null  ; then
+                if docc $js_flags $LDFLAGS -ljs ; then
                     js_inc="/usr/include"
                     has_js="system"
-                elif $cc -o $TMPO $TMPC -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib $LDFLAGS -ljs 2> /dev/null ; then
+                elif docc -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib $LDFLAGS -ljs 2>>$logs ; then
                     has_js="system"
                     js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
                     js_lib="-L$alt_macosx_dir/lib -ljs"
@@ -876,14 +911,14 @@ EOF
                     #debian spidermonkey (smjs)
                     js_flags="-DXP_UNIX -I/usr/include/smjs"
                     js_inc="/usr/include/smjs"
-                    if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -lsmjs 2> /dev/null  ; then
+                    if docc $js_flags $LDFLAGS -lsmjs ; then
                         has_js="system"
                         js_lib="-lsmjs"
                     else
                         #debian spidermonkey (mozjs)
                         js_flags="-DXP_UNIX -I/usr/include/mozjs"
                         js_inc="/usr/include/mozjs"
-                        if $cc -o $TMPO $TMPC $js_flags $LDFLAGS -lmozjs 2> /dev/null  ; then
+                        if docc $js_flags $LDFLAGS -lmozjs ; then
                             has_js="system"
                             js_lib="-lmozjs"
                         fi
@@ -900,31 +935,32 @@ if test "$has_js" != "no" ; then
             #if the lib has been compiled with or without the macro. We currently just decide that if the macro is present
             #in the header, it was enabled in the build
             if test "$new_js_api" = "no" ; then
-                if grep MOZILLA_1_8_BRANCH $js_inc/jsapi.h > /dev/null 2>&1 ; then
+                if grep MOZILLA_1_8_BRANCH $js_inc/jsapi.h > /dev/null 2>>$logs ; then
                     js_flags="-DMOZILLA_1_8_BRANCH $js_flags"
                     echo "WARNING: Turning on MOZILLA_1_8_BRANCH SpiderMonkey macro"
                     echo "If you have troubles with scripts in GPAC, disable this macro and recompile"
                 fi
             else
-cat > $TMPC << EOF
-#include <jsapi.h>
-int main( void ) { JSObject *obj; JS_GetPrivate(obj); }
-EOF
-                if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
 
 cat > $TMPC << EOF
 #include <jsapi.h>
-int main( void ) { jsval *vp; JSObject *obj = JS_NewObjectForConstructor(c, vp); }
+int main( void ) { JSObject *obj; JS_GetPrivate(obj); return 0; }
 EOF
-	                if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
+                if docc $js_flags $LDFLAGS $js_lib ; then
+
+cat > $TMPC << EOF
+#include <jsapi.h>
+int main( void ) { jsval vp; JSContext *cx=NULL; JSObject *obj = JS_NewObjectForConstructor(cx, &vp); return 0; }
+EOF
+	                if docc $js_flags $LDFLAGS $js_lib ; then
 	                    js_flags="-DUSE_FFDEV_12 $js_flags"
-	                elif grep JSMutableHandleValue $js_inc/jsapi.h | grep JSHasInstanceOp > /dev/null 2>&1 ; then
+	                elif grep JSMutableHandleValue $js_inc/jsapi.h | grep JSHasInstanceOp > /dev/null 2>>$logs ; then
 	                    	js_flags="-DUSE_FFDEV_18 $js_flags"
-	                elif grep JSMutableHandleValue $js_inc/jsapi.h > /dev/null 2>&1 ; then
+	                elif grep JSMutableHandleValue $js_inc/jsapi.h > /dev/null 2>>$logs ; then
 	                    	js_flags="-DUSE_FFDEV_18 $js_flags"
-	                elif ! grep JS_ConstructObject $js_inc/jsapi.h > /dev/null 2>&1 ; then
+	                elif ! grep JS_ConstructObject $js_inc/jsapi.h > /dev/null 2>>$logs ; then
 	                    	js_flags="-DUSE_FFDEV_16 $js_flags"
-	                elif grep JSHandleObject $js_inc/jsapi.h > /dev/null 2>&1 ; then
+	                elif grep JSHandleObject $js_inc/jsapi.h > /dev/null 2>>$logs ; then
 	                    	js_flags="-DUSE_FFDEV_15 $js_flags"
                         else
 				js_flags="-DUSE_FFDEV_14 $js_flags"
@@ -939,11 +975,10 @@ fi
 
 if test "$has_js" != "no" ; then
 cat > $TMPC << EOF
-cat > $TMPC << EOF
 #include <jsapi.h>
-int main( void ) { JSContext *cx; JS_SetRuntimeThread(cx); }
+int main( void ) { JSContext *cx=NULL; JS_SetRuntimeThread(cx); return 0;}
 EOF
-	if $cc -o $TMPO $TMPC $js_flags $LDFLAGS $js_lib 2> /dev/null  ; then
+	if docc $js_flags $LDFLAGS $js_lib ; then
 		js_flags="$js_flags"
 	else
 		js_flags="-DNO_JS_RUNTIMETHREAD $js_flags"
@@ -960,7 +995,7 @@ cat > $TMPC << EOF
 #include <Platinum.h>
 int main( void ) { return 0; }
 EOF
-if $cxx -o $TMPO $TMPC -I$local_inc/platinum $LDFLAGS -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread 2> /dev/null  ; then
+if docxx -o $TMPO $TMPC -I$local_inc/platinum $LDFLAGS -L$local_lib -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib -lpthread ; then
   has_platinum="yes"
 fi
 
@@ -982,7 +1017,7 @@ int main( void ) {
   return 0; 
 }
 EOF
-if $cxx -o $TMPO $TMPC $LDFLAGS $avcap_cflags $avcap_ldflags 2> /dev/null  ; then
+if docxx -o $TMPO $TMPC $LDFLAGS $avcap_cflags $avcap_ldflags ; then
   has_avcap="yes"
 else
     if test "$darwin" = "yes" ; then
@@ -992,7 +1027,7 @@ else
         avcap_cflags="-I$local_inc -I$local_inc/avcap/linux"
         avcap_ldflags="-lavcap -lpthread"
     fi
-    if $cxx -o $TMPO $TMPC $avcap_cflags $LDFLAGS -L$local_lib $avcap_ldflags 2> /dev/null  ; then
+    if docxx -o $TMPO $TMPC $avcap_cflags $LDFLAGS -L$local_lib $avcap_ldflags ; then
         has_avcap="yes"
         avcap_ldflags="-L../../$local_lib $avcap_ldflags"
     fi
@@ -1013,13 +1048,13 @@ cat > $TMPC << EOF
 #include <OpenSVCDecoder/SVCDecoder_ietr_api.h>
 int main( void ) { return 0; }
 EOF
-if $cxx -o $TMPO $TMPC $osvc_cflags $LDFLAGS $osvc_ldflags 2> /dev/null  ; then
+if docc $osvc_cflags $LDFLAGS $osvc_ldflags ; then
   has_opensvc="yes"
 else
 osvc_cflags="-I$local_inc"
 osvc_ldflags="-lOpenSVCDec"
 
-if $cxx -o $TMPO $TMPC $osvc_cflags $LDFLAGS -L$local_lib $osvc_ldflags 2> /dev/null  ; then
+if docc $osvc_cflags $LDFLAGS -L$local_lib $osvc_ldflags ; then
   has_opensvc="yes"
   osvc_ldflags="-L../../$local_lib $osvc_ldflags"
 fi
@@ -1044,12 +1079,12 @@ cat > $TMPC << EOF
 #include <openHevcWrapper.h>
 int main( void ) { libOpenHevcInit(1, 1); return 0; }
 EOF
-if $cc -o $TMPO $TMPC $ohevc_cflags $ohevc_ldflags $LDFLAGS 2> /dev/null  ; then
+if docc $ohevc_cflags $ohevc_ldflags $LDFLAGS ; then
   has_openhevc="yes"
 else
   ohevc_cflags="-I$local_inc"
   ohevc_ldflags="-lLibOpenHevcWrapper -lm -lpthread"
-  if $cc -o $TMPO $TMPC $ohevc_cflags $ohevc_ldflags $LDFLAGS -L$local_lib 2> /dev/null  ; then
+  if docc $ohevc_cflags $ohevc_ldflags $LDFLAGS -L$local_lib ; then
     has_openhevc="yes"
     ohevc_ldflags="-L../../$local_lib $ohevc_ldflags"
   fi
@@ -1067,21 +1102,21 @@ EOF
 if test "$cross_prefix" = "" ; then
     ft_cflags="-I$prefix/include "
     ft_lflags="-L$prefix/lib -lfreetype"
-    if $cc $CFLAGS_DIR -o $TMPO $TMPC $ft_cflags $ft_lflags $LDFLAGS 2> /dev/null  ; then
+    if docc $CFLAGS_DIR $ft_cflags $ft_lflags $LDFLAGS ; then
         has_ft="system"
     else
-        ft_cflags="`freetype-config --cflags 2> /dev/null`"
-        ft_lflags="`freetype-config --libs 2> /dev/null`"
-        if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags $LDFLAGS 2> /dev/null  ; then
+        ft_cflags="`freetype-config --cflags 2>>$logs`"
+        ft_lflags="`freetype-config --libs 2>>$logs`"
+        if docc $ft_cflags $ft_lflags $LDFLAGS ; then
             has_ft="system"
         fi
     fi
 fi
 if test "$has_ft" = "no" ; then
-    if test "`which freetype-config 2> /dev/null`" != ""; then
+    if test "`which freetype-config 2>>$logs`" != ""; then
         ft_cflags="-I$local_inc/freetype"
         ft_lflags="-L$local_lib -lfreetype"
-        if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags 2> /dev/null  ; then
+        if docc $ft_cflags $ft_lflags ; then
             has_ft="local"
         fi
     fi
@@ -1105,7 +1140,7 @@ else
     LINK_SSL="-lssl -lcrypto"
 fi
 
-if $cc -o $TMPO $TMPC $LINK_SSL $LDFLAGS 2> /dev/null  ; then
+if docc $LINK_SSL $LDFLAGS ; then
     has_ssl="yes"
 fi
 
@@ -1119,22 +1154,22 @@ int main( void ) { return 0; }
 EOF
 
 if test "$cross_prefix" = "" ; then
-    if $cc -o $TMPO $TMPC $LDFLAGS -ljpeg 2> /dev/null  ; then
+    if docc $LDFLAGS -ljpeg ; then
         has_jpeg="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -ljpeg 2> /dev/null ; then
+        if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -ljpeg 2>>$logs ; then
             has_jpeg="system"
         fi
-    elif test "`which $prefix/bin/jpeg-config 2> /dev/null`" != ""; then
+    elif test "`which $prefix/bin/jpeg-config 2>>$logs`" != ""; then
         jpeg_cflags="`$prefix/bin/jpeg-config --cflags`"
         jpeg_lflags="`$prefix/bin/jpeg-config --libs`"
-        if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags $LDFLAGS 2> /dev/null  ; then
+        if docc $jpeg_cflags $jpeg_lflags $LDFLAGS ; then
             has_jpeg="system"
         fi
     else
         jpeg_cflags="-I$prefix/include"
         jpeg_lflags="-L$prefix/lib -ljpeg"
-        if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags $LDFLAGS 2> /dev/null  ; then
+        if docc $jpeg_cflags $jpeg_lflags $LDFLAGS ; then
             has_jpeg="system"
         fi
     fi
@@ -1142,7 +1177,7 @@ fi
 if test "$has_jpeg" = "no" ; then
     jpeg_cflags="-I$local_inc/jpeg"
     jpeg_lflags="-L$local_lib -ljpeg"
-    if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags 2> /dev/null  ; then
+    if docc $jpeg_cflags $jpeg_lflags ; then
         has_jpeg="local"
     fi
 fi
@@ -1157,17 +1192,17 @@ int main( void ) { return 0; }
 EOF
 
 if test "$cross_prefix" = "" ; then
-    if $cc -o $TMPO $TMPC $LDFLAGS -lopenjpeg 2> /dev/null  ; then
+    if docc $LDFLAGS -lopenjpeg ; then
         has_openjpeg="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -ljpeg 2> /dev/null ; then
+        if cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -ljpeg 2>>$logs ; then
             has_openjpeg="system"
         fi
     fi
 fi
 
 if test "$has_openjpeg" = "no" ; then
-    if $cc -o $TMPO $TMPC -I$local_inc/openjpeg -L$local_lib -lopenjpeg 2> /dev/null  ; then
+    if docc -I$local_inc/openjpeg -L$local_lib -lopenjpeg ; then
         has_openjpeg="local"
     fi
 fi
@@ -1184,19 +1219,19 @@ if test "$cross_prefix" = "" ; then
     png_cflags="-I$prefix/include"
     png_lflags="-L$prefix/lib -lpng -lz"
     #-nostdlib prevents from searching standard compiler libraries
-    #if $cc -o $TMPO $TMPC -nostdlib $png_cflags $png_lflags 2> /dev/null  ; then
-    if $cc -o $TMPO $TMPC $png_cflags $png_lflags $LDFLAGS 2> /dev/null  ; then
+    #if docc -nostdlib $png_cflags $png_lflags ; then
+    if docc $png_cflags $png_lflags $LDFLAGS ; then
         has_png="system"
-    elif $cc -o $TMPO $TMPC $LDFLAGS -lpng -lz 2> /dev/null  ; then
+    elif docc $LDFLAGS -lpng -lz ; then
         has_png="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lpng 2> /dev/null ; then
+        if docc -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lpng 2>>$logs ; then
             has_png="system"
         fi
     fi
 fi
 if test "$has_png" = "no" ; then
-    if $cc -o $TMPO $TMPC -I$local_inc/png -L$local_lib -lpng 2> /dev/null  ; then
+    if docc -I$local_inc/png -L$local_lib -lpng ; then
         has_png="local"
     fi
 fi
@@ -1210,16 +1245,16 @@ int main( void ) { return 0; }
 EOF
 
 if test "$cross_prefix" = "" ; then
-    if $cc -o $TMPO $TMPC $LDFLAGS -lmad 2> /dev/null  ; then
+    if docc $LDFLAGS -lmad ; then
         has_mad="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lmad 2> /dev/null ; then
+        if docc -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lmad 2>>$logs ; then
             has_mad="system"
         fi
     fi
 fi
 if test "$has_mad" = "no" ; then
-    if $cc -o $TMPO $TMPC -I$local_inc/mad -L$local_lib -lmad 2> /dev/null  ; then
+    if docc -I$local_inc/mad -L$local_lib -lmad ; then
         has_mad="local"
     fi
 fi
@@ -1228,6 +1263,7 @@ fi
 
 #look for A52DEC support
 cat > $TMPC << EOF
+#include <inttypes.h>
 #define uint32_t unsigned int
 #define uint8_t unsigned char
 #include <a52dec/mm_accel.h>
@@ -1236,16 +1272,16 @@ int main( void ) { return 0; }
 EOF
 
 if test "$cross_prefix" = "" ; then
-    if $cc -o $TMPO $TMPC $LDFLAGS -la52 2> /dev/null  ; then
+    if docc $LDFLAGS -la52 ; then
         has_a52="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -la52 2> /dev/null ; then
+        if docc -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -la52 2>>$logs ; then
             has_a52="system"
         fi
     fi
 fi
 if test "$has_a52" = "no" ; then
-    if $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -la52 2> /dev/null  ; then
+    if docc -I$local_inc -L$local_lib -la52 ; then
         has_a52="local"
     fi
 fi
@@ -1259,18 +1295,18 @@ int main( void ) { return 0; }
 EOF
 
 if test "$cross_prefix" = "" ; then
-    if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib $LDFLAGS -lxvidcore -lpthread 2> /dev/null  ; then
+    if docc -I$prefix/include -L$prefix/lib $LDFLAGS -lxvidcore -lpthread ; then
         has_xvid="system"
-    elif $cc -o $TMPO $TMPC $LDFLAGS -lxvidcore -lpthread 2> /dev/null  ; then
+    elif docc $LDFLAGS -lxvidcore -lpthread ; then
         has_xvid="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lxvidcore -lpthread 2> /dev/null ; then
+        if docc -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lxvidcore -lpthread 2>>$logs ; then
             has_xvid="system"
         fi
     fi
 fi
 if test "$has_xvid" = "no" ; then
-    if $cc -o $TMPO $TMPC -I$local_inc/xvid -L$local_lib -lxvidcore -lpthread 2> /dev/null  ; then
+    if docc -I$local_inc/xvid -L$local_lib -lxvidcore -lpthread ; then
         has_xvid="local"
     fi
 fi
@@ -1284,16 +1320,16 @@ int main( void ) { return 0; }
 EOF
 
 if test "$cross_prefix" = "" ; then
-    if $cc -o $TMPO $TMPC $LDFLAGS -lfaad -lm 2> /dev/null  ; then
+    if docc $LDFLAGS -lfaad -lm ; then
         has_faad="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lfaad 2> /dev/null ; then
+        if docc -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lfaad 2>>$logs ; then
             has_faad="system"
         fi
     fi
 fi
 if test "$has_faad" = "no" ; then
-    if $cc -o $TMPO $TMPC -I$local_inc/faad -L$local_lib -lfaad -lm 2> /dev/null  ; then
+    if docc -I$local_inc/faad -L$local_lib -lfaad -lm ; then
         has_faad="local"
     fi
 fi
@@ -1306,7 +1342,7 @@ ffmpeg_cflags=""
 ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale -lavdevice $ffmpeg_extra_ldflags"
 
 if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
-  if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil 2> /dev/null  ; then
+  if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil ; then
     ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil libavdevice`
     ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libswscale libavutil libavdevice`
     has_ffmpeg="system"
@@ -1320,17 +1356,18 @@ int main(void) {
 }
 EOF
 
-if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags $LDFLAGS 2> /dev/null  ; then
+if docc $ffmpeg_cflags $ffmpeg_lflags $LDFLAGS ; then
     old_ffmpeg_inc="no"
 else
     old_ffmpeg_inc="yes"
 
 cat > $TMPC << EOF
 #include <ffmpeg/avcodec.h>
+#include <stdio.h>
 int main(void) {
     AVFrame *f1, *f2;
+    printf("ID %d", AV_CODEC_ID_H264);
     f2 = av_frame_clone(f1);
-    AV_CODEC_ID_H264;
     return 0;
 }
 EOF
@@ -1339,21 +1376,22 @@ fi
 
 cat > $TMPC << EOF
 #include <libavcodec/avcodec.h>
+#include <stdio.h>
 int main(void) {
-    CODEC_ID_H264;
+    printf("ID %d", CODEC_ID_H264);
     return 0;
 }
 EOF
 
 if test "$cross_prefix" = "" ; then 
-    if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib $ffmpeg_lflags $LDFLAGS 2> /dev/null  ; then
+    if docc -I$prefix/include -L$prefix/lib $ffmpeg_lflags $LDFLAGS ; then
         has_ffmpeg="system"
         ffmpeg_cflags="-I$prefix/include"
         ffmpeg_lflags="-L$prefix/lib $ffmpeg_lflags"
-    elif $cc -o $TMPO $TMPC $ffmpeg_lflags $LDFLAGS 2> /dev/null  ; then
+    elif docc $ffmpeg_lflags $LDFLAGS ; then
         has_ffmpeg="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $ffmpeg_lflags $LDFLAGS 2> /dev/null ; then
+        if docc -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $ffmpeg_lflags $LDFLAGS 2>>$logs ; then
             has_ffmpeg="system"
             ffmpeg_cflags="-I$alt_macosx_dir/include"
             ffmpeg_lflags="-L$alt_macosx_dir/lib $ffmpeg_lflags"
@@ -1361,7 +1399,7 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_ffmpeg" = "no" ; then
-    if $cc -o $TMPO $TMPC -I$local_inc -L$local_lib $ffmpeg_lflags 2> /dev/null  ; then
+    if docc -I$local_inc -L$local_lib $ffmpeg_lflags ; then
         has_ffmpeg="local"
         ffmpeg_cflags="-I$local_inc"
         ffmpeg_lflags="-L$local_lib $ffmpeg_lflags"
@@ -1371,12 +1409,13 @@ fi
 cat > $TMPC << EOF
 #include <libavutil/frame.h>
 #include <libavcodec/avcodec.h>
+#include <stdio.h>
 int main(void) {
-    CODEC_ID_H264;
+    printf("ID %d", CODEC_ID_H264);
     return 0;
 }
 EOF
-if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags 2> /dev/null  ; then
+if docc $ffmpeg_cflags $ffmpeg_lflags ; then
     is_libav="no"
 else
 
@@ -1388,7 +1427,7 @@ int main(void) {
 }
 EOF
 
-    if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags 2> /dev/null  ; then
+    if docc $ffmpeg_cflags $ffmpeg_lflags ; then
         is_libav="yes"
     else
         is_libav="new"
@@ -1400,11 +1439,12 @@ cat > $TMPC << EOF
 #include "libavresample/avresample.h"
 int main(void) {
     AVAudioResampleContext *aresampler = avresample_alloc_context();
+    free(aresampler);
     return 0;
 }
 EOF
 
-if $cc -o $TMPO $TMPC $ffmpeg_cflags $ffmpeg_lflags -lavresample 2> /dev/null  ; then
+if docc $ffmpeg_cflags $ffmpeg_lflags -lavresample ; then
     has_libavresample="yes"
 else
     has_libavresample="no"
@@ -1416,7 +1456,7 @@ freenect_flags=""
 freenect_ld="-lfreenect"
 has_freenect="no"
 if test "$pkg_config" != "no"; then
-  if $pkg_config --exists libfreenect 2> /dev/null  ; then
+  if $pkg_config --exists libfreenect ; then
     freenect_flags=`$pkg_config --cflags libfreenect`
     freenect_libs=`$pkg_config --libs libfreenect`
     has_freenect="system"
@@ -1432,10 +1472,10 @@ int main( void ) { return 0; }
 EOF
 
 if test "$cross_prefix" = "" ; then
-    if $cc -o $TMPO $TMPC $LDFLAGS -lfreenect 2> /dev/null  ; then
+    if docc $LDFLAGS -lfreenect ; then
         has_freenect="system"
     elif test "$alt_macosx_dir" != "" ; then
-        if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lfreenect 2> /dev/null ; then
+        if docc -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lfreenect 2>>$logs ; then
             has_freenect="system"
             freenect_flags=-I$alt_macosx_dir/include
             freenect_ld=-L$alt_macosx_dir/lib -lfreenect
@@ -1443,7 +1483,7 @@ if test "$cross_prefix" = "" ; then
     fi
 fi
 if test "$has_freenect" = "no" ; then
-    if $cc -o $TMPO $TMPC -I$local_inc/freenect -L$local_lib -lfreenect 2> /dev/null  ; then
+    if docc -I$local_inc/freenect -L$local_lib -lfreenect ; then
         has_freenect="local"
         freenect_flags=-I$local_inc/freenect
         freenect_ld=-L$local_lib -lfreenect
@@ -1459,13 +1499,13 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC $LDFLAGS -lvorbis 2> /dev/null  ; then
+if docc $LDFLAGS -lvorbis ; then
     has_vorbis="system"
 elif test "$alt_macosx_dir" != "" ; then
-    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lvorbis 2> /dev/null ; then
+    if docc -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -lvorbis 2>>$logs ; then
         has_vorbis="system"
     fi
-elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lvorbis -lm 2> /dev/null  ; then
+elif docc -I$local_inc -L$local_lib -lvorbis -lm ; then
     has_vorbis="local"
 fi
 
@@ -1477,13 +1517,13 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC $LDFLAGS -ltheora 2> /dev/null  ; then
+if docc $LDFLAGS -ltheora ; then
     has_theora="system"
 elif test "$alt_macosx_dir" != "" ; then
-    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -ltheora -logg 2> /dev/null ; then
+    if docc -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -ltheora -logg 2>>$logs ; then
         has_theora="system"
     fi
-elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -ltheora -logg -lm 2> /dev/null  ; then
+elif docc -I$local_inc -L$local_lib -ltheora -logg -lm ; then
     has_theora="local"
 fi
 
@@ -1495,13 +1535,13 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC $LDFLAGS -logg 2> /dev/null  ; then
+if docc $LDFLAGS -logg ; then
     has_ogg="system"
 elif test "$alt_macosx_dir" != "" ; then
-    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -logg 2> /dev/null ; then
+    if docc -I$alt_macosx_dir/include -L$alt_macosx_dir/lib $LDFLAGS -logg 2>>$logs ; then
         has_ogg="system"
     fi
-elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -logg -lm 2> /dev/null  ; then
+elif docc -I$local_inc -L$local_lib -logg -lm ; then
     has_ogg="local"
 else
     has_vorbis=no
@@ -1518,7 +1558,7 @@ if test "$darwin" = "yes" ; then
 int main( void ) { return 0; }
 EOF
 
-    if $cc -o $TMPO $TMPC -DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss -L$alt_macosx_dir/lib -loss $LDFLAGS 2> /dev/null ; then
+    if docc -DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss -L$alt_macosx_dir/lib -loss $LDFLAGS 2>>$logs ; then
         has_oss_audio="yes"
         OSS_CFLAGS="-DLIBOSS_INTERNAL -I$alt_macosx_dir/include/ -I$alt_macosx_dir/include/liboss"
         OSS_LDFLAGS="-L$alt_macosx_dir/lib -loss"
@@ -1534,7 +1574,7 @@ else
 int main( void ) { return 0; }
 EOF
 
-    if $cc -o $TMPO $TMPC 2> /dev/null  ; then
+    if docc ; then
         has_oss_audio="yes"
     else
         cat > $TMPC << EOF
@@ -1545,7 +1585,7 @@ EOF
 int main( void ) { return 0; }
 EOF
 
-        if $cc -o $TMPO $TMPC $LDFLAGS 2> /dev/null  ; then
+        if docc $LDFLAGS ; then
             has_oss_audio="yes"
         fi
     fi
@@ -1559,7 +1599,7 @@ has_wx="no"
 wx_too_old="no"
 
 if test "$cross_prefix" = "" ; then
-    if type wx-config >/dev/null 2>&1; then
+    if type wx-config >/dev/null 2>>$logs; then
 
         wx_version=`wx-config --version | sed 's/[^0-9]//g'`
 
@@ -1587,7 +1627,7 @@ if test "$cross_prefix" = "" ; then
 int main( void ) { return 0; }
 EOF
 
-        if $cc $wx_cflags -o $TMPO $TMPCXX $wx_lflags > /dev/null 2>&1 ; then
+        if $cc $wx_cflags -o $TMPO $TMPCXX $wx_lflags > /dev/null 2>>$logs ; then
             wx_version=`wx-config --version | sed 's/[^0-9]//g'`
             if test "$wx_version" -lt 254 ; then
                 wx_too_old="yes"
@@ -1601,6 +1641,7 @@ fi
 
 #look for IPv6
 cat > $TMPC << EOF
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -1610,11 +1651,14 @@ struct sockaddr_storage saddr;
 struct ipv6_mreq mreq6;
 getaddrinfo(0,0,0,0);
 getnameinfo(0,0,0,0,0,0,0);
+memset(&saddr, 0, sizeof(saddr));
+memset(&mreq6, 0, sizeof(mreq6));
 IN6_IS_ADDR_MULTICAST( (struct in6_addr *) 0);
+return 0;
 }
 EOF
 
-if $cc -o $TMPE $TMPC $LDFLAGS $extralibs > /dev/null 2>&1  ; then
+if docc $LDFLAGS $extralibs ; then
     has_ipv6="yes"
 fi
 
@@ -1628,7 +1672,7 @@ int main( void ) {
 }
 EOF
 
-if $cc -o $TMPE $TMPC $LDFLAGS > /dev/null 2>&1  ; then
+if docc $LDFLAGS ; then
     has_dvb4linux="yes"
 fi
 
@@ -1640,10 +1684,11 @@ cat > $TMPC << EOF
 #include <xmlrpc-c/server.h>
 #include <xmlrpc-c/server_abyss.h>
 int main( void ) {
+return 0;
 }
 EOF
 
-if $cc -o $TMPE $TMPC $LDFLAGS > /dev/null 2>&1  ; then
+if docc $LDFLAGS ; then
     has_xmlrpc="yes"
 fi
 
@@ -1653,10 +1698,11 @@ fi
 cat > $TMPC << EOF
 #include <alsa/asoundlib.h>
 int main( void ) {
+return 0;
 }
 EOF
 
-if $cc -o $TMPE $TMPC $LDFLAGS > /dev/null 2>&1  ; then
+if docc $LDFLAGS ; then
     has_alsa="yes"
 fi
 
@@ -1666,10 +1712,11 @@ fi
 cat > $TMPC << EOF
 #include <pulse/pulseaudio.h>
 int main( void ) {
+return 0;
 }
 EOF
 
-if $cc -o $TMPE $TMPC $LDFLAGS > /dev/null 2>&1  ; then
+if docc $LDFLAGS ; then
     has_pulseaudio="yes"
 fi
 
@@ -1679,9 +1726,10 @@ fi
 cat > $TMPC << EOF
 #include <jack/jack.h>
 int main( void ) {
+return 0;
 }
 EOF
-if $cc -o $TMPE $TMPC $LDFLAGS > /dev/null 2>&1  ; then
+if docc $LDFLAGS ; then
     has_jack="yes"
 fi
 
@@ -1694,7 +1742,7 @@ int main( void ) { return 0; }
 EOF
 directfb_inc="/usr/include/directfb"
 directfb_lib="-ldirectfb -lfusion -ldirect"
-if $cc -o $TMPO $TMPC -I$directfb_inc -L$directfb_lib $LDFLAGS 2> /dev/null  ; then
+if docc -I$directfb_inc -L$directfb_lib $LDFLAGS ; then
     has_directfb="yes"
 fi
 
@@ -1706,7 +1754,7 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS 2> /dev/null  ; then
+if docc -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS ; then
     has_x11="yes"
 
     #look for X11 shared memory support
@@ -1718,7 +1766,7 @@ if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS 2> /dev/null 
 int main( void ) { return 0; }
 EOF
 
-    if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS 2> /dev/null  ; then
+    if docc -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS ; then
         has_x11_shm="yes"
     fi
 
@@ -1730,7 +1778,7 @@ EOF
 int main( void ) { return 0; }
 EOF
 
-    if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS 2> /dev/null  ; then
+    if docc -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS ; then
         has_x11_xv="yes"
     fi
 
@@ -2121,9 +2169,9 @@ if test "$disable_3d" = "no" ; then
     else
         LINK3D="-lGL -lGLU -lX11"
     fi
-    if $cc -o $TMPO $TMPC $LINK3D $LDFLAGS 2> /dev/null  ; then
+    if docc $LINK3D $LDFLAGS ; then
         has_opengl="yes"
-    elif $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS 2> /dev/null  ; then
+    elif docc -I$X11_PATH/include -L$X11_PATH/lib $LDFLAGS ; then
         has_opengl="yes"
         INCL3D="-I$X11_PATH/include"
         LINK3D="-L$X11_PATH/lib $LINK3D"
@@ -2135,11 +2183,11 @@ fi
 
 cat > $TMPC << EOF
 #include <GL/gl.h>
-int main( void ) { int a ; a = TINYGL ; }
+int main( void ) { int a ; a = TINYGL ; return 0;}
 EOF
 
 if test "$enable_tinygl" = "yes"  ;then
-    if $cc -o $TMPO $TMPC $LDFLAGS -lTinyGL 2> /dev/null  ; then
+    if docc $LDFLAGS -lTinyGL ; then
         has_tinygl="yes"
         has_opengl="yes"
         LINK3D="-lTinyGL"
@@ -2154,15 +2202,15 @@ cat > $TMPCXX << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPCXX -I$xulsdk_path $LDFLAGS 2> /dev/null  ; then
+if docxx -I$xulsdk_path $LDFLAGS ; then
     has_xul="system"
     xul_flags="-I$xulsdk_path $xul_flags"
 fi
 
 if test "$pkg_config" != "no"; then
   if test "$has_xul" = "no" ; then
-    if $pkg_config --exists libxul 2> /dev/null ; then
-        if $cxx -o $TMPO $TMPCXX `$pkg_config --cflags libxul` `$pkg_config --libs libxul` ; then
+    if $pkg_config --exists libxul 2>>$logs ; then
+        if docxx -o $TMPO $TMPCXX `$pkg_config --cflags libxul` `$pkg_config --libs libxul` ; then
             has_xul="system"
             xul_flags="`$pkg_config --cflags libxul` `$pkg_config --libs libxul`" 
         fi
@@ -2171,13 +2219,13 @@ if test "$pkg_config" != "no"; then
 fi
 
 if test "$has_xul" = "no" ; then
-    if $cc -o $TMPO $TMPCXX $xul_flags -I$local_inc/gecko-sdk/include $LDFLAGS 2> /dev/null  ; then
+    if docxx $xul_flags -I$local_inc/gecko-sdk/include $LDFLAGS ; then
         has_xul="local"
         xul_flags="-I$local_inc/gecko-sdk/include $xul_flags"
     else
         #xulrunner directories are sometimes included through js/xul/ff packages
         if test ! "$has_js" = "no" -a ! "$has_js" = "local" ; then
-            if $cc -o $TMPO $TMPCXX $js_flags $js_lib_pkg $LDFLAGS 2> /dev/null  ; then
+            if docxx $js_flags $js_lib_pkg $LDFLAGS ; then
                 if test "$mozjs_pkgcfg" != "no" ; then
                     xul_flags=`$pkg_config --cflags $mozjs_pkgcfg`
                     has_xul="$has_js"
@@ -2195,7 +2243,7 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 if test "$enable_joystick" = "yes"  ;then
-    if $cc -o $TMPO $TMPC $LDFLAGS  2> /dev/null  ; then
+    if docc $LDFLAGS  ; then
         has_joystick="yes"
     fi
 fi
@@ -2212,11 +2260,11 @@ if test "$win32" = "yes" ; then
 int main( void ) { return 0; }
 EOF
 
-    if $cc -o $TMPO $TMPC $LDFLAGS 2> /dev/null  ; then
+    if docc $LDFLAGS ; then
         has_mingw_directx="yes"
     else
         dx_path="$dxsdk_path"
-        if $cc -o $TMPO $TMPC -I$dxsdk_path/include -L$dxsdk_path/lib -lddraw 2> /dev/null  ; then
+        if docc -I$dxsdk_path/include -L$dxsdk_path/lib -lddraw ; then
             has_mingw_directx="yes"
         fi
     fi
@@ -2237,7 +2285,7 @@ fi
 
 
 #if test "$cross_prefix" = "" ; then
-    if type $sdl_config >/dev/null 2>&1; then
+    if type $sdl_config >/dev/null 2>>$logs; then
 
         cat > $TMPC << EOF
 #include <SDL.h>
@@ -2252,7 +2300,7 @@ EOF
         fi
         sdl_cflags=`$sdl_config --cflags`
 
-        if $cc -o $TMPO $sdl_cflags $TMPC $LDFLAGS $sdl_lib_flags  > /dev/null 2>&1  ; then
+        if docc $sdl_cflags $LDFLAGS $sdl_lib_flags ; then
             _sdlversion=`$sdl_config --version | sed 's/[^0-9]//g'`
             if test "$_sdlversion" -lt 121 ; then
                 sdl_too_old=yes
@@ -2272,7 +2320,7 @@ if test "$has_sdl" = "no" ; then
   fi
 
   if test "$cross_prefix" = "" ; then
-    if type $sdl_config >/dev/null 2>&1; then
+    if type $sdl_config >/dev/null 2>>$logs; then
 
         cat > $TMPC << EOF
 #include <SDL.h>
@@ -2287,7 +2335,7 @@ EOF
         fi
         sdl_cflags=`$sdl_config --cflags`
 
-        if $cc -o $TMPO $sdl_cflags $TMPC $LDFLAGS $sdl_lib_flags  > /dev/null 2>&1  ; then
+        if docc $sdl_cflags $LDFLAGS $sdl_lib_flags ; then
             _sdlversion=`$sdl_config --version | sed 's/[^0-9]//g'`
             if test "$_sdlversion" -lt 121 ; then
                 sdl_too_old=yes
@@ -2314,7 +2362,7 @@ return (*((uint8_t*)(&i))) == 0x67;
 }
 EOF
 
-    if $cc -o $TMPO $TMPC $LDFLAGS 2>/dev/null ; then
+    if docc $LDFLAGS 2>>$logs ; then
         $TMPO && bigendian="yes"
     else
         echo big/little endian test failed
@@ -2425,9 +2473,9 @@ soname_version="${version_major}.${version_minor}.${version_micro}"
 
 
 if [ -d ".git" ]; then
-	TAG=$(git describe --tags --abbrev=0 2> /dev/null)
-	VERSION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
-	BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
+	TAG=$(git describe --tags --abbrev=0 2>>$logs)
+	VERSION=$(echo `git describe --tags --long 2>>$logs || echo "UNKNOWN"` | sed "s/^$TAG-//")
+	BRANCH=$(git rev-parse --abbrev-ref HEAD 2>>$logs || echo "UNKNOWN")
 	revision="$VERSION-$BRANCH"
 	echo "#define GPAC_GIT_REVISION	\"$revision\"" > $source_path/include/gpac/revision.h
 else
@@ -3167,10 +3215,11 @@ if test "$enst_dir" = "enst"; then
     cat > $TMPC << EOF
 #include <iconv.h>
 int main( void ) {
+return 0;
 }
 EOF
 
-    if $cc -o $TMPE $TMPC -L$local_lib -liconv > /dev/null 2>&1  ; then
+    if docc -L$local_lib -liconv ; then
         GPAC_ENST=yes
         echo "LIBGPAC_ENST=`cd src; ls enst/*.c | sed -e 's/\.c/.o/' | tr -s '\r\n' ' ' ; cd ..`" >> config.mak
     else
@@ -3216,7 +3265,7 @@ if test "$source_path_used" = "yes" ; then
     ln -sf "$source_path/modules/Makefile" modules/Makefile
 
     for dir in $MOD_DIRS ; do
-        if ls "$source_path/$dir/Makefile" > /dev/null 2>&1; then
+        if [ -f "$source_path/$dir/Makefile" ]; then
             mkdir -p "$dir"
             ln -sf "$source_path/$dir/Makefile" "$dir/Makefile"
         fi
@@ -3249,6 +3298,7 @@ else
     echo "config.h is unchanged"
 fi
 
+echo "Check config.log for detection failures"
 
 rm -f $TMPO $TMPC $TMPE $TMPS $TMPCXX $TMPH
 
