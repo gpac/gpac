@@ -809,7 +809,7 @@ GF_Err gf_isom_stxt_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 S
 	}
 
 	if (entry->config) {
-		*config = entry->config->string;
+		*config = entry->config->config;
 	}
 	if (entry->mime_type) {
 		*mime = entry->mime_type;
@@ -882,8 +882,8 @@ GF_Err gf_isom_new_stxt_description(GF_ISOFile *movie, u32 trackNumber, u32 type
 	sample_entry->mime_type = gf_strdup(mime);
 	if (encoding) sample_entry->content_encoding = gf_strdup(encoding);
 	if (config) {
-		sample_entry->config = (GF_StringBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_STTC);
-		sample_entry->config->string = gf_strdup(config);
+		sample_entry->config = (GF_TextConfigBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_TXTC);
+		sample_entry->config->config = gf_strdup(config);
 	}
 	return e;
 }
@@ -912,15 +912,16 @@ GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber,
 	}
 
 	if (!sample_entry->config)
-		sample_entry->config = (GF_StringBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_STTC);
+		sample_entry->config = (GF_TextConfigBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_TXTC);
 
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	if (sample_entry->config->string) {
-		gf_free(sample_entry->config->string);
+	if (sample_entry->config->config) {
+		gf_free(sample_entry->config->config);
 	}
-	sample_entry->config->string = gf_strdup(config);
+	sample_entry->config->config = gf_strdup(config);
+
 	if (sample_entry->content_encoding) {
 		gf_free(sample_entry->content_encoding);
 	}

@@ -391,7 +391,7 @@ enum
 	GF_ISOM_BOX_TYPE_SBTT	= GF_4CC( 's', 'b', 't', 't' ),
 
 	GF_ISOM_BOX_TYPE_STXT	= GF_4CC( 's', 't', 'x', 't' ),
-	GF_ISOM_BOX_TYPE_STTC	= GF_4CC( 't', 'x', 't', 'C' ),
+	GF_ISOM_BOX_TYPE_TXTC	= GF_4CC( 't', 'x', 't', 'C' ),
 
 	GF_ISOM_BOX_TYPE_PRFT   = GF_4CC( 'p', 'r', 'f', 't' ),
 
@@ -1053,6 +1053,12 @@ typedef struct
 } GF_DIMSSampleEntryBox;
 
 
+typedef struct 
+{
+	GF_ISOM_FULL_BOX
+	char *config;
+} GF_TextConfigBox;
+
 /*base sample entry box (never used but for typecasting)*/
 typedef struct
 {
@@ -1061,6 +1067,7 @@ typedef struct
 	char *mime_type_or_namespace;	//not optional
 	char *xml_schema_loc;	// optional
 	GF_MPEG4BitRateBox *bitrate; // optional
+	GF_TextConfigBox *config; //optional
 } GF_MetaDataSampleEntryBox;
 
 typedef struct
@@ -3621,8 +3628,9 @@ typedef struct
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 	char *content_encoding;			//optional
 	char *mime_type;				//not optional
+	char *xml_schema_loc;	// not used but required for type casting with GF_MetaDataSampleEntryBox
 	GF_MPEG4BitRateBox *bitrate;	// optional
-	GF_StringBox *config;
+	GF_TextConfigBox *config;
 } GF_SimpleTextSampleEntryBox;
 
 GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 start);
@@ -3979,6 +3987,13 @@ GF_Err stxt_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err stxt_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err stxt_Size(GF_Box *s);
 GF_Err stxt_dump(GF_Box *a, FILE * trace);
+
+GF_Box *txtc_New();
+void txtc_del(GF_Box *s);
+GF_Err txtc_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err txtc_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err txtc_Size(GF_Box *s);
+GF_Err txtc_dump(GF_Box *a, FILE * trace);
 
 GF_Box *stpp_New();
 void stpp_del(GF_Box *s);

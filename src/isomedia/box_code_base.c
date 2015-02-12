@@ -7550,6 +7550,10 @@ GF_Err metx_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->bitrate) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->bitrate = (GF_MPEG4BitRateBox *)a;
 		break;
+	case GF_ISOM_BOX_TYPE_TXTC:
+		if (ptr->config) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->config = (GF_TextConfigBox *)a;
+		break;
 	default:
 		return gf_isom_box_add_default(s, a);
 	}
@@ -7635,6 +7639,13 @@ GF_Err metx_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)ptr->bitrate, bs);
 		if (e) return e;
 	}
+
+	if (ptr->type == GF_ISOM_BOX_TYPE_METT) {
+		if (ptr->config) {
+			gf_isom_box_write((GF_Box *)ptr->config, bs);
+		}
+	}
+
 	return gf_isom_box_array_write(s, ptr->protections, bs);
 }
 
@@ -7661,6 +7672,13 @@ GF_Err metx_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *)ptr->bitrate);
 		if (e) return e;
 		ptr->size += ptr->bitrate->size;
+	}
+	if (ptr->type == GF_ISOM_BOX_TYPE_METT) {
+		if (ptr->config) {
+			e = gf_isom_box_size((GF_Box *)ptr->config);
+			if (e) return e;
+			ptr->size += ptr->config->size;
+		}
 	}
 	return gf_isom_box_array_size(s, ptr->protections);
 }
@@ -7694,9 +7712,9 @@ GF_Err stxt_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox *)s;
 	switch (a->type) {
-	case GF_ISOM_BOX_TYPE_STTC:
+	case GF_ISOM_BOX_TYPE_TXTC:
 		if (ptr->config) ERROR_ON_DUPLICATED_BOX(a, ptr)
-			ptr->config =  (GF_StringBox *)a;
+			ptr->config =  (GF_TextConfigBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_BTRT:
 		if (ptr->bitrate) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -7804,6 +7822,79 @@ GF_Err stxt_Size(GF_Box *s)
 		ptr->size += ptr->config->size;
 	}
 	return gf_isom_box_array_size(s, ptr->protections);
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+/* SimpleTextSampleEntry */
+GF_Box *txtc_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TextConfigBox, GF_ISOM_BOX_TYPE_TXTC);
+	gf_isom_full_box_init((GF_Box *)tmp);
+	return (GF_Box *)tmp;
+}
+
+
+void txtc_del(GF_Box *s)
+{
+	GF_TextConfigBox *ptr = (GF_TextConfigBox*)s;
+	if (ptr == NULL) return;
+
+	if (ptr->config) gf_free(ptr->config);
+	gf_free(ptr);
+}
+
+GF_Err txtc_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 size, i;
+	char *str;
+	GF_TextConfigBox *ptr = (GF_TextConfigBox*)s;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	size = (u32) ptr->size - 12;
+	str = (char *)gf_malloc(sizeof(char)*size);
+
+	i=0;
+
+	while (size) {
+		str[i] = gf_bs_read_u8(bs);
+		size--;
+		if (!str[i])
+			break;
+		i++;
+	}
+	if (i) ptr->config = gf_strdup(str);
+
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err txtc_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_TextConfigBox *ptr = (GF_TextConfigBox *)s;
+	GF_Err e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	if (ptr->config)
+		gf_bs_write_data(bs, ptr->config, (u32) strlen(ptr->config));
+	gf_bs_write_u8(bs, 0);
+	return GF_OK;
+}
+
+GF_Err txtc_Size(GF_Box *s)
+{
+	GF_TextConfigBox *ptr = (GF_TextConfigBox *)s;
+	GF_Err e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	if (ptr->config)
+		ptr->size += strlen(ptr->config);
+	ptr->size++;
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
