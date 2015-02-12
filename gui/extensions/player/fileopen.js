@@ -141,7 +141,8 @@ extension.open_local_file = function () {
 
 
             popup.set_size(0.9 * this.width, 0.9 * this.height);
-            popup.set_alpha(this.get_alpha());
+            popup.set_alpha(1);
+            popup.move(this.translation.x, this.translation.y);
 
             popup.on_close = function () {
                 this.dlg.enable();
