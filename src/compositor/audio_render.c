@@ -535,7 +535,6 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 		}
 		if (!ar->audio_out) gf_cfg_set_key(user->config, "Audio", "DriverName", "No Audio Output Available");
 	}
-
 	/*init compositor timer*/
 	ar->start_time = gf_sys_clock();
 	ar->current_time = 0;
@@ -548,7 +547,7 @@ void gf_sc_ar_del(GF_AudioRenderer *ar)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Destroying compositor\n"));
 	/*resume if paused (might cause deadlock otherwise)*/
-	if (ar->Frozen) gf_sc_ar_control(ar, 1);
+	if (ar->Frozen) gf_sc_ar_control(ar, GF_SC_AR_RESUME);
 	/*stop and shutdown*/
 	if (ar->audio_out) {
 		/*kill audio thread*/
@@ -586,7 +585,7 @@ void gf_sc_ar_reset(GF_AudioRenderer *ar)
 
 void gf_sc_ar_control(GF_AudioRenderer *ar, u32 PauseType)
 {
-	gf_ar_pause(ar, !PauseType, 0, (PauseType==2) ? 1 : 0);
+	gf_ar_pause(ar, (PauseType==GF_SC_AR_PAUSE), 0, (PauseType==GF_SC_AR_RESET_HW_AND_PLAY) ? 1 : 0);
 }
 
 void gf_sc_ar_set_volume(GF_AudioRenderer *ar, u32 Volume)

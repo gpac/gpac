@@ -60,7 +60,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	/*move to FS*/
 	compositor->fullscreen = !compositor->fullscreen;
 
-	gf_sc_ar_control(compositor->audio_renderer, 0);
+	gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_PAUSE);
 
 	if (compositor->fullscreen && (compositor->scene_width>=compositor->scene_height)
 #ifndef GPAC_DISABLE_3D
@@ -72,7 +72,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 		e = compositor->video_out->SetFullScreen(compositor->video_out, compositor->fullscreen, &compositor->display_width, &compositor->display_height);
 	}
 
-	gf_sc_ar_control(compositor->audio_renderer, 1);
+	gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_RESUME);
 
 	if (e) {
 		GF_Event evt;
@@ -131,7 +131,6 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		if (compositor->msg_type & GF_SR_CFG_SET_SIZE) {
 			u32 fs_width, fs_height;
 			Bool restore_fs = compositor->fullscreen;
-			compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing display size to %d x %d\n", compositor->new_width, compositor->new_height));
 			fs_width = fs_height = 0;
@@ -142,7 +141,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			evt.type = GF_EVENT_SIZE;
 			evt.size.width = compositor->new_width;
 			evt.size.height = compositor->new_height;
-			compositor->new_width = compositor->new_height = 0;
+
 			/*send resize event*/
 			if (!(compositor->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF)) {
 				compositor->video_out->ProcessEvent(compositor->video_out, &evt);
@@ -162,6 +161,8 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 			}
 			notif_size=1;
+			compositor->new_width = compositor->new_height = 0;
+			compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
 
 		}
 		/*aspect ratio modif*/
@@ -704,24 +705,10 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 	if (PlayState==GF_STATE_STEP_PAUSE) {
 		compositor->step_mode = 1;
 		gf_sc_flush_next_audio(compositor);
-
-		if (!compositor->paused)
-			gf_term_set_option(compositor->term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
-		else {
-			u32 dur = compositor->frame_duration;
-			u32 i, count = gf_list_count(compositor->textures);
-			for (i=0; i<count; i++) {
-				GF_TextureHandler *txh = (GF_TextureHandler *) gf_list_get(compositor->textures, i);
-				if (txh->stream) {
-					u32 d = gf_mo_get_min_frame_dur(txh->stream);
-					if (d && d<dur) dur = d;
-				}
-			}
-			gf_term_step_clocks(compositor->term, dur);
-		}
+		compositor->paused = 1;
 	} else {
 		compositor->step_mode = 0;
-		if (compositor->audio_renderer) gf_sc_ar_control(compositor->audio_renderer, (compositor->paused && (PlayState==0xFF)) ? 2 : compositor->paused);
+		if (compositor->audio_renderer) gf_sc_ar_control(compositor->audio_renderer, (compositor->paused && (PlayState==0xFF)) ? GF_SC_AR_RESET_HW_AND_PLAY : (compositor->paused ? GF_SC_AR_RESUME : GF_SC_AR_PAUSE) );
 		compositor->paused = (PlayState==GF_STATE_PAUSED) ? 1 : 0;
 	}
 }
@@ -1071,6 +1058,10 @@ GF_EXPORT
 GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 {
 	Bool lock_ok;
+
+	if ((compositor->display_width == NewWidth) && (compositor->display_height == NewHeight))
+		return GF_OK;
+
 	if (!NewWidth || !NewHeight) {
 		compositor->override_size_flags &= ~2;
 		compositor->msg_type |= GF_SR_CFG_AR;
@@ -1083,6 +1074,7 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	compositor->new_width = NewWidth;
 	compositor->new_height = NewHeight;
 	compositor->msg_type |= GF_SR_CFG_SET_SIZE;
+	assert(compositor->new_width);
 
 	/*if same size only request for video setup */
 	compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
@@ -1937,7 +1929,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		}
 #endif
 		if (force_pause )
-			gf_sc_ar_control(compositor->audio_renderer, 0);
+			gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_PAUSE);
 
 #ifndef GPAC_DISABLE_3D
 		if (compositor->autoconfig_opengl) {
@@ -1982,7 +1974,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		}
 
 		if (force_pause )
-			gf_sc_ar_control(compositor->audio_renderer, 1);
+			gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_RESUME);
 
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) {
@@ -2617,13 +2609,13 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	//we have a pending frame, return asap - we could sleep until frames matures but this give weird regulation
 	if (compositor->ms_until_next_frame != GF_INT_MAX) {
-		if (compositor->ms_until_next_frame<0) {
+		compositor->ms_until_next_frame -= end_time;
+
+		if (compositor->ms_until_next_frame<=0) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Next frame already due (%d ms late) - not going to sleep\n", - compositor->ms_until_next_frame));
+			compositor->ms_until_next_frame=0;
 			return;
 		}
-
-		if (compositor->ms_until_next_frame > (s32) end_time) compositor->ms_until_next_frame -= end_time;
-		else compositor->ms_until_next_frame = 0;
 
 		compositor->ms_until_next_frame = MIN(compositor->ms_until_next_frame, (s32) (2*frame_duration) );
 		if (compositor->ms_until_next_frame > 2) {
@@ -2635,8 +2627,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 					break;
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor slept %d ms until next frame due in %d ms\n", diff, compositor->ms_until_next_frame));
-		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Next frame due in %d ms - not going to sleep\n", compositor->ms_until_next_frame));
 		}
 		return;
 	}
