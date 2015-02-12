@@ -270,6 +270,9 @@ endif
 OBJS+=../modules/timedtext/timedtext_dec.o ../modules/timedtext/timedtext_in.o
 OBJS+=../modules/validator/validator.o
 OBJS+=../modules/raw_out/raw_video.o
+ifeq ($(DISABLE_TTXT), no)
+OBJS+=../modules/vtt_in/vtt_in.o ../modules/vtt_in/vtt_dec.o
+endif
 
 OBJS+=../modules/img_in/img_dec.o ../modules/img_in/img_in.o ../modules/img_in/bmp_dec.o ../modules/img_in/png_dec.o ../modules/img_in/jpeg_dec.o
 ifneq ($(CONFIG_JP2), no)
