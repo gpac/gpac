@@ -1115,7 +1115,7 @@ GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength,
 	*dumpedLength = 0;
 	bs = gf_bs_new(data, dataLength, GF_BITSTREAM_READ);
 	e = gf_isom_parse_box(&box, bs);
-	if (!box || (box->type != GF_ISOM_BOX_TYPE_VTTC && box->type != GF_ISOM_BOX_TYPE_STTC)) return GF_BAD_PARAM;
+	if (!box || (box->type != GF_ISOM_BOX_TYPE_VTTC)) return GF_BAD_PARAM;
 	config = (GF_StringBox *)box;
 	if (config->string) {
 		fprintf(dump, "%s", config->string);

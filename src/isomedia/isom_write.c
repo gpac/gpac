@@ -3656,8 +3656,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			GF_SimpleTextSampleEntryBox *stxt2 = (GF_SimpleTextSampleEntryBox *)ent2;
 			if (stxt1->mime_type && stxt2->mime_type &&
 			        ( (!stxt1->config && !stxt2->config) ||
-			          (stxt1->config && stxt2->config && stxt1->config->string && stxt2->config->string &&
-			           !strcmp(stxt1->config->string, stxt2->config->string)))) {
+			          (stxt1->config && stxt2->config && stxt1->config->config && stxt2->config->config &&
+			           !strcmp(stxt1->config->config, stxt2->config->config)))) {
 				return 1;
 			}
 			return 0;
