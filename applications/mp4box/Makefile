@@ -40,9 +40,11 @@ else
 
 EXT=
 PROG=MP4Box
-LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS)
 
 ifeq ($(MP4BOX_STATIC),yes)
+
+LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS)
+
 ifneq ($(CONFIG_ZLIB),no)
 LINKFLAGS+=-lz
 endif
