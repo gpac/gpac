@@ -373,6 +373,7 @@ gwskin.use_resource_bank = false;
 gwskin.default_window_alpha = 0.8;
 gwskin.default_message_timeout = 2.0;
 gwskin.default_tooltip_timeout = 0.75;
+gwskin.default_tooltip_delay = 1;
 
 gwskin.appearance_transparent = gw_new_appearance(0, 0, 0);
 gwskin.appearance_transparent.material.transparency = 1;
@@ -433,13 +434,11 @@ function gw_get_adjusted_abs_pos(child, width, height, type)
 
 
 gwskin.tooltip_wnd = null;
+gwskin.tooltip_timeout = gw_new_timer(false);
 
-gwskin.tooltip_callback = function (obj, show) {
+gwskin.tooltip_exec = function (obj, show) {
 
     if (!show) return;
-    
-    if (typeof obj.tooltip_shown == 'boolean') return;
-    obj.tooltip_shown = true;
     
     if (!gwskin.tooltip_wnd) {
         wnd = gw_new_window(null, true, true, 'tooltip', true);
@@ -477,6 +476,23 @@ gwskin.tooltip_callback = function (obj, show) {
     var dy = 1.2 * tt.height;
     var pos = gw_get_adjusted_abs_pos(obj, tt.width, 1.2*tt.height, 0);
     tt.move(pos.x, pos.y);
+}
+
+gwskin.tooltip_callback = function (obj, show) {
+
+    if (!show) {
+        gwskin.tooltip_timeout.obj = null;
+        gwskin.tooltip_timeout.stop(0);
+        return;
+    }
+    gwskin.tooltip_timeout.set_timeout(gwskin.default_tooltip_delay, false);
+    gwskin.tooltip_timeout.obj = obj;
+    gwskin.tooltip_timeout.on_active = function (val) {
+        if (!val && gwskin.tooltip_timeout.obj) {
+            gwskin.tooltip_exec(gwskin.tooltip_timeout.obj, true);
+        }
+    }
+    gwskin.tooltip_timeout.start(0);
 }
 
 gwskin.default_label_font_size = 18;
@@ -563,7 +579,7 @@ s.font.skin = true;
 s = { name: 'window' };
 gwskin.styles.push(s);
 s.normal = gw_new_appearance(0.6, 0.6, 0.6);
-s.normal.texture = gw_make_gradient('vertical', [0, 0.05, 0.95, 1], [0.6, 0.6, 0.6, 0, 0, 0, 0, 0, 0, 0.6, 0.6, 0.6]);
+s.normal.texture = gw_make_gradient('vertical', [0, 0.1, 0.9, 1], [0.6, 0.6, 0.6, 0, 0, 0, 0, 0, 0, 0.6, 0.6, 0.6]);
 s.normal.skin = true;
 //override font to have middle alignment
 s.font = gw_new_fontstyle(gwskin.default_label_font_size, 1);
@@ -575,8 +591,8 @@ tt_s = { name: 'tooltip' };
 gwskin.styles.push(tt_s);
 tt_s.normal = gw_new_appearance(0.6, 0.6, 0.6);
 tt_s.normal.texture = s.normal.texture;
-tt_s.normal.material.lineProps = gw_new_lineprops(0, 0, 0);
-tt_s.normal.material.lineProps.width = 0.5;
+//tt_s.normal.material.lineProps = gw_new_lineprops(0, 0, 0);
+//tt_s.normal.material.lineProps.width = 0.5;
 tt_s.font = s.font;
 //tt_s.hide = gw_window_hide;
 //tt_s.show = gw_window_show;
@@ -3007,30 +3023,30 @@ function gw_new_file_dialog(container, label) {
 
 
     dlg._sort_type = 0;
-    dlg.do_sort = function(value) {        
+    dlg.do_sort = function (value) {
         this._page_idx = 0;
         this._max_page_idx = 0;
-        
+
         switch (value) {
-        case 0:
-            this.area._all_children.sort( function(a, b) { return a.filename > b.filename} );
-            break;
-        case 1:
-            this.area._all_children.sort( function(a, b) { return a.filename < b.filename} );
-            break;
-        case 2:
-            this.area._all_children.sort( function(a, b) { return a.size > b.size} );
-            break;
-        case 3:
-            this.area._all_children.sort( function(a, b) { return a.size < b.size} );
-            break;
-        case 4:
-            this.area._all_children.sort( function(a, b) { return a.date > b.date} );
-            break;
-        case 5:
-            this.area._all_children.sort( function(a, b) { return a.date < b.date} );
-            break;
-        }        
+            case 0:
+                this.area._all_children.sort(function (a, b) { var A = a.filename.toLowerCase(); var B = b.filename.toLowerCase(); if (A > B) { return 1; } else if (A < B) { return -1; } else return 0; });
+                break;
+            case 1:
+                this.area._all_children.sort(function (b, a) { var A = a.filename.toLowerCase(); var B = b.filename.toLowerCase(); if (A > B) { return 1; } else if (A < B) { return -1; } else return 0; });
+                break;
+            case 2:
+                this.area._all_children.sort(function (a, b) { return a.size - b.size });
+                break;
+            case 3:
+                this.area._all_children.sort(function (a, b) { return b.size - a.size });
+                break;
+            case 4:
+                this.area._all_children.sort(function (a, b) { return a.date - b.date });
+                break;
+            case 5:
+                this.area._all_children.sort(function (a, b) { return b.date - a.date });
+                break;
+        }
         this.area.layout();
     }
 
