@@ -509,7 +509,9 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 	case GF_ISOM_BOX_TYPE_STXT:
 		return stxt_dump(a, trace);
 
-	case GF_ISOM_BOX_TYPE_STTC:
+	case GF_ISOM_BOX_TYPE_TXTC:
+		return txtc_dump(a, trace);
+
 	case GF_ISOM_BOX_TYPE_VTTC:
 	case GF_ISOM_BOX_TYPE_CTIM:
 	case GF_ISOM_BOX_TYPE_IDEN:
@@ -4029,6 +4031,21 @@ GF_Err stxt_dump(GF_Box *a, FILE * trace)
 
 	if (ptr->bitrate) gf_box_dump(ptr->bitrate, trace);
 	if (ptr->config) gf_box_dump(ptr->config, trace);
+
+	gf_box_dump_done(NULL, a, trace);
+	fprintf(trace, "</%s>\n", name);
+	return GF_OK;
+}
+
+GF_Err txtc_dump(GF_Box *a, FILE * trace)
+{
+	GF_TextConfigBox *ptr = (GF_TextConfigBox*)a;
+	const char *name = "TextConfigBox";
+
+	fprintf(trace, "<%s>", name);
+	DumpBox(a, trace);
+
+	if (ptr->config) fprintf(trace, "%s", ptr->config);
 
 	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%s>\n", name);
