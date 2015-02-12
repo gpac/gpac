@@ -7535,6 +7535,7 @@ void metx_del(GF_Box *s)
 	if (ptr->mime_type_or_namespace) gf_free(ptr->mime_type_or_namespace);
 	if (ptr->xml_schema_loc) gf_free(ptr->xml_schema_loc);
 	if (ptr->bitrate) gf_isom_box_del((GF_Box *) ptr->bitrate);
+	if (ptr->config) gf_isom_box_del((GF_Box *)ptr->config);
 	gf_free(ptr);
 }
 
@@ -7640,7 +7641,7 @@ GF_Err metx_Write(GF_Box *s, GF_BitStream *bs)
 		if (e) return e;
 	}
 
-	if (ptr->type == GF_ISOM_BOX_TYPE_METT) {
+	if (ptr->type == GF_ISOM_BOX_TYPE_METT || ptr->type == GF_ISOM_BOX_TYPE_SBTT) {
 		if (ptr->config) {
 			gf_isom_box_write((GF_Box *)ptr->config, bs);
 		}
@@ -7673,7 +7674,7 @@ GF_Err metx_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->bitrate->size;
 	}
-	if (ptr->type == GF_ISOM_BOX_TYPE_METT) {
+	if (ptr->type == GF_ISOM_BOX_TYPE_METT || ptr->type == GF_ISOM_BOX_TYPE_SBTT) {
 		if (ptr->config) {
 			e = gf_isom_box_size((GF_Box *)ptr->config);
 			if (e) return e;
@@ -7854,7 +7855,7 @@ GF_Err txtc_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 
-	size = (u32) ptr->size - 12;
+	size = (u32) ptr->size;
 	str = (char *)gf_malloc(sizeof(char)*size);
 
 	i=0;
