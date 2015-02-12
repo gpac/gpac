@@ -225,7 +225,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		strcpy(szExt, &ext[1]);
 		strlwr(szExt);
 #ifndef FFMPEG_DEMUX_ENABLE_MPEG2TS
-		if (!strcmp(szExt, "ts")) return 0;
+		if (strstr("ts m2t mts dmb trp", szExt) ) return 0;
 #endif
 
 		/*note we forbid ffmpeg to handle files we support*/

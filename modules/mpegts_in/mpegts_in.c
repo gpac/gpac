@@ -33,6 +33,7 @@
 #ifndef GPAC_DISABLE_MPEG2TS
 
 static const char * MIMES[] = { "video/mpeg-2", "video/mp2t", "video/mpeg", NULL};
+static const char * M2TS_EXTENSIONS = "ts m2t mts dmb trp";
 
 //when regulating data rate from file using PCR, this is the maximum sleep we tolerate
 #define M2TS_MAX_SLEEP 200
@@ -115,7 +116,7 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 	{
 		int i=0;
 		for (i = 0 ; NULL != MIMES[i]; i++)
-			if (gf_service_check_mime_register(plug, MIMES[i], "ts m2t dmb trp", "MPEG-2 TS", sExt))
+			if (gf_service_check_mime_register(plug, MIMES[i], M2TS_EXTENSIONS, "MPEG-2 TS", sExt))
 				return 1;
 	}
 	return 0;
@@ -1568,7 +1569,7 @@ static u32 M2TS_RegisterMimeTypes(const GF_InputService * service) {
 	if (service == NULL)
 		return 0;
 	for (i = 0 ; MIMES[i]; i++)
-		gf_service_register_mime( service, MIMES[i], "ts m2t dmb", "MPEG-2 TS");
+		gf_service_register_mime( service, MIMES[i], M2TS_EXTENSIONS, "MPEG-2 TS");
 	return i;
 }
 
