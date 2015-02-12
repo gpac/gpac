@@ -917,6 +917,9 @@ struct tag_m2ts_demux
 	/* analyser */
 	FILE *pes_out;
 
+
+	Bool prefix_present;
+
 	Bool direct_mpe;
 
 	Bool dvb_h_demux;
