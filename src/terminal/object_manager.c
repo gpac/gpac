@@ -2053,7 +2053,7 @@ void gf_odm_pause(GF_ObjectManager *odm)
 
 	/*stop codecs, and update status for media codecs*/
 	if (odm->codec) {
-		//we don't pause codec but only change its status to PUASE - this will allow decoding until CB is full, which will turn the codec in pause mdoe
+		//we don't pause codec but only change its status to PAUSE - this will allow decoding until CB is full, which will turn the codec in pause mode
 		gf_codec_set_status(odm->codec, GF_ESM_CODEC_PAUSE);
 	} else if (odm->subscene) {
 		if (odm->subscene->scene_codec) {

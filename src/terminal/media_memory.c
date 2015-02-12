@@ -571,7 +571,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 }
 
 
-/*drop the output CU*/
+/*mark the output as reusable and init clock*/
 void gf_cm_output_kept(GF_CompositionMemory *cb)
 {
 	assert(cb->UnitCount);
@@ -588,10 +588,8 @@ void gf_cm_output_kept(GF_CompositionMemory *cb)
 /*drop the output CU*/
 void gf_cm_drop_output(GF_CompositionMemory *cb)
 {
+	//check if clock has to be resumed
 	gf_cm_output_kept(cb);
-	if (cb->Status!=CB_PLAY) {
-		return;
-	}
 
 	/*WARNING: in RAW mode, we (for the moment) only have one unit - setting output->dataLength to 0 means the input is available
 	for the raw channel - we have to make sure the output is completely reseted before releasing the sema*/
