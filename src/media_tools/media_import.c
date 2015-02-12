@@ -9075,12 +9075,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 #ifndef GPAC_DISABLE_MPEG2TS
 	/*MPEG-2 TS*/
-	if (!strnicmp(ext, ".ts", 3) || !strnicmp(ext, ".m2t", 4)
+	if (!strnicmp(ext, ".ts", 3) || !strnicmp(ext, ".m2t", 4) || !strnicmp(ext, ".trp", 4) || !strnicmp(ext, ".mts", 4)
 	        || !stricmp(fmt, "MPEGTS") || !stricmp(fmt, "MPEG-TS")
 	        || !stricmp(fmt, "MPGTS") || !stricmp(fmt, "MPG-TS")
 	        || !stricmp(fmt, "MPEG2TS")  || !stricmp(fmt, "MPEG2-TS")
 	        || !stricmp(fmt, "MPG2TS")  || !stricmp(fmt, "MPG2-TS")
-			|| gf_m2ts_probe_file(importer->in_name)
 	   ) {
 		return gf_import_mpeg_ts(importer);
 	}
@@ -9191,6 +9190,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		}
 		gf_free(xml_type);
 	}
+
+	if (gf_m2ts_probe_file(importer->in_name))
+		return gf_import_mpeg_ts(importer);
 
 	return gf_import_message(importer, e, "[Importer] Unknown input file type for \"%s\"", importer->in_name);
 }
