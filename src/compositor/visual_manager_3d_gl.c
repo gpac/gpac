@@ -1714,7 +1714,6 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 
 	has_col = has_tx = has_norm = 0;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
 
 	if ((compositor->reset_graphics==2) && mesh->vbo) {
 		/*we lost OpenGL context at previous frame, recreate VBO*/
@@ -2232,6 +2231,7 @@ static void visual_3d_draw_bounds(GF_TraverseState *tr_state, GF_Mesh *mesh)
 void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
 	Bool mesh_drawn = 0;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
 	if (tr_state->visual->compositor->wiremode != GF_WIREFRAME_ONLY) {
 		visual_3d_draw_mesh(tr_state, mesh);
 		mesh_drawn = 1;
@@ -2264,6 +2264,8 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glDisableClientState(GL_VERTEX_ARRAY);
 	}
 	if (tr_state->visual->compositor->draw_bvol) visual_3d_draw_bounds(tr_state, mesh);
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Done drawing mesh %p\n", mesh));
 }
 
 #if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)

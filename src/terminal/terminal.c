@@ -417,9 +417,12 @@ static Bool gf_term_get_user_pass(void *usr_cbk, const char *site_url, char *usr
 static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_audio, Bool pause_clocks)
 {
 	Bool resume_live = 0;
+	u32 prev_state;
 
 	/*only play/pause if connected*/
 	if (!term || !term->root_scene) return;
+
+	prev_state = term->play_state;
 
 	if (PlayState==GF_STATE_PLAY_LIVE) {
 		PlayState = GF_STATE_PLAYING;
@@ -440,13 +443,22 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	else
 		gf_sc_set_option(term->compositor, GF_OPT_PLAY_STATE, PlayState);
 
-	/* if the current play state in the terminal is the same as the requested play state, we don't touch the clocks
-	   in particular, if the request is a step, if the clocks are paused, we leave them paused */
+	/* step mode specific */
 	if (PlayState==GF_STATE_STEP_PAUSE) {
-		//PlayState = term->play_state ? GF_STATE_PLAYING : GF_STATE_PAUSED;
+		if (prev_state==GF_STATE_PLAYING) {
+			mediacontrol_pause(term->root_scene->root_od);
+			term->play_state = GF_STATE_PAUSED;
+		} else {
+			u32 diff=1;
+			if (term->compositor->ms_until_next_frame>0) diff = term->compositor->ms_until_next_frame;
+			gf_term_step_clocks(term, diff);
+			mediacontrol_resume(term->root_scene->root_od, 0);
+			mediacontrol_pause(term->root_scene->root_od);
+		}
 		return;
 	}
 
+	/* nothing to change*/
 	if (term->play_state == PlayState) return;
 	term->play_state = PlayState;
 
@@ -824,8 +836,6 @@ GF_Err gf_term_del(GF_Terminal * term)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Terminal destroyed\n"));
 	return e;
 }
-
-
 
 GF_EXPORT
 GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)

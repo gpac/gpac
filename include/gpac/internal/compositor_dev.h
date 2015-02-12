@@ -1078,11 +1078,14 @@ typedef struct _audio_render
 GF_AudioRenderer *gf_sc_ar_load(GF_User *user);
 /*deletes audio renderer*/
 void gf_sc_ar_del(GF_AudioRenderer *ar);
-/*control audio renderer - CtrlType:
-	0: pause
-	1: resume
-	2: clean HW buffer and play
-*/
+
+enum
+{
+	GF_SC_AR_PAUSE=0,
+	GF_SC_AR_RESUME,
+	GF_SC_AR_RESET_HW_AND_PLAY,
+};
+/*control audio renderer*/
 void gf_sc_ar_control(GF_AudioRenderer *ar, u32 CtrlType);
 /*set volume and pan*/
 void gf_sc_ar_set_volume(GF_AudioRenderer *ar, u32 Volume);
