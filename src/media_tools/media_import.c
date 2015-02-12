@@ -7650,6 +7650,11 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				stype = GF_STREAM_AUDIO;
 				oti = GPAC_OTI_AUDIO_AAC_MPEG4;
 				break;
+			case GF_M2TS_AUDIO_AC3:
+				mtype = GF_ISOM_MEDIA_AUDIO;
+				stype = GF_STREAM_AUDIO;
+				oti = GPAC_OTI_AUDIO_AC3;
+				break;
 			case GF_M2TS_SYSTEMS_MPEG4_PES:
 			case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 				if (prog->pmt_iod && !import->esd) {
@@ -7978,6 +7983,12 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				break;
 			case GF_M2TS_AUDIO_AAC:
 				gf_import_message(import, GF_OK, "MPEG-4 AAC Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid);
+				break;
+			case GF_M2TS_AUDIO_AC3:
+				gf_import_message(import, GF_OK, "Dolby AC3 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid);
+				break;
+			case GF_M2TS_AUDIO_EC3:
+				gf_import_message(import, GF_OK, "Dolby E-AC3 Audio import - SampleRate %d Channels %d Language %s (TS PID %d)", pck->stream->aud_sr, pck->stream->aud_nb_ch, gf_4cc_to_str(pck->stream->lang), pck->stream->pid);
 				break;
 			}
 			if (pck->stream->lang)
@@ -9069,6 +9080,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	        || !stricmp(fmt, "MPGTS") || !stricmp(fmt, "MPG-TS")
 	        || !stricmp(fmt, "MPEG2TS")  || !stricmp(fmt, "MPEG2-TS")
 	        || !stricmp(fmt, "MPG2TS")  || !stricmp(fmt, "MPG2-TS")
+			|| gf_m2ts_probe_file(importer->in_name)
 	   ) {
 		return gf_import_mpeg_ts(importer);
 	}

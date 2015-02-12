@@ -1155,13 +1155,20 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			entry = (GF_MPEGSampleEntryBox*) entry_v;
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
-			entry_a = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4A);
-			entry_a->samplerate_hi = trak->Media->mediaHeader->timeScale;
-			if (!entry_a) return GF_OUT_OF_MEM;
-			entry_a->esd = (GF_ESDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_ESDS);
-			entry_a->esd->desc = esd;
-			//type cast possible now
-			entry = (GF_MPEGSampleEntryBox*) entry_a;
+			if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_AC3) {
+				GF_AC3SampleEntryBox *ac3 = (GF_AC3SampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
+				if (!ac3) return GF_OUT_OF_MEM;
+				ac3->info = (GF_AC3ConfigBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DAC3);
+				entry = (GF_MPEGSampleEntryBox*) ac3;
+			} else {
+				entry_a = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4A);
+				entry_a->samplerate_hi = trak->Media->mediaHeader->timeScale;
+				if (!entry_a) return GF_OUT_OF_MEM;
+				entry_a->esd = (GF_ESDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_ESDS);
+				entry_a->esd->desc = esd;
+				//type cast possible now
+				entry = (GF_MPEGSampleEntryBox*) entry_a;
+				}
 			break;
 		default:
 			if ((esd->decoderConfig->streamType==0x03) && (esd->decoderConfig->objectTypeIndication==0x09)) {
