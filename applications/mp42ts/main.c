@@ -913,10 +913,12 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 }
 #endif /*GPAC_DISABLE_STREAMING*/
 
+#ifndef GPAC_DISABLE_SENG
 static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 {
 	return GF_OK;
 }
+#endif
 
 /*AAC import features*/
 #ifndef GPAC_DISABLE_PLAYER
