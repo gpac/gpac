@@ -833,7 +833,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
-		return stxt_New();
+		return metx_New(GF_ISOM_BOX_TYPE_STXT);
 	case GF_ISOM_BOX_TYPE_TXTC:
 		return txtc_New();
 
@@ -857,7 +857,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return wvtt_New();
 
 	case GF_ISOM_BOX_TYPE_STPP:
-		return stpp_New();
+		return metx_New(GF_ISOM_BOX_TYPE_STPP);
 	case GF_ISOM_BOX_TYPE_SBTT:
 		return metx_New(GF_ISOM_BOX_TYPE_SBTT);
 #endif //GPAC_DISABLE_TTXT
@@ -1490,7 +1490,7 @@ void gf_isom_box_del(GF_Box *a)
 
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
-		stxt_del(a);
+		metx_del(a);
 		return;
 	case GF_ISOM_BOX_TYPE_TXTC:
 		txtc_del(a);
@@ -1515,7 +1515,7 @@ void gf_isom_box_del(GF_Box *a)
 		return;
 
 	case GF_ISOM_BOX_TYPE_STPP:
-		stpp_del(a);
+		metx_del(a);
 		return;
 	case GF_ISOM_BOX_TYPE_SBTT:
 		metx_del(a);
@@ -1968,7 +1968,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
-		return stxt_Read(a, bs);
+		return metx_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TXTC:
 		return txtc_Read(a, bs);
 
@@ -1987,7 +1987,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return wvtt_Read(a, bs);
 
 	case GF_ISOM_BOX_TYPE_STPP:
-		return stpp_Read(a, bs);
+		return metx_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_SBTT:
 		return metx_Read(a, bs);
 
@@ -2436,7 +2436,7 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
-		return stxt_Write(a, bs);
+		return metx_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TXTC:
 		return txtc_Write(a, bs);
 
@@ -2455,7 +2455,7 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return wvtt_Write(a, bs);
 
 	case GF_ISOM_BOX_TYPE_STPP:
-		return stpp_Write(a, bs);
+		return metx_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_SBTT:
 		return metx_Write(a, bs);
 #endif//GPAC_DISABLE_TTXT
@@ -2909,7 +2909,7 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
-		return stxt_Size(a);
+		return metx_Size(a);
 	case GF_ISOM_BOX_TYPE_TXTC:
 		return txtc_Size(a);
 
@@ -2928,7 +2928,7 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return wvtt_Size(a);
 
 	case GF_ISOM_BOX_TYPE_STPP:
-		return stpp_Size(a);
+		return metx_Size(a);
 	case GF_ISOM_BOX_TYPE_SBTT:
 		return metx_Size(a);
 #endif // GPAC_DISABLE_TTXT

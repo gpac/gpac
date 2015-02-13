@@ -104,19 +104,22 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 }
 
 
-static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
+static void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 {
 #ifndef GPAC_DISABLE_ISOM_WRITE
-	u32 i, count, timescale;
-	u64 time_wnd, rate, max_rate, avg_rate;
+	u32 i, count, timescale, db_size;
+	u64 time_wnd, rate, max_rate, avg_rate, bitrate;
 	Double br;
 	GF_ESD *esd;
 
-	esd = gf_isom_get_esd(file, track, 1);
-	if (!esd) return;
+	db_size = 0;
 
-	esd->decoderConfig->avgBitrate = 0;
-	esd->decoderConfig->maxBitrate = 0;
+	esd = gf_isom_get_esd(file, track, 1);
+	if (esd) {
+		db_size = esd->decoderConfig->bufferSizeDB;
+		esd->decoderConfig->avgBitrate = 0;
+		esd->decoderConfig->maxBitrate = 0;
+	}
 	rate = max_rate = avg_rate = time_wnd = 0;
 
 	timescale = gf_isom_get_media_timescale(file, track);
@@ -124,9 +127,8 @@ static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 	for (i=0; i<count; i++) {
 		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, NULL, NULL);
 
-		if (samp->dataLength>esd->decoderConfig->bufferSizeDB) esd->decoderConfig->bufferSizeDB = samp->dataLength;
+		if (samp->dataLength > db_size) db_size = samp->dataLength;
 
-		if (esd->decoderConfig->bufferSizeDB < samp->dataLength) esd->decoderConfig->bufferSizeDB = samp->dataLength;
 		avg_rate += samp->dataLength;
 		rate += samp->dataLength;
 		if (samp->DTS > time_wnd + timescale) {
@@ -140,13 +142,21 @@ static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 
 	br = (Double) (s64) gf_isom_get_media_duration(file, track);
 	br /= timescale;
-	esd->decoderConfig->avgBitrate = (u32) ((Double) (s64)avg_rate / br);
-	/*move to bps*/
-	esd->decoderConfig->avgBitrate *= 8;
-	esd->decoderConfig->maxBitrate = (u32) (max_rate*8);
+	bitrate = (u32) ((Double) (s64)avg_rate / br);
+	bitrate *= 8;
+	max_rate *= 8;
 
-	gf_isom_change_mpeg4_description(file, track, 1, esd);
-	gf_odf_desc_del((GF_Descriptor *)esd);
+	/*move to bps*/
+	if (esd) {
+		esd->decoderConfig->avgBitrate = (u32) bitrate;
+		esd->decoderConfig->maxBitrate = (u32) max_rate;
+		esd->decoderConfig->bufferSizeDB = db_size;
+		gf_isom_change_mpeg4_description(file, track, 1, esd);
+		gf_odf_desc_del((GF_Descriptor *)esd);
+	} else {
+		gf_isom_change_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
+	}
+
 #endif
 }
 
@@ -553,6 +563,8 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 		memset(&udesc, 0, sizeof(GF_GenericSampleDescription));
 		udesc.codec_tag = GF_4CC('.', 'm', 'p', '3');
 		memcpy(udesc.compressor_name, "\3MP3", 4);
+		udesc.samplerate = sr;
+		udesc.nb_channels = nb_chan;
 		gf_isom_new_generic_sample_description(import->dest, track, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &udesc, &di);
 	}
 
@@ -608,7 +620,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 	gf_set_progress("Importing MP3", tot_size, tot_size);
 
 exit:
@@ -890,7 +902,7 @@ GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, acfg.audioPL);
 	gf_set_progress("Importing AAC", tot_size, tot_size);
 
@@ -1149,7 +1161,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, acfg.audioPL);
 	gf_set_progress("Importing AAC", tot_size, tot_size);
 
@@ -1449,7 +1461,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 		gf_m4v_rewrite_pl(&import->esd->decoderConfig->decoderSpecificInfo->data, &import->esd->decoderConfig->decoderSpecificInfo->dataLength, (u8) PL);
 		gf_isom_change_mpeg4_description(import->dest, track, 1, import->esd);
 	}
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 
 	if (is_vfr) {
 		if (!nbB) {
@@ -1819,7 +1831,7 @@ proceed:
 		gf_m4v_rewrite_pl(&import->esd->decoderConfig->decoderSpecificInfo->data, &import->esd->decoderConfig->decoderSpecificInfo->dataLength, (u8) PL);
 		gf_isom_change_mpeg4_description(import->dest, track, 1, import->esd);
 	}
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 
 	if (is_vfr) {
 		if (nbB) {
@@ -1988,7 +2000,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 	samp->data = NULL;
 	gf_isom_sample_del(&samp);
 
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, 0xFE);
 
@@ -2277,7 +2289,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		}
 	}
 
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 
 exit:
 	if (origin_esd) gf_odf_desc_del((GF_Descriptor *) origin_esd);
@@ -2448,7 +2460,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 
 	if (last_pos!=file_size) gf_set_progress("Importing MPEG-PS Video", frames, frames);
 
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 	if (ar) gf_media_change_par(import->dest, track, ar>>16, ar&0xffff);
 
 exit:
@@ -2568,7 +2580,7 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 	samp->data = NULL;
 	gf_isom_sample_del(&samp);
 	if (last_pos!=file_size) gf_set_progress("Importing MPEG-PS Audio", frames, frames);
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 
 exit:
 	if (import->esd && destroy_esd) {
@@ -2806,7 +2818,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 	}
 	if (media_done!=media_size) gf_set_progress("Importing NHNT", (u32) (media_size/1024), (u32) (media_size/1024));
 	gf_isom_sample_del(&samp);
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 
 exit:
 	gf_bs_del(bs);
@@ -2890,7 +2902,7 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 	XMLBreaker breaker;
 	char *tmp;
 	FILE *xml;
-
+	u8 szBOM[3];
 	if (!xml_file || !xmlFrom || !xmlTo) return GF_BAD_PARAM;
 
 	memset(&breaker, 0, sizeof(XMLBreaker));
@@ -2900,6 +2912,15 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 		e = gf_import_message(import, GF_BAD_PARAM, "NHML import failure: file %s not found", xml_file);
 		goto exit;
 	}
+	//we cannot use files with BOM since the XML position we get from the parser are offsets in the UTF-8 version of the XML.
+	//TODO: to support files with BOM we would need to serialize on the fly the callback from the sax parser
+	fread(szBOM, 1, 3, xml); 
+	fseek(xml, 0, SEEK_SET);
+	if ((szBOM[0]==0xFF) || (szBOM[0]==0xFE) || (szBOM[0]==0xEF)) {
+		e = gf_import_message(import, GF_NOT_SUPPORTED, "NHML import failure: XML file %s uses BOM, please convert to plin UTF-8 or ANSI first", xml_file);
+		goto exit;
+	}
+
 
 	memset(&breaker, 0, sizeof(XMLBreaker));
 	breaker.id_stack = gf_list_new();
@@ -3285,6 +3306,10 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		max_size = 0;
 		strcpy(szXmlFrom, "doc.start");
 		e = gf_import_sample_from_xml(import, samp, szMedia, szXmlFrom, szXmlHeaderEnd, &max_size);
+		if (e) {
+			gf_isom_sample_del(&samp);
+			goto exit;
+		}
 		specInfo = (char*)gf_malloc(sizeof(char) * (samp->dataLength+1));
 		memcpy(specInfo, samp->data, samp->dataLength);
 		specInfoSize = samp->dataLength;
@@ -3706,7 +3731,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	}
 
 	if (media_done!=media_size) gf_set_progress(is_dims ? "Importing DIMS" : "Importing NHML", (u32) media_size, (u32) media_size);
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 
 	if (inRootOD) gf_isom_add_track_to_root_od(import->dest, track);
 
@@ -3949,7 +3974,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 	gf_isom_sample_del(&samp);
 	gf_isom_refresh_size_info(import->dest, track);
 
-	if (import->flags & GF_IMPORT_FORCE_MPEG4) MP4T_RecomputeBitRate(import->dest, track);
+	if (import->flags & GF_IMPORT_FORCE_MPEG4) gf_media_update_bitrate(import->dest, track);
 
 	if (update_gpp_cfg) gf_isom_3gp_config_update(import->dest, track, &gpp_cfg, 1);
 
@@ -4222,7 +4247,7 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 	}
 	gf_isom_sample_del(&samp);
 	gf_isom_set_brand_info(import->dest, GF_ISOM_BRAND_3G2A, 65536);
-	if (import->flags & GF_IMPORT_FORCE_MPEG4) MP4T_RecomputeBitRate(import->dest, track);
+	if (import->flags & GF_IMPORT_FORCE_MPEG4) gf_media_update_bitrate(import->dest, track);
 	gf_set_progress("Importing QCP", size_in_packets, size_in_packets);
 
 exit:
@@ -5349,7 +5374,7 @@ restart_import:
 		gf_isom_svc_config_update(import->dest, track, 1, svccfg, 0);
 	}
 	gf_media_update_par(import->dest, track);
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0x15);
 	gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_AVC1, 1);
@@ -6272,7 +6297,7 @@ next_nal:
 	}
 
 	gf_media_update_par(import->dest, track);
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 
 //	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0x15);
 	gf_isom_set_brand_info(import->dest, GF_ISOM_BRAND_ISO4, 1);
@@ -6613,7 +6638,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 	if (!serial_no) {
 		gf_import_message(import, GF_OK, "OGG: No supported video found");
 	} else {
-		MP4T_RecomputeBitRate(import->dest, track);
+		gf_media_update_bitrate(import->dest, track);
 
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0xFE);
 	}
@@ -6798,7 +6823,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, 0xFE);
 		gf_set_progress("Importing OGG Audio", (u32) tot_size, (u32) tot_size);
 
-		MP4T_RecomputeBitRate(import->dest, track);
+		gf_media_update_bitrate(import->dest, track);
 	}
 
 exit:
@@ -6901,7 +6926,7 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 	assert( readen == samp->dataLength );
 	e = gf_isom_add_sample(import->dest, track, di, samp);
 	gf_isom_sample_del(&samp);
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 exit:
 	fclose(src);
 	return e;
@@ -7114,7 +7139,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 	if (import->flags & GF_IMPORT_PROBE_ONLY) return GF_OK;
 
 	gf_set_progress("Importing SAF", tot, tot);
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 	return GF_OK;
 #else
 	return GF_NOT_SUPPORTED;
@@ -8310,7 +8335,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 
 
 		if (tsimp.track) {
-			MP4T_RecomputeBitRate(import->dest, tsimp.track);
+			gf_media_update_bitrate(import->dest, tsimp.track);
 			/* creation of the edit lists */
 			if ((es->first_dts != es->program->first_dts) && gf_isom_get_sample_count(import->dest, tsimp.track) ) {
 				u32 media_ts, moov_ts, offset;
@@ -8578,7 +8603,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 
 	gf_isom_set_last_sample_duration(import->dest, track, last_samp_dur);
 
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 	gf_set_progress("Importing VobSub", total, total);
 
 	err = GF_OK;
@@ -8736,7 +8761,7 @@ GF_Err gf_import_ac3(GF_MediaImporter *import, Bool is_EAC3)
 		if (import->flags & GF_IMPORT_DO_ABORT)
 			break;
 	}
-	MP4T_RecomputeBitRate(import->dest, track);
+	gf_media_update_bitrate(import->dest, track);
 	gf_set_progress("Importing AC3", tot_size, tot_size);
 
 exit:

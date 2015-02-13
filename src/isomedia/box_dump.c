@@ -507,7 +507,7 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		}
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
-		return stxt_dump(a, trace);
+		return metx_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_TXTC:
 		return txtc_dump(a, trace);
@@ -527,7 +527,7 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		return wvtt_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_STPP:
-		return stpp_dump(a, trace);
+		return metx_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_SBTT:
 		return metx_dump(a, trace);
 #endif
@@ -1094,7 +1094,6 @@ GF_Err mp4v_dump(GF_Box *a, FILE * trace)
 		if (p->avc_config) gf_box_dump(p->avc_config, trace);
 		if (p->ipod_ext) gf_box_dump(p->ipod_ext, trace);
 		if (p->descr) gf_box_dump(p->descr, trace);
-		if (p->bitrate) gf_box_dump(p->bitrate, trace);
 		if (p->svc_config) gf_box_dump(p->svc_config, trace);
 		if (p->shvc_config) gf_box_dump(p->shvc_config, trace);
 	}
@@ -1929,10 +1928,10 @@ GF_Err m4ds_dump(GF_Box *a, FILE * trace)
 
 GF_Err btrt_dump(GF_Box *a, FILE * trace)
 {
-	GF_MPEG4BitRateBox *p = (GF_MPEG4BitRateBox*)a;
-	fprintf(trace, "<MPEG4BitRateBox BufferSizeDB=\"%d\" avgBitRate=\"%d\" maxBitRate=\"%d\">\n", p->bufferSizeDB, p->avgBitrate, p->maxBitrate);
+	GF_BitRateBox *p = (GF_BitRateBox*)a;
+	fprintf(trace, "<BitRateBox BufferSizeDB=\"%d\" avgBitRate=\"%d\" maxBitRate=\"%d\">\n", p->bufferSizeDB, p->avgBitrate, p->maxBitrate);
 	DumpBox(a, trace);
-	gf_box_dump_done("MPEG4BitRateBox", a, trace);
+	gf_box_dump_done("BitRateBox", a, trace);
 	return GF_OK;
 }
 
@@ -3997,40 +3996,52 @@ GF_Err tsel_dump(GF_Box *a, FILE * trace)
 GF_Err metx_dump(GF_Box *a, FILE * trace)
 {
 	GF_MetaDataSampleEntryBox *ptr = (GF_MetaDataSampleEntryBox*)a;
-	const char *name = (ptr->type==GF_ISOM_BOX_TYPE_METX) ? "XMLMetaDataSampleEntryBox" : "TextMetaDataSampleEntryBox";
-
-	fprintf(trace, "<%s ", name);
-	if (ptr->type==GF_ISOM_BOX_TYPE_METX) {
-		fprintf(trace, "namespace=\"%s\" ", ptr->mime_type_or_namespace);
-		if (ptr->xml_schema_loc) fprintf(trace, "schema_location=\"%s\" ", ptr->xml_schema_loc);
-	} else {
-		fprintf(trace, "mime_type=\"%s\" ", ptr->mime_type_or_namespace);
+	const char *name;
+	switch (ptr->type) {
+	case GF_ISOM_BOX_TYPE_METX:
+		name = "XMLMetaDataSampleEntryBox";
+		break;
+	case GF_ISOM_BOX_TYPE_METT:
+		name = "TextMetaDataSampleEntryBox";
+		break;
+	case GF_ISOM_BOX_TYPE_SBTT:
+		name = "SubtitleSampleEntryBox";
+		break;
+	case GF_ISOM_BOX_TYPE_STXT:
+		name = "SimpleTextSampleEntryBox";
+		break;
+	case GF_ISOM_BOX_TYPE_STPP:
+		name = "XMLSubtitleSampleEntryBox";
+		break;
+	default:
+		name = "UnknownTextSampleEntryBox";
+		break;
 	}
-	if (ptr->content_encoding) fprintf(trace, "content_encoding=\"%s\" ", ptr->content_encoding);
-	fprintf(trace, ">\n");
-	DumpBox(a, trace);
-
-	if (ptr->bitrate) gf_box_dump(ptr->bitrate, trace);
-	gf_box_array_dump(ptr->protections, trace);
-
-	gf_box_dump_done(NULL, a, trace);
-	fprintf(trace, "</%s>\n", name);
-	return GF_OK;
-}
-
-GF_Err stxt_dump(GF_Box *a, FILE * trace)
-{
-	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox*)a;
-	const char *name = "SimpleTextSampleEntryBox";
 
 	fprintf(trace, "<%s ", name);
-	fprintf(trace, "mime_type=\"%s\" ", ptr->mime_type);
-	if (ptr->content_encoding) fprintf(trace, "content_encoding=\"%s\" ", ptr->content_encoding);
+
+	if (ptr->type==GF_ISOM_BOX_TYPE_METX) {
+		fprintf(trace, "namespace=\"%s\" ", ptr->xml_namespace);
+		if (ptr->xml_schema_loc) fprintf(trace, "schema_location=\"%s\" ", ptr->xml_schema_loc);
+		if (ptr->content_encoding) fprintf(trace, "content_encoding=\"%s\" ", ptr->content_encoding);
+
+	} else if (ptr->type==GF_ISOM_BOX_TYPE_STPP) {
+		fprintf(trace, "namespace=\"%s\" ", ptr->xml_namespace);
+		if (ptr->xml_schema_loc) fprintf(trace, "schema_location=\"%s\" ", ptr->xml_schema_loc);
+		if (ptr->mime_type) fprintf(trace, "auxiliary_mime_types=\"%s\" ", ptr->mime_type);
+	}
+	//mett, sbtt, stxt
+	else {
+		fprintf(trace, "mime_type=\"%s\" ", ptr->mime_type);
+		if (ptr->content_encoding) fprintf(trace, "content_encoding=\"%s\" ", ptr->content_encoding);
+	}
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 
-	if (ptr->bitrate) gf_box_dump(ptr->bitrate, trace);
-	if (ptr->config) gf_box_dump(ptr->config, trace);
+	if ((ptr->type!=GF_ISOM_BOX_TYPE_METX) && (ptr->type!=GF_ISOM_BOX_TYPE_STPP) ) {
+		if (ptr->config) gf_box_dump(ptr->config, trace);
+	}
+	gf_box_array_dump(ptr->protections, trace);
 
 	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%s>\n", name);
@@ -4060,7 +4071,6 @@ GF_Err dims_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	if (p->config) gf_box_dump(p->config, trace);
 	if (p->scripts) gf_box_dump(p->scripts, trace);
-	if (p->bitrate) gf_box_dump(p->bitrate, trace);
 	gf_box_array_dump(p->protections, trace);
 	gf_box_dump_done("DIMSSampleEntryBox", a, trace);
 	return GF_OK;
@@ -4149,7 +4159,6 @@ GF_Err lsr1_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<LASeRSampleEntryBox DataReferenceIndex=\"%d\">\n", p->dataReferenceIndex);
 	DumpBox(a, trace);
 	if (p->lsr_config) gf_box_dump(p->lsr_config, trace);
-	if (p->bitrate) gf_box_dump(p->bitrate, trace);
 	if (p->descr) gf_box_dump(p->descr, trace);
 	gf_box_dump_done("LASeRSampleEntryBox", a, trace);
 	return GF_OK;

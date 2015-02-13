@@ -249,7 +249,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_SIMPLE_TEXT_MP4;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u32(bs, entry->type);
-		boxstring_Write((GF_Box *)((GF_SimpleTextSampleEntryBox*)entry)->config, bs);
+		boxstring_Write((GF_Box *)((GF_MetaDataSampleEntryBox*)entry)->config, bs);
 		gf_bs_get_content(bs, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 	}

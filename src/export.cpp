@@ -921,6 +921,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_desc_to_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_new_generic_sample_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_change_generic_sample_description) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_change_update_bitrate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_sample_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_clone_sample_description) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_clone_track) )
