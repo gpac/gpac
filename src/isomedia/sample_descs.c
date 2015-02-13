@@ -533,12 +533,13 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 
 GF_Err LSR_UpdateESD(GF_LASeRSampleEntryBox *lsr, GF_ESD *esd)
 {
-	if (!lsr->bitrate) lsr->bitrate = (GF_MPEG4BitRateBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_BTRT);
+	GF_BitRateBox *btrt = gf_isom_sample_entry_get_bitrate((GF_SampleEntryBox *)lsr, GF_TRUE);
+
 	if (lsr->descr) gf_isom_box_del((GF_Box *) lsr->descr);
 	lsr->descr = NULL;
-	lsr->bitrate->avgBitrate = esd->decoderConfig->avgBitrate;
-	lsr->bitrate->maxBitrate = esd->decoderConfig->maxBitrate;
-	lsr->bitrate->bufferSizeDB = esd->decoderConfig->bufferSizeDB;
+	btrt->avgBitrate = esd->decoderConfig->avgBitrate;
+	btrt->maxBitrate = esd->decoderConfig->maxBitrate;
+	btrt->bufferSizeDB = esd->decoderConfig->bufferSizeDB;
 
 	if (gf_list_count(esd->IPIDataSet)
 	        || gf_list_count(esd->IPMPDescriptorPointers)
@@ -608,7 +609,7 @@ GF_Err gf_isom_get_xml_metadata_description(GF_ISOFile *file, u32 track, u32 sam
 	if (!ptr) return GF_BAD_PARAM;
 
 	if (schema_loc) *schema_loc = ptr->xml_schema_loc;
-	if (_namespace) *_namespace = ptr->mime_type_or_namespace;
+	if (_namespace) *_namespace = ptr->xml_namespace;
 	if (content_encoding) *content_encoding = ptr->content_encoding;
 	return GF_OK;
 }
@@ -656,7 +657,7 @@ GF_Err gf_isom_new_xml_metadata_description(GF_ISOFile *movie, u32 trackNumber,
 	if (!metad) return GF_OUT_OF_MEM;
 
 	metad->dataReferenceIndex = dataRefIndex;
-	metad->mime_type_or_namespace = gf_strdup(_namespace);
+	metad->xml_namespace = gf_strdup(_namespace);
 	if (content_encoding) metad->content_encoding = gf_strdup(content_encoding);
 	if (schema_loc) metad->xml_schema_loc = gf_strdup(schema_loc);
 
@@ -681,26 +682,26 @@ GF_Err gf_isom_xml_subtitle_get_description(GF_ISOFile *the_file, u32 trackNumbe
 											const char **xmlnamespace, const char **xml_schema_loc, const char **mimes)
 {
 	GF_TrackBox *trak;
-	GF_XMLSubtitleSampleEntryBox *entry;
+	GF_MetaDataSampleEntryBox *entry;
 	*xmlnamespace = NULL;
 	*xml_schema_loc = NULL;
 	*mimes = NULL;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !StreamDescriptionIndex) return GF_BAD_PARAM;
 
-	entry = (GF_XMLSubtitleSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex-1);
+	entry = (GF_MetaDataSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex-1);
 	if (!entry || 
 		(entry->type!=GF_ISOM_BOX_TYPE_STPP)) {
 			return GF_BAD_PARAM;
 	}
 
-	if (entry->auxiliary_mime_types) {
-		*mimes = entry->auxiliary_mime_types;
+	if (entry->mime_type) {
+		*mimes = entry->mime_type;
 	}
-	if (entry->schema_location) {
-		*xml_schema_loc = entry->schema_location;
+	if (entry->xml_schema_loc) {
+		*xml_schema_loc = entry->xml_schema_loc;
 	}
-	*xmlnamespace = entry->xmlnamespace;
+	*xmlnamespace = entry->xml_namespace;
 	return GF_OK;
 }
 
@@ -713,7 +714,7 @@ GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie, u32 trackNumber,
 	GF_TrackBox                 *trak;
 	GF_Err                      e;
 	u32                         dataRefIndex;
-	GF_XMLSubtitleSampleEntryBox *stpp;
+	GF_MetaDataSampleEntryBox *stpp;
 	char *URLname = NULL;
 	char *URNname = NULL;
 
@@ -747,15 +748,14 @@ GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie, u32 trackNumber,
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	stpp = (GF_XMLSubtitleSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STPP);
+	stpp = (GF_MetaDataSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STPP);
 	stpp->dataReferenceIndex = dataRefIndex;
 	gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, stpp);
 	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 
-	stpp->bitrate = (GF_MPEG4BitRateBox *)btrt_New();
-	stpp->xmlnamespace = gf_strdup(xmlnamespace);
-	if (xml_schema_loc) stpp->schema_location = gf_strdup(xml_schema_loc); //optional
-	if (mimes) stpp->auxiliary_mime_types = gf_strdup(mimes); //optional
+	stpp->xml_namespace = gf_strdup(xmlnamespace);
+	if (xml_schema_loc) stpp->xml_schema_loc = gf_strdup(xml_schema_loc); //optional
+	if (mimes) stpp->mime_type = gf_strdup(mimes); //optional
 	return e;
 }
 
@@ -794,13 +794,14 @@ GF_Err gf_isom_stxt_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 S
 									const char **mime, const char **encoding, const char **config)
 {
 	GF_TrackBox *trak;
-	GF_SimpleTextSampleEntryBox *entry;
+	GF_MetaDataSampleEntryBox *entry;
 	*mime = NULL;
 	*config = NULL;
+	*encoding = NULL;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !StreamDescriptionIndex) return GF_BAD_PARAM;
 
-	entry = (GF_SimpleTextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex-1);
+	entry = (GF_MetaDataSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex-1);
 	if (!entry || 
 		((entry->type!=GF_ISOM_BOX_TYPE_STXT) &&
 		(entry->type!=GF_ISOM_BOX_TYPE_METT) &&
@@ -828,7 +829,7 @@ GF_Err gf_isom_new_stxt_description(GF_ISOFile *movie, u32 trackNumber, u32 type
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 dataRefIndex;
-	GF_SimpleTextSampleEntryBox *sample_entry;
+	GF_MetaDataSampleEntryBox *sample_entry;
 	char *URLname = NULL;
 	char *URNname = NULL;
 
@@ -873,12 +874,11 @@ GF_Err gf_isom_new_stxt_description(GF_ISOFile *movie, u32 trackNumber, u32 type
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	sample_entry = (GF_SimpleTextSampleEntryBox *) gf_isom_box_new(type);
+	sample_entry = (GF_MetaDataSampleEntryBox *) gf_isom_box_new(type);
 	sample_entry->dataReferenceIndex = dataRefIndex;
 	gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, sample_entry);
 	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 
-	sample_entry->bitrate = (GF_MPEG4BitRateBox *)btrt_New();
 	sample_entry->mime_type = gf_strdup(mime);
 	if (encoding) sample_entry->content_encoding = gf_strdup(encoding);
 	if (config) {
@@ -895,7 +895,7 @@ GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber,
 {
 	GF_TrackBox *trak;
 	GF_Err e;
-	GF_SimpleTextSampleEntryBox *sample_entry;
+	GF_MetaDataSampleEntryBox *sample_entry;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -903,7 +903,7 @@ GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber,
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return GF_BAD_PARAM;
 
-	sample_entry = (GF_SimpleTextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	sample_entry = (GF_MetaDataSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!sample_entry) return GF_BAD_PARAM;
 	if (sample_entry->type != GF_ISOM_BOX_TYPE_METT && 
 		sample_entry->type != GF_ISOM_BOX_TYPE_SBTT &&
@@ -1040,6 +1040,59 @@ GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_Tex
 	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	return e;
 }
+
+GF_BitRateBox *gf_isom_sample_entry_get_bitrate(GF_SampleEntryBox *ent, Bool create)
+{
+	u32 i=0;
+	GF_BitRateBox *a;
+	while ((a = (GF_BitRateBox *)gf_list_enum(ent->other_boxes, &i))) {
+		if (a->type==GF_ISOM_BOX_TYPE_BTRT) return a;
+	}
+	if (!create) return NULL;
+	a = (GF_BitRateBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_BTRT);
+	if (!ent->other_boxes) ent->other_boxes = gf_list_new();
+	gf_list_add(ent->other_boxes, a);
+	return a;
+}
+
+GF_EXPORT
+GF_Err gf_isom_change_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size)
+{
+	GF_BitRateBox *a;
+	GF_Err e;
+	GF_SampleEntryBox *ent;
+	GF_TrackBox *trak;
+
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return GF_BAD_PARAM;
+
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !sampleDescriptionIndex || !trak->Media) return GF_BAD_PARAM;
+
+	ent = (GF_SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, sampleDescriptionIndex - 1);
+	if (!ent) return GF_BAD_PARAM;
+
+	a = gf_isom_sample_entry_get_bitrate(ent, max_bitrate ? GF_TRUE : GF_FALSE);
+	if (!max_bitrate) {
+		if (a) {
+			gf_list_del_item(ent->other_boxes, a);
+			gf_isom_box_del((GF_Box *) a);
+
+			if (!gf_list_count(ent->other_boxes)) {
+				gf_list_del(ent->other_boxes);
+				ent->other_boxes = NULL;
+			}
+		}
+		return GF_OK;
+	}
+
+	a->avgBitrate = average_bitrate;
+	a->maxBitrate = max_bitrate;
+	a->bufferSizeDB = decode_buffer_size;
+	return GF_OK;
+}
+
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #endif /*GPAC_DISABLE_ISOM*/
