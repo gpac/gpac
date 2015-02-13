@@ -905,8 +905,8 @@ GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber,
 
 	sample_entry = (GF_SimpleTextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!sample_entry) return GF_BAD_PARAM;
-	if (sample_entry->type != GF_ISOM_BOX_TYPE_METT || 
-		sample_entry->type != GF_ISOM_BOX_TYPE_SBTT ||
+	if (sample_entry->type != GF_ISOM_BOX_TYPE_METT && 
+		sample_entry->type != GF_ISOM_BOX_TYPE_SBTT &&
 		sample_entry->type != GF_ISOM_BOX_TYPE_STXT) {
 			return GF_BAD_PARAM;
 	}
