@@ -1033,6 +1033,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				const char *encoding;
 				if (gf_isom_stxt_get_description(dumper->file, track, 1, &mime, &encoding, &stxtcfg) == GF_OK) {
 					if (mime && !strcmp(mime, "image/svg+xml")) {
+						gf_export_message(dumper, GF_OK, "as SVG file");
 						strcat(szName, ".svg");
 					} else {
 						strcat(szName, ".txt");

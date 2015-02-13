@@ -1330,7 +1330,7 @@ static GF_Err swf_svg_add_iso_header(void *user, const char *data, u32 length, B
 	if (isHeader) {
 		return gf_isom_update_stxt_description(flusher->import->dest, flusher->track, NULL, data, flusher->descriptionIndex);
 	} else {
-		return GF_OK;
+		return gf_isom_append_sample_data(flusher->import->dest, flusher->track, (char *)data, length);
 	}
 }
 
