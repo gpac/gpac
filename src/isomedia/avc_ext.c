@@ -821,6 +821,8 @@ void merge_all_config(GF_AVCConfig *avc_cfg, GF_HEVCConfig *hevc_cfg, GF_MediaBo
 void AVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *mdia)
 {
 	GF_AVCConfig *avcc, *svcc;
+	GF_BitRateBox *btrt = gf_isom_sample_entry_get_bitrate((GF_SampleEntryBox *)avc, GF_FALSE);
+
 	if (avc->emul_esd) gf_odf_desc_del((GF_Descriptor *)avc->emul_esd);
 	avc->emul_esd = gf_odf_desc_esd_new(2);
 	avc->emul_esd->decoderConfig->streamType = GF_STREAM_VISUAL;
@@ -830,10 +832,11 @@ void AVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *md
 		avc->emul_esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_SVC;
 	else
 		avc->emul_esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_AVC;
-	if (avc->bitrate) {
-		avc->emul_esd->decoderConfig->bufferSizeDB = avc->bitrate->bufferSizeDB;
-		avc->emul_esd->decoderConfig->avgBitrate = avc->bitrate->avgBitrate;
-		avc->emul_esd->decoderConfig->maxBitrate = avc->bitrate->maxBitrate;
+
+	if (btrt) {
+		avc->emul_esd->decoderConfig->bufferSizeDB = btrt->bufferSizeDB;
+		avc->emul_esd->decoderConfig->avgBitrate = btrt->avgBitrate;
+		avc->emul_esd->decoderConfig->maxBitrate = btrt->maxBitrate;
 	}
 	if (avc->descr) {
 		u32 i=0;
@@ -875,6 +878,8 @@ void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc)
 
 void HEVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *hevc, GF_MediaBox *mdia)
 {
+	GF_BitRateBox *btrt = gf_isom_sample_entry_get_bitrate((GF_SampleEntryBox *)hevc, GF_FALSE);
+
 	if (hevc->emul_esd) gf_odf_desc_del((GF_Descriptor *)hevc->emul_esd);
 	hevc->emul_esd = gf_odf_desc_esd_new(2);
 	hevc->emul_esd->decoderConfig->streamType = GF_STREAM_VISUAL;
@@ -882,10 +887,10 @@ void HEVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *hevc, GF_MediaBox *
 	if (hevc->shvc_config && !hevc->hevc_config)
 		hevc->emul_esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_SHVC;
 
-	if (hevc->bitrate) {
-		hevc->emul_esd->decoderConfig->bufferSizeDB = hevc->bitrate->bufferSizeDB;
-		hevc->emul_esd->decoderConfig->avgBitrate = hevc->bitrate->avgBitrate;
-		hevc->emul_esd->decoderConfig->maxBitrate = hevc->bitrate->maxBitrate;
+	if (btrt) {
+		hevc->emul_esd->decoderConfig->bufferSizeDB = btrt->bufferSizeDB;
+		hevc->emul_esd->decoderConfig->avgBitrate = btrt->avgBitrate;
+		hevc->emul_esd->decoderConfig->maxBitrate = btrt->maxBitrate;
 	}
 	if (hevc->descr) {
 		u32 i=0;
@@ -923,12 +928,13 @@ void HEVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *hevc)
 
 GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 {
-	if (!avc->bitrate) avc->bitrate = (GF_MPEG4BitRateBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_BTRT);
+	GF_BitRateBox *btrt = gf_isom_sample_entry_get_bitrate((GF_SampleEntryBox *)avc, GF_TRUE);
+
 	if (avc->descr) gf_isom_box_del((GF_Box *) avc->descr);
 	avc->descr = NULL;
-	avc->bitrate->avgBitrate = esd->decoderConfig->avgBitrate;
-	avc->bitrate->maxBitrate = esd->decoderConfig->maxBitrate;
-	avc->bitrate->bufferSizeDB = esd->decoderConfig->bufferSizeDB;
+	btrt->avgBitrate = esd->decoderConfig->avgBitrate;
+	btrt->maxBitrate = esd->decoderConfig->maxBitrate;
+	btrt->bufferSizeDB = esd->decoderConfig->bufferSizeDB;
 
 	if (gf_list_count(esd->IPIDataSet)
 	        || gf_list_count(esd->IPMPDescriptorPointers)
@@ -1545,12 +1551,12 @@ GF_HEVCConfig *gf_isom_shvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u3
 
 void btrt_del(GF_Box *s)
 {
-	GF_MPEG4BitRateBox *ptr = (GF_MPEG4BitRateBox *)s;
+	GF_BitRateBox *ptr = (GF_BitRateBox *)s;
 	if (ptr) gf_free(ptr);
 }
 GF_Err btrt_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_MPEG4BitRateBox *ptr = (GF_MPEG4BitRateBox *)s;
+	GF_BitRateBox *ptr = (GF_BitRateBox *)s;
 	ptr->bufferSizeDB = gf_bs_read_u32(bs);
 	ptr->maxBitrate = gf_bs_read_u32(bs);
 	ptr->avgBitrate = gf_bs_read_u32(bs);
@@ -1558,9 +1564,9 @@ GF_Err btrt_Read(GF_Box *s, GF_BitStream *bs)
 }
 GF_Box *btrt_New()
 {
-	GF_MPEG4BitRateBox *tmp = (GF_MPEG4BitRateBox *) gf_malloc(sizeof(GF_MPEG4BitRateBox));
+	GF_BitRateBox *tmp = (GF_BitRateBox *) gf_malloc(sizeof(GF_BitRateBox));
 	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_MPEG4BitRateBox));
+	memset(tmp, 0, sizeof(GF_BitRateBox));
 	tmp->type = GF_ISOM_BOX_TYPE_BTRT;
 	return (GF_Box *)tmp;
 }
@@ -1569,7 +1575,7 @@ GF_Box *btrt_New()
 GF_Err btrt_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_MPEG4BitRateBox *ptr = (GF_MPEG4BitRateBox *) s;
+	GF_BitRateBox *ptr = (GF_BitRateBox *) s;
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
@@ -1581,7 +1587,7 @@ GF_Err btrt_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err btrt_Size(GF_Box *s)
 {
 	GF_Err e;
-	GF_MPEG4BitRateBox *ptr = (GF_MPEG4BitRateBox *)s;
+	GF_BitRateBox *ptr = (GF_BitRateBox *)s;
 	e = gf_isom_box_get_size(s);
 	ptr->size += 12;
 	return e;

@@ -812,7 +812,9 @@ typedef struct
 	u32 bufferSizeDB;
 	u32 maxBitrate;
 	u32 avgBitrate;
-} GF_MPEG4BitRateBox;
+} GF_BitRateBox;
+
+GF_BitRateBox *gf_isom_sample_entry_get_bitrate(GF_SampleEntryBox *ent, Bool create);
 
 typedef struct
 {
@@ -842,7 +844,6 @@ typedef struct
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 
 	GF_LASERConfigurationBox *lsr_config;
-	GF_MPEG4BitRateBox *bitrate;
 	GF_MPEG4ExtensionDescriptorsBox *descr;
 
 	/*used for hinting when extracting the OD stream...*/
@@ -923,7 +924,6 @@ typedef struct
 	GF_HEVCConfigurationBox *hevc_config;
 	GF_HEVCConfigurationBox *shvc_config;
 
-	GF_MPEG4BitRateBox *bitrate;
 	/*ext descriptors*/
 	GF_MPEG4ExtensionDescriptorsBox *descr;
 	/*internally emulated esd*/
@@ -1048,7 +1048,6 @@ typedef struct
 {
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 	GF_DIMSSceneConfigBox *config;
-	GF_MPEG4BitRateBox *bitrate;
 	GF_DIMSScriptTypesBox *scripts;
 } GF_DIMSSampleEntryBox;
 
@@ -1059,16 +1058,17 @@ typedef struct
 	char *config;
 } GF_TextConfigBox;
 
-/*base sample entry box (never used but for typecasting)*/
+/*base metadata sample entry box for METT, METX, SBTT, STXT and STPP*/
 typedef struct
 {
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
 	char *content_encoding;	//optional
-	char *mime_type_or_namespace;	//not optional
-	char *xml_schema_loc;	// optional
-	GF_MPEG4BitRateBox *bitrate; // optional
-	GF_TextConfigBox *config; //optional
+	char *mime_type; //for anything except metx
+	char *xml_namespace;	//for metx and sttp only
+	char *xml_schema_loc;	// for metx and sttp only
+	GF_TextConfigBox *config; //optional for anything except metx and sttp
 } GF_MetaDataSampleEntryBox;
+
 
 typedef struct
 {
@@ -3250,6 +3250,7 @@ GF_Err uuid_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err void_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err pdin_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err gnra_Read(GF_Box *s, GF_BitStream *bs);
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 
@@ -3614,25 +3615,6 @@ typedef struct
 
 GF_WebVTTSampleEntryBox *gf_webvtt_isom_get_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex);
 
-typedef struct
-{
-	GF_ISOM_SAMPLE_ENTRY_FIELDS
-	char *xmlnamespace;			// not optional
-	char *schema_location;		// optional
-	char *auxiliary_mime_types;	// optional
-	GF_MPEG4BitRateBox *bitrate;// not optional
-} GF_XMLSubtitleSampleEntryBox;
-
-typedef struct
-{
-	GF_ISOM_SAMPLE_ENTRY_FIELDS
-	char *content_encoding;			//optional
-	char *mime_type;				//not optional
-	char *xml_schema_loc;	// not used but required for type casting with GF_MetaDataSampleEntryBox
-	GF_MPEG4BitRateBox *bitrate;	// optional
-	GF_TextConfigBox *config;
-} GF_SimpleTextSampleEntryBox;
-
 GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 start);
 
 #endif /* GPAC_DISABLE_VTT */
@@ -3981,26 +3963,12 @@ GF_Err metx_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err metx_Size(GF_Box *s);
 GF_Err metx_dump(GF_Box *a, FILE * trace);
 
-GF_Box *stxt_New();
-void stxt_del(GF_Box *s);
-GF_Err stxt_Read(GF_Box *s, GF_BitStream *bs);
-GF_Err stxt_Write(GF_Box *s, GF_BitStream *bs);
-GF_Err stxt_Size(GF_Box *s);
-GF_Err stxt_dump(GF_Box *a, FILE * trace);
-
 GF_Box *txtc_New();
 void txtc_del(GF_Box *s);
 GF_Err txtc_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err txtc_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err txtc_Size(GF_Box *s);
 GF_Err txtc_dump(GF_Box *a, FILE * trace);
-
-GF_Box *stpp_New();
-void stpp_del(GF_Box *s);
-GF_Err stpp_Read(GF_Box *s, GF_BitStream *bs);
-GF_Err stpp_Write(GF_Box *s, GF_BitStream *bs);
-GF_Err stpp_Size(GF_Box *s);
-GF_Err stpp_dump(GF_Box *a, FILE * trace);
 
 GF_Box *tsel_New();
 void tsel_del(GF_Box *s);

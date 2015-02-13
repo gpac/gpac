@@ -2974,8 +2974,8 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 		gena->revision = udesc->revision;
 		gena->bitspersample = udesc->bits_per_sample ? udesc->bits_per_sample : 16;
 		gena->channel_count = udesc->nb_channels ? udesc->nb_channels : 2;
-		gena->samplerate_hi = udesc->samplerate>>16;
-		gena->samplerate_lo = udesc->samplerate & 0xFF;
+		gena->samplerate_hi = udesc->samplerate;
+		gena->samplerate_lo = 0;
 
 		if (udesc->extension_buf && udesc->extension_buf_size) {
 			gena->data = (char*)gf_malloc(sizeof(char) * udesc->extension_buf_size);
@@ -3066,8 +3066,8 @@ GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNum
 		gena->revision = udesc->revision;
 		gena->bitspersample = udesc->bits_per_sample ? udesc->bits_per_sample : 16;
 		gena->channel_count = udesc->nb_channels ? udesc->nb_channels : 2;
-		gena->samplerate_hi = udesc->samplerate>>16;
-		gena->samplerate_lo = udesc->samplerate & 0xFF;
+		gena->samplerate_hi = udesc->samplerate;
+		gena->samplerate_lo = 0;
 		if (gena->data) gf_free(gena->data);
 		gena->data = NULL;
 		gena->data_size = 0;
@@ -3637,9 +3637,9 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		break;
 		case GF_ISOM_BOX_TYPE_STPP:
 		{
-			GF_XMLSubtitleSampleEntryBox *stpp1 = (GF_XMLSubtitleSampleEntryBox *)ent1;
-			GF_XMLSubtitleSampleEntryBox *stpp2 = (GF_XMLSubtitleSampleEntryBox *)ent2;
-			if (stpp1->xmlnamespace && stpp2->xmlnamespace && !strcmp(stpp1->xmlnamespace, stpp2->xmlnamespace)) {
+			GF_MetaDataSampleEntryBox *stpp1 = (GF_MetaDataSampleEntryBox *)ent1;
+			GF_MetaDataSampleEntryBox *stpp2 = (GF_MetaDataSampleEntryBox *)ent2;
+			if (stpp1->xml_namespace && stpp2->xml_namespace && !strcmp(stpp1->xml_namespace, stpp2->xml_namespace)) {
 				return 1;
 			}
 			return 0;
@@ -3652,8 +3652,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		break;
 		case GF_ISOM_BOX_TYPE_STXT:
 		{
-			GF_SimpleTextSampleEntryBox *stxt1 = (GF_SimpleTextSampleEntryBox *)ent1;
-			GF_SimpleTextSampleEntryBox *stxt2 = (GF_SimpleTextSampleEntryBox *)ent2;
+			GF_MetaDataSampleEntryBox *stxt1 = (GF_MetaDataSampleEntryBox *)ent1;
+			GF_MetaDataSampleEntryBox *stxt2 = (GF_MetaDataSampleEntryBox *)ent2;
 			if (stxt1->mime_type && stxt2->mime_type &&
 			        ( (!stxt1->config && !stxt2->config) ||
 			          (stxt1->config && stxt2->config && stxt1->config->config && stxt2->config->config &&

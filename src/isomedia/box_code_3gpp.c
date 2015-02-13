@@ -1212,7 +1212,6 @@ void dims_del(GF_Box *s)
 	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
 
 	if (p->config) gf_isom_box_del((GF_Box *)p->config);
-	if (p->bitrate ) gf_isom_box_del((GF_Box *)p->bitrate);
 	if (p->scripts) gf_isom_box_del((GF_Box *)p->scripts);
 	gf_free(p);
 }
@@ -1228,10 +1227,6 @@ static GF_Err dims_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_DIST:
 		if (ptr->scripts) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->scripts = (GF_DIMSScriptTypesBox*)a;
-		break;
-	case GF_ISOM_BOX_TYPE_BTRT:
-		if (ptr->bitrate) ERROR_ON_DUPLICATED_BOX(a, ptr)
-			ptr->bitrate = (GF_MPEG4BitRateBox*)a;
 		break;
 	case GF_ISOM_BOX_TYPE_SINF:
 		gf_list_add(ptr->protections, a);
@@ -1266,10 +1261,6 @@ GF_Err dims_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)p->scripts, bs);
 		if (e) return e;
 	}
-	if (p->bitrate) {
-		e = gf_isom_box_write((GF_Box *)p->bitrate, bs);
-		if (e) return e;
-	}
 	return gf_isom_box_array_write(s, p->protections, bs);
 }
 
@@ -1284,11 +1275,6 @@ GF_Err dims_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) p->config);
 		if (e) return e;
 		p->size += p->config->size;
-	}
-	if (p->bitrate) {
-		e = gf_isom_box_size((GF_Box *) p->bitrate);
-		if (e) return e;
-		p->size += p->bitrate->size;
 	}
 	if (p->scripts) {
 		e = gf_isom_box_size((GF_Box *) p->scripts);

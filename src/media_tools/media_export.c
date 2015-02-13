@@ -1026,28 +1026,21 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			is_webvtt = GF_TRUE;
 			if (add_ext)
 				strcat(szName, ".vtt");
-		} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
-			gf_export_message(dumper, GF_OK, "Extracting Simple Text Stream");
+		} else if ((m_stype==GF_ISOM_SUBTYPE_STXT) || (m_stype==GF_ISOM_SUBTYPE_METT)) {
+			const char *mime;
+			const char *encoding;
+			gf_export_message(dumper, GF_OK, "Extracting %s Stream", (m_stype==GF_ISOM_SUBTYPE_STXT) ? "Simple Text" : "Text-based Metadata");
+			gf_isom_stxt_get_description(dumper->file, track, 1, &mime, &encoding, &stxtcfg);
 			if (add_ext) {
-				const char *mime;
-				const char *encoding;
-				if (gf_isom_stxt_get_description(dumper->file, track, 1, &mime, &encoding, &stxtcfg) == GF_OK) {
-					if (mime && !strcmp(mime, "image/svg+xml")) {
-						gf_export_message(dumper, GF_OK, "as SVG file");
-						strcat(szName, ".svg");
-					} else {
-						strcat(szName, ".txt");
-					}
+				if (mime && !strcmp(mime, "image/svg+xml")) {
+					gf_export_message(dumper, GF_OK, "as SVG file");
+					strcat(szName, ".svg");
 				} else {
 					strcat(szName, ".txt");
 				}
 			}
 		} else if (m_stype==GF_ISOM_SUBTYPE_SBTT) {
 			gf_export_message(dumper, GF_OK, "Extracting Text-based Subtitle Stream");
-			if (add_ext)
-				strcat(szName, ".txt");
-		} else if (m_stype==GF_ISOM_SUBTYPE_METT) {
-			gf_export_message(dumper, GF_OK, "Extracting Text-based Metadata Stream");
 			if (add_ext)
 				strcat(szName, ".txt");
 		} else if (m_stype==GF_ISOM_SUBTYPE_STPP) {
@@ -1234,7 +1227,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (qcp_type==2) gf_bs_write_data(bs, "#!SMV\n", 6);
 		else gf_bs_write_data(bs, "#!EVRC\n", 7);
 		qcp_type = 0;
-	} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
+	} else if ((m_stype==GF_ISOM_SUBTYPE_STXT) || (m_stype==GF_ISOM_SUBTYPE_METT)) {
 		if (stxtcfg) {
 			gf_bs_write_data(bs, stxtcfg, (u32)strlen(stxtcfg));
 		}
@@ -2095,6 +2088,8 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 
 	mstype = gf_isom_get_media_subtype(dumper->file, track, 1);
 
+	gf_export_message(dumper, GF_OK, "Exporting NHML for track %s", gf_4cc_to_str(mstype) );
+
 	/*write header*/
 	fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 	fprintf(nhml, "<%s version=\"1.0\" timeScale=\"%d\" ", szRootName, gf_isom_get_media_timescale(dumper->file, track) );
@@ -2142,6 +2137,19 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 				gf_free(sdesc->extension_buf);
 			}
 			gf_free(sdesc);
+		} else {
+			const char *mime, *encoding, *config;
+			switch (mstype) {
+			case GF_ISOM_SUBTYPE_METT:
+				if (gf_isom_stxt_get_description(dumper->file, track, 1, &mime, &encoding, &config) == GF_OK) {
+					sprintf(szName, "%s.info", dumper->out_name);
+					inf = gf_f64_open(szName, "wb");
+					if (inf) gf_fwrite(config, strlen(config), 1, inf);
+					fclose(inf);
+					fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
+				}
+				break;
+			}
 		}
 	}
 

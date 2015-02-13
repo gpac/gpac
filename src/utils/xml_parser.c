@@ -1204,14 +1204,16 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 			return GF_URL_ERROR;
 		}
 		parser->file_size = size;
-
-		memcpy(szLine, xml_mem_address, 3);
+		//copy possible BOM
+		memcpy(szLine, xml_mem_address, 4);
 		szLine[4] = szLine[5] = 0;
-		e = gf_xml_sax_init(parser, szLine);
-		if (e) return e;
-		parser->file_pos = 4;
+
+		parser->file_pos = 0;
 		parser->elt_start_pos = 0;
 		parser->current_pos = 0;
+
+		e = gf_xml_sax_init(parser, szLine);
+		if (e) return e;
 
 
 		e = gf_xml_sax_parse(parser, xml_mem_address+3);
@@ -1237,7 +1239,10 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	parser->file_size = (u32) gf_f64_tell(test);
 	fclose(test);
 
-
+	parser->file_pos = 0;
+	parser->elt_start_pos = 0;
+	parser->current_pos = 0;
+	//open file and copy possible BOM
 #ifdef NO_GZIP
 	parser->f_in = gf_f64_open(fileName, "rt");
 	fread(szLine, 1, 4, parser->f_in);
@@ -1248,13 +1253,11 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	/*init SAX parser (unicode setup)*/
 	gzread(gzInput, szLine, 4);
 #endif
+
 	szLine[4] = szLine[5] = 0;
 	e = gf_xml_sax_init(parser, szLine);
 	if (e) return e;
-	parser->file_pos = 4;
-	/* souchay : not sure for next 2 lines, but it works better it seems */
-	parser->elt_start_pos = 0;
-	parser->current_pos = 0;
+
 	return xml_sax_read_file(parser);
 }
 
