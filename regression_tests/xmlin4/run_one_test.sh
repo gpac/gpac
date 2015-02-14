@@ -13,3 +13,9 @@ MP4Box -raw 1 $1.mp4
 
 echo -e "\nTesting sample by sample extraction"
 MP4Box -raws 1 $1.mp4
+
+echo -e "\nTesting nhml export"
+MP4Box -nhml 1 $1.mp4
+
+echo -e "\nTesting nhml re-import"
+MP4Box -add $1_track1.nhml -new $1_track1.mp4
