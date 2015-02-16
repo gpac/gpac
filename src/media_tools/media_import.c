@@ -2899,6 +2899,7 @@ static void nhml_node_end(void *sax_cbck, const char *node_name, const char *nam
 GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, char *xml_file, char *xmlFrom, char *xmlTo, u32 *max_size)
 {
 	GF_Err e;
+    u32 read;
 	XMLBreaker breaker;
 	char *tmp;
 	FILE *xml;
@@ -2914,12 +2915,14 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 	}
 	//we cannot use files with BOM since the XML position we get from the parser are offsets in the UTF-8 version of the XML.
 	//TODO: to support files with BOM we would need to serialize on the fly the callback from the sax parser
-	fread(szBOM, 1, 3, xml); 
-	fseek(xml, 0, SEEK_SET);
-	if ((szBOM[0]==0xFF) || (szBOM[0]==0xFE) || (szBOM[0]==0xEF)) {
-		e = gf_import_message(import, GF_NOT_SUPPORTED, "NHML import failure: XML file %s uses BOM, please convert to plin UTF-8 or ANSI first", xml_file);
-		goto exit;
-	}
+	read = (u32) fread(szBOM, 1, 3, xml);
+    if (read==3) {
+        fseek(xml, 0, SEEK_SET);
+        if ((szBOM[0]==0xFF) || (szBOM[0]==0xFE) || (szBOM[0]==0xEF)) {
+            e = gf_import_message(import, GF_NOT_SUPPORTED, "NHML import failure: XML file %s uses BOM, please convert to plin UTF-8 or ANSI first", xml_file);
+            goto exit;
+        }
+    }
 
 
 	memset(&breaker, 0, sizeof(XMLBreaker));
