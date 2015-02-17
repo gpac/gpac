@@ -1223,7 +1223,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		return GF_IO_ERR;
 	}
 
-	fprintf(fmpd, "<MPD type=\"%s\" xmlns=\"urn:mpeg:DASH:schema:MPD:2011\" profiles=\"urn:mpeg:dash:profile:full:2011\"", is_end ? "static" : "dynamic" );
+	fprintf(fmpd, "<MPD type=\"%s\" xmlns=\"urn:mpeg:dash:schema:mpd:2011\" profiles=\"urn:mpeg:dash:profile:full:2011\"", is_end ? "static" : "dynamic" );
 	sep = strrchr(m3u8_file, '/');
 	if (!sep)
 		sep = strrchr(m3u8_file, '\\');
