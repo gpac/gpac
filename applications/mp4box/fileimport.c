@@ -1117,6 +1117,13 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			if (outName) strcpy(szFile, outName);
 		} else {
 			sprintf(szFile, "%s_%03d%s", szName, cur_file+1, ext);
+            if (outName) {
+                char *the_file = gf_url_concatenate(outName, szFile);
+                if (the_file) {
+                    strcpy(szFile, the_file);
+                    gf_free(the_file);
+                }
+            }
 		}
 		dest = gf_isom_open(szFile, GF_ISOM_WRITE_EDIT, tmpdir);
 		/*clone all tracks*/
