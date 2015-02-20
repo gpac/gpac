@@ -2410,6 +2410,27 @@ retry_track:
 				                                 defaultPadding, defaultDegradationPriority);
 				if (e) break;
 			}
+            if (!e) {
+                u32 k, edit_count=gf_isom_get_edit_segment_count(in, j+1);
+
+                /*remove all segments*/
+                gf_isom_remove_edit_segments(init_seg, track);
+                //clone all edits before first nomal, and stop at first normal setting duration to 0
+                for (k=0; k<edit_count; k++) {
+                    u64 EditTime, SegDuration, MediaTime;
+                    u8 EditMode;
+                
+                    /*get first edit*/
+                    gf_isom_get_edit_segment(in, j+1, k+1, &EditTime, &SegDuration, &MediaTime, &EditMode);
+                
+                    if (EditMode==GF_ISOM_EDIT_NORMAL) {
+                        gf_isom_set_edit_segment(init_seg, track, EditTime, 0, MediaTime, EditMode);
+                        break;
+                    }
+                
+                    gf_isom_set_edit_segment(init_seg, track, EditTime, SegDuration, MediaTime, EditMode);
+                }
+            }
 		}
 		if (!i) {
 			if (use_hevc || use_avc3) {

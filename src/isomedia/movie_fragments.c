@@ -693,9 +693,10 @@ u32 moof_get_duration(GF_MovieFragmentBox *moof, u32 refTrackID)
 	return duration;
 }
 
-static u32 moof_get_earliest_cts(GF_MovieFragmentBox *moof, u32 refTrackID)
+static u64 moof_get_earliest_cts(GF_MovieFragmentBox *moof, u32 refTrackID)
 {
-	u32 i, j, cts, duration;
+    u32 i, j;
+    u64 cts, duration;
 	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf=NULL;
 	GF_TrackFragmentRunBox *trun;
@@ -707,7 +708,7 @@ static u32 moof_get_earliest_cts(GF_MovieFragmentBox *moof, u32 refTrackID)
 	if (!traf) return 0;
 
 	duration = 0;
-	cts = 0xFFFFFFFF;
+	cts = LLU_CAST (-1);
 	i=0;
 	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
 		j=0;
