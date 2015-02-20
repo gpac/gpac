@@ -1115,7 +1115,7 @@ static u32 gf_m2ts_reframe_ec3(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_
 
 	if (!pes->aud_sr) {
 		GF_AC3Header hdr;
-		GF_BitStream *bs = gf_bs_new(data, data_len, GF_BITSTREAM_READ);
+		GF_BitStream *bs = gf_bs_new((const char *) data, data_len, GF_BITSTREAM_READ);
 		if (gf_eac3_parser_bs(bs, &hdr, GF_TRUE)) {
 			pes->aud_sr = hdr.sample_rate;
 			pes->aud_nb_ch = hdr.channels;
