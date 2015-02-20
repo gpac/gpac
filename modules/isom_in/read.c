@@ -67,7 +67,7 @@ static const char * ISOR_MIME_TYPES[] = {
 	"application/x-isomedia", "*", "IsoMedia Files",
 	"video/mp4", "mp4 mpg4", "MPEG-4 Movies",
 	"audio/mp4", "m4a mp4 mpg4", "MPEG-4 Music",
-	"application/mp4", "mp4 mpg4", "MPEG-4 Applications",
+	"application/mp4", "m4i mp4 mpg4", "MPEG-4 Applications",
 	"video/3gpp", "3gp 3gpp", "3GPP/MMS Movies",
 	"audio/3gpp", "3gp 3gpp", "3GPP/MMS Music",
 	"video/3gpp2", "3g2 3gp2", "3GPP2/MMS Movies",
