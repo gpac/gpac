@@ -1110,7 +1110,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 	cur_file = 0;
 	while (nb_tk_done<nb_tk) {
 		Double last_rap_sample_time, max_dts, file_split_dur;
-		Bool is_last;
+		Bool is_last_rap;
 
 		if (chunk_extraction) {
 			sprintf(szFile, "%s_%d_%d%s", szName, (u32) chunk_start, (u32) (chunk_start+split_dur), ext);
@@ -1137,7 +1137,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			gf_isom_remove_edit_segments(dest, tki->dst_tk);
 		}
 		do_add = 1;
-		is_last = 0;
+		is_last_rap = 0;
 		last_rap_sample_time = 0;
 		file_split_dur = split_dur;
 
@@ -1197,10 +1197,10 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 					last_rap_sample_time /= tki->time_scale;
 					e = gf_isom_get_sample_for_media_time(mp4, tki->tk, samp->DTS+tki->firstDTS+2, &sdi, GF_ISOM_SEARCH_SYNC_FORWARD, &next_rap, &next_rap_num);
 					if (e==GF_EOS)
-						is_last = 1;
+						is_last_rap = 1;
 					if (next_rap) {
 						if (!next_rap->IsRAP)
-							is_last = 1;
+							is_last_rap = 1;
 						gf_isom_sample_del(&next_rap);
 					}
 				}
@@ -1251,8 +1251,10 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				   ) {
 					nb_over++;
 					tki->stop_state = 1;
-					if (tki->last_sample<tki->sample_count)
-						is_last = 0;
+                    if (tki->last_sample<tki->sample_count)
+                        is_last_rap = 0;
+                    else if (tki->first_sample_done)
+                        is_last_rap = 0;
 
 					if (rap_split && tki->next_sample_is_rap) {
 						file_split_dur = (Double) ( gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1) - tki->firstDTS);
@@ -1281,7 +1283,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			Double time;
 			tki = &tks[i];
 			/*track done*/
-			if ((tki->stop_state==2) || (!is_last && (tki->sample_count == tki->last_sample)) ) {
+			if ((tki->stop_state==2) || (!is_last_rap && (tki->sample_count == tki->last_sample)) ) {
 				if (tki->has_non_raps) last_rap_sample_time = 0;
 				time = (Double) (s64) ( gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1) - tki->firstDTS);
 				time /= tki->time_scale;
@@ -1313,7 +1315,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		}
 
 		/*don't split if eq to copy...*/
-		if (is_last && !cur_file && !chunk_start) {
+		if (is_last_rap && !cur_file && !chunk_start) {
 			fprintf(stderr, "Cannot split file (Not enough sync samples, duration too large or size too big)\n");
 			goto err_exit;
 		}
@@ -1324,26 +1326,23 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			/*if larger than last RAP, rewind till it*/
 			if (last_rap_sample_time && (last_rap_sample_time<file_split_dur) ) {
 				file_split_dur = last_rap_sample_time;
-				is_last = 0;
+				is_last_rap = 0;
 			}
 		}
 
 		nb_tk_done = 0;
-		if (!is_last || chunk_extraction) {
+		if (!is_last_rap || chunk_extraction) {
 			for (i=0; i<nb_tk; i++) {
 				Double time = 0;
 				u32 last_samp;
 				tki = &tks[i];
 				while (1) {
-					u64 dts;
 					last_samp = gf_isom_get_sample_count(dest, tki->dst_tk);
 					if (last_samp<=1) break;
 
-					dts = gf_isom_get_sample_dts(dest, tki->dst_tk, last_samp);
-					time = (Double) (s64) dts;
-					time /= tki->time_scale;
-
-					time = (Double) (s64) gf_isom_get_media_duration(dest, tki->dst_tk);
+                    time = (Double) (s64) gf_isom_get_media_duration(dest, tki->dst_tk);
+                    //time could get slightly higher than requests dur due to rounding precision. We use 1/4 of the last sample dur as safety marge
+                    time -= (Double) (s64) gf_isom_get_sample_duration(dest, tki->dst_tk, tki->last_sample) / 4;
 					time /= tki->time_scale;
 
 					/*done*/
@@ -1404,7 +1403,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			if (gf_isom_has_time_offset(mp4, tki->tk)) {
 				gf_isom_set_cts_packing(dest, tki->dst_tk, 0);
 			}
-			if (is_last && tki->can_duplicate) {
+			if (is_last_rap && tki->can_duplicate) {
 				gf_isom_set_last_sample_duration(dest, tki->dst_tk, gf_isom_get_sample_duration(mp4, tki->tk, tki->sample_count));
 			}
 
@@ -1464,7 +1463,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		e = gf_isom_close(dest);
 		dest = NULL;
 		if (e) fprintf(stderr, "Error storing file %s\n", gf_error_to_string(e));
-		if (is_last || chunk_extraction) break;
+		if (is_last_rap || chunk_extraction) break;
 		cur_file++;
 	}
 	gf_set_progress("Splitting", nb_samp, nb_samp);
