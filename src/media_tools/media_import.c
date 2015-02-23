@@ -2145,6 +2145,8 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		gf_isom_set_track_reference(import->dest, track, GF_ISOM_REF_DECODE, import->esd->dependsOnESID);
 	}
 
+	mstype = gf_isom_get_media_subtype(import->orig, track_in, di);
+
 	switch (mtype) {
 	case GF_ISOM_MEDIA_VISUAL:
 		gf_import_message(import, GF_OK, "IsoMedia import %s - track ID %d - Video (size %d x %d)", orig_name, trackID, w, h);
@@ -2182,10 +2184,32 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		gf_isom_sample_del(&samp);
 	}
 
+	is_cenc = gf_isom_is_cenc_media(import->orig, track_in, 1);
+
 	duration = (u64) (((Double)import->duration * gf_isom_get_media_timescale(import->orig, track_in)) / 1000);
 	gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT);
+
+	if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+		if (is_cenc ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] CENC media detected - cannot switch parameter set storage mode\n"));
+		} else if (import->flags & GF_IMPORT_USE_DATAREF) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ISOM import] Cannot switch parameter set storage mode when using data reference\n"));
+		} else {
+			switch (mstype) {
+			case GF_4CC('a', 'v', 'c', '1'):
+				gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
+				gf_isom_avc_set_inband_config(import->dest, track, 1);
+				break;
+			case GF_4CC('h', 'v', 'c', '1'):
+				gf_isom_set_nalu_extract_mode(import->orig, track_in, GF_ISOM_NALU_EXTRACT_INSPECT | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG);
+				gf_isom_hevc_set_inband_config(import->dest, track, 1);
+				break;
+			}
+		}
+	}
+
 	num_samples = gf_isom_get_sample_count(import->orig, track_in);
-	is_cenc = gf_isom_is_cenc_media(import->orig, track_in, 1);
+
 	if (is_cenc) {
 		u32 container_type;
 		e = gf_isom_cenc_get_sample_aux_info(import->orig, track_in, 0, NULL, &container_type);
@@ -4714,6 +4738,12 @@ restart_import:
 				}
 			}
 
+			//always keep NAL
+			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+				copy_size = nal_size;
+			}
+
+			//first declaration of SPS,
 			if (add_sps) {
 				dstcfg->configurationVersion = 1;
 				dstcfg->profile_compatibility = avc.sps[idx].prof_compat;
@@ -4723,12 +4753,18 @@ restart_import:
 				dstcfg->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
 				dstcfg->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
 
-				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-				slc->size = nal_size;
-				slc->id = idx;
-				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-				memcpy(slc->data, buffer, sizeof(char)*slc->size);
-				gf_list_add(dstcfg->sequenceParameterSets, slc);
+
+				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+					copy_size = nal_size;
+				} else {
+					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+					slc->size = nal_size;
+					slc->id = idx;
+					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+					memcpy(slc->data, buffer, sizeof(char)*slc->size);
+					gf_list_add(dstcfg->sequenceParameterSets, slc);
+				}
+
 				/*disable frame rate scan, most bitstreams have wrong values there*/
 				if (detect_fps && avc.sps[idx].vui.timing_info_present_flag
 				        /*if detected FPS is greater than 1000, assume wrong timing info*/
@@ -4809,23 +4845,28 @@ restart_import:
 				copy_size = nal_size;
 			}
 
-			if (avc.pps[idx].status==1) {
-				avc.pps[idx].status = 2;
-				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-				slc->size = nal_size;
-				slc->id = idx;
-				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-				memcpy(slc->data, buffer, sizeof(char)*slc->size);
-				dstcfg = (import->flags & GF_IMPORT_SVC_EXPLICIT) ? svccfg : avccfg;
+			//always keep NAL
+			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+				copy_size = nal_size;
+			} else {
+				if (avc.pps[idx].status==1) {
+					avc.pps[idx].status = 2;
+					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+					slc->size = nal_size;
+					slc->id = idx;
+					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+					memcpy(slc->data, buffer, sizeof(char)*slc->size);
+					dstcfg = (import->flags & GF_IMPORT_SVC_EXPLICIT) ? svccfg : avccfg;
 
-				/* by default, we put all PPS in the base AVC layer,
-				  they will be moved to the SVC layer upon analysis of SVC slice. */
-				dstcfg = avccfg;
+					/* by default, we put all PPS in the base AVC layer,
+					  they will be moved to the SVC layer upon analysis of SVC slice. */
+					dstcfg = avccfg;
 
-				if (import->flags & GF_IMPORT_SVC_EXPLICIT)
-					dstcfg = svccfg;
+					if (import->flags & GF_IMPORT_SVC_EXPLICIT)
+						dstcfg = svccfg;
 
-				gf_list_add(dstcfg->pictureParameterSets, slc);
+					gf_list_add(dstcfg->pictureParameterSets, slc);
+				}
 			}
 			break;
 		case GF_AVC_NALU_SEI:
@@ -5368,7 +5409,11 @@ restart_import:
 	avccfg->nal_unit_size = size_length/8;
 	svccfg->nal_unit_size = size_length/8;
 
-	if (gf_list_count(avccfg->sequenceParameterSets) || !gf_list_count(svccfg->sequenceParameterSets) ) {
+
+	if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+		gf_isom_avc_config_update(import->dest, track, 1, avccfg);
+		gf_isom_avc_set_inband_config(import->dest, track, 1);
+	} else if (gf_list_count(avccfg->sequenceParameterSets) || !gf_list_count(svccfg->sequenceParameterSets) ) {
 		gf_isom_avc_config_update(import->dest, track, 1, avccfg);
 		if (gf_list_count(svccfg->sequenceParameterSets)) {
 			gf_isom_svc_config_update(import->dest, track, 1, svccfg, 1);
@@ -5376,13 +5421,15 @@ restart_import:
 	} else {
 		gf_isom_svc_config_update(import->dest, track, 1, svccfg, 0);
 	}
+
+
 	gf_media_update_par(import->dest, track);
 	gf_media_update_bitrate(import->dest, track);
 
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0x15);
 	gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_AVC1, 1);
 
-	if (!gf_list_count(avccfg->sequenceParameterSets) && !gf_list_count(svccfg->sequenceParameterSets)) {
+	if (!gf_list_count(avccfg->sequenceParameterSets) && !gf_list_count(svccfg->sequenceParameterSets) && !(import->flags & GF_IMPORT_FORCE_XPS_INBAND)) {
 		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Import results: No SPS or PPS found in the bitstream ! Nothing imported\n");
 	} else {
 		u32 i;
@@ -5719,14 +5766,24 @@ restart_import:
 					vpss->type = GF_HEVC_NALU_VID_PARAM;
 				}
 
-				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-				slc->size = nal_size;
-				slc->id = idx;
-				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+					vpss->array_completeness = 0;
+					copy_size = nal_size;
+				} else {
+					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+					slc->size = nal_size;
+					slc->id = idx;
+					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+					memcpy(slc->data, buffer, sizeof(char)*slc->size);
 
-				gf_list_add(vpss->nalus, slc);
+					gf_list_add(vpss->nalus, slc);
+				}
 			}
+
+			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+				copy_size = nal_size;
+			}
+
 			break;
 		case GF_HEVC_NALU_SEQ_PARAM:
 			idx = gf_media_hevc_read_sps(buffer, nal_size, &hevc);
@@ -5777,13 +5834,6 @@ restart_import:
 					spss->type = GF_HEVC_NALU_SEQ_PARAM;
 				}
 
-				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-				slc->size = nal_size;
-				slc->id = idx;
-				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-				memcpy(slc->data, buffer, sizeof(char)*slc->size);
-				gf_list_add(spss->nalus, slc);
-
 				/*disable frame rate scan, most bitstreams have wrong values there*/
 				if (detect_fps && hevc.sps[idx].has_timing_info
 				        /*if detected FPS is greater than 1000, assume wrong timing info*/
@@ -5807,6 +5857,18 @@ restart_import:
 					goto restart_import;
 				}
 
+				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+					spss->array_completeness = 0;
+					copy_size = nal_size;
+				} else {
+					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+					slc->size = nal_size;
+					slc->id = idx;
+					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+					memcpy(slc->data, buffer, sizeof(char)*slc->size);
+					gf_list_add(spss->nalus, slc);
+				}
+
 				if (first_hevc) {
 					first_hevc = 0;
 					gf_import_message(import, GF_OK, "HEVC import - frame size %d x %d at %02.3f FPS", hevc.sps[idx].width, hevc.sps[idx].height, FPS);
@@ -5820,6 +5882,9 @@ restart_import:
 					max_h = hevc.sps[idx].height;
 				}
 			}
+			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+				copy_size = nal_size;
+			} 
 			break;
 
 		case GF_HEVC_NALU_PIC_PARAM:
@@ -5850,24 +5915,38 @@ restart_import:
 					ppss->type = GF_HEVC_NALU_PIC_PARAM;
 				}
 
-				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-				slc->size = nal_size;
-				slc->id = idx;
-				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+					ppss->array_completeness = 0;
+					copy_size = nal_size;
+				} else {
+					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+					slc->size = nal_size;
+					slc->id = idx;
+					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+					memcpy(slc->data, buffer, sizeof(char)*slc->size);
 
-				gf_list_add(ppss->nalus, slc);
+					gf_list_add(ppss->nalus, slc);
+				}
 			}
+			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+				copy_size = nal_size;
+			} 
+
 			break;
 		case GF_HEVC_NALU_SEI_SUFFIX:
 			if (!layer_id) flush_next_sample = 1;
-		case GF_HEVC_NALU_SEI_PREFIX:
 			if (hevc.sps_active_idx != -1) {
-				/*TODO*/
-				//copy_size = gf_media_avc_reformat_sei(buffer, nal_size, &hevc);
 				copy_size = nal_size;
 				if (copy_size)
 					nb_sei++;
+			}
+		case GF_HEVC_NALU_SEI_PREFIX:
+			if (hevc.sps_active_idx != -1) {
+				copy_size = nal_size;
+				if (copy_size) {
+					nb_sei++;
+					flush_sample=1;
+				}
 			}
 			break;
 
@@ -6281,7 +6360,12 @@ next_nal:
 			shvc_cfg->num_layers ++;
 	}
 
-	if (gf_list_count(hevc_cfg->param_array) || !gf_list_count(shvc_cfg->param_array) ) {
+
+	if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+		hevc_set_parall_type(hevc_cfg);
+		gf_isom_hevc_config_update(import->dest, track, 1, hevc_cfg);
+		gf_isom_hevc_set_inband_config(import->dest, track, 1);
+	} else if (gf_list_count(hevc_cfg->param_array) || !gf_list_count(shvc_cfg->param_array) ) {
 		hevc_set_parall_type(hevc_cfg);
 		gf_isom_hevc_config_update(import->dest, track, 1, hevc_cfg);
 		if (gf_list_count(shvc_cfg->param_array)) {
@@ -7369,11 +7453,12 @@ void m2ts_rewrite_nalu_sample(GF_MediaImporter *import, GF_TSImport *tsimp)
 }
 
 #ifndef GPAC_DISABLE_HEVC
-static void hevc_cfg_add_nalu(GF_HEVCConfig *hevccfg, u8 nal_type, char *data, u32 data_len)
+static void hevc_cfg_add_nalu(GF_MediaImporter *import, GF_HEVCConfig *hevccfg, u8 nal_type, char *data, u32 data_len)
 {
 	u32 i, count;
 	GF_AVCConfigSlot *sl;
 	GF_HEVCParamArray *ar = NULL;
+
 	count = gf_list_count(hevccfg->param_array);
 	for (i=0; i<count; i++) {
 		ar = gf_list_get(hevccfg->param_array, i);
@@ -7387,6 +7472,12 @@ static void hevc_cfg_add_nalu(GF_HEVCConfig *hevccfg, u8 nal_type, char *data, u
 		ar->nalus = gf_list_new();
 		gf_list_add(hevccfg->param_array, ar);
 	}
+
+	if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+		ar->array_completeness = 0;
+		return;
+	}
+
 	if (data) {
 		GF_SAFEALLOC(sl, GF_AVCConfigSlot);
 		sl->data = gf_malloc(sizeof(char)*data_len);
@@ -7822,28 +7913,39 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						tsimp->avccfg->profile_compatibility = tsimp->avc.sps[idx].prof_compat;
 						tsimp->avccfg->AVCProfileIndication = tsimp->avc.sps[idx].profile_idc;
 						tsimp->avccfg->AVCLevelIndication = tsimp->avc.sps[idx].level_idc;
-						slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-						slc->size = pck->data_len-4;
-						slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-						memcpy(slc->data, pck->data+4, sizeof(char)*slc->size);
-						gf_list_add(tsimp->avccfg->sequenceParameterSets, slc);
 
 						if (pck->stream->vid_w < tsimp->avc.sps[idx].width)
 							pck->stream->vid_w = tsimp->avc.sps[idx].width;
 						if (pck->stream->vid_h < tsimp->avc.sps[idx].height)
 							pck->stream->vid_h = tsimp->avc.sps[idx].height;
+
+						if (!(import->flags & GF_IMPORT_FORCE_XPS_INBAND)) {
+							slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+							slc->size = pck->data_len-4;
+							slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+							memcpy(slc->data, pck->data+4, sizeof(char)*slc->size);
+							gf_list_add(tsimp->avccfg->sequenceParameterSets, slc);
+						}
 					}
+				}
+				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+					break;
 				}
 				return;
 			case GF_AVC_NALU_PIC_PARAM:
 				idx = gf_media_avc_read_pps(pck->data+4, pck->data_len-4, &tsimp->avc);
 				if ((idx>=0) && (tsimp->avc.pps[idx].status==1)) {
 					tsimp->avc.pps[idx].status = 2;
-					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-					slc->size = pck->data_len-4;
-					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-					memcpy(slc->data, pck->data+4, sizeof(char)*slc->size);
-					gf_list_add(tsimp->avccfg->pictureParameterSets, slc);
+					if (!(import->flags & GF_IMPORT_FORCE_XPS_INBAND)) {
+						slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+						slc->size = pck->data_len-4;
+						slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+						memcpy(slc->data, pck->data+4, sizeof(char)*slc->size);
+						gf_list_add(tsimp->avccfg->pictureParameterSets, slc);
+					}
+				}
+				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+					break;
 				}
 				/*else discard because of invalid PPS*/
 				return;
@@ -7857,11 +7959,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				return;
 			case GF_AVC_NALU_SEI:
 				break;
-				if (tsimp->avc.sps_active_idx != -1) {
-					idx = gf_media_avc_reformat_sei(pck->data+4, pck->data_len-4, &tsimp->avc);
-					if (idx>0) pck->data_len = idx+4;
-				}
-				break;
+
 			}
 
 			if (tsimp->force_next_au_start) {
@@ -7909,7 +8007,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						tsimp->hevccfg->luma_bit_depth = tsimp->hevc.sps[idx].bit_depth_luma;
 						tsimp->hevccfg->chroma_bit_depth = tsimp->hevc.sps[idx].bit_depth_chroma;
 
-						hevc_cfg_add_nalu(tsimp->hevccfg, nal_type, pck->data+4, pck->data_len-4);
+						hevc_cfg_add_nalu(import, tsimp->hevccfg, nal_type, pck->data+4, pck->data_len-4);
 
 						if (pck->stream->vid_w < tsimp->avc.sps[idx].width)
 							pck->stream->vid_w = tsimp->avc.sps[idx].width;
@@ -7917,12 +8015,20 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 							pck->stream->vid_h = tsimp->avc.sps[idx].height;
 					}
 				}
+				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+					is_au_start = 1;
+					break;
+				}
 				return;
 			case GF_HEVC_NALU_PIC_PARAM:
 				idx = gf_media_hevc_read_pps(pck->data+4, pck->data_len-4, &tsimp->hevc);
 				if ((idx>=0) && (tsimp->hevc.pps[idx].state==1)) {
 					tsimp->hevc.pps[idx].state = 2;
-					hevc_cfg_add_nalu(tsimp->hevccfg, nal_type, pck->data+4, pck->data_len-4);
+					hevc_cfg_add_nalu(import, tsimp->hevccfg, nal_type, pck->data+4, pck->data_len-4);
+				}
+				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+					is_au_start = 1;
+					break;
 				}
 				return;
 			case GF_HEVC_NALU_VID_PARAM:
@@ -7932,7 +8038,11 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					tsimp->hevccfg->avgFrameRate = tsimp->hevc.vps[idx].rates[0].avg_pic_rate;
 					tsimp->hevccfg->constantFrameRate = tsimp->hevc.vps[idx].rates[0].constand_pic_rate_idc;
 					tsimp->hevccfg->numTemporalLayers = tsimp->hevc.vps[idx].max_sub_layers;
-					hevc_cfg_add_nalu(tsimp->hevccfg, nal_type, pck->data+4, pck->data_len-4);
+					hevc_cfg_add_nalu(import, tsimp->hevccfg, nal_type, pck->data+4, pck->data_len-4);
+				}
+				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+					is_au_start = 1;
+					break;
 				}
 				return;
 			/*remove*/
@@ -7944,11 +8054,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			case GF_HEVC_NALU_END_OF_STREAM:
 				return;
 			case GF_HEVC_NALU_SEI_PREFIX:
-				/*TODO					if (tsimp->avc.sps_active_idx != -1) {
-										idx = gf_media_avc_reformat_sei(pck->data+4, pck->data_len-4, &tsimp->avc);
-										if (idx>0) pck->data_len = idx+4;
-									}
-				*/
+				is_au_start = 1;
 				break;
 			}
 
@@ -8314,6 +8420,11 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			u32 w = ((GF_M2TS_PES*)es)->vid_w;
 			u32 h = ((GF_M2TS_PES*)es)->vid_h;
 			gf_isom_avc_config_update(import->dest, tsimp.track, 1, tsimp.avccfg);
+
+			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+				gf_isom_avc_set_inband_config(import->dest, tsimp.track, 1);
+			}
+
 			gf_isom_set_visual_info(import->dest, tsimp.track, 1, w, h);
 			gf_isom_set_track_layout_info(import->dest, tsimp.track, w<<16, h<<16, 0, 0, 0);
 
@@ -8328,6 +8439,11 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			u32 h = ((GF_M2TS_PES*)es)->vid_h;
 			hevc_set_parall_type(tsimp.hevccfg);
 			gf_isom_hevc_config_update(import->dest, tsimp.track, 1, tsimp.hevccfg);
+
+			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+				gf_isom_hevc_set_inband_config(import->dest, tsimp.track, 1);
+			}
+			
 			gf_isom_set_visual_info(import->dest, tsimp.track, 1, w, h);
 			gf_isom_set_track_layout_info(import->dest, tsimp.track, w<<16, h<<16, 0, 0, 0);
 

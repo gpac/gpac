@@ -1330,7 +1330,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 		} else if (operand_type != GF_ISOM_HVCC_SET_TILE) {
 			operand_type=GF_ISOM_HVCC_SET_INBAND;
 		}
-		array_incomplete = 0;
+		array_incomplete = (operand_type==GF_ISOM_HVCC_SET_INBAND) ? 1 : 0;
 		for (i=0; i<gf_list_count(entry->hevc_config->config->param_array); i++) {
 			GF_HEVCParamArray *ar = gf_list_get(entry->hevc_config->config->param_array, i);
 
