@@ -879,6 +879,40 @@ static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
 	return nal_size;
 }
 
+static void dump_sei(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_hevc)
+{
+	u32 sei_idx=0;
+	u32 i=2;
+	fprintf(dump, " SEI=\"");
+	while (i+1 < ptr_size) {
+		u32 sei_type = 0;
+		u32 sei_size = 0;
+		while (ptr[i] == 0xFF) {
+			sei_type+= 255;
+			i++;
+		}
+		sei_type += ptr[i];
+		i++;
+		while (ptr[i] == 0xFF) {
+			sei_size += 255;
+			i++;
+		}
+		sei_size += ptr[i];
+		i++;
+		i+=sei_size;
+
+		if (sei_idx) fprintf(dump, ",");
+		fprintf(dump, "(type=%u, size=%u)", sei_type, sei_size);
+		sei_idx++;
+		if (ptr[i]== 0x80) {
+			i=ptr_size;
+			break;
+		}
+	}
+	if (i!=ptr_size) fprintf(dump, "(garbage at end)");
+	fprintf(dump, "\"");
+}
+
 static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_hevc, AVCState *avc, u32 nalh_size)
 {
 	s32 res;
@@ -986,6 +1020,11 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 			break;
 		}
 		fputs("\"", dump);
+
+		if ((type==GF_HEVC_NALU_SEI_PREFIX) || (type==GF_HEVC_NALU_SEI_SUFFIX)) {
+			dump_sei(dump, (u8 *) ptr, ptr_size, is_hevc);
+		}
+
 		fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", ((ptr[0] & 0x1) << 5) | (ptr[1]>>3), (ptr[1] & 0x7) );
 #endif //GPAC_DISABLE_HEVC
 		return;
@@ -1087,6 +1126,11 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 		break;
 	}
 	fputs("\"", dump);
+
+	if (type==GF_AVC_NALU_SEI) {
+		dump_sei(dump, (u8 *) ptr, ptr_size, is_hevc);
+	}
+
 	if (res<0)
 		fprintf(dump, " status=\"error decoding slice\"");
 
