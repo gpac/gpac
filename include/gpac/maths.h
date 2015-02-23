@@ -777,6 +777,12 @@ void gf_mx_add_matrix_2d(GF_Matrix *mx, GF_Matrix2D *mat2D);
  *\param mx the matrix to inverse
  */
 void gf_mx_inverse(GF_Matrix *mx);
+/*!\brief transpose 4x4 matrix
+ *
+ *Transposes a 4x4 matrix
+ *\param mx the matrix to transpose
+ */
+void gf_mx_transpose(GF_Matrix *mx);
 /*!\brief matrix point transformation
  *
  *Applies a 3D matrix transformation to a 3D point
