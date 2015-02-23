@@ -119,8 +119,11 @@ enum
 	/*keep trailing 0 bytes in AU payloads when any*/
 	GF_IMPORT_KEEP_TRAILING = 1<<17,
 
+	/*forces inband parameter sets*/
+	GF_IMPORT_FORCE_XPS_INBAND = 1<<18,
+
 	/*do not compute edit list for B-frames video tracks*/
-	GF_IMPORT_NO_EDIT_LIST = 1<<18,
+	GF_IMPORT_NO_EDIT_LIST = 1<<19,
 
 	/*when set, only updates tracks info and return*/
 	GF_IMPORT_PROBE_ONLY	= 1<<20,
@@ -132,6 +135,8 @@ enum
 	GF_IMPORT_NO_DURATION = 1<<23,
 	/*when set IP packets found in MPE sections will be sent to the local network */
 	GF_IMPORT_MPE_DEMUX = 1<<24,
+
+
 	/*when set by user during import, will abort*/
 	GF_IMPORT_DO_ABORT = 1<<31
 };

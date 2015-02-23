@@ -1731,7 +1731,7 @@ enum
 	GF_ISOM_NALU_EXTRACT_INSPECT,
 	/*above mode is applied and PPS/SPS/... are appended in the front of every IDR*/
 	GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG = 1<<16,
-	/*above mode is applied and all start codes are rewritten*/
+	/*above mode is applied and all start codes are rewritten (xPS inband as well)*/
 	GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG = 2<<16,
 	/*above mode is applied and VDRD NAL unit is inserted before SVC slice*/
 	GF_ISOM_NALU_EXTRACT_VDRD_FLAG = 1<<18,
