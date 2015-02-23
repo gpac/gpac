@@ -50,7 +50,7 @@ children [
 							Shape {
 								appearance  DEF Red-App Appearance {
 									material Material {
-										diffuseColor 1.0 0.0 0.0
+#										diffuseColor 1.0 0.0 0.0
 									}
 									texture ImageTexture {  url "5" }
 								}
@@ -81,9 +81,9 @@ children [
 							Shape {
 								appearance DEF Blue-App Appearance {
 									material Material {
-										diffuseColor 0.0 0.0 1.0
+#										diffuseColor 0.0 0.0 1.0
 									}
-									texture	DEF M2 MovieTexture { url "10" loop TRUE }
+									texture	DEF M2 MovieTexture { url "bunny.mp4" loop TRUE }
 								}
 								geometry Box { }
 							}
@@ -156,18 +156,6 @@ ROUTE BlueScale.value_changed TO Blue.scale
 
 AT 0 {
 	UPDATE OD [
-		ObjectDescriptor {
-		  objectDescriptorID  10
-		  esDescr [
-		    ES_Descriptor {
-		      ES_ID 20
-		      OCR_ES_ID 20
-		      muxInfo MuxInfo {
-		       fileName "../auxiliary_files/enst_video.h264"
-		      }
-		    }
-		  ]
-		}
 		ObjectDescriptor {
 		  objectDescriptorID  5
 		  esDescr [
