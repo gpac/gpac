@@ -1266,338 +1266,9 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 	return ret;
 }
 
-#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_VRML)
-
-static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
-{
-	GF_TextureHandler *b_surf;
-#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
-	GF_TextureHandler *matte_hdl;
-	GF_TextureHandler *a_surf;
-	GF_TextureHandler *alpha_surf;
-	char * action ;
-	int tmp;
-	u8 texture[4];
-	MFFloat coefficients;
-#endif
-	M_MatteTexture *matte = (M_MatteTexture *)n;
-
-
-	b_surf = gf_sc_texture_get_handler(matte->surfaceB);
-
-	if (!b_surf || !b_surf->tx_io) return 0;
-	glEnable(GL_BLEND);
-	tx_set_image(b_surf, 0);
-
-#if defined(GPAC_USE_TINYGL) || defined(GPAC_USE_OGL_ES)
-	tx_bind(b_surf);
-	return 1;
-#else
-
-	/*To remove: gcc 4.6 introduces this warning*/
-#if __GNUC__ == 4 && __GNUC_MINOR__ >= 6
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Waddress"
-#endif
-	if (glActiveTexture==NULL) {
-		tx_bind(b_surf);
-		return 1;
-	}
-	/*To remove: gcc 4.6 introduces this warning*/
-#if __GNUC__ == 4 && __GNUC_MINOR__ == 6
-#pragma GCC diagnostic pop
-#endif
-	matte_hdl = gf_node_get_private(n);
-	if (!matte_hdl->tx_io) {
-		gf_sc_texture_allocate(matte_hdl);
-	}
-	a_surf = gf_sc_texture_get_handler(matte->surfaceA);
-	if (!a_surf->tx_io) a_surf = NULL;
-	alpha_surf = gf_sc_texture_get_handler(matte->alphaSurface);
-	if (!alpha_surf->tx_io) alpha_surf = NULL;
-
-	action = (matte->operation).buffer;
-	glDisable(GL_TEXTURE_2D);
-
-	/* SCALE */
-	if (! strcmp(action,"SCALE") || !strcmp(action,"BIAS") ) {
-		TexEnvType operand;
-		coefficients = (matte->parameter);
-		if (coefficients.count < 3) {
-			tx_bind(b_surf);
-			return 1;
-		}
-		texture[0] = (u8) FIX2INT( 255 * coefficients.vals[0]);
-		texture[1] = (u8) FIX2INT( 255 * coefficients.vals[1]);
-		texture[2] = (u8) FIX2INT( 255 * coefficients.vals[2]);
-		texture[3] = 255;
-		if (coefficients.count >= 4)
-			texture[3] = (u8) FIX2INT( 255 * coefficients.vals[3]);
-
-		glActiveTexture(GL_TEXTURE0);
-		if (!matte_hdl->tx_io->id) {
-			glGenTextures(1, &matte_hdl->tx_io->id);
-		}
-		glBindTexture( GL_TEXTURE_2D, matte_hdl->tx_io->id);
-		glEnable( GL_DEPTH_TEST );
-		glEnable( GL_TEXTURE_2D );
-		glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR );
-		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR );
-		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,GL_REPEAT );
-		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,GL_REPEAT );
-		glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,1,1,0,GL_RGBA,GL_UNSIGNED_BYTE,texture);
-
-		operand = GL_MODULATE;
-		if (!strcmp(action,"BIAS")) operand = GL_ADD_SIGNED;
-
-		glActiveTexture(GL_TEXTURE1);
-		tx_bind(b_surf);
-		GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,		GL_COMBINE);
-		GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_RGB,			operand);
-		GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_RGB ,			GL_TEXTURE1);
-		GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB,		GL_SRC_COLOR);
-		GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE1_RGB,			GL_TEXTURE0);
-		GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND1_RGB,		GL_SRC_COLOR);
-		GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_ALPHA,		GL_REPLACE );
-		GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE1_ALPHA,		GL_TEXTURE1  );
-		GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA,	GL_SRC_ALPHA);
-		return 2;
-	}
-	/* end SCALE */
-
-	/* CROSS_FADE */
-	if (! strcmp(action,"CROSS_FADE")) {
-		tmp = FIX2INT(255 * matte->fraction);
-		texture[0] = (unsigned char) tmp;
-		texture[1] = (unsigned char) tmp;
-		texture[2] = (unsigned char) tmp;
-		texture[3] = (unsigned char) 255;					// donne l'alpha de l'image de sortie
-
-		glActiveTexture(GL_TEXTURE0);
-		if (!matte_hdl->tx_io->id) {
-			glGenTextures(1, &matte_hdl->tx_io->id);
-		}
-		glBindTexture( GL_TEXTURE_2D, matte_hdl->tx_io->id);
-		glEnable( GL_TEXTURE_2D );
-		glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR );
-		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_LINEAR );
-		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,GL_REPEAT );
-		GLTEXPARAM( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,GL_REPEAT );
-		glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,1,1,0,GL_RGBA,GL_UNSIGNED_BYTE,texture);
-
-		/* fin de la g\E9n\E9ration de la texture donn\E9e par la fraction ! */
-
-		/* m\E9lange effectif des textures ! } */
-		glActiveTexture(GL_TEXTURE1);
-		tx_bind(b_surf);
-
-		if (a_surf) {
-			glActiveTexture(GL_TEXTURE2);
-			tx_set_image(a_surf, 0);
-			tx_bind(a_surf);
-			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_INTERPOLATE );
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE1  );
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_TEXTURE2  );
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE2_RGB, GL_TEXTURE0  );
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND2_RGB, GL_SRC_COLOR);
-		}
-		return 3;
-	}
-	/* end CROSS_FADE */
-
-	/*REVEAL */
-	if (!strcmp(action,"REVEAL")) {
-		glActiveTexture(GL_TEXTURE0);
-		tx_bind(b_surf);
-
-		if (alpha_surf) {
-			tx_set_image(alpha_surf, 0);
-			glActiveTexture(GL_TEXTURE1);
-			tx_bind(alpha_surf);
-		}
-		if (a_surf) {
-			glActiveTexture(GL_TEXTURE2);
-			tx_set_image(a_surf, 0);
-			tx_bind(a_surf);
-
-			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_INTERPOLATE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_RGB , GL_TEXTURE0);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_TEXTURE2);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE2_RGB, GL_TEXTURE1);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND2_RGB, GL_SRC_ALPHA);
-
-		}
-		return 3;
-	}
-	/* end REVEAL */
-
-	/*INVERT */
-	if (! strcmp(action,"INVERT")) {
-		glActiveTexture(GL_TEXTURE0);
-		tx_bind(b_surf);
-		GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-		GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_REPLACE);
-		GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE0);
-		GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_ONE_MINUS_SRC_COLOR);
-
-		if (matte->parameter.count && matte->parameter.vals[0]) {
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE );
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_TEXTURE0);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA,	GL_ONE_MINUS_SRC_ALPHA);
-		}
-		return 1;
-	}
-	/* end INVERT */
-
-	/* op\E9ration REPLACE_ALPHA */
-	if (!strcmp(action,"REPLACE_ALPHA")) {
-		glActiveTexture(GL_TEXTURE0);
-		tx_bind(b_surf);
-
-		if (alpha_surf) {
-			glEnable(GL_BLEND);
-			glActiveTexture(GL_TEXTURE1);
-			tx_set_image(alpha_surf, 0);
-			tx_bind(alpha_surf);
-			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_REPLACE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE0);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
-		}
-		return 2;
-	}
-	/* end REPLACE_ALPHA */
-
-	/* MULTIPLY_ALPHA */
-	if (!strcmp(action,"MULTIPLY_ALPHA")) {
-		glActiveTexture(GL_TEXTURE0);
-		tx_bind(b_surf);
-		GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
-
-		if (alpha_surf) {
-			glActiveTexture(GL_TEXTURE1);
-			tx_set_image(alpha_surf, 0);
-			tx_bind(alpha_surf);
-			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_REPLACE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE0);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_MODULATE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE1_ALPHA, GL_TEXTURE1);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND1_ALPHA, GL_SRC_ALPHA);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_TEXTURE0);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
-		}
-		return 2;
-	}
-	/* end MULTIPLY_ALPHA */
-
-	/*ADD */
-	if (! strcmp(action,"ADD")) {
-		glActiveTexture(GL_TEXTURE0);
-		tx_bind(b_surf);
-		if (a_surf) {
-			glActiveTexture(GL_TEXTURE1);
-			tx_set_image(a_surf, 0);
-			tx_bind(a_surf);
-			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_ADD_SIGNED);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE0);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_TEXTURE1);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_TEXTURE0);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA,	GL_SRC_ALPHA);
-		}
-		return 2;
-	}
-	/*end ADD*/
-
-	/* ADD_SIGNED*/
-	if (! strcmp(action,"ADD_SIGNED")) {
-		glActiveTexture(GL_TEXTURE0);
-		tx_bind(b_surf);
-		if (a_surf) {
-			glActiveTexture(GL_TEXTURE1);
-			tx_set_image(a_surf, 0);
-			tx_bind(a_surf);
-			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_ADD);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE0);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_TEXTURE1);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_TEXTURE0);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
-		}
-		return 2;
-	}
-	/* end ADD_SIGNED*/
-
-	/*SUBSTRACT*/
-	if (! strcmp(action,"SUBSTRACT")) {
-		glActiveTexture(GL_TEXTURE0);
-		tx_bind(b_surf);
-		if (a_surf) {
-			glActiveTexture(GL_TEXTURE1);
-			tx_set_image(a_surf, 0);
-			tx_bind(a_surf);
-			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_SUBTRACT);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE0);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_TEXTURE1);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_REPLACE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_ALPHA, GL_TEXTURE0);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
-		}
-		return 2;
-	}
-	/* end SUBTRACT*/
-
-	/*BLEND*/
-	if (! strcmp(action,"BLEND")) {
-		glActiveTexture(GL_TEXTURE0);
-		tx_bind(b_surf);
-		if (a_surf) {
-			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
-			glActiveTexture(GL_TEXTURE1);
-			tx_set_image(a_surf, 0);
-			tx_bind(a_surf);
-			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE0_RGB, GL_TEXTURE0);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
-			GLTEXENV(GL_TEXTURE_ENV, GL_SOURCE1_RGB, GL_TEXTURE1);
-			GLTEXENV(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
-		}
-		return 2;
-	}
-	/*end BLEND */
-
-	tx_bind(b_surf);
-	return 1;
-
-#endif /*GPAC_USE_TINYGL*/
-
-#undef GLTEXPARAM
+static Bool gf_sc_texture_enable_matte_texture(GF_Node *n){
+	return GF_FALSE;	//¡k removed it
 }
-#endif /* !defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_VRML) */
-
 
 Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh)
 {
@@ -1659,42 +1330,134 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 #ifndef GPAC_USE_OGL_ES
 	if (txh->tx_io->yuv_shader) {
-		GLint loc;
+		GLint loc, i;
+		Bool is_rect = (txh->tx_io->flags & TX_IS_RECT) ? 1 : 0;
+		u32 active_shader;	//stores current shader (GLES2.0 or the old stuff)
 		/*use our program*/
-		Bool is_rect = txh->tx_io->flags & TX_IS_RECT;
-		compositor->visual->current_texture_glsl_program = is_rect ? compositor->visual->yuv_rect_glsl_program : compositor->visual->yuv_glsl_program;
+		if(compositor->shader_only_mode){	//ES2.0
+			active_shader = compositor->visual->glsl_program;	//Set active
+		}else{	//the old stuff
+			//Bool is_rect = txh->tx_io->flags & TX_IS_RECT;
+			compositor->visual->current_texture_glsl_program = is_rect ? compositor->visual->yuv_rect_glsl_program : compositor->visual->yuv_glsl_program;
+			active_shader = compositor->visual->current_texture_glsl_program;
+		}
 		GL_CHECK_ERR
-		glUseProgram(compositor->visual->current_texture_glsl_program);
+		glUseProgram(active_shader);
 		GL_CHECK_ERR
 
 		glEnable(txh->tx_io->gl_type);
 
-		loc = glGetUniformLocation(compositor->visual->current_texture_glsl_program, "width");
+		loc = glGetUniformLocation(active_shader, "width");
 		if (loc >=0) {
 			GLfloat w = (GLfloat) txh->width;
 			glUniform1f(loc, w);
 		}
-		loc = glGetUniformLocation(compositor->visual->current_texture_glsl_program, "height");
+		GL_CHECK_ERR
+		loc = glGetUniformLocation(active_shader, "height");
 		if (loc >= 0) {
 			GLfloat h = (GLfloat) txh->height;
 			glUniform1f(loc, h);
 		}
+		GL_CHECK_ERR
+		if(compositor->shader_only_mode){
+			
 
+			loc = glGetUniformLocation(compositor->visual->glsl_program, "isRect");
+			if (loc >= 0)
+				glUniform1i(loc, is_rect);
+			GL_CHECK_ERR
+				
+			loc = glGetUniformLocation(compositor->visual->glsl_program, "isYUV");
+			if (loc >= 0)
+				glUniform1i(loc, 1);
+		}
+		GL_CHECK_ERR
+
+			/*
+		for (i=0; i<3; i++) {
+			const char *txname;
+		if(is_rect){
+			txname = (i==0) ? "y_planeRect" : (i==1) ? "u_planeRect" : "v_planeRect";
+			//glBindTexture(GL_TEXTURE_RECTANGLE_EXT, i+3);	//¡TODO for some reason, this does not work
+			//glBindTexture(GL_TEXTURE_2D, i+3);
+		}else{
+			txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
+		}
+		GL_CHECK_ERR
+			loc = glGetUniformLocation(active_shader, txname);
+			if (loc == -1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture %s in YUV shader\n", txname));
+				continue;
+			}
+			glUniform1i(loc, i);
+
+			GL_CHECK_ERR
+		}*/
+
+		if(!compositor->shader_only_mode){
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
+		loc = glGetUniformLocation(active_shader, "v_plane");
+		glUniform1i(loc, GL_TEXTURE2 - GL_TEXTURE0);
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
+		loc = glGetUniformLocation(active_shader, "u_plane");
+		glUniform1i(loc, GL_TEXTURE1 - GL_TEXTURE0);
 
 		glActiveTexture(GL_TEXTURE0 );
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
+		loc = glGetUniformLocation(active_shader, "y_plane");
+		glUniform1i(loc, 0);
+		}else if(is_rect){
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
+		loc = glGetUniformLocation(active_shader, "v_planeRect");
+		glUniform1i(loc, 3);
 
-		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
-		glClientActiveTexture(GL_TEXTURE0);
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
+		loc = glGetUniformLocation(active_shader, "u_planeRect");
+		glUniform1i(loc, 2);
+
+		glActiveTexture(GL_TEXTURE1 );
+		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
+		loc = glGetUniformLocation(active_shader, "y_planeRect");
+		glUniform1i(loc, 1);
+
+		}
+
+		//tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
+		glClientActiveTexture(GL_TEXTURE0);	//¡k Not supported in ES2.0
+		GL_CHECK_ERR
 	} else
 #endif
 	{
-		tx_bind(txh);
+		if(compositor->shader_only_mode){	//ES2.0
+			GLint loc;
+			Bool is_rect = (txh->tx_io->flags & TX_IS_RECT) ? 1 : 0;
+			glUseProgram(compositor->visual->glsl_program);
+			GL_CHECK_ERR
+
+				glEnable(txh->tx_io->gl_type);
+
+			glActiveTexture(GL_TEXTURE0 );
+			glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
+
+			loc = glGetUniformLocation(compositor->visual->glsl_program, "isYUV");
+			if (loc >= 0) {
+				glUniform1i(loc, 0);
+			}
+
+			loc = glGetUniformLocation(compositor->visual->glsl_program, "isRect");
+			if (loc >= 0)
+				glUniform1i(loc, (int) is_rect);
+			GL_CHECK_ERR
+
+		}
+
+		tx_bind(txh);	//¡k check
+
 	}
 	return 1;
 
