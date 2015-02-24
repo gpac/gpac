@@ -1708,7 +1708,7 @@ int mp4boxMain(int argc, char **argv)
 	s32 subsegs_per_sidx;
 	u32 *brand_add = NULL;
 	u32 *brand_rem = NULL;
-	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
+	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
 	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic, initial_moof_sn, dump_std, import_subtitle;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	GF_SceneDumpFormat dump_mode;
@@ -2253,7 +2253,10 @@ int mp4boxMain(int argc, char **argv)
 			else if (!stricmp(argv[i+1], "merge"))  bitstream_switching_mode = GF_DASH_BSMODE_MERGED;
 			else if (!stricmp(argv[i+1], "single"))  bitstream_switching_mode = GF_DASH_BSMODE_SINGLE;
 			else if (!stricmp(argv[i+1], "inband"))  bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
-			else bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
+			else {
+				fprintf(stderr, "\tWARNING: Unrecognized bitstream switchin mode \"%s\" - please check usage\n", argv[i+1]);
+				MP4BOX_EXIT_WITH_CODE(1);
+			}
 			i++;
 		}
 		else if (!stricmp(arg, "-dynamic")) {
