@@ -1,19 +1,12 @@
 /**
  * Shader implementing: Clipping, Texturing, Lighting, Fog
- *
+ * Available flags: GF_GL_IS_RECT, GF_GL_IS_YUV, GF_GL_HAS_FOG, GF_GL_HAS_CLIP
  *
  **/
 
 //NOTE: if there is a #version directive (e.g. #version 100), it must occur before anything else in the program (including other directives)
  
  #version 100
- 
- //Startof custom directives test
- //#define	GF_RECT		0
- #define	GF_YUV		0
- #define	GF_CLIP		0
- #define	GF_FOG		0
- //Endof
 
  //For other GL versions compatibility
  #ifdef GL_FRAGMENT_PRECISION_HIGH

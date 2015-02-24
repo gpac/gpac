@@ -576,21 +576,24 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 		u8 def_count =0;
 		size_t str_size =0;	//we +1 before loading the shader
 
-		//¡TODOk fix memory leaks
-		/*
-		defs = (char *)gf_malloc(sizeof(char));
-		if(flags & GF_GL_IS_RECT){
-			str_size += strlen("#define GF_RECT\n");
-			defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
-			error = strcpy(defs,"#define GF_RECT\n");
-		}*/
-		defs = (char *)gf_malloc(sizeof(char));
-		switch(flags)
-		{
-			case GF_GL_IS_RECT:
-				str_size += strlen("#define GF_RECT\n");
+		
+		if(flags == 0){	//if no flags - compile full shader
+			return visual_3d_shader_from_source_file(src_path, shader_type);
+		}else{
+			//¡TODOk fix memory leaks
+			defs = (char *)gf_malloc(sizeof(char));
+			if(flags & GF_GL_IS_RECT){
+				str_size += strlen("#define GF_GL_IS_RECT\n");
 				defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
-				error = strcpy(defs,"#define GF_RECT\n");
+				error = strcpy(defs,"#define GF_GL_IS_RECT\n");
+
+			}
+			if(flags & GF_GL_IS_YUV){
+				str_size += strlen("#define GF_GL_IS_YUV\n");
+				defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
+				error = strcpy(defs,"#define GF_GL_IS_YUV\n");
+
+			}
 		}
 
 
@@ -936,16 +939,6 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 
 //Creating and Compiling Vertex and Fragment Shaders
 	if (!visual->glsl_vertex){
-		//betas
-		//visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[texture].vert" , GL_VERTEX_SHADER);	//default texturing
-		//visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[fog].vert" , GL_VERTEX_SHADER);	//default fog
-		//visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[clip].vert" , GL_VERTEX_SHADER);	//default texture + clippin'
-		//visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[mix].vert" , GL_VERTEX_SHADER); //mixing
-		//visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[YUVio].vert" , GL_VERTEX_SHADER); //YUV strict [with ARB extension and in/out]
-		//visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[YUVstrict].vert" , GL_VERTEX_SHADER); //YUV strict [with ARB extension]
-		//visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[mix].vert" , GL_VERTEX_SHADER); //YUV relaxed
-		//visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[lights].vert" , GL_VERTEX_SHADER); //lighting only
-
 		//currently testing
 		//visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[YUVglobalFULL].vert" , GL_VERTEX_SHADER); //mixing
 		visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[global].vert" , GL_VERTEX_SHADER); //mixing
@@ -962,22 +955,13 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	}
 
 	if (!visual->glsl_fragment){
-		//betas
-		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[texture].frag" , GL_FRAGMENT_SHADER);	//default texturing
-		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[fog].frag" , GL_FRAGMENT_SHADER);	//default fog
-		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[clip].frag" , GL_FRAGMENT_SHADER);	//default texture + clippin'
-		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[mix].frag" , GL_FRAGMENT_SHADER);	//mixin
-		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[YUVio].frag" , GL_FRAGMENT_SHADER);	//YUV strict [with ARB extension and in/out]
-		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[YUVstrict].frag" , GL_FRAGMENT_SHADER);	//YUV strict [with ARB extension and in/out]
-		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[YUVrelaxed].frag" , GL_FRAGMENT_SHADER);	//YUV relaxed
-		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[lights].frag" , GL_FRAGMENT_SHADER);	//Lighting only		
-
 		//currently testing
 		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[YUVstrictFULL].frag" , GL_FRAGMENT_SHADER);	//YUV relaxed [without ARB extension] - to be used with YUVglobalFULL.vert
 		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[YUVrelaxedFULL].frag" , GL_FRAGMENT_SHADER);	//YUV strict [with ARB extension] - to be used with YUVglobalFULL.vert
 		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[YUVglobalFULL].frag" , GL_FRAGMENT_SHADER);	//mixing
+
 		visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[global].frag" , GL_FRAGMENT_SHADER);	//mixing
-		//visual->glsl_fragment = visual_3d_shader_with_flags("shaders/ES2[global].frag" , GL_FRAGMENT_SHADER, GF_GL_IS_RECT);	//custom defs test
+		//visual->glsl_fragment = visual_3d_shader_with_flags("shaders/ES2[global].frag" , GL_FRAGMENT_SHADER, GF_GL_IS_RECT);	//custom defs test (0 for full) - e.g. GF_GL_IS_RECT
 
 		//obsolete
 		//visual->glsl_fragment = visual_3d_shader_from_source_file("betaEStRGB.frag" , GL_VERTEX_SHADER);	//default texturing [current]
