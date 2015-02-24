@@ -285,7 +285,7 @@ GF_Err gf_dasher_store_segment_info(GF_DASHSegmenterOptions *dash_cfg, const cha
 #ifndef GPAC_DISABLE_ISOM
 
 GF_EXPORT
-GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec)
+GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec, Bool force_inband)
 {
 	GF_ESD *esd;
 	GF_AVCConfig *avcc;
@@ -353,6 +353,10 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_AVC3_H264:
 	case GF_ISOM_SUBTYPE_AVC4_H264:
 		avcc = gf_isom_avc_config_get(movie, track, 1);
+		if (force_inband) {
+			if (subtype==GF_ISOM_SUBTYPE_AVC_H264) subtype = GF_ISOM_SUBTYPE_AVC3_H264;
+			else if (subtype==GF_ISOM_SUBTYPE_AVC2_H264) subtype = GF_ISOM_SUBTYPE_AVC4_H264;
+		}
 		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 		gf_odf_avc_cfg_del(avcc);
 		return GF_OK;
@@ -369,6 +373,11 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_HVT1:
 	case GF_ISOM_SUBTYPE_SHC1:
 	case GF_ISOM_SUBTYPE_SHV1:
+
+		if (force_inband) {
+			if (subtype==GF_ISOM_SUBTYPE_HVC1) subtype = GF_ISOM_SUBTYPE_HEV1;
+			else if (subtype==GF_ISOM_SUBTYPE_HVC2) subtype = GF_ISOM_SUBTYPE_HEV2;
+		}
 		hvcc = gf_isom_hevc_config_get(movie, track, 1);
 		if (!hvcc) {
 			hvcc = gf_isom_shvc_config_get(movie, track, 1);
@@ -824,7 +833,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			                              &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
 		}
 
-		gf_media_get_rfc_6381_codec_name(bs_switch_segment ? bs_switch_segment : input, i+1, szCodec);
+		gf_media_get_rfc_6381_codec_name(input, i+1, szCodec, bs_switch_segment ? GF_TRUE : GF_FALSE);
 		if (strlen(szCodecs)) strcat(szCodecs, ",");
 		strcat(szCodecs, szCodec);
 
@@ -4649,12 +4658,17 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		content_protection_in_rep = GF_FALSE;
 		if (seg_name) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment-name not allowed in DASH-AVC/264 onDemand profile.\n"));
-			e = GF_NOT_SUPPORTED;
+			e = GF_BAD_PARAM;
 			goto exit;
 		}
 	case GF_DASH_PROFILE_ONDEMAND:
 		seg_at_rap = 1;
 		single_segment = 1;
+		if ((bitstream_switching != GF_DASH_BSMODE_DEFAULT) && (bitstream_switching != GF_DASH_BSMODE_NONE)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] onDemand profile, bitstream switching mode cannot be used.\n"));
+			e = GF_BAD_PARAM;
+			goto exit;
+		}
 		/*BS switching is meaningless in onDemand profile*/
 		bitstream_switching = GF_DASH_BSMODE_NONE;
 		use_url_template = single_file = 0;
@@ -4665,6 +4679,10 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		break;
 	default:
 		break;
+	}
+
+	if (bitstream_switching == GF_DASH_BSMODE_DEFAULT) {
+		bitstream_switching = GF_DASH_BSMODE_INBAND;
 	}
 
 	if (use_url_template && !seg_name) {

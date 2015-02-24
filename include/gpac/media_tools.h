@@ -47,7 +47,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
  * \brief Get RFC 6381 description for @track from @movie.
  * \parama szCodec a pointer to an already allocated string.
  */
-GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec);
+GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec, Bool force_inband_xps);
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -326,7 +326,8 @@ typedef enum
 
 typedef enum
 {
-	GF_DASH_BSMODE_NONE = 0,
+	GF_DASH_BSMODE_DEFAULT, //=inband for live profile and none for onDemand
+	GF_DASH_BSMODE_NONE,
 	GF_DASH_BSMODE_INBAND,
 	GF_DASH_BSMODE_MERGED,
 	GF_DASH_BSMODE_SINGLE
