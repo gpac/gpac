@@ -179,7 +179,6 @@ typedef struct
 
 typedef struct
 {
-	//0: directional - 1: spot - 2: point
 	GF_Plane p;
 	Bool is_2d_clip;
 	GF_Matrix *mx_clipper;
