@@ -306,6 +306,7 @@ typedef struct
 	u32 nb_as_c_descs;
 	char **as_c_descs;
 	u32 bandwidth;
+	Double period_duration;
 } GF_DashSegmenterInput;
 
 typedef enum
