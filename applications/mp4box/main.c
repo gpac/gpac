@@ -311,6 +311,8 @@ void PrintDASHUsage()
 	        " \":period=NAME\"     sets the representation's period to NAME. Multiple periods may be used\n"
 	        "                       period appear in the MPD in the same order as specified with this option\n"
 	        " \":bandwidth=VALUE\" sets the representation's bandwidth to a given value\n"
+			" \":duration=VALUE\"  Increases the duration of this period by the given duration in seconds\n"
+			"                       only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:duration=Y.\n"
 	        " \":xlink=VALUE\"     sets the xlink value for the period containing this element\n"
 	        "                       only the xlink declared on the first rep of a period will be used\n"
 	        " \":role=VALUE\"      sets the role of this representation (cf DASH spec).\n"
@@ -1457,7 +1459,13 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
     char *sep;
     // skip ./ and ../, and look for first . to figure out extension
     if ((name[1]=='/') || (name[2]=='/') || (name[1]=='\\') || (name[2]=='\\') ) sep = strchr(name+3, '.');
-    else sep = strchr(name, '.');
+    else {
+		char *s2 = strchr(name, ':');
+		sep = strchr(name, '.');
+		if (sep && s2 && (ptrdiff_t) (s2 - sep) < 0) {
+			sep = name;
+		}
+	}
     
     //then look for our opt separator :
     sep = strchr(sep ? sep : name, ':');
@@ -1481,6 +1489,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				        !strnicmp(sep, ":bandwidth=", 11) ||
 				        !strnicmp(sep, ":role=", 6) ||
 				        !strnicmp(sep, ":desc", 5) ||
+				        !strnicmp(sep, ":duration=", 10) ||
 				        !strnicmp(sep, ":xlink=", 7)) {
 					break;
 				} else {
@@ -1547,6 +1556,9 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] XLink cannot exceed 99 characters in MP4Box, truncating ...\n"));
 				}
 				strncpy(di->xlink, opts+6, 99);
+			}
+			else if (!strnicmp(opts, "duration=", 9)) {
+				di->period_duration = (Double) atof(opts+9);
 			}
 
 			if (!sep) break;
