@@ -176,7 +176,9 @@ void PrintUsage()
 	        "\t-rtix fileName: same as -rti but driven by GPAC logs\n"
 	        "\t-quiet:         removes script message, buffering and downloading status\n"
 	        "\t-strict-error:  exit when the player reports its first error\n"
-	        "\t-opt option:    Overrides an option in the configuration file. String format is section:key=value\n"
+	        "\t-opt option:    Overrides an option in the configuration file. String format is section:key=value. \n"
+	        "\t                  \"section:key=null\" removes the key\n"
+	        "\t                  \"section:*=null\" removes the section\n"
 	        "\t-conf option:   Same as -opt but does not start player.\n"
 	        "\t-log-file file: sets output log file. Also works with -lf\n"
 	        "\t-logs log_args: sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
@@ -1052,7 +1054,19 @@ void set_cfg_option(char *opt_string)
 	strcpy(szKey, sep);
 	strcpy(szVal, sep2+1);
 	sep2[0] = '=';
-	if (!stricmp(szVal, "null")) szVal[0]=0;
+	
+	if (!stricmp(szKey, "*")) {
+		if (stricmp(szVal, "null")) {
+			fprintf(stderr, "Badly formatted option %s - expected Section:*=null\n", opt_string);
+			return;
+		}
+		gf_cfg_del_section(cfg_file, szSec);
+		return;
+	}
+	
+	if (!stricmp(szVal, "null")) {
+		szVal[0]=0;
+	}
 	gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
 }
 
