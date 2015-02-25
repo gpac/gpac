@@ -430,6 +430,7 @@ void gf_cfg_del_section(GF_Config *iniFile, const char *secName)
 		if (!strcmp(secName, p->section_name)) {
 			DelSection(p);
 			gf_list_rem(iniFile->sections, i-1);
+			iniFile->hasChanged = GF_TRUE;
 			return;
 		}
 	}
