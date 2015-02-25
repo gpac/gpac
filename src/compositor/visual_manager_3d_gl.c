@@ -774,7 +774,7 @@ static void visual_3d_init_yuv_shaders(GF_VisualManager *visual)
 	}
 }
 
-
+//¡kstartof custom ES2.0 functions
 //¡k test function for listing all active uniforms
 static void my_glQueryUniforms(GF_SHADERID progObj){
 		
@@ -908,28 +908,109 @@ static void my_glQueryAttributes(GF_SHADERID progObj){
 	}
 }
 
+/** Checks if the selected GLSL flag has an updated value
+ *  Returns GF_FALSE if the flags are already old
+ *  Returns GF_TRUE is the check was successful
+ *  new_glsl_feature = GF_TRUE, if flag has changed
+ */
+Bool check_glsl_flag(GF_VisualManager *visual, u32 flag){
+	
+	Bool glsl_value, visual_value;
+	u32 flags = visual->glsl_flags;
+
+	//Abort if the flags are old
+	if(visual->new_glsl_feature == GF_TRUE)
+		return GF_FALSE;
+
+
+	
+	switch(flag){
+		/*
+		case GF_GL_IS_RECT:
+			visual_value =
+			glsl_value = (flags & GF_GL_IS_RECT);
+			break;
+		case GF_GL_IS_YUV:
+			visual_value =
+			glsl_value = (flags & GF_GL_IS_YUV);
+			break;
+		*/
+		case GF_GL_HAS_CLIP:
+			visual_value = (Bool) (visual->num_clips > 0);
+			break;
+		case GF_GL_HAS_FOG:
+			visual_value = visual->has_fog;
+			break;
+		case GF_GL_HAS_MAT:
+			visual_value = visual->has_material;
+			break;
+		case GF_GL_HAS_MAT_2D:
+			visual_value = visual->has_material_2d;
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("Undefined GLSL flag (of value: %u [ES2.0]",flag));
+			return GF_TRUE;	//check was successful (no changes)
+	}
+
+	glsl_value = (Bool) (flags & flag);
+
+	if(glsl_value!=visual_value){
+		visual->new_glsl_feature = GF_TRUE;
+		visual->glsl_flags ^= flag;		//toggle flag
+	}
+
+	return GF_TRUE;
+}
+
+/** Checks if any GLSL flag has an updated value
+ *  Returns GF_TRUE if flags have changes
+ *  Returns GF_FALSE if they are still valid
+ */
+/*	Uncomment this!!!!!!!
+Bool refresh_glsl_flags(GF_VisualManager *visual){
+
+	//Abort if the flags are old
+	if(visual->new_glsl_feature == GF_TRUE)
+		return GF_FALSE;
+
+	for ( i =0; i<GF_GL_NUM_OF_FLAGS; i++){
+		if(check_glsl_flag(visual, (1<<i))
+
+	}
+
+	//if(visual->has_fog != (visual->glsl_flags & GF_GL_HAS_MAT))
+		//update_glsl_flag(
+
+	//visual->glsl_flags
+
+}
+*/
 
 
 /**
- ¡k
- OpenGL ES 2.0 Vertex Shader for GL ES 1.1 fixed-function vertex pipeline
- implements:
-  - compute lighting equation for up to eight lights
-  - transform position to clip coords
-  - texture coords transform (max:2)
-  - compute fog factor
-  - user clip plane dot product (v_ucp_factor)
-
-  includes chunks of code from OpenGL ES 2.0 Programming Guide [Addison-Wesley]
-  shader_only_mode
+ * ¡k
+ * OpenGL ES 2.0 Vertex Shader for GL ES 1.1 fixed-function vertex pipeline
+ * implements:
+ * - compute lighting equation for up to eight lights
+ * - transform position to clip coords
+ * - texture coords transform (max:2)
+ * - compute fog factor
+ * - user clip plane dot product (v_ucp_factor)
+ *
+ * includes chunks of code from OpenGL ES 2.0 Programming Guide [Addison-Wesley]
+ * shader_only_mode
 */
 
 //todo ... shader_only_mode
 static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 {
+	u32 i;
+	GLint loc;
 	Bool working = 0;	//¡k temp bool for testing
 	GLint err_log = 0;	//¡k error log
 	GLsizei log_len = 0; //¡k
+
+	GL_CHECK_ERR
 
 //Creating Program for the shaders
 	if (visual->glsl_program)
@@ -1014,14 +1095,15 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 
 
 }
-
+//¡k endof
 void visual_3d_init_shaders(GF_VisualManager *visual)
 {
 	if (!visual->compositor->gl_caps.has_shaders) return;
 
-	visual_3d_init_yuv_shaders(visual);
 	if (visual->compositor->shader_only_mode) {
 		visual_3d_init_generic_shaders(visual);
+	}else{
+		visual_3d_init_yuv_shaders(visual);
 	}
 
 }
