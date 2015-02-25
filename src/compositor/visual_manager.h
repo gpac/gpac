@@ -35,14 +35,18 @@
 #include "visual_manager_3d.h"
 
 //¡k startof ES2.0
-#define GF_GL_MAX_DEFS	8
+/* number of preprocessor flags for ES2.0 */
+#define GF_GL_NUM_OF_FLAGS	6
 
-/* setting preprocessor flags for ES2*/
-enum
-{
+/* setting preprocessor flags for ES2.0 */
+//¡k maybe name enum?
+enum {
 	GF_GL_IS_RECT = 1,
 	GF_GL_IS_YUV = (1<<1),
-	GF_GL_HAS_CLIP = (1<<2)
+	GF_GL_HAS_CLIP = (1<<2),
+	GF_GL_HAS_FOG = (1<<3),
+	GF_GL_HAS_MAT = (1<<4),
+	GF_GL_HAS_MAT_2D = (1<<5)
 };
 //¡endof
 
@@ -240,11 +244,16 @@ struct _visual_manager
 	Fixed fog_density, fog_visibility;
 
 	/*end of GL state to emulate with GLSL*/	
-
-	//shaders used for shader-only drawing
+#ifdef GPAC_USE_OGL_ES2
+	/* shaders used for shader-only drawing */
 	GF_SHADERID glsl_vertex;
 	GF_SHADERID glsl_fragment;
 	GF_SHADERID glsl_program;
+	/* Compilation/Features Flags for dynamic shader */
+	u32 glsl_flags;
+	/* Indicates changes in shader flags */
+	Bool new_glsl_feature;
+#endif
 
 #endif
 
