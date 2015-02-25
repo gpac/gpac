@@ -4759,6 +4759,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		Double period_duration=0;
 
 		for (i=0; i<nb_dash_inputs; i++) {
+			Double dur = 0;
 			/*this file does not belongs to any adaptation set*/
 			if (dash_inputs[i].period != cur_period+1) continue;
 
@@ -4774,8 +4775,13 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				e = dash_inputs[i].dasher_get_components_info(&dash_inputs[i], &dash_opts);
 				if (e) goto exit;
 			}
-			if (dash_inputs[i].duration > period_duration)
-				period_duration = dash_inputs[i].duration;
+			dur = dash_inputs[i].duration;
+			if (subduration && (subduration < dur) ) {
+				dur = dash_opts.subduration;
+			} 
+
+			if (dur > period_duration)
+				period_duration = dur;
 
 			switch (dash_inputs[i].protection_scheme_type) {
 			case GF_ISOM_CENC_SCHEME:
