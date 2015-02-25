@@ -1462,7 +1462,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
     else {
 		char *s2 = strchr(name, ':');
 		sep = strchr(name, '.');
-		if (sep && s2 && (ptrdiff_t) (s2 - sep) < 0) {
+		if (sep && s2 && (s2 - sep) < 0) {
 			sep = name;
 		}
 	}
