@@ -522,6 +522,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 
 	gf_sys_init(use_mem_track);
 
+	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 	if (use_mem_track) {
 		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 	}
