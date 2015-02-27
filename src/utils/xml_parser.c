@@ -1165,7 +1165,7 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 		if (parser->on_progress) parser->on_progress(parser->sax_cbck, parser->file_size, parser->file_size);
 
 #ifdef NO_GZIP
-		fclose(parser->f_in);
+		gf_fclose(parser->f_in);
 		parser->f_in = NULL;
 #else
 		gzclose(parser->gz_in);
@@ -1232,19 +1232,19 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	}
 
 	/*check file exists and gets its size (zlib doesn't support SEEK_END)*/
-	test = gf_f64_open(fileName, "rb");
+	test = gf_fopen(fileName, "rb");
 	if (!test) return GF_URL_ERROR;
-	gf_f64_seek(test, 0, SEEK_END);
-	assert(gf_f64_tell(test) < 1<<31);
-	parser->file_size = (u32) gf_f64_tell(test);
-	fclose(test);
+	gf_fseek(test, 0, SEEK_END);
+	assert(gf_ftell(test) < 1<<31);
+	parser->file_size = (u32) gf_ftell(test);
+	gf_fclose(test);
 
 	parser->file_pos = 0;
 	parser->elt_start_pos = 0;
 	parser->current_pos = 0;
 	//open file and copy possible BOM
 #ifdef NO_GZIP
-	parser->f_in = gf_f64_open(fileName, "rt");
+	parser->f_in = gf_fopen(fileName, "rt");
 	fread(szLine, 1, 4, parser->f_in);
 #else
 	gzInput = gzopen(fileName, "rb");
@@ -1297,7 +1297,7 @@ void gf_xml_sax_del(GF_SAXParser *parser)
 	xml_sax_reset(parser);
 	gf_list_del(parser->entities);
 #ifdef NO_GZIP
-	if (parser->f_in) fclose(parser->f_in);
+	if (parser->f_in) gf_fclose(parser->f_in);
 #else
 	if (parser->gz_in) gzclose(parser->gz_in);
 #endif
@@ -1381,7 +1381,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	pos=0;
 	if (!from_buffer) {
 #ifdef NO_GZIP
-		pos = gf_f64_tell(parser->f_in);
+		pos = gf_ftell(parser->f_in);
 #else
 		pos = gztell(parser->gz_in);
 #endif
@@ -1517,7 +1517,7 @@ exit:
 
 	if (!from_buffer) {
 #ifdef NO_GZIP
-		gf_f64_seek(parser->f_in, pos, SEEK_SET);
+		gf_fseek(parser->f_in, pos, SEEK_SET);
 #else
 		gzrewind(parser->gz_in);
 		gzseek(parser->gz_in, pos, SEEK_SET);
@@ -2110,7 +2110,7 @@ static GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs)
 		} else if (szFile) {
 			u32 read, remain;
 			char block[1024];
-			FILE *_tmp = gf_f64_open(szFile, use_text ? "rt" : "rb");
+			FILE *_tmp = gf_fopen(szFile, use_text ? "rt" : "rb");
 
 			if (!_tmp) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[XML/NHML] Error opening file %s\n", szFile));
@@ -2118,20 +2118,20 @@ static GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs)
 			}
 
 			if (!size) {
-				gf_f64_seek(_tmp, 0, SEEK_END);
-				size = (u32) gf_f64_tell(_tmp);
+				gf_fseek(_tmp, 0, SEEK_END);
+				size = (u32) gf_ftell(_tmp);
 				//if offset only copy from offset until end
 				if ((u64) size > offset)
 					size -= (u32) offset;
 			}
 			remain = size;
-			gf_f64_seek(_tmp, offset, SEEK_SET);
+			gf_fseek(_tmp, offset, SEEK_SET);
 			while (remain) {
 				read = (u32) fread(block, 1, (remain>1024) ? 1024 : remain, _tmp);
 				gf_bs_write_data(bs, block, read);
 				remain -= size;
 			}
-			fclose(_tmp);
+			gf_fclose(_tmp);
 		} else if (use_word128) {
 			gf_bs_write_data(bs, (char *)word128, 16);
 		}

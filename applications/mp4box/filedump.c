@@ -98,10 +98,10 @@ GF_Err dump_cover_art(GF_ISOFile *file, char *inName)
 	}
 
 	sprintf(szName, "%s.%s", inName, (tag_len>>31) ? "png" : "jpg");
-	t = gf_f64_open(szName, "wb");
+	t = gf_fopen(szName, "wb");
 	gf_fwrite(tag, tag_len & 0x7FFFFFFF, 1, t);
 
-	fclose(t);
+	gf_fclose(t);
 	return GF_OK;
 }
 
@@ -113,13 +113,13 @@ GF_Err set_cover_art(GF_ISOFile *file, char *inName)
 	char *tag, *ext;
 	FILE *t;
 	u32 tag_len;
-	t = gf_f64_open(inName, "rb");
-	gf_f64_seek(t, 0, SEEK_END);
-	tag_len = (u32) gf_f64_tell(t);
-	gf_f64_seek(t, 0, SEEK_SET);
+	t = gf_fopen(inName, "rb");
+	gf_fseek(t, 0, SEEK_END);
+	tag_len = (u32) gf_ftell(t);
+	gf_fseek(t, 0, SEEK_SET);
 	tag = gf_malloc(sizeof(char) * tag_len);
 	tag_len = (u32) fread(tag, sizeof(char), tag_len, t);
-	fclose(t);
+	gf_fclose(t);
 
 	ext = strrchr(inName, '.');
 	if (!stricmp(ext, ".png")) tag_len |= 0x80000000;
@@ -188,7 +188,7 @@ GF_Err dump_file_text(char *file, char *inName, GF_SceneDumpFormat dump_mode, Bo
 	if (do_log) {
 		char szLog[GF_MAX_PATH];
 		sprintf(szLog, "%s_dec.logs", inName);
-		logs = gf_f64_open(szLog, "wt");
+		logs = gf_fopen(szLog, "wt");
 
 		gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_DEBUG);
 		prev_logs = gf_log_set_callback(logs, scene_coding_log);
@@ -199,7 +199,7 @@ GF_Err dump_file_text(char *file, char *inName, GF_SceneDumpFormat dump_mode, Bo
 	if (logs) {
 		gf_log_set_tool_level(GF_LOG_CODING, GF_LOG_ERROR);
 		gf_log_set_callback(NULL, prev_logs);
-		fclose(logs);
+		gf_fclose(logs);
 	}
 	if (!e && dump_mode != GF_SM_DUMP_SVG) {
 		u32 count = gf_list_count(ctx->streams);
@@ -386,7 +386,7 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 	if (inName) {
 		strcpy(szBuf, inName);
 		strcat(szBuf, "_stat.xml");
-		dump = gf_f64_open(szBuf, "wt");
+		dump = gf_fopen(szBuf, "wt");
 		close = 1;
 	} else {
 		dump = stderr;
@@ -467,7 +467,7 @@ exit:
 	} else {
 		fprintf(dump, "</SceneStatistics>\n");
 	}
-	if (dump && close) fclose(dump);
+	if (dump && close) gf_fclose(dump);
 	fprintf(stderr, "done\n");
 }
 #endif /*GPAC_DISABLE_SCENE_STATS*/
@@ -743,9 +743,9 @@ void dump_isom_xml(GF_ISOFile *file, char *inName)
 	if (inName) {
 		strcpy(szBuf, inName);
 		strcat(szBuf, "_info.xml");
-		dump = gf_f64_open(szBuf, "wt");
+		dump = gf_fopen(szBuf, "wt");
 		gf_isom_dump(file, dump);
-		fclose(dump);
+		gf_fclose(dump);
 	} else {
 		gf_isom_dump(file, stderr);
 	}
@@ -765,7 +765,7 @@ void dump_file_rtp(GF_ISOFile *file, char *inName)
 	if (inName) {
 		strcpy(szBuf, inName);
 		strcat(szBuf, "_rtp.xml");
-		dump = gf_f64_open(szBuf, "wt");
+		dump = gf_fopen(szBuf, "wt");
 	} else {
 		dump = stderr;
 	}
@@ -787,7 +787,7 @@ void dump_file_rtp(GF_ISOFile *file, char *inName)
 		fprintf(dump, "</RTPHintTrack>\n");
 	}
 	fprintf(dump, "</RTPFile>\n");
-	if (inName) fclose(dump);
+	if (inName) gf_fclose(dump);
 }
 #endif
 
@@ -801,7 +801,7 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 	if (inName) {
 		strcpy(szBuf, inName);
 		strcat(szBuf, "_ts.txt");
-		dump = gf_f64_open(szBuf, "wt");
+		dump = gf_fopen(szBuf, "wt");
 	} else {
 		dump = stderr;
 	}
@@ -859,7 +859,7 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 		fprintf(dump, "\n\n");
 		gf_set_progress("Analysing Track Timing", count, count);
 	}
-	if (inName) fclose(dump);
+	if (inName) gf_fclose(dump);
 	if (has_error) fprintf(stderr, "\tFile has CTTS table errors\n");
 }
 
@@ -1158,7 +1158,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		char szBuf[GF_MAX_PATH];
 		strcpy(szBuf, inName);
 		sprintf(szBuf, "%s_%d_nalu.xml", inName, trackID);
-		dump = gf_f64_open(szBuf, "wt");
+		dump = gf_fopen(szBuf, "wt");
 	} else {
 		dump = stderr;
 	}
@@ -1324,7 +1324,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	fprintf(dump, " </NALUSamples>\n");
 	fprintf(dump, "</NALUTrack>\n");
 
-	if (inName) fclose(dump);
+	if (inName) gf_fclose(dump);
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (avccfg) gf_odf_avc_cfg_del(avccfg);
 	if (svccfg) gf_odf_avc_cfg_del(svccfg);
@@ -1348,7 +1348,7 @@ void dump_file_ismacryp(GF_ISOFile *file, char *inName)
 	if (inName) {
 		strcpy(szBuf, inName);
 		strcat(szBuf, "_ismacryp.xml");
-		dump = gf_f64_open(szBuf, "wt");
+		dump = gf_fopen(szBuf, "wt");
 	} else {
 		dump = stderr;
 	}
@@ -1370,7 +1370,7 @@ void dump_file_ismacryp(GF_ISOFile *file, char *inName)
 		fprintf(dump, "</ISMACrypTrack >\n");
 	}
 	fprintf(dump, "</ISMACrypFile>\n");
-	if (inName) fclose(dump);
+	if (inName) gf_fclose(dump);
 }
 
 
@@ -1403,12 +1403,12 @@ void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_
 			sprintf(szBuf, "%s.%s", inName, ext) ;
 		else
 			sprintf(szBuf, "%s_%d_text.%s", inName, trackID, ext);
-		dump = gf_f64_open(szBuf, "wt");
+		dump = gf_fopen(szBuf, "wt");
 	} else {
 		dump = stdout;
 	}
 	e = gf_isom_text_dump(file, track, dump, dump_type);
-	if (inName) fclose(dump);
+	if (inName) gf_fclose(dump);
 
 	if (e) fprintf(stderr, "Conversion failed (%s)\n", gf_error_to_string(e));
 	else fprintf(stderr, "Conversion done\n");
@@ -1431,7 +1431,7 @@ void DumpSDP(GF_ISOFile *file, char *inName)
 		ext = strchr(szBuf, '.');
 		if (ext) ext[0] = 0;
 		strcat(szBuf, "_sdp.txt");
-		dump = gf_f64_open(szBuf, "wt");
+		dump = gf_fopen(szBuf, "wt");
 	} else {
 		dump = stderr;
 		fprintf(dump, "* File SDP content *\n\n");
@@ -1448,7 +1448,7 @@ void DumpSDP(GF_ISOFile *file, char *inName)
 		fprintf(dump, "%s", sdp);
 	}
 	fprintf(dump, "\n\n");
-	if (inName) fclose(dump);
+	if (inName) gf_fclose(dump);
 }
 
 #endif
@@ -1540,14 +1540,14 @@ GF_Err dump_udta(GF_ISOFile *file, char *inName, u32 dump_udta_type, u32 dump_ud
 		return e;
 	} 
 	sprintf(szName, "%s_%s.udta", inName, gf_4cc_to_str(dump_udta_type) );
-	t = gf_f64_open(szName, "wb");
+	t = gf_fopen(szName, "wb");
 	if (!t) {
 		gf_free(data);
 		fprintf(stderr, "Cannot open file %s\n", szName );
 		return GF_IO_ERR;
 	}
 	res = (u32) fwrite(data, 1, count, t);
-	fclose(t);
+	gf_fclose(t);
 	gf_free(data);
 	if (count != res) {
 		fprintf(stderr, "Error writing udta to file\n");
@@ -1574,7 +1574,7 @@ GF_Err dump_chapters(GF_ISOFile *file, char *inName, Bool dump_ogg)
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Extracting chapters to %s\n", szName));
 	}
 
-	t = gf_f64_open(szName, "wt");
+	t = gf_fopen(szName, "wt");
 	if (!t) return GF_IO_ERR;
 
 	for (i=0; i<count; i++) {
@@ -1590,7 +1590,7 @@ GF_Err dump_chapters(GF_ISOFile *file, char *inName, Bool dump_ogg)
 			fprintf(t, "AddChapterBySecond("LLD",%s)\n", chapter_time, name);
 		}
 	}
-	fclose(t);
+	gf_fclose(t);
 	return GF_OK;
 }
 
@@ -2804,7 +2804,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	GF_M2TS_Demuxer *ts;
 	FILE *src;
 
-	src = gf_f64_open(mpeg2ts_file, "rb");
+	src = gf_fopen(mpeg2ts_file, "rb");
 	if (!src) {
 		fprintf(stderr, "Cannot open %s: no such file\n", mpeg2ts_file);
 		return;
@@ -2823,21 +2823,21 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 			dumper.dump_pid = atoi(pid+1);
 			pid[0] = 0;
 			sprintf(dumper.dump, "%s_%d.raw", out_name, dumper.dump_pid);
-			dumper.pes_out = gf_f64_open(dumper.dump, "wb");
+			dumper.pes_out = gf_fopen(dumper.dump, "wb");
 #if 0
 			sprintf(dumper.nhml, "%s_%d.nhml", pes_out_name, dumper.dump_pid);
-			dumper.pes_out_nhml = gf_f64_open(dumper.nhml, "wt");
+			dumper.pes_out_nhml = gf_fopen(dumper.nhml, "wt");
 			sprintf(dumper.info, "%s_%d.info", pes_out_name, dumper.dump_pid);
-			dumper.pes_out_info = gf_f64_open(dumper.info, "wb");
+			dumper.pes_out_info = gf_fopen(dumper.info, "wb");
 #endif
 			pid[0] = '#';
 		}
 	}
 
 
-	gf_f64_seek(src, 0, SEEK_END);
-	fsize = gf_f64_tell(src);
-	gf_f64_seek(src, 0, SEEK_SET);
+	gf_fseek(src, 0, SEEK_END);
+	fsize = gf_ftell(src);
+	gf_fseek(src, 0, SEEK_SET);
 	fdone = 0;
 
 	/* first loop to process all packets between two PAT, and assume all signaling was found between these 2 PATs */
@@ -2852,7 +2852,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 
 	if (prog_num) {
 		sprintf(dumper.timestamps_info_name, "%s_prog_%d_timestamps.txt", mpeg2ts_file, prog_num/*, mpeg2ts_file*/);
-		dumper.timestamps_info_file = gf_f64_open(dumper.timestamps_info_name, "wt");
+		dumper.timestamps_info_file = gf_fopen(dumper.timestamps_info_name, "wt");
 		if (!dumper.timestamps_info_file) {
 			fprintf(stderr, "Cannot open file %s\n", dumper.timestamps_info_name);
 			return;
@@ -2861,7 +2861,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	}
 
 	gf_m2ts_reset_parsers(ts);
-	gf_f64_seek(src, 0, SEEK_SET);
+	gf_fseek(src, 0, SEEK_SET);
 	fdone = 0;
 
 
@@ -2876,17 +2876,17 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	}
 
 
-	fclose(src);
+	gf_fclose(src);
 	gf_m2ts_demux_del(ts);
-	if (dumper.pes_out) fclose(dumper.pes_out);
+	if (dumper.pes_out) gf_fclose(dumper.pes_out);
 #if 0
 	if (dumper.pes_out_nhml) {
 		if (dumper.is_info_dumped) fprintf(dumper.pes_out_nhml, "</NHNTStream>\n");
-		fclose(dumper.pes_out_nhml);
-		fclose(dumper.pes_out_info);
+		gf_fclose(dumper.pes_out_nhml);
+		gf_fclose(dumper.pes_out_info);
 	}
 #endif
-	if (dumper.timestamps_info_file) fclose(dumper.timestamps_info_file);
+	if (dumper.timestamps_info_file) gf_fclose(dumper.timestamps_info_file);
 
 }
 

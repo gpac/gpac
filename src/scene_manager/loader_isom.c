@@ -318,7 +318,7 @@ exit:
 	gf_laser_decoder_del(lsr_dec);
 #endif
 	if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
-	if (logs) fclose(logs);
+	if (logs) gf_fclose(logs);
 	return e;
 }
 

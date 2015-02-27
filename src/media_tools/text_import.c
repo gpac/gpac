@@ -67,20 +67,20 @@ s32 gf_text_get_utf_type(FILE *in_src)
 	if ((BOM[0]==0xFF) && (BOM[1]==0xFE)) {
 		/*UTF32 not supported*/
 		if (!BOM[2] && !BOM[3]) return -1;
-		gf_f64_seek(in_src, 2, SEEK_SET);
+		gf_fseek(in_src, 2, SEEK_SET);
 		return 3;
 	}
 	if ((BOM[0]==0xFE) && (BOM[1]==0xFF)) {
 		/*UTF32 not supported*/
 		if (!BOM[2] && !BOM[3]) return -1;
-		gf_f64_seek(in_src, 2, SEEK_SET);
+		gf_fseek(in_src, 2, SEEK_SET);
 		return 2;
 	} else if ((BOM[0]==0xEF) && (BOM[1]==0xBB) && (BOM[2]==0xBF)) {
-		gf_f64_seek(in_src, 3, SEEK_SET);
+		gf_fseek(in_src, 3, SEEK_SET);
 		return 1;
 	}
 	if (BOM[0]<0x80) {
-		gf_f64_seek(in_src, 0, SEEK_SET);
+		gf_fseek(in_src, 0, SEEK_SET);
 		return 0;
 	}
 	return -1;
@@ -91,7 +91,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 	char szLine[2048];
 	u32 val;
 	s32 uni_type;
-	FILE *test = gf_f64_open(filename, "rb");
+	FILE *test = gf_fopen(filename, "rb");
 	if (!test) return GF_URL_ERROR;
 	uni_type = gf_text_get_utf_type(test);
 
@@ -129,7 +129,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 	else if (strstr(szLine, " --> ") )
 		*fmt = GF_TEXT_IMPORT_SRT; /* might want to change the default to WebVTT */
 
-	fclose(test);
+	gf_fclose(test);
 	return GF_OK;
 }
 
@@ -286,14 +286,14 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	char szLine[2048], szText[2048], *ptr;
 	unsigned short uniLine[5000], uniText[5000], *sptr;
 
-	srt_in = gf_f64_open(import->in_name, "rt");
-	gf_f64_seek(srt_in, 0, SEEK_END);
-	file_size = gf_f64_tell(srt_in);
-	gf_f64_seek(srt_in, 0, SEEK_SET);
+	srt_in = gf_fopen(import->in_name, "rt");
+	gf_fseek(srt_in, 0, SEEK_END);
+	file_size = gf_ftell(srt_in);
+	gf_fseek(srt_in, 0, SEEK_SET);
 
 	unicode_type = gf_text_get_utf_type(srt_in);
 	if (unicode_type<0) {
-		fclose(srt_in);
+		gf_fclose(srt_in);
 		return gf_import_message(import, GF_NOT_SUPPORTED, "Unsupported SRT UTF encoding");
 	}
 
@@ -322,7 +322,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	if (cfg && cfg->timescale) timescale = cfg->timescale;
 	track = gf_isom_new_track(import->dest, ID, GF_ISOM_MEDIA_TEXT, timescale);
 	if (!track) {
-		fclose(srt_in);
+		gf_fclose(srt_in);
 		return gf_import_message(import, gf_isom_last_error(import->dest), "Error creating text track");
 	}
 	gf_isom_set_track_enabled(import->dest, track, 1);
@@ -452,7 +452,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 					gf_isom_text_reset(samp);
 
 					//gf_import_progress(import, nb_samp, nb_samp+1);
-					gf_set_progress("Importing SRT", gf_f64_tell(srt_in), file_size);
+					gf_set_progress("Importing SRT", gf_ftell(srt_in), file_size);
 					if (duration && (end >= duration)) break;
 				}
 				state = 0;
@@ -709,7 +709,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 
 exit:
 	if (e) gf_isom_remove_track(import->dest, track);
-	fclose(srt_in);
+	gf_fclose(srt_in);
 	return e;
 }
 
@@ -1470,14 +1470,14 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 	char szLine[2048], szTime[20], szText[2048];
 	GF_ISOSample *s;
 
-	sub_in = gf_f64_open(import->in_name, "rt");
-	gf_f64_seek(sub_in, 0, SEEK_END);
-	file_size = gf_f64_tell(sub_in);
-	gf_f64_seek(sub_in, 0, SEEK_SET);
+	sub_in = gf_fopen(import->in_name, "rt");
+	gf_fseek(sub_in, 0, SEEK_END);
+	file_size = gf_ftell(sub_in);
+	gf_fseek(sub_in, 0, SEEK_SET);
 
 	unicode_type = gf_text_get_utf_type(sub_in);
 	if (unicode_type<0) {
-		fclose(sub_in);
+		gf_fclose(sub_in);
 		return gf_import_message(import, GF_NOT_SUPPORTED, "Unsupported SUB UTF encoding");
 	}
 
@@ -1508,7 +1508,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 	if (cfg && cfg->timescale) timescale = cfg->timescale;
 	track = gf_isom_new_track(import->dest, ID, GF_ISOM_MEDIA_TEXT, timescale);
 	if (!track) {
-		fclose(sub_in);
+		gf_fclose(sub_in);
 		return gf_import_message(import, gf_isom_last_error(import->dest), "Error creating text track");
 	}
 	gf_isom_set_track_enabled(import->dest, track, 1);
@@ -1675,7 +1675,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		nb_samp++;
 		gf_isom_text_reset(samp);
 		prev_end = end;
-		gf_set_progress("Importing SUB", gf_f64_tell(sub_in), file_size);
+		gf_set_progress("Importing SUB", gf_ftell(sub_in), file_size);
 		if (duration && (end >= duration)) break;
 	}
 	gf_isom_delete_text_sample(samp);
@@ -1688,7 +1688,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 
 exit:
 	if (e) gf_isom_remove_track(import->dest, track);
-	fclose(sub_in);
+	gf_fclose(sub_in);
 	return e;
 }
 

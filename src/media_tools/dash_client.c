@@ -1375,7 +1375,7 @@ static u32 gf_dash_get_index_in_timeline(GF_MPD_SegmentTimeline *timeline, u64 s
 static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient *dash, GF_MPD_SegmentList *old_list, GF_MPD_SegmentTemplate *old_template, GF_MPD_SegmentList *new_list, GF_MPD_SegmentTemplate *new_template, Double min_start_time)
 {
 	GF_MPD_SegmentTimeline *old_timeline, *new_timeline;
-	u32 i, idx, prev_count, timescale, nb_new_segs;
+	u32 i, idx, timescale, nb_new_segs;
 	GF_MPD_SegmentTimelineEntry *ent;
 
 	old_timeline = new_timeline = NULL;
@@ -1397,9 +1397,6 @@ static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient
 		timescale = new_template->timescale;
 	}
 	if (!old_timeline && !new_timeline) return GF_OK;
-
-	prev_count = gf_list_count(old_timeline->entries);
-
 
 	if (group) {
 		group->current_start_time = gf_dash_get_segment_start_time_with_timescale(group, NULL, &group->current_timescale);
@@ -1527,10 +1524,10 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	if (!dash->mpd_dnload) {
 		local_url = purl = NULL;
 		if (!gf_list_count(dash->mpd->locations)) {
-			FILE *t = gf_f64_open(dash->base_url, "rt");
+			FILE *t = gf_fopen(dash->base_url, "rt");
 			if (t) {
 				local_url = dash->base_url;
-				fclose(t);
+				gf_fclose(t);
 			}
 			if (!local_url) {
 				/*we will no longer attempt to update the MPD ...*/
@@ -2719,7 +2716,7 @@ static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Repr
 		}
 		bs = gf_bs_new(mem_address, size, GF_BITSTREAM_READ);
 	} else {
-		FILE *f = gf_f64_open(cache_name, "rb");
+		FILE *f = gf_fopen(cache_name, "rb");
 		if (!f) return GF_IO_ERR;
 		bs = gf_bs_from_file(f, GF_BITSTREAM_READ);
 	}
@@ -2743,7 +2740,7 @@ static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Repr
 		break;
 	}
 	gf_bs_del(bs);
-	if (f) fclose(f);
+	if (f) gf_fclose(f);
 	return e;
 }
 
@@ -2763,9 +2760,9 @@ static GF_Err dash_load_box_type(const char *cache_name, u32 offset, u32 *box_ty
 		*box_type = GF_4CC(mem_address[4], mem_address[5], mem_address[6], mem_address[7]);
 	} else {
 		unsigned char data[4];
-		FILE *f = gf_f64_open(cache_name, "rb");
+		FILE *f = gf_fopen(cache_name, "rb");
 		if (!f) return GF_IO_ERR;
-		if (gf_f64_seek(f, offset, SEEK_SET))
+		if (gf_fseek(f, offset, SEEK_SET))
 			return GF_IO_ERR;
 		if (fread(data, 1, 4, f) == 4) {
 			*box_size = GF_4CC(data[0], data[1], data[2], data[3]);
@@ -2773,7 +2770,7 @@ static GF_Err dash_load_box_type(const char *cache_name, u32 offset, u32 *box_ty
 				*box_type = GF_4CC(data[0], data[1], data[2], data[3]);
 			}
 		}
-		fclose(f);
+		gf_fclose(f);
 	}
 	return GF_OK;
 }
@@ -2885,7 +2882,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 						sprintf(szName, "gmem://%d@%p", rep->playback.init_segment_size, rep->playback.init_segment_data);
 						rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
 					} else {
-						FILE *t = gf_f64_open(cache_name, "rb");
+						FILE *t = gf_fopen(cache_name, "rb");
 						if (t) {
 							u32 res;
 							fseek(t, 0, SEEK_END);
@@ -4287,21 +4284,21 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	}
 
 	if (is_local) {
-		FILE *f = gf_f64_open(local_url, "rt");
+		FILE *f = gf_fopen(local_url, "rt");
 		if (!f) {
 			sep_cgi = strrchr(local_url, '?');
 			if (sep_cgi) sep_cgi[0] = 0;
 			sep_frag = strrchr(local_url, '#');
 			if (sep_frag) sep_frag[0] = 0;
 
-			f = gf_f64_open(local_url, "rt");
+			f = gf_fopen(local_url, "rt");
 			if (!f) {
 				if (sep_cgi) sep_cgi[0] = '?';
 				if (sep_frag) sep_frag[0] = '#';
 				return GF_URL_ERROR;
 			}
 		}
-		fclose(f);
+		gf_fclose(f);
 	}
 	dash->mpd_fetch_time = dash_get_fetch_time(dash);
 

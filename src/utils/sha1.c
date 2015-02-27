@@ -705,7 +705,7 @@ s32 gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
 		return 0;
 	}
 
-	if( ( f = gf_f64_open( path, "rb" ) ) == NULL )
+	if( ( f = gf_fopen( path, "rb" ) ) == NULL )
 		return( 1 );
 
 	ctx  = gf_sha1_starts();
@@ -715,7 +715,7 @@ s32 gf_sha1_file( const char *path, u8 output[GF_SHA1_DIGEST_SIZE] )
 
 	gf_sha1_finish(ctx, output );
 
-	fclose( f );
+	gf_fclose( f );
 	return( 0 );
 }
 

@@ -593,7 +593,7 @@ void Playlist::OnPlSave()
 
 void Playlist::Save(char *szPath, Bool save_m3u)
 {
-	FILE *out = gf_f64_open(szPath, "wt");
+	FILE *out = gf_fopen(szPath, "wt");
 	if (!save_m3u)
 		fprintf(out, "[playlist]\nNumberOfEntries=%d\n", gf_list_count(m_entries));
 
@@ -611,7 +611,7 @@ void Playlist::Save(char *szPath, Bool save_m3u)
 	if (!save_m3u) fprintf(out, "Version=2\n");
 
 	fprintf(out, "\n");
-	fclose(out);
+	gf_fclose(out);
 }
 
 void Playlist::OnPlOpen()
@@ -638,7 +638,7 @@ void Playlist::OpenPlayList(CString fileName)
 	if (sep) sep[1] = 0;
 	else szPath[0] = 0;
 
-	pl = gf_f64_open(fileName, "rt");
+	pl = gf_fopen(fileName, "rt");
 	if (!pl) return;
 	ple = NULL;
 	load_m3u = GF_TRUE;
@@ -680,7 +680,7 @@ void Playlist::OpenPlayList(CString fileName)
 			ple->m_disp_name = gf_strdup(st + 6);
 		}
 	}
-	fclose(pl);
+	gf_fclose(pl);
 	m_all_dead_entries=-1;
 	m_cur_entry = -1;
 	RefreshList();

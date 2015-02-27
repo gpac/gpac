@@ -900,7 +900,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 			return GF_SERVICE_ERROR;
 		}
 	} else {
-		f = gf_f64_open(file, "rt");
+		f = gf_fopen(file, "rt");
 		if (!f) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot open m3u8 file %s for reading\n", file));
 			return GF_SERVICE_ERROR;
@@ -909,7 +909,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 	if (*playlist == NULL) {
 		*playlist = master_playlist_new();
 		if (!(*playlist)) {
-			if (f) fclose(f);
+			if (f) gf_fclose(f);
 			return GF_OUT_OF_MEM;
 		}
 	}
@@ -948,7 +948,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 		if (currentLineNumber == 1) {
 			/* Playlist MUST start with #EXTM3U */
 			if (len < 7 || (strncmp("#EXTM3U", currentLine, 7) != 0)) {
-				fclose(f);
+				gf_fclose(f);
 				gf_m3u8_master_playlist_del(*playlist);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Failed to parse M3U8 File, it should start with #EXTM3U, but was : %s\n", currentLine));
 				return GF_STREAM_NOT_FOUND;
@@ -982,7 +982,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 					gf_free(attribs.mediaURL);
 					attribs.mediaURL = NULL;
 					if (e != GF_OK) {
-						if (f) fclose(f);
+						if (f) gf_fclose(f);
 						return e;
 					}
 				}
@@ -990,12 +990,12 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 		} else {
 			GF_Err e = declare_sub_playlist(currentLine, baseURL, &attribs, sub_playlist, playlist, in_stream);
 			if (e != GF_OK) {
-				if (f) fclose(f);
+				if (f) gf_fclose(f);
 				return e;
 			}
 		}
 	}
-	if (f) fclose(f);
+	if (f) gf_fclose(f);
 
 	for (i=0; i<(int)gf_list_count((*playlist)->streams); i++) {
 		u32 j;

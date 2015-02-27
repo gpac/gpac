@@ -134,12 +134,12 @@ static char *validator_create_snapshot(GF_Validator *validator)
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error encoding PNG %s\n", gf_error_to_string(e)));
 		} else {
-			FILE *png = gf_f64_open(dumpname, "wb");
+			FILE *png = gf_fopen(dumpname, "wb");
 			if (!png) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error writing file %s\n", dumpname));
 			} else {
 				gf_fwrite(dst, dst_size, 1, png);
-				fclose(png);
+				gf_fclose(png);
 				GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[Validator] Writing file %s\n", dumpname));
 			}
 		}
@@ -505,9 +505,9 @@ static void validator_xvl_close(GF_Validator *validator)
 			dot[0] = 0;
 			sprintf(result_filename, "%s-result.xml", validator->xvl_filename);
 			dot[0] = '.';
-			xvl_fp = gf_f64_open(result_filename, "wt");
+			xvl_fp = gf_fopen(result_filename, "wt");
 			gf_fwrite(xvl_content, strlen(xvl_content), 1, xvl_fp);
-			fclose(xvl_fp);
+			gf_fclose(xvl_fp);
 			gf_free(xvl_content);
 		}
 		gf_xml_dom_del(validator->xvl_parser);
@@ -654,9 +654,9 @@ static void validator_xvs_close(GF_Validator *validator)
 			sprintf(filename, "%s%c%s", validator->test_base, GF_PATH_SEPARATOR, validator->test_filename);
 			att->value = gf_strdup(filename);
 			xvs_content = gf_xml_dom_serialize(validator->xvs_node, 0);
-			xvs_fp = gf_f64_open(validator->xvs_filename, "wt");
+			xvs_fp = gf_fopen(validator->xvs_filename, "wt");
 			gf_fwrite(xvs_content, strlen(xvs_content), 1, xvs_fp);
-			fclose(xvs_fp);
+			gf_fclose(xvs_fp);
 			gf_free(xvs_content);
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[Validator] XVS Result : %s\n", (validator->xvs_result?"Success":"Failure")));

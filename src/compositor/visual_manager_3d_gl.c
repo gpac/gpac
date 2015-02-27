@@ -523,17 +523,17 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 }
 static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 shader_type)
 {
-	FILE *src = gf_f64_open(src_path, "rt");
+	FILE *src = gf_fopen(src_path, "rt");
 	GF_SHADERID shader = 0;
 	if (src) {
 		size_t size;
 		char *shader_src;
-		gf_f64_seek(src, 0, SEEK_END);
-		size = (size_t) gf_f64_tell(src);
-		gf_f64_seek(src, 0, SEEK_SET);
+		gf_fseek(src, 0, SEEK_END);
+		size = (size_t) gf_ftell(src);
+		gf_fseek(src, 0, SEEK_SET);
 		shader_src = gf_malloc(sizeof(char)*(size+1));
 		size = fread(shader_src, 1, size, src);
-		fclose(src);
+		gf_fclose(src);
 		if (size != (size_t) -1) {
 			shader_src[size]=0;
 			shader = glCreateShader(shader_type);

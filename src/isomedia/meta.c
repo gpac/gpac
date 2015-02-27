@@ -84,10 +84,10 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	}
 	if (!xml || !xml->xml || !xml->xml_length) return GF_BAD_PARAM;
 
-	didfile = gf_f64_open(outName, "wb");
+	didfile = gf_fopen(outName, "wb");
 	if (!didfile) return GF_IO_ERR;
 	gf_fwrite(xml->xml, xml->xml_length, 1, didfile);
-	fclose(didfile);
+	gf_fclose(didfile);
 
 	if (is_binary) *is_binary = (xml->type==GF_ISOM_BOX_TYPE_BXML) ? 1 : 0;
 	return GF_OK;
@@ -254,12 +254,12 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 		item_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	} else if (dump_file_name) {
 		strcpy(szPath, dump_file_name);
-		resource = gf_f64_open(szPath, "wb");
+		resource = gf_fopen(szPath, "wb");
 		item_bs = gf_bs_from_file(resource, GF_BITSTREAM_WRITE);
 	} else {
 		if (item_name) strcpy(szPath, item_name);
 		else sprintf(szPath, "item_id%02d", item_id);
-		resource = gf_f64_open(szPath, "wb");
+		resource = gf_fopen(szPath, "wb");
 		item_bs = gf_bs_from_file(resource, GF_BITSTREAM_WRITE);
 	}
 
@@ -281,7 +281,7 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 		gf_bs_get_content(item_bs, out_data, out_size);
 	}
 	if (resource) {
-		fclose(resource);
+		gf_fclose(resource);
 	}
 	gf_bs_del(item_bs);
 	return GF_OK;
@@ -412,12 +412,12 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 
 
 	/*assume 32bit max size = 4Go should be sufficient for a DID!!*/
-	xmlfile = gf_f64_open(XMLFileName, "rb");
+	xmlfile = gf_fopen(XMLFileName, "rb");
 	if (!xmlfile) return GF_URL_ERROR;
-	gf_f64_seek(xmlfile, 0, SEEK_END);
-	assert(gf_f64_tell(xmlfile) < 1<<31);
-	xml->xml_length = (u32) gf_f64_tell(xmlfile);
-	gf_f64_seek(xmlfile, 0, SEEK_SET);
+	gf_fseek(xmlfile, 0, SEEK_END);
+	assert(gf_ftell(xmlfile) < 1<<31);
+	xml->xml_length = (u32) gf_ftell(xmlfile);
+	gf_fseek(xmlfile, 0, SEEK_SET);
 	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*xml->xml_length);
 	xml->xml_length = (u32) fread(xml->xml, 1, sizeof(unsigned char)*xml->xml_length, xmlfile);
 	if (ferror(xmlfile)) {
@@ -425,7 +425,7 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 		xml->xml = NULL;
 		return GF_BAD_PARAM;
 	}
-	fclose(xmlfile);
+	gf_fclose(xmlfile);
 	return GF_OK;
 }
 
@@ -479,9 +479,9 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 
 	/*check file exists */
 	if (!URN && !URL && !self_reference && !data) {
-		FILE *src = gf_f64_open(resource_path, "rb");
+		FILE *src = gf_fopen(resource_path, "rb");
 		if (!src) return GF_URL_ERROR;
-		fclose(src);
+		gf_fclose(src);
 	}
 
 	if (meta->item_infos) {
@@ -596,13 +596,13 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			if (entry->extent_length>0xFFFFFFFF) meta->item_locations->length_size = 8;
 			else if (entry->extent_length && !meta->item_locations->length_size) meta->item_locations->length_size = 4;
 		} else if (resource_path) {
-			src = gf_f64_open(resource_path, "rb");
+			src = gf_fopen(resource_path, "rb");
 			if (src) {
 				char cache_data[4096];
 				u64 remain;
-				gf_f64_seek(src, 0, SEEK_END);
-				entry->extent_length = gf_f64_tell(src);
-				gf_f64_seek(src, 0, SEEK_SET);
+				gf_fseek(src, 0, SEEK_END);
+				entry->extent_length = gf_ftell(src);
+				gf_fseek(src, 0, SEEK_SET);
 
 				remain = entry->extent_length;
 				while (remain) {
@@ -612,7 +612,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 					gf_bs_write_data(file->editFileMap->bs, cache_data, (u32) read);
 					remain -= (u32) read;
 				}
-				fclose(src);
+				gf_fclose(src);
 
 				/*update length size*/
 				if (entry->extent_length>0xFFFFFFFF) meta->item_locations->length_size = 8;

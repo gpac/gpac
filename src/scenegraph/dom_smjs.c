@@ -3299,11 +3299,11 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	FILE *responseFile;
 
 	/*opera-style local host*/
-	if (!strnicmp(ctx->url, "file://localhost", 16)) responseFile = gf_f64_open(ctx->url+16, "rb");
+	if (!strnicmp(ctx->url, "file://localhost", 16)) responseFile = gf_fopen(ctx->url+16, "rb");
 	/*regular-style local host*/
-	else if (!strnicmp(ctx->url, "file://", 7)) responseFile = gf_f64_open(ctx->url+7, "rb");
+	else if (!strnicmp(ctx->url, "file://", 7)) responseFile = gf_fopen(ctx->url+7, "rb");
 	/* other types: e.g. "C:\" */
-	else responseFile = gf_f64_open(ctx->url, "rb");
+	else responseFile = gf_fopen(ctx->url, "rb");
 
 	if (!responseFile) {
 		ctx->html_status = 404;
@@ -3320,13 +3320,13 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	par.msg_type = GF_NETIO_WAIT_FOR_REPLY;
 	xml_http_on_data(ctx, &par);
 
-	gf_f64_seek(responseFile, 0, SEEK_END);
-	fsize = gf_f64_tell(responseFile);
-	gf_f64_seek(responseFile, 0, SEEK_SET);
+	gf_fseek(responseFile, 0, SEEK_END);
+	fsize = gf_ftell(responseFile);
+	gf_fseek(responseFile, 0, SEEK_SET);
 
 	ctx->data = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
 	fsize = fread(ctx->data, sizeof(char), (size_t)fsize, responseFile);
-	fclose(responseFile);
+	gf_fclose(responseFile);
 	ctx->data[fsize] = 0;
 	ctx->size = (u32)fsize;
 

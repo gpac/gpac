@@ -236,7 +236,7 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 
 static void setup_logs()
 {
-	if (log_file) fclose(log_file);
+	if (log_file) gf_fclose(log_file);
 	log_file = NULL;
 
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
@@ -248,7 +248,7 @@ static void setup_logs()
 			gf_cfg_set_key(user.config, "General", "LogFile", "\\gpac_logs.txt");
 			filename = "\\gpac_logs.txt";
 		}
-		log_file = gf_f64_open(filename, "a+t");
+		log_file = gf_fopen(filename, "a+t");
 
 		fprintf(log_file, "!! GPAC RunTime Info for file %s !!\n", the_url);
 		fprintf(log_file, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
@@ -268,7 +268,7 @@ static void setup_logs()
 		if (logs) {
 			if (gf_log_set_tools_levels( logs ) != GF_OK) {
 			} else {
-				if (log_file = gf_f64_open(filename, "a+t")) {
+				if (log_file = gf_fopen(filename, "a+t")) {
 					gf_log_set_callback(log_file, on_gpac_log);
 				}
 			}
@@ -1046,7 +1046,7 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		break;
 	case ID_LOGS_RESET:
 		if (log_file) {
-			fclose(log_file);
+			gf_fclose(log_file);
 			log_file = NULL;
 		}
 		{
@@ -1491,6 +1491,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	if (backlight_off) set_backlight_state(GF_FALSE);
 
 	gf_sys_close();
-	if (log_file) fclose(log_file);
+	if (log_file) gf_fclose(log_file);
 	return 0;
 }
