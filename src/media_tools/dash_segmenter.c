@@ -3255,7 +3255,7 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 static GF_Err dasher_get_ts_demux(GF_TSSegmenter *ts_seg, const char *file, u32 probe_mode)
 {
 	memset(ts_seg, 0, sizeof(GF_TSSegmenter));
-	ts_seg->src = gf_f64_open(file, "rb");
+	ts_seg->src = gf_fopen(file, "rb");
 	if (!ts_seg->src) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot open input %s: no such file\n", file));
 		return GF_URL_ERROR;
@@ -3265,9 +3265,9 @@ static GF_Err dasher_get_ts_demux(GF_TSSegmenter *ts_seg, const char *file, u32 
 	ts_seg->ts->notify_pes_timing = GF_TRUE;
 	ts_seg->ts->user = ts_seg;
 
-	gf_f64_seek(ts_seg->src, 0, SEEK_END);
-	ts_seg->file_size = gf_f64_tell(ts_seg->src);
-	gf_f64_seek(ts_seg->src, 0, SEEK_SET);
+	gf_fseek(ts_seg->src, 0, SEEK_END);
+	ts_seg->file_size = gf_ftell(ts_seg->src);
+	gf_fseek(ts_seg->src, 0, SEEK_SET);
 
 	if (probe_mode) {
 		/* first loop to process all packets between two PAT, and assume all signaling was found between these 2 PATs */
@@ -3281,7 +3281,7 @@ static GF_Err dasher_get_ts_demux(GF_TSSegmenter *ts_seg, const char *file, u32 
 				break;
 		}
 		gf_m2ts_reset_parsers(ts_seg->ts);
-		gf_f64_seek(ts_seg->src, 0, SEEK_SET);
+		gf_fseek(ts_seg->src, 0, SEEK_SET);
 	}
 	ts_seg->ts->on_event = dash_m2ts_event;
 	return GF_OK;
@@ -3290,7 +3290,7 @@ static GF_Err dasher_get_ts_demux(GF_TSSegmenter *ts_seg, const char *file, u32 
 static void dasher_del_ts_demux(GF_TSSegmenter *ts_seg)
 {
 	if (ts_seg->ts) gf_m2ts_demux_del(ts_seg->ts);
-	if (ts_seg->src) fclose(ts_seg->src);
+	if (ts_seg->src) gf_fclose(ts_seg->src);
 	memset(ts_seg, 0, sizeof(GF_TSSegmenter));
 }
 
@@ -3367,7 +3367,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, 1, IdxName, szOutName, dash_input->representationID, dash_cfg->seg_rad_name, "six", 0, 0, 0, dash_cfg->use_segment_timeline);
 
-		ts_seg.index_file = gf_f64_open(IdxName, "wb");
+		ts_seg.index_file = gf_fopen(IdxName, "wb");
 		if (!ts_seg.index_file) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot create index file %s\n", IdxName));
 			e = GF_IO_ERR;
@@ -3412,7 +3412,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			}
 			gf_m2ts_reset_parsers(ts_seg.ts);
 			ts_seg.base_PTS = 0;
-			gf_f64_seek(ts_seg.src, offset, SEEK_SET);
+			gf_fseek(ts_seg.src, offset, SEEK_SET);
 			ts_seg.base_offset = offset;
 			ts_seg.ts->pck_number = (u32) (offset/188);
 		}
@@ -3620,7 +3620,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			FILE *src, *dst;
 			u64 pos, end;
 			Double current_time = cumulated_duration, dur;
-			src = gf_f64_open(dash_input->file_name, "rb");
+			src = gf_fopen(dash_input->file_name, "rb");
 			start = ts_seg.sidx->first_offset;
 			for (i=0; i<ts_seg.sidx->nb_refs; i++) {
 				char buf[NB_TSPCK_IO_BYTES];
@@ -3631,9 +3631,9 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				/*warning - we may introduce repeated sequence number when concatenating files. We should use switching
 				segments to force reset of the continuity counter for all our pids - we don't because most players don't car ...*/
 				if (dash_cfg->use_url_template != 2) {
-					dst = gf_f64_open(SegName, "wb");
+					dst = gf_fopen(SegName, "wb");
 					if (!dst) {
-						fclose(src);
+						gf_fclose(src);
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot create segment file %s\n", SegName));
 						e = GF_IO_ERR;
 						goto exit;
@@ -3646,7 +3646,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 					current_time += dur;
 
-					gf_f64_seek(src, start, SEEK_SET);
+					gf_fseek(src, start, SEEK_SET);
 					pos = start;
 					end = start+ref->reference_size;
 					while (pos<end) {
@@ -3666,7 +3666,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 						}
 						pos += res;
 					}
-					fclose(dst);
+					gf_fclose(dst);
 				}
 				start += ref->reference_size;
 
@@ -3685,7 +3685,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				segment_index++;
 				gf_set_progress("Extracting segment ", i+1, ts_seg.sidx->nb_refs);
 			}
-			fclose(src);
+			gf_fclose(src);
 			cumulated_duration = current_time;
 		}
 		if (!dash_cfg->seg_rad_name || !dash_cfg->use_url_template) {
@@ -3699,16 +3699,16 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		char buf[NB_TSPCK_IO_BYTES];
 
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, dash_cfg->seg_rad_name ? basename : szOutName, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
-		out = gf_f64_open(SegName, "wb");
+		out = gf_fopen(SegName, "wb");
 		if (!out) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot create segment file %s\n", SegName));
 			e = GF_IO_ERR;
 			goto exit;
 		}
-		in = gf_f64_open(dash_input->file_name, "rb");
-		gf_f64_seek(in, 0, SEEK_END);
-		fsize = gf_f64_tell(in);
-		gf_f64_seek(in, 0, SEEK_SET);
+		in = gf_fopen(dash_input->file_name, "rb");
+		gf_fseek(in, 0, SEEK_END);
+		fsize = gf_ftell(in);
+		gf_fseek(in, 0, SEEK_SET);
 		done = 0;
 		while (1) {
 			u32 read = (u32) fread(buf, 1, NB_TSPCK_IO_BYTES, in);
@@ -3718,8 +3718,8 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			gf_set_progress("Extracting segment ", done/188, fsize/188);
 			if (read<NB_TSPCK_IO_BYTES) break;
 		}
-		fclose(in);
-		fclose(out);
+		gf_fclose(in);
+		gf_fclose(out);
 	}
 
 	fprintf(dash_cfg->mpd, "   </Representation>\n");
@@ -3764,7 +3764,7 @@ exit:
 	if (ts_seg.pcrb) gf_isom_box_del((GF_Box *)ts_seg.pcrb);
 	if (ts_seg.index_bs) gf_bs_del(ts_seg.index_bs);
 	if (ts_seg.index_file) {
-		fclose(ts_seg.index_file);
+		gf_fclose(ts_seg.index_file);
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, 1, IdxName, szOutName, dash_input->representationID, dash_cfg->seg_rad_name, "six", 0, 0, 0, dash_cfg->use_segment_timeline);
 		gf_delete_file(IdxName);
 	}
@@ -3796,9 +3796,9 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 	
 	if (uri_frag) uri_frag[0] = 0;
 
-	t = gf_f64_open(dash_input->file_name, "rb");
+	t = gf_fopen(dash_input->file_name, "rb");
 	if (!t) return GF_URL_ERROR;
-	fclose(t);
+	gf_fclose(t);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (gf_isom_probe_file(dash_input->file_name)) {
@@ -4415,7 +4415,6 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_upd
 		for (i=0; i<gf_cfg_get_key_count(dash_ctx, "SegmentsStartTimes"); i++) {
 			Double seg_time;
 			u64 start, dur;
-			Bool found=0;
 			char szRepID[100];
 			char szSecName[200];
 			u32 j;
@@ -4433,7 +4432,7 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_upd
 			if (seg_time >= 0) break;
 
 			if (dash_dynamic!=2) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Removing segment %s - %g sec too late\n", fileName, -seg_time));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Removing segment %s - %g sec too late\n", fileName, -seg_time - dash_duration));
 			}
 
 			e = gf_delete_file(fileName);
@@ -4486,14 +4485,14 @@ static GF_Err dash_insert_period_xml(FILE *mpd, char *szPeriodXML)
 	FILE *period_mpd;
 	u32 xml_size;
 
-	period_mpd = gf_f64_open(szPeriodXML, "rb");
+	period_mpd = gf_fopen(szPeriodXML, "rb");
 	if (!period_mpd) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Error opening period MPD file %s\n", szPeriodXML));
 		return GF_IO_ERR;
 	}
-	gf_f64_seek(period_mpd, 0, SEEK_END);
-	xml_size = (u32) gf_f64_tell(period_mpd);
-	gf_f64_seek(period_mpd, 0, SEEK_SET);
+	gf_fseek(period_mpd, 0, SEEK_END);
+	xml_size = (u32) gf_ftell(period_mpd);
+	gf_fseek(period_mpd, 0, SEEK_SET);
 
 	while (xml_size) {
 		char buf[4096];
@@ -4502,14 +4501,14 @@ static GF_Err dash_insert_period_xml(FILE *mpd, char *szPeriodXML)
 		read = (u32) fread(buf, 1, size, period_mpd);
 		if (read != size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Error reading from period MPD file: got %d but requested %d bytes\n", read, size ));
-			fclose(period_mpd);
+			gf_fclose(period_mpd);
 			return GF_IO_ERR;
 		}
 
 		fwrite(buf, 1, size, mpd);
 		xml_size -= size;
 	}
-	fclose(period_mpd);
+	gf_fclose(period_mpd);
 	//we cannot delet the file because we don't know if we will be called again with a new period, in which case we need to reinsert this XML ...
 	return GF_OK;
 }
@@ -5027,7 +5026,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	strcpy(szTempMPD, mpdfile);
 	if (dash_dynamic) strcat(szTempMPD, ".tmp");
 
-	mpd = gf_f64_open(szTempMPD, "wt");
+	mpd = gf_fopen(szTempMPD, "wt");
 	if (!mpd) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MPD] Cannot open MPD file %s for writing\n", szTempMPD));
 		e = GF_IO_ERR;
@@ -5037,7 +5036,6 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	if (dash_ctx) {
 		u32 count = gf_cfg_get_key_count(dash_ctx, "PastPeriods");
 		for (i=0; i<count; i++) {
-			Double period_duration = 0;
 			const char *id = gf_cfg_get_key_name(dash_ctx, "PastPeriods", i);
 			const char *xlink = gf_cfg_get_key(dash_ctx, "PastPeriods", id);
 			char *sep = strchr(xlink, ',');
@@ -5104,7 +5102,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 		//only open file if we are to dash something (max_adaptation_set=0: no source file, only period xlink insertion)
 		if (max_adaptation_set) {
-			period_mpd = gf_f64_open(p->szPeriodXML, "wb");
+			period_mpd = gf_fopen(p->szPeriodXML, "wb");
 
 			if (!period_mpd) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot open period MPD %s for writing, aborintg\n", p->szPeriodXML));
@@ -5296,7 +5294,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		
 		if (period_mpd) {
 			fprintf(period_mpd, " </Period>\n");
-			fclose(period_mpd);
+			gf_fclose(period_mpd);
 		}
 
 		dash_opts.mpd = period_mpd;
@@ -5358,7 +5356,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 exit:
 	if (mpd) {
-		fclose(mpd);
+		gf_fclose(mpd);
 		if (!e && dash_dynamic) {
 			gf_delete_file(mpdfile);
 			e = gf_move_file(szTempMPD, mpdfile);

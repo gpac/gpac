@@ -197,7 +197,7 @@ static int avi_add_chunk(avi_t *AVI, unsigned char *tag, unsigned char *data, u3
 	        avi_write(AVI->fdes,(char *)data,length) != length ||
 	        avi_write(AVI->fdes,&p,length&1) != (length&1)) // if len is uneven, write a pad byte
 	{
-		gf_f64_seek(AVI->fdes,AVI->pos,SEEK_SET);
+		gf_fseek(AVI->fdes,AVI->pos,SEEK_SET);
 		AVI_errno = AVI_ERR_WRITE;
 		return -1;
 	}
@@ -628,7 +628,7 @@ avi_t* AVI_open_output_file(char * filename)
 	}
 	memset((void *)AVI,0,sizeof(avi_t));
 
-	AVI->fdes = gf_f64_open(filename, "w+b");
+	AVI->fdes = gf_fopen(filename, "w+b");
 	if (!AVI->fdes )
 	{
 		AVI_errno = AVI_ERR_OPEN;
@@ -643,7 +643,7 @@ avi_t* AVI_open_output_file(char * filename)
 	i = avi_write(AVI->fdes,(char *)AVI_header,HEADERBYTES);
 	if (i != HEADERBYTES)
 	{
-		fclose(AVI->fdes);
+		gf_fclose(AVI->fdes);
 		AVI_errno = AVI_ERR_WRITE;
 		gf_free(AVI);
 		return 0;
@@ -971,9 +971,9 @@ int avi_update_header(avi_t *AVI)
 	/* Output the header, truncate the file to the number of bytes
 	   actually written, report an error if someting goes wrong */
 
-	if ( (gf_f64_seek(AVI->fdes, 0, SEEK_SET) ==(u64)-1) ||
+	if ( (gf_fseek(AVI->fdes, 0, SEEK_SET) ==(u64)-1) ||
 	        avi_write(AVI->fdes,(char *)AVI_header,HEADERBYTES)!=HEADERBYTES ||
-	        (gf_f64_seek(AVI->fdes,AVI->pos,SEEK_SET)==(u64)-1)
+	        (gf_fseek(AVI->fdes,AVI->pos,SEEK_SET)==(u64)-1)
 	   ) {
 		AVI_errno = AVI_ERR_CLOSE;
 		return -1;
@@ -1501,7 +1501,7 @@ static int avi_close_output_file(avi_t *AVI)
 	/* Output the header, truncate the file to the number of bytes
 	   actually written, report an error if someting goes wrong */
 
-	if ( (gf_f64_seek(AVI->fdes,0,SEEK_SET)==(u64)-1) ||
+	if ( (gf_fseek(AVI->fdes,0,SEEK_SET)==(u64)-1) ||
 	        avi_write(AVI->fdes,(char *)AVI_header,HEADERBYTES)!=HEADERBYTES
 //		|| ftruncate(AVI->fdes,AVI->pos)<0
 	   )
@@ -1519,13 +1519,13 @@ static int avi_close_output_file(avi_t *AVI)
 
 		for (k=1; k<AVI->video_superindex->nEntriesInUse; k++) {
 			// the len of the RIFF Chunk
-			gf_f64_seek(AVI->fdes, AVI->video_superindex->stdindex[k]->qwBaseOffset+4, SEEK_SET);
+			gf_fseek(AVI->fdes, AVI->video_superindex->stdindex[k]->qwBaseOffset+4, SEEK_SET);
 			len = (u32) (AVI->video_superindex->stdindex[k+1]->qwBaseOffset - AVI->video_superindex->stdindex[k]->qwBaseOffset - 8);
 			long2str((unsigned char *)f, len);
 			avi_write(AVI->fdes, f, 4);
 
 			// len of the LIST/movi chunk
-			gf_f64_seek(AVI->fdes, 8, SEEK_CUR);
+			gf_fseek(AVI->fdes, 8, SEEK_CUR);
 			len -= 12;
 			long2str((unsigned char *)f, len);
 			avi_write(AVI->fdes, f, 4);
@@ -1669,11 +1669,11 @@ int AVI_append_audio(avi_t *AVI, char *data, long bytes)
 	AVI->track[AVI->aptr].audio_bytes += bytes;
 
 	//update chunk header
-	gf_f64_seek(AVI->fdes, pos+4, SEEK_SET);
+	gf_fseek(AVI->fdes, pos+4, SEEK_SET);
 	long2str(c, length+bytes);
 	avi_write(AVI->fdes, (char *)c, 4);
 
-	gf_f64_seek(AVI->fdes, pos+8+length, SEEK_SET);
+	gf_fseek(AVI->fdes, pos+8+length, SEEK_SET);
 
 	i=PAD_EVEN(length + bytes);
 
@@ -1747,7 +1747,7 @@ int AVI_close(avi_t *AVI)
 
 	/* Even if there happened an error, we first clean up */
 
-	fclose(AVI->fdes);
+	gf_fclose(AVI->fdes);
 	if(AVI->idx) gf_free(AVI->idx);
 	if(AVI->video_index) gf_free(AVI->video_index);
 	if(AVI->video_superindex) {
@@ -1821,7 +1821,7 @@ avi_t *AVI_open_input_file(char *filename, int getIndex)
 
 	/* Open the file */
 
-	AVI->fdes = gf_f64_open(filename,"rb");
+	AVI->fdes = gf_fopen(filename,"rb");
 	if(!AVI->fdes )
 	{
 		AVI_errno = AVI_ERR_OPEN;
@@ -1910,7 +1910,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 	while(1)
 	{
 		if( avi_read(AVI->fdes,data,8) != 8 ) break; /* We assume it's EOF */
-		newpos = gf_f64_tell(AVI->fdes);
+		newpos = gf_ftell(AVI->fdes);
 		if(oldpos==newpos) {
 			/* This is a broken AVI stream... */
 			return -1;
@@ -1932,16 +1932,16 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 				// offset of header
 
-				header_offset = gf_f64_tell(AVI->fdes);
+				header_offset = gf_ftell(AVI->fdes);
 
 				if( avi_read(AVI->fdes,(char *)hdrl_data, (u32) n) != n ) ERR_EXIT(AVI_ERR_READ)
 				}
 			else if(strnicmp(data,"movi",4) == 0)
 			{
-				AVI->movi_start = gf_f64_tell(AVI->fdes);
-				if (gf_f64_seek(AVI->fdes,n,SEEK_CUR)==(u64)-1) break;
+				AVI->movi_start = gf_ftell(AVI->fdes);
+				if (gf_fseek(AVI->fdes,n,SEEK_CUR)==(u64)-1) break;
 			}
-			else if (gf_f64_seek(AVI->fdes,n,SEEK_CUR)==(u64)-1) break;
+			else if (gf_fseek(AVI->fdes,n,SEEK_CUR)==(u64)-1) break;
 		}
 		else if(strnicmp(data,"idx1",4) == 0)
 		{
@@ -1958,7 +1958,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 				}
 		}
 		else
-			gf_f64_seek(AVI->fdes,n,SEEK_CUR);
+			gf_fseek(AVI->fdes,n,SEEK_CUR);
 	}
 
 	if(!hdrl_data      ) ERR_EXIT(AVI_ERR_NO_HDRL)
@@ -2097,14 +2097,14 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 								       gf_realloc(wfe, sizeof(alWAVEFORMATEX) +
 								                  str2ushort((unsigned char *)&wfe->cb_size));
 								if (nwfe != 0) {
-									s64 lpos = gf_f64_tell(AVI->fdes);
-									gf_f64_seek(AVI->fdes, header_offset + i + sizeof(alWAVEFORMATEX),
+									s64 lpos = gf_ftell(AVI->fdes);
+									gf_fseek(AVI->fdes, header_offset + i + sizeof(alWAVEFORMATEX),
 									            SEEK_SET);
 									wfe = (alWAVEFORMATEX *)nwfe;
 									nwfe = &nwfe[sizeof(alWAVEFORMATEX)];
 									avi_read(AVI->fdes, nwfe,
 									         str2ushort((unsigned char *)&wfe->cb_size));
-									gf_f64_seek(AVI->fdes, lpos, SEEK_SET);
+									gf_fseek(AVI->fdes, lpos, SEEK_SET);
 								}
 							}
 							AVI->wave_format_ex[AVI->aptr] = wfe;
@@ -2297,7 +2297,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 		}
 	}
 
-	gf_f64_seek(AVI->fdes,AVI->movi_start,SEEK_SET);
+	gf_fseek(AVI->fdes,AVI->movi_start,SEEK_SET);
 
 	if(!getIndex) return(0);
 
@@ -2320,7 +2320,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			pos = str2ulong(AVI->idx[i]+ 8);
 		len = str2ulong(AVI->idx[i]+12);
 
-		gf_f64_seek(AVI->fdes,pos,SEEK_SET);
+		gf_fseek(AVI->fdes,pos,SEEK_SET);
 		if(avi_read(AVI->fdes,data,8)!=8) ERR_EXIT(AVI_ERR_READ)
 			if( strnicmp(data,(char *)AVI->idx[i],4)==0 && str2ulong((unsigned char *)data+4)==len )
 			{
@@ -2328,7 +2328,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			}
 			else
 			{
-				gf_f64_seek(AVI->fdes,pos+AVI->movi_start-4,SEEK_SET);
+				gf_fseek(AVI->fdes,pos+AVI->movi_start-4,SEEK_SET);
 				if(avi_read(AVI->fdes,data,8)!=8) ERR_EXIT(AVI_ERR_READ)
 					if( strnicmp(data,(char *)AVI->idx[i],4)==0 && str2ulong((unsigned char *)data+4)==len )
 					{
@@ -2343,7 +2343,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 	{
 		/* we must search through the file to get the index */
 
-		gf_f64_seek(AVI->fdes, AVI->movi_start, SEEK_SET);
+		gf_fseek(AVI->fdes, AVI->movi_start, SEEK_SET);
 
 		AVI->n_idx = 0;
 
@@ -2356,7 +2356,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 			if(strnicmp(data,"LIST",4)==0)
 			{
-				gf_f64_seek(AVI->fdes,4,SEEK_CUR);
+				gf_fseek(AVI->fdes,4,SEEK_CUR);
 				continue;
 			}
 
@@ -2367,11 +2367,11 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			        || ( (data[2]=='w' || data[2]=='W') &&
 			             (data[3]=='b' || data[3]=='B') ) )
 			{
-				u64 __pos = gf_f64_tell(AVI->fdes) - 8;
+				u64 __pos = gf_ftell(AVI->fdes) - 8;
 				avi_add_index_entry(AVI,(unsigned char *)data,0,__pos,n);
 			}
 
-			gf_f64_seek(AVI->fdes,PAD_EVEN(n),SEEK_CUR);
+			gf_fseek(AVI->fdes,PAD_EVEN(n),SEEK_CUR);
 		}
 		idx_type = 1;
 	}
@@ -2406,7 +2406,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 			// read from file
 			chunk_start = en = (char*) gf_malloc ((u32) (AVI->video_superindex->aIndex[j].dwSize+hdrl_len) );
 
-			if (gf_f64_seek(AVI->fdes, AVI->video_superindex->aIndex[j].qwOffset, SEEK_SET) == (u64)-1) {
+			if (gf_fseek(AVI->fdes, AVI->video_superindex->aIndex[j].qwOffset, SEEK_SET) == (u64)-1) {
 				gf_free(chunk_start);
 				continue;
 			}
@@ -2484,7 +2484,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 				// read from file
 				chunk_start = en = (char*)gf_malloc ((u32) (AVI->track[audtr].audio_superindex->aIndex[j].dwSize+hdrl_len));
 
-				if (gf_f64_seek(AVI->fdes, AVI->track[audtr].audio_superindex->aIndex[j].qwOffset, SEEK_SET) == (u64)-1) {
+				if (gf_fseek(AVI->fdes, AVI->track[audtr].audio_superindex->aIndex[j].qwOffset, SEEK_SET) == (u64)-1) {
 					gf_free(chunk_start);
 					continue;
 				}
@@ -2543,7 +2543,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 
 multiple_riff:
 
-		gf_f64_seek(AVI->fdes, AVI->movi_start, SEEK_SET);
+		gf_fseek(AVI->fdes, AVI->movi_start, SEEK_SET);
 
 		AVI->n_idx = 0;
 
@@ -2604,7 +2604,7 @@ multiple_riff:
 			    (data[3]=='b' || data[3]=='B' || data[3]=='c' || data[3]=='C') ) {
 
 				AVI->video_index[nvi].key = 0x0;
-				AVI->video_index[nvi].pos = gf_f64_tell(AVI->fdes);
+				AVI->video_index[nvi].pos = gf_ftell(AVI->fdes);
 				AVI->video_index[nvi].len = (u32) n;
 
 				/*
@@ -2612,7 +2612,7 @@ multiple_riff:
 				    nvi, AVI->video_index[nvi].pos,  AVI->video_index[nvi].len, (long)AVI->video_index[nvi].key));
 				    */
 				nvi++;
-				gf_f64_seek(AVI->fdes,PAD_EVEN(n),SEEK_CUR);
+				gf_fseek(AVI->fdes,PAD_EVEN(n),SEEK_CUR);
 			}
 
 			//AUDIO
@@ -2622,16 +2622,16 @@ multiple_riff:
 			    (data[3]=='b' || data[3]=='B') ) {
 
 
-				AVI->track[j].audio_index[nai[j]].pos = gf_f64_tell(AVI->fdes);
+				AVI->track[j].audio_index[nai[j]].pos = gf_ftell(AVI->fdes);
 				AVI->track[j].audio_index[nai[j]].len = (u32) n;
 				AVI->track[j].audio_index[nai[j]].tot = tot[j];
 				tot[j] += AVI->track[j].audio_index[nai[j]].len;
 				nai[j]++;
 
-				gf_f64_seek(AVI->fdes,PAD_EVEN(n),SEEK_CUR);
+				gf_fseek(AVI->fdes,PAD_EVEN(n),SEEK_CUR);
 			}
 			else {
-				gf_f64_seek(AVI->fdes,-4,SEEK_CUR);
+				gf_fseek(AVI->fdes,-4,SEEK_CUR);
 			}
 
 		}
@@ -2723,7 +2723,7 @@ multiple_riff:
 
 	/* Reposition the file */
 
-	gf_f64_seek(AVI->fdes,AVI->movi_start,SEEK_SET);
+	gf_fseek(AVI->fdes,AVI->movi_start,SEEK_SET);
 	AVI->video_pos = 0;
 
 	return(0);
@@ -2844,7 +2844,7 @@ int AVI_seek_start(avi_t *AVI)
 		return -1;
 	}
 
-	gf_f64_seek(AVI->fdes,AVI->movi_start,SEEK_SET);
+	gf_fseek(AVI->fdes,AVI->movi_start,SEEK_SET);
 	AVI->video_pos = 0;
 	return 0;
 }
@@ -2900,7 +2900,7 @@ long AVI_read_frame(avi_t *AVI, char *vidbuf, int *keyframe)
 		return n;
 	}
 
-	gf_f64_seek(AVI->fdes, AVI->video_index[AVI->video_pos].pos, SEEK_SET);
+	gf_fseek(AVI->fdes, AVI->video_index[AVI->video_pos].pos, SEEK_SET);
 
 	if (avi_read(AVI->fdes,vidbuf,n) != (u32) n)
 	{
@@ -3023,7 +3023,7 @@ long AVI_read_audio(avi_t *AVI, char *audbuf, long bytes, int *continuous)
 		else
 			todo = left;
 		pos = AVI->track[AVI->aptr].audio_index[AVI->track[AVI->aptr].audio_posc].pos + AVI->track[AVI->aptr].audio_posb;
-		gf_f64_seek(AVI->fdes, pos, SEEK_SET);
+		gf_fseek(AVI->fdes, pos, SEEK_SET);
 		if ( (ret = avi_read(AVI->fdes,audbuf+nr,todo)) != todo)
 		{
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] XXX pos = %"LLD", ret = %"LLD", todo = %ld\n", pos, ret, todo));
@@ -3072,7 +3072,7 @@ int AVI_read_data(avi_t *AVI, char *vidbuf, long max_vidbuf,
 
 		if(strnicmp(data,"LIST",4) == 0)
 		{
-			gf_f64_seek(AVI->fdes,4,SEEK_CUR);
+			gf_fseek(AVI->fdes,4,SEEK_CUR);
 			continue;
 		}
 
@@ -3084,7 +3084,7 @@ int AVI_read_data(avi_t *AVI, char *vidbuf, long max_vidbuf,
 			AVI->video_pos++;
 			if(n>max_vidbuf)
 			{
-				gf_f64_seek(AVI->fdes,n,SEEK_CUR);
+				gf_fseek(AVI->fdes,n,SEEK_CUR);
 				return -1;
 			}
 			if(avi_read(AVI->fdes,vidbuf, (u32) n) != n ) return 0;
@@ -3095,14 +3095,14 @@ int AVI_read_data(avi_t *AVI, char *vidbuf, long max_vidbuf,
 			*len = (u32) n;
 			if(n>max_audbuf)
 			{
-				gf_f64_seek(AVI->fdes,n,SEEK_CUR);
+				gf_fseek(AVI->fdes,n,SEEK_CUR);
 				return -2;
 			}
 			if(avi_read(AVI->fdes,audbuf, (u32) n) != n ) return 0;
 			return 2;
 			break;
 		}
-		else if(gf_f64_seek(AVI->fdes,n,SEEK_CUR) == (u64) -1)  return 0;
+		else if(gf_fseek(AVI->fdes,n,SEEK_CUR) == (u64) -1)  return 0;
 	}
 }
 

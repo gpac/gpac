@@ -302,7 +302,7 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 	strcpy(szPath, getenv("HOME"));
 	strcat(szPath , "/.kms_data");
 	got_it = 0;
-	kms = gf_f64_open(szPath, "r");
+	kms = gf_fopen(szPath, "r");
 	while (kms && !feof(kms)) {
 		if (!fgets(szPath, 1024, kms)) break;
 		szPath[strlen(szPath) - 1] = 0;
@@ -314,7 +314,7 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 		if (i==24) got_it = 1;
 		break;
 	}
-	if (kms) fclose(kms);
+	if (kms) gf_fclose(kms);
 	if (got_it) {
 		/*watchout, MPEG4IP stores SALT|KEY, NOT KEY|SALT*/
 		memcpy(key, catKey+8, sizeof(char)*16);
@@ -1813,13 +1813,13 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 				}
 			} else if (!drm_file) {
 				FILE *test = NULL;
-				if (!stricmp(scheme_URI, "urn:gpac:isma:encryption_scheme")) test = gf_f64_open(KMS_URI, "rt");
+				if (!stricmp(scheme_URI, "urn:gpac:isma:encryption_scheme")) test = gf_fopen(KMS_URI, "rt");
 
 				if (!test) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[CENC/ISMA] TrackID %d does not contain decryption keys - skipping\n", trackID));
 					continue;
 				}
-				fclose(test);
+				gf_fclose(test);
 				if (gf_ismacryp_gpac_get_info(tci.trackID, (char *) KMS_URI, (char *) tci.key, (char *) tci.salt) != GF_OK) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Couldn't load TrackID %d keys in GPAC DRM file %s\n", tci.trackID, KMS_URI));
 					continue;

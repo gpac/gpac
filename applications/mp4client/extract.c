@@ -174,7 +174,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	if (fb->pixel_format==GF_PIXEL_GREYSCALE) sprintf(str, "%s_%d_depth.bmp", rad_name, img_num);
 	else sprintf(str, "%s_%d.bmp", rad_name, img_num);
 
-	fout = gf_f64_open(str, "wb");
+	fout = gf_fopen(str, "wb");
 	if (!fout) return;
 
 	memset(&fh, 0, sizeof(fh));
@@ -220,7 +220,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	}
 #endif
 
-	fclose(fout);
+	gf_fclose(fout);
 }
 
 #include <gpac/avparse.h>
@@ -249,12 +249,12 @@ void write_png(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	dst = (char*)gf_malloc(sizeof(char)*dst_size);
 
 
-	fout = gf_f64_open(str, "wb");
+	fout = gf_fopen(str, "wb");
 	if (fout) {
 		GF_Err e = gf_img_png_enc(fb->video_buffer, fb->width, fb->height, fb->pitch_y, fb->pixel_format, dst, &dst_size);
 		if (!e) {
 			gf_fwrite(dst, dst_size, 1, fout);
-			fclose(fout);
+			gf_fclose(fout);
 		}
 	}
 
@@ -274,7 +274,7 @@ void write_depthfile(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 
 	depth = (unsigned char *) fb->video_buffer;
 
-	fout = gf_f64_open("dump_depth", "wb");
+	fout = gf_fopen("dump_depth", "wb");
 	if (!fout) return;
 	for (j=0; j<fb->height;  j++) {
 		for (i=0; i<fb->width; i++) {
@@ -287,7 +287,7 @@ void write_depthfile(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 #endif
 		}
 	}
-	fclose(fout);
+	gf_fclose(fout);
 }
 
 void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 dump_mode_flags)
@@ -299,8 +299,8 @@ void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 du
 
 	buf = (unsigned char *) fb->video_buffer;
 
-	if (dump_mode_flags & DUMP_RGB_DEPTH_SHAPE) fout = gf_f64_open("dump_rgbds", "wb");
-	else if (dump_mode_flags & DUMP_RGB_DEPTH) fout = gf_f64_open("dump_rgbd", "wb");
+	if (dump_mode_flags & DUMP_RGB_DEPTH_SHAPE) fout = gf_fopen("dump_rgbds", "wb");
+	else if (dump_mode_flags & DUMP_RGB_DEPTH) fout = gf_fopen("dump_rgbd", "wb");
 	else return;
 
 	if (!fout) return;
@@ -309,7 +309,7 @@ void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 du
 			fputc(buf[i+j*fb->pitch_y], fout);
 		}
 	}
-	fclose(fout);
+	gf_fclose(fout);
 }
 
 
@@ -329,7 +329,7 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 		sprintf(str, "%s_%d.raw", rad_name, img_num);
 	}
 
-	fout = gf_f64_open(str, "wb");
+	fout = gf_fopen(str, "wb");
 	if (!fout) return;
 
 
@@ -341,7 +341,7 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 			ptr += res;
 		}
 	}
-	fclose(fout);
+	gf_fclose(fout);
 }
 
 void write_hash(FILE *sha_out, char *buf, u32 size)
@@ -793,7 +793,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	
 	if (mode==DUMP_SHA1) {
 		strcat(szOutPath, ".sha1");
-		sha_out = gf_f64_open(szOutPath, "wb");
+		sha_out = gf_fopen(szOutPath, "wb");
 		if (!sha_out) {
 			fprintf(stderr, "Error creating SHA file %s\n", szOutPath);
 			return 1;
@@ -813,7 +813,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		}
 		if (mode==DUMP_SHA1) {
 			strcat(szPath_depth, "_depth.sha1");
-			sha_depth_out = gf_f64_open(szPath_depth, "wb");
+			sha_depth_out = gf_fopen(szPath_depth, "wb");
 			if (!sha_depth_out) {
 				fprintf(stderr, "Error creating depgth SHA file %s\n", szPath_depth);
 				return 1;
@@ -956,8 +956,8 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	if (avi_mx) gf_mx_del(avi_mx);
 #endif
 
-	if (sha_out) fclose(sha_out);
-	if (sha_depth_out) fclose(sha_depth_out);
+	if (sha_out) gf_fclose(sha_out);
+	if (sha_depth_out) gf_fclose(sha_depth_out);
 
 	if (conv_buf) {
 		gf_free(conv_buf);

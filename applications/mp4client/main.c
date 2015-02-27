@@ -815,7 +815,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		u32 i, pos;
 		/*todo - force playlist mode*/
 		if (readonly_playlist) {
-			fclose(playlist);
+			gf_fclose(playlist);
 			playlist = NULL;
 		}
 		readonly_playlist = 0;
@@ -1013,8 +1013,8 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 
 static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 {
-	if (rti_logs) fclose(rti_logs);
-	rti_logs = gf_f64_open(rti_file, "wt");
+	if (rti_logs) gf_fclose(rti_logs);
+	rti_logs = gf_fopen(rti_file, "wt");
 	if (rti_logs) {
 		fprintf(rti_logs, "!! GPAC RunTime Info ");
 		if (url) fprintf(rti_logs, "for file %s", url);
@@ -1180,7 +1180,7 @@ int main (int argc, char **argv)
 		} else if (!strcmp(arg, "-strict-error")) {
 			gf_log_set_strict_error(1);
 		} else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
-			logfile = gf_f64_open(argv[i+1], "wt");
+			logfile = gf_fopen(argv[i+1], "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
 		} else if (!strcmp(arg, "-logs") ) {
@@ -1330,7 +1330,7 @@ int main (int argc, char **argv)
 	if (dump_mode && !url_arg ) {
 		fprintf(stderr, "Missing argument for dump\n");
 		PrintUsage();
-		if (logfile) fclose(logfile);
+		if (logfile) gf_fclose(logfile);
 		return 1;
 	}
 
@@ -1387,7 +1387,7 @@ int main (int argc, char **argv)
 		if (user.modules) gf_modules_del(user.modules);
 		gf_cfg_del(cfg_file);
 		gf_sys_close();
-		if (logfile) fclose(logfile);
+		if (logfile) gf_fclose(logfile);
 		return 1;
 	}
 	fprintf(stderr, "Modules Found : %d \n", i);
@@ -1426,7 +1426,7 @@ int main (int argc, char **argv)
 		gf_cfg_discard_changes(cfg_file);
 		gf_cfg_del(cfg_file);
 		gf_sys_close();
-		if (logfile) fclose(logfile);
+		if (logfile) gf_fclose(logfile);
 		return 1;
 	}
 	fprintf(stderr, "Terminal Loaded in %d ms\n", gf_sys_clock()-i);
@@ -1501,7 +1501,7 @@ int main (int argc, char **argv)
 				}
 			}
 
-			playlist = e ? NULL : gf_f64_open(the_url, "rt");
+			playlist = e ? NULL : gf_fopen(the_url, "rt");
 			readonly_playlist = 1;
 			if (playlist) {
 				if (1 > fscanf(playlist, "%s", the_url))
@@ -1629,11 +1629,11 @@ force_input:
 				fprintf(stderr, "Cannot read the absolute URL, aborting.\n");
 				break;
 			}
-			playlist = gf_f64_open(the_url, "rt");
+			playlist = gf_fopen(the_url, "rt");
 			if (playlist) {
 				if (1 >	fscanf(playlist, "%s", the_url)) {
 					fprintf(stderr, "Cannot read any URL from playlist, aborting.\n");
-					fclose( playlist);
+					gf_fclose( playlist);
 					break;
 				}
 				fprintf(stderr, "Opening URL %s\n", the_url);
@@ -2063,13 +2063,13 @@ force_input:
 						fprintf(stderr, "Error encoding PNG %s\n", gf_error_to_string(e) );
 						nb_pass = 0;
 					} else {
-						FILE *png = gf_f64_open(szFileName, "wb");
+						FILE *png = gf_fopen(szFileName, "wb");
 						if (!png) {
 							fprintf(stderr, "Error writing file %s\n", szFileName);
 							nb_pass = 0;
 						} else {
 							gf_fwrite(dst, dst_size, 1, png);
-							fclose(png);
+							gf_fclose(png);
 							fprintf(stderr, "Dump to %s\n", szFileName);
 						}
 					}
@@ -2132,7 +2132,7 @@ force_input:
 	if (rti_file) UpdateRTInfo("Disconnected\n");
 
 	fprintf(stderr, "Deleting terminal... ");
-	if (playlist) fclose(playlist);
+	if (playlist) gf_fclose(playlist);
 
 #if defined(__DARWIN__) || defined(__APPLE__)
 	carbon_uninit();
@@ -2151,15 +2151,15 @@ force_input:
 
 	gf_sys_close();
 
-	if (rti_logs) fclose(rti_logs);
-	if (logfile) fclose(logfile);
+	if (rti_logs) gf_fclose(rti_logs);
+	if (logfile) gf_fclose(logfile);
 
 	if (gui_mode) {
 		hide_shell(2);
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
-	if (enable_mem_tracker && (gf_memory_size() != 0)) {
+	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
         gf_memory_print();
 		return 2;
 	}

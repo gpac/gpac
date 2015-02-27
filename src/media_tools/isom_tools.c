@@ -151,10 +151,10 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 	Bool is_isom = gf_isom_probe_file(file);
 #endif
 
-	in = gf_f64_open(file, "rb");
-	gf_f64_seek(in, 0, SEEK_END);
-	size = gf_f64_tell(in);
-	gf_f64_seek(in, 0, SEEK_SET);
+	in = gf_fopen(file, "rb");
+	gf_fseek(in, 0, SEEK_END);
+	size = gf_ftell(in);
+	gf_fseek(in, 0, SEEK_SET);
 
 	ctx = gf_sha1_starts();
 	tot = 0;
@@ -199,7 +199,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #ifndef GPAC_DISABLE_ISOM
 	if (bs) gf_bs_del(bs);
 #endif
-	fclose(in);
+	gf_fclose(in);
 	return GF_OK;
 #endif
 }

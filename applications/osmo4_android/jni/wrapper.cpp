@@ -687,9 +687,9 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		gf_cfg_set_key(m_user.config, "Downloader", "CleanCache", "yes");
 		/*startup file*/
 		snprintf(msg, 256, "%sgui/gui.bt", cfg_dir);
-		fstart = gf_f64_open(msg, "r");
+		fstart = gf_fopen(msg, "r");
 		if (fstart) {
-			fclose(fstart);
+			gf_fclose(fstart);
 			gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);
 		} else {
 			gf_cfg_set_key(m_user.config, "General", "#StartupFile", msg);

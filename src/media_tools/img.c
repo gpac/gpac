@@ -672,14 +672,14 @@ GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pi
 		goto exit;
 	}
 
-	png = gf_f64_open(dst_file, "wb");
+	png = gf_fopen(dst_file, "wb");
 	if (!png) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNG]: Error opening destination file %s\n", dst_file ));
 		goto exit;
 	}
 
 	gf_fwrite(dst, dst_size, 1, png);
-	fclose(png);
+	gf_fclose(png);
 
 exit:
 	gf_free(dst);
@@ -711,7 +711,7 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *heigh
 	FILE *f;
 	char *data;
 	GF_Err e;
-	f = gf_f64_open(png_filename, "rb");
+	f = gf_fopen(png_filename, "rb");
 	if (!f) return GF_URL_ERROR;
 
 	oti = 0;
@@ -723,12 +723,12 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *heigh
 	} else if (hint_oti) {
 		oti = *hint_oti;
 	}
-	gf_f64_seek(f, 0, SEEK_END);
-	fsize = (u32)gf_f64_tell(f);
-	gf_f64_seek(f, 0, SEEK_SET);
+	gf_fseek(f, 0, SEEK_END);
+	fsize = (u32)gf_ftell(f);
+	gf_fseek(f, 0, SEEK_SET);
 	data = gf_malloc(fsize);
 	read = (u32) fread(data, sizeof(char), fsize, f);
-	fclose( f );
+	gf_fclose( f );
 	if (read != fsize) return GF_IO_ERR;
 
 	e = GF_NOT_SUPPORTED;

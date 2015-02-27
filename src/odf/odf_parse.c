@@ -158,22 +158,22 @@ void OD_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
 	if (*out_data) gf_free(*out_data);
 	*out_data = NULL;
 	*out_data_size = 0;
-	f = gf_f64_open(fileName, "rb");
+	f = gf_fopen(fileName, "rb");
 	if (!f) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ODF Parse] cannot open data file %s - skipping\n", fileName));
 		return;
 	}
-	gf_f64_seek(f, 0, SEEK_END);
-	assert(gf_f64_tell(f) < 1<<31);
-	size = (u32) gf_f64_tell(f);
-	gf_f64_seek(f, 0, SEEK_SET);
+	gf_fseek(f, 0, SEEK_END);
+	assert(gf_ftell(f) < 1<<31);
+	size = (u32) gf_ftell(f);
+	gf_fseek(f, 0, SEEK_SET);
 	*out_data_size = size;
 	*out_data = (char*)gf_malloc(sizeof(char) * (size_t)size);
 	readen = fread(*out_data, sizeof(char), (size_t)size, f);
 	if (readen != size) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ODF Parse] readen size=%d does not match size=%d in %s\n", readen, size, fileName));
 	}
-	fclose(f);
+	gf_fclose(f);
 }
 
 void OD_ParseBin128(char *val, bin128 *data)

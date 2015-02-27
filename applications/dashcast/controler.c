@@ -150,7 +150,7 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 		optimize_seg_frag_dur(&video_seg_dur, &video_frag_dur);
 	}
 
-	f = gf_f64_open(name, "w");
+	f = gf_fopen(name, "w");
 	//TODO: if (!f) ...
 
 	//	time_t t = time(NULL);
@@ -246,7 +246,7 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 
 	fprintf(f, "</MPD>\n");
 
-	fclose(f);
+	gf_fclose(f);
 
 //	fprintf(stdout, "\33[34m\33[1m");
 	fprintf(stdout, "MPD file generated: %s/%s\n", cmddata->out_dir, cmddata->mpd_filename);

@@ -159,16 +159,16 @@ int main(int argc, char **argv)
 		u32 metamoov64_len;
 		unsigned char metamoov[GF_MAX_PATH];
 		u32 metamoov_len=GF_MAX_PATH;
-		FILE *f = gf_f64_open("metamoov64"/*input*/, "rt");
-		gf_f64_seek(f, 0, SEEK_END);
-		metamoov64_len = (u32)gf_f64_tell(f);
-		gf_f64_seek(f, 0, SEEK_SET);
+		FILE *f = gf_fopen("metamoov64"/*input*/, "rt");
+		gf_fseek(f, 0, SEEK_END);
+		metamoov64_len = (u32)gf_ftell(f);
+		gf_fseek(f, 0, SEEK_SET);
 		fread(metamoov64, metamoov64_len, 1, f);
 		metamoov_len = gf_base64_decode(metamoov64, metamoov64_len, metamoov, metamoov_len);
-		fclose(f);
-		f = gf_f64_open("metamoov", "wb");
+		gf_fclose(f);
+		f = gf_fopen("metamoov", "wb");
 		fwrite(metamoov, metamoov_len, 1, f);
-		fclose(f);
+		gf_fclose(f);
 		return 0;
 	}
 #endif
@@ -182,17 +182,17 @@ int main(int argc, char **argv)
 		GF_AdobeBootstrapInfoBox *abst = (GF_AdobeBootstrapInfoBox *)abst_New();
 		GF_BitStream *bs;
 #if 1 //64
-		FILE *f = gf_f64_open("bootstrap64"/*input*/, "rt");
-		gf_f64_seek(f, 0, SEEK_END);
-		bootstrap64_len = (u32)gf_f64_tell(f);
-		gf_f64_seek(f, 0, SEEK_SET);
+		FILE *f = gf_fopen("bootstrap64"/*input*/, "rt");
+		gf_fseek(f, 0, SEEK_END);
+		bootstrap64_len = (u32)gf_ftell(f);
+		gf_fseek(f, 0, SEEK_SET);
 		fread(bootstrap64, bootstrap64_len, 1, f);
 		bootstrap_len = gf_base64_decode(bootstrap64, bootstrap64_len, bootstrap, bootstrap_len);
 #else //binary bootstrap
-		FILE *f = gf_f64_open("bootstrap.bin"/*input*/, "rb");
-		gf_f64_seek(f, 0, SEEK_END);
-		bootstrap_len = (u32)gf_f64_tell(f);
-		gf_f64_seek(f, 0, SEEK_SET);
+		FILE *f = gf_fopen("bootstrap.bin"/*input*/, "rb");
+		gf_fseek(f, 0, SEEK_END);
+		bootstrap_len = (u32)gf_ftell(f);
+		gf_fseek(f, 0, SEEK_SET);
 		fread(bootstrap, bootstrap_len, 1, f);
 #endif
 		bs = gf_bs_new(bootstrap+8, bootstrap_len-8, GF_BITSTREAM_READ);
@@ -206,13 +206,13 @@ int main(int argc, char **argv)
 		abst_Write((GF_Box*)abst, bs);
 		bootstrap_len = (u32)gf_bs_get_position(bs);
 		gf_bs_del(bs);
-		fclose(f);
-		f = gf_f64_open("bootstrap", "wt");
+		gf_fclose(f);
+		f = gf_fopen("bootstrap", "wt");
 		bootstrap64_len = gf_base64_encode(bootstrap, bootstrap_len, bootstrap64, GF_MAX_PATH);
 		fwrite(bootstrap64, bootstrap64_len, 1, f);
 		fprintf(f, "\n\n");
 		abst_dump((GF_Box*)abst, f);
-		fclose(f);
+		gf_fclose(f);
 		abst_del((GF_Box*)abst);
 		return 0;
 	}

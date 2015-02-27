@@ -263,5 +263,5 @@ void generate_laser_tables_da(GF_List *atts)
 	}
 	fprintf(output, "\treturn 1;\n}\n\n");
 
-	fclose(output);
+	gf_fclose(output);
 }
