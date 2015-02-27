@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 	u32 size, fsize, fdone;
 	GF_M2TS_Demuxer *ts;
 
-	FILE *src = fopen(argv[1], "rb");
+	FILE *src = gf_f64_open(argv[1], "rb");
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_event;
 
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 		if (has_seen_pat) break;
 	}
 
-	dest = fopen("pes.mp3", "wb");
+	dest = gf_f64_open("pes.mp3", "wb");
 	gf_m2ts_reset_parsers(ts);
 	gf_f64_seek(src, 0, SEEK_SET);
 	fdone = 0;

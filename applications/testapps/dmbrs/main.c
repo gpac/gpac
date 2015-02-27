@@ -26,13 +26,13 @@
 
 void save_ts(char *filename, unsigned char *data)
 {
-	FILE *ts_out = fopen(filename,"a+b");
+	FILE *ts_out = gf_f64_open(filename,"a+b");
 	gf_fwrite(data, 1, 188, ts_out);
 	fclose(ts_out);
 }
 void save_rs_0(char *filename, unsigned char *data)
 {
-	FILE *rs_out = fopen(filename,"a+b");
+	FILE *rs_out = gf_f64_open(filename,"a+b");
 	gf_fwrite(data, 1, 204, rs_out);
 	fclose(rs_out);
 }
@@ -209,7 +209,7 @@ void main(int argc, char **argv)
 
 	/* generation d'un TS aléatoire */
 	/*
-		if ((in=fopen(argv[1], "wb")) == NULL) {
+		if ((in=gf_f64_open(argv[1], "wb")) == NULL) {
 			printf( "Impossible d'ouvrir %s en lecture.\n", argv[1]);
 		}
 		{
@@ -224,7 +224,7 @@ void main(int argc, char **argv)
 			}
 		}
 		fclose(in);
-		if ((in=fopen(argv[1], "rb")) == NULL) {
+		if ((in=gf_f64_open(argv[1], "rb")) == NULL) {
 			printf( "Impossible d'ouvrir %s en lecture.\n", argv[1]);
 		}
 
@@ -237,7 +237,7 @@ void main(int argc, char **argv)
 	*/
 
 
-	if ((in=fopen(argv[1], "rb")) == NULL) {
+	if ((in=gf_f64_open(argv[1], "rb")) == NULL) {
 		printf( "Impossible d'ouvrir %s en lecture.\n", argv[1]);
 	}
 

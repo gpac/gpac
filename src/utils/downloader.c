@@ -1662,10 +1662,10 @@ retry_cache:
 		char szTemp[GF_MAX_PATH];
 		strcpy(szTemp, dm->cache_directory);
 		strcat(szTemp, "gpaccache.test");
-		test = fopen(szTemp, "wb");
+		test = gf_f64_open(szTemp, "wb");
 		if (!test) {
 			gf_mkdir(dm->cache_directory);
-			test = fopen(szTemp, "wb");
+			test = gf_f64_open(szTemp, "wb");
 			if (!test) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Cache] Cannot write to %s directory, using system temp cache\n", dm->cache_directory ));
 				gf_free(dm->cache_directory);
@@ -3164,7 +3164,7 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
 	GF_DownloadSession *dnload;
 	if (!filename || !url || !dm)
 		return GF_BAD_PARAM;
-	f= fopen(filename, "wb");
+	f = gf_f64_open(filename, "wb");
 	if (!f) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[WGET] Failed to open file %s for write.\n", filename));
 		return GF_IO_ERR;

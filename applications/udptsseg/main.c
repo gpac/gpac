@@ -47,7 +47,7 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 		sprintf(manifest_name, "%s", manifest);
 	}
 
-	manifest_fp = fopen(tmp_manifest, "w");
+	manifest_fp = gf_f64_open(tmp_manifest, "w");
 	if (!manifest_fp) {
 		fprintf(stderr, "Could not create m3u8 manifest file (%s)\n", tmp_manifest);
 		return GF_BAD_PARAM;
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 		}
 		//write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, segment_index, 0, 0);
 	}
-	ts_output_file = fopen(ts_out, "wb");
+	ts_output_file = gf_f64_open(ts_out, "wb");
 	if (!ts_output_file) {
 		fprintf(stderr, "Error opening %s\n", ts_out);
 		goto exit;
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
 					} else {
 						sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
 					}
-					ts_output_file = fopen(segment_name, "wb");
+					ts_output_file = gf_f64_open(segment_name, "wb");
 					if (!ts_output_file) {
 						fprintf(stderr, "Error opening segment %s\n", segment_name);
 						goto exit;

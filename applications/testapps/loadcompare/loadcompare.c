@@ -382,7 +382,7 @@ GF_Err get_size(GF_LoadCompare *lc, char *item_name, char *item_path, u32 *size)
 
 	*size = 0;
 
-	file = fopen(item_path, "rt");
+	file = gf_f64_open(item_path, "rt");
 	if (!file) {
 		if (lc->verbose) fprintf(stdout, "Could not open file %s\n", item_path);
 		e = GF_IO_ERR;
@@ -436,7 +436,7 @@ GF_Err create_gz_file(GF_LoadCompare *lc, char *item_name, char *item_path, u32 
 	strcpy(gz_path, item_name);
 	strcat(gz_path, "z");
 	gz = gzopen(gz_path, "wb");
-	file = fopen(item_path, "rt");
+	file = gf_f64_open(item_path, "rt");
 
 	if (!gz || !file) {
 		if (lc->verbose) fprintf(stdout, "Could not open file %s or %s\n", item_path, gz_path);
@@ -445,7 +445,7 @@ GF_Err create_gz_file(GF_LoadCompare *lc, char *item_name, char *item_path, u32 
 		while ((read = fread(buffer, 1, 100, file))) gzwrite(gz, buffer, read);
 		fclose(file);
 		gzclose(gz);
-		file = fopen(gz_path, "rb");
+		file = gf_f64_open(gz_path, "rb");
 		fseek(file, 0, SEEK_END);
 		*size = (u32)ftell(file);
 		fclose(file);
@@ -645,7 +645,7 @@ int main(int argc, char **argv)
 	}
 
 	gf_sys_init();
-	if (out) lc.out = fopen(out, "wt");
+	if (out) lc.out = gf_f64_open(out, "wt");
 	if (!lc.out) {
 		fprintf(stderr, "Cannot open output file %s\n", out);
 		return -1;

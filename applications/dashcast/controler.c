@@ -150,7 +150,7 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 		optimize_seg_frag_dur(&video_seg_dur, &video_frag_dur);
 	}
 
-	f = fopen(name, "w");
+	f = gf_f64_open(name, "w");
 	//TODO: if (!f) ...
 
 	//	time_t t = time(NULL);

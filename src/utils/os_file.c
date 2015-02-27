@@ -564,14 +564,18 @@ u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
 #endif
 }
 
+u32 count = 0;
 GF_EXPORT
 FILE *gf_f64_open(const char *file_name, const char *mode)
 {
 #if defined(WIN32)
 	FILE *res = fopen(file_name, mode);
+	if (mode[0]=='w') 
+		count ++;
 	if (res) return res;
 	if (strchr(mode, 'w') || strchr(mode, 'a')) {
 		u32 err = GetLastError();
+		if (!err) _get_doserrno(&err);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Win32] system failure for file opening of %s in mode %s: 0x%08x\n", file_name, mode, err));
 	}
 	return NULL;

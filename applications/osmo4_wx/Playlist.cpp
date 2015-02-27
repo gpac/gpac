@@ -478,7 +478,7 @@ void wxPlaylist::OnSave(wxCommandEvent & WXUNUSED(event))
 
 void wxPlaylist::Save(char *szPath, Bool save_m3u)
 {
-	FILE *out = fopen(szPath, "wt");
+	FILE *out = gf_f64_open(szPath, "wt");
 	if (!save_m3u)
 		fprintf(out, "[playlist]\nNumberOfEntries=%d\n", gf_list_count(m_entries));
 
@@ -516,7 +516,7 @@ void wxPlaylist::OpenPlaylist(wxString filename)
 	PLEntry *ple;
 	Bool load_m3u, go;
 	char szLine[GF_MAX_PATH];
-	pl = fopen(filename.mb_str(wxConvUTF8) , "rt");
+	pl = gf_f64_open(filename.mb_str(wxConvUTF8) , "rt");
 	if (!pl) return;
 
 	ple = NULL;

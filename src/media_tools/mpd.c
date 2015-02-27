@@ -2106,7 +2106,7 @@ GF_Err gf_mpd_write_file(GF_MPD *mpd, char *file_name)
 	FILE *out;
 	if (!strcmp(file_name, "std")) out = stdout;
 	else {
-		out = fopen(file_name, "wb");
+		out = gf_f64_open(file_name, "wb");
 		if (!out) return GF_IO_ERR;
 	}
 

@@ -793,7 +793,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	
 	if (mode==DUMP_SHA1) {
 		strcat(szOutPath, ".sha1");
-		sha_out = fopen(szOutPath, "wb");
+		sha_out = gf_f64_open(szOutPath, "wb");
 		if (!sha_out) {
 			fprintf(stderr, "Error creating SHA file %s\n", szOutPath);
 			return 1;
@@ -813,7 +813,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		}
 		if (mode==DUMP_SHA1) {
 			strcat(szPath_depth, "_depth.sha1");
-			sha_depth_out = fopen(szPath_depth, "wb");
+			sha_depth_out = gf_f64_open(szPath_depth, "wb");
 			if (!sha_depth_out) {
 				fprintf(stderr, "Error creating depgth SHA file %s\n", szPath_depth);
 				return 1;

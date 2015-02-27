@@ -126,7 +126,7 @@ extern "C" {
 #ifdef DEKTEC_DUMP_UYVY
 		char szName[1024];
 		sprintf(szName, "test.uyvy");
-		FILE *f = fopen(szName, "ab");
+		FILE *f = gf_f64_open(szName, "ab");
 		fwrite(dtc->pixels_UYVY, dtc->width*dtc->height*2, 1, f);
 		fclose(f);
 #endif

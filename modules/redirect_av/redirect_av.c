@@ -133,7 +133,7 @@ static u32 audio_encoding_thread_run(void *param)
 	outBuff = gf_malloc(outBuffSize* sizeof(u8));
 	inBuff = NULL;
 #ifdef DUMP_MP3
-	FILE * mp3 = fopen("/tmp/dump.mp3", "w");
+	FILE * mp3 = gf_f64_open("/tmp/dump.mp3", "w");
 #endif /* DUMP_MP3 */
 	sendPts = 1;
 	gf_sc_add_audio_listener ( avr->term->compositor, &avr->audio_listen );
