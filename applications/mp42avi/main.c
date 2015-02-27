@@ -148,7 +148,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 		sprintf(str, "%s_%d.bmp", rad_name, img_num);
 	}
 
-	fout = fopen(str, "wb");
+	fout = gf_f64_open(str, "wb");
 	if (!fout) return;
 
 	memset(&fh, 0, sizeof(fh));
@@ -200,7 +200,7 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 		sprintf(str, "%s_%d.raw", rad_name, img_num);
 	}
 
-	fout = fopen(str, "wb");
+	fout = gf_f64_open(str, "wb");
 	if (!fout) return;
 	gf_fwrite(fb->video_buffer , fb->height*fb->pitch, 1, fout);
 	fclose(fout);

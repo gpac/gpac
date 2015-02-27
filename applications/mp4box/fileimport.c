@@ -213,7 +213,7 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 		data = gf_malloc(sizeof(char) * size);
 		size = gf_base64_decode(src, size, data, size);
 	} else {
-		FILE *t = fopen(src, "rb");
+		FILE *t = gf_f64_open(src, "rb");
 		if (!t) return GF_IO_ERR;
 		fseek(t, 0, SEEK_END);
 		size = ftell(t);

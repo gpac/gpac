@@ -233,7 +233,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		return GF_OK;
 	}
 
-	read->stream = fopen(url, "rb");
+	read->stream = gf_f64_open(url, "rb");
 	if (read->stream) {
 		gf_f64_seek(read->stream, 0, SEEK_END);
 		read->data_size = (u32) gf_f64_tell(read->stream);

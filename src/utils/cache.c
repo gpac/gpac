@@ -895,7 +895,7 @@ s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_Down
 		* a not fully closed cache entry */
 		if (entry->writeFilePtr) {
 			if (fclose(entry->writeFilePtr)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] gf_cache_remove_session_from_cache_entry:%d, Failed to properly fclose cache file '%s' of url '%s', cache may be corrupted !\n", __LINE__, entry->cache_filename, entry->url));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] gf_cache_remove_session_from_cache_entry:%d, Failed to properly close cache file '%s' of url '%s', cache may be corrupted !\n", __LINE__, entry->cache_filename, entry->url));
 			}
 		}
 		entry->writeFilePtr = NULL;

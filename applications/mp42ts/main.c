@@ -1542,7 +1542,7 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		char *sdp_buf;
 		u32 sdp_size;
 		GF_Err e;
-		FILE *_sdp = fopen(src, "rt");
+		FILE *_sdp = gf_f64_open(src, "rt");
 		if (!_sdp) {
 			fprintf(stderr, "Error opening %s - no such file\n", src);
 			return 0;
@@ -1752,7 +1752,7 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		} else
 #endif
 		{
-			FILE *f = fopen(src, "rt");
+			FILE *f = gf_f64_open(src, "rt");
 			if (f) {
 				fclose(f);
 				fprintf(stderr, "Error opening %s - not a supported input media, skipping.\n", src);
@@ -1808,7 +1808,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				goto error;
 			}
 			video_input_found = 1;
-			f = fopen(next_arg, "rb");
+			f = gf_f64_open(next_arg, "rb");
 			if (!f) {
 				error_msg = "video file not found: ";
 				goto error;
@@ -2131,7 +2131,7 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 		sprintf(manifest_name, "%s", manifest);
 	}
 
-	manifest_fp = fopen(tmp_manifest, "w");
+	manifest_fp = gf_f64_open(tmp_manifest, "w");
 	if (!manifest_fp) {
 		fprintf(stderr, "Could not create m3u8 manifest file (%s)\n", tmp_manifest);
 		return GF_BAD_PARAM;
@@ -2303,7 +2303,7 @@ int main(int argc, char **argv)
 			ts_output_file = stdout;
 			is_stdout = GF_TRUE;
 		} else {
-			ts_output_file = fopen(ts_out, "wb");
+			ts_output_file = gf_f64_open(ts_out, "wb");
 			is_stdout = GF_FALSE;
 		}
 		if (!ts_output_file) {
@@ -2551,7 +2551,7 @@ call_flush:
 					} else {
 						sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
 					}
-					ts_output_file = fopen(segment_name, "wb");
+					ts_output_file = gf_f64_open(segment_name, "wb");
 					if (!ts_output_file) {
 						fprintf(stderr, "Error opening %s\n", segment_name);
 						goto exit;

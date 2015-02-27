@@ -338,7 +338,7 @@ void PrintDASHUsage()
 	        "                       If not set (default), segments are concatenated in output file\n"
 	        "                        except in \"live\" profile where dash_%%s is used\n"
 	        " -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
-	        " -segment-timeline    uses SegmentTimeline when generating segments. NOT SUPPORTED BY LIVE/CTX MODE YET.\n"
+	        " -segment-timeline    uses SegmentTimeline when generating segments.\n"
 	        " -segment-marker MARK adds a box of type \'MARK\' at the end of each DASH segment. MARK shall be a 4CC identifier\n"
 	        " -base-url string     sets Base url at MPD level. Can be used several times.\n"
 	        " -mpd-title string    sets MPD title.\n"
@@ -347,6 +347,7 @@ void PrintDASHUsage()
 	        " -cprt string         adds copyright string to MPD\n"
 	        " -dash-ctx FILE       stores/restore DASH timing from FILE.\n"
 	        " -dynamic             uses dynamic MPD type instead of static.\n"
+			" -mpd-duration DUR    sets the duration in second of a live session (0 by default). If 0, you must use -mpd-refresh.\n"
 	        " -mpd-refresh TIME    specifies MPD update time in seconds.\n"
 	        " -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
 	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
@@ -1662,7 +1663,7 @@ static GF_Err nhml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 			strcpy(szFile, inName);
 			strcat(szFile, ".bin");
 		}
-		t = fopen(szFile, "wb");
+		t = gf_f64_open(szFile, "wb");
 		if (!t) {
 			fprintf(stderr, "Failed to open file %s\n", szFile);
 			e = GF_IO_ERR;
@@ -1725,6 +1726,7 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	GF_SceneDumpFormat dump_mode;
 #endif
+	Double mpd_live_duration = 0;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
 	Bool print_sdp, print_info, open_edit, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults, single_traf_per_moof;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
@@ -2282,6 +2284,10 @@ int mp4boxMain(int argc, char **argv)
 			}
 			CHECK_NEXT_ARG
 			dash_duration = atof(argv[i+1]) / 1000;
+			i++;
+		}
+		else if (!stricmp(arg, "-mpd-duration")) {
+			CHECK_NEXT_ARG mpd_live_duration = atof(argv[i+1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-mpd-refresh")) {
@@ -3542,7 +3548,8 @@ int mp4boxMain(int argc, char **argv)
 			                            seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
 			                            interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
 			                            dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
-			                            ast_shift_sec, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf, single_traf_per_moof);
+			                            ast_shift_sec, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
+										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration);
 
 			//this happens when reading file while writing them (local playback of the live session ...)
 			if (dash_live && (e==GF_IO_ERR) ) {

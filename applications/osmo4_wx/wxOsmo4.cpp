@@ -560,7 +560,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 
 	/*check log file*/
 	const char *str = gf_cfg_get_key(m_user.config, "General", "LogFile");
-	if (str) m_logs = fopen(str, "wt");
+	if (str) m_logs = gf_f64_open(str, "wt");
 	gf_log_set_callback(this, wxOsmo4_do_log);
 
 	/*set log level*/

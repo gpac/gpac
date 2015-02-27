@@ -292,7 +292,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 			if (ct->image.buffer) {
 				char *par = (char *) gf_scene_get_service_url( gf_node_get_graph(txh->owner ) );
 				char *src_url = gf_url_concatenate(par, ct->image.buffer);
-				FILE *test = fopen( src_url ? src_url : ct->image.buffer, "rb");
+				FILE *test = gf_f64_open( src_url ? src_url : ct->image.buffer, "rb");
 				if (test) {
 					fseek(test, 0, SEEK_END);
 					ct->data_len = ftell(test);

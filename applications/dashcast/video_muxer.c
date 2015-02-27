@@ -571,7 +571,7 @@ int dc_gpac_video_isom_close(VideoOutputFile *video_output_file)
 
 int dc_raw_h264_open(VideoOutputFile *video_output_file, char *filename)
 {
-	video_output_file->file = fopen(filename, "w");
+	video_output_file->file = gf_f64_open(filename, "w");
 	return 0;
 }
 
