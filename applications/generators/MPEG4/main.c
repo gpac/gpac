@@ -229,7 +229,7 @@ FILE *BeginFile(char *name, u32 type)
 		}
 	}
 
-	f = fopen(sPath, "wt");
+	f = gf_f64_open(sPath, "wt");
 	fprintf(f, "%s\n", cprt);
 
 
@@ -1624,7 +1624,7 @@ void generate_ndts(GF_List *NDTs, GF_List *nodes, u32 nbVersion)
 		char szFile[100];
 		FILE *f;
 		sprintf(szFile, "NdtListV%d.html", i+1);
-		f = fopen(szFile, "wt");
+		f = gf_f64_open(szFile, "wt");
 
 		fprintf(f, "<html>\n"\
 		        "<head>\n"\
@@ -1715,7 +1715,7 @@ int main (int argc, char **argv)
 		if (!strcmp(argv[i], "-ndt")) {
 			generate_ndt = 1;
 		} else if (argv[i][0]=='-') {
-			fskip = fopen(argv[i+1], "rt");
+			fskip = gf_f64_open(argv[i+1], "rt");
 			if (!fskip) {
 				printf("file %s not found\n", argv[i+1]);
 				return 0;
@@ -1726,10 +1726,10 @@ int main (int argc, char **argv)
 	nbVersion=1;
 	while (1) {
 		sprintf(szTempFile, "templates%u.txt", nbVersion);
-		nodes = fopen(szTempFile, "rt");
+		nodes = gf_f64_open(szTempFile, "rt");
 		if (!nodes) {
 			sprintf(szTempFile, "template%u.txt", nbVersion);
-			nodes = fopen(szTempFile, "rt");
+			nodes = gf_f64_open(szTempFile, "rt");
 		}
 		if (!nodes) break;
 

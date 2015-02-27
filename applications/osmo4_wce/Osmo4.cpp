@@ -170,7 +170,7 @@ void COsmo4::EnableLogs(Bool turn_on)
 			gf_cfg_set_key(m_user.config, "General", "LogFile", "\\gpac_logs.txt");
 			filename = "\\gpac_logs.txt";
 		}
-		m_logs = fopen(filename, "wt");
+		m_logs = gf_f64_open(filename, "wt");
 		if (!m_logs) {
 			MessageBox(NULL, _T("Couldn't open log file on file system"), _T("Disabling logs"), MB_OK);
 			turn_on = 0;

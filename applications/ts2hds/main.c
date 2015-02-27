@@ -159,14 +159,14 @@ int main(int argc, char **argv)
 		u32 metamoov64_len;
 		unsigned char metamoov[GF_MAX_PATH];
 		u32 metamoov_len=GF_MAX_PATH;
-		FILE *f = fopen("metamoov64"/*input*/, "rt");
+		FILE *f = gf_f64_open("metamoov64"/*input*/, "rt");
 		gf_f64_seek(f, 0, SEEK_END);
 		metamoov64_len = (u32)gf_f64_tell(f);
 		gf_f64_seek(f, 0, SEEK_SET);
 		fread(metamoov64, metamoov64_len, 1, f);
 		metamoov_len = gf_base64_decode(metamoov64, metamoov64_len, metamoov, metamoov_len);
 		fclose(f);
-		f = fopen("metamoov", "wb");
+		f = gf_f64_open("metamoov", "wb");
 		fwrite(metamoov, metamoov_len, 1, f);
 		fclose(f);
 		return 0;
@@ -182,14 +182,14 @@ int main(int argc, char **argv)
 		GF_AdobeBootstrapInfoBox *abst = (GF_AdobeBootstrapInfoBox *)abst_New();
 		GF_BitStream *bs;
 #if 1 //64
-		FILE *f = fopen("bootstrap64"/*input*/, "rt");
+		FILE *f = gf_f64_open("bootstrap64"/*input*/, "rt");
 		gf_f64_seek(f, 0, SEEK_END);
 		bootstrap64_len = (u32)gf_f64_tell(f);
 		gf_f64_seek(f, 0, SEEK_SET);
 		fread(bootstrap64, bootstrap64_len, 1, f);
 		bootstrap_len = gf_base64_decode(bootstrap64, bootstrap64_len, bootstrap, bootstrap_len);
 #else //binary bootstrap
-		FILE *f = fopen("bootstrap.bin"/*input*/, "rb");
+		FILE *f = gf_f64_open("bootstrap.bin"/*input*/, "rb");
 		gf_f64_seek(f, 0, SEEK_END);
 		bootstrap_len = (u32)gf_f64_tell(f);
 		gf_f64_seek(f, 0, SEEK_SET);
@@ -207,7 +207,7 @@ int main(int argc, char **argv)
 		bootstrap_len = (u32)gf_bs_get_position(bs);
 		gf_bs_del(bs);
 		fclose(f);
-		f = fopen("bootstrap", "wt");
+		f = gf_f64_open("bootstrap", "wt");
 		bootstrap64_len = gf_base64_encode(bootstrap, bootstrap_len, bootstrap64, GF_MAX_PATH);
 		fwrite(bootstrap64, bootstrap64_len, 1, f);
 		fprintf(f, "\n\n");

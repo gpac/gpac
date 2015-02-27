@@ -208,7 +208,7 @@ u32 tcp_server(void *par)
 		if((*(input->config_flag)) == 0)
 		{
 			u32 num_retry;
-			fp = fopen("temp.cfg", "w+");
+			fp = gf_f64_open("temp.cfg", "w+");
 			if (!fp) {
 				fprintf(stderr, "Error opening temp file for the configuration\n");
 				exit(1);
@@ -228,7 +228,7 @@ u32 tcp_server(void *par)
 			gf_sk_send(conn_socket, "OK\n", 3);
 
 			memset(temp, 0, sizeof(temp));
-			fp = fopen(input->config->scene_init_file, "w+");
+			fp = gf_f64_open(input->config->scene_init_file, "w+");
 			if (!fp) {
 				fprintf(stderr, "Error opening temp file for reception of the initial scene\n");
 				exit(1);

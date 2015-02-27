@@ -98,7 +98,7 @@ int mode;
 		mode_fopen = "wb";
 
 	if ((filename!=NULL) && (mode_fopen != NULL))
-		file = fopen(filename, mode_fopen);
+		file = gf_f64_open(filename, mode_fopen);
 	return file;
 }
 
@@ -1258,7 +1258,7 @@ unzFile uf;
 
 		if ((skip==0) && (err==UNZ_OK))
 		{
-			fout=fopen(write_filename,"wb");
+			fout = gf_f64_open(write_filename,"wb");
 
 			/* some zipfile don't contain directory alone before file */
 			if ((fout==NULL) && (filename_withoutpath!=(char*)filename_inzip))
@@ -1267,7 +1267,7 @@ unzFile uf;
 				*(filename_withoutpath-1)='\0';
 				makedir(write_filename);
 				*(filename_withoutpath-1)=c;
-				fout=fopen(write_filename,"wb");
+				fout = gf_f64_open(write_filename,"wb");
 			}
 
 			if (fout==NULL)
@@ -1367,7 +1367,7 @@ int gf_unzip_archive(const char *zipfilename, const char *dirname)
 int gf_unzip_probe(const char *zipfilename)
 {
 	int ret = 0;
-	FILE *f = fopen(zipfilename, "r");
+	FILE *f = gf_f64_open(zipfilename, "r");
 	if (!f) return 0;
 	if (fgetc(f)=='P')
 		if (fgetc(f)=='K')

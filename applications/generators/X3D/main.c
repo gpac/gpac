@@ -180,7 +180,7 @@ FILE *BeginFile(u32 type)
 		sprintf(sPath, "..%c..%c..%csrc%cscenegraph%cx3d_nodes.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 	}
 
-	f = fopen(sPath, "wt");
+	f = gf_f64_open(sPath, "wt");
 	fprintf(f, "%s\n", COPYRIGHT);
 
 	{
@@ -1208,7 +1208,7 @@ int main (int argc, char **argv)
 	X3DField *bf;
 	u32 nb_nodes, nb_imp;
 
-	nodes = fopen("templates_X3D.txt", "rt");
+	nodes = gf_f64_open("templates_X3D.txt", "rt");
 	if (!nodes) {
 		fprintf(stdout, "cannot open \"templates_X3D.txt\" - aborting\n");
 		return 0;
@@ -1221,7 +1221,7 @@ int main (int argc, char **argv)
 	fclose(nodes);
 
 	if (argc>1) {
-		pf = fopen(argv[1], "rt");
+		pf = gf_f64_open(argv[1], "rt");
 		if (!pf) fprintf(stdout, "Cannot open profile file %s\n", argv[1]);
 		else {
 			parse_profile(XNodes, pf);

@@ -1375,9 +1375,8 @@ static u32 gf_dash_get_index_in_timeline(GF_MPD_SegmentTimeline *timeline, u64 s
 static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient *dash, GF_MPD_SegmentList *old_list, GF_MPD_SegmentTemplate *old_template, GF_MPD_SegmentList *new_list, GF_MPD_SegmentTemplate *new_template, Double min_start_time)
 {
 	GF_MPD_SegmentTimeline *old_timeline, *new_timeline;
-	u32 i, idx, prev_count, timescale;
-	u64 start_time;
-	GF_MPD_SegmentTimelineEntry *first_new_entry;
+	u32 i, idx, prev_count, timescale, nb_new_segs;
+	GF_MPD_SegmentTimelineEntry *ent;
 
 	old_timeline = new_timeline = NULL;
 	if (old_list && old_list->segment_timeline) {
@@ -1411,57 +1410,38 @@ static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient
 		}
 	}
 
-
-	first_new_entry  = gf_list_get(new_timeline->entries, 0);
-	idx = 0;
-	start_time=0;
-	while (1) {
-		GF_MPD_SegmentTimelineEntry *ent = gf_list_get(old_timeline->entries, 0);
-		if (!ent) break;
-		if (ent->start_time)
-			start_time = ent->start_time;
-		/*if starttime is equal or greater than first entry in new timeline, we're done*/
-		if (start_time >= first_new_entry->start_time)
-			break;
-
-		/*if entry overlaps first entry in new timeline, remove segments*/
-		while (start_time + ent->duration * (1 + ent->repeat_count) > first_new_entry->start_time) {
-			ent->repeat_count--;
-		}
-		/*we will insert the first entry in the new timeline, make sure we have a start*/
-		if (!idx && !ent->start_time)
-			ent->start_time = start_time;
-
-		start_time += ent->duration * (1 + ent->repeat_count);
-
-		gf_list_insert(new_timeline->entries, ent, idx);
-		idx ++;
-		gf_list_rem(old_timeline->entries, 0);
+	nb_new_segs = 0;
+	idx=0;
+	while ((ent = gf_list_enum(new_timeline->entries, &idx))) {
+		nb_new_segs += 1 + ent->repeat_count;
 	}
 
 	if (group) {
-		group->nb_segments_in_rep = gf_list_count(new_timeline->entries);
-		group->download_segment_index = gf_dash_get_index_in_timeline(new_timeline, group->current_start_time, group->current_timescale, timescale);
+		u32 prev_idx = group->download_segment_index;
+		group->nb_segments_in_rep = nb_new_segs;
+		group->download_segment_index = gf_dash_get_index_in_timeline(new_timeline, group->current_start_time, group->current_timescale, timescale ? timescale : group->current_timescale);
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updated SegmentTimeline: New segment number %d - old %d - start time "LLD"\n", group->download_segment_index , prev_idx, group->current_start_time));
 	} else {
 		u32 i;
 		for (i=0; i<gf_list_count(dash->groups); i++) {
 			GF_DASH_Group *a_group = gf_list_get(dash->groups, i);
-			a_group->nb_segments_in_rep = gf_list_count(new_timeline->entries);
-			a_group->download_segment_index = gf_dash_get_index_in_timeline(new_timeline, a_group->current_start_time, a_group->current_timescale, timescale);
+			u32 prev_idx = a_group->download_segment_index;
+			a_group->nb_segments_in_rep = nb_new_segs;
+			a_group->download_segment_index = gf_dash_get_index_in_timeline(new_timeline, a_group->current_start_time, a_group->current_timescale, timescale ? timescale : a_group->current_timescale);
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updated SegmentTimeline: New segment number %d - old %d - start time "LLD"\n", a_group->download_segment_index , prev_idx, a_group->current_start_time));
 		}
 	}
 
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updated SegmentTimeline: %d entries (%d previously)\n", gf_list_count(new_timeline->entries), prev_count));
-#if 0
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Dumping new merged timeline: \n"));
-	start_time=0;
-	for (idx=0; idx<gf_list_count(new_timeline->entries); idx++) {
-		GF_MPD_SegmentTimelineEntry *ent = gf_list_get(new_timeline->entries, idx);
-		if (!idx) start_time = ent->start_time;
-		assert(!ent->start_time || (ent->start_time >=start_time));
-		start_time += ent->duration*(1+ent->repeat_count);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("\tt="LLU" d=%d r=%d\n", ent->start_time, ent->duration, ent->repeat_count));
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG) ) { 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] New SegmentTimeline: \n"));
+		for (idx=0; idx<gf_list_count(new_timeline->entries); idx++) {
+			GF_MPD_SegmentTimelineEntry *ent = gf_list_get(new_timeline->entries, idx);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("\tt="LLU" d=%d r=%d\n", ent->start_time, ent->duration, ent->repeat_count));
+		}
 	}
 #endif
 
@@ -1547,7 +1527,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	if (!dash->mpd_dnload) {
 		local_url = purl = NULL;
 		if (!gf_list_count(dash->mpd->locations)) {
-			FILE *t = fopen(dash->base_url, "rt");
+			FILE *t = gf_f64_open(dash->base_url, "rt");
 			if (t) {
 				local_url = dash->base_url;
 				fclose(t);
@@ -1767,22 +1747,32 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 			}
 
 			else if (rep->segment_template || group->adaptation_set->segment_template || period->segment_template) {
-				u32 start;
 				if (!new_rep->segment_template && !new_set->segment_template && !new_period->segment_template) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: representation does not use segment template as previous version\n"));
 					gf_mpd_del(new_mpd);
 					return GF_NON_COMPLIANT_BITSTREAM;
 				}
-				start = 0;
-				/*override new startNum with old one - otherwise we would need to get rid of the entries before the start number in the MPD ...*/
-				if (period->segment_template && (period->segment_template->start_number != (u32) -1) ) start = period->segment_template->start_number;
-				if (set->segment_template && (set->segment_template->start_number != (u32) -1) ) start = set->segment_template->start_number;
-				if (rep->segment_template && (rep->segment_template->start_number != (u32) -1) ) start = rep->segment_template->start_number;
+				//if no segment timeline, adjust current idx of the group if start number changes (not needed if SegmentTimeline, otherwise, we will look for the index with the same starttime in the timeline)
+				if ((period->segment_template && period->segment_template->segment_timeline) 
+					|| (set->segment_template && set->segment_template->segment_timeline) 
+					|| (rep->segment_template && rep->segment_template->segment_timeline) 
+				) {
+				} else {
+					s32 sn_diff = 0;
 
-				if (new_period->segment_template && (new_period->segment_template->start_number != (u32) -1) ) new_period->segment_template->start_number = start;
-				if (new_set->segment_template && (new_set->segment_template->start_number != (u32) -1) ) new_set->segment_template->start_number = start;
-				if (new_rep->segment_template && (new_rep->segment_template->start_number != (u32) -1) ) new_rep->segment_template->start_number = start;
+					if (period->segment_template && (period->segment_template->start_number != (u32) -1) ) sn_diff = period->segment_template->start_number;
+					else if (set->segment_template && (set->segment_template->start_number != (u32) -1) ) sn_diff = set->segment_template->start_number;
+					else if (rep->segment_template && (rep->segment_template->start_number != (u32) -1) ) sn_diff = rep->segment_template->start_number;
 
+					if (new_period->segment_template && (new_period->segment_template->start_number != (u32) -1) ) sn_diff -= (s32) new_period->segment_template->start_number;
+					else if (new_set->segment_template && (new_set->segment_template->start_number != (u32) -1) ) sn_diff -= (s32) new_set->segment_template->start_number;
+					else if (new_rep->segment_template && (new_rep->segment_template->start_number != (u32) -1) ) sn_diff -= (s32) new_rep->segment_template->start_number;
+
+					if (sn_diff != 0) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] startNumber change for SegmentTemplate without SegmentTimeline - adjusting current segment index by %d\n", sn_diff));
+						group->download_segment_index += sn_diff;
+					}
+				}
 				/*OK, this rep is fine*/
 			}
 			else {
@@ -2895,7 +2885,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 						sprintf(szName, "gmem://%d@%p", rep->playback.init_segment_size, rep->playback.init_segment_data);
 						rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
 					} else {
-						FILE *t = fopen(cache_name, "rb");
+						FILE *t = gf_f64_open(cache_name, "rb");
 						if (t) {
 							u32 res;
 							fseek(t, 0, SEEK_END);
@@ -4297,14 +4287,14 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	}
 
 	if (is_local) {
-		FILE *f = fopen(local_url, "rt");
+		FILE *f = gf_f64_open(local_url, "rt");
 		if (!f) {
 			sep_cgi = strrchr(local_url, '?');
 			if (sep_cgi) sep_cgi[0] = 0;
 			sep_frag = strrchr(local_url, '#');
 			if (sep_frag) sep_frag[0] = 0;
 
-			f = fopen(local_url, "rt");
+			f = gf_f64_open(local_url, "rt");
 			if (!f) {
 				if (sep_cgi) sep_cgi[0] = '?';
 				if (sep_frag) sep_frag[0] = '#';
@@ -5411,7 +5401,7 @@ GF_Err gf_dash_resync_to_segment(GF_DashClient *dash, const char *latest_segment
 				//we are too late resync...
 			}
 
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Sync to live was lost - reloading MPD\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Sync to live was lost - reloading MPD (loop detected %d)\n", loop_detected));
 			for (i=0; i< gf_list_count(dash->groups); i++) {
 				group = gf_list_get(dash->groups, i);
 				//force reinit of timeline for this group

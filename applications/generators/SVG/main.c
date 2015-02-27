@@ -805,7 +805,7 @@ FILE *BeginFile(u32 type)
 #endif
 	}
 
-	f = fopen(sPath, "wt");
+	f = gf_f64_open(sPath, "wt");
 	fprintf(f, "%s\n", COPYRIGHT);
 
 	{

@@ -89,7 +89,7 @@ static Bool check_file_exists(char *name, char *path, char *outPath)
 	}
 #endif
 	sprintf(szPath, "%s%c%s", path, GF_PATH_SEPARATOR, name);
-	f = fopen(szPath, "rb");
+	f = gf_f64_open(szPath, "rb");
 	if (!f) return 0;
 	fclose(f);
 	if (outPath != path) strcpy(outPath, path);
@@ -482,7 +482,7 @@ static GF_Config *create_default_config(char *file_path)
 	/*locate GUI*/
 	if ( get_default_install_path(szPath, GF_PATH_GUI) ) {
 		sprintf(gui_path, "%s%cgui.bt", szPath, GF_PATH_SEPARATOR);
-		f = fopen(gui_path, "rt");
+		f = gf_f64_open(gui_path, "rt");
 		if (f) {
 			fclose(f);
 			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
@@ -568,7 +568,7 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 		cfg = gf_cfg_new(NULL, file);
 		/*force creation of a new config*/
 		if (!cfg) {
-			FILE *fcfg = fopen(file, "wt");
+			FILE *fcfg = gf_f64_open(file, "wt");
 			if (fcfg) {
 				fclose(fcfg);
 				cfg = gf_cfg_new(NULL, file);

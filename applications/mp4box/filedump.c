@@ -1540,7 +1540,7 @@ GF_Err dump_udta(GF_ISOFile *file, char *inName, u32 dump_udta_type, u32 dump_ud
 		return e;
 	} 
 	sprintf(szName, "%s_%s.udta", inName, gf_4cc_to_str(dump_udta_type) );
-	t = fopen(szName, "wb");
+	t = gf_f64_open(szName, "wb");
 	if (!t) {
 		gf_free(data);
 		fprintf(stderr, "Cannot open file %s\n", szName );

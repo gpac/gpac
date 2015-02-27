@@ -754,7 +754,7 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 	if (!strnicmp(buffer, "file://", 7)) {
 		char *url = gf_url_concatenate(fileName, buffer+7);
 		if (url) {
-			FILE *f = fopen(url, "rb");
+			FILE *f = gf_f64_open(url, "rb");
 			if (f) {
 				fseek(f, 0, SEEK_END);
 				data_size = (u32) ftell(f);
