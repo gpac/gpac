@@ -566,36 +566,64 @@ static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 s
 	return shader;
 }
 
+/*¡k prints flags - used for debugging - DELETE */
+static void print_flags(u32 flags){
+	printf("\n printing flags for: %u \n",flags);
+	if(flags & GF_GL_IS_RECT)
+		printf(" GF_GL_IS_RECT (%d) - ", GF_GL_IS_RECT);
+	if(flags & GF_GL_IS_YUV)
+		printf("GF_GL_IS_YUV (%d) - ", GF_GL_IS_YUV);
+	if(flags & GF_GL_HAS_LIGHT)
+		printf("GF_GL_HAS_LIGHT (%d) - ", GF_GL_HAS_LIGHT);
+	if(flags & GF_GL_HAS_MAT_2D)
+		printf("GF_GL_HAS_MAT_2D (%d) - ", GF_GL_HAS_MAT_2D);
+}
 
 static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_type, u32 flags){
 
-		FILE *src = gf_f64_open(src_path, "rt");
-		GF_SHADERID shader = 0;
-		char *shader_src;//¡startof
-		char *defs, *tmp, *error;
-		u8 def_count =0;
-		size_t str_size =0;	//we +1 before loading the shader
+	FILE *src = gf_f64_open(src_path, "rt");
+	GF_SHADERID shader = 0;
+	char *shader_src;//¡startof
+	char *defs, *tmp, *error;
+	u8 def_count =0;
+	size_t str_size =0;	//we +1 before loading the shader
+	
+	print_flags(flags);
 
-		
-		if(flags == 0){	//if no flags - compile full shader
-			return visual_3d_shader_from_source_file(src_path, shader_type);
-		}else{
-			//¡TODOk fix memory leaks
-			defs = (char *)gf_malloc(sizeof(char));
-			if(flags & GF_GL_IS_RECT){
-				str_size += strlen("#define GF_GL_IS_RECT\n");
-				defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
-				error = strcpy(defs,"#define GF_GL_IS_RECT\n");
+	if(flags == 0)	//if no flags - compile minimal shader
+		return visual_3d_shader_from_source_file(src_path, shader_type);
 
-			}
-			if(flags & GF_GL_IS_YUV){
-				str_size += strlen("#define GF_GL_IS_YUV\n");
-				defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
-				error = strcpy(defs,"#define GF_GL_IS_YUV\n");
+	//This shader combo will never be used anyway
+	if((flags & GF_GL_HAS_LIGHT) && (flags & GF_GL_HAS_MAT_2D))
+		return visual_3d_shader_from_source_file(src_path, shader_type);
 
-			}
-		}
+	//¡TODOk check for memory leaks
+	defs = (char *)gf_malloc(sizeof(char));
+	defs[0] = '\0';	//We need this for strcat to work
+	
+	if(flags & GF_GL_IS_RECT){
+		str_size += strlen("#define GF_GL_IS_RECT \n");
+		defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
+		error = strcat(defs,"#define GF_GL_IS_RECT \n");
+	}
 
+	if(flags & GF_GL_IS_YUV){
+		str_size += strlen("#define GF_GL_IS_YUV \n");
+		defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
+		error = strcat(defs,"#define GF_GL_IS_YUV \n");
+	}
+
+	if(flags & GF_GL_HAS_LIGHT){
+		str_size += strlen("#define GF_GL_HAS_LIGHT \n");
+		defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
+		error = strcat(defs,"#define GF_GL_HAS_LIGHT \n");
+	}
+
+	if(flags & GF_GL_HAS_MAT_2D){
+		str_size += strlen("#define GF_GL_HAS_MAT_2D \n");
+		defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
+		error = strcat(defs,"#define GF_GL_HAS_MAT_2D \n");
+	}
 
 	if (src) {
 		size_t size;
@@ -626,6 +654,27 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	return shader;
 }
 
+static void visual_3d_set_tx_planes(GF_VisualManager *visual){
+	GLint i,j, loc;
+
+
+	for(i=0;i<GF_GL_NUM_OF_VALID_SHADERS;i++){
+		glUseProgram(visual->glsl_programs[i]);
+		for (j=0; j<3; j++) {
+			const char *txname = (j==0) ? "y_plane" : (j==1) ? "u_plane" : "v_plane";
+			if((i & GF_GL_IS_YUV)||(j==0)){
+				loc = glGetUniformLocation(visual->glsl_programs[i], txname);
+				if (loc == -1) {
+					print_flags(i);
+					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture %s in YUV shader\n", txname));
+					continue;
+				}
+				glUniform1i(loc, j);
+			}
+		}
+		glUseProgram(0);
+	}
+}
 
 void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 {
@@ -908,11 +957,13 @@ static void my_glQueryAttributes(GF_SHADERID progObj){
 	}
 }
 
+//¡k DELETE?
 /** Checks if the selected GLSL flag has an updated value
  *  Returns GF_FALSE if the flags are already old
  *  Returns GF_TRUE is the check was successful
  *  new_glsl_feature = GF_TRUE, if flag has changed
  */
+/*
 Bool check_glsl_flag(GF_VisualManager *visual, u32 flag){
 	
 	Bool glsl_value, visual_value;
@@ -925,16 +976,6 @@ Bool check_glsl_flag(GF_VisualManager *visual, u32 flag){
 
 	
 	switch(flag){
-		/*
-		case GF_GL_IS_RECT:
-			visual_value =
-			glsl_value = (flags & GF_GL_IS_RECT);
-			break;
-		case GF_GL_IS_YUV:
-			visual_value =
-			glsl_value = (flags & GF_GL_IS_YUV);
-			break;
-		*/
 		case GF_GL_HAS_CLIP:
 			visual_value = (Bool) (visual->num_clips > 0);
 			break;
@@ -961,6 +1002,7 @@ Bool check_glsl_flag(GF_VisualManager *visual, u32 flag){
 
 	return GF_TRUE;
 }
+*/
 
 /** Checks if any GLSL flag has an updated value
  *  Returns GF_TRUE if flags have changes
@@ -1004,8 +1046,9 @@ Bool refresh_glsl_flags(GF_VisualManager *visual){
 //todo ... shader_only_mode
 static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 {
-	u32 i;
+	u32 i, j;
 	GLint loc;
+	GF_Err error;
 	Bool working = 0;	//¡k temp bool for testing
 	GLint err_log = 0;	//¡k error log
 	GLsizei log_len = 0; //¡k
@@ -1013,52 +1056,50 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	GL_CHECK_ERR
 
 //Creating Program for the shaders
-	if (visual->glsl_program)
+	if (visual->glsl_has_shaders){
 		return;
-	else 
-		visual->glsl_program = glCreateProgram();
+	}else{
+		for(i=0;i<GF_GL_NUM_OF_VALID_SHADERS;i++){
+			visual->glsl_programs[i] = glCreateProgram();
+		}
+		visual->glsl_has_shaders = GF_TRUE;
+		GL_CHECK_ERR
+	}
 
 //Creating and Compiling Vertex and Fragment Shaders
-	if (!visual->glsl_vertex){
-		//currently testing
-		//visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[YUVglobalFULL].vert" , GL_VERTEX_SHADER); //mixing
-		visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[global].vert" , GL_VERTEX_SHADER); //mixing
-		//visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[global].vert" , GL_VERTEX_SHADER); //custom defs test
+	if (!visual->glsl_vertex)
+		visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[global].vert" , GL_VERTEX_SHADER); //We use one vertex shader (for now) ¡TODOk add defines
+	GL_CHECK_ERR;
 
-		//obsolete
-		//visual->glsl_vertex = visual_3d_shader_from_source_file("betaEStRGB.vert" , GL_VERTEX_SHADER);	//default texturing	[current]
-		//		visual->glsl_vertex = glCreateShader(GL_VERTEX_SHADER);
-		//		working = visual_3d_compile_shader(visual->glsl_vertex, "vertex", default_glsl_vertex);	//¡k testing with the old vertx shader
-		/*		working = visual_3d_compile_shader(visual->glsl_vertex, "vertex", glsl_vertex_shader);	//¡k testing the ES 1.1 pipeline in Vrtx Shader [minimal]
-		if(working==GF_FALSE)
-		GL_CHECK_ERR;
-		*/
+	if(visual->glsl_vertex){
+		for(i=0;i<GF_GL_NUM_OF_VALID_SHADERS;i++){
+			GL_CHECK_ERR;
+			visual->glsl_fragment = visual_3d_shader_with_flags("shaders/ES2[global].frag" , GL_FRAGMENT_SHADER, i);
+			GL_CHECK_ERR;
+			glAttachShader(visual->glsl_programs[i], visual->glsl_vertex);
+			GL_CHECK_ERR;
+			glAttachShader(visual->glsl_programs[i], visual->glsl_fragment);
+			GL_CHECK_ERR;
+			glLinkProgram(visual->glsl_programs[i]);
+			GL_CHECK_ERR;
+
+			//¡k Lists uniforms and attributes (delete after testing)
+			// use it to test after #defines are set in the shaders
+			/*
+			my_glQueryAttributes(visual->glsl_programs[i]);
+			my_glQueryUniforms(visual->glsl_programs[i]);
+			*/
+		}
+	}else{
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GLSL Vertex Shader not found [ES2.0]"));
 	}
 
-	if (!visual->glsl_fragment){
-		//currently testing
-		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[YUVstrictFULL].frag" , GL_FRAGMENT_SHADER);	//YUV relaxed [without ARB extension] - to be used with YUVglobalFULL.vert
-		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[YUVrelaxedFULL].frag" , GL_FRAGMENT_SHADER);	//YUV strict [with ARB extension] - to be used with YUVglobalFULL.vert
-		//visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[YUVglobalFULL].frag" , GL_FRAGMENT_SHADER);	//mixing
 
-		visual->glsl_fragment = visual_3d_shader_from_source_file("shaders/ES2[global].frag" , GL_FRAGMENT_SHADER);	//mixing
-		//visual->glsl_fragment = visual_3d_shader_with_flags("shaders/ES2[global].frag" , GL_FRAGMENT_SHADER, GF_GL_IS_RECT);	//custom defs test (0 for full) - e.g. GF_GL_IS_RECT
+	/* Set y,u,v planes (if GF_GL_IS_YUV*/
+	visual_3d_set_tx_planes(visual);
+	
 
-		//obsolete
-		//visual->glsl_fragment = visual_3d_shader_from_source_file("betaEStRGB.frag" , GL_VERTEX_SHADER);	//default texturing [current]
-		//		visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		//		working = visual_3d_compile_shader(visual->glsl_fragment, "YUV fragment", glsl_yuv_shader);	//¡k testing with the old yuv shader
-		//		working = visual_3d_compile_shader(visual->glsl_fragment, "YUV fragment", glsl_fragment_shader);	//¡k testing with the new fragment shader
-		/*		if(working==GF_FALSE)
-		GL_CHECK_ERR;
-		*/
-	}
 
-	glAttachShader(visual->glsl_program, visual->glsl_vertex);
-	//GL_CHECK_ERR;
-	glAttachShader(visual->glsl_program, visual->glsl_fragment);
-	//GL_CHECK_ERR;
-	glLinkProgram(visual->glsl_program);
 
 	printf("OpenGL version: %s \n",glGetString(GL_VERSION));	//¡k DELETE (used for checking ES 2.0 emulator)
 	printf("OpenGL language version: %s \n",glGetString(GL_SHADING_LANGUAGE_VERSION));	//¡k DELETE (used for checking ES 2.0 emulator)
@@ -1088,9 +1129,6 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	glGetProgramiv(visual->glsl_program, GL_ACTIVE_ATTRIBUTES, &err_log);	//¡k test for getting no. of uniforms
 	printf("attrs: %d \n", err_log);
 	*/
-
-	my_glQueryAttributes(visual->glsl_program);
-	my_glQueryUniforms(visual->glsl_program);
 	//ENDOF
 
 
@@ -2017,6 +2055,7 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 	loc = my_glGetUniformLocation(visual->glsl_program, "gfNumLights");
 	if (loc>=0)
 		glUniform1i(loc, visual->num_lights);
+	GL_CHECK_ERR
 
 	li = &visual->lights[0];
 
@@ -2219,13 +2258,30 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	char *tmp = (char *) gf_malloc(sizeof(char)*60);
 	int i;
 	GLint loc;
-	GL_CHECK_ERR
-	glUseProgram(visual->glsl_program);
-	GL_CHECK_ERR
 
-		//¡k MOVED
-		//¡TODOk check if no lights exist AND/OR error in setting
-		//visual_3d_set_lights_ES2(visual);
+
+	if(!visual->glsl_flags)
+		visual->glsl_flags = 0;
+
+	if(visual->has_material_2d){	// mat2d (hence no lights)
+		visual->glsl_flags |= GF_GL_HAS_MAT_2D;
+		visual->glsl_flags &= ~GF_GL_HAS_LIGHT;
+	}else if(visual->num_lights){	// has lights
+		visual->glsl_flags |= GF_GL_HAS_LIGHT;
+		visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
+	}else{							//fallback: no mat2d AND no lights
+		visual->glsl_flags &= ~GF_GL_HAS_LIGHT;
+		visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
+	}
+
+
+	GL_CHECK_ERR
+	visual->glsl_program = visual->glsl_programs[visual->glsl_flags];	//¡k temporary patch
+	glUseProgram(visual->glsl_programs[visual->glsl_flags]);
+	GL_CHECK_ERR
+		printf("\n flags: %u \n",visual->glsl_flags);
+	//my_glQueryAttributes(visual->glsl_programs[visual->glsl_flags]);
+	//my_glQueryUniforms(visual->glsl_programs[visual->glsl_flags]);
 
 
 		//¡TODOk setup matrices
@@ -2396,11 +2452,13 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumTextures");
 		if (loc>=0)
 			glUniform1i(loc, tr_state->mesh_num_textures);
+		GL_CHECK_ERR
 
 		//parsing texture matrix
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfTextureMatrix");
 		if (loc>=0)
 			glUniformMatrix4fv(loc, 1, GL_FALSE, visual->tx_matrix.m);
+		GL_CHECK_ERR
 
 
 		//parsing texture coordinates
@@ -2454,6 +2512,8 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumTextures");
 		if (loc>=0)
 			glUniform1i(loc, 0);
+		GL_CHECK_ERR
+		printf("\n no textures \n");
 	}
 
 			//¡k ENDof texturing
@@ -3780,5 +3840,3 @@ restart:
 
 
 #endif	/*GPAC_DISABLE_3D*/
-
-

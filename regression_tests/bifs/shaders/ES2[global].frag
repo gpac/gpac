@@ -3,9 +3,8 @@
  * Available flags: GF_GL_IS_RECT, GF_GL_IS_YUV, GF_GL_HAS_FOG, GF_GL_HAS_CLIP
  *
  **/
- 
+ /*
  //NOTE: if there is a #version directive (e.g. #version 100), it must occur before anything else in the program (including other directives)
- 
  #version 100
 
  //For other GL versions compatibility
@@ -16,12 +15,14 @@
 #else
 	precision lowp float;	//Fallback
 #endif
- 
+ */
  
 #pragma STDGL invariant(all)	//delete after testing
 
-#extension GL_ARB_texture_rectangle : enable
-
+#ifdef GF_GL_IS_RECT
+	#extension GL_ARB_texture_rectangle : enable
+#endif
+	
 #define FOG_TYPE_LINEAR 0
 #define FOG_TYPE_EXP    1
 #define FOG_TYPE_EXP2   2
@@ -56,8 +57,6 @@ uniform vec4 gfSpecularColor;
 uniform vec4 gfEmissionColor;
 uniform float gfShininess; 
 uniform int gfNumLights;
-uniform int isYUV;
-uniform int isRect;
 uniform vec4 gfLightPosition; 
 uniform vec4 gfLightDiffuse;
 uniform vec4 gfLightAmbient; 
@@ -68,13 +67,16 @@ uniform bool hasClip;
 uniform bool hasMeshColor;
 uniform bool enableLights;
 
-//test
-uniform sampler2D y_plane;
-uniform sampler2D u_plane;
-uniform sampler2D v_plane;
-uniform sampler2DRect y_planeRect;
-uniform sampler2DRect u_planeRect;
-uniform sampler2DRect v_planeRect;
+#ifdef GF_GL_IS_RECT
+	uniform sampler2DRect y_plane;
+	uniform sampler2DRect u_plane;
+	uniform sampler2DRect v_plane;
+#else
+	uniform sampler2D y_plane;
+	uniform sampler2D u_plane;
+	uniform sampler2D v_plane;
+#endif
+
 uniform float width;
 uniform float height;
 uniform float alpha;
@@ -183,6 +185,7 @@ void main() {
 	}else if(gfNumLights==0){	//is material2D => no lights - only colour (stored in gfEmissionColor)
 		fragColor = gfEmissionColor;
 	}else if(gfNumLights>0){
+		//fragColor = (gfAmbientColor + gfEmissionColor) + (gfLightAmbient * gfAmbientColor);
 		//default material (visual->has_material) -> handled in doLighting()
 	}
 
@@ -193,7 +196,7 @@ void main() {
 		}
 	}
 
-
+#ifdef GF_GL_HAS_LIGHT
 	if (gfNumLights > 0) {
 
 		for(i=0; i<8; i++){
@@ -204,59 +207,60 @@ void main() {
 		}
 		fragColor.a = gfDiffuseColor.a;
 	}
-
+#endif
+	
 	fragColor = clamp(fragColor, zero_float, one_float);
 	
 	if(gfNumTextures>0){	//currently supporting 1 texture
 #ifdef GF_GL_IS_RECT
-		if(isRect==1){
-			if(isYUV==1){
-				texc = TexCoord.st;
-				texc.x *= width;
-				texc.y *= height;
-				yuv.x = texture2DRect(y_planeRect, texc).r;
-				texc.x /= 2.0;
-				texc.y /= 2.0;
-				yuv.y = texture2DRect(u_planeRect, texc).r;
-				yuv.z = texture2DRect(v_planeRect, texc).r;
-				yuv += offset;
-				rgb.r = dot(yuv, R_mul);
-				rgb.g = dot(yuv, G_mul);
-				rgb.b = dot(yuv, B_mul);
-				if(gfNumLights>0){
-					fragColor *= vec4(rgb, alpha);
-				}else{
-					fragColor = vec4(rgb, alpha);
-				}
-			}else if(gfNumLights>0){	//RGB texture
-				fragColor *= texture2DRect(y_planeRect, TexCoord);
-			}else if(gfNumLights==0){	//RGB texture with material 2D
-				fragColor = texture2DRect(y_planeRect, TexCoord);
+	#ifdef GF_GL_IS_YUV
+			texc = TexCoord.st;
+			texc.x *= width;
+			texc.y *= height;
+			yuv.x = texture2DRect(y_plane, texc).r;
+			texc.x /= 2.0;
+			texc.y /= 2.0;
+			yuv.y = texture2DRect(u_plane, texc).r;
+			yuv.z = texture2DRect(v_plane, texc).r;
+			yuv += offset;
+			rgb.r = dot(yuv, R_mul);
+			rgb.g = dot(yuv, G_mul);
+			rgb.b = dot(yuv, B_mul);
+			if(gfNumLights>0){
+				fragColor *= vec4(rgb, alpha);
+			}else{
+				fragColor = vec4(rgb, alpha);
 			}
+	#else
+		if(gfNumLights>0){	//RGB texture
+			fragColor *= texture2DRect(y_plane, TexCoord);
+		}else if(gfNumLights==0){	//RGB texture with material 2D
+			fragColor = texture2DRect(y_plane, TexCoord);
 		}
-		else
+	#endif
+#else
+	#ifdef GF_GL_IS_YUV
+			texc = TexCoord.st;
+			yuv.x = texture2D(y_plane, texc).r;
+			yuv.y = texture2D(u_plane, texc).r;
+			yuv.z = texture2D(v_plane, texc).r;
+			yuv += offset;
+			rgb.r = dot(yuv, R_mul);
+			rgb.g = dot(yuv, G_mul);
+			rgb.b = dot(yuv, B_mul);
+			if(gfNumLights>0){
+				fragColor *= vec4(rgb, alpha);
+			}else{
+				fragColor = vec4(rgb, alpha);
+			}
+	#else
+		if(gfNumLights>0){	//RGB texture
+			fragColor *= texture2D(y_plane, TexCoord);
+		}else if(gfNumLights==0){	//RGB texture with material 2D [TODO: check]
+			fragColor *= texture2D(y_plane, TexCoord);
+		}
+	#endif
 #endif
-		{
-			if(isYUV==1){
-				texc = TexCoord.st;
-				yuv.x = texture2D(y_plane, texc).r;
-				yuv.y = texture2D(u_plane, texc).r;
-				yuv.z = texture2D(v_plane, texc).r;
-				yuv += offset;
-				rgb.r = dot(yuv, R_mul);
-				rgb.g = dot(yuv, G_mul);
-				rgb.b = dot(yuv, B_mul);
-				if(gfNumLights>0){
-					fragColor *= vec4(rgb, alpha);
-				}else{
-					fragColor = vec4(rgb, alpha);
-				}
-			}else if(gfNumLights>0){	//RGB texture
-				fragColor *= texture2D(y_plane, TexCoord);
-			}else if(gfNumLights==0){	//RGB texture with material 2D [TODO: check]
-				fragColor *= texture2D(y_plane, TexCoord);
-			}
-		}
 	}
 	
 	if(gfFogEnabled)
