@@ -312,6 +312,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (check_file_exists(TEST_MODULE, "/usr/local/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/local/lib/gpac", file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, "/usr/lib/x86_64-linux-gnu/gpac", file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, "/usr/lib/i386-linux-gnu/gpac", file_path)) return 1;
 		}
 	}
 
