@@ -293,10 +293,10 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file);
 typedef struct
 {
 	char *file_name;
-	char representationID[100];
-	char periodID[100];
-	char xlink[100];
-	char role[100];
+	char *representationID;
+	char *periodID;
+	char *xlink;
+	char *role;
 	u32 nb_rep_descs;
 	char **rep_descs;
 	u32 nb_p_descs;
