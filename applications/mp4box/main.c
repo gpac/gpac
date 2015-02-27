@@ -1430,23 +1430,38 @@ enum
 	if (brand_add) gf_free(brand_add); \
 	if (brand_rem) gf_free(brand_rem); \
 	if (dash_inputs) { \
-		u32 input_index; \
-		for (input_index = 0; input_index < dash_inputs->nb_rep_descs; input_index++) { \
-			gf_free(dash_inputs->rep_descs[input_index]); \
-		} \
-		gf_free(dash_inputs->rep_descs); \
-		for (input_index = 0; input_index < dash_inputs->nb_as_descs; input_index++) { \
-			gf_free(dash_inputs->as_descs[input_index]); \
-		} \
-		gf_free(dash_inputs->as_descs); \
-		for (input_index = 0; input_index < dash_inputs->nb_as_c_descs; input_index++) { \
-			gf_free(dash_inputs->as_c_descs[input_index]); \
-		} \
-		gf_free(dash_inputs->as_c_descs); \
-		for (input_index = 0; input_index < dash_inputs->nb_p_descs; input_index++) { \
-			gf_free(dash_inputs->p_descs[input_index]); \
-		} \
-		gf_free(dash_inputs->p_descs); \
+		u32 i, j; \
+		for (i=0;i<nb_dash_inputs;i++) {\
+			GF_DashSegmenterInput *di = &dash_inputs[i];\
+			if (di->rep_descs) { \
+				for (j=0; j<di->nb_rep_descs; j++) { \
+					gf_free(di->rep_descs[j]); \
+				} \
+				gf_free(di->rep_descs); \
+			} \
+			if (di->as_descs) { \
+				for (j=0; j<di->nb_as_descs; j++) { \
+					gf_free(di->as_descs[j]); \
+				} \
+				gf_free(di->as_descs); \
+			}\
+			if (di->as_c_descs) { \
+				for (j=0; j<di->nb_as_c_descs; j++) { \
+					gf_free(di->as_c_descs[j]); \
+				} \
+				gf_free(di->as_c_descs); \
+			} \
+			if (di->p_descs) { \
+				for (j=0; j<di->nb_p_descs; j++) { \
+					gf_free(di->p_descs[j]); \
+				} \
+				gf_free(di->p_descs); \
+			} \
+			if (di->representationID) gf_free(di->representationID); \
+			if (di->periodID) gf_free(di->periodID); \
+			if (di->xlink) gf_free(di->xlink); \
+			if (di->role) gf_free(di->role); \
+		}\
 		gf_free(dash_inputs); \
 	} \
 	gf_sys_close();	\
@@ -1502,7 +1517,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 
 			if (!strnicmp(opts, "id=", 3)) {
 				u32 i;
-				strncpy(di->representationID, opts+3, 99);
+				di->representationID = gf_strdup(opts+3);
 				/* check to see if this representation Id has already been assigned */
 				for (i=0; i<(*nb_dash_inputs)-1; i++) {
 					GF_DashSegmenterInput *other_di;
@@ -1511,14 +1526,9 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Duplicate Representation ID \"%s\" in command line\n", di->representationID));
 					}
 				}
-			} else if (!strnicmp(opts, "period=", 7)) {
-				if (strlen(opts+7) > 99) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] PeriodID cannot exceed 99 characters in MP4Box, truncating ...\n"));
-				}
-				strncpy(di->periodID, opts+7, 99);
-			}
+			} else if (!strnicmp(opts, "period=", 7)) di->periodID = gf_strdup(opts+7);
 			else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
-			else if (!strnicmp(opts, "role=", 5)) strncpy(di->role, opts+5, 99);
+			else if (!strnicmp(opts, "role=", 5)) di->role = gf_strdup(opts+5);
 			else if (!strnicmp(opts, "desc", 4)) {
 				u32 *nb_descs=NULL;
 				char ***descs=NULL;
@@ -1552,12 +1562,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				}
 
 			}
-			else if (!strnicmp(opts, "xlink=", 6)) {
-				if (strlen(opts+6) > 99) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] XLink cannot exceed 99 characters in MP4Box, truncating ...\n"));
-				}
-				strncpy(di->xlink, opts+6, 99);
-			}
+			else if (!strnicmp(opts, "xlink=", 6)) di->xlink = gf_strdup(opts+6);
 			else if (!strnicmp(opts, "duration=", 9)) {
 				di->period_duration = (Double) atof(opts+9);
 			}
@@ -1568,7 +1573,11 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 		}
 	}
 	di->file_name = name;
-	if (!strlen(di->representationID)) sprintf(di->representationID, "%d", *nb_dash_inputs);
+	if (!di->representationID) {
+		char szRep[100];
+		sprintf(szRep, "%d", *nb_dash_inputs);
+		di->representationID = gf_strdup(szRep);
+	}
 
 	return dash_inputs;
 }
