@@ -559,7 +559,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		if (sOpt) ffd->buffer_size = atoi(sOpt);
 		ffd->buffer = gf_malloc(sizeof(char)*ffd->buffer_size);
 #ifdef FFMPEG_DUMP_REMOTE
-		ffd->outdbg = gf_f64_open("ffdeb.raw", "wb");
+		ffd->outdbg = gf_fopen("ffdeb.raw", "wb");
 #endif
 #ifdef USE_PRE_0_7
 		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, ffd, ff_url_read, NULL, NULL);
@@ -789,7 +789,7 @@ static GF_Err FFD_CloseService(GF_InputService *plug)
 
 	gf_service_disconnect_ack(ffd->service, NULL, GF_OK);
 #ifdef FFMPEG_DUMP_REMOTE
-	if (ffd->outdbg) fclose(ffd->outdbg);
+	if (ffd->outdbg) gf_fclose(ffd->outdbg);
 #endif
 	return GF_OK;
 }

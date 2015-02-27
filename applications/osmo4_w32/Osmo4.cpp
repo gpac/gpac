@@ -492,7 +492,7 @@ BOOL Osmo4::InitInstance()
 	/*check log file*/
 	const char *str = gf_cfg_get_key(m_user.config, "General", "LogFile");
 	if (str) {
-		m_logs = gf_f64_open(str, "wt");
+		m_logs = gf_fopen(str, "wt");
 		gf_log_set_callback(m_logs, osmo4_do_log);
 	}
 	else m_logs = NULL;
@@ -579,7 +579,7 @@ int Osmo4::ExitInstance()
 		CloseHandle(m_hMutex);
 		static_gpac_hwnd = NULL;
 	}
-	if (m_logs) fclose(m_logs);
+	if (m_logs) gf_fclose(m_logs);
 	return CWinApp::ExitInstance();
 }
 

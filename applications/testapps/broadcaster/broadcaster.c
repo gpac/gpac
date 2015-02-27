@@ -208,13 +208,13 @@ u32 tcp_server(void *par)
 		if((*(input->config_flag)) == 0)
 		{
 			u32 num_retry;
-			fp = gf_f64_open("temp.cfg", "w+");
+			fp = gf_fopen("temp.cfg", "w+");
 			if (!fp) {
 				fprintf(stderr, "Error opening temp file for the configuration\n");
 				exit(1);
 			}
 			ret = gf_fwrite(buffer, 1, byte_read, fp);
-			fclose(fp);
+			gf_fclose(fp);
 
 			/* parsing config info */
 			gf_config_file = gf_cfg_new(".", "temp.cfg");
@@ -228,7 +228,7 @@ u32 tcp_server(void *par)
 			gf_sk_send(conn_socket, "OK\n", 3);
 
 			memset(temp, 0, sizeof(temp));
-			fp = gf_f64_open(input->config->scene_init_file, "w+");
+			fp = gf_fopen(input->config->scene_init_file, "w+");
 			if (!fp) {
 				fprintf(stderr, "Error opening temp file for reception of the initial scene\n");
 				exit(1);
@@ -251,7 +251,7 @@ u32 tcp_server(void *par)
 					break;
 				}
 			}
-			fclose(fp);
+			gf_fclose(fp);
 			*(input->config_flag) = 1;
 		}
 		/* we only wait now for the config updates */

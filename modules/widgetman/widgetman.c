@@ -104,7 +104,7 @@ static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackag
 
 			unzOpenCurrentFile3(uf, NULL, NULL, 0, NULL/*password*/);
 
-			fout=gf_f64_open(res->extracted_path, "wb");
+			fout=gf_fopen(res->extracted_path, "wb");
 			if (!fout) break;
 			do {
 				err = unzReadCurrentFile(uf,buf,8192);
@@ -115,7 +115,7 @@ static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackag
 						break;
 					}
 			} while (err>0);
-			if (fout) fclose(fout);
+			if (fout) gf_fclose(fout);
 
 			res->extracted = 1;
 			break;
@@ -379,7 +379,7 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 			FILE *fout;
 			unzOpenCurrentFile3(uf, NULL, NULL, 0, NULL/*password*/);
 
-			fout=gf_f64_open(szPath,"wb");
+			fout=gf_fopen(szPath,"wb");
 			if (!fout) return NULL;
 
 			do {
@@ -392,7 +392,7 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 						break;
 					}
 			} while (err>0);
-			if (fout) fclose(fout);
+			if (fout) gf_fclose(fout);
 			if (err==0) {
 				GF_SAFEALLOC(pack_res, GF_WidgetPackageResource);
 				pack_res->extracted_path = gf_strdup(szPath);

@@ -4597,15 +4597,15 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	uintN attr;
 	JSBool found;
 
-	jsf = gf_f64_open(file, "rb");
+	jsf = gf_fopen(file, "rb");
 	if (!jsf) return 0;
 
-	gf_f64_seek(jsf, 0, SEEK_END);
-	fsize = gf_f64_tell(jsf);
-	gf_f64_seek(jsf, 0, SEEK_SET);
+	gf_fseek(jsf, 0, SEEK_END);
+	fsize = gf_ftell(jsf);
+	gf_fseek(jsf, 0, SEEK_SET);
 	jsscript = gf_malloc(sizeof(char)*(size_t)(fsize+1));
 	fsize = fread(jsscript, sizeof(char), (size_t)fsize, jsf);
-	fclose(jsf);
+	gf_fclose(jsf);
 	jsscript[fsize] = 0;
 
 	*rval = JSVAL_NULL;

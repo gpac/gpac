@@ -1663,7 +1663,7 @@ static GF_Err nhml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 			strcpy(szFile, inName);
 			strcat(szFile, ".bin");
 		}
-		t = gf_f64_open(szFile, "wb");
+		t = gf_fopen(szFile, "wb");
 		if (!t) {
 			fprintf(stderr, "Failed to open file %s\n", szFile);
 			e = GF_IO_ERR;
@@ -1672,7 +1672,7 @@ static GF_Err nhml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 				fprintf(stderr, "Failed to write output to file %s\n", szFile);
 				e = GF_IO_ERR;
 			}
-			fclose(t);
+			gf_fclose(t);
 		}
 	}
 	gf_free(data);
@@ -1902,7 +1902,7 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
-			logfile = gf_f64_open(argv[i+1], "wt");
+			logfile = gf_fopen(argv[i+1], "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
 		}
@@ -3165,16 +3165,16 @@ int mp4boxMain(int argc, char **argv)
 		char chunk[4096];
 		FILE *fin, *fout;
 		s64 to_copy, done;
-		fin = gf_f64_open(raw_cat, "rb");
+		fin = gf_fopen(raw_cat, "rb");
 		if (!fin) MP4BOX_EXIT_WITH_CODE(1);
-		fout = gf_f64_open(inName, "a+b");
+		fout = gf_fopen(inName, "a+b");
 		if (!fout) {
-			fclose(fin);
+			gf_fclose(fin);
 			MP4BOX_EXIT_WITH_CODE(1);
 		}
-		gf_f64_seek(fin, 0, SEEK_END);
-		to_copy = gf_f64_tell(fin);
-		gf_f64_seek(fin, 0, SEEK_SET);
+		gf_fseek(fin, 0, SEEK_END);
+		to_copy = gf_ftell(fin);
+		gf_fseek(fin, 0, SEEK_SET);
 		done = 0;
 		while (1) {
 			u32 nb_bytes = (u32) fread(chunk, 1, 4096, fin);
@@ -3183,8 +3183,8 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "Appending file %s - %02.2f done\r", raw_cat, 100.0*done/to_copy);
 			if (done >= to_copy) break;
 		}
-		fclose(fin);
-		fclose(fout);
+		gf_fclose(fin);
+		gf_fclose(fout);
 		MP4BOX_EXIT_WITH_CODE(0);
 	}
 #if !defined(GPAC_DISABLE_STREAMING)
@@ -3339,12 +3339,12 @@ int mp4boxMain(int argc, char **argv)
 		if (force_new) {
 			open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 		} else {
-			FILE *test = gf_f64_open(inName, "rb");
+			FILE *test = gf_fopen(inName, "rb");
 			if (!test) {
 				open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 				if (!outName) outName = inName;
 			} else {
-				fclose(test);
+				gf_fclose(test);
 				if (! gf_isom_probe_file(inName) ) {
 					open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 					if (!outName) outName = inName;
@@ -3405,12 +3405,12 @@ int mp4boxMain(int argc, char **argv)
 			if (force_new) {
 				open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 			} else {
-				FILE *test = gf_f64_open(inName, "rb");
+				FILE *test = gf_fopen(inName, "rb");
 				if (!test) {
 					open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 					if (!outName) outName = inName;
 				}
-				else fclose(test);
+				else gf_fclose(test);
 			}
 
 			open_edit = 1;
@@ -3461,7 +3461,7 @@ int mp4boxMain(int argc, char **argv)
 				logfile[strlen(logfile)-1] = 0;
 			}
 			strcat(logfile, "_enc.logs");
-			logs = gf_f64_open(logfile, "wt");
+			logs = gf_fopen(logfile, "wt");
 		}
 		strcpy(outfile, outName ? outName : inName);
 		if (strchr(outfile, '.')) {
@@ -3472,7 +3472,7 @@ int mp4boxMain(int argc, char **argv)
 		file = gf_isom_open(outfile, GF_ISOM_WRITE_EDIT, tmpdir);
 		opts.mediaSource = mediaSource ? mediaSource : outfile;
 		e = EncodeFile(inName, file, &opts, logs);
-		if (logs) fclose(logs);
+		if (logs) gf_fclose(logs);
 		if (e) goto err_exit;
 		needSave = 1;
 		if (do_saf) {
@@ -3541,7 +3541,6 @@ int mp4boxMain(int argc, char **argv)
 			del_file = GF_TRUE;
 		}
 		while (!do_abort) {
-
 			e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
 			                            (const char **) mpd_base_urls, nb_mpd_base_urls,
 			                            use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
@@ -3613,11 +3612,11 @@ int mp4boxMain(int argc, char **argv)
 	         && !(track_dump_type & GF_EXPORT_AVI_NATIVE)
 #endif
 	        ) {
-		FILE *st = gf_f64_open(inName, "rb");
+		FILE *st = gf_fopen(inName, "rb");
 		Bool file_exists = 0;
 		if (st) {
 			file_exists = 1;
-			fclose(st);
+			gf_fclose(st);
 		}
 		switch (get_file_type_by_ext(inName)) {
 		case 1:
@@ -3847,7 +3846,7 @@ int mp4boxMain(int argc, char **argv)
 			GF_BitStream *bs = NULL;
 
 			sprintf(szName, "%s.iod", outfile);
-			iodf = gf_f64_open(szName, "wb");
+			iodf = gf_fopen(szName, "wb");
 			if (!iodf) {
 				fprintf(stderr, "Cannot open destination %s\n", szName);
 			} else {
@@ -3860,7 +3859,7 @@ int mp4boxMain(int argc, char **argv)
 				} else {
 					fprintf(stderr, "Error writing IOD %s\n", szName);
 				}
-				fclose(iodf);
+				gf_fclose(iodf);
 			}
 			gf_free(bs);
 		}
@@ -4360,13 +4359,13 @@ int mp4boxMain(int argc, char **argv)
 			case GF_ISOM_ITUNE_COVER_ART:
 			{
 				char *d, *ext;
-				FILE *t = gf_f64_open(val, "rb");
-				gf_f64_seek(t, 0, SEEK_END);
-				tlen = (u32) gf_f64_tell(t);
-				gf_f64_seek(t, 0, SEEK_SET);
+				FILE *t = gf_fopen(val, "rb");
+				gf_fseek(t, 0, SEEK_END);
+				tlen = (u32) gf_ftell(t);
+				gf_fseek(t, 0, SEEK_SET);
 				d = gf_malloc(sizeof(char) * tlen);
 				tlen = (u32) fread(d, sizeof(char), tlen, t);
-				fclose(t);
+				gf_fclose(t);
 
 				ext = strrchr(val, '.');
 				if (!stricmp(ext, ".png")) tlen |= 0x80000000;
@@ -4587,7 +4586,7 @@ err_exit:
 exit:
 
 #ifdef GPAC_MEMORY_TRACKING
-	if (enable_mem_tracker && (gf_memory_size() != 0)) {
+	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
         gf_memory_print();
 		return 2;
 	}

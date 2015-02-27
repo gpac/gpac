@@ -180,7 +180,7 @@ FILE *BeginFile(u32 type)
 		sprintf(sPath, "..%c..%c..%csrc%cscenegraph%cx3d_nodes.c", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
 	}
 
-	f = gf_f64_open(sPath, "wt");
+	f = gf_fopen(sPath, "wt");
 	fprintf(f, "%s\n", COPYRIGHT);
 
 	{
@@ -203,7 +203,7 @@ void EndFile(FILE *f, u32 type)
 		fprintf(f, "#ifdef __cplusplus\n}\n#endif\n\n");
 		fprintf(f, "\n\n#endif\t\t/*_GF_X3D_NODES_H*/\n\n");
 	}
-	fclose(f);
+	gf_fclose(f);
 }
 
 void TranslateToken(char *token)
@@ -1208,7 +1208,7 @@ int main (int argc, char **argv)
 	X3DField *bf;
 	u32 nb_nodes, nb_imp;
 
-	nodes = gf_f64_open("templates_X3D.txt", "rt");
+	nodes = gf_fopen("templates_X3D.txt", "rt");
 	if (!nodes) {
 		fprintf(stdout, "cannot open \"templates_X3D.txt\" - aborting\n");
 		return 0;
@@ -1218,14 +1218,14 @@ int main (int argc, char **argv)
 	NDTs = gf_list_new();
 	//all nodes are in the same list but we keep version info
 	ParseTemplateFile(nodes, XNodes, NDTs);
-	fclose(nodes);
+	gf_fclose(nodes);
 
 	if (argc>1) {
-		pf = gf_f64_open(argv[1], "rt");
+		pf = gf_fopen(argv[1], "rt");
 		if (!pf) fprintf(stdout, "Cannot open profile file %s\n", argv[1]);
 		else {
 			parse_profile(XNodes, pf);
-			fclose(pf);
+			gf_fclose(pf);
 		}
 	}
 

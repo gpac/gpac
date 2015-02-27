@@ -1617,7 +1617,7 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		if (!sep[1]) continue;
 		strcpy(szFriendlyName, sep+1);
 
-		FILE *f = gf_f64_open(szFile, "rt");
+		FILE *f = gf_fopen(szFile, "rt");
 		if (!f) continue;
 
 
@@ -1625,9 +1625,9 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		device->js_source = szFile;
 
 		jsval aval;
-		gf_f64_seek(f, 0, SEEK_END);
-		u32 size = (u32) gf_f64_tell(f);
-		gf_f64_seek(f, 0, SEEK_SET);
+		gf_fseek(f, 0, SEEK_END);
+		u32 size = (u32) gf_ftell(f);
+		gf_fseek(f, 0, SEEK_SET);
 		char *buf = (char*)gf_malloc(sizeof(char)*(size+1));
 		size = (u32) fread(buf, 1, size, f);
 		buf[size]=0;
@@ -1638,7 +1638,7 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 			gf_list_del_item(m_Devices, device);
 			delete device;
 		}
-		fclose(f);
+		gf_fclose(f);
 		gf_free(buf);
 	}
 	return GF_TRUE;

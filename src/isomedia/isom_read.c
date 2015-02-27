@@ -105,7 +105,7 @@ u32 gf_isom_probe_file(const char *fileName)
 			type = GF_4CC(mem_address[4], mem_address[5], mem_address[6], mem_address[7]);
 	} else {
 		unsigned char data[4];
-		FILE *f = gf_f64_open(fileName, "rb");
+		FILE *f = gf_fopen(fileName, "rb");
 		if (!f) return 0;
 		type = 0;
 		if (fread(data, 1, 4, f) == 4) {
@@ -113,7 +113,7 @@ u32 gf_isom_probe_file(const char *fileName)
 				type = GF_4CC(data[0], data[1], data[2], data[3]);
 			}
 		}
-		fclose(f);
+		gf_fclose(f);
 	}
 	switch (type) {
 	case GF_ISOM_BOX_TYPE_FTYP:

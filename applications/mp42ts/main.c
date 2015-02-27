@@ -1197,13 +1197,13 @@ static u32 seng_output(void *param)
 					fprintf(stderr, "Update file modified - processing\n");
 					last_src_modif = mod_time;
 
-					srcf = gf_f64_open(source->bifs_src_name, "rt");
+					srcf = gf_fopen(source->bifs_src_name, "rt");
 					if (!srcf) continue;
 
 					/*checks if we have a broadcast config*/
 					if (!fgets(flag_buf, 200, srcf))
 						flag_buf[0] = '\0';
-					fclose(srcf);
+					gf_fclose(srcf);
 
 					aggregate_au = force_rap = adjust_carousel_time = discard_pending = signal_rap = signal_critical = 0;
 					version_inc = 1;
@@ -1542,18 +1542,18 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		char *sdp_buf;
 		u32 sdp_size;
 		GF_Err e;
-		FILE *_sdp = gf_f64_open(src, "rt");
+		FILE *_sdp = gf_fopen(src, "rt");
 		if (!_sdp) {
 			fprintf(stderr, "Error opening %s - no such file\n", src);
 			return 0;
 		}
-		gf_f64_seek(_sdp, 0, SEEK_END);
-		sdp_size = (u32)gf_f64_tell(_sdp);
-		gf_f64_seek(_sdp, 0, SEEK_SET);
+		gf_fseek(_sdp, 0, SEEK_END);
+		sdp_size = (u32)gf_ftell(_sdp);
+		gf_fseek(_sdp, 0, SEEK_SET);
 		sdp_buf = (char*)gf_malloc(sizeof(char)*sdp_size);
 		memset(sdp_buf, 0, sizeof(char)*sdp_size);
 		sdp_size = (u32) fread(sdp_buf, 1, sdp_size, _sdp);
-		fclose(_sdp);
+		gf_fclose(_sdp);
 
 		sdp = gf_sdp_info_new();
 		e = gf_sdp_info_parse(sdp, sdp_buf, sdp_size);
@@ -1752,9 +1752,9 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		} else
 #endif
 		{
-			FILE *f = gf_f64_open(src, "rt");
+			FILE *f = gf_fopen(src, "rt");
 			if (f) {
-				fclose(f);
+				gf_fclose(f);
 				fprintf(stderr, "Error opening %s - not a supported input media, skipping.\n", src);
 			} else {
 				fprintf(stderr, "Error opening %s - no such file.\n", src);
@@ -1808,14 +1808,14 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				goto error;
 			}
 			video_input_found = 1;
-			f = gf_f64_open(next_arg, "rb");
+			f = gf_fopen(next_arg, "rb");
 			if (!f) {
 				error_msg = "video file not found: ";
 				goto error;
 			}
-			gf_f64_seek(f, 0, SEEK_END);
-			*video_buffer_size = (u32)gf_f64_tell(f);
-			gf_f64_seek(f, 0, SEEK_SET);
+			gf_fseek(f, 0, SEEK_END);
+			*video_buffer_size = (u32)gf_ftell(f);
+			gf_fseek(f, 0, SEEK_SET);
 			assert(*video_buffer_size);
 			*video_buffer = (char*) gf_malloc(*video_buffer_size);
 			{
@@ -1823,7 +1823,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				if (read != *video_buffer_size)
 					fprintf(stderr, "Error while reading video file, has readen %u chars instead of %u.\n", read, *video_buffer_size);
 			}
-			fclose(f);
+			gf_fclose(f);
 		} else if (CHECK_PARAM("-audio")) {
 			if (audio_input_found) {
 				error_msg = "multiple '-audio' found";
@@ -1940,7 +1940,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			if (gf_log_set_tools_levels(next_arg) != GF_OK)
 				return GF_BAD_PARAM;
 		} else if (CHECK_PARAM("-lf")) {
-			logfile = gf_f64_open(next_arg, "wt");
+			logfile = gf_fopen(next_arg, "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
 		} else if (CHECK_PARAM("-segment-dir")) {
 			if (seg_dir_found) {
@@ -2131,7 +2131,7 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 		sprintf(manifest_name, "%s", manifest);
 	}
 
-	manifest_fp = gf_f64_open(tmp_manifest, "w");
+	manifest_fp = gf_fopen(tmp_manifest, "w");
 	if (!manifest_fp) {
 		fprintf(stderr, "Could not create m3u8 manifest file (%s)\n", tmp_manifest);
 		return GF_BAD_PARAM;
@@ -2146,7 +2146,7 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 	if (end) {
 		fprintf(manifest_fp, "#EXT-X-ENDLIST\n");
 	}
-	fclose(manifest_fp);
+	gf_fclose(manifest_fp);
 
 	if (!rename(tmp_manifest, manifest_name)) {
 		return GF_OK;
@@ -2303,7 +2303,7 @@ int main(int argc, char **argv)
 			ts_output_file = stdout;
 			is_stdout = GF_TRUE;
 		} else {
-			ts_output_file = gf_f64_open(ts_out, "wb");
+			ts_output_file = gf_fopen(ts_out, "wb");
 			is_stdout = GF_FALSE;
 		}
 		if (!ts_output_file) {
@@ -2540,7 +2540,7 @@ call_flush:
 				gf_fwrite(ts_pck, 1, 188 * nb_pck_in_pack, ts_output_file);
 				if (segment_duration && (muxer->time.sec > prev_seg_time.sec + segment_duration)) {
 					prev_seg_time = muxer->time;
-					fclose(ts_output_file);
+					gf_fclose(ts_output_file);
 					segment_index++;
 					if (segment_dir) {
 						if (strchr("\\/", segment_name[strlen(segment_name)-1])) {
@@ -2551,7 +2551,7 @@ call_flush:
 					} else {
 						sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
 					}
-					ts_output_file = gf_f64_open(segment_name, "wb");
+					ts_output_file = gf_fopen(segment_name, "wb");
 					if (!ts_output_file) {
 						fprintf(stderr, "Error opening %s\n", segment_name);
 						goto exit;
@@ -2673,7 +2673,7 @@ exit:
 	if (segment_duration) {
 		write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, segment_index - segment_number, segment_index, 1);
 	}
-	if (ts_output_file && !is_stdout) fclose(ts_output_file);
+	if (ts_output_file && !is_stdout) gf_fclose(ts_output_file);
 	if (ts_output_udp_sk) gf_sk_del(ts_output_udp_sk);
 #ifndef GPAC_DISABLE_STREAMING
 	if (ts_output_rtp) gf_rtp_del(ts_output_rtp);
@@ -2716,11 +2716,11 @@ exit:
 	if (aac_reader) AAC_Reader_del(aac_reader);
 #endif
 
-	if (logfile) fclose(logfile);
+	if (logfile) gf_fclose(logfile);
 	gf_sys_close();
 
 #ifdef GPAC_MEMORY_TRACKING
-	if (enable_mem_tracker && (gf_memory_size() != 0)) {
+	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
         gf_memory_print();
 		return 2;
 	}

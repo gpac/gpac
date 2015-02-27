@@ -153,11 +153,11 @@ static Bool CTXLoad_CheckDownload(CTXLoadPriv *priv)
 
 	if (!priv->file_size && (now - priv->last_check_time < 1000) ) return 0;
 
-	f = gf_f64_open(priv->file_name, "rt");
+	f = gf_fopen(priv->file_name, "rt");
 	if (!f) return 0;
-	gf_f64_seek(f, 0, SEEK_END);
-	size = gf_f64_tell(f);
-	fclose(f);
+	gf_fseek(f, 0, SEEK_END);
+	size = gf_ftell(f);
+	gf_fclose(f);
 
 	/*we MUST have a complete file for now ...*/
 	if (!priv->file_size) {
@@ -346,7 +346,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 		/*seek on root stream: destroy the context manager and reload it. We cannot seek on the main stream
 		because commands may have changed node attributes/children and we d'ont track the initial value*/
 		if (priv->load_flags && (priv->base_stream_id == ES_ID)) {
-			if (priv->src) fclose(priv->src);
+			if (priv->src) gf_fclose(priv->src);
 			priv->src = NULL;
 			gf_sm_load_done(&priv->load);
 			priv->file_pos = 0;
@@ -377,21 +377,21 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 			u32 entry_time;
 			char file_buf[4096+1];
 			if (!priv->src) {
-				priv->src = gf_f64_open(priv->file_name, "rb");
+				priv->src = gf_fopen(priv->file_name, "rb");
 				if (!priv->src) return GF_URL_ERROR;
 				priv->file_pos = 0;
 			}
 			priv->load.type = GF_SM_LOAD_XMTA;
 			e = GF_OK;
 			entry_time = gf_sys_clock();
-			gf_f64_seek(priv->src, priv->file_pos, SEEK_SET);
+			gf_fseek(priv->src, priv->file_pos, SEEK_SET);
 			while (1) {
 				u32 diff, nb_read;
 				nb_read = (u32) fread(file_buf, 1, 4096, priv->src);
 				file_buf[nb_read] = 0;
 				if (!nb_read) {
 					if (priv->file_pos==priv->file_size) {
-						fclose(priv->src);
+						gf_fclose(priv->src);
 						priv->src = NULL;
 						priv->load_flags = 2;
 						gf_sm_load_done(&priv->load);
@@ -621,13 +621,13 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 
 							/*soundstreams are a bit of a pain, they may be declared before any data gets written*/
 							if (mux->delete_file) {
-								FILE *t = gf_f64_open(mux->file_name, "rb");
+								FILE *t = gf_fopen(mux->file_name, "rb");
 								if (!t) {
 									keep_com = 1;
 									gf_list_insert(odU->objectDescriptors, od, 0);
 									break;
 								}
-								fclose(t);
+								gf_fclose(t);
 							}
 							/*remap to remote URL - warning, the URL has already been resolved according to the parent path*/
 							remote = gf_malloc(sizeof(char) * (strlen("gpac://")+strlen(mux->file_name)+1) );
