@@ -5212,13 +5212,13 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			}
 			/*unless asked to do BS switching on single rep, don't do it ...*/
 			if ((bitstream_switching < GF_DASH_BSMODE_SINGLE) && dash_inputs[first_rep_in_set].nb_rep_in_adaptation_set==1)
-				use_bs_switching = 0;
+				use_bs_switching = GF_FALSE;
 
 			if (! use_bs_switching) {
-				skip_init_segment_creation = 1;
+				skip_init_segment_creation = GF_TRUE;
 			}
 			else if (! dash_inputs[first_rep_in_set].dasher_create_init_segment) {
-				skip_init_segment_creation = 1;
+				skip_init_segment_creation = GF_TRUE;
 				strcpy(szInit, "");
 			}
 			/*if we already wrote the InitializationSegment, get rid of it (no overwrite) and let the dashing routine open it*/
@@ -5227,16 +5227,16 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				const char *init_seg_name;
 				sprintf(RepSecName, "Representation_%s", dash_inputs[first_rep_in_set].representationID);
 				if ((init_seg_name = gf_cfg_get_key(dash_ctx, RepSecName, "InitializationSegment")) != NULL) {
-					skip_init_segment_creation = 1;
+					skip_init_segment_creation = GF_TRUE;
 				}
 			}
 
 			if (!skip_init_segment_creation) {
-				Bool disable_bs_switching = 0;
+				Bool disable_bs_switching = GF_FALSE;
 				e = dash_inputs[first_rep_in_set].dasher_create_init_segment(dash_inputs, nb_dash_inputs, cur_adaptation_set+1, szInit, tmpdir, &dash_opts, bitstream_switching, &disable_bs_switching);
 				if (e) goto exit;
 				if (disable_bs_switching)
-					use_bs_switching = 0;
+					use_bs_switching = GF_FALSE;
 			}
 
 			dash_opts.bs_switch_segment_file = use_bs_switching ? szInit : NULL;
