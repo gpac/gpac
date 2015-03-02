@@ -492,7 +492,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 					}
 					sz--;
 				}
-				id3_end = ftell(in); 
+				id3_end = (u32) gf_ftell(in);
 			}
 		}
 		fseek(in, id3_end, SEEK_SET);
