@@ -295,7 +295,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				FILE *test = gf_fopen( src_url ? src_url : ct->image.buffer, "rb");
 				if (test) {
 					fseek(test, 0, SEEK_END);
-					ct->data_len = ftell(test);
+					ct->data_len = (u32) gf_ftell(test);
 					ct->data = gf_malloc(sizeof(char)*ct->data_len);
 					fseek(test, 0, SEEK_SET);
 					if (ct->data_len != fread(ct->data, 1, ct->data_len, test)) {

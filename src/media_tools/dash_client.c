@@ -2886,7 +2886,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 						if (t) {
 							u32 res;
 							fseek(t, 0, SEEK_END);
-							rep->playback.init_segment_size = ftell(t);
+							rep->playback.init_segment_size = (u32) gf_ftell(t);
 							fseek(t, 0, SEEK_SET);
 
 							rep->playback.init_segment_data = gf_malloc(sizeof(char) * rep->playback.init_segment_size);
