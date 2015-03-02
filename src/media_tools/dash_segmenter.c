@@ -4141,7 +4141,6 @@ static GF_Err write_period_header(FILE *mpd, const char *szID, Double period_sta
 	u32 h, m;
 	Double s;
 	u32 i,j;
-	char *assetID = NULL;
 	fprintf(mpd, " <Period");
 
 	if (insert_xmlns) {
