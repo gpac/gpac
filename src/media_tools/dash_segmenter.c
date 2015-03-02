@@ -131,7 +131,7 @@ struct _dash_segment_input
 	/*assigns the different media to the same adaptation set or group than the input_idx one*/
 	GF_Err (* dasher_input_classify) (GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 input_idx, u32 *current_group_id, u32 *max_sap_type);
 	GF_Err ( *dasher_get_components_info) (GF_DashSegInput *dash_input, GF_DASHSegmenterOptions *opts);
-	GF_Err ( *dasher_create_init_segment) (GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 adaptation_set, char *szInitName, const char *tmpdir, GF_DASHSegmenterOptions *dash_opts, Bool *disable_bs_switching);
+	GF_Err ( *dasher_create_init_segment) (GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 adaptation_set, char *szInitName, const char *tmpdir, GF_DASHSegmenterOptions *dash_opts, GF_DashSwitchingMode bs_switch_mode, Bool *disable_bs_switching);
 	GF_Err ( *dasher_segment_file) (GF_DashSegInput *dash_input, const char *szOutName, GF_DASHSegmenterOptions *opts, Bool first_in_set);
 
 	/*shall be set after call to dasher_input_classify*/
@@ -155,6 +155,7 @@ struct _dash_segment_input
 	u32 x, y, w, h;
 
 	Bool disable_inband_param_set;
+
 };
 
 
@@ -2258,7 +2259,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 	return GF_OK;
 }
 
-static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 adaptation_set, char *szInitName, const char *tmpdir, GF_DASHSegmenterOptions *dash_opts, Bool *disable_bs_switching)
+static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 adaptation_set, char *szInitName, const char *tmpdir, GF_DASHSegmenterOptions *dash_opts, GF_DashSwitchingMode bs_switch_mode, Bool *disable_bs_switching)
 {
 	GF_Err e = GF_OK;
 	u32 i;
@@ -2295,6 +2296,14 @@ restart_init:
 			return e;
 		}
 
+		if (bs_switch_mode == GF_DASH_BSMODE_MULTIPLE_ENTRIES) {
+			if (gf_isom_get_track_count(in)>1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot use muli-stsd mode on files with multiple tracks\n"));
+				return GF_NOT_SUPPORTED;
+			}
+		}
+
+
 		for (j=0; j<gf_isom_get_track_count(in); j++) {
 			u32 track;
 
@@ -2306,6 +2315,7 @@ restart_init:
 					single_track_id = gf_isom_get_track_id(in, j+1);
 				//if not the same ID between the two tracks we cannot create a legal file with bitstream switching enabled
 				else if (single_track_id != gf_isom_get_track_id(in, j+1)) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Track IDs different between representations, disabling bitstream switching\n"));
 					*disable_bs_switching = GF_TRUE;
 					gf_isom_delete(init_seg);
 					gf_delete_file(szInitName);
@@ -2325,8 +2335,13 @@ restart_init:
 					return e;
 				}
 retry_track:
+
+				if (bs_switch_mode == GF_DASH_BSMODE_MULTIPLE_ENTRIES) {
+					gf_isom_clone_sample_description(init_seg, track, in, j+1, 1, NULL, NULL, &outDescIndex);
+				}
+
 				/*if not the same sample desc we might need to clone it*/
-				if (! gf_isom_is_same_sample_description(in, j+1, 1, init_seg, track, 1)) {
+				else if (! gf_isom_is_same_sample_description(in, j+1, 1, init_seg, track, 1)) {
 					u32 merge_mode = 1;
 					u32 stype1, stype2;
 					stype1 = gf_isom_get_media_subtype(in, j+1, 1);
@@ -5219,7 +5234,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 			if (!skip_init_segment_creation) {
 				Bool disable_bs_switching = 0;
-				e = dash_inputs[first_rep_in_set].dasher_create_init_segment(dash_inputs, nb_dash_inputs, cur_adaptation_set+1, szInit, tmpdir, &dash_opts, &disable_bs_switching);
+				e = dash_inputs[first_rep_in_set].dasher_create_init_segment(dash_inputs, nb_dash_inputs, cur_adaptation_set+1, szInit, tmpdir, &dash_opts, bitstream_switching, &disable_bs_switching);
 				if (e) goto exit;
 				if (disable_bs_switching)
 					use_bs_switching = 0;
