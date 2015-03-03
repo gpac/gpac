@@ -126,7 +126,10 @@ typedef struct
 
 	Bool disable_seek;
 	u32 nalu_extract_mode;
+
+    u32 last_sample_desc_index;
 } ISOMChannel;
+
 void isor_reset_reader(ISOMChannel *ch);
 void isor_reader_get_sample(ISOMChannel *ch);
 void isor_reader_release_sample(ISOMChannel *ch);
