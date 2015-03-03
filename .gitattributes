@@ -10,6 +10,7 @@ Makefile text
 *.sh text eol=lf
 
 #windows
+*.bat text eol=crlf
 *.sln text eol=crlf
 *.vcproj text eol=crlf
 *.dsp text eol=crlf
