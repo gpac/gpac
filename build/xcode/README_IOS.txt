@@ -9,7 +9,9 @@ To compile GPAC in command-line mode, please execute the following steps:
 1) Check out the GPAC git repository:
    "git clone https://github.com/gpac/gpac"
 
-2) Get the "gpac_extra_libs.zip" file from https://gpac.svn.sourceforge.net/svnroot/gpac/trunk/gpac_extra_libs/
+2) Get the "gpac_extra_libs.zip" file from:
+https://sourceforge.net/p/gpac/code/HEAD/tree/trunk/gpac_extra_libs/
+
 Unzip it in its current directory (ie not a subfolder) so that you have the following directory tree:
    trunk/
       gpac/

@@ -50,7 +50,7 @@ if [ "$rev" != "" ]
 then
 	full_version="$version-rev$rev"
 else
-	#if no revision can be extracted from SVN, use date
+	#if no revision can be extracted, use date
 	full_version="$version-$(date +%Y%m%d)"
 fi
 
