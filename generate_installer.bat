@@ -95,8 +95,6 @@ echo:
 echo  *** ABORTING: CHECK ERROR MESSAGES ABOVE ***
 
 REM LeaveBatchError 
-set VarRevisionSVN=
 set VarRevisionBuild=
 cd /d %OLDDIR%
 exit/b 1
-

@@ -10,7 +10,6 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
 rev="$REVISION-$BRANCH"
 if [ "$rev" != "" ]
 then
-#	svn revert ../../applications/osmo4_ios/osmo4ios-Info.plist
 	sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$version"'<\/string>/' ../../applications/osmo4_ios/osmo4ios-Info.plist > ../../applications/osmo4_ios/osmo4ios-Info.plist.new
 	sed 's/<string>.*<\/string><!-- BUILD_REV_REPLACE -->/<string>'"$rev"'<\/string>/' ../../applications/osmo4_ios/osmo4ios-Info.plist.new > ../../applications/osmo4_ios/osmo4ios-Info.plist
 	rm ../../applications/osmo4_ios/osmo4ios-Info.plist.new
