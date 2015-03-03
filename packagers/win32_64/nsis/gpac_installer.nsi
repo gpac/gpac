@@ -468,18 +468,6 @@ SectionEnd
 ;  File "..\MobileSession.dll"
 ;SectionEnd
 
-
-;Section "OFFIS Audio compressor" SecOffisComp
-;  SectionIn 1
-;  ;copy GUI
-;  File "..\gm_offis_compressor.dll"
-;  File "..\QtCore4.dll"
-;  File "..\QtGui4.dll"
-;  SetOutPath $INSTDIR\gui\extensions
-;  File /r /x .svn ..\..\..\..\gui\extensions\offis*
-;  SetOutPath $INSTDIR
-;SectionEnd
-
 SubSectionEnd
 
 
