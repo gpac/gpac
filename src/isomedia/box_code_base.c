@@ -6423,6 +6423,8 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 					gf_bs_seek(bs, pos);
 					genv->data_size = (u32) gf_bs_available(bs);
 					if (genv->data_size) {
+						genv->data = a->data;
+						a->data = NULL;
 						memmove(genv->data, genv->data + pos, genv->data_size);
 					}
 				} else {
@@ -6459,6 +6461,8 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 					gf_bs_seek(bs, pos);
 					gena->data_size = (u32) gf_bs_available(bs);
 					if (gena->data_size) {
+						gena->data = a->data;
+						a->data = NULL;
 						memmove(gena->data, gena->data + pos, gena->data_size);
 					}
 				} else {
@@ -6496,6 +6500,8 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 					gf_bs_seek(bs, pos);
 					genm->data_size = (u32) gf_bs_available(bs);
 					if (genm->data_size) {
+						genm->data = a->data;
+						a->data = NULL;
 						memmove(genm->data, genm->data + pos, genm->data_size);
 					}
 				} else {
