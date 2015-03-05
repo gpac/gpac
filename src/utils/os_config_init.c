@@ -251,12 +251,19 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 static Bool get_default_install_path(char *file_path, u32 path_type)
 {
 	char app_path[GF_MAX_PATH];
+    	char user_home[GF_MAX_PATH];
 	char *sep;
 	u32 size = GF_MAX_PATH;
 
 	/*on OSX, Linux & co, user home is where we store the cfg file*/
 	if (path_type==GF_PATH_CFG) {
-		char *user_home = getenv("HOME");
+		//user_home = getenv("HOME");
+        	if (_NSGetExecutablePath(user_home, &size) ==0) {
+			realpath(user_home, file_path);
+			char *sep = strrchr(file_path, '/');
+			if (sep) sep[0] = 0;
+			return 1;
+		}
 #ifdef GPAC_IPHONE
 		char buf[PATH_MAX];
 		char *res;
@@ -487,7 +494,13 @@ static GF_Config *create_default_config(char *file_path)
 		f = gf_fopen(gui_path, "rt");
 		if (f) {
 			gf_fclose(f);
-			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
+			#if defined(__DARWIN__) || defined(__APPLE__)
+				/* As I modified the "referent folder" (with the chdir function) we can use relative paths from inside the app
+					Here, the referent folder is the variable modulesPath (see application/mp4client/main.c, line 1541). */
+                		gf_cfg_set_key(cfg, "General", "StartupFile", "../gui/gui.bt");
+			#elif defined(WIN32)
+				gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
+			#endif
 		}
 	}
 
