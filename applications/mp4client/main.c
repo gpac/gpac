@@ -1521,13 +1521,28 @@ int main (int argc, char **argv)
 			gf_term_connect_from_time(term, the_url, (u64) (play_from*1000), pause_at_first);
 		}
 	} else {
-		fprintf(stderr, "Hit 'h' for help\n\n");
-		str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
-		if (str) {
-			strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
-			gf_term_connect(term, str);
-			startup_file = 1;
-		}
+		#if defined(WIN32)
+			fprintf(stderr, "Hit 'h' for help\n\n");
+			str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
+			if (str) {
+				strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
+				gf_term_connect(term, str);
+				startup_file = 1;
+			}
+		#elif defined(__DARWIN__) || defined(__APPLE__)
+	        	char* pathKeeper;
+	        	const char* modulesPath;
+			fprintf(stderr, "Hit 'h' for help\n\n");
+			str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
+			if (str) {
+				strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
+	            		pathKeeper=getcwd(pathKeeper, sizeof(pathKeeper));
+	            		modulesPath=gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
+	            		chdir(modulesPath);
+				gf_term_connect(term, str);
+				startup_file = 1;
+			}
+		#endif
 	}
 	if (gui_mode==2) gui_mode=0;
 
