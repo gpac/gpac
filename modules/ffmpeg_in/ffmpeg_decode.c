@@ -415,7 +415,11 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		case CODEC_ID_GIF:
 #endif
 		case CODEC_ID_RAWVIDEO:
-			ffd->pix_fmt = GF_PIXEL_RGB_24;
+			if ((*ctx)->pix_fmt==PIX_FMT_YUV420P) {
+				ffd->pix_fmt = GF_PIXEL_YV12;
+			} else {
+				ffd->pix_fmt = GF_PIXEL_RGB_24;
+			}
 			break;
 
 		case CODEC_ID_DVD_SUBTITLE:
@@ -850,7 +854,7 @@ redecode:
 		}
 		if (inBufferLength) {
 			*outBufferLength = ffd->out_size;
-			assert(inBufferLength==ffd->out_size);
+//			assert(inBufferLength==ffd->out_size);
 
 			if (ffd->raw_pix_fmt==PIX_FMT_BGR24) {
 				s32 i, j;

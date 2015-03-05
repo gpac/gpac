@@ -223,8 +223,10 @@ typedef struct
 
 #ifdef USE_PRE_0_7
 	ByteIOContext   io;
+	void *options;
 #else
 	AVIOContext io;
+	AVDictionary *options;
 #endif
 	char *buffer;
 	u32 buffer_size;
