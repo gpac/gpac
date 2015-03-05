@@ -588,7 +588,7 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	u8 def_count =0;
 	size_t str_size =0;	//we +1 before loading the shader
 	
-	print_flags(flags);
+	//print_flags(flags);
 
 	if(flags == 0)	//if no flags - compile minimal shader
 		return visual_3d_shader_from_source_file(src_path, shader_type);
@@ -672,7 +672,6 @@ static void visual_3d_set_tx_planes(GF_VisualManager *visual){
 				glUniform1i(loc, j);
 			}
 		}
-		glUseProgram(0);
 	}
 }
 
@@ -1094,17 +1093,17 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GLSL Vertex Shader not found [ES2.0]"));
 	}
 
-
 	/* Set y,u,v planes (if GF_GL_IS_YUV*/
 	visual_3d_set_tx_planes(visual);
-	
 
 
-
+	/*
 	printf("OpenGL version: %s \n",glGetString(GL_VERSION));	//¡k DELETE (used for checking ES 2.0 emulator)
 	printf("OpenGL language version: %s \n",glGetString(GL_SHADING_LANGUAGE_VERSION));	//¡k DELETE (used for checking ES 2.0 emulator)
 	printf("OpenGL vendor: %s \n and GL renderer: %s \n",glGetString(GL_VENDOR),glGetString(GL_RENDERER));	//¡k DELETE (used for checking ES 2.0 emulator)
 	printf("OpenGL available extensions: %s \n",glGetString(GL_EXTENSIONS));	//¡k DELETE (used for checking ES 2.0 emulator)
+	*/
+
 
 	//GL_CHECK_ERR;
 	//STARTOF TESTS
@@ -1137,7 +1136,7 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 void visual_3d_init_shaders(GF_VisualManager *visual)
 {
 	if (!visual->compositor->gl_caps.has_shaders) return;
-
+	visual_3d_init_yuv_shaders(visual);
 	if (visual->compositor->shader_only_mode) {
 		visual_3d_init_generic_shaders(visual);
 	}else{
@@ -2066,9 +2065,12 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 	//	vals[0] = FIX2FLT(pt.x); vals[1] = FIX2FLT(pt.y); vals[2] = FIX2FLT(pt.z); vals[3] = 0;
 
 	//For directional light its the direction possition
+	//Commented out since we parse it per-light (for multiple lights support) [ES2.0]
+	/*
 	loc = my_glGetUniformLocation(visual->glsl_program, "gfLightPosition");
 	if (loc>=0) 
 		glUniform4fv(loc, 1, vals);
+	*/
 
 	ambientIntensity = FIX2FLT(li->ambientIntensity);
 	intensity = FIX2FLT(li->intensity);
@@ -2136,20 +2138,26 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 		if (loc>=0)
 			glUniform4fv(loc, 1, vals);
 		
-		sprintf(tmp, "%s%d%s", "lights[", i, "].ambientIntensity");	//¡TODOk check float parsing
+		//commented out because we calculate it inside the shader [ES2.0]
+		/*
+		sprintf(tmp, "%s%d%s", "lights[", i, "].ambientIntensity");
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);
 		if (loc>=0)
 			glUniform1f(loc, li->ambientIntensity);
+		*/
 
 		sprintf(tmp, "%s%d%s", "lights[", i, "].intensity");	//¡TODOk check float parsing
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);
 		if (loc>=0)
 			glUniform1f(loc, li->intensity); //Set type 0-directional 1-spot 2-point
 
+		//commented out because we calculate it inside the shader [ES2.0]
+		/*
 		sprintf(tmp, "%s%d%s", "lights[", i, "].beamWidth");	//¡TODOk check float parsing
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);
 		if (loc>=0)
 			glUniform1f(loc, li->beamWidth); //Set type 0-directional 1-spot 2-point
+		*/
 
 		sprintf(tmp, "%s%d%s", "lights[", i, "].cutOffAngle");	//¡TODOk check float parsing
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);
@@ -2274,12 +2282,16 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
 	}
 
+	//we don't know for which program we updated the projection
+	if (visual->glsl_program != visual->glsl_programs[visual->glsl_flags]) {
+		tr_state->visual->needs_projection_matrix_reload = 1;
+	}
 
 	GL_CHECK_ERR
 	visual->glsl_program = visual->glsl_programs[visual->glsl_flags];	//¡k temporary patch
 	glUseProgram(visual->glsl_programs[visual->glsl_flags]);
 	GL_CHECK_ERR
-		printf("\n flags: %u \n",visual->glsl_flags);
+		printf("\n flags (in draw_mesh_shader_only): %u \n",visual->glsl_flags);
 	//my_glQueryAttributes(visual->glsl_programs[visual->glsl_flags]);
 	//my_glQueryUniforms(visual->glsl_programs[visual->glsl_flags]);
 
@@ -2344,6 +2356,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			
 
 	if (visual->has_material) {		//¡k maybe add a bool hasMaterial or something
+
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfAmbientColor");
 		if (loc>=0)
 			glUniform4fv(loc, 1, (GLfloat *) & visual->materials[0] );
@@ -2513,7 +2526,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		if (loc>=0)
 			glUniform1i(loc, 0);
 		GL_CHECK_ERR
-		printf("\n no textures \n");
 	}
 
 			//¡k ENDof texturing
@@ -2552,7 +2564,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	gf_free(tmp);	//¡TODOk add free in individual functions using tmp
 	visual_3d_do_draw_mesh(tr_state, mesh);
-
 	if (mesh->vbo)
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	visual->has_material_2d = 0;
@@ -2560,6 +2571,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	visual->state_color_on = 0;
 
 	GL_CHECK_ERR
+
 	glUseProgram(0);
 }
 

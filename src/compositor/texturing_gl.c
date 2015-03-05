@@ -1375,17 +1375,23 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
+		/*loc = glGetUniformLocation(active_shader, "v_plane");	//¡k for ES2.0
+		glUniform1i(loc, 2);*/
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
+		/*loc = glGetUniformLocation(active_shader, "u_plane");
+		glUniform1i(loc, 1);*/
 
-		glActiveTexture(GL_TEXTURE0 );
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
+		/*loc = glGetUniformLocation(active_shader, "y_plane");
+		glUniform1i(loc, 0);*/
 		
 		if(!compositor->shader_only_mode)	//¡TODO check this out
 			tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
 
-		glClientActiveTexture(GL_TEXTURE0);	//¡k Not supported in ES2.0
+		//glClientActiveTexture(GL_TEXTURE0);	//¡k Not supported in ES2.0
 		GL_CHECK_ERR
 	} else
 #endif
@@ -1404,13 +1410,15 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 			glEnable(txh->tx_io->gl_type);
 			GL_CHECK_ERR
-			glActiveTexture(GL_TEXTURE0 );
+			glActiveTexture(GL_TEXTURE0);
 			GL_CHECK_ERR
 			glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
 			GL_CHECK_ERR
+			/*loc = glGetUniformLocation(visual->glsl_programs[flags], "y_plane");	//¡k for ES2.0
+			glUniform1i(loc, 0);*/
 		}
 
-		tx_bind(txh);	//¡k check
+//		tx_bind(txh);	//¡k check
 
 	}
 	visual->glsl_flags = flags;
