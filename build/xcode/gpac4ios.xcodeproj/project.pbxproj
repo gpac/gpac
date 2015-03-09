@@ -325,7 +325,6 @@
 		71CCF3D612770A8C00339E12 /* isomedia.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF38612770A8C00339E12 /* isomedia.h */; };
 		71CCF3D712770A8C00339E12 /* laser.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF38712770A8C00339E12 /* laser.h */; };
 		71CCF3D812770A8C00339E12 /* list.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF38812770A8C00339E12 /* list.h */; };
-		71CCF3D912770A8C00339E12 /* math.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF38912770A8C00339E12 /* math.h */; };
 		71CCF3DA12770A8C00339E12 /* media_tools.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF38A12770A8C00339E12 /* media_tools.h */; };
 		71CCF3DB12770A8C00339E12 /* mediaobject.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF38B12770A8C00339E12 /* mediaobject.h */; };
 		71CCF3DC12770A8C00339E12 /* module.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF38C12770A8C00339E12 /* module.h */; };
@@ -365,6 +364,14 @@
 		71CCF3FE12770A8C00339E12 /* utf.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AF12770A8C00339E12 /* utf.h */; };
 		71CCF3FF12770A8C00339E12 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3B012770A8C00339E12 /* xml.h */; };
 		71EC88E11396273B004DCB6A /* osmo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 71EC88E01396273B004DCB6A /* osmo.icns */; };
+		922EB5801AAE13C500DF46D0 /* dash.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5781AAE13C500DF46D0 /* dash.h */; };
+		922EB5811AAE13C500DF46D0 /* html5_media.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5791AAE13C500DF46D0 /* html5_media.h */; };
+		922EB5821AAE13C500DF46D0 /* html5_mse.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57A1AAE13C500DF46D0 /* html5_mse.h */; };
+		922EB5831AAE13C500DF46D0 /* map.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57B1AAE13C500DF46D0 /* map.h */; };
+		922EB5841AAE13C500DF46D0 /* maths.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57C1AAE13C500DF46D0 /* maths.h */; };
+		922EB5851AAE13C500DF46D0 /* revision.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57D1AAE13C500DF46D0 /* revision.h */; };
+		922EB5861AAE13C500DF46D0 /* version.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57E1AAE13C500DF46D0 /* version.h */; };
+		922EB5871AAE13C500DF46D0 /* webvtt.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57F1AAE13C500DF46D0 /* webvtt.h */; };
 		925730A21A0916D20057FF04 /* libiconv.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A11A0916D20057FF04 /* libiconv.dylib */; };
 		925730A41A0916DB0057FF04 /* libbz2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A31A0916DB0057FF04 /* libbz2.dylib */; };
 		929A929C16EF8BC200B7C64F /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929616EF8BC200B7C64F /* Default-568h@2x.png */; };
@@ -430,6 +437,7 @@
 		92BC213A16EF8E7A000E0620 /* widget.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998D1278777A00ACFF58 /* widget.c */; };
 		92BC213B16EF8E7A000E0620 /* widgetman.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998E1278777A00ACFF58 /* widgetman.c */; };
 		92BC213C16EF8E7A000E0620 /* widgetman.h in Headers */ = {isa = PBXBuildFile; fileRef = 71A1998F1278777A00ACFF58 /* widgetman.h */; };
+		92C7F19A1AA8B48E00BA5B4C /* gui in Resources */ = {isa = PBXBuildFile; fileRef = 92C7F1991AA8B48E00BA5B4C /* gui */; };
 		92E8C78B1A0CD57A00E0436D /* timedtext_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA826116F254F50002629E /* timedtext_dec.c */; };
 		92E8C78C1A0CD57A00E0436D /* timedtext_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA826216F254F50002629E /* timedtext_in.c */; };
 		92E8C78D1A0CD57A00E0436D /* isma_ea.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825F16F254DA0002629E /* isma_ea.c */; };
@@ -854,7 +862,6 @@
 		71CCF38612770A8C00339E12 /* isomedia.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = isomedia.h; sourceTree = "<group>"; };
 		71CCF38712770A8C00339E12 /* laser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = laser.h; sourceTree = "<group>"; };
 		71CCF38812770A8C00339E12 /* list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = list.h; sourceTree = "<group>"; };
-		71CCF38912770A8C00339E12 /* math.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = math.h; sourceTree = "<group>"; };
 		71CCF38A12770A8C00339E12 /* media_tools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = media_tools.h; sourceTree = "<group>"; };
 		71CCF38B12770A8C00339E12 /* mediaobject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mediaobject.h; sourceTree = "<group>"; };
 		71CCF38C12770A8C00339E12 /* module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = module.h; sourceTree = "<group>"; };
@@ -900,6 +907,14 @@
 		71F2A45412830B1400C384DE /* libjs.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libjs.a; path = ../../extra_lib/lib/iOS/libjs.a; sourceTree = SOURCE_ROOT; };
 		71F2A45512830B1400C384DE /* libmad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmad.a; path = ../../extra_lib/lib/iOS/libmad.a; sourceTree = SOURCE_ROOT; };
 		71F2A45612830B1400C384DE /* libpng.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpng.a; path = ../../extra_lib/lib/iOS/libpng.a; sourceTree = SOURCE_ROOT; };
+		922EB5781AAE13C500DF46D0 /* dash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dash.h; sourceTree = "<group>"; };
+		922EB5791AAE13C500DF46D0 /* html5_media.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_media.h; sourceTree = "<group>"; };
+		922EB57A1AAE13C500DF46D0 /* html5_mse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_mse.h; sourceTree = "<group>"; };
+		922EB57B1AAE13C500DF46D0 /* map.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = map.h; sourceTree = "<group>"; };
+		922EB57C1AAE13C500DF46D0 /* maths.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = maths.h; sourceTree = "<group>"; };
+		922EB57D1AAE13C500DF46D0 /* revision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = revision.h; sourceTree = "<group>"; };
+		922EB57E1AAE13C500DF46D0 /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = version.h; sourceTree = "<group>"; };
+		922EB57F1AAE13C500DF46D0 /* webvtt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = webvtt.h; sourceTree = "<group>"; };
 		925730A11A0916D20057FF04 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		925730A31A0916DB0057FF04 /* libbz2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.dylib; path = usr/lib/libbz2.dylib; sourceTree = SDKROOT; };
 		929A929616EF8BC200B7C64F /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-568h@2x.png"; path = "../../applications/osmo4_ios/Resources/Default-568h@2x.png"; sourceTree = SOURCE_ROOT; };
@@ -985,6 +1000,7 @@
 		92B69DFE1A091CFC004E74AA /* world.svg */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = world.svg; sourceTree = "<group>"; };
 		92B69E011A091CFC004E74AA /* mpegu-core.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "mpegu-core.js"; sourceTree = "<group>"; };
 		92B69EB61A091CFC004E74AA /* webvtt-renderer.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "webvtt-renderer.js"; sourceTree = "<group>"; };
+		92C7F1991AA8B48E00BA5B4C /* gui */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gui; path = ../../gui; sourceTree = "<group>"; };
 		92F930841A5ADC1A0072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
 		92F930851A5ADC1A0072A85C /* os_file.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 		92FA825916F2549D0002629E /* validator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = validator.c; path = ../../modules/validator/validator.c; sourceTree = SOURCE_ROOT; };
@@ -1089,6 +1105,7 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				92C7F1991AA8B48E00BA5B4C /* gui */,
 				71CCF1381277041D00339E12 /* libgpac */,
 				929A929516EF8A7500B7C64F /* modules */,
 				71A19B1412796AC700ACFF58 /* osmo4iOS */,
@@ -1646,6 +1663,14 @@
 		71CCF35F12770A8C00339E12 /* gpac */ = {
 			isa = PBXGroup;
 			children = (
+				922EB5781AAE13C500DF46D0 /* dash.h */,
+				922EB5791AAE13C500DF46D0 /* html5_media.h */,
+				922EB57A1AAE13C500DF46D0 /* html5_mse.h */,
+				922EB57B1AAE13C500DF46D0 /* map.h */,
+				922EB57C1AAE13C500DF46D0 /* maths.h */,
+				922EB57D1AAE13C500DF46D0 /* revision.h */,
+				922EB57E1AAE13C500DF46D0 /* version.h */,
+				922EB57F1AAE13C500DF46D0 /* webvtt.h */,
 				9747B6EC14864C6400280D95 /* ait.h */,
 				9747B6ED14864C6400280D95 /* dsmcc.h */,
 				9747B6EE14864C6400280D95 /* events_constants.h */,
@@ -1674,7 +1699,6 @@
 				71CCF38612770A8C00339E12 /* isomedia.h */,
 				71CCF38712770A8C00339E12 /* laser.h */,
 				71CCF38812770A8C00339E12 /* list.h */,
-				71CCF38912770A8C00339E12 /* math.h */,
 				71CCF38A12770A8C00339E12 /* media_tools.h */,
 				71CCF38B12770A8C00339E12 /* mediaobject.h */,
 				71CCF38C12770A8C00339E12 /* module.h */,
@@ -1936,6 +1960,7 @@
 				92BC211616EF8E7A000E0620 /* isom_in.h in Headers */,
 				92BC213C16EF8E7A000E0620 /* widgetman.h in Headers */,
 				92BC212F16EF8E7A000E0620 /* sdl_out.h in Headers */,
+				922EB5851AAE13C500DF46D0 /* revision.h in Headers */,
 				92BC213616EF8E7A000E0620 /* unzip.h in Headers */,
 				92BC212A16EF8E7A000E0620 /* rtp_in.h in Headers */,
 				92BC212216EF8E7A000E0620 /* rast_soft.h in Headers */,
@@ -1951,6 +1976,7 @@
 				71CCF2961277045100339E12 /* visual_manager_2d.h in Headers */,
 				71CCF2991277045100339E12 /* visual_manager_3d.h in Headers */,
 				71CCF2E11277045100339E12 /* mpeg2_ps.h in Headers */,
+				922EB5861AAE13C500DF46D0 /* version.h in Headers */,
 				71CCF31B1277045100339E12 /* input_sensor.h in Headers */,
 				71CCF31D1277045100339E12 /* media_control.h in Headers */,
 				71CCF3201277045100339E12 /* media_memory.h in Headers */,
@@ -1965,6 +1991,7 @@
 				71CCF3B712770A8C00339E12 /* config_file.h in Headers */,
 				71CCF3B812770A8C00339E12 /* configuration.h in Headers */,
 				71CCF3B912770A8C00339E12 /* constants.h in Headers */,
+				922EB5811AAE13C500DF46D0 /* html5_media.h in Headers */,
 				71CCF3BA12770A8C00339E12 /* crypt.h in Headers */,
 				71CCF3BB12770A8C00339E12 /* download.h in Headers */,
 				71CCF3BC12770A8C00339E12 /* dvb_mpe.h in Headers */,
@@ -1976,6 +2003,7 @@
 				71CCF3C212770A8C00339E12 /* bifs_dev.h in Headers */,
 				71CCF3C312770A8C00339E12 /* bifs_tables.h in Headers */,
 				71CCF3C412770A8C00339E12 /* camera.h in Headers */,
+				922EB5801AAE13C500DF46D0 /* dash.h in Headers */,
 				71CCF3C512770A8C00339E12 /* compositor_dev.h in Headers */,
 				71CCF3C612770A8C00339E12 /* crypt_dev.h in Headers */,
 				71CCF3C712770A8C00339E12 /* dvb_mpe_dev.h in Headers */,
@@ -1996,7 +2024,6 @@
 				71CCF3D612770A8C00339E12 /* isomedia.h in Headers */,
 				71CCF3D712770A8C00339E12 /* laser.h in Headers */,
 				71CCF3D812770A8C00339E12 /* list.h in Headers */,
-				71CCF3D912770A8C00339E12 /* math.h in Headers */,
 				71CCF3DA12770A8C00339E12 /* media_tools.h in Headers */,
 				71CCF3DB12770A8C00339E12 /* mediaobject.h in Headers */,
 				71CCF3DC12770A8C00339E12 /* module.h in Headers */,
@@ -2035,13 +2062,17 @@
 				71CCF3FD12770A8C00339E12 /* user.h in Headers */,
 				71CCF3FE12770A8C00339E12 /* utf.h in Headers */,
 				71CCF3FF12770A8C00339E12 /* xml.h in Headers */,
+				922EB5831AAE13C500DF46D0 /* map.h in Headers */,
 				970A26CD13434D780007362C /* m3u8.h in Headers */,
 				970A26CE13434D780007362C /* mpd.h in Headers */,
+				922EB5821AAE13C500DF46D0 /* html5_mse.h in Headers */,
 				970A26D213434D960007362C /* cache.h in Headers */,
 				970A26D313434D960007362C /* ringbuffer.h in Headers */,
 				970A26D413434D960007362C /* unicode.h in Headers */,
+				922EB5871AAE13C500DF46D0 /* webvtt.h in Headers */,
 				9747B6EF14864C6400280D95 /* ait.h in Headers */,
 				9747B6F014864C6400280D95 /* dsmcc.h in Headers */,
+				922EB5841AAE13C500DF46D0 /* maths.h in Headers */,
 				9747B6F114864C6400280D95 /* events_constants.h in Headers */,
 				285DBB49170F17D700AF2B9B /* ffmpeg_in.h in Headers */,
 			);
@@ -2124,6 +2155,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				92C7F19A1AA8B48E00BA5B4C /* gui in Resources */,
 				71EC88E11396273B004DCB6A /* osmo.icns in Resources */,
 				929A929C16EF8BC200B7C64F /* Default-568h@2x.png in Resources */,
 				929A929D16EF8BC200B7C64F /* icon_ipad_retina.png in Resources */,
