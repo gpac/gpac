@@ -194,7 +194,6 @@ static int open_file(AVFormatContext **	ic_ptr, const char * 	filename, AVInputF
 void ffd_parse_options(FFDemux *ffd, const char *url)
 {
 #ifdef USE_AVFORMAT_OPEN_INPUT
-	int res;
 	char *frag = (char*) strchr(url, '#');
 	if (frag) frag = frag+1;
 
@@ -206,7 +205,7 @@ void ffd_parse_options(FFDemux *ffd, const char *url)
 		mid = strchr(frag, '=');
 		if (mid) {
 			mid[0] = 0;
-			res = av_dict_set(&ffd->options, frag, mid+1, 0);
+			av_dict_set(&ffd->options, frag, mid+1, 0);
 			mid[0] = '=';
 		}
 		if (!sep) break;
