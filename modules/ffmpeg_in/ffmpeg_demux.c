@@ -207,6 +207,9 @@ void ffd_parse_options(FFDemux *ffd, const char *url)
 		if (mid) {
 			mid[0] = 0;
 			res = av_dict_set(&ffd->options, frag, mid+1, 0);
+            if (res<0) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Failed to set option %s:%s\n", frag, mid+1) );
+            }
 			mid[0] = '=';
 		}
 		if (!sep) break;
