@@ -4697,7 +4697,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			dash_inputs[j].period = 1;
 			//assign ID if dynamic - if dash_ctx also assign ID since we could have moved from dynamic to static
 			if (dash_dynamic || dash_ctx) {
-				strcpy(dash_inputs[j].periodID, "GENID_DEF");
+				dash_inputs[j].periodID = "GENID_DEF";
 			}
 		}
 		if (!strcmp(dash_inputs[j].file_name, "NULL") || !strcmp(dash_inputs[j].file_name, "") || !dash_inputs[j].file_name) {
