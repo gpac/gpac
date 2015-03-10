@@ -2350,8 +2350,11 @@ static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile
 {
 	HEVCSliceInfo *si = &hevc->s_info;
 	u32 i, tbX, tbY, PicWidthInCtbsY, PicHeightInCtbsY, tileX, tileY, oX, oY, val;
-	PicWidthInCtbsY = si->sps->width / si->sps->max_CU_width;
-	PicHeightInCtbsY = si->sps->height / si->sps->max_CU_width;
+
+    PicWidthInCtbsY = si->sps->width / si->sps->max_CU_width;
+    if (PicWidthInCtbsY * si->sps->max_CU_width < si->sps->width) PicWidthInCtbsY++;
+    PicHeightInCtbsY = si->sps->height / si->sps->max_CU_width;
+    if (PicHeightInCtbsY * si->sps->max_CU_width < si->sps->height) PicHeightInCtbsY++;
 
 	tbX = si->slice_segment_address % PicWidthInCtbsY;
 	tbY = si->slice_segment_address / PicWidthInCtbsY;
@@ -2567,8 +2570,13 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 				gf_bs_write_int(bs, 0, 8);
 				// data offset: we start from last NAL written in this sample in this tile track
 				gf_bs_write_int(bs, tiles[cur_tile].data_offset, 8*nalu_size_length);
-				gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
-				tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
+                    
+                //we always write 0 to force complete NAL referencing. This avoids size issues when mixing tile tracks
+                //at different rates :) 
+				//gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
+                gf_bs_write_int(bs, 0, 8*nalu_size_length);
+				
+                tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
 
 				break;
 			default:
