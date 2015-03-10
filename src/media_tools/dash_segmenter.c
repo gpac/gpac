@@ -102,7 +102,7 @@ typedef struct
 struct _dash_segment_input
 {
 	char *file_name;
-	char *representationID;
+	char representationID[100];
 	char *periodID;
 	char *xlink;
 	char *role;
@@ -116,7 +116,7 @@ struct _dash_segment_input
 	char **p_descs;
 	u32 bandwidth;
 	u32 dependency_bandwidth;
-	char dependencyID[100];
+	char *dependencyID;
 
 	/*if 0, input is disabled*/
 	u32 adaptation_set;
@@ -1818,7 +1818,7 @@ restart_fragmentation_pass:
 	}
 
 	fprintf(dash_cfg->mpd, "   <Representation ");
-	if (dash_input->representationID) fprintf(dash_cfg->mpd, "id=\"%s\"", dash_input->representationID);
+	if ( strlen(dash_input->representationID) ) fprintf(dash_cfg->mpd, "id=\"%s\"", dash_input->representationID);
 	else fprintf(dash_cfg->mpd, "id=\"%p\"", output);
 
 	fprintf(dash_cfg->mpd, " mimeType=\"%s/mp4\" codecs=\"%s\"", audio_only ? "audio" : "video", szCodecs);
@@ -1848,7 +1848,7 @@ restart_fragmentation_pass:
 //		if ((single_file_mode==1) && segments_start_with_sap) fprintf(dash_cfg->mpd, " subsegmentStartsWithSAP=\"%d\"", max_sap_type);
 
 	fprintf(dash_cfg->mpd, " bandwidth=\"%d\"", bandwidth);
-	if (strlen(dash_input->dependencyID))
+	if (dash_input->dependencyID)
 		fprintf(dash_cfg->mpd, " dependencyId=\"%s\"", dash_input->dependencyID);
 	fprintf(dash_cfg->mpd, ">\n");
 
@@ -3941,21 +3941,31 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 		for (j = idx; j < *nb_dash_inputs; j++) {
 			GF_DashSegInput *di;
 			u32 count, t, ref_track;
+            char *depID = gf_malloc(2);
 
 			di = &dash_inputs[j];
 			count = gf_isom_get_reference_count(file, di->trackNum, GF_ISOM_REF_SCAL);
 			if (!count) continue;
 
 			di->lower_layer_track = dash_input->trackNum;
-			strcpy(di->dependencyID, "");
+			strcpy(depID, "");
 			for (t=0; t < count; t++) {
-				gf_isom_get_reference(file, di->trackNum, GF_ISOM_REF_SCAL, t+1, &ref_track);
-				if (t) strcat(di->dependencyID, " ");
-				strcat(di->dependencyID, gf_dash_get_representationID(dash_inputs, *nb_dash_inputs, di->file_name, ref_track));
+                u32 al_len = 0;
+                char *rid;
+                if (t) al_len++;
+                gf_isom_get_reference(file, di->trackNum, GF_ISOM_REF_SCAL, t+1, &ref_track);
+                rid = gf_dash_get_representationID(dash_inputs, *nb_dash_inputs, di->file_name, ref_track);
+
+                if (!rid) continue;
+                al_len+=strlen(rid);
+                al_len+=strlen(depID);
+                depID = gf_realloc(depID, sizeof(char)*al_len);
+                if (t) strcat(depID, " ");
+				strcat(depID, gf_dash_get_representationID(dash_inputs, *nb_dash_inputs, di->file_name, ref_track));
 
 				di->lower_layer_track = ref_track;
 			}
-
+            di->dependencyID = depID;
 		}
 		gf_isom_close(file);
 		return GF_OK;
@@ -4672,7 +4682,8 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	for (i=0; i<nb_inputs; i++) {
 		s32 nb_diff;
 		dash_inputs[j].file_name = inputs[i].file_name;
-		dash_inputs[j].representationID = inputs[i].representationID;
+		if (inputs[i].representationID)
+            strcpy(dash_inputs[j].representationID, inputs[i].representationID);
 		dash_inputs[j].periodID = inputs[i].periodID;
 		dash_inputs[j].xlink = inputs[i].xlink;
 		if (dash_inputs[j].xlink) uses_xlink = GF_TRUE;
@@ -5339,7 +5350,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				dash_opts.seg_rad_name = segment_name;
 
 				/*in scalable case, we need also the bandwidth of dependent representation*/
-				if (strlen(dash_inputs[i].dependencyID)) {
+				if (dash_inputs[i].dependencyID) {
 					dash_inputs[i].dependency_bandwidth = gf_dash_get_dependency_bandwidth(dash_inputs, nb_dash_inputs, dash_inputs[i].file_name, dash_inputs[i].lower_layer_track);
 				}
 
@@ -5442,6 +5453,7 @@ exit:
 				gf_free(dash_inputs[i].components[j].lang);
 			}
 		}
+        if (dash_inputs[i].dependencyID) gf_free(dash_inputs[i].dependencyID);
 	}
 	gf_free(dash_inputs);
 

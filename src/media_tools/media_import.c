@@ -5940,6 +5940,7 @@ restart_import:
 				if (copy_size)
 					nb_sei++;
 			}
+            break;
 		case GF_HEVC_NALU_SEI_PREFIX:
 			if (hevc.sps_active_idx != -1) {
 				copy_size = nal_size;
