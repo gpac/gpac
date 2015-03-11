@@ -2207,6 +2207,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	int i;
 	GLint loc;
 	u32 flags;
+	Bool has_tx = 0;
 
 	printf("drawing... %d\n",vsl->glsl_flags);
 	if(!vsl->glsl_flags)
@@ -2433,6 +2434,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	//¡k STARTOF texturing
 	if(tr_state->mesh_num_textures && !mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)){
+		has_tx = 1;
 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumTextures");
 		if (loc>=0)
@@ -2519,14 +2521,26 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	gf_free(tmp);	//¡TODOk add free in individual functions using tmp
 	visual_3d_do_draw_mesh(tr_state, mesh);
-	printf("DRAWN... %d\n",visual->glsl_flags);
+	printf("DRAWN... %d\n",visual->glsl_flags); //¡TODOk delete
+
+	//Reset
+
+	//We do not have glDisableClientState(GL_TEXTURE_COORD_ARRAY) in ES2.0
+	if(has_tx)
+		tr_state->mesh_num_textures = 0;	//TODOk I am most propably breaking something by doing this
+
 	if (mesh->vbo)
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	visual_3d_reset_lights(visual);
+
 	visual->has_material_2d = 0;
 	visual->compositor->visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
 	visual->glsl_flags = visual->compositor->visual->glsl_flags;
 	visual->has_material = 0;
 	visual->state_color_on = 0;
+	if (tr_state->mesh_is_transparent) glDisable(GL_BLEND);
+	tr_state->mesh_is_transparent = 0;
 	GL_CHECK_ERR
 	glUseProgram(0);
 }
