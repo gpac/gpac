@@ -226,17 +226,17 @@ static void svg_process_media_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *i
 		u64 size;
 		char *buffer;
 		FILE *f;
-		f = gf_f64_open(iri->string, "rb");
+		f = gf_fopen(iri->string, "rb");
 		if (!f) {
 			return;
 		}
-		gf_f64_seek(f, 0, SEEK_END);
-		size = gf_f64_tell(f);
-		gf_f64_seek(f, 0, SEEK_SET);
+		gf_fseek(f, 0, SEEK_END);
+		size = gf_ftell(f);
+		gf_fseek(f, 0, SEEK_SET);
 
 		buffer = gf_malloc(sizeof(char) * (size_t)(size+1));
 		size = fread(buffer, sizeof(char), (size_t)size, f);
-		fclose(f);
+		gf_fclose(f);
 
 
 		if (tag==TAG_SVG_script) {
@@ -1471,10 +1471,10 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 					strcat(szName, "_temp.nhml");
 					mux->file_name = gf_strdup(szName);
 					st->nhml_info = mux->file_name;
-					nhml = gf_f64_open(st->nhml_info, "wt");
+					nhml = gf_fopen(st->nhml_info, "wt");
 					fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 					fprintf(nhml, "<NHNTStream version=\"1.0\" timeScale=\"%d\" streamType=\"%d\" objectTypeIndication=\"%d\" inRootOD=\"no\" trackID=\"%d\">\n", ts_res, ST, OTI, st->id);
-					fclose(nhml);
+					gf_fclose(nhml);
 					mux->delete_file = GF_TRUE;
 				}
 			}
@@ -1500,7 +1500,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			if (!st || !st->nhml_info) {
 				return;
 			}
-			nhml = gf_f64_open(st->nhml_info, "a+t");
+			nhml = gf_fopen(st->nhml_info, "a+t");
 			fprintf(nhml, "<NHNTSample ");
 			if (time) fprintf(nhml, "DTS=\"%d\" ", time);
 			if (length) fprintf(nhml, "dataLength=\"%d\" ", length);
@@ -1508,7 +1508,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			if (rap) fprintf(nhml, "isRAP=\"yes\" ");
 			if (src) fprintf(nhml, "mediaFile=\"%s\" ", src);
 			fprintf(nhml, "/>\n");
-			fclose(nhml);
+			gf_fclose(nhml);
 			return;
 		}
 		if (!strcmp(name, "endOfStream") ) {
@@ -1524,9 +1524,9 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			if (!st || !st->nhml_info) {
 				return;
 			}
-			nhml = gf_f64_open(st->nhml_info, "a+t");
+			nhml = gf_fopen(st->nhml_info, "a+t");
 			fprintf(nhml, "</NHNTStream>\n");
-			fclose(nhml);
+			gf_fclose(nhml);
 			return;
 		}
 

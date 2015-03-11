@@ -229,7 +229,7 @@ FILE *BeginFile(char *name, u32 type)
 		}
 	}
 
-	f = fopen(sPath, "wt");
+	f = gf_fopen(sPath, "wt");
 	fprintf(f, "%s\n", cprt);
 
 
@@ -258,7 +258,7 @@ void EndFile(FILE *f, char *name, u32 type)
 		}
 		fprintf(f, "\n\n#endif\t\t/*_%s_H*/\n\n", name);
 	}
-	fclose(f);
+	gf_fclose(f);
 }
 
 void TranslateToken(char *token)
@@ -1624,7 +1624,7 @@ void generate_ndts(GF_List *NDTs, GF_List *nodes, u32 nbVersion)
 		char szFile[100];
 		FILE *f;
 		sprintf(szFile, "NdtListV%d.html", i+1);
-		f = fopen(szFile, "wt");
+		f = gf_fopen(szFile, "wt");
 
 		fprintf(f, "<html>\n"\
 		        "<head>\n"\
@@ -1684,7 +1684,7 @@ void generate_ndts(GF_List *NDTs, GF_List *nodes, u32 nbVersion)
 
 			fprintf(f, "</TABLE>\n");
 		}
-		fclose(f);
+		gf_fclose(f);
 	}
 
 }
@@ -1715,7 +1715,7 @@ int main (int argc, char **argv)
 		if (!strcmp(argv[i], "-ndt")) {
 			generate_ndt = 1;
 		} else if (argv[i][0]=='-') {
-			fskip = fopen(argv[i+1], "rt");
+			fskip = gf_fopen(argv[i+1], "rt");
 			if (!fskip) {
 				printf("file %s not found\n", argv[i+1]);
 				return 0;
@@ -1726,10 +1726,10 @@ int main (int argc, char **argv)
 	nbVersion=1;
 	while (1) {
 		sprintf(szTempFile, "templates%u.txt", nbVersion);
-		nodes = fopen(szTempFile, "rt");
+		nodes = gf_fopen(szTempFile, "rt");
 		if (!nodes) {
 			sprintf(szTempFile, "template%u.txt", nbVersion);
-			nodes = fopen(szTempFile, "rt");
+			nodes = gf_fopen(szTempFile, "rt");
 		}
 		if (!nodes) break;
 
@@ -1740,7 +1740,7 @@ int main (int argc, char **argv)
 		//special case for viewport: it is present in V1 but empty
 		if (nbVersion==1) CheckInTable("SFViewportNode", NDTs);
 		nbVersion++;
-		fclose(nodes);
+		gf_fclose(nodes);
 	}
 	nbVersion--;
 	printf("BIFS tables parsed: %d versions\n", nbVersion);
@@ -1752,7 +1752,7 @@ int main (int argc, char **argv)
 
 	if (fskip) {
 		parse_profile(BNodes, fskip);
-		fclose(fskip);
+		gf_fclose(fskip);
 	}
 
 	//write the nodes def

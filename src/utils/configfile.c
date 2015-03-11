@@ -112,7 +112,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 
 	tmp->fileName = gf_strdup(fileName);
 	tmp->sections = gf_list_new();
-	file = gf_f64_open(fileName, "rt");
+	file = gf_fopen(fileName, "rt");
 	if (!file)
 		return GF_IO_ERR;
 	/* load the file */
@@ -159,7 +159,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 				gf_list_del(tmp->sections);
 				gf_free(tmp->fileName);
 				gf_free(tmp);
-				fclose(file);
+				gf_fclose(file);
 				gf_free(line);
 				return GF_IO_ERR;
 			}
@@ -185,7 +185,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		}
 	}
 	gf_free(line);
-	fclose(file);
+	gf_fclose(file);
 	return GF_OK;
 }
 
@@ -236,7 +236,7 @@ GF_Err gf_cfg_save(GF_Config *iniFile)
 	if (iniFile->skip_changes) return GF_OK;
 	if (!iniFile->fileName) return GF_OK;
 
-	file = gf_f64_open(iniFile->fileName, "wt");
+	file = gf_fopen(iniFile->fileName, "wt");
 	if (!file) return GF_IO_ERR;
 
 	i=0;
@@ -252,7 +252,7 @@ GF_Err gf_cfg_save(GF_Config *iniFile)
 		/* end of section */
 		fprintf(file, "\n");
 	}
-	fclose(file);
+	gf_fclose(file);
 	return GF_OK;
 }
 
@@ -430,6 +430,7 @@ void gf_cfg_del_section(GF_Config *iniFile, const char *secName)
 		if (!strcmp(secName, p->section_name)) {
 			DelSection(p);
 			gf_list_rem(iniFile->sections, i-1);
+			iniFile->hasChanged = GF_TRUE;
 			return;
 		}
 	}

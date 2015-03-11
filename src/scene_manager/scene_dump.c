@@ -102,7 +102,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 			tmp->filename = (char *)gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
 			strcpy(tmp->filename, _rad_name ? _rad_name : "");
 			strcat(tmp->filename, ext_name);
-			tmp->trace = gf_f64_open(tmp->filename, "wt");
+			tmp->trace = gf_fopen(tmp->filename, "wt");
 			if (!tmp->trace) {
 				gf_free(tmp);
 				return NULL;
@@ -155,7 +155,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 			tmp->filename = (char *)gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
 			strcpy(tmp->filename, _rad_name ? _rad_name : "");
 			strcat(tmp->filename, ext_name);
-			tmp->trace = gf_f64_open(tmp->filename, "wt");
+			tmp->trace = gf_fopen(tmp->filename, "wt");
 			if (!tmp->trace) {
 				gf_free(tmp);
 				return NULL;
@@ -203,7 +203,7 @@ void gf_sm_dumper_del(GF_SceneDumper *sdump)
 	}
 	gf_list_del(sdump->mem_def_nodes);
 	gf_list_del(sdump->inserted_routes);
-	if (sdump->trace != stdout) fclose(sdump->trace);
+	if (sdump->trace != stdout) gf_fclose(sdump->trace);
 	if (sdump->filename) {
 		gf_free(sdump->filename);
 		sdump->filename = NULL;

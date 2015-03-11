@@ -3485,11 +3485,11 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 	parser->last_error = GF_OK;
 
 	if (load->fileName) {
-		FILE *test = gf_f64_open(load->fileName, "rb");
+		FILE *test = gf_fopen(load->fileName, "rb");
 		if (!test) return GF_URL_ERROR;
-		gf_f64_seek(test, 0, SEEK_END);
-		size = (u32) gf_f64_tell(test);
-		fclose(test);
+		gf_fseek(test, 0, SEEK_END);
+		size = (u32) gf_ftell(test);
+		gf_fclose(test);
 
 		gzInput = gzopen(load->fileName, "rb");
 		if (!gzInput) return GF_IO_ERR;

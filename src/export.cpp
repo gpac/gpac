@@ -80,9 +80,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_temp_file_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_modification_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fwrite) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_f64_open) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_f64_seek) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_f64_tell) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fopen) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fclose) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fseek) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ftell) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_has_input) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_get_char) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_set_echo_off) )
@@ -91,6 +92,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_compress_payload) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gz_decompress_payload) )
 #endif
+#pragma comment (linker, EXPORT_SYMBOL(gf_file_handles_count) )
 
 /* Memory */
 #ifdef GPAC_MEMORY_TRACKING

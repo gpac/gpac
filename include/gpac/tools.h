@@ -123,12 +123,22 @@ size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
  *	\brief large file opening
  *
  *	Opens a large file (>4GB)
- *	\param file_name Same semantics as gf_f64_open
- *	\param mode Same semantics as gf_f64_open
+ *	\param file_name Same semantics as fopen
+ *	\param mode Same semantics as fopen
  *	\return stream handle of the file object
  *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 */
-FILE *gf_f64_open(const char *file_name, const char *mode);
+FILE *gf_fopen(const char *file_name, const char *mode);
+
+/*!
+ *	\brief file closing
+ *
+ *	Closes a file
+ *	\param file file to close
+ *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
+*/
+s32 gf_fclose(FILE *file);
+
 /*!
  *	\brief large file position query
  *
@@ -137,7 +147,7 @@ FILE *gf_f64_open(const char *file_name, const char *mode);
  *	\return position in the file
  *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 */
-u64 gf_f64_tell(FILE *f);
+u64 gf_ftell(FILE *f);
 /*!
  *	\brief large file seeking
  *
@@ -148,7 +158,7 @@ u64 gf_f64_tell(FILE *f);
  *	\return new position in the file
  *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 */
-u64 gf_f64_seek(FILE *f, s64 pos, s32 whence);
+u64 gf_fseek(FILE *f, s64 pos, s32 whence);
 
 /*! @} */
 
@@ -916,6 +926,11 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock);
  */
 char * gf_get_default_cache_directory();
 
+/**
+ * Gets the number of open file handles (gf_fopn/gf_fclose only).
+ * \return  number of open file handles 
+ */
+u32 gf_file_handles_count(); 
 
 
 /**

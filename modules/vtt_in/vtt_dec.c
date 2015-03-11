@@ -85,11 +85,11 @@ typedef struct {
 static Bool vtt_check_download(VTTDec *vttdec)
 {
 	u64 size;
-	FILE *f = gf_f64_open(vttdec->file_name, "rt");
+	FILE *f = gf_fopen(vttdec->file_name, "rt");
 	if (!f) return GF_FALSE;
-	gf_f64_seek(f, 0, SEEK_END);
-	size = gf_f64_tell(f);
-	fclose(f);
+	gf_fseek(f, 0, SEEK_END);
+	size = gf_ftell(f);
+	gf_fclose(f);
 	if (size==vttdec->file_size) return GF_TRUE;
 	return GF_FALSE;
 }
@@ -183,18 +183,18 @@ void VTT_load_script(VTTDec *vttdec, GF_SceneGraph *graph)
 		/* try to find the JS renderer in the default GPAC installation folder */
 		const char *startuppath = gf_modules_get_option((GF_BaseInterface *)vttdec->module, "General", "StartupFile");
 		path = gf_url_concatenate(startuppath, "webvtt-renderer.js");
-		jsfile = gf_f64_open(path, "rt");
+		jsfile = gf_fopen(path, "rt");
 		if (jsfile) {
 			gf_modules_set_option((GF_BaseInterface *)vttdec->module, "WebVTT", "RenderingScript", path);
-			fclose(jsfile);
+			gf_fclose(jsfile);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[WebVTT] Cannot find Rendering Script - check config file\n"));
 			return;
 		}
 	}
-	jsfile = gf_f64_open(path, "rt");
+	jsfile = gf_fopen(path, "rt");
 	if (jsfile) {
-		fclose(jsfile);
+		gf_fclose(jsfile);
 		gf_node_get_attribute_by_tag(n, TAG_XLINK_ATT_href, GF_TRUE, GF_FALSE, &info);
 		gf_svg_parse_attribute(n, &info, (char *) path, 0);
 		vttdec->has_rendering_script = GF_TRUE;

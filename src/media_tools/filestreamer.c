@@ -101,7 +101,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 	u8 *payload_type;
 
 	strcpy(filename, sdpfilename ? sdpfilename : "videosession.sdp");
-	sdp_out = gf_f64_open(filename, "wt");
+	sdp_out = gf_fopen(filename, "wt");
 	if (!sdp_out) return GF_IO_ERR;
 
 	if (!out_sdp_buffer) {
@@ -188,17 +188,17 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 	}
 	fprintf(sdp_out, "\n");
 
-	fclose(sdp_out);
+	gf_fclose(sdp_out);
 	if (out_sdp_buffer) {
 		u64 size;
-		sdp_out = gf_f64_open(filename, "r");
-		gf_f64_seek(sdp_out, 0, SEEK_END);
-		size = gf_f64_tell(sdp_out);
-		gf_f64_seek(sdp_out, 0, SEEK_SET);
+		sdp_out = gf_fopen(filename, "r");
+		gf_fseek(sdp_out, 0, SEEK_END);
+		size = gf_ftell(sdp_out);
+		gf_fseek(sdp_out, 0, SEEK_SET);
 		if (*out_sdp_buffer) gf_free(*out_sdp_buffer);
 		*out_sdp_buffer = gf_malloc(sizeof(char)*(size_t)(size+1));
 		size = fread(*out_sdp_buffer, 1, (size_t)size, sdp_out);
-		fclose(sdp_out);
+		gf_fclose(sdp_out);
 		(*out_sdp_buffer)[size]=0;
 	}
 

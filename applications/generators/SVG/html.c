@@ -30,7 +30,7 @@ static FILE *BeginHtml()
 	char sPath[GF_MAX_PATH];
 
 	sprintf(sPath, "C:%cUsers%cCyril%ccontent%csvg%cregression%cregression_table.html", GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-	f = fopen(sPath, "wt");
+	f = gf_fopen(sPath, "wt");
 
 	fprintf(f, "<?xml version='1.0' encoding='UTF-8'?>\n");
 	fprintf(f, "<html xmlns='http://www.w3.org/1999/xhtml'>\n");
@@ -55,7 +55,7 @@ static void EndHtml(FILE *f)
 {
 	fprintf(f, "</body>\n");
 	fprintf(f, "</html>\n");
-	fclose(f);
+	gf_fclose(f);
 }
 
 /* Generates an HTML table */

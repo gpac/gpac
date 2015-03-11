@@ -385,7 +385,7 @@ void dc_cmd_data_destroy(CmdData *cmd_data)
 	gf_cfg_del(cmd_data->conf);
 	gf_cfg_del(cmd_data->switch_conf);
 	if (cmd_data->logfile)
-		fclose(cmd_data->logfile);
+		gf_fclose(cmd_data->logfile);
 
 	dc_task_destroy(&cmd_data->task_list);
 
@@ -522,6 +522,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 
 	gf_sys_init(use_mem_track);
 
+	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 	if (use_mem_track) {
 		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 	}
@@ -797,7 +798,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 #endif
 		} else if (!strcmp(argv[i], "-lf") || !strcmp(argv[i], "-log-file")) {
 			DASHCAST_CHECK_NEXT_ARG
-			cmd_data->logfile = gf_f64_open(argv[i], "wt");
+			cmd_data->logfile = gf_fopen(argv[i], "wt");
 			gf_log_set_callback(cmd_data->logfile, on_dc_log);
 			i++;
 		} else if (strcmp(argv[i], "-gdr") == 0) {

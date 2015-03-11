@@ -48,11 +48,11 @@ typedef struct
 static Bool svg_check_download(SVGIn *svgin)
 {
 	u64 size;
-	FILE *f = gf_f64_open(svgin->file_name, "rb");
+	FILE *f = gf_fopen(svgin->file_name, "rb");
 	if (!f) return 0;
-	gf_f64_seek(f, 0, SEEK_END);
-	size = gf_f64_tell(f);
-	fclose(f);
+	gf_fseek(f, 0, SEEK_END);
+	size = gf_ftell(f);
+	gf_fclose(f);
 	if (size==svgin->file_size) return 1;
 	return 0;
 }
@@ -195,7 +195,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 		char * buf2 = gf_malloc(inBufferLength);
 		GF_BitStream *bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
 		memcpy(buf2, inBuffer, inBufferLength);
-//			FILE *f = gf_f64_open("dump.svg", "wb");
+//			FILE *f = gf_fopen("dump.svg", "wb");
 //
 		while (gf_bs_available(bs)) {
 			pos = gf_bs_get_position(bs);
@@ -221,7 +221,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			gf_bs_skip_bytes(bs, size-1);
 
 		}
-//          fclose(f);
+//          gf_fclose(f);
 		gf_bs_del(bs);
 	}
 	break;

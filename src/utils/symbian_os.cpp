@@ -235,19 +235,19 @@ next:
 
 
 GF_EXPORT
-u64 gf_f64_tell(FILE *fp)
+u64 gf_ftell(FILE *fp)
 {
 	return (u64) ftell(fp);
 }
 
 GF_EXPORT
-u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
+u64 gf_fseek(FILE *fp, s64 offset, s32 whence)
 {
 	return fseek(fp, (s32) offset, whence);
 }
 
 GF_EXPORT
-FILE *gf_f64_open(const char *file_name, const char *mode)
+FILE *gf_fopen(const char *file_name, const char *mode)
 {
 	return fopen(file_name, mode);
 }

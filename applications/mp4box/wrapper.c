@@ -57,8 +57,8 @@ JNIEXPORT void JNICALL Java_com_enst_mp4box_mp4terminal_run(JNIEnv * env, jobjec
 
 	(*env)->ReleaseStringUTFChars(env, sCommand, sOriginalCommand);
 	jniLOGV("mp4terminal::end");
-	fclose(ferr);
-	fclose(fout);
+	gf_fclose(ferr);
+	gf_fclose(fout);
 }
 
 char ** ConvertCommandLine( const char* sCommand, int* iNbArg )

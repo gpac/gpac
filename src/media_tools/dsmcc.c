@@ -1015,10 +1015,10 @@ static GF_Err dsmcc_process_biop_file(GF_BitStream* bs,GF_M2TS_DSMCC_BIOP_HEADER
 	File = dsmcc_get_file(ServiceGateway->File,moduleId,downloadId,BIOP_File->Header->objectKey_data);
 	if(File) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Fichier: %s module_Id %d place :%d \n",File->Path,moduleId,File->objectKey_data));
-		pFile = fopen(File->Path,"wb");
+		pFile = gf_fopen(File->Path,"wb");
 		if (pFile!=NULL) {
 			gf_fwrite(BIOP_File->content_byte,1,BIOP_File->content_length ,pFile);
-			fclose(pFile);
+			gf_fclose(pFile);
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Fichier créé \n\n"));
 			if(!strcmp(File->name,"index.html")) {
 				dsmcc_overlord->get_index = 1;

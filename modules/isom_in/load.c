@@ -162,7 +162,7 @@ void isor_declare_objects(ISOMReader *read)
 				sprintf(szName, "%s%s_cover.%s", cdir, sep, (tlen & 0x80000000) ? "png" : "jpg");
 			}
 
-			t = gf_f64_open(szName, "wb");
+			t = gf_fopen(szName, "wb");
 
 			if (t) {
 				Bool isom_contains_video = GF_FALSE;
@@ -170,7 +170,7 @@ void isor_declare_objects(ISOMReader *read)
 				/*write cover data*/
 				assert(!(tlen & 0x80000000));
 				gf_fwrite(tag, tlen & 0x7FFFFFFF, 1, t);
-				fclose(t);
+				gf_fclose(t);
 
 				/*don't display cover art when video is present*/
 				for (i=0; i<gf_isom_get_track_count(read->mov); i++) {

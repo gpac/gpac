@@ -324,12 +324,12 @@ Disables YUV hardware support (YUV hardware support may not be available for the
 <b>TextureFromDecoderMemory</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Allows video textures to be build directly from video decoder internal buffers. This may increase performances on some systems. Default is no.</p>
-
-
-
 <b>ForceOpenGL</b> [value: <i>"always", "disable", "hybrid", "raster"</i>]
 <p style="text-indent: 5%">
 Specifies that 2D rendering will be performed by OpenGL rather than raster 2D. This will involve polygon tesselation which may not be supported on all platforms, and 2D graphics will not loo as nice as 2D mode. The hybrid mode performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all textures. The raster mode only uses OpenGL for pixel IO but does not perform polygin fill (no tesselation) (slow, mainly for test purposes).</p>
+<b>EnablePBO</b> [value: <i>"yes", "no"</i>]
+<p style="text-indent: 5%">
+Uses PixelBufferObjects to push YUV textures to GPU in OpenGL Mode.. This may slightly increase the performances of the playback.</p>
 <b>DefaultNavigationMode</b> [value: <i>"Walk", "Fly", "Examine"</i>]
 <p style="text-indent: 5%">
 Overrides the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine).</p>

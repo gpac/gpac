@@ -1216,7 +1216,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	}
 
 	assert(mpd_file);
-	fmpd = gf_f64_open(mpd_file, "wt");
+	fmpd = gf_fopen(mpd_file, "wt");
 	if (!fmpd) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD Generator] Cannot write to temp file %s!\n", mpd_file));
 		gf_m3u8_master_playlist_del(pl);
@@ -1499,11 +1499,11 @@ try_next_segment:
 					u64 pos = 0;
 
 					Double bw;
-					FILE *t = gf_f64_open(import.in_name, "rb");
+					FILE *t = gf_fopen(import.in_name, "rb");
 					if (t) {
-						gf_f64_seek(t, 0, SEEK_END);
-						pos = gf_f64_tell(t);
-						fclose(t);
+						gf_fseek(t, 0, SEEK_END);
+						pos = gf_ftell(t);
+						gf_fclose(t);
 					}
 					bw = (Double) pos;
 					bw *= 8;
@@ -1629,7 +1629,7 @@ try_next_segment:
 	fprintf(fmpd, " </Period>\n");
 	fprintf(fmpd, "</MPD>");
 
-	fclose(fmpd);
+	gf_fclose(fmpd);
 	gf_m3u8_master_playlist_del(pl);
 
 	return GF_OK;
@@ -2106,12 +2106,12 @@ GF_Err gf_mpd_write_file(GF_MPD *mpd, char *file_name)
 	FILE *out;
 	if (!strcmp(file_name, "std")) out = stdout;
 	else {
-		out = fopen(file_name, "wb");
+		out = gf_fopen(file_name, "wb");
 		if (!out) return GF_IO_ERR;
 	}
 
 	e = gf_mpd_write(mpd, out);
-	fclose(out);
+	gf_fclose(out);
 	return e;
 }
 

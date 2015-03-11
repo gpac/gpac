@@ -1662,10 +1662,10 @@ retry_cache:
 		char szTemp[GF_MAX_PATH];
 		strcpy(szTemp, dm->cache_directory);
 		strcat(szTemp, "gpaccache.test");
-		test = fopen(szTemp, "wb");
+		test = gf_fopen(szTemp, "wb");
 		if (!test) {
 			gf_mkdir(dm->cache_directory);
-			test = fopen(szTemp, "wb");
+			test = gf_fopen(szTemp, "wb");
 			if (!test) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Cache] Cannot write to %s directory, using system temp cache\n", dm->cache_directory ));
 				gf_free(dm->cache_directory);
@@ -1675,7 +1675,7 @@ retry_cache:
 			}
 		}
 		if (test) {
-			fclose(test);
+			gf_fclose(test);
 			gf_delete_file(szTemp);
 		}
 	}
@@ -2279,11 +2279,11 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		else
 			user_profile = NULL;
 		if (user_profile) {
-			FILE *profile = gf_f64_open(user_profile, "rt");
+			FILE *profile = gf_fopen(user_profile, "rt");
 			if (profile) {
-				gf_f64_seek(profile, 0, SEEK_END);
-				par.size = (u32) gf_f64_tell(profile);
-				fclose(profile);
+				gf_fseek(profile, 0, SEEK_END);
+				par.size = (u32) gf_ftell(profile);
+				gf_fclose(profile);
 				sprintf(range_buf, "Content-Length: %d\r\n", par.size);
 				strcat(sHTTP, range_buf);
 				strcat(sHTTP, "Content-Type: text/xml\r\n");
@@ -2328,7 +2328,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 			assert( sess->dm->cfg );
 			user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfile");
 			assert (user_profile);
-			profile = gf_f64_open(user_profile, "rt");
+			profile = gf_fopen(user_profile, "rt");
 			if (profile) {
 				u32 readen = (u32) fread(tmp_buf+len, sizeof(char), par.size, profile);
 				if (readen<par.size) {
@@ -2338,7 +2338,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 						tmp_buf[len + readen] = 0;
 					}
 				}
-				fclose(profile);
+				gf_fclose(profile);
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Error while loading Profile file %s.", user_profile));
 			}
@@ -2850,7 +2850,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			FILE * f;
 			filename = gf_cache_get_cache_filename(sess->cache_entry);
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending data to modules from %s...\n", filename));
-			f = gf_f64_open(filename, "rb");
+			f = gf_fopen(filename, "rb");
 			assert(filename);
 			if (!f) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] FAILED to open cache file %s for reading contents !\n", filename));
@@ -2893,7 +2893,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 					}
 				} while ( read > 0);
 			}
-			fclose(f);
+			gf_fclose(f);
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] all data has been sent to modules from %s.\n", filename));
 		}
 		/* Cache file is the most recent */
@@ -3164,7 +3164,7 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
 	GF_DownloadSession *dnload;
 	if (!filename || !url || !dm)
 		return GF_BAD_PARAM;
-	f= fopen(filename, "wb");
+	f = gf_fopen(filename, "wb");
 	if (!f) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[WGET] Failed to open file %s for write.\n", filename));
 		return GF_IO_ERR;
@@ -3184,7 +3184,7 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
 		e = gf_dm_sess_process(dnload);
 	}
 	e |= gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
-	fclose(f);
+	gf_fclose(f);
 	gf_dm_sess_del(dnload);
 	return e;
 }
@@ -3207,7 +3207,7 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 
 	dm = gf_dm_new(NULL);
 	if (!dm) {
-		fclose(f);
+		gf_fclose(f);
 		return GF_OUT_OF_MEM;
 	}
 
@@ -3241,7 +3241,7 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 			}
 		}
 	}
-	fclose(f);
+	gf_fclose(f);
 	gf_dm_sess_del(dnload);
 	gf_dm_del(dm);
 	return e;
@@ -3309,28 +3309,28 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
 		if (newFilename == NULL)
 			return NULL;
 		snprintf(newFilename, maxLen, "%s " LLU LLU, orig, startOffset, endOffset);
-		fw = gf_f64_open(newFilename, "wb");
+		fw = gf_fopen(newFilename, "wb");
 		if (!fw) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open partial cache file %s for write\n", newFilename));
 			gf_free( newFilename );
 			return NULL;
 		}
-		fr = gf_f64_open(orig, "rb");
+		fr = gf_fopen(orig, "rb");
 		if (!fr) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open full cache file %s\n", orig));
 			gf_free( newFilename );
-			fclose( fw );
+			gf_fclose( fw );
 		}
 		/* Now, we copy ! */
 		{
 			char copyBuff[GF_DOWNLOAD_BUFFER_SIZE+1];
 			s64 read, write, total;
 			total = endOffset - startOffset;
-			read = gf_f64_seek(fr, startOffset, SEEK_SET);
+			read = gf_fseek(fr, startOffset, SEEK_SET);
 			if (read != startOffset) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot seek at right start offset in %s\n", orig));
-				fclose( fr );
-				fclose( fw );
+				gf_fclose( fr );
+				gf_fclose( fw );
 				gf_free( newFilename );
 				return NULL;
 			}
@@ -3341,22 +3341,22 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
 					write = gf_fwrite(copyBuff, sizeof(char), (size_t) read, fw);
 					if (write != read) {
 						/* Something bad happened */
-						fclose( fw );
-						fclose (fr );
+						gf_fclose( fw );
+						gf_fclose (fr );
 						gf_free( newFilename );
 						return NULL;
 					}
 				} else {
 					if (read < 0) {
-						fclose( fw );
-						fclose( fr );
+						gf_fclose( fw );
+						gf_fclose( fr );
 						gf_free( newFilename );
 						return NULL;
 					}
 				}
 			} while (total > 0);
-			fclose( fr );
-			fclose (fw);
+			gf_fclose( fr );
+			gf_fclose (fw);
 			partial = gf_malloc( sizeof(GF_PartialDownload));
 			if (partial == NULL) {
 				gf_free(newFilename);
@@ -3385,9 +3385,9 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 		if (sess->cache_entry) {
 			FILE *fptr = gf_cache_get_file_pointer(sess->cache_entry);
 			if (fptr) {
-				gf_f64_seek(fptr, 0, SEEK_END);
-				sess->init_data_size = (u32) gf_f64_tell(fptr);
-				gf_f64_seek(fptr, 0, SEEK_SET);
+				gf_fseek(fptr, 0, SEEK_END);
+				sess->init_data_size = (u32) gf_ftell(fptr);
+				gf_fseek(fptr, 0, SEEK_SET);
 				if (sess->init_data) gf_free(sess->init_data);
 				sess->init_data = gf_malloc(sess->init_data_size);
 				sess->init_data_size = fread(sess->init_data, 1, sess->init_data_size, fptr);
