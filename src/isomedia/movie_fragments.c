@@ -219,6 +219,10 @@ GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *movie, u32 TrackID,
 	trex->def_sample_duration = DefaultSampleDuration;
 	trex->def_sample_size = DefaultSampleSize;
 	trex->def_sample_flags = GF_ISOM_FORMAT_FRAG_FLAGS(DefaultSamplePadding, DefaultSampleIsSync, DefaultDegradationPriority);
+	//if sample is sync by default, set sample_depends_on flags to 2 (does not depend on other samples)
+	if (DefaultSampleIsSync) {
+		trex->def_sample_flags |= (2<<24);
+	}
 
 	return GF_OK;
 }
