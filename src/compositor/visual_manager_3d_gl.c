@@ -2395,15 +2395,15 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	if (!visual->has_material_2d && visual->num_lights && !mesh->mesh_type) {
 
-				//¡k equivalent to glEnableClientState(GL_NORMAL_ARRAY );
-				//from here
+		//¡k equivalent to glEnableClientState(GL_NORMAL_ARRAY );
+		//from here
 		GF_Matrix normal_mx;
 		gf_mx_copy(normal_mx, tr_state->camera->modelview);
 		gf_mx_add_matrix(&normal_mx, &tr_state->model_matrix);
 		normal_mx.m[12] = normal_mx.m[13] = normal_mx.m[14] = 0;
 		gf_mx_inverse(&normal_mx);
-		//normal_mx.m[12] = normal_mx.m[13] = normal_mx.m[14] = 0;	//¡k maybe?
-				//to here
+		//to here
+		
 		gf_mx_transpose(&normal_mx);
 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNormalMatrix");
@@ -2462,7 +2462,8 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), ((char *)vertex_buffer_address + MESH_TEX_OFFSET));
 		glEnableVertexAttribArray(loc);
 		GL_CHECK_ERR
-			/*
+
+		/*
 		for (i=0; i<3; i++) {
 			const char *txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
 			loc = glGetUniformLocation(visual->glsl_program, txname);
@@ -2473,35 +2474,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			glUniform1i(loc, i);
 		}*/
 
-/* NOTE: We do not know (from the visual manager) if it is rectangular or not, so we query the shader
-		 *  to find the value of isRect bool
-		 *  To be fixed when code-injection is implemented
-		 *  ¡TODO FIX
-		*//*
-		for (i=0; i<3; i++) {
-			GLint isYUV = 1;
-			GLint isRect = 1;
-			const char *txname;
-			loc = glGetUniformLocation(visual->glsl_program, "isRect");
-			glGetUniformiv(visual->glsl_program, loc, &isRect);
-			loc = glGetUniformLocation(visual->glsl_program, "isYUV");
-			glGetUniformiv(visual->glsl_program, loc, &isYUV);
-		if(isRect){
-			txname = (i==0) ? "y_planeRect" : (i==1) ? "u_planeRect" : "v_planeRect";
-			glBindTexture(GL_TEXTURE_RECTANGLE_EXT, i+2);	//¡TODO for some reason, this does not work
-			//glBindTexture(GL_TEXTURE_2D, i+3);
-		}else{
-			txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";		}
-		GL_CHECK_ERR
-			loc = glGetUniformLocation(visual->glsl_program, txname);
-			if (loc == -1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture %s in YUV shader\n", txname));
-				continue;
-			}
-			glUniform1i(loc, i);
 
-			GL_CHECK_ERR
-		}*/
 
 	}else{
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumTextures");
