@@ -32,6 +32,7 @@
 
 #define CLIPS_MAX 		8
 
+//Light Structure
 struct gfLight{
 	int type;
 	vec4 position;
@@ -44,30 +45,33 @@ struct gfLight{
 	float cutOffAngle;
 };
 
-//attributes
+//Attributes
 	attribute vec4 gfVertex;
 	attribute vec3 gfNormal;
 	attribute vec4 gfMultiTexCoord;
 	attribute vec4 gfMeshColor;
 	
-//fog unifrosm
+//Fog Uniforms
 	uniform bool gfFogEnabled; 
 	uniform vec3 gfFogColor; 
 	uniform float gfFogDensity; 
 	uniform int gfFogType; 
 	uniform float gfFogVisibility; 
 	
+//Material Properties	
+	uniform vec4 gfAmbientColor;
+	uniform vec4 gfDiffuseColor; 
+	uniform vec4 gfSpecularColor; 
+	uniform vec4 gfEmissionColor;
+	uniform float gfShininess;
 	
 
 	uniform vec4 gfLightDiffuse; 
-	uniform vec4 gfDiffuseColor; 
 	uniform vec4 gfLightAmbient; 
 	uniform int gfNumTextures;
 	uniform mat4 gfModelViewMatrix;
 	uniform mat4 gfProjectionMatrix; 
 	uniform mat4 gfNormalMatrix; 
-	uniform vec4 gfEmissionColor; 
-    uniform vec4 gfAmbientColor;
 	uniform int gfNumLights;
     uniform vec4 gfLightPosition; 
     uniform vec4 gfLightAmbiant;
@@ -137,7 +141,7 @@ float fog() {
 		*/
 		
 		if(hasMeshColor){
-			m_color = gfMeshColor;	//we use the m_color as a container for fragment parsing, since gfMeshColor is an attribute
+			m_color = gfMeshColor;	//we use the m_color as a container for fragment parsing
 		}
 		
 	if (gfNumLights > 0) {
