@@ -2731,9 +2731,11 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 			gf_isom_add_track_kind(output, TrackNum, scheme, value);
 		}
 
-		//if few samples don't fragment track
 		count = gf_isom_get_sample_count(input, i+1);
-		if (count<=2) {
+		//we always fragment each track regardless of the sample count
+#if 0
+		//if few samples don't fragment track
+		if (count<=1) {
 			for (j=0; j<count; j++) {
 				sample = gf_isom_get_sample(input, i+1, j+1, &descIndex);
 				e = gf_isom_add_sample(output, TrackNum, 1, sample);
@@ -2742,7 +2744,9 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 			}
 		}
 		//otherwise setup fragmented
-		else {
+		else
+#endif
+		{
 			gf_isom_get_fragment_defaults(input, i+1,
 			                              &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
 			//otherwise setup fragmentation
@@ -2754,7 +2758,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 			GF_SAFEALLOC(tf, GF_TrackFragmenter);
 			tf->TrackID = gf_isom_get_track_id(output, TrackNum);
-			tf->SampleCount = gf_isom_get_sample_count(input, i+1);
+			tf->SampleCount = count;
 			tf->OriginalTrack = i+1;
 			tf->TimeScale = gf_isom_get_media_timescale(input, i+1);
 			tf->MediaType = gf_isom_get_media_type(input, i+1);
