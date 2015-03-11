@@ -131,7 +131,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	/*if this is run from a browser, we do not get our app path - fortunately on Windows, we always use 'GPAC' in the
 	installation path*/
-	if (!strstr(file_path, "gpac")) {
+	if (!strstr(file_path, "gpac") && !strstr(file_path, "GPAC") ) {
 		HKEY hKey = NULL;
 		DWORD dwSize = GF_MAX_PATH;
 
