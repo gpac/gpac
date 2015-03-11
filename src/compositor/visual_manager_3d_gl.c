@@ -2523,11 +2523,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	visual_3d_do_draw_mesh(tr_state, mesh);
 	printf("DRAWN... %d\n",visual->glsl_flags); //¡TODOk delete
 
-	//Reset
-
-	//We do not have glDisableClientState(GL_TEXTURE_COORD_ARRAY) in ES2.0
-	if(has_tx)
-		tr_state->mesh_num_textures = 0;	//TODOk I am most propably breaking something by doing this
+	//We drawn, now we Reset
 
 	if (mesh->vbo)
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
