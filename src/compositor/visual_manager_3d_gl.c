@@ -584,7 +584,7 @@ static void print_flags(u32 flags){
 
 static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_type, u32 flags){
 
-	FILE *src = gf_f64_open(src_path, "rt");
+	FILE *src = gf_fopen(src_path, "rt");
 	GF_SHADERID shader = 0;
 	char *shader_src;//¡startof
 	char *defs, *tmp, *error;
@@ -630,9 +630,9 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 
 	if (src) {
 		size_t size;
-		gf_f64_seek(src, 0, SEEK_END);
-		size = (size_t) gf_f64_tell(src);
-		gf_f64_seek(src, 0, SEEK_SET);
+		gf_fseek(src, 0, SEEK_END);
+		size = (size_t) gf_ftell(src);
+		gf_fseek(src, 0, SEEK_SET);
 		shader_src = gf_malloc(sizeof(char)*(size+1));
 		size = fread(shader_src, 1, size, src);
 		tmp = (char *) gf_malloc(sizeof(char)*(size+str_size+2));
