@@ -151,10 +151,10 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 	Bool is_isom = gf_isom_probe_file(file);
 #endif
 
-	in = gf_f64_open(file, "rb");
-	gf_f64_seek(in, 0, SEEK_END);
-	size = gf_f64_tell(in);
-	gf_f64_seek(in, 0, SEEK_SET);
+	in = gf_fopen(file, "rb");
+	gf_fseek(in, 0, SEEK_END);
+	size = gf_ftell(in);
+	gf_fseek(in, 0, SEEK_SET);
 
 	ctx = gf_sha1_starts();
 	tot = 0;
@@ -199,7 +199,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #ifndef GPAC_DISABLE_ISOM
 	if (bs) gf_bs_del(bs);
 #endif
-	fclose(in);
+	gf_fclose(in);
 	return GF_OK;
 #endif
 }
@@ -2350,8 +2350,11 @@ static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile
 {
 	HEVCSliceInfo *si = &hevc->s_info;
 	u32 i, tbX, tbY, PicWidthInCtbsY, PicHeightInCtbsY, tileX, tileY, oX, oY, val;
-	PicWidthInCtbsY = si->sps->width / si->sps->max_CU_width;
-	PicHeightInCtbsY = si->sps->height / si->sps->max_CU_width;
+
+    PicWidthInCtbsY = si->sps->width / si->sps->max_CU_width;
+    if (PicWidthInCtbsY * si->sps->max_CU_width < si->sps->width) PicWidthInCtbsY++;
+    PicHeightInCtbsY = si->sps->height / si->sps->max_CU_width;
+    if (PicHeightInCtbsY * si->sps->max_CU_width < si->sps->height) PicHeightInCtbsY++;
 
 	tbX = si->slice_segment_address % PicWidthInCtbsY;
 	tbY = si->slice_segment_address / PicWidthInCtbsY;
@@ -2567,8 +2570,13 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 				gf_bs_write_int(bs, 0, 8);
 				// data offset: we start from last NAL written in this sample in this tile track
 				gf_bs_write_int(bs, tiles[cur_tile].data_offset, 8*nalu_size_length);
-				gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
-				tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
+                    
+                //we always write 0 to force complete NAL referencing. This avoids size issues when mixing tile tracks
+                //at different rates :) 
+				//gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
+                gf_bs_write_int(bs, 0, 8*nalu_size_length);
+				
+                tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
 
 				break;
 			default:
@@ -2723,9 +2731,11 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 			gf_isom_add_track_kind(output, TrackNum, scheme, value);
 		}
 
-		//if few samples don't fragment track
 		count = gf_isom_get_sample_count(input, i+1);
-		if (count<=2) {
+		//we always fragment each track regardless of the sample count
+#if 0
+		//if few samples don't fragment track
+		if (count<=1) {
 			for (j=0; j<count; j++) {
 				sample = gf_isom_get_sample(input, i+1, j+1, &descIndex);
 				e = gf_isom_add_sample(output, TrackNum, 1, sample);
@@ -2734,7 +2744,9 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 			}
 		}
 		//otherwise setup fragmented
-		else {
+		else
+#endif
+		{
 			gf_isom_get_fragment_defaults(input, i+1,
 			                              &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
 			//otherwise setup fragmentation
@@ -2746,7 +2758,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 			GF_SAFEALLOC(tf, GF_TrackFragmenter);
 			tf->TrackID = gf_isom_get_track_id(output, TrackNum);
-			tf->SampleCount = gf_isom_get_sample_count(input, i+1);
+			tf->SampleCount = count;
 			tf->OriginalTrack = i+1;
 			tf->TimeScale = gf_isom_get_media_timescale(input, i+1);
 			tf->MediaType = gf_isom_get_media_type(input, i+1);

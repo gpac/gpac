@@ -213,7 +213,7 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 		data = gf_malloc(sizeof(char) * size);
 		size = gf_base64_decode(src, size, data, size);
 	} else {
-		FILE *t = fopen(src, "rb");
+		FILE *t = gf_fopen(src, "rb");
 		if (!t) return GF_IO_ERR;
 		fseek(t, 0, SEEK_END);
 		size = ftell(t);
@@ -221,10 +221,10 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 		data = gf_malloc(sizeof(char)*size);
 		if (size != fread(data, 1, size, t) ) {
 			gf_free(data);
-			fclose(t);
+			gf_fclose(t);
 			return GF_IO_ERR;
 		}
-		fclose(t);
+		gf_fclose(t);
 	}
 
 	if (size && data) {
@@ -370,6 +370,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 		else if (!stricmp(ext+1, "subsamples")) import_flags |= GF_IMPORT_SET_SUBSAMPLES;
 		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
+		else if (!stricmp(ext+1, "xps_inband")) import_flags |= GF_IMPORT_FORCE_XPS_INBAND;
+		
 		/*force all composition offsets to be positive*/
 		else if (!strnicmp(ext+1, "negctts", 7)) negative_cts_offset = 1;
 		else if (!strnicmp(ext+1, "stype=", 6)) {
@@ -769,19 +771,19 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 
 			if (rvc_config) {
-				FILE *f = gf_f64_open(rvc_config, "rb");
+				FILE *f = gf_fopen(rvc_config, "rb");
 				if (f) {
 					char *data;
 					u32 size;
 					size_t read;
-					gf_f64_seek(f, 0, SEEK_END);
-					size = (u32) gf_f64_tell(f);
-					gf_f64_seek(f, 0, SEEK_SET);
+					gf_fseek(f, 0, SEEK_END);
+					size = (u32) gf_ftell(f);
+					gf_fseek(f, 0, SEEK_SET);
 					data = gf_malloc(sizeof(char)*size);
 					read = fread(data, 1, size, f);
 					assert(read);
 					assert(read == size);
-					fclose(f);
+					gf_fclose(f);
 #ifdef GPAC_DISABLE_ZLIB
 					fprintf(stderr, "Error: no zlib support - RVC not available\n");
 					e = GF_NOT_SUPPORTED;
@@ -2406,9 +2408,9 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 			e = gf_bifs_encode_au(bifsenc, sc->ESID, au->commands, &data, &data_len);
 			if (data) {
 				sprintf(szName, "%s%02d.bifs", szRad, j);
-				f = gf_f64_open(szName, "wb");
+				f = gf_fopen(szName, "wb");
 				gf_fwrite(data, data_len, 1, f);
-				fclose(f);
+				gf_fclose(f);
 				gf_free(data);
 			}
 		}
@@ -2562,7 +2564,7 @@ static Bool wgt_enum_files(void *cbck, char *file_name, char *file_path, GF_File
 }
 static Bool wgt_enum_dir(void *cbck, char *file_name, char *file_path, GF_FileEnumInfo *file_info)
 {
-	if (!stricmp(file_name, "cvs") || !stricmp(file_name, ".svn")) return 0;
+	if (!stricmp(file_name, "cvs") || !stricmp(file_name, ".svn") || !stricmp(file_name, ".git")) return 0;
 	gf_enum_directory(file_path, 0, wgt_enum_files, cbck, NULL);
 	return gf_enum_directory(file_path, 1, wgt_enum_dir, cbck, NULL);
 }
@@ -2646,7 +2648,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 		for (i=0; i<count; i++) {
 			char *item = gf_list_get(imports, i);
 
-			FILE *test = gf_f64_open(item, "rb");
+			FILE *test = gf_fopen(item, "rb");
 			if (!test) {
 				gf_list_rem(imports, i);
 				i--;
@@ -2654,7 +2656,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 				gf_free(item);
 				continue;
 			}
-			fclose(test);
+			gf_fclose(test);
 			if (gf_isom_probe_file(item)) {
 				if (isom_src) {
 					fprintf(stderr, "Cannot package several IsoMedia files together\n");

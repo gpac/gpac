@@ -126,7 +126,7 @@ static Bool OGG_ReadPage(OGGReader *read, ogg_page *oggpage)
 			else if (!read->is_live  && !read->ogfile) {
 				const char *szCache = gf_dm_sess_get_cache_name(read->dnload);
 				if (!szCache) return 0;
-				read->ogfile = gf_f64_open((char *) szCache, "rb");
+				read->ogfile = gf_fopen((char *) szCache, "rb");
 				if (!read->ogfile) return 0;
 			}
 		}
@@ -567,10 +567,10 @@ static u32 OggDemux(void *par)
 				u32 seek_to = 0;
 				read->resync_stream = NULL;
 				if (read->dur) seek_to = (u32) (read->file_size * (read->start_range/read->dur) * 0.6f);
-				if ((s32) seek_to > gf_f64_tell(read->ogfile) ) {
-					gf_f64_seek(read->ogfile, seek_to, SEEK_SET);
+				if ((s32) seek_to > gf_ftell(read->ogfile) ) {
+					gf_fseek(read->ogfile, seek_to, SEEK_SET);
 				} else {
-					gf_f64_seek(read->ogfile, 0, SEEK_SET);
+					gf_fseek(read->ogfile, 0, SEEK_SET);
 				}
 			}
 		}
@@ -610,7 +610,7 @@ Bool OGG_CheckFile(OGGReader *read)
 	ogg_stream_state os, the_os;
 	u64 max_gran;
 	Bool has_stream = 0;
-	gf_f64_seek(read->ogfile, 0, SEEK_SET);
+	gf_fseek(read->ogfile, 0, SEEK_SET);
 
 	ogg_sync_init(&read->oy);
 	memset(&the_info, 0, sizeof(OGGInfo));
@@ -644,8 +644,8 @@ Bool OGG_CheckFile(OGGReader *read)
 		}
 	}
 	ogg_sync_clear(&read->oy);
-	read->file_size = gf_f64_tell(read->ogfile);
-	gf_f64_seek(read->ogfile, 0, SEEK_SET);
+	read->file_size = gf_ftell(read->ogfile);
+	gf_fseek(read->ogfile, 0, SEEK_SET);
 	read->dur = 0;
 	if (has_stream) {
 		ogg_stream_clear(&the_os);
@@ -768,14 +768,14 @@ static GF_Err OGG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		OGG_DownloadFile(plug, szURL);
 		return GF_OK;
 	} else {
-		read->ogfile = gf_f64_open(szURL, "rb");
+		read->ogfile = gf_fopen(szURL, "rb");
 		if (!read->ogfile) {
 			reply = GF_URL_ERROR;
 		} else {
 			reply = GF_OK;
 			/*init ogg file in local mode*/
 			if (!OGG_CheckFile(read)) {
-				fclose(read->ogfile);
+				gf_fclose(read->ogfile);
 				reply = GF_NON_COMPLIANT_BITSTREAM;
 			} else {
 				read->needs_connection = 1;
@@ -799,7 +799,7 @@ static GF_Err OGG_CloseService(GF_InputService *plug)
 		while (read->kill_demux!=2) gf_sleep(2);
 	}
 
-	if (read->ogfile) fclose(read->ogfile);
+	if (read->ogfile) gf_fclose(read->ogfile);
 	read->ogfile = NULL;
 	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;

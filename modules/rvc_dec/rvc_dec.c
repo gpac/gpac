@@ -100,18 +100,18 @@ static GF_Err RVCD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		sprintf(opt, "Predefined_%d", esd->decoderConfig->predefined_rvc_config);
 		path = (char *) gf_modules_get_option((GF_BaseInterface *)ifcg, "RVCDecoder", (const char *)opt);
 		if (!opt) return GF_NOT_SUPPORTED;
-		f = fopen(path, "rt");
+		f = gf_fopen(path, "rt");
 		if (!f) return GF_NOT_SUPPORTED;
 		fseek(f, 0, SEEK_END);
 		size = ftell(f);
 		fseek(f, 0, SEEK_SET);
 		XDF_doc = gf_malloc(sizeof(char)*(size+1));
 		if (!XDF_doc) {
-			fclose(f);
+			gf_fclose(f);
 			return GF_OUT_OF_MEM;
 		}
 		fread(XDF_doc, 1, size, f);
-		fclose(f);
+		gf_fclose(f);
 		XDF_doc[size]=0;
 	} else {
 		if (!esd->decoderConfig->rvc_config)

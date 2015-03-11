@@ -478,7 +478,7 @@ void wxPlaylist::OnSave(wxCommandEvent & WXUNUSED(event))
 
 void wxPlaylist::Save(char *szPath, Bool save_m3u)
 {
-	FILE *out = fopen(szPath, "wt");
+	FILE *out = gf_fopen(szPath, "wt");
 	if (!save_m3u)
 		fprintf(out, "[playlist]\nNumberOfEntries=%d\n", gf_list_count(m_entries));
 
@@ -496,7 +496,7 @@ void wxPlaylist::Save(char *szPath, Bool save_m3u)
 	if (!save_m3u) fprintf(out, "Version=2\n");
 
 	fprintf(out, "\n");
-	fclose(out);
+	gf_fclose(out);
 }
 
 void wxPlaylist::OnOpen(wxCommandEvent & WXUNUSED(event))
@@ -516,7 +516,7 @@ void wxPlaylist::OpenPlaylist(wxString filename)
 	PLEntry *ple;
 	Bool load_m3u, go;
 	char szLine[GF_MAX_PATH];
-	pl = fopen(filename.mb_str(wxConvUTF8) , "rt");
+	pl = gf_fopen(filename.mb_str(wxConvUTF8) , "rt");
 	if (!pl) return;
 
 	ple = NULL;
@@ -559,7 +559,7 @@ void wxPlaylist::OpenPlaylist(wxString filename)
 			ple->m_disp_name = gf_strdup(st + 6);
 		}
 	}
-	fclose(pl);
+	gf_fclose(pl);
 	m_all_dead_entries = -1;
 	m_cur_entry = -1;
 	RefreshList();

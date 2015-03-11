@@ -238,8 +238,8 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 
 static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 {
-	if (rti_logs) fclose(rti_logs);
-	rti_logs = gf_f64_open(rti_file, "wt");
+	if (rti_logs) gf_fclose(rti_logs);
+	rti_logs = gf_fopen(rti_file, "wt");
 	if (rti_logs) {
 		fprintf(rti_logs, "!! GPAC RunTime Info ");
 		if (url) fprintf(rti_logs, "for file %s", url);
@@ -289,7 +289,7 @@ int main (int argc, char *argv[])
 	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
 		fprintf(stderr, "Error: Configuration File \"GPAC.cfg\" not found\n");
-		if (logfile) fclose(logfile);
+		if (logfile) gf_fclose(logfile);
 		return 1;
 	}
 
@@ -300,7 +300,7 @@ int main (int argc, char *argv[])
 	if (!logfile) {
 		const char *opt = gf_cfg_get_key(cfg_file, "General", "LogFile");
 		if (opt) {
-			logfile = gf_f64_open(opt, "wt");
+			logfile = gf_fopen(opt, "wt");
 			if (logfile)
 				gf_log_set_callback(logfile, on_gpac_log);
 		}
@@ -324,7 +324,7 @@ int main (int argc, char *argv[])
 		if (user.modules) gf_modules_del(user.modules);
 		gf_cfg_del(cfg_file);
 		gf_sys_close();
-		if (logfile) fclose(logfile);
+		if (logfile) gf_fclose(logfile);
 		return 1;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Modules Loaded (%d found in %s)\n", i, str));
@@ -345,7 +345,7 @@ int main (int argc, char *argv[])
 		gf_modules_del(user.modules);
 		gf_cfg_del(cfg_file);
 		gf_sys_close();
-		if (logfile) fclose(logfile);
+		if (logfile) gf_fclose(logfile);
 		return 1;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Terminal Loaded\n"));
@@ -429,14 +429,14 @@ int main (int argc, char *argv[])
 	gf_cfg_del(cfg_file);
 
 #ifdef GPAC_MEMORY_TRACKING
-	if (enable_mem_tracker) {
-		gf_memory_print();
+	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
+        gf_memory_print();
 	}
 #endif
 
 	gf_sys_close();
-	if (rti_logs) fclose(rti_logs);
-	if (logfile) fclose(logfile);
+	if (rti_logs) gf_fclose(rti_logs);
+	if (logfile) gf_fclose(logfile);
 
 	return 0;
 }

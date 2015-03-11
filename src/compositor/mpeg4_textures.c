@@ -292,10 +292,10 @@ static void imagetexture_update(GF_TextureHandler *txh)
 			if (ct->image.buffer) {
 				char *par = (char *) gf_scene_get_service_url( gf_node_get_graph(txh->owner ) );
 				char *src_url = gf_url_concatenate(par, ct->image.buffer);
-				FILE *test = fopen( src_url ? src_url : ct->image.buffer, "rb");
+				FILE *test = gf_fopen( src_url ? src_url : ct->image.buffer, "rb");
 				if (test) {
 					fseek(test, 0, SEEK_END);
-					ct->data_len = ftell(test);
+					ct->data_len = (u32) gf_ftell(test);
 					ct->data = gf_malloc(sizeof(char)*ct->data_len);
 					fseek(test, 0, SEEK_SET);
 					if (ct->data_len != fread(ct->data, 1, ct->data_len, test)) {
@@ -304,7 +304,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 						ct->data = NULL;
 						ct->data_len = 0;
 					}
-					fclose(test);
+					gf_fclose(test);
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to load CacheTexture data from file %s: not found\n", src_url ? src_url : ct->image.buffer ) );
 				}
@@ -377,10 +377,10 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				strcat(szExtractName, "_");
 
 				strcat(szExtractName, ct->cacheURL.buffer);
-				cached_texture = gf_f64_open(szExtractName, "wb");
+				cached_texture = gf_fopen(szExtractName, "wb");
 				if (cached_texture) {
 					gf_fwrite(ct->data, 1, ct->data_len, cached_texture);
-					fclose(cached_texture);
+					gf_fclose(cached_texture);
 				}
 
 				/*and write cache info*/

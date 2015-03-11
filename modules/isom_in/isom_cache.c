@@ -39,15 +39,15 @@ static GF_Err ISOW_Open(GF_StreamingCache *mc, GF_ClientService *serv, const cha
 	strcpy(szPath, szRoot);
 	strcat(szPath, ".mp4");
 	if (keep_existing_files) {
-		FILE *f = gf_f64_open(szPath, "rb");
+		FILE *f = gf_fopen(szPath, "rb");
 		if (f) {
 			u32 i=0;
-			fclose(f);
+			gf_fclose(f);
 			while (1) {
 				sprintf(szPath, "%s_%04d.mp4", szRoot, i);
-				f = gf_f64_open(szPath, "rb");
+				f = gf_fopen(szPath, "rb");
 				if (!f) break;
-				fclose(f);
+				gf_fclose(f);
 				i++;
 			}
 		}

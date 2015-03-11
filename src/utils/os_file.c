@@ -235,9 +235,17 @@ u64 gf_file_modification_time(const char *filename)
 	return 0;
 }
 
+static u32 gpac_file_handles = 0;
+GF_EXPORT
+u32 gf_file_handles_count()
+{
+	return gpac_file_handles;
+}
+
 GF_EXPORT
 FILE *gf_temp_file_new()
 {
+	FILE *res=NULL;
 #if defined(_WIN32_WCE)
 	TCHAR pPath[MAX_PATH+1];
 	TCHAR pTemp[MAX_PATH+1];
@@ -246,26 +254,28 @@ FILE *gf_temp_file_new()
 		pPath[1] = '.';
 	}
 	if (GetTempFileName(pPath, TEXT("git"), 0, pTemp))
-		return _wfopen(pTemp, TEXT("w+b"));
-
-	return NULL;
+		res = _wfopen(pTemp, TEXT("w+b"));
 #elif defined(WIN32)
 	char tmp[MAX_PATH], t_file[100];
-	FILE *res = tmpfile();
-	if (res) return res;
-	{
-		u32 err = GetLastError();
-		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Win32] system failure for tmpfile(): 0x%08x\n", err));
+	res = tmpfile();
+	if (!res) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Win32] system failure for tmpfile(): 0x%08x\n", GetLastError()));
+
+		/*tmpfile() may fail under vista ...*/
+		if (GetEnvironmentVariable("TEMP",tmp,MAX_PATH)) {
+			sprintf(t_file, "\\gpac_%08x.tmp", (u32) tmp);
+			strcat(tmp, t_file);
+			res = gf_fopen(tmp, "w+b");
+		}
 	}
-	/*tmpfile() may fail under vista ...*/
-	if (!GetEnvironmentVariable("TEMP",tmp,MAX_PATH))
-		return NULL;
-	sprintf(t_file, "\\gpac_%08x.tmp", (u32) tmp);
-	strcat(tmp, t_file);
-	return gf_f64_open(tmp, "w+b");
 #else
-	return tmpfile();
+	res = tmpfile();
 #endif
+
+	if (res) {
+		gpac_file_handles++;
+	}
+	return res;
 }
 
 /*enumerate directories*/
@@ -521,7 +531,7 @@ next:
 }
 
 GF_EXPORT
-u64 gf_f64_tell(FILE *fp)
+u64 gf_ftell(FILE *fp)
 {
 #if defined(_WIN32_WCE)
 	return (u64) ftell(fp);
@@ -543,7 +553,7 @@ u64 gf_f64_tell(FILE *fp)
 }
 
 GF_EXPORT
-u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
+u64 gf_fseek(FILE *fp, s64 offset, s32 whence)
 {
 #if defined(_WIN32_WCE)
 	return (u64) fseek(fp, (s32) offset, whence);
@@ -565,23 +575,43 @@ u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
 }
 
 GF_EXPORT
-FILE *gf_f64_open(const char *file_name, const char *mode)
+FILE *gf_fopen(const char *file_name, const char *mode)
 {
+	FILE *res;
+
 #if defined(WIN32)
-	FILE *res = fopen(file_name, mode);
-	if (res) return res;
-	if (strchr(mode, 'w') || strchr(mode, 'a')) {
-		u32 err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Win32] system failure for file opening of %s in mode %s: 0x%08x\n", file_name, mode, err));
-	}
-	return NULL;
+	res = fopen(file_name, mode);
 #elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_ANDROID)
-	return fopen64(file_name, mode);
+	res = fopen64(file_name, mode);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
-	return fopen(file_name, mode);
+	res = fopen(file_name, mode);
 #else
-	return fopen(file_name, mode);
+	res = fopen(file_name, mode);
 #endif
+
+	if (res) {
+		gpac_file_handles ++;
+	} else {
+		if (strchr(mode, 'w') || strchr(mode, 'a')) {
+#if defined(WIN32)
+			u32 err = GetLastError();
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] system failure for file opening of %s in mode %s: 0x%08x\n", file_name, mode, err));
+#else
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] system failure for file opening of %s in mode %s: %d\n", file_name, mode, errno));
+#endif
+		}
+	}
+	return res;
+}
+
+GF_EXPORT
+s32 gf_fclose(FILE *file)
+{
+	if (file) {
+		assert(gpac_file_handles);
+		gpac_file_handles--;
+	}
+	return fclose(file);
 }
 
 #if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! defined(_GNU_SOURCE)

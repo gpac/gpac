@@ -156,7 +156,10 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	video_input_file->sar = codec_ctx->sample_aspect_ratio;
 
 	video_input_file->pix_fmt = codec_ctx->pix_fmt;
-	if (video_data_conf->framerate >= 0 && codec_ctx->time_base.num) {
+	if (codec_ctx->time_base.num==1) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("AVCTX give frame duration of %d/%d - keeping requested rate %d, but this may result in unexpected behaviour.\n", codec_ctx->time_base.num, codec_ctx->time_base.den, video_data_conf->framerate ));
+	}
+	else if (video_data_conf->framerate >= 0 && codec_ctx->time_base.num) {
 		video_data_conf->framerate = codec_ctx->time_base.den / codec_ctx->time_base.num;
 	}
 	if (video_data_conf->framerate <= 1 || video_data_conf->framerate > 1000) {
@@ -177,7 +180,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	}
 
 	if (video_data_conf->framerate <= 1 || video_data_conf->framerate > 1000) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Invalid input framerate.\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Invalid input framerate %d (AVCTX timebase is %d/%d).\n", video_data_conf->framerate, codec_ctx->time_base.num, codec_ctx->time_base.den));
 		return -1;
 	}
 

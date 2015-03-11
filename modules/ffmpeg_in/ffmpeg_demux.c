@@ -183,11 +183,39 @@ static u32 FFD_RegisterMimeTypes(const GF_InputService *plug) {
 	return i/3;
 }
 
-static int open_file(AVFormatContext **	ic_ptr, const char * 	filename, AVInputFormat * 	fmt) {
+static int open_file(AVFormatContext **	ic_ptr, const char * 	filename, AVInputFormat * 	fmt, void *ops) {
 #ifdef USE_PRE_0_7
 	return av_open_input_file(ic_ptr, filename, fmt, 0, NULL);
 #else
-	return avformat_open_input(ic_ptr, filename, fmt, NULL);
+	return avformat_open_input(ic_ptr, filename, fmt, ops);
+#endif
+}
+
+void ffd_parse_options(FFDemux *ffd, const char *url)
+{
+#ifdef USE_AVFORMAT_OPEN_INPUT
+	int res;
+	char *frag = (char*) strchr(url, '#');
+	if (frag) frag = frag+1;
+
+	if (ffd->options) return;
+
+	while (frag) {
+		char *mid, *sep = strchr(frag, ':');
+		if (sep) sep[0] = 0;
+		mid = strchr(frag, '=');
+		if (mid) {
+			mid[0] = 0;
+			res = av_dict_set(&ffd->options, frag, mid+1, 0);
+            if (res<0) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Failed to set option %s:%s\n", frag, mid+1) );
+            }
+			mid[0] = '=';
+		}
+		if (!sep) break;
+		sep[0] = ':';
+		frag = sep+1;
+	}
 #endif
 }
 
@@ -201,6 +229,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	Bool ret = 0;
 	char *ext, szName[1000], szExt[20];
 	const char *szExtList;
+	FFDemux *ffd;
 	if (!plug || !url)
 		return 0;
 	/*disable RTP/RTSP from ffmpeg*/
@@ -211,6 +240,8 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	if (!strnicmp(url, "udp://", 6)) return 0;
 	if (!strnicmp(url, "tcp://", 6)) return 0;
 	if (!strnicmp(url, "data:", 5)) return 0;
+
+	ffd = plug->priv;
 
 	strcpy(szName, url);
 	ext = strrchr(szName, '#');
@@ -252,17 +283,21 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		}
 	}
 
+	ffd_parse_options(ffd, url);
+
 	ctx = NULL;
-	if (open_file(&ctx, szName, NULL)<0) {
+	if (open_file(&ctx, szName, NULL, &ffd->options)<0) {
 		AVInputFormat *av_in = NULL;;
 		/*some extensions not supported by ffmpeg*/
 		if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
 
-		if (open_file(&ctx, szName, av_in)<0) {
+		if (open_file(&ctx, szName, av_in, &ffd->options)<0) {
 			return 0;
 		}
 	}
-	if (!ctx || av_find_stream_info(ctx) <0) goto exit;
+
+	if (!ctx) goto exit;
+	if (av_find_stream_info(ctx) <0) goto exit;
 
 	/*figure out if we can use codecs or not*/
 	has_video = has_audio = 0;
@@ -540,6 +575,8 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		ext[0] = 0;
 	}
 
+	ffd_parse_options(ffd, url);
+
 	/*some extensions not supported by ffmpeg, overload input format*/
 	ext = strrchr(szName, '.');
 	strcpy(szExt, ext ? ext+1 : "");
@@ -559,7 +596,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		if (sOpt) ffd->buffer_size = atoi(sOpt);
 		ffd->buffer = gf_malloc(sizeof(char)*ffd->buffer_size);
 #ifdef FFMPEG_DUMP_REMOTE
-		ffd->outdbg = gf_f64_open("ffdeb.raw", "wb");
+		ffd->outdbg = gf_fopen("ffdeb.raw", "wb");
 #endif
 #ifdef USE_PRE_0_7
 		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, ffd, ff_url_read, NULL, NULL);
@@ -582,7 +619,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		}
 		if (e==GF_EOS) {
 			const char *cache_file = gf_dm_sess_get_cache_name(ffd->dnload);
-			res = open_file(&ffd->ctx, cache_file, av_in);
+			res = open_file(&ffd->ctx, cache_file, av_in, &ffd->options);
 		} else {
 			pd.filename = szName;
 			pd.buf_size = ffd->buffer_used;
@@ -601,7 +638,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 #endif
 		}
 	} else {
-		res = open_file(&ffd->ctx, szName, av_in);
+		res = open_file(&ffd->ctx, szName, av_in, &ffd->options);
 	}
 
 	switch (res) {
@@ -629,7 +666,12 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG] looking for streams in %s - %d streams - type %s\n", ffd->ctx->filename, ffd->ctx->nb_streams, ffd->ctx->iformat->name));
 
+#ifdef USE_AVFORMAT_OPEN_INPUT
+	res = avformat_find_stream_info(ffd->ctx, &ffd->options);
+#else
 	res = av_find_stream_info(ffd->ctx);
+#endif
+
 	if (res <0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG] cannot locate streams - error %d\n", res));
 		e = GF_NOT_SUPPORTED;
@@ -695,7 +737,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 			avformat_close_input(&ffd->ctx);
 #endif
 			ffd->ctx = NULL;
-			open_file(&ffd->ctx, szName, av_in);
+			open_file(&ffd->ctx, szName, av_in, &ffd->options);
 			av_find_stream_info(ffd->ctx);
 		}
 	}
@@ -789,7 +831,7 @@ static GF_Err FFD_CloseService(GF_InputService *plug)
 
 	gf_service_disconnect_ack(ffd->service, NULL, GF_OK);
 #ifdef FFMPEG_DUMP_REMOTE
-	if (ffd->outdbg) fclose(ffd->outdbg);
+	if (ffd->outdbg) gf_fclose(ffd->outdbg);
 #endif
 	return GF_OK;
 }
@@ -981,6 +1023,10 @@ void Delete_FFMPEG_Demux(void *ifce)
 		ffd->thread = NULL;
 		if (ffd->mx)
 			gf_mx_del(ffd->mx);
+
+#ifndef USE_PRE_0_7
+		if (ffd->options) av_dict_free(&ffd->options);
+#endif
 		ffd->mx = NULL;
 		gf_free(ffd);
 		ptr->priv = NULL;

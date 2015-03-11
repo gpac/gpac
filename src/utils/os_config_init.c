@@ -89,9 +89,9 @@ static Bool check_file_exists(char *name, char *path, char *outPath)
 	}
 #endif
 	sprintf(szPath, "%s%c%s", path, GF_PATH_SEPARATOR, name);
-	f = fopen(szPath, "rb");
+	f = gf_fopen(szPath, "rb");
 	if (!f) return 0;
-	fclose(f);
+	gf_fclose(f);
 	if (outPath != path) strcpy(outPath, path);
 	return 1;
 }
@@ -184,9 +184,9 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	strcpy(szPath, file_path);
 	strcat(szPath, "\\gpaccfgtest.txt");
-	f = gf_f64_open(szPath, "wb");
+	f = gf_fopen(szPath, "wb");
 	if (f != NULL) {
-		fclose(f);
+		gf_fclose(f);
 		gf_delete_file(szPath);
 		return 1;
 	}
@@ -201,11 +201,11 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	_mkdir(file_path);
 	strcpy(szPath, file_path);
 	strcat(szPath, "\\gpaccfgtest.txt");
-	f = gf_f64_open(szPath, "wb");
+	f = gf_fopen(szPath, "wb");
 	/*COMPLETE FAILURE*/
 	if (!f) return 0;
 
-	fclose(f);
+	gf_fclose(f);
 	gf_delete_file(szPath);
 	return 1;
 #endif
@@ -312,6 +312,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (check_file_exists(TEST_MODULE, "/usr/local/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/local/lib/gpac", file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, "/usr/lib/x86_64-linux-gnu/gpac", file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, "/usr/lib/i386-linux-gnu/gpac", file_path)) return 1;
 		}
 	}
 
@@ -394,9 +396,9 @@ static GF_Config *create_default_config(char *file_path)
 	/*Create the config file*/
 	sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
 	fprintf(stderr, "Trying to create config file: %s", szPath);
-	f = gf_f64_open(szPath, "wt");
+	f = gf_fopen(szPath, "wt");
 	if (!f) return NULL;
-	fclose(f);
+	gf_fclose(f);
 
 #ifndef GPAC_IPHONE
 	if (! get_default_install_path(szPath, GF_PATH_MODULES)) {
@@ -482,9 +484,9 @@ static GF_Config *create_default_config(char *file_path)
 	/*locate GUI*/
 	if ( get_default_install_path(szPath, GF_PATH_GUI) ) {
 		sprintf(gui_path, "%s%cgui.bt", szPath, GF_PATH_SEPARATOR);
-		f = fopen(gui_path, "rt");
+		f = gf_fopen(gui_path, "rt");
 		if (f) {
-			fclose(f);
+			gf_fclose(f);
 			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
 		}
 	}
@@ -568,9 +570,9 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 		cfg = gf_cfg_new(NULL, file);
 		/*force creation of a new config*/
 		if (!cfg) {
-			FILE *fcfg = fopen(file, "wt");
+			FILE *fcfg = gf_fopen(file, "wt");
 			if (fcfg) {
-				fclose(fcfg);
+				gf_fclose(fcfg);
 				cfg = gf_cfg_new(NULL, file);
 				if (new_cfg) *new_cfg = 1;
 			}

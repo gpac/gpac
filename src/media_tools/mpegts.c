@@ -3777,7 +3777,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 	} else if (fileName) {
 		char data[188000];
 
-		f = gf_f64_open(fileName, "rb");
+		f = gf_fopen(fileName, "rb");
 
 		if (!f) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", fileName));
@@ -3832,7 +3832,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 		}
 
 		gf_bs_del(bs);
-		fclose(f);
+		gf_fclose(f);
 		ts->abort_parsing = 0;
 	}
 
@@ -3893,7 +3893,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 			Bool first_run, is_rtp;
 			FILE *record_to = NULL;
 			if (ts->record_to)
-				record_to = gf_f64_open(ts->record_to, "wb");
+				record_to = gf_fopen(ts->record_to, "wb");
 
 			first_run = 1;
 			is_rtp = 0;
@@ -3950,7 +3950,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 				}
 			}
 			if (record_to)
-				fclose(record_to);
+				gf_fclose(record_to);
 
 #ifndef GPAC_DISABLE_STREAMING
 			if (ch)
@@ -4128,7 +4128,7 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, const char *url, const char *chan_pat
 	char frontend_name[100], demux_name[100], dvr_name[100];
 	u32 adapter_num;
 
-	chanfile = gf_f64_open(chan_path, "r");
+	chanfile = gf_fopen(chan_path, "r");
 	if (!chanfile) return GF_BAD_PARAM;
 
 	chan_name = (char *) url+6; // 6 = strlen("dvb://")
@@ -4210,7 +4210,7 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, const char *url, const char *chan_pat
 			}
 		}
 	}
-	fclose(chanfile);
+	gf_fclose(chanfile);
 
 	sprintf(frontend_name, "/dev/dvb/adapter%d/frontend0", adapter_num);
 	sprintf(demux_name, "/dev/dvb/adapter%d/demux0", adapter_num);
@@ -4274,7 +4274,7 @@ u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url)
 
 	channel_name = (char *)url+6;
 
-	channels_config_file = gf_f64_open(channels_config_path, "r");
+	channels_config_file = gf_fopen(channels_config_path, "r");
 	if (!channels_config_file) return GF_BAD_PARAM;
 
 	freq = 0;
@@ -4343,16 +4343,16 @@ static GF_Err gf_m2ts_demuxer_setup_file(GF_M2TS_Demuxer *ts, char *url)
 			ts->ts_data_chunk = mem_address;
 		} else {
 
-			ts->file = gf_f64_open(url, "rb");
+			ts->file = gf_fopen(url, "rb");
 			if (!ts->file) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[TSDemux] Could not open TS file: %s\n", url));
 				return GF_IO_ERR;
 			}
 			strcpy(ts->filename, url);
 
-			gf_f64_seek(ts->file, 0, SEEK_END);
-			ts->file_size = gf_f64_tell(ts->file);
-			gf_f64_seek(ts->file, 0, SEEK_SET);
+			gf_fseek(ts->file, 0, SEEK_END);
+			ts->file_size = gf_ftell(ts->file);
+			gf_fseek(ts->file, 0, SEEK_SET);
 		}
 	}
 
@@ -4413,7 +4413,7 @@ GF_Err gf_m2ts_demuxer_close(GF_M2TS_Demuxer *ts)
 		ts->th = NULL;
 	}
 
-	if (ts->file) fclose(ts->file);
+	if (ts->file) gf_fclose(ts->file);
 	ts->file = NULL;
 	ts->ts_data_chunk = NULL;
 
@@ -4454,10 +4454,10 @@ Bool gf_m2ts_probe_file(const char *fileName)
 		if (size>M2TS_PROBE_SIZE) size = M2TS_PROBE_SIZE;
 		memcpy(buf, mem_address, size);
 	} else {
-		t = gf_f64_open(fileName, "rb");
+		t = gf_fopen(fileName, "rb");
 		if (!t) return 0;
 		size = (u32) fread(buf, 1, M2TS_PROBE_SIZE, t);
-		fclose(t);
+		gf_fclose(t);
 		if (!size) return 0;
 	}
 	ts = gf_m2ts_demux_new();

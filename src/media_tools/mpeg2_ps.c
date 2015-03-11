@@ -143,7 +143,7 @@ struct mpeg2ps_ {
  *************************************************************************/
 static FILE *file_open (const char *name)
 {
-	return gf_f64_open(name, "rb");
+	return gf_fopen(name, "rb");
 }
 
 static Bool file_okay (FILE *fd)
@@ -153,7 +153,7 @@ static Bool file_okay (FILE *fd)
 
 static void file_close (FILE *fd)
 {
-	fclose(fd);
+	gf_fclose(fd);
 }
 
 static Bool file_read_bytes(FILE *fd,
@@ -167,18 +167,18 @@ static Bool file_read_bytes(FILE *fd,
 // note: len could be negative.
 static void file_skip_bytes (FILE *fd, s32 len)
 {
-	gf_f64_seek(fd, len, SEEK_CUR);
+	gf_fseek(fd, len, SEEK_CUR);
 }
 
-#define file_location(__f) gf_f64_tell(__f)
-#define file_seek_to(__f, __off) gf_f64_seek(__f, __off, SEEK_SET)
+#define file_location(__f) gf_ftell(__f)
+#define file_seek_to(__f, __off) gf_fseek(__f, __off, SEEK_SET)
 
 static u64 file_size(FILE *fd)
 {
 	u64 ret;
-	gf_f64_seek(fd, 0, SEEK_END);
-	ret = gf_f64_tell(fd);
-	gf_f64_seek(fd, 0, SEEK_SET);
+	gf_fseek(fd, 0, SEEK_END);
+	ret = gf_ftell(fd);
+	gf_fseek(fd, 0, SEEK_SET);
 	return ret;
 }
 
@@ -1784,12 +1784,12 @@ u64 mpeg2ps_get_ps_size(mpeg2ps_t *ps)
 s64 mpeg2ps_get_video_pos(mpeg2ps_t *ps, u32 streamno)
 {
 	if (invalid_video_streamno(ps, streamno)) return 0;
-	return gf_f64_tell(ps->video_streams[streamno]->m_fd);
+	return gf_ftell(ps->video_streams[streamno]->m_fd);
 }
 s64 mpeg2ps_get_audio_pos(mpeg2ps_t *ps, u32 streamno)
 {
 	if (invalid_audio_streamno(ps, streamno)) return 0;
-	return gf_f64_tell(ps->audio_streams[streamno]->m_fd);
+	return gf_ftell(ps->audio_streams[streamno]->m_fd);
 }
 
 #endif /*GPAC_DISABLE_MPEG2PS*/

@@ -236,9 +236,9 @@ static Bool term_find_res(GF_TermLocales *loc, char *parent, char *path, char *r
 	loc->szAbsRelocatedPath = gf_url_concatenate(parent, path);
 	if (!loc->szAbsRelocatedPath) loc->szAbsRelocatedPath = gf_strdup(path);
 
-	f = gf_f64_open(loc->szAbsRelocatedPath, "rb");
+	f = gf_fopen(loc->szAbsRelocatedPath, "rb");
 	if (f) {
-		fclose(f);
+		gf_fclose(f);
 		strcpy(localized_rel_path, path);
 		strcpy(relocated_path, loc->szAbsRelocatedPath);
 		return 1;
@@ -546,9 +546,9 @@ void gf_term_refresh_cache(GF_Config *cfg)
 
 		force_delete = 0;
 		if (file) {
-			FILE *t = gf_f64_open(file, "r");
+			FILE *t = gf_fopen(file, "r");
 			if (!t) force_delete = 1;
-			else fclose(t);
+			else gf_fclose(t);
 		}
 		sscanf(opt, "%u", &exp);
 		gf_net_get_ntp(&sec, &frac);

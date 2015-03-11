@@ -552,11 +552,11 @@ void RP_SaveSessionState(RTPClient *rtp)
 			gf_service_download_del(rtp->dnload);
 			rtp->dnload = NULL;
 		} else {
-			FILE *f = gf_f64_open(opt, "wt");
+			FILE *f = gf_fopen(opt, "wt");
 			if (f) {
 				sdp_buf = rtp->session_state_data + strlen("data:application/sdp,");
 				gf_fwrite(sdp_buf, 1, strlen(sdp_buf), f);
-				fclose(f);
+				gf_fclose(f);
 			} else {
 				e = GF_IO_ERR;
 			}

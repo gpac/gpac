@@ -208,16 +208,16 @@ int main(int argc, char **argv)
 #endif
 
 	/* This is an input file to read data from. Could be replaced by any other method to retrieve the data (e.g. JavaScript, socket, ...)*/
-	input = gf_f64_open(argv[1], "rb");
+	input = gf_fopen(argv[1], "rb");
 	if (!input) {
 		fprintf(stdout, "Could not open file %s for reading.\n", argv[1]);
 		gf_sys_close();
 		return 1;
 	}
 
-	gf_f64_seek(input, 0, SEEK_END);
-	file_size = gf_f64_tell(input);
-	gf_f64_seek(input, 0, SEEK_SET);
+	gf_fseek(input, 0, SEEK_END);
+	file_size = gf_ftell(input);
+	gf_fseek(input, 0, SEEK_SET);
 
 	/* Initializing the progressive reader */
 	memset(&reader, 0, sizeof(ISOProgressiveReader));
@@ -308,7 +308,7 @@ exit:
 	gf_mx_del(reader.mutex);
 	gf_free(reader.data);
 	gf_isom_close(reader.movie);
-	fclose(input);
+	gf_fclose(input);
 	gf_sys_close();
 
 	return ret;

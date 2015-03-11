@@ -70,7 +70,7 @@ AdobeMultirate *adobe_alloc_multirate_manifest(char *id)
 	am->base_url = "http://localhost/hds/tmp";
 	am->id = id;
 	sprintf(filename, "%s.f4m", am->id);
-	am->f = fopen(filename, "wt");
+	am->f = gf_fopen(filename, "wt");
 	if (!am->f) {
 		fprintf(stderr, "Couldn't create Adobe multirate manifest file: %s\n", filename);
 		assert(0);
@@ -85,7 +85,7 @@ AdobeMultirate *adobe_alloc_multirate_manifest(char *id)
 		as->id = "HD";
 		as->bitrate = 100;
 		sprintf(filename, "%s_%s_%d.f4m", am->id, as->id, as->bitrate);
-		as->f = fopen(filename, "wt");
+		as->f = gf_fopen(filename, "wt");
 		if (!as->f) {
 			fprintf(stderr, "Couldn't create Adobe stream manifest file: %s\n", filename);
 			assert(0);
@@ -105,13 +105,13 @@ void adobe_free_multirate_manifest(AdobeMultirate *am)
 	u32 i;
 
 	if (am->f)
-		fclose(am->f);
+		gf_fclose(am->f);
 
 	for (i=0; i<gf_list_count(am->streams); i++) {
 		AdobeStream *as = gf_list_get(am->streams, i);
 		assert(as);
 		if (as->f)
-			fclose(as->f);
+			gf_fclose(as->f);
 		//TODO: base_url and id may be stored as gf_strdup in the future
 		gf_list_rem(am->streams, i);
 		gf_free(as);
@@ -154,9 +154,9 @@ GF_Err adobe_gen_multirate_manifest(AdobeMultirate* am, char *bootstrap, size_t 
 			char filename[GF_MAX_PATH];
 			FILE *bstfile;
 			sprintf(filename, "%s_%d.bootstrap", as->id, as->bitrate);
-			bstfile = fopen(filename, "wb");
+			bstfile = gf_fopen(filename, "wb");
 			gf_fwrite(bootstrap, bootstrap_size, 1, bstfile);
-			fclose(bstfile);
+			gf_fclose(bstfile);
 		}
 #endif
 		e = adobe_gen_stream_manifest(as);

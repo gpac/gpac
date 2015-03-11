@@ -805,7 +805,7 @@ FILE *BeginFile(u32 type)
 #endif
 	}
 
-	f = fopen(sPath, "wt");
+	f = gf_fopen(sPath, "wt");
 	fprintf(f, "%s\n", COPYRIGHT);
 
 	{
@@ -840,7 +840,7 @@ void EndFile(FILE *f, u32 type)
 	} else {
 		fprintf(f, "\n");
 	}
-	fclose(f);
+	gf_fclose(f);
 }
 
 void generateAttributes(FILE *output, GF_List *attributes, Bool inDefine)

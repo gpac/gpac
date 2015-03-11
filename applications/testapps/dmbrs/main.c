@@ -26,15 +26,15 @@
 
 void save_ts(char *filename, unsigned char *data)
 {
-	FILE *ts_out = fopen(filename,"a+b");
+	FILE *ts_out = gf_fopen(filename,"a+b");
 	gf_fwrite(data, 1, 188, ts_out);
-	fclose(ts_out);
+	gf_fclose(ts_out);
 }
 void save_rs_0(char *filename, unsigned char *data)
 {
-	FILE *rs_out = fopen(filename,"a+b");
+	FILE *rs_out = gf_fopen(filename,"a+b");
 	gf_fwrite(data, 1, 204, rs_out);
-	fclose(rs_out);
+	gf_fclose(rs_out);
 }
 
 void RS_Interleaver(GF_BitStream *bs, char *out_name)
@@ -209,7 +209,7 @@ void main(int argc, char **argv)
 
 	/* generation d'un TS aléatoire */
 	/*
-		if ((in=fopen(argv[1], "wb")) == NULL) {
+		if ((in=gf_fopen(argv[1], "wb")) == NULL) {
 			printf( "Impossible d'ouvrir %s en lecture.\n", argv[1]);
 		}
 		{
@@ -223,8 +223,8 @@ void main(int argc, char **argv)
 				gf_fwrite(buffer, 1, 188, in);
 			}
 		}
-		fclose(in);
-		if ((in=fopen(argv[1], "rb")) == NULL) {
+		gf_fclose(in);
+		if ((in=gf_fopen(argv[1], "rb")) == NULL) {
 			printf( "Impossible d'ouvrir %s en lecture.\n", argv[1]);
 		}
 
@@ -232,12 +232,12 @@ void main(int argc, char **argv)
 		if (bs == NULL) return;
 
 		RS_Interleaver(bs, argv[2]);
-		fclose(in);
+		gf_fclose(in);
 		gf_bs_del(bs);
 	*/
 
 
-	if ((in=fopen(argv[1], "rb")) == NULL) {
+	if ((in=gf_fopen(argv[1], "rb")) == NULL) {
 		printf( "Impossible d'ouvrir %s en lecture.\n", argv[1]);
 	}
 
@@ -245,7 +245,7 @@ void main(int argc, char **argv)
 	if (bs == NULL) return;
 
 	RS_Deinterleaver(bs, argv[2]);
-	fclose(in);
+	gf_fclose(in);
 	gf_bs_del(bs);
 
 }

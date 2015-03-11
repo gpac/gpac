@@ -561,14 +561,14 @@ GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, const char *input_file,
 				parser->state = WEBVTT_PARSER_STATE_WAITING_CUE;
 			}
 		}
-		parser->vtt_in = gf_f64_open(input_file, "rt");
-		gf_f64_seek(parser->vtt_in, 0, SEEK_END);
-		parser->file_size = gf_f64_tell(parser->vtt_in);
-		gf_f64_seek(parser->vtt_in, 0, SEEK_SET);
+		parser->vtt_in = gf_fopen(input_file, "rt");
+		gf_fseek(parser->vtt_in, 0, SEEK_END);
+		parser->file_size = gf_ftell(parser->vtt_in);
+		gf_fseek(parser->vtt_in, 0, SEEK_SET);
 
 		parser->unicode_type = gf_text_get_utf_type(parser->vtt_in);
 		if (parser->unicode_type<0) {
-			fclose(parser->vtt_in);
+			gf_fclose(parser->vtt_in);
 			return GF_NOT_SUPPORTED;
 		}
 
@@ -588,7 +588,7 @@ void gf_webvtt_parser_reset(GF_WebVTTParser *parser)
 			gf_webvtt_sample_del((GF_WebVTTSample *)gf_list_get(parser->samples, 0));
 			gf_list_rem(parser->samples, 0);
 		}
-		if (parser->vtt_in) fclose(parser->vtt_in);
+		if (parser->vtt_in) gf_fclose(parser->vtt_in);
 		parser->file_size = 0;
 		parser->last_duration = 0;
 		parser->on_header_parsed = NULL;
@@ -1068,7 +1068,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser, u32 duration)
 				gf_webvtt_add_cue_to_samples(parser, parser->samples, cue);
 				cue = NULL;
 
-				gf_set_progress("Importing WebVTT", gf_f64_tell(parser->vtt_in), parser->file_size);
+				gf_set_progress("Importing WebVTT", gf_ftell(parser->vtt_in), parser->file_size);
 				if ((duration && (end >= duration)) || !sOK) {
 					do_parse = GF_FALSE;
 					break;
@@ -1416,7 +1416,7 @@ GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 trac
 	u64     duration;
 	GF_WebVTTParser *parser;
 
-	out = szName ? gf_f64_open(szName, "wt") : stdout;
+	out = szName ? gf_fopen(szName, "wt") : stdout;
 	if (!out) return GF_IO_ERR;// gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 
 	parser = gf_webvtt_parser_new();
@@ -1444,7 +1444,7 @@ GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 trac
 
 exit:
 	gf_webvtt_parser_del(parser);
-	if (szName) fclose(out);
+	if (szName) gf_fclose(out);
 	return e;
 }
 

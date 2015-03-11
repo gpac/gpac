@@ -564,7 +564,15 @@ typedef struct
 	s32 last_x, last_y;
 } ft_outliner;
 
-int ft_move_to(const FT_Vector *to, void *user)
+#if defined(GPAC_IPHONE) || defined(GPAC_ANDROID)
+#define FTCST
+#else
+#define FTCST const
+#endif
+
+
+
+int ft_move_to(FTCST FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_move_to(ftol->path, INT2FIX(to->x), INT2FIX(to->y) );
@@ -573,7 +581,7 @@ int ft_move_to(const FT_Vector *to, void *user)
 	return 0;
 }
 
-int ft_line_to(const FT_Vector *to, void *user)
+int ft_line_to(FTCST FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	if ( (ftol->last_x == to->x) && (ftol->last_y == to->y)) {
@@ -584,7 +592,7 @@ int ft_line_to(const FT_Vector *to, void *user)
 	return 0;
 }
 
-int ft_conic_to(const FT_Vector * control, const FT_Vector *to, void *user)
+int ft_conic_to(FTCST FT_Vector * control, FTCST FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_quadratic_to(ftol->path, INT2FIX(control->x), INT2FIX(control->y), INT2FIX(to->x), INT2FIX(to->y) );
@@ -592,7 +600,7 @@ int ft_conic_to(const FT_Vector * control, const FT_Vector *to, void *user)
 	return 0;
 }
 
-int ft_cubic_to(const FT_Vector *c1, const FT_Vector *c2, const FT_Vector *to, void *user)
+int ft_cubic_to(FTCST FT_Vector *c1, FTCST FT_Vector *c2, FTCST FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_cubic_to(ftol->path, INT2FIX(c1->x), INT2FIX(c1->y), INT2FIX(c2->x), INT2FIX(c2->y), INT2FIX(to->x), INT2FIX(to->y) );
