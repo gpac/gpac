@@ -944,6 +944,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 				gf_sc_texture_enable(span->ext->txh, NULL);
 				visual_3d_mesh_paint(tr_state, span->ext->tx_mesh);
 				gf_sc_texture_disable(span->ext->txh);
+				tr_state->mesh_num_textures = 0;
 			} else {
 				span_fill_3d(span, tr_state);
 			}
