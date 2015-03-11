@@ -1297,7 +1297,20 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	if(!visual->glsl_flags)
 		visual->glsl_flags = 0;
 
+	if(visual->has_material_2d){	// mat2d (hence no lights)
+		visual->glsl_flags |= GF_GL_HAS_MAT_2D;
+		visual->glsl_flags &= ~GF_GL_HAS_LIGHT;
+	}
+	/*
+	}else if(visual->num_lights){	// has lights
+		visual->glsl_flags |= GF_GL_HAS_LIGHT;
+		visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
+	}else{							//fallback: no mat2d AND no lights
+		visual->glsl_flags &= ~GF_GL_HAS_LIGHT;
+		visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
+	}*/
 	flags = visual->glsl_flags;
+	printf("texturing... %d\n",visual->glsl_flags);
 
 #ifndef GPAC_DISABLE_VRML
 	if (txh->matteTexture) {
@@ -1416,12 +1429,14 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 			GL_CHECK_ERR
 			/*loc = glGetUniformLocation(visual->glsl_programs[flags], "y_plane");	//¡k for ES2.0
 			glUniform1i(loc, 0);*/
+			tx_bind(txh);	//¡TODOk check before ES2.0
+		} else {
+			tx_bind(txh);
 		}
-
-//		tx_bind(txh);	//¡k check
 
 	}
 	visual->glsl_flags = flags;
+	printf("TEXTURED... %d\n",visual->glsl_flags);
 	return 1;
 
 }

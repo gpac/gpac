@@ -1878,6 +1878,10 @@ void visual_3d_set_material_2d(GF_VisualManager *visual, SFColor col, Fixed alph
 		visual->mat_2d.green = col.green;
 		visual->mat_2d.blue = col.blue;
 		visual->mat_2d.alpha = alpha;
+		if(visual->glsl_program){
+			visual->compositor->visual->glsl_flags |= GF_GL_HAS_MAT_2D;
+			visual->compositor->visual->glsl_flags &= ~GF_GL_HAS_LIGHT;
+		}
 	}
 
 }
@@ -1891,6 +1895,10 @@ void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
 		visual->mat_2d.green = INT2FIX( GF_COL_G(col) ) / 255;
 		visual->mat_2d.blue = INT2FIX( GF_COL_B(col) ) / 255;
 		visual->mat_2d.alpha = INT2FIX( a ) / 255;;
+		if(visual->glsl_program){
+			visual->compositor->visual->glsl_flags |= GF_GL_HAS_MAT_2D;
+			visual->compositor->visual->glsl_flags &= ~GF_GL_HAS_LIGHT;
+		}
 	}
 }
 
@@ -1988,6 +1996,8 @@ Bool visual_3d_add_point_light(GF_VisualManager *visual, Fixed ambientIntensity,
 	visual->lights[visual->num_lights].position = location;
 	memcpy(&visual->lights[visual->num_lights].light_mx, light_mx, sizeof(GF_Matrix) );
 	visual->num_lights++;
+	if(visual->glsl_program)
+			visual->compositor->visual->glsl_flags |= GF_GL_HAS_LIGHT;
 	return 1;
 }
 
@@ -2006,6 +2016,8 @@ Bool visual_3d_add_spot_light(GF_VisualManager *visual, Fixed ambientIntensity, 
 	visual->lights[visual->num_lights].position = location;
 	memcpy(&visual->lights[visual->num_lights].light_mx, light_mx, sizeof(GF_Matrix) );
 	visual->num_lights++;
+	if(visual->glsl_program)
+		visual->compositor->visual->glsl_flags |= GF_GL_HAS_LIGHT;
 	return 1;
 }
 
@@ -2019,6 +2031,8 @@ Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed ambientInte
 	visual->lights[visual->num_lights].direction = direction;
 	memcpy(&visual->lights[visual->num_lights].light_mx, light_mx, sizeof(GF_Matrix) );
 	visual->num_lights++;
+	if(visual->glsl_program)
+		visual->compositor->visual->glsl_flags |= GF_GL_HAS_LIGHT;
 	return 1;
 }
 
@@ -2034,6 +2048,8 @@ void visual_3d_clear_all_lights(GF_VisualManager *visual)
 {
 	visual->num_lights = 0;
 	visual->has_inactive_lights = GF_FALSE;
+	if(visual->glsl_program)
+		visual->compositor->visual->glsl_flags &= ~GF_GL_HAS_LIGHT;
 }
 
 void visual_3d_set_fog(GF_VisualManager *visual, const char *type, SFColor color, Fixed density, Fixed visibility)

@@ -138,7 +138,9 @@ GLDECL_STATIC(glUniformMatrix3x4fv);
 GLDECL_STATIC(glUniformMatrix4x3fv);
 #ifndef GPAC_ANDROID//¡TODOk check which funcs are declared for ES2.0 use
 GLDECL_STATIC(glVertexAttrib3f);
-GLDECL_STATIC(glGetUniformiv);GLDECL_STATIC(glEnableVertexAttribArray);
+GLDECL_STATIC(glGetUniformiv);
+GLDECL_STATIC(glGetUniformfv);
+GLDECL_STATIC(glEnableVertexAttribArray);
 GLDECL_STATIC(glDisableVertexAttribArray);
 GLDECL_STATIC(glVertexAttribPointer);
 GLDECL_STATIC(glVertexAttribIPointer);
@@ -283,6 +285,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		//¡TODOk check which funcs are declared for ES2.0 use
 		GET_GLFUN(glVertexAttrib3f);
 		GET_GLFUN(glGetUniformiv);
+		GET_GLFUN(glGetUniformfv);
 
 		compositor->gl_caps.has_shaders = 1;
 
@@ -823,6 +826,23 @@ static void visual_3d_init_yuv_shaders(GF_VisualManager *visual)
 }
 
 //¡kstartof custom ES2.0 functions
+/**
+ * Prints uniform's value
+ */
+static void my_glQueryUniform(GF_SHADERID progObj, const char *name, int index){
+	GLint loc;
+	GLfloat res[4];
+
+	loc = my_glGetUniformLocation(progObj, name);
+	if(loc<0){
+		printf("failed to locate uniform. exiting\n");
+		return;
+	}else{
+		glGetUniformfv(progObj, loc, (GLfloat *) res);
+		printf("uniform %s has value of: %f\n", name, res[index]);
+	}
+}
+
 //¡k test function for listing all active uniforms
 static void my_glQueryUniforms(GF_SHADERID progObj){
 		
@@ -956,78 +976,6 @@ static void my_glQueryAttributes(GF_SHADERID progObj){
 	}
 }
 
-//¡k DELETE?
-/** Checks if the selected GLSL flag has an updated value
- *  Returns GF_FALSE if the flags are already old
- *  Returns GF_TRUE is the check was successful
- *  new_glsl_feature = GF_TRUE, if flag has changed
- */
-/*
-Bool check_glsl_flag(GF_VisualManager *visual, u32 flag){
-	
-	Bool glsl_value, visual_value;
-	u32 flags = visual->glsl_flags;
-
-	//Abort if the flags are old
-	if(visual->new_glsl_feature == GF_TRUE)
-		return GF_FALSE;
-
-
-	
-	switch(flag){
-		case GF_GL_HAS_CLIP:
-			visual_value = (Bool) (visual->num_clips > 0);
-			break;
-		case GF_GL_HAS_FOG:
-			visual_value = visual->has_fog;
-			break;
-		case GF_GL_HAS_MAT:
-			visual_value = visual->has_material;
-			break;
-		case GF_GL_HAS_MAT_2D:
-			visual_value = visual->has_material_2d;
-			break;
-		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("Undefined GLSL flag (of value: %u [ES2.0]",flag));
-			return GF_TRUE;	//check was successful (no changes)
-	}
-
-	glsl_value = (Bool) (flags & flag);
-
-	if(glsl_value!=visual_value){
-		visual->new_glsl_feature = GF_TRUE;
-		visual->glsl_flags ^= flag;		//toggle flag
-	}
-
-	return GF_TRUE;
-}
-*/
-
-/** Checks if any GLSL flag has an updated value
- *  Returns GF_TRUE if flags have changes
- *  Returns GF_FALSE if they are still valid
- */
-/*	Uncomment this!!!!!!!
-Bool refresh_glsl_flags(GF_VisualManager *visual){
-
-	//Abort if the flags are old
-	if(visual->new_glsl_feature == GF_TRUE)
-		return GF_FALSE;
-
-	for ( i =0; i<GF_GL_NUM_OF_FLAGS; i++){
-		if(check_glsl_flag(visual, (1<<i))
-
-	}
-
-	//if(visual->has_fog != (visual->glsl_flags & GF_GL_HAS_MAT))
-		//update_glsl_flag(
-
-	//visual->glsl_flags
-
-}
-*/
-
-
 /**
  * ¡k
  * OpenGL ES 2.0 Vertex Shader for GL ES 1.1 fixed-function vertex pipeline
@@ -1045,9 +993,8 @@ Bool refresh_glsl_flags(GF_VisualManager *visual){
 //todo ... shader_only_mode
 static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 {
-	u32 i, j;
+	u32 i;
 	GLint loc;
-	GF_Err error;
 	Bool working = 0;	//¡k temp bool for testing
 	GLint err_log = 0;	//¡k error log
 	GLsizei log_len = 0; //¡k
@@ -1121,14 +1068,6 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	//	printf("ERROR LOG: %s \n", err_log);
 	//	return;
 	//}
-	
-	/*
-	glGetProgramiv(visual->glsl_program, GL_ACTIVE_UNIFORMS, &err_log);	//¡k test for getting no. of uniforms
-	printf("unis: %d \n", err_log);
-	glGetProgramiv(visual->glsl_program, GL_ACTIVE_ATTRIBUTES, &err_log);	//¡k test for getting no. of uniforms
-	printf("attrs: %d \n", err_log);
-	*/
-	//ENDOF
 
 
 }
@@ -2263,56 +2202,67 @@ static void visual_3d_set_clippers_ES2(GF_VisualManager *visual, GF_TraverseStat
 static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh *mesh, void *vertex_buffer_address)
 {
 	GF_VisualManager *visual = tr_state->visual;
+	GF_VisualManager *vsl = visual->compositor->visual;	//we use the compositor visual for the shader stuff
 	char *tmp = (char *) gf_malloc(sizeof(char)*60);
 	int i;
 	GLint loc;
+	u32 flags;
 
-
-	if(!visual->glsl_flags)
-		visual->glsl_flags = 0;
+	printf("drawing... %d\n",vsl->glsl_flags);
+	if(!vsl->glsl_flags)
+		vsl->glsl_flags = 0;
+	flags = vsl->glsl_flags;
 
 	if(visual->has_material_2d){	// mat2d (hence no lights)
-		visual->glsl_flags |= GF_GL_HAS_MAT_2D;
-		visual->glsl_flags &= ~GF_GL_HAS_LIGHT;
+		flags |= GF_GL_HAS_MAT_2D;
+		flags &= ~GF_GL_HAS_LIGHT;
 	}else if(visual->num_lights){	// has lights
-		visual->glsl_flags |= GF_GL_HAS_LIGHT;
-		visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
+		flags |= GF_GL_HAS_LIGHT;
+		flags &= ~GF_GL_HAS_MAT_2D;
 	}else{							//fallback: no mat2d AND no lights
-		visual->glsl_flags &= ~GF_GL_HAS_LIGHT;
-		visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
+		flags &= ~GF_GL_HAS_LIGHT;
+		flags &= ~GF_GL_HAS_MAT_2D;
 	}
-
+	vsl->glsl_flags = visual->glsl_flags = flags;
 	//we don't know for which program we updated the projection
-	if (visual->glsl_program != visual->glsl_programs[visual->glsl_flags]) {
+	if ((visual->glsl_program != vsl->glsl_programs[visual->glsl_flags])||!vsl->glsl_programs[visual->glsl_flags]) {
 		tr_state->visual->needs_projection_matrix_reload = 1;
 	}
 
 	GL_CHECK_ERR
-	visual->glsl_program = visual->glsl_programs[visual->glsl_flags];	//¡k temporary patch
-	glUseProgram(visual->glsl_programs[visual->glsl_flags]);
+
+		visual->glsl_program = vsl->glsl_programs[visual->glsl_flags];	//¡k temporary patch
+	glUseProgram(visual->compositor->visual->glsl_programs[visual->glsl_flags]);
+
+	//visual->glsl_flags = 0;	//I d not remember why we put it here in the first place
+
 	GL_CHECK_ERR
 		printf("\n flags (in draw_mesh_shader_only): %u \n",visual->glsl_flags);
 	//my_glQueryAttributes(visual->glsl_programs[visual->glsl_flags]);
 	//my_glQueryUniforms(visual->glsl_programs[visual->glsl_flags]);
 
 
-		//¡TODOk setup matrices
-
-		//¡k GL_COLOR_MATERIAL does not exist in GL ES 2
-	if (visual->state_color_on) glEnable(GL_COLOR_MATERIAL);
-	else glDisable(GL_COLOR_MATERIAL);
+	//¡k GL_COLOR_MATERIAL does not exist in GL ES 2
+	if (visual->state_color_on)
+		glEnable(GL_COLOR_MATERIAL);
+	else
+		glDisable(GL_COLOR_MATERIAL);
 
 	//¡k default behaviour
-	if (visual->state_blend_on) glEnable(GL_BLEND);
+	if (visual->state_blend_on)
+		glEnable(GL_BLEND);
 
 	//¡k default behaviour (simulating glEnable(light_no)
+	/*
 	loc = glGetUniformLocation(visual->glsl_program, "enableLights");
 	if(loc>0) glUniform1i(loc, 1);
+	*/
 
 	visual_3d_update_matrices_ES2(tr_state);
 
 	loc = my_glGetAttribLocation(visual->glsl_program, "gfVertex");
-	if (loc<0) return;
+	if (loc<0)
+		return;
 	glVertexAttribPointer(loc, 3, GL_FLOAT, GL_TRUE, sizeof(GF_Vertex), vertex_buffer_address);
 	glEnableVertexAttribArray(loc);
 	GL_CHECK_ERR
@@ -2330,27 +2280,49 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	 *
 	 */
 	if (visual->has_material_2d) {
-		//Set mat colour - for compatibility with [YUVstict]
+
+
+		
+		if(flags & GF_GL_IS_YUV){	//manually parse alpha
+			loc = my_glGetUniformLocation(visual->glsl_program, "alpha");
+			if(loc>0)
+				glUniform1f(loc, FIX2FLT(visual->mat_2d.alpha));
+		}else{	//if it's not YUV handle alpha with blend
+			glEnable(GL_BLEND);
+			if(!tr_state->mesh_num_textures && visual->mat_2d.alpha == FIX_ONE){
+					visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0);
+			}else{
+				visual_3d_enable_antialias(visual, 0);
+			}
+			//¡k Old code [Delete after testing]
+			/*
+			if(tr_state->mesh_num_textures){
+				glEnable(GL_BLEND);
+				visual_3d_enable_antialias(visual, 0);
+			}else if(visual->mat_2d.alpha == FIX_ONE){
+				glDisable(GL_BLEND);
+				visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0);
+			}
+			*/
+		}
+
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
 		if (loc>=0)
 			glUniform4fv(loc, 1, (GLfloat *) & visual->mat_2d);
+		GL_CHECK_ERR
+
+			//my_glQueryUniform(visual->glsl_program, "gfEmissionColor", 3);
 
 		//equilavent of glDisable(GL_LIGHTING)
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumLights");
 		if (loc>=0)
 			glUniform1i(loc, 0);
 
-		//¡k not tested from here
-		if (visual->mat_2d.alpha != FIX_ONE) {
-			glEnable(GL_BLEND);
-			visual_3d_enable_antialias(visual, 0);
-		} else {
-			//disable blending only if no texture !
-			if (!tr_state->mesh_num_textures)
-				glDisable(GL_BLEND);
-			visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0);
-		}
-		//¡k to here
+	}else if(flags & GF_GL_IS_YUV){	//manually parse alpha
+		loc = my_glGetUniformLocation(visual->glsl_program, "alpha");
+		if(loc>0)
+			glUniform1f(loc, 1.0);
+
 	}
 
 			
@@ -2467,11 +2439,21 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			glUniform1i(loc, tr_state->mesh_num_textures);
 		GL_CHECK_ERR
 
-		//parsing texture matrix
-		loc = my_glGetUniformLocation(visual->glsl_program, "gfTextureMatrix");
-		if (loc>=0)
-			glUniformMatrix4fv(loc, 1, GL_FALSE, visual->tx_matrix.m);
-		GL_CHECK_ERR
+		if(visual->has_tx_matrix){
+			//parsing texture matrix
+			loc = my_glGetUniformLocation(visual->glsl_program, "gfTextureMatrix");
+			if (loc>=0)
+				glUniformMatrix4fv(loc, 1, GL_FALSE, visual->tx_matrix.m);
+			GL_CHECK_ERR
+		}else{
+			//create identity matrix to load
+			GF_Matrix identity;
+			gf_mx_init(identity);
+			loc = my_glGetUniformLocation(visual->glsl_program, "gfTextureMatrix");
+			if (loc>=0)
+				glUniformMatrix4fv(loc, 1, GL_FALSE, identity.m);
+			GL_CHECK_ERR
+		}
 
 
 		//parsing texture coordinates
@@ -2564,14 +2546,15 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	gf_free(tmp);	//¡TODOk add free in individual functions using tmp
 	visual_3d_do_draw_mesh(tr_state, mesh);
+	printf("DRAWN... %d\n",visual->glsl_flags);
 	if (mesh->vbo)
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	visual->has_material_2d = 0;
+	visual->compositor->visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
+	visual->glsl_flags = visual->compositor->visual->glsl_flags;
 	visual->has_material = 0;
 	visual->state_color_on = 0;
-
 	GL_CHECK_ERR
-
 	glUseProgram(0);
 }
 
