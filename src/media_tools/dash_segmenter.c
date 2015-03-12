@@ -3958,7 +3958,7 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 
                 if (!rid) continue;
                 al_len += (u32) strlen(rid);
-                al_len += (u32) strlen(depID);
+                al_len += (u32) strlen(depID)+1;
 
 				depID = gf_realloc(depID, sizeof(char)*al_len);
                 if (t) strcat(depID, " ");
