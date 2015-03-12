@@ -1931,12 +1931,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stderr, "\n\n\tNon-compliant HEVC track: No hvcC or shcC found in sample description\n");
 					}
 					if (hevccfg) {
-						dump_hevc_track_info(file, trackNum, hevccfg, &hevc_state, full_dump);
+						dump_hevc_track_info(file, trackNum, hevccfg, &hevc_state);
 						gf_odf_hevc_cfg_del(hevccfg);
 						fprintf(stderr, "\n");
 					}
 					if (shvccfg) {
-						dump_hevc_track_info(file, trackNum, shvccfg, &hevc_state, full_dump);
+						dump_hevc_track_info(file, trackNum, shvccfg, &hevc_state);
 						gf_odf_hevc_cfg_del(shvccfg);
 					}
 #endif /*GPAC_DISABLE_AV_PARSERS  && defined(GPAC_DISABLE_HEVC)*/
