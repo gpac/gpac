@@ -30,6 +30,9 @@
 /*diff time in ms to consider an audio frame too late and drop it - we should try to dynamically figure this out
 since the drift may be high on TS for example, where PTS-PCR>500ms is quite common*/
 #define MAX_RESYNC_TIME		1000
+//if drift between audio object time and clock varies more is than this value (in ms) between two drift computation, clock is adjusted. We don't adjust for lower values otherwise we would
+//introduce oscillations in the clock and non-smooth playback
+#define MIN_DRIFT_ADJUST	75
 
 struct __audiofilteritem
 {
@@ -113,8 +116,13 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 			ai->need_release = 0;
 			return gf_audio_input_fetch_frame(callback, size, audio_delay_ms);
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Audio Input] Audio clock: delay %d - obj time %d - CTS %d - adjust drift %d\n", audio_delay_ms, obj_time - audio_delay_ms, ts, drift));
-		gf_mo_adjust_clock(ai->stream, drift);
+		resync_delay = gf_mo_get_clock_drift(ai->stream) - drift;
+		if (resync_delay < 0) resync_delay = -resync_delay;
+
+		if (resync_delay > MIN_DRIFT_ADJUST) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Audio Input] Audio clock: delay %d - obj time %d - audio delay %d - CTS %d - adjust drift %d\n", audio_delay_ms, obj_time, audio_delay_ms, ts, drift));
+			gf_mo_adjust_clock(ai->stream, drift);
+		}
 	}
 	return frame;
 }

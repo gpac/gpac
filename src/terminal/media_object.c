@@ -562,11 +562,12 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 			s->root_od->media_current_time = mo->odm->media_current_time;
 		}
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %d) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, gf_clock_time(codec->ck), CU->TS, mo->framesize, mo->timestamp, codec->CB->UnitCount, gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
+
 		mo->timestamp = CU->TS;
 		/*signal EOS after rendering last frame, not while rendering it*/
 		*eos = GF_FALSE;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %d) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, gf_clock_time(codec->ck), CU->TS, mo->framesize, mo->timestamp, codec->CB->UnitCount, gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
 	} else if (*eos) {
 		//already rendered the last frame, consider we no longer have pending late frame on this stream
 		mo->ms_until_pres = 0;
@@ -690,6 +691,23 @@ void gf_mo_get_object_time(GF_MediaObject *mo, u32 *obj_time)
 	gf_odm_lock(mo->odm, 0);
 }
 
+GF_EXPORT
+s32 gf_mo_get_clock_drift(GF_MediaObject *mo)
+{
+	s32 res;
+	if (!gf_odm_lock_mo(mo)) return 0;
+
+	/*regular media codec...*/
+	if (mo->odm->codec) {
+		res = mo->odm->codec->ck->drift;
+	}
+	/*BIFS object */
+	else if (mo->odm->subscene && mo->odm->subscene->scene_codec) {
+		res = mo->odm->subscene->scene_codec->ck->drift;
+	}
+	gf_odm_lock(mo->odm, 0);
+	return res;
+}
 
 GF_EXPORT
 void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_loop)

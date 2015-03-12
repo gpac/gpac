@@ -728,9 +728,9 @@ do_mix:
 				in->out_samples_to_write = 0;
 				continue;
 			}
-			if (in->out_samples_to_write>in->out_samples_written) {
-				gf_mixer_fetch_input(am, in, delay + 8000 * i / am->bits_per_sample / am->sample_rate / am->nb_channels);
-				if (in->out_samples_to_write>in->out_samples_written) nb_to_fill++;
+			if (in->out_samples_to_write > in->out_samples_written) {
+				gf_mixer_fetch_input(am, in, delay /*+ 8000 * i / am->bits_per_sample / am->sample_rate / am->nb_channels*/ );
+				if (in->out_samples_to_write > in->out_samples_written) nb_to_fill++;
 			}
 		}
 		/*release - this is done in 2 steps in case 2 audio object use the same source...*/
@@ -741,6 +741,8 @@ do_mix:
 			in->in_bytes_used = 0;
 		}
 		if (!nb_to_fill) break;
+		//only resync on the first fill
+		delay=0;
 	}
 	/*step 3, mix the final buffer*/
 	memset(am->output, 0, sizeof(s32) * buffer_size);
