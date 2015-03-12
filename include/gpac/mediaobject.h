@@ -151,6 +151,8 @@ Bool gf_mo_is_private_media(GF_MediaObject *mo);
 /*set destination window for harware codecs directly outputing to video out - returns 1 if video size has changed*/
 Bool gf_mo_set_position(GF_MediaObject *mo, GF_Window *src, GF_Window *dst);
 
+s32 gf_mo_get_clock_drift(GF_MediaObject *mo);
+
 enum
 {
 	/*this is set to 0 by the OD manager whenever a change occur in the media (w/h change, SR change, etc)
