@@ -296,7 +296,7 @@ static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, 
 	gf_mixer_lock(ar->mixer, 1);
 	if (DoFreeze) {
 		if (!ar->Frozen) {
-			ar->freeze_time = gf_sys_clock();
+			ar->freeze_time = gf_sys_clock_high_res();
 			if (!for_reconfig && ar->audio_out && ar->audio_out->Play) ar->audio_out->Play(ar->audio_out, 0);
 			ar->Frozen = 1;
 		}
@@ -304,7 +304,7 @@ static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, 
 		if (ar->Frozen) {
 			if (!for_reconfig && ar->audio_out && ar->audio_out->Play) ar->audio_out->Play(ar->audio_out, reset_hw_buffer ? 2 : 1);
 			ar->Frozen = 0;
-			ar->start_time += gf_sys_clock() - ar->freeze_time;
+			ar->start_time += gf_sys_clock_high_res() - ar->freeze_time;
 		}
 	}
 	gf_mixer_lock(ar->mixer, 0);
@@ -533,10 +533,15 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 				}
 			}
 		}
-		if (!ar->audio_out) gf_cfg_set_key(user->config, "Audio", "DriverName", "No Audio Output Available");
+		if (!ar->audio_out) {
+			gf_cfg_set_key(user->config, "Audio", "DriverName", "No Audio Output Available");
+		} else {
+			if (user->init_flags & GF_TERM_USE_AUDIO_HW_CLOCK)
+				ar->clock_use_audio_out = GF_TRUE;
+		}
 	}
 	/*init compositor timer*/
-	ar->start_time = gf_sys_clock();
+	ar->start_time = gf_sys_clock_high_res();
 	ar->current_time = 0;
 	return ar;
 }
@@ -676,11 +681,13 @@ u32 gf_sc_ar_get_delay(GF_AudioRenderer *ar)
 
 u32 gf_sc_ar_get_clock(GF_AudioRenderer *ar)
 {
-	if (ar->audio_out) return ar->current_time;
+	if (ar->clock_use_audio_out) return ar->current_time;
 
-	if (ar->Frozen) return ar->freeze_time - ar->start_time;
+	if (ar->Frozen) {
+		return (u32) ((ar->freeze_time - ar->start_time) / 1000);
+	} 
 
-	return gf_sys_clock() - ar->start_time;
+	return (u32) ((gf_sys_clock_high_res() - ar->start_time) / 1000);
 }
 
 GF_EXPORT
