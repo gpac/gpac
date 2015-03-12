@@ -1039,13 +1039,14 @@ typedef struct _audio_render
 
 	Bool disable_resync;
 	Bool disable_multichannel;
+	Bool clock_use_audio_out;
 
 	/*frozen time counter if set*/
 	Bool Frozen;
 	/*startup time, used when no audio output is set*/
-	u32 start_time;
+	u64 start_time;
 	/*freeze time, used when no audio output is set*/
-	u32 freeze_time;
+	u64 freeze_time;
 
 	/*system clock compute when audio output is present*/
 	u32 current_time, bytes_per_second, time_at_last_config;

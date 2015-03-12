@@ -1402,6 +1402,8 @@ int main (int argc, char **argv)
 
 	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = 1;
 
+	//in dump mode we don't want to rely on system clock but on the number of samples being consumed
+	if (dump_mode) user.init_flags |= GF_TERM_USE_AUDIO_HW_CLOCK;
 
 	if (bench_mode) {
 		gf_cfg_discard_changes(user.config);
