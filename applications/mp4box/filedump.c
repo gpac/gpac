@@ -2052,7 +2052,11 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					fprintf(stderr, "Unknown Systems stream OTI %d\n", esd->decoderConfig->objectTypeIndication);
 				}
 			}
-
+			{
+				char szCodec[100];
+				gf_media_get_rfc_6381_codec_name(file, trackNum, szCodec, 0);
+				fprintf(stderr, "RFC6381 Codec Parameters: %s\n", szCodec);
+			}
 			/*sync is only valid if we open all tracks to take care of default MP4 sync..*/
 			if (!full_dump) {
 				if (!esd->OCRESID || (esd->OCRESID == esd->ESID))
