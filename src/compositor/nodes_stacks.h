@@ -111,6 +111,7 @@ typedef struct
 	Bool hybgl_init;
 #endif
 	u32 flags;
+	char col_tx[12];
 } Background2DStack;
 
 #ifndef GPAC_DISABLE_3D

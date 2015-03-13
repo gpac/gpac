@@ -286,6 +286,7 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->visual->GetSurfaceAccess = compositor_2d_get_video_access;
 	compositor->visual->ReleaseSurfaceAccess = compositor_2d_release_video_access;
 	compositor->visual->CheckAttached = compositor_2d_check_attached;
+	compositor->visual->ClearSurface = compositor_2d_clear_surface;
 	
 	if (compositor->video_out->FlushRectangles)
 		compositor->visual->direct_flush = GF_TRUE;
