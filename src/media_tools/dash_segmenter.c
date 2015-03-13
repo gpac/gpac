@@ -387,6 +387,11 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		if (!hvcc) {
 			hvcc = gf_isom_shvc_config_get(movie, track, 1);
 		}
+        if (subtype==GF_ISOM_SUBTYPE_HVT1) {
+            u32 refTrack;
+            gf_isom_get_reference(movie, track, GF_ISOM_REF_TBAS, 1, &refTrack);
+            hvcc = gf_isom_hevc_config_get(movie, refTrack, 1);
+        }
 		if (hvcc) {
 			u8 c;
 			char szTemp[40];
@@ -3933,6 +3938,10 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 				u32 default_sample_group_index, id, independent;
 				Bool full_frame;
 				gf_isom_get_tile_info(file, di->trackNum, 1, &default_sample_group_index, &id, &independent, &full_frame, &di->x, &di->y, &di->w, &di->h);
+                
+                if (!dash_input->w) {
+                    gf_isom_get_visual_info(file, dash_input->trackNum, 1, &dash_input->w, &dash_input->h);
+                }
 			}
 		}
 
@@ -4229,12 +4238,22 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 
 	/* writing AdaptationSet level descriptors specified only on one input (non discriminating during classification)*/
 	for (i=0; i< nb_dash_inputs; i++) {
-		if (dash_inputs[i].adaptation_set == adaptation_set_num && dash_inputs[i].period == period_num) {
+		if ((dash_inputs[i].adaptation_set == adaptation_set_num) && (dash_inputs[i].period == period_num)) {
 			for (j = 0; j < dash_inputs[i].nb_as_c_descs; j++) {
 				fprintf(mpd, "   %s\n", dash_inputs[i].as_c_descs[j]);
 			}
 		}
 	}
+    
+    //check SRD
+    for (i=0; i< nb_dash_inputs; i++) {
+        if ((dash_inputs[i].adaptation_set == adaptation_set_num) && (dash_inputs[i].period == period_num)) {
+            if (dash_inputs[i].w && dash_inputs[i].h) {
+                fprintf(mpd, "   <SupplementalProperty schemeIdURI=\"urn:mpeg:dash:srd:2014\" value=\"1,%d,%d,%d,%d\">\n", dash_inputs[i].x, dash_inputs[i].y, dash_inputs[i].w, dash_inputs[i].h);
+            }
+        }
+    }
+    
 
 	if (first_rep) {
 
