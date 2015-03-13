@@ -1790,12 +1790,13 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	SDLVID();
 	u32 amask = 0;
 	u32 bpp;
+	GF_Err e;
 #if SDL_VERSION_ATLEAST(2,0,0)
 #else
 	u32 i;
 	u8 *dst, *src;
 #endif
-	SDL_Rect dstrc;
+	SDL_Rect dstrc, srcrc, *src_ptr=NULL;
 	SDL_Surface **pool;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] Bliting surface (overlay type %d)\n", overlay_type));
@@ -1882,9 +1883,20 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 #endif
 	}
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+	if (dst_wnd) {
+		srcrc.x = src_wnd->x;
+		srcrc.y = src_wnd->y;
+		srcrc.w = src_wnd->w;
+		srcrc.h = src_wnd->h;
+		src_ptr = &srcrc;
+	}
+#else
 	/*SDL doesn't support stretching ...*/
 	if ((src_wnd->w != dst_wnd->w) || (src_wnd->h!=dst_wnd->h))
 		return GF_NOT_SUPPORTED;
+#endif
+
 
 	switch (video_src->pixel_format) {
 	case GF_PIXEL_RGB_24:
@@ -1917,9 +1929,20 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	dstrc.x = dst_wnd->x;
 	dstrc.y = dst_wnd->y;
 
-	if (SDL_BlitSurface(*pool, NULL, ctx->back_buffer, &dstrc))
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Blit error: %s\n", SDL_GetError()));
+	e = GF_OK;
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+	if (SDL_UpperBlitScaled(*pool, src_ptr, ctx->back_buffer, &dstrc)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Blit error: %s\n", SDL_GetError()));
+		e = GF_IO_ERR;
+	}
+#else
+	if (SDL_BlitSurface(*pool, src_ptr, ctx->back_buffer, &dstrc)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Blit error: %s\n", SDL_GetError()));
+		e = GF_IO_ERR;
+	}
+
+#endif
 
 	SDL_FreeSurface((*pool));
 	*pool = NULL;
@@ -1956,7 +1979,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 #endif
 
 
-	return GF_OK;
+	return e;
 }
 
 
@@ -1987,7 +2010,12 @@ void *SDL_NewVideo()
 	driv->hw_caps |= GF_VIDEO_HW_OPENGL;
 
 	/*no YUV hardware blitting in SDL (only overlays)*/
-	driv->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY | GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA;;
+	driv->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY | GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA;
+
+#if SDL_VERSION_ATLEAST(2,0,0)
+	driv->hw_caps |= GF_VIDEO_HW_HAS_STRETCH;
+#endif
+
 	driv->Blit = SDL_Blit;
 	driv->LockBackBuffer = SDLVid_LockBackBuffer;
 	driv->LockOSContext = NULL;
