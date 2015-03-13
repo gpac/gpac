@@ -4249,7 +4249,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
     for (i=0; i< nb_dash_inputs; i++) {
         if ((dash_inputs[i].adaptation_set == adaptation_set_num) && (dash_inputs[i].period == period_num)) {
             if (dash_inputs[i].w && dash_inputs[i].h) {
-                fprintf(mpd, "   <SupplementalProperty schemeIdURI=\"urn:mpeg:dash:srd:2014\" value=\"1,%d,%d,%d,%d\">\n", dash_inputs[i].x, dash_inputs[i].y, dash_inputs[i].w, dash_inputs[i].h);
+                fprintf(mpd, "   <SupplementalProperty schemeIdURI=\"urn:mpeg:dash:srd:2014\" value=\"1,%d,%d,%d,%d\"/>\n", dash_inputs[i].x, dash_inputs[i].y, dash_inputs[i].w, dash_inputs[i].h);
             }
         }
     }
