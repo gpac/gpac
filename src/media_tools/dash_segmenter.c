@@ -4228,10 +4228,10 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 		fprintf(mpd, " lang=\"%s\"", szLang);
 	}
 	/*this should be fixed to use info collected during segmentation process*/
-	if (profile==GF_DASH_PROFILE_ONDEMAND)
+	if (profile==GF_DASH_PROFILE_ONDEMAND || profile==GF_DASH_PROFILE_AVC264_ONDEMAND)
 		fprintf(mpd, " subsegmentStartsWithSAP=\"1\"");
 
-	if (!strcmp(first_rep->szMime, "video/mp2t"))
+	if (strcmp(first_rep->szMime, "video/mp2t") != 0)
 		fprintf(mpd, " subsegmentAlignment=\"true\"");
 
 	fprintf(mpd, ">\n");
