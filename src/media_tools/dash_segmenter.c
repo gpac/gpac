@@ -4120,9 +4120,9 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 	} else if (profile==GF_DASH_PROFILE_MAIN) {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:%s:2011\"", is_mpeg2 ? "mp2t-main" : "isoff-main");
 	} else if (profile==GF_DASH_PROFILE_AVC264_LIVE) {
-		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-live:2011, http://dashif.org/guildelines/dash264\"");
+		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-live:2011, http://dashif.org/guidelines/dash264\"");
 	} else if (profile==GF_DASH_PROFILE_AVC264_ONDEMAND) {
-		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011, http://dashif.org/guildelines/dash264\"");
+		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011, http://dashif.org/guidelines/dash264\"");
 	} else {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:full:2011\"");
 	}
