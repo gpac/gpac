@@ -1844,11 +1844,26 @@ restart_fragmentation_pass:
 		}
 	}
 	if (sample_rate) fprintf(dash_cfg->mpd, " audioSamplingRate=\"%d\"", sample_rate);
-	if (segments_start_with_sap || split_seg_at_rap) {
-		fprintf(dash_cfg->mpd, " startWithSAP=\"%d\"", max_sap_type);
-	} else {
-		fprintf(dash_cfg->mpd, " startWithSAP=\"0\"");
+
+	//single segment (onDemand profiles)
+	if (dash_cfg->single_file_mode==1) {
+		fprintf(dash_cfg->mpd, " startWithSAP=\"1\"");
+		if (segments_start_with_sap || split_seg_at_rap) {
+			fprintf(dash_cfg->mpd, " subsegmentStartsWithSAP=\"%d\"", max_sap_type);
+		} else {
+			fprintf(dash_cfg->mpd, " subsegmentStartsWithSAP=\"0\"");
+		}
 	}
+	//regular segmenting
+	else {
+		if (segments_start_with_sap || split_seg_at_rap) {
+			fprintf(dash_cfg->mpd, " startWithSAP=\"%d\"", max_sap_type);
+		} else {
+			fprintf(dash_cfg->mpd, " startWithSAP=\"0\"");
+		}
+	}
+
+
 	//only appears at AdaptationSet level - need to rewrite the DASH segementer to allow writing this at the proper place
 //		if ((single_file_mode==1) && segments_start_with_sap) fprintf(dash_cfg->mpd, " subsegmentStartsWithSAP=\"%d\"", max_sap_type);
 
@@ -4208,8 +4223,11 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
                                       Bool bitstream_switching_mode, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang, const char *szInitSegment, Bool segment_alignment_disabled)
 {
 	u32 i, j;
+	Bool is_on_demand = ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND));
 	GF_DashSegInput *first_rep = &dash_inputs[first_rep_in_set];
-	fprintf(mpd, "  <AdaptationSet segmentAlignment=\"%s\"", segment_alignment_disabled ? "false" : "true");
+
+	//force segmentAlignment in onDemand
+	fprintf(mpd, "  <AdaptationSet segmentAlignment=\"%s\"", (!is_on_demand  && segment_alignment_disabled) ? "false" : "true");
 	if (bitstream_switching_mode) {
 		fprintf(mpd, " bitstreamSwitching=\"true\"");
 	}
@@ -4227,12 +4245,8 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 	if (szLang) {
 		fprintf(mpd, " lang=\"%s\"", szLang);
 	}
-	/*this should be fixed to use info collected during segmentation process*/
-	if (profile==GF_DASH_PROFILE_ONDEMAND)
-		fprintf(mpd, " subsegmentStartsWithSAP=\"1\"");
-
-	if (!strcmp(first_rep->szMime, "video/mp2t"))
-		fprintf(mpd, " subsegmentAlignment=\"true\"");
+	if ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND))
+		fprintf(mpd, " subsegmentAlignment=\"%s\"", segment_alignment_disabled ? "false" : "true");
 
 	fprintf(mpd, ">\n");
 
