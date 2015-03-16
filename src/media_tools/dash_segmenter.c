@@ -1845,14 +1845,9 @@ restart_fragmentation_pass:
 	}
 	if (sample_rate) fprintf(dash_cfg->mpd, " audioSamplingRate=\"%d\"", sample_rate);
 
-	//single segment (onDemand profiles)
+	//single segment (onDemand profiles, assumes we always start with an IDR)
 	if (dash_cfg->single_file_mode==1) {
 		fprintf(dash_cfg->mpd, " startWithSAP=\"1\"");
-		if (segments_start_with_sap || split_seg_at_rap) {
-			fprintf(dash_cfg->mpd, " subsegmentStartsWithSAP=\"%d\"", max_sap_type);
-		} else {
-			fprintf(dash_cfg->mpd, " subsegmentStartsWithSAP=\"0\"");
-		}
 	}
 	//regular segmenting
 	else {
@@ -4245,9 +4240,11 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 	if (szLang) {
 		fprintf(mpd, " lang=\"%s\"", szLang);
 	}
-	if ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND))
+    if ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND)) {
 		fprintf(mpd, " subsegmentAlignment=\"%s\"", segment_alignment_disabled ? "false" : "true");
-
+        //FIXME - we need inspection of the segments to figure out the SAP type !
+        fprintf(mpd, " subsegmentStartsWithSAP=\"1\"");
+    }
 	fprintf(mpd, ">\n");
 
 	/* writing AdaptationSet level descriptors specified only on one input (non discriminating during classification)*/
