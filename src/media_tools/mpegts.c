@@ -3855,11 +3855,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 	u32 i;
 	GF_Err e;
 	char data[UDP_BUFFER_SIZE];
-#ifdef GPAC_HAS_LINUX_DVB
-	char dvbts[DVB_BUFFER_SIZE];
-#endif
 	u32 size;
-	//u32 i;
 	GF_M2TS_Demuxer *ts = _p;
 
 	gf_m2ts_reset_parsers(ts);
@@ -3879,8 +3875,8 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 				continue;
 			}
 
-			ts_size = read(ts->tuner->ts_fd, dvbts, DVB_BUFFER_SIZE);
-			if (ts_size>0) gf_m2ts_process_data(ts, dvbts, (u32) ts_size);
+			ts_size = read(ts->tuner->ts_fd, data, UDP_BUFFER_SIZE);
+			if (ts_size>0) gf_m2ts_process_data(ts, data, (u32) ts_size);
 		}
 	} else
 #endif
