@@ -149,6 +149,8 @@ typedef struct
 	char *index;
 	GF_MPD_ByteRange *index_range;
 	u64 duration;
+	char *key_url;
+	unsigned char key_iv[16];
 } GF_MPD_SegmentURL;
 
 typedef struct
@@ -224,6 +226,8 @@ typedef struct
 	u32 probe_switch_count;
 	char *init_segment_data;
 	u32 init_segment_size;
+	char *key_url;
+	unsigned char key_iv[16];
 } GF_DASH_RepresentationPlayback;
 
 typedef struct {
@@ -403,7 +407,7 @@ typedef enum
 	item_index: current downloading index of the segment
 	nb_segments_removed: number of segments removed when pruging the MPD after updates (can be 0). The start number will be offset by this value
 */
-GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url);
+GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, unsigned char *key_iv);
 
 
 
