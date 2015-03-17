@@ -36,7 +36,7 @@ void gf_es_buffer_off(GF_Channel *ch)
 {
 	/*just in case*/
 	if (ch->BufferOn) {
-		ch->BufferOn = 0;
+		ch->BufferOn = GF_FALSE;
 		gf_clock_buffer_off(ch->clock);
 		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) : buffering off at STB %d (OTB %d) (nb buffering on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_term_get_time(ch->odm->term), gf_clock_time(ch->clock), ch->clock->Buffering));
 		//if one of the stream is done buffering, force data timeout for the clock to be the buffer time
@@ -1311,7 +1311,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		if (ch->esd->slConfig->useAccessUnitStartFlag) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d: missed begin of AU\n", ch->esd->ESID));
 		}
-		if (ch->codec_resilient) NewAU = 1;
+		if (ch->codec_resilient) NewAU = GF_TRUE;
 		else return;
 	}
 

@@ -2537,7 +2537,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		u32 i;
 		//translate hierarchy descriptors indexes into PIDs - check whether the PMT-index rules are the same for HEVC
 		for (i=0; i<gf_list_count(pmt->program->streams); i++) {
-			GF_M2TS_PES *an_es = (GF_M2TS_PES *)gf_list_get(pmt->program->streams, i);
+			GF_M2TS_PES *an_es = NULL;
 			GF_M2TS_PES *es = (GF_M2TS_PES *)gf_list_get(pmt->program->streams, i);
 			if ( !(es->flags & GF_M2TS_ES_IS_PES)) continue;
 			if (!es->depends_on_pid) continue;
