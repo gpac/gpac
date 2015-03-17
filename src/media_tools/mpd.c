@@ -47,6 +47,22 @@ static char *gf_mpd_parse_string(char *attr)
 	return gf_strdup(attr);
 }
 
+static void gf_mpd_parse_binary_hex(char *attr, unsigned char *data, size_t len)
+{
+	size_t i, max, as;
+	as = strlen(attr);
+	if (as % 2 == 1 || len % 2 == 1)
+		return;
+
+	max = (as / 2 > len ? len : as / 2);
+
+	for (i = 0; i < len; i ++) {
+		char tmp[3];
+		strncpy(tmp, attr + (i * 2), 2);
+		data[i] = (unsigned char) strtol(tmp, NULL, 16);
+	}
+}
+
 static Bool gf_mpd_valid_child(GF_MPD *mpd, GF_XMLNode *child)
 {
 	if (child->type != GF_XML_NODE_TYPE) return 0;
@@ -368,6 +384,9 @@ static void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root)
 		else if (!strcmp(att->name, "index")) seg->index = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "mediaRange")) seg->media_range = gf_mpd_parse_byte_range(att->value);
 		else if (!strcmp(att->name, "indexRange")) seg->index_range = gf_mpd_parse_byte_range(att->value);
+		else if (!strcmp(att->name, "xDRMKeyURL")) seg->key_url = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "xDRMKeyIV")) gf_mpd_parse_binary_hex(att->value, seg->key_iv, 16);
+
 	}
 }
 
@@ -785,6 +804,7 @@ void gf_mpd_segment_url_free(void *_ptr)
 	if (ptr->index_range) gf_free(ptr->index_range);
 	if (ptr->media) gf_free(ptr->media);
 	if (ptr->media_range) gf_free(ptr->media_range);
+	if (ptr->key_url) gf_free(ptr->key_url);
 	gf_free(ptr);
 }
 void gf_mpd_segment_base_free(void *_item)
@@ -2137,7 +2157,7 @@ GF_Err gf_mpd_write_file(GF_MPD *mpd, char *file_name)
 
 
 GF_EXPORT
-GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url)
+GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, unsigned char * out_key_iv)
 {
 	GF_MPD_BaseURL *url_child;
 	GF_MPD_SegmentTimeline *timeline = NULL;
@@ -2149,7 +2169,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 
 	*out_range_start = *out_range_end = 0;
 	*out_url = NULL;
-
+	*out_key_url = NULL;
 	/*resolve base URLs from document base (download location) to representation (media)*/
 	url = gf_strdup(mpd_url);
 
@@ -2309,6 +2329,10 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			if (segment->duration) {
 				*segment_duration = (u32) ((Double) (segment->duration) * 1000.0 / timescale);
 			}
+			if (segment->key_url) {
+				*out_key_url = gf_strdup(segment->key_url);
+			}
+			memcpy(out_key_iv, segment->key_iv, 16);
 			return GF_OK;
 		case GF_MPD_RESOLVE_URL_INDEX:
 			if (item_index >= segment_count) {
