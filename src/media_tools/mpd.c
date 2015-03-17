@@ -1602,14 +1602,25 @@ try_next_segment:
 
 				while (src_url[cmp] == seg_url[cmp]) cmp++;
 
+				fprintf(fmpd, "     <SegmentURL");
 				if (byte_range_media_file) {
-					fprintf(fmpd, "     <SegmentURL mediaRange=\""LLU"-"LLU"\"", elt->byte_range_start, elt->byte_range_end);
+					fprintf(fmpd, " mediaRange=\""LLU"-"LLU"\"", elt->byte_range_start, elt->byte_range_end);
 					if (strcmp(elt->url, byte_range_media_file))
 						fprintf(fmpd, " media=\"%s\"", elt->url);
-					fprintf(fmpd, "/>\n");
 				} else {
-					fprintf(fmpd, "     <SegmentURL media=\"%s\"/>\n", cmp ? (seg_url + cmp) : elt->url);
+					fprintf(fmpd, " media=\"%s\"", cmp ? (seg_url + cmp) : elt->url);
 				}
+				if (elt->drm_method != DRM_NONE) {
+					fprintf(fmpd, " xDRMMethod=\"aes-128\"");
+					if (elt->key_uri)
+						fprintf(fmpd, " xDRMKeyURL=%s xDRMKeyIV=\"", elt->key_uri);
+					size_t i;
+					for (i = 0; i < 16; i++) {
+						fprintf(fmpd, "%02x", elt->key_iv[i]);
+					}
+					fprintf(fmpd, "\"");
+				}
+				fprintf(fmpd, "/>\n");
 			}
 			fprintf(fmpd, "    </SegmentList>\n");
 			fprintf(fmpd, "   </Representation>\n");
@@ -1760,7 +1771,16 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *in
 			if (url->index) fprintf(out, " index=\"%s\"", url->index);
 			if (url->media_range) fprintf(out, " mediaRange=\""LLD"-"LLD"\"", url->media_range->start_range, url->media_range->end_range);
 			if (url->index_range) fprintf(out, " indexRange=\""LLD"-"LLD"\"", url->index_range->start_range, url->index_range->end_range);
-			fprintf(out, ">\n");
+			if (url->key_url) {
+				fprintf(out, " xDRMMethod=\"aes-128\" xDRMKeyURL=%s xDRMKeyIV=\"", url->key_url);
+				size_t i;
+				for (i = 0; i < 16; i++) {
+					fprintf(out, "%02x", url->key_iv[i]);
+				}
+				fprintf(out, "\"");
+			}
+			fprintf(out, "/>\n");
+			fprintf(out, "/>\n");
 		}
 	}
 	fprintf(out, "%s</SegmentList>\n", indent);
