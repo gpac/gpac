@@ -54,6 +54,7 @@ typedef struct s_playList Playlist;
 
 typedef enum e_playlistElementType  { TYPE_PLAYLIST, TYPE_MEDIA, TYPE_UNKNOWN } PlaylistElementType;
 
+typedef enum e_playlistElementDRMMethod { DRM_NONE, DRM_AES_128 } PlaylistElementDRMMethod;
 /**
  * The Structure containing the playlist element
  */
@@ -67,6 +68,9 @@ struct s_playlistElement {
 	char *audio_group;
 	char *video_group;
 	char *url;
+	PlaylistElementDRMMethod drm_method;
+	char *key_uri;
+	unsigned char key_iv[16];
 	GF_Err load_error;
 	PlaylistElementType element_type;
 	union {
