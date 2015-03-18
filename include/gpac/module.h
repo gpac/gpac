@@ -182,6 +182,77 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *cfgFile);
  *\param pm the module manager
  */
 void gf_modules_del(GF_ModuleManager *pm);
+
+/*!
+ *\brief load a static module given its interface function
+ *
+ *\param pm the module manager
+ *\param register_module the register interface function
+ */
+GF_Err gf_module_load_static(GF_ModuleManager *pm, GF_InterfaceRegister *(*register_module)());
+
+/*!
+ *\brief declare a module for loading
+ *
+ * When using GPAC as a static library, if GPAC_MODULE_CUSTOM_LOAD is
+ * defined, this macro can be used with GF_MODULE_STATIC_DECLARE() and
+ * gf_module_refresh() to load individual modules.
+ *
+ * It's first needed to call GF_MODULE_STATIC_DECLARE() with the name
+ * of the module you need to load outside of any function. This macro
+ * will declare the prototype of the module registration function so
+ * it should only be used outside functions.
+ *
+ * Then in your GPAC initialization code, you need to call
+ * GF_MODULE_LOAD_STATIC() with your GPAC module manager and the
+ * module name.
+ *
+ * Finally, you'll need to call gf_modules_refresh() with your module
+ * manager.
+ *
+ * \code
+ * GF_MODULE_STATIC_DECLARE(aac_in);
+ * GF_MODULE_STATIC_DECLARE(audio_filter);
+ * GF_MODULE_STATIC_DECLARE(ffmpeg);
+ * ...
+ *
+ * void prepare() {
+ *     GF_User user;
+ *     ...
+ *     user.modules = gf_modules_new("/data/gpac/modules", user.config);
+ *
+ *     GF_MODULE_LOAD_STATIC(user.modules, aac_in);
+ *     GF_MODULE_LOAD_STATIC(user.modules, audio_filter);
+ *     GF_MODULE_LOAD_STATIC(user.modules, ffmpeg);
+ *     ...
+ *     gf_modules_refresh(user.modules);
+ *    ...
+ * }
+ * \endcode
+ * \see GF_MODULE_LOAD_STATIC() gf_modules_refresh()
+ */
+#ifdef __cplusplus
+#define GF_MODULE_STATIC_DECLARE(_name)				\
+	extern "C" GF_InterfaceRegister *gf_register_module_##_name()
+#else
+#define GF_MODULE_STATIC_DECLARE(_name)				\
+	GF_InterfaceRegister *gf_register_module_##_name()
+#endif
+/*!
+ *\brief load a static module given its name
+ *
+ * Use this function to load a statically compiled
+ * module. GF_MODULE_STATIC_DECLARE() should be called before and
+ * gf_modules_refresh() after loading all the needed modules.
+ *
+ *\param _pm the module manager
+ *\param _name the module name
+ *\see GF_MODULE_STATIC_DECLARE() gf_modules_refresh()
+ */
+#define GF_MODULE_LOAD_STATIC(_pm, _name)			\
+	gf_module_load_static(_pm,gf_register_module_##_name)
+
+
 /*!
  *\brief refreshes modules
  *
@@ -255,6 +326,7 @@ GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const 
  *\brief interface shutdown
  *
  *Closes an interface
+
  *\param interface_obj the interface to close
  */
 GF_Err gf_modules_close_interface(GF_BaseInterface *interface_obj);
@@ -298,4 +370,3 @@ GF_Config *gf_modules_get_config(GF_BaseInterface *ifce);
 
 
 #endif		/*_GF_MODULE_H_*/
-
