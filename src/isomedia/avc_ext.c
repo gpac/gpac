@@ -471,7 +471,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			if (!rewrite_start_codes && !entry->shvc_config && !scal) {
 				if (ps_bs) {
 					u8 nal_type = (sample->data[nal_unit_size_field] & 0x7E) >> 1;
-					//temp fix - if we detect xPS in the begining of the sample do NOT copy the ps bitstream
+					//temp fix - if we detect xPS in the beginning of the sample do NOT copy the ps bitstream
 					//this is not correct since we are not sure whether they are the same xPS or not, but it crashes openHEVC ...
 					switch (nal_type) {
 #ifndef GPAC_DISABLE_HEVC
