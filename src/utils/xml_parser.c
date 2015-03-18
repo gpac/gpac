@@ -510,7 +510,7 @@ att_retry:
 		att->val_end = parser->current_pos + 1;
 		parser->current_pos++;
 
-		/*"style" always at the begining of the attributes for ease of parsing*/
+		/*"style" always at the beginning of the attributes for ease of parsing*/
 		if (!strncmp(parser->buffer + att->name_start-1, "style", 5)) {
 			GF_XMLSaxAttribute prev = parser->sax_attrs[0];
 			parser->sax_attrs[0] = *att;

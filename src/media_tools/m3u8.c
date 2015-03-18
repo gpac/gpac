@@ -255,18 +255,12 @@ typedef struct _s_accumulated_attributes {
 	u64 byte_range_start, byte_range_end;
 } s_accumulated_attributes;
 
-static void reset_attributes(s_accumulated_attributes *attributes) {
+static void reset_attributes(s_accumulated_attributes *attributes) 
+{
 	memset(attributes, 0, sizeof(s_accumulated_attributes));
-	attributes->bandwidth = 0;
-	attributes->duration_in_seconds = 0;
-	attributes->target_duration_in_seconds = 0;
 	attributes->type = MEDIA_TYPE_UNKNOWN;
-	attributes->is_master_playlist = GF_FALSE;
-	attributes->is_playlist_ended = GF_FALSE;
 	attributes->min_media_sequence = 1;
-	attributes->current_media_seq = 0;
 	attributes->version = 1;
-	attributes->compatibility_version = 0;
 }
 
 static char** extract_attributes(const char *name, const char *line, const int num_attributes) {
@@ -926,10 +920,12 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 			if (m3u8pos >= m3u8_size)
 				break;
 			while (1) {
+				assert(__idx < M3U8_BUF_SIZE);
+
 				currentLine[__idx] = m3u8_payload[m3u8pos];
 				__idx++;
 				m3u8pos++;
-				if ((currentLine[__idx-1]=='\n') || (currentLine[__idx-1]=='\r')) {
+				if ((currentLine[__idx-1]=='\n') || (currentLine[__idx-1]=='\r') || (m3u8pos >= m3u8_size)) {
 					currentLine[__idx]=0;
 					break;
 				}

@@ -273,7 +273,7 @@ STRINGTABLE
 BEGIN
     ID_FILE_EXIT            "Quit the application; prompts to save documents\nExit"
     ID_H_ABOUT              "Display program information, version number and copyright\nAbout"
-    ID_PLAYLIST_LOOP        "Restarts playlist from begining when playlist is over"
+    ID_PLAYLIST_LOOP        "Restarts playlist from beginning when playlist is over"
     ID_OPEN_FILE             "Opens local file"
     ID_VIEW_ORIGINAL        "restore Original Aspect of presentation"
 END

@@ -2233,7 +2233,7 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 					gf_bs_write_int(xbs, trefidx, 8);
 					// no sample offset
 					gf_bs_write_int(xbs, 0, 8);
-					// data offset: we start from begining of the sample data, not the extractor
+					// data offset: we start from beginning of the sample data, not the extractor
 					gf_bs_write_int(xbs, sti[k].data_offset, 8*shvccfg->nal_unit_size);
 					gf_bs_write_int(xbs, sti[k].data_size, 8*shvccfg->nal_unit_size);
 				}
@@ -2361,13 +2361,9 @@ static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile
 
 	tileX = tileY = 0;
 	oX = oY = 0;
-	for (i=0; i<si->pps->num_tile_columns; i++) {
+	for (i=0; i < si->pps->num_tile_columns; i++) {
 		if (si->pps->uniform_spacing_flag) {
-			if (i<si->pps->num_tile_columns-1) {
-				val = (i+1)*PicWidthInCtbsY / si->pps->num_tile_columns - (i)*PicWidthInCtbsY / si->pps->num_tile_columns;
-			} else {
-				val = (i)*PicWidthInCtbsY / si->pps->num_tile_columns - (i-1)*PicWidthInCtbsY / si->pps->num_tile_columns;
-			}
+			val = (i+1)*PicWidthInCtbsY / si->pps->num_tile_columns - (i)*PicWidthInCtbsY / si->pps->num_tile_columns;
 		} else {
 			if (i<si->pps->num_tile_columns-1) {
 				val = si->pps->column_width[i];
@@ -2384,11 +2380,7 @@ static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile
 	}
 	for (i=0; i<si->pps->num_tile_rows; i++) {
 		if (si->pps->uniform_spacing_flag) {
-			if (i<si->pps->num_tile_rows-1) {
-				val = (i+1)*PicHeightInCtbsY / si->pps->num_tile_rows - (i)*PicHeightInCtbsY / si->pps->num_tile_rows;
-			} else {
-				val = (i)*PicHeightInCtbsY / si->pps->num_tile_rows - (i-1)*PicHeightInCtbsY / si->pps->num_tile_rows;
-			}
+			val = (i+1)*PicHeightInCtbsY / si->pps->num_tile_rows - (i)*PicHeightInCtbsY / si->pps->num_tile_rows;
 		} else {
 			if (i<si->pps->num_tile_rows-1) {
 				val = si->pps->row_height[i];

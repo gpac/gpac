@@ -387,6 +387,11 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		if (!hvcc) {
 			hvcc = gf_isom_shvc_config_get(movie, track, 1);
 		}
+        if (subtype==GF_ISOM_SUBTYPE_HVT1) {
+            u32 refTrack;
+            gf_isom_get_reference(movie, track, GF_ISOM_REF_TBAS, 1, &refTrack);
+            hvcc = gf_isom_hevc_config_get(movie, refTrack, 1);
+        }
 		if (hvcc) {
 			u8 c;
 			char szTemp[40];
@@ -1839,11 +1844,21 @@ restart_fragmentation_pass:
 		}
 	}
 	if (sample_rate) fprintf(dash_cfg->mpd, " audioSamplingRate=\"%d\"", sample_rate);
-	if (segments_start_with_sap || split_seg_at_rap) {
-		fprintf(dash_cfg->mpd, " startWithSAP=\"%d\"", max_sap_type);
-	} else {
-		fprintf(dash_cfg->mpd, " startWithSAP=\"0\"");
+
+	//single segment (onDemand profiles, assumes we always start with an IDR)
+	if (dash_cfg->single_file_mode==1) {
+		fprintf(dash_cfg->mpd, " startWithSAP=\"1\"");
 	}
+	//regular segmenting
+	else {
+		if (segments_start_with_sap || split_seg_at_rap) {
+			fprintf(dash_cfg->mpd, " startWithSAP=\"%d\"", max_sap_type);
+		} else {
+			fprintf(dash_cfg->mpd, " startWithSAP=\"0\"");
+		}
+	}
+
+
 	//only appears at AdaptationSet level - need to rewrite the DASH segementer to allow writing this at the proper place
 //		if ((single_file_mode==1) && segments_start_with_sap) fprintf(dash_cfg->mpd, " subsegmentStartsWithSAP=\"%d\"", max_sap_type);
 
@@ -3933,6 +3948,10 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 				u32 default_sample_group_index, id, independent;
 				Bool full_frame;
 				gf_isom_get_tile_info(file, di->trackNum, 1, &default_sample_group_index, &id, &independent, &full_frame, &di->x, &di->y, &di->w, &di->h);
+                
+                if (!dash_input->w) {
+                    gf_isom_get_visual_info(file, dash_input->trackNum, 1, &dash_input->w, &dash_input->h);
+                }
 			}
 		}
 
@@ -3957,9 +3976,10 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
                 rid = gf_dash_get_representationID(dash_inputs, *nb_dash_inputs, di->file_name, ref_track);
 
                 if (!rid) continue;
-                al_len+=strlen(rid);
-                al_len+=strlen(depID);
-                depID = gf_realloc(depID, sizeof(char)*al_len);
+                al_len += (u32) strlen(rid);
+                al_len += (u32) strlen(depID)+1;
+
+				depID = gf_realloc(depID, sizeof(char)*al_len);
                 if (t) strcat(depID, " ");
 				strcat(depID, gf_dash_get_representationID(dash_inputs, *nb_dash_inputs, di->file_name, ref_track));
 
@@ -4110,9 +4130,9 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 	} else if (profile==GF_DASH_PROFILE_MAIN) {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:%s:2011\"", is_mpeg2 ? "mp2t-main" : "isoff-main");
 	} else if (profile==GF_DASH_PROFILE_AVC264_LIVE) {
-		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-live:2011, http://dashif.org/guildelines/dash264\"");
+		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-live:2011, http://dashif.org/guidelines/dash264\"");
 	} else if (profile==GF_DASH_PROFILE_AVC264_ONDEMAND) {
-		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011, http://dashif.org/guildelines/dash264\"");
+		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011, http://dashif.org/guidelines/dash264\"");
 	} else {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:full:2011\"");
 	}
@@ -4198,8 +4218,11 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
                                       Bool bitstream_switching_mode, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang, const char *szInitSegment, Bool segment_alignment_disabled)
 {
 	u32 i, j;
+	Bool is_on_demand = ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND));
 	GF_DashSegInput *first_rep = &dash_inputs[first_rep_in_set];
-	fprintf(mpd, "  <AdaptationSet segmentAlignment=\"%s\"", segment_alignment_disabled ? "false" : "true");
+
+	//force segmentAlignment in onDemand
+	fprintf(mpd, "  <AdaptationSet segmentAlignment=\"%s\"", (!is_on_demand  && segment_alignment_disabled) ? "false" : "true");
 	if (bitstream_switching_mode) {
 		fprintf(mpd, " bitstreamSwitching=\"true\"");
 	}
@@ -4217,23 +4240,31 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 	if (szLang) {
 		fprintf(mpd, " lang=\"%s\"", szLang);
 	}
-	/*this should be fixed to use info collected during segmentation process*/
-	if (profile==GF_DASH_PROFILE_ONDEMAND)
-		fprintf(mpd, " subsegmentStartsWithSAP=\"1\"");
-
-	if (!strcmp(first_rep->szMime, "video/mp2t"))
-		fprintf(mpd, " subsegmentAlignment=\"true\"");
-
+    if ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND)) {
+		fprintf(mpd, " subsegmentAlignment=\"%s\"", segment_alignment_disabled ? "false" : "true");
+        //FIXME - we need inspection of the segments to figure out the SAP type !
+        fprintf(mpd, " subsegmentStartsWithSAP=\"1\"");
+    }
 	fprintf(mpd, ">\n");
 
 	/* writing AdaptationSet level descriptors specified only on one input (non discriminating during classification)*/
 	for (i=0; i< nb_dash_inputs; i++) {
-		if (dash_inputs[i].adaptation_set == adaptation_set_num && dash_inputs[i].period == period_num) {
+		if ((dash_inputs[i].adaptation_set == adaptation_set_num) && (dash_inputs[i].period == period_num)) {
 			for (j = 0; j < dash_inputs[i].nb_as_c_descs; j++) {
 				fprintf(mpd, "   %s\n", dash_inputs[i].as_c_descs[j]);
 			}
 		}
 	}
+    
+    //check SRD
+    for (i=0; i< nb_dash_inputs; i++) {
+        if ((dash_inputs[i].adaptation_set == adaptation_set_num) && (dash_inputs[i].period == period_num)) {
+            if (dash_inputs[i].w && dash_inputs[i].h) {
+                fprintf(mpd, "   <SupplementalProperty schemeIdURI=\"urn:mpeg:dash:srd:2014\" value=\"1,%d,%d,%d,%d\"/>\n", dash_inputs[i].x, dash_inputs[i].y, dash_inputs[i].w, dash_inputs[i].h);
+            }
+        }
+    }
+    
 
 	if (first_rep) {
 

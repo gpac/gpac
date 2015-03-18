@@ -395,87 +395,93 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 }
 #endif
 
-GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
+#ifdef OPENGL_RASTER
+static GF_Err c2d_video_access_opengl_raster(GF_VisualManager *visual)
+{
+	GF_Err e;
+	GF_Compositor *compositor = visual->compositor;
+	GF_RasterCallback callbacks;
+
+	callbacks.cbk = visual;
+	callbacks.fill_run_alpha = c2d_gl_fill_alpha;
+	callbacks.fill_run_no_alpha = c2d_gl_fill_no_alpha;
+	callbacks.fill_rect = c2d_gl_fill_rect;
+
+	visual->DrawBitmap = c2d_gl_draw_bitmap;
+
+	e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &callbacks, compositor->vp_width, compositor->vp_height);
+	if (e) return e;
+
+	return compositor_2d_setup_opengl(visual);
+}
+#endif
+
+#ifndef GPAC_DISABLE_3D
+
+static GF_Err c2d_video_access_hybrid_opengl(GF_VisualManager *visual)
 {
 	GF_Err e;
 	GF_Compositor *compositor = visual->compositor;
 
-	if (!visual->raster_surface) return GF_BAD_PARAM;
-
-#ifdef OPENGL_RASTER
-	if (compositor->opengl_raster && compositor->rasterizer->surface_attach_to_callbacks) {
-		GF_RasterCallback callbacks;
-		callbacks.cbk = visual;
-		callbacks.fill_run_alpha = c2d_gl_fill_alpha;
-		callbacks.fill_run_no_alpha = c2d_gl_fill_no_alpha;
-		callbacks.fill_rect = c2d_gl_fill_rect;
-
-		visual->DrawBitmap = c2d_gl_draw_bitmap;
-
-		e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &callbacks, compositor->vp_width, compositor->vp_height);
-		if (e) return e;
-
-		return compositor_2d_setup_opengl(visual);
+	if (!compositor->hybgl_txh) {
+		GF_SAFEALLOC(compositor->hybgl_txh, GF_TextureHandler);
+		if (!compositor->hybgl_txh) return GF_IO_ERR;
+		compositor->hybgl_txh->compositor = compositor;
 	}
+
+	if ((compositor->hybgl_txh->width != compositor->vp_width) || (compositor->hybgl_txh->height != compositor->vp_height)) {
+		SFVec2f size;
+		compositor->hybgl_txh->data = gf_realloc(compositor->hybgl_txh->data, 4*compositor->vp_width*compositor->vp_height);
+
+		if (compositor->hybgl_txh->tx_io)
+			gf_sc_texture_release(compositor->hybgl_txh);
+
+		compositor->hybgl_txh->width = compositor->vp_width;
+		compositor->hybgl_txh->height = compositor->vp_height;
+		compositor->hybgl_txh->stride = 4*compositor->vp_width;
+		compositor->hybgl_txh->pixelformat = GF_PIXEL_RGBA;
+		compositor->hybgl_txh->transparent = 1;
+		compositor->hybgl_txh->flags = GF_SR_TEXTURE_PRIVATE_MEDIA | GF_SR_TEXTURE_NO_GL_FLIP;
+
+		memset(compositor->hybgl_txh->data, 0, 4*compositor->hybgl_txh->width*compositor->hybgl_txh->height);
+		gf_sc_texture_allocate(compositor->hybgl_txh);
+		gf_sc_texture_set_data(compositor->hybgl_txh);
+
+		if (!compositor->hybgl_mesh)
+			compositor->hybgl_mesh = new_mesh();
+
+		if (!compositor->hybgl_mesh_background)
+			compositor->hybgl_mesh_background = new_mesh();
+
+		size.x = INT2FIX(compositor->vp_width);
+		size.y = INT2FIX(compositor->vp_height);
+		mesh_new_rectangle(compositor->hybgl_mesh, size, NULL, 1);
+		mesh_new_rectangle(compositor->hybgl_mesh_background, size, NULL, 0);
+	}
+	if (!compositor->hybgl_txh->data) return GF_IO_ERR;
+
+	if (visual->compositor->traverse_state->immediate_draw)
+		memset(compositor->hybgl_txh->data, 0, 4*compositor->hybgl_txh->width*compositor->hybgl_txh->height);
+
+	e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hybgl_txh->data,
+		    compositor->hybgl_txh->width,
+		    compositor->hybgl_txh->height,
+		    0,
+		    compositor->hybgl_txh->width * 4,
+		    (GF_PixelFormat) GF_PIXEL_RGBA);
+	if (e) return e;
+	e = compositor_2d_setup_opengl(visual);
+	if (e) return e;
+	visual->ClearSurface = compositor_2d_hybgl_clear_surface;
+	visual->DrawBitmap = compositor_2d_hybgl_draw_bitmap;
+	return GF_OK;
+}
 #endif
 
-#ifndef GPAC_DISABLE_3D
-	if (compositor->hybrid_opengl) {
-
-		if (!compositor->hybgl_txh) {
-			GF_SAFEALLOC(compositor->hybgl_txh, GF_TextureHandler);
-			if (!compositor->hybgl_txh) return GF_IO_ERR;
-			compositor->hybgl_txh->compositor = compositor;
-		}
-
-		if ((compositor->hybgl_txh->width != compositor->vp_width) || (compositor->hybgl_txh->height != compositor->vp_height)) {
-			SFVec2f size;
-			compositor->hybgl_txh->data = gf_realloc(compositor->hybgl_txh->data, 4*compositor->vp_width*compositor->vp_height);
-
-			if (compositor->hybgl_txh->tx_io)
-				gf_sc_texture_release(compositor->hybgl_txh);
-
-			compositor->hybgl_txh->width = compositor->vp_width;
-			compositor->hybgl_txh->height = compositor->vp_height;
-			compositor->hybgl_txh->stride = 4*compositor->vp_width;
-			compositor->hybgl_txh->pixelformat = GF_PIXEL_RGBA;
-			compositor->hybgl_txh->transparent = 1;
-			compositor->hybgl_txh->flags = GF_SR_TEXTURE_PRIVATE_MEDIA | GF_SR_TEXTURE_NO_GL_FLIP;
-
-			memset(compositor->hybgl_txh->data, 0, 4*compositor->hybgl_txh->width*compositor->hybgl_txh->height);
-			gf_sc_texture_allocate(compositor->hybgl_txh);
-			gf_sc_texture_set_data(compositor->hybgl_txh);
-
-			if (!compositor->hybgl_mesh)
-				compositor->hybgl_mesh = new_mesh();
-
-			if (!compositor->hybgl_mesh_background)
-				compositor->hybgl_mesh_background = new_mesh();
-
-			size.x = INT2FIX(compositor->vp_width);
-			size.y = INT2FIX(compositor->vp_height);
-			mesh_new_rectangle(compositor->hybgl_mesh, size, NULL, 1);
-			mesh_new_rectangle(compositor->hybgl_mesh_background, size, NULL, 0);
-		}
-		if (!compositor->hybgl_txh->data) return GF_IO_ERR;
-
-		if (visual->compositor->traverse_state->immediate_draw)
-			memset(compositor->hybgl_txh->data, 0, 4*compositor->hybgl_txh->width*compositor->hybgl_txh->height);
-
-		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hybgl_txh->data,
-		        compositor->hybgl_txh->width,
-		        compositor->hybgl_txh->height,
-		        0,
-		        compositor->hybgl_txh->width * 4,
-		        (GF_PixelFormat) GF_PIXEL_RGBA);
-		if (e) return e;
-		e = compositor_2d_setup_opengl(visual);
-		if (e) return e;
-		visual->ClearSurface = compositor_2d_hybgl_clear_surface;
-		visual->DrawBitmap = compositor_2d_hybgl_draw_bitmap;
-		return GF_OK;
-	}
-#endif
+static GF_Err c2d_get_video_access_normal(GF_VisualManager *visual)
+{
+	GF_Err e;
+	GF_Compositor *compositor = visual->compositor;
 
 	compositor->hw_locked = 0;
 	e = GF_IO_ERR;
@@ -534,6 +540,78 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 	if (compositor->video_out->BlitTexture) e = GF_OK;
 	return e;
 }
+
+GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
+{
+	GF_Compositor *compositor = visual->compositor;
+
+	if (!visual->raster_surface) return GF_BAD_PARAM;
+
+#ifdef OPENGL_RASTER
+	if (compositor->opengl_raster && compositor->rasterizer->surface_attach_to_callbacks) {
+		return c2d_video_access_opengl_raster(visual);
+	}
+#endif
+
+#ifndef GPAC_DISABLE_3D
+	if (compositor->hybrid_opengl) {
+		return c2d_video_access_hybrid_opengl(visual);
+	}
+#endif
+	//do nothing until asked to really attach
+	return GF_OK;
+}
+
+Bool compositor_2d_check_attached(GF_VisualManager *visual)
+{
+	if (!visual->is_attached) {
+		c2d_get_video_access_normal(visual);
+	}
+	
+	return visual->is_attached;
+}
+
+void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool offscreen_clear)
+{
+	//visual not attached on main (direct video) visual, use texture bliting
+	if (!visual->is_attached && visual->compositor->video_out->Blit && (visual->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB)) {
+		char data[12];
+		GF_Err e;
+		GF_VideoSurface video_src;
+		GF_Window src_wnd, dst_wnd;
+		data[0] = data[3] = data[6] = data[9] = GF_COL_R(BackColor);
+		data[1] = data[4] = data[7] = data[10] = GF_COL_G(BackColor);
+		data[2] = data[5] = data[8] = data[11] = GF_COL_B(BackColor);
+
+		memset(&video_src, 0, sizeof(GF_VideoSurface));
+		video_src.height = 2;
+		video_src.width = 2;
+		video_src.pitch_x = 0;
+		video_src.pitch_y = 6;
+		video_src.pixel_format = GF_PIXEL_RGB_24;
+		video_src.video_buffer = data;
+
+		src_wnd.x = src_wnd.y = 0;
+		src_wnd.w = src_wnd.h = 1;
+		if (rc) {
+			dst_wnd.x = rc->x;
+			dst_wnd.y = rc->y;
+			dst_wnd.w = rc->width;
+			dst_wnd.h = rc->height;
+		} else {
+			dst_wnd.x = dst_wnd.y = 0;
+			dst_wnd.w = visual->width;
+			dst_wnd.h = visual->height;
+		}
+
+		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 0);
+		if (e==GF_OK) return;
+	}
+
+	visual_2d_clear_surface(visual, rc, BackColor, offscreen_clear);
+}
+
+
 
 void compositor_2d_release_video_access(GF_VisualManager *visual)
 {
@@ -679,31 +757,38 @@ Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *
 #endif
 
 	use_blit = 1;
-	/*compute SRC window*/
-	tmp = gf_divfix(INT2FIX(clipped_final.x) - final.x, w_scale);
-	if (tmp<0) tmp=0;
-	CEILING(src->x);
 
-	tmp = gf_divfix(INT2FIX(clipped_final.y) - final.y, h_scale);
-	if (tmp<0) tmp=0;
-	CEILING(src->y);
+	if (txh->data && !txh->size && (txh->width==2) && (txh->height==2) ) {
+		src->x = src->y = 0;
+		src->w = 1;
+		src->h = 1;
+	} else {
+		/*compute SRC window*/
+		tmp = gf_divfix(INT2FIX(clipped_final.x) - final.x, w_scale);
+		if (tmp<0) tmp=0;
+		CEILING(src->x);
 
-	tmp = gf_divfix(INT2FIX(clip->width), w_scale);
-	ROUND_FIX(src->w);
+		tmp = gf_divfix(INT2FIX(clipped_final.y) - final.y, h_scale);
+		if (tmp<0) tmp=0;
+		CEILING(src->y);
 
-	tmp = gf_divfix(INT2FIX(clip->height), h_scale);
-	ROUND_FIX(src->h);
+		tmp = gf_divfix(INT2FIX(clip->width), w_scale);
+		ROUND_FIX(src->w);
 
+		tmp = gf_divfix(INT2FIX(clip->height), h_scale);
+		ROUND_FIX(src->h);
+
+
+		if (src->w>txh->width) src->w=txh->width;
+		if (src->h>txh->height) src->h=txh->height;
+
+		if (!src->w || !src->h) return GF_FALSE;
+
+		/*make sure we lie in src bounds*/
+		if (src->x + src->w>txh->width) src->w = txh->width - src->x;
+		if (src->y + src->h>txh->height) src->h = txh->height - src->y;
+	}
 #undef ROUND_FIX
-
-	if (src->w>txh->width) src->w=txh->width;
-	if (src->h>txh->height) src->h=txh->height;
-
-	if (!src->w || !src->h) return GF_FALSE;
-
-	/*make sure we lie in src bounds*/
-	if (src->x + src->w>txh->width) src->w = txh->width - src->x;
-	if (src->y + src->h>txh->height) src->h = txh->height - src->y;
 
 	if (disable_blit) *disable_blit = use_blit ? GF_FALSE : GF_TRUE;
 	return GF_TRUE;

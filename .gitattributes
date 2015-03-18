@@ -13,5 +13,6 @@ Makefile text
 *.bat text eol=crlf
 *.sln text eol=crlf
 *.vcproj text eol=crlf
+*.vcxproj text eol=crlf
 *.dsp text eol=crlf
 *.dsw text eol=crlf

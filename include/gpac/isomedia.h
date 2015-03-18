@@ -72,9 +72,9 @@ enum
 /*Movie Options for file writing*/
 enum
 {
-	/*FLAT: the MediaData (MPEG4 ESs) is stored at the begining of the file*/
+	/*FLAT: the MediaData (MPEG4 ESs) is stored at the beginning of the file*/
 	GF_ISOM_STORE_FLAT = 1,
-	/*STREAMABLE: the MetaData (File Info) is stored at the begining of the file
+	/*STREAMABLE: the MetaData (File Info) is stored at the beginning of the file
 	for fast access during download*/
 	GF_ISOM_STORE_STREAMABLE,
 	/*INTERLEAVED: Same as STREAMABLE, plus the media data is mixed by chunk  of fixed duration*/
@@ -1223,7 +1223,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables);
 /*Flags for gf_isom_open_segment*/
 enum
 {
-	/*FLAT: the MediaData (MPEG4 ESs) is stored at the begining of the file*/
+	/*FLAT: the MediaData (MPEG4 ESs) is stored at the beginning of the file*/
 	GF_ISOM_SEGMENT_NO_ORDER_FLAG = 1,
 	GF_ISOM_SEGMENT_SCALABLE_FLAG = 1<<1,
 };
@@ -1347,7 +1347,7 @@ enum
 	GF_ISOM_TRAF_DATA_CACHE
 };
 
-/*set options. Options can be set at the begining of each new fragment only, and for the
+/*set options. Options can be set at the beginning of each new fragment only, and for the
 lifetime of the fragment*/
 GF_Err gf_isom_set_fragment_option(GF_ISOFile *the_file, u32 TrackID, u32 Code, u32 param);
 
@@ -1484,7 +1484,7 @@ GF_Err gf_isom_end_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u8 IsRando
 /******************************************************************
 		PacketHandling functions
 		Data can be added at the end or at the beginning of the current packet
-		by setting AtBegin to 1 the data will be added at the begining
+		by setting AtBegin to 1 the data will be added at the beginning
 		This allows constructing the packet payload before any meta-data
 ******************************************************************/
 

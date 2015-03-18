@@ -51,7 +51,7 @@ extern "C" {
  *
  *Gets the next string component comprised in a given set of characters
  *\param Buffer source string to scan
- *\param Start char offset from begining of buffer where tokenization shall start
+ *\param Start char offset from beginning of buffer where tokenization shall start
  *\param Separator separator characters to use
  *\param Container output buffer location
  *\param ContainerSize output buffer allocated size
@@ -63,7 +63,7 @@ s32 gf_token_get(const char* Buffer, s32 Start, const char* Separator, char* Con
  *
  *Gets the next string component comprised in a given set of characters, removing surrounding characters
  *\param Buffer source string to scan
- *\param Start char offset from begining of buffer where tokenization shall start
+ *\param Start char offset from beginning of buffer where tokenization shall start
  *\param Separator separator characters to use
  *\param strip_set surrounding characters to remove
  *\param Container output buffer location
@@ -76,7 +76,7 @@ s32 gf_token_get_strip(const char* Buffer, s32 Start, const char* Separator, con
  *
  *Gets one line from buffer and remove delimiters CR, LF and CRLF
  *\param buffer source string to scan
- *\param start char offset from begining of buffer where tokenization shall start
+ *\param start char offset from beginning of buffer where tokenization shall start
  *\param size size of the input buffer to analyze
  *\param line_buffer output buffer location
  *\param line_buffer_size output buffer allocated size
@@ -88,7 +88,7 @@ s32 gf_token_get_line(const char *buffer, u32 start, u32 size, char *line_buffer
  *
  *Locates a pattern in the buffer
  *\param Buffer source string to scan
- *\param Start char offset from begining of buffer where tokenization shall start
+ *\param Start char offset from beginning of buffer where tokenization shall start
  *\param Size size of the input buffer to analyze
  *\param Pattern pattern to locate
  *\return position of the first char in the buffer after the pattern, or -1 if pattern could not be found

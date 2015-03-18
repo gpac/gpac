@@ -774,7 +774,7 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)movie->pdin, bs);
 		if (e) goto exit;
 	}
-	//What we will do is first emulate the write from the begining...
+	//What we will do is first emulate the write from the beginning...
 	//note: this will set the size of the mdat
 	e = DoWrite(mw, writers, bs, 1, gf_bs_get_position(bs));
 	if (e) goto exit;

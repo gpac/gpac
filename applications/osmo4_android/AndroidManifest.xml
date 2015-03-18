@@ -91,6 +91,9 @@
                     android:mimeType="application/dash+xml"
                     android:scheme="http" />
                 <data android:mimeType="application/x-xmt" />
+                
+                <data android:pathPattern="*.mp4" 
+                			android:scheme="file"/>
             </intent-filter>
         </activity>
         <activity

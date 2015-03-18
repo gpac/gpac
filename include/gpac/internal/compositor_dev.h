@@ -480,7 +480,7 @@ struct __tag_compositor
 	Bool disable_gl_cull;
 	/*YUV textures in OpenGL are disabled (soft YUV->RGB )*/
 	Bool disable_yuvgl;
-	//use PBO to start pushing textures at the begining of the render pass
+	//use PBO to start pushing textures at the beginning of the render pass
 	Bool enable_pbo;
 
 	u32 default_navigation_mode;
@@ -1039,13 +1039,14 @@ typedef struct _audio_render
 
 	Bool disable_resync;
 	Bool disable_multichannel;
+	Bool clock_use_audio_out;
 
 	/*frozen time counter if set*/
 	Bool Frozen;
 	/*startup time, used when no audio output is set*/
-	u32 start_time;
+	u64 start_time;
 	/*freeze time, used when no audio output is set*/
-	u32 freeze_time;
+	u64 freeze_time;
 
 	/*system clock compute when audio output is present*/
 	u32 current_time, bytes_per_second, time_at_last_config;
@@ -1185,6 +1186,8 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *surf);
 void compositor_2d_release_video_access(GF_VisualManager *surf);
 void compositor_2d_init_callbacks(GF_Compositor *compositor);
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
+Bool compositor_2d_check_attached(GF_VisualManager *visual);
+void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen);
 
 #ifndef GPAC_DISABLE_3D
 void compositor_2d_reset_gl_auto(GF_Compositor *compositor);

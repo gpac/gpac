@@ -285,6 +285,9 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->visual = visual_new(compositor);
 	compositor->visual->GetSurfaceAccess = compositor_2d_get_video_access;
 	compositor->visual->ReleaseSurfaceAccess = compositor_2d_release_video_access;
+	compositor->visual->CheckAttached = compositor_2d_check_attached;
+	compositor->visual->ClearSurface = compositor_2d_clear_surface;
+	
 	if (compositor->video_out->FlushRectangles)
 		compositor->visual->direct_flush = GF_TRUE;
 
@@ -1215,16 +1218,26 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_3D
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLMode");
-	compositor->force_opengl_2d = (sOpt && !strcmp(sOpt, "always")) ? 1 : 0;
-	if (!sOpt) {
-		compositor->recompute_ar = 1;
-		compositor->autoconfig_opengl = 1;
+
+	if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL)) {
+		if (sOpt && strcmp(sOpt, "disable")) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL mode %s requested but no opengl-capable output - disabling openGL\n", sOpt));
+		}
+		compositor->force_opengl_2d = 0;
+		compositor->autoconfig_opengl = 0;
+		compositor->hybrid_opengl = 0;
 	} else {
-		compositor->hybrid_opengl = !strcmp(sOpt, "hybrid") ? 1 : 0;
+		compositor->force_opengl_2d = (sOpt && !strcmp(sOpt, "always")) ? 1 : 0;
+		if (!sOpt) {
+			compositor->recompute_ar = 1;
+			compositor->autoconfig_opengl = 1;
+		} else {
+			compositor->hybrid_opengl = !strcmp(sOpt, "hybrid") ? 1 : 0;
 #ifdef OPENGL_RASTER
-		compositor->opengl_raster = !strcmp(sOpt, "raster") ? 1 : 0;
-		if (compositor->opengl_raster) compositor->traverse_state->immediate_draw = GF_TRUE;
+			compositor->opengl_raster = !strcmp(sOpt, "raster") ? 1 : 0;
+			if (compositor->opengl_raster) compositor->traverse_state->immediate_draw = GF_TRUE;
 #endif
+		}
 	}
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "EnablePBO");
