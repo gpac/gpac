@@ -1155,19 +1155,6 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					pe->load_error = gf_m3u8_parse_sub_playlist(getter->get_cache_name(getter), &pl, suburl, stream, pe);
 				}
 				getter->del_session(getter);
-
-#if 0
-				GF_DownloadSession *sess = gf_service_download_new(service, suburl, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL);
-				if (!sess) {
-					gf_free(suburl);
-					break;
-				}
-				e = gf_dm_sess_process(sess);
-				if (e==GF_OK) {
-					e = gf_m3u8_parse_sub_playlist(gf_dm_sess_get_cache_name(sess), &pl, suburl, prog, pe);
-				}
-				gf_service_download_del(sess);
-#endif
 			} else { /* for use in MP4Box */
 				if (strstr(suburl, "://")) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Downloading %s...\n", suburl));
