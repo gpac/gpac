@@ -952,8 +952,6 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 			continue;
 		}
 		if (currentLine[0] == '#') {
-			fprintf(stderr, "current SN %d\n", attribs.current_media_seq);
-
 			/* A comment or a directive */
 			if (strncmp("#EXT", currentLine, 4) == 0) {
 				attributes = parse_attributes(currentLine, &attribs);
