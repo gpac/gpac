@@ -2233,7 +2233,7 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 					gf_bs_write_int(xbs, trefidx, 8);
 					// no sample offset
 					gf_bs_write_int(xbs, 0, 8);
-					// data offset: we start from begining of the sample data, not the extractor
+					// data offset: we start from beginning of the sample data, not the extractor
 					gf_bs_write_int(xbs, sti[k].data_offset, 8*shvccfg->nal_unit_size);
 					gf_bs_write_int(xbs, sti[k].data_size, 8*shvccfg->nal_unit_size);
 				}

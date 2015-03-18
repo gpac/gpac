@@ -8071,7 +8071,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
 			if (e) {
 				if (!gf_isom_get_sample_count(import->dest, tsimp->track)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] missed begining of sample data\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] missed beginning of sample data\n"));
 					e = GF_OK;
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error appending sample data\n"));

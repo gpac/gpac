@@ -247,7 +247,7 @@ void PrintGeneralUsage()
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
 	        " -split-size size     splits in files of max filesize kB. same as -splits.\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
-	        " -split-rap           splits in files begining at each RAP. same as -splitr.\n"
+	        " -split-rap           splits in files beginning at each RAP. same as -splitr.\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
 	        " -split-chunk S:E     extracts a new file from Start to End (in seconds). same as -splitx\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"

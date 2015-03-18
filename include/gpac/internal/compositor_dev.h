@@ -480,7 +480,7 @@ struct __tag_compositor
 	Bool disable_gl_cull;
 	/*YUV textures in OpenGL are disabled (soft YUV->RGB )*/
 	Bool disable_yuvgl;
-	//use PBO to start pushing textures at the begining of the render pass
+	//use PBO to start pushing textures at the beginning of the render pass
 	Bool enable_pbo;
 
 	u32 default_navigation_mode;

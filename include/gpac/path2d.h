@@ -557,7 +557,7 @@ enum
  */
 typedef struct
 {
-	/*begining of the structure is casted in MFFloat in BIFS, DO NOT CHANGE ORDER*/
+	/*beginning of the structure is casted in MFFloat in BIFS, DO NOT CHANGE ORDER*/
 
 	/*! Number of dashes in the pattern*/
 	u32 num_dash;
