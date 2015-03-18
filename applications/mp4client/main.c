@@ -227,6 +227,7 @@ void PrintUsage()
 #else
 	        "\t-no-thread:     disables thread usage (except for audio)\n"
 #endif
+			"\t-no-compositor-thread:      disables compositor thread (iOS and Android mode)\n"
 	        "\t-no-audio:      disables audio \n"
 	        "\t-no-wnd:        uses windowless mode (Win32 only)\n"
 	        "\t-no-back:       uses transparent background for output window when no background is specified (Win32 only)\n"
@@ -546,6 +547,16 @@ static const char * read_line_input(char * line, int maxSize, Bool showContent) 
 	return line;
 }
 
+static void do_set_speed(Fixed desired_speed)
+{
+	if (gf_term_set_speed(term, desired_speed) == GF_OK) {
+		playback_speed = desired_speed;
+		fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
+	} else {
+		fprintf(stderr, "Adjusting speed to %g not supported for this content\n", FIX2FLT(desired_speed));
+	}
+}
+
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	if (!term) return 0;
@@ -742,23 +753,17 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			break;
 		case GF_KEY_UP:
 			if (evt->key.flags & VK_MOD && is_connected) {
-				playback_speed *= 2;
-				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
-				gf_term_set_speed(term, playback_speed);
+				do_set_speed(playback_speed * 2);
 			}
 			break;
 		case GF_KEY_DOWN:
 			if (evt->key.flags & VK_MOD && is_connected) {
-				playback_speed /= 2;
-				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
-				gf_term_set_speed(term, playback_speed);
+				do_set_speed(playback_speed / 2);
 			}
 			break;
 		case GF_KEY_LEFT:
 			if (evt->key.flags & VK_MOD && is_connected) {
-				playback_speed = -playback_speed;
-				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
-				gf_term_set_speed(term, playback_speed);
+				do_set_speed(-1 * playback_speed );
 			}
 			break;
 
@@ -1199,6 +1204,7 @@ int main (int argc, char **argv)
 #else
 		else if (!strcmp(arg, "-no-thread")) threading_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_WINDOW_NO_THREAD;
 #endif
+		else if (!strcmp(arg, "-no-compositor-thread")) threading_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
@@ -1402,6 +1408,8 @@ int main (int argc, char **argv)
 
 	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = 1;
 
+	//in dump mode we don't want to rely on system clock but on the number of samples being consumed
+	if (dump_mode) user.init_flags |= GF_TERM_USE_AUDIO_HW_CLOCK;
 
 	if (bench_mode) {
 		gf_cfg_discard_changes(user.config);

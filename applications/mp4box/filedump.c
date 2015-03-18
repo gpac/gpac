@@ -1631,6 +1631,21 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 	}
 }
 
+
+static void print_config_hash(GF_List *xps_array, char *szName)
+{
+	u32 i, j;
+	GF_AVCConfigSlot *slc;
+	u8 hash[20];
+	for (i=0; i<gf_list_count(xps_array); i++) {
+		slc = gf_list_get(xps_array, i);
+		gf_sha1_csum(slc->data, slc->size, hash);
+		fprintf(stderr, "\t%s#%d hash: ", szName, i+1);
+		for (j=0; j<20; j++) fprintf(stderr, "%02X", hash[j]);
+		fprintf(stderr, "\n");
+	}
+}
+
 #ifndef GPAC_DISABLE_HEVC
 void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg, HEVCState *hevc_state)
 {
@@ -1675,13 +1690,22 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 			}
 			fprintf(stderr, "\n");
 		}
+
 	}
 	fprintf(stderr, "\tBit Depth luma %d - Chroma %d - %d temporal layers\n", hevccfg->luma_bit_depth, hevccfg->chroma_bit_depth, hevccfg->numTemporalLayers);
 	if (hevccfg->is_shvc) {
 		fprintf(stderr, "\t%sNum Layers: %d (scalability mask 0x%02X)%s\n", hevccfg->non_hevc_base_layer ? "Non-HEVC base layer - " : "", hevccfg->num_layers, hevccfg->scalability_mask, hevccfg->complete_representation ? "" : " - no VCL data");
 	}
+
+	for (k=0; k<gf_list_count(hevccfg->param_array); k++) {
+		GF_HEVCParamArray *ar=gf_list_get(hevccfg->param_array, k);
+		if (ar->type==GF_HEVC_NALU_SEQ_PARAM) print_config_hash(ar->nalus, "SPS");
+		else if (ar->type==GF_HEVC_NALU_PIC_PARAM) print_config_hash(ar->nalus, "PPS");
+		else if (ar->type==GF_HEVC_NALU_VID_PARAM) print_config_hash(ar->nalus, "VPS");
+	}
 }
 #endif
+
 
 void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 {
@@ -1831,18 +1855,23 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stderr, "\tAVC Info: %d SPS - %d PPS", gf_list_count(avccfg->sequenceParameterSets) , gf_list_count(avccfg->pictureParameterSets) );
 						fprintf(stderr, " - Profile %s @ Level %g\n", gf_avc_get_profile_name(avccfg->AVCProfileIndication), ((Double)avccfg->AVCLevelIndication)/10.0 );
 						fprintf(stderr, "\tNAL Unit length bits: %d\n", 8*avccfg->nal_unit_size);
-						slc = gf_list_get(avccfg->sequenceParameterSets, 0);
-						if (slc) {
+						for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
+							slc = gf_list_get(avccfg->sequenceParameterSets, i);
 							gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, NULL, &par_n, &par_d);
 							if ((par_n>0) && (par_d>0)) {
 								u32 tw, th;
 								gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
 								fprintf(stderr, "\tPixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
 							}
+							if (!full_dump) break;
 						}
 						if (avccfg->chroma_bit_depth) {
 							fprintf(stderr, "\tChroma format %d - Luma bit depth %d - chroma bit depth %d\n", avccfg->chroma_format, avccfg->luma_bit_depth, avccfg->chroma_bit_depth);
 						}
+
+						print_config_hash(avccfg->sequenceParameterSets, "SPS");
+						print_config_hash(avccfg->pictureParameterSets, "PPS");
+
 						gf_odf_avc_cfg_del(avccfg);
 					}
 					if (svccfg) {
@@ -1861,6 +1890,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 								}
 							}
 						}
+						print_config_hash(svccfg->sequenceParameterSets, "SPS");
+						print_config_hash(svccfg->pictureParameterSets, "PPS");
+						print_config_hash(svccfg->sequenceParameterSetExtensions, "SPSEx");
+
 						gf_odf_avc_cfg_del(svccfg);
 					}
 #endif /*GPAC_DISABLE_AV_PARSERS*/
@@ -2060,7 +2093,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				else
 					fprintf(stderr, "Synchronized on stream %d\n", esd->OCRESID);
 			} else {
-				fprintf(stderr, "\tDecoding Buffer size %d - Average bitrate %d kbps - Max Bitrate %d kbps\n", esd->decoderConfig->bufferSizeDB, esd->decoderConfig->avgBitrate/1000, esd->decoderConfig->maxBitrate/1000);
+				fprintf(stderr, "\tDecoding Buffer size %d - Bitrate: avg %d - max %d kbps\n", esd->decoderConfig->bufferSizeDB, esd->decoderConfig->avgBitrate/1000, esd->decoderConfig->maxBitrate/1000);
 				if (esd->dependsOnESID)
 					fprintf(stderr, "\tDepends on stream %d for decoding\n", esd->dependsOnESID);
 				else
@@ -2297,6 +2330,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		} else {
 			fprintf(stderr, "Unknown track type\n");
 		}
+	}
+
+	{
+		char szCodec[100];
+		gf_media_get_rfc_6381_codec_name(file, trackNum, szCodec, 0);
+		fprintf(stderr, "\tRFC6381 Codec Parameters: %s\n", szCodec);
 	}
 
 	DumpMetaItem(file, 0, trackNum, "Track Meta");

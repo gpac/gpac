@@ -1501,7 +1501,7 @@ static void svg_traverse_tbreak(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 
 	svg_text_area_reset_state(tr_state);
-	/*begining of a line, force a break of current fontSize*/
+	/*beginning of a line, force a break of current fontSize*/
 	if (!tr_state->text_end_x) {
 		if (tr_state->svg_props->line_increment->type != SVG_NUMBER_AUTO) {
 			tr_state->text_end_y += tr_state->svg_props->line_increment->value;

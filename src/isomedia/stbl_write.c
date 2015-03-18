@@ -917,7 +917,7 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 	}
 	//reset write the cache to the end
 	stts->w_currentSampleNum = stbl->SampleSize->sampleCount - 1;
-	//reset read the cache to the begining
+	//reset read the cache to the beginning
 	stts->r_FirstSampleInEntry = stts->r_currentEntryIndex = 0;
 	stts->r_CurrentDTS = 0;
 	return GF_OK;

@@ -1289,7 +1289,7 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 		}
 
 		/* No IOD */
-		if (ES_ID == 18) {
+		if ((ES_ID == 18) && (!m2ts->ts->ess[18] || !(m2ts->ts->ess[18]->flags & GF_M2TS_ES_IS_PES)) ) {
 			e = GF_OK; /* 18 is the PID of EIT packets */
 			m2ts->eit_channel = channel;
 		} else if (ES_ID<GF_M2TS_MAX_STREAMS) {

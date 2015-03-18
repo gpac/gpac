@@ -68,7 +68,7 @@ GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sample
 				curDTS -= ent->sampleDelta * ent->sampleCount;
 				i --;
 			} else if (!i) {
-				//begining of the table, no choice
+				//beginning of the table, no choice
 				curDTS = stbl->TimeToSample->r_CurrentDTS = 0;
 				curSampNum = stbl->TimeToSample->r_FirstSampleInEntry = 1;
 				stbl->TimeToSample->r_currentEntryIndex = 0;

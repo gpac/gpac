@@ -36,7 +36,7 @@ static const struct {
 	u32 w, h;
 } std_par[ ] =
 {
-	{ 4, 3}, {3, 2}, {16, 9}, {5, 3}, {5, 4}, {8, 5},
+	{ 4, 3}, {3, 2}, {16, 9}, {5, 3}, {5, 4}, {8, 5}, {2, 1},
 	{0, 0},
 };
 
@@ -3699,8 +3699,9 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	vps->profile_level_tier_idx[0] = 0;
 	for (i=1; i<NumOutputLayerSets; i++) {
 		u32 nb_bits;
+		//don't warn untiol we fix the entire syntax to last version of the spec
 		if( i > vps->num_layer_sets - 1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] VPS Extensions: not supported number of layers\n"));
+//			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] VPS Extensions: not supported number of layers\n"));
 		}
 		nb_bits = 1;
 		while ((u32) (1 << nb_bits) < num_profile_tier_level) {

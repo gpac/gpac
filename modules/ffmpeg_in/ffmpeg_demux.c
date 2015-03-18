@@ -286,12 +286,12 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	ffd_parse_options(ffd, url);
 
 	ctx = NULL;
-	if (open_file(&ctx, szName, NULL, &ffd->options)<0) {
+	if (open_file(&ctx, szName, NULL, ffd->options ? &ffd->options : NULL)<0) {
 		AVInputFormat *av_in = NULL;;
 		/*some extensions not supported by ffmpeg*/
 		if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
 
-		if (open_file(&ctx, szName, av_in, &ffd->options)<0) {
+		if (open_file(&ctx, szName, av_in, ffd->options ? &ffd->options : NULL)<0) {
 			return 0;
 		}
 	}
@@ -619,7 +619,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		}
 		if (e==GF_EOS) {
 			const char *cache_file = gf_dm_sess_get_cache_name(ffd->dnload);
-			res = open_file(&ffd->ctx, cache_file, av_in, &ffd->options);
+			res = open_file(&ffd->ctx, cache_file, av_in, ffd->options ? &ffd->options : NULL);
 		} else {
 			pd.filename = szName;
 			pd.buf_size = ffd->buffer_used;
@@ -638,7 +638,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 #endif
 		}
 	} else {
-		res = open_file(&ffd->ctx, szName, av_in, &ffd->options);
+		res = open_file(&ffd->ctx, szName, av_in, ffd->options ? &ffd->options : NULL);
 	}
 
 	switch (res) {
@@ -667,7 +667,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG] looking for streams in %s - %d streams - type %s\n", ffd->ctx->filename, ffd->ctx->nb_streams, ffd->ctx->iformat->name));
 
 #ifdef USE_AVFORMAT_OPEN_INPUT
-	res = avformat_find_stream_info(ffd->ctx, &ffd->options);
+	res = avformat_find_stream_info(ffd->ctx, ffd->options ? &ffd->options : NULL);
 #else
 	res = av_find_stream_info(ffd->ctx);
 #endif
@@ -737,7 +737,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 			avformat_close_input(&ffd->ctx);
 #endif
 			ffd->ctx = NULL;
-			open_file(&ffd->ctx, szName, av_in, &ffd->options);
+			open_file(&ffd->ctx, szName, av_in, ffd->options ? &ffd->options : NULL);
 			av_find_stream_info(ffd->ctx);
 		}
 	}

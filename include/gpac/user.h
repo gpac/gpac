@@ -64,16 +64,23 @@ enum
 
 	/*disables frame-rate regulation (used when dumping content)*/
 	GF_TERM_NO_REGULATION = 1<<5,
+	
+	/*uses audio hardware clock rather than system clock. The clock is increased at the rate of audio sample consumption. This should only be used for extraction
+	purposes, as it may result in non-smooth visual playback (time is not continuously increasing)*/
+	GF_TERM_USE_AUDIO_HW_CLOCK = 1<<6,
+	
 	/*works without window thread*/
-	GF_TERM_WINDOW_NO_THREAD = 1<<6,
+	GF_TERM_WINDOW_NO_THREAD = 1<<10,
 	/*lets the main user handle window events (needed for browser plugins)*/
-	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<7,
+	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<11,
 	/*works without title bar*/
-	GF_TERM_WINDOW_NO_DECORATION = 1<<8,
+	GF_TERM_WINDOW_NO_DECORATION = 1<<12,
+
+
 	/*framebuffer works in 32 bit alpha mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOW_TRANSPARENT = 1<<9,
+	GF_TERM_WINDOW_TRANSPARENT = 1<<20,
 	/*works in windowless mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOWLESS = 1<<10,
+	GF_TERM_WINDOWLESS = 1<<21,
 };
 
 /*user object for all callbacks*/

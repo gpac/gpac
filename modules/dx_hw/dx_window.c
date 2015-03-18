@@ -955,7 +955,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 		}
 		ShowWindow(ctx->fs_hwnd, SW_HIDE);
 #ifdef _WIN64
-		SetWindowLongPtr(ctx->fs_hwnd, GWLP_USERDATA, (LONG) vout);
+		SetWindowLongPtr(ctx->fs_hwnd, GWLP_USERDATA, (LONG_PTR) vout);
 #else
 		SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) vout);
 #endif
@@ -968,7 +968,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 
 	ctx->switch_res = 0;
 #ifdef _WIN64
-	SetWindowLongPtr(ctx->os_hwnd, GWLP_USERDATA, (LONG) vout);
+	SetWindowLongPtr(ctx->os_hwnd, GWLP_USERDATA, (LONG_PTR) vout);
 #else
 	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) vout);
 #endif
@@ -1022,10 +1022,10 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 		if (!(flags & GF_TERM_NO_WINDOWPROC_OVERRIDE) ) {
 #ifdef _WIN64
 			ctx->orig_wnd_proc = GetWindowLongPtr(ctx->os_hwnd, GWLP_WNDPROC);
-			SetWindowLongPtr(ctx->os_hwnd, GWLP_WNDPROC, (DWORD) DD_WindowProc);
+			SetWindowLongPtr(ctx->os_hwnd, GWLP_WNDPROC, (LONG_PTR) DD_WindowProc);
 #else
 			ctx->orig_wnd_proc = GetWindowLong(ctx->os_hwnd, GWL_WNDPROC);
-			SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
+			SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, (LONG) DD_WindowProc);
 #endif
 		}
 		ctx->parent_wnd = GetParent(ctx->os_hwnd);
@@ -1068,8 +1068,8 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 	if (ctx->fs_hwnd != ctx->os_hwnd) {
 		dd_closewindow(ctx->fs_hwnd);
 #ifdef _WIN64
-		SetWindowLongPtr(ctx->fs_hwnd, GWLP_USERDATA, (LONG) NULL);
-		SetWindowLongPtr(ctx->fs_hwnd, GWLP_WNDPROC, (DWORD) DefWindowProc);
+		SetWindowLongPtr(ctx->fs_hwnd, GWLP_USERDATA, (LONG_PTR) NULL);
+		SetWindowLongPtr(ctx->fs_hwnd, GWLP_WNDPROC, (LONG_PTR) DefWindowProc);
 #else
 		SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) NULL);
 		SetWindowLong(ctx->fs_hwnd, GWL_WNDPROC, (DWORD) DefWindowProc);
@@ -1091,7 +1091,7 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 	/*special care for Firefox: the windows created by our NP plugin may still be called
 	after the shutdown of the plugin !!*/
 #ifdef _WIN64
-	SetWindowLongPtr(ctx->os_hwnd, GWLP_USERDATA, (LONG) NULL);
+	SetWindowLongPtr(ctx->os_hwnd, GWLP_USERDATA, (LONG_PTR) NULL);
 #else
 	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) NULL);
 #endif

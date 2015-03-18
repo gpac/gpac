@@ -1639,7 +1639,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 		if (ctrl) {
 			MC_GetRange(ctrl, &com.play.start_range, &com.play.end_range);
 			com.play.speed = FIX2FLT(ctrl->control->mediaSpeed);
-			/*if the channel doesn't control the clock, jump to current time in the controled range, not just the begining*/
+			/*if the channel doesn't control the clock, jump to current time in the controled range, not just the beginning*/
 			if ((ch->esd->ESID!=ch->clock->clockID) && (ck_time>com.play.start_range) && (com.play.end_range>com.play.start_range) && (ck_time<com.play.end_range)) {
 				com.play.start_range = ck_time;
 			}

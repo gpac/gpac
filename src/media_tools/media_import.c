@@ -963,7 +963,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 
 	/*keep MPEG-2 AAC OTI even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
 	oti = hdr.is_mp2 ? hdr.profile+GPAC_OTI_AUDIO_AAC_MPEG2_MP-1 : GPAC_OTI_AUDIO_AAC_MPEG4;
-	timescale = sr = GF_M4ASampleRates[hdr.sr_idx];
+	sr = GF_M4ASampleRates[hdr.sr_idx];
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->tk_info[0].track_num = 1;
@@ -1073,8 +1073,9 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	}
 	/*not MPEG4 tool*/
 	if (0 && hdr.is_mp2) acfg.audioPL = 0xFE;
-
 	gf_bs_align(dsi);
+
+	timescale = sr;
 
 	e = GF_OK;
 	destroy_esd = 0;
@@ -8070,7 +8071,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
 			if (e) {
 				if (!gf_isom_get_sample_count(import->dest, tsimp->track)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] missed begining of sample data\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] missed beginning of sample data\n"));
 					e = GF_OK;
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error appending sample data\n"));

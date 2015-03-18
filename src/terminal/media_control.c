@@ -228,9 +228,16 @@ void MC_SetSpeed(GF_ObjectManager *odm, Fixed speed)
 	in_scene = odm->parentscene;
 	if (odm->subscene) {
 		assert(odm->subscene->root_od==odm);
-//		assert( gf_odm_shares_clock(odm, ck) );
-		gf_odm_set_speed(odm, speed, GF_TRUE);
 		in_scene = odm->subscene;
+
+		//dynamic scene, we need tpo re-start everything to issue new PLAY requests
+		if (in_scene->is_dynamic_scene && (gf_mulfix(ck->speed, speed) < 0)) {
+			u32 time = gf_clock_time(ck);
+			gf_clock_set_speed(ck, speed);
+			gf_scene_restart_dynamic(in_scene, time, 0);
+			return;
+		} 
+		gf_odm_set_speed(odm, speed, GF_TRUE);
 	}
 
 	i=0;
