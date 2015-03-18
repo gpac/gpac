@@ -450,6 +450,10 @@ typedef struct
 	/*indicates that end of period is being reached (no new segements returned until period activates)*/
 	Bool in_end_of_period;
 
+	/* a possible DRM key associated to the segment */
+	const char *key_url;
+	/* the initialization vector associated to the key */
+	unsigned char key_iv[16];
 } GF_NetURLQuery;
 
 /*GF_NET_SERVICE_QUALITY_SWITCH*/
