@@ -28,7 +28,7 @@
 #include <gpac/tools.h>
 #include <gpac/network.h>
 
-
+#ifndef GPAC_MODULE_CUSTOM_LOAD
 static void load_all_modules(GF_ModuleManager *mgr)
 {
 #define LOAD_PLUGIN(	__name	)	{ \
@@ -159,7 +159,26 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #undef LOAD_PLUGIN
 
 }
+#endif //GPAC_MODULE_CUSTOM_LOAD
 
+GF_EXPORT
+GF_Err gf_module_load_static(GF_ModuleManager *pm, GF_InterfaceRegister *(*register_module)())
+{
+	GF_InterfaceRegister *pr = register_module();
+	GF_Err rc;
+
+	if (!pr) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically load module\n"));
+		return GF_NOT_SUPPORTED;
+	}
+
+	rc = gf_list_add(pm->plugin_registry, pr);
+	if (rc != GF_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically load module\n"));
+		return rc;
+	}
+	return GF_OK;
+}
 
 GF_EXPORT
 GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
@@ -197,8 +216,9 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 	if (opt && !strcmp(opt, "no")) {
 		tmp->no_unload = GF_TRUE;
 	}
+#ifndef GPAC_MODULE_CUSTOM_LOAD
 	load_all_modules(tmp);
-
+#endif
 	loadedModules = gf_modules_refresh(tmp);
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Loaded %d modules from directory %s.\n", loadedModules, directory));
 
