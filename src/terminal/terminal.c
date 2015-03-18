@@ -2105,7 +2105,7 @@ static void set_clocks_speed(GF_Terminal *term, Fixed ratio)
 }
 
 GF_EXPORT
-void gf_term_set_speed(GF_Terminal *term, Fixed speed)
+GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)
 {
 	Double fps;
 	u32 i, j;
@@ -2114,9 +2114,23 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 	Bool restart = 0;
 	u32 scene_time = gf_term_get_time_in_ms(term);
 
-	if (!speed) return;
+	if (!speed) return GF_BAD_PARAM;
 
-	/*adjust all clocks on all services*/
+	if (speed<0) {
+		i=0;
+		while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
+			GF_NetworkCommand com;
+			GF_Err e;
+			memset(&com, 0, sizeof(GF_NetworkCommand));
+			com.base.command_type = GF_NET_SERVICE_CAN_REVERSE_PLAYBACK;
+			e = gf_term_service_command(ns, &com);
+			if (e != GF_OK) {
+				return e;
+			}
+		}
+	}
+
+	/*adjust all clocks on all services, if possible*/
 	i=0;
 	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
 		GF_Clock *ck;
@@ -2124,7 +2138,8 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 		j=0;
 		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
 			//we will have to reissue a PLAY command since playback direction changed
-			if ( gf_mulfix(ck->speed,speed) < 0) restart = 1;
+			if ( gf_mulfix(ck->speed,speed) < 0) 
+				restart = 1;
 			gf_clock_set_speed(ck, speed);
 
 			if (ns->owner) {
@@ -2162,6 +2177,8 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 	fps *= FIX2FLT(speed);
 	if (fps>100) fps = 1000;
 	gf_sc_set_fps(term->compositor, fps);
+
+	return GF_OK;
 }
 
 GF_EXPORT

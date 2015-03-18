@@ -546,6 +546,16 @@ static const char * read_line_input(char * line, int maxSize, Bool showContent) 
 	return line;
 }
 
+static void do_set_speed(Fixed desired_speed)
+{
+	if (gf_term_set_speed(term, desired_speed) == GF_OK) {
+		playback_speed = desired_speed;
+		fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
+	} else {
+		fprintf(stderr, "Adjusting speed to %g not supported for this content\n", FIX2FLT(desired_speed));
+	}
+}
+
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	if (!term) return 0;
@@ -742,23 +752,17 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			break;
 		case GF_KEY_UP:
 			if (evt->key.flags & VK_MOD && is_connected) {
-				playback_speed *= 2;
-				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
-				gf_term_set_speed(term, playback_speed);
+				do_set_speed(playback_speed * 2);
 			}
 			break;
 		case GF_KEY_DOWN:
 			if (evt->key.flags & VK_MOD && is_connected) {
-				playback_speed /= 2;
-				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
-				gf_term_set_speed(term, playback_speed);
+				do_set_speed(playback_speed / 2);
 			}
 			break;
 		case GF_KEY_LEFT:
 			if (evt->key.flags & VK_MOD && is_connected) {
-				playback_speed = -playback_speed;
-				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
-				gf_term_set_speed(term, playback_speed);
+				do_set_speed(-1 * playback_speed );
 			}
 			break;
 
