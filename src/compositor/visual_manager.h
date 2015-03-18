@@ -248,7 +248,7 @@ struct _visual_manager
 
 	/*end of GL state to emulate with GLSL*/	
 //¡k startof
-#ifdef GPAC_USE_OGL_ES2
+//#ifdef GPAC_USE_OGL_ES2
 	/* shaders used for shader-only drawing */
 	GF_SHADERID glsl_vertex;
 	GF_SHADERID glsl_fragment;
@@ -262,7 +262,7 @@ struct _visual_manager
 
 	/* Compilation/Features Flags for dynamic shader */
 	u32 glsl_flags;
-#endif
+//#endif
 //¡k endof
 
 #endif
