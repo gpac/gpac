@@ -1259,7 +1259,7 @@ static GF_Err swf_bifs_define_sprite(SWFReader *read, u32 nb_frames)
 	esd->decoderConfig->decoderSpecificInfo = NULL;
 	gf_list_add(od->ESDescriptors, esd);
 
-	/*by default insert OD at begining*/
+	/*by default insert OD at beginning*/
 	e = swf_insert_od(read, 0, od);
 	if (e) {
 		gf_odf_desc_del((GF_Descriptor *) od);
@@ -1384,7 +1384,7 @@ static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd, Bool soundstr
 	gf_list_add(esd->extensionDescriptors, mux);
 
 
-	/*by default insert OD at begining*/
+	/*by default insert OD at beginning*/
 	e = swf_insert_od(read, 0, od);
 	if (e) {
 		gf_odf_desc_del((GF_Descriptor *) od);
@@ -1476,7 +1476,7 @@ static GF_Err swf_bifs_setup_image(SWFReader *read, u32 ID, char *fileName)
 	gf_list_add(esd->extensionDescriptors, mux);
 
 
-	/*by default insert OD at begining*/
+	/*by default insert OD at beginning*/
 	e = swf_insert_od(read, 0, od);
 	if (e) {
 		gf_odf_desc_del((GF_Descriptor *) od);

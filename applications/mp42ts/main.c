@@ -109,7 +109,7 @@ static GFINLINE void usage()
 	        "-pcr-init V            sets initial value V for PCR - if not set, random value is used\n"
 	        "-pcr-offset V          offsets all timestamps from PCR by V, in 90kHz. Default value is computed based on input media.\n"
 	        "-psi-rate V            sets PSI refresh rate V in ms (default 100ms).\n"
-	        "                        * If 0, PSI data is only send once at the begining or before each IDR when -rap option is set.\n"
+	        "                        * If 0, PSI data is only send once at the beginning or before each IDR when -rap option is set.\n"
 	        "                        * This should be set to 0 for DASH streams.\n"
 	        "-time n                request the muxer to stop after n ms\n"
 	        "-single-au             forces 1 PES = 1 AU (disabled by default)\n"

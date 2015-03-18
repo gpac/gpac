@@ -147,7 +147,7 @@ typedef struct _video_out
 		without destroying the GL context. If the GL context is destroyed, the module should send an event
 		of the same type to the player.
 
-	This function is also called with a NULL event at the begining of each rendering cycle, in order to allow event
+	This function is also called with a NULL event at the beginning of each rendering cycle, in order to allow event
 	handling for modules uncapable of safe multithreading (eg X11)
 	*/
 	GF_Err (*ProcessEvent)(struct _video_out *vout, GF_Event *event);

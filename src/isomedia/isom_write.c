@@ -837,7 +837,7 @@ GF_Err gf_isom_append_sample_data(GF_ISOFile *movie, u32 trackNumber, char *data
 
 //Add sample reference to a track. The SampleOffset is the offset of the data in the referenced file
 //you must have created a StreamDescription with URL or URN specifying your referenced file
-//the data offset specifies the begining of the chunk
+//the data offset specifies the beginning of the chunk
 //Use streamDescriptionIndex to specify the desired stream (if several)
 GF_EXPORT
 GF_Err gf_isom_add_sample_reference(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_ISOSample *sample, u64 dataOffset)
