@@ -111,7 +111,7 @@ GF_Err gf_term_get_visual_output_size(GF_Terminal *term, u32 *width, u32 *height
 /*process shortcuts*/
 void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev);
 
-void gf_term_set_speed(GF_Terminal *term, Fixed speed);
+GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed);
 
 /*sends a set of scene commands (BT, XMT, X3D, LASeR+XML) to the scene
 type indicates the language used - accepted values are
