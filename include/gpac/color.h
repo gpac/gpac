@@ -65,7 +65,7 @@ typedef struct
 	s32 pitch_y;
 	/*!Pixel format of the video framebuffer*/
 	u32 pixel_format;
-	/*!pointer to the begining of the video memory (top-left corner)*/
+	/*!pointer to the beginning of the video memory (top-left corner)*/
 	char *video_buffer;
 	/*!indicates that the video data reside on systems memory or video card one*/
 	Bool is_hardware_memory;

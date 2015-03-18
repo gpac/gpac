@@ -166,7 +166,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 		//dependancies
 	}
 
-	//ok we are fine - note the data map is created at the begining
+	//ok we are fine - note the data map is created at the beginning
 	if (i) movie->FragmentsFlags |= GF_ISOM_FRAG_WRITE_READY;
 
 	if (media_segment_type) {

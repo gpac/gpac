@@ -839,7 +839,7 @@ void gf_bs_rewind_bits(GF_BitStream *bs, u64 nbBits)
 	return;
 }
 
-/*seek from begining of stream: use internally even when non aligned!*/
+/*seek from beginning of stream: use internally even when non aligned!*/
 static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 {
 	u32 i;
@@ -877,7 +877,7 @@ static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 	return GF_OK;
 }
 
-/*seek from begining of stream: align before anything else*/
+/*seek from beginning of stream: align before anything else*/
 GF_EXPORT
 GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset)
 {

@@ -178,7 +178,7 @@ u32 gf_afc_process(GF_AudioFilterChain *afc, u32 nb_bytes)
 				entry->nb_bytes -= entry->in_block_size;
 				processed += entry->in_block_size;
 			}
-			/*move remaining data at the begining of the buffer*/
+			/*move remaining data at the beginning of the buffer*/
 			if (processed && entry->nb_bytes)
 				memmove(entry->in_block, entry->in_block+processed, entry->nb_bytes);
 

@@ -602,7 +602,7 @@ returns amount of data read (raw UDP packet size)*/
 u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
 u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
 
-/*decodes an RTP packet and gets the begining of the RTP payload*/
+/*decodes an RTP packet and gets the beginning of the RTP payload*/
 GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart);
 
 /*decodes an RTCP packet and update timing info, send RR too*/
@@ -1195,7 +1195,7 @@ typedef struct __tag_rtp_packetizer GP_RTPPacketizer;
 		@offset_from_orig: start offset in input buffer
 	@OnData: to call each time data is added to current RTP packet (either extra data from payload or
 		data from input when not using referencing)
-		@is_head: signal the data added MUST be inserted at the begining of the payload. Otherwise data
+		@is_head: signal the data added MUST be inserted at the beginning of the payload. Otherwise data
 		is concatenated as received
 */
 GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt,
