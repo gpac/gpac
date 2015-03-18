@@ -475,6 +475,7 @@ GLDECL(void, glUniformMatrix4x3fv, (GLint location, GLsizei count, GLboolean tra
 #ifndef GPAC_ANDROID//¡TODOk check which funcs are declared for ES2.0 use
 GLDECL(void, glVertexAttrib3f, (GLint location, GLfloat v0, GLfloat v1, GLfloat v2) )
 GLDECL(void, glGetUniformiv, (GLuint program, GLint location, GLint *params) )
+GLDECL(void, glGetUniformfv, (GLuint program, GLint location, GLfloat *params) )
 GLDECL(void, glEnableVertexAttribArray, (GLuint index) )
 GLDECL(void, glDisableVertexAttribArray, (GLuint index) )
 GLDECL(void, glVertexAttribPointer, (GLuint  index,  GLint  size,  GLenum  type,  GLboolean  normalized,  GLsizei  stride,  const GLvoid *  pointer) )
