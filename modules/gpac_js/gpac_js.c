@@ -1079,9 +1079,20 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 			}
 		}
 	}
+	case -49:
+	{
+		GF_NetworkCommand com;
+		GF_Err e;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_SERVICE_CAN_REVERSE_PLAYBACK;
+		e = gf_term_service_command(odm->net_service, &com);
+		*vp = BOOLEAN_TO_JSVAL((e == GF_OK) ? JS_TRUE : JS_FALSE);
+	}
+		break;
 	break;
 	}
-return JS_TRUE;
+
+	return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
@@ -1662,6 +1673,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("service_name",		-46,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("ntp_diff",			-47,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("main_addon_url",	-48,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("reverse_playback_supported",		-49,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		
 
 
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
