@@ -2554,7 +2554,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	}
 }
 
-static u32 nb_pat=0;
 static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	GF_M2TS_Program *prog;
@@ -2564,8 +2563,6 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 	u32 data_size;
 	unsigned char *data;
 	GF_M2TS_Section *section;
-
-	nb_pat++;
 
 	/*wait for the last section */
 	if (!(status&GF_M2TS_TABLE_END)) return;
@@ -2922,7 +2919,10 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	/*duplicated packet, NOT A DISCONTINUITY, we should discard the packet - however we may encounter this configuration in DASH at segment boundaries.
 	If payload start is set, ignore duplication*/
 	if (hdr->continuity_counter==pes->cc) {
-		if (!hdr->payload_start || (hdr->adaptation_field!=3) ) return;
+		if (!hdr->payload_start || (hdr->adaptation_field!=3) ) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: Duplicated Packet found (CC %d) - skipping\n", pes->pid, pes->cc));
+			return;
+		}
 	} else {
 		expect_cc = (pes->cc<0) ? hdr->continuity_counter : (pes->cc + 1) & 0xf;
 		if (expect_cc != hdr->continuity_counter)
