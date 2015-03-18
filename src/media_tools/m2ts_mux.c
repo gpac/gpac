@@ -1410,7 +1410,7 @@ Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_l
 		}
 
 		if (stream->min_bytes_copy_from_next && stream->copy_from_next_packets) {
-			/*if we don't have enough space in the PES to store begining of new AU, don't copy it and ask
+			/*if we don't have enough space in the PES to store beginning of new AU, don't copy it and ask
 			to recompute header (we might no longer have DTS/CTS signaled)*/
 			if (stream->copy_from_next_packets < stream->min_bytes_copy_from_next) {
 				stream->copy_from_next_packets = 0;
@@ -1485,7 +1485,7 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream)
 		dts = stream->next_pck_dts;
 		cts = stream->next_pck_cts;
 	}
-	/*we already sent the begining of the AU*/
+	/*we already sent the beginning of the AU*/
 	else if (stream->pck_offset) {
 		use_pts = use_dts = 0;
 		dts = cts = 0;
@@ -2034,7 +2034,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 	stream->loop_descriptors = gf_list_new();
 
 	if (program->streams) {
-		/*if PCR keep stream at the begining*/
+		/*if PCR keep stream at the beginning*/
 		if (is_pcr) {
 			stream->next = program->streams;
 			program->streams = stream;

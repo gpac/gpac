@@ -1306,7 +1306,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	}
 	if (!payload_size) return;
 
-	/*missed begining, unusable*/
+	/*missed beginning, unusable*/
 	if (!ch->buffer && !NewAU) {
 		if (ch->esd->slConfig->useAccessUnitStartFlag) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d: missed begin of AU\n", ch->esd->ESID));
