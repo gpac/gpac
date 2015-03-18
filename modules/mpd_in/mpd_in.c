@@ -823,6 +823,27 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	return GF_OK;
 }
 
+/*check in all groups if the service can support reverse playback (speed<0); return GF_OK only if service is supported in all groups*/
+static GF_Err mpdin_dash_can_reverse_playback(GF_MPD_In *mpdin)
+{
+	u32 i;
+	GF_Err e = GF_NOT_SUPPORTED;
+	for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
+		if (gf_dash_is_group_selectable(mpdin->dash, i)) {
+			GF_MPDGroup *mudta = gf_dash_get_group_udta(mpdin->dash, i);
+			if (mudta && mudta->segment_ifce) {
+				GF_NetworkCommand com;
+				com.command_type = GF_NET_SERVICE_CAN_REVERSE_PLAYBACK;
+				e = mudta->segment_ifce->ServiceCommand(mudta->segment_ifce, &com);
+				if (GF_OK != e)
+					return e;
+			}
+		}
+	}
+
+	return e;
+}
+
 
 GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
@@ -1123,6 +1144,8 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_GET_TIMESHIFT:
 		com->timeshift.time = gf_dash_get_timeshift_buffer_pos(mpdin->dash);
 		return GF_OK;
+	case GF_NET_SERVICE_CAN_REVERSE_PLAYBACK:
+		return mpdin_dash_can_reverse_playback(mpdin);
 
 	default:
 		break;
