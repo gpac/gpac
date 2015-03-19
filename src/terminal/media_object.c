@@ -1210,7 +1210,7 @@ u32 gf_mo_get_last_frame_time(GF_MediaObject *mo)
 GF_EXPORT
 Bool gf_mo_is_private_media(GF_MediaObject *mo)
 {
-	if (mo->odm && mo->odm->codec && mo->odm->codec->decio && (mo->odm->codec->decio->InterfaceType==GF_PRIVATE_MEDIA_DECODER_INTERFACE)) return GF_TRUE;
+	if (mo && mo->odm && mo->odm->codec && mo->odm->codec->decio && (mo->odm->codec->decio->InterfaceType==GF_PRIVATE_MEDIA_DECODER_INTERFACE)) return GF_TRUE;
 	return GF_FALSE;
 }
 

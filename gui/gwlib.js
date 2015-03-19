@@ -499,8 +499,8 @@ gwskin.default_label_font_size = 18;
 gwskin.default_text_font_size = 18;
 gwskin.default_font_family = 'SANS';
 gwskin.default_icon_text_spacing = 8;
-gwskin.default_control_height = 64;
-gwskin.default_icon_height = 48;
+gwskin.default_control_height = 48;
+gwskin.default_icon_height = 32;
 
 
 //create styles
