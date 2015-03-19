@@ -102,6 +102,8 @@ typedef struct
 	u32 instantBitrate;
 	u16 degradationPriority;
 
+	/*Everything below this comment is internal to GPAC*/
+
 	/*this is NOT part of standard SL, only used internally: signals duration of access unit if known
 	this is usefull for streams with very random updates, to prevent buffering for instance a subtitle stream
 	which is likely to have no updates during the first minutes... expressed in media timescale*/
@@ -122,6 +124,8 @@ typedef struct
 	s64 timeStampOffset;
 	//ntp at sender/producer side for this packet, 0 otherwise
 	u64 sender_ntp;
+	//set for AUs which should be decodedd but not presented during seek
+	u8 seekFlag;
 } GF_SLHeader;
 
 

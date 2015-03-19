@@ -661,6 +661,8 @@ struct _es_channel
 	u32 stream_state;
 	/*the AU in reception is RAP*/
 	Bool IsRap;
+	/*the AU in reception is only need for seeking*/
+	Bool SeekFlag;
 	/*signal that next AU is an AU start*/
 	Bool NextIsAUStart;
 	/*if codec resilient, packet drops are not considered as fatal for AU reconstruction (eg no wait for RAP)*/

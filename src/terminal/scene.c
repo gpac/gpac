@@ -1686,14 +1686,17 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only)
 
 				//object is not an addon and main addon is selected, do not add
 				if (!odm->addon && scene->main_addon_selected) {
-					//object is not an addon and main addon is selected, do not add
-				} else if (odm->addon && (odm->addon->addon_type==GF_ADDON_TYPE_MAIN) && scene->main_addon_selected) {
-					gf_list_add(to_restart, odm);
+				} 
+				//object is an addon and enabled, restart if main and main is enabled, or if not main
+				else if (odm->addon && odm->addon->enabled) {
+					if (odm->addon->addon_type==GF_ADDON_TYPE_MAIN) {
+						if (scene->main_addon_selected) {
+							gf_list_add(to_restart, odm);
+						}
+					} else {
+						gf_list_add(to_restart, odm);
+					}
 				} else if (!scene->selected_service_id || (scene->selected_service_id==odm->OD->ServiceID)) {
-					gf_list_add(to_restart, odm);
-				}
-				//addon are inserted from outside the parent service, and won't share the same service_ID - restart if addon is enabled
-				else if (odm->addon && odm->subscene && odm->addon->enabled) {
 					gf_list_add(to_restart, odm);
 				}
 

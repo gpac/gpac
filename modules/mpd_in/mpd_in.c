@@ -202,6 +202,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet DTS "LLU" less than PTO "LLU" - forcing DTS to 0\n", hdr->compositionTimeStamp, group->pto));
 				hdr->decodingTimeStamp = 0;
+				hdr->seekFlag = 1;
 			}
 		}
 		if (hdr->compositionTimeStampFlag) {
@@ -210,6 +211,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
 				hdr->compositionTimeStamp = 0;
+				hdr->seekFlag = 1;
 			}
 		}
 

@@ -1489,7 +1489,9 @@ void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state)
 
 		if (media_queue_state==2) {
 			odm->action_type = GF_ODM_ACTION_PLAY;
+			gf_term_lock_media_queue(odm->term, 0);
 			gf_odm_play(odm);
+			gf_term_lock_media_queue(odm->term, 1);
 		} else if (!skip_register && (gf_list_find(odm->term->media_queue, odm)<0)) {
 			odm->action_type = GF_ODM_ACTION_PLAY;
 			assert(! (odm->flags & GF_ODM_DESTROYED));

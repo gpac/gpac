@@ -43,7 +43,9 @@ enum
 	/*hack for some DMB streams not signaling TS for BIFS*/
 	GF_DB_AU_NO_TIMESTAMPS = 1<<2,
 	/*for debuging AU reassembly in scalable coding*/
-	GF_DB_AU_REAGGREGATED = 1<<3
+	GF_DB_AU_REAGGREGATED = 1<<3,
+	/*set for AUs that need dispatching but should not be displayed*/
+	GF_DB_AU_IS_SEEK = 1<<4,
 };
 
 /*compressed media unit*/
