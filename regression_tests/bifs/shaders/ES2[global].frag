@@ -188,15 +188,14 @@ void main() {
 	if(hasMeshColor){	//
 		fragColor = m_color;
 	}else if(gfNumLights==0){	//is material2D => no lights - only colour (stored in gfEmissionColor)
-		if(gfEmissionColor != vec4(0.0, 0.0, 0.0, 0.0)){
-			fragColor = gfEmissionColor;
-		}else{
-			fragColor = vec4(1.0, 1.0, 1.0, 1.0);
-		}
+#ifdef GF_GL_HAS_MAT_2D	//we have mat2d
+		fragColor = gfEmissionColor;
+#endif
+//TODO else (material non-2d with no light)
 	}else if(gfNumLights>0){
 		//default material (visual->has_material) -> handled in doLighting()
 	}
-	
+
 	//clippin
 	if(hasClip){
 		for(int i=0;i<CLIPS_MAX;i++){
@@ -239,13 +238,13 @@ void main() {
 			if(gfNumLights>0){
 				fragColor *= vec4(rgb, alpha);
 			}else{
-				fragColor *= vec4(rgb, alpha);
+				fragColor = vec4(rgb, alpha);
 			}
 #else	//ifndef GF_GL_IS_YUV
 		if(gfNumLights>0){	//RGB texture
 			fragColor *= texture2DRect(y_plane, TexCoord);
 		}else if(gfNumLights==0){	//RGB texture with material 2D
-			fragColor *= texture2DRect(y_plane, TexCoord);
+			fragColor = texture2DRect(y_plane, TexCoord);
 		}
 #endif
 #else	//ifndef GF_GL_IS_RECT
@@ -261,15 +260,22 @@ void main() {
 			if(gfNumLights>0){
 				fragColor *= vec4(rgb, alpha);
 			}else{
-				fragColor *= vec4(rgb, alpha);
+				fragColor = vec4(rgb, alpha);
 			}
 #else	//ifndef GF_GL_IS_YUV
 		if(gfNumLights>0){	//RGB texture
 			fragColor *= texture2D(y_plane, TexCoord);
 		}else if(gfNumLights==0){	//RGB texture with material 2D [TODO: check]
-			fragColor *= texture2D(y_plane, TexCoord);
+			fragColor = texture2D(y_plane, TexCoord);
 		}
 #endif
+#endif
+
+#ifdef GF_GL_HAS_MAT_2D	//we have mat 2 + texture
+	if(gfEmissionColor.a > 0.0 && gfEmissionColor.a <1.0)
+		fragColor *= gfEmissionColor;
+	else if(fragColor.rgb == vec3(0.0, 0.0, 0.0))
+		fragColor.rgb = gfEmissionColor.rgb;
 #endif
 	}
 	
@@ -277,5 +283,4 @@ void main() {
 		fragColor = fragColor * gfFogFactor + vec4(gfFogColor, zero_float) * (one_float - gfFogFactor);
 	
 	gl_FragColor = fragColor;
-
 }
