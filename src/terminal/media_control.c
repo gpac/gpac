@@ -65,7 +65,7 @@ void mediacontrol_restart(GF_ObjectManager *odm)
 	scene_ck = gf_odm_get_media_clock(odm->parentscene->root_od);
 	if (gf_odm_shares_clock(odm, scene_ck)) {
 		if (odm->parentscene->is_dynamic_scene)
-			gf_scene_restart_dynamic(odm->parentscene, 0, 0);
+			gf_scene_restart_dynamic(odm->parentscene, 0, 0, 0);
 		return;
 	}
 
@@ -212,7 +212,7 @@ void mediacontrol_pause(GF_ObjectManager *odm)
 
 
 /*pause all objects*/
-void MC_SetSpeed(GF_ObjectManager *odm, Fixed speed)
+void mediacontrol_set_speed(GF_ObjectManager *odm, Fixed speed)
 {
 	u32 i;
 	GF_ObjectManager *ctrl_od;
@@ -230,11 +230,22 @@ void MC_SetSpeed(GF_ObjectManager *odm, Fixed speed)
 		assert(odm->subscene->root_od==odm);
 		in_scene = odm->subscene;
 
-		//dynamic scene, we need tpo re-start everything to issue new PLAY requests
+		//dynamic scene with speed direction, we need to re-start everything to issue new PLAY requests
 		if (in_scene->is_dynamic_scene && (gf_mulfix(ck->speed, speed) < 0)) {
 			u32 time = gf_clock_time(ck);
 			gf_clock_set_speed(ck, speed);
-			gf_scene_restart_dynamic(in_scene, time, 0);
+
+			//enable main addon
+			if (speed<0) {
+				i=0;
+				while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->resources, &i))) {
+					if (ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
+						gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE);
+						break;
+					}
+				}
+			}
+			gf_scene_restart_dynamic(in_scene, time, 0, 1);
 			return;
 		} 
 		gf_clock_set_speed(ck, speed);
@@ -244,7 +255,12 @@ void MC_SetSpeed(GF_ObjectManager *odm, Fixed speed)
 	i=0;
 	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->resources, &i))) {
 		if (!gf_odm_shares_clock(ctrl_od, ck)) continue;
-		gf_odm_set_speed(ctrl_od, speed, GF_TRUE);
+
+		if (ctrl_od->subscene) {
+			mediacontrol_set_speed(ctrl_od, speed);
+		} else {
+			gf_odm_set_speed(ctrl_od, speed, GF_TRUE);
+		}
 	}
 }
 
@@ -463,7 +479,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		/*else set speed*/
 		else if (stack->media_speed && stack->control->mediaSpeed) {
 			/*don't set speed if we have to restart the media ...*/
-			if (!shall_restart) MC_SetSpeed(odm, stack->control->mediaSpeed);
+			if (!shall_restart) mediacontrol_set_speed(odm, stack->control->mediaSpeed);
 			need_restart += shall_restart;
 		}
 		/*init state was paused*/

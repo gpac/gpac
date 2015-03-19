@@ -186,7 +186,7 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 			if (ck) {
 				Bool is_paused = ck->Paused;
 				if (is_paused) gf_clock_resume(ck);
-				gf_scene_restart_dynamic(scene, 0, 0);
+				gf_scene_restart_dynamic(scene, 0, 0, 0);
 				if (is_paused) gf_clock_pause(ck);
 			}
 			return 1;
@@ -1663,7 +1663,7 @@ u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, u32 pause_at_first_
 			gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
 
 		gf_sc_lock(term->compositor, 1);
-		gf_scene_restart_dynamic(term->root_scene, from_time, 0);
+		gf_scene_restart_dynamic(term->root_scene, from_time, 0, 0);
 		gf_sc_lock(term->compositor, 0);
 		return 2;
 	}
@@ -2158,7 +2158,7 @@ GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)
 
 	if (restart) {
 		if (term->root_scene->is_dynamic_scene) {
-			gf_scene_restart_dynamic(term->root_scene, scene_time, 0);
+			gf_scene_restart_dynamic(term->root_scene, scene_time, 0, 0);
 		} else {
 		}
 	}
