@@ -2020,8 +2020,12 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 		li = &visual->lights[i];
 
 		//¡k these two lines were added, to update mx according to the light mx
-		gf_mx_copy(mx, visual->camera.modelview);
-		gf_mx_add_matrix(&mx, &li->light_mx);
+		if (li->type==3) {
+			gf_mx_init(mx);
+		} else {
+			gf_mx_copy(mx, visual->camera.modelview);
+			gf_mx_add_matrix(&mx, &li->light_mx);
+		}
 
 		sprintf(tmp, "%s%d%s", "lights[", i, "].type");
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);		//Uniform name lights[i].type
@@ -2044,7 +2048,7 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 			glUniform4fv(loc, 1, vals); //¡k Set direction
 
 		//¡TODO cleanup
-		if(li->type==0){
+		if ((li->type==0) || (li->type==3) ) {
 			pt = li->direction;
 			vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;	//¡TODO TIDY UP dirction-position for directional!!!!!
 			pt = li->position;
@@ -2232,7 +2236,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	GL_CHECK_ERR
 
-		visual->glsl_program = vsl->glsl_programs[visual->glsl_flags];	//¡k temporary patch
+	visual->glsl_program = vsl->glsl_programs[visual->glsl_flags];	//¡k temporary patch
 	glUseProgram(visual->compositor->visual->glsl_programs[visual->glsl_flags]);
 
 	//visual->glsl_flags = 0;	//I d not remember why we put it here in the first place

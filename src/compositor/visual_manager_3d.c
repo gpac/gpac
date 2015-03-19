@@ -1863,11 +1863,10 @@ void visual_3d_enable_headlight(GF_VisualManager *visual, Bool bOn, GF_Camera *c
 	if (visual->has_inactive_lights || visual->num_lights) return;
 
 	col.blue = col.red = col.green = FIX_ONE;
-	dir.x = dir.y = 0;
-	dir.z = -FIX_ONE;
-	if (cam->is_3D) dir = camera_get_target_dir(cam);
-
+	dir.x = dir.y = 0; dir.z = -FIX_ONE;
+//	if (cam->is_3D) dir = camera_get_target_dir(cam);
 //	visual_3d_add_directional_light(visual, 0, col, FIX_ONE, dir, &cam->modelview);
+
 	visual_3d_add_directional_light(visual, 0, col, FIX_ONE, dir, NULL);
 }
 
@@ -2034,7 +2033,12 @@ Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed ambientInte
 		memcpy(&visual->lights[visual->num_lights].light_mx, light_mx, sizeof(GF_Matrix) );
 	} else {
 		gf_mx_init(visual->lights[visual->num_lights].light_mx);
+		visual->lights[visual->num_lights].type = 3;
+		visual->lights[visual->num_lights].direction.x = 0;
+		visual->lights[visual->num_lights].direction.y = 0;
+		visual->lights[visual->num_lights].direction.z = -FIX_ONE;
 	}
+
 	visual->num_lights++;
 	if(visual->glsl_program)
 		visual->compositor->visual->glsl_flags |= GF_GL_HAS_LIGHT;
