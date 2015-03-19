@@ -303,7 +303,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		
 
 		if (glGetAttribLocation != NULL) {
-			compositor->shader_only_mode = 1;
+			compositor->shader_only_mode = 0;
 		}
 #endif
 
@@ -1605,9 +1605,12 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 		GF_Matrix mx;
 		GF_LightInfo *li = &visual->lights[i];
 		GLint iLight = GL_LIGHT0 + i;
-
-		gf_mx_copy(mx, visual->camera.modelview.m);
-		gf_mx_add_matrix(&mx, &li->light_mx);
+		if(li->type==3){
+			gf_mx_init(mx);
+		}else{
+			gf_mx_copy(mx, visual->camera.modelview.m);
+			gf_mx_add_matrix(&mx, &li->light_mx);
+		}
 		visual_3d_matrix_load(visual, mx.m);
 		//visual_3d_matrix_add(visual, li->light_mx.m);
 
@@ -1616,6 +1619,7 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 		switch (li->type) {
 		//directionnal light
 		case 0:
+		case 3:
 #if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 			vals[0] = -li->direction.x;
 			vals[1] = -li->direction.y;
@@ -1971,10 +1975,6 @@ static void visual_3d_update_matrices_ES2(GF_TraverseState *tr_state){
 
 /**
  * Simulating visual_3d_set_* functions
- *
- * TODO: 
- *		 multiple lights
- * 		 matrices handling (per light)
  *
  */
 static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
