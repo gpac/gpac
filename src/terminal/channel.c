@@ -71,6 +71,7 @@ static void gf_es_reset(GF_Channel *ch, Bool for_start)
 	ch->pck_sn = 0;
 	ch->stream_state = 1;
 	ch->IsRap = 0;
+	ch->SeekFlag = 0;
 	ch->IsEndOfStream = 0;
 	ch->skip_carousel_au = 0;
 
@@ -469,6 +470,8 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 	au->CTS = ch->CTS;
 	au->DTS = ch->DTS;
 	if (ch->IsRap) au->flags |= GF_DB_AU_RAP;
+	if (ch->SeekFlag) au->flags |= GF_DB_AU_IS_SEEK;
+
 	if (ch->CTS_past_offset) {
 		au->CTS = ch->CTS_past_offset;
 		au->flags |= GF_DB_AU_CTS_IN_PAST;
@@ -484,6 +487,7 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 	au->sender_ntp = ch->sender_ntp;
 
 	ch->IsRap = 0;
+	ch->SeekFlag = 0;
 	ch->padingBits = 0;
 	au->next = NULL;
 	ch->buffer = NULL;
@@ -657,7 +661,7 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 	ch->au_duration = 0;
 	if (duration) ch->au_duration = (u32) ((u64)1000 * duration / ch->ts_res);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) - Dispatch AU DTS %d - CTS %d - RAP %d - size %d time %d Buffer %d Nb AUs %d - First AU relative timing %d\n", ch->esd->ESID, ch->odm->net_service->url, au->DTS, au->CTS, au->flags&1, au->dataLength, gf_clock_real_time(ch->clock), ch->BufferTime, ch->AU_Count, ch->AU_buffer_first ? ch->AU_buffer_first->DTS - gf_clock_time(ch->clock) : 0 ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) - Dispatch AU DTS %d - CTS %d - RAP %d - Seek %d - size %d time %d Buffer %d Nb AUs %d - First AU relative timing %d\n", ch->esd->ESID, ch->odm->net_service->url, au->DTS, au->CTS, au->flags & GF_DB_AU_RAP, (au->flags & GF_DB_AU_IS_SEEK) ? 1 :0, au->dataLength, gf_clock_real_time(ch->clock), ch->BufferTime, ch->AU_Count, ch->AU_buffer_first ? ch->AU_buffer_first->DTS - gf_clock_time(ch->clock) : 0 ));
 
 	/*little optimisation: if direct dispatching is possible, try to decode the AU
 	we must lock the media scheduler to avoid deadlocks with other codecs accessing the scene or
@@ -1283,6 +1287,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 
 	/*update the RAP marker on a packet base (to cope with AVC/H264 NALU->AU reconstruction)*/
 	if (hdr.randomAccessPointFlag) ch->IsRap = 1;
+	if (hdr.seekFlag) ch->SeekFlag = 1;
 
 	/*get AU end state*/
 	OldLength = ch->buffer ? ch->len : 0;

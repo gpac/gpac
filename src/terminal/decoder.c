@@ -1093,12 +1093,18 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		/*set media processing level*/
 		ch->last_au_was_seek = 0;
 		mmlevel = GF_CODEC_LEVEL_NORMAL;
-		/*SEEK: if the last frame had the same TS, we are seeking. Ask the codec to drop*/
-		if (!ch->skip_sl && codec->last_unit_cts && (codec->last_unit_cts == AU->CTS) && !ch->esd->dependsOnESID) {
+
+		/*explicit seek*/
+		if (AU->flags & GF_DB_AU_IS_SEEK) {
+			mmlevel = GF_CODEC_LEVEL_SEEK;
+			ch->last_au_was_seek = 1;
+		}
+		/*implicit seek: if the last frame had the same TS, we are seeking. Ask the codec to drop*/
+		else if (!ch->skip_sl && codec->last_unit_cts && (codec->last_unit_cts == AU->CTS) && !ch->esd->dependsOnESID) {
 			mmlevel = GF_CODEC_LEVEL_SEEK;
 			ch->last_au_was_seek = 1;
 			/*object clock is paused by media control or terminal is paused: exact frame seek*/
-			if (
+			if (! (AU->flags & GF_DB_AU_IS_SEEK) &&
 #ifndef GPAC_DISABLE_VRML
 			    (codec->ck->mc && codec->ck->mc->paused) ||
 #endif
