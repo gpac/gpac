@@ -2291,9 +2291,9 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		}else{	//if it's not YUV handle alpha with blend
 			glEnable(GL_BLEND);
 			if(!tr_state->mesh_num_textures && visual->mat_2d.alpha == FIX_ONE){
-					visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0);
+					visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0); //¡k not ES2.0
 			}else{
-				visual_3d_enable_antialias(visual, 0);
+				visual_3d_enable_antialias(visual, 0);	//¡k not ES2.0
 			}
 			//¡k Old code [Delete after testing]
 			/*
@@ -2311,8 +2311,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		if (loc>=0)
 			glUniform4fv(loc, 1, (GLfloat *) & visual->mat_2d);
 		GL_CHECK_ERR
-
-			//my_glQueryUniform(visual->glsl_program, "gfEmissionColor", 3);
 
 		//equilavent of glDisable(GL_LIGHTING)
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumLights");
@@ -2465,19 +2463,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		glEnableVertexAttribArray(loc);
 		GL_CHECK_ERR
 
-		/*
-		for (i=0; i<3; i++) {
-			const char *txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
-			loc = glGetUniformLocation(visual->glsl_program, txname);
-			if (loc == -1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture %s in YUV shader\n", txname));
-				continue;
-			}
-			glUniform1i(loc, i);
-		}*/
-
-
-
 	}else{
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumTextures");
 		if (loc>=0)
@@ -2488,34 +2473,32 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			//¡k ENDof texturing
 
 
-
-
 			//this, i do not know
 	if (mesh->mesh_type) {
-		loc = my_glGetAttribLocation(visual->glsl_program, "gfNormal");
-		if (loc>=0)
-			glVertexAttrib3f(loc, 0.0, 0.0, 1.0);	//¡k test this
-		GL_CHECK_ERR
-					//¡TODOk add the following (for ES2.0)
-					/*
-					glDisable(GL_CULL_FACE);
-					glDisable(GL_LIGHTING);
-					if (mesh->mesh_type==2) glDisable(GL_LINE_SMOOTH);
-					else glDisable(GL_POINT_SMOOTH);
-					*/
+		//before we had	if (mesh->mesh_type==2) glDisable(GL_LINE_SMOOTH);	else glDisable(GL_POINT_SMOOTH);
+		//but ES2.0 has no consideration for anti-aliased lines
+
+		//According to the spec we should pass a 0,0,1 Normal and disable lights. we just disable lights
+		if(flags & GF_GL_HAS_LIGHT){
+			loc = my_glGetUniformLocation(visual->glsl_program, "gfNumLights");
+			if (loc>=0)	glUniform1i(loc, 0);
+
+		}
+
+		glDisable(GL_CULL_FACE);
+
+#if !defined(GPAC_USE_TINYGL) && !defined(GL_ES_CL_PROFILE)
+		glLineWidth(1.0f);
+#endif
 
 	}else{
-
-		//¡k this should work
-		if (!mesh->mesh_type) {
-			if (visual->compositor->backcull
-						&& (!tr_state->mesh_is_transparent || (visual->compositor->backcull ==GF_BACK_CULL_ALPHA) )
-						&& (mesh->flags & MESH_IS_SOLID)) {
-				glEnable(GL_CULL_FACE);
-				glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
-			} else {
-				glDisable(GL_CULL_FACE);
-			}
+		if (visual->compositor->backcull
+					&& (!tr_state->mesh_is_transparent || (visual->compositor->backcull ==GF_BACK_CULL_ALPHA) )
+					&& (mesh->flags & MESH_IS_SOLID)) {
+			glEnable(GL_CULL_FACE);
+			glFrontFace((mesh->flags & MESH_IS_CW) ? GL_CW : GL_CCW);
+		} else {
+			glDisable(GL_CULL_FACE);
 		}
 	}
 
