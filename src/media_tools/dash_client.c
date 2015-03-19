@@ -520,12 +520,16 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 			if (current_time < shift) current_time = 0;
 			else current_time -= shift;
-		} else if (group->dash->user_buffer_ms) {
+		} 
+		//commented for now, this increase the delay to the live ...
+#if 0
+		else if (group->dash->user_buffer_ms) {
 			shift = MIN(group->dash->user_buffer_ms, mpd->time_shift_buffer_depth);
 
 			if (current_time < shift) current_time = 0;
 			else current_time -= shift;
 		}
+#endif
 	}
 	group->dash->time_in_tsb = group->dash->prev_time_in_tsb = 0;
 
@@ -617,7 +621,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			repeat = 1+ent->repeat_count;
 			while (repeat) {
 				if ((current_time_rescale >= segtime) && (current_time_rescale < segtime + ent->duration)) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Found segment %d for current time "LLU" is in SegmentTimeline ["LLU"-"LLU"] (timecale %d - current index %d)\n", seg_idx, current_time_rescale, start_segtime, segtime + ent->duration, timescale, group->download_segment_index));
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Found segment %d for current time "LLU" is in SegmentTimeline ["LLU"-"LLU"] (timecale %d - current index %d - startNumber %d)\n", seg_idx, current_time_rescale, start_segtime, segtime + ent->duration, timescale, group->download_segment_index, start_number));
 
 					group->download_segment_index = seg_idx;
 					group->nb_segments_in_rep = seg_idx + count - i;

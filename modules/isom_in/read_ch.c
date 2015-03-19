@@ -383,6 +383,7 @@ static void init_reader(ISOMChannel *ch)
 	}
 	ch->to_init = 0;
 
+	ch->current_slh.seekFlag = 0;
 	if (ch->disable_seek) {
 		ch->current_slh.decodingTimeStamp = ch->sample->DTS;
 		ch->current_slh.compositionTimeStamp = ch->sample->DTS + ch->sample->CTS_Offset;
@@ -390,6 +391,9 @@ static void init_reader(ISOMChannel *ch)
 	} else {
 		ch->current_slh.decodingTimeStamp = ch->start;
 		ch->current_slh.compositionTimeStamp = ch->start;
+		if (ch->current_slh.compositionTimeStamp != ch->sample->DTS + ch->sample->CTS_Offset) {
+			ch->current_slh.seekFlag = 1;
+		}
 	}
 	ch->current_slh.randomAccessPointFlag = ch->sample ? ch->sample->IsRAP : 0;
     ch->last_sample_desc_index = sample_desc_index;
@@ -635,8 +639,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	if ((ch->speed < 0) || (ch->start <= ch->sample->DTS + ch->sample->CTS_Offset)) {
 		ch->current_slh.decodingTimeStamp = ch->sample->DTS;
 		ch->current_slh.compositionTimeStamp = ch->sample->DTS + ch->sample->CTS_Offset;
+		ch->current_slh.seekFlag = 0;
 	} else {
 		ch->current_slh.compositionTimeStamp = ch->start;
+		ch->current_slh.seekFlag = 1;
 		if (ch->streamType==GF_STREAM_SCENE)
 			ch->current_slh.decodingTimeStamp = ch->sample->DTS;
 		else

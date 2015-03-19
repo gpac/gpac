@@ -318,6 +318,11 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 	if (!ar->need_reconfig) {
 		u32 delay_ms = ar->disable_resync ?	0 : ar->audio_delay;
 
+		if (ar->Frozen) {
+			memset(buffer, 0, buffer_size);
+			return buffer_size;
+		}
+
 		gf_mixer_lock(ar->mixer, 1);
 
 		if (ar->filter_chain.enable_filters) {
@@ -421,9 +426,11 @@ u32 gf_ar_proc(void *p)
 
 	while (ar->audio_th_state == 1) {
 		//do mix even if mixer is empty, otherwise we will push the same buffer over and over to the sound card
+/*
 		if (ar->Frozen ) {
 			gf_sleep(0);
-		} else {
+		} else 
+*/		{
 			if (ar->need_reconfig) gf_sc_ar_reconfig(ar);
 			ar->audio_out->WriteAudio(ar->audio_out);
 		}
