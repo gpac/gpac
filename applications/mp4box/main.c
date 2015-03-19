@@ -348,7 +348,7 @@ void PrintDASHUsage()
 	        " -dash-ctx FILE       stores/restore DASH timing from FILE.\n"
 	        " -dynamic             uses dynamic MPD type instead of static.\n"
 			" -mpd-duration DUR    sets the duration in second of a live session (0 by default). If 0, you must use -mpd-refresh.\n"
-	        " -mpd-refresh TIME    specifies MPD update time in seconds.\n"
+			" -mpd-refresh TIME    specifies MPD update time in seconds (double can be used).\n"
 	        " -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
 	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
 	        "                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
@@ -1761,7 +1761,7 @@ int mp4boxMain(int argc, char **argv)
 	u32 MTUSize = 1450;
 #endif
 	GF_ISOFile *file;
-	u32 mpd_update_time = 0;
+	Double mpd_update_time = 0;
 	Bool stream_rtp=0;
 	Bool live_scene=0;
 	Bool enable_mem_tracker = 0;
@@ -2301,7 +2301,7 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-mpd-refresh")) {
-			CHECK_NEXT_ARG mpd_update_time = atoi(argv[i+1]);
+			CHECK_NEXT_ARG mpd_update_time = atof(argv[i+1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-time-shift")) {
@@ -3541,8 +3541,8 @@ int mp4boxMain(int argc, char **argv)
 			mpd_update_time = 0;
 		} else if ((dash_profile>=GF_DASH_PROFILE_MAIN) && !use_url_template && !mpd_update_time) {
 			/*use a default MPD update of dash_duration sec*/
-			mpd_update_time = (u32)  (dash_subduration ? dash_subduration : dash_duration);
-			fprintf(stderr, "Using default MPD refresh of %d seconds\n", mpd_update_time);
+			mpd_update_time = (Double) (dash_subduration ? dash_subduration : dash_duration);
+			fprintf(stderr, "Using default MPD refresh of %g seconds\n", mpd_update_time);
 		}
 
 		if (file && needSave) {
