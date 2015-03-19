@@ -1790,14 +1790,17 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	SDLVID();
 	u32 amask = 0;
 	u32 bpp;
-	GF_Err e;
+	GF_Err e = GF_OK;
 #if SDL_VERSION_ATLEAST(2,0,0)
 #else
 	u32 i;
 	u8 *dst, *src;
 #endif
-	SDL_Rect dstrc, srcrc, *src_ptr=NULL;
+	SDL_Rect dstrc;
 	SDL_Surface **pool;
+#if SDL_VERSION_ATLEAST(2,0,0)
+	SDL_Rect srcrc, *src_ptr=NULL;
+#endif
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] Bliting surface (overlay type %d)\n", overlay_type));
 
