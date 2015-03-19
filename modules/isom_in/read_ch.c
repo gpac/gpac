@@ -417,13 +417,17 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		init_reader(ch);
         sample_desc_index = ch->last_sample_desc_index;
 	} else if (ch->speed < 0) {
-		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time - 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
-		if (e) {
-			if (e==GF_EOS) {
-				ch->last_state = GF_EOS;
+		if (!ch->sample_time) {
+			ch->last_state = GF_EOS;
+			return;
+		} else {
+			e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time - 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
+			if (e) {
+				if ((e==GF_EOS) && !ch->owner->frag_type) {
+					ch->last_state = GF_EOS;
+				}
 				return;
 			}
-			return;
 		}
 		if (ch->sample->DTS + ch->dts_offset == ch->sample_time) {
 			if (!ch->owner->frag_type) {
