@@ -1363,7 +1363,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				/*restart*/
 				if (evt.restart_requested) {
 					if (ch->odm->parentscene->is_dynamic_scene) {
-						gf_scene_restart_dynamic(ch->odm->parentscene, 0, 0);
+						gf_scene_restart_dynamic(ch->odm->parentscene, 0, 0, 0);
 					} else {
 						mediacontrol_restart(ch->odm);
 					}
@@ -1529,7 +1529,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 					/*restart*/
 					if (evt.restart_requested) {
 						if (ch->odm->parentscene->is_dynamic_scene) {
-							gf_scene_restart_dynamic(ch->odm->parentscene, 0, 0);
+							gf_scene_restart_dynamic(ch->odm->parentscene, 0, 0, 0);
 						} else {
 							mediacontrol_restart(ch->odm);
 						}

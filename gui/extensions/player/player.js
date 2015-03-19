@@ -394,18 +394,18 @@ extension = {
             }
             gw_background_control(false);
             switch (type) {
-                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
                 case 1:
                     this.extension.set_state(this.extension.GF_STATE_PAUSE);
                     this.extension.set_speed(0);
                     break;
-                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
                 case 2:
                     this.extension.set_state(this.extension.GF_STATE_PLAY);
                     this.extension.movie_control.mediaStartTime = time;
                     this.extension.set_speed(1);
                     break;
-                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
                 default:
                     if (this.extension.state == this.extension.GF_STATE_STOP)
                         this.extension.set_state(this.extension.GF_STATE_PLAY);
@@ -435,13 +435,11 @@ extension = {
         wnd.back_live = gw_new_icon(wnd.infobar, 'live');
         wnd.back_live.extension = this;
         wnd.back_live.on_click = function () {
-            if (0 && this.extension.root_odm && this.extension.root_odm.main_addon_on) {
-                this.extension.root_odm.disable_main_addon();
-            }
-            else if (this.extension.movie_control.mediaStopTime < 0) {
+            if (this.extension.movie_control.mediaStopTime < 0) {
                 this.extension.set_time(0);
                 this.extension.movie_control.mediaStopTime = 0;
-                this.extension.controler.layout();
+                this.extension.set_state(this.extension.GF_STATE_PLAY);
+                //this.extension.controler.layout();
             }
         }
 
@@ -454,7 +452,7 @@ extension = {
             this.extension.set_state(this.extension.GF_STATE_STOP);
         }
 
-        wnd.rewind = gw_new_icon_button(wnd.infobar, 'rewind', '', true, 'icon_label');
+        wnd.rewind = gw_new_icon(wnd.infobar, 'rewind');
         wnd.rewind.extension = this;
         wnd.rewind.on_click = function () {
             if (this.extension.movie_control.mediaSpeed) {
@@ -525,9 +523,7 @@ extension = {
             this.extension.view_stats();
         }
 
-
         gw_new_separator(wnd.infobar);
-
 
         wnd.snd_low = gw_new_icon(wnd.infobar, 'audio');
         wnd.snd_low.extension = this;
@@ -629,6 +625,7 @@ extension = {
             }
 
             var speed = this.extension.movie_control.mediaSpeed;
+            if (speed < 0) speed = -speed;
             if (speed && (speed != 1)) {
                 if ((speed > 100) || (speed < 1))
                     this.forward.set_size(3 * control_icon_size, control_icon_size);
@@ -751,8 +748,8 @@ extension = {
                 if (this.snd_low) this.snd_low.show();
                 if (this.snd_ctrl) this.snd_ctrl.show();
 
+                this.rewind.hide();
                 if (this.extension.reverse_playback_supported) this.rewind.show();
-                else this.rewind.hide();
 
                 if (this.extension.duration) {
                     if (this.forward) this.forward.show();
@@ -840,8 +837,14 @@ extension = {
 
             //            this.set_size(w, 1.2 * gwskin.default_icon_height);
 
-            if (this.extension.movie_connected) h = 3.3 * gwskin.default_icon_height;
+            if (this.extension.movie_connected) {
+                h = 3.3 * gwskin.default_icon_height;
+                if (!this.media_line.visible) {
+                    h -= gwskin.default_icon_height;
+                }
+            }
             else h = 1.1 * gwskin.default_icon_height;
+
 
             this.set_size(def_width, h);
 
@@ -989,7 +992,7 @@ extension = {
             var pos = 100;
             var time_in_tsb = 0;
 
-            if (this.movie_control.mediaStopTime < 0) {
+            if ((this.movie_control.mediaStopTime < 0) || (this.movie_control.mediaSpeed <= 0)) {
                 time_in_tsb = this.root_odm.timeshift_time;
                 if (this.timeshift_depth > time_in_tsb) {
                     pos = 100 * (this.timeshift_depth - time_in_tsb) / this.timeshift_depth;
@@ -1074,13 +1077,15 @@ extension = {
                 dlg.time.set_width(4 * dlg.time.font_size());
             }
         }
-        dlg.layout();
+        dlg.on_display_size(gw_display_width, gw_display_height);
     },
     set_timeshift_depth: function (value) {
         if (this.timeshift_depth == value) return;
 
         this.timeshift_depth = value;
         var dlg = this.controler;
+
+        this.reverse_playback_supported = this.root_odm.reverse_playback_supported;
 
         if (!value) {
             dlg.time.hide();
@@ -1099,7 +1104,7 @@ extension = {
             dlg.time.set_size(w, gwskin.default_icon_height);
             dlg.time.set_width(w);
         }
-        dlg.layout();
+        dlg.on_display_size(gw_display_width, gw_display_height);
     },
 
     set_state: function (state) {
@@ -1150,8 +1155,13 @@ extension = {
             if (this.controlled_renderer) this.controlled_renderer.Play();
             this.state = state;
             this.controler.play.switch_icon(this.icon_pause);
-            if (this.movie_control.mediaSpeed != 1);
-            this.movie_control.mediaStartTime = -1;
+            if (this.movie_control.mediaSpeed != 1)
+                this.movie_control.mediaStartTime = -1;
+
+            if (this.timeshift_depth && (this.movie_control.mediaSpeed < 0)) {
+                this.movie_control.mediaStopTime = -this.root_odm.timeshift_time;
+            }
+
             this.set_speed(1);
             return;
         }

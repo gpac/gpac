@@ -1352,7 +1352,7 @@ void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons)
 #else
 /*!!fixme - we would need an SVG scene in case no VRML support is present !!!*/
 void gf_scene_regenerate(GF_Scene *scene) {}
-void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only) {}
+void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only, Bool disable_addon_check) {}
 void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm) {}
 #endif	/*GPAC_DISABLE_VRML*/
 
@@ -1646,7 +1646,7 @@ void gf_scene_resume_live(GF_Scene *subscene)
 		mediacontrol_resume(subscene->root_od, 1);
 }
 
-void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only)
+void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only, Bool disable_addon_check)
 {
 	u32 i;
 	GF_Clock *ck;
@@ -1661,19 +1661,21 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only)
 	if (!ck) return;
 
 	//first pass to check if we need to enable the addon acting as time shifting
-	i=0;
-	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
+	if (!disable_addon_check) {
+		i=0;
+		while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
 
-		if (odm->addon && (odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
-			//assign clock if not yet available
-			if (odm->addon->root_od->subscene && !odm->addon->root_od->subscene->dyn_ck)
-				odm->addon->root_od->subscene->dyn_ck = scene->dyn_ck;
+			if (odm->addon && (odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
+				//assign clock if not yet available
+				if (odm->addon->root_od->subscene && !odm->addon->root_od->subscene->dyn_ck)
+					odm->addon->root_od->subscene->dyn_ck = scene->dyn_ck;
 
-			//we're timeshifting through the main addon, activate it
-			if (from_time < -1) {
-				gf_scene_select_main_addon(scene, odm, GF_TRUE);
-			} else if (scene->main_addon_selected) {
-				gf_scene_select_main_addon(scene, odm, GF_FALSE);
+				//we're timeshifting through the main addon, activate it
+				if (from_time < -1) {
+					gf_scene_select_main_addon(scene, odm, GF_TRUE);
+				} else if (scene->main_addon_selected) {
+					gf_scene_select_main_addon(scene, odm, GF_FALSE);
+				}
 			}
 		}
 	}
@@ -1729,7 +1731,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only)
 		}
 
 		if (odm->subscene && odm->subscene->is_dynamic_scene) {
-			gf_scene_restart_dynamic(odm->subscene, from_time, 0);
+			gf_scene_restart_dynamic(odm->subscene, from_time, 0, 0);
 		} else {
 			gf_odm_start(odm, 0);
 		}

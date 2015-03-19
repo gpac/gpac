@@ -218,7 +218,7 @@ void gf_scene_mpeg4_inline_restart(GF_Scene *scene)
 				from = (s64) (scene->root_od->media_ctrl->media_start * 1000);
 			}
 		}
-		gf_scene_restart_dynamic(scene, from, 0);
+		gf_scene_restart_dynamic(scene, from, 0, 0);
 	} else {
 		/*we cannot use gf_mo_restart since it only sets the needs_restart for inline scenes.
 		The rational is that gf_mo_restart can be called from the parent scene (OK) or from the scene itself, in
