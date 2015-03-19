@@ -694,7 +694,7 @@ void gf_mo_get_object_time(GF_MediaObject *mo, u32 *obj_time)
 GF_EXPORT
 s32 gf_mo_get_clock_drift(GF_MediaObject *mo)
 {
-	s32 res;
+	s32 res = 0;
 	if (!gf_odm_lock_mo(mo)) return 0;
 
 	/*regular media codec...*/
