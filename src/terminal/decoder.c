@@ -1104,7 +1104,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			mmlevel = GF_CODEC_LEVEL_SEEK;
 			ch->last_au_was_seek = 1;
 			/*object clock is paused by media control or terminal is paused: exact frame seek*/
-			if (! (AU->flags & GF_DB_AU_IS_SEEK) &&
+			if (
 #ifndef GPAC_DISABLE_VRML
 			    (codec->ck->mc && codec->ck->mc->paused) ||
 #endif
