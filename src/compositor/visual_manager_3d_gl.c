@@ -303,7 +303,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		
 
 		if (glGetAttribLocation != NULL) {
-			compositor->shader_only_mode = 0;
+			compositor->shader_only_mode = 1;
 		}
 #endif
 
@@ -2030,7 +2030,11 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 		sprintf(tmp, "%s%d%s", "lights[", i, "].type");
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);		//Uniform name lights[i].type
 		if (loc>=0)
-			glUniform1i(loc, (GLint) li->type); //Set type 0-directional 1-spot 2-point
+			if(li->type==3){
+				glUniform1i(loc, 0); //headlight; Set type 0-directional
+			}else{
+				glUniform1i(loc, (GLint) li->type); //Set type 0-directional 1-spot 2-point
+			}
 
 		//¡k from here was set for light direction (assuming origin = 0,0,0)
 		pt = li->direction;
