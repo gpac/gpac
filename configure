@@ -586,7 +586,7 @@ EOF
         esac
         ;;
 
-    MINGW32*)
+    MINGW32*|mingw32)
         js_flags="-DXP_PC -D_declspec=__declspec"
         mingw32="yes"
         win32="yes"
@@ -597,7 +597,7 @@ EOF
         fi
         ;;
 
-    CYGWIN*)
+    CYGWIN*|cygwin*)
         js_flags=-DXP_PC 
         extralibs="$extralibs -lws2_32 -lwinmm"
         cygwin="yes"
