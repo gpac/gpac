@@ -25,9 +25,9 @@ LINKFLAGS=-L../../bin/gcc -L../../extra_lib/lib/gcc
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=MP4Box$(EXE)
-LINKFLAGS+=-lgpac_static $(EXTRALIBS) 
 
 ifeq ($(MP4BOX_STATIC),yes)
+LINKFLAGS+=-lgpac_static $(EXTRALIBS) 
 ifneq ($(CONFIG_ZLIB),no)
 LINKFLAGS+=-lz
 endif
