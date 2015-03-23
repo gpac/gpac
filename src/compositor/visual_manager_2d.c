@@ -519,7 +519,7 @@ static u32 register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx
 
 static void register_dirty_rect(GF_RectArray *ra, GF_IRect *rc)
 {
-    if (!rc->width || !rc->height) return;
+    if (!rc->width || !rc->height) return;
     
 	/*technically this is correct however the gain is not that big*/
 #if 0
