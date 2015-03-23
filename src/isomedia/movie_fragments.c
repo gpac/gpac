@@ -424,7 +424,12 @@ void update_trun_offsets(GF_ISOFile *movie, s32 offset)
 
 u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 {
-	u32 sampleCount, i, j, RunSize, UseDefaultSize, RunDur, UseDefaultDur, RunFlags, NeedFlags, UseDefaultFlag, UseCTS, count;
+	u32 sampleCount, i, j, RunSize, RunDur, RunFlags, NeedFlags, UseCTS, count;
+	/* enum: 
+	   0 - use values per sample in the trun box 
+	   1 - use default values from track fragment header
+	   2 - use default values from track extends header */	 
+	u32 UseDefaultSize, UseDefaultDur, UseDefaultFlag;
 	GF_TrackFragmentRunBox *trun;
 	GF_TrunEntry *ent, *first_ent;
 
@@ -526,34 +531,44 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 
 		//flag checking
 		if (!NeedFlags) {
+			// all samples flags are the same after the 2nd entry
 			if (RunFlags == traf->trex->def_sample_flags) {
-				if (!UseDefaultFlag) UseDefaultFlag = 2;
-				else if (UseDefaultFlag==1) NeedFlags = 1;
+				/* this run can use trex flags */
+				if (!UseDefaultFlag) {
+					/* if all previous runs used explicit flags per sample, we can still use trex flags for this run */
+					UseDefaultFlag = 2;
+				} else if (UseDefaultFlag==1) {
+					/* otherwise if one of the previous runs did use tfhd flags, 
+					we have no choice but to explicitly use flags per sample for this run */
+					NeedFlags = GF_TRUE;
+				}
 			} else if (RunFlags == traf->tfhd->def_sample_flags) {
-				if (!UseDefaultFlag) UseDefaultFlag = 1;
-				else if(UseDefaultFlag==2) NeedFlags = 1;
+				/* this run can use tfhd flags */
+				if (!UseDefaultFlag) {
+					/* if all previous runs used explicit flags per sample, we can still use tfhd flags for this run */
+					UseDefaultFlag = 1;
+				} else if(UseDefaultFlag==2) {
+					/* otherwise if one of the previous runs did use trex flags, 
+					we have no choice but to explicitly use flags per sample for this run */
+					NeedFlags = GF_TRUE;
+				}
+			} else {
+				/* the flags for the 2nd and following entries are different from trex and tfhd default values
+				   (possible case: 2 samples in trun, and first sample was used to set default flags) */
+				NeedFlags = GF_TRUE;
 			}
 		}
 		if (NeedFlags) {
 			//one flags entry per sample only
 			trun->flags |= GF_ISOM_TRUN_FLAGS;
 		} else {
-			//indicated in global setup
-			if (first_ent->flags == traf->trex->def_sample_flags) {
-				if (!UseDefaultFlag) UseDefaultFlag = 2;
-				else if (UseDefaultFlag==1) trun->flags |= GF_ISOM_TRUN_FIRST_FLAG;
-			}
-			//indicated in local setup
-			else if (first_ent->flags == traf->tfhd->def_sample_flags) {
-				if (!UseDefaultFlag) UseDefaultFlag = 1;
-				else if (UseDefaultFlag==2) trun->flags |= GF_ISOM_TRUN_FIRST_FLAG;
-			}
-			//explicit store
-			else {
+			/* this run can use default flags for the 2nd and following entries,
+			   we just need to check if the first entry flags need to be singled out*/
+			if (first_ent->flags != RunFlags) {
 				trun->flags |= GF_ISOM_TRUN_FIRST_FLAG;
 			}
 		}
-
+		
 		//CTS flag
 		if (UseCTS) trun->flags |= GF_ISOM_TRUN_CTS_OFFSET;
 
@@ -564,7 +579,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 		sampleCount += trun->sample_count;
 	}
 
-	//last update TRAF flags
+	//after all runs in the traf are processed, update TRAF flags
 	if (UseDefaultSize==1) traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_SIZE;
 	if (UseDefaultDur==1) traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_DUR;
 	if (UseDefaultFlag==1) traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_FLAGS;
