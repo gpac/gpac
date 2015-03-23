@@ -129,9 +129,13 @@ typedef struct __dash_client GF_DashClient;
 
 typedef enum
 {
+	//selects the lowest quality when starting - if one of the representation does not have video (HLS), it may be selected
 	GF_DASH_SELECT_QUALITY_LOWEST,
+	//selects the highest quality when starting 
 	GF_DASH_SELECT_QUALITY_HIGHEST,
+	//selects the lowest bandwidth when starting - if one of the representation does not have video (HLS), it will NOT be selected
 	GF_DASH_SELECT_BANDWIDTH_LOWEST,
+	//selects the highest bandwidth when starting 
 	GF_DASH_SELECT_BANDWIDTH_HIGHEST
 } GF_DASHInitialSelectionMode;
 
