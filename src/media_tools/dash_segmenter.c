@@ -647,7 +647,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u32 *segments_info = NULL;
 	u32 nb_segments_info = 0;
 	u32 protected_track = 0;
-	u64 min_seg_dur, max_seg_dur, total_seg_dur;
+	u64 min_seg_dur, max_seg_dur, total_seg_dur, last_seg_dur;
 	Bool audio_only = GF_TRUE;
 	Bool is_bs_switching = GF_FALSE;
 	Bool use_url_template = dash_cfg->use_url_template;
@@ -1213,7 +1213,7 @@ restart_fragmentation_pass:
 
 
 	max_segment_duration = 0;
-	min_seg_dur = max_seg_dur = total_seg_dur = 0;
+	min_seg_dur = max_seg_dur = total_seg_dur = last_seg_dur = 0;
 
 	while ( (count = gf_list_count(fragmenters)) ) {
 		Bool store_pssh = GF_FALSE;
@@ -1589,6 +1589,7 @@ restart_fragmentation_pass:
 			if (max_seg_dur < SegmentDuration)
 				max_seg_dur = SegmentDuration;			
 			total_seg_dur += SegmentDuration;
+			last_seg_dur = SegmentDuration;
 
 			if (mpd_timeline_bs) {
 				u32 tick_adjust = 0;
@@ -1712,7 +1713,8 @@ restart_fragmentation_pass:
 		u64 idx_start_range, idx_end_range;
 
 		total_seg_dur += SegmentDuration;
-		
+		last_seg_dur = SegmentDuration;
+
 		segment_start_time += SegmentDuration;
 
 		gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, 1, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
@@ -1777,8 +1779,13 @@ restart_fragmentation_pass:
 			if (3*min_seg_dur < max_seg_dur) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Segment duration variation is higher than the +/- 50%% allowed by DASH-IF (min %g, max %g) - please reconsider encoding\n", (Double) min_seg_dur / dash_cfg->dash_scale, (Double) max_seg_dur / dash_cfg->dash_scale));
 			}
-			max_segment_duration = (Double) total_seg_dur;
-			max_segment_duration /= nb_segments * dash_cfg->dash_scale;
+			if (nb_segments == 1) {
+				max_segment_duration = (Double) total_seg_dur;
+				max_segment_duration /= nb_segments * dash_cfg->dash_scale;
+			} else {
+				max_segment_duration = (Double) (total_seg_dur - last_seg_dur);
+				max_segment_duration /= (nb_segments - 1) * dash_cfg->dash_scale;
+			}
 		}
 	}
 
