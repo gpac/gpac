@@ -3144,20 +3144,19 @@ static void wget_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 
 GF_EXPORT
-GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range)
+GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url)
 {
 	GF_Err e;
 	GF_DownloadManager * dm = NULL;
 	dm = gf_dm_new(NULL);
 	if (!dm)
 		return GF_OUT_OF_MEM;
-	e = gf_dm_wget_with_cache(dm, url, filename, start_range, end_range);
+	e = gf_dm_wget_with_cache(dm, url, filename, start_range, end_range, redirected_url);
 	gf_dm_del(dm);
 	return e;
 }
 
-GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
-                             const char *url, const char *filename, u64 start_range, u64 end_range)
+GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm, const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url)
 {
 	GF_Err e;
 	FILE * f;
@@ -3185,6 +3184,10 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
 	}
 	e |= gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
 	gf_fclose(f);
+
+	if (redirected_url) {
+		if (dnload->orig_url_before_redirect) *redirected_url = gf_strdup(dnload->orig_url);
+	}
 	gf_dm_sess_del(dnload);
 	return e;
 }
