@@ -989,6 +989,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 				if (f) gf_fclose(f);
 				return e;
 			}
+			reset_attributes(&attribs);
 		}
 	}
 	if (f) gf_fclose(f);
