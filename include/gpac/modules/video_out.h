@@ -202,7 +202,7 @@ typedef struct _video_out
 
 
 
-	/*set of above HW flags*/
+	/*set of above HW flags - some of the caps may change depeinding on the current video setup*/
 	u32 hw_caps;
 	/*main pixel format of video board (informative only)*/
 	u32 pixel_format;

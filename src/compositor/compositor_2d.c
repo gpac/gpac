@@ -846,9 +846,13 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		case GF_PIXEL_RGBD:
 //		case GF_PIXEL_RGB_555:
 //		case GF_PIXEL_RGB_565:
-			if (hw_caps & GF_VIDEO_HW_HAS_RGB)
-				use_soft_stretch = GF_FALSE;
-			break;
+            if ((alpha==0xFF) && (hw_caps & GF_VIDEO_HW_HAS_RGB)) {
+                use_soft_stretch = GF_FALSE;
+            }
+            else if ((alpha!=0xFF) && (hw_caps & GF_VIDEO_HW_HAS_RGBA)) {
+                use_soft_stretch = GF_FALSE;
+            }
+            break;
 		case GF_PIXEL_ARGB:
 		case GF_PIXEL_RGBA:
 		case GF_PIXEL_RGBAS:
@@ -871,7 +875,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 		/*disable based on settings*/
 		if (!visual->compositor->enable_yuv_hw
-		        || (ctx->col_mat || (alpha!=0xFF) || !visual->compositor->video_out->Blit)
+		        || (ctx->col_mat || !visual->compositor->video_out->Blit)
 		   ) {
 			use_soft_stretch = GF_TRUE;
 			overlay_type = 0;
@@ -927,6 +931,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		video_src.u_ptr = (char *) txh->pU;
 		video_src.v_ptr = (char *) txh->pV;
 	}
+    video_src.global_alpha = alpha;
 
 	//overlay queing
 	if (overlay_type==2) {
@@ -1075,8 +1080,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	u8 alpha = 0xFF;
 
 	if (!ctx->aspect.fill_texture) return 1;
-	/*check if texture is ready*/
-	if (!ctx->aspect.fill_texture->data) return 0;
+	/*check if texture is ready - if not pretend we drew it*/
+	if (!ctx->aspect.fill_texture->data) return 1;
 	if (ctx->transform.m[0]<0) return 0;
 	/*check if the <0 value is due to a flip in he scene description or
 	due to bifs<->svg... context switching*/
