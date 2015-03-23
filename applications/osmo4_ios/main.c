@@ -391,7 +391,7 @@ int main (int argc, char *argv[])
 	}
 
 	/*force fullscreen*/
-	//gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
+	gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
 
 	while (Run) {
 		if (restart) {

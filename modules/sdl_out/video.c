@@ -594,14 +594,19 @@ void SDLVid_SetHack(void *os_handle, Bool set_on)
 static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 {
 #if SDL_VERSION_ATLEAST(2,0,0)
-	if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
-	ctx->back_buffer = NULL;
-	if (ctx->pool_rgb) SDL_FreeSurface(ctx->pool_rgb);
-	ctx->pool_rgb = NULL;
-	if (ctx->pool_rgba) SDL_FreeSurface(ctx->pool_rgba);
+
+    if (ctx->pool_rgb) SDL_DestroyTexture(ctx->pool_rgb);
+    ctx->pool_rgb = NULL;
+	if (ctx->pool_rgba) SDL_DestroyTexture(ctx->pool_rgba);
 	ctx->pool_rgba = NULL;
-	SDL_DestroyTexture(ctx->yuv_texture);
-	ctx->yuv_texture = NULL;
+    if (ctx->pool_yuv) SDL_DestroyTexture(ctx->pool_yuv);
+    ctx->pool_yuv = NULL;
+    
+    if (ctx->tx_back_buffer) SDL_DestroyTexture(ctx->tx_back_buffer);
+    ctx->tx_back_buffer = NULL;
+    if (ctx->back_buffer_pixels) gf_free(ctx->back_buffer_pixels);
+    ctx->back_buffer_pixels = NULL;
+
 #else
 	if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
 	ctx->back_buffer = NULL;
@@ -686,6 +691,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		assert(width);
 		assert(height);
 #if SDL_VERSION_ATLEAST(2,0,0)
+        
 		if (!ctx->screen) {
 			if (!(ctx->screen = SDL_CreateWindow("", 0, 0, width, height, flags))) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
@@ -729,24 +735,37 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		flags = SDL_FULLSCREEN_FLAGS;
 		//SDL readme says it would make us faster
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
-		SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 1);
 #else
-		flags = SDL_WINDOW_FLAGS;
+		flags = SDL_WINDOW_FLAGS | SDL_WINDOW_RESIZABLE;
+
+        if (ctx->os_handle) flags &= ~SDL_WINDOW_RESIZABLE;
+
 #endif
 		if (ctx->os_handle) flags &= ~SDL_WINDOW_RESIZABLE;
 
 #if SDL_VERSION_ATLEAST(2,0,0)
-        flags |= SDL_WINDOW_RESIZABLE;
+        
+#ifdef GPAC_IPHONE
+        //still some issues with render to tager and landscape orientation, we need to reset everything ...
+        if (ctx->enable_defer_mode) {
+            if (ctx->renderer) SDL_DestroyRenderer(ctx->renderer);
+            ctx->renderer=NULL;
+            if (ctx->screen) SDL_DestroyWindow(ctx->screen);
+            ctx->screen=NULL;
+        }
+#endif
         
 		if (!ctx->screen) {
-			if (!(ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags))) {
+            ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags);
+            
+			if (!ctx->screen) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
 				gf_mx_v(ctx->evt_mx);
 				return GF_IO_ERR;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Window created\n"));
             SDL_RaiseWindow(ctx->screen);
-		}
+        }
 		if ( !ctx->renderer ) {
 			u32 flags = SDL_RENDERER_ACCELERATED;
 			const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
@@ -760,7 +779,9 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 				return GF_IO_ERR;
 			}
 		}
-		SDL_SetWindowSize(ctx->screen, width, height);
+#ifndef GPAC_IPHONE
+        SDL_SetWindowSize(ctx->screen, width, height);
+#endif
         SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 0, 255);
         SDL_RenderClear(ctx->renderer);
 
@@ -1294,9 +1315,7 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 	const char *opt;
 	SDLVID();
 #if SDL_VERSION_ATLEAST(2,0,0)
-	SDL_DisplayMode disp;
-	s32 bpp;
-	u32 Rmask, Gmask, Bmask, Amask;
+
 #else
 	u32 col;
 #endif
@@ -1314,29 +1333,35 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 
 	/*clear screen*/
 #if SDL_VERSION_ATLEAST(2,0,0)
-	SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 0, 255);
-	SDL_RenderClear(ctx->renderer);
-	SDL_RenderPresent(ctx->renderer);
+    
+    
+    if (ctx->tx_back_buffer) SDL_DestroyTexture(ctx->tx_back_buffer);
+    if (ctx->back_buffer_pixels) gf_free(ctx->back_buffer_pixels);
+    
+    ctx->tx_back_buffer = SDL_CreateTexture(ctx->renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, newWidth, newHeight);
+    ctx->back_buffer_pixels = gf_malloc(sizeof(char)*3*newWidth*newHeight);
+    
+    
+    SDL_SetRenderDrawColor(ctx->renderer, 0, 0, 0, 255);
+    SDL_RenderClear(ctx->renderer);
+    SDL_RenderPresent(ctx->renderer);
+    
 #else
 	col = SDL_MapRGB(ctx->screen->format, 0, 0, 0);
 	SDL_FillRect(ctx->screen, NULL, col);
 	SDL_Flip(ctx->screen);
-#endif
 
-	if (ctx->back_buffer && ((u32) ctx->back_buffer->w==newWidth) && ((u32) ctx->back_buffer->h==newHeight)) {
-		return GF_OK;
-	}
-	if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
-#if SDL_VERSION_ATLEAST(2,0,0)
-	SDL_GetWindowDisplayMode(ctx->screen, &disp);
-	SDL_PixelFormatEnumToMasks(disp.format, &bpp, &Rmask, &Gmask, &Bmask, &Amask);
-	ctx->back_buffer = SDL_CreateRGBSurface(0, newWidth, newHeight, bpp, Rmask, Gmask, Bmask, 0);
-#else
-	ctx->back_buffer = SDL_CreateRGBSurface(ctx->use_systems_memory ? SDL_SWSURFACE : SDL_HWSURFACE, newWidth, newHeight, ctx->screen->format->BitsPerPixel, ctx->screen->format->Rmask, ctx->screen->format->Gmask, ctx->screen->format->Bmask, 0);
+    if (ctx->back_buffer && ((u32) ctx->back_buffer->w==newWidth) && ((u32) ctx->back_buffer->h==newHeight)) {
+        return GF_OK;
+    }
+    if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
+
+    ctx->back_buffer = SDL_CreateRGBSurface(ctx->use_systems_memory ? SDL_SWSURFACE : SDL_HWSURFACE, newWidth, newHeight, ctx->screen->format->BitsPerPixel, ctx->screen->format->Rmask, ctx->screen->format->Gmask, ctx->screen->format->Bmask, 0);
+
+    if (!ctx->back_buffer) return GF_IO_ERR;
 #endif
 	ctx->width = newWidth;
 	ctx->height = newHeight;
-	if (!ctx->back_buffer) return GF_IO_ERR;
 
 	return GF_OK;
 }
@@ -1363,9 +1388,36 @@ u32 SDLVid_MapPixelFormat(SDL_PixelFormat *format, Bool force_alpha)
 	}
 }
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_info, Bool do_lock)
+{
+    SDLVID();
+
+    if (do_lock) {
+        memset(video_info, 0, sizeof(GF_VideoSurface));
+        video_info->width = ctx->width;
+        video_info->height = ctx->height;
+        video_info->pitch_x = 0;
+        video_info->pitch_y = ctx->width*3;
+        video_info->video_buffer = ctx->back_buffer_pixels;
+        video_info->pixel_format = GF_PIXEL_RGB_24;
+        video_info->is_hardware_memory = 0;
+        if (ctx->needs_bb_grab) {
+            SDL_RenderReadPixels(ctx->renderer, NULL, SDL_PIXELFORMAT_RGB24, video_info->video_buffer, video_info->pitch_y);
+            ctx->needs_bb_grab = 0;
+        }
+    } else {
+        SDL_UpdateTexture(ctx->tx_back_buffer, NULL, video_info->video_buffer, video_info->pitch_y);
+        SDL_RenderCopy(ctx->renderer, ctx->tx_back_buffer, NULL, NULL);
+    }
+    return GF_OK;
+}
+
+#else
 static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_info, Bool do_lock)
 {
 	SDLVID();
+    
 	if (!ctx->back_buffer) return GF_BAD_PARAM;
 	if (do_lock) {
 		if (!video_info) return GF_BAD_PARAM;
@@ -1381,8 +1433,47 @@ static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_i
 	} else {
 		SDL_UnlockSurface(ctx->back_buffer);
 	}
-	return GF_OK;
+    return GF_OK;
 }
+#endif
+
+
+#if SDL_VERSION_ATLEAST(2,0,0)
+
+static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
+{
+    SDLVID();
+    /*if resizing don't process otherwise we may deadlock*/
+    if (!ctx->screen) return GF_OK;
+    
+    //GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Flush\n"));
+    
+    if (ctx->output_3d_type==1) {
+        SDL_GL_SwapWindow(ctx->screen);
+        return GF_OK;
+    }
+    
+    if (ctx->enable_defer_mode) {
+        if (ctx->needs_bb_flush) {
+            SDL_UpdateTexture(ctx->tx_back_buffer, NULL, ctx->back_buffer_pixels, 3*ctx->width);
+            SDL_RenderCopy(ctx->renderer, ctx->tx_back_buffer, NULL, NULL);
+        }
+        SDL_RenderReadPixels(ctx->renderer, NULL, SDL_PIXELFORMAT_RGB24, ctx->back_buffer_pixels, 3*ctx->width);
+        ctx->needs_bb_grab = 0;
+        ctx->needs_bb_flush = 0;
+        SDL_RenderPresent(ctx->renderer);
+        //push back texture after SDL flip
+        SDL_RenderCopy(ctx->renderer, ctx->tx_back_buffer, NULL, NULL);
+    } else {
+        ctx->needs_clear = 1;
+        SDL_RenderPresent(ctx->renderer);
+    }
+    
+    
+    return GF_OK;
+}
+
+#else
 
 static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 {
@@ -1394,20 +1485,13 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	//GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Flush\n"));
 
 	if (ctx->output_3d_type==1) {
-#if SDL_VERSION_ATLEAST(2,0,0)
-		SDL_GL_SwapWindow(ctx->screen);
-#else
 		SDL_GL_SwapBuffers();
-#endif
 		return GF_OK;
 	}
 	if (!ctx->back_buffer) return GF_BAD_PARAM;
-
+    
 	if ((dest->w != (u32) ctx->back_buffer->w) || (dest->h != (u32) ctx->back_buffer->h)) {
 		GF_VideoSurface src, dst;
-#if SDL_VERSION_ATLEAST(2,0,0)
-		SDL_Surface* wndSurface;
-#endif
 
 		SDL_LockSurface(ctx->back_buffer);
 		memset(&src, 0, sizeof(GF_VideoSurface));
@@ -1418,17 +1502,6 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 		src.pixel_format = SDLVid_MapPixelFormat(ctx->back_buffer->format, ctx->force_alpha);
 		src.video_buffer = (char*)ctx->back_buffer->pixels;
 
-#if SDL_VERSION_ATLEAST(2,0,0)
-		wndSurface  = SDL_GetWindowSurface(ctx->screen);
-		SDL_LockSurface(wndSurface);
-		memset(&dst, 0, sizeof(GF_VideoSurface));
-		dst.height = wndSurface->h;
-		dst.width = wndSurface->w;
-		dst.pitch_x = 0;
-		dst.pitch_y = wndSurface->pitch;
-		dst.pixel_format = SDLVid_MapPixelFormat(wndSurface->format, GF_FALSE);
-		dst.video_buffer = (char*)wndSurface->pixels;
-#else
 		SDL_LockSurface(ctx->screen);
 		dst.height = ctx->screen->h;
 		dst.width = ctx->screen->w;
@@ -1436,47 +1509,27 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 		dst.pitch_y = ctx->screen->pitch;
 		dst.pixel_format = SDLVid_MapPixelFormat(ctx->screen->format, 0);
 		dst.video_buffer = ctx->screen->pixels;
-#endif
 
 		gf_stretch_bits(&dst, &src, dest, NULL, 0xFF, 0, NULL, NULL);
-#if SDL_VERSION_ATLEAST(2,0,0)
-		SDL_UnlockSurface(wndSurface);
-#else
 		SDL_UnlockSurface(ctx->screen);
-#endif
 		SDL_UnlockSurface(ctx->back_buffer);
 
 	} else {
-#if SDL_VERSION_ATLEAST(2,0,0)
-		SDL_Texture* tx;
-#endif
 		rc.x = dest->x;
 		rc.y = dest->y;
 		rc.w = dest->w;
 		rc.h = dest->h;
-#if SDL_VERSION_ATLEAST(2,0,0)
-		SDL_ClearError();
-		if (!(tx = SDL_CreateTextureFromSurface(ctx->renderer, ctx->back_buffer))) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("SDL_GetWindowSurface failed: %s\n", SDL_GetError()));
-			SDL_ClearError();
-		}
-		SDL_RenderCopy(ctx->renderer, tx, NULL, &rc);
-		SDL_DestroyTexture(tx);
-#else
 		SDL_BlitSurface(ctx->back_buffer, NULL, ctx->screen, &rc);
-#endif
 	}
-#if SDL_VERSION_ATLEAST(2,0,0)
-	SDL_RenderPresent(ctx->renderer);
-#else
 	SDL_Flip(ctx->screen);
-#endif
 	return GF_OK;
 }
+#endif
 
 static void SDLVid_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
 {
-	SDLVID();
+#ifndef GPAC_IPHONE
+    SDLVID();
 	switch (cursor_type) {
 	case GF_CURSOR_ANCHOR:
 	case GF_CURSOR_TOUCH:
@@ -1492,6 +1545,7 @@ static void SDLVid_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
 		SDL_SetCursor(ctx->curs_def);
 		break;
 	}
+#endif
 }
 
 
@@ -1530,8 +1584,10 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	}
 	switch (evt->type) {
 	case GF_EVENT_SET_CURSOR:
-		SDLVid_SetCursor(dr, evt->cursor.cursor_type);
-		break;
+#ifndef GPAC_IPHONE
+        SDLVid_SetCursor(dr, evt->cursor.cursor_type);
+#endif
+            break;
 	case GF_EVENT_SET_CAPTION:
 #ifdef SDL_WINDOW_THREAD
 	{
@@ -1557,17 +1613,19 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVENT_SIZE:
 	{
 		SDLVID();
-		if (ctx->fullscreen) {
-			//ctx->store_width = evt->size.width;
-			//ctx->store_height = evt->size.height;
-		} else {
 #ifdef GPAC_IPHONE
-//            SDLVid_ResizeWindow(dr, dr->max_screen_width, dr->max_screen_height);
-			SDLVid_ResizeWindow(dr, evt->size.width, evt->size.height);
+        if (ctx->fullscreen) {
+        } else {
+            SDLVid_ResizeWindow(dr, evt->size.width, evt->size.height);
+        }
 #else
+        if (ctx->fullscreen) {
+            //ctx->store_width = evt->size.width;
+            //ctx->store_height = evt->size.height;
+        } else {
 			SDLVid_ResizeWindow(dr, evt->size.width, evt->size.height);
-#endif
 		}
+#endif
 	}
 	break;
 	case GF_EVENT_MOVE:
@@ -1785,76 +1843,152 @@ static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format, u32 pitch_y, u
 	}
 }
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
+{
+    SDLVID();
+    Bool need_copy=0;
+    u32 format;
+    s32 acc, w, h;
+    int res;
+    Bool set_blend=0;
+    SDL_Rect dstrc;
+    SDL_Texture **pool;
+    SDL_Rect srcrc, *src_ptr=NULL;
+    
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] Bliting surface (overlay type %d)\n", overlay_type));
+
+    if (ctx->needs_bb_flush) {
+        SDL_UpdateTexture(ctx->tx_back_buffer, NULL, ctx->back_buffer_pixels, 3*ctx->width);
+        SDL_RenderCopy(ctx->renderer, ctx->tx_back_buffer, NULL, NULL);
+        ctx->needs_bb_grab = 1;
+    }
+    
+    ctx->needs_bb_grab = 1;
+    if (ctx->needs_clear) {
+        SDL_RenderClear(ctx->renderer);
+        ctx->needs_clear = 0;
+    }
+
+    dstrc.w = dst_wnd->w;
+    dstrc.h = dst_wnd->h;
+    dstrc.x = dst_wnd->x;
+    dstrc.y = dst_wnd->y;
+    
+    if (src_wnd) {
+        srcrc.x = src_wnd->x;
+        srcrc.y = src_wnd->y;
+        srcrc.w = src_wnd->w;
+        srcrc.h = src_wnd->h;
+        src_ptr = &srcrc;
+    }
+    
+    //this is a clear (not very elegant ...)
+    if ((video_src->width<=2) && (video_src->height<=2)) {
+        u8 *pix =(u8 *) video_src->video_buffer;
+        if (video_src->pixel_format == GF_PIXEL_RGB_24) {
+            SDL_SetRenderDrawColor(ctx->renderer, pix[0], pix[1], pix[2], 0xFF);
+        } else {
+            SDL_SetRenderDrawColor(ctx->renderer, pix[0], pix[1], pix[2], pix[3]);
+        }
+        res = SDL_RenderFillRect(ctx->renderer, &dstrc);
+        if (res<0) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL2] Clear error: %s\n", SDL_GetError()));
+            return GF_IO_ERR;
+        }
+        return GF_OK;
+    }
+    
+    switch (video_src->pixel_format) {
+    case GF_PIXEL_RGB_24:
+        pool = &ctx->pool_rgb;
+        format=SDL_PIXELFORMAT_RGB24;
+        break;
+    case GF_PIXEL_RGBA:
+        pool = &ctx->pool_rgba;
+        format=SDL_PIXELFORMAT_ABGR8888;
+        set_blend=1;
+        break;
+    case GF_PIXEL_YV12:
+        pool = &ctx->pool_yuv;
+        format=SDL_PIXELFORMAT_YV12;
+        format=SDL_PIXELFORMAT_IYUV;
+        break;
+    case GF_PIXEL_YV12_10:
+        need_copy=1;
+        pool = &ctx->pool_yuv;
+        format=SDL_PIXELFORMAT_YV12;
+        break;
+    default:
+        return GF_NOT_SUPPORTED;
+    }
+
+    
+    if (*pool ) {
+        SDL_QueryTexture(*pool, &format, &acc, &w, &h);
+        if ((w != video_src->width) || (h != video_src->height) ) {
+            SDL_DestroyTexture(*pool);
+            *pool = NULL;
+        }
+    }
+    if (!(*pool)) {
+        (*pool) = SDL_CreateTexture(ctx->renderer, format, SDL_TEXTUREACCESS_STREAMING, video_src->width, video_src->height);
+        if (!(*pool)) return GF_NOT_SUPPORTED;
+    }
+        
+    SDL_QueryTexture((*pool), &format, &acc, &w, &h);
+    
+    if (need_copy) {
+        u8* pixels;
+        int pitch;
+        u8 *pY, *pU, *pV;
+        /*copy pixels*/
+        if (SDL_LockTexture(*pool, NULL, (void**)&pixels, &pitch) < 0) {
+            return GF_NOT_SUPPORTED;
+        }
+       
+        pY = pixels;
+        pU = pixels + h*pitch;
+        pV = pixels + 5*h*pitch/4;
+        copy_yuv(pY, pU, pV, GF_PIXEL_YV12, pitch, (unsigned char *) video_src->video_buffer, (unsigned char *) video_src->u_ptr, (unsigned char *) video_src->v_ptr, video_src->pitch_y, video_src->pixel_format, video_src->width, video_src->height, src_wnd);
+        
+        SDL_UnlockTexture(*pool);
+    } else {
+        SDL_UpdateTexture(*pool, NULL, video_src->video_buffer, video_src->pitch_y);
+    }
+
+    if (set_blend || (video_src->global_alpha!=0xFF)) {
+        SDL_SetTextureBlendMode(*pool, SDL_BLENDMODE_BLEND);
+    } else {
+        SDL_SetTextureBlendMode(*pool, SDL_BLENDMODE_NONE);
+    }
+    
+    res = SDL_SetTextureAlphaMod(*pool, video_src->global_alpha);
+    
+    res = SDL_RenderCopy(ctx->renderer, *pool, src_ptr, &dstrc);
+    
+    if (res<0) {
+        GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL2] Blit error: %s\n", SDL_GetError()));
+        return GF_IO_ERR;
+    }
+    return GF_OK;
+}
+
+#else
 static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
 {
 	SDLVID();
 	u32 amask = 0;
 	u32 bpp;
 	GF_Err e = GF_OK;
-#if SDL_VERSION_ATLEAST(2,0,0)
-#else
 	u32 i;
 	u8 *dst, *src;
-#endif
 	SDL_Rect dstrc;
 	SDL_Surface **pool;
-#if SDL_VERSION_ATLEAST(2,0,0)
-	SDL_Rect srcrc, *src_ptr=NULL;
-#endif
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] Bliting surface (overlay type %d)\n", overlay_type));
-
+    
 	if (overlay_type) {
-#if SDL_VERSION_ATLEAST(2,0,0)
-		u8* pixels;
-		int pitch;
-		u32 format;
-		s32 acc, w, h;
-		u8 *pY, *pU, *pV;
-		if (!video_src) {
-			if (ctx->yuv_texture) {
-				SDL_DestroyTexture(ctx->yuv_texture);
-				ctx->yuv_texture=NULL;
-			}
-			return GF_OK;
-		}
-		if (ctx->yuv_texture ) {
-			SDL_QueryTexture(ctx->yuv_texture, &format, &acc, &w, &h);
-			if ((w != src_wnd->w) || (h != src_wnd->h) ) {
-				SDL_DestroyTexture(ctx->yuv_texture);
-				ctx->yuv_texture = NULL;
-			}
-		}
-		if (! ctx->yuv_texture ) {
-			ctx->yuv_texture = SDL_CreateTexture(ctx->renderer, SDL_PIXELFORMAT_YV12, SDL_TEXTUREACCESS_STREAMING, src_wnd->w, src_wnd->h);
-			if (!ctx->yuv_texture) return GF_NOT_SUPPORTED;
-		}
-
-		SDL_QueryTexture(ctx->yuv_texture, &format, &acc, &w, &h);
-
-		/*copy pixels*/
-		if (SDL_LockTexture(ctx->yuv_texture, NULL, (void**)&pixels, &pitch) < 0) {
-			return GF_NOT_SUPPORTED;
-		}
-
-		pY = pixels;
-		pU = pixels + h*pitch;
-		pV = pixels + 5*h*pitch/4;
-		copy_yuv(pY, pU, pV, GF_PIXEL_YV12, pitch, (unsigned char *) video_src->video_buffer, (unsigned char *) video_src->u_ptr, (unsigned char *) video_src->v_ptr, video_src->pitch_y, video_src->pixel_format, video_src->width, video_src->height, src_wnd);
-
-		SDL_UnlockTexture(ctx->yuv_texture);
-
-		dstrc.w = dst_wnd->w;
-		dstrc.h = dst_wnd->h;
-		dstrc.x = dst_wnd->x;
-		dstrc.y = dst_wnd->y;
-
-		SDL_ClearError();
-		SDL_RenderCopy(ctx->renderer, ctx->yuv_texture, NULL, &dstrc);
-		SDL_RenderPresent(ctx->renderer);
-		return GF_OK;
-
-#else
 		if (!video_src) {
 			if (ctx->yuv_overlay) {
 				SDL_FreeYUVOverlay(ctx->yuv_overlay);
@@ -1883,23 +2017,11 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		dstrc.y = dst_wnd->y;
 		SDL_DisplayYUVOverlay(ctx->yuv_overlay, &dstrc);
 		return GF_OK;
-#endif
 	}
 
-#if SDL_VERSION_ATLEAST(2,0,0)
-	if (dst_wnd) {
-		srcrc.x = src_wnd->x;
-		srcrc.y = src_wnd->y;
-		srcrc.w = src_wnd->w;
-		srcrc.h = src_wnd->h;
-		src_ptr = &srcrc;
-	}
-#else
 	/*SDL doesn't support stretching ...*/
 	if ((src_wnd->w != dst_wnd->w) || (src_wnd->h!=dst_wnd->h))
 		return GF_NOT_SUPPORTED;
-#endif
-
 
 	switch (video_src->pixel_format) {
 	case GF_PIXEL_RGB_24:
@@ -1918,39 +2040,6 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	default:
 		return GF_NOT_SUPPORTED;
 	}
-#if SDL_VERSION_ATLEAST(2,0,0)
-	if ((*pool)) SDL_FreeSurface((*pool));
-	(*pool) = SDL_CreateRGBSurfaceFrom(video_src->video_buffer + video_src->pitch_y*src_wnd->y + src_wnd->x*bpp,
-	                                   src_wnd->w, src_wnd->h, 8*bpp, video_src->pitch_y,
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	                                   0xFF000000, 0x00FF0000, 0x0000FF00, amask);
-#else
-	                                   0x000000FF, 0x0000FF00, 0x00FF0000, amask);
-#endif
-	dstrc.w = dst_wnd->w;
-	dstrc.h = dst_wnd->h;
-	dstrc.x = dst_wnd->x;
-	dstrc.y = dst_wnd->y;
-
-	e = GF_OK;
-
-#if SDL_VERSION_ATLEAST(2,0,0)
-	if (SDL_UpperBlitScaled(*pool, src_ptr, ctx->back_buffer, &dstrc)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Blit error: %s\n", SDL_GetError()));
-		e = GF_IO_ERR;
-	}
-#else
-	if (SDL_BlitSurface(*pool, src_ptr, ctx->back_buffer, &dstrc)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Blit error: %s\n", SDL_GetError()));
-		e = GF_IO_ERR;
-	}
-
-#endif
-
-	SDL_FreeSurface((*pool));
-	*pool = NULL;
-
-#else
 	if (! *pool || ((*pool)->w < (int) src_wnd->w) || ((*pool)->h < (int) src_wnd->h) ) {
 		if ((*pool)) SDL_FreeSurface((*pool));
 
@@ -1979,19 +2068,20 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 
 	if (SDL_BlitSurface(*pool, NULL, ctx->back_buffer, &dstrc))
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Blit error: %s\n", SDL_GetError()));
-#endif
-
 
 	return e;
 }
 
-
+#endif
 
 void *SDL_NewVideo()
 {
+#if SDL_VERSION_ATLEAST(2,0,0)
+    const char *opt;
+#endif
 	SDLVidCtx *ctx;
 	GF_VideoOutput *driv;
-
+    
 	driv = (GF_VideoOutput*)gf_malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "SDL Video Output", "gpac distribution");
@@ -2003,6 +2093,7 @@ void *SDL_NewVideo()
 #endif
 	ctx->evt_mx = gf_mx_new("SDLEvents");
 
+    
 	driv->opaque = ctx;
 	driv->Setup = SDLVid_Setup;
 	driv->Shutdown = SDLVid_Shutdown;
@@ -2013,32 +2104,29 @@ void *SDL_NewVideo()
 	driv->hw_caps |= GF_VIDEO_HW_OPENGL;
 
 	/*no YUV hardware blitting in SDL (only overlays)*/
-	driv->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY | GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA;
+	driv->hw_caps |= GF_VIDEO_HW_HAS_RGB ;
 
 #if SDL_VERSION_ATLEAST(2,0,0)
-	driv->hw_caps |= GF_VIDEO_HW_HAS_STRETCH;
+
+    driv->hw_caps |= GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_STRETCH | GF_VIDEO_HW_HAS_RGBA;
+
+
+    opt = gf_modules_get_option((GF_BaseInterface *)driv, "Video", "SDL_DeferMode");
+    ctx->enable_defer_mode = 0;
+    if (opt && !strcmp(opt, "yes"))
+        ctx->enable_defer_mode = 1;
+
+    if (! ctx->enable_defer_mode)
+        driv->hw_caps |= GF_VIDEO_HW_DIRECT_ONLY;
+#else
+    driv->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
 #endif
+
+
 
 	driv->Blit = SDL_Blit;
 	driv->LockBackBuffer = SDLVid_LockBackBuffer;
 	driv->LockOSContext = NULL;
-
-
-	/*color keying with overlays are not supported in SDL ...*/
-#if 0
-	/*get YUV overlay key*/
-	opt = gf_modules_get_option((GF_BaseInterface *)driv, "Video", "OverlayColorKey");
-	/*no set is the default*/
-	if (!opt) {
-		opt = "0101FE";
-		gf_modules_set_option((GF_BaseInterface *)driv, "Video", "OverlayColorKey", "0101FE");
-	}
-	sscanf(opt, "%06x", &driv->overlay_color_key);
-	if (driv->overlay_color_key) driv->overlay_color_key |= 0xFF000000;
-	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL Out] YUV Overlays enabled - ColorKey enabled: %s (key %x)\n",
-	                                  driv->overlay_color_key ? "Yes" : "No", driv->overlay_color_key
-	                                 ));
-#endif
 #ifndef SDL_TEXTINPUTEVENT_TEXT_SIZE
 	SDL_EnableUNICODE(1);
 #else

@@ -68,14 +68,21 @@ typedef struct
 
 
 #if SDL_VERSION_ATLEAST(2,0,0)
-	SDL_GLContext gl_context;
+    char szCaption[100];
+    Bool enable_defer_mode;
+    Bool needs_clear;
+    Bool needs_bb_flush;
+    Bool needs_bb_grab;
+
+    SDL_GLContext gl_context;
 	SDL_Renderer *renderer;
 	SDL_Window *screen;
-	SDL_Surface *back_buffer;
 
-	SDL_Surface *pool_rgb, *pool_rgba;
-	SDL_Texture *yuv_texture;
-	char szCaption[100];
+    SDL_Texture *tx_back_buffer;
+    char *back_buffer_pixels;
+
+	SDL_Texture *pool_rgb, *pool_rgba, *pool_yuv;
+    
 #else
 	SDL_Surface *screen;
 	SDL_Surface *back_buffer;

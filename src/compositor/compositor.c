@@ -135,8 +135,14 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing display size to %d x %d\n", compositor->new_width, compositor->new_height));
 			fs_width = fs_height = 0;
 			if (restore_fs) {
-				fs_width = compositor->display_width;
-				fs_height = compositor->display_height;
+                if ((compositor->new_width>compositor->display_width) || (compositor->new_height>compositor->display_height)) {
+                    u32 w = compositor->display_width;
+                    compositor->display_width = compositor->display_height;
+                    compositor->display_height = w;
+                    compositor->recompute_ar = 1;
+                }
+                fs_width = compositor->display_width;
+                fs_height = compositor->display_height;
 			}
 			evt.type = GF_EVENT_SIZE;
 			evt.size.width = compositor->new_width;
@@ -152,7 +158,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 				if ((compositor->display_width != fs_width) || (compositor->display_height != fs_height)) {
 					compositor->display_width = fs_width;
 					compositor->display_height = fs_height;
-					compositor->recompute_ar = 1;
+                    compositor->recompute_ar = 1;
 				}
 			} else {
 				compositor->display_width = evt.size.width;
@@ -1239,7 +1245,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #endif
 		}
 	}
-
+    
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "EnablePBO");
 	if (!sOpt) gf_cfg_set_key(compositor->user->config, "Compositor", "EnablePBO", "no");
 	compositor->enable_pbo = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
@@ -1388,7 +1394,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		compositor->display_depth = -1;
 	}
 #endif
-
+    
 	if (!compositor->video_out->view_distance) {
 		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ViewDistance");
 		compositor->video_out->view_distance = FLT2FIX( sOpt ? (Float) atof(sOpt) : 50.0f );
