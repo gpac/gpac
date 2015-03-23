@@ -4743,8 +4743,9 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	/*init dash context if needed*/
 	if (dash_ctx) {
 		e = gf_dasher_init_context(dash_ctx, &dash_dynamic, &time_shift_depth, NULL, ast_shift_sec);
-		if (e) return e;
-		if (dash_ctx) {
+		if (e) {
+			return e;
+		} else {
 			Bool regenerate;
 			char sOpt[100];
 			const char *opt = gf_cfg_get_key(dash_ctx, "DASH", "MaxSegmentDuration");
