@@ -1518,7 +1518,9 @@ restart_fragmentation_pass:
 				} else if (tf==tfref) {
 					/*fragmenting on "clock" track: no drift control*/
 					if (!dash_cfg->fragments_start_with_rap || ( tf->splitable && split_sample_duration ) || ( (next && next->IsRAP) || split_at_rap) ) {
-						if (tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale) {
+						if ((tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale) ||
+							/* if the current fragment makes the segment longer than required, stop the current fragment */
+							(SegmentDuration + (tf->FragmentLength * dash_cfg->dash_scale / tf->TimeScale) >= MaxSegmentDuration)) {
 							stop_frag = GF_TRUE;
 						}
 					}
