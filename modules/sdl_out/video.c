@@ -1958,15 +1958,25 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
     }
 
     if (set_blend || (video_src->global_alpha!=0xFF)) {
-        SDL_SetTextureBlendMode(*pool, SDL_BLENDMODE_BLEND);
+        res = SDL_SetTextureBlendMode(*pool, SDL_BLENDMODE_BLEND);
+        if (res<0) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL2] Cannot change texture blend mode: %s\n", SDL_GetError()));
+            return GF_IO_ERR;
+        }
+        res = SDL_SetTextureAlphaMod(*pool, video_src->global_alpha);
+        if (res<0) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL2] Cannot change global alpha of texture: %s\n", SDL_GetError()));
+            return GF_IO_ERR;
+        }
     } else {
-        SDL_SetTextureBlendMode(*pool, SDL_BLENDMODE_NONE);
+        res = SDL_SetTextureBlendMode(*pool, SDL_BLENDMODE_NONE);
+        if (res<0) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL2] Cannot change texture blend mode: %s\n", SDL_GetError()));
+            return GF_IO_ERR;
+        }
     }
     
-    res = SDL_SetTextureAlphaMod(*pool, video_src->global_alpha);
-    
     res = SDL_RenderCopy(ctx->renderer, *pool, src_ptr, &dstrc);
-    
     if (res<0) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL2] Blit error: %s\n", SDL_GetError()));
         return GF_IO_ERR;
