@@ -275,7 +275,10 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\..\applications\mp4box\live.c" />
-    <ClCompile Include="..\..\applications\mp4box\main.c" />
+    <ClCompile Include="..\..\applications\mp4box\main.c">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Disabled</Optimization>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Disabled</Optimization>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="libgpac_dll.vcxproj">
