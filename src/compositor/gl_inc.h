@@ -497,4 +497,4 @@ GLDECL(void, glGetActiveAttrib, (GLuint program, GLuint index, GLsizei bufSize, 
 
 #endif	/*GPAC_DISABLE_3D*/
 
-#endif	/*_GL_INC_H_*/
+#endif	/*_GL_INC_H_*/

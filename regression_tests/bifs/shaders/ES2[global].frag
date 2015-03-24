@@ -272,10 +272,11 @@ void main() {
 #endif
 
 #ifdef GF_GL_HAS_MAT_2D	//we have mat 2 + texture
-	if(gfEmissionColor.a > 0.0 && gfEmissionColor.a <1.0)
+	if(gfEmissionColor.a > 0.0 && gfEmissionColor.a <1.0){
 		fragColor *= gfEmissionColor;
-	else if(fragColor.rgb == vec3(0.0, 0.0, 0.0))
+	}else if(fragColor.rgb == vec3(0.0, 0.0, 0.0)){
 		fragColor.rgb = gfEmissionColor.rgb;
+	}
 #endif
 	}
 	
