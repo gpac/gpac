@@ -672,6 +672,7 @@ static JSBool SMJS_FUNCTION(gpac_set_size)
 			term->compositor->scene_width = w;
 			term->compositor->scene_height = h;
 			term->compositor->has_size_info = 1;
+			return JS_TRUE;
 		}
 		if (term->user->os_window_handler) {
 			evt.type = GF_EVENT_SCENE_SIZE;
@@ -1775,6 +1776,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_OVERFLOW);
 		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_UNDERRUN);
 		DECLARE_GPAC_CONST(GF_EVENT_QUIT);
+		DECLARE_GPAC_CONST(GF_EVENT_MAIN_ADDON_STATE);
+		
 
 		DECLARE_GPAC_CONST(GF_NAVIGATE_NONE);
 		DECLARE_GPAC_CONST(GF_NAVIGATE_WALK);
