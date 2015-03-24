@@ -993,6 +993,7 @@ static void my_glQueryAttributes(GF_SHADERID progObj){
 //todo ... shader_only_mode
 static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 {
+	GF_SHADERID glsl_fragment;
 	u32 i;
 	GLint loc;
 	Bool working = 0;	//¡k temp bool for testing
@@ -1015,16 +1016,20 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 //Creating and Compiling Vertex and Fragment Shaders
 	if (!visual->glsl_vertex)
 		visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[global].vert" , GL_VERTEX_SHADER); //We use one vertex shader (for now) ¡TODOk add defines
+	if(!visual->glsl_vertex)
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile vertex shader [ES2.0]\n"));
 	GL_CHECK_ERR;
 
 	if(visual->glsl_vertex){
 		for(i=0;i<GF_GL_NUM_OF_VALID_SHADERS;i++){
 			GL_CHECK_ERR;
-			visual->glsl_fragment = visual_3d_shader_with_flags("shaders/ES2[global].frag" , GL_FRAGMENT_SHADER, i);
+			glsl_fragment = visual_3d_shader_with_flags("shaders/ES2[global].frag" , GL_FRAGMENT_SHADER, i);
+			if(!glsl_fragment)
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile fragment shader [ES2.0]\n"));
 			GL_CHECK_ERR;
 			glAttachShader(visual->glsl_programs[i], visual->glsl_vertex);
 			GL_CHECK_ERR;
-			glAttachShader(visual->glsl_programs[i], visual->glsl_fragment);
+			glAttachShader(visual->glsl_programs[i], glsl_fragment);
 			GL_CHECK_ERR;
 			glLinkProgram(visual->glsl_programs[i]);
 			GL_CHECK_ERR;
@@ -1037,7 +1042,7 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 			*/
 		}
 	}else{
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GLSL Vertex Shader not found [ES2.0]"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GLSL Vertex Shader not found [ES2.0]\n"));
 	}
 
 	/* Set y,u,v planes (if GF_GL_IS_YUV*/
@@ -1074,7 +1079,11 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 //¡k endof
 void visual_3d_init_shaders(GF_VisualManager *visual)
 {
-	if (!visual->compositor->gl_caps.has_shaders) return;
+	if (visual->compositor->visual != visual)
+		return;
+	if (!visual->compositor->gl_caps.has_shaders) 
+		return;
+
 	visual_3d_init_yuv_shaders(visual);
 	if (visual->compositor->shader_only_mode) {
 		visual_3d_init_generic_shaders(visual);
@@ -1090,6 +1099,10 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 void visual_3d_reset_graphics(GF_VisualManager *visual)
 {
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+	u32 i;
+
+	if (visual->compositor->visual != visual)
+		return;
 
 	DEL_SHADER(visual->base_glsl_vertex);
 	DEL_SHADER(visual->autostereo_glsl_fragment);
@@ -1107,6 +1120,14 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 		mesh_free(visual->autostereo_mesh);
 		visual->autostereo_mesh = NULL;
 	}
+
+	DEL_SHADER(visual->glsl_vertex);
+	for (i=0;i<GF_GL_NUM_OF_VALID_SHADERS; i++) {
+		DEL_PROGRAM(visual->glsl_programs[i]);
+	}
+	visual->glsl_has_shaders=0;
+
+
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 }
 
@@ -1883,6 +1904,7 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		break;
 	}
 
+
 	/*if inside or no aabb for the mesh draw vertex array*/
 	if (tr_state->visual->compositor->disable_gl_cull || (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos)	{
 #ifdef GPAC_USE_OGL_ES
@@ -2211,9 +2233,8 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 {
 	GF_VisualManager *visual = tr_state->visual;
 	GF_VisualManager *vsl = visual->compositor->visual;	//we use the compositor visual for the shader stuff
-	char *tmp = (char *) gf_malloc(sizeof(char)*60);
 	int i;
-	GLint loc;
+	GLint loc, loc_vertex_array, loc_color_array, loc_normal_array, loc_textcoord_array;
 	u32 flags;
 	Bool has_tx = 0;
 
@@ -2232,6 +2253,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		flags &= ~GF_GL_HAS_LIGHT;
 		flags &= ~GF_GL_HAS_MAT_2D;
 	}
+
 	vsl->glsl_flags = visual->glsl_flags = flags;
 	//we don't know for which program we updated the projection
 	if ((visual->glsl_program != vsl->glsl_programs[visual->glsl_flags])||!vsl->glsl_programs[visual->glsl_flags]) {
@@ -2261,19 +2283,15 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	if (visual->state_blend_on)
 		glEnable(GL_BLEND);
 
-	//¡k default behaviour (simulating glEnable(light_no)
-	/*
-	loc = glGetUniformLocation(visual->glsl_program, "enableLights");
-	if(loc>0) glUniform1i(loc, 1);
-	*/
-
 	visual_3d_update_matrices_ES2(tr_state);
 
-	loc = my_glGetAttribLocation(visual->glsl_program, "gfVertex");
-	if (loc<0)
+	loc_color_array = loc_normal_array = loc_textcoord_array = -1;
+
+	loc_vertex_array = my_glGetAttribLocation(visual->glsl_program, "gfVertex");
+	if (loc_vertex_array<0)
 		return;
-	glVertexAttribPointer(loc, 3, GL_FLOAT, GL_TRUE, sizeof(GF_Vertex), vertex_buffer_address);
-	glEnableVertexAttribArray(loc);
+	glVertexAttribPointer(loc_vertex_array, 3, GL_FLOAT, GL_TRUE, sizeof(GF_Vertex), vertex_buffer_address);
+	glEnableVertexAttribArray(loc_vertex_array);
 	GL_CHECK_ERR
 
 	if (visual->num_clips){
@@ -2368,16 +2386,16 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		loc = glGetUniformLocation(visual->glsl_program, "hasMeshColor");
 		if(loc>0) glUniform1i(loc, 1);
 
-		loc = my_glGetAttribLocation(visual->glsl_program, "gfMeshColor");
-		if (loc>0){
+		loc_color_array = my_glGetAttribLocation(visual->glsl_program, "gfMeshColor");
+		if (loc_color_array >= 0){
 			if (mesh->flags & MESH_HAS_ALPHA) {
 				glEnable(GL_BLEND);
 				tr_state->mesh_is_transparent = 1;
-				glVertexAttribPointer(loc, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(GF_Vertex), ((char *)vertex_buffer_address + MESH_COLOR_OFFSET));	//GL_UNSIGNED_BYTE (for now), GL_TRUE for normalizing values
+				glVertexAttribPointer(loc_color_array, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(GF_Vertex), ((char *)vertex_buffer_address + MESH_COLOR_OFFSET));	//GL_UNSIGNED_BYTE (for now), GL_TRUE for normalizing values
 			} else {
-				glVertexAttribPointer(loc, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(GF_Vertex), ((char *)vertex_buffer_address + MESH_COLOR_OFFSET));
+				glVertexAttribPointer(loc_color_array, 3, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(GF_Vertex), ((char *)vertex_buffer_address + MESH_COLOR_OFFSET));
 			}
-			glEnableVertexAttribArray(loc);
+			glEnableVertexAttribArray(loc_color_array);
 		}
 		GL_CHECK_ERR
 
@@ -2419,14 +2437,14 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		GL_CHECK_ERR	//¡k delete after testing
 
 
-		loc = my_glGetAttribLocation(visual->glsl_program, "gfNormal");
-		if (loc>=0) {
+		loc_normal_array = my_glGetAttribLocation(visual->glsl_program, "gfNormal");
+		if (loc_normal_array>=0) {
 #ifdef MESH_USE_FIXED_NORMAL
-			glVertexAttribPointer(loc, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex),  ((char *)vertex_buffer_address + MESH_NORMAL_OFFSET) );
+			glVertexAttribPointer(loc_normal_array, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex),  ((char *)vertex_buffer_address + MESH_NORMAL_OFFSET) );
 #else
-			glVertexAttribPointer(loc, 3, GL_BYTE, GL_TRUE, sizeof(GF_Vertex),  ((char *)vertex_buffer_address + MESH_NORMAL_OFFSET) );
+			glVertexAttribPointer(loc_normal_array, 3, GL_BYTE, GL_TRUE, sizeof(GF_Vertex),  ((char *)vertex_buffer_address + MESH_NORMAL_OFFSET) );
 #endif
-			glEnableVertexAttribArray(loc);
+			glEnableVertexAttribArray(loc_normal_array);
 		}
 		GL_CHECK_ERR
 
@@ -2443,8 +2461,9 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		has_tx = 1;
 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumTextures");
-		if (loc>=0)
+		if (loc>=0) {
 			glUniform1i(loc, tr_state->mesh_num_textures);
+		}
 		GL_CHECK_ERR
 
 		if(visual->has_tx_matrix){
@@ -2463,13 +2482,13 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			GL_CHECK_ERR
 		}
 
-
 		//parsing texture coordinates
-		loc = my_glGetAttribLocation(visual->glsl_program, "gfMultiTexCoord");
-		if (loc<0) return; //¡TODO clarify
-		glVertexAttribPointer(loc, 2, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), ((char *)vertex_buffer_address + MESH_TEX_OFFSET));
-		glEnableVertexAttribArray(loc);
-		GL_CHECK_ERR
+		loc_textcoord_array = my_glGetAttribLocation(visual->glsl_program, "gfMultiTexCoord");
+		if (loc_textcoord_array>=0) {
+			glVertexAttribPointer(loc_textcoord_array, 2, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), ((char *)vertex_buffer_address + MESH_TEX_OFFSET));
+			glEnableVertexAttribArray(loc_textcoord_array);
+			GL_CHECK_ERR
+		}
 
 	}else{
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumTextures");
@@ -2510,14 +2529,20 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		}
 	}
 
-	gf_free(tmp);	//¡TODOk add free in individual functions using tmp
+	
+	printf("DRAWING %p with flags %d\n", mesh, visual->glsl_flags); //¡TODOk delete
 	visual_3d_do_draw_mesh(tr_state, mesh);
-	printf("DRAWN... %d\n",visual->glsl_flags); //¡TODOk delete
+	printf("DRAWN mesh %p with flags %d\n", mesh, visual->glsl_flags); //¡TODOk delete
 
 	//We drawn, now we Reset
 
 	if (mesh->vbo)
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	if (loc_vertex_array>=0) glDisableVertexAttribArray(loc_vertex_array);
+	if (loc_color_array>=0) glDisableVertexAttribArray(loc_color_array);
+	if (loc_normal_array>=0) glDisableVertexAttribArray(loc_normal_array);
+	if (loc_textcoord_array>=0) glDisableVertexAttribArray(loc_textcoord_array);
 
 	visual_3d_reset_lights(visual);
 
