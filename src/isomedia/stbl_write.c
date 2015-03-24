@@ -1379,7 +1379,7 @@ void stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset)
 	//large offsets
 	else {
 		co64 = (GF_ChunkLargeOffsetBox *)stbl->ChunkOffset;
-		off_64 = (u64*)gf_malloc(sizeof(u32)*(co64->nb_entries+1));
+		off_64 = (u64*)gf_malloc(sizeof(u64)*(co64->nb_entries+1));
 		if (!off_64) return;
 		for (i=0; i<co64->nb_entries; i++) off_64[i] = co64->offsets[i];
 		off_64[i] = offset;
