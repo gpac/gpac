@@ -1398,6 +1398,9 @@ scalable_retry:
 		}
 
 		UnlockCompositionUnit(codec, CU, unit_size);
+		if (unit_size) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d dispatched frame CTS %d in CB\n", codec->decio->module_name, gf_clock_real_time(ch->clock), CU->TS));
+		}
 		if (!ch || !AU) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because no more input data\n", codec->decio->module_name));
 			return GF_OK;

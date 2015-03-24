@@ -520,7 +520,7 @@ void gf_term_stop_codec(GF_Codec *codec, Bool is_pause)
 		gf_codec_set_status(codec, GF_ESM_CODEC_STOP);
 	}
 	//if video is in a dynamic scene, reset the CB if stop. Otherwise (bifs,svg) we may want to keep the last decoded image
-	else if (codec->odm && codec->odm->parentscene && codec->odm->parentscene->is_dynamic_scene && codec->CB && (codec->CB->Capacity>1)) {
+	else if ((codec->Status!=GF_ESM_CODEC_PAUSE) && codec->odm && codec->odm->parentscene && codec->odm->parentscene->is_dynamic_scene && codec->CB && (codec->CB->Capacity>1)) {
 		gf_codec_set_status(codec, GF_ESM_CODEC_STOP);
 	}
 	/*otherwise set status directly and don't touch CB state*/
