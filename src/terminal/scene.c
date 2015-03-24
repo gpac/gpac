@@ -1547,9 +1547,9 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 		if (!odm->subscene->graph_attached) {
 			odm->flags &= ~GF_ODM_REGENERATE_SCENE;
 			gf_scene_regenerate(odm->subscene);
+		} else {
+			odm->subscene->needs_restart = 1;
 		}
-
-
 		gf_sg_vrml_field_copy(&dscene->url, &odm->mo->URLs, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
 
