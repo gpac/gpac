@@ -253,7 +253,7 @@ struct _visual_manager
 //#ifdef GPAC_USE_OGL_ES2
 	/* shaders used for shader-only drawing */
 	GF_SHADERID glsl_vertex;
-	GF_SHADERID glsl_fragment;
+//	GF_SHADERID glsl_fragment;
 	GF_SHADERID glsl_program;
 
 	/* Storing Compiled Shaders */
