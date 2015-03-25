@@ -62,6 +62,7 @@
 
 
 uniform int gfNumLights;
+uniform bool gfLightTwoSide;
 uniform vec4 gfLightPosition; 
 uniform vec4 gfLightDiffuse;
 uniform vec4 gfLightAmbient; 
@@ -121,6 +122,7 @@ vec4 doLighting(int i){
 	float att = zero_float;
 	vec3 lightVnorm = normalize(lightVector[i]);
 	vec3 normal = normalize(n);
+	if(gfLightTwoSide && (!gl_FrontFacing))normal *=-1;	//light back face
 	float light_cos = max(zero_float, dot(normal, lightVnorm));	//ndotl
 	float half_cos = dot(normal, normalize(halfVector[i]));
 
