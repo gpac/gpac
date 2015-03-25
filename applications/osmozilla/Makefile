@@ -44,7 +44,7 @@ OBJS=osmozilla.o osmo_npapi.o
 SRCS := $(OBJS:.o=.cpp) 
 
 
-LIB=nposmozilla.$(DYN_LIB_SUFFIX)
+LIB=nposmozilla$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LINKLIBS+=-lwinmm -lgdi32
 LDFLAGS+=--export-all-symbols

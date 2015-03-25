@@ -29,7 +29,7 @@ endif
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_redirect_av.$(DYN_LIB_SUFFIX)
+LIB=gm_redirect_av$(DYN_LIB_SUFFIX)
 
 all: $(LIB)
 

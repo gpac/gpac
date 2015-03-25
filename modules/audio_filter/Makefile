@@ -19,7 +19,7 @@ OBJS= audio_filter.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_audio_filter.$(DYN_LIB_SUFFIX)
+LIB=gm_audio_filter$(DYN_LIB_SUFFIX)
 
 all: $(LIB)
 

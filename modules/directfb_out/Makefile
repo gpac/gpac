@@ -24,7 +24,7 @@ OBJS=directfb_out.o directfb_wrapper.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_directfb_out.$(DYN_LIB_SUFFIX)
+LIB=gm_directfb_out$(DYN_LIB_SUFFIX)
 
 
 all: $(LIB)

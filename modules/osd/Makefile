@@ -22,7 +22,7 @@ OBJS=osd.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_osd.$(DYN_LIB_SUFFIX)
+LIB=gm_osd$(DYN_LIB_SUFFIX)
 
 
 all: $(LIB)
