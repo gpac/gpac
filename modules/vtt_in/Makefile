@@ -22,7 +22,7 @@ OBJS= vtt_in.o vtt_dec.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_vtt_in.$(DYN_LIB_SUFFIX)
+LIB=gm_vtt_in$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 #LDFLAGS+=-export-symbols vtt_in.def 
 endif
@@ -33,7 +33,7 @@ all: $(LIB)
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) $(LOCAL_LIB) $(LINKLIBS)
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_vtt_in-static.$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) $(LOCAL_LIB) -lgpac_static
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_vtt_in-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) $(LOCAL_LIB) -lgpac_static
 endif
 
 clean: 

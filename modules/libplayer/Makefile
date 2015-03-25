@@ -19,7 +19,7 @@ OBJS= libplayer.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_libplayer.$(DYN_LIB_SUFFIX)
+LIB=gm_libplayer$(DYN_LIB_SUFFIX)
 
 
 all: $(LIB)

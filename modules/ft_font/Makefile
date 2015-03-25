@@ -19,7 +19,7 @@ OBJS= ft_font.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_ft_font.$(DYN_LIB_SUFFIX)
+LIB=gm_ft_font$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 #LDFLAGS+=-export-symbols ft_font.def 
 endif
@@ -38,7 +38,7 @@ all: $(LIB)
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKVAR) $(EXTRALIBS)
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_ft_font-static.$(DYN_LIB_SUFFIX) $(OBJS) $(LINKVAR) $(EXTRALIBS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_ft_font-static$(DYN_LIB_SUFFIX) $(OBJS) $(LINKVAR) $(EXTRALIBS)
 endif
 
 

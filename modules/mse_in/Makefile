@@ -34,14 +34,14 @@ OBJS=mse_in.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_mse_in.$(DYN_LIB_SUFFIX)
+LIB=gm_mse_in$(DYN_LIB_SUFFIX)
 
 all: $(LIB)
 
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_mse_in-static.$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_mse_in-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static
 endif
 
 clean: 

@@ -559,7 +559,7 @@ endif
 
 
 ##libgpac library output
-LIB=libgpac.$(DYN_LIB_SUFFIX)
+LIB=libgpac$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LDFLAGS+=-Wl,-out-implib=../bin/gcc/libgpac.dll.a
 else

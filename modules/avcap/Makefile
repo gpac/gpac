@@ -22,7 +22,7 @@ OBJS=avcap.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_avcap.$(DYN_LIB_SUFFIX)
+LIB=gm_avcap$(DYN_LIB_SUFFIX)
 
 
 all: $(LIB)

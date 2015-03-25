@@ -48,7 +48,7 @@ endif
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_img_in.$(DYN_LIB_SUFFIX)
+LIB=gm_img_in$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LINKLIBS+=-lwinmm
 #LDFLAGS+=-export-symbols img_in.def 
@@ -60,7 +60,7 @@ all: $(LIB)
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_img_in-static.$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_img_in-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
 endif
 
 clean: 
