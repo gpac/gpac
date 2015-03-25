@@ -2350,8 +2350,12 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	}
 
 			
-
-	if (visual->has_material) {		//¡k maybe add a bool hasMaterial or something
+	/*
+	 * NOTE: There are cases that both flags are enabled
+	 * e.g. bif textured object with no Material2D specified
+	 * we assume it's material2d and override this part
+	 */
+	if (visual->has_material && !visual->has_material_2d) {
 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfAmbientColor");
 		if (loc>=0)
