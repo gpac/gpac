@@ -62,6 +62,10 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 
 	gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_PAUSE);
 
+	//in windows (and other?) we may get blocked by SetWindowPos in the fullscreen method until another window thread dispatches a resize event,
+	//which would try to grab the compositor mutex and thus deadlock us
+	//to avoid this, unlock the compositor just for the SetFullscreen
+	gf_mx_v(compositor->mx);
 	if (compositor->fullscreen && (compositor->scene_width>=compositor->scene_height)
 #ifndef GPAC_DISABLE_3D
 	        && !compositor->visual->type_3d
@@ -71,6 +75,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	} else {
 		e = compositor->video_out->SetFullScreen(compositor->video_out, compositor->fullscreen, &compositor->display_width, &compositor->display_height);
 	}
+	gf_mx_p(compositor->mx);
 
 	gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_RESUME);
 

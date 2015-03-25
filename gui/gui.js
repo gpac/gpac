@@ -115,8 +115,8 @@ function initialize() {
     if (!gpac.fullscreen && gw_display_width && gw_display_height) {
         gpac.set_size(gw_display_width, gw_display_height);
     } else {
-        gw_display_width = gpac.get_screen_width();
-        gw_display_height = gpac.get_screen_height();
+        gw_display_width = gpac.screen_width;
+        gw_display_height = gpac.screen_height;
     }
     //request event listeners on the window - GPAC specific BIFS extensions !!! We don't allow using the event proc for size events
     root.addEventListener('resize', on_resize, 0);

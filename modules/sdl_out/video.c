@@ -1726,7 +1726,21 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 #else
 		return GF_NOT_SUPPORTED;
 #endif
-	}
+            
+    case GF_EVENT_TEXT_EDITING_START:
+    case GF_EVENT_TEXT_EDITING_END:
+#if defined(GPAC_IPHONE) && SDL_VERSION_ATLEAST(2,0,0)
+            if (evt->type==GF_EVENT_TEXT_EDITING_START) {
+                SDL_StartTextInput();
+            } else {
+                SDL_StopTextInput();
+            }
+            return GF_OK;
+#else
+            return GF_NOT_SUPPORTED;
+#endif
+
+    }
 	return GF_OK;
 }
 

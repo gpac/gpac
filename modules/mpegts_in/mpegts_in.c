@@ -1030,7 +1030,11 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 			m2ts->has_pending_segments++;
 		return;
 	}
-	gf_mx_p(m2ts->mx);
+    if (! gf_mx_try_lock(m2ts->mx)) {
+        if (flush_type==GF_M2TS_PUSH_SEGMENT)
+            m2ts->has_pending_segments++;
+        return;
+    }
 	m2ts->in_data_flush = 1;
 
 	//check buffer level when start of new segment

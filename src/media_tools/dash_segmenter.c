@@ -221,7 +221,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 				strcat(szFmt, &LLD[1]);
 				sprintf(tmp, szFmt, start_time);
 				strcat(segment_name, tmp);
-				has_number=1;
+				has_number=GF_TRUE;
 			}
 			else if (!is_template && !strnicmp(& seg_rad_name[char_template], "$Number", 7)) {
 				EXTRACT_FORMAT(7);
@@ -666,7 +666,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		bs_switch_segment = gf_isom_open(dash_cfg->bs_switch_segment_file, GF_ISOM_OPEN_READ, NULL);
 		if (bs_switch_segment) {
 			bs_switching_segment_name = gf_url_get_resource_name(dash_cfg->bs_switch_segment_file);
-			is_bs_switching = 1;
+			is_bs_switching = GF_TRUE;
 		}
 	}
 
@@ -702,7 +702,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	opt = dash_cfg->dash_ctx ? gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "InitializationSegment") : NULL;
 	if (opt) {
 		output = gf_isom_open(opt, GF_ISOM_OPEN_CAT_FRAGMENTS, dash_cfg->tmpdir);
-		dash_moov_setup = 1;
+		dash_moov_setup = GF_TRUE;
 	} else {
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switching, SegmentName, output_file, dash_input->representationID, seg_rad_name, !stricmp(seg_ext, "null") ? NULL : "mp4", 0, bandwidth, 0, dash_cfg->use_segment_timeline);
 		output = gf_isom_open(SegmentName, GF_ISOM_OPEN_WRITE, dash_cfg->tmpdir);
@@ -731,11 +731,11 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	} else if (dash_cfg->dash_ctx) {
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "BitstreamSwitching");
 		if (opt && !strcmp(opt, "yes")) {
-			is_bs_switching = 1;
+			is_bs_switching = GF_TRUE;
 			if (bs_switch_segment)
 				gf_isom_delete(bs_switch_segment);
 			bs_switch_segment = output;
-			bs_switching_is_output = 1;
+			bs_switching_is_output = GF_TRUE;
 			bs_switching_segment_name = gf_url_get_resource_name(gf_isom_get_filename(bs_switch_segment));
 		}
 
@@ -1276,7 +1276,7 @@ restart_fragmentation_pass:
 			segments_info[nb_segments_info-1] ++;
 			e = GF_OK;
 		} else {
-			e = gf_isom_start_fragment(output, 1);
+			e = gf_isom_start_fragment(output, GF_TRUE);
 			if (e) goto err_exit;
 
 
@@ -1315,7 +1315,7 @@ restart_fragmentation_pass:
 			if (tf->done) continue;
 			//if not the first TRAF in our moof and single traf per moof is requested, start a new moof
 			if (!simulation_pass && dash_cfg->single_traf_per_moof && (i>0) ) {
-				e = gf_isom_start_fragment(output, 1);
+				e = gf_isom_start_fragment(output, GF_TRUE);
 				if (e) goto err_exit;
 			}
 
@@ -1518,7 +1518,9 @@ restart_fragmentation_pass:
 				} else if (tf==tfref) {
 					/*fragmenting on "clock" track: no drift control*/
 					if (!dash_cfg->fragments_start_with_rap || ( tf->splitable && split_sample_duration ) || ( (next && next->IsRAP) || split_at_rap) ) {
-						if (tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale) {
+						if ((tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale) ||
+							/* if the current fragment makes the segment longer than required, stop the current fragment */
+							(SegmentDuration + (tf->FragmentLength * dash_cfg->dash_scale / tf->TimeScale) >= MaxSegmentDuration)) {
 							stop_frag = GF_TRUE;
 						}
 					}
@@ -2334,13 +2336,13 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 	GF_Err e = GF_OK;
 	u32 i;
 	u32 single_track_id = 0;
-	Bool sps_merge_failed = 0;
-	Bool use_avc3 = 0;
-	Bool use_hevc = 0;
+	Bool sps_merge_failed = GF_FALSE;
+	Bool use_avc3 = GF_FALSE;
+	Bool use_hevc = GF_FALSE;
 	Bool use_inband_param_set;
 	u32 probe_inband_param_set;
 	u32 first_track = 0;
-	Bool single_segment = (dash_opts->single_file_mode==1) ? 1 : 0;
+	Bool single_segment = (dash_opts->single_file_mode==1) ? GF_TRUE : GF_FALSE;
 	GF_ISOFile *init_seg;
 
 
@@ -2357,7 +2359,7 @@ restart_init:
 			continue;
 
 		//no inband param set for scalable files
-		use_inband_param_set = dash_inputs[i].trackNum ? 0 : dash_opts->inband_param_set;
+		use_inband_param_set = dash_inputs[i].trackNum ? GF_FALSE : dash_opts->inband_param_set;
 
 		in = gf_isom_open(dash_inputs[i].file_name, GF_ISOM_OPEN_READ, NULL);
 		if (!in) {
@@ -2482,7 +2484,7 @@ retry_track:
 							}
 							gf_isom_avc_config_update(init_seg, track, 1, avccfg2);
 						} else {
-							sps_merge_failed = 1;
+							sps_merge_failed = GF_TRUE;
 						}
 						gf_odf_avc_cfg_del(avccfg1);
 						gf_odf_avc_cfg_del(avccfg2);
@@ -2497,7 +2499,7 @@ retry_track:
 							gf_isom_hevc_set_inband_config(init_seg, track, 1);
 							use_hevc = GF_TRUE;
 							gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','6'), 1);
-							sps_merge_failed = 0;
+							sps_merge_failed = GF_FALSE;
 							break;
 						case GF_ISOM_SUBTYPE_AVC_H264:
 						case GF_ISOM_SUBTYPE_AVC2_H264:
@@ -2505,7 +2507,7 @@ retry_track:
 							gf_isom_avc_set_inband_config(init_seg, track, 1);
 							use_avc3 = GF_TRUE;
 							gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','6'), 1);
-							sps_merge_failed = 0;
+							sps_merge_failed = GF_FALSE;
 							break;
 						}
 						goto retry_track;
@@ -2634,7 +2636,7 @@ retry_track:
 				if (dash_inputs[i].adaptation_set != adaptation_set)
 					continue;
 
-				dash_inputs[i].disable_inband_param_set = 1;
+				dash_inputs[i].disable_inband_param_set = GF_TRUE;
 			}
 		}
 	}
@@ -2919,7 +2921,7 @@ static void m2ts_sidx_finalize_size(GF_TSSegmenter *index_info, u64 file_size)
 static void m2ts_sidx_flush_entry(GF_TSSegmenter *index_info)
 {
 	u32 end_offset, size, duration;
-	Bool store_segment = 1;
+	Bool store_segment = GF_TRUE;
 
 	if (index_info->suspend_indexing)
 		return;
@@ -3041,7 +3043,7 @@ static void m2ts_sidx_flush_entry(GF_TSSegmenter *index_info)
 		index_info->nb_pes_in_segment = 1;
 		index_info->base_PTS = index_info->first_SAP_PTS;
 
-		index_info->pes_after_last_pat_is_sap= 0;
+		index_info->pes_after_last_pat_is_sap = GF_FALSE;
 	} else {
 		index_info->SAP_type = 0;
 		index_info->first_SAP_PTS = 0;
@@ -3122,7 +3124,7 @@ static void dash_m2ts_event_check_pat(GF_M2TS_Demuxer *ts, u32 evt_type, void *p
 	GF_M2TS_PES_PCK *pck;
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_REPEAT:
-		ts_seg->has_seen_pat = 1;
+		ts_seg->has_seen_pat = GF_TRUE;
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
 	{
@@ -3138,7 +3140,7 @@ static void dash_m2ts_event_check_pat(GF_M2TS_Demuxer *ts, u32 evt_type, void *p
 	case GF_M2TS_EVT_PMT_REPEAT:
 		if (ts_seg->has_seen_pat) {
 			u32 i, count;
-			Bool done = 1;
+			Bool done = GF_TRUE;
 			GF_M2TS_Program *prog = (GF_M2TS_Program*)par;
 			count = gf_list_count(prog->streams);
 			for (i=0; i<count; i++) {
@@ -3146,7 +3148,7 @@ static void dash_m2ts_event_check_pat(GF_M2TS_Demuxer *ts, u32 evt_type, void *p
 				if (es->flags&GF_M2TS_ES_IS_PES) {
 					GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 					if (!pes->aud_sr && !pes->vid_w) {
-						done = 0;
+						done = GF_FALSE;
 						break;
 					} else {
 						/*stream is configured, we only need PES header now*/
@@ -3189,56 +3191,56 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_FOUND:
 		if (!ts_seg->first_pat_position_valid) {
-			ts_seg->first_pat_position_valid = 1;
+			ts_seg->first_pat_position_valid = GF_TRUE;
 			ts_seg->first_pat_position = (ts->pck_number-1)*188;
 		}
 		ts_seg->last_pat_position = (ts->pck_number-1)*188;
-		ts_seg->first_pes_after_last_pat = 0;
-		ts_seg->pes_after_last_pat_is_sap = 0;
+		ts_seg->first_pes_after_last_pat = GF_FALSE;
+		ts_seg->pes_after_last_pat_is_sap = GF_FALSE;
 		break;
 	case GF_M2TS_EVT_PAT_UPDATE:
 		if (!ts_seg->first_pat_position_valid) {
-			ts_seg->first_pat_position_valid = 1;
+			ts_seg->first_pat_position_valid = GF_TRUE;
 			ts_seg->first_pat_position = (ts->pck_number-1)*188;
 		}
 		ts_seg->last_pat_position = (ts->pck_number-1)*188;
-		ts_seg->first_pes_after_last_pat = 0;
-		ts_seg->pes_after_last_pat_is_sap = 0;
+		ts_seg->first_pes_after_last_pat = GF_FALSE;
+		ts_seg->pes_after_last_pat_is_sap = GF_FALSE;
 		break;
 	case GF_M2TS_EVT_PAT_REPEAT:
 		if (!ts_seg->first_pat_position_valid) {
-			ts_seg->first_pat_position_valid = 1;
+			ts_seg->first_pat_position_valid = GF_TRUE;
 			ts_seg->first_pat_position = (ts->pck_number-1)*188;
 		}
 		ts_seg->last_pat_position = (ts->pck_number-1)*188;
-		ts_seg->first_pes_after_last_pat = 0;
-		ts_seg->pes_after_last_pat_is_sap = 0;
+		ts_seg->first_pes_after_last_pat = GF_FALSE;
+		ts_seg->pes_after_last_pat_is_sap = GF_FALSE;
 		break;
 	case GF_M2TS_EVT_CAT_FOUND:
 		if (!ts_seg->first_cat_position_valid) {
-			ts_seg->first_cat_position_valid = 1;
+			ts_seg->first_cat_position_valid = GF_TRUE;
 			ts_seg->first_cat_position = (ts->pck_number-1)*188;
 		}
 		ts_seg->last_cat_position = (ts->pck_number-1)*188;
 		break;
 	case GF_M2TS_EVT_CAT_UPDATE:
 		if (!ts_seg->first_cat_position_valid) {
-			ts_seg->first_cat_position_valid = 1;
+			ts_seg->first_cat_position_valid = GF_TRUE;
 			ts_seg->first_cat_position = (ts->pck_number-1)*188;
 		}
 		break;
 	case GF_M2TS_EVT_CAT_REPEAT:
 		if (!ts_seg->first_cat_position_valid) {
-			ts_seg->first_cat_position_valid = 1;
+			ts_seg->first_cat_position_valid = GF_TRUE;
 			ts_seg->first_cat_position = (ts->pck_number-1)*188;
 		}
 		ts_seg->last_cat_position = (ts->pck_number-1)*188;
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
-		ts_seg->has_seen_pat = 1;
+		ts_seg->has_seen_pat = GF_TRUE;
 		prog = (GF_M2TS_Program*)par;
 		if (!ts_seg->first_pmt_position_valid) {
-			ts_seg->first_pmt_position_valid = 1;
+			ts_seg->first_pmt_position_valid = GF_TRUE;
 			ts_seg->first_pmt_position = (ts->pck_number-1)*188;
 		}
 		ts_seg->last_pmt_position = (ts->pck_number-1)*188;
@@ -3255,14 +3257,14 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		break;
 	case GF_M2TS_EVT_PMT_UPDATE:
 		if (!ts_seg->first_pmt_position_valid) {
-			ts_seg->first_pmt_position_valid = 1;
+			ts_seg->first_pmt_position_valid = GF_TRUE;
 			ts_seg->first_pmt_position = (ts->pck_number-1)*188;
 		}
 		ts_seg->last_pmt_position = (ts->pck_number-1)*188;
 		break;
 	case GF_M2TS_EVT_PMT_REPEAT:
 		if (!ts_seg->first_pmt_position_valid) {
-			ts_seg->first_pmt_position_valid = 1;
+			ts_seg->first_pmt_position_valid = GF_TRUE;
 			ts_seg->first_pmt_position = (ts->pck_number-1)*188;
 		}
 		ts_seg->last_pmt_position = (ts->pck_number-1)*188;
@@ -3299,7 +3301,7 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 				if (!ts_seg->first_pes_after_last_pat) {
 					ts_seg->first_pes_after_last_pat = ts_seg->nb_pes_in_segment;
-					ts_seg->pes_after_last_pat_is_sap=0;
+					ts_seg->pes_after_last_pat_is_sap = GF_FALSE;
 				}
 			}
 
@@ -3318,7 +3320,7 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					ts_seg->first_pes_sap = GF_TRUE;
 				}
 				if ((ts_seg->nb_pes_in_segment>1) && (ts_seg->first_pes_after_last_pat==ts_seg->nb_pes_in_segment)) {
-					ts_seg->pes_after_last_pat_is_sap=1;
+					ts_seg->pes_after_last_pat_is_sap=GF_TRUE;
 				}
 			}
 			/* we need to know the earliest PTS value (RAP or not) in the index*/
@@ -3431,7 +3433,7 @@ static GF_Err dasher_mp2t_get_components_info(GF_DashSegInput *dash_input, GF_DA
 static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *szOutName, GF_DASHSegmenterOptions *dash_cfg, Bool first_in_set)
 {
 	GF_TSSegmenter ts_seg;
-	Bool rewrite_input = 0;
+	Bool rewrite_input = GF_FALSE;
 	u8 is_pes[GF_M2TS_MAX_STREAMS];
 	char szOpt[100];
 	char SegName[GF_MAX_PATH], IdxName[GF_MAX_PATH];
@@ -3466,7 +3468,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		GF_SegmentTypeBox *styp;
 
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, 1, IdxName, szOutName, dash_input->representationID, dash_cfg->seg_rad_name, "six", 0, 0, 0, dash_cfg->use_segment_timeline);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, GF_TRUE, IdxName, szOutName, dash_input->representationID, dash_cfg->seg_rad_name, "six", 0, 0, 0, dash_cfg->use_segment_timeline);
 
 		ts_seg.index_file = gf_fopen(IdxName, "wb");
 		if (!ts_seg.index_file) {
@@ -3488,7 +3490,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 #endif
 	}
 
-	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, 1, IdxName, basename, dash_input->representationID, dash_cfg->seg_rad_name, "six", 0, 0, 0, dash_cfg->use_segment_timeline);
+	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, GF_TRUE, IdxName, basename, dash_input->representationID, dash_cfg->seg_rad_name, "six", 0, 0, 0, dash_cfg->use_segment_timeline);
 
 	ts_seg.PCR_DTS_initial_diff = (u64) -1;
 	ts_seg.subduration = (u32) (dash_cfg->subduration * 90000);
@@ -3659,7 +3661,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		fprintf(dash_cfg->mpd, "    </SegmentBase>\n");
 
 		/*we rewrite the file*/
-		rewrite_input = 1;
+		rewrite_input = GF_TRUE;
 	} else {
 		if (dash_cfg->seg_rad_name && dash_cfg->use_url_template) {
 			if (dash_cfg->variable_seg_rad_name) {
@@ -3927,7 +3929,7 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 				else if (!strnicmp(uri_frag+1, "ID=", 3))
 					id = atoi(uri_frag+4);
 				else if (!stricmp(uri_frag+1, "audio") || !stricmp(uri_frag+1, "video")) {
-					Bool check_video = !stricmp(uri_frag+1, "video") ? 1 : 0;
+					Bool check_video = !stricmp(uri_frag+1, "video") ? GF_TRUE : GF_FALSE;
 					u32 i;
 					for (i=0; i<nb_track; i++) {
 						switch (gf_isom_get_media_type(file, i+1)) {
@@ -4522,13 +4524,13 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 	const char *opt, *section;
 	GF_Err e;
 
-	if (!dash_dynamic) return 1;
+	if (!dash_dynamic) return GF_TRUE;
 
 	opt = gf_cfg_get_key(dash_ctx, "DASH", "StoreParams");
-	if (opt && !strcmp(opt, "yes")) return 1;
+	if (opt && !strcmp(opt, "yes")) return GF_TRUE;
 
 	opt = gf_cfg_get_key(dash_ctx, "DASH", "GenerationNTP");
-	if (!opt) return 1;
+	if (!opt) return GF_TRUE;
 	sscanf(opt, "%u", &prev_sec);
 
 	/*compute cumulated duration*/
@@ -4545,7 +4547,7 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 			if (dur>max_dur) max_dur = dur;
 		}
 	}
-	if (!max_dur) return 1;
+	if (!max_dur) return GF_TRUE;
 	gf_net_get_ntp(&ntp_sec, &frac);
 
 	if (dash_dynamic==2) {
@@ -4556,7 +4558,7 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 		/*check if we need to generate */
 		if (!dash_dynamic && elapsed < max_dur - safety_dur ) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Asked to regenerate segments before expiration of the current segment list, please wait %g seconds - ignoring\n", max_dur + prev_sec - ntp_sec ));
-			return 0;
+			return GF_FALSE;
 		}
 		if (elapsed > max_dur) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Generating segments and MPD %g seconds too late\n", elapsed - (u32) max_dur));
@@ -4622,7 +4624,7 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 			i--;
 		}
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 static u32 gf_dash_get_dependency_bandwidth(GF_DashSegInput *inputs, u32 nb_dash_inputs, const char *file_name, u32 trackNum) {
@@ -4743,18 +4745,14 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	/*init dash context if needed*/
 	if (dash_ctx) {
 		e = gf_dasher_init_context(dash_ctx, &dash_dynamic, &time_shift_depth, NULL, ast_shift_sec);
-		if (e) return e;
-		if (dash_ctx) {
+		if (e) {
+			return e;
+		} else {
 			Bool regenerate;
 			char sOpt[100];
 			const char *opt = gf_cfg_get_key(dash_ctx, "DASH", "MaxSegmentDuration");
 			if (opt) {
 				Double seg_dur = atof(opt);
-				/*
-								if (seg_dur != dash_duration) {
-									return GF_NOT_SUPPORTED;
-								}
-				*/
 				dash_duration = seg_dur;
 			} else {
 				sprintf(sOpt, "%f", dash_duration);
@@ -4776,7 +4774,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	max_period = 0;
 	/* first, we assume that nb_dash_inputs is equal to nb_inputs. This value will be recompute then*/
 	nb_dash_inputs = nb_inputs;
-	dash_inputs = gf_malloc(sizeof(GF_DashSegInput)*nb_dash_inputs);
+	dash_inputs = (GF_DashSegInput *)gf_malloc(sizeof(GF_DashSegInput)*nb_dash_inputs);
 	memset(dash_inputs, 0, sizeof(GF_DashSegInput)*nb_dash_inputs);
 	j = 0;
 	for (i=0; i<nb_inputs; i++) {
@@ -4801,7 +4799,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		dash_inputs[j].bandwidth = inputs[i].bandwidth;
 
 		if (inputs[i].role && strcmp(inputs[i].role, "main"))
-			has_role = 1;
+			has_role = GF_TRUE;
 
 		if (! dash_inputs[j].periodID) {
 			max_period = 1;
@@ -4830,7 +4828,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				nb_diff--;
 			}
 
-			if (!strcmp(dash_inputs[j].szMime, "video/mp2t")) has_mpeg2 = 1;
+			if (!strcmp(dash_inputs[j].szMime, "video/mp2t")) has_mpeg2 = GF_TRUE;
 
 			j += 1+nb_diff;
 		}
@@ -4894,7 +4892,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				if (dash_inputs[i].xlink) {
 					//assign a AS for this fake source (otherwise first active period detection will fail)
 					dash_inputs[i].adaptation_set=1;
-					none_supported = 0;
+					none_supported = GF_FALSE;
 				}
 				continue;
 			}
@@ -4905,7 +4903,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 			e = dash_inputs[i].dasher_input_classify(dash_inputs, nb_dash_inputs, i, &cur_group_id, &max_sap_type);
 			if (e) goto exit;
-			none_supported = 0;
+			none_supported = GF_FALSE;
 		}
 		if (none_supported) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: None of the input types are supported for DASHing - nothing to do ...\n"));
@@ -4919,26 +4917,26 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		if (dash_profile) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: WARNING! Max SAP type %d detected\n\tswitching to FULL profile\n", max_sap_type));
 		}
-		dash_profile = 0;
+		dash_profile = GF_DASH_PROFILE_FULL;
 	}
 
 	/*adjust params based on profiles*/
 	switch (dash_profile) {
 	case GF_DASH_PROFILE_LIVE:
-		seg_at_rap = 1;
+		seg_at_rap = GF_TRUE;
 		use_url_template = 1;
-		single_segment = single_file = 0;
+		single_segment = single_file = GF_FALSE;
 		break;
 	case GF_DASH_PROFILE_AVC264_LIVE:
-		seg_at_rap = 1;
-		no_fragments_defaults = 1;
+		seg_at_rap = GF_TRUE;
+		no_fragments_defaults = GF_TRUE;
 		use_url_template = 1;
-		single_segment = single_file = 0;
+		single_segment = single_file = GF_FALSE;
 		content_protection_in_rep = GF_FALSE;
 		break;
 	case GF_DASH_PROFILE_AVC264_ONDEMAND:
-		seg_at_rap = 1;
-		no_fragments_defaults = 1;
+		seg_at_rap = GF_TRUE;
+		no_fragments_defaults = GF_TRUE;
 		content_protection_in_rep = GF_FALSE;
 		if (seg_name) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment-name not allowed in DASH-AVC/264 onDemand profile.\n"));
@@ -4946,8 +4944,8 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			goto exit;
 		}
 	case GF_DASH_PROFILE_ONDEMAND:
-		seg_at_rap = 1;
-		single_segment = 1;
+		seg_at_rap = GF_TRUE;
+		single_segment = GF_TRUE;
 		if ((bitstream_switching != GF_DASH_BSMODE_DEFAULT) && (bitstream_switching != GF_DASH_BSMODE_NONE)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] onDemand profile, bitstream switching mode cannot be used.\n"));
 			e = GF_BAD_PARAM;
@@ -4955,11 +4953,11 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		}
 		/*BS switching is meaningless in onDemand profile*/
 		bitstream_switching = GF_DASH_BSMODE_NONE;
-		use_url_template = single_file = 0;
+		use_url_template = single_file = GF_FALSE;
 		break;
 	case GF_DASH_PROFILE_MAIN:
-		seg_at_rap = 1;
-		single_segment = 0;
+		seg_at_rap = GF_TRUE;
+		single_segment = GF_FALSE;
 		break;
 	default:
 		break;
@@ -4969,12 +4967,12 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	}
 
 	//we allow using inband param set when not time aligned. set the option now before overriding flags for non time aligned
-	dash_opts.inband_param_set = ((bitstream_switching == GF_DASH_BSMODE_INBAND) || (bitstream_switching == GF_DASH_BSMODE_SINGLE) ) ? 1 : 0;
+	dash_opts.inband_param_set = ((bitstream_switching == GF_DASH_BSMODE_INBAND) || (bitstream_switching == GF_DASH_BSMODE_SINGLE) ) ? GF_TRUE : GF_FALSE;
 
 	if (!segment_alignment) {
 		if (dash_profile) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Segments are not time-aligned in each representation of each period\n\tswitching to FULL profile\n", max_sap_type));
-			dash_profile = 0;
+			dash_profile = GF_DASH_PROFILE_FULL;
 		}
 		if (bitstream_switching != GF_DASH_BSMODE_NONE) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Segments are not time-aligned in each representation of each period\n\tdisabling bitstream switching\n", max_sap_type));
@@ -5014,7 +5012,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\n"));
 	}
-	if (frag_at_rap) seg_at_rap = 1;
+	if (frag_at_rap) seg_at_rap = GF_TRUE;
 
 	if (seg_at_rap) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Spliting segments %sat GOP boundaries\n", frag_at_rap ? "and fragments " : ""));
@@ -5208,7 +5206,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		for (i=0; i<count; i++) {
 			const char *id = gf_cfg_get_key_name(dash_ctx, "PastPeriods", i);
 			const char *xlink = gf_cfg_get_key(dash_ctx, "PastPeriods", id);
-			char *sep = strchr(xlink, ',');
+			char *sep = (char *)strchr(xlink, ',');
 			if (!sep) continue;
 
 			GF_SAFEALLOC(p, PeriodEntry);
@@ -5228,7 +5226,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				strcat(p->szPeriodXML, ".mpd");
 			} else {
 				strcpy(p->szPeriodXML, xlink);
-				p->is_xlink = 1;
+				p->is_xlink = GF_TRUE;
 			}
 		}
 	}
@@ -5258,7 +5256,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 		if (xlink) {
 			strcpy(p->szPeriodXML, xlink);
-			p->is_xlink = 1;
+			p->is_xlink = GF_TRUE;
 		} else {
 			strcpy(p->szPeriodXML, mpdfile);
 			sep = strrchr(p->szPeriodXML, '.');
@@ -5296,11 +5294,11 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			u32 max_height = 0;
 			u32 fps_num = 0;
 			u32 fps_denum = 0;
-			Bool use_bs_switching = (bitstream_switching==GF_DASH_BSMODE_NONE) ? 0 : 1;
+			Bool use_bs_switching = (bitstream_switching==GF_DASH_BSMODE_NONE) ? GF_FALSE : GF_TRUE;
 			char *lang;
 			char szFPS[100];
-			Bool is_first_rep=0;
-			Bool skip_init_segment_creation = 0;
+			Bool is_first_rep = GF_FALSE;
+			Bool skip_init_segment_creation = GF_FALSE;
 
 			dash_opts.segment_alignment_disabled = GF_FALSE;
 
@@ -5400,7 +5398,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			e = write_adaptation_header(period_mpd, dash_profile, use_url_template, segment_mode, dash_inputs, nb_dash_inputs, cur_period+1, cur_adaptation_set+1, first_rep_in_set, use_bs_switching, max_width, max_height, szFPS, lang, szInit, dash_opts.segment_alignment_disabled);
 			if (e) goto exit;
 
-			is_first_rep = 1;
+			is_first_rep = GF_TRUE;
 			for (i=0; i<nb_dash_inputs && !e; i++) {
 				char szOutName[GF_MAX_PATH], *segment_name;
 
@@ -5414,11 +5412,11 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				if (sep) sep[0] = 0;
 
 				/*in scalable case: seg_name is variable*/
-				dash_opts.variable_seg_rad_name = (nb_dash_inputs != nb_inputs) ? 1 : 0;
+				dash_opts.variable_seg_rad_name = (nb_dash_inputs != nb_inputs) ? GF_TRUE : GF_FALSE;
 				if (seg_name) {
 					if (strstr(seg_name, "%s")) {
 						sprintf(szSolvedSegName, seg_name, szOutName);
-						dash_opts.variable_seg_rad_name = 1;
+						dash_opts.variable_seg_rad_name = GF_TRUE;
 						if (dash_inputs[i].single_track_num) {
 							char szTkNum[50];
 							sprintf(szTkNum, "_track%d_", dash_inputs[i].single_track_num);
@@ -5468,7 +5466,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while DASH-ing file: %s\n", gf_error_to_string(e)));
 					goto exit;
 				}
-				is_first_rep = 0;
+				is_first_rep = GF_FALSE;
 			}
 			/*close adaptation set*/
 			fprintf(period_mpd, "  </AdaptationSet>\n");
@@ -5516,13 +5514,13 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	while ((p = (PeriodEntry *) gf_list_enum(period_links, &i))) {
 		if (!p->period_idx) {
 			if (p->is_xlink) {
-				write_period_header(mpd, p->id, 0.0, p->period_duration, dash_dynamic, p->szPeriodXML, NULL, 0, 0, 0);
+				write_period_header(mpd, p->id, 0.0, p->period_duration, dash_dynamic, p->szPeriodXML, NULL, 0, 0, GF_FALSE);
 			} else {
 				dash_insert_period_xml(mpd, p->szPeriodXML);
 			}
 		} else {
 			if (p->is_xlink) {
-				write_period_header(mpd, p->id, 0.0, p->period_duration, dash_dynamic, p->szPeriodXML, dash_inputs, nb_dash_inputs, p->period_idx, 0);
+				write_period_header(mpd, p->id, 0.0, p->period_duration, dash_dynamic, p->szPeriodXML, dash_inputs, nb_dash_inputs, p->period_idx, GF_FALSE);
 			} else {
 				dash_insert_period_xml(mpd, p->szPeriodXML);
 			}
