@@ -172,8 +172,9 @@ extension.open_local_file = function () {
             }
 
             popup.on_display_size = function (w, h) {
-                this.edit.set_size(0.8 * w, 2 * gwskin.default_text_font_size);
-                this.set_size(0.8 * w, 2 * gwskin.default_text_font_size + gwskin.default_icon_height);
+                this.edit.set_size(w, 2 * gwskin.default_text_font_size);
+                this.set_size(w, 2 * gwskin.default_text_font_size + gwskin.default_icon_height);
+                this.move(0, h/2-this.height/2);
             }
 
             popup.on_display_size(gw_display_width, gw_display_height);
