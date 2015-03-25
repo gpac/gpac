@@ -654,12 +654,17 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		nb_seg /= group->segment_duration;
 		shift = (u32) nb_seg;
 
-		//when is the next segment available ? if less than 1/3 of a second till now start with next one
-		if (1000 * ( (1+shift /*next segment*/+ 1/*+seg duration for availability time*/) * group->segment_duration - ast_offset /*get exact AST time*/) - current_time < 330) {
-			group->start_playback_range = 0;
-			shift++;
+		//not time shifting , we must stick to start of segment - TODO we could adjust this with AST offset
+		if (!group->dash->initial_time_shift_value) {
+			group->start_playback_range = shift * group->segment_duration;
 		} else {
-			group->start_playback_range = (Double) current_time / 1000.0;
+			//when is the next segment available ? if less than 1/3 of a second till now start with next one
+			if (1000 * ( (1+shift /*next segment*/+ 1/*+seg duration for availability time*/) * group->segment_duration - ast_offset /*get exact AST time*/) - current_time < 330) {
+				group->start_playback_range = 0;
+				shift++;
+			} else {
+				group->start_playback_range = (Double) current_time / 1000.0;
+			}
 		}
 
 		if (!group->start_number_at_last_ast) {
