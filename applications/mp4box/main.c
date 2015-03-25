@@ -2395,6 +2395,7 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			m = argv[i+1];
 			segment_marker = GF_4CC(m[0], m[1], m[2], m[3]);
+			i++;
 		} else if (!stricmp(arg, "-itags")) {
 			CHECK_NEXT_ARG itunes_tags = argv[i+1];
 			i++;
