@@ -97,6 +97,7 @@ typedef struct
 	Bool content_protection_in_rep;
 
 	Double max_segment_duration;
+	s32 ast_offset_ms;
 } GF_DASHSegmenterOptions;
 
 struct _dash_segment_input
@@ -1805,6 +1806,9 @@ restart_fragmentation_pass:
 			const char *rad_name = gf_url_get_resource_name(seg_rad_name);
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, 0, 0, dash_cfg->use_segment_timeline);
 			fprintf(dash_cfg->mpd, "   <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", mpd_timeline_bs ? dash_cfg->dash_scale : mpd_timescale, SegmentName, startNumber);
+			if (dash_cfg->ast_offset_ms<0) {
+				fprintf(dash_cfg->mpd, " availabilityTimeOffset=\"%g\"", - (Double) dash_cfg->ast_offset_ms / 1000.0);
+			}
 			if (!dash_cfg->use_segment_timeline) {
 				if (!max_segment_duration)
 					max_segment_duration = dash_cfg->segment_duration;
@@ -1841,6 +1845,9 @@ restart_fragmentation_pass:
 				if (presentationTimeOffset)
 					fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
 			}
+			if (dash_cfg->ast_offset_ms<0) {
+				fprintf(dash_cfg->mpd, " availabilityTimeOffset=\"%g\"", - (Double) dash_cfg->ast_offset_ms / 1000.0);
+			}
 
 			if (mpd_timeline_bs) {
 				char *mpd_seg_info = NULL;
@@ -1862,7 +1869,11 @@ restart_fragmentation_pass:
 		char *mpd_seg_info = NULL;
 		u32 size;
 
-		fprintf(dash_cfg->mpd, "   <SegmentList timescale=\"%d\">\n", dash_cfg->dash_scale);
+		fprintf(dash_cfg->mpd, "   <SegmentList timescale=\"%d\"", dash_cfg->dash_scale);
+		if (dash_cfg->ast_offset_ms<0) {
+			fprintf(dash_cfg->mpd, " availabilityTimeOffset=\"%g\"", - (Double) dash_cfg->ast_offset_ms / 1000.0);
+		}
+		fprintf(dash_cfg->mpd, "\n", dash_cfg->dash_scale);
 
 		gf_bs_get_content(mpd_timeline_bs, &mpd_seg_info, &size);
 		gf_fwrite(mpd_seg_info, 1, size, dash_cfg->mpd);
@@ -1971,6 +1982,10 @@ restart_fragmentation_pass:
 			if (presentationTimeOffset)
 				fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
 
+			if (dash_cfg->ast_offset_ms<0) {
+				fprintf(dash_cfg->mpd, " availabilityTimeOffset=\"%g\"", - (Double) dash_cfg->ast_offset_ms / 1000.0);
+			}
+
 			if (mpd_timeline_bs && (!first_in_set || dash_cfg->segment_alignment_disabled) ) {
 				char *mpd_seg_info = NULL;
 				u32 size;
@@ -2006,6 +2021,9 @@ restart_fragmentation_pass:
 		}
 		if (presentationTimeOffset) {
 			fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
+		}
+		if (dash_cfg->ast_offset_ms<0) {
+			fprintf(dash_cfg->mpd, " availabilityTimeOffset=\"%g\"", - (Double) dash_cfg->ast_offset_ms / 1000.0);
 		}
 		fprintf(dash_cfg->mpd, ">\n");
 		/*we are not in bitstreamSwitching mode*/
@@ -3610,6 +3628,10 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			fprintf(dash_cfg->mpd, " index=\"%s\"", IdxName);
 		}
 #endif
+
+		if (dash_cfg->ast_offset_ms<0) {
+			fprintf(dash_cfg->mpd, " availabilityTimeOffset=\"%g\"", - (Double) dash_cfg->ast_offset_ms / 1000.0);
+		}
 		fprintf(dash_cfg->mpd, "/>\n");
 	}
 
@@ -3679,6 +3701,9 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				if (presentationTimeOffset > 1)
 					fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset - 1);
 
+				if (dash_cfg->ast_offset_ms<0) {
+					fprintf(dash_cfg->mpd, " availabilityTimeOffset=\"%g\"", - (Double) dash_cfg->ast_offset_ms / 1000.0);
+				}
 				fprintf(dash_cfg->mpd, "/>\n");
 			} else if (presentationTimeOffset > 1) {
 				fprintf(dash_cfg->mpd, "    <SegmentTemplate presentationTimeOffset=\""LLD"\"/>\n", presentationTimeOffset - 1);
@@ -3693,6 +3718,9 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			if (presentationTimeOffset > 1)
 				fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset - 1);
 
+			if (dash_cfg->ast_offset_ms<0) {
+				fprintf(dash_cfg->mpd, " availabilityTimeOffset=\"%g\"", - (Double) dash_cfg->ast_offset_ms / 1000.0);
+			}
 			fprintf(dash_cfg->mpd, ">\n");
 
 			if (!dash_cfg->dash_ctx) {
@@ -4079,7 +4107,8 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 	return GF_NOT_SUPPORTED;
 }
 
-static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_ctx, GF_DashProfile profile, Bool is_mpeg2, const char *title, const char *source, const char *copyright, const char *moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls, Bool dash_dynamic, u32 time_shift_depth, Double mpd_duration, Double mpd_update_period, Double min_buffer, u32 ast_shift_sec, Bool use_cenc, Bool use_xlink, Double max_seg_dur)
+static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_ctx, GF_DashProfile profile, Bool is_mpeg2, const char *title, const char *source, const char *copyright, const char *moreInfoURL, const char **mpd_base_urls, 
+				u32 nb_mpd_base_urls, Bool dash_dynamic, u32 time_shift_depth, Double mpd_duration, Double mpd_update_period, Double min_buffer, s32 ast_shift_ms, Bool use_cenc, Bool use_xlink, Double max_seg_dur)
 {
 	u32 sec, frac;
 #ifdef _WIN32_WCE
@@ -4093,7 +4122,10 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 	Double s;
 
 	gf_net_get_ntp(&sec, &frac);
-	sec += ast_shift_sec;
+	//TODO allow sub-sec precision for AST
+	if (ast_shift_ms>0) {
+		sec += (u32) ast_shift_ms / 1000;
+	}
 
 	fprintf(mpd, "<?xml version=\"1.0\"?>\n");
 	fprintf(mpd, "<!-- MPD file Generated with GPAC version "GPAC_FULL_VERSION" ");
@@ -4124,7 +4156,6 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 			//we only support profiles for which AST has to be the same
 			const char *opt = gf_cfg_get_key(dash_ctx, "DASH", "GenerationNTP");
 			sscanf(opt, "%u", &sec);
-			sec += ast_shift_sec;
 		}
 
 #ifdef _WIN32_WCE
@@ -4136,7 +4167,7 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 		gtime = sec - GF_NTP_SEC_1900_TO_1970;
 		t = gmtime(&gtime);
 		fprintf(mpd, " availabilityStartTime=\"%d-%02d-%02dT%02d:%02d:%02dZ\"", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
-		if (ast_shift_sec) {
+		if (ast_shift_ms>=0) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] MPD AvailabilityStartTime %d-%02d-%02dT%02d:%02d:%02dZ\n", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec) );
 		}
 #endif
@@ -4391,7 +4422,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 	return GF_OK;
 }
 
-static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, u32 *dynamic, u32 *timeShiftBufferDepth, const char *periodID, u32 ast_shift_sec)
+static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, u32 *dynamic, u32 *timeShiftBufferDepth, const char *periodID, s32 ast_shift_ms)
 {
 	const char *opt;
 	char szVal[100];
@@ -4474,6 +4505,7 @@ u32 gf_dasher_next_update_time(GF_Config *dash_ctx, Double mpd_update_time)
 	if (safety_dur > mpd_update_time)
 		safety_dur = mpd_update_time;
 
+	safety_dur = 0;
 
 	opt = gf_cfg_get_key(dash_ctx, "DASH", "GenerationNTP");
 	sscanf(opt, "%u", &prev_sec);
@@ -4515,7 +4547,7 @@ u32 gf_dasher_next_update_time(GF_Config *dash_ctx, Double mpd_update_time)
 }
 
 /*peform all file cleanup*/
-static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_update_time, u32 time_shift_depth, Double dash_duration, u32 ast_shift_sec, u32 dash_scale)
+static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_update_time, u32 time_shift_depth, Double dash_duration, s32 ast_shift_ms, u32 dash_scale)
 {
 	Double max_dur = 0;
 	Double elapsed = 0;
@@ -4584,7 +4616,9 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 			sscanf(opt, ""LLU"-"LLU"@%s", &start, &dur, szRepID);
 			seg_time = (Double) start;
 			seg_time /= dash_scale;
-			seg_time += ast_shift_sec;
+			if (ast_shift_ms>0) 
+				seg_time += ((Double) ast_shift_ms) / 1000;
+
 			seg_time += dash_duration + time_shift_depth;
 			seg_time -= elapsed;
 			if (seg_time >= 0) break;
@@ -4705,7 +4739,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
                                Bool seg_at_rap, Double dash_duration, char *seg_name, char *seg_ext, u32 segment_marker_4cc,
                                Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
                                GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
-                               u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, 
+                               s32 ast_offset_ms, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, 
 							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration)
 {
 	u32 i, j, segment_mode;
@@ -4744,7 +4778,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 	/*init dash context if needed*/
 	if (dash_ctx) {
-		e = gf_dasher_init_context(dash_ctx, &dash_dynamic, &time_shift_depth, NULL, ast_shift_sec);
+		e = gf_dasher_init_context(dash_ctx, &dash_dynamic, &time_shift_depth, NULL, ast_offset_ms);
 		if (e) {
 			return e;
 		} else {
@@ -4762,7 +4796,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			gf_cfg_set_key(dash_ctx, "DASH", "TimeScale", sOpt);
 
 			/*peform all file cleanup*/
-			regenerate = gf_dasher_cleanup(dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_duration, ast_shift_sec, dash_scale);
+			regenerate = gf_dasher_cleanup(dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_duration, ast_offset_ms, dash_scale);
 			if (!regenerate) return GF_OK;
 
 			opt = gf_cfg_get_key(dash_ctx, "DASH", "HasXLINK");
@@ -5037,6 +5071,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.samplegroups_in_traf = samplegroups_in_traf;
 	dash_opts.single_traf_per_moof = single_traf_per_moof;
 	dash_opts.content_protection_in_rep = content_protection_in_rep;
+	dash_opts.ast_offset_ms = ast_offset_ms;
 
 
 	dash_opts.segment_duration = dash_duration * 1000 / dash_scale;
@@ -5506,7 +5541,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		presentation_duration = mpd_live_duration;
 	}
 
-	e = write_mpd_header(mpd, mpdfile, dash_ctx, dash_profile, has_mpeg2, mpd_title, mpd_source, mpd_copyright, mpd_moreInfoURL, (const char **) mpd_base_urls, nb_mpd_base_urls, dash_dynamic, time_shift_depth, presentation_duration, mpd_update_time, min_buffer, ast_shift_sec,use_cenc, uses_xlink, dash_opts.max_segment_duration);
+	e = write_mpd_header(mpd, mpdfile, dash_ctx, dash_profile, has_mpeg2, mpd_title, mpd_source, mpd_copyright, mpd_moreInfoURL, (const char **) mpd_base_urls, nb_mpd_base_urls, dash_dynamic, time_shift_depth, presentation_duration, mpd_update_time, min_buffer, ast_offset_ms, use_cenc, uses_xlink, dash_opts.max_segment_duration);
 	if (e) goto exit;
 
 

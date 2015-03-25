@@ -353,7 +353,7 @@ void PrintDASHUsage()
 	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
 	        "                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
 	        " -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
-	        " -ast-offset TIME     specifies MPD AvailabilityStartTime offset in seconds. Default is 1 sec delay\n"
+	        " -ast-offset TIME     specifies MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative. Default is 0 sec delay\n"
 	        " -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
 	        " -mem-frags           fragments will be produced in memory rather than on disk before flushing to disk\n"
 	        " -pssh-moof           stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box.\n"
@@ -1742,7 +1742,7 @@ int mp4boxMain(int argc, char **argv)
 	u32 track_dump_type;
 	u32 trackID;
 	Double min_buffer = 1.5;
-	u32 ast_shift_sec = 1;
+	s32 ast_offset_ms = 0;
 	u32 dump_chap = 0;
 	u32 dump_udta_type = 0;
 	u32 dump_udta_track = 0;
@@ -2317,7 +2317,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-ast-offset")) {
 			CHECK_NEXT_ARG
-			ast_shift_sec = (u32) atoi(argv[i+1]);
+			ast_offset_ms = atoi(argv[i+1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-moof-sn")) {
@@ -3557,7 +3557,7 @@ int mp4boxMain(int argc, char **argv)
 			                            seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
 			                            interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
 			                            dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
-			                            ast_shift_sec, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
+			                            ast_offset_ms, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
 										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration);
 
 			//this happens when reading file while writing them (local playback of the live session ...)
@@ -3569,8 +3569,9 @@ int mp4boxMain(int argc, char **argv)
 			if (e) break;
 
 			if (dash_live) {
+				u32 slept = 0;
 				u32 sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
-				fprintf(stderr, "sleep for %d ms\n", sleep_for);
+				fprintf(stderr, "Next generation scheduled in %d ms\n", sleep_for);
 				while (1) {
 					if (gf_prompt_has_input()) {
 						char c = (char) gf_prompt_get_char();
@@ -3587,9 +3588,12 @@ int mp4boxMain(int argc, char **argv)
 					if (dash_dynamic == 2) {
 						break;
 					}
-					if (sleep_for<100)
+					if (sleep_for<10) {
+						fprintf(stderr, "sleep for %d ms before generation\n", slept);
 						break;
+					}
 					gf_sleep(100);
+					slept+=100;
 
 					sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
 				}
