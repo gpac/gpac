@@ -2011,10 +2011,18 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 	GF_VisualManager *visual = tr_state->visual;
 	char *tmp = (char *) gf_malloc(sizeof(char)*60);
 
-
 	loc = my_glGetUniformLocation(visual->glsl_program, "gfNumLights");
 	if (loc>=0)
 		glUniform1i(loc, visual->num_lights);
+	GL_CHECK_ERR
+
+	/*
+	 * Equivalent to glLightModel(GL_LIGHTMODEL_TWO_SIDE, GL_TRUE);
+	 * TODO: move to "ES2 visual_3d_setup" (when implemented)
+	 */
+	loc = my_glGetUniformLocation(visual->glsl_program, "gfLightTwoSide");
+	if (loc>=0)
+		glUniform1i(loc, FIX_ONE);
 	GL_CHECK_ERR
 
 	li = &visual->lights[0];
