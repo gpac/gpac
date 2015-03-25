@@ -2188,8 +2188,8 @@ static void visual_3d_set_clippers_ES2(GF_VisualManager *visual, GF_TraverseStat
 	gf_mx_copy(inv_mx, tr_state->model_matrix);
 	gf_mx_inverse(&inv_mx);
 
-	loc = glGetUniformLocation(visual->glsl_program, "hasClip");
-	if(loc>0)
+	loc = my_glGetUniformLocation(visual->glsl_program, "hasClip");
+	if(loc>=0)
 		glUniform1i(loc, 1);
 
 	//run throught max-supported clips and activate those that are enabled
@@ -2298,7 +2298,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		visual_3d_set_clippers_ES2(visual, tr_state);
 	} else {
 		loc = glGetUniformLocation(visual->glsl_program, "hasClip");
-		if(loc>0) glUniform1i(loc, 0);
+		if(loc>=0) glUniform1i(loc, 0);
 	}
 
 	/* Material2D does not have any lights
@@ -2312,7 +2312,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		
 		if(flags & GF_GL_IS_YUV){	//manually parse alpha
 			loc = my_glGetUniformLocation(visual->glsl_program, "alpha");
-			if(loc>0)
+			if(loc>=0)
 				glUniform1f(loc, FIX2FLT(visual->mat_2d.alpha));
 		}else{	//if it's not YUV handle alpha with blend
 			glEnable(GL_BLEND);
@@ -2345,9 +2345,8 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	}else if(flags & GF_GL_IS_YUV){	//manually parse alpha
 		loc = my_glGetUniformLocation(visual->glsl_program, "alpha");
-		if(loc>0)
+		if(loc>=0)
 			glUniform1f(loc, 1.0);
-
 	}
 
 			
@@ -2383,8 +2382,8 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 		//In non-ES2.0 we use glEnable(GL_COLOR_MATERIAL); and glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE); to store the colour in gfDiffuse
 		//Here, we use gfMeshColour (at least for now)
-		loc = glGetUniformLocation(visual->glsl_program, "hasMeshColor");
-		if(loc>0) glUniform1i(loc, 1);
+		loc = my_glGetUniformLocation(visual->glsl_program, "hasMeshColor");
+		if(loc>=0) glUniform1i(loc, 1);
 
 		loc_color_array = my_glGetAttribLocation(visual->glsl_program, "gfMeshColor");
 		if (loc_color_array >= 0){
@@ -2401,7 +2400,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	}else{
 		loc = glGetUniformLocation(visual->glsl_program, "hasMeshColor");
-		if(loc>0) glUniform1i(loc, 0);
+		if(loc>=0) glUniform1i(loc, 0);
 	}
 
 
