@@ -87,16 +87,16 @@ install:
 ifeq ($(DISABLE_ISOFF), no) 
 ifeq ($(CONFIG_LINUX), yes)
 ifneq ($(CONFIG_FFMPEG), no)
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
 endif
 endif
 endif
 ifeq ($(DISABLE_ISOFF), no)
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP42TS "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP42TS$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
 endif
 ifeq ($(DISABLE_PLAYER), no)
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
 endif
 	if [ -d  $(DESTDIR)$(prefix)/$(libdir)/pkgconfig ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 644 gpac.pc "$(DESTDIR)$(prefix)/$(libdir)/pkgconfig" ; \
@@ -133,15 +133,15 @@ lninstall:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
 ifeq ($(DISABLE_ISOFF), no) 
 ifneq ($(CONFIG_FFMPEG), no)
-	ln -sf $(BUILD_PATH)/bin/gcc/DashCast $(DESTDIR)$(prefix)/bin/DashCast
+	ln -sf $(BUILD_PATH)/bin/gcc/DashCast$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/DashCast$(EXE_SUFFIX)
 endif
 endif
 ifeq ($(DISABLE_ISOFF), no)
-	ln -sf $(BUILD_PATH)/bin/gcc/MP4Box $(DESTDIR)$(prefix)/bin/MP4Box
-	ln -sf $(BUILD_PATH)/bin/gcc/MP42TS $(DESTDIR)$(prefix)/bin/MP42TS
+	ln -sf $(BUILD_PATH)/bin/gcc/MP4Box$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Box$(EXE_SUFFIX)
+	ln -sf $(BUILD_PATH)/bin/gcc/MP42TS$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP42TS$(EXE_SUFFIX)
 endif
 ifeq ($(DISABLE_PLAYER), no)
-	ln -sf $(BUILD_PATH)/bin/gcc/MP4Client $(DESTDIR)$(prefix)/bin/MP4Client
+	ln -sf $(BUILD_PATH)/bin/gcc/MP4Client$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Client$(EXE_SUFFIX)
 endif
 ifeq ($(CONFIG_DARWIN),yes)
 	ln -s $(BUILD_PATH)/bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_MAJOR)
