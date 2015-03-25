@@ -2975,8 +2975,10 @@ fi
 
 if test "$win32" = "no" ; then
     echo "GPAC_SH_FLAGS=$GPAC_SH_FLAGS" >> config.mak
+    echo "EXE_SUFFIX=" >> config.mak
     echo "DYN_LIB_SUFFIX=$DYN_LIB_SUFFIX" >> config.mak
 else
+    echo "EXE_SUFFIX=.exe" >> config.mak
     echo "DYN_LIB_SUFFIX=dll" >> config.mak
 fi
 
