@@ -27,7 +27,7 @@ OBJS= dektec_video.o
 
 SRCS := $(OBJS:.o=.cpp) 
 
-LIB=gm_dektec_out.$(DYN_LIB_SUFFIX)
+LIB=gm_dektec_out$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 #LDFLAGS+=-export-symbols dektec_out.def 
 endif
@@ -39,7 +39,7 @@ all: $(LIB)
 $(LIB): $(OBJS)
 	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac
 ifeq ($(STATICBUILD),yes)
-	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_dektec_out-static.$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static
+	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_dektec_out-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static
 endif
 
 
