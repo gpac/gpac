@@ -30,7 +30,7 @@ OBJS=freenect.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_freenect.$(DYN_LIB_SUFFIX)
+LIB=gm_freenect$(DYN_LIB_SUFFIX)
 
 
 all: $(LIB)

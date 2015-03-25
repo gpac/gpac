@@ -102,9 +102,9 @@ endif
 	$(INSTALL) $(INSTFLAGS) -m 644 gpac.pc "$(DESTDIR)$(prefix)/$(libdir)/pkgconfig" ; \
 	fi
 	$(INSTALL) -d "$(DESTDIR)$(moddir)"
-	$(INSTALL) bin/gcc/*.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
-	rm -f $(DESTDIR)$(moddir)/libgpac.$(DYN_LIB_SUFFIX)
-	rm -f $(DESTDIR)$(moddir)/nposmozilla.$(DYN_LIB_SUFFIX)
+	$(INSTALL) bin/gcc/*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
+	rm -f $(DESTDIR)$(moddir)/libgpac$(DYN_LIB_SUFFIX)
+	rm -f $(DESTDIR)$(moddir)/nposmozilla$(DYN_LIB_SUFFIX)
 	$(MAKE) installdylib
 	$(INSTALL) -d "$(DESTDIR)$(mandir)"
 	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1";
@@ -144,12 +144,12 @@ ifeq ($(DISABLE_PLAYER), no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Client$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Client$(EXE_SUFFIX)
 endif
 ifeq ($(CONFIG_DARWIN),yes)
-	ln -s $(BUILD_PATH)/bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_MAJOR)
-	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_MAJOR) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
+	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_MAJOR)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_MAJOR) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX)
 else
-	ln -s $(BUILD_PATH)/bin/gcc/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
-	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
-	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
+	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
 ifeq ($(DESTDIR)$(prefix),$(prefix))
 	ldconfig || true
 endif
@@ -179,15 +179,15 @@ ifeq ($(CONFIG_WIN32),yes)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(DESTDIR)$(prefix)/bin
 else
 ifeq ($(DEBUGBUILD),no)
-	$(STRIP) bin/gcc/libgpac.$(DYN_LIB_SUFFIX)
+	$(STRIP) bin/gcc/libgpac$(DYN_LIB_SUFFIX)
 endif
 ifeq ($(CONFIG_DARWIN),yes)
-	$(INSTALL) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION).$(DYN_LIB_SUFFIX)
-	ln -sf libgpac.$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
+	$(INSTALL) -m 755 bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION)$(DYN_LIB_SUFFIX)
+	ln -sf libgpac.$(VERSION)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX)
 else
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
-	ln -sf libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
-	ln -sf libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
+	ln -sf libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
+	ln -sf libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
 ifeq ($(DESTDIR)$(prefix),$(prefix))
 	ldconfig || true
 endif

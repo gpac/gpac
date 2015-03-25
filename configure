@@ -180,7 +180,7 @@ need_inet_aton="no"
 CFLAGS=""
 CXXFLAGS=""
 GPAC_SH_FLAGS=-lpthread
-DYN_LIB_SUFFIX="so"
+DYN_LIB_SUFFIX=".so"
 X11_PATH="/usr/X11R6"
 OSS_CFLAGS=""
 OSS_LDFLAGS=""
@@ -556,7 +556,7 @@ EOF
         cc="cc"
         Mac_Applications="/Applications"
         SHFLAGS="-dynamiclib"
-        DYN_LIB_SUFFIX="dylib"
+        DYN_LIB_SUFFIX=".dylib"
         extralibs=""
         GPAC_SH_FLAGS=""
         strip="strip -x"
@@ -2979,7 +2979,7 @@ if test "$win32" = "no" ; then
     echo "DYN_LIB_SUFFIX=$DYN_LIB_SUFFIX" >> config.mak
 else
     echo "EXE_SUFFIX=.exe" >> config.mak
-    echo "DYN_LIB_SUFFIX=dll" >> config.mak
+    echo "DYN_LIB_SUFFIX=.dll" >> config.mak
 fi
 
 
