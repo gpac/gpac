@@ -1763,7 +1763,17 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	visual_3d_update_matrices(tr_state);
 
+	/*enable states*/
 	if (visual->has_fog) visual_3d_enable_fog(visual);
+
+	if (visual->state_color_on) glEnable(GL_COLOR_MATERIAL);
+	else glDisable(GL_COLOR_MATERIAL);
+
+	if (visual->state_blend_on) glEnable(GL_BLEND);
+
+
+	if (visual->num_clips)
+		visual_3d_set_clippers(visual, tr_state);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 #if defined(GPAC_USE_OGL_ES)
@@ -1777,18 +1787,6 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex), base_address);
 #endif
 
-
-	/*enable states*/
-
-
-	if (visual->state_color_on) glEnable(GL_COLOR_MATERIAL);
-	else glDisable(GL_COLOR_MATERIAL);
-
-	if (visual->state_blend_on) glEnable(GL_BLEND);
-
-
-	if (visual->num_clips)
-		visual_3d_set_clippers(visual, tr_state);
 
 	/*
 	*	Enable colors:
