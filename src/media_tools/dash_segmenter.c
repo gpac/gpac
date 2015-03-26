@@ -4111,6 +4111,8 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 				u32 nb_mpd_base_urls, Bool dash_dynamic, u32 time_shift_depth, Double mpd_duration, Double mpd_update_period, Double min_buffer, s32 ast_shift_ms, Bool use_cenc, Bool use_xlink, Double max_seg_dur)
 {
 	u32 sec, frac;
+	u64 time_ms;
+	Double msec;
 #ifdef _WIN32_WCE
 	SYSTEMTIME syst;
 	FILETIME filet;
@@ -4122,10 +4124,18 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 	Double s;
 
 	gf_net_get_ntp(&sec, &frac);
-	//TODO allow sub-sec precision for AST
+	time_ms = sec;
+	time_ms *= 1000;
+	msec = frac*1000.0;
+	msec /= 0xFFFFFFFF;
+
+	time_ms += (u32) msec;
 	if (ast_shift_ms>0) {
-		sec += (u32) ast_shift_ms / 1000;
+		time_ms += (u32) ast_shift_ms;
 	}
+	sec = (u32) (time_ms/1000);
+	time_ms -= ((u64)sec)*1000;
+	assert(time_ms<1000);
 
 	fprintf(mpd, "<?xml version=\"1.0\"?>\n");
 	fprintf(mpd, "<!-- MPD file Generated with GPAC version "GPAC_FULL_VERSION" ");
@@ -4133,12 +4143,12 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 #ifndef _WIN32_WCE
 	gtime = sec - GF_NTP_SEC_1900_TO_1970;
 	t = gmtime(&gtime);
-	fprintf(mpd, " on %d-%02d-%02dT%02d:%02d:%02dZ", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02dZ\n", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec) );
+	fprintf(mpd, " at %d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32) time_ms);
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32) time_ms) );
 #else
 	GetSystemTime(&syst);
-	fprintf(mpd, " on %d-%02d-%02dT%02d:%02d:%02dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02dZ\n", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond) );
+	fprintf(mpd, " at %d-%02d-%02dT%02d:%02d:%02dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02dZ\n", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
 #endif
 	fprintf(mpd, "-->\n");
 
@@ -4148,28 +4158,33 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 
 	if (dash_dynamic) {
 		//set publish time
+#ifndef _WIN32_WCE
 		gtime = sec - GF_NTP_SEC_1900_TO_1970;
 		t = gmtime(&gtime);
 		fprintf(mpd, " publishTime=\"%d-%02d-%02dT%02d:%02d:%02dZ\"", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+#else
+		GetSystemTime(&syst);
+		fprintf(mpd, " publishTime=\"%d-%02d-%02dT%02d:%02d:%02dZ\"", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
+#endif
 
 		if (dash_ctx) {
 			//we only support profiles for which AST has to be the same
 			const char *opt = gf_cfg_get_key(dash_ctx, "DASH", "GenerationNTP");
-			sscanf(opt, "%u", &sec);
+			sscanf(opt, "%u:%u", &sec, &frac);
+
+			msec = frac*1000.0;
+			msec /= 0xFFFFFFFF;
+			time_ms = (u32) msec;
 		}
 
 #ifdef _WIN32_WCE
 		*(LONGLONG *) &filet = (sec - GF_NTP_SEC_1900_TO_1970) * 10000000 + TIMESPEC_TO_FILETIME_OFFSET;
 		FileTimeToSystemTime(&filet, &syst);
-		fprintf(mpd, " on %d-%02d-%02dT%02d:%02d:%02dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02dZ\n", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond) );
+		fprintf(mpd, " " availabilityStartTime=\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\"", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond, (u32) time_ms);
 #else
 		gtime = sec - GF_NTP_SEC_1900_TO_1970;
 		t = gmtime(&gtime);
-		fprintf(mpd, " availabilityStartTime=\"%d-%02d-%02dT%02d:%02d:%02dZ\"", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
-		if (ast_shift_ms>=0) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] MPD AvailabilityStartTime %d-%02d-%02dT%02d:%02d:%02dZ\n", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec) );
-		}
+		fprintf(mpd, " availabilityStartTime=\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\"", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32) time_ms);
 #endif
 
 		if ((s32)time_shift_depth>=0) {
@@ -4465,10 +4480,8 @@ static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, u32 *dynamic, u32 *tim
 		gtime = sec - GF_NTP_SEC_1900_TO_1970;
 		gf_cfg_set_key(dash_ctx, "DASH", "GenerationTime", asctime(gmtime(&gtime)));
 #endif
-		sprintf(szVal, "%u", sec);
+		sprintf(szVal, "%u:%d", sec, frac);
 		gf_cfg_set_key(dash_ctx, "DASH", "GenerationNTP", szVal);
-		sprintf(szVal, "%u", frac);
-		gf_cfg_set_key(dash_ctx, "DASH", "GenerationNTPFraction", szVal);
 
 		if (periodID)
 			gf_cfg_set_key(dash_ctx, "DASH", "PeriodID", periodID);
@@ -4508,9 +4521,7 @@ u32 gf_dasher_next_update_time(GF_Config *dash_ctx, Double mpd_update_time)
 	safety_dur = 0;
 
 	opt = gf_cfg_get_key(dash_ctx, "DASH", "GenerationNTP");
-	sscanf(opt, "%u", &prev_sec);
-	opt = gf_cfg_get_key(dash_ctx, "DASH", "GenerationNTPFraction");
-	sscanf(opt, "%u", &prev_frac);
+	sscanf(opt, "%u:%u", &prev_sec, &prev_frac);
 
 	opt = gf_cfg_get_key(dash_ctx, "DASH", "TimeScale");
 	sscanf(opt, "%u", &dash_scale);
@@ -4552,7 +4563,7 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 	Double max_dur = 0;
 	Double elapsed = 0;
 	Double safety_dur = MAX(mpd_update_time, dash_duration);
-	u32 i, ntp_sec, frac, prev_sec;
+	u32 i, ntp_sec, frac, prev_sec, prev_frac;
 	const char *opt, *section;
 	GF_Err e;
 
@@ -4563,7 +4574,7 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 
 	opt = gf_cfg_get_key(dash_ctx, "DASH", "GenerationNTP");
 	if (!opt) return GF_TRUE;
-	sscanf(opt, "%u", &prev_sec);
+	sscanf(opt, "%u:%u", &prev_sec, &prev_frac);
 
 	/*compute cumulated duration*/
 	for (i=0; i<gf_cfg_get_section_count(dash_ctx); i++) {
@@ -4586,7 +4597,9 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 		elapsed = (u32)-1;
 	} else {
 		elapsed = ntp_sec;
+		elapsed += (frac*1.0)/0xFFFFFFFF;
 		elapsed -= prev_sec;
+		elapsed -= (prev_frac*1.0)/0xFFFFFFFF;
 		/*check if we need to generate */
 		if (!dash_dynamic && elapsed < max_dur - safety_dur ) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Asked to regenerate segments before expiration of the current segment list, please wait %g seconds - ignoring\n", max_dur + prev_sec - ntp_sec ));
@@ -4619,7 +4632,8 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 			if (ast_shift_ms>0) 
 				seg_time += ((Double) ast_shift_ms) / 1000;
 
-			seg_time += dash_duration + time_shift_depth;
+
+			seg_time += 2*dash_duration + time_shift_depth;
 			seg_time -= elapsed;
 			if (seg_time >= 0) break;
 
@@ -5568,6 +5582,15 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	}
 
 	fprintf(mpd, "</MPD>");
+
+
+	if (dash_ctx && dash_dynamic) {
+		const char *opt = gf_cfg_get_key(dash_ctx, "DASH", "LastPeriodDuration");
+		if (opt) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Current Period Duration: %s\n", opt) );
+		}
+	}
+
 
 exit:
 	if (mpd) {

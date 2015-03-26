@@ -3574,7 +3574,7 @@ int mp4boxMain(int argc, char **argv)
 			if (e) break;
 
 			if (dash_live) {
-				u32 slept = 0;
+				u32 slept = gf_sys_clock();
 				u32 sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
 				fprintf(stderr, "Next generation scheduled in %d ms\n", sleep_for);
 				while (1) {
@@ -3593,14 +3593,13 @@ int mp4boxMain(int argc, char **argv)
 					if (dash_dynamic == 2) {
 						break;
 					}
-					if (sleep_for<10) {
-						fprintf(stderr, "sleep for %d ms before generation\n", slept);
-						break;
-					}
-					gf_sleep(100);
-					slept+=100;
+					gf_sleep(10);
 
 					sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
+					if (sleep_for<10) {
+						fprintf(stderr, "Slept for %d ms before generation\n", gf_sys_clock() - slept);
+						break;
+					}
 				}
 			} else {
 				break;
