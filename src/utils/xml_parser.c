@@ -389,7 +389,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 						parser->current_pos+=1;
 						if (parser->init_state==1) {
 							format_sax_error(parser, 0, "Invalid DOCTYPE");
-							return GF_FALSE;
+							return GF_TRUE;
 						}
 						parser->sax_state = SAX_STATE_ELEMENT;
 						return GF_FALSE;
