@@ -829,6 +829,27 @@ static void visual_3d_init_yuv_shaders(GF_VisualManager *visual)
 /**
  * Prints uniform's value
  */
+
+static GLint my_glGetUniformLocation(GF_SHADERID glsl_program, const char *uniform_name)
+{
+	GLint loc = glGetUniformLocation(glsl_program, uniform_name);
+	if (loc<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Cannot find uniform \"%s\" in GLSL program\n", uniform_name));
+	}
+	return loc;
+}
+
+static GLint my_glGetAttribLocation(GF_SHADERID glsl_program, const char *attrib_name)
+{
+	GLint loc = glGetAttribLocation(glsl_program, attrib_name);
+	if (loc<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Cannot find attrib \"%s\" in GLSL program\n", attrib_name));
+	}
+	return loc;
+}
+
+
+
 static void my_glQueryUniform(GF_SHADERID progObj, const char *name, int index){
 	GLint loc;
 	GLfloat res[4];
@@ -1935,24 +1956,6 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 #if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE)
 
-static GLint my_glGetUniformLocation(GF_SHADERID glsl_program, const char *uniform_name)
-{
-	GLint loc = glGetUniformLocation(glsl_program, uniform_name);
-	if (loc<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Cannot find uniform \"%s\" in GLSL program\n", uniform_name));
-	}
-	return loc;
-}
-
-static GLint my_glGetAttribLocation(GF_SHADERID glsl_program, const char *attrib_name)
-{
-	GLint loc = glGetAttribLocation(glsl_program, attrib_name);
-	if (loc<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Cannot find attrib \"%s\" in GLSL program\n", attrib_name));
-	}
-	return loc;
-}
-
 //¡k Starting of ES2-specific funcs
 static void glLoadMatrixES2(GF_VisualManager *visual, Fixed *mat, GLenum mode){
 	GLint loc;
@@ -2322,10 +2325,13 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			if(loc>=0)
 				glUniform1f(loc, FIX2FLT(visual->mat_2d.alpha));
 		}else{	//if it's not YUV handle alpha with blend
-			glEnable(GL_BLEND);	//¡TODOk: check //HIGH PRIORITY!
-			if(!tr_state->mesh_num_textures && visual->mat_2d.alpha == FIX_ONE){
-					visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0); //¡k not ES2.0
+			//glEnable(GL_BLEND);	//¡TODOk: check //HIGH PRIORITY!
+			if(visual->mat_2d.alpha == FIX_ONE){
+				if(!tr_state->mesh_num_textures)
+					glEnable(GL_BLEND);
+				visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0); //¡k not ES2.0
 			}else{
+				glEnable(GL_BLEND);
 				visual_3d_enable_antialias(visual, 0);	//¡k not ES2.0
 			}
 			//¡k Old code [Delete after testing]
