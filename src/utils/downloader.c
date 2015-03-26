@@ -2460,7 +2460,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 			if (sess->sock && (e == GF_IP_CONNECTION_CLOSED)) {
 				u32 len = gf_cache_get_content_length(sess->cache_entry);
 				if (size > 0)
-					gf_dm_data_received(sess, (u8 *) sHTTP, size, Gf_FALSE, NULL);
+					gf_dm_data_received(sess, (u8 *) sHTTP, size, GF_FALSE, NULL);
 				if ( ( (len == 0) && sess->use_cache_file)
 				        /*ivica patch*/
 				        || (size==0)
@@ -3061,7 +3061,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		sess->init_data_size = 0;
 		sess->init_data = NULL;
 
-		gf_dm_data_received(sess, (u8 *) sHTTP + BodyStart, bytesRead - BodyStart, Gf_TRUE, NULL);
+		gf_dm_data_received(sess, (u8 *) sHTTP + BodyStart, bytesRead - BodyStart, GF_TRUE, NULL);
 	}
 exit:
 	if (e) {
