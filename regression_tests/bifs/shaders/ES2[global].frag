@@ -189,11 +189,13 @@ void main() {
 	
 	if(hasMeshColor){	//
 		fragColor = m_color;
-	}else if(gfNumLights==0){	//is material2D => no lights - only colour (stored in gfEmissionColor)
-#ifdef GF_GL_HAS_MAT_2D	//we have mat2d
+	}else if(gfNumLights==0){
+	//is material2D => no lights - only colour (stored in gfEmissionColor)
+		/* Normally there should only be material 2d here
+		 * BUT we might have a case of normal material with no lights
+		 * we treat it the same way
+		 */
 		fragColor = gfEmissionColor;
-#endif
-//TODO else (material non-2d with no light)
 	}else if(gfNumLights>0){
 		//default material (visual->has_material) -> handled in doLighting()
 	}
