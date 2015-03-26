@@ -65,7 +65,7 @@ static void TraverseSpotLight(GF_Node *n, void *rs, Bool is_destroy)
 		return;
 	}
 	else if (tr_state->traversing_mode == TRAVERSE_LIGHTING) {
-		Bool *visible = gf_node_get_private(n);
+		Bool *visible = (Bool)gf_node_get_private(n);
 		if (*visible) {
 			visual_3d_add_spot_light(tr_state->visual, sl->ambientIntensity, sl->attenuation, sl->beamWidth,
 			                         sl->color, sl->cutOffAngle, sl->direction, sl->intensity, sl->location, &tr_state->model_matrix);
