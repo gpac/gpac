@@ -279,7 +279,7 @@ static void gf_dash_buffer_off(GF_DASH_Group *group)
 			group->dash->dash_io->on_dash_event(group->dash->dash_io, GF_DASH_EVENT_BUFFER_DONE, -1, GF_OK);
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Session buffering done\n"));
 		}
-		group->buffering = 0;
+		group->buffering = GF_FALSE;
 	}
 }
 
@@ -292,7 +292,7 @@ static void gf_dash_buffer_on(GF_DASH_Group *group)
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Starting session buffering\n"));
 		}
 		group->dash->nb_buffering++;
-		group->buffering = 1;
+		group->buffering = GF_TRUE;
 	}
 }
 
@@ -378,13 +378,13 @@ Bool gf_dash_check_mpd_root_type(const char *local_url)
 		if (rtype) {
 			Bool handled = GF_FALSE;
 			if (!strcmp(rtype, "MPD")) {
-				handled = 1;
+				handled = GF_TRUE;
 			}
 			gf_free(rtype);
 			return handled;
 		}
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -410,7 +410,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 	/*if no AST, do not use NTP sync */
 	if (! group->dash->mpd->availabilityStartTime) {
-		group->broken_timing = 1;
+		group->broken_timing = GF_TRUE;
 		return;
 	}
 
@@ -461,7 +461,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 			if (t1 == t2) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Slight drift in UTC clock at time %d-%02d-%02dT%02d:%02d:%02dZ: diff AST - now %d ms\n", 1900+t1->tm_year, t1->tm_mon+1, t1->tm_mday, t1->tm_hour, t1->tm_min, t1->tm_sec, (s32) (availabilityStartTime - current_time) ));
 				current_time = 0;
-				broken_timing = 0;
+				broken_timing = GF_FALSE;
 			}
 			else if (t1 && t2) {
 				t1->tm_year = t2->tm_year;
@@ -480,7 +480,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 					availabilityStartTime = current_time;
 				} else {
 					current_time = 0;
-					group->broken_timing = 1;
+					group->broken_timing = GF_TRUE;
 					return;
 				}
 			}
@@ -613,7 +613,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 					group->nb_segments_in_rep = count;
 					group->start_playback_range = (segtime)*1.0/timescale;
 					group->ast_at_init = availabilityStartTime - (u32) (ast_offset*1000);
-					group->broken_timing = 1;
+					group->broken_timing = GF_TRUE;
 					return;
 				}
 			}
@@ -643,7 +643,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] current time "LLU" is NOT in SegmentTimeline ["LLU"-"LLU"] - cannot estimate current startNumber, default to 0 ...\n", current_time_rescale, start_segtime, segtime));
 		group->download_segment_index = 0;
 		group->nb_segments_in_rep = 10;
-		group->broken_timing = 1;
+		group->broken_timing = GF_TRUE;
 		return;
 	}
 
@@ -695,7 +695,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		if (group->nb_segments_in_rep && (group->download_segment_index + nb_segs_in_update > group->nb_segments_in_rep)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Not enough segments (%d needed vs %d indicated) to reach period endTime indicated in MPD - ignoring MPD duration\n", nb_segs_in_update, group->nb_segments_in_rep - group->download_segment_index ));
 			group->nb_segments_in_rep = shift + nb_segs_in_update;
-			group->dash->ignore_mpd_duration = 1;
+			group->dash->ignore_mpd_duration = GF_TRUE;
 		}
 		group->prev_segment_ok = GF_TRUE;
 	} else {
@@ -718,7 +718,7 @@ static Bool gf_dash_is_dash_mime(const char *mime) {
 		return GF_FALSE;
 	for (i = 0 ; GF_DASH_MPD_MIME_TYPES[i] ; i++) {
 		if ( !stricmp(mime, GF_DASH_MPD_MIME_TYPES[i]))
-			return 1;
+			return GF_TRUE;
 	}
 	return GF_FALSE;
 }
@@ -732,15 +732,15 @@ static Bool gf_dash_is_dash_mime(const char *mime) {
 static Bool gf_dash_is_m3u8_mime(const char *url, const char * mime) {
 	u32 i;
 	if (!url || !mime)
-		return 0;
+		return GF_FALSE;
 	if (strstr(url, ".mpd") || strstr(url, ".MPD"))
-		return 0;
+		return GF_FALSE;
 
 	for (i = 0 ; GF_DASH_M3U8_MIME_TYPES[i] ; i++) {
 		if ( !stricmp(mime, GF_DASH_M3U8_MIME_TYPES[i]))
-			return 1;
+			return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -808,7 +808,7 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 	group->dash->dash_io->abort(group->dash->dash_io, group->segment_download);
 
 	//in live we just abort current download and go to next. In onDemand, we may want to rebuffer
-	default_switch_mode = (group->dash->mpd->type==GF_MPD_TYPE_DYNAMIC) ? 0 : 1;
+	default_switch_mode = (group->dash->mpd->type==GF_MPD_TYPE_DYNAMIC) ? GF_FALSE : GF_TRUE;
 
 	//if we have time to download from another rep ?
 	if (group->current_downloaded_segment_duration <= time_since_start) {
@@ -830,7 +830,7 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 			//don't force bandwidth switch, we won't have time to redownload the segment.
 			group->force_switch_bandwidth = default_switch_mode;
 		} else {
-			group->force_switch_bandwidth = 1;
+			group->force_switch_bandwidth = GF_TRUE;
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Attempting to re-download at target rate %d\n", target_rate));
 		}
 		//cap max bitrate for next rate adaptation pass
@@ -867,7 +867,7 @@ GF_Err gf_dash_download_resource(GF_DashClient *dash, GF_DASHFileIOSession *sess
 			return GF_OUT_OF_MEM;
 		}
 	} else {
-		had_sess = 1;
+		had_sess = GF_TRUE;
 		if (persistent_mode!=2) {
 			e = dash_io->setup_from_url(dash_io, *sess, url, group_idx);
 			if (e) {
@@ -877,14 +877,14 @@ GF_Err gf_dash_download_resource(GF_DashClient *dash, GF_DASHFileIOSession *sess
 		}
 	}
 	if (group) {
-		group->is_downloading = 1;
+		group->is_downloading = GF_TRUE;
 		group->download_start_time  = gf_sys_clock();
 	}
 
 retry:
 
 	if (end_range) {
-		e = dash_io->set_range(dash_io, *sess, start_range, end_range, (persistent_mode==2) ? 0 : 1);
+		e = dash_io->set_range(dash_io, *sess, start_range, end_range, (persistent_mode==2) ? GF_FALSE : GF_TRUE);
 		if (e) {
 			if (had_sess) {
 				dash_io->del(dash_io, *sess);
@@ -893,7 +893,7 @@ retry:
 			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot setup byte-range download for %s: %s\n", url, gf_error_to_string(e) ));
 			if (group)
-				group->is_downloading = 0;
+				group->is_downloading = GF_FALSE;
 			return e;
 		}
 	}
@@ -929,19 +929,19 @@ retry:
 		if (group) {
 			if (dash_io->get_cache_name(dash_io, group->segment_download) == NULL) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s cannot be cached on disk, will use direct streaming\n", url));
-				group->segment_must_be_streamed = 1;
+				group->segment_must_be_streamed = GF_TRUE;
 				if (group->segment_download) dash_io->abort(dash_io, group->segment_download);
-				group->is_downloading = 1;
+				group->is_downloading = GF_TRUE;
 				return GF_OK;
 			}
-			group->segment_must_be_streamed = 0;
+			group->segment_must_be_streamed = GF_FALSE;
 		}
 
 		/*we can download the file*/
 		e = dash_io->run(dash_io, *sess);
 	}
 	if (group && group->download_abort_type) {
-		group->is_downloading = 0;
+		group->is_downloading = GF_FALSE;
 		return GF_IP_CONNECTION_CLOSED;
 	}
 	switch (e) {
@@ -954,12 +954,12 @@ retry:
 			if (! (*sess)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot retry to download %s... OUT of memory ?\n", url));
 				if (group)
-					group->is_downloading = 0;
+					group->is_downloading = GF_FALSE;
 				return GF_OUT_OF_MEM;
 			}
 
 			if (retry) {
-				retry = 0;
+				retry = GF_FALSE;
 				goto retry;
 			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] two consecutive failures, aborting the download %s.\n", url));
@@ -975,7 +975,7 @@ retry:
 		break;
 	}
 	if (group)
-		group->is_downloading = 0;
+		group->is_downloading = GF_FALSE;
 	return e;
 }
 
@@ -1079,21 +1079,21 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 		return;
 	}
 
-	single_segment = 1;
+	single_segment = GF_TRUE;
 	if (period->segment_template) {
-		single_segment = 0;
+		single_segment = GF_FALSE;
 		if (period->segment_template->duration) duration = period->segment_template->duration;
 		if (period->segment_template->timescale) timescale = period->segment_template->timescale;
 		if (period->segment_template->segment_timeline) timeline = period->segment_template->segment_timeline;
 	}
 	if (set->segment_template) {
-		single_segment = 0;
+		single_segment = GF_FALSE;
 		if (set->segment_template->duration) duration = set->segment_template->duration;
 		if (set->segment_template->timescale) timescale = set->segment_template->timescale;
 		if (set->segment_template->segment_timeline) timeline = set->segment_template->segment_timeline;
 	}
 	if (rep->segment_template) {
-		single_segment = 0;
+		single_segment = GF_FALSE;
 		if (rep->segment_template->duration) duration = rep->segment_template->duration;
 		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
 		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
