@@ -2246,7 +2246,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	u32 flags;
 	Bool has_tx = 0;
 
-	printf("drawing... %d\n",vsl->glsl_flags);
 	if(!vsl->glsl_flags)
 		vsl->glsl_flags = 0;
 	flags = vsl->glsl_flags;
@@ -2323,7 +2322,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			if(loc>=0)
 				glUniform1f(loc, FIX2FLT(visual->mat_2d.alpha));
 		}else{	//if it's not YUV handle alpha with blend
-			glEnable(GL_BLEND);
+			glEnable(GL_BLEND);	//¡TODOk: check //HIGH PRIORITY!
 			if(!tr_state->mesh_num_textures && visual->mat_2d.alpha == FIX_ONE){
 					visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0); //¡k not ES2.0
 			}else{
@@ -2513,8 +2512,14 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 			//this, i do not know
 	if (mesh->mesh_type) {
-		//before we had	if (mesh->mesh_type==2) glDisable(GL_LINE_SMOOTH);	else glDisable(GL_POINT_SMOOTH);
-		//but ES2.0 has no consideration for anti-aliased lines
+		/*before we had	if (mesh->mesh_type==2) glDisable(GL_LINE_SMOOTH);	else glDisable(GL_POINT_SMOOTH);
+		 *but ES2.0 has no consideration for anti-aliased lines
+		 *
+		 *¡TODOk use multisampling in ES2.0
+		 */
+		if (mesh->mesh_type==2) glDisable(GL_LINE_SMOOTH);
+		else glDisable(GL_POINT_SMOOTH);
+
 
 		//According to the spec we should pass a 0,0,1 Normal and disable lights. we just disable lights
 		if(flags & GF_GL_HAS_LIGHT){
@@ -2541,9 +2546,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	}
 
 	
-	printf("DRAWING %p with flags %d\n", mesh, visual->glsl_flags); //¡TODOk delete
 	visual_3d_do_draw_mesh(tr_state, mesh);
-	printf("DRAWN mesh %p with flags %d\n", mesh, visual->glsl_flags); //¡TODOk delete
 
 	//We drawn, now we Reset
 
