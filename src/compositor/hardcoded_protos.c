@@ -1058,7 +1058,7 @@ typedef struct
 	BASE_NODE
 
 	Bool onTrigger;
-	Float value;
+	Fixed value;
 } TestSensor;
 
 typedef struct
@@ -1103,7 +1103,7 @@ static void TraverseTestSensor(GF_Node *node, void *rs, Bool is_destroy)
 void TestSensor_OnTrigger(GF_Node *node, struct _route *route)
 {
 	GF_FieldInfo field;
-	Float value;
+	Fixed value;
 	TestSensorStack *stack = (TestSensorStack *)gf_node_get_private(node);
 	TestSensor_GetNode(node, &stack->ts);
 
