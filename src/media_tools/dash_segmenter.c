@@ -4153,7 +4153,7 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 	fprintf(mpd, "-->\n");
 
 	/*TODO what should we put for minBufferTime */
-	fprintf(mpd, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" minBufferTime=\"PT%fS\" type=\"%s\"", min_buffer, dash_dynamic ? "dynamic" : "static");
+	fprintf(mpd, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" minBufferTime=\"PT%03fS\" type=\"%s\"", min_buffer, dash_dynamic ? "dynamic" : "static");
 
 
 	if (dash_dynamic) {
@@ -4191,32 +4191,32 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 			h = (u32) (time_shift_depth/3600);
 			m = (u32) (time_shift_depth/60 - h*60);
 			s = time_shift_depth - h*3600 - m*60;
-			fprintf(mpd, " timeShiftBufferDepth=\"PT%dH%dM%.2fS\"", h, m, s);
+			fprintf(mpd, " timeShiftBufferDepth=\"PT%dH%dM%.3fS\"", h, m, s);
 		}
 		if (mpd_update_period) {
 			h = (u32) (mpd_update_period/3600);
 			m = (u32) (mpd_update_period/60 - h*60);
 			s = mpd_update_period - h*3600 - m*60;
-			fprintf(mpd, " minimumUpdatePeriod=\"PT%dH%dM%.2fS\"", h, m, s);
+			fprintf(mpd, " minimumUpdatePeriod=\"PT%dH%dM%.3fS\"", h, m, s);
 		} else {
 			h = (u32) (mpd_duration/3600);
 			m = (u32) (mpd_duration/60 - h*60);
 			s = mpd_duration - h*3600 - m*60;
-			fprintf(mpd, " mediaPresentationDuration=\"PT%dH%dM%.2fS\"", h, m, s);
+			fprintf(mpd, " mediaPresentationDuration=\"PT%dH%dM%.3fS\"", h, m, s);
 		}
 
 	} else {
 		h = (u32) (mpd_duration/3600);
 		m = (u32) (mpd_duration/60 - h*60);
 		s = mpd_duration - h*3600 - m*60;
-		fprintf(mpd, " mediaPresentationDuration=\"PT%dH%dM%.2fS\"", h, m, s);
+		fprintf(mpd, " mediaPresentationDuration=\"PT%dH%dM%.3fS\"", h, m, s);
 	}
 
 	if (max_seg_dur) {
 		h = (u32) (max_seg_dur/3600);
 		m = (u32) (max_seg_dur/60 - h*60);
 		s = max_seg_dur - h*3600 - m*60;
-		fprintf(mpd, " maxSegmentDuration=\"PT%dH%dM%.2fS\"", h, m, s);
+		fprintf(mpd, " maxSegmentDuration=\"PT%dH%dM%.3fS\"", h, m, s);
 	}
 
 	if (profile==GF_DASH_PROFILE_LIVE) {
@@ -4287,13 +4287,13 @@ static GF_Err write_period_header(FILE *mpd, const char *szID, Double period_sta
 		h = (u32) (period_start/3600);
 		m = (u32) (period_start/60 - h*60);
 		s = period_start - h*3600 - m*60;
-		fprintf(mpd, " start=\"PT%dH%dM%.2fS\"", h, m, s);
+		fprintf(mpd, " start=\"PT%dH%dM%.3fS\"", h, m, s);
 	}
 	if (!dash_dynamic && period_duration) {
 		h = (u32) (period_duration/3600);
 		m = (u32) (period_duration/60 - h*60);
 		s = period_duration - h*3600 - m*60;
-		fprintf(mpd, " duration=\"PT%dH%dM%.2fS\"", h, m, s);
+		fprintf(mpd, " duration=\"PT%dH%dM%.3fS\"", h, m, s);
 	}
 	if (xlink) {
 		fprintf(mpd, " xlink:href=\"%s\"", xlink);
