@@ -470,7 +470,7 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 	start_x = gp->points[gp->n_points-1].x;
 	start_y = gp->points[gp->n_points-1].y;
 
-	phi = gf_mulfix(gf_divfix(x_axis_rotation, 180), GF_PI);
+	phi = gf_mulfix(x_axis_rotation/180, GF_PI);
 	cos_phi = gf_cos(phi);
 	sin_phi = gf_sin(phi);
 	xmid = (start_x - end_x)/2;
@@ -571,7 +571,7 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 	for (i=1; i<=num_steps; i++) {
 		Fixed _vx, _vy;
 		Fixed _vxp, _vyp;
-		Fixed angle = start_angle + sweep_angle*i/num_steps;
+		Fixed angle = start_angle + sweep_angle*(s32)i/(s32)num_steps;
 		_vx = gf_mulfix(r_x, gf_cos(angle));
 		_vy = gf_mulfix(r_y, gf_sin(angle));
 		_vxp = gf_mulfix(cos_phi, _vx) - gf_mulfix(sin_phi, _vy) + c_x;

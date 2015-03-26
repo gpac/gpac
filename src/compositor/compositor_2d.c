@@ -345,7 +345,6 @@ void compositor_2d_reset_gl_auto(GF_Compositor *compositor)
 
 static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 {
-	Fixed hh, hw;
 	GF_Compositor *compositor = visual->compositor;
 	visual->is_attached = 1;
 
@@ -378,17 +377,19 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 		glEnable(GL_LINE_SMOOTH);
 	}
 
-	hw = INT2FIX(compositor->vp_width)/2;
-	hh = INT2FIX(compositor->vp_height)/2;
-	gf_mx_ortho(&visual->camera.projection, -hw, hw, -hh, hh, 50, -50);
+	visual->camera.width = INT2FIX(compositor->vp_width);
+	visual->camera.height = INT2FIX(compositor->vp_height);
+	visual->camera.up.y = FIX_ONE;
+	visual->camera.end_zoom = FIX_ONE;
+	visual->camera.position.z = INT2FIX(1000);
+	visual->camera.flags = CAM_IS_DIRTY;
+	camera_update(&visual->camera, NULL, visual->center_coords);
 	visual_3d_projection_matrix_modified(visual);
-
-	gf_mx_init(visual->camera.modelview);
 
 #ifdef OPENGL_RASTER
 	if (compositor->opengl_raster) {
-		gf_mx_add_scale(&visual->camera.modelview, 1, -1, 1);
-		gf_mx_add_translation(&visual->camera.modelview, -hw, -hh, 0);
+		gf_mx_add_scale(&visual->camera.modelview, FIX_ONE, -FIX_ONE, FIX_ONE);
+		gf_mx_add_translation(&visual->camera.modelview, -visual->camera.width/2, -visual->camera.height/2, 0);
 	}
 #endif
 	return GF_OK;

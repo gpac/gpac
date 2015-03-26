@@ -214,16 +214,14 @@ u32 gf_clock_real_time(GF_Clock *ck)
 	assert(ck);
 	if (!ck->clock_init) return ck->StartTime;
 	time = ck->Paused > 0 ? ck->PauseTime : gf_term_get_time(ck->term);
-#ifdef GPAC_FIXED_POINT
-	time = ck->discontinuity_time + ck->init_time + (time - ck->StartTime) * FIX2INT(100*ck->speed) / 100;
-#else
-	if ((ck->speed < 0) && ((s32) ck->init_time < (-ck->speed) * (time - ck->StartTime))) {
+
+	if ((ck->speed < 0) && ((s32) ck->init_time < FIX2INT( (-ck->speed) * (time - ck->StartTime)) )) {
 		time = 0;
 	}
 	else {
-		time = ck->discontinuity_time + (u32) ( ck->init_time + ck->speed * (time - ck->StartTime) );
+		time = ck->discontinuity_time + (u32) ( ck->init_time + FIX2INT( ck->speed * (time - ck->StartTime) ) );
 	}
-#endif
+
 	return time;
 }
 
