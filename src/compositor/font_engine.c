@@ -940,11 +940,13 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 			}
 
 			if (can_texture_text && span_setup_texture(tr_state->visual->compositor, span, 1, tr_state)) {
-				tr_state->mesh_num_textures = 1;
-				gf_sc_texture_enable(span->ext->txh, NULL);
-				visual_3d_mesh_paint(tr_state, span->ext->tx_mesh);
-				gf_sc_texture_disable(span->ext->txh);
-				tr_state->mesh_num_textures = 0;
+				tr_state->mesh_num_textures = gf_sc_texture_enable(span->ext->txh, NULL);
+				if (tr_state->mesh_num_textures) {
+					visual_3d_mesh_paint(tr_state, span->ext->tx_mesh);
+					gf_sc_texture_disable(span->ext->txh);
+					tr_state->mesh_num_textures = 0;
+					tr_state->visual->has_material_2d = 0;
+				}
 			} else {
 				span_fill_3d(span, tr_state);
 			}
@@ -955,7 +957,6 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 		/*reset texturing in case of line texture*/
 		if (!asp) visual_3d_disable_texture(tr_state);
 	}
-
 	visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, 0);
 
 	if (asp && asp->pen_props.width) {
