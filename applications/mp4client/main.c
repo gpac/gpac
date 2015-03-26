@@ -96,7 +96,7 @@ GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
 static Bool enable_add_ons = GF_TRUE;
-static Fixed playback_speed = 1.0;
+static Fixed playback_speed = FIX_ONE;
 
 static s32 request_next_playlist_item = GF_FALSE;
 FILE *playlist = NULL;
