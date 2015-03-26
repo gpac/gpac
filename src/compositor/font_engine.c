@@ -942,10 +942,11 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 			if (can_texture_text && span_setup_texture(tr_state->visual->compositor, span, 1, tr_state)) {
 				tr_state->mesh_num_textures = gf_sc_texture_enable(span->ext->txh, NULL);
 				if (tr_state->mesh_num_textures) {
+					Bool has_mat_2d = tr_state->visual->compositor->visual->has_material_2d;
 					visual_3d_mesh_paint(tr_state, span->ext->tx_mesh);
 					gf_sc_texture_disable(span->ext->txh);
 					tr_state->mesh_num_textures = 0;
-					tr_state->visual->has_material_2d = 0;
+					tr_state->visual->has_material_2d = has_mat_2d;
 				}
 			} else {
 				span_fill_3d(span, tr_state);
@@ -953,6 +954,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 
 			if (tr_state->text_split_idx) break;
 		}
+		tr_state->visual->has_material_2d = 0;
 
 		/*reset texturing in case of line texture*/
 		if (!asp) visual_3d_disable_texture(tr_state);
