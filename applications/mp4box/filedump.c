@@ -1150,11 +1150,13 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	GF_AVCConfig *avccfg, *svccfg;
 	GF_HEVCConfig *hevccfg, *shvccfg;
 	GF_AVCConfigSlot *slc;
-
-	memset(&avc, 0, sizeof(AVCState));
+#endif
 
 	track = gf_isom_get_track_by_id(file, trackID);
+	nalh_size = 0; 
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+	memset(&avc, 0, sizeof(AVCState));
 	avccfg = gf_isom_avc_config_get(file, track, 1);
 	svccfg = gf_isom_svc_config_get(file, track, 1);
 	hevccfg = gf_isom_hevc_config_get(file, track, 1);
@@ -1253,6 +1255,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		}
 #endif
 	}
+
 #endif
 	fprintf(dump, " </NALUConfig>\n");
 
