@@ -2491,8 +2491,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 	if (!root_odm) return;
 
 	odm = NULL;
-	if (!szURL && (!OD_ID && (number == (u32)(-1))) ||
-	        ((OD_ID == (u32)(-1)) && !number)) {
+	if (!szURL && ((!OD_ID && (number == (u32)-1)) || ((OD_ID == (u32)(-1)) && !number))) {
 		odm = root_odm;
 		if ((gf_term_get_object_info(term, odm, &odi) != GF_OK)) odm=NULL;
 	} else {
