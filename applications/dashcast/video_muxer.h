@@ -103,7 +103,7 @@ int dc_video_muxer_free(VideoOutputFile *video_output_file);
 
 int dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, char *id_name, int seg);
 
-int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool insert_utc);
+int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 utc_at_start);
 
 int dc_video_muxer_close(VideoOutputFile *video_output_file);
 
