@@ -299,12 +299,14 @@ static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, 
 			ar->freeze_time = gf_sys_clock_high_res();
 			if (!for_reconfig && ar->audio_out && ar->audio_out->Play) ar->audio_out->Play(ar->audio_out, 0);
 			ar->Frozen = 1;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[Audio] pausing master clock - time "LLD" (sys time "LLD")\n", ar->freeze_time, gf_sys_clock_high_res()));
 		}
 	} else {
 		if (ar->Frozen) {
 			if (!for_reconfig && ar->audio_out && ar->audio_out->Play) ar->audio_out->Play(ar->audio_out, reset_hw_buffer ? 2 : 1);
 			ar->Frozen = 0;
 			ar->start_time += gf_sys_clock_high_res() - ar->freeze_time;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[Audio] resuming master clock - new time "LLD" (sys time "LLD") \n", ar->start_time, gf_sys_clock_high_res()));
 		}
 	}
 	gf_mixer_lock(ar->mixer, 0);

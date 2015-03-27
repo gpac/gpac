@@ -116,7 +116,8 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 	GF_CodecCapability cap;
 	u32 min, max;
 
-
+	if (ch && (ch->MaxBuffer<=100))
+		codec->flags |= GF_ESM_CODEC_IS_LOW_LATENCY;
 
 	/*only for valid codecs (eg not OCR)*/
 	if (codec->decio) {
@@ -623,7 +624,7 @@ static GF_Err SystemCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	u32 obj_time, mm_level, au_time, cts;
 	u64 now;
 	GF_Scene *scene_locked;
-	Bool check_next_unit;
+	Bool check_next_unit = GF_FALSE;
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)codec->decio;
 	GF_Err e = GF_OK;
 
@@ -633,7 +634,8 @@ static GF_Err SystemCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	"frame dropping" is done by preventing the compositor from redrawing after an update and decoding following AU
 	so that the compositor is always woken up once all late systems AUs are decoded. This flag is overriden when
 	seeking*/
-	check_next_unit = (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) ? 1 : 0;
+	if ( (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) || (codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY) )
+		check_next_unit = GF_TRUE;
 
 check_unit:
 
@@ -961,8 +963,10 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	entryTime = gf_sys_clock_high_res();
 
-	if (!codec->odm->term->bench_mode && (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES))
-		drop_late_frames = 1;
+	if (!codec->odm->term->bench_mode) {
+		if ((codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) || (codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY))
+			drop_late_frames = GF_TRUE;
+	}
 
 
 	/*fetch next AU in DTS order for this codec*/
