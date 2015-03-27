@@ -548,11 +548,11 @@ static void xml_sax_flush_text(GF_SAXParser *parser)
 	if (strchr(text, '&') && strchr(text, ';')) {
 		char *xml_text = xml_translate_xml_string(text);
 		if (xml_text) {
-			parser->sax_text_content(parser->sax_cbck, xml_text, (parser->sax_state==SAX_STATE_CDATA) ? 1 : GF_FALSE);
+			parser->sax_text_content(parser->sax_cbck, xml_text, (parser->sax_state==SAX_STATE_CDATA) ? GF_TRUE : GF_FALSE);
 			gf_free(xml_text);
 		}
 	} else {
-		parser->sax_text_content(parser->sax_cbck, text, (parser->sax_state==SAX_STATE_CDATA) ? 1 : GF_FALSE);
+		parser->sax_text_content(parser->sax_cbck, text, (parser->sax_state==SAX_STATE_CDATA) ? GF_TRUE : GF_FALSE);
 	}
 	parser->buffer[parser->text_end-1] = c;
 	parser->text_start = parser->text_end = 0;
@@ -1730,7 +1730,7 @@ void gf_xml_dom_del(GF_DOMParser *parser)
 	if (!parser)
 		return;
 
-	gf_xml_dom_reset(parser, 1);
+	gf_xml_dom_reset(parser, GF_TRUE);
 	gf_list_del(parser->root_nodes);
 	gf_free(parser);
 }
@@ -1753,7 +1753,7 @@ GF_EXPORT
 GF_Err gf_xml_dom_parse(GF_DOMParser *dom, const char *file, gf_xml_sax_progress OnProgress, void *cbk)
 {
 	GF_Err e;
-	gf_xml_dom_reset(dom, 1);
+	gf_xml_dom_reset(dom, GF_TRUE);
 	dom->stack = gf_list_new();
 	dom->parser = gf_xml_sax_new(on_dom_node_start, on_dom_node_end, on_dom_text_content, dom);
 	dom->OnProgress = OnProgress;
@@ -1767,7 +1767,7 @@ GF_EXPORT
 GF_Err gf_xml_dom_parse_string(GF_DOMParser *dom, char *string)
 {
 	GF_Err e;
-	gf_xml_dom_reset(dom, 1);
+	gf_xml_dom_reset(dom, GF_TRUE);
 	dom->stack = gf_list_new();
 	dom->parser = gf_xml_sax_new(on_dom_node_start, on_dom_node_end, on_dom_text_content, dom);
 	e = gf_xml_sax_init(dom->parser, (unsigned char *) string);
@@ -1812,7 +1812,7 @@ u32 gf_xml_dom_get_root_nodes_count(GF_DOMParser *parser)
 GF_EXPORT
 GF_XMLNode *gf_xml_dom_get_root_idx(GF_DOMParser *parser, u32 idx)
 {
-	return parser ? gf_list_get(parser->root_nodes, idx) : NULL;
+	return parser ? (GF_XMLNode*)gf_list_get(parser->root_nodes, idx) : NULL;
 }
 
 
@@ -1855,7 +1855,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 		SET_STRING(" ");
 		count = gf_list_count(node->attributes);
 		for (i=0; i<count; i++) {
-			GF_XMLAttribute *att = gf_list_get(node->attributes, i);
+			GF_XMLAttribute *att = (GF_XMLAttribute*)gf_list_get(node->attributes, i);
 			SET_STRING(att->name);
 			SET_STRING("=\"");
 			SET_STRING(att->value);
@@ -1871,7 +1871,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 
 	count = gf_list_count(node->content);
 	for (i=0; i<count; i++) {
-		GF_XMLNode *child = gf_list_get(node->content, i);
+		GF_XMLNode *child = (GF_XMLNode*)gf_list_get(node->content, i);
 		gf_xml_dom_node_serialize(child, GF_FALSE, str, alloc_size, size);
 	}
 	if (!content_only) {
