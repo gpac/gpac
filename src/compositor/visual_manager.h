@@ -210,7 +210,7 @@ struct _visual_manager
 
 	Bool has_material;
 	SFColorRGBA materials[4];
-	Float shininess;
+	Fixed shininess;
 
 	Bool state_light_on, state_blend_on, state_color_on;
 

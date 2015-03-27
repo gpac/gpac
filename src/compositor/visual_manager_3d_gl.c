@@ -1092,6 +1092,11 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 
 static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 {
+#if defined(GPAC_FIXED_POINT)
+	Float _mat[16];
+	u32 i;
+#endif
+
 	if (!mat) {
 		glLoadIdentity();
 		return;
@@ -1099,8 +1104,6 @@ static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 #if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 	glLoadMatrixx(mat);
 #elif defined(GPAC_FIXED_POINT)
-	Float _mat[16];
-	u32 i;
 	for (i=0; i<16; i++) _mat[i] = FIX2FLT(mat[i]);
 	glLoadMatrixf(_mat);
 #else
@@ -1552,6 +1555,7 @@ static GLint my_glGetAttribLocation(GF_SHADERID glsl_program, const char *attrib
 	return loc;
 }
 
+#ifndef GPAC_FIXED_POINT
 static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh *mesh, void *vertex_buffer_address)
 {
 	GF_VisualManager *visual = tr_state->visual;
@@ -1698,6 +1702,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	GL_CHECK_ERR
 	glUseProgram(0);
 }
+#endif //GPAC_FIXED_POINT
 
 #endif //GPAC_ANDROID
 
@@ -1746,7 +1751,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		mesh->vbo_dirty = 0;
 	}
 
-#if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE)
+#if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE) && !defined(GPAC_FIXED_POINT)
 	if (visual->compositor->shader_only_mode) {
 		visual_3d_draw_mesh_shader_only(tr_state, mesh, base_address);
 		return;
@@ -1758,7 +1763,17 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	visual_3d_update_matrices(tr_state);
 
+	/*enable states*/
 	if (visual->has_fog) visual_3d_enable_fog(visual);
+
+	if (visual->state_color_on) glEnable(GL_COLOR_MATERIAL);
+	else glDisable(GL_COLOR_MATERIAL);
+
+	if (visual->state_blend_on) glEnable(GL_BLEND);
+
+
+	if (visual->num_clips)
+		visual_3d_set_clippers(visual, tr_state);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 #if defined(GPAC_USE_OGL_ES)
@@ -1772,18 +1787,6 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex), base_address);
 #endif
 
-
-	/*enable states*/
-
-
-	if (visual->state_color_on) glEnable(GL_COLOR_MATERIAL);
-	else glDisable(GL_COLOR_MATERIAL);
-
-	if (visual->state_blend_on) glEnable(GL_BLEND);
-
-
-	if (visual->num_clips)
-		visual_3d_set_clippers(visual, tr_state);
 
 	/*
 	*	Enable colors:
@@ -1814,6 +1817,8 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 			}
 #ifdef GPAC_USE_OGL_ES
 			glColor4x( FIX2INT(visual->mat_2d.red * 255), FIX2INT(visual->mat_2d.green * 255), FIX2INT(visual->mat_2d.blue * 255), FIX2INT(visual->mat_2d.alpha * 255));
+#elif defined(GPAC_FIXED_POINT)
+			glColor4f(FIX2FLT(visual->mat_2d.red), FIX2FLT(visual->mat_2d.green), FIX2FLT(visual->mat_2d.blue), FIX2FLT(visual->mat_2d.alpha));
 #else
 			glColor4f(visual->mat_2d.red, visual->mat_2d.green, visual->mat_2d.blue, visual->mat_2d.alpha);
 #endif
@@ -2578,8 +2583,8 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_FLOAT, depthp);
 
 		//linearize z buffer, from 0 (zfar) to 1 (znear)
-		zFar = compositor->visual->camera.z_far;
-		zNear = compositor->visual->camera.z_near;
+		zFar = FIX2FLT(compositor->visual->camera.z_far);
+		zNear = FIX2FLT(compositor->visual->camera.z_near);
 		for (i=0; i<fb->height*fb->width; i++) {
 			Float res = ( (2.0f * zNear) / (zFar + zNear - depthp[i] * (zFar - zNear)) ) ;
 			fb->video_buffer[i] = (u8) ( 255.0 * (1.0 - res));

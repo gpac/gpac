@@ -96,7 +96,7 @@ GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
 static Bool enable_add_ons = GF_TRUE;
-static Fixed playback_speed = 1.0;
+static Fixed playback_speed = FIX_ONE;
 
 static s32 request_next_playlist_item = GF_FALSE;
 FILE *playlist = NULL;
@@ -2491,8 +2491,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 	if (!root_odm) return;
 
 	odm = NULL;
-	if (!szURL && (!OD_ID && (number == (u32)(-1))) ||
-	        ((OD_ID == (u32)(-1)) && !number)) {
+	if (!szURL && ((!OD_ID && (number == (u32)-1)) || ((OD_ID == (u32)(-1)) && !number))) {
 		odm = root_odm;
 		if ((gf_term_get_object_info(term, odm, &odi) != GF_OK)) odm=NULL;
 	} else {

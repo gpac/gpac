@@ -3521,6 +3521,11 @@ int mp4boxMain(int argc, char **argv)
 		strcpy(szMPD, outfile);
 		strcat(szMPD, ".mpd");
 
+		if (dash_duration > dash_subduration) {
+			fprintf(stderr, "Warning: -subdur parameter (%g s) should be greater than segment duration (%g s), using segment duration instead\n", dash_subduration, dash_duration);
+			dash_subduration = dash_duration;
+		}
+
 		if (dash_dynamic && dash_live)
 			fprintf(stderr, "Live DASH-ing - press 'q' to quit, 's' to save context and quit\n");
 
@@ -3569,7 +3574,7 @@ int mp4boxMain(int argc, char **argv)
 			if (e) break;
 
 			if (dash_live) {
-				u32 slept = 0;
+				u32 slept = gf_sys_clock();
 				u32 sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
 				fprintf(stderr, "Next generation scheduled in %d ms\n", sleep_for);
 				while (1) {
@@ -3588,14 +3593,13 @@ int mp4boxMain(int argc, char **argv)
 					if (dash_dynamic == 2) {
 						break;
 					}
-					if (sleep_for<10) {
-						fprintf(stderr, "sleep for %d ms before generation\n", slept);
-						break;
-					}
-					gf_sleep(100);
-					slept+=100;
+					gf_sleep(10);
 
 					sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
+					if (sleep_for<10) {
+						fprintf(stderr, "Slept for %d ms before generation\n", gf_sys_clock() - slept);
+						break;
+					}
 				}
 			} else {
 				break;

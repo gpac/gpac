@@ -90,10 +90,10 @@ static Bool check_file_exists(char *name, char *path, char *outPath)
 #endif
 	sprintf(szPath, "%s%c%s", path, GF_PATH_SEPARATOR, name);
 	f = gf_fopen(szPath, "rb");
-	if (!f) return 0;
+	if (!f) return GF_FALSE;
 	gf_fclose(f);
 	if (outPath != path) strcpy(outPath, path);
-	return 1;
+	return GF_TRUE;
 }
 
 enum
@@ -162,22 +162,22 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	}
 
 
-	if (path_type==GF_PATH_APP) return 1;
+	if (path_type==GF_PATH_APP) return GF_TRUE;
 
 	if (path_type==GF_PATH_GUI) {
 		char *sep;
 		strcat(file_path, "\\gui");
-		if (check_file_exists("gui.bt", file_path, file_path)) return 1;
+		if (check_file_exists("gui.bt", file_path, file_path)) return GF_TRUE;
 		sep = strstr(file_path, "\\bin\\");
 		if (sep) {
 			sep[0] = 0;
 			strcat(file_path, "\\gui");
-			if (check_file_exists("gui.bt", file_path, file_path)) return 1;
+			if (check_file_exists("gui.bt", file_path, file_path)) return GF_TRUE;
 		}
-		return 0;
+		return GF_FALSE;
 	}
 	/*modules are stored in the GPAC directory (should be changed to GPAC/modules)*/
-	if (path_type==GF_PATH_MODULES) return 1;
+	if (path_type==GF_PATH_MODULES) return GF_TRUE;
 
 	/*we are looking for the config file path - make sure it is writable*/
 	assert(path_type == GF_PATH_CFG);
@@ -188,7 +188,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	if (f != NULL) {
 		gf_fclose(f);
 		gf_delete_file(szPath);
-		return 1;
+		return GF_TRUE;
 	}
 #ifdef _WIN32_WCE
 	return 0;
@@ -203,11 +203,11 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	strcat(szPath, "\\gpaccfgtest.txt");
 	f = gf_fopen(szPath, "wb");
 	/*COMPLETE FAILURE*/
-	if (!f) return 0;
+	if (!f) return GF_FALSE;
 
 	gf_fclose(f);
 	gf_delete_file(szPath);
-	return 1;
+	return GF_TRUE;
 #endif
 }
 
@@ -515,18 +515,18 @@ static void check_modules_dir(GF_Config *cfg)
 		if (!opt) {
 			gf_cfg_set_key(cfg, "General", "ModulesDirectory", path);
 		} else  {
-			Bool erase_modules_dir = 0;
+			Bool erase_modules_dir = GF_FALSE;
 			const char *opt64 = gf_cfg_get_key(cfg, "Systems", "64bits");
 			if (!opt64) {
 				//first run or old versions, erase
-				erase_modules_dir = 1;
+				erase_modules_dir = GF_TRUE;
 			} else if (!strcmp(opt64, "yes") ) {
 #ifndef GPAC_64_BITS
-				erase_modules_dir = 1;
+				erase_modules_dir = GF_TRUE;
 #endif
 			} else {
 #ifdef GPAC_64_BITS
-				erase_modules_dir = 1;
+				erase_modules_dir = GF_TRUE;
 #endif
 			}
 
@@ -564,7 +564,7 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 	GF_Config *cfg;
 	char szPath[GF_MAX_PATH];
 
-	if (new_cfg) *new_cfg = 0;
+	if (new_cfg) *new_cfg = GF_FALSE;
 
 	if (file) {
 		cfg = gf_cfg_new(NULL, file);
@@ -574,7 +574,7 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 			if (fcfg) {
 				gf_fclose(fcfg);
 				cfg = gf_cfg_new(NULL, file);
-				if (new_cfg) *new_cfg = 1;
+				if (new_cfg) *new_cfg = GF_TRUE;
 			}
 		}
 		if (cfg) {
@@ -604,7 +604,7 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 
 	check_modules_dir(cfg);
 
-	if (new_cfg) *new_cfg = 1;
+	if (new_cfg) *new_cfg = GF_TRUE;
 	return cfg;
 }
 

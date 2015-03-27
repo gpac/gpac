@@ -103,7 +103,7 @@
 
 #define GPAC_HAS_IPV6
 #define GPAC_USE_OGL_ES
-#define GPAC_FIXED_POINT
+//#define GPAC_FIXED_POINT
 
 #undef GPAC_HAS_SPIDERMONKEY
 #undef GPAC_HAS_PNG
