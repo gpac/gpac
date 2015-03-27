@@ -659,6 +659,8 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	if (ch->owner->last_sender_ntp) {
 		ch->current_slh.sender_ntp = ch->owner->last_sender_ntp;
 		ch->owner->last_sender_ntp = 0;
+	} else {
+		ch->current_slh.sender_ntp = 0;
 	}
     
 
