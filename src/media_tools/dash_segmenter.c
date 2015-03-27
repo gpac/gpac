@@ -1873,7 +1873,7 @@ restart_fragmentation_pass:
 		if (dash_cfg->ast_offset_ms<0) {
 			fprintf(dash_cfg->mpd, " availabilityTimeOffset=\"%g\"", - (Double) dash_cfg->ast_offset_ms / 1000.0);
 		}
-		fprintf(dash_cfg->mpd, "\n", dash_cfg->dash_scale);
+		fprintf(dash_cfg->mpd, "\n");
 
 		gf_bs_get_content(mpd_timeline_bs, &mpd_seg_info, &size);
 		gf_fwrite(mpd_seg_info, 1, size, dash_cfg->mpd);
