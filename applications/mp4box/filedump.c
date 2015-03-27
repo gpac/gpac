@@ -1152,6 +1152,17 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	GF_AVCConfigSlot *slc;
 
 	memset(&avc, 0, sizeof(AVCState));
+
+	track = gf_isom_get_track_by_id(file, trackID);
+
+	avccfg = gf_isom_avc_config_get(file, track, 1);
+	svccfg = gf_isom_svc_config_get(file, track, 1);
+	hevccfg = gf_isom_hevc_config_get(file, track, 1);
+	shvccfg = gf_isom_shvc_config_get(file, track, 1);
+	if (!avccfg && !svccfg && !hevccfg && !shvccfg) {
+		fprintf(stderr, "Error: Track #%d is not NALU-based!\n", trackID);
+		return;
+	}
 #endif
 
 	if (inName) {
@@ -1162,7 +1173,6 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	} else {
 		dump = stderr;
 	}
-	track = gf_isom_get_track_by_id(file, trackID);
 
 	count = gf_isom_get_sample_count(file, track);
 
@@ -1173,10 +1183,6 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	fprintf(dump, "<NALUTrack trackID=\"%d\" SampleCount=\"%d\" TimeScale=\"%d\">\n", trackID, count, timescale);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	avccfg = gf_isom_avc_config_get(file, track, 1);
-	svccfg = gf_isom_svc_config_get(file, track, 1);
-	hevccfg = gf_isom_hevc_config_get(file, track, 1);
-	shvccfg = gf_isom_shvc_config_get(file, track, 1);
 	//for tile tracks the hvcC is stored in the 'tbas' track
 	if (!hevccfg && gf_isom_get_reference_count(file, track, GF_4CC('t','b','a','s'))) {
 		u32 tk = 0;
