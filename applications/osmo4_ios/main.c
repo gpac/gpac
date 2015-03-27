@@ -283,7 +283,8 @@ int main (int argc, char *argv[])
 
 	fill_ar = visible = 0;
 	url_arg = the_cfg = rti_file = NULL;
-
+    if (argc>1) url_arg = argv[1];
+    
 	gf_sys_init(enable_mem_tracker);
 
 	cfg_file = gf_cfg_init(the_cfg, NULL);
@@ -338,6 +339,8 @@ int main (int argc, char *argv[])
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
     user.init_flags |= GF_TERM_NO_DECODER_THREAD;
     
+    user.init_flags = GF_TERM_NO_COMPOSITOR_THREAD;
+    
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Loading GPAC Terminal\n"));
 	term = gf_term_new(&user);
 	if (!term) {
@@ -383,12 +386,17 @@ int main (int argc, char *argv[])
 	Run = 1;
 	ret = 1;
 
-	str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
-	if (str) {
-		strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
-		gf_term_connect(term, str);
-		startup_file = 1;
-	}
+    if (url_arg) {
+        gf_term_connect(term, url_arg);
+        
+    } else {
+        str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
+        if (str) {
+            strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
+            gf_term_connect(term, str);
+            startup_file = 1;
+        }
+    }
 
 	/*force fullscreen*/
 	gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
