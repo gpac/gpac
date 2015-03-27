@@ -340,6 +340,7 @@ void PrintDASHUsage()
 	        " -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
 	        " -segment-timeline    uses SegmentTimeline when generating segments.\n"
 	        " -segment-marker MARK adds a box of type \'MARK\' at the end of each DASH segment. MARK shall be a 4CC identifier\n"
+	        " -insert-utc          inserts UTC clock at the begining of each ISOBMF segment\n"
 	        " -base-url string     sets Base url at MPD level. Can be used several times.\n"
 	        " -mpd-title string    sets MPD title.\n"
 	        " -mpd-source string   sets MPD source.\n"
@@ -1751,6 +1752,7 @@ int mp4boxMain(int argc, char **argv)
 	char **mpd_base_urls = NULL;
 	u32 nb_mpd_base_urls=0;
 	u32 dash_scale = 1000;
+	Bool insert_utc = GF_FALSE;
 
 #ifndef GPAC_DISABLE_MPD
 	Bool do_mpd = 0;
@@ -2400,6 +2402,8 @@ int mp4boxMain(int argc, char **argv)
 			m = argv[i+1];
 			segment_marker = GF_4CC(m[0], m[1], m[2], m[3]);
 			i++;
+		} else if (!stricmp(arg, "-insert-utc")) {
+			insert_utc = GF_TRUE;
 		} else if (!stricmp(arg, "-itags")) {
 			CHECK_NEXT_ARG itunes_tags = argv[i+1];
 			i++;
@@ -3559,7 +3563,11 @@ int mp4boxMain(int argc, char **argv)
 			file = NULL;
 			del_file = GF_TRUE;
 		}
-		while (!do_abort) {
+		while (1) {
+			if (do_abort>=2) {
+				dash_mode = GF_DASH_DYNAMIC_LAST;
+			}
+
 			e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
 			                            (const char **) mpd_base_urls, nb_mpd_base_urls,
 			                            use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
@@ -3567,7 +3575,10 @@ int mp4boxMain(int argc, char **argv)
 			                            interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
 			                            dash_ctx, dash_mode, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
 			                            ast_offset_ms, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
-										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration);
+										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration, insert_utc);
+
+			if (do_abort) 
+				break;
 
 			//this happens when reading file while writing them (local playback of the live session ...)
 			if (dash_live && (e==GF_IO_ERR) ) {
@@ -3615,17 +3626,6 @@ int mp4boxMain(int argc, char **argv)
 		}
 
 		if (dash_ctx) {
-			if (do_abort>=2) {
-				e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
-											(const char **) mpd_base_urls, nb_mpd_base_urls,
-											use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
-											seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
-											interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
-											dash_ctx, GF_DASH_DYNAMIC_LAST, 0, time_shift_depth, dash_subduration, min_buffer,
-											ast_offset_ms, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
-											pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration);
-
-			}
 			if (do_abort==3) {
 				if (!dash_ctx_file) {
 					char szName[1024];

@@ -96,6 +96,7 @@ typedef struct
 	Bool samplegroups_in_traf;
 	Bool single_traf_per_moof;
 	Bool content_protection_in_rep;
+	Bool insert_utc;
 
 	Double max_segment_duration;
 	s32 ast_offset_ms;
@@ -489,6 +490,7 @@ typedef struct
 	u32 split_sample_dts_shift;
 	s32 media_time_to_pres_time_shift;
 	u64 min_cts_in_segment;
+	Bool store_utc;
 } GF_ISOMTrackFragmenter;
 
 static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32 sample_num)
@@ -1281,7 +1283,9 @@ restart_fragmentation_pass:
 			e = gf_isom_start_fragment(output, GF_TRUE);
 			if (e) goto err_exit;
 
-
+			if (tfref && dash_cfg->insert_utc) {
+				tfref->store_utc = GF_TRUE;
+			}
 			for (i=0; i<count; i++) {
 				u64 tfdt;
 				tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
@@ -1418,6 +1422,17 @@ restart_fragmentation_pass:
 				if (simulation_pass) {
 					e = GF_OK;
 				} else {
+					if (tf->store_utc) {
+						u32 sec, frac;
+						u64 ntpts;
+						gf_net_get_ntp(&sec, &frac);
+						ntpts = sec;
+						ntpts <<= 32;
+						ntpts |= frac;
+						gf_isom_set_fragment_reference_time(output, tf->TrackID, ntpts, sample->DTS + sample->CTS_Offset + tf->media_time_to_pres_time_shift);
+						tf->store_utc = GF_FALSE;
+					}
+
 					/*override descIndex with final index used in file*/
 					descIndex = tf->finalSampleDescriptionIndex;
 					e = gf_isom_fragment_add_sample(output, tf->TrackID, sample, descIndex,
@@ -4760,7 +4775,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
                                Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
                                GF_Config *dash_ctx, GF_DashDynamicMode dash_mode, Double mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
                                s32 ast_offset_ms, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, 
-							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration)
+							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc)
 {
 	u32 i, j, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH];
@@ -5106,6 +5121,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.initial_moof_sn = initial_moof_sn;
 	dash_opts.initial_tfdt = initial_tfdt;
 	dash_opts.no_fragments_defaults = no_fragments_defaults;
+	dash_opts.insert_utc = insert_utc;
 
 	max_comp_per_input = 0;
 	for (cur_period=0; cur_period<max_period; cur_period++) {
