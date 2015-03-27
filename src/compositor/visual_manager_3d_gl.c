@@ -1702,7 +1702,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	GL_CHECK_ERR
 	glUseProgram(0);
 }
-#endif GPAC_FIXED_POINT
+#endif //GPAC_FIXED_POINT
 
 #endif //GPAC_ANDROID
 
