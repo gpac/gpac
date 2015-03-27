@@ -3529,7 +3529,7 @@ int mp4boxMain(int argc, char **argv)
 		strcpy(szMPD, outfile);
 		strcat(szMPD, ".mpd");
 
-		if (dash_duration > dash_subduration) {
+		if ((dash_subduration>0) && (dash_duration > dash_subduration)) {
 			fprintf(stderr, "Warning: -subdur parameter (%g s) should be greater than segment duration (%g s), using segment duration instead\n", dash_subduration, dash_duration);
 			dash_subduration = dash_duration;
 		}
