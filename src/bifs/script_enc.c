@@ -402,6 +402,11 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 		break;
 	case '=':
 		if (sc_enc->cur_buf[i+1]=='=') {
+			if (sc_enc->cur_buf[i+2]=='=') {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BIFSEnc] JavaScript token '===' not supported by standard\n"));
+				sc_enc->err = GF_NOT_SUPPORTED;
+				return GF_FALSE;
+			}
 			sc_enc->token_code = TOK_EQ;
 			sc_enc->cur_buf ++;
 		} else {
@@ -703,6 +708,8 @@ u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
 			} while ( (sc_enc->token_code != close_code) || count);
 		}
 		SFE_NextToken(sc_enc);
+
+		if (sc_enc->err) break;
 	}
 
 break_loop:
