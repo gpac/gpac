@@ -372,7 +372,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	u32 obj_time;
 	GF_CMUnit *CU;
 	s32 diff;
-	Bool bench_mode;
+	Bool bench_mode, skip_resync;
 
 	*eos = GF_FALSE;
 	*timestamp = mo->timestamp;
@@ -479,8 +479,15 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	/*resync*/
 	obj_time = gf_clock_time(codec->ck);
 
+	skip_resync = GF_FALSE;
 	//no drop mode, only for speed = 1: all frames are presented, we discard the current output only if already presented and next frame time is mature
-	if ((codec->ck->speed == FIX_ONE) && !(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && (mo->type==GF_MEDIA_OBJECT_VIDEO)) {
+	if ((codec->ck->speed == FIX_ONE) && (mo->type==GF_MEDIA_OBJECT_VIDEO)) {
+		if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && !(codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY))
+			skip_resync = GF_TRUE;
+	}
+
+		
+	if (skip_resync) {
 		resync=GF_MO_FETCH;
 		if (/*gf_clock_is_started(mo->odm->codec->ck) && */ (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time) ) {
 			gf_cm_drop_output(codec->CB);
@@ -561,8 +568,15 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 			}
 			s->root_od->media_current_time = mo->odm->media_current_time;
 		}
-
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %d) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, gf_clock_time(codec->ck), CU->TS, mo->framesize, mo->timestamp, codec->CB->UnitCount, gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
+#ifndef GPAC_DISABLE_LOG
+		if (gf_log_tool_level_on(GF_LOG_MEDIA, GF_LOG_DEBUG)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %d) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, gf_clock_time(codec->ck), CU->TS, mo->framesize, mo->timestamp, codec->CB->UnitCount, gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
+			if (CU->sender_ntp) {
+				s32 ntp_diff = gf_net_get_ntp_diff_ms(CU->sender_ntp);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] Frame TS NTP diff with sender %d ms\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, ntp_diff));
+			}
+		}
+#endif
 
 		mo->timestamp = CU->TS;
 		/*signal EOS after rendering last frame, not while rendering it*/

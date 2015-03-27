@@ -485,6 +485,7 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 	au->dataLength = ch->len;
 	au->PaddingBits = ch->padingBits;
 	au->sender_ntp = ch->sender_ntp;
+	ch->sender_ntp = 0;
 
 	ch->IsRap = 0;
 	ch->SeekFlag = 0;
@@ -1136,7 +1137,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					s32 diff_ts = ch->DTS;
 					diff_ts -= ch->clock->init_time;
 					if (ABS(diff_ts) > 10000) {
-						GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d: invalid clock reference detected - DTS %d but OCR %d - using DTS as OCR\n", ch->esd->ESID, ch->DTS, ch->clock->init_time));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: invalid clock reference detected - DTS %d but OCR %d - using DTS as OCR\n", ch->esd->ESID, ch->DTS, ch->clock->init_time));
 						gf_es_init_clock(ch, ch->DTS-1000);
 						ch->clock->broken_pcr = 1;
 					}
