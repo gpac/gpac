@@ -2991,7 +2991,7 @@ static void m2ts_sidx_flush_entry(GF_TSSegmenter *index_info)
 		/* adjust the previous index duration */
 		if (index_info->sidx->nb_refs > 0 && (index_info->base_PTS < index_info->prev_last_PTS) ) {
 			prev_duration = (u32)(index_info->base_PTS-index_info->prev_base_PTS);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("           time-range adj.: %.03f-%.03f / %.03f sec.\n",
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("           time-range adj.: %.3f-%.3f / %.3f sec.\n",
 			                                        (index_info->prev_base_PTS - index_info->first_PTS)/90000.0,
 			                                        (index_info->base_PTS - index_info->first_PTS)/90000.0, prev_duration/90000.0));
 
@@ -3005,12 +3005,12 @@ static void m2ts_sidx_flush_entry(GF_TSSegmenter *index_info)
 		/* Printing result */
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Subsegment:"));
 		//time-range:position-range:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, (" %.03f-%0.3f / %.03f sec., %d-%d / %d bytes, ",
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, (" %.3f-%.3f / %.3f sec., %d-%d / %d bytes, ",
 		                                        (index_info->base_PTS - index_info->first_PTS)/90000.0,
 		                                        (index_info->last_PTS - index_info->first_PTS)/90000.0, duration/90000.0,
 		                                        index_info->base_offset, end_offset, size));
 		if (index_info->SAP_type) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("RAP @ %.03f sec. / %d bytes", (index_info->first_SAP_PTS - index_info->first_PTS)/90000.0,
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("RAP @ %.3f sec. / %d bytes", (index_info->first_SAP_PTS - index_info->first_PTS)/90000.0,
 			                                        SAP_offset));
 		}
 		if (index_info->first_pat_position_valid) {
@@ -4153,7 +4153,7 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 	fprintf(mpd, "-->\n");
 
 	/*TODO what should we put for minBufferTime */
-	fprintf(mpd, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" minBufferTime=\"PT%03fS\" type=\"%s\"", min_buffer, dash_dynamic ? "dynamic" : "static");
+	fprintf(mpd, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" minBufferTime=\"PT%.3fS\" type=\"%s\"", min_buffer, dash_dynamic ? "dynamic" : "static");
 
 
 	if (dash_dynamic) {
