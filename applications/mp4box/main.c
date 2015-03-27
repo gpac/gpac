@@ -347,6 +347,7 @@ void PrintDASHUsage()
 	        " -cprt string         adds copyright string to MPD\n"
 	        " -dash-ctx FILE       stores/restore DASH timing from FILE.\n"
 	        " -dynamic             uses dynamic MPD type instead of static.\n"
+			" -last-dynamic        same as dynamic but closes the period (insert lmsg brand if needed and update duration).\n"
 			" -mpd-duration DUR    sets the duration in second of a live session (0 by default). If 0, you must use -mpd-refresh.\n"
 			" -mpd-refresh TIME    specifies MPD update time in seconds (double can be used).\n"
 	        " -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
@@ -1731,7 +1732,8 @@ int mp4boxMain(int argc, char **argv)
 	u32 *brand_add = NULL;
 	u32 *brand_rem = NULL;
 	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
-	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic, initial_moof_sn, dump_std, import_subtitle;
+	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
+	GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	GF_SceneDumpFormat dump_mode;
 #endif
@@ -1815,7 +1817,6 @@ int mp4boxMain(int argc, char **argv)
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = 0;
 	no_fragments_defaults = 0;
 	single_traf_per_moof = 0,
-	dash_dynamic = 0;
 	/*align cat is the new default behaviour for -cat*/
 	align_cat = 1;
 	subsegs_per_sidx = 0;
@@ -2284,10 +2285,13 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-dynamic")) {
-			dash_dynamic = 1;
+			dash_mode = GF_DASH_DYNAMIC;
+		} 
+		else if (!stricmp(arg, "-last-dynamic")) {
+			dash_mode = GF_DASH_DYNAMIC_LAST;
 		}
 		else if (!strnicmp(arg, "-dash-live", 10) || !strnicmp(arg, "-ddbg-live", 10)) {
-			dash_dynamic = !strnicmp(arg, "-ddbg-live", 10) ? 2 : 1;
+			dash_mode = !strnicmp(arg, "-ddbg-live", 10) ? GF_DASH_DYNAMIC_DEBUG : GF_DASH_DYNAMIC;
 			dash_live = 1;
 			if (arg[10]=='=') {
 				dash_ctx_file = arg+11;
@@ -3526,7 +3530,7 @@ int mp4boxMain(int argc, char **argv)
 			dash_subduration = dash_duration;
 		}
 
-		if (dash_dynamic && dash_live)
+		if (dash_mode && dash_live)
 			fprintf(stderr, "Live DASH-ing - press 'q' to quit, 's' to save context and quit\n");
 
 		if (!dash_ctx_file && dash_live) {
@@ -3539,9 +3543,9 @@ int mp4boxMain(int argc, char **argv)
 		}
 
 		if (dash_profile==GF_DASH_PROFILE_UNKNOWN)
-			dash_profile = dash_dynamic ? GF_DASH_PROFILE_LIVE : GF_DASH_PROFILE_FULL;
+			dash_profile = dash_mode ? GF_DASH_PROFILE_LIVE : GF_DASH_PROFILE_FULL;
 
-		if (!dash_dynamic) {
+		if (!dash_mode) {
 			time_shift_depth = 0;
 			mpd_update_time = 0;
 		} else if ((dash_profile>=GF_DASH_PROFILE_MAIN) && !use_url_template && !mpd_update_time) {
@@ -3561,7 +3565,7 @@ int mp4boxMain(int argc, char **argv)
 			                            use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
 			                            seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
 			                            interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
-			                            dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
+			                            dash_ctx, dash_mode, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
 			                            ast_offset_ms, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
 										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration);
 
@@ -3580,17 +3584,21 @@ int mp4boxMain(int argc, char **argv)
 				while (1) {
 					if (gf_prompt_has_input()) {
 						char c = (char) gf_prompt_get_char();
-						if (c=='q') {
+						if (c=='X') {
 							do_abort = 1;
 							break;
 						}
-						if (c=='s') {
+						if (c=='q') {
 							do_abort = 2;
+							break;
+						}
+						if (c=='s') {
+							do_abort = 3;
 							break;
 						}
 					}
 
-					if (dash_dynamic == 2) {
+					if (dash_mode == GF_DASH_DYNAMIC_DEBUG) {
 						break;
 					}
 					gf_sleep(10);
@@ -3607,12 +3615,25 @@ int mp4boxMain(int argc, char **argv)
 		}
 
 		if (dash_ctx) {
-			if (do_abort==2) {
-				char szName[1024];
-				fprintf(stderr, "Enter file name to save dash context:\n");
-				if (scanf("%s", szName) == 1) {
-					gf_cfg_set_filename(dash_ctx, szName);
-					gf_cfg_save(dash_ctx);
+			if (do_abort>=2) {
+				e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
+											(const char **) mpd_base_urls, nb_mpd_base_urls,
+											use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
+											seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
+											interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
+											dash_ctx, GF_DASH_DYNAMIC_LAST, 0, time_shift_depth, dash_subduration, min_buffer,
+											ast_offset_ms, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
+											pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration);
+
+			}
+			if (do_abort==3) {
+				if (!dash_ctx_file) {
+					char szName[1024];
+					fprintf(stderr, "Enter file name to save dash context:\n");
+					if (scanf("%s", szName) == 1) {
+						gf_cfg_set_filename(dash_ctx, szName);
+						gf_cfg_save(dash_ctx);
+					}
 				}
 			}
 			gf_cfg_del(dash_ctx);
