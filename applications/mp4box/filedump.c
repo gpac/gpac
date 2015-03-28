@@ -387,7 +387,7 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 		strcpy(szBuf, inName);
 		strcat(szBuf, "_stat.xml");
 		dump = gf_fopen(szBuf, "wt");
-		close = 1;
+		close = GF_TRUE;
 	} else {
 		dump = stderr;
 		close = GF_FALSE;
@@ -502,23 +502,23 @@ static void PrintNodeSFField(u32 type, void *far_ptr)
 		break;
 	case GF_SG_VRML_SFVEC2F:
 		PrintFixed(((SFVec2f *)far_ptr)->x, GF_FALSE);
-		PrintFixed(((SFVec2f *)far_ptr)->y, 1);
+		PrintFixed(((SFVec2f *)far_ptr)->y, GF_TRUE);
 		break;
 	case GF_SG_VRML_SFVEC3F:
 		PrintFixed(((SFVec3f *)far_ptr)->x, GF_FALSE);
-		PrintFixed(((SFVec3f *)far_ptr)->y, 1);
-		PrintFixed(((SFVec3f *)far_ptr)->z, 1);
+		PrintFixed(((SFVec3f *)far_ptr)->y, GF_TRUE);
+		PrintFixed(((SFVec3f *)far_ptr)->z, GF_TRUE);
 		break;
 	case GF_SG_VRML_SFROTATION:
 		PrintFixed(((SFRotation *)far_ptr)->x, GF_FALSE);
-		PrintFixed(((SFRotation *)far_ptr)->y, 1);
-		PrintFixed(((SFRotation *)far_ptr)->z, 1);
-		PrintFixed(((SFRotation *)far_ptr)->q, 1);
+		PrintFixed(((SFRotation *)far_ptr)->y, GF_TRUE);
+		PrintFixed(((SFRotation *)far_ptr)->z, GF_TRUE);
+		PrintFixed(((SFRotation *)far_ptr)->q, GF_TRUE);
 		break;
 	case GF_SG_VRML_SFCOLOR:
 		PrintFixed(((SFColor *)far_ptr)->red, GF_FALSE);
-		PrintFixed(((SFColor *)far_ptr)->green, 1);
-		PrintFixed(((SFColor *)far_ptr)->blue, 1);
+		PrintFixed(((SFColor *)far_ptr)->green, GF_TRUE);
+		PrintFixed(((SFColor *)far_ptr)->blue, GF_TRUE);
 		break;
 	case GF_SG_VRML_SFSTRING:
 		if (((SFString*)far_ptr)->buffer)
@@ -547,13 +547,13 @@ void PrintNode(const char *name, u32 graph_type)
 	Fixed bmin, bmax;
 	u32 nbBits;
 #endif /*GPAC_DISABLE_BIFS*/
-	Bool is_nodefield = 0;
+	Bool is_nodefield = GF_FALSE;
 
 	char *sep = strchr(name, '.');
 	if (sep) {
 		strcpy(szField, sep+1);
 		sep[0] = 0;
-		is_nodefield = 1;
+		is_nodefield = GF_TRUE;
 	}
 
 	tag = 0;
@@ -827,7 +827,7 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 			fprintf(dump, "Sample %d\tDTS "LLD"\tCTS "LLD"\t%d\t%d\t"LLD"\t%d\t%d\t%d\t%d\t%d\t%d\t%d", j+1, LLD_CAST dts, LLD_CAST cts, samp->dataLength, samp->IsRAP, offset, isLeading, dependsOn, dependedOn, redundant, is_rap, has_roll, roll_distance);
 			if (cts<dts) {
 				fprintf(dump, " #NEGATIVE CTS OFFSET!!!");
-				has_error = 1;
+				has_error = GF_TRUE;
 			}
 
 			gf_isom_sample_del(&samp);
@@ -842,11 +842,11 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 
 					if (adts==dts) {
 						fprintf(dump, " #SAME DTS USED!!!");
-						has_error = 1;
+						has_error = GF_TRUE;
 					}
 					if (acts==cts) {
 						fprintf(dump, " #SAME CTS USED!!! ");
-						has_error = 1;
+						has_error = GF_TRUE;
 					}
 
 					gf_isom_sample_del(&samp);
@@ -2495,7 +2495,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	u64 create, modif;
 	char szDur[50];
 
-	DumpMetaItem(file, 1, 0, "Root Meta");
+	DumpMetaItem(file, GF_TRUE, 0, "Root Meta");
 	if (!gf_isom_has_movie(file)) {
 		if (gf_isom_has_segment(file, &brand, &min)) {
 			u32 j, count;
@@ -2684,7 +2684,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	case GF_M2TS_EVT_PAT_REPEAT:
 		/* WARNING: We detect the pat on a repetition, probably to ensure that we also have seen all the PMT
 		   To be checked */
-		dumper->has_seen_pat = 1;
+		dumper->has_seen_pat = GF_TRUE;
 		if (dumper->timestamps_info_file) {
 			fprintf(dumper->timestamps_info_file, "%u\t%d\n", ts->pck_number, 0);
 		}
@@ -2871,7 +2871,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	}
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_dump_event;
-	ts->notify_pes_timing = 1;
+	ts->notify_pes_timing = GF_TRUE;
 	memset(&dumper, 0, sizeof(GF_M2TS_Dump));
 	ts->user = &dumper;
 	dumper.prog_number = prog_num;
@@ -2908,7 +2908,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 		gf_m2ts_process_data(ts, data, size);
 		if (dumper.has_seen_pat) break;
 	}
-	dumper.has_seen_pat = 1;
+	dumper.has_seen_pat = GF_TRUE;
 
 	if (prog_num) {
 		sprintf(dumper.timestamps_info_name, "%s_prog_%d_timestamps.txt", mpeg2ts_file, prog_num/*, mpeg2ts_file*/);
