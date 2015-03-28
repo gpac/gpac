@@ -30,7 +30,7 @@
 int main(int argc, char **argv)
 {
 #ifdef GPAC_MEMORY_TRACKING
-	Bool use_mem_track = 0;
+	Bool use_mem_track = GF_FALSE;
 #endif
 	s32 res;
 	CmdData cmd_data;

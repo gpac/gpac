@@ -154,7 +154,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 	return 0;
 }
 
-int dc_gpac_audio_isom_open_seg(AudioOutputFile *audio_output_file, char *filename)
+GF_Err dc_gpac_audio_isom_open_seg(AudioOutputFile *audio_output_file, char *filename)
 {
 	GF_Err ret;
 	ret = gf_isom_start_segment(audio_output_file->isof, filename, GF_TRUE);
@@ -178,7 +178,7 @@ int dc_gpac_audio_isom_write(AudioOutputFile *audio_output_file)
 	audio_output_file->sample->IsRAP = RAP; //audio_output_file->aframe->key_frame;//audio_codec_ctx->coded_frame->key_frame;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("RAP %d , DTS %ld \n", audio_output_file->sample->IsRAP, audio_output_file->sample->DTS));
 
-	ret = gf_isom_fragment_add_sample(audio_output_file->isof, 1, audio_output_file->sample, 1, audio_output_file->codec_ctx->frame_size, 0, 0, 0);
+	ret = gf_isom_fragment_add_sample(audio_output_file->isof, 1, audio_output_file->sample, 1, audio_output_file->codec_ctx->frame_size, 0, 0, GF_FALSE);
 	audio_output_file->dts += audio_output_file->codec_ctx->frame_size;
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret)));
@@ -197,7 +197,7 @@ int dc_gpac_audio_isom_write(AudioOutputFile *audio_output_file)
 int dc_gpac_audio_isom_close_seg(AudioOutputFile *audio_output_file)
 {
 	GF_Err ret;
-	ret = gf_isom_close_segment(audio_output_file->isof, 0, 0,0, 0, 0, 0, 1, audio_output_file->seg_marker, NULL, NULL);
+	ret = gf_isom_close_segment(audio_output_file->isof, 0, 0,0, 0, 0, GF_FALSE, GF_TRUE, audio_output_file->seg_marker, NULL, NULL);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close_segment\n", gf_error_to_string(ret)));
 		return -1;
@@ -222,7 +222,7 @@ int dc_gpac_audio_isom_close(AudioOutputFile *audio_output_file)
 	return 0;
 }
 
-int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filename)
+GF_Err dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filename)
 {
 	AVStream *audio_stream;
 	AVOutputFormat *output_fmt;
@@ -402,7 +402,7 @@ GF_Err dc_audio_muxer_open(AudioOutputFile *audio_output_file, char *directory, 
 	return GF_BAD_PARAM;
 }
 
-int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
+GF_Err dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
 {
 	switch (audio_output_file->muxer_type) {
 	case FFMPEG_AUDIO_MUXER:
@@ -410,18 +410,18 @@ int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
 	case GPAC_AUDIO_MUXER:
 	case GPAC_INIT_AUDIO_MUXER:
 		if (frame_nb % audio_output_file->frame_per_frag == 0) {
-			gf_isom_start_fragment(audio_output_file->isof, 1);
+			gf_isom_start_fragment(audio_output_file->isof, GF_TRUE);
 			gf_isom_set_traf_base_media_decode_time(audio_output_file->isof, 1, audio_output_file->first_dts * audio_output_file->codec_ctx->frame_size);
 			audio_output_file->first_dts += audio_output_file->frame_per_frag;
 		}
 		dc_gpac_audio_isom_write(audio_output_file);
 		if (frame_nb % audio_output_file->frame_per_frag == audio_output_file->frame_per_frag - 1) {
-			gf_isom_flush_fragments(audio_output_file->isof, 1);
+			gf_isom_flush_fragments(audio_output_file->isof, GF_TRUE);
 		}
 		if (frame_nb + 1 == audio_output_file->frame_per_seg) {
-			return 1;
+			return GF_TRUE;
 		}
-		return 0;
+		return GF_FALSE;
 	default:
 		return GF_BAD_PARAM;
 	}
@@ -429,7 +429,7 @@ int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
 	return GF_BAD_PARAM;
 }
 
-int dc_audio_muxer_close(AudioOutputFile *audio_output_file)
+GF_Err dc_audio_muxer_close(AudioOutputFile *audio_output_file)
 {
 	switch (audio_output_file->muxer_type) {
 	case FFMPEG_AUDIO_MUXER:
