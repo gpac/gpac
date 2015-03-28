@@ -89,11 +89,11 @@ static Bool check_file_exists(char *name, char *path, char *outPath)
 	}
 #endif
 	sprintf(szPath, "%s%c%s", path, GF_PATH_SEPARATOR, name);
-	f = fopen(szPath, "rb");
-	if (!f) return 0;
-	fclose(f);
+	f = gf_fopen(szPath, "rb");
+	if (!f) return GF_FALSE;
+	gf_fclose(f);
 	if (outPath != path) strcpy(outPath, path);
-	return 1;
+	return GF_TRUE;
 }
 
 enum
@@ -162,33 +162,33 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	}
 
 
-	if (path_type==GF_PATH_APP) return 1;
+	if (path_type==GF_PATH_APP) return GF_TRUE;
 
 	if (path_type==GF_PATH_GUI) {
 		char *sep;
 		strcat(file_path, "\\gui");
-		if (check_file_exists("gui.bt", file_path, file_path)) return 1;
+		if (check_file_exists("gui.bt", file_path, file_path)) return GF_TRUE;
 		sep = strstr(file_path, "\\bin\\");
 		if (sep) {
 			sep[0] = 0;
 			strcat(file_path, "\\gui");
-			if (check_file_exists("gui.bt", file_path, file_path)) return 1;
+			if (check_file_exists("gui.bt", file_path, file_path)) return GF_TRUE;
 		}
-		return 0;
+		return GF_FALSE;
 	}
 	/*modules are stored in the GPAC directory (should be changed to GPAC/modules)*/
-	if (path_type==GF_PATH_MODULES) return 1;
+	if (path_type==GF_PATH_MODULES) return GF_TRUE;
 
 	/*we are looking for the config file path - make sure it is writable*/
 	assert(path_type == GF_PATH_CFG);
 
 	strcpy(szPath, file_path);
 	strcat(szPath, "\\gpaccfgtest.txt");
-	f = gf_f64_open(szPath, "wb");
+	f = gf_fopen(szPath, "wb");
 	if (f != NULL) {
-		fclose(f);
+		gf_fclose(f);
 		gf_delete_file(szPath);
-		return 1;
+		return GF_TRUE;
 	}
 #ifdef _WIN32_WCE
 	return 0;
@@ -201,13 +201,13 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	_mkdir(file_path);
 	strcpy(szPath, file_path);
 	strcat(szPath, "\\gpaccfgtest.txt");
-	f = gf_f64_open(szPath, "wb");
+	f = gf_fopen(szPath, "wb");
 	/*COMPLETE FAILURE*/
-	if (!f) return 0;
+	if (!f) return GF_FALSE;
 
-	fclose(f);
+	gf_fclose(f);
 	gf_delete_file(szPath);
-	return 1;
+	return GF_TRUE;
 #endif
 }
 
@@ -265,7 +265,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #ifdef GPAC_IPHONE
 		res = realpath(user_home, buf);
 		if (res) {
-			strcpy(file_path, buf);
+            strcpy(file_path, buf);
+            strcat(file_path, "/Documents");
 		} else
 #endif
 			strcpy(file_path, user_home);
@@ -311,6 +312,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (check_file_exists(TEST_MODULE, "/usr/local/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/local/lib/gpac", file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, "/usr/lib/x86_64-linux-gnu/gpac", file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, "/usr/lib/i386-linux-gnu/gpac", file_path)) return 1;
 		}
 	}
 
@@ -364,7 +367,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		/*iOS app is distributed with embedded GUI*/
 		get_default_install_path(app_path, GF_PATH_APP);
 		strcat(app_path, "/gui");
-		if (check_file_exists("gui_old.bt", app_path, file_path)) return 1;
+		if (check_file_exists("gui.bt", app_path, file_path)) return 1;
 #endif
 	}
 	else { // (path_type==GF_PATH_MODULES)
@@ -393,15 +396,20 @@ static GF_Config *create_default_config(char *file_path)
 	/*Create the config file*/
 	sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
 	fprintf(stderr, "Trying to create config file: %s", szPath);
-	f = gf_f64_open(szPath, "wt");
+	f = gf_fopen(szPath, "wt");
 	if (!f) return NULL;
-	fclose(f);
+	gf_fclose(f);
 
+#ifndef GPAC_IPHONE
 	if (! get_default_install_path(szPath, GF_PATH_MODULES)) {
 		gf_delete_file(szPath);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] default modules not found\n"));
 		return NULL;
 	}
+#else
+	get_default_install_path(szPath, GF_PATH_APP);
+	strcpy(szPath, "");
+#endif
 
 	cfg = gf_cfg_new(file_path, CFG_FILE_NAME);
 	if (!cfg) return NULL;
@@ -476,9 +484,9 @@ static GF_Config *create_default_config(char *file_path)
 	/*locate GUI*/
 	if ( get_default_install_path(szPath, GF_PATH_GUI) ) {
 		sprintf(gui_path, "%s%cgui.bt", szPath, GF_PATH_SEPARATOR);
-		f = fopen(gui_path, "rt");
+		f = gf_fopen(gui_path, "rt");
 		if (f) {
-			fclose(f);
+			gf_fclose(f);
 			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
 		}
 	}
@@ -507,18 +515,18 @@ static void check_modules_dir(GF_Config *cfg)
 		if (!opt) {
 			gf_cfg_set_key(cfg, "General", "ModulesDirectory", path);
 		} else  {
-			Bool erase_modules_dir = 0;
+			Bool erase_modules_dir = GF_FALSE;
 			const char *opt64 = gf_cfg_get_key(cfg, "Systems", "64bits");
 			if (!opt64) {
 				//first run or old versions, erase
-				erase_modules_dir = 1;
+				erase_modules_dir = GF_TRUE;
 			} else if (!strcmp(opt64, "yes") ) {
 #ifndef GPAC_64_BITS
-				erase_modules_dir = 1;
+				erase_modules_dir = GF_TRUE;
 #endif
 			} else {
 #ifdef GPAC_64_BITS
-				erase_modules_dir = 1;
+				erase_modules_dir = GF_TRUE;
 #endif
 			}
 
@@ -538,10 +546,10 @@ static void check_modules_dir(GF_Config *cfg)
 
 	/*if startup file was disabled, do not attempt to correct it*/
 	if (gf_cfg_get_key(cfg, "General", "StartupFile")==NULL) return;
-
+    
 	if ( get_default_install_path(path, GF_PATH_GUI) ) {
 		opt = gf_cfg_get_key(cfg, "General", "StartupFile");
-		if (strstr(opt, "gui.bt") && strcmp(opt, path)) {
+		if (strstr(opt, "gui.bt") && strcmp(opt, path) && strstr(path, ".app") ) {
 #if defined(__DARWIN__) || defined(__APPLE__)
 			strcat(path, "/gui.bt");
 			gf_cfg_set_key(cfg, "General", "StartupFile", path);
@@ -556,17 +564,17 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 	GF_Config *cfg;
 	char szPath[GF_MAX_PATH];
 
-	if (new_cfg) *new_cfg = 0;
+	if (new_cfg) *new_cfg = GF_FALSE;
 
 	if (file) {
 		cfg = gf_cfg_new(NULL, file);
 		/*force creation of a new config*/
 		if (!cfg) {
-			FILE *fcfg = fopen(file, "wt");
+			FILE *fcfg = gf_fopen(file, "wt");
 			if (fcfg) {
-				fclose(fcfg);
+				gf_fclose(fcfg);
 				cfg = gf_cfg_new(NULL, file);
-				if (new_cfg) *new_cfg = 1;
+				if (new_cfg) *new_cfg = GF_TRUE;
 			}
 		}
 		if (cfg) {
@@ -579,22 +587,24 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 		fprintf(stderr, "Fatal error: Cannot create a configuration file in application or user home directory - no write access\n");
 		return NULL;
 	}
+
 	cfg = gf_cfg_new(szPath, CFG_FILE_NAME);
 	if (!cfg) {
 		fprintf(stderr, "GPAC config file %s not found in %s - creating new file\n", CFG_FILE_NAME, szPath);
 		cfg = create_default_config(szPath);
 	}
-
 	if (!cfg) {
-		fprintf(stderr, "Cannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath);
+		fprintf(stderr, "\nCannot create config file %s in %s directory\n", CFG_FILE_NAME, szPath);
 		return NULL;
 	}
 
+#ifndef GPAC_IPHONE
 	fprintf(stderr, "Using config file in %s directory\n", szPath);
+#endif
 
 	check_modules_dir(cfg);
 
-	if (new_cfg) *new_cfg = 1;
+	if (new_cfg) *new_cfg = GF_TRUE;
 	return cfg;
 }
 

@@ -1166,5 +1166,8 @@
     <ClCompile Include="..\..\src\isomedia\ttml.c">
       <Filter>isomedia</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\utils\os_file.c">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

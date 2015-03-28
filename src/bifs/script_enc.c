@@ -67,9 +67,9 @@ static GF_Err EncScriptFields(ScriptEnc *sc_enc)
 	GF_FieldInfo info;
 
 	nbFields = gf_node_get_num_fields_in_mode(sc_enc->script, GF_SG_FIELD_CODING_ALL) - 3;
-	use_list = 1;
+	use_list = GF_TRUE;
 	nbBits = gf_get_bit_size(nbFields);
-	if (nbFields+1 > 4 + gf_get_bit_size(nbFields)) use_list = 0;
+	if (nbFields+1 > 4 + gf_get_bit_size(nbFields)) use_list = GF_FALSE;
 	if (!nbFields) {
 		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "Script::isList", NULL);
 		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "end", NULL);
@@ -293,7 +293,7 @@ const char* sc_keywords [] =
 Bool SFE_GetNumber(ScriptEnc *sc_enc)
 {
 	u32 i = 0;
-	Bool exp = 0;
+	Bool exp = GF_FALSE;
 	while ( isdigit(sc_enc->cur_buf[i])
 	        || (toupper(sc_enc->cur_buf[i])=='X')
 	        || ((toupper(sc_enc->cur_buf[i]) >='A') && (toupper(sc_enc->cur_buf[i])<='F'))
@@ -302,24 +302,24 @@ Bool SFE_GetNumber(ScriptEnc *sc_enc)
 	        || (exp && (sc_enc->cur_buf[i] == '-'))
 	      ) {
 		sc_enc->token[i] = sc_enc->cur_buf[i];
-		if (tolower(sc_enc->cur_buf[i])=='e') exp = 1;
+		if (tolower(sc_enc->cur_buf[i])=='e') exp = GF_TRUE;
 		i++;
 		if (!sc_enc->cur_buf[i]) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: Invalid number syntax (%s)\n", sc_enc->cur_buf));
 			sc_enc->err = GF_BAD_PARAM;
-			return 0;
+			return GF_FALSE;
 		}
 	}
 	sc_enc->token[i] = 0;
 	sc_enc->cur_buf += i;
 	sc_enc->token_code = TOK_NUMBER;
-	return 1;
+	return GF_TRUE;
 }
 
 Bool SFE_NextToken(ScriptEnc *sc_enc)
 {
 	u32 i;
-	if (sc_enc->err) return 0;
+	if (sc_enc->err) return GF_FALSE;
 	while (strchr(" \t\r\n", sc_enc->cur_buf[0])) {
 		if (sc_enc->cur_buf[0]=='\n') sc_enc->cur_line ++;
 		sc_enc->cur_buf++;
@@ -331,7 +331,7 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 			if (!sc_enc->cur_buf[0] || !sc_enc->cur_buf[1]) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: cannot find closing comment */\n"));
 				sc_enc->err = GF_BAD_PARAM;
-				return 0;
+				return GF_FALSE;
 			}
 		}
 		sc_enc->cur_buf+=2;
@@ -351,13 +351,13 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 		for (i=0; i<NUMBER_OF_KEYWORD; i++) {
 			if (!strcmp(sc_enc->token, sc_keywords[i])) {
 				sc_enc->token_code = i;
-				return 1;
+				return GF_TRUE;
 			}
 		}
 		if (!stricmp(sc_enc->token, "TRUE") || !stricmp(sc_enc->token, "FALSE") ) {
 			sc_enc->token_code = TOK_BOOLEAN;
 		}
-		return 1;
+		return GF_TRUE;
 	}
 	/*get a number*/
 	if (isdigit(sc_enc->cur_buf[i])) return SFE_GetNumber(sc_enc);
@@ -366,10 +366,10 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 	        || ((sc_enc->cur_buf[i]=='\\') && (sc_enc->cur_buf[i+1]=='\"'))
 	   ) {
 		char end;
-		Bool skip_last = 0;
+		Bool skip_last = GF_FALSE;
 		end = sc_enc->cur_buf[i];
 		if (sc_enc->cur_buf[i]=='\\') {
-			skip_last = 1;
+			skip_last = GF_TRUE;
 			sc_enc->cur_buf++;
 		}
 		while (sc_enc->cur_buf[i+1] != end) {
@@ -380,14 +380,14 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 		sc_enc->cur_buf += i+2;
 		if (skip_last) sc_enc->cur_buf++;
 		sc_enc->token_code = TOK_STRING;
-		return 1;
+		return GF_TRUE;
 	}
 	/*all other codes*/
 	switch (sc_enc->cur_buf[i]) {
 	case '.':
 		if (isdigit(sc_enc->cur_buf[i+1])) {
 			SFE_GetNumber(sc_enc);
-			return 1;
+			return GF_TRUE;
 		} else {
 			sc_enc->token_code = TOK_PERIOD;
 		}
@@ -402,6 +402,11 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 		break;
 	case '=':
 		if (sc_enc->cur_buf[i+1]=='=') {
+			if (sc_enc->cur_buf[i+2]=='=') {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[BIFSEnc] JavaScript token '===' not supported by standard\n"));
+				sc_enc->err = GF_NOT_SUPPORTED;
+				return GF_FALSE;
+			}
 			sc_enc->token_code = TOK_EQ;
 			sc_enc->cur_buf ++;
 		} else {
@@ -560,19 +565,19 @@ Bool SFE_NextToken(ScriptEnc *sc_enc)
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: Unrecognized symbol %c\n", sc_enc->cur_buf[i]));
 		sc_enc->err = GF_BAD_PARAM;
-		return 0;
+		return GF_FALSE;
 	}
 	sc_enc->cur_buf ++;
-	return 1;
+	return GF_TRUE;
 }
 
 Bool SFE_CheckToken(ScriptEnc *sc_enc, u32 token)
 {
 	if (sc_enc->token_code != token) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: Bad token (expecting \"%s\" got \"%s\")\n", tok_names[token] , tok_names[sc_enc->token_code]));
-		return 0;
+		return GF_FALSE;
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 void SFE_PutIdentifier(ScriptEnc *sc_enc, char *id)
@@ -671,7 +676,7 @@ u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
 			goto break_loop;
 		}
 
-		if (sc_enc->token_code==TOK_VAR) is_var = 1;
+		if (sc_enc->token_code==TOK_VAR) is_var = GF_TRUE;
 		if (!is_var || (sc_enc->token_code!=TOK_COMMA)) {
 			sc_enc->expr_toks[sc_enc->expr_toks_len] = sc_enc->token_code;
 			sc_enc->expr_toks_len++;
@@ -703,6 +708,8 @@ u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
 			} while ( (sc_enc->token_code != close_code) || count);
 		}
 		SFE_NextToken(sc_enc);
+
+		if (sc_enc->err) break;
 	}
 
 break_loop:
@@ -766,10 +773,10 @@ void SFE_CompoundExpression(ScriptEnc *sc_enc, u32 start, u32 end, u32 isPar)
 		nbExp = SFE_ScanExpression(sc_enc, start, end, expr_sep);
 	}
 
-	SFE_Expression(sc_enc, expr_sep[0], expr_sep[1], 0);
+	SFE_Expression(sc_enc, expr_sep[0], expr_sep[1], GF_FALSE);
 	for (i=1; i<nbExp; i++) {
 		SFE_WRITE_INT(sc_enc, 1, 1, isPar ? "hasParam" : "hasExpression", NULL);
-		SFE_Expression(sc_enc, expr_sep[i]+1, expr_sep[i+1], 0);
+		SFE_Expression(sc_enc, expr_sep[i]+1, expr_sep[i+1], GF_FALSE);
 	}
 	SFE_WRITE_INT(sc_enc, 0, 1, isPar ? "hasParam" : "hasExpression", NULL);
 }
@@ -914,7 +921,7 @@ void SFE_SwitchStatement(ScriptEnc *sc_enc)
 	buf_bck = sc_enc->cur_buf;
 	tok_bck = sc_enc->token_code;
 	prev_emu = sc_enc->emul;
-	sc_enc->emul = 1;
+	sc_enc->emul = GF_TRUE;
 
 	SFE_NextToken(sc_enc);
 	while (sc_enc->token_code == TOK_CASE) {
@@ -1594,8 +1601,8 @@ skip_token:
 	case ET_OR:
 	case ET_LAND:
 	case ET_LOR:
-		SFE_Expression(sc_enc, start, finalPos, 0);
-		SFE_Expression(sc_enc, finalPos+1, end, 0);
+		SFE_Expression(sc_enc, start, finalPos, GF_FALSE);
+		SFE_Expression(sc_enc, finalPos+1, end, GF_FALSE);
 		break;
 	case ET_ASSIGN:
 	case ET_PLUSEQ:
@@ -1610,13 +1617,13 @@ skip_token:
 	case ET_XOREQ:
 	case ET_OREQ:
 	{
-		u32 ret = SFE_Expression(sc_enc, start, finalPos, 0);
+		u32 ret = SFE_Expression(sc_enc, start, finalPos, GF_FALSE);
 		if ( ret != ET_IDENTIFIER && ret != ET_OBJECT_MEMBER_ACCESS && ret != ET_ARRAY_DEREFERENCE ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[bifs] Script encoding: LeftVariable expected, %s returned\n", expr_name[ret]));
 			sc_enc->err = GF_BAD_PARAM;
 			return expr;
 		}
-		SFE_Expression(sc_enc, finalPos+1, end, 0);
+		SFE_Expression(sc_enc, finalPos+1, end, GF_FALSE);
 	}
 	break;
 
@@ -1664,14 +1671,14 @@ skip_token:
 	case ET_DECREMENT:
 	case ET_NOT:
 	case ET_ONESCOMP:
-		SFE_Expression(sc_enc, finalPos+1, end, 0);
+		SFE_Expression(sc_enc, finalPos+1, end, GF_FALSE);
 		break;
 	case ET_CURVED_EXPR:
 		SFE_CompoundExpression(sc_enc, finalPos+1, end-1, 0);
 		break;
 	case ET_POST_INCREMENT :
 	case ET_POST_DECREMENT :
-		SFE_Expression(sc_enc, start, finalPos, 0);
+		SFE_Expression(sc_enc, start, finalPos, GF_FALSE);
 		break;
 	case ET_FUNCTION_CALL:
 		SFE_FunctionCall(sc_enc, start, end);
@@ -1731,7 +1738,7 @@ void SFE_ObjectMemberAccess(ScriptEnc *sc_enc, u32 start, u32 op, u32 end)
 	u32 curTok;
 	char *str;
 
-	SFE_Expression(sc_enc, start, op, 1);
+	SFE_Expression(sc_enc, start, op, GF_TRUE);
 	curTok = sc_enc->expr_toks[op];
 	CHECK_TOK(TOK_PERIOD);
 	curTok = sc_enc->expr_toks[end-1];
@@ -1747,7 +1754,7 @@ void SFE_ObjectMethodCall(ScriptEnc *sc_enc, u32 start, u32 op, u32 end)
 	u32 curTok;
 	char *str;
 
-	SFE_Expression(sc_enc, start, op, 0);
+	SFE_Expression(sc_enc, start, op, GF_FALSE);
 	curTok = sc_enc->expr_toks[op];
 	CHECK_TOK(TOK_PERIOD);
 	curTok = sc_enc->expr_toks[op+1];
@@ -1767,7 +1774,7 @@ void SFE_ArrayDereference(ScriptEnc *sc_enc, u32 start, u32 op, u32 end)
 {
 	u32 curTok;
 
-	SFE_Expression(sc_enc, start, op, 0);
+	SFE_Expression(sc_enc, start, op, GF_FALSE);
 	curTok = sc_enc->expr_toks[op];
 	CHECK_TOK(TOK_LEFT_BRACKET);
 	SFE_CompoundExpression(sc_enc, op+1, end-1, 0);
@@ -1799,15 +1806,15 @@ void SFE_ConditionTest(ScriptEnc *sc_enc, u32 start, u32 op, u32 end)
 {
 	u32 curTok;
 
-	SFE_Expression(sc_enc, start, op, 0);
+	SFE_Expression(sc_enc, start, op, GF_FALSE);
 	curTok = sc_enc->expr_toks[op];
 	CHECK_TOK(TOK_CONDTEST);
 	start = op+1;
 	op = MoveToToken(sc_enc, TOK_CONDSEP, op, end-1);
-	SFE_Expression(sc_enc, start, op, 0);
+	SFE_Expression(sc_enc, start, op, GF_FALSE);
 	curTok = sc_enc->expr_toks[op];
 	CHECK_TOK(TOK_CONDSEP);
-	SFE_Expression(sc_enc, op+1, end, 0);
+	SFE_Expression(sc_enc, op+1, end, GF_FALSE);
 }
 
 void SFE_Params(ScriptEnc *sc_enc, u32 start, u32 end)

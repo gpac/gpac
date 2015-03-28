@@ -175,6 +175,7 @@ void gf_clock_set_time(GF_Clock *ck, u32 TS)
 	if (!ck->clock_init) {
 		ck->init_time = TS;
 		ck->clock_init = 1;
+		ck->broken_pcr = 0;
 		ck->drift = 0;
 		/*update starttime and pausetime even in pause mode*/
 		ck->PauseTime = ck->StartTime = gf_term_get_time(ck->term);
@@ -213,19 +214,18 @@ u32 gf_clock_real_time(GF_Clock *ck)
 	assert(ck);
 	if (!ck->clock_init) return ck->StartTime;
 	time = ck->Paused > 0 ? ck->PauseTime : gf_term_get_time(ck->term);
-#ifdef GPAC_FIXED_POINT
-	time = ck->discontinuity_time + ck->init_time + (time - ck->StartTime) * FIX2INT(100*ck->speed) / 100;
-#else
-	if ((ck->speed < 0) && ((s32) ck->init_time < (-ck->speed) * (time - ck->StartTime))) {
+
+	if ((ck->speed < 0) && ((s32) ck->init_time < FIX2INT( (-ck->speed) * (time - ck->StartTime)) )) {
 		time = 0;
 	}
 	else {
-		time = ck->discontinuity_time + (u32) ( ck->init_time + ck->speed * (time - ck->StartTime) );
+		time = ck->discontinuity_time + (u32) ( ck->init_time + FIX2INT( ck->speed * (time - ck->StartTime) ) );
 	}
-#endif
+
 	return time;
 }
 
+GF_EXPORT
 u32 gf_clock_time(GF_Clock *ck)
 {
 	u32 time = gf_clock_real_time(ck);
@@ -316,22 +316,8 @@ void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontin
 		i=0;
 		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 			if (ch->clock == ck) {
-				//on clock looping we force emptying all buffer
-				//on clock disc we should only reset timing, but this needs further debugging
-				if (!is_pcr_discontinuity && odm->codec && gf_term_lock_codec(odm->codec, GF_TRUE, GF_FALSE)) {
-					gf_es_reset_buffers(ch);
-					ch->IsClockInit = 0;
-					gf_term_lock_codec(odm->codec, GF_FALSE, GF_FALSE);
-					GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] Reinitializing buffers for ES%d\n", ch->esd->ESID));
-				} else {
-//					gf_es_reset_timing(ch);
-//					ch->IsClockInit = 0;
-
-					gf_es_reset_buffers(ch);
-					ch->IsClockInit = 0;
-
-					GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] Reinitializing timing for ES%d\n", ch->esd->ESID));
-				}
+				ch->IsClockInit = 0;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] Reinitializing timing for ES%d\n", ch->esd->ESID));
 
 				if (ch->odm->codec && ch->odm->codec->CB)
 					gf_cm_reset_timing(ch->odm->codec->CB);

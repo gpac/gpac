@@ -1,5 +1,5 @@
 LOCAL_PATH:= $(call my-dir)
-APP_ABI          := armeabi armeabi-v7a
+APP_ABI          := armeabi armeabi-v7a x86
 
 include $(CLEAR_VARS)
 include $(LOCAL_PATH)/../common.mk
@@ -140,6 +140,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/path2d_stroker.c \
 	../../../../src/utils/zutil.c \
 	../../../../src/utils/os_divers.c \
+	../../../../src/utils/os_file.c \
 	../../../../src/utils/path2d.c \
 	../../../../src/utils/base_encoding.c \
 	../../../../src/utils/module.c \

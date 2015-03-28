@@ -131,6 +131,8 @@ struct _visual_manager
 	void (*ClearSurface)(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool offscreen_clear);
 	/*draws specified texture as flat bitmap*/
 	Bool (*DrawBitmap)(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key);
+	/*checks if the visual is ready for being drawn on. Returns GF_FALSE if no draw operation can be sent*/
+	Bool (*CheckAttached)(GF_VisualManager *visual);
 
 	/*raster surface interface*/
 	GF_SURFACE raster_surface;
@@ -208,7 +210,7 @@ struct _visual_manager
 
 	Bool has_material;
 	SFColorRGBA materials[4];
-	Float shininess;
+	Fixed shininess;
 
 	Bool state_light_on, state_blend_on, state_color_on;
 

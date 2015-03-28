@@ -418,11 +418,11 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 				FILE *src=NULL;
 
 				if (!iinf->data_len) {
-					src = gf_f64_open(iinf->full_path, "rb");
+					src = gf_fopen(iinf->full_path, "rb");
 					if (!src) continue;
-					gf_f64_seek(src, 0, SEEK_END);
-					it_size = gf_f64_tell(src);
-					gf_f64_seek(src, 0, SEEK_SET);
+					gf_fseek(src, 0, SEEK_END);
+					it_size = gf_ftell(src);
+					gf_fseek(src, 0, SEEK_SET);
 				} else {
 					it_size = iinf->data_len;
 				}
@@ -452,7 +452,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 						gf_bs_write_data(bs, iinf->full_path, iinf->data_len);
 					}
 				}
-				if (src) fclose(src);
+				if (src) gf_fclose(src);
 			}
 			else if (gf_list_count(iloc->extent_entries)) {
 				u32 j;
@@ -774,7 +774,7 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)movie->pdin, bs);
 		if (e) goto exit;
 	}
-	//What we will do is first emulate the write from the begining...
+	//What we will do is first emulate the write from the beginning...
 	//note: this will set the size of the mdat
 	e = DoWrite(mw, writers, bs, 1, gf_bs_get_position(bs));
 	if (e) goto exit;
@@ -1290,13 +1290,13 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 			is_stdout = 1;
 
 		//OK, we need a new bitstream
-		stream = is_stdout ? stdout : gf_f64_open(movie->finalName, "w+b");
+		stream = is_stdout ? stdout : gf_fopen(movie->finalName, "w+b");
 		if (!stream)
 			return GF_IO_ERR;
 		bs = gf_bs_from_file(stream, GF_BITSTREAM_WRITE);
 		if (!bs) {
 			if (!is_stdout)
-				fclose(stream);
+				gf_fclose(stream);
 			return GF_OUT_OF_MEM;
 		}
 
@@ -1322,7 +1322,7 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 
 		gf_bs_del(bs);
 		if (!is_stdout)
-			fclose(stream);
+			gf_fclose(stream);
 	}
 	if (mw.buffer) gf_free(mw.buffer);
 	if (mw.nb_done<mw.total_samples) {

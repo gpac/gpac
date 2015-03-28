@@ -295,12 +295,12 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 		return GF_OK;
 	}
 
-	test = gf_f64_open(read->url, "rt");
+	test = gf_fopen(read->url, "rt");
 	if (!test) {
 		gf_service_connect_ack(serv, NULL, GF_URL_ERROR);
 		return GF_OK;
 	}
-	fclose(test);
+	gf_fclose(test);
 	if (!read->is_service_connected) {
 		gf_service_connect_ack(serv, NULL, GF_OK);
 		read->is_service_connected = 1;
@@ -348,10 +348,10 @@ static GF_Descriptor *DC_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 		uri = (char *) gf_dm_sess_get_cache_name(read->dnload);
 		gf_dm_sess_get_stats(read->dnload, NULL, NULL, &size, NULL, NULL, NULL);
 	} else {
-		FILE *f = gf_f64_open(read->url, "rt");
-		gf_f64_seek(f, 0, SEEK_END);
-		size = (u32) gf_f64_tell(f);
-		fclose(f);
+		FILE *f = gf_fopen(read->url, "rt");
+		gf_fseek(f, 0, SEEK_END);
+		size = (u32) gf_ftell(f);
+		gf_fclose(f);
 		uri = read->url;
 	}
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -516,4 +516,4 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( dummy_in )
+GPAC_MODULE_STATIC_DECLARATION( dummy_in )

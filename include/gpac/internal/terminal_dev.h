@@ -230,7 +230,6 @@ struct _scene
 
 	u32 addon_position, addon_size_factor;
 
-	GF_AddonMedia *active_addon;
 	GF_List *declared_addons;
 	//set when content is replaced by an addon (DASH PVR mode)
 	Bool main_addon_selected;
@@ -265,14 +264,17 @@ void gf_scene_regenerate(GF_Scene *scene);
 void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm);
 /*restarts dynamic scene from given time: scene graph is not reseted, objects are just restarted
 instead of closed and reopened. If a media control is present on inline, from_time is overriden by MC range*/
-void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only);
+void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only, Bool disable_addon_check);
 
 /*exported for compositor: handles filtering of "self" parameter indicating anchor only acts on container inline scene
 not root one. Returns 1 if handled (cf user.h, navigate event)*/
 Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt);
 void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo);
 
-Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene);
+//check clock status. 
+//If @check_buffering is 0, returns 1 if all clocks have seen eos, 0 otherwise
+//If @check_buffering is 1, returns 1 if no clock is buffering, 0 otheriwse
+Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buffering);
 
 void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt, GF_Err code, Bool no_queueing);
 
@@ -540,6 +542,7 @@ struct _object_clock
 	s32 drift;
 	u32 data_timeout;
 	Bool probe_ocr;
+	Bool broken_pcr;
 	u32 last_TS_rendered;
 	u32 service_id;
 
@@ -658,6 +661,8 @@ struct _es_channel
 	u32 stream_state;
 	/*the AU in reception is RAP*/
 	Bool IsRap;
+	/*the AU in reception is only need for seeking*/
+	Bool SeekFlag;
 	/*signal that next AU is an AU start*/
 	Bool NextIsAUStart;
 	/*if codec resilient, packet drops are not considered as fatal for AU reconstruction (eg no wait for RAP)*/
@@ -715,9 +720,10 @@ struct _es_channel
 
 	u32 resync_drift;
 	s32 prev_pcr_diff;
+	u64 last_pcr;
 
 	/*TSs as received from network - these are used for cache storage*/
-	u64 net_dts, net_cts;
+	u64 net_dts, net_cts, sender_ntp;
 
 	Bool last_au_was_seek;
 	Bool no_timestamps;
@@ -805,6 +811,9 @@ enum
 	/*set when codec is identified as RAW, meaning all AU comming from the network are directly
 	dispatched to the composition memory*/
 	GF_ESM_CODEC_IS_RAW_MEDIA = 1<<3,
+
+	/*set when input channels have very low buffering requirement, in which case the codec has to discard all possible late data*/
+	GF_ESM_CODEC_IS_LOW_LATENCY = 1<<4,
 };
 
 struct _generic_codec
@@ -1031,9 +1040,10 @@ struct _od_manager
 	Bool scalable_addon;
 
 	//for a regular ODM, this indicates that the current scalable_odm associated
-	struct _od_manager *scalable_odm;
+	struct _od_manager *upper_layer_odm;
+	//for a scalable ODM, this indicates the lower layer odm associated
+	struct _od_manager *lower_layer_odm;
 };
-
 
 GF_ObjectManager *gf_odm_new();
 void gf_odm_del(GF_ObjectManager *ODMan);
@@ -1091,7 +1101,7 @@ void gf_odm_signal_eos(GF_ObjectManager *odm);
 void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset);
 
 /*GF_MediaObject: link between real object manager and scene. although there is a one-to-one mapping between a
-MediaObject and an ObjectManager, we have to keep them seperated in order to handle OD remove commands which destroy
+MediaObject and an ObjectManager, we have to keep them separated in order to handle OD remove commands which destroy
 ObjectManagers. */
 struct _mediaobj
 {
@@ -1174,7 +1184,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
 //returns media time in sec for the addon - timestamp_based is set to 1 if no timeline has been found (eg sync is based on direct timestamp comp)
 Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_AddonMedia *addon, u32 *timestamp_based);
-u64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon);
+s64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon);
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
 void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
 

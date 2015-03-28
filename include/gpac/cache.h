@@ -191,7 +191,7 @@ u32 gf_cache_get_content_length( const DownloadedCacheEntry entry);
  * \param httpRequest The HTTP GET request to populate. The request must have been allocated enough to handle the cache arguments
  * \return GF_OK if everything went fine, GF_BAD_PARAM if parameters are wrong
  */
-GF_Err appendHttpCacheHeaders(const DownloadedCacheEntry entry, char * httpRequest);
+GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * httpRequest);
 
 /*
  * Cache Management functions

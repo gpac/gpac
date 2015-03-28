@@ -63,10 +63,29 @@ typedef struct tagBITMAPINFOHEADER {
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 
+
+enum
+{
+	DUMP_NONE = 0,
+	DUMP_AVI = 1,
+	DUMP_BMP = 2,
+	DUMP_PNG = 3,
+	DUMP_RAW = 4,
+	DUMP_SHA1 = 5,
+
+	//DuMP flags
+	DUMP_DEPTH_ONLY = 1<<16,
+	DUMP_RGB_DEPTH = 1<<17,
+	DUMP_RGB_DEPTH_SHAPE = 1<<18
+};
+
+
 extern Bool is_connected;
 extern GF_Terminal *term;
 extern u64 Duration;
 extern GF_Err last_error;
+extern Bool no_prog;
+
 
 static GFINLINE u8 colmask(s32 a, s32 n)
 {
@@ -87,16 +106,9 @@ static u32 put_pixel(FILE *fout, u32 type, u32 pf, char *ptr)
 
 	case GF_PIXEL_BGR_32:
 	case GF_PIXEL_RGBA:
-		//probably due to tinygl bug - verify
-#ifndef GPAC_USE_TINYGL
-		fputc(ptr[3], fout);
-		fputc(ptr[2], fout);
-		fputc(ptr[1], fout);
-#else
 		fputc(ptr[2], fout);
 		fputc(ptr[1], fout);
 		fputc(ptr[0], fout);
-#endif
 		return 4;
 
 	case GF_PIXEL_RGB_24:
@@ -162,7 +174,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	if (fb->pixel_format==GF_PIXEL_GREYSCALE) sprintf(str, "%s_%d_depth.bmp", rad_name, img_num);
 	else sprintf(str, "%s_%d.bmp", rad_name, img_num);
 
-	fout = gf_f64_open(str, "wb");
+	fout = gf_fopen(str, "wb");
 	if (!fout) return;
 
 	memset(&fh, 0, sizeof(fh));
@@ -177,7 +189,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	if (fb->pixel_format==GF_PIXEL_GREYSCALE) fi.biBitCount = 24;
 	else fi.biBitCount = 24;
 	fi.biCompression = BI_RGB;
-	fi.biSizeImage = fb->pitch_y * fb->height;
+	fi.biSizeImage = fb->width * fb->height * 3;
 
 	/*NOT ALIGNED!!*/
 	gf_fwrite(&fh.bfType, 2, 1, fout);
@@ -208,7 +220,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	}
 #endif
 
-	fclose(fout);
+	gf_fclose(fout);
 }
 
 #include <gpac/avparse.h>
@@ -237,12 +249,12 @@ void write_png(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	dst = (char*)gf_malloc(sizeof(char)*dst_size);
 
 
-	fout = gf_f64_open(str, "wb");
+	fout = gf_fopen(str, "wb");
 	if (fout) {
 		GF_Err e = gf_img_png_enc(fb->video_buffer, fb->width, fb->height, fb->pitch_y, fb->pixel_format, dst, &dst_size);
 		if (!e) {
 			gf_fwrite(dst, dst_size, 1, fout);
-			fclose(fout);
+			gf_fclose(fout);
 		}
 	}
 
@@ -262,7 +274,7 @@ void write_depthfile(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 
 	depth = (unsigned char *) fb->video_buffer;
 
-	fout = gf_f64_open("dump_depth", "wb");
+	fout = gf_fopen("dump_depth", "wb");
 	if (!fout) return;
 	for (j=0; j<fb->height;  j++) {
 		for (i=0; i<fb->width; i++) {
@@ -275,10 +287,10 @@ void write_depthfile(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 #endif
 		}
 	}
-	fclose(fout);
+	gf_fclose(fout);
 }
 
-void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 dump_mode)
+void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 dump_mode_flags)
 {
 
 	FILE *fout;
@@ -287,8 +299,8 @@ void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 du
 
 	buf = (unsigned char *) fb->video_buffer;
 
-	if (dump_mode==6) fout = gf_f64_open("dump_rgbds", "wb");
-	else if (dump_mode==9) fout = gf_f64_open("dump_rgbd", "wb");
+	if (dump_mode_flags & DUMP_RGB_DEPTH_SHAPE) fout = gf_fopen("dump_rgbds", "wb");
+	else if (dump_mode_flags & DUMP_RGB_DEPTH) fout = gf_fopen("dump_rgbd", "wb");
 	else return;
 
 	if (!fout) return;
@@ -297,7 +309,7 @@ void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 du
 			fputc(buf[i+j*fb->pitch_y], fout);
 		}
 	}
-	fclose(fout);
+	gf_fclose(fout);
 }
 
 
@@ -317,7 +329,7 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 		sprintf(str, "%s_%d.raw", rad_name, img_num);
 	}
 
-	fout = gf_f64_open(str, "wb");
+	fout = gf_fopen(str, "wb");
 	if (!fout) return;
 
 
@@ -329,25 +341,33 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 			ptr += res;
 		}
 	}
-	fclose(fout);
+	gf_fclose(fout);
+}
+
+void write_hash(FILE *sha_out, char *buf, u32 size)
+{
+	u8 hash[20];
+	gf_sha1_csum((u8 *)buf, size, hash);
+	fwrite(hash, 1, 20, sha_out);
 }
 
 
 /* creates a .bmp format greyscale image of the byte depthbuffer and a binary with only the content of the depthbuffer */
-void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, char *conv_buf, void *avi_out)
+void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 frameNum, char *conv_buf, void *avi_out, FILE *sha_out)
 {
 	GF_Err e;
 	u32 i, k;
+
 	GF_VideoSurface fb;
+	u32 dump_mode = dump_mode_flags & 0x0000FFFF;
 
 	/*lock it*/
 	e = gf_sc_get_screen_buffer(term->compositor, &fb, 1);
 	if (e) fprintf(stderr, "Error grabbing depth buffer: %s\n", gf_error_to_string(e));
 	else  fprintf(stderr, "OK\n");
 	/*export frame*/
-	switch (dump_type) {
-	case 1:
-	case 8:
+	switch (dump_mode) {
+	case DUMP_AVI:
 		/*reverse frame*/
 		for (k=0; k<fb.height; k++) {
 			char *dst, *src;
@@ -409,66 +429,81 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 				dst += 3;
 			}
 		}
+		if (avi_out) {
 #ifndef GPAC_DISABLE_AVILIB
-		if (AVI_write_frame(avi_out, conv_buf, fb.height*fb.width*3, 1) <0)
-			fprintf(stderr, "Error writing frame\n");
+			if (AVI_write_frame(avi_out, conv_buf, fb.height*fb.width*3, 1) <0)
+				fprintf(stderr, "Error writing frame\n");
+		} else
 #endif
+		if (sha_out) {
+			write_hash(sha_out, conv_buf, fb.height*fb.width*3);
+		}
+
+		/*in -depth -avi mode, do not release it yet*/
+		if (dump_mode_flags & DUMP_DEPTH_ONLY) return;
 		break;
-	case 2:
+	case DUMP_BMP:
 		write_bmp(&fb, rad_name, frameNum);
 		break;
-	case 12:
+	case DUMP_PNG:
 		write_png(&fb, rad_name, frameNum);
 		break;
-	case 3:
+	case DUMP_RAW:
 		write_raw(&fb, rad_name, frameNum);
 		break;
-	case 4:
+	default:
 		write_depthfile(&fb, rad_name, frameNum);
 		break;
-	case 7:
-		write_bmp(&fb, rad_name, frameNum);
-		break;
-
 	}
 	/*unlock it*/
-	/*in -depth -avi mode, do not release it yet*/
-	if (dump_type!=8) gf_sc_release_screen_buffer(term->compositor, &fb);
+	gf_sc_release_screen_buffer(term->compositor, &fb);
 }
 
-void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, char *conv_buf, void *avi_out)
+void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 frameNum, char *conv_buf, void *avi_out, FILE *sha_out)
 {
 	GF_Err e = GF_OK;
 	u32 i, k, out_size;
 	GF_VideoSurface fb;
 
+	u32 dump_mode = dump_mode_flags & 0x0000FFFF;
+	u32 depth_dump_mode = 0;
+
+	if (dump_mode_flags & DUMP_RGB_DEPTH_SHAPE) depth_dump_mode = 3;
+	else if (dump_mode_flags & DUMP_RGB_DEPTH) depth_dump_mode = 2;
+	else if (dump_mode_flags & DUMP_DEPTH_ONLY) depth_dump_mode = 1;
+
 	/*lock it*/
-	if (dump_type==5 || dump_type==6) e = gf_sc_get_screen_buffer(term->compositor, &fb, 2);
-	else if (dump_type== 9 || dump_type==10) e = gf_sc_get_screen_buffer(term->compositor, &fb, 3);
-	else e = gf_sc_get_screen_buffer(term->compositor, &fb, 0);
+	e = gf_sc_get_screen_buffer(term->compositor, &fb, depth_dump_mode);
 	if (e) fprintf(stderr, "Error grabbing frame buffer: %s\n", gf_error_to_string(e));
 
 	/*export frame*/
-	switch (dump_type) {
-	case 1:
-	case 5:
-	case 10:
-	case 8:
+	switch (dump_mode) {
+	case DUMP_AVI:
+	case DUMP_SHA1:
 		/*reverse frame*/
 		for (k=0; k<fb.height; k++) {
 			char *dst, *src;
 			u16 src_16;
-			if (dump_type==5 || dump_type==10) dst = conv_buf + k*fb.width*4;
+			if (dump_mode_flags & (DUMP_RGB_DEPTH | DUMP_RGB_DEPTH_SHAPE)) dst = conv_buf + k*fb.width*4;
 			else dst = conv_buf + k*fb.width*3;
+
 			src = fb.video_buffer + (fb.height-k-1) * fb.pitch_y;
 
 			switch (fb.pixel_format) {
 			case GF_PIXEL_RGB_32:
-			case GF_PIXEL_RGBA:
 				for (i=0; i<fb.width; i++) {
 					dst[0] = src[0];
 					dst[1] = src[1];
 					dst[2] = src[2];
+					src+=4;
+					dst += 3;
+				}
+				break;
+			case GF_PIXEL_RGBA:
+				for (i=0; i<fb.width; i++) {
+					dst[0] = src[2];
+					dst[1] = src[1];
+					dst[2] = src[0];
 					src+=4;
 					dst += 3;
 				}
@@ -551,41 +586,99 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 				break;
 			}
 		}
-		if (dump_type!=5 && dump_type!= 10 && dump_type!= 11) {
-			out_size = fb.height*fb.width*3;
-		} else {
+		if (dump_mode_flags & (DUMP_RGB_DEPTH | DUMP_RGB_DEPTH_SHAPE))  {
 			out_size = fb.height*fb.width*4;
-		}
-#ifndef GPAC_DISABLE_AVILIB
-		if (dump_type!=5 && dump_type!= 10) {
-			if (AVI_write_frame(avi_out, conv_buf, out_size, 1) <0)
-				fprintf(stderr, "Error writing frame\n");
 		} else {
+			out_size = fb.height*fb.width*3;
+		}
+		if (avi_out) {
+#ifndef GPAC_DISABLE_AVILIB
 			if (AVI_write_frame(avi_out, conv_buf, out_size, 1) <0)
 				fprintf(stderr, "Error writing frame\n");
-		}
+		} else 
 #endif
+		if (sha_out) {
+			write_hash(sha_out, conv_buf, out_size);
+		}
 		break;
-	case 2:
+	case DUMP_BMP:
 		write_bmp(&fb, rad_name, frameNum);
 		break;
-	case 11:
+	case DUMP_PNG:
 		write_png(&fb, rad_name, frameNum);
 		break;
-	case 6:
-	case 9:
-		write_texture_file(&fb, rad_name, frameNum, dump_type);
+	case DUMP_RAW:
+		write_raw(&fb, rad_name, frameNum);
 		break;
 
-	case 3:
-		write_raw(&fb, rad_name, frameNum);
+	default:
+		write_texture_file(&fb, rad_name, frameNum, dump_mode_flags);
 		break;
 	}
 	/*unlock it*/
 	gf_sc_release_screen_buffer(term->compositor, &fb);
 }
 
-Bool dump_file(char *url, char *out_url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times)
+#ifndef GPAC_DISABLE_AVILIB
+
+typedef struct 
+{
+	GF_AudioListener al;
+	GF_Mutex *mx;
+	avi_t *avi;
+	u32 time_scale;
+	u64 max_dur, nb_bytes, audio_time;
+	u32 next_video_time, audio_time_init, flush_retry, nb_write, audio_clock_at_video_init;
+    u32 samplerate, bits_per_sample, nb_channel;
+} AVI_AudioListener;
+
+void avi_audio_frame(void *udta, char *buffer, u32 buffer_size, u32 time, u32 delay)
+{
+	AVI_AudioListener *avil = (AVI_AudioListener *)udta;
+
+	if (avil->audio_clock_at_video_init > time) 
+		return;
+
+	if (avil->audio_time >= avil->audio_time_init + avil->max_dur)
+		return;
+
+	gf_mx_p(avil->mx);
+
+    if (!avil->time_scale) {
+        AVI_set_audio(avil->avi, avil->nb_channel, avil->samplerate, avil->bits_per_sample, WAVE_FORMAT_PCM, 0);
+        avil->time_scale = avil->nb_channel*avil->bits_per_sample*avil->samplerate/8;
+		gf_term_set_option(term, GF_OPT_FORCE_AUDIO_CONFIG, 1);
+    }
+    
+	avil->nb_bytes+=buffer_size;
+	avil->flush_retry=0;
+
+	if (avil->audio_time >= avil->audio_time_init) {
+		avil->nb_write++;
+		AVI_write_audio(avil->avi, buffer, buffer_size);
+	}
+
+
+	avil->audio_time = 1000*avil->nb_bytes/avil->time_scale;
+
+	//we are behind video dump, force audio flush 
+	if (avil->audio_time < avil->next_video_time)  {
+		gf_term_step_clocks(term, 0);
+	}
+	gf_mx_v(avil->mx);
+}
+
+void avi_audio_reconfig(void *udta, u32 samplerate, u32 bits_per_sample, u32 nb_channel, u32 channel_cfg)
+{
+	AVI_AudioListener *avil = (AVI_AudioListener *)udta;
+
+    avil->nb_channel = nb_channel;
+    avil->samplerate = samplerate;
+    avil->bits_per_sample = bits_per_sample;
+}
+#endif
+
+Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times)
 {
 	GF_Err e;
 	u32 i = 0;
@@ -593,7 +686,23 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode, Double fps, u32 width, u
 	char szPath[GF_MAX_PATH];
 	char szOutPath[GF_MAX_PATH];
 	char *prev=NULL;
+	u32 time, prev_time, nb_frames, init_time;
+	u64 dump_dur;
+	char *conv_buf = NULL;
+#ifndef GPAC_DISABLE_AVILIB
+	avi_t *avi_out = NULL;
+	avi_t *depth_avi_out = NULL;
+	GF_Mutex *avi_mx = NULL;
+	AVI_AudioListener avi_al;
+#endif
+	FILE *sha_out = NULL;
+	FILE *sha_depth_out = NULL;
+	char szPath_depth[GF_MAX_PATH];
+	char comp[5];
+	u32 cur_time_idx;
+	u32 mode = dump_mode_flags & 0x0000FFFF;
 
+    if (!out_url) out_url = url;
 	prev = strstr(url, "://");
 	if (prev) {
 		prev = strrchr(url, '/');
@@ -665,105 +774,196 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode, Double fps, u32 width, u
 		gf_sc_release_screen_buffer(term->compositor, &fb);
 	}
 
-	if (dump_mode==1 || dump_mode==5 || dump_mode==8 || dump_mode==10) {
+
+	strcpy(szPath_depth, szOutPath);
+
+	if (mode==DUMP_AVI) {
 #ifdef GPAC_DISABLE_AVILIB
 		fprintf(stderr, "AVILib is disabled in this build of GPAC\n");
 		return 0;
 #else
-		u32 time, prev_time, nb_frames;
-		u64 dump_dur;
-		char *conv_buf;
-		avi_t *avi_out = NULL;
-		avi_t *depth_avi_out = NULL;
-		char szPath_depth[GF_MAX_PATH];
-		char comp[5];
-		strcpy(szPath_depth, szOutPath);
 		strcat(szOutPath, ".avi");
 		avi_out = AVI_open_output_file(szOutPath);
 		if (!avi_out) {
 			fprintf(stderr, "Error creating AVI file %s\n", szOutPath);
 			return 1;
 		}
-		if (dump_mode==8) {
+#endif
+	}
+	
+	if (mode==DUMP_SHA1) {
+		strcat(szOutPath, ".sha1");
+		sha_out = gf_fopen(szOutPath, "wb");
+		if (!sha_out) {
+			fprintf(stderr, "Error creating SHA file %s\n", szOutPath);
+			return 1;
+		}
+	}
+
+	if (dump_mode_flags & DUMP_DEPTH_ONLY) {
+		if (mode==DUMP_AVI) {
+#ifndef GPAC_DISABLE_AVILIB
 			strcat(szPath_depth, "_depth.avi");
 			depth_avi_out = AVI_open_output_file(szPath_depth);
 			if (!depth_avi_out) {
-				fprintf(stderr, "Error creating AVI file %s\n", szPath_depth);
+				fprintf(stderr, "Error creating depth AVI file %s\n", szPath_depth);
+				return 1;
+			}
+#endif
+		}
+		if (mode==DUMP_SHA1) {
+			strcat(szPath_depth, "_depth.sha1");
+			sha_depth_out = gf_fopen(szPath_depth, "wb");
+			if (!sha_depth_out) {
+				fprintf(stderr, "Error creating depgth SHA file %s\n", szPath_depth);
 				return 1;
 			}
 		}
+	}
 
-		if (!fps) fps = GF_IMPORT_DEFAULT_FPS;
-		time = prev_time = 0;
-		nb_frames = 0;
 
-		if (nb_times==2) {
-			prev_time = times[0];
-			dump_dur = times[1] - times[0];
-		} else {
-			dump_dur = times[0] ? times[0] : Duration;
-		}
-		if (!dump_dur) {
-			fprintf(stderr, "Warning: file has no duration, defaulting to 1 sec\n");
-			dump_dur = 1000;
-		}
+	if (!fps) fps = GF_IMPORT_DEFAULT_FPS;
+	time = prev_time = 0;
+	nb_frames = 0;
 
+	if (nb_times==2) {
+		prev_time = times[0];
+		dump_dur = times[1] - times[0];
+	} else if ((mode==DUMP_AVI) || (mode==DUMP_SHA1)) {
+		dump_dur = times[0] ? times[0] : Duration;
+	} else {
+		dump_dur = times[nb_times-1];
+		dump_dur ++;
+	}
+	if (!dump_dur) {
+		fprintf(stderr, "Warning: file has no duration, defaulting to 1 sec\n");
+		dump_dur = 1000;
+	}
+
+	if (mode==DUMP_AVI) {
+#ifndef GPAC_DISABLE_AVILIB
 		comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
 		AVI_set_video(avi_out, width, height, fps, comp);
-		if (dump_mode==8) AVI_set_video(depth_avi_out, width, height, fps, comp);
-		if (dump_mode != 5 && dump_mode!=10) conv_buf = gf_malloc(sizeof(char) * width * height * 3);
-		else conv_buf = gf_malloc(sizeof(char) * width * height * 4);
-		/*step to first frame*/
-		if (prev_time) gf_term_step_clocks(term, prev_time);
 
-		while (time < dump_dur) {
-			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
-				gf_term_process_flush(term);
-			}
-			fprintf(stderr, "Dumping %02d/100 %% - time %.02f sec\r", (u32) ((100.0*prev_time)/dump_dur), prev_time/1000.0 );
+		avi_mx = gf_mx_new("AVIMutex");
+		
+		if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
+			memset(&avi_al, 0, sizeof(avi_al));
+			avi_al.al.udta = &avi_al;
+			avi_al.al.on_audio_frame = avi_audio_frame;
+			avi_al.al.on_audio_reconfig = avi_audio_reconfig;
+			avi_al.mx = avi_mx;
+			avi_al.avi = avi_out;
+			avi_al.max_dur=dump_dur;
 
-			if (dump_mode==8) {
+			gf_sc_add_audio_listener(term->compositor, &avi_al.al);
+		}
+
+		if (dump_mode_flags & DUMP_DEPTH_ONLY) 
+			AVI_set_video(depth_avi_out, width, height, fps, comp);
+#endif
+	}
+
+	if ((mode==DUMP_AVI) || (mode==DUMP_SHA1)) {
+		
+		if (dump_mode_flags & (DUMP_RGB_DEPTH | DUMP_RGB_DEPTH_SHAPE) ) 
+			conv_buf = gf_malloc(sizeof(char) * width * height * 4);
+		else
+			conv_buf = gf_malloc(sizeof(char) * width * height * 3);
+	}
+
+	cur_time_idx = 0;
+	init_time = 0;
+	/*step to first frame*/
+	if (prev_time) {
+		gf_term_step_clocks(term, prev_time);
+		init_time = prev_time;
+		prev_time=0;
+	}
+#ifndef GPAC_DISABLE_AVILIB
+	avi_al.audio_time_init = avi_al.next_video_time = init_time;
+	avi_al.audio_clock_at_video_init = gf_term_get_clock(term);
+#endif
+
+	while (time < dump_dur) {
+		while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
+			gf_term_process_flush(term);
+		}
+
+		if ((mode==DUMP_AVI) || (mode==DUMP_SHA1)) {
+
+            if (!no_prog)
+                fprintf(stderr, "Dumping %02d/100 %% - time %.02f sec\r", (u32) ((100.0*prev_time)/dump_dur), prev_time/1000.0 );
+
+			if (avi_mx) gf_mx_p(avi_mx);
+
+			if (dump_mode_flags & DUMP_DEPTH_ONLY) {
+
 				/*we'll dump both buffers at once*/
 				gf_mx_p(term->compositor->mx);
-				dump_depth(term, szPath_depth, dump_mode, i+1, conv_buf, depth_avi_out);
-				dump_frame(term, szOutPath, dump_mode, i+1, conv_buf, avi_out);
+				dump_depth(term, szPath_depth, dump_mode_flags, i+1, conv_buf, depth_avi_out, sha_depth_out);
+				dump_frame(term, szOutPath, mode, i+1, conv_buf, avi_out, sha_out);
 				gf_mx_v(term->compositor->mx);
-
+			} else {
+				dump_frame(term, szOutPath, dump_mode_flags, i+1, conv_buf, avi_out, sha_out);
 			}
-			else dump_frame(term, szOutPath, dump_mode, i+1, conv_buf, avi_out);
 
-			nb_frames++;
-			time = (u32) (nb_frames*1000/fps);
-			gf_term_step_clocks(term, time - prev_time);
-			prev_time = time;
+			if (avi_mx) gf_mx_v(avi_mx);
 
-			if (gf_prompt_has_input() && (gf_prompt_get_char()=='q')) {
-				fprintf(stderr, "Aborting dump\n");
-				break;
+		} else {
+			if ( times[cur_time_idx] <= time) {
+				if (dump_mode_flags & (DUMP_DEPTH_ONLY | DUMP_RGB_DEPTH | DUMP_RGB_DEPTH_SHAPE) ) {
+					dump_depth(term, szOutPath, dump_mode_flags, cur_time_idx+1, NULL, NULL, NULL);
+				} else {
+					dump_frame(term, out_url, dump_mode_flags, cur_time_idx+1, NULL, NULL, NULL);
+				}
+
+				cur_time_idx++;
+				if (cur_time_idx>=nb_times)
+					break;
 			}
 		}
-		AVI_close(avi_out);
-		if (dump_mode==8) AVI_close(depth_avi_out);
-		gf_free(conv_buf);
-		fprintf(stderr, "AVI Extraction 100/100\n");
-#endif /*GPAC_DISABLE_AVILIB*/
-	} else {
-		if (times[0]) gf_term_step_clocks(term, times[0]);
 
-		for (i=0; i<nb_times; i++) {
-			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
-				gf_term_process_flush(term);
-			}
+		nb_frames++;
+		time = (u32) (nb_frames*1000/fps);
+		avi_al.next_video_time = init_time + time;
+		gf_term_step_clocks(term, time - prev_time);
+		prev_time = time;
 
-			if (dump_mode==4 || dump_mode==7 || dump_mode==12) {
-				dump_depth(term, szOutPath, dump_mode, i+1, NULL, NULL);
-			} else {
-				dump_frame(term, out_url, dump_mode, i+1, NULL, NULL);
-			}
-
-			if (i+1<nb_times) gf_term_step_clocks(term, times[i+1] - times[i]);
+		if (gf_prompt_has_input() && (gf_prompt_get_char()=='q')) {
+			fprintf(stderr, "Aborting dump\n");
+			dump_dur=0;
+			break;
 		}
 	}
+
+	//flush audio dump
+	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
+		avi_al.flush_retry=0;
+		while ((avi_al.flush_retry <100) && (avi_al.audio_time < dump_dur)) {
+			gf_term_step_clocks(term, 0);
+			gf_sleep(1);
+			avi_al.flush_retry++;
+		}
+	}
+
+#ifndef GPAC_DISABLE_AVILIB
+	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
+		gf_sc_remove_audio_listener(term->compositor, &avi_al.al);
+	}
+	if (avi_out) AVI_close(avi_out);
+	if (depth_avi_out) AVI_close(depth_avi_out);
+	if (avi_mx) gf_mx_del(avi_mx);
+#endif
+
+	if (sha_out) gf_fclose(sha_out);
+	if (sha_depth_out) gf_fclose(sha_depth_out);
+
+	if (conv_buf) {
+		gf_free(conv_buf);
+		fprintf(stderr, "Dumping done: %d frames at %g FPS\n", nb_frames, fps);
+	}
+
 	return 0;
 }
 

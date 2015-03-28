@@ -130,7 +130,6 @@ typedef struct
 
 	u32 width, height;
 	u32 fs_width, fs_height;
-	u32 fs_store_width, fs_store_height;
 	u32 store_width, store_height;
 	LONG backup_styles;
 	Bool alt_down, ctrl_down;

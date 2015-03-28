@@ -123,7 +123,7 @@ static GF_ESD *AAC_GetESD(AACReader *read)
 {
 	GF_BitStream *dsi;
 	GF_ESD *esd;
-	u32 i, sbr_sr_idx;
+	u32 i, sbr_sr_idx, sbr_oti;
 
 	esd = gf_odf_desc_esd_new(0);
 	if (!esd)
@@ -142,16 +142,20 @@ static GF_ESD *AAC_GetESD(AACReader *read)
 	gf_bs_write_int(dsi, read->nb_ch, 4);
 	gf_bs_align(dsi);
 
-	/*always signal implicit S	BR in case it's used*/
-	sbr_sr_idx = read->sr_idx;
-	for (i=0; i<16; i++) {
-		if (GF_M4ASampleRates[i] == (u32) 2*read->sample_rate) {
-			sbr_sr_idx = i;
-			break;
+	sbr_sr_idx = 0;
+	sbr_oti = 0;
+	/*always signal implicit SBR for <=24000,  in case it's used*/
+	if (read->sample_rate<=24000) {
+		sbr_sr_idx = read->sr_idx;
+		for (i=0; i<16; i++) {
+			if (GF_M4ASampleRates[i] == (u32) 2*read->sample_rate) {
+				sbr_sr_idx = i;
+				break;
+			}
 		}
 	}
 	gf_bs_write_int(dsi, 0x2b7, 11);
-	gf_bs_write_int(dsi, 5, 5);
+	gf_bs_write_int(dsi, sbr_oti, 5);
 	gf_bs_write_int(dsi, 1, 1);
 	gf_bs_write_int(dsi, sbr_sr_idx, 4);
 
@@ -260,7 +264,7 @@ static Bool AAC_ConfigureFromFile(AACReader *read)
 
 	read->duration = 0;
 
-	if (0 && !read->is_remote) {
+	if (!read->is_remote) {
 		read->duration = 1024;
 		gf_bs_skip_bytes(bs, hdr.frame_size);
 		while (ADTS_SyncFrame(bs, !read->is_remote, &hdr)) {
@@ -269,7 +273,7 @@ static Bool AAC_ConfigureFromFile(AACReader *read)
 		}
 	}
 	gf_bs_del(bs);
-	gf_f64_seek(read->stream, 0, SEEK_SET);
+	gf_fseek(read->stream, 0, SEEK_SET);
 	return 1;
 }
 
@@ -491,7 +495,7 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
-			read->stream = gf_f64_open((char *) szCache, "rb");
+			read->stream = gf_fopen((char *) szCache, "rb");
 			if (!read->stream) e = GF_SERVICE_ERROR;
 			else {
 				/*if full file at once (in cache) parse duration*/
@@ -504,7 +508,7 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 					if (bytes_done>10*1024) {
 						e = GF_CORRUPTED_DATA;
 					} else {
-						fclose(read->stream);
+						gf_fclose(read->stream);
 						read->stream = NULL;
 						return;
 					}
@@ -571,7 +575,7 @@ static void AAC_Reader_del(AACReader * read)
 		gf_free(read->icy_track_name);
 	read->icy_name = read->icy_genre = read->icy_track_name = NULL;
 	if (read->stream)
-		fclose(read->stream);
+		gf_fclose(read->stream);
 	if (read->data)
 		gf_free(read->data);
 	read->data = NULL;
@@ -625,11 +629,11 @@ static GF_Err AAC_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	}
 
 	reply = GF_OK;
-	read->stream = gf_f64_open(szURL, "rb");
+	read->stream = gf_fopen(szURL, "rb");
 	if (!read->stream) {
 		reply = GF_URL_ERROR;
 	} else if (!AAC_ConfigureFromFile(read)) {
-		fclose(read->stream);
+		gf_fclose(read->stream);
 		read->stream = NULL;
 		reply = GF_NOT_SUPPORTED;
 	}
@@ -761,7 +765,7 @@ static GF_Err AAC_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		read->start_range = com->play.start_range;
 		read->end_range = com->play.end_range;
 		read->current_time = 0;
-		if (read->stream) gf_f64_seek(read->stream, 0, SEEK_SET);
+		if (read->stream) gf_fseek(read->stream, 0, SEEK_SET);
 
 		if (read->ch == com->base.on_channel) {
 			read->done = 0;
@@ -822,7 +826,7 @@ static GF_Err AAC_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 		*is_new_data = 1;
 
 fetch_next:
-		pos = gf_f64_tell(read->stream);
+		pos = gf_ftell(read->stream);
 		sync = ADTS_SyncFrame(bs, !read->is_remote, &hdr);
 		if (!sync) {
 			gf_bs_del(bs);
@@ -833,8 +837,8 @@ fetch_next:
 					if ((read->input->query_proxy(read->input, &param)==GF_OK)
 					        && param.url_query.next_url
 					   ) {
-						fclose(read->stream);
-						read->stream = gf_f64_open(param.url_query.next_url, "rb");
+						gf_fclose(read->stream);
+						read->stream = gf_fopen(param.url_query.next_url, "rb");
 						*out_reception_status = GF_OK;
 						return GF_OK;
 					}
@@ -843,7 +847,7 @@ fetch_next:
 				*out_reception_status = GF_EOS;
 				read->done = 1;
 			} else {
-				gf_f64_seek(read->stream, pos, SEEK_SET);
+				gf_fseek(read->stream, pos, SEEK_SET);
 				*out_reception_status = GF_OK;
 			}
 			return GF_OK;
@@ -986,6 +990,6 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( aac_in )
+GPAC_MODULE_STATIC_DECLARATION( aac_in )
 
 #endif

@@ -116,7 +116,8 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 	GF_CodecCapability cap;
 	u32 min, max;
 
-
+	if (ch && (ch->MaxBuffer<=100))
+		codec->flags |= GF_ESM_CODEC_IS_LOW_LATENCY;
 
 	/*only for valid codecs (eg not OCR)*/
 	if (codec->decio) {
@@ -534,11 +535,11 @@ refetch_AU:
 		}
 	}
 	//scalable addon, browse channels in scalable object
-	if (current_odm->scalable_odm) {
+	if (current_odm->upper_layer_odm) {
 		if (*nextAU) {
-			gf_scene_check_addon_restart(current_odm->scalable_odm->parentscene->root_od->addon, (*nextAU)->CTS, (*nextAU)->DTS);
+			gf_scene_check_addon_restart(current_odm->upper_layer_odm->parentscene->root_od->addon, (*nextAU)->CTS, (*nextAU)->DTS);
 		}
-		current_odm = current_odm->scalable_odm;
+		current_odm = current_odm->upper_layer_odm;
 		src_channels = current_odm->channels;
 		scalable_check = 1;
 		goto browse_scalable;
@@ -623,7 +624,7 @@ static GF_Err SystemCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	u32 obj_time, mm_level, au_time, cts;
 	u64 now;
 	GF_Scene *scene_locked;
-	Bool check_next_unit;
+	Bool check_next_unit = GF_FALSE;
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)codec->decio;
 	GF_Err e = GF_OK;
 
@@ -633,7 +634,8 @@ static GF_Err SystemCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	"frame dropping" is done by preventing the compositor from redrawing after an update and decoding following AU
 	so that the compositor is always woken up once all late systems AUs are decoded. This flag is overriden when
 	seeking*/
-	check_next_unit = (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) ? 1 : 0;
+	if ( (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) || (codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY) )
+		check_next_unit = GF_TRUE;
 
 check_unit:
 
@@ -905,11 +907,6 @@ GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize)
 		u32 unit_size, audio_buf_len, unit_count;
 		GF_CodecCapability cap;
 		unit_size = NewSize;
-		/*a bit ugly, make some extra provision for speed >1. this is the drawback of working with pre-allocated memory
-		for composition, we may get into cases where there will never be enough data for high speeds...
-		FIXME - WE WILL NEED TO MOVE TO DYNAMIC CU BLOCKS IN ORDER TO SUPPORT ANY SPEED, BUT WHAT IS THE IMPACT
-		FOR LOW RESOURCES DEVICES ??*/
-//		audio_buf_len = 1000;
 		audio_buf_len = 200;
 
 		cap.CapCode = GF_CODEC_BUFFER_MAX;
@@ -930,7 +927,9 @@ GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize)
 	//reset bitrate compute
 	dec->cur_bit_size = 0;
 	dec->last_stat_start = 0;
-	if ((dec->type==GF_STREAM_VISUAL) && dec->odm->parentscene->is_dynamic_scene && !dec->odm->parentscene->root_od->addon) {
+
+	//if dynamic scene, set size
+	if ((dec->type==GF_STREAM_VISUAL) && dec->odm->parentscene->is_dynamic_scene) {
 		gf_scene_force_size_to_video(dec->odm->parentscene, dec->odm->mo);
 	}
 	return GF_OK;
@@ -964,8 +963,10 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	entryTime = gf_sys_clock_high_res();
 
-	if (!codec->odm->term->bench_mode && (codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES))
-		drop_late_frames = 1;
+	if (!codec->odm->term->bench_mode) {
+		if ((codec->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) || (codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY))
+			drop_late_frames = GF_TRUE;
+	}
 
 
 	/*fetch next AU in DTS order for this codec*/
@@ -1058,7 +1059,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		codec->consecutive_ontime_frames = 0;
 
 		if (codec->type==GF_STREAM_AUDIO) {
-			if (ABS(codec->ck->speed) >8) {
+			if (ABS(FIX2FLT(codec->ck->speed)) > 8) {
 				codec->decode_only_rap = 2;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] Speed %g too hight for audio decoder/renderer - skipping decode\n", codec->decio->module_name, FIX2FLT(codec->ck->speed)));
 			}
@@ -1096,8 +1097,14 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		/*set media processing level*/
 		ch->last_au_was_seek = 0;
 		mmlevel = GF_CODEC_LEVEL_NORMAL;
-		/*SEEK: if the last frame had the same TS, we are seeking. Ask the codec to drop*/
-		if (!ch->skip_sl && codec->last_unit_cts && (codec->last_unit_cts == AU->CTS) && !ch->esd->dependsOnESID) {
+
+		/*explicit seek*/
+		if (AU->flags & GF_DB_AU_IS_SEEK) {
+			mmlevel = GF_CODEC_LEVEL_SEEK;
+			ch->last_au_was_seek = 1;
+		}
+		/*implicit seek: if the last frame had the same TS, we are seeking. Ask the codec to drop*/
+		else if (!ch->skip_sl && codec->last_unit_cts && (codec->last_unit_cts == AU->CTS) && !ch->esd->dependsOnESID) {
 			mmlevel = GF_CODEC_LEVEL_SEEK;
 			ch->last_au_was_seek = 1;
 			/*object clock is paused by media control or terminal is paused: exact frame seek*/
@@ -1298,6 +1305,7 @@ scalable_retry:
 						gf_sc_set_video_pending_frame(codec->odm->term->compositor);
 					}
 				}
+				CU->sender_ntp = AU->sender_ntp;
 			}
 #if 0
 			/*if no size and the decoder is not using the composition memory - if the object is in intitial buffering resume it!!*/
@@ -1394,6 +1402,9 @@ scalable_retry:
 		}
 
 		UnlockCompositionUnit(codec, CU, unit_size);
+		if (unit_size) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d dispatched frame CTS %d in CB\n", codec->decio->module_name, gf_clock_real_time(ch->clock), CU->TS));
+		}
 		if (!ch || !AU) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because no more input data\n", codec->decio->module_name));
 			return GF_OK;
@@ -1612,7 +1623,7 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 		codec->nb_dispatch_skipped = 0;
 		memset(codec->last_unit_signature, 0, sizeof(codec->last_unit_signature));
 	}
-	else 
+	else
 		codec->Status = Status;
 
 	if (!codec->CB) return;

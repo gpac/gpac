@@ -20,7 +20,7 @@ OBJS= pulseaudio.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_pulseaudio.$(DYN_LIB_SUFFIX)
+LIB=gm_pulseaudio$(DYN_LIB_SUFFIX)
 
 all: $(LIB)
 

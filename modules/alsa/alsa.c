@@ -376,4 +376,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		DeleteALSAOutput((GF_AudioOutput*)ifce);
 }
 
-GPAC_MODULE_STATIC_DELARATION( alsa )
+GPAC_MODULE_STATIC_DECLARATION( alsa )

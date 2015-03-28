@@ -462,8 +462,8 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 		png_set_tRNS_to_alpha(png_ptr);
 		png_read_update_info(png_ptr, info_ptr);
 	}
-	*width = png_get_image_width(png_ptr, info_ptr);
-	*height = png_get_image_height(png_ptr, info_ptr);
+	*width = (u32) png_get_image_width(png_ptr, info_ptr);
+	*height = (u32) png_get_image_height(png_ptr, info_ptr);
 
 	switch (png_get_color_type(png_ptr, info_ptr)) {
 	case PNG_COLOR_TYPE_GRAY:
@@ -485,7 +485,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 
 	}
 
-	out_size = png_get_rowbytes(png_ptr, info_ptr) * png_get_image_height(png_ptr, info_ptr);
+	out_size = (u32) (png_get_rowbytes(png_ptr, info_ptr) * png_get_image_height(png_ptr, info_ptr));
 	/*new cfg, reset*/
 	if (*dst_size != out_size) {
 		*dst_size  = out_size;
@@ -494,9 +494,10 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 		return GF_BUFFER_TOO_SMALL;
 	}
 	*dst_size  = out_size;
+	if (!dst) return GF_BAD_PARAM;
 
 	/*read*/
-	stride = png_get_rowbytes(png_ptr, info_ptr);
+	stride = (u32) png_get_rowbytes(png_ptr, info_ptr);
 	rows = (png_bytepp) gf_malloc(sizeof(png_bytep) * png_get_image_height(png_ptr, info_ptr));
 	for (i=0; i<png_get_image_height(png_ptr, info_ptr); i++) {
 		rows[i] = (png_bytep)dst + i*stride;
@@ -671,14 +672,14 @@ GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pi
 		goto exit;
 	}
 
-	png = gf_f64_open(dst_file, "wb");
+	png = gf_fopen(dst_file, "wb");
 	if (!png) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNG]: Error opening destination file %s\n", dst_file ));
 		goto exit;
 	}
 
 	gf_fwrite(dst, dst_size, 1, png);
-	fclose(png);
+	gf_fclose(png);
 
 exit:
 	gf_free(dst);
@@ -703,14 +704,14 @@ GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pi
 }
 #endif	/*GPAC_HAS_PNG*/
 
-
+GF_EXPORT
 GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
 {
 	u32 fsize, read, oti;
 	FILE *f;
 	char *data;
 	GF_Err e;
-	f = gf_f64_open(png_filename, "rb");
+	f = gf_fopen(png_filename, "rb");
 	if (!f) return GF_URL_ERROR;
 
 	oti = 0;
@@ -719,13 +720,15 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *heigh
 		if (!ext) return GF_NOT_SUPPORTED;
 		if (!stricmp(ext, ".png")) oti = GPAC_OTI_IMAGE_PNG;
 		else if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) oti = GPAC_OTI_IMAGE_JPEG;
+	} else if (hint_oti) {
+		oti = *hint_oti;
 	}
-	gf_f64_seek(f, 0, SEEK_END);
-	fsize = (u32)gf_f64_tell(f);
-	gf_f64_seek(f, 0, SEEK_SET);
+	gf_fseek(f, 0, SEEK_END);
+	fsize = (u32)gf_ftell(f);
+	gf_fseek(f, 0, SEEK_SET);
 	data = gf_malloc(fsize);
 	read = (u32) fread(data, sizeof(char), fsize, f);
-	fclose( f );
+	gf_fclose( f );
 	if (read != fsize) return GF_IO_ERR;
 
 	e = GF_NOT_SUPPORTED;
@@ -735,7 +738,7 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *heigh
 		e = gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);
 		if (*dst_size) {
 			*dst = gf_malloc(*dst_size);
-			return gf_img_jpeg_dec(data, fsize, width, height, pixel_format, NULL, dst_size, 0);
+			return gf_img_jpeg_dec(data, fsize, width, height, pixel_format, *dst, dst_size, 0);
 		}
 #endif
 	} else if (oti == GPAC_OTI_IMAGE_PNG) {

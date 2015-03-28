@@ -1,8 +1,15 @@
 set OLDDIR=%CD%
 cd /d %~dp0
 
-for /f "delims=" %%a in ('svnversion ') do set gpac_revision=%%a
-set gpac_version="0.5.1-DEV-r%gpac_revision%"
+for /f "delims=" %%a in ('git describe --tags --long') do @set VERSION=%%a
+for /f "delims=" %%a in ('git describe --tags --abbrev=0') do @set TAG=%%a-
+for /f "delims=" %%a in ('git rev-parse --abbrev-ref HEAD') do @set BRANCH=%%a
+REM remove anotated tag from VERSION
+setlocal enabledelayedexpansion
+call set VERSION=%%VERSION:!TAG!=%%
+setlocal disabledelayedexpansion
+set revision="%VERSION%-%BRANCH%"
+set gpac_version="0.5.2-DEV-r%gpac_revision%"
 
 zip "GPAC_%gpac_version%_WindowsMobile.zip" ../*.dll ../*.exe ../*.plg
 

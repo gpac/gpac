@@ -27,6 +27,7 @@
 
 #ifndef GPAC_DISABLE_BIFS
 
+#include <math.h>
 
 u32 gf_bifs_dec_qp14_get_bits(GF_BifsDecoder *codec)
 {

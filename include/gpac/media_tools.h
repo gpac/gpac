@@ -47,7 +47,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
  * \brief Get RFC 6381 description for @track from @movie.
  * \parama szCodec a pointer to an already allocated string.
  */
-GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec);
+GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec, Bool force_inband_xps);
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -119,8 +119,11 @@ enum
 	/*keep trailing 0 bytes in AU payloads when any*/
 	GF_IMPORT_KEEP_TRAILING = 1<<17,
 
+	/*forces inband parameter sets*/
+	GF_IMPORT_FORCE_XPS_INBAND = 1<<18,
+
 	/*do not compute edit list for B-frames video tracks*/
-	GF_IMPORT_NO_EDIT_LIST = 1<<18,
+	GF_IMPORT_NO_EDIT_LIST = 1<<19,
 
 	/*when set, only updates tracks info and return*/
 	GF_IMPORT_PROBE_ONLY	= 1<<20,
@@ -132,6 +135,8 @@ enum
 	GF_IMPORT_NO_DURATION = 1<<23,
 	/*when set IP packets found in MPE sections will be sent to the local network */
 	GF_IMPORT_MPE_DEMUX = 1<<24,
+
+
 	/*when set by user during import, will abort*/
 	GF_IMPORT_DO_ABORT = 1<<31
 };
@@ -288,10 +293,10 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file);
 typedef struct
 {
 	char *file_name;
-	char representationID[100];
-	char periodID[100];
-	char xlink[100];
-	char role[100];
+	char *representationID;
+	char *periodID;
+	char *xlink;
+	char *role;
 	u32 nb_rep_descs;
 	char **rep_descs;
 	u32 nb_p_descs;
@@ -301,6 +306,7 @@ typedef struct
 	u32 nb_as_c_descs;
 	char **as_c_descs;
 	u32 bandwidth;
+	Double period_duration;
 } GF_DashSegmenterInput;
 
 typedef enum
@@ -321,11 +327,23 @@ typedef enum
 
 typedef enum
 {
-	GF_DASH_BSMODE_NONE = 0,
+	GF_DASH_BSMODE_DEFAULT, //=inband for live profile and none for onDemand
+	GF_DASH_BSMODE_NONE,
 	GF_DASH_BSMODE_INBAND,
 	GF_DASH_BSMODE_MERGED,
+	GF_DASH_BSMODE_MULTIPLE_ENTRIES,
 	GF_DASH_BSMODE_SINGLE
 } GF_DashSwitchingMode;
+
+
+typedef enum
+{
+	GF_DASH_STATIC = 0,
+	GF_DASH_DYNAMIC,
+	//can only be used when DASH segmenter context is used, will close the period
+	GF_DASH_DYNAMIC_LAST,
+	GF_DASH_DYNAMIC_DEBUG,
+} GF_DashDynamicMode;
 
 GF_Err gf_dasher_segment_files(const char *mpd_name, GF_DashSegmenterInput *inputs, u32 nb_inputs, GF_DashProfile profile,
                                const char *mpd_title, const char *mpd_source, const char *mpd_copyright,
@@ -333,11 +351,12 @@ GF_Err gf_dasher_segment_files(const char *mpd_name, GF_DashSegmenterInput *inpu
                                u32 use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching_mode,
                                Bool segments_start_with_rap, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, u32 segment_marker_4cc,
                                Double frag_duration_sec, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool fragments_start_with_rap, const char *tmp_dir,
-                               GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
-                               u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof);
+                               GF_Config *dash_ctx, GF_DashDynamicMode dash_mode, Double mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
+                               s32 ast_offset_ms, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults,
+							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc);
 
 /*returns time to wait until end of currently generated segments*/
-u32 gf_dasher_next_update_time(GF_Config *dash_ctx, u32 mpd_update_time);
+u32 gf_dasher_next_update_time(GF_Config *dash_ctx, Double mpd_update_time);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 

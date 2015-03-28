@@ -26,7 +26,7 @@
 
 
 #include <gpac/modules/audio_out.h>
-#include <gpac/math.h>
+#include <gpac/maths.h>
 
 #ifndef PI
 #define PI GF_PI
@@ -285,4 +285,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		DeleteAudioFilter((GF_AudioFilter*)ifce);
 }
 
-GPAC_MODULE_STATIC_DELARATION( audio_filter )
+GPAC_MODULE_STATIC_DECLARATION( audio_filter )

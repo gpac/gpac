@@ -108,6 +108,7 @@ typedef struct {
 	int insert_utc;
 
 	Bool use_source_timing;
+	Bool use_mem_track;
 } CmdData;
 
 /*

@@ -15,13 +15,13 @@ LDFLAGS+=-pg
 endif
 
 ## libgpac objects gathering: src/utils
-LIBGPAC_UTILS=utils/os_divers.o utils/list.o utils/bitstream.o utils/error.o utils/alloc.o utils/url.o utils/configfile.o 
+LIBGPAC_UTILS=utils/os_divers.o utils/os_file.o utils/list.o utils/bitstream.o utils/error.o utils/alloc.o utils/url.o utils/configfile.o 
 ifeq ($(DISABLE_CORE_TOOLS), no)
-LIBGPAC_UTILS+=utils/sha1.o  utils/base_encoding.o utils/os_net.o utils/os_thread.o utils/os_config_init.o utils/cache.o utils/downloader.o utils/xml_parser.o utils/utf.o utils/token.o 
+LIBGPAC_UTILS+=utils/sha1.o  utils/base_encoding.o utils/os_net.o utils/os_thread.o utils/os_config_init.o utils/cache.o utils/downloader.o utils/xml_parser.o utils/utf.o utils/token.o utils/color.o 
 endif
 
 ifeq ($(DISABLE_PLAYER), no)
-LIBGPAC_UTILS+=utils/color.o utils/os_module.o utils/math.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/uni_bidi.o utils/ringbuffer.o utils/unicode.o utils/map.o 
+LIBGPAC_UTILS+=utils/os_module.o utils/math.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/uni_bidi.o utils/ringbuffer.o utils/unicode.o utils/map.o 
 endif
 
 ## libgpac objects gathering: src/ietf
@@ -140,10 +140,9 @@ endif
 
 ifeq ($(DISABLE_PLAYER), no)
 LIBGPAC_MEDIATOOLS+=media_tools/html5_media.o media_tools/html5_mse.o
-ifeq ($(DISABLE_TTXT), no)
+endif
+
 LIBGPAC_MEDIATOOLS+=media_tools/webvtt.o
-endif
-endif
 
 
 ## libgpac objects gathering: src/scene_manager
@@ -271,6 +270,9 @@ endif
 OBJS+=../modules/timedtext/timedtext_dec.o ../modules/timedtext/timedtext_in.o
 OBJS+=../modules/validator/validator.o
 OBJS+=../modules/raw_out/raw_video.o
+ifeq ($(DISABLE_TTXT), no)
+OBJS+=../modules/vtt_in/vtt_in.o ../modules/vtt_in/vtt_dec.o
+endif
 
 OBJS+=../modules/img_in/img_dec.o ../modules/img_in/img_in.o ../modules/img_in/bmp_dec.o ../modules/img_in/png_dec.o ../modules/img_in/jpeg_dec.o
 ifneq ($(CONFIG_JP2), no)
@@ -557,9 +559,9 @@ endif
 
 
 ##libgpac library output
-LIB=libgpac.$(DYN_LIB_SUFFIX)
+LIB=libgpac$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-#LDFLAGS+=-export-symbols libgpac.def
+LDFLAGS+=-Wl,-out-implib=../bin/gcc/libgpac.dll.a
 else
 ifeq ($(CONFIG_DARWIN),yes)
 LDFLAGS+=-dynamiclib -install_name $(prefix)/lib/$(LIB)
@@ -614,11 +616,13 @@ else
 	$(AR) cr ../bin/gcc/libgpac_static.a $(OBJS)
 	$(RANLIB) ../bin/gcc/libgpac_static.a
 	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o $@ $(OBJS) $(EXTRALIBS)
-ifeq (,$(findstring yes, $(CONFIG_WIN32)))
+	
 	mv $@ $@.$(VERSION_SONAME)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@.$(VERSION_MAJOR)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@
 endif
+ifeq ($(shell fgrep "Libs.private:" ../gpac.pc),)
+	@echo "Libs.private: $(EXTRALIBS)" >> ../gpac.pc
 endif
 
 dep:

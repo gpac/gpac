@@ -102,6 +102,8 @@ typedef enum
 	GF_NET_SERVICE_INFO,
 	/*checks if there is an audio stream in the service - term->net only*/
 	GF_NET_SERVICE_HAS_AUDIO,
+	/*checks if the service can support reverse playback (speed<0) - term->service only*/
+	GF_NET_SERVICE_CAN_REVERSE_PLAYBACK,
 	/*send by the terminal to indicate the channel(s) on this service need more data - term->net only*/
 	GF_NET_SERVICE_FLUSH_DATA,
 
@@ -365,6 +367,7 @@ typedef struct __netinfocom
 	u32 command_type;
 	/*currently NULL only*/
 	LPNETCHANNEL on_channel;
+	u32 service_id;
 	/*packed trackNumber(16 bits)/totaltrack(16 bits)*/
 	u32 track_info;
 	u32 genre;
@@ -375,6 +378,10 @@ typedef struct __netinfocom
 	const char *name;
 	const char *writer;
 	const char *provider;
+	//as in MPEG_DASH role
+	const char *role;
+	const char *accessibility;
+	const char *rating;
 } GF_NetComInfo;
 
 /*GF_NET_SERVICE_HAS_AUDIO*/

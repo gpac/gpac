@@ -71,6 +71,8 @@ typedef struct {
 	char codec6381[GF_MAX_PATH];
 	/* custom parameter to be passed directly to the encoder - free it once you're done */
 	char custom[GF_MAX_PATH];
+	/*low delay is used*/
+	int low_delay;
 
 	/* used for source switching */
 	char source_id[GF_MAX_PATH];
@@ -88,6 +90,7 @@ typedef struct {
 	int height;
 	int crop_x, crop_y;
 	int pix_fmt;
+	AVRational sar;
 } VideoInputProp;
 
 /*
@@ -146,7 +149,7 @@ int dc_video_input_data_init(VideoInputData *video_input_data,/* int width, int 
 /*
  * Set properties for a VideoInputData.
  */
-void dc_video_input_data_set_prop(VideoInputData *video_input_data, int index, int width, int height, int crop_x, int crop_y, int pix_fmt);
+void dc_video_input_data_set_prop(VideoInputData *video_input_data, int index, int width, int height, int crop_x, int crop_y, int pix_fmt, AVRational sar);
 
 /*
  * Destroy a VideoInputData.

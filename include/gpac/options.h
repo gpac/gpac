@@ -275,6 +275,8 @@ enum
 	/*max HTTP download rate in bits per second, 0 if no limit*/
 	GF_OPT_HTTP_MAX_RATE,
 
+	/*set only (value: boolean). If set, the main audio mixer can no longer be reconfigured. */
+	GF_OPT_FORCE_AUDIO_CONFIG,
 
 	/*		3D ONLY OPTIONS		*/
 	/*set/get raster outline flag (value: boolean) - when set, no vectorial outlining is done, only

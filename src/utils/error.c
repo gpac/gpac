@@ -584,7 +584,7 @@ const char *gpac_features()
 {
 	const char *features = ""
 #ifdef GPAC_64_BITS
-	                       "GPAC_64_BITS"
+	                       "GPAC_64_BITS "
 #endif
 
 #ifdef GPAC_FIXED_POINT
@@ -774,7 +774,7 @@ static const struct lang_def {
 	{ "Bislama","bis","bi"} ,
 	{ "Blin; Bilin","byn",""} ,
 	{ "Blissymbols; Blissymbolics; Bliss","zbl",""} ,
-	{ "Bokmål, Norwegian; Norwegian Bokmal","nob","nb"} ,
+	{ "Bokmal, Norwegian; Norwegian Bokmal","nob","nb"} ,
 	{ "Bosnian","bos","bs"} ,
 	{ "Braj","bra",""} ,
 	{ "Breton","bre","br"} ,

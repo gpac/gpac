@@ -369,6 +369,18 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
+				<string>m4i</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_generic.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>MPEG-4 Application</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
 				<string>mp4</string>
 				<string>mpeg4</string>
 			</array>

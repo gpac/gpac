@@ -396,6 +396,13 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 #endif
 
 	}
+
+	//create a default mdat if none was found
+	if (!mov->mdat && (mov->openMode != GF_ISOM_OPEN_READ) && (mov->openMode != GF_ISOM_OPEN_CAT_FRAGMENTS)) {
+		mov->mdat = (GF_MediaDataBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDAT);
+		e = gf_list_add(mov->TopBoxes, mov->mdat);
+		if (e) return e;
+	}
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 	return GF_OK;

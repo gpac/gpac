@@ -131,7 +131,7 @@ void COsmo4AppView::Shutdown()
 		gf_term_del(t);
 	}
 	if (m_Logs) {
-		fclose(m_Logs);
+		gf_fclose(m_Logs);
 		m_Logs = NULL;
 	}
 	if (m_user.config) {
@@ -257,7 +257,7 @@ void COsmo4AppView::SetupLogs()
 			gf_cfg_set_key(m_user.config, "General", "LogFile", "\\data\\gpac_logs.txt");
 			filename = "\\data\\gpac_logs.txt";
 		}
-		m_Logs = gf_f64_open(filename, "wt");
+		m_Logs = gf_fopen(filename, "wt");
 		if (!m_Logs) {
 			MessageBox("Cannot open log file - disabling logs", "Warning !");
 		} else {
@@ -268,7 +268,7 @@ void COsmo4AppView::SetupLogs()
 	}
 	if (!do_log) {
 		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
-		if (m_Logs) fclose(m_Logs);
+		if (m_Logs) gf_fclose(m_Logs);
 	}
 
 	gf_log_set_callback(this, on_gpac_log);

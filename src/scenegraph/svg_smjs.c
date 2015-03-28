@@ -2558,7 +2558,7 @@ void html_media_js_api_del();
 
 void gf_svg_script_context_del(GF_SVGJS *svg_js, GF_SceneGraph *scenegraph)
 {
-	dom_js_pre_destroy(svg_js->js_ctx, scenegraph, NULL);
+	gf_sg_js_dom_pre_destroy(svg_js->js_ctx, scenegraph, NULL);
 	/*user-defined extensions*/
 	gf_sg_load_script_extensions(scenegraph, svg_js->js_ctx, svg_js->global, GF_TRUE);
 	gf_sg_ecmascript_del(svg_js->js_ctx);
@@ -2586,7 +2586,7 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 			svg_js->nb_scripts--;
 
 			/*detach this script from our object cache*/
-			dom_js_pre_destroy(svg_js->js_ctx, n->sgprivate->scenegraph, n);
+			gf_sg_js_dom_pre_destroy(svg_js->js_ctx, n->sgprivate->scenegraph, n);
 
 			if (!svg_js->nb_scripts) {
 				gf_svg_script_context_del(svg_js, n->sgprivate->scenegraph);
@@ -2670,7 +2670,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 	GF_SVGJS *svg_js;
 
 	svg_js = script->sgprivate->scenegraph->svg_js;
-	jsf = gf_f64_open(file, "rb");
+	jsf = gf_fopen(file, "rb");
 	if (!jsf) {
 		GF_JSAPIParam par;
 		GF_SceneGraph *scene = script->sgprivate->scenegraph;
@@ -2680,18 +2680,18 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 			abs_url = (char *) par.uri.url;
 
 		if (abs_url) {
-			jsf = gf_f64_open(abs_url, "rb");
+			jsf = gf_fopen(abs_url, "rb");
 			gf_free(abs_url);
 		}
 	}
 	if (!jsf) return GF_FALSE;
 
-	gf_f64_seek(jsf, 0, SEEK_END);
-	fsize = (u32) gf_f64_tell(jsf);
-	gf_f64_seek(jsf, 0, SEEK_SET);
+	gf_fseek(jsf, 0, SEEK_END);
+	fsize = (u32) gf_ftell(jsf);
+	gf_fseek(jsf, 0, SEEK_SET);
 	jsscript = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
 	fsize = (u32) fread(jsscript, sizeof(char), (size_t)fsize, jsf);
-	fclose(jsf);
+	gf_fclose(jsf);
 	jsscript[fsize] = 0;
 
 	/*for handler, only load code*/

@@ -893,7 +893,7 @@ static u32 xmt_parse_sf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node 
 		break;
 	case GF_SG_VRML_SFTIME:
 		res = xmt_parse_time(parser, info->name, (SFTime *)info->far_ptr, a_value);
-		xmt_check_time_offset(parser, n, info);
+		if (n) xmt_check_time_offset(parser, n, info);
 		break;
 	case GF_SG_VRML_SFCOLOR:
 		res = xmt_parse_float(parser, info->name, & ((SFColor *)info->far_ptr)->red, a_value);
@@ -1917,16 +1917,15 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 		else if (!strcmp(att->name, "ES_ID")) xmt_desc_name = att->value;
 		else if (!strcmp(att->name, "OCR_ES_ID")) ocr_ref = att->value;
 		else if (!strcmp(att->name, "dependsOn_ES_ID")) dep_ref = att->value;
-		else if ((desc->tag==GF_ODF_MUXINFO_TAG) && (!stricmp(att->name, "fileName") || !stricmp(att->name, "url"))) {
-			char *res_name = gf_url_concatenate(parser->load->fileName, (const char *)att->value);
-			e = gf_odf_set_field(desc, att->name, res_name ? res_name : att->value);
-			if (e) xmt_report(parser, e, "Warning: %s not a valid attribute for descriptor %s", att->name, name);
-			if (res_name)
-				gf_free(res_name);
-		} else {
+		else {
 			e = gf_odf_set_field(desc, att->name, att->value);
 			if (e) xmt_report(parser, e, "Warning: %s not a valid attribute for descriptor %s", att->name, name);
-		}
+            //store src path but do not concatenate, othewise we break BT<->XMT conversion ...
+            if ((desc->tag==GF_ODF_MUXINFO_TAG) && (!stricmp(att->name, "fileName") || !stricmp(att->name, "url"))) {
+                GF_MuxInfo *mux = (GF_MuxInfo *) desc;
+                if (!mux->src_url) mux->src_url = gf_strdup(parser->load->fileName);
+            }
+        }
 	}
 	if (binaryID || xmt_desc_name) {
 		if ((tag == GF_ODF_IOD_TAG) || (tag == GF_ODF_OD_TAG))
@@ -2705,7 +2704,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 					parser->command_buffer = NULL;
 				} else {
 					//empty <Insert>
-					if ((parser->command->tag==GF_SG_ROUTE_INSERT) && !parser->command->fromNodeID) {
+					if (parser->command && (parser->command->tag==GF_SG_ROUTE_INSERT) && !parser->command->fromNodeID) {
 						gf_list_del_item(parser->scene_au->commands, parser->command);
 					}
 					parser->command = NULL;

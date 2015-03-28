@@ -17,7 +17,7 @@
 #include <windows.h>
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
-#include <gpac/math.h>
+#include <gpac/maths.h>
 
 #define GL_GLEXT_PROTOTYPES
 

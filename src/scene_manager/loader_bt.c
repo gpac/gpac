@@ -166,7 +166,7 @@ void gf_bt_check_line(GF_BTParser *parser)
 		}
 
 next_line:
-		parser->line_start_pos = gztell(parser->gz_in);
+		parser->line_start_pos = (s32) gztell(parser->gz_in);
 		parser->line_buffer[0] = 0;
 		if (parser->unicode_type) {
 			u8 c1, c2;
@@ -202,13 +202,13 @@ next_line:
 					break;
 				}
 				else if (is_ret && wchar!='\n') {
-					u32 fpos = gztell(parser->gz_in);
+					u32 fpos = (u32) gztell(parser->gz_in);
 					gzseek(parser->gz_in, fpos-2, SEEK_SET);
 					is_ret = 1;
 					break;
 				}
 				if (wchar==' ') {
-					last_space_pos_stream = gztell(parser->gz_in);
+					last_space_pos_stream = (u32) gztell(parser->gz_in);
 					last_space_pos = (u32) (dst - l);
 				}
 				dst++;
@@ -260,7 +260,7 @@ next_line:
 						break;
 					}
 				}
-				pos = gztell(parser->gz_in);
+				pos = (u32) gztell(parser->gz_in);
 				gzseek(parser->gz_in, pos-rew, SEEK_SET);
 			}
 		}
@@ -281,7 +281,7 @@ next_line:
 		parser->line++;
 
 		{
-			u32 pos = gztell(parser->gz_in);
+			u32 pos = (u32) gztell(parser->gz_in);
 			if (pos>=parser->file_pos) {
 				parser->file_pos = pos;
 				if (parser->line>1) gf_set_progress("BT Parsing", pos, parser->file_size);
@@ -3062,12 +3062,8 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 		}
 	} else if (desc->tag==GF_ODF_MUXINFO_TAG) {
 		GF_MuxInfo *mi = (GF_MuxInfo *)desc;
-		if (mi->file_name) {
-			char *res_name = gf_url_concatenate(parser->load->fileName, (const char *) mi->file_name);
-			if (res_name) {
-				gf_free(mi->file_name);
-				mi->file_name = res_name;
-			}
+		if (! mi->src_url) {
+            mi->src_url = gf_strdup(parser->load->fileName);
 		}
 	}
 	return desc;
@@ -3489,11 +3485,11 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 	parser->last_error = GF_OK;
 
 	if (load->fileName) {
-		FILE *test = gf_f64_open(load->fileName, "rb");
+		FILE *test = gf_fopen(load->fileName, "rb");
 		if (!test) return GF_URL_ERROR;
-		gf_f64_seek(test, 0, SEEK_END);
-		size = (u32) gf_f64_tell(test);
-		fclose(test);
+		gf_fseek(test, 0, SEEK_END);
+		size = (u32) gf_ftell(test);
+		gf_fclose(test);
 
 		gzInput = gzopen(load->fileName, "rb");
 		if (!gzInput) return GF_IO_ERR;

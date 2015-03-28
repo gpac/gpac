@@ -227,7 +227,7 @@ err_exit:
 
 
 // Update the dependancies when an OD AU is inserted in the file
-GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample, GF_ISOSample **od_samp)
+GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOSample **od_samp)
 {
 	GF_TrackReferenceBox *tref;
 	GF_TrackReferenceTypeBox *mpod;

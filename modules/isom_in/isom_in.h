@@ -71,13 +71,13 @@ typedef struct
 	u32 seg_opened;
 	Bool drop_next_segment;
 	Bool in_data_flush;
-	s32 has_pending_segments;
+	u32 has_pending_segments, nb_force_flush;
 
 	Bool clock_discontinuity;
 	Bool disconnected;
 	Bool no_order_check;
 
-
+	u64 last_sender_ntp;
 	Double remain_at_buffering_start;
 	Bool buffering;
 } ISOMReader;
@@ -126,7 +126,10 @@ typedef struct
 
 	Bool disable_seek;
 	u32 nalu_extract_mode;
+
+    u32 last_sample_desc_index;
 } ISOMChannel;
+
 void isor_reset_reader(ISOMChannel *ch);
 void isor_reader_get_sample(ISOMChannel *ch);
 void isor_reader_release_sample(ISOMChannel *ch);

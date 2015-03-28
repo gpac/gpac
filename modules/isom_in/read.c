@@ -67,7 +67,7 @@ static const char * ISOR_MIME_TYPES[] = {
 	"application/x-isomedia", "*", "IsoMedia Files",
 	"video/mp4", "mp4 mpg4", "MPEG-4 Movies",
 	"audio/mp4", "m4a mp4 mpg4", "MPEG-4 Music",
-	"application/mp4", "mp4 mpg4", "MPEG-4 Applications",
+	"application/mp4", "m4i mp4 mpg4", "MPEG-4 Applications",
 	"video/3gpp", "3gp 3gpp", "3GPP/MMS Movies",
 	"audio/3gpp", "3gp 3gpp", "3GPP/MMS Music",
 	"video/3gpp2", "3g2 3gp2", "3GPP2/MMS Movies",
@@ -223,7 +223,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 	ISOMReader *read = (ISOMReader *) cbk;
 
 	/*handle service message*/
-	if (!read->buffering) 
+	if (!read->buffering)
 		gf_service_download_update_stats(read->dnload);
 
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
@@ -1060,6 +1060,8 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			isor_flush_data(read, 0, 0);
 		return GF_OK;
 	}
+	if (com->command_type == GF_NET_SERVICE_CAN_REVERSE_PLAYBACK) 
+		return GF_OK;
 
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 

@@ -70,10 +70,6 @@ static LineInfo *new_line_info(LayoutStack *st)
 	gf_list_add(st->lines, li);
 	return li;
 }
-static GFINLINE LineInfo *get_line_info(LayoutStack *st, u32 i)
-{
-	return (LineInfo *) gf_list_get(st->lines, i);
-}
 
 
 enum

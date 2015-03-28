@@ -8,9 +8,8 @@
 
 <p style="text-align: center;">
 <br/>
-<b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.5.0</span></b>
+<b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.5.2-dev</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified $LastChangedDate$</span></b>
 </p>
 
 <br/><br/>
@@ -19,7 +18,7 @@
 <p style="text-indent: 5%">
 Some applications in the GPAC framework use a configuration file shared among modules and reloadable at run time. Modules may use the configuration file as well (to avoid multiple config files). This doc attempts to provide explanations for the different options.
 <br/><br/>
-The config file is based on the win32 .ini file model, thus is ordered by sections and keys.
+The config file is ordered by sections and keys.
 <br/>A section is declared as <b><i>SectionName</i></b>. Defined sections are:
 <br/>
 <b><a href="#General" style="text-decoration: underline;">General</a></b>
@@ -43,8 +42,10 @@ The config file is based on the win32 .ini file model, thus is ordered by sectio
 <b><a href="#DASH" style="text-decoration: underline;">DASH</a></b>
 <b><a href="#ALSA" style="text-decoration: underline;">ALSA</a></b>
 <b><a href="#SHORTCUTS" style="text-decoration: underline;">Shortcuts</a></b>
-<b><a href="#OpenHEVC" style="text-decoration: underline;">OpenHEVC</a></b>
 <b><a href="#DSMCC" style="text-decoration: underline;">DSMCC</a></b>
+<b><a href="#OpenHEVC" style="text-decoration: underline;">OpenHEVC</a></b>
+<b><a href="#DirectFB" style="text-decoration: underline;">DirectFB</a></b>
+<b><a href="#DektecVideo" style="text-decoration: underline;">DektecVideo</a></b>
 
 </p>
 <br/><br/>
@@ -323,12 +324,12 @@ Disables YUV hardware support (YUV hardware support may not be available for the
 <b>TextureFromDecoderMemory</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Allows video textures to be build directly from video decoder internal buffers. This may increase performances on some systems. Default is no.</p>
-
-
-
 <b>ForceOpenGL</b> [value: <i>"always", "disable", "hybrid", "raster"</i>]
 <p style="text-indent: 5%">
 Specifies that 2D rendering will be performed by OpenGL rather than raster 2D. This will involve polygon tesselation which may not be supported on all platforms, and 2D graphics will not loo as nice as 2D mode. The hybrid mode performs software drawing of 2D graphics with no textures (better quality) and uses OpenGL for all textures. The raster mode only uses OpenGL for pixel IO but does not perform polygin fill (no tesselation) (slow, mainly for test purposes).</p>
+<b>EnablePBO</b> [value: <i>"yes", "no"</i>]
+<p style="text-indent: 5%">
+Uses PixelBufferObjects to push YUV textures to GPU in OpenGL Mode.. This may slightly increase the performances of the playback.</p>
 <b>DefaultNavigationMode</b> [value: <i>"Walk", "Fly", "Examine"</i>]
 <p style="text-indent: 5%">
 Overrides the default navigation mode of MPEG-4/VRML (Walk) and X3D (Examine).</p>
@@ -877,6 +878,18 @@ Forces to disable hardware blitting.</p>
 <b>WindowMode</b> [value: <i>"X11"</i> <i>"SDL"</i>]
 <p style="text-indent: 5%">
 Specifies the underlying windowing library.</p>
+
+
+<br/><br/>
+
+<a name="DektecVideo"></a>
+<span style="text-decoration: underline;"><b>Section "DektecVideo"</b></span> <i><a href="#Overview">Back to top</a></i>
+<p>
+The "DektecVideo" section of the config file holds the configuration options for the Dektec SDI video output module.</a>
+</p>
+<b>SDIOutput</b> [value: <i>unsigned integer</i>]
+<p style="text-indent: 5%">
+Specifies the output port of the card. Default value is 1.</p>
 
 </body>
 </html>

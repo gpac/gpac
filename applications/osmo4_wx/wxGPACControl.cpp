@@ -371,7 +371,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 
 	/*lang config*/
 	u32 count = gf_lang_get_count();
-	for (i=0; i<count;i++) {
+	for (i=0; i<count; i++) {
 		m_lang->Append(wxString(gf_lang_get_name(i), wxConvUTF8) );
 	}
 

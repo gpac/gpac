@@ -213,7 +213,7 @@ struct __tag_compositor
 	Bool text_edit_changed;
 	u32 scene_sampled_clock;
 	u32 last_click_time;
-	u32 next_frame_delay;
+	s32 ms_until_next_frame;
 	s32 frame_delay;
 	Bool video_frame_pending;
 	Bool fullscreen_postponed;
@@ -480,7 +480,7 @@ struct __tag_compositor
 	Bool disable_gl_cull;
 	/*YUV textures in OpenGL are disabled (soft YUV->RGB )*/
 	Bool disable_yuvgl;
-	//use PBO to start pushing textures at the begining of the render pass
+	//use PBO to start pushing textures at the beginning of the render pass
 	Bool enable_pbo;
 
 	u32 default_navigation_mode;
@@ -512,6 +512,9 @@ struct __tag_compositor
 	struct _gf_sc_texture_handler *hybgl_txh;
 	GF_Mesh *hybgl_mesh;
 	GF_Mesh *hybgl_mesh_background;
+
+	char *screen_buffer;
+	u32 screen_buffer_alloc_size;
 #endif
 
 	Bool texture_from_decoder_memory;
@@ -629,7 +632,7 @@ typedef struct _gf_sc_texture_handler
 
 	/*image data for natural media*/
 	char *data;
-	u32 width, height, stride, pixelformat, pixel_ar;
+	u32 size, width, height, stride, pixelformat, pixel_ar;
 	Bool is_flipped;
 
 	Bool raw_memory;
@@ -1028,6 +1031,7 @@ u32 gf_afc_process(GF_AudioFilterChain *afc, u32 nb_bytes);
 void gf_afc_unload(GF_AudioFilterChain *afc);
 void gf_afc_reset(GF_AudioFilterChain *afc);
 
+
 /*the audio renderer*/
 typedef struct _audio_render
 {
@@ -1035,18 +1039,26 @@ typedef struct _audio_render
 
 	Bool disable_resync;
 	Bool disable_multichannel;
+	Bool clock_use_audio_out;
 
-	/*startup time (the audio renderer is used when present as the system clock)*/
-	u32 startTime;
 	/*frozen time counter if set*/
 	Bool Frozen;
-	u32 FreezeTime;
+	/*startup time, used when no audio output is set*/
+	u64 start_time;
+	/*freeze time, used when no audio output is set*/
+	u64 freeze_time;
+
+	/*system clock compute when audio output is present*/
+	u32 current_time, bytes_per_second, time_at_last_config;
+	//number of bytes requested by sound card since last reconfig
+	u64 bytes_requested;
 
 	/*final output*/
 	GF_AudioMixer *mixer;
 	Bool need_reconfig;
 	/*client*/
 	GF_User *user;
+	u32 config_forced;
 
 	GF_List *audio_listeners;
 	/*audio thread if output not self-threaded*/
@@ -1058,17 +1070,23 @@ typedef struct _audio_render
 
 	GF_AudioFilterChain filter_chain;
 	u32 nb_filled, nb_used;
+
+	Bool step_mode;
+
 } GF_AudioRenderer;
 
 /*creates audio renderer*/
 GF_AudioRenderer *gf_sc_ar_load(GF_User *user);
 /*deletes audio renderer*/
 void gf_sc_ar_del(GF_AudioRenderer *ar);
-/*control audio renderer - CtrlType:
-	0: pause
-	1: resume
-	2: clean HW buffer and play
-*/
+
+enum
+{
+	GF_SC_AR_PAUSE=0,
+	GF_SC_AR_RESUME,
+	GF_SC_AR_RESET_HW_AND_PLAY,
+};
+/*control audio renderer*/
 void gf_sc_ar_control(GF_AudioRenderer *ar, u32 CtrlType);
 /*set volume and pan*/
 void gf_sc_ar_set_volume(GF_AudioRenderer *ar, u32 Volume);
@@ -1089,6 +1107,9 @@ void gf_sc_ar_remove_src(GF_AudioRenderer *ar, GF_AudioInterface *source);
 /*reconfig audio hardware if needed*/
 void gf_sc_ar_reconfig(GF_AudioRenderer *ar);
 u32 gf_sc_ar_get_delay(GF_AudioRenderer *ar);
+
+void gf_sc_flush_next_audio(GF_Compositor *compositor);
+Bool gf_sc_check_audio_pending(GF_Compositor *compositor);
 
 /*the sound node interface for intensity & spatialization*/
 typedef struct _soundinterface
@@ -1165,6 +1186,8 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *surf);
 void compositor_2d_release_video_access(GF_VisualManager *surf);
 void compositor_2d_init_callbacks(GF_Compositor *compositor);
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
+Bool compositor_2d_check_attached(GF_VisualManager *visual);
+void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen);
 
 #ifndef GPAC_DISABLE_3D
 void compositor_2d_reset_gl_auto(GF_Compositor *compositor);

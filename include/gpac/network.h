@@ -170,6 +170,14 @@ void gf_utc_time_since_1970(u32 *sec, u32 *msec);
 void gf_net_get_ntp(u32 *sec, u32 *frac);
 
 /*!
+ *
+ *Gets diff in milliseconds between NTP time and current time
+ \param ntp NTP timestamp
+ \return diff in milliseconds with the current time
+ */
+s32 gf_net_get_ntp_diff_ms(u64 ntp);
+
+/*!
  * Socket options
  *	\hideinitializer
  */

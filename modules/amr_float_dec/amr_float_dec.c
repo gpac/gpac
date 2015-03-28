@@ -350,4 +350,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( amr_float )
+GPAC_MODULE_STATIC_DECLARATION( amr_float )

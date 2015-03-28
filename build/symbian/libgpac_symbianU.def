@@ -129,9 +129,9 @@ EXPORTS
 	gf_dom_listener_get @ 128 NONAME
 	gf_enum_directory @ 129 NONAME
 	gf_error_to_string @ 130 NONAME
-	gf_f64_open @ 131 NONAME
-	gf_f64_seek @ 132 NONAME
-	gf_f64_tell @ 133 NONAME
+	gf_fopen @ 131 NONAME
+	gf_fseek @ 132 NONAME
+	gf_ftell @ 133 NONAME
 	gf_floor @ 134 NONAME
 	gf_get_next_pow2 @ 135 NONAME
 	gf_get_user_name @ 136 NONAME
@@ -900,4 +900,5 @@ EXPORTS
 	gzread @ 899 NONAME
 	my_str_lwr @ 900 NONAME
 	my_str_upr @ 901 NONAME
+	gf_fclose @ 902 NONAME
 

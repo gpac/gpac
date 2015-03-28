@@ -115,7 +115,7 @@ int stream_file_rtp(int argc, char **argv)
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_file = arg+5;
 		else if (!stricmp(arg, "-mem-track")) mem_track = 1;
 		else if (!strnicmp(arg, "-logs=", 6)) logs = arg+6;
-		else if (!strnicmp(arg, "-lf=", 4)) logfile = gf_f64_open(arg+4, "wt");
+		else if (!strnicmp(arg, "-lf=", 4)) logfile = gf_fopen(arg+4, "wt");
 	}
 
 	gf_sys_init(mem_track);
@@ -129,7 +129,7 @@ int stream_file_rtp(int argc, char **argv)
 
 	if (!gf_isom_probe_file(inName)) {
 		fprintf(stderr, "File %s is not a valid ISO Media file and cannot be streamed\n", inName);
-		if (logfile) fclose(logfile);
+		if (logfile) gf_fclose(logfile);
 		gf_sys_close();
 		return 1;
 	}
@@ -155,7 +155,7 @@ int stream_file_rtp(int argc, char **argv)
 		}
 		gf_isom_streamer_del(file_streamer);
 	}
-	if (logfile) fclose(logfile);
+	if (logfile) gf_fclose(logfile);
 	gf_sys_close();
 	return 0;
 }
@@ -385,9 +385,9 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 		port += 2;
 	}
 	if (sdp) {
-		FILE *out = gf_f64_open(sdp_name, "wt");
+		FILE *out = gf_fopen(sdp_name, "wt");
 		fprintf(out, "%s", sdp);
-		fclose(out);
+		gf_fclose(out);
 		gf_free(sdp);
 	}
 }
@@ -677,13 +677,13 @@ int live_session(int argc, char **argv)
 				fprintf(stderr, "Update file modified - processing\n");
 				last_src_modif = mod_time;
 
-				srcf = gf_f64_open(src_name, "rt");
+				srcf = gf_fopen(src_name, "rt");
 				if (!srcf) continue;
 
 				/*checks if we have a broadcast config*/
 				if (!fgets(flag_buf, 200, srcf))
 					flag_buf[0] = '\0';
-				fclose(srcf);
+				gf_fclose(srcf);
 
 				aggregate_on_stream = (u16) -1;
 				adjust_carousel_time = force_rap = discard_pending = signal_rap = signal_critical = 0;
@@ -850,7 +850,7 @@ exit:
 
 #endif /*defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)*/
 
-u32 grab_live_m2ts(const char *grab_m2ts, const char *outName)
+u32 grab_live_m2ts(const char *grab_m2ts, const char *grab_ifce, const char *outName)
 {
 	char data[0x80000];
 	u32 check = 50;
@@ -862,13 +862,13 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *outName)
 	GF_RTPReorder *ch = NULL;
 #endif
 	GF_Socket *sock;
-	GF_Err e = gf_m2ts_get_socket(grab_m2ts, NULL, 0x80000, &sock);
+	GF_Err e = gf_m2ts_get_socket(grab_m2ts, grab_ifce, 0x80000, &sock);
 
 	if (e) {
 		fprintf(stderr, "Cannot open %s: %s\n", grab_m2ts, gf_error_to_string(e));
 		return 1;
 	}
-	output = gf_f64_open(outName, "wb");
+	output = gf_fopen(outName, "wb");
 	if (!output) {
 		fprintf(stderr, "Cannot open %s: check path and rights\n", outName);
 		gf_sk_del(sock);
@@ -926,10 +926,10 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *outName)
 			fwrite(data, size, 1, output);
 		}
 	}
-	nb_pck = gf_f64_tell(output);
+	nb_pck = gf_ftell(output);
 	nb_pck /= 188;
 	fprintf(stderr, "Captured "LLU" TS packets\n", nb_pck );
-	fclose(output);
+	gf_fclose(output);
 	gf_sk_del(sock);
 
 #ifndef GPAC_DISABLE_STREAMING

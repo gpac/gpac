@@ -312,7 +312,7 @@ u32 SAF_Run(void *_p)
 	par.msg_type = GF_NETIO_DATA_EXCHANGE;
 	par.data = data;
 
-	gf_f64_seek(read->stream, 0, SEEK_SET);
+	gf_fseek(read->stream, 0, SEEK_SET);
 	read->saf_size=0;
 	read->run_state = 1;
 	while (read->run_state && !feof(read->stream) ) {
@@ -350,7 +350,7 @@ static void SAF_CheckFile(SAFIn *read)
 	u32 nb_streams, i, cts, au_size, au_type, stream_id, ts_res;
 	GF_BitStream *bs;
 	StreamInfo si[1024];
-	gf_f64_seek(read->stream, 0, SEEK_SET);
+	gf_fseek(read->stream, 0, SEEK_SET);
 	bs = gf_bs_from_file(read->stream, GF_BITSTREAM_READ);
 
 	nb_streams=0;
@@ -384,7 +384,7 @@ static void SAF_CheckFile(SAFIn *read)
 		gf_bs_skip_bytes(bs, au_size);
 	}
 	gf_bs_del(bs);
-	gf_f64_seek(read->stream, 0, SEEK_SET);
+	gf_fseek(read->stream, 0, SEEK_SET);
 }
 
 static GF_Err SAF_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
@@ -412,7 +412,7 @@ static GF_Err SAF_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		return GF_OK;
 	}
 
-	read->stream = gf_f64_open(szURL, "rb");
+	read->stream = gf_fopen(szURL, "rb");
 	if (!read->stream) {
 		gf_service_connect_ack(serv, NULL, GF_URL_ERROR);
 		return GF_OK;
@@ -437,7 +437,7 @@ static GF_Err SAF_CloseService(GF_InputService *plug)
 		read->th = NULL;
 	}
 
-	if (read->stream) fclose(read->stream);
+	if (read->stream) gf_fclose(read->stream);
 	read->stream = NULL;
 	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
@@ -622,4 +622,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( saf_in )
+GPAC_MODULE_STATIC_DECLARATION( saf_in )

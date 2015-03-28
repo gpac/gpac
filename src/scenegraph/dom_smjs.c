@@ -993,7 +993,7 @@ if (!n->sgprivate) return;
 SMJS_SET_PRIVATE(c, obj, NULL);
 gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
 
-dom_js_pre_destroy(c, n->sgprivate->scenegraph, n);
+gf_sg_js_dom_pre_destroy(c, n->sgprivate->scenegraph, n);
 dom_unregister_node(n);
 }
 
@@ -2877,7 +2877,7 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 		/*we're sure the graph is a "nomade" one since we initially put the refcount to 1 ourselves*/
 		ctx->document->reference_count--;
 		if (!ctx->document->reference_count) {
-			dom_js_pre_destroy(ctx->c, ctx->document, NULL);
+			gf_sg_js_dom_pre_destroy(ctx->c, ctx->document, NULL);
 			gf_sg_del(ctx->document);
 		}
 	}
@@ -3143,12 +3143,6 @@ static void xml_http_terminate(XMLHTTPContext *ctx, GF_Err error)
 		ctx->sess = NULL;
 	}
 
-	/*error, complete reset*/
-	if (error) {
-		xml_http_reset(ctx);
-	} else {
-		ctx->html_status = 200;
-	}
 	/*but stay in loaded mode*/
 	ctx->readyState = XHR_READYSTATE_DONE;
 	xml_http_state_change(ctx);
@@ -3305,11 +3299,11 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	FILE *responseFile;
 
 	/*opera-style local host*/
-	if (!strnicmp(ctx->url, "file://localhost", 16)) responseFile = gf_f64_open(ctx->url+16, "rb");
+	if (!strnicmp(ctx->url, "file://localhost", 16)) responseFile = gf_fopen(ctx->url+16, "rb");
 	/*regular-style local host*/
-	else if (!strnicmp(ctx->url, "file://", 7)) responseFile = gf_f64_open(ctx->url+7, "rb");
+	else if (!strnicmp(ctx->url, "file://", 7)) responseFile = gf_fopen(ctx->url+7, "rb");
 	/* other types: e.g. "C:\" */
-	else responseFile = gf_f64_open(ctx->url, "rb");
+	else responseFile = gf_fopen(ctx->url, "rb");
 
 	if (!responseFile) {
 		ctx->html_status = 404;
@@ -3326,13 +3320,13 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	par.msg_type = GF_NETIO_WAIT_FOR_REPLY;
 	xml_http_on_data(ctx, &par);
 
-	gf_f64_seek(responseFile, 0, SEEK_END);
-	fsize = gf_f64_tell(responseFile);
-	gf_f64_seek(responseFile, 0, SEEK_SET);
+	gf_fseek(responseFile, 0, SEEK_END);
+	fsize = gf_ftell(responseFile);
+	gf_fseek(responseFile, 0, SEEK_SET);
 
 	ctx->data = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
 	fsize = fread(ctx->data, sizeof(char), (size_t)fsize, responseFile);
-	fclose(responseFile);
+	gf_fclose(responseFile);
 	ctx->data[fsize] = 0;
 	ctx->size = (u32)fsize;
 
@@ -4542,7 +4536,8 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 
 void html_media_element_js_finalize(JSContext *c, GF_Node *n);
 
-void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
+GF_EXPORT
+void gf_sg_js_dom_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 {
 	u32 i, count;
 	if (n) {

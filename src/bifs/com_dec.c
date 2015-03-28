@@ -180,7 +180,7 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 				memcpy(&sffield, &targetField, sizeof(GF_FieldInfo));
 				sffield.fieldType = sftype;
 				sffield.far_ptr = slot_ptr;
-				gf_bifs_dec_sf_field(codec, bs, target, &sffield, 0);
+				gf_bifs_dec_sf_field(codec, bs, target, &sffield, GF_FALSE);
 			}
 		}
 		gf_bifs_check_field_change(target, &targetField);
@@ -215,7 +215,7 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 			list = * ((GF_ChildNodeItem **) targetField.far_ptr);
 			prev=NULL;
 			while (list) {
-				cur = gf_malloc(sizeof(GF_ChildNodeItem));
+				cur = (GF_ChildNodeItem*)gf_malloc(sizeof(GF_ChildNodeItem));
 				cur->next = NULL;
 				cur->node = list->node;
 				if (prev) {
@@ -228,7 +228,7 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 				list = list->next;
 			}
 		} else {
-			e = gf_bifs_dec_field(codec, bs, target, &targetField, 0);
+			e = gf_bifs_dec_field(codec, bs, target, &targetField, GF_FALSE);
 			if (e) return e;
 		}
 		if (previous)
@@ -246,7 +246,7 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 			if (fromField.fieldType == targetField.fieldType)
 				gf_sg_vrml_field_clone(targetField.far_ptr, fromField.far_ptr, targetField.fieldType, codec->current_graph);
 		} else {
-			e = gf_bifs_dec_field(codec, bs, target, &targetField, 0);
+			e = gf_bifs_dec_field(codec, bs, target, &targetField, GF_FALSE);
 		}
 		break;
 	}
@@ -333,7 +333,7 @@ static GF_Err BD_DecMultipleIndexReplace(GF_BifsDecoder * codec, GF_BitStream *b
 
 		e = gf_sg_vrml_mf_get_item(field.far_ptr, field.fieldType, & sffield.far_ptr, pos);
 		if (e) return e;
-		e = gf_bifs_dec_sf_field(codec, bs, node, &sffield, 0);
+		e = gf_bifs_dec_sf_field(codec, bs, node, &sffield, GF_FALSE);
 		if (e) break;
 		count--;
 	}
@@ -353,9 +353,9 @@ static GF_Err BD_DecMultipleReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 
 	flag = gf_bs_read_int(bs, 1);
 	if (flag) {
-		e = gf_bifs_dec_node_mask(codec, bs, node, 0);
+		e = gf_bifs_dec_node_mask(codec, bs, node, GF_FALSE);
 	} else {
-		e = gf_bifs_dec_node_list(codec, bs, node, 0);
+		e = gf_bifs_dec_node_list(codec, bs, node, GF_FALSE);
 	}
 	return e;
 }
@@ -393,7 +393,7 @@ static GF_Err BD_DecNodeDeleteEx(GF_BifsDecoder * codec, GF_BitStream *bs)
 	NodeID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
 	node = gf_sg_find_node(codec->current_graph, NodeID);
 	if (!node) return GF_NON_COMPLIANT_BITSTREAM;
-	return gf_node_replace(node, NULL, 1);
+	return gf_node_replace(node, NULL, GF_TRUE);
 }
 
 #ifdef GPAC_UNUSED_FUNC
@@ -642,7 +642,7 @@ static GF_Err BD_DecIndexInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 			e = gf_sg_vrml_mf_insert(field.far_ptr, field.fieldType, & sffield.far_ptr, pos);
 		}
 		if (e) return e;
-		e = gf_bifs_dec_sf_field(codec, bs, def, &sffield, 0);
+		e = gf_bifs_dec_sf_field(codec, bs, def, &sffield, GF_FALSE);
 		if (!e) gf_bifs_check_field_change(def, &field);
 	}
 	return e;
@@ -663,7 +663,7 @@ static GF_Err BD_DecInsert(GF_BifsDecoder * codec, GF_BitStream *bs)
 	case 2:
 		return BD_DecIndexInsert(codec, bs);
 	case 3:
-		return gf_bifs_dec_route(codec, bs, 1);
+		return gf_bifs_dec_route(codec, bs, GF_TRUE);
 	default:
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
@@ -740,7 +740,7 @@ static GF_Err BD_DecDelete(GF_BifsDecoder * codec, GF_BitStream *bs)
 		if (!n) return GF_OK;
 #endif
 		/*this is a delete of a DEF node, remove ALL INSTANCES*/
-		return gf_node_replace(n, NULL, 0);
+		return gf_node_replace(n, NULL, GF_FALSE);
 	case 2:
 		return BD_DecIndexDelete(codec, bs);
 	case 3:
@@ -770,7 +770,7 @@ static GF_Err BD_DecNodeReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	new_node = gf_bifs_dec_node(codec, bs, NDT_SFWorldNode);
 	if (!new_node && codec->LastError) return codec->LastError;
 
-	e = gf_node_replace(node, new_node, 0);
+	e = gf_node_replace(node, new_node, GF_FALSE);
 	return e;
 }
 
@@ -809,9 +809,9 @@ static GF_Err BD_DecFieldReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	}
 
 	/*parse the field*/
-	codec->is_com_dec = 1;
-	e = gf_bifs_dec_field(codec, bs, node, &field, 0);
-	codec->is_com_dec = 0;
+	codec->is_com_dec = GF_TRUE;
+	e = gf_bifs_dec_field(codec, bs, node, &field, GF_FALSE);
+	codec->is_com_dec = GF_FALSE;
 	/*remove prev nodes*/
 	if (field.fieldType == GF_SG_VRML_SFNODE) {
 		if (prev_node) e = gf_node_unregister(prev_node, node);
@@ -887,7 +887,7 @@ static GF_Err BD_DecIndexValueReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 
 		e = gf_sg_vrml_mf_get_item(field.far_ptr, field.fieldType, & sffield.far_ptr, pos);
 		if (e) return e;
-		e = gf_bifs_dec_sf_field(codec, bs, node, &sffield, 0);
+		e = gf_bifs_dec_sf_field(codec, bs, node, &sffield, GF_FALSE);
 		if (!e) gf_bifs_check_field_change(node, &field);
 	}
 
@@ -1018,7 +1018,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 			sprintf(name, "Proto%d", numProtos);
 		}
 		/*create a proto in the current graph*/
-		proto = gf_sg_proto_new(codec->current_graph, ID, name, proto_list ? 1 : 0);
+		proto = gf_sg_proto_new(codec->current_graph, ID, name, proto_list ? GF_TRUE : GF_FALSE);
 		if (proto_list) gf_list_add(proto_list, proto);
 
 		/*during parsing, this proto is the current active one - all nodes/proto defined/declared
@@ -1049,7 +1049,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 			case GF_SG_EVENT_FIELD:
 				/*parse default value except nodes ...*/
 				if (gf_sg_vrml_is_sf_field(field_type)) {
-					e = gf_bifs_dec_sf_field(codec, bs, NULL, &field, 0);
+					e = gf_bifs_dec_sf_field(codec, bs, NULL, &field, GF_FALSE);
 				} else {
 					f = 0;
 					if (codec->info->config.UsePredictiveMFField) {
@@ -1139,7 +1139,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 				if (flag) {
 					/*list route*/
 					while (flag) {
-						e = gf_bifs_dec_route(codec, bs, 0);
+						e = gf_bifs_dec_route(codec, bs, GF_FALSE);
 						if (e) goto exit;
 						flag = gf_bs_read_int(bs, 1);
 					}
@@ -1148,7 +1148,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 					i = gf_bs_read_int(bs, 5);
 					NbRoutes = gf_bs_read_int(bs, i);
 					for (i=0; i<NbRoutes; i++) {
-						e = gf_bifs_dec_route(codec, bs, 0);
+						e = gf_bifs_dec_route(codec, bs, GF_FALSE);
 						if (e) goto exit;
 					}
 				}
@@ -1193,12 +1193,12 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 					qp_min_value = gf_sg_vrml_field_pointer_new(qpsftype);
 					field.name = "QPMinValue";
 					field.far_ptr = qp_min_value;
-					gf_bifs_dec_sf_field(codec, bs, NULL, &field, 0);
+					gf_bifs_dec_sf_field(codec, bs, NULL, &field, GF_FALSE);
 
 					qp_max_value = gf_sg_vrml_field_pointer_new(qpsftype);
 					field.name = "QPMaxValue";
 					field.far_ptr = qp_max_value;
-					gf_bifs_dec_sf_field(codec, bs, NULL, &field, 0);
+					gf_bifs_dec_sf_field(codec, bs, NULL, &field, GF_FALSE);
 				}
 
 				/*and store*/
@@ -1297,7 +1297,7 @@ GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *pro
 	/*reserved*/
 	i = gf_bs_read_int(bs, 6);
 
-	codec->UseName = gf_bs_read_int(bs, 1);
+	codec->UseName = (Bool)gf_bs_read_int(bs, 1);
 	/*parse PROTOS*/
 	e = gf_bifs_dec_proto_list(codec, bs, proto_list);
 	if (e) goto exit;
@@ -1325,7 +1325,7 @@ GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *pro
 		if (flag) {
 			/*list*/
 			while (flag) {
-				e = gf_bifs_dec_route(codec, bs, 0);
+				e = gf_bifs_dec_route(codec, bs, GF_FALSE);
 				if (e) goto exit;
 				flag = gf_bs_read_int(bs, 1);
 			}
@@ -1334,7 +1334,7 @@ GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *pro
 			i = gf_bs_read_int(bs, 5);
 			nbR = gf_bs_read_int(bs, i);
 			for (i=0; i<nbR; i++) {
-				e = gf_bifs_dec_route(codec, bs, 0);
+				e = gf_bifs_dec_route(codec, bs, GF_FALSE);
 				if (e) goto exit;
 			}
 		}
@@ -1372,7 +1372,7 @@ GF_Err gf_bifs_dec_command(GF_BifsDecoder * codec, GF_BitStream *bs)
 	}
 
 	while (gf_list_count(codec->QPs)) {
-		gf_bifs_dec_qp_remove(codec, 1);
+		gf_bifs_dec_qp_remove(codec, GF_TRUE);
 	}
 	gf_bifs_flush_command_list(codec);
 

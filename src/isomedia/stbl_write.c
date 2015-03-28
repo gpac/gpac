@@ -497,7 +497,7 @@ GF_Err stbl_AddRedundant(GF_SampleTableBox *stbl, u32 sampleNumber)
 	return GF_OK;
 }
 
-GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 dependsOn, u32 dependedOn, u32 redundant)
+GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dependsOn, u32 dependedOn, u32 redundant)
 {
 	GF_SampleDependencyTypeBox *sdtp;
 	u32 flags;
@@ -508,7 +508,8 @@ GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 dependsOn, u32 dep
 	sdtp = stbl->SampleDep;
 
 	flags = 0;
-	flags |= dependsOn << 4;
+    flags |= isLeading << 6;
+    flags |= dependsOn << 4;
 	flags |= dependedOn << 2;
 	flags |= redundant;
 
@@ -916,7 +917,7 @@ GF_Err stbl_RemoveDTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 LastAUDefDu
 	}
 	//reset write the cache to the end
 	stts->w_currentSampleNum = stbl->SampleSize->sampleCount - 1;
-	//reset read the cache to the begining
+	//reset read the cache to the beginning
 	stts->r_FirstSampleInEntry = stts->r_currentEntryIndex = 0;
 	stts->r_CurrentDTS = 0;
 	return GF_OK;
@@ -1378,7 +1379,7 @@ void stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset)
 	//large offsets
 	else {
 		co64 = (GF_ChunkLargeOffsetBox *)stbl->ChunkOffset;
-		off_64 = (u64*)gf_malloc(sizeof(u32)*(co64->nb_entries+1));
+		off_64 = (u64*)gf_malloc(sizeof(u64)*(co64->nb_entries+1));
 		if (!off_64) return;
 		for (i=0; i<co64->nb_entries; i++) off_64[i] = co64->offsets[i];
 		off_64[i] = offset;

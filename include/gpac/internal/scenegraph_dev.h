@@ -45,27 +45,6 @@ extern "C" {
 #endif
 
 
-#ifdef GPAC_HAS_SPIDERMONKEY
-
-/*WIN32 and WinCE config (no configure script)*/
-#if defined(WIN32) || defined(_WIN32_WCE) || defined(__SYMBIAN32__)
-#ifndef XP_PC
-#define XP_PC
-#endif
-#ifndef XP_WIN
-#define XP_WIN
-#endif
-/*WINCE specific config*/
-#if defined(_WIN32_WCE)
-#include <windows.h>
-#define XP_WINCE
-#endif
-#endif
-
-/*other platforms should be setup through configure*/
-
-#endif
-
 
 void gf_node_setup(GF_Node *p, u32 tag);
 
@@ -874,7 +853,8 @@ typedef struct
 	allocate them again and again when getting properties. Garbage collection is performed (if needed)
 	on these objects after each eventIn execution*/
 	GF_List *js_cache;
-	struct JSObject *event;
+	//Event object, whose private is the pointer to current event being executed
+	struct JSObject *the_event;
 #endif
 
 	void (*JS_PreDestroy)(GF_Node *node);
@@ -1015,7 +995,7 @@ void dom_js_load(GF_SceneGraph *scene, struct JSContext *c, struct JSObject *glo
 to releases all resources used by DOM JS)*/
 void dom_js_unload();
 /*unloads DOM core before the JSContext is being destroyed */
-void dom_js_pre_destroy(struct JSContext *c, GF_SceneGraph *sg, GF_Node *script_or_handler_node);
+void gf_sg_js_dom_pre_destroy(struct JSContext *c, GF_SceneGraph *sg, GF_Node *script_or_handler_node);
 
 /*defines a new global object "document" of type Document*/
 void dom_js_define_document(struct JSContext *c, struct JSObject *global, GF_SceneGraph *doc);

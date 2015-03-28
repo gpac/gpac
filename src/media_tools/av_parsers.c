@@ -29,14 +29,14 @@
 
 #ifndef GPAC_DISABLE_OGG
 #include <gpac/internal/ogg.h>
-#include <gpac/math.h>
+#include <gpac/maths.h>
 #endif
 
 static const struct {
 	u32 w, h;
 } std_par[ ] =
 {
-	{ 4, 3}, {3, 2}, {16, 9}, {5, 3}, {5, 4}, {8, 5},
+	{ 4, 3}, {3, 2}, {16, 9}, {5, 3}, {5, 4}, {8, 5}, {2, 1},
 	{0, 0},
 };
 
@@ -1819,7 +1819,7 @@ u32 gf_media_nalu_payload_end_bs(GF_BitStream *bs)
 }
 
 GF_EXPORT
-u32 gf_media_nalu_next_start_code(u8 *data, u32 data_len, u32 *sc_size)
+u32 gf_media_nalu_next_start_code(const u8 *data, u32 data_len, u32 *sc_size)
 {
 	u32 v, bpos;
 	u32 end;
@@ -1928,6 +1928,8 @@ static u32 avc_emulation_bytes_add_count(char *buffer, u32 nal_size)
 			/*emulation code found*/
 			num_zero = 0;
 			emulation_bytes_count++;
+			if (!buffer[i])
+				num_zero = 1;
 		} else {
 			if (!buffer[i])
 				num_zero++;
@@ -3295,6 +3297,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	if (RapPicFlag) {
 		/*Bool no_output_of_prior_pics_flag = */gf_bs_read_int(bs, 1);
 	}
+
 	pps_id = bs_get_ue(bs);
 	if (pps_id>=64) return -1;
 
@@ -3696,8 +3699,9 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	vps->profile_level_tier_idx[0] = 0;
 	for (i=1; i<NumOutputLayerSets; i++) {
 		u32 nb_bits;
+		//don't warn untiol we fix the entire syntax to last version of the spec
 		if( i > vps->num_layer_sets - 1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] VPS Extensions: not supported number of layers\n"));
+//			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] VPS Extensions: not supported number of layers\n"));
 		}
 		nb_bits = 1;
 		while ((u32) (1 << nb_bits) < num_profile_tier_level) {

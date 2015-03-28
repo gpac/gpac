@@ -346,7 +346,8 @@ const char * gf_cache_get_cache_filename( const DownloadedCacheEntry entry )
 	return entry ? entry->cache_filename : NULL;
 }
 
-GF_Err appendHttpCacheHeaders(const DownloadedCacheEntry entry, char * httpRequest) {
+GF_EXPORT
+GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * httpRequest) {
 	if (!entry || !httpRequest)
 		return GF_BAD_PARAM;
 	if (entry->flags)
@@ -560,14 +561,35 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 	if (entry->writeFilePtr) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK,
 		       ("[CACHE] Closing file %s, %d bytes written.\n", entry->cache_filename, entry->written_in_cache));
-		if (fflush( entry->writeFilePtr ) || fclose( entry->writeFilePtr ))
+
+		if (fflush( entry->writeFilePtr ) || gf_fclose( entry->writeFilePtr )) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to flush/close file on disk\n"));
 			e = GF_IO_ERR;
-		e|= gf_cache_flush_disk_cache(entry);
-		if (e == GF_OK && success) {
-			e|= gf_cache_set_last_modified_on_disk( entry, gf_cache_get_last_modified_on_server(entry));
-			e|= gf_cache_set_etag_on_disk( entry, gf_cache_get_etag_on_server(entry));
 		}
-		e|= gf_cache_flush_disk_cache(entry);
+		if (!e) {
+			e = gf_cache_flush_disk_cache(entry);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to flush cache entry on disk\n"));
+			}
+		}
+		if (!e && success) {
+			e = gf_cache_set_last_modified_on_disk( entry, gf_cache_get_last_modified_on_server(entry));
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to set last-modified\n"));
+			} else {
+				e = gf_cache_set_etag_on_disk( entry, gf_cache_get_etag_on_server(entry));
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to set etag\n"));
+				}
+			}
+		}
+		if (!e) {
+			e = gf_cache_flush_disk_cache(entry);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to flush cache entry on disk after etag/last-modified\n"));
+			}
+		}
+
 #if defined(_BSD_SOURCE) || _XOPEN_SOURCE >= 500
 		/* On  UNIX, be sure to flush all the data */
 		sync();
@@ -618,7 +640,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 	}
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Opening cache file %s for write (%s)...\n", entry->cache_filename, entry->url));
-	entry->writeFilePtr = gf_f64_open(entry->cache_filename, entry->continue_file ? "a+b" : "wb");
+	entry->writeFilePtr = gf_fopen(entry->cache_filename, entry->continue_file ? "a+b" : "wb");
 	if (!entry->writeFilePtr) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK,
 		       ("[CACHE] Error while opening cache file %s for writting.\n", entry->cache_filename));
@@ -630,7 +652,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 	}
 	entry->file_exists = 1;
 	if (entry->continue_file )
-		gf_f64_seek(entry->writeFilePtr, 0, SEEK_END);
+		gf_fseek(entry->writeFilePtr, 0, SEEK_END);
 	return GF_OK;
 }
 
@@ -656,7 +678,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		memset(entry->mem_storage + entry->written_in_cache, 0, 2);
 		sprintf(entry->cache_filename, "gmem://%d@%p", entry->written_in_cache, entry->mem_storage);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Writing %d bytes to cache\n", size));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Storing %d bytes to memory\n", size));
 		return GF_OK;
 	}
 
@@ -689,7 +711,7 @@ GF_CacheReader gf_cache_reader_new(const DownloadedCacheEntry entry) {
 	reader = gf_malloc(sizeof(struct __CacheReaderStruct));
 	if (reader == NULL)
 		return NULL;
-	reader->readPtr = gf_f64_open( entry->cache_filename, "rb" );
+	reader->readPtr = gf_fopen( entry->cache_filename, "rb" );
 	reader->readPosition = 0;
 	if (!reader->readPtr) {
 		gf_cache_reader_del(reader);
@@ -702,7 +724,7 @@ GF_Err gf_cache_reader_del( GF_CacheReader handle ) {
 	if (!handle)
 		return GF_BAD_PARAM;
 	if (handle->readPtr)
-		fclose(handle->readPtr);
+		gf_fclose(handle->readPtr);
 	handle->readPtr = NULL;
 	handle->readPosition = -1;
 	return GF_OK;
@@ -711,7 +733,7 @@ GF_Err gf_cache_reader_del( GF_CacheReader handle ) {
 s64 gf_cache_reader_seek_at( GF_CacheReader reader, u64 seekPosition) {
 	if (!reader)
 		return -1;
-	reader->readPosition = gf_f64_seek(reader->readPtr, seekPosition, SEEK_SET);
+	reader->readPosition = gf_fseek(reader->readPtr, seekPosition, SEEK_SET);
 	return reader->readPosition;
 }
 
@@ -743,7 +765,7 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 	if (entry->writeFilePtr) {
 		/** Cache should have been close before, abornormal situation */
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, entry=%p, cache has not been closed properly\n", __LINE__, entry));
-		fclose(entry->writeFilePtr);
+		gf_fclose(entry->writeFilePtr);
 	}
 #ifdef ENABLE_WRITE_MX
 	if (entry->write_mutex) {
@@ -810,8 +832,8 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 		gf_cfg_del ( entry->properties );
 		entry->properties = NULL;
 		if (propfile) {
-			if (GF_OK !=  gf_delete_file( propfile ))
-				GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, failed to delete file %s\n", __LINE__, propfile));
+			//this may fil becaus ethe prop file is not yet flushed to disk
+			gf_delete_file( propfile );
 			gf_free ( propfile );
 		}
 	}
@@ -828,17 +850,17 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 
 Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry) {
 
-	FILE *the_cache = gf_f64_open ( entry->cache_filename, "rb" );
+	FILE *the_cache = gf_fopen ( entry->cache_filename, "rb" );
 	if ( the_cache )
 	{
 		char * endPtr;
 		const char * keyValue = gf_cfg_get_key ( entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_CONTENT_SIZE );
 
-		gf_f64_seek ( the_cache, 0, SEEK_END );
-		entry->cacheSize = ( u32 ) gf_f64_tell ( the_cache );
-		fclose ( the_cache );
+		gf_fseek ( the_cache, 0, SEEK_END );
+		entry->cacheSize = ( u32 ) gf_ftell ( the_cache );
+		gf_fclose ( the_cache );
 		if (keyValue) {
-			entry->contentLength = strtoul( keyValue, &endPtr, 10);
+			entry->contentLength = (u32) strtoul( keyValue, &endPtr, 10);
 			if (*endPtr!='\0' || entry->contentLength != entry->cacheSize) {
 				entry->flags |= CORRUPTED;
 				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, Cache corrupted: file and cache info size mismatch.\n", __LINE__));
@@ -872,8 +894,8 @@ s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_Down
 		* but we don't want to risk to have another session opening
 		* a not fully closed cache entry */
 		if (entry->writeFilePtr) {
-			if (fclose(entry->writeFilePtr)) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] gf_cache_remove_session_from_cache_entry:%d, Failed to properly fclose cache file '%s' of url '%s', cache may be corrupted !\n", __LINE__, entry->cache_filename, entry->url));
+			if (gf_fclose(entry->writeFilePtr)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] gf_cache_remove_session_from_cache_entry:%d, Failed to properly close cache file '%s' of url '%s', cache may be corrupted !\n", __LINE__, entry->cache_filename, entry->url));
 			}
 		}
 		entry->writeFilePtr = NULL;

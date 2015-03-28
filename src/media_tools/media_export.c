@@ -88,7 +88,7 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 	op.b_o_s = 1;
 	op.e_o_s = 0;
 
-	out = szName ? gf_f64_open(szName, "wb") : stdout;
+	out = szName ? gf_fopen(szName, "wb") : stdout;
 	if (!out) return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 
 	theora_kgs = 0;
@@ -180,7 +180,7 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 		gf_fwrite(og.body, 1, og.body_len, out);
 	}
 	ogg_stream_clear(&os);
-	if (szName) fclose(out);
+	if (szName) gf_fclose(out);
 	return GF_OK;
 #endif
 }
@@ -218,9 +218,9 @@ GF_Err gf_export_hint(GF_MediaExporter *dumper)
 		}
 		if (e) return gf_export_message(dumper, e, "Error fetching hint packet %d", i);
 		sprintf(szName, "%s_pck_%04d.%s", dumper->out_name, i, gf_4cc_to_str(m_stype));
-		out = gf_f64_open(szName, "wb");
+		out = gf_fopen(szName, "wb");
 		gf_fwrite(pck, size, 1, out);
-		fclose(out);
+		gf_fclose(out);
 		gf_free(pck);
 		i++;
 		if (count) gf_set_progress("Hint Export", sn, count);
@@ -389,6 +389,9 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	} else if (m_stype==GF_ISOM_SUBTYPE_AC3) {
 		gf_export_message(dumper, GF_OK, "Extracting AC3 sample%s", szNum);
 		strcpy(szEXT, ".ac3");
+	} else if (m_stype==GF_ISOM_SUBTYPE_MP3) {
+		gf_export_message(dumper, GF_OK, "Extracting MP3 sample%s", szNum);
+		strcpy(szEXT, ".mp3");
 	} else if (m_stype==GF_4CC('x','d','v','b') ) {
 		gf_export_message(dumper, GF_OK, "Extracting MPEG-2 sample%s", szNum);
 		strcpy(szEXT, ".m2v");
@@ -415,6 +418,18 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
 		gf_export_message(dumper, GF_OK, "Extracting Simple Text sample%s", szNum);
 		strcpy(szEXT, ".txt");
+	} else if (m_stype==GF_ISOM_SUBTYPE_METT) {
+		gf_export_message(dumper, GF_OK, "Extracting Metadata Text sample%s", szNum);
+		strcpy(szEXT, ".txt");
+	} else if (m_stype==GF_ISOM_SUBTYPE_SBTT) {
+		gf_export_message(dumper, GF_OK, "Extracting Subtitle Text sample%s", szNum);
+		strcpy(szEXT, ".txt");
+	} else if (m_stype==GF_ISOM_SUBTYPE_METX) {
+		gf_export_message(dumper, GF_OK, "Extracting Metadata XML sample%s", szNum);
+		strcpy(szEXT, ".xml");
+	} else if (m_stype==GF_ISOM_SUBTYPE_STPP) {
+		gf_export_message(dumper, GF_OK, "Extracting Subtitle XML sample%s", szNum);
+		strcpy(szEXT, ".xml");
 	} else if (m_type==GF_ISOM_MEDIA_HINT) {
 		return gf_export_hint(dumper);
 	} else if (m_stype==GF_4CC('m','j','p','2')) {
@@ -460,7 +475,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		} else {
 			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, szEXT);
 		}
-		out = is_stdout ? stdout : gf_f64_open(szName, "wb");
+		out = is_stdout ? stdout : gf_fopen(szName, "wb");
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
 		if (is_mj2k)
 			write_jp2_file(bs, samp->data, samp->dataLength, dsi, dsi_size);
@@ -484,7 +499,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		gf_bs_del(bs);
 
 		if (!is_stdout)
-			fclose(out);
+			gf_fclose(out);
 		if (dsi)
 			gf_free(dsi);
 		return GF_OK;
@@ -511,7 +526,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 			}
 		}
 
-		out = is_stdout ? stdout : gf_f64_open(szName, "wb");
+		out = is_stdout ? stdout : gf_fopen(szName, "wb");
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
 		if (dsi) gf_bs_write_data(bs, dsi, dsi_size);
 		if (is_mj2k)
@@ -536,7 +551,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		gf_set_progress("Media Export", i+1, count);
 		gf_bs_del(bs);
 		if (!is_stdout)
-			fclose(out);
+			gf_fclose(out);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
 	if (dsi) gf_free(dsi);
@@ -557,7 +572,7 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	}
 
 	/* Create an idx file */
-	fidx = gf_f64_open(szName, "w");
+	fidx = gf_fopen(szName, "w");
 	if (!fidx) {
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
@@ -565,9 +580,9 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 	/* Create a sub file */
 	vobsub_trim_ext(szName);
 	szName = strcat(szName, ".sub");
-	fsub = gf_f64_open(szName, "wb");
+	fsub = gf_fopen(szName, "wb");
 	if (!fsub) {
-		fclose(fidx);
+		gf_fclose(fidx);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
 
@@ -634,14 +649,14 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 		mm  = (u32)(dts % 60);
 		hh  = (u32)(dts / 60);
 #if defined(WIN32)  && !defined(__GNUC__)
-		fprintf(fidx, "timestamp: %02u:%02u:%02u:%03u, filepos: %09lx\n", hh, mm, ss, ms, gf_f64_tell(fsub));
+		fprintf(fidx, "timestamp: %02u:%02u:%02u:%03u, filepos: %09lx\n", hh, mm, ss, ms, gf_ftell(fsub));
 #else
-		fprintf(fidx, "timestamp: %02u:%02u:%02u:%03u, filepos: " LLXPAD("09") "\n", hh, mm, ss, ms, gf_f64_tell(fsub));
+		fprintf(fidx, "timestamp: %02u:%02u:%02u:%03u, filepos: " LLXPAD("09") "\n", hh, mm, ss, ms, gf_ftell(fsub));
 #endif
 		if (vobsub_packetize_subpicture(fsub, samp->DTS, samp->data, samp->dataLength) != GF_OK) {
 			gf_isom_sample_del(&samp);
-			fclose(fsub);
-			fclose(fidx);
+			gf_fclose(fsub);
+			gf_fclose(fidx);
 			return gf_export_message(dumper, GF_IO_ERR, "Unable packetize subpicture into file %s\n", szName);
 		}
 
@@ -658,8 +673,8 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 		gf_isom_sample_del(&samp);
 	}
 
-	fclose(fsub);
-	fclose(fidx);
+	gf_fclose(fsub);
+	gf_fclose(fidx);
 
 	return GF_OK;
 #else
@@ -708,7 +723,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	GF_AVCConfig *avccfg, *svccfg;
 	GF_HEVCConfig *hevccfg, *shvccfg;
 	GF_M4ADecSpecInfo a_cfg;
-	char *stxtcfg;
+	const char *stxtcfg;
 	GF_BitStream *bs;
 	u32 track, i, di, count, m_type, m_stype, dsi_size, qcp_type;
 	Bool is_ogg, has_qcp_pad, is_vobsub;
@@ -745,13 +760,28 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	udesc = NULL;
 
 	/* check if the output file name needs an extension or already has one */
-	add_ext = (dumper->out_name && strrchr(dumper->out_name , '.')==NULL) ? GF_TRUE : GF_FALSE;
+	if (dumper->out_name) {
+		char *lastPathPart;
+		lastPathPart = strrchr(dumper->out_name , GF_PATH_SEPARATOR);
+		if (!lastPathPart) {
+			lastPathPart = dumper->out_name;
+		} else {
+			lastPathPart++;
+		}
+		if (strrchr(lastPathPart , '.')==NULL) {
+			add_ext =  GF_TRUE;
+		} else {
+			add_ext =  GF_FALSE;
+		}
+	} else {
+		add_ext = GF_FALSE;
+	}
 	strcpy(szName, dumper->out_name ? dumper->out_name : "");
 
 	/* Find the decoder configuration:
-	   - Check first if the stream is carried according to MPEG-4 Systems, 
-	   i.e. using the Object Descriptor Framework, to get the Decoder Specific Info (dsi) 
-	   - Or get it specifically depending on the media type 
+	   - Check first if the stream is carried according to MPEG-4 Systems,
+	   i.e. using the Object Descriptor Framework, to get the Decoder Specific Info (dsi)
+	   - Or get it specifically depending on the media type
 	   */
 	dcfg = NULL;
 	if ((m_stype==GF_ISOM_SUBTYPE_MPEG4) || (m_stype==GF_ISOM_SUBTYPE_MPEG4_CRYP)) {
@@ -977,6 +1007,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			gf_export_message(dumper, GF_OK, "Extracting Macromedia Flash Movie");
 			if (add_ext)
 				strcat(szName, ".swf");
+		} else if (m_stype==GF_ISOM_SUBTYPE_MP3) {
+			gf_export_message(dumper, GF_OK, "Extracting MPEG-1/2 Audio");
+			if (add_ext)
+				strcat(szName, ".mp3");
 		} else if (m_stype==GF_ISOM_SUBTYPE_AC3) {
 			gf_export_message(dumper, GF_OK, "Extracting AC3 Audio");
 			if (add_ext) {
@@ -992,25 +1026,32 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			is_webvtt = GF_TRUE;
 			if (add_ext)
 				strcat(szName, ".vtt");
-		} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
-			gf_export_message(dumper, GF_OK, "Extracting Simple Text Stream");
+		} else if ((m_stype==GF_ISOM_SUBTYPE_STXT) || (m_stype==GF_ISOM_SUBTYPE_METT)) {
+			const char *mime;
+			const char *encoding;
+			gf_export_message(dumper, GF_OK, "Extracting %s Stream", (m_stype==GF_ISOM_SUBTYPE_STXT) ? "Simple Text" : "Text-based Metadata");
+			gf_isom_stxt_get_description(dumper->file, track, 1, &mime, &encoding, &stxtcfg);
 			if (add_ext) {
-				char *mime;
-				if (gf_isom_stxt_info_get(dumper->file, track, 1, &mime, &stxtcfg) == GF_OK) {
-					if (mime && !strcmp(mime, "image/svg+xml")) {
-						strcat(szName, ".svg");
-					} else {
-						strcat(szName, ".txt");
-					}
+				if (mime && !strcmp(mime, "image/svg+xml")) {
+					gf_export_message(dumper, GF_OK, "as SVG file");
+					strcat(szName, ".svg");
 				} else {
 					strcat(szName, ".txt");
 				}
 			}
+		} else if (m_stype==GF_ISOM_SUBTYPE_SBTT) {
+			gf_export_message(dumper, GF_OK, "Extracting Text-based Subtitle Stream");
+			if (add_ext)
+				strcat(szName, ".txt");
 		} else if (m_stype==GF_ISOM_SUBTYPE_STPP) {
-			gf_export_message(dumper, GF_OK, "Extracting XML Subtitles");
+			gf_export_message(dumper, GF_OK, "Extracting XML Subtitle Stream");
 			if (add_ext)
 				strcat(szName, ".xml");
 			return gf_export_message(dumper, GF_NOT_SUPPORTED, "XML Subtitles re-assembling is not supported yet.", dumper->trackID);
+		} else if (m_stype==GF_ISOM_SUBTYPE_METX) {
+			gf_export_message(dumper, GF_OK, "Extracting XML Metadata Stream");
+			if (add_ext)
+				strcat(szName, ".xml");
 		} else {
 			if (add_ext) {
 				strcat(szName, ".");
@@ -1090,10 +1131,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	if (is_stdout) {
 		out = stdout;
 	} else if (dumper->out_name && (dumper->flags & GF_EXPORT_MERGE)) {
-		out = gf_f64_open(dumper->out_name, "a+b");
-		if (out) gf_f64_seek(out, 0, SEEK_END);
+		out = gf_fopen(dumper->out_name, "a+b");
+		if (out) gf_fseek(out, 0, SEEK_END);
 	} else {
-		out = gf_f64_open(szName, "wb");
+		out = gf_fopen(szName, "wb");
 	}
 	if (!out) {
 		if (dsi) gf_free(dsi);
@@ -1186,7 +1227,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (qcp_type==2) gf_bs_write_data(bs, "#!SMV\n", 6);
 		else gf_bs_write_data(bs, "#!EVRC\n", 7);
 		qcp_type = 0;
-	} else if (m_stype==GF_ISOM_SUBTYPE_STXT) {
+	} else if ((m_stype==GF_ISOM_SUBTYPE_STXT) || (m_stype==GF_ISOM_SUBTYPE_METT)) {
 		if (stxtcfg) {
 			gf_bs_write_data(bs, stxtcfg, (u32)strlen(stxtcfg));
 		}
@@ -1368,7 +1409,7 @@ exit:
 	if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
 	gf_bs_del(bs);
 	if (!is_stdout)
-		fclose(out);
+		gf_fclose(out);
 	return e;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 }
@@ -1418,13 +1459,13 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 			strcpy(szOutFile, dumper->out_name);
 		}
 
-		fout = is_stdout ? stdout : gf_f64_open(szOutFile, "wb");
+		fout = is_stdout ? stdout : gf_fopen(szOutFile, "wb");
 
 		max_size = 0;
 		frame = NULL;
-		num_samples = AVI_video_frames(in);
+		num_samples = (u32) AVI_video_frames(in);
 		for (i=0; i<num_samples; i++) {
-			size = AVI_frame_size(in, i);
+			size = (s32) AVI_frame_size(in, i);
 			if (!size) {
 				AVI_read_frame(in, NULL, (int*)&key);
 				continue;
@@ -1439,13 +1480,13 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 		}
 		gf_free(frame);
 		if(!is_stdout)
-			fclose(fout);
+			gf_fclose(fout);
 		fout = NULL;
 		goto exit;
 	}
 	i = 0;
 	tot_size = max_size = 0;
-	while ((size = AVI_audio_size(in, i) )>0) {
+	while ((size = (s32) AVI_audio_size(in, i) )>0) {
 		if (max_size<(u32) size) max_size=size;
 		tot_size += size;
 		i++;
@@ -1513,11 +1554,11 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 		strcpy(szOutFile, dumper->out_name);
 	}
 
-	fout = is_stdout ? stdout : gf_f64_open(szOutFile, "wb");
+	fout = is_stdout ? stdout : gf_fopen(szOutFile, "wb");
 	num_samples = 0;
 	while (1) {
 		Bool continuous;
-		size = AVI_read_audio(in, frame, max_size, (int*)&continuous);
+		size = (s32) AVI_read_audio(in, frame, max_size, (int*)&continuous);
 		if (!size) break;
 		num_samples += size;
 		gf_fwrite(frame, 1, size, fout);
@@ -1527,7 +1568,7 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 
 
 exit:
-	if (fout && !is_stdout) fclose(fout);
+	if (fout && !is_stdout) gf_fclose(fout);
 	AVI_close(in);
 	return e;
 }
@@ -1555,16 +1596,16 @@ GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 	}
 
 	sprintf(szName, "%s.media", dumper->out_name);
-	out_med = gf_f64_open(szName, "wb");
+	out_med = gf_fopen(szName, "wb");
 	if (!out_med) {
 		gf_odf_desc_del((GF_Descriptor *) esd);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
 
 	sprintf(szName, "%s.nhnt", dumper->out_name);
-	out_nhnt = gf_f64_open(szName, "wb");
+	out_nhnt = gf_fopen(szName, "wb");
 	if (!out_nhnt) {
-		fclose(out_med);
+		gf_fclose(out_med);
 		gf_odf_desc_del((GF_Descriptor *) esd);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
@@ -1574,9 +1615,9 @@ GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 
 	if (esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
 		sprintf(szName, "%s.info", dumper->out_name);
-		out_inf = gf_f64_open(szName, "wb");
+		out_inf = gf_fopen(szName, "wb");
 		if (out_inf) gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, out_inf);
-		fclose(out_inf);
+		gf_fclose(out_inf);
 	}
 
 	/*write header*/
@@ -1637,9 +1678,9 @@ GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 		gf_set_progress("NHNT Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
-	fclose(out_med);
+	gf_fclose(out_med);
 	gf_bs_del(bs);
-	fclose(out_nhnt);
+	gf_fclose(out_nhnt);
 	return GF_OK;
 }
 
@@ -1833,11 +1874,11 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 	add_to_iod = 1;
 	mode = GF_ISOM_WRITE_EDIT;
 	if (!is_stdout && (dumper->flags & GF_EXPORT_MERGE)) {
-		FILE *t = gf_f64_open(szName, "rb");
+		FILE *t = gf_fopen(szName, "rb");
 		if (t) {
 			add_to_iod = 0;
 			mode = GF_ISOM_OPEN_EDIT;
-			fclose(t);
+			gf_fclose(t);
 		}
 	}
 	outfile = gf_isom_open(is_stdout ? "std" : szName, mode, NULL);
@@ -2029,7 +2070,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 		szRootName = "DIMSStream";
 	} else {
 		sprintf(szMedia, "%s.media", dumper->out_name);
-		med = gf_f64_open(szMedia, "wb");
+		med = gf_fopen(szMedia, "wb");
 		if (!med) {
 			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 			return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szMedia);
@@ -2038,14 +2079,16 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 		sprintf(szName, "%s.nhml", dumper->out_name);
 		szRootName = "NHNTStream";
 	}
-	nhml = gf_f64_open(szName, "wt");
+	nhml = gf_fopen(szName, "wt");
 	if (!nhml) {
-		fclose(med);
+		gf_fclose(med);
 		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
 
 	mstype = gf_isom_get_media_subtype(dumper->file, track, 1);
+
+	gf_export_message(dumper, GF_OK, "Exporting NHML for track %s", gf_4cc_to_str(mstype) );
 
 	/*write header*/
 	fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
@@ -2054,9 +2097,9 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 		fprintf(nhml, "streamType=\"%d\" objectTypeIndication=\"%d\" ", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 		if (esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
 			sprintf(szName, "%s.info", dumper->out_name);
-			inf = gf_f64_open(szName, "wb");
+			inf = gf_fopen(szName, "wb");
 			if (inf) gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, inf);
-			fclose(inf);
+			gf_fclose(inf);
 			fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
 		}
 		gf_odf_desc_del((GF_Descriptor *) esd);
@@ -2087,13 +2130,26 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 			}
 			if (sdesc->extension_buf) {
 				sprintf(szName, "%s.info", dumper->out_name);
-				inf = gf_f64_open(szName, "wb");
+				inf = gf_fopen(szName, "wb");
 				if (inf) gf_fwrite(sdesc->extension_buf, sdesc->extension_buf_size, 1, inf);
-				fclose(inf);
+				gf_fclose(inf);
 				fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
 				gf_free(sdesc->extension_buf);
 			}
 			gf_free(sdesc);
+		} else {
+			const char *mime, *encoding, *config;
+			switch (mstype) {
+			case GF_ISOM_SUBTYPE_METT:
+				if (gf_isom_stxt_get_description(dumper->file, track, 1, &mime, &encoding, &config) == GF_OK) {
+					sprintf(szName, "%s.info", dumper->out_name);
+					inf = gf_fopen(szName, "wb");
+					if (inf) gf_fwrite(config, strlen(config), 1, inf);
+					gf_fclose(inf);
+					fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
+				}
+				break;
+			}
 		}
 	}
 
@@ -2183,7 +2239,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 							svg_data[d_stream.total_out - done] = 0;
 							fprintf(nhml, "%s", svg_data);
 							if (err== Z_STREAM_END) break;
-							done = d_stream.total_out;
+							done = (u32) d_stream.total_out;
 							d_stream.avail_out = 2048;
 							d_stream.next_out = (Bytef*)svg_data;
 						}
@@ -2193,8 +2249,8 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Error: your version of GPAC was compile with no libz support."));
 					gf_bs_del(bs);
 					gf_isom_sample_del(&samp);
-					if (med) fclose(med);
-					fclose(nhml);
+					if (med) gf_fclose(med);
+					gf_fclose(nhml);
 					return GF_NOT_SUPPORTED;
 #endif
 				} else {
@@ -2223,8 +2279,8 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
 	fprintf(nhml, "</%s>\n", szRootName);
-	if (med) fclose(med);
-	fclose(nhml);
+	if (med) gf_fclose(med);
+	gf_fclose(nhml);
 	return GF_OK;
 }
 
@@ -2260,7 +2316,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 	if (dumper->flags & GF_EXPORT_WEBVTT_META_EMBEDDED) {
 	} else {
 		sprintf(szMedia, "%s.media", dumper->out_name);
-		med = gf_f64_open(szMedia, "wb");
+		med = gf_fopen(szMedia, "wb");
 		if (!med) {
 			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 			return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szMedia);
@@ -2268,9 +2324,9 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 	}
 
 	sprintf(szName, "%s.vtt", dumper->out_name);
-	vtt = gf_f64_open(szName, "wt");
+	vtt = gf_fopen(szName, "wt");
 	if (!vtt) {
-		fclose(med);
+		gf_fclose(med);
 		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
@@ -2461,8 +2517,8 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 		gf_set_progress("WebVTT metadata Export", i+1, count);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
-	if (med) fclose(med);
-	fclose(vtt);
+	if (med) gf_fclose(med);
+	gf_fclose(vtt);
 	return GF_OK;
 }
 
@@ -2491,7 +2547,7 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 	esd = gf_isom_get_esd(dumper->file, track, 1);
 	media = NULL;
 	sprintf(szMedia, "%s.media", dumper->out_name);
-	media = gf_f64_open(szMedia, "wb");
+	media = gf_fopen(szMedia, "wb");
 	if (!media) {
 		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szMedia);
@@ -2500,9 +2556,9 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 	sprintf(szName, "%s.six", dumper->out_name);
 	szRootName = "stream";
 
-	six = gf_f64_open(szName, "wt");
+	six = gf_fopen(szName, "wt");
 	if (!six) {
-		fclose(media);
+		gf_fclose(media);
 		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
@@ -2570,8 +2626,8 @@ GF_Err gf_media_export_six(GF_MediaExporter *dumper)
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;
 	}
 	fprintf(six, "</%s>\n", szRootName);
-	if (media) fclose(media);
-	fclose(six);
+	if (media) gf_fclose(media);
+	gf_fclose(six);
 	return GF_OK;
 
 }
@@ -2668,7 +2724,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 		is_stdout = 1;
 	strcpy(out_file, dumper->out_name);
 	strcat(out_file, ".saf");
-	saf_f = is_stdout ? stdout : gf_f64_open(out_file, "wb");
+	saf_f = is_stdout ? stdout : gf_fopen(out_file, "wb");
 
 	samp_done = 0;
 	while (samp_done<tot_samp) {
@@ -2676,7 +2732,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 			GF_ISOSample *samp;
 			if (safs[i].last_sample==safs[i].nb_samp) continue;
 			samp = gf_isom_get_sample(dumper->file, safs[i].track_num, safs[i].last_sample + 1, &di);
-			gf_saf_mux_add_au(mux, safs[i].stream_id, (u32) (samp->DTS+samp->CTS_Offset), samp->data, samp->dataLength, samp->IsRAP);
+			gf_saf_mux_add_au(mux, safs[i].stream_id, (u32) (samp->DTS+samp->CTS_Offset), samp->data, samp->dataLength, (samp->IsRAP==RAP) ? 1 : 0);
 			/*data is kept by muxer!!*/
 			gf_free(samp);
 			safs[i].last_sample++;
@@ -2697,7 +2753,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 		gf_free(data);
 	}
 	if (!is_stdout)
-		fclose(saf_f);
+		gf_fclose(saf_f);
 
 	gf_saf_mux_del(mux);
 	return GF_OK;
@@ -2712,7 +2768,7 @@ void m2ts_export_check(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 {
 //	if (evt_type == GF_M2TS_EVT_PAT_REPEAT) ts->user = NULL;
 	if (evt_type == GF_M2TS_EVT_PMT_REPEAT) ts->user = NULL;
-	else if (evt_type == GF_M2TS_EVT_PAT_FOUND) ts->segment_switch = 1;
+	else if (evt_type == GF_M2TS_EVT_PAT_FOUND) ts->abort_parsing = 1;
 }
 
 struct _ts_export
@@ -2769,12 +2825,12 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
 
-	src = gf_f64_open(dumper->in_name, "rb");
+	src = gf_fopen(dumper->in_name, "rb");
 	if (!src) return gf_export_message(dumper, GF_CODEC_NOT_FOUND, "Error opening %s", dumper->in_name);
 
-	gf_f64_seek(src, 0, SEEK_END);
-	fsize = gf_f64_tell(src);
-	gf_f64_seek(src, 0, SEEK_SET);
+	gf_fseek(src, 0, SEEK_END);
+	fsize = gf_ftell(src);
+	gf_fseek(src, 0, SEEK_SET);
 
 	ts = gf_m2ts_demux_new();
 	ts->on_event = m2ts_export_check;
@@ -2787,12 +2843,12 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		gf_m2ts_process_data(ts, data, (u32)size);
 		if (!ts->user) break;
 	}
-	if (!ts->segment_switch && ts->user) {
-		fclose(src);
+	if (!ts->abort_parsing && ts->user) {
+		gf_fclose(src);
 		gf_m2ts_demux_del(ts);
 		return gf_export_message(dumper, GF_URL_ERROR, "Cannot locate program association table");
 	}
-	ts->segment_switch = 0;
+	ts->abort_parsing = 0;
 
 	stream = NULL;
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
@@ -2807,7 +2863,7 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		}
 	}
 	if (!stream) {
-		fclose(src);
+		gf_fclose(src);
 		gf_m2ts_demux_del(ts);
 		return gf_export_message(dumper, GF_URL_ERROR, "Cannot find PID %d in transport stream", dumper->trackID);
 	}
@@ -2869,15 +2925,15 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	if (dumper->out_name && !strcmp(dumper->out_name, "std"))
 		is_stdout=1;
 
-	tsx.dst = is_stdout ? stdout : gf_f64_open(szFile, "wb");
+	tsx.dst = is_stdout ? stdout : gf_fopen(szFile, "wb");
 	if (!tsx.dst) {
-		fclose(src);
+		gf_fclose(src);
 		gf_m2ts_demux_del(ts);
 		return gf_export_message(dumper, GF_IO_ERR, "Cannot open file %s for writing", szFile);
 	}
 
 	gf_m2ts_reset_parsers(ts);
-	gf_f64_seek(src, 0, SEEK_SET);
+	gf_fseek(src, 0, SEEK_SET);
 	fdone = 0;
 	ts->user = &tsx;
 	ts->on_event = m2ts_export_dump;
@@ -2893,8 +2949,8 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	gf_set_progress("MPEG-2 TS Extract", fsize, fsize);
 
 	if (!is_stdout)
-		fclose(tsx.dst);
-	fclose(src);
+		gf_fclose(tsx.dst);
+	gf_fclose(src);
 	gf_m2ts_demux_del(ts);
 	return GF_OK;
 }

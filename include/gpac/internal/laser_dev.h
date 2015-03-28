@@ -28,6 +28,7 @@
 #define _GF_LASER_DEV_H_
 
 #include <gpac/laser.h>
+#include <gpac/maths.h>
 
 #ifndef GPAC_DISABLE_LASER
 

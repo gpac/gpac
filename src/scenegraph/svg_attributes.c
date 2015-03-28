@@ -170,7 +170,10 @@ static const struct dom_event_def {
 	{ GF_EVENT_VP_RESIZE, "gpac_vp_changed", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_ADDON_DETECTED, "gpac_addon_found", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_MAIN_ADDON_STATE, "gpac_main_addon_state", GF_DOM_EVENT_GPAC},
-	
+	{ GF_EVENT_STREAMLIST, "gpac_streamlist_changed", GF_DOM_EVENT_GPAC},
+	{ GF_EVENT_TIMESHIFT_DEPTH, "gpac_timeshift_depth_changed", GF_DOM_EVENT_GPAC},
+
+
 #if 0
 	{ GF_EVENT_DBLCLICK, "gpac_dbl_click", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_SIZE, "gpac_size_changed", GF_DOM_EVENT_GPAC},
@@ -457,14 +460,15 @@ static const struct predef_keyid {
 
 
 GF_EXPORT
-const char *gf_dom_get_key_name(u32 key_identifier)
+const char *gf_dom_get_key_name(GF_KeyCode key_identifier)
 {
 	u32 count = sizeof(predefined_key_identifiers) / sizeof(struct predef_keyid);
-	if (!key_identifier || count<=key_identifier) return "Unknown";
+	if (!key_identifier || count<= (u32) key_identifier) return "Unknown";
 	return predefined_key_identifiers[key_identifier-1].name;
 }
 
 
+GF_EXPORT
 GF_KeyCode gf_dom_get_key_type(char *key_name)
 {
 	if (strlen(key_name) == 1) {
@@ -3019,7 +3023,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	/* for all attributes, except strings, apply some sort of white space normalization*/
 	if (info->fieldType != DOM_String_datatype && strlen(attribute_content)) {
 		u32 i, len;
-		/*remove spaces at the begining*/
+		/*remove spaces at the beginning*/
 		while (attribute_content[0] && (strchr("\r\n\t ", attribute_content[0])))
 			attribute_content++;
 

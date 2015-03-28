@@ -8,6 +8,9 @@ extension = {
             case GF_EVENT_ADDON_DETECTED:
                 this.confirm_addon(evt);
                 return true;
+            case GF_EVENT_QUIT:
+                this.save_session();
+                return false;
             default:
                 return false;
         }
@@ -24,6 +27,8 @@ extension = {
         if (!this.setup) {
             gwlib_add_event_filter(this.create_event_filter(this));
             this.setup = true;
+
+            this.restore_session();
             return;
         }
 
@@ -195,6 +200,86 @@ extension = {
             if (!value) return;
             this.extension.do_activate_addon(this);
         }
+    },
+
+    do_xhr: function (url, cmd) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', url, false);
+
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Content-Length', cmd.length);
+        xhr.send(cmd);
+
+        if ((xhr.status != 200) || (xhr.readyState != 4)) {
+            if (xhr.status) {
+                gwlog(l_err, '[H2B2VS] Failed to query server: ' + xhr.responseText);
+            } else {
+                gwlog(l_err, '[H2B2VS] Failed to send request');
+            }
+            return null;
+        }
+        gwlog(l_deb, 'Command sent is ' + cmd + ' - response is ' + xhr.responseText);
+
+        var obj = gwskin.parse(xhr.responseText);
+        if (typeof obj.result == 'undefined') {
+            gwlog(l_err, '[H2B2VS] Non conformant response object ' + xhr.responseText);
+            return null;
+        }
+        if (obj.result != 0) {
+            gwlog(l_inf, '[H2B2VS] No session found for user - ' + xhr.responseText);
+            return null;
+        }
+        return obj;
+    },
+
+    restore_session: function () {
+
+        if (gwskin.media_url) {
+            gwlog(l_inf, 'URL was given when opening, skipping session restore');
+            return;
+        }
+        var server = this.get_option('SessionServer', null);
+        var user = this.get_option('UserID', null);
+        if (!server || !user) return;
+
+        var url = server + 'getData';
+        var cmd = 'ID=' + user;
+
+        var obj = this.do_xhr(url, cmd);
+        if (!obj) return;
+
+        var dlg = gw_new_confirm_wnd(null, 'Restore last session ?');
+        dlg.set_alpha(0.95);
+        dlg.show();
+        dlg.sess = obj.data;
+
+        dlg.on_confirm = function (value) {
+            if (!value) return;
+            gwskin.restore_session(this.sess.url, this.sess.media_time, this.sess.media_clock);
+        }
+    },
+
+    save_session: function () {
+        var server = this.get_option('SessionServer', null);
+        var user = this.get_option('UserID', null);
+        if (!server || !user) return;
+
+        var obj = {};
+        var url = gwskin.pvr_url;
+        if (url === '') url = gwskin.media_url;
+
+        obj.url = url.replace(/\\/g, "/");
+        obj.media_time = 0;
+        obj.media_clock = 0;
+        if (typeof gwskin.media_time != 'undefined') obj.media_time = gwskin.media_time;
+        if (typeof gwskin.media_clock != 'undefined') obj.media_clock = gwskin.media_clock;
+
+        var str = gwskin.stringify(obj);
+
+        var url = server + 'setData';
+        var cmd = 'ID=' + user + '&Data=' + str;
+        this.do_xhr(url, cmd);
+
     }
 };
 

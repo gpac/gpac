@@ -523,17 +523,17 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 }
 static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 shader_type)
 {
-	FILE *src = gf_f64_open(src_path, "rt");
+	FILE *src = gf_fopen(src_path, "rt");
 	GF_SHADERID shader = 0;
 	if (src) {
 		size_t size;
 		char *shader_src;
-		gf_f64_seek(src, 0, SEEK_END);
-		size = (size_t) gf_f64_tell(src);
-		gf_f64_seek(src, 0, SEEK_SET);
+		gf_fseek(src, 0, SEEK_END);
+		size = (size_t) gf_ftell(src);
+		gf_fseek(src, 0, SEEK_SET);
 		shader_src = gf_malloc(sizeof(char)*(size+1));
 		size = fread(shader_src, 1, size, src);
-		fclose(src);
+		gf_fclose(src);
 		if (size != (size_t) -1) {
 			shader_src[size]=0;
 			shader = glCreateShader(shader_type);
@@ -1092,15 +1092,18 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 
 static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 {
+#if defined(GPAC_FIXED_POINT)
+	Float _mat[16];
+	u32 i;
+#endif
+
 	if (!mat) {
 		glLoadIdentity();
 		return;
 	}
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 	glLoadMatrixx(mat);
 #elif defined(GPAC_FIXED_POINT)
-	Float _mat[16];
-	u32 i;
 	for (i=0; i<16; i++) _mat[i] = FIX2FLT(mat[i]);
 	glLoadMatrixf(_mat);
 #else
@@ -1110,7 +1113,7 @@ static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 
 static void visual_3d_matrix_add(GF_VisualManager *visual, Fixed *mat)
 {
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 	glMultMatrixx(mat);
 #elif defined(GPAC_FIXED_POINT)
 	u32 i;
@@ -1166,7 +1169,7 @@ static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *t
 			gf_mx_apply_plane(&mx, &p);
 		}
 
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 		g[0] = p.normal.x;
 		g[1] = p.normal.y;
 		g[2] = p.normal.z;
@@ -1177,7 +1180,13 @@ static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *t
 		g[1] = FIX2FLT(p.normal.y);
 		g[2] = FIX2FLT(p.normal.z);
 		g[3] = FIX2FLT(p.d);
+
+#if defined(GPAC_USE_OGL_ES)
+		glClipPlanef(idx, g);
+#else
 		glClipPlane(idx, g);
+#endif
+
 #endif
 		glEnable(idx);
 
@@ -1215,7 +1224,7 @@ void visual_3d_reset_lights(GF_VisualManager *visual)
 static void visual_3d_set_lights(GF_VisualManager *visual)
 {
 	u32 i;
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 	Fixed vals[4], exp;
 #else
 	Float vals[4], intensity, cutOffAngle, beamWidth, ambientIntensity, exp;
@@ -1235,7 +1244,7 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 		switch (li->type) {
 		//directionnal light
 		case 0:
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 			vals[0] = -li->direction.x;
 			vals[1] = -li->direction.y;
 			vals[2] = -li->direction.z;
@@ -1295,7 +1304,7 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 			beamWidth = FIX2FLT(li->beamWidth);
 #endif
 
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 			vals[0] = li->direction.x;
 			vals[1] = li->direction.y;
 			vals[2] = li->direction.z;
@@ -1370,7 +1379,7 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 
 		//point light
 		case 2:
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 			vals[0] = li->position.x;
 			vals[1] = li->position.y;
 			vals[2] = li->position.z;
@@ -1433,7 +1442,7 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 
 #ifndef GPAC_USE_TINYGL
 
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 	Fixed vals[4];
 	glEnable(GL_FOG);
 	if (!visual->fog_type) glFogx(GL_FOG_MODE, GL_LINEAR);
@@ -1451,9 +1460,17 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 #else
 	Float vals[4];
 	glEnable(GL_FOG);
+
+#if defined(GPAC_USE_OGL_ES)
+	if (!visual->fog_type) glFogf(GL_FOG_MODE, GL_LINEAR);
+	else if (visual->fog_type==1) glFogf(GL_FOG_MODE, GL_EXP);
+	else if (visual->fog_type==2) glFogf(GL_FOG_MODE, GL_EXP2);
+#else
 	if (!visual->fog_type) glFogi(GL_FOG_MODE, GL_LINEAR);
 	else if (visual->fog_type==1) glFogi(GL_FOG_MODE, GL_EXP);
 	else if (visual->fog_type==2) glFogi(GL_FOG_MODE, GL_EXP2);
+#endif
+
 	glFogf(GL_FOG_DENSITY, FIX2FLT(visual->fog_density));
 	glFogf(GL_FOG_START, 0);
 	glFogf(GL_FOG_END, FIX2FLT(visual->fog_visibility));
@@ -1518,7 +1535,7 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg);
 }
 
-#ifndef GPAC_ANDROID
+#if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE)
 
 static GLint my_glGetUniformLocation(GF_SHADERID glsl_program, const char *uniform_name)
 {
@@ -1538,6 +1555,7 @@ static GLint my_glGetAttribLocation(GF_SHADERID glsl_program, const char *attrib
 	return loc;
 }
 
+#ifndef GPAC_FIXED_POINT
 static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh *mesh, void *vertex_buffer_address)
 {
 	GF_VisualManager *visual = tr_state->visual;
@@ -1684,6 +1702,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	GL_CHECK_ERR
 	glUseProgram(0);
 }
+#endif //GPAC_FIXED_POINT
 
 #endif //GPAC_ANDROID
 
@@ -1700,7 +1719,6 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 
 	has_col = has_tx = has_norm = 0;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
 
 	if ((compositor->reset_graphics==2) && mesh->vbo) {
 		/*we lost OpenGL context at previous frame, recreate VBO*/
@@ -1733,7 +1751,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		mesh->vbo_dirty = 0;
 	}
 
-#ifndef GPAC_ANDROID
+#if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE) && !defined(GPAC_FIXED_POINT)
 	if (visual->compositor->shader_only_mode) {
 		visual_3d_draw_mesh_shader_only(tr_state, mesh, base_address);
 		return;
@@ -1745,7 +1763,17 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	visual_3d_update_matrices(tr_state);
 
+	/*enable states*/
 	if (visual->has_fog) visual_3d_enable_fog(visual);
+
+	if (visual->state_color_on) glEnable(GL_COLOR_MATERIAL);
+	else glDisable(GL_COLOR_MATERIAL);
+
+	if (visual->state_blend_on) glEnable(GL_BLEND);
+
+
+	if (visual->num_clips)
+		visual_3d_set_clippers(visual, tr_state);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 #if defined(GPAC_USE_OGL_ES)
@@ -1759,18 +1787,6 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex), base_address);
 #endif
 
-
-	/*enable states*/
-
-
-	if (visual->state_color_on) glEnable(GL_COLOR_MATERIAL);
-	else glDisable(GL_COLOR_MATERIAL);
-
-	if (visual->state_blend_on) glEnable(GL_BLEND);
-
-
-	if (visual->num_clips)
-		visual_3d_set_clippers(visual, tr_state);
 
 	/*
 	*	Enable colors:
@@ -1801,12 +1817,14 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 			}
 #ifdef GPAC_USE_OGL_ES
 			glColor4x( FIX2INT(visual->mat_2d.red * 255), FIX2INT(visual->mat_2d.green * 255), FIX2INT(visual->mat_2d.blue * 255), FIX2INT(visual->mat_2d.alpha * 255));
+#elif defined(GPAC_FIXED_POINT)
+			glColor4f(FIX2FLT(visual->mat_2d.red), FIX2FLT(visual->mat_2d.green), FIX2FLT(visual->mat_2d.blue), FIX2FLT(visual->mat_2d.alpha));
 #else
 			glColor4f(visual->mat_2d.red, visual->mat_2d.green, visual->mat_2d.blue, visual->mat_2d.alpha);
 #endif
 		}
 	}
-	
+
 #if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
 	else if (visual->compositor->visual->current_texture_glsl_program) {
 		int loc = glGetUniformLocation(visual->compositor->visual->current_texture_glsl_program, "alpha");
@@ -1853,7 +1871,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 				break;
 			}
 
-#ifdef GPAC_USE_OGL_ES
+#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
 			glMaterialxv(GL_FRONT_AND_BACK, mode, _rgba);
 #else
 			glMaterialfv(GL_FRONT_AND_BACK, mode, _rgba);
@@ -2218,6 +2236,7 @@ static void visual_3d_draw_bounds(GF_TraverseState *tr_state, GF_Mesh *mesh)
 void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
 	Bool mesh_drawn = 0;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
 	if (tr_state->visual->compositor->wiremode != GF_WIREFRAME_ONLY) {
 		visual_3d_draw_mesh(tr_state, mesh);
 		mesh_drawn = 1;
@@ -2250,6 +2269,8 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glDisableClientState(GL_VERTEX_ARRAY);
 	}
 	if (tr_state->visual->compositor->draw_bvol) visual_3d_draw_bounds(tr_state, mesh);
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Done drawing mesh %p\n", mesh));
 }
 
 #if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
@@ -2528,21 +2549,28 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 	u32 hy;
 #endif //GPAC_USE_TINYGL
 
-	fb->width = compositor->vp_width;
-	fb->height = compositor->vp_height;
+	fb->width = compositor->display_width;
+	fb->height = compositor->display_height;
 
 	/*depthmap-only dump*/
 	if (depth_dump_mode==1) {
-		Float *depthp;
-		Float zFar, zNear;
+		//depth reading not supported on gles <= 1.1
 #ifdef GPAC_USE_OGL_ES
 		return GF_NOT_SUPPORTED;
 #else
+		Float *depthp;
+		Float zFar, zNear;
 
 		fb->pitch_x = 0;
 		fb->pitch_y = compositor->vp_width;
 
-		fb->video_buffer = (char*)gf_malloc(sizeof(char)* fb->pitch_y * fb->height);
+		if (compositor->screen_buffer_alloc_size < fb->pitch_y * fb->height) {
+			compositor->screen_buffer_alloc_size = fb->pitch_y * fb->height;
+			compositor->screen_buffer = gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
+		}
+
+		fb->video_buffer = compositor->screen_buffer;
+		
 		//read as float
 		depthp = (Float*)gf_malloc(sizeof(Float)* fb->pitch_y * fb->height);
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
@@ -2555,8 +2583,8 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_FLOAT, depthp);
 
 		//linearize z buffer, from 0 (zfar) to 1 (znear)
-		zFar = compositor->visual->camera.z_far;
-		zNear = compositor->visual->camera.z_near;
+		zFar = FIX2FLT(compositor->visual->camera.z_far);
+		zNear = FIX2FLT(compositor->visual->camera.z_near);
 		for (i=0; i<fb->height*fb->width; i++) {
 			Float res = ( (2.0f * zNear) / (zFar + zNear - depthp[i] * (zFar - zNear)) ) ;
 			fb->video_buffer[i] = (u8) ( 255.0 * (1.0 - res));
@@ -2574,16 +2602,20 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		return GF_NOT_SUPPORTED;
 #else
 		char *depth_data=NULL;
+		u32 size;
 		fb->pitch_x = 4;
 		fb->pitch_y = compositor->vp_width*4; /* 4 bytes for each rgbds pixel */
 
 #ifndef GPAC_USE_TINYGL
-		fb->video_buffer = (char*)gf_malloc(sizeof(char)* fb->pitch_y * fb->height);
+		size = fb->pitch_y * fb->height;
 #else
-		fb->video_buffer = (char*)gf_malloc(sizeof(char)* 2 * fb->pitch_y * fb->height);
+		size = 2 * fb->pitch_y * fb->height;
 #endif
-
-
+		if (compositor->screen_buffer_alloc_size < size) {
+			compositor->screen_buffer_alloc_size = size;
+			compositor->screen_buffer = gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
+		}
+		fb->video_buffer = compositor->screen_buffer;
 
 #ifndef GPAC_USE_TINYGL
 
@@ -2626,12 +2658,19 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 #endif /*GPAC_USE_OGL_ES*/
 	} else { /*if (compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT))*/
+		u32 size;
 		fb->pitch_x = 4;
 		fb->pitch_y = 4*compositor->vp_width;
-		fb->video_buffer = (char*)gf_malloc(sizeof(char) * fb->pitch_y * fb->height);
+		size = fb->pitch_y * fb->height;
+		if (compositor->screen_buffer_alloc_size < size) {
+			compositor->screen_buffer_alloc_size = size;
+			compositor->screen_buffer = gf_realloc(compositor->screen_buffer, compositor->screen_buffer_alloc_size);
+		}
+
+		fb->video_buffer = compositor->screen_buffer;
 		fb->pixel_format = GF_PIXEL_RGBA;
 
-		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_RGBA, GL_UNSIGNED_BYTE, fb->video_buffer);
+		glReadPixels(0, 0, fb->width, fb->height, GL_RGBA, GL_UNSIGNED_BYTE, fb->video_buffer);
 		/*	} else {
 				fb->pitch_x = 3;
 				fb->pitch_y = 3*compositor->vp_width;
@@ -2658,7 +2697,6 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 GF_Err compositor_3d_release_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer)
 {
-	gf_free(framebuffer->video_buffer);
 	framebuffer->video_buffer = 0;
 	return GF_OK;
 }

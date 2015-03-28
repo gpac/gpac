@@ -140,7 +140,7 @@ struct _tag_audio_filter
 	GF_DECL_MODULE_INTERFACE
 
 	/*sets the current filter. The filterstring is opaque to libgpac and is taken as given
-	in the GPAC configuration file, where filters are listed as a ';;' seperated list in the "Filter" key of
+	in the GPAC configuration file, where filters are listed as a ';;' separated list in the "Filter" key of
 	the [Audio] section.
 		@returns: 1 is this module can handle the filterstring, 0 otherwise.
 	*/

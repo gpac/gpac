@@ -135,10 +135,10 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode)
 	tmp->stream = f;
 
 	/*get the size of this file (for read streams)*/
-	tmp->position = gf_f64_tell(f);
-	gf_f64_seek(f, 0, SEEK_END);
-	tmp->size = gf_f64_tell(f);
-	gf_f64_seek(f, tmp->position, SEEK_SET);
+	tmp->position = gf_ftell(f);
+	gf_fseek(f, 0, SEEK_END);
+	tmp->size = gf_ftell(f);
+	gf_fseek(f, tmp->position, SEEK_SET);
 	return tmp;
 }
 
@@ -737,10 +737,10 @@ u64 gf_bs_available(GF_BitStream *bs)
 	if (bs->buffer_io)
 		bs_flush_cache(bs);
 
-	cur = gf_f64_tell(bs->stream);
-	gf_f64_seek(bs->stream, 0, SEEK_END);
-	end = gf_f64_tell(bs->stream);
-	gf_f64_seek(bs->stream, cur, SEEK_SET);
+	cur = gf_ftell(bs->stream);
+	gf_fseek(bs->stream, 0, SEEK_END);
+	end = gf_ftell(bs->stream);
+	gf_fseek(bs->stream, cur, SEEK_SET);
 	return (u64) (end - cur);
 }
 
@@ -805,7 +805,7 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes)
 	if ((bs->bsmode == GF_BITSTREAM_FILE_WRITE) || (bs->bsmode == GF_BITSTREAM_FILE_READ)) {
 		if (bs->buffer_io)
 			bs_flush_cache(bs);
-		gf_f64_seek(bs->stream, nbBytes, SEEK_CUR);
+		gf_fseek(bs->stream, nbBytes, SEEK_CUR);
 		bs->position += nbBytes;
 		return;
 	}
@@ -839,7 +839,7 @@ void gf_bs_rewind_bits(GF_BitStream *bs, u64 nbBits)
 	return;
 }
 
-/*seek from begining of stream: use internally even when non aligned!*/
+/*seek from beginning of stream: use internally even when non aligned!*/
 static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 {
 	u32 i;
@@ -868,7 +868,7 @@ static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 	if (bs->buffer_io)
 		bs_flush_cache(bs);
 
-	gf_f64_seek(bs->stream, offset, SEEK_SET);
+	gf_fseek(bs->stream, offset, SEEK_SET);
 
 	bs->position = offset;
 	bs->current = 0;
@@ -877,7 +877,7 @@ static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 	return GF_OK;
 }
 
-/*seek from begining of stream: align before anything else*/
+/*seek from beginning of stream: align before anything else*/
 GF_EXPORT
 GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset)
 {
@@ -890,7 +890,7 @@ GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset)
 
 /*peek bits (as int!!) from orig position (ON BYTE BOUNDARIES, from 0) - only for read ...*/
 GF_EXPORT
-u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u32 byte_offset)
+u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u64 byte_offset)
 {
 	u64 curPos;
 	u32 curBits, ret, current;
@@ -927,10 +927,10 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs)
 	default:
 		if (bs->buffer_io)
 			bs_flush_cache(bs);
-		offset = gf_f64_tell(bs->stream);
-		gf_f64_seek(bs->stream, 0, SEEK_END);
-		bs->size = gf_f64_tell(bs->stream);
-		gf_f64_seek(bs->stream, offset, SEEK_SET);
+		offset = gf_ftell(bs->stream);
+		gf_fseek(bs->stream, 0, SEEK_END);
+		bs->size = gf_ftell(bs->stream);
+		gf_fseek(bs->stream, offset, SEEK_SET);
 		return bs->size;
 	}
 }
@@ -1084,7 +1084,7 @@ void gf_bs_reassign(GF_BitStream *bs, FILE *stream)
 	case GF_BITSTREAM_FILE_WRITE:
 	case GF_BITSTREAM_FILE_READ:
 		bs->stream = stream;
-		if (gf_f64_tell(stream) != bs->position)
+		if (gf_ftell(stream) != bs->position)
 			gf_bs_seek(bs, bs->position);
 		break;
 	}

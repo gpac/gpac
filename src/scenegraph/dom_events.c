@@ -636,7 +636,7 @@ GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event
 }
 
 GF_EXPORT
-GF_DOMHandler *gf_dom_listener_build(GF_Node *node, u32 event_type, u32 event_parameter)
+GF_DOMHandler *gf_dom_listener_build(GF_Node *node, GF_EventType event_type, u32 event_parameter)
 {
 	return gf_dom_listener_build_ex(node, event_type, event_parameter, NULL, NULL);
 }

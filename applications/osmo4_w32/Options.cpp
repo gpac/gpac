@@ -324,7 +324,7 @@ BOOL COptSystems::OnInitDialog()
 		const char *n3c = gf_lang_get_3cc(i);
 
 		m_Lang.AddString(gf_lang_get_name(i) );
-		if (sOpt && n3c && !stricmp(sOpt, n3c)) 
+		if (sOpt && n3c && !stricmp(sOpt, n3c))
 			select = m_Lang.GetCount() - 1;
 	}
 	m_Lang.SetCurSel(select);

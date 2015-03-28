@@ -27,6 +27,7 @@
 
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/internal/bifs_tables.h>
+#include <gpac/network.h>
 #include "quant.h"
 #include "script.h"
 
@@ -94,14 +95,23 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		if (node && (node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
 			u32 size, val;
 			char buf[4096];
-			FILE *f = gf_f64_open(((SFString*)field->far_ptr)->buffer, "rb");
-			if (!f) return GF_URL_ERROR;
-			gf_f64_seek(f, 0, SEEK_END);
-			size = (u32) gf_f64_tell(f);
+			char *res_src = NULL;
+			const char *src = ((SFString*)field->far_ptr)->buffer;
+			FILE *f;
+			if (codec->src_url) res_src = gf_url_concatenate(codec->src_url, src);
+
+			f = gf_fopen(res_src ? res_src : src, "rb");
+			if (!f) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[BIFS] Cannot open source file %s for encoding CacheTexture\n", res_src ? res_src : src));
+				return GF_URL_ERROR;
+			}
+			if (res_src) gf_free(res_src);
+			gf_fseek(f, 0, SEEK_END);
+			size = (u32) gf_ftell(f);
 			val = gf_get_bit_size(size);
 			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
 			GF_BIFS_WRITE_INT(codec, bs, size, val, "length", NULL);
-			gf_f64_seek(f, 0, SEEK_SET);
+			gf_fseek(f, 0, SEEK_SET);
 			while (size) {
 				u32 read = (u32) fread(buf, 1, 4096, f);
 				gf_bs_write_data(bs, buf, read);
@@ -252,9 +262,9 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	}
 
 	/*do we work in list or vector*/
-	use_list = 0;
+	use_list = GF_FALSE;
 	nbBits = gf_get_bit_size(nbF);
-	if (nbBits + 5 > nbF + 1) use_list = 1;
+	if (nbBits + 5 > nbF + 1) use_list = GF_TRUE;
 
 	GF_BIFS_WRITE_INT(codec, bs, use_list, 1, "isList", NULL);
 	if (!use_list) {
@@ -268,7 +278,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	sffield.NDTtype = field->NDTtype;
 
 	initial_qp = qp_on = qp_local = 0;
-	initial_qp = codec->ActiveQP ? 1 : 0;
+	initial_qp = codec->ActiveQP ? GF_TRUE : GF_FALSE;
 	for (i=0; i<nbF; i++) {
 
 		if (use_list) GF_BIFS_WRITE_INT(codec, bs, 0, 1, "end", NULL);
@@ -283,10 +293,10 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			/*activate QP*/
 			if (list->node->sgprivate->tag == TAG_MPEG4_QuantizationParameter) {
 				qp_local = ((M_QuantizationParameter *)list->node)->isLocal;
-				if (qp_on) gf_bifs_enc_qp_remove(codec, 0);
+				if (qp_on) gf_bifs_enc_qp_remove(codec, GF_FALSE);
 				e = gf_bifs_enc_qp_set(codec, list->node);
 				if (e) return e;
-				qp_on = 1;
+				qp_on = GF_TRUE;
 				if (qp_local) qp_local = 2;
 			}
 			list = list->next;
@@ -298,7 +308,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 			if (qp_local == 2) qp_local -= 1;
 			else {
 				gf_bifs_enc_qp_remove(codec, initial_qp);
-				qp_local = qp_on = 0;
+				qp_local = qp_on = GF_FALSE;
 			}
 		}
 	}
@@ -363,9 +373,8 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	GF_Err e;
 	s32 *enc_fields;
 	u32 numBitsALL, numBitsDEF, allInd, count, i, nbBitsProto, nbFinal;
-	Bool use_list, nodeIsFDP = 0;
+	Bool use_list, nodeIsFDP = GF_FALSE;
 	GF_FieldInfo field, clone_field;
-
 
 	e = GF_OK;
 
@@ -458,19 +467,19 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	}
 	if (clone) gf_node_unregister(clone, NULL);
 
-	use_list = 1;
+	use_list = GF_TRUE;
 	/* patch for FDP node : */
 	/* cannot use default field sorting due to spec "mistake", so use list to imply inversion between field 2 and field 3 of FDP*/
 	if (node->sgprivate->tag == TAG_MPEG4_FDP) {
 		s32 s4SwapValue = enc_fields[2];
 		enc_fields[2] = enc_fields[3];
 		enc_fields[3] = s4SwapValue;
-		nodeIsFDP = 1;
-		use_list = 1;
+		nodeIsFDP = GF_TRUE;
+		use_list = GF_TRUE;
 	}
 	/*number of bits in mask node is count*1, in list node is 1+nbFinal*(1+numBitsDEF) */
 	else if (count < 1+nbFinal*(1+numBitsDEF))
-		use_list = 0;
+		use_list = GF_FALSE;
 
 	GF_BIFS_WRITE_INT(codec, bs, use_list ? 0 : 1, 1, "isMask", NULL);
 
@@ -536,13 +545,13 @@ exit:
 Bool BE_NodeIsUSE(GF_BifsEncoder * codec, GF_Node *node)
 {
 	u32 i, count;
-	if (!node || !gf_node_get_id(node) ) return 0;
+	if (!node || !gf_node_get_id(node) ) return GF_FALSE;
 	count = gf_list_count(codec->encoded_nodes);
 	for (i=0; i<count; i++) {
-		if (gf_list_get(codec->encoded_nodes, i) == node) return 1;
+		if (gf_list_get(codec->encoded_nodes, i) == node) return GF_TRUE;
 	}
 	gf_list_add(codec->encoded_nodes, node);
-	return 0;
+	return GF_FALSE;
 }
 
 GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_BitStream *bs, GF_Node *parent_node)
@@ -577,17 +586,17 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 		case TAG_MPEG4_Coordinate:
 		{
 			u32 nbCoord = ((M_Coordinate *)new_node)->point.count;
-			gf_bifs_enc_qp14_enter(codec, 1);
+			gf_bifs_enc_qp14_enter(codec, GF_TRUE);
 			gf_bifs_enc_qp14_set_length(codec, nbCoord);
-			gf_bifs_enc_qp14_enter(codec, 0);
+			gf_bifs_enc_qp14_enter(codec, GF_FALSE);
 		}
 		break;
 		case TAG_MPEG4_Coordinate2D:
 		{
 			u32 nbCoord = ((M_Coordinate2D *)new_node)->point.count;
-			gf_bifs_enc_qp14_enter(codec, 1);
+			gf_bifs_enc_qp14_enter(codec, GF_TRUE);
 			gf_bifs_enc_qp14_set_length(codec, nbCoord);
-			gf_bifs_enc_qp14_enter(codec, 0);
+			gf_bifs_enc_qp14_enter(codec, GF_FALSE);
 		}
 		break;
 		}
@@ -637,7 +646,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	switch (node_tag) {
 	case TAG_MPEG4_Coordinate:
 	case TAG_MPEG4_Coordinate2D:
-		gf_bifs_enc_qp14_enter(codec, 1);
+		gf_bifs_enc_qp14_enter(codec, GF_TRUE);
 	}
 
 	e = EncNodeFields(codec, bs, node);
@@ -649,7 +658,7 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 	switch (node_tag) {
 	case TAG_MPEG4_Coordinate:
 	case TAG_MPEG4_Coordinate2D:
-		gf_bifs_enc_qp14_enter(codec, 0);
+		gf_bifs_enc_qp14_enter(codec, GF_FALSE);
 		break;
 	}
 	return GF_OK;

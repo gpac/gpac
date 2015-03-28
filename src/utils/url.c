@@ -65,7 +65,7 @@ static u32 URL_GetProtocolType(const char *pathName)
 Bool gf_url_is_local(const char *pathName)
 {
 	u32 mode = URL_GetProtocolType(pathName);
-	return (mode==GF_URL_TYPE_ANY) ? 0 : 1;
+	return (mode==GF_URL_TYPE_ANY) ? GF_FALSE : GF_TRUE;
 }
 
 char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
@@ -216,11 +216,16 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	while (strchr(" \r\n\t", tmp[strlen(tmp)-1])) {
 		tmp[strlen(tmp)-1] = 0;
 	}
+	//strip query part or fragment part
+	rad = strchr(tmp, '?');
+	if (rad) rad[0] = 0;
+	rad = strchr(tmp, '#');
+	if (rad) rad[0] = 0;
 
 	/*remove the last /*/
-	for (i = (u32) strlen(parentName); i > 0; i--) {
+	for (i = (u32) strlen(tmp); i > 0; i--) {
 		//break our path at each separator
-		if ((parentName[i-1] == GF_PATH_SEPARATOR) || (parentName[i-1] == '/'))  {
+		if ((tmp[i-1] == GF_PATH_SEPARATOR) || (tmp[i-1] == '/'))  {
 			tmp[i-1] = 0;
 			if (!pathSepCount) break;
 			pathSepCount--;
@@ -334,9 +339,9 @@ Bool gf_url_get_resource_path(const char *sURL, char *res_path)
 	if (!sep) sep = strrchr(res_path, '\\');
 	if (sep) {
 		sep[1] = 0;
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 

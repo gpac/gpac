@@ -51,6 +51,7 @@ typedef struct {
 	int width;
 	int height;
 	int pix_fmt;
+	AVRational sar;
 
 	int mode;
 	int no_loop, nb_consumers;

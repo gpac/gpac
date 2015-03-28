@@ -33,6 +33,7 @@
 #ifndef GPAC_DISABLE_MPEG2TS
 
 static const char * MIMES[] = { "video/mpeg-2", "video/mp2t", "video/mpeg", NULL};
+static const char * M2TS_EXTENSIONS = "ts m2t mts dmb trp";
 
 //when regulating data rate from file using PCR, this is the maximum sleep we tolerate
 #define M2TS_MAX_SLEEP 200
@@ -115,7 +116,7 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 	{
 		int i=0;
 		for (i = 0 ; NULL != MIMES[i]; i++)
-			if (gf_service_check_mime_register(plug, MIMES[i], "ts m2t dmb trp", "MPEG-2 TS", sExt))
+			if (gf_service_check_mime_register(plug, MIMES[i], M2TS_EXTENSIONS, "MPEG-2 TS", sExt))
 				return 1;
 	}
 	return 0;
@@ -375,7 +376,10 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
 
 		if (!prog->pmt_iod && !no_declare) {
-			MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
+			if (! (es->flags & GF_M2TS_ES_ALREADY_DECLARED)) {
+				MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
+				es->flags |= GF_M2TS_ES_ALREADY_DECLARED;
+			}
 		}
 		/*if IOD, streams not declared through OD framework are refered to by pid:// scheme, and will be declared upon
 		request by the terminal through GetServiceDesc*/
@@ -563,7 +567,7 @@ static void forward_m2ts_event(M2TSIn *m2ts, u32 evt_type, void *param)
 static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
 	M2TSIn *m2ts = (M2TSIn *) ts->user;
-
+				
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_UPDATE:
 		/*	example code showing how to forward an event from MPEG-2 TS input service to GPAC user*/
@@ -601,9 +605,12 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		forward_m2ts_event(m2ts, evt_type, param);
 		break;
 	case GF_M2TS_EVT_PMT_REPEAT:
-//	case GF_M2TS_EVT_PMT_UPDATE:
 		M2TS_FlushRequested(m2ts);
 		break;
+	case GF_M2TS_EVT_PMT_UPDATE:
+		MP2TS_SetupProgram(m2ts, param, GF_TRUE, GF_FALSE);
+		break;
+
 	case GF_M2TS_EVT_SDT_FOUND:
 	case GF_M2TS_EVT_SDT_UPDATE:
 		m2ts->flush_sdt = 1;
@@ -659,7 +666,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			slh.OCRflag = 1;
 			slh.m2ts_pcr = discontinuity ? 2 : 1;
 			slh.objectClockReference = ((GF_M2TS_PES_PCK *) param)->PTS;
-			
+
 			//check if our buffer level is low enough otherwise we would send the OCR_disc way too early
 			//we have to do this because the terminal doesn't "queue" clock discontinuities
 			if (m2ts->file_regulate && discontinuity) {
@@ -781,7 +788,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			}
 		}
 	}
-		break;
+	break;
 	case GF_M2TS_EVT_TDT:
 		if (m2ts->hybrid_on) {
 			u32 i, count;
@@ -939,7 +946,13 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 	2: query next segment except currently downloading one
 	3: drop next segment
 */
-static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_url, u64 *out_start_range, u64 *out_end_range, u32 *refresh_type)
+typedef enum {
+	INIT_RANGE = 0,
+	NEXT_SEGMENT,
+	NEXT_SEGMENT_EXCEPT_DL,
+	DROP_NEXT_SEGMENT,
+} DASHQueryType;
+static GF_Err M2TS_QueryNextFile(void *udta, DASHQueryType query_type, const char **out_url, u64 *out_start_range, u64 *out_end_range, u32 *refresh_type)
 {
 	GF_NetworkCommand param;
 	GF_Err query_ret;
@@ -952,9 +965,9 @@ static GF_Err M2TS_QueryNextFile(void *udta, u32 query_type, const char **out_ur
 	if (out_end_range) *out_end_range = 0;
 
 	memset(&param, 0, sizeof(GF_NetworkCommand));
-	param.command_type = (query_type==0) ? GF_NET_SERVICE_QUERY_INIT_RANGE : GF_NET_SERVICE_QUERY_NEXT;
-	param.url_query.drop_first_segment = (query_type==3) ? 1 : 0;
-	param.url_query.current_download = (query_type==2) ? 0 : 1;
+	param.command_type = (query_type == INIT_RANGE) ? GF_NET_SERVICE_QUERY_INIT_RANGE : GF_NET_SERVICE_QUERY_NEXT;
+	param.url_query.drop_first_segment = (query_type == DROP_NEXT_SEGMENT) ? 1 : 0;
+	param.url_query.current_download = (query_type == NEXT_SEGMENT_EXCEPT_DL) ? 0 : 1;
 
 	//we are downloading the segment we play, don't delete it
 	if (m2ts->in_segment_download)
@@ -1017,7 +1030,11 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 			m2ts->has_pending_segments++;
 		return;
 	}
-	gf_mx_p(m2ts->mx);
+    if (! gf_mx_try_lock(m2ts->mx)) {
+        if (flush_type==GF_M2TS_PUSH_SEGMENT)
+            m2ts->has_pending_segments++;
+        return;
+    }
 	m2ts->in_data_flush = 1;
 
 	//check buffer level when start of new segment
@@ -1045,7 +1062,7 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 		}
 	}
 
-	e = M2TS_QueryNextFile(m2ts, (flush_type==GF_M2TS_FLUSH_DATA) ? 2 : 1, &url, &start_byterange, &end_byterange, &refresh_type);
+	e = M2TS_QueryNextFile(m2ts, (flush_type==GF_M2TS_FLUSH_DATA) ? NEXT_SEGMENT_EXCEPT_DL : NEXT_SEGMENT, &url, &start_byterange, &end_byterange, &refresh_type);
 	if (e) {
 		m2ts->in_data_flush = 0;
 		gf_mx_v(m2ts->mx);
@@ -1055,7 +1072,7 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 
 	//done, drop segment
 	if (!m2ts->in_segment_download) {
-		e = M2TS_QueryNextFile(m2ts, 3, &url, &start_byterange, &end_byterange, &refresh_type);
+		e = M2TS_QueryNextFile(m2ts, DROP_NEXT_SEGMENT, &url, &start_byterange, &end_byterange, &refresh_type);
 
 		if (m2ts->has_pending_segments)
 			m2ts->has_pending_segments--;
@@ -1109,9 +1126,9 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 				u64 start_byterange, end_byterange;
 				gf_mx_p(m2ts->mx);
 				m2ts->in_data_flush = 1;
-				M2TS_QueryNextFile(m2ts, 0, NULL, &start_byterange, &end_byterange, NULL);
+				M2TS_QueryNextFile(m2ts, INIT_RANGE, NULL, &start_byterange, &end_byterange, NULL);
 				e = gf_m2ts_demux_file(m2ts->ts, url, start_byterange, end_byterange, 0, 0);
-				M2TS_QueryNextFile(m2ts, 3, NULL, NULL, NULL, NULL);
+				M2TS_QueryNextFile(m2ts, DROP_NEXT_SEGMENT, NULL, NULL, NULL, NULL);
 				m2ts->in_data_flush = 0;
 				gf_mx_v(m2ts->mx);
 			} else {
@@ -1276,20 +1293,28 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 		}
 
 		/* No IOD */
-		if (ES_ID == 18) {
+		if ((ES_ID == 18) && (!m2ts->ts->ess[18] || !(m2ts->ts->ess[18]->flags & GF_M2TS_ES_IS_PES)) ) {
 			e = GF_OK; /* 18 is the PID of EIT packets */
 			m2ts->eit_channel = channel;
-		} else if ((ES_ID<GF_M2TS_MAX_STREAMS) && m2ts->ts->ess[ES_ID]) {
-			GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[ES_ID];
-			if (pes->user) {
-				e = GF_SERVICE_ERROR;
-			} else {
-				pes->user = channel;
-				e = GF_OK;
+		} else if (ES_ID<GF_M2TS_MAX_STREAMS) {
+			u32 i, j, count, count2;
+			e = GF_SERVICE_ERROR;
+			count = gf_list_count(m2ts->ts->programs);
+			for (i=0; i<count; i++) {
+				GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, i);
+				count2 = gf_list_count(prog->streams);
+				for (j=0; j<count2; j++) {
+					GF_M2TS_PES *pes = (GF_M2TS_PES *)gf_list_get(prog->streams, j);
+					if ((pes->pid == ES_ID) && !pes->user) {
+						pes->user = channel;
+						/*we try to play the highest layer*/
+						if (pes->program->pid_playing < pes->pid)
+							pes->program->pid_playing = pes->pid;
+						e = GF_OK;
+						break;
+					}
+				}
 			}
-			/*we try to play the highest layer*/
-			if (pes->program->pid_playing < pes->pid)
-				pes->program->pid_playing = pes->pid;
 		}
 	}
 	gf_service_connect_ack(m2ts->service, channel, e);
@@ -1298,11 +1323,15 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 
 static GF_M2TS_PES *M2TS_GetChannel(M2TSIn *m2ts, LPNETCHANNEL channel)
 {
-	u32 i;
-	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
-		GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[i];
-		if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
-		if (pes->user == channel) return pes;
+	u32 i, j, count, count2;
+	count = gf_list_count(m2ts->ts->programs);
+	for (i=0; i<count; i++) {
+		GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, i);
+		count2 = gf_list_count(prog->streams);
+		for (j=0; j<count2; j++) {
+			GF_M2TS_PES *pes = (GF_M2TS_PES *)gf_list_get(prog->streams, j);
+			if (pes->user == channel) return pes;
+		}
 	}
 	return NULL;
 }
@@ -1403,9 +1432,13 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	}
 	//get info on the first running program
 	if (com->command_type==GF_NET_SERVICE_INFO) {
-		pes = M2TS_GetFirstRunningChannel(m2ts);
-		if (pes) {
-			GF_M2TS_SDT *sdt = gf_m2ts_get_sdt_info(ts, pes->program->number);
+		u32 id = com->info.service_id;
+		if (!id) {
+			pes = M2TS_GetFirstRunningChannel(m2ts);
+			if (pes) id = pes->program->number;
+		}
+		if (id) {
+			GF_M2TS_SDT *sdt = gf_m2ts_get_sdt_info(ts, id);
 			if (sdt) {
 				com->info.name = sdt->service;
 				com->info.provider = sdt->provider;
@@ -1454,11 +1487,11 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
 				m2ts->media_start_range = com->play.start_range;
 			}
-			if (!m2ts->map_media_time_on_prog_id) 
+			if (!m2ts->map_media_time_on_prog_id)
 				m2ts->map_media_time_on_prog_id = pes->program->number;
 
-			if (plug->query_proxy && ts->file)
-				ts->segment_switch = 1;
+			if (com->play.dash_segment_switch)
+				ts->abort_parsing = 1;
 
 			/*start demuxer*/
 			if (!plug->query_proxy) {
@@ -1468,7 +1501,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			}
 		}
 		//remap media time for this program
-		else if (!m2ts->map_media_time_on_prog_id) { 
+		else if (!m2ts->map_media_time_on_prog_id) {
 			m2ts->media_start_range = com->play.start_range;
 			m2ts->map_media_time_on_prog_id = pes->program->number;
 		}
@@ -1540,7 +1573,7 @@ static u32 M2TS_RegisterMimeTypes(const GF_InputService * service) {
 	if (service == NULL)
 		return 0;
 	for (i = 0 ; MIMES[i]; i++)
-		gf_service_register_mime( service, MIMES[i], "ts m2t dmb", "MPEG-2 TS");
+		gf_service_register_mime( service, MIMES[i], M2TS_EXTENSIONS, "MPEG-2 TS");
 	return i;
 }
 
@@ -1673,4 +1706,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( mpegts_in )
+GPAC_MODULE_STATIC_DECLARATION( mpegts_in )

@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 		e = parse_root_playlist(m3u8_local_name, &pl, ".");
 		if (e != GF_OK) return -1;
 
-		fmpd = fopen(argv[2], "wt");
+		fmpd = gf_fopen(argv[2], "wt");
 
 		fprintf(fmpd, "<MPD type=\"Live\" xmlns=\"urn:3GPP:ns:PSS:AdaptiveHTTPStreamingMPD:2009\">\n");
 		fprintf(fmpd, " <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n");
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 		}
 		fprintf(fmpd, " </Period>\n");
 		fprintf(fmpd, "</MPD>");
-		fclose(fmpd);
+		gf_fclose(fmpd);
 		variant_playlist_del(pl);
 		if (is_local) break;
 		gf_sleep(update_interval);

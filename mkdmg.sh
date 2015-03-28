@@ -20,6 +20,7 @@ if [ ! $basefile == 'libgpac.dylib' ] &&  [ ! -e lib/$basefile ];
 then
 #  echo copying $1 to bundle
   cp $1 lib/
+  chmod +w lib/$basefile
   rewrite_deps lib/$basefile
 fi
 }
@@ -31,16 +32,23 @@ then
 rm -fr tmpdmg
 fi
 mkdir -p tmpdmg/Osmo4.app
-rsync -r --exclude=.svn $source_path/build/osxdmg/Osmo4.app/ ./tmpdmg/Osmo4.app/
+rsync -r --exclude=.git $source_path/build/osxdmg/Osmo4.app/ ./tmpdmg/Osmo4.app/
 ln -s /Applications ./tmpdmg/Applications
 cp $source_path/README ./tmpdmg
 cp $source_path/COPYING ./tmpdmg
+
+mkdir -p tmpdmg/Osmo4.app/Contents/MacOS/modules
+mkdir -p tmpdmg/Osmo4.app/Contents/MacOS/lib
 
 cp bin/gcc/gm* tmpdmg/Osmo4.app/Contents/MacOS/modules
 cp bin/gcc/libgpac.dylib tmpdmg/Osmo4.app/Contents/MacOS/lib
 cp bin/gcc/MP4Client tmpdmg/Osmo4.app/Contents/MacOS/Osmo4
 cp bin/gcc/MP4Box tmpdmg/Osmo4.app/Contents/MacOS/MP4Box
 cp bin/gcc/MP42TS tmpdmg/Osmo4.app/Contents/MacOS/MP42TS
+if [ -f bin/gcc/DashCast ]
+then
+cp bin/gcc/DashCast tmpdmg/Osmo4.app/Contents/MacOS/DashCast
+fi
 
 cd tmpdmg/Osmo4.app/Contents/MacOS/
 
@@ -51,6 +59,11 @@ do
   rewrite_deps $dylib
 done
 
+if [ -f DashCast ]
+then
+  rewrite_deps DashCast
+fi
+
 echo rewriting APPS dependencies
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
@@ -59,26 +72,34 @@ install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
 install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib MP42TS
 
+if [ -f DashCast ]
+then
+install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib DashCast
+install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib DashCast
+fi
 
 cd ../../../..
 
 echo Copying GUI
-rsync -r --exclude=.svn $source_path/gui ./tmpdmg/Osmo4.app/Contents/MacOS/
+rsync -r --exclude=.git $source_path/gui ./tmpdmg/Osmo4.app/Contents/MacOS/
 
 echo Building DMG
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/version.h | cut -d '"' -f 2`
 
 cur_dir=`pwd`
 cd $source_path
-rev=`LANG=en_US svn info | grep Revision | tr -d 'Revision: '`
+TAG=$(git describe --tags --abbrev=0 2> /dev/null)
+REVISION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
+rev="$REVISION-$BRANCH"
 cd $cur_dir
 
 full_version=$version
 if [ "$rev" != "" ]
 then
-	full_version="$full_version-r$rev"
+	full_version="$full_version-rev$rev"
 else
-	#if no revision can be extracted from SVN, use date
+	#if no revision can be extracted, use date
    	$rev = $(date +%Y%m%d)
 fi
 
@@ -93,12 +114,17 @@ echo "Adding licence"
 hdiutil convert -format UDCO -o gpac_sla.dmg gpac.dmg
 rm gpac.dmg
 hdiutil unflatten gpac_sla.dmg
-/Developer/Tools/Rez /Developer/Headers/FlatCarbon/*.r $source_path/build/osxdmg/SLA.r -a -o gpac_sla.dmg
+Rez /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/CarbonCore.framework/Versions/A/Headers/*.r $source_path/build/osxdmg/SLA.r -a -o gpac_sla.dmg
 hdiutil flatten gpac_sla.dmg
 hdiutil internet-enable -yes gpac_sla.dmg
 
-echo "GPAC-$full_version.dmg ready"
+pck_name="gpac-$full_version.dmg"
+if [ "$1" = "snow-leopard" ]; then
+pck_name="gpac-$full_version-$1.dmg"
+fi
+
+echo "$pck_name ready"
 chmod o+rx gpac_sla.dmg
 chmod g+rx gpac_sla.dmg
-mv gpac_sla.dmg GPAC-$full_version.dmg
+mv gpac_sla.dmg $pck_name
 

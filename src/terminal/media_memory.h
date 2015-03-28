@@ -43,7 +43,9 @@ enum
 	/*hack for some DMB streams not signaling TS for BIFS*/
 	GF_DB_AU_NO_TIMESTAMPS = 1<<2,
 	/*for debuging AU reassembly in scalable coding*/
-	GF_DB_AU_REAGGREGATED = 1<<3
+	GF_DB_AU_REAGGREGATED = 1<<3,
+	/*set for AUs that need dispatching but should not be displayed*/
+	GF_DB_AU_IS_SEEK = 1<<4,
 };
 
 /*compressed media unit*/
@@ -59,6 +61,7 @@ typedef struct _decoding_buffer
 	u8 flags;
 	/*amount of padding bits*/
 	u8 PaddingBits;
+	u64 sender_ntp;
 
 	u32 dataLength;
 	char *data;
@@ -95,6 +98,8 @@ typedef struct _composition_unit {
 
 	u32 dataLength;
 	char* data;
+
+	u64 sender_ntp;
 } GF_CMUnit;
 
 
@@ -130,6 +135,9 @@ struct _composition_memory
 	u32 LastRenderedTS;
 
 	u8 *pY, *pU, *pV;
+
+	u64 LastRenderedNTP;
+	s32 LastRenderedNTPDiff;
 };
 
 /*a composition buffer only has fixed-size unit*/

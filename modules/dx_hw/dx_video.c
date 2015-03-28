@@ -573,6 +573,21 @@ static void DD_Shutdown(GF_VideoOutput *dr)
 	DD_ShutdownWindow(dr);
 }
 
+void DD_ShowTaskbar(Bool show)
+{
+    HWND tbwnd = FindWindow("Shell_TrayWnd", NULL);
+    HWND swnd = FindWindow("Button", NULL);
+
+    if (tbwnd != NULL) {
+        ShowWindow(tbwnd, show ? SW_SHOW : SW_HIDE);
+        UpdateWindow(tbwnd);
+    }
+    if (swnd != NULL) { 
+        // Vista
+        ShowWindow(swnd, show ? SW_SHOW : SW_HIDE);
+        UpdateWindow(swnd);
+    }       
+}
 static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 *outHeight)
 {
 	GF_Err e;
@@ -617,60 +632,71 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 		ShowWindow(dd->cur_hwnd, SW_SHOW);
 	}
 
-#ifndef GPAC_DISABLE_3D
-	if (dd->output_3d_type==1) {
-		e = GF_OK;
-		dd->on_secondary_screen = 0;
-		/*Setup FS*/
-		if (dd->fullscreen) {
-			int X = 0;
-			int Y = 0;
+
+	dd->on_secondary_screen = 0;
+	/*Setup FS*/
+	if (dd->fullscreen) {
+		int X = 0;
+		int Y = 0;
 #if(WINVER >= 0x0500)
-			HMONITOR hMonitor;
-			MONITORINFOEX minfo;
-			/*get monitor our windows is on*/
-			hMonitor = MonitorFromWindow(dd->os_hwnd, MONITOR_DEFAULTTONEAREST);
-			if (hMonitor) {
-				memset(&minfo, 0, sizeof(MONITORINFOEX));
-				minfo.cbSize = sizeof(MONITORINFOEX);
-				/*get monitor top-left for fullscreen switch, and adjust width and height*/
-				GetMonitorInfo(hMonitor, (LPMONITORINFO) &minfo);
-				dd->fs_width = minfo.rcWork.right - minfo.rcWork.left;
-				dd->fs_height = minfo.rcWork.bottom - minfo.rcWork.top;
-				X = minfo.rcWork.left;
-				Y = minfo.rcWork.top;
-				if (!(minfo.dwFlags & MONITORINFOF_PRIMARY)) dd->on_secondary_screen = 1;
+		HMONITOR hMonitor;
+		MONITORINFOEX minfo;
+
+		DD_ShowTaskbar(GF_FALSE);
+
+		/*get monitor our windows is on*/
+		hMonitor = MonitorFromWindow(dd->os_hwnd, MONITOR_DEFAULTTONEAREST);
+		if (hMonitor) {
+			memset(&minfo, 0, sizeof(MONITORINFOEX));
+			minfo.cbSize = sizeof(MONITORINFOEX);
+			/*get monitor top-left for fullscreen switch, and adjust width and height*/
+			GetMonitorInfo(hMonitor, (LPMONITORINFO) &minfo);
+			dd->fs_width = minfo.rcWork.right - minfo.rcWork.left;
+			dd->fs_height = minfo.rcWork.bottom - minfo.rcWork.top;
+			X = minfo.rcWork.left;
+			Y = minfo.rcWork.top;
+
+			if (dd->fs_height+100 > dr->max_screen_height) {
+				dd->fs_height = dr->max_screen_height;
+				Y = 0;
 			}
+			if (!(minfo.dwFlags & MONITORINFOF_PRIMARY)) dd->on_secondary_screen = 1;
+		}
 #endif
 
-			/*change display mode*/
-			if ((MaxWidth && (dd->fs_width >= MaxWidth)) || (MaxHeight && (dd->fs_height >= MaxHeight)) ) {
-				dd->fs_width = MaxWidth;
-				dd->fs_height = MaxHeight;
-			}
-			SetWindowPos(dd->cur_hwnd, NULL, X, Y, dd->fs_width, dd->fs_height, SWP_SHOWWINDOW | SWP_NOZORDER /*| SWP_ASYNCWINDOWPOS*/);
-
-			dd->fs_store_width = dd->fs_width;
-			dd->fs_store_height = dd->fs_height;
-		} else if (dd->os_hwnd==dd->fs_hwnd) {
-			SetWindowPos(dd->os_hwnd, NULL, 0, 0, dd->store_width+dd->off_w, dd->store_height+dd->off_h, SWP_NOMOVE | SWP_NOZORDER /*| SWP_ASYNCWINDOWPOS*/);
+		/*change display mode*/
+		if ((MaxWidth && (dd->fs_width >= MaxWidth)) || (MaxHeight && (dd->fs_height >= MaxHeight)) ) {
+			dd->fs_width = MaxWidth;
+			dd->fs_height = MaxHeight;
 		}
+		SetWindowPos(dd->cur_hwnd, NULL, X, Y, dd->fs_width, dd->fs_height, SWP_SHOWWINDOW | SWP_NOZORDER /*| SWP_ASYNCWINDOWPOS*/);
+	} else if (dd->os_hwnd==dd->fs_hwnd) {
+		SetWindowPos(dd->os_hwnd, NULL, 0, 0, dd->store_width+dd->off_w, dd->store_height+dd->off_h, SWP_SHOWWINDOW | SWP_NOZORDER /*| SWP_ASYNCWINDOWPOS*/);
+	}
+	if (!dd->fullscreen || dd->on_secondary_screen) {
+		DD_ShowTaskbar(GF_TRUE);
+	}
 
-		if (!e) e = DD_SetupOpenGL(dr, 0, 0);
 
+#ifndef GPAC_DISABLE_3D
+	if (dd->output_3d_type==1) {
+		e = DD_SetupOpenGL(dr, 0, 0);
 	} else
 #endif
 	{
-
 		if (!dd->fullscreen && (dd->os_hwnd==dd->fs_hwnd)) {
-			SetWindowPos(dd->os_hwnd, NULL, 0, 0, dd->store_width+dd->off_w, dd->store_height+dd->off_h, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
+//			SetWindowPos(dd->os_hwnd, NULL, 0, 0, dd->store_width+dd->off_w, dd->store_height+dd->off_h, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
 		}
 		/*first time FS, store*/
 		if (!dd->store_width) {
 			dd->store_width = dd->width;
 			dd->store_height = dd->height;
 		}
-		e = InitDirectDraw(dr, dd->store_width, dd->store_height);
+		if (dd->fullscreen) {
+			e = InitDirectDraw(dr, dd->fs_width, dd->fs_height);
+		} else {
+			e = InitDirectDraw(dr, dd->store_width, dd->store_height);
+		}
 	}
 
 	if (bOn) {
@@ -833,6 +859,10 @@ static void DeleteVideoOutput(void *ifce)
 	GF_VideoOutput *driv = (GF_VideoOutput *) ifce;
 	DDContext *dd = (DDContext *)driv->opaque;
 
+	if (dd->fullscreen) {
+		DD_ShowTaskbar(GF_TRUE);
+	}
+
 	if (dd->hDDrawLib) {
 		FreeLibrary(dd->hDDrawLib);
 	}
@@ -874,4 +904,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( dx_out )
+GPAC_MODULE_STATIC_DECLARATION( dx_out )

@@ -93,8 +93,8 @@ private:
 
 	GF_List *m_mediaHistoryList;
 	u32 m_track_pos;
-	u32 m_volume;
-	Bool m_muted, m_l_muted, m_r_muted;
+//	u32 m_volume;
+//	Bool m_muted, m_l_muted, m_r_muted;
 	NPT_String m_ip_src;
 	Double m_Duration, m_Time;
 };

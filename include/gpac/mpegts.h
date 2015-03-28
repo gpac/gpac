@@ -267,8 +267,8 @@ typedef struct __gf_dvb_tuner GF_Tuner;
 /*Maximum number of service in a TS*/
 #define GF_M2TS_MAX_SERVICES	65535
 
-/*Maximum size of the buffer in UDP */
-#define UDP_BUFFER_SIZE	0x40000
+/*Maximum size of the buffer in UDP is 200*188 bytes*/
+#define UDP_BUFFER_SIZE	37600
 
 /*returns readable name for given stream type*/
 const char *gf_m2ts_get_stream_name(u32 streamType);
@@ -399,6 +399,7 @@ enum
 	GF_M2TS_TABLE_END		= 1<<1,
 	GF_M2TS_TABLE_FOUND		= 1<<2,
 	GF_M2TS_TABLE_UPDATE	= 1<<3,
+	//both update and repeat flags may be set if data has changed
 	GF_M2TS_TABLE_REPEAT	= 1<<4,
 };
 
@@ -432,6 +433,7 @@ typedef struct __m2ts_demux_table
 
 	GF_List *sections;
 
+	u32 table_size;
 } GF_M2TS_Table;
 
 
@@ -513,6 +515,8 @@ typedef struct
 /*MPEG-2 TS program object*/
 typedef struct
 {
+	GF_M2TS_Demuxer *ts;
+
 	GF_List *streams;
 	u32 pmt_pid;
 	u32 pcr_pid;
@@ -572,7 +576,10 @@ enum
 	GF_M2TS_ES_FIRST_DTS = 1<<17,
 
 	/*flag used to signal next discontinuity on stream should be ignored*/
-	GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY = 1<<18
+	GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY = 1<<18,
+
+	/*Flag used by importers/readers to mark streams that have been seen already in PMT process (update/found)*/
+	GF_M2TS_ES_ALREADY_DECLARED = 1<<19
 };
 
 /*Abstract Section/PES stream object, only used for type casting*/
@@ -704,9 +711,13 @@ typedef struct tag_m2ts_pes
 	GF_M2TS_DVB_Subtitling_Descriptor sub;
 	GF_M2TS_MetadataDescriptor *metadata_descriptor;
 
-
+	//pointer to last received temi
 	char *temi_tc_desc;
 	u32 temi_tc_desc_len, temi_tc_desc_alloc_size;
+
+	//last decoded temi (may be one ahead of time as the last received TEMI)
+	GF_M2TS_TemiTimecodeDescriptor temi_tc;
+	Bool temi_pending;
 } GF_M2TS_PES;
 
 /*SDT information object*/
@@ -876,6 +887,8 @@ struct tag_m2ts_demux
 	/* "Network" =  "MobileIP", "DefaultMCastInterface" */
 	Bool MobileIPEnabled;
 	const char *network_type;
+	//for sockets, we need to reopen them after resume/restart....
+	char *socket_url;
 	/* Set it to 1 if the TS is meant to be played during the demux */
 	Bool demux_and_play;
 	/* End of M2TSIn */
@@ -904,6 +917,9 @@ struct tag_m2ts_demux
 	/* analyser */
 	FILE *pes_out;
 
+
+	Bool prefix_present;
+
 	Bool direct_mpe;
 
 	Bool dvb_h_demux;
@@ -929,7 +945,7 @@ struct tag_m2ts_demux
 	char* dsmcc_root_dir;
 	GF_List* dsmcc_controler;
 
-	Bool segment_switch;
+	Bool abort_parsing;
 	Bool table_reset;
 
 	//duration estimation
@@ -1299,8 +1315,6 @@ void gf_m2ts_mux_enable_sdt(GF_M2TS_Mux *mux, u32 refresh_rate_ms);
 /******************* Demux DVB ****************************/
 
 
-#define UDP_BUFFER_SIZE	0x40000
-
 
 #ifdef GPAC_HAS_LINUX_DVB
 #include <fcntl.h>
@@ -1325,9 +1339,6 @@ struct __gf_dvb_tuner {
 	int ts_fd;
 };
 
-
-// DVB buffer size 188x20
-#define DVB_BUFFER_SIZE 3760
 
 #endif //GPAC_HAS_LINUX_DVB
 

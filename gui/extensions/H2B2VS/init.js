@@ -6,7 +6,7 @@ my_ext = {
     author: "JeanLF",
     description: "H2B2VS Preferences",
     url: "http://h2b2vs.epfl.ch/",
-    execjs: "h2b2vs.js",
+    execjs: ["h2b2vs.js"],
     autostart: true,
     config_id: "H2B2VS",
     requires_gl: false,

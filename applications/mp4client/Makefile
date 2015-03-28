@@ -31,6 +31,11 @@ EXT=
 PROG=MP4Client
 endif
 
+ifeq ($(CONFIG_DARWIN),yes)
+OBJS+= carbon_events.o
+LDFLAGS += -framework Carbon
+endif
+
 SRCS := $(OBJS:.o=.c) 
 
 all: $(PROG)

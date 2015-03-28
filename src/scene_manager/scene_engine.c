@@ -382,14 +382,14 @@ start:
 #endif
 
 	sprintf(file_name, "%s.svg", rad_name);
-	file = gf_f64_open(file_name, "rb");
+	file = gf_fopen(file_name, "rb");
 	if (!file) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot open SVG dump file %s\n", file_name));
 		e = GF_IO_ERR;
 		goto exit;
 	}
-	gf_f64_seek(file, 0, SEEK_END);
-	fsize = gf_f64_tell(file);
+	gf_fseek(file, 0, SEEK_END);
+	fsize = gf_ftell(file);
 
 	if (fsize == 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] SVG dump %s is empty\n", file_name));
@@ -398,9 +398,9 @@ start:
 
 	/* First, read the dump in a buffer */
 	buffer = gf_malloc((size_t)fsize * sizeof(char));
-	gf_f64_seek(file, 0, SEEK_SET);
+	gf_fseek(file, 0, SEEK_SET);
 	fsize = fread(buffer, sizeof(char), (size_t)fsize, file);
-	fclose(file);
+	gf_fclose(file);
 	file = NULL;
 
 	/* Then, set DIMS unit header - TODO: notify redundant units*/
@@ -457,7 +457,7 @@ start:
 exit:
 	if (!seng->dump_path) gf_free(cache_dir);
 	if (buffer) gf_free(buffer);
-	if (file) fclose(file);
+	if (file) gf_fclose(file);
 	return e;
 }
 

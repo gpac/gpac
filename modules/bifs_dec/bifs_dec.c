@@ -213,4 +213,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( bifs )
+GPAC_MODULE_STATIC_DECLARATION( bifs )

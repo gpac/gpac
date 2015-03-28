@@ -170,7 +170,7 @@ void COsmo4::EnableLogs(Bool turn_on)
 			gf_cfg_set_key(m_user.config, "General", "LogFile", "\\gpac_logs.txt");
 			filename = "\\gpac_logs.txt";
 		}
-		m_logs = fopen(filename, "wt");
+		m_logs = gf_fopen(filename, "wt");
 		if (!m_logs) {
 			MessageBox(NULL, _T("Couldn't open log file on file system"), _T("Disabling logs"), MB_OK);
 			turn_on = 0;
@@ -182,7 +182,7 @@ void COsmo4::EnableLogs(Bool turn_on)
 	}
 	if (!turn_on) {
 		if (m_logs) {
-			fclose(m_logs);
+			gf_fclose(m_logs);
 			m_logs = 0;
 		}
 		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_NONE);
@@ -388,7 +388,7 @@ int COsmo4::ExitInstance()
 	gf_cfg_del(m_user.config);
 	ShowTaskBar(1);
 	gf_sys_close();
-	if (m_logs) fclose(m_logs);
+	if (m_logs) gf_fclose(m_logs);
 	return CWinApp::ExitInstance();
 }
 

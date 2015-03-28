@@ -51,6 +51,7 @@ typedef struct {
 	int out_width;
 	int out_height;
 	int out_pix_fmt;
+	AVRational sar;
 
 	/* scaler of the libav */
 	//struct SwsContext * sws_ctx;

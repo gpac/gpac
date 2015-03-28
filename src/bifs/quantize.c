@@ -64,17 +64,17 @@ u32 gf_bifs_enc_qp14_get_bits(GF_BifsEncoder *codec)
 void gf_bifs_enc_qp14_enter(GF_BifsEncoder *codec, Bool Enter)
 {
 	if (!codec->ActiveQP) return;
-	if (Enter) codec->storing_coord = 1;
+	if (Enter) codec->storing_coord = GF_TRUE;
 	else {
-		if (codec->storing_coord) codec->coord_stored = 1;
-		codec->storing_coord = 0;
+		if (codec->storing_coord) codec->coord_stored = GF_TRUE;
+		codec->storing_coord = GF_FALSE;
 	}
 }
 
 void gf_bifs_enc_qp14_reset(GF_BifsEncoder *codec)
 {
-	codec->coord_stored = 0;
-	codec->storing_coord = 0;
+	codec->coord_stored = GF_FALSE;
+	codec->storing_coord = GF_FALSE;
 	codec->NumCoord = 0;
 }
 

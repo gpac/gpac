@@ -27,7 +27,7 @@
 #include <gpac/base_coding.h>
 #include <gpac/mpeg4_odf.h>
 #include <gpac/constants.h>
-#include <gpac/math.h>
+#include <gpac/maths.h>
 #include <gpac/ietf.h>
 
 #ifndef GPAC_DISABLE_ISOM
@@ -130,7 +130,7 @@ void MP4T_DumpSDP(GF_ISOFile *file, const char *name)
 	u32 size, i;
 	FILE *f;
 
-	f = gf_f64_open(name, "wt");
+	f = gf_fopen(name, "wt");
 	//get the movie SDP
 	gf_isom_sdp_get(file, &sdp, &size);
 	gf_fwrite(sdp, size, 1, f);
@@ -142,7 +142,7 @@ void MP4T_DumpSDP(GF_ISOFile *file, const char *name)
 		gf_isom_sdp_track_get(file, i+1, &sdp, &size);
 		gf_fwrite(sdp, size, 1, f);
 	}
-	fclose(f);
+	gf_fclose(f);
 }
 
 
@@ -504,6 +504,18 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			hintType = GF_RTP_PAYT_AC3;
 			streamType = GF_STREAM_AUDIO;
 			gf_isom_get_audio_info(file, TrackNum, 1, NULL, &nb_ch, NULL);
+			break;
+		case GF_ISOM_SUBTYPE_MP3:
+		{
+			GF_ISOSample *samp = gf_isom_get_sample(file, TrackNum, 1, NULL);
+			u32 hdr = GF_4CC((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
+			nb_ch = gf_mp3_num_channels(hdr);
+			gf_isom_sample_del(&samp);
+			hintType = GF_RTP_PAYT_MPEG12_AUDIO;
+			/*use official RTP/AVP payload type*/
+			OfficialPayloadID = 14;
+			required_rate = 90000;
+		}
 			break;
 		default:
 			/*ERROR*/

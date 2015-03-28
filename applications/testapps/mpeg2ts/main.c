@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 	u32 size, fsize, fdone;
 	GF_M2TS_Demuxer *ts;
 
-	FILE *src = fopen(argv[1], "rb");
+	FILE *src = gf_fopen(argv[1], "rb");
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_event;
 
@@ -63,9 +63,9 @@ int main(int argc, char **argv)
 		if (has_seen_pat) break;
 	}
 
-	dest = fopen("pes.mp3", "wb");
+	dest = gf_fopen("pes.mp3", "wb");
 	gf_m2ts_reset_parsers(ts);
-	gf_f64_seek(src, 0, SEEK_SET);
+	gf_fseek(src, 0, SEEK_SET);
 	fdone = 0;
 	while (!feof(src)) {
 		size = fread(data, 1, 188, src);
@@ -78,9 +78,9 @@ int main(int argc, char **argv)
 	}
 	gf_set_progress("MPEG-2 TS Parsing", fsize, fsize);
 
-	fclose(src);
+	gf_fclose(src);
 	gf_m2ts_demux_del(ts);
-	if (dest) fclose(dest);
+	if (dest) gf_fclose(dest);
 	return 0;
 }
 

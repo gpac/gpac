@@ -30,7 +30,7 @@ II GPAC compilation
 		If you have not installed the SpiderMonkey (JavaScript, libjs), JPEG or PNG libraries, remove the indicated macros in the file gpac/include/gpac/internal/config_static.h
 		recompile (libgpac_dll compilation will fail if zlib is not found)
 
-		Note: If you wish to build the fixed-point version of GPAC (not recommended), you will have to modify by hand the file gpac/include/gpac/math.h
+		Note: If you wish to build the fixed-point version of GPAC (not recommended), you will have to modify by hand the file gpac/include/gpac/maths.h
 		and replace the line
       #define GPAC_NO_FIXED_POINT
     by the line
