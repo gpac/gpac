@@ -89,7 +89,7 @@ int stream_file_rtp(int argc, char **argv)
 	FILE *logfile=NULL;
 	u16 port = 7000;
 	u32 ttl = 1;
-	Bool loop = 1;
+	Bool loop = GF_TRUE;
 	Bool mem_track = GF_FALSE;
 	Bool force_mpeg4 = GF_FALSE;
 	u32 path_mtu = 1450;
@@ -106,14 +106,14 @@ int stream_file_rtp(int argc, char **argv)
 			inName = arg;
 		}
 		else if (!stricmp(arg, "-noloop")) loop = GF_FALSE;
-		else if (!stricmp(arg, "-mpeg4")) force_mpeg4 = 1;
+		else if (!stricmp(arg, "-mpeg4")) force_mpeg4 = GF_TRUE;
 		else if (!strnicmp(arg, "-port=", 6)) port = atoi(arg+6);
 		else if (!strnicmp(arg, "-mtu=", 5)) path_mtu = atoi(arg+5);
 		else if (!strnicmp(arg, "-dst=", 5)) ip_dest = arg+5;
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
 		else if (!strnicmp(arg, "-ifce=", 6)) ifce_addr = arg+6;
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_file = arg+5;
-		else if (!stricmp(arg, "-mem-track")) mem_track = 1;
+		else if (!stricmp(arg, "-mem-track")) mem_track = GF_TRUE;
 		else if (!strnicmp(arg, "-logs=", 6)) logs = arg+6;
 		else if (!strnicmp(arg, "-lf=", 4)) logfile = gf_fopen(arg+4, "wt");
 	}
