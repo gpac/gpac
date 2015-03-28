@@ -73,7 +73,7 @@ void PrintStreamerUsage()
 
 static void on_logs(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
-	FILE *logs = cbk;
+	FILE *logs = (FILE*)cbk;
 	vfprintf(logs, fmt, list);
 	fflush(logs);
 }
@@ -90,8 +90,8 @@ int stream_file_rtp(int argc, char **argv)
 	u16 port = 7000;
 	u32 ttl = 1;
 	Bool loop = 1;
-	Bool mem_track = 0;
-	Bool force_mpeg4 = 0;
+	Bool mem_track = GF_FALSE;
+	Bool force_mpeg4 = GF_FALSE;
 	u32 path_mtu = 1450;
 	u32 i;
 
@@ -105,7 +105,7 @@ int stream_file_rtp(int argc, char **argv)
 			}
 			inName = arg;
 		}
-		else if (!stricmp(arg, "-noloop")) loop = 0;
+		else if (!stricmp(arg, "-noloop")) loop = GF_FALSE;
 		else if (!stricmp(arg, "-mpeg4")) force_mpeg4 = 1;
 		else if (!strnicmp(arg, "-port=", 6)) port = atoi(arg+6);
 		else if (!strnicmp(arg, "-mtu=", 5)) path_mtu = atoi(arg+5);

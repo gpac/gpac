@@ -117,7 +117,7 @@ GF_Err set_cover_art(GF_ISOFile *file, char *inName)
 	gf_fseek(t, 0, SEEK_END);
 	tag_len = (u32) gf_ftell(t);
 	gf_fseek(t, 0, SEEK_SET);
-	tag = gf_malloc(sizeof(char) * tag_len);
+	tag = (char*)gf_malloc(sizeof(char) * tag_len);
 	tag_len = (u32) fread(tag, sizeof(char), tag_len, t);
 	gf_fclose(t);
 
@@ -360,7 +360,7 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 	sm = NULL;
 	sample_list = NULL;
 
-	close = 0;
+	close = GF_FALSE;
 
 	scene_graph = gf_sg_new();
 	ctx = gf_sm_new(scene_graph);
@@ -390,7 +390,7 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 		close = 1;
 	} else {
 		dump = stderr;
-		close = 0;
+		close = GF_FALSE;
 	}
 
 	fprintf(stderr, "Analysing Scene\n");
@@ -495,28 +495,28 @@ static void PrintNodeSFField(u32 type, void *far_ptr)
 		fprintf(stderr, "%d", (*(SFInt32 *)far_ptr));
 		break;
 	case GF_SG_VRML_SFFLOAT:
-		PrintFixed((*(SFFloat *)far_ptr), 0);
+		PrintFixed((*(SFFloat *)far_ptr), GF_FALSE);
 		break;
 	case GF_SG_VRML_SFTIME:
 		fprintf(stderr, "%g", (*(SFTime *)far_ptr));
 		break;
 	case GF_SG_VRML_SFVEC2F:
-		PrintFixed(((SFVec2f *)far_ptr)->x, 0);
+		PrintFixed(((SFVec2f *)far_ptr)->x, GF_FALSE);
 		PrintFixed(((SFVec2f *)far_ptr)->y, 1);
 		break;
 	case GF_SG_VRML_SFVEC3F:
-		PrintFixed(((SFVec3f *)far_ptr)->x, 0);
+		PrintFixed(((SFVec3f *)far_ptr)->x, GF_FALSE);
 		PrintFixed(((SFVec3f *)far_ptr)->y, 1);
 		PrintFixed(((SFVec3f *)far_ptr)->z, 1);
 		break;
 	case GF_SG_VRML_SFROTATION:
-		PrintFixed(((SFRotation *)far_ptr)->x, 0);
+		PrintFixed(((SFRotation *)far_ptr)->x, GF_FALSE);
 		PrintFixed(((SFRotation *)far_ptr)->y, 1);
 		PrintFixed(((SFRotation *)far_ptr)->z, 1);
 		PrintFixed(((SFRotation *)far_ptr)->q, 1);
 		break;
 	case GF_SG_VRML_SFCOLOR:
-		PrintFixed(((SFColor *)far_ptr)->red, 0);
+		PrintFixed(((SFColor *)far_ptr)->red, GF_FALSE);
 		PrintFixed(((SFColor *)far_ptr)->green, 1);
 		PrintFixed(((SFColor *)far_ptr)->blue, 1);
 		break;
@@ -624,7 +624,7 @@ void PrintNode(const char *name, u32 graph_type)
 			continue;
 		}
 
-		fprintf(stderr, "\t%s %s %s", gf_sg_vrml_get_event_type_name(f.eventType, 0), gf_sg_vrml_get_field_type_by_name(f.fieldType), f.name);
+		fprintf(stderr, "\t%s %s %s", gf_sg_vrml_get_event_type_name(f.eventType, GF_FALSE), gf_sg_vrml_get_field_type_by_name(f.fieldType), f.name);
 		if (f.fieldType==GF_SG_VRML_SFNODE) fprintf(stderr, " NULL");
 		else if (f.fieldType==GF_SG_VRML_MFNODE) fprintf(stderr, " []");
 		else if (gf_sg_vrml_is_sf_field(f.fieldType)) {
@@ -650,9 +650,9 @@ void PrintNode(const char *name, u32 graph_type)
 				if (qt==13) fprintf(stderr, " NbBits=%d", nbBits);
 				if (bmin && bmax) {
 					fprintf(stderr, " Bounds=[");
-					PrintFixed(bmin, 0);
+					PrintFixed(bmin, GF_FALSE);
 					fprintf(stderr, ",");
-					PrintFixed(bmax, 0);
+					PrintFixed(bmax, GF_FALSE);
 					fprintf(stderr, "]");
 				}
 			}
@@ -806,7 +806,7 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 		dump = stderr;
 	}
 
-	has_error = 0;
+	has_error = GF_FALSE;
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		u32 has_cts_offset = gf_isom_has_time_offset(file, i+1);
 
@@ -1648,7 +1648,7 @@ static void print_config_hash(GF_List *xps_array, char *szName)
 	u8 hash[20];
 	for (i=0; i<gf_list_count(xps_array); i++) {
 		slc = gf_list_get(xps_array, i);
-		gf_sha1_csum(slc->data, slc->size, hash);
+		gf_sha1_csum((u8*)slc->data, slc->size, hash);
 		fprintf(stderr, "\t%s#%d hash: ", szName, i+1);
 		for (j=0; j<20; j++) fprintf(stderr, "%02X", hash[j]);
 		fprintf(stderr, "\n");
@@ -1719,7 +1719,7 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 {
 	Float scale;
-	Bool is_od_track = 0;
+	Bool is_od_track = GF_FALSE;
 	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits;
 	u64 time_slice, dur, size;
 	u8 bps;
@@ -1816,7 +1816,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				        full_dump ? "\n\t" : ": ", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 			}
 			if (esd->decoderConfig->streamType==GF_STREAM_OD)
-				is_od_track=1;
+				is_od_track = GF_TRUE;
 
 			if (esd->decoderConfig->streamType==GF_STREAM_VISUAL) {
 				u32 w, h;
@@ -2189,8 +2189,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		fprintf(stderr, "\tMPEG 1/2 Audio stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_AC3) {
 		u32 br = 0;
-		Bool lfe = 0;
-		Bool is_ec3 = 0;
+		Bool lfe = GF_FALSE;
+		Bool is_ec3 = GF_FALSE;
 #ifndef GPAC_DISABLE_AV_PARSERS
 		GF_AC3Config *ac3 = gf_isom_ac3_config_get(file, trackNum, 1);
 		if (ac3) {
@@ -2347,7 +2347,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		fprintf(stderr, "\tRFC6381 Codec Parameters: %s\n", szCodec);
 	}
 
-	DumpMetaItem(file, 0, trackNum, "Track Meta");
+	DumpMetaItem(file, GF_FALSE, trackNum, "Track Meta");
 
 	gf_isom_get_track_switch_group_count(file, trackNum, &alt_group, &nb_groups);
 	if (alt_group) {
@@ -2522,7 +2522,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (gf_isom_is_fragmented(file)) {
-		fprintf(stderr, "\tFragmented File: yes - duration %s\n%d fragments - %d SegmentIndexes\n", format_duration(gf_isom_get_fragmented_duration(file), timescale, szDur), gf_isom_get_fragments_count(file, 0) , gf_isom_get_fragments_count(file, 1) );
+		fprintf(stderr, "\tFragmented File: yes - duration %s\n%d fragments - %d SegmentIndexes\n", format_duration(gf_isom_get_fragmented_duration(file), timescale, szDur), gf_isom_get_fragments_count(file, GF_FALSE) , gf_isom_get_fragments_count(file, 1) );
 	} else {
 		fprintf(stderr, "\tFragmented File: no\n");
 	}
@@ -2539,7 +2539,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	fprintf(stderr, "\tModified: %s", format_date(modif, szDur));
 	fprintf(stderr, "\n");
 
-	DumpMetaItem(file, 0, 0, "Moov Meta");
+	DumpMetaItem(file, GF_FALSE, 0, "Moov Meta");
 
 	iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(file);
 	if (iod) {
@@ -2627,7 +2627,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	print_udta(file, 0);
 	fprintf(stderr, "\n");
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
-		DumpTrackInfo(file, gf_isom_get_track_id(file, i+1), 0);
+		DumpTrackInfo(file, gf_isom_get_track_id(file, i+1), GF_FALSE);
 	}
 }
 

@@ -812,7 +812,7 @@ void PrintUsage()
 
 void scene_coding_log(void *cbk, u32 log_level, u32 log_tool, const char *fmt, va_list vlist)
 {
-	FILE *logs = cbk;
+	FILE *logs = (FILE*)cbk;
 	if (log_tool != GF_LOG_CODING) return;
 	vfprintf(logs, fmt, vlist);
 	fflush(logs);
@@ -869,16 +869,16 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 	prev_ocr = 0;
 	single_ocr = 1;
 
-	has_iod = 1;
+	has_iod = GF_TRUE;
 	iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(file);
-	if (!iod) has_iod = 0;
+	if (!iod) has_iod = GF_FALSE;
 	else {
-		if (!gf_list_count(iod->ESDescriptors)) has_iod = 0;
+		if (!gf_list_count(iod->ESDescriptors)) has_iod = GF_FALSE;
 		gf_odf_desc_del((GF_Descriptor *) iod);
 	}
 
 	spec_type = gf_isom_guess_specification(file);
-	single_av = single_group ? 1 : gf_isom_is_single_av(file);
+	single_av = single_group ? GF_TRUE : gf_isom_is_single_av(file);
 
 	/*first make sure we use a systems track as base OCR*/
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
@@ -942,7 +942,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 				single_ocr = 0;
 			}
 			/*OD MUST BE WITHOUT REFERENCES*/
-			if (streamType==1) copy = 1;
+			if (streamType==1) copy = GF_TRUE;
 		}
 		gf_odf_desc_del((GF_Descriptor *) esd);
 
@@ -1188,7 +1188,7 @@ typedef struct
 #ifndef GPAC_DISABLE_ISOM_WRITE
 static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opts)
 {
-	Bool ret = 0;
+	Bool ret = GF_FALSE;
 	char szSlot[1024], *next;
 
 	memset(meta, 0, sizeof(MetaAction));
@@ -1198,9 +1198,9 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 	meta->szName[0] = 0;
 	meta->szPath[0] = 0;
 	meta->trackID = 0;
-	meta->root_meta = 1;
+	meta->root_meta = GF_TRUE;
 
-	if (!opts) return 0;
+	if (!opts) return GF_FALSE;
 	while (1) {
 		if (!opts || !opts[0]) return ret;
 		if (opts[0]==':') opts += 1;
@@ -1212,55 +1212,55 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 
 		if (!strnicmp(szSlot, "tk=", 3)) {
 			sscanf(szSlot, "tk=%u", &meta->trackID);
-			meta->root_meta = 0;
-			ret = 1;
+			meta->root_meta = GF_FALSE;
+			ret = GF_TRUE;
 		}
 		else if (!strnicmp(szSlot, "id=", 3)) {
 			meta->item_id = atoi(szSlot+3);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		else if (!strnicmp(szSlot, "name=", 5)) {
 			strcpy(meta->szName, szSlot+5);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		else if (!strnicmp(szSlot, "path=", 5)) {
 			strcpy(meta->szPath, szSlot+5);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		else if (!strnicmp(szSlot, "mime=", 5)) {
 			strcpy(meta->mime_type, szSlot+5);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		else if (!strnicmp(szSlot, "encoding=", 9)) {
 			strcpy(meta->enc_type, szSlot+9);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		else if (!strnicmp(szSlot, "dref", 4)) {
-			meta->use_dref = 1;
-			ret = 1;
+			meta->use_dref = GF_TRUE;
+			ret = GF_TRUE;
 		}
 		else if (!stricmp(szSlot, "binary")) {
 			if (meta->act_type==META_ACTION_SET_XML) meta->act_type=META_ACTION_SET_BINARY_XML;
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		else if (!strchr(szSlot, '=')) {
 			switch (meta->act_type) {
 			case META_ACTION_SET_TYPE:
 				if (!stricmp(szSlot, "null") || !stricmp(szSlot, "0")) meta->meta_4cc = 0;
 				else meta->meta_4cc = GF_4CC(szSlot[0], szSlot[1], szSlot[2], szSlot[3]);
-				ret = 1;
+				ret = GF_TRUE;
 				break;
 			case META_ACTION_ADD_ITEM:
 			case META_ACTION_SET_XML:
 			case META_ACTION_DUMP_ITEM:
 				strcpy(meta->szPath, szSlot);
-				ret = 1;
+				ret = GF_TRUE;
 				break;
 			case META_ACTION_REM_ITEM:
 			case META_ACTION_SET_PRIMARY_ITEM:
 			case META_ACTION_DUMP_XML:
 				meta->item_id = atoi(szSlot);
-				ret = 1;
+				ret = GF_TRUE;
 				break;
 			default:
 				break;
@@ -1303,12 +1303,12 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 	char szSlot[1024], *next;
 	TSELAction *tsel_list = *__tsel_list;
 
-	has_switch_id = 0;
+	has_switch_id = GF_FALSE;
 
 
-	if (!opts) return 0;
+	if (!opts) return GF_FALSE;
 	while (1) {
-		if (!opts || !opts[0]) return 1;
+		if (!opts || !opts[0]) return GF_TRUE;
 		if (opts[0]==':') opts += 1;
 		strcpy(szSlot, opts);
 		next = strchr(szSlot, ':');
@@ -1321,7 +1321,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 		else if (!strnicmp(szSlot, "switchID=", 9)) {
 			if (atoi(szSlot+9)<0) {
 				switch_id = 0;
-				has_switch_id = 0;
+				has_switch_id = GF_FALSE;
 			} else {
 				switch_id = atoi(szSlot+9);
 				has_switch_id = 1;
@@ -1755,36 +1755,36 @@ int mp4boxMain(int argc, char **argv)
 	Bool insert_utc = GF_FALSE;
 
 #ifndef GPAC_DISABLE_MPD
-	Bool do_mpd = 0;
+	Bool do_mpd = GF_FALSE;
 #endif
 #ifndef GPAC_DISABLE_SCENE_ENCODER
-	Bool chunk_mode=0;
+	Bool chunk_mode = GF_FALSE;
 #endif
 #ifndef GPAC_DISABLE_ISOM_HINTING
-	Bool HintCopy=0;
+	Bool HintCopy = GF_FALSE;
 	u32 MTUSize = 1450;
 #endif
 	GF_ISOFile *file;
 	Double mpd_update_time = 0;
-	Bool stream_rtp=0;
-	Bool live_scene=0;
-	Bool enable_mem_tracker = 0;
-	Bool dump_iod=0;
-	Bool pssh_in_moof=0;
-	Bool samplegroups_in_traf=0;
-	Bool daisy_chain_sidx=0;
-	Bool single_segment=0;
-	Bool single_file=0;
-	Bool segment_timeline=0;
+	Bool stream_rtp = GF_FALSE;
+	Bool live_scene = GF_FALSE;
+	Bool enable_mem_tracker = GF_FALSE;
+	Bool dump_iod = GF_FALSE;
+	Bool pssh_in_moof = GF_FALSE;
+	Bool samplegroups_in_traf = GF_FALSE;
+	Bool daisy_chain_sidx = GF_FALSE;
+	Bool single_segment = GF_FALSE;
+	Bool single_file = GF_FALSE;
+	Bool segment_timeline = GF_FALSE;
 	u32 segment_marker = 0;
 	GF_DashProfile dash_profile = GF_DASH_PROFILE_UNKNOWN;
-	Bool use_url_template=0;
-	Bool seg_at_rap=0;
-	Bool frag_at_rap=0;
-	Bool adjust_split_end = 0;
+	Bool use_url_template = GF_FALSE;
+	Bool seg_at_rap = GF_FALSE;
+	Bool frag_at_rap = GF_FALSE;
+	Bool adjust_split_end = GF_FALSE;
 	Bool memory_frags = 1;
-	Bool keep_utc = 0;
-	Bool do_bin_nhml = 0;
+	Bool keep_utc = GF_FALSE;
+	Bool do_bin_nhml = GF_FALSE;
 	u32 timescale = 0;
 	const char *do_wget = NULL;
 	GF_DashSegmenterInput *dash_inputs = NULL;
@@ -1811,14 +1811,14 @@ int mp4boxMain(int argc, char **argv)
 	split_size = 0;
 	movie_time = 0;
 	dump_nal = 0;
-	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
+	FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = GF_FALSE;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	dump_mode = GF_SM_DUMP_NONE;
 #endif
-	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = 0;
-	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = 0;
-	no_fragments_defaults = 0;
-	single_traf_per_moof = 0,
+	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = GF_FALSE;
+	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
+	no_fragments_defaults = GF_FALSE;
+	single_traf_per_moof = GF_FALSE,
 	/*align cat is the new default behaviour for -cat*/
 	align_cat = 1;
 	subsegs_per_sidx = 0;
@@ -1838,7 +1838,7 @@ int mp4boxMain(int argc, char **argv)
 	trackID = stat_level = hint_flags = 0;
 	program_number = 0;
 	info_track_id = 0;
-	do_flat = 0;
+	do_flat = GF_FALSE;
 	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = NULL;
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
@@ -2223,7 +2223,7 @@ int mp4boxMain(int argc, char **argv)
 			open_edit = 1;
 		}
 		else if (!strcmp(arg, "-strict-error")) {
-			gf_log_set_strict_error(1);
+			gf_log_set_strict_error(GF_TRUE);
 		} else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
 			CHECK_NEXT_ARG
 			interleaving_time = atof(argv[i+1]) / 1000;
