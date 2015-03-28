@@ -45,7 +45,7 @@ OBJS=amr_in.o amr_dec.o \
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_amr_dec.$(DYN_LIB_SUFFIX)
+LIB=gm_amr_dec$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 #LDFLAGS+=-export-symbols amr_dec.def 
 endif

@@ -191,6 +191,8 @@ struct __tag_bifs_enc
 	/*keep track of DEF/USE*/
 	GF_List *encoded_nodes;
 	Bool is_encoding_command;
+
+	char *src_url;
 };
 
 GF_Err gf_bifs_enc_commands(GF_BifsEncoder *codec, GF_List *comList, GF_BitStream *bs);

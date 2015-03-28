@@ -202,6 +202,11 @@ GF_Err gf_odf_delete_descriptor(GF_Descriptor *desc)
 	case GF_ODF_LANG_TAG:
 		return gf_odf_del_lang((GF_Language *)desc);
 
+	case GF_ODF_ESD_INC_TAG:
+		return gf_odf_del_esd_inc((GF_ES_ID_Inc *)desc);
+	case GF_ODF_ESD_REF_TAG:
+		return gf_odf_del_esd_ref((GF_ES_ID_Ref *)desc);
+
 #ifndef GPAC_MINIMAL_ODF
 
 	case GF_ODF_CC_TAG:
@@ -212,10 +217,6 @@ GF_Err gf_odf_delete_descriptor(GF_Descriptor *desc)
 		return gf_odf_del_cc_name((GF_CC_Name *)desc);
 	case GF_ODF_CI_TAG:
 		return gf_odf_del_ci((GF_CIDesc *)desc);
-	case GF_ODF_ESD_INC_TAG:
-		return gf_odf_del_esd_inc((GF_ES_ID_Inc *)desc);
-	case GF_ODF_ESD_REF_TAG:
-		return gf_odf_del_esd_ref((GF_ES_ID_Ref *)desc);
 	case GF_ODF_TEXT_TAG:
 		return gf_odf_del_exp_text((GF_ExpandedTextual *)desc);
 	case GF_ODF_EXT_PL_TAG:

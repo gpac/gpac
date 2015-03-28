@@ -20,10 +20,10 @@ OBJS= main.o
 LINKFLAGS=-L../../bin/gcc
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
-PROG=mp42ts$(EXE)
+PROG=MP42TS$(EXE)
 else
 EXT=
-PROG=mp42ts
+PROG=MP42TS
 endif
 LINKFLAGS+=-lgpac
 

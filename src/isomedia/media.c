@@ -249,7 +249,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_SIMPLE_TEXT_MP4;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u32(bs, entry->type);
-		boxstring_Write((GF_Box *)((GF_SimpleTextSampleEntryBox*)entry)->config, bs);
+		boxstring_Write((GF_Box *)((GF_MetaDataSampleEntryBox*)entry)->config, bs);
 		gf_bs_get_content(bs, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 	}
@@ -282,6 +282,17 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			gf_bs_write_u16(bs, ((GF_MPEGVisualSampleEntryBox*)entry)->Height);
 			gf_bs_get_content(bs, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_bs_del(bs);
+			break;
+		}
+
+	case GF_ISOM_SUBTYPE_MP3:
+		if (true_desc_only) {
+			return GF_ISOM_INVALID_MEDIA;
+		} else {
+			esd =  gf_odf_desc_esd_new(2);
+			*out_esd = esd;
+			esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG1;
 			break;
 		}
 
@@ -339,7 +350,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 
 
 	if (!mdia || !mdia->information->sampleTable) return GF_BAD_PARAM;
-	if (!mdia->information->sampleTable->SampleSize) 
+	if (!mdia->information->sampleTable->SampleSize)
 		return GF_ISOM_INVALID_FILE;
 
 	//OK, here we go....
@@ -368,8 +379,8 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	}
 	/*overwrite sync sample with sample dep if any*/
 	if (mdia->information->sampleTable->SampleDep) {
-		u32 dependsOn, dependedOn, redundant;
-		e = stbl_GetSampleDepType(mdia->information->sampleTable->SampleDep, sampleNumber, &dependsOn, &dependedOn, &redundant);
+		u32 isLeading, dependsOn, dependedOn, redundant;
+		e = stbl_GetSampleDepType(mdia->information->sampleTable->SampleDep, sampleNumber, &isLeading, &dependsOn, &dependedOn, &redundant);
 		if (!e) {
 			if (dependsOn==1) (*samp)->IsRAP = RAP_NO;
 			else if (dependsOn==2) (*samp)->IsRAP = RAP;
@@ -739,7 +750,7 @@ GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNna
 }
 
 
-GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, GF_ISOSample *sample, u32 StreamDescIndex, u32 syncShadowNumber)
+GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *sample, u32 StreamDescIndex, u32 syncShadowNumber)
 {
 	GF_Err e;
 	GF_SampleTableBox *stbl;

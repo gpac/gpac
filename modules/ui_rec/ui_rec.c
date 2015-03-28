@@ -155,7 +155,7 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 		if (!uifile) return 0;
 
 		if (!strcmp(opt, "Play")) {
-			uir->uif = gf_f64_open(uifile, "rb");
+			uir->uif = gf_fopen(uifile, "rb");
 			if (!uir->uif) return 0;
 			uir->bs = gf_bs_from_file(uir->uif, GF_BITSTREAM_READ);
 			termext->caps |= GF_TERM_EXTENSION_NOT_THREADED;
@@ -166,7 +166,7 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 
 			uir_load_event(uir);
 		} else if (!strcmp(opt, "Record")) {
-			uir->uif = gf_f64_open(uifile, "wb");
+			uir->uif = gf_fopen(uifile, "wb");
 			if (!uir->uif) return 0;
 			uir->bs = gf_bs_from_file(uir->uif, GF_BITSTREAM_WRITE);
 
@@ -179,7 +179,7 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 		return 1;
 
 	case GF_TERM_EXT_STOP:
-		if (uir->uif) fclose(uir->uif);
+		if (uir->uif) gf_fclose(uir->uif);
 		if (uir->bs) gf_bs_del(uir->bs);
 		gf_term_remove_event_filter(uir->term, &uir->evt_filter);
 		uir->term = NULL;
@@ -249,4 +249,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( ui_rec )
+GPAC_MODULE_STATIC_DECLARATION( ui_rec )

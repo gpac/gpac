@@ -139,7 +139,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 					gf_list_add(trep->other_boxes, trex->track->Media->information->sampleTable->CompositionToDecode);
 				}
 			}
-		
+
 			if (movie->moov->mvex->mehd && movie->moov->mvex->mehd->fragment_duration) {
 				trex->track->Header->duration = 0;
 				Media_SetDuration(trex->track);
@@ -166,7 +166,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 		//dependancies
 	}
 
-	//ok we are fine - note the data map is created at the begining
+	//ok we are fine - note the data map is created at the beginning
 	if (i) movie->FragmentsFlags |= GF_ISOM_FRAG_WRITE_READY;
 
 	if (media_segment_type) {
@@ -219,6 +219,10 @@ GF_Err gf_isom_change_track_fragment_defaults(GF_ISOFile *movie, u32 TrackID,
 	trex->def_sample_duration = DefaultSampleDuration;
 	trex->def_sample_size = DefaultSampleSize;
 	trex->def_sample_flags = GF_ISOM_FORMAT_FRAG_FLAGS(DefaultSamplePadding, DefaultSampleIsSync, DefaultDegradationPriority);
+	//if sample is sync by default, set sample_depends_on flags to 2 (does not depend on other samples)
+	if (DefaultSampleIsSync) {
+		trex->def_sample_flags |= (2<<24);
+	}
 
 	return GF_OK;
 }
@@ -420,7 +424,12 @@ void update_trun_offsets(GF_ISOFile *movie, s32 offset)
 
 u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 {
-	u32 sampleCount, i, j, RunSize, UseDefaultSize, RunDur, UseDefaultDur, RunFlags, NeedFlags, UseDefaultFlag, UseCTS, count;
+	u32 sampleCount, i, j, RunSize, RunDur, RunFlags, NeedFlags, UseCTS, count;
+	/* enum: 
+	   0 - use values per sample in the trun box 
+	   1 - use default values from track fragment header
+	   2 - use default values from track extends header */	 
+	u32 UseDefaultSize, UseDefaultDur, UseDefaultFlag;
 	GF_TrackFragmentRunBox *trun;
 	GF_TrunEntry *ent, *first_ent;
 
@@ -522,34 +531,44 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 
 		//flag checking
 		if (!NeedFlags) {
+			// all samples flags are the same after the 2nd entry
 			if (RunFlags == traf->trex->def_sample_flags) {
-				if (!UseDefaultFlag) UseDefaultFlag = 2;
-				else if (UseDefaultFlag==1) NeedFlags = 1;
+				/* this run can use trex flags */
+				if (!UseDefaultFlag) {
+					/* if all previous runs used explicit flags per sample, we can still use trex flags for this run */
+					UseDefaultFlag = 2;
+				} else if (UseDefaultFlag==1) {
+					/* otherwise if one of the previous runs did use tfhd flags, 
+					we have no choice but to explicitly use flags per sample for this run */
+					NeedFlags = GF_TRUE;
+				}
 			} else if (RunFlags == traf->tfhd->def_sample_flags) {
-				if (!UseDefaultFlag) UseDefaultFlag = 1;
-				else if(UseDefaultFlag==2) NeedFlags = 1;
+				/* this run can use tfhd flags */
+				if (!UseDefaultFlag) {
+					/* if all previous runs used explicit flags per sample, we can still use tfhd flags for this run */
+					UseDefaultFlag = 1;
+				} else if(UseDefaultFlag==2) {
+					/* otherwise if one of the previous runs did use trex flags, 
+					we have no choice but to explicitly use flags per sample for this run */
+					NeedFlags = GF_TRUE;
+				}
+			} else {
+				/* the flags for the 2nd and following entries are different from trex and tfhd default values
+				   (possible case: 2 samples in trun, and first sample was used to set default flags) */
+				NeedFlags = GF_TRUE;
 			}
 		}
 		if (NeedFlags) {
 			//one flags entry per sample only
 			trun->flags |= GF_ISOM_TRUN_FLAGS;
 		} else {
-			//indicated in global setup
-			if (first_ent->flags == traf->trex->def_sample_flags) {
-				if (!UseDefaultFlag) UseDefaultFlag = 2;
-				else if (UseDefaultFlag==1) trun->flags |= GF_ISOM_TRUN_FIRST_FLAG;
-			}
-			//indicated in local setup
-			else if (first_ent->flags == traf->tfhd->def_sample_flags) {
-				if (!UseDefaultFlag) UseDefaultFlag = 1;
-				else if (UseDefaultFlag==2) trun->flags |= GF_ISOM_TRUN_FIRST_FLAG;
-			}
-			//explicit store
-			else {
+			/* this run can use default flags for the 2nd and following entries,
+			   we just need to check if the first entry flags need to be singled out*/
+			if (first_ent->flags != RunFlags) {
 				trun->flags |= GF_ISOM_TRUN_FIRST_FLAG;
 			}
 		}
-
+		
 		//CTS flag
 		if (UseCTS) trun->flags |= GF_ISOM_TRUN_CTS_OFFSET;
 
@@ -560,7 +579,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 		sampleCount += trun->sample_count;
 	}
 
-	//last update TRAF flags
+	//after all runs in the traf are processed, update TRAF flags
 	if (UseDefaultSize==1) traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_SIZE;
 	if (UseDefaultDur==1) traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_DUR;
 	if (UseDefaultFlag==1) traf->tfhd->flags |= GF_ISOM_TRAF_SAMPLE_FLAGS;
@@ -579,7 +598,7 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 	GF_TrackFragmentRunBox *trun;
 	sap_type = 0;
 	*sap_delta = 0;
-	*starts_with_sap = 0;
+	*starts_with_sap = GF_FALSE;
 	for (i=0; i<gf_list_count(moof->TrackList); i++) {
 		traf = gf_list_get(moof->TrackList, i);
 		if (traf->tfhd->trackID==refTrackID) break;
@@ -596,12 +615,12 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 	for (i=0; i<count; i++) {
 		GF_SampleGroupBox *sg;
 		u32 j, first_sample;
-		Bool rap_type = 0;
+		Bool rap_type = GF_FALSE;
 		sg = gf_list_get(traf->sampleGroups, i);
 
 		switch (sg->grouping_type) {
 		case GF_4CC('r','a','p',' '):
-			rap_type = 1;
+			rap_type = GF_TRUE;
 			break;
 		case GF_4CC('r','o','l','l'):
 			break;
@@ -616,7 +635,7 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 				continue;
 			}
 			if (!j) {
-				*starts_with_sap = 1;
+				*starts_with_sap = GF_TRUE;
 				sap_sample_num = 0;
 			}
 			if (!sap_sample_num || (sap_sample_num>first_sample)) {
@@ -693,9 +712,10 @@ u32 moof_get_duration(GF_MovieFragmentBox *moof, u32 refTrackID)
 	return duration;
 }
 
-static u32 moof_get_earliest_cts(GF_MovieFragmentBox *moof, u32 refTrackID)
+static u64 moof_get_earliest_cts(GF_MovieFragmentBox *moof, u32 refTrackID)
 {
-	u32 i, j, cts, duration;
+    u32 i, j;
+    u64 cts, duration;
 	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf=NULL;
 	GF_TrackFragmentRunBox *trun;
@@ -707,7 +727,7 @@ static u32 moof_get_earliest_cts(GF_MovieFragmentBox *moof, u32 refTrackID)
 	if (!traf) return 0;
 
 	duration = 0;
-	cts = 0xFFFFFFFF;
+	cts = LLU_CAST (-1);
 	i=0;
 	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
 		j=0;
@@ -1533,7 +1553,7 @@ GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 }
 
 GF_EXPORT
-GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName, Bool memory_mode)
+GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory_mode)
 {
 	GF_Err e;
 	//and only at setup
@@ -1670,7 +1690,7 @@ u32 GetRunSize(GF_TrackFragmentRunBox *trun)
 }
 
 GF_EXPORT
-GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample *sample, u32 DescIndex,
+GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOSample *sample, u32 DescIndex,
                                    u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redundant_coding)
 {
 	u32 count, buffer_size;
@@ -1770,10 +1790,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	ent->flags = GF_ISOM_FORMAT_FRAG_FLAGS(PaddingBits, sample->IsRAP, DegradationPriority);
 	if (sample->IsRAP) {
 		ent->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(0, 2, 0, (redundant_coding ? 1 : 0) );
-		if (sample->IsRAP == 3)
-			ent->SAP_type = 3;
-		else
-			ent->SAP_type = 1;
+		ent->SAP_type = sample->IsRAP;
 	}
 	gf_list_add(trun->entries, ent);
 
@@ -1792,12 +1809,12 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	//finally write the data
 	if (!traf->DataCache) {
 		if (!gf_bs_write_data(movie->editFileMap->bs, sample->data, sample->dataLength)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] Could not add a sample with a size if %u bytes (no DataCache)\n", sample->dataLength));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] Could not add a sample with a size of %u bytes (no DataCache)\n", sample->dataLength));
 			return GF_OUT_OF_MEM;
 		}
 	} else if (trun->cache) {
 		if (!gf_bs_write_data(trun->cache, sample->data, sample->dataLength)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] Could not add a sample with a size if %u bytes (with cache)\n", sample->dataLength));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] Could not add a sample with a size of %u bytes (with cache)\n", sample->dataLength));
 			return GF_OUT_OF_MEM;
 		}
 	} else {
@@ -1952,9 +1969,9 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 
 	/*modify depends flags*/
 	if (trak->Media->information->sampleTable->SampleDep) {
-		u32 dependsOn, dependedOn, redundant;
+		u32 isLeading, dependsOn, dependedOn, redundant;
 
-		dependsOn = dependedOn = redundant = 0;
+		isLeading = dependsOn = dependedOn = redundant = 0;
 		count = gf_list_count(traf->TrackRuns);
 		if (!count) return GF_BAD_PARAM;
 		trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, count-1);
@@ -1962,7 +1979,7 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 		if (!count) return GF_BAD_PARAM;
 
 		ent = (GF_TrunEntry *)gf_list_get(trun->entries, count-1);
-		e = stbl_GetSampleDepType(trak->Media->information->sampleTable->SampleDep, sampleNumber, &dependsOn, &dependedOn, &redundant);
+		e = stbl_GetSampleDepType(trak->Media->information->sampleTable->SampleDep, sampleNumber, &isLeading, &dependsOn, &dependedOn, &redundant);
 		if (e) return e;
 
 		GF_ISOM_RESET_FRAG_DEPEND_FLAGS(ent->flags);
@@ -2091,7 +2108,7 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *the_file, u32 free_data_insert_size)
 	return GF_NOT_SUPPORTED;
 }
 
-GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, GF_ISOSample *sample, u32 DescIndex,
+GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, const GF_ISOSample *sample, u32 DescIndex,
                                    u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redCoded)
 {
 	return GF_NOT_SUPPORTED;

@@ -403,7 +403,7 @@ void CNativeWrapper::on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_
 	char szMsg[4096];
 	const char * tag;
 	char unknTag[32];
-	int debug = ANDROID_LOG_DEBUG;
+	int level = (ll == GF_LOG_ERROR) ? ANDROID_LOG_ERROR : ANDROID_LOG_DEBUG;
 	vsnprintf(szMsg, 4096, fmt, list);
 	CNativeWrapper * self = (CNativeWrapper *) cbk;
 	if (!self)
@@ -418,7 +418,7 @@ void CNativeWrapper::on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_
 
 		env->env->PushLocalFrame(1);
 		msg = env->env->NewStringUTF(szMsg);
-		env->env->CallVoidMethod(env->cbk_obj, env->cbk_onLog, debug, lm, msg);
+		env->env->CallVoidMethod(env->cbk_obj, env->cbk_onLog, level, lm, msg);
 		env->env->PopLocalFrame(NULL);
 		return;
 	}
@@ -496,7 +496,7 @@ displayInAndroidlogs:
 			snprintf(unknTag, 32, "GPAC_UNKNOWN[%d]", lm);
 			tag = unknTag;
 		}
-		__android_log_print(debug, tag, szMsg);
+		__android_log_print(level, tag, "%s\n", szMsg);
 	}
 }
 //-------------------------------
@@ -687,9 +687,9 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		gf_cfg_set_key(m_user.config, "Downloader", "CleanCache", "yes");
 		/*startup file*/
 		snprintf(msg, 256, "%sgui/gui.bt", cfg_dir);
-		fstart = fopen(msg, "r");
+		fstart = gf_fopen(msg, "r");
 		if (fstart) {
-			fclose(fstart);
+			gf_fclose(fstart);
 			gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);
 		} else {
 			gf_cfg_set_key(m_user.config, "General", "#StartupFile", msg);

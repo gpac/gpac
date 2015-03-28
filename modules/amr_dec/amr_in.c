@@ -235,7 +235,7 @@ static void AMR_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
-			read->stream = fopen((char *) szCache, "rb");
+			read->stream = gf_fopen((char *) szCache, "rb");
 			if (!read->stream) e = GF_SERVICE_ERROR;
 			else {
 				/*if full file at once (in cache) parse duration*/
@@ -248,7 +248,7 @@ static void AMR_NetIO(void *cbk, GF_NETIO_Parameter *param)
 					if (bytes_done>10*1024) {
 						e = GF_CORRUPTED_DATA;
 					} else {
-						fclose(read->stream);
+						gf_fclose(read->stream);
 						read->stream = NULL;
 						return;
 					}
@@ -305,11 +305,11 @@ static GF_Err AMR_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	}
 
 	reply = GF_OK;
-	read->stream = fopen(szURL, "rb");
+	read->stream = gf_fopen(szURL, "rb");
 	if (!read->stream) {
 		reply = GF_URL_ERROR;
 	} else if (!AMR_ConfigureFromFile(read)) {
-		fclose(read->stream);
+		gf_fclose(read->stream);
 		read->stream = NULL;
 		reply = GF_NOT_SUPPORTED;
 	}
@@ -321,7 +321,7 @@ static GF_Err AMR_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 static GF_Err AMR_CloseService(GF_InputService *plug)
 {
 	AMR_Reader *read = plug->priv;
-	if (read->stream) fclose(read->stream);
+	if (read->stream) gf_fclose(read->stream);
 	read->stream = NULL;
 	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
@@ -600,7 +600,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( amr_in )
+GPAC_MODULE_STATIC_DECLARATION( amr_in )
 
 #endif
 

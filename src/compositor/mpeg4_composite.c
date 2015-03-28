@@ -575,6 +575,11 @@ void composite_release_video_access(GF_VisualManager *visual)
 	visual->compositor->rasterizer->surface_detach(visual->raster_surface);
 }
 
+Bool composite_check_visual_attached(GF_VisualManager *visual)
+{
+	return visual->is_attached;
+}
+
 void compositor_init_compositetexture2d(GF_Compositor *compositor, GF_Node *node)
 {
 	M_CompositeTexture2D *c2d = (M_CompositeTexture2D *)node;
@@ -597,8 +602,11 @@ void compositor_init_compositetexture2d(GF_Compositor *compositor, GF_Node *node
 	st->visual->offscreen = node;
 	st->visual->GetSurfaceAccess = composite_get_video_access;
 	st->visual->ReleaseSurfaceAccess = composite_release_video_access;
-	st->visual->raster_surface = compositor->rasterizer->surface_new(compositor->rasterizer, 1);
 	st->visual->DrawBitmap = composite2d_draw_bitmap;
+	st->visual->CheckAttached = composite_check_visual_attached;
+
+	st->visual->raster_surface = compositor->rasterizer->surface_new(compositor->rasterizer, 1);
+	
 
 	st->first = 1;
 	st->visual->compositor = compositor;
@@ -838,22 +846,22 @@ void compositor_adjust_scale(GF_Node *node, Fixed *sx, Fixed *sy)
 
 Bool compositor_is_composite_texture(GF_Node *appear)
 {
+    M_Appearance *ap = NULL;
 	u32 tag;
 	if (!appear) return 0;
+    
 	tag = gf_node_get_tag(appear);
-	if ((tag==TAG_MPEG4_Appearance)
+	if (tag==TAG_MPEG4_Appearance) ap = (M_Appearance *)appear;
 #ifndef GPAC_DISABLE_X3D
-	        || (tag==TAG_X3D_Appearance)
+    else if (tag==TAG_X3D_Appearance) ap = (M_Appearance *)appear;
 #endif
-	   ) {
-		M_Appearance *ap = (M_Appearance *)appear;
-		if (!ap->texture) return 0;
-		switch (gf_node_get_tag(((M_Appearance *)appear)->texture)) {
-		case TAG_MPEG4_CompositeTexture2D:
-		case TAG_MPEG4_CompositeTexture3D:
-			return 1;
-		}
-	}
+    if (!ap) return 0;
+    if (!ap->texture) return 0;
+    switch (gf_node_get_tag(((M_Appearance *)appear)->texture)) {
+    case TAG_MPEG4_CompositeTexture2D:
+    case TAG_MPEG4_CompositeTexture3D:
+        return 1;
+    }
 	return 0;
 }
 

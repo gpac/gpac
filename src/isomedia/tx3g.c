@@ -94,7 +94,7 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 	if (e) return e;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !trak->Media || !desc->font_count) return GF_BAD_PARAM;
+	if (!trak || !trak->Media || !desc || !desc->font_count) return GF_BAD_PARAM;
 
 	switch (trak->Media->handler->handlerType) {
 	case GF_ISOM_MEDIA_TEXT:

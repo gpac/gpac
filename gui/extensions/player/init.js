@@ -6,7 +6,7 @@ obj = {
     author: "JeanLF",
     description: "Nice test extension",
     url: "http://foo.bar",
-    execjs: "player.js",
+    execjs: ["player.js", "fileopen.js", "playlist.js", "stats.js"],
     autostart: true,
     config_id: "Player",
     requires_gl: false,

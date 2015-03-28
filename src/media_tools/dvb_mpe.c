@@ -310,7 +310,7 @@ void gf_m2ts_process_ipdatagram(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *ts)
 	u32 i, i_holes;
 	MPE_Error_Holes *mff_holes;
 	u32 offset; /* offset to get through the datagram */
-	u8 ip_adress_bootstrap[4];
+	u8 ip_address_bootstrap[4];
 	Bool Boostrap_ip;
 
 	offset =0;
@@ -342,18 +342,18 @@ void gf_m2ts_process_ipdatagram(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *ts)
 
 
 			/* 224.0.23.14 IP Bosstrap */
-			ip_adress_bootstrap[0]=224;
-			ip_adress_bootstrap[1]=0;
-			ip_adress_bootstrap[2]=23;
-			ip_adress_bootstrap[3]=14;
+			ip_address_bootstrap[0]=224;
+			ip_address_bootstrap[1]=0;
+			ip_address_bootstrap[2]=23;
+			ip_address_bootstrap[3]=14;
 			socket_simu(ip_packet,ts, 1);
 
 			if(ip_packet->u8_rx_adr[3] == 8) {
 				fprintf(stderr, "\n");
 			}
 
-			/* compare the destination ip adress and the ESG Bootstrap adress */
-			Boostrap_ip = gf_m2ts_compare_ip(ip_packet->u8_rx_adr,ip_adress_bootstrap);
+			/* compare the destination ip address and the ESG Bootstrap address */
+			Boostrap_ip = gf_m2ts_compare_ip(ip_packet->u8_rx_adr,ip_address_bootstrap);
 			if(Boostrap_ip) {
 				fprintf(stderr, "ESG Bootstrap found !\n");
 			}
@@ -422,12 +422,12 @@ void gf_m2ts_mpe_send_datagram(GF_M2TS_Demuxer *ts, u32 mpe_pid, unsigned char *
 }
 
 
-Bool gf_m2ts_compare_ip(u8 rx_ip_adress[4], u8 ip_adress_bootstrap[4])
+Bool gf_m2ts_compare_ip(u8 rx_ip_address[4], u8 ip_address_bootstrap[4])
 {
 	u8 i;
 	for (i=0; i<4; i++)
 	{
-		if (rx_ip_adress[i] != ip_adress_bootstrap[i])
+		if (rx_ip_address[i] != ip_address_bootstrap[i])
 			return 0;
 	}
 	return 1;
@@ -936,7 +936,7 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 	u32 i_streams, i_targets,i,j,l;
 	GF_M2TS_IP_Stream *ip_stream_buff;
 	GF_M2TS_IP_Target *ip_targets;
-	u8 *ip_adress;
+	u8 *ip_address;
 	GF_M2TS_IP_PLATFORM * ip_platform = ts->ip_platform;
 	assert( ts );
 	if (!ts->ip_platform) return;
@@ -955,7 +955,7 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 		ip_stream_buff=gf_list_get(ip_platform->ip_streams, i);
 		fprintf(stderr, "PID:%d \n",ip_stream_buff->PID);
 		fprintf(stderr, "Target IP Adress : \n");
-		/*Print the target IP adress  */
+		/*Print the target IP address  */
 		i_targets = gf_list_count(ip_stream_buff->targets);
 		for(j=0; j<i_targets; j++)
 		{
@@ -963,8 +963,8 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 
 			l=0;
 
-			ip_adress = ip_targets->address;
-			fprintf(stderr, "%d.%d.%d.%d/%d ",ip_adress[0],ip_adress[1],ip_adress[2],ip_adress[3],ip_targets->slash_mask);
+			ip_address = ip_targets->address;
+			fprintf(stderr, "%d.%d.%d.%d/%d ",ip_address[0],ip_address[1],ip_address[2],ip_address[3],ip_targets->slash_mask);
 			fprintf(stderr, "RX port :");
 			while(ip_targets->rx_port[l] != 0)
 			{
@@ -1087,8 +1087,8 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 		} else {
 			/*
 				binding of the socket to send data to port 4600 on the local machine
-				the first adress / port parameters are NULL or 0 because there are not needed for sending UDP datagrams
-				the second adress is "localhost" and the port is the destination port on localhost
+				the first address / port parameters are NULL or 0 because there are not needed for sending UDP datagrams
+				the second address is "localhost" and the port is the destination port on localhost
 			*/
 			e = gf_sk_bind(Sock_Struct->sock, "127.0.0.1", ip_packet->u32_rx_udp_port,/*name*/"127.0.0.1", ip_packet->u32_rx_udp_port, 0);
 			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Setting up socket for MPE on 127.0.0.1:%d\n", ip_packet->u32_rx_udp_port ));

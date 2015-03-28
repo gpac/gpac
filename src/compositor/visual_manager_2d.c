@@ -519,6 +519,8 @@ static u32 register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx
 
 static void register_dirty_rect(GF_RectArray *ra, GF_IRect *rc)
 {
+    if (!rc->width || !rc->height) return;
+    
 	/*technically this is correct however the gain is not that big*/
 #if 0
 
@@ -701,7 +703,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	has_changed = 1;
 	tr_state->traversing_mode = TRAVERSE_DRAW_2D;
 
-	if (first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0].rect)) {
+	if (!hyb_force_redraw && first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0].rect)) {
 		visual->has_modif=0;
 		goto skip_background;
 	}
@@ -737,7 +739,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			if (visual->to_redraw.list[k].opaque_node_index > 0) continue;
 #endif
 			rc = visual->to_redraw.list[k].rect;
-			visual->ClearSurface(visual, &rc, 0, 0);
+			visual->ClearSurface(visual, &rc, 0, 1);
 		}
 #ifndef GPAC_DISABLE_3D
 		if (!count && hyb_force_redraw) {

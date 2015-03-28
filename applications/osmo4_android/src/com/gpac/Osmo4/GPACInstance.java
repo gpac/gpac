@@ -59,8 +59,9 @@ public class GPACInstance implements GPACInstanceInterface {
                                  "jpegdroid", "javaenv", //$NON-NLS-1$ //$NON-NLS-2$ 
                                  "mad", "editline", "ft2", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                                  "js_osmo", "openjpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
-                                 "stlport_shared", "stdc++", "ffmpeg", "faad", "gpac", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
+                                 "stlport_shared", "stdc++", "faad", "gpac", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
                                  "gm_droid_cam", "gm_droid_mpegv", //$NON-NLS-1$ //$NON-NLS-2$
+								 "avutil", "swscale", "swresample", "avcodec", "avformat", "avfilter",
                                  "gpacWrapper" }; // //$NON-NLS-1$ //$NON-NLS-2$
         HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
         for (String s : toLoad) {

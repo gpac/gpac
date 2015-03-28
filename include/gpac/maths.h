@@ -31,7 +31,7 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/math.h>
+ *	\file <gpac/maths.h>
  *	\brief math and trigo functions.
  */
 

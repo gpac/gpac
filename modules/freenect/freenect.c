@@ -589,5 +589,5 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( freenect )
+GPAC_MODULE_STATIC_DECLARATION( freenect )
 

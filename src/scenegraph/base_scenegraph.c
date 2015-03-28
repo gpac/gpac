@@ -1990,12 +1990,12 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 	if (node->sgprivate->tag==TAG_UndefinedNode) return GF_BAD_PARAM;
 #ifndef GPAC_DISABLE_VRML
 	else if (node->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_get_field(NULL, node, info);
-	else if ((node->sgprivate->tag == TAG_MPEG4_Script)
+	else if (node->sgprivate->tag == TAG_MPEG4_Script)
+             return gf_sg_script_get_field(node, info);
 #ifndef GPAC_DISABLE_X3D
-	         || (node->sgprivate->tag == TAG_X3D_Script)
+    else if (node->sgprivate->tag == TAG_X3D_Script)
+    return gf_sg_script_get_field(node, info);
 #endif
-	        )
-		return gf_sg_script_get_field(node, info);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_field(node, info);
 #ifndef GPAC_DISABLE_X3D
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_field(node, info);
@@ -2036,13 +2036,12 @@ GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 	else if (node->sgprivate->tag == TAG_ProtoNode) {
 		res = gf_sg_proto_get_field_index_by_name(NULL, node, name);
 	}
-	else if ((node->sgprivate->tag == TAG_MPEG4_Script)
+	else if (node->sgprivate->tag == TAG_MPEG4_Script)
+        return gf_node_get_field_by_name_enum(node, name, field);
 #ifndef GPAC_DISABLE_X3D
-	         || (node->sgprivate->tag == TAG_X3D_Script)
-#endif
-	        ) {
+   else if (node->sgprivate->tag == TAG_X3D_Script)
 		return gf_node_get_field_by_name_enum(node, name, field);
-	}
+#endif
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) res = gf_sg_mpeg4_node_get_field_index_by_name(node, name);
 #ifndef GPAC_DISABLE_X3D
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) res = gf_sg_x3d_node_get_field_index_by_name(node, name);
@@ -2173,7 +2172,7 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 	return NULL;
 }
 
-u32 gf_xml_get_namespace_id(char *name)
+GF_NamespaceType gf_xml_get_namespace_id(char *name)
 {
 	if (!strcmp(name, "http://www.w3.org/XML/1998/namespace")) return GF_XMLNS_XML;
 	else if (!strcmp(name, "http://www.w3.org/2001/xml-events")) return GF_XMLNS_XMLEV;
@@ -2263,7 +2262,7 @@ u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name)
 	return GF_XMLNS_UNDEFINED;
 }
 
-const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, u32 xmlns_id)
+const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, GF_NamespaceType xmlns_id)
 {
 	GF_XMLNS *ns;
 	u32 i, count;
@@ -2278,7 +2277,7 @@ const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, u32 xmlns_id)
 }
 
 
-const char *gf_sg_get_namespace(GF_SceneGraph *sg, u32 xmlns_id)
+const char *gf_sg_get_namespace(GF_SceneGraph *sg, GF_NamespaceType xmlns_id)
 {
 	GF_XMLNS *ns;
 	u32 i, count;

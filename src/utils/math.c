@@ -29,7 +29,7 @@
  *
  */
 
-#include <gpac/math.h>
+#include <gpac/maths.h>
 
 u32 gf_get_bit_size(u32 MaxVal)
 {

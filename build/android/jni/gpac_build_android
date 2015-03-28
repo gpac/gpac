@@ -71,12 +71,15 @@ export BUILDPATH=$(dirname "$0")
 cd $BUILDPATH
 export BUILDPATH=$(pwd)
 echo "Current Dir = $BUILDPATH"
-version=$(svnversion ../../..)
+TAG=$(git describe --tags --abbrev=0 2> /dev/null)
+REVISION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
+version="$REVISION-$BRANCH"
 echo "*** Build path is $BUILDPATH, setting revision number $version"
 if grep "$version" ../../../include/gpac/revision.h >/dev/null 2>&1 ; then
   echo "Version $version already set"
 else
-  echo "#define GPAC_SVN_REVISION \"$version\"" > ../../../include/gpac/revision.h
+  echo "#define GPAC_GIT_REVISION \"$version\"" > ../../../include/gpac/revision.h
 fi
 echo "Building lib gpac ..."
 cd ../../../
@@ -138,7 +141,7 @@ LIBS_DIR="$BASEPATH/applications/osmo4_android/libs"
 mkdir -p $LIBS_DIR
 cd "$BASEPATH/extra_lib/lib/android"
 echo "Copying all extra libs to $LIBS_DIR ..."
-for i in $(find . -name '*.so')
+for i in $(find . \( -name '*.so' \) -a \( ! -name "*_stagefright.so" \) )
 do
 	echo " Copy $i"
 	TMP_DIR=$(dirname $i)
@@ -163,21 +166,49 @@ echo "[OK] success extra lib MP4box."
 
 if [ $ANT -eq 1 ]
 then
-echo "\nSelf-updating project"
-android update project -p "$BASEPATH/applications/osmo4_android/"
+	echo "\nSelf-updating project"
+	android update project -p "$BASEPATH/applications/osmo4_android/" --target android-18
 
-echo -e "\nBuiding Osmo4.apk" 
-cd $BASEPATH/applications/osmo4_android/
-ant release
+	echo -e "\nBuiding Osmo4.apk (without libstagefright)" 
+	cd $BASEPATH/applications/osmo4_android/
+	ant release
 
-if [ -f $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-r$version.apk ]
-then
-echo -e "\nOld Osmo4.apk found. Removing it ..." 
-rm $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-r$version.apk
-fi  
+	if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk ]
+	then
+	echo -e "\nOld Osmo4.apk found. Removing it ..." 
+	rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
+	fi  
 
-zipalign -v 4 bin/Osmo4-release-unaligned.apk $BASEPATH/Osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-r$version.apk
-rm bin/Osmo4-*
-echo -e "\n[OK] success."
+	zipalign -v 4 bin/Osmo4-release-unaligned.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
+	rm bin/Osmo4-*
+	echo -e "\n[OK] success."
+	
+	echo -e "\nBuiding Osmo4.apk (support libstagefright)" 
+	cd "$BASEPATH/extra_lib/lib/android"
+	echo "Copying libstagefright supported libs to $LIBS_DIR ..."
+	LIBS_DIR="$BASEPATH/applications/osmo4_android/libs"
+	for i in $(find . -name '*_stagefright.so')
+	do
+		echo " Copy $i"
+		TMP_DIR=$(dirname $i)
+		dest_file=$(echo $i | sed "s/\(_stagefright\)//g")
+		mkdir -p "$LIBS_DIR/$TMP_DIR"
+		echo "dest $LIBS_DIR/$dest_file"
+		cp "$i" "$LIBS_DIR/$dest_file"
+	done
+	echo "[OK] success extra lib for Osmo4."
+
+	cd $BASEPATH/applications/osmo4_android/
+	ant release
+
+	if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk ]
+	then
+	echo -e "\nOld Osmo4.apk found. Removing it ..." 
+	rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk
+	fi  
+
+	zipalign -v 4 bin/Osmo4-release-unaligned.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk
+	rm bin/Osmo4-*
+	echo -e "\n[OK] success."
 fi
 

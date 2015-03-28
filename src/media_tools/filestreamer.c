@@ -25,7 +25,7 @@
 
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
-#include <gpac/math.h>
+#include <gpac/maths.h>
 
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_STREAMING)
 
@@ -101,7 +101,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 	u8 *payload_type;
 
 	strcpy(filename, sdpfilename ? sdpfilename : "videosession.sdp");
-	sdp_out = gf_f64_open(filename, "wt");
+	sdp_out = gf_fopen(filename, "wt");
 	if (!sdp_out) return GF_IO_ERR;
 
 	if (!out_sdp_buffer) {
@@ -188,17 +188,17 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 	}
 	fprintf(sdp_out, "\n");
 
-	fclose(sdp_out);
+	gf_fclose(sdp_out);
 	if (out_sdp_buffer) {
 		u64 size;
-		sdp_out = gf_f64_open(filename, "r");
-		gf_f64_seek(sdp_out, 0, SEEK_END);
-		size = gf_f64_tell(sdp_out);
-		gf_f64_seek(sdp_out, 0, SEEK_SET);
+		sdp_out = gf_fopen(filename, "r");
+		gf_fseek(sdp_out, 0, SEEK_END);
+		size = gf_ftell(sdp_out);
+		gf_fseek(sdp_out, 0, SEEK_SET);
 		if (*out_sdp_buffer) gf_free(*out_sdp_buffer);
 		*out_sdp_buffer = gf_malloc(sizeof(char)*(size_t)(size+1));
 		size = fread(*out_sdp_buffer, 1, (size_t)size, sdp_out);
-		fclose(sdp_out);
+		gf_fclose(sdp_out);
 		(*out_sdp_buffer)[size]=0;
 	}
 
@@ -374,12 +374,12 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 			remain -= size;
 			au_end = remain ? 0 : 1;
 
-			e = gf_rtp_streamer_send_data(to_send->rtp, ptr, size, to_send->au->dataLength, cts, dts, to_send->au->IsRAP, au_start, au_end, to_send->current_au, duration, to_send->sample_desc_index);
+			e = gf_rtp_streamer_send_data(to_send->rtp, ptr, size, to_send->au->dataLength, cts, dts, (to_send->au->IsRAP==RAP) ? 1 : 0, au_start, au_end, to_send->current_au, duration, to_send->sample_desc_index);
 			ptr += size;
 			au_start = 0;
 		}
 	} else {
-		e = gf_rtp_streamer_send_data(to_send->rtp, to_send->au->data, to_send->au->dataLength, to_send->au->dataLength, cts, dts, to_send->au->IsRAP, 1, 1, to_send->current_au, duration, to_send->sample_desc_index);
+		e = gf_rtp_streamer_send_data(to_send->rtp, to_send->au->data, to_send->au->dataLength, to_send->au->dataLength, cts, dts, (to_send->au->IsRAP==RAP) ? 1 : 0, 1, 1, to_send->current_au, duration, to_send->sample_desc_index);
 	}
 	/*delete sample*/
 	gf_isom_sample_del(&to_send->au);

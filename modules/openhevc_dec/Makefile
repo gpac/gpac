@@ -25,7 +25,7 @@ OBJS= openhevc_dec.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_openhevc_dec.$(DYN_LIB_SUFFIX)
+LIB=gm_openhevc_dec$(DYN_LIB_SUFFIX)
 
 
 all: $(LIB)

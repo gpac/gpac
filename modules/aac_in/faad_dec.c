@@ -376,19 +376,19 @@ static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
 
 		*outBufferLength = ctx->out_size;
 		if (sizeof(short) * ctx->info.samples > *outBufferLength) {
-			*outBufferLength = ctx->out_size = sizeof(short)*ctx->info.samples;
+			*outBufferLength = ctx->out_size = (u32) (sizeof(short)*ctx->info.samples);
 		}
 		return GF_BUFFER_TOO_SMALL;
 	}
 	if (sizeof(short) * ctx->info.samples > *outBufferLength) {
-		*outBufferLength = sizeof(short)*ctx->info.samples;
+		*outBufferLength = (u32) (sizeof(short)*ctx->info.samples);
 		return GF_BUFFER_TOO_SMALL;
 	}
 
 	/*we assume left/right order*/
 	if (ctx->num_channels<=2) {
 		memcpy(outBuffer, buffer, sizeof(short)* ctx->info.samples);
-		*outBufferLength = sizeof(short)*ctx->info.samples;
+		*outBufferLength = (u32) (sizeof(short)*ctx->info.samples);
 		return GF_OK;
 	}
 	conv_in = (unsigned short *) buffer;
@@ -398,7 +398,7 @@ static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
 			conv_out[i + j] = conv_in[i + ctx->ch_reorder[j]];
 		}
 	}
-	*outBufferLength = sizeof(short)*ctx->info.samples;
+	*outBufferLength = (u32) (sizeof(short)*ctx->info.samples);
 	return GF_OK;
 }
 

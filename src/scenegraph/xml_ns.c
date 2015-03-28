@@ -657,7 +657,7 @@ const char *gf_xml_get_element_name(GF_Node *n)
 	return "UndefinedNode";
 }
 
-u32 gf_xml_get_element_namespace(GF_Node *n)
+GF_NamespaceType gf_xml_get_element_namespace(GF_Node *n)
 {
 	u32 i, count;
 	if (n->sgprivate->tag==TAG_DOMFullNode) {
@@ -1036,28 +1036,28 @@ static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_
 
 	sprintf(szFile, "%s%04X%s", base_file, idx, ext);
 
-	f = gf_f64_open(szFile, "rb");
+	f = gf_fopen(szFile, "rb");
 	if (!f) return 0;
 
-	gf_f64_seek(f, 0, SEEK_END);
-	fsize = gf_f64_tell(f);
+	gf_fseek(f, 0, SEEK_END);
+	fsize = gf_ftell(f);
 	if (fsize==data_size) {
 		u32 offset=0;
 		char cache[1024];
-		gf_f64_seek(f, 0, SEEK_SET);
+		gf_fseek(f, 0, SEEK_SET);
 		while (fsize) {
 			u32 read = (u32) fread(cache, 1, 1024, f);
 			fsize -= read;
 			if (memcmp(cache, data+offset, sizeof(char)*read)) break;
 			offset+=read;
 		}
-		fclose(f);
+		gf_fclose(f);
 		f = NULL;
 		/*same file*/
 		if (!fsize) return 2;
 	}
 	if (f)
-		fclose(f);
+		gf_fclose(f);
 	return 1;
 }
 
@@ -1136,7 +1136,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	strcat(szFile, ext);
 
 	if (!existing) {
-		f = gf_f64_open(szFile, "wb");
+		f = gf_fopen(szFile, "wb");
 		if (!f) {
 			gf_free(data);
 			gf_free(iri->string);
@@ -1144,7 +1144,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 			return GF_IO_ERR;
 		}
 		gf_fwrite(data, data_size, 1, f);
-		fclose(f);
+		gf_fclose(f);
 	}
 	gf_free(data);
 	gf_free(iri->string);

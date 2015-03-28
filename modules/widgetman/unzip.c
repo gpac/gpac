@@ -98,7 +98,7 @@ int mode;
 		mode_fopen = "wb";
 
 	if ((filename!=NULL) && (mode_fopen != NULL))
-		file = fopen(filename, mode_fopen);
+		file = gf_fopen(filename, mode_fopen);
 	return file;
 }
 
@@ -167,7 +167,7 @@ voidpf opaque;
 voidpf stream;
 {
 	int ret;
-	ret = fclose((FILE *)stream);
+	ret = gf_fclose((FILE *)stream);
 	return ret;
 }
 
@@ -1258,7 +1258,7 @@ unzFile uf;
 
 		if ((skip==0) && (err==UNZ_OK))
 		{
-			fout=fopen(write_filename,"wb");
+			fout = gf_fopen(write_filename,"wb");
 
 			/* some zipfile don't contain directory alone before file */
 			if ((fout==NULL) && (filename_withoutpath!=(char*)filename_inzip))
@@ -1267,7 +1267,7 @@ unzFile uf;
 				*(filename_withoutpath-1)='\0';
 				makedir(write_filename);
 				*(filename_withoutpath-1)=c;
-				fout=fopen(write_filename,"wb");
+				fout = gf_fopen(write_filename,"wb");
 			}
 
 			if (fout==NULL)
@@ -1298,7 +1298,7 @@ unzFile uf;
 			}
 			while (err>0);
 			if (fout)
-				fclose(fout);
+				gf_fclose(fout);
 		}
 
 		if (err==UNZ_OK)
@@ -1367,13 +1367,13 @@ int gf_unzip_archive(const char *zipfilename, const char *dirname)
 int gf_unzip_probe(const char *zipfilename)
 {
 	int ret = 0;
-	FILE *f = fopen(zipfilename, "r");
+	FILE *f = gf_fopen(zipfilename, "r");
 	if (!f) return 0;
 	if (fgetc(f)=='P')
 		if (fgetc(f)=='K')
 			if (fgetc(f)==3)
 				if (fgetc(f)==4)
 					ret = 1;
-	fclose(f);
+	gf_fclose(f);
 	return ret;
 }

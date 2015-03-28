@@ -131,6 +131,8 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		return urn_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_CPRT:
 		return cprt_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_KIND:
+		return kind_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_HDLR:
 		return hdlr_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_IODS:
@@ -505,9 +507,11 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		}
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
-		return stxt_dump(a, trace);
+		return metx_dump(a, trace);
 
-	case GF_ISOM_BOX_TYPE_STTC:
+	case GF_ISOM_BOX_TYPE_TXTC:
+		return txtc_dump(a, trace);
+
 	case GF_ISOM_BOX_TYPE_VTTC:
 	case GF_ISOM_BOX_TYPE_CTIM:
 	case GF_ISOM_BOX_TYPE_IDEN:
@@ -523,7 +527,7 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		return wvtt_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_STPP:
-		return stpp_dump(a, trace);
+		return metx_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_SBTT:
 		return metx_dump(a, trace);
 #endif
@@ -907,6 +911,18 @@ GF_Err cprt_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err kind_dump(GF_Box *a, FILE * trace)
+{
+	GF_KindBox *p;
+
+	p = (GF_KindBox *)a;
+	fprintf(trace, "<KindBox schemeURI=\"%s\" value=\"%s\">\n", p->schemeURI, (p->value ? p->value : ""));
+	DumpBox(a, trace);
+	gf_full_box_dump(a, trace);
+	gf_box_dump_done("KindBox", a, trace);
+	return GF_OK;
+}
+
 
 static char *format_duration(u64 dur, u32 timescale, char *szDur)
 {
@@ -923,6 +939,15 @@ static char *format_duration(u64 dur, u32 timescale, char *szDur)
 	return szDur;
 }
 
+static void dump_escape_string(FILE * trace, char *name)
+{
+	u32 i, len = (u32) strlen(name);
+	for (i=0; i<len; i++) {
+		if (name[i]=='"') fprintf(trace, "&quot;");
+		else fputc(name[i], trace);
+	}
+}
+
 GF_Err chpl_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, count;
@@ -935,7 +960,9 @@ GF_Err chpl_dump(GF_Box *a, FILE * trace)
 	count = gf_list_count(p->list);
 	for (i=0; i<count; i++) {
 		GF_ChapterEntry *ce = (GF_ChapterEntry *)gf_list_get(p->list, i);
-		fprintf(trace, "<Chapter name=\"%s\" startTime=\"%s\" />\n", ce->name, format_duration(ce->start_time, 1000*10000, szDur));
+		fprintf(trace, "<Chapter name=\"");
+		dump_escape_string(trace, ce->name);
+		fprintf(trace, "\" startTime=\"%s\" />\n", format_duration(ce->start_time, 1000*10000, szDur));
 	}
 
 	gf_box_dump_done("ChapterListBox", a, trace);
@@ -1067,7 +1094,6 @@ GF_Err mp4v_dump(GF_Box *a, FILE * trace)
 		if (p->avc_config) gf_box_dump(p->avc_config, trace);
 		if (p->ipod_ext) gf_box_dump(p->ipod_ext, trace);
 		if (p->descr) gf_box_dump(p->descr, trace);
-		if (p->bitrate) gf_box_dump(p->bitrate, trace);
 		if (p->svc_config) gf_box_dump(p->svc_config, trace);
 		if (p->shvc_config) gf_box_dump(p->shvc_config, trace);
 	}
@@ -1170,9 +1196,7 @@ GF_Err udta_dump(GF_Box *a, FILE * trace)
 
 	i=0;
 	while ((map = (GF_UserDataMap *)gf_list_enum(p->recordList, &i))) {
-		fprintf(trace, "<UDTARecord Type=\"%s\">\n", gf_4cc_to_str(map->boxType));
 		gf_box_array_dump(map->other_boxes, trace);
-		fprintf(trace, "</UDTARecord>\n");
 	}
 	gf_box_dump_done("UserDataBox", a, trace);
 	return GF_OK;
@@ -1904,10 +1928,10 @@ GF_Err m4ds_dump(GF_Box *a, FILE * trace)
 
 GF_Err btrt_dump(GF_Box *a, FILE * trace)
 {
-	GF_MPEG4BitRateBox *p = (GF_MPEG4BitRateBox*)a;
-	fprintf(trace, "<MPEG4BitRateBox BufferSizeDB=\"%d\" avgBitRate=\"%d\" maxBitRate=\"%d\">\n", p->bufferSizeDB, p->avgBitrate, p->maxBitrate);
+	GF_BitRateBox *p = (GF_BitRateBox*)a;
+	fprintf(trace, "<BitRateBox BufferSizeDB=\"%d\" avgBitRate=\"%d\" maxBitRate=\"%d\">\n", p->bufferSizeDB, p->avgBitrate, p->maxBitrate);
 	DumpBox(a, trace);
-	gf_box_dump_done("MPEG4BitRateBox", a, trace);
+	gf_box_dump_done("BitRateBox", a, trace);
 	return GF_OK;
 }
 
@@ -1947,7 +1971,7 @@ static void gpp_dump_style(FILE * trace, GF_StyleRecord *rec)
 		if (rec->style_flags & 4) fprintf(trace, "Underlined ");
 	}
 	fprintf(trace, "\" fontSize=\"%d\" ", rec->font_size);
-	gpp_dump_rgba8(trace, "text-color", rec->text_color);
+	gpp_dump_rgba8(trace, "textColor", rec->text_color);
 	fprintf(trace, "/>\n");
 }
 
@@ -1957,7 +1981,7 @@ GF_Err tx3g_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<Tx3gSampleEntryBox dataReferenceIndex=\"%d\" displayFlags=\"%x\" horizontal-justification=\"%d\" vertical-justification=\"%d\" ",
 	        p->dataReferenceIndex, p->displayFlags, p->horizontal_justification, p->vertical_justification);
 
-	gpp_dump_rgba8(trace, "background-color", p->back_color);
+	gpp_dump_rgba8(trace, "backgroundColor", p->back_color);
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 
@@ -1978,9 +2002,9 @@ GF_Err text_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<TextSampleEntryBox dataReferenceIndex=\"%d\" displayFlags=\"%x\" textJustification=\"%d\"  ",
 	        p->dataReferenceIndex, p->displayFlags, p->textJustification);
 	if (p->textName)
-		fprintf(trace, "textName=%s ", p->textName);
+		fprintf(trace, "textName=\"%s\" ", p->textName);
 	gpp_dump_rgb16(trace, "background-color", p->background_color);
-	gpp_dump_rgb16(trace, "foreground-color", p->foreground_color);
+	gpp_dump_rgb16(trace, " foreground-color", p->foreground_color);
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 
@@ -2877,8 +2901,8 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	txt = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 	switch (txt->type) {
 	case GF_ISOM_BOX_TYPE_TX3G:
-		break;
 	case GF_ISOM_BOX_TYPE_TEXT:
+		break;
 	case GF_ISOM_BOX_TYPE_STPP:
 	case GF_ISOM_BOX_TYPE_SBTT:
 	default:
@@ -2899,83 +2923,121 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	for (i=0; i<nb_descs; i++) {
 		GF_Tx3gSampleEntryBox *txt = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, i);
 
-		fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
-		switch (txt->horizontal_justification) {
-		case 1:
-			fprintf(dump, "center");
-			break;
-		case -1:
-			fprintf(dump, "right");
-			break;
-		default:
-			fprintf(dump, "left");
-			break;
-		}
-		fprintf(dump, "\" verticalJustification=\"");
-		switch (txt->vertical_justification) {
-		case 1:
-			fprintf(dump, "center");
-			break;
-		case -1:
-			fprintf(dump, "bottom");
-			break;
-		default:
-			fprintf(dump, "top");
-			break;
-		}
-		fprintf(dump, "\" ");
-		gpp_dump_rgba8(dump, "backColor", txt->back_color);
-		fprintf(dump, " verticalText=\"%s\"", (txt->displayFlags & GF_TXT_VERTICAL) ? "yes" : "no");
-		fprintf(dump, " fillTextRegion=\"%s\"", (txt->displayFlags & GF_TXT_FILL_REGION) ? "yes" : "no");
-		fprintf(dump, " continuousKaraoke=\"%s\"", (txt->displayFlags & GF_TXT_KARAOKE) ? "yes" : "no");
-		has_scroll = 0;
-		if (txt->displayFlags & GF_TXT_SCROLL_IN) {
-			has_scroll = 1;
-			if (txt->displayFlags & GF_TXT_SCROLL_OUT) fprintf(dump, " scroll=\"InOut\"");
-			else fprintf(dump, " scroll=\"In\"");
-		} else if (txt->displayFlags & GF_TXT_SCROLL_OUT) {
-			has_scroll = 1;
-			fprintf(dump, " scroll=\"Out\"");
-		} else {
-			fprintf(dump, " scroll=\"None\"");
-		}
-		if (has_scroll) {
-			u32 mode = (txt->displayFlags & GF_TXT_SCROLL_DIRECTION)>>7;
-			switch (mode) {
-			case GF_TXT_SCROLL_CREDITS:
-				fprintf(dump, " scrollMode=\"Credits\"");
+		if (txt->type==GF_ISOM_BOX_TYPE_TX3G) {
+			fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
+			switch (txt->horizontal_justification) {
+			case 1:
+				fprintf(dump, "center");
 				break;
-			case GF_TXT_SCROLL_MARQUEE:
-				fprintf(dump, " scrollMode=\"Marquee\"");
-				break;
-			case GF_TXT_SCROLL_DOWN:
-				fprintf(dump, " scrollMode=\"Down\"");
-				break;
-			case GF_TXT_SCROLL_RIGHT:
-				fprintf(dump, " scrollMode=\"Right\"");
+			case -1:
+				fprintf(dump, "right");
 				break;
 			default:
-				fprintf(dump, " scrollMode=\"Unknown\"");
+				fprintf(dump, "left");
 				break;
 			}
-		}
-		fprintf(dump, ">\n");
-		fprintf(dump, "<FontTable>\n");
-		if (txt->font_table) {
-			for (j=0; j<txt->font_table->entry_count; j++) {
-				fprintf(dump, "<FontTableEntry fontName=\"%s\" fontID=\"%d\"/>\n", txt->font_table->fonts[j].fontName, txt->font_table->fonts[j].fontID);
-
+			fprintf(dump, "\" verticalJustification=\"");
+			switch (txt->vertical_justification) {
+			case 1:
+				fprintf(dump, "center");
+				break;
+			case -1:
+				fprintf(dump, "bottom");
+				break;
+			default:
+				fprintf(dump, "top");
+				break;
 			}
+			fprintf(dump, "\" ");
+			gpp_dump_rgba8(dump, "backColor", txt->back_color);
+			fprintf(dump, " verticalText=\"%s\"", (txt->displayFlags & GF_TXT_VERTICAL) ? "yes" : "no");
+			fprintf(dump, " fillTextRegion=\"%s\"", (txt->displayFlags & GF_TXT_FILL_REGION) ? "yes" : "no");
+			fprintf(dump, " continuousKaraoke=\"%s\"", (txt->displayFlags & GF_TXT_KARAOKE) ? "yes" : "no");
+			has_scroll = 0;
+			if (txt->displayFlags & GF_TXT_SCROLL_IN) {
+				has_scroll = 1;
+				if (txt->displayFlags & GF_TXT_SCROLL_OUT) fprintf(dump, " scroll=\"InOut\"");
+				else fprintf(dump, " scroll=\"In\"");
+			} else if (txt->displayFlags & GF_TXT_SCROLL_OUT) {
+				has_scroll = 1;
+				fprintf(dump, " scroll=\"Out\"");
+			} else {
+				fprintf(dump, " scroll=\"None\"");
+			}
+			if (has_scroll) {
+				u32 mode = (txt->displayFlags & GF_TXT_SCROLL_DIRECTION)>>7;
+				switch (mode) {
+				case GF_TXT_SCROLL_CREDITS:
+					fprintf(dump, " scrollMode=\"Credits\"");
+					break;
+				case GF_TXT_SCROLL_MARQUEE:
+					fprintf(dump, " scrollMode=\"Marquee\"");
+					break;
+				case GF_TXT_SCROLL_DOWN:
+					fprintf(dump, " scrollMode=\"Down\"");
+					break;
+				case GF_TXT_SCROLL_RIGHT:
+					fprintf(dump, " scrollMode=\"Right\"");
+					break;
+				default:
+					fprintf(dump, " scrollMode=\"Unknown\"");
+					break;
+				}
+			}
+			fprintf(dump, ">\n");
+			fprintf(dump, "<FontTable>\n");
+			if (txt->font_table) {
+				for (j=0; j<txt->font_table->entry_count; j++) {
+					fprintf(dump, "<FontTableEntry fontName=\"%s\" fontID=\"%d\"/>\n", txt->font_table->fonts[j].fontName, txt->font_table->fonts[j].fontID);
+
+				}
+			}
+			fprintf(dump, "</FontTable>\n");
+			if ((txt->default_box.bottom == txt->default_box.top) || (txt->default_box.right == txt->default_box.left)) {
+				txt->default_box.top = txt->default_box.left = 0;
+				txt->default_box.right = trak->Header->width / 65536;
+				txt->default_box.bottom = trak->Header->height / 65536;
+			}
+			gpp_dump_box_nobox(dump, &txt->default_box);
+			gpp_dump_style_nobox(dump, &txt->default_style, NULL, 0);
+			fprintf(dump, "</TextSampleDescription>\n");
+		} else {
+			GF_TextSampleEntryBox *text = (GF_TextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, i);
+			fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
+			switch (text->textJustification) {
+			case 1:
+				fprintf(dump, "center");
+				break;
+			case -1:
+				fprintf(dump, "right");
+				break;
+			default:
+				fprintf(dump, "left");
+				break;
+			}
+			fprintf(dump, "\"");
+
+			gpp_dump_rgb16(dump, " backColor", text->background_color);
+
+			if ((text->default_box.bottom == text->default_box.top) || (text->default_box.right == text->default_box.left)) {
+				text->default_box.top = text->default_box.left = 0;
+				text->default_box.right = trak->Header->width / 65536;
+				text->default_box.bottom = trak->Header->height / 65536;
+			}
+
+			if (text->displayFlags & GF_TXT_SCROLL_IN) {
+				if (text->displayFlags & GF_TXT_SCROLL_OUT) fprintf(dump, " scroll=\"InOut\"");
+				else fprintf(dump, " scroll=\"In\"");
+			} else if (text->displayFlags & GF_TXT_SCROLL_OUT) {
+				fprintf(dump, " scroll=\"Out\"");
+			} else {
+				fprintf(dump, " scroll=\"None\"");
+			}
+			fprintf(dump, ">\n");
+
+			gpp_dump_box_nobox(dump, &text->default_box);
+			fprintf(dump, "</TextSampleDescription>\n");
 		}
-		fprintf(dump, "</FontTable>\n");
-		if ((txt->default_box.bottom == txt->default_box.top) || (txt->default_box.right == txt->default_box.left)) {
-			txt->default_box.top = txt->default_box.left = 0;
-			txt->default_box.right = trak->Header->width / 65536;
-			txt->default_box.bottom = trak->Header->height / 65536;
-		}
-		gpp_dump_box_nobox(dump, &txt->default_box);
-		gpp_dump_style_nobox(dump, &txt->default_style, NULL, 0);
-		fprintf(dump, "</TextSampleDescription>\n");
 	}
 	fprintf(dump, "</TextStreamHeader>\n");
 
@@ -3318,7 +3380,7 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 	strcpy(nhmlFileName, the_file->fileName);
 	strcat(nhmlFileName, ".nhml");
-	nhmlFile = gf_f64_open(nhmlFileName, "wt");
+	nhmlFile = gf_fopen(nhmlFileName, "wt");
 	fprintf(nhmlFile, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	fprintf(nhmlFile, "<NHNTStream streamType=\"3\" objectTypeIndication=\"10\" timeScale=\"%d\" baseMediaFile=\"file.svg\" inRootOD=\"yes\">\n", trak->Media->mediaHeader->timeScale);
 	fprintf(nhmlFile, "<NHNTSample isRAP=\"yes\" DTS=\"0\" xmlFrom=\"doc.start\" xmlTo=\"text_1.start\"/>\n");
@@ -3377,7 +3439,7 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	fprintf(dump, "</svg>\n");
 
 	fprintf(nhmlFile, "</NHNTStream>\n");
-	fclose(nhmlFile);
+	gf_fclose(nhmlFile);
 
 	if (count) gf_set_progress("SRT Extract", i, count);
 	return GF_OK;
@@ -3934,20 +3996,51 @@ GF_Err tsel_dump(GF_Box *a, FILE * trace)
 GF_Err metx_dump(GF_Box *a, FILE * trace)
 {
 	GF_MetaDataSampleEntryBox *ptr = (GF_MetaDataSampleEntryBox*)a;
-	const char *name = (ptr->type==GF_ISOM_BOX_TYPE_METX) ? "XMLMetaDataSampleEntryBox" : "TextMetaDataSampleEntryBox";
+	const char *name;
+	switch (ptr->type) {
+	case GF_ISOM_BOX_TYPE_METX:
+		name = "XMLMetaDataSampleEntryBox";
+		break;
+	case GF_ISOM_BOX_TYPE_METT:
+		name = "TextMetaDataSampleEntryBox";
+		break;
+	case GF_ISOM_BOX_TYPE_SBTT:
+		name = "SubtitleSampleEntryBox";
+		break;
+	case GF_ISOM_BOX_TYPE_STXT:
+		name = "SimpleTextSampleEntryBox";
+		break;
+	case GF_ISOM_BOX_TYPE_STPP:
+		name = "XMLSubtitleSampleEntryBox";
+		break;
+	default:
+		name = "UnknownTextSampleEntryBox";
+		break;
+	}
 
 	fprintf(trace, "<%s ", name);
+
 	if (ptr->type==GF_ISOM_BOX_TYPE_METX) {
-		fprintf(trace, "namespace=\"%s\" ", ptr->mime_type_or_namespace);
+		fprintf(trace, "namespace=\"%s\" ", ptr->xml_namespace);
 		if (ptr->xml_schema_loc) fprintf(trace, "schema_location=\"%s\" ", ptr->xml_schema_loc);
-	} else {
-		fprintf(trace, "mime_type=\"%s\" ", ptr->mime_type_or_namespace);
+		if (ptr->content_encoding) fprintf(trace, "content_encoding=\"%s\" ", ptr->content_encoding);
+
+	} else if (ptr->type==GF_ISOM_BOX_TYPE_STPP) {
+		fprintf(trace, "namespace=\"%s\" ", ptr->xml_namespace);
+		if (ptr->xml_schema_loc) fprintf(trace, "schema_location=\"%s\" ", ptr->xml_schema_loc);
+		if (ptr->mime_type) fprintf(trace, "auxiliary_mime_types=\"%s\" ", ptr->mime_type);
 	}
-	if (ptr->content_encoding) fprintf(trace, "content_encoding=\"%s\" ", ptr->content_encoding);
+	//mett, sbtt, stxt
+	else {
+		fprintf(trace, "mime_type=\"%s\" ", ptr->mime_type);
+		if (ptr->content_encoding) fprintf(trace, "content_encoding=\"%s\" ", ptr->content_encoding);
+	}
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 
-	if (ptr->bitrate) gf_box_dump(ptr->bitrate, trace);
+	if ((ptr->type!=GF_ISOM_BOX_TYPE_METX) && (ptr->type!=GF_ISOM_BOX_TYPE_STPP) ) {
+		if (ptr->config) gf_box_dump(ptr->config, trace);
+	}
 	gf_box_array_dump(ptr->protections, trace);
 
 	gf_box_dump_done(NULL, a, trace);
@@ -3955,19 +4048,15 @@ GF_Err metx_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-GF_Err stxt_dump(GF_Box *a, FILE * trace)
+GF_Err txtc_dump(GF_Box *a, FILE * trace)
 {
-	GF_SimpleTextSampleEntryBox *ptr = (GF_SimpleTextSampleEntryBox*)a;
-	const char *name = "SimpleTextSampleEntryBox";
+	GF_TextConfigBox *ptr = (GF_TextConfigBox*)a;
+	const char *name = "TextConfigBox";
 
-	fprintf(trace, "<%s ", name);
-	fprintf(trace, "mime_type=\"%s\" ", ptr->mime_type);
-	if (ptr->content_encoding) fprintf(trace, "content_encoding=\"%s\" ", ptr->content_encoding);
-	fprintf(trace, ">\n");
+	fprintf(trace, "<%s>", name);
 	DumpBox(a, trace);
 
-	if (ptr->bitrate) gf_box_dump(ptr->bitrate, trace);
-	if (ptr->config) gf_box_dump(ptr->config, trace);
+	if (ptr->config) fprintf(trace, "%s", ptr->config);
 
 	gf_box_dump_done(NULL, a, trace);
 	fprintf(trace, "</%s>\n", name);
@@ -3982,7 +4071,6 @@ GF_Err dims_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	if (p->config) gf_box_dump(p->config, trace);
 	if (p->scripts) gf_box_dump(p->scripts, trace);
-	if (p->bitrate) gf_box_dump(p->bitrate, trace);
 	gf_box_array_dump(p->protections, trace);
 	gf_box_dump_done("DIMSSampleEntryBox", a, trace);
 	return GF_OK;
@@ -4071,7 +4159,6 @@ GF_Err lsr1_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<LASeRSampleEntryBox DataReferenceIndex=\"%d\">\n", p->dataReferenceIndex);
 	DumpBox(a, trace);
 	if (p->lsr_config) gf_box_dump(p->lsr_config, trace);
-	if (p->bitrate) gf_box_dump(p->bitrate, trace);
 	if (p->descr) gf_box_dump(p->descr, trace);
 	gf_box_dump_done("LASeRSampleEntryBox", a, trace);
 	return GF_OK;

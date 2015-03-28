@@ -51,12 +51,13 @@
     <ClCompile Include="..\..\..\src\utils\error.c" />
     <ClCompile Include="..\..\..\src\utils\list.c" />
     <ClCompile Include="..\..\..\src\utils\os_divers.c" />
+    <ClCompile Include="..\..\..\src\utils\os_file.c" />
     <ClCompile Include="..\..\..\src\utils\os_thread.c" />
     <ClCompile Include="..\..\..\src\utils\url.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{978A2D9F-E44F-4073-8032-333563BCC160}</ProjectGuid>
+    <ProjectGuid>{365CEAE9-305B-43C9-B531-904E500F0809}</ProjectGuid>
     <ProjectName>segmp4demux</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -68,7 +69,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v100</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>

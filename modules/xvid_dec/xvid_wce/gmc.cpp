@@ -30,9 +30,9 @@
 /* ************************************************************
  * Pts = 2 or 3
  *
- * Warning! *src is the global frame pointer (that is: adress
+ * Warning! *src is the global frame pointer (that is: address
  * of pixel 0,0), not the macroblock one.
- * Conversely, *dst is the macroblock top-left adress.
+ * Conversely, *dst is the macroblock top-left address.
  */
 static void Predict_16x16_C(const NEW_GMC_DATA * const This, byte *dst, const byte *src, int dststride, int srcstride, int x, int y, int rounding) {
 

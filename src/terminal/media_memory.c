@@ -27,6 +27,7 @@
 
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/constants.h>
+#include <gpac/network.h>
 #include "media_memory.h"
 #include "media_control.h"
 
@@ -550,7 +551,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 		}
 
 		/*handle visual object - EOS if no more data (we keep the last CU for rendering, so check next one)*/
-		if (cb->HasSeenEOS && (!cb->output->next->dataLength || (cb->Capacity==1))) {
+		if (cb->HasSeenEOS && (cb->odm->codec->type == GF_STREAM_VISUAL) && (!cb->output->next->dataLength || (cb->Capacity==1))) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
 			cb->Status = CB_STOP;
 			cb->odm->media_current_time = (u32) cb->odm->media_stop_time;
@@ -561,11 +562,16 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 			gf_odm_signal_eos(cb->odm);
 		}
 	}
+	if (cb->output->sender_ntp) {
+		cb->LastRenderedNTPDiff = gf_net_get_ntp_diff_ms(cb->output->sender_ntp);
+		cb->LastRenderedNTP = cb->output->sender_ntp;
+	}
+
 	return cb->output;
 }
 
 
-/*drop the output CU*/
+/*mark the output as reusable and init clock*/
 void gf_cm_output_kept(GF_CompositionMemory *cb)
 {
 	assert(cb->UnitCount);
@@ -582,10 +588,8 @@ void gf_cm_output_kept(GF_CompositionMemory *cb)
 /*drop the output CU*/
 void gf_cm_drop_output(GF_CompositionMemory *cb)
 {
+	//check if clock has to be resumed
 	gf_cm_output_kept(cb);
-	if (cb->Status!=CB_PLAY) {
-		return;
-	}
 
 	/*WARNING: in RAW mode, we (for the moment) only have one unit - setting output->dataLength to 0 means the input is available
 	for the raw channel - we have to make sure the output is completely reseted before releasing the sema*/
@@ -637,6 +641,7 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 		case CB_STOP:
 			cb->Status = CB_BUFFER;
 			gf_clock_buffer_on(cb->odm->codec->ck);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB status changed - ODM%d: buffering on at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 			break;
 		case CB_PAUSE:
 			cb->Status = CB_PLAY;
@@ -662,6 +667,7 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 		cb->Status = Status;
 		if (Status==CB_BUFFER) {
 			gf_clock_buffer_on(cb->odm->codec->ck);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB status changed - ODM%d: buffering on at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 		}
 	}
 
@@ -712,7 +718,7 @@ Bool gf_cm_is_running(GF_CompositionMemory *cb)
 
 Bool gf_cm_is_eos(GF_CompositionMemory *cb)
 {
-	if ( (cb->Status == CB_STOP) || (cb->HasSeenEOS && (cb->UnitCount==0)) )
+	if (cb->HasSeenEOS && ((cb->Status == CB_STOP) || (cb->UnitCount==0)) )
 		return 1;
 	return 0;
 }

@@ -419,6 +419,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\utils\os_file.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\utils\os_module.c"
 				>
 			</File>

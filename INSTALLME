@@ -1,13 +1,15 @@
-Installation instructions for latest GPAC svn version and GPAC release 0.5.0 - May 2012:
+Installation instructions for latest GPAC GIT version - March 2015:
 
 For Windows, Linux and Mac OS X versions, follow the instructions on http://gpac.sourceforge.net/home_download.php
 
 For Android, follow the instructions in gpac/build/android/README
 
-For WindowsMobile platform, get the latest package of gpac extra libs available on GPAC svn:
-http://gpac.svn.sourceforge.net/viewvc/gpac/trunk/gpac_extra_libs/gpac_extra_libs.zip
-and follow the instructions in gpac/doc/INSTALL.wCE
+(WindowsMobile platform i sno longer maintained)
+For WindowsMobile platform, get the latest package of gpac extra libs available here:
 
+https://sourceforge.net/p/gpac/code/HEAD/tree/trunk/gpac_extra_libs/
+
+and follow the instructions in gpac/doc/INSTALL.wCE
 
 
 
@@ -21,8 +23,8 @@ limited (no still image, no audio, no video, no text, no scripting). It is there
 extra lib package available at http://sourceforge.net/projects/gpac. Compilation instructions for these libraries 
 are provided per library in the package. 
 
-	The current extra_lib package to use with gpac 0.5.0 is gpac_extra_libs available at sourceforge: 
-http://gpac.svn.sourceforge.net/viewvc/gpac/trunk/gpac_extra_libs/gpac_extra_libs.zip?view=log	
+	The current extra_lib package to use with gpac 0.5.0 and above is gpac_extra_libs available here: 
+https://sourceforge.net/p/gpac/code/HEAD/tree/trunk/gpac_extra_libs/
 
 	In case you have some of these libs already installed on your system, the detailed list of dependencies is
 	* freetype2 from version 2.1.4 on.
@@ -40,18 +42,24 @@ http://gpac.svn.sourceforge.net/viewvc/gpac/trunk/gpac_extra_libs/gpac_extra_lib
 
 * Installing GPAC
 
-/!\ GPAC won't compile if the 'svnversion' command (shipped with every Subversion package) is not in your path /!\
+/!\ GPAC won't compile if the 'git' command is not in your path /!\
 
-!!OUTDATED - please see online instructions instead!!
+!! WARNING !!
+The following instructions may not be completely up to data
+You should use online instructions which may be more up-to-date:
+http://gpac.io/2011/04/18/command-line-gpac-compiling-on-windows-x86-using-free-microsoft-visual-c/
+
 Detailed instruction for Win32 MSVC Compilation are available in gpac/doc/INSTALL.w32
 
 Detailed instruction for WinCE eVC Compilation are available in gpac/doc/INSTALL.wCE
-s
+
 Detailed instruction for GCC Compilation are available in gpac/doc/INSTALL.gcc
 
 Detailed instruction for GCC cross-compilation for familiar+GPE systems are available in gpac/doc/INSTALL.gpe
 	
 Detailed instruction for GCCE/Symbian cross-compilation for Symbian v9.1 systems are available in gpac/doc/INSTALL.symbian
+
+Detailed instruction for iOS Compilation are available in gpac/build/xcode/README_IOS.txt
 	
 * Configuring GPAC
 

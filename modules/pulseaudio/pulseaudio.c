@@ -343,4 +343,4 @@ void ShutdownInterface (GF_BaseInterface * ifce)
 		DeletePulseAudioOutput ((GF_AudioOutput *) ifce);
 }
 
-GPAC_MODULE_STATIC_DELARATION( pulseaudio )
+GPAC_MODULE_STATIC_DECLARATION( pulseaudio )

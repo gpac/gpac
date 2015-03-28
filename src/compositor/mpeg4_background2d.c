@@ -104,6 +104,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 {
 	Bool clear_all = GF_TRUE;
 	u32 color;
+	Bool use_texture;
 	Bool is_offscreen = GF_FALSE;
 	Background2DStack *stack;
 	if (!ctx || !ctx->drawable || !ctx->drawable->node) return;
@@ -114,7 +115,17 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 	stack->flags &= ~CTX_PATH_FILLED;
 	color = ctx->aspect.fill_color;
 
-	if (back_use_texture((M_Background2D *)ctx->drawable->node)) {
+	use_texture = back_use_texture((M_Background2D *)ctx->drawable->node);
+	if (!use_texture && !tr_state->visual->is_attached) {
+		use_texture = 1;
+		stack->txh.data = stack->col_tx;
+		stack->txh.width = 2;
+		stack->txh.height = 2;
+		stack->txh.stride = 6;
+		stack->txh.pixelformat = GF_PIXEL_RGB_24;
+	}
+
+	if (use_texture) {
 
 		if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL)) {
 			/*set target rect*/
@@ -337,6 +348,8 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 	if (!status) return;
 
 	if (gf_node_dirty_get(node)) {
+		u32 i;
+		
 		stack->flags |= CTX_APP_DIRTY;
 		gf_node_dirty_clear(node, 0);
 
@@ -345,6 +358,11 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 		if (col != status->ctx.aspect.fill_color) {
 			status->ctx.aspect.fill_color = col;
 			stack->flags |= CTX_APP_DIRTY;
+		}
+		for (i=0; i<4;i++) {
+			stack->col_tx[3*i] = FIX2INT(255 * bck->backColor.red);
+			stack->col_tx[3*i+1] = FIX2INT(255 * bck->backColor.green);
+			stack->col_tx[3*i+2] = FIX2INT(255 * bck->backColor.blue);
 		}
 	}
 

@@ -547,7 +547,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( epoc_vout )
+GPAC_MODULE_STATIC_DECLARATION( epoc_vout )
 
 #ifdef __cplusplus
 }

@@ -127,7 +127,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 	if (FT_New_Face(ftpriv->library, file_path, 0, & face )) return 0;
 	if (!face || !face->family_name) return 0;
 
-	num_faces = face->num_faces;
+	num_faces = (u32) face->num_faces;
 	/*locate right font in collection if several*/
 	for (i=0; i<num_faces; i++) {
 
@@ -226,9 +226,12 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	}
 	gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "RescanFonts", "no");
 
-	ftpriv->font_serif = NULL;
-	ftpriv->font_sans = NULL;
-	ftpriv->font_fixed = NULL;
+    if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
+    ftpriv->font_fixed = NULL;
+    if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
+    ftpriv->font_sans = NULL;
+    if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
+    ftpriv->font_serif = NULL;
 
 	font_dir = ftpriv->font_dir;
 	ftpriv->font_dir = NULL;
@@ -344,15 +347,20 @@ static GF_Err ft_init_font_engine(GF_FontReader *dr)
 	if (!sOpt || !strcmp(sOpt, "yes") )
 		ft_rescan_fonts(dr);
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif");
-	ftpriv->font_serif = gf_strdup(sOpt ? sOpt : "");
+    if (!ftpriv->font_serif) {
+        sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif");
+        ftpriv->font_serif = gf_strdup(sOpt ? sOpt : "");
+    }
+    
+    if (!ftpriv->font_sans) {
+        sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSans");
+        ftpriv->font_sans = gf_strdup(sOpt ? sOpt : "");
+    }
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontSans");
-	ftpriv->font_sans = gf_strdup(sOpt ? sOpt : "");
-
-	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed");
-	ftpriv->font_fixed = gf_strdup(sOpt ? sOpt : "");
-
+    if (!ftpriv->font_fixed) {
+        sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed");
+        ftpriv->font_fixed = gf_strdup(sOpt ? sOpt : "");
+    }
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Init OK - font directory %s\n", ftpriv->font_dir));
 
 	return GF_OK;
@@ -556,16 +564,24 @@ typedef struct
 	s32 last_x, last_y;
 } ft_outliner;
 
+#if defined(GPAC_IPHONE) || defined(GPAC_ANDROID)
+#define FTCST
+#else
+#define FTCST const
+#endif
 
-static int ft_move_to(const FT_Vector *to, void *user)
+
+
+int ft_move_to(FTCST FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_move_to(ftol->path, INT2FIX(to->x), INT2FIX(to->y) );
-	ftol->last_x = to->x;
-	ftol->last_y = to->y;
+	ftol->last_x = (s32) to->x;
+	ftol->last_y = (s32) to->y;
 	return 0;
 }
-static int ft_line_to(const FT_Vector *to, void *user)
+
+int ft_line_to(FTCST FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	if ( (ftol->last_x == to->x) && (ftol->last_y == to->y)) {
@@ -575,14 +591,16 @@ static int ft_line_to(const FT_Vector *to, void *user)
 	}
 	return 0;
 }
-static int ft_conic_to(const FT_Vector * control, const FT_Vector *to, void *user)
+
+int ft_conic_to(FTCST FT_Vector * control, FTCST FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_quadratic_to(ftol->path, INT2FIX(control->x), INT2FIX(control->y), INT2FIX(to->x), INT2FIX(to->y) );
 	if ( (ftol->last_x == to->x) && (ftol->last_y == to->y)) gf_path_close(ftol->path);
 	return 0;
 }
-static int ft_cubic_to(const FT_Vector *c1, const FT_Vector *c2, const FT_Vector *to, void *user)
+
+int ft_cubic_to(FTCST FT_Vector *c1, FTCST FT_Vector *c2, FTCST FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_cubic_to(ftol->path, INT2FIX(c1->x), INT2FIX(c1->y), INT2FIX(c2->x), INT2FIX(c2->y), INT2FIX(to->x), INT2FIX(to->y) );
@@ -643,14 +661,14 @@ static GF_Glyph *ft_load_glyph(GF_FontReader *dr, u32 glyph_name)
 
 	glyph->ID = glyph_name;
 	glyph->utf_name = glyph_name;
-	glyph->horiz_advance = ftpriv->active_face->glyph->metrics.horiAdvance;
-	glyph->vert_advance = ftpriv->active_face->glyph->metrics.vertAdvance;
+	glyph->horiz_advance = (s32) ftpriv->active_face->glyph->metrics.horiAdvance;
+	glyph->vert_advance = (s32) ftpriv->active_face->glyph->metrics.vertAdvance;
 	/*
 		glyph->x = bbox.xMin;
 		glyph->y = bbox.yMax;
 	*/
-	glyph->width = ftpriv->active_face->glyph->metrics.width;
-	glyph->height = ftpriv->active_face->glyph->metrics.height;
+	glyph->width = (u32) ftpriv->active_face->glyph->metrics.width;
+	glyph->height = (u32) ftpriv->active_face->glyph->metrics.height;
 	FT_Done_Glyph((FT_Glyph) outline);
 	return glyph;
 }
@@ -729,7 +747,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( ftfont )
+GPAC_MODULE_STATIC_DECLARATION( ftfont )
 
 #endif
 

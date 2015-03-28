@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 	mpedemux->ts_demux->on_event = mpedemux_on_event;
 	mpedemux->ts_demux->user = mpedemux;
 
-	mpedemux->ts_file = fopen(argv[1], "rb");
+	mpedemux->ts_file = gf_fopen(argv[1], "rb");
 
 	while (1) {
 		/*read chunks by chunks*/

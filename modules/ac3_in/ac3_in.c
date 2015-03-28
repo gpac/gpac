@@ -149,7 +149,7 @@ static Bool AC3_ConfigureFromFile(AC3Reader *read)
 		}
 	}
 	gf_bs_del(bs);
-	gf_f64_seek(read->stream, 0, SEEK_SET);
+	gf_fseek(read->stream, 0, SEEK_SET);
 	return 1;
 }
 
@@ -295,7 +295,7 @@ void AC3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
-			read->stream = gf_f64_open((char *) szCache, "rb");
+			read->stream = gf_fopen((char *) szCache, "rb");
 			if (!read->stream) e = GF_SERVICE_ERROR;
 			else {
 				/*if full file at once (in cache) parse duration*/
@@ -308,7 +308,7 @@ void AC3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 					if (bytes_done>10*1024) {
 						e = GF_CORRUPTED_DATA;
 					} else {
-						fclose(read->stream);
+						gf_fclose(read->stream);
 						read->stream = NULL;
 						return;
 					}
@@ -365,11 +365,11 @@ static GF_Err AC3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	}
 
 	reply = GF_OK;
-	read->stream = gf_f64_open(szURL, "rb");
+	read->stream = gf_fopen(szURL, "rb");
 	if (!read->stream) {
 		reply = GF_URL_ERROR;
 	} else if (!AC3_ConfigureFromFile(read)) {
-		fclose(read->stream);
+		gf_fclose(read->stream);
 		read->stream = NULL;
 		reply = GF_NOT_SUPPORTED;
 	}
@@ -381,7 +381,7 @@ static GF_Err AC3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 static GF_Err AC3_CloseService(GF_InputService *plug)
 {
 	AC3Reader *read = plug->priv;
-	if (read->stream) fclose(read->stream);
+	if (read->stream) gf_fclose(read->stream);
 	read->stream = NULL;
 	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
@@ -496,7 +496,7 @@ static GF_Err AC3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		read->start_range = com->play.start_range;
 		read->end_range = com->play.end_range;
 		read->current_time = 0;
-		if (read->stream) gf_f64_seek(read->stream, 0, SEEK_SET);
+		if (read->stream) gf_fseek(read->stream, 0, SEEK_SET);
 
 		if (read->ch == com->base.on_channel) {
 			read->done = 0;
@@ -557,7 +557,7 @@ static GF_Err AC3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 		*is_new_data = 1;
 
 fetch_next:
-		pos = gf_f64_tell(read->stream);
+		pos = gf_ftell(read->stream);
 		sync = gf_ac3_parser_bs(bs, &hdr, GF_FALSE);
 		if (!sync) {
 			gf_bs_del(bs);
@@ -565,7 +565,7 @@ fetch_next:
 				*out_reception_status = GF_EOS;
 				read->done = 1;
 			} else {
-				gf_f64_seek(read->stream, pos, SEEK_SET);
+				gf_fseek(read->stream, pos, SEEK_SET);
 				*out_reception_status = GF_OK;
 			}
 			return GF_OK;
@@ -702,4 +702,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( ac3 )
+GPAC_MODULE_STATIC_DECLARATION( ac3 )

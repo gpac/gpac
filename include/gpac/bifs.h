@@ -93,6 +93,8 @@ u8 gf_bifs_encoder_get_version(GF_BifsEncoder *codec, u16 ESID);
 /*Encodes current graph as a scene replace*/
 GF_Err gf_bifs_encoder_get_rap(GF_BifsEncoder *codec, char **out_data, u32 *out_data_length);
 
+GF_Err gf_bifs_encoder_set_source_url(GF_BifsEncoder *codec, const char *src_url);
+
 #endif /*GPAC_DISABLE_BIFS_ENC*/
 
 #endif /*GPAC_DISABLE_BIFS*/

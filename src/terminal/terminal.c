@@ -186,7 +186,7 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 			if (ck) {
 				Bool is_paused = ck->Paused;
 				if (is_paused) gf_clock_resume(ck);
-				gf_scene_restart_dynamic(scene, 0, 0);
+				gf_scene_restart_dynamic(scene, 0, 0, 0);
 				if (is_paused) gf_clock_pause(ck);
 			}
 			return 1;
@@ -236,9 +236,9 @@ static Bool term_find_res(GF_TermLocales *loc, char *parent, char *path, char *r
 	loc->szAbsRelocatedPath = gf_url_concatenate(parent, path);
 	if (!loc->szAbsRelocatedPath) loc->szAbsRelocatedPath = gf_strdup(path);
 
-	f = gf_f64_open(loc->szAbsRelocatedPath, "rb");
+	f = gf_fopen(loc->szAbsRelocatedPath, "rb");
 	if (f) {
-		fclose(f);
+		gf_fclose(f);
 		strcpy(localized_rel_path, path);
 		strcpy(relocated_path, loc->szAbsRelocatedPath);
 		return 1;
@@ -417,9 +417,12 @@ static Bool gf_term_get_user_pass(void *usr_cbk, const char *site_url, char *usr
 static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_audio, Bool pause_clocks)
 {
 	Bool resume_live = 0;
+	u32 prev_state;
 
 	/*only play/pause if connected*/
 	if (!term || !term->root_scene) return;
+
+	prev_state = term->play_state;
 
 	if (PlayState==GF_STATE_PLAY_LIVE) {
 		PlayState = GF_STATE_PLAYING;
@@ -440,13 +443,22 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	else
 		gf_sc_set_option(term->compositor, GF_OPT_PLAY_STATE, PlayState);
 
-	/* if the current play state in the terminal is the same as the requested play state, we don't touch the clocks
-	   in particular, if the request is a step, if the clocks are paused, we leave them paused */
+	/* step mode specific */
 	if (PlayState==GF_STATE_STEP_PAUSE) {
-		//PlayState = term->play_state ? GF_STATE_PLAYING : GF_STATE_PAUSED;
+		if (prev_state==GF_STATE_PLAYING) {
+			mediacontrol_pause(term->root_scene->root_od);
+			term->play_state = GF_STATE_PAUSED;
+		} else {
+			u32 diff=1;
+			if (term->compositor->ms_until_next_frame>0) diff = term->compositor->ms_until_next_frame;
+			gf_term_step_clocks(term, diff);
+			mediacontrol_resume(term->root_scene->root_od, 0);
+			mediacontrol_pause(term->root_scene->root_od);
+		}
 		return;
 	}
 
+	/* nothing to change*/
 	if (term->play_state == PlayState) return;
 	term->play_state = PlayState;
 
@@ -534,9 +546,9 @@ void gf_term_refresh_cache(GF_Config *cfg)
 
 		force_delete = 0;
 		if (file) {
-			FILE *t = gf_f64_open(file, "r");
+			FILE *t = gf_fopen(file, "r");
 			if (!t) force_delete = 1;
-			else fclose(t);
+			else gf_fclose(t);
 		}
 		sscanf(opt, "%u", &exp);
 		gf_net_get_ntp(&sec, &frac);
@@ -681,12 +693,12 @@ GF_Terminal *gf_term_new(GF_User *user)
 			gf_list_add(tmp->unthreaded_extensions, ifce);
 	}
 
-	gf_term_lock_media_queue(tmp, 1);
+	gf_mx_p(tmp->mm_mx);
 	if (!gf_list_count(tmp->unthreaded_extensions)) {
 		gf_list_del(tmp->unthreaded_extensions);
 		tmp->unthreaded_extensions = NULL;
 	}
-	gf_term_lock_media_queue(tmp, 0);
+	gf_mx_v(tmp->mm_mx);
 
 	if (0 == gf_cfg_get_key_count(user->config, "MimeTypes")) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Initializing Mime Types..."));
@@ -825,8 +837,6 @@ GF_Err gf_term_del(GF_Terminal * term)
 	return e;
 }
 
-
-
 GF_EXPORT
 GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 {
@@ -834,20 +844,26 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 	GF_ClientService *ns;
 	/*only play/pause if connected*/
 	if (!term || !term->root_scene || !term->root_scene->root_od) return GF_BAD_PARAM;
-	if (term->play_state == GF_STATE_PLAYING) return GF_BAD_PARAM;
 
-	gf_sc_lock(term->compositor, 1);
-	i=0;
-	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
-		GF_Clock *ck;
-		j=0;
-		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
-			ck->init_time += ms_diff;
+	if (ms_diff) {
+		if (term->play_state == GF_STATE_PLAYING) return GF_BAD_PARAM;
+
+		gf_sc_lock(term->compositor, 1);
+		i=0;
+		while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
+			GF_Clock *ck;
+			j=0;
+			while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
+				ck->init_time += ms_diff;
+			}
 		}
+		term->compositor->step_mode = 1;
+
+		gf_sc_next_frame_state(term->compositor, GF_SC_DRAW_FRAME);
+		gf_sc_lock(term->compositor, 0);
 	}
-	term->compositor->step_mode = 1;
-	gf_sc_next_frame_state(term->compositor, GF_SC_DRAW_FRAME);
-	gf_sc_lock(term->compositor, 0);
+
+	gf_sc_flush_next_audio(term->compositor);
 	return GF_OK;
 }
 
@@ -989,7 +1005,7 @@ u32 gf_term_check_end_of_scene(GF_Terminal *term, Bool skip_interactions)
 		if (gf_list_count(term->x3d_sensors)) return 0;
 	}
 	/*check no clocks are still running*/
-	if (!gf_scene_check_clocks(term->root_scene->root_od->net_service, term->root_scene)) return 0;
+	if (!gf_scene_check_clocks(term->root_scene->root_od->net_service, term->root_scene, 0)) return 0;
 	if (term->root_scene->is_dynamic_scene) return 1;
 
 	/*ask compositor if there are sensors*/
@@ -1184,7 +1200,7 @@ void gf_term_handle_services(GF_Terminal *term)
 	}
 
 	/*extensions*/
-	gf_term_lock_media_queue(term, 1);
+	gf_mx_p(term->mm_mx);
 	if (!term->reload_state && term->unthreaded_extensions) {
 		u32 i, count;
 		count = gf_list_count(term->unthreaded_extensions);
@@ -1193,7 +1209,7 @@ void gf_term_handle_services(GF_Terminal *term)
 			ifce->process(ifce, GF_TERM_EXT_PROCESS, NULL);
 		}
 	}
-	gf_term_lock_media_queue(term, 0);
+	gf_mx_v(term->mm_mx);
 
 
 	/*need to reload*/
@@ -1256,7 +1272,7 @@ void gf_term_close_service(GF_Terminal *term, GF_ClientService *ns)
 
 	/*prevent the media manager / term to access the list of services to destroy, otherwise
 	we could unload the module while poping its CloseService() call stack which can lead to
-	random crashes (return adresses no longer valid) - cf any "stress mode" playback of a playlist*/
+	random crashes (return addresses no longer valid) - cf any "stress mode" playback of a playlist*/
 	gf_term_lock_media_queue(term, 1);
 
 #if 0
@@ -1358,9 +1374,9 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTy
 
 		//for dynamic scenes, check if we have listeners on the root object of the scene containing this media
 		if (odm->parentscene
-		    && odm->parentscene->is_dynamic_scene
-		    && odm->parentscene->root_od->mo
-		    && (odm->parentscene->root_od->net_service==odm->net_service)
+		        && odm->parentscene->is_dynamic_scene
+		        && odm->parentscene->root_od->mo
+		        && (odm->parentscene->root_od->net_service==odm->net_service)
 		   ) {
 			odm = odm->parentscene->root_od;
 			count = gf_mo_event_target_count(odm->mo);
@@ -1560,7 +1576,7 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 	if (net_locked)
 		gf_term_lock_net(term, 0);
 
-	odm->net_service = gf_term_service_new(term, odm, serviceURL, reloc_result ? NULL : parent_url, &e);
+	odm->net_service = gf_term_service_new(term, odm, serviceURL, (odm->addon || reloc_result) ? NULL : parent_url, &e);
 	if (!odm->net_service) {
 		gf_term_message(term, serviceURL, "Cannot open service", e);
 		gf_odm_disconnect(odm, 1);
@@ -1647,7 +1663,7 @@ u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, u32 pause_at_first_
 			gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
 
 		gf_sc_lock(term->compositor, 1);
-		gf_scene_restart_dynamic(term->root_scene, from_time, 0);
+		gf_scene_restart_dynamic(term->root_scene, from_time, 0, 0);
 		gf_sc_lock(term->compositor, 0);
 		return 2;
 	}
@@ -2089,7 +2105,7 @@ static void set_clocks_speed(GF_Terminal *term, Fixed ratio)
 }
 
 GF_EXPORT
-void gf_term_set_speed(GF_Terminal *term, Fixed speed)
+GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)
 {
 	Double fps;
 	u32 i, j;
@@ -2098,9 +2114,23 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 	Bool restart = 0;
 	u32 scene_time = gf_term_get_time_in_ms(term);
 
-	if (!speed) return;
+	if (!speed) return GF_BAD_PARAM;
 
-	/*adjust all clocks on all services*/
+	if (speed<0) {
+		i=0;
+		while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
+			GF_NetworkCommand com;
+			GF_Err e;
+			memset(&com, 0, sizeof(GF_NetworkCommand));
+			com.base.command_type = GF_NET_SERVICE_CAN_REVERSE_PLAYBACK;
+			e = gf_term_service_command(ns, &com);
+			if (e != GF_OK) {
+				return e;
+			}
+		}
+	}
+
+	/*adjust all clocks on all services, if possible*/
 	i=0;
 	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
 		GF_Clock *ck;
@@ -2108,7 +2138,8 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 		j=0;
 		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
 			//we will have to reissue a PLAY command since playback direction changed
-			if ( gf_mulfix(ck->speed,speed) < 0) restart = 1;
+			if ( gf_mulfix(ck->speed,speed) < 0) 
+				restart = 1;
 			gf_clock_set_speed(ck, speed);
 
 			if (ns->owner) {
@@ -2127,7 +2158,7 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 
 	if (restart) {
 		if (term->root_scene->is_dynamic_scene) {
-			gf_scene_restart_dynamic(term->root_scene, scene_time, 0);
+			gf_scene_restart_dynamic(term->root_scene, scene_time, 0, 0);
 		} else {
 		}
 	}
@@ -2146,6 +2177,8 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 	fps *= FIX2FLT(speed);
 	if (fps>100) fps = 1000;
 	gf_sc_set_fps(term->compositor, fps);
+
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -2401,4 +2434,10 @@ GF_Err gf_term_get_visual_output_size(GF_Terminal *term, u32 *width, u32 *height
 	if (width) *width = term->compositor->vp_width;
 	if (height) *height = term->compositor->vp_height;
 	return GF_OK;
+}
+
+GF_EXPORT
+u32 gf_term_get_clock(GF_Terminal *term)
+{
+	return gf_sc_ar_get_clock(term->compositor->audio_renderer);
 }

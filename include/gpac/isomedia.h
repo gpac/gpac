@@ -72,9 +72,9 @@ enum
 /*Movie Options for file writing*/
 enum
 {
-	/*FLAT: the MediaData (MPEG4 ESs) is stored at the begining of the file*/
+	/*FLAT: the MediaData (MPEG4 ESs) is stored at the beginning of the file*/
 	GF_ISOM_STORE_FLAT = 1,
-	/*STREAMABLE: the MetaData (File Info) is stored at the begining of the file
+	/*STREAMABLE: the MetaData (File Info) is stored at the beginning of the file
 	for fast access during download*/
 	GF_ISOM_STORE_STREAMABLE,
 	/*INTERLEAVED: Same as STREAMABLE, plus the media data is mixed by chunk  of fixed duration*/
@@ -202,10 +202,10 @@ enum
 	GF_ISOM_SUBTYPE_HVT1			= GF_4CC( 'h', 'v', 't', '1' ),
 
 	/*3GPP(2) extension subtypes*/
-	GF_ISOM_SUBTYPE_3GP_H263		= GF_4CC( 's', '2', '6', '3' ),
+	GF_ISOM_SUBTYPE_3GP_H263	= GF_4CC( 's', '2', '6', '3' ),
 	GF_ISOM_SUBTYPE_3GP_AMR		= GF_4CC( 's', 'a', 'm', 'r' ),
 	GF_ISOM_SUBTYPE_3GP_AMR_WB	= GF_4CC( 's', 'a', 'w', 'b' ),
-	GF_ISOM_SUBTYPE_3GP_EVRC		= GF_4CC( 's', 'e', 'v', 'c' ),
+	GF_ISOM_SUBTYPE_3GP_EVRC	= GF_4CC( 's', 'e', 'v', 'c' ),
 	GF_ISOM_SUBTYPE_3GP_QCELP	= GF_4CC( 's', 'q', 'c', 'p' ),
 	GF_ISOM_SUBTYPE_3GP_SMV		= GF_4CC( 's', 's', 'm', 'v' ),
 
@@ -213,12 +213,15 @@ enum
 	GF_ISOM_SUBTYPE_3GP_DIMS	= GF_4CC( 'd', 'i', 'm', 's' ),
 
 	GF_ISOM_SUBTYPE_AC3			= GF_4CC( 'a', 'c', '-', '3' ),
+	GF_ISOM_SUBTYPE_MP3			= GF_4CC( '.', 'm', 'p', '3' ),
 
 	GF_ISOM_SUBTYPE_LSR1		= GF_4CC( 'l', 's', 'r', '1' ),
 	GF_ISOM_SUBTYPE_WVTT		= GF_4CC( 'w', 'v', 't', 't' ),
 	GF_ISOM_SUBTYPE_STXT		= GF_4CC( 's', 't', 'x', 't' ),
 	GF_ISOM_SUBTYPE_STPP		= GF_4CC( 's', 't', 'p', 'p' ),
 	GF_ISOM_SUBTYPE_SBTT		= GF_4CC( 's', 'b', 't', 't' ),
+	GF_ISOM_SUBTYPE_METT		= GF_4CC( 'm', 'e', 't', 't' ),
+	GF_ISOM_SUBTYPE_METX		= GF_4CC( 'm', 'e', 't', 'x' ),
 };
 
 
@@ -356,7 +359,7 @@ GF_Err gf_isom_last_error(GF_ISOFile *the_file);
 u32 gf_isom_probe_file(const char *fileName);
 
 /*Opens an isoMedia File.
-tmp_dir: for the 2 edit modes only, specifies a location for temp file. If NULL, the librairy will use the default
+tmp_dir: for the 2 edit modes only, specifies a location for temp file. If NULL, the library will use the default
 OS temporary file management schemes.*/
 GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir);
 
@@ -559,6 +562,8 @@ u32 gf_isom_get_sample_size(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNum
 /*returns sync flag of sample*/
 u8 gf_isom_get_sample_sync(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
 
+GF_Err gf_isom_get_sample_flags(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *is_leading, u32 *dependsOn, u32 *dependedOn, u32 *redundant);
+
 /*gets a sample given a desired decoding time IN MEDIA TIME SCALE
 and set the StreamDescIndex of this sample
 this index allows to retrieve the stream description if needed (2 media in 1 track)
@@ -746,17 +751,30 @@ GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	User Data Manipulation (cf write API too)
 */
 
+//returns the number of entries in UDTA of the track if trackNumber is not 0, or of the movie otherwise
+u32 gf_isom_get_udta_count(GF_ISOFile *movie, u32 trackNumber);
+
+//returns the type (box 4CC and UUID if any) of the given entry in UDTA of the track if trackNumber is not 0, or of the movie otherwise. udta_idx is 1-based index.
+GF_Err gf_isom_get_udta_type(GF_ISOFile *movie, u32 trackNumber, u32 udta_idx, u32 *UserDataType, bin128 *UUID);
+
 /* Gets the number of UserDataItems with the same ID / UUID in the desired track or
 in the movie if trackNumber is set to 0*/
 u32 gf_isom_get_user_data_count(GF_ISOFile *the_file, u32 trackNumber, u32 UserDataType, bin128 UUID);
 /* Gets the UserData for the specified item from the track or the movie if trackNumber is set to 0
 data is allocated by the function and is yours to free
-you musty pass (userData != NULL && *userData=NULL)*/
+you musty pass (userData != NULL && *userData=NULL)
+
+if UserDataIndex is 0, all boxes with type==UserDataType will be serialized (including box header and size) in the buffer
+*/
 GF_Err gf_isom_get_user_data(GF_ISOFile *the_file, u32 trackNumber, u32 UserDataType, bin128 UUID, u32 UserDataIndex, char **userData, u32 *userDataSize);
 
 
 /*gets the media language code (3 chars if old files, longer if BCP-47 */
 GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char **lang);
+
+/* gets the i-th track kind (0-based) */
+u32 gf_isom_get_track_kind_count(GF_ISOFile *the_file, u32 trackNumber);
+GF_Err gf_isom_get_track_kind(GF_ISOFile *the_file, u32 trackNumber, u32 index, char **scheme, char **value);
 
 /*Unknown sample description*/
 typedef struct
@@ -865,7 +883,10 @@ GF_Err gf_isom_set_track_id(GF_ISOFile *the_file, u32 trackNumber, u32 trackID);
 GF_Err gf_isom_rewrite_track_dependencies(GF_ISOFile *movie, u32 trackNumber);
 
 /*Add samples to a track. Use streamDescriptionIndex to specify the desired stream (if several)*/
-GF_Err gf_isom_add_sample(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_ISOSample *sample);
+GF_Err gf_isom_add_sample(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, const GF_ISOSample *sample);
+
+//copies all sample dependency, subSample and sample group information from the given sampleNumber in source file to the last added sample in dest file
+GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src, u32 src_track, u32 sampleNumber);
 
 /*Add sync shadow sample to a track.
 - There must be a regular sample with the same DTS.
@@ -943,6 +964,11 @@ GF_Err gf_isom_set_copyright(GF_ISOFile *the_file, const char *threeCharCode, ch
 /*deletes copyright (1-based indexes)*/
 GF_Err gf_isom_remove_copyright(GF_ISOFile *the_file, u32 index);
 
+/*add a kind type to the track */
+GF_Err gf_isom_add_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *schemeURI, const char *value);
+/*removes a kind type to the track, all if NULL params */
+GF_Err gf_isom_remove_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *schemeURI, const char *value);
+
 /*changes the handler type of the media*/
 GF_Err gf_isom_set_media_type(GF_ISOFile *movie, u32 trackNumber, u32 new_type);
 
@@ -1017,6 +1043,9 @@ GF_Err gf_isom_remove_user_data_item(GF_ISOFile *the_file, u32 trackNumber, u32 
 GF_Err gf_isom_remove_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID);
 /*adds track, moov (trackNumber=0) or file-level (trackNumber=0xFFFFFFFF) UUID box of given type*/
 GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, char *data, u32 data_size);
+
+/*Add a user data item in the desired track or in the movie if TrackNumber is 0, using a serialzed buffer of ISOBMFF boxes*/
+GF_Err gf_isom_add_user_data_boxes(GF_ISOFile *the_file, u32 trackNumber, char *data, u32 DataLength);
 
 /*
 		Update of the Writing API for IsoMedia Version 2
@@ -1130,6 +1159,9 @@ GF_Err gf_isom_change_mpeg4_description(GF_ISOFile *the_file, u32 trackNumber, u
 /*Add a system descriptor to the ESD of a stream - you have to delete the descriptor*/
 GF_Err gf_isom_add_desc_to_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_Descriptor *theDesc);
 
+/*updates average and max bitrate - if 0 for max, removes bitrate info*/
+GF_Err gf_isom_change_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size);
+
 
 /*Default extensions*/
 
@@ -1191,7 +1223,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables);
 /*Flags for gf_isom_open_segment*/
 enum
 {
-	/*FLAT: the MediaData (MPEG4 ESs) is stored at the begining of the file*/
+	/*FLAT: the MediaData (MPEG4 ESs) is stored at the beginning of the file*/
 	GF_ISOM_SEGMENT_NO_ORDER_FLAG = 1,
 	GF_ISOM_SEGMENT_SCALABLE_FLAG = 1<<1,
 };
@@ -1276,7 +1308,7 @@ fragment media data for all tracks*/
 GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first);
 
 /*starts a new segment in the file. If SegName is given, the output will be written in the SegName file. If memory_mode is set, all samples writing is done in memory rather than on disk*/
-GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName, Bool memory_mode);
+GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory_mode);
 
 /*sets the baseMediaDecodeTime of the first sample of the given track*/
 GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u64 decode_time);
@@ -1315,7 +1347,7 @@ enum
 	GF_ISOM_TRAF_DATA_CACHE
 };
 
-/*set options. Options can be set at the begining of each new fragment only, and for the
+/*set options. Options can be set at the beginning of each new fragment only, and for the
 lifetime of the fragment*/
 GF_Err gf_isom_set_fragment_option(GF_ISOFile *the_file, u32 TrackID, u32 Code, u32 param);
 
@@ -1335,7 +1367,7 @@ MUST be provided (in case of regular tracks, this was computed internally by the
 
 */
 
-GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, GF_ISOSample *sample,
+GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, const GF_ISOSample *sample,
                                    u32 StreamDescriptionIndex,
                                    u32 Duration, u8 PaddingBits, u16 DegradationPriority, Bool redundantCoding);
 
@@ -1452,7 +1484,7 @@ GF_Err gf_isom_end_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u8 IsRando
 /******************************************************************
 		PacketHandling functions
 		Data can be added at the end or at the beginning of the current packet
-		by setting AtBegin to 1 the data will be added at the begining
+		by setting AtBegin to 1 the data will be added at the beginning
 		This allows constructing the packet payload before any meta-data
 ******************************************************************/
 
@@ -1699,7 +1731,7 @@ enum
 	GF_ISOM_NALU_EXTRACT_INSPECT,
 	/*above mode is applied and PPS/SPS/... are appended in the front of every IDR*/
 	GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG = 1<<16,
-	/*above mode is applied and all start codes are rewritten*/
+	/*above mode is applied and all start codes are rewritten (xPS inband as well)*/
 	GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG = 2<<16,
 	/*above mode is applied and VDRD NAL unit is inserted before SVC slice*/
 	GF_ISOM_NALU_EXTRACT_VDRD_FLAG = 1<<18,
@@ -1799,8 +1831,28 @@ void gf_isom_delete_generic_subtitle_sample(GF_GenericSubtitleSample *generic_su
 GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname, u32 *outDescriptionIndex);
 GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config);
 
-GF_Err gf_isom_stxt_info_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, char **mime, char **config);
+GF_Err gf_isom_stxt_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, const char **mime, const char **encoding, const char **config);
+GF_Err gf_isom_new_stxt_description(GF_ISOFile *movie, u32 trackNumber, u32 type, const char *mime, const char *encoding, const char *config, u32 *outDescriptionIndex);
+GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber, const char *encoding, const char *config, u32 DescriptionIndex);
 
+GF_Err gf_isom_xml_subtitle_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, 
+											const char **xmlnamespace, const char **xml_schema_loc, const char **mimes);
+GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie, u32 trackNumber,
+											const char *xmlnamespace, const char *xml_schema_loc, const char *auxiliary_mimes,
+											u32 *outDescriptionIndex);
+GF_Err gf_isom_update_xml_subtitle_description(GF_ISOFile *movie, u32 trackNumber,
+											   u32 descriptionIndex, GF_GenericSubtitleSampleDescriptor *desc);
+
+
+
+typedef enum
+{
+	GF_ISOM_TEXT_FLAGS_OVERWRITE = 0,
+	GF_ISOM_TEXT_FLAGS_TOGGLE,
+	GF_ISOM_TEXT_FLAGS_UNTOGGLE,
+} GF_TextFlagsMode;
+//sets text display flags according to given mode. If SampleDescriptionIndex is 0, sets the flags for all text descriptions.
+GF_Err gf_isom_text_set_display_flags(GF_ISOFile *file, u32 track, u32 SampleDescriptionIndex, u32 flags, GF_TextFlagsMode op_type);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
@@ -1869,14 +1921,10 @@ text sample content is kept untouched*/
 GF_ISOSample *gf_isom_text_to_sample(GF_TextSample * tx_samp);
 
 
-GF_Err gf_isom_generic_subtitle_reset(GF_GenericSubtitleSample *samp);
-GF_ISOSample *gf_isom_generic_subtitle_to_sample(GF_GenericSubtitleSample * tx_samp);
-GF_Err gf_isom_generic_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char *text_data, u32 text_len);
 
 GF_GenericSubtitleSample *gf_isom_new_xml_subtitle_sample();
 void gf_isom_delete_xml_subtitle_sample(GF_GenericSubtitleSample * samp);
 GF_Err gf_isom_xml_subtitle_reset(GF_GenericSubtitleSample *samp);
-GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie,  u32 trackNumber, char *xmlnamespace, char *xml_schema_loc, char *mimes, u32 *outDescriptionIndex);
 GF_ISOSample *gf_isom_xml_subtitle_to_sample(GF_GenericSubtitleSample * tx_samp);
 GF_Err gf_isom_xml_subtitle_sample_add_text(GF_GenericSubtitleSample *samp, char *text_data, u32 text_len);
 
@@ -2144,11 +2192,11 @@ GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track
 				Timed Meta-Data extensions
 ********************************************************************/
 
-GF_Err gf_isom_get_timed_meta_data_info(GF_ISOFile *file, u32 track, u32 sampleDescription, Bool *is_xml, const char **mime_or_namespace, const char **content_encoding, const char **schema_loc);
+GF_Err gf_isom_get_xml_metadata_description(GF_ISOFile *file, u32 track, u32 sampleDescription, const char **_namespace, const char **schema_loc, const char **content_encoding);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*create a new timed metat data sample description for this track*/
-GF_Err gf_isom_timed_meta_data_config_new(GF_ISOFile *movie, u32 trackNumber, Bool is_xml, char *mime_or_namespace, char *content_encoding, char *schema_loc, char *URLname, char *URNname, u32 *outDescriptionIndex);
+GF_Err gf_isom_new_xml_metadata_description(GF_ISOFile *movie, u32 trackNumber, const char *_namespace, const char *schema_loc, const char *content_encoding, u32 *outDescriptionIndex);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
@@ -2157,8 +2205,10 @@ GF_Err gf_isom_timed_meta_data_config_new(GF_ISOFile *movie, u32 trackNumber, Bo
 ********************************************************************/
 enum
 {
-	/*probe is only used ti check if iTunes info are present*/
+	/*probe is only used to check if iTunes info are present*/
 	GF_ISOM_ITUNE_PROBE = 0,
+	/*probe is only used to remove all tags*/
+	GF_ISOM_ITUNE_ALL = 1,
 	GF_ISOM_ITUNE_ALBUM	= GF_4CC( 0xA9, 'a', 'l', 'b' ),
 	GF_ISOM_ITUNE_ARTIST = GF_4CC( 0xA9, 'A', 'R', 'T' ),
 	GF_ISOM_ITUNE_COMMENT = GF_4CC( 0xA9, 'c', 'm', 't' ),

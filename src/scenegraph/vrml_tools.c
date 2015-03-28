@@ -1543,12 +1543,12 @@ u32 gf_node_get_num_fields_in_mode(GF_Node *Node, u8 IndexMode)
 {
 	assert(Node);
 	if (Node->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_get_num_fields(Node, IndexMode);
-	else if ((Node->sgprivate->tag == TAG_MPEG4_Script)
+	else if (Node->sgprivate->tag == TAG_MPEG4_Script)
+             return gf_sg_script_get_num_fields(Node, IndexMode);
 #ifndef GPAC_DISABLE_X3D
-	         || (Node->sgprivate->tag == TAG_X3D_Script)
+    else if (Node->sgprivate->tag == TAG_X3D_Script)
+        return gf_sg_script_get_num_fields(Node, IndexMode);
 #endif
-	        )
-		return gf_sg_script_get_num_fields(Node, IndexMode);
 	else if (Node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_field_count(Node, IndexMode);
 #ifndef GPAC_DISABLE_X3D
 	else if (Node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_field_count(Node);

@@ -32,7 +32,8 @@ extern "C" {
 #endif
 
 #include <gpac/constants.h>
-#include <gpac/math.h>
+#include <gpac/maths.h>
+#include <gpac/tools.h>
 
 
 /*!
@@ -64,12 +65,14 @@ typedef struct
 	s32 pitch_y;
 	/*!Pixel format of the video framebuffer*/
 	u32 pixel_format;
-	/*!pointer to the begining of the video memory (top-left corner)*/
+	/*!pointer to the beginning of the video memory (top-left corner)*/
 	char *video_buffer;
 	/*!indicates that the video data reside on systems memory or video card one*/
 	Bool is_hardware_memory;
-	/*!indicates U and V (and optionnal alpha) buffers in case of planar video with seperated component. If not set, all components are in the video_buffer pointer*/
+	/*!indicates U and V (and optional alpha) buffers in case of planar video with separated component. If not set, all components are in the video_buffer pointer*/
 	char *u_ptr, *v_ptr, *a_ptr;
+    /*! alpha value for this surface*/
+    u8 global_alpha;
 } GF_VideoSurface;
 
 /*!\brief Video Window object

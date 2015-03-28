@@ -490,4 +490,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( droid_mpegv )
+GPAC_MODULE_STATIC_DECLARATION( droid_mpegv )

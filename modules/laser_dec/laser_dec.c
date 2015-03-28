@@ -195,4 +195,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 }
 
 
-GPAC_MODULE_STATIC_DELARATION( laser )
+GPAC_MODULE_STATIC_DECLARATION( laser )

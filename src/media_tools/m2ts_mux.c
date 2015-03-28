@@ -468,7 +468,7 @@ static u32 gf_m2ts_add_adaptation(GF_M2TS_Mux_Program *prog, GF_BitStream *bs, u
 		gf_bs_write_int(bs,	0, 1);			// piecewise_rate_flag
 		gf_bs_write_int(bs,	0, 1);			// seamless_splice_flag
 		gf_bs_write_int(bs,	0, 1);			// af_descriptor_not_present_flag
-		gf_bs_write_int(bs,	1, 4);			// reserved
+		gf_bs_write_int(bs,	0xF, 4);			// reserved
 
 		gf_bs_write_data(bs, af_descriptors, af_descriptors_size);
 	}
@@ -1283,7 +1283,7 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 	Bool ignore_next=0;
 	stream->next_payload_size = 0;
 	stream->next_next_payload_size = 0;
-	
+
 	stream->next_pck_flags = 0;
 	stream->copy_from_next_packets = 0;
 
@@ -1345,7 +1345,7 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 
 	if (stream->next_payload_size) {
 		stream->next_payload_size += stream->reframe_overhead;
-		if (stream->next_next_payload_size) 
+		if (stream->next_next_payload_size)
 			stream->next_next_payload_size += stream->reframe_overhead;
 
 		gf_m2ts_remap_timestamps_for_pes(stream, stream->next_pck_flags, &stream->next_pck_dts, &stream->next_pck_cts, NULL);
@@ -1390,9 +1390,9 @@ Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_l
 			}
 			/*don't end next AU in next PES if we don't want to start 2 AUs in one PES
 			if we don't have the N+2 AU size, don't try to pack it*/
-			if ((stream->prevent_two_au_start_in_pes && (ts_bytes>pck_size + stream->next_payload_size))  
-				|| !stream->next_next_payload_size
-			) {
+			if ((stream->prevent_two_au_start_in_pes && (ts_bytes>pck_size + stream->next_payload_size))
+			        || !stream->next_next_payload_size
+			   ) {
 				if (ts_bytes>184)
 					ts_bytes -= 184;
 				else
@@ -1410,7 +1410,7 @@ Bool gf_m2ts_stream_compute_pes_length(GF_M2TS_Mux_Stream *stream, u32 payload_l
 		}
 
 		if (stream->min_bytes_copy_from_next && stream->copy_from_next_packets) {
-			/*if we don't have enough space in the PES to store begining of new AU, don't copy it and ask
+			/*if we don't have enough space in the PES to store beginning of new AU, don't copy it and ask
 			to recompute header (we might no longer have DTS/CTS signaled)*/
 			if (stream->copy_from_next_packets < stream->min_bytes_copy_from_next) {
 				stream->copy_from_next_packets = 0;
@@ -1485,7 +1485,7 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream)
 		dts = stream->next_pck_dts;
 		cts = stream->next_pck_cts;
 	}
-	/*we already sent the begining of the AU*/
+	/*we already sent the beginning of the AU*/
 	else if (stream->pck_offset) {
 		use_pts = use_dts = 0;
 		dts = cts = 0;
@@ -2034,7 +2034,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 	stream->loop_descriptors = gf_list_new();
 
 	if (program->streams) {
-		/*if PCR keep stream at the begining*/
+		/*if PCR keep stream at the beginning*/
 		if (is_pcr) {
 			stream->next = program->streams;
 			program->streams = stream;

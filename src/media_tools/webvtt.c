@@ -23,6 +23,7 @@
  *
  */
 
+#include <gpac/list.h>
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/webvtt.h>
@@ -398,117 +399,6 @@ GF_Err wvtt_dump(GF_Box *a, FILE * trace)
 }
 #endif /* GPAC_DISABLE_ISOM_DUMP */
 
-GF_WebVTTSampleEntryBox *gf_webvtt_isom_get_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex)
-{
-	GF_WebVTTSampleEntryBox *wvtt;
-	GF_TrackBox *trak;
-
-	if (!descriptionIndex) return NULL;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !trak->Media) return NULL;
-
-	switch (trak->Media->handler->handlerType) {
-	case GF_ISOM_MEDIA_TEXT:
-		break;
-	default:
-		return NULL;
-	}
-
-	wvtt = (GF_WebVTTSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
-	if (!wvtt) return NULL;
-	switch (wvtt->type) {
-	case GF_ISOM_BOX_TYPE_WVTT:
-		break;
-	default:
-		return NULL;
-	}
-	return wvtt;
-}
-
-GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config)
-{
-#ifndef GPAC_DISABLE_ISOM_WRITE
-	GF_Err e;
-	GF_WebVTTSampleEntryBox *wvtt;
-	GF_TrackBox *trak;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return GF_BAD_PARAM;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !trak->Media) return GF_BAD_PARAM;
-
-	switch (trak->Media->handler->handlerType) {
-	case GF_ISOM_MEDIA_TEXT:
-		break;
-	default:
-		return GF_BAD_PARAM;
-	}
-
-	wvtt = (GF_WebVTTSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, descriptionIndex - 1);
-	if (!wvtt) return GF_BAD_PARAM;
-	switch (wvtt->type) {
-	case GF_ISOM_BOX_TYPE_WVTT:
-		break;
-	default:
-		return GF_BAD_PARAM;
-	}
-	if (wvtt) {
-		if (!movie->keep_utc)
-			trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
-
-		wvtt->config = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_VTTC, config);
-	} else {
-		e = GF_BAD_PARAM;
-	}
-	return e;
-#else
-	return GF_NOT_SUPPORTED;
-#endif
-}
-
-GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname, u32 *outDescriptionIndex)
-{
-#ifndef GPAC_DISABLE_ISOM_WRITE
-	GF_TrackBox *trak;
-	GF_Err e;
-	u32 dataRefIndex;
-	GF_WebVTTSampleEntryBox *wvtt;
-
-	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
-	if (e) return e;
-
-	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !trak->Media) return GF_BAD_PARAM;
-
-	switch (trak->Media->handler->handlerType) {
-	case GF_ISOM_MEDIA_TEXT:
-		break;
-	default:
-		return GF_BAD_PARAM;
-	}
-
-	//get or create the data ref
-	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
-	if (e) return e;
-	if (!dataRefIndex) {
-		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
-		if (e) return e;
-	}
-	if (!movie->keep_utc)
-		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
-
-	wvtt = (GF_WebVTTSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_WVTT);
-	wvtt->dataReferenceIndex = dataRefIndex;
-	gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, wvtt);
-	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
-	return e;
-#else
-	return GF_NOT_SUPPORTED;
-#endif
-}
-
 #endif /*GPAC_DISABLE_ISOM*/
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
@@ -671,14 +561,14 @@ GF_Err gf_webvtt_parser_init(GF_WebVTTParser *parser, const char *input_file,
 				parser->state = WEBVTT_PARSER_STATE_WAITING_CUE;
 			}
 		}
-		parser->vtt_in = gf_f64_open(input_file, "rt");
-		gf_f64_seek(parser->vtt_in, 0, SEEK_END);
-		parser->file_size = gf_f64_tell(parser->vtt_in);
-		gf_f64_seek(parser->vtt_in, 0, SEEK_SET);
+		parser->vtt_in = gf_fopen(input_file, "rt");
+		gf_fseek(parser->vtt_in, 0, SEEK_END);
+		parser->file_size = gf_ftell(parser->vtt_in);
+		gf_fseek(parser->vtt_in, 0, SEEK_SET);
 
 		parser->unicode_type = gf_text_get_utf_type(parser->vtt_in);
 		if (parser->unicode_type<0) {
-			fclose(parser->vtt_in);
+			gf_fclose(parser->vtt_in);
 			return GF_NOT_SUPPORTED;
 		}
 
@@ -698,7 +588,7 @@ void gf_webvtt_parser_reset(GF_WebVTTParser *parser)
 			gf_webvtt_sample_del((GF_WebVTTSample *)gf_list_get(parser->samples, 0));
 			gf_list_rem(parser->samples, 0);
 		}
-		if (parser->vtt_in) fclose(parser->vtt_in);
+		if (parser->vtt_in) gf_fclose(parser->vtt_in);
 		parser->file_size = 0;
 		parser->last_duration = 0;
 		parser->on_header_parsed = NULL;
@@ -1178,7 +1068,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser, u32 duration)
 				gf_webvtt_add_cue_to_samples(parser, parser->samples, cue);
 				cue = NULL;
 
-				gf_set_progress("Importing WebVTT", gf_f64_tell(parser->vtt_in), parser->file_size);
+				gf_set_progress("Importing WebVTT", gf_ftell(parser->vtt_in), parser->file_size);
 				if ((duration && (end >= duration)) || !sOK) {
 					do_parse = GF_FALSE;
 					break;
@@ -1225,7 +1115,7 @@ GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength,
 	*dumpedLength = 0;
 	bs = gf_bs_new(data, dataLength, GF_BITSTREAM_READ);
 	e = gf_isom_parse_box(&box, bs);
-	if (!box || (box->type != GF_ISOM_BOX_TYPE_VTTC && box->type != GF_ISOM_BOX_TYPE_STTC)) return GF_BAD_PARAM;
+	if (!box || (box->type != GF_ISOM_BOX_TYPE_VTTC)) return GF_BAD_PARAM;
 	config = (GF_StringBox *)box;
 	if (config->string) {
 		fprintf(dump, "%s", config->string);
@@ -1361,9 +1251,9 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 				GF_WebVTTCue *old_cue = (GF_WebVTTCue *)gf_list_get(prev_wsample->cues, 0);
 				gf_list_rem(prev_wsample->cues, 0);
 				if (
-					((!cue->id && !old_cue->id) || (old_cue->id && cue->id && !strcmp(old_cue->id, cue->id))) &&
-					((!cue->settings && !old_cue->settings) || (old_cue->settings && cue->settings && !strcmp(old_cue->settings, cue->settings))) &&
-					((!cue->text && !old_cue->text) || (old_cue->text && cue->text && !strcmp(old_cue->text, cue->text)))
+				    ((!cue->id && !old_cue->id) || (old_cue->id && cue->id && !strcmp(old_cue->id, cue->id))) &&
+				    ((!cue->settings && !old_cue->settings) || (old_cue->settings && cue->settings && !strcmp(old_cue->settings, cue->settings))) &&
+				    ((!cue->text && !old_cue->text) || (old_cue->text && cue->text && !strcmp(old_cue->text, cue->text)))
 				) {
 					/* if it is the same cue, update its start with the initial start */
 					cue->start = old_cue->start;
@@ -1526,7 +1416,7 @@ GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 trac
 	u64     duration;
 	GF_WebVTTParser *parser;
 
-	out = szName ? gf_f64_open(szName, "wt") : stdout;
+	out = szName ? gf_fopen(szName, "wt") : stdout;
 	if (!out) return GF_IO_ERR;// gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 
 	parser = gf_webvtt_parser_new();
@@ -1554,7 +1444,7 @@ GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 trac
 
 exit:
 	gf_webvtt_parser_del(parser);
-	if (szName) fclose(out);
+	if (szName) gf_fclose(out);
 	return e;
 }
 

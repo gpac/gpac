@@ -211,7 +211,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			if (!IsSource) {
 				port = ch->net_info.port_first;
 				if (!port) port = ch->net_info.client_port_first;
-				/*if a destination adress was given (rtsd) use it*/
+				/*if a destination address was given (rtsd) use it*/
 				if (!local_ip && ch->net_info.destination) local_ip = ch->net_info.destination;
 
 				e = gf_sk_bind(ch->rtp, local_ip, ch->net_info.client_port_first, ch->net_info.source, port, GF_SOCK_REUSE_PORT);
@@ -254,7 +254,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			if (!IsSource) {
 				port = ch->net_info.port_last;
 				if (!port) port = ch->net_info.client_port_last;
-				/*if a destination adress was given (rtsd) use it*/
+				/*if a destination address was given (rtsd) use it*/
 				if (!local_ip && ch->net_info.destination) local_ip = ch->net_info.destination;
 
 				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.client_port_last, ch->net_info.source, port, GF_SOCK_REUSE_PORT);

@@ -151,10 +151,10 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 	Bool is_isom = gf_isom_probe_file(file);
 #endif
 
-	in = gf_f64_open(file, "rb");
-	gf_f64_seek(in, 0, SEEK_END);
-	size = gf_f64_tell(in);
-	gf_f64_seek(in, 0, SEEK_SET);
+	in = gf_fopen(file, "rb");
+	gf_fseek(in, 0, SEEK_END);
+	size = gf_ftell(in);
+	gf_fseek(in, 0, SEEK_SET);
 
 	ctx = gf_sha1_starts();
 	tot = 0;
@@ -199,7 +199,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #ifndef GPAC_DISABLE_ISOM
 	if (bs) gf_bs_del(bs);
 #endif
-	fclose(in);
+	gf_fclose(in);
 	return GF_OK;
 #endif
 }
@@ -213,8 +213,6 @@ static const u32 ISMA_AUDIO_OD_ID = 10;
 
 static const u32 ISMA_VIDEO_ES_ID = 201;
 static const u32 ISMA_AUDIO_ES_ID = 101;
-
-static const char ISMA_BIFS_CONFIG[] = {0x00, 0x00, 0x60 };
 
 /*ISMA audio*/
 static const u8 ISMA_BIFS_AUDIO[] =
@@ -477,7 +475,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	if (!bifsT) return gf_isom_last_error(mp4file);
 
 	_esd = gf_odf_desc_esd_new(SLPredef_MP4);
-	_esd->decoderConfig->bufferSizeDB = sizeof(ISMA_BIFS_CONFIG);
+	_esd->decoderConfig->bufferSizeDB = 20;
 	_esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS_V2;
 	_esd->decoderConfig->streamType = GF_STREAM_SCENE;
 	_esd->ESID = bifsID;
@@ -877,6 +875,18 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		gf_odf_desc_del((GF_Descriptor*)esd->decoderConfig->decoderSpecificInfo);
 		esd->decoderConfig->decoderSpecificInfo = NULL;
 		if (ac3) gf_free(ac3);
+		return esd;
+	}
+
+	if (subtype == GF_ISOM_SUBTYPE_MP3) {
+		esd = gf_odf_desc_esd_new(0);
+		esd->slConfig->timestampResolution = gf_isom_get_media_timescale(mp4, track);
+		esd->ESID = gf_isom_get_track_id(mp4, track);
+		esd->OCRESID = esd->ESID;
+		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG1;
+		gf_odf_desc_del((GF_Descriptor*)esd->decoderConfig->decoderSpecificInfo);
+		esd->decoderConfig->decoderSpecificInfo = NULL;
 		return esd;
 	}
 
@@ -2107,9 +2117,12 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 		GF_BitStream *bs;
 		u32 di;
 		GF_ISOSample *sample;
+		Bool is_irap, has_roll;
+		s32 roll_distance;
 		u8 cur_max_layer_id = 0;
 
 		sample = gf_isom_get_sample(file, track, i+1, &di);
+		gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_irap, &has_roll, &roll_distance);
 
 		bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
 		while (gf_bs_available(bs)) {
@@ -2220,7 +2233,7 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 					gf_bs_write_int(xbs, trefidx, 8);
 					// no sample offset
 					gf_bs_write_int(xbs, 0, 8);
-					// data offset: we start from begining of the sample data, not the extractor
+					// data offset: we start from beginning of the sample data, not the extractor
 					gf_bs_write_int(xbs, sti[k].data_offset, 8*shvccfg->nal_unit_size);
 					gf_bs_write_int(xbs, sti[k].data_size, 8*shvccfg->nal_unit_size);
 				}
@@ -2263,6 +2276,15 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 			gf_bs_del(sti[j].bs);
 			sti[j].bs = NULL;
+
+			if (sample->IsRAP>SAP_TYPE_1) {
+				if (is_irap) {
+					gf_isom_set_sample_rap_group(file, sti[j].track_num, i+1, 0);
+				}
+				else if (has_roll) {
+					gf_isom_set_sample_roll_group(file, sti[j].track_num, i+1, (s16) roll_distance);
+				}
+			}
 
 			if (sample->data) {
 				gf_free(sample->data);
@@ -2328,21 +2350,20 @@ static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile
 {
 	HEVCSliceInfo *si = &hevc->s_info;
 	u32 i, tbX, tbY, PicWidthInCtbsY, PicHeightInCtbsY, tileX, tileY, oX, oY, val;
-	PicWidthInCtbsY = si->sps->width / si->sps->max_CU_width;
-	PicHeightInCtbsY = si->sps->height / si->sps->max_CU_width;
+
+    PicWidthInCtbsY = si->sps->width / si->sps->max_CU_width;
+    if (PicWidthInCtbsY * si->sps->max_CU_width < si->sps->width) PicWidthInCtbsY++;
+    PicHeightInCtbsY = si->sps->height / si->sps->max_CU_width;
+    if (PicHeightInCtbsY * si->sps->max_CU_width < si->sps->height) PicHeightInCtbsY++;
 
 	tbX = si->slice_segment_address % PicWidthInCtbsY;
 	tbY = si->slice_segment_address / PicWidthInCtbsY;
 
 	tileX = tileY = 0;
 	oX = oY = 0;
-	for (i=0; i<si->pps->num_tile_columns; i++) {
+	for (i=0; i < si->pps->num_tile_columns; i++) {
 		if (si->pps->uniform_spacing_flag) {
-			if (i<si->pps->num_tile_columns-1) {
-				val = (i+1)*PicWidthInCtbsY / si->pps->num_tile_columns - (i)*PicWidthInCtbsY / si->pps->num_tile_columns;
-			} else {
-				val = (i)*PicWidthInCtbsY / si->pps->num_tile_columns - (i-1)*PicWidthInCtbsY / si->pps->num_tile_columns;
-			}
+			val = (i+1)*PicWidthInCtbsY / si->pps->num_tile_columns - (i)*PicWidthInCtbsY / si->pps->num_tile_columns;
 		} else {
 			if (i<si->pps->num_tile_columns-1) {
 				val = si->pps->column_width[i];
@@ -2359,11 +2380,7 @@ static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile
 	}
 	for (i=0; i<si->pps->num_tile_rows; i++) {
 		if (si->pps->uniform_spacing_flag) {
-			if (i<si->pps->num_tile_rows-1) {
-				val = (i+1)*PicHeightInCtbsY / si->pps->num_tile_rows - (i)*PicHeightInCtbsY / si->pps->num_tile_rows;
-			} else {
-				val = (i)*PicHeightInCtbsY / si->pps->num_tile_rows - (i-1)*PicHeightInCtbsY / si->pps->num_tile_rows;
-			}
+			val = (i+1)*PicHeightInCtbsY / si->pps->num_tile_rows - (i)*PicHeightInCtbsY / si->pps->num_tile_rows;
 		} else {
 			if (i<si->pps->num_tile_rows-1) {
 				val = si->pps->row_height[i];
@@ -2545,8 +2562,13 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 				gf_bs_write_int(bs, 0, 8);
 				// data offset: we start from last NAL written in this sample in this tile track
 				gf_bs_write_int(bs, tiles[cur_tile].data_offset, 8*nalu_size_length);
-				gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
-				tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
+                    
+                //we always write 0 to force complete NAL referencing. This avoids size issues when mixing tile tracks
+                //at different rates :) 
+				//gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
+                gf_bs_write_int(bs, 0, 8*nalu_size_length);
+				
+                tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
 
 				break;
 			default:
@@ -2695,9 +2717,17 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 		e = gf_isom_clone_track(input, i+1, output, 0, &TrackNum);
 		if (e) goto err_exit;
 
-		//if few samples don't fragment track
+		for (j = 0; j < gf_isom_get_track_kind_count(input, i+1); j++) {
+			char *scheme, *value;
+			gf_isom_get_track_kind(input, i+1, j, &scheme, &value);
+			gf_isom_add_track_kind(output, TrackNum, scheme, value);
+		}
+
 		count = gf_isom_get_sample_count(input, i+1);
-		if (count<=2) {
+		//we always fragment each track regardless of the sample count
+#if 0
+		//if few samples don't fragment track
+		if (count<=1) {
 			for (j=0; j<count; j++) {
 				sample = gf_isom_get_sample(input, i+1, j+1, &descIndex);
 				e = gf_isom_add_sample(output, TrackNum, 1, sample);
@@ -2706,7 +2736,9 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 			}
 		}
 		//otherwise setup fragmented
-		else {
+		else
+#endif
+		{
 			gf_isom_get_fragment_defaults(input, i+1,
 			                              &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
 			//otherwise setup fragmentation
@@ -2718,7 +2750,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 			GF_SAFEALLOC(tf, GF_TrackFragmenter);
 			tf->TrackID = gf_isom_get_track_id(output, TrackNum);
-			tf->SampleCount = gf_isom_get_sample_count(input, i+1);
+			tf->SampleCount = count;
 			tf->OriginalTrack = i+1;
 			tf->TimeScale = gf_isom_get_media_timescale(input, i+1);
 			tf->MediaType = gf_isom_get_media_type(input, i+1);

@@ -28,7 +28,7 @@
 #include <gpac/tools.h>
 #include <gpac/network.h>
 
-
+#ifndef GPAC_MODULE_CUSTOM_LOAD
 static void load_all_modules(GF_ModuleManager *mgr)
 {
 #define LOAD_PLUGIN(	__name	)	{ \
@@ -148,6 +148,7 @@ static void load_all_modules(GF_ModuleManager *mgr)
 
 	//todo fix project for iOS
 #ifdef GPAC_IPHONE
+	//these do not compile with xcode 4.2
 //    LOAD_PLUGIN(ios_cam);
 //    LOAD_PLUGIN(ios_mpegv);
 #endif
@@ -158,7 +159,26 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #undef LOAD_PLUGIN
 
 }
+#endif //GPAC_MODULE_CUSTOM_LOAD
 
+GF_EXPORT
+GF_Err gf_module_load_static(GF_ModuleManager *pm, GF_InterfaceRegister *(*register_module)())
+{
+	GF_InterfaceRegister *pr = register_module();
+	GF_Err rc;
+
+	if (!pr) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically load module\n"));
+		return GF_NOT_SUPPORTED;
+	}
+
+	rc = gf_list_add(pm->plugin_registry, pr);
+	if (rc != GF_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically load module\n"));
+		return rc;
+	}
+	return GF_OK;
+}
 
 GF_EXPORT
 GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
@@ -196,8 +216,9 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 	if (opt && !strcmp(opt, "no")) {
 		tmp->no_unload = GF_TRUE;
 	}
+#ifndef GPAC_MODULE_CUSTOM_LOAD
 	load_all_modules(tmp);
-
+#endif
 	loadedModules = gf_modules_refresh(tmp);
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Loaded %d modules from directory %s.\n", loadedModules, directory));
 
@@ -216,13 +237,19 @@ void gf_modules_del(GF_ModuleManager *pm)
 		gf_modules_free_module(inst);
 		gf_list_rem(pm->plug_list, 0);
 	}
+    gf_list_del(pm->plug_list);
 
 	/* Delete module directories*/
 	for (i = 0; i < pm->num_dirs; i++) {
 		gf_free((void*)pm->dirs[i]);
 	}
 
-	gf_list_del(pm->plug_list);
+    /*remove all static modules registry*/
+    while (gf_list_count(pm->plugin_registry)) {
+        GF_InterfaceRegister *reg  = (GF_InterfaceRegister *) gf_list_get(pm->plugin_registry, 0);
+        gf_free(reg);
+        gf_list_rem(pm->plugin_registry, 0);
+    }
 
 	if (pm->plugin_registry) gf_list_del(pm->plugin_registry);
 	gf_mx_del(pm->mutex);
@@ -265,7 +292,8 @@ const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_di
 		return NULL;
 	}
 
-	tmp_dirs = gf_strdup(directories);
+//	tmp_dirs = gf_strdup(directories);
+	tmp_dirs = directories;
 	pch = strtok (tmp_dirs,";");
 
 	while (pch != NULL)
@@ -279,7 +307,7 @@ const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_di
 		pm->num_dirs++;
 		pch = strtok (NULL, ";");
 	}
-	gf_free(tmp_dirs);
+//	gf_free(tmp_dirs);
 	*num_dirs = pm->num_dirs;
 	return pm->dirs;
 }

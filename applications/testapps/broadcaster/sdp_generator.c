@@ -16,7 +16,7 @@ int sdp_generator(PNC_CallbackData *data, char *ip_dest, char *sdp_fmt)
 
 	gf_sk_get_local_info(data->chan->rtp, &port, &socket_type);
 
-	fp = fopen("broadcaster.sdp", "w+");
+	fp = gf_fopen("broadcaster.sdp", "w+");
 	if(fp == NULL) {
 		fprintf(stderr, "Cannot open SDP file broadcaster.sdp\n");
 		exit(1);
@@ -61,7 +61,7 @@ int sdp_generator(PNC_CallbackData *data, char *ip_dest, char *sdp_fmt)
 	sprintf(temp, "%s\n", sdp_fmt);
 	ret = gf_fwrite(temp, 1, strlen(temp), fp);
 	fflush(fp);
-	fclose(fp);
+	gf_fclose(fp);
 	dprintf(DEBUG_sdp_generator, "SDP file generated in broadcaster.sdp\n");
 	return GF_OK;
 }

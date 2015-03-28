@@ -183,10 +183,10 @@ static GF_Err BE_MultipleReplace(GF_BifsEncoder * codec, GF_Command *com, GF_Bit
 	gf_bs_write_int(bs, gf_node_get_id(com->node)-1, codec->info->config.NodeIDBits);
 
 	count = gf_list_count(com->command_fields);
-	use_list = 1;
+	use_list = GF_TRUE;
 	numFields = gf_node_get_num_fields_in_mode(com->node, GF_SG_FIELD_CODING_DEF);
 	nbBits = gf_get_bit_size(numFields - 1);
-	if (count < 1+count*(1+nbBits)) use_list = 0;
+	if (count < 1+count*(1+nbBits)) use_list = GF_FALSE;
 	GF_BIFS_WRITE_INT(codec, bs, use_list ? 0 : 1, 1, "isMask", NULL);
 
 	for (i=0; i<numFields; i++) {
@@ -251,9 +251,9 @@ static GF_Err BE_GlobalQuantizer(GF_BifsEncoder * codec, GF_Command *com, GF_Bit
 static GF_Err BE_EncProtoDelete(GF_BifsEncoder * codec, GF_Command *com, GF_BitStream *bs)
 {
 	u32 nbBits, i;
-	Bool use_list = 0;
+	Bool use_list = GF_FALSE;
 	nbBits = gf_get_bit_size(com->del_proto_list_size);
-	if (nbBits+5>com->del_proto_list_size) use_list = 1;
+	if (nbBits+5>com->del_proto_list_size) use_list = GF_TRUE;
 	GF_BIFS_WRITE_INT(codec, bs, use_list, 1, "isList", NULL);
 	if (!use_list) {
 		GF_BIFS_WRITE_INT(codec, bs, nbBits, 5, "len", NULL);
@@ -435,11 +435,11 @@ GF_Err BE_FieldReplace(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream *bs)
 	field.far_ptr = inf->field_ptr;
 
 	/* Warning: To be changed when proper solution is found */
-	if (gf_sg_vrml_get_sf_type(field.fieldType) == GF_SG_VRML_SFSCRIPT) codec->is_encoding_command = 1;
+	if (gf_sg_vrml_get_sf_type(field.fieldType) == GF_SG_VRML_SFSCRIPT) codec->is_encoding_command = GF_TRUE;
 
 	e = gf_bifs_enc_field(codec, bs, com->node, &field);
 
-	codec->is_encoding_command = 0;
+	codec->is_encoding_command = GF_FALSE;
 	return e;
 }
 
@@ -902,7 +902,7 @@ GF_Err gf_bifs_enc_commands(GF_BifsEncoder *codec, GF_List *comList, GF_BitStrea
 		case GF_SG_ROUTE_REPLACE:
 			GF_BIFS_WRITE_INT(codec, bs, 2, 2, "Replace", NULL);
 			GF_BIFS_WRITE_INT(codec, bs, 3, 2, "Route", NULL);
-			e = BE_RouteReplace(codec, com, bs, 0);
+			e = BE_RouteReplace(codec, com, bs, GF_FALSE);
 			break;
 		case GF_SG_NODE_INSERT:
 			GF_BIFS_WRITE_INT(codec, bs, 0, 2, "Insert", NULL);
@@ -917,7 +917,7 @@ GF_Err gf_bifs_enc_commands(GF_BifsEncoder *codec, GF_List *comList, GF_BitStrea
 		case GF_SG_ROUTE_INSERT:
 			GF_BIFS_WRITE_INT(codec, bs, 0, 2, "Insert", NULL);
 			GF_BIFS_WRITE_INT(codec, bs, 3, 2, "Route", NULL);
-			e = BE_RouteReplace(codec, com, bs, 1);
+			e = BE_RouteReplace(codec, com, bs, GF_TRUE);
 			break;
 		case GF_SG_NODE_DELETE:
 			GF_BIFS_WRITE_INT(codec, bs, 1, 2, "Delete", NULL);
@@ -944,7 +944,7 @@ GF_Err gf_bifs_enc_commands(GF_BifsEncoder *codec, GF_List *comList, GF_BitStrea
 		GF_BIFS_WRITE_INT(codec, bs, (i+1==count) ? 0 : 1, 1, "moreCommands", NULL);
 	}
 
-	while (gf_list_count(codec->QPs)) gf_bifs_enc_qp_remove(codec, 1);
+	while (gf_list_count(codec->QPs)) gf_bifs_enc_qp_remove(codec, GF_TRUE);
 	return e;
 }
 

@@ -31,8 +31,8 @@ extern "C" {
 #endif
 
 /*!
- *	\file <gpac/math.h>
- *	\brief math and trigo functions.
+ *	\file <gpac/unicode.h>
+ *	\brief Unicode conversion functions.
  */
 
 #include <gpac/setup.h>

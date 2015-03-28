@@ -52,13 +52,12 @@
 
 #endif
 
-
-#define UDP_BUFFER_SIZE	0x40000
-
 #define MP42TS_PRINT_TIME_MS 500 /*refresh printed info every CLOCK_REFRESH ms*/
 #define MP42TS_VIDEO_FREQ 1000 /*meant to send AVC IDR only every CLOCK_REFRESH ms*/
 
 u32 temi_url_insertion_delay = 1000;
+u32 temi_offset = 0;
+Bool temi_disable_loop = 0;
 FILE *logfile = NULL;
 
 static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
@@ -110,19 +109,21 @@ static GFINLINE void usage()
 	        "-pcr-init V            sets initial value V for PCR - if not set, random value is used\n"
 	        "-pcr-offset V          offsets all timestamps from PCR by V, in 90kHz. Default value is computed based on input media.\n"
 	        "-psi-rate V            sets PSI refresh rate V in ms (default 100ms).\n"
-	        "                        * If 0, PSI data is only send once at the begining or before each IDR when -rap option is set.\n"
+	        "                        * If 0, PSI data is only send once at the beginning or before each IDR when -rap option is set.\n"
 	        "                        * This should be set to 0 for DASH streams.\n"
 	        "-time n                request the muxer to stop after n ms\n"
 	        "-single-au             forces 1 PES = 1 AU (disabled by default)\n"
 	        "-rap                   forces RAP/IDR to be aligned with PES start for video streams (disabled by default)\n"
 	        "                          in this mode, PAT, PMT and PCR will be inserted before the first TS packet of the RAP PES\n"
 	        "-flush-rap             same as -rap but flushes all other streams (sends remaining PES packets) before inserting PAT/PMT\n"
-	        "-nb-pack N             specifies to pack N TS packets together before sending on network or writing to file\n"
+	        "-nb-pack N             specifies to pack up to N TS packets together before sending on network or writing to file\n"
 	        "-pcr-ms N              sets max interval in ms between 2 PCR. Default is 100 ms\n"
 	        "-ttl N                 specifies Time-To-Live for multicast. Default is 1.\n"
 	        "-ifce IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
 	        "-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optionnal\n"
-	        "-temi-delay DelayMS    Specifies delay between two TEMI url descriptors\n"
+	        "-temi-delay DelayMS    Specifies delay between two TEMI url descriptors (default is 1000)\n"
+			"-temi-offset OffsetMS  Specifies an offset in ms to add to TEMI (by default TEMI starts at 0)\n"
+	        "-temi-noloop           Do not restart the TEMI timeline at the end of the source\n"
 	        "-sdt-rate MS           Gives the SDT carrousel rate in milliseconds. If 0 (default), SDT is not sent\n"
 	        "\n"
 	        "MPEG-4/T-DMB options:\n"
@@ -196,6 +197,7 @@ typedef struct
 
 	const char *temi_url;
 	u32 last_temi_url;
+	Bool insert_temi;
 
 } GF_ESIMP4;
 
@@ -249,7 +251,7 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 	} else {
 		last_time = (u32) (1000*timecode/timescale);
 	}
-	if (!*last_url_time || (last_time - *last_url_time + 1 >= temi_url_insertion_delay) ) {
+	if (temi_url && (!*last_url_time || (last_time - *last_url_time + 1 >= temi_url_insertion_delay)) ) {
 		*last_url_time = last_time + 1;
 		len = 0;
 		gf_bs_write_int(bs,	GF_M2TS_AFDESC_LOCATION_DESCRIPTOR, 8);
@@ -283,16 +285,17 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 	}
 
 	if (timescale || ntp) {
+		Bool use64 = (timecode > 0xFFFFFFFFUL) ? 1 : 0;
 		len = 3; //3 bytes flags
 
-		if (timescale) len += 4 + ((timecode > 0xFFFFFFFFUL) ? 8 : 4);
+		if (timescale) len += 4 + (use64 ? 8 : 4);
 		if (ntp) len += 8;
 
 		//write timeline descriptor
 		gf_bs_write_int(bs,	GF_M2TS_AFDESC_TIMELINE_DESCRIPTOR, 8);
 		gf_bs_write_int(bs,	len, 8);
 
-		gf_bs_write_int(bs,	timescale ? ((timecode > 0xFFFFFFUL) ? 2 : 1) : 0, 2); //has_timestamp
+		gf_bs_write_int(bs,	timescale ? (use64 ? 2 : 1) : 0, 2); //has_timestamp
 		gf_bs_write_int(bs,	ntp ? 1 : 0, 1); //has_ntp
 		gf_bs_write_int(bs,	0, 1); //has_ptp
 		gf_bs_write_int(bs,	0, 2); //has_timecode
@@ -300,10 +303,10 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 		gf_bs_write_int(bs,	0, 1); //paused
 		gf_bs_write_int(bs,	0, 1); //discontinuity
 		gf_bs_write_int(bs,	0xFF, 7); //reserved
-		gf_bs_write_int(bs,	0, 8); //timeline_id
+		gf_bs_write_int(bs,	temi_url ? 0 : 150, 8); //timeline_id
 		if (timescale) {
 			gf_bs_write_u32(bs,	timescale); //timescale
-			if (timecode > 0xFFFFFFUL)
+			if (use64)
 				gf_bs_write_u64(bs,	timecode); //timestamp
 			else
 				gf_bs_write_u32(bs,	(u32) timecode); //timestamp
@@ -344,8 +347,17 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		pck.cts = priv->sample->DTS + priv->ts_offset;
 		if (priv->is_repeat) pck.flags |= GF_ESI_DATA_REPEAT;
 
-		if (priv->temi_url) {
-			pck.mpeg2_af_descriptors_size = format_af_descriptor(af_data, priv->sample->DTS + priv->sample->CTS_Offset, ifce->timescale, 0, priv->temi_url, &priv->last_temi_url);
+		if (priv->insert_temi) {
+			u64 tc = priv->sample->DTS + priv->sample->CTS_Offset;
+			if (temi_disable_loop) {
+				tc += priv->ts_offset;
+			}
+
+			if (temi_offset) {
+				tc += ((u64) temi_offset) * ifce->timescale / 1000;
+			}
+
+			pck.mpeg2_af_descriptors_size = format_af_descriptor(af_data, tc, ifce->timescale, 0, priv->temi_url, &priv->last_temi_url);
 			pck.mpeg2_af_descriptors = af_data;
 		}
 
@@ -902,10 +914,12 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 }
 #endif /*GPAC_DISABLE_STREAMING*/
 
+#ifndef GPAC_DISABLE_SENG
 static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 {
 	return GF_OK;
 }
+#endif
 
 /*AAC import features*/
 #ifndef GPAC_DISABLE_PLAYER
@@ -1184,13 +1198,13 @@ static u32 seng_output(void *param)
 					fprintf(stderr, "Update file modified - processing\n");
 					last_src_modif = mod_time;
 
-					srcf = gf_f64_open(source->bifs_src_name, "rt");
+					srcf = gf_fopen(source->bifs_src_name, "rt");
 					if (!srcf) continue;
 
 					/*checks if we have a broadcast config*/
 					if (!fgets(flag_buf, 200, srcf))
 						flag_buf[0] = '\0';
-					fclose(srcf);
+					gf_fclose(srcf);
 
 					aggregate_au = force_rap = adjust_carousel_time = discard_pending = signal_rap = signal_critical = 0;
 					version_inc = 1;
@@ -1406,7 +1420,11 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 						/*get first visual stream as PCR*/
 						if (!source->pcr_idx) {
 							source->pcr_idx = i+1;
-							((GF_ESIMP4 *)source->streams[i].input_udta)->temi_url = temi_url;
+							if (temi_url) {
+								((GF_ESIMP4 *)source->streams[i].input_udta)->insert_temi = 1;
+								if (strcmp(temi_url, "NOTEMIURL"))
+									((GF_ESIMP4 *)source->streams[i].input_udta)->temi_url = temi_url;
+							}
 						}
 					}
 					break;
@@ -1525,18 +1543,18 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		char *sdp_buf;
 		u32 sdp_size;
 		GF_Err e;
-		FILE *_sdp = fopen(src, "rt");
+		FILE *_sdp = gf_fopen(src, "rt");
 		if (!_sdp) {
 			fprintf(stderr, "Error opening %s - no such file\n", src);
 			return 0;
 		}
-		gf_f64_seek(_sdp, 0, SEEK_END);
-		sdp_size = (u32)gf_f64_tell(_sdp);
-		gf_f64_seek(_sdp, 0, SEEK_SET);
+		gf_fseek(_sdp, 0, SEEK_END);
+		sdp_size = (u32)gf_ftell(_sdp);
+		gf_fseek(_sdp, 0, SEEK_SET);
 		sdp_buf = (char*)gf_malloc(sizeof(char)*sdp_size);
 		memset(sdp_buf, 0, sizeof(char)*sdp_size);
 		sdp_size = (u32) fread(sdp_buf, 1, sdp_size, _sdp);
-		fclose(_sdp);
+		gf_fclose(_sdp);
 
 		sdp = gf_sdp_info_new();
 		e = gf_sdp_info_parse(sdp, sdp_buf, sdp_size);
@@ -1735,9 +1753,9 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		} else
 #endif
 		{
-			FILE *f = fopen(src, "rt");
+			FILE *f = gf_fopen(src, "rt");
 			if (f) {
-				fclose(f);
+				gf_fclose(f);
 				fprintf(stderr, "Error opening %s - not a supported input media, skipping.\n", src);
 			} else {
 				fprintf(stderr, "Error opening %s - no such file.\n", src);
@@ -1745,6 +1763,10 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 			return 0;
 		}
 }
+
+#ifdef GPAC_MEMORY_TRACKING
+static Bool enable_mem_tracker = GF_FALSE;
+#endif
 
 /*macro to keep retro compatibility with '=' and spaces in parse_args*/
 #define CHECK_PARAM(param) (!strnicmp(arg, param, strlen(param)) \
@@ -1787,14 +1809,14 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				goto error;
 			}
 			video_input_found = 1;
-			f = fopen(next_arg, "rb");
+			f = gf_fopen(next_arg, "rb");
 			if (!f) {
 				error_msg = "video file not found: ";
 				goto error;
 			}
-			gf_f64_seek(f, 0, SEEK_END);
-			*video_buffer_size = (u32)gf_f64_tell(f);
-			gf_f64_seek(f, 0, SEEK_SET);
+			gf_fseek(f, 0, SEEK_END);
+			*video_buffer_size = (u32)gf_ftell(f);
+			gf_fseek(f, 0, SEEK_SET);
 			assert(*video_buffer_size);
 			*video_buffer = (char*) gf_malloc(*video_buffer_size);
 			{
@@ -1802,7 +1824,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				if (read != *video_buffer_size)
 					fprintf(stderr, "Error while reading video file, has readen %u chars instead of %u.\n", read, *video_buffer_size);
 			}
-			fclose(f);
+			gf_fclose(f);
 		} else if (CHECK_PARAM("-audio")) {
 			if (audio_input_found) {
 				error_msg = "multiple '-audio' found";
@@ -1860,6 +1882,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		} else if (!strcmp(arg, "-mem-track")) {
 #ifdef GPAC_MEMORY_TRACKING
 			gf_sys_close();
+			enable_mem_tracker = GF_TRUE;
 			gf_sys_init(GF_TRUE);
 			gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 #else
@@ -1918,7 +1941,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			if (gf_log_set_tools_levels(next_arg) != GF_OK)
 				return GF_BAD_PARAM;
 		} else if (CHECK_PARAM("-lf")) {
-			logfile = gf_f64_open(next_arg, "wt");
+			logfile = gf_fopen(next_arg, "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
 		} else if (CHECK_PARAM("-segment-dir")) {
 			if (seg_dir_found) {
@@ -1964,14 +1987,23 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			dst_found = 1;
 			*ts_out = gf_strdup(next_arg);
 		} else if (CHECK_PARAM("-temi")) {
-			*temi_url = next_arg;
-			if (strlen(next_arg) > 150) {
-				fprintf(stderr, "URLs longer than 150 bytes are not currently supported\n");
-				return GF_NOT_SUPPORTED;
+			if (next_arg[0]=='-') {
+				*temi_url = "NOTEMIURL";
+				i--;
+			} else {
+				*temi_url = next_arg;
+				if (strlen(next_arg) > 150) {
+					fprintf(stderr, "URLs longer than 150 bytes are not currently supported\n");
+					return GF_NOT_SUPPORTED;
+				}
 			}
 		}
 		else if (CHECK_PARAM("-temi-delay")) {
 			temi_url_insertion_delay = atoi(next_arg);
+		} else if (CHECK_PARAM("-temi-offset")) {
+			temi_offset = atoi(next_arg);
+		} else if (!stricmp(arg, "-temi-noloop")) {
+			temi_disable_loop = 1;
 		}
 		else if (CHECK_PARAM("-dst-udp")) {
 			char *sep = strchr(next_arg, ':');
@@ -2100,7 +2132,7 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 		sprintf(manifest_name, "%s", manifest);
 	}
 
-	manifest_fp = fopen(tmp_manifest, "w");
+	manifest_fp = gf_fopen(tmp_manifest, "w");
 	if (!manifest_fp) {
 		fprintf(stderr, "Could not create m3u8 manifest file (%s)\n", tmp_manifest);
 		return GF_BAD_PARAM;
@@ -2115,7 +2147,7 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 	if (end) {
 		fprintf(manifest_fp, "#EXT-X-ENDLIST\n");
 	}
-	fclose(manifest_fp);
+	gf_fclose(manifest_fp);
 
 	if (!rename(tmp_manifest, manifest_name)) {
 		return GF_OK;
@@ -2272,7 +2304,7 @@ int main(int argc, char **argv)
 			ts_output_file = stdout;
 			is_stdout = GF_TRUE;
 		} else {
-			ts_output_file = fopen(ts_out, "wb");
+			ts_output_file = gf_fopen(ts_out, "wb");
 			is_stdout = GF_FALSE;
 		}
 		if (!ts_output_file) {
@@ -2509,7 +2541,7 @@ call_flush:
 				gf_fwrite(ts_pck, 1, 188 * nb_pck_in_pack, ts_output_file);
 				if (segment_duration && (muxer->time.sec > prev_seg_time.sec + segment_duration)) {
 					prev_seg_time = muxer->time;
-					fclose(ts_output_file);
+					gf_fclose(ts_output_file);
 					segment_index++;
 					if (segment_dir) {
 						if (strchr("\\/", segment_name[strlen(segment_name)-1])) {
@@ -2520,7 +2552,7 @@ call_flush:
 					} else {
 						sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
 					}
-					ts_output_file = fopen(segment_name, "wb");
+					ts_output_file = gf_fopen(segment_name, "wb");
 					if (!ts_output_file) {
 						fprintf(stderr, "Error opening %s\n", segment_name);
 						goto exit;
@@ -2642,7 +2674,7 @@ exit:
 	if (segment_duration) {
 		write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, segment_index - segment_number, segment_index, 1);
 	}
-	if (ts_output_file && !is_stdout) fclose(ts_output_file);
+	if (ts_output_file && !is_stdout) gf_fclose(ts_output_file);
 	if (ts_output_udp_sk) gf_sk_del(ts_output_udp_sk);
 #ifndef GPAC_DISABLE_STREAMING
 	if (ts_output_rtp) gf_rtp_del(ts_output_rtp);
@@ -2685,8 +2717,15 @@ exit:
 	if (aac_reader) AAC_Reader_del(aac_reader);
 #endif
 
-	if (logfile) fclose(logfile);
+	if (logfile) gf_fclose(logfile);
 	gf_sys_close();
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
+        gf_memory_print();
+		return 2;
+	}
+#endif
 	return 0;
 }
 

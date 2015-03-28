@@ -894,7 +894,8 @@ public class Osmo4 extends Activity implements GpacCallback {
     private void displayPopup(final CharSequence message, final CharSequence title) {
         final String fullMsg = getResources().getString(R.string.displayPopupFormat, title, message);
         synchronized (this) {
-            if (fullMsg.equals(lastDisplayedMessage))
+			// In case of an error message, always popup it
+            if (fullMsg.equals(lastDisplayedMessage) && !title.equals("Error"))
                 return;
             lastDisplayedMessage = fullMsg;
         }
@@ -956,6 +957,8 @@ public class Osmo4 extends Activity implements GpacCallback {
     @Override
     public void onLog(int level, int module, String message) {
         logger.onLog(level, module, message);
+		if (level == Log.ERROR)
+			displayPopup(message, "Error");
     }
 
     /**

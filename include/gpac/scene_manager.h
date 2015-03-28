@@ -324,6 +324,8 @@ typedef struct
 		2: BIFS
 	*/
 	u32 auto_quant;
+
+	const char *src_url;
 } GF_SMEncodeOptions;
 
 /*

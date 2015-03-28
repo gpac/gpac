@@ -820,6 +820,9 @@
 		<Unit filename="../../src/utils/os_divers.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../../src/utils/os_file.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../../src/utils/os_module.c">
 			<Option compilerVar="CC" />
 		</Unit>

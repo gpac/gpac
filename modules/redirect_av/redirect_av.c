@@ -133,7 +133,7 @@ static u32 audio_encoding_thread_run(void *param)
 	outBuff = gf_malloc(outBuffSize* sizeof(u8));
 	inBuff = NULL;
 #ifdef DUMP_MP3
-	FILE * mp3 = fopen("/tmp/dump.mp3", "w");
+	FILE * mp3 = gf_fopen("/tmp/dump.mp3", "w");
 #endif /* DUMP_MP3 */
 	sendPts = 1;
 	gf_sc_add_audio_listener ( avr->term->compositor, &avr->audio_listen );
@@ -212,7 +212,7 @@ exit:
 		gf_free( outBuff );
 #ifdef DUMP_MP3
 	if (mp3)
-		fclose(mp3);
+		gf_fclose(mp3);
 #endif /* DUMP_MP3 */
 	if (avr->term)
 		gf_sc_remove_audio_listener ( avr->term->compositor, &avr->audio_listen );
@@ -848,4 +848,4 @@ void ShutdownInterface ( GF_BaseInterface *ifce )
 }
 
 
-GPAC_MODULE_STATIC_DELARATION( redirect_av )
+GPAC_MODULE_STATIC_DECLARATION( redirect_av )

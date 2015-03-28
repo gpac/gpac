@@ -36,7 +36,7 @@
 #ifdef GPAC_USE_OGL_ES
 
 #ifndef GPAC_FIXED_POINT
-#error "OpenGL ES defined without fixed-point support - unsupported."
+//#error "OpenGL ES defined without fixed-point support - unsupported."
 #endif
 
 #ifdef GPAC_ANDROID

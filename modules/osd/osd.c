@@ -46,6 +46,7 @@ typedef struct
 	GF_SystemRTInfo rti;
 } GF_OSD;
 
+#if 0
 static GFINLINE GF_Node *create_node(GF_OSD *osd, u32 tag, GF_Node *par)
 {
 	GF_Node *n = gf_node_new(osd->odm->subscene->graph, tag);
@@ -58,6 +59,8 @@ static GFINLINE GF_Node *create_node(GF_OSD *osd, u32 tag, GF_Node *par)
 	}
 	return n;
 }
+#endif
+
 const char *osd_scene_graph = "\
 EXTERNPROTO Untransform [\
     exposedField MFNode children []\
@@ -228,7 +231,7 @@ static Bool osd_process(GF_TermExt *termext, u32 action, void *param)
 		return 1;
 
 	case GF_TERM_EXT_STOP:
-		osd->text->string.vals[0] = NULL;
+        osd->text->string.vals[0] = NULL;
 		/*remove scene to compositor*/
 		gf_sc_register_extra_graph(osd->term->compositor, osd->odm->subscene->graph, 1);
 		gf_odm_disconnect(osd->odm, 1);
@@ -300,4 +303,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( osd )
+GPAC_MODULE_STATIC_DECLARATION( osd )

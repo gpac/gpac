@@ -389,9 +389,9 @@ local int destroy (gz_stream *s)
 			err = inflateEnd(&(s->stream));
 		}
 	}
-	if (s->file != NULL && fclose(s->file)) {
+	if (s->file != NULL && gf_fclose(s->file)) {
 #ifdef ESPIPE
-		if (errno != ESPIPE) /* fclose is broken for pipes in HP/UX */
+		if (errno != ESPIPE) /* gf_fclose is broken for pipes in HP/UX */
 #endif
 			err = Z_ERRNO;
 	}

@@ -10,19 +10,20 @@ all:	version
 	$(MAKE) -C applications all
 	$(MAKE) -C modules all
 
-SVNREV_PATH:=$(SRC_PATH)/include/gpac/revision.h
+GITREV_PATH:=$(SRC_PATH)/include/gpac/revision.h
+TAG:=$(shell git --git-dir=$(SRC_PATH)/.git describe --tags --abbrev=0 2> /dev/null)
+VERSION:=$(shell echo `git --git-dir=$(SRC_PATH)/.git describe --tags --long  || echo "UNKNOWN"` | sed "s/^$(TAG)-//")
+BRANCH:=$(shell git --git-dir=$(SRC_PATH)/.git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
 
 version:
-	@if [ -d $(SRC_PATH)/".svn" ]; then \
-		if which svnversion >/dev/null; then \
-			echo "#define GPAC_SVN_REVISION	\"$(shell svnversion $(SRC_PATH) )\"" > $(SVNREV_PATH).new ; \
-			if ! diff -q $(SVNREV_PATH) $(SVNREV_PATH).new >/dev/null ; then \
-				mv $(SVNREV_PATH).new  $(SVNREV_PATH) ;  \
-			fi ; \
-		fi \
+	@if [ -d $(SRC_PATH)/".git" ]; then \
+		echo "#define GPAC_GIT_REVISION	\"$(VERSION)-$(BRANCH)\"" > $(GITREV_PATH).new; \
+		if ! diff -q $(GITREV_PATH) $(GITREV_PATH).new >/dev/null ; then \
+			mv $(GITREV_PATH).new  $(GITREV_PATH); \
+		fi; \
 	else \
-		echo "No SVN Version found" ; \
-	fi \
+		echo "No GIT Version found" ; \
+	fi
 
 lib:	version
 	$(MAKE) -C src all
@@ -38,7 +39,7 @@ mods:
 
 instmoz:
 	$(MAKE) -C applications/osmozilla install
-
+	
 depend:
 	$(MAKE) -C src dep
 	$(MAKE) -C applications dep
@@ -54,6 +55,21 @@ distclean:
 	$(MAKE) -C applications distclean
 	$(MAKE) -C modules distclean
 	rm -f config.mak config.h
+
+lcov_clean:
+	lcov --directory . --zerocounters
+
+lcov:
+	lcov --capture --directory . --output-file all.info
+	rm -rf coverage/
+	lcov  --remove all.info /usr/pkg/include/gtest/* /usr/pkg/include/gtest/internal/gtest-* \
+ /usr/pkg/gcc44/include/c++/4.4.1/backward/binders.h /usr/pkg/gcc44/include/c++/4.4.1/bits/* \
+ /usr/pkg/gcc44/include/c++/4.4.1/ext/*.h \
+ /usr/pkg/gcc44/include/c++/4.4.1/x86_64-unknown-netbsd4.99.62/bits/gthr-default.h \
+ /usr/include/machine/byte_swap.h /usr/pkg/gcc44/include/c++/4.4.1/* \
+ /opt/local/include/mozjs185/*.h /usr/include/libkern/i386/*.h /usr/include/sys/_types/*.h /usr/include/*.h \
+ --output cover.info
+	genhtml -o coverage cover.info 
 
 dep:	depend
 
@@ -71,23 +87,24 @@ install:
 ifeq ($(DISABLE_ISOFF), no) 
 ifeq ($(CONFIG_LINUX), yes)
 ifneq ($(CONFIG_FFMPEG), no)
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
 endif
 endif
 endif
 ifeq ($(DISABLE_ISOFF), no)
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP42TS$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
 endif
 ifeq ($(DISABLE_PLAYER), no)
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
 endif
 	if [ -d  $(DESTDIR)$(prefix)/$(libdir)/pkgconfig ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 644 gpac.pc "$(DESTDIR)$(prefix)/$(libdir)/pkgconfig" ; \
 	fi
 	$(INSTALL) -d "$(DESTDIR)$(moddir)"
-	$(INSTALL) bin/gcc/*.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
-	rm -f $(DESTDIR)$(moddir)/libgpac.$(DYN_LIB_SUFFIX)
-	rm -f $(DESTDIR)$(moddir)/nposmozilla.$(DYN_LIB_SUFFIX)
+	$(INSTALL) bin/gcc/*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
+	rm -f $(DESTDIR)$(moddir)/libgpac$(DYN_LIB_SUFFIX)
+	rm -f $(DESTDIR)$(moddir)/nposmozilla$(DYN_LIB_SUFFIX)
 	$(MAKE) installdylib
 	$(INSTALL) -d "$(DESTDIR)$(mandir)"
 	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1";
@@ -107,16 +124,48 @@ endif
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
 	$(INSTALL) $(INSTFLAGS) -m 644 gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" ; \
 	cp -R gui/extensions "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
-	rm -rf "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/*.svn" ; \
+	rm -rf "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/*.git" ; \
 	fi
+
+lninstall:
+	$(INSTALL) -d "$(DESTDIR)$(prefix)"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
+ifeq ($(DISABLE_ISOFF), no) 
+ifneq ($(CONFIG_FFMPEG), no)
+	ln -sf $(BUILD_PATH)/bin/gcc/DashCast$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/DashCast$(EXE_SUFFIX)
+endif
+endif
+ifeq ($(DISABLE_ISOFF), no)
+	ln -sf $(BUILD_PATH)/bin/gcc/MP4Box$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Box$(EXE_SUFFIX)
+	ln -sf $(BUILD_PATH)/bin/gcc/MP42TS$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP42TS$(EXE_SUFFIX)
+endif
+ifeq ($(DISABLE_PLAYER), no)
+	ln -sf $(BUILD_PATH)/bin/gcc/MP4Client$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Client$(EXE_SUFFIX)
+endif
+ifeq ($(CONFIG_DARWIN),yes)
+	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_MAJOR)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_MAJOR) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX)
+else
+	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
+	ln -sf $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
+ifeq ($(DESTDIR)$(prefix),$(prefix))
+	ldconfig || true
+endif
+endif
 
 uninstall:
 	$(MAKE) -C applications uninstall
 	rm -rf $(DESTDIR)$(moddir)
 	rm -rf $(DESTDIR)$(prefix)/$(libdir)/libgpac*
+ifeq ($(CONFIG_WIN32),yes)
+	rm -rf "$(DESTDIR)$(prefix)/bin/libgpac*"
+endif
 	rm -rf $(DESTDIR)$(prefix)/$(libdir)/pkgconfig/gpac.pc
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Box
 	rm -rf $(DESTDIR)$(prefix)/bin/MP4Client
+	rm -rf $(DESTDIR)$(prefix)/bin/MP42TS
 	rm -rf $(DESTDIR)$(prefix)/bin/DashCast
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4box.1
 	rm -rf $(DESTDIR)$(mandir)/man1/mp4client.1
@@ -126,18 +175,19 @@ uninstall:
 
 installdylib:
 ifeq ($(CONFIG_WIN32),yes)
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(prefix)/$(libdir)
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll.a $(DESTDIR)$(prefix)/$(libdir)
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(DESTDIR)$(prefix)/bin
 else
 ifeq ($(DEBUGBUILD),no)
-	$(STRIP) bin/gcc/libgpac.$(DYN_LIB_SUFFIX)
+	$(STRIP) bin/gcc/libgpac$(DYN_LIB_SUFFIX)
 endif
 ifeq ($(CONFIG_DARWIN),yes)
-	$(INSTALL) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION).$(DYN_LIB_SUFFIX)
-	ln -sf libgpac.$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
+	$(INSTALL) -m 755 bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION)$(DYN_LIB_SUFFIX)
+	ln -sf libgpac.$(VERSION)$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX)
 else
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
-	ln -sf libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
-	ln -sf libgpac.$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME)
+	ln -sf libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so.$(VERSION_MAJOR)
+	ln -sf libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
 ifeq ($(DESTDIR)$(prefix),$(prefix))
 	ldconfig || true
 endif
@@ -168,20 +218,29 @@ uninstall-lib:
 
 ifeq ($(CONFIG_DARWIN),yes)
 dmg:
+	@if [ ! -z "$(shell git diff  master..origin/master)" ]; then \
+		echo "Local revision and remote revision are not congruent; you may have local commit."; \
+		echo "Please consider pushing your commit before generating an installer"; \
+		exit 1; \
+	fi
 	rm "bin/gcc/MP4Client"
 	$(MAKE) -C applications/mp4client
-	./mkdmg.sh
+	./mkdmg.sh $(arch)
 endif
 
 ifeq ($(CONFIG_LINUX),yes)
 deb:
+	@if [ ! -z "$(shell git diff  master..origin/master)" ]; then \
+		echo "Local revision and remote revision are not congruent; you may have local commit."; \
+		echo "Please consider pushing your commit before generating an installer"; \
+		exit 1; \
+	fi
 	fakeroot debian/rules clean
-	sed -i "s/.DEV/.DEV-r`svnversion \"$(SRC_PATH)\"`/" debian/changelog
+	sed -i "s/-DEV/-DEV-rev$(VERSION)-$(BRANCH)/" debian/changelog
 	fakeroot debian/rules configure
 	fakeroot debian/rules binary
 	rm -rf debian/
-	svn cleanup
-	svn up
+	git checkout debian
 endif
 
 help:

@@ -210,7 +210,7 @@ typedef enum
 	/*!Stereo RGBA. Component ordering in bytes is R-G-B-A. */
 	GF_PIXEL_RGBAS		=	GF_4CC('R', 'G', 'A', 'S'),
 
-	/*internal format for OpenGL using pachek RGB 24 bit plus planaer depth plane at the end of the image*/
+	/*internal format for OpenGL using pachek RGB 24 bit plus planar depth plane at the end of the image*/
 	GF_PIXEL_RGB_24_DEPTH = GF_4CC('R', 'G', 'B', 'd'),
 
 	/*!YUV packed format*/

@@ -222,7 +222,7 @@ GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *max_size)
 	}
 
 	memcpy((*data) , dest, sizeof(char)*stream.total_out);
-	*max_size = stream.total_out;
+	*max_size = (u32) stream.total_out;
 	gf_free(dest);
 
 	deflateEnd(&stream);
@@ -261,10 +261,10 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 			size *= 2;
 			*uncompressed_data = gf_realloc(*uncompressed_data, sizeof(char)*size);
 			if (!*uncompressed_data) return GF_OUT_OF_MEM;
-			d_stream.avail_out = (size - d_stream.total_out);
+			d_stream.avail_out = (u32) (size - d_stream.total_out);
 			d_stream.next_out = (Bytef*) ( *uncompressed_data + d_stream.total_out);
 		}
-		*out_size = d_stream.total_out;
+		*out_size = (u32) d_stream.total_out;
 		inflateEnd(&d_stream);
 		return e;
 	}

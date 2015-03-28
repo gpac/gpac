@@ -68,7 +68,7 @@ GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sample
 				curDTS -= ent->sampleDelta * ent->sampleCount;
 				i --;
 			} else if (!i) {
-				//begining of the table, no choice
+				//beginning of the table, no choice
 				curDTS = stbl->TimeToSample->r_CurrentDTS = 0;
 				curSampNum = stbl->TimeToSample->r_FirstSampleInEntry = 1;
 				stbl->TimeToSample->r_currentEntryIndex = 0;
@@ -218,9 +218,6 @@ GF_Err stbl_GetSampleDTS_and_Duration(GF_TimeToSampleBox *stts, u32 SampleNumber
 found:
 	(*DTS) = stts->r_CurrentDTS + j * (u64) ent->sampleDelta;
 	if (duration) *duration = ent->sampleDelta;
-	if (stts->r_FirstSampleInEntry == 1)
-		stts->r_FirstSampleInEntry = 1;
-
 	return GF_OK;
 }
 
@@ -546,7 +543,7 @@ GF_Err stbl_GetPaddingBits(GF_PaddingBitsBox *padb, u32 SampleNumber, u8 *PadBit
 }
 
 //Set the RAP flag of a sample
-GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *sdep, u32 SampleNumber, u32 *dependsOn, u32 *dependedOn, u32 *redundant)
+GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *sdep, u32 SampleNumber, u32 *isLeading, u32 *dependsOn, u32 *dependedOn, u32 *redundant)
 {
 	u8 flag;
 
@@ -555,6 +552,7 @@ GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *sdep, u32 SampleNumber,
 
 	if (SampleNumber > sdep->sampleCount) return GF_BAD_PARAM;
 	flag = sdep->sample_info[SampleNumber-1];
+	*isLeading = (flag >> 6) & 3;
 	*dependsOn = (flag >> 4) & 3;
 	*dependedOn = (flag >> 2) & 3;
 	*redundant = (flag) & 3;

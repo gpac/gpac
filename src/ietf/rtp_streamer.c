@@ -387,6 +387,12 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			oti = (oti==GF_ISOM_SUBTYPE_3GP_EVRC) ? GPAC_OTI_AUDIO_EVRC_VOICE : GPAC_OTI_AUDIO_SMV_VOICE;
 			nb_ch = 1;
 			break;
+		case GF_ISOM_SUBTYPE_MP3:
+			rtp_type = GF_RTP_PAYT_MPEG12_AUDIO;
+			/*use official RTP/AVP payload type*/
+			OfficialPayloadType = 14;
+			required_rate = 90000;
+			break;
 		}
 		break;
 
@@ -774,13 +780,13 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 
 	if (iod64) fprintf(tmp, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"\n", iod64);
 
-	gf_f64_seek(tmp, 0, SEEK_END);
-	size = gf_f64_tell(tmp);
-	gf_f64_seek(tmp, 0, SEEK_SET);
+	gf_fseek(tmp, 0, SEEK_END);
+	size = gf_ftell(tmp);
+	gf_fseek(tmp, 0, SEEK_SET);
 	sdp = gf_malloc(sizeof(char) * (size_t)(size+1));
 	size = fread(sdp, 1, (size_t)size, tmp);
 	sdp[size] = 0;
-	fclose(tmp);
+	gf_fclose(tmp);
 	return sdp;
 }
 

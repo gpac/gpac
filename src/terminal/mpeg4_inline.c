@@ -218,7 +218,7 @@ void gf_scene_mpeg4_inline_restart(GF_Scene *scene)
 				from = (s64) (scene->root_od->media_ctrl->media_start * 1000);
 			}
 		}
-		gf_scene_restart_dynamic(scene, from, 0);
+		gf_scene_restart_dynamic(scene, from, 0, 0);
 	} else {
 		/*we cannot use gf_mo_restart since it only sets the needs_restart for inline scenes.
 		The rational is that gf_mo_restart can be called from the parent scene (OK) or from the scene itself, in
@@ -382,7 +382,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 			while ((pl = (GF_ProtoLink*)gf_list_enum(check_scene->extern_protos, &i))) {
 				char *url1, *url2;
 				Bool ok;
-				if (!pl->mo) continue;
+				if (!pl->mo || !pl->mo->odm) continue;
 				if (! pl->mo->odm->net_service) continue;
 				if (gf_mo_get_od_id(pl->url) != GF_MEDIA_EXTERNAL_ID) continue;
 				/*not the same url*/

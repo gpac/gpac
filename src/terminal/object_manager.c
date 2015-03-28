@@ -282,7 +282,11 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = GF_FALSE;
 		gf_term_send_event(odm->term, &evt);
-	}
+    }
+    //this is an extra scene not part of the main tree (eg declared from modules), don't post events
+    else if (odm->subscene) {
+        gf_scene_del(odm->subscene);
+    }
 
 	gf_term_lock_net(term, GF_TRUE);
 	/*delete the ODMan*/
@@ -623,7 +627,9 @@ static Bool gf_odm_should_auto_select(GF_ObjectManager *odm)
 	u32 i, count;
 	if (gf_codec_is_scene_or_image(odm->codec)) return GF_TRUE;
 
-	if (odm->parentscene && !odm->parentscene->is_dynamic_scene) return GF_TRUE;
+	if (odm->parentscene && !odm->parentscene->is_dynamic_scene) {
+		return GF_TRUE;
+	}
 
 	if (odm->parentscene && odm->parentscene->root_od->addon) {
 		if (odm->parentscene->root_od->addon->addon_type == GF_ADDON_TYPE_MAIN)
@@ -860,6 +866,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		GF_Event evt;
 
 		if (odm->addon) {
+			Bool role_set = 0;
 			gf_term_lock_net(odm->term, GF_FALSE);
 
 			if (odm->addon->addon_type >= GF_ADDON_TYPE_MAIN) return;
@@ -869,8 +876,22 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 				char *sep = strchr(odm->mo->URLs.vals[0].url, '?');
 				if (sep && strstr(sep, "role=main")) {
 					odm->addon->addon_type = GF_ADDON_TYPE_MAIN;
+					role_set = 1;
 				}
 			}
+
+			if (!role_set) {
+				GF_NetworkCommand com;
+				memset(&com, 0, sizeof(GF_NetworkCommand));
+				com.base.command_type = GF_NET_SERVICE_INFO;
+				com.info.on_channel = gf_list_get(odm->channels, 0);
+				gf_term_service_command(odm->net_service, &com);
+
+				if (com.info.role && !strcmp(com.info.role, "main")) {
+					odm->addon->addon_type = GF_ADDON_TYPE_MAIN;
+				}
+			}
+
 
 			if (odm->addon->addon_type == GF_ADDON_TYPE_ADDITIONAL) {
 				gf_scene_select_object(odm->parentscene, odm);
@@ -1315,7 +1336,7 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 		com.play.speed = FIX2FLT(ch->clock->speed);
 		com.play.start_range = gf_clock_time(ch->clock);
 		com.play.start_range /= 1000;
-		com.play.end_range = -1.0;
+		com.play.end_range = 0;
 		gf_term_service_command(ch->service, &com);
 		if (dec && (dec->Status!=GF_ESM_CODEC_PLAY)) gf_term_start_codec(dec, 0);
 		gf_term_lock_net(ch->odm->term, 0);
@@ -1470,7 +1491,9 @@ void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state)
 
 		if (media_queue_state==2) {
 			odm->action_type = GF_ODM_ACTION_PLAY;
+			gf_term_lock_media_queue(odm->term, 0);
 			gf_odm_play(odm);
+			gf_term_lock_media_queue(odm->term, 1);
 		} else if (!skip_register && (gf_list_find(odm->term->media_queue, odm)<0)) {
 			odm->action_type = GF_ODM_ACTION_PLAY;
 			assert(! (odm->flags & GF_ODM_DESTROYED));
@@ -1579,6 +1602,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 		/*adjust time for addons*/
 		if (odm->parentscene && odm->parentscene->root_od->addon) {
+			com.play.initial_broadcast_play = 0;
 			//addon timing is resolved against timestamps, not media time
 			if (start_range_is_clock) {
 				ck_time = gf_clock_time(ch->clock);
@@ -1605,7 +1629,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 			   ) {
 				com.play.end_range = (s64) odm->parentscene->root_od->media_stop_time / 1000.0;
 			} else {
-				com.play.end_range = -1;
+				com.play.end_range = 0;
 			}
 		}
 
@@ -1619,7 +1643,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 		if (ctrl) {
 			MC_GetRange(ctrl, &com.play.start_range, &com.play.end_range);
 			com.play.speed = FIX2FLT(ctrl->control->mediaSpeed);
-			/*if the channel doesn't control the clock, jump to current time in the controled range, not just the begining*/
+			/*if the channel doesn't control the clock, jump to current time in the controled range, not just the beginning*/
 			if ((ch->esd->ESID!=ch->clock->clockID) && (ck_time>com.play.start_range) && (com.play.end_range>com.play.start_range) && (ck_time<com.play.end_range)) {
 				com.play.start_range = ck_time;
 			}
@@ -1673,7 +1697,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 				gf_clock_buffer_off(ch->clock);
 			}
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting PLAY from %g to %g (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), com.play.start_range, com.play.end_range, ch->clock->clock_init));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH%d: At OTB %u requesting PLAY from %g to %g (clock init %d) - speed %g\n", odm->OD->objectDescriptorID, odm->net_service->url, ch->esd->ESID, gf_clock_time(ch->clock), com.play.start_range, com.play.end_range, ch->clock->clock_init, com.play.speed));
 			gf_term_service_command(ch->service, &com);
 		}
 	}
@@ -1703,7 +1727,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 			if (!odm->subscene->graph_attached)
 				gf_scene_regenerate(odm->subscene);
 			else
-				gf_scene_restart_dynamic(odm->subscene, 0, 1);
+				gf_scene_restart_dynamic(odm->subscene, 0, 1, 0);
 		}
 	}
 	if (odm->ocr_codec) gf_term_start_codec(odm->ocr_codec, 0);
@@ -1835,7 +1859,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 		if (ch->service) {
 			com.base.on_channel = ch;
 			gf_term_service_command(ch->service, &com);
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH %d At OTB %u requesting STOP\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock)));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH %d At OTB %u requesting STOP\n", odm->OD->objectDescriptorID, odm->net_service->url, ch->esd->ESID, gf_clock_time(ch->clock)));
 		}
 	}
 
@@ -1981,10 +2005,14 @@ void gf_odm_set_timeshift_depth(GF_ObjectManager *odm, GF_Channel *ch, u32 strea
 
 GF_Clock *gf_odm_get_media_clock(GF_ObjectManager *odm)
 {
+	while (odm->lower_layer_odm) {
+		odm = odm->lower_layer_odm;
+	}
 	if (odm->codec) return odm->codec->ck;
 	if (odm->ocr_codec) return odm->ocr_codec->ck;
 	if (odm->subscene && odm->subscene->scene_codec) return odm->subscene->scene_codec->ck;
 	if (odm->subscene && odm->subscene->dyn_ck) return odm->subscene->dyn_ck;
+	if (odm->parentscene && odm->parentscene->dyn_ck) return odm->parentscene->dyn_ck;
 	return NULL;
 }
 
@@ -2029,7 +2057,7 @@ void gf_odm_pause(GF_ObjectManager *odm)
 
 	/*stop codecs, and update status for media codecs*/
 	if (odm->codec) {
-		//we don't pause codec but only change its status to PUASE - this will allow decoding until CB is full, which will turn the codec in pause mdoe
+		//we don't pause codec but only change its status to PAUSE - this will allow decoding until CB is full, which will turn the codec in pause mode
 		gf_codec_set_status(odm->codec, GF_ESM_CODEC_PAUSE);
 	} else if (odm->subscene) {
 		if (odm->subscene->scene_codec) {
@@ -2047,7 +2075,7 @@ void gf_odm_pause(GF_ObjectManager *odm)
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 		gf_clock_pause(ch->clock);
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting PAUSE (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH%d: At OTB %u requesting PAUSE (clock init %d)\n", odm->OD->objectDescriptorID, odm->net_service->url, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
 
 		if (odm->state != GF_ODM_STATE_PLAY) continue;
 
@@ -2112,7 +2140,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
 		gf_clock_resume(ch->clock);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %u requesting RESUME (clock init %d)\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH%d: At OTB %u requesting RESUME (clock init %d)\n", odm->OD->objectDescriptorID, odm->net_service->url, ch->esd->ESID, gf_clock_time(ch->clock), ch->clock->clock_init ));
 		if (odm->state!= GF_ODM_STATE_PLAY) continue;
 
 		com.base.on_channel = ch;
@@ -2246,7 +2274,7 @@ void gf_odm_signal_eos(GF_ObjectManager *odm)
 		GF_ObjectManager *root = odm->parentscene->root_od;
 		Bool is_over = 0;
 
-		if (!gf_scene_check_clocks(root->net_service, root->subscene)) return;
+		if (!gf_scene_check_clocks(root->net_service, root->subscene, 0)) return;
 		if (root->subscene->is_dynamic_scene)
 			is_over = 1;
 		else

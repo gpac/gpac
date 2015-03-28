@@ -327,7 +327,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				}
 			}
 		}
-#ifndef FF_API_AVFRAME_LAVC
+#if !defined(FF_API_AVFRAME_LAVC)
 		*frame = avcodec_alloc_frame();
 #else
 		*frame = av_frame_alloc();
@@ -398,7 +398,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 
 #if defined(USE_AVCTX3)
 
-#ifndef FF_API_AVFRAME_LAVC
+#if !defined(FF_API_AVFRAME_LAVC)
 		ffd->audio_frame = avcodec_alloc_frame();
 #else
 		ffd->audio_frame = av_frame_alloc();
@@ -415,11 +415,15 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		case CODEC_ID_GIF:
 #endif
 		case CODEC_ID_RAWVIDEO:
-			ffd->pix_fmt = GF_PIXEL_RGB_24;
+			if ((*ctx)->pix_fmt==PIX_FMT_YUV420P) {
+				ffd->pix_fmt = GF_PIXEL_YV12;
+			} else {
+				ffd->pix_fmt = GF_PIXEL_RGB_24;
+			}
 			break;
 
 		case CODEC_ID_DVD_SUBTITLE:
-#ifndef FF_API_AVFRAME_LAVC
+#if !defined(FF_API_AVFRAME_LAVC)
 			*frame = avcodec_alloc_frame();
 #else
 			*frame = av_frame_alloc();
@@ -745,7 +749,7 @@ redecode:
 		if (gotpic) {
 			//int inputDataSize = av_samples_get_buffer_size(NULL, ctx->channels, ffd->audio_frame->nb_samples, ctx->sample_fmt, 1);
 			gotpic = ffd->audio_frame->nb_samples * 2 * ctx->channels;
-			
+
 		}
 #elif defined(USE_AVCODEC2)
 		gotpic = 192000;
@@ -802,7 +806,7 @@ redecode:
 			u32 i, size = ffd->audio_frame->nb_samples * ctx->channels;
 			s16 *output = (s16 *) outBuffer;
 			s8 *input = (s8 *) ffd->audio_frame->data;
-			for (i=0;i<size;i++) {
+			for (i=0; i<size; i++) {
 				output [i] = input[i] * 128;
 			}
 		} else if (ffd->audio_frame->format==AV_SAMPLE_FMT_S32) {
@@ -810,7 +814,7 @@ redecode:
 			s16 *output = (s16 *) outBuffer;
 			s32 *input = (s32*) ffd->audio_frame->data;
 			shift = 1<<31;
-			for (i=0;i<size;i++) {
+			for (i=0; i<size; i++) {
 				output [i] = input[i] * shift;
 			}
 		} else if (ffd->audio_frame->format==AV_SAMPLE_FMT_S16) {
@@ -850,7 +854,7 @@ redecode:
 		}
 		if (inBufferLength) {
 			*outBufferLength = ffd->out_size;
-			assert(inBufferLength==ffd->out_size);
+//			assert(inBufferLength==ffd->out_size);
 
 			if (ffd->raw_pix_fmt==PIX_FMT_BGR24) {
 				s32 i, j;

@@ -185,10 +185,10 @@ int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char*
 		Bool absolute_url = GF_FALSE;
 		if (strstr(osmo->url, "://")) absolute_url = GF_TRUE;
 		else if (osmo->url[0] == '/') {
-			FILE *test = gf_f64_open(osmo->url, "rb");
+			FILE *test = gf_fopen(osmo->url, "rb");
 			if (test) {
 				absolute_url = GF_TRUE;
-				fclose(test);
+				gf_fclose(test);
 			}
 		}
 		else if ((osmo->url[1] == ':') && ((osmo->url[2] == '\\') || (osmo->url[2] == '/'))) absolute_url = GF_TRUE;
@@ -238,7 +238,7 @@ int Osmozilla_Initialize(Osmozilla *osmo, signed short argc, char* argn[], char*
 	/*check log file*/
 	str = gf_cfg_get_key(osmo->user->config, "General", "LogFile");
 	if (str) {
-		osmo->logs = gf_f64_open(str, "wt");
+		osmo->logs = gf_fopen(str, "wt");
 		if (osmo->logs) gf_log_set_callback(osmo->logs, osmozilla_do_log);
 	}
 

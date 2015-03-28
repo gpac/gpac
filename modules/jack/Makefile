@@ -20,7 +20,7 @@ OBJS= jack.o
 SRCS := $(OBJS:.o=.c) 
 
 
-LIB=gm_jack.$(DYN_LIB_SUFFIX)
+LIB=gm_jack$(DYN_LIB_SUFFIX)
 
 all: $(LIB)
 

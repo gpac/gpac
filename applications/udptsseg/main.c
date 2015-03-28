@@ -47,7 +47,7 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 		sprintf(manifest_name, "%s", manifest);
 	}
 
-	manifest_fp = fopen(tmp_manifest, "w");
+	manifest_fp = gf_fopen(tmp_manifest, "w");
 	if (!manifest_fp) {
 		fprintf(stderr, "Could not create m3u8 manifest file (%s)\n", tmp_manifest);
 		return GF_BAD_PARAM;
@@ -62,7 +62,7 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 	if (end) {
 		fprintf(manifest_fp, "#EXT-X-ENDLIST\n");
 	}
-	fclose(manifest_fp);
+	gf_fclose(manifest_fp);
 
 	if (!rename(tmp_manifest, manifest_name)) {
 		return GF_OK;
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 		}
 		//write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, segment_index, 0, 0);
 	}
-	ts_output_file = fopen(ts_out, "wb");
+	ts_output_file = gf_fopen(ts_out, "wb");
 	if (!ts_output_file) {
 		fprintf(stderr, "Error opening %s\n", ts_out);
 		goto exit;
@@ -265,7 +265,7 @@ int main(int argc, char **argv)
 				}
 				if ((now - last_segment_time) > segment_duration*1000) {
 					last_segment_time = now;
-					fclose(ts_output_file);
+					gf_fclose(ts_output_file);
 					fprintf(stderr, "Closing segment %s (%d bytes)\n", segment_name, last_segment_size);
 					last_segment_size = 0;
 					segment_index++;
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
 					} else {
 						sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
 					}
-					ts_output_file = fopen(segment_name, "wb");
+					ts_output_file = gf_fopen(segment_name, "wb");
 					if (!ts_output_file) {
 						fprintf(stderr, "Error opening segment %s\n", segment_name);
 						goto exit;

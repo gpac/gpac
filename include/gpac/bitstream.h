@@ -236,7 +236,7 @@ u16 gf_bs_read_u16_le(GF_BitStream *bs);
 /*!
  *	\brief variable length integer reading
  *
- *	Reads an integer coded on a variable number of 4-bits chunks. The number of chunks is given by the number of non-0 bits at the begining.
+ *	Reads an integer coded on a variable number of 4-bits chunks. The number of chunks is given by the number of non-0 bits at the beginning.
  *	\param bs the target bitstream
  *	\return the integer value read.
  */
@@ -433,7 +433,7 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes);
 /*!
  *\brief bitstream seeking
  *
- *Seeks the bitstream to a given offset after the begining of the stream. This will perform alignment of the bitstream in all modes.
+ *Seeks the bitstream to a given offset after the beginning of the stream. This will perform alignment of the bitstream in all modes.
  *\warning Results are unpredictable if seeking beyond the bitstream end is performed.
  *\param bs the target bitstream
  *\param offset buffer/file offset to seek to
@@ -459,7 +459,7 @@ void gf_bs_truncate(GF_BitStream *bs);
 	* otherwise, bitstream is not aligned and bits are peeked from current state
  *\return the integer value read
 */
-u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u32 byte_offset);
+u32 gf_bs_peek_bits(GF_BitStream *bs, u32 numBits, u64 byte_offset);
 
 /*!
  *\brief bit reservoir query

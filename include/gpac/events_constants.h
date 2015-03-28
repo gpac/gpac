@@ -232,8 +232,13 @@ typedef enum {
 	GF_EVENT_TEXT_EDITING_END,
 
 	GF_EVENT_QUALITY_SWITCHED,
+	//fire when timeshift depth changes
+	GF_EVENT_TIMESHIFT_DEPTH,
+	//fire when position in timeshift buffer changes
 	GF_EVENT_TIMESHIFT_UPDATE,
+	//fire when position overflows the timeshift buffer
 	GF_EVENT_TIMESHIFT_OVERFLOW,
+	//fire when position underruns the timeshift buffer (eg fast forward / seek in the future)
 	GF_EVENT_TIMESHIFT_UNDERRUN,
 	GF_EVENT_MAIN_ADDON_STATE,
 

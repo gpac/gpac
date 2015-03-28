@@ -397,4 +397,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( directfb_out )
+GPAC_MODULE_STATIC_DECLARATION( directfb_out )

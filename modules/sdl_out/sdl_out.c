@@ -93,4 +93,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( sdl_out )
+GPAC_MODULE_STATIC_DECLARATION( sdl_out )

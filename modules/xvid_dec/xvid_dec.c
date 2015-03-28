@@ -512,4 +512,4 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DELARATION( xvid )
+GPAC_MODULE_STATIC_DECLARATION( xvid )

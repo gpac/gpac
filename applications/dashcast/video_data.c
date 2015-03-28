@@ -67,13 +67,14 @@ int dc_video_input_data_init(VideoInputData *video_input_data, /*int width, int 
 	return 0;
 }
 
-void dc_video_input_data_set_prop(VideoInputData *video_input_data, int index, int width, int height, int crop_x, int crop_y, int pix_fmt)
+void dc_video_input_data_set_prop(VideoInputData *video_input_data, int index, int width, int height, int crop_x, int crop_y, int pix_fmt, AVRational sar)
 {
 	video_input_data->vprop[index].width = width;
 	video_input_data->vprop[index].height = height;
 	video_input_data->vprop[index].crop_x = crop_x;
 	video_input_data->vprop[index].crop_y = crop_y;
 	video_input_data->vprop[index].pix_fmt = pix_fmt;
+	video_input_data->vprop[index].sar = sar;
 }
 
 void dc_video_input_data_destroy(VideoInputData *video_input_data)

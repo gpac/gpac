@@ -6,6 +6,7 @@
 /* @(#) $Id: zutil.c,v 1.2 2010-02-23 16:24:20 jeanlf Exp $ */
 
 #include "zutil.h"
+#include <gpac/setup.h>
 
 #ifndef NO_DUMMY_DECL
 struct internal_state      {

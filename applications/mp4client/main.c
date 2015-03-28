@@ -23,6 +23,7 @@
  *
  */
 
+
 /*includes both terminal and od browser*/
 #include <gpac/terminal.h>
 #include <gpac/term_info.h>
@@ -47,6 +48,10 @@
 #if defined(__DARWIN__) || defined(__APPLE__)
 #include <sys/types.h>
 #include <sys/stat.h>
+
+void carbon_init();
+void carbon_uninit();
+
 #endif
 
 #else
@@ -55,7 +60,7 @@
 
 /*local prototypes*/
 void PrintWorldInfo(GF_Terminal *term);
-void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number);
+void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *URL);
 void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 indent, char *root_name);
 
 void ViewODs(GF_Terminal *term, Bool show_timing);
@@ -65,11 +70,16 @@ static u32 gui_mode = 0;
 
 static Bool restart = GF_FALSE;
 static Bool reload = GF_FALSE;
+
+Bool no_prog = 0;
+
 #if defined(__DARWIN__) || defined(__APPLE__)
 //we keep no decoder thread because of JS_GC deadlocks between threads ...
 static u32 threading_flags = GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_DECODER_THREAD;
+#define VK_MOD  GF_KEY_MOD_ALT
 #else
 static u32 threading_flags = 0;
+#define VK_MOD  GF_KEY_MOD_CTRL
 #endif
 static Bool no_audio = GF_FALSE;
 static Bool term_step = GF_FALSE;
@@ -86,7 +96,7 @@ GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
 static Bool enable_add_ons = GF_TRUE;
-static Fixed playback_speed = 1.0;
+static Fixed playback_speed = FIX_ONE;
 
 static s32 request_next_playlist_item = GF_FALSE;
 FILE *playlist = NULL;
@@ -114,23 +124,54 @@ u32 last_x, last_y;
 Bool right_down = GF_FALSE;
 
 void dump_frame(GF_Terminal *term, char *rad_path, u32 dump_type, u32 frameNum);
+
+enum
+{
+	DUMP_NONE = 0,
+	DUMP_AVI = 1,
+	DUMP_BMP = 2,
+	DUMP_PNG = 3,
+	DUMP_RAW = 4,
+	DUMP_SHA1 = 5,
+
+	//DuMP flags
+	DUMP_DEPTH_ONLY = 1<<16,
+	DUMP_RGB_DEPTH = 1<<17,
+	DUMP_RGB_DEPTH_SHAPE = 1<<18
+};
+
 Bool dump_file(char *the_url, char *out_url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times);
 
 
+static Bool shell_visible = GF_TRUE;
 void hide_shell(u32 cmd_type)
 {
 #if defined(WIN32) && !defined(_WIN32_WCE)
 	typedef HWND (WINAPI *GetConsoleWindowT)(void);
 	HMODULE hk32 = GetModuleHandle("kernel32.dll");
 	GetConsoleWindowT GetConsoleWindow = (GetConsoleWindowT ) GetProcAddress(hk32,"GetConsoleWindow");
-	if (cmd_type==0) ShowWindow( GetConsoleWindow(), SW_SHOW);
-	else if (cmd_type==1) ShowWindow( GetConsoleWindow(), SW_HIDE);
+	if (cmd_type==0) {
+		ShowWindow( GetConsoleWindow(), SW_SHOW);
+		shell_visible = GF_TRUE;
+	}
+	else if (cmd_type==1) {
+		ShowWindow( GetConsoleWindow(), SW_HIDE);
+		shell_visible = GF_FALSE;
+	}
 	else if (cmd_type==2) PostMessage(GetConsoleWindow(), WM_CLOSE, 0, 0);
+
 #endif
 }
 
 
-
+void send_open_url(const char *url)
+{
+	GF_Event evt;
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_NAVIGATE;
+	evt.navigate.to_url = url;
+	gf_term_send_event(term, &evt);
+}
 
 void PrintUsage()
 {
@@ -143,7 +184,10 @@ void PrintUsage()
 	        "\t-rtix fileName: same as -rti but driven by GPAC logs\n"
 	        "\t-quiet:         removes script message, buffering and downloading status\n"
 	        "\t-strict-error:  exit when the player reports its first error\n"
-	        "\t-opt	option:    Overrides an option in the configuration file. String format is section:key=value\n"
+	        "\t-opt option:    Overrides an option in the configuration file. String format is section:key=value. \n"
+	        "\t                  \"section:key=null\" removes the key\n"
+	        "\t                  \"section:*=null\" removes the section\n"
+	        "\t-conf option:   Same as -opt but does not start player.\n"
 	        "\t-log-file file: sets output log file. Also works with -lf\n"
 	        "\t-logs log_args: sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 	        "\t                 levelX can be one of:\n"
@@ -191,14 +235,15 @@ void PrintUsage()
 #else
 	        "\t-no-thread:     disables thread usage (except for audio)\n"
 #endif
-	        "\t-no-audio:	   disables audio \n"
+			"\t-no-compositor-thread:      disables compositor thread (iOS and Android mode)\n"
+	        "\t-no-audio:      disables audio \n"
 	        "\t-no-wnd:        uses windowless mode (Win32 only)\n"
 	        "\t-no-back:       uses transparent background for output window when no background is specified (Win32 only)\n"
 	        "\t-align vh:      specifies v and h alignment for windowless mode\n"
-	        "                   possible v values: t(op), m(iddle), b(ottom)\n"
-	        "                   possible h values: l(eft), m(iddle), r(ight)\n"
-	        "                   default alignment is top-left\n"
-	        "                   default alignment is top-left\n"
+	        "\t                 possible v values: t(op), m(iddle), b(ottom)\n"
+	        "\t                 possible h values: l(eft), m(iddle), r(ight)\n"
+	        "\t                 default alignment is top-left\n"
+	        "\t                 default alignment is top-left\n"
 	        "\t-pause:         pauses at first frame\n"
 	        "\t-play-from T:   starts from T seconds in media\n"
 	        "\t-speed S:       starts with speed S\n"
@@ -207,14 +252,16 @@ void PrintUsage()
 	        "\t-bench:         disable a/v output and bench source decoding (as fast as possible)\n"
 	        "\t-vbench:        disable audio output, video sync bench source decoding/display (as fast as possible)\n"
 	        "\t-sbench:        disable all decoders and bench systems layer (as fast as possible)\n"
-	        "\t-fs:	           starts in fullscreen mode\n"
-	        "\t-views v1:.:vN: creates an auto-stereo scene of N views. vN can be any type of URL supported by GPAC. \n"
-	        "                    in this mode, URL argument of GPAC is ignored, GUI as well.\n"
-	        "                    this is equivalent as using views://v1:.:N as an URL.\n"
+	        "\t-fs:            starts in fullscreen mode\n"
+	        "\t-views v1:.:vN: creates an auto-stereo scene of N views. vN can be any type of URL supported by GPAC.\n"
+	        "\t                 in this mode, URL argument of GPAC is ignored, GUI as well.\n"
+	        "\t                 this is equivalent as using views://v1:.:N as an URL.\n"
 	        "\n"
 	        "\t-exit:          automatically exits when presentation is over\n"
 	        "\t-run-for TIME:  runs for TIME seconds and exits\n"
 	        "\t-service ID:    auto-tune to given service ID in a multiplex\n"
+            "\t-noprog:        disable progress report\n"
+            "\t-no-save:       disable saving config file on exit\n"
 	        "\t-no-addon:      disable automatic loading of media addons declared in source URL\n"
 	        "\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
 	        "\n"
@@ -223,21 +270,22 @@ void PrintUsage()
 	        "\t-png [times]:   dumps given frames to png\n"
 	        "\t-raw [times]:   dumps given frames to raw\n"
 	        "\t-avi [times]:   dumps given file to raw avi\n"
+			"\t-sha [times]:   dumps given file to raw SHA-1 (1 hash per frame)\n"
 	        "\r-out filename:  name of the output file\n"
 	        "\t-rgbds:         dumps the RGBDS pixel format texture\n"
-	        "                   with -avi [times]: dumps an rgbds-format .avi\n"
+	        "\t                 with -avi [times]: dumps an rgbds-format .avi\n"
 	        "\t-rgbd:          dumps the RGBD pixel format texture\n"
-	        "					with -avi [times]: dumps an rgbd-format .avi\n"
+	        "\t                 with -avi [times]: dumps an rgbd-format .avi\n"
 	        "\t-depth:         dumps depthmap (z-buffer) frames\n"
-	        "                   with -avi [times]: dumps depthmap in grayscale .avi\n"
-	        "                   with -bmp: dumps depthmap in grayscale .bmp\n"
-	        "                   with -png: dumps depthmap in grayscale .png\n"
+	        "\t                 with -avi [times]: dumps depthmap in grayscale .avi\n"
+	        "\t                 with -bmp: dumps depthmap in grayscale .bmp\n"
+	        "\t                 with -png: dumps depthmap in grayscale .png\n"
 	        "\t-fps FPS:       specifies frame rate for AVI dumping (default: %f)\n"
 	        "\t-scale s:       scales the visual size (default: 1)\n"
 	        "\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
-	        "\t-show:          show window while dumping (default: no)\n"
+	        "\t-show:          shows window while dumping (default: no)\n"
 	        "\n"
-	        "\t-help:          show this screen\n"
+	        "\t-help:          shows this screen\n"
 	        "\n"
 	        "MP4Client - GPAC command line player and dumper - version "GPAC_FULL_VERSION"\n"
 	        "GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n"
@@ -507,6 +555,16 @@ static const char * read_line_input(char * line, int maxSize, Bool showContent) 
 	return line;
 }
 
+static void do_set_speed(Fixed desired_speed)
+{
+	if (gf_term_set_speed(term, desired_speed) == GF_OK) {
+		playback_speed = desired_speed;
+		fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
+	} else {
+		fprintf(stderr, "Adjusting speed to %g not supported for this content\n", FIX2FLT(desired_speed));
+	}
+}
+
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	if (!term) return 0;
@@ -514,14 +572,24 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	if (gui_mode==1) {
 		if (evt->type==GF_EVENT_QUIT) {
 			Run = 0;
+		} else if (evt->type==GF_EVENT_KEYDOWN) {
+			switch (evt->key.key_code) {
+			case GF_KEY_C:
+				if (evt->key.flags & (GF_KEY_MOD_CTRL|GF_KEY_MOD_ALT)) {
+					hide_shell(shell_visible ? 1 : 0);
+					if (shell_visible) gui_mode=2;
+				}
+				break;
+			default:
+				break;
+			}
 		}
 		return 0;
 	}
 
 	switch (evt->type) {
 	case GF_EVENT_DURATION:
-		Duration = 1000;
-		Duration = (u64) (((s64) Duration) * evt->duration.duration);
+		Duration = (u64) ( 1000 * (s64) evt->duration.duration);
 		CanSeek = evt->duration.can_seek;
 		break;
 	case GF_EVENT_MESSAGE:
@@ -624,6 +692,12 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		case GF_KEY_ESCAPE:
 			gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
 			break;
+		case GF_KEY_C:
+			if (evt->key.flags & (GF_KEY_MOD_CTRL|GF_KEY_MOD_ALT)) {
+				hide_shell(shell_visible ? 1 : 0);
+				if (!shell_visible) gui_mode=1;
+			}
+			break;
 		case GF_KEY_F:
 			if (evt->key.flags & GF_KEY_MOD_CTRL) fprintf(stderr, "Rendering rate: %f FPS\n", gf_term_get_framerate(term, 0));
 			break;
@@ -703,24 +777,18 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			gf_term_toggle_addons(term, addon_visible);
 			break;
 		case GF_KEY_UP:
-			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
-				playback_speed *= 2;
-				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
-				gf_term_set_speed(term, playback_speed);
+			if (evt->key.flags & VK_MOD && is_connected) {
+				do_set_speed(playback_speed * 2);
 			}
 			break;
 		case GF_KEY_DOWN:
-			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
-				playback_speed /= 2;
-				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
-				gf_term_set_speed(term, playback_speed);
+			if (evt->key.flags & VK_MOD && is_connected) {
+				do_set_speed(playback_speed / 2);
 			}
 			break;
 		case GF_KEY_LEFT:
-			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
-				playback_speed = -playback_speed;
-				fprintf(stderr, "Playing at %g speed\n", FIX2FLT(playback_speed));
-				gf_term_set_speed(term, playback_speed);
+			if (evt->key.flags & VK_MOD && is_connected) {
+				do_set_speed(-1 * playback_speed );
 			}
 			break;
 
@@ -777,7 +845,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		u32 i, pos;
 		/*todo - force playlist mode*/
 		if (readonly_playlist) {
-			fclose(playlist);
+			gf_fclose(playlist);
 			playlist = NULL;
 		}
 		readonly_playlist = 0;
@@ -946,6 +1014,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 	return 1;
 }
 
+static u64 last_log_time=0;
 static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
 	FILE *logs = cbk;
@@ -955,13 +1024,17 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 		vsprintf(szMsg, fmt, list);
 		UpdateRTInfo(szMsg + 6 /*"[RTI] "*/);
 	} else {
-		if (log_time_start) fprintf(logs, "[At "LLD"]", gf_sys_clock_high_res() - log_time_start);
+		if (log_time_start) {
+			u64 now = gf_sys_clock_high_res();
+			fprintf(logs, "At "LLD" (diff %d) - ", now - log_time_start, (u32) (now - last_log_time) );
+			last_log_time = now;
+		}
 		if (log_utc_time) {
 			u64 utc_clock = gf_net_get_utc() ;
 			time_t secs = utc_clock/1000;
 			struct tm t;
 			t = *gmtime(&secs);
-			fprintf(logs, "[UTC %d-%02d-%02dT%02d:%02d:%02dZ - TS "LLU"]", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
+			fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS "LLU") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
 		}
 		vfprintf(logs, fmt, list);
 		fflush(logs);
@@ -970,8 +1043,8 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 
 static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 {
-	if (rti_logs) fclose(rti_logs);
-	rti_logs = gf_f64_open(rti_file, "wt");
+	if (rti_logs) gf_fclose(rti_logs);
+	rti_logs = gf_fopen(rti_file, "wt");
 	if (rti_logs) {
 		fprintf(rti_logs, "!! GPAC RunTime Info ");
 		if (url) fprintf(rti_logs, "for file %s", url);
@@ -1011,13 +1084,27 @@ void set_cfg_option(char *opt_string)
 	strcpy(szKey, sep);
 	strcpy(szVal, sep2+1);
 	sep2[0] = '=';
-	if (!stricmp(szVal, "null")) szVal[0]=0;
+	
+	if (!stricmp(szKey, "*")) {
+		if (stricmp(szVal, "null")) {
+			fprintf(stderr, "Badly formatted option %s - expected Section:*=null\n", opt_string);
+			return;
+		}
+		gf_cfg_del_section(cfg_file, szSec);
+		return;
+	}
+	
+	if (!stricmp(szVal, "null")) {
+		szVal[0]=0;
+	}
 	gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
 }
 
 #ifdef WIN32
 #include <wincon.h>
 #endif
+
+static void progress_quiet(const void *cbck, const char *title, u64 done, u64 total) { }
 
 int main (int argc, char **argv)
 {
@@ -1030,10 +1117,10 @@ int main (int argc, char **argv)
 	Bool logs_set = GF_FALSE;
 	Bool start_fs = GF_FALSE;
 	Bool use_rtix = GF_FALSE;
-	Bool rgbds_dump = GF_FALSE;
-	Bool rgbd_dump = GF_FALSE;
-	Bool depth_dump = GF_FALSE;
 	Bool pause_at_first = GF_FALSE;
+	Bool no_cfg_save = GF_FALSE;
+	Bool is_cfg_only = GF_FALSE;
+
 	Double play_from = 0;
 #ifdef GPAC_MEMORY_TRACKING
 	Bool enable_mem_tracker = GF_FALSE;
@@ -1052,7 +1139,7 @@ int main (int argc, char **argv)
 
 	memset(&user, 0, sizeof(GF_User));
 
-	dump_mode = 0;
+	dump_mode = DUMP_NONE;
 	fill_ar = visible = GF_FALSE;
 	url_arg = out_arg = the_cfg = rti_file = views = default_com = NULL;
 	nb_times = 0;
@@ -1102,9 +1189,14 @@ int main (int argc, char **argv)
 		logs_set = GF_TRUE;
 	}
 
+	if (!gui_mode) {
+		str = gf_cfg_get_key(cfg_file, "General", "ForceGUI");
+		if (str && !strcmp(str, "yes")) gui_mode = 1;
+	}
+
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
-		
+
 		if (!strcmp(arg, "-rti")) {
 			rti_file = argv[i+1];
 			i++;
@@ -1123,7 +1215,7 @@ int main (int argc, char **argv)
 		} else if (!strcmp(arg, "-strict-error")) {
 			gf_log_set_strict_error(1);
 		} else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
-			logfile = gf_f64_open(argv[i+1], "wt");
+			logfile = gf_fopen(argv[i+1], "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
 		} else if (!strcmp(arg, "-logs") ) {
@@ -1142,6 +1234,7 @@ int main (int argc, char **argv)
 #else
 		else if (!strcmp(arg, "-no-thread")) threading_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_WINDOW_NO_THREAD;
 #endif
+		else if (!strcmp(arg, "-no-compositor-thread")) threading_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
@@ -1149,56 +1242,64 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-opt")) {
 			set_cfg_option(argv[i+1]);
 			i++;
+		} else if (!strcmp(arg, "-conf")) {
+			set_cfg_option(argv[i+1]);
+			is_cfg_only=GF_TRUE;
+			i++;
 		}
 		else if (!strcmp(arg, "-ifce")) {
 			gf_cfg_set_key(cfg_file, "Network", "DefaultMCastInterface", argv[i+1]);
 			i++;
 		}
-		else if (!stricmp(arg, "-help")) {
-			PrintUsage();
-			return 1;
-		}
+        else if (!stricmp(arg, "-help")) {
+            PrintUsage();
+            return 1;
+        }
+        else if (!stricmp(arg, "-noprog")) {
+            no_prog=1;
+            gf_set_progress_callback(NULL, progress_quiet);
+        }
+        else if (!stricmp(arg, "--no-save")) {
+			no_cfg_save=1;
+        }
+		
 
 		/*arguments only used in non-gui mode*/
 		else if (!gui_mode) {
 			if (arg[0] != '-') {
 				url_arg = arg;
-			} 
+			}
 			else if (!strcmp(arg, "-out")) {
-				out_arg = gf_strdup(argv[i+1]);
+				out_arg = argv[i+1];
+                i++;
 			}
 			else if (!stricmp(arg, "-fps")) {
 				fps = atof(argv[i+1]);
 				i++;
-			} else if (!strcmp(arg, "-avi")) {
-				if (rgbds_dump) dump_mode = 5;
-				else if (depth_dump) dump_mode = 8;
-				else if (rgbd_dump) dump_mode = 10;
-				else dump_mode=1;
+			} else if (!strcmp(arg, "-avi") || !strcmp(arg, "-sha")) {
+				dump_mode &= 0xFFFF0000;
+
+				if (!strcmp(arg, "-sha")) dump_mode |= DUMP_SHA1;
+				else dump_mode |= DUMP_AVI;
+
 				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
 			} else if (!strcmp(arg, "-rgbds")) { /*get dump in rgbds pixel format*/
-				rgbds_dump = 1;
-				dump_mode=6;                    /* rgbds texture directly*/
-				if (dump_mode==1) dump_mode = 5;    /* .avi rgbds dump*/
+				dump_mode |= DUMP_RGB_DEPTH_SHAPE;
 			} else if (!strcmp(arg, "-rgbd")) { /*get dump in rgbd pixel format*/
-				rgbd_dump = 1;
-				dump_mode=9;  /* rgbd texture directly*/
-				if (dump_mode==1) dump_mode = 10;    /* .avi rgbds dump*/
+				dump_mode |= DUMP_RGB_DEPTH;
 			} else if (!strcmp(arg, "-depth")) {
-				depth_dump = 1;
-				if (dump_mode==2) dump_mode=7; /* grayscale .bmp depth dump*/
-				else if (dump_mode==1) dump_mode=8; /* .avi depth dump*/
-				else if (dump_mode==11)dump_mode=12;
-				else dump_mode=4;   /*depth dump*/
+				dump_mode |= DUMP_DEPTH_ONLY;
 			} else if (!strcmp(arg, "-bmp")) {
-				if(depth_dump) dump_mode=7; /*grayscale depth .bmp dump*/
-				else dump_mode=2;
+				dump_mode &= 0xFFFF0000;
+				dump_mode |= DUMP_BMP;
 				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
 			} else if (!strcmp(arg, "-png")) {
-				dump_mode=11;
+				dump_mode &= 0xFFFF0000;
+				dump_mode |= DUMP_PNG;
 				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
 			} else if (!strcmp(arg, "-raw")) {
-				dump_mode = 3;
+				dump_mode &= 0xFFFF0000;
+				dump_mode |= DUMP_RAW;
 				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
 			} else if (!stricmp(arg, "-scale")) {
 				sscanf(argv[i+1], "%f", &scale);
@@ -1250,33 +1351,55 @@ int main (int argc, char **argv)
 			else if (!stricmp(arg, "-service")) {
 				initial_service_id = atoi(argv[i+1]);
 				i++;
+			} else if (!strcmp(arg, "-mem-track")) {
+
 			} else {
 				fprintf(stderr, "Unrecognized option %s - skipping\n", arg);
 			}
 		}
 	}
+    if (is_cfg_only) {
+        gf_cfg_del(cfg_file);
+        fprintf(stderr, "GPAC Config updated\n");
+        return 0;
+    }
 	if (dump_mode && !url_arg ) {
 		fprintf(stderr, "Missing argument for dump\n");
 		PrintUsage();
-		if (logfile) fclose(logfile);
+		if (logfile) gf_fclose(logfile);
 		return 1;
+	}
+
+	if (!gui_mode && !url_arg && (gf_cfg_get_key(cfg_file, "General", "StartupFile") != NULL)) {
+		gui_mode=1;
+	}
+
+#ifdef WIN32
+	if (gui_mode==1) {
+		const char *opt;
+		TCHAR buffer[1024];
+		DWORD res = GetCurrentDirectory(1024, buffer);
+		buffer[res] = 0;
+		opt = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
+		if (strstr(opt, buffer)) {
+			gui_mode=1;
+		} else {
+			gui_mode=2;
+		}
+	}
+#endif
+
+	if (gui_mode==1) {
+		hide_shell(1);
 	}
 
 	if (!url_arg && simulation_time_in_ms)
 		simulation_time_in_ms += gf_sys_clock();
 
-	if (!gui_mode) {
-		str = gf_cfg_get_key(cfg_file, "General", "ForceGUI");
-		if (str && !strcmp(str, "yes")) gui_mode = 1;
-	}
-
-	if (gui_mode) {
-		if (gui_mode==1) {
-			hide_shell(1);
-			//user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;
-		}
-	}
-
+#if defined(__DARWIN__) || defined(__APPLE__)
+    carbon_init();
+#endif
+    
 
 	if (dump_mode) rti_file = NULL;
 
@@ -1295,8 +1418,10 @@ int main (int argc, char **argv)
 
 	/*setup dumping options*/
 	if (dump_mode) {
-		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
+		user.init_flags |= GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
 		if (visible || dump_mode==8) user.init_flags |= GF_TERM_INIT_HIDE;
+		gf_cfg_set_key(cfg_file, "Audio", "DriverName", "Raw Audio Output");
+		no_cfg_save=GF_TRUE;
 	} else {
 		init_w = forced_width;
 		init_h = forced_height;
@@ -1309,7 +1434,7 @@ int main (int argc, char **argv)
 		if (user.modules) gf_modules_del(user.modules);
 		gf_cfg_del(cfg_file);
 		gf_sys_close();
-		if (logfile) fclose(logfile);
+		if (logfile) gf_fclose(logfile);
 		return 1;
 	}
 	fprintf(stderr, "Modules Found : %d \n", i);
@@ -1324,6 +1449,8 @@ int main (int argc, char **argv)
 
 	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = 1;
 
+	//in dump mode we don't want to rely on system clock but on the number of samples being consumed
+	if (dump_mode) user.init_flags |= GF_TERM_USE_AUDIO_HW_CLOCK;
 
 	if (bench_mode) {
 		gf_cfg_discard_changes(user.config);
@@ -1348,7 +1475,7 @@ int main (int argc, char **argv)
 		gf_cfg_discard_changes(cfg_file);
 		gf_cfg_del(cfg_file);
 		gf_sys_close();
-		if (logfile) fclose(logfile);
+		if (logfile) gf_fclose(logfile);
 		return 1;
 	}
 	fprintf(stderr, "Terminal Loaded in %d ms\n", gf_sys_clock()-i);
@@ -1399,9 +1526,9 @@ int main (int argc, char **argv)
 		}
 		dump_file(url_arg, out_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
 		Run = 0;
-	} 
+	}
 	else if (views) {
-	} 
+	}
 	/*connect if requested*/
 	else if (!gui_mode && url_arg) {
 		char *ext;
@@ -1423,7 +1550,7 @@ int main (int argc, char **argv)
 				}
 			}
 
-			playlist = e ? NULL : gf_f64_open(the_url, "rt");
+			playlist = e ? NULL : gf_fopen(the_url, "rt");
 			readonly_playlist = 1;
 			if (playlist) {
 				if (1 > fscanf(playlist, "%s", the_url))
@@ -1449,6 +1576,7 @@ int main (int argc, char **argv)
 			strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
 			gf_term_connect(term, str);
 			startup_file = 1;
+			is_connected = 1;
 		}
 	}
 	if (gui_mode==2) gui_mode=0;
@@ -1467,8 +1595,9 @@ int main (int argc, char **argv)
 
 
 	while (Run) {
+
 		/*we don't want getchar to block*/
-		if (gui_mode || !gf_prompt_has_input()) {
+		if ((gui_mode==1) || !gf_prompt_has_input()) {
 			if (reload) {
 				reload = 0;
 				gf_term_disconnect(term);
@@ -1519,7 +1648,13 @@ int main (int argc, char **argv)
 force_input:
 		switch (c) {
 		case 'q':
-			Run = 0;
+			{
+				GF_Event evt;
+				memset(&evt, 0, sizeof(GF_Event));
+				evt.type = GF_EVENT_QUIT;
+				gf_term_send_event(term, &evt);
+			}
+//			Run = 0;
 			break;
 		case 'X':
 			exit(0);
@@ -1544,11 +1679,11 @@ force_input:
 				fprintf(stderr, "Cannot read the absolute URL, aborting.\n");
 				break;
 			}
-			playlist = gf_f64_open(the_url, "rt");
+			playlist = gf_fopen(the_url, "rt");
 			if (playlist) {
 				if (1 >	fscanf(playlist, "%s", the_url)) {
 					fprintf(stderr, "Cannot read any URL from playlist, aborting.\n");
-					fclose( playlist);
+					gf_fclose( playlist);
 					break;
 				}
 				fprintf(stderr, "Opening URL %s\n", the_url);
@@ -1685,11 +1820,15 @@ force_input:
 		case 'i':
 			if (is_connected) {
 				u32 ID;
-				do {
-					fprintf(stderr, "Enter OD ID (0 for main OD): ");
-					fflush(stderr);
-				} while( 1 > scanf("%ud", &ID));
-				ViewOD(term, ID, (u32)-1);
+				fprintf(stderr, "Enter OD ID (0 for main OD): ");
+				fflush(stderr);
+				if (scanf("%ud", &ID) == 1) {
+					ViewOD(term, ID, (u32)-1, NULL);
+				} else {
+					char str_url[GF_MAX_PATH];
+					scanf("%s", str_url);
+					ViewOD(term, 0, (u32)-1, str_url);
+				}
 			}
 			break;
 		case 'j':
@@ -1699,7 +1838,7 @@ force_input:
 					fprintf(stderr, "Enter OD number (0 for main OD): ");
 					fflush(stderr);
 				} while( 1 > scanf("%ud", &num));
-				ViewOD(term, (u32)-1, num);
+				ViewOD(term, (u32)-1, num, NULL);
 			}
 			break;
 		case 'b':
@@ -1978,13 +2117,13 @@ force_input:
 						fprintf(stderr, "Error encoding PNG %s\n", gf_error_to_string(e) );
 						nb_pass = 0;
 					} else {
-						FILE *png = gf_f64_open(szFileName, "wb");
+						FILE *png = gf_fopen(szFileName, "wb");
 						if (!png) {
 							fprintf(stderr, "Error writing file %s\n", szFileName);
 							nb_pass = 0;
 						} else {
 							gf_fwrite(dst, dst_size, 1, png);
-							fclose(png);
+							gf_fclose(png);
 							fprintf(stderr, "Dump to %s\n", szFileName);
 						}
 					}
@@ -2036,26 +2175,50 @@ force_input:
 		PrintAVInfo(GF_TRUE);
 	}
 
+	/*FIXME: we have an issue in cleaning up after playing in bench mode and run-for 0 (buildbot tests). We for now disable error checks after run-for is done*/
+	if (simulation_time_in_ms) {
+		gf_log_set_strict_error(0);
+	}
+
+
 	i = gf_sys_clock();
 	gf_term_disconnect(term);
 	if (rti_file) UpdateRTInfo("Disconnected\n");
 
 	fprintf(stderr, "Deleting terminal... ");
-	if (playlist) fclose(playlist);
+	if (playlist) gf_fclose(playlist);
+
+#if defined(__DARWIN__) || defined(__APPLE__)
+	carbon_uninit();
+#endif
+
 	gf_term_del(term);
 	fprintf(stderr, "done (in %d ms) - ran for %d ms\n", gf_sys_clock() - i, gf_sys_clock());
 
 	fprintf(stderr, "GPAC cleanup ...\n");
 	gf_modules_del(user.modules);
+
+	if (no_cfg_save)
+		gf_cfg_discard_changes(cfg_file);
+
 	gf_cfg_del(cfg_file);
 
 	gf_sys_close();
-	if (rti_logs) fclose(rti_logs);
-	if (logfile) fclose(logfile);
+
+	if (rti_logs) gf_fclose(rti_logs);
+	if (logfile) gf_fclose(logfile);
 
 	if (gui_mode) {
 		hide_shell(2);
 	}
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
+        gf_memory_print();
+		return 2;
+	}
+#endif
+
 	return 0;
 }
 
@@ -2318,7 +2481,7 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 	}
 }
 
-void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
+void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 {
 	GF_MediaInfo odi;
 	u32 i, j, count, d_enum,id;
@@ -2328,8 +2491,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 	if (!root_odm) return;
 
 	odm = NULL;
-	if ((!OD_ID && (number == (u32)(-1))) ||
-	        ((OD_ID == (u32)(-1)) && !number)) {
+	if (!szURL && ((!OD_ID && (number == (u32)-1)) || ((OD_ID == (u32)(-1)) && !number))) {
 		odm = root_odm;
 		if ((gf_term_get_object_info(term, odm, &odi) != GF_OK)) odm=NULL;
 	} else {
@@ -2338,6 +2500,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 			odm = gf_term_get_object(term, root_odm, i);
 			if (!odm) break;
 			if (gf_term_get_object_info(term, odm, &odi) == GF_OK) {
+				if (szURL && strstr(odi.service_url, szURL)) break;
 				if ((number == (u32)(-1)) && (odi.od->objectDescriptorID == OD_ID)) break;
 				else if (i == (u32)(number-1)) break;
 			}
@@ -2345,6 +2508,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 		}
 	}
 	if (!odm) {
+		if (szURL) fprintf(stderr, "cannot find OD for URL %s\n", szURL);
 		if (number == (u32)-1) fprintf(stderr, "cannot find OD with ID %d\n", OD_ID);
 		else fprintf(stderr, "cannot find OD with number %d\n", number);
 		return;

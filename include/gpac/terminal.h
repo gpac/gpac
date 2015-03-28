@@ -111,7 +111,7 @@ GF_Err gf_term_get_visual_output_size(GF_Terminal *term, u32 *width, u32 *height
 /*process shortcuts*/
 void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev);
 
-void gf_term_set_speed(GF_Terminal *term, Fixed speed);
+GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed);
 
 /*sends a set of scene commands (BT, XMT, X3D, LASeR+XML) to the scene
 type indicates the language used - accepted values are
@@ -148,10 +148,16 @@ for until next frame should be drawn before returning.
 */
 u32 gf_term_process_step(GF_Terminal *term);
 
-/*decodes all pending media and render frame until no scene changes are detected.
+/*decodes all pending media and render frame until no scene changes are detected and no clocks is buffering.
+This does not flush the backbuffer to the front buffer, you have to call @gf_term_process_flush_video for this
 NOTE: This can only be used when the terminal runs without visual thread (GF_TERM_NO_VISUAL_THREAD flag set)
 */
 GF_Err gf_term_process_flush(GF_Terminal *term);
+
+/*flushes video backbuffer to screen. This is typically used after gf_term_process_flush, once the screen buffer is no longer needed
+NOTE: This can only be used when the terminal runs without visual thread (GF_TERM_NO_VISUAL_THREAD flag set)
+*/
+GF_Err gf_term_process_flush_video(GF_Terminal *term);
 
 /*post user interaction to terminal*/
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
@@ -202,6 +208,10 @@ typedef struct _od_manager GF_ObjectManager;
 this will call all decoders to adjust their quality levels
 VERY BASIC INTERFACE*/
 void gf_term_switch_quality(GF_Terminal *term, Bool up);
+
+
+/*get global clock in milliseconds*/
+u32 gf_term_get_clock(GF_Terminal *term);
 
 #ifdef __cplusplus
 }
