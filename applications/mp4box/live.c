@@ -232,7 +232,7 @@ RTPChannel *next_carousel(LiveSession *sess, u32 *timeout)
 	time = (u32) -1;
 	count = gf_list_count(sess->streams);
 	for (i=0; i<count; i++) {
-		RTPChannel *ch = gf_list_get(sess->streams, i);
+		RTPChannel *ch = (RTPChannel*)gf_list_get(sess->streams, i);
 		if (!ch->carousel_period) continue;
 		if (!ch->carousel_size) continue;
 
@@ -262,7 +262,7 @@ static void live_session_callback(void *calling_object, u16 ESID, char *data, u3
 	RTPChannel *rtpch;
 	u32 i=0;
 
-	while ( (rtpch = gf_list_enum(livesess->streams, &i))) {
+	while ( (rtpch = (RTPChannel*)gf_list_enum(livesess->streams, &i))) {
 		if (rtpch->ESID == ESID) {
 
 			/*store carousel data*/

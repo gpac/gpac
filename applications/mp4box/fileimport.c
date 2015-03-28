@@ -852,7 +852,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	}
 	if (check_track_for_shvc) {
 		if (svc_mode) {
-			e = gf_media_split_shvc(import.dest, check_track_for_shvc, (svc_mode==1) ? 0 : 1, (svc_mode==3) ? GF_FALSE : GF_TRUE);
+			e = gf_media_split_shvc(import.dest, check_track_for_shvc, (svc_mode==1) ? GF_FALSE : GF_TRUE, (svc_mode==3) ? GF_FALSE : GF_TRUE);
 			if (e) goto exit;
 		} else {
 			//TODO - merge
@@ -1489,9 +1489,9 @@ static Bool merge_parameter_set(GF_List *src, GF_List *dst, const char *name)
 	u32 j, k;
 	for (j=0; j<gf_list_count(src); j++) {
 		Bool found = GF_FALSE;
-		GF_AVCConfigSlot *slc = gf_list_get(src, j);
+		GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_list_get(src, j);
 		for (k=0; k<gf_list_count(dst); k++) {
-			GF_AVCConfigSlot *slc_dst = gf_list_get(dst, k);
+			GF_AVCConfigSlot *slc_dst = (GF_AVCConfigSlot*)gf_list_get(dst, k);
 			if ( (slc->size==slc_dst->size) && !memcmp(slc->data, slc_dst->data, slc->size) ) {
 				found = GF_TRUE;
 				break;
@@ -1574,9 +1574,9 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 
 		/*merge PS*/
 		for (i=0; i<gf_list_count(hevc_src->param_array); i++) {
 			u32 k;
-			GF_HEVCParamArray *src_ar = gf_list_get(hevc_src->param_array, i);
+			GF_HEVCParamArray *src_ar = (GF_HEVCParamArray*)gf_list_get(hevc_src->param_array, i);
 			for (k=0; k<gf_list_count(hevc_dst->param_array); k++) {
-				GF_HEVCParamArray *dst_ar = gf_list_get(hevc_dst->param_array, k);
+				GF_HEVCParamArray *dst_ar = (GF_HEVCParamArray*)gf_list_get(hevc_dst->param_array, k);
 				if (dst_ar->type==src_ar->type) {
 					if (!merge_parameter_set(src_ar->nalus, dst_ar->nalus, "SPS"))
 						dst_tk = 0;
@@ -2083,7 +2083,7 @@ Bool cat_enumerate(void *cbk, char *szName, char *szPath, GF_FileEnumInfo *file_
 	strcat(szFileName, cat_enum->szOpt);
 
 	e = cat_isomedia_file(cat_enum->dest, szFileName, cat_enum->import_flags, cat_enum->force_fps, cat_enum->frames_per_sample, cat_enum->tmp_dir, cat_enum->force_cat, cat_enum->align_timelines, cat_enum->allow_add_in_command);
-	if (e) return 1;
+	if (e) return GF_TRUE;
 	return GF_FALSE;
 }
 
@@ -2206,7 +2206,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 				inf->field_ptr = &inf->new_node;
 				inf->fieldType = GF_SG_VRML_SFNODE;
 				gf_node_register(inf->new_node, NULL);
-				au = gf_list_get(stats->base_layer->AUs, 0);
+				au = (GF_AUContext*)gf_list_get(stats->base_layer->AUs, 0);
 				gf_list_insert(au->commands, com, 0);
 				qp->useEfficientCoding = 1;
 				qp->textureCoordinateQuant = 0;
@@ -2312,7 +2312,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	if (!iod) {
 		count = 0;
 		for (i=0; i<gf_list_count(ctx->streams); i++) {
-			sc = gf_list_get(ctx->streams, i);
+			sc = (GF_StreamContext*)gf_list_get(ctx->streams, i);
 			if (sc->streamType == GF_STREAM_OD) count++;
 		}
 		if (!iod && count>1) return GF_NOT_SUPPORTED;
@@ -2322,14 +2322,14 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 
 	for (i=0; i<gf_list_count(ctx->streams); i++) {
 		u32 nbb;
-		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
+		GF_StreamContext *sc = (GF_StreamContext*)gf_list_get(ctx->streams, i);
 		esd = NULL;
 		if (sc->streamType != GF_STREAM_SCENE) continue;
 
 		esd = NULL;
 		if (iod) {
 			for (j=0; j<gf_list_count(iod->ESDescriptors); j++) {
-				esd = gf_list_get(iod->ESDescriptors, j);
+				esd = (GF_ESD*)gf_list_get(iod->ESDescriptors, j);
 				if (esd->decoderConfig && esd->decoderConfig->streamType == GF_STREAM_SCENE) {
 					if (!sc->ESID) sc->ESID = esd->ESID;
 					if (sc->ESID == esd->ESID) {
@@ -2404,7 +2404,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		for (j=1; j<gf_list_count(sc->AUs); j++) {
 			char *data;
 			u32 data_len;
-			au = gf_list_get(sc->AUs, j);
+			au = (GF_AUContext*)gf_list_get(sc->AUs, j);
 			e = gf_bifs_encode_au(bifsenc, sc->ESID, au->commands, &data, &data_len);
 			if (data) {
 				sprintf(szName, "%s%02d.bifs", szRad, j);
@@ -2534,7 +2534,7 @@ exit:
 void sax_node_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	char szCheck[100];
-	GF_List *imports = sax_cbck;
+	GF_List *imports = (GF_List*)sax_cbck;
 	GF_XMLAttribute *att;
 	u32 i=0;
 
@@ -2556,16 +2556,16 @@ static Bool wgt_enum_files(void *cbck, char *file_name, char *file_path, GF_File
 {
 	WGTEnum *wgt = (WGTEnum *)cbck;
 
-	if (!strcmp(wgt->root_file, file_path)) return 0;
+	if (!strcmp(wgt->root_file, file_path)) return GF_FALSE;
 	/*remove CVS stuff*/
-	if (strstr(file_path, ".#")) return 0;
+	if (strstr(file_path, ".#")) return GF_FALSE;
 	gf_list_add(wgt->imports, gf_strdup(file_path) );
-	return 0;
+	return GF_FALSE;
 }
 static Bool wgt_enum_dir(void *cbck, char *file_name, char *file_path, GF_FileEnumInfo *file_info)
 {
-	if (!stricmp(file_name, "cvs") || !stricmp(file_name, ".svn") || !stricmp(file_name, ".git")) return 0;
-	gf_enum_directory(file_path, 0, wgt_enum_files, cbck, NULL);
+	if (!stricmp(file_name, "cvs") || !stricmp(file_name, ".svn") || !stricmp(file_name, ".git")) return GF_FALSE;
+	gf_enum_directory(file_path, GF_FALSE, wgt_enum_files, cbck, NULL);
 	return gf_enum_directory(file_path, GF_TRUE, wgt_enum_dir, cbck, NULL);
 }
 
@@ -2615,7 +2615,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 		wgt.dir = root_dir;
 		wgt.root_file = file_name;
 		wgt.imports = imports;
-		gf_enum_directory(wgt.dir, 0, wgt_enum_files, &wgt, NULL);
+		gf_enum_directory(wgt.dir, GF_FALSE, wgt_enum_files, &wgt, NULL);
 		gf_enum_directory(wgt.dir, GF_TRUE, wgt_enum_dir, &wgt, NULL);
 		ascii = GF_TRUE;
 	} else {
@@ -2731,7 +2731,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 			encoding = "binary-gzip";
 		}
 
-		e = gf_isom_add_meta_item(file, GF_TRUE, 0, 0, item, name, 0, mime, NULL, NULL,  NULL);
+		e = gf_isom_add_meta_item(file, GF_TRUE, 0, GF_FALSE, item, name, 0, mime, NULL, NULL,  NULL);
 		gf_free(name);
 		if (e) goto exit;
 	}
