@@ -74,7 +74,7 @@ void dc_unregister_libav()
 
 	if (av_mutex) {
 		while (gf_list_count(av_mutex)) {
-			GF_Mutex *mx = gf_list_last(av_mutex);
+			GF_Mutex *mx = (GF_Mutex*)gf_list_last(av_mutex);
 			gf_list_rem_last(av_mutex);
 			gf_mx_del(mx);
 		}

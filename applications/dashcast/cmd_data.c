@@ -228,14 +228,14 @@ int dc_read_configuration(CmdData *cmd_data)
 	fprintf(stdout, "\33[34m\33[1m");
 	fprintf(stdout, "Configurations:\n");
 	for (i=0; i<gf_list_count(cmd_data->video_lst); i++) {
-		VideoDataConf *video_data_conf = gf_list_get(cmd_data->video_lst, i);
+		VideoDataConf *video_data_conf = (VideoDataConf*)gf_list_get(cmd_data->video_lst, i);
 		fprintf(stdout, "    id:%s\tres:%dx%d\tvbr:%d\n", video_data_conf->filename,
 		        video_data_conf->width, video_data_conf->height,
 		        video_data_conf->bitrate/*, video_data_conf->framerate, video_data_conf->codec*/);
 	}
 
 	for (i=0; i<gf_list_count(cmd_data->audio_lst); i++) {
-		AudioDataConf *audio_data_conf = gf_list_get(cmd_data->audio_lst, i);
+		AudioDataConf *audio_data_conf = (AudioDataConf*)gf_list_get(cmd_data->audio_lst, i);
 		fprintf(stdout, "    id:%s\tabr:%d\n", audio_data_conf->filename, audio_data_conf->bitrate/*, audio_data_conf->samplerate, audio_data_conf->channels,audio_data_conf->codec*/);
 	}
 	fprintf(stdout, "\33[0m");
@@ -287,7 +287,7 @@ int dc_read_switch_config(CmdData *cmd_data)
 		const char *section_type = gf_cfg_get_key(conf, section_name, "type");
 
 		if (strcmp(section_type, "video") == 0) {
-			VideoDataConf *video_data_conf = gf_malloc(sizeof(VideoDataConf));
+			VideoDataConf *video_data_conf = (VideoDataConf*)gf_malloc(sizeof(VideoDataConf));
 
 			strcpy(video_data_conf->source_id, section_name);
 			strcpy(video_data_conf->filename, gf_cfg_get_key(conf, section_name, "source"));
@@ -307,7 +307,7 @@ int dc_read_switch_config(CmdData *cmd_data)
 		}
 		else if (strcmp(section_type, "audio") == 0)
 		{
-			AudioDataConf *audio_data_conf = gf_malloc(sizeof(AudioDataConf));
+			AudioDataConf *audio_data_conf = (AudioDataConf*)gf_malloc(sizeof(AudioDataConf));
 			strcpy(audio_data_conf->source_id, section_name);
 			strcpy(audio_data_conf->filename, gf_cfg_get_key(conf, section_name, "source"));
 
@@ -328,14 +328,14 @@ int dc_read_switch_config(CmdData *cmd_data)
 	fprintf(stdout, "\33[34m\33[1m");
 	fprintf(stdout, "Sources:\n");
 	for (i=0; i<gf_list_count(cmd_data->vsrc); i++) {
-		VideoDataConf *video_data_conf = gf_list_get(cmd_data->vsrc, i);
+		VideoDataConf *video_data_conf = (VideoDataConf*)gf_list_get(cmd_data->vsrc, i);
 		strftime(start_time, 20, "%Y-%m-%d %H:%M:%S", localtime(&video_data_conf->start_time));
 		strftime(end_time, 20, "%Y-%m-%d %H:%M:%S", localtime(&video_data_conf->end_time));
 		fprintf(stdout, "    id:%s\tsource:%s\tstart:%s\tend:%s\n", video_data_conf->source_id, video_data_conf->filename, start_time, end_time);
 	}
 
 	for (i=0; i<gf_list_count(cmd_data->asrc); i++) {
-		AudioDataConf *audio_data_conf = gf_list_get(cmd_data->asrc, i);
+		AudioDataConf *audio_data_conf = (AudioDataConf*)gf_list_get(cmd_data->asrc, i);
 		strftime(start_time, 20, "%Y-%m-%d %H:%M:%S", localtime(&audio_data_conf->start_time));
 		strftime(end_time, 20, "%Y-%m-%d %H:%M:%S", localtime(&audio_data_conf->end_time));
 		fprintf(stdout, "    id:%s\tsource:%s\tstart:%s\tend:%s\n", audio_data_conf->source_id, audio_data_conf->filename, start_time, end_time);
@@ -356,7 +356,7 @@ void dc_cmd_data_init(CmdData *cmd_data)
 	cmd_data->ast_offset = -1;
 	cmd_data->min_buffer_time = -1;
 	cmd_data->minimum_update_period = -1;
-	cmd_data->use_source_timing = 1;
+	cmd_data->use_source_timing = GF_TRUE;
 
 	cmd_data->audio_lst = gf_list_new();
 	cmd_data->video_lst = gf_list_new();
@@ -367,14 +367,14 @@ void dc_cmd_data_init(CmdData *cmd_data)
 void dc_cmd_data_destroy(CmdData *cmd_data)
 {
 	while (gf_list_count(cmd_data->audio_lst)) {
-		AudioDataConf *audio_data_conf = gf_list_last(cmd_data->audio_lst);
+		AudioDataConf *audio_data_conf = (AudioDataConf*)gf_list_last(cmd_data->audio_lst);
 		gf_list_rem_last(cmd_data->audio_lst);
 		gf_free(audio_data_conf);
 	}
 	gf_list_del(cmd_data->audio_lst);
 
 	while (gf_list_count(cmd_data->video_lst)) {
-		VideoDataConf *video_data_conf = gf_list_last(cmd_data->video_lst);
+		VideoDataConf *video_data_conf = (VideoDataConf*)gf_list_last(cmd_data->video_lst);
 		gf_list_rem_last(cmd_data->video_lst);
 		gf_free(video_data_conf);
 	}
@@ -394,7 +394,7 @@ void dc_cmd_data_destroy(CmdData *cmd_data)
 
 static void on_dc_log(void *cbk, u32 ll, u32 lm, const char *av_fmt_ctx, va_list list)
 {
-	FILE *logs = cbk;
+	FILE *logs = (FILE*)cbk;
 	vfprintf(logs, av_fmt_ctx, list);
 	fflush(logs);
 }
@@ -766,7 +766,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			cmd_data->mode = LIVE_CAMERA;
 			i++;
 		} else if (strcmp(argv[i], "-npts") == 0) {
-			cmd_data->use_source_timing = 0;
+			cmd_data->use_source_timing = GF_FALSE;
 			i++;
 		} else if (strcmp(argv[i], "-live-media") == 0) {
 			cmd_data->mode = LIVE_MEDIA;
