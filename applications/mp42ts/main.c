@@ -57,12 +57,12 @@
 
 u32 temi_url_insertion_delay = 1000;
 u32 temi_offset = 0;
-Bool temi_disable_loop = 0;
+Bool temi_disable_loop = GF_FALSE;
 FILE *logfile = NULL;
 
 static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
-	FILE *logs = cbk;
+	FILE *logs = (FILE*)cbk;
 	vfprintf(logs, fmt, list);
 	fflush(logs);
 }
@@ -285,7 +285,7 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 	}
 
 	if (timescale || ntp) {
-		Bool use64 = (timecode > 0xFFFFFFFFUL) ? 1 : 0;
+		Bool use64 = (timecode > 0xFFFFFFFFUL) ? GF_TRUE : GF_FALSE;
 		len = 3; //3 bytes flags
 
 		if (timescale) len += 4 + (use64 ? 8 : 4);
@@ -372,7 +372,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		}
 
 		if (priv->sample->IsRAP && priv->dsi && priv->dsi_size) {
-			pck.data = priv->dsi;
+			pck.data = (char*)priv->dsi;
 			pck.data_len = priv->dsi_size;
 			ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
 			pck.flags &= ~GF_ESI_DATA_AU_START;
@@ -434,12 +434,12 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				duration = (u64) (gf_isom_get_duration(priv->mp4) * scale);
 				priv->ts_offset += duration;
 				priv->sample_number = 0;
-				priv->is_repeat = (priv->sample_count==1) ? 1 : 0;
+				priv->is_repeat = (priv->sample_count==1) ? GF_TRUE : GF_FALSE;
 			}
 			else if (priv->image_repeat_ms && priv->source->nb_real_streams) {
 				priv->nb_repeat_last++;
 				priv->sample_number--;
-				priv->is_repeat = 1;
+				priv->is_repeat = GF_TRUE;
 			} else {
 				if (!(ifce->caps & GF_ESI_STREAM_IS_OVER)) {
 					ifce->caps |= GF_ESI_STREAM_IS_OVER;
@@ -482,7 +482,7 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 	priv->track = track_num;
 	priv->mtype = gf_isom_get_media_type(priv->mp4, priv->track);
 	priv->mstype = gf_isom_get_media_subtype(priv->mp4, priv->track, 1);
-	priv->loop = source->real_time ? 1 : 0;
+	priv->loop = source->real_time ? GF_TRUE : GF_FALSE;
 	priv->sample_count = gf_isom_get_sample_count(mp4, track_num);
 	source->samples_count += priv->sample_count;
 	if (priv->sample_count>1)
@@ -658,7 +658,7 @@ static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	case GF_ESI_INPUT_DATA_FLUSH:
 		/*flush rtcp channel*/
 		while (1) {
-			Bool has_sr=0;
+			Bool has_sr = GF_FALSE;
 			size = gf_rtp_read_rtcp(rtp->rtp_ch, buffer, 8000);
 			if (!size) break;
 			e = gf_rtp_decode_rtcp(rtp->rtp_ch, buffer, size, &has_sr);
@@ -678,7 +678,7 @@ static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				}
 				rtp->ts_offset = rtp->rtp_ch->last_SR_rtp_time;
 				rtp->ts_offset -= (s64) (time * rtp->rtp_ch->TimeScale);
-				rtp->rtcp_init = 1;
+				rtp->rtcp_init = GF_TRUE;
 			}
 		}
 		/*flush rtp channel*/
@@ -769,7 +769,7 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 
 			/*since we don't inspect the RTP content, we can only concatenate SPS and PPS indicated in SDP*/
 			if (hdr->randomAccessPointFlag && rtp->dsi_and_rap) {
-				rtp->pck.data = rtp->dsi_and_rap;
+				rtp->pck.data = (char*)rtp->dsi_and_rap;
 				rtp->pck.data_len = rtp->avc_dsi_size;
 
 				rtp->ifce->output_ctrl(rtp->ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &rtp->pck);
@@ -787,7 +787,7 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 			rtp->dsi_and_rap = gf_malloc(sizeof(char)*(rtp->pck.data_len));
 			memcpy(rtp->dsi_and_rap, rtp->depacketizer->sl_map.config, rtp->depacketizer->sl_map.configSize);
 			memcpy((char *) rtp->dsi_and_rap + rtp->depacketizer->sl_map.configSize, payload, size);
-			rtp->pck.data = rtp->dsi_and_rap;
+			rtp->pck.data = (char*)rtp->dsi_and_rap;
 		}
 		rtp->ifce->output_ctrl(rtp->ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &rtp->pck);
 	}
@@ -821,7 +821,7 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 	memset(&trans, 0, sizeof(GF_RTSPTransport));
 	trans.Profile = media->Profile;
 	trans.source = conn ? conn->host : sdp->o_address;
-	trans.IsUnicast = gf_sk_is_multicast_address(trans.source) ? 0 : 1;
+	trans.IsUnicast = gf_sk_is_multicast_address(trans.source) ? GF_FALSE : GF_TRUE;
 	if (!trans.IsUnicast) {
 		trans.port_first = media->PortNumber;
 		trans.port_last = media->PortNumber + 1;
@@ -856,11 +856,11 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 	if (rtp->depacketizer->sl_map.config) {
 		switch (ifce->object_type_indication) {
 		case GPAC_OTI_VIDEO_MPEG4_PART2:
-			rtp->cat_dsi = 1;
+			rtp->cat_dsi = GF_TRUE;
 			break;
 		case GPAC_OTI_VIDEO_AVC:
 		case GPAC_OTI_VIDEO_SVC:
-			rtp->is_264 = 1;
+			rtp->is_264 = GF_TRUE;
 			rtp->depacketizer->flags |= GF_RTP_AVC_USE_ANNEX_B;
 			{
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -872,12 +872,12 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 
 					bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 					for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
-						slc = gf_list_get(avccfg->sequenceParameterSets, i);
+						slc = (GF_AVCConfigSlot*)gf_list_get(avccfg->sequenceParameterSets, i);
 						gf_bs_write_u32(bs, 1);
 						gf_bs_write_data(bs, slc->data, slc->size);
 					}
 					for (i=0; i<gf_list_count(avccfg->pictureParameterSets); i++) {
-						slc = gf_list_get(avccfg->pictureParameterSets, i);
+						slc = (GF_AVCConfigSlot*)gf_list_get(avccfg->pictureParameterSets, i);
 						gf_bs_write_u32(bs, 1);
 						gf_bs_write_data(bs, slc->data, slc->size);
 					}
@@ -889,22 +889,22 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 			}
 			break;
 		case GPAC_OTI_AUDIO_AAC_MPEG4:
-			ifce->decoder_config = gf_malloc(sizeof(char) * rtp->depacketizer->sl_map.configSize);
+			ifce->decoder_config = (char*)gf_malloc(sizeof(char) * rtp->depacketizer->sl_map.configSize);
 			ifce->decoder_config_size = rtp->depacketizer->sl_map.configSize;
 			memcpy(ifce->decoder_config, rtp->depacketizer->sl_map.config, rtp->depacketizer->sl_map.configSize);
 			break;
 		}
 	}
 	if (rtp->depacketizer->sl_map.StreamStateIndication) {
-		rtp->use_carousel = 1;
+		rtp->use_carousel = GF_TRUE;
 		rtp->au_sn=0;
 	}
 
 	/*DTS signaling is only supported for MPEG-4 visual*/
 	if (rtp->depacketizer->sl_map.DTSDeltaLength) ifce->caps |= GF_ESI_SIGNAL_DTS;
 
-	gf_rtp_depacketizer_reset(rtp->depacketizer, 1);
-	e = gf_rtp_initialize(rtp->rtp_ch, 0x100000ul, 0, 0, 10, 200, NULL);
+	gf_rtp_depacketizer_reset(rtp->depacketizer, GF_TRUE);
+	e = gf_rtp_initialize(rtp->rtp_ch, 0x100000ul, GF_FALSE, 0, 10, 200, NULL);
 	if (e!=GF_OK) {
 		gf_rtp_del(rtp->rtp_ch);
 		fprintf(stderr, "Cannot initialize RTP channel: %s\n", gf_error_to_string(e));
