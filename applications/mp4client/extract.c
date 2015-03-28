@@ -431,7 +431,7 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fra
 		}
 		if (avi_out) {
 #ifndef GPAC_DISABLE_AVILIB
-			if (AVI_write_frame(avi_out, conv_buf, fb.height*fb.width*3, 1) <0)
+			if (AVI_write_frame((avi_t*)avi_out, conv_buf, fb.height*fb.width*3, 1) <0)
 				fprintf(stderr, "Error writing frame\n");
 		} else
 #endif
@@ -593,7 +593,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fram
 		}
 		if (avi_out) {
 #ifndef GPAC_DISABLE_AVILIB
-			if (AVI_write_frame(avi_out, conv_buf, out_size, 1) <0)
+			if (AVI_write_frame((avi_t*)avi_out, conv_buf, out_size, 1) <0)
 				fprintf(stderr, "Error writing frame\n");
 		} else 
 #endif
@@ -725,13 +725,13 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 	fprintf(stderr, "Opening URL %s\n", url);
 	/*connect in pause mode*/
-	gf_term_connect_from_time(term, url, 0, 1);
+	gf_term_connect_from_time(term, url, 0, GF_TRUE);
 
 	while (!term->compositor->scene
 	        || term->compositor->msg_type
 	        || (gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)
 	      ) {
-		if (last_error) return 1;
+		if (last_error) return GF_TRUE;
 		gf_term_process_flush(term);
 		gf_sleep(10);
 	}
@@ -747,7 +747,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 #endif
 	if (e != GF_OK) {
 		fprintf(stderr, "Error grabbing screen buffer: %s\n", gf_error_to_string(e));
-		return 0;
+		return GF_FALSE;
 	}
 	width = fb.width;
 	height = fb.height;
@@ -786,7 +786,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		avi_out = AVI_open_output_file(szOutPath);
 		if (!avi_out) {
 			fprintf(stderr, "Error creating AVI file %s\n", szOutPath);
-			return 1;
+			return GF_TRUE;
 		}
 #endif
 	}
@@ -796,7 +796,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		sha_out = gf_fopen(szOutPath, "wb");
 		if (!sha_out) {
 			fprintf(stderr, "Error creating SHA file %s\n", szOutPath);
-			return 1;
+			return GF_TRUE;
 		}
 	}
 
@@ -807,7 +807,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			depth_avi_out = AVI_open_output_file(szPath_depth);
 			if (!depth_avi_out) {
 				fprintf(stderr, "Error creating depth AVI file %s\n", szPath_depth);
-				return 1;
+				return GF_TRUE;
 			}
 #endif
 		}
@@ -816,7 +816,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			sha_depth_out = gf_fopen(szPath_depth, "wb");
 			if (!sha_depth_out) {
 				fprintf(stderr, "Error creating depgth SHA file %s\n", szPath_depth);
-				return 1;
+				return GF_TRUE;
 			}
 		}
 	}
@@ -867,9 +867,9 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	if ((mode==DUMP_AVI) || (mode==DUMP_SHA1)) {
 		
 		if (dump_mode_flags & (DUMP_RGB_DEPTH | DUMP_RGB_DEPTH_SHAPE) ) 
-			conv_buf = gf_malloc(sizeof(char) * width * height * 4);
+			conv_buf = (char*)gf_malloc(sizeof(char) * width * height * 4);
 		else
-			conv_buf = gf_malloc(sizeof(char) * width * height * 3);
+			conv_buf = (char*)gf_malloc(sizeof(char) * width * height * 3);
 	}
 
 	cur_time_idx = 0;
@@ -964,6 +964,6 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		fprintf(stderr, "Dumping done: %d frames at %g FPS\n", nb_frames, fps);
 	}
 
-	return 0;
+	return GF_FALSE;
 }
 
