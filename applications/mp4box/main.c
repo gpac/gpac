@@ -1341,7 +1341,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 			}
 		}
 		else if (!strnicmp(szSlot, "trackID=", 8) || !strchr(szSlot, '=') ) {
-			*__tsel_list = gf_realloc(*__tsel_list, sizeof(TSELAction) * (*nb_tsel_act + 1));
+			*__tsel_list = (TSELAction*)gf_realloc(*__tsel_list, sizeof(TSELAction) * (*nb_tsel_act + 1));
 			tsel_list = *__tsel_list;
 
 			tsel_act = &tsel_list[*nb_tsel_act];
@@ -1490,7 +1490,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
     
     if (sep && (sep[1]=='\\')) sep = strchr(sep+1, ':');
 
-	dash_inputs = gf_realloc(dash_inputs, sizeof(GF_DashSegmenterInput) * (*nb_dash_inputs + 1) );
+	dash_inputs = (GF_DashSegmenterInput*)gf_realloc(dash_inputs, sizeof(GF_DashSegmenterInput) * (*nb_dash_inputs + 1) );
 	memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(GF_DashSegmenterInput) );
 	di = &dash_inputs[*nb_dash_inputs];
 	(*nb_dash_inputs)++;
