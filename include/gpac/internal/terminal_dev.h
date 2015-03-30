@@ -811,6 +811,9 @@ enum
 	/*set when codec is identified as RAW, meaning all AU comming from the network are directly
 	dispatched to the composition memory*/
 	GF_ESM_CODEC_IS_RAW_MEDIA = 1<<3,
+
+	/*set when input channels have very low buffering requirement, in which case the codec has to discard all possible late data*/
+	GF_ESM_CODEC_IS_LOW_LATENCY = 1<<4,
 };
 
 struct _generic_codec

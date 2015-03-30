@@ -60,7 +60,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	/*move to FS*/
 	compositor->fullscreen = !compositor->fullscreen;
 
-	gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_PAUSE);
+	//gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_PAUSE);
 
 	//in windows (and other?) we may get blocked by SetWindowPos in the fullscreen method until another window thread dispatches a resize event,
 	//which would try to grab the compositor mutex and thus deadlock us
@@ -77,7 +77,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	}
 	gf_mx_p(compositor->mx);
 
-	gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_RESUME);
+	//gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_RESUME);
 
 	if (e) {
 		GF_Event evt;
@@ -1940,6 +1940,8 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 {
 	Bool force_pause = compositor->audio_renderer->Frozen ? 0 : 1;
+	
+	force_pause = GF_FALSE;
 
 #ifndef GPAC_DISABLE_LOG
 	compositor->visual_config_time = 0;
@@ -1952,7 +1954,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			time = gf_sys_clock();
 		}
 #endif
-		if (force_pause )
+		if (force_pause)
 			gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_PAUSE);
 
 #ifndef GPAC_DISABLE_3D

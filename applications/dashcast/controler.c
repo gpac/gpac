@@ -46,7 +46,7 @@
 
 typedef struct {
 	int segnum;
-	u64 time;
+	u64 utc_time, ntpts;
 } segtime;
 
 
@@ -183,7 +183,7 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 		fprintf(f, " <BaseURL>%s</BaseURL>\n", cmddata->base_url);
 	}
 
-	fprintf(f, " <Period start=\"0\" id=\"\">\n");
+	fprintf(f, " <Period start=\"PT0H0M0.000S\" id=\"P1\">\n");
 
 	if (strcmp(cmddata->audio_data_conf.filename, "") != 0) {
 		fprintf(f, "  <AdaptationSet segmentAlignment=\"true\" bitstreamSwitching=\"false\">\n");
@@ -268,7 +268,7 @@ static u32 mpd_thread(void *params)
 	segtime main_seg_time;
 	Bool first = GF_TRUE;
 	main_seg_time.segnum = 0;
-	main_seg_time.time = 0;
+	main_seg_time.utc_time = 0;
 
 	if (cmddata->mode == LIVE_CAMERA || cmddata->mode == LIVE_MEDIA) {
 		while (1) {
@@ -276,7 +276,7 @@ static u32 mpd_thread(void *params)
 			time_t t;
 			segtime seg_time;
 			seg_time.segnum = 0;
-			seg_time.time = 0;
+			seg_time.utc_time = 0;
 
 			if (cmddata->exit_signal) {
 				break;
@@ -292,7 +292,7 @@ static u32 mpd_thread(void *params)
 				}
 
 				if (cmddata->ast_offset>0) {
-					seg_time.time += cmddata->ast_offset;
+					seg_time.utc_time += cmddata->ast_offset;
 				}
 
 				if (cmddata->use_dynamic_ast) {
@@ -312,14 +312,15 @@ static u32 mpd_thread(void *params)
 			}
 
 			//printf time at which we generate MPD
-			t = seg_time.time / 1000;
-			msecs = (u32) ( (seg_time.time - t*1000) );
+			t = seg_time.utc_time / 1000;
+			msecs = (u32) ( (seg_time.utc_time - t*1000) );
 			ast_time = *gmtime(&t);
-			strftime(availability_start_time, 64, "%Y-%m-%dT%H:%M:%S", &ast_time);
-			fprintf(stdout, "Generating MPD at %s.%d\n", availability_start_time, msecs);
 
-			t = main_seg_time.time / 1000;
-			msecs = (u32) ( (main_seg_time.time - t*1000) );
+			sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs);
+			fprintf(stdout, "Generating MPD at %s\n", availability_start_time);
+
+			t = main_seg_time.utc_time / 1000;
+			msecs = (u32) ( (main_seg_time.utc_time - t*1000) );
 			ast_time = *gmtime(&t);
 			sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02d.%d", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs);
 			fprintf(stdout, "StartTime: %s - startNumber %d - last number %d\n", availability_start_time, main_seg_time.segnum, seg_time.segnum);
@@ -752,6 +753,7 @@ u32 video_encoder_thread(void *params)
 	segtime time_at_segment_start;
 	VideoMuxerType muxer_type = VIDEO_MUXER;
 	VideoThreadParam *thread_params = (VideoThreadParam*)params;
+	u32 sec, frac;
 
 	CmdData *in_data = thread_params->in_data;
 	int video_conf_idx = thread_params->video_conf_idx;
@@ -811,7 +813,11 @@ u32 video_encoder_thread(void *params)
 		//log time at segment start, because segment availabilityStartTime is computed from AST anchor + segment duration
 		//logging at the end of the segment production will induce one segment delay
 		time_at_segment_start.segnum = seg_nb;
-		time_at_segment_start.time = gf_net_get_utc();
+		time_at_segment_start.utc_time = gf_net_get_utc();
+		gf_net_get_ntp(&sec, &frac);
+		time_at_segment_start.ntpts = sec;
+		time_at_segment_start.ntpts <<= 32;
+		time_at_segment_start.ntpts |= frac;
 
 		if (dc_video_muxer_open(&out_file, in_data->out_dir, video_data_conf->filename, seg_nb) < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video file.\n"));
@@ -851,7 +857,7 @@ u32 video_encoder_thread(void *params)
 					break;
 				}
 
-				r = dc_video_muxer_write(&out_file, frame_nb, in_data->insert_utc);
+				r = dc_video_muxer_write(&out_file, frame_nb, in_data->insert_utc ? time_at_segment_start.ntpts : 0);
 				if (r < 0) {
 					quit = 1;
 					in_data->exit_signal = 1;
@@ -1102,7 +1108,7 @@ u32 audio_encoder_thread(void *params)
 				}
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[audio_encoder] UTC diff %d - cumulated segment duration %d -> %d\n", diff, (seg_nb+1) * real_audio_seg_dur, diff - (seg_nb+1) * real_audio_seg_dur));
 				t.segnum = seg_nb;
-				t.time = gf_net_get_utc();
+				t.utc_time = gf_net_get_utc();
 				//time_t t = time(NULL);
 				dc_message_queue_put(mq, &t, sizeof(t));
 			}

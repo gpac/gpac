@@ -79,6 +79,7 @@ typedef struct
 	s32 time_shift_depth;
 	const char *bs_switch_segment_file;
 	Bool inband_param_set;
+	Bool force_period_end;
 
 	/*set if seg_rad_name depends on input file name (had %s in it). In this case, SegmentTemplate cannot be used at adaptation set level*/
 	Bool variable_seg_rad_name;
@@ -95,6 +96,7 @@ typedef struct
 	Bool samplegroups_in_traf;
 	Bool single_traf_per_moof;
 	Bool content_protection_in_rep;
+	Bool insert_utc;
 
 	Double max_segment_duration;
 	s32 ast_offset_ms;
@@ -488,6 +490,7 @@ typedef struct
 	u32 split_sample_dts_shift;
 	s32 media_time_to_pres_time_shift;
 	u64 min_cts_in_segment;
+	Bool store_utc;
 } GF_ISOMTrackFragmenter;
 
 static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32 sample_num)
@@ -1220,7 +1223,7 @@ restart_fragmentation_pass:
 		Bool store_pssh = GF_FALSE;
 		if (switch_segment) {
 			if (dash_cfg->subduration && (segment_start_time + MaxSegmentDuration/2 >= dash_cfg->dash_scale * dash_cfg->subduration)) {
-				/*done with file (next segment will exceppe of more than half the requested subduration : store all fragmenters state and abord*/
+				/*done with file (next segment will exceed of more than half the requested subduration : store all fragmenters state and abord*/
 				break;
 			}
 
@@ -1280,7 +1283,9 @@ restart_fragmentation_pass:
 			e = gf_isom_start_fragment(output, GF_TRUE);
 			if (e) goto err_exit;
 
-
+			if (tfref && dash_cfg->insert_utc) {
+				tfref->store_utc = GF_TRUE;
+			}
 			for (i=0; i<count; i++) {
 				u64 tfdt;
 				tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
@@ -1417,6 +1422,17 @@ restart_fragmentation_pass:
 				if (simulation_pass) {
 					e = GF_OK;
 				} else {
+					if (tf->store_utc) {
+						u32 sec, frac;
+						u64 ntpts;
+						gf_net_get_ntp(&sec, &frac);
+						ntpts = sec;
+						ntpts <<= 32;
+						ntpts |= frac;
+						gf_isom_set_fragment_reference_time(output, tf->TrackID, ntpts, sample->DTS + sample->CTS_Offset + tf->media_time_to_pres_time_shift);
+						tf->store_utc = GF_FALSE;
+					}
+
 					/*override descIndex with final index used in file*/
 					descIndex = tf->finalSampleDescriptionIndex;
 					e = gf_isom_fragment_add_sample(output, tf->TrackID, sample, descIndex,
@@ -1646,8 +1662,13 @@ restart_fragmentation_pass:
 
 			if (!simulation_pass) {
 				u64 idx_start_range, idx_end_range;
+				Bool last_segment = flush_all_samples ? GF_TRUE : GF_FALSE;
 
-				gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, flush_all_samples ? GF_TRUE : GF_FALSE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
+				if (dash_cfg->force_period_end && dash_cfg->subduration && (segment_start_time + MaxSegmentDuration/2 >= dash_cfg->dash_scale * dash_cfg->subduration)) {
+					last_segment = GF_TRUE;
+				}
+
+				gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, last_segment, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
 
 				//take care of scalable reps
 				if (dash_input->moof_seqnum_increase) {
@@ -4108,7 +4129,7 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 }
 
 static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_ctx, GF_DashProfile profile, Bool is_mpeg2, const char *title, const char *source, const char *copyright, const char *moreInfoURL, const char **mpd_base_urls, 
-				u32 nb_mpd_base_urls, Bool dash_dynamic, u32 time_shift_depth, Double mpd_duration, Double mpd_update_period, Double min_buffer, s32 ast_shift_ms, Bool use_cenc, Bool use_xlink, Double max_seg_dur)
+				u32 nb_mpd_base_urls, GF_DashDynamicMode dash_mode, u32 time_shift_depth, Double mpd_duration, Double mpd_update_period, Double min_buffer, s32 ast_shift_ms, Bool use_cenc, Bool use_xlink, Double max_seg_dur)
 {
 	u32 sec, frac;
 	u64 time_ms;
@@ -4153,10 +4174,10 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 	fprintf(mpd, "-->\n");
 
 	/*TODO what should we put for minBufferTime */
-	fprintf(mpd, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" minBufferTime=\"PT%.3fS\" type=\"%s\"", min_buffer, dash_dynamic ? "dynamic" : "static");
+	fprintf(mpd, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" minBufferTime=\"PT%.3fS\" type=\"%s\"", min_buffer, dash_mode ? "dynamic" : "static");
 
 
-	if (dash_dynamic) {
+	if (dash_mode) {
 		//set publish time
 #ifndef _WIN32_WCE
 		gtime = sec - GF_NTP_SEC_1900_TO_1970;
@@ -4269,7 +4290,7 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 }
 
 static GF_Err write_period_header(FILE *mpd, const char *szID, Double period_start, Double period_duration,
-                                  Bool dash_dynamic, const char *xlink,
+                                  GF_DashDynamicMode dash_mode, const char *xlink,
                                   GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 period_num, Bool insert_xmlns)
 {
 	u32 h, m;
@@ -4283,13 +4304,13 @@ static GF_Err write_period_header(FILE *mpd, const char *szID, Double period_sta
 	if (szID && strlen(szID))
 		fprintf(mpd, " id=\"%s\"", szID);
 
-	if (period_start || dash_dynamic) {
+	if (period_start || dash_mode) {
 		h = (u32) (period_start/3600);
 		m = (u32) (period_start/60 - h*60);
 		s = period_start - h*3600 - m*60;
 		fprintf(mpd, " start=\"PT%dH%dM%.3fS\"", h, m, s);
 	}
-	if (!dash_dynamic && period_duration) {
+	if (!dash_mode && period_duration) {
 		h = (u32) (period_duration/3600);
 		m = (u32) (period_duration/60 - h*60);
 		s = period_duration - h*3600 - m*60;
@@ -4437,7 +4458,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 	return GF_OK;
 }
 
-static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, u32 *dynamic, u32 *timeShiftBufferDepth, const char *periodID, s32 ast_shift_ms)
+static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, GF_DashDynamicMode *dash_mode, u32 *timeShiftBufferDepth, const char *periodID, s32 ast_shift_ms)
 {
 	const char *opt;
 	char szVal[100];
@@ -4454,17 +4475,17 @@ static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, u32 *dynamic, u32 *tim
 	if (!opt) {
 		first_run = GF_TRUE;
 		sprintf(szVal, "%d", *timeShiftBufferDepth);
-		gf_cfg_set_key(dash_ctx, "DASH", "SessionType", (*dynamic==2) ? "dynamic-debug" : ( *dynamic ? "dynamic" : "static" ) );
+		gf_cfg_set_key(dash_ctx, "DASH", "SessionType", (*dash_mode == GF_DASH_DYNAMIC_DEBUG) ? "dynamic-debug" : ( *dash_mode ? "dynamic" : "static" ) );
 		gf_cfg_set_key(dash_ctx, "DASH", "TimeShiftBufferDepth", szVal);
 		gf_cfg_set_key(dash_ctx, "DASH", "StoreParams", "yes");
 	}
 	//switching from live to static
-	else if (! (*dynamic) && !strncmp(opt, "dynamic", 7)) {
+	else if (! (*dash_mode) && !strncmp(opt, "dynamic", 7)) {
 		gf_cfg_set_key(dash_ctx, "DASH", "SessionType", "static");
 	} else {
-		*dynamic = 0;
-		if (!strcmp(opt, "dynamic")) *dynamic = 1;
-		else if (!strcmp(opt, "dynamic-debug")) *dynamic = 2;
+		*dash_mode = 0;
+		if (!strcmp(opt, "dynamic")) *dash_mode = GF_DASH_DYNAMIC;
+		else if (!strcmp(opt, "dynamic-debug")) *dash_mode = GF_DASH_DYNAMIC_DEBUG;
 
 		opt = gf_cfg_get_key(dash_ctx, "DASH", "TimeShiftBufferDepth");
 		*timeShiftBufferDepth = atoi(opt);
@@ -4558,7 +4579,7 @@ u32 gf_dasher_next_update_time(GF_Config *dash_ctx, Double mpd_update_time)
 }
 
 /*peform all file cleanup*/
-static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_update_time, u32 time_shift_depth, Double dash_duration, s32 ast_shift_ms, u32 dash_scale)
+static Bool gf_dasher_cleanup(GF_Config *dash_ctx, GF_DashDynamicMode dash_mode, Double mpd_update_time, u32 time_shift_depth, Double dash_duration, s32 ast_shift_ms, u32 dash_scale)
 {
 	Double max_dur = 0;
 	Double elapsed = 0;
@@ -4567,7 +4588,7 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 	const char *opt, *section;
 	GF_Err e;
 
-	if (!dash_dynamic) return GF_TRUE;
+	if (!dash_mode) return GF_TRUE;
 
 	opt = gf_cfg_get_key(dash_ctx, "DASH", "StoreParams");
 	if (opt && !strcmp(opt, "yes")) return GF_TRUE;
@@ -4593,7 +4614,7 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 	if (!max_dur) return GF_TRUE;
 	gf_net_get_ntp(&ntp_sec, &frac);
 
-	if (dash_dynamic==2) {
+	if (dash_mode == GF_DASH_DYNAMIC_DEBUG) {
 		elapsed = (u32)-1;
 	} else {
 		elapsed = ntp_sec;
@@ -4601,7 +4622,7 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 		elapsed -= prev_sec;
 		elapsed -= (prev_frac*1.0)/0xFFFFFFFF;
 		/*check if we need to generate */
-		if (!dash_dynamic && elapsed < max_dur - safety_dur ) {
+		if (!dash_mode && elapsed < max_dur - safety_dur ) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Asked to regenerate segments before expiration of the current segment list, please wait %g seconds - ignoring\n", max_dur + prev_sec - ntp_sec ));
 			return GF_FALSE;
 		}
@@ -4637,7 +4658,7 @@ static Bool gf_dasher_cleanup(GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_
 			seg_time -= elapsed;
 			if (seg_time >= 0) break;
 
-			if (dash_dynamic!=2) {
+			if (! (dash_mode == GF_DASH_DYNAMIC_DEBUG) ) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Removing segment %s - %g sec too late\n", fileName, -seg_time - dash_duration));
 			}
 
@@ -4752,9 +4773,9 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
                                u32 use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching,
                                Bool seg_at_rap, Double dash_duration, char *seg_name, char *seg_ext, u32 segment_marker_4cc,
                                Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
-                               GF_Config *dash_ctx, u32 dash_dynamic, Double mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
+                               GF_Config *dash_ctx, GF_DashDynamicMode dash_mode, Double mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
                                s32 ast_offset_ms, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, 
-							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration)
+							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc)
 {
 	u32 i, j, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH];
@@ -4782,17 +4803,23 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	u32 nb_dash_inputs;
 	Bool uses_xlink = GF_FALSE;
 	PeriodEntry *p;
+	Bool force_period_end = GF_FALSE;
 	Bool segment_alignment = GF_TRUE;
 	GF_List *period_links = NULL;
 
-	if (dash_dynamic && !mpd_update_time && !mpd_live_duration) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Either MPD update period or MPD duration shall be set in dynamic mode.\n"));
-		return GF_BAD_PARAM;
+	if (dash_mode && !mpd_update_time && !mpd_live_duration) {
+		if (dash_mode == GF_DASH_DYNAMIC_LAST) {
+			force_period_end = GF_TRUE;
+			dash_mode = GF_DASH_DYNAMIC;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Either MPD update period or MPD duration shall be set in dynamic mode.\n"));
+			return GF_BAD_PARAM;
+		}
 	}
 
 	/*init dash context if needed*/
 	if (dash_ctx) {
-		e = gf_dasher_init_context(dash_ctx, &dash_dynamic, &time_shift_depth, NULL, ast_offset_ms);
+		e = gf_dasher_init_context(dash_ctx, &dash_mode, &time_shift_depth, NULL, ast_offset_ms);
 		if (e) {
 			return e;
 		} else {
@@ -4810,7 +4837,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			gf_cfg_set_key(dash_ctx, "DASH", "TimeScale", sOpt);
 
 			/*peform all file cleanup*/
-			regenerate = gf_dasher_cleanup(dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_duration, ast_offset_ms, dash_scale);
+			regenerate = gf_dasher_cleanup(dash_ctx, dash_mode, mpd_update_time, time_shift_depth, dash_duration, ast_offset_ms, dash_scale);
 			if (!regenerate) return GF_OK;
 
 			opt = gf_cfg_get_key(dash_ctx, "DASH", "HasXLINK");
@@ -4853,7 +4880,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			max_period = 1;
 			dash_inputs[j].period = 1;
 			//assign ID if dynamic - if dash_ctx also assign ID since we could have moved from dynamic to static
-			if (dash_dynamic || dash_ctx) {
+			if (dash_mode || dash_ctx) {
 				dash_inputs[j].periodID = "GENID_DEF";
 			}
 		}
@@ -4912,7 +4939,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			}
 		}
 	}
-	if (dash_dynamic && max_period>1) {
+	if (dash_mode && max_period>1) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Multiple periods in live mode not supported\n"));
 		e = GF_NOT_SUPPORTED;
 		goto exit;
@@ -5086,7 +5113,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.single_traf_per_moof = single_traf_per_moof;
 	dash_opts.content_protection_in_rep = content_protection_in_rep;
 	dash_opts.ast_offset_ms = ast_offset_ms;
-
+	dash_opts.force_period_end = force_period_end;
 
 	dash_opts.segment_duration = dash_duration * 1000 / dash_scale;
 	dash_opts.subduration = subduration * 1000 / dash_scale;
@@ -5094,6 +5121,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.initial_moof_sn = initial_moof_sn;
 	dash_opts.initial_tfdt = initial_tfdt;
 	dash_opts.no_fragments_defaults = no_fragments_defaults;
+	dash_opts.insert_utc = insert_utc;
 
 	max_comp_per_input = 0;
 	for (cur_period=0; cur_period<max_period; cur_period++) {
@@ -5241,7 +5269,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	}
 
 	strcpy(szTempMPD, mpdfile);
-	if (dash_dynamic) strcat(szTempMPD, ".tmp");
+	if (dash_mode) strcat(szTempMPD, ".tmp");
 
 	mpd = gf_fopen(szTempMPD, "wt");
 	if (!mpd) {
@@ -5281,6 +5309,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	}
 
 	for (cur_period=0; cur_period<max_period; cur_period++) {
+		Bool flush_period = GF_FALSE;
 		FILE *period_mpd;
 		Double period_duration = 0;
 		const char *id=NULL;
@@ -5329,7 +5358,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 
 			dash_opts.mpd = period_mpd;
 
-			e = write_period_header(period_mpd, id, 0.0, period_duration, dash_dynamic, NULL, dash_inputs, nb_dash_inputs, cur_period+1, (xlink!=NULL) ? 1 : 0 );
+			e = write_period_header(period_mpd, id, 0.0, period_duration, dash_mode, NULL, dash_inputs, nb_dash_inputs, cur_period+1, (xlink!=NULL) ? 1 : 0 );
 			if (e) goto exit;
 		}
 		//keep track of the last period xlink
@@ -5531,6 +5560,12 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		//and add periods done to past periods, storing their start time
 		if (!id) id="";
 		if (last_period_rep_idx_plus_one && dash_inputs[last_period_rep_idx_plus_one-1].periodID && strcmp(id, dash_inputs[last_period_rep_idx_plus_one-1].periodID) ) {
+			flush_period = GF_TRUE;
+		}
+		else if (force_period_end) {
+			flush_period = GF_TRUE;
+		}
+		if (flush_period) {
 			sprintf(szOpt, "%g", active_period_start);
 			gf_cfg_set_key(dash_ctx, "PastPeriods", id, szOpt);
 			active_period_start += period_duration;
@@ -5551,11 +5586,19 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	/*ready to write the MPD*/
 	dash_opts.mpd = mpd;
 
-	if (dash_dynamic && !mpd_update_time) {
+	if (dash_mode && !mpd_update_time) {
 		presentation_duration = mpd_live_duration;
 	}
 
-	e = write_mpd_header(mpd, mpdfile, dash_ctx, dash_profile, has_mpeg2, mpd_title, mpd_source, mpd_copyright, mpd_moreInfoURL, (const char **) mpd_base_urls, nb_mpd_base_urls, dash_dynamic, time_shift_depth, presentation_duration, mpd_update_time, min_buffer, ast_offset_ms, use_cenc, uses_xlink, dash_opts.max_segment_duration);
+	if (force_period_end && !mpd_update_time && !presentation_duration) {
+		presentation_duration = 0;
+		i=0;
+		while ((p = (PeriodEntry *) gf_list_enum(period_links, &i))) {
+			presentation_duration = p->period_duration;
+		}
+	}
+	
+	e = write_mpd_header(mpd, mpdfile, dash_ctx, dash_profile, has_mpeg2, mpd_title, mpd_source, mpd_copyright, mpd_moreInfoURL, (const char **) mpd_base_urls, nb_mpd_base_urls, dash_mode, time_shift_depth, presentation_duration, mpd_update_time, min_buffer, ast_offset_ms, use_cenc, uses_xlink, dash_opts.max_segment_duration);
 	if (e) goto exit;
 
 
@@ -5563,13 +5606,13 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	while ((p = (PeriodEntry *) gf_list_enum(period_links, &i))) {
 		if (!p->period_idx) {
 			if (p->is_xlink) {
-				write_period_header(mpd, p->id, 0.0, p->period_duration, dash_dynamic, p->szPeriodXML, NULL, 0, 0, GF_FALSE);
+				write_period_header(mpd, p->id, 0.0, p->period_duration, dash_mode, p->szPeriodXML, NULL, 0, 0, GF_FALSE);
 			} else {
 				dash_insert_period_xml(mpd, p->szPeriodXML);
 			}
 		} else {
 			if (p->is_xlink) {
-				write_period_header(mpd, p->id, 0.0, p->period_duration, dash_dynamic, p->szPeriodXML, dash_inputs, nb_dash_inputs, p->period_idx, GF_FALSE);
+				write_period_header(mpd, p->id, 0.0, p->period_duration, dash_mode, p->szPeriodXML, dash_inputs, nb_dash_inputs, p->period_idx, GF_FALSE);
 			} else {
 				dash_insert_period_xml(mpd, p->szPeriodXML);
 			}
@@ -5584,7 +5627,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	fprintf(mpd, "</MPD>");
 
 
-	if (dash_ctx && dash_dynamic) {
+	if (dash_ctx && dash_mode) {
 		const char *opt = gf_cfg_get_key(dash_ctx, "DASH", "LastPeriodDuration");
 		if (opt) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Current Period Duration: %s\n", opt) );
@@ -5595,7 +5638,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 exit:
 	if (mpd) {
 		gf_fclose(mpd);
-		if (!e && dash_dynamic) {
+		if (!e && dash_mode) {
 			gf_delete_file(mpdfile);
 			e = gf_move_file(szTempMPD, mpdfile);
 			if (e) {
