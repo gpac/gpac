@@ -85,3 +85,4 @@ config.mak
 configure-stamp
 gpac.pc
 
+extra_lib
