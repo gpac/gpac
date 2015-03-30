@@ -40,5 +40,7 @@
 	<string>gpac</string>
 	<key>CFBundleVersion</key>
 	<string>0000</string>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 </dict>
 </plist>
