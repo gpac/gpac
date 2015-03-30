@@ -416,6 +416,15 @@ static GF_Config *create_default_config(char *file_path)
 
 	gf_cfg_set_key(cfg, "General", "ModulesDirectory", szPath);
 
+#ifdef GPAC_IPHONE
+    char buf[GF_MAX_PATH], *res;
+    res = realpath(file_path, buf);
+    if (res) {
+        gf_cfg_set_key(cfg, "General", "LastWorkingDir", res);
+        gf_cfg_set_key(cfg, "General", "iOSDocumentsDir", res);
+    }
+#endif
+    
 	/*get default temporary directoy */
 	cache_dir = gf_get_default_cache_directory();
 	if (cache_dir) {
