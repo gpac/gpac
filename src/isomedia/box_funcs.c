@@ -245,11 +245,11 @@ GF_Err gf_isom_read_box_list_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_b
 			return e;
 		}
 		if (parent->size < a->size) {
-			if (a) gf_isom_box_del(a);
-			return GF_OK;
-			//return GF_ISOM_INVALID_FILE;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" is larger than container box\n", gf_4cc_to_str(a->type)));
+			parent->size = 0;
+		} else {
+			parent->size -= a->size;
 		}
-		parent->size -= a->size;
 		e = add_box(parent, a);
 		if (e) {
 			gf_isom_box_del(a);

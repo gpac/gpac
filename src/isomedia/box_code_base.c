@@ -6188,10 +6188,11 @@ GF_Err traf_Read(GF_Box *s, GF_BitStream *bs)
 			a->size = s;
 		}
 		if (ptr->size<a->size) {
-			gf_isom_box_del(a);
-			return GF_ISOM_INVALID_FILE;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" is larger than container box\n", gf_4cc_to_str(a->type)));
+			ptr->size = 0;
+		} else {
+			ptr->size -= a->size;
 		}
-		ptr->size -= a->size;
 		e = traf_AddBox((GF_Box*)ptr, a);
 		if (e) return e;
 	}
