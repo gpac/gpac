@@ -765,7 +765,7 @@ GF_Err dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, 
 		dc_gpac_video_moov_create(video_output_file, name);
 		return dc_gpac_video_isom_open_seg(video_output_file, NULL);
 	case GPAC_INIT_VIDEO_MUXER_AVC1:
-		if (seg == 0) {
+		if (seg == 1) {
 			snprintf(name, sizeof(name), "%s/%s_init_gpac.mp4", directory, id_name);
 			dc_gpac_video_moov_create(video_output_file, name);
 			video_output_file->first_dts = 0;
