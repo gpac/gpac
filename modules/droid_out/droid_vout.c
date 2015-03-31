@@ -64,6 +64,8 @@ typedef struct
 
 	u8 draw_texture;
 	u8 non_power_two;
+
+	Bool fullscreen;
 } AndroidContext;
 
 
@@ -441,6 +443,11 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 
 	rc->width = w;
 	rc->height = h;
+	
+	if ((dr->max_screen_width < w) || (dr->max_screen_height < h)) {
+		dr->max_screen_width = w;
+		dr->max_screen_height = h;
+	}
 
 	if ( rc->non_power_two )
 	{
@@ -452,6 +459,7 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 		rc->tex_width = find_pow_2(rc->width);
 		rc->tex_height = find_pow_2(rc->height);
 	}
+	
 
 	resizeWindow(rc);
 
@@ -565,7 +573,24 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			LOG( ANDROID_LOG_VERBOSE, TAG, "GF_EVENT_SIZE( %d x %d)",
 			     evt->setup.width, evt->setup.height);
 			//if (evt->setup.opengl_mode) return GF_OK;
-			return droid_Resize(dr, evt->setup.width, evt->setup.height);
+			//in fullscreen mode: do not change viewport; just update perspective
+			if (rc->fullscreen) {
+				/* change to the projection matrix and set our viewing volume. */
+				glMatrixMode(GL_PROJECTION);
+				glLoadIdentity();
+
+				/* Set our perspective */
+				glOrthox(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1));
+
+				/* Make sure we're chaning the model view and not the projection */
+				glMatrixMode(GL_MODELVIEW);
+
+				/* Reset The View */
+				glLoadIdentity();
+				return GF_OK;
+			} else
+				return droid_Resize(dr, evt->setup.width, evt->setup.height);
+			
 		case GF_EVENT_VIDEO_SETUP:
 			LOG( ANDROID_LOG_DEBUG, TAG, "Android OpenGL mode: %d", evt->setup.opengl_mode);
 			switch (evt->setup.opengl_mode)
@@ -602,6 +627,16 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	return GF_OK;
 }
 
+static GF_Err droid_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 *outHeight) 
+{
+	RAWCTX;;
+	
+	*outWidth = dr->max_screen_width;
+	*outHeight = dr->max_screen_height;
+	rc->fullscreen = bOn;
+	return droid_Resize(dr, dr->max_screen_width, dr->max_screen_height);
+}
+
 GF_VideoOutput *NewAndroidVideoOutput()
 {
 	AndroidContext *pCtx;
@@ -623,6 +658,7 @@ GF_VideoOutput *NewAndroidVideoOutput()
 	driv->Setup = droid_Setup;
 	driv->Shutdown = droid_Shutdown;
 	driv->ProcessEvent = droid_ProcessEvent;
+	driv->SetFullScreen = droid_SetFullScreen;
 
 	driv->max_screen_width = 1024;
 	driv->max_screen_height = 1024;
