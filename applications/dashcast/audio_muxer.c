@@ -387,7 +387,7 @@ GF_Err dc_audio_muxer_open(AudioOutputFile *audio_output_file, char *directory, 
 		dc_gpac_audio_moov_create(audio_output_file, name);
 		return dc_gpac_audio_isom_open_seg(audio_output_file, NULL);
 	case GPAC_INIT_AUDIO_MUXER:
-		if (seg == 0) {
+		if (seg == 1) {
 			snprintf(name, sizeof(name), "%s/%s_init_gpac.mp4", directory, id_name);
 			dc_gpac_audio_moov_create(audio_output_file, name);
 			audio_output_file->first_dts = 0;
