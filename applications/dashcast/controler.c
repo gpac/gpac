@@ -311,19 +311,17 @@ static u32 mpd_thread(void *params)
 				}
 			}
 
-			//printf time at which we generate MPD
-			t = seg_time.utc_time / 1000;
-			msecs = (u32) ( (seg_time.utc_time - t*1000) );
-			ast_time = *gmtime(&t);
 
+			t = (seg_time.ntpts >> 32)  - GF_NTP_SEC_1900_TO_1970;
+			msecs = (u32) ( (seg_time.ntpts & 0xFFFFFFFF) * (1000.0/0xFFFFFFFF) );
+			ast_time = *gmtime(&t);
+			fprintf(stdout, "Generating MPD at %d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs);
+
+			t = (main_seg_time.ntpts >> 32)  - GF_NTP_SEC_1900_TO_1970;
+			msecs = (u32) ( (main_seg_time.ntpts & 0xFFFFFFFF) * (1000.0/0xFFFFFFFF) );
+			ast_time = *gmtime(&t);
 			sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs);
-			fprintf(stdout, "Generating MPD at %s\n", availability_start_time);
-
-			t = main_seg_time.utc_time / 1000;
-			msecs = (u32) ( (main_seg_time.utc_time - t*1000) );
-			ast_time = *gmtime(&t);
-			sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02d.%d", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs);
-			fprintf(stdout, "StartTime: %s - startNumber %d - last number %d\n", availability_start_time, main_seg_time.segnum, seg_time.segnum);
+			fprintf(stdout, "StartTime: %s - startNumber %d - last number %d\n", availability_start_time, main_seg_time.segnum+1, seg_time.segnum+1);
 
 			if (cmddata->time_shift != -1) {
 				int ts, h, m, s;
@@ -335,7 +333,7 @@ static u32 mpd_thread(void *params)
 				snprintf(time_shift, sizeof(time_shift), "timeShiftBufferDepth=\"PT%02dH%02dM%02dS\"", h, m, s);
 			}
 
-			dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, main_seg_time.segnum, cmddata->ast_offset);
+			dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, main_seg_time.segnum+1, cmddata->ast_offset);
 		}
 	} else {
 
@@ -819,7 +817,7 @@ u32 video_encoder_thread(void *params)
 		time_at_segment_start.ntpts <<= 32;
 		time_at_segment_start.ntpts |= frac;
 
-		if (dc_video_muxer_open(&out_file, in_data->out_dir, video_data_conf->filename, seg_nb) < 0) {
+		if (dc_video_muxer_open(&out_file, in_data->out_dir, video_data_conf->filename, seg_nb+1) < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video file.\n"));
 			in_data->exit_signal = 1;
 			return -1;
@@ -851,6 +849,7 @@ u32 video_encoder_thread(void *params)
 
 			if (ret > 0) {
 				int r;
+
 				/*resync at first RAP: flush current broken segment and restart next one on rap*/
 				if ((loss_state==1) && out_file.codec_ctx->coded_frame->key_frame) {
 					loss_state = 2;
@@ -1022,7 +1021,7 @@ u32 audio_encoder_thread(void *params)
 	while (1) {
 		frame_nb = 0;
 		quit = 0;
-		if (dc_audio_muxer_open(&audio_output_file, in_data->out_dir, audio_data_conf->filename, seg_nb) < 0) {
+		if (dc_audio_muxer_open(&audio_output_file, in_data->out_dir, audio_data_conf->filename, seg_nb+1) < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output audio.\n"));
 			in_data->exit_signal = 1;
 			return -1;
