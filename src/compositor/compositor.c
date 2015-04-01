@@ -174,7 +174,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			notif_size=1;
 			compositor->new_width = compositor->new_height = 0;
 			compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
-
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Display size changed to %d x %d\n", compositor->new_width, compositor->new_height));
 		}
 		/*aspect ratio modif*/
 		if (compositor->msg_type & GF_SR_CFG_AR) {
@@ -729,6 +729,9 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 
 u32 gf_sc_get_clock(GF_Compositor *compositor)
 {
+	if (!compositor->bench_mode) {
+		return gf_sc_ar_get_clock(compositor->audio_renderer);
+	}
 	return compositor->scene_sampled_clock;
 }
 

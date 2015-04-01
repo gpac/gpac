@@ -453,6 +453,8 @@ struct _tag_terminal
 	u32 bench_mode;
 
 	u32 prefered_audio_codec_oti;
+
+	u32 low_latency_buffer_max;
 };
 
 

@@ -507,6 +507,10 @@ Specifies the length of the decoding buffer in milliseconds. The client will wai
 Specifies rebuffering length of the decoding buffer in milliseconds. Whenever the decoding buffer fullness is less than this value, the object clock is paused and 
 the stream rebuffered till BufferLength. Therefore a value of 0 means no rebuffering. A module may decide to use a different value based on protocol and network jitters.
 </p>
+<b>LowLatencyBufferMax</b> [value: <i>positive integer</i>]
+<p style="text-indent: 5%">
+Specifies the maximum buffer level for low latency mode, in ms. If media buffer max is above this value, full buffering will be done (clock resume at first frame displayed). Default value is 500 ms.</p>
+</p>
 <b>MobileIP</b> [value: <i>IP Address</i>]
 <p style="text-indent: 5%">
 Specifies a Mobile IP interface overriding the default IP. If set, all sockets will be locally bound to this IP address.</p>
@@ -523,6 +527,7 @@ Specifies the default HTTP rebuffer time in ms. When playback position reaches d
 <p style="text-indent: 5%">
 Specifies whether auto rebuffering is used. When auto-rebuffering is used, playback only resumes when estimated time to download the rest of the movie is less than remaining time of the playback. Default value is no.</p>
 </p>
+
 
 
 <br/><br/>
