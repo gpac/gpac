@@ -4530,11 +4530,14 @@ GF_Err senc_dump(GF_Box *a, FILE * trace)
 
 GF_Err prft_dump(GF_Box *a, FILE * trace)
 {
+	Double fracs;
 	GF_ProducerReferenceTimeBox *ptr = (GF_ProducerReferenceTimeBox *) a;
-
 	time_t secs = (ptr->ntp >> 32) - GF_NTP_SEC_1900_TO_1970;
 	struct tm t = *gmtime(&secs);
-	fprintf(trace, "<ProducerReferenceTimeBox referenceTrackID=\"%d\" timestamp=\""LLU"\" NTP_frac=\"%d\"  UTCClock=\"%d-%02d-%02dT%02d:%02d:%02dZ\">\n", ptr->refTrackID, ptr->timestamp, (u32) (ptr->ntp&0xFFFFFFFFULL), 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, (u32) t.tm_sec);
+	fracs = (Double) (ptr->ntp & 0xFFFFFFFFULL);
+	fracs /= 0xFFFFFFFF;
+	fracs *= 1000;
+	fprintf(trace, "<ProducerReferenceTimeBox referenceTrackID=\"%d\" timestamp=\""LLU"\" NTP=\""LLU"\" UTC=\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\">\n", ptr->refTrackID, ptr->timestamp, ptr->ntp, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, (u32) t.tm_sec, (u32) fracs);
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
 	gf_box_dump_done("ProducerReferenceTimeBox", a, trace);

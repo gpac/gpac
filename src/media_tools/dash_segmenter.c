@@ -97,6 +97,7 @@ typedef struct
 	Bool single_traf_per_moof;
 	Bool content_protection_in_rep;
 	Bool insert_utc;
+	Bool real_time;
 
 	Double max_segment_duration;
 	s32 ast_offset_ms;
@@ -490,7 +491,6 @@ typedef struct
 	u32 split_sample_dts_shift;
 	s32 media_time_to_pres_time_shift;
 	u64 min_cts_in_segment;
-	Bool store_utc;
 } GF_ISOMTrackFragmenter;
 
 static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32 sample_num)
@@ -628,6 +628,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	Bool simulation_pass = GF_FALSE;
 	Bool init_segment_deleted = GF_FALSE;
 	Bool first_segment_in_timeline = GF_TRUE;
+	Bool store_utc = GF_FALSE;
 	u64 previous_segment_duration = 0;
 	u32 segment_timeline_repeat_count = 0;
 	//u64 last_ref_cts = 0;
@@ -658,12 +659,23 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	const char *seg_rad_name = dash_cfg->seg_rad_name;
 	const char *seg_ext = dash_cfg->seg_ext;
 	const char *bs_switching_segment_name = NULL;
-
+	u64 generation_start_ntp = 0;
+	
 	SegmentName[0] = 0;
 	SegmentDuration = 0;
 	nb_samp = 0;
 	fragmenters = NULL;
 	if (!seg_ext) seg_ext = "m4s";
+
+
+	if (dash_cfg->real_time && dash_cfg->dash_ctx) {
+		u32 sec, frac;
+		opt = gf_cfg_get_key(dash_cfg->dash_ctx, "DASH", "GenerationNTP");
+		sscanf(opt, "%u:%u", &sec, &frac);
+		generation_start_ntp = sec;
+		generation_start_ntp <<= 32;
+		generation_start_ntp |= frac;
+	}
 
 	bs_switch_segment = NULL;
 	if (dash_cfg->bs_switch_segment_file) {
@@ -1266,6 +1278,10 @@ restart_fragmentation_pass:
 				}
 				if (dash_cfg->pssh_moof)
 					store_pssh = GF_TRUE;
+
+				if (tfref && dash_cfg->insert_utc) {
+					store_utc = GF_TRUE;
+				}
 			}
 
 			cur_seg++;
@@ -1283,9 +1299,6 @@ restart_fragmentation_pass:
 			e = gf_isom_start_fragment(output, GF_TRUE);
 			if (e) goto err_exit;
 
-			if (tfref && dash_cfg->insert_utc) {
-				tfref->store_utc = GF_TRUE;
-			}
 			for (i=0; i<count; i++) {
 				u64 tfdt;
 				tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
@@ -1422,7 +1435,7 @@ restart_fragmentation_pass:
 				if (simulation_pass) {
 					e = GF_OK;
 				} else {
-					if (tf->store_utc) {
+					if ((tf == tfref) && store_utc) {
 						u32 sec, frac;
 						u64 ntpts;
 						gf_net_get_ntp(&sec, &frac);
@@ -1430,7 +1443,7 @@ restart_fragmentation_pass:
 						ntpts <<= 32;
 						ntpts |= frac;
 						gf_isom_set_fragment_reference_time(output, tf->TrackID, ntpts, sample->DTS + sample->CTS_Offset + tf->media_time_to_pres_time_shift);
-						tf->store_utc = GF_FALSE;
+						store_utc = GF_FALSE;
 					}
 
 					/*override descIndex with final index used in file*/
@@ -1586,7 +1599,22 @@ restart_fragmentation_pass:
 		maxFragDurationOverSegment=0;
 
 		/*if no simulation and no SIDX is used, flush fragments as we write them*/
-		if (!simulation_pass && (dash_cfg->subsegs_per_sidx<0) ) {
+		if (!simulation_pass && (dash_cfg->subsegs_per_sidx<=0) ) {
+			if (tfref && dash_cfg->real_time) {
+				u64 now=0;
+				u64 end_time = tfref->InitialTSOffset + tfref->next_sample_dts - tfref->DefaultDuration;
+				end_time *= 1000;
+				end_time /= tfref->TimeScale;
+
+				while (1) {
+					s32 diff_ms = gf_net_get_ntp_diff_ms(generation_start_ntp);
+					if (diff_ms >= end_time) break;
+					gf_sleep(1);
+				}
+
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Flushing fragment at "LLU" us\n", gf_sys_clock_high_res() ));
+			}
+
 			e = gf_isom_flush_fragments(output, flush_all_samples ? GF_TRUE : GF_FALSE);
 			if (e) goto err_exit;
 		}
@@ -4177,7 +4205,7 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 	fprintf(mpd, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" minBufferTime=\"PT%.3fS\" type=\"%s\"", min_buffer, dash_mode ? "dynamic" : "static");
 
 
-	if (dash_mode) {
+	if (dash_mode != GF_DASH_STATIC) {
 		//set publish time
 #ifndef _WIN32_WCE
 		gtime = sec - GF_NTP_SEC_1900_TO_1970;
@@ -4775,7 +4803,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
                                Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
                                GF_Config *dash_ctx, GF_DashDynamicMode dash_mode, Double mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
                                s32 ast_offset_ms, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, 
-							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc)
+							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc, Bool real_time)
 {
 	u32 i, j, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH];
@@ -4815,6 +4843,10 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Either MPD update period or MPD duration shall be set in dynamic mode.\n"));
 			return GF_BAD_PARAM;
 		}
+	}
+	if (real_time && (nb_inputs>1)) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] real-time simulation is only supported with a single representation.\n"));
+			return GF_BAD_PARAM;
 	}
 
 	/*init dash context if needed*/
@@ -5122,6 +5154,8 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.initial_tfdt = initial_tfdt;
 	dash_opts.no_fragments_defaults = no_fragments_defaults;
 	dash_opts.insert_utc = insert_utc;
+	dash_opts.real_time = real_time;
+	
 
 	max_comp_per_input = 0;
 	for (cur_period=0; cur_period<max_period; cur_period++) {

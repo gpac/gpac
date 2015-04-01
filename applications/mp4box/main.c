@@ -377,6 +377,7 @@ void PrintDASHUsage()
 	        " -no-frags-default    disables default flags in fragments\n"
 	        " -single-traf         uses a single track fragment per moof (smooth streaming and derived specs may require this)\n"
 	        " -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
+			" -frag-rt             when using fragments in live mode, flush fragments according to their timing (only supported with a single input).\n"
 	        "\n");
 }
 
@@ -1765,6 +1766,7 @@ int mp4boxMain(int argc, char **argv)
 	u32 MTUSize = 1450;
 #endif
 	GF_ISOFile *file;
+	Bool frag_real_time = 0;
 	Double mpd_update_time = 0;
 	Bool stream_rtp=0;
 	Bool live_scene=0;
@@ -2291,6 +2293,9 @@ int mp4boxMain(int argc, char **argv)
 		} 
 		else if (!stricmp(arg, "-last-dynamic")) {
 			dash_mode = GF_DASH_DYNAMIC_LAST;
+		}
+		else if (!stricmp(arg, "-frag-rt")) {
+			frag_real_time = GF_TRUE;
 		}
 		else if (!strnicmp(arg, "-dash-live", 10) || !strnicmp(arg, "-ddbg-live", 10)) {
 			dash_mode = !strnicmp(arg, "-ddbg-live", 10) ? GF_DASH_DYNAMIC_DEBUG : GF_DASH_DYNAMIC;
@@ -3575,7 +3580,7 @@ int mp4boxMain(int argc, char **argv)
 			                            interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
 			                            dash_ctx, dash_mode, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
 			                            ast_offset_ms, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
-										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration, insert_utc);
+										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration, insert_utc, frag_real_time);
 
 			if (do_abort) 
 				break;
@@ -3612,8 +3617,9 @@ int mp4boxMain(int argc, char **argv)
 					if (dash_mode == GF_DASH_DYNAMIC_DEBUG) {
 						break;
 					}
-					gf_sleep(10);
+					if (!sleep_for) break;
 
+					gf_sleep(10);
 					sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
 					if (sleep_for<10) {
 						fprintf(stderr, "Slept for %d ms before generation\n", gf_sys_clock() - slept);
