@@ -1682,6 +1682,18 @@ void gf_net_get_ntp(u32 *sec, u32 *frac)
 }
 
 GF_EXPORT
+u64 gf_net_get_ntp_ts()
+{
+	u64 res;
+	u32 sec, frac;
+	gf_net_get_ntp(&sec, &frac);
+	res = sec;
+	res<<= 32;
+	res |= frac;
+	return res;
+}
+
+GF_EXPORT
 s32 gf_net_get_ntp_diff_ms(u64 ntp)
 {
 	u32 remote_s, remote_f, local_s, local_f;

@@ -169,6 +169,15 @@ void gf_utc_time_since_1970(u32 *sec, u32 *msec);
  */
 void gf_net_get_ntp(u32 *sec, u32 *frac);
 
+
+/*!
+ *\brief gets NTP time
+ *
+ *Gets NTP (Network Time Protocol) timestamp (high 32 bit is seconds, low 32 bit is fraction)
+ \return NTP timestamp
+ */
+u64 gf_net_get_ntp_ts();
+
 /*!
  *
  *Gets diff in milliseconds between NTP time and current time

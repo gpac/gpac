@@ -801,6 +801,11 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 n
 				if (ret < 0)
 					return -1;
 
+				//insert UTC for each fragment
+				if (ntp_timestamp) {
+					gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, ntp_timestamp, video_output_file->codec_ctx->coded_frame->pts);
+				}
+
 				video_output_file->first_dts_in_fragment = video_output_file->codec_ctx->coded_frame->pkt_dts;
 				if (!video_output_file->segment_started) {
 					video_output_file->pts_at_segment_start = video_output_file->codec_ctx->coded_frame->pts;
@@ -809,24 +814,19 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 n
 						video_output_file->pts_at_first_segment = video_output_file->pts_at_segment_start;
 					}
 
-					if (ntp_timestamp) {
-						gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, ntp_timestamp, video_output_file->pts_at_segment_start);
-
 #ifndef GPAC_DISABLE_LOG
-						if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_INFO)) {
-							if (!video_output_file->ntp_at_first_dts) {
-								video_output_file->ntp_at_first_dts = ntp_timestamp;
-							} else {
-								s32 ntp_diff = gf_net_get_ntp_diff_ms(video_output_file->ntp_at_first_dts);
-								s32 ts_diff = (s32) ( 1000 * (video_output_file->codec_ctx->coded_frame->pts - video_output_file->pts_at_first_segment) / video_output_file->timescale );
+					if (ntp_timestamp && gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_INFO)) {
+						if (!video_output_file->ntp_at_first_dts) {
+							video_output_file->ntp_at_first_dts = ntp_timestamp;
+						} else {
+							s32 ntp_diff = gf_net_get_ntp_diff_ms(video_output_file->ntp_at_first_dts);
+							s32 ts_diff = (s32) ( 1000 * (video_output_file->codec_ctx->coded_frame->pts - video_output_file->pts_at_first_segment) / video_output_file->timescale );
 
-								s32 diff_ms = ts_diff - ntp_diff;
-								GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Video Segment start NTP diff: %d ms TS diff: %d ms drift: %d ms\n", ntp_diff, ts_diff, diff_ms));
-							}
+							s32 diff_ms = ts_diff - ntp_diff;
+							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Video Segment start NTP diff: %d ms TS diff: %d ms drift: %d ms\n", ntp_diff, ts_diff, diff_ms));
 						}
-#endif
 					}
-
+#endif
 				}
 				gf_isom_set_traf_base_media_decode_time(video_output_file->isof, video_output_file->trackID, video_output_file->first_dts_in_fragment);
 			}

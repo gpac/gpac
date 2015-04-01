@@ -1767,7 +1767,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	/*for now only allowed when no scene info*/
 	if (!scene->is_dynamic_scene) return;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing scene size to %d x %d\n", width, height));
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Scene] Forcing scene size to %d x %d\n", width, height));
 
 	if (scene->is_dynamic_scene) {
 		GF_NetworkCommand com;
