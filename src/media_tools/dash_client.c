@@ -415,9 +415,12 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	}
 
 	if (!fetch_time) {
-		u32 diff = gf_sys_clock() - group->dash->last_update_time;
-		fetch_time = group->dash->mpd_fetch_time + diff;
+		//when we initialize the timeline without an explicit fetch time, use our local clock - this allows for better precision
+		//when trying to locate the live edge
+		fetch_time = gf_net_get_utc();
 	}
+
+
 	if (group->dash->estimate_utc_drift && !group->dash->utc_drift_estimate && group->dash->mpd_dnload && group->dash->dash_io->get_header_value) {
 		const char *val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "Server-UTC");
 		if (val) {
@@ -655,6 +658,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		shift = (u32) nb_seg;
 
 		//not time shifting, we are at the live edge, we must stick to start of segment otherwise we won't have enough data to play until next segment is ready
+
 		if (!group->dash->initial_time_shift_value) {
 			Double ms_in_seg;
 			group->start_playback_range = shift * group->segment_duration;
@@ -664,16 +668,18 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 			//if low latency, try to adjust 
 			if (ast_offset) {
-				Double diff;
+				Double ast_diff;
 				if (ast_offset>group->segment_duration) ast_offset = group->segment_duration;
-				diff = group->segment_duration - ast_offset;
+				ast_diff = group->segment_duration - ast_offset;
 
-				//we assume that in low latency mode, chunks are made available every (group->segment_duration - ast_offset) - the maximum time we can shift in the segment is 
-				//therefore ms_in_seg - (group->segment_duration - ast_offset)
-				if (ms_in_seg > diff) {
-//					group->start_playback_range += ms_in_seg - diff;
+				//we assume that in low latency mode, chunks are made available every (group->segment_duration - ast_offset)
+				//we need to seek such that the remaining time R satisfies now + R = NextSegAST 
+				//hence S(n) + ms_in_seg + R = S(n+1) + Aoffset
+				//which gives us R = S(n+1) + Aoffset - S(n) - ms_in_seg = D + Aoffset - ms_in_seg
+				//seek = D - R = D - (D + Aoffset - ms_in_seg) = ms_in_seg - Ao
+				if (ms_in_seg > ast_diff) {
+					group->start_playback_range += ms_in_seg - ast_diff;
 				}
-				group->start_playback_range += ms_in_seg;
 			}
 		} else {
 			group->start_playback_range = (Double) current_time / 1000.0;
@@ -685,7 +691,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 			group->ast_at_init = availabilityStartTime - (u32) (ast_offset*1000);
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] At current time "LLD" ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%g sec offset in segment %g sec\n", current_time, start_number, shift, group->segment_duration, group->start_playback_range ? group->start_playback_range - shift*group->segment_duration : 0));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] At current time "LLD" ms: Initializing Timeline: startNumber=%d segmentNumber=%d segmentDuration=%f - %.03f seconds in segment\n", current_time, start_number, shift, group->segment_duration, group->start_playback_range ? group->start_playback_range - shift*group->segment_duration : 0));
 		} else {
 			group->download_segment_index += start_number;
 			if (group->download_segment_index > group->start_number_at_last_ast) {
@@ -3391,7 +3397,8 @@ static void gf_dash_group_check_time(GF_DASH_Group *group)
 	u32 nb_droped;
 	
 	if (group->dash->is_m3u8) return;
-	
+	return;
+
 	check_time = (s64) gf_net_get_utc();
 	nb_droped = 0;
 
@@ -3746,6 +3753,7 @@ restart_period:
 
 				/*if segment AST is greater than now, it is not yet available - we would need an estimate on how long the request takes to be sent to the server in order to be more reactive ...*/
 				if (to_wait > 1) {
+
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD" - sec in period %g) is not yet available on server - requesting later in %d ms\n", i+1, gf_sys_clock(), group->download_segment_index + start_number, segment_ast, (segment_ast - group->period->start - group->ast_at_init)/1000.0, to_wait));
 					if (group->last_segment_time) {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
@@ -3753,6 +3761,7 @@ restart_period:
 					gf_mx_v(dash->dl_mutex);
 					if (!min_wait || ((u32) to_wait < min_wait))
 						min_wait = to_wait;
+
 					continue;
 				} else {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Set #%d At %d Next segment %d (AST "LLD" - sec in period %g) should now be available on server since %d ms - requesting it\n", i+1, gf_sys_clock(), group->download_segment_index + start_number, segment_ast, (segment_ast - group->period->start - group->ast_at_init)/1000.0, -to_wait));

@@ -350,6 +350,14 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 	}
 	term->frame_duration = atoi(sOpt);
 
+	sOpt = gf_cfg_get_key(term->user->config, "Network", "LowLatencyBufferMax");
+	if (!sOpt) {
+		sOpt = "500";
+		gf_cfg_set_key(term->user->config, "Network", "LowLatencyBufferMax", sOpt);
+	}
+	term->low_latency_buffer_max = atoi(sOpt);
+	
+
 	if (!(term->user->init_flags & GF_TERM_NO_DECODER_THREAD) ) {
 		prio = GF_THREAD_PRIORITY_NORMAL;
 		sOpt = gf_cfg_get_key(term->user->config, "Systems", "Priority");

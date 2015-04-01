@@ -116,7 +116,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 	GF_CodecCapability cap;
 	u32 min, max;
 
-	if (ch && (ch->MaxBuffer<=100))
+	if (ch && ch->odm && (ch->MaxBuffer <= ch->odm->term->low_latency_buffer_max))
 		codec->flags |= GF_ESM_CODEC_IS_LOW_LATENCY;
 
 	/*only for valid codecs (eg not OCR)*/
@@ -1632,6 +1632,9 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 	switch (Status) {
 	case GF_ESM_CODEC_PLAY:
 		gf_cm_set_status(codec->CB, CB_PLAY);
+		if (codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY) {
+			gf_cm_abort_buffering(codec->CB);
+		}
 		return;
 	case GF_ESM_CODEC_PAUSE:
 		gf_cm_set_status(codec->CB, CB_PAUSE);

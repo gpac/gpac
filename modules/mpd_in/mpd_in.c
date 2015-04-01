@@ -1213,7 +1213,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	case GF_NET_CHAN_BUFFER:
 		/*get it from MPD minBufferTime - if not in low latency mode, indicate the value given in MPD (not possible to fetch segments earlier) - to be more precise we should get the min segment duration for this group*/
-		if (!mpdin->use_low_latency && (mpdin->buffer_mode>=MPDIN_BUFFER_MIN)) {
+		if (/* !mpdin->use_low_latency && */ (mpdin->buffer_mode>=MPDIN_BUFFER_MIN)) {
 			u32 max = gf_dash_get_min_buffer_time(mpdin->dash);
 			if (max>com->buffer.max)
 				com->buffer.max = max;

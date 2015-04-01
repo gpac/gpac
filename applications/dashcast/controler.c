@@ -855,10 +855,8 @@ u32 video_encoder_thread(void *params)
 		}
 //		fprintf(stdout, "Header size: %d\n", ret);
 		while (1) {
-//			if (seg_frame_max > 0) {
-//				if (frame_nb == seg_frame_max)
-//					break;
-//			}
+			u64 ntpts = gf_net_get_ntp_ts();
+
 			//we have the RAP already encoded, skip coder
 			if (loss_state == 2) {
 				ret = 1;
@@ -887,7 +885,7 @@ u32 video_encoder_thread(void *params)
 					break;
 				}
 
-				r = dc_video_muxer_write(&out_file, frame_nb, in_data->insert_utc ? time_at_segment_start.ntpts : 0);
+				r = dc_video_muxer_write(&out_file, frame_nb, in_data->insert_utc ? ntpts : 0);
 				if (r < 0) {
 					quit = 1;
 					in_data->exit_signal = 1;

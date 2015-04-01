@@ -1436,12 +1436,7 @@ restart_fragmentation_pass:
 					e = GF_OK;
 				} else {
 					if ((tf == tfref) && store_utc) {
-						u32 sec, frac;
-						u64 ntpts;
-						gf_net_get_ntp(&sec, &frac);
-						ntpts = sec;
-						ntpts <<= 32;
-						ntpts |= frac;
+						u64 ntpts = gf_net_get_ntp_ts();
 						gf_isom_set_fragment_reference_time(output, tf->TrackID, ntpts, sample->DTS + sample->CTS_Offset + tf->media_time_to_pres_time_shift);
 						store_utc = GF_FALSE;
 					}

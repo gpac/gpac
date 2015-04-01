@@ -77,7 +77,7 @@ typedef struct
 	Bool disconnected;
 	Bool no_order_check;
 
-	u64 last_sender_ntp;
+	u64 last_sender_ntp, cts_for_last_sender_ntp;
 	Double remain_at_buffering_start;
 	Bool buffering;
 } ISOMReader;

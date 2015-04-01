@@ -1351,7 +1351,8 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 		compositor->traverse_state->vp_size.x = INT2FIX(compositor->output_width);
 		compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
 	}
-
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Reconfigured display size %d x %d done\n", evt.setup.width, evt.setup.height));
+	
 	/*set scale factor*/
 	compositor_set_ar_scale(compositor, scaleX, scaleY);
 	return GF_OK;
