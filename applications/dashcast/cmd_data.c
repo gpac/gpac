@@ -55,7 +55,7 @@ int dc_str_to_resolution(char *str, int *width, int *height)
 }
 
 
-#define DEFAULT_VIDEO_BITRATE    400000
+#define DEFAULT_VIDEO_BITRATE    1000000
 #define DEFAULT_VIDEO_FRAMERATE  25
 #define DEFAULT_VIDEO_WIDTH      640
 #define DEFAULT_VIDEO_HEIGHT     480

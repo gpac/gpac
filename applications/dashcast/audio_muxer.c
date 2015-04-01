@@ -418,9 +418,11 @@ int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
 		if (frame_nb % audio_output_file->frame_per_frag == audio_output_file->frame_per_frag - 1) {
 			gf_isom_flush_fragments(audio_output_file->isof, 1);
 		}
+		//TODO - do same as video, flush based on time in case of losses
 		if (frame_nb + 1 == audio_output_file->frame_per_seg) {
 			return 1;
 		}
+
 		return 0;
 	default:
 		return GF_BAD_PARAM;
