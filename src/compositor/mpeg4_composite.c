@@ -53,7 +53,7 @@ typedef struct
 } CompositeTextureStack;
 
 
-static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx, GF_ColorKey *col_key)
+static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx)
 {
 	u8 alpha = 0xFF;
 	GF_VideoSurface offscreen_dst, video_src;
@@ -103,7 +103,7 @@ static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *
 	offscreen_dst.pixel_format = st->txh.pixelformat;
 	offscreen_dst.video_buffer = st->txh.data;
 
-	gf_stretch_bits(&offscreen_dst, &video_src, &dst_wnd, &src_wnd, alpha, 0, col_key, ctx->col_mat);
+	gf_stretch_bits(&offscreen_dst, &video_src, &dst_wnd, &src_wnd, alpha, 0, tr_state->col_key, ctx->col_mat);
 	return 1;
 }
 
