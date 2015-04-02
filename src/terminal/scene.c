@@ -911,23 +911,24 @@ void gf_scene_set_duration(GF_Scene *scene)
 			if (odm->duration>max_dur) max_dur = odm->duration;
 		}
 	}
-	if (scene->duration == max_dur) return;
 
-	scene->duration = max_dur;
-	if (scene->is_dynamic_scene && !scene->root_od->duration) scene->root_od->duration = max_dur;
-
-	dur = (Double) (s64) scene->duration;
+	dur = (Double) (s64) max_dur;
 	dur /= 1000;
 
+	if (scene->duration != max_dur) {
+		scene->duration = max_dur;
+		if (scene->is_dynamic_scene && !scene->root_od->duration) scene->root_od->duration = max_dur;
+
 #ifndef GPAC_DISABLE_VRML
-	i=0;
-	while ((media_sens = (MediaSensorStack*)gf_list_enum(scene->root_od->ms_stack, &i))) {
-		if (media_sens->sensor->isActive) {
-			media_sens->sensor->mediaDuration = dur;
-			gf_node_event_out((GF_Node *) media_sens->sensor, 3/*"mediaDuration"*/);
+		i=0;
+		while ((media_sens = (MediaSensorStack*)gf_list_enum(scene->root_od->ms_stack, &i))) {
+			if (media_sens->sensor->isActive) {
+				media_sens->sensor->mediaDuration = dur;
+				gf_node_event_out((GF_Node *) media_sens->sensor, 3/*"mediaDuration"*/);
+			}
 		}
-	}
 #endif
+	}
 
 	if ((scene == scene->root_od->term->root_scene) && scene->root_od->term->user->EventProc) {
 		GF_Event evt;
