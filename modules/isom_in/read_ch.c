@@ -315,12 +315,8 @@ next_segment:
 		read->frag_type = 2;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] No more segments - done playing file\n"));
 	} else if (e==GF_BUFFER_TOO_SMALL) {
-		if (do_refresh==0) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Next segment is not yet available\n"));
-			read->waiting_for_data = GF_TRUE;
-		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Corrupted state in low latency mode !!\n"));
-		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Next segment is not yet available\n"));
+		read->waiting_for_data = GF_TRUE;
 	} else {
 		/*consider we are done*/
 		read->frag_type = 2;
