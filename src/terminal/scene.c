@@ -1204,7 +1204,7 @@ static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 	GF_Scene *scene = (GF_Scene *) param;
 	SFVec2f tx_coord = * ((SFVec2f *) field->far_ptr);
 	
-	if (scene->disable_hitcoord_notif || !scene->visual_url.OD_ID && !scene->visual_url.url) return;
+	if (scene->disable_hitcoord_notif || !scene->visual_url.OD_ID) return;
 
 	count = gf_list_count(scene->resources);
 	for (i=0; i<count; i++) {
