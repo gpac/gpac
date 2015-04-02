@@ -130,7 +130,7 @@ struct _visual_manager
 	*/
 	void (*ClearSurface)(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool offscreen_clear);
 	/*draws specified texture as flat bitmap*/
-	Bool (*DrawBitmap)(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key);
+	Bool (*DrawBitmap)(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx);
 	/*checks if the visual is ready for being drawn on. Returns GF_FALSE if no draw operation can be sent*/
 	Bool (*CheckAttached)(GF_VisualManager *visual);
 
