@@ -228,6 +228,8 @@ struct _scene
 	GF_List *keynavigators;
 #endif
 
+	Bool disable_hitcoord_notif;
+
 	u32 addon_position, addon_size_factor;
 
 	GF_List *declared_addons;
