@@ -3397,7 +3397,6 @@ static void gf_dash_group_check_time(GF_DASH_Group *group)
 	u32 nb_droped;
 	
 	if (group->dash->is_m3u8) return;
-	return;
 
 	check_time = (s64) gf_net_get_utc();
 	nb_droped = 0;
