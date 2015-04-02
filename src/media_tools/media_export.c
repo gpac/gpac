@@ -1486,7 +1486,14 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 	}
 	i = 0;
 	tot_size = max_size = 0;
-	while ((size = (s32) AVI_audio_size(in, i) )>0) {
+	size = (s32) AVI_audio_size(in, i);
+	if (size < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[AVIExport] Error reading AVI audio sample\n"));
+		e = GF_NON_COMPLIANT_BITSTREAM;
+		goto exit;
+	}
+
+	while (size > 0) {
 		if (max_size<(u32) size) max_size=size;
 		tot_size += size;
 		i++;
@@ -1541,6 +1548,9 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 	case 0x55:
 		comp = "mp3";
 		break;
+	case 0x0000706d:
+		comp = "aac";
+		break;
 	default:
 		comp = "raw";
 		break;
@@ -1559,7 +1569,11 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 	while (1) {
 		Bool continuous;
 		size = (s32) AVI_read_audio(in, frame, max_size, (int*)&continuous);
-		if (!size) break;
+		if (size < 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[AVIExport] Error reading AVI audio sample\n"));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			goto exit;
+		}
 		num_samples += size;
 		gf_fwrite(frame, 1, size, fout);
 		gf_set_progress("AVI Extract", num_samples, tot_size);
