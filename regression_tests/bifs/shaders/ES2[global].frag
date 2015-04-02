@@ -60,6 +60,10 @@
 	uniform vec4 gfEmissionColor;
 	uniform float gfShininess;
 
+//Color Matrix
+	uniform mat4 gfColorMatrix;
+	uniform bool hasColorMatrix;
+	uniform vec4 gfTranslationVector;
 
 uniform int gfNumLights;
 uniform bool gfLightTwoSide;
@@ -282,6 +286,14 @@ void main() {
 		fragColor.rgb = gfEmissionColor.rgb;
 	}
 #endif
+	}
+	
+	if(hasColorMatrix){
+		fragColor *= gfColorMatrix;
+		if(gfTranslationVector != vec4(0.0, 0.0, 0.0, 0.0))
+			fragColor += gfTranslationVector;
+		fragColor = clamp(fragColor, zero_float, one_float);
+		
 	}
 	
 	if(gfFogEnabled)
