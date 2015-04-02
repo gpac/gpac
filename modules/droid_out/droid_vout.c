@@ -126,8 +126,6 @@ void initGL(AndroidContext *rc)
 
 	/* Really Nice Perspective Calculations */
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-
-	glDisable(GL_CULL_FACE | GL_NORMALIZE | GL_LIGHTING | GL_BLEND | GL_FOG | GL_COLOR_MATERIAL | GL_TEXTURE_2D);
 }
 
 void gluPerspective(GLfloat fovy, GLfloat aspect,
@@ -199,7 +197,6 @@ void drawGLScene(AndroidContext *rc)
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, rgba);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, rgba);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, rgba);
-	glDisable(GL_CULL_FACE | GL_NORMALIZE | GL_LIGHTING | GL_BLEND | GL_FOG | GL_COLOR_MATERIAL | GL_TEXTURE_2D);
 
 	/* Clear The Screen And The Depth Buffer */
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
