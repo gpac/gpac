@@ -1290,8 +1290,6 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			skip_seek = GF_FALSE;
 			if (com->play.initial_broadcast_play && (mpdin->previous_start_range==com->play.start_range))
 				skip_seek = GF_TRUE;
-			if (gf_dash_is_m3u8(mpdin->dash) == GF_TRUE)
-				skip_seek = GF_TRUE;
 
 			mpdin->previous_start_range = com->play.start_range;
 
@@ -1307,14 +1305,15 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				if (mpdin->in_seek) {
 					//group->in_seek = 1;
 				}
-				//and check if current segment playback should be aborted
-				com->play.dash_segment_switch = gf_dash_group_segment_switch_forced(mpdin->dash, idx);
 			}
 
 			//to remove once we manage to keep the service alive
 			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
 			if (gf_dash_get_period_switch_status(mpdin->dash)) return GF_OK;
 		}
+
+		//check if current segment playback should be aborted
+		com->play.dash_segment_switch = gf_dash_group_segment_switch_forced(mpdin->dash, idx);
 
 		gf_dash_group_select(mpdin->dash, idx, GF_TRUE);
 		gf_dash_set_group_done(mpdin->dash, (u32) idx, 0);
