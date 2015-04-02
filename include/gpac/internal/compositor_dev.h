@@ -801,6 +801,9 @@ struct _traversing_state
 	GF_ColorMatrix color_mat;
 	/* Contains the viewbox transform, used for svg ref() transform */
 	GF_Matrix2D vb_transform;
+	
+	/*only used for bitmap drawing*/
+	GF_ColorKey *col_key;
 
 	/*if set all nodes shall be redrawn - set only at specific places in the tree*/
 	Bool invalidate_all;

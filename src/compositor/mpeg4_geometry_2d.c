@@ -283,7 +283,7 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 			ctx->bi->clip = gf_rect_pixelize(&ctx->bi->unclip);
 			gf_irect_intersect(&ctx->bi->clip, &orig_clip);
 
-			res = tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL);
+			res = tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx);
 
 			/*strike path*/
 			ctx->bi->unclip = orig_unclip;
@@ -293,7 +293,7 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 				visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 			}
 		} else {
-			res = tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL);
+			res = tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx);
 		}
 		/*if failure retry with raster*/
 		if (res) return;
