@@ -848,7 +848,18 @@ static GLint my_glGetAttribLocation(GF_SHADERID glsl_program, const char *attrib
 	return loc;
 }
 
-
+//¡k test funtion for checking validity of a shader program
+static void my_glQueryProgram(GF_SHADERID progObj){
+	GLint err_log = -10;
+	glGetProgramiv(progObj, GL_VALIDATE_STATUS, &err_log);
+	printf("GL_VALIDATE_STATUS: %d \n ",err_log);
+	glGetProgramiv(progObj, GL_LINK_STATUS, &err_log);
+	printf("GL_LINK_STATUS: %d \n ",err_log);
+	glGetProgramiv(progObj, GL_ATTACHED_SHADERS, &err_log);
+	printf("GL_ATTACHED_SHADERS: %d \n ",err_log);
+	glGetProgramiv(progObj, GL_ACTIVE_UNIFORMS, &err_log);
+	printf("GL_ACTIVE_UNIFORMS: %d \n ",err_log);
+}
 
 static void my_glQueryUniform(GF_SHADERID progObj, const char *name, int index){
 	GLint loc;
@@ -1018,10 +1029,28 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	u32 i;
 	GLint loc;
 	Bool working = 0;	//¡k temp bool for testing
-	GLint err_log = 0;	//¡k error log
+	GLint err_log = -10;	//¡k error log
 	GLsizei log_len = 0; //¡k
 
 	GL_CHECK_ERR
+
+
+	/* ¡k test if programs exist (by using flags 0)
+	 * TODO this check was introduced due to losing program objects when switching rasterization modes (hit '3' in runtime to recreate issue)
+	 *   the program objects were not deleted though
+	 */
+	glGetProgramiv(visual->glsl_programs[0], GL_VALIDATE_STATUS, &err_log);
+	if(err_log==-10){
+		GL_CHECK_ERR;
+
+		DEL_SHADER(visual->glsl_vertex);
+		for (i=0;i<GF_GL_NUM_OF_VALID_SHADERS; i++) {
+			DEL_PROGRAM(visual->glsl_programs[i]);
+		}
+		visual->glsl_has_shaders=0;
+		GL_CHECK_ERR;
+	}
+
 
 //Creating Program for the shaders
 	if (visual->glsl_has_shaders){
@@ -2551,6 +2580,41 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		}
 	}
 
+	
+	//We have a Colour Matrix to be applied
+	if(tr_state->color_mat.m && !tr_state->color_mat.identity){
+		GF_Matrix toBeParsed;	//4x4 RGBA Color Matrix
+		Fixed translateV[4];	//Vec4 holding translation property of color_mat
+		int row,col;
+
+		gf_mx_init(toBeParsed);
+
+		//Copy values from Color Matrix
+		for(row=0;row<4;row++){
+			for(col=0;col<4;col++){
+				toBeParsed.m[col+(row*4)]=tr_state->color_mat.m[col+(row*5)];
+			}
+			translateV[row] = tr_state->color_mat.m[4+(row*5)];
+		}
+
+		//the rest of the values form the translation vector
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfTranslationVector");
+		if (loc>=0)
+			glUniform4fv(loc, 1, (GLfloat *) &translateV);
+		GL_CHECK_ERR
+
+		loc = glGetUniformLocation(visual->glsl_program, "hasColorMatrix");
+		if(loc>=0) glUniform1i(loc, 1);
+		
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfColorMatrix");
+		if (loc>=0)
+			glUniformMatrix4fv(loc, 1, GL_FALSE, toBeParsed.m);
+		GL_CHECK_ERR
+	}else{
+		loc = glGetUniformLocation(visual->glsl_program, "hasColorMatrix");
+		if(loc>=0) glUniform1i(loc, 0);
+	}
+	
 	
 	visual_3d_do_draw_mesh(tr_state, mesh);
 
