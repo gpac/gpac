@@ -1332,7 +1332,9 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		compositor_gradient_update(txh);
 	}
 
-	tx_set_image(txh, 0);
+	if (! tx_set_image(txh, 0) ) {
+		return 0;
+	}
 
 	if (bounds && txh->compute_gradient_matrix) {
 		GF_Matrix2D mx2d;
@@ -1468,6 +1470,8 @@ void gf_sc_texture_set_stencil(GF_TextureHandler *txh, GF_STENCIL stencil)
 
 void gf_sc_texture_check_pause_on_first_load(GF_TextureHandler *txh)
 {
+	return;
+
 	if (txh->stream && txh->tx_io) {
 		switch (txh->tx_io->init_pause_status) {
 		case 0:

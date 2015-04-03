@@ -39,8 +39,8 @@ typedef struct
 
 static void audioclip_activate(AudioClipStack *st, M_AudioClip *ac)
 {
-	if (gf_sc_audio_open(&st->input, &ac->url, 0, -1, 0) != GF_OK) {
-		st->failure = 1;
+	if (gf_sc_audio_open(&st->input, &ac->url, 0, -1, GF_FALSE) != GF_OK) {
+		st->failure = GF_TRUE;
 		return;
 	}
 	ac->isActive = 1;
@@ -57,7 +57,7 @@ static void audioclip_deactivate(AudioClipStack *st, M_AudioClip *ac)
 	ac->isActive = 0;
 	gf_node_event_out((GF_Node *)ac, 7/*"isActive"*/);
 
-	st->time_handle.needs_unregister = 1;
+	st->time_handle.needs_unregister = GF_TRUE;
 }
 
 static void audioclip_traverse(GF_Node *node, void *rs, Bool is_destroy)
@@ -91,7 +91,7 @@ static void audioclip_traverse(GF_Node *node, void *rs, Bool is_destroy)
 	if (st->set_duration && st->input.stream) {
 		ac->duration_changed = gf_mo_get_duration(st->input.stream);
 		gf_node_event_out(node, 6/*"duration_changed"*/);
-		st->set_duration = 0;
+		st->set_duration = GF_FALSE;
 	}
 
 	/*store mute flag*/
@@ -102,14 +102,14 @@ static void audioclip_update_time(GF_TimeNode *tn)
 {
 	Double time;
 	M_AudioClip *ac = (M_AudioClip *)tn->udta;
-	AudioClipStack *st = (AudioClipStack *)gf_node_get_private(tn->udta);
+	AudioClipStack *st = (AudioClipStack *)gf_node_get_private((GF_Node*)tn->udta);
 
 	if (st->failure) return;
 	if (! ac->isActive) {
 		st->start_time = ac->startTime;
 		st->input.speed = ac->pitch;
 	}
-	time = gf_node_get_scene_time(tn->udta);
+	time = gf_node_get_scene_time((GF_Node*)tn->udta);
 	if ((time<st->start_time) || (st->start_time<0)) return;
 
 	if (ac->isActive) {
@@ -130,7 +130,7 @@ void compositor_init_audioclip(GF_Compositor *compositor, GF_Node *node)
 
 	st->time_handle.UpdateTimeNode = audioclip_update_time;
 	st->time_handle.udta = node;
-	st->set_duration = 1;
+	st->set_duration = GF_TRUE;
 
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, audioclip_traverse);
@@ -144,13 +144,13 @@ void compositor_audioclip_modified(GF_Node *node)
 	AudioClipStack *st = (AudioClipStack *) gf_node_get_private(node);
 	if (!st) return;
 
-	st->failure = 0;
+	st->failure = GF_FALSE;
 
 	/*MPEG4 spec is not clear about that , so this is not forbidden*/
 	if (st->input.is_open) {
 		if (gf_sc_audio_check_url(&st->input, &ac->url)) {
 			gf_sc_audio_stop(&st->input);
-			gf_sc_audio_open(&st->input, &ac->url, 0, -1, 0);
+			gf_sc_audio_open(&st->input, &ac->url, 0, -1, GF_FALSE);
 			/*force unregister to resetup audio cfg*/
 			gf_sc_audio_unregister(&st->input);
 			gf_sc_invalidate(st->input.compositor, NULL);
@@ -168,7 +168,7 @@ void compositor_audioclip_modified(GF_Node *node)
 	if (!st->time_handle.is_registered && !st->time_handle.needs_unregister)
 		gf_sc_register_time_node(st->input.compositor, &st->time_handle);
 	else
-		st->time_handle.needs_unregister = 0;
+		st->time_handle.needs_unregister = GF_FALSE;
 }
 
 
@@ -182,9 +182,9 @@ typedef struct
 
 static void audiosource_activate(AudioSourceStack *st, M_AudioSource *as)
 {
-	if (gf_sc_audio_open(&st->input, &as->url, 0, -1, 0) != GF_OK)
+	if (gf_sc_audio_open(&st->input, &as->url, 0, -1, GF_FALSE) != GF_OK)
 		return;
-	st->is_active = 1;
+	st->is_active = GF_TRUE;
 	gf_mo_set_speed(st->input.stream, st->input.speed);
 	/*traverse all graph to get parent audio group*/
 	gf_sc_invalidate(st->input.compositor, NULL);
@@ -193,8 +193,8 @@ static void audiosource_activate(AudioSourceStack *st, M_AudioSource *as)
 static void audiosource_deactivate(AudioSourceStack *st, M_AudioSource *as)
 {
 	gf_sc_audio_stop(&st->input);
-	st->is_active = 0;
-	st->time_handle.needs_unregister = 1;
+	st->is_active = GF_FALSE;
+	st->time_handle.needs_unregister = GF_TRUE;
 }
 
 static void audiosource_traverse(GF_Node *node, void *rs, Bool is_destroy)
@@ -216,7 +216,7 @@ static void audiosource_traverse(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*check end of stream*/
 	if (st->input.stream && st->input.stream_finished) {
-		if (gf_mo_get_loop(st->input.stream, 0)) {
+		if (gf_mo_get_loop(st->input.stream, GF_FALSE)) {
 			gf_sc_audio_restart(&st->input);
 		} else if (st->is_active && gf_mo_should_deactivate(st->input.stream)) {
 			/*deactivate*/
@@ -235,13 +235,13 @@ static void audiosource_update_time(GF_TimeNode *tn)
 {
 	Double time;
 	M_AudioSource *as = (M_AudioSource *)tn->udta;
-	AudioSourceStack *st = (AudioSourceStack *)gf_node_get_private(tn->udta);
+	AudioSourceStack *st = (AudioSourceStack *)gf_node_get_private((GF_Node*)tn->udta);
 
 	if (! st->is_active) {
 		st->start_time = as->startTime;
 		st->input.speed = as->speed;
 	}
-	time = gf_node_get_scene_time(tn->udta);
+	time = gf_node_get_scene_time((GF_Node*)tn->udta);
 	if ((time<st->start_time) || (st->start_time<0)) return;
 
 	if (st->input.input_ifce.GetSpeed(st->input.input_ifce.callback) && st->is_active) {
@@ -282,7 +282,7 @@ void compositor_audiosource_modified(GF_Node *node)
 		gf_sc_audio_unregister(&st->input);
 		gf_sc_invalidate(st->input.compositor, NULL);
 
-		if (st->is_active) gf_sc_audio_open(&st->input, &as->url, 0, -1, 0);
+		if (st->is_active) gf_sc_audio_open(&st->input, &as->url, 0, -1, GF_FALSE);
 	}
 
 	//update state if we're active
@@ -295,7 +295,7 @@ void compositor_audiosource_modified(GF_Node *node)
 	if (!st->time_handle.is_registered && !st->time_handle.needs_unregister)
 		gf_sc_register_time_node(st->input.compositor, &st->time_handle);
 	else
-		st->time_handle.needs_unregister = 0;
+		st->time_handle.needs_unregister = GF_FALSE;
 }
 
 
@@ -354,18 +354,18 @@ static void audiobuffer_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		l = l->next;
 	}
 
-	gf_mixer_lock(st->am, 1);
+	gf_mixer_lock(st->am, GF_TRUE);
 
 	/*if no new inputs don't change mixer config*/
-	update_mixer = gf_list_count(st->new_inputs) ? 1 : 0;
+	update_mixer = gf_list_count(st->new_inputs) ? GF_TRUE : GF_FALSE;
 
 	if (gf_mixer_get_src_count(st->am) == gf_list_count(st->new_inputs)) {
 		u32 count = gf_list_count(st->new_inputs);
-		update_mixer = 0;
+		update_mixer = GF_FALSE;
 		for (j=0; j<count; j++) {
 			GF_AudioInput *cur = (GF_AudioInput *)gf_list_get(st->new_inputs, j);
 			if (!gf_mixer_is_src_present(st->am, &cur->input_ifce)) {
-				update_mixer = 1;
+				update_mixer = GF_TRUE;
 				break;
 			}
 		}
@@ -382,7 +382,7 @@ static void audiobuffer_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		if (update_mixer) gf_mixer_add_input(st->am, &src->input_ifce);
 	}
 
-	gf_mixer_lock(st->am, 0);
+	gf_mixer_lock(st->am, GF_FALSE);
 	tr_state->audio_parent = parent;
 
 	/*Note the audio buffer is ALWAYS registered untill destroyed since buffer filling shall happen even when inactive*/
@@ -401,7 +401,7 @@ static void audiobuffer_activate(AudioBufferStack *st, M_AudioBuffer *ab)
 	gf_node_event_out((GF_Node *)ab, 17/*"isActive"*/);
 	/*rerender all graph to get parent audio group*/
 	gf_sc_invalidate(st->output.compositor, NULL);
-	st->done = 0;
+	st->done = GF_FALSE;
 	st->read_pos = 0;
 }
 
@@ -409,19 +409,19 @@ static void audiobuffer_deactivate(AudioBufferStack *st, M_AudioBuffer *ab)
 {
 	ab->isActive = 0;
 	gf_node_event_out((GF_Node *)ab, 17/*"isActive"*/);
-	st->time_handle.needs_unregister = 1;
+	st->time_handle.needs_unregister = GF_TRUE;
 }
 
 static void audiobuffer_update_time(GF_TimeNode *tn)
 {
 	Double time;
 	M_AudioBuffer *ab = (M_AudioBuffer *)tn->udta;
-	AudioBufferStack *st = (AudioBufferStack *)gf_node_get_private(tn->udta);
+	AudioBufferStack *st = (AudioBufferStack *)gf_node_get_private((GF_Node*)tn->udta);
 
 	if (! ab->isActive) {
 		st->start_time = ab->startTime;
 	}
-	time = gf_node_get_scene_time(tn->udta);
+	time = gf_node_get_scene_time((GF_Node*)tn->udta);
 	if ((time<st->start_time) || (st->start_time<0)) return;
 
 	if (ab->isActive) {
@@ -449,7 +449,7 @@ static char *audiobuffer_fetch_frame(void *callback, u32 *size, u32 audio_delay_
 
 	if (!st->is_init) return NULL;
 	if (!st->buffer) {
-		st->done = 0;
+		st->done = GF_FALSE;
 		st->buffer_size = (u32) ceil(FIX2FLT(ab->length) * st->output.input_ifce.bps*st->output.input_ifce.samplerate*st->output.input_ifce.chan/8);
 		blockAlign = gf_mixer_get_block_align(st->am);
 		/*BLOCK ALIGN*/
@@ -492,7 +492,7 @@ static void audiobuffer_release_frame(void *callback, u32 nb_bytes)
 		} else if ( ((M_AudioBuffer*)st->output.owner)->loop) {
 			st->read_pos = 0;
 		} else {
-			st->done = 1;
+			st->done = GF_TRUE;
 		}
 	}
 }
@@ -511,7 +511,7 @@ static Bool audiobuffer_get_volume(void *callback, Fixed *vol)
 		return ai->snd->GetChannelVolume(ai->snd->owner, vol);
 	} else {
 		vol[0] = vol[1] = vol[2] = vol[3] = vol[4] = vol[5] = FIX_ONE;
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -533,11 +533,11 @@ static Bool audiobuffer_get_config(GF_AudioInterface *aifc, Bool for_reconf)
 		}
 
 		gf_mixer_get_config(st->am, &aifc->samplerate, &aifc->chan, &aifc->bps, &aifc->ch_cfg);
-		st->is_init = (aifc->samplerate && aifc->chan && aifc->bps) ? 1 : 0;
+		st->is_init = (aifc->samplerate && aifc->chan && aifc->bps) ? GF_TRUE : GF_FALSE;
 		assert(st->is_init);
 		if (!st->is_init) aifc->samplerate = aifc->chan = aifc->bps = aifc->ch_cfg = 0;
 		/*this will force invalidation*/
-		return (for_reconf && st->is_init) ? 1 : 0;
+		return (for_reconf && st->is_init) ? GF_TRUE : GF_FALSE;
 	}
 	return st->is_init;
 }
@@ -580,7 +580,7 @@ void compositor_init_audiobuffer(GF_Compositor *compositor, GF_Node *node)
 
 	st->time_handle.UpdateTimeNode = audiobuffer_update_time;
 	st->time_handle.udta = node;
-	st->set_duration = 1;
+	st->set_duration = GF_TRUE;
 
 	st->am = gf_mixer_new(NULL);
 	st->new_inputs = gf_list_new();
@@ -605,7 +605,7 @@ void compositor_audiobuffer_modified(GF_Node *node)
 	if (!st->time_handle.is_registered && !st->time_handle.needs_unregister)
 		gf_sc_register_time_node(st->output.compositor, &st->time_handle);
 	else
-		st->time_handle.needs_unregister = 0;
+		st->time_handle.needs_unregister = GF_FALSE;
 }
 
 #endif /*GPAC_DISABLE_VRML*/

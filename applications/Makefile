@@ -12,10 +12,12 @@ ifeq ($(DISABLE_M2TS_MUX), no)
 APPDIRS+=mp42ts
 endif
 
+ifneq ($(CONFIG_WIN32), yes)
 ifneq ($(CONFIG_FFMPEG), no)
 ifneq ($(DISABLE_CORE_TOOLS), yes)
 ifneq ($(DISABLE_AV_PARSERS), yes)
 APPDIRS+=dashcast
+endif
 endif
 endif
 endif

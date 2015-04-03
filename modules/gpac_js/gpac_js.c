@@ -672,6 +672,7 @@ static JSBool SMJS_FUNCTION(gpac_set_size)
 			term->compositor->scene_width = w;
 			term->compositor->scene_height = h;
 			term->compositor->has_size_info = 1;
+			return JS_TRUE;
 		}
 		if (term->user->os_window_handler) {
 			evt.type = GF_EVENT_SCENE_SIZE;
@@ -814,12 +815,14 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
 	GF_MediaInfo odi;
+	s32 prop_id;
 	char *str;
 	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
 	gf_term_get_object_info(odm->term, odm, &odi);
 
-	switch (SMJS_ID_TO_INT(id)) {
+	prop_id = SMJS_ID_TO_INT(id);
+	switch (prop_id) {
 	case -1:
 		*vp = INT_TO_JSVAL(odi.od->objectDescriptorID);
 		break;
@@ -1079,17 +1082,34 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 			}
 		}
 	}
+	break;
 	case -49:
 	{
-		GF_NetworkCommand com;
+		u32 i, count;
 		GF_Err e;
+		GF_NetworkCommand com;
+		GF_Scene *scene;
+
+		scene = odm->subscene ? odm->subscene : odm->parentscene;
+
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.command_type = GF_NET_SERVICE_CAN_REVERSE_PLAYBACK;
+
+		//we may need to check the main addon for timeshifting
+		count = gf_list_count(scene->resources);
+		for (i=0; i < count; i++) {
+			GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
+			if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
+				odm = an_odm;
+			}
+		}
+
+		//can be NULL
+		com.base.on_channel = gf_list_get(odm->channels, 0);
 		e = gf_term_service_command(odm->net_service, &com);
-		*vp = BOOLEAN_TO_JSVAL((e == GF_OK) ? JS_TRUE : JS_FALSE);
+		*vp = BOOLEAN_TO_JSVAL((e==GF_OK) ? GF_TRUE : GF_FALSE );
 	}
 		break;
-	break;
 	}
 
 	return JS_TRUE;
@@ -1756,6 +1776,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_OVERFLOW);
 		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_UNDERRUN);
 		DECLARE_GPAC_CONST(GF_EVENT_QUIT);
+		DECLARE_GPAC_CONST(GF_EVENT_MAIN_ADDON_STATE);
+		
 
 		DECLARE_GPAC_CONST(GF_NAVIGATE_NONE);
 		DECLARE_GPAC_CONST(GF_NAVIGATE_WALK);

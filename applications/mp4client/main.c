@@ -60,7 +60,7 @@ void carbon_uninit();
 
 /*local prototypes*/
 void PrintWorldInfo(GF_Terminal *term);
-void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number);
+void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *URL);
 void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 indent, char *root_name);
 
 void ViewODs(GF_Terminal *term, Bool show_timing);
@@ -96,7 +96,7 @@ GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
 static Bool enable_add_ons = GF_TRUE;
-static Fixed playback_speed = 1.0;
+static Fixed playback_speed = FIX_ONE;
 
 static s32 request_next_playlist_item = GF_FALSE;
 FILE *playlist = NULL;
@@ -143,15 +143,23 @@ enum
 Bool dump_file(char *the_url, char *out_url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times);
 
 
+static Bool shell_visible = GF_TRUE;
 void hide_shell(u32 cmd_type)
 {
 #if defined(WIN32) && !defined(_WIN32_WCE)
 	typedef HWND (WINAPI *GetConsoleWindowT)(void);
 	HMODULE hk32 = GetModuleHandle("kernel32.dll");
 	GetConsoleWindowT GetConsoleWindow = (GetConsoleWindowT ) GetProcAddress(hk32,"GetConsoleWindow");
-	if (cmd_type==0) ShowWindow( GetConsoleWindow(), SW_SHOW);
-	else if (cmd_type==1) ShowWindow( GetConsoleWindow(), SW_HIDE);
+	if (cmd_type==0) {
+		ShowWindow( GetConsoleWindow(), SW_SHOW);
+		shell_visible = GF_TRUE;
+	}
+	else if (cmd_type==1) {
+		ShowWindow( GetConsoleWindow(), SW_HIDE);
+		shell_visible = GF_FALSE;
+	}
 	else if (cmd_type==2) PostMessage(GetConsoleWindow(), WM_CLOSE, 0, 0);
+
 #endif
 }
 
@@ -564,6 +572,17 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	if (gui_mode==1) {
 		if (evt->type==GF_EVENT_QUIT) {
 			Run = 0;
+		} else if (evt->type==GF_EVENT_KEYDOWN) {
+			switch (evt->key.key_code) {
+			case GF_KEY_C:
+				if (evt->key.flags & (GF_KEY_MOD_CTRL|GF_KEY_MOD_ALT)) {
+					hide_shell(shell_visible ? 1 : 0);
+					if (shell_visible) gui_mode=2;
+				}
+				break;
+			default:
+				break;
+			}
 		}
 		return 0;
 	}
@@ -672,6 +691,12 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			break;
 		case GF_KEY_ESCAPE:
 			gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
+			break;
+		case GF_KEY_C:
+			if (evt->key.flags & (GF_KEY_MOD_CTRL|GF_KEY_MOD_ALT)) {
+				hide_shell(shell_visible ? 1 : 0);
+				if (!shell_visible) gui_mode=1;
+			}
 			break;
 		case GF_KEY_F:
 			if (evt->key.flags & GF_KEY_MOD_CTRL) fprintf(stderr, "Rendering rate: %f FPS\n", gf_term_get_framerate(term, 0));
@@ -1164,6 +1189,11 @@ int main (int argc, char **argv)
 		logs_set = GF_TRUE;
 	}
 
+	if (!gui_mode) {
+		str = gf_cfg_get_key(cfg_file, "General", "ForceGUI");
+		if (str && !strcmp(str, "yes")) gui_mode = 1;
+	}
+
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
 
@@ -1340,20 +1370,31 @@ int main (int argc, char **argv)
 		return 1;
 	}
 
-	if (!url_arg && simulation_time_in_ms)
-		simulation_time_in_ms += gf_sys_clock();
-
-	if (!gui_mode) {
-		str = gf_cfg_get_key(cfg_file, "General", "ForceGUI");
-		if (str && !strcmp(str, "yes")) gui_mode = 1;
+	if (!gui_mode && !url_arg && (gf_cfg_get_key(cfg_file, "General", "StartupFile") != NULL)) {
+		gui_mode=1;
 	}
 
-	if (gui_mode) {
-		if (gui_mode==1) {
-			hide_shell(1);
-			//user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;
+#ifdef WIN32
+	if (gui_mode==1) {
+		const char *opt;
+		TCHAR buffer[1024];
+		DWORD res = GetCurrentDirectory(1024, buffer);
+		buffer[res] = 0;
+		opt = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
+		if (strstr(opt, buffer)) {
+			gui_mode=1;
+		} else {
+			gui_mode=2;
 		}
 	}
+#endif
+
+	if (gui_mode==1) {
+		hide_shell(1);
+	}
+
+	if (!url_arg && simulation_time_in_ms)
+		simulation_time_in_ms += gf_sys_clock();
 
 #if defined(__DARWIN__) || defined(__APPLE__)
     carbon_init();
@@ -1535,6 +1576,7 @@ int main (int argc, char **argv)
 			strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
 			gf_term_connect(term, str);
 			startup_file = 1;
+			is_connected = 1;
 		}
 	}
 	if (gui_mode==2) gui_mode=0;
@@ -1555,7 +1597,7 @@ int main (int argc, char **argv)
 	while (Run) {
 
 		/*we don't want getchar to block*/
-		if (gui_mode || !gf_prompt_has_input()) {
+		if ((gui_mode==1) || !gf_prompt_has_input()) {
 			if (reload) {
 				reload = 0;
 				gf_term_disconnect(term);
@@ -1778,11 +1820,15 @@ force_input:
 		case 'i':
 			if (is_connected) {
 				u32 ID;
-				do {
-					fprintf(stderr, "Enter OD ID (0 for main OD): ");
-					fflush(stderr);
-				} while( 1 > scanf("%ud", &ID));
-				ViewOD(term, ID, (u32)-1);
+				fprintf(stderr, "Enter OD ID (0 for main OD): ");
+				fflush(stderr);
+				if (scanf("%ud", &ID) == 1) {
+					ViewOD(term, ID, (u32)-1, NULL);
+				} else {
+					char str_url[GF_MAX_PATH];
+					scanf("%s", str_url);
+					ViewOD(term, 0, (u32)-1, str_url);
+				}
 			}
 			break;
 		case 'j':
@@ -1792,7 +1838,7 @@ force_input:
 					fprintf(stderr, "Enter OD number (0 for main OD): ");
 					fflush(stderr);
 				} while( 1 > scanf("%ud", &num));
-				ViewOD(term, (u32)-1, num);
+				ViewOD(term, (u32)-1, num, NULL);
 			}
 			break;
 		case 'b':
@@ -2435,7 +2481,7 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 	}
 }
 
-void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
+void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 {
 	GF_MediaInfo odi;
 	u32 i, j, count, d_enum,id;
@@ -2445,8 +2491,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 	if (!root_odm) return;
 
 	odm = NULL;
-	if ((!OD_ID && (number == (u32)(-1))) ||
-	        ((OD_ID == (u32)(-1)) && !number)) {
+	if (!szURL && ((!OD_ID && (number == (u32)-1)) || ((OD_ID == (u32)(-1)) && !number))) {
 		odm = root_odm;
 		if ((gf_term_get_object_info(term, odm, &odi) != GF_OK)) odm=NULL;
 	} else {
@@ -2455,6 +2500,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 			odm = gf_term_get_object(term, root_odm, i);
 			if (!odm) break;
 			if (gf_term_get_object_info(term, odm, &odi) == GF_OK) {
+				if (szURL && strstr(odi.service_url, szURL)) break;
 				if ((number == (u32)(-1)) && (odi.od->objectDescriptorID == OD_ID)) break;
 				else if (i == (u32)(number-1)) break;
 			}
@@ -2462,6 +2508,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 		}
 	}
 	if (!odm) {
+		if (szURL) fprintf(stderr, "cannot find OD for URL %s\n", szURL);
 		if (number == (u32)-1) fprintf(stderr, "cannot find OD with ID %d\n", OD_ID);
 		else fprintf(stderr, "cannot find OD with number %d\n", number);
 		return;

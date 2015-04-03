@@ -145,7 +145,7 @@ typedef struct
 
 	JSObject *obj;
 	jsval fun;
-} GF_RouteToFunction;
+} GF_RouteToScript;
 
 
 #define _ScriptMessage(_c, _msg) {	\
@@ -797,7 +797,7 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 	GF_FieldInfo t_info;
 	GF_ScriptPriv *priv;
 	JSObject *obj;
-	GF_RouteToFunction *r = (GF_RouteToFunction *)_r;
+	GF_RouteToScript *r = (GF_RouteToScript *)_r;
 	if (!node) return;
 	priv = gf_node_get_private(node);
 	if (!priv) return;
@@ -923,12 +923,12 @@ static JSBool SMJS_FUNCTION(addRoute)
 	else {
 		u32 i = 0;
 		const char *fun_name;
-		GF_RouteToFunction *r = NULL;
+		GF_RouteToScript *r = NULL;
 		if (!JSVAL_IS_OBJECT(argv[3]) || !JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[3])) ) return JS_FALSE;
 
 		fun_name = JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
 		if (fun_name && n1->sgprivate->interact && n1->sgprivate->interact->routes ) {
-			while ( (r = (GF_RouteToFunction*)gf_list_enum(n1->sgprivate->interact->routes, &i) )) {
+			while ( (r = (GF_RouteToScript*)gf_list_enum(n1->sgprivate->interact->routes, &i) )) {
 				if ( (r->FromNode == n1)
 				        && (r->FromField.fieldIndex == f_id1)
 				        && (r->ToNode == (GF_Node*)JS_GetScript(c))
@@ -939,7 +939,7 @@ static JSBool SMJS_FUNCTION(addRoute)
 		}
 
 		if ( !r ) {
-			GF_SAFEALLOC(r, GF_RouteToFunction)
+			GF_SAFEALLOC(r, GF_RouteToScript)
 			if (!r) return JS_FALSE;
 			r->FromNode = n1;
 			r->FromField.fieldIndex = f_id1;

@@ -316,6 +316,10 @@ enum
 	*/
 	GF_SG_VRML_SCRIPT_FUNCTION,
 
+	/*special event only used in routes for binding eventOut/exposedFields to generic functions.
+	 A route with ToField.FieldType set to this value holds a pointer to a function object.
+	*/
+	GF_SG_VRML_GENERIC_FUNCTION,
 
 	GF_SG_VRML_UNKNOWN
 };
@@ -477,6 +481,8 @@ note that this must be called by the user to be effective,; otherwise the max ro
 from the routes present in scene*/
 void gf_sg_set_max_defined_route_id(GF_SceneGraph *sg, u32 ID);
 
+/*create a new route from a node output to a given callback/function*/
+void gf_sg_route_new_to_callback(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, void *cbk, void ( *route_callback) (void *param, GF_FieldInfo *from_field) );
 
 /*activates all routes currently triggered - this follows the event cascade model of VRML/MPEG4:
 	- routes are collected during eventOut generation

@@ -752,6 +752,9 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		return Quit(KErrGeneral);
 	}
 
+	/*force fullscreen*/
+	gf_term_set_option(m_term, GF_OPT_FULLSCREEN, 1);
+
 	//setAudioEnvironment(javaVM);
 
 	LOGD("Setting term size m_user=%p...", &m_user);

@@ -335,18 +335,28 @@ typedef enum
 	GF_DASH_BSMODE_SINGLE
 } GF_DashSwitchingMode;
 
+
+typedef enum
+{
+	GF_DASH_STATIC = 0,
+	GF_DASH_DYNAMIC,
+	//can only be used when DASH segmenter context is used, will close the period
+	GF_DASH_DYNAMIC_LAST,
+	GF_DASH_DYNAMIC_DEBUG,
+} GF_DashDynamicMode;
+
 GF_Err gf_dasher_segment_files(const char *mpd_name, GF_DashSegmenterInput *inputs, u32 nb_inputs, GF_DashProfile profile,
                                const char *mpd_title, const char *mpd_source, const char *mpd_copyright,
                                const char *mpd_moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls,
                                u32 use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching_mode,
                                Bool segments_start_with_rap, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, u32 segment_marker_4cc,
                                Double frag_duration_sec, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool fragments_start_with_rap, const char *tmp_dir,
-                               GF_Config *dash_ctx, u32 dash_dynamic, u32 mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
-                               u32 ast_shift_sec, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults,
-							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration);
+                               GF_Config *dash_ctx, GF_DashDynamicMode dash_mode, Double mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
+                               s32 ast_offset_ms, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults,
+							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc, Bool real_time);
 
 /*returns time to wait until end of currently generated segments*/
-u32 gf_dasher_next_update_time(GF_Config *dash_ctx, u32 mpd_update_time);
+u32 gf_dasher_next_update_time(GF_Config *dash_ctx, Double mpd_update_time);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 

@@ -387,7 +387,7 @@ GF_Err dc_audio_muxer_open(AudioOutputFile *audio_output_file, char *directory, 
 		dc_gpac_audio_moov_create(audio_output_file, name);
 		return dc_gpac_audio_isom_open_seg(audio_output_file, NULL);
 	case GPAC_INIT_AUDIO_MUXER:
-		if (seg == 0) {
+		if (seg == 1) {
 			snprintf(name, sizeof(name), "%s/%s_init_gpac.mp4", directory, id_name);
 			dc_gpac_audio_moov_create(audio_output_file, name);
 			audio_output_file->first_dts = 0;
@@ -418,9 +418,11 @@ int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
 		if (frame_nb % audio_output_file->frame_per_frag == audio_output_file->frame_per_frag - 1) {
 			gf_isom_flush_fragments(audio_output_file->isof, 1);
 		}
+		//TODO - do same as video, flush based on time in case of losses
 		if (frame_nb + 1 == audio_output_file->frame_per_seg) {
 			return 1;
 		}
+
 		return 0;
 	default:
 		return GF_BAD_PARAM;

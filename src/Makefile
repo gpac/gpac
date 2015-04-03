@@ -559,9 +559,9 @@ endif
 
 
 ##libgpac library output
-LIB=libgpac.$(DYN_LIB_SUFFIX)
+LIB=libgpac$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-#LDFLAGS+=-Wl,-out-implib=../bin/gcc/libgpac.a
+LDFLAGS+=-Wl,-out-implib=../bin/gcc/libgpac.dll.a
 else
 ifeq ($(CONFIG_DARWIN),yes)
 LDFLAGS+=-dynamiclib -install_name $(prefix)/lib/$(LIB)
@@ -616,14 +616,10 @@ else
 	$(AR) cr ../bin/gcc/libgpac_static.a $(OBJS)
 	$(RANLIB) ../bin/gcc/libgpac_static.a
 	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o $@ $(OBJS) $(EXTRALIBS)
-ifeq (,$(findstring yes, $(CONFIG_WIN32)))
+	
 	mv $@ $@.$(VERSION_SONAME)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@.$(VERSION_MAJOR)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@
-else
-	ln -sf $@ $(notdir $@).a
-	mv $(notdir $@).a $@.a
-endif
 endif
 ifeq ($(shell fgrep "Libs.private:" ../gpac.pc),)
 	@echo "Libs.private: $(EXTRALIBS)" >> ../gpac.pc

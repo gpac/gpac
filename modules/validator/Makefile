@@ -19,7 +19,7 @@ OBJS=validator.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_validator.$(DYN_LIB_SUFFIX)
+LIB=gm_validator$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 endif
 
@@ -30,7 +30,7 @@ all: $(LIB)
 $(LIB): $(OBJS)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_validator-static.$(DYN_LIB_SUFFIX) $(OBJS) -L../../bin/gcc -lgpac_static
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_validator-static$(DYN_LIB_SUFFIX) $(OBJS) -L../../bin/gcc -lgpac_static
 endif
 
 

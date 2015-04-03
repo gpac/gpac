@@ -443,8 +443,6 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 		return -1;
 	}
 
-	//gf_isom_add_track_to_root_od(video_output_file->isof,1);
-
 	ret = gf_isom_finalize_for_fragment(video_output_file->isof, track);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_finalize_for_fragment\n", gf_error_to_string(ret)));
@@ -468,20 +466,11 @@ int dc_gpac_video_isom_open_seg(VideoOutputFile *video_output_file, char *filena
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_start_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
-
-//	ret = gf_isom_set_traf_base_media_decode_time(video_output_file->isof, 1,
-//			video_output_file->first_dts);
-//	if (ret != GF_OK) {
-//		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_set_traf_base_media_decode_time\n", gf_error_to_string(ret)));
-//		return -1;
-//	}
-//
-//	video_output_file->first_dts += video_output_file->frame_per_segment;
-
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Opening new segment %s at UTC "LLU" ms\n", filename, gf_net_get_utc() ));
 	return 0;
 }
 
+u64 last_dts = 0;
 int dc_gpac_video_isom_write(VideoOutputFile *video_output_file)
 {
 	GF_Err ret;
@@ -534,6 +523,13 @@ int dc_gpac_video_isom_write(VideoOutputFile *video_output_file)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret)));
 		return -1;
 	}
+
+	if (last_dts) {
+		if (video_output_file->sample->DTS - last_dts < 80000) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret)));
+		}
+	}
+	last_dts = video_output_file->sample->DTS;
 
 	//free data but keep sample structure alive
 	gf_free(video_output_file->sample->data);
@@ -765,10 +761,10 @@ GF_Err dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, 
 		dc_gpac_video_moov_create(video_output_file, name);
 		return dc_gpac_video_isom_open_seg(video_output_file, NULL);
 	case GPAC_INIT_VIDEO_MUXER_AVC1:
-		if (seg == 0) {
+		if (seg == 1) {
 			snprintf(name, sizeof(name), "%s/%s_init_gpac.mp4", directory, id_name);
 			dc_gpac_video_moov_create(video_output_file, name);
-			video_output_file->first_dts = 0;
+			video_output_file->first_dts_in_fragment = 0;
 		}
 		snprintf(name, sizeof(name), "%s/%s_%d_gpac.m4s", directory, id_name, seg);
 		return dc_gpac_video_isom_open_seg(video_output_file, name);
@@ -776,7 +772,7 @@ GF_Err dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, 
 		if (seg == 0) {
 			snprintf(name, sizeof(name), "%s/%s_init_gpac.mp4", directory, id_name);
 			dc_gpac_video_moov_create(video_output_file, name);
-			video_output_file->first_dts = 0;
+			video_output_file->first_dts_in_fragment = 0;
 		}
 		snprintf(name, sizeof(name), "%s/%s_%d_gpac.m4s", directory, id_name, seg);
 		return dc_gpac_video_isom_open_seg(video_output_file, name);
@@ -787,9 +783,8 @@ GF_Err dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, 
 	return -2;
 }
 
-int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool insert_utc)
+int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 ntp_timestamp)
 {
-	u64 frame_dur;
 	GF_Err ret;
 	switch (video_output_file->muxer_type) {
 	case FFMPEG_VIDEO_MUXER:
@@ -806,30 +801,34 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool 
 				if (ret < 0)
 					return -1;
 
-				video_output_file->first_dts = video_output_file->codec_ctx->coded_frame->pkt_dts;
+				//insert UTC for each fragment
+				if (ntp_timestamp) {
+					gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, ntp_timestamp, video_output_file->codec_ctx->coded_frame->pts);
+				}
+
+				video_output_file->first_dts_in_fragment = video_output_file->codec_ctx->coded_frame->pkt_dts;
 				if (!video_output_file->segment_started) {
-					u32 sec, frac;
-					u64 ntpts;
 					video_output_file->pts_at_segment_start = video_output_file->codec_ctx->coded_frame->pts;
 					video_output_file->segment_started = 1;
-
-					if (insert_utc) {
-						gf_net_get_ntp(&sec, &frac);
-						ntpts = sec;
-						ntpts <<= 32;
-						ntpts |= frac;
-						gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, ntpts, video_output_file->pts_at_segment_start);
+					if (!video_output_file->nb_segments) {
+						video_output_file->pts_at_first_segment = video_output_file->pts_at_segment_start;
 					}
-				}
-				gf_isom_set_traf_base_media_decode_time(video_output_file->isof, video_output_file->trackID, video_output_file->first_dts);
-			}
 
-			//keep track of previous frame dur and use last dur as the default duration for next sample
-			//this works fine because we perform frame rate regulation at the capture stage
-			frame_dur = video_output_file->codec_ctx->coded_frame->pts - video_output_file->last_pts;
-			if (frame_dur && (video_output_file->frame_dur>(u32) frame_dur)) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("New frame dur detected: %d vs %d old\n", (u32) frame_dur, (u32) video_output_file->frame_dur));
-				video_output_file->frame_dur = (u32)frame_dur;
+#ifndef GPAC_DISABLE_LOG
+					if (ntp_timestamp && gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_INFO)) {
+						if (!video_output_file->ntp_at_first_dts) {
+							video_output_file->ntp_at_first_dts = ntp_timestamp;
+						} else {
+							s32 ntp_diff = gf_net_get_ntp_diff_ms(video_output_file->ntp_at_first_dts);
+							s32 ts_diff = (s32) ( 1000 * (video_output_file->codec_ctx->coded_frame->pts - video_output_file->pts_at_first_segment) / video_output_file->timescale );
+
+							s32 diff_ms = ts_diff - ntp_diff;
+							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Video Segment start NTP diff: %d ms TS diff: %d ms drift: %d ms\n", ntp_diff, ts_diff, diff_ms));
+						}
+					}
+#endif
+				}
+				gf_isom_set_traf_base_media_decode_time(video_output_file->isof, video_output_file->trackID, video_output_file->first_dts_in_fragment);
 			}
 
 			if (dc_gpac_video_isom_write(video_output_file) < 0) {
@@ -838,16 +837,23 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool 
 			video_output_file->last_pts = video_output_file->codec_ctx->coded_frame->pts;
 			video_output_file->last_dts = video_output_file->codec_ctx->coded_frame->pkt_dts;
 
-			if (( video_output_file->last_dts - video_output_file->first_dts + video_output_file->frame_dur) * 1000 >= video_output_file->frag_dur * video_output_file->timescale) {
+			if (( video_output_file->last_dts - video_output_file->first_dts_in_fragment + video_output_file->frame_dur) * 1000 >= video_output_file->frag_dur * video_output_file->timescale) {
 				gf_isom_flush_fragments(video_output_file->isof, 1);
 				video_output_file->fragment_started = 0;
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Flushed fragment to disk at UTC "LLU" ms - last coded frame PTS %d\n", gf_net_get_utc(), video_output_file->codec_ctx->coded_frame->pts));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Flushed fragment at UTC "LLU" ms - First DTS "LLU" last PTS "LLU"\n", gf_net_get_utc(), video_output_file->first_dts_in_fragment, video_output_file->codec_ctx->coded_frame->pts));
 			}
 
 			//we may have rounding errors on the input PTS :( add half frame dur safety
+
+			//flush segments based on the cumultated duration , to avoid drift
+			if (1000 * ( video_output_file->last_pts - video_output_file->pts_at_first_segment + 3*video_output_file->frame_dur/2) / video_output_file->timescale >= (video_output_file->nb_segments+1)*video_output_file->seg_dur ) {
+				return 1;
+			}
+#if 0
 			if (1000 * ( video_output_file->last_pts - video_output_file->pts_at_segment_start + 3*video_output_file->frame_dur/2) /video_output_file->timescale >= video_output_file->seg_dur ) {
 				return 1;
 			}
+#endif
 			return 0;
 		}
 
@@ -855,38 +861,24 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool 
 			gf_isom_start_fragment(video_output_file->isof, 1);
 
 			if (!video_output_file->segment_started) {
-				u32 sec, frac;
-				u64 ntpts;
-
 				video_output_file->pts_at_segment_start = video_output_file->codec_ctx->coded_frame->pts;
 				video_output_file->segment_started = 1;
 
-				if (insert_utc) {
-					time_t secs;
-					struct tm t;
-					gf_net_get_ntp(&sec, &frac);
-					ntpts = sec;
-					ntpts <<= 32;
-					ntpts |= frac;
-					gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, ntpts, video_output_file->pts_at_segment_start);
-
-					secs = sec - GF_NTP_SEC_1900_TO_1970;
-					t = *gmtime(&secs);
-					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Producer reference clock: Timestamp %d matches sender NTP time %d-%02d-%02dT%02d:%02d:%02dZ (NTP frac part %u) \n", (u32) video_output_file->pts_at_segment_start, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, (u32) frac ));
-
+				if (ntp_timestamp) {
+					gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, ntp_timestamp, video_output_file->pts_at_segment_start);
 				}
 			}
 
 
-			gf_isom_set_traf_base_media_decode_time(video_output_file->isof, video_output_file->trackID, video_output_file->first_dts);
-			video_output_file->first_dts += video_output_file->frame_per_fragment;
+			gf_isom_set_traf_base_media_decode_time(video_output_file->isof, video_output_file->trackID, video_output_file->first_dts_in_fragment);
+			video_output_file->first_dts_in_fragment += video_output_file->frame_per_fragment;
 		}
 
 		dc_gpac_video_isom_write(video_output_file);
 
 		if (frame_nb % video_output_file->frame_per_fragment == video_output_file->frame_per_fragment - 1) {
 			gf_isom_flush_fragments(video_output_file->isof, 1);
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Flushed fragment to disk at UTC "LLU" ms - last coded frame PTS %d\n", gf_net_get_utc(), video_output_file->codec_ctx->coded_frame->pts));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Flushed fragment to disk at UTC "LLU" ms - last coded frame PTS "LLU"\n", gf_net_get_utc(), video_output_file->codec_ctx->coded_frame->pts));
 		}
 
 		if (frame_nb + 1 == video_output_file->frame_per_segment)
@@ -903,6 +895,7 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool 
 int dc_video_muxer_close(VideoOutputFile *video_output_file)
 {
 	video_output_file->fragment_started = video_output_file->segment_started = 0;
+	video_output_file->nb_segments++;
 
 	switch (video_output_file->muxer_type) {
 	case FFMPEG_VIDEO_MUXER:

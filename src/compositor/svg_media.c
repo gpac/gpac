@@ -80,7 +80,7 @@ static Bool svg_video_get_transform_behavior(GF_TraverseState *tr_state, SVGAllA
 static void SVG_Draw_bitmap(GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
-	if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL)) {
+	if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx)) {
 		visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
 	}
 }

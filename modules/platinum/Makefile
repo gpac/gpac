@@ -32,7 +32,7 @@ endif
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_platinum.$(DYN_LIB_SUFFIX)
+LIB=gm_platinum$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 #LDFLAGS+=-export-symbols platinum.def 
 endif

@@ -60,8 +60,12 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	/*move to FS*/
 	compositor->fullscreen = !compositor->fullscreen;
 
-	gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_PAUSE);
+	//gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_PAUSE);
 
+	//in windows (and other?) we may get blocked by SetWindowPos in the fullscreen method until another window thread dispatches a resize event,
+	//which would try to grab the compositor mutex and thus deadlock us
+	//to avoid this, unlock the compositor just for the SetFullscreen
+	gf_mx_v(compositor->mx);
 	if (compositor->fullscreen && (compositor->scene_width>=compositor->scene_height)
 #ifndef GPAC_DISABLE_3D
 	        && !compositor->visual->type_3d
@@ -71,8 +75,9 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	} else {
 		e = compositor->video_out->SetFullScreen(compositor->video_out, compositor->fullscreen, &compositor->display_width, &compositor->display_height);
 	}
+	gf_mx_p(compositor->mx);
 
-	gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_RESUME);
+	//gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_RESUME);
 
 	if (e) {
 		GF_Event evt;
@@ -135,8 +140,14 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing display size to %d x %d\n", compositor->new_width, compositor->new_height));
 			fs_width = fs_height = 0;
 			if (restore_fs) {
-				fs_width = compositor->display_width;
-				fs_height = compositor->display_height;
+                if ((compositor->new_width>compositor->display_width) || (compositor->new_height>compositor->display_height)) {
+                    u32 w = compositor->display_width;
+                    compositor->display_width = compositor->display_height;
+                    compositor->display_height = w;
+                    compositor->recompute_ar = 1;
+                }
+                fs_width = compositor->display_width;
+                fs_height = compositor->display_height;
 			}
 			evt.type = GF_EVENT_SIZE;
 			evt.size.width = compositor->new_width;
@@ -152,7 +163,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 				if ((compositor->display_width != fs_width) || (compositor->display_height != fs_height)) {
 					compositor->display_width = fs_width;
 					compositor->display_height = fs_height;
-					compositor->recompute_ar = 1;
+                    compositor->recompute_ar = 1;
 				}
 			} else {
 				compositor->display_width = evt.size.width;
@@ -163,7 +174,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			notif_size=1;
 			compositor->new_width = compositor->new_height = 0;
 			compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
-
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Display size changed to %d x %d\n", compositor->new_width, compositor->new_height));
 		}
 		/*aspect ratio modif*/
 		if (compositor->msg_type & GF_SR_CFG_AR) {
@@ -718,6 +729,9 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 
 u32 gf_sc_get_clock(GF_Compositor *compositor)
 {
+	if (!compositor->bench_mode) {
+		return gf_sc_ar_get_clock(compositor->audio_renderer);
+	}
 	return compositor->scene_sampled_clock;
 }
 
@@ -1239,7 +1253,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #endif
 		}
 	}
-
+    
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "EnablePBO");
 	if (!sOpt) gf_cfg_set_key(compositor->user->config, "Compositor", "EnablePBO", "no");
 	compositor->enable_pbo = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
@@ -1388,7 +1402,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		compositor->display_depth = -1;
 	}
 #endif
-
+    
 	if (!compositor->video_out->view_distance) {
 		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ViewDistance");
 		compositor->video_out->view_distance = FLT2FIX( sOpt ? (Float) atof(sOpt) : 50.0f );
@@ -1929,6 +1943,8 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 {
 	Bool force_pause = compositor->audio_renderer->Frozen ? 0 : 1;
+	
+	force_pause = GF_FALSE;
 
 #ifndef GPAC_DISABLE_LOG
 	compositor->visual_config_time = 0;
@@ -1941,7 +1957,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			time = gf_sys_clock();
 		}
 #endif
-		if (force_pause )
+		if (force_pause)
 			gf_sc_ar_control(compositor->audio_renderer, GF_SC_AR_PAUSE);
 
 #ifndef GPAC_DISABLE_3D

@@ -39,19 +39,19 @@ static GF_Err ParseConfig(GF_BitStream *bs, BIFSStreamInfo *info, u32 version)
 	info->config.elementaryMasks = NULL	;
 
 	if (version==2) {
-		info->config.Use3DMeshCoding = gf_bs_read_int(bs, 1);
-		info->config.UsePredictiveMFField = gf_bs_read_int(bs, 1);
+		info->config.Use3DMeshCoding = (Bool)gf_bs_read_int(bs, 1);
+		info->config.UsePredictiveMFField = (Bool)gf_bs_read_int(bs, 1);
 	}
 	info->config.NodeIDBits = gf_bs_read_int(bs, 5);
 	info->config.RouteIDBits = gf_bs_read_int(bs, 5);
 	if (version==2) {
 		info->config.ProtoIDBits = gf_bs_read_int(bs, 5);
 	}
-	cmd_stream = gf_bs_read_int(bs, 1);
+	cmd_stream = (Bool)gf_bs_read_int(bs, 1);
 
 	if (cmd_stream) {
-		info->config.PixelMetrics = gf_bs_read_int(bs, 1);
-		hasSize = gf_bs_read_int(bs, 1);
+		info->config.PixelMetrics = (Bool)gf_bs_read_int(bs, 1);
+		hasSize = (Bool)gf_bs_read_int(bs, 1);
 		if (hasSize) {
 			info->config.Width = gf_bs_read_int(bs, 16);
 			info->config.Height = gf_bs_read_int(bs, 16);
@@ -61,7 +61,7 @@ static GF_Err ParseConfig(GF_BitStream *bs, BIFSStreamInfo *info, u32 version)
 		if (gf_bs_get_size(bs) != gf_bs_get_position(bs)) return GF_ODF_INVALID_DESCRIPTOR;
 		return GF_OK;
 	} else {
-		info->config.BAnimRAP = gf_bs_read_int(bs, 1);
+		info->config.BAnimRAP = (Bool)gf_bs_read_int(bs, 1);
 		info->config.elementaryMasks = gf_list_new();
 		while (1) {
 			/*u32 node_id = */gf_bs_read_int(bs, info->config.NodeIDBits);
@@ -99,8 +99,8 @@ GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec)
 	tmp->scenegraph = scenegraph;
 	tmp->command_buffers = gf_list_new();
 	if (command_dec) {
-		tmp->dec_memory_mode = 1;
-		tmp->force_keep_qp = 1;
+		tmp->dec_memory_mode = GF_TRUE;
+		tmp->force_keep_qp = GF_TRUE;
 	}
 	tmp->current_graph = NULL;
 	return tmp;
@@ -132,7 +132,7 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 		/* Hack for T-DMB non compliant streams */
 		GF_SAFEALLOC(pInfo, BIFSStreamInfo);
 		pInfo->ESID = ESID;
-		pInfo->config.PixelMetrics = 1;
+		pInfo->config.PixelMetrics = GF_TRUE;
 		pInfo->config.version = (objectTypeIndication==2) ? 1 : 2;
 		assert( codec );
 		assert( codec->streamInfo );
@@ -181,7 +181,7 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 GF_EXPORT
 void gf_bifs_decoder_ignore_size_info(GF_BifsDecoder *codec)
 {
-	if (codec) codec->ignore_size = 1;
+	if (codec) codec->ignore_size = GF_TRUE;
 }
 
 

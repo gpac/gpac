@@ -45,27 +45,6 @@ extern "C" {
 #endif
 
 
-#ifdef GPAC_HAS_SPIDERMONKEY
-
-/*WIN32 and WinCE config (no configure script)*/
-#if defined(WIN32) || defined(_WIN32_WCE) || defined(__SYMBIAN32__)
-#ifndef XP_PC
-#define XP_PC
-#endif
-#ifndef XP_WIN
-#define XP_WIN
-#endif
-/*WINCE specific config*/
-#if defined(_WIN32_WCE)
-#include <windows.h>
-#define XP_WINCE
-#endif
-#endif
-
-/*other platforms should be setup through configure*/
-
-#endif
-
 
 void gf_node_setup(GF_Node *p, u32 tag);
 

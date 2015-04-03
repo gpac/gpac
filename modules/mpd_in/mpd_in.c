@@ -202,6 +202,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet DTS "LLU" less than PTO "LLU" - forcing DTS to 0\n", hdr->compositionTimeStamp, group->pto));
 				hdr->decodingTimeStamp = 0;
+				hdr->seekFlag = 1;
 			}
 		}
 		if (hdr->compositionTimeStampFlag) {
@@ -210,6 +211,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet CTS "LLU" less than PTO "LLU" - forcing CTS to 0\n", hdr->compositionTimeStamp, group->pto));
 				hdr->compositionTimeStamp = 0;
+				hdr->seekFlag = 1;
 			}
 		}
 
@@ -823,6 +825,27 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	return GF_OK;
 }
 
+/*check in all groups if the service can support reverse playback (speed<0); return GF_OK only if service is supported in all groups*/
+static GF_Err mpdin_dash_can_reverse_playback(GF_MPD_In *mpdin)
+{
+	u32 i;
+	GF_Err e = GF_NOT_SUPPORTED;
+	for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
+		if (gf_dash_is_group_selectable(mpdin->dash, i)) {
+			GF_MPDGroup *mudta = gf_dash_get_group_udta(mpdin->dash, i);
+			if (mudta && mudta->segment_ifce) {
+				GF_NetworkCommand com;
+				com.command_type = GF_NET_SERVICE_CAN_REVERSE_PLAYBACK;
+				e = mudta->segment_ifce->ServiceCommand(mudta->segment_ifce, &com);
+				if (GF_OK != e)
+					return e;
+			}
+		}
+	}
+
+	return e;
+}
+
 
 GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
@@ -1123,6 +1146,8 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_GET_TIMESHIFT:
 		com->timeshift.time = gf_dash_get_timeshift_buffer_pos(mpdin->dash);
 		return GF_OK;
+	case GF_NET_SERVICE_CAN_REVERSE_PLAYBACK:
+		return mpdin_dash_can_reverse_playback(mpdin);
 
 	default:
 		break;
@@ -1188,7 +1213,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	case GF_NET_CHAN_BUFFER:
 		/*get it from MPD minBufferTime - if not in low latency mode, indicate the value given in MPD (not possible to fetch segments earlier) - to be more precise we should get the min segment duration for this group*/
-		if (!mpdin->use_low_latency && (mpdin->buffer_mode>=MPDIN_BUFFER_MIN)) {
+		if (/* !mpdin->use_low_latency && */ (mpdin->buffer_mode>=MPDIN_BUFFER_MIN)) {
 			u32 max = gf_dash_get_min_buffer_time(mpdin->dash);
 			if (max>com->buffer.max)
 				com->buffer.max = max;
@@ -1253,8 +1278,8 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 		gf_dash_set_speed(mpdin->dash, com->play.speed);
 
-		/*don't seek if this command is the first PLAY request of objects declared by the subservice*/
-		if (! mpdin->in_seek && !com->play.initial_broadcast_play /*&& (com->play.start_range>2.0) */) {
+		/*don't seek if this command is the first PLAY request of objects declared by the subservice, unless start range is not default one (0) */
+		if (! mpdin->in_seek && (!com->play.initial_broadcast_play || (com->play.start_range>1.0) ) ) {
 			Bool skip_seek;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Play command from terminal on channel %p on Service (%p)\n", com->base.on_channel, mpdin->service));
 
@@ -1264,8 +1289,6 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			- this happens at period switch when new objects are declared*/
 			skip_seek = GF_FALSE;
 			if (com->play.initial_broadcast_play && (mpdin->previous_start_range==com->play.start_range))
-				skip_seek = GF_TRUE;
-			if (gf_dash_is_m3u8(mpdin->dash) == GF_TRUE)
 				skip_seek = GF_TRUE;
 
 			mpdin->previous_start_range = com->play.start_range;
@@ -1282,14 +1305,15 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				if (mpdin->in_seek) {
 					//group->in_seek = 1;
 				}
-				//and check if current segment playback should be aborted
-				com->play.dash_segment_switch = gf_dash_group_segment_switch_forced(mpdin->dash, idx);
 			}
 
 			//to remove once we manage to keep the service alive
 			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
 			if (gf_dash_get_period_switch_status(mpdin->dash)) return GF_OK;
 		}
+
+		//check if current segment playback should be aborted
+		com->play.dash_segment_switch = gf_dash_group_segment_switch_forced(mpdin->dash, idx);
 
 		gf_dash_group_select(mpdin->dash, idx, GF_TRUE);
 		gf_dash_set_group_done(mpdin->dash, (u32) idx, 0);

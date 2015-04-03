@@ -439,8 +439,7 @@ const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *sess);
  * \param end_range end position of a byte range
  * \return GF_OK if everything went fine, an error otherwise
  */
-GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
-                             const char *url, const char *filename, u64 start_range, u64 end_range);
+GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm, const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url);
 
 /*!
  * \brief Same as gf_dm_wget_with_cache, but initializes the GF_DownloadManager by itself.
@@ -451,7 +450,7 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
  * \param end_range end position of a byte range
  * \return GF_OK if everything went fine, an error otherwise
  */
-GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range);
+GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url);
 
 /*!
  *\brief Reset session

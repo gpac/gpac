@@ -80,7 +80,8 @@ typedef struct {
 	int seg_dur;
 	int frag_dur;
 
-	u64 first_dts;
+	u64 first_dts_in_fragment;
+	u64 ntp_at_first_dts;
 
 	u32 seg_marker;
 
@@ -89,10 +90,11 @@ typedef struct {
 
 	Bool use_source_timing;
 
-	u64 pts_at_segment_start;
+	u64 pts_at_segment_start, pts_at_first_segment;
 	u64 last_pts, last_dts;
 	u64 frame_dur;
 	u32 timescale;
+	u32 nb_segments;
 	Bool fragment_started, segment_started;
 	const char *rep_id;
 } VideoOutputFile;
@@ -103,7 +105,7 @@ int dc_video_muxer_free(VideoOutputFile *video_output_file);
 
 int dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, char *id_name, int seg);
 
-int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool insert_utc);
+int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 ntp_timestamp);
 
 int dc_video_muxer_close(VideoOutputFile *video_output_file);
 

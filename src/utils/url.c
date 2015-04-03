@@ -65,7 +65,7 @@ static u32 URL_GetProtocolType(const char *pathName)
 Bool gf_url_is_local(const char *pathName)
 {
 	u32 mode = URL_GetProtocolType(pathName);
-	return (mode==GF_URL_TYPE_ANY) ? 0 : 1;
+	return (mode==GF_URL_TYPE_ANY) ? GF_FALSE : GF_TRUE;
 }
 
 char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
@@ -339,9 +339,9 @@ Bool gf_url_get_resource_path(const char *sURL, char *res_path)
 	if (!sep) sep = strrchr(res_path, '\\');
 	if (sep) {
 		sep[1] = 0;
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 

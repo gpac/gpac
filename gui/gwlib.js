@@ -903,7 +903,7 @@ function gwlib_init(root_node) {
 
     gwskin.disable_transparency = false;
     //remove window gradients 
-    if (!gwskin.has_opengl) {
+    if (!gwskin.has_opengl && !gpac.hardware_rgba) {
         s = gwskin.get_style('window', 'normal');
         s.texture = null;
         gwskin.disable_transparency = true;

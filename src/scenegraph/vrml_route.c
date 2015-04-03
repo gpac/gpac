@@ -349,6 +349,11 @@ Bool gf_sg_route_activate(GF_Route *r)
 		break;
 	}
 
+	//don't notify dest change for generic function since the dest is not a node
+	if (r->ToField.fieldType==GF_SG_VRML_GENERIC_FUNCTION) {
+		ret = 0;
+	}
+
 #ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_INTERACT, GF_LOG_DEBUG)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[VRML Route] field copy/casted\n"));
@@ -449,6 +454,48 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName)
 		}
 	}
 }
+
+typedef struct
+{
+	GF_Route r;
+	void ( *route_callback) (void *param, GF_FieldInfo *from_field);
+} GF_RouteToFunction;
+
+static void on_route_to_function(GF_Node *node, GF_Route *r)
+{
+	GF_RouteToFunction *rf = (GF_RouteToFunction *)r;
+	rf->route_callback(r->ToNode, &r->FromField);
+}
+
+GF_EXPORT
+void gf_sg_route_new_to_callback(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, void *cbk, void ( *route_callback) (void *param, GF_FieldInfo *from_field) )
+{
+	GF_Route *r;
+	GF_RouteToFunction *rf;
+	GF_SAFEALLOC(rf, GF_RouteToFunction);
+	if (!rf) return;
+	rf->route_callback = route_callback;
+
+	r = (GF_Route *)rf;
+	r->FromNode = fromNode;
+	r->FromField.fieldIndex = fromField;
+	gf_node_get_field(r->FromNode, fromField, &r->FromField);
+
+	r->ToNode = (GF_Node *) cbk;
+	r->ToField.fieldType = GF_SG_VRML_GENERIC_FUNCTION;
+	r->ToField.on_event_in = on_route_to_function;
+	r->ToField.eventType = GF_SG_EVENT_IN;
+	r->ToField.far_ptr = NULL;
+
+	r->is_setup = 1;
+	r->graph = sg;
+	
+	if (!fromNode->sgprivate->interact) GF_SAFEALLOC(fromNode->sgprivate->interact, struct _node_interactive_ext);
+	if (!fromNode->sgprivate->interact->routes) fromNode->sgprivate->interact->routes = gf_list_new();
+	gf_list_add(fromNode->sgprivate->interact->routes, r);
+	gf_list_add(fromNode->sgprivate->scenegraph->Routes, r);
+}
+
 
 #endif	/*GPAC_DISABLE_VRML*/
 

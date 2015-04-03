@@ -989,6 +989,11 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 				if (f) gf_fclose(f);
 				return e;
 			}
+            //do not reset all attributes but at least set width/height/codecs to NULL, otherwise we may miss detection
+            //of audio-only playlists in av sequences
+			//reset_attributes(&attribs);
+            attribs.width = attribs.height = 0;
+            attribs.codecs = NULL;
 		}
 	}
 	if (f) gf_fclose(f);
