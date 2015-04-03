@@ -59,7 +59,7 @@ OrderedGroup {
          lowThreshold 0.4
          highThreshold 0.4
          keyColor 1 1 0 
-         transparency 0
+         transparency 1
         }
        }
        geometry Bitmap {
