@@ -1998,6 +1998,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_check_mpd_root_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_mime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_init_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_init_keys) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_select) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_groups_set_language) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_in_last_period) )
