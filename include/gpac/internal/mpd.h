@@ -125,7 +125,7 @@ typedef struct
 	Double availability_time_offset;	\
 	GF_MPD_URL *initialization_segment;	\
 	GF_MPD_URL *representation_index;	\
- 
+
 
 typedef struct
 {
@@ -139,7 +139,7 @@ typedef struct
 	u32 start_number;	\
 	GF_MPD_SegmentTimeline *segment_timeline;	\
 	GF_MPD_URL *bitstream_switching_url;	\
- 
+
 typedef struct
 {
 	GF_MPD_MULTIPLE_SEGMENT_BASE
@@ -152,6 +152,8 @@ typedef struct
 	char *index;
 	GF_MPD_ByteRange *index_range;
 	u64 duration;
+	char *key_url;
+	bin128 key_iv;
 } GF_MPD_SegmentURL;
 
 typedef struct
@@ -205,7 +207,7 @@ typedef enum
 	GF_List *essential_properties;	\
 	GF_List *supplemental_properties;	\
 	GF_List *isobmf_tracks;	\
- 
+
 typedef struct {
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
 } GF_MPD_CommonAttributes;
@@ -227,6 +229,8 @@ typedef struct
 	u32 probe_switch_count;
 	char *init_segment_data;
 	u32 init_segment_size;
+	char *key_url;
+	bin128 key_IV;
 } GF_DASH_RepresentationPlayback;
 
 typedef struct {
@@ -402,13 +406,13 @@ typedef enum
 	GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE,
 } GF_MPD_URLResolveType;
 
-/*resolves a URL based for a given segment, based on the MPD url, the type of resolution 
+/*resolves a URL based for a given segment, based on the MPD url, the type of resolution
 	item_index: current downloading index of the segment
 	nb_segments_removed: number of segments removed when pruging the MPD after updates (can be 0). The start number will be offset by this value
 */
-GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url);
+GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, 
+								char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv);
 
 
 
 #endif // _MPD_H_
-
