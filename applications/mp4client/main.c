@@ -802,6 +802,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			eos_seen = GF_FALSE;
 			if (playback_speed != FIX_ONE)
 				gf_term_set_speed(term, playback_speed);
+
 		} else if (is_connected) {
 			fprintf(stderr, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
 			is_connected = 0;

@@ -457,6 +457,9 @@ struct _tag_terminal
 	u32 prefered_audio_codec_oti;
 
 	u32 low_latency_buffer_max;
+
+	u32 nb_calls_in_event_proc;
+	u32 disconnect_request_status;
 };
 
 
