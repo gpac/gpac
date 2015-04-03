@@ -2618,7 +2618,42 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		if(loc>=0) glUniform1i(loc, 0);
 	}
 	
+
+	//We have a Colour Key to be applied
+	if(tr_state->col_key){
+
+		Float vals[3];
+		Float eightbit = 255;	//used for mapping values between 0.0 and 1.0
+
+		glEnable(GL_BLEND);		//normally we shouldn have to need this, but we do
+		
+		loc = glGetUniformLocation(visual->glsl_program, "hasColorKey");
+		if(loc>=0) glUniform1i(loc, 1);
+
+		vals[0] = tr_state->col_key->r/eightbit;
+		vals[1] = tr_state->col_key->g/eightbit;
+		vals[2] = tr_state->col_key->b/eightbit;
+
+		loc = glGetUniformLocation(visual->glsl_program, "gfKeyColor");
+		if(loc>=0)glUniform3fv(loc, 1, vals);
+
+		loc = glGetUniformLocation(visual->glsl_program, "gfKeyLow");
+		if(loc>=0) glUniform1f(loc, tr_state->col_key->low/eightbit);
+
+		loc = glGetUniformLocation(visual->glsl_program, "gfKeyHigh");
+		if(loc>=0) glUniform1f(loc, tr_state->col_key->high/eightbit);
+
+		loc = glGetUniformLocation(visual->glsl_program, "gfKeyAlpha");
+		if(loc>=0) glUniform1f(loc, tr_state->col_key->alpha/eightbit);
+
+	}else{
+		loc = glGetUniformLocation(visual->glsl_program, "hasColorKey");
+		if(loc>=0) glUniform1i(loc, 0);
+	}
 	
+	
+
+
 	visual_3d_do_draw_mesh(tr_state, mesh);
 
 	//We drawn, now we Reset
