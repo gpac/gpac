@@ -3455,6 +3455,8 @@ static u32 dash_main_thread_proc(void *par)
 
 restart_period:
 
+	dash->mpd_stop_request=0;
+
 	/* Setting the download status in exclusive code */
 	gf_mx_p(dash->dl_mutex);
 	dash->dash_state = GF_DASH_STATE_SETUP;
@@ -3485,7 +3487,6 @@ restart_period:
 		e = gf_dash_download_init_segment(dash, group);
 		if (e) break;
 	}
-	dash->mpd_stop_request=0;
 	first_period_in_mpd = 0;
 
 	/*if error signal to the user*/
@@ -4046,6 +4047,7 @@ static void gf_dash_download_stop(GF_DashClient *dash)
 	}
 	/* stop the download thread */
 	gf_mx_p(dash->dl_mutex);
+	dash->mpd_stop_request = GF_TRUE;
 	if (dash->dash_state != GF_DASH_STATE_STOPPED) {
 		dash->mpd_stop_request = 1;
 		gf_mx_v(dash->dl_mutex);
@@ -4063,6 +4065,7 @@ static void gf_dash_download_stop(GF_DashClient *dash)
 	} else {
 		gf_mx_v(dash->dl_mutex);
 	}
+	dash->mpd_stop_request = GF_TRUE;
 }
 
 
