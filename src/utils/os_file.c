@@ -112,6 +112,28 @@ GF_Err gf_mkdir(char* DirPathName)
 	return GF_OK;
 }
 
+
+GF_EXPORT
+Bool gf_dir_exists(char* DirPathName)
+{
+#if defined (_WIN32_WCE)
+	TCHAR swzName[MAX_PATH];
+	BOOL res;
+	DWORD att;
+	CE_CharToWide(DirPathName, swzName);
+	att = GetFileAttributes(swzName);
+	return (att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY)) ? GF_TRUE : GF_FALSE;
+#elif defined (WIN32)
+	DWORD att = GetFileAttributes(DirPathName);
+	return (att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY)) ? GF_TRUE : GF_FALSE;
+#else
+	DIR* dir = opendir(DirPathName);
+	if (!dir) return GF_FALSE;
+	closedir(dir);
+	return GF_TRUE;
+#endif
+	return GF_FALSE;
+}
 static Bool delete_dir(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	Bool directory_clean_mode = *(Bool*)cbck;

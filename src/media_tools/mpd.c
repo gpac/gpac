@@ -2177,7 +2177,11 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			if (is_in_base_url) *is_in_base_url = 0;
 			/*no initialization segment / index, use base URL*/
 			if (res_url && res_url->sourceURL) {
-				*out_url = gf_url_concatenate(url, res_url->sourceURL);
+				if (res_url->is_resolved) {
+					*out_url = gf_strdup(res_url->sourceURL);
+				} else {
+					*out_url = gf_url_concatenate(url, res_url->sourceURL);
+				}
 				gf_free(url);
 			} else {
 				*out_url = url;
@@ -2240,7 +2244,11 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		case GF_MPD_RESOLVE_URL_INIT:
 			if (init_url) {
 				if (init_url->sourceURL) {
-					*out_url = gf_url_concatenate(url, init_url->sourceURL);
+					if (init_url->is_resolved) {
+						*out_url = gf_strdup(init_url->sourceURL);
+					} else {
+						*out_url = gf_url_concatenate(url, init_url->sourceURL);
+					}
 					gf_free(url);
 				} else {
 					*out_url = url;
