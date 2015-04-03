@@ -64,6 +64,14 @@
 	uniform mat4 gfColorMatrix;
 	uniform bool hasColorMatrix;
 	uniform vec4 gfTranslationVector;
+	
+//Color Key
+	uniform vec3 gfKeyColor;
+	uniform float gfKeyAlpha;
+	uniform float gfKeyLow;
+	uniform float gfKeyHigh;
+	uniform bool hasColorKey;
+	
 
 uniform int gfNumLights;
 uniform bool gfLightTwoSide;
@@ -295,6 +303,23 @@ void main() {
 		fragColor = clamp(fragColor, zero_float, one_float);
 		
 	}
+	
+	if(hasColorKey){
+		vec3 tempColour = vec3(0.0, 0.0, 0.0);
+		float mean = 0.0;
+		
+		tempColour.r = abs(gfKeyColor.r-fragColor.r);
+		tempColour.g = abs(gfKeyColor.g-fragColor.g);
+		tempColour.b = abs(gfKeyColor.b-fragColor.b);
+		mean = (tempColour.r + tempColour.g + tempColour.b)/3.0;
+		
+		if(mean<gfKeyLow){
+			fragColor.a =0.0;
+		}else if(mean<=gfKeyHigh){
+			fragColor.a = (mean-gfKeyLow) * gfKeyAlpha / (gfKeyHigh - gfKeyLow);
+		}
+	}
+	
 	
 	if(gfFogEnabled)
 		fragColor = fragColor * gfFogFactor + vec4(gfFogColor, zero_float) * (one_float - gfFogFactor);
