@@ -119,7 +119,7 @@ base_object_type_error: /*error case*/
 			break;
 		}
 		a_cfg.base_object_type = GF_M4A_AAC_LC;
-		a_cfg.has_sbr = 0;
+		a_cfg.has_sbr = GF_FALSE;
 		a_cfg.nb_chan = a_cfg.nb_chan > 2 ? 1 : a_cfg.nb_chan;
 
 		gf_m4a_write_config(&a_cfg, &dsi, &dsi_len);
@@ -139,7 +139,7 @@ base_object_type_error: /*error case*/
 	ctx->num_samples = 1024;
 	ctx->out_size = 2 * ctx->num_samples * ctx->num_channels;
 	ctx->ES_ID = esd->ESID;
-	ctx->signal_mc = ctx->num_channels>2 ? 1 : 0;
+	ctx->signal_mc = ctx->num_channels>2 ? GF_TRUE : GF_FALSE;
 	return GF_OK;
 }
 
@@ -322,7 +322,7 @@ static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
 	/*FAAD froces us to decode a frame to get channel cfg*/
 	if (ctx->signal_mc) {
 		s32 ch, idx;
-		ctx->signal_mc = 0;
+		ctx->signal_mc = GF_FALSE;
 		idx = 0;
 		/*NOW WATCH OUT!! FAAD may very well decide to output more channels than indicated!!!*/
 		ctx->num_channels = ctx->info.channels;
