@@ -47,21 +47,6 @@ static char *gf_mpd_parse_string(char *attr)
 	return gf_strdup(attr);
 }
 
-static void gf_mpd_parse_binary_hex(char *attr, unsigned char *data, size_t len)
-{
-	size_t i, max, as;
-	as = strlen(attr);
-	if (as % 2 == 1 || len % 2 == 1)
-		return;
-
-	max = (as / 2 > len ? len : as / 2);
-
-	for (i = 0; i < len; i ++) {
-		char tmp[3];
-		strncpy(tmp, attr + (i * 2), 2);
-		data[i] = (unsigned char) strtol(tmp, NULL, 16);
-	}
-}
 
 static Bool gf_mpd_valid_child(GF_MPD *mpd, GF_XMLNode *child)
 {
@@ -384,8 +369,9 @@ static void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root)
 		else if (!strcmp(att->name, "index")) seg->index = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "mediaRange")) seg->media_range = gf_mpd_parse_byte_range(att->value);
 		else if (!strcmp(att->name, "indexRange")) seg->index_range = gf_mpd_parse_byte_range(att->value);
-		else if (!strcmp(att->name, "xDRMKeyURL")) seg->key_url = gf_mpd_parse_string(att->value);
-		else if (!strcmp(att->name, "xDRMKeyIV")) gf_mpd_parse_binary_hex(att->value, seg->key_iv, 16);
+		//else if (!strcmp(att->name, "hls:keyMethod")) seg->key_url = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "hls:keyURL")) seg->key_url = gf_mpd_parse_string(att->value);
+		else if (!strcmp(att->name, "hls:keyIV")) gf_bin128_parse(att->value, seg->key_iv);
 
 	}
 }
@@ -1243,7 +1229,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		return GF_IO_ERR;
 	}
 
-	fprintf(fmpd, "<MPD type=\"%s\" xmlns=\"urn:mpeg:dash:schema:mpd:2011\" profiles=\"urn:mpeg:dash:profile:full:2011\"", is_end ? "static" : "dynamic" );
+	fprintf(fmpd, "<MPD type=\"%s\" xmlns=\"urn:mpeg:dash:schema:mpd:2011\" xmlns:hls=\"urn:gpac:hls:aes:mpd:2015\" profiles=\"urn:mpeg:dash:profile:full:2011\"", is_end ? "static" : "dynamic" );
 	sep = strrchr(m3u8_file, '/');
 	if (!sep)
 		sep = strrchr(m3u8_file, '\\');
@@ -1631,14 +1617,15 @@ try_next_segment:
 					fprintf(fmpd, " media=\"%s\"", cmp ? (seg_url + cmp) : elt->url);
 				}
 				if (elt->drm_method != DRM_NONE) {
-					fprintf(fmpd, " xDRMMethod=\"aes-128\"");
-					if (elt->key_uri)
-						fprintf(fmpd, " xDRMKeyURL=%s xDRMKeyIV=\"", elt->key_uri);
-					size_t i;
-					for (i = 0; i < 16; i++) {
-						fprintf(fmpd, "%02x", elt->key_iv[i]);
+					fprintf(fmpd, " hls:keyMethod=\"aes-128\"");
+					if (elt->key_uri) {
+						u32 idx;
+						fprintf(fmpd, " hls:keyURL=%s hls:keyIV=\"", elt->key_uri);
+						for (idx=0; idx<16; idx++) {
+							fprintf(fmpd, "%02x", elt->key_iv[idx]);
+						}
+						fprintf(fmpd, "\"");
 					}
-					fprintf(fmpd, "\"");
 				}
 				fprintf(fmpd, "/>\n");
 			}
@@ -1792,9 +1779,9 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *in
 			if (url->media_range) fprintf(out, " mediaRange=\""LLD"-"LLD"\"", url->media_range->start_range, url->media_range->end_range);
 			if (url->index_range) fprintf(out, " indexRange=\""LLD"-"LLD"\"", url->index_range->start_range, url->index_range->end_range);
 			if (url->key_url) {
-				fprintf(out, " xDRMMethod=\"aes-128\" xDRMKeyURL=%s xDRMKeyIV=\"", url->key_url);
-				size_t i;
-				for (i = 0; i < 16; i++) {
+				u32 idx;
+				fprintf(out, " hls:keyMethod=\"aes-128\" hls:KeyURL=%s hls:KeyIV=\"", url->key_url);
+				for (idx=0; idx<16; i++) {
 					fprintf(out, "%02x", url->key_iv[i]);
 				}
 				fprintf(out, "\"");
@@ -2157,7 +2144,7 @@ GF_Err gf_mpd_write_file(GF_MPD *mpd, char *file_name)
 
 
 GF_EXPORT
-GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, unsigned char * out_key_iv)
+GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *out_key_iv)
 {
 	GF_MPD_BaseURL *url_child;
 	GF_MPD_SegmentTimeline *timeline = NULL;
@@ -2329,10 +2316,11 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			if (segment->duration) {
 				*segment_duration = (u32) ((Double) (segment->duration) * 1000.0 / timescale);
 			}
-			if (segment->key_url) {
-				*out_key_url = gf_strdup(segment->key_url);
+			if (segment->key_url && out_key_url) {
+				*out_key_url = gf_strdup((const char *) segment->key_url);
+				if (out_key_iv) 
+					memcpy((*out_key_iv), segment->key_iv, sizeof(bin128) );
 			}
-			memcpy(out_key_iv, segment->key_iv, 16);
 			return GF_OK;
 		case GF_MPD_RESOLVE_URL_INDEX:
 			if (item_index >= segment_count) {
