@@ -79,9 +79,8 @@ void gf_term_message_ex(GF_Terminal *term, const char *service, const char *mess
 
 	if (no_filtering) {
 		if (term->user->EventProc) {
-			Bool res;
 			term->nb_calls_in_event_proc++;
-			res = term->user->EventProc(term->user->opaque, &evt);
+			term->user->EventProc(term->user->opaque, &evt);
 			term->nb_calls_in_event_proc--;
 		}
 	} else {
