@@ -4525,7 +4525,7 @@ int mp4boxMain(int argc, char **argv)
 		needSave = 1;
 	} else {
 		e = gf_isom_make_interleave(file, interleaving_time);
-		if (!e && !old_interleave) e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_DRIFT_INTERLEAVED);
+		if (!e && old_interleave) e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_STORE_INTERLEAVED);
 	}
 	if (e) goto err_exit;
 
