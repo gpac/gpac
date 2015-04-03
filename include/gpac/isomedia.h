@@ -332,6 +332,14 @@ typedef struct
 	SAPType IsRAP;
 } GF_ISOSample;
 
+/*Flags for gf_isom_open_segment*/
+enum
+{
+	/*FLAT: the MediaData (MPEG4 ESs) is stored at the begining of the file*/
+	GF_ISOM_SEGMENT_NO_ORDER_FLAG = 1,
+	GF_ISOM_SEGMENT_SCALABLE_FLAG = 1<<1,
+};
+
 
 /*creates a new empty sample*/
 GF_ISOSample *gf_isom_sample_new();
@@ -1220,14 +1228,6 @@ footprint low when playing segments. Note however that seeking in the file is th
 WARNING - the sample count is not reset after the release of tables. This means you need to keep counting samples.*/
 GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables);
 
-/*Flags for gf_isom_open_segment*/
-enum
-{
-	/*FLAT: the MediaData (MPEG4 ESs) is stored at the beginning of the file*/
-	GF_ISOM_SEGMENT_NO_ORDER_FLAG = 1,
-	GF_ISOM_SEGMENT_SCALABLE_FLAG = 1<<1,
-};
-
 /*opens a new segment file. Access to samples in previous segments is no longer possible
 if end_range>start_range, restricts the URL to the given byterange when parsing*/
 GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName, u64 start_range, u64 end_range, u32 flags);
@@ -1835,7 +1835,7 @@ GF_Err gf_isom_stxt_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 S
 GF_Err gf_isom_new_stxt_description(GF_ISOFile *movie, u32 trackNumber, u32 type, const char *mime, const char *encoding, const char *config, u32 *outDescriptionIndex);
 GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber, const char *encoding, const char *config, u32 DescriptionIndex);
 
-GF_Err gf_isom_xml_subtitle_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, 
+GF_Err gf_isom_xml_subtitle_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex,
 											const char **xmlnamespace, const char **xml_schema_loc, const char **mimes);
 GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie, u32 trackNumber,
 											const char *xmlnamespace, const char *xml_schema_loc, const char *auxiliary_mimes,
