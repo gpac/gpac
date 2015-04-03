@@ -432,10 +432,40 @@ u32 gf_net_has_ipv6();
  *\brief checks address type
  *
  *Checks if an address is an IPV6 or IPV4 one.
+ *\param address Adress to check
  *\return true 1 if address is IPV6 one, 0 otherwise
  */
 Bool gf_net_is_ipv6(const char *address);
 
+
+/*!
+ *host to network conversion of integer
+ *
+ *\param integrer to convert
+ *\return converted integer
+ */
+u32 gf_htonl(u32 val);
+/*!
+ *network to host conversion of integer
+ *
+ *\param integrer to convert
+ *\return converted integer
+ */
+u32 gf_ntohl(u32 val);
+/*!
+ *host to network conversion of short integer
+ *
+ *\param short integrer to convert
+ *\return converted integer
+ */
+u16 gf_htons(u16 val);
+/*!
+ *network to host conversion of short integer
+ *
+ *\param short integrer to convert
+ *\return converted integer
+ */
+u16 gf_tohs(u16 val);
 
 /*!
  *	\brief MobileIP Callback

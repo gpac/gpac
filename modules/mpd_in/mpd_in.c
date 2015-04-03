@@ -79,6 +79,7 @@ typedef struct
 	u32 timescale;
 	s64 pto;
 	s64 max_cts_in_period;
+	bin128 key_IV;
 } GF_MPDGroup;
 
 const char * MPD_MPD_DESC = "MPEG-DASH Streaming";
@@ -275,6 +276,11 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			if (group->segment_ifce == ifce) {
 				gf_dash_group_get_segment_init_url(mpdin->dash, i, &param->url_query.start_range, &param->url_query.end_range);
 				param->url_query.current_download = 0;
+
+				param->url_query.key_url = gf_dash_group_get_segment_init_keys(mpdin->dash, i, &group->key_IV);
+				if (param->url_query.key_url) {
+					param->url_query.key_IV = &group->key_IV;
+				}
 				return GF_OK;
 			}
 		}
@@ -384,9 +390,11 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 
 		e = gf_dash_group_get_next_segment_location(mpdin->dash, group_idx, param->url_query.dependent_representation_index, &param->url_query.next_url, &param->url_query.start_range, &param->url_query.end_range,
 		        NULL, &param->url_query.next_url_init_or_switch_segment, &param->url_query.switch_start_range , &param->url_query.switch_end_range,
-		        &src_url, &param->url_query.has_next);
+				&src_url, &param->url_query.has_next, &param->url_query.key_url, &group->key_IV);
 		if (e)
 			return e;
+
+		param->url_query.key_IV = &group->key_IV;
 
 		if (gf_dash_group_loop_detected(mpdin->dash, group_idx))
 			param->url_query.discontinuity_type = 2;

@@ -27,7 +27,6 @@
 
 #include <gpac/internal/m3u8.h>
 #include <gpac/network.h>
-#include <arpa/inet.h>
 
 
 /********** playlist_element **********/
@@ -79,7 +78,7 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 		gf_free(e->key_uri);
 		e->key_uri = NULL;
 	}
-	memset(e->key_iv, 0, 16);
+	memset(e->key_iv, 0, sizeof(bin128) );
 	assert(e->url);
 	gf_free(e->url);
 	e->url = NULL;
@@ -118,7 +117,7 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 	e->language = (language ? gf_strdup(language) : NULL);
 	e->drm_method = drm_method;
 	e->key_uri = (key_uri ? gf_strdup(key_uri) : NULL);
-	memcpy(e->key_iv, iv, 16);
+	memcpy(e->key_iv, iv, sizeof(bin128));
 
 	assert(url);
 	e->url = gf_strdup(url);
@@ -153,7 +152,7 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 			e->audio_group = NULL;
 			e->video_group = NULL;
 			e->key_uri = NULL;
-			memset(e->key_iv, 0, 16);
+			memset(e->key_iv, 0, sizeof(bin128));
 			gf_free(e);
 			return NULL;
 		}
@@ -268,7 +267,7 @@ typedef struct _s_accumulated_attributes {
 	u64 byte_range_start, byte_range_end;
 	PlaylistElementDRMMethod key_method;
 	char *key_url;
-	unsigned char key_iv[16];
+	bin128 key_iv;
 } s_accumulated_attributes;
 
 static void reset_attributes(s_accumulated_attributes *attributes) {
@@ -692,7 +691,7 @@ GF_Err gf_m3u8_parse_master_playlist(const char *file, MasterPlaylist **playlist
 
 GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulated_attributes *attribs, PlaylistElement *sub_playlist, MasterPlaylist **playlist, Stream *in_stream)
 {
-	int i;
+	u32 i, iv, count;
 
 	char *fullURL = currentLine;
 
@@ -703,12 +702,11 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] declaring sub-playlist %s\n", fullURL));
 
-	memset(attribs->key_iv, 0, 16);
-	long iv = htonl(attribs->current_media_seq);
+	memset(attribs->key_iv, 0, sizeof(bin128) );
+	iv = gf_htonl(attribs->current_media_seq);
 	memcpy(attribs->key_iv + 12, (const void *) &iv, sizeof(iv));
 
 	{
-		u32 count;
 		PlaylistElement *curr_playlist = sub_playlist;
 		/* First, we have to find the matching stream */
 		Stream *stream = in_stream;
