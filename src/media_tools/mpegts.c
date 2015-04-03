@@ -1321,7 +1321,7 @@ static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, Bool simple_check)
 
 	while (i<ts->buffer_size) {
 		if (i+188>ts->buffer_size) return ts->buffer_size;
-		if ((ts->buffer[i]==0x47) && (ts->buffer[i+188]==0x47)) 
+		if ((ts->buffer[i]==0x47) && (ts->buffer[i+188]==0x47))
 			break;
 		if ((ts->buffer[i]==0x47) && (ts->buffer[i+192]==0x47)) {
 			ts->prefix_present = 1;
@@ -1633,7 +1633,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 
 			if (t->last_section_number == t->section_number) {
 				u32 table_size;
-				
+
 				status |= GF_M2TS_TABLE_END;
 
 				table_size = 0;
@@ -3129,7 +3129,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 				case GF_M2TS_AFDESC_TIMELINE_DESCRIPTOR:
 					if (ts->ess[pid] && (ts->ess[pid]->flags & GF_M2TS_ES_IS_PES)) {
 						GF_M2TS_PES *pes = (GF_M2TS_PES *) ts->ess[pid];
-				
+
 						if (pes->temi_tc_desc_len)
 							gf_m2ts_store_temi(ts, pes);
 
@@ -3246,7 +3246,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	} else if (hdr.pid == GF_M2TS_PID_CAT) {
 		gf_m2ts_gather_section(ts, ts->cat, NULL, &hdr, data, payload_size);
 		return GF_OK;
-	} 
+	}
 
 	es = ts->ess[hdr.pid];
 	if (paf && paf->PCR_flag) {
@@ -3262,7 +3262,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 						ts->ess[hdr.pid] = (GF_M2TS_ES *) pes;
 						break;
 					}
-					if (pes->flags & GF_M2TS_ES_IS_PES) 
+					if (pes->flags & GF_M2TS_ES_IS_PES)
 						first_pes = pes;
 				}
 				//non found, use the first media stream as a PCR destination - Q: is it legal to have PCR only streams not declared in PMT ?
@@ -3271,7 +3271,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				}
 				break;
 			}
-			if (!es) 
+			if (!es)
 				es = ts->ess[hdr.pid];
 		}
 		if (es) {
@@ -3823,7 +3823,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 			}
 			read += size;
 			if (done) break;
-			if (ts->abort_parsing) 
+			if (ts->abort_parsing)
 				break;
 		}
 
@@ -4484,7 +4484,7 @@ static void rewrite_pts_dts(unsigned char *ptr, u64 TS)
 	if (_TS < (u64) -ts_shift) _TS = pcr_mod + _TS + ts_shift; \
 	else _TS = _TS + ts_shift; \
 	while (_TS > pcr_mod) _TS -= pcr_mod; \
- 
+
 
 GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes)
 {
@@ -4575,4 +4575,3 @@ GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes)
 }
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
-
