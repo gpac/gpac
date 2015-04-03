@@ -70,7 +70,7 @@ struct s_playlistElement {
 	char *url;
 	PlaylistElementDRMMethod drm_method;
 	char *key_uri;
-	unsigned char key_iv[16];
+	bin128 key_iv;
 	GF_Err load_error;
 	PlaylistElementType element_type;
 	union {

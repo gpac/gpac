@@ -1549,5 +1549,30 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 Seco
 	return GF_OK;
 }
 
+GF_EXPORT
+u32 gf_htonl(u32 val)
+{
+	return htonl(val);
+}
+
+
+GF_EXPORT
+u32 gf_ntohl(u32 val)
+{
+	return htonl(val);
+}
+
+GF_EXPORT
+u16 gf_htons(u16 val)
+{
+	return htons(val);
+}
+
+
+GF_EXPORT
+u16 gf_tohs(u16 val)
+{
+	return htons(val);
+}
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
