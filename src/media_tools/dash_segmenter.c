@@ -1543,9 +1543,10 @@ restart_fragmentation_pass:
 				} else if (tf==tfref) {
 					/*fragmenting on "clock" track: no drift control*/
 					if (!dash_cfg->fragments_start_with_rap || ( tf->splitable && split_sample_duration ) || ( (next && next->IsRAP) || split_at_rap) ) {
-						if ((tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale) ||
-							/* if the current fragment makes the segment longer than required, stop the current fragment */
-							(SegmentDuration + (tf->FragmentLength * dash_cfg->dash_scale / tf->TimeScale) >= MaxSegmentDuration)) {
+						if ((tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale)
+							/* if we don't split segment at rap and if the current fragment makes the segment longer than required, stop the current fragment */
+							|| (!split_seg_at_rap && (SegmentDuration + (tf->FragmentLength * dash_cfg->dash_scale / tf->TimeScale) >= MaxSegmentDuration))
+						) {
 							stop_frag = GF_TRUE;
 						}
 					}
@@ -1593,8 +1594,9 @@ restart_fragmentation_pass:
 		SegmentDuration += maxFragDurationOverSegment;
 		maxFragDurationOverSegment=0;
 
-		/*if no simulation and no SIDX is used, flush fragments as we write them*/
-		if (!simulation_pass && (dash_cfg->subsegs_per_sidx<=0) ) {
+		/*if no simulation and no SIDX or realtime is used, flush fragments as we write them*/
+		if (!simulation_pass && ((dash_cfg->subsegs_per_sidx<0) || dash_cfg->real_time) ) {
+
 			if (tfref && dash_cfg->real_time) {
 				u64 now=0;
 				u64 end_time = tfref->InitialTSOffset + tfref->next_sample_dts - tfref->DefaultDuration;
@@ -5482,9 +5484,11 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					}
 
 					if (dash_inputs[i].components[j].lang) {
-						if (lang && strcmp(lang, dash_inputs[i].components[j].lang)) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] two languages in adaptation set: %s will be kept %s will be ignored\n", lang, dash_inputs[i].components[j].lang));
-						} else  if (!lang) {
+						if (lang && strcmp(lang, dash_inputs[i].components[j].lang) ) {
+							if (!strcmp(lang, "und") || !strcmp(dash_inputs[i].components[j].lang, "lang")) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] two languages in adaptation set: %s will be kept %s will be ignored\n", lang, dash_inputs[i].components[j].lang));
+							}
+						} else if (!lang) {
 							lang = gf_strdup(dash_inputs[i].components[j].lang);
 						}
 					}
