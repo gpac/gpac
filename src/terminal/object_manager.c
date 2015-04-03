@@ -627,7 +627,9 @@ static Bool gf_odm_should_auto_select(GF_ObjectManager *odm)
 	u32 i, count;
 	if (gf_codec_is_scene_or_image(odm->codec)) return GF_TRUE;
 
-	if (odm->parentscene && !odm->parentscene->is_dynamic_scene) return GF_TRUE;
+	if (odm->parentscene && !odm->parentscene->is_dynamic_scene) {
+		return GF_TRUE;
+	}
 
 	if (odm->parentscene && odm->parentscene->root_od->addon) {
 		if (odm->parentscene->root_od->addon->addon_type == GF_ADDON_TYPE_MAIN)
@@ -1489,7 +1491,9 @@ void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state)
 
 		if (media_queue_state==2) {
 			odm->action_type = GF_ODM_ACTION_PLAY;
+			gf_term_lock_media_queue(odm->term, 0);
 			gf_odm_play(odm);
+			gf_term_lock_media_queue(odm->term, 1);
 		} else if (!skip_register && (gf_list_find(odm->term->media_queue, odm)<0)) {
 			odm->action_type = GF_ODM_ACTION_PLAY;
 			assert(! (odm->flags & GF_ODM_DESTROYED));
@@ -1693,7 +1697,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 				gf_clock_buffer_off(ch->clock);
 			}
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH%d: At OTB %u requesting PLAY from %g to %g (clock init %d)\n", odm->OD->objectDescriptorID, odm->net_service->url, ch->esd->ESID, gf_clock_time(ch->clock), com.play.start_range, com.play.end_range, ch->clock->clock_init));
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH%d: At OTB %u requesting PLAY from %g to %g (clock init %d) - speed %g\n", odm->OD->objectDescriptorID, odm->net_service->url, ch->esd->ESID, gf_clock_time(ch->clock), com.play.start_range, com.play.end_range, ch->clock->clock_init, com.play.speed));
 			gf_term_service_command(ch->service, &com);
 		}
 	}
@@ -1723,7 +1727,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 			if (!odm->subscene->graph_attached)
 				gf_scene_regenerate(odm->subscene);
 			else
-				gf_scene_restart_dynamic(odm->subscene, 0, 1);
+				gf_scene_restart_dynamic(odm->subscene, 0, 1, 0);
 		}
 	}
 	if (odm->ocr_codec) gf_term_start_codec(odm->ocr_codec, 0);

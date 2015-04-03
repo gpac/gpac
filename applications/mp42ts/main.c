@@ -285,16 +285,17 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 	}
 
 	if (timescale || ntp) {
+		Bool use64 = (timecode > 0xFFFFFFFFUL) ? 1 : 0;
 		len = 3; //3 bytes flags
 
-		if (timescale) len += 4 + ((timecode > 0xFFFFFFFFUL) ? 8 : 4);
+		if (timescale) len += 4 + (use64 ? 8 : 4);
 		if (ntp) len += 8;
 
 		//write timeline descriptor
 		gf_bs_write_int(bs,	GF_M2TS_AFDESC_TIMELINE_DESCRIPTOR, 8);
 		gf_bs_write_int(bs,	len, 8);
 
-		gf_bs_write_int(bs,	timescale ? ((timecode > 0xFFFFFFUL) ? 2 : 1) : 0, 2); //has_timestamp
+		gf_bs_write_int(bs,	timescale ? (use64 ? 2 : 1) : 0, 2); //has_timestamp
 		gf_bs_write_int(bs,	ntp ? 1 : 0, 1); //has_ntp
 		gf_bs_write_int(bs,	0, 1); //has_ptp
 		gf_bs_write_int(bs,	0, 2); //has_timecode
@@ -305,7 +306,7 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 		gf_bs_write_int(bs,	temi_url ? 0 : 150, 8); //timeline_id
 		if (timescale) {
 			gf_bs_write_u32(bs,	timescale); //timescale
-			if (timecode > 0xFFFFFFUL)
+			if (use64)
 				gf_bs_write_u64(bs,	timecode); //timestamp
 			else
 				gf_bs_write_u32(bs,	(u32) timecode); //timestamp

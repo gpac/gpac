@@ -228,6 +228,8 @@ struct _scene
 	GF_List *keynavigators;
 #endif
 
+	Bool disable_hitcoord_notif;
+
 	u32 addon_position, addon_size_factor;
 
 	GF_List *declared_addons;
@@ -264,7 +266,7 @@ void gf_scene_regenerate(GF_Scene *scene);
 void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm);
 /*restarts dynamic scene from given time: scene graph is not reseted, objects are just restarted
 instead of closed and reopened. If a media control is present on inline, from_time is overriden by MC range*/
-void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only);
+void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only, Bool disable_addon_check);
 
 /*exported for compositor: handles filtering of "self" parameter indicating anchor only acts on container inline scene
 not root one. Returns 1 if handled (cf user.h, navigate event)*/
@@ -453,6 +455,8 @@ struct _tag_terminal
 	u32 bench_mode;
 
 	u32 prefered_audio_codec_oti;
+
+	u32 low_latency_buffer_max;
 };
 
 
@@ -661,6 +665,8 @@ struct _es_channel
 	u32 stream_state;
 	/*the AU in reception is RAP*/
 	Bool IsRap;
+	/*the AU in reception is only need for seeking*/
+	Bool SeekFlag;
 	/*signal that next AU is an AU start*/
 	Bool NextIsAUStart;
 	/*if codec resilient, packet drops are not considered as fatal for AU reconstruction (eg no wait for RAP)*/
@@ -809,6 +815,9 @@ enum
 	/*set when codec is identified as RAW, meaning all AU comming from the network are directly
 	dispatched to the composition memory*/
 	GF_ESM_CODEC_IS_RAW_MEDIA = 1<<3,
+
+	/*set when input channels have very low buffering requirement, in which case the codec has to discard all possible late data*/
+	GF_ESM_CODEC_IS_LOW_LATENCY = 1<<4,
 };
 
 struct _generic_codec

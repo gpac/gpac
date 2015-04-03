@@ -21,7 +21,7 @@ OBJS= opensvc_dec.o
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_opensvc_dec.$(DYN_LIB_SUFFIX)
+LIB=gm_opensvc_dec$(DYN_LIB_SUFFIX)
 
 
 all: $(LIB)

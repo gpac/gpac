@@ -1158,7 +1158,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			} else { /* for use in MP4Box */
 				if (strstr(suburl, "://")) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Downloading %s...\n", suburl));
-					e = gf_dm_wget(suburl, "tmp.m3u8", 0, 0);
+					e = gf_dm_wget(suburl, "tmp.m3u8", 0, 0, NULL);
 					if (e == GF_OK) {
 						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, stream, pe);
 					} else {
@@ -1361,7 +1361,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 				tmp_file = strrchr(elt->url, '/');
 				if (!tmp_file) tmp_file = strrchr(elt->url, '\\');
 				if (tmp_file) {
-					e = gf_dm_wget(elt->url, tmp_file, 0, 0);
+					e = gf_dm_wget(elt->url, tmp_file, 0, 0, NULL);
 					if (e==GF_OK) {
 						import.in_name = tmp_file;
 						e = gf_media_import(&import);
@@ -1468,7 +1468,7 @@ try_next_segment:
 						tmp_file = strrchr(elt->url, '\\');
 					if (tmp_file) {
 						tmp_file++;
-						e = gf_dm_wget(elt->url, tmp_file, elt->byte_range_start, elt->byte_range_end);
+						e = gf_dm_wget(elt->url, tmp_file, elt->byte_range_start, elt->byte_range_end, NULL);
 						if (e == GF_OK) {
 							import.in_name = tmp_file;
 						}
@@ -1477,7 +1477,7 @@ try_next_segment:
 					import.in_name = elt->url;
 				}
 				e = gf_media_import(&import);
-				if (!e) {
+				if (e != GF_OK) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] M3U8 missing Media Element %s (Playlist %s) %s \n", import.in_name, base_url));
 					goto try_next_segment;
 				}

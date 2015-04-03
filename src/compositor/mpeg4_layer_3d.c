@@ -282,7 +282,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 static void layer3d_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx = tr_state->ctx;
-	if (tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL))
+	if (tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx))
 		return;
 
 	visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);

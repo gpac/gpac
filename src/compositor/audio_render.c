@@ -299,12 +299,14 @@ static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, 
 			ar->freeze_time = gf_sys_clock_high_res();
 			if (!for_reconfig && ar->audio_out && ar->audio_out->Play) ar->audio_out->Play(ar->audio_out, 0);
 			ar->Frozen = 1;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[Audio] pausing master clock - time "LLD" (sys time "LLD")\n", ar->freeze_time, gf_sys_clock_high_res()));
 		}
 	} else {
 		if (ar->Frozen) {
 			if (!for_reconfig && ar->audio_out && ar->audio_out->Play) ar->audio_out->Play(ar->audio_out, reset_hw_buffer ? 2 : 1);
 			ar->Frozen = 0;
 			ar->start_time += gf_sys_clock_high_res() - ar->freeze_time;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[Audio] resuming master clock - new time "LLD" (sys time "LLD") \n", ar->start_time, gf_sys_clock_high_res()));
 		}
 	}
 	gf_mixer_lock(ar->mixer, 0);
@@ -317,6 +319,11 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 	GF_AudioRenderer *ar = (GF_AudioRenderer *) ptr;
 	if (!ar->need_reconfig) {
 		u32 delay_ms = ar->disable_resync ?	0 : ar->audio_delay;
+
+		if (ar->Frozen) {
+			memset(buffer, 0, buffer_size);
+			return buffer_size;
+		}
 
 		gf_mixer_lock(ar->mixer, 1);
 
@@ -421,9 +428,11 @@ u32 gf_ar_proc(void *p)
 
 	while (ar->audio_th_state == 1) {
 		//do mix even if mixer is empty, otherwise we will push the same buffer over and over to the sound card
+/*
 		if (ar->Frozen ) {
 			gf_sleep(0);
-		} else {
+		} else 
+*/		{
 			if (ar->need_reconfig) gf_sc_ar_reconfig(ar);
 			ar->audio_out->WriteAudio(ar->audio_out);
 		}

@@ -55,7 +55,7 @@ int dc_str_to_resolution(char *str, int *width, int *height)
 }
 
 
-#define DEFAULT_VIDEO_BITRATE    400000
+#define DEFAULT_VIDEO_BITRATE    1000000
 #define DEFAULT_VIDEO_FRAMERATE  25
 #define DEFAULT_VIDEO_WIDTH      640
 #define DEFAULT_VIDEO_HEIGHT     480
@@ -476,7 +476,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "\n"
 	    "DASH options:\n"
 	    "    -seg-dur dur:int         set the segment duration in millisecond (default value: 1000)\n"
-	    "    -frag-dur dur:int        set the fragment duration in millisecond (default value: 1000)\n"
+		"    -frag dur:int            set the fragment duration in millisecond (default value: 1000) (same as -frag-dur)\n"
 	    "    -seg-marker marker:4cc   add a marker box named marker at the end of DASH segment\n"
 	    "    -out outdir:str          outdir is the output data directory (default: output)\n"
 	    "    -mpd mpdname:str         mpdname is the MPD file name (default: dashcast.mpd)\n"
@@ -696,7 +696,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 			}
 			cmd_data->seg_dur = atoi(argv[i]);
 			i++;
-		} else if (strcmp(argv[i], "-frag-dur") == 0) {
+		} else if ((strcmp(argv[i], "-frag-dur") == 0) || (strcmp(argv[i], "-frag") == 0)) {
 			DASHCAST_CHECK_NEXT_ARG
 			if (cmd_data->frag_dur != 0) {
 				fprintf(stderr, "Fragment duration has already been specified.\n");
@@ -858,6 +858,11 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 
 	if (cmd_data->min_buffer_time == -1) {
 		cmd_data->min_buffer_time = 1.0;
+	}
+
+	if ((cmd_data->minimum_update_period == -1) && (cmd_data->mode == LIVE_CAMERA)) {
+		fprintf(stderr, "MPD refresh time not set in live - defaulting to segment duration\n");
+		cmd_data->minimum_update_period = cmd_data->seg_dur;
 	}
 
 	//safety checks

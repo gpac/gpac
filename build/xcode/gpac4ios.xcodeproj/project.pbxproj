@@ -272,7 +272,6 @@
 		71CCF3341277045100339E12 /* math.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2331277045100339E12 /* math.c */; };
 		71CCF3351277045100339E12 /* module.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2341277045100339E12 /* module.c */; };
 		71CCF3361277045100339E12 /* module_wrap.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF2351277045100339E12 /* module_wrap.h */; };
-		71CCF3371277045100339E12 /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2361277045100339E12 /* os_file.c */; };
 		71CCF3381277045100339E12 /* os_module.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2371277045100339E12 /* os_module.c */; };
 		71CCF3391277045100339E12 /* os_net.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2381277045100339E12 /* os_net.c */; };
 		71CCF33A1277045100339E12 /* os_thread.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2391277045100339E12 /* os_thread.c */; };
@@ -374,6 +373,9 @@
 		922EB5871AAE13C500DF46D0 /* webvtt.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57F1AAE13C500DF46D0 /* webvtt.h */; };
 		925730A21A0916D20057FF04 /* libiconv.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A11A0916D20057FF04 /* libiconv.dylib */; };
 		925730A41A0916DB0057FF04 /* libbz2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 925730A31A0916DB0057FF04 /* libbz2.dylib */; };
+		925FF2A51ABC53F30085B04C /* odf_parse_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A31ABC53F30085B04C /* odf_parse_common.h */; };
+		925FF2A61ABC53F30085B04C /* smjs_api.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A41ABC53F30085B04C /* smjs_api.h */; };
+		925FF2A71ABC55030085B04C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2361277045100339E12 /* os_file.c */; };
 		929A929C16EF8BC200B7C64F /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929616EF8BC200B7C64F /* Default-568h@2x.png */; };
 		929A929D16EF8BC200B7C64F /* icon_ipad_retina.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929716EF8BC200B7C64F /* icon_ipad_retina.png */; };
 		929A929E16EF8BC200B7C64F /* icon_ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929816EF8BC200B7C64F /* icon_ipad.png */; };
@@ -917,6 +919,8 @@
 		922EB57F1AAE13C500DF46D0 /* webvtt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = webvtt.h; sourceTree = "<group>"; };
 		925730A11A0916D20057FF04 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		925730A31A0916DB0057FF04 /* libbz2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.dylib; path = usr/lib/libbz2.dylib; sourceTree = SDKROOT; };
+		925FF2A31ABC53F30085B04C /* odf_parse_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = odf_parse_common.h; sourceTree = "<group>"; };
+		925FF2A41ABC53F30085B04C /* smjs_api.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smjs_api.h; sourceTree = "<group>"; };
 		929A929616EF8BC200B7C64F /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-568h@2x.png"; path = "../../applications/osmo4_ios/Resources/Default-568h@2x.png"; sourceTree = SOURCE_ROOT; };
 		929A929716EF8BC200B7C64F /* icon_ipad_retina.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_ipad_retina.png; path = ../../applications/osmo4_ios/Resources/icon_ipad_retina.png; sourceTree = SOURCE_ROOT; };
 		929A929816EF8BC200B7C64F /* icon_ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_ipad.png; path = ../../applications/osmo4_ios/Resources/icon_ipad.png; sourceTree = SOURCE_ROOT; };
@@ -1736,6 +1740,8 @@
 		71CCF37012770A8C00339E12 /* internal */ = {
 			isa = PBXGroup;
 			children = (
+				925FF2A31ABC53F30085B04C /* odf_parse_common.h */,
+				925FF2A41ABC53F30085B04C /* smjs_api.h */,
 				970A26CB13434D780007362C /* m3u8.h */,
 				970A26CC13434D780007362C /* mpd.h */,
 				71CCF37112770A8C00339E12 /* avilib.h */,
@@ -1975,6 +1981,7 @@
 				71CCF2941277045100339E12 /* visual_manager.h in Headers */,
 				71CCF2961277045100339E12 /* visual_manager_2d.h in Headers */,
 				71CCF2991277045100339E12 /* visual_manager_3d.h in Headers */,
+				925FF2A61ABC53F30085B04C /* smjs_api.h in Headers */,
 				71CCF2E11277045100339E12 /* mpeg2_ps.h in Headers */,
 				922EB5861AAE13C500DF46D0 /* version.h in Headers */,
 				71CCF31B1277045100339E12 /* input_sensor.h in Headers */,
@@ -2019,6 +2026,7 @@
 				71CCF3D112770A8C00339E12 /* swf_dev.h in Headers */,
 				71CCF3D212770A8C00339E12 /* terminal_dev.h in Headers */,
 				71CCF3D312770A8C00339E12 /* vobsub.h in Headers */,
+				925FF2A51ABC53F30085B04C /* odf_parse_common.h in Headers */,
 				71CCF3D412770A8C00339E12 /* ismacryp.h in Headers */,
 				71CCF3D512770A8C00339E12 /* iso639.h in Headers */,
 				71CCF3D612770A8C00339E12 /* isomedia.h in Headers */,
@@ -2122,7 +2130,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0510;
+				LastUpgradeCheck = 0620;
 				TargetAttributes = {
 					71A19B1912796B5600ACFF58 = {
 						DevelopmentTeam = Q46G522WGV;
@@ -2182,7 +2190,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				92F930861A5ADC1A0072A85C /* os_divers.c in Sources */,
-				71CCF3371277045100339E12 /* os_file.c in Sources */,
+				925FF2A71ABC55030085B04C /* os_file.c in Sources */,
 				92E8C7901A0CD58300E0436D /* validator.c in Sources */,
 				92E8C78B1A0CD57A00E0436D /* timedtext_dec.c in Sources */,
 				92E8C78C1A0CD57A00E0436D /* timedtext_in.c in Sources */,
@@ -2456,7 +2464,6 @@
 				71CCF3331277045100339E12 /* list.c in Sources */,
 				71CCF3341277045100339E12 /* math.c in Sources */,
 				71CCF3351277045100339E12 /* module.c in Sources */,
-				71CCF3371277045100339E12 /* os_file.c in Sources */,
 				71CCF3381277045100339E12 /* os_module.c in Sources */,
 				71CCF3391277045100339E12 /* os_net.c in Sources */,
 				71CCF33A1277045100339E12 /* os_thread.c in Sources */,
@@ -2517,7 +2524,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
@@ -2557,7 +2563,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD)";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;

@@ -541,11 +541,17 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 	flush_text_node_edit(compositor, is_end);
 }
 
-static void fireTermEvent(GF_Compositor * compositor, u32 eventType) {
+static void toggle_keyboard(GF_Compositor * compositor, Bool do_show) 
+{
+	GF_Event evt;
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = do_show ? GF_EVENT_TEXT_EDITING_START : GF_EVENT_TEXT_EDITING_END;
+
+	if (compositor->video_out) {
+		GF_Err e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
+		if (e == GF_OK) return;
+	}
 	if (compositor->term) {
-		GF_Event evt;
-		memset(&evt, 0, sizeof(GF_Event));
-		evt.type = eventType;
 		gf_term_user_event(compositor->term, &evt);
 	}
 }
@@ -558,7 +564,7 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 	u32 tag;
 	GF_Node *text = check_focus_node ? compositor->focus_node : compositor->hit_node;
 	if (!text) {
-		fireTermEvent(compositor, GF_EVENT_TEXT_EDITING_END);
+		toggle_keyboard(compositor, GF_FALSE);
 		return 0;
 	}
 	if (compositor->hit_node==compositor->focus_node) return compositor->focus_text_type ? 1 : 0;
@@ -579,11 +585,11 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 		} else if (strstr(fs->style.buffer, "simple_edit") || strstr(fs->style.buffer, "SIMPLE_EDIT")) {
 			compositor->focus_text_type = 4;
 		} else {
-			fireTermEvent(compositor, GF_EVENT_TEXT_EDITING_END);
+			toggle_keyboard(compositor, GF_FALSE);
 			return 0;
 		}
 		compositor->focus_node = text;
-		fireTermEvent(compositor, compositor->focus_text_type > 2 ? GF_EVENT_TEXT_EDITING_START : GF_EVENT_TEXT_EDITING_END);
+		toggle_keyboard(compositor, compositor->focus_text_type > 2 ? GF_TRUE : GF_FALSE);
 		return 1;
     }
     default:
@@ -618,7 +624,7 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 		compositor->focus_uses_dom_events = 1;
 	}
 	compositor->hit_node = NULL;
-	fireTermEvent(compositor, compositor->focus_text_type > 0 ? GF_EVENT_TEXT_EDITING_START : GF_EVENT_TEXT_EDITING_END);
+	toggle_keyboard(compositor, compositor->focus_text_type > 0 ? GF_TRUE : GF_FALSE);
 #endif
 	return 1;
 }
@@ -905,7 +911,9 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 
 		/*try to remove this sensor from the previous sensor list*/
 		gf_list_del_item(compositor->previous_sensors, hs);
-		stype = gf_node_get_tag(hs->sensor);
+		if (gf_node_get_id(hs->sensor)) 
+			stype = gf_node_get_tag(hs->sensor);
+
 		keynav = gf_scene_get_keynav(gf_node_get_graph(hs->sensor), hs->sensor);
 		if (keynav) gf_sc_change_key_navigator(compositor, keynav);
 

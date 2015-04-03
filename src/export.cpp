@@ -273,6 +273,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_utc_time_since_1970) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_gettimeofday) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp_ts) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp_diff_ms) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_utc) )
@@ -1640,6 +1641,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_vrml_field_copy) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_vrml_field_equal) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_route_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sg_route_new_to_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_route_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_route_del_by_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_route_find) )

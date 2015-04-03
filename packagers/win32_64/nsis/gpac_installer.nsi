@@ -562,8 +562,8 @@ Section "Add Start Menu Shortcuts"
   SetShellVarContext all
   CreateDirectory "$SMPROGRAMS\GPAC"
   CreateShortCut "$SMPROGRAMS\GPAC\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4/MP4Client.lnk" "$INSTDIR\MP4Client.exe" "-gui" 
-  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4/MP4Client (with Console).lnk" "$INSTDIR\MP4Client.exe" ""
+  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4.lnk" "$INSTDIR\MP4Client.exe" "" 
+  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4 (with Console).lnk" "$INSTDIR\MP4Client.exe" "-guid"
   !ifndef IS_WIN64
   CreateShortCut "$SMPROGRAMS\GPAC\Osmo4 (Old UI).lnk" "$INSTDIR\Osmo4.exe" ""
   !endif

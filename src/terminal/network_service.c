@@ -593,7 +593,7 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		}
 		if (scene && scene->is_dynamic_scene) {
 			gf_sc_lock(term->compositor, 1);
-			gf_scene_restart_dynamic(scene, (u64) (com->play.start_range*1000), 0);
+			gf_scene_restart_dynamic(scene, (u64) (com->play.start_range*1000), 0, 0);
 			gf_sc_lock(term->compositor, 0);
 		}
 		return;

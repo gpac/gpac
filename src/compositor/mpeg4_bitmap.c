@@ -129,7 +129,7 @@ static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
 
 static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 {
-	GF_ColorKey *key, keyColor;
+	GF_ColorKey keyColor;
 	DrawableContext *ctx = tr_state->ctx;
 	BitmapStack *st = (BitmapStack *) gf_node_get_private(node);
 
@@ -138,7 +138,6 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 	ctx->transform.m[1] = ctx->transform.m[3] = 0;
 
 	/*check for material key materialKey*/
-	key = NULL;
 	if (ctx->appear) {
 		M_Appearance *app = (M_Appearance *)ctx->appear;
 		if ( app->material && (gf_node_get_tag((GF_Node *)app->material)==TAG_MPEG4_MaterialKey) ) {
@@ -150,14 +149,14 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 				keyColor.alpha = FIX2INT( (FIX_ONE - mk->transparency) * 255);
 				keyColor.low = FIX2INT(mk->lowThreshold * 255);
 				keyColor.high = FIX2INT(mk->highThreshold * 255);
-				key = &keyColor;
+				tr_state->col_key = &keyColor;
 
 			}
 		}
 	}
 
 	/*no HW, fall back to the graphics driver*/
-	if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, key)) {
+	if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx)) {
 		GF_Matrix2D _mat;
 		GF_Rect rc = gf_rect_center(ctx->bi->unclip.width, ctx->bi->unclip.height);
 		gf_mx2d_copy(_mat, ctx->transform);
@@ -168,9 +167,8 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 		gf_path_add_rect_center(st->graph->path, 0, 0, rc.width, rc.height);
 		ctx->flags |= CTX_NO_ANTIALIAS;
 		visual_2d_texture_path(tr_state->visual, st->graph->path, ctx, tr_state);
-		return;
 	}
-
+	tr_state->col_key = NULL;
 }
 
 static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)

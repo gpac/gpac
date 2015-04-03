@@ -340,6 +340,7 @@ void PrintDASHUsage()
 	        " -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
 	        " -segment-timeline    uses SegmentTimeline when generating segments.\n"
 	        " -segment-marker MARK adds a box of type \'MARK\' at the end of each DASH segment. MARK shall be a 4CC identifier\n"
+	        " -insert-utc          inserts UTC clock at the begining of each ISOBMF segment\n"
 	        " -base-url string     sets Base url at MPD level. Can be used several times.\n"
 	        " -mpd-title string    sets MPD title.\n"
 	        " -mpd-source string   sets MPD source.\n"
@@ -347,13 +348,14 @@ void PrintDASHUsage()
 	        " -cprt string         adds copyright string to MPD\n"
 	        " -dash-ctx FILE       stores/restore DASH timing from FILE.\n"
 	        " -dynamic             uses dynamic MPD type instead of static.\n"
+			" -last-dynamic        same as dynamic but closes the period (insert lmsg brand if needed and update duration).\n"
 			" -mpd-duration DUR    sets the duration in second of a live session (0 by default). If 0, you must use -mpd-refresh.\n"
-	        " -mpd-refresh TIME    specifies MPD update time in seconds.\n"
+			" -mpd-refresh TIME    specifies MPD update time in seconds (double can be used).\n"
 	        " -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
 	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
 	        "                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
 	        " -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
-	        " -ast-offset TIME     specifies MPD AvailabilityStartTime offset in seconds. Default is 1 sec delay\n"
+	        " -ast-offset TIME     specifies MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative. Default is 0 sec delay\n"
 	        " -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
 	        " -mem-frags           fragments will be produced in memory rather than on disk before flushing to disk\n"
 	        " -pssh-moof           stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box.\n"
@@ -375,6 +377,7 @@ void PrintDASHUsage()
 	        " -no-frags-default    disables default flags in fragments\n"
 	        " -single-traf         uses a single track fragment per moof (smooth streaming and derived specs may require this)\n"
 	        " -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
+			" -frag-rt             when using fragments in live mode, flush fragments according to their timing (only supported with a single input).\n"
 	        "\n");
 }
 
@@ -1731,7 +1734,8 @@ int mp4boxMain(int argc, char **argv)
 	u32 *brand_add = NULL;
 	u32 *brand_rem = NULL;
 	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
-	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, dash_dynamic, initial_moof_sn, dump_std, import_subtitle;
+	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
+	GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	GF_SceneDumpFormat dump_mode;
 #endif
@@ -1742,13 +1746,14 @@ int mp4boxMain(int argc, char **argv)
 	u32 track_dump_type;
 	u32 trackID;
 	Double min_buffer = 1.5;
-	u32 ast_shift_sec = 1;
+	s32 ast_offset_ms = 0;
 	u32 dump_chap = 0;
 	u32 dump_udta_type = 0;
 	u32 dump_udta_track = 0;
 	char **mpd_base_urls = NULL;
 	u32 nb_mpd_base_urls=0;
 	u32 dash_scale = 1000;
+	Bool insert_utc = GF_FALSE;
 
 #ifndef GPAC_DISABLE_MPD
 	Bool do_mpd = 0;
@@ -1761,7 +1766,8 @@ int mp4boxMain(int argc, char **argv)
 	u32 MTUSize = 1450;
 #endif
 	GF_ISOFile *file;
-	u32 mpd_update_time = 0;
+	Bool frag_real_time = 0;
+	Double mpd_update_time = 0;
 	Bool stream_rtp=0;
 	Bool live_scene=0;
 	Bool enable_mem_tracker = 0;
@@ -1815,7 +1821,6 @@ int mp4boxMain(int argc, char **argv)
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = 0;
 	no_fragments_defaults = 0;
 	single_traf_per_moof = 0,
-	dash_dynamic = 0;
 	/*align cat is the new default behaviour for -cat*/
 	align_cat = 1;
 	subsegs_per_sidx = 0;
@@ -2284,10 +2289,16 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-dynamic")) {
-			dash_dynamic = 1;
+			dash_mode = GF_DASH_DYNAMIC;
+		} 
+		else if (!stricmp(arg, "-last-dynamic")) {
+			dash_mode = GF_DASH_DYNAMIC_LAST;
+		}
+		else if (!stricmp(arg, "-frag-rt")) {
+			frag_real_time = GF_TRUE;
 		}
 		else if (!strnicmp(arg, "-dash-live", 10) || !strnicmp(arg, "-ddbg-live", 10)) {
-			dash_dynamic = !strnicmp(arg, "-ddbg-live", 10) ? 2 : 1;
+			dash_mode = !strnicmp(arg, "-ddbg-live", 10) ? GF_DASH_DYNAMIC_DEBUG : GF_DASH_DYNAMIC;
 			dash_live = 1;
 			if (arg[10]=='=') {
 				dash_ctx_file = arg+11;
@@ -2301,7 +2312,7 @@ int mp4boxMain(int argc, char **argv)
 			i++;
 		}
 		else if (!stricmp(arg, "-mpd-refresh")) {
-			CHECK_NEXT_ARG mpd_update_time = atoi(argv[i+1]);
+			CHECK_NEXT_ARG mpd_update_time = atof(argv[i+1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-time-shift")) {
@@ -2317,7 +2328,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-ast-offset")) {
 			CHECK_NEXT_ARG
-			ast_shift_sec = (u32) atoi(argv[i+1]);
+			ast_offset_ms = atoi(argv[i+1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-moof-sn")) {
@@ -2395,6 +2406,9 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			m = argv[i+1];
 			segment_marker = GF_4CC(m[0], m[1], m[2], m[3]);
+			i++;
+		} else if (!stricmp(arg, "-insert-utc")) {
+			insert_utc = GF_TRUE;
 		} else if (!stricmp(arg, "-itags")) {
 			CHECK_NEXT_ARG itunes_tags = argv[i+1];
 			i++;
@@ -2810,7 +2824,7 @@ int mp4boxMain(int argc, char **argv)
 		else if (!stricmp(arg, "-mpd")) {
 			do_mpd = 1;
 			CHECK_NEXT_ARG
-			outName = argv[i+1];
+			inName = argv[i+1];
 			i++;
 		}
 #endif
@@ -3225,7 +3239,7 @@ int mp4boxMain(int argc, char **argv)
 
 #if !defined(DISABLE_CORE_TOOLS)
 	if (do_wget != NULL) {
-		e = gf_dm_wget(do_wget, inName, 0, 0);
+		e = gf_dm_wget(do_wget, inName, 0, 0, NULL);
 		if (e != GF_OK) {
 			fprintf(stderr, "Cannot retrieve %s: %s\n", do_wget, gf_error_to_string(e) );
 		}
@@ -3236,16 +3250,15 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_MPD
 	if (do_mpd) {
 		Bool remote = GF_FALSE;
-		char *mpd_base_url = gf_strdup(inName);
+		char *mpd_base_url = NULL;
 		if (!strnicmp(inName, "http://", 7)) {
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
-			e = gf_dm_wget(inName, "tmp_main.m3u8", 0, 0);
+			e = gf_dm_wget(inName, "tmp_main.m3u8", 0, 0, &mpd_base_url);
 			if (e != GF_OK) {
 				fprintf(stderr, "Cannot retrieve M3U8 (%s): %s\n", inName, gf_error_to_string(e));
-				gf_free(mpd_base_url);
+				if (mpd_base_url) gf_free(mpd_base_url);
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
-			inName = "tmp_main.m3u8";
 			remote = GF_TRUE;
 #else
 			gf_free(mpd_base_url);
@@ -3253,8 +3266,8 @@ int mp4boxMain(int argc, char **argv)
 			MP4BOX_EXIT_WITH_CODE(1);
 #endif
 		}
-		e = gf_m3u8_to_mpd(inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t", GF_TRUE, use_url_template, NULL);
-		gf_free(mpd_base_url);
+		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, (outName ? outName : inName), 0, "video/mp2t", GF_TRUE, use_url_template, NULL);
+		if (mpd_base_url) gf_free(mpd_base_url);
 
 		if (remote) {
 			//gf_delete_file("tmp_main.m3u8");
@@ -3521,7 +3534,12 @@ int mp4boxMain(int argc, char **argv)
 		strcpy(szMPD, outfile);
 		strcat(szMPD, ".mpd");
 
-		if (dash_dynamic && dash_live)
+		if ((dash_subduration>0) && (dash_duration > dash_subduration)) {
+			fprintf(stderr, "Warning: -subdur parameter (%g s) should be greater than segment duration (%g s), using segment duration instead\n", dash_subduration, dash_duration);
+			dash_subduration = dash_duration;
+		}
+
+		if (dash_mode && dash_live)
 			fprintf(stderr, "Live DASH-ing - press 'q' to quit, 's' to save context and quit\n");
 
 		if (!dash_ctx_file && dash_live) {
@@ -3534,15 +3552,15 @@ int mp4boxMain(int argc, char **argv)
 		}
 
 		if (dash_profile==GF_DASH_PROFILE_UNKNOWN)
-			dash_profile = dash_dynamic ? GF_DASH_PROFILE_LIVE : GF_DASH_PROFILE_FULL;
+			dash_profile = dash_mode ? GF_DASH_PROFILE_LIVE : GF_DASH_PROFILE_FULL;
 
-		if (!dash_dynamic) {
+		if (!dash_mode) {
 			time_shift_depth = 0;
 			mpd_update_time = 0;
 		} else if ((dash_profile>=GF_DASH_PROFILE_MAIN) && !use_url_template && !mpd_update_time) {
 			/*use a default MPD update of dash_duration sec*/
-			mpd_update_time = (u32)  (dash_subduration ? dash_subduration : dash_duration);
-			fprintf(stderr, "Using default MPD refresh of %d seconds\n", mpd_update_time);
+			mpd_update_time = (Double) (dash_subduration ? dash_subduration : dash_duration);
+			fprintf(stderr, "Using default MPD refresh of %g seconds\n", mpd_update_time);
 		}
 
 		if (file && needSave) {
@@ -3550,15 +3568,22 @@ int mp4boxMain(int argc, char **argv)
 			file = NULL;
 			del_file = GF_TRUE;
 		}
-		while (!do_abort) {
+		while (1) {
+			if (do_abort>=2) {
+				dash_mode = GF_DASH_DYNAMIC_LAST;
+			}
+
 			e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
 			                            (const char **) mpd_base_urls, nb_mpd_base_urls,
 			                            use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
 			                            seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
 			                            interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
-			                            dash_ctx, dash_dynamic, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
-			                            ast_shift_sec, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
-										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration);
+			                            dash_ctx, dash_mode, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
+			                            ast_offset_ms, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
+										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration, insert_utc, frag_real_time);
+
+			if (do_abort) 
+				break;
 
 			//this happens when reading file while writing them (local playback of the live session ...)
 			if (dash_live && (e==GF_IO_ERR) ) {
@@ -3569,29 +3594,37 @@ int mp4boxMain(int argc, char **argv)
 			if (e) break;
 
 			if (dash_live) {
+				u32 slept = gf_sys_clock();
 				u32 sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
-				fprintf(stderr, "sleep for %d ms\n", sleep_for);
+				fprintf(stderr, "Next generation scheduled in %d ms\n", sleep_for);
 				while (1) {
 					if (gf_prompt_has_input()) {
 						char c = (char) gf_prompt_get_char();
-						if (c=='q') {
+						if (c=='X') {
 							do_abort = 1;
 							break;
 						}
-						if (c=='s') {
+						if (c=='q') {
 							do_abort = 2;
+							break;
+						}
+						if (c=='s') {
+							do_abort = 3;
 							break;
 						}
 					}
 
-					if (dash_dynamic == 2) {
+					if (dash_mode == GF_DASH_DYNAMIC_DEBUG) {
 						break;
 					}
-					if (sleep_for<100)
-						break;
-					gf_sleep(100);
+					if (!sleep_for) break;
 
+					gf_sleep(10);
 					sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
+					if (sleep_for<10) {
+						fprintf(stderr, "Slept for %d ms before generation\n", gf_sys_clock() - slept);
+						break;
+					}
 				}
 			} else {
 				break;
@@ -3599,12 +3632,14 @@ int mp4boxMain(int argc, char **argv)
 		}
 
 		if (dash_ctx) {
-			if (do_abort==2) {
-				char szName[1024];
-				fprintf(stderr, "Enter file name to save dash context:\n");
-				if (scanf("%s", szName) == 1) {
-					gf_cfg_set_filename(dash_ctx, szName);
-					gf_cfg_save(dash_ctx);
+			if (do_abort==3) {
+				if (!dash_ctx_file) {
+					char szName[1024];
+					fprintf(stderr, "Enter file name to save dash context:\n");
+					if (scanf("%s", szName) == 1) {
+						gf_cfg_set_filename(dash_ctx, szName);
+						gf_cfg_save(dash_ctx);
+					}
 				}
 			}
 			gf_cfg_del(dash_ctx);

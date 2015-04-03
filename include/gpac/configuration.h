@@ -48,7 +48,7 @@
 
 /*spidermonkey enabled*/
 #define GPAC_HAS_SPIDERMONKEY
-#ifdef GPAC_CONFIG_DARWIN
+#if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
 #define MOZILLA_1_8_BRANCH
 #ifndef XP_UNIX
 #define XP_UNIX
@@ -103,7 +103,7 @@
 
 #define GPAC_HAS_IPV6
 #define GPAC_USE_OGL_ES
-#define GPAC_FIXED_POINT
+//#define GPAC_FIXED_POINT
 
 #undef GPAC_HAS_SPIDERMONKEY
 #undef GPAC_HAS_PNG

@@ -186,9 +186,6 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 	if (!dd->fullscreen) {
 		dd->width = Width;
 		dd->height = Height;
-	} else {
-		dd->fs_store_width = Width;
-		dd->fs_store_height = Height;
 	}
 	DD_ClearBackBuffer(dr, 0xFF000000);
 
@@ -233,7 +230,7 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 			if( FAILED(hr)) return GF_IO_ERR;
 		}
 		dd->NeedRestore = 1;
-		cooplev = DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN;
+//		cooplev = DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN;
 	}
 
 	hr = dd->pDD->lpVtbl->SetCooperativeLevel(dd->pDD, dd->cur_hwnd, cooplev);
