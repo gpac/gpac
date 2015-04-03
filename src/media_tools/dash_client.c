@@ -2938,6 +2938,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				if (init_in_base) {
 					GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
 					rep->segment_list->initialization_segment->sourceURL = gf_strdup(init_url);
+					rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
 					/*we don't want to load the entire movie */
 					init_needs_byte_range = 1;
 				}
@@ -3007,6 +3008,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 
 						sprintf(szName, "gmem://%d@%p", rep->playback.init_segment_size, rep->playback.init_segment_data);
 						rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
+						rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
 					} else {
 						FILE *t = gf_fopen(cache_name, "rb");
 						if (t) {
@@ -3022,6 +3024,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 							} else {
 								sprintf(szName, "gmem://%d@%p", rep->playback.init_segment_size, rep->playback.init_segment_data);
 								rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
+								rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
 							}
 						}
 					}

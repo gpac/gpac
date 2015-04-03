@@ -99,6 +99,9 @@ typedef struct
 {
 	char *sourceURL;
 	GF_MPD_ByteRange *byte_range;
+
+	//GPAC internal - indicates the URL has already been solved
+	Bool is_resolved;
 } GF_MPD_URL;
 
 typedef struct
