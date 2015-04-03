@@ -1827,8 +1827,8 @@ force_input:
 					ViewOD(term, ID, (u32)-1, NULL);
 				} else {
 					char str_url[GF_MAX_PATH];
-					scanf("%s", str_url);
-					ViewOD(term, 0, (u32)-1, str_url);
+					if (scanf("%s", str_url) == 1)
+						ViewOD(term, 0, (u32)-1, str_url);
 				}
 			}
 			break;
