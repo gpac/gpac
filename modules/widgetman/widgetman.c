@@ -70,11 +70,12 @@ static Bool is_same_path(const char *p1, const char *p2, u32 len)
 		if (p1[i] != p2[i]) {
 			if ((c1=='/') && (c2=='\\')) {}
 			else if ((c1=='\\') && (c2=='/')) {}
-			else return 0;
+			else return GF_FALSE;
 		}
 		i++;
 	} while (c1);
-	return 1;
+
+	return GF_TRUE;
 }
 
 static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackageResource *res)
@@ -117,7 +118,7 @@ static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackag
 			} while (err>0);
 			if (fout) gf_fclose(fout);
 
-			res->extracted = 1;
+			res->extracted = GF_TRUE;
 			break;
 		}
 		unzClose(uf);
@@ -127,18 +128,18 @@ static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackag
 		GF_ISOFile *isom = gf_isom_open(wpack->package_path, GF_ISOM_OPEN_READ, 0);
 		if (!isom ) return;
 
-		count = gf_isom_get_meta_item_count(isom, 1, 0);
+		count = gf_isom_get_meta_item_count(isom, GF_TRUE, 0);
 		for (i=0; i<count; i++)  {
 			u32 ID;
 			const char *url, *urn, *enc;
 			Bool self_ref;
 			const char *item_name;
 
-			gf_isom_get_meta_item_info(isom, 1, 0, i+1, &ID, NULL, &self_ref, &item_name, NULL, &enc, &url, &urn);
+			gf_isom_get_meta_item_info(isom, GF_TRUE, 0, i+1, &ID, NULL, &self_ref, &item_name, NULL, &enc, &url, &urn);
 			if (strcmp(res->inner_path, item_name)) continue;
 
-			gf_isom_extract_meta_item(isom, 1, 0, ID, res->extracted_path);
-			res->extracted = 1;
+			gf_isom_extract_meta_item(isom, GF_TRUE, 0, ID, res->extracted_path);
+			res->extracted = GF_TRUE;
 			break;
 		}
 		gf_isom_close(isom);
@@ -152,15 +153,15 @@ static Bool package_find_res(GF_WidgetPackage *wpack, char *res_path, char *relo
 	u32 count, i;
 	count = gf_list_count(wpack->resources);
 	for (i=0; i<count; i++) {
-		GF_WidgetPackageResource *pack_res = gf_list_get(wpack->resources, i);
+		GF_WidgetPackageResource *pack_res = (GF_WidgetPackageResource*)gf_list_get(wpack->resources, i);
 		if (is_same_path(res_path, pack_res->inner_path, 0)) {
 			strcpy(localized_rel_path, res_path);
 			strcpy(relocated_path, pack_res->extracted_path);
 			if (!pack_res->extracted) widget_package_extract_file(wpack, pack_res);
-			return 1;
+			return GF_TRUE;
 		}
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 /* Checks if a resource in the package has the given rel_path, potentially in a localized sub-folder */
@@ -180,7 +181,7 @@ static Bool widget_package_relocate_uri(void *__self, const char *parent_uri, co
 	}
 	/*resource doesn't belong to our archive*/
 	else {
-		return 0;
+		return GF_FALSE;
 	}
 
 	/* First try to locate the resource in the locales folder */
@@ -215,7 +216,7 @@ static Bool widget_package_relocate_uri(void *__self, const char *parent_uri, co
 
 		sprintf(path, "locales/%s/%s", lan, rel_path);
 		if (package_find_res(wpack, path, relocated_path, localized_rel_path))
-			return 1;
+			return GF_TRUE;
 
 		/*recursively remove region (sub)tags*/
 		while (1) {
@@ -224,17 +225,17 @@ static Bool widget_package_relocate_uri(void *__self, const char *parent_uri, co
 			sep[0] = 0;
 			sprintf(path, "locales/%s/%s", lan, rel_path);
 			if (package_find_res(wpack, path, relocated_path, localized_rel_path))
-				return 1;
+				return GF_TRUE;
 		}
 	}
 
 	/*no locale*/
 	if (package_find_res(wpack, (char*)rel_path, relocated_path, localized_rel_path))
-		return 1;
+		return GF_TRUE;
 
 	strcpy(localized_rel_path, "");
 	strcpy(relocated_path, "");
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -253,8 +254,8 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 	GF_ISOFile *isom = gf_isom_open(path, GF_ISOM_OPEN_READ, 0);
 	if (!isom ) return NULL;
 
-	brand = gf_isom_get_meta_type(isom, 1, 0);
-	if ((brand!=GF_4CC('m','w','g','t') )		|| !gf_isom_has_meta_xml(isom, 1, 0) ) {
+	brand = gf_isom_get_meta_type(isom, GF_TRUE, 0);
+	if ((brand!=GF_4CC('m','w','g','t') )		|| !gf_isom_has_meta_xml(isom, GF_TRUE, 0) ) {
 		gf_isom_close(isom);
 		return NULL;
 	}
@@ -275,7 +276,7 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 
 	strcpy(szPath, wzip->root_extracted_path);
 	strcat(szPath, "config.xml");
-	if (gf_isom_extract_meta_xml(isom, 1, 0, szPath, NULL) != GF_OK) {
+	if (gf_isom_extract_meta_xml(isom, GF_TRUE, 0, szPath, NULL) != GF_OK) {
 		gf_list_del(wzip->resources);
 		gf_free(wzip);
 		gf_isom_close(isom);
@@ -287,11 +288,11 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 	GF_SAFEALLOC(pack_res, GF_WidgetPackageResource);
 	pack_res->extracted_path = gf_strdup(szPath);
 	pack_res->inner_path = gf_strdup("config.xml");
-	pack_res->extracted = 1;
+	pack_res->extracted = GF_TRUE;
 	gf_list_add(wzip->resources, pack_res);
 
 
-	count = gf_isom_get_meta_item_count(isom, 1, 0);
+	count = gf_isom_get_meta_item_count(isom, GF_TRUE, 0);
 	for (i=0; i<count; i++)  {
 		u32 ID;
 		const char *url, *urn, *enc;
@@ -299,7 +300,7 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 		char *sep;
 		const char *item_name;
 
-		gf_isom_get_meta_item_info(isom, 1, 0, i+1, &ID, NULL, &self_ref, &item_name, NULL, &enc, &url, &urn);
+		gf_isom_get_meta_item_info(isom, GF_TRUE, 0, i+1, &ID, NULL, &self_ref, &item_name, NULL, &enc, &url, &urn);
 
 		sep = strrchr(item_name, '/');
 		if (!sep) sep = strrchr(item_name, '\\');
@@ -314,7 +315,7 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 		GF_SAFEALLOC(pack_res, GF_WidgetPackageResource);
 		pack_res->extracted_path = gf_strdup(szPath);
 		pack_res->inner_path = gf_strdup(item_name);
-		pack_res->extracted = 0;
+		pack_res->extracted = GF_FALSE;
 		gf_list_add(wzip->resources, pack_res);
 	}
 	gf_isom_close(isom);
@@ -340,7 +341,7 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 	GF_SAFEALLOC(wzip, GF_WidgetPackage);
 
 	wzip->wm = wm;
-	wzip->is_zip = 1;
+	wzip->is_zip = GF_TRUE;
 	wzip->relocate_uri = widget_package_relocate_uri;
 	wzip->resources = gf_list_new();
 	wzip->package_path = gf_strdup(path);
@@ -397,14 +398,14 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 				GF_SAFEALLOC(pack_res, GF_WidgetPackageResource);
 				pack_res->extracted_path = gf_strdup(szPath);
 				pack_res->inner_path = gf_strdup(filename_inzip);
-				pack_res->extracted = 1;
+				pack_res->extracted = GF_TRUE;
 				gf_list_add(wzip->resources, pack_res);
 			}
 		} else {
 			GF_SAFEALLOC(pack_res, GF_WidgetPackageResource);
 			pack_res->extracted_path = gf_strdup(szPath);
 			pack_res->inner_path = gf_strdup(filename_inzip);
-			pack_res->extracted = 0;
+			pack_res->extracted = GF_FALSE;
 			gf_list_add(wzip->resources, pack_res);
 		}
 
@@ -441,7 +442,7 @@ static void widget_package_del(GF_WidgetManager *wm, GF_WidgetPackage *wpackage)
 	gf_mx_v(wm->term->net_mx);
 
 	while (gf_list_count(wpackage->resources)) {
-		GF_WidgetPackageResource *wu = gf_list_get(wpackage->resources, 0);
+		GF_WidgetPackageResource *wu = (GF_WidgetPackageResource*)gf_list_get(wpackage->resources, 0);
 		gf_list_rem(wpackage->resources, 0);
 		gf_delete_file(wu->extracted_path);
 		gf_free(wu->extracted_path);
@@ -471,15 +472,15 @@ static void wm_delete_widget_content(GF_WidgetContent *content)
 	if (!content) return;
 
 	while (gf_list_count(content->interfaces)) {
-		GF_WidgetInterface*ifce = gf_list_last(content->interfaces);
+		GF_WidgetInterface *ifce = (GF_WidgetInterface*)gf_list_last(content->interfaces);
 		gf_list_rem_last(content->interfaces);
 
 		while (gf_list_count(ifce->messages)) {
-			GF_WidgetMessage *msg = gf_list_last(ifce->messages);
+			GF_WidgetMessage *msg = (GF_WidgetMessage*)gf_list_last(ifce->messages);
 			gf_list_rem_last(ifce->messages);
 
 			while (gf_list_count(msg->params)) {
-				GF_WidgetPin *par = gf_list_last(msg->params);
+				GF_WidgetPin *par = (GF_WidgetPin*)gf_list_last(msg->params);
 				gf_list_rem_last(msg->params);
 				wm_delete_message_param(par);
 			}
@@ -502,14 +503,14 @@ static void wm_delete_widget_content(GF_WidgetContent *content)
 	gf_list_del(content->interfaces);
 
 	while (gf_list_count(content->components)) {
-		GF_WidgetComponent *comp = gf_list_last(content->components);
+		GF_WidgetComponent *comp = (GF_WidgetComponent*)gf_list_last(content->components);
 		gf_list_rem_last(content->components);
 
 		wm_delete_message_param(comp->activateTrigger);
 		wm_delete_message_param(comp->deactivateTrigger);
 
 		while (gf_list_count(comp->required_interfaces)) {
-			char *type = gf_list_last(comp->required_interfaces);
+			char *type = (char*)gf_list_last(comp->required_interfaces);
 			gf_list_rem_last(comp->required_interfaces);
 			if (type) gf_free(type);
 		}
@@ -521,7 +522,7 @@ static void wm_delete_widget_content(GF_WidgetContent *content)
 	gf_list_del(content->components);
 
 	while (gf_list_count(content->preferences)) {
-		GF_WidgetPreference *pref = gf_list_last(content->preferences);
+		GF_WidgetPreference *pref = (GF_WidgetPreference*)gf_list_last(content->preferences);
 		gf_list_rem_last(content->preferences);
 
 		wm_delete_message_param(pref->connectTo);
@@ -566,18 +567,18 @@ static void wm_delete_widget(GF_WidgetManager *wm, GF_Widget *wid)
 
 
 	while (gf_list_count(wid->icons)) {
-		GF_WidgetContent *icon = gf_list_get(wid->icons, 0);
+		GF_WidgetContent *icon = (GF_WidgetContent*)gf_list_get(wid->icons, 0);
 		gf_list_rem(wid->icons, 0);
 		wm_delete_widget_content(icon);
 	}
 	gf_list_del(wid->icons);
 
 	while (gf_list_count(wid->features)) {
-		GF_WidgetFeature *f = gf_list_get(wid->features, 0);
+		GF_WidgetFeature *f = (GF_WidgetFeature*)gf_list_get(wid->features, 0);
 		gf_list_rem(wid->features, 0);
 		if (f->name) gf_free(f->name);
 		while (gf_list_count(f->params)) {
-			GF_WidgetFeatureParam *p = gf_list_get(f->params, 0);
+			GF_WidgetFeatureParam *p = (GF_WidgetFeatureParam*)gf_list_get(f->params, 0);
 			gf_list_rem(f->params, 0);
 			if (p->name) gf_free(p->name);
 			if (p->value) gf_free(p->value);
@@ -605,7 +606,7 @@ static void wm_delete_widget_instance(GF_WidgetManager *wm, GF_WidgetInstance *w
 {
 
 	while (gf_list_count(widg->components)) {
-		GF_WidgetComponentInstance *comp = gf_list_get(widg->components, 0);
+		GF_WidgetComponentInstance *comp = (GF_WidgetComponentInstance*)gf_list_get(widg->components, 0);
 		gf_list_rem(widg->components, 0);
 		if (comp->wid) wm_delete_widget_instance(wm, comp->wid);
 		gf_free(comp);
@@ -613,7 +614,7 @@ static void wm_delete_widget_instance(GF_WidgetManager *wm, GF_WidgetInstance *w
 	gf_list_del(widg->components);
 
 	while (gf_list_count(widg->bound_ifces)) {
-		GF_WidgetInterfaceInstance *bifce = gf_list_get(widg->bound_ifces, 0);
+		GF_WidgetInterfaceInstance *bifce = (GF_WidgetInterfaceInstance*)gf_list_get(widg->bound_ifces, 0);
 		gf_list_rem(widg->bound_ifces, 0);
 		wm_delete_interface_instance(wm, bifce);
 	}
@@ -703,7 +704,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 
 	if (param->in_action) return JS_TRUE;
 
-	param->in_action = 1;
+	param->in_action = GF_TRUE;
 
 #ifndef GPAC_DISABLE_SVG
 	if (n->sgprivate->tag >= GF_NODE_FIRST_DOM_NODE_TAG) {
@@ -728,9 +729,9 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 					gf_node_changed(n, NULL);
 				}
 				else {
-					if (gf_node_get_attribute_by_name(n, param->attribute, 0, 1, 0, &info)==GF_OK) {
+					if (gf_node_get_attribute_by_name(n, param->attribute, 0, GF_TRUE, GF_FALSE, &info)==GF_OK) {
 						gf_svg_parse_attribute(n, &info, (char *)str_val, 0);
-						if (info.fieldType==XMLRI_datatype) gf_node_dirty_set(n, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+						if (info.fieldType==XMLRI_datatype) gf_node_dirty_set(n, GF_SG_SVG_XLINK_HREF_DIRTY, GF_FALSE);
 						gf_node_changed(n, &info);
 					}
 				}
@@ -749,7 +750,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 			} else {
 				/*should we fire a DOMAttrModified event ? to clarify in the spec*/
 
-				if (gf_node_get_attribute_by_name(n, param->attribute, 0, 1, 0, &info)==GF_OK) {
+				if (gf_node_get_attribute_by_name(n, param->attribute, 0, GF_TRUE, GF_FALSE, &info)==GF_OK) {
 					evt.bubbles = 1;
 					evt.type = GF_EVENT_ATTR_MODIFIED;
 					evt.attr = &info;
@@ -873,7 +874,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 #endif /*GPAC_DISABLE_VRML*/
 
 exit:
-	param->in_action = 0;
+	param->in_action = GF_FALSE;
 	return JS_TRUE;
 }
 
@@ -914,7 +915,7 @@ static JSBool SMJS_FUNCTION(wm_widget_call_input_script)
 		JSObject *list = JSVAL_TO_OBJECT(argv[1]);
 		u32 i, count;
 		JS_GetArrayLength(c, list, (jsuint*) &count);
-		args = gf_malloc(sizeof(jsval)*count);
+		args = (jsval*)gf_malloc(sizeof(jsval)*count);
 		for (i=0; i<count; i++) {
 			JS_GetElement(c, list, (jsint) i, &args[i] );
 		}
@@ -969,7 +970,7 @@ static SVG_handlerElement *wm_create_scene_listener(GF_WidgetInstance *wid, GF_W
 				att_name = (u32) -1;
 			}
 			/* modify an attribute */
-			else if (gf_node_get_attribute_by_name(n, param->attribute, 0, 1, 0, &info)==GF_OK) {
+			else if (gf_node_get_attribute_by_name(n, param->attribute, 0, GF_TRUE, GF_FALSE, &info)==GF_OK) {
 				att_name = info.fieldIndex;
 			}
 			else {
@@ -993,15 +994,15 @@ static SVG_handlerElement *wm_create_scene_listener(GF_WidgetInstance *wid, GF_W
 	handler->sgprivate->UserCallback = wm_handler_destroy;
 
 	/*create attributes if needed*/
-	gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_event, 1, 0, &info);
+	gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_event, GF_TRUE, GF_FALSE, &info);
 	((XMLEV_Event*)info.far_ptr)->type = evt_type;
 	((XMLEV_Event*)info.far_ptr)->parameter = att_name;
-	gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_handler, 1, 0, &info);
+	gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_handler, GF_TRUE, GF_FALSE, &info);
 	((XMLRI*)info.far_ptr)->target = (GF_Node*)handler;
-	gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_target, 1, 0, &info);
+	gf_node_get_attribute_by_tag(listener, TAG_XMLEV_ATT_target, GF_TRUE, GF_FALSE, &info);
 	((XMLRI*)info.far_ptr)->target = n;
 
-	gf_node_get_attribute_by_tag((GF_Node*)handler, TAG_XMLEV_ATT_event, 1, 0, &info);
+	gf_node_get_attribute_by_tag((GF_Node*)handler, TAG_XMLEV_ATT_event, GF_TRUE, GF_FALSE, &info);
 	((XMLEV_Event*)info.far_ptr)->type = evt_type;
 	((XMLEV_Event*)info.far_ptr)->parameter = att_name;
 
@@ -1019,8 +1020,8 @@ static void wm_component_activation_event(GF_Node *hdl, GF_DOM_Event *evt, GF_No
 	GF_WidgetComponent *comp;
 	SVG_handlerElement *handler = (SVG_handlerElement *)hdl;
 
-	c = handler->js_context;
-	obj = handler->evt_listen_obj;
+	c = (JSContext*)handler->js_context;
+	obj = (JSObject*)handler->evt_listen_obj;
 	if (!c || !obj) return;
 	wid = (GF_WidgetInstance *)SMJS_GET_PRIVATE(c, obj);
 	if (!wid) return;
@@ -1029,16 +1030,16 @@ static void wm_component_activation_event(GF_Node *hdl, GF_DOM_Event *evt, GF_No
 	if (unload) {
 		wm_deactivate_component(c, wid, comp, NULL);
 	} else {
-		wm_activate_component(c, wid, comp, 0);
+		wm_activate_component(c, wid, comp, GF_FALSE);
 	}
 }
 static void wm_component_activate_event(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *observer)
 {
-	wm_component_activation_event(hdl, evt, observer, 0);
+	wm_component_activation_event(hdl, evt, observer, GF_FALSE);
 }
 static void wm_component_deactivate_event(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *observer)
 {
-	wm_component_activation_event(hdl, evt, observer, 1);
+	wm_component_activation_event(hdl, evt, observer, GF_TRUE);
 }
 
 static void wm_widget_set_pref_event(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *observer)
@@ -1069,12 +1070,12 @@ static void on_widget_activated(JSContext *c, JSObject *obj)
 	if (!wid || wid->activated) return;
 
 	/*widget is now activated*/
-	wid->activated = 1;
+	wid->activated = GF_TRUE;
 
 	/*for all components, setup bindings on activateTrigger & deactivateTrigger*/
 	count = gf_list_count(wid->widget->main->components);
 	for (i=0; i<count; i++) {
-		GF_WidgetComponent *comp = gf_list_get(wid->widget->main->components, i);
+		GF_WidgetComponent *comp = (GF_WidgetComponent*)gf_list_get(wid->widget->main->components, i);
 		/*setup listener*/
 		if (comp->activateTrigger && comp->activateTrigger->attribute) {
 			SVG_handlerElement *a_hdl = wm_create_scene_listener(wid, comp->activateTrigger);
@@ -1102,7 +1103,7 @@ static void on_widget_activated(JSContext *c, JSObject *obj)
 	count = gf_list_count(wid->widget->main->preferences);
 	for (i=0; i<count; i++) {
 		const char *value;
-		GF_WidgetPreference *pref = gf_list_get(wid->widget->main->preferences, i);
+		GF_WidgetPreference *pref = (GF_WidgetPreference*)gf_list_get(wid->widget->main->preferences, i);
 
 
 		/*get stored value for this preference*/
@@ -1114,7 +1115,7 @@ static void on_widget_activated(JSContext *c, JSObject *obj)
 		if (context) {
 			GF_XMLNode *pref_node;
 			u32 j=0;
-			while ((pref_node = gf_list_enum(context->content, &j))) {
+			while ((pref_node = (GF_XMLNode*)gf_list_enum(context->content, &j))) {
 				const char *att;
 				if (pref_node->type != GF_XML_NODE_TYPE) continue;
 				if (strcmp(pref_node->name, "preference")) continue;
@@ -1158,7 +1159,7 @@ static void on_widget_activated(JSContext *c, JSObject *obj)
 		wid->mpegu_context = NULL;
 	}
 
-	gf_sg_lock_javascript(wid->widget->wm->ctx, 1);
+	gf_sg_lock_javascript(wid->widget->wm->ctx, GF_TRUE);
 	/*refresh all interface bindings*/
 	JS_LookupProperty(wid->widget->wm->ctx, wid->widget->wm->obj, "check_bindings", &funval);
 	if (JSVAL_IS_OBJECT(funval)) {
@@ -1170,7 +1171,7 @@ static void on_widget_activated(JSContext *c, JSObject *obj)
 	if (JSVAL_IS_OBJECT(funval)) {
 		JS_CallFunctionValue(wid->widget->wm->ctx, wid->obj, funval, 0, 0, &rval);
 	}
-	gf_sg_lock_javascript(wid->widget->wm->ctx, 0);
+	gf_sg_lock_javascript(wid->widget->wm->ctx, GF_FALSE);
 }
 
 
@@ -1180,8 +1181,8 @@ static void wm_widget_load_event(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *obser
 	JSContext *c;
 	SVG_handlerElement *handler = (SVG_handlerElement *)hdl;
 
-	c = handler->js_context;
-	obj = handler->evt_listen_obj;
+	c = (JSContext*)handler->js_context;
+	obj = (JSObject*)handler->evt_listen_obj;
 	if (!c || !obj) return;
 
 	on_widget_activated(c, obj);
@@ -1192,7 +1193,7 @@ static JSBool SMJS_FUNCTION(wm_widget_activate)
 {
 	SVG_handlerElement *handler;
 	GF_MediaObject *mo;
-	Bool direct_trigger = 0;
+	Bool direct_trigger = GF_FALSE;
 	MFURL url;
 	SFURL _url;
 	GF_Node *inl;
@@ -1210,10 +1211,10 @@ static JSBool SMJS_FUNCTION(wm_widget_activate)
 	_url.url = gf_url_concatenate(wid->widget->url, wid->widget->main->relocated_src);
 	url.count = 1;
 	url.vals = &_url;
-	mo = gf_mo_register(inl, &url, 0, 1);
+	mo = gf_mo_register(inl, &url, GF_FALSE, GF_TRUE);
 	if (mo) {
 		wid->scene = gf_mo_get_scenegraph(mo);
-		if (wid->scene && gf_sg_get_root_node(wid->scene)) direct_trigger = 1;
+		if (wid->scene && gf_sg_get_root_node(wid->scene)) direct_trigger = GF_TRUE;
 	}
 	if (_url.url) gf_free(_url.url);
 
@@ -1240,7 +1241,7 @@ static void wm_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *obse
 	GF_Node *n;
 	jsval argv[1], rval, jsfun;
 	SVG_handlerElement *handler = (SVG_handlerElement *) hdl;
-	GF_WidgetPin *param = handler->js_fun;
+	GF_WidgetPin *param = (GF_WidgetPin*)handler->js_fun;
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)handler->evt_listen_obj;
 
 	if (!wid->scene)
@@ -1266,7 +1267,7 @@ static void wm_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *obse
 			char *txt = gf_dom_flatten_textContent(n);
 			argv[0] = STRING_TO_JSVAL( JS_NewStringCopyZ(handler->js_context, txt ? txt : "") );
 			if (txt) gf_free(txt);
-		} else if (gf_node_get_attribute_by_name(n, param->attribute, 0, 1, 0, &info)==GF_OK) {
+		} else if (gf_node_get_attribute_by_name(n, param->attribute, 0, GF_TRUE, GF_FALSE, &info)==GF_OK) {
 			char *attValue;
 			if (event->attr->fieldIndex != info.fieldIndex) return;
 
@@ -1336,7 +1337,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_param_value)
 			char *txt = gf_dom_flatten_textContent(n);
 			SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, txt ? txt : "") ));
 			if (txt) gf_free(txt);
-		} else if (gf_node_get_attribute_by_name(n, param->attribute, 0, 1, 0, &info)==GF_OK) {
+		} else if (gf_node_get_attribute_by_name(n, param->attribute, 0, GF_TRUE, GF_FALSE, &info)==GF_OK) {
 			char *attValue = gf_node_dump_attribute(n, &info);
 			SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, attValue) ));
 			if (attValue) gf_free(attValue);
@@ -1426,12 +1427,12 @@ static JSBool SMJS_FUNCTION(wm_widget_get_message)
 	if (JSVAL_IS_INT(argv[0])) {
 		u32 idx;
 		idx = JSVAL_TO_INT(argv[0]);
-		msg = gf_list_get(ifce->messages, idx);
+		msg = (GF_WidgetMessage*)gf_list_get(ifce->messages, idx);
 	} else if (JSVAL_IS_STRING(argv[0])) {
 		u32 i, count = gf_list_count(ifce->messages);
 		char *name = SMJS_CHARS(c, argv[0]);
 		for (i=0; i<count; i++) {
-			msg = gf_list_get(ifce->messages, i);
+			msg = (GF_WidgetMessage*)gf_list_get(ifce->messages, i);
 			if (!strcmp(msg->name, name)) break;
 			msg = NULL;
 		}
@@ -1466,7 +1467,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_component)
 	comp_id = SMJS_CHARS(c, argv[0]);
 	count = gf_list_count(wid->components);
 	for (i=0; i<count; i++) {
-		comp_inst = gf_list_get(wid->components, i);
+		comp_inst = (GF_WidgetComponentInstance*)gf_list_get(wid->components, i);
 		if (comp_inst->comp->id && !strcmp(comp_inst->comp->id, comp_id)) {
 			SMJS_SET_RVAL( OBJECT_TO_JSVAL(comp_inst->wid->obj) );
 			SMJS_FREE(c, comp_id);
@@ -1477,10 +1478,10 @@ static JSBool SMJS_FUNCTION(wm_widget_get_component)
 	if ((argc==2) && JSVAL_IS_BOOLEAN(argv[1]) && (JSVAL_TO_BOOLEAN(argv[1])==JS_TRUE) ) {
 		count = gf_list_count(wid->widget->main->components);
 		for (i=0; i<count; i++) {
-			GF_WidgetComponent *comp = gf_list_get(wid->widget->main->components, i);
+			GF_WidgetComponent *comp = (GF_WidgetComponent*)gf_list_get(wid->widget->main->components, i);
 			if (!comp->id  || strcmp(comp->id, comp_id)) continue;
 
-			comp_inst = wm_activate_component(c, wid, comp, 1);
+			comp_inst = wm_activate_component(c, wid, comp, GF_TRUE);
 			if (comp_inst) {
 				SMJS_SET_RVAL( OBJECT_TO_JSVAL(comp_inst->wid->obj) );
 				SMJS_FREE(c, comp_id);
@@ -1505,7 +1506,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_interface)
 	if (!wid || !argc || !JSVAL_IS_INT(argv[0]) ) return JS_FALSE;
 
 	idx = JSVAL_TO_INT(argv[0]);
-	ifce = gf_list_get(wid->widget->main->interfaces, idx);
+	ifce = (GF_WidgetInterface*)gf_list_get(wid->widget->main->interfaces, idx);
 
 	if (ifce) {
 		if (!ifce->obj) {
@@ -1582,7 +1583,7 @@ static JSBool SMJS_FUNCTION(wm_widget_get_context)
 
 	count = gf_list_count(wid->widget->main->preferences);
 	for (i=0; i<count; i++) {
-		GF_WidgetPreference *pref = gf_list_get(wid->widget->main->preferences, i);
+		GF_WidgetPreference *pref = (GF_WidgetPreference*)gf_list_get(wid->widget->main->preferences, i);
 
 		/*preference is read only, do not include in context*/
 		if (pref->flags & GF_WM_PREF_READONLY) continue;
@@ -1695,7 +1696,7 @@ else if (!strcmp(prop_name, "icons")) {
 	count = gf_list_count(wid->widget->icons);
 	arr = JS_NewArrayObject(c, count, NULL);
 	for (i = 0; i<count; i++) {
-		GF_WidgetContent *icon = gf_list_get(wid->widget->icons, i);
+		GF_WidgetContent *icon = (GF_WidgetContent*)gf_list_get(wid->widget->icons, i);
 		if (icon) {
 			char *abs_reloc_url;
 			jsval icon_obj_val;
@@ -1720,7 +1721,7 @@ else if (!strcmp(prop_name, "preferences")) {
 	count = gf_list_count(wid->widget->main->preferences);
 	arr = JS_NewArrayObject(c, count, NULL);
 	for (i = 0; i<count; i++) {
-		GF_WidgetPreference *pref = gf_list_get(wid->widget->main->preferences, i);
+		GF_WidgetPreference *pref = (GF_WidgetPreference*)gf_list_get(wid->widget->main->preferences, i);
 		if (pref) {
 			jsval pref_obj_val;
 			JSObject *pref_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
@@ -1740,7 +1741,7 @@ else if (!strcmp(prop_name, "features")) {
 	count = gf_list_count(wid->widget->features);
 	arr = JS_NewArrayObject(c, count, NULL);
 	for (i = 0; i<count; i++) {
-		GF_WidgetFeature *feat = gf_list_get(wid->widget->features, i);
+		GF_WidgetFeature *feat = (GF_WidgetFeature*)gf_list_get(wid->widget->features, i);
 		if (feat) {
 			jsval feat_obj_val;
 			JSObject *feat_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
@@ -1753,7 +1754,7 @@ else if (!strcmp(prop_name, "features")) {
 				pcount = gf_list_count(feat->params);
 				params_arr = JS_NewArrayObject(c, pcount, NULL);
 				for (j=0; j < pcount; j++) {
-					GF_WidgetFeatureParam *param = gf_list_get(feat->params, j);
+					GF_WidgetFeatureParam *param = (GF_WidgetFeatureParam*)gf_list_get(feat->params, j);
 					JSObject *param_obj = JS_NewObject(c, &wid->widget->wm->widgetAnyClass._class, 0, 0);
 					jsval param_obj_val;
 					SMJS_SET_PRIVATE(c, param_obj, param);
@@ -1778,7 +1779,7 @@ else if (!strcmp(prop_name, "components")) {
 	count = gf_list_count(wid->components);
 	arr = JS_NewArrayObject(c, count, NULL);
 	for (i = 0; i<count; i++) {
-		GF_WidgetComponentInstance *comp = gf_list_get(wid->components, i);
+		GF_WidgetComponentInstance *comp = (GF_WidgetComponentInstance*)gf_list_get(wid->components, i);
 		val = OBJECT_TO_JSVAL(comp->wid->obj);
 		JS_SetElement(c, arr, i, &val);
 	}
@@ -1913,7 +1914,7 @@ prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 
 /*internal to WidgetManager, never stored*/
 if (!strcmp(prop_name, "permanent")) {
-	wid->permanent = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : 0;
+	wid->permanent = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? GF_TRUE : GF_FALSE;
 }
 
 /*any widget properties*/
@@ -1972,7 +1973,7 @@ static JSBool wm_widget_bind_interface_ex(JSContext *c, JSObject *obj, uintN arg
 		hostname = SMJS_CHARS(c, argv[2]);
 		count = gf_list_count(wid->bound_ifces);
 		for (i=0; i<count; i++) {
-			bifce = gf_list_get(wid->bound_ifces, i);
+			bifce = (GF_WidgetInterfaceInstance*)gf_list_get(wid->bound_ifces, i);
 			if (!strcmp(bifce->ifce->type, ifce->type) && (bifce->cookie==cookie) ) {
 				SMJS_FREE(c, hostname);
 				return JS_TRUE;
@@ -1989,7 +1990,7 @@ static JSBool wm_widget_bind_interface_ex(JSContext *c, JSObject *obj, uintN arg
 		if (ifce->bind_action) {
 			return wm_widget_set_scene_input_value(c, obj, 1, argv, rval, 2, NULL, NULL, NULL);
 		} else {
-			widget_on_interface_bind(bifce, 0);
+			widget_on_interface_bind(bifce, GF_FALSE);
 		}
 	} else {
 		JSObject *cookie = NULL;
@@ -1997,27 +1998,27 @@ static JSBool wm_widget_bind_interface_ex(JSContext *c, JSObject *obj, uintN arg
 
 		count = gf_list_count(wid->bound_ifces);
 		for (i=0; i<count; i++) {
-			bifce = gf_list_get(wid->bound_ifces, i);
+			bifce = (GF_WidgetInterfaceInstance*)gf_list_get(wid->bound_ifces, i);
 			if (!ifce || ( !strcmp(bifce->ifce->type, ifce->type) && (bifce->cookie==cookie)) ) {
 				gf_list_rem(wid->bound_ifces, i);
 				if (bifce->ifce->unbind_action) {
 					wm_widget_set_scene_input_value(c, NULL, 0, NULL, rval, 3, wid, bifce->ifce->unbind_action, NULL);
 				} else {
-					widget_on_interface_bind(bifce, 1);
+					widget_on_interface_bind(bifce, GF_TRUE);
 				}
 				if (ifce) {
 					/*unregister our message handlers*/
 					count = gf_list_count(wid->output_triggers);
 					for (i=0; i<count; i++) {
 						u32 j, c2, found;
-						GF_DOMHandler *handler = gf_list_get(wid->output_triggers, i);
-						GF_WidgetPin *param = handler->js_fun;
+						GF_DOMHandler *handler = (GF_DOMHandler*)gf_list_get(wid->output_triggers, i);
+						GF_WidgetPin *param = (GF_WidgetPin*)handler->js_fun;
 
 						if (handler->sgprivate->UserPrivate != cookie) continue;
 						found = 0;
 						c2 = gf_list_count(bifce->ifce->messages);
 						for (j=0; j<c2; j++) {
-							GF_WidgetMessage *msg = gf_list_get(bifce->ifce->messages, j);
+							GF_WidgetMessage *msg = (GF_WidgetMessage*)gf_list_get(bifce->ifce->messages, j);
 							if (msg->output_trigger == param) {
 								found = 1;
 								break;
@@ -2047,14 +2048,14 @@ static JSBool SMJS_FUNCTION(wm_widget_bind_interface)
 	SMJS_OBJ
 	SMJS_ARGS
 	SMJS_DECL_RVAL
-	return wm_widget_bind_interface_ex(c, obj, argc, argv, rval, 0);
+	return wm_widget_bind_interface_ex(c, obj, argc, argv, rval, GF_FALSE);
 }
 static JSBool SMJS_FUNCTION(wm_widget_unbind_interface)
 {
 	SMJS_OBJ
 	SMJS_ARGS
 	SMJS_DECL_RVAL
-	return wm_widget_bind_interface_ex(c, obj, argc, argv, rval, 1);
+	return wm_widget_bind_interface_ex(c, obj, argc, argv, rval, GF_TRUE);
 }
 
 
@@ -2071,7 +2072,7 @@ static JSBool SMJS_FUNCTION(wm_widget_deactivate)
 		GF_WidgetInstance *par_wid = wid->parent;
 		count = gf_list_count(par_wid->components);
 		for (i=0; i<count; i++) {
-			GF_WidgetComponentInstance *comp = gf_list_get(par_wid->components, i);
+			GF_WidgetComponentInstance *comp = (GF_WidgetComponentInstance*)gf_list_get(par_wid->components, i);
 			if (comp->wid == wid) {
 				gf_list_rem(par_wid->components, i);
 				gf_free(comp);
@@ -2083,13 +2084,13 @@ static JSBool SMJS_FUNCTION(wm_widget_deactivate)
 
 	/*remove all components*/
 	while (gf_list_count(wid->components)) {
-		GF_WidgetComponentInstance *comp = gf_list_get(wid->components, 0);
+		GF_WidgetComponentInstance *comp = (GF_WidgetComponentInstance*)gf_list_get(wid->components, 0);
 		wm_deactivate_component(c, wid, NULL, comp);
 		gf_list_rem(wid->components, 0);
 	}
 
 	/*mark the widget as deactivated, so it is no longer valid when checking all widgets bindings*/
-	wid->activated = 0;
+	wid->activated = GF_FALSE;
 
 	/*unbind existing widgets*/
 	JS_LookupProperty(wid->widget->wm->ctx, wid->widget->wm->obj, "unbind_widget", &funval);
@@ -2100,7 +2101,7 @@ static JSBool SMJS_FUNCTION(wm_widget_deactivate)
 	}
 
 	/*unbind all interfaces of this widget*/
-	wm_widget_bind_interface_ex(c, obj, 0, NULL, SMJS_GET_RVAL, 1);
+	wm_widget_bind_interface_ex(c, obj, 0, NULL, SMJS_GET_RVAL, GF_TRUE);
 
 	/*detach scene now that all unbind events have been sent*/
 	wid->scene = NULL;
@@ -2124,7 +2125,7 @@ void wm_deactivate_component(JSContext *c, GF_WidgetInstance *wid, GF_WidgetComp
 
 	if (!comp_inst) {
 		u32 i=0;
-		while ((comp_inst = gf_list_enum(wid->components, &i))) {
+		while ((comp_inst = (GF_WidgetComponentInstance*)gf_list_enum(wid->components, &i))) {
 			if (comp_inst->comp == comp) break;
 			comp_inst = NULL;
 		}
@@ -2152,13 +2153,13 @@ GF_WidgetComponentInstance *wm_activate_component(JSContext *c, GF_WidgetInstanc
 
 		count = gf_list_count(wid->widget->wm->widget_instances);
 		for (i=0; i<count; i++) {
-			comp_wid = gf_list_get(wid->widget->wm->widget_instances, i);
+			comp_wid = (GF_WidgetInstance*)gf_list_get(wid->widget->wm->widget_instances, i);
 			if (!strcmp(comp_wid->widget->url, url) && !comp_wid->parent) break;
 			comp_wid = NULL;
 		}
 		if (!comp_wid) {
-			comp_wid = wm_load_widget(wid->widget->wm, url, 0, 0);
-			if (comp_wid) comp_wid->permanent = 0;
+			comp_wid = wm_load_widget(wid->widget->wm, url, 0, GF_FALSE);
+			if (comp_wid) comp_wid->permanent = GF_FALSE;
 		}
 		gf_free(url);
 	}
@@ -2204,7 +2205,7 @@ static JSBool SMJS_FUNCTION(wm_widget_is_interface_bound)
 	SMJS_SET_RVAL(BOOLEAN_TO_JSVAL(JS_FALSE));
 	count = gf_list_count(wid->bound_ifces);
 	for (i=0; i<count; i++) {
-		GF_WidgetInterfaceInstance *bifce = gf_list_get(wid->bound_ifces, i);
+		GF_WidgetInterfaceInstance *bifce = (GF_WidgetInterfaceInstance*)gf_list_get(wid->bound_ifces, i);
 		if (!strcmp(bifce->ifce->type, ifce->type) && (!cookie || (bifce->cookie==cookie))) {
 			SMJS_SET_RVAL( BOOLEAN_TO_JSVAL(JS_TRUE) );
 			break;
@@ -2247,12 +2248,12 @@ static JSBool SMJS_FUNCTION(wm_load)
 	wid=NULL;
 	count = gf_list_count(wm->widget_instances);
 	for (i=0; i<count; i++) {
-		wid = gf_list_get(wm->widget_instances, i);
+		wid = (GF_WidgetInstance*)gf_list_get(wm->widget_instances, i);
 		if (!strcmp(wid->widget->url, url) && !wid->activated) break;
 		wid = NULL;
 	}
 	if (!wid) {
-		wid = wm_load_widget(wm, url, 0, 1);
+		wid = wm_load_widget(wm, url, 0, GF_TRUE);
 	}
 	if (url) gf_free(url);
 
@@ -2363,7 +2364,7 @@ static JSBool SMJS_FUNCTION(wm_get)
 	if (!argc || !JSVAL_IS_INT(argv[0])) return JS_TRUE;
 
 	i = JSVAL_TO_INT(argv[0]);
-	wid = gf_list_get(wm->widget_instances, i);
+	wid = (GF_WidgetInstance*)gf_list_get(wm->widget_instances, i);
 	if (wid) SMJS_SET_RVAL( OBJECT_TO_JSVAL(wid->obj) );
 	return JS_TRUE;
 }
@@ -2380,10 +2381,10 @@ static JSBool SMJS_FUNCTION(wm_find_interface)
 
 	ifce_name = SMJS_CHARS(c, argv[0]);
 	i=0;
-	while ( (wid = gf_list_enum(wm->widget_instances, &i) )) {
+	while ( (wid = (GF_WidgetInstance*)gf_list_enum(wm->widget_instances, &i) )) {
 		u32 j=0;
 		GF_WidgetInterface *wid_ifce;
-		while ((wid_ifce = gf_list_enum(wid->widget->main->interfaces, &j))) {
+		while ((wid_ifce = (GF_WidgetInterface*)gf_list_enum(wid->widget->main->interfaces, &j))) {
 			if (!strcmp(wid_ifce->type, ifce_name)) {
 				SMJS_SET_RVAL( OBJECT_TO_JSVAL(wid->obj) );
 				SMJS_FREE(c, ifce_name);
@@ -2415,13 +2416,13 @@ const char *wm_xml_get_attr(GF_XMLNode *root, const char *name)
 /* TODO Implement real language check according to BCP 47*/
 static Bool wm_check_language(const char *xml_lang_value, const char *user_locale)
 {
-	Bool ret = 0;
+	Bool ret = GF_FALSE;
 	char *sep, *val;
 	val = (char*)xml_lang_value;
 	while (!ret) {
 		sep = strchr(val, ';');
 		if (sep) sep[0] = 0;
-		if (strstr(user_locale, val)) ret = 1;
+		if (strstr(user_locale, val)) ret = GF_TRUE;
 		if (sep) {
 			sep[0] = ';';
 			val = sep+1;
@@ -2442,7 +2443,7 @@ static GF_XMLNode *wm_xml_find(GF_XMLNode *root, const char *ns_prefix, const ch
 
 	count = gf_list_count(root->content);
 	for (i=0; i<count; i++) {
-		GF_XMLNode *n = gf_list_get(root->content, i);
+		GF_XMLNode *n = (GF_XMLNode*)gf_list_get(root->content, i);
 		if (n->type==GF_XML_NODE_TYPE && n->name && !strcmp(n->name, name) && ((!ns_prefix && !n->ns) || (ns_prefix && n->ns && !strcmp(ns_prefix, n->ns)))) {
 			const char *lang = wm_xml_get_attr(n, "xml:lang");
 			if (!lang) {
@@ -2510,7 +2511,7 @@ static void wm_parse_mpegu_content_element(GF_WidgetContent *content, GF_XMLNode
 	if (ifces) {
 
 		/*get all interface element*/
-		while ((ifce_node = gf_list_enum(ifces->content, &i))) {
+		while ((ifce_node = (GF_XMLNode*)gf_list_enum(ifces->content, &i))) {
 			GF_XMLNode *msg_node;
 			u32 j;
 			const char *ifce_type, *act;
@@ -2526,13 +2527,13 @@ static void wm_parse_mpegu_content_element(GF_WidgetContent *content, GF_XMLNode
 			gf_list_add(content->interfaces, ifce);
 
 			act = wm_xml_get_attr(ifce_node, "serviceProvider");
-			if (act && !strcmp(act, "true")) ifce->provider = 1;
+			if (act && !strcmp(act, "true")) ifce->provider = GF_TRUE;
 
 			act = wm_xml_get_attr(ifce_node, "multipleBindings");
-			if (act && !strcmp(act, "true")) ifce->multiple_binding = 1;
+			if (act && !strcmp(act, "true")) ifce->multiple_binding = GF_TRUE;
 
 			act = wm_xml_get_attr(ifce_node, "required");
-			if (act && !strcmp(act, "true")) ifce->required = 1;
+			if (act && !strcmp(act, "true")) ifce->required = GF_TRUE;
 
 			act = wm_xml_get_attr(ifce_node, "connectTo");
 			if (act) ifce->connectTo = gf_strdup(act);
@@ -2547,7 +2548,7 @@ static void wm_parse_mpegu_content_element(GF_WidgetContent *content, GF_XMLNode
 			}
 
 			j=0;
-			while ((msg_node = gf_list_enum(ifce_node->content, &j))) {
+			while ((msg_node = (GF_XMLNode*)gf_list_enum(ifce_node->content, &j))) {
 				u32 k;
 				GF_XMLNode *par_node;
 				const char *msg_name, *action;
