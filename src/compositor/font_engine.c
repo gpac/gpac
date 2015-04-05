@@ -1321,7 +1321,7 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 	for(; i<count; i++) {
 		span = (GF_TextSpan *)gf_list_get(spans, i);
 		if (compositor->text_selection)
-			gf_font_spans_select(span, tr_state, ctx, (i+1<count) ? 1 : 0, (i==0)?1:0, &rc);
+			gf_font_spans_select(span, tr_state, ctx, (i+1<count) ? 1 : 0, (i==0)? GF_TRUE : GF_FALSE, &rc);
 		else if (hl_color)
 			visual_2d_fill_rect(tr_state->visual, ctx, &span->bounds, hl_color, 0, tr_state);
 
