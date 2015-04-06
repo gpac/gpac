@@ -811,7 +811,7 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	flags = SDL_WasInit(SDL_INIT_VIDEO);
 	if (!(flags & SDL_INIT_VIDEO)) {
 		if (SDL_InitSubSystem(SDL_INIT_VIDEO)) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
 
@@ -826,7 +826,7 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 #endif
 
 	ctx->last_mouse_move = SDL_GetTicks();
-	ctx->cursor_on = 1;
+	ctx->cursor_on = GF_TRUE;
 
 	/*save display resolution - SDL seems to get the screen resolution if asked for video info before
 	changing the video mode - to check on other platforms*/
@@ -873,7 +873,7 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 		SDLVid_SetCaption();
 #endif
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Video output initialized - screen resolution %d %d\n", dr->max_screen_width, dr->max_screen_height));
-	return 1;
+	return GF_TRUE;
 }
 
 static void SDLVid_ResetWindow(SDLVidCtx *ctx)
@@ -955,7 +955,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			memset(&gpac_evt, 0, sizeof(GF_Event));
 			gpac_evt.type = GF_EVENT_QUIT;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-			return 0;
+			return GF_FALSE;
 
 #ifdef SDL_TEXTINPUTEVENT_TEXT_SIZE
 		/*keyboard*/
@@ -977,9 +977,9 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			sdl_translate_key(sdl_evt.key.keysym.sym, &gpac_evt.key);
 			gpac_evt.type = (sdl_evt.key.type==SDL_KEYDOWN) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-			if (gpac_evt.key.key_code==GF_KEY_CONTROL) ctx->ctrl_down = (sdl_evt.key.type==SDL_KEYDOWN) ? 1 : 0;
-			else if (gpac_evt.key.key_code==GF_KEY_ALT) ctx->alt_down = (sdl_evt.key.type==SDL_KEYDOWN) ? 1 : 0;
-			else if (gpac_evt.key.key_code==GF_KEY_META) ctx->meta_down = (sdl_evt.key.type==SDL_KEYDOWN) ? 1 : 0;
+			if (gpac_evt.key.key_code==GF_KEY_CONTROL) ctx->ctrl_down = (sdl_evt.key.type==SDL_KEYDOWN) ? GF_TRUE : GF_FALSE;
+			else if (gpac_evt.key.key_code==GF_KEY_ALT) ctx->alt_down = (sdl_evt.key.type==SDL_KEYDOWN) ? GF_TRUE : GF_FALSE;
+			else if (gpac_evt.key.key_code==GF_KEY_META) ctx->meta_down = (sdl_evt.key.type==SDL_KEYDOWN) ? GF_TRUE : GF_FALSE;
 
 #if (SDL_MAJOR_VERSION>=1) && (SDL_MINOR_VERSION>=3)
 
@@ -1149,9 +1149,9 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	//if (os_handle) SDLVid_SetHack(os_handle, 1);
 
 	ctx->os_handle = os_handle;
-	ctx->is_init = 0;
+	ctx->is_init = GF_FALSE;
 	ctx->output_3d_type = 0;
-	ctx->force_alpha = (init_flags & GF_TERM_WINDOW_TRANSPARENT) ? 1 : 0;
+	ctx->force_alpha = (init_flags & GF_TERM_WINDOW_TRANSPARENT) ? GF_TRUE : GF_FALSE;
 
 	if (!SDLOUT_InitSDL())
 		return GF_IO_ERR;
@@ -1177,7 +1177,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	}
 #endif
 
-	ctx->is_init = 1;
+	ctx->is_init = GF_TRUE;
 	return GF_OK;
 }
 
@@ -1203,7 +1203,7 @@ static void SDLVid_Shutdown(GF_VideoOutput *dr)
 #endif
 
 	SDLOUT_CloseSDL();
-	ctx->is_init = 0;
+	ctx->is_init = GF_FALSE;
 }
 
 
@@ -1238,8 +1238,8 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, Bool bFullScreenOn, u32 *screen_
 #endif
 		Bool switch_res = GF_FALSE;
 		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "SwitchResolution");
-		if (sOpt && !stricmp(sOpt, "yes")) switch_res = 1;
-		if (!dr->max_screen_width || !dr->max_screen_height) switch_res = 1;
+		if (sOpt && !stricmp(sOpt, "yes")) switch_res = GF_TRUE;
+		if (!dr->max_screen_width || !dr->max_screen_height) switch_res = GF_TRUE;
 
 		ctx->store_width = *screen_width;
 		ctx->store_height = *screen_height;
@@ -1324,9 +1324,9 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 
 	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
 	if (system_mem) {
-		if (opt && !strcmp(opt, "Always")) system_mem = 0;
+		if (opt && !strcmp(opt, "Always")) system_mem = GF_FALSE;
 	} else {
-		if (opt && !strcmp(opt, "Never")) system_mem = 1;
+		if (opt && !strcmp(opt, "Never")) system_mem = GF_TRUE;
 	}
 	ctx->use_systems_memory = system_mem;
 
@@ -1507,10 +1507,10 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 		dst.width = ctx->screen->w;
 		dst.pitch_x = 0;
 		dst.pitch_y = ctx->screen->pitch;
-		dst.pixel_format = SDLVid_MapPixelFormat(ctx->screen->format, 0);
-		dst.video_buffer = ctx->screen->pixels;
+		dst.pixel_format = SDLVid_MapPixelFormat(ctx->screen->format, GF_FALSE);
+		dst.video_buffer = (char*)ctx->screen->pixels;
 
-		gf_stretch_bits(&dst, &src, dest, NULL, 0xFF, 0, NULL, NULL);
+		gf_stretch_bits(&dst, &src, dest, NULL, 0xFF, GF_FALSE, NULL, NULL);
 		SDL_UnlockSurface(ctx->screen);
 		SDL_UnlockSurface(ctx->back_buffer);
 
