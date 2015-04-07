@@ -1198,12 +1198,12 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 
 }
 
-static void scene_video_mouse_move(void *param, GF_FieldInfo *field) 
+static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 {
 	u32 i, count;
 	GF_Scene *scene = (GF_Scene *) param;
 	SFVec2f tx_coord = * ((SFVec2f *) field->far_ptr);
-	
+
 	if (scene->disable_hitcoord_notif || !scene->visual_url.OD_ID) return;
 
 	count = gf_list_count(scene->resources);
@@ -1412,13 +1412,16 @@ static Bool check_odm_deactivate(SFURL *url, GF_ObjectManager *odm, GF_Node *n)
 	gf_node_changed(n, NULL);
 	return 1;
 }
+#endif
 
 static void odm_deactivate(GF_Node *n)
 {
 	GF_FieldInfo info;
 
 	gf_node_get_field_by_name(n, "url", &info);
+#ifndef GPAC_DISABLE_VRML
 	gf_sg_vrml_mf_reset(info.far_ptr, GF_SG_VRML_MFURL);
+#endif
 	gf_node_get_field_by_name(n, "stopTime", &info);
 	*((SFTime *)info.far_ptr) = gf_node_get_scene_time(n);
 	gf_node_changed(n, NULL);
@@ -1430,9 +1433,13 @@ static void odm_activate(SFURL *url, GF_Node *n)
 	GF_FieldInfo info;
 
 	gf_node_get_field_by_name(n, "url", &info);
+#ifndef GPAC_DISABLE_VRML
 	gf_sg_vrml_mf_reset(info.far_ptr, GF_SG_VRML_MFURL);
+#endif
 	if (url->OD_ID || url->url) {
+#ifndef GPAC_DISABLE_VRML
 		gf_sg_vrml_mf_append(info.far_ptr, GF_SG_VRML_MFURL, (void **) &sfu);
+#endif
 		sfu->OD_ID = url->OD_ID;
 		if (url->url) sfu->url = gf_strdup(url->url);
 
@@ -1445,6 +1452,7 @@ static void odm_activate(SFURL *url, GF_Node *n)
 	gf_node_changed(n, NULL);
 }
 
+#ifndef GPAC_DISABLE_VRML
 void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
 {
 	if (!scene->is_dynamic_scene) return;
@@ -1566,12 +1574,15 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 		return;
 	}
 }
+#endif
 
 void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on)
 {
 	GF_DOM_Event devt;
 	const char *opt = gf_cfg_get_key(scene->root_od->term->user->config, "Systems", "DebugPVRScene");
+#ifndef GPAC_DISABLE_VRML
 	M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, (opt && !strcmp(opt, "yes")) ? "ADDON_SCENE" : "PVR_SCENE");
+#endif
 
 	if (scene->main_addon_selected==set_on) return;
 	scene->main_addon_selected = set_on;
@@ -1588,9 +1599,12 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 		} else {
 			odm->subscene->needs_restart = 1;
 		}
+
+
+#ifndef GPAC_DISABLE_VRML
 		gf_sg_vrml_field_copy(&dscene->url, &odm->mo->URLs, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
-
+#endif
 	} else {
 		GF_Clock *ck = scene->scene_codec ? scene->scene_codec->ck : scene->dyn_ck;
 		//reactivating the main content will trigger a reset on the clock - remember where we are and resume from this point
@@ -1600,8 +1614,10 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 		odm_activate(&scene->visual_url, gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO"));
 		odm_activate(&scene->text_url, gf_sg_find_node_by_name(scene->graph, "DYN_TEXT"));
 
+#ifndef GPAC_DISABLE_VRML
 		gf_sg_vrml_mf_reset(&dscene->url, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
+#endif
 	}
 
 	memset(&devt, 0, sizeof(GF_DOM_Event));
@@ -1610,6 +1626,8 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 	gf_scene_notify_event(scene, GF_EVENT_MAIN_ADDON_STATE, NULL, &devt, GF_OK, GF_FALSE);
 
 }
+
+#ifndef GPAC_DISABLE_VRML
 
 GF_EXPORT
 void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_factor)
@@ -1726,7 +1744,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 
 				//object is not an addon and main addon is selected, do not add
 				if (!odm->addon && scene->main_addon_selected) {
-				} 
+				}
 				//object is an addon and enabled, restart if main and main is enabled, or if not main
 				else if (odm->addon && odm->addon->enabled) {
 					if (odm->addon->addon_type==GF_ADDON_TYPE_MAIN) {

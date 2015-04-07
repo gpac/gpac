@@ -1435,8 +1435,10 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 			}
 
 			if (use_dom_events && !compositor->sel_buffer) {
+#ifndef GPAC_DISABLE_SVG
 				if (svg_drawable_is_over(drawable, loc_x, loc_y, &asp, tr_state, &rc))
 					goto picked;
+#endif
 			} else {
 				if ( (loc_x >= rc.x) && (loc_y <= rc.y) && (loc_x <= rc.x + rc.width) && (loc_y >= rc.y - rc.height) ) {
 					goto picked;

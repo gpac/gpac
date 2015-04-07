@@ -548,7 +548,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			degr = GF_ISOM_GET_FRAG_DEG(flags);
 			if (degr) stbl_AppendDegradation(trak->Media->information->sampleTable, degr);
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 			stbl_AppendDependencyType(trak->Media->information->sampleTable, GF_ISOM_GET_FRAG_LEAD(flags), GF_ISOM_GET_FRAG_DEPENDS(flags), GF_ISOM_GET_FRAG_DEPENDED(flags), GF_ISOM_GET_FRAG_REDUNDANT(flags));
+#endif
 		}
 	}
 	/*merge sample groups*/
