@@ -132,8 +132,10 @@ typedef struct
 
 	struct _html_mediasource *parent;
 
+#ifndef GPAC_DISABLE_SVG
 	/* Object used to fire JavaScript events to */
 	GF_DOMEventTarget		*evt_target;
+#endif
 } GF_HTML_SourceBufferList;
 
 typedef enum
@@ -178,8 +180,10 @@ typedef struct _html_mediasource
 	/* Node the MediaSource is attached to */
 	GF_Node *node;
 
+#ifndef GPAC_DISABLE_SVG
 	/* object implementing Event Target Interface */
 	GF_DOMEventTarget *evt_target;
+#endif
 } GF_HTML_MediaSource;
 
 GF_HTML_MediaSource		*gf_mse_media_source_new();

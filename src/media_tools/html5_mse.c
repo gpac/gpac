@@ -24,7 +24,8 @@
 */
 #include <gpac/setup.h>
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#ifndef GPAC_DISABLE_MSE
+
 #include <gpac/html5_mse.h>
 #include <gpac/internal/isomedia_dev.h>
 
@@ -826,7 +827,9 @@ void gf_mse_source_buffer_append_arraybuffer(GF_HTML_SourceBuffer *sb, GF_HTML_A
 	buffer->url = (char *)gf_malloc(256);
 	sprintf(buffer->url, "gmem://%d@%p", buffer->length, buffer->data);
 	buffer->reference_count++;
+#ifndef GPAC_DISABLE_ISOM
 	buffer->is_init = (gf_isom_probe_file(buffer->url) == 2 ? GF_TRUE : GF_FALSE);
+#endif
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MSE] Appending segment %s to SourceBuffer %p\n", buffer->url, sb));
 
 	gf_list_add(sb->input_buffer, buffer);
@@ -1054,4 +1057,4 @@ GF_Err gf_mse_track_buffer_get_next_packet(GF_HTML_Track *track,
 }
 
 
-#endif
+#endif //GPAC_DISABLE_MSE

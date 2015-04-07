@@ -2945,8 +2945,10 @@ static void xml_http_fire_event(XMLHTTPContext *ctx, GF_EventType evtType)
 
 static void xml_http_state_change(XMLHTTPContext *ctx)
 {
+#ifndef GPAC_DISABLE_VRML
 	GF_SceneGraph *scene;
 	GF_Node *n;
+#endif
 	jsval rval;
 
 	gf_sg_lock_javascript(ctx->c, GF_TRUE);

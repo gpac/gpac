@@ -1456,10 +1456,12 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 	DrawableContext *ctx;
 	assert(tr_state->visual);
 
+#ifndef GPAC_DISABLE_VRML
 	/*setup SVG based on override appearance node */
 	if (tr_state->override_appearance) {
 		return drawable_init_context_mpeg4(drawable, tr_state);
 	}
+#endif
 
 	/*switched-off geometry nodes are not drawn*/
 	if (tr_state->switched_off) return NULL;

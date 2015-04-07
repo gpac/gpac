@@ -720,7 +720,11 @@ GF_Err gf_seng_encode_from_commands(GF_SceneEngine *seng, u16 ESID, Bool disable
 		GF_Command *com = gf_list_get(commands, 0);
 		gf_list_rem(commands, 0);
 		switch (com->tag) {
+#ifndef GPAC_DISABLE_VRML
 		case GF_SG_SCENE_REPLACE:
+			new_au->flags |= GF_SM_AU_RAP;
+			break;
+#endif
 		case GF_SG_LSR_NEW_SCENE:
 			new_au->flags |= GF_SM_AU_RAP;
 			break;

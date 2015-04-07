@@ -1195,6 +1195,7 @@ s64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMe
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
 void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
 
+
 //exported for gpac.js, resumes to main content
 void gf_scene_resume_live(GF_Scene *subscene);
 
@@ -1237,13 +1238,16 @@ struct _gf_addon_media
 	u32 addon_type;
 };
 
+void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons);
+
+
+
 GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable);
 
 
 Bool gf_codec_is_scene_or_image(GF_Codec *codec);
 
 void gf_scene_set_service_id(GF_Scene *scene, u32 service_id);
-void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons);
 
 #ifdef __cplusplus
 }

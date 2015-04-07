@@ -439,12 +439,6 @@ JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp)
 GF_Node *dom_get_element(JSContext *c, JSObject *obj);
 #endif
 
-#ifndef GPAC_DISABLE_VRML
-
-/*MPEG4 & X3D tags (for node tables & script handling)*/
-#include <gpac/nodes_mpeg4.h>
-#include <gpac/nodes_x3d.h>
-
 
 JSBool gf_sg_script_to_node_field(struct JSContext *c, jsval v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
 jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent, Bool force_evaluate);
@@ -476,6 +470,12 @@ void do_js_gc(JSContext *c, GF_Node *node)
 	}
 }
 
+
+#ifndef GPAC_DISABLE_VRML
+
+/*MPEG4 & X3D tags (for node tables & script handling)*/
+#include <gpac/nodes_mpeg4.h>
+#include <gpac/nodes_x3d.h>
 
 void SFColor_fromHSV(SFColor *col)
 {
@@ -5113,7 +5113,7 @@ Bool gf_sg_try_lock_javascript(struct JSContext *cx)
 
 GF_Err gf_scene_execute_script(GF_SceneGraph *sg, const char *com)
 {
-#ifdef GPAC_HAS_SPIDERMONKEY
+#if defined(GPAC_HAS_SPIDERMONKEY) && !defined(GPAC_DISABLE_SVG)
 	u32 tag;
 	GF_Err e;
 	GF_Node *root = gf_sg_get_root_node(sg);

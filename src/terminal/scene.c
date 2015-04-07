@@ -1389,9 +1389,21 @@ void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons)
 
 #else
 /*!!fixme - we would need an SVG scene in case no VRML support is present !!!*/
+GF_EXPORT
 void gf_scene_regenerate(GF_Scene *scene) {}
+GF_EXPORT
 void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only, Bool disable_addon_check) {}
+GF_EXPORT
 void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm) {}
+GF_EXPORT
+void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons) { }
+GF_EXPORT
+void gf_scene_resume_live(GF_Scene *subscene) { }
+GF_EXPORT
+void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_factor) {}
+GF_EXPORT
+void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on) { }
+
 #endif	/*GPAC_DISABLE_VRML*/
 
 #ifndef GPAC_DISABLE_VRML
