@@ -23,9 +23,9 @@
  *
  */
 
-#include "javaenv.h"
 
 #include <gpac/modules/audio_out.h>
+#include <gpac/modules/droidaudio.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -44,12 +44,6 @@
 /*for channel codes*/
 #include <gpac/constants.h>
 
-#ifdef GPAC_STATIC_MODULES
-
-JavaVM* GetJavaVM();
-JNIEnv* GetEnv();
-
-#endif
 
 
 
@@ -68,6 +62,10 @@ static jmethodID mWriteB;
 static jmethodID mWriteS;
 static jmethodID mFlush;
 
+static JavaVM *jvm;
+static Bool configured;
+static __thread Bool attached;
+
 #include <android/log.h>
 #define TAG "GPAC Android Audio"
 #define LOGV(X, Y)  __android_log_print(ANDROID_LOG_VERBOSE, TAG, X, Y)
@@ -85,8 +83,6 @@ static jmethodID mFlush;
 
 typedef struct
 {
-	JNIEnv* env;
-
 	jobject mtrack;
 
 	u32 num_buffers;
@@ -105,15 +101,64 @@ typedef struct
 	jarray buff;
 } DroidContext;
 
+/**
+ * Register the java virtual machine
+ */
+void gf_droidaudio_register_java_vm(JavaVM *vm)
+{
+	jvm = vm;
+}
+
+/**
+ * Get the jni thread environment
+ */
+JNIEnv *gf_droidaudio_jni_get_thread_env()
+{
+	assert(jvm && *jvm);
+	JNIEnv *env;
+	jint rc = (*jvm)->GetEnv(jvm, (void **) &env, JNI_VERSION_1_6);
+	if (rc != JNI_OK)
+		return NULL;
+	assert(env);
+	assert((*env)->GetVersion(env));
+	return env;
+}
+
+/**
+ * Attach current thread to the jvm, check first if we are attached so
+ * this can be called multiple time.
+ */
+JNIEnv *gf_droidaudio_jni_attach_current_thread()
+{
+	assert(jvm && *jvm);
+	JNIEnv *env = NULL;
+	jint rc = (*jvm)->GetEnv(jvm, (void **) &env, JNI_VERSION_1_6);
+	if (rc == JNI_EDETACHED) {
+		attached = GF_TRUE;
+		(*jvm)->AttachCurrentThread(jvm, &env, NULL);
+	}
+	return env;
+}
+
+/**
+ * Detach current thread from the jvm
+ */
+void gf_droidaudio_jni_detach_current_thread()
+{
+	assert(jvm && *jvm);
+	(*jvm)->DetachCurrentThread(jvm);
+}
+
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 // Called by the main thread
 static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32 total_duration)
 {
 	DroidContext *ctx = (DroidContext *)dr->opaque;
-	JNIEnv* env = GetEnv();
+	JNIEnv *env = gf_droidaudio_jni_get_thread_env();
 	int channels;
 	int bytes;
+
 	LOGV("[Android Audio] Setup for %d buffers", num_buffers);
 
 	ctx->force_config = (num_buffers && total_duration) ? 1 : 0;
@@ -145,35 +190,37 @@ static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u3
 
 	return GF_OK;
 }
-//----------------------------------------------------------------------
-// Called by the audio thread
-static void WAV_Shutdown(GF_AudioOutput *dr)
+
+static void WAV_Deconfigure(DroidContext *ctx)
 {
-	DroidContext *ctx = (DroidContext *)dr->opaque;
-	JNIEnv* env = NULL;
-	jint res = 0;
+	if (!configured)
+		return;
 
-	LOGV("[Android Audio] Shutdown START.", 0);
-
-	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
-	if ( res == JNI_EDETACHED ) {
-		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
-	}
-
+	JNIEnv* env = gf_droidaudio_jni_get_thread_env();
 	(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mStop);
 	(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mRelease);
 
 	(*env)->PopLocalFrame(env, NULL);
 
 	(*env)->DeleteGlobalRef(env, ctx->buff);
+	ctx->buff = NULL;
 	(*env)->DeleteGlobalRef(env, mtrack);
+	mtrack = NULL;
+	configured = GF_FALSE;
+}
+
+//----------------------------------------------------------------------
+// Called by the audio thread
+static void WAV_Shutdown(GF_AudioOutput *dr)
+{
+	LOGV("[Android Audio] Shutdown START 1.", 0);
+	DroidContext *ctx = (DroidContext *)dr->opaque;
+	JNIEnv* env = gf_droidaudio_jni_attach_current_thread();
+	WAV_Deconfigure(ctx);
 	(*env)->DeleteGlobalRef(env, cAudioTrack);
-
-	//if ( res == JNI_EDETACHED ) {
-	(*GetJavaVM())->DetachCurrentThread(GetJavaVM());
-	//}
-
-	LOGV("[Android Audio] Shutdown DONE.", 0);
+	cAudioTrack = NULL;
+	if (attached)
+		gf_droidaudio_jni_detach_current_thread();
 }
 
 
@@ -181,7 +228,7 @@ static void WAV_Shutdown(GF_AudioOutput *dr)
 /* Called by the audio thread */
 static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
 {
-	JNIEnv* env = NULL;
+	JNIEnv* env = gf_droidaudio_jni_attach_current_thread();
 	u32 i;
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 
@@ -189,13 +236,12 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 
 	if (!ctx) return GF_BAD_PARAM;
 
+	if (configured)
+		WAV_Deconfigure(ctx);
+
 	ctx->sampleRateInHz = *SampleRate;
 	ctx->channelConfig = (*NbChannels == 1) ? CHANNEL_CONFIGURATION_MONO : CHANNEL_CONFIGURATION_STEREO; //AudioFormat.CHANNEL_CONFIGURATION_MONO
 	ctx->audioFormat = (*nbBitsPerSample == 8)? ENCODING_PCM_8BIT : ENCODING_PCM_16BIT; //AudioFormat.ENCODING_PCM_16BIT
-
-	// Get the java environment in the new thread
-	(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
-	ctx->env = env;
 	LOGV("[Android Audio] SampleRate : %d",ctx->sampleRateInHz);
 	LOGV("[Android Audio] BitPerSample : %d", *nbBitsPerSample);
 
@@ -245,6 +291,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 		return GF_NOT_SUPPORTED;
 	}
 
+	configured = GF_TRUE;
 	LOGV("[Android Audio] ConfigureOutput DONE.", *nbBitsPerSample);
 	return GF_OK;
 }
@@ -255,7 +302,7 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 	if (!ctx)
 		return;
-	JNIEnv* env = ctx->env;
+	JNIEnv* env = gf_droidaudio_jni_get_thread_env();
 	u32 written;
 	void* pBuffer;
 	if (!env)
@@ -289,9 +336,15 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 static void WAV_Play(GF_AudioOutput *dr, u32 PlayType)
 {
 	DroidContext *ctx = (DroidContext *)dr->opaque;
-	JNIEnv* env = GetEnv();
+	JNIEnv* env = gf_droidaudio_jni_get_thread_env();
 
 	LOGV("[Android Audio] Play: %d\n", PlayType);
+
+	int detach = 0;
+	if (!env) {
+ 		detach = 1;
+		env = gf_droidaudio_jni_attach_current_thread();
+	}
 
 	switch ( PlayType )
 	{
@@ -309,12 +362,14 @@ static void WAV_Play(GF_AudioOutput *dr, u32 PlayType)
 	default:
 		LOGW("[Android Audio] Unknown Play method=%d.\n", PlayType);
 	}
-	LOGV("[Android Audio] Play DONE (%d).\n", PlayType);
+
+	if (detach)
+		gf_droidaudio_jni_detach_current_thread();
 }
 
 static void WAV_UpdateVolume(DroidContext *ctx) {
 	float lV, rV;
-	JNIEnv* env = GetEnv();
+	JNIEnv* env = gf_droidaudio_jni_get_thread_env();
 	if (!ctx)
 		return;
 	if (ctx->pan > 100)
@@ -352,7 +407,7 @@ static void WAV_SetPan(GF_AudioOutput *dr, u32 Pan)
 static GF_Err WAV_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_samplerate, u32 *NbChannels, u32 *nbBitsPerSample)
 {
 	DroidContext *ctx = (DroidContext *)dr->opaque;
-	JNIEnv* env = ctx->env;
+	JNIEnv* env = gf_droidaudio_jni_get_thread_env();
 	u32 sampleRateInHz, channelConfig, audioFormat;
 
 	LOGV("Query sample=%d", *desired_samplerate );
