@@ -2998,7 +2998,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	if (sess->http_read_type==HEAD) {
 		gf_dm_disconnect(sess, GF_FALSE);
 		gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
-		sess->http_read_type = GF_FALSE;
+		sess->http_read_type = GET;
 		return GF_OK;
 
 

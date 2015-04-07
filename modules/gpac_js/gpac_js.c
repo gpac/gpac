@@ -1359,7 +1359,8 @@ static JSBool SMJS_FUNCTION(gpac_new_storage)
 	JSObject *anobj;
 	GF_Config *storage = NULL;
 	char *storage_url = NULL;
-	u8 hash[20], temp[3];
+    u8 hash[20];
+    char temp[3];
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
@@ -1373,7 +1374,7 @@ static JSBool SMJS_FUNCTION(gpac_new_storage)
 		}
 
 		szFile[0]=0;
-		gf_sha1_csum(storage_url, (u32) strlen(storage_url), hash);
+		gf_sha1_csum((u8 *)storage_url, (u32) strlen(storage_url), hash);
 		for (i=0; i<20; i++) {
 			sprintf(temp, "%02X", hash[i]);
 			strcat(szFile, temp);
