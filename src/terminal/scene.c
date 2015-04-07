@@ -1204,7 +1204,7 @@ static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 	GF_Scene *scene = (GF_Scene *) param;
 	SFVec2f tx_coord = * ((SFVec2f *) field->far_ptr);
 	
-	if (scene->disable_hitcoord_notif || !scene->visual_url.OD_ID) return;
+	if (!scene->visual_url.OD_ID) return;
 
 	count = gf_list_count(scene->resources);
 	for (i=0; i<count; i++) {
@@ -1221,7 +1221,10 @@ static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 			cap.cap.valueInt = w<<16 | h;
 
 			e = gf_codec_set_capability(odm->codec, cap);
-			if (e==GF_NOT_SUPPORTED) scene->disable_hitcoord_notif = GF_TRUE;
+			if (e==GF_NOT_SUPPORTED) {
+				GF_Node *n = gf_sg_find_node_by_name(scene->graph, "DYN_TOUCH");
+				if (n) ((M_TouchSensor *)n)->enabled = GF_FALSE;
+			}
 			return;
 		}
 	}
@@ -1248,8 +1251,6 @@ void gf_scene_regenerate(GF_Scene *scene)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inline] Regenerating scene graph for service %s\n", scene->root_od->net_service->url));
 
 	gf_sc_lock(scene->root_od->term->compositor, 1);
-
-	scene->disable_hitcoord_notif = GF_FALSE;
 
 	ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO");
 
@@ -1284,7 +1285,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		n1 = n2;
 
 		/*create a touch sensor for the video*/
-		n2 = is_create_node(scene->graph, TAG_MPEG4_TouchSensor, NULL);
+		n2 = is_create_node(scene->graph, TAG_MPEG4_TouchSensor, "DYN_TOUCH");
 		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 		gf_node_register(n2, n1);
 		gf_sg_route_new_to_callback(scene->graph, n2, 3/*"hitTexCoord_changed"*/, scene, scene_video_mouse_move);
@@ -1355,6 +1356,9 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 	dims = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "DIMS_SCENE");
 	set_media_url(scene, &scene->dims_url, (GF_Node*)dims, &dims->url, GF_STREAM_SCENE);
+
+	n2 = gf_sg_find_node_by_name(scene->graph, "DYN_TOUCH");
+	((M_TouchSensor *)n2)->enabled = GF_TRUE;
 
 	gf_sc_lock(scene->root_od->term->compositor, 0);
 
