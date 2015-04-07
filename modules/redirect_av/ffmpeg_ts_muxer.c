@@ -171,7 +171,7 @@ exit:
 #endif
 
 GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerSec, u32 width, u32 height, u32 audioBitRateInBitsPerSec) {
-	GF_AbstractTSMuxer * ts = gf_malloc( sizeof(GF_AbstractTSMuxer));
+	GF_AbstractTSMuxer * ts = (GF_AbstractTSMuxer*)gf_malloc( sizeof(GF_AbstractTSMuxer));
 	memset( ts, 0, sizeof( GF_AbstractTSMuxer));
 	ts->oc = avformat_alloc_context();
 	ts->destination = avr->destination;
@@ -268,7 +268,7 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
 #endif
 	ts->videoMx = gf_mx_new("TS_VideoMx");
 	ts->tsEncodingThread = gf_th_new("ts_interleave_thread_run");
-	ts->encode = 1;
+	ts->encode = GF_TRUE;
 	ts->audioPackets = NULL;
 	ts->videoPackets = NULL;
 	gf_th_run(ts->tsEncodingThread, ts_interleave_thread_run, ts);
@@ -278,7 +278,7 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
 void ts_amux_del(GF_AbstractTSMuxer * muxerToDelete) {
 	if (!muxerToDelete)
 		return;
-	muxerToDelete->encode = 0;
+	muxerToDelete->encode = GF_FALSE;
 	gf_sleep(100);
 	gf_th_stop(muxerToDelete->tsEncodingThread);
 	muxerToDelete->tsEncodingThread = NULL;
@@ -320,8 +320,8 @@ Bool ts_encode_audio_frame(GF_AbstractTSMuxer * ts, uint8_t * data, int encoded,
 	AVPacketList *pl;
 	AVPacket * pkt;
 	if (!ts->encode)
-		return 1;
-	pl = gf_malloc(sizeof(AVPacketList));
+		return GF_TRUE;
+	pl = (AVPacketList*)gf_malloc(sizeof(AVPacketList));
 	pl->next = NULL;
 	pkt = &(pl->pkt);
 	av_init_packet(pkt);
@@ -360,15 +360,15 @@ Bool ts_encode_audio_frame(GF_AbstractTSMuxer * ts, uint8_t * data, int encoded,
 		px->next = pl;
 	}
 	gf_mx_v(ts->audioMx);
-	return 0;
+	return GF_FALSE;
 }
 
 Bool ts_encode_video_frame(GF_AbstractTSMuxer* ts, uint8_t* data, int encoded) {
 	AVPacketList *pl;
 	AVPacket * pkt;
 	if (!ts->encode)
-		return 1;
-	pl = gf_malloc(sizeof(AVPacketList));
+		return GF_TRUE;
+	pl = (AVPacketList*)gf_malloc(sizeof(AVPacketList));
 	pl->next = NULL;
 	pkt = &(pl->pkt);
 
@@ -395,7 +395,7 @@ Bool ts_encode_video_frame(GF_AbstractTSMuxer* ts, uint8_t* data, int encoded) {
 		px->next = pl;
 	}
 	gf_mx_v(ts->videoMx);
-	return 0;
+	return GF_FALSE;
 }
 
 AVCodecContext * ts_get_video_codec_context(GF_AbstractTSMuxer * ts) {
