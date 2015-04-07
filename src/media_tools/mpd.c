@@ -2144,7 +2144,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 
 	*out_range_start = *out_range_end = 0;
 	*out_url = NULL;
-	*out_key_url = NULL;
+	if (out_key_url) *out_key_url = NULL;
 	/*resolve base URLs from document base (download location) to representation (media)*/
 	url = gf_strdup(mpd_url);
 
