@@ -1149,58 +1149,6 @@ static JSBool SMJS_FUNCTION(createVrmlFromString)
 #endif
 }
 
-static JSBool SMJS_FUNCTION(getOption)
-{
-	JSString *s;
-	GF_JSAPIParam par;
-	GF_Node *sc_node = JS_GetContextPrivate(c);
-	Bool res;
-	SMJS_ARGS
-	if (argc < 2) return JS_FALSE;
-
-	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-
-	par.gpac_cfg.section = SMJS_CHARS(c, argv[0]);
-	par.gpac_cfg.key = SMJS_CHARS(c, argv[1]);
-	par.gpac_cfg.key_val = NULL;
-
-	res = ScriptAction(c, NULL, GF_JSAPI_OP_GET_OPT, sc_node->sgprivate->scenegraph->RootNode, &par);
-	SMJS_FREE(c, (char *)par.gpac_cfg.section);
-	SMJS_FREE(c, (char *)par.gpac_cfg.key);
-	if (!res) return JS_FALSE;
-
-	s = JS_NewStringCopyZ(c, par.gpac_cfg.key_val ? (const char *)par.gpac_cfg.key_val : "");
-	if (!s) return JS_FALSE;
-	SMJS_SET_RVAL( STRING_TO_JSVAL(s) );
-	return JS_TRUE;
-}
-
-static JSBool SMJS_FUNCTION(setOption)
-{
-	GF_JSAPIParam par;
-	GF_Node *sc_node = JS_GetContextPrivate(c);
-	Bool res;
-	SMJS_ARGS
-	if (argc < 3) return JS_FALSE;
-
-	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[2])) return JS_FALSE;
-
-	par.gpac_cfg.section = SMJS_CHARS(c, argv[0]);
-	par.gpac_cfg.key = SMJS_CHARS(c, argv[1]);
-	par.gpac_cfg.key_val = SMJS_CHARS(c, argv[2]);
-
-	res = ScriptAction(c, NULL, GF_JSAPI_OP_SET_OPT, sc_node->sgprivate->scenegraph->RootNode, &par);
-	SMJS_FREE(c, (char *)par.gpac_cfg.section);
-	SMJS_FREE(c, (char *)par.gpac_cfg.key);
-	SMJS_FREE(c, (char *)par.gpac_cfg.key_val);
-
-	if (!res) return JS_FALSE;
-	return JS_TRUE;
-}
-
 void gf_node_event_out_proto(GF_Node *node, u32 FieldIndex);
 
 void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner, GF_FieldInfo *field)
@@ -3392,8 +3340,6 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 			SMJS_FUNCTION_SPEC("createVrmlFromString", createVrmlFromString, 1),
 			SMJS_FUNCTION_SPEC("setDescription", setDescription, 1),
 			SMJS_FUNCTION_SPEC("print",           JSPrint,          1),
-			SMJS_FUNCTION_SPEC("getOption",  getOption,          2),
-			SMJS_FUNCTION_SPEC("setOption",  setOption,          3),
 			SMJS_FUNCTION_SPEC("getScript",  getScript,          0),
 			SMJS_FUNCTION_SPEC("getProto",  getProto,          0),
 			SMJS_FUNCTION_SPEC("loadScript",  loadScript,          1),

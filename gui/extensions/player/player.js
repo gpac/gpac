@@ -349,12 +349,12 @@ extension = {
         Browser.addRoute(this.movie_sensor, 'mediaCurrentTime', this, this.on_movie_time);
         Browser.addRoute(this.movie_sensor, 'isActive', this, this.on_movie_active);
 
-        var hist = gpac.get_option('GUI', 'PlaybackHistory');
+        var hist = this.get_option('PlaybackHistory');
         if ((hist != null) && (hist != '')) {
             this.history = gwskin.parse(hist);
         }
 
-        var bmarks = gpac.get_option('GUI', 'Bookmarks');
+        var bmarks = this.get_option('Bookmarks');
         if ((bmarks != null) && (bmarks != '')) {
             this.bookmarks = gwskin.parse(bmarks);
         }

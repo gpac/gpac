@@ -1631,7 +1631,6 @@ restart_fragmentation_pass:
 		if (!simulation_pass && ((dash_cfg->subsegs_per_sidx<0) || dash_cfg->real_time) ) {
 
 			if (tfref && dash_cfg->real_time) {
-				u64 now=0;
 				u64 end_time = tfref->InitialTSOffset + tfref->next_sample_dts - tfref->DefaultDuration;
 				end_time *= 1000;
 				end_time /= tfref->TimeScale;
