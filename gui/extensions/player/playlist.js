@@ -3,14 +3,14 @@ extension.playlist_wnd = null;
 
 
 extension.playlist = [];
-var plist = gpac.get_option('GUI', 'Playlist');
+var plist = extension.get_option('Playlist');
 
 if ((plist != null) && (plist != '')) {
     extension.playlist = gwskin.parse(plist);
 }
 
 extension.playlist_idx = 0;
-var plistidx = gpac.get_option('GUI', 'PlaylistIndex');
+var plistidx = extension.get_option('PlaylistIndex');
 if (plistidx != null) {
     extension.playlist_idx = parseInt(plistidx);
 }
@@ -199,7 +199,7 @@ extension.view_playlist = function () {
         }
         this.area.layout();
 
-        gpac.set_option('GUI', 'Playlist', gwskin.stringify(this.extension.playlist));
+        this.extension.set_option('Playlist', gwskin.stringify(this.extension.playlist));
     }
     
     plist._sort_type = 0;
@@ -214,7 +214,7 @@ extension.view_playlist = function () {
             wnd.extension.playlist.sort( function (a, b) { return a.name < b.name;} );
             wnd._sort_type = 0;
         }
-        gpac.set_option('GUI', 'Playlist', gwskin.stringify(wnd.extension.playlist));
+        wnd.extension.set_option('Playlist', gwskin.stringify(wnd.extension.playlist));
         wnd.refresh_items();
     }
 
@@ -229,9 +229,9 @@ extension.view_playlist = function () {
     plist.trash = plist.add_tool('trash');
     plist.trash.on_click = function () {
         this.dlg.area.reset_children();
-        this.dlg.extension.playlist = [];        
-        gpac.set_option('GUI', 'Playlist', gwskin.stringify(this.dlg.extension.playlist));
-        gpac.set_option('GUI', 'PlaylistIndex', '0');
+        this.dlg.extension.playlist = [];
+        this.dlg.extension.set_option('Playlist', gwskin.stringify(this.dlg.extension.playlist));
+        this.dlg.extension.set_option('PlaylistIndex', '0');
         this.dlg.extension.set_playlist_mode(true);
 
         this.disable();
@@ -306,7 +306,7 @@ extension.playlist_play = function (pl_item) {
 
     //save current index
     this.playlist_idx = this.playlist.indexOf(pl_item);
-    gpac.set_option('GUI', 'PlaylistIndex', '' + this.playlist_idx);
+    this.set_option('PlaylistIndex', '' + this.playlist_idx);
 }
 
 extension.playlist_next = function()

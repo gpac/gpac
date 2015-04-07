@@ -52,13 +52,13 @@
 #else
 #define TEST_MODULE		"gm_dummy_in.dylib"
 #endif
-#define CFG_FILE_NAME	".gpacrc"
+#define CFG_FILE_NAME	"GPAC.cfg"
 
 #else
 #ifdef GPAC_CONFIG_LINUX
 #include <unistd.h>
 #endif
-#define CFG_FILE_NAME	".gpacrc"
+#define CFG_FILE_NAME	"GPAC.cfg"
 #define TEST_MODULE		"gm_dummy_in.so"
 #endif
 
@@ -89,9 +89,10 @@ static Bool check_file_exists(char *name, char *path, char *outPath)
 	}
 #endif
 	sprintf(szPath, "%s%c%s", path, GF_PATH_SEPARATOR, name);
-	f = gf_fopen(szPath, "rb");
+	//do not use gf_fopen here, we don't want to throw en error if failure
+	f = fopen(szPath, "rb");
 	if (!f) return GF_FALSE;
-	gf_fclose(f);
+	fclose(f);
 	if (outPath != path) strcpy(outPath, path);
 	return GF_TRUE;
 }
@@ -184,9 +185,10 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	strcpy(szPath, file_path);
 	strcat(szPath, "\\gpaccfgtest.txt");
-	f = gf_fopen(szPath, "wb");
+	//do not use gf_fopen here, we don't want to through any error if failure
+	f = fopen(szPath, "wb");
 	if (f != NULL) {
-		gf_fclose(f);
+		fclose(f);
 		gf_delete_file(szPath);
 		return GF_TRUE;
 	}
@@ -201,11 +203,11 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 	_mkdir(file_path);
 	strcpy(szPath, file_path);
 	strcat(szPath, "\\gpaccfgtest.txt");
-	f = gf_fopen(szPath, "wb");
+	f = fopen(szPath, "wb");
 	/*COMPLETE FAILURE*/
 	if (!f) return GF_FALSE;
 
-	gf_fclose(f);
+	fclose(f);
 	gf_delete_file(szPath);
 	return GF_TRUE;
 #endif
@@ -270,7 +272,20 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		} else
 #endif
 			strcpy(file_path, user_home);
+
 		if (file_path[strlen(file_path)-1] == '/') file_path[strlen(file_path)-1] = 0;
+
+		//cleanup of old install in .gpacrc
+		if (check_file_exists(".gpacrc", file_path, file_path)) {
+			strcpy(app_path, file_path);
+			strcat(app_path, "/.gpacrc");
+			gf_delete_file(app_path);
+		}
+
+		strcat(file_path, "/.gpac");
+		if (!gf_dir_exists(file_path)) {
+			gf_mkdir(file_path);
+		}
 		return 1;
 	}
 
@@ -395,10 +410,10 @@ static GF_Config *create_default_config(char *file_path)
 	}
 	/*Create the config file*/
 	sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, CFG_FILE_NAME);
-	fprintf(stderr, "Trying to create config file: %s", szPath);
-	f = gf_fopen(szPath, "wt");
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Trying to create config file: %s\n", szPath ));
+	f = fopen(szPath, "wt");
 	if (!f) return NULL;
-	gf_fclose(f);
+	fclose(f);
 
 #ifndef GPAC_IPHONE
 	if (! get_default_install_path(szPath, GF_PATH_MODULES)) {
@@ -612,6 +627,13 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 #endif
 
 	check_modules_dir(cfg);
+
+	if (!gf_cfg_get_key(cfg, "General", "StorageDirectory")) {
+		get_default_install_path(szPath, GF_PATH_CFG);
+		strcat(szPath, "/Storage");
+		if (!gf_dir_exists(szPath)) gf_mkdir(szPath);
+		gf_cfg_set_key(cfg, "General", "StorageDirectory", szPath);
+	}
 
 	if (new_cfg) *new_cfg = GF_TRUE;
 	return cfg;
