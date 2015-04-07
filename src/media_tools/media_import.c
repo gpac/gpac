@@ -2297,6 +2297,12 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		}
 	}
 
+	//adjust last sample duration
+	if (i==num_samples) {
+		u32 dur = gf_isom_get_sample_duration(import->orig, track_in, num_samples);
+		gf_isom_set_last_sample_duration(import->dest, track, dur);
+	}
+
 	if (gf_isom_has_time_offset(import->orig, track_in)==2) {
 		e = gf_isom_set_composition_offset_mode(import->dest, track, 1);
 		if (e)
