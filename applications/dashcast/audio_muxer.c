@@ -26,6 +26,7 @@
 #include "audio_muxer.h"
 #include "libavformat/avio.h"
 
+#ifndef GPAC_DISABLE_ISOM
 
 int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename)
 {
@@ -222,6 +223,10 @@ int dc_gpac_audio_isom_close(AudioOutputFile *audio_output_file)
 	return 0;
 }
 
+#endif
+
+
+
 int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filename)
 {
 	AVStream *audio_stream;
@@ -352,36 +357,38 @@ int dc_audio_muxer_init(AudioOutputFile *audio_output_file, AudioDataConf *audio
 	snprintf(name, sizeof(name), "audio encoder %s", audio_data_conf->filename);
 	dc_consumer_init(&audio_output_file->consumer, AUDIO_CB_SIZE, name);
 
+#ifndef GPAC_DISABLE_ISOM
 	audio_output_file->sample = gf_isom_sample_new();
 	audio_output_file->isof = NULL;
-	audio_output_file->muxer_type = muxer_type;
+#endif
 
+	audio_output_file->muxer_type = muxer_type;
 	audio_output_file->frame_per_seg = frame_per_seg;
 	audio_output_file->frame_per_frag = frame_per_frag;
-
 	audio_output_file->seg_marker = seg_marker;
-
 	return 0;
 }
 
 void dc_audio_muxer_free(AudioOutputFile *audio_output_file)
 {
+#ifndef GPAC_DISABLE_ISOM
 	if (audio_output_file->isof != NULL) {
 		gf_isom_close(audio_output_file->isof);
 	}
-
 	//gf_isom_sample_del(&audio_output_file->sample);
+#endif
 }
 
 GF_Err dc_audio_muxer_open(AudioOutputFile *audio_output_file, char *directory, char *id_name, int seg)
 {
-	GF_Err ret;
+	GF_Err ret = GF_NOT_SUPPORTED;
 	char name[GF_MAX_PATH];
 
 	switch (audio_output_file->muxer_type) {
 	case FFMPEG_AUDIO_MUXER:
 		snprintf(name, sizeof(name), "%s/%s_%d_ffmpeg.mp4", directory, id_name, seg);
 		return dc_ffmpeg_audio_muxer_open(audio_output_file, name);
+#ifndef GPAC_DISABLE_ISOM
 	case GPAC_AUDIO_MUXER:
 		snprintf(name, sizeof(name), "%s/%s_%d_gpac.mp4", directory, id_name, seg);
 		dc_gpac_audio_moov_create(audio_output_file, name);
@@ -395,11 +402,13 @@ GF_Err dc_audio_muxer_open(AudioOutputFile *audio_output_file, char *directory, 
 		snprintf(name, sizeof(name), "%s/%s_%d_gpac.m4s", directory, id_name, seg);
 		ret = dc_gpac_audio_isom_open_seg(audio_output_file, name);
 		return ret;
+#endif
 	default:
-		return GF_BAD_PARAM;
+		ret = GF_BAD_PARAM;
+		break;
 	}
 
-	return GF_BAD_PARAM;
+	return ret;
 }
 
 int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
@@ -407,6 +416,7 @@ int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
 	switch (audio_output_file->muxer_type) {
 	case FFMPEG_AUDIO_MUXER:
 		return dc_ffmpeg_audio_muxer_write(audio_output_file);
+#ifndef GPAC_DISABLE_ISOM
 	case GPAC_AUDIO_MUXER:
 	case GPAC_INIT_AUDIO_MUXER:
 		if (frame_nb % audio_output_file->frame_per_frag == 0) {
@@ -424,10 +434,11 @@ int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
 		}
 
 		return 0;
+#endif
+
 	default:
 		return GF_BAD_PARAM;
 	}
-
 	return GF_BAD_PARAM;
 }
 
@@ -436,11 +447,13 @@ int dc_audio_muxer_close(AudioOutputFile *audio_output_file)
 	switch (audio_output_file->muxer_type) {
 	case FFMPEG_AUDIO_MUXER:
 		return dc_ffmpeg_audio_muxer_close(audio_output_file);
+#ifndef GPAC_DISABLE_ISOM
 	case GPAC_AUDIO_MUXER:
 		dc_gpac_audio_isom_close_seg(audio_output_file);
 		return dc_gpac_audio_isom_close(audio_output_file);
 	case GPAC_INIT_AUDIO_MUXER:
 		return dc_gpac_audio_isom_close_seg(audio_output_file);
+#endif
 	default:
 		return GF_BAD_PARAM;
 	}

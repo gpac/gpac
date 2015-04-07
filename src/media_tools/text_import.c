@@ -1426,10 +1426,16 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 	flusher.timescale = timescale;
 	flusher.descriptionIndex = descIndex;
 	gf_swf_reader_set_user_mode(read, &flusher, swf_svg_add_iso_sample, swf_svg_add_iso_header);
+
+	e = GF_NOT_SUPPORTED;
 	if (!import->streamFormat || (import->streamFormat && !stricmp(import->streamFormat, "SVG"))) {
+#ifndef GPAC_DISABLE_SVG
 		e = swf_to_svg_init(read, import->swf_flags, import->swf_flatten_angle);
+#endif
 	} else { /*if (import->streamFormat && !strcmp(import->streamFormat, "BIFS"))*/
+#ifndef GPAC_DISABLE_VRML
 		e = swf_to_bifs_init(read);
+#endif
 	}
 	if (e) {
 		goto exit;

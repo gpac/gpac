@@ -28,7 +28,8 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/webvtt.h>
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#if defined(GPAC_HAS_SPIDERMONKEY) && !defined(GPAC_DISABLE_SVG)
+
 
 #include <gpac/internal/smjs_api.h>
 
@@ -120,7 +121,7 @@ GF_Err gf_webvtt_js_addCue(GF_Node *node, const char *id,
 }
 
 GF_EXPORT
-GF_Err gf_webvtt_js_removeCues()
+GF_Err gf_webvtt_js_removeCues(GF_Node *node)
 {
 	return GF_BAD_PARAM;
 }

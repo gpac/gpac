@@ -1051,11 +1051,13 @@ static void wm_widget_set_pref_event(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *o
 	if (evt->type != GF_EVENT_ATTR_MODIFIED) return;
 
 	if (evt->detail == (u32) -1) {
+#ifndef GPAC_DISABLE_SVG
 		att = gf_dom_flatten_textContent(evt->target);
+#endif
 	} else {
 		att = gf_node_dump_attribute(evt->target, evt->attr);
-		if (!att) return;
 	}
+	if (!att) return;
 	gf_cfg_set_key(wid->widget->wm->term->user->config, (const char *)wid->secname, pref->name, att);
 	gf_free(att);
 }
@@ -1190,7 +1192,9 @@ static void wm_widget_load_event(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *obser
 
 static JSBool SMJS_FUNCTION(wm_widget_activate)
 {
+#ifndef GPAC_DISABLE_SVG
 	SVG_handlerElement *handler;
+#endif
 	GF_MediaObject *mo;
 	Bool direct_trigger = 0;
 	MFURL url;
@@ -2024,8 +2028,10 @@ static JSBool wm_widget_bind_interface_ex(JSContext *c, JSObject *obj, uintN arg
 							}
 						}
 						if (found) {
+#ifndef GPAC_DISABLE_SVG
 							GF_Node *listener = handler->sgprivate->parents->node;
 							gf_dom_listener_del(listener, listener->sgprivate->UserPrivate);
+#endif
 							gf_list_rem(wid->output_triggers, i);
 							i--;
 							count--;
@@ -3634,7 +3640,10 @@ const u32 *QueryInterfaces()
 	static u32 si [] = {
 #ifdef GPAC_HAS_SPIDERMONKEY
 		GF_JS_USER_EXT_INTERFACE,
+#ifndef GPAC_DISABLE_SVG
 		GF_SCENE_DECODER_INTERFACE,
+#endif
+
 #endif
 		0
 	};
@@ -3646,7 +3655,9 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
 	if (InterfaceType == GF_JS_USER_EXT_INTERFACE) return (GF_BaseInterface *)gwm_new();
+#ifndef GPAC_DISABLE_SVG
 	else if (InterfaceType == GF_SCENE_DECODER_INTERFACE) return (GF_BaseInterface *)LoadWidgetReader();
+#endif
 #endif
 	return NULL;
 }
@@ -3659,9 +3670,12 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	case GF_JS_USER_EXT_INTERFACE:
 		gwm_delete(ifce);
 		break;
+#ifndef GPAC_DISABLE_SVG
 	case GF_SCENE_DECODER_INTERFACE:
 		ShutdownWidgetReader(ifce);
 		break;
+#endif
+
 #endif
 	}
 }
