@@ -198,10 +198,15 @@ SWFFont *swf_find_font(SWFReader *read, u32 fontID);
 GF_Err swf_parse_sprite(SWFReader *read);
 GF_Err swf_parse_tag(SWFReader *read);
 
+#ifndef GPAC_DISABLE_VRML
 GF_Err swf_to_bifs_init(SWFReader *read);
+#endif
+
+#ifndef GPAC_DISABLE_SVG
 GF_Err swf_to_svg_init(SWFReader *read, u32 flags, Float angle);
 GF_Err swf_svg_write_text_sample(void *user, const char *data, u32 length, u64 timestamp, Bool isRap);
 GF_Err swf_svg_write_text_header(void *user, const char *data, u32 length, Bool isHeader);
+#endif
 
 
 SWFReader *gf_swf_reader_new(const char *path, const char *filename);

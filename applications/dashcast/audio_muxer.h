@@ -64,8 +64,11 @@ typedef struct {
 	AVCodec *codec;
 	AVCodecContext *codec_ctx;
 
+#ifndef GPAC_DISABLE_ISOM
 	GF_ISOFile *isof;
 	GF_ISOSample *sample;
+#endif
+
 	int dts;
 
 	/* The index to the audio stream in the file */

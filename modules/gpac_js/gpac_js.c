@@ -1501,8 +1501,11 @@ static JSBool SMJS_FUNCTION(gpac_get_scene)
 	GF_Node *elt;
 	u32 w, h;
 	JSObject *scene_obj;
+#ifndef GPAC_DISABLE_SCENEGRAPH
 	GF_SceneGraph *sg;
+#endif
 	GF_Scene *scene=NULL;
+
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
@@ -1511,12 +1514,18 @@ static JSBool SMJS_FUNCTION(gpac_get_scene)
 	elt = gf_sg_js_get_node(c, JSVAL_TO_OBJECT(argv[0]));
 	if (!elt) return JS_TRUE;
 	switch (elt->sgprivate->tag) {
+#ifndef GPAC_DISABLE_VRML
 	case TAG_MPEG4_Inline:
-#ifndef GPAC_DISABLE_X3D
-	case TAG_X3D_Inline:
-#endif
 		scene = (GF_Scene *)gf_node_get_private(elt);
 		break;
+#endif
+
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Inline:
+		scene = (GF_Scene *)gf_node_get_private(elt);
+		break;
+#endif
+
 #ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_animation:
 		sg = gf_sc_animation_get_scenegraph(elt);

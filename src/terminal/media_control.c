@@ -109,8 +109,6 @@ void mediacontrol_restart(GF_ObjectManager *odm)
 }
 
 
-#ifndef GPAC_DISABLE_VRML
-
 Bool MC_URLChanged(MFURL *old_url, MFURL *new_url)
 {
 	u32 i;
@@ -263,6 +261,8 @@ void mediacontrol_set_speed(GF_ObjectManager *odm, Fixed speed)
 		}
 	}
 }
+
+#ifndef GPAC_DISABLE_VRML
 
 void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range)
 {

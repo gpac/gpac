@@ -43,6 +43,7 @@
 # error
 #endif
 
+#include <gpac/network.h>
 
 typedef struct {
 	int segnum;

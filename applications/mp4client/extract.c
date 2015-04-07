@@ -199,7 +199,6 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	gf_fwrite(&fh.bfOffBits, 4, 1, fout);
 
 	gf_fwrite(&fi, 1, 40, fout);
-//#ifndef GPAC_USE_TINYGL
 	for (j=fb->height; j>0; j--) {
 		ptr = fb->video_buffer + (j-1)*fb->pitch_y;
 		for (i=0; i<fb->width; i++) {
@@ -208,18 +207,6 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 			ptr += res;
 		}
 	}
-//#else
-#if 0
-	for (j=0; j<fb->height; j++) {
-		ptr = fb->video_buffer + j*fb->pitch;
-		for (i=0; i<fb->width; i++) {
-			u32 res = put_pixel(fout, 0, fb->pixel_format, ptr);
-			assert(res);
-			ptr += res;
-		}
-	}
-#endif
-
 	gf_fclose(fout);
 }
 
@@ -429,8 +416,8 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fra
 				dst += 3;
 			}
 		}
-		if (avi_out) {
 #ifndef GPAC_DISABLE_AVILIB
+		if (avi_out) {
 			if (AVI_write_frame(avi_out, conv_buf, fb.height*fb.width*3, 1) <0)
 				fprintf(stderr, "Error writing frame\n");
 		} else
@@ -591,8 +578,8 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fram
 		} else {
 			out_size = fb.height*fb.width*3;
 		}
-		if (avi_out) {
 #ifndef GPAC_DISABLE_AVILIB
+		if (avi_out) {
 			if (AVI_write_frame(avi_out, conv_buf, out_size, 1) <0)
 				fprintf(stderr, "Error writing frame\n");
 		} else 
@@ -692,13 +679,17 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 #ifndef GPAC_DISABLE_AVILIB
 	avi_t *avi_out = NULL;
 	avi_t *depth_avi_out = NULL;
-	GF_Mutex *avi_mx = NULL;
 	AVI_AudioListener avi_al;
+	char comp[5];
+#else
+	void *avi_out = NULL;
+	void *depth_avi_out = NULL;
 #endif
+	GF_Mutex *avi_mx = NULL;
+
 	FILE *sha_out = NULL;
 	FILE *sha_depth_out = NULL;
 	char szPath_depth[GF_MAX_PATH];
-	char comp[5];
 	u32 cur_time_idx;
 	u32 mode = dump_mode_flags & 0x0000FFFF;
 
@@ -841,12 +832,12 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	}
 
 	if (mode==DUMP_AVI) {
+		avi_mx = gf_mx_new("AVIMutex");
+
 #ifndef GPAC_DISABLE_AVILIB
 		comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
 		AVI_set_video(avi_out, width, height, fps, comp);
-
-		avi_mx = gf_mx_new("AVIMutex");
-		
+	
 		if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
 			memset(&avi_al, 0, sizeof(avi_al));
 			avi_al.al.udta = &avi_al;
@@ -926,7 +917,9 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 		nb_frames++;
 		time = (u32) (nb_frames*1000/fps);
+#ifndef GPAC_DISABLE_AVILIB
 		avi_al.next_video_time = init_time + time;
+#endif
 		gf_term_step_clocks(term, time - prev_time);
 		prev_time = time;
 
@@ -937,6 +930,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		}
 	}
 
+#ifndef GPAC_DISABLE_AVILIB
 	//flush audio dump
 	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
 		avi_al.flush_retry=0;
@@ -947,7 +941,6 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		}
 	}
 
-#ifndef GPAC_DISABLE_AVILIB
 	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
 		gf_sc_remove_audio_listener(term->compositor, &avi_al.al);
 	}
