@@ -1400,6 +1400,8 @@ static JSBool SMJS_FUNCTION(gpac_new_storage)
 				gf_list_add(gjs->storages, storage);
 			}
 		}
+
+		SMJS_FREE(c, storage_url);
 	}
 
 	if (!storage) {
@@ -1409,7 +1411,6 @@ static JSBool SMJS_FUNCTION(gpac_new_storage)
 	anobj = JS_NewObject(c, &gjs->storageClass._class, 0, 0);
 	SMJS_SET_PRIVATE(c, anobj, storage);
 
-	SMJS_FREE(c, service_url);
 
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(anobj) );
 	return JS_TRUE;
@@ -1711,7 +1712,6 @@ static JSBool SMJS_FUNCTION(gjs_storage_set_option)
 static JSBool SMJS_FUNCTION(gjs_storage_save)
 {
 	SMJS_OBJ
-	SMJS_ARGS
 	GF_Config *config = (GF_Config *)SMJS_GET_PRIVATE(c, obj);
 	if (!config) return JS_FALSE;
 
