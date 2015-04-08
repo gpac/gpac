@@ -973,6 +973,8 @@ GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *ts, u32 program_id);
 
 Bool gf_m2ts_crc32_check(char *data, u32 len);
 
+/*aborts parsing of the current data (typically needed when parsing done by a different thread). If force_reset_pes is set, all pending pes data is discarded*/
+void gf_m2ts_abort_parsing(GF_M2TS_Demuxer *ts, Bool force_reset_pes);
 
 
 typedef struct
