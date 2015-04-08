@@ -926,6 +926,9 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 are of same sizes (typically in 3GP speech tracks)*/
 GF_Err gf_isom_refresh_size_info(GF_ISOFile *file, u32 trackNumber);
 
+/*return the duration of the movie, 0 if error*/
+GF_Err gf_isom_update_duration(GF_ISOFile *the_file);
+
 /*Update Sample functions*/
 
 /*update a given sample of the media.
@@ -1016,6 +1019,9 @@ GF_Err gf_isom_remove_edit_segments(GF_ISOFile *the_file, u32 trackNumber);
 /*remove the given edit segment (1-based index). If this is not the last segment, the next segment duration
 is updated to maintain a continous timeline*/
 GF_Err gf_isom_remove_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 seg_index);
+
+/*Updates edit list after track edition: all edit entries with aduration or media starttime larger than the media duration are clamped to media duration*/
+GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track);
 
 /*
 				User Data Manipulation
@@ -1185,7 +1191,7 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 /*clones all sampleDescription entries in new track, after an optional reset of existing entries*/
 GF_Err gf_isom_clone_sample_descriptions(GF_ISOFile *the_file, u32 trackNumber, GF_ISOFile *orig_file, u32 orig_track, Bool reset_existing);
 
-/*special shortcut: clones a track (everything except media data and sample info (DTS? CTS, RAPs, etc...)
+/*special shortcut: clones a track (everything except media data and sample info (DTS, CTS, RAPs, etc...)
 also clones sampleDescriptions
 @keep_data_ref: if set, external data references are kept, otherwise they are removed (track media data will be self-contained)
 @dest_track: track number of cloned track*/

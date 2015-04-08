@@ -2301,6 +2301,13 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	if (i==num_samples) {
 		u32 dur = gf_isom_get_sample_duration(import->orig, track_in, num_samples);
 		gf_isom_set_last_sample_duration(import->dest, track, dur);
+	} else {
+		s64 mediaOffset;
+		if (gf_isom_get_edit_list_type(import->orig, track_in, &mediaOffset)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOBMF Import] Multiple edits found in source media, import may be broken\n"));
+		}
+		gf_isom_update_edit_list_duration(import->dest, track);
+		gf_isom_update_duration(import->dest);
 	}
 
 	if (gf_isom_has_time_offset(import->orig, track_in)==2) {
@@ -2308,6 +2315,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		if (e)
 			goto exit;
 	}
+
 
 	if (import->esd) {
 		if (!import->esd->slConfig) {
