@@ -710,6 +710,8 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 		}
 	}
 
+	gf_es_lock(ch, 0);
+
 	time = gf_term_get_time(ch->odm->term);
 	if (ch->BufferOn) {
 		ch->last_au_time = time;
@@ -721,8 +723,6 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 			ch->last_au_time = time;
 		}
 	}
-
-	gf_es_lock(ch, 0);
 }
 
 
