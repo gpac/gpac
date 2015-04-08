@@ -1120,6 +1120,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									}
 									if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 										ts_begin = (h*3600 + m*60+s)*1000+ms;
+									} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+										ts_begin = (h*3600 + m*60+s)*1000;
 									}
 								} else if (!strcmp(p_att->name, "end")) {
 									if (ts_end != -1) {
@@ -1128,6 +1130,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									}
 									if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 										ts_end = (h*3600 + m*60+s)*1000+ms;
+									} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+										ts_end = (h*3600 + m*60+s)*1000;
 									}
 								}
 								if ((ts_begin != -1) && (ts_end != -1) && !samp_text && sample_list_node) {
@@ -1154,6 +1158,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 											}
 											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 												ts_begin = (h*3600 + m*60+s)*1000+ms;
+											} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+												ts_begin = (h*3600 + m*60+s)*1000;
 											}
 										} else if (!strcmp(span_att->name, "end")) {
 											if (ts_end != -1) {
@@ -1162,6 +1168,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 											}
 											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 												ts_end = (h*3600 + m*60+s)*1000+ms;
+											} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+												ts_end = (h*3600 + m*60+s)*1000;
 											}
 										}
 										if ((ts_begin != -1) && (ts_end != -1) && !samp_text && sample_list_node) {
@@ -1246,6 +1254,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 exit:
 	gf_free(samp_text);
 	gf_xml_dom_del(parser_working_copy);
+	if (!gf_isom_get_sample_count(import->dest, track))
+		e = GF_BAD_PARAM;
 	return e;
 }
 
@@ -1426,10 +1436,16 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 	flusher.timescale = timescale;
 	flusher.descriptionIndex = descIndex;
 	gf_swf_reader_set_user_mode(read, &flusher, swf_svg_add_iso_sample, swf_svg_add_iso_header);
+
+	e = GF_NOT_SUPPORTED;
 	if (!import->streamFormat || (import->streamFormat && !stricmp(import->streamFormat, "SVG"))) {
+#ifndef GPAC_DISABLE_SVG
 		e = swf_to_svg_init(read, import->swf_flags, import->swf_flatten_angle);
+#endif
 	} else { /*if (import->streamFormat && !strcmp(import->streamFormat, "BIFS"))*/
+#ifndef GPAC_DISABLE_VRML
 		e = swf_to_bifs_init(read);
+#endif
 	}
 	if (e) {
 		goto exit;

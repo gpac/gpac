@@ -30,8 +30,8 @@ function load_widget(wid_url) {
   if (wid != null) {
     debug('Loading scene: '+wid.main);
     anim.setAttributeNS(xmlns_xlink, 'href', wid.main);
-    add_text_span(info, 'Widget Metadata');    
-    add_text_span(info, 'UA Locale: \'' + gpac.getOption('Systems', 'Language2CC') + '\'');
+    add_text_span(info, 'Widget Metadata');
+    add_text_span(info, 'UA Locale: \'' + gpac.get_option('Systems', 'Language2CC') + '\'');
     add_text_span(info, 'widget src (abs.): \'' + wid.url + '\'');
     add_text_span(info, 'config src (abs.): \'' + wid.manifest + '\'');
     add_text_span(info, 'content src (rel.&loc./abs.): \''+wid.main+'\' / \''+wid.localizedSrc+'\' ('+wid.mainMimeType+';'+wid.mainEncoding+')');

@@ -439,12 +439,6 @@ JSBool gf_sg_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp)
 GF_Node *dom_get_element(JSContext *c, JSObject *obj);
 #endif
 
-#ifndef GPAC_DISABLE_VRML
-
-/*MPEG4 & X3D tags (for node tables & script handling)*/
-#include <gpac/nodes_mpeg4.h>
-#include <gpac/nodes_x3d.h>
-
 
 JSBool gf_sg_script_to_node_field(struct JSContext *c, jsval v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
 jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent, Bool force_evaluate);
@@ -476,6 +470,12 @@ void do_js_gc(JSContext *c, GF_Node *node)
 	}
 }
 
+
+#ifndef GPAC_DISABLE_VRML
+
+/*MPEG4 & X3D tags (for node tables & script handling)*/
+#include <gpac/nodes_mpeg4.h>
+#include <gpac/nodes_x3d.h>
 
 void SFColor_fromHSV(SFColor *col)
 {
@@ -1147,58 +1147,6 @@ static JSBool SMJS_FUNCTION(createVrmlFromString)
 #else
 	return JS_FALSE;
 #endif
-}
-
-static JSBool SMJS_FUNCTION(getOption)
-{
-	JSString *s;
-	GF_JSAPIParam par;
-	GF_Node *sc_node = JS_GetContextPrivate(c);
-	Bool res;
-	SMJS_ARGS
-	if (argc < 2) return JS_FALSE;
-
-	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-
-	par.gpac_cfg.section = SMJS_CHARS(c, argv[0]);
-	par.gpac_cfg.key = SMJS_CHARS(c, argv[1]);
-	par.gpac_cfg.key_val = NULL;
-
-	res = ScriptAction(c, NULL, GF_JSAPI_OP_GET_OPT, sc_node->sgprivate->scenegraph->RootNode, &par);
-	SMJS_FREE(c, (char *)par.gpac_cfg.section);
-	SMJS_FREE(c, (char *)par.gpac_cfg.key);
-	if (!res) return JS_FALSE;
-
-	s = JS_NewStringCopyZ(c, par.gpac_cfg.key_val ? (const char *)par.gpac_cfg.key_val : "");
-	if (!s) return JS_FALSE;
-	SMJS_SET_RVAL( STRING_TO_JSVAL(s) );
-	return JS_TRUE;
-}
-
-static JSBool SMJS_FUNCTION(setOption)
-{
-	GF_JSAPIParam par;
-	GF_Node *sc_node = JS_GetContextPrivate(c);
-	Bool res;
-	SMJS_ARGS
-	if (argc < 3) return JS_FALSE;
-
-	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[2])) return JS_FALSE;
-
-	par.gpac_cfg.section = SMJS_CHARS(c, argv[0]);
-	par.gpac_cfg.key = SMJS_CHARS(c, argv[1]);
-	par.gpac_cfg.key_val = SMJS_CHARS(c, argv[2]);
-
-	res = ScriptAction(c, NULL, GF_JSAPI_OP_SET_OPT, sc_node->sgprivate->scenegraph->RootNode, &par);
-	SMJS_FREE(c, (char *)par.gpac_cfg.section);
-	SMJS_FREE(c, (char *)par.gpac_cfg.key);
-	SMJS_FREE(c, (char *)par.gpac_cfg.key_val);
-
-	if (!res) return JS_FALSE;
-	return JS_TRUE;
 }
 
 void gf_node_event_out_proto(GF_Node *node, u32 FieldIndex);
@@ -3392,8 +3340,6 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 			SMJS_FUNCTION_SPEC("createVrmlFromString", createVrmlFromString, 1),
 			SMJS_FUNCTION_SPEC("setDescription", setDescription, 1),
 			SMJS_FUNCTION_SPEC("print",           JSPrint,          1),
-			SMJS_FUNCTION_SPEC("getOption",  getOption,          2),
-			SMJS_FUNCTION_SPEC("setOption",  setOption,          3),
 			SMJS_FUNCTION_SPEC("getScript",  getScript,          0),
 			SMJS_FUNCTION_SPEC("getProto",  getProto,          0),
 			SMJS_FUNCTION_SPEC("loadScript",  loadScript,          1),
@@ -5113,7 +5059,7 @@ Bool gf_sg_try_lock_javascript(struct JSContext *cx)
 
 GF_Err gf_scene_execute_script(GF_SceneGraph *sg, const char *com)
 {
-#ifdef GPAC_HAS_SPIDERMONKEY
+#if defined(GPAC_HAS_SPIDERMONKEY) && !defined(GPAC_DISABLE_SVG)
 	u32 tag;
 	GF_Err e;
 	GF_Node *root = gf_sg_get_root_node(sg);

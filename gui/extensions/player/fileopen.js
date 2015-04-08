@@ -97,7 +97,7 @@ extension.open_local_file = function () {
                 item.on_click = function () {
                     var fb_dlg = this.dlg.dlg;
                     fb_dlg.extension.history.splice(this.index, 1);
-                    gpac.set_option('GUI', 'PlaybackHistory', gwskin.stringify(fb_dlg.extension.history));
+                    fb_dlg.extension.set_option('PlaybackHistory', gwskin.stringify(fb_dlg.extension.history));
                     fb_dlg.go_hist.on_click();
                     this.dlg.close();
                 }
@@ -111,7 +111,7 @@ extension.open_local_file = function () {
                 item.on_click = function () {
                     var fb_dlg = this.dlg.dlg;
                     fb_dlg.extension.history = [];
-                    gpac.set_option('GUI', 'PlaybackHistory', gwskin.stringify(fb_dlg.extension.history));
+                    fb_dlg.extension.set_option('PlaybackHistory', gwskin.stringify(fb_dlg.extension.history));
                     fb_dlg.close();
                     this.dlg.close();
                 }
@@ -126,7 +126,7 @@ extension.open_local_file = function () {
                 var fb_dlg = this.dlg.dlg;
                 if (this.index > -1) {
                     fb_dlg.extension.bookmarks.splice(this.index, 1);
-                    gpac.set_option('GUI', 'Bookmarks', gwskin.stringify(fb_dlg.extension.bookmarks));
+                    fb_dlg.extension.set_option('Bookmarks', gwskin.stringify(fb_dlg.extension.bookmarks));
                     if (fb_dlg.extension.bookmarks.length == 0) {
                         fb_dlg.go_fav.hide();
                         fb_dlg.browse(fb_dlg.directory);
@@ -232,5 +232,5 @@ extension.add_bookmark = function (url, is_history) {
             }
         }
 
-        gpac.set_option('GUI', is_history ? 'PlaybackHistory' : 'Bookmarks', gwskin.stringify(store));
+        this.set_option(is_history ? 'PlaybackHistory' : 'Bookmarks', gwskin.stringify(store));
     };

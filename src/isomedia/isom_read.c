@@ -546,30 +546,13 @@ u32 gf_isom_get_timescale(GF_ISOFile *movie)
 GF_EXPORT
 u64 gf_isom_get_duration(GF_ISOFile *movie)
 {
-#ifndef GPAC_DISABLE_ISOM_WRITE
-	u32 i;
-	u64 maxDur;
-	GF_TrackBox *trak;
-#endif
-
 	if (!movie || !movie->moov) return 0;
 
 	//if file was open in Write or Edit mode, recompute the duration
 	//the duration of a movie is the MaxDuration of all the tracks...
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-
-	if (movie->openMode != GF_ISOM_OPEN_READ) {
-		maxDur = 0;
-		i=0;
-		while ((trak = (GF_TrackBox *)gf_list_enum(movie->moov->trackList, &i))) {
-			if( (movie->LastError = SetTrackDuration(trak))	) return 0;
-			if (trak->Header->duration > maxDur)
-				maxDur = trak->Header->duration;
-		}
-		movie->moov->mvhd->duration = maxDur;
-	}
-
+	gf_isom_update_duration(movie);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 	return movie->moov->mvhd->duration;

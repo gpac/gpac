@@ -324,6 +324,8 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 #endif
 }
 
+#ifndef GPAC_DISABLE_ISOM
+
 static GF_Err dc_gpac_video_write_config(VideoOutputFile *video_output_file, u32 *di, u32 track) {
 	GF_Err ret;
 	if (video_output_file->codec_ctx->codec_id == CODEC_ID_H264) {
@@ -565,6 +567,9 @@ int dc_gpac_video_isom_close(VideoOutputFile *video_output_file)
 	return 0;
 }
 
+#endif
+
+
 int dc_raw_h264_open(VideoOutputFile *video_output_file, char *filename)
 {
 	video_output_file->file = gf_fopen(filename, "w");
@@ -716,8 +721,11 @@ int dc_video_muxer_init(VideoOutputFile *video_output_file, VideoDataConf *video
 	snprintf(name, sizeof(name), "video encoder %s", video_data_conf->filename);
 	dc_consumer_init(&video_output_file->consumer, video_cb_size, name);
 
+#ifndef GPAC_DISABLE_ISOM
 	video_output_file->sample = gf_isom_sample_new();
 	video_output_file->isof = NULL;
+#endif
+
 	video_output_file->muxer_type = muxer_type;
 
 	video_output_file->frame_per_segment = frame_per_segment;
@@ -736,12 +744,13 @@ int dc_video_muxer_init(VideoOutputFile *video_output_file, VideoDataConf *video
 
 int dc_video_muxer_free(VideoOutputFile *video_output_file)
 {
+#ifndef GPAC_DISABLE_ISOM
 	if (video_output_file->isof != NULL) {
 		gf_isom_close(video_output_file->isof);
 	}
 
 	gf_isom_sample_del(&video_output_file->sample);
-
+#endif
 	return 0;
 }
 
@@ -756,6 +765,7 @@ GF_Err dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, 
 	case RAW_VIDEO_H264:
 		snprintf(name, sizeof(name), "%s/%s_%d.264", directory, id_name, seg);
 		return dc_raw_h264_open(video_output_file, name);
+#ifndef GPAC_DISABLE_ISOM
 	case GPAC_VIDEO_MUXER:
 		snprintf(name, sizeof(name), "%s/%s_%d_gpac.mp4", directory, id_name, seg);
 		dc_gpac_video_moov_create(video_output_file, name);
@@ -776,6 +786,7 @@ GF_Err dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, 
 		}
 		snprintf(name, sizeof(name), "%s/%s_%d_gpac.m4s", directory, id_name, seg);
 		return dc_gpac_video_isom_open_seg(video_output_file, name);
+#endif
 	default:
 		return GF_BAD_PARAM;
 	};
@@ -785,16 +796,17 @@ GF_Err dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, 
 
 int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 ntp_timestamp)
 {
-	GF_Err ret;
 	switch (video_output_file->muxer_type) {
 	case FFMPEG_VIDEO_MUXER:
 		return dc_ffmpeg_video_muxer_write(video_output_file);
 	case RAW_VIDEO_H264:
 		return dc_raw_h264_write(video_output_file);
+#ifndef GPAC_DISABLE_ISOM
 	case GPAC_VIDEO_MUXER:
 	case GPAC_INIT_VIDEO_MUXER_AVC1:
 	case GPAC_INIT_VIDEO_MUXER_AVC3:
 		if (video_output_file->use_source_timing) {
+			GF_Err ret;
 			if (!video_output_file->fragment_started) {
 				video_output_file->fragment_started = 1;
 				ret = gf_isom_start_fragment(video_output_file->isof, 1);
@@ -885,6 +897,8 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 n
 			return 1;
 
 		return 0;
+#endif
+
 	default:
 		return -2;
 	}
@@ -902,12 +916,14 @@ int dc_video_muxer_close(VideoOutputFile *video_output_file)
 		return dc_ffmpeg_video_muxer_close(video_output_file);
 	case RAW_VIDEO_H264:
 		return dc_raw_h264_close(video_output_file);
+#ifndef GPAC_DISABLE_ISOM
 	case GPAC_VIDEO_MUXER:
 		dc_gpac_video_isom_close_seg(video_output_file);
 		return dc_gpac_video_isom_close(video_output_file);
 	case GPAC_INIT_VIDEO_MUXER_AVC1:
 	case GPAC_INIT_VIDEO_MUXER_AVC3:
 		return dc_gpac_video_isom_close_seg(video_output_file);
+#endif
 	default:
 		return -2;
 	}

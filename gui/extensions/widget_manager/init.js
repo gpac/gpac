@@ -186,7 +186,7 @@ function display_widget_info(wid)
 		gw_new_text(info_dlg.area, 'Widget was pushed from device IP '+wid.originating_device_ip, 'text' );
 	}
 	gw_new_text(info_dlg.area, 'Section name in GPAC config file: '+wid.section, 'text' );
-	gw_new_text(info_dlg.area, 'UA Locale: ' + gpac.getOption('Systems', 'LanguageName') + ' ('+ gpac.getOption('Systems', 'Language2CC')+ ')', 'text' );
+	gw_new_text(info_dlg.area, 'UA Locale: ' + gpac.get_option('Systems', 'LanguageName') + ' (' + gpac.get_option('Systems', 'Language2CC') + ')', 'text');
 	gw_new_text(info_dlg.area, 'widget src: ' + wid.url , 'text');
 	gw_new_text(info_dlg.area, 'config src: ' + wid.manifest , 'text');
 	gw_new_text(info_dlg.area, 'content src : '+wid.localizedSrc, 'text' );
@@ -208,7 +208,7 @@ function display_widget_info(wid)
   	info = collapsable_list(info_dlg, 'Preferences');
   	for (j=0; j<pref.length; j++) {
   		var val = pref[j].value;
-  		if (val=='') val = gpac.getOption(wid.section, pref[j].name);
+  		if (val == '') val = gpac.get_option(wid.section, pref[j].name);
   		gw_new_text(info_dlg.area, 'Preference #'+(j+1)+' name=\''+pref[j].name+'\' value=\''+val+'\' readOnly=\''+pref[j].readonly +'\'', 'text');
   	}
   	info.last_idx = info_dlg.area.get_children().length;
