@@ -1120,6 +1120,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									}
 									if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 										ts_begin = (h*3600 + m*60+s)*1000+ms;
+									} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+										ts_begin = (h*3600 + m*60+s)*1000;
 									}
 								} else if (!strcmp(p_att->name, "end")) {
 									if (ts_end != -1) {
@@ -1128,6 +1130,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									}
 									if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 										ts_end = (h*3600 + m*60+s)*1000+ms;
+									} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+										ts_end = (h*3600 + m*60+s)*1000;
 									}
 								}
 								if ((ts_begin != -1) && (ts_end != -1) && !samp_text && sample_list_node) {
@@ -1154,6 +1158,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 											}
 											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 												ts_begin = (h*3600 + m*60+s)*1000+ms;
+											} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+												ts_begin = (h*3600 + m*60+s)*1000;
 											}
 										} else if (!strcmp(span_att->name, "end")) {
 											if (ts_end != -1) {
@@ -1162,6 +1168,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 											}
 											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 												ts_end = (h*3600 + m*60+s)*1000+ms;
+											} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+												ts_end = (h*3600 + m*60+s)*1000;
 											}
 										}
 										if ((ts_begin != -1) && (ts_end != -1) && !samp_text && sample_list_node) {
@@ -1246,6 +1254,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 exit:
 	gf_free(samp_text);
 	gf_xml_dom_del(parser_working_copy);
+	if (!gf_isom_get_sample_count(import->dest, track))
+		e = GF_BAD_PARAM;
 	return e;
 }
 
