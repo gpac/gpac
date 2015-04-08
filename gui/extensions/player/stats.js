@@ -1,4 +1,11 @@
 
+extension.reload_stats = function () {
+    if (this.stat_wnd) {
+        this.stat_wnd.reload_request = true;
+        this.stat_wnd.close();
+    }
+}
+
 extension.view_stats = function () {
     if (this.stat_wnd) {
         this.stat_wnd.close();
@@ -10,6 +17,7 @@ extension.view_stats = function () {
     gw_object_set_dragable(wnd);
     this.stat_wnd = wnd;
     wnd.extension = this;
+    wnd.reload_request = false;
 
     wnd.area = gw_new_grid_container(wnd);
     wnd.area.break_at_hidden = true;
@@ -413,7 +421,12 @@ extension.view_stats = function () {
     wnd.on_close = function () {
         this.timer.stop();
         this.objs = [];
-        this.extension.stat_wnd = null;
+        if (this.reload_request) {
+            this.extension.stat_wnd = null;
+            this.extension.view_stats();
+        } else {
+            this.extension.stat_wnd = null;
+        }
     }
 
     wnd.timer = gw_new_timer(false);
@@ -455,7 +468,7 @@ extension.view_stats = function () {
     wnd.timer.on_event = function (val) {
         var wnd = this.wnd;
         var nb_buff = 0;
-       
+
         var stat_obj = null;
         //stats every second
         if (!(val % 4)) {
@@ -482,7 +495,7 @@ extension.view_stats = function () {
 
         for (var i = 0; i < wnd.objs.length; i++) {
             var m = wnd.objs[i];
-            
+
             if (m.gui.buffer) {
                 var label = ' ' + m.type;
                 label += ' ID ' + m.ID;
@@ -499,9 +512,9 @@ extension.view_stats = function () {
                     bl = 100 * buf / m.max_buffer;
 
                     if (stat_obj) {
-//                        if (stat_obj.buffer < buf) {
-//                            stat_obj.buffer = buf;
-//                        }
+                        //                        if (stat_obj.buffer < buf) {
+                        //                            stat_obj.buffer = buf;
+                        //                        }
 
                         stat_obj.buffer += buf;
                         nb_buff++;
@@ -513,9 +526,9 @@ extension.view_stats = function () {
                 m.gui.buffer.set_label('' + Math.round(m.buffer / 10) / 100 + ' s');
 
                 if (stat_obj) {
-                  bl = m.ntp_diff;
-                  if (bl > stat_obj.ntp_diff) 
-                    stat_obj.ntp_diff = bl;
+                    bl = m.ntp_diff;
+                    if (bl > stat_obj.ntp_diff)
+                        stat_obj.ntp_diff = bl;
                 }
             }
 
@@ -544,7 +557,7 @@ extension.view_stats = function () {
             if (wnd.s_ntp) {
                 wnd.s_ntp.refresh_serie(this.wnd.stats, 'time', 'ntp_diff', wnd.stats_window, 3);
             }
-            
+
             wnd.s_cpu.refresh_serie(wnd.stats, 'time', 'cpu', wnd.stats_window, 10);
             wnd.s_mem.refresh_serie(wnd.stats, 'time', 'memory', wnd.stats_window, 6);
         }

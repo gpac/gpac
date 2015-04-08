@@ -226,7 +226,7 @@ u32 gf_dash_group_get_time_shift_buffer_depth(GF_DashClient *dash, u32 idx);
 
 /*get current time in time shift buffer in seconds - 0 means 'live point'
 this gets the maximum value (further in the past) of all representations playing*/
-u32 gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash);
+Double gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash);
 
 typedef enum
 {

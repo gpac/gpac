@@ -1605,8 +1605,13 @@ void gf_odm_play(GF_ObjectManager *odm)
 			com.play.initial_broadcast_play = 0;
 			//addon timing is resolved against timestamps, not media time
 			if (start_range_is_clock) {
-				ck_time = gf_clock_time(ch->clock);
-				ck_time /= 1000;
+				if (!gf_clock_is_started(ch->clock)) {
+					ck_time = (Double) odm->parentscene->root_od->addon->media_pts;
+					ck_time /= 90000;
+				} else {
+					ck_time = gf_clock_time(ch->clock);
+					ck_time /= 1000;
+				}
 			}
 			ck_time = gf_scene_adjust_time_for_addon(odm->parentscene, ck_time, odm->parentscene->root_od->addon, &com.play.timestamp_based);
 			//we are having a play request for an addon without the main content being active - we no longer have timestamp info from the main content
@@ -1773,8 +1778,8 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 #endif
 
 	GF_NetworkCommand com;
-
-	if (!odm->state) return;
+	//root ODs of dynamic scene may not have seen play/pause request 
+	if (!odm->state && (!odm->subscene || !odm->subscene->is_dynamic_scene) ) return;
 
 #if 0
 	/*Handle broadcast environment, do not stop the object if no time control and instruction
