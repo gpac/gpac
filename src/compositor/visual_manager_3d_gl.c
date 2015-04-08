@@ -1027,7 +1027,6 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 {
 	GF_SHADERID glsl_fragment;
 	u32 i;
-	GLint loc;
 	Bool working = 0;	//¡k temp bool for testing
 	GLint err_log = -10;	//¡k error log
 	GLsizei log_len = 0; //¡k
@@ -2039,7 +2038,7 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 	u32 i;
 	GF_LightInfo *li;
 	GF_Vec pt;
-	Float ambientIntensity, intensity;//, attenuation;
+	Float ambientIntensity, intensity;
 	Float vals[4];
 	GLint loc;
 	GF_Matrix mx;
@@ -2057,7 +2056,7 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 	 */
 	loc = my_glGetUniformLocation(visual->glsl_program, "gfLightTwoSide");
 	if (loc>=0)
-		glUniform1i(loc, FIX_ONE);
+		glUniform1i(loc, 1);
 	GL_CHECK_ERR
 
 	li = &visual->lights[0];
@@ -2276,7 +2275,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 {
 	GF_VisualManager *visual = tr_state->visual;
 	GF_VisualManager *vsl = visual->compositor->visual;	//we use the compositor visual for the shader stuff
-	int i;
 	GLint loc, loc_vertex_array, loc_color_array, loc_normal_array, loc_textcoord_array;
 	u32 flags;
 	Bool has_tx = 0;
