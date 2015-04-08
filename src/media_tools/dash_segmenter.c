@@ -1799,8 +1799,6 @@ restart_fragmentation_pass:
 		total_seg_dur += SegmentDuration;
 		last_seg_dur = SegmentDuration;
 
-		segment_start_time += SegmentDuration;
-
 		gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, GF_TRUE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
 		nb_segments++;
 
