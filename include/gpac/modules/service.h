@@ -439,6 +439,10 @@ typedef struct
 	const char *next_url_init_or_switch_segment;
 	u64 switch_start_range, switch_end_range;
 
+	/*set to key URL for current segment, or NULL if none*/
+	const char *key_url;
+	/*set to key IV for current segment, or NULL if none*/
+	bin128 *key_IV;
 
 	Bool has_next;
 	/*module->proxy: indicates that currently downloaded segment should be checked.

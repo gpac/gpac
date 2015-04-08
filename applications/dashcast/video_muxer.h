@@ -36,7 +36,6 @@
 
 #include "video_scaler.h"
 
-
 typedef enum {
 	FFMPEG_VIDEO_MUXER,
 	RAW_VIDEO_H264,
@@ -61,8 +60,11 @@ typedef struct {
 
 	FILE *file;
 
+#ifndef GPAC_DISABLE_ISOM
 	GF_ISOFile *isof;
 	GF_ISOSample *sample;
+#endif
+
 	u32 trackID;
 	/* Index of the video stream in the file */
 	int vstream_idx;

@@ -258,6 +258,8 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 
 			else {
 				char_template+=1;
+				if (c=='\\') c = '/';
+				
 				sprintf(tmp, "%c", c);
 				strcat(segment_name, tmp);
 			}
@@ -278,7 +280,38 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		strcat(segment_name, ".");
 		strcat(segment_name, seg_ext);
 	}
+
+	if ((seg_type != GF_DASH_TEMPLATE_TEMPLATE) && (seg_type != GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE)) {
+		char *sep = strrchr(segment_name, '/');
+		if (sep) {
+			char c = sep[0];
+			sep[0] = 0;
+			if (!gf_dir_exists(segment_name)) {
+				gf_mkdir(segment_name);
+			}
+			sep[0] = c;
+		}
+	}
+
 	return GF_OK;
+}
+
+const char *gf_dasher_strip_output_dir(const char *mpd_url, const char *path)
+{
+	char c;
+	const char *res;
+	char *sep = strrchr(mpd_url, '/');
+	if (!sep) sep = strrchr(mpd_url, '\\');
+	if (!sep) return path;
+	c = sep[0];
+	sep[0] = 0;
+	if (!strncmp(mpd_url, path, strlen(mpd_url))) {
+		res = path + strlen(mpd_url) + 1;
+	} else {
+		res = path;
+	}
+	sep[0] = c;
+	return res;
 }
 
 GF_Err gf_dasher_store_segment_info(GF_DASHSegmenterOptions *dash_cfg, const char *representationID, const char *SegmentName, u64 segStartTime, u64 segDuration)
@@ -681,7 +714,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	if (dash_cfg->bs_switch_segment_file) {
 		bs_switch_segment = gf_isom_open(dash_cfg->bs_switch_segment_file, GF_ISOM_OPEN_READ, NULL);
 		if (bs_switch_segment) {
-			bs_switching_segment_name = gf_url_get_resource_name(dash_cfg->bs_switch_segment_file);
+			bs_switching_segment_name = gf_dasher_strip_output_dir(dash_cfg->mpd_name, dash_cfg->bs_switch_segment_file);
 			is_bs_switching = GF_TRUE;
 		}
 	}
@@ -752,7 +785,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 				gf_isom_delete(bs_switch_segment);
 			bs_switch_segment = output;
 			bs_switching_is_output = GF_TRUE;
-			bs_switching_segment_name = gf_url_get_resource_name(gf_isom_get_filename(bs_switch_segment));
+			bs_switching_segment_name = gf_dasher_strip_output_dir(dash_cfg->mpd_name, gf_isom_get_filename(bs_switch_segment));
 		}
 
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "Bandwidth");
@@ -1263,7 +1296,7 @@ restart_fragmentation_pass:
 					}
 
 					if (!use_url_template) {
-						const char *name = gf_url_get_resource_name(SegmentName);
+						const char *name = gf_dasher_strip_output_dir(dash_cfg->mpd_name, SegmentName);
 						sprintf(szMPDTempLine, "     <SegmentURL media=\"%s\"/>\n", name );
 						gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 						if (dash_cfg->dash_ctx) {
@@ -1543,9 +1576,10 @@ restart_fragmentation_pass:
 				} else if (tf==tfref) {
 					/*fragmenting on "clock" track: no drift control*/
 					if (!dash_cfg->fragments_start_with_rap || ( tf->splitable && split_sample_duration ) || ( (next && next->IsRAP) || split_at_rap) ) {
-						if ((tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale) ||
-							/* if the current fragment makes the segment longer than required, stop the current fragment */
-							(SegmentDuration + (tf->FragmentLength * dash_cfg->dash_scale / tf->TimeScale) >= MaxSegmentDuration)) {
+						if ((tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale)
+							/* if we don't split segment at rap and if the current fragment makes the segment longer than required, stop the current fragment */
+							|| (!split_seg_at_rap && (SegmentDuration + (tf->FragmentLength * dash_cfg->dash_scale / tf->TimeScale) >= MaxSegmentDuration))
+						) {
 							stop_frag = GF_TRUE;
 						}
 					}
@@ -1593,10 +1627,10 @@ restart_fragmentation_pass:
 		SegmentDuration += maxFragDurationOverSegment;
 		maxFragDurationOverSegment=0;
 
-		/*if no simulation and no SIDX is used, flush fragments as we write them*/
-		if (!simulation_pass && (dash_cfg->subsegs_per_sidx<=0) ) {
+		/*if no simulation and no SIDX or realtime is used, flush fragments as we write them*/
+		if (!simulation_pass && ((dash_cfg->subsegs_per_sidx<0) || dash_cfg->real_time) ) {
+
 			if (tfref && dash_cfg->real_time) {
-				u64 now=0;
 				u64 end_time = tfref->InitialTSOffset + tfref->next_sample_dts - tfref->DefaultDuration;
 				end_time *= 1000;
 				end_time /= tfref->TimeScale;
@@ -1687,8 +1721,11 @@ restart_fragmentation_pass:
 				u64 idx_start_range, idx_end_range;
 				Bool last_segment = flush_all_samples ? GF_TRUE : GF_FALSE;
 
-				if (dash_cfg->force_period_end && dash_cfg->subduration && (segment_start_time + MaxSegmentDuration/2 >= dash_cfg->dash_scale * dash_cfg->subduration)) {
-					last_segment = GF_TRUE;
+				if (dash_cfg->subduration && (segment_start_time + MaxSegmentDuration/2 >= dash_cfg->dash_scale * dash_cfg->subduration)) {
+					//onDemand with subdur: if we are done dashing the content set last segment to TRUE to flush sidx
+					//live and end of period forced, force last segment 
+					if (dash_cfg->force_period_end || (dash_cfg->single_file_mode==1) )
+						last_segment = GF_TRUE;
 				}
 
 				gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, last_segment, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
@@ -1761,8 +1798,6 @@ restart_fragmentation_pass:
 
 		total_seg_dur += SegmentDuration;
 		last_seg_dur = SegmentDuration;
-
-		segment_start_time += SegmentDuration;
 
 		gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, GF_TRUE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
 		nb_segments++;
@@ -1847,7 +1882,7 @@ restart_fragmentation_pass:
 	if (use_url_template) {
 		/*segment template does not depend on file name, write the template at the adaptationSet level*/
 		if (!dash_cfg->variable_seg_rad_name && first_in_set) {
-			const char *rad_name = gf_url_get_resource_name(seg_rad_name);
+			const char *rad_name = gf_dasher_strip_output_dir(dash_cfg->mpd_name, seg_rad_name);
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, 0, 0, dash_cfg->use_segment_timeline);
 			fprintf(dash_cfg->mpd, "   <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", mpd_timeline_bs ? dash_cfg->dash_scale : mpd_timescale, SegmentName, startNumber);
 			if (dash_cfg->ast_offset_ms<0) {
@@ -2011,7 +2046,7 @@ restart_fragmentation_pass:
 	if (use_url_template) {
 		/*segment template depends on file name, but the template at the representation level*/
 		if (dash_cfg->variable_seg_rad_name) {
-			const char *rad_name = gf_url_get_resource_name(seg_rad_name);
+			const char *rad_name = gf_dasher_strip_output_dir(dash_cfg->mpd_name, seg_rad_name);
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, bandwidth, 0, dash_cfg->use_segment_timeline);
 			fprintf(dash_cfg->mpd, "    <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", dash_cfg->use_segment_timeline ? dash_cfg->dash_scale : mpd_timescale, SegmentName, startNumber);
 			if (!dash_cfg->use_segment_timeline) {
@@ -2044,7 +2079,7 @@ restart_fragmentation_pass:
 			}
 		}
 	} else if (dash_cfg->single_file_mode==1) {
-		fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", gf_url_get_resource_name( gf_isom_get_filename(output) ) );
+		fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", gf_dasher_strip_output_dir(dash_cfg->mpd_name,  gf_isom_get_filename(output) ) );
 		fprintf(dash_cfg->mpd, "    <SegmentBase indexRangeExact=\"true\" indexRange=\"%d-%d\"", index_start_range, index_end_range);
 		if (presentationTimeOffset)
 			fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
@@ -2057,7 +2092,7 @@ restart_fragmentation_pass:
 		}
 	} else {
 		if (!seg_rad_name) {
-			fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", gf_url_get_resource_name( gf_isom_get_filename(output) ) );
+			fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", gf_dasher_strip_output_dir(dash_cfg->mpd_name,  gf_isom_get_filename(output) ) );
 		}
 		fprintf(dash_cfg->mpd, "    <SegmentList");
 		if (!mpd_timeline_bs) {
@@ -2076,7 +2111,7 @@ restart_fragmentation_pass:
 			if (!seg_rad_name) {
 				fprintf(dash_cfg->mpd, " range=\"0-"LLD"\"", init_seg_size-1);
 			} else {
-				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switching, SegmentName, output_file, dash_input->representationID, gf_url_get_resource_name( seg_rad_name) , !stricmp(seg_ext, "null") ? NULL : "mp4", 0, bandwidth, 0, dash_cfg->use_segment_timeline);
+				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switching, SegmentName, output_file, dash_input->representationID, gf_dasher_strip_output_dir(dash_cfg->mpd_name,  seg_rad_name) , !stricmp(seg_ext, "null") ? NULL : "mp4", 0, bandwidth, 0, dash_cfg->use_segment_timeline);
 				fprintf(dash_cfg->mpd, " sourceURL=\"%s\"", SegmentName);
 			}
 			fprintf(dash_cfg->mpd, "/>\n");
@@ -3509,7 +3544,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	u32 bandwidth = 0;
 	u32 segment_index;
 	/*compute name for indexed segments*/
-	const char *basename = gf_url_get_resource_name(szOutName);
+	const char *basename = gf_dasher_strip_output_dir(dash_cfg->mpd_name, szOutName);
 
 	/*perform indexation of the file, this info will be destroyed at the end of the segment file routine*/
 	e = dasher_get_ts_demux(&ts_seg, dash_input->file_name, 0);
@@ -3622,7 +3657,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	m2ts_sidx_finalize_size(&ts_seg, ts_seg.file_size);
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH]: Indexing done (1 sidx, %d entries).\n", ts_seg.sidx->nb_refs));
 
-	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, GF_TRUE, IdxName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "six", 0, 0, 0, dash_cfg->use_segment_timeline);
+	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, GF_TRUE, IdxName, basename, dash_input->representationID, gf_dasher_strip_output_dir(dash_cfg->mpd_name, dash_cfg->seg_rad_name), "six", 0, 0, 0, dash_cfg->use_segment_timeline);
 
 
 	memset(is_pes, 0, sizeof(u8)*GF_M2TS_MAX_STREAMS);
@@ -3663,12 +3698,12 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 	/*write segment template for all representations*/
 	if (first_in_set && dash_cfg->seg_rad_name && dash_cfg->use_url_template && !dash_cfg->variable_seg_rad_name) {
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, GF_TRUE, SegName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, GF_TRUE, SegName, basename, dash_input->representationID, gf_dasher_strip_output_dir(dash_cfg->mpd_name, dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 		fprintf(dash_cfg->mpd, "   <SegmentTemplate timescale=\"90000\" duration=\"%d\" startNumber=\"%d\" media=\"%s\"", (u32) (90000*dash_cfg->segment_duration), segment_index, SegName);
 				//the SIDX we have is not compatible with the spec - until fixed, disable this
 #if 0
 		if (!dash_cfg->dash_ctx) {
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE, 1, IdxName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "six", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE, 1, IdxName, basename, dash_input->representationID, gf_dasher_strip_output_dir(dash_cfg->mpd_name, dash_cfg->seg_rad_name), "six", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 			fprintf(dash_cfg->mpd, " index=\"%s\"", IdxName);
 		}
 #endif
@@ -3719,7 +3754,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 
 	if (dash_cfg->single_file_mode==1) {
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, basename, dash_input->representationID, gf_dasher_strip_output_dir(dash_cfg->mpd_name, dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 		fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", SegName);
 
 		fprintf(dash_cfg->mpd, "    <SegmentBase>\n");
@@ -3731,13 +3766,13 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	} else {
 		if (dash_cfg->seg_rad_name && dash_cfg->use_url_template) {
 			if (dash_cfg->variable_seg_rad_name) {
-				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, GF_TRUE, SegName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
+				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, GF_TRUE, SegName, basename, dash_input->representationID, gf_dasher_strip_output_dir(dash_cfg->mpd_name, dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 				fprintf(dash_cfg->mpd, "    <SegmentTemplate timescale=\"90000\" duration=\"%d\" startNumber=\"%d\" media=\"%s\"", (u32) (90000*dash_cfg->segment_duration), segment_index, SegName);
 
 				//the SIDX we have is not compatible with the spec - until fixed, disable this
 #if 0
 				if (!dash_cfg->dash_ctx) {
-					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE, 1, IdxName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "six", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
+					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION_TEMPLATE, 1, IdxName, basename, dash_input->representationID, gf_dasher_strip_output_dir(dash_cfg->mpd_name, dash_cfg->seg_rad_name), "six", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 					fprintf(dash_cfg->mpd, " index=\"%s\"", IdxName);
 				}
 #endif
@@ -3754,7 +3789,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH]: PTSOffset "LLD" - startNumber %d - time %g\n", presentationTimeOffset - 1, segment_index, (Double) (s64) (ts_seg.sidx->earliest_presentation_time + pcr_shift) / 90000.0));
 			}
 		} else {
-			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, basename, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
+			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, basename, dash_input->representationID, gf_dasher_strip_output_dir(dash_cfg->mpd_name, dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 			if (dash_cfg->single_file_mode)
 				fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n",SegName);
 			fprintf(dash_cfg->mpd, "    <SegmentList timescale=\"90000\" duration=\"%d\"", (u32) (90000*dash_cfg->segment_duration));
@@ -3877,7 +3912,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		u64 fsize, done;
 		char buf[NB_TSPCK_IO_BYTES];
 
-		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, dash_cfg->seg_rad_name ? basename : szOutName, dash_input->representationID, gf_url_get_resource_name(dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
+		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, dash_cfg->seg_rad_name ? basename : szOutName, dash_input->representationID, gf_dasher_strip_output_dir(dash_cfg->mpd_name, dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 		out = gf_fopen(SegName, "wb");
 		if (!out) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot create segment file %s\n", SegName));
@@ -4363,7 +4398,7 @@ static GF_Err write_period_header(FILE *mpd, const char *szID, Double period_sta
 
 static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool use_url_template, u32 single_file_mode,
                                       GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 period_num, u32 adaptation_set_num, u32 first_rep_in_set,
-                                      Bool bitstream_switching_mode, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang, const char *szInitSegment, Bool segment_alignment_disabled)
+                                      Bool bitstream_switching_mode, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang, const char *szInitSegment, Bool segment_alignment_disabled, const char *mpd_name)
 {
 	u32 i, j;
 	Bool is_on_demand = ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND));
@@ -4474,7 +4509,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 
 		if (bitstream_switching_mode && !use_url_template && (single_file_mode!=1) && strlen(szInitSegment) ) {
 			fprintf(mpd, "   <SegmentList>\n");
-			fprintf(mpd, "    <Initialization sourceURL=\"%s\"/>\n", gf_url_get_resource_name( szInitSegment ));
+			fprintf(mpd, "    <Initialization sourceURL=\"%s\"/>\n", gf_dasher_strip_output_dir(mpd_name,  szInitSegment ));
 			fprintf(mpd, "   </SegmentList>\n");
 		}
 	}
@@ -5150,7 +5185,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	dash_opts.no_fragments_defaults = no_fragments_defaults;
 	dash_opts.insert_utc = insert_utc;
 	dash_opts.real_time = real_time;
-	
+	dash_opts.mpd_name = mpdfile;
 
 	max_comp_per_input = 0;
 	for (cur_period=0; cur_period<max_period; cur_period++) {
@@ -5482,9 +5517,11 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					}
 
 					if (dash_inputs[i].components[j].lang) {
-						if (lang && strcmp(lang, dash_inputs[i].components[j].lang)) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] two languages in adaptation set: %s will be kept %s will be ignored\n", lang, dash_inputs[i].components[j].lang));
-						} else  if (!lang) {
+						if (lang && strcmp(lang, dash_inputs[i].components[j].lang) ) {
+							if (!strcmp(lang, "und") || !strcmp(dash_inputs[i].components[j].lang, "lang")) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] two languages in adaptation set: %s will be kept %s will be ignored\n", lang, dash_inputs[i].components[j].lang));
+							}
+						} else if (!lang) {
 							lang = gf_strdup(dash_inputs[i].components[j].lang);
 						}
 					}
@@ -5502,7 +5539,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					sprintf(szFPS, "%d", fps_num);
 			}
 
-			e = write_adaptation_header(period_mpd, dash_profile, use_url_template, segment_mode, dash_inputs, nb_dash_inputs, cur_period+1, cur_adaptation_set+1, first_rep_in_set, use_bs_switching, max_width, max_height, szFPS, lang, szInit, dash_opts.segment_alignment_disabled);
+			e = write_adaptation_header(period_mpd, dash_profile, use_url_template, segment_mode, dash_inputs, nb_dash_inputs, cur_period+1, cur_adaptation_set+1, first_rep_in_set, use_bs_switching, max_width, max_height, szFPS, lang, szInit, dash_opts.segment_alignment_disabled, dash_opts.mpd_name);
 			if (e) goto exit;
 
 			is_first_rep = GF_TRUE;

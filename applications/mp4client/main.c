@@ -802,6 +802,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			eos_seen = GF_FALSE;
 			if (playback_speed != FIX_ONE)
 				gf_term_set_speed(term, playback_speed);
+
 		} else if (is_connected) {
 			fprintf(stderr, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
 			is_connected = 0;
@@ -1826,8 +1827,8 @@ force_input:
 					ViewOD(term, ID, (u32)-1, NULL);
 				} else {
 					char str_url[GF_MAX_PATH];
-					scanf("%s", str_url);
-					ViewOD(term, 0, (u32)-1, str_url);
+					if (scanf("%s", str_url) == 1)
+						ViewOD(term, 0, (u32)-1, str_url);
 				}
 			}
 			break;

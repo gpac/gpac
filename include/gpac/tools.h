@@ -763,6 +763,14 @@ GF_Err gf_rmdir(char *DirPathName);
 GF_Err gf_mkdir(char* DirPathName);
 
 /*!
+ *	\brief Check Directory Exists
+ *
+ *	Create a directory within the full path.
+ *	\param DirPathName the dir path name.
+ */
+Bool gf_dir_exists(char *DirPathName);
+
+/*!
  *	\brief Create Directory
  *
  *	Cleanup a directory within the full path, removing all the files and the directories.

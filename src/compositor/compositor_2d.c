@@ -298,11 +298,17 @@ Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, Dr
 
 Bool compositor_2d_hybgl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx)
 {
+	GF_Node *txtrans = NULL;
 	//for anything but background use regular routines
 	if (!(ctx->flags & CTX_IS_BACKGROUND)) return GF_FALSE;
 
+#ifndef GPAC_DISABLE_VRML
+	if (tr_state->appear ) txtrans = ((M_Appearance *)tr_state->appear)->textureTransform;
+#endif
+
 	/*ignore texture transform for bitmap*/
-	tr_state->mesh_num_textures = gf_sc_texture_enable(ctx->aspect.fill_texture, tr_state->appear ? ((M_Appearance *)tr_state->appear)->textureTransform : NULL);
+	tr_state->mesh_num_textures = gf_sc_texture_enable(ctx->aspect.fill_texture, txtrans);
+
 	if (tr_state->mesh_num_textures) {
 		SFVec2f size, orig;
 		size.x = ctx->bi->unclip.width;

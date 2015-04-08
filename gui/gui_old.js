@@ -40,8 +40,8 @@ function initialize() {
 	gpac.caption = 'Osmo4';
 	current_time = 0;
 
-	display_width = parseInt( gpac.getOption('General', 'LastWidth') );
-	display_height = parseInt( gpac.getOption('General', 'LastHeight') );
+	display_width = parseInt(gpac.get_option('General', 'LastWidth'));
+	display_height = parseInt(gpac.get_option('General', 'LastHeight'));
 
 	if (!gpac.fullscreen && display_width && display_height) {
 		gpac.set_size(display_width, display_height);
@@ -845,7 +845,7 @@ function display_widget_info(wid)
 		info.children[i++] = text_label('Widget was pushed from device IP '+wid.originating_device_ip, 'BEGIN' );
 	}
 	info.children[i++] = text_label('Section name in GPAC config file: '+wid.section, 'BEGIN' );
-	info.children[i++] = text_label('UA Locale: ' + gpac.getOption('Systems', 'LanguageName') + ' ('+ gpac.getOption('Systems', 'Language2CC')+ ')', 'BEGIN' );
+	info.children[i++] = text_label('UA Locale: ' + gpac.get_option('Systems', 'LanguageName') + ' (' + gpac.get_option('Systems', 'Language2CC') + ')', 'BEGIN');
 	info.children[i++] = text_label('widget src: ' + wid.url , 'BEGIN');
 	info.children[i++] = text_label('config src: ' + wid.manifest , 'BEGIN');
 	info.children[i++] = text_label('content src : '+wid.localizedSrc, 'BEGIN' );
@@ -875,7 +875,7 @@ function display_widget_info(wid)
 	i=3;
 	for (j=0; j<pref.length; j++) {
 		var val = pref[j].value;
-		if (val=='') val = gpac.getOption(wid.section, pref[j].name);
+		if (val == '') val = gpac.get_option(wid.section, pref[j].name);
 		info.children[i++] = text_label('Preference #'+(j+1)+' name=\''+pref[j].name+'\' value=\''+val+'\' readOnly=\''+pref[j].readonly +'\'', 'BEGIN');
 	}
 
@@ -1175,8 +1175,8 @@ function widget_ui_layout(dir)
 function layout() {
 	var i, list, start_x;
 
-	gpac.setOption('General', 'LastWidth', ''+display_width);
-	gpac.setOption('General', 'LastHeight', ''+display_height);
+	gpac.set_option('General', 'LastWidth', ''+display_width);
+	gpac.set_option('General', 'LastHeight', '' + display_height);
 
 	if (dlg_display.children.length) {
 		widget_display.scale.x = 0;
@@ -2008,7 +2008,7 @@ function on_upnpopen(push_mode, remote_only)
 							} else {
 								log(l_err, 'GPAC Media Server is disabled - Cannot share '+current_url);
 							}
-						} else if (gpac.getOption('Network', 'MobileIPEnabled')=='yes') {
+						} else if (gpac.get_option('Network', 'MobileIPEnabled')=='yes') {
 							uri = gpac.migrate_url(movie.children[0].url[0]);
 							log(l_inf, 'Migrating '+current_url+' to renderer '+item.render.Name + ' as Mobile IP resource '+uri);
 							set_movie_url('', true, false);

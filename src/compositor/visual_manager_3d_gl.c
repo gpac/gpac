@@ -3729,6 +3729,7 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 	Bool in_strip;
 	Float delta = 0;
 	Bool first_pass = 2;
+	GF_Node *txtrans = NULL;
 
 	if ((visual->compositor->depth_gl_type==GF_SC_DEPTH_GL_POINTS) && visual->compositor->gl_caps.point_sprite) {
 		Float z;
@@ -3945,7 +3946,10 @@ restart:
 		}
 		stack->mesh->vbo_dirty = 1;
 	}
-	tr_state->mesh_num_textures = gf_sc_texture_enable(txh, ((M_Appearance *)tr_state->appear)->textureTransform);
+#ifndef GPAC_DISABLE_VRML
+	if (tr_state->appear) txtrans = ((M_Appearance *)tr_state->appear)->textureTransform;
+#endif
+	tr_state->mesh_num_textures = gf_sc_texture_enable(txh, txtrans);
 	visual_3d_draw_mesh(tr_state, stack->mesh);
 	visual_3d_disable_texture(tr_state);
 

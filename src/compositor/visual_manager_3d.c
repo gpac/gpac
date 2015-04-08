@@ -1510,12 +1510,14 @@ void visual_3d_set_2d_strike(GF_TraverseState *tr_state, DrawAspect2D *asp)
 {
 	if (asp->line_texture) {
 		GF_Node *txtrans = NULL;
+#ifndef GPAC_DISABLE_VRML
 		if (tr_state->appear
 		        && (gf_node_get_tag( ((M_Appearance *)tr_state->appear)->material) == TAG_MPEG4_Material2D)
 		        && (gf_node_get_tag(((M_Material2D *) ((M_Appearance *)tr_state->appear)->material)->lineProps) == TAG_MPEG4_XLineProperties)
 		   ) {
 			txtrans = ((M_XLineProperties *) ((M_Material2D *) ((M_Appearance *)tr_state->appear)->material)->lineProps)->textureTransform;
 		}
+#endif
 
 		/*We forgot to specify this in the spec ...*/
 		gf_sc_texture_set_blend_mode(asp->line_texture, TX_REPLACE);

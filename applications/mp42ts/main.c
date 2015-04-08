@@ -40,16 +40,9 @@
 #include <gpac/webvtt.h>
 #endif
 
-#ifdef GPAC_DISABLE_ISOM
-
-#error "Cannot compile MP42TS if GPAC is not built with ISO File Format support"
-
-#endif
 
 #ifdef GPAC_DISABLE_MPEG2TS_MUX
-
 #error "Cannot compile MP42TS if GPAC is not built with MPEG2-TS Muxing support"
-
 #endif
 
 #define MP42TS_PRINT_TIME_MS 500 /*refresh printed info every CLOCK_REFRESH ms*/
@@ -150,7 +143,11 @@ static GFINLINE void usage()
 #define MAX_MUX_SRC_PROG	100
 typedef struct
 {
+
+#ifndef GPAC_DISABLE_ISOM
 	GF_ISOFile *mp4;
+#endif
+
 	u32 nb_streams, pcr_idx;
 	GF_ESInterface streams[40];
 	GF_Descriptor *iod;
@@ -178,6 +175,7 @@ typedef struct
 	Double last_ntp;
 } M2TSSource;
 
+#ifndef GPAC_DISABLE_ISOM
 typedef struct
 {
 	GF_ISOFile *mp4;
@@ -200,6 +198,7 @@ typedef struct
 	Bool insert_temi;
 
 } GF_ESIMP4;
+#endif
 
 typedef struct
 {
@@ -319,6 +318,8 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 	gf_bs_del(bs);
 	return res;
 }
+
+#ifndef GPAC_DISABLE_ISOM
 
 static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 {
@@ -597,6 +598,8 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 	}
 
 }
+
+#endif //GPAC_DISABLE_ISOM
 
 
 #ifndef GPAC_DISABLE_SENG
@@ -1370,14 +1373,15 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 #ifndef GPAC_DISABLE_STREAMING
 	GF_SDPInfo *sdp;
 #endif
-	u32 i;
 	s64 min_offset = 0;
 
 	memset(source, 0, sizeof(M2TSSource));
 	source->mpeg4_signaling = mpeg4_signaling;
 
 	/*open ISO file*/
+#ifndef GPAC_DISABLE_ISOM
 	if (gf_isom_probe_file(src)) {
+		u32 i;
 		u32 nb_tracks;
 		Bool has_bifs_od = 0;
 		u32 first_audio = 0;
@@ -1535,13 +1539,15 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		}
 		return 1;
 	}
+#endif
+
 
 #ifndef GPAC_DISABLE_STREAMING
 	/*open SDP file*/
 	if (strstr(src, ".sdp")) {
 		GF_X_Attribute *att;
 		char *sdp_buf;
-		u32 sdp_size;
+		u32 sdp_size, i;
 		GF_Err e;
 		FILE *_sdp = gf_fopen(src, "rt");
 		if (!_sdp) {
@@ -1612,6 +1618,7 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 #ifndef GPAC_DISABLE_SENG
 		if (strstr(src, ".bt")) //open .bt file
 		{
+			u32 i;
 			u32 load_type=0;
 			source->seng = gf_seng_init(source, src, load_type, NULL, (load_type == GF_SM_LOAD_DIMS) ? 1 : 0);
 			if (!source->seng) {
@@ -2703,7 +2710,10 @@ exit:
 			}
 		}
 		if (sources[i].iod) gf_odf_desc_del((GF_Descriptor*)sources[i].iod);
+#ifndef GPAC_DISABLE_ISOM
 		if (sources[i].mp4) gf_isom_close(sources[i].mp4);
+#endif
+
 #ifndef GPAC_DISABLE_SENG
 		if (sources[i].seng) {
 			gf_seng_terminate(sources[i].seng);
