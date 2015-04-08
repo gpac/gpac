@@ -300,15 +300,7 @@ extension = {
             }
         }
         this.movie.children[0].on_main_addon = function (evt) {
-            alert('main addon state change');
-            if (this.extension.stat_wnd) {
-                //close stats
-                this.extension.stat_wnd.close();
-                this.extension.stat_wnd = null;
-                //open stats
-                this.extension.view_stats();
-            }
-
+            this.extension.reload_stats();
             this.extension.controler.layout();
         }
 
@@ -405,18 +397,18 @@ extension = {
             }
             gw_background_control(false);
             switch (type) {
-                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
                 case 1:
                     this.extension.set_state(this.extension.GF_STATE_PAUSE);
                     this.extension.set_speed(0);
                     break;
-                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
                 case 2:
                     this.extension.set_state(this.extension.GF_STATE_PLAY);
                     this.extension.movie_control.mediaStartTime = time;
                     this.extension.set_speed(1);
                     break;
-                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
                 default:
                     if (this.extension.state == this.extension.GF_STATE_STOP)
                         this.extension.set_state(this.extension.GF_STATE_PLAY);

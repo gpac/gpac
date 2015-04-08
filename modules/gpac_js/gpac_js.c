@@ -1025,7 +1025,7 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		//can be NULL
 		com.base.on_channel = gf_list_get(odm->channels, 0);
 		gf_term_service_command(odm->net_service, &com);
-		*vp = INT_TO_JSVAL(com.timeshift.time);
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, com.timeshift.time) );
 	}
 	break;
 	case -41:
@@ -1483,12 +1483,25 @@ return JS_TRUE;
 
 static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_compositor)
 {
+	u32 retry;
 	Bool res;
 	jsval argv[1], rval;
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)udta;
 	if (consumed_by_compositor) return 0;
 
 	if (gjs->evt != NULL) return 0;
+
+	/*fixme - events should all be handled by the compositor */
+	res = 0;
+	retry=100;
+	while (retry && gjs->nb_loaded) {
+		res = gf_mx_try_lock(gjs->term->compositor->mx);
+		if (res) break;
+		retry --;
+		gf_sleep(0);
+	}
+	if (!res) return 0;
+
 	res = 0;
 	while (gjs->nb_loaded) {
 		res = gf_sg_try_lock_javascript(gjs->c);
@@ -1504,6 +1517,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	JS_CallFunctionValue(gjs->c, gjs->evt_filter_obj, gjs->evt_fun, 1, argv, &rval);
 	SMJS_SET_PRIVATE(gjs->c, gjs->evt_obj, NULL);
 	gjs->evt = NULL;
+	gf_mx_v(gjs->term->compositor->mx);
 
 	res = 0;
 	if (JSVAL_IS_BOOLEAN(rval) ) {

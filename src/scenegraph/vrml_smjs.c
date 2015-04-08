@@ -804,11 +804,11 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 
 	if (!r->FromNode) {
 		if (r->obj) {
-//			gf_js_remove_root(priv->js_ctx, &r->obj);
+//			gf_js_remove_root(priv->js_ctx, &r->obj, GF_JSGC_OBJECT);
 			r->obj=NULL;
 		}
 		if ( ! JSVAL_IS_VOID(r->fun)) {
-//			gf_js_remove_root(priv->js_ctx, &r->fun);
+//			gf_js_remove_root(priv->js_ctx, &r->fun, GF_JSGC_OBJECT);
 			r->fun=JSVAL_NULL;
 		}
 		return;
@@ -953,10 +953,10 @@ static JSBool SMJS_FUNCTION(addRoute)
 			r->ToField.name = fun_name;
 
 			r->obj = JSVAL_TO_OBJECT( argv[2] ) ;
-			//		gf_js_add_root(c, & r->obj);
+//			gf_js_add_root(c, & r->obj, GF_JSGC_OBJECT);
 
 			r->fun = argv[3];
-			//		gf_js_add_root(c, &r->fun);
+//			gf_js_add_root(c, &r->fun, GF_JSGC_OBJECT);
 
 			r->is_setup = 1;
 			r->graph = n1->sgprivate->scenegraph;
