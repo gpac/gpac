@@ -3769,7 +3769,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 		/*process chunk*/
 		e = gf_m2ts_process_data(ts, mem_address, size);
 
-		ts->abort_parsing = 0;
+		ts->abort_parsing = GF_FALSE;
 
 		if (refresh_type==2)
 			ts->pos_in_stream = 0;
@@ -3835,7 +3835,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 
 		gf_bs_del(bs);
 		gf_fclose(f);
-		ts->abort_parsing = 0;
+		ts->abort_parsing = GF_FALSE;
 	}
 
 	if (signal_end_of_stream && !ts->pos_in_stream) {

@@ -2862,7 +2862,7 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		gf_m2ts_demux_del(ts);
 		return gf_export_message(dumper, GF_URL_ERROR, "Cannot locate program association table");
 	}
-	ts->abort_parsing = 0;
+	ts->abort_parsing = GF_FALSE;
 
 	stream = NULL;
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
