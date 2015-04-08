@@ -154,7 +154,7 @@ static void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 		gf_isom_change_mpeg4_description(file, track, 1, esd);
 		gf_odf_desc_del((GF_Descriptor *)esd);
 	} else {
-		gf_isom_change_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
+		gf_isom_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
 	}
 
 #endif
