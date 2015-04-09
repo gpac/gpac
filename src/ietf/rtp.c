@@ -438,7 +438,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	}
 	if (ch->first_SR && !ch->SenderSSRC && rtp_hdr->SSRC) {
 		ch->SenderSSRC = rtp_hdr->SSRC;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Assigning SSRC %d because none has been signaled\n", ch->SenderSSRC));
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Assigning SSRC to %d because none was specified through SDP/RTSP\n", ch->SenderSSRC));
 	}
 
 
@@ -457,6 +457,24 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	if ( (ch->last_pck_sn + 1 > rtp_hdr->SequenceNumber)
 	        && (rtp_hdr->SequenceNumber >= ch->last_pck_sn + MAX_RTP_SN/2)) {
 		ch->num_sn_loops += 1;
+	}
+
+	if (ch->last_SR_rtp_time) {
+		s32 diff_sec = ((s32) rtp_hdr->TimeStamp - (s32) ch->last_SR_rtp_time) / (s32) ch->TimeScale;
+		u32 sec = ch->last_SR_NTP_sec;
+		s64 frac = ch->last_SR_NTP_frac;
+
+		frac = (s32) rtp_hdr->TimeStamp - (s32) ch->last_SR_rtp_time - diff_sec*(s32)ch->TimeScale;
+		frac *= 0xFFFFFFFF;
+		frac /= ch->TimeScale;
+		frac += ch->last_SR_NTP_frac;
+		if (frac>0xFFFFFFFF) {
+			sec += 1;
+			frac -= 0xFFFFFFFF;
+		}
+		rtp_hdr->recomputed_ntp_ts = sec + diff_sec;
+		rtp_hdr->recomputed_ntp_ts <<= 32;
+		rtp_hdr->recomputed_ntp_ts |= frac;
 	}
 
 	ntp = gf_rtp_channel_time(ch);
