@@ -160,7 +160,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 //		new_pixel_format = GF_PIXEL_RGB_24;
 
 	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	new_pixel_format = GF_PIXEL_RGBA;
 #else
 	/*no support for alpha in offscreen rendering*/

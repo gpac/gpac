@@ -32,7 +32,7 @@
 /*driver interface*/
 #include <gpac/modules/video_out.h>
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 #include "GLES/egl.h"
 #endif
 
@@ -83,7 +83,7 @@ typedef struct
 	HDC hdcBitmap, hdc;
 	BITMAPINFO*     bmi;
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	u32 output_3d_type;
 	EGLDisplay egldpy;
 	EGLSurface surface;

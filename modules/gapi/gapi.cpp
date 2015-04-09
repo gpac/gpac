@@ -31,7 +31,7 @@
 
 #include "gapi.h"
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
 
@@ -552,7 +552,7 @@ void GAPI_WindowThread(void *par)
 
 void GAPI_SetupWindow(GF_VideoOutput *dr)
 {
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	GF_Err e;
 #endif
 	GAPIPriv *ctx = (GAPIPriv *)dr->opaque;
@@ -579,7 +579,7 @@ void GAPI_SetupWindow(GF_VideoOutput *dr)
 	}
 
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	ctx->use_pbuffer = GF_TRUE;
 	dr->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
 	e = GAPI_SetupOGL_ES_Offscreen(dr, 20, 20);
@@ -636,7 +636,7 @@ void GAPI_ShutdownWindow(GF_VideoOutput *dr)
 		ctx->orig_wnd_proc = 0L;
 	}
 	ctx->hWnd = NULL;
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	PostMessage(ctx->gl_hwnd, WM_DESTROY, 0, 0);
 	ctx->gl_hwnd = NULL;
 	UnregisterClass(_T("GPAC GAPI Offscreen"), GetModuleHandle(_T("gm_gapi.dll") ));
@@ -698,7 +698,7 @@ static void createPixmap(GAPIPriv *ctx, u32 pix_type)
 	ctx->hdc = GetDC(NULL/*ctx->hWnd*/);
 
 	if (pix_type==2) {
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 		ctx->gl_bitmap = CreateDIBSection(ctx->hdc, bmi, DIB_RGB_COLORS, (void **) &ctx->gl_bits, NULL, 0);
 #endif
 	} else if (pix_type==1) {
@@ -720,7 +720,7 @@ static void createPixmap(GAPIPriv *ctx, u32 pix_type)
 }
 
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 
 void GAPI_ReleaseOGL_ES(GAPIPriv *ctx, Bool offscreen_only)
 {
@@ -926,7 +926,7 @@ void GAPI_ReleaseObjects(GAPIPriv *ctx)
 {
 	ctx->raw_ptr = NULL;
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	if (ctx->output_3d_type) GAPI_ReleaseOGL_ES(ctx, GF_FALSE);
 	else
 #endif
@@ -1019,7 +1019,7 @@ static GF_Err GAPI_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u3
 	if (is_wide_scene) bOn = GF_TRUE;
 	if (bOn == gctx->fullscreen) return GF_OK;
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	if (gctx->output_3d_type==1) {
 		gctx->fullscreen = bOn;
 		return GAPI_SetupOGL_ES(dr);
@@ -1161,7 +1161,7 @@ static GF_Err GAPI_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 	gf_mx_p(gctx->mx);
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	if (gctx->output_3d_type==1) {
 #ifndef GLES_NO_PIXMAP
 		if (gctx->fullscreen && gctx->surface && gctx->egldpy) {
@@ -1239,11 +1239,11 @@ static GF_Err GAPI_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVENT_VIDEO_SETUP:
 		switch (evt->setup.opengl_mode) {
 		case 0:
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 			gctx->output_3d_type = 0;
 #endif
 			return GAPI_InitBackBuffer(dr, evt->setup.width, evt->setup.height);
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 		case 1:
 			gctx->output_3d_type = 1;
 			return GAPI_SetupOGL_ES(the_video_driver);
@@ -1606,7 +1606,7 @@ static void *NewGAPIVideoOutput()
 	priv->mx = gf_mx_new("GAPI");
 	driv->opaque = priv;
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	driv->hw_caps = GF_VIDEO_HW_OPENGL | GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
 #endif
 	/*rgb, yuv to do*/

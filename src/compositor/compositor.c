@@ -1270,7 +1270,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	/*currently:
 	- no support for npow2 textures, and no support for DrawPixels
 	*/
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "EmulatePOW2");
 	compositor->emul_pow2 = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 #else
@@ -1968,7 +1968,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 			compositor_3d_set_aspect_ratio(compositor);
 			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d);
 			if (compositor->autoconfig_opengl) {
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 				visual_3d_init_shaders(compositor->visual);
 #endif
 				compositor->autoconfig_opengl = 0;
@@ -1992,7 +1992,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #ifndef GPAC_DISABLE_3D
 			if (compositor->hybrid_opengl) {
 				gf_sc_load_opengl_extensions(compositor, GF_TRUE);
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 				visual_3d_init_shaders(compositor->visual);
 #endif
 				if (!compositor->visual->hybgl_drawn.list) {

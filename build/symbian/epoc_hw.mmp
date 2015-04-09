@@ -2,7 +2,7 @@ TARGET gm_epoc_hw.dll
 
 //OpenGL libs
 #if 1
-MACRO GPAC_USE_OGL_ES
+MACRO GPAC_USE_GLES1X
 LIBRARY libgles_cm.lib
 #endif
 
