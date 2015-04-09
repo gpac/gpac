@@ -304,7 +304,15 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 
 		if (glGetAttribLocation != NULL) {
 			compositor->shader_only_mode = 1;
+		}else{
+			printf("No glGetAttribLocation found - fallback to old mode\n");	//TODOk delete after testing
 		}
+
+		printf("\n \n prints \n");
+		printf("OpenGL version: %s \n",glGetString(GL_VERSION));	//¡k DELETE (used for checking ES 2.0 emulator)
+		printf("OpenGL language version: %s \n",glGetString(GL_SHADING_LANGUAGE_VERSION));	//¡k DELETE (used for checking ES 2.0 emulator)
+		printf("OpenGL vendor: %s \n and GL renderer: %s \n",glGetString(GL_VENDOR),glGetString(GL_RENDERER));	//¡k DELETE (used for checking ES 2.0 emulator)
+
 #endif
 
 
