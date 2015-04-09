@@ -1412,7 +1412,6 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 #endif
 	{
 		if(compositor->shader_only_mode){	//ES2.0
-			GLint loc;
 			Bool is_rect = (txh->tx_io->flags & TX_IS_RECT) ? 1 : 0;
 			flags &= ~GF_GL_IS_YUV;	//its not YUV
 			if(is_rect==GF_TRUE){
