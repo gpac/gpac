@@ -879,6 +879,7 @@ struct _generic_codec
 	u64 total_dec_time, total_iframes_time;
 	u32 max_dec_time, max_iframes_time;
 	u32 first_frame_time, last_frame_time;
+	Bool codec_reset;
 	/*number of frames dropped at the presentation*/
 	u32 nb_droped;
 	/*we detect if the same image is sent again and again to the decoder (using last_unit_signature)*/

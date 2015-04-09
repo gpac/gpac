@@ -70,6 +70,8 @@ typedef enum
 	GF_DASH_EVENT_TIMESHIFT_UPDATE,
 	/*event sent when timeshift buffer is overflown - the group_idx param contains the max number of droped segments of all representations droped by the client, or -1 if play pos is ahead of live */
 	GF_DASH_EVENT_TIMESHIFT_OVERFLOW,
+	/*event send when we need the decoding statistics*/
+	GF_DASH_EVENT_CODEC_STAT_QUERY,
 } GF_DASHEventType;
 
 /*structure used for all IO operations for DASH*/
@@ -228,6 +230,8 @@ u32 gf_dash_group_get_time_shift_buffer_depth(GF_DashClient *dash, u32 idx);
 this gets the maximum value (further in the past) of all representations playing*/
 Double gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash);
 
+void gf_dash_set_codec_stat(GF_DashClient *dash, u32 idx, u32 avg_dec_time, u32 max_dec_time, u32 irap_avg_dec_time, u32 irap_max_dec_time, Bool codec_reset);
+
 typedef enum
 {
 	GF_MPD_DESC_ACCESSIBILITY,
@@ -364,6 +368,8 @@ u32 gf_dash_get_period_duration(GF_DashClient *dash);
 
 //returns number of quality available for the given group
 u32 gf_dash_group_get_num_qualities(GF_DashClient *dash, u32 idx);
+
+void gf_dash_disable_speed_adaptation(GF_DashClient *dash, Bool disable);
 
 
 typedef struct

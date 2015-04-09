@@ -378,7 +378,7 @@ static void codec_update_stats(GF_Codec *codec, u32 dataLength, u64 dec_time, u3
 	}
 
 	if (dataLength) {
-		if (!codec->cur_bit_size || (codec->stat_start > DTS)) {
+		if (!codec->cur_bit_size || (codec->ck->speed > 0 ? codec->stat_start > DTS : codec->stat_start < DTS)) {
 			codec->stat_start = DTS;
 			codec->cur_bit_size = 8*dataLength;
 		} else {
@@ -928,6 +928,17 @@ GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize)
 		dec->CB->Min = unit_count/3;
 		if (!dec->CB->Min) dec->CB->Min = 1;
 	}
+
+	//reset decoder stat
+	dec->total_dec_time = 0;
+	dec->nb_dec_frames = 0;
+	dec->first_frame_time = 0;
+	dec->last_frame_time = 0;
+	dec->total_iframes_time = 0;
+	dec->max_iframes_time = 0;
+	dec->max_dec_time = 0;
+	dec->min_frame_dur = (u32) - 1;
+	dec->codec_reset = GF_TRUE;
 
 	//reset bitrate compute
 	dec->cur_bit_size = 0;

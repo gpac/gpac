@@ -599,6 +599,50 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		return;
 	}
 
+	if (com->command_type == GF_NET_SERVICE_CODEC_STAT_QUERY) {
+		GF_List *od_list;
+		u32 i;
+		GF_ObjectManager *odm;
+
+		com->codec_stat.avg_dec_time = 0;
+		com->codec_stat.max_dec_time = 0;
+		com->codec_stat.irap_avg_dec_time = 0;
+		com->codec_stat.irap_max_dec_time = 0;
+
+		if (!service->owner) return;
+		/*browse all channels in the scene, running on this service, and get codec stat*/
+		od_list = NULL;
+		if (service->owner->subscene) {
+			od_list = service->owner->subscene->resources;
+		} else if (service->owner->parentscene) {
+			od_list = service->owner->parentscene->resources;
+		}
+		if (!od_list) return;
+
+		/*get exclusive access to media scheduler, to make sure ODs are not being manipulated*/
+		i=0;
+		while ((odm = (GF_ObjectManager*)gf_list_enum(od_list, &i))) {
+			u32 avg_dec_time;
+			/*the decoder statistics are reliable only if we decoded at least 1s*/
+			if (!odm->codec || !odm->codec->nb_dec_frames || 
+				(odm->codec->ck->speed > 0 ? odm->codec->stat_start + 1000 > odm->codec->last_unit_dts : odm->codec->stat_start - 1000 < odm->codec->last_unit_dts)) 
+				continue;
+			avg_dec_time = (u32) (odm->codec->total_dec_time / odm->codec->nb_dec_frames);
+			if (avg_dec_time > com->codec_stat.avg_dec_time) {
+				com->codec_stat.avg_dec_time = avg_dec_time;
+				com->codec_stat.max_dec_time = odm->codec->max_dec_time;
+				com->codec_stat.irap_avg_dec_time = odm->codec->nb_iframes ? (u32) (odm->codec->total_iframes_time / odm->codec->nb_iframes) : 0;
+				com->codec_stat.irap_max_dec_time = odm->codec->max_iframes_time;
+			}
+			if (odm->codec->codec_reset) {
+				com->codec_stat.codec_reset = GF_TRUE;
+				odm->codec->codec_reset = GF_FALSE;
+			}
+		}
+
+		return;
+	}
+
 	if (!com->base.on_channel) return;
 
 	ch = gf_term_get_channel(service, com->base.on_channel);
