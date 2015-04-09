@@ -32,9 +32,22 @@
 #ifdef _WIN32_WCE
 #ifdef GPAC_USE_GLES1X
 #endif
+#elif defined(GPAC_USE_GLES2)
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+
+//#  pragma comment(lib, "libGLESv2")
+#  pragma comment(lib, "libEGL")
+
+
 #else
 #include <GL/gl.h>
+
+#  pragma comment(lib, "opengl32")
+
+
 #endif
+
 
 #define DDCONTEXT	DDContext *dd = (DDContext *)dr->opaque;
 
@@ -189,7 +202,7 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 	}
 
 	/*delete openGL context*/
-#ifdef GPAC_USE_GLES1X
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
 	if (dd->eglctx) eglDestroyContext(dd->egldpy, dd->eglctx);
 	dd->eglctx = NULL;
 	if (dd->surface) eglDestroySurface(dd->egldpy, dd->surface);
@@ -246,7 +259,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	Bool hw_reset = GF_FALSE;
 	DDCONTEXT
 
-#ifdef GPAC_USE_GLES1X
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
 	EGLint major, minor;
 	EGLint n;
 	EGLConfig configs[1];
@@ -515,7 +528,10 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 		SetWindowLong(dd->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
 #endif
 
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 exit:
+#endif
+
 	if (dd->output_3d_type==1) {
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
@@ -727,7 +743,7 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 #ifndef GPAC_DISABLE_3D
 
 	if (dd->output_3d_type==1) {
-#ifdef GPAC_USE_GLES1X
+#if defined(GPAC_USE_GLES1X) ||  defined(GPAC_USE_GLES2)
 		if (dd->surface) eglSwapBuffers(dd->egldpy, dd->surface);
 #else
 		SwapBuffers(dd->gl_HDC);
