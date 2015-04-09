@@ -30,7 +30,7 @@
 
 #include <w32std.h>
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 #include <GLES/egl.h>
 #endif
 
@@ -47,7 +47,7 @@ typedef struct
 	char *locked_data;
 	u32 output_3d_type;
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	EGLDisplay egl_display;
 	EGLSurface egl_surface;
 	EGLContext egl_context;
@@ -60,7 +60,7 @@ static void EVID_ResetSurface(GF_VideoOutput *dr, Bool gl_only)
 {
 	EPOCVideo *ctx = (EPOCVideo *)dr->opaque;
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	if (ctx->egl_display) {
 		eglMakeCurrent(ctx->egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 		if (ctx->egl_context) eglDestroyContext(ctx->egl_display, ctx->egl_context);
@@ -168,7 +168,7 @@ static GF_Err EVID_InitSurface(GF_VideoOutput *dr)
 	ctx->width = s.iWidth;
 	ctx->height = s.iHeight;
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	if (ctx->output_3d_type==1) {
 		if (!gl_buffer_size) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOC Video] Display mode not supported by OpenGL\n"));
@@ -237,7 +237,7 @@ static GF_Err EVID_InitSurface(GF_VideoOutput *dr)
 	return GF_OK;
 }
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 
 static GF_Err EVID_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 height)
 {
@@ -356,7 +356,7 @@ static GF_Err EVID_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, 
 	res = EVID_InitSurface(dr);
 
 	/*setup opengl offscreen*/
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOC Video] Querying Offscreen OpenGL Capabilities\n"));
 	dr->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
 	GF_Err e = EVID_SetupOGL_ES_Offscreen(dr, 20, 20);
@@ -419,7 +419,7 @@ static GF_Err EVID_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVENT_VIDEO_SETUP:
 		((EPOCVideo *)dr->opaque)->output_3d_type = evt->setup.opengl_mode;
 		if (evt->setup.opengl_mode==2) {
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 			return EVID_SetupOGL_ES_Offscreen(dr, evt->setup.width, evt->setup.height);
 #else
 			return GF_NOT_SUPPORTED;
@@ -473,7 +473,7 @@ static void *EPOC_vout_new()
 
 	/*alpha and keying to do*/
 	driv->hw_caps = 0;
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	/*no offscreen opengl with epoc at the moment*/
 	driv->hw_caps |= GF_VIDEO_HW_OPENGL;
 #endif

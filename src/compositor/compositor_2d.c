@@ -37,7 +37,7 @@
 static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color)
 {
 	return;
-#if defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_USE_GLES1X)
 	GLfloat line[4];
 
 	line[0] = FIX2FLT(x);
@@ -65,7 +65,7 @@ static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Colo
 static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u8 alpha)
 {
 	return;
-#if defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_USE_GLES1X)
 	GLfloat line[4];
 
 	line[0] = FIX2FLT(x);
@@ -96,7 +96,7 @@ static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color c
 static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_Color color)
 {
 	return;
-#if defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_USE_GLES1X)
 	GLfloat line[8];
 
 	line[0] = FIX2FLT(x);
@@ -365,7 +365,7 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 
 	glLineWidth(1.0f);
 
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 	glDisable(GL_POLYGON_SMOOTH);
 #endif
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
