@@ -86,6 +86,8 @@ typedef HRESULT(WINAPI * DIRECTDRAWCREATEPROC) (GUID *, LPDIRECTDRAW *, IUnknown
 
 #ifdef GPAC_USE_GLES1X
 #include "GLES/egl.h"
+#elif defined(GPAC_USE_GLES2)
+#include "EGL/egl.h"
 #endif
 
 typedef struct
@@ -158,7 +160,7 @@ typedef struct
 	/*gl*/
 #ifndef GPAC_DISABLE_3D
 
-#ifdef GPAC_USE_GLES1X
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
 	NativeDisplayType gl_HDC;
 	EGLDisplay egldpy;
 	EGLSurface surface;
