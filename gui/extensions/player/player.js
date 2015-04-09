@@ -689,13 +689,13 @@ extension = {
                     this.play.show();
                 } else {
                     full_w += control_icon_size;
-                    this.play.show();
+                    //this.play.show();
                     if (this.extension.state == this.extension.GF_STATE_STOP) {
                         this.stop.hide();
                         this.play.show();
                     } else {
-                        //                        this.play.hide();
-                        //                        this.stop.show();
+                        this.play.hide();
+                        this.stop.show();
                     }
                 }
 
