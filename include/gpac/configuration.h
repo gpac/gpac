@@ -66,7 +66,7 @@
 //iOS compilation
 #if defined(GPAC_CONFIG_DARWIN) && defined(GPAC_IPHONE)
 
-#define GPAC_USE_OGL_ES
+#define GPAC_USE_GLES1X
 //#define GPAC_FIXED_POINT
 #define GPAC_HAS_GLU
 
@@ -102,7 +102,7 @@
 #define GPAC_ANDROID
 
 #define GPAC_HAS_IPV6
-#define GPAC_USE_OGL_ES
+#define GPAC_USE_GLES1X
 //#define GPAC_FIXED_POINT
 
 #undef GPAC_HAS_SPIDERMONKEY
@@ -129,8 +129,8 @@
 #error "Only one of GPAC_USE_IGPP and GPAC_USE_IGPP_HP can be defined"
 #endif
 
-#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
-#define GPAC_USE_OGL_ES
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
+#define GPAC_USE_GLES1X
 #endif
 
 #endif //WinCE flags

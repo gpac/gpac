@@ -33,7 +33,7 @@
 #ifndef GPAC_DISABLE_3D
 #include <gpac/internal/compositor_dev.h>
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 
 #ifndef GPAC_FIXED_POINT
 //#error "OpenGL ES defined without fixed-point support - unsupported."
@@ -105,7 +105,7 @@ extern proc_ ## funname funname;	\
 
 #if defined GPAC_USE_TINYGL
 //no extensions with TinyGL
-#elif defined (GPAC_USE_OGL_ES)
+#elif defined (GPAC_USE_GLES1X)
 //no extensions with OpenGL ES
 #elif defined(WIN32) || defined (GPAC_CONFIG_WIN32)
 #define LOAD_GL_FUNCS
@@ -120,7 +120,7 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #endif
 
 
-#if !defined(GPAC_USE_OGL_ES)
+#if !defined(GPAC_USE_GLES1X)
 
 /*redefine all ext needed*/
 
@@ -482,7 +482,7 @@ GLDECL(GLint, glGetAttribLocation, (GLuint prog, const char *name) )
 
 #endif //GL_VERSION_2_0
 
-#endif //GPAC_USE_OGL_ES 
+#endif //GPAC_USE_GLES1X 
 
 #endif	/*GPAC_DISABLE_3D*/
 
