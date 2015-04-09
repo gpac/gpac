@@ -589,7 +589,6 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	GF_SHADERID shader = 0;
 	char *shader_src;//¡startof
 	char *defs, *tmp, *error;
-	u8 def_count =0;
 	size_t str_size =0;	//we +1 before loading the shader
 	
 	//print_flags(flags);
@@ -904,7 +903,7 @@ static void my_glQueryUniforms(GF_SHADERID progObj){
 				&size, &type, uniformName);
 			// Get the uniform location
 			location = glGetUniformLocation(progObj, uniformName);
-			printf("uniform %s is: ",uniformName);
+			if(location) printf("uniform %s is: ",uniformName);
 			switch(type)
 			{
 			case GL_FLOAT:
@@ -968,7 +967,7 @@ static void my_glQueryAttributes(GF_SHADERID progObj){
 				&size, &type, attributeName);
 			// Get the attribute location
 			location = glGetAttribLocation(progObj, attributeName);
-			printf("attrib %s is: ",attributeName);
+			if(location) printf("attrib %s is: ",attributeName);
 			switch(type)
 			{
 			case GL_FLOAT:
@@ -1028,9 +1027,7 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 {
 	GF_SHADERID glsl_fragment;
 	u32 i;
-	Bool working = 0;	//¡k temp bool for testing
 	GLint err_log = -10;	//¡k error log
-	GLsizei log_len = 0; //¡k
 
 	GL_CHECK_ERR
 
@@ -2094,13 +2091,13 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 
 		sprintf(tmp, "%s%d%s", "lights[", i, "].type");
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);		//Uniform name lights[i].type
-		if (loc>=0)
+		if (loc>=0){
 			if(li->type==3){
 				glUniform1i(loc, 0); //headlight; Set type 0-directional
 			}else{
 				glUniform1i(loc, (GLint) li->type); //Set type 0-directional 1-spot 2-point
 			}
-
+		}
 		//¡k from here was set for light direction (assuming origin = 0,0,0)
 		pt = li->direction;
 		orig.x = orig.y = orig.z = 0;
@@ -2158,10 +2155,10 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 			glUniform1f(loc, li->ambientIntensity);
 		*/
 
-		sprintf(tmp, "%s%d%s", "lights[", i, "].intensity");	//¡TODOk check float parsing
+		sprintf(tmp, "%s%d%s", "lights[", i, "].intensity");
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);
 		if (loc>=0)
-			glUniform1f(loc, li->intensity); //Set type 0-directional 1-spot 2-point
+			glUniform1f(loc, li->intensity);
 
 		//commented out because we calculate it inside the shader [ES2.0]
 		/*
@@ -2171,10 +2168,10 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 			glUniform1f(loc, li->beamWidth); //Set type 0-directional 1-spot 2-point
 		*/
 
-		sprintf(tmp, "%s%d%s", "lights[", i, "].cutOffAngle");	//¡TODOk check float parsing
+		sprintf(tmp, "%s%d%s", "lights[", i, "].cutOffAngle");
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);
 		if (loc>=0)
-			glUniform1f(loc, li->cutOffAngle); //Set type 0-directional 1-spot 2-point
+			glUniform1f(loc, li->cutOffAngle);
 
 	}
 	//¡k END OF LIGHTS
@@ -2221,7 +2218,6 @@ static void visual_3d_set_fog_ES2(GF_VisualManager *visual){
 }
 
 static void visual_3d_set_clippers_ES2(GF_VisualManager *visual, GF_TraverseState *tr_state){
-	GF_Vec pt;
 	Fixed vals[4];
 	char *tmp = (char *) gf_malloc(sizeof(char)*60);
 	GLint loc;
@@ -2259,7 +2255,6 @@ static void visual_3d_set_clippers_ES2(GF_VisualManager *visual, GF_TraverseStat
 				sprintf(tmp, "%s%d%s", "clipPlane[", i, "]");	//parse plane values
 				loc = my_glGetUniformLocation(visual->glsl_program, tmp);
 				if (loc>=0){
-					pt = visual->clippers[0].p.normal;
 					vals[0] = p.normal.x; vals[1] = p.normal.y; vals[2] = p.normal.z; vals[3] = p.d;
 					glUniform4fv(loc, 1, vals); //Set Plane (w = distance)
 				}
@@ -2278,7 +2273,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	GF_VisualManager *vsl = visual->compositor->visual;	//we use the compositor visual for the shader stuff
 	GLint loc, loc_vertex_array, loc_color_array, loc_normal_array, loc_textcoord_array;
 	u32 flags;
-	Bool has_tx = 0;
 
 	if(!vsl->glsl_flags)
 		vsl->glsl_flags = 0;
@@ -2425,7 +2419,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		glDisable(GL_CULL_FACE);	//¡k Enable for performance; if so, check glFrontFace()
 
 	}
-	//¡k this, I do not know
+	
 	if (!tr_state->mesh_num_textures && (mesh->flags & MESH_HAS_COLOR)) {
 
 		//In non-ES2.0 we use glEnable(GL_COLOR_MATERIAL); and glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE); to store the colour in gfDiffuse
@@ -2467,7 +2461,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	if (!visual->has_material_2d && visual->num_lights && !mesh->mesh_type) {
 
-		//¡k equivalent to glEnableClientState(GL_NORMAL_ARRAY );
+		//equivalent to glEnableClientState(GL_NORMAL_ARRAY );
 		//from here
 		GF_Matrix normal_mx;
 		gf_mx_copy(normal_mx, tr_state->camera->modelview);
@@ -2480,8 +2474,8 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNormalMatrix");
 		if (loc>=0)
-			glUniformMatrix4fv(loc, 1, GL_FALSE, normal_mx.m); //¡k ATTENTION the transpose matrix when uploading does NOT work in ES 2.0
-		GL_CHECK_ERR	//¡k delete after testing
+			glUniformMatrix4fv(loc, 1, GL_FALSE, normal_mx.m);
+		GL_CHECK_ERR
 
 
 		loc_normal_array = my_glGetAttribLocation(visual->glsl_program, "gfNormal");
@@ -2505,7 +2499,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	//¡k STARTOF texturing
 	if(tr_state->mesh_num_textures && !mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)){
-		has_tx = 1;
 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumTextures");
 		if (loc>=0) {
