@@ -88,8 +88,6 @@ const char *gf_m4v_get_profile_name(u8 video_pl)
 		return "Simple Scalable Profile @ Level 1";
 	case 0x12:
 		return "Simple Scalable Profile @ Level 2";
-	case 0x15:
-		return "AVC/H264 Profile";
 	case 0x21:
 		return "Core Profile @ Level 1";
 	case 0x22:
@@ -116,6 +114,8 @@ const char *gf_m4v_get_profile_name(u8 video_pl)
 		return "Basic Animated Texture Profile @ Level 1";
 	case 0x72:
 		return "Basic Animated Texture Profile @ Level 2";
+    case 0x7F:
+        return "AVC/H264 Profile";
 	case 0x81:
 		return "Hybrid Profile @ Level 1";
 	case 0x82:
