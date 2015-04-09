@@ -49,12 +49,12 @@ static Bool svg_check_download(SVGIn *svgin)
 {
 	u64 size;
 	FILE *f = gf_fopen(svgin->file_name, "rb");
-	if (!f) return 0;
+	if (!f) return GF_FALSE;
 	gf_fseek(f, 0, SEEK_END);
 	size = gf_ftell(f);
 	gf_fclose(f);
-	if (size==svgin->file_size) return 1;
-	return 0;
+	if (size==svgin->file_size) return GF_TRUE;
+	return GF_FALSE;
 }
 
 #define SVG_PROGRESSIVE_BUFFER_SIZE		4096
@@ -83,7 +83,7 @@ static GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len)
 				break;
 			}
 			svg_data[d_stream.total_out - done] = 0;
-			e = gf_sm_load_string(&svgin->loader, svg_data, 0);
+			e = gf_sm_load_string(&svgin->loader, svg_data, GF_FALSE);
 			if (e || (err== Z_STREAM_END)) break;
 			done = (u32) d_stream.total_out;
 			d_stream.avail_out = 2048;
@@ -158,7 +158,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 
 				file_buf[nb_read] = file_buf[nb_read+1] = 0;
 
-				e = gf_sm_load_string(&svgin->loader, file_buf, 0);
+				e = gf_sm_load_string(&svgin->loader, file_buf, GF_FALSE);
 				svgin->file_pos += nb_read;
 
 
@@ -178,7 +178,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 
 	/*!OTI for streaming SVG - GPAC internal*/
 	case GPAC_OTI_SCENE_SVG:
-		e = gf_sm_load_string(&svgin->loader, inBuffer, 0);
+		e = gf_sm_load_string(&svgin->loader, inBuffer, GF_FALSE);
 		break;
 
 	/*!OTI for streaming SVG + gz - GPAC internal*/
@@ -215,7 +215,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			if (dims_hdr & GF_DIMS_UNIT_C) {
 				e = svgin_deflate(svgin, buf2 + pos + nb_bytes + 1, size - 1);
 			} else {
-				e = gf_sm_load_string(&svgin->loader, buf2 + pos + nb_bytes + 1, 0);
+				e = gf_sm_load_string(&svgin->loader, buf2 + pos + nb_bytes + 1, GF_FALSE);
 			}
 			buf2[pos + nb_bytes + size] = prev;
 			gf_bs_skip_bytes(bs, size-1);
@@ -378,7 +378,7 @@ static GF_Err SVG_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap)
 {
 	if (cap.CapCode==GF_CODEC_ABORT) {
 		SVGIn *svgin = (SVGIn *)plug->privateStack;
-		gf_sm_load_suspend(&svgin->loader, 1);
+		gf_sm_load_suspend(&svgin->loader, GF_TRUE);
 	}
 	return GF_OK;
 }

@@ -341,19 +341,19 @@ GF_Err evg_surface_set_clipper(GF_SURFACE _this , GF_IRect *rc)
 static Bool setup_grey_callback(EVGSurface *surf)
 {
 	u32 col, a;
-	Bool use_const = 1;
+	Bool use_const = GF_TRUE;
 
 	if (surf->sten->type == GF_STENCIL_SOLID) {
 		col = surf->fill_col = ((EVG_Brush *)surf->sten)->color;
 		a = GF_COL_A(surf->fill_col);
 	} else {
 		col = a = 0;
-		use_const = 0;
+		use_const = GF_FALSE;
 	}
 
 	if (surf->raster_cbk) {
 		if (use_const) {
-			if (!a) return 0;
+			if (!a) return GF_FALSE;
 			if (a!=0xFF) {
 				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_user_fill_const_a;
 			} else {
@@ -362,13 +362,13 @@ static Bool setup_grey_callback(EVGSurface *surf)
 		} else {
 			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_user_fill_var;
 		}
-		return 1;
+		return GF_TRUE;
 	}
 
 	switch (surf->pixelFormat) {
 	case GF_PIXEL_ARGB:
 		if (use_const) {
-			if (!a) return 0;
+			if (!a) return GF_FALSE;
 			if (a!=0xFF) {
 				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_bgra_fill_const_a;
 			} else {
@@ -395,7 +395,7 @@ static Bool setup_grey_callback(EVGSurface *surf)
 
 	case GF_PIXEL_RGB_32:
 		if (use_const) {
-			if (!a) return 0;
+			if (!a) return GF_FALSE;
 			if (a!=0xFF) {
 				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_bgrx_fill_const_a;
 			} else {
@@ -408,7 +408,7 @@ static Bool setup_grey_callback(EVGSurface *surf)
 
 	case GF_PIXEL_BGR_32:
 		if (use_const) {
-			if (!a) return 0;
+			if (!a) return GF_FALSE;
 			if (a!=0xFF) {
 				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgbx_fill_const_a;
 			} else {
@@ -421,7 +421,7 @@ static Bool setup_grey_callback(EVGSurface *surf)
 
 	case GF_PIXEL_RGB_24:
 		if (use_const) {
-			if (!a) return 0;
+			if (!a) return GF_FALSE;
 			if (a!=0xFF) {
 				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgb_fill_const_a;
 			} else {
@@ -433,7 +433,7 @@ static Bool setup_grey_callback(EVGSurface *surf)
 		break;
 	case GF_PIXEL_BGR_24:
 		if (use_const) {
-			if (!a) return 0;
+			if (!a) return GF_FALSE;
 			if (a!=0xFF) {
 				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_bgr_fill_const_a;
 			} else {
@@ -446,7 +446,7 @@ static Bool setup_grey_callback(EVGSurface *surf)
 	case GF_PIXEL_RGB_565:
 		if (use_const) {
 			surf->fill_565 = GF_COL_TO_565(col);
-			if (!a) return 0;
+			if (!a) return GF_FALSE;
 			if (a!=0xFF) {
 				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_565_fill_const_a;
 			} else {
@@ -487,7 +487,7 @@ static Bool setup_grey_callback(EVGSurface *surf)
 		break;
 #endif
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 
@@ -571,7 +571,7 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 
 	get_surface_world_matrix(surf, &mat);
 
-	restore_filter = 0;
+	restore_filter = GF_FALSE;
 	/*get path frame for texture convertion */
 	if (sten->type != GF_STENCIL_SOLID) {
 		rc = surf->path_bounds;
@@ -599,7 +599,7 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 			gf_mx2d_inverse(&sten->smat);
 			evg_bmp_init(sten);
 			if (((EVG_Texture *)sten)->filter == GF_TEXTURE_FILTER_DEFAULT) {
-				restore_filter = 1;
+				restore_filter = GF_TRUE;
 				((EVG_Texture *)sten)->filter = surf->texture_filter;
 			}
 
