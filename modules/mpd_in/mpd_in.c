@@ -840,6 +840,14 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		gf_service_command(mpdin->service, &com, GF_OK);
 	}
 
+	if (dash_evt==GF_DASH_EVENT_CODEC_STAT_QUERY) {
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.command_type = GF_NET_SERVICE_CODEC_STAT_QUERY;
+		gf_service_command(mpdin->service, &com, GF_OK);
+		gf_dash_set_codec_stat(mpdin->dash, group_idx, com.codec_stat.avg_dec_time, com.codec_stat.max_dec_time, com.codec_stat.irap_avg_dec_time, com.codec_stat.irap_max_dec_time, com.codec_stat.codec_reset);
+	}
+
 	return GF_OK;
 }
 
@@ -1038,6 +1046,13 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	debug_adaptation_set = opt ? atoi(opt) : -1;
 
 	gf_dash_debug_group(mpdin->dash, debug_adaptation_set);
+
+	/*by default, speed adaptation and display adaptation are enable*/
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "SpeedAdaptation");
+	if (opt && !strcmp(opt, "no"))
+		gf_dash_disable_speed_adaptation(mpdin->dash, GF_TRUE);
+	else
+		gf_dash_disable_speed_adaptation(mpdin->dash, GF_FALSE);
 
 	/*dash thread starts at the end of gf_dash_open */
 	e = gf_dash_open(mpdin->dash, url);

@@ -148,6 +148,9 @@ typedef enum
 
 	/*seek request from service on all channels*/
 	GF_NET_SERVICE_SEEK,
+
+	/*query codec statistic on all channels*/
+	GF_NET_SERVICE_CODEC_STAT_QUERY,
 } GF_NET_CHAN_CMD;
 
 /*channel command for all commands that don't need params:
@@ -571,6 +574,16 @@ typedef struct
 	u32 extract_mode;
 } GF_NALUExtractMode;
 
+/*GF_NET_SERVICE_CODEC_STAT_QUERY*/
+typedef struct
+{
+	/*avg_dec_time is the maximum average decoding time of all channels; 
+	  max_dec_time, irap_avg_dec_time and irap_max_dec_time is the maximum decoding time of a frame and a I frame in this channel*/
+	u32 avg_dec_time, max_dec_time, irap_avg_dec_time, irap_max_dec_time;
+	/*flag codec has been reset*/
+	Bool codec_reset;
+} GF_CodecStat;
+
 typedef union __netcommand
 {
 	GF_NET_CHAN_CMD command_type;
@@ -600,6 +613,7 @@ typedef union __netcommand
 	GF_NALUExtractMode nalu_mode;
 	GF_NetComSendEvent send_event;
 	GF_NetQualityQuery quality_query;
+	GF_CodecStat codec_stat;
 } GF_NetworkCommand;
 
 /*

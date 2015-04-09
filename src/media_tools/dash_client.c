@@ -139,6 +139,7 @@ struct __dash_client
 	u32 time_in_tsb, prev_time_in_tsb;
 	u32 tsb_exceeded;
 	s32 debug_group_index;
+	Bool disable_speed_adaptation;
 };
 
 static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic);
@@ -263,6 +264,11 @@ struct __dash_group
 	void *udta;
 
 	Bool has_pending_enhancement;
+
+	/*Codec statistics*/
+	u32 avg_dec_time, max_dec_time, irap_avg_dec_time, irap_max_dec_time;
+	u32 display_width, display_height;
+	Bool codec_reset;
 };
 
 void drm_decrypt(unsigned char * data, unsigned long dataSize, const char * decryptMethod, const char * keyfileURL, const unsigned char * keyIV);
@@ -2128,14 +2134,35 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 	return e;
 }
 
+/* Estimate the maximum speed that we can play, using our statistic. If it is below the max_playout_rate in MPD, return max_playout_rate*/
+static Double gf_dash_get_max_available_speed(GF_DashClient *dash, GF_DASH_Group *group, GF_MPD_Representation *rep)
+{
+	Double max_available_speed = 0;
+	Double max_dl_speed, max_decoding_speed;
+	u32 framerate;
+	u32 bytes_per_sec = dash->dash_io->get_bytes_per_sec(dash->dash_io, group->segment_download);
+	max_dl_speed = 8.0*bytes_per_sec / rep->bandwidth;
+	//if framerate is not in MPD, suppose that it is 25 fps
+	framerate = rep->framerate ? rep->framerate->num : 25;
+	if (rep->playback.decode_only_rap) 
+		max_decoding_speed = group->irap_max_dec_time ? 1000000.0 / group->irap_max_dec_time : 0;
+	else
+		max_decoding_speed = group->avg_dec_time ? 1000000.0 / (group->max_dec_time + group->avg_dec_time*(framerate - 1)) : 0;
+	max_available_speed = max_decoding_speed > max_dl_speed ? max_dl_speed : max_decoding_speed;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Representation %s max playout rate: in MPD %f - calculated by stat: %f\n", rep->id, rep->max_playout_rate, max_available_speed));
+	return max_available_speed/2; // for testing and debug
+} 
+
 static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, GF_MPD_Representation *rep)
 {
 	Double bitrate, time, speed;
 	u32 k, dl_rate;
-	Bool go_up = GF_FALSE;
+	Bool go_up_bitrate = GF_FALSE;
 	u32 nb_inter_rep = 0;
 	GF_MPD_Representation *new_rep;
 	u32 total_size, bytes_per_sec;
+	Double max_available_speed;
+	Bool force_below_resolution = GF_FALSE;
 
 	if (dash->auto_switch_count) return;
 	if (group->dash->disable_switching) return;
@@ -2163,34 +2190,62 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 	dl_rate = (u32)  (8*bytes_per_sec / speed);
 
 	if (rep->bandwidth < dl_rate) {
-		go_up = 1;
+		go_up_bitrate = 1;
 	}
 	if (dl_rate < group->min_representation_bitrate)
 		dl_rate = group->min_representation_bitrate;
 
-	/*find best bandwidth that fits our bitrate*/
+	/*query codec statistics*/
+	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CODEC_STAT_QUERY, gf_list_find(group->dash->groups, group), GF_OK);
+	if (rep->playback.waiting_codec_reset && group->codec_reset) rep->playback.waiting_codec_reset = GF_FALSE;
+
+	/*check whether we can play with this speed; if not force to switch to the below resolution*/
+	if (!rep->playback.waiting_codec_reset) {
+		max_available_speed = gf_dash_get_max_available_speed(dash, group, rep);
+		if (max_available_speed && (speed > max_available_speed))
+			force_below_resolution = GF_TRUE;
+	}
+
+	/*find best bandwidth that fits our bitrate and playing speed*/
 	new_rep = NULL;
 
 	for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
 		GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Repesentation %s prev max available speed: %f \n", arep->id, arep->playback.prev_max_available_speed));
 		if (arep->playback.disabled) continue;
+		if (arep->playback.prev_max_available_speed && (speed > arep->playback.prev_max_available_speed)) 
+			continue;
 
 		if (dl_rate >= arep->bandwidth) {
-			if (!new_rep) new_rep = arep;
-			else if (go_up) {
-				/*try to switch to highest bitrate below available download rate*/
-				if (arep->bandwidth > new_rep->bandwidth) {
-					if (new_rep->bandwidth > rep->bandwidth) {
+			if (force_below_resolution && !dash->disable_speed_adaptation) {
+				if (!k) GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Speed adaptation\n"));
+				/*try to switch to highest quality below the current one*/
+				if ((arep->quality_ranking < rep->quality_ranking) || (arep->width < rep->width) || (arep->height < rep->height)) {
+					if (!new_rep) 
+						new_rep = arep;
+					else if ((arep->quality_ranking > new_rep->quality_ranking) || (arep->width > new_rep->width) || (arep->height > new_rep->height))
+						new_rep = arep;
+				}
+				rep->playback.prev_max_available_speed = max_available_speed;
+				go_up_bitrate = GF_FALSE;
+			} else {
+				if (!k) GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Bitrate adaptation\n"));
+				if (!new_rep) new_rep = arep;
+				else if (go_up_bitrate) {
+					/*try to switch to highest bitrate below available download rate*/
+					if (arep->bandwidth > new_rep->bandwidth) {
+						if (new_rep->bandwidth > rep->bandwidth) {
+							nb_inter_rep ++;
+						}
+						new_rep = arep;
+					} else if (arep->bandwidth > rep->bandwidth) {
 						nb_inter_rep ++;
 					}
-					new_rep = arep;
-				} else if (arep->bandwidth > rep->bandwidth) {
-					nb_inter_rep ++;
-				}
-			} else {
-				/*try to switch to highest bitrate below available download rate*/
-				if (arep->bandwidth > new_rep->bandwidth) {
-					new_rep = arep;
+				} else {
+					/*try to switch to highest bitrate below available download rate*/
+					if (arep->bandwidth > new_rep->bandwidth) {
+						new_rep = arep;
+					}
 				}
 			}
 		}
@@ -2200,7 +2255,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 		Bool do_switch = GF_TRUE;
 		//if we're switching to the next upper bitrate (no intermediate bitrates), do not immediately switch
 		//but for a given number of segments - this avoids fluctuation in the quality
-		if (go_up && ! nb_inter_rep) {
+		if (go_up_bitrate && ! nb_inter_rep) {
 			new_rep->playback.probe_switch_count++;
 			if (new_rep->playback.probe_switch_count > dash->probe_times_before_switch) {
 				new_rep->playback.probe_switch_count = 0;
@@ -2209,7 +2264,12 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 			}
 		}
 		if (do_switch) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\n\n[DASH] Download rate %d - switching representation %s from bandwidth %d bps to %d bps at UTC "LLU" ms\n\n", dl_rate, go_up ? "up" : "down", rep->bandwidth, new_rep->bandwidth, gf_net_get_utc() ));
+			if (force_below_resolution) {
+				new_rep->playback.waiting_codec_reset = GF_TRUE;
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\n\n[DASH] Playing speed %f - switching representation from bandwidth %d bps to %d bps at UTC "LLU" ms\n\n", dash->speed, rep->bandwidth, new_rep->bandwidth, gf_net_get_utc() ));
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\n\n[DASH] Download rate %d - switching representation %s from bandwidth %d bps to %d bps at UTC "LLU" ms\n\n", dl_rate, go_up_bitrate ? "up" : "down", rep->bandwidth, new_rep->bandwidth, gf_net_get_utc() ));
+			}
 			gf_dash_set_group_representation(group, new_rep);
 		}
 
@@ -2218,6 +2278,10 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 			if (new_rep==arep) continue;
 			arep->playback.probe_switch_count = 0;
 		}
+	}
+	if (force_below_resolution && !new_rep) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Speed %f is too fast to play - speed down \n", dash->speed));
+		/*FIXME: should do something here*/
 	}
 }
 
@@ -5017,8 +5081,46 @@ Bool gf_dash_in_period_setup(GF_DashClient *dash)
 GF_EXPORT
 void gf_dash_set_speed(GF_DashClient *dash, Double speed)
 {
-	if (dash) dash->speed = speed ? speed : 1.0;
+	u32 i;
+	if (!dash) return;
+	for (i=0; i<gf_list_count(dash->groups); i++) {
+		GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, i);
+		GF_MPD_Representation *active_rep;
+		Double max_available_speed;
+		if (!group || (group->selection != GF_DASH_GROUP_SELECTED)) continue;
+		active_rep = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+		if (speed > 0) active_rep->playback.decode_only_rap = GF_FALSE;
+		else active_rep->playback.decode_only_rap = GF_TRUE;
+		
+		max_available_speed = gf_dash_get_max_available_speed(dash, group, active_rep);
+
+		/*verify if this representation support this speed*/
+		if (!max_available_speed || (ABS(speed) <= max_available_speed)) {
+			//nothing to do
+		} else {
+			/*if the representation does not support this speed, search for another which support it*/
+			u32 switch_to_rep_idx = 0;
+			u32 bandwidth = 0, quality = 0, k;
+			GF_MPD_Representation *rep;
+			for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
+				rep = gf_list_get(group->adaptation_set->representations, k);
+				if ((ABS(speed) <= rep->max_playout_rate) && ((rep->quality_ranking > quality) || (rep->bandwidth > bandwidth))) {
+					bandwidth = rep->bandwidth;
+					quality = rep->quality_ranking;
+					switch_to_rep_idx = k+1;
+				}
+			}
+			if (switch_to_rep_idx) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Switching representation for adapting playing speed\n"));
+				group->force_switch_bandwidth = 1;
+				group->force_representation_idx_plus_one = switch_to_rep_idx;
+			} 
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playing at %f speed \n", speed));
+		dash->speed = speed;
+	}
 }
+
 
 GF_EXPORT
 u32 gf_dash_group_get_max_segments_in_cache(GF_DashClient *dash, u32 idx)
@@ -5803,6 +5905,24 @@ GF_EXPORT
 Double gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash)
 {
 	return dash ? dash->prev_time_in_tsb / 1000.0 : 0.0;
+}
+
+GF_EXPORT
+void gf_dash_set_codec_stat(GF_DashClient *dash, u32 idx, u32 avg_dec_time, u32 max_dec_time, u32 irap_avg_dec_time, u32 irap_max_dec_time, Bool codec_reset)
+{
+	GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, idx);
+	if (!group) return;
+	group->avg_dec_time = avg_dec_time;
+	group->max_dec_time = max_dec_time;
+	group->irap_avg_dec_time = irap_avg_dec_time;
+	group->irap_max_dec_time = irap_max_dec_time;
+	group->codec_reset = codec_reset;
+}
+
+GF_EXPORT
+void gf_dash_disable_speed_adaptation(GF_DashClient *dash, Bool disable)
+{
+	dash->disable_speed_adaptation = disable;
 }
 
 #endif //GPAC_DISABLE_DASH_CLIENT
