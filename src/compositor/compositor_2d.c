@@ -31,13 +31,13 @@
 #include <gpac/internal/terminal_dev.h>
 #include "texturing.h"
 
-#ifdef OPENGL_RASTER
 #include "gl_inc.h"
+
+#ifdef OPENGL_RASTER
 
 static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color)
 {
-	return;
-#if defined(GPAC_USE_GLES1X)
+#if defined(GPAC_USE_GLES1X) 
 	GLfloat line[4];
 
 	line[0] = FIX2FLT(x);
@@ -64,7 +64,6 @@ static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Colo
 
 static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u8 alpha)
 {
-	return;
 #if defined(GPAC_USE_GLES1X)
 	GLfloat line[4];
 
@@ -280,10 +279,12 @@ Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, Dr
 		GF_Mesh *mesh;
 		size.x = ctx->bi->unclip.width;
 		size.y = ctx->bi->unclip.height;
+# ifdef OPENGL_RASTER
 		if (visual->compositor->opengl_raster) {
 			orig.x = ctx->bi->unclip.x + INT2FIX(visual->compositor->vp_width)/2;
 			orig.y = INT2FIX(visual->compositor->vp_height)/2 - ctx->bi->unclip.y + ctx->bi->unclip.height;
 		}
+#endif
 		mesh = new_mesh();
 		mesh_new_rectangle(mesh, size, &orig, GF_TRUE);
 		visual_3d_mesh_paint(tr_state, mesh);
@@ -365,23 +366,29 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 
 	glLineWidth(1.0f);
 
-#ifndef GPAC_USE_GLES1X
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	glDisable(GL_POLYGON_SMOOTH);
 #endif
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 
+#if !defined(GPAC_USE_GLES2)
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 	glDisable(GL_NORMALIZE);
+
+#ifdef OPENGL_RASTER
+	if (compositor->opengl_raster) {
+		glDisable(GL_LINE_SMOOTH);
+	} else 
+#endif
+		glEnable(GL_LINE_SMOOTH);
+
+#endif
+
 	glDisable(GL_DEPTH_TEST);
 	//glDepthFunc(GL_LEQUAL);
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	if (compositor->opengl_raster) {
-		glDisable(GL_LINE_SMOOTH);
-	} else {
-		glEnable(GL_LINE_SMOOTH);
-	}
 
 	visual->camera.width = INT2FIX(compositor->vp_width);
 	visual->camera.height = INT2FIX(compositor->vp_height);

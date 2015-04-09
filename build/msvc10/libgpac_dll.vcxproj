@@ -81,6 +81,7 @@
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libgpac</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libgpac</TargetName>
     <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libgpac</TargetName>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSdkDir)lib\x64;C:\Imagination\PowerVR_Graphics\PowerVR_SDK\SDK_3.4\Builds\Windows\x86_64\Lib</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>

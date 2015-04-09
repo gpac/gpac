@@ -107,7 +107,7 @@ typedef struct
 
 #endif
 
-#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
 # define OPENGL_RASTER
 #else
 # ifdef OPENGL_RASTER
