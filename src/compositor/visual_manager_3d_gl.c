@@ -2026,7 +2026,7 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE)
 
 //¡k Starting of ES2-specific funcs
-static void glLoadMatrixES2(GF_VisualManager *visual, Fixed *mat, GLenum mode){
+static void glLoadMatrixES2(GF_VisualManager *visual, Fixed *mat, Bool isProjection){
 	GLint loc;
 
 	//¡k do we need if(!mat) load identity mx? [TODO]
@@ -2034,15 +2034,11 @@ static void glLoadMatrixES2(GF_VisualManager *visual, Fixed *mat, GLenum mode){
 			printf("\n \n \n YES WE DO!  [Error _ file %s line %d ] \n \n \n", __FILE__, __LINE__); 
 	}
 
-	switch(mode){
-	case GL_PROJECTION:
+	if(isProjection==GF_TRUE){
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfProjectionMatrix");
-		break;
-	case GL_MODELVIEW:
+	}else if(isProjection==GF_FALSE){
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfModelViewMatrix");
-		break;
-	default:
-		printf("\n \n \n Undefined Matrix!  [Error _ file %s line %d ] \n \n \n", __FILE__, __LINE__); 
+	}else{
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error %d file %s line %d\n", "Invalid glLoadMatrixES2 mode", __FILE__, __LINE__));
 		return;
 	}
@@ -2059,12 +2055,12 @@ static void visual_3d_update_matrices_ES2(GF_TraverseState *tr_state){
 
 	if (tr_state->visual->needs_projection_matrix_reload) {
 		tr_state->visual->needs_projection_matrix_reload = 0;
-		glLoadMatrixES2(tr_state->visual, (Fixed *) tr_state->camera->projection.m, GL_PROJECTION);
+		glLoadMatrixES2(tr_state->visual, (Fixed *) tr_state->camera->projection.m, GF_TRUE);
 	}
 
 	gf_mx_copy(mx, tr_state->camera->modelview);	//cal modelview
 	gf_mx_add_matrix(&mx, &tr_state->model_matrix);	//calc modelview
-	glLoadMatrixES2(tr_state->visual, (Fixed *) &mx.m, GL_MODELVIEW);	//load modelview matrix
+	glLoadMatrixES2(tr_state->visual, (Fixed *) &mx.m, GF_FALSE);	//load modelview matrix
 }
 
 /**
@@ -2283,7 +2279,7 @@ static void visual_3d_set_clippers_ES2(GF_VisualManager *visual, GF_TraverseStat
 
 				p = visual->clippers[i].p;		//then create and calculate clipping plane
 				if (visual->clippers[i].is_2d_clip) {
-					glLoadMatrixES2(tr_state->visual, tr_state->camera->modelview.m, GL_MODELVIEW);
+					glLoadMatrixES2(tr_state->visual, tr_state->camera->modelview.m, GF_FALSE);
 				} else {
 					gf_mx_copy(mx, inv_mx);
 					if (visual->clippers[i].mx_clipper != NULL) {
@@ -2349,10 +2345,13 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 
 	//¡k GL_COLOR_MATERIAL does not exist in GL ES 2
+	//TODOk High priority - we just disabled these
+	/*
 	if (visual->state_color_on)
 		glEnable(GL_COLOR_MATERIAL);
 	else
 		glDisable(GL_COLOR_MATERIAL);
+	*/
 
 	//¡k default behaviour
 	if (visual->state_blend_on)
@@ -2587,9 +2586,11 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		 *
 		 *¡TODOk use multisampling in ES2.0
 		 */
+		//TODOk High priority - we just disabled these
+		/*
 		if (mesh->mesh_type==2) glDisable(GL_LINE_SMOOTH);
 		else glDisable(GL_POINT_SMOOTH);
-
+		*/
 
 		//According to the spec we should pass a 0,0,1 Normal and disable lights. we just disable lights
 		if(flags & GF_GL_HAS_LIGHT){
@@ -2698,7 +2699,12 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	if (loc_normal_array>=0) glDisableVertexAttribArray(loc_normal_array);
 	if (loc_textcoord_array>=0) glDisableVertexAttribArray(loc_textcoord_array);
 
-	visual_3d_reset_lights(visual);
+	//instead of visual_3d_reset_lights(visual);
+	if(visual->compositor->visual->glsl_flags & GF_GL_HAS_LIGHT){
+		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumLights");
+		if (loc>=0)	glUniform1i(loc, 0);
+		GL_CHECK_ERR
+	}
 
 	visual->has_material_2d = 0;
 	visual->compositor->visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
