@@ -47,6 +47,9 @@
 #   pragma comment(lib, "libGLES_CM")
 #  endif
 
+# elif defined(GPAC_USE_GLES2)
+#  pragma comment(lib, "libGLESv2")
+
 # else
 #  pragma comment(lib, "opengl32")
 # endif
@@ -532,6 +535,8 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 		char* compiler_log = (char*) gf_malloc(blen);
 #ifdef CONFIG_DARWIN_GL
 		glGetInfoLogARB((GLhandleARB) shader_id, blen, &slen, compiler_log);
+#elif defined(GPAC_USE_GLES2)
+		glGetProgramInfoLog(shader_id, blen, &slen, compiler_log);
 #else
 		glGetInfoLogARB(shader_id, blen, &slen, compiler_log);
 #endif
@@ -1223,7 +1228,8 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 
 void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 {
-#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
+	//TODOk - enable autu-stereo rendering with GLES2 ?
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	u32 i;
 	GLint loc;
 	char szTex[100];
@@ -1333,6 +1339,8 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 static void visual_3d_setup_quality(GF_VisualManager *visual)
 {
+#ifndef GPAC_USE_GLES2
+
 	if (visual->compositor->high_speed) {
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
@@ -1363,6 +1371,9 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 		glDisable(GL_POLYGON_SMOOTH);
 #endif
 	}
+
+#endif
+
 }
 
 void visual_3d_setup(GF_VisualManager *visual)
@@ -1381,12 +1392,29 @@ void visual_3d_setup(GF_VisualManager *visual)
 	glLightModelx(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 	glMaterialx(GL_FRONT_AND_BACK, GL_SHININESS, FLT2FIX(0.2f * 128) );
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+#elif defined(GPAC_USE_GLES2)
+	glClearDepthf(1.0f);
 #else
 	glClearDepth(1.0f);
 	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_FALSE);
 	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 	glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, (float) (0.2 * 128));
 #endif
+
+
+#ifdef GPAC_USE_GLES2
+
+	//TODOk - set max lights
+	//TODOk - set max clips
+
+	visual_3d_setup_quality(visual);
+
+	glDisable(GL_BLEND);
+	glDisable(GL_TEXTURE_2D);
+	glDisable(GL_CULL_FACE);
+	visual->has_fog = GF_FALSE;
+
+#else
 
 	glShadeModel(GL_SMOOTH);
 	glGetIntegerv(GL_MAX_LIGHTS, (GLint*)&visual->max_lights);
@@ -1413,16 +1441,19 @@ void visual_3d_setup(GF_VisualManager *visual)
 	will actually compute the related fragments. Since a typical world always use scaling, we always turn normalization on
 	to avoid tracking scale*/
 	glEnable(GL_NORMALIZE);
+#endif
 
 	glClear(GL_DEPTH_BUFFER_BIT);
 }
 
 void visual_3d_set_background_state(GF_VisualManager *visual, Bool on)
 {
+#ifndef GPAC_USE_GLES2
 	if (on) {
 		glDisable(GL_LIGHTING);
 		glDisable(GL_FOG);
 		glDisable(GL_LINE_SMOOTH);
+
 		glDisable(GL_BLEND);
 #ifndef GPAC_USE_GLES1X
 		glDisable(GL_POLYGON_SMOOTH);
@@ -1432,12 +1463,15 @@ void visual_3d_set_background_state(GF_VisualManager *visual, Bool on)
 	} else {
 		visual_3d_setup_quality(visual);
 	}
+#endif
 }
 
 
 
 void visual_3d_enable_antialias(GF_VisualManager *visual, Bool bOn)
 {
+#ifndef GPAC_USE_GLES2
+
 	if (bOn) {
 		glEnable(GL_LINE_SMOOTH);
 #ifndef GPAC_USE_GLES1X
@@ -1452,6 +1486,8 @@ void visual_3d_enable_antialias(GF_VisualManager *visual, Bool bOn)
 		glDisable(GL_POLYGON_SMOOTH);
 #endif
 	}
+
+#endif
 }
 
 void visual_3d_enable_depth_buffer(GF_VisualManager *visual, Bool on)
@@ -1528,6 +1564,8 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 #endif
 	}
 }
+
+#ifndef GPAC_USE_GLES2
 
 static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 {
@@ -1934,6 +1972,7 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 
 }
 
+#endif //GPAC_USE_GLES2
 
 static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
@@ -2722,6 +2761,11 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		mesh->vbo_dirty = 0;
 	}
 
+#ifdef GPAC_USE_GLES2
+	visual_3d_draw_mesh_shader_only(tr_state, mesh, base_address);
+	return;
+#else
+
 #if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE) && !defined(GPAC_FIXED_POINT)
 	if (visual->compositor->shader_only_mode) {
 		visual_3d_draw_mesh_shader_only(tr_state, mesh, base_address);
@@ -3061,22 +3105,29 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	tr_state->mesh_is_transparent = 0;
 
 	GL_CHECK_ERR
+#endif
 }
 
 static void visual_3d_set_debug_color(u32 col)
 {
+#ifndef GPAC_USE_GLES2
+
 #ifdef GPAC_USE_GLES1X
 	glColor4x( (col ? GF_COL_R(col) : 255) , (col ? GF_COL_G(col) : 0) , (col ? GF_COL_B(col) : 255), 255);
 #else
 	glColor4f(col ? GF_COL_R(col)/255.0f : 1, col ? GF_COL_G(col)/255.0f : 0, col ? GF_COL_B(col)/255.0f : 1, 1);
 #endif
+
+
+#endif //GPAC_USE_GLES2
 }
 
 
 /*note we don't perform any culling for normal drawing...*/
 static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
-#ifndef GPAC_USE_TINYGL
+	//TODOk - allow normal drawing with GLES2
+#if !defined( GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
 
 	GF_Vec pt, end;
 	u32 i, j;
@@ -3217,6 +3268,8 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		mesh_drawn = 1;
 	}
 
+	//TODOk - allow normal drawing and wireframe with GLES2
+#if !defined(GPAC_USE_GLES2)
 	if (tr_state->visual->compositor->draw_normals) {
 		if (!mesh_drawn) {
 			visual_3d_update_matrices(tr_state);
@@ -3243,12 +3296,15 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 		glDisableClientState(GL_VERTEX_ARRAY);
 	}
+
+#endif
+
 	if (tr_state->visual->compositor->draw_bvol) visual_3d_draw_bounds(tr_state, mesh);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Done drawing mesh %p\n", mesh));
 }
 
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
 
 
 static GLubyte hatch_horiz[] = {
@@ -3405,7 +3461,7 @@ void visual_3d_mesh_hatch(GF_TraverseState *tr_state, GF_Mesh *mesh, u32 hatchSt
 /*only used for ILS/ILS2D or IFS2D outline*/
 void visual_3d_mesh_strike(GF_TraverseState *tr_state, GF_Mesh *mesh, Fixed width, Fixed line_scale, u32 dash_style)
 {
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
 	u16 style;
 #endif
 
@@ -3416,7 +3472,7 @@ void visual_3d_mesh_strike(GF_TraverseState *tr_state, GF_Mesh *mesh, Fixed widt
 	glLineWidth( FIX2FLT(width));
 #endif
 
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
 
 	switch (dash_style) {
 	case GF_DASH_STYLE_DASH:
@@ -3464,9 +3520,13 @@ void visual_3d_clear(GF_VisualManager *visual, SFColor color, Fixed alpha)
 
 void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color)
 {
+	//TODOk - code this for GLES2
+#ifdef GPAC_USE_GLES2
+#else
+
 	glDisable(GL_BLEND | GL_LIGHTING | GL_TEXTURE_2D);
 
-#ifdef GPAC_USE_GLES1X
+#if defined(GPAC_USE_GLES1X) 
 	glNormal3x(0, 0, FIX_ONE);
 	if (color.alpha!=FIX_ONE) glEnable(GL_BLEND);
 	glColor4x(color.red, color.green, color.blue, color.alpha);
@@ -3513,6 +3573,7 @@ void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color
 #endif
 
 	glDisable(GL_BLEND);
+#endif
 }
 
 GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *fb, u32 depth_dump_mode)
@@ -3678,7 +3739,8 @@ GF_Err compositor_3d_release_screen_buffer(GF_Compositor *compositor, GF_VideoSu
 
 GF_Err compositor_3d_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *fb, u32 view_idx, u32 depth_dump_mode)
 {
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
+	//TODOk - habdle offscreen buffers through frameBuffer objects, no read back
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
 	char *tmp;
 	u32 hy, i;
 	/*not implemented yet*/
@@ -3714,7 +3776,8 @@ GF_Err compositor_3d_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSur
 
 void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_TextureHandler *txh, GF_TraverseState *tr_state)
 {
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
+	//todo - allow point sprites for GLES2 ?
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
 	u32 w, h;
 	u32 pixel_format, stride;
 	u8 *data;
