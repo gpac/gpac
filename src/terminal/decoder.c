@@ -116,7 +116,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 	GF_CodecCapability cap;
 	u32 min, max;
 
-	if (ch && ch->odm && (ch->MaxBuffer <= ch->odm->term->low_latency_buffer_max))
+	if (ch && ch->odm && !ch->is_pulling && (ch->MaxBuffer <= ch->odm->term->low_latency_buffer_max))
 		codec->flags |= GF_ESM_CODEC_IS_LOW_LATENCY;
 
 	/*only for valid codecs (eg not OCR)*/
@@ -1264,7 +1264,7 @@ scalable_retry:
 		case GF_PACKED_FRAMES:
 			/*in seek do dispatch output otherwise we will only see the I-frame preceding the seek point*/
 			if (mmlevel == GF_CODEC_LEVEL_DROP) {
-				if (drop_late_frames) {
+				if (drop_late_frames && (codec->CB->UnitCount>1) ) {
 					unit_size = 0;
 					codec->nb_droped++;
 				} else

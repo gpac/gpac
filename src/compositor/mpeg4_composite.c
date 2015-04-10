@@ -290,7 +290,7 @@ static void composite_update(GF_TextureHandler *txh)
 #endif
 
 	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	new_pixel_format = GF_PIXEL_RGBA;
 #endif
 

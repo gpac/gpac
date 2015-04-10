@@ -135,6 +135,7 @@ struct __dash_client
 
 	u32 min_timeout_between_404, segment_lost_after_ms;
 
+	//in ms
 	u32 time_in_tsb, prev_time_in_tsb;
 	u32 tsb_exceeded;
 	s32 debug_group_index;
@@ -649,11 +650,19 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 				seg_idx++;
 			}
 		}
-		//NOT FOUND !!
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] current time "LLU" is NOT in SegmentTimeline ["LLU"-"LLU"] - cannot estimate current startNumber, default to 0 ...\n", current_time_rescale, start_segtime, segtime));
-		group->download_segment_index = 0;
-		group->nb_segments_in_rep = 10;
-		group->broken_timing = GF_TRUE;
+
+		if (current_time_rescale >= segtime) {
+			group->download_segment_index = seg_idx;
+			group->nb_segments_in_rep = 10;
+			group->start_playback_range = (current_time)/1000.0;
+			group->ast_at_init = availabilityStartTime - (u32) (ast_offset*1000);
+		} else {
+			//NOT FOUND !!
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] current time "LLU" is NOT in SegmentTimeline ["LLU"-"LLU"] - cannot estimate current startNumber, default to 0 ...\n", current_time_rescale, start_segtime, segtime));
+			group->download_segment_index = 0;
+			group->nb_segments_in_rep = 10;
+			group->broken_timing = GF_TRUE;
+		}
 		return;
 	}
 
@@ -1396,13 +1405,13 @@ static u32 gf_dash_get_index_in_timeline(GF_MPD_SegmentTimeline *timeline, u64 s
 	}
 	//end of list in regular case: segment was the last one of the previous list and no changes happend
 	if (start_timescale==timescale) {
-		if (start_time == start ) return count;
+		if (start_time == start ) return idx;
 	} else {
-		if (start_time*start_timescale == start * timescale) return count;
+		if (start_time*start_timescale == start * timescale) return idx;
 	}
 
 	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: could not find previous segment start in current timeline ! seeking to end of timeline\n"));
-	return count;
+	return idx;
 }
 
 
@@ -3431,6 +3440,7 @@ static void gf_dash_group_check_time(GF_DASH_Group *group)
 	u32 nb_droped;
 
 	if (group->dash->is_m3u8) return;
+	if (! group->timeline_setup) return;
 
 	check_time = (s64) gf_net_get_utc();
 	nb_droped = 0;
@@ -3463,7 +3473,7 @@ static void gf_dash_group_check_time(GF_DASH_Group *group)
 
 		now -= group->dash->user_buffer_ms;
 		if (now<0) return;
-		now /= 1000;
+
 		if (now>group->dash->time_in_tsb)
 			group->dash->time_in_tsb = (u32) now;
 		return;
@@ -3571,7 +3581,9 @@ restart_period:
 				u32 diff = gf_sys_clock();
 				dash->force_mpd_update = 0;
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At %d Time to update the playlist (%u ms elapsed since last refresh and min reload rate is %u)\n", gf_sys_clock() , timer, dash->mpd->minimum_update_period));
+				gf_mx_p(dash->dl_mutex);
 				e = gf_dash_update_manifest(dash);
+				gf_mx_v(dash->dl_mutex);
 				group_count = gf_list_count(dash->groups);
 				diff = gf_sys_clock() - diff;
 				if (e) {
@@ -4216,10 +4228,10 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double
 		group->force_segment_switch = 1;
 		group->download_segment_index = segment_idx;
 	} else {
-		group->timeline_setup = 0;
 		group->start_number_at_last_ast = 0;
 		/*remember to adjust time in timeline steup*/
 		group->start_playback_range = seek_to;
+		group->timeline_setup = 0;
 	}
 
 
@@ -5789,9 +5801,9 @@ GF_Err gf_dash_set_timeshift(GF_DashClient *dash, u32 ms_in_timeshift)
 }
 
 GF_EXPORT
-u32 gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash)
+Double gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash)
 {
-	return dash ? dash->prev_time_in_tsb : 0;
+	return dash ? dash->prev_time_in_tsb / 1000.0 : 0.0;
 }
 
 #endif //GPAC_DISABLE_DASH_CLIENT

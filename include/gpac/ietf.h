@@ -512,6 +512,9 @@ typedef struct tagRTP_HEADER {
 	u32 SSRC;
 	/*in our basic client, CSRC should always be NULL*/
 	u32 CSRC[16];
+
+	/*internal to out lib*/
+	u64 recomputed_ntp_ts;
 } GF_RTPHeader;
 
 

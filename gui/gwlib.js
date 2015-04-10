@@ -3266,7 +3266,7 @@ function gw_new_plotter(parent) {
         this.height = height;
     }
 
-    obj.label_width = 100;
+    obj.label_width = 120;
 
     obj.series = [];
     obj.add_serie = function (legend, units, r, g, b) {

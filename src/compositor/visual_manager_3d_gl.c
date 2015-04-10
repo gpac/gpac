@@ -36,7 +36,7 @@
 # if defined(GPAC_USE_TINYGL)
 #  pragma comment(lib, "TinyGL")
 
-# elif defined(GPAC_USE_OGL_ES)
+# elif defined(GPAC_USE_GLES1X)
 
 #  if 0
 #   pragma message("Using OpenGL-ES Common Lite Profile")
@@ -62,7 +62,7 @@
 #undef GL_MAX_CLIP_PLANES
 #endif
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 #define GL_CLAMP GL_CLAMP_TO_EDGE
 #endif
 
@@ -194,7 +194,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		compositor->gl_caps.vbo = 1;
 	}
 
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 	if (CHECK_GL_EXT("GL_EXT_texture_rectangle") || CHECK_GL_EXT("GL_NV_texture_rectangle")) {
 		compositor->gl_caps.rect_texture = 1;
 		if (CHECK_GL_EXT("GL_MESA_ycbcr_texture")) compositor->gl_caps.yuv_texture = YCBCR_MESA;
@@ -329,7 +329,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 }
 
 
-#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
 
 static char *default_glsl_vertex = "\
@@ -1140,12 +1140,13 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 
 }
 
-#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
 
 void visual_3d_reset_graphics(GF_VisualManager *visual)
 {
-#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
+
 	u32 i;
 
 	if (visual->compositor->visual != visual)
@@ -1175,13 +1176,13 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 	visual->glsl_has_shaders=0;
 
 
-#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 }
 
 
 GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 {
-#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	u32 bw, bh;
 	SFVec2f s;
 	if (visual->gl_textures) return GF_OK;
@@ -1215,19 +1216,19 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual3D] AutoStereo initialized - width %d height %d\n", visual->auto_stereo_width, visual->auto_stereo_height) );
 
 	visual_3d_init_stereo_shaders(visual);
-#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
 	return GF_OK;
 }
 
 void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 {
-#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	u32 i;
 	GLint loc;
 	char szTex[100];
 	Double hw, hh;
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	GF_Matrix mx;
 #endif
 
@@ -1325,7 +1326,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glDisable(GL_TEXTURE_2D);
-#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
 }
 
@@ -1350,7 +1351,7 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 
 	if (visual->compositor->antiAlias == GF_ANTIALIAS_FULL) {
 		glEnable(GL_LINE_SMOOTH);
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 		if (visual->compositor->poly_aa)
 			glEnable(GL_POLYGON_SMOOTH);
 		else
@@ -1358,7 +1359,7 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 #endif
 	} else {
 		glDisable(GL_LINE_SMOOTH);
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 		glDisable(GL_POLYGON_SMOOTH);
 #endif
 	}
@@ -1375,7 +1376,7 @@ void visual_3d_setup(GF_VisualManager *visual)
 	glFrontFace(GL_CCW);
 	glCullFace(GL_BACK);
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	glClearDepthx(FIX_ONE);
 	glLightModelx(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 	glMaterialx(GL_FRONT_AND_BACK, GL_SHININESS, FLT2FIX(0.2f * 128) );
@@ -1423,7 +1424,7 @@ void visual_3d_set_background_state(GF_VisualManager *visual, Bool on)
 		glDisable(GL_FOG);
 		glDisable(GL_LINE_SMOOTH);
 		glDisable(GL_BLEND);
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 		glDisable(GL_POLYGON_SMOOTH);
 #endif
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
@@ -1439,7 +1440,7 @@ void visual_3d_enable_antialias(GF_VisualManager *visual, Bool bOn)
 {
 	if (bOn) {
 		glEnable(GL_LINE_SMOOTH);
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 		if (visual->compositor->poly_aa)
 			glEnable(GL_POLYGON_SMOOTH);
 		else
@@ -1447,7 +1448,7 @@ void visual_3d_enable_antialias(GF_VisualManager *visual, Bool bOn)
 #endif
 	} else {
 		glDisable(GL_LINE_SMOOTH);
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 		glDisable(GL_POLYGON_SMOOTH);
 #endif
 	}
@@ -1520,7 +1521,7 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 	However we must push triangles one by one since primitive order may have been swapped when
 	building the AABB tree*/
 	for (i=0; i<n->nb_idx; i++) {
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 		glDrawElements(prim_type, 3, GL_UNSIGNED_SHORT, &mesh->indices[3*n->indices[i]]);
 #else
 		glDrawElements(prim_type, 3, GL_UNSIGNED_INT, &mesh->indices[3*n->indices[i]]);
@@ -1539,7 +1540,7 @@ static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 		glLoadIdentity();
 		return;
 	}
-#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
+#if defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)
 	glLoadMatrixx(mat);
 #elif defined(GPAC_FIXED_POINT)
 	for (i=0; i<16; i++) _mat[i] = FIX2FLT(mat[i]);
@@ -1551,7 +1552,7 @@ static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 
 static void visual_3d_matrix_add(GF_VisualManager *visual, Fixed *mat)
 {
-#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
+#if defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)
 	glMultMatrixx(mat);
 #elif defined(GPAC_FIXED_POINT)
 	u32 i;
@@ -1591,7 +1592,7 @@ static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *t
 
 	for (i=0; i<visual->num_clips; i++) {
 		u32 idx = GL_CLIP_PLANE0 + i;
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 		Fixed g[4];
 #else
 		Double g[4];
@@ -1609,7 +1610,7 @@ static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *t
 			gf_mx_apply_plane(&mx, &p);
 		}
 
-#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
+#if defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)
 		g[0] = p.normal.x;
 		g[1] = p.normal.y;
 		g[2] = p.normal.z;
@@ -1621,7 +1622,7 @@ static void visual_3d_set_clippers(GF_VisualManager *visual, GF_TraverseState *t
 		g[2] = FIX2FLT(p.normal.z);
 		g[3] = FIX2FLT(p.d);
 
-#if defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_USE_GLES1X)
 		glClipPlanef(idx, g);
 #else
 		glClipPlane(idx, g);
@@ -1664,7 +1665,7 @@ void visual_3d_reset_lights(GF_VisualManager *visual)
 static void visual_3d_set_lights(GF_VisualManager *visual)
 {
 	u32 i;
-#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
+#if defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)
 	Fixed vals[4], exp;
 #else
 	Float vals[4], intensity, cutOffAngle, beamWidth, ambientIntensity, exp;
@@ -1691,7 +1692,7 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 		//directionnal light
 		case 0:
 		case 3:
-#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
+#if defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)
 			vals[0] = -li->direction.x;
 			vals[1] = -li->direction.y;
 			vals[2] = -li->direction.z;
@@ -1744,14 +1745,14 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 
 		//spot light
 		case 1:
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 			ambientIntensity = FIX2FLT(li->ambientIntensity);
 			intensity = FIX2FLT(li->intensity);
 			cutOffAngle = FIX2FLT(li->cutOffAngle);
 			beamWidth = FIX2FLT(li->beamWidth);
 #endif
 
-#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
+#if defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)
 			vals[0] = li->direction.x;
 			vals[1] = li->direction.y;
 			vals[2] = li->direction.z;
@@ -1826,7 +1827,7 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 
 		//point light
 		case 2:
-#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
+#if defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)
 			vals[0] = li->position.x;
 			vals[1] = li->position.y;
 			vals[2] = li->position.z;
@@ -1889,7 +1890,7 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 
 #ifndef GPAC_USE_TINYGL
 
-#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
+#if defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)
 	Fixed vals[4];
 	glEnable(GL_FOG);
 	if (!visual->fog_type) glFogx(GL_FOG_MODE, GL_LINEAR);
@@ -1908,7 +1909,7 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 	Float vals[4];
 	glEnable(GL_FOG);
 
-#if defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_USE_GLES1X)
 	if (!visual->fog_type) glFogf(GL_FOG_MODE, GL_LINEAR);
 	else if (visual->fog_type==1) glFogf(GL_FOG_MODE, GL_EXP);
 	else if (visual->fog_type==2) glFogf(GL_FOG_MODE, GL_EXP2);
@@ -1957,7 +1958,7 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	/*if inside or no aabb for the mesh draw vertex array*/
 	if (tr_state->visual->compositor->disable_gl_cull || (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos)	{
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_SHORT, mesh->indices);
 #else
 		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_INT, mesh->indices);
@@ -2680,7 +2681,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	GF_VisualManager *visual = tr_state->visual;
 	GF_Compositor *compositor = tr_state->visual->compositor;
 	void *base_address = NULL;
-#if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_GLES1X)
 	Float *color_array = NULL;
 	Float fix_scale = 1.0f;
 	fix_scale /= FIX_ONE;
@@ -2746,7 +2747,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		visual_3d_set_clippers(visual, tr_state);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
-#if defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_USE_GLES1X)
 	glVertexPointer(3, GL_FIXED, sizeof(GF_Vertex),  base_address);
 #elif defined(GPAC_FIXED_POINT)
 	/*scale modelview matrix*/
@@ -2765,7 +2766,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (visual->has_material_2d) {
 		glDisable(GL_LIGHTING);
 
-#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
 		if (visual->compositor->visual->current_texture_glsl_program) {
 			int loc = glGetUniformLocation(visual->compositor->visual->current_texture_glsl_program, "alpha");
 			if (loc == -1) {
@@ -2785,7 +2786,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 					glDisable(GL_BLEND);
 				visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0);
 			}
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 			glColor4x( FIX2INT(visual->mat_2d.red * 255), FIX2INT(visual->mat_2d.green * 255), FIX2INT(visual->mat_2d.blue * 255), FIX2INT(visual->mat_2d.alpha * 255));
 #elif defined(GPAC_FIXED_POINT)
 			glColor4f(FIX2FLT(visual->mat_2d.red), FIX2FLT(visual->mat_2d.green), FIX2FLT(visual->mat_2d.blue), FIX2FLT(visual->mat_2d.alpha));
@@ -2795,7 +2796,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		}
 	}
 
-#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
 	else if (visual->compositor->visual->current_texture_glsl_program) {
 		int loc = glGetUniformLocation(visual->compositor->visual->current_texture_glsl_program, "alpha");
 		if (loc == -1) {
@@ -2811,11 +2812,11 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (visual->has_material) {
 		u32 i;
 		GL_CHECK_ERR
-			for (i=0; i<4; i++) {
-				GLenum mode;
-				Fixed *rgba = (Fixed *) & visual->materials[i];
-#if defined(GPAC_USE_OGL_ES)
-				Fixed *_rgba = (Fixed *) rgba;
+		for (i=0; i<4; i++) {
+			GLenum mode;
+			Fixed *rgba = (Fixed *) & visual->materials[i];
+#if defined(GPAC_USE_GLES1X)
+			Fixed *_rgba = (Fixed *) rgba;
 #elif defined(GPAC_FIXED_POINT)
 				Float _rgba[4];
 				_rgba[0] = FIX2FLT(rgba[0]);
@@ -2841,15 +2842,15 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 					break;
 				}
 
-#if defined(GPAC_USE_OGL_ES) && defined(GPAC_FIXED_POINT)
-				glMaterialxv(GL_FRONT_AND_BACK, mode, _rgba);
+#if defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)
+			glMaterialxv(GL_FRONT_AND_BACK, mode, _rgba);
 #else
 				glMaterialfv(GL_FRONT_AND_BACK, mode, _rgba);
 #endif
-				GL_CHECK_ERR
-			}
-#ifdef GPAC_USE_OGL_ES
-			glMaterialx(GL_FRONT_AND_BACK, GL_SHININESS, visual->shininess * 128);
+			GL_CHECK_ERR
+		}
+#ifdef GPAC_USE_GLES1X
+		glMaterialx(GL_FRONT_AND_BACK, GL_SHININESS, visual->shininess * 128);
 #else
 			glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, FIX2FLT(visual->shininess) * 128);
 #endif
@@ -2858,14 +2859,14 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	//otherwise setup mesh color
 	if (!tr_state->mesh_num_textures && (mesh->flags & MESH_HAS_COLOR)) {
-		glEnable(GL_COLOR_MATERIAL);	//This works only in ES1.*, not ES2.0
-#if !defined (GPAC_USE_OGL_ES)
+		glEnable(GL_COLOR_MATERIAL);
+#if !defined (GPAC_USE_GLES1X)
 		glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
 #endif
 		glEnableClientState(GL_COLOR_ARRAY);
 		has_col = 1;
 
-#if defined (GPAC_USE_OGL_ES)
+#if defined (GPAC_USE_GLES1X)
 
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			glEnable(GL_BLEND);
@@ -2945,7 +2946,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glMatrixMode(GL_MODELVIEW);
 
 
-#if defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_USE_GLES1X)
 		glTexCoordPointer(2, GL_FIXED, sizeof(GF_Vertex), ((char *)base_address + MESH_TEX_OFFSET));
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY );
 #elif defined(GPAC_FIXED_POINT)
@@ -2975,7 +2976,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 
 	if (mesh->mesh_type) {
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 		glNormal3x(0, 0, FIX_ONE);
 #else
 		glNormal3f(0, 0, 1.0f);
@@ -2995,7 +2996,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glEnableClientState(GL_NORMAL_ARRAY );
 #ifdef MESH_USE_FIXED_NORMAL
 
-#if defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_USE_GLES1X)
 		normal_type = GL_FIXED;
 #elif defined(GPAC_FIXED_POINT)
 		normal_type = GL_INT;
@@ -3035,7 +3036,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (mesh->vbo)
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-#if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_GLES1X)
 	if (color_array) gf_free(color_array);
 	if (tr_state->mesh_num_textures && !mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)) {
 		glMatrixMode(GL_TEXTURE);
@@ -3064,7 +3065,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 static void visual_3d_set_debug_color(u32 col)
 {
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	glColor4x( (col ? GF_COL_R(col) : 255) , (col ? GF_COL_G(col) : 0) , (col ? GF_COL_B(col) : 255), 255);
 #else
 	glColor4f(col ? GF_COL_R(col)/255.0f : 1, col ? GF_COL_G(col)/255.0f : 0, col ? GF_COL_B(col)/255.0f : 1, 1);
@@ -3081,7 +3082,7 @@ static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	u32 i, j;
 	Fixed scale = mesh->bounds.radius / 4;
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	GF_Vec va[2];
 	u16 indices[2];
 	glEnableClientState(GL_VERTEX_ARRAY);
@@ -3097,7 +3098,7 @@ static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 				MESH_GET_NORMAL(end, mesh->vertices[idx[j]]);
 				end = gf_vec_scale(end, scale);
 				gf_vec_add(end, pt, end);
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 				va[0] = pt;
 				va[1] = end;
 				indices[0] = 0;
@@ -3123,7 +3124,7 @@ static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 			end = gf_vec_scale(end, scale);
 			gf_vec_add(end, pt, end);
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 			va[0] = pt;
 			va[1] = end;
 			indices[0] = 0;
@@ -3139,7 +3140,7 @@ static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 			idx += 3;
 		}
 	}
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	glDisableClientState(GL_VERTEX_ARRAY);
 #endif
 
@@ -3233,7 +3234,7 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 
 		glEnableClientState(GL_VERTEX_ARRAY);
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 		glVertexPointer(3, GL_FIXED, sizeof(GF_Vertex),  &mesh->vertices[0].pos);
 		glDrawElements(GL_LINES, mesh->i_count, GL_UNSIGNED_SHORT, mesh->indices);
 #else
@@ -3247,7 +3248,7 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Done drawing mesh %p\n", mesh));
 }
 
-#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
 
 
 static GLubyte hatch_horiz[] = {
@@ -3404,7 +3405,7 @@ void visual_3d_mesh_hatch(GF_TraverseState *tr_state, GF_Mesh *mesh, u32 hatchSt
 /*only used for ILS/ILS2D or IFS2D outline*/
 void visual_3d_mesh_strike(GF_TraverseState *tr_state, GF_Mesh *mesh, Fixed width, Fixed line_scale, u32 dash_style)
 {
-#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
 	u16 style;
 #endif
 
@@ -3415,7 +3416,7 @@ void visual_3d_mesh_strike(GF_TraverseState *tr_state, GF_Mesh *mesh, Fixed widt
 	glLineWidth( FIX2FLT(width));
 #endif
 
-#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
 
 	switch (dash_style) {
 	case GF_DASH_STYLE_DASH:
@@ -3452,7 +3453,7 @@ void visual_3d_mesh_strike(GF_TraverseState *tr_state, GF_Mesh *mesh, Fixed widt
 
 void visual_3d_clear(GF_VisualManager *visual, SFColor color, Fixed alpha)
 {
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	glClearColorx(color.red, color.green, color.blue, alpha);
 #else
 	glClearColor(FIX2FLT(color.red), FIX2FLT(color.green), FIX2FLT(color.blue), FIX2FLT(alpha));
@@ -3465,7 +3466,7 @@ void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color
 {
 	glDisable(GL_BLEND | GL_LIGHTING | GL_TEXTURE_2D);
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	glNormal3x(0, 0, FIX_ONE);
 	if (color.alpha!=FIX_ONE) glEnable(GL_BLEND);
 	glColor4x(color.red, color.green, color.blue, color.alpha);
@@ -3529,7 +3530,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 	/*depthmap-only dump*/
 	if (depth_dump_mode==1) {
 		//depth reading not supported on gles <= 1.1
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 		return GF_NOT_SUPPORTED;
 #else
 		Float *depthp;
@@ -3566,12 +3567,12 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 		gf_free(depthp);
 
-#endif	/*GPAC_USE_OGL_ES*/
+#endif	/*GPAC_USE_GLES1X*/
 	}
 
 	/* RGBDS or RGBD dump*/
 	else if (depth_dump_mode==2 || depth_dump_mode==3) {
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor]: RGB+Depth format not implemented in OpenGL ES\n"));
 		return GF_NOT_SUPPORTED;
 #else
@@ -3630,7 +3631,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		return GF_NOT_SUPPORTED;
 #endif
 
-#endif /*GPAC_USE_OGL_ES*/
+#endif /*GPAC_USE_GLES1X*/
 	} else { /*if (compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT))*/
 		u32 size;
 		fb->pitch_x = 4;
@@ -3677,7 +3678,7 @@ GF_Err compositor_3d_release_screen_buffer(GF_Compositor *compositor, GF_VideoSu
 
 GF_Err compositor_3d_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *fb, u32 view_idx, u32 depth_dump_mode)
 {
-#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
 	char *tmp;
 	u32 hy, i;
 	/*not implemented yet*/
@@ -3713,7 +3714,7 @@ GF_Err compositor_3d_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSur
 
 void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_TextureHandler *txh, GF_TraverseState *tr_state)
 {
-#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
 	u32 w, h;
 	u32 pixel_format, stride;
 	u8 *data;
@@ -3947,6 +3948,6 @@ restart:
 	visual_3d_draw_mesh(tr_state, stack->mesh);
 	visual_3d_disable_texture(tr_state);
 
-#endif //GPAC_USE_OGL_ES
+#endif //GPAC_USE_GLES1X
 
 }

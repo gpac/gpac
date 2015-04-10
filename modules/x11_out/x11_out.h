@@ -39,7 +39,7 @@ extern "C"
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 
-#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
 #define GPAC_HAS_OPENGL
 #endif
 

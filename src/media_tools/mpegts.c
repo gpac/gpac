@@ -3625,6 +3625,26 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 }
 
 GF_EXPORT
+void gf_m2ts_abort_parsing(GF_M2TS_Demuxer *ts, Bool force_reset_pes)
+{
+	u32 i, j, count, count2;
+
+	if (force_reset_pes) {
+		count = gf_list_count(ts->programs);
+		for (i=0; i<count; i++) {
+			GF_M2TS_Program *prog = (GF_M2TS_Program *)gf_list_get(ts->programs, i);
+			count2 = gf_list_count(prog->streams);
+			for (j=0; j<count2; j++) {
+				GF_M2TS_PES *pes = (GF_M2TS_PES *)gf_list_get(prog->streams, j);
+				if (pes)
+					pes->pck_data_len = 0;
+			}
+		}
+	}
+	ts->abort_parsing = GF_TRUE;
+}
+
+GF_EXPORT
 void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts) {
 
 	char* temp_dir;
@@ -3769,7 +3789,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 		/*process chunk*/
 		e = gf_m2ts_process_data(ts, mem_address, size);
 
-		ts->abort_parsing = 0;
+		ts->abort_parsing = GF_FALSE;
 
 		if (refresh_type==2)
 			ts->pos_in_stream = 0;
@@ -3835,7 +3855,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 
 		gf_bs_del(bs);
 		gf_fclose(f);
-		ts->abort_parsing = 0;
+		ts->abort_parsing = GF_FALSE;
 	}
 
 	if (signal_end_of_stream && !ts->pos_in_stream) {

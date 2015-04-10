@@ -1891,6 +1891,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_pes_get_framing_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_sdt_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_abort_parsing) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_pause_demux) )
 
 

@@ -253,7 +253,7 @@ typedef struct
 	u32 command_type;
 	LPNETCHANNEL on_channel;
 	//time in sec in the timeshift buffer - 0 means live point
-	u32 time;
+	Double time;
 } GF_NetComTimeShift;
 
 
