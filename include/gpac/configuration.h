@@ -62,6 +62,8 @@
 
 /*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
 
+#define GPAC_USE_GLES2
+
 
 //iOS compilation
 #if defined(GPAC_CONFIG_DARWIN) && defined(GPAC_IPHONE)
@@ -152,7 +154,7 @@
 /*comment this line if you don't have a GLU32 version for Windows Mobile*/
 //#define GPAC_HAS_GLU
 #elif defined(WIN32)
-#define GPAC_HAS_GLU
+//#define GPAC_HAS_GLU
 #endif
 
 /*disables player */
