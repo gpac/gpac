@@ -870,7 +870,7 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 			auto_stereo = 1;
 		}
 
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 		visual_3d_init_shaders(visual);
 #endif
 
@@ -1840,7 +1840,7 @@ void visual_3d_draw(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		visual_3d_mesh_paint(tr_state, mesh);
 		visual_3d_disable_texture(tr_state);
 
-#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_DISABLE_X3D)
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_DISABLE_X3D)
 		if (tr_state->appear && gf_node_get_tag(tr_state->appear)==TAG_X3D_Appearance) {
 			X_Appearance *ap = (X_Appearance *)tr_state->appear;
 			X_FillProperties *fp = ap->fillProperties ? (X_FillProperties *) ap->fillProperties : NULL;

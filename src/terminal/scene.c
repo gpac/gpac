@@ -2167,8 +2167,13 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 
 void scene_reset_addon(GF_AddonMedia *addon, Bool disconnect)
 {
-	if (disconnect && addon->root_od)
+	if (disconnect && addon->root_od) {
 		gf_odm_disconnect(addon->root_od, 1);
+	}
+	if (addon->root_od) {
+		addon->root_od->addon = NULL;
+	}
+
 	if (addon->url) gf_free(addon->url);
 	gf_free(addon);
 }

@@ -5441,7 +5441,7 @@ restart_import:
 	gf_media_update_par(import->dest, track);
 	gf_media_update_bitrate(import->dest, track);
 
-	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0x15);
+	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0x7F);
 	gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_AVC1, 1);
 
 	if (!gf_list_count(avccfg->sequenceParameterSets) && !gf_list_count(svccfg->sequenceParameterSets) && !(import->flags & GF_IMPORT_FORCE_XPS_INBAND)) {

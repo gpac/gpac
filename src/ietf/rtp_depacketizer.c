@@ -1727,6 +1727,7 @@ GF_EXPORT
 void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
 	assert(rtp && rtp->depacketize);
+	rtp->sl_hdr.sender_ntp = hdr->recomputed_ntp_ts;
 	rtp->depacketize(rtp, hdr, payload, size);
 }
 

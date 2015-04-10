@@ -134,7 +134,7 @@ enum
 };
 
 /*indexes as used in glDrawElements - note that integer type is not allowed with oglES*/
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 #define IDX_TYPE	u16
 #else
 #define IDX_TYPE	u32

@@ -1490,8 +1490,9 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			if (!m2ts->map_media_time_on_prog_id)
 				m2ts->map_media_time_on_prog_id = pes->program->number;
 
-			if (com->play.dash_segment_switch)
-				ts->abort_parsing = 1;
+			if (com->play.dash_segment_switch) {
+				gf_m2ts_abort_parsing(ts, GF_TRUE);
+			}
 
 			/*start demuxer*/
 			if (!plug->query_proxy) {
