@@ -83,9 +83,9 @@ static GF_Err MAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	mad_stream_init(&ctx->stream);
 	mad_frame_init(&ctx->frame);
 	mad_synth_init(&ctx->synth);
-	ctx->configured = 1;
+	ctx->configured = GF_TRUE;
 
-	ctx->buffer = gf_malloc(sizeof(char) * 2*MAD_BUFFER_MDLEN);
+	ctx->buffer = (unsigned char*)gf_malloc(sizeof(char) * 2*MAD_BUFFER_MDLEN);
 
 	/*we need a frame to init, so use default values*/
 	ctx->num_samples = 1152;
@@ -93,7 +93,7 @@ static GF_Err MAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	ctx->sample_rate = 0;
 	ctx->out_size = 2 * ctx->num_samples * ctx->num_channels;
 	ctx->ES_ID = esd->ESID;
-	ctx->first = 1;
+	ctx->first = GF_TRUE;
 	return GF_OK;
 }
 
@@ -114,7 +114,7 @@ static GF_Err MAD_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 		mad_frame_finish(&ctx->frame);
 		mad_synth_finish(&ctx->synth);
 	}
-	ctx->configured = 0;
+	ctx->configured = GF_FALSE;
 	return GF_OK;
 }
 static GF_Err MAD_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
@@ -172,7 +172,7 @@ static GF_Err MAD_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capab
 	switch (capability.CapCode) {
 	/*reset storage buffer*/
 	case GF_CODEC_WAIT_RAP:
-		ctx->first = 1;
+		ctx->first = GF_TRUE;
 		ctx->len = 0;
 		if (ctx->configured) {
 			mad_stream_finish(&ctx->stream);
@@ -233,7 +233,7 @@ static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg,
 	}
 
 	if (ctx->first) {
-		ctx->first = 0;
+		ctx->first = GF_FALSE;
 		memcpy(ctx->buffer, inBuffer, inBufferLength);
 		ctx->len = inBufferLength;
 		*outBufferLength = 0;
@@ -360,7 +360,7 @@ void DeleteMADDec(GF_MediaDecoder *ifcg)
 			mad_frame_finish(&ctx->frame);
 			mad_synth_finish(&ctx->synth);
 		}
-		ctx->configured = 0;
+		ctx->configured = GF_FALSE;
 		ctx->sample_rate = ctx->out_size = ctx->num_samples = 0;
 		ctx->num_channels = 0;
 		gf_free(ctx);
