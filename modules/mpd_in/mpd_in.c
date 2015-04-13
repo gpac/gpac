@@ -149,7 +149,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 	GF_Channel *ch;
 	GF_MPDGroup *group;
 	Bool do_map_time = GF_FALSE;
-	if (!ns || !hdr || gf_dash_is_m3u8(mpdin->dash)) {
+	if (!ns || !hdr) {
 		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
 		return;
 	}
@@ -164,6 +164,21 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 	}
 
 	group = gf_dash_get_group_udta(mpdin->dash, i);
+
+	if (gf_dash_is_m3u8(mpdin->dash)) {
+		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
+		if (!group->pto_setup && hdr->compositionTimeStampFlag) {
+			GF_NetworkCommand com;
+			memset(&com, 0, sizeof(com));
+			com.command_type = GF_NET_CHAN_SET_MEDIA_TIME;
+			com.map_time.media_time = mpdin->media_start_range;
+			com.map_time.timestamp = hdr->compositionTimeStamp;
+			com.base.on_channel =  ns;
+			gf_service_command(service, &com, GF_OK);
+			group->pto_setup = GF_TRUE;
+		}
+		return;
+	}
 
 	//if sync is based on timestamps do not adjust the timestamps back
 	if (! group->is_timestamp_based) {
@@ -1262,6 +1277,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			group->is_timestamp_based = 0;
 			group->pto_setup = 0;
 			if (com->play.start_range<0) com->play.start_range = 0;
+			mpdin->media_start_range = com->play.start_range;
 		}
 
 		//we cannot handle seek request outside of a period being setup, this messes up our internal service setup
