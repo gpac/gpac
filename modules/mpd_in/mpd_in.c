@@ -149,7 +149,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 	GF_Channel *ch;
 	GF_MPDGroup *group;
 	Bool do_map_time = GF_FALSE;
-	if (!ns || !hdr) {
+	if (!ns || !hdr || gf_dash_is_m3u8(mpdin->dash)) {
 		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
 		return;
 	}
@@ -164,6 +164,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 	}
 
 	group = gf_dash_get_group_udta(mpdin->dash, i);
+
 	//if sync is based on timestamps do not adjust the timestamps back
 	if (! group->is_timestamp_based) {
 		if (!group->pto_setup) {
@@ -180,6 +181,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			}
 			scale = ch->esd->slConfig->timestampResolution;
 			scale /= 1000;
+
 			dur = (u64) (scale * gf_dash_get_period_duration(mpdin->dash));
 			if (dur) {
 				group->max_cts_in_period = group->pto + dur;
@@ -190,6 +192,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			start = (u64) (scale * gf_dash_get_period_start(mpdin->dash));
 			group->pto -= start;
 		}
+
 		//filter any packet outside the current period
 		if (group->max_cts_in_period && (s64) hdr->compositionTimeStamp > group->max_cts_in_period) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet timestamp "LLU" larger than max CTS in period "LLU" - skipping\n", hdr->compositionTimeStamp, group->max_cts_in_period));
