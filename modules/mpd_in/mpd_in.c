@@ -167,7 +167,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 
 	if (gf_dash_is_m3u8(mpdin->dash)) {
 		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
-		if (!group->pto_setup && hdr->compositionTimeStampFlag) {
+		if (!group->pto_setup) {
 			GF_NetworkCommand com;
 			memset(&com, 0, sizeof(com));
 			com.command_type = GF_NET_CHAN_SET_MEDIA_TIME;
@@ -1277,7 +1277,9 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			group->is_timestamp_based = 0;
 			group->pto_setup = 0;
 			if (com->play.start_range<0) com->play.start_range = 0;
-			mpdin->media_start_range = com->play.start_range;
+			//in m3u8, we need also media start time for mapping time
+			if (gf_dash_is_m3u8(mpdin->dash))
+				mpdin->media_start_range = com->play.start_range;
 		}
 
 		//we cannot handle seek request outside of a period being setup, this messes up our internal service setup
