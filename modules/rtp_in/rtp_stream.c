@@ -85,7 +85,7 @@ GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 
 			}
 		}
-		return gf_rtp_initialize(ch->rtp_ch, RTP_BUFFER_SIZE, 0, 0, reorder_size, 200, (char *)ip_ifce);
+		return gf_rtp_initialize(ch->rtp_ch, RTP_BUFFER_SIZE, GF_FALSE, 0, reorder_size, 200, (char *)ip_ifce);
 	}
 	//just reset the sockets
 	gf_rtp_reset_buffers(ch->rtp_ch);
@@ -101,7 +101,7 @@ void RP_DeleteStream(RTPStream *ch)
 		}
 		RP_RemoveStream(ch->owner, ch);
 	} else {
-		RP_FindChannel(ch->owner, ch->channel, 0, NULL, 1);
+		RP_FindChannel(ch->owner, ch->channel, 0, NULL, GF_TRUE);
 	}
 
 	if (ch->depacketizer) gf_rtp_depacketizer_del(ch->depacketizer);
@@ -126,7 +126,7 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 			return;
 		}
 		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Timeout for RTCP: no SR recevied after %d ms - forcing playback, sync may be broken\n", RTCP_DEFAULT_TIMEOUT_MS));
-		ch->rtcp_init = 1;
+		ch->rtcp_init = GF_TRUE;
 	}
 	cts = hdr->compositionTimeStamp;
 	dts = hdr->decodingTimeStamp;
@@ -152,14 +152,14 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	RTPStream *tmp;
 	GF_RTPMap *map;
 	u32 i, ESID, ODID, ssrc, rtp_seq, rtp_time;
-	Bool force_bcast = 0;
+	Bool force_bcast = GF_FALSE;
 	Double Start, End;
 	Float CurrentTime;
 	u16 rvc_predef = 0;
 	char *rvc_config_att = NULL;
 	u32 s_port_first, s_port_last;
 	GF_X_Attribute *att;
-	Bool is_migration = 0;
+	Bool is_migration = GF_FALSE;
 	char *ctrl;
 	GF_SDPConnection *conn;
 	GF_RTSPTransport trans;
@@ -179,14 +179,14 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	i=0;
 	while ((att = (GF_X_Attribute*)gf_list_enum(media->Attributes, &i))) {
 		if (!stricmp(att->Name, "control")) ctrl = att->Value;
-		else if (!stricmp(att->Name, "gpac-broadcast")) force_bcast = 1;
+		else if (!stricmp(att->Name, "gpac-broadcast")) force_bcast = GF_TRUE;
 		else if (!stricmp(att->Name, "mpeg4-esid") && att->Value) ESID = atoi(att->Value);
 		else if (!stricmp(att->Name, "mpeg4-odid") && att->Value) ODID = atoi(att->Value);
 		else if (!stricmp(att->Name, "range") && !range) range = gf_rtsp_range_parse(att->Value);
 		else if (!stricmp(att->Name, "x-stream-state") ) {
 			sscanf(att->Value, "server-port=%u-%u;ssrc=%X;npt=%g;seq=%u;rtptime=%u",
 			       &s_port_first, &s_port_last, &ssrc, &CurrentTime, &rtp_seq, &rtp_time);
-			is_migration = 1;
+			is_migration = GF_TRUE;
 		}
 		else if (!stricmp(att->Name, "x-server-port") ) {
 			sscanf(att->Value, "%u-%u", &s_port_first, &s_port_last);
@@ -245,7 +245,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		if (!ctrl) ctrl = input_stream->control;
 		tmp = input_stream;
 	} else {
-		tmp = RP_FindChannel(rtp, NULL, ESID, NULL, 0);
+		tmp = RP_FindChannel(rtp, NULL, ESID, NULL, GF_FALSE);
 		if (tmp) return NULL;
 
 		GF_SAFEALLOC(tmp, RTPStream);
@@ -264,7 +264,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	memset(&trans, 0, sizeof(GF_RTSPTransport));
 	trans.Profile = media->Profile;
 	trans.source = conn ? conn->host : sdp->o_address;
-	trans.IsUnicast = gf_sk_is_multicast_address(trans.source) ? 0 : 1;
+	trans.IsUnicast = gf_sk_is_multicast_address(trans.source) ? GF_FALSE : GF_TRUE;
 	if (!trans.IsUnicast) {
 		trans.port_first = media->PortNumber;
 		trans.port_last = media->PortNumber + 1;
@@ -316,20 +316,20 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	} else if (rvc_config_att) {
 		char *rvc_data=NULL;
 		u32 rvc_size;
-		Bool is_gz = 0;
+		Bool is_gz = GF_FALSE;
 		if (!strncmp(rvc_config_att, "data:application/rvc-config+xml", 32) && strstr(rvc_config_att, "base64") ) {
 			char *data = strchr(rvc_config_att, ',');
 			if (data) {
 				rvc_size = (u32) strlen(data) * 3 / 4 + 1;
-				rvc_data = gf_malloc(sizeof(char) * rvc_size);
+				rvc_data = (char*)gf_malloc(sizeof(char) * rvc_size);
 				rvc_size = gf_base64_decode(data, (u32) strlen(data), rvc_data, rvc_size);
 				rvc_data[rvc_size] = 0;
 			}
-			if (!strncmp(rvc_config_att, "data:application/rvc-config+xml+gz", 35)) is_gz = 1;
+			if (!strncmp(rvc_config_att, "data:application/rvc-config+xml+gz", 35)) is_gz = GF_TRUE;
 		} else if (!strnicmp(rvc_config_att, "http://", 7) || !strnicmp(rvc_config_att, "https://", 8) ) {
 			char *mime;
 			if (gf_dm_get_file_memory(rvc_config_att, &rvc_data, &rvc_size, &mime) == GF_OK) {
-				if (mime && strstr(mime, "+gz")) is_gz = 1;
+				if (mime && strstr(mime, "+gz")) is_gz = GF_TRUE;
 				if (mime) gf_free(mime);
 			}
 		}
@@ -407,7 +407,7 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 			}
 
 			com.map_time.timestamp = hdr.TimeStamp;
-			com.map_time.reset_buffers = 0;
+			com.map_time.reset_buffers = GF_FALSE;
 			gf_service_command(ch->owner->service, &com, GF_OK);
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Mapping RTP Time seq %d TS %d Media Time %g - rtp info seq %d TS %d\n",
@@ -415,7 +415,7 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 			                                ));
 
 			/*skip RTCP clock init when RTSP is used*/
-			if (ch->rtsp) ch->rtcp_init = 1;
+			if (ch->rtsp) ch->rtcp_init = GF_TRUE;
 
 //			if (ch->depacketizer->payt==GF_RTP_PAYT_H264_AVC) ch->depacketizer->flags |= GF_RTP_AVC_WAIT_RAP;
 		}
@@ -503,7 +503,7 @@ void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 		                                 gf_sys_clock(), ch->rtp_ch->last_SR_rtp_time, ntp_clock, ch->ts_offset
 		                                ));
 
-		ch->rtcp_init = 1;
+		ch->rtcp_init = GF_TRUE;
 		ch->check_rtp_time = RTP_SET_TIME_NONE;
 	}
 

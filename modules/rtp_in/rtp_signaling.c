@@ -33,9 +33,9 @@ Bool channel_is_valid(RTPClient *rtp, RTPStream *ch)
 	u32 i=0;
 	RTPStream *st;
 	while ((st = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
-		if (st == ch) return 1;
+		if (st == ch) return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 void RP_StopChannel(RTPStream *ch)
@@ -61,7 +61,7 @@ Bool RP_SessionActive(RTPStream *ch)
 		/*count only active channels*/
 		if (ach->status == RTP_Running) count++;
 	}
-	return count ? 1 : 0;
+	return count ? GF_TRUE : GF_FALSE;
 }
 
 static void RP_QueueCommand(RTSPSession *sess, RTPStream *ch, GF_RTSPCommand *com, Bool needs_sess_id)
@@ -116,7 +116,7 @@ void RP_Setup(RTPStream *ch)
 	/*1: multicast forced*/
 	opt = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Streaming", "ForceMulticastIP");
 	if (opt) {
-		trans->IsUnicast = 0;
+		trans->IsUnicast = GF_FALSE;
 		trans->destination = gf_strdup(opt);
 		opt = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Streaming", "ForceMulticastTTL");
 		trans->TTL = opt ? atoi(opt) : 127;
@@ -136,7 +136,7 @@ void RP_Setup(RTPStream *ch)
 		if (trans->Profile) gf_free(trans->Profile);
 		trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP_TCP);
 		//some servers expect the interleaved to be set during the setup request
-		trans->IsInterleaved = 1;
+		trans->IsInterleaved = GF_TRUE;
 		trans->rtpID = gf_list_find(ch->owner->channels, ch);
 		trans->rtcpID = trans->rtpID+1;
 		gf_rtp_setup_transport(ch->rtp_ch, trans, NULL);
@@ -156,7 +156,7 @@ void RP_Setup(RTPStream *ch)
 	com->user_data = ch;
 	ch->status = RTP_WaitingForAck;
 
-	RP_QueueCommand(ch->rtsp, ch, com, 1);
+	RP_QueueCommand(ch->rtsp, ch, com, GF_TRUE);
 }
 
 /*filter setup if no session (rtp only)*/
@@ -182,7 +182,7 @@ GF_Err RP_SetupChannel(RTPStream *ch, ChannelDescribe *ch_desc)
 	if (!ch->rtsp) {
 		ch->flags |= RTP_CONNECTED;
 		/*init rtp*/
-		resp = RP_InitStream(ch, 0),
+		resp = RP_InitStream(ch, GF_FALSE),
 		/*send confirmation to user*/
 		RP_ConfirmChannelConnect(ch, resp);
 	} else {
@@ -239,7 +239,7 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	}
 	if (e) goto exit;
 
-	e = RP_InitStream(ch, 0);
+	e = RP_InitStream(ch, GF_FALSE);
 	if (e) goto exit;
 	ch->status = RTP_Connected;
 
@@ -273,19 +273,19 @@ Bool RP_PreprocessDescribe(RTSPSession *sess, GF_RTSPCommand *com)
 	/*not a channel describe*/
 	if (!com->user_data) {
 		RP_SendMessage(sess->owner->service, GF_OK, "Connecting...");
-		return 1;
+		return GF_TRUE;
 	}
 
 	ch_desc = (ChannelDescribe *)com->user_data;
-	ch = RP_FindChannel(sess->owner, NULL, ch_desc->ES_ID, ch_desc->esd_url, 0);
-	if (!ch) return 1;
+	ch = RP_FindChannel(sess->owner, NULL, ch_desc->ES_ID, ch_desc->esd_url, GF_FALSE);
+	if (!ch) return GF_TRUE;
 
 	/*channel has been described already, skip describe and send setup directly*/
 	RP_SetupChannel(ch, ch_desc);
 
 	if (ch_desc->esd_url) gf_free(ch_desc->esd_url);
 	gf_free(ch_desc);
-	return 0;
+	return GF_FALSE;
 }
 
 /*process describe reply*/
@@ -316,7 +316,7 @@ GF_Err RP_ProcessDescribe(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 
 	ch = NULL;
 	if (ch_desc) {
-		ch = RP_FindChannel(sess->owner, ch_desc->channel, ch_desc->ES_ID, ch_desc->esd_url, 0);
+		ch = RP_FindChannel(sess->owner, ch_desc->channel, ch_desc->ES_ID, ch_desc->esd_url, GF_FALSE);
 	} else {
 		RP_SendMessage(sess->owner->service, GF_OK, "Connected");
 	}
@@ -358,7 +358,7 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 	/*locate the channel by URL - if we have one, this means the channel is already described
 	this happens when 2 ESD with URL use the same RTSP service - skip describe and send setup*/
 	if (esd_url || channel) {
-		ch = RP_FindChannel(sess->owner, channel, 0, esd_url, 0);
+		ch = RP_FindChannel(sess->owner, channel, 0, esd_url, GF_FALSE);
 		if (ch) {
 			if (!ch->channel) ch->channel = channel;
 			switch (ch->status) {
@@ -404,7 +404,7 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 	opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(sess->owner->service), "Network", "Bandwidth");
 	if (opt && !stricmp(opt, "yes")) com->Bandwidth = atoi(opt);
 
-	RP_QueueCommand(sess, NULL, com, 0);
+	RP_QueueCommand(sess, NULL, com, GF_FALSE);
 }
 
 
@@ -435,19 +435,19 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 
 	ch_ctrl = NULL;
 	if (strcmp(com->method, GF_RTSP_TEARDOWN)) ch_ctrl = (ChannelControl *)com->user_data;
-	if (!ch_ctrl || !ch_ctrl->ch) return 1;
+	if (!ch_ctrl || !ch_ctrl->ch) return GF_TRUE;
 	ch = ch_ctrl->ch;
 
 	if (!ch->channel || !channel_is_valid(sess->owner, ch)) {
 		gf_free(ch_ctrl);
 		com->user_data = NULL;
-		return 0;
+		return GF_FALSE;
 	}
 
 	assert(ch->rtsp == sess);
 	assert(ch->channel==ch_ctrl->com.base.on_channel);
 
-	skip_it = 0;
+	skip_it = GF_FALSE;
 	if (!com->Session) {
 		/*re-SETUP failed*/
 		if (!strcmp(com->method, GF_RTSP_PLAY) || !strcmp(com->method, GF_RTSP_PAUSE)) {
@@ -455,7 +455,7 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 			goto err_exit;
 		}
 		/*this is a stop, no need for SessionID just skip*/
-		skip_it = 1;
+		skip_it = GF_TRUE;
 	} else {
 		SkipCommandOnSession(ch);
 	}
@@ -466,9 +466,9 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 		gf_service_command(sess->owner->service, &ch_ctrl->com, GF_OK);
 		gf_free(ch_ctrl);
 		com->user_data = NULL;
-		return 0;
+		return GF_FALSE;
 	}
-	return 1;
+	return GF_TRUE;
 
 err_exit:
 	gf_rtsp_reset_aggregation(ch->rtsp->session);
@@ -477,7 +477,7 @@ err_exit:
 	gf_service_command(sess->owner->service, &ch_ctrl->com, e);
 	gf_free(ch_ctrl);
 	com->user_data = NULL;
-	return 0;
+	return GF_FALSE;
 }
 
 void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
@@ -548,7 +548,7 @@ process_reply:
 		count = gf_list_count(sess->rtsp_rsp->RTP_Infos);
 		for (i=0; i<count; i++) {
 			info = (GF_RTPInfo*)gf_list_get(sess->rtsp_rsp->RTP_Infos, i);
-			agg_ch = RP_FindChannel(sess->owner, NULL, 0, info->url, 0);
+			agg_ch = RP_FindChannel(sess->owner, NULL, 0, info->url, GF_FALSE);
 
 			if (!agg_ch || (agg_ch->rtsp != sess) ) continue;
 			/*channel is already playing*/
@@ -567,7 +567,7 @@ process_reply:
 				agg_ch->check_rtp_time = RTP_SET_TIME_RTP_SEEK;
 			}
 			/* reset the buffers */
-			RP_InitStream(agg_ch, 1);
+			RP_InitStream(agg_ch, GF_TRUE);
 
 			gf_rtp_set_info_rtp(agg_ch->rtp_ch, info->seq, info->rtp_time, info->ssrc);
 			agg_ch->status = RTP_Running;
@@ -587,7 +587,7 @@ process_reply:
 		if (!i) {
 			ch->current_start = 0.0;
 			ch->check_rtp_time = RTP_SET_TIME_RTP;
-			RP_InitStream(ch, 1);
+			RP_InitStream(ch, GF_TRUE);
 			ch->status = RTP_Running;
 			if (gf_rtp_is_interleaved(ch->rtp_ch)) {
 				gf_rtsp_register_interleave(sess->session,
@@ -654,14 +654,14 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 	RTPStream *a_ch;
 	ChannelControl *ch_ctrl;
 	u32 i;
-	Bool needs_setup = 0;
+	Bool needs_setup = GF_FALSE;
 	GF_RTSPCommand *com;
 	GF_RTSPRange *range;
 
 	switch (command->command_type) {
 	case GF_NET_CHAN_PLAY:
 	case GF_NET_CHAN_RESUME:
-		needs_setup = 1;
+		needs_setup = GF_TRUE;
 		break;
 	case GF_NET_CHAN_PAUSE:
 	case GF_NET_CHAN_STOP:
@@ -699,7 +699,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 
 		com->method = gf_strdup(GF_RTSP_PLAY);
 
-		ch->paused=0;
+		ch->paused = GF_FALSE;
 
 		/*specify pause range on resume - this is not mandatory but most servers need it*/
 		if (command->command_type==GF_NET_CHAN_RESUME) {
@@ -768,7 +768,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 			else if (strlen(ch->control))
 				com->ControlString = gf_strdup(ch->control);
 
-			ch->paused=1;
+			ch->paused = GF_TRUE;
 		}
 	}
 	else if (command->command_type==GF_NET_CHAN_STOP) {
@@ -776,7 +776,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 		ch->stat_stop_time = gf_sys_clock();
 
 		ch->status = RTP_Connected;
-		RP_InitStream(ch, 1);
+		RP_InitStream(ch, GF_TRUE);
 
 		/*if server only support aggregation on pause, skip the command or issue
 		a teardown if last active stream*/
@@ -812,7 +812,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 	memcpy(&ch_ctrl->com, command, sizeof(GF_NetworkCommand));
 	com->user_data = ch_ctrl;
 
-	RP_QueueCommand(sess, ch, com, 1);
+	RP_QueueCommand(sess, ch, com, GF_TRUE);
 	return;
 }
 
@@ -849,7 +849,7 @@ void RP_Teardown(RTSPSession *sess, RTPStream *ch)
 		com->user_data = ch;
 	}
 
-	RP_QueueCommand(sess, ch, com, 1);
+	RP_QueueCommand(sess, ch, com, GF_TRUE);
 }
 
 #endif /*GPAC_DISABLE_STREAMING*/
