@@ -1405,7 +1405,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 void gf_es_on_eos(GF_Channel *ch)
 {
 	if (!ch || ch->IsEndOfStream) return;
-	ch->IsEndOfStream = 1;
+	ch->IsEndOfStream = GF_TRUE;
 
 	/*flush buffer*/
 	gf_es_buffer_off(ch);

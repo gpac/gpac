@@ -172,7 +172,7 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 				break;
 			}
 		}
-		gf_mo_set_flag(txh->stream, GF_MO_IS_INIT, 1);
+		gf_mo_set_flag(txh->stream, GF_MO_IS_INIT, GF_TRUE);
 	}
 }
 

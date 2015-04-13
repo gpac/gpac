@@ -209,157 +209,158 @@ GF_MediaObject *gf_mo_new()
 	return mo;
 }
 
-
 GF_EXPORT
 Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat, Bool *is_flipped)
 {
-	GF_CodecCapability cap;
 	if ((mo->type != GF_MEDIA_OBJECT_VIDEO) && (mo->type!=GF_MEDIA_OBJECT_TEXT)) return GF_FALSE;
 
-	if (width) {
-		cap.CapCode = GF_CODEC_WIDTH;
-		gf_codec_get_capability(mo->odm->codec, &cap);
-		*width = cap.cap.valueInt;
-	}
-	if (height) {
-		cap.CapCode = GF_CODEC_HEIGHT;
-		gf_codec_get_capability(mo->odm->codec, &cap);
-		*height = cap.cap.valueInt;
-	}
-	if (mo->type==GF_MEDIA_OBJECT_TEXT) return GF_TRUE;
-
-	if (is_flipped) {
-		cap.CapCode = GF_CODEC_FLIP;
-		cap.cap.valueInt = 0;
-		gf_codec_get_capability(mo->odm->codec, &cap);
-		*is_flipped = cap.cap.valueInt ? GF_TRUE : GF_FALSE;
-	}
-
-	if (stride) {
-		cap.CapCode = GF_CODEC_STRIDE;
-		gf_codec_get_capability(mo->odm->codec, &cap);
-		*stride = cap.cap.valueInt;
-	}
-	if (pixelFormat) {
-		cap.CapCode = GF_CODEC_PIXEL_FORMAT;
-		gf_codec_get_capability(mo->odm->codec, &cap);
-		*pixelFormat = cap.cap.valueInt;
-
-		if (mo->odm && mo->odm->parentscene->is_dynamic_scene) {
-#ifndef GPAC_DISABLE_VRML
-			const char *name = gf_node_get_name(gf_event_target_get_node(gf_mo_event_target_get(mo, 0)));
-			if (name && !strcmp(name, "DYN_VIDEO")) {
-				const char *opt;
-				u32 r, g, b, a;
-				M_Background2D *back = (M_Background2D *) gf_sg_find_node_by_name(mo->odm->parentscene->graph, "DYN_BACK");
-				if (back) {
-					switch (cap.cap.valueInt) {
-					case GF_PIXEL_ARGB:
-					case GF_PIXEL_RGBA:
-					case GF_PIXEL_YUVA:
-						opt = gf_cfg_get_key(mo->odm->term->user->config, "Compositor", "BackColor");
-						if (!opt) {
-							gf_cfg_set_key(mo->odm->term->user->config, "Compositor", "BackColor", "FF999999");
-							opt = "FF999999";
-						}
-						sscanf(opt, "%02X%02X%02X%02X", &a, &r, &g, &b);
-						back->backColor.red = INT2FIX(r)/255;
-						back->backColor.green = INT2FIX(g)/255;
-						back->backColor.blue = INT2FIX(b)/255;
-						break;
-					default:
-						back->backColor.red = back->backColor.green = back->backColor.blue = 0;
-						break;
-					}
-					gf_node_dirty_set((GF_Node *)back, 0, GF_TRUE);
-				}
-			}
-#endif
-		}
-	}
-	/*get PAR settings*/
-	if (pixel_ar) {
-		cap.CapCode = GF_CODEC_PAR;
-		gf_codec_get_capability(mo->odm->codec, &cap);
-		*pixel_ar = cap.cap.valueInt;
-		if (! (*pixel_ar & 0x0000FFFF)) *pixel_ar = 0;
-		if (! (*pixel_ar & 0xFFFF0000)) *pixel_ar = 0;
-
-		/**/
-		if (! *pixel_ar) {
-			GF_Channel *ch;
-			GF_NetworkCommand com;
-			com.base.command_type = GF_NET_CHAN_GET_PIXEL_AR;
-			ch = (GF_Channel *)gf_list_get(mo->odm->channels, 0);
-			if (!ch) return GF_FALSE;
-
-			com.base.on_channel = ch;
-			com.par.hSpacing = com.par.vSpacing = 0;
-			if (gf_term_service_command(ch->service, &com) == GF_OK) {
-				if ((com.par.hSpacing>65535) || (com.par.vSpacing>65535)) {
-					com.par.hSpacing>>=16;
-					com.par.vSpacing>>=16;
-				}
-				if (com.par.hSpacing|| com.par.vSpacing)
-					*pixel_ar = (com.par.hSpacing<<16) | com.par.vSpacing;
-			}
-		}
-	}
+	if (width) *width = mo->width;
+	if (height) *height = mo->height;
+	if (stride) *stride = mo->stride;
+	if (pixel_ar) *pixel_ar = mo->pixel_ar;
+	if (pixelFormat) *pixelFormat = mo->pixelformat;
+	if (is_flipped) *is_flipped = mo->is_flipped;
 	return GF_TRUE;
 }
 
 GF_EXPORT
 Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config)
 {
-	GF_CodecCapability cap;
 	if (!mo->odm || !mo->odm->codec || (mo->type != GF_MEDIA_OBJECT_AUDIO)) return GF_FALSE;
 
-	if (mo->odm->term->bench_mode==2) {
-		if (sample_rate) *sample_rate = 44100;
-		if (bits_per_sample) *bits_per_sample = 16;
-		if (num_channels) *num_channels = 2;
-		if (channel_config) *channel_config = 0;
-		return GF_TRUE;
-	}
-	if (sample_rate) {
-		cap.CapCode = GF_CODEC_SAMPLERATE;
-		gf_codec_get_capability(mo->odm->codec, &cap);
-		*sample_rate = cap.cap.valueInt;
-	}
-	if (num_channels) {
-		cap.CapCode = GF_CODEC_NB_CHAN;
-		gf_codec_get_capability(mo->odm->codec, &cap);
-		*num_channels = cap.cap.valueInt;
-	}
-	if (bits_per_sample) {
-		cap.CapCode = GF_CODEC_BITS_PER_SAMPLE;
-		gf_codec_get_capability(mo->odm->codec, &cap);
-		*bits_per_sample = cap.cap.valueInt;
-	}
-	if (channel_config) {
-		cap.CapCode = GF_CODEC_CHANNEL_CONFIG;
-		gf_codec_get_capability(mo->odm->codec, &cap);
-		*channel_config = cap.cap.valueInt;
-	}
 	return GF_TRUE;
+}
+
+static void gf_mo_update_visual_info(GF_MediaObject *mo)
+{
+	GF_CodecCapability cap;
+	if ((mo->type != GF_MEDIA_OBJECT_VIDEO) && (mo->type!=GF_MEDIA_OBJECT_TEXT)) return;
+
+	cap.CapCode = GF_CODEC_WIDTH;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->width = cap.cap.valueInt;
+
+	cap.CapCode = GF_CODEC_HEIGHT;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->height = cap.cap.valueInt;
+
+	if (mo->type==GF_MEDIA_OBJECT_TEXT) return;
+
+	cap.CapCode = GF_CODEC_FLIP;
+	cap.cap.valueInt = 0;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->is_flipped = cap.cap.valueInt ? GF_TRUE : GF_FALSE;
+
+	cap.CapCode = GF_CODEC_STRIDE;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->stride = cap.cap.valueInt;
+
+	cap.CapCode = GF_CODEC_PIXEL_FORMAT;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->pixelformat = cap.cap.valueInt;
+
+	cap.CapCode = GF_CODEC_FPS;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->odm->codec->fps = cap.cap.valueFloat;
+
+	if (mo->odm && mo->odm->parentscene->is_dynamic_scene) {
+#ifndef GPAC_DISABLE_VRML
+		const char *name = gf_node_get_name(gf_event_target_get_node(gf_mo_event_target_get(mo, 0)));
+		if (name && !strcmp(name, "DYN_VIDEO")) {
+			const char *opt;
+			u32 r, g, b, a;
+			M_Background2D *back = (M_Background2D *) gf_sg_find_node_by_name(mo->odm->parentscene->graph, "DYN_BACK");
+			if (back) {
+				switch (cap.cap.valueInt) {
+				case GF_PIXEL_ARGB:
+				case GF_PIXEL_RGBA:
+				case GF_PIXEL_YUVA:
+					opt = gf_cfg_get_key(mo->odm->term->user->config, "Compositor", "BackColor");
+					if (!opt) {
+						gf_cfg_set_key(mo->odm->term->user->config, "Compositor", "BackColor", "FF999999");
+						opt = "FF999999";
+					}
+					sscanf(opt, "%02X%02X%02X%02X", &a, &r, &g, &b);
+					back->backColor.red = INT2FIX(r)/255;
+					back->backColor.green = INT2FIX(g)/255;
+					back->backColor.blue = INT2FIX(b)/255;
+					break;
+				default:
+					back->backColor.red = back->backColor.green = back->backColor.blue = 0;
+					break;
+				}
+				gf_node_dirty_set((GF_Node *)back, 0, GF_TRUE);
+			}
+		}
+#endif
+	}
+	/*get PAR settings*/
+	cap.CapCode = GF_CODEC_PAR;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->pixel_ar = cap.cap.valueInt;
+	if (! (mo->pixel_ar & 0x0000FFFF)) mo->pixel_ar = 0;
+	if (! (mo->pixel_ar & 0xFFFF0000)) mo->pixel_ar = 0;
+
+	/**/
+	if (! mo->pixel_ar) {
+		GF_Channel *ch;
+		GF_NetworkCommand com;
+		com.base.command_type = GF_NET_CHAN_GET_PIXEL_AR;
+		ch = (GF_Channel *)gf_list_get(mo->odm->channels, 0);
+		if (!ch) return;
+
+		com.base.on_channel = ch;
+		com.par.hSpacing = com.par.vSpacing = 0;
+		if (gf_term_service_command(ch->service, &com) == GF_OK) {
+			if ((com.par.hSpacing>65535) || (com.par.vSpacing>65535)) {
+				com.par.hSpacing>>=16;
+				com.par.vSpacing>>=16;
+			}
+			if (com.par.hSpacing|| com.par.vSpacing)
+				mo->pixel_ar = (com.par.hSpacing<<16) | com.par.vSpacing;
+		}
+	}
+}
+
+static void gf_mo_update_audio_info(GF_MediaObject *mo)
+{
+	GF_CodecCapability cap;
+	if (!mo->odm || !mo->odm->codec || (mo->type != GF_MEDIA_OBJECT_AUDIO)) return;
+
+	if (mo->odm->term->bench_mode==2) {
+		mo->sample_rate = 44100;
+		mo->bits_per_sample = 16;
+		mo->num_channels = 2;
+		mo->channel_config = 0;
+		return;
+	}
+	cap.CapCode = GF_CODEC_SAMPLERATE;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->sample_rate = cap.cap.valueInt;
+
+	cap.CapCode = GF_CODEC_NB_CHAN;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->num_channels = cap.cap.valueInt;
+
+	cap.CapCode = GF_CODEC_BITS_PER_SAMPLE;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->bits_per_sample = cap.cap.valueInt;
+
+	cap.CapCode = GF_CODEC_CHANNEL_CONFIG;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->channel_config = cap.cap.valueInt;
+
+	mo->odm->codec->bytes_per_sec = mo->sample_rate * mo->num_channels * mo->bits_per_sample / 8;
 }
 
 void gf_mo_update_caps(GF_MediaObject *mo)
 {
-	GF_CodecCapability cap;
-
 	mo->flags &= ~GF_MO_IS_INIT;
 
 	if (mo->type == GF_MEDIA_OBJECT_VIDEO) {
-		cap.CapCode = GF_CODEC_FPS;
-		gf_codec_get_capability(mo->odm->codec, &cap);
-		mo->odm->codec->fps = cap.cap.valueFloat;
-	}
-	else if (mo->type == GF_MEDIA_OBJECT_AUDIO) {
-		u32 sr, nb_ch, bps;
-		sr = nb_ch = bps = 0;
-		gf_mo_get_audio_info(mo, &sr, &bps, &nb_ch, NULL);
-		mo->odm->codec->bytes_per_sec = sr * nb_ch * bps / 8;
+		gf_mo_update_visual_info(mo);
+	} else if (mo->type == GF_MEDIA_OBJECT_AUDIO) {
+		gf_mo_update_audio_info(mo);
 	}
 }
 

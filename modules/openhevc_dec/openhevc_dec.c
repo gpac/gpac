@@ -70,6 +70,8 @@ typedef struct
 
 	u32 dec_frames;
 
+
+	FILE *raw_out;
 } HEVCDec;
 
 static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
@@ -100,6 +102,9 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 	gf_bs_get_content(bs, &data, &data_len);
 	gf_bs_del(bs);
 	libOpenHevcDecode(ctx->openHevcHandle, (u8 *)data, data_len, 0);
+
+	if (ctx->raw_out) fwrite((u8 *)data, 1, data_len, ctx->raw_out);
+
 	gf_free(data);
 
 	libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 2);
@@ -237,6 +242,11 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "PackHFR");
 	if (sOpt && !strcmp(sOpt, "yes") ) ctx->pack_mode = 1;
 	else if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "PackHFR", "no");
+
+	if (!ctx->raw_out) {
+		sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "InputRipFile");
+		if (sOpt) ctx->raw_out = fopen(sOpt, "wb");
+	}
 
 
 	/*RTP case: configure enhancement now*/
@@ -545,6 +555,9 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 	}
 	ctx->dec_frames++;
 	got_pic = libOpenHevcDecode(ctx->openHevcHandle, (u8 *) inBuffer, inBufferLength, *CTS);
+
+	if (ctx->raw_out) fwrite((u8 *) inBuffer, 1, inBufferLength, ctx->raw_out);
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] Decode CTS %d - size %d - got pic %d\n", *CTS, inBufferLength, got_pic));
 	if (got_pic>0) {
 		e = HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
@@ -630,6 +643,8 @@ GF_BaseDecoder *NewHEVCDec()
 void DeleteHEVCDec(GF_BaseDecoder *ifcg)
 {
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
+	if (ctx->raw_out) fclose(ctx->raw_out);
+
 	gf_free(ctx);
 	gf_free(ifcg);
 }
