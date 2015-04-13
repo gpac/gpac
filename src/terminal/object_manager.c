@@ -86,6 +86,12 @@ void gf_odm_del(GF_ObjectManager *odm)
 		odm->addon->root_od = NULL;
 		odm->addon->started = 0;
 	}
+	if (odm->upper_layer_odm) {
+		odm->upper_layer_odm->lower_layer_odm = NULL;
+	}
+	if (odm->lower_layer_odm) {
+		odm->lower_layer_odm->upper_layer_odm = NULL;
+	}
 	/*make sure we are not in the media queue*/
 	gf_term_lock_media_queue(odm->term, GF_TRUE);
 	gf_list_del_item(odm->term->media_queue, odm);
@@ -1618,6 +1624,9 @@ void gf_odm_play(GF_ObjectManager *odm)
 			if (!ch->clock->clock_init && com.play.timestamp_based)
 				com.play.timestamp_based = 2;
 
+			if (ck_time<0) 
+				ck_time=0;
+
 			if (odm->scalable_addon) {
 				//this is a scalable extension to an object in the parent scene
 				gf_scene_select_scalable_addon(odm->parentscene->root_od->parentscene, odm);
@@ -1779,7 +1788,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 
 	GF_NetworkCommand com;
 	//root ODs of dynamic scene may not have seen play/pause request 
-	if (!odm->state && (!odm->subscene || !odm->subscene->is_dynamic_scene) ) return;
+	if (!odm->state && !odm->scalable_addon && (!odm->subscene || !odm->subscene->is_dynamic_scene) ) return;
 
 #if 0
 	/*Handle broadcast environment, do not stop the object if no time control and instruction

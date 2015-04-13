@@ -1151,6 +1151,12 @@ struct _mediaobj
 	Reset upon creation of the decoder.
 	*/
 	void *node_ptr;
+
+
+	/*currently valid properties of the object*/
+	u32 width, height, stride, pixel_ar, pixelformat;
+	Bool is_flipped;
+	u32 sample_rate, num_channels, bits_per_sample, channel_config;
 };
 
 GF_MediaObject *gf_mo_new();
@@ -1193,7 +1199,8 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_AddonMedia *addon, u32 *timestamp_based);
 s64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon);
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
-void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
+/*check if the associated addon has to be restarted, based on the timestamp of the main media (used for scalable addons only). Returns 1 if the addon has been restarted*/
+Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
 
 
 //exported for gpac.js, resumes to main content

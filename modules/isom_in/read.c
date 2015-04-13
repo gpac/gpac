@@ -1119,6 +1119,8 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		isor_reset_reader(ch);
 		ch->speed = com->play.speed;
 		read->reset_frag_state = 1;
+		if (read->frag_type)
+			read->frag_type = 1;
 		gf_mx_v(read->segment_mutex);
 
 		ch->start = ch->end = 0;

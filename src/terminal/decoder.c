@@ -537,7 +537,12 @@ refetch_AU:
 	//scalable addon, browse channels in scalable object
 	if (current_odm->upper_layer_odm) {
 		if (*nextAU) {
-			gf_scene_check_addon_restart(current_odm->upper_layer_odm->parentscene->root_od->addon, (*nextAU)->CTS, (*nextAU)->DTS);
+			if (gf_scene_check_addon_restart(current_odm->upper_layer_odm->parentscene->root_od->addon, (*nextAU)->CTS, (*nextAU)->DTS)) {
+				//due to some issues in openhevc we reset the decoder when we restart the scalable addon
+				GF_CodecCapability cap;
+				cap.CapCode = GF_CODEC_WAIT_RAP;
+				gf_codec_set_capability(codec, cap);
+			}
 		}
 		current_odm = current_odm->upper_layer_odm;
 		src_channels = current_odm->channels;
@@ -1386,9 +1391,9 @@ scalable_retry:
 				unit_size = 0;
 				if (drop_late_frames) codec->nb_droped++;
 			} else
-				ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
+				prev_ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
 		} else {
-			ch->clock->last_TS_rendered = 0;
+			prev_ch->clock->last_TS_rendered = 0;
 		}
 
 
@@ -1403,7 +1408,7 @@ scalable_retry:
 
 		UnlockCompositionUnit(codec, CU, unit_size);
 		if (unit_size) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d dispatched frame CTS %d in CB\n", codec->decio->module_name, gf_clock_real_time(ch->clock), CU->TS));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d dispatched frame CTS %d in CB\n", codec->decio->module_name, gf_clock_real_time(prev_ch->clock), CU->TS));
 		}
 		if (!ch || !AU) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because no more input data\n", codec->decio->module_name));
