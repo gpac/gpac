@@ -41,7 +41,7 @@ void isor_reset_reader(ISOMChannel *ch)
 	ch->speed = 1.0;
 	ch->start = ch->end = 0;
 	ch->to_init = 1;
-	ch->is_playing = 0;
+	ch->is_playing = GF_FALSE;
 	memset(&ch->current_slh, 0, sizeof(GF_SLHeader));
 }
 
@@ -55,7 +55,7 @@ void isor_segment_switch_or_refresh(ISOMReader *read, Bool do_refresh)
 {
 	GF_NetworkCommand param;
 	u32 i, count;
-	Bool scalable_segment = 0;
+	Bool scalable_segment = GF_FALSE;
 	GF_Err e;
 
 	/*access to the segment switching must be protected in case several decoders are threaded on the file using GetSLPacket */
@@ -76,7 +76,7 @@ void isor_segment_switch_or_refresh(ISOMReader *read, Bool do_refresh)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Refresh seg: do_refresh %d - seg opened %d\n", do_refresh, read->seg_opened));
 
 	if (do_refresh && !read->seg_opened)
-		do_refresh = 0;
+		do_refresh = GF_FALSE;
 
 	if ((read->seg_opened==1) && !do_refresh) {
 		gf_mx_v(read->segment_mutex);
@@ -84,7 +84,7 @@ void isor_segment_switch_or_refresh(ISOMReader *read, Bool do_refresh)
 	}
 
 	if (read->drop_next_segment) {
-		read->drop_next_segment = 0;
+		read->drop_next_segment = GF_FALSE;
 		param.url_query.drop_first_segment = 1;
 	}
 
@@ -123,12 +123,12 @@ next_segment:
 			if (do_refresh && param.url_query.discontinuity_type) {
 				gf_isom_release_segment(read->mov, 1);
 				gf_isom_reset_fragment_info(read->mov, 1);
-				do_refresh = 0;
+				do_refresh = GF_FALSE;
 			}
 
 			if (read->reset_frag_state) {
-				read->reset_frag_state = 0;
-				gf_isom_reset_fragment_info(read->mov, 0);
+				read->reset_frag_state = GF_FALSE;
+				gf_isom_reset_fragment_info(read->mov, GF_FALSE);
 			}
 
 			//refresh file
@@ -140,7 +140,7 @@ next_segment:
 
 					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
 					for (i=0; i<count; i++) {
-						ISOMChannel *ch = gf_list_get(read->channels, i);
+						ISOMChannel *ch = (ISOMChannel*)gf_list_get(read->channels, i);
 						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] refresh track %d fragment - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 					}
 				}
@@ -154,8 +154,8 @@ next_segment:
 
 			//we have to open the file
 
-			if (param.url_query.discontinuity_type==2) {
-				gf_isom_reset_fragment_info(read->mov, 0);
+			if (param.url_query.discontinuity_type == 2) {
+				gf_isom_reset_fragment_info(read->mov, GF_FALSE);
 				read->clock_discontinuity = 1;
 			}
 			e = GF_OK;
@@ -193,9 +193,9 @@ next_segment:
 				//gf_isom_reset_fragment_info(read->mov, 1);
 				read->drop_next_segment = 1;
 				//error opening the segment, reset everything ...
-				gf_isom_reset_fragment_info(read->mov, 0);
+				gf_isom_reset_fragment_info(read->mov, GF_FALSE);
 				for (i=0; i<count; i++) {
-					ISOMChannel *ch = gf_list_get(read->channels, i);
+					ISOMChannel *ch = (ISOMChannel*)gf_list_get(read->channels, i);
 					if (ch)
 						ch->sample_num = 0;
 				}
@@ -231,8 +231,8 @@ next_segment:
 
 			trackID = 0;
 			for (i=0; i<count; i++) {
-				ISOMChannel *ch = gf_list_get(read->channels, i);
-				ch->wait_for_segment_switch = 0;
+				ISOMChannel *ch = (ISOMChannel*)gf_list_get(read->channels, i);
+				ch->wait_for_segment_switch = GF_FALSE;
 
 				if (scalable_segment) {
 					trackID = gf_isom_get_highest_track_in_scalable_segment(read->mov, ch->base_track);
@@ -314,7 +314,7 @@ static void init_reader(ISOMChannel *ch)
 {
 	u32 sample_desc_index;
 	if (ch->is_pulling && ch->wait_for_segment_switch) {
-		isor_segment_switch_or_refresh(ch->owner, 0);
+		isor_segment_switch_or_refresh(ch->owner, GF_FALSE);
 		if (ch->wait_for_segment_switch)
 			return;
 	}
@@ -365,7 +365,7 @@ static void init_reader(ISOMChannel *ch)
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;
 		} else if (ch->sample_num) {
 			ch->last_state = (ch->owner->frag_type==1) ? GF_OK : GF_EOS;
-			ch->to_init = 0;
+			ch->to_init = GF_FALSE;
 		}
 		return;
 	}
@@ -381,7 +381,7 @@ static void init_reader(ISOMChannel *ch)
 		else
 			ch->sample_time = ch->sample->DTS + ch->dts_offset;
 	}
-	ch->to_init = 0;
+	ch->to_init = GF_FALSE;
 
 	ch->current_slh.seekFlag = 0;
 	if (ch->disable_seek) {
@@ -586,7 +586,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d fail to fetch sample %d / %d: %s\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track), gf_error_to_string(gf_isom_last_error(ch->owner->mov)) ));
 		}
 		if (ch->wait_for_segment_switch && ch->is_pulling) {
-			isor_segment_switch_or_refresh(ch->owner, 0);
+			isor_segment_switch_or_refresh(ch->owner, GF_FALSE);
 			if (ch->owner->seg_opened) {
 				isor_reader_get_sample(ch);
 				return;
@@ -650,7 +650,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	}
 	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
 	ch->current_slh.OCRflag = ch->owner->clock_discontinuity ? 2 : 0;
-	ch->owner->clock_discontinuity = 0;
+	ch->owner->clock_discontinuity = GF_FALSE;
 
 	if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
@@ -749,12 +749,12 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 	read->in_data_flush = 1;
 	count = gf_list_count(read->channels);
 
-	do_refresh = (read->seg_opened==1) ? 1 : 0;
+	do_refresh = (read->seg_opened==1) ? 1 : GF_FALSE;
 
 	if (do_refresh) {
 		//query from terminal - do nothing if we are not done downloading the segment - otherwise we could access media data while it is reallocated by the downloader
 		if (!check_buffer_level) {
-			read->in_data_flush = 0;
+			read->in_data_flush = GF_FALSE;
 			gf_mx_v(read->segment_mutex);
 			return;
 		}
@@ -771,13 +771,13 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 			com.base.on_channel = ch->channel;
 			gf_service_command(read->service, &com, GF_OK);
 			if ((com.buffer.occupancy < MAX(com.buffer.max, 1000) )) {
-				buffer_full = 0;
+				buffer_full = GF_FALSE;
 				break;
 			}
 		}
 		if (buffer_full) {
 			read->has_pending_segments++;
-			read->in_data_flush = 0;
+			read->in_data_flush = GF_FALSE;
 			gf_mx_v(read->segment_mutex);
 			if (count) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] Buffer level %d ms higher than max allowed %d ms - skipping dispatch\n", com.buffer.occupancy,  com.buffer.max));
@@ -788,7 +788,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 	//flush request from terminal: only process if nothing is opened and we have pending segments
 	//we have to keep the polling event when no segments are pending, in order to detect period switch - we therefore tolerate a couble of requests even though no segments are pending
 	if (!check_buffer_level && !read->seg_opened && !read->has_pending_segments && (read->nb_force_flush > 2) && !read->drop_next_segment) {
-		read->in_data_flush = 0;
+		read->in_data_flush = GF_FALSE;
 		gf_mx_v(read->segment_mutex);
 		return;
 	}
@@ -850,7 +850,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		read->seg_opened = 0;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Done playing segment \n"));
 	}
-	read->in_data_flush = 0;
+	read->in_data_flush = GF_FALSE;
 
 	if (!read->has_pending_segments) {
 		read->nb_force_flush ++;

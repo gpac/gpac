@@ -250,7 +250,7 @@ static GF_Err JP2_ProcessData(GF_MediaDecoder *ifcg,
 		if (ctx->dsi) {
 			char *data;
 
-			data = gf_malloc(sizeof(char) * (ctx->dsi_size+inBufferLength));
+			data = (char*)gf_malloc(sizeof(char) * (ctx->dsi_size+inBufferLength));
 			memcpy(data, ctx->dsi, ctx->dsi_size);
 			memcpy(data+ctx->dsi_size, inBuffer, inBufferLength);
 			cio = opj_cio_open((opj_common_ptr)dinfo, data, ctx->dsi_size+inBufferLength);

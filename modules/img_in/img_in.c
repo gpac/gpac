@@ -132,19 +132,19 @@ static Bool IMG_CanHandleURL(GF_InputService *plug, const char *url)
 	u32 i;
 	GF_LOG(GF_LOG_MEDIA, GF_LOG_INFO, ("IMG_CanHandleURL(%s)\n", url));
 	if (!plug || !url)
-		return 0;
+		return GF_FALSE;
 	sExt = strrchr(url, '.');
 	for (i = 0 ; IMG_MIME_TYPES[i]; i+=3) {
 		if (gf_service_check_mime_register(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2], sExt))
 			return 1;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 static Bool jp_is_local(const char *url)
 {
 	if (!strnicmp(url, "file://", 7)) return 1;
-	if (strstr(url, "://")) return 0;
+	if (strstr(url, "://")) return GF_FALSE;
 	return 1;
 }
 
@@ -156,7 +156,7 @@ static void IMG_SetupObject(IMGLoader *read)
 		GF_ESD *esd = IMG_GetESD(read);
 		od->objectDescriptorID = 1;
 		gf_list_add(od->ESDescriptors, esd);
-		gf_service_declare_media(read->service, (GF_Descriptor *)od, 0);
+		gf_service_declare_media(read->service, (GF_Descriptor *)od, GF_FALSE);
 	}
 }
 
@@ -288,7 +288,7 @@ static GF_Err IMG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	GF_Err e;
 	IMGLoader *read;
 	if (!plug)
-		return 0;
+		return GF_OK;
 	read = (IMGLoader *)plug->priv;
 
 	e = GF_SERVICE_ERROR;
@@ -342,7 +342,7 @@ static GF_Err IMG_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_PLAY:
 		/*note we don't handle range since we're only dealing with images*/
 		if (read->ch == com->base.on_channel) {
-			read->done = 0;
+			read->done = GF_FALSE;
 		}
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
@@ -358,8 +358,8 @@ static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 	IMGLoader *read = (IMGLoader *)plug->priv;
 
 	*out_reception_status = GF_OK;
-	*sl_compressed = 0;
-	*is_new_data = 0;
+	*sl_compressed = GF_FALSE;
+	*is_new_data = GF_FALSE;
 
 	memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 	read->sl_hdr.randomAccessPointFlag = 1;

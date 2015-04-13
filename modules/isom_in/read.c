@@ -145,7 +145,7 @@ void isor_check_buffer_level(ISOMReader *read)
 	}
 
 	for (i=0; i<gf_list_count(read->channels); i++) {
-		ISOMChannel *ch = gf_list_get(read->channels, i);
+		ISOMChannel *ch = (ISOMChannel*)gf_list_get(read->channels, i);
 		Double time_remain_ch = (Double) gf_isom_get_media_duration(read->mov, ch->track);
 		u32 buffer_level=0;
 		if (total==done) {
@@ -397,7 +397,7 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 		if (e != GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] : error while opening %s, error=%s\n", szURL, gf_error_to_string(e)));
 			if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-				send_proxy_command(read, 0, 0, e, NULL, NULL);
+				send_proxy_command(read, GF_FALSE, GF_FALSE, e, NULL, NULL);
 			} else {
 				gf_service_connect_ack(read->service, NULL, e);
 			}
@@ -686,7 +686,7 @@ void isor_send_cenc_config(ISOMChannel *ch)
 	gf_isom_get_cenc_info(ch->owner->mov, ch->track, 1, NULL, &com.drm_cfg.scheme_type, &com.drm_cfg.scheme_version, NULL);
 
 	com.drm_cfg.PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
-	com.drm_cfg.PSSHs = gf_malloc(sizeof(GF_NetComDRMConfigPSSH)*(com.drm_cfg.PSSH_count) );
+	com.drm_cfg.PSSHs = (GF_NetComDRMConfigPSSH*)gf_malloc(sizeof(GF_NetComDRMConfigPSSH)*(com.drm_cfg.PSSH_count) );
 
 	/*fill PSSH in the structure. We will free it in CENC_Setup*/
 	for (i=0; i<com.drm_cfg.PSSH_count; i++) {
@@ -873,7 +873,7 @@ GF_Err ISOR_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 exit:
 	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-		send_proxy_command(read, 1, 0, e, NULL, channel);
+		send_proxy_command(read, 1, GF_FALSE, e, NULL, channel);
 	} else {
 		gf_service_disconnect_ack(read->service, channel, e);
 	}
@@ -1057,7 +1057,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	}
 	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {
 		if (read->nb_playing && plug->query_proxy)
-			isor_flush_data(read, 0, 0);
+			isor_flush_data(read, GF_FALSE, GF_FALSE);
 		return GF_OK;
 	}
 	if (com->command_type == GF_NET_SERVICE_CAN_REVERSE_PLAYBACK) 
@@ -1129,7 +1129,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			}
 			if (com->play.end_range >= com->play.start_range) {
 				ch->end = (u64) (s64) (com->play.end_range*ch->time_scale);
-				ch->end = check_round(ch, ch->end, com->play.end_range, 0);
+				ch->end = check_round(ch, ch->end, com->play.end_range, GF_FALSE);
 			}
 		} else if (com->play.speed<0) {
 			Double end = com->play.end_range;

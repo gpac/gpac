@@ -119,13 +119,13 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 	char *szfont;
 	FT_Face face;
 	u32 num_faces, i;
-	GF_FontReader *dr = cbck;
-	FTBuilder *ftpriv = dr->udta;
+	GF_FontReader *dr = (GF_FontReader*)cbck;
+	FTBuilder *ftpriv = (FTBuilder*)dr->udta;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Enumerating font %s (%s)\n", file_name, file_path));
 
-	if (FT_New_Face(ftpriv->library, file_path, 0, & face )) return 0;
-	if (!face || !face->family_name) return 0;
+	if (FT_New_Face(ftpriv->library, file_path, 0, & face )) return GF_FALSE;
+	if (!face || !face->family_name) return GF_FALSE;
 
 	num_faces = (u32) face->num_faces;
 	/*locate right font in collection if several*/
@@ -134,7 +134,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 		/*only scan scalable fonts*/
 		if (face->face_flags & FT_FACE_FLAG_SCALABLE) {
 			Bool bold, italic;
-			szfont = gf_malloc(sizeof(char)* (strlen(face->family_name)+100));
+			szfont = (char*)gf_malloc(sizeof(char)* (strlen(face->family_name)+100));
 			if (!szfont) continue;
 			strcpy(szfont, face->family_name);
 
@@ -149,7 +149,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 				if (gidx) ftpriv->font_dir = gf_strdup(szfont);
 			}
 
-			bold = italic = 0;
+			bold = italic = GF_FALSE;
 
 			if (face->style_name) {
 				char *name = gf_strdup(face->style_name);
@@ -186,19 +186,19 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 		}
 
 		FT_Done_Face(face);
-		if (i+1==num_faces) return 0;
+		if (i+1==num_faces) return GF_FALSE;
 
 		/*load next font in collection*/
-		if (FT_New_Face(ftpriv->library, file_path, i+1, & face )) return 0;
-		if (!face) return 0;
+		if (FT_New_Face(ftpriv->library, file_path, i+1, & face )) return GF_FALSE;
+		if (!face) return GF_FALSE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 static Bool ft_enum_fonts_dir(void *cbck, char *file_name, char *file_path, GF_FileEnumInfo *file_info)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Scanning directory %s (%s)\n", file_name, file_path));
-	gf_enum_directory(file_path, 0, ft_enum_fonts, cbck, "ttf;ttc");
+	gf_enum_directory(file_path, GF_FALSE, ft_enum_fonts, cbck, "ttf;ttc");
 	return (gf_enum_directory(file_path, 1, ft_enum_fonts_dir, cbck, NULL)==GF_OK) ? GF_FALSE : GF_TRUE;
 }
 
@@ -236,7 +236,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	font_dir = ftpriv->font_dir;
 	ftpriv->font_dir = NULL;
 
-	gf_enum_directory(font_dir, 0, ft_enum_fonts, dr, "ttf;ttc");
+	gf_enum_directory(font_dir, GF_FALSE, ft_enum_fonts, dr, "ttf;ttc");
 	gf_enum_directory(font_dir, 1, ft_enum_fonts_dir, dr, NULL);
 
 	font_default = ftpriv->font_dir;
@@ -336,7 +336,7 @@ static GF_Err ft_init_font_engine(GF_FontReader *dr)
 		char ext[2], *temp;
 		ext[0] = GF_PATH_SEPARATOR;
 		ext[1] = 0;
-		temp = gf_malloc(sizeof(char) * (strlen(ftpriv->font_dir) + 2));
+		temp = (char*)gf_malloc(sizeof(char) * (strlen(ftpriv->font_dir) + 2));
 		strcpy(temp, ftpriv->font_dir);
 		strcat(temp, ext);
 		gf_free(ftpriv->font_dir);
@@ -373,7 +373,7 @@ static GF_Err ft_shutdown_font_engine(GF_FontReader *dr)
 	ftpriv->active_face = NULL;
 	/*reset loaded fonts*/
 	while (gf_list_count(ftpriv->loaded_fonts)) {
-		FT_Face face = gf_list_get(ftpriv->loaded_fonts, 0);
+		FT_Face face = (FT_Face)gf_list_get(ftpriv->loaded_fonts, 0);
 		gf_list_rem(ftpriv->loaded_fonts, 0);
 		FT_Done_Face(face);
 	}
@@ -390,7 +390,7 @@ static Bool ft_check_face(FT_Face font, const char *fontName, u32 styles)
 	u32 ft_style, loc_styles;
 	char *name;
 
-	if (fontName && stricmp(font->family_name, fontName)) return 0;
+	if (fontName && stricmp(font->family_name, fontName)) return GF_FALSE;
 	ft_style = 0;
 	if (font->style_name) {
 		name = gf_strdup(font->style_name);
@@ -416,7 +416,7 @@ static Bool ft_check_face(FT_Face font, const char *fontName, u32 styles)
 
 	if (ft_style==styles)
 		return 1;
-	return 0;
+	return GF_FALSE;
 }
 
 static FT_Face ft_font_in_cache(FTBuilder *ft, const char *fontName, u32 styles)
@@ -424,7 +424,7 @@ static FT_Face ft_font_in_cache(FTBuilder *ft, const char *fontName, u32 styles)
 	u32 i=0;
 	FT_Face font;
 
-	while ((font = gf_list_enum(ft->loaded_fonts, &i))) {
+	while ((font = (FT_Face)gf_list_enum(ft->loaded_fonts, &i))) {
 		if (ft_check_face(font, fontName, styles)) return font;
 	}
 	return NULL;
