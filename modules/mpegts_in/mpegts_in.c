@@ -1491,6 +1491,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				m2ts->map_media_time_on_prog_id = pes->program->number;
 
 			if (com->play.dash_segment_switch) {
+				/*this is used in case of HLS stream while we need update media start time for mapping*/
 				m2ts->media_start_range = com->play.start_range;
 				gf_m2ts_abort_parsing(ts, GF_TRUE);
 			}
