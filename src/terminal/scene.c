@@ -2351,18 +2351,18 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 	}
 }
 
-void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
+Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 {
 	u32 i;
 	GF_ObjectManager*odm;
 	GF_Scene *subscene;
 
-	if (!addon || !addon->loop_detected) return;
+	if (!addon || !addon->loop_detected) return GF_FALSE;
 	//warning, we need to compare to media PTS/90 since we already rounded the media_ts to milliseconds (otherwise we would get rounding errors).
-	if ((cts == addon->past_media_pts_scaled) || (dts>=addon->past_media_pts_scaled) ) {
+	if ((cts == addon->past_media_pts_scaled) || (dts >= addon->past_media_pts_scaled) ) {
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Loop not yet active - CTS "LLD" DTS "LLD" media TS "LLD" \n", cts, dts, addon->past_media_pts_scaled));
-		return;
+		return GF_FALSE;
 	}
 
 	gf_mx_p(addon->root_od->mx);
@@ -2384,9 +2384,14 @@ void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(subscene->resources, &i))) {
-		gf_odm_play(odm);
+		gf_odm_stop(odm, GF_FALSE);
 	}
 
+	i=0;
+	while ((odm = (GF_ObjectManager*)gf_list_enum(subscene->resources, &i))) {
+		gf_odm_start(odm, 2);
+	}
+	return GF_TRUE;
 }
 
 Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_AddonMedia *addon, u32 *timestamp_based)
