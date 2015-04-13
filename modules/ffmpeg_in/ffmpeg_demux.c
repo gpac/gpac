@@ -226,20 +226,20 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	s32 i;
 	AVFormatContext *ctx;
 	AVOutputFormat *fmt_out;
-	Bool ret = 0;
+	Bool ret = GF_FALSE;
 	char *ext, szName[1000], szExt[20];
 	const char *szExtList;
 	FFDemux *ffd;
 	if (!plug || !url)
-		return 0;
+		return GF_FALSE;
 	/*disable RTP/RTSP from ffmpeg*/
-	if (!strnicmp(url, "rtsp://", 7)) return 0;
-	if (!strnicmp(url, "rtspu://", 8)) return 0;
-	if (!strnicmp(url, "rtp://", 6)) return 0;
-	if (!strnicmp(url, "plato://", 8)) return 0;
-	if (!strnicmp(url, "udp://", 6)) return 0;
-	if (!strnicmp(url, "tcp://", 6)) return 0;
-	if (!strnicmp(url, "data:", 5)) return 0;
+	if (!strnicmp(url, "rtsp://", 7)) return GF_FALSE;
+	if (!strnicmp(url, "rtspu://", 8)) return GF_FALSE;
+	if (!strnicmp(url, "rtp://", 6)) return GF_FALSE;
+	if (!strnicmp(url, "plato://", 8)) return GF_FALSE;
+	if (!strnicmp(url, "udp://", 6)) return GF_FALSE;
+	if (!strnicmp(url, "tcp://", 6)) return GF_FALSE;
+	if (!strnicmp(url, "data:", 5)) return GF_FALSE;
 
 	ffd = plug->priv;
 
@@ -256,7 +256,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		strcpy(szExt, &ext[1]);
 		strlwr(szExt);
 #ifndef FFMPEG_DEMUX_ENABLE_MPEG2TS
-		if (strstr("ts m2t mts dmb trp", szExt) ) return 0;
+		if (strstr("ts m2t mts dmb trp", szExt) ) return GF_FALSE;
 #endif
 
 		/*note we forbid ffmpeg to handle files we support*/
@@ -271,7 +271,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		        || !strcmp(szExt, "xmt") || !strcmp(szExt, "xmta") || !strcmp(szExt, "x3d")
 
 		        || !strcmp(szExt, "jpg") || !strcmp(szExt, "jpeg") || !strcmp(szExt, "png")
-		   ) return 0;
+		   ) return GF_FALSE;
 
 		/*check any default stuff that should work with ffmpeg*/
 		{
@@ -292,7 +292,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		if (ext && !strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
 
 		if (open_file(&ctx, szName, av_in, ffd->options ? &ffd->options : NULL)<0) {
-			return 0;
+			return GF_FALSE;
 		}
 	}
 
@@ -300,7 +300,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	if (av_find_stream_info(ctx) <0) goto exit;
 
 	/*figure out if we can use codecs or not*/
-	has_video = has_audio = 0;
+	has_video = has_audio = GF_FALSE;
 	for(i = 0; i < (s32)ctx->nb_streams; i++) {
 		AVCodecContext *enc = ctx->streams[i]->codec;
 		switch(enc->codec_type) {
@@ -335,7 +335,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 				u32 len;
 				char *buf;
 				len = (u32) (strlen(szExtList) + strlen(szExt) + 10);
-				buf = gf_malloc(sizeof(char)*len);
+				buf = (char*)gf_malloc(sizeof(char)*len);
 				sprintf(buf, "\"%s ", szExt);
 				strcat(buf, &szExtList[1]);
 				gf_modules_set_option((GF_BaseInterface *)plug, "MimeTypes", "application/x-ffmpeg", buf);
@@ -378,7 +378,7 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 			if (!dec->extradata_size) goto opaque_audio;
 			esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = dec->extradata_size;
-			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*dec->extradata_size);
+			esd->decoderConfig->decoderSpecificInfo->data = (char*)gf_malloc(sizeof(char)*dec->extradata_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data,
 			       dec->extradata,
 			       sizeof(char)*dec->extradata_size);
@@ -419,7 +419,7 @@ opaque_audio:
 			/*otherwise use any MPEG-4 Visual*/
 			esd->decoderConfig->objectTypeIndication = (dec->codec_id==CODEC_ID_H264) ? GPAC_OTI_VIDEO_AVC : GPAC_OTI_VIDEO_MPEG4_PART2;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = dec->extradata_size;
-			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*dec->extradata_size);
+			esd->decoderConfig->decoderSpecificInfo->data = (char*)gf_malloc(sizeof(char)*dec->extradata_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data,
 			       dec->extradata,
 			       sizeof(char)*dec->extradata_size);
@@ -449,7 +449,7 @@ opaque_video:
 			gf_bs_del(bs);
 			break;
 		}
-		dont_use_sl = 0;
+		dont_use_sl = GF_FALSE;
 	}
 
 	if (dont_use_sl) {
@@ -481,15 +481,15 @@ static void FFD_SetupObjects(FFDemux *ffd)
 		od->objectDescriptorID = esd->ESID;
 		audio_esid = esd->ESID;
 		gf_list_add(od->ESDescriptors, esd);
-		gf_service_declare_media(ffd->service, (GF_Descriptor*)od, (ffd->video_st>=0) ? 1 : 0);
+		gf_service_declare_media(ffd->service, (GF_Descriptor*)od, (ffd->video_st>=0) ? 1 : GF_FALSE);
 	}
 	if ((ffd->video_st>=0) && (ffd->service_type != 2)) {
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-		esd = FFD_GetESDescriptor(ffd, 0);
+		esd = FFD_GetESDescriptor(ffd, GF_FALSE);
 		od->objectDescriptorID = esd->ESID;
 		esd->OCRESID = audio_esid;
 		gf_list_add(od->ESDescriptors, esd);
-		gf_service_declare_media(ffd->service, (GF_Descriptor*)od, 0);
+		gf_service_declare_media(ffd->service, (GF_Descriptor*)od, GF_FALSE);
 	}
 }
 
@@ -556,7 +556,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	Bool is_local;
 	const char *sOpt;
 	char *ext, szName[1024];
-	FFDemux *ffd = plug->priv;
+	FFDemux *ffd = (FFDemux*)plug->priv;
 	AVInputFormat *av_in = NULL;
 	char szExt[20];
 
@@ -583,7 +583,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	strlwr(szExt);
 	if (!strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
 
-	is_local = (strnicmp(url, "file://", 7) && strstr(url, "://")) ? 0 : 1;
+	is_local = (strnicmp(url, "file://", 7) && strstr(url, "://")) ? GF_FALSE : 1;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG] opening file %s - local %d - av_in %08x\n", url, is_local, av_in));
 
@@ -594,7 +594,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		ffd->buffer_size = 8192;
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "IOBufferSize");
 		if (sOpt) ffd->buffer_size = atoi(sOpt);
-		ffd->buffer = gf_malloc(sizeof(char)*ffd->buffer_size);
+		ffd->buffer = (char*)gf_malloc(sizeof(char)*ffd->buffer_size);
 #ifdef FFMPEG_DUMP_REMOTE
 		ffd->outdbg = gf_fopen("ffdeb.raw", "wb");
 #endif
@@ -729,7 +729,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 			if (last_aud_pts*ffd->audio_tscale.den<10*ffd->audio_tscale.num) ffd->unreliable_audio_timing = 1;
 		}
 
-		ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? 0 : 1;
+		ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? GF_FALSE : 1;
 		if (!ffd->seekable) {
 #if FF_API_CLOSE_INPUT_FILE
 			av_close_input_file(ffd->ctx);
@@ -765,7 +765,7 @@ static GF_Descriptor *FFD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 {
 	GF_ObjectDescriptor *od;
 	GF_ESD *esd;
-	FFDemux *ffd = plug->priv;
+	FFDemux *ffd = (FFDemux*)plug->priv;
 
 	if (!ffd->ctx) return NULL;
 
@@ -791,7 +791,7 @@ static GF_Descriptor *FFD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		if (ffd->video_st<0) return NULL;
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		od->objectDescriptorID = 1;
-		esd = FFD_GetESDescriptor(ffd, 0);
+		esd = FFD_GetESDescriptor(ffd, GF_FALSE);
 		/*if session join, setup sync*/
 		if (ffd->audio_ch) esd->OCRESID = ffd->audio_st+1;
 		gf_list_add(od->ESDescriptors, esd);
@@ -804,7 +804,7 @@ static GF_Descriptor *FFD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 
 static GF_Err FFD_CloseService(GF_InputService *plug)
 {
-	FFDemux *ffd = plug->priv;
+	FFDemux *ffd = (FFDemux*)plug->priv;
 
 	ffd->is_running = 0;
 
@@ -816,7 +816,7 @@ static GF_Err FFD_CloseService(GF_InputService *plug)
 
 	ffd->ctx = NULL;
 	ffd->audio_ch = ffd->video_ch = NULL;
-	ffd->audio_run = ffd->video_run = 0;
+	ffd->audio_run = ffd->video_run = GF_FALSE;
 
 	if (ffd->dnload) {
 		if (ffd->is_running) {
@@ -840,7 +840,7 @@ static GF_Err FFD_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 {
 	GF_Err e;
 	u32 ESID;
-	FFDemux *ffd = plug->priv;
+	FFDemux *ffd = (FFDemux*)plug->priv;
 
 	e = GF_STREAM_NOT_FOUND;
 	if (upstream) {
@@ -878,18 +878,18 @@ exit:
 static GF_Err FFD_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	GF_Err e;
-	FFDemux *ffd = plug->priv;
+	FFDemux *ffd = (FFDemux*)plug->priv;
 
 	e = GF_STREAM_NOT_FOUND;
 	if (ffd->audio_ch == channel) {
 		e = GF_OK;
 		ffd->audio_ch = NULL;
-		ffd->audio_run = 0;
+		ffd->audio_run = GF_FALSE;
 	}
 	else if (ffd->video_ch == channel) {
 		e = GF_OK;
 		ffd->video_ch = NULL;
-		ffd->video_run = 0;
+		ffd->video_run = GF_FALSE;
 	}
 	gf_service_disconnect_ack(ffd->service, channel, e);
 	return GF_OK;
@@ -897,7 +897,7 @@ static GF_Err FFD_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
-	FFDemux *ffd = plug->priv;
+	FFDemux *ffd = (FFDemux*)plug->priv;
 
 
 	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
@@ -941,8 +941,8 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		gf_mx_v(ffd->mx);
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
-		if (ffd->audio_ch==com->base.on_channel) ffd->audio_run = 0;
-		else if (ffd->video_ch==com->base.on_channel) ffd->video_run = 0;
+		if (ffd->audio_ch==com->base.on_channel) ffd->audio_run = GF_FALSE;
+		else if (ffd->video_ch==com->base.on_channel) ffd->video_run = GF_FALSE;
 		return GF_OK;
 	/*note we don't handle PAUSE/RESUME/SET_SPEED, this is automatically handled by the demuxing thread
 	through buffer occupancy queries*/
@@ -971,7 +971,7 @@ static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 	sep = strrchr(szURL, '#');
 	if (sep) sep[0] = 0;
 
-	if ((url[0] != '#') && strnicmp(szURL, url, sizeof(char)*strlen(szURL))) return 0;
+	if ((url[0] != '#') && strnicmp(szURL, url, sizeof(char)*strlen(szURL))) return GF_FALSE;
 	sep = strrchr(url, '#');
 	if (sep && !stricmp(sep, "#video") && (ffd->video_st>=0)) return 1;
 	if (sep && !stricmp(sep, "#audio") && (ffd->audio_st>=0)) return 1;
@@ -981,7 +981,7 @@ static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 void *New_FFMPEG_Demux()
 {
 	FFDemux *priv;
-	GF_InputService *ffd = gf_malloc(sizeof(GF_InputService));
+	GF_InputService *ffd = (GF_InputService*)gf_malloc(sizeof(GF_InputService));
 	memset(ffd, 0, sizeof(GF_InputService));
 
 	GF_SAFEALLOC(priv, FFDemux);
@@ -1016,7 +1016,7 @@ void Delete_FFMPEG_Demux(void *ifce)
 	GF_InputService *ptr = (GF_InputService *)ifce;
 	if (!ptr)
 		return;
-	ffd = ptr->priv;
+	ffd = (FFDemux*)ptr->priv;
 	if (ffd) {
 		if (ffd->thread)
 			gf_th_del(ffd->thread);

@@ -481,7 +481,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 			vout->on_event(vout->evt_cbk_hdl, &evt);
 		} else {
 			if (ctx->hidden && wParam==SIZE_RESTORED) {
-				ctx->hidden = 0;
+				ctx->hidden = GF_FALSE;
 				evt.type = GF_EVENT_SHOWHIDE_NOTIF;
 				evt.show.show_type = 1;
 				vout->on_event(vout->evt_cbk_hdl, &evt);
@@ -546,7 +546,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		}
 		break;
 	case WM_KILLFOCUS:
-		if (hWnd==ctx->os_hwnd) ctx->has_focus = 0;
+		if (hWnd==ctx->os_hwnd) ctx->has_focus = GF_FALSE;
 		break;
 	case WM_SETFOCUS:
 		if (hWnd==ctx->os_hwnd) ctx->has_focus = 1;
@@ -581,7 +581,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		HDROP hDrop = (HDROP) wParam;
 		evt.type = GF_EVENT_DROPFILE;
 		evt.open_file.nb_files = DragQueryFile(hDrop, 0xFFFFFFFF, NULL, 0);
-		evt.open_file.files = gf_malloc(sizeof(char *)*evt.open_file.nb_files);
+		evt.open_file.files = (char**)gf_malloc(sizeof(char *)*evt.open_file.nb_files);
 		for (i=0; i<evt.open_file.nb_files; i++) {
 			u32 res = DragQueryFile(hDrop, i, szFile, GF_MAX_PATH);
 			evt.open_file.files[i] = res ? gf_strdup(szFile) : NULL;
@@ -729,8 +729,8 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 	case WM_KEYDOWN:
 		w32_translate_key(wParam, lParam, &evt.key);
 		evt.type = ((msg==WM_SYSKEYDOWN) || (msg==WM_KEYDOWN)) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
-		if (evt.key.key_code==GF_KEY_ALT) ctx->alt_down = (evt.type==GF_EVENT_KEYDOWN) ? 1 : 0;
-		if (evt.key.key_code==GF_KEY_CONTROL) ctx->ctrl_down = (evt.type==GF_EVENT_KEYDOWN) ? 1 : 0;
+		if (evt.key.key_code==GF_KEY_ALT) ctx->alt_down = (evt.type==GF_EVENT_KEYDOWN) ? 1 : GF_FALSE;
+		if (evt.key.key_code==GF_KEY_CONTROL) ctx->ctrl_down = (evt.type==GF_EVENT_KEYDOWN) ? 1 : GF_FALSE;
 		if ((ctx->os_hwnd==ctx->fs_hwnd) && ctx->alt_down && (evt.key.key_code==GF_KEY_F4)) {
 			memset(&evt, 0, sizeof(GF_Event));
 			evt.type = GF_EVENT_QUIT;
@@ -893,8 +893,8 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	RegisterClass (&wc);
 
 	flags = ctx->switch_res;
-	ctx->switch_res = 0;
-	ctx->force_alpha = (flags & GF_TERM_WINDOW_TRANSPARENT) ? 1 : 0;
+	ctx->switch_res = GF_FALSE;
+	ctx->force_alpha = (flags & GF_TERM_WINDOW_TRANSPARENT) ? 1 : GF_FALSE;
 
 	if (!ctx->os_hwnd) {
 		u32 styles;
@@ -912,12 +912,12 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 		} else {
 			styles = WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_OVERLAPPEDWINDOW;
 		}
-		use_fs_wnd=0;
+		use_fs_wnd = GF_FALSE;
 		ctx->os_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw Output", styles, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 		ctx->backup_styles = styles;
 #endif
 		if (ctx->os_hwnd == NULL) {
-			return 0;
+			return GF_FALSE;
 		}
 		DragAcceptFiles(ctx->os_hwnd, TRUE);
 
@@ -951,7 +951,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 		ctx->fs_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #endif
 		if (!ctx->fs_hwnd) {
-			return 0;
+			return GF_FALSE;
 		}
 		ShowWindow(ctx->fs_hwnd, SW_HIDE);
 #ifdef _WIN64
@@ -966,7 +966,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	/*if visible set focus*/
 	if (!ctx->switch_res) SetFocus(ctx->os_hwnd);
 
-	ctx->switch_res = 0;
+	ctx->switch_res = GF_FALSE;
 #ifdef _WIN64
 	SetWindowLongPtr(ctx->os_hwnd, GWLP_USERDATA, (LONG_PTR) vout);
 #else
@@ -985,7 +985,7 @@ u32 DD_WindowThread(void *par)
 {
 	MSG msg;
 
-	GF_VideoOutput *vout = par;
+	GF_VideoOutput *vout = (GF_VideoOutput*)par;
 	DDContext *ctx = (DDContext *)vout->opaque;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[DirectXOutput] Entering thread ID %d\n", gf_th_id() ));
@@ -1236,10 +1236,10 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	/*HW setup*/
 	case GF_EVENT_VIDEO_SETUP:
 		if (ctx->dd_lost) {
-			ctx->dd_lost = 0;
+			ctx->dd_lost = GF_FALSE;
 			DestroyObjects(ctx);
 		}
-		ctx->is_setup=1;
+		ctx->is_setup = 1;
 		switch (evt->setup.opengl_mode) {
 		case 0:
 #ifndef GPAC_DISABLE_3D

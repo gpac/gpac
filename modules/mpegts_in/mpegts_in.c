@@ -101,7 +101,7 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	if (!plug || !url)
-		return 0;
+		return GF_FALSE;
 	if (!strnicmp(url, "udp://", 6)
 	        || !strnicmp(url, "mpegts-udp://", 13)
 	        || !strnicmp(url, "mpegts-tcp://", 13)
@@ -119,25 +119,25 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 			if (gf_service_check_mime_register(plug, MIMES[i], M2TS_EXTENSIONS, "MPEG-2 TS", sExt))
 				return 1;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
-	Bool ret = 0;
+	Bool ret = GF_FALSE;
 	M2TSIn *m2ts;
 
 	if (!plug || !url)
-		return 0;
+		return GF_FALSE;
 	m2ts = (M2TSIn *)plug->priv;
 	if (!m2ts)
-		return 0;
+		return GF_FALSE;
 
 	if (!strnicmp(url, "pid://", 6)) {
 		u32 pid = atoi(url+6);
-		if (pid>=GF_M2TS_MAX_STREAMS) return 0;
+		if (pid>=GF_M2TS_MAX_STREAMS) return GF_FALSE;
 		if (m2ts->ts->ess[pid]) return 1;
-		return 0;
+		return GF_FALSE;
 	}
 
 #ifdef GPAC_HAS_LINUX_DVB
@@ -167,7 +167,7 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 		        || !strnicmp(url, "mpegts-tcp://", 13))
 		{
 			/* TODO: check IP address ...*/
-			ret = 0;
+			ret = GF_FALSE;
 		} else {
 			char *frag = strchr(url, '#');
 			if (frag) frag[0] = 0;
@@ -237,7 +237,7 @@ static GF_ESD *MP2TS_GetESD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 ds
 			*/
 			if (m2ts->ts->file) {
 				m2ts->file_regulate = 2;
-				gf_m2ts_pause_demux(m2ts->ts, 0);
+				gf_m2ts_pause_demux(m2ts->ts, GF_FALSE);
 			}
 			gf_m2ts_set_pes_framing(stream, GF_M2TS_PES_FRAMING_DEFAULT);
 			gf_odf_desc_del((GF_Descriptor *)esd);
@@ -276,7 +276,7 @@ static GF_ESD *MP2TS_GetESD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 ds
 
 	/*decoder config*/
 	if (dsi) {
-		esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*dsi_size);
+		esd->decoderConfig->decoderSpecificInfo->data = (char*)gf_malloc(sizeof(char)*dsi_size);
 		memcpy(esd->decoderConfig->decoderSpecificInfo->data, dsi, sizeof(char)*dsi_size);
 		esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_size;
 	}
@@ -357,7 +357,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 	}
 
 	for (i=0; i<count; i++) {
-		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
+		GF_M2TS_ES *es = (GF_M2TS_ES*)gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
 		if (((GF_M2TS_PES *)es)->depends_on_pid ) {
 			prog->is_scalable = GF_TRUE;
@@ -366,7 +366,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 	}
 
 	for (i=0; i<count; i++) {
-		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
+		GF_M2TS_ES *es = (GF_M2TS_ES*)gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
 		if ((es->flags & GF_M2TS_ES_IS_PES) && ((GF_M2TS_PES *)es)->depends_on_pid )
 			continue;
@@ -387,7 +387,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 
 	/*force scene regeneration*/
 	if (!prog->pmt_iod && regenerate_scene)
-		gf_service_declare_media(m2ts->service, NULL, 0);
+		gf_service_declare_media(m2ts->service, NULL, GF_FALSE);
 
 
 	if (m2ts->nb_prog_to_setup) {
@@ -467,11 +467,11 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 
 	count = gf_list_count(m2ts->ts->programs);
 	for (j=0; j<count; j++) {
-		GF_M2TS_Program *ts_prog = gf_list_get(m2ts->ts->programs, j);
+		GF_M2TS_Program *ts_prog = (GF_M2TS_Program*)gf_list_get(m2ts->ts->programs, j);
 		//PMT not yet received, do not allow playback regulation
 		if (!ts_prog->pcr_pid) {
-			m2ts->file_regulate = 0;
-			gf_m2ts_pause_demux(m2ts->ts, 0);
+			m2ts->file_regulate = GF_FALSE;
+			gf_m2ts_pause_demux(m2ts->ts, GF_FALSE);
 			gf_mx_v(m2ts->mx);
 			return;
 		}
@@ -481,7 +481,7 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 	found = 0;
 	count = gf_list_count(m2ts->ts->requested_pids);
 	for (i=0; i<count; i++) {
-		M2TSIn_Prog *req_pid = gf_list_get(m2ts->ts->requested_pids, i);
+		M2TSIn_Prog *req_pid = (M2TSIn_Prog*)gf_list_get(m2ts->ts->requested_pids, i);
 		GF_M2TS_ES *es = m2ts->ts->ess[req_pid->pid];
 		if (es==NULL) continue;
 
@@ -497,19 +497,19 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 	}
 	req_prog_count = gf_list_count(m2ts->ts->requested_progs);
 	for (i = 0; i < req_prog_count; i++) {
-		M2TSIn_Prog *req_prog = gf_list_get(m2ts->ts->requested_progs, i);
+		M2TSIn_Prog *req_prog = (M2TSIn_Prog*)gf_list_get(m2ts->ts->requested_progs, i);
 
 		prog_id = atoi(req_prog->fragment);
 		count = gf_list_count(m2ts->ts->SDTs);
 		for (j=0; j<count; j++) {
-			GF_M2TS_SDT *sdt = gf_list_get(m2ts->ts->SDTs, j);
+			GF_M2TS_SDT *sdt = (GF_M2TS_SDT*)gf_list_get(m2ts->ts->SDTs, j);
 			if (!stricmp((const char *) sdt->service, req_prog->fragment)) req_prog->id = sdt->service_id;
 			else if (sdt->service_id==prog_id)  req_prog->id = sdt->service_id;
 		}
 		if (!req_prog->id) {
 			count = gf_list_count(m2ts->ts->programs);
 			for (j=0; j<count; j++) {
-				GF_M2TS_Program *ts_prog = gf_list_get(m2ts->ts->programs, j);
+				GF_M2TS_Program *ts_prog = (GF_M2TS_Program*)gf_list_get(m2ts->ts->programs, j);
 				if (prog_id==ts_prog->number) {
 					req_prog->id = prog_id;
 					break;
@@ -520,9 +520,9 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 			GF_M2TS_Program *ts_prog;
 			count = gf_list_count(m2ts->ts->programs);
 			for (j=0; j<count; j++) {
-				ts_prog = gf_list_get(m2ts->ts->programs, j);
+				ts_prog = (GF_M2TS_Program*)gf_list_get(m2ts->ts->programs, j);
 				if (ts_prog->number==req_prog->id) {
-					MP2TS_SetupProgram(m2ts, ts_prog, 0, 0);
+					MP2TS_SetupProgram(m2ts, ts_prog, GF_FALSE, GF_FALSE);
 					found++;
 					gf_free(req_prog->fragment);
 					gf_free(req_prog);
@@ -539,13 +539,13 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 		if (!m2ts->has_eit) {
 			GF_ObjectDescriptor *od = M2TS_GenerateEPG_OD(m2ts);
 			/*declare but don't regenerate scene*/
-			gf_service_declare_media(m2ts->service, (GF_Descriptor*)od, 0);
+			gf_service_declare_media(m2ts->service, (GF_Descriptor*)od, GF_FALSE);
 			m2ts->has_eit = 1;
 		}
 	} else {
 		/*force scene regeneration only when EPG is not requested*/
 		if (found)
-			gf_service_declare_media(m2ts->service, NULL, 0);
+			gf_service_declare_media(m2ts->service, NULL, GF_FALSE);
 	}
 
 	gf_mx_v(m2ts->mx);
@@ -618,7 +618,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		M2TS_FlushRequested(m2ts);
 		if (m2ts->flush_sdt) {
 			GF_NetworkCommand com;
-			m2ts->flush_sdt = 0;
+			m2ts->flush_sdt = GF_FALSE;
 			memset(&com, 0, sizeof(GF_NetworkCommand));
 			com.base.command_type = GF_NET_SERVICE_INFO;
 			gf_service_command(m2ts->service, &com, GF_OK);
@@ -652,13 +652,13 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			}
 			pck->stream->first_dts=1;
 			/*force scene regeneration*/
-			gf_service_declare_media(m2ts->service, NULL, 0);
+			gf_service_declare_media(m2ts->service, NULL, GF_FALSE);
 		}
 	}
 	break;
 	case GF_M2TS_EVT_PES_PCR:
 	{
-		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
+		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? GF_TRUE : GF_FALSE;
 		/*send pcr*/
 		if (((GF_M2TS_PES_PCK *) param)->stream && ((GF_M2TS_PES_PCK *) param)->stream->user) {
 			GF_SLHeader slh;
@@ -797,10 +797,10 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			memset(&com, 0, sizeof(com));
 			com.command_type = GF_NET_CHAN_MAP_TIME;
 			com.map_time.media_time = tdt->hour*3600+tdt->minute*60+tdt->second;
-			com.map_time.reset_buffers = 0;
+			com.map_time.reset_buffers = GF_FALSE;
 			count = gf_list_count(ts->programs);
 			for (i=0; i<count; i++) {
-				GF_M2TS_Program *prog = gf_list_get(ts->programs, i);
+				GF_M2TS_Program *prog = (GF_M2TS_Program*)gf_list_get(ts->programs, i);
 				u32 j, count2;
 				if (prog->tdt_found || !prog->last_pcr_value) /*map TDT one time, after we received a PCR*/
 					continue;
@@ -808,7 +808,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				count2 = gf_list_count(prog->streams);
 				com.map_time.timestamp = prog->last_pcr_value/300;
 				for (j=0; j<count2; j++) {
-					GF_M2TS_ES * stream = gf_list_get(prog->streams, j);
+					GF_M2TS_ES *stream = (GF_M2TS_ES*)gf_list_get(prog->streams, j);
 					if (stream->user) {
 						com.base.on_channel = stream->user;
 						gf_service_command(m2ts->service, &com, GF_OK);
@@ -832,11 +832,11 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		com.duration.duration /= 1000;
 		count = gf_list_count(ts->programs);
 		for (i=0; i<count; i++) {
-			GF_M2TS_Program *prog = gf_list_get(ts->programs, i);
+			GF_M2TS_Program *prog = (GF_M2TS_Program*)gf_list_get(ts->programs, i);
 			u32 j, count2;
 			count2 = gf_list_count(prog->streams);
 			for (j=0; j<count2; j++) {
-				GF_M2TS_ES * stream = gf_list_get(prog->streams, j);
+				GF_M2TS_ES *stream = (GF_M2TS_ES*)gf_list_get(prog->streams, j);
 				if (stream->user) {
 					com.base.on_channel = stream->user;
 					gf_service_command(m2ts->service, &com, GF_OK);
@@ -894,7 +894,7 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 			/*process chunk*/
 			assert(param->data);
 			if (m2ts->network_buffer_size < param->size) {
-				m2ts->network_buffer = gf_realloc(m2ts->network_buffer, sizeof(char) * param->size);
+				m2ts->network_buffer = (char*)gf_realloc(m2ts->network_buffer, sizeof(char) * param->size);
 				m2ts->network_buffer_size = param->size;
 			}
 			assert( m2ts->network_buffer );
@@ -966,12 +966,12 @@ static GF_Err M2TS_QueryNextFile(void *udta, DASHQueryType query_type, const cha
 
 	memset(&param, 0, sizeof(GF_NetworkCommand));
 	param.command_type = (query_type == INIT_RANGE) ? GF_NET_SERVICE_QUERY_INIT_RANGE : GF_NET_SERVICE_QUERY_NEXT;
-	param.url_query.drop_first_segment = (query_type == DROP_NEXT_SEGMENT) ? 1 : 0;
-	param.url_query.current_download = (query_type == NEXT_SEGMENT_EXCEPT_DL) ? 0 : 1;
+	param.url_query.drop_first_segment = (query_type == DROP_NEXT_SEGMENT) ? 1 : GF_FALSE;
+	param.url_query.current_download = (query_type == NEXT_SEGMENT_EXCEPT_DL) ? GF_FALSE : 1;
 
 	//we are downloading the segment we play, don't delete it
 	if (m2ts->in_segment_download)
-		param.url_query.drop_first_segment = 0;
+		param.url_query.drop_first_segment = GF_FALSE;
 
 	query_ret = m2ts->owner->query_proxy(m2ts->owner, &param);
 
@@ -1005,7 +1005,7 @@ static GF_Err M2TS_QueryNextFile(void *udta, DASHQueryType query_type, const cha
 					*refresh_type = 0;
 				}
 			}
-			m2ts->in_segment_download = 0;
+			m2ts->in_segment_download = GF_FALSE;
 		}
 	}
 	return query_ret;
@@ -1049,14 +1049,14 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 			if (flush_type==GF_M2TS_PUSH_SEGMENT)
 				m2ts->has_pending_segments++;
 
-			m2ts->in_data_flush = 0;
+			m2ts->in_data_flush = GF_FALSE;
 			gf_mx_v(m2ts->mx);
 			return;
 		}
 	}
 	else if (0 && flush_type==GF_M2TS_FLUSH_DATA) {
 		if (! m2ts->has_pending_segments) {
-			m2ts->in_data_flush = 0;
+			m2ts->in_data_flush = GF_FALSE;
 			gf_mx_v(m2ts->mx);
 			return;
 		}
@@ -1064,11 +1064,11 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 
 	e = M2TS_QueryNextFile(m2ts, (flush_type==GF_M2TS_FLUSH_DATA) ? NEXT_SEGMENT_EXCEPT_DL : NEXT_SEGMENT, &url, &start_byterange, &end_byterange, &refresh_type);
 	if (e) {
-		m2ts->in_data_flush = 0;
+		m2ts->in_data_flush = GF_FALSE;
 		gf_mx_v(m2ts->mx);
 		return;
 	}
-	gf_m2ts_demux_file(m2ts->ts, url, start_byterange, end_byterange, refresh_type, 0);
+	gf_m2ts_demux_file(m2ts->ts, url, start_byterange, end_byterange, refresh_type, GF_FALSE);
 
 	//done, drop segment
 	if (!m2ts->in_segment_download) {
@@ -1078,11 +1078,11 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 			m2ts->has_pending_segments--;
 
 		if (e==GF_EOS) {
-			gf_m2ts_demux_file(m2ts->ts, NULL, 0, 0, 0, 1);
+			gf_m2ts_demux_file(m2ts->ts, NULL, 0, 0, 0, GF_TRUE);
 		}
 
 	}
-	m2ts->in_data_flush = 0;
+	m2ts->in_data_flush = GF_FALSE;
 	gf_mx_v(m2ts->mx);
 }
 
@@ -1090,7 +1090,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 {
 	GF_Err e;
 	const char *opt;
-	M2TSIn *m2ts = plug->priv;
+	M2TSIn *m2ts = (M2TSIn*)plug->priv;
 
 	M2TS_GetNetworkType(plug,m2ts);
 
@@ -1127,16 +1127,16 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 				gf_mx_p(m2ts->mx);
 				m2ts->in_data_flush = 1;
 				M2TS_QueryNextFile(m2ts, INIT_RANGE, NULL, &start_byterange, &end_byterange, NULL);
-				e = gf_m2ts_demux_file(m2ts->ts, url, start_byterange, end_byterange, 0, 0);
+				e = gf_m2ts_demux_file(m2ts->ts, url, start_byterange, end_byterange, 0, GF_FALSE);
 				M2TS_QueryNextFile(m2ts, DROP_NEXT_SEGMENT, NULL, NULL, NULL, NULL);
-				m2ts->in_data_flush = 0;
+				m2ts->in_data_flush = GF_FALSE;
 				gf_mx_v(m2ts->mx);
 			} else {
 				e = GF_OK;
 			}
 			m2ts->ts->run_state = 1;
 		} else {
-			e = gf_m2ts_demuxer_setup(m2ts->ts,url,0);
+			e = gf_m2ts_demuxer_setup(m2ts->ts,url, GF_FALSE);
 		}
 	}
 
@@ -1148,7 +1148,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 
 static GF_Err M2TS_CloseService(GF_InputService *plug)
 {
-	M2TSIn *m2ts = plug->priv;
+	M2TSIn *m2ts = (M2TSIn*)plug->priv;
 	GF_M2TS_Demuxer* ts = m2ts->ts;
 
 	if (!plug->query_proxy)
@@ -1165,7 +1165,7 @@ static GF_Err M2TS_CloseService(GF_InputService *plug)
 
 static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	M2TSIn *m2ts = plug->priv;
+	M2TSIn *m2ts = (M2TSIn*)plug->priv;
 	GF_Descriptor *desc = NULL;
 	char *frag;
 	M2TSIn_Prog *prog;
@@ -1219,9 +1219,9 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	/*if type is undefined, check the PMT for an IOD*/
 	if (expect_type<=GF_MEDIA_OBJECT_SCENE) {
 		if (gf_list_count(m2ts->ts->programs) == 1) {
-			GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, 0);
+			GF_M2TS_Program *prog = (GF_M2TS_Program*)gf_list_get(m2ts->ts->programs, 0);
 			if (prog->pmt_iod) {
-				m2ts->request_all_pids = 0;
+				m2ts->request_all_pids = GF_FALSE;
 				gf_odf_desc_copy((GF_Descriptor *)prog->pmt_iod, &desc);
 				((GF_InitialObjectDescriptor *)desc)->service_ifce = m2ts->owner;
 				return desc;
@@ -1232,7 +1232,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			return NULL;
 		if (m2ts->epg_requested) {
 			GF_ObjectDescriptor *od = M2TS_GenerateEPG_OD(m2ts);
-			m2ts->epg_requested = 0;
+			m2ts->epg_requested = GF_FALSE;
 			return (GF_Descriptor *)od;
 		} else {
 			/*returning an empty IOD means "no scene description", let the terminal handle all media objects*/
@@ -1245,7 +1245,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	/* restart the thread if the same service is reused and if the previous thread terminated */
 	if (!plug->query_proxy) {
 		if (m2ts->ts->run_state == 2) {
-			m2ts->file_regulate = 0;
+			m2ts->file_regulate = GF_FALSE;
 			gf_m2ts_demuxer_play(m2ts->ts);
 		}
 	}
@@ -1256,7 +1256,7 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 {
 	u32 ES_ID;
 	GF_Err e;
-	M2TSIn *m2ts = plug->priv;
+	M2TSIn *m2ts = (M2TSIn*)plug->priv;
 
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
@@ -1264,7 +1264,7 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 
 		/* In case there is a real IOD, we need to translate PID into ESID */
 		if (gf_list_count(m2ts->ts->programs) == 1) {
-			GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, 0);
+			GF_M2TS_Program *prog = (GF_M2TS_Program*)gf_list_get(m2ts->ts->programs, 0);
 			if (prog->pmt_iod) {
 				/* IOD is present */
 				u32 i;
@@ -1301,7 +1301,7 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 			e = GF_SERVICE_ERROR;
 			count = gf_list_count(m2ts->ts->programs);
 			for (i=0; i<count; i++) {
-				GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, i);
+				GF_M2TS_Program *prog = (GF_M2TS_Program*)gf_list_get(m2ts->ts->programs, i);
 				count2 = gf_list_count(prog->streams);
 				for (j=0; j<count2; j++) {
 					GF_M2TS_PES *pes = (GF_M2TS_PES *)gf_list_get(prog->streams, j);
@@ -1326,7 +1326,7 @@ static GF_M2TS_PES *M2TS_GetChannel(M2TSIn *m2ts, LPNETCHANNEL channel)
 	u32 i, j, count, count2;
 	count = gf_list_count(m2ts->ts->programs);
 	for (i=0; i<count; i++) {
-		GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, i);
+		GF_M2TS_Program *prog = (GF_M2TS_Program*)gf_list_get(m2ts->ts->programs, i);
 		count2 = gf_list_count(prog->streams);
 		for (j=0; j<count2; j++) {
 			GF_M2TS_PES *pes = (GF_M2TS_PES *)gf_list_get(prog->streams, j);
@@ -1352,7 +1352,7 @@ static GF_M2TS_PES *M2TS_GetFirstRunningChannel(M2TSIn *m2ts)
 
 static GF_Err M2TS_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	M2TSIn *m2ts = plug->priv;
+	M2TSIn *m2ts = (M2TSIn*)plug->priv;
 	GF_Err e = GF_STREAM_NOT_FOUND;
 	GF_M2TS_PES *pes = M2TS_GetChannel(m2ts, channel);
 	if (pes) {
@@ -1404,7 +1404,7 @@ static void gf_m2ts_switch_quality(GF_M2TS_Program *prog, GF_M2TS_Demuxer *ts, B
 static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	GF_M2TS_PES *pes;
-	M2TSIn *m2ts = plug->priv;
+	M2TSIn *m2ts = (M2TSIn*)plug->priv;
 	GF_M2TS_Demuxer *ts = m2ts->ts;
 
 	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
@@ -1506,7 +1506,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			m2ts->map_media_time_on_prog_id = pes->program->number;
 		}
 		if (!m2ts->nb_playing) {
-			gf_m2ts_pause_demux(ts, 0);
+			gf_m2ts_pause_demux(ts, GF_FALSE);
 		}
 		m2ts->nb_playing++;
 		return GF_OK;
@@ -1527,7 +1527,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				ts->run_state=0;
 				while (ts->run_state!=2) gf_sleep(2);
 				if (gf_list_count(m2ts->ts->requested_progs)) {
-					m2ts->file_regulate = 0;
+					m2ts->file_regulate = GF_FALSE;
 					gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 					return gf_m2ts_demuxer_play(ts);
 				}
@@ -1540,7 +1540,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		/*filter all sections carrying SL data for the app to signal the version number of the section*/
 		if (pes && pes->flags & GF_M2TS_ES_IS_SECTION) {
 			if (pes->slcfg) gf_free(pes->slcfg);
-			pes->slcfg = gf_malloc(sizeof(GF_SLConfig));
+			pes->slcfg = (GF_SLConfig*)gf_malloc(sizeof(GF_SLConfig));
 			memcpy(pes->slcfg, &com->cfg.sl_config, sizeof(GF_SLConfig));
 			com->cfg.use_m2ts_sections = 1;
 			pes->flags |= GF_M2TS_ES_SEND_REPEATED_SECTIONS;
@@ -1548,7 +1548,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	case GF_NET_CHAN_PAUSE:
 		if (!m2ts->nb_paused) {
-			gf_m2ts_pause_demux(m2ts->ts, 1);
+			gf_m2ts_pause_demux(m2ts->ts, GF_TRUE);
 		}
 		m2ts->nb_paused++;
 		return GF_OK;

@@ -85,7 +85,7 @@ static GF_Err DS_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32
 	/*too bad, use desktop as window*/
 	if (!ctx->hWnd) ctx->hWnd = GetDesktopWindow();
 
-	ctx->force_config = (num_buffers && total_duration) ? 1 : 0;
+	ctx->force_config = (num_buffers && total_duration) ? 1 : GF_FALSE;
 	ctx->cfg_num_buffers = num_buffers;
 	ctx->cfg_duration = total_duration;
 	if (ctx->cfg_num_buffers <= 1) ctx->cfg_num_buffers = 2;
@@ -433,7 +433,7 @@ void *NewAudioOutput()
 	if( FAILED( hr = CoInitialize(NULL) ) ) return NULL;
 
 
-	ctx = gf_malloc(sizeof(DSContext));
+	ctx = (DSContext*)gf_malloc(sizeof(DSContext));
 	memset(ctx, 0, sizeof(DSContext));
 	ctx->hDSoundLib = LoadLibrary("dsound.dll");
 	if (ctx->hDSoundLib) {
@@ -446,7 +446,7 @@ void *NewAudioOutput()
 	}
 
 
-	driv = gf_malloc(sizeof(GF_AudioOutput));
+	driv = (GF_AudioOutput*)gf_malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "DirectSound Audio Output", "gpac distribution");
 
@@ -464,7 +464,7 @@ void *NewAudioOutput()
 	driv->WriteAudio = DS_WriteAudio;
 	driv->QueryOutputSampleRate = DS_QueryOutputSampleRate;
 	/*never threaded*/
-	driv->SelfThreaded = 0;
+	driv->SelfThreaded = GF_FALSE;
 	return driv;
 }
 

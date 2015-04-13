@@ -51,7 +51,7 @@ static uint8_t * ffmpeg_realloc_buffer(uint8_t * oldBuffer, u32 size) {
 	u32 allocatedSz = sizeof( char ) * (FF_INPUT_BUFFER_PADDING_SIZE + size);
 	if (oldBuffer)
 		gf_free(oldBuffer);
-	buffer = gf_malloc( allocatedSz );
+	buffer = (uint8_t*)gf_malloc( allocatedSz );
 	if (buffer)
 		memset( buffer, 0, allocatedSz);
 	return buffer;
@@ -153,7 +153,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		u32 i = 0;
 		GF_Descriptor *d = NULL;
 		if (esd->dependsOnESID != ffd->base_ES_ID) return GF_NOT_SUPPORTED;
-		while ((d = gf_list_enum(esd->extensionDescriptors, &i))) {
+		while ((d = (GF_Descriptor*)gf_list_enum(esd->extensionDescriptors, &i))) {
 			if (d->tag == GF_ODF_AUX_VIDEO_DATA) break;
 		}
 		if (!d) return GF_NOT_SUPPORTED;

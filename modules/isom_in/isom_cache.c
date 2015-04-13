@@ -144,7 +144,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		mch->owner = cache;
 		gf_isom_set_track_enabled(cache->mov, mch->track, 1);
 		/*translate 3GP streams to MP4*/
-		mapped = 0;
+		mapped = GF_FALSE;
 		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_MEDIA_GENERIC) {
 			char szCode[5];
 			strncpy(szCode, esd->decoderConfig->decoderSpecificInfo->data, 4);
