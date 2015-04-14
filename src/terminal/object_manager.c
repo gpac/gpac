@@ -1650,12 +1650,15 @@ void gf_odm_play(GF_ObjectManager *odm)
 		com.play.speed = ch->clock->speed;
 
 #ifndef GPAC_DISABLE_VRML
-		/*if object shares parent scene clock, do not use media control*/
-		//ctrl = parent_ck ? NULL : gf_odm_get_mediacontrol(odm);
 		ctrl = parent_ck ? parent_ck->mc : gf_odm_get_mediacontrol(odm);
 		/*override range and speed with MC*/
 		if (ctrl) {
-			MC_GetRange(ctrl, &com.play.start_range, &com.play.end_range);
+			//this is fake timeshift, eg we are playing a VoD as a timeshift service: stop and start times have already been adjusted
+			if (ctrl->control->mediaStopTime<0 && !odm->timeshift_depth) {
+			} else {
+				MC_GetRange(ctrl, &com.play.start_range, &com.play.end_range);
+			}
+
 			com.play.speed = FIX2FLT(ctrl->control->mediaSpeed);
 			/*if the channel doesn't control the clock, jump to current time in the controled range, not just the beginning*/
 			if ((ch->esd->ESID!=ch->clock->clockID) && (ck_time>com.play.start_range) && (com.play.end_range>com.play.start_range) && (ck_time<com.play.end_range)) {
