@@ -123,7 +123,7 @@ static s32 gf_dash_get_group_idx_from_service(GF_MPD_In *mpdin, GF_InputService 
 	s32 i;
 
 	for (i=0; (u32) i < gf_dash_get_group_count(mpdin->dash); i++) {
-		GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, i);
+		GF_MPDGroup *group = (GF_MPDGroup*)gf_dash_get_group_udta(mpdin->dash, i);
 		if (!group) continue;
 		if (group->segment_ifce == ifce) {
 			return i;
@@ -171,7 +171,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			u64 pto;
 			gf_dash_group_get_presentation_time_offset(mpdin->dash, i, &pto, &group->timescale);
 			group->pto = (s64) pto;
-			group->pto_setup = 1;
+			group->pto_setup = GF_TRUE;
 
 			if (group->timescale && (group->timescale != ch->esd->slConfig->timestampResolution)) {
 				group->pto *= ch->esd->slConfig->timestampResolution;
@@ -227,8 +227,8 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 		}
 
 	} else if (!group->pto_setup) {
-		do_map_time = 1;
-		group->pto_setup = 1;
+		do_map_time = GF_TRUE;
+		group->pto_setup = GF_TRUE;
 	}
 
 	mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
@@ -339,7 +339,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			if (group_done) {
 				if (!gf_dash_get_period_switch_status(mpdin->dash) && !gf_dash_in_last_period(mpdin->dash)) {
 					GF_NetworkCommand com;
-					param->url_query.in_end_of_period = 1;
+					param->url_query.in_end_of_period = GF_TRUE;
 					memset(&com, 0, sizeof(GF_NetworkCommand));
 					com.command_type = GF_NET_BUFFER_QUERY;
 					if (gf_dash_get_period_switch_status(mpdin->dash) != 1) {
@@ -362,7 +362,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 				gf_dash_group_probe_current_download_segment_location(mpdin->dash, group_idx, &param->url_query.next_url, NULL, &param->url_query.next_url_init_or_switch_segment, &src_url, &is_switched);
 
 				if (param->url_query.next_url) {
-					param->url_query.current_download = 1;
+					param->url_query.current_download = GF_TRUE;
 					param->url_query.has_new_data = group->has_new_data;
 					param->url_query.discontinuity_type = is_switched ? 1 : 0;
 					if (gf_dash_group_loop_detected(mpdin->dash, group_idx))
@@ -529,7 +529,7 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 	}
 
 	if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
-		group->has_new_data = 1;
+		group->has_new_data = GF_TRUE;
 
 		if (param->reply) {
 			u32 bytes_per_sec;
@@ -538,9 +538,9 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] End of chunk received for %s at UTC "LLU" ms - estimated bandwidth %d kbps - chunk start at UTC "LLU"\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000, gf_dm_sess_get_utc_start(group->sess)));
 
 			if (group->mpdin->use_low_latency)
-				MPD_NotifyData(group, 1);
+				MPD_NotifyData(group, GF_TRUE);
 		} else if (group->mpdin->use_low_latency==2) {
-			MPD_NotifyData(group, 1);
+			MPD_NotifyData(group, GF_TRUE);
 		}
 
 		if (group->mpdin->allow_http_abort)
@@ -734,7 +734,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD_IN] Unable to connect input service to %s\n", init_segment));
 					gf_dash_group_select(mpdin->dash, i, GF_FALSE);
 				} else {
-					group->service_connected = 1;
+					group->service_connected = GF_TRUE;
 				}
 				if (mpdin->closed) return GF_OK;
 			}
@@ -742,7 +742,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 
 		if (!mpdin->connection_ack_sent) {
 			mpdin->fn_connect_ack(mpdin->service, NULL, GF_OK);
-			mpdin->connection_ack_sent = 1;
+			mpdin->connection_ack_sent = GF_TRUE;
 		}
 
 		//we had a seek outside of the period we were setting up, during period setup !
@@ -897,11 +897,11 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	keep_files = GF_FALSE;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "KeepFiles");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "KeepFiles", "no");
-	if (opt && !strcmp(opt, "yes")) keep_files = 1;
+	if (opt && !strcmp(opt, "yes")) keep_files = GF_TRUE;
 
 	disable_switching = GF_FALSE;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "DisableSwitching");
-	if (opt && !strcmp(opt, "yes")) disable_switching = 1;
+	if (opt && !strcmp(opt, "yes")) disable_switching = GF_TRUE;
 
 	first_select_mode = GF_DASH_SELECT_QUALITY_LOWEST;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation");
@@ -927,11 +927,11 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 #endif
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution", opt);
 	}
-	mpdin->use_max_res = !strcmp(opt, "yes") ? 1 : GF_FALSE;
+	mpdin->use_max_res = !strcmp(opt, "yes") ? GF_TRUE : GF_FALSE;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "ImmediateSwitching");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "ImmediateSwitching", "no");
-	mpdin->immediate_switch = (opt && !strcmp(opt, "yes")) ? 1 : GF_FALSE;
+	mpdin->immediate_switch = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "BufferingMode");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "BufferingMode", "minBuffer");
@@ -957,7 +957,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseServerUTC");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseServerUTC", "yes");
-	use_server_utc = (opt && !strcmp(opt, "yes")) ? 1 : GF_FALSE;
+	use_server_utc = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 
 	mpdin->in_seek = GF_FALSE;
 	mpdin->previous_start_range = 0;
@@ -1049,7 +1049,7 @@ static GF_Descriptor *MPD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		if (mudta->service_descriptor_fetched) continue;
 
 		desc = mudta->segment_ifce->GetServiceDescriptor(mudta->segment_ifce, expect_type, sub_url);
-		if (desc) mudta->service_descriptor_fetched = 1;
+		if (desc) mudta->service_descriptor_fetched = GF_TRUE;
 		gf_odf_desc_del(desc);
 	}
 	return NULL;
@@ -1062,7 +1062,7 @@ GF_Err MPD_CloseService(GF_InputService *plug)
 	assert(mpdin);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Close Service (%p) request from terminal\n", mpdin->service));
 
-	mpdin->closed = 1;
+	mpdin->closed = GF_TRUE;
 
 	if (mpdin->dash)
 		gf_dash_close(mpdin->dash);
@@ -1129,7 +1129,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 	case GF_NET_SERVICE_QUALITY_SWITCH:
 		if (com->switch_quality.set_auto) {
-			gf_dash_set_automatic_switching(mpdin->dash, 1);
+			gf_dash_set_automatic_switching(mpdin->dash, GF_TRUE);
 		} else if (com->base.on_channel) {
 			segment_ifce = MPD_GetInputServiceForChannel(mpdin, com->base.on_channel);
 			if (!segment_ifce) return GF_NOT_SUPPORTED;
@@ -1252,7 +1252,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				if (com->play.start_range < 0) com->play.start_range = 0;
 			}
 
-			group->is_timestamp_based = 1;
+			group->is_timestamp_based = GF_TRUE;
 			group->pto_setup = GF_FALSE;
 			mpdin->media_start_range = com->play.start_range;
 		} else {
@@ -1334,7 +1334,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	{
 		s32 idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
 		if (idx>=0) {
-			gf_dash_set_group_done(mpdin->dash, (u32) idx, 1);
+			gf_dash_set_group_done(mpdin->dash, (u32) idx, GF_TRUE);
 		}
 		mpdin->previous_start_range = -1;
 	}
@@ -1379,7 +1379,7 @@ Bool MPD_CanHandleURLInService(GF_InputService *plug, const char *url)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Can Handle URL In Service (%p) request from terminal for %s\n", mpdin->service, url));
 	if (!plug || !plug->priv || !mpdin->dash) return GF_FALSE;
 	if (gf_dash_get_url(mpdin->dash) && !strcmp(gf_dash_get_url(mpdin->dash) , url)) {
-		return 1;
+		return GF_TRUE;
 	} else {
 		GF_MPDGroup *mudta;
 		u32 i;

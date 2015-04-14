@@ -541,7 +541,7 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	if (!read->mov) return NULL;
 
 	/*no matter what always read text as TTUs*/
-	gf_isom_text_set_streaming_mode(read->mov, 1);
+	gf_isom_text_set_streaming_mode(read->mov, GF_TRUE);
 
 	trackID = 0;
 	if (!sub_url) {
@@ -873,7 +873,7 @@ GF_Err ISOR_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 exit:
 	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-		send_proxy_command(read, 1, GF_FALSE, e, NULL, channel);
+		send_proxy_command(read, GF_TRUE, GF_FALSE, e, NULL, channel);
 	} else {
 		gf_service_disconnect_ack(read->service, channel, e);
 	}
@@ -1052,7 +1052,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	}
 	if (com->command_type == GF_NET_SERVICE_PROXY_DATA_RECEIVE) {
-		isor_flush_data(read, 1, com->proxy_data.is_chunk);
+		isor_flush_data(read, GF_TRUE, com->proxy_data.is_chunk);
 		return GF_OK;
 	}
 	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {
@@ -1080,7 +1080,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			return GF_NOT_SUPPORTED;
 #endif
 
-		ch->is_pulling = 1;
+		ch->is_pulling = GF_TRUE;
 		return GF_OK;
 	case GF_NET_CHAN_INTERACTIVE:
 		return GF_OK;
@@ -1118,14 +1118,14 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		gf_mx_p(read->segment_mutex);
 		isor_reset_reader(ch);
 		ch->speed = com->play.speed;
-		read->reset_frag_state = 1;
+		read->reset_frag_state = GF_TRUE;
 		gf_mx_v(read->segment_mutex);
 
 		ch->start = ch->end = 0;
 		if (com->play.speed>0) {
 			if (com->play.start_range>=0) {
 				ch->start = (u64) (s64) (com->play.start_range * ch->time_scale);
-				ch->start = check_round(ch, ch->start, com->play.start_range, 1);
+				ch->start = check_round(ch, ch->start, com->play.start_range, GF_TRUE);
 			}
 			if (com->play.end_range >= com->play.start_range) {
 				ch->end = (u64) (s64) (com->play.end_range*ch->time_scale);
@@ -1138,8 +1138,8 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			if (end <= com->play.start_range)
 				ch->end = (u64) (s64) (end  * ch->time_scale);
 		}
-		ch->is_playing = 1;
-		if (com->play.dash_segment_switch) ch->wait_for_segment_switch = 1;
+		ch->is_playing = GF_TRUE;
+		if (com->play.dash_segment_switch) ch->wait_for_segment_switch = GF_TRUE;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, com->play.start_range, com->play.end_range));
 
 		//and check buffer level on play request
@@ -1179,7 +1179,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	}
 	case GF_NET_CHAN_NALU_MODE:
 		ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
-		ch->disable_seek = 1;
+		ch->disable_seek = GF_TRUE;
 		//when this is set, we work in real scalable (eg N streams reassembled by the player) so only extract the layer. This wll need refinements if we plan to support
 		//several scalable layers ...
 		if (com->nalu_mode.extract_mode==1) {

@@ -136,16 +136,16 @@ static Bool IMG_CanHandleURL(GF_InputService *plug, const char *url)
 	sExt = strrchr(url, '.');
 	for (i = 0 ; IMG_MIME_TYPES[i]; i+=3) {
 		if (gf_service_check_mime_register(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2], sExt))
-			return 1;
+			return GF_TRUE;
 	}
 	return GF_FALSE;
 }
 
 static Bool jp_is_local(const char *url)
 {
-	if (!strnicmp(url, "file://", 7)) return 1;
+	if (!strnicmp(url, "file://", 7)) return GF_TRUE;
 	if (strstr(url, "://")) return GF_FALSE;
-	return 1;
+	return GF_TRUE;
 }
 
 
@@ -278,7 +278,7 @@ static GF_Descriptor *IMG_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		gf_list_add(od->ESDescriptors, esd);
 		return (GF_Descriptor *) od;
 	}
-	read->is_inline = 1;
+	read->is_inline = GF_TRUE;
 	return NULL;
 }
 
@@ -378,7 +378,7 @@ static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 				*out_data_size = 0;
 				return GF_OK;
 			}
-			*is_new_data = 1;
+			*is_new_data = GF_TRUE;
 			gf_fseek(read->stream, 0, SEEK_SET);
 			read->data = (char*) gf_malloc(sizeof(char) * (read->data_size + read->pad_bytes));
 			read->data_size = (u32) fread(read->data, sizeof(char), read->data_size, read->stream);
@@ -401,7 +401,7 @@ static GF_Err IMG_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 		if (!read->data) return GF_BAD_PARAM;
 		gf_free(read->data);
 		read->data = NULL;
-		read->done = 1;
+		read->done = GF_TRUE;
 		return GF_OK;
 	}
 	return GF_OK;

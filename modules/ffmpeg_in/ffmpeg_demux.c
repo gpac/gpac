@@ -278,7 +278,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 			u32 i;
 			for (i = 0 ; FFD_MIME_TYPES[i]; i+=3) {
 				if (gf_service_check_mime_register(plug, FFD_MIME_TYPES[i], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2], ext))
-					return 1;
+					return GF_TRUE;
 			}
 		}
 	}
@@ -305,17 +305,17 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		AVCodecContext *enc = ctx->streams[i]->codec;
 		switch(enc->codec_type) {
 		case AVMEDIA_TYPE_AUDIO:
-			if (!has_audio) has_audio = 1;
+			if (!has_audio) has_audio = GF_TRUE;
 			break;
 		case AVMEDIA_TYPE_VIDEO:
-			if (!has_video) has_video= 1;
+			if (!has_video) has_video= GF_TRUE;
 			break;
 		default:
 			break;
 		}
 	}
 	if (!has_audio && !has_video) goto exit;
-	ret = 1;
+	ret = GF_TRUE;
 #if ((LIBAVFORMAT_VERSION_MAJOR == 52) && (LIBAVFORMAT_VERSION_MINOR <= 47)) || (LIBAVFORMAT_VERSION_MAJOR < 52)
 	fmt_out = guess_stream_format(NULL, url, NULL);
 #else
@@ -477,11 +477,11 @@ static void FFD_SetupObjects(FFDemux *ffd)
 
 	if ((ffd->audio_st>=0) && (ffd->service_type != 1)) {
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-		esd = FFD_GetESDescriptor(ffd, 1);
+		esd = FFD_GetESDescriptor(ffd, GF_TRUE);
 		od->objectDescriptorID = esd->ESID;
 		audio_esid = esd->ESID;
 		gf_list_add(od->ESDescriptors, esd);
-		gf_service_declare_media(ffd->service, (GF_Descriptor*)od, (ffd->video_st>=0) ? 1 : GF_FALSE);
+		gf_service_declare_media(ffd->service, (GF_Descriptor*)od, (ffd->video_st>=0) ? GF_TRUE : GF_FALSE);
 	}
 	if ((ffd->video_st>=0) && (ffd->service_type != 2)) {
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
@@ -583,7 +583,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	strlwr(szExt);
 	if (!strcmp(szExt, "cmp")) av_in = av_find_input_format("m4v");
 
-	is_local = (strnicmp(url, "file://", 7) && strstr(url, "://")) ? GF_FALSE : 1;
+	is_local = (strnicmp(url, "file://", 7) && strstr(url, "://")) ? GF_FALSE : GF_TRUE;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG] opening file %s - local %d - av_in %08x\n", url, is_local, av_in));
 
@@ -726,10 +726,10 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 				if (pkt.pts == AV_NOPTS_VALUE) pkt.pts = pkt.dts;
 				if (pkt.stream_index==ffd->audio_st) last_aud_pts = pkt.pts;
 			}
-			if (last_aud_pts*ffd->audio_tscale.den<10*ffd->audio_tscale.num) ffd->unreliable_audio_timing = 1;
+			if (last_aud_pts*ffd->audio_tscale.den<10*ffd->audio_tscale.num) ffd->unreliable_audio_timing = GF_TRUE;
 		}
 
-		ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? GF_FALSE : 1;
+		ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? GF_FALSE : GF_TRUE;
 		if (!ffd->seekable) {
 #if FF_API_CLOSE_INPUT_FILE
 			av_close_input_file(ffd->ctx);
@@ -780,7 +780,7 @@ static GF_Descriptor *FFD_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		if (ffd->audio_st<0) return NULL;
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		od->objectDescriptorID = 1;
-		esd = FFD_GetESDescriptor(ffd, 1);
+		esd = FFD_GetESDescriptor(ffd, GF_TRUE);
 		/*if session join, setup sync*/
 		if (ffd->video_ch) esd->OCRESID = ffd->video_st+1;
 		gf_list_add(od->ESDescriptors, esd);
@@ -928,8 +928,8 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		gf_mx_p(ffd->mx);
 		ffd->seek_time = (com->play.start_range>=0) ? com->play.start_range : 0;
 
-		if (ffd->audio_ch==com->base.on_channel) ffd->audio_run = 1;
-		else if (ffd->video_ch==com->base.on_channel) ffd->video_run = 1;
+		if (ffd->audio_ch==com->base.on_channel) ffd->audio_run = GF_TRUE;
+		else if (ffd->video_ch==com->base.on_channel) ffd->video_run = GF_TRUE;
 
 		/*play on media stream, start thread*/
 		if ((ffd->audio_ch==com->base.on_channel) || (ffd->video_ch==com->base.on_channel)) {
@@ -973,8 +973,8 @@ static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 
 	if ((url[0] != '#') && strnicmp(szURL, url, sizeof(char)*strlen(szURL))) return GF_FALSE;
 	sep = strrchr(url, '#');
-	if (sep && !stricmp(sep, "#video") && (ffd->video_st>=0)) return 1;
-	if (sep && !stricmp(sep, "#audio") && (ffd->audio_st>=0)) return 1;
+	if (sep && !stricmp(sep, "#video") && (ffd->video_st>=0)) return GF_TRUE;
+	if (sep && !stricmp(sep, "#audio") && (ffd->audio_st>=0)) return GF_TRUE;
 	return GF_FALSE;
 }
 
