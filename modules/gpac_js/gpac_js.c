@@ -990,16 +990,17 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		*vp = INT_TO_JSVAL(gf_list_count(odm->net_service->dnloads) );
 		break;
 	case -39:
-		if ((s32) odm->timeshift_depth >= 0) {
+		if ((s32) odm->timeshift_depth > 0) {
 			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, ((Double) odm->timeshift_depth) / 1000.0 ) );
 		} else {
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, -1) );
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, 0.0) );
 		}
 		break;
 	case -40:
 	{
 		GF_NetworkCommand com;
 		GF_Scene *scene;
+		Double res = 0.0;
 
 		if (!odm->timeshift_depth) {
 			*vp = INT_TO_JSVAL(0);
@@ -1022,10 +1023,23 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 			}
 		}
 
-		//can be NULL
-		com.base.on_channel = gf_list_get(odm->channels, 0);
-		gf_term_service_command(odm->net_service, &com);
-		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, com.timeshift.time) );
+		if (odm->timeshift_depth) {
+			//can be NULL
+			com.base.on_channel = gf_list_get(odm->channels, 0);
+			gf_term_service_command(odm->net_service, &com);
+			res = com.timeshift.time;
+		} else if (scene->main_addon_selected) {
+			GF_Clock *ck;
+			ck = scene->dyn_ck;
+			if (scene->scene_codec) ck = scene->scene_codec->ck;
+			if (ck) {
+				u32 now = gf_clock_time(scene->dyn_ck) ;
+				u32 live = scene->obj_clock_at_main_activation + gf_sys_clock() - scene->sys_clock_at_main_activation;
+				res = ((Double) live) / 1000.0;
+				res -= ((Double) now) / 1000.0;
+			}
+		}
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, res) );
 	}
 	break;
 	case -41:

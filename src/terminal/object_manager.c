@@ -1619,7 +1619,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 					ck_time /= 1000;
 				}
 			}
-			ck_time = gf_scene_adjust_time_for_addon(odm->parentscene, ck_time, odm->parentscene->root_od->addon, &com.play.timestamp_based);
+			ck_time = gf_scene_adjust_time_for_addon(odm->parentscene->root_od->addon, ck_time, &com.play.timestamp_based);
 			//we are having a play request for an addon without the main content being active - we no longer have timestamp info from the main content
 			if (!ch->clock->clock_init && com.play.timestamp_based)
 				com.play.timestamp_based = 2;
