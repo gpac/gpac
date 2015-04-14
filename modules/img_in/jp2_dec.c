@@ -457,7 +457,7 @@ Bool NewJP2Dec(GF_BaseDecoder *ifcd)
 	ifcd->SetCapabilities = JP2_SetCapabilities;
 	ifcd->GetName = JP2_GetCodecName;
 	((GF_MediaDecoder *)ifcd)->ProcessData = JP2_ProcessData;
-	return 1;
+	return GF_TRUE;
 }
 
 void DeleteJP2Dec(GF_BaseDecoder *ifcg)

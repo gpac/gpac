@@ -154,8 +154,8 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 			if (face->style_name) {
 				char *name = gf_strdup(face->style_name);
 				strupr(name);
-				if (strstr(name, "BOLD")) bold = 1;
-				if (strstr(name, "ITALIC")) italic = 1;
+				if (strstr(name, "BOLD")) bold = GF_TRUE;
+				if (strstr(name, "ITALIC")) italic = GF_TRUE;
 				/*if font is not regular style, append all styles blindly*/
 				if (!strstr(name, "REGULAR")) {
 					strcat(szfont, " ");
@@ -163,8 +163,8 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path, GF_FileE
 				}
 				gf_free(name);
 			} else {
-				if (face->style_flags & FT_STYLE_FLAG_BOLD) bold = 1;
-				if (face->style_flags & FT_STYLE_FLAG_ITALIC) italic = 1;
+				if (face->style_flags & FT_STYLE_FLAG_BOLD) bold = GF_TRUE;
+				if (face->style_flags & FT_STYLE_FLAG_ITALIC) italic = GF_TRUE;
 
 				if (bold) strcat(szfont, " Bold");
 				if (italic) strcat(szfont, " Italic");
@@ -199,7 +199,7 @@ static Bool ft_enum_fonts_dir(void *cbck, char *file_name, char *file_path, GF_F
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Scanning directory %s (%s)\n", file_name, file_path));
 	gf_enum_directory(file_path, GF_FALSE, ft_enum_fonts, cbck, "ttf;ttc");
-	return (gf_enum_directory(file_path, 1, ft_enum_fonts_dir, cbck, NULL)==GF_OK) ? GF_FALSE : GF_TRUE;
+	return (gf_enum_directory(file_path, GF_TRUE, ft_enum_fonts_dir, cbck, NULL)==GF_OK) ? GF_FALSE : GF_TRUE;
 }
 
 
@@ -237,7 +237,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	ftpriv->font_dir = NULL;
 
 	gf_enum_directory(font_dir, GF_FALSE, ft_enum_fonts, dr, "ttf;ttc");
-	gf_enum_directory(font_dir, 1, ft_enum_fonts_dir, dr, NULL);
+	gf_enum_directory(font_dir, GF_TRUE, ft_enum_fonts_dir, dr, NULL);
 
 	font_default = ftpriv->font_dir;
 	ftpriv->font_dir = font_dir;
@@ -415,7 +415,7 @@ static Bool ft_check_face(FT_Face font, const char *fontName, u32 styles)
 		styles = (styles & 0x00000007);
 
 	if (ft_style==styles)
-		return 1;
+		return GF_TRUE;
 	return GF_FALSE;
 }
 
@@ -703,7 +703,7 @@ GF_FontReader *ft_load()
 void ft_delete(GF_BaseInterface *ifce)
 {
 	GF_FontReader *dr = (GF_FontReader *) ifce;
-	FTBuilder *ftpriv = dr->udta;
+	FTBuilder *ftpriv = (FTBuilder*)dr->udta;
 
 
 	if (ftpriv->font_dir) gf_free(ftpriv->font_dir);

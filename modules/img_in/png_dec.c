@@ -171,7 +171,7 @@ Bool NewPNGDec(GF_BaseDecoder *ifcd)
 	ifcd->SetCapabilities = PNG_SetCapabilities;
 	ifcd->GetName = PNG_GetCodecName;
 	((GF_MediaDecoder *)ifcd)->ProcessData = PNG_ProcessData;
-	return 1;
+	return GF_TRUE;
 }
 
 void DeletePNGDec(GF_BaseDecoder *ifcg)

@@ -66,7 +66,7 @@ static Bool format_is_yuv(u32 in_pf)
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
-		return 1;
+		return GF_TRUE;
 	/*not supported yet*/
 	case GF_PIXEL_YUVA:
 	default:
@@ -80,7 +80,7 @@ static Bool is_planar_yuv(u32 pf)
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_IYUV:
-		return 1;
+		return GF_TRUE;
 	}
 	return GF_FALSE;
 }

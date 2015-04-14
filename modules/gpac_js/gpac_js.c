@@ -337,7 +337,7 @@ case -13://"fullscreen"
 {
 	/*no fullscreen for iOS (always on)*/
 #ifndef GPAC_IPHONE
-	Bool res = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : GF_FALSE;
+	Bool res = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? GF_TRUE : GF_FALSE;
 	if (term->compositor->fullscreen != res) {
 		gf_term_set_option(term, GF_OPT_FULLSCREEN, res);
 	}
@@ -361,15 +361,15 @@ case -17: //"navigation_type"
 	gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
 	break;
 case -33: //"disable_hardware_blit"
-	term->compositor->disable_hardware_blit = JSVAL_TO_INT(*vp) ? 1 : GF_FALSE;
+	term->compositor->disable_hardware_blit = JSVAL_TO_INT(*vp) ? GF_TRUE : GF_FALSE;
 	gf_sc_set_option(term->compositor, GF_OPT_REFRESH, 0);
 	break;
 case -34: //"disable_composite_blit"
 {
-	Bool new_val = JSVAL_TO_INT(*vp) ? 1 : GF_FALSE;
+	Bool new_val = JSVAL_TO_INT(*vp) ? GF_TRUE : GF_FALSE;
 	if (new_val != term->compositor->disable_composite_blit) {
 		term->compositor->disable_composite_blit = new_val;
-		term->compositor->rebuild_offscreen_textures = 1;
+		term->compositor->rebuild_offscreen_textures = GF_TRUE;
 		gf_sc_set_option(term->compositor, GF_OPT_REFRESH, 0);
 	}
 }
@@ -381,7 +381,7 @@ case -24:  //"http_max_bitrate"
 }
 break;
 case -35: //"focus_highlight"
-	term->compositor->disable_focus_highlight = JSVAL_TO_BOOLEAN(*vp) ? GF_FALSE : 1;
+	term->compositor->disable_focus_highlight = JSVAL_TO_BOOLEAN(*vp) ? GF_FALSE : GF_TRUE;
 	break;
 }
 return JS_TRUE;
@@ -573,12 +573,12 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 
 	if ((argc >= 1) && JSVAL_IS_STRING(argv[0])) {
 		dir = SMJS_CHARS(c, argv[0]);
-		if (!strcmp(dir, "/")) browse_root = 1;
+		if (!strcmp(dir, "/")) browse_root = GF_TRUE;
 	}
 	if ((argc >= 2) && JSVAL_IS_STRING(argv[1])) {
 		filter = SMJS_CHARS(c, argv[1]);
 		if (!strcmp(filter, "dir")) {
-			dir_only = 1;
+			dir_only = GF_TRUE;
 			filter = NULL;
 		} else if (!strlen(filter)) {
 			SMJS_FREE(c, filter);
@@ -589,20 +589,20 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 		if (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) {
 			url = gf_url_concatenate(dir, "..");
 			if (!strcmp(url, "..") || (url[0]==0)) {
-				if ((dir[1]==':') && ((dir[2]=='/') || (dir[2]=='\\')) ) browse_root = 1;
-				else if (!strcmp(dir, "/")) browse_root = 1;
+				if ((dir[1]==':') && ((dir[2]=='/') || (dir[2]=='\\')) ) browse_root = GF_TRUE;
+				else if (!strcmp(dir, "/")) browse_root = GF_TRUE;
 			}
-			if (!strcmp(url, "/")) browse_root = 1;
+			if (!strcmp(url, "/")) browse_root = GF_TRUE;
 		}
 	}
 
-	if ( (!dir || !strlen(dir) ) && (!url || !strlen(url))) browse_root = 1;
+	if ( (!dir || !strlen(dir) ) && (!url || !strlen(url))) browse_root = GF_TRUE;
 
 	if (browse_root) {
 		cbk.c = c;
 		cbk.array = JS_NewArrayObject(c, 0, 0);
-		cbk.is_dir = 1;
-		gf_enum_directory("/", 1, enum_dir_fct, &cbk, NULL);
+		cbk.is_dir = GF_TRUE;
+		gf_enum_directory("/", GF_TRUE, enum_dir_fct, &cbk, NULL);
 		SMJS_SET_RVAL( OBJECT_TO_JSVAL(cbk.array) );
 		if (url) gf_free(url);
 		SMJS_FREE(c, dir);
@@ -613,7 +613,7 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 	cbk.c = c;
 	cbk.array = JS_NewArrayObject(c, 0, 0);
 
-	cbk.is_dir = 1;
+	cbk.is_dir = GF_TRUE;
 
 	term = gpac_get_term(c, obj);
 	/*concatenate with service url*/
@@ -622,7 +622,7 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 		gf_free(url);
 		url = an_url;
 	}
-	err = gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
+	err = gf_enum_directory(url ? url : dir, GF_TRUE, enum_dir_fct, &cbk, NULL);
 
 	if (!dir_only) {
 		cbk.is_dir = GF_FALSE;
@@ -664,14 +664,14 @@ static JSBool SMJS_FUNCTION(gpac_set_size)
 		h = (u32) d;
 	}
 	if ((argc >= 3) && JSVAL_IS_BOOLEAN(argv[2]) && (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) )
-		override_size_info = 1;
+		override_size_info = GF_TRUE;
 
 	if (w && h) {
 		GF_Event evt;
 		if (override_size_info) {
 			term->compositor->scene_width = w;
 			term->compositor->scene_height = h;
-			term->compositor->has_size_info = 1;
+			term->compositor->has_size_info = GF_TRUE;
 			return JS_TRUE;
 		}
 		if (term->user->os_window_handler) {
@@ -711,7 +711,7 @@ static JSBool SMJS_FUNCTION(gpac_set_3d)
 	if (argc && JSVAL_IS_INT(argv[0])) type_3d = JSVAL_TO_INT(argv[0]);
 	if (term->compositor->inherit_type_3d != type_3d) {
 		term->compositor->inherit_type_3d = type_3d;
-		term->compositor->root_visual_setup = 0;
+		term->compositor->root_visual_setup = GF_FALSE;
 		gf_sc_reset_graphics(term->compositor);
 	}
 	return JS_TRUE;
@@ -1179,7 +1179,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 	com.base.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
 	com.base.on_channel = gf_list_get(odm->channels, 0);
 	if (!strcmp(ID, "auto")) {
-		com.switch_quality.set_auto = 1;
+		com.switch_quality.set_auto = GF_TRUE;
 	} else {
 		com.switch_quality.ID = ID;
 	}
@@ -1437,9 +1437,9 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 
 	res = GF_FALSE;
 	if (JSVAL_IS_BOOLEAN(rval) ) {
-		res = (JSVAL_TO_BOOLEAN(rval)==JS_TRUE) ? 1 : GF_FALSE;
+		res = (JSVAL_TO_BOOLEAN(rval)==JS_TRUE) ? GF_TRUE : GF_FALSE;
 	} else if (JSVAL_IS_INT(rval) ) {
-		res = (JSVAL_TO_INT(rval)) ? 1 : GF_FALSE;
+		res = (JSVAL_TO_INT(rval)) ? GF_TRUE : GF_FALSE;
 	}
 
 	gf_sg_lock_javascript(gjs->c, GF_FALSE);
@@ -1480,7 +1480,7 @@ static JSBool SMJS_FUNCTION(gpac_set_focus)
 	if (JSVAL_IS_STRING(argv[0])) {
 		char *focus_type = SMJS_CHARS(c, argv[0]);
 		if (!stricmp(focus_type, "previous")) {
-			gf_sc_focus_switch_ring(term->compositor, 1, NULL, 0);
+			gf_sc_focus_switch_ring(term->compositor, GF_TRUE, NULL, 0);
 		}
 		else if (!stricmp(focus_type, "next")) {
 			gf_sc_focus_switch_ring(term->compositor, GF_FALSE, NULL, 0);
