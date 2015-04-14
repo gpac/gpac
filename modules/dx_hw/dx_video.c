@@ -285,7 +285,12 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	egl_atts[i++] = nb_bits;
 	egl_atts[i++] = EGL_STENCIL_SIZE;
 	egl_atts[i++] = EGL_DONT_CARE;
+
+	egl_atts[i++] = EGL_RENDERABLE_TYPE;
+	egl_atts[i++] = EGL_OPENGL_ES2_BIT;
+
 	egl_atts[i++] = EGL_NONE;
+
 
 	/*already setup*/
 	DestroyObjects(dd);
@@ -296,7 +301,20 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	dd->eglconfig = configs[0];
 	dd->surface = eglCreateWindowSurface(dd->egldpy, dd->eglconfig, dd->cur_hwnd, 0);
 	if (!dd->surface) return GF_IO_ERR;
+
+#ifdef GPAC_USE_GLES2
+
+	i=0;
+	egl_atts[i++] = EGL_CONTEXT_CLIENT_VERSION;
+	egl_atts[i++] = 2;
+	egl_atts[i++] = EGL_NONE;
+
+	eglBindAPI(EGL_OPENGL_ES_API);
+	dd->eglctx = eglCreateContext(dd->egldpy, dd->eglconfig, NULL, 	egl_atts);
+#else
 	dd->eglctx = eglCreateContext(dd->egldpy, dd->eglconfig, NULL, NULL);
+#endif
+
 	if (!dd->eglctx) {
 		eglDestroySurface(dd->egldpy, dd->surface);
 		dd->surface = 0L;
