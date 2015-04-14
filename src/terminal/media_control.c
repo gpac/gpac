@@ -160,7 +160,7 @@ void mediacontrol_resume(GF_ObjectManager *odm, Bool resume_to_live)
 		if (ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
 			gf_clock_resume(ck);
 			if (resume_to_live)
-				gf_scene_select_main_addon(in_scene, ctrl_od, GF_FALSE, 0);
+				gf_scene_select_main_addon(in_scene, ctrl_od, GF_FALSE);
 		}
 
 		if (ctrl_od->subscene) {
@@ -202,7 +202,7 @@ void mediacontrol_pause(GF_ObjectManager *odm)
 
 		if (ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
 			gf_clock_pause(ck);
-			gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE, gf_clock_time(ck) );
+			gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE);
 		}
 
 		if (ctrl_od->subscene) {
@@ -243,7 +243,7 @@ void mediacontrol_set_speed(GF_ObjectManager *odm, Fixed speed)
 				i=0;
 				while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->resources, &i))) {
 					if (ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
-						gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE, gf_clock_time(ck) );
+						gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE);
 						break;
 					}
 				}
@@ -307,10 +307,8 @@ void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range
 			*end_range += duration;
 		}
 	} else {
-		if (ctrl->control->mediaStopTime>=0) {
-			if (ctrl->control->mediaStartTime>=0) *start_range = ctrl->control->mediaStartTime;
-			*end_range = ctrl->control->mediaStopTime;
-		}
+		if (ctrl->control->mediaStartTime>=0) *start_range = ctrl->control->mediaStartTime;
+		if (ctrl->control->mediaStopTime>=0) *end_range = ctrl->control->mediaStopTime;
 	}
 }
 

@@ -941,17 +941,29 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 			*vp = INT_TO_JSVAL(com.quality_query.index);
 			break;
 		}
-
-	#if 0
-		//otherwise use input channels
+#if 0
+		//use input channels
 		if (odm->codec->type==GF_STREAM_VISUAL) {
-			*vp = INT_TO_JSVAL(gf_list_count(odm->codec->inChannels));
-		} else {
-			*vp = INT_TO_JSVAL(0);
-		}
-	#endif
+			u32 count = gf_list_count(odm->codec->inChannels);
+			if (count>1) {
+				*vp = INT_TO_JSVAL(count);
+				break;
+			}
+		} 
+		//use number of scalable addons
+		if (odm->upper_layer_odm) {
+			u32 count = 0;
+			while (odm) {
+				odm = odm->upper_layer_odm;
+				count++;
+			}
+			*vp = INT_TO_JSVAL(count);
+			break;
+		} 
+#endif
+		*vp = INT_TO_JSVAL(1);
+		break;
 	}
-	break;
 	case -29:
 		*vp = INT_TO_JSVAL(odi.max_buffer);
 		break;
@@ -1129,6 +1141,9 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		e = gf_term_service_command(odm->net_service, &com);
 		*vp = BOOLEAN_TO_JSVAL((e==GF_OK) ? GF_TRUE : GF_FALSE );
 	}
+		break;
+	case -50:
+		*vp = BOOLEAN_TO_JSVAL(odm && (odm->lower_layer_odm || odm->scalable_addon) ? JS_TRUE : JS_FALSE);
 		break;
 	}
 
@@ -1884,6 +1899,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("ntp_diff",			-47,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("main_addon_url",	-48,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("reverse_playback_supported",		-49,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("scalable_enhancement",		-50,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		
 
 

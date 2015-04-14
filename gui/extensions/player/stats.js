@@ -59,9 +59,10 @@ extension.view_stats = function () {
         m.gui = {};
 
         var label = '' + m.type;
-        label += ' ID ' + m.ID;
+
         if (m.width) label += ' (' + m.width + 'x' + m.height + ')';
         else if (m.samplerate) label += ' (' + m.samplerate + ' Hz ' + m.channels + ' channels)';
+        else if (m.scalable_enhancement) label += ' (Enhancement Layer)';
 
         m.gui.txt = gw_new_text(wnd.area, label, 'lefttext');
 
@@ -319,6 +320,7 @@ extension.view_stats = function () {
     wnd.http_control = null;
     if (nb_http) {
         wnd.http_text = gw_new_text(wnd.area, 'HTTP rate', 'lefttext');
+
         wnd.http_control = gw_new_slider(wnd.area);
 
         if (gpac.http_max_bitrate) {
@@ -338,7 +340,7 @@ extension.view_stats = function () {
             wnd.http_text.set_label('HTTP cap ' + Math.round(100 * gpac.http_max_bitrate / 1024 / 1024) / 100 + ' Mbps');
 
         } else {
-            wnd.http_control.set_value(0);
+            wnd.http_control.set_value(100);
             wnd.http_text.set_label('HTTP cap off');
         }
 
@@ -354,12 +356,16 @@ extension.view_stats = function () {
             } else {
                 br = 50 + 150 * (val - 80) / 20;
             }
-            if (br) {
-                this.text.set_label('HTTP cap ' + Math.round(100 * br) / 100 + ' Mbps');
-            } else {
+            if (br == 200) {
                 this.text.set_label('HTTP cap off');
+                gpac.http_max_bitrate = Math.round(0);
+            } else if (br == 0) {
+                this.text.set_label('HTTP disable');
+                gpac.http_max_bitrate = -1;
+            } else {
+                this.text.set_label('HTTP cap ' + Math.round(100 * br) / 100 + ' Mbps');
+                gpac.http_max_bitrate = Math.round(br * 1024 * 1024);
             }
-            gpac.http_max_bitrate = Math.round(br * 1024 * 1024);
         }
 
         gw_new_separator(wnd.area);
@@ -384,7 +390,7 @@ extension.view_stats = function () {
             aw -= this.objs[i].gui.info.width;
 
             if (this.objs[i].gui.buffer) {
-                this.objs[i].gui.buffer.set_size(3 * gwskin.default_icon_height, 0.75 * gwskin.default_icon_height);
+                this.objs[i].gui.buffer.set_size(2 * gwskin.default_icon_height, 0.75 * gwskin.default_icon_height);
             }
             if (this.objs[i].gui.play) {
                 this.objs[i].gui.play.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
@@ -500,9 +506,19 @@ extension.view_stats = function () {
 
             if (m.gui.buffer) {
                 var label = ' ' + m.type;
-                label += ' ID ' + m.ID;
+
                 if (m.width) label += ' (' + m.width + 'x' + m.height + ')';
                 else if (m.samplerate) label += ' (' + m.samplerate + ' Hz ' + m.channels + ' channels)';
+                else if (m.scalable_enhancement) label += ' (Enh. Layer)';
+
+                var url = m.service_url;
+                if ((url.indexOf('udp://') >= 0) || (url.indexOf('rtp://') >= 0) || (url.indexOf('dvb://') >= 0))
+                    label += ' Broadcast';
+                else if ((url.indexOf('file://') >= 0) || (url.indexOf('://') < 0))
+                    label += ' File';
+                else
+                    label += ' Broadband';
+
                 m.gui.txt.set_label(label);
 
                 var bl;
