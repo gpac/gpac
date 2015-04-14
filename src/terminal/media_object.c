@@ -228,6 +228,10 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 {
 	if (!mo->odm || !mo->odm->codec || (mo->type != GF_MEDIA_OBJECT_AUDIO)) return GF_FALSE;
 
+	if (sample_rate) *sample_rate = mo->sample_rate;
+	if (bits_per_sample) *bits_per_sample = mo->bits_per_sample;
+	if (num_channels) *num_channels = mo->num_channels;
+	if (channel_config) *channel_config = mo->channel_config;
 	return GF_TRUE;
 }
 
