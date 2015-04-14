@@ -3769,7 +3769,12 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 	GF_BitStream *bs = NULL;
 	FILE *f = NULL;
 
-	if (fileName && !strnicmp(fileName, "gmem://", 7)) {
+	//force EOS signaing
+	if (!fileName) {
+		if (!signal_end_of_stream) return GF_BAD_PARAM;
+		ts->pos_in_stream = 0;
+	}
+	else if (fileName && !strnicmp(fileName, "gmem://", 7)) {
 		void *mem_address;
 		u32 remain;
 		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
