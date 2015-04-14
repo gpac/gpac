@@ -82,6 +82,13 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 			st->stream->odm->media_current_time = gf_clock_media_time(ck);
 		mediasensor_update_timing(st->stream->odm, 0);
 	}
+	//if main addon is VoD and selected and clock is paused, fire a timeshift update
+	else if (st->stream->odm->subscene && st->stream->odm->subscene->sys_clock_at_main_activation) {
+		GF_Event evt;
+		memset(&evt, 0, sizeof(evt));
+		evt.type = GF_EVENT_TIMESHIFT_UPDATE;
+		gf_term_send_event(st->stream->odm->term, &evt);
+	}
 }
 
 void InitMediaSensor(GF_Scene *scene, GF_Node *node)

@@ -235,6 +235,7 @@ struct _scene
 	GF_List *declared_addons;
 	//set when content is replaced by an addon (DASH PVR mode)
 	Bool main_addon_selected;
+	u32 sys_clock_at_main_activation, obj_clock_at_main_activation;
 };
 
 GF_Scene *gf_scene_new(GF_Scene *parentScene);
@@ -284,7 +285,7 @@ void gf_scene_mpeg4_inline_restart(GF_Scene *scene);
 
 GF_Node *gf_scene_get_subscene_root(GF_Node *inline_node);
 
-void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on);
+void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time);
 
 #ifndef GPAC_DISABLE_VRML
 
@@ -1196,8 +1197,8 @@ void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_fact
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
 //returns media time in sec for the addon - timestamp_based is set to 1 if no timeline has been found (eg sync is based on direct timestamp comp)
-Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_AddonMedia *addon, u32 *timestamp_based);
-s64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon);
+Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u32 *timestamp_based);
+s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts);
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
 /*check if the associated addon has to be restarted, based on the timestamp of the main media (used for scalable addons only). Returns 1 if the addon has been restarted*/
 Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
