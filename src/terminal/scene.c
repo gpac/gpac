@@ -2380,6 +2380,7 @@ Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 	u32 i;
 	GF_ObjectManager*odm;
 	GF_Scene *subscene;
+	GF_List *to_restart = NULL;
 
 	if (!addon || !addon->loop_detected) return GF_FALSE;
 	//warning, we need to compare to media PTS/90 since we already rounded the media_ts to milliseconds (otherwise we would get rounding errors).
@@ -2406,15 +2407,21 @@ Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 
 	gf_mx_v(addon->root_od->mx);
 
+	to_restart = gf_list_new();
+
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(subscene->resources, &i))) {
+		if (odm->state == GF_ODM_STATE_PLAY) {
+			gf_list_add(to_restart, odm);
+		}
 		gf_odm_stop(odm, GF_FALSE);
 	}
 
 	i=0;
-	while ((odm = (GF_ObjectManager*)gf_list_enum(subscene->resources, &i))) {
+	while ((odm = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
 		gf_odm_start(odm, 2);
 	}
+	gf_list_del(to_restart);
 	return GF_TRUE;
 }
 

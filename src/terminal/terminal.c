@@ -2451,6 +2451,13 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 			odm->net_service->ifce->ServiceCommand(odm->net_service->ifce, &net_cmd);
 		if (odm->subscene)
 			gf_scene_switch_quality(odm->subscene, up);
+
+		if (odm->scalable_addon) {
+			if (up) 
+				gf_odm_start(odm, 0);
+			else
+				gf_odm_stop(odm, GF_FALSE);
+		} 
 	}
 }
 
