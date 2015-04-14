@@ -422,8 +422,10 @@ extension.view_stats = function () {
         this.timer.stop();
         this.objs = [];
         if (this.reload_request) {
+            var translation = this.extension.stat_wnd.translation;
             this.extension.stat_wnd = null;
             this.extension.view_stats();
+            this.extension.stat_wnd.translation = translation;
         } else {
             this.extension.stat_wnd = null;
         }
