@@ -1123,11 +1123,11 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				}
 
 				if (ch->odm->parentscene && ch->odm->parentscene->root_od->addon) {
-					s64 res = gf_scene_adjust_timestamp_for_addon(ch->odm->parentscene, ch->CTS, ch->odm->parentscene->root_od->addon);
+					s64 res = gf_scene_adjust_timestamp_for_addon(ch->odm->parentscene->root_od->addon, ch->CTS);
 					if (res<0) return;
 					ch->CTS = (u32) res;
 
-					res = gf_scene_adjust_timestamp_for_addon(ch->odm->parentscene, ch->DTS, ch->odm->parentscene->root_od->addon);
+					res = gf_scene_adjust_timestamp_for_addon(ch->odm->parentscene->root_od->addon, ch->DTS);
 					if (res<0) res=0;
 					ch->DTS = (u32) res;
 					

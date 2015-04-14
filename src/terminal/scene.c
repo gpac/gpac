@@ -1406,7 +1406,7 @@ void gf_scene_resume_live(GF_Scene *subscene) { }
 GF_EXPORT
 void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_factor) {}
 GF_EXPORT
-void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on) { }
+void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time) { }
 
 #endif	/*GPAC_DISABLE_VRML*/
 
@@ -1583,7 +1583,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	}
 }
 
-void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on)
+void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time)
 {
 	GF_DOM_Event devt;
 	const char *opt = gf_cfg_get_key(scene->root_od->term->user->config, "Systems", "DebugPVRScene");
@@ -1606,7 +1606,8 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 		}
 		gf_sg_vrml_field_copy(&dscene->url, &odm->mo->URLs, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
-
+		scene->sys_clock_at_main_activation = gf_sys_clock();
+		scene->obj_clock_at_main_activation = current_clock_time;
 	} else {
 		GF_Clock *ck = scene->scene_codec ? scene->scene_codec->ck : scene->dyn_ck;
 		//reactivating the main content will trigger a reset on the clock - remember where we are and resume from this point
@@ -1618,6 +1619,9 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 
 		gf_sg_vrml_mf_reset(&dscene->url, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
+
+		scene->sys_clock_at_main_activation = 0;
+		scene->obj_clock_at_main_activation = 0;
 	}
 
 	memset(&devt, 0, sizeof(GF_DOM_Event));
@@ -1726,9 +1730,18 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 
 				//we're timeshifting through the main addon, activate it
 				if (from_time < -1) {
-					gf_scene_select_main_addon(scene, odm, GF_TRUE);
+					gf_scene_select_main_addon(scene, odm, GF_TRUE, gf_clock_time(ck) );
+					
+					/*no timeshift, this is a VoD associated with the live broadcast: get current time*/
+					if (! odm->timeshift_depth) {
+						s64 live_clock = scene->obj_clock_at_main_activation + gf_sys_clock() - scene->sys_clock_at_main_activation;
+
+						from_time += 1;
+						if (live_clock + from_time < 0) from_time = 0;
+						else from_time = live_clock + from_time;
+					}
 				} else if (scene->main_addon_selected) {
-					gf_scene_select_main_addon(scene, odm, GF_FALSE);
+					gf_scene_select_main_addon(scene, odm, GF_FALSE, 0);
 				}
 			}
 		}
@@ -2349,6 +2362,17 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 		addon->timeline_ready = GF_TRUE;
 		load_associated_media(scene, addon);
 	}
+
+	if ((addon->addon_type==GF_ADDON_TYPE_MAIN) && addon->root_od && addon->root_od->duration && !addon->root_od->timeshift_depth) {
+		Double dur, tsb;
+		dur = (Double) addon->root_od->duration;
+		dur /= 1000;
+		tsb = (Double) addon->media_timestamp;
+		tsb /= addon->media_timescale;
+		if (tsb>dur) tsb = dur;
+		addon->root_od->parentscene->root_od->timeshift_depth = (u32) (1000*tsb);
+		gf_scene_set_timeshift_depth(scene);
+	}
 }
 
 Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
@@ -2394,13 +2418,11 @@ Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 	return GF_TRUE;
 }
 
-Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_AddonMedia *addon, u32 *timestamp_based)
+Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u32 *timestamp_based)
 {
 	Double media_time;
 	if (!addon->timeline_ready)
 		return clock_time;
-	assert(scene->root_od->addon);
-	assert(scene->root_od->addon==addon);
 
 	if (timestamp_based)
 		*timestamp_based = (addon->timeline_id>=0) ? 0 : 1;
@@ -2414,13 +2436,10 @@ Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_Add
 	return media_time;
 }
 
-s64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon)
+s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts)
 {
 	s64 media_ts_ms;
 	assert(addon->timeline_ready);
-	assert(scene->root_od->addon);
-	assert(scene->root_od->addon==addon);
-
 	media_ts_ms = orig_ts;
 	media_ts_ms -= (addon->media_timestamp*1000) / addon->media_timescale;
 	media_ts_ms += (addon->media_pts/90);
