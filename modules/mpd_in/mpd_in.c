@@ -164,6 +164,22 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 	}
 
 	group = gf_dash_get_group_udta(mpdin->dash, i);
+
+	if (gf_dash_is_m3u8(mpdin->dash)) {
+		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
+		if (!group->pto_setup) {
+			GF_NetworkCommand com;
+			memset(&com, 0, sizeof(com));
+			com.command_type = GF_NET_CHAN_SET_MEDIA_TIME;
+			com.map_time.media_time = mpdin->media_start_range;
+			com.map_time.timestamp = hdr->compositionTimeStamp;
+			com.base.on_channel =  ns;
+			gf_service_command(service, &com, GF_OK);
+			group->pto_setup = GF_TRUE;
+		}
+		return;
+	}
+
 	//if sync is based on timestamps do not adjust the timestamps back
 	if (! group->is_timestamp_based) {
 		if (!group->pto_setup) {
@@ -180,6 +196,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			}
 			scale = ch->esd->slConfig->timestampResolution;
 			scale /= 1000;
+
 			dur = (u64) (scale * gf_dash_get_period_duration(mpdin->dash));
 			if (dur) {
 				group->max_cts_in_period = group->pto + dur;
@@ -190,6 +207,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			start = (u64) (scale * gf_dash_get_period_start(mpdin->dash));
 			group->pto -= start;
 		}
+
 		//filter any packet outside the current period
 		if (group->max_cts_in_period && (s64) hdr->compositionTimeStamp > group->max_cts_in_period) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet timestamp "LLU" larger than max CTS in period "LLU" - skipping\n", hdr->compositionTimeStamp, group->max_cts_in_period));
@@ -1259,6 +1277,9 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			group->is_timestamp_based = 0;
 			group->pto_setup = 0;
 			if (com->play.start_range<0) com->play.start_range = 0;
+			//in m3u8, we need also media start time for mapping time
+			if (gf_dash_is_m3u8(mpdin->dash))
+				mpdin->media_start_range = com->play.start_range;
 		}
 
 		//we cannot handle seek request outside of a period being setup, this messes up our internal service setup
