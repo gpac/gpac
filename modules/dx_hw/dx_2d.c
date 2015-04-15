@@ -301,7 +301,7 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 	pcClipper->lpVtbl->Release(pcClipper);
 
 
-	dd->ddraw_init = 1;
+	dd->ddraw_init = GF_TRUE;
 	/*if YUV not initialize, init using HW video memory to setup HW caps*/
 	return GF_OK;
 }

@@ -1202,7 +1202,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			count = gf_list_count(m2ts->ts->requested_progs);
 			prog = NULL;
 			for (i=0; i<count; i++) {
-				prog = gf_list_get(m2ts->ts->requested_progs, i);
+				prog = (M2TSIn_Prog*)gf_list_get(m2ts->ts->requested_progs, i);
 				if (!strcmp(prog->fragment, frag))
 					break;
 				prog = NULL;
@@ -1595,7 +1595,7 @@ static void M2TS_GetNetworkType(GF_InputService *plug,M2TSIn *reader)
 GF_InputService *NewM2TSReader()
 {
 	M2TSIn *reader;
-	GF_InputService *plug = gf_malloc(sizeof(GF_InputService));
+	GF_InputService *plug = (GF_InputService*)gf_malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC MPEG-2 TS Reader", "gpac distribution")
 
@@ -1609,7 +1609,7 @@ GF_InputService *NewM2TSReader()
 	plug->ServiceCommand = M2TS_ServiceCommand;
 	plug->RegisterMimeTypes = M2TS_RegisterMimeTypes;
 
-	reader = gf_malloc(sizeof(M2TSIn));
+	reader = (M2TSIn*)gf_malloc(sizeof(M2TSIn));
 	memset(reader, 0, sizeof(M2TSIn));
 	plug->priv = reader;
 	reader->ts = gf_m2ts_demux_new();
@@ -1630,13 +1630,13 @@ void DeleteM2TSReader(void *ifce)
 	GF_InputService *plug = (GF_InputService *) ifce;
 	if (!ifce)
 		return;
-	m2ts = plug->priv;
+	m2ts = (M2TSIn*)plug->priv;
 	if (!m2ts)
 		return;
 	if( m2ts->ts->requested_progs ) {
 		count = gf_list_count(m2ts->ts->requested_progs);
 		for (i = 0; i < count; i++) {
-			M2TSIn_Prog *prog = gf_list_get(m2ts->ts->requested_progs, i);
+			M2TSIn_Prog *prog = (M2TSIn_Prog*)gf_list_get(m2ts->ts->requested_progs, i);
 			gf_free(prog->fragment);
 			gf_free(prog);
 		}
@@ -1646,7 +1646,7 @@ void DeleteM2TSReader(void *ifce)
 	if( m2ts->ts->requested_pids ) {
 		count = gf_list_count(m2ts->ts->requested_pids);
 		for (i = 0; i < count; i++) {
-			M2TSIn_Prog *prog = gf_list_get(m2ts->ts->requested_pids, i);
+			M2TSIn_Prog *prog = (M2TSIn_Prog*)gf_list_get(m2ts->ts->requested_pids, i);
 			gf_free(prog);
 		}
 		gf_list_del(m2ts->ts->requested_pids);
