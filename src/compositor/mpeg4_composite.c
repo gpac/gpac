@@ -139,6 +139,7 @@ static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
 #ifdef GPAC_USE_TINYGL
 		if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
 #endif
+
 		gf_list_del(st->sensors);
 		gf_list_del(st->previous_sensors);
 
@@ -778,22 +779,6 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 		gf_mx_copy(compositor->hit_world_to_local, w2l_mx);
 	}
 
-	stack->prev_hit_appear = compositor->prev_hit_appear;
-
-	if (prev_appear) {
-		if (prev_appear->sgprivate->num_instances>1) {
-			compositor->prev_hit_appear = prev_appear;
-			compositor->hit_appear = appear;
-		} else {
-			compositor->prev_hit_appear = NULL;
-			compositor->hit_appear = NULL;
-		}
-		gf_node_unregister(prev_appear, NULL);
-	} else {
-		compositor->prev_hit_appear = prev_appear;
-		compositor->hit_appear = appear;
-	}
-
 	compositor->hit_world_point = world_pt;
 	compositor->hit_world_ray = ray;
 	compositor->hit_square_dist = dist;
@@ -813,6 +798,24 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 #endif
 		gf_free(tr_state);
 	}
+
+	stack->prev_hit_appear = compositor->prev_hit_appear;
+
+	//finally unregister the node, this may destroy the stack !
+	if (prev_appear) {
+		if (prev_appear->sgprivate->num_instances>1) {
+			compositor->prev_hit_appear = prev_appear;
+			compositor->hit_appear = appear;
+		} else {
+			compositor->prev_hit_appear = NULL;
+			compositor->hit_appear = NULL;
+		}
+		gf_node_unregister(prev_appear, NULL);
+	} else {
+		compositor->prev_hit_appear = prev_appear;
+		compositor->hit_appear = appear;
+	}
+
 	return res;
 }
 
