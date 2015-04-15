@@ -1542,7 +1542,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	gjs->evt = evt;
 	SMJS_SET_PRIVATE(gjs->c, gjs->evt_obj, gjs);
 	argv[0] = OBJECT_TO_JSVAL(gjs->evt_obj);
-	rval = JSVAL_VOID;
+	rval = BOOLEAN_TO_JSVAL(JS_TRUE);
 	JS_CallFunctionValue(gjs->c, gjs->evt_filter_obj, gjs->evt_fun, 1, argv, &rval);
 	SMJS_SET_PRIVATE(gjs->c, gjs->evt_obj, NULL);
 	gjs->evt = NULL;
@@ -1550,7 +1550,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 
 	res = 0;
 	if (JSVAL_IS_BOOLEAN(rval) ) {
-		res = (JSVAL_TO_BOOLEAN(rval)==JS_TRUE) ? 1 : 0;
+		res = (JSVAL_TO_BOOLEAN(rval)==JS_TRUE) ? GF_TRUE : GF_FALSE;
 	} else if (JSVAL_IS_INT(rval) ) {
 		res = (JSVAL_TO_INT(rval)) ? 1 : 0;
 	}
