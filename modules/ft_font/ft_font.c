@@ -459,7 +459,7 @@ static GF_Err ft_set_font(GF_FontReader *dr, const char *OrigFontName, u32 style
 	/*check cfg file - gf_free(type is slow at loading fonts so we keep the (font name + styles)=fontfile associations
 	in the cfg file*/
 	if (!fontName || !strlen(fontName)) return GF_NOT_SUPPORTED;
-	fname = gf_malloc(sizeof(char) * (strlen(fontName) + 50));
+	fname = (char*)gf_malloc(sizeof(char) * (strlen(fontName) + 50));
 
 	{
 		int checkStyles = (styles & GF_FONT_WEIGHT_BOLD) | (styles & GF_FONT_ITALIC);
@@ -676,13 +676,12 @@ static GF_Glyph *ft_load_glyph(GF_FontReader *dr, u32 glyph_name)
 
 GF_FontReader *ft_load()
 {
-	GF_FontReader *dr;
 	FTBuilder *ftpriv;
-	dr = gf_malloc(sizeof(GF_FontReader));
+	GF_FontReader *dr = (GF_FontReader*)gf_malloc(sizeof(GF_FontReader));
 	memset(dr, 0, sizeof(GF_FontReader));
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_FONT_READER_INTERFACE, "FreeType Font Reader", "gpac distribution");
 
-	ftpriv = gf_malloc(sizeof(FTBuilder));
+	ftpriv = (FTBuilder*)gf_malloc(sizeof(FTBuilder));
 	memset(ftpriv, 0, sizeof(FTBuilder));
 
 	ftpriv->loaded_fonts = gf_list_new();

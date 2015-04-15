@@ -187,7 +187,7 @@ static int open_file(AVFormatContext **	ic_ptr, const char * 	filename, AVInputF
 #ifdef USE_PRE_0_7
 	return av_open_input_file(ic_ptr, filename, fmt, 0, NULL);
 #else
-	return avformat_open_input(ic_ptr, filename, fmt, ops);
+	return avformat_open_input(ic_ptr, filename, fmt, (AVDictionary**)ops);
 #endif
 }
 
@@ -241,7 +241,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	if (!strnicmp(url, "tcp://", 6)) return GF_FALSE;
 	if (!strnicmp(url, "data:", 5)) return GF_FALSE;
 
-	ffd = plug->priv;
+	ffd = (FFDemux*)plug->priv;
 
 	strcpy(szName, url);
 	ext = strrchr(szName, '#');
