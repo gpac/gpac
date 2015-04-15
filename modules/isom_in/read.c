@@ -432,8 +432,6 @@ GF_Err ISOR_CloseService(GF_InputService *plug)
 	reply = GF_OK;
 
 	read->disconnected = GF_TRUE;
-	if (read->mov) gf_isom_close(read->mov);
-	read->mov = NULL;
 
 	while (gf_list_count(read->channels)) {
 		ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, 0);
@@ -443,6 +441,9 @@ GF_Err ISOR_CloseService(GF_InputService *plug)
 
 	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
+
+	if (read->mov) gf_isom_close(read->mov);
+	read->mov = NULL;
 
 	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 		send_proxy_command(read, GF_TRUE, GF_FALSE, reply, NULL, NULL);
