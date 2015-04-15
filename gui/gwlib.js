@@ -846,7 +846,7 @@ function gwlib_filter_event(evt) {
         return false;
 
     for (var i = 0; i < gw_event_filters.length; i++) {
-        if (gw_event_filters[i](evt)) return true;
+        if (gw_event_filters[i](evt) == true) return true;
     }
     return false;
 }
