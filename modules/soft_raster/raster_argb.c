@@ -690,6 +690,13 @@ GF_Err evg_surface_clear_rgba(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 	w = rc.width;
 	sy = rc.y;
 
+	if (sy+h > _this->height) {
+		h = _this->height - sy;
+	}
+	if (rc.x + w > _this->width) {
+		w = _this->width - rc.x;
+	}
+
 	a = GF_COL_A(col);
 	r = GF_COL_R(col);
 	g = GF_COL_G(col);
