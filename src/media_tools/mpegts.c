@@ -3048,30 +3048,30 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 		af_desc_not_present = af_extension[1] & 0x10 ? 1 : 0;
 		af_extension += 2;
 		if (!afext_bytes) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension fopund\n", pid));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
 			return;
 		}
 		afext_bytes-=1;
 		if (ltw_flag) {
 			af_extension += 2;
-			if (!afext_bytes<2) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension fopund\n", pid));
+			if (afext_bytes<2) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
 				return;
 			}
 			afext_bytes-=2;
 		}
 		if (pwr_flag) {
 			af_extension += 3;
-			if (!afext_bytes<3) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension fopund\n", pid));
+			if (afext_bytes<3) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
 				return;
 			}
 			afext_bytes-=3;
 		}
 		if (seamless_flag) {
 			af_extension += 3;
-			if (!afext_bytes<3) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension fopund\n", pid));
+			if (afext_bytes<3) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
 				return;
 			}
 			afext_bytes-=3;
