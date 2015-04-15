@@ -435,9 +435,9 @@ Bool SDP_IsDynamicPayload(GF_SDPMedia *media, char *payt)
 	i=0;
 	while ((map = (GF_RTPMap*)gf_list_enum(media->RTPMaps, &i))) {
 		sprintf(buf, "%d", map->PayloadType);
-		if (!strcmp(payt, buf)) return 1;
+		if (!strcmp(payt, buf)) return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 //translate h || m || d in sec. Fractions are not allowed with this writing
@@ -761,19 +761,19 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 		if (e) return e;
 		//multiple addresses are only for media desc
 		if (sdp->c_connection->add_count >= 2) return GF_REMOTE_SERVICE_ERROR;
-		HasGlobalConnection = 1;
+		HasGlobalConnection = GF_TRUE;
 	} else {
-		HasGlobalConnection = 0;
+		HasGlobalConnection = GF_FALSE;
 	}
 
 	//then check all media
 	i=0;
 	while ((media = (GF_SDPMedia*)gf_list_enum(sdp->media_desc, &i))) {
-		HasSeveralPorts = 0;
+		HasSeveralPorts = GF_FALSE;
 
 		//m= : force non-null port, profile and fmt_list
 		if (/*!media->PortNumber || */ !media->Profile) return GF_REMOTE_SERVICE_ERROR;
-		if (media->NumPorts) HasSeveralPorts = 1;
+		if (media->NumPorts) HasSeveralPorts = GF_TRUE;
 
 		//no connections specified - THIS IS AN ERROR IN SDP BUT NOT IN ALL RTSP SESSIONS...
 //		if (!HasGlobalConnection && !gf_list_count(media->Connections)) return GF_REMOTE_SERVICE_ERROR;

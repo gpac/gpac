@@ -193,11 +193,11 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		if (!ch->net_info.IsUnicast) {
 			if (IsSource) {
 				if (ch->net_info.destination && !gf_sk_is_multicast_address(ch->net_info.destination)) {
-					ch->net_info.IsUnicast = 1;
+					ch->net_info.IsUnicast = GF_TRUE;
 				}
 			} else {
 				if (ch->net_info.source && !gf_sk_is_multicast_address(ch->net_info.source)) {
-					ch->net_info.IsUnicast = 1;
+					ch->net_info.IsUnicast = GF_TRUE;
 				}
 			}
 		}
@@ -227,7 +227,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			//Bind to multicast (auto-join the group).
 			//we do not bind the socket if this is a source-only channel because some servers
 			//don't like that on local loop ...
-			e = gf_sk_setup_multicast(ch->rtp, ch->net_info.source, ch->net_info.port_first, ch->net_info.TTL, 0, local_ip);
+			e = gf_sk_setup_multicast(ch->rtp, ch->net_info.source, ch->net_info.port_first, ch->net_info.TTL, GF_FALSE, local_ip);
 			if (e) return e;
 		}
 		if (UDPBufferSize) gf_sk_set_buffer_size(ch->rtp, IsSource, UDPBufferSize);
@@ -266,7 +266,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		} else {
 			if (!ch->net_info.port_last) ch->net_info.port_last = ch->net_info.client_port_last;
 			//Bind to multicast (auto-join the group)
-			e = gf_sk_setup_multicast(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, 0, local_ip);
+			e = gf_sk_setup_multicast(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, GF_FALSE, local_ip);
 			if (e) return e;
 		}
 	}
@@ -470,7 +470,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	lost = 0;
 	LastSeq = ch->last_pck_sn;
 	CurrSeq = (u32) rtp_hdr->SequenceNumber;
-	ch->packet_loss = 0;
+	ch->packet_loss = GF_FALSE;
 	/*next sequential pck*/
 	if ( ( (LastSeq + 1) & 0xffff ) == CurrSeq ) {
 		ch->last_num_pck_rcv += 1;
@@ -491,7 +491,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 		ch->last_num_pck_expected += lost;
 		ch->last_num_pck_rcv += 1;
 		ch->last_num_pck_loss += lost;
-		ch->packet_loss = 1;
+		ch->packet_loss = GF_TRUE;
 	}
 	ch->last_pck_sn = CurrSeq;
 
@@ -554,7 +554,7 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u
 	        || (rtp_hdr->CSRCCount && !rtp_hdr->CSRC)
 	        || (rtp_hdr->CSRCCount > 15)) return GF_BAD_PARAM;
 
-	if (rtp_hdr->CSRCCount) fast_send=0;
+	if (rtp_hdr->CSRCCount) fast_send = GF_FALSE;
 
 	if (12 + pck_size + 4*rtp_hdr->CSRCCount > ch->send_buffer_size) return GF_IO_ERR;
 

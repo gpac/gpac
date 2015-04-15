@@ -55,8 +55,8 @@ static void rtp_stream_on_new_packet(void *cbk, GF_RTPHeader *header)
 
 static void rtp_stream_on_packet_done(void *cbk, GF_RTPHeader *header)
 {
-	GF_RTPStreamer *rtp = cbk;
-	GF_Err e = gf_rtp_send_packet(rtp->channel, header, rtp->buffer+12, rtp->payload_len, 1);
+	GF_RTPStreamer *rtp = (GF_RTPStreamer*)cbk;
+	GF_Err e = gf_rtp_send_packet(rtp->channel, header, rtp->buffer+12, rtp->payload_len, GF_TRUE);
 
 #ifndef GPAC_DISABLE_LOG
 	if (e) {
@@ -70,7 +70,7 @@ static void rtp_stream_on_packet_done(void *cbk, GF_RTPHeader *header)
 
 static void rtp_stream_on_data(void *cbk, char *data, u32 data_size, Bool is_head)
 {
-	GF_RTPStreamer *rtp = cbk;
+	GF_RTPStreamer *rtp = (GF_RTPStreamer*)cbk;
 	if (!data ||!data_size) return;
 
 	if (rtp->payload_len+data_size+12 > rtp->buffer_alloc) {
@@ -96,12 +96,12 @@ static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const c
 	gf_rtp_set_ports(rtp->channel, 0);
 	memset(&tr, 0, sizeof(GF_RTSPTransport));
 
-	tr.IsUnicast = gf_sk_is_multicast_address(dest) ? 0 : 1;
+	tr.IsUnicast = gf_sk_is_multicast_address(dest) ? GF_FALSE : GF_TRUE;
 	tr.Profile="RTP/AVP";
 	tr.destination = (char *)dest;
 	tr.source = "0.0.0.0";
-	tr.IsRecord = 0;
-	tr.Append = 0;
+	tr.IsRecord = GF_FALSE;
+	tr.Append = GF_FALSE;
 	tr.SSRC = rand();
 	tr.TTL = ttl;
 
@@ -120,7 +120,7 @@ static GF_Err rtp_stream_init_channel(GF_RTPStreamer *rtp, u32 path_mtu, const c
 		return res;
 	}
 
-	res = gf_rtp_initialize(rtp->channel, 0, 1, path_mtu, 0, 0, (char *)ifce_addr);
+	res = gf_rtp_initialize(rtp->channel, 0, GF_TRUE, path_mtu, 0, 0, (char *)ifce_addr);
 	if (res !=0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("Cannot initialize RTP sockets: %s\n", gf_error_to_string(res) ));
 		return res;
@@ -160,7 +160,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	mpeg4mode = NULL;
 	required_rate = 0;
 	nb_ch = 0;
-	has_mpeg4_mapping = 1;
+	has_mpeg4_mapping = GF_TRUE;
 	rtp_type = 0;
 
 	/*for max compatibility with QT*/
@@ -320,7 +320,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	case GF_STREAM_OD:
 		if (oti == GPAC_OTI_SCENE_DIMS) {
 			rtp_type = GF_RTP_PAYT_3GPP_DIMS;
-			has_mpeg4_mapping = 0;
+			has_mpeg4_mapping = GF_FALSE;
 		} else {
 			rtp_type = GF_RTP_PAYT_MPEG4;
 		}
@@ -342,20 +342,20 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			required_rate = 8000;
 			rtp_type = GF_RTP_PAYT_AMR;
 			streamType = GF_STREAM_AUDIO;
-			has_mpeg4_mapping = 0;
+			has_mpeg4_mapping = GF_FALSE;
 			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 			required_rate = 16000;
 			rtp_type = GF_RTP_PAYT_AMR_WB;
 			streamType = GF_STREAM_AUDIO;
-			has_mpeg4_mapping = 0;
+			has_mpeg4_mapping = GF_FALSE;
 			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_AC3:
 			rtp_type = GF_RTP_PAYT_AC3;
 			streamType = GF_STREAM_AUDIO;
-			has_mpeg4_mapping = 1;
+			has_mpeg4_mapping = GF_TRUE;
 			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_AVC_H264:
@@ -478,7 +478,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	stream->ts_scale /= timeScale;
 
 	stream->buffer_alloc = MTU+12;
-	stream->buffer = gf_malloc(sizeof(char) * stream->buffer_alloc);
+	stream->buffer = (char*)gf_malloc(sizeof(char) * stream->buffer_alloc);
 
 	return stream;
 }
@@ -491,7 +491,7 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 oti, u32 timeScale,
 {
 	return gf_rtp_streamer_new_extended(streamType, oti, timeScale, ip_dest, port, MTU, TTL, ifce_addr, flags, dsi, dsi_len,
 
-	                                    96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+	                                    96, 0, 0, GF_FALSE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
 }
 
@@ -631,7 +631,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 	}
 	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_HEVC) || (rtp->packetizer->rtp_payt == GF_RTP_PAYT_SHVC)) {
 #ifndef GPAC_DISABLE_HEVC
-		GF_HEVCConfig *hevcc = dsi ? gf_odf_hevc_cfg_read(dsi, dsi_len, 0) : NULL;
+		GF_HEVCConfig *hevcc = dsi ? gf_odf_hevc_cfg_read(dsi, dsi_len, GF_FALSE) : NULL;
 		if (hevcc) {
 			u32 count, i, j, b64s;
 			char b64[200];
@@ -716,11 +716,11 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 
 	size = (u32) strlen(sdp) + (*out_sdp_buffer ? (u32) strlen(*out_sdp_buffer) : 0) + 1;
 	if ( !*out_sdp_buffer) {
-		*out_sdp_buffer = gf_malloc(sizeof(char)*size);
+		*out_sdp_buffer = (char*)gf_malloc(sizeof(char)*size);
 		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
 		strcpy(*out_sdp_buffer, sdp);
 	} else {
-		*out_sdp_buffer = gf_realloc(*out_sdp_buffer, sizeof(char)*size);
+		*out_sdp_buffer = (char*)gf_realloc(*out_sdp_buffer, sizeof(char)*size);
 		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
 		strcat(*out_sdp_buffer, sdp);
 	}
@@ -752,11 +752,11 @@ GF_Err gf_rtp_streamer_append_sdp_decoding_dependency(GF_ISOFile *isofile, u32 i
 
 	size = (u32) strlen(sdp) + (*out_sdp_buffer ? (u32) strlen(*out_sdp_buffer) : 0) + 1;
 	if ( !*out_sdp_buffer) {
-		*out_sdp_buffer = gf_malloc(sizeof(char)*size);
+		*out_sdp_buffer = (char*)gf_malloc(sizeof(char)*size);
 		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
 		strcpy(*out_sdp_buffer, sdp);
 	} else {
-		*out_sdp_buffer = gf_realloc(*out_sdp_buffer, sizeof(char)*size);
+		*out_sdp_buffer = (char*)gf_realloc(*out_sdp_buffer, sizeof(char)*size);
 		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
 		strcat(*out_sdp_buffer, sdp);
 	}
@@ -783,7 +783,7 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 	gf_fseek(tmp, 0, SEEK_END);
 	size = gf_ftell(tmp);
 	gf_fseek(tmp, 0, SEEK_SET);
-	sdp = gf_malloc(sizeof(char) * (size_t)(size+1));
+	sdp = (char*)gf_malloc(sizeof(char) * (size_t)(size+1));
 	size = fread(sdp, 1, (size_t)size, tmp);
 	sdp[size] = 0;
 	gf_fclose(tmp);
@@ -812,20 +812,20 @@ GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, char *data, u32 size, u32 
 
 GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap)
 {
-	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, 1, 1, 0, 0, 0);
+	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, GF_TRUE, GF_TRUE, 0, 0, 0);
 }
 
 GF_EXPORT
 GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap, u32 inc_au_sn)
 {
 	if (inc_au_sn) rtp->packetizer->sl_header.AU_sequenceNumber += inc_au_sn;
-	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, 1, 1, rtp->packetizer->sl_header.AU_sequenceNumber, 0, 0);
+	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, GF_TRUE, GF_TRUE, rtp->packetizer->sl_header.AU_sequenceNumber, 0, 0);
 }
 
 GF_EXPORT
 void gf_rtp_streamer_disable_auto_rtcp(GF_RTPStreamer *streamer)
 {
-	streamer->channel->no_auto_rtcp = 1;
+	streamer->channel->no_auto_rtcp = GF_TRUE;
 }
 
 GF_EXPORT

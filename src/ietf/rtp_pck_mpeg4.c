@@ -249,7 +249,7 @@ GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_s
 		/*new RTP Packet*/
 		if (!builder->payload) {
 			/*first SL in RTP*/
-			builder->first_sl_in_rtp = 1;
+			builder->first_sl_in_rtp = GF_TRUE;
 
 			/*if this is the end of an AU we will set it to 0 as soon as an AU is splited*/
 			builder->rtp_header.Marker = 1;
@@ -340,7 +340,7 @@ GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_s
 		}
 
 		//first SL in RTP is done
-		builder->first_sl_in_rtp = 0;
+		builder->first_sl_in_rtp = GF_FALSE;
 
 		//store current sl
 		builder->last_au_sn = builder->sl_header.AU_sequenceNumber;
@@ -381,10 +381,10 @@ flush_packet:
 		builder->payload = NULL;
 
 		/*notify header*/
-		builder->OnData(builder->cbk_obj, sl_buffer, sl_buffer_size, 1);
+		builder->OnData(builder->cbk_obj, sl_buffer, sl_buffer_size, GF_TRUE);
 		/*notify payload*/
 		if (payl_buffer) {
-			builder->OnData(builder->cbk_obj, payl_buffer, payl_buffer_size, 0);
+			builder->OnData(builder->cbk_obj, payl_buffer, payl_buffer_size, GF_FALSE);
 			gf_free(payl_buffer);
 		}
 		/*flush packet*/
@@ -429,7 +429,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 		builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
 		builder->rtp_header.SequenceNumber += 1;
 		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
-		builder->avc_non_idr = 1;
+		builder->avc_non_idr = GF_TRUE;
 	}
 
 	/*check NAL type to see if disposable or not*/
@@ -442,7 +442,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 	case GF_AVC_NALU_FILLER_DATA:
 		break;
 	default:
-		builder->avc_non_idr = 0;
+		builder->avc_non_idr = GF_FALSE;
 		break;
 	}
 
@@ -451,29 +451,29 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 	/*pb: we don't know if next NALU from this AU will be small enough to fit in the packet, so we always
 	go for stap...*/
 	if (builder->bytesInPacket+nalu_size<builder->Path_MTU) {
-		Bool use_stap = 1;
+		Bool use_stap = GF_TRUE;
 		/*if this is the AU end and no NALU in packet, go for single mode*/
-		if (IsAUEnd && !builder->bytesInPacket) use_stap = 0;
+		if (IsAUEnd && !builder->bytesInPacket) use_stap = GF_FALSE;
 
 		if (use_stap) {
 			/*declare STAP-A NAL*/
 			if (!builder->bytesInPacket) {
 				/*copy over F and NRI from first nal in packet and assign type*/
 				stap_hdr = (nalu[0] & 0xE0) | 24;
-				builder->OnData(builder->cbk_obj, (char *) &stap_hdr, 1, 0);
+				builder->OnData(builder->cbk_obj, (char *) &stap_hdr, 1, GF_FALSE);
 				builder->bytesInPacket = 1;
 			}
 			/*add NALU size*/
 			shdr[0] = nalu_size>>8;
 			shdr[1] = nalu_size&0x00ff;
-			builder->OnData(builder->cbk_obj, (char *)shdr, 2, 0);
+			builder->OnData(builder->cbk_obj, (char *)shdr, 2, GF_FALSE);
 			builder->bytesInPacket += 2;
 		}
 		/*add data*/
 		if (builder->OnDataReference)
 			builder->OnDataReference(builder->cbk_obj, nalu_size, 0);
 		else
-			builder->OnData(builder->cbk_obj, nalu, nalu_size, 0);
+			builder->OnData(builder->cbk_obj, nalu, nalu_size, GF_FALSE);
 
 		builder->bytesInPacket += nalu_size;
 
@@ -507,13 +507,13 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 			/*end bit*/
 			else if (size == bytesLeft) shdr[1] |= 0x40;
 
-			builder->OnData(builder->cbk_obj, (char *)shdr, 2, 0);
+			builder->OnData(builder->cbk_obj, (char *)shdr, 2, GF_FALSE);
 
 			/*add data*/
 			if (builder->OnDataReference)
 				builder->OnDataReference(builder->cbk_obj, size, offset);
 			else
-				builder->OnData(builder->cbk_obj, nalu+offset, size, 0);
+				builder->OnData(builder->cbk_obj, nalu+offset, size, GF_FALSE);
 
 			offset += size;
 			bytesLeft -= size;
@@ -551,7 +551,7 @@ GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_si
 		builder->rtp_header.Marker = (do_flush==1) ? 1 : 0;
 		/*insert payload_hdr in case of AP*/
 		if (strlen(builder->hevc_payload_hdr)) {
-			builder->OnData(builder->cbk_obj, (char *)builder->hevc_payload_hdr, 2, 1);
+			builder->OnData(builder->cbk_obj, (char *)builder->hevc_payload_hdr, 2, GF_TRUE);
 			memset(builder->hevc_payload_hdr, 0, 2);
 		}
 		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
@@ -571,9 +571,9 @@ GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_si
 	/*at this point we're sure the NALU fits in current packet OR must be splitted*/
 	/*check that we should use single NALU packet mode or aggreation packets mode*/
 	if (builder->bytesInPacket+nalu_size+4 < builder->Path_MTU) {
-		Bool use_AP = (builder->flags & GP_RTP_PCK_USE_MULTI) ? 1 : 0;
+		Bool use_AP = (builder->flags & GP_RTP_PCK_USE_MULTI) ? GF_TRUE : GF_FALSE;
 		/*if this is the AU end and no NALU in packet, go for single NALU packet mode*/
-		if (IsAUEnd && !builder->bytesInPacket) use_AP = 0;
+		if (IsAUEnd && !builder->bytesInPacket) use_AP = GF_FALSE;
 
 		if (use_AP) {
 			char nal_s[2];
@@ -606,21 +606,21 @@ GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_si
 			/*add NALU size*/
 			nal_s[0] = nalu_size>>8;
 			nal_s[1] = nalu_size&0x00ff;
-			builder->OnData(builder->cbk_obj, (char *)nal_s, 2, 0);
+			builder->OnData(builder->cbk_obj, (char *)nal_s, 2, GF_FALSE);
 			builder->bytesInPacket += 2;
 		}
 		/*add data*/
 		if (builder->OnDataReference)
 			builder->OnDataReference(builder->cbk_obj, nalu_size, 0);
 		else
-			builder->OnData(builder->cbk_obj, nalu, nalu_size, 0);
+			builder->OnData(builder->cbk_obj, nalu, nalu_size, GF_FALSE);
 
 		builder->bytesInPacket += nalu_size;
 
 		if (IsAUEnd) {
 			builder->rtp_header.Marker = 1;
 			if (strlen(builder->hevc_payload_hdr)) {
-				builder->OnData(builder->cbk_obj, (char *)builder->hevc_payload_hdr, 2, 1);
+				builder->OnData(builder->cbk_obj, (char *)builder->hevc_payload_hdr, 2, GF_TRUE);
 				memset(builder->hevc_payload_hdr, 0, 2);
 			}
 			builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
@@ -652,7 +652,7 @@ GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_si
 			payload_hdr[0] = (nalu[0] & 0x81) | (49 << 1);
 			/*copy LayerId and TID*/
 			payload_hdr[1] = nalu[1];
-			builder->OnData(builder->cbk_obj, (char *)payload_hdr, 2, 0);
+			builder->OnData(builder->cbk_obj, (char *)payload_hdr, 2, GF_FALSE);
 
 			/*declare FU header*/
 			shdr = 0;
@@ -663,13 +663,13 @@ GF_Err gp_rtp_builder_do_hevc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_si
 			/*end bit*/
 			else if (size == bytesLeft) shdr |= 0x40;
 
-			builder->OnData(builder->cbk_obj, &shdr, 1, 0);
+			builder->OnData(builder->cbk_obj, &shdr, 1, GF_FALSE);
 
 			/*add data*/
 			if (builder->OnDataReference)
 				builder->OnDataReference(builder->cbk_obj, size, offset);
 			else
-				builder->OnData(builder->cbk_obj, nalu+offset, size, 0);
+				builder->OnData(builder->cbk_obj, nalu+offset, size, GF_FALSE);
 
 			offset += size;
 			bytesLeft -= size;
@@ -721,20 +721,20 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_si
 	}
 
 	data_offset = 0;
-	fragmented = 0;
+	fragmented = GF_FALSE;
 	while (data_size > 0) {
 		latm_hdr_size = (data_size / 255) + 1;
 		/*fragmenting*/
 		if (latm_hdr_size + data_size > builder->Path_MTU) {
 			assert(!builder->bytesInPacket);
-			fragmented = 1;
+			fragmented = GF_TRUE;
 			latm_hdr_size = (builder->Path_MTU / 255) + 1;
 			size = builder->Path_MTU - latm_hdr_size;
 			builder->rtp_header.Marker = 0;
 		}
 		/*last fragment or full AU*/
 		else {
-			fragmented = 0;
+			fragmented = GF_FALSE;
 			size = data_size;
 			builder->rtp_header.Marker = 1;
 		}
@@ -754,7 +754,7 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_si
 		latm_hdr[latm_hdr_size-1] = size % 255;
 
 		/*add LATM header IN ORDER in case we aggregate audioMuxElements in RTP*/
-		builder->OnData(builder->cbk_obj, (char*) latm_hdr, latm_hdr_size, 0);
+		builder->OnData(builder->cbk_obj, (char*) latm_hdr, latm_hdr_size, GF_FALSE);
 		builder->bytesInPacket += latm_hdr_size;
 		gf_free(latm_hdr);
 
@@ -762,7 +762,7 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_si
 		if (builder->OnDataReference) {
 			builder->OnDataReference(builder->cbk_obj, size, data_offset);
 		} else
-			builder->OnData(builder->cbk_obj, data, size, 0);
+			builder->OnData(builder->cbk_obj, data, size, GF_FALSE);
 
 		builder->bytesInPacket += size;
 
@@ -772,7 +772,7 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_si
 		if (!builder->rtp_header.Marker) latm_flush(builder);
 	}
 	/*if the AU has been fragmented or we don't use RTP aggregation, flush*/
-	if (! (builder->flags & GP_RTP_PCK_USE_MULTI) ) fragmented = 1;
+	if (! (builder->flags & GP_RTP_PCK_USE_MULTI) ) fragmented = GF_TRUE;
 	if (fragmented) latm_flush(builder);
 
 	return GF_OK;

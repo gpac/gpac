@@ -203,12 +203,12 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 		/*locate VOP start code*/
 		if (rtp->sl_hdr.accessUnitStartFlag && (rtp->flags & GF_RTP_M4V_CHECK_RAP)) {
 			u32 i;
-			Bool is_rap = 0;
+			Bool is_rap = GF_FALSE;
 			unsigned char *pay = (unsigned char *) payload + pay_start;
 			i=0;
 			while (i<au_size-4) {
 				if (!pay[i] && !pay[i+1] && (pay[i+2]==1) && (pay[i+3]==0xB6)) {
-					is_rap = ((pay[i+4] & 0xC0)==0) ? 1 : 0;
+					is_rap = ((pay[i+4] & 0xC0)==0) ? GF_TRUE : GF_FALSE;
 					break;
 				}
 				i++;
@@ -389,8 +389,8 @@ static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 	bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
 	/*reserved*/
 	gf_bs_read_int(bs, 5);
-	P_bit = gf_bs_read_int(bs, 1);
-	V_bit = gf_bs_read_int(bs, 1);
+	P_bit = (Bool)gf_bs_read_int(bs, 1);
+	V_bit = (Bool)gf_bs_read_int(bs, 1);
 	plen = gf_bs_read_int(bs, 6);
 	/*plen_bits = */gf_bs_read_int(bs, 3);
 
@@ -485,7 +485,7 @@ static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 	bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
 		pay_start = gf_bs_get_position(bs);
-		is_utf_16 = gf_bs_read_int(bs, 1);
+		is_utf_16 = (Bool)gf_bs_read_int(bs, 1);
 		gf_bs_read_int(bs, 4);
 		type = gf_bs_read_int(bs, 3);
 		ttu_len = gf_bs_read_u16(bs);
@@ -679,7 +679,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 	else if (nal_type==24) {
 		u32 offset = 1;
 		while (offset<size) {
-			Bool send = 1;
+			Bool send = GF_TRUE;
 			u32 nal_size = (u8) payload[offset];
 			nal_size<<=8;
 			nal_size |= (u8) payload[offset+1];
@@ -688,7 +688,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 				rtp->sl_hdr.randomAccessPointFlag = 1;
 				rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
 			}
-			if (rtp->flags & GF_RTP_AVC_WAIT_RAP) send = 0;
+			if (rtp->flags & GF_RTP_AVC_WAIT_RAP) send = GF_FALSE;
 
 			if (send) {
 				/*signal NALU size on 4 bytes*/
@@ -717,7 +717,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 		Bool is_start = payload[1] & 0x80;
 		Bool is_end = payload[1] & 0x40;
 		/*flush*/
-		if (is_start) gf_rtp_h264_flush(rtp, hdr, 1);
+		if (is_start) gf_rtp_h264_flush(rtp, hdr, GF_TRUE);
 
 		if ((payload[1] & 0x1F) == 5) {
 			rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
@@ -740,7 +740,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 			gf_bs_write_u8(rtp->inter_bs, nal_hdr);
 		}
 		gf_bs_write_data(rtp->inter_bs, payload+2, size-2);
-		if (is_end || hdr->Marker) gf_rtp_h264_flush(rtp, hdr, 0);
+		if (is_end || hdr->Marker) gf_rtp_h264_flush(rtp, hdr, GF_FALSE);
 	}
 }
 
@@ -859,7 +859,7 @@ static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 		Bool is_start = payload[2] & 0x80;
 		Bool is_end = payload[2] & 0x40;
 		/*flush*/
-		if (is_start) gf_rtp_hevc_flush(rtp, hdr, 1);
+		if (is_start) gf_rtp_hevc_flush(rtp, hdr, GF_TRUE);
 
 		nal_type = payload[2] & 0x3F;
 		/*FIXME: strict condition for randomAccessPointFlag because of decoder's issue*/
@@ -883,7 +883,7 @@ static void gf_rtp_parse_hevc(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 			gf_bs_write_data(rtp->inter_bs, nal_hdr, 2);
 		}
 		gf_bs_write_data(rtp->inter_bs, payload+3, size-3);
-		if (is_end || hdr->Marker) gf_rtp_hevc_flush(rtp, hdr, 0);
+		if (is_end || hdr->Marker) gf_rtp_hevc_flush(rtp, hdr, GF_FALSE);
 	}
 }
 #endif
@@ -1013,7 +1013,7 @@ static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *p
 		rtp->sl_hdr.accessUnitStartFlag = rtp->sl_hdr.accessUnitEndFlag = 1;
 		while (size) {
 			u32 offset;
-			if (!gf_ac3_parser((u8*)payload, size, &offset, &hdr, 0)) {
+			if (!gf_ac3_parser((u8*)payload, size, &offset, &hdr, GF_FALSE)) {
 				return;
 			}
 			if (offset) {
@@ -1345,7 +1345,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 
 	case GF_RTP_PAYT_MPEG12_VIDEO:
 		/*we signal RAPs*/
-		rtp->sl_map.RandomAccessIndication = 1;
+		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		rtp->sl_map.StreamType = GF_STREAM_VISUAL;
 		/*FIXME: how to differentiate MPEG1 from MPEG2 video before any frame is received??*/
 		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_MPEG1;
@@ -1402,7 +1402,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
 		gf_bs_del(bs);
 		/*we signal RAPs*/
-		rtp->sl_map.RandomAccessIndication = 1;
+		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_h263;
 	}
@@ -1505,7 +1505,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->sl_map.StreamType = 4;
 		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_AVC;
 		/*we will signal RAPs*/
-		rtp->sl_map.RandomAccessIndication = 1;
+		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		/*rewrite sps and pps*/
 		i=0;
 		while ((fmtp = (GF_SDP_FMTP*)gf_list_enum(media->FMTP, &i))) {
@@ -1569,7 +1569,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->sl_map.StreamType = 4;
 		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_HEVC;
 		/*we will signal RAPs*/
-		rtp->sl_map.RandomAccessIndication = 1;
+		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		i=0;
 		while ((fmtp = (GF_SDP_FMTP*)gf_list_enum(media->FMTP, &i))) {
 			GF_X_Attribute *att;
@@ -1643,7 +1643,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->sl_map.StreamType = GF_STREAM_SCENE;
 		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_SCENE_DIMS;
 		/*we will signal RAPs*/
-		rtp->sl_map.RandomAccessIndication = 1;
+		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		/*we map DIMS CTR to AU seq num, hence 3 bits*/
 		rtp->sl_map.StreamStateIndication = 3;
 		rtp->sl_map.IndexLength = 3;
@@ -1654,7 +1654,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	case GF_RTP_PAYT_AC3:
 		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
 		rtp->sl_map.ObjectTypeIndication = 0xA5;
-		rtp->sl_map.RandomAccessIndication = 1;
+		rtp->sl_map.RandomAccessIndication = GF_TRUE;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_ac3;
 		break;
@@ -1716,7 +1716,7 @@ GF_EXPORT
 void gf_rtp_depacketizer_del(GF_RTPDepacketizer *rtp)
 {
 	if (rtp) {
-		gf_rtp_depacketizer_reset(rtp, 0);
+		gf_rtp_depacketizer_reset(rtp, GF_FALSE);
 		if (rtp->sl_map.config) gf_free(rtp->sl_map.config);
 		if (rtp->key) gf_free(rtp->key);
 		gf_free(rtp);
@@ -1746,7 +1746,7 @@ void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *slc)
 	}
 	/*AUSeqNum is only signaled if streamState is used (eg for carrouselling); otherwise we ignore it*/
 	slc->AUSeqNumLength = rtp->sl_map.StreamStateIndication;
-	slc->no_dts_signaling = rtp->sl_map.DTSDeltaLength ? 0 : 1;
+	slc->no_dts_signaling = rtp->sl_map.DTSDeltaLength ? GF_FALSE : GF_TRUE;
 
 
 	/*RTP SN is on 16 bits*/
