@@ -982,9 +982,9 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	s32 src_row;
 	u32 i, yuv_planar_type = 0;
 	Bool no_memcpy;
-	Bool force_load_odd_yuv_lines = 0;
-	Bool yuv_init = 0;
-	Bool has_alpha = (alpha!=0xFF) ? 1 : 0;
+	Bool force_load_odd_yuv_lines = GF_FALSE;
+	Bool yuv_init = GF_FALSE;
+	Bool has_alpha = (alpha!=0xFF) ? GF_TRUE : GF_FALSE;
 	u32 dst_bpp, dst_w_size;
 	s32 pos_y, inc_y, inc_x, prev_row, x_off;
 	u32 src_w, src_h, dst_w, dst_h;
@@ -994,8 +994,8 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	copy_row_proto copy_row = NULL;
 	load_line_proto load_line = NULL;
 
-	if (cmat && (cmat->m[15] || cmat->m[16] || cmat->m[17] || (cmat->m[18]!=FIX_ONE) || cmat->m[19] )) has_alpha = 1;
-	else if (key && (key->alpha<0xFF)) has_alpha = 1;
+	if (cmat && (cmat->m[15] || cmat->m[16] || cmat->m[17] || (cmat->m[18]!=FIX_ONE) || cmat->m[19] )) has_alpha = GF_TRUE;
+	else if (key && (key->alpha<0xFF)) has_alpha = GF_TRUE;
 
 	switch (src->pixel_format) {
 	case GF_PIXEL_GREYSCALE:
@@ -1003,7 +1003,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		break;
 	case GF_PIXEL_ALPHAGREY:
 		load_line = load_line_alpha_grey;
-		has_alpha = 1;
+		has_alpha = GF_TRUE;
 		break;
 	case GF_PIXEL_RGB_555:
 		load_line = load_line_rgb_555;
@@ -1019,18 +1019,18 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		load_line = load_line_bgr_24;
 		break;
 	case GF_PIXEL_ARGB:
-		has_alpha = 1;
+		has_alpha = GF_TRUE;
 		load_line = load_line_argb;
 		break;
 	case GF_PIXEL_RGBA:
 	case GF_PIXEL_RGBAS:
-		has_alpha = 1;
+		has_alpha = GF_TRUE;
 	case GF_PIXEL_RGB_32:
 		load_line = load_line_rgb_32;
 		break;
 	case GF_PIXEL_RGBDS:
 		load_line = load_line_rgbds;
-		has_alpha = 1;
+		has_alpha = GF_TRUE;
 		break;
 	case GF_PIXEL_RGBD:
 		load_line = load_line_rgbd;
@@ -1052,7 +1052,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		load_line = load_line_YUV420SP;
 		break;
 	case GF_PIXEL_YUVA:
-		has_alpha = 1;
+		has_alpha = GF_TRUE;
 	case GF_PIXEL_YUVD:
 		yuv_planar_type = 2;
 		yuv2rgb_init();
@@ -1121,7 +1121,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	tmp = (u8 *) gf_malloc(sizeof(u8) * src_w * (yuv_planar_type ? 8 : 4) );
 	rows = tmp;
 
-	if ( (src_h / dst_h) * dst_h != src_h) force_load_odd_yuv_lines = 1;
+	if ( (src_h / dst_h) * dst_h != src_h) force_load_odd_yuv_lines = GF_TRUE;
 
 	dst_bits = (u8 *) dst->video_buffer;
 
@@ -1155,7 +1155,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	}
 
 	/*do NOT use memcpy if the target buffer is not in systems memory*/
-	no_memcpy = (has_alpha || dst->is_hardware_memory || (dst_bpp!=dst_x_pitch)) ? 1 : 0;
+	no_memcpy = (has_alpha || dst->is_hardware_memory || (dst_bpp!=dst_x_pitch)) ? GF_TRUE : GF_FALSE;
 
 	while (dst_h) {
 		while ( pos_y >= 0x10000L ) {
@@ -1168,7 +1168,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 			if (yuv_planar_type) {
 				if (the_row % 2) {
 					if (!yuv_init || force_load_odd_yuv_lines) {
-						yuv_init = 1;
+						yuv_init = GF_TRUE;
 						the_row --;
 						if (flip) the_row = src->height-2 - the_row;
 						if (yuv_planar_type==1) {
@@ -1217,7 +1217,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 					} else {
 						load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *) src->u_ptr,(u8 *)  src->v_ptr, (u8 *) src->a_ptr);
 					}
-					yuv_init = 1;
+					yuv_init = GF_TRUE;
 					rows = flip ? tmp + src_w * 4 : tmp;
 
 					if (cmat) {
