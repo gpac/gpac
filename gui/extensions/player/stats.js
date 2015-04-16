@@ -508,7 +508,7 @@ extension.view_stats = function () {
                 var label = ' ' + m.type;
 
                 if (m.width) label += ' (' + m.width + 'x' + m.height + ')';
-                else if (m.samplerate) label += ' (' + m.samplerate + ' Hz ' + m.channels + ' channels)';
+                else if (m.samplerate) label += ' (' + Math.round(m.samplerate/10)/100 + ' kHz ' + m.channels + ' ch)';
                 else if (m.scalable_enhancement) label += ' (Enh. Layer)';
 
                 var url = m.service_url;
