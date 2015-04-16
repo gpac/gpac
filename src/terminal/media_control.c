@@ -169,9 +169,6 @@ void mediacontrol_resume(GF_ObjectManager *odm, Bool resume_to_live)
 			gf_odm_resume(ctrl_od);
 		}
 	}
-
-	//reset pause_at_first_frame flag
-	odm->term->root_scene->pause_at_first_frame = GF_FALSE;
 }
 
 
