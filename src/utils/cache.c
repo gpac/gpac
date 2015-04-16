@@ -190,18 +190,18 @@ static const char * cache_file_prefix = "gpac_cache_";
 
 GF_Err gf_cache_delete_all_cached_files(const char * directory) {
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("Deleting cached files in %s...\n", directory));
-	return gf_enum_directory( directory, 0, delete_cache_files, (void*)cache_file_prefix, NULL);
+	return gf_enum_directory( directory, GF_FALSE, delete_cache_files, (void*)cache_file_prefix, NULL);
 }
 
 void gf_cache_entry_set_delete_files_when_deleted(const DownloadedCacheEntry entry) {
 	if (entry)
-		entry->deletableFilesOnDelete = 1;
+		entry->deletableFilesOnDelete = GF_TRUE;
 }
 
 Bool gf_cache_entry_is_delete_files_when_deleted(const DownloadedCacheEntry entry)
 {
 	if (!entry)
-		return 0;
+		return GF_FALSE;
 	return entry->deletableFilesOnDelete;
 }
 
@@ -255,7 +255,7 @@ GF_Err gf_cache_set_mime_type(const DownloadedCacheEntry entry, const char * mim
 
 Bool gf_cache_is_cached_on_disk(const DownloadedCacheEntry entry ) {
 	if (entry == NULL)
-		return 0;
+		return GF_FALSE;
 	return entry->flags & NO_CACHE;
 }
 
@@ -450,15 +450,15 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	}
 #endif
 
-	entry->deletableFilesOnDelete = 0;
+	entry->deletableFilesOnDelete = GF_FALSE;
 	entry->write_session = NULL;
 	entry->sessions = gf_list_new();
 
 	if (entry->memory_stored) {
-		entry->cache_filename = gf_malloc ( strlen ("gmem://") + 8 + strlen("@") + 16 + 1);
+		entry->cache_filename = (char*)gf_malloc ( strlen ("gmem://") + 8 + strlen("@") + 16 + 1);
 	} else {
 		/* Sizeof cache directory + hash + possible extension */
-		entry->cache_filename = gf_malloc ( strlen ( cache_directory ) + strlen(cache_file_prefix) + strlen(tmp) + _CACHE_MAX_EXTENSION_SIZE + 1);
+		entry->cache_filename = (char*)gf_malloc ( strlen ( cache_directory ) + strlen(cache_file_prefix) + strlen(tmp) + _CACHE_MAX_EXTENSION_SIZE + 1);
 	}
 
 	if ( !entry->hash || !entry->url || !entry->cache_filename || !entry->sessions)
@@ -629,7 +629,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 		if (!entry->mem_allocated || (entry->mem_allocated < entry->contentLength)) {
 			if (entry->contentLength) entry->mem_allocated = entry->contentLength;
 			else if (!entry->mem_allocated) entry->mem_allocated = 81920;
-			entry->mem_storage = gf_realloc(entry->mem_storage, sizeof(char)* (entry->mem_allocated + 2) );
+			entry->mem_storage = (u8*)gf_realloc(entry->mem_storage, sizeof(char)* (entry->mem_allocated + 2) );
 		}
 		if (!entry->mem_allocated) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to create memory storage for file %s\n", entry->url));
@@ -650,7 +650,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 #endif
 		return GF_IO_ERR;
 	}
-	entry->file_exists = 1;
+	entry->file_exists = GF_TRUE;
 	if (entry->continue_file )
 		gf_fseek(entry->writeFilePtr, 0, SEEK_END);
 	return GF_OK;
@@ -668,7 +668,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 	if (entry->memory_stored) {
 		if (entry->written_in_cache + size > entry->mem_allocated) {
 			u32 new_size = MAX(entry->mem_allocated*2, entry->written_in_cache + size);
-			entry->mem_storage = gf_realloc(entry->mem_storage, (new_size+2));
+			entry->mem_storage = (u8*)gf_realloc(entry->mem_storage, (new_size+2));
 			entry->mem_allocated = new_size;
 			sprintf(entry->cache_filename, "gmem://%d@%p", entry->contentLength, entry->mem_storage);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] Reallocating memory cache to %d bytes\n", new_size));
@@ -689,14 +689,14 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
 		/* Something bad happened */
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
 		       ("[CACHE] Error while writting %d bytes of data to cache : has written only %d bytes.", size, read));
-		gf_cache_close_write_cache(entry, sess, 0);
+		gf_cache_close_write_cache(entry, sess, GF_FALSE);
 		gf_delete_file(entry->cache_filename);
 		return GF_IO_ERR;
 	}
 	if (fflush(entry->writeFilePtr)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
 		       ("[CACHE] Error while flushing data bytes to cache file : %s.", entry->cache_filename));
-		gf_cache_close_write_cache(entry, sess, 0);
+		gf_cache_close_write_cache(entry, sess, GF_FALSE);
 		gf_delete_file(entry->cache_filename);
 		return GF_IO_ERR;
 	}
@@ -708,7 +708,7 @@ GF_CacheReader gf_cache_reader_new(const DownloadedCacheEntry entry) {
 	GF_CacheReader reader;
 	if (entry == NULL)
 		return NULL;
-	reader = gf_malloc(sizeof(struct __CacheReaderStruct));
+	reader = (GF_CacheReader)gf_malloc(sizeof(struct __CacheReaderStruct));
 	if (reader == NULL)
 		return NULL;
 	reader->readPtr = gf_fopen( entry->cache_filename, "rb" );
@@ -882,7 +882,7 @@ s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_Down
 		return -1;
 	count = gf_list_count(entry->sessions);
 	for (i = 0 ; i < (u32)count; i++) {
-		GF_DownloadSession * s = gf_list_get(entry->sessions, i);
+		GF_DownloadSession *s = (GF_DownloadSession*)gf_list_get(entry->sessions, i);
 		if (s == sess) {
 			gf_list_rem(entry->sessions, i);
 			count --;
@@ -922,7 +922,7 @@ s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadS
 		return -1;
 	count = gf_list_count(entry->sessions);
 	for (i = 0 ; i < (u32)count; i++) {
-		GF_DownloadSession * s = gf_list_get(entry->sessions, i);
+		GF_DownloadSession *s = (GF_DownloadSession*)gf_list_get(entry->sessions, i);
 		if (s == sess) {
 			return count;
 		}
@@ -942,16 +942,16 @@ void gf_cache_set_end_range(DownloadedCacheEntry entry, u64 range_end)
 {
 	entry->previousRangeContentLength = entry->contentLength;
 	entry->range_end = range_end;
-	entry->continue_file = 1;
+	entry->continue_file = GF_TRUE;
 }
 
 Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry)
 {
-	if (!entry) return 0;
-	if (entry->writeFilePtr) return 1;
+	if (!entry) return GF_FALSE;
+	if (entry->writeFilePtr) return GF_TRUE;
 	if (entry->mem_storage && entry->written_in_cache && entry->contentLength && (entry->written_in_cache<entry->contentLength) )
-		return 1;
-	return 0;
+		return GF_TRUE;
+	return GF_FALSE;
 }
 
 #endif
