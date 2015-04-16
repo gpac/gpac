@@ -578,7 +578,13 @@ static GFINLINE GF_ScriptPriv *JS_GetScriptStack(JSContext *c)
 
 static void script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
 {
-	GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] Error: %s - line %d (%s)", msg, jserr->lineno, jserr->linebuf));
+	if (jserr->linebuf) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] Error: %s - line %d (%s) - file %s\n", msg, jserr->lineno, jserr->linebuf, jserr->filename));
+	} else if (jserr->filename) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] Error: %s - line %d - file %s\n", msg, jserr->lineno, jserr->filename));
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] Error: %s - line %d\n", msg, jserr->lineno));
+	}
 }
 
 static JSBool SMJS_FUNCTION(JSPrint)
@@ -1531,7 +1537,8 @@ GF_FieldInfo info;
 GF_JSField *ptr;
 GF_ScriptPriv *priv;
 
-if (! GF_JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
+if (! GF_JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) 
+	return JS_FALSE;
 ptr = (GF_JSField *) SMJS_GET_PRIVATE(c, obj);
 assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 n = * ((GF_Node **)ptr->field.far_ptr);
@@ -4555,7 +4562,7 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	jsscript[fsize] = 0;
 
 	*rval = JSVAL_NULL;
-	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, (u32) (sizeof(char)*fsize), 0, 0, rval);
+	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, (u32) (sizeof(char)*fsize), file, 0, rval);
 	if (ret==JS_FALSE) success = 0;
 
 	if (success && primary_script

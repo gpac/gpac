@@ -386,7 +386,7 @@ gwskin.no_gl_window_back.backColor = new SFColor(0, 0, 0);
 //static
 function gw_get_abs_pos(child) {
     var pos = new SFVec2f(0, 0);
-    while (1) {
+    while (child != null) {
         if (typeof (child.translation) != 'undefined') {
             pos.x += child.translation.x;
             pos.y += child.translation.y;
