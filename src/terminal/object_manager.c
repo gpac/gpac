@@ -1757,8 +1757,12 @@ void gf_odm_play(GF_ObjectManager *odm)
 		media_control_paused = 1;
 	}
 
-	if (media_control_paused)
+	if (odm->parentscene && odm->parentscene->pause_at_first_frame)
+		media_control_paused = GF_TRUE;
+
+	if (media_control_paused) {
 		gf_odm_pause(odm);
+	}
 }
 
 Bool gf_odm_owns_clock(GF_ObjectManager *odm, GF_Clock *ck)
