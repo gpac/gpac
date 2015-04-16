@@ -473,6 +473,9 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	if (term->play_state == PlayState) return;
 	term->play_state = PlayState;
 
+	if (term->root_scene->pause_at_first_frame && (PlayState == GF_STATE_PLAYING))
+		term->root_scene->pause_at_first_frame = GF_FALSE;
+
 	if (!pause_clocks) return;
 
 	if (PlayState != GF_STATE_PLAYING) {
