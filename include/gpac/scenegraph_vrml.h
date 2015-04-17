@@ -366,7 +366,7 @@ hardcoded protos (extensions of MPEG-4 scene graph used for module deveopment)
 #define GF_SG_INTERNAL_PROTO	(GF_SceneGraph *) 0xFFFFFFFF
 
 
-#ifndef GPAC_DISABLE_VRML
+#ifndef NO_GPAC_DISABLE_VRML
 
 
 
