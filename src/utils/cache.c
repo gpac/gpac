@@ -162,7 +162,8 @@ struct __DownloadedCacheEntryStruct
 	Bool file_exists;
 
 	u32 previousRangeContentLength;
-
+	/*set once headers have been processed*/
+	Bool headers_done;
 	/**
 	* Set to 1 if file is not stored on disk
 	*/
@@ -225,6 +226,21 @@ const char * gf_cache_get_mime_type ( const DownloadedCacheEntry entry )
 {
 	return entry ? entry->mimeType : NULL;
 }
+
+	
+GF_Err gf_cache_set_headers_processed(const DownloadedCacheEntry entry)
+{
+	if (!entry) return GF_BAD_PARAM;
+	entry->headers_done = GF_TRUE;
+	return GF_OK;
+}
+
+Bool gf_cache_are_headers_processed(const DownloadedCacheEntry entry)
+{
+	if (!entry) return GF_FALSE;
+	return entry->headers_done;
+}
+
 
 GF_Err gf_cache_set_etag_on_server(const DownloadedCacheEntry entry, const char * eTag ) {
 	if (!entry)

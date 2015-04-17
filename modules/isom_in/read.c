@@ -265,6 +265,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 		read->mov = gf_isom_open(local_name, GF_ISOM_OPEN_READ, NULL);
 		if (!read->mov) e = gf_isom_last_error(NULL);
 		else read->time_scale = gf_isom_get_timescale(read->mov);
+		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
 		if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 			send_proxy_command(read, GF_FALSE, GF_FALSE, GF_OK, NULL, NULL);
 		} else {
