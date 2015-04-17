@@ -296,11 +296,18 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	DestroyObjects(dd);
 	dd->gl_HDC = (NativeDisplayType) GetDC(dd->cur_hwnd);
 	dd->egldpy = eglGetDisplay(/*dd->gl_HDC*/ EGL_DEFAULT_DISPLAY);
+	if(dd->egldpy == EGL_NO_DISPLAY){
+		EGL_CHECK_ERR
+		return GF_IO_ERR;
+	}
 	if (!eglInitialize(dd->egldpy, &major, &minor)) return GF_IO_ERR;
 	if (!eglChooseConfig(dd->egldpy, egl_atts, configs, 1, &n)) return GF_IO_ERR;
 	dd->eglconfig = configs[0];
-	dd->surface = eglCreateWindowSurface(dd->egldpy, dd->eglconfig, dd->cur_hwnd, 0);
-	if (!dd->surface) return GF_IO_ERR;
+	dd->surface = eglCreateWindowSurface(dd->egldpy, dd->eglconfig, dd->cur_hwnd, NULL);
+	if (!dd->surface || (dd->surface == EGL_NO_SURFACE)){
+		EGL_CHECK_ERR
+		return GF_IO_ERR;
+	}
 
 #ifdef GPAC_USE_GLES2
 
@@ -308,9 +315,9 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	egl_atts[i++] = EGL_CONTEXT_CLIENT_VERSION;
 	egl_atts[i++] = 2;
 	egl_atts[i++] = EGL_NONE;
-
 	eglBindAPI(EGL_OPENGL_ES_API);
 	dd->eglctx = eglCreateContext(dd->egldpy, dd->eglconfig, NULL, 	egl_atts);
+	EGL_CHECK_ERR
 #else
 	dd->eglctx = eglCreateContext(dd->egldpy, dd->eglconfig, NULL, NULL);
 #endif
