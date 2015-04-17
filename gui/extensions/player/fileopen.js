@@ -5,14 +5,20 @@ extension.open_local_file = function () {
 
         filebrowse.extension = this;
         this.file_open_dlg = true;
-        gw_object_set_dragable(filebrowse);
+    
+        if (!gwskin.mobile_device)
+            gw_object_set_dragable(filebrowse);
 
         filebrowse.on_display_size = function (width, height) {
-            var w = width / 2;
-            if (w < 200) w = width - 20;
-            if (w > 500) w = 500;
-            this.set_size(w, 0.8 * height);
-            this.move((width - w) / 2, 0);
+            if (gwskin.mobile_device) {
+                this.set_size(width, height);
+            } else {
+                var w = width / 2;
+                if (w < 200) w = width - 20;
+                if (w > 500) w = 500;
+                this.set_size(w, 0.8 * height);
+                this.move((width - w) / 2, 0);
+            }
         }
 
         filebrowse.on_browse = function (value, directory) {

@@ -816,9 +816,18 @@ function gwskin_set_default_control_height(value) {
 
 function gwskin_set_default_icon_height(value) {
     gwskin.default_icon_height = value;
+    
+    var fsize = 1;
+    if (value>50) fsize = 32;
+    else if (value>30) fsize = 22;
+    else if (value > 10) fsize = value - 10;
+             
+    gwskin.default_label_font_size = fsize;
+    gwskin.default_text_font_size = fsize;
+    
     for (var i = 0; i < gwskin.styles.length; i++) {
         if ((typeof gwskin.styles[i].font != 'undefined') && gwskin.styles[i].font) {
-            gwskin.styles[i].font.size = (value > 10) ? value - 10 : 1;
+            gwskin.styles[i].font.size = fsize;
         }
     }
 }
@@ -910,6 +919,17 @@ function gwlib_init(root_node) {
         gwskin.default_window_alpha = 1;
     }
 
+    var device = gpac.get_option('General', 'DeviceType');
+    if ((device=='iOS') || (device=='Android')) gwskin.mobile_device = true;
+    else gwskin.mobile_device = false;
+    
+    if (gwskin.mobile_device) {
+        var size = gw_display_width;
+        if (size> gw_display_height) size = gw_display_height;
+        gwskin_set_default_control_height(size/3);
+        gwskin_set_default_icon_height(size/3);
+    }
+    
 	gwskin_set_white_blue();
 
     gwskin._to_string = function (obj) {
