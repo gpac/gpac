@@ -236,6 +236,8 @@ struct _scene
 	//set when content is replaced by an addon (DASH PVR mode)
 	Bool main_addon_selected;
 	u32 sys_clock_at_main_activation, obj_clock_at_main_activation;
+
+	Bool pause_at_first_frame;
 };
 
 GF_Scene *gf_scene_new(GF_Scene *parentScene);

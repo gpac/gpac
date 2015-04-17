@@ -473,6 +473,9 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	if (term->play_state == PlayState) return;
 	term->play_state = PlayState;
 
+	if (term->root_scene->pause_at_first_frame && (PlayState == GF_STATE_PLAYING))
+		term->root_scene->pause_at_first_frame = GF_FALSE;
+
 	if (!pause_clocks) return;
 
 	if (PlayState != GF_STATE_PLAYING) {
@@ -520,8 +523,10 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 
 	odm->media_start_time = startTime;
 	/*render first visual frame and pause*/
-	if (pause_at_first_frame)
+	if (pause_at_first_frame) {
 		gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
+		scene->pause_at_first_frame = GF_TRUE;
+	}
 
 	if (!strnicmp(URL, "views://", 8)) {
 		odm->OD = (GF_ObjectDescriptor *)gf_odf_desc_new(GF_ODF_OD_TAG);
@@ -866,6 +871,7 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 			j=0;
 			while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
 				ck->init_time += ms_diff;
+				ck->media_time_at_init += ms_diff;
 			}
 		}
 		term->compositor->step_mode = 1;

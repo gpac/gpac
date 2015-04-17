@@ -184,7 +184,10 @@ void mediacontrol_pause(GF_ObjectManager *odm)
 
 	/*otherwise locate all objects sharing the clock*/
 	ck = gf_odm_get_media_clock(odm);
-	if (!ck) return;
+	if (!ck) {
+		odm->flags |= GF_ODM_PAUSE_QUEUED;
+		return;
+	}
 
 	in_scene = odm->parentscene;
 	if (odm->subscene) {
