@@ -1065,6 +1065,9 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 	e = M2TS_QueryNextFile(m2ts, (flush_type==GF_M2TS_FLUSH_DATA) ? NEXT_SEGMENT_EXCEPT_DL : NEXT_SEGMENT, &url, &start_byterange, &end_byterange, &refresh_type);
 	if (e) {
 		m2ts->in_data_flush = 0;
+		if (e==GF_EOS) {
+			gf_m2ts_demux_file(m2ts->ts, NULL, 0, 0, 0, 1);
+		}
 		gf_mx_v(m2ts->mx);
 		return;
 	}
