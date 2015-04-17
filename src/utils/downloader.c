@@ -606,8 +606,6 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 		if (!found) {
 			sess->reused_cache_entry = GF_FALSE;
 			gf_cache_close_write_cache(sess->cache_entry, sess, GF_FALSE);
-		} else {
-			assert(!sess->reused_cache_entry);
 		}
 		gf_cache_add_session_to_cache_entry(sess->cache_entry, sess);
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
@@ -1583,6 +1581,10 @@ GF_Err gf_dm_sess_process_headers(GF_DownloadSession *sess)
 			gf_sleep(1);
 		case GF_NETIO_CONNECTED:
 			sess->do_requests(sess);
+
+			if (sess->reused_cache_entry && sess->cache_entry && gf_cache_are_headers_processed(sess->cache_entry) ) {
+				sess->status = GF_NETIO_DATA_EXCHANGE;
+			}
 			break;
 		case GF_NETIO_DATA_EXCHANGE:
 		case GF_NETIO_DISCONNECTED:
@@ -2756,6 +2758,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	}
 	if (no_range) first_byte = 0;
 
+	gf_cache_set_headers_processed(sess->cache_entry);
+
 	par.msg_type = GF_NETIO_PARSE_REPLY;
 	par.error = GF_OK;
 	par.reply = rsp_code;
@@ -3089,9 +3093,15 @@ void http_do_requests(GF_DownloadSession *sess)
 	char sHTTP[GF_DOWNLOAD_BUFFER_SIZE+1];
 
 	if (sess->reused_cache_entry) {
+		//main session is done downloading, notify - to do we should send progress events on this session also ...
 		if (!gf_cache_is_in_progress(sess->cache_entry)) {
+			GF_NETIO_Parameter par;
 			gf_dm_disconnect(sess, GF_FALSE);
 			sess->reused_cache_entry = GF_FALSE;
+			memset(&par, 0, sizeof(GF_NETIO_Parameter));
+			par.msg_type = GF_NETIO_DATA_TRANSFERED;
+			par.error = GF_OK;
+			gf_dm_sess_user_io(sess, &par);
 		}
 		return;
 	}

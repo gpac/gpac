@@ -234,6 +234,10 @@ u32 gf_cache_get_sessions_count_for_cache_entry(const DownloadedCacheEntry entry
 u64 gf_cache_get_start_range( const DownloadedCacheEntry entry );
 u64 gf_cache_get_end_range( const DownloadedCacheEntry entry );
 
+
+Bool gf_cache_are_headers_processed(const DownloadedCacheEntry entry);
+GF_Err gf_cache_set_headers_processed(const DownloadedCacheEntry entry);
+
 /*! @} */
 
 #ifdef __cplusplus
