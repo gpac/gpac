@@ -241,8 +241,10 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	for (i=0; i<count; i++) {
 		char *font_dir = gf_list_get(ftpriv->font_dirs, i);
 
-		gf_enum_directory(font_dir, 0, ft_enum_fonts, dr, "ttf;ttc");
-		gf_enum_directory(font_dir, 1, ft_enum_fonts_dir, dr, NULL);
+        if (gf_dir_exists(font_dir)) {
+            gf_enum_directory(font_dir, 0, ft_enum_fonts, dr, "ttf;ttc");
+            gf_enum_directory(font_dir, 1, ft_enum_fonts_dir, dr, NULL);
+        }
 	}
 
 	if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);

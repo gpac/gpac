@@ -210,8 +210,8 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 
 		//filter any packet outside the current period
 		if (group->max_cts_in_period && (s64) hdr->compositionTimeStamp > group->max_cts_in_period) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet timestamp "LLU" larger than max CTS in period "LLU" - skipping\n", hdr->compositionTimeStamp, group->max_cts_in_period));
-			return;
+//			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet timestamp "LLU" larger than max CTS in period "LLU" - skipping\n", hdr->compositionTimeStamp, group->max_cts_in_period));
+//			return;
 		}
 
 		//remap timestamps to our timeline

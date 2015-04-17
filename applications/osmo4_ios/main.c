@@ -259,6 +259,11 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 	}
 }
 
+static void on_progress_null(const void *_ptr, const char *_title, u64 done, u64 total)
+{
+    
+}
+
 #ifdef GPAC_IPHONE
 int SDL_main (int argc, char *argv[])
 #else
@@ -270,8 +275,9 @@ int main (int argc, char *argv[])
 	u32 simulation_time = 0;
 	Bool auto_exit = 0;
 	Bool use_rtix = 0;
-	Bool enable_mem_tracker = 0;
+	Bool enable_mem_tracker = GF_FALSE;
 	Bool ret, fill_ar, visible;
+    Bool logs_set = GF_FALSE;
 	char *url_arg, *the_cfg, *rti_file;
 	GF_SystemRTInfo rti;
 	FILE *logfile = NULL;
@@ -283,18 +289,43 @@ int main (int argc, char *argv[])
 
 	fill_ar = visible = 0;
 	url_arg = the_cfg = rti_file = NULL;
-    if (argc>1) url_arg = argv[1];
+    for (i=1; i<argc; i++) {
+        char *arg = argv[i];
+        if (arg[0] != '-') {
+            url_arg = arg;
+        }
+        else if (!strcmp(arg, "-logs")) {
+            if (gf_log_set_tools_levels(argv[i+1]) != GF_OK) {
+                return 1;
+            }
+            logs_set = GF_TRUE;
+            i++;
+        }
+        else if (!strcmp(arg, "-lf")) {
+            logfile = gf_fopen(argv[i+1], "wt");
+            gf_log_set_callback(logfile, on_gpac_log);
+            i++;
+        }
+        else if (!strcmp(arg, "-mem-track")) {
+#ifdef GPAC_MEMORY_TRACKING
+            enable_mem_tracker = GF_TRUE;
+#else
+            fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
+#endif
+        }
+    }
     
 	gf_sys_init(enable_mem_tracker);
-
+    gf_set_progress_callback(NULL, on_progress_null);
+    
 	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
 		fprintf(stderr, "Error: Configuration File \"GPAC.cfg\" not found\n");
 		if (logfile) gf_fclose(logfile);
 		return 1;
 	}
-
-	gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "Logs") );
+    if (!logs_set)
+        gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "Logs") );
 
 
 
@@ -338,8 +369,6 @@ int main (int argc, char *argv[])
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
     user.init_flags |= GF_TERM_NO_DECODER_THREAD;
-    
-    user.init_flags = GF_TERM_NO_COMPOSITOR_THREAD;
     
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Loading GPAC Terminal\n"));
 	term = gf_term_new(&user);

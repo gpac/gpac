@@ -601,20 +601,26 @@ extension = {
             wnd.remote = null;
         }
 
-        wnd.fullscreen = gw_new_icon(wnd.infobar, 'fullscreen');
-        wnd.fullscreen.add_icon(gwskin.images.fullscreen_back);
-        wnd.fullscreen.on_click = function () {
-            gpac.fullscreen = !gpac.fullscreen;
-        }
-        wnd.fullscreen.switch_icon(gpac.fullscreen ? 1 : 0);
-
-        if (!gwskin.browser_mode) {
-            wnd.exit = gw_new_icon(wnd.infobar, 'exit');
-            wnd.exit.on_click = function () { gpac.exit(); }
-        } else {
+        if (gwskin.mobile_device) {
+            wnd.fullscreen = null;
             wnd.exit = null;
-        }
+        } else {
+            wnd.fullscreen = gw_new_icon(wnd.infobar, 'fullscreen');
+            wnd.fullscreen.add_icon(gwskin.images.fullscreen_back);
+            wnd.fullscreen.on_click = function () {
+                gpac.fullscreen = !gpac.fullscreen;
+            }
+            wnd.fullscreen.switch_icon(gpac.fullscreen ? 1 : 0);
 
+            if (!gwskin.browser_mode) {
+                wnd.exit = gw_new_icon(wnd.infobar, 'exit');
+                wnd.exit.on_click = function () { gpac.exit(); }
+            } else {
+                wnd.exit = null;
+            }
+        }
+        
+        
         wnd.on_size = function (width, height) {
             var control_icon_size = gwskin.default_icon_height;
             var children = this.infobar.get_children();
@@ -652,8 +658,8 @@ extension = {
 
             this.on_size(width, height);
 
-            this.fullscreen.switch_icon(gpac.fullscreen ? 1 : 0);
-
+            if (this.fullscreen)
+                this.fullscreen.switch_icon(gpac.fullscreen ? 1 : 0);
 
             width -= control_icon_size / 2;
             min_w = control_icon_size;
