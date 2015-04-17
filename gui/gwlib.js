@@ -920,7 +920,8 @@ function gwlib_init(root_node) {
     }
 
     var device = gpac.get_option('General', 'DeviceType');
-    if ((device=='iOS') || (device=='Android')) gwskin.mobile_device = true;
+
+    if ((device == 'iOS') || (device == 'Android')) gwskin.mobile_device = true;
     else gwskin.mobile_device = false;
     
     if (gwskin.mobile_device) {
