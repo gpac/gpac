@@ -463,7 +463,7 @@ static GF_Config *create_default_config(char *file_path)
     
 #if defined(GPAC_IPHONE)
     gf_cfg_set_key(cfg, "General", "DeviceType", "iOS");
-#elif define(GPAC_ANDROID)
+#elif defined(GPAC_ANDROID)
     gf_cfg_set_key(cfg, "General", "DeviceType", "Android");
 #else
     gf_cfg_set_key(cfg, "General", "DeviceType", "Desktop");
