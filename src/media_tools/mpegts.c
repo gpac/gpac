@@ -3792,9 +3792,8 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 		size -= remain;
 
 		/*process chunk*/
-		e = gf_m2ts_process_data(ts, mem_address, size);
-
 		ts->abort_parsing = GF_FALSE;
+		e = gf_m2ts_process_data(ts, mem_address, size);
 
 		if (refresh_type==2)
 			ts->pos_in_stream = 0;
@@ -3822,6 +3821,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 			}
 		}
 		read = 0;
+		ts->abort_parsing = GF_FALSE;
 		while (1) {
 			u32 to_read = 188000;
 			Bool done = 0;
@@ -3886,6 +3886,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 	GF_M2TS_Demuxer *ts = _p;
 
 	gf_m2ts_reset_parsers(ts);
+	ts->abort_parsing = GF_FALSE;
 
 	//recreate the socket if needed
 	if (ts->socket_url && !ts->sock) {
