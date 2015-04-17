@@ -423,7 +423,6 @@ static GF_Config *create_default_config(char *file_path)
 	}
 #else
 	get_default_install_path(szPath, GF_PATH_APP);
-	strcpy(szPath, "");
 #endif
 
 	cfg = gf_cfg_new(file_path, CFG_FILE_NAME);
@@ -431,21 +430,45 @@ static GF_Config *create_default_config(char *file_path)
 
 	gf_cfg_set_key(cfg, "General", "ModulesDirectory", szPath);
 
+    /*get default temporary directoy */
+    cache_dir = gf_get_default_cache_directory();
+    
+    //get real path where the .gpac dir has been created, and use this as the default path
+    //for cache (tmp/ dir of ios app) and last working fir
 #ifdef GPAC_IPHONE
     char buf[GF_MAX_PATH], *res;
     res = realpath(file_path, buf);
     if (res) {
+        char *sep = strstr(res, ".gpac");
+        assert(sep);
+        sep[0] = 0;
         gf_cfg_set_key(cfg, "General", "LastWorkingDir", res);
         gf_cfg_set_key(cfg, "General", "iOSDocumentsDir", res);
+
+        sep = strstr(res, "Documents");
+        assert(sep);
+        sep[0]=0;
+        strcat(res, "tmp/");
+        cache_dir = res;
+        if (!gf_dir_exists(cache_dir)) gf_mkdir(cache_dir);
+        gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
+        cache_dir=NULL;
     }
 #endif
 
-    /*get default temporary directoy */
-	cache_dir = gf_get_default_cache_directory();
 	if (cache_dir) {
 		gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
 		gf_free(cache_dir);
 	}
+    
+#if defined(GPAC_IPHONE)
+    gf_cfg_set_key(cfg, "General", "DeviceType", "iOS");
+#elif define(GPAC_ANDROID)
+    gf_cfg_set_key(cfg, "General", "DeviceType", "Android");
+#else
+    gf_cfg_set_key(cfg, "General", "DeviceType", "Desktop");
+#endif
+    
 	gf_cfg_set_key(cfg, "Compositor", "Raster2D", "GPAC 2D Raster");
 	gf_cfg_set_key(cfg, "Audio", "ForceConfig", "yes");
 	gf_cfg_set_key(cfg, "Audio", "NumBuffers", "2");
@@ -634,7 +657,7 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 		if (!gf_dir_exists(szPath)) gf_mkdir(szPath);
 		gf_cfg_set_key(cfg, "General", "StorageDirectory", szPath);
 	}
-
+    
 	if (new_cfg) *new_cfg = GF_TRUE;
 	return cfg;
 }
