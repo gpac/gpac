@@ -638,6 +638,7 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 				com->codec_stat.codec_reset = GF_TRUE;
 				odm->codec->codec_reset = GF_FALSE;
 			}
+			com->codec_stat.decode_only_rap = odm->codec->decode_only_rap ? GF_TRUE : GF_FALSE;
 		}
 
 		return;

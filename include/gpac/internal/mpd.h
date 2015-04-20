@@ -233,7 +233,6 @@ typedef struct
 	bin128 key_IV;
 	/*previous maximum speed that this representation can be played, or 0 if it has never been played*/
 	Double prev_max_available_speed;
-	Bool decode_only_rap;
 	/*after switch we may have some buffered segments of the previous representation; so codec stats at this moment is unreliable. we should wait after the codec reset*/
 	Bool waiting_codec_reset;
 } GF_DASH_RepresentationPlayback;

@@ -230,7 +230,7 @@ u32 gf_dash_group_get_time_shift_buffer_depth(GF_DashClient *dash, u32 idx);
 this gets the maximum value (further in the past) of all representations playing*/
 Double gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash);
 
-void gf_dash_set_codec_stat(GF_DashClient *dash, u32 idx, u32 avg_dec_time, u32 max_dec_time, u32 irap_avg_dec_time, u32 irap_max_dec_time, Bool codec_reset);
+void gf_dash_set_codec_stat(GF_DashClient *dash, u32 idx, u32 avg_dec_time, u32 max_dec_time, u32 irap_avg_dec_time, u32 irap_max_dec_time, Bool codec_reset, Bool decode_only_rap);
 
 typedef enum
 {

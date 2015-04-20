@@ -582,6 +582,7 @@ typedef struct
 	u32 avg_dec_time, max_dec_time, irap_avg_dec_time, irap_max_dec_time;
 	/*flag codec has been reset*/
 	Bool codec_reset;
+	Bool decode_only_rap;
 } GF_CodecStat;
 
 typedef union __netcommand
