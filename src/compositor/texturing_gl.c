@@ -211,6 +211,14 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 		}
 	}
 	return GF_OK;
+
+	//We do not have PBOs in ES2.0
+#elif !defined(GPAC_DISABLE_3D) && defined(GPAC_USE_GLES2)
+	//PBO mode: start pushing the texture
+	if (txh->tx_io->pbo_id) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[V3D:GLSL] PBOs are not implemented in GL ES 2.0\n"));
+	}
+	return GF_NOT_SUPPORTED;
 #else
 	return GF_NOT_SUPPORTED;
 #endif
@@ -261,10 +269,10 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode,
 {
 	if (!txh->tx_io || !txh->tx_io->id || !txh->tx_io->gl_type) return;
 
+#ifndef GPAC_USE_GLES2
 	if (!no_bind)
 		glEnable(txh->tx_io->gl_type);
 
-#ifndef GPAC_USE_GLES2
 	switch (blend_mode) {
 	case TX_BLEND:
 		if (txh->transparent) glEnable(GL_BLEND);
@@ -291,6 +299,8 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode,
 		}
 		break;
 	}
+#else
+	if (txh->transparent) glEnable(GL_BLEND);
 #endif
 
 	if (!no_bind)
@@ -318,7 +328,9 @@ void gf_sc_texture_disable(GF_TextureHandler *txh)
 
 		}
 #endif
+#if !defined(GPAC_USE_GLES2)
 		glDisable(txh->tx_io->gl_type);
+#endif
 		if (txh->transparent) glDisable(GL_BLEND);
 
 		gf_sc_texture_check_pause_on_first_load(txh);
@@ -439,7 +451,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	case GF_PIXEL_YV12_10:
 	case GF_PIXEL_NV21:
 #ifndef GPAC_USE_GLES1X
-		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->yuv_rect_glsl_program) ) {
+		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->yuv_rect_glsl_program || compositor->visual->compositor->shader_only_mode) ) {
 			use_yuv_shaders = 1;
 			break;
 		} 
@@ -456,7 +468,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	//fallthrough
 	case GF_PIXEL_YUY2:
 	case GF_PIXEL_YUVD:
-		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->yuv_rect_glsl_program) ) {
+		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->yuv_rect_glsl_program || compositor->visual->compositor->shader_only_mode) ) {
 			use_yuv_shaders = 1;
 		} else {
 			if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
@@ -565,7 +577,9 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 
 	//setup all textures
 	for (i=0; i<nb_tx; i++) {
+#if !defined(GPAC_USE_GLES2)
 		glEnable(txh->tx_io->gl_type);
+#endif
 		glBindTexture(txh->tx_io->gl_type, tx_id[i] );
 
 #if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
@@ -615,7 +629,9 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 #endif
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 		}
+#if !defined(GPAC_USE_GLES2)
 		glDisable(txh->tx_io->gl_type);
+#endif
 	}
 	return 1;
 }
@@ -841,6 +857,7 @@ common:
 static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_load, u8 *data, u32 stride, u32 w, u32 h, u32 pbo_id)
 {
 	Bool needs_stride;
+	GL_CHECK_ERR
 	if (txh->tx_io->gl_dtype==GL_UNSIGNED_SHORT) {
 		needs_stride = (stride != 2*w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE;
 		if (needs_stride) stride /= 2;
@@ -852,7 +869,8 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 	if (needs_stride)
 		glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
 #else
-	if (needs_stride) {
+	if (needs_stride)
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[V3D:GLSL] Texture with stride - OpenGL ES2.0 extension \"EXT_unpack_subimage\" is required\n"));
 #endif
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
@@ -862,6 +880,10 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 	}
 	else
+#elif defined(GPAC_USE_GLES2)
+	if (txh->tx_io->pbo_pushed) {
+		glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, NULL);
+	} else
 #endif
 		if (first_load) {
 			glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);
@@ -874,7 +896,7 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	return;
 #else
-}
+
 
 	if (!needs_stride)
 		return;
@@ -1392,9 +1414,9 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		GL_CHECK_ERR
 		glUseProgram(active_shader);
 		GL_CHECK_ERR
-
+#if !defined(GPAC_USE_GLES2)
 		glEnable(txh->tx_io->gl_type);
-
+#endif
 		loc = glGetUniformLocation(active_shader, "width");
 		if (loc >=0) {
 			GLfloat w = (GLfloat) txh->width;
@@ -1445,7 +1467,6 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 			glUseProgram(visual->glsl_programs[flags]);
 			GL_CHECK_ERR
 
-			glEnable(txh->tx_io->gl_type);
 			GL_CHECK_ERR
 			glActiveTexture(GL_TEXTURE0);
 			GL_CHECK_ERR
@@ -1453,7 +1474,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 			GL_CHECK_ERR
 			/*loc = glGetUniformLocation(visual->glsl_programs[flags], "y_plane");	//¡k for ES2.0
 			glUniform1i(loc, 0);*/
-			tx_bind(txh);	//¡TODOk check before ES2.0
+			tx_bind(txh);	//¡TODOk check before ES2.0 //TODOk HIGH PRORIORITY - port to es2
 		} else {
 			tx_bind(txh);
 		}
