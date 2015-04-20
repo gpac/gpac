@@ -84,7 +84,6 @@
 #elif defined(GPAC_USE_GLES2)
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
-
 #else
 
 #include <GL/gl.h>
@@ -484,7 +483,7 @@ GLDECL(void, glUniformMatrix3x4fv, (GLint location, GLsizei count, GLboolean tra
 GLDECL(void, glUniformMatrix4x3fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 
 
-#ifndef GPAC_ANDROID//¡TODOk check which funcs are declared for ES2.0 use
+#ifndef GPAC_ANDROID
 GLDECL(void, glVertexAttrib3f, (GLint location, GLfloat v0, GLfloat v1, GLfloat v2) )
 GLDECL(void, glGetUniformiv, (GLuint program, GLint location, GLint *params) )
 GLDECL(void, glGetUniformfv, (GLuint program, GLint location, GLfloat *params) )
