@@ -139,20 +139,11 @@ GLDECL_STATIC(glUniformMatrix2x4fv);
 GLDECL_STATIC(glUniformMatrix4x2fv);
 GLDECL_STATIC(glUniformMatrix3x4fv);
 GLDECL_STATIC(glUniformMatrix4x3fv);
-#ifndef GPAC_ANDROID//¡TODOk check which funcs are declared for ES2.0 use
-GLDECL_STATIC(glVertexAttrib3f);
-GLDECL_STATIC(glGetUniformiv);
-GLDECL_STATIC(glGetUniformfv);
+#ifndef GPAC_ANDROID
 GLDECL_STATIC(glEnableVertexAttribArray);
 GLDECL_STATIC(glDisableVertexAttribArray);
 GLDECL_STATIC(glVertexAttribPointer);
 GLDECL_STATIC(glVertexAttribIPointer);
-GLDECL_STATIC(glGetAttribLocation);
-GLDECL_STATIC(glGetProgramiv);
-GLDECL_STATIC(glGetProgramInfoLog);
-GLDECL_STATIC(glValidateProgram);
-GLDECL_STATIC(glGetActiveUniform);
-GLDECL_STATIC(glGetActiveAttrib);
 #endif
 
 #endif //LOAD_GL_2_0
@@ -206,6 +197,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #endif
 
 	if (!has_gl_context) return;
+
 
 	/*we have a GL context, init the rest (proc addresses & co)*/
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &compositor->gl_caps.max_texture_size);
@@ -285,10 +277,6 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		GET_GLFUN(glUniformMatrix4x2fv);
 		GET_GLFUN(glUniformMatrix3x4fv);
 		GET_GLFUN(glUniformMatrix4x3fv);
-		//¡TODOk check which funcs are declared for ES2.0 use
-		GET_GLFUN(glVertexAttrib3f);
-		GET_GLFUN(glGetUniformiv);
-		GET_GLFUN(glGetUniformfv);
 
 		compositor->gl_caps.has_shaders = 1;
 
@@ -298,17 +286,10 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		GET_GLFUN(glVertexAttribPointer);
 		GET_GLFUN(glVertexAttribIPointer);
 		GET_GLFUN(glGetAttribLocation);
-		GET_GLFUN(glGetProgramiv);
-		GET_GLFUN(glGetProgramInfoLog);
-		GET_GLFUN(glValidateProgram);
-		GET_GLFUN(glGetActiveUniform);
-		GET_GLFUN(glGetActiveAttrib);
 		
-
 		if (glGetAttribLocation != NULL) {
-			compositor->shader_only_mode = 1;
+			compositor->shader_only_mode = 0;
 		}
-
 #endif
 
 
@@ -321,6 +302,14 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 
 #ifdef GL_VERSION_2_0
 	compositor->gl_caps.has_shaders = 1;
+#endif
+
+#ifdef GPAC_USE_GLES2
+	compositor->gl_caps.has_shaders = 1;
+
+	if(glGetAttribLocation != NULL) {
+		compositor->shader_only_mode = 1;
+	}
 #endif
 
 	if (!compositor->gl_caps.has_shaders && (compositor->visual->autostereo_type > GF_3D_STEREO_SIDE)) {
@@ -529,6 +518,9 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 	len = (u32) strlen(source);
 	glShaderSource(shader_id, 1, &source, &len);
 	glCompileShader(shader_id);
+	glGetShaderiv(shader_id, GL_COMPILE_STATUS, &blen);
+	if(blen==GL_TRUE)
+		return 1;
 
 	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
 	if (blen > 1) {
@@ -536,7 +528,7 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 #ifdef CONFIG_DARWIN_GL
 		glGetInfoLogARB((GLhandleARB) shader_id, blen, &slen, compiler_log);
 #elif defined(GPAC_USE_GLES2)
-		glGetProgramInfoLog(shader_id, blen, &slen, compiler_log);
+		glGetShaderInfoLog(shader_id, blen, &slen, compiler_log);
 #else
 		glGetInfoLogARB(shader_id, blen, &slen, compiler_log);
 #endif
@@ -592,23 +584,23 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 
 	FILE *src = gf_fopen(src_path, "rt");
 	GF_SHADERID shader = 0;
-	char *shader_src;//¡startof
+	char *shader_src;
 	char *defs, *tmp, *error;
 	size_t str_size =0;	//we +1 before loading the shader
 	
-	//print_flags(flags);
-
-	if(flags == 0)	//if no flags - compile minimal shader
-		return visual_3d_shader_from_source_file(src_path, shader_type);
-
 	//This shader combo will never be used anyway
 	if((flags & GF_GL_HAS_LIGHT) && (flags & GF_GL_HAS_MAT_2D))
 		return visual_3d_shader_from_source_file(src_path, shader_type);
 
-	//¡TODOk check for memory leaks
 	defs = (char *)gf_malloc(sizeof(char));
 	defs[0] = '\0';	//We need this for strcat to work
 	
+	if(1){//test
+		str_size += strlen("#version 100 \n");
+		defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
+		error = strcat(defs,"#version 100 \n");
+	}
+
 	if(flags & GF_GL_IS_RECT){
 		str_size += strlen("#define GF_GL_IS_RECT \n");
 		defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
@@ -655,7 +647,6 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 		gf_free(shader_src);
 		gf_free(tmp);
 		gf_free(defs);
-//		gf_free(error);
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to open shader file %s\n", src_path));
 	}
@@ -1074,16 +1065,30 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 
 	if(visual->glsl_vertex){
 		for(i=0;i<GF_GL_NUM_OF_VALID_SHADERS;i++){
+			GLint linked;
 			GL_CHECK_ERR;
 			glsl_fragment = visual_3d_shader_with_flags("shaders/ES2[global].frag" , GL_FRAGMENT_SHADER, i);
-			if(!glsl_fragment)
+			if(!glsl_fragment){
 				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile fragment shader [ES2.0]\n"));
+				continue;
+			}
 			GL_CHECK_ERR;
 			glAttachShader(visual->glsl_programs[i], visual->glsl_vertex);
 			GL_CHECK_ERR;
 			glAttachShader(visual->glsl_programs[i], glsl_fragment);
 			GL_CHECK_ERR;
 			glLinkProgram(visual->glsl_programs[i]);
+			GL_CHECK_ERR;
+		    glGetProgramiv(visual->glsl_programs[i], GL_LINK_STATUS, &linked);
+			if (!linked) {
+				int i32CharsWritten, i32InfoLogLength;
+				char pszInfoLog[2048];
+				glGetProgramiv(visual->glsl_programs[i], GL_INFO_LOG_LENGTH, &i32InfoLogLength);
+				glGetProgramInfoLog(visual->glsl_programs[i], i32InfoLogLength, &i32CharsWritten, pszInfoLog);
+				fprintf(stderr, pszInfoLog);
+			}
+
+			glUseProgram(visual->glsl_programs[i]);
 			GL_CHECK_ERR;
 
 			//¡k Lists uniforms and attributes (delete after testing)
@@ -1136,12 +1141,12 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 	if (!visual->compositor->gl_caps.has_shaders) 
 		return;
 
-	visual_3d_init_yuv_shaders(visual);
-	if (visual->compositor->shader_only_mode) {
+#ifdef GPAC_USE_GLES2
+	if (visual->compositor->shader_only_mode)
 		visual_3d_init_generic_shaders(visual);
-	}else{
+#else
 		visual_3d_init_yuv_shaders(visual);
-	}
+#endif
 
 }
 
@@ -1378,6 +1383,7 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 
 void visual_3d_setup(GF_VisualManager *visual)
 {
+
 #ifndef GPAC_USE_TINYGL
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glDepthFunc(GL_LEQUAL);
@@ -1410,9 +1416,10 @@ void visual_3d_setup(GF_VisualManager *visual)
 	visual_3d_setup_quality(visual);
 
 	glDisable(GL_BLEND);
-	glDisable(GL_TEXTURE_2D);
+	//glDisable(GL_TEXTURE_2D);	//¡k not in ES2.0
 	glDisable(GL_CULL_FACE);
 	visual->has_fog = GF_FALSE;
+	visual->max_lights=GF_MAX_GL_LIGHTS;	//TODOk check this
 
 #else
 
@@ -2742,7 +2749,11 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		mesh->vbo = 0;
 	}
 	/*rebuild VBO for large ojects only (we basically filter quads out)*/
+#ifdef GPAC_USE_GLES2	//TODOk for some reason we lose the compositor->gl_caps.vbo flag in gles2 mode
+	if ((mesh->v_count>4) && !mesh->vbo) {
+#else
 	if ((mesh->v_count>4) && !mesh->vbo && compositor->gl_caps.vbo) {
+#endif
 		GL_CHECK_ERR
 			glGenBuffers(1, &mesh->vbo);
 		GL_CHECK_ERR
@@ -2759,7 +2770,7 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
 		GL_CHECK_ERR
 	} else {
-		base_address = & mesh->vertices[0].pos;
+		base_address = &mesh->vertices[0].pos;
 	}
 
 	if (mesh->vbo_dirty) {
