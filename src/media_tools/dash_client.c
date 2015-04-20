@@ -269,6 +269,7 @@ struct __dash_group
 	u32 avg_dec_time, max_dec_time, irap_avg_dec_time, irap_max_dec_time;
 	u32 display_width, display_height;
 	Bool codec_reset;
+	Bool decode_only_rap;
 };
 
 void drm_decrypt(unsigned char * data, unsigned long dataSize, const char * decryptMethod, const char * keyfileURL, const unsigned char * keyIV);
@@ -2144,7 +2145,7 @@ static Double gf_dash_get_max_available_speed(GF_DashClient *dash, GF_DASH_Group
 	max_dl_speed = 8.0*bytes_per_sec / rep->bandwidth;
 	//if framerate is not in MPD, suppose that it is 25 fps
 	framerate = rep->framerate ? rep->framerate->num : 25;
-	if (rep->playback.decode_only_rap) 
+	if (group->decode_only_rap) 
 		max_decoding_speed = group->irap_max_dec_time ? 1000000.0 / group->irap_max_dec_time : 0;
 	else
 		max_decoding_speed = group->avg_dec_time ? 1000000.0 / (group->max_dec_time + group->avg_dec_time*(framerate - 1)) : 0;
@@ -5089,8 +5090,8 @@ void gf_dash_set_speed(GF_DashClient *dash, Double speed)
 		Double max_available_speed;
 		if (!group || (group->selection != GF_DASH_GROUP_SELECTED)) continue;
 		active_rep = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, group->active_rep_index);
-		if (speed > 0) active_rep->playback.decode_only_rap = GF_FALSE;
-		else active_rep->playback.decode_only_rap = GF_TRUE;
+		if (speed < 0)
+			group->decode_only_rap = GF_TRUE;
 		
 		max_available_speed = gf_dash_get_max_available_speed(dash, group, active_rep);
 
@@ -5908,7 +5909,7 @@ Double gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash)
 }
 
 GF_EXPORT
-void gf_dash_set_codec_stat(GF_DashClient *dash, u32 idx, u32 avg_dec_time, u32 max_dec_time, u32 irap_avg_dec_time, u32 irap_max_dec_time, Bool codec_reset)
+void gf_dash_set_codec_stat(GF_DashClient *dash, u32 idx, u32 avg_dec_time, u32 max_dec_time, u32 irap_avg_dec_time, u32 irap_max_dec_time, Bool codec_reset, Bool decode_only_rap)
 {
 	GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, idx);
 	if (!group) return;
@@ -5917,6 +5918,7 @@ void gf_dash_set_codec_stat(GF_DashClient *dash, u32 idx, u32 avg_dec_time, u32 
 	group->irap_avg_dec_time = irap_avg_dec_time;
 	group->irap_max_dec_time = irap_max_dec_time;
 	group->codec_reset = codec_reset;
+	group->decode_only_rap = decode_only_rap;
 }
 
 GF_EXPORT
