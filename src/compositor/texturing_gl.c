@@ -301,6 +301,7 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode,
 	}
 #else
 	if (txh->transparent) glEnable(GL_BLEND);
+	//blend_mode can be implemented inside the fragment shader if desired for ES2.0
 #endif
 
 	if (!no_bind)
@@ -1474,7 +1475,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 			GL_CHECK_ERR
 			/*loc = glGetUniformLocation(visual->glsl_programs[flags], "y_plane");	//¡k for ES2.0
 			glUniform1i(loc, 0);*/
-			tx_bind(txh);	//¡TODOk check before ES2.0 //TODOk HIGH PRORIORITY - port to es2
+			tx_bind(txh);
 		} else {
 			tx_bind(txh);
 		}

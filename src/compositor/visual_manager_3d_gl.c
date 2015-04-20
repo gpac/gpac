@@ -1058,7 +1058,7 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 
 //Creating and Compiling Vertex and Fragment Shaders
 	if (!visual->glsl_vertex)
-		visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[global].vert" , GL_VERTEX_SHADER); //We use one vertex shader (for now) ¡TODOk add defines
+		visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[global].vert" , GL_VERTEX_SHADER); //We use only one ES2.0 vertex shader (at least for now)
 	if(!visual->glsl_vertex)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile vertex shader [ES2.0]\n"));
 	GL_CHECK_ERR;
@@ -1233,7 +1233,7 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 
 void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 {
-	//TODOk - enable autu-stereo rendering with GLES2 ?
+	//TODOk - enable auto-stereo rendering with GLES2 ?
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	u32 i;
 	GLint loc;
@@ -2205,10 +2205,10 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 
 		//commented out because we calculate it inside the shader [ES2.0]
 		/*
-		sprintf(tmp, "%s%d%s", "lights[", i, "].beamWidth");	//¡TODOk check float parsing
+		sprintf(tmp, "%s%d%s", "lights[", i, "].beamWidth");
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);
 		if (loc>=0)
-			glUniform1f(loc, li->beamWidth); //Set type 0-directional 1-spot 2-point
+			glUniform1f(loc, li->beamWidth);
 		*/
 
 		sprintf(tmp, "%s%d%s", "lights[", i, "].cutOffAngle");
@@ -2351,8 +2351,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	//my_glQueryUniforms(visual->glsl_programs[visual->glsl_flags]);
 
 
-	//¡k GL_COLOR_MATERIAL does not exist in GL ES 2
-	//TODOk High priority - we just disabled these
+	//GL_COLOR_MATERIAL does not exist in GL ES2.0
 	/*
 	if (visual->state_color_on)
 		glEnable(GL_COLOR_MATERIAL);
@@ -2396,7 +2395,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			if(loc>=0)
 				glUniform1f(loc, FIX2FLT(visual->mat_2d.alpha));
 		}else{	//if it's not YUV handle alpha with blend
-			//glEnable(GL_BLEND);	//¡TODOk: check //HIGH PRIORITY!
+			//glEnable(GL_BLEND);	//¡TODOk: check
 			if(visual->mat_2d.alpha == FIX_ONE){
 				if(!tr_state->mesh_num_textures)
 					glEnable(GL_BLEND);
@@ -2588,16 +2587,11 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 			//this, i do not know
 	if (mesh->mesh_type) {
-		/*before we had	if (mesh->mesh_type==2) glDisable(GL_LINE_SMOOTH);	else glDisable(GL_POINT_SMOOTH);
-		 *but ES2.0 has no consideration for anti-aliased lines
+		/* before we had	if (mesh->mesh_type==2) glDisable(GL_LINE_SMOOTH);	else glDisable(GL_POINT_SMOOTH);
+		 * but ES2.0 has no consideration for anti-aliased lines
 		 *
-		 *¡TODOk use multisampling in ES2.0
+		 * If we need this; we should use multisampling for ES2.0
 		 */
-		//TODOk High priority - we just disabled these
-		/*
-		if (mesh->mesh_type==2) glDisable(GL_LINE_SMOOTH);
-		else glDisable(GL_POINT_SMOOTH);
-		*/
 
 		//According to the spec we should pass a 0,0,1 Normal and disable lights. we just disable lights
 		if(flags & GF_GL_HAS_LIGHT){
