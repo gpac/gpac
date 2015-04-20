@@ -484,23 +484,13 @@ GLDECL(void, glUniformMatrix4x3fv, (GLint location, GLsizei count, GLboolean tra
 
 
 #ifndef GPAC_ANDROID
-GLDECL(void, glVertexAttrib3f, (GLint location, GLfloat v0, GLfloat v1, GLfloat v2) )
-GLDECL(void, glGetUniformiv, (GLuint program, GLint location, GLint *params) )
-GLDECL(void, glGetUniformfv, (GLuint program, GLint location, GLfloat *params) )
 GLDECL(void, glEnableVertexAttribArray, (GLuint index) )
 GLDECL(void, glDisableVertexAttribArray, (GLuint index) )
 GLDECL(void, glVertexAttribPointer, (GLuint  index,  GLint  size,  GLenum  type,  GLboolean  normalized,  GLsizei  stride,  const GLvoid *  pointer) )
 GLDECL(void, glVertexAttribIPointer, (GLuint  index,  GLint  size,  GLenum  type,  GLsizei  stride,  const GLvoid *  pointer) )
 GLDECL(GLint, glGetAttribLocation, (GLuint prog, const char *name) )
+#endif
 
-
-GLDECL(void, glGetProgramiv, (GLuint program, GLenum pname, GLint *params) )
-GLDECL(void, glGetProgramInfoLog, (GLuint program, GLsizei maxLength, GLsizei *length, const char *infoLog) )
-GLDECL(void, glValidateProgram, (GLuint program) )
-GLDECL(void, glGetActiveUniform, (GLuint program, GLuint index, GLsizei bufSize, GLsizei* length, GLint* size, GLenum* type, char* name) )
-GLDECL(void, glGetActiveAttrib, (GLuint program, GLuint index, GLsizei bufSize, GLsizei* length, GLint* size, GLenum* type, char* name) )
-
-#endif //ANDROID
 
 #endif //GL_VERSION_2_0
 
