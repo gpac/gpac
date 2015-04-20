@@ -5,8 +5,8 @@
  **/
  /*
  //NOTE: if there is a #version directive (e.g. #version 100), it must occur before anything else in the program (including other directives)
- #version 100
-
+ #version 100	//it is set the same time as the flags
+*/
  //For other GL versions compatibility
  #ifdef GL_FRAGMENT_PRECISION_HIGH
 	precision highp float;	//Desktop (or ES2.0 supporting highp)
@@ -15,14 +15,9 @@
 #else
 	precision lowp float;	//Fallback
 #endif
- */
- 
-#pragma STDGL invariant(all)	//delete after testing
 
-#ifdef GF_GL_IS_RECT
-	#extension GL_ARB_texture_rectangle : enable
-#endif
-	
+//#pragma STDGL invariant(all)	//removed due to incompatibility with the emulator
+
 #define FOG_TYPE_LINEAR 0
 #define FOG_TYPE_EXP    1
 #define FOG_TYPE_EXP2   2
@@ -85,22 +80,13 @@ uniform bool hasClip;
 uniform bool hasMeshColor;
 uniform bool enableLights;
 
-#ifdef GF_GL_IS_RECT
-	uniform sampler2DRect y_plane;
-	uniform sampler2DRect u_plane;
-	uniform sampler2DRect v_plane;
-#else
-	uniform sampler2D y_plane;
-	uniform sampler2D u_plane;
-	uniform sampler2D v_plane;
-#endif
+uniform sampler2D y_plane;
+uniform sampler2D u_plane;
+uniform sampler2D v_plane;
 
 uniform float width;
 uniform float height;
 uniform float alpha;
-//const float width=128.0;
-//const float height=128.0;
-//const float alpha=1.0;
 const vec3 offset = vec3(-0.0625, -0.5, -0.5);
 const vec3 R_mul = vec3(1.164,  0.000,  1.596);
 const vec3 G_mul = vec3(1.164, -0.391, -0.813);
@@ -108,8 +94,6 @@ const vec3 B_mul = vec3(1.164,  2.018,  0.000);
 
 varying vec3 n;
 varying vec4 gfEye;
-//varying vec3 lightVector;
-//varying vec3 halfVector;
 varying vec2 TexCoord;
 varying vec3 lightVector[8];
 varying vec3 halfVector[8];
@@ -134,7 +118,11 @@ vec4 doLighting(int i){
 	float att = zero_float;
 	vec3 lightVnorm = normalize(lightVector[i]);
 	vec3 normal = normalize(n);
-	if(gfLightTwoSide && (!gl_FrontFacing))normal *=-1;	//light back face
+	if(gfLightTwoSide && (!gl_FrontFacing)){//light back face
+		//originally: normal *=-1; -> Not compliant with Shading Language v1.0
+		normal *= vec3(-1.0, -1.0, -1.0);
+	}
+	
 	float light_cos = max(zero_float, dot(normal, lightVnorm));	//ndotl
 	float half_cos = dot(normal, normalize(halfVector[i]));
 
@@ -148,7 +136,6 @@ vec4 doLighting(int i){
 			
 		lightColor += light_cos * lights[i].color * gfDiffuseColor;
 		
-		//startof method 1
 		if(light_cos > 0.0){
 			float dotNormHalf = max(dot(normal, normalize(halfVector[i])),0.0);	//ndoth
 			lightColor += (pow(dotNormHalf, gfShininess) * gfSpecularColor * lights[i].color);
@@ -157,9 +144,7 @@ vec4 doLighting(int i){
 		lightColor.a = gfDiffuseColor.a;
 		return lightColor;
 		
-		
-		
-	} else if(lights[i].type == 1){	//we have a point
+	}else if(lights[i].type == 1){	//we have a spot
 		if(light_cos > 0.0){
 			float spot = dot(normalize(lights[i].direction.xyz), normalize(lightVector[i]));	//it should be -direction, but we invert it before parsing
 			if (spot > lights[i].cutOffAngle){
@@ -173,7 +158,7 @@ vec4 doLighting(int i){
 		}
 		return lightColor;
 
-	}else if(lights[i].position.w == zero_float || lights[i].type == 0){
+	}else if(lights[i].position.w == zero_float || lights[i].type == 0){ //we have a direction
 		vec3 lightDirection = vec3(lights[i].position);
 		lightColor = (gfDiffuseColor * gfLightDiffuse) * light_cos; 
 		if (half_cos > zero_float){ 
@@ -237,33 +222,7 @@ void main() {
 	fragColor = clamp(fragColor, zero_float, one_float);
 	
 	if(gfNumTextures>0){	//currently supporting 1 texture
-#ifdef GF_GL_IS_RECT
-#ifdef GF_GL_IS_YUV
-			texc = TexCoord.st;
-			texc.x *= width;
-			texc.y *= height;
-			yuv.x = texture2DRect(y_plane, texc).r;
-			texc.x /= 2.0;
-			texc.y /= 2.0;
-			yuv.y = texture2DRect(u_plane, texc).r;
-			yuv.z = texture2DRect(v_plane, texc).r;
-			yuv += offset;
-			rgb.r = dot(yuv, R_mul);
-			rgb.g = dot(yuv, G_mul);
-			rgb.b = dot(yuv, B_mul);
-			if(gfNumLights>0){
-				fragColor *= vec4(rgb, alpha);
-			}else{
-				fragColor = vec4(rgb, alpha);
-			}
-#else	//ifndef GF_GL_IS_YUV
-		if(gfNumLights>0){	//RGB texture
-			fragColor *= texture2DRect(y_plane, TexCoord);
-		}else if(gfNumLights==0){	//RGB texture with material 2D
-			fragColor = texture2DRect(y_plane, TexCoord);
-		}
-#endif
-#else	//ifndef GF_GL_IS_RECT
+	//ifndef GF_GL_IS_RECT
 #ifdef GF_GL_IS_YUV
 			texc = TexCoord.st;
 			yuv.x = texture2D(y_plane, texc).r;
@@ -284,7 +243,6 @@ void main() {
 		}else if(gfNumLights==0){	//RGB texture with material 2D [TODO: check]
 			fragColor = texture2D(y_plane, TexCoord);
 		}
-#endif
 #endif
 
 #ifdef GF_GL_HAS_MAT_2D	//we have mat 2 + texture

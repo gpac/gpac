@@ -1,3 +1,4 @@
+#version 100
 /**
  * Shader implementing: Clipping, Texturing, Lighting, Fog
  * Available flags: GF_GL_IS_RECT, GF_GL_IS_YUV, GF_GL_HAS_FOG, GF_GL_HAS_CLIP
@@ -5,9 +6,10 @@
  **/
 /*
 //NOTE: if there is a #version directive (e.g. #version 100), it must occur before anything else in the program (including other directives)
-#version 100
+*/
 
- //For other GL versions compatibility
+
+//For other GL versions compatibility
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 	precision highp float;	//Desktop (or ES2.0 supporting highp)
 #elif GL_ES
@@ -15,9 +17,8 @@
 #else
 	precision lowp float;	//Fallback
 #endif
- */
  
-#pragma STDGL invariant(all)	//delete after testing
+//#pragma STDGL invariant(all)	//removed due to incompatibility with the emulator
 
 #define FOG_TYPE_LINEAR 0
 #define FOG_TYPE_EXP    1
@@ -159,7 +160,6 @@ float fog() {
 	}
 
 	gfFogFactor = gfFogEnabled ? fog() : 1.0;
-
 
 	if(gfNumTextures>0)
 		TexCoord = vec2(gfTextureMatrix * gfMultiTexCoord);
