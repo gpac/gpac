@@ -1017,13 +1017,11 @@ static void my_glQueryAttributes(GF_SHADERID progObj){
  * includes chunks of code from OpenGL ES 2.0 Programming Guide [Addison-Wesley]
  * shader_only_mode
 */
-
-//todo ... shader_only_mode
 static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 {
 	GF_SHADERID glsl_fragment;
 	u32 i;
-	GLint err_log = -10;	//¡k error log
+	GLint err_log = -10;
 
 	GL_CHECK_ERR
 
@@ -2119,7 +2117,6 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 	ambientIntensity = FIX2FLT(li->ambientIntensity);
 	intensity = FIX2FLT(li->intensity);
 
-	//¡k START OF LIGHTS
 	for(i = 0; i < (int) visual->num_lights; i++){
 		GF_Vec orig;
 		li = &visual->lights[i];
@@ -2141,25 +2138,25 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 				glUniform1i(loc, (GLint) li->type); //Set type 0-directional 1-spot 2-point
 			}
 		}
-		//¡k from here was set for light direction (assuming origin = 0,0,0)
+
+		//set for light direction (assuming origin = 0,0,0)
 		pt = li->direction;
 		orig.x = orig.y = orig.z = 0;
 		gf_mx_apply_vec(&mx, &pt);
 		gf_mx_apply_vec(&mx, &orig);
 		gf_vec_diff(pt, pt, orig);
 		gf_vec_norm(&pt);
-		//¡k to here
 
-		vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;	//¡TODO check minus
+		vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;	//¡TODOk check minus
 		sprintf(tmp, "%s%d%s", "lights[", i, "].direction");
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);
 		if (loc>=0)
 			glUniform4fv(loc, 1, vals); //¡k Set direction
 
-		//¡TODO cleanup
+		//¡TODOk cleanup
 		if ((li->type==0) || (li->type==3) ) {
 			pt = li->direction;
-			vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;	//¡TODO TIDY UP dirction-position for directional!!!!!
+			vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;	//¡TODOk TIDY UP dirction-position for directional!!!!!
 			pt = li->position;
 		} else {	//we have a spot or point light
 			pt = li->position;
@@ -2184,7 +2181,7 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 		if (loc>=0)
 			glUniform3fv(loc, 1, vals);
 
-		vals[0] = FIX2FLT(li->color.red); vals[1] = FIX2FLT(li->color.green); vals[2] = FIX2FLT(li->color.blue); vals[3] = 0;	//¡TODO check minus
+		vals[0] = FIX2FLT(li->color.red); vals[1] = FIX2FLT(li->color.green); vals[2] = FIX2FLT(li->color.blue); vals[3] = 0;
 		sprintf(tmp, "%s%d%s", "lights[", i, "].color");
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);
 		if (loc>=0)
@@ -2217,8 +2214,6 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 			glUniform1f(loc, li->cutOffAngle);
 
 	}
-	//¡k END OF LIGHTS
-
 
 
 	vals[0] = FIX2FLT(li->color.red)*intensity; vals[1] = FIX2FLT(li->color.green)*intensity; vals[2] = FIX2FLT(li->color.blue)*intensity; vals[3] = 1;
@@ -2304,8 +2299,6 @@ static void visual_3d_set_clippers_ES2(GF_VisualManager *visual, GF_TraverseStat
 			}else{	//the clip is not active
 				glUniform1i(loc, 0);
 			}
-		}else{
-			printf("\n Clippers!  [Error _ file %s line %d ] \n", __FILE__, __LINE__); //¡TODO remove
 		}
 	}
 }
@@ -2359,7 +2352,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		glDisable(GL_COLOR_MATERIAL);
 	*/
 
-	//¡k default behaviour
 	if (visual->state_blend_on)
 		glEnable(GL_BLEND);
 
