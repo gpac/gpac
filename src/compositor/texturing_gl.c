@@ -301,7 +301,7 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode,
 	}
 #else
 	if (txh->transparent) glEnable(GL_BLEND);
-	//blend_mode can be implemented inside the fragment shader if desired for ES2.0
+	//blend_mode for ES2.0 can be implemented inside the fragment shader if desired
 #endif
 
 	if (!no_bind)
@@ -1446,7 +1446,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		/*loc = glGetUniformLocation(active_shader, "y_plane");
 		glUniform1i(loc, 0);*/
 		
-		if(!compositor->shader_only_mode)	//¡TODO check this out
+		if(!compositor->shader_only_mode)
 			tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
 
 		GL_CHECK_ERR
