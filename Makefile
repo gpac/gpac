@@ -93,7 +93,9 @@ endif
 endif
 ifeq ($(DISABLE_ISOFF), no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
+ifneq ($(MP4BOX_STATIC),yes)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP42TS$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
+endif
 endif
 ifeq ($(DISABLE_PLAYER), no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
@@ -102,10 +104,12 @@ endif
 	$(INSTALL) $(INSTFLAGS) -m 644 gpac.pc "$(DESTDIR)$(prefix)/$(libdir)/pkgconfig" ; \
 	fi
 	$(INSTALL) -d "$(DESTDIR)$(moddir)"
+ifneq ($(MP4BOX_STATIC),yes)
 	$(INSTALL) bin/gcc/*$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
 	rm -f $(DESTDIR)$(moddir)/libgpac$(DYN_LIB_SUFFIX)
 	rm -f $(DESTDIR)$(moddir)/nposmozilla$(DYN_LIB_SUFFIX)
 	$(MAKE) installdylib
+endif
 	$(INSTALL) -d "$(DESTDIR)$(mandir)"
 	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1";
 	if [ -d  doc ] ; then \
