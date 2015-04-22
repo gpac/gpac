@@ -233,7 +233,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 		if (fm->size.y>=0) st->clip.height = fm->size.y;
 		st->bounds = st->clip = gf_rect_center(st->clip.width, st->clip.height);
 	}
-	recompute_form = 0;
+	recompute_form = GF_FALSE;
 	if (gf_node_dirty_get(n)) recompute_form = 1;
 
 #if FORM_CLIPS
@@ -339,14 +339,14 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 	/*update clipper*/
 	if (tr_state->traversing_mode==TRAVERSE_SORT) {
 		prev_clip = tr_state->visual->top_clipper;
-		compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, 0);
+		compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, GF_FALSE);
 		if (tr_state->has_clip) {
 			tr_state->visual->top_clipper = gf_rect_pixelize(&tr_state->clipper);
 			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);
 		}
 
 		i=0;
-		while ((cg = gf_list_enum(st->groups, &i))) {
+		while ((cg = (ChildGroup*)gf_list_enum(st->groups, &i))) {
 			parent_node_child_traverse(cg, tr_state);
 		}
 

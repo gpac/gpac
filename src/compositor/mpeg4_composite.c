@@ -61,19 +61,19 @@ static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *
 	Bool use_blit, has_scale;
 	CompositeTextureStack *st;
 
-	if (visual->compositor->disable_composite_blit) return 0;
+	if (visual->compositor->disable_composite_blit) return GF_FALSE;
 
 	if (!ctx->aspect.fill_texture) return 1;
-	if (ctx->transform.m[0]<0) return 0;
+	if (ctx->transform.m[0]<0) return GF_FALSE;
 	if (ctx->transform.m[4]<0) {
-		if (!(ctx->flags & CTX_FLIPED_COORDS)) return 0;
+		if (!(ctx->flags & CTX_FLIPED_COORDS)) return GF_FALSE;
 	} else {
-		if (ctx->flags & CTX_FLIPED_COORDS) return 0;
+		if (ctx->flags & CTX_FLIPED_COORDS) return GF_FALSE;
 	}
-	if (ctx->transform.m[1] || ctx->transform.m[3]) return 0;
+	if (ctx->transform.m[1] || ctx->transform.m[3]) return GF_FALSE;
 #ifndef GPAC_DISABLE_VRML
 	if ((ctx->flags & CTX_HAS_APPEARANCE) && ctx->appear && ((M_Appearance*)ctx->appear)->textureTransform)
-		return 0;
+		return GF_FALSE;
 #endif
 
 	alpha = GF_COL_A(ctx->aspect.fill_color);
@@ -103,7 +103,7 @@ static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *
 	offscreen_dst.pixel_format = st->txh.pixelformat;
 	offscreen_dst.video_buffer = st->txh.data;
 
-	gf_stretch_bits(&offscreen_dst, &video_src, &dst_wnd, &src_wnd, alpha, 0, col_key, ctx->col_mat);
+	gf_stretch_bits(&offscreen_dst, &video_src, &dst_wnd, &src_wnd, alpha, GF_FALSE, col_key, ctx->col_mat);
 	return 1;
 }
 
@@ -125,7 +125,7 @@ static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		st->visual->compositor->hit_appear = NULL;
 		st->visual->compositor->prev_hit_appear = NULL;
 
-		while ( (a_visual = gf_list_enum(st->visual->compositor->visuals, &i))) {
+		while ( (a_visual = (GF_VisualManager*)gf_list_enum(st->visual->compositor->visuals, &i))) {
 			if (a_visual->offscreen) {
 				CompositeTextureStack *a_st = (CompositeTextureStack *) gf_node_get_private(a_visual->offscreen);
 				a_st->prev_hit_appear = NULL;
