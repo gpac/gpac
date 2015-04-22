@@ -1595,7 +1595,7 @@ static void M2TS_GetNetworkType(GF_InputService *plug,M2TSIn *reader)
 	}
 
 	mcast_ifce = gf_modules_get_option((GF_BaseInterface*)plug, "Network", "DefaultMCastInterface");
-	if(mcast_ifce) reader->ts->network_type = gf_strdup(mcast_ifce);
+	if(mcast_ifce) reader->ts->network_type = mcast_ifce;
 }
 
 GF_InputService *NewM2TSReader()
@@ -1660,15 +1660,12 @@ void DeleteM2TSReader(void *ifce)
 	}
 	if (m2ts->network_buffer)
 		gf_free(m2ts->network_buffer);
+
 	m2ts->network_buffer = NULL;
-	m2ts->network_buffer_size = 0;
-	m2ts->request_all_pids = 0;
 	gf_m2ts_demux_del(m2ts->ts);
-	m2ts->ts = NULL;
 	gf_mx_del(m2ts->mx);
-	m2ts->mx = NULL;
 	gf_free(m2ts);
-	plug->priv = NULL;
+
 	gf_free(plug);
 }
 
