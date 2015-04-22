@@ -86,8 +86,8 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 		evt.message.message = "Cannot switch to fullscreen";
 		evt.message.error = e;
 		gf_term_send_event(compositor->term, &evt);
-		compositor->fullscreen = 0;
-		e = compositor->video_out->SetFullScreen(compositor->video_out, 0, &compositor->display_width, &compositor->display_height);
+		compositor->fullscreen = GF_FALSE;
+		e = compositor->video_out->SetFullScreen(compositor->video_out, GF_FALSE, &compositor->display_width, &compositor->display_height);
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] recomputing aspect ratio\n"));
 	compositor->recompute_ar = 1;
@@ -124,7 +124,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			compositor->override_size_flags |= 2;
 			width = compositor->scene_width;
 			height = compositor->scene_height;
-			compositor->has_size_info = 1;
+			compositor->has_size_info = GF_TRUE;
 			gf_sc_set_size(compositor, width, height);
 
 			evt.type = GF_EVENT_SIZE;
@@ -171,7 +171,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 				compositor->recompute_ar = 1;
 				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 			}
-			notif_size=1;
+			notif_size = GF_TRUE;
 			compositor->new_width = compositor->new_height = 0;
 			compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
 
@@ -186,11 +186,11 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			compositor->msg_type &= ~GF_SR_CFG_FULLSCREEN;
 			//video is about to resetup, wait for the setup
 			if (compositor->recompute_ar) {
-				compositor->fullscreen_postponed = 1;
+				compositor->fullscreen_postponed = GF_TRUE;
 			} else {
 				gf_sc_set_fullscreen(compositor);
 				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
-				notif_size=1;
+				notif_size = GF_TRUE;
 			}
 		}
 		compositor->msg_type &= ~GF_SR_IN_RECONFIG;
@@ -198,7 +198,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 	if (notif_size && compositor->video_listeners) {
 		u32 k=0;
 		GF_VideoListener *l;
-		while ((l = gf_list_enum(compositor->video_listeners, &k))) {
+		while ((l = (GF_VideoListener*)gf_list_enum(compositor->video_listeners, &k))) {
 			if ( compositor->user && (compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT) )
 				l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height, 4);
 			else
@@ -211,7 +211,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_3D
 		compositor->offscreen_width = compositor->offscreen_height = 0;
 #endif
-		gf_sc_lock(compositor, 0);
+		gf_sc_lock(compositor, GF_FALSE);
 		evt.type = GF_EVENT_SYS_COLORS;
 		if (compositor->video_out->ProcessEvent(compositor->video_out, &evt) ) {
 			u32 i;
@@ -219,7 +219,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 				compositor->sys_colors[i] = evt.sys_cols.sys_colors[i] & 0x00FFFFFF;
 			}
 		}
-		gf_sc_lock(compositor, 1);
+		gf_sc_lock(compositor, GF_TRUE);
 	}
 }
 
@@ -237,9 +237,9 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 			*ms_till_next = compositor->ms_until_next_frame;
 	}
 	//next frame is late, we should redraw
-	if (compositor->ms_until_next_frame < 0) return 1;
-	if (compositor->frame_draw_type) return 1;
-	if (compositor->fonts_pending) return 1;
+	if (compositor->ms_until_next_frame < 0) return GF_TRUE;
+	if (compositor->frame_draw_type) return GF_TRUE;
+	if (compositor->fonts_pending) return GF_TRUE;
 	return GF_FALSE;
 }
 
@@ -267,11 +267,11 @@ static Bool gf_sc_on_event(void *cbck, GF_Event *event);
 static Bool gf_sc_set_check_raster2d(GF_Compositor *compositor, GF_Raster2D *ifce)
 {
 	/*check base*/
-	if (!ifce->stencil_new || !ifce->surface_new) return 0;
+	if (!ifce->stencil_new || !ifce->surface_new) return GF_FALSE;
 	/*if these are not set we cannot draw*/
-	if (!ifce->surface_clear || !ifce->surface_set_path || !ifce->surface_fill) return 0;
+	if (!ifce->surface_clear || !ifce->surface_set_path || !ifce->surface_fill) return GF_FALSE;
 	/*check we can init a surface with the current driver (the rest is optional)*/
-	if (ifce->surface_attach_to_buffer) return 1;
+	if (ifce->surface_attach_to_buffer) return GF_TRUE;
 	return GF_FALSE;
 }
 
@@ -332,7 +332,7 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	gf_mx_init(compositor->traverse_state->model_matrix);
 #endif
 
-	compositor->was_system_memory=1;
+	compositor->was_system_memory = GF_TRUE;
 	return GF_OK;
 }
 
@@ -653,7 +653,7 @@ void gf_sc_del(GF_Compositor *compositor)
 	if (compositor->proto_modules) {
 		u32 i;
 		for (i=0; i< gf_list_count(compositor->proto_modules); i++) {
-			GF_HardcodedProto *ifce = gf_list_get(compositor->proto_modules, i);
+			GF_HardcodedProto *ifce = (GF_HardcodedProto*)gf_list_get(compositor->proto_modules, i);
 			gf_modules_close_interface((GF_BaseInterface *) ifce);
 		}
 		gf_list_del(compositor->proto_modules);
@@ -717,13 +717,13 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 
 	/*step mode*/
 	if (PlayState==GF_STATE_STEP_PAUSE) {
-		compositor->step_mode = 1;
+		compositor->step_mode = GF_TRUE;
 		gf_sc_flush_next_audio(compositor);
-		compositor->paused = 1;
+		compositor->paused = GF_TRUE;
 	} else {
-		compositor->step_mode = 0;
+		compositor->step_mode = GF_FALSE;
 		if (compositor->audio_renderer) gf_sc_ar_control(compositor->audio_renderer, (compositor->paused && (PlayState==0xFF)) ? GF_SC_AR_RESET_HW_AND_PLAY : (compositor->paused ? GF_SC_AR_RESUME : GF_SC_AR_PAUSE) );
-		compositor->paused = (PlayState==GF_STATE_PAUSED) ? 1 : 0;
+		compositor->paused = (PlayState==GF_STATE_PAUSED) ? GF_TRUE : GF_FALSE;
 	}
 }
 
@@ -749,7 +749,7 @@ GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bo
 		compositor->scene_width = Width;
 	}
 	if (force_size)
-		compositor->has_size_info = 1;
+		compositor->has_size_info = GF_TRUE;
 	return GF_OK;
 }
 
@@ -757,7 +757,7 @@ Bool gf_sc_get_size(GF_Compositor *compositor, u32 *Width, u32 *Height)
 {
 	*Height = compositor->scene_height;
 	*Width = compositor->scene_width;
-	return 1;
+	return GF_TRUE;
 }
 
 #ifndef GPAC_DISABLE_SVG
@@ -802,11 +802,11 @@ void compositor_set_ar_scale(GF_Compositor *compositor, Fixed scaleX, Fixed scal
 	compositor->trans_x = gf_muldiv(compositor->trans_x, scaleX, compositor->scale_x);
 	compositor->trans_y = gf_muldiv(compositor->trans_y, scaleY, compositor->scale_y);
 
-	compositor->zoom_changed = 1;
+	compositor->zoom_changed = GF_TRUE;
 	compositor->scale_x = scaleX;
 	compositor->scale_y = scaleY;
 
-	compositor_2d_set_user_transform(compositor, compositor->zoom, compositor->trans_x, compositor->trans_y, 1);
+	compositor_2d_set_user_transform(compositor, compositor->zoom, compositor->trans_x, compositor->trans_y, GF_TRUE);
 }
 
 static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
@@ -881,7 +881,7 @@ static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 #endif
 
 	/*force resetup in case we're switching coord system*/
-	compositor->root_visual_setup = 0;
+	compositor->root_visual_setup = GF_FALSE;
 	compositor_set_ar_scale(compositor, compositor->scale_x, compositor->scale_x);
 }
 
@@ -892,7 +892,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 
 	if (!compositor) return GF_BAD_PARAM;
 
-	gf_sc_lock(compositor, 1);
+	gf_sc_lock(compositor, GF_TRUE);
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, (scene_graph ? "[Compositor] Attaching new scene\n" : "[Compositor] Detaching scene\n"));
 
 	if (compositor->audio_renderer && (compositor->scene != scene_graph)) {
@@ -911,7 +911,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Reseting compositor module\n"));
 	/*reset main surface*/
-	gf_sc_reset(compositor, scene_graph ? 1 : 0);
+	gf_sc_reset(compositor, scene_graph ? GF_TRUE : GF_FALSE);
 
 	/*set current graph*/
 	compositor->scene = scene_graph;
@@ -928,13 +928,13 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		Bool had_size_info = compositor->has_size_info;
 		/*get pixel size if any*/
 		gf_sg_get_scene_size_info(compositor->scene, &width, &height);
-		compositor->has_size_info = (width && height) ? 1 : 0;
+		compositor->has_size_info = (width && height) ? GF_TRUE : GF_FALSE;
 		if (compositor->has_size_info != had_size_info) compositor->scene_width = compositor->scene_height = 0;
 
 		compositor->video_memory = gf_scene_is_dynamic_scene(scene_graph);
 
 #ifndef GPAC_DISABLE_3D
-		compositor->visual->camera.world_bbox.is_set = 0;
+		compositor->visual->camera.world_bbox.is_set = GF_FALSE;
 #endif
 
 		/*default back color is black*/
@@ -949,12 +949,12 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		vb = NULL;
 		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
 			GF_FieldInfo info;
-			is_svg = 1;
-			if (gf_node_get_attribute_by_tag(top_node, TAG_SVG_ATT_width, 0, 0, &info)==GF_OK)
+			is_svg = GF_TRUE;
+			if (gf_node_get_attribute_by_tag(top_node, TAG_SVG_ATT_width, GF_FALSE, GF_FALSE, &info)==GF_OK)
 				w = info.far_ptr;
-			if (gf_node_get_attribute_by_tag(top_node, TAG_SVG_ATT_height, 0, 0, &info)==GF_OK)
+			if (gf_node_get_attribute_by_tag(top_node, TAG_SVG_ATT_height, GF_FALSE, GF_FALSE, &info)==GF_OK)
 				h = info.far_ptr;
-			if (gf_node_get_attribute_by_tag(top_node, TAG_SVG_ATT_viewBox, 0, 0, &info)==GF_OK)
+			if (gf_node_get_attribute_by_tag(top_node, TAG_SVG_ATT_viewBox, GF_FALSE, GF_FALSE, &info)==GF_OK)
 				vb = info.far_ptr;
 		}
 		/*default back color is white*/
@@ -962,14 +962,14 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 
 		/*hack for SVG where size is set in % - negotiate a canvas size*/
 		if (!compositor->has_size_info && w && h && vb) {
-			do_notif = 1;
+			do_notif = GF_TRUE;
 			if (w->type!=SVG_NUMBER_PERCENTAGE) {
 				width = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, w) );
 			} else if ((u32) FIX2INT(vb->width)<compositor->video_out->max_screen_width)  {
 				width = FIX2INT(vb->width);
 			} else {
 				width = SC_DEF_WIDTH;
-				do_notif = 0;
+				do_notif = GF_FALSE;
 			}
 			if (h->type!=SVG_NUMBER_PERCENTAGE) {
 				height = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, h) );
@@ -977,13 +977,13 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 				height = FIX2INT(vb->height);
 			} else {
 				height = SC_DEF_HEIGHT;
-				do_notif = 0;
+				do_notif = GF_FALSE;
 			}
 		}
 		/*we consider that SVG has no size onfo per say, everything is handled by the viewBox if any*/
 		if (is_svg) {
-			compositor->has_size_info = 0;
-			gf_sc_focus_switch_ring(compositor, 0, NULL, 0);
+			compositor->has_size_info = GF_FALSE;
+			gf_sc_focus_switch_ring(compositor, GF_FALSE, NULL, 0);
 		} else
 #endif
 		{
@@ -1004,7 +1004,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		/*set scene size only if different, otherwise keep scaling/FS*/
 		if ( !width || (compositor->scene_width!=width) || !height || (compositor->scene_height!=height)) {
 			do_notif = do_notif || compositor->has_size_info || (!compositor->scene_width && !compositor->scene_height);
-			gf_sc_set_scene_size(compositor, width, height, 0);
+			gf_sc_set_scene_size(compositor, width, height, GF_FALSE);
 
 			/*get actual size in pixels*/
 			width = compositor->scene_width;
@@ -1030,7 +1030,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 
 	gf_sc_reset_framerate(compositor);
 
-	gf_sc_lock(compositor, 0);
+	gf_sc_lock(compositor, GF_FALSE);
 	if (scene_graph)
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 
@@ -1095,7 +1095,7 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	if ((compositor->display_width == NewWidth) && (compositor->display_height == NewHeight) ) {
 		compositor->msg_type |= GF_SR_CFG_WINDOWSIZE_NOTIF;
 	}
-	if (lock_ok) gf_sc_lock(compositor, 0);
+	if (lock_ok) gf_sc_lock(compositor, GF_FALSE);
 
 	return GF_OK;
 }
@@ -1106,7 +1106,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 
 	/*changing drivers needs exclusive access*/
-	gf_sc_lock(compositor, 1);
+	gf_sc_lock(compositor, GF_TRUE);
 
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FrameRate");
@@ -1155,7 +1155,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 	/*load options*/
 	if (compositor->video_out->hw_caps & GF_VIDEO_HW_DIRECT_ONLY) {
-		compositor->traverse_state->immediate_draw = 1;
+		compositor->traverse_state->immediate_draw = GF_TRUE;
 	} else {
 		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DrawMode");
 		if (!sOpt) {
@@ -1163,27 +1163,27 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 			gf_cfg_set_key(compositor->user->config, "Compositor", "DrawMode", sOpt);
 		}
 
-		if (!strcmp(sOpt, "immediate")) compositor->traverse_state->immediate_draw = 1;
+		if (!strcmp(sOpt, "immediate")) compositor->traverse_state->immediate_draw = GF_TRUE;
 		else if (!strcmp(sOpt, "defer-debug")) {
-			compositor->traverse_state->immediate_draw = 0;
-			compositor->debug_defer = 1;
+			compositor->traverse_state->immediate_draw = GF_FALSE;
+			compositor->debug_defer = GF_TRUE;
 		}
-		else compositor->traverse_state->immediate_draw = 0;
+		else compositor->traverse_state->immediate_draw = GF_FALSE;
 	}
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ScalableZoom");
-	compositor->scalable_zoom = (!sOpt || !stricmp(sOpt, "yes") ) ? 1 : 0;
+	compositor->scalable_zoom = (!sOpt || !stricmp(sOpt, "yes") ) ? GF_TRUE : GF_FALSE;
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableYUV");
-	compositor->enable_yuv_hw = (sOpt && !stricmp(sOpt, "yes") ) ? 0 : 1;
+	compositor->enable_yuv_hw = (sOpt && !stricmp(sOpt, "yes") ) ? GF_FALSE : GF_TRUE;
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisablePartialHardwareBlit");
-	compositor->disable_partial_hw_blit = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+	compositor->disable_partial_hw_blit = (sOpt && !stricmp(sOpt, "yes") ) ? GF_TRUE : GF_FALSE;
 
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "StressMode");
-	gf_sc_set_option(compositor, GF_OPT_STRESS_MODE, (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0);
+	gf_sc_set_option(compositor, GF_OPT_STRESS_MODE, (sOpt && !stricmp(sOpt, "yes") ) ? GF_TRUE : 0);
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "HighSpeed");
-	gf_sc_set_option(compositor, GF_OPT_HIGHSPEED, (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0);
+	gf_sc_set_option(compositor, GF_OPT_HIGHSPEED, (sOpt && !stricmp(sOpt, "yes") ) ? GF_TRUE : 0);
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "BoundingVolume");
 	if (sOpt) {
@@ -1202,10 +1202,10 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 	if (compositor->audio_renderer) {
 		sOpt = gf_cfg_get_key(compositor->user->config, "Audio", "NoResync");
-		compositor->audio_renderer->disable_resync = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+		compositor->audio_renderer->disable_resync = (sOpt && !stricmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
 
 		sOpt = gf_cfg_get_key(compositor->user->config, "Audio", "DisableMultiChannel");
-		compositor->audio_renderer->disable_multichannel = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
+		compositor->audio_renderer->disable_multichannel = (sOpt && !stricmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
 	}
 
 #ifdef GF_SR_USE_VIDEO_CACHE
@@ -1235,17 +1235,17 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL mode %s requested but no opengl-capable output - disabling openGL\n", sOpt));
 		}
 		compositor->force_opengl_2d = 0;
-		compositor->autoconfig_opengl = 0;
-		compositor->hybrid_opengl = 0;
+		compositor->autoconfig_opengl = GF_FALSE;
+		compositor->hybrid_opengl = GF_FALSE;
 	} else {
 		compositor->force_opengl_2d = (sOpt && !strcmp(sOpt, "always")) ? 1 : 0;
 		if (!sOpt) {
 			compositor->recompute_ar = 1;
-			compositor->autoconfig_opengl = 1;
+			compositor->autoconfig_opengl = GF_TRUE;
 		} else {
-			compositor->hybrid_opengl = !strcmp(sOpt, "hybrid") ? 1 : 0;
+			compositor->hybrid_opengl = !strcmp(sOpt, "hybrid") ? GF_TRUE : GF_FALSE;
 #ifdef OPENGL_RASTER
-			compositor->opengl_raster = !strcmp(sOpt, "raster") ? 1 : 0;
+			compositor->opengl_raster = !strcmp(sOpt, "raster") ? GF_TRUE : GF_FALSE;
 			if (compositor->opengl_raster) compositor->traverse_state->immediate_draw = GF_TRUE;
 #endif
 		}
@@ -1253,7 +1253,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
     
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "EnablePBO");
 	if (!sOpt) gf_cfg_set_key(compositor->user->config, "Compositor", "EnablePBO", "no");
-	compositor->enable_pbo = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
+	compositor->enable_pbo = (sOpt && !strcmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DefaultNavigationMode");
 	if (sOpt && !strcmp(sOpt, "Walk")) compositor->default_navigation_mode = GF_NAVIGATE_WALK;
@@ -1262,21 +1262,21 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 #ifdef GPAC_HAS_GLU
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "RasterOutlines");
-	compositor->raster_outlines = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+	compositor->raster_outlines = (sOpt && !stricmp(sOpt, "yes") ) ? GF_TRUE : GF_FALSE;
 #endif
 	/*currently:
 	- no support for npow2 textures, and no support for DrawPixels
 	*/
 #ifndef GPAC_USE_OGL_ES
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "EmulatePOW2");
-	compositor->emul_pow2 = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+	compositor->emul_pow2 = (sOpt && !stricmp(sOpt, "yes") ) ? GF_TRUE : GF_FALSE;
 #else
 	compositor->raster_outlines = 1;
 	compositor->emul_pow2 = 1;
 #endif
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "PolygonAA");
-	compositor->poly_aa = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+	compositor->poly_aa = (sOpt && !stricmp(sOpt, "yes") ) ? GF_TRUE : GF_FALSE;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "BackFaceCulling");
 	if (sOpt && !stricmp(sOpt, "Off")) compositor->backcull = GF_BACK_CULL_OFF;
@@ -1294,16 +1294,16 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else compositor->draw_normals = GF_NORMALS_NONE;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableGLUScale");
-	compositor->disable_glu_scale = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+	compositor->disable_glu_scale = (sOpt && !stricmp(sOpt, "yes") ) ? GF_TRUE : GF_FALSE;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableRectExt");
-	compositor->disable_rect_ext = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+	compositor->disable_rect_ext = (sOpt && !stricmp(sOpt, "yes") ) ? GF_TRUE : GF_FALSE;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableGLCulling");
-	compositor->disable_gl_cull = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+	compositor->disable_gl_cull = (sOpt && !stricmp(sOpt, "yes") ) ? GF_TRUE : GF_FALSE;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableYUVGL");
-	compositor->disable_yuvgl = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+	compositor->disable_yuvgl = (sOpt && !stricmp(sOpt, "yes") ) ? GF_TRUE : GF_FALSE;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DepthScale");
 	if (!sOpt) {
@@ -1382,13 +1382,13 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else gf_cfg_set_key(compositor->user->config, "Compositor", "EyeSeparation", "6.3");
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ReverseViews");
-	if (sOpt && !strcmp(sOpt, "yes")) compositor->visual->reverse_views = 1;
+	if (sOpt && !strcmp(sOpt, "yes")) compositor->visual->reverse_views = GF_TRUE;
 
 #endif //GPAC_DISABLE_3D
 
 #ifdef GF_SR_USE_DEPTH
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "AutoStereoCalibration");
-	compositor->auto_calibration = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
+	compositor->auto_calibration = (sOpt && !strcmp(sOpt, "yes")) ? GF_TRUE : GF_FALSE;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisplayDepth");
 	compositor->display_depth = sOpt ? (!strcmp(sOpt, "auto") ? -1 : atoi(sOpt)) : 0;
@@ -1420,14 +1420,14 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	gf_sc_reset_graphics(compositor);
 	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 
-	gf_sc_lock(compositor, 0);
+	gf_sc_lock(compositor, GF_FALSE);
 }
 
 GF_EXPORT
 GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 {
 	GF_Err e;
-	gf_sc_lock(compositor, 1);
+	gf_sc_lock(compositor, GF_TRUE);
 
 	e = GF_OK;
 	switch (type) {
@@ -1476,7 +1476,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		break;
 	case GF_OPT_REFRESH:
 		gf_sc_reset_graphics(compositor);
-		compositor->traverse_state->invalidate_all = 1;
+		compositor->traverse_state->invalidate_all = GF_TRUE;
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_FULLSCREEN:
@@ -1484,7 +1484,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_ORIGINAL_VIEW:
-		compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, 0);
+		compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, GF_FALSE);
 		gf_sc_set_size(compositor, compositor->scene_width, compositor->scene_height);
 		break;
 	case GF_OPT_VISIBLE:
@@ -1514,8 +1514,8 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		break;
 	case GF_OPT_DRAW_MODE:
 		if (!(compositor->video_out->hw_caps & GF_VIDEO_HW_DIRECT_ONLY)) {
-			compositor->traverse_state->immediate_draw = (value==GF_DRAW_MODE_IMMEDIATE) ? 1 : 0;
-			compositor->debug_defer = (value==GF_DRAW_MODE_DEFER_DEBUG) ? 1 : 0;
+			compositor->traverse_state->immediate_draw = (value==GF_DRAW_MODE_IMMEDIATE) ? GF_TRUE : GF_FALSE;
+			compositor->debug_defer = (value==GF_DRAW_MODE_DEFER_DEBUG) ? GF_TRUE : GF_FALSE;
 			/*force redraw*/
 			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		}
@@ -1529,7 +1529,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		if (compositor->force_opengl_2d != value) {
 			compositor->force_opengl_2d = value;
 			/*force resetup*/
-			compositor->root_visual_setup = 0;
+			compositor->root_visual_setup = GF_FALSE;
 			/*force texture setup when switching to OpenGL*/
 			if (value) gf_sc_reset_graphics(compositor);
 			/*force redraw*/
@@ -1545,7 +1545,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		break;
 	case GF_OPT_NAVIGATION_TYPE:
 		compositor->rotation = 0;
-		compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, 0);
+		compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, GF_FALSE);
 #ifndef GPAC_DISABLE_3D
 		compositor_3d_reset_camera(compositor);
 #endif
@@ -1563,11 +1563,11 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 					if (!value) {
 #ifndef GPAC_DISABLE_VRML
 						if (compositor->active_layer) {
-							compositor_layer3d_bind_camera(compositor->active_layer, 0, value);
+							compositor_layer3d_bind_camera(compositor->active_layer, GF_FALSE, value);
 						} else {
 							GF_Node *n = (GF_Node*)gf_list_get(compositor->visual->navigation_stack, 0);
 							if (n)
-								Bindable_SetSetBind(n, 0);
+								Bindable_SetSetBind(n, GF_FALSE);
 							else
 								cam->navigate_mode = value;
 						}
@@ -1664,7 +1664,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		e = GF_BAD_PARAM;
 		break;
 	}
-	gf_sc_lock(compositor, 0);
+	gf_sc_lock(compositor, GF_FALSE);
 	return e;
 }
 
@@ -1687,29 +1687,29 @@ Bool gf_sc_is_over(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 #ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_TimeSensor:
 #endif
-			return 0;
+			return GF_FALSE;
 
 #ifndef GPAC_DISABLE_VRML
 		case TAG_MPEG4_MovieTexture:
 #ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_MovieTexture:
 #endif
-			if (((M_MovieTexture *)tn->udta)->loop) return 0;
+			if (((M_MovieTexture *)tn->udta)->loop) return GF_FALSE;
 			break;
 		case TAG_MPEG4_AudioClip:
 #ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_AudioClip:
 #endif
-			if (((M_AudioClip*)tn->udta)->loop) return 0;
+			if (((M_AudioClip*)tn->udta)->loop) return GF_FALSE;
 			break;
 		case TAG_MPEG4_AnimationStream:
-			if (((M_AnimationStream*)tn->udta)->loop) return 0;
+			if (((M_AnimationStream*)tn->udta)->loop) return GF_FALSE;
 			break;
 #endif
 		}
 	}
 	/*FIXME - this does not work with SVG/SMIL*/
-	return 1;
+	return GF_TRUE;
 }
 
 u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
@@ -1835,7 +1835,7 @@ GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *frame
 #endif
 		/*no depth dump in 2D mode*/
 		if (depth_dump_mode) e = GF_NOT_SUPPORTED;
-		else e = compositor->video_out->LockBackBuffer(compositor->video_out, framebuffer, 1);
+		else e = compositor->video_out->LockBackBuffer(compositor->video_out, framebuffer, GF_TRUE);
 
 	if (e != GF_OK) gf_mx_v(compositor->mx);
 	return e;
@@ -1868,7 +1868,7 @@ GF_Err gf_sc_release_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *f
 		e = compositor_3d_release_screen_buffer(compositor, framebuffer);
 	else
 #endif
-		e = compositor->video_out->LockBackBuffer(compositor->video_out, framebuffer, 0);
+		e = compositor->video_out->LockBackBuffer(compositor->video_out, framebuffer, GF_FALSE);
 
 	gf_mx_v(compositor->mx);
 	return e;
@@ -1923,7 +1923,7 @@ void gf_sc_register_time_node(GF_Compositor *compositor, GF_TimeNode *tn)
 	if (tn->is_registered) return;
 	if (tn->needs_unregister) return;
 	gf_list_add(compositor->time_nodes, tn);
-	tn->is_registered = 1;
+	tn->is_registered = GF_TRUE;
 }
 void gf_sc_unregister_time_node(GF_Compositor *compositor, GF_TimeNode *tn)
 {
@@ -1939,7 +1939,7 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 
 static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 {
-	Bool force_pause = compositor->audio_renderer->Frozen ? 0 : 1;
+	Bool force_pause = compositor->audio_renderer->Frozen ? GF_FALSE : GF_TRUE;
 	
 	force_pause = GF_FALSE;
 
@@ -1968,14 +1968,14 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #ifndef GPAC_USE_OGL_ES
 				visual_3d_init_shaders(compositor->visual);
 #endif
-				compositor->autoconfig_opengl = 0;
+				compositor->autoconfig_opengl = GF_FALSE;
 				compositor->visual->type_3d = 0;
 				compositor->force_opengl_2d = 0;
 
 				//enable hybrid mode by default
 				if (compositor->visual->yuv_rect_glsl_program) {
 					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "hybrid");
-					compositor->hybrid_opengl = 1;
+					compositor->hybrid_opengl = GF_TRUE;
 				} else {
 					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "disable");
 				}
@@ -2013,7 +2013,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #endif
 		//fullscreen was postponed, retry now that the AR has been recomputed
 		if (compositor->fullscreen_postponed) {
-			compositor->fullscreen_postponed = 0;
+			compositor->fullscreen_postponed = GF_FALSE;
 			compositor->msg_type |= GF_SR_CFG_FULLSCREEN;
 		}
 
@@ -2028,13 +2028,13 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 		GF_SceneGraph *scene = compositor->scene;
 		u32 node_tag;
 #ifndef GPAC_DISABLE_3D
-		Bool force_navigate=0;
+		Bool force_navigate = GF_FALSE;
 		Bool was_3d = compositor->visual->type_3d;
 #endif
-		compositor->root_visual_setup = 1;
-		compositor->visual->center_coords = 1;
+		compositor->root_visual_setup = GF_TRUE;
+		compositor->visual->center_coords = GF_TRUE;
 
-		compositor->traverse_state->pixel_metrics = 1;
+		compositor->traverse_state->pixel_metrics = GF_TRUE;
 		compositor->traverse_state->min_hsize = INT2FIX(MIN(compositor->scene_width, compositor->scene_height)) / 2;
 
 		node_tag = gf_node_get_tag(top_node);

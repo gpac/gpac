@@ -32,7 +32,7 @@
 
 void compositor_init_afx_node(GF_Compositor *compositor, GF_Node *node, MFURL *url)
 {
-	GF_MediaObject *mo = gf_mo_register(node, url, 0, 0);
+	GF_MediaObject *mo = gf_mo_register(node, url, GF_FALSE, GF_FALSE);
 	if (!mo) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] AFX Decoder not found for node %s - node may not be completely/correctly rendered\n", gf_node_get_class_name(node)));
 	}
@@ -532,7 +532,7 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 		compositor_init_svg_video(compositor, node);
 		break;
 	case TAG_SVG_audio:
-		compositor_init_svg_audio(compositor, node, 0);
+		compositor_init_svg_audio(compositor, node, GF_FALSE);
 		break;
 
 	/*SVG font support - note that we initialize the font when parsing the font-face element, not the font element*/
@@ -647,7 +647,7 @@ void gf_sc_invalidate(GF_Compositor *compositor, GF_Node *byObj)
 	default:
 		/*for all nodes, invalidate parent graph - note we do that for sensors as well to force recomputing
 		sensor list cached at grouping node level*/
-		gf_node_dirty_set(byObj, 0, 1);
+		gf_node_dirty_set(byObj, 0, GF_TRUE);
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	}
