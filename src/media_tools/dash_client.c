@@ -2648,7 +2648,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 		group->adaptation_set = set;
 		group->period = period;
 
-		group->bitstream_switching = (set->bitstream_switching || period->bitstream_switching) ? 1 : 0;
+		group->bitstream_switching = (set->bitstream_switching || period->bitstream_switching) ? GF_TRUE : GF_FALSE;
 
 		seg_dur = 0;
 		nb_dependant_rep = 0;
@@ -2659,6 +2659,11 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 			GF_MPD_Representation *rep = gf_list_get(set->representations, j);
 			gf_dash_get_segment_duration(rep, set, period, dash->mpd, &nb_seg, &dur);
 			if (dur>seg_dur) seg_dur = dur;
+
+			if (group->bitstream_switching && (set->segment_base || period->segment_base || rep->segment_base) ) {
+				group->bitstream_switching = GF_FALSE;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] bitstreamSwitching set for onDemand content - ignoring flag\n"));
+			}
 
 			if (dash->dash_io->dash_codec_supported) {
 				Bool res = dash->dash_io->dash_codec_supported(dash->dash_io, rep->codecs, rep->width, rep->height, (rep->scan_type==GF_MPD_SCANTYPE_INTERLACED) ? 1 : 0, rep->framerate ? rep->framerate->num : 0, rep->framerate ? rep->framerate->den : 0, rep->samplerate);
