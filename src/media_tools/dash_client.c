@@ -5067,7 +5067,7 @@ discard_segment:
 	}
 	if (group->cached[0].cache) {
 		if (group->urlToDeleteNext) {
-			if (!group->local_files && !dash->keep_files)
+			if (!group->local_files && !dash->keep_files && strncmp(group->urlToDeleteNext, "gmem://", 7) )
 				dash->dash_io->delete_cache_file(dash->dash_io, group->segment_download, group->urlToDeleteNext);
 
 			gf_free(group->urlToDeleteNext);
