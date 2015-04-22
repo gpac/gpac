@@ -42,7 +42,7 @@ void compositor_svg_traverse_children(GF_ChildNodeItem *children, GF_TraverseSta
 
 Bool compositor_svg_is_display_off(SVGPropertiesPointers *props)
 {
-	return (props->display && (*(props->display) == SVG_DISPLAY_NONE)) ? 1 : 0;
+	return (props->display && (*(props->display) == SVG_DISPLAY_NONE)) ? 1 : GF_FALSE;
 }
 
 
@@ -50,7 +50,7 @@ void compositor_svg_apply_local_transformation(GF_TraverseState *tr_state, SVGAl
 {
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d && backup_matrix) {
-		Bool is_draw = (tr_state->traversing_mode==TRAVERSE_SORT) ? 1 : 0;
+		Bool is_draw = (tr_state->traversing_mode==TRAVERSE_SORT) ? 1 : GF_FALSE;
 		gf_mx_copy(*backup_matrix, tr_state->model_matrix);
 
 		if (atts->transform && atts->transform->is_ref) {
@@ -130,41 +130,41 @@ static const struct svg_11_feature {
 {
 	{ "Animation", 1},
 	{ "AnimationEventsAttribute", 1},
-	{ "BasicClip", 0},
-	{ "BasicFilter", 0},
+	{ "BasicClip", GF_FALSE},
+	{ "BasicFilter", GF_FALSE},
 	{ "BasicFont", 1},
 	{ "BasicGraphicsAttribute", 1},
 	{ "BasicPaintAttribute", 1},
 	{ "BasicStructure", 1},
 	{ "BasicText", 1},
-	{ "Clip", 0},
-	{ "ColorProfile", 0},
+	{ "Clip", GF_FALSE},
+	{ "ColorProfile", GF_FALSE},
 	{ "ConditionalProcessing", 1},
 	{ "ContainerAttribute", 1},
 	{ "CoreAttribute", 1},
-	{ "Cursor", 0},
+	{ "Cursor", GF_FALSE},
 	{ "DocumentEventsAttribute", 1},
 	{ "Extensibility", 1},
-	{ "ExternalResourcesRequired", 0},
+	{ "ExternalResourcesRequired", GF_FALSE},
 	{ "Font", 1},
-	{ "Filter", 0},
+	{ "Filter", GF_FALSE},
 	{ "Gradient", 1},
 	{ "GraphicalEventsAttribute", 1},
 	{ "GraphicsAttribute", 1},
 	{ "Hyperlinking", 1},
 	{ "Image", 1},
-	{ "Marker", 0},
-	{ "Mask", 0},
+	{ "Marker", GF_FALSE},
+	{ "Mask", GF_FALSE},
 	{ "OpacityAttribute", 1},
 	{ "PaintAttribute", 1},
-	{ "Pattern", 0},
+	{ "Pattern", GF_FALSE},
 	{ "Script", 1},
 	{ "Scripting", 1},
 	{ "Shape", 1},
-	{ "View", 0},	/*no support for <view> element, the rest is OK ...*/
+	{ "View", GF_FALSE},	/*no support for <view> element, the rest is OK ...*/
 	{ "ViewportAttribute", 1},
 	{ "Structure", 1},
-	{ "Style", 0},
+	{ "Style", GF_FALSE},
 	{ "Text", 1},
 	{ "View", 1},
 	{ "XlinkAttribute", 1},
@@ -174,10 +174,10 @@ static const struct svg_11_feature {
 	{ "SVG-dynamic", 1},
 	{ "SVG-static", 1},
 	/*we don't support SVG DOM, only uDOM*/
-	{ "SVGDOM", 0},
-	{ "SVGDOM-animation", 0},
-	{ "SVGDOM-dynamic", 0},
-	{ "SVGDOM-static", 0},
+	{ "SVGDOM", GF_FALSE},
+	{ "SVGDOM-animation", GF_FALSE},
+	{ "SVGDOM-dynamic", GF_FALSE},
+	{ "SVGDOM-static", GF_FALSE},
 };
 static const struct svg_12_feature {
 	const char *name;
@@ -235,7 +235,7 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 	count = atts->requiredFeatures ? gf_list_count(*atts->requiredFeatures) : 0;
 	for (i=0; i<count; i++) {
 		char *feat = NULL;
-		XMLRI *iri = gf_list_get(*atts->requiredFeatures, i);
+		XMLRI *iri = (XMLRI*)gf_list_get(*atts->requiredFeatures, i);
 		if (!iri->string) continue;
 
 		if (!strnicmp(iri->string, "org.w3c.svg", 11)) {
@@ -244,29 +244,29 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 				if (!stricmp(feat, "animation")) {}
 				else if (!stricmp(feat, "dynamic")) {}
 				/*no support for filters, clipping & co - SVG 1.0 featureStrings are badly designed*/
-				else return 0;
+				else return GF_FALSE;
 			}
 		}
 		else if (!strnicmp(iri->string, "http://www.w3.org/TR/SVG11/feature", 34)) {
 			feat = iri->string+35;
 			if (feat) {
-				Bool found = 0;
+				Bool found = GF_FALSE;
 				u32 j, nbf;
 				nbf  = sizeof(svg11_features) / sizeof(struct svg_11_feature);
 				for (j=0; j<nbf; j++) {
 					if (!strcmp(svg11_features[j].name, feat)) {
 						found = 1;
-						if (!svg11_features[j].supported) return 0;
+						if (!svg11_features[j].supported) return GF_FALSE;
 						break;
 					}
 				}
-				if (!found) return 0;
+				if (!found) return GF_FALSE;
 			}
 		}
 		else if (!strnicmp(iri->string, "http://www.w3.org/Graphics/SVG/feature/1.2/", 43)) {
 			feat = iri->string+44;
 			if (feat) {
-				Bool found = 0;
+				Bool found = GF_FALSE;
 				u32 j, nbf;
 				nbf  = sizeof(svg12_features) / sizeof(struct svg_12_feature);
 				for (j=0; j<nbf; j++) {
@@ -276,23 +276,23 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 						break;
 					}
 				}
-				if (!found) return 0;
+				if (!found) return GF_FALSE;
 			}
 		}
 		/*unrecognized feature*/
 		else {
-			return 0;
+			return GF_FALSE;
 		}
 	}
 
 	/*process required extensions*/
 	count = atts->requiredExtensions ? gf_list_count(*atts->requiredExtensions) : 0;
-	if (count) return 0;
+	if (count) return GF_FALSE;
 
 	/*process system language*/
 	count = atts->systemLanguage ? gf_list_count(*atts->systemLanguage) : 0;
 	if (count) {
-		found = 0;
+		found = GF_FALSE;
 		lang_3cc = gf_cfg_get_key(compositor->user->config, "Systems", "Language3CC");
 		if (!lang_3cc) lang_3cc = "und";
 		lang_2cc = gf_cfg_get_key(compositor->user->config, "Systems", "Language2CC");

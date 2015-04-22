@@ -45,12 +45,12 @@ static void gf_sc_reset_collide_cursor(GF_Compositor *compositor)
 
 static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 {
-	if (event->type>GF_EVENT_MOUSEMOVE) return 0;
+	if (event->type>GF_EVENT_MOUSEMOVE) return GF_FALSE;
 
 	if (compositor->edited_text)
-		return 0;
+		return GF_FALSE;
 	if (compositor->text_selection )
-		return compositor->hit_text ? 1 : 0;
+		return compositor->hit_text ? 1 : GF_FALSE;
 	switch (event->type) {
 	case GF_EVENT_MOUSEMOVE:
 		if (compositor->text_selection && compositor->hit_text)
@@ -60,11 +60,11 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 		if (compositor->hit_text) {
 			compositor->text_selection = compositor->hit_text;
 			/*return 0: the event may be consumed by the tree*/
-			return 0;
+			return GF_FALSE;
 		}
 		break;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
@@ -89,7 +89,7 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 	}
 	if (compositor->sel_buffer_len) {
 		const u16 *lptr;
-		txt = gf_malloc(sizeof(char)*2*compositor->sel_buffer_len);
+		txt = (char*)gf_malloc(sizeof(char)*2*compositor->sel_buffer_len);
 		lptr = compositor->sel_buffer;
 		len = gf_utf8_wcstombs(txt, 2*compositor->sel_buffer_len, &lptr);
 		txt[len] = 0;
@@ -98,7 +98,7 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 	}
 
 	signal = final_flush;
-	if ((compositor->focus_text_type==4) && (final_flush==1)) signal = 0;
+	if ((compositor->focus_text_type==4) && (final_flush==1)) signal = GF_FALSE;
 
 	gf_node_dirty_set(compositor->focus_node, 0, 1);
 	//(compositor->focus_text_type==2));
@@ -143,7 +143,7 @@ GF_Err gf_sc_paste_text(GF_Compositor *compositor, const char *text)
 
 	gf_sc_lock(compositor, 1);
 
-	conv_buf = gf_malloc(sizeof(u16)*(len+1));
+	conv_buf = (u16*)gf_malloc(sizeof(u16)*(len+1));
 	len = gf_utf8_mbstowcs(conv_buf, len, &text);
 
 	compositor->sel_buffer_alloc += (u32) len;
