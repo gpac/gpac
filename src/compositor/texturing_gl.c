@@ -1310,7 +1310,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 }
 
 static Bool gf_sc_texture_enable_matte_texture(GF_Node *n){
-	return GF_FALSE;	//¡k removed it
+	return GF_FALSE;
 }
 
 Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh)
@@ -1353,11 +1353,10 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
 	}*/
 	flags = visual->glsl_flags;
-	printf("texturing... %d\n",visual->glsl_flags);
 
 #ifndef GPAC_DISABLE_VRML
 	if (txh->matteTexture) {
-		u32 ret = gf_sc_texture_enable_matte_texture(txh->matteTexture);
+		u32 ret = gf_sc_texture_enable_matte_texture(txh->matteTexture);	//Removed - will always return GF_FALSE
 		if (!ret) return 0;
 
 		if (gf_sc_texture_get_transform(txh, tx_transform, &mx, 0))
@@ -1398,7 +1397,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		GLint loc;
 		Bool is_rect = (txh->tx_io->flags & TX_IS_RECT) ? 1 : 0;
 		u32 active_shader;	//stores current shader (GLES2.0 or the old stuff)
-		/*use our program*/
+
 		if(compositor->shader_only_mode){	//ES2.0
 			flags |= GF_GL_IS_YUV;
 			if(is_rect==GF_TRUE){
@@ -1433,19 +1432,13 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
-		/*loc = glGetUniformLocation(active_shader, "v_plane");	//¡k for ES2.0
-		glUniform1i(loc, 2);*/
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
-		/*loc = glGetUniformLocation(active_shader, "u_plane");
-		glUniform1i(loc, 1);*/
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
-		/*loc = glGetUniformLocation(active_shader, "y_plane");
-		glUniform1i(loc, 0);*/
-		
+
 		if(!compositor->shader_only_mode)
 			tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
 
@@ -1468,13 +1461,11 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 			glUseProgram(visual->glsl_programs[flags]);
 			GL_CHECK_ERR
 
-			GL_CHECK_ERR
 			glActiveTexture(GL_TEXTURE0);
 			GL_CHECK_ERR
 			glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
 			GL_CHECK_ERR
-			/*loc = glGetUniformLocation(visual->glsl_programs[flags], "y_plane");	//¡k for ES2.0
-			glUniform1i(loc, 0);*/
+
 			tx_bind(txh);
 		} else {
 			tx_bind(txh);
@@ -1482,7 +1473,6 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 	}
 	visual->glsl_flags = flags;
-	printf("TEXTURED... %d\n",visual->glsl_flags);
 	return 1;
 
 }
