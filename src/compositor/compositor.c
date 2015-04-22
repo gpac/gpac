@@ -2048,12 +2048,12 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 #ifdef GF_SR_USE_DEPTH
 			if (compositor->display_depth) {
 				compositor->visual->type_3d = 0;
-				compositor->visual->camera.is_3D = 0;
+				compositor->visual->camera.is_3D = GF_FALSE;
 			} else
 #endif
 			{
 				compositor->visual->type_3d = 0;
-				compositor->visual->camera.is_3D = 0;
+				compositor->visual->camera.is_3D = GF_FALSE;
 			}
 #endif
 			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(scene);
@@ -2062,7 +2062,7 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 		case TAG_MPEG4_Layer3D:
 #ifndef GPAC_DISABLE_3D
 			compositor->visual->type_3d = 2;
-			compositor->visual->camera.is_3D = 1;
+			compositor->visual->camera.is_3D = GF_TRUE;
 #endif
 			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(scene);
 			break;
@@ -2085,15 +2085,15 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 #ifdef GF_SR_USE_DEPTH
 			if (compositor->display_depth) {
 				compositor->visual->type_3d = 2;
-				compositor->visual->camera.is_3D = 1;
+				compositor->visual->camera.is_3D = GF_TRUE;
 			} else
 #endif
 			{
 				compositor->visual->type_3d = 0;
-				compositor->visual->camera.is_3D = 0;
+				compositor->visual->camera.is_3D = GF_FALSE;
 			}
 #endif
-			compositor->visual->center_coords = 0;
+			compositor->visual->center_coords = GF_FALSE;
 			compositor->root_visual_setup = 2;
 			break;
 #endif /*GPAC_DISABLE_SVG*/
@@ -2106,24 +2106,24 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 #ifndef GPAC_DISABLE_3D
 		if (compositor->inherit_type_3d && !compositor->visual->type_3d) {
 			compositor->visual->type_3d = 2;
-			compositor->visual->camera.is_3D = 1;
+			compositor->visual->camera.is_3D = GF_TRUE;
 		}
 		/*request for OpenGL drawing in 2D*/
 		else if (compositor->force_opengl_2d && !compositor->visual->type_3d) {
 			compositor->visual->type_3d = 1;
 			camera_set_2d(&compositor->visual->camera);
-			if (compositor->force_opengl_2d==2) force_navigate=1;
+			if (compositor->force_opengl_2d==2) force_navigate = GF_TRUE;
 		}
 
 		if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL)) {
 			compositor->visual->type_3d = 0;
-			compositor->visual->camera.is_3D = 0;
+			compositor->visual->camera.is_3D = GF_FALSE;
 		}
-		compositor->visual->camera.is_3D = (compositor->visual->type_3d>1) ? 1 : 0;
+		compositor->visual->camera.is_3D = (compositor->visual->type_3d>1) ? GF_TRUE : GF_FALSE;
 		camera_invalidate(&compositor->visual->camera);
 		if (force_navigate) {
 			compositor->visual->camera.navigate_mode = GF_NAVIGATE_EXAMINE;
-			compositor->visual->camera.had_nav_info = 0;
+			compositor->visual->camera.had_nav_info = GF_FALSE;
 		}
 #endif
 
@@ -2160,7 +2160,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 	if (compositor->video_setup_failed) {
 		compositor->skip_flush = 1;
 	}
-	else if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1)) {
+	else if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, GF_TRUE)) {
 		/*android backend uses opengl without telling it to us, we need an ugly hack here ...*/
 #ifdef GPAC_ANDROID
 		compositor->skip_flush = 0;
@@ -2182,10 +2182,10 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 
 	/*only send the resize notification once the frame has been dra*/
 	if (compositor->recompute_ar) {
-		compositor_send_resize_event(compositor, NULL, 0, 0, 0, 1);
+		compositor_send_resize_event(compositor, NULL, 0, 0, 0, GF_TRUE);
 		compositor->recompute_ar = 0;
 	}
-	compositor->zoom_changed = 0;
+	compositor->zoom_changed = GF_FALSE;
 }
 
 
@@ -2213,12 +2213,12 @@ void gf_sc_flush_video(GF_Compositor *compositor)
 	GF_Window rc;
 
 	//release compositor in case we have vsync
-	gf_sc_lock(compositor, 0);
+	gf_sc_lock(compositor, GF_FALSE);
 	rc.x = rc.y = 0;
 	rc.w = compositor->display_width;
 	rc.h = compositor->display_height;
 	compositor->video_out->Flush(compositor->video_out, &rc);
-	gf_sc_lock(compositor, 1);
+	gf_sc_lock(compositor, GF_TRUE);
 }
 
 void gf_sc_simulation_tick(GF_Compositor *compositor)
@@ -2234,7 +2234,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 
 	/*lock compositor for the whole cycle*/
-	gf_sc_lock(compositor, 1);
+	gf_sc_lock(compositor, GF_TRUE);
 
 	in_time = gf_sys_clock();
 
@@ -2244,7 +2244,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	compositor->video_out->ProcessEvent(compositor->video_out, NULL);
 
 	if (compositor->freeze_display) {
-		gf_sc_lock(compositor, 0);
+		gf_sc_lock(compositor, GF_FALSE);
 		if (!compositor->bench_mode) {
 			compositor->scene_sampled_clock = gf_sc_ar_get_clock(compositor->audio_renderer);
 		}
@@ -2261,7 +2261,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		if (compositor->bench_mode && (compositor->force_bench_frame==1)) {
 			compositor->scene_sampled_clock += compositor->frame_duration;
 		}
-		gf_sc_lock(compositor, 0);
+		gf_sc_lock(compositor, GF_FALSE);
 		if (!compositor->no_regulation) {
 			gf_sleep(compositor->bench_mode ? 2 : compositor->frame_duration);
 		}
@@ -2342,14 +2342,14 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			u32 d = gf_mo_get_min_frame_dur(txh->stream);
 			if (d && (d < frame_duration)) frame_duration = d;
 
-			all_tx_done=0;
+			all_tx_done = GF_FALSE;
 		}
 	}
 
 	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures
 	//forced a relayout - do it right away
 	if (compositor->msg_type) {
-		gf_sc_lock(compositor, 0);
+		gf_sc_lock(compositor, GF_FALSE);
 		return;
 	}
 
@@ -2390,8 +2390,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		GF_TimeNode *tn = (GF_TimeNode *)gf_list_get(compositor->time_nodes, i);
 		if (!tn->needs_unregister) tn->UpdateTimeNode(tn);
 		if (tn->needs_unregister) {
-			tn->is_registered = 0;
-			tn->needs_unregister = 0;
+			tn->is_registered = GF_FALSE;
+			tn->needs_unregister = GF_FALSE;
 			gf_list_rem(compositor->time_nodes, i);
 			i--;
 			count--;
@@ -2406,13 +2406,13 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	if (compositor->focus_text_type) {
 		if (!compositor->caret_next_draw_time) {
 			compositor->caret_next_draw_time = gf_sys_clock();
-			compositor->show_caret = 1;
+			compositor->show_caret = GF_TRUE;
 		}
 		if (compositor->caret_next_draw_time <= compositor->last_frame_time) {
 			compositor->frame_draw_type=GF_SC_DRAW_FRAME;
 			compositor->caret_next_draw_time+=500;
 			compositor->show_caret = !compositor->show_caret;
-			compositor->text_edit_changed = 1;
+			compositor->text_edit_changed = GF_TRUE;
 		}
 	}
 
@@ -2475,15 +2475,15 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	if (compositor->msg_type) {
 		//reset AR recompute flag, it will be reset when msg is handled
 		compositor->recompute_ar = 0;
-		gf_sc_lock(compositor, 0);
+		gf_sc_lock(compositor, GF_FALSE);
 		return;
 	}
 #ifndef GPAC_DISABLE_LOG
 	texture_time += gf_sys_clock() - txtime;
 #endif
 
-	compositor->text_edit_changed = 0;
-	compositor->rebuild_offscreen_textures = 0;
+	compositor->text_edit_changed = GF_FALSE;
+	compositor->rebuild_offscreen_textures = GF_FALSE;
 
 	if (compositor->force_next_frame_redraw) {
 		compositor->force_next_frame_redraw=0;
@@ -2495,11 +2495,11 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		compositor->frame_draw_type = 0;
 	}
 
-	frame_drawn = (compositor->frame_draw_type==GF_SC_DRAW_FRAME) ? 1 : 0;
+	frame_drawn = (compositor->frame_draw_type==GF_SC_DRAW_FRAME) ? GF_TRUE : GF_FALSE;
 
 	/*if invalidated, draw*/
 	if (compositor->frame_draw_type) {
-		Bool textures_released = 0;
+		Bool textures_released = GF_FALSE;
 
 #ifndef GPAC_DISABLE_LOG
 		traverse_time = gf_sys_clock();
@@ -2524,7 +2524,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			if (compositor->video_listeners && compositor->skip_flush!=1) {
 				u32 k=0;
 				GF_VideoListener *l;
-				while ((l = gf_list_enum(compositor->video_listeners, &k))) {
+				while ((l = (GF_VideoListener*)gf_list_enum(compositor->video_listeners, &k))) {
 					l->on_video_frame(l->udta, gf_sc_ar_get_clock(compositor->audio_renderer) );
 				}
 			}
@@ -2541,7 +2541,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		//if no overlays, release textures before flushing, otherwise we might loose time waiting for vsync
 		if (!compositor->visual->has_overlays) {
 			compositor_release_textures(compositor, frame_drawn);
-			textures_released = 1;
+			textures_released = GF_TRUE;
 		}
 
 		if (compositor->skip_flush!=1) {
@@ -2567,7 +2567,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 			gf_sc_reset_graphics(compositor);
 		}
-		compositor->reset_fonts = 0;
+		compositor->reset_fonts = GF_FALSE;
 
 	} else {
 
@@ -2618,10 +2618,10 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		//in bench mode we always increase the clock of the fixed target simulation rate - this needs refinement if video is used ...
 		compositor->scene_sampled_clock += frame_duration;
 	}
-	compositor->video_frame_pending=0;
-	gf_sc_lock(compositor, 0);
+	compositor->video_frame_pending = GF_FALSE;
+	gf_sc_lock(compositor, GF_FALSE);
 
-	if (frame_drawn) compositor->step_mode = 0;
+	if (frame_drawn) compositor->step_mode = GF_FALSE;
 
 	/*let the owner decide*/
 	if (compositor->no_regulation)
@@ -2673,9 +2673,9 @@ Bool gf_sc_visual_is_registered(GF_Compositor *compositor, GF_VisualManager *vis
 	GF_VisualManager *tmp;
 	u32 i = 0;
 	while ((tmp = (GF_VisualManager *)gf_list_enum(compositor->visuals, &i))) {
-		if (tmp == visual) return 1;
+		if (tmp == visual) return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 void gf_sc_visual_register(GF_Compositor *compositor, GF_VisualManager *visual)
@@ -2765,7 +2765,7 @@ void gf_sc_traverse_subscene_ex(GF_Compositor *compositor, GF_Node *inline_paren
 		gf_sg_get_scene_size_info(in_scene, &w, &h);
 
 	} else {
-		use_pm = 1;
+		use_pm = GF_TRUE;
 		if (gf_node_get_tag(inline_parent)<GF_NODE_RANGE_LAST_VRML) {
 			/*moving from VRML-based to SVG, need negative translation*/
 			flip_coords = -1;
@@ -3295,7 +3295,7 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 	compositor->sel_buffer[compositor->sel_buffer_len]=0;
 	srcp = compositor->sel_buffer;
 	if (compositor->selected_text) gf_free(compositor->selected_text);
-	compositor->selected_text = gf_malloc(sizeof(char)*2*compositor->sel_buffer_len);
+	compositor->selected_text = (u8*)gf_malloc(sizeof(char)*2*compositor->sel_buffer_len);
 	len = gf_utf8_wcstombs((char *) compositor->selected_text, 2*compositor->sel_buffer_len, &srcp);
 	if ((s32)len<0) len = 0;
 	compositor->selected_text[len] = 0;
@@ -3350,7 +3350,7 @@ GF_Err gf_sc_remove_video_listener(GF_Compositor *sc, GF_VideoListener *vl)
 
 Bool gf_sc_use_raw_texture(GF_Compositor *compositor)
 {
-	if (!compositor) return 0;
+	if (!compositor) return GF_FALSE;
 //	if (!compositor->visual->type_3d && !compositor->force_opengl_2d) return 0;
 	return compositor->texture_from_decoder_memory;
 }
@@ -3390,7 +3390,7 @@ void gf_sc_queue_event(GF_Compositor *compositor, GF_Event *evt)
 
 	count = gf_list_count(compositor->event_queue);
 	for (i=0; i<count; i++) {
-		qev = gf_list_get(compositor->event_queue, i);
+		qev = (GF_QueuedEvent*)gf_list_get(compositor->event_queue, i);
 		if (!qev->node && (qev->evt.type==evt->type)) {
 			qev->evt = *evt;
 			gf_mx_v(compositor->evq_mx);
@@ -3411,7 +3411,7 @@ void gf_sc_queue_dom_event(GF_Compositor *compositor, GF_Node *node, GF_DOM_Even
 
 	count = gf_list_count(compositor->event_queue);
 	for (i=0; i<count; i++) {
-		qev = gf_list_get(compositor->event_queue, i);
+		qev = (GF_QueuedEvent*)gf_list_get(compositor->event_queue, i);
 		if ((qev->node==node) && (qev->dom_evt.type==evt->type)) {
 			qev->dom_evt = *evt;
 			gf_mx_v(compositor->evq_mx);
@@ -3433,7 +3433,7 @@ void gf_sc_queue_dom_event_on_target(GF_Compositor *compositor, GF_DOM_Event *ev
 
 	count = gf_list_count(compositor->event_queue);
 	for (i=0; i<count; i++) {
-		qev = gf_list_get(compositor->event_queue, i);
+		qev = (GF_QueuedEvent*)gf_list_get(compositor->event_queue, i);
 		if ((qev->target==target) && (qev->dom_evt.type==evt->type) && (qev->sg==sg) ) {
 			qev->dom_evt = *evt;
 			gf_mx_v(compositor->evq_mx);
@@ -3453,21 +3453,21 @@ static void sc_cleanup_event_queue(GF_List *evq, GF_Node *node, GF_SceneGraph *s
 {
 	u32 i, count = gf_list_count(evq);
 	for (i=0; i<count; i++) {
-		Bool del = 0;
-		GF_QueuedEvent *qev = gf_list_get(evq, i);
+		Bool del = GF_FALSE;
+		GF_QueuedEvent *qev = (GF_QueuedEvent*)gf_list_get(evq, i);
 		if (qev->node) {
 			if (node == qev->node)
-				del = 1;
+				del = GF_TRUE;
 			if (sg && (gf_node_get_graph(qev->node)==sg))
-				del = 1;
+				del = GF_TRUE;
 		}
 		if (qev->sg && (qev->sg==sg))
-			del = 1;
+			del = GF_TRUE;
 		else if (qev->target && (qev->target->ptr_type == GF_DOM_EVENT_TARGET_NODE)) {
 			if (node && ((GF_Node *)qev->target->ptr==node))
-				del = 1;
+				del = GF_TRUE;
 			if (sg && (gf_node_get_graph((GF_Node *)qev->target->ptr)==sg))
-				del = 1;
+				del = GF_TRUE;
 		}
 
 		if (del) {
