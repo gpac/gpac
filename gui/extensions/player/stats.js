@@ -337,7 +337,7 @@ extension.view_stats = function () {
             }
             wnd.http_control.set_value(v);
 
-            wnd.http_text.set_label('HTTP cap ' + Math.round(100 * gpac.http_max_bitrate / 1024 / 1024) / 100 + ' Mbps');
+            wnd.http_text.set_label('HTTP cap ' + Math.round(100 * gpac.http_max_bitrate / 1024 / 1024) / 100 + ' Kbps');
 
         } else {
             wnd.http_control.set_value(100);
@@ -496,7 +496,8 @@ extension.view_stats = function () {
                 var b = gpac.http_bitrate / 1024 / 1024;
                 stat_obj.http_bandwidth = Math.round(100 * b) / 100;
             }
-            stat_obj.buffer = 0;
+//            stat_obj.buffer = 0;
+            stat_obj.buffer = 100000;
             stat_obj.cumulated_bandwidth = 0;
             stat_obj.ntp_diff = 0;
         }
@@ -530,12 +531,11 @@ extension.view_stats = function () {
                     bl = 100 * buf / m.max_buffer;
 
                     if (stat_obj) {
-                        //                        if (stat_obj.buffer < buf) {
-                        //                            stat_obj.buffer = buf;
-                        //                        }
-
-                        stat_obj.buffer += buf;
-                        nb_buff++;
+                        if (buf < stat_obj.buffer ) {
+                            stat_obj.buffer = buf;
+                        }
+                        //stat_obj.buffer += buf;
+                        //nb_buff++;
                     }
                 }
                 else bl = 100;
@@ -551,7 +551,7 @@ extension.view_stats = function () {
             }
 
             if (stat_obj) {
-                stat_obj.bitrate += Math.round(100 * m.avg_bitrate / 1024 / 1024) / 100;
+                stat_obj.bitrate += Math.round(m.avg_bitrate / 1024);
                 stat_obj.cumulated_bandwidth += m.bandwidth_down;
             }
         }
@@ -563,7 +563,7 @@ extension.view_stats = function () {
             }
             if (wnd.s_buf) {
                 if (nb_buff) {
-                    stat_obj.buffer /= nb_buff;
+//                    stat_obj.buffer /= nb_buff;
                 }
                 wnd.s_buf.refresh_serie(this.wnd.stats, 'time', 'buffer', wnd.stats_window, 1.5);
             }

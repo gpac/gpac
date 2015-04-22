@@ -77,9 +77,12 @@ extension = {
                 }
                 return true;
             case GF_EVENT_TIMESHIFT_OVERFLOW:
-                if (this.state == this.GF_STATE_PAUSE) {
+                var msg = '';
+                if ((this.state == this.GF_STATE_PAUSE) || (this.movie_control.mediaSpeed != 1)) {
                     this.set_state(this.GF_STATE_PLAY);
-                    var msg = gw_new_message(null, 'Timeshift Overflow', 'Falling outside of timeshift buffer: resuming playback');
+                    this.set_speed(1);
+
+                    msg = gw_new_message(null, 'Timeshift Overflow', 'Falling outside of timeshift buffer: resuming playback');
                     msg.set_size(380, gwskin.default_icon_height + 2 * gwskin.default_text_font_size);
                     msg.show();
                 }
@@ -397,18 +400,18 @@ extension = {
             }
             gw_background_control(false);
             switch (type) {
-                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
                 case 1:
                     this.extension.set_state(this.extension.GF_STATE_PAUSE);
                     this.extension.set_speed(0);
                     break;
-                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
                 case 2:
                     this.extension.set_state(this.extension.GF_STATE_PLAY);
                     this.extension.movie_control.mediaStartTime = time;
                     this.extension.set_speed(1);
                     break;
-                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
                 default:
                     if (this.extension.state == this.extension.GF_STATE_STOP)
                         this.extension.set_state(this.extension.GF_STATE_PLAY);
@@ -619,8 +622,8 @@ extension = {
                 wnd.exit = null;
             }
         }
-        
-        
+
+
         wnd.on_size = function (width, height) {
             var control_icon_size = gwskin.default_icon_height;
             var children = this.infobar.get_children();
@@ -1005,6 +1008,8 @@ extension = {
                 time_in_tsb = this.root_odm.timeshift_time;
                 if (this.timeshift_depth > time_in_tsb) {
                     pos = 100 * (this.timeshift_depth - time_in_tsb) / this.timeshift_depth;
+                } else if (time_in_tsb) {
+                    pos = 0;
                 }
             }
             this.controler.media_line.set_value(pos);
@@ -1012,7 +1017,7 @@ extension = {
             gwskin.media_clock = (new Date()).getTime() - time_in_tsb * 1000;
 
             if (!time_in_tsb) {
-                this.controler.time.set_label('live');
+                this.controler.time.set_label('');
                 this.controler.time.hide();
                 this.controler.layout();
                 return;
@@ -1026,7 +1031,13 @@ extension = {
             value = time_in_tsb;
 
         } else {
-            if (!this.duration) return;
+            if (!this.duration) {
+                if (this.controler.time.visible) {
+                    this.controler.time.hide();
+                    this.controler.layout();
+                }
+                return;
+            }
 
             this.current_time = value;
             gwskin.media_time = value;
