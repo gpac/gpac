@@ -1049,6 +1049,21 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 				u32 live = scene->obj_clock_at_main_activation + gf_sys_clock() - scene->sys_clock_at_main_activation;
 				res = ((Double) live) / 1000.0;
 				res -= ((Double) now) / 1000.0;
+
+				if (res<0) {
+					GF_Event evt;
+					memset(&evt, 0, sizeof(evt));
+					evt.type = GF_EVENT_TIMESHIFT_UNDERRUN;
+					gf_term_send_event(odm->term, &evt);
+					res=0;
+				} else if (res && res*1000 > scene->timeshift_depth) {
+					GF_Event evt;
+					memset(&evt, 0, sizeof(evt));
+					evt.type = GF_EVENT_TIMESHIFT_OVERFLOW;
+					gf_term_send_event(odm->term, &evt);
+					res=scene->timeshift_depth;
+					res/=1000;
+				}
 			}
 		}
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, res) );
@@ -1413,12 +1428,14 @@ static JSBool SMJS_FUNCTION(gpac_new_storage)
 		count = gf_list_count(gjs->storages);
 		for (i=0; i<count; i++) {
 			GF_Config *a_cfg = gf_list_get(gjs->storages, i);
-			const char *cfg_name = gf_cfg_get_filename(a_cfg);
+			char *cfg_name = gf_cfg_get_filename(a_cfg);
 
 			if (!strstr(cfg_name, szFile)) {
 				storage = a_cfg;
+				gf_free(cfg_name);
 				break;
 			}
+			gf_free(cfg_name);
 		}
 
 		if (!storage) {
