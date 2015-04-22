@@ -34,14 +34,15 @@
 /*all 3D related functions and macro are locate there*/
 #include "visual_manager_3d.h"
 
-//¡k startof ES2.0
+
+//startof ES2.0 specifics
+
 /* number of preprocessor flags for ES2.0 */
 #define GF_GL_NUM_OF_FLAGS			4
 #define GF_GL_NUM_OF_SHADERS		16	//=GF_GL_NUM_OF_FLAGS^2
 #define GF_GL_NUM_OF_VALID_SHADERS	12	//GF_GL_HAS_MAT_2D xor GF_GL_HAS_LIGHT
 
-/* setting preprocessor flags for ES2.0 */
-//¡k maybe name enum?
+/* setting preprocessor flags for ES2.0 shaders */
 enum {
 	GF_GL_IS_RECT = 1,
 	GF_GL_IS_YUV = (1<<1),
@@ -51,7 +52,7 @@ enum {
 	//GF_GL_HAS_FOG = (1<<5),		//Requires Light (variable hasFog, when GF_GL_HAS_LIGHT)
 	//GF_GL_HAS_MAT = (1<<6),		//Requires Light
 };
-//¡endof
+//endof
 
 enum
 {
@@ -249,11 +250,11 @@ struct _visual_manager
 	Fixed fog_density, fog_visibility;
 
 	/*end of GL state to emulate with GLSL*/	
-//¡k startof
-//#ifdef GPAC_USE_OGL_ES2
+
+#ifdef GPAC_USE_GLES2
+//startof ES2.0 elements
 	/* shaders used for shader-only drawing */
 	GF_SHADERID glsl_vertex;
-//	GF_SHADERID glsl_fragment;
 	GF_SHADERID glsl_program;
 
 	/* Storing Compiled Shaders */
@@ -264,10 +265,10 @@ struct _visual_manager
 
 	/* Compilation/Features Flags for dynamic shader */
 	u32 glsl_flags;
-//#endif
-//¡k endof
+//endof
+#endif	//!GPAC_USE_GLES2
 
-#endif
+#endif	//!GPAC_DISABLE_3D
 
 #ifdef GF_SR_USE_DEPTH
 	Fixed depth_vp_position, depth_vp_range;

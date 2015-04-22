@@ -567,19 +567,6 @@ static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 s
 	return shader;
 }
 
-/*¡k prints flags - used for debugging - DELETE */
-static void print_flags(u32 flags){
-	printf("\n printing flags for: %u \n",flags);
-	if(flags & GF_GL_IS_RECT)
-		printf(" GF_GL_IS_RECT (%d) - ", GF_GL_IS_RECT);
-	if(flags & GF_GL_IS_YUV)
-		printf("GF_GL_IS_YUV (%d) - ", GF_GL_IS_YUV);
-	if(flags & GF_GL_HAS_LIGHT)
-		printf("GF_GL_HAS_LIGHT (%d) - ", GF_GL_HAS_LIGHT);
-	if(flags & GF_GL_HAS_MAT_2D)
-		printf("GF_GL_HAS_MAT_2D (%d) - ", GF_GL_HAS_MAT_2D);
-}
-
 static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_type, u32 flags){
 
 	FILE *src = gf_fopen(src_path, "rt");
@@ -664,7 +651,6 @@ static void visual_3d_set_tx_planes(GF_VisualManager *visual){
 			if((i & GF_GL_IS_YUV)||(j==0)){
 				loc = glGetUniformLocation(visual->glsl_programs[i], txname);
 				if (loc == -1) {
-					print_flags(i);
 					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture %s in YUV shader\n", txname));
 					continue;
 				}
@@ -844,7 +830,8 @@ static GLint my_glGetAttribLocation(GF_SHADERID glsl_program, const char *attrib
 	return loc;
 }
 
-//¡k test funtion for checking validity of a shader program
+//¡k The following functions were used for shader testing
+#ifdef _DEBUG
 static void my_glQueryProgram(GF_SHADERID progObj){
 	GLint err_log = -10;
 	glGetProgramiv(progObj, GL_VALIDATE_STATUS, &err_log);
@@ -871,7 +858,6 @@ static void my_glQueryUniform(GF_SHADERID progObj, const char *name, int index){
 	}
 }
 
-//¡k test function for listing all active uniforms
 static void my_glQueryUniforms(GF_SHADERID progObj){
 		
 
@@ -940,7 +926,6 @@ static void my_glQueryUniforms(GF_SHADERID progObj){
 	}
 }
 
-//¡k test function for listing all active attributes
 static void my_glQueryAttributes(GF_SHADERID progObj){
 		
 		GLint maxAttributeLen;
@@ -1003,6 +988,7 @@ static void my_glQueryAttributes(GF_SHADERID progObj){
 			}
 	}
 }
+#endif _DEBUG
 
 /**
  * ¡k
@@ -1088,13 +1074,6 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 
 			glUseProgram(visual->glsl_programs[i]);
 			GL_CHECK_ERR;
-
-			//¡k Lists uniforms and attributes (delete after testing)
-			// use it to test after #defines are set in the shaders
-			/*
-			my_glQueryAttributes(visual->glsl_programs[i]);
-			my_glQueryUniforms(visual->glsl_programs[i]);
-			*/
 		}
 	}else{
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GLSL Vertex Shader not found [ES2.0]\n"));
@@ -2339,10 +2318,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	//visual->glsl_flags = 0;	//I d not remember why we put it here in the first place
 
 	GL_CHECK_ERR
-		printf("\n flags (in draw_mesh_shader_only): %u \n",visual->glsl_flags);
-	//my_glQueryAttributes(visual->glsl_programs[visual->glsl_flags]);
-	//my_glQueryUniforms(visual->glsl_programs[visual->glsl_flags]);
-
 
 	//GL_COLOR_MATERIAL does not exist in GL ES2.0
 	/*
