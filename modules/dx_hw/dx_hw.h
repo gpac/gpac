@@ -90,7 +90,7 @@ typedef HRESULT(WINAPI * DIRECTDRAWCREATEPROC) (GUID *, LPDIRECTDRAW *, IUnknown
 #include "EGL/egl.h"
 #endif
 
-#define EGL_CHECK_ERR	{s32 res = eglGetError(); if (res!=12288) GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("EGL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
+#define EGL_CHECK_ERR	{s32 res = eglGetError(); if (res!=12288) GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("EGL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
 
 typedef struct
 {

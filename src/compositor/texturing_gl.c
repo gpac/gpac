@@ -216,7 +216,7 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 #elif !defined(GPAC_DISABLE_3D) && defined(GPAC_USE_GLES2)
 	//PBO mode: start pushing the texture
 	if (txh->tx_io->pbo_id) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[V3D:GLSL] PBOs are not implemented in GL ES 2.0\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] PBOs are not implemented in GL ES 2.0\n"));
 	}
 	return GF_NOT_SUPPORTED;
 #else
@@ -871,7 +871,7 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 		glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
 #else
 	if (needs_stride)
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[V3D:GLSL] Texture with stride - OpenGL ES2.0 extension \"EXT_unpack_subimage\" is required\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Texture with stride - OpenGL ES2.0 extension \"EXT_unpack_subimage\" is required\n"));
 #endif
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)

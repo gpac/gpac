@@ -807,11 +807,6 @@ static void visual_3d_init_yuv_shaders(GF_VisualManager *visual)
 	}
 }
 
-//¡kstartof custom ES2.0 functions
-/**
- * Prints uniform's value
- */
-
 static GLint my_glGetUniformLocation(GF_SHADERID glsl_program, const char *uniform_name)
 {
 	GLint loc = glGetUniformLocation(glsl_program, uniform_name);
@@ -830,7 +825,7 @@ static GLint my_glGetAttribLocation(GF_SHADERID glsl_program, const char *attrib
 	return loc;
 }
 
-//¡k The following functions were used for shader testing
+//The following functions were used for shader testing [in ES2.0]
 #ifdef _DEBUG
 static void my_glQueryProgram(GF_SHADERID progObj){
 	GLint err_log = -10;
@@ -859,13 +854,6 @@ static void my_glQueryUniform(GF_SHADERID progObj, const char *name, int index){
 }
 
 static void my_glQueryUniforms(GF_SHADERID progObj){
-		
-
-		//loc=0;
-		//glGetProgramiv(visual->glsl_program, GL_ACTIVE_UNIFORMS, &loc);
-		//glGetProgramiv(visual->glsl_program, GL_ACTIVE_ATTRIBUTES, loc);
-		//printf("%d\n",loc);
-
 		GLint maxUniformLen;
 		GLint numUniforms;
 		char *uniformName;
@@ -991,17 +979,15 @@ static void my_glQueryAttributes(GF_SHADERID progObj){
 #endif _DEBUG
 
 /**
- * ¡k
- * OpenGL ES 2.0 Vertex Shader for GL ES 1.1 fixed-function vertex pipeline
- * implements:
+ * OpenGL ES 2.0 Vertex Shader init
+ * implementing:
  * - compute lighting equation for up to eight lights
  * - transform position to clip coords
  * - texture coords transform (max:2)
  * - compute fog factor
  * - user clip plane dot product (v_ucp_factor)
+ * - color key and color matrix 
  *
- * includes chunks of code from OpenGL ES 2.0 Programming Guide [Addison-Wesley]
- * shader_only_mode
 */
 static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 {
@@ -1012,7 +998,7 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	GL_CHECK_ERR
 
 
-	/* ¡k test if programs exist (by using flags 0)
+	/* test if programs exist (by using flags 0)
 	 * TODO this check was introduced due to losing program objects when switching rasterization modes (hit '3' in runtime to recreate issue)
 	 *   the program objects were not deleted though
 	 */
@@ -1076,41 +1062,14 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 			GL_CHECK_ERR;
 		}
 	}else{
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GLSL Vertex Shader not found [ES2.0]\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLSL Vertex Shader not found [ES2.0]\n"));
 	}
 
 	/* Set y,u,v planes (if GF_GL_IS_YUV*/
 	visual_3d_set_tx_planes(visual);
 
-
-	/*
-	printf("OpenGL version: %s \n",glGetString(GL_VERSION));	//¡k DELETE (used for checking ES 2.0 emulator)
-	printf("OpenGL language version: %s \n",glGetString(GL_SHADING_LANGUAGE_VERSION));	//¡k DELETE (used for checking ES 2.0 emulator)
-	printf("OpenGL vendor: %s \n and GL renderer: %s \n",glGetString(GL_VENDOR),glGetString(GL_RENDERER));	//¡k DELETE (used for checking ES 2.0 emulator)
-	printf("OpenGL available extensions: %s \n",glGetString(GL_EXTENSIONS));	//¡k DELETE (used for checking ES 2.0 emulator)
-	*/
-
-
-	//GL_CHECK_ERR;
-	//STARTOF TESTS
-	//Check if shaders are attached and linked
-	//glGetProgramiv(visual->glsl_program, GL_LINK_STATUS, &working);
-	//if(!working)
-	//	return;
-	//glValidateProgram(visual->glsl_program);	//¡k use ONLY for testing - very slow function
-	//glGetProgramiv(visual->glsl_program, GL_VALIDATE_STATUS, &working);	//test
-	//if(!working)
-	//	return;
-	//glGetProgramiv(visual->glsl_program, GL_INFO_LOG_LENGTH, &log_len);	//test
-	//if(log_len > 1){	//¡k prettify ALL error checks
-	//	glGetProgramInfoLog(visual->glsl_program, log_len, NULL, err_log);
-	//	printf("ERROR LOG: %s \n", err_log);
-	//	return;
-	//}
-
-
 }
-//¡k endof
+
 void visual_3d_init_shaders(GF_VisualManager *visual)
 {
 	if (visual->compositor->visual != visual)
@@ -1393,13 +1352,12 @@ void visual_3d_setup(GF_VisualManager *visual)
 	visual_3d_setup_quality(visual);
 
 	glDisable(GL_BLEND);
-	//glDisable(GL_TEXTURE_2D);	//¡k not in ES2.0
 	glDisable(GL_CULL_FACE);
 	visual->has_fog = GF_FALSE;
-	visual->max_lights=GF_MAX_GL_LIGHTS;	//TODOk check this
+	visual->max_lights=GF_MAX_GL_LIGHTS;
 
 #else
-
+	glDisable(GL_TEXTURE_2D);
 	glShadeModel(GL_SMOOTH);
 	glGetIntegerv(GL_MAX_LIGHTS, (GLint*)&visual->max_lights);
 	if (visual->max_lights>GF_MAX_GL_LIGHTS)
@@ -2009,14 +1967,15 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 #if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE)
 
-//¡k Starting of ES2-specific funcs
 static void glLoadMatrixES2(GF_VisualManager *visual, Fixed *mat, Bool isProjection){
 	GLint loc;
 
-	//¡k do we need if(!mat) load identity mx? [TODO]
+#ifdef _DEBUG
+	//do we need if(!mat) load identity mx? [TODO]
 	if(!mat){
-			printf("\n \n \n YES WE DO!  [Error _ file %s line %d ] \n \n \n", __FILE__, __LINE__); 
+			printf("\n \n \n YES we do!  [Error _ file %s line %d ] \n \n \n", __FILE__, __LINE__); 
 	}
+#endif
 
 	if(isProjection==GF_TRUE){
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfProjectionMatrix");
@@ -2029,7 +1988,7 @@ static void glLoadMatrixES2(GF_VisualManager *visual, Fixed *mat, Bool isProject
 	GL_CHECK_ERR
 
 
-	glUniformMatrix4fv(loc, 1, GL_FALSE, mat);	//(location, size, transpose, value) //¡k ATTENTION the transpose matrix when uploading does NOT work in ES 2.0
+	glUniformMatrix4fv(loc, 1, GL_FALSE, mat);
 	GL_CHECK_ERR
 }
 
@@ -2070,7 +2029,7 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 
 	/*
 	 * Equivalent to glLightModel(GL_LIGHTMODEL_TWO_SIDE, GL_TRUE);
-	 * TODO: move to "ES2 visual_3d_setup" (when implemented)
+	 * TODOk: move to "ES2 visual_3d_setup" (when implemented)
 	 */
 	loc = my_glGetUniformLocation(visual->glsl_program, "gfLightTwoSide");
 	if (loc>=0)
@@ -2081,7 +2040,7 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 
 	//only one light for now
 	pt = li->direction;
-	gf_vec_norm(&pt);	//¡k check
+	gf_vec_norm(&pt);
 	vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;
 	//	vals[0] = FIX2FLT(pt.x); vals[1] = FIX2FLT(pt.y); vals[2] = FIX2FLT(pt.z); vals[3] = 0;
 
@@ -2100,10 +2059,10 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 		GF_Vec orig;
 		li = &visual->lights[i];
 
-		//¡k these two lines were added, to update mx according to the light mx
-		if (li->type==3) {
+		if (li->type==3) {	//we have a headlight
 			gf_mx_init(mx);
 		} else {
+			//update mx according to the light mx
 			gf_mx_copy(mx, visual->camera.modelview);
 			gf_mx_add_matrix(&mx, &li->light_mx);
 		}
@@ -2312,10 +2271,8 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	GL_CHECK_ERR
 
-	visual->glsl_program = vsl->glsl_programs[visual->glsl_flags];	//¡k temporary patch
+	visual->glsl_program = vsl->glsl_programs[visual->glsl_flags];	//TODOk this is a temporary patch
 	glUseProgram(visual->compositor->visual->glsl_programs[visual->glsl_flags]);
-
-	//visual->glsl_flags = 0;	//I d not remember why we put it here in the first place
 
 	GL_CHECK_ERR
 
@@ -2362,25 +2319,15 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			if(loc>=0)
 				glUniform1f(loc, FIX2FLT(visual->mat_2d.alpha));
 		}else{	//if it's not YUV handle alpha with blend
-			//glEnable(GL_BLEND);	//¡TODOk: check
+			//glEnable(GL_BLEND);
 			if(visual->mat_2d.alpha == FIX_ONE){
 				if(!tr_state->mesh_num_textures)
 					glEnable(GL_BLEND);
-				visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0); //¡k not ES2.0
+				//visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0); //blank in ES2.0
 			}else{
 				glEnable(GL_BLEND);
-				visual_3d_enable_antialias(visual, 0);	//¡k not ES2.0
+				//visual_3d_enable_antialias(visual, 0);	//blank in ES2.0
 			}
-			//¡k Old code [Delete after testing]
-			/*
-			if(tr_state->mesh_num_textures){
-				glEnable(GL_BLEND);
-				visual_3d_enable_antialias(visual, 0);
-			}else if(visual->mat_2d.alpha == FIX_ONE){
-				glDisable(GL_BLEND);
-				visual_3d_enable_antialias(visual, visual->compositor->antiAlias ? 1 : 0);
-			}
-			*/
 		}
 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
@@ -2425,10 +2372,9 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfShininess");
 		if (loc>=0)
-			glUniform1f(loc, visual->shininess);
-			//¡kcheck glUniform1f(loc, (visual->shininess * 128) );
+			glUniform1f(loc, visual->shininess);	//if this does not work as it is supposed to, try: visual->shininess * 128
 								
-		glDisable(GL_CULL_FACE);	//¡k Enable for performance; if so, check glFrontFace()
+		glDisable(GL_CULL_FACE);	//Enable for performance; if so, check glFrontFace()
 
 	}
 	
@@ -2508,8 +2454,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		GL_CHECK_ERR
 	}
 
-
-	//¡k STARTOF texturing
 	if(tr_state->mesh_num_textures && !mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)){
 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfNumTextures");
@@ -2549,10 +2493,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		GL_CHECK_ERR
 	}
 
-			//¡k ENDof texturing
-
-
-			//this, i do not know
 	if (mesh->mesh_type) {
 		/* before we had	if (mesh->mesh_type==2) glDisable(GL_LINE_SMOOTH);	else glDisable(GL_POINT_SMOOTH);
 		 * but ES2.0 has no consideration for anti-aliased lines
