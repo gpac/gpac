@@ -50,7 +50,7 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 	if (compositor->edited_text)
 		return GF_FALSE;
 	if (compositor->text_selection )
-		return compositor->hit_text ? 1 : GF_FALSE;
+		return compositor->hit_text ? GF_TRUE : GF_FALSE;
 	switch (event->type) {
 	case GF_EVENT_MOUSEMOVE:
 		if (compositor->text_selection && compositor->hit_text)
@@ -100,7 +100,7 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 	signal = final_flush;
 	if ((compositor->focus_text_type==4) && (final_flush==1)) signal = GF_FALSE;
 
-	gf_node_dirty_set(compositor->focus_node, 0, 1);
+	gf_node_dirty_set(compositor->focus_node, 0, GF_TRUE);
 	//(compositor->focus_text_type==2));
 	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 	/*notify compositor that text has been edited, in order to update composite textures*/
@@ -141,7 +141,7 @@ GF_Err gf_sc_paste_text(GF_Compositor *compositor, const char *text)
 	len = strlen(text);
 	if (!len) return GF_OK;
 
-	gf_sc_lock(compositor, 1);
+	gf_sc_lock(compositor, GF_TRUE);
 
 	conv_buf = (u16*)gf_malloc(sizeof(u16)*(len+1));
 	len = gf_utf8_mbstowcs(conv_buf, len, &text);
@@ -150,15 +150,15 @@ GF_Err gf_sc_paste_text(GF_Compositor *compositor, const char *text)
 	if (compositor->sel_buffer_len == compositor->sel_buffer_alloc)
 		compositor->sel_buffer_alloc++;
 
-	compositor->sel_buffer = gf_realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);
+	compositor->sel_buffer = (u16*)gf_realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);
 	memmove(&compositor->sel_buffer[compositor->caret_pos+len], &compositor->sel_buffer[compositor->caret_pos], sizeof(u16)*(compositor->sel_buffer_len-compositor->caret_pos));
 	memcpy(&compositor->sel_buffer[compositor->caret_pos], conv_buf, sizeof(u16)*len);
 	gf_free(conv_buf);
 	compositor->sel_buffer_len += (u32) len;
 	compositor->caret_pos += (u32) len;
 	compositor->sel_buffer[compositor->sel_buffer_len]=0;
-	flush_text_node_edit(compositor, 0);
-	gf_sc_lock(compositor, 0);
+	flush_text_node_edit(compositor, GF_FALSE);
+	gf_sc_lock(compositor, GF_FALSE);
 
 	return GF_OK;
 }
@@ -169,12 +169,12 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 	s32 caret_pos;
 	Bool append;
 #ifndef GPAC_DISABLE_SVG
-	Bool delete_cr = 0;
+	Bool delete_cr = GF_FALSE;
 #endif
 
 	caret_pos = -1;
 
-	append = 0;
+	append = GF_FALSE;
 	switch (cmd_type) {
 	/*load last text chunk*/
 	case 0:
@@ -186,7 +186,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 		delete_cr = 1;
 #endif
 	case 1:
-		if (compositor->dom_text_pos ==0) return 0;
+		if (compositor->dom_text_pos == 0) return GF_FALSE;
 		pos = compositor->dom_text_pos - 1;
 		break;
 	/*load next text chunk*/

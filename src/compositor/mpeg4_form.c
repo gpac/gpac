@@ -234,7 +234,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 		st->bounds = st->clip = gf_rect_center(st->clip.width, st->clip.height);
 	}
 	recompute_form = GF_FALSE;
-	if (gf_node_dirty_get(n)) recompute_form = 1;
+	if (gf_node_dirty_get(n)) recompute_form = GF_TRUE;
 
 #if FORM_CLIPS
 	if ((tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) && !tr_state->for_node) {
@@ -357,7 +357,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 #endif
 	{
 		i=0;
-		while ((cg = gf_list_enum(st->groups, &i))) {
+		while ((cg = (ChildGroup*)gf_list_enum(st->groups, &i))) {
 			parent_node_child_traverse(cg, tr_state);
 		}
 	}

@@ -63,7 +63,7 @@ static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *
 
 	if (visual->compositor->disable_composite_blit) return GF_FALSE;
 
-	if (!ctx->aspect.fill_texture) return 1;
+	if (!ctx->aspect.fill_texture) return GF_TRUE;
 	if (ctx->transform.m[0]<0) return GF_FALSE;
 	if (ctx->transform.m[4]<0) {
 		if (!(ctx->flags & CTX_FLIPED_COORDS)) return GF_FALSE;
@@ -79,11 +79,11 @@ static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *
 	alpha = GF_COL_A(ctx->aspect.fill_color);
 	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
 	if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
-	if (!alpha) return 1;
+	if (!alpha) return GF_TRUE;
 
 	st = (CompositeTextureStack *) gf_node_get_private(visual->offscreen);
 
-	if (!compositor_texture_rectangles(visual, ctx->aspect.fill_texture, &ctx->bi->clip, &ctx->bi->unclip, &src_wnd, &dst_wnd, &use_blit, &has_scale)) return 1;
+	if (!compositor_texture_rectangles(visual, ctx->aspect.fill_texture, &ctx->bi->clip, &ctx->bi->unclip, &src_wnd, &dst_wnd, &use_blit, &has_scale)) return GF_TRUE;
 
 	memset(&video_src, 0, sizeof(GF_VideoSurface));
 	video_src.height = ctx->aspect.fill_texture->height;
@@ -104,7 +104,7 @@ static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *
 	offscreen_dst.video_buffer = st->txh.data;
 
 	gf_stretch_bits(&offscreen_dst, &video_src, &dst_wnd, &src_wnd, alpha, GF_FALSE, col_key, ctx->col_mat);
-	return 1;
+	return GF_TRUE;
 }
 
 static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
@@ -159,7 +159,7 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 		M_CompositeTexture3D*c3d = (M_CompositeTexture3D*)n;
 		if (force_check || gf_node_dirty_get(c3d->background)) {
 			gf_node_traverse(c3d->background, tr_state);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		btop = (GF_Node*)gf_list_get(tr_state->backgrounds, 0);
 		if (btop != c3d->background) {
@@ -167,11 +167,11 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_register(btop, n);
 			c3d->background = btop;
 			gf_node_event_out(n, 5/*"background"*/);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		if (force_check || gf_node_dirty_get(c3d->viewpoint)) {
 			gf_node_traverse(c3d->viewpoint, tr_state);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		btop = (GF_Node*)gf_list_get(tr_state->viewpoints, 0);
 		if (btop != c3d->viewpoint) {
@@ -179,12 +179,12 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_register(btop, n);
 			c3d->viewpoint = btop;
 			gf_node_event_out(n, 8/*"viewpoint"*/);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 
 		if (force_check || gf_node_dirty_get(c3d->fog)) {
 			gf_node_traverse(c3d->fog, tr_state);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		btop = (GF_Node*)gf_list_get(tr_state->fogs, 0);
 		if (btop != c3d->fog) {
@@ -192,12 +192,12 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_register(btop, n);
 			c3d->fog = btop;
 			gf_node_event_out(n, 6/*"fog"*/);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 
 		if (force_check || gf_node_dirty_get(c3d->navigationInfo)) {
 			gf_node_traverse(c3d->navigationInfo, tr_state);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		btop = (GF_Node*)gf_list_get(tr_state->navigations, 0);
 		if (btop != c3d->navigationInfo) {
@@ -205,7 +205,7 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_register(btop, n);
 			c3d->navigationInfo = btop;
 			gf_node_event_out(n, 7/*"navigationInfo"*/);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		return ret;
 	}
@@ -215,7 +215,7 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 		M_CompositeTexture2D *c2d = (M_CompositeTexture2D*)n;
 		if (force_check || gf_node_dirty_get(c2d->background)) {
 			gf_node_traverse(c2d->background, tr_state);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		btop = (GF_Node*)gf_list_get(tr_state->backgrounds, 0);
 		if (btop != c2d->background) {
@@ -223,12 +223,12 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_register(btop, n);
 			c2d->background = btop;
 			gf_node_event_out(n, 5/*"background"*/);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 
 		if (force_check || gf_node_dirty_get(c2d->viewport)) {
 			gf_node_traverse(c2d->viewport, tr_state);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 		btop = (GF_Node*)gf_list_get(tr_state->viewpoints, 0);
 		if (btop != c2d->viewport) {
@@ -236,7 +236,7 @@ static Bool composite_do_bindable(GF_Node *n, GF_TraverseState *tr_state, Bool f
 			gf_node_register(btop, n);
 			c2d->viewport = btop;
 			gf_node_event_out(n, 6/*"viewport"*/);
-			ret = 1;
+			ret = GF_TRUE;
 		}
 
 		return ret;
