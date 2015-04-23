@@ -501,10 +501,14 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 	GLint blen = 0;
 	GLsizei slen = 0;
 	s32 len;
+	GLint is_compiled=0;
 	if (!source || !shader_id) return 0;
 	len = (u32) strlen(source);
 	glShaderSource(shader_id, 1, &source, &len);
 	glCompileShader(shader_id);
+
+	glGetShaderiv(shader_id, GL_COMPILE_STATUS, &is_compiled);
+	if (is_compiled == GL_TRUE) return GF_TRUE;
 
 	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
 	if (blen > 1) {
