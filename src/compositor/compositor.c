@@ -2321,7 +2321,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	//first update all natural textures to figure out timing
 	compositor->frame_delay = 0;
 	compositor->ms_until_next_frame = GF_INT_MAX;
-	frame_duration = (u32) -1;
+	frame_duration = compositor->frame_duration;
 
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock();
@@ -2345,8 +2345,6 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 			all_tx_done=0;
 		}
 	}
-	if (frame_duration == (u32) -1)
-		frame_duration = compositor->frame_duration;
 
 	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures
 	//forced a relayout - do it right away
