@@ -371,7 +371,7 @@ static void codec_update_stats(GF_Codec *codec, u32 dataLength, u64 dec_time, u3
 	if (dec_time>codec->max_dec_time) codec->max_dec_time = (u32) dec_time;
 
 
-	if (DTS < codec->min_frame_dur + codec->last_unit_dts ) {
+	if (DTS - codec->last_unit_dts < codec->min_frame_dur) {
 		//might happen with some AVI with ffmpeg ...
 		if (DTS > codec->last_unit_dts)
 			codec->min_frame_dur = DTS - codec->last_unit_dts;
