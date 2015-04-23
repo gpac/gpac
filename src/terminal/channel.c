@@ -339,8 +339,6 @@ static Bool gf_es_needs_buffering(GF_Channel *ch, u32 ForRebuffering)
 		/*data timeout (no data sent)*/
 		if (now > ch->last_au_time + ch->clock->data_timeout) {
 			gf_term_message(ch->odm->term, ch->service->url, "Data timeout - aborting buffering", GF_OK);
-			ch->MinBuffer = ch->MaxBuffer = 0;
-			ch->au_duration = 0;
 			gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 			return 0;
 		} else {
