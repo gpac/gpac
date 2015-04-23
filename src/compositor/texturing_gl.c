@@ -1416,7 +1416,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		GL_CHECK_ERR
 #if !defined(GPAC_USE_GLES2)
 		glEnable(txh->tx_io->gl_type);
-#endif
+
 		loc = glGetUniformLocation(active_shader, "width");
 		if (loc >=0) {
 			GLfloat w = (GLfloat) txh->width;
@@ -1429,7 +1429,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 			glUniform1f(loc, h);
 		}
 		GL_CHECK_ERR
-
+#endif
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
 
