@@ -8,7 +8,6 @@
 //NOTE: if there is a #version directive (e.g. #version 100), it must occur before anything else in the program (including other directives)
 */
 
-
 //For other GL versions compatibility
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 	precision highp float;	//Desktop (or ES2.0 supporting highp)
@@ -40,71 +39,73 @@ struct gfLight{
 	vec4 direction;
 	vec3 attenuation;
 	vec4 color;
-	float ambientIntensity;
-	float intensity;	//Diffuse
-	float beamWidth;
+	float ambientIntensity;	//it is not used - we calculate it inside the shader
+	float intensity;
+	float beamWidth;	//it is not used - we calculate it inside the shader
 	float cutOffAngle;
 };
 
 //Attributes
-	attribute vec4 gfVertex;
-	attribute vec3 gfNormal;
-	attribute vec4 gfMultiTexCoord;
-	attribute vec4 gfMeshColor;
+attribute vec4 gfVertex;
+attribute vec3 gfNormal;
+attribute vec4 gfMultiTexCoord;
+attribute vec4 gfMeshColor;
+
+//Generic uniforms
+uniform gfLight lights[LIGHTS_MAX];
+uniform int gfNumLights;
+uniform int gfNumTextures;
+uniform bool hasMeshColor;	//MESH_HAS_COLOR replaces the diffuse colour value of the material
+
+//Fog
+uniform bool gfFogEnabled; 
+uniform vec3 gfFogColor; 
+uniform float gfFogDensity; 
+uniform int gfFogType; 
+uniform float gfFogVisibility; 
 	
-//Fog Uniforms
-	uniform bool gfFogEnabled; 
-	uniform vec3 gfFogColor; 
-	uniform float gfFogDensity; 
-	uniform int gfFogType; 
-	uniform float gfFogVisibility; 
+//Material Properties	-	used in fragment shader
+/*
+uniform vec4 gfAmbientColor;
+uniform vec4 gfDiffuseColor; 
+uniform vec4 gfSpecularColor; 
+uniform vec4 gfEmissionColor;
+uniform float gfShininess;
+*/
+//part 2
+/*
+uniform vec4 gfLightDiffuse; 
+uniform vec4 gfLightAmbient; 
+uniform vec4 gfLightPosition; 
+uniform vec4 gfLightAmbiant;
+*/
+
+//Matrices
+uniform mat4 gfModelViewMatrix;
+uniform mat4 gfProjectionMatrix;
+uniform mat4 gfNormalMatrix;
+uniform mat4 gfTextureMatrix;
+
+//Clipping
+uniform bool hasClip;
+uniform vec4 clipPlane[CLIPS_MAX];	//we can put these two in a struct
+uniform bool clipActive[CLIPS_MAX];
+
+//Varyings
+varying vec3 n;		//normal
+varying vec4 gfEye;	//camera
+varying vec2 TexCoord;
+varying float clipDistance[CLIPS_MAX];
+varying vec3 lightVector[8];
+varying vec3 halfVector[8];
+varying float gfFogFactor;
 	
-//Material Properties	
-	uniform vec4 gfAmbientColor;
-	uniform vec4 gfDiffuseColor; 
-	uniform vec4 gfSpecularColor; 
-	uniform vec4 gfEmissionColor;
-	uniform float gfShininess;
+//testing material
+varying vec4 m_color;
 	
 
-	uniform vec4 gfLightDiffuse; 
-	uniform vec4 gfLightAmbient; 
-	uniform int gfNumTextures;
-	uniform mat4 gfModelViewMatrix;
-	uniform mat4 gfProjectionMatrix; 
-	uniform mat4 gfNormalMatrix; 
-	uniform int gfNumLights;
-    uniform vec4 gfLightPosition; 
-    uniform vec4 gfLightAmbiant;
-	uniform mat4 gfTextureMatrix;
-	uniform gfLight lights[LIGHTS_MAX];
-	uniform vec4 clipPlane[CLIPS_MAX];	//we can put these two in a struct
-	uniform bool clipActive[CLIPS_MAX];
-	uniform bool hasClip;
-	uniform bool hasMeshColor;	//MESH_HAS_COLOR replaces the diffuse colour value of the material
-	uniform bool enableLights;
-
-	varying vec3 n;
-	varying vec4 gfEye;
-	//varying vec3 lightVector;
-	//varying vec3 halfVector;
-	varying vec2 TexCoord;
-	varying float clipDistance[CLIPS_MAX];
-	varying vec3 lightVector[8];
-	varying vec3 halfVector[8];
-	varying float gfFogFactor;
-	
-	//testing material
-	varying vec4 m_ambientC;
-	varying vec4 m_diffuseC;
-	varying vec4 m_specularC;
-	varying vec4 m_emissionC;
-	varying float m_shininess;	//a.ka. specular exponent
-	varying vec4 m_color;
-//+ uniform bool hasMeshColour;
-	
-	
-float fog() {
+float fog()
+{
 
 	float fog, eyeDist = length(gfEye-gfVertex);
 
@@ -120,39 +121,26 @@ float fog() {
 }
 	
 	
+void main(void)
+{
+
+	gfEye = gfModelViewMatrix * gfVertex;
 	
-	
-	
-	
-	
-	void main(void)
-	{
-	
-		gfEye = gfModelViewMatrix * gfVertex;
-	
-		n = normalize( vec3(gfNormalMatrix * vec4(gfNormal, 0.0)) );
-		//alternative to normal
-		/*
-		mat3 normM;
-		normM[0] = gfNormalMatrix[0].xyz;
-		normM[1] = gfNormalMatrix[1].xyz;
-		normM[2] = gfNormalMatrix[2].xyz;
-		n = normM * gfNormal;
-		n = normalize(n);
-		*/
-		
-		if(hasMeshColor){
-			m_color = gfMeshColor;	//we use the m_color as a container for fragment parsing
-		}
+	n = normalize( vec3(gfNormalMatrix * vec4(gfNormal, 0.0)) );
+
+	if(hasMeshColor){
+		m_color = gfMeshColor;	//we use the m_color as a container for fragment parsing
+	}
 		
 	if (gfNumLights > 0) {
 		for(int i=0; i<LIGHTS_MAX; i++){
+		
 			if(i>=gfNumLights) break;
 
 			if ( lights[i].type == L_SPOT || lights[i].type == L_POINT ) {
 				lightVector[i] = lights[i].position.xyz - gfEye.xyz;	//do NOT do it here (dunno know why)
 			} else {
-			//if it is a directional light, position SHOULD indicate direction (modified implementation - check before commiting)
+				//if it is a directional light, position SHOULD indicate direction (modified implementation - check before commiting)
 				lightVector[i] = lights[i].direction.xyz;
 			}
 			halfVector[i] = lightVector[i] + gfEye.xyz; 
