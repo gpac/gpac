@@ -38,13 +38,9 @@
 #define SC_DEF_WIDTH	320
 #define SC_DEF_HEIGHT	240
 
-
-void gf_sc_simulation_tick(GF_Compositor *compositor);
-
-
 void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Forcing frame redraw state: %d\n", state));
+//	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Forcing frame redraw state: %d\n", state));
 	compositor->frame_draw_type = state;
 	if (state==GF_SC_DRAW_FLUSH)
 		compositor->skip_flush = 2;
@@ -228,7 +224,7 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 {
 	if (no_flush)
 		compositor->skip_flush=1;
-	gf_sc_simulation_tick(compositor);
+	gf_sc_render_frame(compositor);
 
 	if (ms_till_next) {
 		if ( compositor->ms_until_next_frame == GF_INT_MAX)
@@ -496,7 +492,7 @@ static u32 gf_sc_proc(void *par)
 	compositor->video_th_state = GF_COMPOSITOR_THREAD_RUN;
 	while (compositor->video_th_state == GF_COMPOSITOR_THREAD_RUN) {
 		//simulation tick is self-regulating. Call it regardless of the visibility status
-		gf_sc_simulation_tick(compositor);
+		gf_sc_render_frame(compositor);
 	}
 
 #ifndef GPAC_DISABLE_3D
@@ -2224,7 +2220,7 @@ void gf_sc_flush_video(GF_Compositor *compositor)
 	gf_sc_lock(compositor, 1);
 }
 
-void gf_sc_simulation_tick(GF_Compositor *compositor)
+void gf_sc_render_frame(GF_Compositor *compositor)
 {
 #ifndef GPAC_DISABLE_SCENEGRAPH
 	GF_SceneGraph *sg;
@@ -2238,6 +2234,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	/*lock compositor for the whole cycle*/
 	gf_sc_lock(compositor, 1);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Entering render_frame \n"));
 
 	in_time = gf_sys_clock();
 
@@ -2324,7 +2321,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	//first update all natural textures to figure out timing
 	compositor->frame_delay = 0;
 	compositor->ms_until_next_frame = GF_INT_MAX;
-	frame_duration = compositor->frame_duration;
+	frame_duration = (u32) -1;
 
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock();
@@ -2348,6 +2345,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			all_tx_done=0;
 		}
 	}
+	if (frame_duration == (u32) -1)
+		frame_duration = compositor->frame_duration;
 
 	//it may happen that we have a reconfigure request at this stage, especially if updating one of the textures
 	//forced a relayout - do it right away
@@ -2649,16 +2648,19 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			return;
 		}
 
-		compositor->ms_until_next_frame = MIN(compositor->ms_until_next_frame, (s32) (2*frame_duration) );
+		compositor->ms_until_next_frame = MIN(compositor->ms_until_next_frame, (s32) frame_duration );
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Next frame due in %d ms\n", compositor->ms_until_next_frame));
 		if (compositor->ms_until_next_frame > 2) {
-			u32 diff=0;
+			u64 start = gf_sys_clock_high_res();
+			u64 diff=0;
+			u64 wait_for = 1000 * (u64) compositor->ms_until_next_frame;
 			while (! compositor->msg_type && ! compositor->video_frame_pending) {
 				gf_sleep(1);
-				diff = gf_sys_clock() - in_time;
-				if (diff >= (u32) compositor->ms_until_next_frame)
+				diff = gf_sys_clock_high_res() - start;
+				if (diff >= wait_for)
 					break;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor slept %d ms until next frame due in %d ms\n", diff, compositor->ms_until_next_frame));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Compositor slept %d ms until next frame (msg type %d - frame pending %d)\n", diff/1000, compositor->msg_type, compositor->video_frame_pending));
 		}
 		return;
 	}

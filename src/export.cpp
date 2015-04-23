@@ -1828,7 +1828,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_fps) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_screen_buffer) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_release_screen_buffer) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sc_simulation_tick) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_render_frame) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_reset_graphics) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_pick_node) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_viewpoint) )
