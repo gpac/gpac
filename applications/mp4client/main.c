@@ -393,11 +393,11 @@ static void UpdateRTInfo(const char *legend)
 		char szMsg[1024];
 
 		if (rti.total_cpu_usage && (bench_mode<2) ) {
-			sprintf(szMsg, "FPS %d CPU %2d (%02d) Mem %d kB",
-			        (u32) gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024));
+			sprintf(szMsg, "FPS %02.02f CPU %2d (%02d) Mem %d kB",
+			        gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024));
 		} else {
-			sprintf(szMsg, "FPS %d CPU %02d Mem %d kB",
-			        (u32) gf_term_get_framerate(term, 0), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
+			sprintf(szMsg, "FPS %02.02f CPU %02d Mem %d kB",
+			        gf_term_get_framerate(term, 0), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 		}
 
 		if (display_rti==2) {
