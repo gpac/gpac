@@ -590,9 +590,22 @@ static void script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
 static JSBool SMJS_FUNCTION(JSPrint)
 {
 	SMJS_ARGS
+	if (!argc) return JS_FALSE;
+
 	if (JSVAL_IS_STRING(argv[0])) {
 		char *str = SMJS_CHARS(c, argv[0]);
 		_ScriptMessage(c, str);
+		SMJS_FREE(c, str);
+	}
+	if (JSVAL_IS_INT(argv[0]) && (argc>1) && JSVAL_IS_STRING(argv[1]) ) {
+		u32 level = JSVAL_TO_INT(argv[0]);
+		char *str = SMJS_CHARS(c, argv[1]);
+		if (level > GF_LOG_DEBUG) level = GF_LOG_DEBUG;
+		if (str[0] == '[') {
+			GF_LOG(level, GF_LOG_CONSOLE, ("%s\n", str));
+		} else {
+			GF_LOG(level, GF_LOG_CONSOLE, ("[JS] %s\n", str));
+		}
 		SMJS_FREE(c, str);
 	}
 	return JS_TRUE;

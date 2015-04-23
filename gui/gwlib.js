@@ -7,20 +7,14 @@
 
 /*log function*/
 function gwlog(lev, str) {
-    if (lev <= gw_log_level) {
-        if (str.charAt(0) != '[') {
-            alert('[GUI] ' + str);
-        } else {
-            alert(str);
-        }
-    }
+    alert(lev, str);
 }
 
 /*log levels*/
-l_err = 0;
-l_war = 1;
-l_inf = 2;
-l_deb = 3;
+l_err = 1;
+l_war = 2;
+l_inf = 3;
+l_deb = 4;
 
 /*default log level*/
 gw_log_level = l_inf;
