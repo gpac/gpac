@@ -532,7 +532,7 @@ u32 gf_dm_get_data_rate(GF_DownloadManager *dm);
  *
  *Gets the cumultated bitrate in of all active sessions.
  *\param dm the download manager object
- *\return the cumulated rate in bits per sec. If 0, HTTP rate is not limited
+ *\return the cumulated rate in bits per sec.
  */
 u32 gf_dm_get_global_rate(GF_DownloadManager *dm);
 
