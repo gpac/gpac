@@ -7,8 +7,9 @@
  //NOTE: if there is a #version directive (e.g. #version 100), it must occur before anything else in the program (including other directives)
  #version 100	//it is set the same time as the flags
 */
- //For other GL versions compatibility
- #ifdef GL_FRAGMENT_PRECISION_HIGH
+
+//For other GL versions compatibility
+#ifdef GL_FRAGMENT_PRECISION_HIGH
 	precision highp float;	//Desktop (or ES2.0 supporting highp)
 #elif GL_ES
 	precision mediump float;	//Default
@@ -32,66 +33,65 @@
 #define CLIPS_MAX 		8
 
 //Light Structure
-	struct gfLight{
-		int type;
-		vec4 position;
-		vec4 direction;
-		vec3 attenuation;
-		vec4 color;
-		float ambientIntensity;
-		float intensity;
-		float beamWidth;
-		float cutOffAngle;
-	};
+struct gfLight{
+	int type;
+	vec4 position;
+	vec4 direction;
+	vec3 attenuation;
+	vec4 color;
+	float ambientIntensity;	//it is not used - we calculate it inside the shader
+	float intensity;
+	float beamWidth;	//it is not used - we calculate it inside the shader
+	float cutOffAngle;
+};
 
-//Fog
-	uniform bool gfFogEnabled; 
-	uniform vec3 gfFogColor;
-
-//Material Properties	
-	uniform vec4 gfAmbientColor;
-	uniform vec4 gfDiffuseColor; 
-	uniform vec4 gfSpecularColor; 
-	uniform vec4 gfEmissionColor;
-	uniform float gfShininess;
-
-//Color Matrix
-	uniform mat4 gfColorMatrix;
-	uniform bool hasColorMatrix;
-	uniform vec4 gfTranslationVector;
-	
-//Color Key
-	uniform vec3 gfKeyColor;
-	uniform float gfKeyAlpha;
-	uniform float gfKeyLow;
-	uniform float gfKeyHigh;
-	uniform bool hasColorKey;
-	
-
+//Generic (Scene) Uniforms
 uniform int gfNumLights;
 uniform bool gfLightTwoSide;
-uniform vec4 gfLightPosition; 
-uniform vec4 gfLightDiffuse;
-uniform vec4 gfLightAmbient; 
-uniform vec4 gfLightSpecular;
 uniform int gfNumTextures;
 uniform gfLight lights[LIGHTS_MAX];
 uniform bool hasClip;
 uniform bool hasMeshColor;
-uniform bool enableLights;
 
+//Material and Lighting Properties	
+uniform vec4 gfAmbientColor;
+uniform vec4 gfDiffuseColor; 
+uniform vec4 gfSpecularColor; 
+uniform vec4 gfEmissionColor;
+uniform float gfShininess;	//a.k.a. specular exponent
+uniform vec4 gfLightDiffuse;
+uniform vec4 gfLightAmbient; 
+uniform vec4 gfLightSpecular;
+
+//Fog
+uniform bool gfFogEnabled; 
+uniform vec3 gfFogColor;
+
+//Color Matrix
+uniform mat4 gfColorMatrix;
+uniform bool hasColorMatrix;
+uniform vec4 gfTranslationVector;
+	
+//Color Key
+uniform vec3 gfKeyColor;
+uniform float gfKeyAlpha;
+uniform float gfKeyLow;
+uniform float gfKeyHigh;
+uniform bool hasColorKey;
+
+//Texture samplers
 uniform sampler2D y_plane;
 uniform sampler2D u_plane;
 uniform sampler2D v_plane;
 
-uniform float width;
-uniform float height;
+//Texture other
 uniform float alpha;
 const vec3 offset = vec3(-0.0625, -0.5, -0.5);
 const vec3 R_mul = vec3(1.164,  0.000,  1.596);
 const vec3 G_mul = vec3(1.164, -0.391, -0.813);
 const vec3 B_mul = vec3(1.164,  2.018,  0.000);
 
+//Varyings
 varying vec3 n;
 varying vec4 gfEye;
 varying vec2 TexCoord;
@@ -101,13 +101,9 @@ varying float clipDistance[CLIPS_MAX];
 varying float gfFogFactor;
 
 //testing material
-varying vec4 m_ambientC;
-varying vec4 m_diffuseC;
-varying vec4 m_specularC;
-varying vec4 m_emissionC;
-varying float m_shininess;	//a.ka. specular exponent
 varying vec4 m_color;
 
+//constants
 const float zero_float = 0.0;
 const float one_float = 1.0;
 
@@ -116,8 +112,10 @@ vec4 doLighting(int i){
 
 	vec4 lightColor = vec4(zero_float, zero_float, zero_float, zero_float);
 	float att = zero_float;
+
 	vec3 lightVnorm = normalize(lightVector[i]);
 	vec3 normal = normalize(n);
+
 	if(gfLightTwoSide && (!gl_FrontFacing)){//light back face
 		//originally: normal *=-1; -> Not compliant with Shading Language v1.0
 		normal *= vec3(-1.0, -1.0, -1.0);
@@ -127,7 +125,6 @@ vec4 doLighting(int i){
 	float half_cos = dot(normal, normalize(halfVector[i]));
 
 	if(lights[i].type == 2){	//we have a point
-		//vec3 lightDirection = vec3(lights[i].position-gfEye);
 		float distance = length(lightVector[i]);	
 		att = 1.0 / (lights[i].attenuation.x + lights[i].attenuation.y * distance + lights[i].attenuation.z * distance * distance);
 
@@ -171,24 +168,19 @@ vec4 doLighting(int i){
 	return vec4(zero_float);
 }
 
-void main() {
-	//texturing vars
+
+void main()
+{
+	int i;
 	vec2 texc;
 	vec3 yuv, rgb;
-	//endof
-
-	//lighting
-	int i;
-	vec3 attemp;
-	float distance = zero_float;
-	vec4 lightColors[8];
 	vec4 fragColor = vec4(0.0, 0.0, 0.0, 0.0);
 	
 	if(hasMeshColor){	//
 		fragColor = m_color;
 	}else if(gfNumLights==0){
 	//is material2D => no lights - only colour (stored in gfEmissionColor)
-		/* Normally there should only be material 2d here
+		/* Normally here there should be only the material 2D
 		 * BUT we might have a case of normal material with no lights
 		 * we treat it the same way
 		 */
@@ -222,7 +214,6 @@ void main() {
 	fragColor = clamp(fragColor, zero_float, one_float);
 	
 	if(gfNumTextures>0){	//currently supporting 1 texture
-	//ifndef GF_GL_IS_RECT
 #ifdef GF_GL_IS_YUV
 			texc = TexCoord.st;
 			yuv.x = texture2D(y_plane, texc).r;
@@ -246,11 +237,11 @@ void main() {
 #endif
 
 #ifdef GF_GL_HAS_MAT_2D	//we have mat 2 + texture
-	if(gfEmissionColor.a > 0.0 && gfEmissionColor.a <1.0){
-		fragColor *= gfEmissionColor;
-	}else if(fragColor.rgb == vec3(0.0, 0.0, 0.0)){
-		fragColor.rgb = gfEmissionColor.rgb;
-	}
+		if(gfEmissionColor.a > 0.0 && gfEmissionColor.a <1.0){
+			fragColor *= gfEmissionColor;
+		}else if(fragColor.rgb == vec3(0.0, 0.0, 0.0)){
+			fragColor.rgb = gfEmissionColor.rgb;
+		}
 #endif
 	}
 	
@@ -259,7 +250,6 @@ void main() {
 		if(gfTranslationVector != vec4(0.0, 0.0, 0.0, 0.0))
 			fragColor += gfTranslationVector;
 		fragColor = clamp(fragColor, zero_float, one_float);
-		
 	}
 	
 	if(hasColorKey){
@@ -277,7 +267,6 @@ void main() {
 			fragColor.a = (mean-gfKeyLow) * gfKeyAlpha / (gfKeyHigh - gfKeyLow);
 		}
 	}
-	
 	
 	if(gfFogEnabled)
 		fragColor = fragColor * gfFogFactor + vec4(gfFogColor, zero_float) * (one_float - gfFogFactor);
