@@ -465,6 +465,7 @@ extension = {
                 this.extension.set_state(this.extension.GF_STATE_TRICK);
                 if (this.extension.movie_control.mediaSpeed > 0) {
                     this.extension.set_speed(-1.0);
+                    this.extension.controler.layout();
                 } else {
                     this.extension.set_speed(2 * this.extension.movie_control.mediaSpeed);
                 }
@@ -768,7 +769,7 @@ extension = {
                     if (this.loop) this.loop.show();
                     if (this.stop) this.stop.show();
                 }
-                else if (this.extension.movie_control.mediaStopTime < 0) {
+                else if ((this.extension.movie_control.mediaStopTime < 0) || (this.extension.movie_control.mediaSpeed < 0)) {
                     if (this.forward) this.forward.show();
                 } else if (!is_over) {
                     if (this.forward) this.forward.show();

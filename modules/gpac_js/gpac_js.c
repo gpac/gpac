@@ -252,11 +252,11 @@ case -24: //"http_max_bitrate"
 	break;
 
 case -25: //"http_bitrate"
-	*vp = INT_TO_JSVAL( gf_dm_get_global_rate(term->downloader));
+	*vp = INT_TO_JSVAL( gf_dm_get_global_rate(term->downloader) / 1000);
 	break;
 
 case -26: //"fps"
-	*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, gf_sc_get_fps(term->compositor, 0) ) );
+	*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, gf_term_get_framerate(term, 0) ) );
 	break;
 
 case -27: //"cpu_load" || "cpu"
@@ -995,7 +995,7 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		com.base.command_type = GF_NET_GET_STATS;
 		com.base.on_channel = gf_list_get(odm->channels, 0);
 		gf_term_service_command(odm->net_service, &com);
-		*vp = INT_TO_JSVAL(com.net_stats.bw_down);
+		*vp = INT_TO_JSVAL(com.net_stats.bw_down/1000);
 	}
 	break;
 	case -38:
