@@ -442,9 +442,9 @@ gwskin.tooltip_exec = function (obj, show) {
     
     if (!gwskin.tooltip_wnd) {
         wnd = gw_new_window(null, true, true, 'tooltip', true);
+        wnd.label = '';
         gwskin.tooltip_wnd = wnd;
         wnd.txt = gw_new_text(gwskin.tooltip_wnd, '');
-        wnd.label = '';
         wnd.on_display_size = function (w, h) {
             width = this.label.length * gwskin.default_text_font_size;
             this.set_size(width, 2 * gwskin.default_text_font_size);
