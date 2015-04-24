@@ -1883,6 +1883,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_process_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_reset_parsers) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_reset_parsers_for_program) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_es_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_set_pes_framing) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_stream_name) )
