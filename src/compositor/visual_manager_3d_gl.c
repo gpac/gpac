@@ -582,16 +582,10 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	defs = (char *)gf_malloc(sizeof(char));
 	defs[0] = '\0';	//We need this for strcat to work
 	
-	if(1){//test
+	if(1){
 		str_size += strlen("#version 100 \n");
 		defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
 		error = strcat(defs,"#version 100 \n");
-	}
-
-	if(flags & GF_GL_IS_RECT){
-		str_size += strlen("#define GF_GL_IS_RECT \n");
-		defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
-		error = strcat(defs,"#define GF_GL_IS_RECT \n");
 	}
 
 	if(flags & GF_GL_IS_YUV){
@@ -1280,7 +1274,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 static void visual_3d_setup_quality(GF_VisualManager *visual)
 {
-#ifndef GPAC_USE_GLES2
+#ifndef GPAC_USE_GLES2	//TODOk check for ES2.0
 
 	if (visual->compositor->high_speed) {
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
@@ -1346,8 +1340,9 @@ void visual_3d_setup(GF_VisualManager *visual)
 
 #ifdef GPAC_USE_GLES2
 
-	//TODOk - set max lights
-	//TODOk - set max clips
+	//NOTE: For ES2 we set the "LightModel: two-side" pseudo-property in the visual_3d_set_lights_ES2 function
+
+	//TODOk - set max lights and max clips
 
 	visual_3d_setup_quality(visual);
 
@@ -1355,6 +1350,7 @@ void visual_3d_setup(GF_VisualManager *visual)
 	glDisable(GL_CULL_FACE);
 	visual->has_fog = GF_FALSE;
 	visual->max_lights=GF_MAX_GL_LIGHTS;
+	visual->max_clips=GF_MAX_GL_CLIPS;
 
 #else
 	glDisable(GL_TEXTURE_2D);
@@ -2008,15 +2004,16 @@ static void visual_3d_update_matrices_ES2(GF_TraverseState *tr_state){
 
 /**
  * Simulating visual_3d_set_* functions
- *
+ * - visual_3d_set_lights_ES2
+ * - visual_3d_set_fog_ES2
+ * - visual_3d_set_clippers_ES2
  */
 static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 
 	u32 i;
 	GF_LightInfo *li;
 	GF_Vec pt;
-	Float ambientIntensity, intensity;
-	Float vals[4];
+	Float ambientIntensity, intensity, vals[4];
 	GLint loc;
 	GF_Matrix mx;
 	GF_VisualManager *visual = tr_state->visual;
