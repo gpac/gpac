@@ -1395,19 +1395,13 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 #ifndef GPAC_USE_GLES1X
 	if (txh->tx_io->yuv_shader) {
 		GLint loc;
-		Bool is_rect = (txh->tx_io->flags & TX_IS_RECT) ? 1 : 0;
 		u32 active_shader;	//stores current shader (GLES2.0 or the old stuff)
 
 		if(compositor->shader_only_mode){	//ES2.0
 			flags |= GF_GL_IS_YUV;
-			if(is_rect==GF_TRUE){
-				flags |= GF_GL_IS_RECT;
-			}else{
-				flags &= ~GF_GL_IS_RECT;
-			}
 			active_shader = visual->glsl_programs[flags];	//Set active
 		}else{	//the old stuff
-			//Bool is_rect = txh->tx_io->flags & TX_IS_RECT;
+			Bool is_rect = txh->tx_io->flags & TX_IS_RECT;
 			visual->current_texture_glsl_program = is_rect ? visual->yuv_rect_glsl_program : visual->yuv_glsl_program;
 			active_shader = visual->current_texture_glsl_program;
 		}
@@ -1439,9 +1433,6 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
 
-		if(!compositor->shader_only_mode)
-			tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
-
 		GL_CHECK_ERR
 		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
 #ifndef GPAC_USE_GLES2
@@ -1451,13 +1442,8 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 #endif
 	{
 		if(compositor->shader_only_mode){	//ES2.0
-			Bool is_rect = (txh->tx_io->flags & TX_IS_RECT) ? 1 : 0;
 			flags &= ~GF_GL_IS_YUV;	//its not YUV
-			if(is_rect==GF_TRUE){
-				flags |= GF_GL_IS_RECT;
-			}else{
-				flags &= ~GF_GL_IS_RECT;
-			}
+
 			glUseProgram(visual->glsl_programs[flags]);
 			GL_CHECK_ERR
 

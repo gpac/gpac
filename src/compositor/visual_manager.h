@@ -38,16 +38,16 @@
 //startof ES2.0 specifics
 
 /* number of preprocessor flags for ES2.0 */
-#define GF_GL_NUM_OF_FLAGS			4
-#define GF_GL_NUM_OF_SHADERS		16	//=GF_GL_NUM_OF_FLAGS^2
-#define GF_GL_NUM_OF_VALID_SHADERS	12	//GF_GL_HAS_MAT_2D xor GF_GL_HAS_LIGHT
+#define GF_GL_NUM_OF_FLAGS			3
+#define GF_GL_NUM_OF_SHADERS		8	//=2^GF_GL_NUM_OF_FLAGS
+#define GF_GL_NUM_OF_VALID_SHADERS	6	//GF_GL_HAS_MAT_2D xor GF_GL_HAS_LIGHT
 
 /* setting preprocessor flags for ES2.0 shaders */
 enum {
-	GF_GL_IS_RECT = 1,
-	GF_GL_IS_YUV = (1<<1),
-	GF_GL_HAS_MAT_2D = (1<<2),	//Excludes Light
-	GF_GL_HAS_LIGHT = (1<<3),
+	GF_GL_IS_YUV = 1,
+	GF_GL_HAS_MAT_2D = (1<<1),	//Excludes Light
+	GF_GL_HAS_LIGHT = (1<<2),
+	//GF_GL_IS_RECT = (1<<3),	//ES2 handles all 2D textures the same
 	//GF_GL_HAS_CLIP = (1<<4),	//moved to variable hasClip
 	//GF_GL_HAS_FOG = (1<<5),		//Requires Light (variable hasFog, when GF_GL_HAS_LIGHT)
 	//GF_GL_HAS_MAT = (1<<6),		//Requires Light
