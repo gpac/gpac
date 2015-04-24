@@ -961,6 +961,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			gf_es_receive_sl_packet(serv, ch, payload, payload_size, header, reception_status);
 			return;
 		} else {
+			Bool discontinuity = (hdr.m2ts_pcr==2) ? GF_TRUE : GF_FALSE;
 			u32 ck;
 			u32 OCR_TS;
 			s32 pcr_diff, pcr_pcrprev_diff;
@@ -975,13 +976,17 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			pcr_diff = (s32) OCR_TS - (s32) ck;
 			pcr_pcrprev_diff = pcr_diff - ch->prev_pcr_diff;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u got OCR %u (original TS "LLU") - diff %d%s (diff with prev OCR %d)\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, pcr_diff, (hdr.m2ts_pcr==2) ? " - PCR Discontinuity flag" : "", pcr_pcrprev_diff));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u got OCR %u (original TS "LLU") - diff %d%s (diff with prev OCR %d)\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, pcr_diff, discontinuity ? " - PCR Discontinuity flag" : "", pcr_pcrprev_diff));
 
 			//PCR loop or disc - use 10 sec as a threshold - it may happen that video is sent up to 4 or 5 seconds ahead of the PCR in some systems
 			//1- check the PCR diff is greater than 10 seconds
 			//2- check the diff between this PCR diff and last PCR diff is greater than 10 seconds
 			//the first test is used to avoid disc detecting when the TS is sent in burst (eg DASH): 
 			if (ch->IsClockInit && (ABS(pcr_diff) > 10000)  && (ABS(pcr_pcrprev_diff) > 10000) ) {
+				discontinuity = GF_TRUE;
+			} 
+
+			if (discontinuity) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u detected PCR %s (PCR diff %d - last PCR diff %d)\n", ch->esd->ESID, gf_clock_real_time(ch->clock), (hdr.m2ts_pcr==2) ? "discontinuity" : "looping", pcr_diff, ch->prev_pcr_diff));
 				gf_clock_discontinuity(ch->clock, ch->odm->parentscene, (hdr.m2ts_pcr==2) ? GF_TRUE : GF_FALSE);
 
@@ -1296,7 +1301,6 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 
 	/*init clock if end of AU or if header is valid*/
 	if ((EndAU || init_ts) && !ch->IsClockInit && !ch->skip_time_check_for_pending) {
-		ch->skip_time_check_for_pending = 0;
 		gf_es_check_timing(ch);
 	}
 
