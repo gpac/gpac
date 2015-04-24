@@ -287,7 +287,7 @@ void gf_scene_mpeg4_inline_restart(GF_Scene *scene);
 
 GF_Node *gf_scene_get_subscene_root(GF_Node *inline_node);
 
-void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on);
+void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time);
 
 #ifndef GPAC_DISABLE_VRML
 
