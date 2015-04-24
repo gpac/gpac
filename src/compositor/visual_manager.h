@@ -258,7 +258,7 @@ struct _visual_manager
 	GF_SHADERID glsl_program;
 
 	/* Storing Compiled Shaders */
-	GF_SHADERID glsl_programs[GF_GL_NUM_OF_FLAGS*GF_GL_NUM_OF_FLAGS];
+	GF_SHADERID glsl_programs[GF_GL_NUM_OF_SHADERS];
 
 	/* If GF_TRUE the Array of Shaders is built */
 	Bool glsl_has_shaders;
