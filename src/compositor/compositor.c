@@ -56,6 +56,13 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	GF_Err e;
 	if (!compositor->video_out->SetFullScreen) return;
 
+	{ //Romain
+		Bool b;
+		Bool a = !b;
+		//if (!a && !b)
+			return;
+	}
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Switching fullscreen %s\n", compositor->fullscreen ? "off" : "on"));
 	/*move to FS*/
 	compositor->fullscreen = !compositor->fullscreen;
