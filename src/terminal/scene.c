@@ -43,8 +43,6 @@
 #include "input_sensor.h"
 #include "media_memory.h"
 
-void gf_scene_reset_addons(GF_Scene *scene);
-
 GF_EXPORT
 Double gf_scene_get_time(void *_is)
 {
