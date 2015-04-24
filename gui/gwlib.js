@@ -290,26 +290,55 @@ function gw_unload_resource(res) {
             return;
         }
     }
-    alert('Unloading resource for url ' + res.children[0].url[0] + ' not found in resource bank');
+    gwlog(l_err, 'Unloading resource for url ' + res.children[0].url[0] + ' not found in resource bank');
 }
 
+//static
+function gw_appy_effect_scale(timer, val) {
+    if (!timer.wnd.visible) {
+        timer.wnd.scale.x = 1 - val;
+        timer.wnd.scale.y = 1 - val;
+          timer.wnd.set_alpha((1 - val) * timer.target_alpha);
+    } else {
+        timer.wnd.scale.x = val;
+        timer.wnd.scale.y = val;
+          timer.wnd.set_alpha(val * timer.target_alpha);
+    }
+}
+
+//static
+function gw_appy_effect_notif(timer, val) {
+    var final_x = gw_display_width / 2 - timer.wnd.width / 2;
+    var final_y = gw_display_height / 2 - timer.wnd.height/2;
+    if (!timer.wnd.visible) {
+        timer.wnd.translation.x = final_x;
+        timer.wnd.translation.y = final_y + val * timer.wnd.height;
+        timer.wnd.set_alpha((1 - val) * timer.target_alpha);
+    } else {
+        timer.wnd.translation.x = final_x;
+        timer.wnd.translation.y = final_y + (1-val) * timer.wnd.height;
+        timer.wnd.set_alpha(val * timer.target_alpha);
+    }
+}
 
 //static
 function gw_window_show_hide() {
     if (typeof this._wnd_timer == 'undefined') {
         this._wnd_timer = gw_new_timer(1);
         this._wnd_timer.wnd = null;
+
+        this._wnd_timer.effect = 0;
         this._wnd_timer.set_timeout(0.25, false);
         this._wnd_timer.on_fraction = function (val) {
             if (!this.wnd) return;
-            if (!this.wnd.visible) {
-                this.wnd.scale.x = 1 - val;
-                this.wnd.scale.y = 1 - val;
-                this.wnd.set_alpha((1 - val) * this.wnd.alpha);
-            } else {
-                this.wnd.scale.x = val;
-                this.wnd.scale.y = val;
-                this.wnd.set_alpha(val * this.wnd.alpha);
+
+            switch (this.effect) {
+            case 0:
+                gw_appy_effect_scale(this, val);
+                break;
+            case 1:
+                gw_appy_effect_notif(this, val);
+                break;
             }
         }
         this._wnd_timer.on_active = function (val) {
@@ -319,7 +348,7 @@ function gw_window_show_hide() {
             this.wnd = null;
             wnd.scale.x = wnd.visible ? 1 : 0;
             wnd.scale.y = wnd.visible ? 1 : 0;
-            wnd.set_alpha(wnd.alpha);
+            wnd.set_alpha(this.target_alpha);
             if (wnd.visible) {
                 gw_ui_root.set_focus(wnd);
             } else {
@@ -336,8 +365,18 @@ function gw_window_show_hide() {
     if (this._wnd_timer.wnd) return;
 
     this.visible = !this.visible;
-    this.alpha = this.get_alpha();
     this.set_alpha(1.0);
+    if (this.visible) {
+        this._wnd_timer.target_alpha = this.get_alpha();
+        this._wnd_timer.target_x = this.translation.x;
+        this._wnd_timer.target_y = this.translation.y;
+        this._wnd_timer.target_w = this.width;
+        this._wnd_timer.target_h = this.height;
+    }
+
+    if (typeof this.show_effect == 'string') {
+        if (this.show_effect == 'notif') this._wnd_timer.effect = 1;
+    }
     this._wnd_timer.wnd = this;
     this._wnd_timer.start(0);
     this._wnd_timer.call_on_end = null;
@@ -365,7 +404,7 @@ gwskin.pointing_device = true;
 gwskin.long_click_delay = 0.5;
 gwskin.use_resource_bank = false;
 gwskin.default_window_alpha = 0.8;
-gwskin.default_message_timeout = 2.0;
+gwskin.default_message_timeout = 3.0;
 gwskin.default_tooltip_timeout = 0.75;
 gwskin.default_tooltip_delay = 1;
 
@@ -1091,14 +1130,14 @@ gwskin.get_style = function (class_name, style_name) {
         if (typeof styles[0][style_name] != 'undefined')
             return styles[0][style_name];
     } else {
-        alert('Non-existing class ' + class_name);
+        gwlog(l_err, 'Non-existing class ' + class_name);
     }
 
     style = gwskin.styles[0];
     if (typeof style[style_name] != 'undefined')
         return style[style_name];
 
-    alert('Non-existing style ' + style_name + ' in default class');
+    gwlog(l_err, 'Non-existing style ' + style_name + ' in default class');
     return null;
 }
 
@@ -1112,7 +1151,7 @@ gwskin.get_font = function (class_name) {
             return styles[0].font;
         }
     } else {
-        alert('Non-existing class ' + class_name);
+        gwlog(l_err, 'Non-existing class ' + class_name);
     }
     return gwskin.styles[0].font;
 }
@@ -2980,6 +3019,8 @@ function gw_new_message(container, label, content) {
     notif.timer.on_active = function (val) {
         if (!val) this.wnd.close();
     }
+    notif.show_effect = 'notif';
+    notif._no_focus = true;
     return notif;
 }
 
