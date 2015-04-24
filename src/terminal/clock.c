@@ -337,6 +337,8 @@ void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontin
 		}
 	}
 
+	gf_scene_reset_addons(scene);
+
 	if (ck->has_media_time_shift) {
 		u32 new_media_time = ck->media_time_at_init + gf_clock_time(ck) - ck->init_time;
 
