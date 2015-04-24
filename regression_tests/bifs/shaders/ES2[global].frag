@@ -246,9 +246,8 @@ void main()
 	}
 	
 	if(hasColorMatrix){
-		fragColor *= gfColorMatrix;
-		if(gfTranslationVector != vec4(0.0, 0.0, 0.0, 0.0))
-			fragColor += gfTranslationVector;
+		fragColor = gfColorMatrix * fragColor;
+		fragColor += gfTranslationVector;
 		fragColor = clamp(fragColor, zero_float, one_float);
 	}
 	
