@@ -117,7 +117,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 
 	st->bounds.width = st->bounds.x = st->bounds.height = 0;
 	idx = 0;
-	split_words = (tr_state->text_split_mode==1) ? 1 : GF_FALSE;
+	split_words = (tr_state->text_split_mode==1) ? GF_TRUE : GF_FALSE;
 
 	for (i=0; i < txt->string.count; i++) {
 
@@ -149,7 +149,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 
 			span->nb_glyphs = split_words ? (j - first_char) : 1;
 			if (split_words && !is_space) span->nb_glyphs++;
-			span->glyphs = (GF_Glyph*)gf_malloc(sizeof(void *)*span->nb_glyphs);
+			span->glyphs = (GF_Glyph**)gf_malloc(sizeof(void *)*span->nb_glyphs);
 
 			span->bounds.height = st->ascent + st->descent;
 			span->bounds.y = start_y;
@@ -179,7 +179,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 				span = (GF_TextSpan*) gf_malloc(sizeof(GF_TextSpan));
 				memcpy(span, tspan, sizeof(GF_TextSpan));
 				span->nb_glyphs = 1;
-				span->glyphs = (GF_Glyph*)gf_malloc(sizeof(void *));
+				span->glyphs = (GF_Glyph**)gf_malloc(sizeof(void *));
 
 				gf_list_add(st->spans, span);
 				span->bounds.height = st->ascent + st->descent;
@@ -572,7 +572,7 @@ static void text_check_changes(GF_Node *node, TextStack *stack, GF_TraverseState
 
 	if (tr_state->visual->compositor->edited_text && (tr_state->visual->compositor->focus_node==node)) {
 		drawable_mark_modified(stack->graph, tr_state);
-		tr_state->visual->has_text_edit = 1;
+		tr_state->visual->has_text_edit = GF_TRUE;
 		if (!stack->bounds.width) stack->bounds.width = INT2FIX(1)/100;
 		if (!stack->bounds.height) stack->bounds.height = INT2FIX(1)/100;
 	}
@@ -597,7 +597,7 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 	if (!txt->string.count) return;
 
 	if (tr_state->text_split_mode) {
-		st->is_dirty = gf_node_dirty_get(n) ? 1 : GF_FALSE;
+		st->is_dirty = gf_node_dirty_get(n) ? GF_TRUE : GF_FALSE;
 		gf_node_dirty_clear(n, 0);
 		text_clean_paths(tr_state->visual->compositor, st);
 		build_text_split(st, txt, tr_state);
