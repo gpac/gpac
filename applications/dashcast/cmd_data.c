@@ -496,6 +496,9 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    DashCast -vf vfwcap -vres 1280x720 -vfr 24 -v 0 -live\n"
 	    "    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"screen-capture-recorder\" -live (please install http://screencapturer.sf.net/)\n"
 	    "    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"YOUR-WEBCAM\" -pixf yuv420p -live\n"
+#elif defined(__DARWIN) || defined(__APPLE__)
+        "    DashCast -vf avfoundation -vres 1280x720 -v \"FaceTime HD Camera\" -vfr 25 -live\n"
+        "    DashCast -vf avfoundation -vres 1280x720 -v \"Capture screen 0\" -vfr 25 -live\n"
 #else
 	    "    DashCast -vf video4linux2 -vres 1280x720 -vfr 24 -v4l2f mjpeg -v /dev/video0 -af alsa -a plughw:1,0 -live\n"
 	    "    DashCast -vf x11grab -vres 800x600 -vfr 25 -v :0.0 -live\n"
