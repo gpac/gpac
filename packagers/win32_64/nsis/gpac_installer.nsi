@@ -499,7 +499,7 @@ SectionEnd
 Section "GPAC SDK" SecSDK
   SectionIn 1
   SetOutPath $INSTDIR\sdk\include
-  File /r /x CVS ${GPAC_ROOT}\include\*.h
+  File /r ${GPAC_ROOT}\include\*.h
   SetOutPath $INSTDIR\sdk\lib
   File ${GPAC_BIN}\libgpac.lib
   File ${GPAC_EXTRA_LIB}\js.lib
