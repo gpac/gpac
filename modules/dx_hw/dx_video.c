@@ -203,7 +203,7 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 
 	/*delete openGL context*/
 #if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
-	if (dd->eglctx) eglDestroyContext(dd->egldpy, dd->eglctx);
+	if (dd->eglctx)	eglDestroyContext(dd->egldpy, dd->eglctx);
 	dd->eglctx = NULL;
 	if (dd->surface) eglDestroySurface(dd->egldpy, dd->surface);
 	dd->surface = NULL;
@@ -266,6 +266,10 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	u32 nb_bits;
 	u32 i=0;
 	static int egl_atts[20];
+
+	/*already setup*/
+	if (dd->surface)
+		goto exit;
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsPerComponent");
 	nb_bits = sOpt ? atoi(sOpt) : 5;
@@ -334,6 +338,9 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 		dd->surface = 0L;
 		return GF_IO_ERR;
 	}
+
+	hw_reset = 1;
+
 #elif !defined(_WIN32_WCE)
 	PIXELFORMATDESCRIPTOR pfd;
 	s32 pixelformat;
@@ -553,9 +560,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 		SetWindowLong(dd->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
 #endif
 
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 exit:
-#endif
 
 	if (dd->output_3d_type==1) {
 		memset(&evt, 0, sizeof(GF_Event));
