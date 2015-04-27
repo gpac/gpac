@@ -472,7 +472,6 @@ int dc_gpac_video_isom_open_seg(VideoOutputFile *video_output_file, char *filena
 	return 0;
 }
 
-u64 last_dts = 0;
 int dc_gpac_video_isom_write(VideoOutputFile *video_output_file)
 {
 	GF_Err ret;
@@ -525,13 +524,6 @@ int dc_gpac_video_isom_write(VideoOutputFile *video_output_file)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret)));
 		return -1;
 	}
-
-	if (last_dts) {
-		if (video_output_file->sample->DTS - last_dts < 80000) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret)));
-		}
-	}
-	last_dts = video_output_file->sample->DTS;
 
 	//free data but keep sample structure alive
 	gf_free(video_output_file->sample->data);
