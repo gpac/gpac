@@ -1163,7 +1163,7 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 
 void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 {
-	//TODOk - enable auto-stereo rendering with GLES2 ?
+	//TODOk - enable auto-stereo rendering with GLES2 j ?
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	u32 i;
 	GLint loc;
@@ -1342,7 +1342,7 @@ void visual_3d_setup(GF_VisualManager *visual)
 
 	//NOTE: For ES2 we set the "LightModel: two-side" pseudo-property in the visual_3d_set_lights_ES2 function
 
-	//TODOk - set max lights and max clips
+	//TODOk - set max lights and max clips j
 
 	visual_3d_setup_quality(visual);
 
@@ -2026,7 +2026,6 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 
 	/*
 	 * Equivalent to glLightModel(GL_LIGHTMODEL_TWO_SIDE, GL_TRUE);
-	 * TODOk: move to "ES2 visual_3d_setup" (when implemented)
 	 */
 	loc = my_glGetUniformLocation(visual->glsl_program, "gfLightTwoSide");
 	if (loc>=0)
@@ -2035,20 +2034,10 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 
 	li = &visual->lights[0];
 
-	//only one light for now
 	pt = li->direction;
 	gf_vec_norm(&pt);
 	vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;
-	//	vals[0] = FIX2FLT(pt.x); vals[1] = FIX2FLT(pt.y); vals[2] = FIX2FLT(pt.z); vals[3] = 0;
-
-	//For directional light its the direction possition
-	//Commented out since we parse it per-light (for multiple lights support) [ES2.0]
-	/*
-	loc = my_glGetUniformLocation(visual->glsl_program, "gfLightPosition");
-	if (loc>=0) 
-		glUniform4fv(loc, 1, vals);
-	*/
-
+	
 	ambientIntensity = FIX2FLT(li->ambientIntensity);
 	intensity = FIX2FLT(li->intensity);
 
@@ -2082,16 +2071,15 @@ static void visual_3d_set_lights_ES2(GF_TraverseState *tr_state){
 		gf_vec_diff(pt, pt, orig);
 		gf_vec_norm(&pt);
 
-		vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;	//¡TODOk check minus
+		vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;
 		sprintf(tmp, "%s%d%s", "lights[", i, "].direction");
 		loc = my_glGetUniformLocation(visual->glsl_program, tmp);
 		if (loc>=0)
-			glUniform4fv(loc, 1, vals); //¡k Set direction
+			glUniform4fv(loc, 1, vals); //Set direction
 
-		//¡TODOk cleanup
 		if ((li->type==0) || (li->type==3) ) {
 			pt = li->direction;
-			vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;	//¡TODOk TIDY UP dirction-position for directional!!!!!
+			vals[0] = -FIX2FLT(pt.x); vals[1] = -FIX2FLT(pt.y); vals[2] = -FIX2FLT(pt.z); vals[3] = 0;
 			pt = li->position;
 		} else {	//we have a spot or point light
 			pt = li->position;
@@ -2450,6 +2438,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		visual_3d_set_lights_ES2(tr_state);
 		GL_CHECK_ERR
 	}
+
 
 	if(tr_state->mesh_num_textures && !mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)){
 
@@ -3041,7 +3030,7 @@ static void visual_3d_set_debug_color(u32 col)
 /*note we don't perform any culling for normal drawing...*/
 static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
-	//TODOk - allow normal drawing with GLES2
+	//TODOk - allow normal drawing with GLES2 j
 #if !defined( GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
 
 	GF_Vec pt, end;
@@ -3183,7 +3172,7 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		mesh_drawn = 1;
 	}
 
-	//TODOk - allow normal drawing and wireframe with GLES2
+	//TODOk - allow normal drawing and wireframe with GLES2 j
 #if !defined(GPAC_USE_GLES2)
 	if (tr_state->visual->compositor->draw_normals) {
 		if (!mesh_drawn) {
@@ -3435,7 +3424,7 @@ void visual_3d_clear(GF_VisualManager *visual, SFColor color, Fixed alpha)
 
 void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color)
 {
-	//TODOk - code this for GLES2
+	//TODOk - code this for GLES2 j
 #ifdef GPAC_USE_GLES2
 #else
 
@@ -3654,7 +3643,7 @@ GF_Err compositor_3d_release_screen_buffer(GF_Compositor *compositor, GF_VideoSu
 
 GF_Err compositor_3d_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *fb, u32 view_idx, u32 depth_dump_mode)
 {
-	//TODOk - habdle offscreen buffers through frameBuffer objects, no read back
+	//TODOk - habdle offscreen buffers through frameBuffer objects, no read back j
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
 	char *tmp;
 	u32 hy, i;
