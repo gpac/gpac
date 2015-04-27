@@ -1113,6 +1113,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 	while (nb_tk_done<nb_tk) {
 		Double last_rap_sample_time, max_dts, file_split_dur;
 		Bool is_last_rap;
+		Bool all_av_done = GF_FALSE;
 
 		if (chunk_extraction) {
 			sprintf(szFile, "%s_%d_%d%s", szName, (u32) chunk_start, (u32) (chunk_start+split_dur), ext);
@@ -1154,7 +1155,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		max_dts = 0;
 		while (do_add) {
 			Double time;
-			u32 nb_over;
+			u32 nb_over, nb_av = 0;
 			/*perfom basic de-interleaving to make sure we're not importing too much of a given track*/
 			u32 nb_add = 0;
 			/*add one sample of each track*/
@@ -1162,6 +1163,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				Double t;
 				u64 dts;
 				tki = &tks[i];
+
+				if (!tki->can_duplicate) nb_av++;
 
 				if (tki->stop_state)
 					continue;
@@ -1186,9 +1189,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				t = (Double) (s64) dts;
 				t /= tki->time_scale;
 				if (tki->first_sample_done) {
-					if (t>max_dts) continue;
+					if (!all_av_done && (t>max_dts)) continue;
 				} else {
-					/*here's the trick: only take care of a/v media for deinterleaving, and ad other media
+					/*here's the trick: only take care of a/v media for splitting, and add other media
 					only if thir dts is less than the max AV dts found. Otherwise with some text streams we will end up importing
 					too much video and corrupting the last sync point indication*/
 					if (!tki->can_duplicate && (t>max_dts)) max_dts = t;
@@ -1249,6 +1252,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				tki = &tks[i];
 				if (tki->stop_state) {
 					nb_over++;
+					if (!tki->can_duplicate && (tki->last_sample==tki->sample_count) )
+						nb_av--;
 					continue;
 				}
 				time = (Double) (s64) tki->lastDTS;
@@ -1284,6 +1289,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 					tki->first_sample_done = 0;
 			}
 			if (nb_over==nb_tk) do_add = 0;
+
+			if (!nb_av) 
+				all_av_done = GF_TRUE;
 		}
 
 		/*remove samples - first figure out smallest duration*/
