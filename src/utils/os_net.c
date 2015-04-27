@@ -1175,19 +1175,25 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 
 	if (res == SOCKET_ERROR) {
 		res = LASTSOCKERROR;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - socket error %d\n",  res));
 		switch (res) {
 		case EAGAIN:
 			return GF_IP_SOCK_WOULD_BLOCK;
 #ifndef __SYMBIAN32__
 		case EMSGSIZE:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - socket error %d\n",  res));
 			return GF_OUT_OF_MEM;
 		case ENOTCONN:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - not connected\n"));
+			return GF_IP_CONNECTION_CLOSED;
 		case ECONNRESET:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - connection reset\n"));
+			return GF_IP_CONNECTION_CLOSED;
 		case ECONNABORTED:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - connection aborted\n"));
 			return GF_IP_CONNECTION_CLOSED;
 #endif
 		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - socket error %d\n",  res));
 			return GF_IP_NETWORK_FAILURE;
 		}
 	}
