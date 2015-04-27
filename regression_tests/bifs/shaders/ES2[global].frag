@@ -124,7 +124,7 @@ vec4 doLighting(int i){
 	float light_cos = max(zero_float, dot(normal, lightVnorm));	//ndotl
 	float half_cos = dot(normal, normalize(halfVector[i]));
 
-	if(lights[i].type == 2){	//we have a point
+	if(lights[i].type == L_POINT){	//we have a point
 		float distance = length(lightVector[i]);	
 		att = 1.0 / (lights[i].attenuation.x + lights[i].attenuation.y * distance + lights[i].attenuation.z * distance * distance);
 
@@ -141,7 +141,7 @@ vec4 doLighting(int i){
 		lightColor.a = gfDiffuseColor.a;
 		return lightColor;
 		
-	}else if(lights[i].type == 1){	//we have a spot
+	}else if(lights[i].type == L_SPOT){	//we have a spot
 		if(light_cos > 0.0){
 			float spot = dot(normalize(lights[i].direction.xyz), normalize(lightVector[i]));	//it should be -direction, but we invert it before parsing
 			if (spot > lights[i].cutOffAngle){
@@ -155,7 +155,7 @@ vec4 doLighting(int i){
 		}
 		return lightColor;
 
-	}else if(lights[i].position.w == zero_float || lights[i].type == 0){ //we have a direction
+	}else if(lights[i].position.w == zero_float || lights[i].type == L_DIRECTIONAL){ //we have a direction
 		vec3 lightDirection = vec3(lights[i].position);
 		lightColor = (gfDiffuseColor * gfLightDiffuse) * light_cos; 
 		if (half_cos > zero_float){ 
@@ -228,7 +228,7 @@ void main()
 			}else{
 				fragColor = vec4(rgb, alpha);
 			}
-#else	//ifndef GF_GL_IS_YUV
+#else
 		if(gfNumLights>0){	//RGB texture
 			fragColor *= texture2D(y_plane, TexCoord);
 		}else if(gfNumLights==0){	//RGB texture with material 2D [TODO: check]

@@ -392,7 +392,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	txh->tx_io->flags = TX_IS_POW2;
 	txh->tx_io->gl_type = GL_TEXTURE_2D;
 
-	/*TODOk - all textures can be used in GLES2*/
+	/* TODOk - all textures can be used in GLES2 j */
 #ifdef GPAC_USE_GLES2
 	use_rect = GF_TRUE;
 #else

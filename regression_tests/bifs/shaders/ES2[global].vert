@@ -51,7 +51,7 @@ attribute vec3 gfNormal;
 attribute vec4 gfMultiTexCoord;
 attribute vec4 gfMeshColor;
 
-//Generic uniforms
+//Generic (Scene) uniforms
 uniform gfLight lights[LIGHTS_MAX];
 uniform int gfNumLights;
 uniform int gfNumTextures;
@@ -138,9 +138,9 @@ void main(void)
 			if(i>=gfNumLights) break;
 
 			if ( lights[i].type == L_SPOT || lights[i].type == L_POINT ) {
-				lightVector[i] = lights[i].position.xyz - gfEye.xyz;	//do NOT do it here (dunno know why)
+				lightVector[i] = lights[i].position.xyz - gfEye.xyz;
 			} else {
-				//if it is a directional light, position SHOULD indicate direction (modified implementation - check before commiting)
+				//if it is a directional light, position SHOULD indicate direction (modified implementation - check before committing)
 				lightVector[i] = lights[i].direction.xyz;
 			}
 			halfVector[i] = lightVector[i] + gfEye.xyz; 
