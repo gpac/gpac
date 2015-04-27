@@ -147,15 +147,16 @@ static int resample_audio(AudioInputFile *audio_input_file, AudioInputData *audi
 	*num_planes_out = av_sample_fmt_is_planar(DC_AUDIO_SAMPLE_FORMAT) ? DC_AUDIO_NUM_CHANNELS : 1;
 	*output = (uint8_t**)av_malloc(*num_planes_out*sizeof(uint8_t*));
 	for (i=0; i<*num_planes_out; i++) {
-		*output[i] = (uint8_t*)av_malloc(DC_AUDIO_MAX_CHUNCK_SIZE); //FIXME: fix using size below av_samples_get_buffer_size()
+		(*output) [i] = (uint8_t*)av_malloc(DC_AUDIO_MAX_CHUNCK_SIZE); //FIXME: fix using size below av_samples_get_buffer_size()
 	}
 
-	if (avresample_convert(audio_input_file->aresampler, *output, DC_AUDIO_MAX_CHUNCK_SIZE, audio_input_data->aframe->nb_samples, audio_input_data->aframe->extended_data, audio_input_data->aframe->linesize[0], audio_input_data->aframe->nb_samples) < 0) {
+	i = avresample_convert(audio_input_file->aresampler, *output, DC_AUDIO_MAX_CHUNCK_SIZE, audio_input_data->aframe->nb_samples, audio_input_data->aframe->extended_data, audio_input_data->aframe->linesize[0], audio_input_data->aframe->nb_samples);
+	if (i < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not resample audio frame. Aborting.\n"));
 		return -1;
 	}
 
-	return 0;
+	return i;
 }
 #endif
 
@@ -288,16 +289,18 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 					exit(1);
 #else
 					uint8_t **output;
+					int nb_samp;
 					if (ensure_resampler(audio_input_file, sample_rate, num_channels, channel_layout, sample_format)) {
 						return -1;
 					}
 
-					if (resample_audio(audio_input_file, audio_input_data, codec_ctx, &output, &num_planes_out, num_channels, sample_format)) {
+					nb_samp = resample_audio(audio_input_file, audio_input_data, codec_ctx, &output, &num_planes_out, num_channels, sample_format);
+					if (nb_samp<0) {
 						return -1;
-					} else {
-						data = output;
-						av_samples_get_buffer_size(&data_size, num_channels, audio_input_data->aframe->nb_samples, sample_format, 0);
-					}
+					} 
+
+					av_samples_get_buffer_size(&data_size, DC_AUDIO_NUM_CHANNELS, nb_samp, DC_AUDIO_SAMPLE_FORMAT, 0);
+					data = output;
 #endif
 				} else {
 					/*no resampling needed: read data from the AVFrame*/
