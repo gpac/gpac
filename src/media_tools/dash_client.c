@@ -1036,22 +1036,23 @@ static void gf_dash_get_timeline_duration(GF_MPD *mpd, GF_MPD_Period *period, GF
 			*nb_segments += 1 + ent->repeat_count;
 			if (ent->start_time) {
 				start_time = ent->start_time;
-				dur = (1 + ent->repeat_count) * ent->duration;
+				dur = (1 + ent->repeat_count);
 			} else {
-				dur += (1 + ent->repeat_count) * ent->duration;
+				dur += (1 + ent->repeat_count);
 			}
+			dur	*= ent->duration;
 		} else {
 			u32 nb_seg = 0;
 			if (i+1<count) {
 				GF_MPD_SegmentTimelineEntry *ent2 = gf_list_get(timeline->entries, i+1);
 				if (ent2->start_time>0) {
 					nb_seg = (u32) ( (ent2->start_time - start_time - dur) / ent->duration);
-					dur += nb_seg * ent->duration;
+					dur += ((u64)nb_seg) * ent->duration;
 				}
 			}
 			if (!nb_seg) {
 				nb_seg = (u32) ( (period_duration - start_time) / ent->duration );
-				dur += nb_seg * ent->duration;
+				dur += ((u64)nb_seg) * ent->duration;
 			}
 			*nb_segments += nb_seg;
 		}
