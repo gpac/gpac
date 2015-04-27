@@ -4187,7 +4187,7 @@ GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u32 *nb_d
 }
 
 static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_ctx, GF_DashProfile profile, Bool is_mpeg2, const char *title, const char *source, const char *copyright, const char *moreInfoURL, const char **mpd_base_urls, 
-				u32 nb_mpd_base_urls, GF_DashDynamicMode dash_mode, u32 time_shift_depth, Double mpd_duration, Double mpd_update_period, Double min_buffer, s32 ast_shift_ms, Bool use_cenc, Bool use_xlink, Double max_seg_dur)
+				u32 nb_mpd_base_urls, GF_DashDynamicMode dash_mode, u32 time_shift_depth, Double mpd_duration, Double mpd_update_period, Double min_buffer, s32 ast_shift_ms, Bool use_cenc, Bool use_xlink, Double max_seg_dur, const char *dash_profile_extension)
 {
 	u32 sec, frac;
 	u64 time_ms;
@@ -4300,25 +4300,31 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 
 	if (profile==GF_DASH_PROFILE_LIVE) {
 		if (use_xlink && !is_mpeg2) {
-			fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-ext-live:2014\"");
+			fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-ext-live:2014");
 		} else {
-			fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:%s:2011\"", is_mpeg2 ? "mp2t-simple" : "isoff-live");
+			fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:%s:2011", is_mpeg2 ? "mp2t-simple" : "isoff-live");
 		}
 	} else if (profile==GF_DASH_PROFILE_ONDEMAND) {
 		if (use_xlink) {
-			fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-ext-on-demand:2014\"");
+			fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-ext-on-demand:2014");
 		} else {
-			fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011\"");
+			fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011");
 		}
 	} else if (profile==GF_DASH_PROFILE_MAIN) {
-		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:%s:2011\"", is_mpeg2 ? "mp2t-main" : "isoff-main");
+		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:%s:2011", is_mpeg2 ? "mp2t-main" : "isoff-main");
 	} else if (profile==GF_DASH_PROFILE_AVC264_LIVE) {
-		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-live:2011, http://dashif.org/guidelines/dash264\"");
+		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-live:2011,http://dashif.org/guidelines/dash264");
 	} else if (profile==GF_DASH_PROFILE_AVC264_ONDEMAND) {
-		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011, http://dashif.org/guidelines/dash264\"");
+		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011,http://dashif.org/guidelines/dash264");
 	} else {
-		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:full:2011\"");
+		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:full:2011");
 	}
+
+	if (dash_profile_extension) {
+		fprintf(mpd, ",%s", dash_profile_extension);
+	}
+	fprintf(mpd, "\"");
+
 	if (use_cenc) {
 		fprintf(mpd, " xmlns:cenc=\"urn:mpeg:cenc:2013\"");
 	}
@@ -4833,7 +4839,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
                                Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
                                GF_Config *dash_ctx, GF_DashDynamicMode dash_mode, Double mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
                                s32 ast_offset_ms, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, 
-							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc, Bool real_time)
+							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc, Bool real_time, const char *dash_profile_extension)
 {
 	u32 i, j, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH];
@@ -5664,7 +5670,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		}
 	}
 	
-	e = write_mpd_header(mpd, mpdfile, dash_ctx, dash_profile, has_mpeg2, mpd_title, mpd_source, mpd_copyright, mpd_moreInfoURL, (const char **) mpd_base_urls, nb_mpd_base_urls, dash_mode, time_shift_depth, presentation_duration, mpd_update_time, min_buffer, ast_offset_ms, use_cenc, uses_xlink, dash_opts.max_segment_duration);
+	e = write_mpd_header(mpd, mpdfile, dash_ctx, dash_profile, has_mpeg2, mpd_title, mpd_source, mpd_copyright, mpd_moreInfoURL, (const char **) mpd_base_urls, nb_mpd_base_urls, dash_mode, time_shift_depth, presentation_duration, mpd_update_time, min_buffer, ast_offset_ms, use_cenc, uses_xlink, dash_opts.max_segment_duration, dash_profile_extension);
 	if (e) goto exit;
 
 

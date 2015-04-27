@@ -305,6 +305,8 @@ void PrintDASHUsage()
 	        "                       \"dashavc264:live\", \"dashavc264:onDemand\"\n"
 	        "                       * This will set default option values to ensure conformance to the desired profile\n"
 	        "                       * Default profile is \"full\" in static mode, \"live\" in dynamic mode\n"
+	        " -profile-ext STRING  specifies a list of profile extensions, as used by DAHS-IF and DVB.\n"
+			"                       The string will be colon-concatenated with the profile used\n"
 	        "\n"
 	        "Input media files to dash can use the following modifiers\n"
 	        " \"#trackID=N\"       only uses the track ID N from the source file\n"
@@ -362,7 +364,7 @@ void PrintDASHUsage()
 	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf) rather than in moof. By default sample group descriptions are stored in movie box.\n"
 
 	        "\n"
-	        "Advanced Options, should not be needed when using -dash-profile:\n"
+	        "Advanced Options, should not be needed when using -profile:\n"
 	        " -subsegs-per-sidx N  sets the number of subsegments to be written in each SIDX box\n"
 	        "                       If 0, a single SIDX box is used per segment\n"
 	        "                       If -1, no SIDX box is used\n"
@@ -1780,6 +1782,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool segment_timeline=0;
 	u32 segment_marker = 0;
 	GF_DashProfile dash_profile = GF_DASH_PROFILE_UNKNOWN;
+	const char *dash_profile_extension = NULL;
 	Bool use_url_template=0;
 	Bool seg_at_rap=0;
 	Bool frag_at_rap=0;
@@ -2391,6 +2394,10 @@ int mp4boxMain(int argc, char **argv)
 				dash_profile = GF_DASH_PROFILE_AVC264_ONDEMAND;
 			} else if (!stricmp(argv[i+1], "main")) dash_profile = GF_DASH_PROFILE_MAIN;
 			else dash_profile = GF_DASH_PROFILE_FULL;
+			i++;
+		} else if (!stricmp(arg, "-profile-ext")) {
+			CHECK_NEXT_ARG
+			dash_profile_extension = argv[i+1];
 			i++;
 		} else if (!strnicmp(arg, "-url-template", 13)) {
 			use_url_template = 1;
@@ -3580,7 +3587,7 @@ int mp4boxMain(int argc, char **argv)
 			                            interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
 			                            dash_ctx, dash_mode, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
 			                            ast_offset_ms, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
-										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration, insert_utc, frag_real_time);
+										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration, insert_utc, frag_real_time, dash_profile_extension);
 
 			if (do_abort) 
 				break;
