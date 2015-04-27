@@ -1116,7 +1116,7 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 	visual->glsl_has_shaders=0;
 
 
-#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
+#endif
 }
 
 
@@ -1931,7 +1931,6 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		prim_type = GL_TRIANGLES;
 		break;
 	}
-
 
 	/*if inside or no aabb for the mesh draw vertex array*/
 	if (tr_state->visual->compositor->disable_gl_cull || (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos)	{

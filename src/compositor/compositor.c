@@ -2932,8 +2932,10 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	case GF_EVENT_VIDEO_SETUP:
 	{
 		Bool locked = gf_mx_try_lock(compositor->mx);
-		if (event->setup.hw_reset)
+		if (event->setup.hw_reset) {
 			gf_sc_reset_graphics(compositor);
+			compositor->reset_graphics = 2;
+		}
 
 		if (event->setup.back_buffer)
 			compositor->recompute_ar = 1;
