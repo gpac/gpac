@@ -1014,7 +1014,7 @@ GF_Err iods_dump(GF_Box *a, FILE * trace)
 
 	if (p->descriptor) {
 #ifndef GPAC_DISABLE_OD_DUMP
-		gf_odf_dump_desc(p->descriptor, trace, 1, 1);
+		gf_odf_dump_desc(p->descriptor, trace, 1, GF_TRUE);
 #else
 		fprintf(trace, "<!-- Object Descriptor Dumping disabled in this build of GPAC -->\n");
 #endif
@@ -1526,7 +1526,7 @@ GF_Err esds_dump(GF_Box *a, FILE * trace)
 
 	if (p->desc) {
 #ifndef GPAC_DISABLE_OD_DUMP
-		gf_odf_dump_desc(p->desc, trace, 1, 1);
+		gf_odf_dump_desc(p->desc, trace, 1, GF_TRUE);
 #else
 		fprintf(trace, "<!-- Object Descriptor Dumping disabled in this build of GPAC -->\n");
 #endif
@@ -1886,7 +1886,7 @@ GF_Err hvcc_dump(GF_Box *a, FILE * trace)
 	count = gf_list_count(p->config->param_array);
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
-		GF_HEVCParamArray *ar = gf_list_get(p->config->param_array, i);
+		GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(p->config->param_array, i);
 		fprintf(trace, "<ParameterSetArray nalu_type=\"%d\" complete_set=\"%d\">\n", ar->type, ar->array_completeness);
 		nalucount = gf_list_count(ar->nalus);
 		for (j=0; j<nalucount; j++) {
@@ -1916,7 +1916,7 @@ GF_Err m4ds_dump(GF_Box *a, FILE * trace)
 	i=0;
 	while ((desc = (GF_Descriptor *)gf_list_enum(p->descriptors, &i))) {
 #ifndef GPAC_DISABLE_OD_DUMP
-		gf_odf_dump_desc(desc, trace, 1, 1);
+		gf_odf_dump_desc(desc, trace, 1, GF_TRUE);
 #else
 		fprintf(trace, "<!-- Object Descriptor Dumping disabled in this build of GPAC -->\n");
 #endif
@@ -2953,13 +2953,13 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 			fprintf(dump, " verticalText=\"%s\"", (txt->displayFlags & GF_TXT_VERTICAL) ? "yes" : "no");
 			fprintf(dump, " fillTextRegion=\"%s\"", (txt->displayFlags & GF_TXT_FILL_REGION) ? "yes" : "no");
 			fprintf(dump, " continuousKaraoke=\"%s\"", (txt->displayFlags & GF_TXT_KARAOKE) ? "yes" : "no");
-			has_scroll = 0;
+			has_scroll = GF_FALSE;
 			if (txt->displayFlags & GF_TXT_SCROLL_IN) {
-				has_scroll = 1;
+				has_scroll = GF_TRUE;
 				if (txt->displayFlags & GF_TXT_SCROLL_OUT) fprintf(dump, " scroll=\"InOut\"");
 				else fprintf(dump, " scroll=\"In\"");
 			} else if (txt->displayFlags & GF_TXT_SCROLL_OUT) {
-				has_scroll = 1;
+				has_scroll = GF_TRUE;
 				fprintf(dump, " scroll=\"Out\"");
 			} else {
 				fprintf(dump, " scroll=\"None\"");
@@ -3049,7 +3049,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		GF_ISOSample *s = gf_isom_get_sample(the_file, track, i+1, &di);
 		if (!s) continue;
 
-		fprintf(dump, "<TextSample sampleTime=\"%s\"", ttd_format_time(s->DTS, trak->Media->mediaHeader->timeScale, szDur, 0));
+		fprintf(dump, "<TextSample sampleTime=\"%s\"", ttd_format_time(s->DTS, trak->Media->mediaHeader->timeScale, szDur, GF_FALSE));
 		if (nb_descs>1) fprintf(dump, " sampleDescriptionIndex=\"%d\"", di);
 
 		bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
@@ -3204,7 +3204,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		gf_set_progress("TTXT Extract", i, count);
 	}
 	if (last_DTS < trak->Media->mediaHeader->duration) {
-		fprintf(dump, "<TextSample sampleTime=\"%s\" text=\"\" />\n", ttd_format_time(trak->Media->mediaHeader->duration, trak->Media->mediaHeader->timeScale, szDur, 0));
+		fprintf(dump, "<TextSample sampleTime=\"%s\" text=\"\" />\n", ttd_format_time(trak->Media->mediaHeader->duration, trak->Media->mediaHeader->timeScale, szDur, GF_FALSE));
 	}
 
 	fprintf(dump, "</TextStream>\n");
@@ -3256,9 +3256,9 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		}
 		cur_frame++;
 		fprintf(dump, "%d\n", cur_frame);
-		ttd_format_time(start, ts, szDur, 1);
+		ttd_format_time(start, ts, szDur, GF_TRUE);
 		fprintf(dump, "%s --> ", szDur);
-		ttd_format_time(end, ts, szDur, 1);
+		ttd_format_time(end, ts, szDur, GF_TRUE);
 		fprintf(dump, "%s\n", szDur);
 
 		bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
@@ -3316,11 +3316,11 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 				}
 
 				/*not sure if styles must be reseted at line breaks in srt...*/
-				is_new_line = 0;
+				is_new_line = GF_FALSE;
 				if ((utf16Line[j]=='\n') || (utf16Line[j]=='\r') ) {
 					if ((utf16Line[j]=='\r') && (utf16Line[j+1]=='\n')) j++;
 					fprintf(dump, "\n");
-					is_new_line = 1;
+					is_new_line = GF_TRUE;
 				}
 
 				if (!is_new_line) {
@@ -3622,7 +3622,7 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 {
 	GF_BitStream *bs;
 	u32 val;
-	Bool no_dump = 0;
+	Bool no_dump = GF_FALSE;
 	char *name = "Unknown";
 	GF_ListItemBox *itune = (GF_ListItemBox *)a;
 	switch (itune->type) {
@@ -3683,11 +3683,11 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 		break;
 	case GF_ISOM_BOX_TYPE_COVR:
 		name = "CoverArt";
-		no_dump = 1;
+		no_dump = GF_TRUE;
 		break;
 	case GF_ISOM_BOX_TYPE_iTunesSpecificInfo:
 		name = "iTunesSpecific";
-		no_dump = 1;
+		no_dump = GF_TRUE;
 		break;
 	case GF_ISOM_BOX_TYPE_0xA9GRP:
 		name = "Group";
@@ -3865,7 +3865,7 @@ GF_Err ilst_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 
 	i=0;
-	while ( (tag = gf_list_enum(ptr->other_boxes, &i))) {
+	while ( (tag = (GF_Box*)gf_list_enum(ptr->other_boxes, &i))) {
 		e = apple_tag_dump(tag, trace);
 		if(e) return e;
 	}
