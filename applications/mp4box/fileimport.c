@@ -1355,12 +1355,13 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				tki = &tks[i];
 				while (1) {
 					last_samp = gf_isom_get_sample_count(dest, tki->dst_tk);
-					if (last_samp<=1) break;
 
                     time = (Double) (s64) gf_isom_get_media_duration(dest, tki->dst_tk);
                     //time could get slightly higher than requests dur due to rounding precision. We use 1/4 of the last sample dur as safety marge
                     time -= (Double) (s64) gf_isom_get_sample_duration(dest, tki->dst_tk, tki->last_sample) / 4;
 					time /= tki->time_scale;
+
+					if (last_samp<=1) break;
 
 					/*done*/
 					if (tki->last_sample==tki->sample_count) {
@@ -1386,10 +1387,18 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 					time /= tki->time_scale;
 					/*re-insert prev sample*/
 					if (tki->can_duplicate && (time>file_split_dur) ) {
+						Bool was_insert = GF_FALSE;
 						tki->last_sample--;
 						dts = gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1);
+						if (dts < tki->firstDTS) was_insert = GF_TRUE;
 						tki->firstDTS += (u64) (file_split_dur*tki->time_scale);
-						gf_isom_set_last_sample_duration(dest, tki->dst_tk, (u32) (tki->firstDTS - dts) );
+						//the original, last sample added starts before the first sample in the file: we have re-inserted
+						//a single sample, use split duration as target duration
+						if (was_insert) {
+							gf_isom_set_last_sample_duration(dest, tki->dst_tk, (u32) (file_split_dur*tki->time_scale));
+						} else {
+							gf_isom_set_last_sample_duration(dest, tki->dst_tk, (u32) (tki->firstDTS - dts) );
+						}
 					} else {
 						tki->firstDTS = dts;
 					}
