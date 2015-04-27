@@ -37,8 +37,8 @@
 
 typedef struct
 {
-	GF_List *tcis;
 	Bool has_common_key;
+	GF_List *tcis;
 	Bool in_text_header;
 	/*1: ISMACrypt - 2: CENC AES-CTR - 3: CENC AES-CBC*/
 	u32 crypt_type;
@@ -917,8 +917,8 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 
 
 		/*update IV for next sub-samples*/
-		if (gf_bs_available(pleintext_bs))
-			cenc_resync_IV(mc, IV, BSO, IV_size, GF_FALSE);
+		/*if (gf_bs_available(pleintext_bs))            
+			cenc_resync_IV(mc, IV, BSO, IV_size, GF_FALSE);*/
 	}
 
 	if (samp->data) {
@@ -937,7 +937,8 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 	}
 	gf_list_del(subsamples);
 	gf_bs_get_content(sai_bs, sai, saiz);
-	cenc_resync_IV(mc, IV, BSO, IV_size, GF_TRUE);
+	/* cenc_resync_IV(mc, IV, BSO, IV_size, GF_TRUE); */
+    gf_crypt_get_state(mc, IV, &IV_size);
 
 exit:
 	if (buffer) gf_free(buffer);
@@ -1406,8 +1407,10 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				/*update IV for next subsample*/
 				if (tci->enc_type == 2) {
 					BSO += sai->subsamples[subsample_count].bytes_encrypted_data;
+                    /*
 					if (gf_bs_available(cyphertext_bs))
 						cenc_resync_IV(mc, (char *)sai->IV, BSO, tci->IV_size, GF_FALSE);
+                    */
 				}
 
 				subsample_count++;

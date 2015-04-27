@@ -93,14 +93,20 @@ GF_Err _mcrypt_set_state(void *_buf, void *IV, int size)
 
 GF_Err _mcrypt_get_state(void *buf, void *IV, int *size)
 {
-	if (*size < ((CTR_BUFFER* )buf)->blocksize + 1) {
-		*size = ((CTR_BUFFER* )buf)->blocksize + 1;
+	if (*size < ((CTR_BUFFER* )buf)->blocksize) { 
+		*size = ((CTR_BUFFER* )buf)->blocksize;
 		return GF_BAD_PARAM;
 	}
-	*size = ((CTR_BUFFER* )buf)->blocksize + 1;
 
-	((u8 *)IV)[0] = ((CTR_BUFFER* )buf)->c_counter_pos;
-	memcpy( & ((u8 *) IV)[1], ((CTR_BUFFER* )buf)->c_counter, ((CTR_BUFFER* )buf)->blocksize);
+	*size = ((CTR_BUFFER* )buf)->blocksize;
+ 
+    if (((CTR_BUFFER* )buf)->c_counter_pos > 0)
+    {
+        ((CTR_BUFFER* )buf)->c_counter_pos = 0;
+        increase_counter( ((CTR_BUFFER* )buf)->c_counter, *size);
+    }
+
+    memcpy(IV, ((CTR_BUFFER* )buf)->c_counter, *size);
 
 	return GF_OK;
 }
@@ -154,27 +160,29 @@ void xor_stuff( CTR_BUFFER *buf, void* akey, void (*func)(void*,void*), u8* plai
 			memxor( plain, ((CTR_BUFFER* )buf)->enc_counter, xor_size);
 			((CTR_BUFFER* )buf)->c_counter_pos = xor_size;
 		} else {
-			int size = blocksize - ((CTR_BUFFER* )buf)->c_counter_pos;
-			int min_size =  size < xor_size ? size: xor_size;
+			int enc_count_remain_size = blocksize - ((CTR_BUFFER* )buf)->c_counter_pos;
+			int enc_size = xor_size <= enc_count_remain_size ? xor_size : enc_count_remain_size;
 
 			memxor( plain, &((CTR_BUFFER* )buf)->enc_counter[((CTR_BUFFER* )buf)->c_counter_pos],
-			        min_size);
+			        enc_size);
 
-			((CTR_BUFFER* )buf)->c_counter_pos += min_size;
+			((CTR_BUFFER* )buf)->c_counter_pos = ( ((CTR_BUFFER* )buf)->c_counter_pos + enc_size ) % blocksize;
+            if ( ((CTR_BUFFER* )buf)->c_counter_pos == 0 )  /*existing data in encrypted counter has been used up*/
+  			    increase_counter( ((CTR_BUFFER* )buf)->c_counter, blocksize);
 
-			if (min_size >= xor_size)
-				return;
+			if (enc_size == xor_size) /*all plain text have been encrypted*/
+ 				return;
 
 			increase_counter( ((CTR_BUFFER* )buf)->c_counter, blocksize);
 
+            /* enc_size < xor_size */  
 			memcpy( ((CTR_BUFFER* )buf)->enc_counter, ((CTR_BUFFER* )buf)->c_counter, blocksize);
 			_mcrypt_block_encrypt(akey, ((CTR_BUFFER* )buf)->enc_counter);
 
-			memxor( &plain[min_size], ((CTR_BUFFER* )buf)->enc_counter,
-			        xor_size - min_size);
+			memxor( &plain[enc_size], ((CTR_BUFFER* )buf)->enc_counter,
+			        xor_size - enc_size);
 
-			((CTR_BUFFER* )buf)->c_counter_pos = xor_size - min_size;
-
+			((CTR_BUFFER* )buf)->c_counter_pos = xor_size - enc_size;
 		}
 
 	}
