@@ -878,6 +878,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_final_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_storage_mode) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_force_64bit_chunk_offset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_storage_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_interleave_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_interleave_time) )

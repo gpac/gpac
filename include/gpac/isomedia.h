@@ -961,6 +961,9 @@ InterleaveTime is in MovieTimeScale*/
 GF_Err gf_isom_set_interleave_time(GF_ISOFile *the_file, u32 InterleaveTime);
 u32 gf_isom_get_interleave_time(GF_ISOFile *the_file);
 
+/*forces usage of 64 bit chunk offsets*/
+void gf_isom_force_64bit_chunk_offset(GF_ISOFile *the_file, Bool set_on);
+
 /*set the copyright in one language.*/
 GF_Err gf_isom_set_copyright(GF_ISOFile *the_file, const char *threeCharCode, char *notice);
 

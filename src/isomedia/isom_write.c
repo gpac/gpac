@@ -1392,6 +1392,12 @@ GF_Err gf_isom_set_storage_mode(GF_ISOFile *movie, u8 storageMode)
 	}
 }
 
+GF_EXPORT 
+void gf_isom_force_64bit_chunk_offset(GF_ISOFile *file, Bool set_on)
+{
+	file->force_co64 = set_on;
+}
+
 
 //update or insert a new edit segment in the track time line. Edits are used to modify
 //the media normal timing. EditTime and EditDuration are expressed in Movie TimeScale
