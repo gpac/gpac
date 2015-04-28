@@ -214,6 +214,7 @@ void PrintGeneralUsage()
 	        "                       * Note: By default input (MP4,3GP) file is overwritten\n"
 	        " -tmp dirname         specifies directory for temporary file creation\n"
 	        "                       * Note: Default temp dir is OS-dependent\n"
+	        " -co64                forces usage of 64-bit chunk offsets for ISOBMF files\n"
 	        " -write-buffer SIZE   specifies write buffer in bytes for ISOBMF files\n"
 	        " -no-sys              removes all MPEG-4 Systems info except IOD (profiles)\n"
 	        "                       * Note: Set by default whith '-add' and '-cat'\n"
@@ -1771,6 +1772,7 @@ int mp4boxMain(int argc, char **argv)
 	Bool frag_real_time = 0;
 	Double mpd_update_time = 0;
 	Bool stream_rtp=0;
+	Bool force_co64 = GF_FALSE;
 	Bool live_scene=0;
 	Bool enable_mem_tracker = 0;
 	Bool dump_iod=0;
@@ -2212,6 +2214,10 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG tmpdir = argv[i+1];
 			i++;
 		}
+		else if (!stricmp(arg, "-co64")) {
+			force_co64 = GF_TRUE;
+			open_edit = 1;
+		}
 		else if (!stricmp(arg, "-write-buffer")) {
 			CHECK_NEXT_ARG
 			gf_isom_set_output_buffering(NULL, atoi(argv[i+1]));
@@ -2532,7 +2538,10 @@ int mp4boxMain(int argc, char **argv)
 #endif
 		}
 		else if (!stricmp(arg, "-iod")) regular_iod = 1;
-		else if (!stricmp(arg, "-flat")) do_flat = 1;
+		else if (!stricmp(arg, "-flat")) {
+			open_edit = 1;
+			do_flat = 1;
+		}
 		else if (!stricmp(arg, "-keep-utc")) keep_utc = 1;
 		else if (!stricmp(arg, "-new")) force_new = 1;
 		else if (!stricmp(arg, "-timescale")) {
@@ -4534,6 +4543,9 @@ int mp4boxMain(int argc, char **argv)
 		e = gf_isom_make_interleave(file, interleaving_time);
 		if (!e && old_interleave) e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_INTERLEAVED);
 	}
+	if (force_co64) 
+		gf_isom_force_64bit_chunk_offset(file, GF_TRUE);
+
 	if (e) goto err_exit;
 
 #if !defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_SENG)
