@@ -1031,7 +1031,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 	}
 
 	bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
-	type = ptr[0] & 0x1F;
+	type = gf_bs_read_u8(bs) & 0x1F;
 	fprintf(dump, "code=\"%d\" type=\"", type);
 	res = 0;
 	switch (type) {
