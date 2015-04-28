@@ -192,7 +192,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	char tmp[100];
 	strcpy(segment_name, "");
 
-	if (seg_rad_name && (strstr(seg_rad_name, "$RepresentationID$") || strstr(seg_rad_name, "$ID$") || strstr(seg_rad_name, "$Bandwidth$")))
+	if (seg_rad_name && (strstr(seg_rad_name, "$RepresentationID$") || strstr(seg_rad_name, "$Bandwidth$")))
 		needs_init = GF_FALSE;
 
 	if (!seg_rad_name) {
@@ -203,10 +203,8 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			char c = seg_rad_name[char_template];
 			if (!c) break;
 
-			if (!is_template && !is_init_template
-			        && (!strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18) || !strnicmp(& seg_rad_name[char_template], "$ID$", 4))
-			   ) {
-				char_template+=18;
+			if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18) ) {
+				char_template += 18;
 				strcat(segment_name, rep_id);
 				needs_init=GF_FALSE;
 			}
@@ -5604,9 +5602,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					}
 					segment_name = szSolvedSegName;
 				}
-				if ((dash_inputs[i].trackNum || dash_inputs[i].single_track_num)
-				        && (!seg_name || (!strstr(seg_name, "$RepresentationID$") && !strstr(seg_name, "$ID$")))
-				   ) {
+				if ((dash_inputs[i].trackNum || dash_inputs[i].single_track_num) && (!seg_name || !strstr(seg_name, "$RepresentationID$") ) ) {
 					char tmp[10];
 					sprintf(tmp, "_track%d", dash_inputs[i].trackNum ? dash_inputs[i].trackNum : dash_inputs[i].single_track_num);
 					strcat(szOutName, tmp);
@@ -5617,7 +5613,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					strcat(tmp, szOutName);
 					strcpy(szOutName, tmp);
 				}
-				if (segment_name && dash_inputs[i].trackNum && !strstr(seg_name, "$RepresentationID$") && !strstr(seg_name, "$ID$")) {
+				if (segment_name && dash_inputs[i].trackNum && !strstr(seg_name, "$RepresentationID$") ) {
 					char tmp[10];
 					sprintf(tmp, "_track%d_", dash_inputs[i].trackNum);
 					strcat(segment_name, tmp);
