@@ -327,7 +327,7 @@ GF_Err gf_dasher_store_segment_info(GF_DASHSegmenterOptions *dash_cfg, const cha
 #ifndef GPAC_DISABLE_ISOM
 
 GF_EXPORT
-GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec, Bool force_inband)
+GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCodec, Bool force_inband, Bool force_sbr)
 {
 	GF_ESD *esd;
 	GF_AVCConfig *avcc;
@@ -366,6 +366,17 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 				/*5 first bits of AAC config*/
 				u8 audio_object_type = (esd->decoderConfig->decoderSpecificInfo->data[0] & 0xF8) >> 3;
+#ifndef GPAC_DISABLE_AV_PARSERS
+				if (force_sbr) {
+					GF_M4ADecSpecInfo a_cfg;
+					GF_Err e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
+					if (a_cfg.sbr_sr) 
+						audio_object_type = a_cfg.sbr_object_type;
+					if (a_cfg.has_ps) 
+						audio_object_type = 29;
+				}
+#endif
+
 				sprintf(szCodec, "mp4a.%02x.%01d", esd->decoderConfig->objectTypeIndication, audio_object_type);
 			} else {
 				sprintf(szCodec, "mp4a.%02x", esd->decoderConfig->objectTypeIndication);
@@ -968,7 +979,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			                              &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
 		}
 
-		gf_media_get_rfc_6381_codec_name(input, i+1, szCodec, bs_switch_segment ? GF_TRUE : GF_FALSE);
+		gf_media_get_rfc_6381_codec_name(input, i+1, szCodec, bs_switch_segment ? GF_TRUE : GF_FALSE, GF_TRUE);
 		if (strlen(szCodecs)) strcat(szCodecs, ",");
 		strcat(szCodecs, szCodec);
 
