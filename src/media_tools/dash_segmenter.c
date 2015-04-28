@@ -630,6 +630,16 @@ static void gf_dash_load_segment_timeline(GF_DASHSegmenterOptions *dash_cfg, GF_
 	}
 }
 
+static u64 get_presentation_time(u64 media_time, s32 ts_shift)
+{
+	if ((ts_shift<0) && (media_time < -ts_shift)) {
+		media_time = 0;
+	} else {
+		media_time += ts_shift;
+	}
+	return media_time ;
+}
+
 static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec, GF_DASHSegmenterOptions *dash_cfg, GF_DashSegInput *dash_input, Bool first_in_set)
 {
 	u8 NbBits;
@@ -1361,7 +1371,7 @@ restart_fragmentation_pass:
 			u32 SAP_type = 0;
 
 			tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
-			if (tf == tfref)
+			if (tf->is_ref_track)
 				has_rap = GF_FALSE;
 
 			if (tf->done) continue;
@@ -1414,7 +1424,7 @@ restart_fragmentation_pass:
 				}
 
 				if (tf->splitable) {
-					if (tfref==tf) {
+					if (tf->is_ref_track) {
 						u64 frag_dur = (tf->FragmentLength + defaultDuration) * dash_cfg->dash_scale / tf->TimeScale;
 						/*if media segment about to be produced is longer than max segment length, force segment split*/
 						if (SegmentDuration + frag_dur > MaxSegmentDuration) {
@@ -1428,7 +1438,6 @@ restart_fragmentation_pass:
 					           /*&& next do not split if no next sample */
 
 					           /*next sample DTS */
-//								&& ((tf->next_sample_dts /*+ 1 accuracy*/  ) * tfref_timescale < tfref->next_sample_dts * tf->TimeScale)
 					           && ((tf->next_sample_dts + defaultDuration) * tfref_timescale > tfref->next_sample_dts * tf->TimeScale)) {
 						split_sample_duration = defaultDuration;
 						defaultDuration = (u32) ( (tfref->next_sample_dts * tf->TimeScale)/tfref_timescale - tf->next_sample_dts );
@@ -1440,7 +1449,7 @@ restart_fragmentation_pass:
 					}
 				}
 
-				if (tf==tfref) {
+				if (tf->is_ref_track) {
 					if (segments_start_with_sap && first_sample_in_segment) {
 						first_sample_in_segment = GF_FALSE;
 						if (!SAP_type) segments_start_with_sap = GF_FALSE;
@@ -1468,7 +1477,7 @@ restart_fragmentation_pass:
 				if (simulation_pass) {
 					e = GF_OK;
 				} else {
-					if ((tf == tfref) && store_utc) {
+					if (tf->is_ref_track && store_utc) {
 						u64 ntpts = gf_net_get_ntp_ts();
 						gf_isom_set_fragment_reference_time(output, tf->TrackID, ntpts, sample->DTS + sample->CTS_Offset + tf->media_time_to_pres_time_shift);
 						store_utc = GF_FALSE;
@@ -1527,7 +1536,7 @@ restart_fragmentation_pass:
 				}
 
 				if (next && SAP_type) {
-					if (tf==tfref) {
+					if (tf->is_ref_track) {
 						if (split_sample_duration) {
 							stop_frag = GF_TRUE;
 						}
@@ -1573,7 +1582,7 @@ restart_fragmentation_pass:
 
 				if (tf->SampleNum==tf->SampleCount) {
 					stop_frag = GF_TRUE;
-				} else if (tf==tfref) {
+				} else if (tf->is_ref_track) {
 					/*fragmenting on "clock" track: no drift control*/
 					if (!dash_cfg->fragments_start_with_rap || ( tf->splitable && split_sample_duration ) || ( (next && next->IsRAP) || split_at_rap) ) {
 						if ((tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale)
@@ -1586,8 +1595,15 @@ restart_fragmentation_pass:
 				}
 				/*do not abort fragment if ref track is done, put everything in the last fragment*/
 				else if (!flush_all_samples) {
+					u64 ept_next;
+					u64 tref_ept_next = get_presentation_time(ref_track_next_cts, tfref->media_time_to_pres_time_shift); 
+					/*get next sample dts: if greater than tref EPT, abort. This ensures that we have at most 
+					one au wihth EPT less than ref EPT*/
+					u64 next_dur = gf_isom_get_sample_duration(input, tf->OriginalTrack, tf->SampleNum + 1);
+					if (!next_dur) next_dur = defaultDuration;
+					ept_next = get_presentation_time(tf->next_sample_dts + next_dur, tf->media_time_to_pres_time_shift); 
 					/*fragmenting on "non-clock" track: drift control*/
-					if ((tf->next_sample_dts /*+1 accuracy*/) * tfref_timescale >= ref_track_next_cts * tf->TimeScale)
+					if (ept_next * tfref_timescale > tref_ept_next * tf->TimeScale)
 						stop_frag = GF_TRUE;
 				}
 
@@ -1596,7 +1612,7 @@ restart_fragmentation_pass:
 					sample = next = NULL;
 
 					//only compute max dur over segment for the track used for indexing / deriving MPD start time
-					if (!tfref || (tf == tfref)) {
+					if (!tfref || (tf->is_ref_track)) {
 						u64 f_dur;
 						f_dur = ( tf->FragmentLength ) * dash_cfg->dash_scale / tf->TimeScale;
 						if (maxFragDurationOverSegment <= f_dur) {
@@ -1617,7 +1633,7 @@ restart_fragmentation_pass:
 			if (tf->SampleNum==tf->SampleCount) {
 				tf->done = GF_TRUE;
 				nb_tracks_done++;
-				if (tf == tfref) {
+				if (tf->is_ref_track) {
 					tfref = NULL;
 					flush_all_samples = GF_TRUE;
 				}
