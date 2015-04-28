@@ -486,9 +486,15 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 
 	skip_resync = GF_FALSE;
 	//no drop mode, only for speed = 1: all frames are presented, we discard the current output only if already presented and next frame time is mature
-	if ((codec->ck->speed == FIX_ONE) && (mo->type==GF_MEDIA_OBJECT_VIDEO)) {
-		if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES) && !(codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY))
-			skip_resync = GF_TRUE;
+	if ((codec->ck->speed == FIX_ONE) && (mo->type==GF_MEDIA_OBJECT_VIDEO)  && !(codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY) ) {
+		if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) {
+			//if the next AU is at most 1 sec from the current clock use no drop mode
+			if (CU->next->dataLength && (CU->next->TS + 1000 >= obj_time)) {
+				skip_resync = GF_TRUE;
+			} else {
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Frame TS %d too late in no-drop mode, enabling drop\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS));
+			}
+		}
 	}
 
 		
