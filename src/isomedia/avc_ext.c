@@ -290,7 +290,7 @@ static SAPType is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *
 				gf_bs_del(bs);
 				return RAP_NO;
 			}
-			gf_bs_skip_bytes(bs, size - 2);
+			gf_bs_skip_bytes(bs, size - 1);
 		}
 	}
 	gf_bs_del(bs);
