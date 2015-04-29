@@ -714,7 +714,7 @@ check_unit:
 	else {
 		codec->last_unit_cts = AU->CTS;
 		/*we're droping the frame*/
-		if (scene_locked) codec->nb_droped ++;
+		if (scene_locked) codec->nb_dropped ++;
 		mm_level = GF_CODEC_LEVEL_NORMAL;
 	}
 
@@ -1271,7 +1271,7 @@ scalable_retry:
 			if (mmlevel == GF_CODEC_LEVEL_DROP) {
 				if (drop_late_frames && (codec->CB->UnitCount>1) ) {
 					unit_size = 0;
-					codec->nb_droped++;
+					codec->nb_dropped++;
 				} else
 					ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
 			}
@@ -1389,7 +1389,7 @@ scalable_retry:
 		if (mmlevel >= GF_CODEC_LEVEL_DROP) {
 			if (drop_late_frames || (mmlevel == GF_CODEC_LEVEL_SEEK) ) {
 				unit_size = 0;
-				if (drop_late_frames) codec->nb_droped++;
+				if (drop_late_frames) codec->nb_dropped++;
 			} else
 				prev_ch->clock->last_TS_rendered = codec->CB->LastRenderedTS;
 		} else {
@@ -1620,7 +1620,7 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 		codec->total_dec_time = 0;
 		codec->max_dec_time = 0;
 		codec->cur_audio_bytes = codec->cur_video_frames = 0;
-		codec->nb_droped = 0;
+		codec->nb_dropped = 0;
 		codec->nb_repeted_frames = 0;
 		codec->recomputed_cts = 0;
 		codec->first_frame_dispatched = 0;

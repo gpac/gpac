@@ -293,7 +293,7 @@ void PrintDASHUsage()
 	        "                       Note: the duration of a fragment (subsegment) is set\n"
 	        "						using the -frag switch.\n"
 	        "                       Note: for onDemand profile, sets duration of a subsegment\n"
-	        " -dash-live[=F] dur   generates a live DASH session using dur segment duration, optionnally writing live context to F\n"
+	        " -dash-live[=F] dur   generates a live DASH session using dur segment duration, optionally writing live context to F\n"
 	        "                       MP4Box will run the live session until \'q\' is pressed or a fatal error occurs.\n"
 	        " -ddbg-live[=F] dur   same as -dash-live without time regulation for debug purposes.\n"
 	        " -frag time_in_ms     Specifies a fragment duration of time_in_ms.\n"
