@@ -365,7 +365,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 				/*5 first bits of AAC config*/
 				u8 audio_object_type = (esd->decoderConfig->decoderSpecificInfo->data[0] & 0xF8) >> 3;
 #ifndef GPAC_DISABLE_AV_PARSERS
-				if (force_sbr) {
+				if (force_sbr && (audio_object_type==2) ) {
 					GF_M4ADecSpecInfo a_cfg;
 					GF_Err e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
                     if (e==GF_OK) {
