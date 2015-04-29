@@ -229,7 +229,7 @@ GPAC configuration options:
   --strip                  enable strip
   --std-allocator          uses standard lib memory allocator
   --static-modules         includes static modules in libgpac whenever possible
-  --track-memory           enable tracking of all memory allocated by gpac
+  --enable-mem-track       enable tracking of all memory allocated by gpac
   --disable-opt            disable GCC optimizations
   --disable-ipv6           disable IPV6 support
   --disable-wx             disable wxWidgets support
@@ -1863,7 +1863,7 @@ for opt do
             ;;
         --strip) INSTFLAGS="-s $INSTFLAGS"
             ;;
-        --track-memory) use_memory_tracking="yes"
+        --enable-mem-track) use_memory_tracking="yes"
             ;;
         --enable-tinygl) enable_tinygl="yes"
             ;;
@@ -2841,12 +2841,6 @@ if test "$has_amr_wb" = "yes" ; then
 fi
 
 echo ""
-if test "$use_memory_tracking" = "yes"; then
-    echo "!! WARNING: GPAC Memory tracking is enabled !!"
-    echo "!! This may corrupt third-party tools using libgpac !!"
-    echo "!! Use at your own risk, and only for GPAC benchmarking !!"
-    echo ""
-fi
 
 #needs gmon for win32 gprof
 if test "$gprof_build" = "yes"; then
