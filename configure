@@ -91,7 +91,6 @@ has_x11_xv="no"
 no_gcc_opt="no"
 use_fixed_point="no"
 use_memory_tracking="no"
-use_std_alloc="no"
 has_opengl="no"
 has_tinygl="no"
 enable_tinygl="no"
@@ -1864,8 +1863,6 @@ for opt do
             ;;
         --strip) INSTFLAGS="-s $INSTFLAGS"
             ;;
-        --std-allocator) use_std_alloc="yes"
-            ;;
         --track-memory) use_memory_tracking="yes"
             ;;
         --enable-tinygl) enable_tinygl="yes"
@@ -2526,7 +2523,6 @@ echo "debug version: $debuginfo"
 echo "GProf enabled: $gprof_build"
 echo "Static build enabled: $static_build"
 echo "Memory tracking enabled: $use_memory_tracking"
-echo "Use standard memory allocator: $use_std_alloc"
 echo "Fixed-Point Version: $use_fixed_point"
 echo "IPV6 Support: $has_ipv6"
 echo "Static Modules: $static_modules"
@@ -2944,8 +2940,6 @@ fi
 
 if test "$use_memory_tracking" = "yes"; then
     echo "#define GPAC_MEMORY_TRACKING" >> $TMPH
-elif test "$use_std_alloc" = "yes"; then 
-    echo "#define GPAC_STD_ALLOCATOR" >> $TMPH
 fi
 
 
