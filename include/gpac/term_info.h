@@ -114,7 +114,7 @@ typedef struct
 
 	/*average birate over last second and max bitrate over one second at decoder input - expressed in bits per sec*/
 	u32 avg_bitrate, instant_bitrate, max_bitrate;
-	u32 nb_dec_frames, nb_droped;
+	u32 nb_dec_frames, nb_dropped;
 	u32 first_frame_time, last_frame_time;
 	u64 total_dec_time, irap_total_dec_time;
 	u32 max_dec_time, irap_max_dec_time;

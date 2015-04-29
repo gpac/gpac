@@ -511,7 +511,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	}
 
 	if (resync) {
-		u32 nb_droped = 0;
+		u32 nb_dropped = 0;
 		while (1) {
 			if (CU->TS*codec->ck->speed >= obj_time*codec->ck->speed)
 				break;
@@ -538,10 +538,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 				break;
 			}
 
-			nb_droped ++;
-			if (nb_droped>1) {
+			nb_dropped ++;
+			if (nb_dropped>1) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At OTB %u dropped frame TS %u\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS));
-				codec->nb_droped++;
+				codec->nb_dropped++;
 			}
 			/*discard*/
 			CU->RenderedLength = CU->dataLength = 0;

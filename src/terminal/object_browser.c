@@ -208,7 +208,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 			}
 		}
 		info->current_time /= 1000;
-		info->nb_droped = codec->nb_droped;
+		info->nb_dropped = codec->nb_dropped;
 	} else if (odm->subscene) {
 		if (odm->subscene->scene_codec) {
 			if (odm->subscene->scene_codec->ck) {
@@ -217,7 +217,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 			}
 			info->duration = (Double) (s64)odm->subscene->duration;
 			info->duration /= 1000;
-			info->nb_droped = odm->subscene->scene_codec->nb_droped;
+			info->nb_dropped = odm->subscene->scene_codec->nb_dropped;
 			codec = odm->subscene->scene_codec;
 		} else if (odm->subscene->is_dynamic_scene) {
 			if (odm->subscene->dyn_ck) {

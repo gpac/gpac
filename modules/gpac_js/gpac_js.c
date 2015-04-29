@@ -908,7 +908,7 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		*vp = INT_TO_JSVAL(odi.nb_dec_frames);
 		break;
 	case -21:
-		*vp = INT_TO_JSVAL(odi.nb_droped);
+		*vp = INT_TO_JSVAL(odi.nb_dropped);
 		break;
 	case -22:
 		*vp = INT_TO_JSVAL(odi.max_dec_time);

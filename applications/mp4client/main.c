@@ -2314,8 +2314,8 @@ void PrintAVInfo(Bool final)
 				if (!dec_run_time) dec_run_time = 1;
 				if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
 				fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
-				if (v_odi.nb_droped) {
-					fprintf(stderr, " (Error during bench: %d frames drop)", v_odi.nb_droped);
+				if (v_odi.nb_dropped) {
+					fprintf(stderr, " (Error during bench: %d frames drop)", v_odi.nb_dropped);
 				}
 				fprintf(stderr, "\n");
 			}
@@ -2327,8 +2327,8 @@ void PrintAVInfo(Bool final)
 				if (!dec_run_time) dec_run_time = 1;
 				if (a_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*a_odi.current_time / a_odi.duration ) );
 				fprintf(stderr, "%d frames (ms/f %.2f avg %.2f max) rate avg %d max %d", a_odi.nb_dec_frames, ((Float)dec_run_time)/a_odi.nb_dec_frames, a_odi.max_dec_time/1000.0, (u32) a_odi.avg_bitrate/1000, (u32) a_odi.max_bitrate/1000);
-				if (a_odi.nb_droped) {
-					fprintf(stderr, " (Error during bench: %d frames drop)", a_odi.nb_droped);
+				if (a_odi.nb_dropped) {
+					fprintf(stderr, " (Error during bench: %d frames drop)", a_odi.nb_dropped);
 				}
 				fprintf(stderr, "\n");
 			}
@@ -2857,7 +2857,7 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 			ind--;
 		}
 
-		fprintf(stderr, " %d decoded frames - %d dropped frames\n", odi.nb_dec_frames, odi.nb_droped);
+		fprintf(stderr, " %d decoded frames - %d dropped frames\n", odi.nb_dec_frames, odi.nb_dropped);
 
 		ind = indent;
 		while (ind) {

@@ -881,7 +881,7 @@ struct _generic_codec
 	u32 max_dec_time, max_iframes_time;
 	u32 first_frame_time, last_frame_time;
 	/*number of frames dropped at the presentation*/
-	u32 nb_droped;
+	u32 nb_dropped;
 	/*we detect if the same image is sent again and again to the decoder (using last_unit_signature)*/
 	u32 nb_repeted_frames;
 	/*min frame duration based on DTS diff*/
