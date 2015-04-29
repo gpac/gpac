@@ -733,7 +733,8 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				assert(i_playlist_element);
 				if (stream->stream_id < MEDIA_TYPE_AUDIO) {
 					/* regular stream (EXT-X-STREAM-INF) */
-					if (i_playlist_element->bandwidth == attribs->bandwidth) {
+					// Two stream are identical only if they have the same URL
+					if (!strcmp(i_playlist_element->url, fullURL)) {
 						curr_playlist = i_playlist_element;
 						break;
 					}
