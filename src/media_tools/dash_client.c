@@ -3443,13 +3443,13 @@ static Bool gf_dash_is_seamless_period_switch(GF_DashClient *dash)
 static void gf_dash_group_check_time(GF_DASH_Group *group)
 {
 	s64 check_time;
-	u32 nb_droped;
+	u32 nb_dropped;
 
 	if (group->dash->is_m3u8) return;
 	if (! group->timeline_setup) return;
 
 	check_time = (s64) gf_net_get_utc();
-	nb_droped = 0;
+	nb_dropped = 0;
 
 	while (1) {
 		u32 seg_dur_ms;
@@ -3468,13 +3468,13 @@ static void gf_dash_group_check_time(GF_DASH_Group *group)
 		}
 		if (((s32) group->time_shift_buffer_depth > 0) && (now > group->time_shift_buffer_depth)) {
 			group->download_segment_index ++;
-			nb_droped ++;
+			nb_dropped ++;
 			group->dash->time_in_tsb = 0;
 			continue;
 		}
 
-		if (nb_droped > group->dash->tsb_exceeded) {
-			group->dash->tsb_exceeded = nb_droped;
+		if (nb_dropped > group->dash->tsb_exceeded) {
+			group->dash->tsb_exceeded = nb_dropped;
 		}
 
 		now -= group->dash->user_buffer_ms;

@@ -452,7 +452,7 @@ void CFileProps::SetDecoderInfo()
 		avg_dec_time /= odi.nb_dec_frames;
 	}
 	sprintf(buf, "Bitrate over last second: %d kbps\r\nMax bitrate over one second: %d kbps\r\nAverage Decoding Time %.2f ms (%d max)\r\nTotal decoded frames %d - %d dropped\r\n",
-	        (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames, odi.nb_droped);
+	        (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames, odi.nb_dropped);
 	strcat(info, buf);
 
 	m_ODInfo.SetWindowText(info);

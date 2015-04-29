@@ -1969,7 +1969,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
 
-	/*compute FPS - note we assume constant frame rate without droped frames...*/
+	/*compute FPS - note we assume constant frame rate without dropped frames...*/
 	count = gf_isom_get_sample_count(dumper->file, track);
 	FPS = gf_isom_get_media_timescale(dumper->file, track);
 	FPS *= (count-1);
