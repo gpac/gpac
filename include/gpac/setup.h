@@ -540,7 +540,7 @@ char* gf_strdup(const char *str);
 # endif
 #endif
 
-#ifndef GPAC_HAS_SPIDERMONKEY
+#if !defined(GPAC_HAS_SPIDERMONKEY) || defined(GPAC_DISABLE_SVG)
 # ifndef GPAC_DISABLE_MSE
 # define GPAC_DISABLE_MSE
 # endif
