@@ -2612,7 +2612,6 @@
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
-					../..,
 					../../extra_lib/include/ios/,
 					../../extra_lib/include/png,
 					../../extra_lib/include/jpeg,
@@ -2620,7 +2619,6 @@
 					../../extra_lib/include/zlib,
 					../../extra_lib/include/SDL2,
 					../../extra_lib/include/freetype,
-					../../extra_lib/include,
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/iOS;
@@ -2649,7 +2647,6 @@
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
-					../..,
 					../../extra_lib/include/ios/,
 					../../extra_lib/include/png,
 					../../extra_lib/include/jpeg,
@@ -2657,7 +2654,6 @@
 					../../extra_lib/include/zlib,
 					../../extra_lib/include/SDL2,
 					../../extra_lib/include/freetype,
-					../../extra_lib/include,
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
 				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/iOS;
