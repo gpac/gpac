@@ -368,10 +368,12 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 				if (force_sbr) {
 					GF_M4ADecSpecInfo a_cfg;
 					GF_Err e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
-					if (a_cfg.sbr_sr) 
-						audio_object_type = a_cfg.sbr_object_type;
-					if (a_cfg.has_ps) 
-						audio_object_type = 29;
+                    if (e==GF_OK) {
+                        if (a_cfg.sbr_sr)
+                            audio_object_type = a_cfg.sbr_object_type;
+                        if (a_cfg.has_ps)
+                            audio_object_type = 29;
+                    }
 				}
 #endif
 

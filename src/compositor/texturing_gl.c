@@ -1294,7 +1294,9 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 	return 1;
 #else
 
-	/*To remove: gcc 4.6 introduces this warning*/
+
+#ifdef LOAD_GL_1_3
+    /*To remove: gcc 4.6 introduces this warning*/
 #if __GNUC__ == 4 && __GNUC_MINOR__ >= 6
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress"
@@ -1307,7 +1309,10 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 #if __GNUC__ == 4 && __GNUC_MINOR__ == 6
 #pragma GCC diagnostic pop
 #endif
-	matte_hdl = gf_node_get_private(n);
+
+#endif
+    
+    matte_hdl = gf_node_get_private(n);
 	if (!matte_hdl->tx_io) {
 		gf_sc_texture_allocate(matte_hdl);
 	}
