@@ -1846,6 +1846,9 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
 		gf_term_service_command(scene->root_od->net_service, &com);
+		//For HLS: force all stream have the same aspect ratio
+		if (com.par.height && height)
+			com.par.width = com.par.height * width / height;
 
 		if (scene->root_od->term->root_scene == scene) {
 			if (com.par.width && com.par.height) {

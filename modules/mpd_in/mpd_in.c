@@ -938,7 +938,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution");
 	if (!opt) {
-#if defined(_WIN32_WCE) || defined(GPAC_IPHONE)
+#if defined(_WIN32_WCE) || defined(GPAC_ANDROID) || defined(GPAC_IPHONE)
 		opt = "yes";
 #else
 		opt = "no";

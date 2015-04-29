@@ -438,12 +438,18 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 	RAWCTX;
 	LOG( ANDROID_LOG_DEBUG, TAG, "Android Resize: %dx%d", w, h);
 
-	rc->width = w;
-	rc->height = h;
 	
-	if ((dr->max_screen_width < w) || (dr->max_screen_height < h)) {
+	if ( !dr->max_screen_width && !dr->max_screen_height ) {
 		dr->max_screen_width = w;
 		dr->max_screen_height = h;
+	}
+	
+	if (rc->fullscreen) {
+		rc->width = dr->max_screen_width;
+		rc->height = dr->max_screen_height;
+	} else {
+		rc->width = w;
+		rc->height = h;
 	}
 
 	if ( rc->non_power_two )
@@ -571,25 +577,14 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			     evt->setup.width, evt->setup.height);
 			//if (evt->setup.opengl_mode) return GF_OK;
 			//in fullscreen mode: do not change viewport; just update perspective
-			if (rc->fullscreen) {
-				/* change to the projection matrix and set our viewing volume. */
-				glMatrixMode(GL_PROJECTION);
-				glLoadIdentity();
-
-				/* Set our perspective */
-				glOrthox(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1));
-
-				/* Make sure we're chaning the model view and not the projection */
-				glMatrixMode(GL_MODELVIEW);
-
-				/* Reset The View */
-				glLoadIdentity();
-				return GF_OK;
-			} else
-				return droid_Resize(dr, evt->setup.width, evt->setup.height);
 			
 		case GF_EVENT_VIDEO_SETUP:
 			LOG( ANDROID_LOG_DEBUG, TAG, "Android OpenGL mode: %d", evt->setup.opengl_mode);
+			//detect screen rotation
+			if (dr->max_screen_width && dr->max_screen_height && (dr->max_screen_width == evt->setup.height) && (dr->max_screen_height == evt->setup.width)) {
+					dr->max_screen_width  = evt->setup.width;
+					dr->max_screen_height = evt->setup.height;
+			}
 			switch (evt->setup.opengl_mode)
 			{
 			case 0:
@@ -626,12 +621,14 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 
 static GF_Err droid_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 *outHeight) 
 {
-	RAWCTX;;
-	
-	*outWidth = dr->max_screen_width;
-	*outHeight = dr->max_screen_height;
+	RAWCTX;
+	if (bOn) {
+		*outWidth = dr->max_screen_width;
+		*outHeight = dr->max_screen_height;
+		droid_Resize(dr, dr->max_screen_width, dr->max_screen_height);
+	}
 	rc->fullscreen = bOn;
-	return droid_Resize(dr, dr->max_screen_width, dr->max_screen_height);
+	return GF_OK;
 }
 
 GF_VideoOutput *NewAndroidVideoOutput()
@@ -657,8 +654,8 @@ GF_VideoOutput *NewAndroidVideoOutput()
 	driv->ProcessEvent = droid_ProcessEvent;
 	driv->SetFullScreen = droid_SetFullScreen;
 
-	driv->max_screen_width = 1024;
-	driv->max_screen_height = 1024;
+	driv->max_screen_width = 0;
+	driv->max_screen_height = 0;
 
 	driv->hw_caps = GF_VIDEO_HW_OPENGL;// | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;//GF_VIDEO_HW_DIRECT_ONLY;//
 

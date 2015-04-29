@@ -159,8 +159,9 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 				if ((compositor->display_width != fs_width) || (compositor->display_height != fs_height)) {
 					compositor->display_width = fs_width;
 					compositor->display_height = fs_height;
-                    compositor->recompute_ar = 1;
 				}
+				compositor->recompute_ar = 1;
+				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 			} else {
 				compositor->display_width = evt.size.width;
 				compositor->display_height = evt.size.height;
