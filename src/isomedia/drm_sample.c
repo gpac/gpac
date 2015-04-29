@@ -130,7 +130,7 @@ static GF_ProtectionInfoBox *gf_isom_get_sinf_entry(GF_TrackBox *trak, u32 sampl
 	if (!sea) return NULL;
 
 	i = 0;
-	while ((sinf = gf_list_enum(sea->protections, &i))) {
+	while ((sinf = (GF_ProtectionInfoBox*)gf_list_enum(sea->protections, &i))) {
 		if (sinf->original_format && sinf->scheme_type && sinf->info) {
 			if (!scheme_type || (sinf->scheme_type->scheme_type == scheme_type)) {
 				if (out_sea)
@@ -170,7 +170,7 @@ GF_ISMASample *gf_isom_get_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber
 			return gf_isom_ismacryp_sample_from_data(samp->data, samp->dataLength, fmt->selective_encryption, fmt->key_indicator_length, fmt->IV_length);
 		}
 		/*OMA default: no selective encryption, one key, 128 bit IV*/
-		return gf_isom_ismacryp_sample_from_data(samp->data, samp->dataLength, 0, 0, 128);
+		return gf_isom_ismacryp_sample_from_data(samp->data, samp->dataLength, GF_FALSE, 0, 128);
 	}
 	return NULL;
 }
@@ -200,16 +200,16 @@ Bool gf_isom_is_ismacryp_media(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 	GF_ProtectionInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return 0;
+	if (!trak) return GF_FALSE;
 
 	sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ISMACRYP_SCHEME, NULL);
-	if (!sinf) return 0;
+	if (!sinf) return GF_FALSE;
 
 	/*non-encrypted or non-ISMA*/
 	if (!sinf->info || !sinf->info->ikms || !sinf->info->isfm )
-		return 0;
+		return GF_FALSE;
 
-	return 1;
+	return GF_TRUE;
 }
 
 GF_EXPORT
@@ -219,16 +219,16 @@ Bool gf_isom_is_omadrm_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 	GF_ProtectionInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak) return 0;
+	if (!trak) return GF_FALSE;
 
 	sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_OMADRM_SCHEME, NULL);
-	if (!sinf) return 0;
+	if (!sinf) return GF_FALSE;
 
 	/*non-encrypted or non-OMA*/
 	if (!sinf->info || !sinf->info->okms || !sinf->info->okms->hdr)
-		return 0;
+		return GF_FALSE;
 
-	return 1;
+	return GF_TRUE;
 }
 
 /*retrieves ISMACryp info for the given track & SDI*/
@@ -242,7 +242,7 @@ GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 	if (!trak) return GF_BAD_PARAM;
 
 	sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ISMACRYP_SCHEME, NULL);
-	if (!sinf) return 0;
+	if (!sinf) return GF_OK;
 
 	if (outOriginalFormat) {
 		*outOriginalFormat = sinf->original_format->data_format;
@@ -262,7 +262,7 @@ GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 		if (outIVLength) *outIVLength = sinf->info->isfm->IV_length;
 		if (outKeyIndicationLength) *outKeyIndicationLength = sinf->info->isfm->key_indicator_length;
 	} else {
-		if (outSelectiveEncryption) *outSelectiveEncryption = 0;
+		if (outSelectiveEncryption) *outSelectiveEncryption = GF_FALSE;
 		if (outIVLength) *outIVLength = 0;
 		if (outKeyIndicationLength) *outKeyIndicationLength = 0;
 	}
@@ -283,7 +283,7 @@ GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 	if (!trak) return GF_BAD_PARAM;
 
 	sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_OMADRM_SCHEME, NULL);
-	if (!sinf) return 0;
+	if (!sinf) return GF_OK;
 
 	if (!sinf->info || !sinf->info->okms || !sinf->info->okms->hdr) return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -307,7 +307,7 @@ GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 		if (outIVLength) *outIVLength = sinf->info->okms->fmt->IV_length;
 		if (outKeyIndicationLength) *outKeyIndicationLength = sinf->info->okms->fmt->key_indicator_length;
 	} else {
-		if (outSelectiveEncryption) *outSelectiveEncryption = 0;
+		if (outSelectiveEncryption) *outSelectiveEncryption = GF_FALSE;
 		if (outIVLength) *outIVLength = 0;
 		if (outKeyIndicationLength) *outKeyIndicationLength = 0;
 	}
@@ -361,7 +361,7 @@ GF_Err gf_isom_change_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber,
 
 	sea = NULL;
 	sinf = gf_isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ISMACRYP_SCHEME, &sea);
-	if (!sinf) return 0;
+	if (!sinf) return GF_OK;
 
 	if (scheme_uri) {
 		gf_free(sinf->scheme_type->URI);
@@ -511,7 +511,7 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 	if (contentID) sinf->info->okms->hdr->ContentID = gf_strdup(contentID);
 	if (kms_URI) sinf->info->okms->hdr->RightsIssuerURL = gf_strdup(kms_URI);
 	if (textual_headers) {
-		sinf->info->okms->hdr->TextualHeaders = gf_malloc(sizeof(char)*textual_headers_len);
+		sinf->info->okms->hdr->TextualHeaders = (char*)gf_malloc(sizeof(char)*textual_headers_len);
 		memcpy(sinf->info->okms->hdr->TextualHeaders, textual_headers, sizeof(char)*textual_headers_len);
 		sinf->info->okms->hdr->TextualHeadersLen = textual_headers_len;
 	}
@@ -532,7 +532,7 @@ GF_Err gf_isom_get_original_format_type(GF_ISOFile *the_file, u32 trackNumber, u
 	Media_GetSampleDesc(trak->Media, sampleDescriptionIndex, &sea, NULL);
 	if (!sea) return GF_BAD_PARAM;
 
-	sinf = gf_list_get(sea->protections, 0);
+	sinf = (GF_ProtectionInfoBox*)gf_list_get(sea->protections, 0);
 	if (outOriginalFormat && sinf->original_format) {
 		*outOriginalFormat = sinf->original_format->data_format;
 	}
@@ -900,7 +900,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 		senc->cenc_saiz->sample_count ++;
 		senc->cenc_saiz->default_sample_info_size = len;
 	} else {
-		senc->cenc_saiz->sample_info_size = gf_realloc(senc->cenc_saiz->sample_info_size, sizeof(u8)*(senc->cenc_saiz->sample_count+1));
+		senc->cenc_saiz->sample_info_size = (u8*)gf_realloc(senc->cenc_saiz->sample_info_size, sizeof(u8)*(senc->cenc_saiz->sample_count+1));
 
 		if (senc->cenc_saiz->default_sample_info_size) {
 			for (i=0; i<senc->cenc_saiz->sample_count; i++)
@@ -934,7 +934,7 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 		senc->cenc_saiz->sample_count ++;
 		senc->cenc_saiz->default_sample_info_size = len;
 	} else {
-		senc->cenc_saiz->sample_info_size = gf_realloc(senc->cenc_saiz->sample_info_size, sizeof(u8)*(senc->cenc_saiz->sample_count+1));
+		senc->cenc_saiz->sample_info_size = (u8*)gf_realloc(senc->cenc_saiz->sample_info_size, sizeof(u8)*(senc->cenc_saiz->sample_count+1));
 
 		if (senc->cenc_saiz->default_sample_info_size) {
 			for (i=0; i<senc->cenc_saiz->sample_count; i++)
@@ -950,7 +950,7 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 		senc->cenc_saio->offsets[0] = offset;
 		senc->cenc_saio->entry_count ++;
 	} else {
-		senc->cenc_saio->offsets = gf_realloc(senc->cenc_saio->offsets, sizeof(u32)*(senc->cenc_saio->entry_count+1));
+		senc->cenc_saio->offsets = (u32*)gf_realloc(senc->cenc_saio->offsets, sizeof(u32)*(senc->cenc_saio->entry_count+1));
 		senc->cenc_saio->offsets[senc->cenc_saio->entry_count] = offset;
 		senc->cenc_saio->entry_count++;
 	}
@@ -1178,7 +1178,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	if (a_box) {
 		memmove((*sai)->IV, a_sai->IV, 16);
 		(*sai)->subsample_count = a_sai->subsample_count;
-		(*sai)->subsamples = gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
+		(*sai)->subsamples = (GF_CENCSubSampleEntry*)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
 		memmove((*sai)->subsamples, a_sai->subsamples, sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
 	}
 
