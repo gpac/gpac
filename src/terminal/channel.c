@@ -501,8 +501,15 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 	gf_es_lock(ch, 1);
 
 
-	if (0 && ch->AU_Count>10000) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Something really wrong, too many AUs in decoding channel (%d) - trashing buffers\n", ch->esd->ESID, ch->odm->net_service->url, ch->AU_Count));
+	if( (ch->MaxBuffer && (ch->BufferTime > 100*ch->MaxBuffer))
+       || (ch->AU_Count>10000)
+    ) {
+        if (ch->AU_Count>10000) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Something really wrong, too many AUs (%d) in decoding buffer - trashing buffers\n", ch->esd->ESID, ch->odm->net_service->url, ch->AU_Count));
+        } else {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Something really wrong,  decoding buffer exceeded (%d ms vs %d max) - trashing buffers\n", ch->esd->ESID, ch->odm->net_service->url, ch->BufferTime, ch->MaxBuffer));
+            
+        }
 		gf_db_unit_del(ch->AU_buffer_first->next);
 		ch->AU_buffer_first->next = NULL;
 		ch->AU_buffer_last = ch->AU_buffer_first;
