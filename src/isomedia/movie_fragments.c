@@ -1164,9 +1164,11 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		trak = gf_isom_get_track_from_id(movie->moov, referenceTrackID);
 	}
 
-	if (subsegments_per_sidx < 0) {
+	if (subsegments_per_sidx < 0) { 
 		referenceTrackID = 0;
 		subsegments_per_sidx = 0;
+	}
+	if (!subsegments_per_sidx && !referenceTrackID) {
 		no_sidx = 1;
 	}
 
