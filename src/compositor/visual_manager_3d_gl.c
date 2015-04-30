@@ -988,6 +988,9 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	GF_SHADERID glsl_fragment;
 	u32 i;
 	GLint err_log = -10;
+	char *shader_path, *shader_file;
+	size_t str_size =0;
+	GF_Config *cfg = visual->compositor->user->config;
 
 	GL_CHECK_ERR
 
@@ -1019,19 +1022,32 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 		visual->glsl_has_shaders = GF_TRUE;
 		GL_CHECK_ERR
 	}
+	
+	shader_path =(char *) gf_cfg_get_key(cfg, "Compositor", "ShaderPath");
+	str_size +=strlen("ES2[global].vert");
+	shader_file = (char *) gf_malloc(sizeof(char)*(strlen(shader_path)+str_size));
+	strcpy(shader_file, shader_path);
+	strcat(shader_file, "ES2[global].vert");
 
 //Creating and Compiling Vertex and Fragment Shaders
 	if (!visual->glsl_vertex)
-		visual->glsl_vertex = visual_3d_shader_from_source_file("shaders/ES2[global].vert" , GL_VERTEX_SHADER); //We use only one ES2.0 vertex shader (at least for now)
+		visual->glsl_vertex = visual_3d_shader_from_source_file(shader_file , GL_VERTEX_SHADER); //We use only one ES2.0 vertex shader (at least for now)
 	if(!visual->glsl_vertex)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile vertex shader [ES2.0]\n"));
 	GL_CHECK_ERR;
 
 	if(visual->glsl_vertex){
+
+		str_size =strlen("ES2[global].frag");
+		shader_file = (char *) gf_realloc(shader_file, sizeof(char)*(strlen(shader_path)+str_size));
+		strcpy(shader_file, shader_path);
+		strcat(shader_file, "ES2[global].frag");
+
+
 		for(i=0;i<GF_GL_NUM_OF_VALID_SHADERS;i++){
 			GLint linked;
 			GL_CHECK_ERR;
-			glsl_fragment = visual_3d_shader_with_flags("shaders/ES2[global].frag" , GL_FRAGMENT_SHADER, i);
+			glsl_fragment = visual_3d_shader_with_flags(shader_file , GL_FRAGMENT_SHADER, i);
 			if(!glsl_fragment){
 				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile fragment shader [ES2.0]\n"));
 				continue;
@@ -1061,7 +1077,6 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 
 	/* Set y,u,v planes (if GF_GL_IS_YUV*/
 	visual_3d_set_tx_planes(visual);
-
 }
 
 void visual_3d_init_shaders(GF_VisualManager *visual)
