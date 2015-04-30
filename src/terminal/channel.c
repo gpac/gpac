@@ -501,7 +501,7 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 	gf_es_lock(ch, 1);
 
 
-	if( (ch->MaxBuffer && (ch->BufferTime > 100*ch->MaxBuffer))
+	if( (ch->MaxBuffer && (ch->BufferTime > (s32) ( 100*ch->MaxBuffer)) )
        || (ch->AU_Count>10000)
     ) {
         if (ch->AU_Count>10000) {
