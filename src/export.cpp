@@ -1976,8 +1976,36 @@
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_segment_files) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_location) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_add_base_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_url_template) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_segment_timeline) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_single_segment) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_single_file) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_switch_mode) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_durations) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_rap_spliting) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_segment_marker) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_sidx) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_dynamic_mode) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_min_buffer) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_ast_offset) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_memory_fragmenting) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_initial_isobmf) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_memory_fragmenting) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_configure_isobmf_default) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_utc_ref) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_real_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_profile_extension) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_add_input) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_process) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_next_update_time) )
+
 #endif
 
 /* dvb_mpe.h */

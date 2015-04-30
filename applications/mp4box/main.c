@@ -3542,6 +3542,9 @@ int mp4boxMain(int argc, char **argv)
 		char szMPD[GF_MAX_PATH], *sep;
 		GF_Config *dash_ctx = NULL;
 		u32 do_abort = 0;
+		GF_DASHSegmenter *dasher;
+
+
 		gf_log_set_tool_level(GF_LOG_DASH, GF_LOG_INFO);
 		strcpy(outfile, outName ? outName : gf_url_get_resource_name(inName) );
 		sep = strrchr(outfile, '.');
@@ -3584,19 +3587,54 @@ int mp4boxMain(int argc, char **argv)
 			file = NULL;
 			del_file = GF_TRUE;
 		}
+
+		/*setup dash*/
+		dasher = gf_dasher_new(szMPD, dash_profile, tmpdir, dash_scale, dash_ctx);
+		if (!dasher) {
+			MP4BOX_EXIT_WITH_CODE( 1 );
+			return GF_OUT_OF_MEM;
+		}
+		e = gf_dasher_set_info(dasher, dash_title, cprt, dash_more_info, dash_source);
+		if (e) { fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e)); MP4BOX_EXIT_WITH_CODE( 1 ); }
+
+		//e = gf_dasher_set_location(dasher, mpd_source);		
+		for (i=0; i < nb_mpd_base_urls; i++) {
+			e = gf_dasher_add_base_url(dasher, mpd_base_urls[i]);
+		if (e) { fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e)); MP4BOX_EXIT_WITH_CODE( 1 ); }
+		}
+		e = gf_dasher_enable_url_template(dasher, (Bool) use_url_template, seg_name, seg_ext);
+		if (!e) e = gf_dasher_enable_segment_timeline(dasher, segment_timeline);
+		if (!e) e = gf_dasher_enable_single_segment(dasher, single_segment);
+		if (!e) e = gf_dasher_enable_single_file(dasher, single_file);
+		if (!e) e = gf_dasher_set_switch_mode(dasher, bitstream_switching_mode);
+		if (!e) e = gf_dasher_set_durations(dasher, dash_duration, interleaving_time);
+		if (!e) e = gf_dasher_enable_rap_spliting(dasher, seg_at_rap, frag_at_rap);
+		if (!e) e = gf_dasher_set_segment_marker(dasher, segment_marker);
+		if (!e) e = gf_dasher_enable_sidx(dasher, (subsegs_per_sidx>=0) ? 1 : 0, (u32) subsegs_per_sidx, daisy_chain_sidx);
+		if (!e) e = gf_dasher_set_dynamic_mode(dasher, dash_mode, mpd_update_time, time_shift_depth, mpd_live_duration);
+		if (!e) e = gf_dasher_set_min_buffer(dasher, min_buffer);
+		if (!e) e = gf_dasher_set_ast_offset(dasher, ast_offset_ms);
+		if (!e) e = gf_dasher_enable_memory_fragmenting(dasher, memory_frags);
+		if (!e) e = gf_dasher_set_initial_isobmf(dasher, initial_moof_sn, initial_tfdt);
+		if (!e) e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf, single_traf_per_moof);
+		if (!e) e = gf_dasher_enable_utc_ref(dasher, insert_utc);
+		if (!e) e = gf_dasher_enable_real_time(dasher, frag_real_time);
+		if (!e) e = gf_dasher_set_profile_extension(dasher, dash_profile_extension);
+
+		for (i=0; i < nb_dash_inputs; i++) {
+			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);
+		}
+		if (e) { 
+			fprintf(stderr, "DASH Setup Error: %s\n", gf_error_to_string(e));
+			MP4BOX_EXIT_WITH_CODE( 1 ); 
+		}
+
 		while (1) {
 			if (do_abort>=2) {
-				dash_mode = GF_DASH_DYNAMIC_LAST;
+				e = gf_dasher_set_dynamic_mode(dasher, GF_DASH_DYNAMIC_LAST, 0, time_shift_depth, mpd_live_duration);
 			}
 
-			e = gf_dasher_segment_files(szMPD, dash_inputs, nb_dash_inputs, dash_profile, dash_title, dash_source, cprt, dash_more_info,
-			                            (const char **) mpd_base_urls, nb_mpd_base_urls,
-			                            use_url_template, segment_timeline, single_segment, single_file, bitstream_switching_mode,
-			                            seg_at_rap, dash_duration, seg_name, seg_ext, segment_marker,
-			                            interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
-			                            dash_ctx, dash_mode, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
-			                            ast_offset_ms, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
-										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration, insert_utc, frag_real_time, dash_profile_extension);
+			if (!e) e = gf_dasher_process(dasher, dash_subduration);
 
 			if (do_abort) 
 				break;
@@ -3611,7 +3649,7 @@ int mp4boxMain(int argc, char **argv)
 
 			if (dash_live) {
 				u32 slept = gf_sys_clock();
-				u32 sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
+				u32 sleep_for = gf_dasher_next_update_time(dasher);
 				fprintf(stderr, "Next generation scheduled in %d ms\n", sleep_for);
 				while (1) {
 					if (gf_prompt_has_input()) {
@@ -3636,7 +3674,7 @@ int mp4boxMain(int argc, char **argv)
 					if (!sleep_for) break;
 
 					gf_sleep(10);
-					sleep_for = gf_dasher_next_update_time(dash_ctx, mpd_update_time);
+					sleep_for = gf_dasher_next_update_time(dasher);
 					if (sleep_for<10) {
 						fprintf(stderr, "Slept for %d ms before generation\n", gf_sys_clock() - slept);
 						break;
@@ -3646,6 +3684,8 @@ int mp4boxMain(int argc, char **argv)
 				break;
 			}
 		}
+
+		gf_dasher_del(dasher);
 
 		if (dash_ctx) {
 			if (do_abort==3) {
