@@ -519,7 +519,7 @@ static GF_Config *create_default_config(char *file_path)
 		/*shaders are at the same location*/
 		assert(sep);
 		sep[0] = 0;
-		sprintf(gui_path, "%s%cshaders", szPath, GF_PATH_SEPARATOR);
+		sprintf(gui_path, "%s%cshaders\\", szPath, GF_PATH_SEPARATOR);
 		gf_cfg_set_key(cfg, "Compositor", "ShaderPath", gui_path);
 	}
 
