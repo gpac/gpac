@@ -161,7 +161,6 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 					compositor->display_height = fs_height;
 				}
 				compositor->recompute_ar = 1;
-				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 			} else {
 				compositor->display_width = evt.size.width;
 				compositor->display_height = evt.size.height;
@@ -2129,6 +2128,7 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Main scene setup - pixel metrics %d - center coords %d\n", compositor->traverse_state->pixel_metrics, compositor->visual->center_coords));
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Setup root visual: recompute aspect ratio\n"));
 		compositor->recompute_ar = 1;
 #ifndef GPAC_DISABLE_3D
 		/*change in 2D/3D config, force AR recompute/video restup*/

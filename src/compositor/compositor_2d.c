@@ -1202,6 +1202,9 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	GF_Err e;
 	Fixed scaleX, scaleY;
 
+	if (compositor->scene_width && compositor->scene_height)
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Recompute aspect ratio: scene size %dx%d - display size %dx%d\n", compositor->scene_width, compositor->scene_height, compositor->display_width, compositor->display_height));
+
 	compositor->output_width = compositor->scene_width;
 	compositor->output_height = compositor->scene_height;
 	compositor->vp_x = compositor->vp_y = 0;
