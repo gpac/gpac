@@ -572,7 +572,7 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	FILE *src = gf_fopen(src_path, "rt");
 	GF_SHADERID shader = 0;
 	char *shader_src;
-	char *defs, *tmp, *error;
+	char *defs, *tmp;
 	size_t str_size =0;	//we +1 before loading the shader
 	
 	//This shader combo will never be used anyway
@@ -585,25 +585,25 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	if(1){
 		str_size += strlen("#version 100 \n");
 		defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
-		error = strcat(defs,"#version 100 \n");
+		strcat(defs,"#version 100 \n");
 	}
 
 	if(flags & GF_GL_IS_YUV){
 		str_size += strlen("#define GF_GL_IS_YUV \n");
 		defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
-		error = strcat(defs,"#define GF_GL_IS_YUV \n");
+		strcat(defs,"#define GF_GL_IS_YUV \n");
 	}
 
 	if(flags & GF_GL_HAS_LIGHT){
 		str_size += strlen("#define GF_GL_HAS_LIGHT \n");
 		defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
-		error = strcat(defs,"#define GF_GL_HAS_LIGHT \n");
+		strcat(defs,"#define GF_GL_HAS_LIGHT \n");
 	}
 
 	if(flags & GF_GL_HAS_MAT_2D){
 		str_size += strlen("#define GF_GL_HAS_MAT_2D \n");
 		defs = (char *) gf_realloc(defs, sizeof(char)*(str_size+1));
-		error = strcat(defs,"#define GF_GL_HAS_MAT_2D \n");
+		strcat(defs,"#define GF_GL_HAS_MAT_2D \n");
 	}
 
 	if (src) {
@@ -614,8 +614,8 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 		shader_src = gf_malloc(sizeof(char)*(size+1));
 		size = fread(shader_src, 1, size, src);
 		tmp = (char *) gf_malloc(sizeof(char)*(size+str_size+2));
-		error = strcpy(tmp, defs);
-		error = strncat(tmp, shader_src, (size));
+		strcpy(tmp, defs);
+		strncat(tmp, shader_src, (size));
 		fclose(src);
 		if (size != (size_t) -1) {
 			tmp[size+str_size]=0;
