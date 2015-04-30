@@ -530,12 +530,20 @@ static GF_Config *create_default_config(char *file_path)
 
 	/*locate GUI*/
 	if ( get_default_install_path(szPath, GF_PATH_GUI) ) {
+		char *sep = strrchr(szPath, '\\');
+		if (!sep) sep = strrchr(gui_path, GF_PATH_SEPARATOR);
 		sprintf(gui_path, "%s%cgui.bt", szPath, GF_PATH_SEPARATOR);
 		f = gf_fopen(gui_path, "rt");
 		if (f) {
 			gf_fclose(f);
 			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
 		}
+
+		/*shaders are at the same location*/
+		assert(sep);
+		sep[0] = 0;
+		sprintf(gui_path, "%s%cshaders", szPath, GF_PATH_SEPARATOR);
+		gf_cfg_set_key(cfg, "Compositor", "ShaderPath", gui_path);
 	}
 
 	/*store and reload*/
