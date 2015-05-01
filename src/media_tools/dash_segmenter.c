@@ -58,7 +58,7 @@ struct _dash_component
 	char *lang;
 };
 
-typedef struct __gf_dash_segmenter
+struct __gf_dash_segmenter
 {
 	const char *mpd_name;
 	GF_DashSegInput *inputs;
@@ -5441,7 +5441,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		if (!dasher->seg_ext) dasher->seg_ext = "m4s";
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("DASH-ing file%s: %.2fs segments %.2fs fragments ", (dasher->nb_inputs>1) ? "s" : "", dasher->segment_duration, dasher->fragment_duration));
-		if (dasher->subsegs_per_sidx<0) {
+		if (!dasher->enable_sidx) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("no sidx used"));
 		} else if (dasher->subsegs_per_sidx) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("%d subsegments per sidx", dasher->subsegs_per_sidx));
@@ -6036,80 +6036,6 @@ exit:
 	return e;
 }
 
-
-/*dash segmenter*/
-GF_EXPORT
-GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *inputs, u32 nb_inputs, GF_DashProfile dash_profile,
-                               const char *mpd_title, const char *mpd_source, const char *mpd_copyright,
-                               const char *mpd_moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls,
-                               u32 use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching,
-                               Bool seg_at_rap, Double dash_duration, char *seg_name, char *seg_ext, u32 segment_marker_4cc,
-                               Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
-                               GF_Config *dash_ctx, GF_DashDynamicMode dash_mode, Double mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
-                               s32 ast_offset_ms, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, 
-							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc, Bool real_time, const char *dash_profile_extension)
-{
-	u32 i;
-	GF_Err e;
-	GF_DASHSegmenter *dasher = gf_dasher_new(mpdfile, dash_profile, tmpdir, dash_scale, dash_ctx);
-	if (!dasher) return GF_OUT_OF_MEM;
-
-	e = gf_dasher_set_info(dasher, mpd_title, mpd_copyright, mpd_moreInfoURL, mpd_source);
-	if (e) goto exit;
-	e = gf_dasher_set_location(dasher, mpd_source);
-	if (e) goto exit;
-	for (i=0; i < nb_mpd_base_urls; i++) {
-		e = gf_dasher_add_base_url(dasher, mpd_base_urls[i]);
-		if (e) goto exit;
-	}
-	e = gf_dasher_enable_url_template(dasher, (Bool) use_url_template, seg_name, seg_ext);
-	if (e) goto exit;
-	e = gf_dasher_enable_segment_timeline(dasher, use_segment_timeline);
-	if (e) goto exit;
-	e = gf_dasher_enable_single_segment(dasher, single_segment);
-	if (e) goto exit;
-	e = gf_dasher_enable_single_file(dasher, single_file);
-	if (e) goto exit;
-	e = gf_dasher_set_switch_mode(dasher, bitstream_switching);
-	if (e) goto exit;
-	e = gf_dasher_set_duration(dasher, dash_duration, frag_duration);
-	if (e) goto exit;
-	e = gf_dasher_enable_rap_spliting(dasher, seg_at_rap, frag_at_rap);
-	if (e) goto exit;
-	e = gf_dasher_set_segment_marker(dasher, segment_marker_4cc);
-	if (e) goto exit;
-	e = gf_dasher_enable_sidx(dasher, (subsegs_per_sidx>=0) ? 1 : 0, (u32) subsegs_per_sidx, daisy_chain_sidx);
-	if (e) goto exit;
-	e = gf_dasher_set_dynamic_mode(dasher, dash_mode, mpd_update_time, time_shift_depth, mpd_live_duration);
-	if (e) goto exit;
-	e = gf_dasher_set_min_buffer(dasher, min_buffer);
-	if (e) goto exit;
-	e = gf_dasher_set_ast_offset(dasher, ast_offset_ms);
-	if (e) goto exit;
-	e = gf_dasher_enable_memory_fragmenting(dasher, fragments_in_memory);
-	if (e) goto exit;
-	e = gf_dasher_set_initial_isobmf(dasher, initial_moof_sn, initial_tfdt);
-	if (e) goto exit;
-	e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_moof, samplegroups_in_traf, single_traf_per_moof);
-	if (e) goto exit;
-	e = gf_dasher_enable_utc_ref(dasher, insert_utc);
-	if (e) goto exit;
-	e = gf_dasher_enable_real_time(dasher, real_time);
-	if (e) goto exit;
-	e = gf_dasher_set_profile_extension(dasher, dash_profile_extension);
-	if (e) goto exit;
-
-	for (i=0; i < nb_inputs; i++) {
-		e = gf_dasher_add_input(dasher, &inputs[i]);
-		if (e) goto exit;
-	}
-
-	e = gf_dasher_process(dasher, subduration);
-
-exit:
-	gf_dasher_del(dasher);
-	return e;
-}
 
 #endif /* GPAC_DISABLE_ISOM_WRITE */
 
