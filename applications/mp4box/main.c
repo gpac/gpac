@@ -3596,7 +3596,7 @@ int mp4boxMain(int argc, char **argv)
 			                            interleaving_time, subsegs_per_sidx, daisy_chain_sidx, frag_at_rap, tmpdir,
 			                            dash_ctx, dash_mode, mpd_update_time, time_shift_depth, dash_subduration, min_buffer,
 			                            ast_offset_ms, dash_scale, memory_frags, initial_moof_sn, initial_tfdt, no_fragments_defaults, 
-										pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration, insert_utc, frag_real_time, dash_profile_extension);
+			                            pssh_in_moof, samplegroups_in_traf, single_traf_per_moof, mpd_live_duration, insert_utc, frag_real_time, dash_profile_extension);
 
 			if (do_abort) 
 				break;
