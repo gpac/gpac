@@ -278,16 +278,16 @@ FILE *gf_temp_file_new()
 	if (GetTempFileName(pPath, TEXT("git"), 0, pTemp))
 		res = _wfopen(pTemp, TEXT("w+b"));
 #elif defined(WIN32)
-	char tmp[MAX_PATH], t_file[100];
+	char tmp[MAX_PATH];
 	res = tmpfile();
 	if (!res) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Win32] system failure for tmpfile(): 0x%08x\n", GetLastError()));
 
 		/*tmpfile() may fail under vista ...*/
 		if (GetEnvironmentVariable("TEMP",tmp,MAX_PATH)) {
-			sprintf(t_file, "\\gpac_%08x.tmp", (u32) tmp);
-			strcat(tmp, t_file);
-			res = gf_fopen(tmp, "w+b");
+			char *t_file = tempnam(tmp, "gpac_");
+			res = gf_fopen(t_file, "w+b");
+			free(t_file);
 		}
 	}
 #else
