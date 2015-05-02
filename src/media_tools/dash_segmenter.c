@@ -1311,7 +1311,7 @@ restart_fragmentation_pass:
 					/*we are in bitstream switching mode, delete init segment*/
 					if (is_bs_switching && !init_segment_deleted) {
 						init_segment_deleted = GF_TRUE;
-						if (strcmp(dash_cfg->bs_switch_segment_file, gf_isom_get_filename(output))) {
+						if (dash_cfg->bs_switch_segment_file && strcmp(dash_cfg->bs_switch_segment_file, gf_isom_get_filename(output))) {
 							gf_delete_file(gf_isom_get_filename(output));
 						}
 					}
@@ -1686,7 +1686,7 @@ restart_fragmentation_pass:
 		}
 #endif
 
-		if (force_switch_segment || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap || tf->splitable))) {
+		if (force_switch_segment || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || !next || next_sample_rap || tf->splitable))) {
 			if (!min_seg_dur || (min_seg_dur>SegmentDuration))
 				min_seg_dur = SegmentDuration;
 			if (max_seg_dur < SegmentDuration)
@@ -4866,7 +4866,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
                                Double frag_duration, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool frag_at_rap, const char *tmpdir,
                                GF_Config *dash_ctx, GF_DashDynamicMode dash_mode, Double mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
                                s32 ast_offset_ms, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults, 
-							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc, Bool real_time, const char *dash_profile_extension)
+                               Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc, Bool real_time, const char *dash_profile_extension)
 {
 	u32 i, j, segment_mode;
 	char *sep, szSegName[GF_MAX_PATH], szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH];
@@ -4903,7 +4903,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 			force_period_end = GF_TRUE;
 			dash_mode = GF_DASH_DYNAMIC;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Either MPD update period or MPD duration shall be set in dynamic mode.\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Either MPD refresh (update) period or MPD duration shall be set in dynamic mode.\n"));
 			return GF_BAD_PARAM;
 		}
 	}
