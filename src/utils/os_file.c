@@ -285,7 +285,10 @@ FILE *gf_temp_file_new()
 
 		/*tmpfile() may fail under vista ...*/
 		if (GetEnvironmentVariable("TEMP",tmp,MAX_PATH)) {
-			char *t_file = tempnam(tmp, "gpac_");
+			char tmp2[MAX_PATH], *t_file;
+			gf_rand_init(GF_FALSE);
+			sprintf(tmp2, "gpac_%08x_", gf_rand());
+			t_file = tempnam(tmp, tmp2);
 			res = gf_fopen(t_file, "w+b");
 			free(t_file);
 		}
