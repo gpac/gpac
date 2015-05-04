@@ -438,12 +438,6 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 	RAWCTX;
 	LOG( ANDROID_LOG_DEBUG, TAG, "Android Resize: %dx%d", w, h);
 
-	
-	if ( !dr->max_screen_width && !dr->max_screen_height ) {
-		dr->max_screen_width = w;
-		dr->max_screen_height = h;
-	}
-	
 	if (rc->fullscreen) {
 		rc->width = dr->max_screen_width;
 		rc->height = dr->max_screen_height;
@@ -574,9 +568,14 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		switch (evt->type) {
 		case GF_EVENT_SIZE:
 			LOG( ANDROID_LOG_VERBOSE, TAG, "GF_EVENT_SIZE( %d x %d)",
-			     evt->setup.width, evt->setup.height);
+			     evt->size.width, evt->size.height);
 			//if (evt->setup.opengl_mode) return GF_OK;
-			//in fullscreen mode: do not change viewport; just update perspective
+			if (rc->fullscreen && evt->size.screen_rotation) {
+				dr->max_screen_width  = evt->size.width;
+				dr->max_screen_height = evt->size.height;
+			}		
+			droid_Resize(dr, evt->size.width, evt->size.height);
+			return GF_OK;
 			
 		case GF_EVENT_VIDEO_SETUP:
 			LOG( ANDROID_LOG_DEBUG, TAG, "Android OpenGL mode: %d", evt->setup.opengl_mode);
@@ -623,6 +622,11 @@ static GF_Err droid_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u
 {
 	RAWCTX;
 	if (bOn) {
+		GLint m_viewport[4];
+		//get screen size
+		glGetIntegerv( GL_VIEWPORT, m_viewport );
+		dr->max_screen_width = m_viewport[2];
+		dr->max_screen_height = m_viewport[3];
 		*outWidth = dr->max_screen_width;
 		*outHeight = dr->max_screen_height;
 		droid_Resize(dr, dr->max_screen_width, dr->max_screen_height);

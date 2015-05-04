@@ -90,6 +90,8 @@ typedef struct
 	u8 type;
 	/*width and height*/
 	u16 width, height;
+	/*change due to a screen rotation or not*/
+	Bool screen_rotation;
 } GF_EventSize;
 
 /*event proc return value: ignored*/

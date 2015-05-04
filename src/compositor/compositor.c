@@ -132,15 +132,17 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		if (compositor->msg_type & GF_SR_CFG_SET_SIZE) {
 			u32 fs_width, fs_height;
 			Bool restore_fs = compositor->fullscreen;
+			Bool screen_rotation = GF_FALSE;
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing display size to %d x %d\n", compositor->new_width, compositor->new_height));
 			fs_width = fs_height = 0;
 			if (restore_fs) {
-                if ((compositor->new_width>compositor->display_width) || (compositor->new_height>compositor->display_height)) {
+				/*FIXME: we need a better way to detect the change of display size due to screen rotation in mobile devives (by handling rotation event for example)*/
+                if (!(compositor->msg_type & GF_SR_CFG_WINDOWSIZE_SCENE_CHANGE_SIZE) && ((compositor->new_width>compositor->display_width) || (compositor->new_height>compositor->display_height))) {
                     u32 w = compositor->display_width;
                     compositor->display_width = compositor->display_height;
                     compositor->display_height = w;
-                    compositor->recompute_ar = 1;
+                    screen_rotation = GF_TRUE;
                 }
                 fs_width = compositor->display_width;
                 fs_height = compositor->display_height;
@@ -148,6 +150,8 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			evt.type = GF_EVENT_SIZE;
 			evt.size.width = compositor->new_width;
 			evt.size.height = compositor->new_height;
+			evt.size.screen_rotation = screen_rotation;
+			compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_SCENE_CHANGE_SIZE;
 
 			/*send resize event*/
 			if (!(compositor->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF)) {
@@ -156,10 +160,6 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 
 			if (restore_fs) {
-				if ((compositor->display_width != fs_width) || (compositor->display_height != fs_height)) {
-					compositor->display_width = fs_width;
-					compositor->display_height = fs_height;
-				}
 				compositor->recompute_ar = 1;
 			} else {
 				compositor->display_width = evt.size.width;

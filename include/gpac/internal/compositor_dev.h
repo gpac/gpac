@@ -77,6 +77,8 @@ enum
 	GF_SR_IN_RECONFIG = 1<<4,
 	/*special flag indicating the set size is actually due to a notif by the plugin*/
 	GF_SR_CFG_WINDOWSIZE_NOTIF = 1<<10,
+	/*special flag indicating the set size is actually due to a change in scene size*/
+	GF_SR_CFG_WINDOWSIZE_SCENE_CHANGE_SIZE = 1<<11,
 };
 
 

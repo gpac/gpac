@@ -1839,6 +1839,8 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	if (!scene->is_dynamic_scene) return;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Scene] Forcing scene size to %d x %d\n", width, height));
+	//signal that the change of screen resolution due to the change of scene size
+	scene->root_od->term->compositor->msg_type |= GF_SR_CFG_WINDOWSIZE_SCENE_CHANGE_SIZE;
 
 	if (scene->is_dynamic_scene) {
 		GF_NetworkCommand com;
