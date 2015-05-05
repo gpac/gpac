@@ -970,7 +970,7 @@ static void my_glQueryAttributes(GF_SHADERID progObj){
 			}
 	}
 }
-#endif _DEBUG
+#endif
 
 /**
  * OpenGL ES 2.0 Vertex Shader init
@@ -1065,7 +1065,7 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 				char pszInfoLog[2048];
 				glGetProgramiv(visual->glsl_programs[i], GL_INFO_LOG_LENGTH, &i32InfoLogLength);
 				glGetProgramInfoLog(visual->glsl_programs[i], i32InfoLogLength, &i32CharsWritten, pszInfoLog);
-				fprintf(stderr, pszInfoLog);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, (pszInfoLog));
 			}
 
 			glUseProgram(visual->glsl_programs[i]);
