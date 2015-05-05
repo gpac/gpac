@@ -239,6 +239,7 @@ deb:
 		echo "Please consider pushing your commit before generating an installer"; \
 		exit 1; \
 	fi
+	git checkout --	debian/changelog
 	fakeroot debian/rules clean
 	sed -i "s/-DEV/-DEV-rev$(VERSION)-$(BRANCH)/" debian/changelog
 	fakeroot debian/rules configure
