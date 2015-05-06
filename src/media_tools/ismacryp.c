@@ -791,7 +791,7 @@ static void increase_counter(char *x, int x_size) {
 
 	for (i=x_size-1; i>=0; i--) {
 		y = 0;
-		if ( x[i] == 0xff) {
+		if ((u8) x[i] == 0xFF) {
 			x[i] = 0;
 			y = 1;
 		} else x[i]++;
