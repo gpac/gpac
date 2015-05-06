@@ -786,74 +786,39 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 }
 
 /*Common Encryption*/
-static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u64 BSO, u8 IV_size, Bool isNewSample) {
+static void increase_counter(char *x, int x_size) {
+	register int i, y=0;
+
+	for (i=x_size-1; i>=0; i--) {
+		y = 0;
+		if ( x[i] == 0xff) {
+			x[i] = 0;
+			y = 1;
+		} else x[i]++;
+
+		if (y==0) break;
+	}
+
+	return;
+}
+
+static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size) {
 	char next_IV[17];
-	GF_BitStream *bs, *tmp;
-	u64 prev_block_count;
-	u32 remain;
-	/*for log*/
-	u8 digest[33];
-	char t[3];
-
-	if (isNewSample) {
-		prev_block_count = BSO % 16 ? BSO / 16 + 1 : BSO / 16;
-		remain = 0;
-	}
-	else {
-		prev_block_count = BSO / 16;
-		remain = (u32) (BSO % 16);
+	int size = 17;
+	
+	gf_crypt_get_state(mc, &next_IV, &size);
+	if (next_IV[0]) {
+		increase_counter(&next_IV[1], IV_size);
+		next_IV[0] = 0;
 	}
 
-	tmp = gf_bs_new(IV, 16, GF_BITSTREAM_READ);
-	bs = gf_bs_new(next_IV, 17, GF_BITSTREAM_WRITE);
-	gf_bs_write_u8(bs, 0);	/*begin of counter*/
-	if (isNewSample && (IV_size == 8)) {
-		u64 IV_value;
-		IV_value = gf_bs_read_u64(tmp);
-		if (IV_value == 0xFFFFFFFFFFFFFFFFULL)
-			IV_value = 0x0;
-		else
-			IV_value++;
-		gf_bs_write_u64(bs, IV_value);
-		gf_bs_write_u64(bs, 0x0);
-	}
-	else {
-		u64 salt_portion, block_count_portion;
-		salt_portion = gf_bs_read_u64(tmp);
-		block_count_portion = gf_bs_read_u64(tmp);
-		/*reset the block counter to zero without affecting the other 64 bits of the IV*/
-		if (prev_block_count > 0xFFFFFFFFFFFFFFFFULL - block_count_portion)
-			block_count_portion = prev_block_count - (0xFFFFFFFFFFFFFFFFULL - block_count_portion) - 1;
-		else
-			block_count_portion +=  prev_block_count;
-		gf_bs_write_u64(bs, salt_portion);
-		gf_bs_write_u64(bs, block_count_portion);
-	}
+	if (IV_size == 8)
+		memset(&next_IV[9], 0, 8*sizeof(char));
 
-	gf_crypt_set_state(mc, next_IV, 17);
-	/*decrypt remain bytes*/
-	if (remain) {
-		char dummy[20];
-		gf_crypt_decrypt(mc, dummy, remain);
-	}
+	gf_crypt_set_state(mc, next_IV, size);
 
-	/* IV for subsequence sample*/
-	if (isNewSample) {
-		memset(IV, 0, 16*sizeof(char));
-		memmove(IV, next_IV+1, 16*sizeof(char));
-	}
-	else {
-		u32 j;
-		digest[0] = 0;
-		for ( j=0; j<16; j++ ) {
-			t[2] = 0;
-			sprintf ( t, "%02X", (u8) next_IV[j+1] );
-			strcat ( (char*)digest, t );
-		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[CENC] \t  next NALU: %s \n", digest) );
-	}
-	gf_bs_del(bs);
-	gf_bs_del(tmp);
+	memset(IV, 0, 16*sizeof(char));
+	memcpy(IV, next_IV+1, 16*sizeof(char));
 }
 
 static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool is_nalu_video, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz, u32 bytes_in_nalhr) {
@@ -914,11 +879,6 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 
 
 		gf_list_add(subsamples, entry);
-
-
-		/*update IV for next sub-samples*/
-		if (gf_bs_available(pleintext_bs))
-			cenc_resync_IV(mc, IV, BSO, IV_size, GF_FALSE);
 	}
 
 	if (samp->data) {
@@ -937,7 +897,7 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 	}
 	gf_list_del(subsamples);
 	gf_bs_get_content(sai_bs, sai, saiz);
-	cenc_resync_IV(mc, IV, BSO, IV_size, GF_TRUE);
+	cenc_resync_IV(mc, IV, IV_size);
 
 exit:
 	if (buffer) gf_free(buffer);
@@ -1402,13 +1362,6 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
 				gf_crypt_decrypt(mc, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
 				gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-
-				/*update IV for next subsample*/
-				if (tci->enc_type == 2) {
-					BSO += sai->subsamples[subsample_count].bytes_encrypted_data;
-					if (gf_bs_available(cyphertext_bs))
-						cenc_resync_IV(mc, (char *)sai->IV, BSO, tci->IV_size, GF_FALSE);
-				}
 
 				subsample_count++;
 			}
