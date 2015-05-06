@@ -290,6 +290,9 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file);
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_ISOM_FRAGMENTS)
+
+    
 typedef struct
 {
 	char *file_name;
@@ -441,58 +444,76 @@ GF_Err gf_dasher_set_segment_marker(GF_DASHSegmenter *dasher, u32 segment_marker
  *	\return error code if any
 */
 GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx);
-/*
+/*Sets mode for the dash segmenter.
  *	\param dasher the DASH segmenter object
+ *	\param dash_mode the mode to use. Currently switching from static mode to dynamic mode is not well supported and may produce non-compliant MPDs
+ *	\param mpd_update_time time between MPD refresh, in seconds. Used for dynamic mode, may be 0 if @mpd_live_duration is set
+ *	\param time_shift_depth the depth of the time shift buffer in seconds, -1 for infinite time shift.
+ *	\param mpd_live_duration total duration of the DASH session in dynamic mode, in seconds. May be set to 0 if @mpd_update_time is set
  *	\return error code if any
 */
 GF_Err gf_dasher_set_dynamic_mode(GF_DASHSegmenter *dasher, GF_DashDynamicMode dash_mode, Double mpd_update_time, s32 time_shift_depth, Double mpd_live_duration);
-/*
+/*Sets the minimal buffer desired.
  *	\param dasher the DASH segmenter object
+ *	\param min_buffer min buffer time in seconds for the DASH session. Currently the minimal buffer is NOT computed from the source material and must be set to an appropriate value.
  *	\return error code if any
 */
 GF_Err gf_dasher_set_min_buffer(GF_DASHSegmenter *dasher, Double min_buffer);
-/*
+/*Sets the availability start time offset.
  *	\param dasher the DASH segmenter object
+ *	\param ast_offset ast offset in milliseconds. If >0, the DASH session availabilityStartTime will be earlier than UTC by the amount of seconds specified. If <0, the media representation will have an availabilityTimeOffset of the amount of seconds specified, instructing the client that segments may be accessed earlier.
  *	\return error code if any
 */
-GF_Err gf_dasher_set_ast_offset(GF_DASHSegmenter *dasher, s32 ast_offset_ms);
-/*
+GF_Err gf_dasher_set_ast_offset(GF_DASHSegmenter *dasher, s32 ast_offset);
+/*Enables memory fragmenting: fragments will be written to disk only once completed
  *	\param dasher the DASH segmenter object
+ *	\param enable Enables or disables. Defualt is disabled.
  *	\return error code if any
 */
-GF_Err gf_dasher_enable_memory_fragmenting(GF_DASHSegmenter *dasher, Bool fragments_in_memory);
-/*
+GF_Err gf_dasher_enable_memory_fragmenting(GF_DASHSegmenter *dasher, Bool enable);
+/*Sets initial values for ISOBMFF sequence number and TFDT in movie fragments.
  *	\param dasher the DASH segmenter object
+ *	\param initial_moof_sn sequence number of the first moof to be generated. Default value is 1.
+ *	\param initial_tfdt initial tfdt of the first traf to be generated, in DASH segmenter timescale units. Default value is 0.
  *	\return error code if any
 */
 GF_Err gf_dasher_set_initial_isobmf(GF_DASHSegmenter *dasher, u32 initial_moof_sn, u64 initial_tfdt);
-/*
+/*Configure how default values for ISOBMFF are stored
  *	\param dasher the DASH segmenter object
+ *	\param no_fragments_defaults if set, fragments default values are repeated in each traf and not set in trex. Default value is GF_FALSE
+ *	\param pssh_moof if set, PSSH is stored in each moof, and not set in init segment. Default value is GF_FALSE
+ *	\param samplegroups_in_traf if set, all sample group definitions are stored in each traf and not set in init segment. Default value is GF_FALSE
+ *	\param single_traf_per_moof if set, each moof will contain a single traf, even if source media is multiplexed. Default value is GF_FALSE
  *	\return error code if any
 */
 GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof);
-/*Sets MPD info
+/*Enables insertion of UTC reference in the begining of segments
  *	\param dasher the DASH segmenter object
+ *	\param insert_utc if set, UTC will be inserted. Default value is disabled.
  *	\return error code if any
 */
 GF_Err gf_dasher_enable_utc_ref(GF_DASHSegmenter *dasher, Bool insert_utc);
-/*
+/*Enables real-time generation of media segments.
  *	\param dasher the DASH segmenter object
+ *	\param dasher real_time if set, segemnts are generated in real time. Only supported for single representation (potentially multiplexed) DASH session. Default is disabled.
  *	\return error code if any
 */
 GF_Err gf_dasher_enable_real_time(GF_DASHSegmenter *dasher, Bool real_time);
-/*
+/*Sets profile extension as used by DASH-IF and DVB.
  *	\param dasher the DASH segmenter object
+ *	\param dash_profile_extension specifies a string of profile extensions, as used by DASH-IF and DVB.
  *	\return error code if any
 */
 GF_Err gf_dasher_set_profile_extension(GF_DASHSegmenter *dasher, const char *dash_profile_extension);
-/*
+/*Adds a media input to the DASHer
  *	\param dasher the DASH segmenter object
+ *	\param input media source to add
  *	\return error code if any
 */
 GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *input);
-/*
+/*Process the media source and generate segments
  *	\param dasher the DASH segmenter object
+ *	\param sub_duration the duration in seconds of media to DASH. If 0, the whole sources will be processed.
  *	\return error code if any
 */
 GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration);
@@ -503,16 +524,13 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration);
 */
 u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher);
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
 
-#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+    
+    
 /*save file as fragmented movie*/
 GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec);
 
-
-#endif
-
-#endif
+#endif // !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_ISOM_FRAGMENTS)
 
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
