@@ -1975,7 +1975,7 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg);
 }
 
-#if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE)
+#if defined(GPAC_USE_GLES2) && !defined(GPAC_IPHONE)
 
 static void glLoadMatrixES2(GF_VisualManager *visual, Fixed *mat, Bool isProjection){
 	GLint loc;
@@ -2624,7 +2624,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	GL_CHECK_ERR
 	glUseProgram(0);
 }
-#endif //GPAC_FIXED_POINT
+#endif //GPAC_USE_GLES2 && !GPAC_IPHONE
 
 #endif //GPAC_ANDROID
 
