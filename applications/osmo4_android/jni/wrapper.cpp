@@ -53,6 +53,31 @@ static JavaVM* javaVM = NULL;
 
 static pthread_key_t jni_thread_env_key = 0;
 
+//these two are used by modumles - define them when using static module build
+#ifdef GPAC_STATIC_MODULES
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+JavaVM* GetJavaVM()
+{
+	return javaVM;
+}
+
+JNIEnv* GetEnv()
+{
+	JNIEnv* env = 0;
+	if (javaVM) javaVM->GetEnv((void**)(&env), JNI_VERSION_1_2);
+	return env;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 
 /**
  * This method is called when a pthread is destroyed, so we can delete the JNI env
@@ -192,9 +217,6 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 	if (ret) {
 		LOGE("Failed to register jni_thread_env_key jni_thread_env_key=%p\n", jni_thread_env_key);
 	}
-
-	/* register the jvm to the audio driver */
-	gf_droidaudio_register_java_vm(vm);
 	return jniV;
 }
 
@@ -813,6 +835,16 @@ void CNativeWrapper::step(void * env, void * bitmap) {
 	}
 }
 
+//-----------------------------------------------------
+void CNativeWrapper::setAudioEnvironment(JavaVM* javaVM) {
+	if (!m_term) {
+		debug_log("setAudioEnvironment(): no m_term found.");
+		return;
+	}
+	debug_log("setAudioEnvironment start");
+	m_term->compositor->audio_renderer->audio_out->Setup(m_term->compositor->audio_renderer->audio_out, javaVM, 0, 0);
+	debug_log("setAudioEnvironment end");
+}
 //-----------------------------------------------------
 void CNativeWrapper::resize(int w, int h) {
 	if (!m_term)
