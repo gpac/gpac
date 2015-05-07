@@ -1880,8 +1880,8 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				GF_DOM_Event devt;
 				memset(&devt, 0, sizeof(GF_DOM_Event));
 				devt.type = GF_EVENT_SCENE_SIZE;
-				devt.screen_rect.width = width;
-				devt.screen_rect.height = height;
+				devt.screen_rect.width = INT2FIX(width);
+				devt.screen_rect.height = INT2FIX(height);
 				devt.key_flags = scene->is_dynamic_scene;
 
 				gf_scene_notify_event(scene, GF_EVENT_SCENE_SIZE, NULL, &devt, GF_OK, GF_FALSE);
