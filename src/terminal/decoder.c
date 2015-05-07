@@ -1365,11 +1365,13 @@ scalable_retry:
 		}
 #endif
 
-		/*store current CTS*/
+		/*store current CTS - we need have exclusive access in case a PCR discontinuity remaps timestamps while we decode*/
+		gf_es_lock(ch, GF_TRUE);
 		cts = AU->CTS;
 		prev_ch = ch;
 
 		gf_es_drop_au(ch);
+		gf_es_lock(ch, GF_FALSE);
 		AU = NULL;
 
 		if (e) {
@@ -1406,6 +1408,7 @@ scalable_retry:
 			}
 		}
 
+		CU->TS = cts;
 		UnlockCompositionUnit(codec, CU, unit_size);
 		if (unit_size) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d dispatched frame CTS %d in CB\n", codec->decio->module_name, gf_clock_real_time(prev_ch->clock), CU->TS));
