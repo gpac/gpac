@@ -213,7 +213,7 @@ static Bool osd_process(GF_TermExt *termext, u32 action, void *param)
 	case GF_TERM_EXT_START:
 		osd->term = (GF_Terminal *) param;
 		opt = gf_modules_get_option((GF_BaseInterface*)termext, "OSD", "Enabled");
-		if (opt && strcmp(opt, "yes")) return 0;
+		if (!opt || strcmp(opt, "yes")) return 0;
 
 		/*load scene*/
 		if (! osd_load_scene(osd)) return 0;

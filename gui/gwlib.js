@@ -1012,7 +1012,11 @@ function gwlib_init(root_node) {
 }
 
 function gwlib_add_event_filter(evt_filter) {
-    gw_event_filters.push(evt_filter);
+	if ((arguments.length==2) && (arguments[1]==true)) {
+		gw_event_filters.unshift(evt_filter);
+	} else {
+		gw_event_filters.push(evt_filter);
+	}
 }
 
 function gwlib_remove_event_filter(evt_filter) {
