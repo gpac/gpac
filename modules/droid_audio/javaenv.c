@@ -23,27 +23,68 @@
  *
  */
 
+#include <gpac/config_file.h>
+#include <gpac/modules/droidaudio.h>
 #include "javaenv.h"
 
-static JavaVM* javaVM = 0;
+/**
+ * A reference to the jvm to be provided
+ */
+static JavaVM *jvm;
 
-//----------------------------------------------------------------------
-jint JNI_OnLoad(JavaVM* vm, void* reserved)
+/**
+ * Set to true when the current thread is attached
+ * to the jvm
+ */
+static __thread Bool attached;
+
+
+/**
+ * Register the java virtual machine
+ */
+void gf_droidaudio_register_java_vm(JavaVM *vm)
 {
-	javaVM = vm;
-	return JNI_VERSION_1_2;
+	jvm = vm;
 }
-//----------------------------------------------------------------------
-JNIEnv* GetEnv()
+
+/**
+ * Get the jni thread environment
+ */
+JNIEnv *gf_droidaudio_jni_get_thread_env()
 {
-	JNIEnv* env = 0;
-	//if (javaVM) javaVM->GetEnv((void**)&env, JNI_VERSION_1_2);
-	if (javaVM) (*javaVM)->GetEnv(javaVM, (void**)&env, JNI_VERSION_1_2);
+	assert(jvm && *jvm);
+	JNIEnv *env;
+	jint rc = (*jvm)->GetEnv(jvm, (void **) &env, JNI_VERSION_1_6);
+	if (rc != JNI_OK)
+		return NULL;
+	assert(env);
+	assert((*env)->GetVersion(env));
 	return env;
 }
-//----------------------------------------------------------------------
-JavaVM* GetJavaVM()
+
+/**
+ * Attach current thread to the jvm, check first if we are attached so
+ * this can be called multiple time.
+ */
+JNIEnv *gf_droidaudio_jni_attach_current_thread()
 {
-	return javaVM;
+	assert(jvm && *jvm);
+	JNIEnv *env = NULL;
+	jint rc = (*jvm)->GetEnv(jvm, (void **) &env, JNI_VERSION_1_6);
+	if (rc == JNI_EDETACHED) {
+		attached = GF_TRUE;
+		(*jvm)->AttachCurrentThread(jvm, &env, NULL);
+	}
+	return env;
 }
-//----------------------------------------------------------------------
+
+/**
+ * Detach current thread from the jvm
+ */
+void gf_droidaudio_jni_detach_current_thread()
+{
+	assert(jvm && *jvm);
+        if (attached)
+            (*jvm)->DetachCurrentThread(jvm);
+        attached = GF_FALSE;
+}

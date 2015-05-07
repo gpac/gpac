@@ -23,12 +23,16 @@
  *
  */
 
-#ifndef JAVA_ENV
-#define JAVA_ENV
+#include <gpac/modules/droidaudio.h>
 
-#include <jni.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-JavaVM* GetJavaVM();
-JNIEnv* GetEnv();
+JNIEnv *gf_droidaudio_jni_get_thread_env();
+JNIEnv *gf_droidaudio_jni_attach_current_thread();
+void gf_droidaudio_jni_detach_current_thread();
 
-#endif //JAVA_ENV
+#ifdef __cplusplus
+}
+#endif
