@@ -314,7 +314,7 @@ void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontin
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(scene->root_od->channels, &i))) {
 		if (ch->clock == ck) {
-			gf_es_reset_timing(ch);
+			gf_es_reset_timing(ch, is_pcr_discontinuity);
 		}
 	}
 	j=0;
@@ -325,14 +325,13 @@ void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontin
 		i=0;
 		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 			if (ch->clock == ck) {
-				ch->IsClockInit = GF_FALSE;
+				gf_es_reset_timing(ch, is_pcr_discontinuity);
+
 				ch->CTS = ch->DTS = 0;
-				gf_es_reset_timing(ch);
 				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] Reinitializing timing for ES%d\n", ch->esd->ESID));
 
 				if (ch->odm->codec && ch->odm->codec->CB)
 					gf_cm_reset_timing(ch->odm->codec->CB);
-
 			}
 		}
 	}

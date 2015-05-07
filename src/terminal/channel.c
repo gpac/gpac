@@ -299,15 +299,17 @@ void gf_es_reset_buffers(GF_Channel *ch)
 
 }
 
-void gf_es_reset_timing(GF_Channel *ch)
+void gf_es_reset_timing(GF_Channel *ch, Bool reset_buffer)
 {
 	struct _decoding_buffer *au = ch->AU_buffer_first;
 	gf_mx_p(ch->mx);
 
-	if (ch->buffer) gf_free(ch->buffer);
-	ch->buffer = NULL;
-	ch->len = ch->allocSize = 0;
-
+	if (reset_buffer) {
+		if (ch->buffer) gf_free(ch->buffer);
+		ch->buffer = NULL;
+		ch->len = ch->allocSize = 0;
+	}
+	
 	while (au) {
 		au->CTS = au->DTS = 0;
 		au = au->next;
