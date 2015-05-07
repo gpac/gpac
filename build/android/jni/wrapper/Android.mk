@@ -9,7 +9,7 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../include
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../libgpac/
 
 LOCAL_LDLIBS    += -L../libs/$(TARGET_ARCH_ABI)
-LOCAL_LDLIBS    += -llog -lgpac
+LOCAL_LDLIBS    += -llog -lgpac -ljavaenv
 
 #LOCAL_CFLAGS +=	-DGPAC_GUI_ONLY
 LOCAL_CFLAGS +=	-DDEBUG_MODE
