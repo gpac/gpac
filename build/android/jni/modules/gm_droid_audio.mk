@@ -4,6 +4,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE		:= libjavaenv
 
+LOCAL_C_INCLUDES  += $(LOCAL_PATH)/../../../../include/
 LOCAL_SRC_FILES := ../../../../modules/droid_audio/javaenv.c
 
 include $(BUILD_SHARED_LIBRARY)
