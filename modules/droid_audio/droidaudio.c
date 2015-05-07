@@ -49,9 +49,6 @@
 
 static const char android_device[] = "Android Default";
 
-static GF_DroidAudio_EventCallback event_callback;
-static void *event_callback_ctx;
-
 /* Uncomment the next line if you want to debug */
 /* #define DROID_EXTREME_LOGS */
 
@@ -87,21 +84,6 @@ typedef struct
 	u32 pan;
 	jarray buff;
 } DroidContext;
-
-/**
- * Register the event handler
- */
-void gf_droidaudio_register_event_handler(GF_DroidAudio_EventCallback cb, void *ctx)
-{
-	event_callback = cb;
-	event_callback_ctx = ctx;
-}
-
-static void dispatch_event(GF_DroidAudio_Event e)
-{
-	if (event_callback)
-		event_callback(event_callback_ctx, e);
-}
 
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
@@ -262,13 +244,11 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 #ifdef DROID_EXTREME_LOGS
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Android Audio] WAV_WriteAudio() : entering"));
 #endif /* DROID_EXTREME_LOGS */
-	dispatch_event(GF_DROIDAUDIO_ENTERING_CRITICAL);
 	pBuffer = (*env)->GetPrimitiveArrayCritical(env, ctx->buff, NULL);
 	if (pBuffer)
 	{
 		written = dr->FillBuffer(dr->audio_renderer, pBuffer, ctx->mbufferSizeInBytes);
 		(*env)->ReleasePrimitiveArrayCritical(env, ctx->buff, pBuffer, 0);
-		dispatch_event(GF_DROIDAUDIO_EXITING_CRITICAL);
 		if (written)
 		{
 			if ( ctx->audioFormat == ENCODING_PCM_8BIT )
@@ -279,7 +259,6 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 	}
 	else
 	{
-		dispatch_event(GF_DROIDAUDIO_EXITING_CRITICAL);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[Android Audio] Failed to get pointer to array bytes = %p", pBuffer));
 	}
 #ifdef DROID_EXTREME_LOGS
