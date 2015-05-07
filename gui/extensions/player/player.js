@@ -99,6 +99,8 @@ extension = {
             case GF_EVENT_NAVIGATE:
                 this.set_movie_url(evt.target_url);
                 return true;
+			default:
+				return false;
         }
     },
 
@@ -226,6 +228,14 @@ extension = {
                 gpac.set_size(evt.width, evt.height, true);
             }
             ext.streamlist_changed();
+			
+			if (evt.width) {
+				var e = {};
+				e.type = GF_EVENT_SCENE_SIZE;
+				e.width = evt.width;
+				e.height = evt.height;
+				gwlib_filter_event(e);
+			}
         }
         this.movie.children[0].on_addon_found = function (evt) {
             var e = {};
@@ -239,10 +249,18 @@ extension = {
         this.movie.children[0].on_streamlist_changed = function (evt) {
             this.extension.streamlist_changed();
         }
+		this.movie.children[0].on_scene_size_modify = function (evt) {
+			var e = {};
+			e.type = GF_EVENT_SCENE_SIZE;
+			e.width = evt.width;
+			e.height = evt.height;
+			gwlib_filter_event(e);
+		}
 
         this.movie.children[0].addEventListener('gpac_scene_attached', this.movie.children[0].on_scene_size, 0);
         this.movie.children[0].addEventListener('gpac_addon_found', this.movie.children[0].on_addon_found, 0);
         this.movie.children[0].addEventListener('gpac_streamlist_changed', this.movie.children[0].on_streamlist_changed, 0);
+		this.movie.children[0].addEventListener('gpac_scene_size', this.movie.children[0].on_scene_size_modify, 0);
 
 
         this.movie.children[0].on_media_progress = function (evt) {

@@ -86,6 +86,7 @@ function extension_option_getter(_ext) {
         }
     } else {
         return function (key_name, default_val) {
+			if (key_name=='path') return _ext.path;
             var value = this.__gpac_storage.get_option('Config', key_name);
             if (value == null) {
                 this.set_option(key_name, default_val);

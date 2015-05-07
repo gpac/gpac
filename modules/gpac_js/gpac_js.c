@@ -509,6 +509,26 @@ static JSBool SMJS_FUNCTION(gpac_get_arg)
 }
 
 
+
+static JSBool SMJS_FUNCTION(gpac_switch_quality)
+{
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_Terminal *term = gpac_get_term(c, obj);
+	if (!term) return JS_FALSE;
+	
+	if (argc < 1) return JS_FALSE;
+	
+	if (JSVAL_IS_BOOLEAN(argv[0])) {
+		Bool up = (JSVAL_TO_BOOLEAN(argv[0])==JS_TRUE) ? GF_TRUE : GF_FALSE;
+		gf_term_switch_quality(term, up);
+		return JS_TRUE;
+	} else {
+		return JS_FALSE;
+	}
+	return JS_TRUE;
+}
+
 typedef struct
 {
 	JSContext *c;
@@ -1862,6 +1882,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("trigger_gc",		gpac_trigger_gc, 1),
 		SMJS_FUNCTION_SPEC("get_object_manager",		gpac_get_object_manager, 1),
 		SMJS_FUNCTION_SPEC("new_storage",		gpac_new_storage, 1),
+		SMJS_FUNCTION_SPEC("switch_quality",		gpac_switch_quality, 1),
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
@@ -2016,8 +2037,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		DECLARE_GPAC_CONST(GF_EVENT_TIMESHIFT_UNDERRUN);
 		DECLARE_GPAC_CONST(GF_EVENT_QUIT);
 		DECLARE_GPAC_CONST(GF_EVENT_MAIN_ADDON_STATE);
+		DECLARE_GPAC_CONST(GF_EVENT_SCENE_SIZE);
 		
-
 		DECLARE_GPAC_CONST(GF_NAVIGATE_NONE);
 		DECLARE_GPAC_CONST(GF_NAVIGATE_WALK);
 		DECLARE_GPAC_CONST(GF_NAVIGATE_FLY);
