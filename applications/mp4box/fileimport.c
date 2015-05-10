@@ -989,12 +989,12 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		case GF_ISOM_MEDIA_MPEGJ:
 		case GF_ISOM_MEDIA_MPEG7:
 		case GF_ISOM_MEDIA_FLASH:
-			fprintf(stderr, "WARNING: Track ID %d (type %s) not handled by spliter - skipping\n", gf_isom_get_track_id(mp4, i+1), gf_4cc_to_str(mtype));
+			fprintf(stderr, "WARNING: Track ID %d (type %s) not handled by splitter - skipping\n", gf_isom_get_track_id(mp4, i+1), gf_4cc_to_str(mtype));
 			continue;
 		default:
 			/*for all other track types, only split if more than one sample*/
 			if (gf_isom_get_sample_count(mp4, i+1)==1) {
-				fprintf(stderr, "WARNING: Track ID %d (type %s) not handled by spliter - skipping\n", gf_isom_get_track_id(mp4, i+1), gf_4cc_to_str(mtype));
+				fprintf(stderr, "WARNING: Track ID %d (type %s) not handled by splitter - skipping\n", gf_isom_get_track_id(mp4, i+1), gf_4cc_to_str(mtype));
 				continue;
 			}
 			tks[nb_tk].can_duplicate = 1;
@@ -1026,7 +1026,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		nb_tk++;
 	}
 	if (!nb_tk) {
-		fprintf(stderr, "No suitable tracks found for spliting file\n");
+		fprintf(stderr, "No suitable tracks found for splitting file\n");
 		gf_free(tks);
 		return GF_NOT_SUPPORTED;
 	}

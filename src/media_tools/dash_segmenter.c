@@ -5185,7 +5185,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	if (frag_at_rap) seg_at_rap = GF_TRUE;
 
 	if (seg_at_rap) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Spliting segments %sat GOP boundaries\n", frag_at_rap ? "and fragments " : ""));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Splitting segments %sat GOP boundaries\n", frag_at_rap ? "and fragments " : ""));
 	}
 
 	dash_opts.mpd_name = mpdfile;
