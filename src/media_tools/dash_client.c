@@ -220,7 +220,7 @@ struct __dash_group
 	segment_cache_entry *cached;
 
 	GF_DASHFileIOSession segment_download;
-	//0: not set, 1: abort because group has been stoped - 2: abort because bandwidth was too low
+	//0: not set, 1: abort because group has been stopped - 2: abort because bandwidth was too low
 	u32 download_abort_type;
 	/*usually 0-0 (no range) but can be non-zero when playing local MPD/DASH sessions*/
 	u64 bs_switching_init_segment_url_start_range, bs_switching_init_segment_url_end_range;
@@ -3888,7 +3888,7 @@ restart_period:
 
 					if (group->maybe_end_of_stream) {
 						if (group->maybe_end_of_stream==2) {
-							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Couldn't get segment %s (error %s) and end of period was guessed during last update - stoping playback\n", new_base_seg_url, gf_error_to_string(e)));
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Couldn't get segment %s (error %s) and end of period was guessed during last update - stopping playback\n", new_base_seg_url, gf_error_to_string(e)));
 							group->maybe_end_of_stream = 0;
 							group->done = 1;
 						}
