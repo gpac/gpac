@@ -284,7 +284,7 @@ GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, 
 Bool gf_dash_in_last_period(GF_DashClient *dash);
 /*return value:
 	1 if the period switching has been requested (due to seeking),
-	2 if the switching is in progress (all groups will soon be destroyed and plyback will be stoped and restarted)
+	2 if the switching is in progress (all groups will soon be destroyed and plyback will be stopped and restarted)
 	0 if no switching is requested
 */
 u32 gf_dash_get_period_switch_status(GF_DashClient *dash);
