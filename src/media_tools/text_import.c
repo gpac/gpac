@@ -110,13 +110,13 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 
 	*fmt = GF_TEXT_IMPORT_NONE;
 	if ((szLine[0]=='{') && strstr(szLine, "}{")) *fmt = GF_TEXT_IMPORT_SUB;
-	else if (!strnicmp(szLine, "<?xml ", 6)) {
+	else if (szLine[0] == '<') {
 		char *ext = strrchr(filename, '.');
 		if (!strnicmp(ext, ".ttxt", 5)) *fmt = GF_TEXT_IMPORT_TTXT;
 		else if (!strnicmp(ext, ".ttml", 5)) *fmt = GF_TEXT_IMPORT_TTML;
 		ext = strstr(szLine, "?>");
 		if (ext) ext += 2;
-		if (!ext[0]) {
+		if (ext && !ext[0]) {
 			if (!fgets(szLine, 2048, test))
 				szLine[0] = '\0';
 		}
