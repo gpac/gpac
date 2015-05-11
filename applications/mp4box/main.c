@@ -1478,21 +1478,21 @@ enum
 GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *name, u32 *nb_dash_inputs)
 {
 	GF_DashSegmenterInput *di;
-    char *sep;
-    // skip ./ and ../, and look for first . to figure out extension
-    if ((name[1]=='/') || (name[2]=='/') || (name[1]=='\\') || (name[2]=='\\') ) sep = strchr(name+3, '.');
-    else {
+	char *sep;
+	// skip ./ and ../, and look for first . to figure out extension
+	if ((name[1]=='/') || (name[2]=='/') || (name[1]=='\\') || (name[2]=='\\') ) sep = strchr(name+3, '.');
+	else {
 		char *s2 = strchr(name, ':');
 		sep = strchr(name, '.');
 		if (sep && s2 && (s2 - sep) < 0) {
 			sep = name;
 		}
 	}
-    
-    //then look for our opt separator :
-    sep = strchr(sep ? sep : name, ':');
-    
-    if (sep && (sep[1]=='\\')) sep = strchr(sep+1, ':');
+
+	//then look for our opt separator :
+	sep = strchr(sep ? sep : name, ':');
+
+	if (sep && (sep[1]=='\\')) sep = strchr(sep+1, ':');
 
 	dash_inputs = gf_realloc(dash_inputs, sizeof(GF_DashSegmenterInput) * (*nb_dash_inputs + 1) );
 	memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(GF_DashSegmenterInput) );
@@ -1500,8 +1500,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 	(*nb_dash_inputs)++;
 
 	if (sep) {
-		char *opts = sep+1;
-		sep[0] = 0;
+		char *opts, *first_opt;
+		opts = first_opt = sep;
 		while (opts) {
 			sep = strchr(opts, ':');
 			while (sep) {
@@ -1577,6 +1577,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			sep[0] = ':';
 			opts = sep+1;
 		}
+		first_opt[0] = '\0';
 	}
 	di->file_name = name;
 	if (!di->representationID) {
