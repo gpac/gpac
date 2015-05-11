@@ -314,11 +314,13 @@ void PrintDASHUsage()
 	        " \"#video\"           only uses the first video track from the source file\n"
 	        " \"#audio\"           only uses the first video track from the source file\n"
 	        " \":id=NAME\"         sets the representation ID to NAME\n"
+	        " \":dur=VALUE\"       processes VALUE seconds from the media\n"
+	        "                       If VALUE is longer than the media duration, the last media duration is lengthen.\n"
 	        " \":period=NAME\"     sets the representation's period to NAME. Multiple periods may be used\n"
 	        "                       period appear in the MPD in the same order as specified with this option\n"
 	        " \":bandwidth=VALUE\" sets the representation's bandwidth to a given value\n"
-			" \":duration=VALUE\"  Increases the duration of this period by the given duration in seconds\n"
-			"                       only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:duration=Y.\n"
+	        " \":period_duration=VALUE\"  increases the duration of this period by the given duration in seconds\n"
+	        "                       only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:duration=Y.\n"
 	        " \":xlink=VALUE\"     sets the xlink value for the period containing this element\n"
 	        "                       only the xlink declared on the first rep of a period will be used\n"
 	        " \":role=VALUE\"      sets the role of this representation (cf DASH spec).\n"
@@ -351,9 +353,9 @@ void PrintDASHUsage()
 	        " -cprt string         adds copyright string to MPD\n"
 	        " -dash-ctx FILE       stores/restore DASH timing from FILE.\n"
 	        " -dynamic             uses dynamic MPD type instead of static.\n"
-			" -last-dynamic        same as dynamic but closes the period (insert lmsg brand if needed and update duration).\n"
-			" -mpd-duration DUR    sets the duration in second of a live session (0 by default). If 0, you must use -mpd-refresh.\n"
-			" -mpd-refresh TIME    specifies MPD update time in seconds (double can be used).\n"
+	        " -last-dynamic        same as dynamic but closes the period (insert lmsg brand if needed and update duration).\n"
+	        " -mpd-duration DUR    sets the duration in second of a live session (0 by default). If 0, you must use -mpd-refresh.\n"
+	        " -mpd-refresh TIME    specifies MPD update time in seconds (double can be used).\n"
 	        " -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
 	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
 	        "                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
@@ -380,7 +382,7 @@ void PrintDASHUsage()
 	        " -no-frags-default    disables default flags in fragments\n"
 	        " -single-traf         uses a single track fragment per moof (smooth streaming and derived specs may require this)\n"
 	        " -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
-			" -frag-rt             when using fragments in live mode, flush fragments according to their timing (only supported with a single input).\n"
+	        " -frag-rt             when using fragments in live mode, flush fragments according to their timing (only supported with a single input).\n"
 	        "\n");
 }
 
@@ -1507,12 +1509,13 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 			while (sep) {
 				/* this is a real separator if it is followed by a keyword we are looking for */
 				if (!strnicmp(sep, ":id=", 4) ||
-				        !strnicmp(sep, ":period=", 8) ||
-				        !strnicmp(sep, ":bandwidth=", 11) ||
-				        !strnicmp(sep, ":role=", 6) ||
-				        !strnicmp(sep, ":desc", 5) ||
-				        !strnicmp(sep, ":duration=", 10) ||
-				        !strnicmp(sep, ":xlink=", 7)) {
+				    !strnicmp(sep, ":dur=", 5) ||
+				    !strnicmp(sep, ":period=", 8) ||
+				    !strnicmp(sep, ":bandwidth=", 11) ||
+				    !strnicmp(sep, ":role=", 6) ||
+				    !strnicmp(sep, ":desc", 5) ||
+				    !strnicmp(sep, ":duration=", 10) || /*legacy*/!strnicmp(sep, ":period_duration=", 10) ||
+				    !strnicmp(sep, ":xlink=", 7)) {
 					break;
 				} else {
 					sep = strchr(sep+1, ':');
@@ -1532,7 +1535,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Duplicate Representation ID \"%s\" in command line\n", di->representationID));
 					}
 				}
-			} else if (!strnicmp(opts, "period=", 7)) di->periodID = gf_strdup(opts+7);
+			} else if (!strnicmp(opts, "dur=", 4)) di->media_duration = (Double)atof(opts+4);
+			else if (!strnicmp(opts, "period=", 7)) di->periodID = gf_strdup(opts+7);
 			else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
 			else if (!strnicmp(opts, "role=", 5)) di->role = gf_strdup(opts+5);
 			else if (!strnicmp(opts, "desc", 4)) {
@@ -1569,8 +1573,10 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 
 			}
 			else if (!strnicmp(opts, "xlink=", 6)) di->xlink = gf_strdup(opts+6);
-			else if (!strnicmp(opts, "duration=", 9)) {
-				di->period_duration = (Double) atof(opts+9);
+			else if (!strnicmp(opts, "period_duration=", 16)) {
+				di->period_duration = (Double) atof(opts+16);
+			}	else if (!strnicmp(opts, "duration=", 9)) {
+				di->period_duration = (Double) atof(opts+9); /*legacy: use period_duration instead*/
 			}
 
 			if (!sep) break;
