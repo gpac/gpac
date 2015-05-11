@@ -1566,7 +1566,7 @@ restart_fragmentation_pass:
 								/*this is the fragment duration from last sample added to next SAP*/
 								frag_dur += (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dash_cfg->dash_scale / tf->TimeScale;
 								/*if media segment about to be produced is longer than max segment length, force segment split*/
-								if (!tf->splitable && (SegmentDuration + frag_dur > MaxSegmentDuration)) {
+								if (!tf->splitable && (segment_start_time + SegmentDuration + frag_dur > MaxSegmentDuration * (cur_seg - 1))) {
 									split_at_rap = GF_TRUE;
 									/*force new segment*/
 									force_switch_segment = GF_TRUE;
@@ -1574,7 +1574,7 @@ restart_fragmentation_pass:
 								}
 
 								if (! tf->all_sample_raps) {
-									/*if adding this SAP will result in stoping the fragment "soon" after it, stop now and start with SAP
+									/*if adding this SAP will result in stopping the fragment "soon" after it, stop now and start with SAP
 									if all samples are RAPs, just stop fragment if we exceed the requested duration by adding the next sample
 									otherwise, take 3 samples (should be refined of course)*/
 									scaler = 3;
