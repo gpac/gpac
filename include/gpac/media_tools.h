@@ -295,6 +295,7 @@ typedef struct
 	char *file_name;
 	char *representationID;
 	char *periodID;
+	Double media_duration;
 	char *xlink;
 	char *role;
 	u32 nb_rep_descs;

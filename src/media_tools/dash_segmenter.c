@@ -108,6 +108,7 @@ struct _dash_segment_input
 	char *file_name;
 	char representationID[100];
 	char *periodID;
+	Double media_duration; /*forced media duration*/
 	char *xlink;
 	char *role;
 	u32 nb_rep_descs;
@@ -2767,10 +2768,79 @@ retry_track:
 	return e;
 }
 
+static GF_Err dasher_isom_adjust_last_sample(GF_ISOFile *in, const u32 trackNumber, const u32 track_duration, const u32 target_duration_in_timescale, const Double fragment_duration_in_sec) {
+	const u32 fragment_duration_in_media_timescale = (u32)(fragment_duration_in_sec * gf_isom_get_media_timescale(in, trackNumber));
+	const u32 last_sample_duration = gf_isom_get_sample_duration(in, trackNumber, gf_isom_get_sample_count(in, trackNumber));
+	const u32 new_last_sample_duration_in_media_timescale = last_sample_duration + (target_duration_in_timescale - track_duration) * (u64)gf_isom_get_media_timescale(in, trackNumber) / gf_isom_get_timescale(in);
+	if (new_last_sample_duration_in_media_timescale != last_sample_duration) {
+		if (new_last_sample_duration_in_media_timescale > fragment_duration_in_media_timescale) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Wrong user parameter would lead to set the last sample duration to %u while fragment duration is %u. Aborting.\n", new_last_sample_duration_in_media_timescale, fragment_duration_in_media_timescale));
+			return GF_BAD_PARAM;
+		} else {
+			return gf_isom_set_last_sample_duration(in, trackNumber, new_last_sample_duration_in_media_timescale);
+		}
+	} else {
+		return GF_OK;
+	}
+}
+
+static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_in_sec, const Double fragment_duration_in_sec) {
+	GF_Err e = GF_OK;
+
+	u32 trackNumber;
+	for (trackNumber=1; trackNumber<=gf_isom_get_track_count(in); trackNumber++) {
+		const u32 track_duration = (u32)gf_isom_get_track_duration(in, trackNumber);
+		const u32 target_duration_in_timescale = (u32)(duration_in_sec * gf_isom_get_timescale(in));
+
+		if (target_duration_in_timescale < track_duration) {
+			u32 i, j, track_duration2, sample_count = gf_isom_get_sample_count(in, trackNumber);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Track %u duration shorter than %lfs: removing samples and adjusting last sample duration.\n", trackNumber, duration_in_sec));
+			for (i=1; i <= sample_count; ++i) {
+				u32 di;
+				GF_ISOSample *s = gf_isom_get_sample(in, trackNumber, i, &di);
+				if (s->DTS >= duration_in_sec * gf_isom_get_media_timescale(in, trackNumber)) {
+					track_duration2 = (u32)(s->DTS * gf_isom_get_timescale(in) / gf_isom_get_media_timescale(in, trackNumber));
+					break;
+				}
+			}
+			for (j=i; j <= sample_count; ++j) {
+				u32 di;
+				GF_ISOSample *s = gf_isom_get_sample(in, trackNumber, i, &di);
+				e = gf_isom_remove_sample(in, trackNumber, i);
+				gf_isom_sample_del(&s);
+				assert(e == GF_OK);
+			}
+			e = dasher_isom_adjust_last_sample(in, trackNumber, track_duration2, target_duration_in_timescale, fragment_duration_in_sec);
+		} else if (target_duration_in_timescale > track_duration) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Track %u duration longer than %lfs: increase the last sample duration.\n", trackNumber, duration_in_sec));
+			e = dasher_isom_adjust_last_sample(in, trackNumber, track_duration, target_duration_in_timescale, fragment_duration_in_sec);
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Track %u duration already equal to %lfs. Nothing to do.\n", trackNumber, duration_in_sec));
+		}
+
+		if (e)
+			break;
+	}
+	
+	gf_isom_set_final_name(in, "");
+	return e;
+}
+
 static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *szOutName, GF_DASHSegmenterOptions *dash_cfg, Bool first_in_set)
 {
-	GF_ISOFile *in = gf_isom_open(dash_input->file_name, GF_ISOM_OPEN_READ, dash_cfg->tmpdir);
-	GF_Err e = gf_media_isom_segment_file(in, szOutName, dash_cfg->fragment_duration, dash_cfg, dash_input, first_in_set);
+	GF_Err e;
+	GF_ISOFile *in = gf_isom_open(dash_input->file_name, GF_ISOM_OPEN_EDIT, dash_cfg->tmpdir);
+	
+	if (dash_input->media_duration) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Forcing media duration to %lfs.\n", dash_input->media_duration));
+		e = dasher_isom_force_duration(in, dash_input->media_duration, dash_cfg->fragment_duration);
+		if (e) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Media duration couldn't be forced. Aborting.\n"));
+			return e;
+		}
+	}
+
+	e = gf_media_isom_segment_file(in, szOutName, dash_cfg->fragment_duration, dash_cfg, dash_input, first_in_set);
 	gf_isom_close(in);
 	return e;
 }
@@ -3572,6 +3642,10 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	u32 segment_index;
 	/*compute name for indexed segments*/
 	const char *basename = gf_dasher_strip_output_dir(dash_cfg->mpd_name, szOutName);
+
+	if (dash_input->media_duration) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] media duration cannot be forced with MPEG2-TS segmenter. Ignoring.\n"));
+	}
 
 	/*perform indexation of the file, this info will be destroyed at the end of the segment file routine*/
 	e = dasher_get_ts_demux(&ts_seg, dash_input->file_name, 0);
@@ -4953,6 +5027,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		if (inputs[i].representationID)
             strcpy(dash_inputs[j].representationID, inputs[i].representationID);
 		dash_inputs[j].periodID = inputs[i].periodID;
+		dash_inputs[j].media_duration = inputs[i].media_duration;
 		dash_inputs[j].xlink = inputs[i].xlink;
 		if (dash_inputs[j].xlink) uses_xlink = GF_TRUE;
 		dash_inputs[j].role = inputs[i].role;
