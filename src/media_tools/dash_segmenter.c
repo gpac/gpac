@@ -1835,11 +1835,14 @@ restart_fragmentation_pass:
 	/*flush last segment*/
 	if (!switch_segment) {
 		u64 idx_start_range, idx_end_range;
-
+		
+		segment_start_time += SegmentDuration;
 		total_seg_dur += SegmentDuration;
 		last_seg_dur = SegmentDuration;
 
 		gf_isom_close_segment(output, dash_cfg->subsegs_per_sidx, ref_track_id, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, GF_TRUE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
+
+		gf_dasher_store_segment_info(dash_cfg, dash_input->representationID, SegmentName, period_duration + segment_start_time, SegmentDuration);
 		nb_segments++;
 
 		if (!seg_rad_name) {
