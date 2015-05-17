@@ -652,6 +652,17 @@ static u64 get_presentation_time(u64 media_time, s32 ts_shift)
 	return media_time ;
 }
 
+static Bool is_splitable(u32 media_type) {
+	switch (media_type) {
+	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
+	case GF_ISOM_MEDIA_MPEG_SUBT:
+		return GF_TRUE;
+	default:
+		return GF_FALSE;
+	}
+}
+
 static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec, GF_DASHSegmenterOptions *dash_cfg, GF_DashSegInput *dash_input, Bool first_in_set)
 {
 	u8 NbBits;
@@ -1105,12 +1116,13 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 				presentationTimeOffset = tf->InitialTSOffset;
 		}
 
+		tf->splitable = is_splitable(mtype);
+
 		/*get language, width/height/layout info, audio info*/
 		switch (mtype) {
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
 		case GF_ISOM_MEDIA_MPEG_SUBT:
-			tf->splitable = GF_TRUE;
 			gf_isom_get_media_language(input, i+1, &langCode);
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_SCENE:
@@ -2772,8 +2784,9 @@ static GF_Err dasher_isom_adjust_last_sample(GF_ISOFile *in, const u32 trackNumb
 	const u32 fragment_duration_in_media_timescale = (u32)(fragment_duration_in_sec * gf_isom_get_media_timescale(in, trackNumber));
 	const u32 last_sample_duration = gf_isom_get_sample_duration(in, trackNumber, gf_isom_get_sample_count(in, trackNumber));
 	const u32 new_last_sample_duration_in_media_timescale = last_sample_duration + (target_duration_in_timescale - track_duration) * (u64)gf_isom_get_media_timescale(in, trackNumber) / gf_isom_get_timescale(in);
+
 	if (new_last_sample_duration_in_media_timescale != last_sample_duration) {
-		if (new_last_sample_duration_in_media_timescale > fragment_duration_in_media_timescale) {
+		if (!is_splitable(gf_isom_get_media_type(in, trackNumber)) && (new_last_sample_duration_in_media_timescale > fragment_duration_in_media_timescale)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Wrong user parameter would lead to set the last sample duration to %u while fragment duration is %u. Aborting.\n", new_last_sample_duration_in_media_timescale, fragment_duration_in_media_timescale));
 			return GF_BAD_PARAM;
 		} else {
