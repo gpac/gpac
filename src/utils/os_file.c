@@ -122,17 +122,17 @@ static Bool delete_dir(void *cbck, char *item_name, char *item_path, GF_FileEnum
 	} else {
 		gf_delete_file(item_path);
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 GF_Err gf_cleanup_dir(char* DirPathName)
 {
 	Bool directory_clean_mode;
 
-	directory_clean_mode = 1;
-	gf_enum_directory(DirPathName, 1, delete_dir, &directory_clean_mode, NULL);
-	directory_clean_mode = 0;
-	gf_enum_directory(DirPathName, 0, delete_dir, &directory_clean_mode, NULL);
+	directory_clean_mode = GF_TRUE;
+	gf_enum_directory(DirPathName, GF_TRUE, delete_dir, &directory_clean_mode, NULL);
+	directory_clean_mode = GF_FALSE;
+	gf_enum_directory(DirPathName, GF_FALSE, delete_dir, &directory_clean_mode, NULL);
 
 	return GF_OK;
 }
@@ -159,7 +159,7 @@ GF_Err gf_delete_file(const char *fileName)
  */
 static char* gf_sanetize_single_quoted_string(const char *src) {
     int i, j;
-    char *out = gf_malloc(4*strlen(src)+3);
+    char *out = (char*)gf_malloc(4*strlen(src)+3);
     out[0] = '\'';
     for (i=0, j=1; (out[j]=src[i]); ++i, ++j) {
         if (src[i]=='\'') {
@@ -314,7 +314,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		u32 len;
 		char *drives, *volume;
 		len = GetLogicalDriveStrings(0, NULL);
-		drives = gf_malloc(sizeof(char)*(len+1));
+		drives = (char*)gf_malloc(sizeof(char)*(len+1));
 		drives[0]=0;
 		GetLogicalDriveStrings(len, drives);
 		len = (u32) strlen(drives);
@@ -446,8 +446,8 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		}
 
 #if defined(WIN32)
-		file_info.hidden = (FindData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) ? 1 : 0;
-		file_info.system = (FindData.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM) ? 1 : 0;
+		file_info.hidden = (FindData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) ? GF_TRUE : GF_FALSE;
+		file_info.system = (FindData.dwFileAttributes & FILE_ATTRIBUTE_SYSTEM) ? GF_TRUE : GF_FALSE;
 		file_info.size = MAXDWORD;
 		file_info.size += 1;
 		file_info.size *= FindData.nFileSizeHigh;

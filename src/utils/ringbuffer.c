@@ -27,9 +27,7 @@
 GF_EXPORT
 GF_Ringbuffer * gf_ringbuffer_new(u32 sz)
 {
-	GF_Ringbuffer *rb;
-
-	rb = gf_malloc (sizeof (GF_Ringbuffer));
+	GF_Ringbuffer *rb = (GF_Ringbuffer*)gf_malloc(sizeof(GF_Ringbuffer));
 	if (sz % 2 != 0)
 		sz++;
 	rb->size = sz;
@@ -37,7 +35,7 @@ GF_Ringbuffer * gf_ringbuffer_new(u32 sz)
 	rb->size_mask -= 1;
 	rb->write_ptr = 0;
 	rb->read_ptr = 0;
-	rb->buf = gf_malloc (rb->size);
+	rb->buf = (u8*)gf_malloc (rb->size);
 	rb->mx = gf_mx_new("RingBufferMutex");
 	return rb;
 }
