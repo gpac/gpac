@@ -164,6 +164,12 @@ do
 done
 echo "[OK] success extra lib MP4box."
 
+GUI_DIR="$BASEPATH/applications/osmo4_android/assets/"
+mkdir -p $GUI_DIR
+echo "Copying gui folder to $GUI_DIR ..."
+cp -R "$BASEPATH/gui" $GUI_DIR
+echo "[OK] success GUI for Osmo4.
+
 if [ $ANT -eq 1 ]
 then
 	echo "\nSelf-updating project"
