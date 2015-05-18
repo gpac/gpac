@@ -704,6 +704,12 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "no");
 		gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "1");
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "ft_font");
+		//Storage directory
+		if (!gf_cfg_get_key(m_user.config, "General", "StorageDirectory")) {
+			snprintf(msg, 256, "%sStorage", cfg_dir);
+			if (!gf_dir_exists(msg)) gf_mkdir(msg);
+			gf_cfg_set_key(m_user.config, "General", "StorageDirectory", msg);
+		}
 	}
 	/* All of this has to be done for every instance */
 	gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", modules_dir ? modules_dir : GPAC_MODULES_DIR);
