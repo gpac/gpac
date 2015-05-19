@@ -196,7 +196,7 @@ protected:
 public:
 	CNativeWrapper();
 	~CNativeWrapper();
-	int init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir, const char * urlToLoad);
+	int init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir, const char * gui_dir, const char * urlToLoad);
 
 	int connect(const char *url);
 	void disconnect();

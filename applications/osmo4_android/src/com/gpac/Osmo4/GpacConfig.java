@@ -55,7 +55,7 @@ public class GpacConfig {
         gpacLibsDirectory = dataDir + "/lib/"; //$NON-NLS-1$
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacLibsDirectory + " for libraries"); //$NON-NLS-1$ //$NON-NLS-2$
         
-        gpacGuiDirectory = osmo.getAbsolutePath() + "/gui/";
+        gpacGuiDirectory = dataDir + "/gui/";
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacGuiDirectory + " for GUI"); //$NON-NLS-1$ //$NON-NLS-2$
 
     }
