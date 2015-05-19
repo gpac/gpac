@@ -363,6 +363,10 @@ GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile profile, con
  *	\param dasher the DASH segmenter object
 */
 void gf_dasher_del(GF_DASHSegmenter *dasher);
+/*Removes the DASH inputs. Re-add new ones with gf_dasher_add_input()
+ *	\param dasher the DASH segmenter object
+*/
+void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher);
 /*Sets MPD info
  *	\param dasher the DASH segmenter object
  *	\param title MPD title
@@ -429,7 +433,7 @@ GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_
  *	\param fragments_start_with_rap fragments will be split at RAP boundaries
  *	\return error code if any
 */
-GF_Err gf_dasher_enable_rap_spliting(GF_DASHSegmenter *dasher, Bool segments_start_with_rap, Bool fragments_start_with_rap);
+GF_Err gf_dasher_enable_rap_splitting(GF_DASHSegmenter *dasher, Bool segments_start_with_rap, Bool fragments_start_with_rap);
 /*Enables segment marker
  *	\param dasher the DASH segmenter object
  *	\param dasher the DASH segmenter object
@@ -467,7 +471,7 @@ GF_Err gf_dasher_set_min_buffer(GF_DASHSegmenter *dasher, Double min_buffer);
 GF_Err gf_dasher_set_ast_offset(GF_DASHSegmenter *dasher, s32 ast_offset);
 /*Enables memory fragmenting: fragments will be written to disk only once completed
  *	\param dasher the DASH segmenter object
- *	\param enable Enables or disables. Defualt is disabled.
+ *	\param enable Enables or disables. Default is disabled.
  *	\return error code if any
 */
 GF_Err gf_dasher_enable_memory_fragmenting(GF_DASHSegmenter *dasher, Bool enable);

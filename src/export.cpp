@@ -1979,6 +1979,7 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_clean_inputs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_location) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_add_base_url) )
@@ -1988,7 +1989,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_single_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_switch_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_durations) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_rap_spliting) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_rap_splitting) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_segment_marker) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_sidx) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_dynamic_mode) )
