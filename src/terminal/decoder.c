@@ -951,6 +951,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	u32 first, obj_time, unit_size;
 	GF_MediaDecoder *mdec = (GF_MediaDecoder*)codec->decio;
 	GF_Err e = GF_OK;
+	s32 cts_diff;
 	CU = NULL;
 
 	/*if video codec muted don't decode (try to saves ressources)
@@ -1365,7 +1366,7 @@ scalable_retry:
 		}
 #endif
 
-		/*store current CTS - we need have exclusive access in case a PCR discontinuity remaps timestamps while we decode*/
+		/*store current CTS - we need to have exclusive access in case a PCR discontinuity remaps timestamps while we decode*/
 		gf_es_lock(ch, GF_TRUE);
 		cts = AU->CTS;
 		prev_ch = ch;
@@ -1408,7 +1409,15 @@ scalable_retry:
 			}
 		}
 
-		CU->TS = cts;
+		cts_diff = (s32) cts;
+		cts_diff -= (s32) CU->TS;
+		if (cts_diff < 0) cts_diff = -cts_diff;
+		//the decoder is dispathing CTS in the previous time base , override the timestamp ...
+		if (cts_diff > 20000 ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] decoded frame CTS %d but input frame CTS %d, lilely due to clock discontinuity\n", codec->decio->module_name, CU->TS, cts));
+			CU->TS = cts;
+		}
+
 		UnlockCompositionUnit(codec, CU, unit_size);
 		if (unit_size) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d dispatched frame CTS %d in CB\n", codec->decio->module_name, gf_clock_real_time(prev_ch->clock), CU->TS));
