@@ -26,7 +26,7 @@ extern "C" {
 /*
  * Class:     com_gpac_Osmo4_GPACInstance
  * Method:    createInstance
- * Signature: (Lcom/gpac/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
+ * Signature: (Lcom/gpac/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
  */
 JNIEXPORT jlong JNICALL Java_com_gpac_Osmo4_GPACInstance_createInstance(JNIEnv * env, jclass obj, jobject callback, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir, jstring gui_dir, jstring url_to_open)
 {

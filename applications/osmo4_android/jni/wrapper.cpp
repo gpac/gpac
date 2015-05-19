@@ -122,7 +122,7 @@ static JNINativeMethod sMethods[] = {
 	/* name, signature, funcPtr */
 
 	{	"createInstance",
-		"(Lcom/gpac/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J",
+		"(Lcom/gpac/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J",
 		(void*)&Java_com_gpac_Osmo4_GPACInstance_createInstance
 	},
 	{	"gpacdisconnect",
