@@ -60,15 +60,15 @@ struct _dash_component
 
 struct __gf_dash_segmenter
 {
-	const char *mpd_name;
+	char *mpd_name;
 	GF_DashSegInput *inputs;
 	u32 nb_inputs;
 	GF_DashProfile profile;
-	const char *title;
-	const char *location;
-	const char *source;
-	const char *copyright;
-	const char *moreInfoURL;
+	char *title;
+	char *location;
+	char *source;
+	char *copyright;
+	char *moreInfoURL;
 	//has to be freed
 	char **base_urls;
 	u32 nb_base_urls;
@@ -91,7 +91,7 @@ struct __gf_dash_segmenter
 	Bool daisy_chain_sidx;
 
 	Bool fragments_start_with_rap;
-	const char *tmpdir;
+	char *tmpdir;
 	GF_DashDynamicMode dash_mode;
 	Double mpd_update_time;
 	s32 time_shift_depth;
@@ -4888,9 +4888,9 @@ GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile dash_profile
 	GF_DASHSegmenter *dasher;
 	GF_SAFEALLOC(dasher, GF_DASHSegmenter);
 	
-	dasher->mpd_name = mpdName;
+	dasher->mpd_name = gf_strdup(mpdName);
 	dasher->dash_scale = dash_timescale ? dash_timescale : 1000;
-	dasher->tmpdir = tmp_dir;
+	dasher->tmpdir = gf_strdup(tmp_dir);
 	dasher->profile = dash_profile;
 	dasher->dash_ctx = dasher_context_file;
 
@@ -4898,25 +4898,36 @@ GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile dash_profile
 }
 
 GF_EXPORT
-void gf_dasher_del(GF_DASHSegmenter *dasher)
+void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher)
 {
 	u32 i, j;
-
-	if (dasher->seg_rad_name) gf_free(dasher->seg_rad_name);
-
 	for (i=0; i < dasher->nb_inputs; i++) {
 		for (j = 0; j < dasher->inputs[i].nb_components; j++) {
 			if (dasher->inputs[i].components[j].lang) {
 				gf_free(dasher->inputs[i].components[j].lang);
 			}
 		}
-        if (dasher->inputs[i].dependencyID) gf_free(dasher->inputs[i].dependencyID);
-        if (dasher->inputs[i].init_seg_url) gf_free(dasher->inputs[i].init_seg_url);
+		if (dasher->inputs[i].dependencyID) gf_free(dasher->inputs[i].dependencyID);
+		if (dasher->inputs[i].init_seg_url) gf_free(dasher->inputs[i].init_seg_url);
 	}
 	gf_free(dasher->inputs);
+	dasher->inputs = NULL;
+	dasher->nb_inputs = 0;
+}
 
+GF_EXPORT
+void gf_dasher_del(GF_DASHSegmenter *dasher)
+{
+	if (dasher->seg_rad_name) gf_free(dasher->seg_rad_name);
+	gf_dasher_clean_inputs(dasher);
 	gf_free(dasher->base_urls);
-
+	gf_free(dasher->tmpdir);
+	gf_free(dasher->mpd_name);
+	gf_free(dasher->title);
+	gf_free(dasher->copyright);
+	gf_free(dasher->moreInfoURL);
+	gf_free(dasher->source);
+	gf_free(dasher->location);
 	gf_free(dasher);
 }
 
@@ -4924,10 +4935,10 @@ GF_EXPORT
 GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo)
 {
 	if (!dasher) return GF_BAD_PARAM;
-	dasher->title = title;
-	dasher->copyright = copyright;
-	dasher->moreInfoURL = moreInfoURL;
-	dasher->source = sourceInfo;
+	dasher->title = gf_strdup(title);
+	dasher->copyright = gf_strdup(copyright);
+	dasher->moreInfoURL = gf_strdup(moreInfoURL);
+	dasher->source = gf_strdup(sourceInfo);
 	return GF_OK;
 }
 
@@ -4935,7 +4946,7 @@ GF_EXPORT
 GF_Err gf_dasher_set_location(GF_DASHSegmenter *dasher, const char *location)
 {
 	if (!dasher) return GF_BAD_PARAM;
-	dasher->location = location;
+	dasher->location = gf_strdup(location);
 	return GF_OK;
 }
 
@@ -5017,7 +5028,7 @@ GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_
 }
 
 GF_EXPORT
-GF_Err gf_dasher_enable_rap_spliting(GF_DASHSegmenter *dasher, Bool segments_start_with_rap, Bool fragments_start_with_rap)
+GF_Err gf_dasher_enable_rap_splitting(GF_DASHSegmenter *dasher, Bool segments_start_with_rap, Bool fragments_start_with_rap)
 {
 	if (!dasher) return GF_BAD_PARAM;
 	dasher->segments_start_with_rap = segments_start_with_rap;
@@ -5737,7 +5748,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			if (dasher->inputs[first_rep_in_set].period != cur_period+1)
 				continue;
 
-			if (!dasher->inputs[i].init_segment_generated) {
+			if (!dasher->inputs[first_rep_in_set].init_segment_generated) {
 
 				strcpy(tmp, dasher->mpd_name);
 				sep = strrchr(tmp, '.');
@@ -5780,7 +5791,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 				dasher->inputs[first_rep_in_set].init_seg_url = use_bs_switching ? gf_strdup(szInit) : NULL;
 				dasher->inputs[first_rep_in_set].use_bs_switching = use_bs_switching;
-				dasher->inputs[i].init_segment_generated = GF_TRUE;
+				dasher->inputs[first_rep_in_set].init_segment_generated = GF_TRUE;
 			} else {
 				use_bs_switching = dasher->inputs[first_rep_in_set].use_bs_switching;
 			}
