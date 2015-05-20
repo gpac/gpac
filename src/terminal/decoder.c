@@ -550,8 +550,8 @@ refetch_AU:
 		goto browse_scalable;
 	}
 
-	if (scalable_check==1) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Warning, could not find enhancement layer for this AU\n"));
+	if (*nextAU  && (scalable_check==1)) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Warning, could not find enhancement layer for this AU (DTS %d) \n", (*nextAU)->DTS ));
 	}
 
 	if (codec->is_reordering && *nextAU && codec->first_frame_dispatched) {

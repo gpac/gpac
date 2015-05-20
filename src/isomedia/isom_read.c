@@ -2410,9 +2410,12 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 					gf_isom_get_reference(movie, i+1, GF_ISOM_REF_BASE, 1, &on_track);
 
 					base = gf_isom_get_track_from_file(movie, on_track);
-					if (!base) scalable = GF_FALSE;
-
-					base_track_sample_count = base->Media->information->sampleTable->SampleSize->sampleCount;
+					if (!base) {
+						scalable = GF_FALSE;
+						base_track_sample_count=0;
+					} else {
+						base_track_sample_count = base->Media->information->sampleTable->SampleSize->sampleCount;
+					}
 				}
 			}
 
