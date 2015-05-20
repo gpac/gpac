@@ -81,8 +81,12 @@ extension = {
             var url = this.get_option('path');
             if (this.movie_height > 1080) {
                 url += 'logo_uhd.png';
+                this.logo.scale.x = 1;
+                this.logo.scale.y = 1;
             } else {
                 url += 'logo_hd.png';
+                this.logo.scale.x = 2;
+                this.logo.scale.y = 2;
             }
             this.logo.children[0].url[0] = url;
         } else {
