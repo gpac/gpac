@@ -207,14 +207,14 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 			if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18) ) {
 				char_template += 18;
 				strcat(segment_name, rep_id);
-				needs_init=GF_FALSE;
+				needs_init = GF_FALSE;
 			}
 			else if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$Bandwidth", 10)) {
 				EXTRACT_FORMAT(10);
 
 				sprintf(tmp, szFmt, bandwidth);
 				strcat(segment_name, tmp);
-				needs_init=GF_FALSE;
+				needs_init = GF_FALSE;
 			}
 			else if (!is_template && !strnicmp(& seg_rad_name[char_template], "$Time", 5)) {
 				EXTRACT_FORMAT(5);
@@ -224,7 +224,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 				strcat(szFmt, &LLD[1]);
 				sprintf(tmp, szFmt, start_time);
 				strcat(segment_name, tmp);
-				has_number=GF_TRUE;
+				has_number = GF_TRUE;
 			}
 			else if (!is_template && !strnicmp(& seg_rad_name[char_template], "$Number", 7)) {
 				EXTRACT_FORMAT(7);
@@ -232,14 +232,14 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 				if (is_init || is_init_template) continue;
 				sprintf(tmp, szFmt, segment_number);
 				strcat(segment_name, tmp);
-				has_number=GF_TRUE;
+				has_number = GF_TRUE;
 			}
 			else if (!strnicmp(& seg_rad_name[char_template], "$Init=", 6)) {
 				char *sep = strchr(seg_rad_name + char_template+6, '$');
 				if (sep) sep[0] = 0;
 				if (is_init || is_init_template) {
 					strcat(segment_name, seg_rad_name + char_template+6);
-					needs_init=GF_FALSE;
+					needs_init = GF_FALSE;
 				}
 				char_template += (u32) strlen(seg_rad_name + char_template)+1;
 				if (sep) sep[0] = '$';
@@ -249,7 +249,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 				if (sep) sep[0] = 0;
 				if (is_index) {
 					strcat(segment_name, seg_rad_name + char_template+6);
-					needs_init=GF_FALSE;
+					needs_init = GF_FALSE;
 				}
 				char_template += (u32) strlen(seg_rad_name + char_template)+1;
 				if (sep) sep[0] = '$';
