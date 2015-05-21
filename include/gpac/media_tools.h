@@ -295,6 +295,8 @@ typedef struct
 	char *file_name;
 	char *representationID;
 	char *periodID;
+	u32 nb_baseURL;
+	char **baseURL;
 	char *xlink;
 	char *role;
 	u32 nb_rep_descs;
@@ -353,7 +355,7 @@ GF_Err gf_dasher_segment_files(const char *mpd_name, GF_DashSegmenterInput *inpu
                                Double frag_duration_sec, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool fragments_start_with_rap, const char *tmp_dir,
                                GF_Config *dash_ctx, GF_DashDynamicMode dash_mode, Double mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
                                s32 ast_offset_ms, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults,
-							   Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc, Bool real_time, const char *dash_profile_extension);
+                               Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc, Bool real_time, const char *dash_profile_extension);
 
 /*returns time to wait until end of currently generated segments*/
 u32 gf_dasher_next_update_time(GF_Config *dash_ctx, Double mpd_update_time);

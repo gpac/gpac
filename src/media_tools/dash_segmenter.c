@@ -108,6 +108,8 @@ struct _dash_segment_input
 	char *file_name;
 	char representationID[100];
 	char *periodID;
+	u32 nb_baseURL;
+	char **baseURL;
 	char *xlink;
 	char *role;
 	u32 nb_rep_descs;
@@ -2047,6 +2049,13 @@ restart_fragmentation_pass:
 	if (dash_input->dependencyID)
 		fprintf(dash_cfg->mpd, " dependencyId=\"%s\"", dash_input->dependencyID);
 	fprintf(dash_cfg->mpd, ">\n");
+
+	/* baseURLs */
+	if (dash_input->nb_baseURL) {
+		for (i=0; i<dash_input->nb_baseURL; i++) {
+			fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", dash_input->baseURL[i]);
+		}
+	}
 
 	/* writing Representation level descriptors */
 	if (dash_input->nb_rep_descs) {
@@ -4962,8 +4971,10 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		s32 nb_diff;
 		dash_inputs[j].file_name = inputs[i].file_name;
 		if (inputs[i].representationID)
-            strcpy(dash_inputs[j].representationID, inputs[i].representationID);
+			strcpy(dash_inputs[j].representationID, inputs[i].representationID);
 		dash_inputs[j].periodID = inputs[i].periodID;
+		dash_inputs[j].nb_baseURL = inputs[i].nb_baseURL;
+		dash_inputs[j].baseURL = inputs[i].baseURL;
 		dash_inputs[j].xlink = inputs[i].xlink;
 		if (dash_inputs[j].xlink) uses_xlink = GF_TRUE;
 		dash_inputs[j].role = inputs[i].role;
