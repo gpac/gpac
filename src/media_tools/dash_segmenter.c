@@ -200,9 +200,10 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	if (!seg_rad_name) {
 		strcpy(segment_name, output_file_name);
 	} else {
-		while (1) {
-			char c = seg_rad_name[char_template];
-			if (!c) break;
+		char c;
+		const size_t seg_rad_name_len = strlen(seg_rad_name);
+		while (char_template <= seg_rad_name_len) {
+			c = seg_rad_name[char_template];
 
 			if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18) ) {
 				char_template += 18;
