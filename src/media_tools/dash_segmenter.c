@@ -200,7 +200,6 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	if (!seg_rad_name) {
 		strcpy(segment_name, output_file_name);
 	} else {
-
 		while (1) {
 			char c = seg_rad_name[char_template];
 			if (!c) break;
@@ -5624,6 +5623,25 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					} else {
 						strcpy(szSolvedSegName, seg_name);
 					}
+					
+					/* user added a relative-path baseURL */
+					if (dash_inputs[i].nb_baseURL) {
+						if (gf_url_is_local(dash_inputs[i].baseURL[0])) {
+							const char *tmp_segment_name;
+							if (dash_inputs[i].nb_baseURL > 1)
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Several relative path baseURL for input %s: selecting \"%s\"\n", dash_inputs[i].file_name, dash_inputs[i].baseURL[0]));
+							tmp_segment_name = gf_url_get_resource_name(szSolvedSegName);
+							gf_url_get_resource_path(dash_inputs[i].baseURL[0], szSolvedSegName);
+							if (szSolvedSegName[strlen(szSolvedSegName)] != GF_PATH_SEPARATOR) {
+								char ext[2]; ext[0] = GF_PATH_SEPARATOR; ext[1] = 0;
+								strcat(szSolvedSegName, ext);
+							}
+							strcat(szSolvedSegName, tmp_segment_name);
+						} else {
+							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Found baseURL for input %s but not a relative path (%s)\n", dash_inputs[i].file_name, dash_inputs[i].baseURL[0]));
+						}
+					}
+
 					segment_name = szSolvedSegName;
 				}
 				if ((dash_inputs[i].trackNum || dash_inputs[i].single_track_num) && (!seg_name || !strstr(seg_name, "$RepresentationID$") ) ) {
