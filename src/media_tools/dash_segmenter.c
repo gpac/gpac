@@ -1699,16 +1699,27 @@ restart_fragmentation_pass:
 
 				//since dash scale and ref track used for segmentation may not have the same timescale we will have drift in segment timelines. Adjust it 
 				if (tfref) {
-					u64 seg_start_time_min_cts = (u64) (tfref->min_cts_in_segment + tfref->media_time_to_pres_time_shift) * dash_cfg->dash_scale;
+					s64 seg_start_time_min_cts = (s64) (tfref->min_cts_in_segment + tfref->media_time_to_pres_time_shift) * dash_cfg->dash_scale; 
 					u64 seg_start_time_mpd = (period_duration + segment_start_time) * tfref->TimeScale;
+
+					//if first CTS in segment is less than 0, this means that we have AUs that are not presented due to edit list.
+					//adjust the segment duration accordingly.
+					if (seg_start_time_min_cts<0) {
+						s64 mpd_time_adjust = seg_start_time_min_cts / tfref->TimeScale;
+						if ((s64) SegmentDuration < - mpd_time_adjust) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Segment duration is less than media time from edit list (%d vs %d)\n", MaxSegmentDuration, -tfref->media_time_to_pres_time_shift));
+							e = GF_BAD_PARAM;
+							goto err_exit;
+						}
+						SegmentDuration += mpd_time_adjust;
+						seg_start_time_min_cts=0;
+					}
 
 					if (seg_start_time_mpd != seg_start_time_min_cts) {
 						//compute diff in dash timescale 
 						Double diff = (Double) seg_start_time_min_cts;
 						diff -= (Double) seg_start_time_mpd;
 						diff /= tfref->TimeScale;
-
-						assert(diff>0);
 
 						//if we are ahead we will adjust keep track of how many ticks we miss
 						if (diff >= 1) {
