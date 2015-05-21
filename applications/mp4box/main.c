@@ -316,6 +316,7 @@ void PrintDASHUsage()
 	        " \":id=NAME\"         sets the representation ID to NAME\n"
 	        " \":period=NAME\"     sets the representation's period to NAME. Multiple periods may be used\n"
 	        "                       period appear in the MPD in the same order as specified with this option\n"
+	        " \":BaseURL=NAME\"    sets the BaseURL. Set multiple times for multiple BaseURLs\n"
 	        " \":bandwidth=VALUE\" sets the representation's bandwidth to a given value\n"
 			" \":duration=VALUE\"  Increases the duration of this period by the given duration in seconds\n"
 			"                       only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:duration=Y.\n"
@@ -1439,6 +1440,12 @@ enum
 		u32 i, j; \
 		for (i=0;i<nb_dash_inputs;i++) {\
 			GF_DashSegmenterInput *di = &dash_inputs[i];\
+			if (di->nb_baseURL) { \
+				for (j=0; j<di->nb_baseURL; j++) { \
+					gf_free(di->baseURL[j]); \
+				} \
+				gf_free(di->baseURL); \
+			} \
 			if (di->rep_descs) { \
 				for (j=0; j<di->nb_rep_descs; j++) { \
 					gf_free(di->rep_descs[j]); \
@@ -1508,6 +1515,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				/* this is a real separator if it is followed by a keyword we are looking for */
 				if (!strnicmp(sep, ":id=", 4) ||
 				        !strnicmp(sep, ":period=", 8) ||
+				        !strnicmp(sep, ":BaseURL=", 9) ||
 				        !strnicmp(sep, ":bandwidth=", 11) ||
 				        !strnicmp(sep, ":role=", 6) ||
 				        !strnicmp(sep, ":desc", 5) ||
@@ -1533,7 +1541,11 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					}
 				}
 			} else if (!strnicmp(opts, "period=", 7)) di->periodID = gf_strdup(opts+7);
-			else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
+			else if (!strnicmp(opts, "BaseURL=", 8)) {
+				di->baseURL = (char **)gf_realloc(di->baseURL, (di->nb_baseURL+1)*sizeof(char *));
+				di->baseURL[di->nb_baseURL] = gf_strdup(opts+8);
+				di->nb_baseURL++;
+			} else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
 			else if (!strnicmp(opts, "role=", 5)) di->role = gf_strdup(opts+5);
 			else if (!strnicmp(opts, "desc", 4)) {
 				u32 *nb_descs=NULL;
