@@ -26,7 +26,7 @@
     <uses-feature
         android:name="android.hardware.sensor.accelerometer" android:required="false"/>
     <uses-feature
-        android:glEsVersion"0x00020000" android:required="true"/>
+        android:glEsVersion="0x00020000" android:required="true"/>
 
     <application
         android:icon="@drawable/icon"
