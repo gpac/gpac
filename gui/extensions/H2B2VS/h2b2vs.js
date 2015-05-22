@@ -33,13 +33,11 @@ extension = {
                 this.save_session();
                 return false;
             case GF_EVENT_DBLCLICK:
-                gwlog(l_war, 'UHD Demo dbl click');
                 if (this.uhd_demo_enabled) {
                     this.toggle_uhd_demo(!this.uhd_demo_on);
                 }
                 return false;
             case GF_EVENT_MOUSEUP:
-                gwlog(l_war, 'UHD Demo mouse up');
                 if (this.uhd_demo_on) {
                     this.uhd_state_on = !this.uhd_state_on;
                     gpac.switch_quality(this.uhd_state_on);
@@ -48,7 +46,6 @@ extension = {
                 return false;
 
             case GF_EVENT_MOUSEDOWN:
-                gwlog(l_war, 'UHD Demo mouse down');
                 if (this.uhd_demo_on) {
                     return true;
                 }
