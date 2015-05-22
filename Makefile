@@ -8,7 +8,9 @@ vpath %.c $(SRC_PATH)
 all:	version
 	$(MAKE) -C src all
 	$(MAKE) -C applications all
+ifneq ($(MP4BOX_STATIC),yes)
 	$(MAKE) -C modules all
+endif
 
 GITREV_PATH:=$(SRC_PATH)/include/gpac/revision.h
 TAG:=$(shell git --git-dir=$(SRC_PATH)/.git describe --tags --abbrev=0 2> /dev/null)
@@ -93,12 +95,14 @@ endif
 endif
 ifeq ($(DISABLE_ISOFF), no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
-ifneq ($(MP4BOX_STATIC),yes)
+ifneq ($(MP4BOX_STATIC), yes)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP42TS$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
 endif
 endif
+ifneq ($(MP4BOX_STATIC), yes)
 ifeq ($(DISABLE_PLAYER), no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
+endif
 endif
 	if [ -d  $(DESTDIR)$(prefix)/$(libdir)/pkgconfig ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 644 gpac.pc "$(DESTDIR)$(prefix)/$(libdir)/pkgconfig" ; \
@@ -144,8 +148,10 @@ ifeq ($(DISABLE_ISOFF), no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Box$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Box$(EXE_SUFFIX)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP42TS$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP42TS$(EXE_SUFFIX)
 endif
+ifneq ($(MP4BOX_STATIC),yes)
 ifeq ($(DISABLE_PLAYER), no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Client$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Client$(EXE_SUFFIX)
+endif
 endif
 ifeq ($(CONFIG_DARWIN),yes)
 	ln -s $(BUILD_PATH)/bin/gcc/libgpac$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac$(DYN_LIB_SUFFIX).$(VERSION_MAJOR)
