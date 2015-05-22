@@ -1411,7 +1411,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 					}
 
 					success = GF_FALSE;
-					for (i = 0; i < gf_list_count(valid_names); ++i) {
+					for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
 						const char *valid_name = (const char*) gf_list_get(valid_names, i);
 						if (rfc2818_match(valid_name, sess->server_name)) {
 						success = GF_TRUE;
@@ -1421,7 +1421,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 					}
 					if (!success) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SSL] Mismatch in certificate names: expected %s\n", sess->server_name));
-						for (i = 0; i < gf_list_count(valid_names); ++i) {
+						for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
 							const char *valid_name = (const char*) gf_list_get(valid_names, i);
 							GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SSL] Tried name: %s\n", valid_name));
 						}
