@@ -5628,10 +5628,12 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					/* user added a relative-path baseURL */
 					if (dash_inputs[i].nb_baseURL) {
 						if (gf_url_is_local(dash_inputs[i].baseURL[0])) {
-							const char *tmp_segment_name;
+							const char *name;
+							char tmp_segment_name[GF_MAX_PATH];
 							if (dash_inputs[i].nb_baseURL > 1)
 								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Several relative path baseURL for input %s: selecting \"%s\"\n", dash_inputs[i].file_name, dash_inputs[i].baseURL[0]));
-							tmp_segment_name = gf_url_get_resource_name(szSolvedSegName);
+							name = gf_url_get_resource_name(szSolvedSegName);
+							strcpy(tmp_segment_name, name);
 							gf_url_get_resource_path(dash_inputs[i].baseURL[0], szSolvedSegName);
 							if (szSolvedSegName[strlen(szSolvedSegName)] != GF_PATH_SEPARATOR) {
 								char ext[2]; ext[0] = GF_PATH_SEPARATOR; ext[1] = 0;
