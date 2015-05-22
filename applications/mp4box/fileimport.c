@@ -1325,7 +1325,8 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			if (adjust_split_end) {
 				fprintf(stderr, "Adjusting chunk end time to previous random access at %02.2f sec\n", chunk_start + last_rap_sample_time);
 				file_split_dur = last_rap_sample_time;
-				sprintf(szFile, "%s_%d_%d%s", szName, (u32) chunk_start, (u32) (chunk_start+file_split_dur), ext);
+				if (outName) strcpy(szFile, outName);
+				else sprintf(szFile, "%s_%d_%d%s", szName, (u32) chunk_start, (u32) (chunk_start+file_split_dur), ext);
 				gf_isom_set_final_name(dest, szFile);
 			}
 			else file_split_dur = split_dur;
