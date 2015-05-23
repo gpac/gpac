@@ -184,6 +184,7 @@ endif
 	rm -rf $(DESTDIR)$(prefix)/include/gpac
 
 installdylib:
+ifneq ($(MP4BOX_STATIC),yes)
 ifeq ($(CONFIG_WIN32),yes)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll.a $(DESTDIR)$(prefix)/$(libdir)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(DESTDIR)$(prefix)/bin
@@ -200,6 +201,7 @@ else
 	ln -sf libgpac$(DYN_LIB_SUFFIX).$(VERSION_SONAME) $(DESTDIR)$(prefix)/$(libdir)/libgpac.so
 ifeq ($(DESTDIR)$(prefix),$(prefix))
 	ldconfig || true
+endif
 endif
 endif
 endif
