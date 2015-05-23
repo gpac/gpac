@@ -579,6 +579,7 @@ EOF
         js_flags="-DXP_PC -D_declspec=__declspec"
         mingw32="yes"
         win32="yes"
+		want_pic="no"
         extralibs="$extralibs -lws2_32 -lwinmm"
         CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
         if test "$cross_prefix" != "" ; then
