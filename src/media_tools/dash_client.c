@@ -2025,7 +2025,8 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	if (group->max_bitrate) GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\tmax download bandwidth: %d kbps\n", group->max_bitrate/1024));
 	if (width&&height) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\tWidth %d Height %d", width, height));
-		if (framerate) GF_LOG(GF_LOG_INFO, GF_LOG_DASH, (" framerate %d/%d", framerate->num, framerate->den));
+		if (framerate && !framerate->den) GF_LOG(GF_LOG_INFO, GF_LOG_DASH, (" framerate %d", framerate->num));
+		if (framerate && framerate->den) GF_LOG(GF_LOG_INFO, GF_LOG_DASH, (" framerate %d/%d", framerate->num, framerate->den));
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\n"));
 	} else if (samplerate) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\tsamplerate %d\n", samplerate));
