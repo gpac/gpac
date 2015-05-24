@@ -1848,7 +1848,7 @@ static u32 gf_mpd_print_common_representation(FILE *out, GF_MPD_CommonAttributes
 	if (ca->width) fprintf(out, " width=\"%d\"", ca->width);
 	if (ca->height) fprintf(out, " height=\"%d\"", ca->height);
 	if (ca->sar) fprintf(out, " sar=\"%d:%d\"", ca->sar->num, ca->sar->den);
-	if (ca->framerate) fprintf(out, " frameRate=\"%d:%d\"", ca->framerate->num, ca->framerate->den);
+	if (ca->framerate) fprintf(out, " frameRate=\"%d/%d\"", ca->framerate->num, ca->framerate->den);
 	if (ca->samplerate) fprintf(out, " audioSamplingRate=\"%d\"", ca->samplerate);
 	if (ca->mime_type) fprintf(out, " mimeType=\"%s\"", ca->mime_type);
 	if (ca->segmentProfiles) fprintf(out, " segmentProfiles=\"%s\"", ca->segmentProfiles);
