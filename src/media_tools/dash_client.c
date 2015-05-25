@@ -2928,7 +2928,7 @@ static GF_Err dash_load_box_type(const char *cache_name, u32 offset, u32 *box_ty
 		}
 		if (offset+8 > size)
 			return GF_IO_ERR;
-		mem_address+=offset;
+		mem_address += offset;
 		*box_size = GF_4CC(mem_address[0], mem_address[1], mem_address[2], mem_address[3]);
 		*box_type = GF_4CC(mem_address[4], mem_address[5], mem_address[6], mem_address[7]);
 	} else {
@@ -2996,8 +2996,8 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 			/*we need to download the init segement, at least partially*/
 			else {
 				u32 offset = 0;
-				u32 box_type=0;
-				u32 box_size=0;
+				u32 box_type = 0;
+				u32 box_size = 0;
 				const char *cache_name;
 
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloading init segment and SIDX for representation %s\n", init_url));
@@ -3007,30 +3007,39 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				if (e) goto exit;
 				cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
 				e = dash_load_box_type(cache_name, offset, &box_type, &box_size);
-				offset=8;
+				offset = 8;
 				while (box_type) {
-					/*we got the moov , stop here */
+					/*we got the moov, stop here */
 					if (!index_in_base && (box_type==GF_4CC('m','o','o','v'))) {
-						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-8, 2, group);
+						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-8, 2, group); //Romain: bug below is also here + -1
 						break;
 					} else {
+						const u32 offset_ori = offset;
 						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-1, 2, group);
 						offset += box_size;
 						/*we need to refresh the cache name because of our memory astorage thing ...*/
 						cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
 						e = dash_load_box_type(cache_name, offset-8, &box_type, &box_size);
+						if (e == GF_IO_ERR) {
+							/*if the socket was closed then gf_dash_download_resource() with gmem:// was reset - retry*/
+							e = dash_load_box_type(cache_name, offset-offset_ori-8, &box_type, &box_size);
+							if (box_type == GF_4CC('s','i','d','x')) {
+								offset -= 8;
+								/*FIXME sidx found, reload the full resource*/
+								e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, 0, offset+box_size-1, 2, group);
+								break;
+							}
+						}
 
-						if (box_type==GF_4CC('s','i','d','x'))
+						if (box_type == GF_4CC('s','i','d','x'))
 							has_seen_sidx = 1;
 						else if (has_seen_sidx)
 							break;
-
-
 					}
 				}
-				if (e<0) goto exit;
+				if (e < 0) goto exit;
 
-				if (box_type==0) {
+				if (box_type == 0) {
 					e = GF_ISOM_INVALID_FILE;
 					goto exit;
 				}
