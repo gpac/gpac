@@ -3011,7 +3011,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				while (box_type) {
 					/*we got the moov, stop here */
 					if (!index_in_base && (box_type==GF_4CC('m','o','o','v'))) {
-						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-8, 2, group); //Romain: bug below is also here + -1
+						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-9, 2, group);
 						break;
 					} else {
 						const u32 offset_ori = offset;
