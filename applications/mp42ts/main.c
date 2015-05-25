@@ -66,7 +66,7 @@ static GFINLINE void usage()
 	        "GPAC Copyright (c) Telecom ParisTech 2000-2014\n"
 	        "GPAC Configuration: " GPAC_CONFIGURATION "\n"
 	        "Features: %s\n\n", gpac_features());
-	fprintf(stderr, "mp2ts <inputs> <destinations> [options]\n"
+	        fprintf(stderr, "mp42ts <inputs> <destinations> [options]\n"
 	        "\n"
 	        "Inputs:\n"
 	        "-src filename[:OPTS]   specifies an input file used for a TS service\n"
