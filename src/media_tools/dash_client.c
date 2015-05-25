@@ -3026,6 +3026,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 							if (box_type == GF_4CC('s','i','d','x')) {
 								offset -= 8;
 								/*FIXME sidx found, reload the full resource*/
+								GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] have to re-downloading init and SIDX for rep %s\n", init_url));
 								e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, 0, offset+box_size-1, 2, group);
 								break;
 							}
