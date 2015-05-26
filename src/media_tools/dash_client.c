@@ -3895,11 +3895,13 @@ restart_period:
 				group->min_bitrate = (u32)-1;
 
 				/*use persistent connection for segment downloads*/
+				gf_mx_p(dash->dl_mutex);
 				if (use_byterange) {
 					e = gf_dash_download_resource(dash, &(group->segment_download), new_base_seg_url, start_range, end_range, 1, group);
 				} else {
 					e = gf_dash_download_resource(dash, &(group->segment_download), new_base_seg_url, 0, 0, 1, group);
 				}
+				gf_mx_v(dash->dl_mutex);
 
 				if ((e==GF_IP_CONNECTION_CLOSED) && group->download_abort_type) {
 					group->download_abort_type = 0;
@@ -4138,6 +4140,7 @@ static void gf_dash_download_stop(GF_DashClient *dash)
 {
 	u32 i;
 	assert(dash);
+	gf_mx_p(dash->dl_mutex);
 	if (dash->groups) {
 		for (i=0; i<gf_list_count(dash->groups); i++) {
 			GF_DASH_Group *group = gf_list_get(dash->groups, i);
@@ -4150,7 +4153,6 @@ static void gf_dash_download_stop(GF_DashClient *dash)
 		}
 	}
 	/* stop the download thread */
-	gf_mx_p(dash->dl_mutex);
 	dash->mpd_stop_request = GF_TRUE;
 	if (dash->dash_state != GF_DASH_STATE_STOPPED) {
 		dash->mpd_stop_request = 1;
