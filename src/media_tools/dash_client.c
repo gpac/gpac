@@ -3248,7 +3248,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 {
 	GF_MPD_Period *period;
-	u32 rep_i, group_i, j, nb_groups_ok;
+	u32 rep_i, as_i, group_i, j, nb_groups_ok;
 	u32 retry = 10;
 
 	//solve xlink - if
@@ -3262,6 +3262,16 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 	if (period->xlink_href) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many xlink indirections on the same period - not supported\n"));
 		return GF_NOT_SUPPORTED;
+	}
+	
+	/*we are not able to process webm dash (youtube)*/
+	j = gf_list_count(period->adaptation_sets);
+	for (as_i=0; as_i<j; as_i++) {
+		GF_MPD_AdaptationSet *set = gf_list_get(period->adaptation_sets, as_i);
+		if (strstr(set->mime_type, "webm")) {
+			gf_list_rem(period->adaptation_sets, as_i);
+			as_i--, j--;
+		}
 	}
 
 	/*setup all groups*/
