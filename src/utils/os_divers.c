@@ -1675,7 +1675,6 @@ void gf_net_get_ntp(u32 *sec, u32 *frac)
 	struct timeval now;
 	gettimeofday(&now, NULL);
 	*sec = (u32) (now.tv_sec) + GF_NTP_SEC_1900_TO_1970;
-//	*frac = (u32) ( (now.tv_usec << 12) + (now.tv_usec << 8) - ((now.tv_usec * 3650) >> 6) );
 	frac_part = now.tv_usec * 0xFFFFFFFFULL;
 	frac_part /= 1000000;
 	*frac = (u32) ( frac_part );
@@ -1740,6 +1739,54 @@ s32 gf_net_get_timezone()
 
 }
 
+
+#ifdef WIN32
+static time_t gf_mktime_utc(struct tm *tm)
+{
+	return  _mkgmtime(tm);
+}
+#else
+
+static time_t gf_mktime_utc(struct tm *tm)
+{
+	return timegm(tm);
+}
+
+#endif
+
+#if GPAC_UNUSED
+
+static Bool leap_year(u32 year) {
+    year += 1900;
+    return (year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0) ? GF_TRUE : GF_FALSE;
+}
+static time_t gf_gmtime(struct tm *tm)
+{
+   static const u32 days_per_month[2][12] = {
+        {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+        {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+    };
+    time_t time=0;
+    int i;
+
+    for (i=70; i<tm->tm_year; i++) {
+		time += leap_year(i) ? 366 : 365;
+	}
+
+    for (i=0; i<tm->tm_mon; ++i) {
+		time += days_per_month[leap_year(tm->tm_year)][i];
+	}
+	time += tm->tm_mday - 1;
+    time *= 24;
+    time += tm->tm_hour;
+    time *= 60;
+    time += tm->tm_min;
+    time *= 60;
+    time += tm->tm_sec;
+    return time;
+}
+#endif
+
 GF_EXPORT
 u64 gf_net_parse_date(const char *val)
 {
@@ -1748,6 +1795,7 @@ u64 gf_net_parse_date(const char *val)
 	u32 year, month, day, h, m, s, ms;
 	s32 oh, om;
 	Float secs;
+	Bool is_utc = GF_FALSE;
 	Bool neg_time_zone = 0;
 
 #ifdef _WIN32_WCE
@@ -1764,6 +1812,7 @@ u64 gf_net_parse_date(const char *val)
 	secs = 0;
 
 	if (sscanf(val, "%d-%d-%dT%d:%d:%gZ", &year, &month, &day, &h, &m, &secs) == 6) {
+		is_utc = GF_TRUE;
 	}
 	else if (sscanf(val, "%d-%d-%dT%d:%d:%g-%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
 		neg_time_zone = 1;
@@ -1775,6 +1824,7 @@ u64 gf_net_parse_date(const char *val)
 	}
 	else if (sscanf(val, "%9s, %d-%3s-%d %02d:%02d:%02d GMT", szDay, &day, szMonth, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
+		is_utc = GF_TRUE;
 	}
 	else if (sscanf(val, "%3s %3s %d %02d:%02d:%02d %d", szDay, szMonth, &day, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
@@ -1831,12 +1881,16 @@ u64 gf_net_parse_date(const char *val)
 		else if (!strcmp(szDay, "Sun") || !strcmp(szDay, "Sunday")) t.tm_wday = 6;
 	}
 
-#ifdef GPAC_ANDROID
-	/* strange issue in Android, we have to indicate DST is not applied in our time struct*/
-	t.tm_isdst = -1;
-#endif
+	current_time = gf_mktime_utc(&t);
 
-	current_time = mktime(&t) - gf_net_get_timezone();
+	if ((s64) current_time == -1) {
+		//use 1 ms
+		return 1;
+	}
+	if (current_time == 0) {
+		//use 1 ms
+		return 1;
+	}
 
 #endif
 
@@ -1849,8 +1903,6 @@ u64 gf_net_parse_date(const char *val)
 	ms = (u32) ( (secs - (u32) secs) * 1000);
 	return current_time + ms;
 }
-
-
 
 GF_EXPORT
 u64 gf_net_get_utc()
@@ -1872,13 +1924,8 @@ u64 gf_net_get_utc()
 #ifndef _WIN32_WCE
 	gtime = sec - GF_NTP_SEC_1900_TO_1970;
 	_t = * gmtime(&gtime);
+	current_time = gf_mktime_utc(&_t);
 
-#ifdef GPAC_ANDROID
-	/* strange issue in Android, we have to indicate DST is not applied in our time struct*/
-	_t.tm_isdst = -1;
-#endif
-
-	current_time = mktime(&_t) - gf_net_get_timezone();
 #else
 	GetSystemTime(&syst);
 	SystemTimeToFileTime(&syst, &filet);
