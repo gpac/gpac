@@ -1963,19 +1963,19 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			}
 			seg_dur_found = 1;
 			*segment_duration = atoi(next_arg);
-		} else if (CHECK_PARAM("-segment-manifest=")) {
+		} else if (CHECK_PARAM("-segment-manifest")) {
 			if (seg_manifest_found) {
 				goto error;
 			}
 			seg_manifest_found = 1;
 			*segment_manifest = next_arg;
-		} else if (CHECK_PARAM("-segment-http-prefix=")) {
+		} else if (CHECK_PARAM("-segment-http-prefix")) {
 			if (seg_http_found) {
 				goto error;
 			}
 			seg_http_found = 1;
 			*segment_http_prefix = next_arg;
-		} else if (CHECK_PARAM("-segment-number=")) {
+		} else if (CHECK_PARAM("-segment-number")) {
 			if (seg_number_found) {
 				goto error;
 			}
