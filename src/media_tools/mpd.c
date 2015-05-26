@@ -1184,7 +1184,10 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	}
 
 	is_end = !pl->playlist_needs_refresh;
-	assert(the_pe);
+	if (!the_pe) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] The M3U8 playlist is not correct.\n"));
+		return GF_BAD_PARAM;
+	}
 
 	update_interval = 0;
 	/*update interval is set to the duration of the last media file with rules defined in http live streaming RFC section 6.3.4*/
