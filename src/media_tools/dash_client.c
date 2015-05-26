@@ -448,8 +448,11 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		}
 	}
 
+	availabilityStartTime = 0;
+	if (mpd->availabilityStartTime + group->dash->utc_shift > - group->dash->utc_drift_estimate) {
+		availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate;
+	}
 
-	availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate;
 
 #ifdef FORCE_DESYNC
 	availabilityStartTime -= FORCE_DESYNC;
