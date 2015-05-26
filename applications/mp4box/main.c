@@ -303,7 +303,7 @@ void PrintDASHUsage()
 	        "                       * Note: Default temp dir is OS-dependent\n"
 	        " -profile NAME        specifies the target DASH profile: \"onDemand\",\n"
 	        "                       \"live\", \"main\", \"simple\", \"full\",\n"
-	        "                       \"dashavc264:live\", \"dashavc264:onDemand\"\n"
+	        "                       \"hbbtv1.5:live\", \"dashavc264:live\", \"dashavc264:onDemand\"\n"
 	        "                       * This will set default option values to ensure conformance to the desired profile\n"
 	        "                       * Default profile is \"full\" in static mode, \"live\" in dynamic mode\n"
 	        " -profile-ext STRING  specifies a list of profile extensions, as used by DASH-IF and DVB.\n"
@@ -2406,7 +2406,9 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			if (!stricmp(argv[i+1], "live") || !stricmp(argv[i+1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
 			else if (!stricmp(argv[i+1], "onDemand")) dash_profile = GF_DASH_PROFILE_ONDEMAND;
-			else if (!stricmp(argv[i+1], "dashavc264:live")) {
+			else if (!stricmp(argv[i+1], "hbbtv1.5:live")) {
+				dash_profile = GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE;
+			} else if (!stricmp(argv[i+1], "dashavc264:live")) {
 				dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
 			} else if (!stricmp(argv[i+1], "dashavc264:onDemand")) {
 				dash_profile = GF_DASH_PROFILE_AVC264_ONDEMAND;

@@ -4359,6 +4359,8 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 		}
 	} else if (profile==GF_DASH_PROFILE_MAIN) {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:%s:2011", is_mpeg2 ? "mp2t-main" : "isoff-main");
+	} else if (profile==GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+		fprintf(mpd, " profiles=\"urn:hbbtv:dash:profile:isoff-live:2012");
 	} else if (profile==GF_DASH_PROFILE_AVC264_LIVE) {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-live:2011,http://dashif.org/guidelines/dash264");
 	} else if (profile==GF_DASH_PROFILE_AVC264_ONDEMAND) {
@@ -5089,7 +5091,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				continue;
 			}
 
-			max_adaptation_set ++;
+			max_adaptation_set++;
 			dash_inputs[i].adaptation_set = max_adaptation_set;
 			dash_inputs[i].nb_rep_in_adaptation_set = 1;
 
@@ -5119,6 +5121,8 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		use_url_template = 1;
 		single_segment = single_file = GF_FALSE;
 		break;
+	case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE:
+		bitstream_switching = GF_DASH_BSMODE_MULTIPLE_ENTRIES;
 	case GF_DASH_PROFILE_AVC264_LIVE:
 		seg_at_rap = GF_TRUE;
 		no_fragments_defaults = GF_TRUE;
@@ -5287,13 +5291,37 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		presentation_duration += period_duration;
 	}
 
-	if ((max_comp_per_input>1) && (dash_profile==GF_DASH_PROFILE_AVC264_LIVE)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Muxed representations not allowed in DASH-IF AVC264 live profile\n\tswitching to regular live profile\n"));
-		dash_profile = GF_DASH_PROFILE_LIVE;
+	if (max_comp_per_input > 1) {
+		if (dash_profile == GF_DASH_PROFILE_AVC264_LIVE) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Muxed representations not allowed in DASH-IF AVC264 live profile\n\tswitching to regular live profile\n"));
+			dash_profile = GF_DASH_PROFILE_LIVE;
+		} else if (dash_profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Muxed representations not allowed in HbbTV 1.5 ISOBMF live profile\n\tswitching to regular live profile\n"));
+			dash_profile = GF_DASH_PROFILE_LIVE;
+		} else if (dash_profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Muxed representations not allowed in DASH-IF AVC264 onDemand profile\n\tswitching to regular onDemand profile\n"));
+			dash_profile = GF_DASH_PROFILE_ONDEMAND;
+		}
 	}
-	if ((max_comp_per_input>1) && (dash_profile==GF_DASH_PROFILE_AVC264_ONDEMAND)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Muxed representations not allowed in DASH-IF AVC264 onDemand profile\n\tswitching to regular onDemand profile\n"));
-		dash_profile = GF_DASH_PROFILE_ONDEMAND;
+
+	/*HbbTV 1.5 ISO live specific checks*/
+	if (dash_profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+		if (max_adaptation_set > 16) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max 16 adaptation sets in HbbTV 1.5 ISO live profile\n\tswitching to DASH AVC/264 live profile\n"));
+			dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
+		}
+		if (max_period > 32) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max 32 periods in HbbTV 1.5 ISO live profile\n\tswitching to regular DASH AVC/264 live profile\n"));
+			dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
+		}
+		if (dash_duration < 1.0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Min segment duration 1s in HbbTV 1.5 ISO live profile\n\tcapping to 1s\n"));
+			dash_duration = 1.0;
+		}
+		if (dash_duration > 15.0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max segment duration 15s in HbbTV 1.5 ISO live profile\n\tcapping to 15s\n"));
+			dash_duration = 15.0;
+		}
 	}
 
 	active_period_start = 0;
@@ -5774,6 +5802,10 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		}
 	}
 
+	if (dash_profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+		if (gf_ftell(mpd) > 100*1024)
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[DASH] Manifest MPD is too big for HbbTV 1.5. Limit is 100kB, current size is "LLU"kB\n", gf_ftell(mpd)/1024));
+	}
 
 exit:
 	if (mpd) {
@@ -5792,7 +5824,7 @@ exit:
 				gf_free(dash_inputs[i].components[j].lang);
 			}
 		}
-        if (dash_inputs[i].dependencyID) gf_free(dash_inputs[i].dependencyID);
+		if (dash_inputs[i].dependencyID) gf_free(dash_inputs[i].dependencyID);
 	}
 	gf_free(dash_inputs);
 
