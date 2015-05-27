@@ -196,6 +196,7 @@ typedef struct
 	const char *temi_url;
 	u32 last_temi_url;
 	Bool insert_temi;
+	Bool insert_ntp;
 
 } GF_ESIMP4;
 #endif
@@ -349,6 +350,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		if (priv->is_repeat) pck.flags |= GF_ESI_DATA_REPEAT;
 
 		if (priv->insert_temi) {
+			u64 ntp=0;
 			u64 tc = priv->sample->DTS + priv->sample->CTS_Offset;
 			if (temi_disable_loop) {
 				tc += priv->ts_offset;
@@ -358,7 +360,14 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				tc += ((u64) temi_offset) * ifce->timescale / 1000;
 			}
 
-			pck.mpeg2_af_descriptors_size = format_af_descriptor(af_data, tc, ifce->timescale, 0, priv->temi_url, &priv->last_temi_url);
+			if (priv->insert_ntp) {
+				u32 sec, frac;
+				gf_net_get_ntp(&sec, &frac);
+				ntp = sec;
+				ntp <<= 32;
+				ntp |= frac;
+			}
+			pck.mpeg2_af_descriptors_size = format_af_descriptor(af_data, tc, ifce->timescale, ntp, priv->temi_url, &priv->last_temi_url);
 			pck.mpeg2_af_descriptors = af_data;
 		}
 
@@ -1368,7 +1377,7 @@ void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 pe
 }
 #endif
 
-static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mpeg4_signaling, char *update, char *audio_input_ip, u16 audio_input_port, char *video_buffer, Bool force_real_time, u32 bifs_use_pes, const char *temi_url, Bool compute_max_size)
+static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mpeg4_signaling, char *update, char *audio_input_ip, u16 audio_input_port, char *video_buffer, Bool force_real_time, u32 bifs_use_pes, const char *temi_url, Bool compute_max_size, Bool insert_ntp)
 {
 #ifndef GPAC_DISABLE_STREAMING
 	GF_SDPInfo *sdp;
@@ -1425,7 +1434,9 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 						if (!source->pcr_idx) {
 							source->pcr_idx = i+1;
 							if (temi_url) {
-								((GF_ESIMP4 *)source->streams[i].input_udta)->insert_temi = 1;
+								((GF_ESIMP4 *)source->streams[i].input_udta)->insert_temi = GF_TRUE;
+								if (insert_ntp) 
+									((GF_ESIMP4 *)source->streams[i].input_udta)->insert_ntp = GF_TRUE;
 								if (strcmp(temi_url, "NOTEMIURL"))
 									((GF_ESIMP4 *)source->streams[i].input_udta)->temi_url = temi_url;
 							}
@@ -1789,7 +1800,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
                                   char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix, u32 *split_rap, u32 *nb_pck_pack, u32 *pcr_ms, u32 *ttl, const char **ip_ifce, const char **temi_url, u32 *sdt_refresh_rate)
 {
 	Bool rate_found=0, mpeg4_carousel_found=0, time_found=0, src_found=0, dst_found=0, audio_input_found=0, video_input_found=0,
-	     seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found=0, real_time_found=0;
+	     seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found=0, real_time_found=0, insert_ntp=0;
 	char *arg = NULL, *next_arg = NULL, *error_msg = "no argument found";
 	u32 mpeg4_signaling = GF_M2TS_MPEG4_SIGNALING_NONE;
 	Bool force_real_time = 0;
@@ -2011,6 +2022,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			temi_offset = atoi(next_arg);
 		} else if (!stricmp(arg, "-temi-noloop")) {
 			temi_disable_loop = 1;
+		} else if (!stricmp(arg, "-insert-ntp")) {
+			insert_ntp = GF_TRUE;
 		}
 		else if (CHECK_PARAM("-dst-udp")) {
 			char *sep = strchr(next_arg, ':');
@@ -2066,7 +2079,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			src_args = src_args + 1;
 		}
 
-		res = open_source(&sources[*nb_sources], next_arg, *carrousel_rate, mpeg4_signaling, *bifs_src_name, *audio_input_ip, *audio_input_port, *video_buffer, force_real_time, *bifs_use_pes, *temi_url, (*pcr_offset == (u32) -1) ? 1 : 0);
+		res = open_source(&sources[*nb_sources], next_arg, *carrousel_rate, mpeg4_signaling, *bifs_src_name, *audio_input_ip, *audio_input_port, *video_buffer, force_real_time, *bifs_use_pes, *temi_url, (*pcr_offset == (u32) -1) ? 1 : 0, insert_ntp);
 
 
 		//we may have arguments
