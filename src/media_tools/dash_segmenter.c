@@ -653,7 +653,7 @@ static u64 get_presentation_time(u64 media_time, s32 ts_shift)
 	return media_time ;
 }
 
-static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec, GF_DASHSegmenterOptions *dash_cfg, GF_DashSegInput *dash_input, Bool first_in_set)
+static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, GF_DASHSegmenterOptions *dash_cfg, GF_DashSegInput *dash_input, Bool first_in_set)
 {
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done;
@@ -854,7 +854,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 	}
 
-	MaxFragmentDuration = (u32) (dash_cfg->dash_scale * max_duration_sec);
+	MaxFragmentDuration = (u32) (dash_cfg->dash_scale * dash_cfg->fragment_duration);
 	MaxSegmentDuration = (u32) (dash_cfg->dash_scale * dash_cfg->segment_duration);
 
 	/*in single segment mode, only one big SIDX is written between the end of the moov and the first fragment.
@@ -1670,7 +1670,7 @@ restart_fragmentation_pass:
 					gf_sleep(1);
 				}
 
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Flushing fragment at "LLU" us\n", gf_sys_clock_high_res() ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Flushing fragment at "LLU" us\n", gf_sys_clock_high_res() ));
 			}
 
 			e = gf_isom_flush_fragments(output, flush_all_samples ? GF_TRUE : GF_FALSE);
@@ -1755,7 +1755,7 @@ restart_fragmentation_pass:
 			split_at_rap = GF_FALSE;
 			has_rap = GF_FALSE;
 			/*restore fragment duration*/
-			MaxFragmentDuration = (u32) (max_duration_sec * dash_cfg->dash_scale);
+			MaxFragmentDuration = (u32) (dash_cfg->fragment_duration * dash_cfg->dash_scale);
 
 			if (!simulation_pass) {
 				u64 idx_start_range, idx_end_range;
@@ -1896,7 +1896,7 @@ restart_fragmentation_pass:
 	}
 	else if (!dash_cfg->use_segment_timeline) {
 		if (dash_cfg->dash_ctx) {
-			max_segment_duration = max_duration_sec;
+			max_segment_duration = dash_cfg->segment_duration;
 		} else {
 			if (3*min_seg_dur < max_seg_dur) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Segment duration variation is higher than the +/- 50%% allowed by DASH-IF (min %g, max %g) - please reconsider encoding\n", (Double) min_seg_dur / dash_cfg->dash_scale, (Double) max_seg_dur / dash_cfg->dash_scale));
@@ -2790,7 +2790,7 @@ retry_track:
 static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *szOutName, GF_DASHSegmenterOptions *dash_cfg, Bool first_in_set)
 {
 	GF_ISOFile *in = gf_isom_open(dash_input->file_name, GF_ISOM_OPEN_READ, dash_cfg->tmpdir);
-	GF_Err e = gf_media_isom_segment_file(in, szOutName, dash_cfg->fragment_duration, dash_cfg, dash_input, first_in_set);
+	GF_Err e = gf_media_isom_segment_file(in, szOutName, dash_cfg, dash_input, first_in_set);
 	gf_isom_close(in);
 	return e;
 }
