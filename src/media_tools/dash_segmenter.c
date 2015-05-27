@@ -5085,7 +5085,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				//this is a remote period insertion
 				if (dash_inputs[i].xlink) {
 					//assign a AS for this fake source (otherwise first active period detection will fail)
-					dash_inputs[i].adaptation_set=1;
+					dash_inputs[i].adaptation_set = 1;
 					none_supported = GF_FALSE;
 				}
 				continue;
@@ -5121,8 +5121,18 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		use_url_template = 1;
 		single_segment = single_file = GF_FALSE;
 		break;
-	case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE:
+	case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE: {
 		bitstream_switching = GF_DASH_BSMODE_MULTIPLE_ENTRIES;
+		for (i=0; i<nb_dash_inputs; i++) {
+			if (dash_inputs[i].role && !strcmp(dash_inputs[i].role, "main"))
+				break;
+		}
+		if (i == nb_dash_inputs) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] HbbTV 1.5 ISO live profile requires to have at least one Adaptation Set\nlabelled with a Role@value of \"main\". Consider adding \":role=main\" to your inputs.\n"));
+			e = GF_BAD_PARAM;
+			goto exit;
+		}
+	}
 	case GF_DASH_PROFILE_AVC264_LIVE:
 		seg_at_rap = GF_TRUE;
 		no_fragments_defaults = GF_TRUE;
