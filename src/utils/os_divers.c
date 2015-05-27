@@ -1778,6 +1778,7 @@ static time_t gf_mktime_utc(struct tm *tm)
 }
 
 #elif defined(GPAC_ANDROID)
+#include <time64.h>
 #if defined(__LP64__)
 static time_t gf_mktime_utc(struct tm *tm)
 {
