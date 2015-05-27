@@ -175,6 +175,7 @@ GF_Err gf_delete_file(const char *fileName)
 #endif
 }
 
+#ifndef WIN32
 /**
  * Remove existing single-quote from a single-quoted string.
  * The caller is responsible for deallocating the returns string with gf_free()
@@ -194,6 +195,7 @@ static char* gf_sanetize_single_quoted_string(const char *src) {
     out[j++] = 0;
     return out;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_move_file(const char *fileName, const char *newFileName)
@@ -639,7 +641,7 @@ s32 gf_fclose(FILE *file)
 	return fclose(file);
 }
 
-#if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! defined(_GNU_SOURCE)
+#if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! defined(_GNU_SOURCE) && !defined(WIN32)
 #define HAVE_STRERROR_R 1
 #endif
 
