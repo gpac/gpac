@@ -1223,7 +1223,6 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 {
 	GF_Err e;
 	u32 track, count, i, j, si, max_size, subsample_count, nb_samp_decrypted;
-	u64 BSO;
 	GF_ISOSample *samp = NULL;
 	GF_Crypt *mc;
 	char IV[17];
@@ -1283,7 +1282,6 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 		memset(IV, 0, 17);
 		memset(buffer, 0, max_size);
-		BSO = 0;
 
 		samp = gf_isom_get_sample(mp4, track, i+1, &si);
 		if (!samp)

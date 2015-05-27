@@ -32,6 +32,7 @@
 #include "media_memory.h"
 #include "media_control.h"
 #include <gpac/nodes_svg.h>
+#include <gpac/network.h>
 
 
 #ifndef GPAC_DISABLE_SVG

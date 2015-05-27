@@ -27,6 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/media_tools.h>
 #include <gpac/bifs.h>
+#include <gpac/network.h>
 #ifndef GPAC_DISABLE_LASER
 #include <gpac/laser.h>
 #include <gpac/nodes_svg.h>
