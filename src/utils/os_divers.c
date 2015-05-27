@@ -867,7 +867,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #endif
 	MEMORYSTATUS ms;
 	u64 creation, exit, kernel, user, process_k_u_time, proc_idle_time, proc_k_u_time;
-	u32 nb_threads, entry_time;
+	u32 entry_time;
 	HANDLE hSnapShot;
 
 	assert(sys_init);
@@ -875,8 +875,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	if (!rti) return 0;
 
 	proc_idle_time = proc_k_u_time = process_k_u_time = 0;
-	nb_threads = 0;
-
+	
 	entry_time = gf_sys_clock();
 	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
 		memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
@@ -981,7 +980,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 					proc_k_u_time += user;
 					if (pentry.th32ProcessID==the_rti.pid) {
 						process_k_u_time = user;
-						nb_threads = pentry.cntThreads;
+						//nb_threads = pentry.cntThreads;
 					}
 				}
 				if (procH) CloseHandle(procH);
@@ -1739,28 +1738,14 @@ s32 gf_net_get_timezone()
 
 }
 
-
-#ifdef WIN32
-static time_t gf_mktime_utc(struct tm *tm)
-{
-	return  _mkgmtime(tm);
-}
-#else
-
-static time_t gf_mktime_utc(struct tm *tm)
-{
-	return timegm(tm);
-}
-
-#endif
-
-#if GPAC_UNUSED
+//no mkgmtime on mingw..., use our own
+#if (defined(WIN32) && defined(__GNUC__)) 
 
 static Bool leap_year(u32 year) {
     year += 1900;
     return (year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0) ? GF_TRUE : GF_FALSE;
 }
-static time_t gf_gmtime(struct tm *tm)
+static time_t gf_mktime_utc(struct tm *tm)
 {
    static const u32 days_per_month[2][12] = {
         {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
@@ -1785,6 +1770,38 @@ static time_t gf_gmtime(struct tm *tm)
     time += tm->tm_sec;
     return time;
 }
+
+#elif defined(WIN32)
+static time_t gf_mktime_utc(struct tm *tm)
+{
+	return  _mkgmtime(tm);
+}
+
+#elif defined(GPAC_ANDROID)
+#if defined(__LP64__)
+static time_t gf_mktime_utc(struct tm *tm)
+{
+	return timegm64(tm);
+}
+#else
+static time_t gf_mktime_utc(struct tm *tm)
+{
+	static const time_t kTimeMax = ~(1L << (sizeof(time_t) * CHAR_BIT - 1));
+	static const time_t kTimeMin = (1L << (sizeof(time_t) * CHAR_BIT - 1));
+	time64_t result = timegm64(t);
+	if (result < kTimeMin || result > kTimeMax)
+		return -1;
+	return result;
+}
+#endif
+
+#else
+
+static time_t gf_mktime_utc(struct tm *tm)
+{
+	return timegm(tm);
+}
+
 #endif
 
 GF_EXPORT
@@ -1795,7 +1812,6 @@ u64 gf_net_parse_date(const char *val)
 	u32 year, month, day, h, m, s, ms;
 	s32 oh, om;
 	Float secs;
-	Bool is_utc = GF_FALSE;
 	Bool neg_time_zone = 0;
 
 #ifdef _WIN32_WCE
@@ -1812,7 +1828,6 @@ u64 gf_net_parse_date(const char *val)
 	secs = 0;
 
 	if (sscanf(val, "%d-%d-%dT%d:%d:%gZ", &year, &month, &day, &h, &m, &secs) == 6) {
-		is_utc = GF_TRUE;
 	}
 	else if (sscanf(val, "%d-%d-%dT%d:%d:%g-%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
 		neg_time_zone = 1;
@@ -1824,7 +1839,6 @@ u64 gf_net_parse_date(const char *val)
 	}
 	else if (sscanf(val, "%9s, %d-%3s-%d %02d:%02d:%02d GMT", szDay, &day, szMonth, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
-		is_utc = GF_TRUE;
 	}
 	else if (sscanf(val, "%3s %3s %d %02d:%02d:%02d %d", szDay, szMonth, &day, &year, &h, &m, &s)==7) {
 		secs  = (Float) s;
@@ -1911,27 +1925,8 @@ u64 gf_net_get_utc()
 	Double msec;
 	u32 sec, frac;
 
-#ifdef _WIN32_WCE
-	SYSTEMTIME syst;
-	FILETIME filet;
-#else
-	time_t gtime;
-	struct tm _t;
-#endif
-
 	gf_net_get_ntp(&sec, &frac);
-
-#ifndef _WIN32_WCE
-	gtime = sec - GF_NTP_SEC_1900_TO_1970;
-	_t = * gmtime(&gtime);
-	current_time = gf_mktime_utc(&_t);
-
-#else
-	GetSystemTime(&syst);
-	SystemTimeToFileTime(&syst, &filet);
-	current_time = (u64) ((*(LONGLONG *) &filet - TIMESPEC_TO_FILETIME_OFFSET) / 10000000);
-#endif
-
+	current_time = sec - GF_NTP_SEC_1900_TO_1970;
 	current_time *= 1000;
 	msec = frac*1000.0;
 	msec /= 0xFFFFFFFF;
