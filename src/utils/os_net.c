@@ -1089,7 +1089,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 
 	/*now join the multicast*/
 	M_req.imr_multiaddr.s_addr = inet_addr(multi_IPAdd);
-	M_req.imr_interface.s_addr = local_add_id;
+	M_req.imr_interface.s_addr = (in_addr_t) local_add_id;
     
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
 	if (ret == SOCKET_ERROR) {
