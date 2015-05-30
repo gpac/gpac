@@ -236,7 +236,7 @@ GF_Err GF_IPMPX_AUTH_Parse(GF_BitStream *bs, GF_IPMPX_Authentication **auth)
 		GF_SAFEALLOC(p, GF_IPMPX_AUTH_AlgorithmDescriptor);
 		if (!p) return GF_OUT_OF_MEM;
 		p->tag = tag;
-		isReg = gf_bs_read_int(bs, 1);
+		isReg = (Bool)gf_bs_read_int(bs, 1);
 		gf_bs_read_int(bs, 7);
 		if (isReg) {
 			p->regAlgoID = gf_bs_read_int(bs, 16);
@@ -389,11 +389,11 @@ static GF_Err ReadGF_IPMPX_MutualAuthentication(GF_BitStream *bs, GF_IPMPX_Data 
 	Bool requestNegotiation, successNegotiation, inclAuthenticationData, inclAuthCodes;
 	GF_IPMPX_MutualAuthentication *p = (GF_IPMPX_MutualAuthentication *)_p;
 
-	requestNegotiation = gf_bs_read_int(bs, 1);
-	successNegotiation = gf_bs_read_int(bs, 1);
-	p->failedNegotiation =  gf_bs_read_int(bs, 1);
-	inclAuthenticationData = gf_bs_read_int(bs, 1);
-	inclAuthCodes = gf_bs_read_int(bs, 1);
+	requestNegotiation = (Bool)gf_bs_read_int(bs, 1);
+	successNegotiation = (Bool)gf_bs_read_int(bs, 1);
+	p->failedNegotiation =  (Bool)gf_bs_read_int(bs, 1);
+	inclAuthenticationData = (Bool)gf_bs_read_int(bs, 1);
+	inclAuthCodes = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 3);
 
 	if (requestNegotiation) {
@@ -602,7 +602,7 @@ static GF_Err ReadGF_IPMPX_TrustSecurityMetadata(GF_BitStream *bs, GF_IPMPX_Data
 			tts->tag = GF_IPMPX_TRUST_SPECIFICATION_TAG;
 			nbSpec--;
 			gf_list_add(tt->trustSpecifications, tts);
-			has_cc = gf_bs_read_int(bs, 1);
+			has_cc = (Bool)gf_bs_read_int(bs, 1);
 			gf_bs_read_int(bs, 7);
 			if (has_cc) {
 				tts->CCTrustMetadata = GF_IPMPX_GetByteArray(bs);
@@ -681,9 +681,9 @@ static GF_Err ReadGF_IPMPX_SecureContainer(GF_BitStream *bs, GF_IPMPX_Data *_p, 
 {
 	Bool has_enc, has_mac;
 	GF_IPMPX_SecureContainer *p = (GF_IPMPX_SecureContainer *)_p;
-	has_enc = gf_bs_read_int(bs, 1);
-	has_mac = gf_bs_read_int(bs, 1);
-	p->isMACEncrypted = gf_bs_read_int(bs, 1);
+	has_enc = (Bool)gf_bs_read_int(bs, 1);
+	has_mac = (Bool)gf_bs_read_int(bs, 1);
+	p->isMACEncrypted = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 5);
 	if (has_enc) {
 		p->encryptedData = GF_IPMPX_GetByteArray(bs);
@@ -699,7 +699,7 @@ static u32 SizeGF_IPMPX_SecureContainer(GF_IPMPX_Data *_p)
 {
 	u32 size = 1;
 	GF_IPMPX_SecureContainer *p = (GF_IPMPX_SecureContainer *)_p;
-	if (p->MAC) p->isMACEncrypted = 0;
+	if (p->MAC) p->isMACEncrypted = GF_FALSE;
 	if (p->encryptedData) {
 		size += GF_IPMPX_GetByteArraySize(p->encryptedData);
 		if (p->MAC) size += GF_IPMPX_GetByteArraySize(p->MAC);
@@ -712,7 +712,7 @@ static u32 SizeGF_IPMPX_SecureContainer(GF_IPMPX_Data *_p)
 static GF_Err WriteGF_IPMPX_SecureContainer(GF_BitStream *bs, GF_IPMPX_Data *_p)
 {
 	GF_IPMPX_SecureContainer *p = (GF_IPMPX_SecureContainer *)_p;
-	if (p->MAC) p->isMACEncrypted = 0;
+	if (p->MAC) p->isMACEncrypted = GF_FALSE;
 	gf_bs_write_int(bs, p->encryptedData ? 1 : 0, 1);
 	gf_bs_write_int(bs, (p->MAC || p->isMACEncrypted) ? 1 : 0, 1);
 	gf_bs_write_int(bs, p->isMACEncrypted, 1);
@@ -902,7 +902,7 @@ static void DelGF_IPMPX_ToolParamCapabilitiesResponse(GF_IPMPX_Data *_p)
 static GF_Err ReadGF_IPMPX_ToolParamCapabilitiesResponse(GF_BitStream *bs, GF_IPMPX_Data *_p, u32 size)
 {
 	GF_IPMPX_ToolParamCapabilitiesResponse *p = (GF_IPMPX_ToolParamCapabilitiesResponse*)_p;
-	p->capabilitiesSupported = gf_bs_read_int(bs, 1);
+	p->capabilitiesSupported = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 7);
 	return GF_OK;
 }
@@ -992,7 +992,7 @@ static GF_Err ReadGF_IPMPX_GetToolContext(GF_BitStream *bs, GF_IPMPX_Data *_p, u
 	Bool has_idex;
 	GF_IPMPX_GetToolContext*p = (GF_IPMPX_GetToolContext*)_p;
 	p->scope = gf_bs_read_int(bs, 3);
-	has_idex = gf_bs_read_int(bs, 1);
+	has_idex = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 4);
 	if (has_idex) p->IPMP_DescriptorIDEx = gf_bs_read_int(bs, 16);
 
@@ -1026,7 +1026,7 @@ static GF_Err ReadGF_IPMPX_GetToolContextResponse(GF_BitStream *bs, GF_IPMPX_Dat
 {
 	Bool has_esid;
 	GF_IPMPX_GetToolContextResponse*p = (GF_IPMPX_GetToolContextResponse*)_p;
-	has_esid = gf_bs_read_int(bs, 1);
+	has_esid = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 5);
 	p->OD_ID = gf_bs_read_int(bs, 10);
 	if (has_esid) p->ESD_ID = gf_bs_read_int(bs, 16);
@@ -1131,7 +1131,7 @@ static GF_Err ReadGF_IPMPX_NotifyToolEvent(GF_BitStream *bs, GF_IPMPX_Data *_p, 
 {
 	Bool has_id;
 	GF_IPMPX_NotifyToolEvent*p = (GF_IPMPX_NotifyToolEvent*)_p;
-	has_id = gf_bs_read_int(bs, 1);
+	has_id = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 7);
 	if (has_id) {
 		p->OD_ID = gf_bs_read_int(bs, 10);
@@ -1174,7 +1174,7 @@ static void DelGF_IPMPX_CanProcess(GF_IPMPX_Data *_p)
 static GF_Err ReadGF_IPMPX_CanProcess(GF_BitStream *bs, GF_IPMPX_Data *_p, u32 size)
 {
 	GF_IPMPX_CanProcess*p = (GF_IPMPX_CanProcess*)_p;
-	p->canProcess = gf_bs_read_int(bs, 1);
+	p->canProcess = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 7);
 	return GF_OK;
 }
@@ -1325,7 +1325,7 @@ static GF_Err ReadGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_Da
 		count--;
 		gf_bs_read_data(bs, (char*)sb->cipher_Id, 16);
 		sb->syncBoundary = gf_bs_read_int(bs, 8);
-		is_block = gf_bs_read_int(bs, 1);
+		is_block = (Bool)gf_bs_read_int(bs, 1);
 		gf_bs_read_int(bs, 7);
 		if (is_block) {
 			sb->mode = gf_bs_read_int(bs, 8);
@@ -1335,7 +1335,7 @@ static GF_Err ReadGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_Da
 			sb->Stream_Cipher_Specific_Init_Info = GF_IPMPX_GetByteArray(bs);
 		}
 	}
-	is_spec = gf_bs_read_int(bs, 1);
+	is_spec = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 7);
 	if (is_spec) {
 		Bool is_map;
@@ -1349,11 +1349,11 @@ static GF_Err ReadGF_IPMPX_SelectiveDecryptionInit(GF_BitStream *bs, GF_IPMPX_Da
 			sf->field_Scope = gf_bs_read_int(bs, 3);
 			gf_bs_read_int(bs, 5);
 			sf->buf = gf_bs_read_int(bs, 8);
-			is_map = gf_bs_read_int(bs, 1);
+			is_map = (Bool)gf_bs_read_int(bs, 1);
 			gf_bs_read_int(bs, 7);
 			if (is_map) {
-				Bool sendMapTable = gf_bs_read_int(bs, 1);
-				Bool isShuffled = gf_bs_read_int(bs, 1);
+				Bool sendMapTable = (Bool)gf_bs_read_int(bs, 1);
+				Bool isShuffled = (Bool)gf_bs_read_int(bs, 1);
 				gf_bs_read_int(bs, 6);
 				if (sendMapTable) {
 					sf->mappingTableSize = gf_bs_read_int(bs, 16);
@@ -1478,7 +1478,7 @@ static GF_Err ReadGF_IPMPX_WatermarkingInit(GF_BitStream *bs, GF_IPMPX_Data *_p,
 
 	p->inputFormat = gf_bs_read_int(bs, 8);
 	p->requiredOp = gf_bs_read_int(bs, 4);
-	has_opaque_data = gf_bs_read_int(bs, 1);
+	has_opaque_data = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 3);
 	if (p->inputFormat==0x01) {
 		if (p->tag == GF_IPMPX_AUDIO_WM_INIT_TAG) {
@@ -1584,7 +1584,7 @@ static GF_Err ReadGF_IPMPX_SendWatermark(GF_BitStream *bs, GF_IPMPX_Data *_p, u3
 	GF_IPMPX_SendWatermark *p = (GF_IPMPX_SendWatermark*)_p;
 	p->wm_status = gf_bs_read_int(bs, 2);
 	p->compression_status = gf_bs_read_int(bs, 2);
-	has_op_data = gf_bs_read_int(bs, 1);
+	has_op_data = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 3);
 	if (p->wm_status==GF_IPMPX_WM_PAYLOAD) p->payload = GF_IPMPX_GetByteArray(bs);
 	if (has_op_data) p->opaqueData = GF_IPMPX_GetByteArray(bs);
@@ -1628,8 +1628,8 @@ static GF_Err ReadGF_IPMPX_ToolAPI_Config(GF_BitStream *bs, GF_IPMPX_Data *_p, u
 {
 	Bool has_i, has_m;
 	GF_IPMPX_ToolAPI_Config*p = (GF_IPMPX_ToolAPI_Config*)_p;
-	has_i = gf_bs_read_int(bs, 1);
-	has_m = gf_bs_read_int(bs, 1);
+	has_i = (Bool)gf_bs_read_int(bs, 1);
+	has_m = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 6);
 	if (has_i) p->Instantiation_API_ID = gf_bs_read_int(bs, 32);
 	if (has_m) p->Messaging_API_ID = gf_bs_read_int(bs, 32);
@@ -1674,7 +1674,7 @@ static GF_Err ReadGF_IPMPX_ISMACryp(GF_BitStream *bs, GF_IPMPX_Data *_p, u32 siz
 	GF_IPMPX_ISMACryp*p = (GF_IPMPX_ISMACryp*)_p;
 	p->cryptoSuite = gf_bs_read_int(bs, 8);
 	p->IV_length = gf_bs_read_int(bs, 8);
-	p->use_selective_encryption = gf_bs_read_int(bs, 1);
+	p->use_selective_encryption = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 7);
 	p->key_indicator_length = gf_bs_read_int(bs, 8);
 	return GF_OK;
