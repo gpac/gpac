@@ -2300,10 +2300,7 @@ int main(int argc, char **argv)
 
 	if (ts_out != NULL) {
 		if (segment_duration) {
-			char *dot;
 			strcpy(segment_prefix, ts_out);
-			dot = strrchr(segment_prefix, '.');
-			dot[0] = 0;
 			if (segment_dir) {
 				if (strchr("\\/", segment_name[strlen(segment_name)-1])) {
 					sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
