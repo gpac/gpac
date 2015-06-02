@@ -549,6 +549,16 @@ refetch_AU:
 		scalable_check = 1;
 		goto browse_scalable;
 	}
+	else {
+		if (*nextAU) {
+			if (gf_scene_check_addon_restart(current_odm->parentscene->root_od->addon, (*nextAU)->CTS, (*nextAU)->DTS)) {
+				//due to some issues in openhevc we reset the decoder when we restart the scalable addon
+				GF_CodecCapability cap;
+				cap.CapCode = GF_CODEC_WAIT_RAP;
+				gf_codec_set_capability(codec, cap);
+			}
+		}
+	}
 
 	if (*nextAU  && (scalable_check==1)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Warning, could not find enhancement layer for this AU (DTS %d) \n", (*nextAU)->DTS ));
@@ -573,6 +583,12 @@ refetch_AU:
 		} else {
 			codec->min_au_duration = 0;
 			/*FIXME - we're breaking sync (couple of frames delay)*/
+			if (current_odm->parentscene->root_od->addon && current_odm->parentscene->root_od->addon->loop_detected) {
+				cts_diff = (s32) (current_odm->parentscene->root_od->addon->past_media_pts - (*nextAU)->CTS);
+				if (cts_diff < 0) cts_diff = -cts_diff;
+				if (cts_diff <= 1)
+					current_odm->parentscene->root_od->addon->past_media_pts = (*nextAU)->DTS;
+			}
 			(*nextAU)->CTS = (*nextAU)->DTS;
 		}
 	}
