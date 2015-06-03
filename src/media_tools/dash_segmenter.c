@@ -2828,8 +2828,24 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 			}
 			e = dasher_isom_adjust_last_sample(in, trackNumber, track_duration2, target_duration_in_timescale, fragment_duration_in_sec);
 		} else if (target_duration_in_timescale > track_duration) {
+			u32 i, edit_count;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Track %u duration longer than %lfs: increase the last sample duration.\n", trackNumber, duration_in_sec));
 			e = dasher_isom_adjust_last_sample(in, trackNumber, track_duration, target_duration_in_timescale, fragment_duration_in_sec);
+			edit_count = gf_isom_get_edit_segment_count(in, trackNumber);
+			if (edit_count > 1) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Track %u (max 1 allowed) edit lists in track. Consider re-importing the content in MP4Box.\n", edit_count));
+				return GF_BAD_PARAM;
+			}
+			if (edit_count > 0) {
+				u64 EditTime, SegmentDuration, MediaTime;
+				u8 EditMode;
+				e = gf_isom_get_edit_segment(in, trackNumber, 1, &EditTime, &SegmentDuration, &MediaTime, &EditMode);
+				if (e || (EditMode != GF_ISOM_EDIT_NORMAL)) break;
+				if ((EditTime + MediaTime) * gf_isom_get_media_timescale(in, trackNumber) > (track_duration - SegmentDuration) * gf_isom_get_timescale(in)) {
+					e = gf_isom_set_edit_segment(in, trackNumber, EditTime, target_duration_in_timescale, MediaTime, EditMode);
+					if (e) break;
+				}
+			}
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Track %u duration already equal to %lfs. Nothing to do.\n", trackNumber, duration_in_sec));
 		}
