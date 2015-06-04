@@ -2864,7 +2864,7 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 			break;
 	}
 	
-	gf_isom_set_final_name(in, "cyril5.mp4");
+	gf_isom_set_final_name(in, "");
 	return e;
 }
 
