@@ -2294,7 +2294,11 @@ int main(int argc, char **argv)
 	/*   create mp42ts muxer   */
 	/***************************/
 	muxer = gf_m2ts_mux_new(mux_rate, psi_refresh_rate, real_time);
-	if (muxer) gf_m2ts_mux_use_single_au_pes_mode(muxer, single_au_pes);
+	if (!muxer) {
+		fprintf(stderr, "Could not create the muxer. Aborting.\n");
+		goto exit;
+	}
+	gf_m2ts_mux_use_single_au_pes_mode(muxer, single_au_pes);
 	if (pcr_init_val>=0) gf_m2ts_mux_set_initial_pcr(muxer, (u64) pcr_init_val);
 	gf_m2ts_mux_set_pcr_max_interval(muxer, pcr_ms);
 
