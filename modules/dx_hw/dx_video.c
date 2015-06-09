@@ -30,7 +30,7 @@
 
 
 #ifdef _WIN32_WCE
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 #endif
 #else
 #include <GL/gl.h>
@@ -189,7 +189,7 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 	}
 
 	/*delete openGL context*/
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	if (dd->eglctx) eglDestroyContext(dd->egldpy, dd->eglctx);
 	dd->eglctx = NULL;
 	if (dd->surface) eglDestroySurface(dd->egldpy, dd->surface);
@@ -246,7 +246,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	Bool hw_reset = GF_FALSE;
 	DDCONTEXT
 
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 	EGLint major, minor;
 	EGLint n;
 	EGLConfig configs[1];
@@ -727,7 +727,7 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 #ifndef GPAC_DISABLE_3D
 
 	if (dd->output_3d_type==1) {
-#ifdef GPAC_USE_OGL_ES
+#ifdef GPAC_USE_GLES1X
 		if (dd->surface) eglSwapBuffers(dd->egldpy, dd->surface);
 #else
 		SwapBuffers(dd->gl_HDC);

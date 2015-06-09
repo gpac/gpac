@@ -43,8 +43,6 @@
 #include "input_sensor.h"
 #include "media_memory.h"
 
-void gf_scene_reset_addons(GF_Scene *scene);
-
 GF_EXPORT
 Double gf_scene_get_time(void *_is)
 {
@@ -64,6 +62,7 @@ Double gf_scene_get_time(void *_is)
 }
 
 #ifndef GPAC_DISABLE_VRML
+
 void gf_storage_save(M_Storage *storage);
 #endif
 
@@ -1197,6 +1196,38 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 
 }
 
+static void scene_video_mouse_move(void *param, GF_FieldInfo *field) 
+{
+	u32 i, count;
+	GF_Scene *scene = (GF_Scene *) param;
+	SFVec2f tx_coord = * ((SFVec2f *) field->far_ptr);
+	
+	if (!scene->visual_url.OD_ID) return;
+
+	count = gf_list_count(scene->resources);
+	for (i=0; i<count; i++) {
+		GF_ObjectManager *odm = gf_list_get(scene->resources, i);
+		if (!odm->mo) continue;
+
+		if (odm->codec && odm->mo->OD_ID && (odm->mo->OD_ID != GF_MEDIA_EXTERNAL_ID) && (odm->mo->OD_ID==scene->visual_url.OD_ID)) {
+			GF_Err e;
+			u32 w, h;
+			GF_CodecCapability cap;
+			cap.CapCode = GF_CODEC_INTERACT_COORDS;
+			w = FIX2INT( tx_coord.x * 0xFFFF);
+			h = FIX2INT( tx_coord.y * 0xFFFF);
+			cap.cap.valueInt = w<<16 | h;
+
+			e = gf_codec_set_capability(odm->codec, cap);
+			if (e==GF_NOT_SUPPORTED) {
+				GF_Node *n = gf_sg_find_node_by_name(scene->graph, "DYN_TOUCH");
+				if (n) ((M_TouchSensor *)n)->enabled = GF_FALSE;
+			}
+			return;
+		}
+	}
+}
+
 /*regenerates the scene graph for dynamic scene.
 This will also try to reload any previously presented streams. Note that in the usual case the scene is generated
 just once when receiving the first OD AU (ressources are NOT destroyed when seeking), but since the network may need
@@ -1250,6 +1281,12 @@ void gf_scene_regenerate(GF_Scene *scene)
 		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 		gf_node_register(n2, n1);
 		n1 = n2;
+
+		/*create a touch sensor for the video*/
+		n2 = is_create_node(scene->graph, TAG_MPEG4_TouchSensor, "DYN_TOUCH");
+		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
+		gf_node_register(n2, n1);
+		gf_sg_route_new_to_callback(scene->graph, n2, 3/*"hitTexCoord_changed"*/, scene, scene_video_mouse_move);
 
 		/*create a shape and bitmap node*/
 		n2 = is_create_node(scene->graph, TAG_MPEG4_Shape, NULL);
@@ -1318,6 +1355,9 @@ void gf_scene_regenerate(GF_Scene *scene)
 	dims = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "DIMS_SCENE");
 	set_media_url(scene, &scene->dims_url, (GF_Node*)dims, &dims->url, GF_STREAM_SCENE);
 
+	n2 = gf_sg_find_node_by_name(scene->graph, "DYN_TOUCH");
+	((M_TouchSensor *)n2)->enabled = GF_TRUE;
+
 	gf_sc_lock(scene->root_od->term->compositor, 0);
 
 	/*disconnect to force resize*/
@@ -1351,9 +1391,21 @@ void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons)
 
 #else
 /*!!fixme - we would need an SVG scene in case no VRML support is present !!!*/
+GF_EXPORT
 void gf_scene_regenerate(GF_Scene *scene) {}
+GF_EXPORT
 void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only, Bool disable_addon_check) {}
+GF_EXPORT
 void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm) {}
+GF_EXPORT
+void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons) { }
+GF_EXPORT
+void gf_scene_resume_live(GF_Scene *subscene) { }
+GF_EXPORT
+void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_factor) {}
+GF_EXPORT
+void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time) { }
+
 #endif	/*GPAC_DISABLE_VRML*/
 
 #ifndef GPAC_DISABLE_VRML
@@ -1529,7 +1581,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	}
 }
 
-void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on)
+void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time)
 {
 	GF_DOM_Event devt;
 	const char *opt = gf_cfg_get_key(scene->root_od->term->user->config, "Systems", "DebugPVRScene");
@@ -1550,13 +1602,23 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 		} else {
 			odm->subscene->needs_restart = 1;
 		}
+
+		//main addon is vod not live, store clock
+		if (! odm->timeshift_depth &&  !scene->sys_clock_at_main_activation) {
+			scene->sys_clock_at_main_activation = gf_sys_clock();
+			scene->obj_clock_at_main_activation = current_clock_time;
+		}
+
+
 		gf_sg_vrml_field_copy(&dscene->url, &odm->mo->URLs, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
-
 	} else {
 		GF_Clock *ck = scene->scene_codec ? scene->scene_codec->ck : scene->dyn_ck;
 		//reactivating the main content will trigger a reset on the clock - remember where we are and resume from this point
 		scene->root_od->media_start_time = gf_clock_media_time(ck);
+
+		scene->sys_clock_at_main_activation = 0;
+		scene->obj_clock_at_main_activation = 0;
 
 		odm_activate(&scene->audio_url, gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO"));
 		odm_activate(&scene->visual_url, gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO"));
@@ -1672,9 +1734,18 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 
 				//we're timeshifting through the main addon, activate it
 				if (from_time < -1) {
-					gf_scene_select_main_addon(scene, odm, GF_TRUE);
+					gf_scene_select_main_addon(scene, odm, GF_TRUE, gf_clock_time(ck));
+					
+					/*no timeshift, this is a VoD associated with the live broadcast: get current time*/
+					if (! odm->timeshift_depth) {
+						s64 live_clock = scene->obj_clock_at_main_activation + gf_sys_clock() - scene->sys_clock_at_main_activation;
+
+						from_time += 1;
+						if (live_clock + from_time < 0) from_time = 0;
+						else from_time = live_clock + from_time;
+					}
 				} else if (scene->main_addon_selected) {
-					gf_scene_select_main_addon(scene, odm, GF_FALSE);
+					gf_scene_select_main_addon(scene, odm, GF_FALSE, 0);
 				}
 			}
 		}
@@ -1764,10 +1835,11 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 GF_EXPORT
 void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 {
+	Bool skip_notif = GF_FALSE;
 	/*for now only allowed when no scene info*/
 	if (!scene->is_dynamic_scene) return;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing scene size to %d x %d\n", width, height));
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Scene] Forcing scene size to %d x %d\n", width, height));
 
 	if (scene->is_dynamic_scene) {
 		GF_NetworkCommand com;
@@ -1805,6 +1877,17 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 			if (!com.par.width && !com.par.height && ((w<width) || (h<height)) ) {
 				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
 			} else {
+				GF_DOM_Event devt;
+				memset(&devt, 0, sizeof(GF_DOM_Event));
+				devt.type = GF_EVENT_SCENE_SIZE;
+				devt.screen_rect.width = INT2FIX(width);
+				devt.screen_rect.height = INT2FIX(height);
+				devt.key_flags = scene->is_dynamic_scene;
+
+				gf_scene_notify_event(scene, GF_EVENT_SCENE_SIZE, NULL, &devt, GF_OK, GF_FALSE);
+				
+				skip_notif = GF_TRUE;
+
 				width = w;
 				height = h;
 			}
@@ -1825,6 +1908,8 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	IS_UpdateVideoPos(scene);
 #endif
 
+	if (skip_notif) return;
+	
 	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK, GF_FALSE);
 }
 
@@ -2113,8 +2198,13 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 
 void scene_reset_addon(GF_AddonMedia *addon, Bool disconnect)
 {
-	if (disconnect && addon->root_od)
+	if (disconnect && addon->root_od) {
 		gf_odm_disconnect(addon->root_od, 1);
+	}
+	if (addon->root_od) {
+		addon->root_od->addon = NULL;
+	}
+
 	if (addon->url) gf_free(addon->url);
 	gf_free(addon);
 }
@@ -2290,20 +2380,32 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 		addon->timeline_ready = GF_TRUE;
 		load_associated_media(scene, addon);
 	}
+
+	if ((addon->addon_type==GF_ADDON_TYPE_MAIN) && addon->root_od && addon->root_od->duration && !addon->root_od->timeshift_depth) {
+		Double dur, tsb;
+		dur = (Double) addon->root_od->duration;
+		dur /= 1000;
+		tsb = (Double) addon->media_timestamp;
+		tsb /= addon->media_timescale;
+		if (tsb>dur) tsb = dur;
+		addon->root_od->parentscene->root_od->timeshift_depth = (u32) (1000*tsb);
+		gf_scene_set_timeshift_depth(scene);
+	}
 }
 
-void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
+Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 {
 	u32 i;
 	GF_ObjectManager*odm;
 	GF_Scene *subscene;
+	GF_List *to_restart = NULL;
 
-	if (!addon || !addon->loop_detected) return;
+	if (!addon || !addon->loop_detected) return GF_FALSE;
 	//warning, we need to compare to media PTS/90 since we already rounded the media_ts to milliseconds (otherwise we would get rounding errors).
-	if ((cts == addon->past_media_pts_scaled) || (dts>=addon->past_media_pts_scaled) ) {
+	if ((cts == addon->past_media_pts_scaled) || (dts >= addon->past_media_pts_scaled) ) {
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Loop not yet active - CTS "LLD" DTS "LLD" media TS "LLD" \n", cts, dts, addon->past_media_pts_scaled));
-		return;
+		return GF_FALSE;
 	}
 
 	gf_mx_p(addon->root_od->mx);
@@ -2323,20 +2425,29 @@ void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 
 	gf_mx_v(addon->root_od->mx);
 
+	to_restart = gf_list_new();
+
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(subscene->resources, &i))) {
-		gf_odm_play(odm);
+		if (odm->state == GF_ODM_STATE_PLAY) {
+			gf_list_add(to_restart, odm);
+		}
+		gf_odm_stop(odm, GF_FALSE);
 	}
 
+	i=0;
+	while ((odm = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
+		gf_odm_start(odm, 2);
+	}
+	gf_list_del(to_restart);
+	return GF_TRUE;
 }
 
-Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_AddonMedia *addon, u32 *timestamp_based)
+Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u32 *timestamp_based)
 {
 	Double media_time;
 	if (!addon->timeline_ready)
 		return clock_time;
-	assert(scene->root_od->addon);
-	assert(scene->root_od->addon==addon);
 
 	if (timestamp_based)
 		*timestamp_based = (addon->timeline_id>=0) ? 0 : 1;
@@ -2350,13 +2461,10 @@ Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_Add
 	return media_time;
 }
 
-s64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon)
+s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts)
 {
 	s64 media_ts_ms;
 	assert(addon->timeline_ready);
-	assert(scene->root_od->addon);
-	assert(scene->root_od->addon==addon);
-
 	media_ts_ms = orig_ts;
 	media_ts_ms -= (addon->media_timestamp*1000) / addon->media_timescale;
 	media_ts_ms += (addon->media_pts/90);

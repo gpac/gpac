@@ -71,7 +71,7 @@ static u32 gui_mode = 0;
 static Bool restart = GF_FALSE;
 static Bool reload = GF_FALSE;
 
-Bool no_prog = GF_FALSE;
+Bool no_prog = 0;
 
 #if defined(__DARWIN__) || defined(__APPLE__)
 //we keep no decoder thread because of JS_GC deadlocks between threads ...
@@ -393,11 +393,11 @@ static void UpdateRTInfo(const char *legend)
 		char szMsg[1024];
 
 		if (rti.total_cpu_usage && (bench_mode<2) ) {
-			sprintf(szMsg, "FPS %d CPU %2d (%02d) Mem %d kB",
-			        (u32) gf_term_get_framerate(term, GF_FALSE), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024));
+			sprintf(szMsg, "FPS %02.02f CPU %2d (%02d) Mem %d kB",
+			        gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024));
 		} else {
-			sprintf(szMsg, "FPS %d CPU %02d Mem %d kB",
-			        (u32) gf_term_get_framerate(term, GF_FALSE), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
+			sprintf(szMsg, "FPS %02.02f CPU %02d Mem %d kB",
+			        gf_term_get_framerate(term, 0), rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 		}
 
 		if (display_rti==2) {
@@ -417,7 +417,7 @@ static void UpdateRTInfo(const char *legend)
 		        gf_sys_clock(),
 		        gf_term_get_time_in_ms(term),
 		        rti.total_cpu_usage,
-		        (u32) gf_term_get_framerate(term, GF_FALSE),
+		        (u32) gf_term_get_framerate(term, 0),
 		        (u32) (rti.gpac_memory / 1024),
 		        legend ? legend : ""
 		       );
@@ -567,11 +567,11 @@ static void do_set_speed(Fixed desired_speed)
 
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
-	if (!term) return GF_FALSE;
+	if (!term) return 0;
 
 	if (gui_mode==1) {
 		if (evt->type==GF_EVENT_QUIT) {
-			Run = GF_FALSE;
+			Run = 0;
 		} else if (evt->type==GF_EVENT_KEYDOWN) {
 			switch (evt->key.key_code) {
 			case GF_KEY_C:
@@ -584,7 +584,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				break;
 			}
 		}
-		return GF_FALSE;
+		return 0;
 	}
 
 	switch (evt->type) {
@@ -604,7 +604,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 
 
-		if (!evt->message.message) return GF_FALSE;
+		if (!evt->message.message) return 0;
 
 		if (evt->message.error) {
 			if (!is_connected) last_error = evt->message.error;
@@ -640,22 +640,22 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 
 	case GF_EVENT_DBLCLICK:
 		gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
-		return GF_FALSE;
+		return 0;
 
 	case GF_EVENT_MOUSEDOWN:
 		if (evt->mouse.button==GF_MOUSE_RIGHT) {
-			right_down = GF_TRUE;
+			right_down = 1;
 			last_x = evt->mouse.x;
 			last_y = evt->mouse.y;
 		}
-		return GF_FALSE;
+		return 0;
 	case GF_EVENT_MOUSEUP:
 		if (evt->mouse.button==GF_MOUSE_RIGHT) {
-			right_down = GF_FALSE;
+			right_down = 0;
 			last_x = evt->mouse.x;
 			last_y = evt->mouse.y;
 		}
-		return GF_FALSE;
+		return 0;
 	case GF_EVENT_MOUSEMOVE:
 		if (right_down && (user.init_flags & GF_TERM_WINDOWLESS) ) {
 			GF_Event move;
@@ -665,7 +665,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			move.move.relative = 1;
 			gf_term_user_event(term, &move);
 		}
-		return GF_FALSE;
+		return 0;
 
 	case GF_EVENT_KEYUP:
 		switch (evt->key.key_code) {
@@ -699,7 +699,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			}
 			break;
 		case GF_KEY_F:
-			if (evt->key.flags & GF_KEY_MOD_CTRL) fprintf(stderr, "Rendering rate: %f FPS\n", gf_term_get_framerate(term, GF_FALSE));
+			if (evt->key.flags & GF_KEY_MOD_CTRL) fprintf(stderr, "Rendering rate: %f FPS\n", gf_term_get_framerate(term, 0));
 			break;
 		case GF_KEY_T:
 			if (evt->key.flags & GF_KEY_MOD_CTRL) fprintf(stderr, "Scene Time: %f \n", gf_term_get_time_in_ms(term)/1000.0);
@@ -754,23 +754,23 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			break;
 		case GF_KEY_B:
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
-				ViewODs(term, GF_TRUE);
+				ViewODs(term, 1);
 			break;
 		case GF_KEY_M:
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
-				ViewODs(term, GF_FALSE);
+				ViewODs(term, 0);
 			break;
 		case GF_KEY_H:
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
-				gf_term_switch_quality(term, GF_TRUE);
+				gf_term_switch_quality(term, 1);
 			break;
 		case GF_KEY_L:
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
-				gf_term_switch_quality(term, GF_FALSE);
+				gf_term_switch_quality(term, 0);
 			break;
 		case GF_KEY_F5:
 			if (is_connected)
-				reload = GF_TRUE;
+				reload = 1;
 			break;
 		case GF_KEY_A:
 			addon_visible = !addon_visible;
@@ -797,14 +797,15 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 
 	case GF_EVENT_CONNECT:
 		if (evt->connect.is_connected) {
-			is_connected = GF_TRUE;
+			is_connected = 1;
 			fprintf(stderr, "Service Connected\n");
 			eos_seen = GF_FALSE;
 			if (playback_speed != FIX_ONE)
 				gf_term_set_speed(term, playback_speed);
+
 		} else if (is_connected) {
 			fprintf(stderr, "Service %s\n", is_connected ? "Disconnected" : "Connection Failed");
-			is_connected = GF_TRUE;
+			is_connected = 0;
 			Duration = 0;
 		}
 		if (init_w && init_h) {
@@ -814,7 +815,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVENT_EOS:
 		eos_seen = GF_TRUE;
-		if (!playlist && loop_at_end) restart = GF_TRUE;
+		if (!playlist && loop_at_end) restart = 1;
 		break;
 	case GF_EVENT_SIZE:
 		if (user.init_flags & GF_TERM_WINDOWLESS) {
@@ -848,9 +849,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			gf_fclose(playlist);
 			playlist = NULL;
 		}
-		readonly_playlist = GF_FALSE;
+		readonly_playlist = 0;
 		if (!playlist) {
-			readonly_playlist = GF_FALSE;
+			readonly_playlist = 0;
 			playlist = gf_temp_file_new();
 		}
 		pos = ftell(playlist);
@@ -864,13 +865,13 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		fseek(playlist, pos, SEEK_SET);
 		request_next_playlist_item = 1;
 	}
-	return GF_TRUE;
+	return 1;
 
 	case GF_EVENT_QUIT:
 		if (evt->message.error)  {
 			fprintf(stderr, "A fatal error was encoutered: %s (%s) - exiting ...\n", evt->message.message ? evt->message.message : "no details", gf_error_to_string(evt->message.error) );
 		}
-		Run = GF_FALSE;
+		Run = 0;
 		break;
 	case GF_EVENT_DISCONNECT:
 		gf_term_disconnect(term);
@@ -883,11 +884,11 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		if (evt->navigate.to_url) fprintf(stderr, "Go to URL: \"%s\"\r", evt->navigate.to_url);
 		break;
 	case GF_EVENT_NAVIGATE:
-		if (gf_term_is_supported_url(term, evt->navigate.to_url, GF_TRUE, no_mime_check)) {
+		if (gf_term_is_supported_url(term, evt->navigate.to_url, 1, no_mime_check)) {
 			strcpy(the_url, evt->navigate.to_url);
 			fprintf(stderr, "Navigating to URL %s\n", the_url);
 			gf_term_navigate_to(term, evt->navigate.to_url);
-			return GF_TRUE;
+			return 1;
 		} else {
 			fprintf(stderr, "Navigation destination not supported\nGo to URL: %s\n", evt->navigate.to_url);
 		}
@@ -905,25 +906,25 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		while ((!strlen(evt->auth.user) || !strlen(evt->auth.password)) && (maxTries--) >= 0) {
 			fprintf(stderr, "**** Authorization required for site %s ****\n", evt->auth.site_url);
 			fprintf(stderr, "login   : ");
-			read_line_input(evt->auth.user, 50, GF_TRUE);
+			read_line_input(evt->auth.user, 50, 1);
 			fprintf(stderr, "\npassword: ");
-			read_line_input(evt->auth.password, 50, GF_FALSE);
+			read_line_input(evt->auth.password, 50, 0);
 			fprintf(stderr, "*********\n");
 		}
 		if (maxTries < 0) {
 			fprintf(stderr, "**** No User or password has been filled, aborting ***\n");
-			return GF_FALSE;
+			return 0;
 		}
-		return GF_TRUE;
+		return 1;
 	}
 	case GF_EVENT_ADDON_DETECTED:
 		if (enable_add_ons) {
 			fprintf(stderr, "Media Addon %s detected - enabling it\n", evt->addon_connect.addon_url);
-			addon_visible = GF_TRUE;
+			addon_visible = 1;
 		}
 		return enable_add_ons;
 	}
-	return GF_FALSE;
+	return 0;
 }
 
 
@@ -979,7 +980,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 	Float var;
 	Double sec;
 	u32 h, m, s, ms, f, fps;
-	if (!arg || (arg[0]=='-') || !isdigit(arg[0])) return GF_FALSE;
+	if (!arg || (arg[0]=='-') || !isdigit(arg[0])) return 0;
 
 	/*SMPTE time code*/
 	if (strchr(arg, ':') && strchr(arg, ';') && strchr(arg, '/')) {
@@ -989,7 +990,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 			sec += 3600*h + 60*m + s;
 			times[*nb_times] = (u32) (1000*sec);
 			(*nb_times) ++;
-			return GF_TRUE;
+			return 1;
 		}
 	}
 	while (arg) {
@@ -1011,13 +1012,13 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 		str[0] = '-';
 		arg = str+1;
 	}
-	return GF_TRUE;
+	return 1;
 }
 
 static u64 last_log_time=0;
 static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
-	FILE *logs = (FILE*)cbk;
+	FILE *logs = cbk;
 
 	if (rti_logs && (lm & GF_LOG_RTI)) {
 		char szMsg[2048];
@@ -1211,9 +1212,9 @@ int main (int argc, char **argv)
 			}
 			i++;
 		} else if (!strcmp(arg, "-quiet")) {
-			be_quiet = GF_TRUE;
+			be_quiet = 1;
 		} else if (!strcmp(arg, "-strict-error")) {
-			gf_log_set_strict_error(GF_TRUE);
+			gf_log_set_strict_error(1);
 		} else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
 			logfile = gf_fopen(argv[i+1], "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
@@ -1227,7 +1228,7 @@ int main (int argc, char **argv)
 		} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
 			log_time_start = 1;
 		} else if (!strcmp(arg, "-log-utc") || !strcmp(arg, "-lu")) {
-			log_utc_time = GF_TRUE;
+			log_utc_time = 1;
 		}
 #if defined(__DARWIN__) || defined(__APPLE__)
 		else if (!strcmp(arg, "-thread")) threading_flags = 0;
@@ -1235,9 +1236,9 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-no-thread")) threading_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_WINDOW_NO_THREAD;
 #endif
 		else if (!strcmp(arg, "-no-compositor-thread")) threading_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
-		else if (!strcmp(arg, "-no-audio")) no_audio = GF_TRUE;
-		else if (!strcmp(arg, "-no-regulation")) no_regulation = GF_TRUE;
-		else if (!strcmp(arg, "-fs")) start_fs = GF_TRUE;
+		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
+		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
+		else if (!strcmp(arg, "-fs")) start_fs = 1;
 
 		else if (!strcmp(arg, "-opt")) {
 			set_cfg_option(argv[i+1]);
@@ -1256,11 +1257,11 @@ int main (int argc, char **argv)
             return 1;
         }
         else if (!stricmp(arg, "-noprog")) {
-            no_prog = GF_TRUE;
+            no_prog=1;
             gf_set_progress_callback(NULL, progress_quiet);
         }
         else if (!stricmp(arg, "--no-save")) {
-			no_cfg_save = GF_TRUE;
+			no_cfg_save=1;
         }
 		
 
@@ -1305,13 +1306,13 @@ int main (int argc, char **argv)
 				sscanf(argv[i+1], "%f", &scale);
 				i++;
 			}
-			else if (!strcmp(arg, "-loop")) loop_at_end = GF_TRUE;
+			else if (!strcmp(arg, "-loop")) loop_at_end = 1;
 			else if (!strcmp(arg, "-bench")) bench_mode = 1;
 			else if (!strcmp(arg, "-vbench")) bench_mode = 2;
 			else if (!strcmp(arg, "-sbench")) bench_mode = 3;
 			else if (!strcmp(arg, "-no-addon")) enable_add_ons = GF_FALSE;
 
-			else if (!strcmp(arg, "-pause")) pause_at_first = GF_TRUE;
+			else if (!strcmp(arg, "-pause")) pause_at_first = 1;
 			else if (!strcmp(arg, "-play-from")) {
 				play_from = atof((const char *) argv[i+1]);
 			}
@@ -1331,7 +1332,7 @@ int main (int argc, char **argv)
 			} else if (!strcmp(arg, "-fill")) {
 				fill_ar = GF_TRUE;
 			} else if (!strcmp(arg, "-show")) {
-				visible = GF_TRUE;
+				visible = 1;
 			}
 			else if (!strcmp(arg, "-exit")) auto_exit = GF_TRUE;
 			else if (!stricmp(arg, "-views")) {
@@ -1447,7 +1448,7 @@ int main (int argc, char **argv)
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
 
-	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = GF_TRUE;
+	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = 1;
 
 	//in dump mode we don't want to rely on system clock but on the number of samples being consumed
 	if (dump_mode) user.init_flags |= GF_TERM_USE_AUDIO_HW_CLOCK;
@@ -1498,7 +1499,7 @@ int main (int argc, char **argv)
 		if (!str || !strcmp(str, "No Audio Output Available")) fprintf(stderr, "WARNING: no audio output available - make sure no other program is locking the sound card\n");
 
 		str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
-		no_mime_check = (str && !stricmp(str, "yes")) ? GF_TRUE : GF_FALSE;
+		no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
 	}
 
 	str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Enabled");
@@ -1517,7 +1518,7 @@ int main (int argc, char **argv)
 		UpdateRTInfo("At GPAC load time\n");
 	}
 
-	Run = GF_TRUE;
+	Run = 1;
 
 	if (dump_mode) {
 		if (!nb_times) {
@@ -1525,7 +1526,7 @@ int main (int argc, char **argv)
 			nb_times++;
 		}
 		dump_file(url_arg, out_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
-		Run = GF_FALSE;
+		Run = 0;
 	}
 	else if (views) {
 	}
@@ -1551,7 +1552,7 @@ int main (int argc, char **argv)
 			}
 
 			playlist = e ? NULL : gf_fopen(the_url, "rt");
-			readonly_playlist = GF_TRUE;
+			readonly_playlist = 1;
 			if (playlist) {
 				if (1 > fscanf(playlist, "%s", the_url))
 					fprintf(stderr, "Cannot read any URL from playlist\n");
@@ -1575,8 +1576,8 @@ int main (int argc, char **argv)
 		if (str) {
 			strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
 			gf_term_connect(term, str);
-			startup_file = GF_TRUE;
-			is_connected = GF_TRUE;
+			startup_file = 1;
+			is_connected = 1;
 		}
 	}
 	if (gui_mode==2) gui_mode=0;
@@ -1599,12 +1600,12 @@ int main (int argc, char **argv)
 		/*we don't want getchar to block*/
 		if ((gui_mode==1) || !gf_prompt_has_input()) {
 			if (reload) {
-				reload = GF_FALSE;
+				reload = 0;
 				gf_term_disconnect(term);
 				gf_term_connect(term, startup_file ? gf_cfg_get_key(cfg_file, "General", "StartupFile") : the_url);
 			}
 			if (restart && gf_term_get_option(term, GF_OPT_IS_OVER)) {
-				restart = GF_FALSE;
+				restart = 0;
 				gf_term_play_from_time(term, 0, 0);
 			}
 			if (request_next_playlist_item) {
@@ -1662,7 +1663,7 @@ force_input:
 		case 'Q':
 			break;
 		case 'o':
-			startup_file = GF_FALSE;
+			startup_file = 0;
 			gf_term_disconnect(term);
 			fprintf(stderr, "Enter the absolute URL\n");
 			if (1 > scanf("%s", the_url)) {
@@ -1703,7 +1704,7 @@ force_input:
 				}
 				if (res == EOF) {
 					fprintf(stderr, "No more items - exiting\n");
-					Run = GF_FALSE;
+					Run = 0;
 				} else {
 					fprintf(stderr, "Opening URL %s\n", the_url);
 					gf_term_connect_with_path(term, the_url, pl_path);
@@ -1731,7 +1732,7 @@ force_input:
 			break;
 		case 'r':
 			if (is_connected)
-				reload = GF_FALSE;
+				reload = 1;
 			break;
 
 		case 'D':
@@ -1740,7 +1741,7 @@ force_input:
 
 		case 'p':
 			if (is_connected) {
-				Bool is_pause = (Bool)gf_term_get_option(term, GF_OPT_PLAY_STATE);
+				Bool is_pause = gf_term_get_option(term, GF_OPT_PLAY_STATE);
 				fprintf(stderr, "[Status: %s]\n", is_pause ? "Playing" : "Paused");
 				gf_term_set_option(term, GF_OPT_PLAY_STATE, is_pause ? GF_STATE_PLAYING : GF_STATE_PAUSED);
 			}
@@ -1826,8 +1827,8 @@ force_input:
 					ViewOD(term, ID, (u32)-1, NULL);
 				} else {
 					char str_url[GF_MAX_PATH];
-					scanf("%s", str_url);
-					ViewOD(term, 0, (u32)-1, str_url);
+					if (scanf("%s", str_url) == 1)
+						ViewOD(term, 0, (u32)-1, str_url);
 				}
 			}
 			break;
@@ -1842,11 +1843,11 @@ force_input:
 			}
 			break;
 		case 'b':
-			if (is_connected) ViewODs(term, GF_TRUE);
+			if (is_connected) ViewODs(term, 1);
 			break;
 
 		case 'm':
-			if (is_connected) ViewODs(term, GF_FALSE);
+			if (is_connected) ViewODs(term, 0);
 			break;
 
 		case 'l':
@@ -1890,13 +1891,13 @@ force_input:
 					fflush(stderr);
 				} while( 1 > scanf("%s", radname));
 				sExt = strrchr(radname, '.');
-				xml_dump = GF_FALSE;
+				xml_dump = 0;
 				if (sExt) {
-					if (!stricmp(sExt, ".x")) xml_dump = GF_TRUE;
+					if (!stricmp(sExt, ".x")) xml_dump = 1;
 					sExt[0] = 0;
 				}
-				std_out = strnicmp(radname, "std", 3) ? GF_FALSE : GF_TRUE;
-				e = gf_term_dump_scene(term, std_out ? NULL : radname, NULL, xml_dump, GF_FALSE, odm);
+				std_out = strnicmp(radname, "std", 3) ? 0 : 1;
+				e = gf_term_dump_scene(term, std_out ? NULL : radname, NULL, xml_dump, 0, odm);
 				fprintf(stderr, "Dump done (%s)\n", gf_error_to_string(e));
 			}
 			break;
@@ -1914,7 +1915,7 @@ force_input:
 		break;
 		case 'k':
 		{
-			Bool opt = (Bool)gf_term_get_option(term, GF_OPT_STRESS_MODE);
+			Bool opt = gf_term_get_option(term, GF_OPT_STRESS_MODE);
 			opt = !opt;
 			fprintf(stderr, "Turning stress mode %s\n", opt ? "on" : "off");
 			gf_term_set_option(term, GF_OPT_STRESS_MODE, opt);
@@ -2177,7 +2178,7 @@ force_input:
 
 	/*FIXME: we have an issue in cleaning up after playing in bench mode and run-for 0 (buildbot tests). We for now disable error checks after run-for is done*/
 	if (simulation_time_in_ms) {
-		gf_log_set_strict_error(GF_FALSE);
+		gf_log_set_strict_error(0);
 	}
 
 
@@ -2313,8 +2314,8 @@ void PrintAVInfo(Bool final)
 				if (!dec_run_time) dec_run_time = 1;
 				if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
 				fprintf(stderr, "%d frames FPS %.2f (max %d us/f) rate avg %d max %d", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / dec_run_time, v_odi.max_dec_time, (u32) v_odi.avg_bitrate/1000, (u32) v_odi.max_bitrate/1000);
-				if (v_odi.nb_droped) {
-					fprintf(stderr, " (Error during bench: %d frames drop)", v_odi.nb_droped);
+				if (v_odi.nb_dropped) {
+					fprintf(stderr, " (Error during bench: %d frames drop)", v_odi.nb_dropped);
 				}
 				fprintf(stderr, "\n");
 			}
@@ -2326,8 +2327,8 @@ void PrintAVInfo(Bool final)
 				if (!dec_run_time) dec_run_time = 1;
 				if (a_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*a_odi.current_time / a_odi.duration ) );
 				fprintf(stderr, "%d frames (ms/f %.2f avg %.2f max) rate avg %d max %d", a_odi.nb_dec_frames, ((Float)dec_run_time)/a_odi.nb_dec_frames, a_odi.max_dec_time/1000.0, (u32) a_odi.avg_bitrate/1000, (u32) a_odi.max_bitrate/1000);
-				if (a_odi.nb_droped) {
-					fprintf(stderr, " (Error during bench: %d frames drop)", a_odi.nb_droped);
+				if (a_odi.nb_dropped) {
+					fprintf(stderr, " (Error during bench: %d frames drop)", a_odi.nb_dropped);
 				}
 				fprintf(stderr, "\n");
 			}
@@ -2346,7 +2347,7 @@ void PrintAVInfo(Bool final)
 					u32 nb_frames_drawn;
 					Double FPS = gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
 					tot_time = gf_sys_clock() - bench_mode_start;
-					FPS = gf_term_get_framerate(term, GF_FALSE);
+					FPS = gf_term_get_framerate(term, 0);
 					fprintf(stderr, "%d frames FPS %.2f (abs %.2f)\n", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
 				}
 			}
@@ -2375,7 +2376,7 @@ void PrintAVInfo(Bool final)
 			u32 nb_frames_drawn;
 			Double FPS = gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
 			tot_time = gf_sys_clock() - bench_mode_start;
-			FPS = gf_term_get_framerate(term, GF_TRUE);
+			FPS = gf_term_get_framerate(term, 1);
 			fprintf(stderr, "%d f FPS %.2f (abs %.2f) ", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
 		}
 	}
@@ -2402,7 +2403,7 @@ void PrintWorldInfo(GF_Terminal *term)
 	} else {
 		fprintf(stderr, "\t%s\n", title ? title : "No title available");
 		for (i=0; i<gf_list_count(descs); i++) {
-			char *str = (char*)gf_list_get(descs, i);
+			char *str = gf_list_get(descs, i);
 			fprintf(stderr, "%s\n", str);
 		}
 	}
@@ -2856,7 +2857,7 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 			ind--;
 		}
 
-		fprintf(stderr, " %d decoded frames - %d dropped frames\n", odi.nb_dec_frames, odi.nb_droped);
+		fprintf(stderr, " %d decoded frames - %d dropped frames\n", odi.nb_dec_frames, odi.nb_dropped);
 
 		ind = indent;
 		while (ind) {

@@ -127,7 +127,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 
 	if (use_texture) {
 
-		if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx, NULL)) {
+		if (!tr_state->visual->DrawBitmap(tr_state->visual, tr_state, ctx)) {
 			/*set target rect*/
 			gf_path_reset(stack->drawable->path);
 			gf_path_add_rect_center(stack->drawable->path,

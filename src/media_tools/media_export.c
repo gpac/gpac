@@ -1486,7 +1486,14 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 	}
 	i = 0;
 	tot_size = max_size = 0;
-	while ((size = (s32) AVI_audio_size(in, i) )>0) {
+	size = (s32) AVI_audio_size(in, i);
+	if (size < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[AVIExport] Error reading AVI audio sample\n"));
+		e = GF_NON_COMPLIANT_BITSTREAM;
+		goto exit;
+	}
+
+	while (size > 0) {
 		if (max_size<(u32) size) max_size=size;
 		tot_size += size;
 		i++;
@@ -1541,6 +1548,9 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 	case 0x55:
 		comp = "mp3";
 		break;
+	case 0x0000706d:
+		comp = "aac";
+		break;
 	default:
 		comp = "raw";
 		break;
@@ -1559,7 +1569,11 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 	while (1) {
 		Bool continuous;
 		size = (s32) AVI_read_audio(in, frame, max_size, (int*)&continuous);
-		if (!size) break;
+		if (size < 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[AVIExport] Error reading AVI audio sample\n"));
+			e = GF_NON_COMPLIANT_BITSTREAM;
+			goto exit;
+		}
 		num_samples += size;
 		gf_fwrite(frame, 1, size, fout);
 		gf_set_progress("AVI Extract", num_samples, tot_size);
@@ -1955,7 +1969,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
 
-	/*compute FPS - note we assume constant frame rate without droped frames...*/
+	/*compute FPS - note we assume constant frame rate without dropped frames...*/
 	count = gf_isom_get_sample_count(dumper->file, track);
 	FPS = gf_isom_get_media_timescale(dumper->file, track);
 	FPS *= (count-1);
@@ -2768,7 +2782,7 @@ void m2ts_export_check(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 {
 //	if (evt_type == GF_M2TS_EVT_PAT_REPEAT) ts->user = NULL;
 	if (evt_type == GF_M2TS_EVT_PMT_REPEAT) ts->user = NULL;
-	else if (evt_type == GF_M2TS_EVT_PAT_FOUND) ts->abort_parsing = 1;
+	else if (evt_type == GF_M2TS_EVT_PAT_FOUND) gf_m2ts_abort_parsing(ts, GF_FALSE);
 }
 
 struct _ts_export
@@ -2848,7 +2862,7 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		gf_m2ts_demux_del(ts);
 		return gf_export_message(dumper, GF_URL_ERROR, "Cannot locate program association table");
 	}
-	ts->abort_parsing = 0;
+	ts->abort_parsing = GF_FALSE;
 
 	stream = NULL;
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {

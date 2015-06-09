@@ -892,7 +892,7 @@ function wmjs_get_mpegu_service_providers(index) {
 function wmjs_create_standard_service() {
     //alert("create_standard_service");
     var name = "MPEG-U";
-    var option = gpac.getOption('General', 'DeviceName');
+    var option = gpac.get_option('General', 'DeviceName');
     if (option) name = option;
     WidgetManager.device = UPnP.CreateDevice("urn:mpeg-u:device:widget-manager:1", name+"@"+gpac.hostname);
     WidgetManager.device.enabled = 1;

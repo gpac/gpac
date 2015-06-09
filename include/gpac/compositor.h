@@ -122,7 +122,7 @@ GF_Err gf_sc_get_offscreen_buffer(GF_Compositor *sr, GF_VideoSurface *framebuffe
 GF_Err gf_sc_release_screen_buffer(GF_Compositor *sr, GF_VideoSurface *framebuffer);
 
 /*renders one frame*/
-void gf_sc_simulation_tick(GF_Compositor *sr);
+void gf_sc_render_frame(GF_Compositor *sr);
 
 /*forces graphics cache recompute*/
 void gf_sc_reset_graphics(GF_Compositor *sr);

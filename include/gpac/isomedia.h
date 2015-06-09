@@ -926,6 +926,9 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 are of same sizes (typically in 3GP speech tracks)*/
 GF_Err gf_isom_refresh_size_info(GF_ISOFile *file, u32 trackNumber);
 
+/*return the duration of the movie, 0 if error*/
+GF_Err gf_isom_update_duration(GF_ISOFile *the_file);
+
 /*Update Sample functions*/
 
 /*update a given sample of the media.
@@ -957,6 +960,9 @@ u8 gf_isom_get_storage_mode(GF_ISOFile *the_file);
 InterleaveTime is in MovieTimeScale*/
 GF_Err gf_isom_set_interleave_time(GF_ISOFile *the_file, u32 InterleaveTime);
 u32 gf_isom_get_interleave_time(GF_ISOFile *the_file);
+
+/*forces usage of 64 bit chunk offsets*/
+void gf_isom_force_64bit_chunk_offset(GF_ISOFile *the_file, Bool set_on);
 
 /*set the copyright in one language.*/
 GF_Err gf_isom_set_copyright(GF_ISOFile *the_file, const char *threeCharCode, char *notice);
@@ -1016,6 +1022,9 @@ GF_Err gf_isom_remove_edit_segments(GF_ISOFile *the_file, u32 trackNumber);
 /*remove the given edit segment (1-based index). If this is not the last segment, the next segment duration
 is updated to maintain a continous timeline*/
 GF_Err gf_isom_remove_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 seg_index);
+
+/*Updates edit list after track edition: all edit entries with aduration or media starttime larger than the media duration are clamped to media duration*/
+GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track);
 
 /*
 				User Data Manipulation
@@ -1160,7 +1169,7 @@ GF_Err gf_isom_change_mpeg4_description(GF_ISOFile *the_file, u32 trackNumber, u
 GF_Err gf_isom_add_desc_to_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_Descriptor *theDesc);
 
 /*updates average and max bitrate - if 0 for max, removes bitrate info*/
-GF_Err gf_isom_change_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size);
+GF_Err gf_isom_update_bitrate(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 average_bitrate, u32 max_bitrate, u32 decode_buffer_size);
 
 
 /*Default extensions*/
@@ -1185,7 +1194,7 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 /*clones all sampleDescription entries in new track, after an optional reset of existing entries*/
 GF_Err gf_isom_clone_sample_descriptions(GF_ISOFile *the_file, u32 trackNumber, GF_ISOFile *orig_file, u32 orig_track, Bool reset_existing);
 
-/*special shortcut: clones a track (everything except media data and sample info (DTS? CTS, RAPs, etc...)
+/*special shortcut: clones a track (everything except media data and sample info (DTS, CTS, RAPs, etc...)
 also clones sampleDescriptions
 @keep_data_ref: if set, external data references are kept, otherwise they are removed (track media data will be self-contained)
 @dest_track: track number of cloned track*/
@@ -1636,7 +1645,7 @@ returns an error if not supported, or GF_EOS when no more packets are available
 currently only RTP reader is supported
 @pck_data, @pck_size: output packet data (must be freed by caller) - contains all info to be sent
 	on the wire, eg for RTP contains the RTP header and the data
-@disposable (optional): indicates that the packet can be droped when late (B-frames & co)
+@disposable (optional): indicates that the packet can be dropped when late (B-frames & co)
 @repeated (optional): indicates this is a repeated packet (same one has already been sent)
 @trans_ts (optional): indicates the transmission time of the packet, expressed in hint timescale, taking into account
 the ts_offset specified in gf_isom_reset_hint_reader. Depending on packets this may not be the same

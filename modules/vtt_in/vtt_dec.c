@@ -32,7 +32,7 @@
 #include <gpac/nodes_svg.h>
 #include <gpac/webvtt.h>
 
-#ifndef GPAC_DISABLE_VTT
+#if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG)
 
 typedef struct {
 	GF_BaseInterface *module;
@@ -393,4 +393,4 @@ void DeleteVTTDec(GF_BaseDecoder *plug)
 	gf_free(plug);
 }
 
-#endif
+#endif // !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG)

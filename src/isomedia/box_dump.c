@@ -26,6 +26,7 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/utf.h>
 #include <gpac/network.h>
+#include <gpac/color.h>
 #include <time.h>
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
@@ -3270,7 +3271,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		if (!txt->len) {
 			fprintf(dump, "\n");
 		} else {
-			u32 styles, char_num, new_styles;
+			u32 styles, char_num, new_styles, color, new_color;
 			u16 utf16Line[10000];
 
 			/*UTF16*/
@@ -3288,17 +3289,21 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			char_num = 0;
 			styles = 0;
 			new_styles = txtd->default_style.style_flags;
+			color = new_color = txtd->default_style.text_color;
+			
 			for (j=0; j<len; j++) {
 				Bool is_new_line;
 
 				if (txt->styles) {
 					new_styles = txtd->default_style.style_flags;
+					new_color = txtd->default_style.text_color;
 					for (k=0; k<txt->styles->entry_count; k++) {
 						if (txt->styles->styles[k].startCharOffset>char_num) continue;
 						if (txt->styles->styles[k].endCharOffset<char_num+1) continue;
 
 						if (txt->styles->styles[k].style_flags & (GF_TXT_STYLE_ITALIC | GF_TXT_STYLE_BOLD | GF_TXT_STYLE_UNDERLINED)) {
 							new_styles = txt->styles->styles[k].style_flags;
+							new_color = txt->styles->styles[k].text_color;
 							break;
 						}
 					}
@@ -3308,11 +3313,19 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 					if ((new_styles & GF_TXT_STYLE_ITALIC) && !(styles & GF_TXT_STYLE_ITALIC)) fprintf(dump, "<i>");
 					if ((new_styles & GF_TXT_STYLE_UNDERLINED) && !(styles & GF_TXT_STYLE_UNDERLINED)) fprintf(dump, "<u>");
 
-					if ((styles & GF_TXT_STYLE_BOLD) && !(new_styles & GF_TXT_STYLE_BOLD)) fprintf(dump, "</b>");
-					if ((styles & GF_TXT_STYLE_ITALIC) && !(new_styles & GF_TXT_STYLE_ITALIC)) fprintf(dump, "</i>");
 					if ((styles & GF_TXT_STYLE_UNDERLINED) && !(new_styles & GF_TXT_STYLE_UNDERLINED)) fprintf(dump, "</u>");
+					if ((styles & GF_TXT_STYLE_ITALIC) && !(new_styles & GF_TXT_STYLE_ITALIC)) fprintf(dump, "</i>");
+					if ((styles & GF_TXT_STYLE_BOLD) && !(new_styles & GF_TXT_STYLE_BOLD)) fprintf(dump, "</b>");
 
 					styles = new_styles;
+				}
+				if (new_color != color) {
+					if (new_color ==txtd->default_style.text_color) {
+						fprintf(dump, "</font>");
+					} else {
+						fprintf(dump, "<font color=\"%s\">", gf_color_get_name(new_color) );
+					}
+					color = new_color;
 				}
 
 				/*not sure if styles must be reseted at line breaks in srt...*/
@@ -3339,16 +3352,17 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			}
 			new_styles = 0;
 			if (new_styles != styles) {
-				if ((new_styles & GF_TXT_STYLE_BOLD) && !(styles & GF_TXT_STYLE_BOLD)) fprintf(dump, "<b>");
-				if ((new_styles & GF_TXT_STYLE_ITALIC) && !(styles & GF_TXT_STYLE_ITALIC)) fprintf(dump, "<i>");
-				if ((new_styles & GF_TXT_STYLE_UNDERLINED) && !(styles & GF_TXT_STYLE_UNDERLINED)) fprintf(dump, "<u>");
+				if (styles & GF_TXT_STYLE_UNDERLINED) fprintf(dump, "</u>");
+				if (styles & GF_TXT_STYLE_ITALIC) fprintf(dump, "</i>");
+				if (styles & GF_TXT_STYLE_BOLD) fprintf(dump, "</b>");
 
-				if ((styles & GF_TXT_STYLE_BOLD) && !(new_styles & GF_TXT_STYLE_BOLD)) fprintf(dump, "</b>");
-				if ((styles & GF_TXT_STYLE_ITALIC) && !(new_styles & GF_TXT_STYLE_ITALIC)) fprintf(dump, "</i>");
-				if ((styles & GF_TXT_STYLE_UNDERLINED) && !(new_styles & GF_TXT_STYLE_UNDERLINED)) fprintf(dump, "</u>");
-
-				styles = new_styles;
+				styles = 0;
 			}
+
+			if (color != txtd->default_style.text_color) {
+				fprintf(dump, "</font>");
+				color = txtd->default_style.text_color;
+			} 
 			fprintf(dump, "\n");
 		}
 		gf_isom_sample_del(&s);
@@ -4530,11 +4544,14 @@ GF_Err senc_dump(GF_Box *a, FILE * trace)
 
 GF_Err prft_dump(GF_Box *a, FILE * trace)
 {
+	Double fracs;
 	GF_ProducerReferenceTimeBox *ptr = (GF_ProducerReferenceTimeBox *) a;
-
 	time_t secs = (ptr->ntp >> 32) - GF_NTP_SEC_1900_TO_1970;
 	struct tm t = *gmtime(&secs);
-	fprintf(trace, "<ProducerReferenceTimeBox referenceTrackID=\"%d\" timestamp=\""LLU"\" NTP_frac=\"%d\"  UTCClock=\"%d-%02d-%02dT%02d:%02d:%02dZ\">\n", ptr->refTrackID, ptr->timestamp, (u32) (ptr->ntp&0xFFFFFFFFULL), 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, (u32) t.tm_sec);
+	fracs = (Double) (ptr->ntp & 0xFFFFFFFFULL);
+	fracs /= 0xFFFFFFFF;
+	fracs *= 1000;
+	fprintf(trace, "<ProducerReferenceTimeBox referenceTrackID=\"%d\" timestamp=\""LLU"\" NTP=\""LLU"\" UTC=\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\">\n", ptr->refTrackID, ptr->timestamp, ptr->ntp, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, (u32) t.tm_sec, (u32) fracs);
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
 	gf_box_dump_done("ProducerReferenceTimeBox", a, trace);

@@ -267,8 +267,8 @@ typedef struct __gf_dvb_tuner GF_Tuner;
 /*Maximum number of service in a TS*/
 #define GF_M2TS_MAX_SERVICES	65535
 
-/*Maximum size of the buffer in UDP is 200*188 bytes*/
-#define UDP_BUFFER_SIZE	37600
+/*Maximum size of the buffer in UDP is set to 348*188 bytes*/
+#define UDP_BUFFER_SIZE	65424
 
 /*returns readable name for given stream type*/
 const char *gf_m2ts_get_stream_name(u32 streamType);
@@ -959,6 +959,7 @@ struct tag_m2ts_demux
 GF_M2TS_Demuxer *gf_m2ts_demux_new();
 void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts);
 void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts);
+void gf_m2ts_reset_parsers_for_program(GF_M2TS_Demuxer *ts, GF_M2TS_Program *prog);
 GF_ESD *gf_m2ts_get_esd(GF_M2TS_ES *es);
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode);
 u32 gf_m2ts_pes_get_framing_mode(GF_M2TS_PES *pes);
@@ -973,6 +974,8 @@ GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *ts, u32 program_id);
 
 Bool gf_m2ts_crc32_check(char *data, u32 len);
 
+/*aborts parsing of the current data (typically needed when parsing done by a different thread). If force_reset_pes is set, all pending pes data is discarded*/
+void gf_m2ts_abort_parsing(GF_M2TS_Demuxer *ts, Bool force_reset_pes);
 
 
 typedef struct

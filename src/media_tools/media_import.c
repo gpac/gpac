@@ -154,7 +154,7 @@ static void gf_media_update_bitrate(GF_ISOFile *file, u32 track)
 		gf_isom_change_mpeg4_description(file, track, 1, esd);
 		gf_odf_desc_del((GF_Descriptor *)esd);
 	} else {
-		gf_isom_change_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
+		gf_isom_update_bitrate(file, track, 1, (u32) bitrate, (u32) max_rate, db_size);
 	}
 
 #endif
@@ -2297,11 +2297,25 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		}
 	}
 
+	//adjust last sample duration
+	if (i==num_samples) {
+		u32 dur = gf_isom_get_sample_duration(import->orig, track_in, num_samples);
+		gf_isom_set_last_sample_duration(import->dest, track, dur);
+	} else {
+		s64 mediaOffset;
+		if (gf_isom_get_edit_list_type(import->orig, track_in, &mediaOffset)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOBMF Import] Multiple edits found in source media, import may be broken\n"));
+		}
+		gf_isom_update_edit_list_duration(import->dest, track);
+		gf_isom_update_duration(import->dest);
+	}
+
 	if (gf_isom_has_time_offset(import->orig, track_in)==2) {
 		e = gf_isom_set_composition_offset_mode(import->dest, track, GF_TRUE);
 		if (e)
 			goto exit;
 	}
+
 
 	if (import->esd) {
 		if (!import->esd->slConfig) {
@@ -5427,7 +5441,7 @@ restart_import:
 	gf_media_update_par(import->dest, track);
 	gf_media_update_bitrate(import->dest, track);
 
-	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0x15);
+	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0x7F);
 	gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_AVC1, 1);
 
 	if (!gf_list_count(avccfg->sequenceParameterSets) && !gf_list_count(svccfg->sequenceParameterSets) && !(import->flags & GF_IMPORT_FORCE_XPS_INBAND)) {

@@ -296,7 +296,7 @@ void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color
 void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_TextureHandler *txh, GF_TraverseState *tr_state);
 
 /*non-oglES functions*/
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 /*X3D hatching*/
 void visual_3d_mesh_hatch(GF_TraverseState *tr_state, GF_Mesh *mesh, u32 hatchStyle, SFColor hatchColor);
 #endif

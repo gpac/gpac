@@ -68,7 +68,7 @@ typedef enum
 
 	/*position in timeshift buffer has changed (eg, paused)*/
 	GF_DASH_EVENT_TIMESHIFT_UPDATE,
-	/*event sent when timeshift buffer is overflown - the group_idx param contains the max number of droped segments of all representations droped by the client, or -1 if play pos is ahead of live */
+	/*event sent when timeshift buffer is overflown - the group_idx param contains the max number of dropped segments of all representations droped by the client, or -1 if play pos is ahead of live */
 	GF_DASH_EVENT_TIMESHIFT_OVERFLOW,
 } GF_DASHEventType;
 
@@ -209,8 +209,11 @@ void gf_dash_groups_set_language(GF_DashClient *dash, const char *lang_code_rfc_
 
 /*returns the mime type of the media resources in this group*/
 const char *gf_dash_group_get_segment_mime(GF_DashClient *dash, u32 idx);
-/*returns the URL of tyhe first media resource to play (init segment or first media segment depending on format). start_range and end_range are optional*/
+/*returns the URL of the first media resource to play (init segment or first media segment depending on format). start_range and end_range are optional*/
 const char *gf_dash_group_get_segment_init_url(GF_DashClient *dash, u32 idx, u64 *start_range, u64 *end_range);
+
+/*returns the URL and IV associated with the first media segment if any (init segment or first media segment depending on format). key_IV is optional*/
+const char *gf_dash_group_get_segment_init_keys(GF_DashClient *dash, u32 idx, bin128 *key_IV);
 
 /*returns the language of the group, or NULL if none associated*/
 const char *gf_dash_group_get_language(GF_DashClient *dash, u32 idx);
@@ -223,7 +226,7 @@ u32 gf_dash_group_get_time_shift_buffer_depth(GF_DashClient *dash, u32 idx);
 
 /*get current time in time shift buffer in seconds - 0 means 'live point'
 this gets the maximum value (further in the past) of all representations playing*/
-u32 gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash);
+Double gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash);
 
 typedef enum
 {
@@ -252,7 +255,7 @@ original_url is optional and may be used to het the URI of the segment
 */
 GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32 dependent_representation_index, const char **url, u64 *start_range, u64 *end_range,
         s32 *switching_index, const char **switching_url, u64 *switching_start_range, u64 *switching_end_range,
-        const char **original_url, Bool *has_next_segment);
+        const char **original_url, Bool *has_next_segment, const char **key_url, bin128 *key_IV);
 
 /*same as gf_dash_group_get_next_segment_location but query the current downloaded segment*/
 GF_EXPORT
@@ -281,7 +284,7 @@ GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, 
 Bool gf_dash_in_last_period(GF_DashClient *dash);
 /*return value:
 	1 if the period switching has been requested (due to seeking),
-	2 if the switching is in progress (all groups will soon be destroyed and plyback will be stoped and restarted)
+	2 if the switching is in progress (all groups will soon be destroyed and plyback will be stopped and restarted)
 	0 if no switching is requested
 */
 u32 gf_dash_get_period_switch_status(GF_DashClient *dash);

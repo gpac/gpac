@@ -29,7 +29,7 @@
 #include <gpac/network.h>
 #include <gpac/nodes_mpeg4.h>
 
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)
 
 typedef struct
 {
@@ -793,14 +793,14 @@ GF_BaseDecoder *NewContextLoader()
 	return (GF_BaseDecoder*)tmp;
 }
 
-#endif
+#endif //defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)
 
 
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)
 		GF_SCENE_DECODER_INTERFACE,
 #endif
 		0
@@ -812,7 +812,7 @@ GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)
 	case GF_SCENE_DECODER_INTERFACE:
 		return (GF_BaseInterface *)NewContextLoader();
 #endif
@@ -825,7 +825,7 @@ GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_SCENEGRAPH)
 	case GF_SCENE_DECODER_INTERFACE:
 		DeleteContextLoader((GF_BaseDecoder *)ifce);
 		break;

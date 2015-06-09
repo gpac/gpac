@@ -228,11 +228,16 @@ struct _scene
 	GF_List *keynavigators;
 #endif
 
+	Bool disable_hitcoord_notif;
+
 	u32 addon_position, addon_size_factor;
 
 	GF_List *declared_addons;
 	//set when content is replaced by an addon (DASH PVR mode)
 	Bool main_addon_selected;
+	u32 sys_clock_at_main_activation, obj_clock_at_main_activation;
+
+	Bool pause_at_first_frame;
 };
 
 GF_Scene *gf_scene_new(GF_Scene *parentScene);
@@ -282,7 +287,8 @@ void gf_scene_mpeg4_inline_restart(GF_Scene *scene);
 
 GF_Node *gf_scene_get_subscene_root(GF_Node *inline_node);
 
-void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on);
+void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time);
+void gf_scene_reset_addons(GF_Scene *scene);
 
 #ifndef GPAC_DISABLE_VRML
 
@@ -453,6 +459,11 @@ struct _tag_terminal
 	u32 bench_mode;
 
 	u32 prefered_audio_codec_oti;
+
+	u32 low_latency_buffer_max;
+
+	u32 nb_calls_in_event_proc;
+	u32 disconnect_request_status;
 };
 
 
@@ -766,8 +777,9 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *isma_cryp);
 void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size, u32 cts);
 /*returns true if this stream owns its clock, false if it simply refers to it*/
 Bool gf_es_owns_clock(GF_Channel *ch);
-void gf_es_reset_timing(GF_Channel *ch);
-/*reset all timestamps in CB*/
+/*reset all timestamps in decoder buffer to 0*/
+void gf_es_reset_timing(GF_Channel *ch, Bool reset_buffer);
+/*reset all timestamps in CB to 0*/
 void gf_cm_reset_timing(GF_CompositionMemory *cb);
 /*reset timing of all objects associated with this clock*/
 void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontinuity);
@@ -870,7 +882,7 @@ struct _generic_codec
 	u32 max_dec_time, max_iframes_time;
 	u32 first_frame_time, last_frame_time;
 	/*number of frames dropped at the presentation*/
-	u32 nb_droped;
+	u32 nb_dropped;
 	/*we detect if the same image is sent again and again to the decoder (using last_unit_signature)*/
 	u32 nb_repeted_frames;
 	/*min frame duration based on DTS diff*/
@@ -1144,6 +1156,12 @@ struct _mediaobj
 	Reset upon creation of the decoder.
 	*/
 	void *node_ptr;
+
+
+	/*currently valid properties of the object*/
+	u32 width, height, stride, pixel_ar, pixelformat;
+	Bool is_flipped;
+	u32 sample_rate, num_channels, bits_per_sample, channel_config;
 };
 
 GF_MediaObject *gf_mo_new();
@@ -1183,10 +1201,12 @@ void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_fact
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
 //returns media time in sec for the addon - timestamp_based is set to 1 if no timeline has been found (eg sync is based on direct timestamp comp)
-Double gf_scene_adjust_time_for_addon(GF_Scene *scene, Double clock_time, GF_AddonMedia *addon, u32 *timestamp_based);
-s64 gf_scene_adjust_timestamp_for_addon(GF_Scene *scene, u64 orig_ts, GF_AddonMedia *addon);
+Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u32 *timestamp_based);
+s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts);
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
-void gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
+/*check if the associated addon has to be restarted, based on the timestamp of the main media (used for scalable addons only). Returns 1 if the addon has been restarted*/
+Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
+
 
 //exported for gpac.js, resumes to main content
 void gf_scene_resume_live(GF_Scene *subscene);
@@ -1230,13 +1250,16 @@ struct _gf_addon_media
 	u32 addon_type;
 };
 
+void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons);
+
+
+
 GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable);
 
 
 Bool gf_codec_is_scene_or_image(GF_Codec *codec);
 
 void gf_scene_set_service_id(GF_Scene *scene, u32 service_id);
-void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons);
 
 #ifdef __cplusplus
 }

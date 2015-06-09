@@ -164,12 +164,15 @@ GF_EXPORT
 GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_offset)
 {
 	GF_Err e;
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) || !defined(GPAC_DISABLE_SVG)
 	GF_CommandField *inf;
+	GF_Node *node;
+#endif
+
+#ifndef GPAC_DISABLE_VRML
 	GF_FieldInfo field;
 	void *slot_ptr;
 	GF_Node *def;
-	GF_Node *node;
 #endif
 
 	if (!com || !graph) return GF_BAD_PARAM;

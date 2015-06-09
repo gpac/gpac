@@ -610,7 +610,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 				u32 len;
 				s16 wsChunk[5000], *sp;
 
-				/*spliting lines, duplicate node*/
+				/*splitting lines, duplicate node*/
 
 				n2 = gf_node_clone(priv->sg, txt_model, NULL, "", GF_TRUE);
 				if (tc->hlink && tc->hlink->URL) {

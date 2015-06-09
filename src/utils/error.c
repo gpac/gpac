@@ -614,8 +614,8 @@ const char *gpac_features()
 #ifdef GPAC_USE_TINYGL
 	                       "GPAC_USE_TINYGL "
 #endif
-#ifdef GPAC_USE_OGL_ES
-	                       "GPAC_USE_OGL_ES "
+#ifdef GPAC_USE_GLES1X
+	                       "GPAC_USE_GLES1X "
 #endif
 #if defined(_WIN32_WCE)
 #ifdef GPAC_USE_IGPP

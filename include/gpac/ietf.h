@@ -512,6 +512,9 @@ typedef struct tagRTP_HEADER {
 	u32 SSRC;
 	/*in our basic client, CSRC should always be NULL*/
 	u32 CSRC[16];
+
+	/*internal to out lib*/
+	u64 recomputed_ntp_ts;
 } GF_RTPHeader;
 
 
@@ -1092,7 +1095,7 @@ enum
 	You should ONLY modify the GF_SLHeader while packetizing, all the rest is private
 	to the tool.
 	Also note that AU start/end is automatically updated, therefore you should only
-	set CTS-DTS-OCR-sequenceNumber (which is automatically incremented when spliting a payload)
+	set CTS-DTS-OCR-sequenceNumber (which is automatically incremented when splitting a payload)
 	-padding-idle infos
 	SL flags are computed on the fly, but you may wish to modify them in case of
 	packet drop/... at the encoder side

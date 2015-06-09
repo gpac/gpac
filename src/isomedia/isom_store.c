@@ -221,12 +221,13 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 				last = ent->nextChunk ? ent->nextChunk : stco->nb_entries + 1;
 				for (k = ent->firstChunk; k < last; k++) {
 
-					if (stco->offsets[k-1] + offset > 0xFFFFFFFF) {
+					if (file->force_co64 || (stco->offsets[k-1] + offset > 0xFFFFFFFF)) {
 						//too bad, rewrite the table....
 						co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
 						if (!co64) return GF_OUT_OF_MEM;
 						co64->nb_entries = stco->nb_entries;
 						co64->offsets = (u64*)gf_malloc(co64->nb_entries * sizeof(u64));
+						memset(co64->offsets, 0, co64->nb_entries * sizeof(u64));
 						if (!co64) {
 							gf_isom_box_del((GF_Box *)co64);
 							return GF_OUT_OF_MEM;
@@ -787,9 +788,6 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 	//get the size and see if it has changed (eg, we moved to 64 bit offsets)
 	finalSize = GetMoovAndMetaSize(movie, writers);
 	if (firstSize != finalSize) {
-		//we need to remove our offsets
-		ResetWriters(writers);
-		//finalOffset = (finalSize > 0xFFFFFFFF ? finalSize + 8 : finalSize) + 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
 		finalOffset = finalSize + 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
 		//OK, now we're sure about the final size.
 		//we don't need to re-emulate, as the only thing that changed is the offset
@@ -1209,8 +1207,6 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	//get the size and see if it has changed (eg, we moved to 64 bit offsets)
 	finalSize = GetMoovAndMetaSize(movie, writers);
 	if (firstSize != finalSize) {
-		//we need to remove our offsets
-		ResetWriters(writers);
 		finalOffset = finalSize;
 		if (movie->mdat->dataSize) finalOffset += 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
 		//OK, now we're sure about the final size -> shift the offsets

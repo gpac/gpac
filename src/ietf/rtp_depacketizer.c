@@ -524,7 +524,7 @@ static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 			gf_bs_read_u16(bs);/*complete text sample size, ignored*/
 			txt_size = size - 10;
 
-			/*init - 3GPP/MPEG-4 spliting is IMHO stupid:
+			/*init - 3GPP/MPEG-4 splitting is IMHO stupid:
 				- nb frag & cur frags are not needed: rtp reordering insures packet are in order, and
 			!!!we assume fragments are sent in order!!!
 				- any other TTU suffices to indicate end of text string (modifiers or != RTP TS)
@@ -1727,6 +1727,7 @@ GF_EXPORT
 void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
 	assert(rtp && rtp->depacketize);
+	rtp->sl_hdr.sender_ntp = hdr->recomputed_ntp_ts;
 	rtp->depacketize(rtp, hdr, payload, size);
 }
 

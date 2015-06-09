@@ -30,7 +30,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
-#ifndef GPAC_DISABLE_VRML
+#ifndef GPAC_DISABLE_VVG
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
 
@@ -556,4 +556,4 @@ GF_Err swf_svg_write_text_header(void *user, const char *data, u32 length, Bool 
 }
 #endif /*GPAC_DISABLE_SWF_IMPORT*/
 
-#endif /*GPAC_DISABLE_VRML*/
+#endif /*GPAC_DISABLE_SVG*/

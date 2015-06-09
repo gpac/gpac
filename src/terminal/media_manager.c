@@ -432,7 +432,7 @@ u32 RunSingleDec(void *ptr)
 	return 0;
 }
 
-/*NOTE: when starting/stoping a decoder we only lock the decoder mutex, NOT the media manager. This
+/*NOTE: when starting/stopping a decoder we only lock the decoder mutex, NOT the media manager. This
 avoids deadlocking in case a system codec waits for the scene graph and the compositor requests
 a stop/start on a media*/
 void gf_term_start_codec(GF_Codec *codec, Bool is_resume)
@@ -519,8 +519,8 @@ void gf_term_stop_codec(GF_Codec *codec, Bool is_pause)
 	if (codec->type==GF_STREAM_AUDIO) {
 		gf_codec_set_status(codec, GF_ESM_CODEC_STOP);
 	}
-	//if video is in a dynamic scene, reset the CB if stop. Otherwise (bifs,svg) we may want to keep the last decoded image
-	else if ((codec->Status!=GF_ESM_CODEC_PAUSE) && codec->odm && codec->odm->parentscene && codec->odm->parentscene->is_dynamic_scene && codec->CB && (codec->CB->Capacity>1)) {
+	//if video is in a dynamic scene, reset the CB if user stop (eg codec was not in EOS). Otherwise (bifs,svg) we may want to keep the last decoded image
+	else if ((codec->Status<GF_ESM_CODEC_EOS) && codec->odm && codec->odm->parentscene && codec->odm->parentscene->is_dynamic_scene && codec->CB && (codec->CB->Capacity>1)) {
 		gf_codec_set_status(codec, GF_ESM_CODEC_STOP);
 	}
 	/*otherwise set status directly and don't touch CB state*/

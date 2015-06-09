@@ -86,6 +86,12 @@ void gf_odm_del(GF_ObjectManager *odm)
 		odm->addon->root_od = NULL;
 		odm->addon->started = 0;
 	}
+	if (odm->upper_layer_odm) {
+		odm->upper_layer_odm->lower_layer_odm = NULL;
+	}
+	if (odm->lower_layer_odm) {
+		odm->lower_layer_odm->upper_layer_odm = NULL;
+	}
 	/*make sure we are not in the media queue*/
 	gf_term_lock_media_queue(odm->term, GF_TRUE);
 	gf_list_del_item(odm->term->media_queue, odm);
@@ -1605,13 +1611,21 @@ void gf_odm_play(GF_ObjectManager *odm)
 			com.play.initial_broadcast_play = 0;
 			//addon timing is resolved against timestamps, not media time
 			if (start_range_is_clock) {
-				ck_time = gf_clock_time(ch->clock);
-				ck_time /= 1000;
+				if (!gf_clock_is_started(ch->clock)) {
+					ck_time = (Double) odm->parentscene->root_od->addon->media_pts;
+					ck_time /= 90000;
+				} else {
+					ck_time = gf_clock_time(ch->clock);
+					ck_time /= 1000;
+				}
 			}
-			ck_time = gf_scene_adjust_time_for_addon(odm->parentscene, ck_time, odm->parentscene->root_od->addon, &com.play.timestamp_based);
+			ck_time = gf_scene_adjust_time_for_addon(odm->parentscene->root_od->addon, ck_time, &com.play.timestamp_based);
 			//we are having a play request for an addon without the main content being active - we no longer have timestamp info from the main content
 			if (!ch->clock->clock_init && com.play.timestamp_based)
 				com.play.timestamp_based = 2;
+
+			if (ck_time<0) 
+				ck_time=0;
 
 			if (odm->scalable_addon) {
 				//this is a scalable extension to an object in the parent scene
@@ -1636,12 +1650,15 @@ void gf_odm_play(GF_ObjectManager *odm)
 		com.play.speed = ch->clock->speed;
 
 #ifndef GPAC_DISABLE_VRML
-		/*if object shares parent scene clock, do not use media control*/
-		//ctrl = parent_ck ? NULL : gf_odm_get_mediacontrol(odm);
 		ctrl = parent_ck ? parent_ck->mc : gf_odm_get_mediacontrol(odm);
 		/*override range and speed with MC*/
 		if (ctrl) {
-			MC_GetRange(ctrl, &com.play.start_range, &com.play.end_range);
+			//this is fake timeshift, eg we are playing a VoD as a timeshift service: stop and start times have already been adjusted
+			if (ctrl->control->mediaStopTime<0 && !odm->timeshift_depth) {
+			} else {
+				MC_GetRange(ctrl, &com.play.start_range, &com.play.end_range);
+			}
+
 			com.play.speed = FIX2FLT(ctrl->control->mediaSpeed);
 			/*if the channel doesn't control the clock, jump to current time in the controled range, not just the beginning*/
 			if ((ch->esd->ESID!=ch->clock->clockID) && (ck_time>com.play.start_range) && (com.play.end_range>com.play.start_range) && (ck_time<com.play.end_range)) {
@@ -1740,8 +1757,12 @@ void gf_odm_play(GF_ObjectManager *odm)
 		media_control_paused = 1;
 	}
 
-	if (media_control_paused)
+	if (odm->parentscene && odm->parentscene->pause_at_first_frame)
+		media_control_paused = GF_TRUE;
+
+	if (media_control_paused) {
 		gf_odm_pause(odm);
+	}
 }
 
 Bool gf_odm_owns_clock(GF_ObjectManager *odm, GF_Clock *ck)
@@ -1773,8 +1794,8 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 #endif
 
 	GF_NetworkCommand com;
-
-	if (!odm->state) return;
+	//root ODs of dynamic scene may not have seen play/pause request 
+	if (!odm->state && !odm->scalable_addon && (!odm->subscene || !odm->subscene->is_dynamic_scene) ) return;
 
 #if 0
 	/*Handle broadcast environment, do not stop the object if no time control and instruction

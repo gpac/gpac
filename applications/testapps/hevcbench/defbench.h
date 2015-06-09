@@ -47,7 +47,7 @@ extern proc_ ## funname funname;	\
 
 #if defined GPAC_USE_TINYGL
 //no extensions with TinyGL
-#elif defined (GPAC_USE_OGL_ES)
+#elif defined (GPAC_USE_GLES1X)
 //no extensions with OpenGL ES
 #elif defined(WIN32) || defined (GPAC_CONFIG_WIN32)
 #define LOAD_GL_FUNCS

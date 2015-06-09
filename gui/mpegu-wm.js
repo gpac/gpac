@@ -41,8 +41,8 @@ function initialize() {
 
     gpac.caption = 'MPEG-U @ Osmo4';
 
-    display_width = parseInt( gpac.getOption('Widgets', 'LastWMWidth') );
-    display_height = parseInt( gpac.getOption('Widgets', 'LastWMHeight') );
+    display_width = parseInt(gpac.get_option('Widgets', 'LastWMWidth'));
+    display_height = parseInt(gpac.get_option('Widgets', 'LastWMHeight'));
     
     if (display_width && display_height) {
      gpac.set_size(display_width, display_height);
@@ -633,7 +633,7 @@ function display_widget_info(wid)
   info.children[i++] = text_label('Widget was pushed from device IP '+wid.originating_device_ip, 'BEGIN' );
  }
  info.children[i++] = text_label('Section name in GPAC config file: '+wid.section, 'BEGIN' );
- info.children[i++] = text_label('UA Locale: ' + gpac.getOption('Systems', 'LanguageName') + ' ('+ gpac.getOption('Systems', 'Language2CC')+ ')', 'BEGIN' );
+ info.children[i++] = text_label('UA Locale: ' + gpac.get_option('Systems', 'LanguageName') + ' (' + gpac.get_option('Systems', 'Language2CC') + ')', 'BEGIN');
  info.children[i++] = text_label('widget src: ' + wid.url , 'BEGIN');
  info.children[i++] = text_label('config src: ' + wid.manifest , 'BEGIN');
  info.children[i++] = text_label('content src : '+wid.localizedSrc, 'BEGIN' );
@@ -663,7 +663,7 @@ function display_widget_info(wid)
  i=3;
  for (j=0; j<pref.length; j++) {
   var val = pref[j].value;
-  if (val=='') val = gpac.getOption(wid.section, pref[j].name);
+  if (val == '') val = gpac.get_option(wid.section, pref[j].name);
   info.children[i++] = text_label('Preference #'+(j+1)+' name=\''+pref[j].name+'\' value=\''+val+'\' readOnly=\''+pref[j].readonly +'\'', 'BEGIN');
  }
 
@@ -922,8 +922,8 @@ function widget_screen_layout(dir)
 function layout() {
   var i, list, start_x;
 
-  gpac.setOption('Widgets', 'LastWMWidth', ''+display_width);
-  gpac.setOption('Widgets', 'LastWMHeight', ''+display_height);
+  gpac.set_option('Widgets', 'LastWMWidth', '' + display_width);
+  gpac.set_option('Widgets', 'LastWMHeight', '' + display_height);
 
 
   if (WidgetManager.num_widgets) {

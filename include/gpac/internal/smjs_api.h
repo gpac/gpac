@@ -63,8 +63,16 @@
 # endif
 #endif
 
+/*OSX config*/
+#if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
+# define MOZILLA_1_8_BRANCH
+# ifndef XP_UNIX
+#  define XP_UNIX
+# endif
+#endif
 
-/*other platforms should be setup through configure*/
+
+/*other platforms should be setup through ./configure and have appropriated defines in config.h*/
 
 #if defined(DEBUG) && defined(GPAC_CONFIG_DARWIN)
 #undef DEBUG
