@@ -1260,8 +1260,9 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 exit:
 	gf_free(samp_text);
 	gf_xml_dom_del(parser_working_copy);
-	if (!gf_isom_get_sample_count(import->dest, track))
-		e = GF_BAD_PARAM;
+	if (!gf_isom_get_sample_count(import->dest, track)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[EBU-TTD] No sample imported. Might be an error. Check your content.\n"));
+	}
 	return e;
 }
 
@@ -1294,7 +1295,7 @@ static GF_Err gf_text_import_ttml(GF_MediaImporter *import)
 		if (e == GF_OK) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Note: TTML import - EBU-TTD detected\n"));
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("Unsupported TTML file - only EBU-TTD is supported (root shall be \"tt\", got %s)\n", root->name));
+			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("Unsupported TTML file - only EBU-TTD is supported (root shall be \"tt\", got \"%s\")\n", root->name));
 			GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("Importing as generic TTML\n"));
 			e = GF_OK;
 		}
