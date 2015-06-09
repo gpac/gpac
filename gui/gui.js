@@ -73,9 +73,9 @@ function extension_option_setter(_ext) {
         return function (key_name, value) {
         }
     } else {
-        var ext_section = 'GUI.' + _ext.config_id;
         return function (key_name, value) {
-            gpac.set_option(ext_section, key_name, value);
+            this.__gpac_storage.set_option('Config', key_name, value);
+            this.__gpac_storage.save();
         }
     }
 }
@@ -85,16 +85,25 @@ function extension_option_getter(_ext) {
         return function (key_name, default_val) {
         }
     } else {
-        var ext_section = 'GUI.' + _ext.config_id;
         return function (key_name, default_val) {
-            var value = gpac.get_option(ext_section, key_name);
+			if (key_name=='path') return _ext.path;
+            var value = this.__gpac_storage.get_option('Config', key_name);
             if (value == null) {
-                gpac.set_option(ext_section, key_name, default_val);
+                this.set_option(key_name, default_val);
                 value = default_val;
             }
             return value;
         }
     }
+}
+
+function setup_extension_storage(extension) {
+    var storage_name = 'config:' + extension.ext_description.path + '' + extension.ext_description.name;
+
+    extension.extension_obj.__gpac_storage = gpac.new_storage(storage_name);
+
+    extension.extension_obj.get_option = extension_option_getter(extension.ext_description);
+    extension.extension_obj.set_option = extension_option_setter(extension.ext_description);
 }
 
 //Initialize our GUI
@@ -106,8 +115,8 @@ function initialize() {
 
     min_width = 160;
     min_height = 80;
-    gw_display_width = parseInt(gpac.getOption('General', 'LastWidth'));
-    gw_display_height = parseInt(gpac.getOption('General', 'LastHeight'));
+    gw_display_width = parseInt(gpac.get_option('General', 'LastWidth'));
+    gw_display_height = parseInt(gpac.get_option('General', 'LastHeight'));
     if (!gpac.fullscreen && (!gw_display_width || !gw_display_height)) {
         gw_display_width = 320;
         gw_display_height = 240;
@@ -192,21 +201,19 @@ function initialize() {
       }
       extension.icon.on_click = function () {
           if (!this.extension_obj) {
-              for (var i=0; i<this.ext_description.execjs.length; i++) {
-                gwlog(l_deb, 'Loading UI extension ' + this.ext_description.name + ' - Executing JS ' + this.ext_description.path + this.ext_description.execjs[i]);
-                if (!i) {
-                    this.extension_obj = Browser.loadScript(this.ext_description.path + this.ext_description.execjs[i]);
-                    this.compatible = (this.extension_obj != null) ? true : false;
-                    if (!this.compatible) break;
-                } else {
-                    Browser.loadScript(this.ext_description.path + this.ext_description.execjs[i]);
-                }
+              for (var i = 0; i < this.ext_description.execjs.length; i++) {
+                  gwlog(l_deb, 'Loading UI extension ' + this.ext_description.name + ' - Executing JS ' + this.ext_description.path + this.ext_description.execjs[i]);
+                  if (!i) {
+                      this.extension_obj = Browser.loadScript(this.ext_description.path + this.ext_description.execjs[i]);
+                      this.compatible = (this.extension_obj != null) ? true : false;
+                      if (!this.compatible) break;
+
+                      setup_extension_storage(this);
+                  } else {
+                      Browser.loadScript(this.ext_description.path + this.ext_description.execjs[i]);
+                  }
               }
 
-              if (this.compatible) {
-                    this.extension_obj.get_option = extension_option_getter(this.ext_description);
-                    this.extension_obj.set_option = extension_option_setter(this.ext_description);
-              }
           }
           if (!this.compatible) {
               var w = gw_new_message(null, 'Error', 'Extension ' + this.ext_description.name + ' is not compatible');
@@ -258,8 +265,8 @@ function on_resize(evt) {
     gw_display_width = evt.width;
     gw_display_height = evt.height;
     if (!gpac.fullscreen) {
-        gpac.setOption('General', 'LastWidth', '' + gw_display_width);
-        gpac.setOption('General', 'LastHeight', '' + gw_display_height);
+        gpac.set_option('General', 'LastWidth', '' + gw_display_width);
+        gpac.set_option('General', 'LastHeight', '' + gw_display_height);
     }
 /*
     var v = 12;

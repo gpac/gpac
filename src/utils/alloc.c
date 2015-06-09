@@ -145,27 +145,28 @@ This is only needed when building libgpac and modules when libgpac is not instal
 /*GPAC memory tracking*/
 #ifndef GPAC_MEMORY_TRACKING
 
-CDECL
+#include <gpac/setup.h>
+GF_EXPORT 
 void *gf_malloc(size_t size)
 {
 	return MALLOC(size);
 }
-CDECL
+GF_EXPORT
 void *gf_calloc(size_t num, size_t size_of)
 {
 	return CALLOC(num, size_of);
 }
-CDECL
+GF_EXPORT
 void *gf_realloc(void *ptr, size_t size)
 {
 	return REALLOC(ptr, size);
 }
-CDECL
+GF_EXPORT
 void gf_free(void *ptr)
 {
 	FREE(ptr);
 }
-CDECL
+GF_EXPORT
 char *gf_strdup(const char *str)
 {
 	STRDUP(str);

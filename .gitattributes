@@ -8,6 +8,7 @@ Makefile text
 
 #unix
 *.sh text eol=lf
+configure text eol=lf
 
 #windows
 *.bat text eol=crlf

@@ -1033,11 +1033,13 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 			/*set TTL*/
 			ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, (char *) &TTL, sizeof(TTL));
 			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
-			/*Disable loopback*/
+			/*enable loopback*/
 			flag = 1;
 			ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
-			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
-
+            if (ret == SOCKET_ERROR) {
+                GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Cannot disale multicast loop: error %d\n", LASTSOCKERROR));
+            }
+            
 			ret = setsockopt(sock->socket, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, (char *) &M_reqV6, sizeof(M_reqV6));
 			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 		}
@@ -1058,13 +1060,14 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 	optval = 1;
 	setsockopt(sock->socket, SOL_SOCKET, SO_REUSEPORT, SSO_CAST &optval, sizeof(optval));
 #endif
-
+    
 	if (local_interface_ip) local_add_id = inet_addr(local_interface_ip);
 	else local_add_id = htonl(INADDR_ANY);
-
-	if (!NoBind) {
+    
+    if (!NoBind) {
 		struct sockaddr_in local_address;
-
+		
+		memset(&local_address, 0, sizeof(struct sockaddr_in ));
 		local_address.sin_family = AF_INET;
 		local_address.sin_addr.s_addr = (u32) local_add_id;
 		local_address.sin_port = htons( MultiPortNumber);
@@ -1079,7 +1082,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 		}
 		/*setup local interface*/
 		if (local_interface_ip) {
-			ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_IF, (char *) &local_add_id, sizeof(local_add_id));
+            ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_IF, (char *) &local_add_id, sizeof(local_add_id));
 			if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 		}
 	}
@@ -1087,19 +1090,24 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 	/*now join the multicast*/
 	M_req.imr_multiaddr.s_addr = inet_addr(multi_IPAdd);
 	M_req.imr_interface.s_addr = (u32) local_add_id;
-
+    
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
 	if (ret == SOCKET_ERROR) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] cannot join multicast: error %d\n", LASTSOCKERROR));
 		return GF_IP_CONNECTION_FAILURE;
 	}
 	/*set the Time To Live*/
-	ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&TTL, sizeof(TTL));
-	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
-	/*Disable loopback*/
+    if (TTL) {
+        ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&TTL, sizeof(TTL));
+        if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+    }
+    
+	/*enable loopback*/
 	flag = 1;
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
-//	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+    if (ret == SOCKET_ERROR) {
+        GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Socket] Cannot disale multicast loop: error %d\n", LASTSOCKERROR));
+    }
 
 #ifdef GPAC_HAS_IPV6
 	((struct sockaddr_in *) &sock->dest_addr)->sin_family = AF_INET;
@@ -1175,19 +1183,25 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 
 	if (res == SOCKET_ERROR) {
 		res = LASTSOCKERROR;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - socket error %d\n",  res));
 		switch (res) {
 		case EAGAIN:
 			return GF_IP_SOCK_WOULD_BLOCK;
 #ifndef __SYMBIAN32__
 		case EMSGSIZE:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - socket error %d\n",  res));
 			return GF_OUT_OF_MEM;
 		case ENOTCONN:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - not connected\n"));
+			return GF_IP_CONNECTION_CLOSED;
 		case ECONNRESET:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - connection reset\n"));
+			return GF_IP_CONNECTION_CLOSED;
 		case ECONNABORTED:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - connection aborted\n"));
 			return GF_IP_CONNECTION_CLOSED;
 #endif
 		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - socket error %d\n",  res));
 			return GF_IP_NETWORK_FAILURE;
 		}
 	}
@@ -1549,5 +1563,30 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 Seco
 	return GF_OK;
 }
 
+GF_EXPORT
+u32 gf_htonl(u32 val)
+{
+	return htonl(val);
+}
+
+
+GF_EXPORT
+u32 gf_ntohl(u32 val)
+{
+	return htonl(val);
+}
+
+GF_EXPORT
+u16 gf_htons(u16 val)
+{
+	return htons(val);
+}
+
+
+GF_EXPORT
+u16 gf_tohs(u16 val)
+{
+	return htons(val);
+}
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/

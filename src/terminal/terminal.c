@@ -78,8 +78,11 @@ void gf_term_message_ex(GF_Terminal *term, const char *service, const char *mess
 	evt.message.error = error;
 
 	if (no_filtering) {
-		if (term->user->EventProc)
+		if (term->user->EventProc) {
+			term->nb_calls_in_event_proc++;
 			term->user->EventProc(term->user->opaque, &evt);
+			term->nb_calls_in_event_proc--;
+		}
 	} else {
 		gf_term_send_event(term, &evt);
 	}
@@ -350,6 +353,14 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 	}
 	term->frame_duration = atoi(sOpt);
 
+	sOpt = gf_cfg_get_key(term->user->config, "Network", "LowLatencyBufferMax");
+	if (!sOpt) {
+		sOpt = "500";
+		gf_cfg_set_key(term->user->config, "Network", "LowLatencyBufferMax", sOpt);
+	}
+	term->low_latency_buffer_max = atoi(sOpt);
+	
+
 	if (!(term->user->init_flags & GF_TERM_NO_DECODER_THREAD) ) {
 		prio = GF_THREAD_PRIORITY_NORMAL;
 		sOpt = gf_cfg_get_key(term->user->config, "Systems", "Priority");
@@ -462,6 +473,9 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	if (term->play_state == PlayState) return;
 	term->play_state = PlayState;
 
+	if (term->root_scene->pause_at_first_frame && (PlayState == GF_STATE_PLAYING))
+		term->root_scene->pause_at_first_frame = GF_FALSE;
+
 	if (!pause_clocks) return;
 
 	if (PlayState != GF_STATE_PLAYING) {
@@ -509,8 +523,10 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 
 	odm->media_start_time = startTime;
 	/*render first visual frame and pause*/
-	if (pause_at_first_frame)
+	if (pause_at_first_frame) {
 		gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
+		scene->pause_at_first_frame = GF_TRUE;
+	}
 
 	if (!strnicmp(URL, "views://", 8)) {
 		odm->OD = (GF_ObjectDescriptor *)gf_odf_desc_new(GF_ODF_OD_TAG);
@@ -855,6 +871,7 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 			j=0;
 			while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
 				ck->init_time += ms_diff;
+				ck->media_time_at_init += ms_diff;
 			}
 		}
 		term->compositor->step_mode = 1;
@@ -890,6 +907,14 @@ void gf_term_disconnect(GF_Terminal *term)
 {
 	Bool handle_services;
 	if (!term->root_scene) return;
+
+	if (term->nb_calls_in_event_proc) {
+		if (!term->disconnect_request_status)
+			term->disconnect_request_status = 1;
+	
+		return;
+	}
+
 	/*resume*/
 	if (term->play_state != GF_STATE_PLAYING) gf_term_set_play_state(term, GF_STATE_PLAYING, 1, 1);
 
@@ -1084,6 +1109,15 @@ typedef struct
 void gf_term_handle_services(GF_Terminal *term)
 {
 	GF_ClientService *ns;
+
+
+	if (term->disconnect_request_status == 1) {
+		term->disconnect_request_status = 2;
+		term->thread_id_handling_services = gf_th_id();
+		gf_term_disconnect(term);
+		return;
+	}
+
 
 	/*we could run into a deadlock if some thread has requested opening of a URL. If we cannot
 	grab the media queue now, we'll do our management at the next cycle*/
@@ -2002,7 +2036,7 @@ GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only)
 GF_EXPORT
 Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed, Bool forward_only)
 {
-	if (!term) return 0;
+	if (!term) return GF_FALSE;
 
 	if (term->event_filters) {
 		GF_TermEventFilter *ef;
@@ -2014,16 +2048,21 @@ Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed, Bool
 		while ((ef=gf_list_enum(term->event_filters, &i))) {
 			if (ef->on_event(ef->udta, evt, consumed)) {
 				term->in_event_filter --;
-				return 1;
+				return GF_TRUE;
 			}
 		}
 		term->in_event_filter --;
 	}
 
-	if (!forward_only && !consumed && term->user->EventProc)
-		return term->user->EventProc(term->user->opaque, evt);
+	if (!forward_only && !consumed && term->user->EventProc) {
+		Bool res;
+		term->nb_calls_in_event_proc++;
+		res = term->user->EventProc(term->user->opaque, evt);
+		term->nb_calls_in_event_proc--;
+		return res;
+	}
 
-	return 0;
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -2418,6 +2457,13 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 			odm->net_service->ifce->ServiceCommand(odm->net_service->ifce, &net_cmd);
 		if (odm->subscene)
 			gf_scene_switch_quality(odm->subscene, up);
+
+		if (odm->scalable_addon) {
+			if (up) 
+				gf_odm_start(odm, 0);
+			else
+				gf_odm_stop(odm, GF_FALSE);
+		} 
 	}
 }
 

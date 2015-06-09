@@ -1,3 +1,5 @@
+
+
 /*
  *			GPAC - Multimedia Framework C SDK
  *
@@ -109,8 +111,6 @@ void mediacontrol_restart(GF_ObjectManager *odm)
 }
 
 
-#ifndef GPAC_DISABLE_VRML
-
 Bool MC_URLChanged(MFURL *old_url, MFURL *new_url)
 {
 	u32 i;
@@ -157,8 +157,10 @@ void mediacontrol_resume(GF_ObjectManager *odm, Bool resume_to_live)
 		if (!odm->subscene && !gf_odm_shares_clock(ctrl_od, ck))
 			continue;
 
-		if (resume_to_live && ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
-			gf_scene_select_main_addon(in_scene, ctrl_od, GF_FALSE);
+		if (ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
+			gf_clock_resume(ck);
+			if (resume_to_live)
+				gf_scene_select_main_addon(in_scene, ctrl_od, GF_FALSE, 0);
 		}
 
 		if (ctrl_od->subscene) {
@@ -182,7 +184,10 @@ void mediacontrol_pause(GF_ObjectManager *odm)
 
 	/*otherwise locate all objects sharing the clock*/
 	ck = gf_odm_get_media_clock(odm);
-	if (!ck) return;
+	if (!ck) {
+		odm->flags |= GF_ODM_PAUSE_QUEUED;
+		return;
+	}
 
 	in_scene = odm->parentscene;
 	if (odm->subscene) {
@@ -199,7 +204,8 @@ void mediacontrol_pause(GF_ObjectManager *odm)
 			continue;
 
 		if (ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
-			gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE);
+			gf_clock_pause(ck);
+			gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE, gf_clock_time(ck) );
 		}
 
 		if (ctrl_od->subscene) {
@@ -240,7 +246,7 @@ void mediacontrol_set_speed(GF_ObjectManager *odm, Fixed speed)
 				i=0;
 				while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(in_scene->resources, &i))) {
 					if (ctrl_od->addon && (ctrl_od->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
-						gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE);
+						gf_scene_select_main_addon(in_scene, ctrl_od, GF_TRUE, gf_clock_time(ck) );
 						break;
 					}
 				}
@@ -263,6 +269,8 @@ void mediacontrol_set_speed(GF_ObjectManager *odm, Fixed speed)
 		}
 	}
 }
+
+#ifndef GPAC_DISABLE_VRML
 
 void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range)
 {

@@ -112,6 +112,28 @@ GF_Err gf_mkdir(char* DirPathName)
 	return GF_OK;
 }
 
+
+GF_EXPORT
+Bool gf_dir_exists(char* DirPathName)
+{
+#if defined (_WIN32_WCE)
+	TCHAR swzName[MAX_PATH];
+	BOOL res;
+	DWORD att;
+	CE_CharToWide(DirPathName, swzName);
+	att = GetFileAttributes(swzName);
+	return (att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY)) ? GF_TRUE : GF_FALSE;
+#elif defined (WIN32)
+	DWORD att = GetFileAttributes(DirPathName);
+	return (att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY)) ? GF_TRUE : GF_FALSE;
+#else
+	DIR* dir = opendir(DirPathName);
+	if (!dir) return GF_FALSE;
+	closedir(dir);
+	return GF_TRUE;
+#endif
+	return GF_FALSE;
+}
 static Bool delete_dir(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
 {
 	Bool directory_clean_mode = *(Bool*)cbck;
@@ -153,6 +175,7 @@ GF_Err gf_delete_file(const char *fileName)
 #endif
 }
 
+#ifndef WIN32
 /**
  * Remove existing single-quote from a single-quoted string.
  * The caller is responsible for deallocating the returns string with gf_free()
@@ -172,6 +195,7 @@ static char* gf_sanetize_single_quoted_string(const char *src) {
     out[j++] = 0;
     return out;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_move_file(const char *fileName, const char *newFileName)
@@ -256,16 +280,19 @@ FILE *gf_temp_file_new()
 	if (GetTempFileName(pPath, TEXT("git"), 0, pTemp))
 		res = _wfopen(pTemp, TEXT("w+b"));
 #elif defined(WIN32)
-	char tmp[MAX_PATH], t_file[100];
+	char tmp[MAX_PATH];
 	res = tmpfile();
 	if (!res) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Win32] system failure for tmpfile(): 0x%08x\n", GetLastError()));
 
 		/*tmpfile() may fail under vista ...*/
 		if (GetEnvironmentVariable("TEMP",tmp,MAX_PATH)) {
-			sprintf(t_file, "\\gpac_%08x.tmp", (u32) tmp);
-			strcat(tmp, t_file);
-			res = gf_fopen(tmp, "w+b");
+			char tmp2[MAX_PATH], *t_file;
+			gf_rand_init(GF_FALSE);
+			sprintf(tmp2, "gpac_%08x_", gf_rand());
+			t_file = tempnam(tmp, tmp2);
+			res = gf_fopen(t_file, "w+b");
+			free(t_file);
 		}
 	}
 #else
@@ -614,7 +641,7 @@ s32 gf_fclose(FILE *file)
 	return fclose(file);
 }
 
-#if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! defined(_GNU_SOURCE)
+#if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! defined(_GNU_SOURCE) && !defined(WIN32)
 #define HAVE_STRERROR_R 1
 #endif
 

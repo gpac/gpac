@@ -43,7 +43,7 @@ void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state)
 	tr_state->ctx->aspect.fill_texture = &cache->txh;
 
 
-#ifndef GPAC_DISABLE_3D
+#if !defined( GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_VRML)
 	if (tr_state->traversing_mode == TRAVERSE_DRAW_3D) {
 		if (!cache->drawable->mesh) {
 			cache->drawable->mesh = new_mesh();
@@ -55,7 +55,7 @@ void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state)
 	}
 #endif
 
-	if (! tr_state->visual->DrawBitmap(tr_state->visual, tr_state, tr_state->ctx, NULL)) {
+	if (! tr_state->visual->DrawBitmap(tr_state->visual, tr_state, tr_state->ctx)) {
 		visual_2d_texture_path(tr_state->visual, cache->drawable->path, tr_state->ctx, tr_state);
 	}
 	tr_state->ctx->aspect.fill_texture = old_txh;

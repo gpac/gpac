@@ -32,89 +32,27 @@
 /*this file defines all common macros for libgpac compilation
   except for symbian32 which uses .mmp directives ... */
 
+/*Configuration for visual studio, 32/64 bits */
+#if defined(WIN32) && !defined(_WIN32_WCE) 
 
-/*visual studio and xcode*/
-#if defined(WIN32) || defined(_WIN32_WCE) || defined(GPAC_CONFIG_DARWIN) || defined(GPAC_CONFIG_ANDROID)
-
-/*enables GPAC memory tracking in debug mode only*/
-#if defined(DEBUG) || defined(_DEBUG)
-#define GPAC_MEMORY_TRACKING
-#endif
-
-/*SSL enabled*/
-#if defined(WIN32)
 #define GPAC_HAS_SSL
-#endif
 
-/*spidermonkey enabled*/
 #define GPAC_HAS_SPIDERMONKEY
-#if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
-#define MOZILLA_1_8_BRANCH
-#ifndef XP_UNIX
-#define XP_UNIX
-#endif
-#endif
-
-/*libjpeg enabled*/
 #define GPAC_HAS_JPEG
-/*pnj enabled*/
 #define GPAC_HAS_PNG
 
-/*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
+/*always enable memory tracking on windows*/
+//#define GPAC_MEMORY_TRACKING
 
+/*Win32 IPv6 is evaluated at compile time, !! do not uncomment !!*/
+//#define GPAC_HAS_IPV6
 
-//iOS compilation
-#if defined(GPAC_CONFIG_DARWIN) && defined(GPAC_IPHONE)
-
-#define GPAC_USE_OGL_ES
-//#define GPAC_FIXED_POINT
 #define GPAC_HAS_GLU
 
-/*lazy definition of extra libs for iOS*/
-#define GPAC_HAS_FAAD
-#define GPAC_HAS_MAD
-#define GPAC_HAS_FFMPEG
-#define GPAC_HAS_SDL
-#define GPAC_HAS_FREETYPE
-
-#ifndef XP_UNIX
-#define XP_UNIX
-#endif
-
-#endif //end iOS flags
 
 
-//OSX compilation
-#if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
-
-#define GPAC_HAS_IPV6
-#define GPAC_HAS_SSL
-
-#ifdef __LP64__
-#define GPAC_64_BITS
-#endif
-
-#endif  //end OSX flags
-
-
-//Android test compilation without any extra lib
-#if defined(GPAC_CONFIG_ANDROID)
-#define GPAC_ANDROID
-
-#define GPAC_HAS_IPV6
-#define GPAC_USE_OGL_ES
-//#define GPAC_FIXED_POINT
-
-#undef GPAC_HAS_SPIDERMONKEY
-#undef GPAC_HAS_PNG
-#undef GPAC_HAS_JPEG
-
-#endif  //end OSX flags
-
-
-
-//WinCE flags
-#if defined(_WIN32_WCE)
+/*Configuration for WindowsCE 32 bits */
+#elif defined(_WIN32_WCE) 
 
 #ifndef GPAC_FIXED_POINT
 #define GPAC_FIXED_POINT
@@ -129,31 +67,90 @@
 #error "Only one of GPAC_USE_IGPP and GPAC_USE_IGPP_HP can be defined"
 #endif
 
-#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
-#define GPAC_USE_OGL_ES
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
+#define GPAC_USE_GLES1X
 #endif
 
-#endif //WinCE flags
+
+#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_JPEG
+#define GPAC_HAS_PNG
+
+/*comment this line if you don't have a GLU32 version for Windows Mobile*/
+//#define GPAC_HAS_GLU
 
 
+/*Configuration for Android */
+#elif defined(GPAC_CONFIG_ANDROID) 
 
-#endif /*defined(WIN32) || defined(_WIN32_WCE) || defined(GPAC_CONFIG_DARWIN)*/
+#ifndef GPAC_ANDROID
+#define GPAC_ANDROID
+#endif
+
+#define GPAC_HAS_IPV6
+#define GPAC_USE_GLES1X
+/*don't use fixed-point version on Android, not needed*/
+//#define GPAC_FIXED_POINT
+
+#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_JPEG
+#define GPAC_HAS_PNG
+
+/*Configuration for XCode OSX (not iOS) */
+#elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
+
+#define GPAC_HAS_IPV6
+#define GPAC_HAS_SSL
+
+//64-bits OSX
+#ifdef __LP64__
+#define GPAC_64_BITS
+#endif
+
+#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_JPEG
+#define GPAC_HAS_PNG
+
+/*Configuration for XCode iOS*/
+#elif defined(GPAC_CONFIG_DARWIN) && defined(GPAC_IPHONE)
+
+//64-bits iOS
+#ifdef __LP64__
+#define GPAC_64_BITS
+#endif
+
+#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_JPEG
+#define GPAC_HAS_PNG
+
+#define GPAC_USE_GLES1X
+/*don't use fixed-point version on iOS, not needed*/
+//#define GPAC_FIXED_POINT
+#define GPAC_HAS_GLU
+
+/*extra libs supported on iOS*/
+#define GPAC_HAS_FAAD
+#define GPAC_HAS_MAD
+#define GPAC_HAS_FFMPEG
+#define GPAC_HAS_SDL
+#define GPAC_HAS_FREETYPE
 
 
-#if defined(__SYMBIAN32__)
+/*Configuration for Symbian*/
+#elif defined(__SYMBIAN32__)
 
 #ifndef GPAC_FIXED_POINT
 #define GPAC_FIXED_POINT
 #endif
 
+#define GPAC_HAS_SPIDERMONKEY
+#define GPAC_HAS_JPEG
+#define GPAC_HAS_PNG
+
+#else
+#error "Unknown target platform used with static configuration file"
 #endif
 
-#if defined(_WIN32_WCE)
-/*comment this line if you don't have a GLU32 version for Windows Mobile*/
-//#define GPAC_HAS_GLU
-#elif defined(WIN32)
-#define GPAC_HAS_GLU
-#endif
 
 /*disables player */
 //#define GPAC_DISABLE_PLAYER
@@ -281,6 +278,7 @@
 
 /*disables VOBSUB */
 //#define GPAC_DISABLE_VOBSUB
+
 
 #endif		/*_GF_CONFIG_H_*/
 

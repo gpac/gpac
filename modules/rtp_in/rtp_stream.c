@@ -128,10 +128,21 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Timeout for RTCP: no SR recevied after %d ms - forcing playback, sync may be broken\n", RTCP_DEFAULT_TIMEOUT_MS));
 		ch->rtcp_init = GF_TRUE;
 	}
+	
 	cts = hdr->compositionTimeStamp;
 	dts = hdr->decodingTimeStamp;
-	hdr->compositionTimeStamp -= ch->ts_offset;
-	hdr->decodingTimeStamp -= ch->ts_offset;
+
+	if (hdr->compositionTimeStamp < ch->ts_offset) {
+		hdr->compositionTimeStamp = hdr->decodingTimeStamp = 0;
+		hdr->seekFlag = 1;
+	} else {
+		hdr->seekFlag = 0;
+		hdr->compositionTimeStamp -= ch->ts_offset;
+
+		if (hdr->decodingTimeStamp) {
+			hdr->decodingTimeStamp -= ch->ts_offset;
+		}
+	}
 
 	if (ch->rtp_ch->packet_loss) e = GF_REMOTE_SERVICE_ERROR;
 
@@ -482,22 +493,6 @@ void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 		ch->ts_offset = ch->rtp_ch->last_SR_rtp_time;
 		ch->ts_offset -= (s64) (ntp_clock * ch->rtp_ch->TimeScale);
 
-#if 0
-		GF_NetworkCommand com;
-		memset(&com, 0, sizeof(com));
-		com.command_type = GF_NET_CHAN_MAP_TIME;
-		com.base.on_channel = ch->channel;
-		com.map_time.media_time = ntp;
-
-		if (com.map_time.media_time >= ch->owner->last_ntp) {
-			com.map_time.media_time -= ch->owner->last_ntp;
-		} else {
-			com.map_time.media_time = 0;
-		}
-		com.map_time.timestamp = ch->rtp_ch->last_SR_rtp_time;
-		com.map_time.reset_buffers = 1;
-		gf_service_command(ch->owner->service, &com, GF_OK);
-#endif
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTCP] At %d Using Sender Report to map RTP TS %d to NTP clock %g - new TS offset "LLD" \n",
 		                                 gf_sys_clock(), ch->rtp_ch->last_SR_rtp_time, ntp_clock, ch->ts_offset

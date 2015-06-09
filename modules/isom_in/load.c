@@ -94,7 +94,8 @@ void isor_declare_objects(ISOMReader *read)
 	/*TODO check for alternate tracks*/
 	count = gf_isom_get_track_count(read->mov);
 	for (i=0; i<count; i++) {
-		if (!gf_isom_is_track_enabled(read->mov, i+1)) continue;
+		if (!gf_isom_is_track_enabled(read->mov, i+1)) 
+			continue;
 
 		switch (gf_isom_get_media_type(read->mov, i+1)) {
 		case GF_ISOM_MEDIA_AUDIO:

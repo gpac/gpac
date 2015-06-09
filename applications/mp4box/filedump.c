@@ -117,7 +117,7 @@ GF_Err set_cover_art(GF_ISOFile *file, char *inName)
 	gf_fseek(t, 0, SEEK_END);
 	tag_len = (u32) gf_ftell(t);
 	gf_fseek(t, 0, SEEK_SET);
-	tag = (char*)gf_malloc(sizeof(char) * tag_len);
+	tag = gf_malloc(sizeof(char) * tag_len);
 	tag_len = (u32) fread(tag, sizeof(char), tag_len, t);
 	gf_fclose(t);
 
@@ -230,7 +230,7 @@ static void dump_stats(FILE *dump, GF_SceneStatistics *stats)
 	fprintf(dump, "<NodeStatistics>\n");
 	fprintf(dump, "<General NumberOfNodeTypes=\"%d\"/>\n", gf_list_count(stats->node_stats));
 	for (i=0; i<gf_list_count(stats->node_stats); i++) {
-		GF_NodeStats *ptr = (GF_NodeStats*)gf_list_get(stats->node_stats, i);
+		GF_NodeStats *ptr = gf_list_get(stats->node_stats, i);
 		fprintf(dump, "<NodeStat NodeName=\"%s\">\n", ptr->name);
 
 		switch (ptr->tag) {
@@ -280,7 +280,7 @@ static void dump_stats(FILE *dump, GF_SceneStatistics *stats)
 	if (gf_list_count(stats->proto_stats)) {
 		fprintf(dump, "<ProtoStatistics NumberOfProtoUsed=\"%d\">\n", gf_list_count(stats->proto_stats));
 		for (i=0; i<gf_list_count(stats->proto_stats); i++) {
-			GF_NodeStats *ptr = (GF_NodeStats*)gf_list_get(stats->proto_stats, i);
+			GF_NodeStats *ptr = gf_list_get(stats->proto_stats, i);
 			fprintf(dump, "<ProtoStat ProtoName=\"%s\">\n", ptr->name);
 			fprintf(dump, "<Instanciation NbObjects=\"%d\" NbUse=\"%d\" NbDestroy=\"%d\"/>\n", ptr->nb_created, ptr->nb_used, ptr->nb_del);
 			count += ptr->nb_created + ptr->nb_used;
@@ -360,7 +360,7 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 	sm = NULL;
 	sample_list = NULL;
 
-	close = GF_FALSE;
+	close = 0;
 
 	scene_graph = gf_sg_new();
 	ctx = gf_sm_new(scene_graph);
@@ -387,10 +387,10 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 		strcpy(szBuf, inName);
 		strcat(szBuf, "_stat.xml");
 		dump = gf_fopen(szBuf, "wt");
-		close = GF_TRUE;
+		close = 1;
 	} else {
 		dump = stderr;
-		close = GF_FALSE;
+		close = 0;
 	}
 
 	fprintf(stderr, "Analysing Scene\n");
@@ -411,20 +411,20 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 	sample_list = gf_list_new();
 	/*configure all systems streams we're dumping*/
 	for (i=0; i<gf_list_count(ctx->streams); i++) {
-		GF_StreamContext *sc = (GF_StreamContext*)gf_list_get(ctx->streams, i);
+		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
 		if (sc->streamType != GF_STREAM_SCENE) continue;
 		for (j=0; j<gf_list_count(sc->AUs); j++) {
-			GF_AUContext *au = (GF_AUContext*)gf_list_get(sc->AUs, j);
+			GF_AUContext *au = gf_list_get(sc->AUs, j);
 			ReorderAU(sample_list, au);
 		}
 	}
 
 	count = gf_list_count(sample_list);
 	for (i=0; i<count; i++) {
-		GF_AUContext *au = (GF_AUContext*)gf_list_get(sample_list, i);
+		GF_AUContext *au = gf_list_get(sample_list, i);
 
 		for (j=0; j<gf_list_count(au->commands); j++) {
-			GF_Command *com = (GF_Command*)gf_list_get(au->commands, j);
+			GF_Command *com = gf_list_get(au->commands, j);
 			/*stat level 2 - get command stats*/
 			if (stat_level==2) {
 				e = gf_sm_stats_for_command(sm, com);
@@ -495,30 +495,30 @@ static void PrintNodeSFField(u32 type, void *far_ptr)
 		fprintf(stderr, "%d", (*(SFInt32 *)far_ptr));
 		break;
 	case GF_SG_VRML_SFFLOAT:
-		PrintFixed((*(SFFloat *)far_ptr), GF_FALSE);
+		PrintFixed((*(SFFloat *)far_ptr), 0);
 		break;
 	case GF_SG_VRML_SFTIME:
 		fprintf(stderr, "%g", (*(SFTime *)far_ptr));
 		break;
 	case GF_SG_VRML_SFVEC2F:
-		PrintFixed(((SFVec2f *)far_ptr)->x, GF_FALSE);
-		PrintFixed(((SFVec2f *)far_ptr)->y, GF_TRUE);
+		PrintFixed(((SFVec2f *)far_ptr)->x, 0);
+		PrintFixed(((SFVec2f *)far_ptr)->y, 1);
 		break;
 	case GF_SG_VRML_SFVEC3F:
-		PrintFixed(((SFVec3f *)far_ptr)->x, GF_FALSE);
-		PrintFixed(((SFVec3f *)far_ptr)->y, GF_TRUE);
-		PrintFixed(((SFVec3f *)far_ptr)->z, GF_TRUE);
+		PrintFixed(((SFVec3f *)far_ptr)->x, 0);
+		PrintFixed(((SFVec3f *)far_ptr)->y, 1);
+		PrintFixed(((SFVec3f *)far_ptr)->z, 1);
 		break;
 	case GF_SG_VRML_SFROTATION:
-		PrintFixed(((SFRotation *)far_ptr)->x, GF_FALSE);
-		PrintFixed(((SFRotation *)far_ptr)->y, GF_TRUE);
-		PrintFixed(((SFRotation *)far_ptr)->z, GF_TRUE);
-		PrintFixed(((SFRotation *)far_ptr)->q, GF_TRUE);
+		PrintFixed(((SFRotation *)far_ptr)->x, 0);
+		PrintFixed(((SFRotation *)far_ptr)->y, 1);
+		PrintFixed(((SFRotation *)far_ptr)->z, 1);
+		PrintFixed(((SFRotation *)far_ptr)->q, 1);
 		break;
 	case GF_SG_VRML_SFCOLOR:
-		PrintFixed(((SFColor *)far_ptr)->red, GF_FALSE);
-		PrintFixed(((SFColor *)far_ptr)->green, GF_TRUE);
-		PrintFixed(((SFColor *)far_ptr)->blue, GF_TRUE);
+		PrintFixed(((SFColor *)far_ptr)->red, 0);
+		PrintFixed(((SFColor *)far_ptr)->green, 1);
+		PrintFixed(((SFColor *)far_ptr)->blue, 1);
 		break;
 	case GF_SG_VRML_SFSTRING:
 		if (((SFString*)far_ptr)->buffer)
@@ -547,13 +547,13 @@ void PrintNode(const char *name, u32 graph_type)
 	Fixed bmin, bmax;
 	u32 nbBits;
 #endif /*GPAC_DISABLE_BIFS*/
-	Bool is_nodefield = GF_FALSE;
+	Bool is_nodefield = 0;
 
 	char *sep = strchr(name, '.');
 	if (sep) {
 		strcpy(szField, sep+1);
 		sep[0] = 0;
-		is_nodefield = GF_TRUE;
+		is_nodefield = 1;
 	}
 
 	tag = 0;
@@ -624,7 +624,7 @@ void PrintNode(const char *name, u32 graph_type)
 			continue;
 		}
 
-		fprintf(stderr, "\t%s %s %s", gf_sg_vrml_get_event_type_name(f.eventType, GF_FALSE), gf_sg_vrml_get_field_type_by_name(f.fieldType), f.name);
+		fprintf(stderr, "\t%s %s %s", gf_sg_vrml_get_event_type_name(f.eventType, 0), gf_sg_vrml_get_field_type_by_name(f.fieldType), f.name);
 		if (f.fieldType==GF_SG_VRML_SFNODE) fprintf(stderr, " NULL");
 		else if (f.fieldType==GF_SG_VRML_MFNODE) fprintf(stderr, " []");
 		else if (gf_sg_vrml_is_sf_field(f.fieldType)) {
@@ -650,9 +650,9 @@ void PrintNode(const char *name, u32 graph_type)
 				if (qt==13) fprintf(stderr, " NbBits=%d", nbBits);
 				if (bmin && bmax) {
 					fprintf(stderr, " Bounds=[");
-					PrintFixed(bmin, GF_FALSE);
+					PrintFixed(bmin, 0);
 					fprintf(stderr, ",");
-					PrintFixed(bmax, GF_FALSE);
+					PrintFixed(bmax, 0);
 					fprintf(stderr, "]");
 				}
 			}
@@ -806,7 +806,7 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 		dump = stderr;
 	}
 
-	has_error = GF_FALSE;
+	has_error = 0;
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		u32 has_cts_offset = gf_isom_has_time_offset(file, i+1);
 
@@ -827,7 +827,7 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 			fprintf(dump, "Sample %d\tDTS "LLD"\tCTS "LLD"\t%d\t%d\t"LLD"\t%d\t%d\t%d\t%d\t%d\t%d\t%d", j+1, LLD_CAST dts, LLD_CAST cts, samp->dataLength, samp->IsRAP, offset, isLeading, dependsOn, dependedOn, redundant, is_rap, has_roll, roll_distance);
 			if (cts<dts) {
 				fprintf(dump, " #NEGATIVE CTS OFFSET!!!");
-				has_error = GF_TRUE;
+				has_error = 1;
 			}
 
 			gf_isom_sample_del(&samp);
@@ -842,11 +842,11 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 
 					if (adts==dts) {
 						fprintf(dump, " #SAME DTS USED!!!");
-						has_error = GF_TRUE;
+						has_error = 1;
 					}
 					if (acts==cts) {
 						fprintf(dump, " #SAME CTS USED!!! ");
-						has_error = GF_TRUE;
+						has_error = 1;
 					}
 
 					gf_isom_sample_del(&samp);
@@ -1031,7 +1031,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 	}
 
 	bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
-	type = ptr[0] & 0x1F;
+	type = gf_bs_read_u8(bs) & 0x1F;
 	fprintf(dump, "code=\"%d\" type=\"", type);
 	res = 0;
 	switch (type) {
@@ -1223,7 +1223,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		nalh_size = hevccfg->nal_unit_size;
 		is_hevc = 1;
 		for (idx=0; idx<gf_list_count(hevccfg->param_array); idx++) {
-			GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(hevccfg->param_array, idx);
+			GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, idx);
 			if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 				DUMP_ARRAY(ar->nalus, "HEVCSPSArray")
 			} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
@@ -1240,7 +1240,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 #ifndef GPAC_DISABLE_HEVC
 		u32 idx;
 		nalh_size = shvccfg->nal_unit_size;
-		is_hevc = GF_TRUE;
+		is_hevc = 1;
 		for (idx=0; idx<gf_list_count(shvccfg->param_array); idx++) {
 			GF_HEVCParamArray *ar = gf_list_get(shvccfg->param_array, idx);
 			if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
@@ -1648,7 +1648,7 @@ static void print_config_hash(GF_List *xps_array, char *szName)
 	u8 hash[20];
 	for (i=0; i<gf_list_count(xps_array); i++) {
 		slc = gf_list_get(xps_array, i);
-		gf_sha1_csum((u8*)slc->data, slc->size, hash);
+		gf_sha1_csum((u8 *) slc->data, slc->size, hash);
 		fprintf(stderr, "\t%s#%d hash: ", szName, i+1);
 		for (j=0; j<20; j++) fprintf(stderr, "%02X", hash[j]);
 		fprintf(stderr, "\n");
@@ -1663,7 +1663,7 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 	fprintf(stderr, "\tNAL Unit length bits: %d - general profile compatibility 0x%08X\n", 8*hevccfg->nal_unit_size, hevccfg->general_profile_compatibility_flags);
 	fprintf(stderr, "\tParameter Sets: ");
 	for (k=0; k<gf_list_count(hevccfg->param_array); k++) {
-		GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(hevccfg->param_array, k);
+		GF_HEVCParamArray *ar=gf_list_get(hevccfg->param_array, k);
 		if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 			fprintf(stderr, "%d SPS ", gf_list_count(ar->nalus));
 		}
@@ -1674,7 +1674,7 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 			fprintf(stderr, "%d VPS ", gf_list_count(ar->nalus));
 
 			for (idx=0; idx<gf_list_count(ar->nalus); idx++) {
-				GF_AVCConfigSlot *vps = (GF_AVCConfigSlot*)gf_list_get(ar->nalus, idx);
+				GF_AVCConfigSlot *vps = gf_list_get(ar->nalus, idx);
 				gf_media_hevc_read_vps(vps->data, vps->size, hevc_state);
 			}
 		}
@@ -1682,13 +1682,13 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 
 	fprintf(stderr, "\n");
 	for (k=0; k<gf_list_count(hevccfg->param_array); k++) {
-		GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(hevccfg->param_array, k);
+		GF_HEVCParamArray *ar=gf_list_get(hevccfg->param_array, k);
 		u32 width, height;
 		s32 par_n, par_d;
 
 		if (ar->type !=GF_HEVC_NALU_SEQ_PARAM) continue;
 		for (idx=0; idx<gf_list_count(ar->nalus); idx++) {
-			GF_AVCConfigSlot *sps = (GF_AVCConfigSlot*)gf_list_get(ar->nalus, idx);
+			GF_AVCConfigSlot *sps = gf_list_get(ar->nalus, idx);
 			par_n = par_d = -1;
 			gf_hevc_get_sps_info_with_state(hevc_state, sps->data, sps->size, NULL, &width, &height, &par_n, &par_d);
 			fprintf(stderr, "\tSPS resolution %dx%d", width, height);
@@ -1707,7 +1707,7 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 	}
 
 	for (k=0; k<gf_list_count(hevccfg->param_array); k++) {
-		GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(hevccfg->param_array, k);
+		GF_HEVCParamArray *ar=gf_list_get(hevccfg->param_array, k);
 		if (ar->type==GF_HEVC_NALU_SEQ_PARAM) print_config_hash(ar->nalus, "SPS");
 		else if (ar->type==GF_HEVC_NALU_PIC_PARAM) print_config_hash(ar->nalus, "PPS");
 		else if (ar->type==GF_HEVC_NALU_VID_PARAM) print_config_hash(ar->nalus, "VPS");
@@ -1719,7 +1719,7 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 {
 	Float scale;
-	Bool is_od_track = GF_FALSE;
+	Bool is_od_track = 0;
 	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups, nb_edits;
 	u64 time_slice, dur, size;
 	u8 bps;
@@ -1816,7 +1816,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				        full_dump ? "\n\t" : ": ", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 			}
 			if (esd->decoderConfig->streamType==GF_STREAM_OD)
-				is_od_track = GF_TRUE;
+				is_od_track=1;
 
 			if (esd->decoderConfig->streamType==GF_STREAM_VISUAL) {
 				u32 w, h;
@@ -1865,7 +1865,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stderr, " - Profile %s @ Level %g\n", gf_avc_get_profile_name(avccfg->AVCProfileIndication), ((Double)avccfg->AVCLevelIndication)/10.0 );
 						fprintf(stderr, "\tNAL Unit length bits: %d\n", 8*avccfg->nal_unit_size);
 						for (i=0; i<gf_list_count(avccfg->sequenceParameterSets); i++) {
-							slc = (GF_AVCConfigSlot*)gf_list_get(avccfg->sequenceParameterSets, i);
+							slc = gf_list_get(avccfg->sequenceParameterSets, i);
 							gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, NULL, &par_n, &par_d);
 							if ((par_n>0) && (par_d>0)) {
 								u32 tw, th;
@@ -1887,7 +1887,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stderr, "\n\tSVC Info: %d SPS - %d PPS - Profile %s @ Level %g\n", gf_list_count(svccfg->sequenceParameterSets) , gf_list_count(svccfg->pictureParameterSets), gf_avc_get_profile_name(svccfg->AVCProfileIndication), ((Double)svccfg->AVCLevelIndication)/10.0 );
 						fprintf(stderr, "\tSVC NAL Unit length bits: %d\n", 8*svccfg->nal_unit_size);
 						for (i=0; i<gf_list_count(svccfg->sequenceParameterSets); i++) {
-							slc = (GF_AVCConfigSlot*)gf_list_get(svccfg->sequenceParameterSets, i);
+							slc = gf_list_get(svccfg->sequenceParameterSets, i);
 							if (slc) {
 								u32 s_w, s_h, sps_id;
 								gf_avc_get_sps_info(slc->data, slc->size, &sps_id, &s_w, &s_h, &par_n, &par_d);
@@ -2189,8 +2189,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		fprintf(stderr, "\tMPEG 1/2 Audio stream - Sample Rate %d - %d channel(s) %d bps\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_AC3) {
 		u32 br = 0;
-		Bool lfe = GF_FALSE;
-		Bool is_ec3 = GF_FALSE;
+		Bool lfe = 0;
+		Bool is_ec3 = 0;
 #ifndef GPAC_DISABLE_AV_PARSERS
 		GF_AC3Config *ac3 = gf_isom_ac3_config_get(file, trackNum, 1);
 		if (ac3) {
@@ -2343,11 +2343,11 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 
 	{
 		char szCodec[100];
-		gf_media_get_rfc_6381_codec_name(file, trackNum, szCodec, GF_FALSE);
+		gf_media_get_rfc_6381_codec_name(file, trackNum, szCodec, GF_FALSE, GF_FALSE);
 		fprintf(stderr, "\tRFC6381 Codec Parameters: %s\n", szCodec);
 	}
 
-	DumpMetaItem(file, GF_FALSE, trackNum, "Track Meta");
+	DumpMetaItem(file, 0, trackNum, "Track Meta");
 
 	gf_isom_get_track_switch_group_count(file, trackNum, &alt_group, &nb_groups);
 	if (alt_group) {
@@ -2495,7 +2495,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	u64 create, modif;
 	char szDur[50];
 
-	DumpMetaItem(file, GF_TRUE, 0, "Root Meta");
+	DumpMetaItem(file, 1, 0, "Root Meta");
 	if (!gf_isom_has_movie(file)) {
 		if (gf_isom_has_segment(file, &brand, &min)) {
 			u32 j, count;
@@ -2522,7 +2522,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (gf_isom_is_fragmented(file)) {
-		fprintf(stderr, "\tFragmented File: yes - duration %s\n%d fragments - %d SegmentIndexes\n", format_duration(gf_isom_get_fragmented_duration(file), timescale, szDur), gf_isom_get_fragments_count(file, GF_FALSE) , gf_isom_get_fragments_count(file, GF_TRUE) );
+		fprintf(stderr, "\tFragmented File: yes - duration %s\n%d fragments - %d SegmentIndexes\n", format_duration(gf_isom_get_fragmented_duration(file), timescale, szDur), gf_isom_get_fragments_count(file, 0) , gf_isom_get_fragments_count(file, 1) );
 	} else {
 		fprintf(stderr, "\tFragmented File: no\n");
 	}
@@ -2539,7 +2539,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	fprintf(stderr, "\tModified: %s", format_date(modif, szDur));
 	fprintf(stderr, "\n");
 
-	DumpMetaItem(file, GF_FALSE, 0, "Moov Meta");
+	DumpMetaItem(file, 0, 0, "Moov Meta");
 
 	iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(file);
 	if (iod) {
@@ -2627,7 +2627,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	print_udta(file, 0);
 	fprintf(stderr, "\n");
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
-		DumpTrackInfo(file, gf_isom_get_track_id(file, i+1), GF_FALSE);
+		DumpTrackInfo(file, gf_isom_get_track_id(file, i+1), 0);
 	}
 }
 
@@ -2684,7 +2684,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	case GF_M2TS_EVT_PAT_REPEAT:
 		/* WARNING: We detect the pat on a repetition, probably to ensure that we also have seen all the PMT
 		   To be checked */
-		dumper->has_seen_pat = GF_TRUE;
+		dumper->has_seen_pat = 1;
 		if (dumper->timestamps_info_file) {
 			fprintf(dumper->timestamps_info_file, "%u\t%d\n", ts->pck_number, 0);
 		}
@@ -2714,7 +2714,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Program number %d found - %d streams:\n", prog->number, count));
 		for (i=0; i<count; i++) {
-			GF_M2TS_ES *es = (GF_M2TS_ES*)gf_list_get(prog->streams, i);
+			GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 			if (es->pid == prog->pmt_pid) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("\tPID %d: Program Map Table\n", es->pid));
 			} else {
@@ -2749,7 +2749,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		count = gf_list_count(ts->SDTs) ;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Program Description found - %d desc:\n", count));
 		for (i=0; i<count; i++) {
-			GF_M2TS_SDT *sdt = (GF_M2TS_SDT*)gf_list_get(ts->SDTs, i);
+			GF_M2TS_SDT *sdt = gf_list_get(ts->SDTs, i);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("\tServiceID %d - Provider %s - Name %s\n", sdt->service_id, sdt->provider, sdt->service));
 		}
 		break;
@@ -2757,20 +2757,20 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		count = gf_list_count(ts->SDTs) ;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Program Description updated - %d desc\n", count));
 		for (i=0; i<count; i++) {
-			GF_M2TS_SDT *sdt = (GF_M2TS_SDT*)gf_list_get(ts->SDTs, i);
+			GF_M2TS_SDT *sdt = gf_list_get(ts->SDTs, i);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("\tServiceID %d - Provider %s - Name %s\n", sdt->service_id, sdt->provider, sdt->service));
 		}
 		break;
 	case GF_M2TS_EVT_SDT_REPEAT:
 		break;
 	case GF_M2TS_EVT_PES_TIMING:
-		pck = (GF_M2TS_PES_PCK*)par;
+		pck = par;
 		if (gf_list_count(ts->programs)>1 && pck->stream->program->number != dumper->prog_number)
 			break;
 
 		break;
 	case GF_M2TS_EVT_PES_PCK:
-		pck = (GF_M2TS_PES_PCK*)par;
+		pck = par;
 		if (gf_list_count(ts->programs)>1 && pck->stream->program->number != dumper->prog_number)
 			break;
 		if (dumper->has_seen_pat) {
@@ -2816,7 +2816,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		}
 		break;
 	case GF_M2TS_EVT_PES_PCR:
-		pck = (GF_M2TS_PES_PCK*)par;
+		pck = par;
 		if (gf_list_count(ts->programs)>1 && pck->stream->program->number != dumper->prog_number)
 			break;
 		if (dumper->timestamps_info_file) {
@@ -2871,7 +2871,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	}
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_dump_event;
-	ts->notify_pes_timing = GF_TRUE;
+	ts->notify_pes_timing = 1;
 	memset(&dumper, 0, sizeof(GF_M2TS_Dump));
 	ts->user = &dumper;
 	dumper.prog_number = prog_num;
@@ -2908,7 +2908,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 		gf_m2ts_process_data(ts, data, size);
 		if (dumper.has_seen_pat) break;
 	}
-	dumper.has_seen_pat = GF_TRUE;
+	dumper.has_seen_pat = 1;
 
 	if (prog_num) {
 		sprintf(dumper.timestamps_info_name, "%s_prog_%d_timestamps.txt", mpeg2ts_file, prog_num/*, mpeg2ts_file*/);

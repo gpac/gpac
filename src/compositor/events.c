@@ -911,7 +911,9 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 
 		/*try to remove this sensor from the previous sensor list*/
 		gf_list_del_item(compositor->previous_sensors, hs);
-		stype = gf_node_get_tag(hs->sensor);
+		if (gf_node_get_id(hs->sensor)) 
+			stype = gf_node_get_tag(hs->sensor);
+
 		keynav = gf_scene_get_keynav(gf_node_get_graph(hs->sensor), hs->sensor);
 		if (keynav) gf_sc_change_key_navigator(compositor, keynav);
 

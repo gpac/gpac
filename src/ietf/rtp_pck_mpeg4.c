@@ -251,7 +251,7 @@ GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_s
 			/*first SL in RTP*/
 			builder->first_sl_in_rtp = GF_TRUE;
 
-			/*if this is the end of an AU we will set it to 0 as soon as an AU is splited*/
+			/*if this is the end of an AU we will set it to 0 as soon as an AU is splitted*/
 			builder->rtp_header.Marker = 1;
 			builder->rtp_header.PayloadType = builder->PayloadType;
 			builder->rtp_header.SequenceNumber += 1;

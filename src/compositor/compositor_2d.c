@@ -37,7 +37,7 @@
 static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color)
 {
 	return;
-#if defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_USE_GLES1X)
 	GLfloat line[4];
 
 	line[0] = FIX2FLT(x);
@@ -65,7 +65,7 @@ static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Colo
 static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u8 alpha)
 {
 	return;
-#if defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_USE_GLES1X)
 	GLfloat line[4];
 
 	line[0] = FIX2FLT(x);
@@ -96,7 +96,7 @@ static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color c
 static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_Color color)
 {
 	return;
-#if defined(GPAC_USE_OGL_ES)
+#if defined(GPAC_USE_GLES1X)
 	GLfloat line[8];
 
 	line[0] = FIX2FLT(x);
@@ -256,7 +256,7 @@ exit:
 	compositor->visual->nb_objects_on_canvas_since_last_ogl_flush = 0;
 }
 
-Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
+Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx)
 {
 	u8 alpha = GF_COL_A(ctx->aspect.fill_color);
 
@@ -296,13 +296,19 @@ Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, Dr
 	return GF_FALSE;
 }
 
-Bool compositor_2d_hybgl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
+Bool compositor_2d_hybgl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx)
 {
+	GF_Node *txtrans = NULL;
 	//for anything but background use regular routines
 	if (!(ctx->flags & CTX_IS_BACKGROUND)) return GF_FALSE;
 
+#ifndef GPAC_DISABLE_VRML
+	if (tr_state->appear ) txtrans = ((M_Appearance *)tr_state->appear)->textureTransform;
+#endif
+
 	/*ignore texture transform for bitmap*/
-	tr_state->mesh_num_textures = gf_sc_texture_enable(ctx->aspect.fill_texture, tr_state->appear ? ((M_Appearance *)tr_state->appear)->textureTransform : NULL);
+	tr_state->mesh_num_textures = gf_sc_texture_enable(ctx->aspect.fill_texture, txtrans);
+
 	if (tr_state->mesh_num_textures) {
 		SFVec2f size, orig;
 		size.x = ctx->bi->unclip.width;
@@ -359,7 +365,7 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 
 	glLineWidth(1.0f);
 
-#ifndef GPAC_USE_OGL_ES
+#ifndef GPAC_USE_GLES1X
 	glDisable(GL_POLYGON_SMOOTH);
 #endif
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
@@ -795,7 +801,7 @@ Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *
 	return GF_TRUE;
 }
 
-static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHandler *txh, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, GF_ColorKey *col_key, GF_TraverseState *tr_state, Bool force_soft_blt)
+static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHandler *txh, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, GF_TraverseState *tr_state, Bool force_soft_blt)
 {
 	GF_VideoSurface video_src;
 	GF_Err e;
@@ -886,7 +892,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 
 		/*disable HW color keying - not compatible with MPEG-4 MaterialKey*/
-		if (col_key) {
+		if (tr_state->col_key) {
 			use_soft_stretch = GF_TRUE;
 			overlay_type = 0;
 		}
@@ -1051,7 +1057,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_TRUE);
 		if (!e) {
 			u32 push_time = gf_sys_clock();
-			gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, alpha, GF_FALSE, col_key, ctx->col_mat);
+			gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, alpha, GF_FALSE, tr_state->col_key, ctx->col_mat);
 #ifndef GPAC_DISABLE_LOG
 			log_blit_times(txh, push_time);
 #endif
@@ -1076,7 +1082,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 
 
-Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
+Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx)
 {
 	u8 alpha = 0xFF;
 
@@ -1142,7 +1148,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	/*direct drawing, no clippers */
 	if (tr_state->immediate_draw) {
 		if (visual->compositor->video_out->BlitTexture) {
-			if (! visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, col_key
+			if (! visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, tr_state->col_key
 #ifdef GF_SR_USE_DEPTH
 			        , ctx->depth_offset, ctx->depth_gain
 #else
@@ -1151,7 +1157,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 			                                                ))
 				return GF_FALSE;
 		} else {
-			if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state, GF_FALSE))
+			if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, tr_state, GF_FALSE))
 				return GF_FALSE;
 		}
 	}
@@ -1168,7 +1174,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i].rect);
 			if (clip.width && clip.height) {
 				if (visual->compositor->video_out->BlitTexture) {
-					if (!visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, col_key
+					if (!visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, tr_state->col_key
 #ifdef GF_SR_USE_DEPTH
 					        , ctx->depth_offset, ctx->depth_gain
 #else
@@ -1176,7 +1182,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 #endif
 					                                               ))
 						return GF_FALSE;
-				} else if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, col_key, tr_state, GF_FALSE)) {
+				} else if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, tr_state, GF_FALSE)) {
 					return GF_FALSE;
 				}
 			}
@@ -1351,7 +1357,8 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 		compositor->traverse_state->vp_size.x = INT2FIX(compositor->output_width);
 		compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
 	}
-
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Reconfigured display size %d x %d done\n", evt.setup.width, evt.setup.height));
+	
 	/*set scale factor*/
 	compositor_set_ar_scale(compositor, scaleX, scaleY);
 	return GF_OK;
@@ -1624,7 +1631,7 @@ void visual_2d_flush_overlay_areas(GF_VisualManager *visual, GF_TraverseState *t
 						if ((ctx->flags & CTX_IS_TRANSPARENT) || !gf_irect_inside(&prev_clip, &the_clip)) {
 							vid_clip = ol->ra.list[i].rect;
 							gf_irect_intersect(&vid_clip, &ol->ctx->bi->clip);
-							compositor_2d_draw_bitmap_ex(visual, ol->ctx->aspect.fill_texture, ol->ctx, &vid_clip, &ol->ctx->bi->unclip, 0xFF, NULL, tr_state, GF_TRUE);
+							compositor_2d_draw_bitmap_ex(visual, ol->ctx->aspect.fill_texture, ol->ctx, &vid_clip, &ol->ctx->bi->unclip, 0xFF, tr_state, GF_TRUE);
 						}
 						needs_draw = GF_FALSE;
 					}

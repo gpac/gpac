@@ -130,8 +130,12 @@ int dc_video_encoder_open(VideoOutputFile *video_output_file, VideoDataConf *vid
 		build_dict(video_output_file->codec_ctx->priv_data, video_data_conf->custom);
 	} else if (video_data_conf->low_delay) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Video Encoder: applying default options (preset=ultrafast tune=zerolatency)\n"));
+		av_opt_set(video_output_file->codec_ctx->priv_data, "vprofile", "baseline", 0);
 		av_opt_set(video_output_file->codec_ctx->priv_data, "preset", "ultrafast", 0);
 		av_opt_set(video_output_file->codec_ctx->priv_data, "tune", "zerolatency", 0);
+		if (strstr(video_data_conf->codec, "264")) {
+			av_opt_set(video_output_file->codec_ctx->priv_data, "x264opts", "no-mbtree:sliced-threads:sync-lookahead=0", 0);
+		}
 	}
 
 	if (video_output_file->gdr) {
@@ -188,10 +192,24 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 		pkt.data = video_output_file->vbuf;
 		pkt.size = video_output_file->vbuf_size;
 		pkt.pts = pkt.dts = video_data_node->vframe->pkt_dts = video_data_node->vframe->pkt_pts = video_data_node->vframe->pts;
+		video_data_node->vframe->pict_type = 0;
+		video_data_node->vframe->width = video_codec_ctx->width;
+		video_data_node->vframe->height = video_codec_ctx->height;
+		video_data_node->vframe->format = video_codec_ctx->pix_fmt;
+
+
 #ifdef LIBAV_ENCODE_OLD
+		if (!video_output_file->segment_started)
+			video_data_node->vframe->pict_type = FF_I_TYPE;
+
 		video_output_file->encoded_frame_size = avcodec_encode_video(video_codec_ctx, video_output_file->vbuf, video_output_file->vbuf_size, video_data_node->vframe);
 		got_packet = video_output_file->encoded_frame_size>=0 ? 1 : 0;
 #else
+		//this is correct but unfortunately doesn't work with some versions of FFMPEG (output is just grey video ...)
+
+		if (!video_output_file->segment_started)
+			video_data_node->vframe->pict_type = AV_PICTURE_TYPE_I;
+
 		video_output_file->encoded_frame_size = avcodec_encode_video2(video_codec_ctx, &pkt, video_data_node->vframe, &got_packet);
 #endif
 
@@ -222,7 +240,7 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 		return -1;
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Video %s Frame TS "LLU" encoded at UTC "LLU" ms\n", video_output_file->rep_id, /*video_data_node->source_number, */video_data_node->vframe->pts, gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video %s Frame TS "LLU" encoded at UTC "LLU" ms\n", video_output_file->rep_id, /*video_data_node->source_number, */video_data_node->vframe->pts, gf_net_get_utc() ));
 
 	/* if zero size, it means the image was buffered */
 //	if (out_size > 0) {

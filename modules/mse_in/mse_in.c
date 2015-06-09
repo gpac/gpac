@@ -27,6 +27,8 @@
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/html5_mse.h>
 
+#ifndef GPAC_DISABLE_MSE
+
 typedef struct __mse_module
 {
 	GF_HTML_MediaSource *mediasource;
@@ -315,11 +317,15 @@ static Bool MSE_CanHandleURLInService(GF_InputService *plug, const char *url)
 	}
 }
 
+#endif //GPAC_DISABLE_MSE
+
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
+#ifndef GPAC_DISABLE_MSE
 		GF_NET_CLIENT_INTERFACE,
+#endif
 		0
 	};
 	return si;
@@ -328,6 +334,9 @@ const u32 *QueryInterfaces()
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
+#ifdef GPAC_DISABLE_MSE
+	return NULL;
+#else
 	GF_MSE_In *msein;
 	GF_InputService *plug;
 	if (InterfaceType != GF_NET_CLIENT_INTERFACE) return NULL;
@@ -349,10 +358,13 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	plug->priv = msein;
 	msein->plug = plug;
 	return (GF_BaseInterface *)plug;
+#endif
 }
+
 GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *bi)
 {
+#ifndef GPAC_DISABLE_MSE
 	GF_MSE_In *msein;
 
 	if (bi->InterfaceType!=GF_NET_CLIENT_INTERFACE) return;
@@ -361,6 +373,7 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	assert(msein);
 	gf_free(msein);
 	gf_free(bi);
+#endif
 }
 
 GPAC_MODULE_STATIC_DECLARATION( mse_in )

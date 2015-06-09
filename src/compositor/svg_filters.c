@@ -416,7 +416,7 @@ static void svg_traverse_filter(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (tr_state->traversing_mode==TRAVERSE_DRAW_2D) {
-		if (! tr_state->visual->DrawBitmap(tr_state->visual, tr_state, tr_state->ctx, NULL)) {
+		if (! tr_state->visual->DrawBitmap(tr_state->visual, tr_state, tr_state->ctx)) {
 			visual_2d_texture_path(tr_state->visual, st->drawable->path, tr_state->ctx, tr_state);
 		}
 	}

@@ -2563,6 +2563,7 @@ struct __tag_isom {
 	/*if true 3GPP text streams are read as MPEG-4 StreamingText*/
 	u8 convert_streaming_text;
 	u8 is_jp2;
+	u8 force_co64;
 
 	Bool keep_utc;
 	/*main boxes for fast access*/

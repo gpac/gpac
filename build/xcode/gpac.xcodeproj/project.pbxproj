@@ -3982,6 +3982,8 @@
 					CoreFoundation,
 					"-weak_framework",
 					QuartzCore,
+					"-weak_framework",
+					CoreGraphics,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -4041,6 +4043,8 @@
 					CoreFoundation,
 					"-weak_framework",
 					QuartzCore,
+					"-weak_framework",
+					CoreGraphics,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -4401,6 +4405,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					GPAC_HAS_FAAD,
+					GPAC_CONFIG_DARWIN,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -4432,7 +4437,10 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_PREPROCESSOR_DEFINITIONS = GPAC_HAS_FAAD;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					GPAC_HAS_FAAD,
+					GPAC_CONFIG_DARWIN,
+				);
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
@@ -4665,7 +4673,10 @@
 				EXECUTABLE_PREFIX = gm_;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
-				GCC_PREPROCESSOR_DEFINITIONS = GPAC_HAS_MAD;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					GPAC_HAS_MAD,
+					GPAC_CONFIG_DARWIN,
+				);
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;

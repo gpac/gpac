@@ -43,7 +43,7 @@
 #include <gpac/nodes_svg.h>
 #include <gpac/constants.h>
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#if defined(GPAC_HAS_SPIDERMONKEY) && !defined(GPAC_DISABLE_SVG)
 
 typedef struct
 {
@@ -299,4 +299,4 @@ void ShutdownWidgetReader(GF_BaseInterface *ifce)
 	gf_free(sdec);
 }
 
-#endif	/*GPAC_HAS_SPIDERMONKEY*/
+#endif	/* defined(GPAC_HAS_SPIDERMONKEY) && !defined(GPAC_DISABLE_SVG) */

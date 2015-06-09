@@ -608,18 +608,26 @@ compositor: $(LIBGPAC_COMPOSITOR)
 ../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools mcrypt $(OBJS)
 	@echo "OBJS $(OBJS)"
 	@echo "LIBS $(EXTRALIBS)"
+
 ifeq ($(CONFIG_DARWIN),yes)
+
 	$(LIBTOOL) -s -o ../bin/gcc/libgpac_static.a $(OBJS)
 	$(RANLIB) ../bin/gcc/libgpac_static.a
+ifneq ($(STATICBUILD),yes)
 	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o $@ $(OBJS) $(EXTRALIBS) 
+endif
+
 else
+
 	$(AR) cr ../bin/gcc/libgpac_static.a $(OBJS)
 	$(RANLIB) ../bin/gcc/libgpac_static.a
-	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o $@ $(OBJS) $(EXTRALIBS)
-	
+ifneq ($(STATICBUILD),yes)
+	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o $@ $(OBJS) $(EXTRALIBS)	
 	mv $@ $@.$(VERSION_SONAME)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@.$(VERSION_MAJOR)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@
+endif
+
 endif
 ifeq ($(shell fgrep "Libs.private:" ../gpac.pc),)
 	@echo "Libs.private: $(EXTRALIBS)" >> ../gpac.pc

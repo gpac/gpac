@@ -43,6 +43,7 @@
 # error
 #endif
 
+#include <gpac/network.h>
 
 typedef struct {
 	int segnum;
@@ -72,10 +73,13 @@ typedef struct {
 
 void optimize_seg_frag_dur(int *seg, int *frag)
 {
+	int min_rem;
 	int seg_nb = *seg;
 	int frag_nb = *frag;
+	if (!frag_nb) frag_nb = 1;
 
-	int min_rem = seg_nb % frag_nb;
+	min_rem = seg_nb % frag_nb;
+	
 	if (seg_nb % (frag_nb + 1) < min_rem) {
 		min_rem = seg_nb % (frag_nb + 1);
 		*seg = seg_nb;
@@ -247,10 +251,6 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 	fprintf(f, "</MPD>\n");
 
 	gf_fclose(f);
-
-//	fprintf(stdout, "\33[34m\33[1m");
-	fprintf(stdout, "MPD file generated: %s/%s\n", cmddata->out_dir, cmddata->mpd_filename);
-//	fprintf(stdout, "\33[0m");
 }
 
 static u32 mpd_thread(void *params)
@@ -269,6 +269,7 @@ static u32 mpd_thread(void *params)
 	Bool first = GF_TRUE;
 	main_seg_time.segnum = 0;
 	main_seg_time.utc_time = 0;
+	main_seg_time.ntpts = 0;
 
 	if (cmddata->mode == LIVE_CAMERA || cmddata->mode == LIVE_MEDIA) {
 		while (1) {
@@ -311,19 +312,17 @@ static u32 mpd_thread(void *params)
 				}
 			}
 
-			//printf time at which we generate MPD
-			t = seg_time.utc_time / 1000;
-			msecs = (u32) ( (seg_time.utc_time - t*1000) );
-			ast_time = *gmtime(&t);
 
+			t = (seg_time.ntpts >> 32)  - GF_NTP_SEC_1900_TO_1970;
+			msecs = (u32) ( (seg_time.ntpts & 0xFFFFFFFF) * (1000.0/0xFFFFFFFF) );
+			ast_time = *gmtime(&t);
+			fprintf(stdout, "Generating MPD at %d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs);
+
+			t = (main_seg_time.ntpts >> 32)  - GF_NTP_SEC_1900_TO_1970;
+			msecs = (u32) ( (main_seg_time.ntpts & 0xFFFFFFFF) * (1000.0/0xFFFFFFFF) );
+			ast_time = *gmtime(&t);
 			sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs);
-			fprintf(stdout, "Generating MPD at %s\n", availability_start_time);
-
-			t = main_seg_time.utc_time / 1000;
-			msecs = (u32) ( (main_seg_time.utc_time - t*1000) );
-			ast_time = *gmtime(&t);
-			sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02d.%d", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs);
-			fprintf(stdout, "StartTime: %s - startNumber %d - last number %d\n", availability_start_time, main_seg_time.segnum, seg_time.segnum);
+			fprintf(stdout, "StartTime: %s - startNumber %d - last number %d\n", availability_start_time, main_seg_time.segnum+1, seg_time.segnum+1);
 
 			if (cmddata->time_shift != -1) {
 				int ts, h, m, s;
@@ -335,7 +334,7 @@ static u32 mpd_thread(void *params)
 				snprintf(time_shift, sizeof(time_shift), "timeShiftBufferDepth=\"PT%02dH%02dM%02dS\"", h, m, s);
 			}
 
-			dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, main_seg_time.segnum, cmddata->ast_offset);
+			dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, main_seg_time.segnum+1, cmddata->ast_offset);
 		}
 	} else {
 
@@ -754,7 +753,7 @@ u32 video_encoder_thread(void *params)
 	VideoMuxerType muxer_type = VIDEO_MUXER;
 	VideoThreadParam *thread_params = (VideoThreadParam*)params;
 	u32 sec, frac;
-
+	Bool init_mpd = GF_FALSE;
 	CmdData *in_data = thread_params->in_data;
 	int video_conf_idx = thread_params->video_conf_idx;
 	VideoDataConf *video_data_conf = (VideoDataConf*)gf_list_get(in_data->video_lst, video_conf_idx);
@@ -806,6 +805,12 @@ u32 video_encoder_thread(void *params)
 		return -1;
 	}
 
+	if (in_data->mode == LIVE_MEDIA || in_data->mode == LIVE_CAMERA) {
+		init_mpd = GF_TRUE;
+	}
+
+
+	time_at_segment_start.ntpts = 0;
 	start_utc = gf_net_get_utc();
 	seg_utc = 0;
 	while (1) {
@@ -815,21 +820,45 @@ u32 video_encoder_thread(void *params)
 		time_at_segment_start.segnum = seg_nb;
 		time_at_segment_start.utc_time = gf_net_get_utc();
 		gf_net_get_ntp(&sec, &frac);
+
+#ifndef GPAC_DISABLE_LOG
+		if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_INFO)) {
+			if (time_at_segment_start.ntpts) {
+				u32 ref_sec, ref_frac;
+				Double tr, t;
+				ref_sec = (time_at_segment_start.ntpts>>32) & 0xFFFFFFFFULL;
+				ref_frac = (u32) (time_at_segment_start.ntpts & 0xFFFFFFFFULL);
+				tr = ref_sec * 1000.0;
+				tr += ref_frac*1000.0 /0xFFFFFFFF;
+				t = sec * 1000.0;
+				t += frac*1000.0 /0xFFFFFFFF;
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] NTP diff since last segment start in msec is %f\n", t - tr));
+
+			}
+		}
+#endif
+
 		time_at_segment_start.ntpts = sec;
 		time_at_segment_start.ntpts <<= 32;
 		time_at_segment_start.ntpts |= frac;
 
-		if (dc_video_muxer_open(&out_file, in_data->out_dir, video_data_conf->filename, seg_nb) < 0) {
+		//force writing MPD before any encoding happens (eg don't wait for the end of the first segment)
+		if (init_mpd) {
+			init_mpd = GF_FALSE;
+			dc_message_queue_put(mq, &time_at_segment_start, sizeof(time_at_segment_start));
+		}
+
+		assert(! out_file.segment_started);
+
+		if (dc_video_muxer_open(&out_file, in_data->out_dir, video_data_conf->filename, seg_nb+1) < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output video file.\n"));
 			in_data->exit_signal = 1;
 			return -1;
 		}
 //		fprintf(stdout, "Header size: %d\n", ret);
 		while (1) {
-//			if (seg_frame_max > 0) {
-//				if (frame_nb == seg_frame_max)
-//					break;
-//			}
+			u64 ntpts = gf_net_get_ntp_ts();
+
 			//we have the RAP already encoded, skip coder
 			if (loss_state == 2) {
 				ret = 1;
@@ -851,13 +880,14 @@ u32 video_encoder_thread(void *params)
 
 			if (ret > 0) {
 				int r;
+
 				/*resync at first RAP: flush current broken segment and restart next one on rap*/
 				if ((loss_state==1) && out_file.codec_ctx->coded_frame->key_frame) {
 					loss_state = 2;
 					break;
 				}
 
-				r = dc_video_muxer_write(&out_file, frame_nb, in_data->insert_utc ? time_at_segment_start.ntpts : 0);
+				r = dc_video_muxer_write(&out_file, frame_nb, in_data->insert_utc ? ntpts : 0);
 				if (r < 0) {
 					quit = 1;
 					in_data->exit_signal = 1;
@@ -890,7 +920,6 @@ u32 video_encoder_thread(void *params)
 			int seg_diff;
 			seg_utc = gf_net_get_utc();
 			diff = (int) (seg_utc - start_utc);
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[video_encoder] UTC diff %d - cumulated segment duration %d -> %d\n", diff, (seg_nb+1) * real_video_seg_dur, diff - (seg_nb+1) * real_video_seg_dur));
 
 			//if seg UTC is after next segment UTC (current ends at seg_nb+1, next at seg_nb+2), adjust numbers
 			if (diff > (seg_nb+2) * real_video_seg_dur) {
@@ -901,7 +930,7 @@ u32 video_encoder_thread(void *params)
 
 					//do a rough estimate of losses to adjust timing...
 					if (! in_data->use_source_timing) {
-						out_file.first_dts += out_file.codec_ctx->time_base.den;
+						out_file.first_dts_in_fragment += out_file.codec_ctx->time_base.den;
 					}
 				}
 				//wait for RAP to cut next segment
@@ -1022,7 +1051,7 @@ u32 audio_encoder_thread(void *params)
 	while (1) {
 		frame_nb = 0;
 		quit = 0;
-		if (dc_audio_muxer_open(&audio_output_file, in_data->out_dir, audio_data_conf->filename, seg_nb) < 0) {
+		if (dc_audio_muxer_open(&audio_output_file, in_data->out_dir, audio_data_conf->filename, seg_nb+1) < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open output audio.\n"));
 			in_data->exit_signal = 1;
 			return -1;

@@ -40,8 +40,8 @@ function adaptLayoutToSize() {
     if (l_deb < log_level) {
         alert("[UI] adaptLayoutToSize");
     }
-    display_width = parseInt( gpac.getOption('General', 'LastWidth') );
-    display_height = parseInt( gpac.getOption('General', 'LastHeight') );
+    display_width = parseInt(gpac.get_option('General', 'LastWidth'));
+    display_height = parseInt(gpac.get_option('General', 'LastHeight'));
     alert("display "+display_width+" "+display_height);
     if (!gpac.fullscreen && display_width && display_height) {
      gpac.set_size(display_width, display_height);
@@ -485,8 +485,8 @@ function initialize() {
         alert("[UI] initialize");
     }
     init = false;
-    var display_width = parseInt(gpac.getOption('Widgets', 'LastWMWidth'));
-    var display_height = parseInt(gpac.getOption('Widgets', 'LastWMHeight'));
+    var display_width = parseInt(gpac.get_option('Widgets', 'LastWMWidth'));
+    var display_height = parseInt(gpac.get_option('Widgets', 'LastWMHeight'));
     if (display_width && display_height) {
         gpac.set_size(display_width, display_height);
     }
@@ -834,8 +834,8 @@ function resize() {
     adjustWhereWidgets(false);
     previousWidth = document.documentElement.viewport.width;
     previousHeight = document.documentElement.viewport.height;
-    gpac.setOption("Widgets", "LastWMWidth", '' + previousWidth);
-    gpac.setOption("Widgets", "LastWMHeight", '' + previousHeight);
+    gpac.set_option("Widgets", "LastWMWidth", '' + previousWidth);
+    gpac.set_option("Widgets", "LastWMHeight", '' + previousHeight);
 }
 
 //

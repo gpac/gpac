@@ -1392,6 +1392,12 @@ GF_Err gf_isom_set_storage_mode(GF_ISOFile *movie, u8 storageMode)
 	}
 }
 
+GF_EXPORT 
+void gf_isom_force_64bit_chunk_offset(GF_ISOFile *file, Bool set_on)
+{
+	file->force_co64 = set_on;
+}
+
 
 //update or insert a new edit segment in the track time line. Edits are used to modify
 //the media normal timing. EditTime and EditDuration are expressed in Movie TimeScale
@@ -3917,7 +3923,7 @@ GF_Err gf_isom_make_interleave(GF_ISOFile *file, Double TimeInSec)
 {
 	GF_Err e;
 	if (gf_isom_get_mode(file) < GF_ISOM_OPEN_EDIT) return GF_BAD_PARAM;
-	e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_INTERLEAVED);
+	e = gf_isom_set_storage_mode(file, GF_ISOM_STORE_DRIFT_INTERLEAVED);
 	if (e) return e;
 	return gf_isom_set_interleave_time(file, (u32) (TimeInSec * gf_isom_get_timescale(file)));
 }
@@ -5092,6 +5098,80 @@ GF_Err gf_isom_text_set_display_flags(GF_ISOFile *file, u32 track, u32 desc_inde
 	
 }
 
+
+GF_EXPORT
+GF_Err gf_isom_update_duration(GF_ISOFile *movie)
+{
+	u32 i;
+	u64 maxDur;
+	GF_TrackBox *trak;
+
+	if (!movie || !movie->moov) return GF_BAD_PARAM;
+
+	//if file was open in Write or Edit mode, recompute the duration
+	//the duration of a movie is the MaxDuration of all the tracks...
+
+	maxDur = 0;
+	i=0;
+	while ((trak = (GF_TrackBox *)gf_list_enum(movie->moov->trackList, &i))) {
+		if( (movie->LastError = SetTrackDuration(trak))	) return movie->LastError;
+		if (trak->Header->duration > maxDur)
+			maxDur = trak->Header->duration;
+	}
+	movie->moov->mvhd->duration = maxDur;
+
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track)
+{
+	u32 i;
+	u64 trackDuration;
+	GF_EdtsEntry *ent;
+	GF_EditListBox *elst;
+	GF_Err e;
+	GF_TrackBox *trak;
+
+	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(file, track);
+	if (!trak) return GF_BAD_PARAM;
+
+
+	//the total duration is the media duration: adjust it in case...
+	e = Media_SetDuration(trak);
+	if (e) return e;
+
+	//assert the timeScales are non-NULL
+	if (!trak->moov->mvhd->timeScale || !trak->Media->mediaHeader->timeScale) return GF_ISOM_INVALID_FILE;
+	trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale) / trak->Media->mediaHeader->timeScale;
+
+	//if we have an edit list, the duration is the sum of all the editList
+	//entries' duration (always expressed in MovieTimeScale)
+	if (trak->editBox && trak->editBox->editList) {
+		u64 editListDuration = 0;
+		elst = trak->editBox->editList;
+		i=0;
+		while ((ent = (GF_EdtsEntry*)gf_list_enum(elst->entryList, &i))) {
+			if (ent->segmentDuration > trackDuration)
+				ent->segmentDuration = trackDuration;
+			if ((ent->mediaTime>=0) && ((u64) ent->mediaTime>=trak->Media->mediaHeader->duration)) {
+				ent->mediaTime = trak->Media->mediaHeader->duration;
+			}
+			editListDuration += ent->segmentDuration;
+		}
+		trackDuration = editListDuration;
+	}
+	if (!trackDuration) {
+		trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale) / trak->Media->mediaHeader->timeScale;
+	}
+	trak->Header->duration = trackDuration;
+
+	return GF_OK;
+	
+}
 
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 

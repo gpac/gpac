@@ -58,7 +58,7 @@ typedef struct {
 
 	u32 frame_decoded;
 	Bool pts_init;
-	u64 first_pts, prev_pts, computed_pts, sync_tolerance;
+	u64 first_pts, prev_pts, sync_tolerance;
 	u64 utc_at_init;
 } VideoInputFile;
 

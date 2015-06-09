@@ -158,6 +158,10 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	video_input_file->pix_fmt = codec_ctx->pix_fmt;
 	if (codec_ctx->time_base.num==1) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("AVCTX give frame duration of %d/%d - keeping requested rate %d, but this may result in unexpected behaviour.\n", codec_ctx->time_base.num, codec_ctx->time_base.den, video_data_conf->framerate ));
+		
+		if (codec_ctx->time_base.den==1000000) {
+			codec_ctx->time_base.num = codec_ctx->time_base.den / video_data_conf->framerate;
+		}
 	}
 	else if (video_data_conf->framerate >= 0 && codec_ctx->time_base.num) {
 		video_data_conf->framerate = codec_ctx->time_base.den / codec_ctx->time_base.num;
@@ -311,30 +315,39 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 						video_input_file->pts_init = GF_TRUE;
 						video_input_file->utc_at_init = gf_net_get_utc();
 						video_input_file->first_pts = packet.pts;
-						video_input_file->computed_pts = 0;
+						video_input_file->prev_pts = 0;
 						video_input_data->frame_duration = codec_ctx->time_base.num;
+						
 						video_input_file->sync_tolerance = 9*video_input_data->frame_duration/5;
 						//TODO - check with audio if sync is OK
 					}
-					//perform FPS re-linearisation
+					
+					//move to 0-based PTS
 					pts = packet.pts - video_input_file->first_pts;
-					if (pts - video_input_file->prev_pts > video_input_file->sync_tolerance) {
-						u32 nb_lost=0;
-						while (pts > video_input_file->computed_pts) {
-							video_input_file->computed_pts += video_input_data->frame_duration;
-							nb_lost++;
-						}
 
-						if (nb_lost) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DashCast] Capture lost %d video frames \n", nb_lost));
+					if (video_input_file->prev_pts + video_input_data->frame_duration / 2 > pts) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DashCast] Error in PTS , diff too small (previous "LLU" - current "LLU"\n", video_input_file->prev_pts, pts));
+					} 
+					
+
+					//check for drop frames
+#ifndef GPAC_DISABLE_LOG
+					if (0 && gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_WARNING)) {
+						if (pts - video_input_file->prev_pts > video_input_file->sync_tolerance) {
+							u32 nb_lost=0;
+							while (video_input_file->prev_pts + video_input_data->frame_duration + video_input_file->sync_tolerance < pts) {
+								video_input_file->prev_pts += video_input_data->frame_duration;
+								nb_lost++;
+							}
+							if (nb_lost) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DashCast] Capture lost %d video frames \n", nb_lost));
+							}
 						}
 					}
-
-//					fprintf(stdout, "Capture PTS %g - UTC diff %g - Computed PTS %g\n", (Double) pts / codec_ctx->time_base.den, (Double) (gf_net_get_utc() - video_input_file->utc_at_init) / 1000, (Double) video_input_file->computed_pts / codec_ctx->time_base.den);
+#endif
 
 					video_input_file->prev_pts = pts;
-					video_data_node->vframe->pts = video_input_file->computed_pts;
-					video_input_file->computed_pts += video_input_data->frame_duration;
+					video_data_node->vframe->pts = pts;
 				}
 
 				if (video_data_node->vframe->pts==AV_NOPTS_VALUE) {
@@ -346,7 +359,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 				}
 				video_input_file->frame_decoded++;
 
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms\n", video_data_node->vframe->pts, gf_net_get_utc() ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms\n", video_data_node->vframe->pts, gf_net_get_utc() ));
 
 				// For a decode/encode process we must free this memory.
 				//But if the input is raw and there is no need to decode then

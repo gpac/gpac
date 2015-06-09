@@ -146,16 +146,20 @@ void gf_sg_del(GF_SceneGraph *sg)
 	gf_list_del(sg->listeners_to_add);
 	gf_mx_del(sg->dom_evt_mx);
 #endif
+
 #ifdef GPAC_HAS_SPIDERMONKEY
 	gf_list_del(sg->scripts);
 	sg->scripts = NULL;
 	gf_list_del(sg->objects);
 	sg->objects = NULL;
+#ifndef GPAC_DISABLE_SVG
 	if (sg->svg_js) {
 		void gf_svg_script_context_del(GF_SVGJS *svg_js, GF_SceneGraph *scenegraph);
 		gf_svg_script_context_del(sg->svg_js, sg);
 	}
 #endif
+
+#endif //GPAC_HAS_SPIDERMONKEY
 
 #ifndef GPAC_DISABLE_VRML
 	gf_list_del(sg->Routes);

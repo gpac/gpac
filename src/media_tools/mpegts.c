@@ -1321,7 +1321,7 @@ static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, Bool simple_check)
 
 	while (i<ts->buffer_size) {
 		if (i+188>ts->buffer_size) return ts->buffer_size;
-		if ((ts->buffer[i]==0x47) && (ts->buffer[i+188]==0x47)) 
+		if ((ts->buffer[i]==0x47) && (ts->buffer[i+188]==0x47))
 			break;
 		if ((ts->buffer[i]==0x47) && (ts->buffer[i+192]==0x47)) {
 			ts->prefix_present = 1;
@@ -1633,7 +1633,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 
 			if (t->last_section_number == t->section_number) {
 				u32 table_size;
-				
+
 				status |= GF_M2TS_TABLE_END;
 
 				table_size = 0;
@@ -3048,30 +3048,30 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 		af_desc_not_present = af_extension[1] & 0x10 ? 1 : 0;
 		af_extension += 2;
 		if (!afext_bytes) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension fopund\n", pid));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
 			return;
 		}
 		afext_bytes-=1;
 		if (ltw_flag) {
 			af_extension += 2;
-			if (!afext_bytes<2) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension fopund\n", pid));
+			if (afext_bytes<2) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
 				return;
 			}
 			afext_bytes-=2;
 		}
 		if (pwr_flag) {
 			af_extension += 3;
-			if (!afext_bytes<3) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension fopund\n", pid));
+			if (afext_bytes<3) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
 				return;
 			}
 			afext_bytes-=3;
 		}
 		if (seamless_flag) {
 			af_extension += 3;
-			if (!afext_bytes<3) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension fopund\n", pid));
+			if (afext_bytes<3) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Extension found\n", pid));
 				return;
 			}
 			afext_bytes-=3;
@@ -3129,7 +3129,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 				case GF_M2TS_AFDESC_TIMELINE_DESCRIPTOR:
 					if (ts->ess[pid] && (ts->ess[pid]->flags & GF_M2TS_ES_IS_PES)) {
 						GF_M2TS_PES *pes = (GF_M2TS_PES *) ts->ess[pid];
-				
+
 						if (pes->temi_tc_desc_len)
 							gf_m2ts_store_temi(ts, pes);
 
@@ -3246,7 +3246,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	} else if (hdr.pid == GF_M2TS_PID_CAT) {
 		gf_m2ts_gather_section(ts, ts->cat, NULL, &hdr, data, payload_size);
 		return GF_OK;
-	} 
+	}
 
 	es = ts->ess[hdr.pid];
 	if (paf && paf->PCR_flag) {
@@ -3262,7 +3262,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 						ts->ess[hdr.pid] = (GF_M2TS_ES *) pes;
 						break;
 					}
-					if (pes->flags & GF_M2TS_ES_IS_PES) 
+					if (pes->flags & GF_M2TS_ES_IS_PES)
 						first_pes = pes;
 				}
 				//non found, use the first media stream as a PCR destination - Q: is it legal to have PCR only streams not declared in PMT ?
@@ -3271,25 +3271,50 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				}
 				break;
 			}
-			if (!es) 
+			if (!es)
 				es = ts->ess[hdr.pid];
 		}
 		if (es) {
 			GF_M2TS_PES_PCK pck;
+			s32 prev_diff_in_us;
 			memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
+			prev_diff_in_us = (s32) (es->program->last_pcr_value /27) - (s32) (es->program->before_last_pcr_value/27);
 			es->program->before_last_pcr_value = es->program->last_pcr_value;
 			es->program->before_last_pcr_value_pck_number = es->program->last_pcr_value_pck_number;
 			es->program->last_pcr_value_pck_number = ts->pck_number;
 			es->program->last_pcr_value = paf->PCR_base * 300 + paf->PCR_ext;
 			if (!es->program->last_pcr_value) es->program->last_pcr_value =  1;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PCR found "LLU" ("LLU" at 90kHz) - PCR diff is %d us\n", es->program->last_pcr_value, es->program->last_pcr_value/300, (u32) (es->program->last_pcr_value - es->program->before_last_pcr_value)/27 ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR found "LLU" ("LLU" at 90kHz) - PCR diff is %d us\n", hdr.pid, es->program->last_pcr_value, es->program->last_pcr_value/300, (u32) (es->program->last_pcr_value - es->program->before_last_pcr_value)/27 ));
 
 			pck.PTS = es->program->last_pcr_value;
 			pck.stream = (GF_M2TS_PES *)es;
-			if (paf->discontinuity_indicator)
-				pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
-			if (ts->on_event) {
+			if (paf->discontinuity_indicator) {
+				s32 diff_in_us = (s32) (es->program->last_pcr_value /27) - (s32) (es->program->before_last_pcr_value/27);
+				u32 diff = ABS(diff_in_us - prev_diff_in_us);
+				//ignore PCR discontinuity indicator if PCR found is larger than previously received PCR and diffence between PCR before and after discontinuity indicator is smaller than 50ms
+				if ((diff_in_us > 0) && (diff < 50000)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR discontinuity signaled but diff is small (diff %d us - PCR diff %d vs prev PCR diff %d) - ignore it\n", hdr.pid, diff, diff_in_us, prev_diff_in_us));
+				} else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR discontinuity signaled (diff %d us - PCR diff %d vs prev PCR diff %d)\n", hdr.pid, diff, diff_in_us, prev_diff_in_us));
+					pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
+				}
+			}
+			else if ( (es->program->last_pcr_value < es->program->before_last_pcr_value) ) {
+				//if less than 100 ms before PCR loop at the last PCR, this is a PCR loop
+				if (2576980377300 - es->program->before_last_pcr_value < 270000) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR loop found from "LLU" to "LLU" \n", hdr.pid, es->program->before_last_pcr_value, es->program->last_pcr_value));
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR found "LLU" is less than previously received PCR "LLU" but no discontinuity signaled\n", hdr.pid, es->program->last_pcr_value, es->program->before_last_pcr_value));
+					pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
+				}
+			}
+
+			if (pck.flags & GF_M2TS_PES_PCK_DISCONTINUITY) {
+				gf_m2ts_reset_parsers_for_program(ts, es->program);
+			}
+
+		if (ts->on_event) {
 				gf_m2ts_estimate_duration(ts, es->program->last_pcr_value, hdr.pid);
 				ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
 			}
@@ -3434,13 +3459,14 @@ void gf_m2ts_set_segment_switch(GF_M2TS_Demuxer *ts)
 }
 
 GF_EXPORT
-void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
+void gf_m2ts_reset_parsers_for_program(GF_M2TS_Demuxer *ts, GF_M2TS_Program *prog)
 {
 	u32 i;
-	ts->pck_number = 0;
+
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 		GF_M2TS_ES *es = (GF_M2TS_ES *) ts->ess[i];
 		if (!es) continue;
+		if (prog && (es->program != prog) ) continue;
 
 		if (es->flags & GF_M2TS_ES_IS_SECTION) {
 			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
@@ -3455,6 +3481,8 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 			pes->prev_data = NULL;
 			pes->prev_data_len = 0;
 			pes->PTS = pes->DTS = 0;
+//			pes->prev_PTS = 0;
+//			pes->first_dts = 0;
 			pes->pes_len = pes->pes_end_packet_number = pes->pes_start_packet_number = 0;
 			if (pes->buf) gf_free(pes->buf);
 			pes->buf = NULL;
@@ -3469,9 +3497,15 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 				pes->program->before_last_pcr_value = pes->program->before_last_pcr_value_pck_number = 0;
 			}
 		}
-//		gf_free(es);
-//		ts->ess[i] = NULL;
 	}
+}
+
+GF_EXPORT
+void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
+{
+	gf_m2ts_reset_parsers_for_program(ts, NULL);
+
+	ts->pck_number = 0;
 
 	gf_m2ts_section_filter_reset(ts->cat);
 	gf_m2ts_section_filter_reset(ts->pat);
@@ -3625,6 +3659,26 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 }
 
 GF_EXPORT
+void gf_m2ts_abort_parsing(GF_M2TS_Demuxer *ts, Bool force_reset_pes)
+{
+	u32 i, j, count, count2;
+
+	if (force_reset_pes) {
+		count = gf_list_count(ts->programs);
+		for (i=0; i<count; i++) {
+			GF_M2TS_Program *prog = (GF_M2TS_Program *)gf_list_get(ts->programs, i);
+			count2 = gf_list_count(prog->streams);
+			for (j=0; j<count2; j++) {
+				GF_M2TS_PES *pes = (GF_M2TS_PES *)gf_list_get(prog->streams, j);
+				if (pes)
+					pes->pck_data_len = 0;
+			}
+		}
+	}
+	ts->abort_parsing = GF_TRUE;
+}
+
+GF_EXPORT
 void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts) {
 
 	char* temp_dir;
@@ -3749,7 +3803,12 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 	GF_BitStream *bs = NULL;
 	FILE *f = NULL;
 
-	if (fileName && !strnicmp(fileName, "gmem://", 7)) {
+	//force EOS signaing
+	if (!fileName) {
+		if (!signal_end_of_stream) return GF_BAD_PARAM;
+		ts->pos_in_stream = 0;
+	}
+	else if (fileName && !strnicmp(fileName, "gmem://", 7)) {
 		void *mem_address;
 		u32 remain;
 		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
@@ -3767,6 +3826,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 		size -= remain;
 
 		/*process chunk*/
+		ts->abort_parsing = GF_FALSE;
 		e = gf_m2ts_process_data(ts, mem_address, size);
 
 		if (refresh_type==2)
@@ -3795,6 +3855,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 			}
 		}
 		read = 0;
+		ts->abort_parsing = GF_FALSE;
 		while (1) {
 			u32 to_read = 188000;
 			Bool done = 0;
@@ -3821,7 +3882,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 			}
 			read += size;
 			if (done) break;
-			if (ts->abort_parsing) 
+			if (ts->abort_parsing)
 				break;
 		}
 
@@ -3833,7 +3894,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 
 		gf_bs_del(bs);
 		gf_fclose(f);
-		ts->abort_parsing = 0;
+		ts->abort_parsing = GF_FALSE;
 	}
 
 	if (signal_end_of_stream && !ts->pos_in_stream) {
@@ -3859,6 +3920,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 	GF_M2TS_Demuxer *ts = _p;
 
 	gf_m2ts_reset_parsers(ts);
+	ts->abort_parsing = GF_FALSE;
 
 	//recreate the socket if needed
 	if (ts->socket_url && !ts->sock) {
@@ -4482,7 +4544,7 @@ static void rewrite_pts_dts(unsigned char *ptr, u64 TS)
 	if (_TS < (u64) -ts_shift) _TS = pcr_mod + _TS + ts_shift; \
 	else _TS = _TS + ts_shift; \
 	while (_TS > pcr_mod) _TS -= pcr_mod; \
- 
+
 
 GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes)
 {
@@ -4573,4 +4635,3 @@ GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes)
 }
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
-

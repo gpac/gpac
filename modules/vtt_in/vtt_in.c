@@ -369,21 +369,22 @@ void DeleteVTTInput(void *ifce)
 	gf_free(plug);
 }
 
+#if !defined(GPAC_DISABLE_SVG)
 void *NewVTTDec();
 void DeleteVTTDec(GF_BaseDecoder *plug);
-//GF_JSUserExtension *NewVTTJS();
-//void DeleteVTTJS(GF_BaseInterface *ifce);
+#endif
 
 /*interface create*/
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
+#if !defined(GPAC_DISABLE_SVG)
 	case GF_SCENE_DECODER_INTERFACE:
 		return (GF_BaseInterface *)NewVTTDec();
+#endif
 	case GF_NET_CLIENT_INTERFACE:
 		return (GF_BaseInterface *)NewVTTInput();
-//	case GF_JS_USER_EXT_INTERFACE: return (GF_BaseInterface *)NewVTTJS();
 	default:
 		return NULL;
 	}
@@ -395,15 +396,14 @@ GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
+#if !defined(GPAC_DISABLE_SVG)
 	case GF_SCENE_DECODER_INTERFACE:
 		DeleteVTTDec((GF_BaseDecoder *)ifce);
 		break;
+#endif
 	case GF_NET_CLIENT_INTERFACE:
 		DeleteVTTInput(ifce);
 		break;
-		//case GF_JS_USER_EXT_INTERFACE:
-		//	DeleteVTTJS(ifce);
-		//	break;
 	}
 }
 
@@ -431,10 +431,11 @@ GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
-#if !defined(GPAC_DISABLE_VTT)
-		GF_SCENE_DECODER_INTERFACE,
+#if !defined(GPAC_DISABLE_VTT) 
 		GF_NET_CLIENT_INTERFACE,
-//		GF_JS_USER_EXT_INTERFACE,
+#if !defined(GPAC_DISABLE_SVG)
+		GF_SCENE_DECODER_INTERFACE,
+#endif
 #endif
 		0
 	};
