@@ -46,13 +46,14 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 		switch (base_layer->decoderConfig->objectTypeIndication) {
 		case GPAC_OTI_VIDEO_SHVC:
 		case GPAC_OTI_VIDEO_SVC:
-			odm->scalable_addon = 1;
+			odm->scalable_addon = GF_TRUE;
 			odm->parentscene->root_od->addon->addon_type = GF_ADDON_TYPE_SCALABLE;
 			*e = GF_OK;
 			//fixme - we need a way to signal dependencies accross services!!
 			base_layer->dependsOnESID = 0xFFFF;
 			return NULL;
 		default:
+			odm->additional_addon = GF_TRUE;
 			break;
 		}
 	}
@@ -548,6 +549,9 @@ refetch_AU:
 		src_channels = current_odm->channels;
 		scalable_check = 1;
 		goto browse_scalable;
+	}
+	else if (current_odm->additional_layer_odm && *nextAU) {
+		gf_scene_check_addon_restart(current_odm->additional_layer_odm->parentscene->root_od->addon, (*nextAU)->CTS, (*nextAU)->DTS);
 	}
 
 	if (*nextAU  && (scalable_check==1)) {

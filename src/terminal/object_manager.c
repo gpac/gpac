@@ -1630,6 +1630,9 @@ void gf_odm_play(GF_ObjectManager *odm)
 			if (odm->scalable_addon) {
 				//this is a scalable extension to an object in the parent scene
 				gf_scene_select_scalable_addon(odm->parentscene->root_od->parentscene, odm);
+			} else if (odm->additional_addon) {
+				//this is an additional addon to an object in the parent scene
+				gf_scene_select_additional_addon(odm->parentscene->root_od->parentscene, odm);
 			}
 		}
 

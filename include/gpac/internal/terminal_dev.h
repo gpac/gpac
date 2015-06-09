@@ -1050,11 +1050,15 @@ struct _od_manager
 	GF_AddonMedia *addon;
 	//set to true if this is a scalable addon for an existing object
 	Bool scalable_addon;
+	//set to true if this is a additional addon for an existing object
+	Bool additional_addon;
 
 	//for a regular ODM, this indicates that the current scalable_odm associated
 	struct _od_manager *upper_layer_odm;
 	//for a scalable ODM, this indicates the lower layer odm associated
 	struct _od_manager *lower_layer_odm;
+	//for an additional addon ODM, this indicates the additional layer odm associated
+	struct _od_manager *additional_layer_odm;
 };
 
 GF_ObjectManager *gf_odm_new();
@@ -1204,6 +1208,7 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u32 *timestamp_based);
 s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts);
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
+void gf_scene_select_additional_addon(GF_Scene *scene, GF_ObjectManager *odm);
 /*check if the associated addon has to be restarted, based on the timestamp of the main media (used for scalable addons only). Returns 1 if the addon has been restarted*/
 Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
 
