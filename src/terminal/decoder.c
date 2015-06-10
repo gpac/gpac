@@ -53,7 +53,6 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 			base_layer->dependsOnESID = 0xFFFF;
 			return NULL;
 		default:
-			odm->additional_addon = GF_TRUE;
 			break;
 		}
 	}
@@ -550,9 +549,6 @@ refetch_AU:
 		scalable_check = 1;
 		goto browse_scalable;
 	}
-	else if (current_odm->additional_layer_odm && *nextAU) {
-		gf_scene_check_addon_restart(current_odm->additional_layer_odm->parentscene->root_od->addon, (*nextAU)->CTS, (*nextAU)->DTS);
-	}
 
 	if (*nextAU  && (scalable_check==1)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Warning, could not find enhancement layer for this AU (DTS %d) \n", (*nextAU)->DTS ));
@@ -986,6 +982,13 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	if (!AU || !ch) {
 		/*if the codec is in EOS state, assume we're done*/
 		if (codec->Status == GF_ESM_CODEC_EOS) {
+			/*loop in addon has been detected, restart it*/
+			if (ch && ch->odm->parentscene->root_od->addon && ch->odm->parentscene->root_od->addon->loop_detected) {
+				ch->odm->parentscene->root_od->addon->loop_detected = GF_FALSE;
+				gf_scene_addon_restart(ch->odm->parentscene->root_od->addon);
+				return GF_OK;
+			}
+
 			/*if codec is reordering, try to flush it*/
 			if (codec->is_reordering) {
 				if ( LockCompositionUnit(codec, codec->last_unit_cts+1, &CU, &unit_size) == GF_OUT_OF_MEM)
