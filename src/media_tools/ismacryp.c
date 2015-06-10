@@ -807,7 +807,7 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size) {
 	int size = 17;
 	
 	gf_crypt_get_state(mc, &next_IV, &size);
-	if (next_IV[0]) {
+	if (next_IV[0] || (IV_size == 8)) {
 		increase_counter(&next_IV[1], IV_size);
 		next_IV[0] = 0;
 	}
