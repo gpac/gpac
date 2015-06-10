@@ -263,6 +263,7 @@ typedef struct _s_accumulated_attributes {
 	int version;
 	int compatibility_version; /*compute version required by the M3U8 content*/
 	Bool is_master_playlist;
+	Bool is_media_segment;
 	Bool is_playlist_ended;
 	u64 byte_range_start, byte_range_end;
 	PlaylistElementDRMMethod key_method;
@@ -386,6 +387,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 	if (ret) {
 		M3U8_COMPATIBILITY_VERSION(1);
 		/* #EXTINF:<duration>,<title> */
+		attributes->is_media_segment = GF_TRUE;
 		if (ret[0]) {
 			double_value = strtod(ret[0], &end_ptr);
 			if (end_ptr != ret[0]) {
@@ -690,12 +692,17 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 
 	char *fullURL = currentLine;
 
+	if (attribs->is_master_playlist && attribs->is_media_segment) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Media segment tag MUST NOT appear in a Master Playlist\n"));
+		return GF_BAD_PARAM;
+	}
+
 	if (gf_url_is_local(fullURL)) {
 		fullURL = gf_url_concatenate(baseURL, fullURL);
 		assert(fullURL);
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] declaring sub-playlist %s\n", fullURL));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] declaring %s %s\n", attribs->is_master_playlist ? "sub-playlist" : "media segment", fullURL));
 
 	memset(attribs->key_iv, 0, sizeof(bin128) );
 	iv = gf_htonl(attribs->current_media_seq);
@@ -734,7 +741,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				if (stream->stream_id < MEDIA_TYPE_AUDIO) {
 					/* regular stream (EXT-X-STREAM-INF) */
 					// Two stream are identical only if they have the same URL
-					if (!strcmp(i_playlist_element->url, fullURL)) {
+					if (attribs->is_media_segment || !strcmp(i_playlist_element->url, fullURL)) {
 						curr_playlist = i_playlist_element;
 						break;
 					}
