@@ -1081,7 +1081,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	char *buffer;
 	s32 *sps_track, *sps, *pps;
 	u64 offset;
-	Bool is_splited;
+	Bool is_splitted;
 	Bool *first_sample_track, *is_subseq_pps;
 	u64 *first_DTS_track;
 	s8 sample_offset;
@@ -1113,12 +1113,12 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	}
 	num_pps = gf_list_count(svccfg->pictureParameterSets);
 	if ((gf_isom_get_avc_svc_type(file, track, 1) == GF_ISOM_AVCTYPE_SVC_ONLY) && !gf_isom_has_svc_explicit(file, track))
-		is_splited = 1;
+		is_splitted = 1;
 	else
-		is_splited = 0;
+		is_splitted = 0;
 	num_subseq = gf_isom_has_svc_explicit(file, track) ? num_sps - 1 : num_sps;
 
-	if (is_splited)
+	if (is_splitted)
 	{
 		/*this track has only one SVC ...*/
 		if (num_sps == 1)
@@ -1181,7 +1181,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 		}
 		pps[j] = pps_id;
 	}
-	if (!is_splited)
+	if (!is_splitted)
 		ref_trackID = gf_isom_get_track_id(file, track);
 	else
 	{
@@ -1566,7 +1566,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 	}
 
 	/*if this is a merged file*/
-	if (!is_splited)
+	if (!is_splitted)
 	{
 		/*a normal stream: delete SVC config*/
 		if (!gf_isom_has_svc_explicit(file, track))
@@ -1616,7 +1616,7 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 				goto exit;
 		}
 	}
-	/*if this is as splited file: delete this track*/
+	/*if this is as splitted file: delete this track*/
 	else
 	{
 		gf_isom_remove_track(file, track);

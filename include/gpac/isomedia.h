@@ -1645,7 +1645,7 @@ returns an error if not supported, or GF_EOS when no more packets are available
 currently only RTP reader is supported
 @pck_data, @pck_size: output packet data (must be freed by caller) - contains all info to be sent
 	on the wire, eg for RTP contains the RTP header and the data
-@disposable (optional): indicates that the packet can be droped when late (B-frames & co)
+@disposable (optional): indicates that the packet can be dropped when late (B-frames & co)
 @repeated (optional): indicates this is a repeated packet (same one has already been sent)
 @trans_ts (optional): indicates the transmission time of the packet, expressed in hint timescale, taking into account
 the ts_offset specified in gf_isom_reset_hint_reader. Depending on packets this may not be the same

@@ -243,7 +243,7 @@ GF_Err stbl_AddCTS(GF_SampleTableBox *stbl, u32 sampleNumber, u32 CTSoffset)
 		}
 	}
 
-	/*we will at most add 2 new entries (spliting of an existing one)*/
+	/*we will at most add 2 new entries (splitting of an existing one)*/
 	if (ctts->nb_entries+2>=ctts->alloc_size) {
 		ctts->alloc_size += 2;
 		ctts->entries = gf_realloc(ctts->entries, sizeof(GF_DttsEntry)*ctts->alloc_size);

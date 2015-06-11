@@ -1480,7 +1480,7 @@ void gf_cmx_apply_fixed(GF_ColorMatrix *_this, Fixed *a, Fixed *r, Fixed *g, Fix
 
 
 
-#ifdef WIN32
+#if defined(WIN32) && !defined(__GNUC__)
 # include <intrin.h>
 # define GPAC_HAS_SSE2
 #else

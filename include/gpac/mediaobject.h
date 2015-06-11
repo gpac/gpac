@@ -117,8 +117,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 
 /*release given amount of media data - nb_bytes is used for audio  - drop_mode can take the following values:
 -1: do not drop
-0: do not force drop: the unlocked frame it will be droped based on object time (typically video)
-1: force drop : the unlocked frame will be droped if all bytes are consumed (typically audio)
+0: do not force drop: the unlocked frame it will be dropped based on object time (typically video)
+1: force drop : the unlocked frame will be dropped if all bytes are consumed (typically audio)
 2: the frame will be stated as a discraded frame
 */
 void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode);

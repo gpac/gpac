@@ -348,7 +348,6 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	u8 isEdited;
 	GF_SampleEntryBox *entry;
 
-
 	if (!mdia || !mdia->information->sampleTable) return GF_BAD_PARAM;
 	if (!mdia->information->sampleTable->SampleSize)
 		return GF_ISOM_INVALID_FILE;
@@ -450,7 +449,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		e = Media_RewriteODFrame(mdia, *samp);
 		if (e) return e;
 	}
-	/*FIXME: we don NOT rewrite sample if we have a encrypted track*/
+	/*FIXME: we do NOT rewrite sample if we have a encrypted track*/
 	else if (gf_isom_is_nalu_based_entry(mdia, entry) &&
 	         !gf_isom_is_track_encrypted(mdia->mediaTrack->moov->mov, gf_isom_get_tracknum_from_id(mdia->mediaTrack->moov, mdia->mediaTrack->Header->trackID))
 	        ) {

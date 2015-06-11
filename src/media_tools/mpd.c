@@ -1184,7 +1184,10 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	}
 
 	is_end = !pl->playlist_needs_refresh;
-	assert(the_pe);
+	if (!the_pe) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] The M3U8 playlist is not correct.\n"));
+		return GF_BAD_PARAM;
+	}
 
 	update_interval = 0;
 	/*update interval is set to the duration of the last media file with rules defined in http live streaming RFC section 6.3.4*/
@@ -1419,7 +1422,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			if (pe->element_type == TYPE_MEDIA) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 Media\n"));
 			} else if (pe->load_error) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error loading playlist elemnt %s: %s\n", pe->url, gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error loading playlist element %s: %s\n", pe->url, gf_error_to_string(e) ));
 			} else if (pe->element_type != TYPE_PLAYLIST) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 unknown type for %s\n", pe->url));
 			}
@@ -1446,7 +1449,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 try_next_segment:
 #endif
-            k++;
+			k++;
 			elt = gf_list_get(pe->element.playlist.elements, k);
 			if (!elt)
 				break;
@@ -1848,7 +1851,7 @@ static u32 gf_mpd_print_common_representation(FILE *out, GF_MPD_CommonAttributes
 	if (ca->width) fprintf(out, " width=\"%d\"", ca->width);
 	if (ca->height) fprintf(out, " height=\"%d\"", ca->height);
 	if (ca->sar) fprintf(out, " sar=\"%d:%d\"", ca->sar->num, ca->sar->den);
-	if (ca->framerate) fprintf(out, " frameRate=\"%d:%d\"", ca->framerate->num, ca->framerate->den);
+	if (ca->framerate) fprintf(out, " frameRate=\"%d/%d\"", ca->framerate->num, ca->framerate->den);
 	if (ca->samplerate) fprintf(out, " audioSamplingRate=\"%d\"", ca->samplerate);
 	if (ca->mime_type) fprintf(out, " mimeType=\"%s\"", ca->mime_type);
 	if (ca->segmentProfiles) fprintf(out, " segmentProfiles=\"%s\"", ca->segmentProfiles);

@@ -3982,6 +3982,8 @@
 					CoreFoundation,
 					"-weak_framework",
 					QuartzCore,
+					"-weak_framework",
+					CoreGraphics,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -4041,6 +4043,8 @@
 					CoreFoundation,
 					"-weak_framework",
 					QuartzCore,
+					"-weak_framework",
+					CoreGraphics,
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

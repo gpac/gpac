@@ -193,6 +193,10 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 		pkt.size = video_output_file->vbuf_size;
 		pkt.pts = pkt.dts = video_data_node->vframe->pkt_dts = video_data_node->vframe->pkt_pts = video_data_node->vframe->pts;
 		video_data_node->vframe->pict_type = 0;
+		video_data_node->vframe->width = video_codec_ctx->width;
+		video_data_node->vframe->height = video_codec_ctx->height;
+		video_data_node->vframe->format = video_codec_ctx->pix_fmt;
+
 
 #ifdef LIBAV_ENCODE_OLD
 		if (!video_output_file->segment_started)

@@ -1835,6 +1835,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 GF_EXPORT
 void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 {
+	Bool skip_notif = GF_FALSE;
 	/*for now only allowed when no scene info*/
 	if (!scene->is_dynamic_scene) return;
 
@@ -1876,6 +1877,17 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 			if (!com.par.width && !com.par.height && ((w<width) || (h<height)) ) {
 				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
 			} else {
+				GF_DOM_Event devt;
+				memset(&devt, 0, sizeof(GF_DOM_Event));
+				devt.type = GF_EVENT_SCENE_SIZE;
+				devt.screen_rect.width = INT2FIX(width);
+				devt.screen_rect.height = INT2FIX(height);
+				devt.key_flags = scene->is_dynamic_scene;
+
+				gf_scene_notify_event(scene, GF_EVENT_SCENE_SIZE, NULL, &devt, GF_OK, GF_FALSE);
+				
+				skip_notif = GF_TRUE;
+
 				width = w;
 				height = h;
 			}
@@ -1896,6 +1908,8 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	IS_UpdateVideoPos(scene);
 #endif
 
+	if (skip_notif) return;
+	
 	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK, GF_FALSE);
 }
 

@@ -565,7 +565,6 @@ GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode)
 {
 	GF_FileMappingDataMap *tmp;
 	HANDLE fileH, fileMapH;
-	DWORD err;
 #ifdef _WIN32_WCE
 	unsigned short sWPath[MAX_PATH];
 #endif
@@ -617,7 +616,6 @@ GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode)
 		CloseHandle(fileH);
 		gf_free(tmp->name);
 		gf_free(tmp);
-		err = GetLastError();
 		return NULL;
 	}
 
@@ -651,11 +649,8 @@ void gf_isom_fmo_del(GF_FileMappingDataMap *ptr)
 
 u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, char *buffer, u32 bufferLength, u64 fileOffset)
 {
-	u32 size;
-
 	//can we seek till that point ???
 	if (fileOffset > ptr->file_size) return 0;
-	size = (u32) fileOffset;
 
 	//we do only read operations, so trivial
 	memcpy(buffer, ptr->byte_map + fileOffset, bufferLength);

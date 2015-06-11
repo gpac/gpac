@@ -701,7 +701,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		((GF_M2TS_PES_PCK *) param)->stream->program->first_dts = 1;
 
 		if (discontinuity) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] PCR discontinuity - switching from old STB "LLD" to new one "LLD"\n", m2ts->pcr_last, ((GF_M2TS_PES_PCK *) param)->PTS));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] PCR discontinuity - switching from old STB "LLD" to new one "LLD"\n", m2ts->pcr_last, ((GF_M2TS_PES_PCK *) param)->PTS));
 			if (m2ts->pcr_last) {
 				m2ts->pcr_last = ((GF_M2TS_PES_PCK *) param)->PTS;
 				m2ts->stb_at_last_pcr = gf_sys_clock();
@@ -727,7 +727,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			if (m2ts->pcr_last) {
 				s32 diff;
 				if (pcr < m2ts->pcr_last) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] PCR "LLU" less than previous PCR "LLU"\n", ((GF_M2TS_PES_PCK *) param)->PTS, m2ts->pcr_last));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] PCR "LLU" less than previous PCR "LLU"\n", ((GF_M2TS_PES_PCK *) param)->PTS, m2ts->pcr_last));
 					m2ts->pcr_last = pcr;
 					m2ts->stb_at_last_pcr = gf_sys_clock();
 					diff = 0;

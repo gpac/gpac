@@ -38,7 +38,7 @@ extern "C" {
 /*!
  * All the possible Mime-types for MPD files
  */
-static const char * GF_DASH_MPD_MIME_TYPES[] = { "application/dash+xml", "video/vnd.3gpp.mpd", "audio/vnd.3gpp.mpd", NULL };
+static const char * GF_DASH_MPD_MIME_TYPES[] = { "application/dash+xml", "video/vnd.3gpp.mpd", "audio/vnd.3gpp.mpd", "video/vnd.mpeg.dash.mpd", "audio/vnd.mpeg.dash.mpd", NULL };
 
 /*!
  * All the possible Mime-types for M3U8 files
@@ -68,7 +68,7 @@ typedef enum
 
 	/*position in timeshift buffer has changed (eg, paused)*/
 	GF_DASH_EVENT_TIMESHIFT_UPDATE,
-	/*event sent when timeshift buffer is overflown - the group_idx param contains the max number of droped segments of all representations droped by the client, or -1 if play pos is ahead of live */
+	/*event sent when timeshift buffer is overflown - the group_idx param contains the max number of dropped segments of all representations droped by the client, or -1 if play pos is ahead of live */
 	GF_DASH_EVENT_TIMESHIFT_OVERFLOW,
 } GF_DASHEventType;
 
@@ -284,7 +284,7 @@ GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, 
 Bool gf_dash_in_last_period(GF_DashClient *dash);
 /*return value:
 	1 if the period switching has been requested (due to seeking),
-	2 if the switching is in progress (all groups will soon be destroyed and plyback will be stoped and restarted)
+	2 if the switching is in progress (all groups will soon be destroyed and plyback will be stopped and restarted)
 	0 if no switching is requested
 */
 u32 gf_dash_get_period_switch_status(GF_DashClient *dash);
