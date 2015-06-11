@@ -735,7 +735,7 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 	gray_record_cell( raster );
 
 	/*store odd/even rule*/
-	zero_non_zero_rule = (outline->flags & GF_PATH_FILL_ZERO_NONZERO) ? 1 : 0;
+	zero_non_zero_rule = (outline->flags & GF_PATH_FILL_ZERO_NONZERO) ? GF_TRUE : GF_FALSE;
 
 	/* sort each scanline and render it*/
 	for (i=0; i<size_y; i++) {

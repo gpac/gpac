@@ -39,7 +39,8 @@ GF_Err RTSP_UnpackURL(char *sURL, char *Server, u16 *Port, char *Service, Bool *
 
 	strcpy(Server, "");
 	strcpy(Service, "");
-	*Port = *useTCP =0;
+	*Port = 0;
+	*useTCP = GF_FALSE;
 
 	if (!strchr(sURL, ':')) return GF_BAD_PARAM;
 
@@ -67,7 +68,7 @@ found:
 	retest = strstr(test, "/");
 	if (!retest) return GF_URL_ERROR;
 
-	if (!stricmp(schema, "rtsp")) *useTCP = 1;
+	if (!stricmp(schema, "rtsp")) *useTCP = GF_TRUE;
 
 	//check for port
 	retest = strrchr(test, ':');
@@ -86,12 +87,12 @@ found:
 		*Port = atoi(text);
 	}
 	//get the server name
-	is_ipv6 = 0;
+	is_ipv6 = GF_FALSE;
 	len = (u32) strlen(test);
 	i=0;
 	while (i<len) {
-		if (test[i]=='[') is_ipv6 = 1;
-		else if (test[i]==']') is_ipv6 = 0;
+		if (test[i]=='[') is_ipv6 = GF_TRUE;
+		else if (test[i]==']') is_ipv6 = GF_FALSE;
 		if ( (test[i] == '/') || (!is_ipv6 && (test[i] == ':')) ) break;
 		text[i] = test[i];
 		i += 1;
@@ -131,14 +132,14 @@ GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort)
 	//HTTP tunnel
 	if (sess->Port == 80) {
 		sess->ConnectionType = GF_SOCK_TYPE_TCP;
-		sess->HasTunnel = 1;
+		sess->HasTunnel = GF_TRUE;
 	}
 
 	sess->Server = gf_strdup(server);
 	sess->Service = gf_strdup(service);
 	sess->mx = gf_mx_new("RTSPSession");
 	sess->TCPChannels = gf_list_new();
-	gf_rtsp_session_reset(sess, 0);
+	gf_rtsp_session_reset(sess, GF_FALSE);
 	return sess;
 }
 
@@ -206,7 +207,7 @@ void gf_rtsp_session_del(GF_RTSPSession *sess)
 {
 	if (!sess) return;
 
-	gf_rtsp_session_reset(sess, 0);
+	gf_rtsp_session_reset(sess, GF_FALSE);
 
 	if (sess->connection) gf_sk_del(sess->connection);
 	if (sess->http) gf_sk_del(sess->http);
@@ -306,7 +307,7 @@ GF_Err gf_rtsp_check_connection(GF_RTSPSession *sess)
 	e = gf_sk_connect(sess->connection, sess->Server, sess->Port, sess->MobileIP);
 	if (e) return e;
 
-	if (sess->SockBufferSize) gf_sk_set_buffer_size(sess->connection, 0, sess->SockBufferSize);
+	if (sess->SockBufferSize) gf_sk_set_buffer_size(sess->connection, GF_FALSE, sess->SockBufferSize);
 
 	if (!sess->http && sess->HasTunnel) {
 		e = gf_rtsp_http_tunnel_start(sess, "toto is the king of RTSP");
@@ -383,12 +384,12 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 		InterID = buffer[1];
 		paySize = ((buffer[2] << 8) & 0xFF00) | (buffer[3] & 0xFF);
 		/*this may be NULL (data fetched after a teardown) - resync and return*/
-		ch = GetTCPChannel(sess, InterID, InterID, 0);
+		ch = GetTCPChannel(sess, InterID, InterID, GF_FALSE);
 
 		/*then check wether this is a full packet or a split*/
 		if (paySize <= Size-4) {
 			if (ch) {
-				IsRTCP = (ch->rtcpID == InterID);
+				IsRTCP = (ch->rtcpID == InterID) ? GF_TRUE : GF_FALSE;
 				sess->RTSP_SignalData(sess, ch->ch_ptr, buffer+4, paySize, IsRTCP);
 			}
 			sess->CurrentPos += paySize+4;
@@ -397,9 +398,9 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 			/*missed end of pck ?*/
 			if (sess->payloadSize) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP over RTSP] Missed end of packet (%d bytes) in stream %d\n", sess->payloadSize - sess->pck_start, sess->InterID));
-				ch = GetTCPChannel(sess, sess->InterID, sess->InterID, 0);
+				ch = GetTCPChannel(sess, sess->InterID, sess->InterID, GF_FALSE);
 				if (ch) {
-					IsRTCP = (ch->rtcpID == sess->InterID);
+					IsRTCP = (ch->rtcpID == sess->InterID) ? GF_TRUE : GF_FALSE;
 					sess->RTSP_SignalData(sess, ch->ch_ptr, sess->rtsp_pck_buf, sess->payloadSize, IsRTCP);
 				}
 			}
@@ -422,9 +423,9 @@ GF_Err gf_rtsp_set_deinterleave(GF_RTSPSession *sess)
 		res = sess->payloadSize - sess->pck_start;
 		memcpy(sess->rtsp_pck_buf + sess->pck_start, buffer, res);
 		//flush - same as above, don't complain if channel not found
-		ch = GetTCPChannel(sess, sess->InterID, sess->InterID, 0);
+		ch = GetTCPChannel(sess, sess->InterID, sess->InterID, GF_FALSE);
 		if (ch) {
-			IsRTCP = (ch->rtcpID == sess->InterID);
+			IsRTCP = (ch->rtcpID == sess->InterID) ? GF_TRUE : GF_FALSE;
 			sess->RTSP_SignalData(sess, ch->ch_ptr, sess->rtsp_pck_buf, sess->payloadSize, IsRTCP);
 		}
 		sess->payloadSize = 0;
@@ -496,7 +497,7 @@ u32 gf_rtsp_unregister_interleave(GF_RTSPSession *sess, u8 LowInterID)
 	GF_TCPChan *ptr;
 
 	gf_mx_p(sess->mx);
-	ptr = GetTCPChannel(sess, LowInterID, LowInterID, 1);
+	ptr = GetTCPChannel(sess, LowInterID, LowInterID, GF_TRUE);
 	if (ptr) gf_free(ptr);
 	gf_mx_v(sess->mx);
 	return gf_list_count(sess->TCPChannels);
@@ -511,7 +512,7 @@ GF_Err gf_rtsp_register_interleave(GF_RTSPSession *sess, void *the_ch, u8 LowInt
 
 	gf_mx_p(sess->mx);
 	//do NOT register twice
-	ptr = GetTCPChannel(sess, LowInterID, HighInterID, 0);
+	ptr = GetTCPChannel(sess, LowInterID, HighInterID, GF_FALSE);
 	if (!ptr) {
 		ptr = (GF_TCPChan *)gf_malloc(sizeof(GF_TCPChan));
 		ptr->ch_ptr = the_ch;
@@ -558,7 +559,7 @@ GF_Err gf_rtsp_set_buffer_size(GF_RTSPSession *sess, u32 BufferSize)
 }
 
 
-static Bool HTTP_RandInit = 1;
+static Bool HTTP_RandInit = GF_TRUE;
 
 #define HTTP_WAIT_SEC		30
 
@@ -570,8 +571,8 @@ void RTSP_GenerateHTTPCookie(GF_RTSPSession *sess)
 	u32 i, num, temp;
 
 	if (HTTP_RandInit) {
-		gf_rand_init(0);
-		HTTP_RandInit = 0;
+		gf_rand_init(GF_FALSE);
+		HTTP_RandInit = GF_FALSE;
 	}
 	if (!sess->CookieRadLen) {
 		strcpy(sess->HTTP_Cookie, "MPEG4M4");
@@ -671,12 +672,12 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener)
 		gf_sk_del(new_conn);
 		return NULL;
 	}
-	e = gf_sk_set_block_mode(new_conn, 1);
+	e = gf_sk_set_block_mode(new_conn, GF_TRUE);
 	if (e) {
 		gf_sk_del(new_conn);
 		return NULL;
 	}
-	e = gf_sk_server_mode(new_conn, 1);
+	e = gf_sk_server_mode(new_conn, GF_TRUE);
 	if (e) {
 		gf_sk_del(new_conn);
 		return NULL;
@@ -732,7 +733,7 @@ char *gf_rtsp_generate_session_id(GF_RTSPSession *sess)
 
 	if (!SessionID_RandInit) {
 		SessionID_RandInit = 1;
-		gf_rand_init(0);
+		gf_rand_init(GF_FALSE);
 	}
 	one = gf_rand();
 	res = one;

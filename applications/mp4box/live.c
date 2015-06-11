@@ -73,7 +73,7 @@ void PrintStreamerUsage()
 
 static void on_logs(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
-	FILE *logs = cbk;
+	FILE *logs = (FILE*)cbk;
 	vfprintf(logs, fmt, list);
 	fflush(logs);
 }
@@ -89,9 +89,9 @@ int stream_file_rtp(int argc, char **argv)
 	FILE *logfile=NULL;
 	u16 port = 7000;
 	u32 ttl = 1;
-	Bool loop = 1;
-	Bool mem_track = 0;
-	Bool force_mpeg4 = 0;
+	Bool loop = GF_TRUE;
+	Bool mem_track = GF_FALSE;
+	Bool force_mpeg4 = GF_FALSE;
 	u32 path_mtu = 1450;
 	u32 i;
 
@@ -105,15 +105,15 @@ int stream_file_rtp(int argc, char **argv)
 			}
 			inName = arg;
 		}
-		else if (!stricmp(arg, "-noloop")) loop = 0;
-		else if (!stricmp(arg, "-mpeg4")) force_mpeg4 = 1;
+		else if (!stricmp(arg, "-noloop")) loop = GF_FALSE;
+		else if (!stricmp(arg, "-mpeg4")) force_mpeg4 = GF_TRUE;
 		else if (!strnicmp(arg, "-port=", 6)) port = atoi(arg+6);
 		else if (!strnicmp(arg, "-mtu=", 5)) path_mtu = atoi(arg+5);
 		else if (!strnicmp(arg, "-dst=", 5)) ip_dest = arg+5;
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
 		else if (!strnicmp(arg, "-ifce=", 6)) ifce_addr = arg+6;
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_file = arg+5;
-		else if (!stricmp(arg, "-mem-track")) mem_track = 1;
+		else if (!stricmp(arg, "-mem-track")) mem_track = GF_TRUE;
 		else if (!strnicmp(arg, "-logs=", 6)) logs = arg+6;
 		else if (!strnicmp(arg, "-lf=", 4)) logfile = gf_fopen(arg+4, "wt");
 	}
@@ -232,7 +232,7 @@ RTPChannel *next_carousel(LiveSession *sess, u32 *timeout)
 	time = (u32) -1;
 	count = gf_list_count(sess->streams);
 	for (i=0; i<count; i++) {
-		RTPChannel *ch = gf_list_get(sess->streams, i);
+		RTPChannel *ch = (RTPChannel*)gf_list_get(sess->streams, i);
 		if (!ch->carousel_period) continue;
 		if (!ch->carousel_size) continue;
 
@@ -262,7 +262,7 @@ static void live_session_callback(void *calling_object, u16 ESID, char *data, u3
 	RTPChannel *rtpch;
 	u32 i=0;
 
-	while ( (rtpch = gf_list_enum(livesess->streams, &i))) {
+	while ( (rtpch = (RTPChannel*)gf_list_enum(livesess->streams, &i))) {
 		if (rtpch->ESID == ESID) {
 
 			/*store carousel data*/

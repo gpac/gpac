@@ -872,14 +872,14 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 
 	assert(sys_init);
 
-	if (!rti) return 0;
+	if (!rti) return GF_FALSE;
 
 	proc_idle_time = proc_k_u_time = process_k_u_time = 0;
 	
 	entry_time = gf_sys_clock();
 	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
 		memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
-		return 0;
+		return GF_FALSE;
 	}
 
 	if (flags & GF_RTI_SYSTEM_MEMORY_ONLY) {
@@ -891,7 +891,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #ifdef GPAC_MEMORY_TRACKING
 		rti->gpac_memory = (u64) gpac_allocated_memory;
 #endif
-		return 1;
+		return GF_TRUE;
 	}
 
 #if defined (_WIN32_WCE)
@@ -969,7 +969,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		PROCESSENTRY32 pentry;
 		/*get a snapshot of all running threads*/
 		hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-		if (!hSnapShot) return 0;
+		if (!hSnapShot) return GF_FALSE;
 		pentry.dwSize = sizeof(PROCESSENTRY32);
 		if (Process32First(hSnapShot, &pentry)) {
 			do {
@@ -997,7 +997,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 			process_k_u_time = user + kernel;
 		}
 		if (procH) CloseHandle(procH);
-		if (!process_k_u_time) return 0;
+		if (!process_k_u_time) return GF_FALSE;
 	}
 	process_k_u_time /= 10;
 
@@ -1099,7 +1099,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	if (!the_rti.gpac_memory) the_rti.gpac_memory = the_rti.process_memory;
 
 	memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
-	return 1;
+	return GF_TRUE;
 }
 
 
@@ -1448,13 +1448,13 @@ Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32*level, u32 *ba
 #elif defined(WIN32)
 	SYSTEM_POWER_STATUS sps;
 	GetSystemPowerStatus(&sps);
-	if (onBattery) *onBattery = sps.ACLineStatus ? 0 : 1;
+	if (onBattery) *onBattery = sps.ACLineStatus ? GF_FALSE : GF_TRUE;
 	if (onCharge) *onCharge = (sps.BatteryFlag & BATTERY_FLAG_CHARGING) ? 1 : 0;
 	if (level) *level = sps.BatteryLifePercent;
 	if (batteryLifeTime) *batteryLifeTime = sps.BatteryLifeTime;
 	if (batteryFullLifeTime) *batteryFullLifeTime = sps.BatteryFullLifeTime;
 #endif
-	return 1;
+	return GF_TRUE;
 }
 
 
@@ -1813,7 +1813,7 @@ u64 gf_net_parse_date(const char *val)
 	u32 year, month, day, h, m, s, ms;
 	s32 oh, om;
 	Float secs;
-	Bool neg_time_zone = 0;
+	Bool neg_time_zone = GF_FALSE;
 
 #ifdef _WIN32_WCE
 	SYSTEMTIME syst;
@@ -1831,7 +1831,7 @@ u64 gf_net_parse_date(const char *val)
 	if (sscanf(val, "%d-%d-%dT%d:%d:%gZ", &year, &month, &day, &h, &m, &secs) == 6) {
 	}
 	else if (sscanf(val, "%d-%d-%dT%d:%d:%g-%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
-		neg_time_zone = 1;
+		neg_time_zone = GF_TRUE;
 	}
 	else if (sscanf(val, "%d-%d-%dT%d:%d:%g+%d:%d", &year, &month, &day, &h, &m, &secs, &oh, &om) == 8) {
 	}

@@ -47,7 +47,7 @@ void camera_invalidate(GF_Camera *cam)
 {
 	/*forces recompute of default viewpoint*/
 	cam->had_viewpoint = 2;
-	cam->had_nav_info = 1;
+	cam->had_nav_info = GF_TRUE;
 	cam->flags = CAM_IS_DIRTY;
 	cam->navigate_mode = GF_NAVIGATE_NONE;
 }
@@ -192,7 +192,7 @@ SFRotation camera_get_orientation(SFVec3f pos, SFVec3f target, SFVec3f up)
 
 void camera_set_2d(GF_Camera *cam)
 {
-	cam->is_3D = 0;
+	cam->is_3D = GF_FALSE;
 #ifdef FORCE_CAMERA_3D
 	cam->position.x = cam->position.y = 0;
 	cam->position.z = INT2FIX(NEAR_PLANE_2D);
@@ -490,7 +490,7 @@ void camera_jump(GF_Camera *cam)
 	if (cam->jumping) return;
 	cam->anim_start = 0;
 	cam->anim_len = 1000;
-	cam->jumping = 1;
+	cam->jumping = GF_TRUE;
 	cam->flags |= CAM_IS_DIRTY;
 }
 
@@ -499,13 +499,13 @@ Bool camera_animate(GF_Camera *cam)
 {
 	u32 now;
 	Fixed frac;
-	if (!cam->anim_len) return 0;
+	if (!cam->anim_len) return GF_FALSE;
 
 	if (cam->jumping) {
 		if (!cam->anim_start) {
 			cam->anim_start = gf_sys_clock();
 			cam->dheight = 0;
-			return 1;
+			return GF_TRUE;
 		}
 		cam->position.y -= cam->dheight;
 		cam->target.y -= cam->dheight;
@@ -513,9 +513,9 @@ Bool camera_animate(GF_Camera *cam)
 		now = gf_sys_clock() - cam->anim_start;
 		if (now > cam->anim_len) {
 			cam->anim_len = 0;
-			cam->jumping = 0;
+			cam->jumping = GF_FALSE;
 			cam->flags |= CAM_IS_DIRTY;
-			return 1;
+			return GF_TRUE;
 		}
 		frac = FLT2FIX ( ((Float) now) / cam->anim_len);
 		if (frac>FIX_ONE / 2) frac = FIX_ONE - frac;
@@ -523,7 +523,7 @@ Bool camera_animate(GF_Camera *cam)
 		cam->position.y += cam->dheight;
 		cam->target.y += cam->dheight;
 		cam->flags |= CAM_IS_DIRTY;
-		return 1;
+		return GF_TRUE;
 	}
 
 	if (!cam->anim_start) {
@@ -553,7 +553,7 @@ Bool camera_animate(GF_Camera *cam)
 				cam->vp_fov = cam->fieldOfView;
 				cam->vp_orientation = camera_get_orientation(cam->position, cam->target, cam->up);
 			}
-			return 1;
+			return GF_TRUE;
 		} else {
 			frac = FLT2FIX( ((Float) now) / cam->anim_len);
 		}
@@ -574,7 +574,7 @@ Bool camera_animate(GF_Camera *cam)
 		cam->end_zoom = frac + gf_mulfix((FIX_ONE-frac), cam->start_zoom);
 		camera_set_vectors(cam, pos, rot, fov);
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 

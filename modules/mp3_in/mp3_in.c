@@ -89,23 +89,23 @@ static Bool MP3_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	if (!plug || !url)
-		return 0;
+		return GF_FALSE;
 	sExt = strrchr(url, '.');
-	if (!strnicmp(url, "rtsp://", 7)) return 0;
+	if (!strnicmp(url, "rtsp://", 7)) return GF_FALSE;
 	{
 		u32 i;
 		for (i =0 ; MP3_MIME_TYPES[i] ; i++)
 			if (gf_service_check_mime_register(plug, MP3_MIME_TYPES[i], MP3_EXTENSIONS, MP3_DESC, sExt))
-				return 1;
+				return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 static Bool mp3_is_local(const char *url)
 {
-	if (!strnicmp(url, "file://", 7)) return 1;
-	if (strstr(url, "://")) return 0;
-	return 1;
+	if (!strnicmp(url, "file://", 7)) return GF_TRUE;
+	if (strstr(url, "://")) return GF_FALSE;
+	return GF_TRUE;
 }
 
 
@@ -127,7 +127,7 @@ static void mp3_setup_object(MP3Reader *read)
 		od->objectDescriptorID = 1;
 		esd = MP3_GetESD(read);
 		gf_list_add(od->ESDescriptors, esd);
-		gf_service_declare_media(read->service, (GF_Descriptor*)od, 0);
+		gf_service_declare_media(read->service, (GF_Descriptor*)od, GF_FALSE);
 	}
 }
 
@@ -141,7 +141,7 @@ static Bool MP3_ConfigureFromFile(MP3Reader *read, u32 *minSizeToRead)
 	unsigned char id3v2[10];
 	u32 hdr, size;
 	u64 pos;
-	if (!read->stream) return 0;
+	if (!read->stream) return GF_FALSE;
 	/* ID3VVFFFFSIZE = 13bytes
 	     * ID3 string
 	 * VV = Version
@@ -161,14 +161,14 @@ static Bool MP3_ConfigureFromFile(MP3Reader *read, u32 *minSizeToRead)
 	}
 	gf_fseek(read->stream, 0, SEEK_SET);
 	hdr = gf_mp3_get_next_header(read->stream);
-	if (!hdr) return 0;
+	if (!hdr) return GF_FALSE;
 	read->sample_rate = gf_mp3_sampling_rate(hdr);
 	read->oti = gf_mp3_object_type_indication(hdr);
 	gf_fseek(read->stream, 0, SEEK_SET);
-	if (!read->oti) return 0;
+	if (!read->oti) return GF_FALSE;
 
 	/*we don't have the full file...*/
-	if (read->is_remote) return	1;
+	if (read->is_remote) return	GF_TRUE;
 
 //	return 1;
 
@@ -183,7 +183,7 @@ static Bool MP3_ConfigureFromFile(MP3Reader *read, u32 *minSizeToRead)
 		gf_fseek(read->stream, pos + size - 4, SEEK_SET);
 	}
 	gf_fseek(read->stream, 0, SEEK_SET);
-	return 1;
+	return GF_TRUE;
 }
 
 static void MP3_RegulateDataRate(MP3Reader *read)
@@ -210,7 +210,7 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 
 		read->sample_rate = gf_mp3_sampling_rate(hdr);
 		read->oti = gf_mp3_object_type_indication(hdr);
-		read->is_live = 1;
+		read->is_live = GF_TRUE;
 		memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 
 		read->needs_connection = 0;
@@ -219,7 +219,7 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 	}
 	if (!data_size) return;
 
-	read->data = gf_realloc(read->data, sizeof(char)*(read->data_size+data_size) );
+	read->data = (char*)gf_realloc(read->data, sizeof(char)*(read->data_size+data_size) );
 	memcpy(read->data + read->data_size, data, sizeof(char)*data_size);
 	read->data_size += data_size;
 	if (!read->ch) return;
@@ -235,7 +235,7 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 
 		/*not enough data, copy over*/
 		if (!hdr || (pos+size>data_size)) {
-			char *d = gf_malloc(sizeof(char) * data_size);
+			char *d = (char*)gf_malloc(sizeof(char) * data_size);
 			memcpy(d, data, sizeof(char) * data_size);
 			gf_free(read->data);
 			read->data = d;
@@ -268,7 +268,7 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	/*done*/
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 		if (read->stream) {
-			read->is_remote = 0;
+			read->is_remote = GF_FALSE;
 			e = GF_EOS;
 		} else {
 			return;
@@ -319,12 +319,12 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	if (e >= GF_OK) {
 		if (read->needs_connection) {
 			gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, NULL);
-			if (!total_size) read->is_live = 1;
+			if (!total_size) read->is_live = GF_TRUE;
 		}
 		/*looks like a live stream*/
 		if (read->is_live) {
 			if (read->liveDataCopySize < param->size) {
-				read->liveDataCopy = gf_realloc(read->liveDataCopy, param->size);
+				read->liveDataCopy = (char*)gf_realloc(read->liveDataCopy, param->size);
 			}
 			memcpy(read->liveDataCopy, param->data, param->size);
 			if (!e) MP3_OnLiveData(read, read->liveDataCopy, param->size);
@@ -342,7 +342,7 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			else {
 				u32 minSizeToRead = 0;
 				/*if full file at once (in cache) parse duration*/
-				if (e==GF_EOS) read->is_remote = 0;
+				if (e==GF_EOS) read->is_remote = GF_FALSE;
 				e = GF_OK;
 				/*not enough data*/
 				if (!MP3_ConfigureFromFile(read, &minSizeToRead)) {
@@ -392,7 +392,7 @@ static GF_Err MP3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	u32 minSizeToRead = 0;
 	char *ext;
 	GF_Err reply;
-	MP3Reader *read = plug->priv;
+	MP3Reader *read = (MP3Reader*)plug->priv;
 	read->service = serv;
 
 	if (read->dnload) gf_service_download_del(read->dnload);
@@ -425,7 +425,7 @@ static GF_Err MP3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 static GF_Err MP3_CloseService(GF_InputService *plug)
 {
-	MP3Reader *read = plug->priv;
+	MP3Reader *read = (MP3Reader*)plug->priv;
 	if (read->stream) gf_fclose(read->stream);
 	read->stream = NULL;
 
@@ -454,7 +454,7 @@ static GF_Err MP3_CloseService(GF_InputService *plug)
 
 static GF_Descriptor *MP3_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	MP3Reader *read = plug->priv;
+	MP3Reader *read = (MP3Reader*)plug->priv;
 
 	/*override default*/
 	if (expect_type==GF_MEDIA_OBJECT_UNDEF) expect_type=GF_MEDIA_OBJECT_AUDIO;
@@ -467,7 +467,7 @@ static GF_Descriptor *MP3_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 		gf_list_add(od->ESDescriptors, esd);
 		return (GF_Descriptor *) od;
 	}
-	read->is_inline = 1;
+	read->is_inline = GF_TRUE;
 	return NULL;
 }
 
@@ -475,7 +475,7 @@ static GF_Err MP3_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 {
 	u32 ES_ID=0;
 	GF_Err e;
-	MP3Reader *read = plug->priv;
+	MP3Reader *read = (MP3Reader*)plug->priv;
 
 	e = GF_SERVICE_ERROR;
 	if (read->ch==channel) goto exit;
@@ -499,7 +499,7 @@ exit:
 
 static GF_Err MP3_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	MP3Reader *read = plug->priv;
+	MP3Reader *read = (MP3Reader*)plug->priv;
 	GF_Err e = GF_STREAM_NOT_FOUND;
 	if (read->ch == channel) {
 		read->ch = NULL;
@@ -513,7 +513,7 @@ static GF_Err MP3_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 static GF_Err MP3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
-	MP3Reader *read = plug->priv;
+	MP3Reader *read = (MP3Reader*)plug->priv;
 
 	if (com->base.command_type==GF_NET_SERVICE_INFO) {
 		com->info.name = read->icy_track_name ? read->icy_track_name : read->icy_name;
@@ -553,7 +553,7 @@ static GF_Err MP3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (read->stream) gf_fseek(read->stream, 0, SEEK_SET);
 
 		if (read->ch == com->base.on_channel) {
-			read->done = 0;
+			read->done = GF_FALSE;
 			/*PLAY after complete download, estimate duration*/
 			if (!read->is_remote && !read->duration) {
 				u32 minSizeToRead = 0;
@@ -581,14 +581,14 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 {
 	u64 pos;
 	u32 hdr, start_from;
-	MP3Reader *read = plug->priv;
+	MP3Reader *read = (MP3Reader*)plug->priv;
 
 	if (read->ch != channel)
 		return GF_STREAM_NOT_FOUND;
 
 	*out_reception_status = GF_OK;
-	*sl_compressed = 0;
-	*is_new_data = 0;
+	*sl_compressed = GF_FALSE;
+	*is_new_data = GF_FALSE;
 
 	memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 	read->sl_hdr.randomAccessPointFlag = 1;
@@ -605,14 +605,14 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 			*out_data_size = 0;
 			return GF_OK;
 		}
-		*is_new_data = 1;
+		*is_new_data = GF_TRUE;
 
 		pos = gf_ftell(read->stream);
 		hdr = gf_mp3_get_next_header(read->stream);
 		if (!hdr) {
 			if (!read->dnload) {
 				*out_reception_status = GF_EOS;
-				read->done = 1;
+				read->done = GF_TRUE;
 			} else {
 				gf_fseek(read->stream, pos, SEEK_SET);
 				*out_reception_status = GF_OK;
@@ -622,7 +622,7 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 		read->data_size = gf_mp3_frame_size(hdr);
 		if (!read->data_size) {
 			*out_reception_status = GF_EOS;
-			read->done = 1;
+			read->done = GF_TRUE;
 			return GF_OK;
 		}
 
@@ -652,7 +652,7 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 
 		read->current_time += gf_mp3_window_size(hdr);
 
-		read->data = gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
+		read->data = (char*)gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
 		read->data[0] = (hdr >> 24) & 0xFF;
 		read->data[1] = (hdr >> 16) & 0xFF;
 		read->data[2] = (hdr >> 8) & 0xFF;
@@ -679,7 +679,7 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 
 static GF_Err MP3_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	MP3Reader *read = plug->priv;
+	MP3Reader *read = (MP3Reader*)plug->priv;
 
 	if (read->ch == channel) {
 		if (!read->data) return GF_BAD_PARAM;
@@ -693,7 +693,7 @@ static GF_Err MP3_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 GF_InputService *MP3_Load()
 {
 	MP3Reader *reader;
-	GF_InputService *plug = gf_malloc(sizeof(GF_InputService));
+	GF_InputService *plug = (GF_InputService*)gf_malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC MP3 Reader", "gpac distribution")
 	plug->CanHandleURL = MP3_CanHandleURL;
@@ -708,7 +708,7 @@ GF_InputService *MP3_Load()
 	plug->ChannelGetSLP = MP3_ChannelGetSLP;
 	plug->ChannelReleaseSLP = MP3_ChannelReleaseSLP;
 
-	reader = gf_malloc(sizeof(MP3Reader));
+	reader = (MP3Reader*)gf_malloc(sizeof(MP3Reader));
 	memset(reader, 0, sizeof(MP3Reader));
 	plug->priv = reader;
 	return plug;
@@ -720,7 +720,7 @@ void MP3_Delete(void *ifce)
 	GF_InputService *plug = (GF_InputService *) ifce;
 	if (!plug)
 		return;
-	read = plug->priv;
+	read = (MP3Reader*)plug->priv;
 	if (read)
 		gf_free(read);
 	plug->priv = NULL;

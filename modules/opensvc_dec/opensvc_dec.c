@@ -84,7 +84,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		for (i=0; i<count; i++) {
 			u32 w=0, h=0, sid;
 			s32 par_n=0, par_d=0;
-			GF_AVCConfigSlot *slc = gf_list_get(cfg->sequenceParameterSets, i);
+			GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 			gf_avc_get_sps_info(slc->data, slc->size, &sid, &w, &h, &par_n, &par_d);
@@ -108,7 +108,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		count = gf_list_count(cfg->pictureParameterSets);
 		for (i=0; i<count; i++) {
 			u32 sps_id, pps_id;
-			GF_AVCConfigSlot *slc = gf_list_get(cfg->pictureParameterSets, i);
+			GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_list_get(cfg->pictureParameterSets, i);
 			gf_avc_get_pps_info(slc->data, slc->size, &pps_id, &sps_id);
 			res = decodeNAL(ctx->codec, (unsigned char *) slc->data, slc->size, &Picture, Layer);
 			if (res<0) {
@@ -116,7 +116,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] Attach: PPS id=\"%d\" code=\"%d\" size=\"%d\" sps_id=\"%d\"\n", pps_id, slc->data[0] & 0x1F, slc->size, sps_id));
 		}
-		ctx->state_found = 1;
+		ctx->state_found = GF_TRUE;
 		gf_odf_avc_cfg_del(cfg);
 	} else {
 		if (ctx->nalu_size_length) {
@@ -241,7 +241,7 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 			ctx->MaxDqId = 0;
 
 		ctx->CurrentDqId = ctx->MaxDqId;
-		ctx->init_layer_set = 1;
+		ctx->init_layer_set = GF_TRUE;
 	}
 	if (curMaxDqId != ctx->MaxDqId)
 		ctx->CurrentDqId = ctx->MaxDqId;
@@ -303,7 +303,7 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 			case GF_AVC_NALU_SEQ_PARAM:
 			case GF_AVC_NALU_PIC_PARAM:
 				if (ctx->baseES_ID == ES_ID)
-					ctx->state_found = 1;
+					ctx->state_found = GF_TRUE;
 				break;
 			}
 		}
@@ -360,22 +360,22 @@ static u32 OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 	case GPAC_OTI_VIDEO_AVC:
 	case GPAC_OTI_VIDEO_SVC:
 		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-			Bool is_svc = 0;
+			Bool is_svc = GF_FALSE;
 			u32 i, count;
 			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 			if (!cfg) return GF_CODEC_NOT_SUPPORTED;
 
 			if (esd->has_ref_base)
-				is_svc = 1;
+				is_svc = GF_TRUE;
 
 			/*decode all NALUs*/
 			count = gf_list_count(cfg->sequenceParameterSets);
 			for (i=0; i<count; i++) {
-				GF_AVCConfigSlot *slc = gf_list_get(cfg->sequenceParameterSets, i);
+				GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
 				u8 nal_type = slc->data[0] & 0x1F;
 
 				if (nal_type==GF_AVC_NALU_SVC_SUBSEQ_PARAM) {
-					is_svc = 1;
+					is_svc = GF_TRUE;
 					break;
 				}
 			}

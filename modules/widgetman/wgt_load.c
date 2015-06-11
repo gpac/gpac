@@ -75,20 +75,20 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			FILE *jsfile;
 			GF_ChildNodeItem *last;
 
-			wgtload->loaded = 1;
+			wgtload->loaded = GF_TRUE;
 
 			gf_sg_add_namespace(wgtload->scene->graph, "http://www.w3.org/2000/svg", NULL);
 			gf_sg_add_namespace(wgtload->scene->graph, "http://www.w3.org/1999/xlink", "xlink");
 			gf_sg_add_namespace(wgtload->scene->graph, "http://www.w3.org/2001/xml-events", "ev");
-			gf_sg_set_scene_size_info(wgtload->scene->graph, 800, 600, 1);
+			gf_sg_set_scene_size_info(wgtload->scene->graph, 800, 600, GF_TRUE);
 
 			/* modify the scene with an Inline/Animation pointing to the widget start file URL */
 			n = root = gf_node_new(wgtload->scene->graph, TAG_SVG_svg);
 			gf_node_register(root, NULL);
 			gf_sg_set_root_node(wgtload->scene->graph, root);
-			gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_viewBox, 1, 0, &info);
+			gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_viewBox, GF_TRUE, GF_FALSE, &info);
 			gf_svg_parse_attribute(n, &info, "0 0 320 240", 0);
-			gf_node_get_attribute_by_name(n, "xmlns", 0, 1, 0, &info);
+			gf_node_get_attribute_by_name(n, "xmlns", 0, GF_TRUE, GF_FALSE, &info);
 			gf_svg_parse_attribute(n, &info, "http://www.w3.org/2000/svg", 0);
 			/*
 						gf_sg_set_scene_size_info(wgtload->scene->graph, 800, 600, 1);
@@ -103,9 +103,9 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			gf_node_set_id(n, 1, "w_anim");
 			gf_node_register(n, root);
 			gf_node_list_add_child_last(&((GF_ParentNode *)root)->children, n, &last);
-			gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_width, 1, 0, &info);
+			gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_width, GF_TRUE, GF_FALSE, &info);
 			gf_svg_parse_attribute(n, &info, "320", 0);
-			gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_height, 1, 0, &info);
+			gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_height, GF_TRUE, GF_FALSE, &info);
 			gf_svg_parse_attribute(n, &info, "240", 0);
 			gf_node_init(n);
 
@@ -122,7 +122,7 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			jsfile = path ? gf_fopen(path, "rt") : NULL;
 			if (jsfile) {
 				gf_fclose(jsfile);
-				gf_node_get_attribute_by_tag(n, TAG_XLINK_ATT_href, 1, 0, &info);
+				gf_node_get_attribute_by_tag(n, TAG_XLINK_ATT_href, GF_TRUE, GF_FALSE, &info);
 				gf_svg_parse_attribute(n, &info, (char *) path, 0);
 			} else {
 				const char *load_fun = "function load_widget(wid_url) {\n"
@@ -148,7 +148,7 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 				n = gf_node_new(wgtload->scene->graph, TAG_SVG_script);
 				gf_node_register(n, root);
 				gf_node_list_add_child_last(&((GF_ParentNode *)root)->children, n, &last);
-				gf_node_get_attribute_by_tag(n, TAG_XLINK_ATT_href, 1, 0, &info);
+				gf_node_get_attribute_by_tag(n, TAG_XLINK_ATT_href, GF_TRUE, GF_FALSE, &info);
 				gf_svg_parse_attribute(n, &info, (char *) wmpath, 0);
 				gf_node_init(n);
 
@@ -159,7 +159,7 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 				gf_node_init(n);
 			}
 
-			tmp = gf_malloc(sizeof(char) * (strlen(wgtload->file_name)+50) );
+			tmp = (char*)gf_malloc(sizeof(char) * (strlen(wgtload->file_name)+50) );
 			sprintf(tmp, "load_widget(\"%s\");\n", wgtload->file_name);
 
 			n = gf_node_new(wgtload->scene->graph, TAG_SVG_script);

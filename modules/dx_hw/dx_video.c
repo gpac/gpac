@@ -92,7 +92,7 @@ PFNWGLSWAPINTERVALFARPROC wglSwapIntervalEXT = NULL;
 static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 {
 	const char *opt;
-	DDContext *dd = driv->opaque;
+	DDContext *dd = (DDContext*)driv->opaque;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode");
 
@@ -147,7 +147,7 @@ static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 static void RestoreWindow(DDContext *dd)
 {
 	if (!dd->NeedRestore) return;
-	dd->NeedRestore = 0;
+	dd->NeedRestore = GF_FALSE;
 
 #ifndef GPAC_DISABLE_3D
 	if (dd->output_3d_type==1) {
@@ -158,7 +158,7 @@ static void RestoreWindow(DDContext *dd)
 #endif
 
 		dd->pDD->lpVtbl->SetCooperativeLevel(dd->pDD, dd->cur_hwnd, DDSCL_NORMAL);
-	dd->NeedRestore = 0;
+	dd->NeedRestore = GF_FALSE;
 
 //	SetForegroundWindow(dd->cur_hwnd);
 	SetFocus(dd->cur_hwnd);
@@ -173,12 +173,12 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 		memset(&dd->rgb_pool, 0, sizeof(DDSurface));
 		SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
 		memset(&dd->yuv_pool, 0, sizeof(DDSurface));
-		dd->yuv_pool.is_yuv = 1;
+		dd->yuv_pool.is_yuv = GF_TRUE;
 
 		SAFE_DD_RELEASE(dd->pPrimary);
 		SAFE_DD_RELEASE(dd->pBack);
 		SAFE_DD_RELEASE(dd->pDD);
-		dd->ddraw_init = 0;
+		dd->ddraw_init = GF_FALSE;
 
 #ifdef GPAC_DISABLE_3D
 	}
@@ -234,7 +234,7 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 
 void DestroyObjects(DDContext *dd)
 {
-	DestroyObjectsEx(dd, 0);
+	DestroyObjectsEx(dd, GF_FALSE);
 }
 
 #ifndef GPAC_DISABLE_3D
@@ -314,7 +314,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	dd->bound_hwnd = target_hwnd;
 
 	/*cleanup*/
-	DestroyObjectsEx(dd, (dd->output_3d_type==1) ? 0 : 1);
+	DestroyObjectsEx(dd, (dd->output_3d_type==1) ? GF_FALSE : GF_TRUE);
 
 	//first time we init GL: create a dummy window to select pixel format for high bpp - we must do this because
 	//- we must get a valid GL context to query the extensions for bpp > 8 (regular choosePixelFormat does not work for them)
@@ -365,12 +365,12 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	dd->gl_HDC = GetDC(dd->bound_hwnd);
 	if (!dd->gl_HDC) return GF_IO_ERR;
 
-	use_double_buffer = 0;
+	use_double_buffer = GF_FALSE;
 	if (dd->gl_double_buffer ) {
 		use_double_buffer = dd->gl_double_buffer;
 	} else {
 		sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseGLDoubleBuffering");
-		if (!sOpt || !strcmp(sOpt, "yes")) use_double_buffer = 1;
+		if (!sOpt || !strcmp(sOpt, "yes")) use_double_buffer = GF_TRUE;
 	}
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "GLNbBitsDepth");
@@ -457,7 +457,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	if (!dd->gl_HRC) return GF_IO_ERR;
 
 	if (!dd->glext_init) {
-		dd->glext_init=1;
+		dd->glext_init = GF_TRUE;
 		wglMakeCurrent(dd->gl_HDC, dd->gl_HRC);
 		dd_init_gl_offscreen(dr);
 	}
@@ -604,10 +604,10 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 
 	/*whenever changing card display mode relocate fastest YUV format for blit (since it depends
 	on the dest pixel format)*/
-	dd->yuv_init = 0;
+	dd->yuv_init = GF_FALSE;
 	if (dd->fullscreen) {
 		const char *sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "SwitchResolution");
-		if (sOpt && !stricmp(sOpt, "yes")) dd->switch_res = 1;
+		if (sOpt && !stricmp(sOpt, "yes")) dd->switch_res = GF_TRUE;
 		/*get current or best fitting mode*/
 		if (GetDisplayMode(dd) != GF_OK) return GF_IO_ERR;
 	}
@@ -633,7 +633,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	}
 
 
-	dd->on_secondary_screen = 0;
+	dd->on_secondary_screen = GF_FALSE;
 	/*Setup FS*/
 	if (dd->fullscreen) {
 		int X = 0;
@@ -660,7 +660,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 				dd->fs_height = dr->max_screen_height;
 				Y = 0;
 			}
-			if (!(minfo.dwFlags & MONITORINFOF_PRIMARY)) dd->on_secondary_screen = 1;
+			if (!(minfo.dwFlags & MONITORINFOF_PRIMARY)) dd->on_secondary_screen = GF_TRUE;
 		}
 #endif
 
@@ -742,13 +742,13 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	if (!dd->fullscreen && dd->windowless) {
 		HDC hdc;
 		/*lock backbuffer HDC*/
-		dr->LockOSContext(dr, 1);
+		dr->LockOSContext(dr, GF_TRUE);
 		/*get window hdc and copy from backbuffer to window*/
 		hdc = GetDC(dd->os_hwnd);
-		BitBlt(hdc, 0, 0, dd->width, dd->height, dd->lock_hdc, 0, 0, SRCCOPY );
+		BitBlt(hdc, 0, 0, dd->width, dd->height, dd->lock_hdc, 0, 0, SRCCOPY);
 		ReleaseDC(dd->os_hwnd, hdc);
 		/*unlock backbuffer HDC*/
-		dr->LockOSContext(dr, 0);
+		dr->LockOSContext(dr, GF_FALSE);
 		return GF_OK;
 	}
 
@@ -800,12 +800,12 @@ GF_Err GetDisplayMode(DDContext *dd)
 {
 	if (dd->switch_res && dd->DirectDrawCreate) {
 		HRESULT hr;
-		Bool temp_dd = 0;;
+		Bool temp_dd = GF_FALSE;
 		if (!dd->pDD) {
 			LPDIRECTDRAW ddraw;
 			dd->DirectDrawCreate(NULL, &ddraw, NULL);
 			ddraw->lpVtbl->QueryInterface(ddraw, &IID_IDirectDraw7, (LPVOID *)&dd->pDD);
-			temp_dd = 1;
+			temp_dd = GF_TRUE;
 		}
 		//we start with a hugde res and downscale
 		dd->fs_width = dd->fs_height = 50000;
@@ -830,7 +830,7 @@ static void *NewDXVideoOutput()
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "DirectX Video Output", "gpac distribution");
 
-	pCtx = gf_malloc(sizeof(DDContext));
+	pCtx = (DDContext*)gf_malloc(sizeof(DDContext));
 	memset(pCtx, 0, sizeof(DDContext));
 	driv->opaque = pCtx;
 	driv->Flush = DD_Flush;
@@ -886,8 +886,8 @@ const u32 *QueryInterfaces()
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return NewDXVideoOutput();
-	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return NewAudioOutput();
+	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return (GF_BaseInterface*)NewDXVideoOutput();
+	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return (GF_BaseInterface*)NewAudioOutput();
 	return NULL;
 }
 /*interface destroy*/

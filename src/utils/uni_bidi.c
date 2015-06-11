@@ -92,24 +92,24 @@ Bool gf_utf8_is_right_to_left(u16 *utf_string)
 	u32 i = 0;
 	while (1) {
 		u32 c = utf_string[i];
-		if (!c) return 0;
+		if (!c) return GF_FALSE;
 		switch (bidi_get_class(c)) {
 		case L:
-			return 0;
+			return GF_FALSE;
 		case R:
-			return 1;
+			return GF_TRUE;
 		case AN:
-			return 1;
+			return GF_TRUE;
 		case EN:
-			return 0;
+			return GF_FALSE;
 		case AL:
-			return 1;
+			return GF_TRUE;
 		default:
 			break;
 		}
 		i++;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -132,7 +132,7 @@ Bool gf_utf8_reorder_bidi(u16 *utf_string, u32 len)
 	}
 	cur_dir = rev ? 1 : 0;
 	main_dir = cur_dir;
-	is_start = 1;
+	is_start = GF_TRUE;
 
 	start = stop = 0;
 
@@ -143,11 +143,11 @@ Bool gf_utf8_reorder_bidi(u16 *utf_string, u32 len)
 		case R:
 		case AN:
 		case AL:
-			rtl = 1;
+			rtl = GF_TRUE;
 			break;
 		case L:
 		case EN:
-			rtl = 0;
+			rtl = GF_FALSE;
 			break;
 		default:
 			if (is_start) {
@@ -162,9 +162,9 @@ Bool gf_utf8_reorder_bidi(u16 *utf_string, u32 len)
 				stop = i;
 
 			if (is_start) {
-				is_start = 0;
+				is_start = GF_FALSE;
 			} else {
-				is_start = 1;
+				is_start = GF_TRUE;
 
 				if (main_dir != cur_dir) {
 					slen = stop-start+1;

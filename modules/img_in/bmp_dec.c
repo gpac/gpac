@@ -200,7 +200,7 @@ Bool NewBMPDec(GF_BaseDecoder *ifcd)
 	ifcd->SetCapabilities = BMP_SetCapabilities;
 	ifcd->GetName = BMP_GetCodecName;
 	((GF_MediaDecoder *)ifcd)->ProcessData = BMP_ProcessData;
-	return 1;
+	return GF_TRUE;
 }
 
 void DeleteBMPDec(GF_BaseDecoder *ifcg)

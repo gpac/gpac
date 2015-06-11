@@ -33,7 +33,7 @@ void dc_circular_buffer_create(CircularBuffer *circular_buf, u32 size, LockMode 
 {
 	u32 i;
 	circular_buf->size = size;
-	circular_buf->list = gf_malloc(size * sizeof(Node));
+	circular_buf->list = (Node*)gf_malloc(size * sizeof(Node));
 	circular_buf->mode = mode;
 	circular_buf->max_num_consumers = max_num_consumers;
 
