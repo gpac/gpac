@@ -867,7 +867,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #endif
 	MEMORYSTATUS ms;
 	u64 creation, exit, kernel, user, process_k_u_time, proc_idle_time, proc_k_u_time;
-	u32 nb_threads, entry_time;
+	u32 entry_time;
 	HANDLE hSnapShot;
 
 	assert(sys_init);
@@ -875,8 +875,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	if (!rti) return 0;
 
 	proc_idle_time = proc_k_u_time = process_k_u_time = 0;
-	nb_threads = 0;
-
+	
 	entry_time = gf_sys_clock();
 	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
 		memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
@@ -981,7 +980,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 					proc_k_u_time += user;
 					if (pentry.th32ProcessID==the_rti.pid) {
 						process_k_u_time = user;
-						nb_threads = pentry.cntThreads;
+						//nb_threads = pentry.cntThreads;
 					}
 				}
 				if (procH) CloseHandle(procH);
@@ -1675,7 +1674,6 @@ void gf_net_get_ntp(u32 *sec, u32 *frac)
 	struct timeval now;
 	gettimeofday(&now, NULL);
 	*sec = (u32) (now.tv_sec) + GF_NTP_SEC_1900_TO_1970;
-//	*frac = (u32) ( (now.tv_usec << 12) + (now.tv_usec << 8) - ((now.tv_usec * 3650) >> 6) );
 	frac_part = now.tv_usec * 0xFFFFFFFFULL;
 	frac_part /= 1000000;
 	*frac = (u32) ( frac_part );
@@ -1739,6 +1737,73 @@ s32 gf_net_get_timezone()
 #endif
 
 }
+
+//no mkgmtime on mingw..., use our own
+#if (defined(WIN32) && defined(__GNUC__)) 
+
+static Bool leap_year(u32 year) {
+    year += 1900;
+    return (year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0) ? GF_TRUE : GF_FALSE;
+}
+static time_t gf_mktime_utc(struct tm *tm)
+{
+   static const u32 days_per_month[2][12] = {
+        {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+        {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+    };
+    time_t time=0;
+    int i;
+
+    for (i=70; i<tm->tm_year; i++) {
+		time += leap_year(i) ? 366 : 365;
+	}
+
+    for (i=0; i<tm->tm_mon; ++i) {
+		time += days_per_month[leap_year(tm->tm_year)][i];
+	}
+	time += tm->tm_mday - 1;
+    time *= 24;
+    time += tm->tm_hour;
+    time *= 60;
+    time += tm->tm_min;
+    time *= 60;
+    time += tm->tm_sec;
+    return time;
+}
+
+#elif defined(WIN32)
+static time_t gf_mktime_utc(struct tm *tm)
+{
+	return  _mkgmtime(tm);
+}
+
+#elif defined(GPAC_ANDROID)
+#include <time64.h>
+#if defined(__LP64__)
+static time_t gf_mktime_utc(struct tm *tm)
+{
+	return timegm64(tm);
+}
+#else
+static time_t gf_mktime_utc(struct tm *tm)
+{
+	static const time_t kTimeMax = ~(1L << (sizeof(time_t) * CHAR_BIT - 1));
+	static const time_t kTimeMin = (1L << (sizeof(time_t) * CHAR_BIT - 1));
+	time64_t result = timegm64(tm);
+	if (result < kTimeMin || result > kTimeMax)
+		return -1;
+	return result;
+}
+#endif
+
+#else
+
+static time_t gf_mktime_utc(struct tm *tm)
+{
+	return timegm(tm);
+}
+
+#endif
 
 GF_EXPORT
 u64 gf_net_parse_date(const char *val)
@@ -1831,12 +1896,16 @@ u64 gf_net_parse_date(const char *val)
 		else if (!strcmp(szDay, "Sun") || !strcmp(szDay, "Sunday")) t.tm_wday = 6;
 	}
 
-#ifdef GPAC_ANDROID
-	/* strange issue in Android, we have to indicate DST is not applied in our time struct*/
-	t.tm_isdst = -1;
-#endif
+	current_time = gf_mktime_utc(&t);
 
-	current_time = mktime(&t) - gf_net_get_timezone();
+	if ((s64) current_time == -1) {
+		//use 1 ms
+		return 1;
+	}
+	if (current_time == 0) {
+		//use 1 ms
+		return 1;
+	}
 
 #endif
 
@@ -1850,8 +1919,6 @@ u64 gf_net_parse_date(const char *val)
 	return current_time + ms;
 }
 
-
-
 GF_EXPORT
 u64 gf_net_get_utc()
 {
@@ -1859,32 +1926,8 @@ u64 gf_net_get_utc()
 	Double msec;
 	u32 sec, frac;
 
-#ifdef _WIN32_WCE
-	SYSTEMTIME syst;
-	FILETIME filet;
-#else
-	time_t gtime;
-	struct tm _t;
-#endif
-
 	gf_net_get_ntp(&sec, &frac);
-
-#ifndef _WIN32_WCE
-	gtime = sec - GF_NTP_SEC_1900_TO_1970;
-	_t = * gmtime(&gtime);
-
-#ifdef GPAC_ANDROID
-	/* strange issue in Android, we have to indicate DST is not applied in our time struct*/
-	_t.tm_isdst = -1;
-#endif
-
-	current_time = mktime(&_t) - gf_net_get_timezone();
-#else
-	GetSystemTime(&syst);
-	SystemTimeToFileTime(&syst, &filet);
-	current_time = (u64) ((*(LONGLONG *) &filet - TIMESPEC_TO_FILETIME_OFFSET) / 10000000);
-#endif
-
+	current_time = sec - GF_NTP_SEC_1900_TO_1970;
 	current_time *= 1000;
 	msec = frac*1000.0;
 	msec /= 0xFFFFFFFF;

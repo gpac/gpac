@@ -38,6 +38,7 @@
 #ifdef GPAC_HAS_SSL
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
 
@@ -1387,12 +1388,47 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 				}
 
 				if (vresult == X509_V_OK) {
+					STACK_OF(GENERAL_NAME) *altnames;
+					GF_List* valid_names;
+					int i;
+
+					valid_names = gf_list_new();
+
 					common_name[0] = 0;
 					X509_NAME_get_text_by_NID(X509_get_subject_name(cert), NID_commonName, common_name, sizeof (common_name));
-					if (!rfc2818_match(common_name, sess->server_name)) {
-						success = GF_FALSE;
-						GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SSL] Mismatch in certificate names: got %s expected %s\n", common_name, sess->server_name));
+					gf_list_add(valid_names, common_name);
+
+					altnames = X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
+					if (altnames) {
+						for (i = 0; i < sk_GENERAL_NAME_num(altnames); ++i) {
+							const GENERAL_NAME *altname = sk_GENERAL_NAME_value(altnames, i);
+							if (altname->type == GEN_DNS)
+							{
+								char *altname_str = ASN1_STRING_data(altname->d.ia5);
+								gf_list_add(valid_names, altname_str);
+							}
+						}
 					}
+
+					success = GF_FALSE;
+					for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
+						const char *valid_name = (const char*) gf_list_get(valid_names, i);
+						if (rfc2818_match(valid_name, sess->server_name)) {
+						success = GF_TRUE;
+							GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SSL] Hostname %s matches %s\n", sess->server_name, valid_name));
+							break;
+						}
+					}
+					if (!success) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SSL] Mismatch in certificate names: expected %s\n", sess->server_name));
+						for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
+							const char *valid_name = (const char*) gf_list_get(valid_names, i);
+							GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SSL] Tried name: %s\n", valid_name));
+						}
+					}
+
+					gf_list_del(valid_names);
+					GENERAL_NAMES_free(altnames);
 				} else {
 					success = GF_FALSE;
 					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SSL] Error verifying certificate %x\n", vresult));

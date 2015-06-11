@@ -167,6 +167,7 @@ static const struct dom_event_def {
 
 	/*GPAC internals*/
 	{ GF_EVENT_SCENE_ATTACHED, "gpac_scene_attached", GF_DOM_EVENT_GPAC},
+	{ GF_EVENT_SCENE_SIZE, "gpac_scene_size", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_VP_RESIZE, "gpac_vp_changed", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_ADDON_DETECTED, "gpac_addon_found", GF_DOM_EVENT_GPAC},
 	{ GF_EVENT_MAIN_ADDON_STATE, "gpac_main_addon_state", GF_DOM_EVENT_GPAC},

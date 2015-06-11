@@ -105,7 +105,7 @@ typedef u32 (*gf_thread_run)(void *par);
  */
 GF_Err gf_th_run(GF_Thread *th, gf_thread_run run, void *par);
 /*!
- *\brief thread stoping
+ *\brief thread stopping
  *
  *Waits for the thread exit until return
  *\param th the thread object

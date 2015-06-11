@@ -775,7 +775,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		//otherwise this is new chunk or end of chunk, process
 	}
 	//this is a new file, check buffer level
-	else if (!is_chunk_flush && check_buffer_level) {
+	else if (/*!is_chunk_flush && */ check_buffer_level) {
 		Bool buffer_full = 1;
 		for (i=0; i<count; i++) {
 			ch = (ISOMChannel *)gf_list_get(read->channels, i);

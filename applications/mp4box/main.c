@@ -291,9 +291,9 @@ void PrintDASHUsage()
 	fprintf(stderr, "DASH Options:\n"
 	        " -dash dur            enables DASH-ing of the file(s) with a segment duration of DUR ms\n"
 	        "                       Note: the duration of a fragment (subsegment) is set\n"
-	        "						using the -frag switch.\n"
+	        "	                            using the -frag switch.\n"
 	        "                       Note: for onDemand profile, sets duration of a subsegment\n"
-	        " -dash-live[=F] dur   generates a live DASH session using dur segment duration, optionnally writing live context to F\n"
+	        " -dash-live[=F] dur   generates a live DASH session using dur segment duration, optionally writing live context to F\n"
 	        "                       MP4Box will run the live session until \'q\' is pressed or a fatal error occurs.\n"
 	        " -ddbg-live[=F] dur   same as -dash-live without time regulation for debug purposes.\n"
 	        " -frag time_in_ms     Specifies a fragment duration of time_in_ms.\n"
@@ -303,7 +303,7 @@ void PrintDASHUsage()
 	        "                       * Note: Default temp dir is OS-dependent\n"
 	        " -profile NAME        specifies the target DASH profile: \"onDemand\",\n"
 	        "                       \"live\", \"main\", \"simple\", \"full\",\n"
-	        "                       \"dashavc264:live\", \"dashavc264:onDemand\"\n"
+	        "                       \"hbbtv1.5:live\", \"dashavc264:live\", \"dashavc264:onDemand\"\n"
 	        "                       * This will set default option values to ensure conformance to the desired profile\n"
 	        "                       * Default profile is \"full\" in static mode, \"live\" in dynamic mode\n"
 	        " -profile-ext STRING  specifies a list of profile extensions, as used by DASH-IF and DVB.\n"
@@ -316,6 +316,7 @@ void PrintDASHUsage()
 	        " \":id=NAME\"         sets the representation ID to NAME\n"
 	        " \":period=NAME\"     sets the representation's period to NAME. Multiple periods may be used\n"
 	        "                       period appear in the MPD in the same order as specified with this option\n"
+	        " \":BaseURL=NAME\"    sets the BaseURL. Set multiple times for multiple BaseURLs\n"
 	        " \":bandwidth=VALUE\" sets the representation's bandwidth to a given value\n"
 			" \":duration=VALUE\"  Increases the duration of this period by the given duration in seconds\n"
 			"                       only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:duration=Y.\n"
@@ -351,9 +352,9 @@ void PrintDASHUsage()
 	        " -cprt string         adds copyright string to MPD\n"
 	        " -dash-ctx FILE       stores/restore DASH timing from FILE.\n"
 	        " -dynamic             uses dynamic MPD type instead of static.\n"
-			" -last-dynamic        same as dynamic but closes the period (insert lmsg brand if needed and update duration).\n"
-			" -mpd-duration DUR    sets the duration in second of a live session (0 by default). If 0, you must use -mpd-refresh.\n"
-			" -mpd-refresh TIME    specifies MPD update time in seconds (double can be used).\n"
+	        " -last-dynamic        same as dynamic but closes the period (insert lmsg brand if needed and update duration).\n"
+	        " -mpd-duration DUR    sets the duration in second of a live session (0 by default). If 0, you must use -mpd-refresh.\n"
+	        " -mpd-refresh TIME    specifies MPD update time in seconds (double can be used).\n"
 	        " -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
 	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
 	        "                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
@@ -1439,6 +1440,12 @@ enum
 		u32 i, j; \
 		for (i=0;i<nb_dash_inputs;i++) {\
 			GF_DashSegmenterInput *di = &dash_inputs[i];\
+			if (di->nb_baseURL) { \
+				for (j=0; j<di->nb_baseURL; j++) { \
+					gf_free(di->baseURL[j]); \
+				} \
+				gf_free(di->baseURL); \
+			} \
 			if (di->rep_descs) { \
 				for (j=0; j<di->nb_rep_descs; j++) { \
 					gf_free(di->rep_descs[j]); \
@@ -1508,6 +1515,7 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				/* this is a real separator if it is followed by a keyword we are looking for */
 				if (!strnicmp(sep, ":id=", 4) ||
 				        !strnicmp(sep, ":period=", 8) ||
+				        !strnicmp(sep, ":BaseURL=", 9) ||
 				        !strnicmp(sep, ":bandwidth=", 11) ||
 				        !strnicmp(sep, ":role=", 6) ||
 				        !strnicmp(sep, ":desc", 5) ||
@@ -1533,7 +1541,11 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 					}
 				}
 			} else if (!strnicmp(opts, "period=", 7)) di->periodID = gf_strdup(opts+7);
-			else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
+			else if (!strnicmp(opts, "BaseURL=", 8)) {
+				di->baseURL = (char **)gf_realloc(di->baseURL, (di->nb_baseURL+1)*sizeof(char *));
+				di->baseURL[di->nb_baseURL] = gf_strdup(opts+8);
+				di->nb_baseURL++;
+			} else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
 			else if (!strnicmp(opts, "role=", 5)) di->role = gf_strdup(opts+5);
 			else if (!strnicmp(opts, "desc", 4)) {
 				u32 *nb_descs=NULL;
@@ -2394,7 +2406,9 @@ int mp4boxMain(int argc, char **argv)
 			CHECK_NEXT_ARG
 			if (!stricmp(argv[i+1], "live") || !stricmp(argv[i+1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
 			else if (!stricmp(argv[i+1], "onDemand")) dash_profile = GF_DASH_PROFILE_ONDEMAND;
-			else if (!stricmp(argv[i+1], "dashavc264:live")) {
+			else if (!stricmp(argv[i+1], "hbbtv1.5:live")) {
+				dash_profile = GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE;
+			} else if (!stricmp(argv[i+1], "dashavc264:live")) {
 				dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
 			} else if (!stricmp(argv[i+1], "dashavc264:onDemand")) {
 				dash_profile = GF_DASH_PROFILE_AVC264_ONDEMAND;

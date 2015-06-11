@@ -432,7 +432,7 @@ u32 RunSingleDec(void *ptr)
 	return 0;
 }
 
-/*NOTE: when starting/stoping a decoder we only lock the decoder mutex, NOT the media manager. This
+/*NOTE: when starting/stopping a decoder we only lock the decoder mutex, NOT the media manager. This
 avoids deadlocking in case a system codec waits for the scene graph and the compositor requests
 a stop/start on a media*/
 void gf_term_start_codec(GF_Codec *codec, Bool is_resume)

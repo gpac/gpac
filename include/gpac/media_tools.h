@@ -298,6 +298,8 @@ typedef struct
 	char *file_name;
 	char *representationID;
 	char *periodID;
+	u32 nb_baseURL;
+	char **baseURL;
 	char *xlink;
 	char *role;
 	u32 nb_rep_descs;
@@ -319,7 +321,8 @@ typedef enum
 	GF_DASH_PROFILE_ONDEMAND,
 	GF_DASH_PROFILE_MAIN,
 
-	/* DASH-AVC/264 profiles */
+	/* industry profiles */
+	GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE,
 	GF_DASH_PROFILE_AVC264_LIVE,
 	GF_DASH_PROFILE_AVC264_ONDEMAND,
 
