@@ -3614,7 +3614,7 @@ int mp4boxMain(int argc, char **argv)
 		//e = gf_dasher_set_location(dasher, mpd_source);		
 		for (i=0; i < nb_mpd_base_urls; i++) {
 			e = gf_dasher_add_base_url(dasher, mpd_base_urls[i]);
-		if (e) { fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e)); MP4BOX_EXIT_WITH_CODE( 1 ); }
+			if (e) { fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e)); MP4BOX_EXIT_WITH_CODE( 1 ); }
 		}
 		e = gf_dasher_enable_url_template(dasher, (Bool) use_url_template, seg_name, seg_ext);
 		if (!e) e = gf_dasher_enable_segment_timeline(dasher, segment_timeline);

@@ -312,7 +312,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 				if (use_source_timing && is_live_capture) {
 					u64 pts;
 					if (video_input_file->pts_init == 0) {
-						video_input_file->pts_init = 1;
+						video_input_file->pts_init = GF_TRUE;
 						video_input_file->utc_at_init = gf_net_get_utc();
 						video_input_file->first_pts = packet.pts;
 						video_input_file->prev_pts = 0;

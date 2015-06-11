@@ -99,7 +99,7 @@ static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		return GF_NOT_SUPPORTED;
 #endif
 
-		while ((d = gf_list_enum(esd->extensionDescriptors, &i))) {
+		while ((d = (GF_Descriptor*)gf_list_enum(esd->extensionDescriptors, &i))) {
 			if (d->tag == GF_ODF_AUX_VIDEO_DATA) break;
 		}
 		if (!d) return GF_NOT_SUPPORTED;
@@ -148,11 +148,11 @@ static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	xvid_decore(*codec, XVID_DEC_DECODE, &frame, NULL);
 #endif
 
-	ctx->first_frame = 1;
+	ctx->first_frame = GF_TRUE;
 	/*output in YV12 only - let the player handle conversion*/
 	if (ctx->depth_codec) {
 		ctx->out_size = ctx->width * ctx->height * 5 / 2;
-		ctx->temp_uv = gf_malloc(sizeof(char)*ctx->width * ctx->height / 2);
+		ctx->temp_uv = (char*)gf_malloc(sizeof(char)*ctx->width * ctx->height / 2);
 	} else {
 		ctx->yuv_size = ctx->out_size = ctx->width * ctx->height * 3 / 2;
 	}
@@ -363,7 +363,7 @@ static GF_Err XVID_ProcessData(GF_MediaDecoder *ifcg,
 	default:
 		*outBufferLength = ctx->out_size;
 		if (ctx->first_frame) {
-			ctx->first_frame = 0;
+			ctx->first_frame = GF_FALSE;
 			if ((outBuffer[0] == 'v') && (outBuffer[1] == 'o') && (outBuffer[2] == 'i') && (outBuffer[3] == 'd')) {
 				*outBufferLength = 0;
 				return GF_OK;
@@ -430,7 +430,7 @@ GF_BaseDecoder *NewXVIDDec()
 		init.cpu_flags = 0; /*autodetect*/
 		xvid_global(NULL, 0, &init, NULL);
 #endif
-		xvid_is_init = 1;
+		xvid_is_init = GF_TRUE;
 	}
 
 	/*get config*/

@@ -57,11 +57,11 @@ int dc_audio_input_data_init(AudioInputData *audio_input_data, int channels, int
 	dc_circular_buffer_create(&audio_input_data->circular_buf, AUDIO_CB_SIZE, mode, num_consumers);
 
 	for (i = 0; i < AUDIO_CB_SIZE; i++) {
-		AudioDataNode *audio_data_node = gf_malloc(sizeof(AudioDataNode));
+		AudioDataNode *audio_data_node = (AudioDataNode*)gf_malloc(sizeof(AudioDataNode));
 		audio_input_data->circular_buf.list[i].data = (void *) audio_data_node;
 
 		audio_data_node->abuf_size = MAX_AUDIO_PACKET_SIZE;
-		audio_data_node->abuf = gf_malloc(audio_data_node->abuf_size * sizeof(uint8_t));
+		audio_data_node->abuf = (uint8_t*)gf_malloc(audio_data_node->abuf_size * sizeof(uint8_t));
 	}
 
 	audio_input_data->aframe = FF_ALLOC_FRAME();
@@ -81,7 +81,7 @@ void dc_audio_input_data_destroy(AudioInputData *audio_input_data)
 	int i;
 	if (audio_input_data->circular_buf.list) {
 		for (i = 0; i < AUDIO_CB_SIZE; i++) {
-			AudioDataNode *audio_data_node = audio_input_data->circular_buf.list[i].data;
+			AudioDataNode *audio_data_node = (AudioDataNode*)audio_input_data->circular_buf.list[i].data;
 			gf_free(audio_data_node->abuf);
 			gf_free(audio_data_node);
 		}

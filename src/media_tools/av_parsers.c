@@ -618,7 +618,7 @@ static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi
 	*size = 0;
 	firstObj = 1;
 	hasVOP = 0;
-	*is_coded = 0;
+	*is_coded = GF_FALSE;
 	m4v->current_object_type = (u32) -1;
 	*frame_type = 0;
 

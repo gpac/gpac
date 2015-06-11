@@ -55,9 +55,9 @@ const u32 *QueryInterfaces()
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return FFDEC_Load();
+	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface*)FFDEC_Load();
 #ifndef DISABLE_FFMPEG_DEMUX
-	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return New_FFMPEG_Demux();
+	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface*)New_FFMPEG_Demux();
 #endif
 	return NULL;
 }

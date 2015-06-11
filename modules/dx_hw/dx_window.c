@@ -460,7 +460,7 @@ void release_mouse(DDContext *ctx, HWND hWnd, GF_VideoOutput *vout)
 
 LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	Bool ret = 1;
+	Bool ret = GF_TRUE;
 	GF_Event evt;
 	DDContext *ctx;
 #ifdef _WIN64
@@ -477,11 +477,11 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		if (wParam==SIZE_MINIMIZED) {
 			evt.type = GF_EVENT_SHOWHIDE_NOTIF;
 			evt.show.show_type = 0;
-			ctx->hidden = 1;
+			ctx->hidden = GF_TRUE;
 			vout->on_event(vout->evt_cbk_hdl, &evt);
 		} else {
 			if (ctx->hidden && wParam==SIZE_RESTORED) {
-				ctx->hidden = 0;
+				ctx->hidden = GF_FALSE;
 				evt.type = GF_EVENT_SHOWHIDE_NOTIF;
 				evt.show.show_type = 1;
 				vout->on_event(vout->evt_cbk_hdl, &evt);
@@ -519,10 +519,10 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		}
 		break;
 	case WM_DISPLAYCHANGE:
-		ctx->dd_lost = 1;
+		ctx->dd_lost = GF_TRUE;
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_VIDEO_SETUP;
-		evt.setup.back_buffer = 1;
+		evt.setup.back_buffer = GF_TRUE;
 		vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 
@@ -541,15 +541,15 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 	case WM_ACTIVATEAPP:
 #endif
 		if (hWnd==ctx->os_hwnd) {
-			ctx->has_focus = 1;
+			ctx->has_focus = GF_TRUE;
 			SetFocus(hWnd);
 		}
 		break;
 	case WM_KILLFOCUS:
-		if (hWnd==ctx->os_hwnd) ctx->has_focus = 0;
+		if (hWnd==ctx->os_hwnd) ctx->has_focus = GF_FALSE;
 		break;
 	case WM_SETFOCUS:
-		if (hWnd==ctx->os_hwnd) ctx->has_focus = 1;
+		if (hWnd==ctx->os_hwnd) ctx->has_focus = GF_TRUE;
 		break;
 	case WM_IME_SETCONTEXT:
 		if ((hWnd==ctx->os_hwnd) && (wParam!=0) && !ctx->fullscreen) SetFocus(hWnd);
@@ -581,7 +581,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		HDROP hDrop = (HDROP) wParam;
 		evt.type = GF_EVENT_DROPFILE;
 		evt.open_file.nb_files = DragQueryFile(hDrop, 0xFFFFFFFF, NULL, 0);
-		evt.open_file.files = gf_malloc(sizeof(char *)*evt.open_file.nb_files);
+		evt.open_file.files = (char**)gf_malloc(sizeof(char *)*evt.open_file.nb_files);
 		for (i=0; i<evt.open_file.nb_files; i++) {
 			u32 res = DragQueryFile(hDrop, i, szFile, GF_MAX_PATH);
 			evt.open_file.files[i] = res ? gf_strdup(szFile) : NULL;
@@ -629,7 +629,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		evt.mouse.button = GF_MOUSE_LEFT;
 		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		if (!ctx->has_focus && (hWnd==ctx->os_hwnd)) {
-			ctx->has_focus = 1;
+			ctx->has_focus = GF_TRUE;
 			SetFocus(ctx->os_hwnd);
 		}
 		break;
@@ -648,7 +648,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		evt.mouse.button = GF_MOUSE_RIGHT;
 		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		if (!ctx->has_focus && (hWnd==ctx->os_hwnd)) {
-			ctx->has_focus = 1;
+			ctx->has_focus = GF_TRUE;
 			SetFocus(ctx->os_hwnd);
 		}
 		break;
@@ -668,7 +668,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		DD_GetCoordinates(lParam, &evt);
 		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		if (!ctx->has_focus && (hWnd==ctx->os_hwnd)) {
-			ctx->has_focus = 1;
+			ctx->has_focus = GF_TRUE;
 			SetFocus(ctx->os_hwnd);
 		}
 		break;
@@ -729,8 +729,8 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 	case WM_KEYDOWN:
 		w32_translate_key(wParam, lParam, &evt.key);
 		evt.type = ((msg==WM_SYSKEYDOWN) || (msg==WM_KEYDOWN)) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
-		if (evt.key.key_code==GF_KEY_ALT) ctx->alt_down = (evt.type==GF_EVENT_KEYDOWN) ? 1 : 0;
-		if (evt.key.key_code==GF_KEY_CONTROL) ctx->ctrl_down = (evt.type==GF_EVENT_KEYDOWN) ? 1 : 0;
+		if (evt.key.key_code==GF_KEY_ALT) ctx->alt_down = (evt.type==GF_EVENT_KEYDOWN) ? GF_TRUE : GF_FALSE;
+		if (evt.key.key_code==GF_KEY_CONTROL) ctx->ctrl_down = (evt.type==GF_EVENT_KEYDOWN) ? GF_TRUE : GF_FALSE;
 		if ((ctx->os_hwnd==ctx->fs_hwnd) && ctx->alt_down && (evt.key.key_code==GF_KEY_F4)) {
 			memset(&evt, 0, sizeof(GF_Event));
 			evt.type = GF_EVENT_QUIT;
@@ -778,7 +778,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 		if ( !ctx->ctrl_down && !ctx->alt_down
 		        && evt.key.key_code != GF_KEY_CONTROL && evt.key.key_code != GF_KEY_ALT )
-			ret = 1;
+			ret = GF_TRUE;
 		break;
 
 	case WM_UNICHAR:
@@ -865,7 +865,7 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 {
 	u32 flags;
-	Bool use_fs_wnd = 1;
+	Bool use_fs_wnd = GF_TRUE;
 #ifndef _WIN32_WCE
 	RECT rc;
 #endif
@@ -893,12 +893,12 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	RegisterClass (&wc);
 
 	flags = ctx->switch_res;
-	ctx->switch_res = 0;
-	ctx->force_alpha = (flags & GF_TERM_WINDOW_TRANSPARENT) ? 1 : 0;
+	ctx->switch_res = GF_FALSE;
+	ctx->force_alpha = (flags & GF_TERM_WINDOW_TRANSPARENT) ? GF_TRUE : GF_FALSE;
 
 	if (!ctx->os_hwnd) {
 		u32 styles;
-		if (flags & GF_TERM_WINDOWLESS) ctx->windowless = 1;
+		if (flags & GF_TERM_WINDOWLESS) ctx->windowless = GF_TRUE;
 
 
 #ifdef _WIN32_WCE
@@ -912,12 +912,12 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 		} else {
 			styles = WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_OVERLAPPEDWINDOW;
 		}
-		use_fs_wnd=0;
+		use_fs_wnd = GF_FALSE;
 		ctx->os_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw Output", styles, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 		ctx->backup_styles = styles;
 #endif
 		if (ctx->os_hwnd == NULL) {
-			return 0;
+			return GF_FALSE;
 		}
 		DragAcceptFiles(ctx->os_hwnd, TRUE);
 
@@ -939,7 +939,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 		ctx->off_w = rc.right - rc.left - 100;
 		ctx->off_h = rc.bottom - rc.top - 100;
 #endif
-		ctx->owns_hwnd = 1;
+		ctx->owns_hwnd = GF_TRUE;
 
 		if (ctx->windowless) SetWindowless(vout, ctx->os_hwnd);
 	}
@@ -951,7 +951,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 		ctx->fs_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #endif
 		if (!ctx->fs_hwnd) {
-			return 0;
+			return GF_FALSE;
 		}
 		ShowWindow(ctx->fs_hwnd, SW_HIDE);
 #ifdef _WIN64
@@ -966,7 +966,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	/*if visible set focus*/
 	if (!ctx->switch_res) SetFocus(ctx->os_hwnd);
 
-	ctx->switch_res = 0;
+	ctx->switch_res = GF_FALSE;
 #ifdef _WIN64
 	SetWindowLongPtr(ctx->os_hwnd, GWLP_USERDATA, (LONG_PTR) vout);
 #else
@@ -978,14 +978,14 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	ctx->curs_hand = LoadCursor(hInst, MAKEINTRESOURCE(IDC_HAND_PTR));
 	ctx->curs_collide = LoadCursor(hInst, MAKEINTRESOURCE(IDC_COLLIDE));
 	ctx->cursor_type = GF_CURSOR_NORMAL;
-	return 1;
+	return GF_TRUE;
 }
 
 u32 DD_WindowThread(void *par)
 {
 	MSG msg;
 
-	GF_VideoOutput *vout = par;
+	GF_VideoOutput *vout = (GF_VideoOutput*)par;
 	DDContext *ctx = (DDContext *)vout->opaque;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[DirectXOutput] Entering thread ID %d\n", gf_th_id() ));
@@ -1236,10 +1236,10 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	/*HW setup*/
 	case GF_EVENT_VIDEO_SETUP:
 		if (ctx->dd_lost) {
-			ctx->dd_lost = 0;
+			ctx->dd_lost = GF_FALSE;
 			DestroyObjects(ctx);
 		}
-		ctx->is_setup=1;
+		ctx->is_setup = GF_TRUE;
 		switch (evt->setup.opengl_mode) {
 		case 0:
 #ifndef GPAC_DISABLE_3D

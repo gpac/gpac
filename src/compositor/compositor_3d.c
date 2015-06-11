@@ -105,12 +105,12 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.type = GF_EVENT_VIDEO_SETUP;
 	evt.setup.width = compositor->display_width;
 	evt.setup.height = compositor->display_height;
-	evt.setup.back_buffer = 1;
+	evt.setup.back_buffer = GF_TRUE;
 #ifdef GPAC_USE_TINYGL
 	evt.setup.opengl_mode = 0;
 #else
 	evt.setup.opengl_mode = 1;
-	compositor->is_opengl = 1;
+	compositor->is_opengl = GF_TRUE;
 #endif
 
 	if (compositor->video_out->ProcessEvent(compositor->video_out, &evt)<0) {
@@ -171,10 +171,10 @@ void compositor_3d_reset_camera(GF_Compositor *compositor)
 {
 	GF_Camera *cam = compositor_3d_get_camera(compositor);
 	if (cam) {
-		camera_reset_viewpoint(cam, 1);
+		camera_reset_viewpoint(cam, GF_TRUE);
 		gf_sc_invalidate(compositor, NULL);
 	}
-	if (compositor->active_layer) gf_node_dirty_set(compositor->active_layer, 0, 1);
+	if (compositor->active_layer) gf_node_dirty_set(compositor->active_layer, 0, GF_TRUE);
 }
 
 void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseState *tr_state, Fixed width, Fixed height, Fixed bmp_scale_x, Fixed bmp_scale_y)
@@ -201,15 +201,15 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
 	if (!alpha) alpha = GF_COL_A(asp->line_color);
 
-	visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, 0);
-	visual_3d_enable_antialias(tr_state->visual, 0);
+	visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, GF_FALSE);
+	visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
 	if (alpha && (alpha != 0xFF)) {
 		visual_3d_set_material_2d_argb(tr_state->visual, GF_COL_ARGB(alpha, 0xFF, 0xFF, 0xFF));
 		gf_sc_texture_set_blend_mode(txh, TX_MODULATE);
 	} else if (gf_sc_texture_is_transparent(txh)) {
 		gf_sc_texture_set_blend_mode(txh, TX_REPLACE);
 	} else {
-		visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, 0);
+		visual_3d_set_state(tr_state->visual, V3D_STATE_BLEND, GF_FALSE);
 	}
 	/*ignore texture transform for bitmap*/
 	tr_state->mesh_num_textures = gf_sc_texture_enable(txh, NULL);
@@ -222,7 +222,7 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 				size.y = height;
 
 				stack->mesh = new_mesh();
-				mesh_new_rectangle(stack->mesh, size, NULL, 0);
+				mesh_new_rectangle(stack->mesh, size, NULL, GF_FALSE);
 			}
 		}
 		if (stack->mesh) {

@@ -117,7 +117,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		return GF_IO_ERR;
 	/* load the file */
 	p = NULL;
-	line = gf_malloc(sizeof(char)*line_alloc);
+	line = (char*)gf_malloc(sizeof(char)*line_alloc);
 	memset(line, 0, sizeof(char)*line_alloc);
 
 	while (!feof(file)) {
@@ -127,7 +127,7 @@ GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, const ch
 		nb_pass = 1;
 		while (read + nb_pass == line_alloc) {
 			line_alloc += MAX_INI_LINE;
-			line = gf_realloc(line, sizeof(char)*line_alloc);
+			line = (char*)gf_realloc(line, sizeof(char)*line_alloc);
 			ret = fgets(line+read, MAX_INI_LINE, file);
 			read = (u32) strlen(line);
 			nb_pass++;
@@ -260,7 +260,7 @@ GF_EXPORT
 GF_Err gf_cfg_discard_changes(GF_Config *iniFile)
 {
 	if (!iniFile) return GF_BAD_PARAM;
-	iniFile->skip_changes = 1;
+	iniFile->skip_changes = GF_TRUE;
 	return GF_OK;
 }
 
@@ -329,13 +329,13 @@ GF_EXPORT
 GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue)
 {
 	u32 i;
-	Bool has_changed = 1;
+	Bool has_changed = GF_TRUE;
 	IniSection *sec;
 	IniKey *key;
 
 	if (!iniFile || !secName || !keyName) return GF_BAD_PARAM;
 
-	if (!strnicmp(secName, "temp", 4)) has_changed = 0;
+	if (!strnicmp(secName, "temp", 4)) has_changed = GF_FALSE;
 
 	i=0;
 	while ((sec = (IniSection *) gf_list_enum(iniFile->sections, &i)) ) {
@@ -345,7 +345,7 @@ GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyNa
 	sec = (IniSection *) gf_malloc(sizeof(IniSection));
 	sec->section_name = gf_strdup(secName);
 	sec->keys = gf_list_new();
-	if (has_changed) iniFile->hasChanged = 1;
+	if (has_changed) iniFile->hasChanged = GF_TRUE;
 	gf_list_add(iniFile->sections, sec);
 
 get_key:
@@ -358,7 +358,7 @@ get_key:
 	key = (IniKey *) gf_malloc(sizeof(IniKey));
 	key->name = gf_strdup(keyName);
 	key->value = gf_strdup("");
-	if (has_changed) iniFile->hasChanged = 1;
+	if (has_changed) iniFile->hasChanged = GF_TRUE;
 	gf_list_add(sec->keys, key);
 
 set_value:
@@ -367,7 +367,7 @@ set_value:
 		if (key->name) gf_free(key->name);
 		if (key->value) gf_free(key->value);
 		gf_free(key);
-		if (has_changed) iniFile->hasChanged = 1;
+		if (has_changed) iniFile->hasChanged = GF_TRUE;
 		return GF_OK;
 	}
 	/* same value, don't update */
@@ -375,7 +375,7 @@ set_value:
 
 	if (key->value) gf_free(key->value);
 	key->value = gf_strdup(keyValue);
-	if (has_changed) iniFile->hasChanged = 1;
+	if (has_changed) iniFile->hasChanged = GF_TRUE;
 	return GF_OK;
 }
 
@@ -426,7 +426,7 @@ void gf_cfg_del_section(GF_Config *iniFile, const char *secName)
 	if (!iniFile) return;
 
 	i = 0;
-	while ((p = gf_list_enum(iniFile->sections, &i))) {
+	while ((p = (IniSection*)gf_list_enum(iniFile->sections, &i))) {
 		if (!strcmp(secName, p->section_name)) {
 			DelSection(p);
 			gf_list_rem(iniFile->sections, i-1);
@@ -460,7 +460,7 @@ GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *ke
 	key->name = gf_strdup(keyName);
 	key->value = gf_strdup(keyValue);
 	gf_list_insert(sec->keys, key, index);
-	iniFile->hasChanged = 1;
+	iniFile->hasChanged = GF_TRUE;
 	return GF_OK;
 }
 

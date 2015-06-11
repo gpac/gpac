@@ -41,8 +41,7 @@
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 
-/*always enable memory tracking on windows*/
-//#define GPAC_MEMORY_TRACKING
+#define GPAC_MEMORY_TRACKING
 
 /*Win32 IPv6 is evaluated at compile time, !! do not uncomment !!*/
 //#define GPAC_HAS_IPV6

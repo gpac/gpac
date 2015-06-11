@@ -129,7 +129,7 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		gf_free(sdp);
 		rtp->sdp_temp = NULL;
 		RP_SendMessage(rtp->service, e, "Error fetching session state - restarting");
-		RP_ConnectServiceEx(gf_service_get_interface(rtp->service), rtp->service, url, 1);
+		RP_ConnectServiceEx(gf_service_get_interface(rtp->service), rtp->service, url, GF_TRUE);
 		gf_free(url);
 		return;
 	}

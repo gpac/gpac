@@ -148,7 +148,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 			i++;
 		}
 		name = gf_url_concatenate(the_path, pathName);
-		outPath = gf_malloc(strlen(parentName) + strlen(name) + 2);
+		outPath = (char*)gf_malloc(strlen(parentName) + strlen(name) + 2);
 		sprintf(outPath, "%s=%s", parentName, name);
 		rad[0] = '=';
 		gf_free(name);
@@ -306,7 +306,7 @@ char *gf_url_percent_encode(const char *path)
 		count ++;
 		sep++;
 	}
-	outpath = gf_malloc(sizeof(char) * (strlen(path) + 2*count + 1));
+	outpath = (char*)gf_malloc(sizeof(char) * (strlen(path) + 2*count + 1));
 	strcpy(outpath, path);
 	while (1) {
 		sep = strchr(outpath, ' ');

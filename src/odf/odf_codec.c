@@ -588,13 +588,13 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 		odU = (GF_ODUpdate*)command;
 		count = gf_list_count(odU->objectDescriptors);
 		for (i=0; i<count; i++) {
-			Bool found = 0;
+			Bool found = GF_FALSE;
 			GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, i);
 			u32 j, count2 = gf_list_count(odU_o->objectDescriptors);
 			for (j=0; j<count2; j++) {
 				GF_ObjectDescriptor *od2 = (GF_ObjectDescriptor *)gf_list_get(odU_o->objectDescriptors, j);
 				if (od2->objectDescriptorID==od->objectDescriptorID) {
-					found = 1;
+					found = GF_TRUE;
 					break;
 				}
 			}

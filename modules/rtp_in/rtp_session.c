@@ -115,7 +115,7 @@ void RP_ProcessCommands(RTSPSession *sess)
 			//signal what's going on
 			if (time >= time_out) {
 				if (!strcmp(com->method, GF_RTSP_TEARDOWN)) {
-					gf_rtsp_session_reset(sess->session, 1);
+					gf_rtsp_session_reset(sess->session, GF_TRUE);
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Request Timeout for command %s after %d ms\n", com->method, time));
 				}
@@ -287,10 +287,10 @@ GF_Err RP_AddStream(RTPClient *rtp, RTPStream *stream, char *session_control)
 	char *service_name, *ctrl;
 	RTSPSession *in_session = RP_CheckSession(rtp, session_control);
 
-	has_aggregated_control = 0;
+	has_aggregated_control = GF_FALSE;
 	if (session_control) {
 		//if (!strcmp(session_control, "*")) session_control = NULL;
-		if (session_control) has_aggregated_control = 1;
+		if (session_control) has_aggregated_control = GF_TRUE;
 	}
 
 	/*regular setup in an established session (RTSP DESCRIBE)*/
@@ -382,7 +382,7 @@ void RP_ResetSession(RTSPSession *sess, GF_Err e)
 		//first = 0;
 	}
 	/*reset session state*/
-	gf_rtsp_session_reset(sess->session, 1);
+	gf_rtsp_session_reset(sess->session, GF_TRUE);
 	sess->flags &= ~RTSP_WAIT_REPLY;
 }
 

@@ -75,22 +75,24 @@ static Bool TTIn_CanHandleURL(GF_InputService *plug, const char *url)
 	char *sExt;
 	u32 i;
 	if (!plug || !url)
-		return 0;
+		return GF_FALSE;
 	sExt = strrchr(url, '.');
-	if (!sExt) return 0;
+	if (!sExt)
+		return GF_FALSE;
 	for (i = 0 ; TTIN_MIME_TYPES[i]; i+=3) {
-		if (gf_service_check_mime_register(plug, TTIN_MIME_TYPES[i], TTIN_MIME_TYPES[i+1], TTIN_MIME_TYPES[i+2], sExt)) return 1;
+		if (gf_service_check_mime_register(plug, TTIN_MIME_TYPES[i], TTIN_MIME_TYPES[i+1], TTIN_MIME_TYPES[i+2], sExt))
+			return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 static Bool TTIn_is_local(const char *url)
 {
 	if (!url)
-		return 0;
-	if (!strnicmp(url, "file://", 7)) return 1;
-	if (strstr(url, "://")) return 0;
-	return 1;
+		return GF_FALSE;
+	if (!strnicmp(url, "file://", 7)) return GF_TRUE;
+	if (strstr(url, "://")) return GF_FALSE;
+	return GF_TRUE;
 }
 
 static GF_ESD *tti_get_esd(TTIn *tti)
@@ -104,7 +106,7 @@ static void tti_setup_object(TTIn *tti)
 	GF_ESD *esd = tti_get_esd(tti);
 	od->objectDescriptorID = esd->ESID;
 	gf_list_add(od->ESDescriptors, esd);
-	gf_service_declare_media(tti->service, (GF_Descriptor *)od, 0);
+	gf_service_declare_media(tti->service, (GF_Descriptor *)od, GF_FALSE);
 }
 
 
@@ -142,7 +144,7 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 	e = gf_media_import(&import);
 	if (!e) {
 		tti->tt_track = 1;
-		gf_isom_text_set_streaming_mode(tti->mp4, 1);
+		gf_isom_text_set_streaming_mode(tti->mp4, GF_TRUE);
 	}
 	if (import.in_name)
 		gf_free(import.in_name);
@@ -165,7 +167,7 @@ void TTIn_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		szCache = gf_dm_sess_get_cache_name(tti->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
-			e = TTIn_LoadFile(plug, szCache, 1);
+			e = TTIn_LoadFile(plug, szCache, GF_TRUE);
 		}
 	}
 	else if (param->msg_type==GF_NETIO_DATA_EXCHANGE)
@@ -173,7 +175,7 @@ void TTIn_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 	/*OK confirm*/
 	if (tti->needs_connection) {
-		tti->needs_connection = 0;
+		tti->needs_connection = GF_FALSE;
 		gf_service_connect_ack(tti->service, NULL, e);
 		if (!e && !tti->od_done) tti_setup_object(tti);
 	}
@@ -184,10 +186,10 @@ void TTIn_download_file(GF_InputService *plug, const char *url)
 	TTIn *tti = (TTIn *) plug->priv;
 	if (!plug || !url)
 		return;
-	tti->needs_connection = 1;
+	tti->needs_connection = GF_TRUE;
 	tti->dnload = gf_service_download_new(tti->service, url, 0, TTIn_NetIO, plug);
 	if (!tti->dnload) {
-		tti->needs_connection = 0;
+		tti->needs_connection = GF_FALSE;
 		gf_service_connect_ack(tti->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
@@ -212,7 +214,7 @@ static GF_Err TTIn_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 		TTIn_download_file(plug, url);
 		return GF_OK;
 	}
-	e = TTIn_LoadFile(plug, url, 0);
+	e = TTIn_LoadFile(plug, url, GF_FALSE);
 	gf_service_connect_ack(serv, NULL, e);
 	if (!e && !tti->od_done) tti_setup_object(tti);
 	return GF_OK;
@@ -264,7 +266,7 @@ static GF_Descriptor *TTIn_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		GF_ESD *esd = tti_get_esd(tti);
 		od->objectDescriptorID = esd->ESID;
 		gf_list_add(od->ESDescriptors, esd);
-		tti->od_done = 1;
+		tti->od_done = GF_TRUE;
 		return (GF_Descriptor *) od;
 	}
 	default:
@@ -344,8 +346,8 @@ static GF_Err TTIn_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, ch
 	TTIn *tti = (TTIn *)plug->priv;
 
 	*out_reception_status = GF_OK;
-	*sl_compressed = 0;
-	*is_new_data = 0;
+	*sl_compressed = GF_FALSE;
+	*is_new_data = GF_FALSE;
 
 	memset(&tti->sl_hdr, 0, sizeof(GF_SLHeader));
 	tti->sl_hdr.randomAccessPointFlag = 1;
@@ -372,7 +374,7 @@ static GF_Err TTIn_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, ch
 				*out_reception_status = GF_CORRUPTED_DATA;
 				return GF_OK;
 			}
-			*is_new_data = 1;
+			*is_new_data = GF_TRUE;
 		}
 		tti->sl_hdr.compositionTimeStamp = tti->sl_hdr.decodingTimeStamp = tti->samp->DTS;
 		*out_data_ptr = tti->samp->data;

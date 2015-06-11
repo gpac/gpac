@@ -115,25 +115,25 @@ static void AMR_SetupObject(AMR_Reader *read)
 	esd = AMR_GetESD(read);
 	esd->OCRESID = 0;
 	gf_list_add(od->ESDescriptors, esd);
-	gf_service_declare_media(read->service, (GF_Descriptor*)od, 0);
+	gf_service_declare_media(read->service, (GF_Descriptor*)od, GF_FALSE);
 }
 
 static Bool AMR_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	sExt = strrchr(url, '.');
-	if (!sExt) return 0;
-	if (gf_service_check_mime_register(plug, "audio/amr", "amr awb", "AMR Speech Data", sExt)) return 1;
-	if (gf_service_check_mime_register(plug, "audio/evrc", "evc", "EVRC Speech Data", sExt)) return 1;
-	if (gf_service_check_mime_register(plug, "audio/smv", "smv", "SMV Speech Data", sExt)) return 1;
-	return 0;
+	if (!sExt) return GF_FALSE;
+	if (gf_service_check_mime_register(plug, "audio/amr", "amr awb", "AMR Speech Data", sExt)) return GF_TRUE;
+	if (gf_service_check_mime_register(plug, "audio/evrc", "evc", "EVRC Speech Data", sExt)) return GF_TRUE;
+	if (gf_service_check_mime_register(plug, "audio/smv", "smv", "SMV Speech Data", sExt)) return GF_TRUE;
+	return GF_FALSE;
 }
 
 static Bool file_is_local(const char *url)
 {
-	if (!strnicmp(url, "file://", 7)) return 1;
-	if (strstr(url, "://")) return 0;
-	return 1;
+	if (!strnicmp(url, "file://", 7)) return GF_TRUE;
+	if (strstr(url, "://")) return GF_FALSE;
+	return GF_TRUE;
 }
 
 
@@ -142,7 +142,7 @@ static Bool AMR_ConfigureFromFile(AMR_Reader *read)
 	u32 i;
 	char magic[20];
 
-	if (!read->stream) return 0;
+	if (!read->stream) return GF_FALSE;
 	read->mtype = 0;
 	read->start_offset = 6;
 	read->sample_rate = 8000;
@@ -169,9 +169,9 @@ static Bool AMR_ConfigureFromFile(AMR_Reader *read)
 		read->block_size = 320;
 		fseek(read->stream, 9, SEEK_SET);
 	}
-	else if (!strnicmp(magic, "#!AMR_MC1.0\n", 12)) return 0;
-	else if (!strnicmp(magic, "#!AMR-WB_MC1.0\n", 15)) return 0;
-	else return 0;
+	else if (!strnicmp(magic, "#!AMR_MC1.0\n", 12)) return GF_FALSE;
+	else if (!strnicmp(magic, "#!AMR-WB_MC1.0\n", 15)) return GF_FALSE;
+	else return GF_FALSE;
 
 
 	read->duration = 0;
@@ -202,7 +202,7 @@ static Bool AMR_ConfigureFromFile(AMR_Reader *read)
 		}
 	}
 	fseek(read->stream, read->start_offset, SEEK_SET);
-	return 1;
+	return GF_TRUE;
 }
 
 static void AMR_NetIO(void *cbk, GF_NETIO_Parameter *param)
@@ -216,7 +216,7 @@ static void AMR_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	/*done*/
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 		if (read->stream) {
-			read->is_remote = 0;
+			read->is_remote = GF_FALSE;
 			e = GF_EOS;
 		} else {
 			return;
@@ -239,7 +239,7 @@ static void AMR_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			if (!read->stream) e = GF_SERVICE_ERROR;
 			else {
 				/*if full file at once (in cache) parse duration*/
-				if (e==GF_EOS) read->is_remote = 0;
+				if (e==GF_EOS) read->is_remote = GF_FALSE;
 				e = GF_OK;
 				/*not enough data*/
 				if (!AMR_ConfigureFromFile(read)) {
@@ -258,7 +258,7 @@ static void AMR_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	}
 	/*OK confirm*/
 	if (read->needs_connection) {
-		read->needs_connection = 0;
+		read->needs_connection = GF_FALSE;
 		gf_service_connect_ack(read->service, NULL, e);
 		if (!e) AMR_SetupObject(read);
 	}
@@ -268,11 +268,11 @@ static void AMR_DownloadFile(GF_InputService *plug, char *url)
 {
 	AMR_Reader *read = (AMR_Reader*) plug->priv;
 
-	read->needs_connection = 1;
+	read->needs_connection = GF_TRUE;
 
 	read->dnload = gf_service_download_new(read->service, url, 0, AMR_NetIO, read);
 	if (!read->dnload) {
-		read->needs_connection = 0;
+		read->needs_connection = GF_FALSE;
 		gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
@@ -287,7 +287,7 @@ static GF_Err AMR_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	char szURL[2048];
 	char *ext;
 	GF_Err reply;
-	AMR_Reader *read = plug->priv;
+	AMR_Reader *read = (AMR_Reader*)plug->priv;
 	read->service = serv;
 
 	if (read->dnload) gf_service_download_del(read->dnload);
@@ -320,7 +320,7 @@ static GF_Err AMR_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 static GF_Err AMR_CloseService(GF_InputService *plug)
 {
-	AMR_Reader *read = plug->priv;
+	AMR_Reader *read = (AMR_Reader*)plug->priv;
 	if (read->stream) gf_fclose(read->stream);
 	read->stream = NULL;
 	if (read->dnload) gf_service_download_del(read->dnload);
@@ -334,7 +334,7 @@ static GF_Err AMR_CloseService(GF_InputService *plug)
 
 static GF_Descriptor *AMR_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	AMR_Reader *read = plug->priv;
+	AMR_Reader *read = (AMR_Reader*)plug->priv;
 	/*since we don't handle multitrack in aac, we don't need to check sub_url, only use expected type*/
 
 	/*override default*/
@@ -357,7 +357,7 @@ static GF_Err AMR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 {
 	u32 ES_ID;
 	GF_Err e;
-	AMR_Reader *read = plug->priv;
+	AMR_Reader *read = (AMR_Reader*)plug->priv;
 
 	e = GF_SERVICE_ERROR;
 	if (read->ch==channel) goto exit;
@@ -381,7 +381,7 @@ exit:
 
 static GF_Err AMR_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	AMR_Reader *read = plug->priv;
+	AMR_Reader *read = (AMR_Reader*)plug->priv;
 
 	GF_Err e = GF_STREAM_NOT_FOUND;
 	if (read->ch == channel) {
@@ -396,7 +396,7 @@ static GF_Err AMR_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 static GF_Err AMR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
-	AMR_Reader *read = plug->priv;
+	AMR_Reader *read = (AMR_Reader*)plug->priv;
 
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 	switch (com->command_type) {
@@ -420,7 +420,7 @@ static GF_Err AMR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (read->stream) fseek(read->stream, read->start_offset, SEEK_SET);
 
 		if (read->ch == com->base.on_channel) {
-			read->done = 0;
+			read->done = GF_FALSE;
 			/*PLAY after complete download, estimate duration*/
 			if (!read->is_remote && !read->duration) {
 				AMR_ConfigureFromFile(read);
@@ -447,11 +447,11 @@ static GF_Err AMR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 {
 	u32 pos, start_from, i;
 	u8 toc, ft;
-	AMR_Reader *read = plug->priv;
+	AMR_Reader *read = (AMR_Reader*)plug->priv;
 
 	*out_reception_status = GF_OK;
-	*sl_compressed = 0;
-	*is_new_data = 0;
+	*sl_compressed = GF_FALSE;
+	*is_new_data = GF_FALSE;
 
 	memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 	read->sl_hdr.randomAccessPointFlag = 1;
@@ -470,7 +470,7 @@ static GF_Err AMR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 			*out_data_size = 0;
 			return GF_OK;
 		}
-		*is_new_data = 1;
+		*is_new_data = GF_TRUE;
 
 fetch_next:
 		pos = ftell(read->stream);
@@ -509,20 +509,20 @@ fetch_next:
 
 		read->data_size++;
 		read->sl_hdr.compositionTimeStamp = read->current_time;
-		read->data = gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
+		read->data = (unsigned char*)gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
 		read->data[0] = toc;
 		if (read->data_size>1) fread(read->data + 1, read->data_size-1, 1, read->stream);
 		if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
 	}
 	*out_sl_hdr = read->sl_hdr;
-	*out_data_ptr = read->data;
+	*out_data_ptr = (char*)read->data;
 	*out_data_size = read->data_size;
 	return GF_OK;
 }
 
 static GF_Err AMR_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	AMR_Reader *read = plug->priv;
+	AMR_Reader *read = (AMR_Reader*)plug->priv;
 
 	if (read->ch == channel) {
 		if (!read->data) return GF_BAD_PARAM;
@@ -537,7 +537,7 @@ static GF_Err AMR_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 GF_InputService *NewAESReader()
 {
 	AMR_Reader *reader;
-	GF_InputService *plug = gf_malloc(sizeof(GF_InputService));
+	GF_InputService *plug = (GF_InputService*)gf_malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC AMR/EVRC/SMV Reader", "gpac distribution")
 
@@ -553,7 +553,7 @@ GF_InputService *NewAESReader()
 	plug->ChannelGetSLP = AMR_ChannelGetSLP;
 	plug->ChannelReleaseSLP = AMR_ChannelReleaseSLP;
 
-	reader = gf_malloc(sizeof(AMR_Reader));
+	reader = (AMR_Reader*)gf_malloc(sizeof(AMR_Reader));
 	memset(reader, 0, sizeof(AMR_Reader));
 	plug->priv = reader;
 	return plug;
@@ -562,7 +562,7 @@ GF_InputService *NewAESReader()
 void DeleteAESReader(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
-	AMR_Reader *read = plug->priv;
+	AMR_Reader *read = (AMR_Reader*)plug->priv;
 	gf_free(read);
 	gf_free(plug);
 }

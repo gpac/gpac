@@ -38,7 +38,7 @@ void dc_message_queue_init(MessageQueue *mq)
 
 void dc_message_queue_put(MessageQueue *mq, void *data, u32 size)
 {
-	MessageQueueNode *mqn = gf_malloc(sizeof(MessageQueueNode));
+	MessageQueueNode *mqn = (MessageQueueNode*)gf_malloc(sizeof(MessageQueueNode));
 	mqn->data = gf_malloc(size);
 	memcpy(mqn->data, data, size);
 	mqn->size = size;

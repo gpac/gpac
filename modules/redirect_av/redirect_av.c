@@ -123,19 +123,19 @@ static u32 audio_encoding_thread_run(void *param)
 	u64 myTime = 0;
 	u32 frameCountSinceReset = 0;
 	u32 lastCurrentTime;
-	Bool sendPts = 1;
+	Bool sendPts = GF_TRUE;
 	GF_AVRedirect * avr = (GF_AVRedirect*) param;
 	AVCodecContext * ctx = NULL;
 	assert( avr );
 
 	outBuffSize = FF_MIN_BUFFER_SIZE;
 
-	outBuff = gf_malloc(outBuffSize* sizeof(u8));
+	outBuff = (u8*)gf_malloc(outBuffSize* sizeof(u8));
 	inBuff = NULL;
 #ifdef DUMP_MP3
 	FILE * mp3 = gf_fopen("/tmp/dump.mp3", "w");
 #endif /* DUMP_MP3 */
-	sendPts = 1;
+	sendPts = GF_TRUE;
 	gf_sc_add_audio_listener ( avr->term->compositor, &avr->audio_listen );
 	while (avr->is_running && !ctx) {
 		ctx = ts_get_audio_codec_context(avr->ts_implementation);
@@ -152,7 +152,7 @@ static u32 audio_encoding_thread_run(void *param)
 	// 2 chars are needed for each short
 	toRead = samplesReaden * 2;
 	inBuffSize = toRead;
-	inBuff = gf_malloc(inBuffSize * sizeof(u8));
+	inBuff = (u8*)gf_malloc(inBuffSize * sizeof(u8));
 	while (avr->is_running && !avr->audioCurrentTime) {
 		gf_sleep(16);
 	}
@@ -164,7 +164,7 @@ static u32 audio_encoding_thread_run(void *param)
 			//GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] Drift in audio : audioCurrentTime = %u, myTime=%u, resync...\n", avr->audioCurrentTime, myTime));
 			//myTime = lastCurrentTime = avr->audioCurrentTime;
 			//frameCountSinceReset = 0;
-			sendPts = 1;
+			sendPts = GF_TRUE;
 		}
 		while (toRead <= gf_ringbuffer_available_for_read(avr->pcmAudio) ) {
 			memset( inBuff, 0, inBuffSize);
@@ -194,7 +194,7 @@ static u32 audio_encoding_thread_run(void *param)
 					/* Avoid overflow , multiply by 10 and divide sample rate by 100 instead of  *1000 / sampleRate */
 					myTime = lastCurrentTime + (frameCountSinceReset * toRead * 10 / (ctx->sample_rate / 100) / ctx->channels / 4);
 					//sendPts = 0;
-					sendPts = 1;
+					sendPts = GF_TRUE;
 				} else {
 					GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[RedirectAV]: no encoded frame.\n"));
 					//frameCountSinceReset++;
@@ -253,7 +253,7 @@ static u32 video_encoding_thread_run(void *param)
 			assert( currentFrameTimeProcessed != avr->frameTime);
 			currentFrameTimeProcessed = avr->frameTime;
 			{
-				avpicture_fill ( ( AVPicture * ) avr->RGBpicture, avr->frame, PIX_FMT_RGB24, avr->srcWidth, avr->srcHeight );
+				avpicture_fill ( ( AVPicture * ) avr->RGBpicture, (const uint8_t*)avr->frame, PIX_FMT_RGB24, avr->srcWidth, avr->srcHeight );
 				assert( avr->swsContext );
 				sws_scale ( avr->swsContext,
 #ifdef USE_AVCODEC2
@@ -320,11 +320,11 @@ exit:
 static Bool start_if_needed(GF_AVRedirect *avr) {
 	enum PixelFormat pxlFormatForCodec = PIX_FMT_YUV420P;
 	if (avr->is_open)
-		return 0;
+		return GF_FALSE;
 	gf_mx_p(avr->frameMutex);
 	if (avr->is_open) {
 		gf_mx_v(avr->frameMutex);
-		return 0;
+		return GF_FALSE;
 	}
 	if (!avr->srcWidth || !avr->srcHeight
 #if REDIRECT_AV_AUDIO_ENABLED
@@ -356,7 +356,7 @@ static Bool start_if_needed(GF_AVRedirect *avr) {
 		{
 			gf_mx_v(avr->frameMutex);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot find audio codec.\n" ) );
-			return 1;
+			return GF_TRUE;
 		}
 #endif
 
@@ -377,14 +377,14 @@ static Bool start_if_needed(GF_AVRedirect *avr) {
 		assert ( avr->YUVpicture );
 		{
 			u32 sz = sizeof ( uint8_t ) * avpicture_get_size ( pxlFormatForCodec, avr->srcWidth, avr->srcHeight );
-			avr->yuv_data = av_malloc ( sz ); /* size for YUV 420 */
+			avr->yuv_data = (uint8_t*)av_malloc ( sz ); /* size for YUV 420 */
 			assert ( avr->yuv_data );
 			memset ( avr->yuv_data, 0, sz );
 			avpicture_fill ( ( AVPicture* ) avr->YUVpicture, avr->yuv_data, pxlFormatForCodec, avr->srcWidth, avr->srcHeight );
 			avr->YUVpicture->coded_picture_number = 0;
 		}
 		avr->videoOutbufSize = avr->srcHeight * avr->srcWidth * 4;
-		avr->videoOutbuf = gf_malloc ( avr->videoOutbufSize );
+		avr->videoOutbuf = (uint8_t*)gf_malloc ( avr->videoOutbufSize );
 		memset ( avr->videoOutbuf, 0, avr->videoOutbufSize );
 	}
 #ifdef AVR_DUMP_RAW_AVI
@@ -416,7 +416,7 @@ static Bool start_if_needed(GF_AVRedirect *avr) {
 	*/
 	avr->is_open = avr->ts_implementation != NULL;
 	gf_mx_v(avr->frameMutex);
-	return avr->is_open ? 1 : 0;
+	return avr->is_open ? GF_TRUE : GF_FALSE;
 }
 
 
@@ -426,7 +426,7 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
 	if ( avr->is_open)
 		return GF_OK;
 	if (!avr->is_running) {
-		avr->is_running = 1;
+		avr->is_running = GF_TRUE;
 		gf_th_run(avr->encodingThread, video_encoding_thread_run, avr);
 #if REDIRECT_AV_AUDIO_ENABLED
 		gf_th_run(avr->audioEncodingThread, audio_encoding_thread_run, avr);
@@ -521,7 +521,7 @@ static void avr_on_video_reconfig ( void *udta, u32 width, u32 height, u8 bpp )
 		gf_mx_p(avr->frameMutex);
 		if ( avr->frame ) gf_free ( avr->frame );
 		avr->size = 3*width*height;
-		avr->frame = gf_malloc ( sizeof ( char ) *avr->size );
+		avr->frame = (char*)gf_malloc ( sizeof ( char ) *avr->size );
 		avr->srcWidth = width;
 		avr->srcHeight = height;
 		avr->swsContext = sws_getCachedContext ( avr->swsContext, avr->srcWidth, avr->srcHeight, PIX_FMT_RGB24, avr->srcWidth, avr->srcHeight, PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL, NULL );
@@ -572,7 +572,7 @@ static const char * possibleCodecs = "supported codecs : MPEG-1, MPEG-2, MPEG-4,
 static void avr_close ( GF_AVRedirect *avr )
 {
 	if ( !avr->is_open ) return;
-	avr->is_open = 0;
+	avr->is_open = GF_FALSE;
 #ifdef AVR_DUMP_RAW_AVI
 	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ( "[AVRedirect] Closing output AVI file\n" ) );
 	AVI_close ( avr->avi_out );
@@ -582,7 +582,7 @@ static void avr_close ( GF_AVRedirect *avr )
 
 static Bool avr_on_event ( void *udta, GF_Event *evt, Bool consumed_by_compositor )
 {
-	GF_AVRedirect *avr = udta;
+	GF_AVRedirect *avr = (GF_AVRedirect*)udta;
 	switch ( evt->type )
 	{
 	case GF_EVENT_CONNECT:
@@ -596,7 +596,7 @@ static Bool avr_on_event ( void *udta, GF_Event *evt, Bool consumed_by_composito
 		}
 		break;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 static const char * AVR_ENABLED_OPTION = "Enabled";
@@ -610,7 +610,7 @@ static const char * AVR_DESTINATION = "destination";
 static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
 {
 	const char *opt;
-	GF_AVRedirect *avr = termext->udta;
+	GF_AVRedirect *avr = (GF_AVRedirect*)termext->udta;
 
 	switch ( action )
 	{
@@ -619,12 +619,12 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
 		opt = gf_modules_get_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_ENABLED_OPTION );
 		if ( !opt )
 			gf_modules_set_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_ENABLED_OPTION, "no" );
-		if ( !opt || strcmp ( opt, "yes" ) ) return 0;
+		if ( !opt || strcmp ( opt, "yes" ) ) return GF_FALSE;
 		opt = gf_modules_get_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_VIDEO_CODEC_OPTION );
 		avr->globalLock = gf_global_resource_lock("AVRedirect:output");
 		if (!avr->globalLock) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("Failed to lock global resource 'AVRedirect:output', another GPAC instance must be running, disabling AVRedirect\n"));
-			return 0;
+			return GF_FALSE;
 		}
 #ifndef AVIO_FLAG_WRITE
 		/* must be called before using avcodec lib */
@@ -726,7 +726,7 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
 		avr->term_listen.udta = avr;
 		avr->term_listen.on_event = avr_on_event;
 		gf_term_add_event_filter ( avr->term, &avr->term_listen );
-		return 1;
+		return GF_TRUE;
 
 	case GF_TERM_EXT_STOP:
 		gf_term_remove_event_filter ( avr->term, &avr->term_listen );
@@ -737,7 +737,7 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
 	case GF_TERM_EXT_PROCESS:
 		break;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -756,9 +756,9 @@ GF_TermExt *avr_new()
 	uir->frameMutex = gf_mx_new("RedirectAV_frameMutex");
 	uir->encodingThread = gf_th_new("RedirectAV_EncodingThread");
 	uir->audioEncodingThread = gf_th_new("RedirectAV_AudioEncodingThread");
-	uir->encode = 1;
-	uir->is_open = 0;
-	uir->is_running = 0;
+	uir->encode = GF_TRUE;
+	uir->is_open = GF_FALSE;
+	uir->is_running = GF_FALSE;
 	return dr;
 }
 
@@ -766,8 +766,8 @@ GF_TermExt *avr_new()
 void avr_delete ( GF_BaseInterface *ifce )
 {
 	GF_TermExt *dr = ( GF_TermExt * ) ifce;
-	GF_AVRedirect *avr = dr->udta;
-	avr->is_running = 0;
+	GF_AVRedirect *avr = (GF_AVRedirect*)dr->udta;
+	avr->is_running = GF_FALSE;
 	/* Ensure encoding is finished */
 	gf_mx_p(avr->frameMutex);
 	gf_mx_v(avr->frameMutex);
