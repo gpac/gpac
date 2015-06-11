@@ -2864,7 +2864,11 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 			break;
 	}
 	
-	gf_isom_set_final_name(in, "");
+	{
+		u64 duration = gf_isom_get_duration(in);
+		gf_isom_set_final_name(in, "");
+	}
+
 	return e;
 }
 
@@ -2880,6 +2884,8 @@ static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Media duration couldn't be forced. Aborting.\n"));
 			return e;
 		}
+		dash_input->period_duration = dash_input->media_duration;
+		dash_input->duration = dash_input->media_duration;
 	}
 
 	e = gf_media_isom_segment_file(in, szOutName, dash_cfg->fragment_duration, dash_cfg, dash_input, first_in_set);
