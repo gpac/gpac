@@ -807,13 +807,33 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size) {
 	int size = 17;
 	
 	gf_crypt_get_state(mc, &next_IV, &size);
-	if (next_IV[0]) {
+	/*
+		NOTE 1: the next_IV returned by get_state has 17 bytes, the first byte being the current counter position in the following 16 bytes.
+		If this index is 0, this means that we are at the begining of a new block and we can use it as IV for next sample, 
+		otherwise we must discard unsued bytes in the counter (next sample shall begin with counter at 0)
+		if less than 16 blocks were cyphered, we must force inscreasing the next IV for next sample, not doing so would produce the same IV for the next bytes cyphered, 
+		which is forbidden by CENC (unique IV per sample). In GPAC, we ALWAYS force counter increase 
+
+		NOTE 2: in case where IV_size is 8, because the cypher block is treated as 16 bytes while processing, 
+		we need to increment manually the 8-bytes IV (bytes 0 to 7) for the next sample, otherwise we would likely the same IV (eg unless we had cyphered 16 * 2^64 - 1
+		bytes in the last sample , quite unlikely !)
+
+		NOTE 3: Bytes 8 to 15 are set to 0 when forcing a new IV for 8-bytes IVs.
+
+		NOTE 4: Since CENC forces declaration of a unique, potentially random, IV per sample, we could increase the IV counter at each sample start
+		but this is currently not done
+	*/
+	if (IV_size == 8) {
+		/*cf note 2*/
+		increase_counter(&next_IV[1], IV_size);
+		next_IV[0] = 0;
+		/*cf note 3*/
+		memset(&next_IV[9], 0, 8*sizeof(char));
+	} else if (next_IV[0]) {
+		/*cf note 1*/
 		increase_counter(&next_IV[1], IV_size);
 		next_IV[0] = 0;
 	}
-
-	if (IV_size == 8)
-		memset(&next_IV[9], 0, 8*sizeof(char));
 
 	gf_crypt_set_state(mc, next_IV, size);
 

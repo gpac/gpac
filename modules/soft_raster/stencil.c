@@ -233,8 +233,8 @@ static void lgb_fill_run(EVGStencil *p, EVGSurface *surf, s32 x, s32 y, u32 coun
 	u32 *data = surf->stencil_pix_run;
 	EVG_LinearGradient *_this = (EVG_LinearGradient *) p;
 
-	has_cmat = _this->cmat.identity ? 0 : 1;
-	has_a = (_this->alpha==0xFF) ? 0 : 1;
+	has_cmat = _this->cmat.identity ? GF_FALSE : GF_TRUE;
+	has_a = (_this->alpha==0xFF) ? GF_FALSE : GF_TRUE;
 
 	/*no need to move x & y to fixed*/
 	_res = (Fixed) (x * _this->smat.m[0] + y * _this->smat.m[1] + _this->smat.m[2]);
@@ -319,8 +319,8 @@ static void rg_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 cou
 	y = INT2FIX(_y);
 	gf_mx2d_apply_coords(&_this->smat, &x, &y);
 
-	has_cmat = _this->cmat.identity ? 0 : 1;
-	has_a = (_this->alpha==0xFF) ? 0 : 1;
+	has_cmat = _this->cmat.identity ? GF_FALSE : GF_TRUE;
+	has_a = (_this->alpha==0xFF) ? GF_FALSE : GF_TRUE;
 
 	dx = x - _this->d_f.x;
 	dy = y - _this->d_f.y;
@@ -529,9 +529,9 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	while (y<0) y += _fd;
 
 	y0 = (s32) FIX2INT(y);
-	has_alpha = (_this->alpha != 255) ? 1 : 0;
-	has_replace_cmat = _this->cmat_is_replace ? 1 : 0;
-	has_cmat = _this->cmat.identity ? 0 : 1;
+	has_alpha = (_this->alpha != 255) ? GF_TRUE : GF_FALSE;
+	has_replace_cmat = _this->cmat_is_replace ? GF_TRUE : GF_FALSE;
+	has_cmat = _this->cmat.identity ? GF_FALSE : GF_TRUE;
 	replace_col = _this->replace_col;
 
 	while (count) {
@@ -629,7 +629,7 @@ static void bmp_fill_run_straight(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _
 	s32 x0, y0;
 	u32 pix;
 	u32 __a;
-	Bool repeat_s = 0;
+	Bool repeat_s = GF_FALSE;
 	Fixed x, y, _fdim;
 	char *pix_line;
 	u32 *data = surf->stencil_pix_run;
@@ -696,13 +696,13 @@ void evg_bmp_init(EVGStencil *p)
 	_this->inc_y = p1.y - p0.y;
 
 	_this->replace_col = 0;
-	_this->cmat_is_replace = 0;
+	_this->cmat_is_replace = GF_FALSE;
 	if (!_this->cmat.identity
 	        && !_this->cmat.m[0] && !_this->cmat.m[1] && !_this->cmat.m[2] && !_this->cmat.m[3]
 	        && !_this->cmat.m[5] && !_this->cmat.m[6] && !_this->cmat.m[7] && !_this->cmat.m[8]
 	        && !_this->cmat.m[10] && !_this->cmat.m[11] && !_this->cmat.m[12] && !_this->cmat.m[13]
 	        && !_this->cmat.m[15] && !_this->cmat.m[16] && !_this->cmat.m[17] && !_this->cmat.m[19]) {
-		_this->cmat_is_replace = 1;
+		_this->cmat_is_replace = GF_TRUE;
 		_this->replace_col = GF_COL_ARGB(FIX2INT(_this->cmat.m[18]*255), FIX2INT(_this->cmat.m[4]*255), FIX2INT(_this->cmat.m[9]*255), FIX2INT(_this->cmat.m[14]*255));
 	}
 
@@ -809,7 +809,7 @@ GF_Err evg_stencil_set_texture(GF_STENCIL st, char *pixels, u32 width, u32 heigh
 		return GF_BAD_PARAM;
 
 	_this->pixels = 0L;
-	_this->is_converted = 1;
+	_this->is_converted = GF_TRUE;
 
 	switch (pixelFormat) {
 	case GF_PIXEL_ARGB:
@@ -836,13 +836,13 @@ GF_Err evg_stencil_set_texture(GF_STENCIL st, char *pixels, u32 width, u32 heigh
 		_this->orig_format = GF_PIXEL_YV12;
 		_this->orig_buf = (u8 *) pixels;
 		_this->orig_stride = stride;
-		_this->is_converted = 0;
+		_this->is_converted = GF_FALSE;
 		break;
 	case GF_PIXEL_YUVA:
 		_this->orig_format = GF_PIXEL_YUVA;
 		_this->orig_buf = (u8 *) pixels;
 		_this->orig_stride = stride;
-		_this->is_converted = 0;
+		_this->is_converted = GF_FALSE;
 		break;
 	default:
 		/*the rest is not supported (eg BGR32)*/
@@ -934,9 +934,9 @@ void evg_set_texture_active(EVGStencil *st)
 	dst.pixel_format = _this->pixel_format;
 	dst.video_buffer = (char *) _this->conv_buf;
 
-	gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 0, NULL, NULL);
+	gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, GF_FALSE, NULL, NULL);
 
-	_this->is_converted = 1;
+	_this->is_converted = GF_TRUE;
 	_this->pixels = (char *) _this->conv_buf;
 	_this->stride = _this->Bpp * _this->width;
 	texture_set_callback(_this);
@@ -947,7 +947,7 @@ GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_Pixel
 	EVG_Texture *_this = 	(EVG_Texture *)st;
 	if (_this->orig_buf) return GF_BAD_PARAM;
 	_this->pixels = 0L;
-	_this->is_converted = 1;
+	_this->is_converted = GF_TRUE;
 
 	switch (pixelFormat) {
 	case GF_PIXEL_ARGB:
@@ -979,7 +979,7 @@ GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_Pixel
 	if (_this->pixels) gf_free(_this->pixels);
 	_this->pixels = (char *) gf_malloc(sizeof(char) * _this->stride * _this->height);
 	memset(_this->pixels, 0, sizeof(char) * _this->stride * _this->height);
-	_this->owns_texture = 1;
+	_this->owns_texture = GF_TRUE;
 	texture_set_callback(_this);
 	return GF_OK;
 }

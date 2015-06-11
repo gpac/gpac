@@ -39,7 +39,7 @@ void sdl_fill_audio(void *udata, Uint8 *stream, int len)
 	if (ctx->volume != SDL_MIX_MAXVOLUME) {
 		u32 written;
 		if (ctx->alloc_size < (u32) len) {
-			ctx->audioBuff = gf_realloc( ctx->audioBuff, sizeof(Uint8) * len);
+			ctx->audioBuff = (Uint8*)gf_realloc( ctx->audioBuff, sizeof(Uint8) * len);
 			ctx->alloc_size = len;
 		}
 		memset(stream, 0, len);
@@ -218,10 +218,10 @@ void *SDL_NewAudio()
 	GF_AudioOutput *dr;
 
 
-	ctx = gf_malloc(sizeof(SDLAudCtx));
+	ctx = (SDLAudCtx*)gf_malloc(sizeof(SDLAudCtx));
 	memset(ctx, 0, sizeof(SDLAudCtx));
 
-	dr = gf_malloc(sizeof(GF_AudioOutput));
+	dr = (GF_AudioOutput*)gf_malloc(sizeof(GF_AudioOutput));
 	memset(dr, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_AUDIO_OUTPUT_INTERFACE, "SDL Audio Output", "gpac distribution");
 
@@ -239,7 +239,7 @@ void *SDL_NewAudio()
 
 	dr->QueryOutputSampleRate = SDLAud_QueryOutputSampleRate;
 	/*always threaded*/
-	dr->SelfThreaded = 1;
+	dr->SelfThreaded = GF_TRUE;
 	ctx->audioBuff = NULL;
 	ctx->volume = SDL_MIX_MAXVOLUME;
 	return dr;

@@ -261,7 +261,7 @@ Bool gf_module_is_loaded(GF_ModuleManager *pm, char *filename)
 	u32 i = 0;
 	ModuleInstance *inst;
 	while ( (inst = (ModuleInstance *) gf_list_enum(pm->plug_list, &i) ) ) {
-		if (!strcmp(inst->name, filename)) return 1;
+		if (!strcmp(inst->name, filename)) return GF_TRUE;
 	}
 	return GF_FALSE;
 }

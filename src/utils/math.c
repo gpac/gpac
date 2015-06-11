@@ -903,7 +903,7 @@ Bool gf_mx2d_decompose(GF_Matrix2D *mx, GF_Point2D *scale, Fixed *rotate, GF_Poi
 	if (ABS(det) > FIX_EPSILON) {
 		scale->x = scale->y = 0;
 		*rotate = 0;
-		return 0;
+		return GF_FALSE;
 	}
 	angle = gf_atan2(tmp[3], tmp[4]);
 	if (angle < FIX_EPSILON) {
@@ -1010,12 +1010,12 @@ GF_Rect gf_rect_center(Fixed w, Fixed h)
 GF_EXPORT
 Bool gf_rect_overlaps(GF_Rect rc1, GF_Rect rc2)
 {
-	if (! rc2.height || !rc2.width || !rc1.height || !rc1.width) return 0;
-	if (rc2.x+rc2.width<=rc1.x) return 0;
-	if (rc2.x>=rc1.x+rc1.width) return 0;
-	if (rc2.y-rc2.height>=rc1.y) return 0;
-	if (rc2.y<=rc1.y-rc1.height) return 0;
-	return 1;
+	if (! rc2.height || !rc2.width || !rc1.height || !rc1.width) return GF_FALSE;
+	if (rc2.x+rc2.width<=rc1.x) return GF_FALSE;
+	if (rc2.x>=rc1.x+rc1.width) return GF_FALSE;
+	if (rc2.y-rc2.height>=rc1.y) return GF_FALSE;
+	if (rc2.y<=rc1.y-rc1.height) return GF_FALSE;
+	return GF_TRUE;
 }
 
 GF_EXPORT
@@ -1377,19 +1377,19 @@ void gf_mx_from_mx2d(GF_Matrix *mat, GF_Matrix2D *mat2D)
 GF_EXPORT
 Bool gf_mx_equal(GF_Matrix *mx1, GF_Matrix *mx2)
 {
-	if (mx1->m[0] != mx2->m[0]) return 0;
-	if (mx1->m[1] != mx2->m[1]) return 0;
-	if (mx1->m[2] != mx2->m[2]) return 0;
-	if (mx1->m[4] != mx2->m[4]) return 0;
-	if (mx1->m[5] != mx2->m[5]) return 0;
-	if (mx1->m[6] != mx2->m[6]) return 0;
-	if (mx1->m[8] != mx2->m[8]) return 0;
-	if (mx1->m[9] != mx2->m[9]) return 0;
-	if (mx1->m[10] != mx2->m[10]) return 0;
-	if (mx1->m[12] != mx2->m[12]) return 0;
-	if (mx1->m[13] != mx2->m[13]) return 0;
-	if (mx1->m[14] != mx2->m[14]) return 0;
-	return 1;
+	if (mx1->m[0] != mx2->m[0]) return GF_FALSE;
+	if (mx1->m[1] != mx2->m[1]) return GF_FALSE;
+	if (mx1->m[2] != mx2->m[2]) return GF_FALSE;
+	if (mx1->m[4] != mx2->m[4]) return GF_FALSE;
+	if (mx1->m[5] != mx2->m[5]) return GF_FALSE;
+	if (mx1->m[6] != mx2->m[6]) return GF_FALSE;
+	if (mx1->m[8] != mx2->m[8]) return GF_FALSE;
+	if (mx1->m[9] != mx2->m[9]) return GF_FALSE;
+	if (mx1->m[10] != mx2->m[10]) return GF_FALSE;
+	if (mx1->m[12] != mx2->m[12]) return GF_FALSE;
+	if (mx1->m[13] != mx2->m[13]) return GF_FALSE;
+	if (mx1->m[14] != mx2->m[14]) return GF_FALSE;
+	return GF_TRUE;
 }
 
 
@@ -1792,7 +1792,7 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	if (ABS(r3[0]) > ABS(r2[0])) SWAP_ROWS(r3, r2);
 	if (ABS(r2[0]) > ABS(r1[0])) SWAP_ROWS(r2, r1);
 	if (ABS(r1[0]) > ABS(r0[0])) SWAP_ROWS(r1, r0);
-	if (r0[0]==0) return 0;
+	if (r0[0]==0) return GF_FALSE;
 
 	/*eliminate first variable*/
 	m1 = gf_divfix(r1[0], r0[0]);
@@ -1838,7 +1838,7 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	/* choose pivot - or die */
 	if (fabs(r3[1]) > fabs(r2[1])) SWAP_ROWS(r3, r2);
 	if (fabs(r2[1]) > fabs(r1[1])) SWAP_ROWS(r2, r1);
-	if (r1[1]==0) return 0;
+	if (r1[1]==0) return GF_FALSE;
 
 	/* eliminate second variable */
 	m2 = gf_divfix(r2[1], r1[1]);
@@ -1870,7 +1870,7 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 
 	/* choose pivot - or die */
 	if (fabs(r3[2]) > fabs(r2[2])) SWAP_ROWS(r3, r2);
-	if (r2[2]==0) return 0;
+	if (r2[2]==0) return GF_FALSE;
 
 	/* eliminate third variable */
 	m3 = gf_divfix(r3[2], r2[2]);
@@ -1880,7 +1880,7 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	r3[6] -= gf_mulfix(m3, r2[6]);
 	r3[7] -= gf_mulfix(m3, r2[7]);
 	/* last check */
-	if (r3[3]==0) return 0;
+	if (r3[3]==0) return GF_FALSE;
 
 	s = gf_invfix(r3[3]);		/* now back substitute row 3 */
 	r3[4] = gf_mulfix(r3[4], s);
@@ -1941,7 +1941,7 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	res.m[11] = r3[6];
 	res.m[15] = r3[7];
 	gf_mx_copy(*mx, res);
-	return 1;
+	return GF_TRUE;
 #undef SWAP_ROWS
 
 }
@@ -1960,12 +1960,12 @@ Bool gf_plane_intersect_line(GF_Plane *plane, GF_Vec *linepoint, GF_Vec *linevec
 {
 	Fixed t, t2;
 	t2 = gf_vec_dot(plane->normal, *linevec);
-	if (t2 == 0) return 0;
+	if (t2 == 0) return GF_FALSE;
 	t = - gf_divfix((gf_vec_dot(plane->normal, *linepoint) + plane->d) , t2);
-	if (t<0) return 0;
+	if (t<0) return GF_FALSE;
 	*outPoint = gf_vec_scale(*linevec, t);
 	gf_vec_add(*outPoint, *linepoint, *outPoint);
-	return 1;
+	return GF_TRUE;
 }
 
 GF_EXPORT
@@ -1984,9 +1984,9 @@ Bool gf_plane_intersect_plane(GF_Plane *plane, GF_Plane *with, GF_Vec *linepoint
 		v1 = gf_vec_scale(plane->normal, fc0);
 		v2 = gf_vec_scale(with->normal, fc1);
 		gf_vec_add(*linepoint, v1, v2);
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -1995,7 +1995,7 @@ Bool gf_plane_intersect_planes(GF_Plane *plane, GF_Plane *p1, GF_Plane *p2, GF_V
 	GF_Vec lp, lv;
 	if (gf_plane_intersect_plane(plane, p1, &lp, &lv))
 		return gf_plane_intersect_line(p2, &lp, &lv, outPoint);
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -2034,7 +2034,7 @@ Bool gf_ray_hit_box(GF_Ray *ray, GF_Vec box_min, GF_Vec box_max, GF_Vec *outPoin
 
 	if (ray->dir.x == 0) {
 		if ((ray->orig.x < box_min.x) || (ray->orig.x > box_max.x))
-			return 0;
+			return GF_FALSE;
 	} else {
 		t1 = gf_divfix(box_min.x - ray->orig.x, ray->dir.x);
 		t2 = gf_divfix(box_max.x - ray->orig.x, ray->dir.x);
@@ -2049,13 +2049,13 @@ Bool gf_ray_hit_box(GF_Ray *ray, GF_Vec box_min, GF_Vec box_max, GF_Vec *outPoin
 			//sign = (ray->dir.x < 0) ? 1 : -1;
 		}
 		if (t2 < tFAR) tFAR = t2;
-		if (tNEAR > tFAR) return 0; // box missed
-		if (tFAR < 0) return 0; // box behind the ray
+		if (tNEAR > tFAR) return GF_FALSE; // box missed
+		if (tFAR < 0) return GF_FALSE; // box behind the ray
 	}
 
 	if (ray->dir.y == 0) {
 		if ((ray->orig.y < box_min.y) || (ray->orig.y > box_max.y))
-			return 0;
+			return GF_FALSE;
 	} else {
 		tNEAR=FIX_MIN;
 		tFAR=FIX_MAX;
@@ -2072,14 +2072,14 @@ Bool gf_ray_hit_box(GF_Ray *ray, GF_Vec box_min, GF_Vec box_max, GF_Vec *outPoin
 			//sign = (ray->dir.y < 0) ? 1 : -1;
 		}
 		if (t2 < tFAR) tFAR = t2;
-		if (tNEAR > tFAR) return 0; // box missed
-		if (tFAR < 0) return 0; // box behind the ray
+		if (tNEAR > tFAR) return GF_FALSE; // box missed
+		if (tFAR < 0) return GF_FALSE; // box behind the ray
 	}
 
 	// Check the Z plane
 	if (ray->dir.z == 0) {
 		if ((ray->orig.z < box_min.z) || (ray->orig.z > box_max.z))
-			return 0;
+			return GF_FALSE;
 	} else {
 		tNEAR=FIX_MIN;
 		tFAR=FIX_MAX;
@@ -2096,14 +2096,14 @@ Bool gf_ray_hit_box(GF_Ray *ray, GF_Vec box_min, GF_Vec box_max, GF_Vec *outPoin
 			//sign = (ray->dir.z < 0) ? 1 : -1;
 		}
 		if (t2 < tFAR) tFAR = t2;
-		if (tNEAR>tFAR) return 0; // box missed
-		if (tFAR < 0) return 0;  // box behind the ray
+		if (tNEAR>tFAR) return GF_FALSE; // box missed
+		if (tFAR < 0) return GF_FALSE;  // box behind the ray
 	}
 	if (outPoint) {
 		*outPoint = gf_vec_scale(ray->dir, tNEAR);
 		gf_vec_add(*outPoint, *outPoint, ray->orig);
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 
@@ -2120,18 +2120,18 @@ Bool gf_ray_hit_sphere(GF_Ray *ray, GF_Vec *center, Fixed radius, GF_Vec *outPoi
 	}
 	dist = gf_vec_len(radv);
 	center_proj = gf_vec_dot(radv, ray->dir);
-	if (radius + ABS(center_proj) < dist ) return 0;
+	if (radius + ABS(center_proj) < dist ) return GF_FALSE;
 
 	center_proj_sq = gf_mulfix(center_proj, center_proj);
 	hcord = center_proj_sq - gf_mulfix(dist, dist) + gf_mulfix(radius , radius);
-	if (hcord < 0) return 0;
-	if (center_proj_sq < hcord) return 0;
+	if (hcord < 0) return GF_FALSE;
+	if (center_proj_sq < hcord) return GF_FALSE;
 	if (outPoint) {
 		center_proj -= gf_sqrt(hcord);
 		radv = gf_vec_scale(ray->dir, center_proj);
 		gf_vec_add(*outPoint, ray->orig, radv);
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 /*
@@ -2152,17 +2152,17 @@ Bool gf_ray_hit_triangle(GF_Ray *ray, GF_Vec *v0, GF_Vec *v1, GF_Vec *v2, Fixed 
 	pvec = gf_vec_cross(ray->dir, edge2);
 	/* if determinant is near zero, ray lies in plane of triangle */
 	det = gf_vec_dot(edge1, pvec);
-	if (ABS(det) < FIX_EPSILON) return 0;
+	if (ABS(det) < FIX_EPSILON) return GF_FALSE;
 	/* calculate distance from vert0 to ray origin */
 	gf_vec_diff(tvec, ray->orig, *v0);
 	/* calculate U parameter and test bounds */
 	u = gf_divfix(gf_vec_dot(tvec, pvec), det);
-	if ((u < 0) || (u > FIX_ONE)) return 0;
+	if ((u < 0) || (u > FIX_ONE)) return GF_FALSE;
 	/* prepare to test V parameter */
 	qvec = gf_vec_cross(tvec, edge1);
 	/* calculate V parameter and test bounds */
 	v = gf_divfix(gf_vec_dot(ray->dir, qvec), det);
-	if ((v < 0) || (u + v > FIX_ONE)) return 0;
+	if ((v < 0) || (u + v > FIX_ONE)) return GF_FALSE;
 #ifdef GPAC_FIXED_POINT
 #define VSCALE	4096
 	det /= VSCALE;
@@ -2173,7 +2173,7 @@ Bool gf_ray_hit_triangle(GF_Ray *ray, GF_Vec *v0, GF_Vec *v1, GF_Vec *v2, Fixed 
 #endif
 	/* calculate t, ray intersects triangle */
 	*dist = gf_divfix(gf_vec_dot(edge2, qvec), det);
-	return 1;
+	return GF_TRUE;
 }
 
 GF_EXPORT
@@ -2188,20 +2188,20 @@ Bool gf_ray_hit_triangle_backcull(GF_Ray *ray, GF_Vec *v0, GF_Vec *v1, GF_Vec *v
 	pvec = gf_vec_cross(ray->dir, edge2);
 	/* if determinant is near zero, ray lies in plane of triangle */
 	det = gf_vec_dot(edge1, pvec);
-	if (det < FIX_EPSILON) return 0;
+	if (det < FIX_EPSILON) return GF_FALSE;
 	/* calculate distance from vert0 to ray origin */
 	gf_vec_diff(tvec, ray->orig, *v0);
 	/* calculate U parameter and test bounds */
 	u = gf_vec_dot(tvec, pvec);
-	if ((u < 0) || (u > det)) return 0;
+	if ((u < 0) || (u > det)) return GF_FALSE;
 	/* prepare to test V parameter */
 	qvec = gf_vec_cross(tvec, edge1);
 	/* calculate V parameter and test bounds */
 	v = gf_vec_dot(ray->dir, qvec);
-	if ((v < 0) || (u + v > det)) return 0;
+	if ((v < 0) || (u + v > det)) return GF_FALSE;
 	/* calculate t, scale parameters, ray intersects triangle */
 	*dist = gf_divfix(gf_vec_dot(edge2, qvec), det);
-	return 1;
+	return GF_TRUE;
 }
 
 GF_EXPORT
@@ -2423,7 +2423,7 @@ void gf_bbox_refresh(GF_BBox *b)
 	b->center = gf_vec_scale(v, FIX_ONE / 2);
 	gf_vec_diff(v, b->max_edge, b->min_edge);
 	b->radius = gf_vec_len(v) / 2;
-	b->is_set = 1;
+	b->is_set = GF_TRUE;
 }
 
 GF_EXPORT

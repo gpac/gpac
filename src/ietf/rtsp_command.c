@@ -551,7 +551,7 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	if (sess->last_session_id && com->Session && !strcmp(com->Session, sess->last_session_id)
 	        && com->Connection && !stricmp(com->Connection, "Close")) {
 
-		gf_rtsp_session_reset(sess, 0);
+		gf_rtsp_session_reset(sess, GF_FALSE);
 		//destroy the socket
 		if (sess->connection) gf_sk_del(sess->connection);
 		sess->connection = NULL;

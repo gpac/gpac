@@ -3337,7 +3337,7 @@ static void dash_m2ts_event_check_pat(GF_M2TS_Demuxer *ts, u32 evt_type, void *p
 		}
 		break;
 	case GF_M2TS_EVT_PES_PCK:
-		pck = par;
+		pck = (GF_M2TS_PES_PCK*)par;
 		/* we process packets only for the given PID */
 		if (pck->stream->pid == pck->stream->program->pcr_pid) {
 			if (!ts_seg->nb_pes_in_segment || (ts_seg->first_PTS > pck->PTS)) {
@@ -3428,7 +3428,7 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("Program number %d found - %d streams:\n", prog->number, count));
 		for (i=0; i<count; i++) {
-			GF_M2TS_ES *es = gf_list_get(prog->streams, i);
+			GF_M2TS_ES *es = (GF_M2TS_ES*)gf_list_get(prog->streams, i);
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_DEFAULT);
 		}
 		break;
@@ -3447,7 +3447,7 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		ts_seg->last_pmt_position = (ts->pck_number-1)*188;
 		break;
 	case GF_M2TS_EVT_PES_PCK:
-		pck = par;
+		pck = (GF_M2TS_PES_PCK*)par;
 		/*We need the interpolated PCR for the pcrb, hence moved this calculus out, and saving the calculated value in ts_seg to put it in the pcrb*/
 		pes = pck->stream;
 		/* Interpolated PCR value for the TS packet containing the PES header start */
@@ -3522,7 +3522,7 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		}
 		break;
 	case GF_M2TS_EVT_PES_PCR:
-		pck = par;
+		pck = (GF_M2TS_PES_PCK*)par;
 		if (!ts_seg->first_pcr_position_valid) {
 			ts_seg->first_pcr_position_valid = GF_TRUE;
 			ts_seg->first_pcr_position = (ts->pck_number-1)*188;
@@ -4153,7 +4153,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 		}
 		//scalable input file, realloc
 		j = *nb_dash_inputs + max_nb_deps;
-		dash_inputs = gf_realloc(dash_inputs, sizeof(GF_DashSegInput) * j);
+		dash_inputs = (GF_DashSegInput*)gf_realloc(dash_inputs, sizeof(GF_DashSegInput) * j);
 		memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(GF_DashSegInput) * max_nb_deps);
 		*io_dash_inputs = dash_inputs;
 
@@ -4205,7 +4205,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 		for (j = idx; j < *nb_dash_inputs; j++) {
 			GF_DashSegInput *di;
 			u32 count, t, ref_track;
-            char *depID = gf_malloc(2);
+			char *depID = (char*)gf_malloc(2);
 
 			di = &dash_inputs[j];
 			count = gf_isom_get_reference_count(file, di->trackNum, GF_ISOM_REF_SCAL);
@@ -4224,8 +4224,9 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
                 al_len += (u32) strlen(rid);
                 al_len += (u32) strlen(depID)+1;
 
-				depID = gf_realloc(depID, sizeof(char)*al_len);
-                if (t) strcat(depID, " ");
+				depID = (char*)gf_realloc(depID, sizeof(char)*al_len);
+				if (t)
+					strcat(depID, " ");
 				strcat(depID, gf_dash_get_representationID(dash_inputs, *nb_dash_inputs, di->file_name, ref_track));
 
 				di->lower_layer_track = ref_track;
@@ -4617,7 +4618,7 @@ static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, GF_DashDynamicMode *da
 	else if (! (*dash_mode) && !strncmp(opt, "dynamic", 7)) {
 		gf_cfg_set_key(dash_ctx, "DASH", "SessionType", "static");
 	} else {
-		*dash_mode = 0;
+		*dash_mode = GF_DASH_STATIC;
 		if (!strcmp(opt, "dynamic")) *dash_mode = GF_DASH_DYNAMIC;
 		else if (!strcmp(opt, "dynamic-debug")) *dash_mode = GF_DASH_DYNAMIC_DEBUG;
 
@@ -5769,14 +5770,14 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			period_mpd = gf_fopen(p->szPeriodXML, "wb");
 
 			if (!period_mpd) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot open period MPD %s for writing, aborintg\n", p->szPeriodXML));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot open period MPD %s for writing, aborting\n", p->szPeriodXML));
 				e = GF_IO_ERR;
 				goto exit;
 			}
 
 			dasher->mpd = period_mpd;
 
-			e = write_period_header(dasher, period_mpd, id, 0.0, period_duration, NULL, cur_period+1, (xlink!=NULL) ? 1 : 0 );
+			e = write_period_header(dasher, period_mpd, id, 0.0, period_duration, NULL, cur_period+1, (xlink!=NULL) ? GF_TRUE : GF_FALSE);
 			if (e) goto exit;
 		}
 		//keep track of the last period xlink

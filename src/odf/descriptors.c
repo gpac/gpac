@@ -352,7 +352,7 @@ GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 	if (!dsi || !dsi->data || !dsi->dataLength ) {
 		/* Hack for T-DMB non compliant streams (OnTimeTek ?) */
 		cfg = (GF_BIFSConfig *) gf_odf_desc_new(GF_ODF_BIFS_CFG_TAG);
-		cfg->pixelMetrics = 1;
+		cfg->pixelMetrics = GF_TRUE;
 		cfg->version = 1;
 		return cfg;
 	}
@@ -369,7 +369,7 @@ GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 	cfg->routeIDbits = gf_bs_read_int(bs, 5);
 	if (oti==2) cfg->protoIDbits = gf_bs_read_int(bs, 5);
 
-	cmd_stream = gf_bs_read_int(bs, 1);
+	cmd_stream = (Bool)gf_bs_read_int(bs, 1);
 	if (!cmd_stream) {
 		cfg->elementaryMasks = gf_list_new();
 		while (1) {
@@ -384,8 +384,8 @@ GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[ODF] Reading bifs config: shift in sizes (not supported)\n"));
 		}
 	} else {
-		cfg->pixelMetrics = gf_bs_read_int(bs, 1);
-		hasSize = gf_bs_read_int(bs, 1);
+		cfg->pixelMetrics = (Bool)gf_bs_read_int(bs, 1);
+		hasSize = (Bool)gf_bs_read_int(bs, 1);
 		if (hasSize) {
 			cfg->pixelWidth = gf_bs_read_int(bs, 16);
 			cfg->pixelHeight = gf_bs_read_int(bs, 16);
@@ -735,14 +735,14 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 	cfg->MPEGExtendedFormat = gf_bs_read_int(bs, 8);
 	cfg->profileLevel = gf_bs_read_int(bs, 8);
 	cfg->timescale = gf_bs_read_int(bs, 24);
-	has_alt_format = gf_bs_read_int(bs, 1);
+	has_alt_format = (Bool)gf_bs_read_int(bs, 1);
 	cfg->sampleDescriptionFlags = gf_bs_read_int(bs, 2);
 #ifndef GPAC_DISABLE_ISOM
-	has_sd = gf_bs_read_int(bs, 1);
+	has_sd = (Bool)gf_bs_read_int(bs, 1);
 #else
 	gf_bs_read_int(bs, 1);
 #endif
-	cfg->has_vid_info = gf_bs_read_int(bs, 1);
+	cfg->has_vid_info = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 3);
 	cfg->layer = gf_bs_read_int(bs, 8);
 	cfg->text_width = gf_bs_read_int(bs, 16);
@@ -890,7 +890,7 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 	gf_bs_write_int(bs, count, 8);
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
-		GF_HEVCParamArray *ar = gf_list_get(cfg->param_array, i);
+		GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(cfg->param_array, i);
 		gf_bs_write_int(bs, ar->array_completeness, 1);
 		gf_bs_write_int(bs, 0, 1);
 		gf_bs_write_int(bs, ar->type, 6);
@@ -959,9 +959,9 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
 	cfg->nal_unit_size = 1 + gf_bs_read_int(bs, 2);
 
 	if (is_shvc) {
-		cfg->is_shvc = 1;
-		cfg->complete_representation = gf_bs_read_int(bs, 1);
-		cfg->non_hevc_base_layer = gf_bs_read_int(bs, 1);
+		cfg->is_shvc = GF_TRUE;
+		cfg->complete_representation = (Bool)gf_bs_read_int(bs, 1);
+		cfg->non_hevc_base_layer = (Bool)gf_bs_read_int(bs, 1);
 		cfg->num_layers = 1 + gf_bs_read_int(bs, 6);
 		cfg->scalability_mask = gf_bs_read_int(bs, 16);
 	}

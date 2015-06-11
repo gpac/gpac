@@ -614,19 +614,19 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 								else if (!stricmp(fieldName, "text_height")) GET_U32(txt->text_height)
 									else if (!stricmp(fieldName, "video_width")) {
 										GET_U32(txt->video_width)
-										txt->has_vid_info = 1;
+										txt->has_vid_info = GF_TRUE;
 									}
 									else if (!stricmp(fieldName, "video_height")) {
 										GET_U32(txt->video_height)
-										txt->has_vid_info = 1;
+										txt->has_vid_info = GF_TRUE;
 									}
 									else if (!stricmp(fieldName, "horizontal_offset")) {
 										GET_S16(txt->horiz_offset)
-										txt->has_vid_info = 1;
+										txt->has_vid_info = GF_TRUE;
 									}
 									else if (!stricmp(fieldName, "vertical_offset")) {
 										GET_S32(txt->vert_offset)
-										txt->has_vid_info = 1;
+										txt->has_vid_info = GF_TRUE;
 									}
 	}
 	break;
@@ -661,9 +661,9 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 															sd->fonts[0].fontID = 0;
 															sd->fonts[0].fontName = NULL;
 														} else {
-															Bool realloc_fonts = 0;
-															if (!stricmp(fieldName, "fontID") && sd->fonts[sd->font_count-1].fontID) realloc_fonts = 1;
-															else if (!stricmp(fieldName, "fontName") && sd->fonts[sd->font_count-1].fontName) realloc_fonts = 1;
+															Bool realloc_fonts = GF_FALSE;
+															if (!stricmp(fieldName, "fontID") && sd->fonts[sd->font_count-1].fontID) realloc_fonts = GF_TRUE;
+															else if (!stricmp(fieldName, "fontName") && sd->fonts[sd->font_count-1].fontName) realloc_fonts = GF_TRUE;
 															if (realloc_fonts) {
 																sd->font_count += 1;
 																sd->fonts = (GF_FontRecord*)gf_realloc(sd->fonts, sizeof(GF_FontRecord)*sd->font_count);
@@ -756,14 +756,14 @@ Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		/*we'll write the nb of words later on*/
 		gf_bs_write_int(bs, 0, 8);
-		has_word = 0;
+		has_word = GF_FALSE;
 		/*parse all words*/
 		val += 4;
 		while (1) {
 			pos = gf_token_get(val, 0, " ;", szItem, 100);
 			if (pos>0) val += pos;
 			if (!has_word) {
-				has_word = 1;
+				has_word = GF_TRUE;
 				nbWords++;
 				nb_phonems = 0;
 				bs_start = gf_bs_get_position(bs);
@@ -788,7 +788,7 @@ Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
 
 			if ((pos<0) || !val[0] || val[0]==';') {
 				if (has_word) {
-					has_word = 0;
+					has_word = GF_FALSE;
 					bs_cur = gf_bs_get_position(bs);
 					gf_bs_seek(bs, bs_start);
 					gf_bs_write_int(bs, nb_phonems, 8);
@@ -807,8 +807,8 @@ Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
 			gf_bs_get_content(bs, out_data, out_data_size);
 		}
 		gf_bs_del(bs);
-		return 1;
+		return GF_TRUE;
 	}
 #endif
-	return 0;
+	return GF_FALSE;
 }

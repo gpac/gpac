@@ -106,16 +106,16 @@ static Bool AAC_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	if (!plug || !url)
-		return 0;
+		return GF_FALSE;
 	sExt = strrchr(url, '.');
-	if (!strnicmp(url, "rtsp://", 7)) return 0;
+	if (!strnicmp(url, "rtsp://", 7)) return GF_FALSE;
 	{
 		int i;
 		for (i = 0 ; AAC_MIMES[i] ; i++)
 			if (gf_service_check_mime_register(plug, AAC_MIMES[i], AAC_EXTENSIONS, AAC_DESC, sExt))
-				return 1;
+				return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 #endif
 
@@ -180,7 +180,7 @@ static void AAC_SetupObject(AACReader *read)
 	esd->OCRESID = 0;
 	gf_list_add(od->ESDescriptors, esd);
 
-	gf_service_declare_media(read->service, (GF_Descriptor*)od, 0);
+	gf_service_declare_media(read->service, (GF_Descriptor*)od, GF_FALSE);
 }
 #endif
 
@@ -198,9 +198,9 @@ static Bool ADTS_SyncFrame(GF_BitStream *bs, Bool is_complete, ADTSHeader *hdr)
 			gf_bs_read_int(bs, 4);
 			continue;
 		}
-		hdr->is_mp2 = gf_bs_read_int(bs, 1);
+		hdr->is_mp2 = (Bool)gf_bs_read_int(bs, 1);
 		gf_bs_read_int(bs, 2);
-		hdr->no_crc = gf_bs_read_int(bs, 1);
+		hdr->no_crc = (Bool)gf_bs_read_int(bs, 1);
 		pos = gf_bs_get_position(bs) - 2;
 
 		hdr->profile = 1 + gf_bs_read_int(bs, 2);
@@ -221,7 +221,7 @@ static Bool ADTS_SyncFrame(GF_BitStream *bs, Bool is_complete, ADTSHeader *hdr)
 			continue;
 		}
 		hdr->frame_size -= hdr->hdr_size;
-		if (is_complete && (gf_bs_available(bs) == hdr->frame_size)) return 1;
+		if (is_complete && (gf_bs_available(bs) == hdr->frame_size)) return GF_TRUE;
 		else if (gf_bs_available(bs) <= hdr->frame_size) break;
 
 		gf_bs_skip_bytes(bs, hdr->frame_size);
@@ -237,10 +237,10 @@ static Bool ADTS_SyncFrame(GF_BitStream *bs, Bool is_complete, ADTSHeader *hdr)
 			continue;
 		}
 		gf_bs_seek(bs, pos+hdr->hdr_size);
-		return 1;
+		return GF_TRUE;
 	}
 	gf_bs_seek(bs, start_pos);
-	return 0;
+	return GF_FALSE;
 }
 
 static Bool AAC_ConfigureFromFile(AACReader *read)
@@ -248,13 +248,13 @@ static Bool AAC_ConfigureFromFile(AACReader *read)
 	Bool sync;
 	GF_BitStream *bs;
 	ADTSHeader hdr;
-	if (!read || !read->stream) return 0;
+	if (!read || !read->stream) return GF_FALSE;
 	bs = gf_bs_from_file(read->stream, GF_BITSTREAM_READ);
 
 	sync = ADTS_SyncFrame(bs, !read->is_remote, &hdr);
 	if (!sync) {
 		gf_bs_del(bs);
-		return 0;
+		return GF_FALSE;
 	}
 	read->nb_ch = hdr.nb_ch;
 	read->prof = hdr.profile;

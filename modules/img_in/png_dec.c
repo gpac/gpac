@@ -45,7 +45,7 @@ static GF_Err PNG_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (ctx->ES_ID && ctx->ES_ID!=esd->ESID) return GF_NOT_SUPPORTED;
 	ctx->ES_ID = esd->ESID;
 
-	while ((d = gf_list_enum(esd->extensionDescriptors, &i))) {
+	while ((d = (GF_Descriptor*)gf_list_enum(esd->extensionDescriptors, &i))) {
 		if (d->tag == GF_ODF_AUX_VIDEO_DATA) {
 			ctx->aux_type = ((GF_AuxVideoDescriptor*)d)->aux_video_type;
 			break;
@@ -171,7 +171,7 @@ Bool NewPNGDec(GF_BaseDecoder *ifcd)
 	ifcd->SetCapabilities = PNG_SetCapabilities;
 	ifcd->GetName = PNG_GetCodecName;
 	((GF_MediaDecoder *)ifcd)->ProcessData = PNG_ProcessData;
-	return 1;
+	return GF_TRUE;
 }
 
 void DeletePNGDec(GF_BaseDecoder *ifcg)
