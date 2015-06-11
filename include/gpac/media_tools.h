@@ -290,6 +290,9 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file);
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_ISOM_FRAGMENTS)
+
+    
 typedef struct
 {
 	char *file_name;
@@ -348,29 +351,193 @@ typedef enum
 	GF_DASH_DYNAMIC_DEBUG,
 } GF_DashDynamicMode;
 
-GF_Err gf_dasher_segment_files(const char *mpd_name, GF_DashSegmenterInput *inputs, u32 nb_inputs, GF_DashProfile profile,
-                               const char *mpd_title, const char *mpd_source, const char *mpd_copyright,
-                               const char *mpd_moreInfoURL, const char **mpd_base_urls, u32 nb_mpd_base_urls,
-                               u32 use_url_template, Bool use_segment_timeline,  Bool single_segment, Bool single_file, GF_DashSwitchingMode bitstream_switching_mode,
-                               Bool segments_start_with_rap, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, u32 segment_marker_4cc,
-                               Double frag_duration_sec, s32 subsegs_per_sidx, Bool daisy_chain_sidx, Bool fragments_start_with_rap, const char *tmp_dir,
-                               GF_Config *dash_ctx, GF_DashDynamicMode dash_mode, Double mpd_update_time, u32 time_shift_depth, Double subduration, Double min_buffer,
-                               s32 ast_offset_ms, u32 dash_scale, Bool fragments_in_memory, u32 initial_moof_sn, u64 initial_tfdt, Bool no_fragments_defaults,
-                               Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof, Double mpd_live_duration, Bool insert_utc, Bool real_time, const char *dash_profile_extension);
+typedef struct __gf_dash_segmenter GF_DASHSegmenter;
 
-/*returns time to wait until end of currently generated segments*/
-u32 gf_dasher_next_update_time(GF_Config *dash_ctx, Double mpd_update_time);
+/*Create a new DASH segmenter
+ *	\param mpdName target MPD file name, cannot be changed
+ *	\param profile target DASH profile, cannot be changed
+ *	\param tmp_dir temp dir for file generation, OS NULL for default
+ *	\param timescale timescale used to specif most of the dash timings. If 0, 1000 is used
+ *	\param dasher_context_file config file used to store the context of the DASH segmenter. This allows destroying the segmenter and restarting it later on with the right DASH segquence numbers, MPD and and timing info
+ *	\return the DASH segmenter object
+*/
+GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile profile, const char *tmp_dir, u32 timescale, GF_Config *dasher_context_file);
+/*Deletes a DASH segmenter
+ *	\param dasher the DASH segmenter object
+*/
+void gf_dasher_del(GF_DASHSegmenter *dasher);
+/*Removes the DASH inputs. Re-add new ones with gf_dasher_add_input()
+ *	\param dasher the DASH segmenter object
+*/
+void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher);
+/*Sets MPD info
+ *	\param dasher the DASH segmenter object
+ *	\param title MPD title
+ *	\param copyright MPD copyright
+ *	\param moreInfoURL MPD "more info" URL
+ *	\param sourceInfo MPD source info
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo);
+/*Sets MPD Location. This is useful to distrubute a dynamic MPD by mail or any non-HTTP mean
+ *	\param dasher the DASH segmenter object
+ *	\param location the URL where this MPD can be found
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_location(GF_DASHSegmenter *dasher, const char *location);
+/*Adds a base URL to the MPD 
+ *	\param dasher the DASH segmenter object
+ *	\param base_url base url to add
+ *	\return error code if any
+*/
+GF_Err gf_dasher_add_base_url(GF_DASHSegmenter *dasher, const char *base_url);
+/*Enable URL template -  - may be overriden by the current profile
+ *	\param dasher the DASH segmenter object
+ *	\param enable enable usage of URL template
+ *	\param default_template template for the segment name
+ *	\param default_extension extension for the segment name
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_url_template(GF_DASHSegmenter *dasher, Bool enable, const char *default_template, const char *default_extension);
+/*Enable Segment Timeline template - may be overriden by the current profile
+ *	\param dasher the DASH segmenter object
+ *	\param enable enable or disable
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_segment_timeline(GF_DASHSegmenter *dasher, Bool enable);
+/*Enables single segment - may be overriden by the current profile
+ *	\param dasher the DASH segmenter object
+ *	\param enable enable or disable
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_single_segment(GF_DASHSegmenter *dasher, Bool enable);
+/*Enable single file (with multiple segments) - may be overriden by the current profile
+ *	\param dasher the DASH segmenter object
+ *	\param enable enable or disable
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_single_file(GF_DASHSegmenter *dasher, Bool enable);
+/*Sets bitstream switching mode - may be overriden by the current profile
+ *	\param dasher the DASH segmenter object
+ *	\param bitstream_switching mode to use for bitstream switching
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_switch_mode(GF_DASHSegmenter *dasher, GF_DashSwitchingMode bitstream_switching);
+/*Sets segment and fragment durations. 
+ *	\param dasher the DASH segmenter object
+ *	\param default_segment_duration the duration of a dash segment 
+ *	\param default_fragment_duration the duration of a dash fragment - if 0, same as default_segment_duration
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Double default_fragment_duration);
+/*Enables spliting at RAP boundaries
+ *	\param dasher the DASH segmenter object
+ *	\param segments_start_with_rap segments will be split at RAP boundaries
+ *	\param fragments_start_with_rap fragments will be split at RAP boundaries
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_rap_splitting(GF_DASHSegmenter *dasher, Bool segments_start_with_rap, Bool fragments_start_with_rap);
+/*Enables segment marker
+ *	\param dasher the DASH segmenter object
+ *	\param dasher the DASH segmenter object
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_segment_marker(GF_DASHSegmenter *dasher, u32 segment_marker_4cc);
+/*Enables segment indexes 
+ *	\param dasher the DASH segmenter object
+ *	\param enable_sidx enable or disable
+ *	\param subsegs_per_sidx number of subsegments per segment
+ *	\param daisy_chain_sidx enable daisy chaining of sidx
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_sidx(GF_DASHSegmenter *dasher, Bool enable_sidx, u32 subsegs_per_sidx, Bool daisy_chain_sidx);
+/*Sets mode for the dash segmenter.
+ *	\param dasher the DASH segmenter object
+ *	\param dash_mode the mode to use. Currently switching from static mode to dynamic mode is not well supported and may produce non-compliant MPDs
+ *	\param mpd_update_time time between MPD refresh, in seconds. Used for dynamic mode, may be 0 if @mpd_live_duration is set
+ *	\param time_shift_depth the depth of the time shift buffer in seconds, -1 for infinite time shift.
+ *	\param mpd_live_duration total duration of the DASH session in dynamic mode, in seconds. May be set to 0 if @mpd_update_time is set
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_dynamic_mode(GF_DASHSegmenter *dasher, GF_DashDynamicMode dash_mode, Double mpd_update_time, s32 time_shift_depth, Double mpd_live_duration);
+/*Sets the minimal buffer desired.
+ *	\param dasher the DASH segmenter object
+ *	\param min_buffer min buffer time in seconds for the DASH session. Currently the minimal buffer is NOT computed from the source material and must be set to an appropriate value.
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_min_buffer(GF_DASHSegmenter *dasher, Double min_buffer);
+/*Sets the availability start time offset.
+ *	\param dasher the DASH segmenter object
+ *	\param ast_offset ast offset in milliseconds. If >0, the DASH session availabilityStartTime will be earlier than UTC by the amount of seconds specified. If <0, the media representation will have an availabilityTimeOffset of the amount of seconds specified, instructing the client that segments may be accessed earlier.
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_ast_offset(GF_DASHSegmenter *dasher, s32 ast_offset);
+/*Enables memory fragmenting: fragments will be written to disk only once completed
+ *	\param dasher the DASH segmenter object
+ *	\param enable Enables or disables. Default is disabled.
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_memory_fragmenting(GF_DASHSegmenter *dasher, Bool enable);
+/*Sets initial values for ISOBMFF sequence number and TFDT in movie fragments.
+ *	\param dasher the DASH segmenter object
+ *	\param initial_moof_sn sequence number of the first moof to be generated. Default value is 1.
+ *	\param initial_tfdt initial tfdt of the first traf to be generated, in DASH segmenter timescale units. Default value is 0.
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_initial_isobmf(GF_DASHSegmenter *dasher, u32 initial_moof_sn, u64 initial_tfdt);
+/*Configure how default values for ISOBMFF are stored
+ *	\param dasher the DASH segmenter object
+ *	\param no_fragments_defaults if set, fragments default values are repeated in each traf and not set in trex. Default value is GF_FALSE
+ *	\param pssh_moof if set, PSSH is stored in each moof, and not set in init segment. Default value is GF_FALSE
+ *	\param samplegroups_in_traf if set, all sample group definitions are stored in each traf and not set in init segment. Default value is GF_FALSE
+ *	\param single_traf_per_moof if set, each moof will contain a single traf, even if source media is multiplexed. Default value is GF_FALSE
+ *	\return error code if any
+*/
+GF_Err gf_dasher_configure_isobmf_default(GF_DASHSegmenter *dasher, Bool no_fragments_defaults, Bool pssh_moof, Bool samplegroups_in_traf, Bool single_traf_per_moof);
+/*Enables insertion of UTC reference in the begining of segments
+ *	\param dasher the DASH segmenter object
+ *	\param insert_utc if set, UTC will be inserted. Default value is disabled.
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_utc_ref(GF_DASHSegmenter *dasher, Bool insert_utc);
+/*Enables real-time generation of media segments.
+ *	\param dasher the DASH segmenter object
+ *	\param dasher real_time if set, segemnts are generated in real time. Only supported for single representation (potentially multiplexed) DASH session. Default is disabled.
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_real_time(GF_DASHSegmenter *dasher, Bool real_time);
+/*Sets profile extension as used by DASH-IF and DVB.
+ *	\param dasher the DASH segmenter object
+ *	\param dash_profile_extension specifies a string of profile extensions, as used by DASH-IF and DVB.
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_profile_extension(GF_DASHSegmenter *dasher, const char *dash_profile_extension);
+/*Adds a media input to the DASHer
+ *	\param dasher the DASH segmenter object
+ *	\param input media source to add
+ *	\return error code if any
+*/
+GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *input);
+/*Process the media source and generate segments
+ *	\param dasher the DASH segmenter object
+ *	\param sub_duration the duration in seconds of media to DASH. If 0, the whole sources will be processed.
+ *	\return error code if any
+*/
+GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration);
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+/*returns time to wait until end of currently generated segments
+ *	\param dasher the DASH segmenter object
+ *	\return time to wait in milliseconds
+*/
+u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher);
 
-#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+
+    
+    
 /*save file as fragmented movie*/
 GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec);
 
-
-#endif
-
-#endif
+#endif // !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_ISOM_FRAGMENTS)
 
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
