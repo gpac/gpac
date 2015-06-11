@@ -29,13 +29,13 @@
 
 Bool IsHintTrack(GF_TrackBox *trak)
 {
-	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_HINT) return 0;
+	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_HINT) return GF_FALSE;
 	//QT doesn't specify any InfoHeader on HintTracks
 	if (trak->Media->information->InfoHeader
 	        && trak->Media->information->InfoHeader->type != GF_ISOM_BOX_TYPE_HMHD)
-		return 0;
+		return GF_FALSE;
 
-	return 1;
+	return GF_TRUE;
 }
 
 u32 GetHintFormat(GF_TrackBox *trak)
@@ -50,9 +50,9 @@ u32 GetHintFormat(GF_TrackBox *trak)
 
 Bool CheckHintFormat(GF_TrackBox *trak, u32 HintType)
 {
-	if (!IsHintTrack(trak)) return 0;
-	if (GetHintFormat(trak) != HintType) return 0;
-	return 1;
+	if (!IsHintTrack(trak)) return GF_FALSE;
+	if (GetHintFormat(trak) != HintType) return GF_FALSE;
+	return GF_TRUE;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -751,7 +751,7 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const c
 	strcat(buf, text);
 	strcat(buf, "\r\n");
 	gf_free(sdp->sdpText);
-	ReorderSDP(buf, 0);
+	ReorderSDP(buf, GF_FALSE);
 	sdp->sdpText = buf;
 	return GF_OK;
 }
@@ -841,7 +841,7 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	strcat(buf, text);
 	strcat(buf, "\r\n");
 	gf_free(rtp->sdpText);
-	ReorderSDP(buf, 1);
+	ReorderSDP(buf, GF_TRUE);
 	rtp->sdpText = buf;
 	return GF_OK;
 }
@@ -952,7 +952,7 @@ u32 gf_isom_get_payt_count(GF_ISOFile *the_file, u32 trackNumber)
 	hinf = (GF_HintInfoBox *)gf_list_get(map->other_boxes, 0);
 	count = 0;
 	i = 0;
-	while ((payt = gf_list_enum(hinf->other_boxes, &i))) {
+	while ((payt = (GF_PAYTBox*)gf_list_enum(hinf->other_boxes, &i))) {
 		if (payt->type == GF_ISOM_BOX_TYPE_PAYT) count++;
 	}
 	return count;
@@ -978,7 +978,7 @@ const char *gf_isom_get_payt_info(GF_ISOFile *the_file, u32 trackNumber, u32 ind
 	hinf = (GF_HintInfoBox *)gf_list_get(map->other_boxes, 0);
 	count = 0;
 	i = 0;
-	while ((payt = gf_list_enum(hinf->other_boxes, &i))) {
+	while ((payt = (GF_PAYTBox*)gf_list_enum(hinf->other_boxes, &i))) {
 		if (payt->type == GF_ISOM_BOX_TYPE_PAYT) {
 			count++;
 			if (count == index) {

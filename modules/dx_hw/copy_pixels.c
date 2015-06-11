@@ -66,11 +66,11 @@ static Bool format_is_yuv(u32 in_pf)
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
-		return 1;
+		return GF_TRUE;
 	/*not supported yet*/
 	case GF_PIXEL_YUVA:
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -80,9 +80,9 @@ static Bool is_planar_yuv(u32 pf)
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_IYUV:
-		return 1;
+		return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -121,12 +121,12 @@ static void write_yv12_to_yuv(GF_VideoSurface *vs,  unsigned char *pY, u32 src_s
 			unsigned char *dst, *src, *dst2, *src2, *dst3, *src3;
 
 			src = pY;
-			dst = vs->video_buffer;
+			dst = (unsigned char*)vs->video_buffer;
 
 			src2 = (vs->pixel_format != GF_PIXEL_YV12) ? pU : pV;
-			dst2 = vs->video_buffer + vs->pitch_y * vs->height;
+			dst2 = (unsigned char*)vs->video_buffer + vs->pitch_y * vs->height;
 			src3 = (vs->pixel_format != GF_PIXEL_YV12) ? pV : pU;
-			dst3 = vs->video_buffer + 5*vs->pitch_y * vs->height/4;
+			dst3 = (unsigned char*)vs->video_buffer + 5*vs->pitch_y * vs->height/4;
 			for (i=0; i<src_wnd->h; i++) {
 				memcpy(dst, src, src_wnd->w);
 				src += src_stride;
@@ -148,7 +148,7 @@ static void write_yv12_to_yuv(GF_VideoSurface *vs,  unsigned char *pY, u32 src_s
 			y = pY + i*src_stride;
 			u = pU + (i/2) * src_stride/2;
 			v = pV + (i/2) * src_stride/2;
-			dst = vs->video_buffer + i*vs->pitch_y;
+			dst = (unsigned char*)vs->video_buffer + i*vs->pitch_y;
 
 			for (j=0; j<src_wnd->w/2; j++) {
 				*dst = *u;
@@ -172,7 +172,7 @@ static void write_yv12_to_yuv(GF_VideoSurface *vs,  unsigned char *pY, u32 src_s
 			y = pY + i*src_stride;
 			u = pU + (i/2) * src_stride/2;
 			v = pV + (i/2) * src_stride/2;
-			dst = vs->video_buffer + i*vs->pitch_y;
+			dst = (unsigned char*)vs->video_buffer + i*vs->pitch_y;
 
 			for (j=0; j<src_wnd->w/2; j++) {
 				*dst = *y;
@@ -196,7 +196,7 @@ static void write_yv12_to_yuv(GF_VideoSurface *vs,  unsigned char *pY, u32 src_s
 			y = pY + i*src_stride;
 			u = pU + (i/2) * src_stride/2;
 			v = pV + (i/2) * src_stride/2;
-			dst = vs->video_buffer + i*vs->pitch_y;
+			dst = (unsigned char*)vs->video_buffer + i*vs->pitch_y;
 
 			for (j=0; j<src_wnd->w/2; j++) {
 				*dst = *y;
@@ -246,13 +246,13 @@ static void write_yvyu_to_yuv(GF_VideoSurface *vs,  unsigned char *src, u32 src_
 		u32 i, j;
 		unsigned char *dst_y, *dst_u, *dst_v;
 
-		dst_y = vs->video_buffer;
+		dst_y = (unsigned char*)vs->video_buffer;
 		if (vs->pixel_format == GF_PIXEL_YV12) {
-			dst_v = vs->video_buffer + vs->pitch_y * vs->height;
-			dst_u = vs->video_buffer + 5*vs->pitch_y * vs->height/4;
+			dst_v = (unsigned char*)vs->video_buffer + vs->pitch_y * vs->height;
+			dst_u = (unsigned char*)vs->video_buffer + 5*vs->pitch_y * vs->height/4;
 		} else {
-			dst_u = vs->video_buffer + vs->pitch_y * vs->height;
-			dst_v = vs->video_buffer + 5*vs->pitch_y * vs->height/4;
+			dst_u = (unsigned char*)vs->video_buffer + vs->pitch_y * vs->height;
+			dst_v = (unsigned char*)vs->video_buffer + 5*vs->pitch_y * vs->height/4;
 		}
 		for (i=0; i<src_wnd->h; i++) {
 			for (j=0; j<src_wnd->w; j+=2) {
@@ -290,9 +290,9 @@ static void write_yvyu_to_yuv(GF_VideoSurface *vs,  unsigned char *src, u32 src_
 	base_pf = get_yuv_base(vs->pixel_format);
 	for (i=0; i<src_wnd->h; i++) {
 		char *dst = vs->video_buffer + i*vs->pitch_y;
-		char *y = pY + src_stride * i;
-		char *u = pU + src_stride * i;
-		char *v = pV + src_stride * i;
+		char *y = (char*)pY + src_stride * i;
+		char *u = (char*)pU + src_stride * i;
+		char *v = (char*)pV + src_stride * i;
 		switch (base_pf) {
 		case GF_PIXEL_UYVY:
 			for (j=0; j<src_wnd->w; j+=2) {
@@ -395,7 +395,7 @@ void rgb_to_555(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src
 	case GF_PIXEL_RGBS:
 		/*nope get all pixels*/
 		for (i=0; i<src_wnd->h; i++) {
-			dst = vs->video_buffer + i*vs->pitch_y;
+			dst = (unsigned char*)vs->video_buffer + i*vs->pitch_y;
 			cur = src + i*src_stride;
 			for (j=0; j<src_wnd->w; j++) {
 				r = *cur++;
@@ -430,7 +430,7 @@ void rgb_to_565(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src
 	case GF_PIXEL_RGB_24:
 	case GF_PIXEL_RGBS:
 		for (i=0; i<src_wnd->h; i++) {
-			dst = vs->video_buffer + i*vs->pitch_y;
+			dst = (unsigned char*)vs->video_buffer + i*vs->pitch_y;
 			cur = src + i*src_stride;
 			for (j=0; j<src_wnd->w; j++) {
 				r = *cur++;
@@ -462,13 +462,13 @@ void rgb_to_32(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_
 		return;
 	}
 	/*get all pixels*/
-	isBGR = vs->pixel_format==GF_PIXEL_BGR_32;
+	isBGR = (vs->pixel_format==GF_PIXEL_BGR_32) ? GF_TRUE : GF_FALSE;
 	if (isBGR) {
 		switch (src_pf) {
 		case GF_PIXEL_RGB_24:
 		case GF_PIXEL_RGBS:
 			for (i=0; i<src_wnd->h; i++) {
-				dst = vs->video_buffer + i*vs->pitch_y;
+				dst = (unsigned char*)vs->video_buffer + i*vs->pitch_y;
 				cur = src + i*src_stride;
 				for (j=0; j<src_wnd->w; j++) {
 					dst[0] = *cur++;
@@ -481,7 +481,7 @@ void rgb_to_32(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_
 		case GF_PIXEL_RGBDS:
 		case GF_PIXEL_RGBD:
 			for (i=0; i<src_wnd->h; i++) {
-				dst = vs->video_buffer + i*vs->pitch_y;
+				dst = (unsigned char*)vs->video_buffer + i*vs->pitch_y;
 				cur = src + i*src_stride;
 				for (j=0; j<src_wnd->w; j++) {
 					dst[0] = *cur++;
@@ -494,7 +494,7 @@ void rgb_to_32(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_
 			break;
 		case GF_PIXEL_BGR_24:
 			for (i=0; i<src_wnd->h; i++) {
-				dst = vs->video_buffer + i*vs->pitch_y;
+				dst = (unsigned char*)vs->video_buffer + i*vs->pitch_y;
 				cur = src + i*src_stride;
 				for (j=0; j<src_wnd->w; j++) {
 					dst[2] = *cur++;
@@ -510,7 +510,7 @@ void rgb_to_32(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_
 		case GF_PIXEL_RGB_24:
 		case GF_PIXEL_RGBS:
 			for (i=0; i<src_wnd->h; i++) {
-				dst = vs->video_buffer + i*vs->pitch_y;
+				dst = (unsigned char*)vs->video_buffer + i*vs->pitch_y;
 				cur = src + i*src_stride;
 				for (j=0; j<src_wnd->w; j++) {
 					dst[2] = *cur++;
@@ -523,7 +523,7 @@ void rgb_to_32(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_
 		case GF_PIXEL_RGBD:
 		case GF_PIXEL_RGBDS:
 			for (i=0; i<src_wnd->h; i++) {
-				dst = vs->video_buffer + i*vs->pitch_y;
+				dst = (unsigned char*)vs->video_buffer + i*vs->pitch_y;
 				cur = src + i*src_stride;
 				for (j=0; j<src_wnd->w; j++) {
 					dst[2] = *cur++;
@@ -536,7 +536,7 @@ void rgb_to_32(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_
 			break;
 		case GF_PIXEL_BGR_24:
 			for (i=0; i<src_wnd->h; i++) {
-				dst = vs->video_buffer + i*vs->pitch_y;
+				dst = (unsigned char*)vs->video_buffer + i*vs->pitch_y;
 				cur = src + i*src_stride;
 				for (j=0; j<src_wnd->w; j++) {
 					dst[0] = *cur++;
@@ -592,7 +592,7 @@ void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const 
 		}
 	}
 
-	gf_stretch_bits(dst_s, (GF_VideoSurface*) src_s, NULL, (GF_Window *)src_wnd, 0xFF, 0, NULL, NULL);
+	gf_stretch_bits(dst_s, (GF_VideoSurface*) src_s, NULL, (GF_Window *)src_wnd, 0xFF, GF_FALSE, NULL, NULL);
 }
 
 

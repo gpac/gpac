@@ -87,7 +87,7 @@ GF_AudioMixer *gf_mixer_new(struct _audio_render *ar)
 	memset(am, 0, sizeof(GF_AudioMixer));
 	am->mx = gf_mx_new("AudioMix");
 	am->sources = gf_list_new();
-	am->isEmpty = 1;
+	am->isEmpty = GF_TRUE;
 	am->ar = ar;
 	am->sample_rate = 44100;
 	am->bits_per_sample = 16;
@@ -113,7 +113,7 @@ void gf_mixer_del(GF_AudioMixer *am)
 void gf_mixer_remove_all(GF_AudioMixer *am)
 {
 	u32 j;
-	gf_mixer_lock(am, 1);
+	gf_mixer_lock(am, GF_TRUE);
 	while (gf_list_count(am->sources)) {
 		MixerInput *in = (MixerInput *)gf_list_get(am->sources, 0);
 		gf_list_rem(am->sources, 0);
@@ -122,8 +122,8 @@ void gf_mixer_remove_all(GF_AudioMixer *am)
 		}
 		gf_free(in);
 	}
-	am->isEmpty = 1,
-	    gf_mixer_lock(am, 0);
+	am->isEmpty = GF_TRUE,
+	gf_mixer_lock(am, GF_FALSE);
 }
 
 Bool gf_mixer_is_src_present(GF_AudioMixer *am, GF_AudioInterface *ifce)
@@ -131,9 +131,9 @@ Bool gf_mixer_is_src_present(GF_AudioMixer *am, GF_AudioInterface *ifce)
 	MixerInput *in;
 	u32 i = 0;
 	while ((in = (MixerInput *)gf_list_enum(am->sources, &i))) {
-		if (in->src == ifce) return 1;
+		if (in->src == ifce) return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 u32 gf_mixer_get_src_count(GF_AudioMixer *am)
 {
@@ -142,7 +142,7 @@ u32 gf_mixer_get_src_count(GF_AudioMixer *am)
 
 void gf_mixer_force_chanel_out(GF_AudioMixer *am, u32 num_channels)
 {
-	am->force_channel_out = 1;
+	am->force_channel_out = GF_TRUE;
 	am->nb_channels = num_channels;
 }
 
@@ -173,20 +173,20 @@ void gf_mixer_add_input(GF_AudioMixer *am, GF_AudioInterface *src)
 {
 	MixerInput *in;
 	if (gf_mixer_is_src_present(am, src)) return;
-	gf_mixer_lock(am, 1);
+	gf_mixer_lock(am, GF_TRUE);
 	GF_SAFEALLOC(in, MixerInput);
 	in->src = src;
 	gf_list_add(am->sources, in);
-	am->must_reconfig = 1;
-	am->isEmpty = 0;
-	gf_mixer_lock(am, 0);
+	am->must_reconfig = GF_TRUE;
+	am->isEmpty = GF_FALSE;
+	gf_mixer_lock(am, GF_FALSE);
 }
 
 void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src)
 {
 	u32 i, j, count;
 	if (am->isEmpty) return;
-	gf_mixer_lock(am, 1);
+	gf_mixer_lock(am, GF_TRUE);
 	count = gf_list_count(am->sources);
 	for (i=0; i<count; i++) {
 		MixerInput *in = (MixerInput *)gf_list_get(am->sources, i);
@@ -198,9 +198,9 @@ void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src)
 		gf_free(in);
 		break;
 	}
-	am->isEmpty = gf_list_count(am->sources) ? 0 : 1;
+	am->isEmpty = gf_list_count(am->sources) ? GF_FALSE : GF_TRUE;
 	/*we don't ask for reconfig when removing a node*/
-	gf_mixer_lock(am, 0);
+	gf_mixer_lock(am, GF_FALSE);
 }
 
 
@@ -226,7 +226,7 @@ void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outBPS, u3
 	if ((am->bits_per_sample == outBPS) && (am->nb_channels == outCH)
 	        && (am->sample_rate==outSR) && (am->channel_cfg == outChCfg)) return;
 
-	gf_mixer_lock(am, 1);
+	gf_mixer_lock(am, GF_TRUE);
 	am->bits_per_sample = outBPS;
 	if (!am->force_channel_out) am->nb_channels = outCH;
 	if (get_best_samplerate(am, &outSR, &outCH, &outBPS) == GF_OK) {
@@ -236,24 +236,24 @@ void gf_mixer_set_config(GF_AudioMixer *am, u32 outSR, u32 outCH, u32 outBPS, u3
 		else am->channel_cfg = GF_AUDIO_CH_FRONT_LEFT;
 	}
 	/*if main mixer recfg output*/
-	if (am->ar)	am->ar->need_reconfig = 1;
-	gf_mixer_lock(am, 0);
+	if (am->ar)	am->ar->need_reconfig = GF_TRUE;
+	gf_mixer_lock(am, GF_FALSE);
 }
 
 GF_EXPORT
 Bool gf_mixer_reconfig(GF_AudioMixer *am)
 {
 	u32 i, count, numInit, max_sample_rate, max_channels, max_bps, cfg_changed, ch_cfg;
-	gf_mixer_lock(am, 1);
+	gf_mixer_lock(am, GF_TRUE);
 	if (am->isEmpty || !am->must_reconfig) {
-		gf_mixer_lock(am, 0);
-		return 0;
+		gf_mixer_lock(am, GF_FALSE);
+		return GF_FALSE;
 	}
 
 	if (am->ar && am->ar->config_forced) {
-		am->must_reconfig=0;
-		gf_mixer_lock(am, 0);
-		return 0;
+		am->must_reconfig = GF_FALSE;
+		gf_mixer_lock(am, GF_FALSE);
+		return GF_FALSE;
 	}
 
 	numInit = 0;
@@ -270,7 +270,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 	for (i=0; i<count; i++) {
 		Bool has_cfg;
 		MixerInput *in = (MixerInput *) gf_list_get(am->sources, i);
-		has_cfg = in->src->GetConfig(in->src, 1);
+		has_cfg = in->src->GetConfig(in->src, GF_TRUE);
 		if (has_cfg) {
 			/*check same cfg...*/
 			if (in->src->samplerate * in->src->chan * in->src->bps == 8*in->bytes_per_sec) {
@@ -309,7 +309,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 		in->bytes_per_sec = in->src->samplerate * in->src->chan * in->src->bps / 8;
 		/*cfg has changed, we must reconfig everything*/
 		if (cfg_changed || (max_sample_rate != am->sample_rate) ) {
-			in->has_prev = 0;
+			in->has_prev = GF_FALSE;
 			memset(&in->last_channels, 0, sizeof(s16)*GF_SR_MAX_CHANNELS);
 		}
 	}
@@ -336,10 +336,10 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 		gf_mixer_set_config(am, max_sample_rate, max_channels, max_bps, ch_cfg);
 	}
 
-	if (numInit == count) am->must_reconfig = 0;
+	if (numInit == count) am->must_reconfig = GF_FALSE;
 	if (am->ar) cfg_changed = 1;
 
-	gf_mixer_lock(am, 0);
+	gf_mixer_lock(am, GF_FALSE);
 	return cfg_changed;
 }
 
@@ -465,7 +465,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 
 	in_s8 = (s8 *) in->src->FetchFrame(in->src->callback, &src_size, audio_delay);
 	if (!in_s8) {
-		in->has_prev = 0;
+		in->has_prev = GF_FALSE;
 		/*done, stop fill*/
 		in->out_samples_to_write = 0;
 		return;
@@ -485,7 +485,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 	/*just in case, if only 1 sample available in src, copy over and discard frame since we cannot
 	interpolate audio*/
 	if (src_samp==1) {
-		in->has_prev = 1;
+		in->has_prev = GF_TRUE;
 		for (j=0; j<in_ch; j++) in->last_channels[j] = in_s16 ? in_s16[j] : in_s8[j];
 		in->in_bytes_used = src_size;
 		return;
@@ -503,7 +503,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 		frac = (i*ratio) - 255*prev;
 		if (frac && (next==src_samp)) break;
 		if (use_prev && prev)
-			use_prev = 0;
+			use_prev = GF_FALSE;
 
 		if (in_s16) {
 			for (j=0; j<in_ch; j++) {
@@ -531,14 +531,14 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 	}
 
 	if (!(ratio%255)) {
-		in->has_prev = 0;
+		in->has_prev = GF_FALSE;
 		if (next==src_samp) {
 			in->in_bytes_used = src_size;
 		} else {
 			in->in_bytes_used = MIN(src_size, prev*in->src->bps * in->src->chan / 8);
 		}
 	} else {
-		in->has_prev = 1;
+		in->has_prev = GF_TRUE;
 		if (next==src_samp) {
 			for (j=0; j<in_ch; j++) in->last_channels[j] = inChanNext[j];
 			in->in_bytes_used = src_size;
@@ -577,10 +577,10 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 	/*the config has changed we don't write to output since settings change*/
 	if (gf_mixer_reconfig(am)) return 0;
 
-	gf_mixer_lock(am, 1);
+	gf_mixer_lock(am, GF_TRUE);
 	count = gf_list_count(am->sources);
 	if (!count) {
-		gf_mixer_lock(am, 0);
+		gf_mixer_lock(am, GF_FALSE);
 		return 0;
 	}
 
@@ -589,11 +589,11 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 	if (am->force_channel_out) goto do_mix;
 	single_source = (MixerInput *) gf_list_get(am->sources, 0);
 	/*if cfg changed or unknown, reconfigure the mixer if the audio renderer is attached. Otherwise,  the mixer config never changes internally*/
-	if (!single_source->src->GetConfig(single_source->src, 0)) {
+	if (!single_source->src->GetConfig(single_source->src, GF_FALSE)) {
 		if (am->ar) {
-			am->must_reconfig = 1;
+			am->must_reconfig = GF_TRUE;
 			gf_mixer_reconfig(am);
-			gf_mixer_lock(am, 0);
+			gf_mixer_lock(am, GF_FALSE);
 			return 0;
 		}
 	}
@@ -635,7 +635,7 @@ single_source_mix:
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioMixer] not enough input data (%d still to fill)\n", buffer_size));
 			}
 		}
-		gf_mixer_lock(am, 0);
+		gf_mixer_lock(am, GF_FALSE);
 		return (in_size - buffer_size);
 	}
 
@@ -674,14 +674,14 @@ do_mix:
 		in->in_bytes_used = 0;
 
 		/*if cfg unknown or changed (AudioBuffer child...) invalidate cfg settings*/
-		if (!in->src->GetConfig(in->src, 0)) {
+		if (!in->src->GetConfig(in->src, GF_FALSE)) {
 			if (am->ar) {
 				if (!am->must_reconfig) {
-					am->must_reconfig = 1;
+					am->must_reconfig = GF_TRUE;
 					/*if main mixer reconfig asap*/
 					gf_mixer_reconfig(am);
 				}
-				in->muted = 1;
+				in->muted = GF_TRUE;
 				continue;
 			}
 			//otherwise fallthrou, mixer keeps the same config
@@ -708,7 +708,7 @@ do_mix:
 		}
 	}
 	if (!nb_act_src) {
-		gf_mixer_lock(am, 0);
+		gf_mixer_lock(am, GF_FALSE);
 		return 0;
 	}
 
@@ -764,7 +764,7 @@ do_mix:
 	}
 
 	if (!nb_written) {
-		gf_mixer_lock(am, 0);
+		gf_mixer_lock(am, GF_FALSE);
 		return 0;
 	}
 
@@ -798,7 +798,7 @@ do_mix:
 
 	nb_written *= am->nb_channels*am->bits_per_sample/8;
 
-	gf_mixer_lock(am, 0);
+	gf_mixer_lock(am, GF_FALSE);
 	return nb_written;
 }
 

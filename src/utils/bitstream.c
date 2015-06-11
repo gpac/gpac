@@ -161,7 +161,7 @@ GF_Err gf_bs_set_output_buffering(GF_BitStream *bs, u32 size)
 		return GF_OK;
 	}
 	bs_flush_cache(bs);
-	bs->buffer_io = gf_realloc(bs->buffer_io, size);
+	bs->buffer_io = (char*)gf_realloc(bs->buffer_io, size);
 	if (!bs->buffer_io) return GF_IO_ERR;
 	bs->buffer_io_size = size;
 	bs->buffer_written = 0;
@@ -193,7 +193,7 @@ static Bool BS_IsAlign(GF_BitStream *bs)
 	switch (bs->bsmode) {
 	case GF_BITSTREAM_READ:
 	case GF_BITSTREAM_FILE_READ:
-		return ( (8 == bs->nbBits) ? 1 : 0);
+		return ( (8 == bs->nbBits) ? GF_TRUE : GF_FALSE);
 	default:
 		return !bs->nbBits;
 	}
@@ -668,7 +668,7 @@ u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes)
 				if (bs->buffer_written + nbBytes > bs->buffer_io_size) {
 					bs_flush_cache(bs);
 					if (nbBytes>bs->buffer_io_size) {
-						bs->buffer_io = gf_realloc(bs->buffer_io, 2*nbBytes);
+						bs->buffer_io = (char*)gf_realloc(bs->buffer_io, 2*nbBytes);
 						bs->buffer_io_size = 2*nbBytes;
 					}
 				}

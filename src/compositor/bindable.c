@@ -62,7 +62,7 @@ GF_List *Bindable_GetStack(GF_Node *bindable)
 
 Bool Bindable_GetIsBound(GF_Node *bindable)
 {
-	if (!bindable) return 0;
+	if (!bindable) return GF_FALSE;
 	switch (gf_node_get_tag(bindable)) {
 	case TAG_MPEG4_Background2D:
 		return ((M_Background2D*)bindable)->isBound;
@@ -89,13 +89,13 @@ Bool Bindable_GetIsBound(GF_Node *bindable)
 #endif
 		return ((M_Fog*)bindable)->isBound;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
 void Bindable_SetIsBound(GF_Node *bindable, Bool val)
 {
-	Bool has_bind_time = 0;
+	Bool has_bind_time = GF_FALSE;
 	if (!bindable) return;
 	switch (gf_node_get_tag(bindable)) {
 	case TAG_MPEG4_Background2D:
@@ -106,14 +106,14 @@ void Bindable_SetIsBound(GF_Node *bindable, Bool val)
 		if ( ((M_Viewport*)bindable)->isBound == val) return;
 		((M_Viewport*)bindable)->isBound = val;
 		((M_Viewport*)bindable)->bindTime = gf_node_get_scene_time(bindable);
-		has_bind_time = 1;
+		has_bind_time = GF_TRUE;
 		break;
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Background:
 		if ( ((X_Background*)bindable)->isBound == val) return;
 		((X_Background*)bindable)->isBound = val;
 		((X_Background*)bindable)->bindTime = gf_node_get_scene_time(bindable);
-		has_bind_time = 1;
+		has_bind_time = GF_TRUE;
 		break;
 #endif
 	case TAG_MPEG4_Background:
@@ -125,7 +125,7 @@ void Bindable_SetIsBound(GF_Node *bindable, Bool val)
 		if ( ((X_NavigationInfo*)bindable)->isBound == val) return;
 		((X_NavigationInfo*)bindable)->isBound = val;
 		((X_NavigationInfo*)bindable)->bindTime = gf_node_get_scene_time(bindable);
-		has_bind_time = 1;
+		has_bind_time = GF_TRUE;
 		break;
 #endif
 	case TAG_MPEG4_NavigationInfo:
@@ -139,14 +139,14 @@ void Bindable_SetIsBound(GF_Node *bindable, Bool val)
 		if ( ((M_Viewpoint*)bindable)->isBound == val) return;
 		((M_Viewpoint*)bindable)->isBound = val;
 		((M_Viewpoint*)bindable)->bindTime = gf_node_get_scene_time(bindable);
-		has_bind_time = 1;
+		has_bind_time = GF_TRUE;
 		break;
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Fog:
 		if ( ((X_Fog*)bindable)->isBound == val) return;
 		((X_Fog*)bindable)->isBound = val;
 		((X_Fog*)bindable)->bindTime = gf_node_get_scene_time(bindable);
-		has_bind_time = 1;
+		has_bind_time = GF_TRUE;
 		break;
 #endif
 	case TAG_MPEG4_Fog:
@@ -159,13 +159,13 @@ void Bindable_SetIsBound(GF_Node *bindable, Bool val)
 	gf_node_event_out_str(bindable, "isBound");
 	if (has_bind_time) gf_node_event_out_str(bindable, "bindTime");
 	/*force invalidate of the bindable stack's owner*/
-	gf_node_dirty_set(bindable, 0, 1);
+	gf_node_dirty_set(bindable, 0, GF_TRUE);
 }
 
 
 Bool Bindable_GetSetBind(GF_Node *bindable)
 {
-	if (!bindable) return 0;
+	if (!bindable) return GF_FALSE;
 	switch (gf_node_get_tag(bindable)) {
 	case TAG_MPEG4_Background2D:
 		return ((M_Background2D*)bindable)->set_bind;
@@ -192,7 +192,7 @@ Bool Bindable_GetSetBind(GF_Node *bindable)
 #endif
 		return ((M_Fog*)bindable)->set_bind;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -262,22 +262,22 @@ void Bindable_OnSetBind(GF_Node *bindable, GF_List *stack_list, GF_List *for_sta
 	while ((stack = (GF_List*)gf_list_enum(stack_list, &i))) {
 		if (for_stack && (for_stack!=stack)) continue;
 
-		on_top = (gf_list_get(stack, 0)==bindable) ? 1 : 0;
+		on_top = (gf_list_get(stack, 0)==bindable) ? GF_TRUE : GF_FALSE;
 
 		if (!set_bind) {
-			if (is_bound) Bindable_SetIsBound(bindable, 0);
+			if (is_bound) Bindable_SetIsBound(bindable, GF_FALSE);
 			if (on_top && (gf_list_count(stack)>1)) {
 				gf_list_rem(stack, 0);
 				gf_list_add(stack, bindable);
 				node = (GF_Node*)gf_list_get(stack, 0);
-				Bindable_SetIsBound(node, 1);
+				Bindable_SetIsBound(node, GF_TRUE);
 			}
 		} else {
-			if (!is_bound) Bindable_SetIsBound(bindable, 1);
+			if (!is_bound) Bindable_SetIsBound(bindable, GF_TRUE);
 			if (!on_top) {
 				/*push old top one down and unbind*/
 				node = (GF_Node*)gf_list_get(stack, 0);
-				Bindable_SetIsBound(node, 0);
+				Bindable_SetIsBound(node, GF_FALSE);
 				/*insert new top*/
 				gf_list_del_item(stack, bindable);
 				gf_list_insert(stack, bindable, 0);
@@ -285,7 +285,7 @@ void Bindable_OnSetBind(GF_Node *bindable, GF_List *stack_list, GF_List *for_sta
 		}
 	}
 	/*force invalidate of the bindable stack's owner*/
-	gf_node_dirty_set(bindable, 0, 1);
+	gf_node_dirty_set(bindable, 0, GF_TRUE);
 	/*and redraw scene*/
 	gf_sc_invalidate(gf_sc_get_compositor(bindable), NULL);
 }
@@ -309,7 +309,7 @@ void BindableStackDelete(GF_List *stack)
 void PreDestroyBindable(GF_Node *bindable, GF_List *stack_list)
 {
 	Bool is_bound = Bindable_GetIsBound(bindable);
-	Bindable_SetIsBound(bindable, 0);
+	Bindable_SetIsBound(bindable, GF_FALSE);
 
 	while (gf_list_count(stack_list)) {
 		GF_Node *stack_top;
@@ -318,7 +318,7 @@ void PreDestroyBindable(GF_Node *bindable, GF_List *stack_list)
 		gf_list_del_item(stack, bindable);
 		if (is_bound) {
 			stack_top = (GF_Node*)gf_list_get(stack, 0);
-			if (stack_top) Bindable_SetSetBind(stack_top, 1);
+			if (stack_top) Bindable_SetSetBind(stack_top, GF_TRUE);
 		}
 	}
 }

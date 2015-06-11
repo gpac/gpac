@@ -85,7 +85,7 @@ static GF_Err DS_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u32
 	/*too bad, use desktop as window*/
 	if (!ctx->hWnd) ctx->hWnd = GetDesktopWindow();
 
-	ctx->force_config = (num_buffers && total_duration) ? 1 : 0;
+	ctx->force_config = (num_buffers && total_duration) ? GF_TRUE : GF_FALSE;
 	ctx->cfg_num_buffers = num_buffers;
 	ctx->cfg_duration = total_duration;
 	if (ctx->cfg_num_buffers <= 1) ctx->cfg_num_buffers = 2;
@@ -124,7 +124,7 @@ void DS_ReleaseBuffer(GF_AudioOutput *dr)
 	if (ctx->use_notif) {
 		for (i=0; i<ctx->num_audio_buffer; i++) CloseHandle(ctx->events[i]);
 	}
-	ctx->use_notif = 0;
+	ctx->use_notif = GF_FALSE;
 }
 
 static void DS_Shutdown(GF_AudioOutput *dr)
@@ -168,9 +168,9 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 	/*make sure we're aligned*/
 	while (ctx->buffer_size % ctx->format.nBlockAlign) ctx->buffer_size++;
 
-	ctx->use_notif = 1;
+	ctx->use_notif = GF_TRUE;
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Audio", "DisableNotification");
-	if (sOpt && !stricmp(sOpt, "yes")) ctx->use_notif = 0;
+	if (sOpt && !stricmp(sOpt, "yes")) ctx->use_notif = GF_FALSE;
 
 	memset(&dsbBufferDesc, 0, sizeof(DSBUFFERDESC));
 	dsbBufferDesc.dwSize = sizeof (DSBUFFERDESC);
@@ -205,7 +205,7 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 	if (FAILED(hr)) {
 retry:
 		if (ctx->use_notif) gf_modules_set_option((GF_BaseInterface *)dr, "Audio", "DisableNotification", "yes");
-		ctx->use_notif = 0;
+		ctx->use_notif = GF_FALSE;
 		dsbBufferDesc.dwFlags = DSBCAPS_GETCURRENTPOSITION2 | DSBCAPS_GLOBALFOCUS;
 		hr = ctx->pDS->lpVtbl->CreateSoundBuffer(ctx->pDS, &dsbBufferDesc, &ctx->pOutput, NULL );
 		if (FAILED(hr)) {
@@ -242,7 +242,7 @@ retry:
 
 			pNotify->lpVtbl->Release(pNotify);
 		} else {
-			ctx->use_notif = 0;
+			ctx->use_notif = GF_FALSE;
 		}
 	}
 	if (ctx->use_notif) {
@@ -268,9 +268,9 @@ static Bool DS_RestoreBuffer(LPDIRECTSOUNDBUFFER pDSBuffer)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectSound] buffer lost\n"));
 		pDSBuffer->lpVtbl->Restore(pDSBuffer);
 		pDSBuffer->lpVtbl->GetStatus(pDSBuffer, &dwStatus);
-		if( dwStatus & DSBSTATUS_BUFFERLOST ) return 1;
+		if( dwStatus & DSBSTATUS_BUFFERLOST ) return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -433,7 +433,7 @@ void *NewAudioOutput()
 	if( FAILED( hr = CoInitialize(NULL) ) ) return NULL;
 
 
-	ctx = gf_malloc(sizeof(DSContext));
+	ctx = (DSContext*)gf_malloc(sizeof(DSContext));
 	memset(ctx, 0, sizeof(DSContext));
 	ctx->hDSoundLib = LoadLibrary("dsound.dll");
 	if (ctx->hDSoundLib) {
@@ -446,7 +446,7 @@ void *NewAudioOutput()
 	}
 
 
-	driv = gf_malloc(sizeof(GF_AudioOutput));
+	driv = (GF_AudioOutput*)gf_malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "DirectSound Audio Output", "gpac distribution");
 
@@ -464,7 +464,7 @@ void *NewAudioOutput()
 	driv->WriteAudio = DS_WriteAudio;
 	driv->QueryOutputSampleRate = DS_QueryOutputSampleRate;
 	/*never threaded*/
-	driv->SelfThreaded = 0;
+	driv->SelfThreaded = GF_FALSE;
 	return driv;
 }
 

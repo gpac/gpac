@@ -139,19 +139,19 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		mch->time_scale = esd->slConfig->timestampResolution;
 		mch->streamType = esd->decoderConfig->streamType;
 		mch->track = gf_isom_new_track(cache->mov, com.cache_esd.esd->ESID, mtype, mch->time_scale);
-		mch->is_playing = 1;
+		mch->is_playing = GF_TRUE;
 		mch->channel = ch;
 		mch->owner = cache;
 		gf_isom_set_track_enabled(cache->mov, mch->track, 1);
 		/*translate 3GP streams to MP4*/
-		mapped = 0;
+		mapped = GF_FALSE;
 		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_MEDIA_GENERIC) {
 			char szCode[5];
 			strncpy(szCode, esd->decoderConfig->decoderSpecificInfo->data, 4);
 			szCode[4]=0;
 			if (!stricmp(szCode, "samr") || !stricmp(szCode, "amr ") || !stricmp(szCode, "sawb")) {
 				GF_3GPConfig amrc;
-				mapped = 1;
+				mapped = GF_TRUE;
 				memset(&amrc, 0, sizeof(GF_3GPConfig));
 
 				amrc.frames_per_sample = (u32) esd->decoderConfig->decoderSpecificInfo->data[13];
@@ -164,7 +164,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 				h263c.type = GF_ISOM_SUBTYPE_3GP_H263;
 				h263c.vendor = GF_4CC('G','P','A','C');
 				gf_isom_3gp_config_new(cache->mov, mch->track, &h263c, NULL, NULL, &di);
-				mapped = 1;
+				mapped = GF_TRUE;
 			}
 		}
 		if (!mapped) gf_isom_new_mpeg4_description(cache->mov, mch->track, esd, NULL, NULL, &di);

@@ -3144,10 +3144,10 @@ GF_Err gf_odf_read_sup_cid(GF_BitStream *bs, GF_SCIDesc *scid, u32 DescSize)
 
 	scid->languageCode = gf_bs_read_int(bs, 24);
 	nbBytes += 3;
-	e = OD_ReadUTF8String(bs, & scid->supplContentIdentifierTitle, 1, &len);
+	e = OD_ReadUTF8String(bs, & scid->supplContentIdentifierTitle, GF_TRUE, &len);
 	if (e) return e;
 	nbBytes += len;
-	e = OD_ReadUTF8String(bs, & scid->supplContentIdentifierValue, 1, &len);
+	e = OD_ReadUTF8String(bs, & scid->supplContentIdentifierValue, GF_TRUE, &len);
 	if (e) return e;
 	nbBytes += len;
 	if (nbBytes != DescSize) return GF_ODF_INVALID_DESCRIPTOR;
@@ -3158,7 +3158,7 @@ GF_Err gf_odf_read_sup_cid(GF_BitStream *bs, GF_SCIDesc *scid, u32 DescSize)
 GF_Err gf_odf_size_sup_cid(GF_SCIDesc *scid, u32 *outSize)
 {
 	if (! scid) return GF_BAD_PARAM;
-	*outSize = 3 + OD_SizeUTF8String(scid->supplContentIdentifierTitle, 1) + OD_SizeUTF8String(scid->supplContentIdentifierValue, 1);
+	*outSize = 3 + OD_SizeUTF8String(scid->supplContentIdentifierTitle, GF_TRUE) + OD_SizeUTF8String(scid->supplContentIdentifierValue, GF_TRUE);
 	return GF_OK;
 }
 GF_Err gf_odf_write_sup_cid(GF_BitStream *bs, GF_SCIDesc *scid)
@@ -3171,8 +3171,8 @@ GF_Err gf_odf_write_sup_cid(GF_BitStream *bs, GF_SCIDesc *scid)
 	e = gf_odf_write_base_descriptor(bs, scid->tag, size);
 	if (e) return e;
 	gf_bs_write_int(bs, scid->languageCode, 24);
-	OD_WriteUTF8String(bs, scid->supplContentIdentifierTitle, 1);
-	OD_WriteUTF8String(bs, scid->supplContentIdentifierValue, 1);
+	OD_WriteUTF8String(bs, scid->supplContentIdentifierTitle, GF_TRUE);
+	OD_WriteUTF8String(bs, scid->supplContentIdentifierValue, GF_TRUE);
 	return GF_OK;
 }
 
@@ -3266,8 +3266,8 @@ GF_Err gf_odf_read_ipmp_tool(GF_BitStream *bs, GF_IPMP_Tool *ipmpt, u32 DescSize
 	u32 nbBytes = 0;
 	if (! ipmpt) return GF_BAD_PARAM;
 	gf_bs_read_data(bs, (char*) ipmpt->IPMP_ToolID, 16);
-	is_alt = gf_bs_read_int(bs, 1);
-	is_param = gf_bs_read_int(bs, 1);
+	is_alt = (Bool)gf_bs_read_int(bs, 1);
+	is_param = (Bool)gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 6);
 	nbBytes = 17;
 
