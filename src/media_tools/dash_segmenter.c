@@ -2905,8 +2905,6 @@ static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Media duration couldn't be forced. Aborting.\n"));
 			return e;
 		}
-		dash_input->period_duration = dash_input->media_duration;
-		dash_input->duration = dash_input->media_duration;
 	}
 
 	e = gf_media_isom_segment_file(in, szOutName, dash_cfg, dash_input, first_in_set);
@@ -5403,6 +5401,13 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				e = dash_inputs[i].dasher_get_components_info(&dash_inputs[i], &dash_opts);
 				if (e) goto exit;
 			}
+
+			/*force media duration if requested by the author*/
+			if (dash_inputs[i].media_duration) {
+				dash_inputs[i].period_duration = dash_inputs[i].media_duration;
+				dash_inputs[i].duration = dash_inputs[i].media_duration;
+			}
+
 			dur = dash_inputs[i].duration;
 			if (subduration && (subduration < dur) ) {
 				dur = dash_opts.subduration;
