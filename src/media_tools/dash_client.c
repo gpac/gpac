@@ -448,8 +448,11 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		}
 	}
 
+	availabilityStartTime = 0;
+	if ((s64) mpd->availabilityStartTime + group->dash->utc_shift > (s64) - group->dash->utc_drift_estimate) {
+		availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate;
+	}
 
-	availabilityStartTime = mpd->availabilityStartTime + group->dash->utc_shift + group->dash->utc_drift_estimate;
 
 #ifdef FORCE_DESYNC
 	availabilityStartTime -= FORCE_DESYNC;
@@ -3126,6 +3129,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 {
 	u32 count, i;
 	GF_Err e;
+	Bool is_local=GF_FALSE;
 	const char *local_url;
 	char *url;
 	GF_DOMParser *parser;
@@ -3153,10 +3157,16 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 	//xlink relative to our MPD base URL
 	url = gf_url_concatenate(dash->base_url, period->xlink_href);
 
-	/*use non-persistent connection for MPD*/
-	e = gf_dash_download_resource(dash, &(dash->mpd_dnload), url ? url : period->xlink_href, 0, 0, 0, NULL);
+	if (!strstr(url, "://") || !strnicmp(url, "file://", 7) ) {
+		local_url = url;
+		is_local=GF_TRUE;
+		e = GF_OK;
+	} else {
+		/*use non-persistent connection for MPD*/
+		e = gf_dash_download_resource(dash, &(dash->mpd_dnload), url ? url : period->xlink_href, 0, 0, 0, NULL);
 
-	gf_free(url);
+		gf_free(url);
+	}
 
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot download xlink from periods %s: error %s\n", period->xlink_href, gf_error_to_string(e)));
@@ -3166,12 +3176,16 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 		return;
 	}
 
-	/*in case the session has been restarted, local_url may have been destroyed - get it back*/
-	local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
+	if (!is_local) {
+		/*in case the session has been restarted, local_url may have been destroyed - get it back*/
+		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
+	}
 
 	/* parse the MPD */
 	parser = gf_xml_dom_new();
 	e = gf_xml_dom_parse(parser, local_url, NULL, NULL);
+	if (is_local) gf_free(url);
+
 	if (e != GF_OK) {
 		gf_xml_dom_del(parser);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot parse xlink periods: error in XML parsing %s\n", gf_error_to_string(e)));

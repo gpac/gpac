@@ -109,6 +109,8 @@ struct _dash_segment_input
 	char representationID[100];
 	char *periodID;
 	Double media_duration; /*forced media duration*/
+	u32 nb_baseURL;
+	char **baseURL;
 	char *xlink;
 	char *role;
 	u32 nb_rep_descs;
@@ -199,22 +201,22 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 	if (!seg_rad_name) {
 		strcpy(segment_name, output_file_name);
 	} else {
-
-		while (1) {
-			char c = seg_rad_name[char_template];
-			if (!c) break;
+		char c;
+		const size_t seg_rad_name_len = strlen(seg_rad_name);
+		while (char_template <= seg_rad_name_len) {
+			c = seg_rad_name[char_template];
 
 			if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$RepresentationID$", 18) ) {
 				char_template += 18;
 				strcat(segment_name, rep_id);
-				needs_init=GF_FALSE;
+				needs_init = GF_FALSE;
 			}
 			else if (!is_template && !is_init_template && !strnicmp(& seg_rad_name[char_template], "$Bandwidth", 10)) {
 				EXTRACT_FORMAT(10);
 
 				sprintf(tmp, szFmt, bandwidth);
 				strcat(segment_name, tmp);
-				needs_init=GF_FALSE;
+				needs_init = GF_FALSE;
 			}
 			else if (!is_template && !strnicmp(& seg_rad_name[char_template], "$Time", 5)) {
 				EXTRACT_FORMAT(5);
@@ -224,7 +226,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 				strcat(szFmt, &LLD[1]);
 				sprintf(tmp, szFmt, start_time);
 				strcat(segment_name, tmp);
-				has_number=GF_TRUE;
+				has_number = GF_TRUE;
 			}
 			else if (!is_template && !strnicmp(& seg_rad_name[char_template], "$Number", 7)) {
 				EXTRACT_FORMAT(7);
@@ -232,14 +234,14 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 				if (is_init || is_init_template) continue;
 				sprintf(tmp, szFmt, segment_number);
 				strcat(segment_name, tmp);
-				has_number=GF_TRUE;
+				has_number = GF_TRUE;
 			}
 			else if (!strnicmp(& seg_rad_name[char_template], "$Init=", 6)) {
 				char *sep = strchr(seg_rad_name + char_template+6, '$');
 				if (sep) sep[0] = 0;
 				if (is_init || is_init_template) {
 					strcat(segment_name, seg_rad_name + char_template+6);
-					needs_init=GF_FALSE;
+					needs_init = GF_FALSE;
 				}
 				char_template += (u32) strlen(seg_rad_name + char_template)+1;
 				if (sep) sep[0] = '$';
@@ -249,7 +251,7 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 				if (sep) sep[0] = 0;
 				if (is_index) {
 					strcat(segment_name, seg_rad_name + char_template+6);
-					needs_init=GF_FALSE;
+					needs_init = GF_FALSE;
 				}
 				char_template += (u32) strlen(seg_rad_name + char_template)+1;
 				if (sep) sep[0] = '$';
@@ -663,7 +665,7 @@ static Bool is_splitable(u32 media_type) {
 	}
 }
 
-static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec, GF_DASHSegmenterOptions *dash_cfg, GF_DashSegInput *dash_input, Bool first_in_set)
+static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, GF_DASHSegmenterOptions *dash_cfg, GF_DashSegInput *dash_input, Bool first_in_set)
 {
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id, nb_tracks_done;
@@ -864,7 +866,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 	}
 
-	MaxFragmentDuration = (u32) (dash_cfg->dash_scale * max_duration_sec);
+	MaxFragmentDuration = (u32) (dash_cfg->dash_scale * dash_cfg->fragment_duration);
 	MaxSegmentDuration = (u32) (dash_cfg->dash_scale * dash_cfg->segment_duration);
 
 	/*in single segment mode, only one big SIDX is written between the end of the moov and the first fragment.
@@ -1681,7 +1683,7 @@ restart_fragmentation_pass:
 					gf_sleep(1);
 				}
 
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Flushing fragment at "LLU" us\n", gf_sys_clock_high_res() ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Flushing fragment at "LLU" us\n", gf_sys_clock_high_res() ));
 			}
 
 			e = gf_isom_flush_fragments(output, flush_all_samples ? GF_TRUE : GF_FALSE);
@@ -1712,16 +1714,27 @@ restart_fragmentation_pass:
 
 				//since dash scale and ref track used for segmentation may not have the same timescale we will have drift in segment timelines. Adjust it 
 				if (tfref) {
-					u64 seg_start_time_min_cts = (u64) (tfref->min_cts_in_segment + tfref->media_time_to_pres_time_shift) * dash_cfg->dash_scale;
+					s64 seg_start_time_min_cts = (s64) (tfref->min_cts_in_segment + tfref->media_time_to_pres_time_shift) * dash_cfg->dash_scale; 
 					u64 seg_start_time_mpd = (period_duration + segment_start_time) * tfref->TimeScale;
+
+					//if first CTS in segment is less than 0, this means that we have AUs that are not presented due to edit list.
+					//adjust the segment duration accordingly.
+					if (seg_start_time_min_cts<0) {
+						s64 mpd_time_adjust = seg_start_time_min_cts / tfref->TimeScale;
+						if ((s64) SegmentDuration < - mpd_time_adjust) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Segment duration is less than media time from edit list (%d vs %d)\n", MaxSegmentDuration, -tfref->media_time_to_pres_time_shift));
+							e = GF_BAD_PARAM;
+							goto err_exit;
+						}
+						SegmentDuration += mpd_time_adjust;
+						seg_start_time_min_cts=0;
+					}
 
 					if (seg_start_time_mpd != seg_start_time_min_cts) {
 						//compute diff in dash timescale 
 						Double diff = (Double) seg_start_time_min_cts;
 						diff -= (Double) seg_start_time_mpd;
 						diff /= tfref->TimeScale;
-
-						assert(diff>0);
 
 						//if we are ahead we will adjust keep track of how many ticks we miss
 						if (diff >= 1) {
@@ -1755,7 +1768,7 @@ restart_fragmentation_pass:
 			split_at_rap = GF_FALSE;
 			has_rap = GF_FALSE;
 			/*restore fragment duration*/
-			MaxFragmentDuration = (u32) (max_duration_sec * dash_cfg->dash_scale);
+			MaxFragmentDuration = (u32) (dash_cfg->fragment_duration * dash_cfg->dash_scale);
 
 			if (!simulation_pass) {
 				u64 idx_start_range, idx_end_range;
@@ -1899,7 +1912,7 @@ restart_fragmentation_pass:
 	}
 	else if (!dash_cfg->use_segment_timeline) {
 		if (dash_cfg->dash_ctx) {
-			max_segment_duration = max_duration_sec;
+			max_segment_duration = dash_cfg->segment_duration;
 		} else {
 			if (3*min_seg_dur < max_seg_dur) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Segment duration variation is higher than the +/- 50%% allowed by DASH-IF (min %g, max %g) - please reconsider encoding\n", (Double) min_seg_dur / dash_cfg->dash_scale, (Double) max_seg_dur / dash_cfg->dash_scale));
@@ -2052,6 +2065,13 @@ restart_fragmentation_pass:
 	if (dash_input->dependencyID)
 		fprintf(dash_cfg->mpd, " dependencyId=\"%s\"", dash_input->dependencyID);
 	fprintf(dash_cfg->mpd, ">\n");
+
+	/* baseURLs */
+	if (dash_input->nb_baseURL) {
+		for (i=0; i<dash_input->nb_baseURL; i++) {
+			fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", dash_input->baseURL[i]);
+		}
+	}
 
 	/* writing Representation level descriptors */
 	if (dash_input->nb_rep_descs) {
@@ -2888,7 +2908,8 @@ static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *
 		dash_input->duration = dash_input->media_duration;
 	}
 
-	e = gf_media_isom_segment_file(in, szOutName, dash_cfg->fragment_duration, dash_cfg, dash_input, first_in_set);
+	e = gf_media_isom_segment_file(in, szOutName, dash_cfg, dash_input, first_in_set);
+
 	gf_isom_close(in);
 	return e;
 }
@@ -4461,6 +4482,8 @@ static GF_Err write_mpd_header(FILE *mpd, const char *mpd_name, GF_Config *dash_
 		}
 	} else if (profile==GF_DASH_PROFILE_MAIN) {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:%s:2011", is_mpeg2 ? "mp2t-main" : "isoff-main");
+	} else if (profile==GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+		fprintf(mpd, " profiles=\"urn:hbbtv:dash:profile:isoff-live:2012");
 	} else if (profile==GF_DASH_PROFILE_AVC264_LIVE) {
 		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-live:2011,http://dashif.org/guidelines/dash264");
 	} else if (profile==GF_DASH_PROFILE_AVC264_ONDEMAND) {
@@ -5073,9 +5096,11 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		s32 nb_diff;
 		dash_inputs[j].file_name = inputs[i].file_name;
 		if (inputs[i].representationID)
-            strcpy(dash_inputs[j].representationID, inputs[i].representationID);
+			strcpy(dash_inputs[j].representationID, inputs[i].representationID);
 		dash_inputs[j].periodID = inputs[i].periodID;
 		dash_inputs[j].media_duration = inputs[i].media_duration;
+		dash_inputs[j].nb_baseURL = inputs[i].nb_baseURL;
+		dash_inputs[j].baseURL = inputs[i].baseURL;
 		dash_inputs[j].xlink = inputs[i].xlink;
 		if (dash_inputs[j].xlink) uses_xlink = GF_TRUE;
 		dash_inputs[j].role = inputs[i].role;
@@ -5184,13 +5209,13 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 				//this is a remote period insertion
 				if (dash_inputs[i].xlink) {
 					//assign a AS for this fake source (otherwise first active period detection will fail)
-					dash_inputs[i].adaptation_set=1;
+					dash_inputs[i].adaptation_set = 1;
 					none_supported = GF_FALSE;
 				}
 				continue;
 			}
 
-			max_adaptation_set ++;
+			max_adaptation_set++;
 			dash_inputs[i].adaptation_set = max_adaptation_set;
 			dash_inputs[i].nb_rep_in_adaptation_set = 1;
 
@@ -5220,6 +5245,18 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		use_url_template = 1;
 		single_segment = single_file = GF_FALSE;
 		break;
+	case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE: {
+		bitstream_switching = GF_DASH_BSMODE_MULTIPLE_ENTRIES;
+		for (i=0; i<nb_dash_inputs; i++) {
+			if (dash_inputs[i].role && !strcmp(dash_inputs[i].role, "main"))
+				break;
+		}
+		if (i == nb_dash_inputs) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] HbbTV 1.5 ISO live profile requires to have at least one Adaptation Set\nlabelled with a Role@value of \"main\". Consider adding \":role=main\" to your inputs.\n"));
+			e = GF_BAD_PARAM;
+			goto exit;
+		}
+	}
 	case GF_DASH_PROFILE_AVC264_LIVE:
 		seg_at_rap = GF_TRUE;
 		no_fragments_defaults = GF_TRUE;
@@ -5308,7 +5345,7 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 	if (frag_at_rap) seg_at_rap = GF_TRUE;
 
 	if (seg_at_rap) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Spliting segments %sat GOP boundaries\n", frag_at_rap ? "and fragments " : ""));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Splitting segments %sat GOP boundaries\n", frag_at_rap ? "and fragments " : ""));
 	}
 
 	dash_opts.mpd_name = mpdfile;
@@ -5388,13 +5425,37 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		presentation_duration += period_duration;
 	}
 
-	if ((max_comp_per_input>1) && (dash_profile==GF_DASH_PROFILE_AVC264_LIVE)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Muxed representations not allowed in DASH-IF AVC264 live profile\n\tswitching to regular live profile\n"));
-		dash_profile = GF_DASH_PROFILE_LIVE;
+	if (max_comp_per_input > 1) {
+		if (dash_profile == GF_DASH_PROFILE_AVC264_LIVE) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Muxed representations not allowed in DASH-IF AVC264 live profile\n\tswitching to regular live profile\n"));
+			dash_profile = GF_DASH_PROFILE_LIVE;
+		} else if (dash_profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Muxed representations not allowed in HbbTV 1.5 ISOBMF live profile\n\tswitching to regular live profile\n"));
+			dash_profile = GF_DASH_PROFILE_LIVE;
+		} else if (dash_profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Muxed representations not allowed in DASH-IF AVC264 onDemand profile\n\tswitching to regular onDemand profile\n"));
+			dash_profile = GF_DASH_PROFILE_ONDEMAND;
+		}
 	}
-	if ((max_comp_per_input>1) && (dash_profile==GF_DASH_PROFILE_AVC264_ONDEMAND)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Muxed representations not allowed in DASH-IF AVC264 onDemand profile\n\tswitching to regular onDemand profile\n"));
-		dash_profile = GF_DASH_PROFILE_ONDEMAND;
+
+	/*HbbTV 1.5 ISO live specific checks*/
+	if (dash_profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+		if (max_adaptation_set > 16) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max 16 adaptation sets in HbbTV 1.5 ISO live profile\n\tswitching to DASH AVC/264 live profile\n"));
+			dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
+		}
+		if (max_period > 32) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max 32 periods in HbbTV 1.5 ISO live profile\n\tswitching to regular DASH AVC/264 live profile\n"));
+			dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
+		}
+		if (dash_duration < 1.0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Min segment duration 1s in HbbTV 1.5 ISO live profile\n\tcapping to 1s\n"));
+			dash_duration = 1.0;
+		}
+		if (dash_duration > 15.0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max segment duration 15s in HbbTV 1.5 ISO live profile\n\tcapping to 15s\n"));
+			dash_duration = 15.0;
+		}
 	}
 
 	active_period_start = 0;
@@ -5725,6 +5786,27 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 					} else {
 						strcpy(szSolvedSegName, seg_name);
 					}
+					
+					/* user added a relative-path baseURL */
+					if (dash_inputs[i].nb_baseURL) {
+						if (gf_url_is_local(dash_inputs[i].baseURL[0])) {
+							const char *name;
+							char tmp_segment_name[GF_MAX_PATH];
+							if (dash_inputs[i].nb_baseURL > 1)
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Several relative path baseURL for input %s: selecting \"%s\"\n", dash_inputs[i].file_name, dash_inputs[i].baseURL[0]));
+							name = gf_url_get_resource_name(szSolvedSegName);
+							strcpy(tmp_segment_name, name);
+							gf_url_get_resource_path(dash_inputs[i].baseURL[0], szSolvedSegName);
+							if (szSolvedSegName[strlen(szSolvedSegName)] != GF_PATH_SEPARATOR) {
+								char ext[2]; ext[0] = GF_PATH_SEPARATOR; ext[1] = 0;
+								strcat(szSolvedSegName, ext);
+							}
+							strcat(szSolvedSegName, tmp_segment_name);
+						} else {
+							GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Found baseURL for input %s but not a relative path (%s)\n", dash_inputs[i].file_name, dash_inputs[i].baseURL[0]));
+						}
+					}
+
 					segment_name = szSolvedSegName;
 				}
 				if ((dash_inputs[i].trackNum || dash_inputs[i].single_track_num) && (!seg_name || !strstr(seg_name, "$RepresentationID$") ) ) {
@@ -5854,6 +5936,10 @@ GF_Err gf_dasher_segment_files(const char *mpdfile, GF_DashSegmenterInput *input
 		}
 	}
 
+	if (dash_profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+		if (gf_ftell(mpd) > 100*1024)
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[DASH] Manifest MPD is too big for HbbTV 1.5. Limit is 100kB, current size is "LLU"kB\n", gf_ftell(mpd)/1024));
+	}
 
 exit:
 	if (mpd) {
@@ -5872,7 +5958,7 @@ exit:
 				gf_free(dash_inputs[i].components[j].lang);
 			}
 		}
-        if (dash_inputs[i].dependencyID) gf_free(dash_inputs[i].dependencyID);
+		if (dash_inputs[i].dependencyID) gf_free(dash_inputs[i].dependencyID);
 	}
 	gf_free(dash_inputs);
 

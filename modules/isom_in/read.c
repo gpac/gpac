@@ -72,6 +72,8 @@ static const char * ISOR_MIME_TYPES[] = {
 	"audio/3gpp", "3gp 3gpp", "3GPP/MMS Music",
 	"video/3gpp2", "3g2 3gp2", "3GPP2/MMS Movies",
 	"audio/3gpp2", "3g2 3gp2", "3GPP2/MMS Music",
+	"video/iso.segment", "iso", "ISOBMF Fragments",
+	"audio/iso.segment", "iso", "ISOBMF Fragments",
 	NULL
 };
 

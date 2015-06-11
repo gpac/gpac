@@ -158,6 +158,10 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	video_input_file->pix_fmt = codec_ctx->pix_fmt;
 	if (codec_ctx->time_base.num==1) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("AVCTX give frame duration of %d/%d - keeping requested rate %d, but this may result in unexpected behaviour.\n", codec_ctx->time_base.num, codec_ctx->time_base.den, video_data_conf->framerate ));
+		
+		if (codec_ctx->time_base.den==1000000) {
+			codec_ctx->time_base.num = codec_ctx->time_base.den / video_data_conf->framerate;
+		}
 	}
 	else if (video_data_conf->framerate >= 0 && codec_ctx->time_base.num) {
 		video_data_conf->framerate = codec_ctx->time_base.den / codec_ctx->time_base.num;
@@ -313,6 +317,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 						video_input_file->first_pts = packet.pts;
 						video_input_file->prev_pts = 0;
 						video_input_data->frame_duration = codec_ctx->time_base.num;
+						
 						video_input_file->sync_tolerance = 9*video_input_data->frame_duration/5;
 						//TODO - check with audio if sync is OK
 					}
