@@ -1067,6 +1067,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
     if (!NoBind) {
 		struct sockaddr_in local_address;
 		
+		memset(&local_address, 0, sizeof(struct sockaddr_in ));
 		local_address.sin_family = AF_INET;
 		local_address.sin_addr.s_addr = (u32) local_add_id;
 		local_address.sin_port = htons( MultiPortNumber);
@@ -1088,7 +1089,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 
 	/*now join the multicast*/
 	M_req.imr_multiaddr.s_addr = inet_addr(multi_IPAdd);
-	M_req.imr_interface.s_addr = htonl(INADDR_ANY);
+	M_req.imr_interface.s_addr = (u32) local_add_id;
     
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
 	if (ret == SOCKET_ERROR) {
