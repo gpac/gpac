@@ -519,6 +519,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	while (gf_bs_available(src_bs)) {
 		nal_size = gf_bs_read_int(src_bs, 8*nal_unit_size_field);
+		if (gf_bs_get_position(src_bs) + nal_size > sample->dataLength) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("Sample %u (size %u) rewrite: corrupted NAL Unit (size %u)\n", sampleNumber, sample->dataLength, nal_size));
+			goto exit;
+		}
 		if (nal_size>max_size) {
 			buffer = (char*) gf_realloc(buffer, sizeof(char)*nal_size);
 			max_size = nal_size;
