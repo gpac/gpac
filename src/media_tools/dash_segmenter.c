@@ -1640,6 +1640,7 @@ restart_fragmentation_pass:
 					//only compute max dur over segment for the track used for indexing / deriving MPD start time
 					if (!tfref || (tf->is_ref_track)) {
 						u64 f_dur;
+						//FIXME: this is rounded (ok) but the difference is not stored would accumulate over time. Reproduce with AAC and dash-ctx
 						f_dur = ( tf->FragmentLength ) * dash_cfg->dash_scale / tf->TimeScale;
 						if (maxFragDurationOverSegment <= f_dur) {
 							maxFragDurationOverSegment = f_dur;
