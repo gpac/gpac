@@ -3270,10 +3270,13 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 	/*we are not able to process webm dash (youtube)*/
 	j = gf_list_count(period->adaptation_sets);
 	for (as_i=0; as_i<j; as_i++) {
-		GF_MPD_AdaptationSet *set = gf_list_get(period->adaptation_sets, as_i);
+		GF_MPD_AdaptationSet *set = (GF_MPD_AdaptationSet*)gf_list_get(period->adaptation_sets, as_i);
 		if (strstr(set->mime_type, "webm")) {
-			gf_list_rem(period->adaptation_sets, as_i);
-			as_i--, j--;
+			u32 k;
+			for (k=0; k<gf_list_count(set->representations); ++k) {
+				GF_MPD_Representation *rep = (GF_MPD_Representation*)gf_list_get(set->representations, k);
+				rep->playback.disabled = GF_TRUE;
+			}
 		}
 	}
 
