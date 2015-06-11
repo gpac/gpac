@@ -2028,7 +2028,8 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	if (group->max_bitrate) GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\tmax download bandwidth: %d kbps\n", group->max_bitrate/1024));
 	if (width&&height) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\tWidth %d Height %d", width, height));
-		if (framerate) GF_LOG(GF_LOG_INFO, GF_LOG_DASH, (" framerate %d/%d", framerate->num, framerate->den));
+		if (framerate && !framerate->den) GF_LOG(GF_LOG_INFO, GF_LOG_DASH, (" framerate %d", framerate->num));
+		if (framerate && framerate->den) GF_LOG(GF_LOG_INFO, GF_LOG_DASH, (" framerate %d/%d", framerate->num, framerate->den));
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\n"));
 	} else if (samplerate) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\tsamplerate %d\n", samplerate));
@@ -2930,7 +2931,7 @@ static GF_Err dash_load_box_type(const char *cache_name, u32 offset, u32 *box_ty
 		}
 		if (offset+8 > size)
 			return GF_IO_ERR;
-		mem_address+=offset;
+		mem_address += offset;
 		*box_size = GF_4CC(mem_address[0], mem_address[1], mem_address[2], mem_address[3]);
 		*box_type = GF_4CC(mem_address[4], mem_address[5], mem_address[6], mem_address[7]);
 	} else {
@@ -2998,8 +2999,8 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 			/*we need to download the init segement, at least partially*/
 			else {
 				u32 offset = 0;
-				u32 box_type=0;
-				u32 box_size=0;
+				u32 box_type = 0;
+				u32 box_size = 0;
 				const char *cache_name;
 
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloading init segment and SIDX for representation %s\n", init_url));
@@ -3009,30 +3010,40 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				if (e) goto exit;
 				cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
 				e = dash_load_box_type(cache_name, offset, &box_type, &box_size);
-				offset=8;
+				offset = 8;
 				while (box_type) {
-					/*we got the moov , stop here */
+					/*we got the moov, stop here */
 					if (!index_in_base && (box_type==GF_4CC('m','o','o','v'))) {
-						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-8, 2, group);
+						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-9, 2, group);
 						break;
 					} else {
+						const u32 offset_ori = offset;
 						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-1, 2, group);
 						offset += box_size;
 						/*we need to refresh the cache name because of our memory astorage thing ...*/
 						cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
 						e = dash_load_box_type(cache_name, offset-8, &box_type, &box_size);
+						if (e == GF_IO_ERR) {
+							/*if the socket was closed then gf_dash_download_resource() with gmem:// was reset - retry*/
+							e = dash_load_box_type(cache_name, offset-offset_ori-8, &box_type, &box_size);
+							if (box_type == GF_4CC('s','i','d','x')) {
+								offset -= 8;
+								/*FIXME sidx found, reload the full resource*/
+								GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] have to re-downloading init and SIDX for rep %s\n", init_url));
+								e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, 0, offset+box_size-1, 2, group);
+								break;
+							}
+						}
 
-						if (box_type==GF_4CC('s','i','d','x'))
+						if (box_type == GF_4CC('s','i','d','x'))
 							has_seen_sidx = 1;
 						else if (has_seen_sidx)
 							break;
-
-
 					}
 				}
-				if (e<0) goto exit;
+				if (e < 0) goto exit;
 
-				if (box_type==0) {
+				if (box_type == 0) {
 					e = GF_ISOM_INVALID_FILE;
 					goto exit;
 				}
@@ -3240,7 +3251,7 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 {
 	GF_MPD_Period *period;
-	u32 rep_i, group_i, j, nb_groups_ok;
+	u32 rep_i, as_i, group_i, j, nb_groups_ok;
 	u32 retry = 10;
 
 	//solve xlink - if
@@ -3254,6 +3265,16 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 	if (period->xlink_href) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many xlink indirections on the same period - not supported\n"));
 		return GF_NOT_SUPPORTED;
+	}
+	
+	/*we are not able to process webm dash (youtube)*/
+	j = gf_list_count(period->adaptation_sets);
+	for (as_i=0; as_i<j; as_i++) {
+		GF_MPD_AdaptationSet *set = gf_list_get(period->adaptation_sets, as_i);
+		if (strstr(set->mime_type, "webm")) {
+			gf_list_rem(period->adaptation_sets, as_i);
+			as_i--, j--;
+		}
 	}
 
 	/*setup all groups*/
@@ -3877,11 +3898,13 @@ restart_period:
 				group->min_bitrate = (u32)-1;
 
 				/*use persistent connection for segment downloads*/
+				gf_mx_p(dash->dl_mutex);
 				if (use_byterange) {
 					e = gf_dash_download_resource(dash, &(group->segment_download), new_base_seg_url, start_range, end_range, 1, group);
 				} else {
 					e = gf_dash_download_resource(dash, &(group->segment_download), new_base_seg_url, 0, 0, 1, group);
 				}
+				gf_mx_v(dash->dl_mutex);
 
 				if ((e==GF_IP_CONNECTION_CLOSED) && group->download_abort_type) {
 					group->download_abort_type = 0;
@@ -4120,6 +4143,7 @@ static void gf_dash_download_stop(GF_DashClient *dash)
 {
 	u32 i;
 	assert(dash);
+	gf_mx_p(dash->dl_mutex);
 	if (dash->groups) {
 		for (i=0; i<gf_list_count(dash->groups); i++) {
 			GF_DASH_Group *group = gf_list_get(dash->groups, i);
@@ -4132,7 +4156,6 @@ static void gf_dash_download_stop(GF_DashClient *dash)
 		}
 	}
 	/* stop the download thread */
-	gf_mx_p(dash->dl_mutex);
 	dash->mpd_stop_request = GF_TRUE;
 	if (dash->dash_state != GF_DASH_STATE_STOPPED) {
 		dash->mpd_stop_request = 1;
