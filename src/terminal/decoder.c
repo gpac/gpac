@@ -548,7 +548,11 @@ refetch_AU:
 		src_channels = current_odm->channels;
 		scalable_check = 1;
 		goto browse_scalable;
+	} else if (*nextAU && current_odm->parentscene->root_od->addon && current_odm->parentscene->root_od->addon->loop_detected) {
+		//loop detected in an addon, check whether it's time to restart it
+		gf_scene_check_addon_restart(current_odm->parentscene->root_od->addon, (*nextAU)->CTS, (*nextAU)->DTS);
 	}
+
 
 	if (*nextAU  && (scalable_check==1)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Warning, could not find enhancement layer for this AU (DTS %d) \n", (*nextAU)->DTS ));
