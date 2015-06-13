@@ -2851,13 +2851,23 @@ static GF_Err dasher_isom_adjust_last_sample(GF_ISOFile *in, const u32 trackNumb
 	}
 }
 
+static u32 isom_get_track_duration_from_samples_in_timescale(GF_ISOFile *in, u32 trackNumber) {
+	u64 track_duration = 0;
+	u32 sampleNumber;
+	for (sampleNumber=1; sampleNumber<=gf_isom_get_sample_count(in, trackNumber); ++sampleNumber) {
+		track_duration += gf_isom_get_sample_duration(in, trackNumber, sampleNumber);
+	}
+	track_duration = track_duration * gf_isom_get_timescale(in) / gf_isom_get_media_timescale(in, trackNumber);
+	return (u32)track_duration;
+}
+
 static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_in_sec, const Double fragment_duration_in_sec) {
 	GF_Err e = GF_OK;
 
 	u32 trackNumber;
-	for (trackNumber=1; trackNumber<=gf_isom_get_track_count(in); trackNumber++) {
-		const u32 track_duration = (u32)gf_isom_get_track_duration(in, trackNumber);
+	for (trackNumber=1; trackNumber<=gf_isom_get_track_count(in); ++trackNumber) {
 		const u32 target_duration_in_timescale = (u32)(duration_in_sec * gf_isom_get_timescale(in));
+		const u32 track_duration = isom_get_track_duration_from_samples_in_timescale(in, trackNumber);
 
 		if (target_duration_in_timescale < track_duration) {
 			u32 i, j, track_duration2, sample_count = gf_isom_get_sample_count(in, trackNumber);
