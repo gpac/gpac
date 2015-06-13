@@ -5294,6 +5294,7 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *inpu
 		strcpy(dash_input->representationID, input->representationID);
 
 	dash_input->periodID = input->periodID;
+	dash_input->media_duration = input->media_duration;
 	dash_input->nb_baseURL = input->nb_baseURL;
 	dash_input->baseURL = input->baseURL;
 	dash_input->xlink = input->xlink;
