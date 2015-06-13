@@ -151,23 +151,23 @@ static Bool CTXLoad_CheckDownload(CTXLoadPriv *priv)
 	FILE *f;
 	u32 now = gf_sys_clock();
 
-	if (!priv->file_size && (now - priv->last_check_time < 1000) ) return 0;
+	if (!priv->file_size && (now - priv->last_check_time < 1000) ) return GF_FALSE;
 
 	f = gf_fopen(priv->file_name, "rt");
-	if (!f) return 0;
+	if (!f) return GF_FALSE;
 	gf_fseek(f, 0, SEEK_END);
 	size = gf_ftell(f);
 	gf_fclose(f);
 
 	/*we MUST have a complete file for now ...*/
 	if (!priv->file_size) {
-		if (priv->last_check_size == size) return 1;
+		if (priv->last_check_size == size) return GF_TRUE;
 		priv->last_check_size = size;
 		priv->last_check_time = now;
 	} else {
-		if (size==priv->file_size) return 1;
+		if (size==priv->file_size) return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -225,7 +225,7 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 
 	CTXLoad_Setup(plug);
 
-	priv->progressive_support = 0;
+	priv->progressive_support = GF_FALSE;
 	priv->sax_max_duration = 0;
 
 	ext = strrchr(priv->file_name, '.');
@@ -236,7 +236,7 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	        || !stricmp(ext, "x3d") || !stricmp(ext, "x3dz")
 	   ) {
 		ext = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "Progressive");
-		priv->progressive_support = (ext && !stricmp(ext, "yes")) ? 1 : 0;
+		priv->progressive_support = (ext && !stricmp(ext, "yes")) ? GF_TRUE : GF_FALSE;
 	}
 	if (priv->progressive_support) {
 		ext = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "MaxDuration");
@@ -274,15 +274,15 @@ static Bool CTXLoad_StreamInRootOD(GF_ObjectDescriptor *od, u32 ESID)
 {
 	u32 i, count;
 	/*no root, only one stream possible*/
-	if (!od) return 1;
+	if (!od) return GF_TRUE;
 	count = gf_list_count(od->ESDescriptors);
 	/*idem*/
-	if (!count) return 1;
+	if (!count) return GF_TRUE;
 	for (i=0; i<count; i++) {
 		GF_ESD *esd = (GF_ESD *)gf_list_get(od->ESDescriptors, i);
-		if (esd->ESID==ESID) return 1;
+		if (esd->ESID==ESID) return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -306,7 +306,7 @@ static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 	i=0;
 	while ((sc = (GF_StreamContext *)gf_list_enum(priv->ctx->streams, &i))) {
 		/*all streams in root OD are handled with ESID 0 to differentiate with any animation streams*/
-		if (CTXLoad_StreamInRootOD(priv->ctx->root_od, sc->ESID)) sc->in_root_od = 1;
+		if (CTXLoad_StreamInRootOD(priv->ctx->root_od, sc->ESID)) sc->in_root_od = GF_TRUE;
 		if (!sc->timeScale) sc->timeScale = 1000;
 
 		j=0;
@@ -351,10 +351,10 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 			gf_sm_load_done(&priv->load);
 			priv->file_pos = 0;
 			/*queue scene for detach*/
-			gf_term_lock_media_queue(priv->scene->root_od->term, 1);
+			gf_term_lock_media_queue(priv->scene->root_od->term, GF_TRUE);
 			priv->scene->root_od->action_type = GF_ODM_ACTION_SCENE_RECONNECT;
 			gf_list_add(priv->scene->root_od->term->media_queue, priv->scene->root_od);
-			gf_term_lock_media_queue(priv->scene->root_od->term, 0);
+			gf_term_lock_media_queue(priv->scene->root_od->term, GF_FALSE);
 
 			return CTXLoad_Setup((GF_BaseDecoder *)plug);
 		}
@@ -400,7 +400,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 					break;
 				}
 
-				e = gf_sm_load_string(&priv->load, file_buf, 0);
+				e = gf_sm_load_string(&priv->load, file_buf, GF_FALSE);
 				priv->file_pos += nb_read;
 				if (e) break;
 				diff = gf_sys_clock() - entry_time;
@@ -472,8 +472,8 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 			sc->last_au_time = 0;
 		}
 
-		can_delete_com = 0;
-		if (sc->in_root_od && (priv->load_flags==2)) can_delete_com = 1;
+		can_delete_com = GF_FALSE;
+		if (sc->in_root_od && (priv->load_flags==2)) can_delete_com = GF_TRUE;
 
 		/*we're in the right stream, apply update*/
 		j=0;
@@ -532,7 +532,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 			else if (sc->streamType == GF_STREAM_OD) {
 				/*apply the commands*/
 				while (gf_list_count(au->commands)) {
-					Bool keep_com = 0;
+					Bool keep_com = GF_FALSE;
 					GF_ODCom *com = (GF_ODCom *)gf_list_get(au->commands, 0);
 					gf_list_rem(au->commands, 0);
 					switch (com->tag) {
@@ -623,14 +623,14 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 							if (mux->delete_file) {
 								FILE *t = gf_fopen(mux->file_name, "rb");
 								if (!t) {
-									keep_com = 1;
+									keep_com = GF_TRUE;
 									gf_list_insert(odU->objectDescriptors, od, 0);
 									break;
 								}
 								gf_fclose(t);
 							}
 							/*remap to remote URL - warning, the URL has already been resolved according to the parent path*/
-							remote = gf_malloc(sizeof(char) * (strlen("gpac://")+strlen(mux->file_name)+1) );
+							remote = (char*)gf_malloc(sizeof(char) * (strlen("gpac://")+strlen(mux->file_name)+1) );
 							strcpy(remote, "gpac://");
 							strcat(remote, mux->file_name);
 							k = od->objectDescriptorID;

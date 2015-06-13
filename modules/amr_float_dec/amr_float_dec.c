@@ -83,8 +83,8 @@ static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (esd->dependsOnESID || !esd->decoderConfig->decoderSpecificInfo) return GF_NOT_SUPPORTED;
 
 	/*AMRWB dec is another module*/
-	if (!strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "sawb", 4)) ctx->is_amr_wb = 1;
-	else if (!strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "samr", 4) || !strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "amr ", 4)) ctx->is_amr_wb = 0;
+	if (!strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "sawb", 4)) ctx->is_amr_wb = GF_TRUE;
+	else if (!strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "samr", 4) || !strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "amr ", 4)) ctx->is_amr_wb = GF_FALSE;
 	else return GF_NOT_SUPPORTED;
 
 
@@ -284,7 +284,7 @@ GF_MediaDecoder *NewAMRFTDecoder()
 	AMRFTDec *dec;
 	GF_MediaDecoder *ifce;
 	GF_SAFEALLOC(ifce , GF_MediaDecoder);
-	dec = gf_malloc(sizeof(AMRFTDec));
+	dec = (AMRFTDec*)gf_malloc(sizeof(AMRFTDec));
 	memset(dec, 0, sizeof(AMRFTDec));
 	ifce->privateStack = dec;
 	ifce->CanHandleStream = AMR_CanHandleStream;

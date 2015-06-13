@@ -218,7 +218,7 @@ GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *max_size)
 
 	if (*max_size < stream.total_out) {
 		*max_size = data_len*ZLIB_COMPRESS_SAFE;
-		*data = gf_realloc(*data, *max_size * sizeof(char));
+		*data = (char*)gf_realloc(*data, *max_size * sizeof(char));
 	}
 
 	memcpy((*data) , dest, sizeof(char)*stream.total_out);
@@ -237,7 +237,7 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 	int err;
 	u32 size = 4096;
 
-	*uncompressed_data = gf_malloc(sizeof(char)*4096);
+	*uncompressed_data = (char*)gf_malloc(sizeof(char)*4096);
 	if (!*uncompressed_data) return GF_OUT_OF_MEM;
 
 	d_stream.zalloc = (alloc_func)0;
@@ -259,7 +259,7 @@ GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_da
 			if (err==Z_STREAM_END) break;
 
 			size *= 2;
-			*uncompressed_data = gf_realloc(*uncompressed_data, sizeof(char)*size);
+			*uncompressed_data = (char*)gf_realloc(*uncompressed_data, sizeof(char)*size);
 			if (!*uncompressed_data) return GF_OUT_OF_MEM;
 			d_stream.avail_out = (u32) (size - d_stream.total_out);
 			d_stream.next_out = (Bytef*) ( *uncompressed_data + d_stream.total_out);

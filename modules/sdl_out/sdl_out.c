@@ -74,8 +74,8 @@ const u32 *QueryInterfaces()
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return SDL_NewVideo();
-	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return SDL_NewAudio();
+	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return (GF_BaseInterface*)SDL_NewVideo();
+	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return (GF_BaseInterface*)SDL_NewAudio();
 	return NULL;
 }
 

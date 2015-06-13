@@ -69,10 +69,10 @@ Bool DC_RemoveChannel(DCReader *read, LPNETCHANNEL ch)
 		if (dc->ch && dc->ch==ch) {
 			gf_list_rem(read->channels, i-1);
 			gf_free(dc);
-			return 1;
+			return GF_TRUE;
 		}
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 static const char * DC_MIME_TYPES[] = {
@@ -106,13 +106,13 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	if (!plug || !url)
-		return 0;
+		return GF_FALSE;
 	sExt = strrchr(url, '.');
 	if (sExt) {
-		Bool ok = 0;
+		Bool ok = GF_FALSE;
 		char *cgi_par;
 		if (!strnicmp(sExt, ".gz", 3)) sExt = strrchr(sExt, '.');
-		if (!strnicmp(url, "rtsp://", 7)) return 0;
+		if (!strnicmp(url, "rtsp://", 7)) return GF_FALSE;
 
 		cgi_par = strchr(sExt, '?');
 		if (cgi_par) cgi_par[0] = 0;
@@ -123,29 +123,29 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 					break;
 		}
 		if (cgi_par) cgi_par[0] = '?';
-		if (ok) return 1;
+		if (ok) return GF_TRUE;
 	}
 	/*views:// internal URI*/
 	if (!strnicmp(url, "views://", 8))
-		return 1;
+		return GF_TRUE;
 
-	if (!strncmp(url, "\\\\", 2)) return 0;
+	if (!strncmp(url, "\\\\", 2)) return GF_FALSE;
 
 	if (!strnicmp(url, "file://", 7) || !strstr(url, "://")) {
 		char *rtype = gf_xml_get_root_type(url, NULL);
 		if (rtype) {
-			Bool handled = 0;
-			if (!strcmp(rtype, "SAFSession")) handled = 1;
-			else if (!strcmp(rtype, "XMT-A")) handled = 1;
-			else if (!strcmp(rtype, "X3D")) handled = 1;
-			else if (!strcmp(rtype, "svg")) handled = 1;
-			else if (!strcmp(rtype, "bindings")) handled = 1;
-			else if (!strcmp(rtype, "widget")) handled = 1;
+			Bool handled = GF_FALSE;
+			if (!strcmp(rtype, "SAFSession")) handled = GF_TRUE;
+			else if (!strcmp(rtype, "XMT-A")) handled = GF_TRUE;
+			else if (!strcmp(rtype, "X3D")) handled = GF_TRUE;
+			else if (!strcmp(rtype, "svg")) handled = GF_TRUE;
+			else if (!strcmp(rtype, "bindings")) handled = GF_TRUE;
+			else if (!strcmp(rtype, "widget")) handled = GF_TRUE;
 			gf_free(rtype);
 			return handled;
 		}
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
@@ -182,7 +182,7 @@ void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	if (!read->is_service_connected) {
 		if (!gf_dm_sess_get_cache_name(read->dnload)) e = GF_IO_ERR;
 		gf_service_connect_ack(read->service, NULL, e);
-		read->is_service_connected = 1;
+		read->is_service_connected = GF_TRUE;
 	}
 }
 
@@ -232,9 +232,9 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 	read->service = serv;
 
 	if (!strnicmp(url, "views://", 8)) {
-		read->is_views_url = 1;
+		read->is_views_url = GF_TRUE;
 		gf_service_connect_ack(serv, NULL, GF_OK);
-		read->is_service_connected = 1;
+		read->is_service_connected = GF_TRUE;
 		return GF_OK;
 	}
 
@@ -303,7 +303,7 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 	gf_fclose(test);
 	if (!read->is_service_connected) {
 		gf_service_connect_ack(serv, NULL, GF_OK);
-		read->is_service_connected = 1;
+		read->is_service_connected = GF_TRUE;
 	}
 	return GF_OK;
 }
@@ -448,9 +448,9 @@ GF_Err DC_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_
 	out_sl_hdr->compositionTimeStampFlag = 1;
 	out_sl_hdr->compositionTimeStamp = dc->start;
 	out_sl_hdr->accessUnitStartFlag = 1;
-	*sl_compressed = 0;
+	*sl_compressed = GF_FALSE;
 	*out_reception_status = GF_OK;
-	*is_new_data = 1;
+	*is_new_data = GF_TRUE;
 	return GF_OK;
 }
 
@@ -461,7 +461,7 @@ GF_Err DC_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 
 Bool DC_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
-	return 0;
+	return GF_FALSE;
 }
 
 GPAC_MODULE_EXPORT

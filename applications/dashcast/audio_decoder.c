@@ -178,7 +178,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 				AVPacket *packet_copy;
 				assert(audio_input_file->av_pkt_list);
 				gf_mx_p(audio_input_file->av_pkt_list_mutex);
-				packet_copy = gf_list_pop_front(audio_input_file->av_pkt_list);
+				packet_copy = (AVPacket*)gf_list_pop_front(audio_input_file->av_pkt_list);
 				gf_mx_v(audio_input_file->av_pkt_list_mutex);
 
 				if (packet_copy == NULL) {
@@ -382,7 +382,7 @@ void dc_audio_decoder_close(AudioInputFile *audio_input_file)
 	if (audio_input_file->av_pkt_list_mutex) {
 		gf_mx_p(audio_input_file->av_pkt_list_mutex);
 		while (gf_list_count(audio_input_file->av_pkt_list)) {
-			AVPacket *pkt = gf_list_last(audio_input_file->av_pkt_list);
+			AVPacket *pkt = (AVPacket*)gf_list_last(audio_input_file->av_pkt_list);
 			av_free_packet(pkt);
 			gf_list_rem_last(audio_input_file->av_pkt_list);
 		}

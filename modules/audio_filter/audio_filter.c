@@ -52,7 +52,7 @@ static GF_Err ProcessDistorsion(GF_AudioFilter *af, void *in_block, u32 in_block
 	u32 i, count;
 	register Double temp;
 	Double gain, clip, volume;
-	FilterContext *ctx = af->udta;
+	FilterContext *ctx = (FilterContext*)af->udta;
 
 	gain=ctx->gain / 100.0;
 	clip=ctx->clip * 32768.0 / 100.0;
@@ -76,7 +76,7 @@ static GF_Err ProcessDistorsion(GF_AudioFilter *af, void *in_block, u32 in_block
 
 static GF_Err ProcessIdentity(GF_AudioFilter *af, void *in_block, u32 in_block_size, void *out_block, u32 *out_block_size)
 {
-	FilterContext *ctx = af->udta;
+	FilterContext *ctx = (FilterContext*)af->udta;
 	if (!ctx->inplace)
 		memcpy(out_block, in_block, in_block_size);
 
@@ -90,7 +90,7 @@ static GF_Err ProcessDelai(GF_AudioFilter *af, void *in_block, u32 in_block_size
 	u32 i;
 	register Double temp;
 	Double ratio, vol;
-	FilterContext *ctx = af->udta;
+	FilterContext *ctx = (FilterContext*)af->udta;
 	assert(ctx->block_size==in_block_size);
 
 	/*fill delai buffer*/
@@ -123,7 +123,7 @@ static GF_Err ProcessDelai(GF_AudioFilter *af, void *in_block, u32 in_block_size
 
 static GF_Err Configure(GF_AudioFilter *af, u32 in_sr, u32 in_bps, u32 in_nb_ch, u32 in_ch_cfg, u32 *out_nb_ch, u32 *out_ch_cfg, u32 *out_block_len_in_samples, u32 *delay_ms, Bool *inplace)
 {
-	FilterContext *ctx = af->udta;
+	FilterContext *ctx = (FilterContext*)af->udta;
 
 	*inplace = ctx->inplace;
 	*delay_ms = 0;
@@ -138,11 +138,11 @@ static GF_Err Configure(GF_AudioFilter *af, u32 in_sr, u32 in_bps, u32 in_nb_ch,
 		ctx->delai_buffer_size *= ctx->block_size;
 
 		if (ctx->delai_buffer) gf_free(ctx->delai_buffer);
-		ctx->delai_buffer = gf_malloc(sizeof(char)*ctx->delai_buffer_size);
+		ctx->delai_buffer = (char*)gf_malloc(sizeof(char)*ctx->delai_buffer_size);
 		memset(ctx->delai_buffer, 0, sizeof(char)*ctx->delai_buffer_size);
 
 		if (ctx->block_buffer) gf_free(ctx->block_buffer);
-		ctx->block_buffer = gf_malloc(sizeof(char)*ctx->block_size);
+		ctx->block_buffer = (char*)gf_malloc(sizeof(char)*ctx->block_size);
 		memset(ctx->block_buffer, 0, sizeof(char)*ctx->block_size);
 		break;
 	}
@@ -154,14 +154,14 @@ static GF_Err Configure(GF_AudioFilter *af, u32 in_sr, u32 in_bps, u32 in_nb_ch,
 static Bool SetFilter(GF_AudioFilter *af, char *filter)
 {
 	char *opts;
-	FilterContext *ctx = af->udta;
-	if (!filter) return 0;
+	FilterContext *ctx = (FilterContext*)af->udta;
+	if (!filter) return GF_FALSE;
 
 	opts = strchr(filter, '@');
 	if (opts) opts[0] = 0;
 
 	ctx->sample_block_size = 0;
-	ctx->inplace = 1;
+	ctx->inplace = GF_TRUE;
 	ctx->volume = 100.0;
 
 	if (!stricmp(filter, "identity")) {
@@ -182,7 +182,7 @@ static Bool SetFilter(GF_AudioFilter *af, char *filter)
 		ctx->sample_block_size = 120;
 	} else {
 		if (opts) opts[0] = '@';
-		return 0;
+		return GF_FALSE;
 	}
 	if (opts) {
 		opts[0] = '@';
@@ -193,7 +193,7 @@ static Bool SetFilter(GF_AudioFilter *af, char *filter)
 			if (sep) sep[0] = 0;
 
 			if (!strnicmp(opts, "blocksize=", 10)) ctx->sample_block_size = atoi(opts+10);
-			else if (!stricmp(opts, "noinplace")) ctx->inplace = 0;
+			else if (!stricmp(opts, "noinplace")) ctx->inplace = GF_FALSE;
 			else if (!strnicmp(opts, "gain=", 5)) ctx->gain = atof(opts+5);
 			else if (!strnicmp(opts, "clip=", 5)) ctx->clip = atof(opts+5);
 			else if (!strnicmp(opts, "volume=", 7)) ctx->volume = atof(opts+7);
@@ -209,20 +209,20 @@ static Bool SetFilter(GF_AudioFilter *af, char *filter)
 		}
 	}
 
-	return 1;
+	return GF_TRUE;
 }
 
 
 static Bool SetOption(GF_AudioFilter *af, char *option, char *value)
 {
-	return 1;
+	return GF_TRUE;
 }
 static void Reset(GF_AudioFilter *af)
 {
 }
 
 
-void *NewAudioFilter()
+GF_BaseInterface *NewAudioFilter()
 {
 	FilterContext *ctx;
 	GF_AudioFilter *mod;
@@ -242,7 +242,7 @@ void *NewAudioFilter()
 	mod->Reset = Reset;
 
 	GF_REGISTER_MODULE_INTERFACE(mod, GF_AUDIO_FILTER_INTERFACE, "Sample Audio Filter", "gpac distribution");
-	return mod;
+	return (GF_BaseInterface*)mod;
 }
 
 void DeleteAudioFilter(void *ifce)

@@ -619,7 +619,7 @@ void gf_list_del(GF_List *ptr)
 static void realloc_chain(GF_List *ptr)
 {
 	GF_LIST_REALLOC(ptr->allocSize);
-	ptr->slots = gf_realloc(ptr->slots, ptr->allocSize*sizeof(void*));
+	ptr->slots = (void**)gf_realloc(ptr->slots, ptr->allocSize*sizeof(void*));
 }
 
 GF_EXPORT

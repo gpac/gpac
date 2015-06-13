@@ -152,9 +152,9 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 	builder->rtp_header.PayloadType = builder->PayloadType;
 
 	/*our max config is with 1 packet only (SingleSL)*/
-	builder->first_sl_in_rtp = 1;
+	builder->first_sl_in_rtp = GF_TRUE;
 	/*no AUX data*/
-	builder->slMap.AuxiliaryDataSizeLength= 0;
+	builder->slMap.AuxiliaryDataSizeLength = 0;
 
 
 	/*just compute max aggregation size*/
@@ -305,9 +305,9 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 
 		/*RAP*/
 		if (builder->sl_config.useRandomAccessPointFlag && (builder->flags & GP_RTP_PCK_SIGNAL_RAP)) {
-			builder->slMap.RandomAccessIndication = 1;
+			builder->slMap.RandomAccessIndication = GF_TRUE;
 		} else {
-			builder->slMap.RandomAccessIndication = 0;
+			builder->slMap.RandomAccessIndication = GF_FALSE;
 		}
 
 		/*stream state*/
@@ -365,9 +365,9 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 
 	/*RAP*/
 	if (builder->sl_config.useRandomAccessPointFlag && (builder->flags & GP_RTP_PCK_SIGNAL_RAP)) {
-		builder->slMap.RandomAccessIndication = 1;
+		builder->slMap.RandomAccessIndication = GF_TRUE;
 	} else {
-		builder->slMap.RandomAccessIndication = 0;
+		builder->slMap.RandomAccessIndication = GF_FALSE;
 	}
 
 check_header:
@@ -405,9 +405,9 @@ check_header:
 	        && !builder->slMap.IV_length
 	        && !builder->slMap.KI_length
 	   ) {
-		builder->has_AU_header= 0;
+		builder->has_AU_header = GF_FALSE;
 	} else {
-		builder->has_AU_header = 1;
+		builder->has_AU_header = GF_TRUE;
 	}
 }
 
@@ -416,7 +416,7 @@ void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 	if (!key_indicator) {
 		if (builder->key_indicator) {
 			/*force flush if no provision for keyIndicator per AU*/
-			builder->force_flush = (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) ? 0 : 1;
+			builder->force_flush = (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) ? GF_FALSE : GF_TRUE;
 			gf_free(builder->key_indicator);
 			builder->key_indicator = NULL;
 		}
@@ -425,7 +425,7 @@ void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 	           memcmp(builder->key_indicator, key_indicator, sizeof(char)*builder->slMap.KI_length)
 	          ) {
 		/*force flush if no provision for keyIndicator per AU*/
-		builder->force_flush = (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) ? 0 : 1;
+		builder->force_flush = (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) ? GF_FALSE : GF_TRUE;
 
 		if (!builder->key_indicator) builder->key_indicator = (char *) gf_malloc(sizeof(char)*builder->slMap.KI_length);
 		memcpy(builder->key_indicator, key_indicator, sizeof(char)*builder->slMap.KI_length);
@@ -434,7 +434,7 @@ void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 		builder->IV = IV;
 		if (builder->slMap.IV_delta_length && (builder->slMap.IV_delta_length < gf_get_bit_size((u32) (IV - builder->first_AU_IV) ))) {
 			builder->first_AU_IV = IV;
-			builder->force_flush = 1;
+			builder->force_flush = GF_TRUE;
 		}
 	}
 	builder->is_encrypted = is_encrypted;
@@ -456,16 +456,16 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 			   )
 			{
 				strcpy(szPayloadName, "enc-mpeg4-generic");
-				return 1;
+				return GF_TRUE;
 			}
 			/*mpeg4-generic*/
 			if ( (flags & GP_RTP_PCK_SIGNAL_RAP) || (flags & GP_RTP_PCK_SIGNAL_AU_IDX) || (flags & GP_RTP_PCK_SIGNAL_SIZE)
 			        || (flags & GP_RTP_PCK_SIGNAL_TS) || (flags & GP_RTP_PCK_USE_MULTI) ) {
 				strcpy(szPayloadName, "mpeg4-generic");
-				return 1;
+				return GF_TRUE;
 			} else {
 				strcpy(szPayloadName, "MP4V-ES");
-				return 1;
+				return GF_TRUE;
 			}
 		}
 		/*for all other types*/
@@ -473,75 +473,75 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 		else if (rtpb->slMap.StreamType==GF_STREAM_MPEGJ) strcpy(szMediaName, "application");
 		else strcpy(szMediaName, "video");
 		strcpy(szPayloadName, rtpb->slMap.IV_length ? "enc-mpeg4-generic" : "mpeg4-generic");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_MPEG12_VIDEO:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "MPV");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_MPEG12_AUDIO:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "MPA");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_H263:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "H263-1998");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_AMR:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "AMR");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_AMR_WB:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "AMR-WB");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_3GPP_TEXT:
 		strcpy(szMediaName, "text");
 		strcpy(szPayloadName, "3gpp-tt");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_H264_AVC:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "H264");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_QCELP:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "QCELP");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_EVRC_SMV:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, (rtpb->slMap.ObjectTypeIndication==0xA0) ? "EVRC" : "SMV");
 		/*header-free version*/
 		if (rtpb->auh_size<=1) strcat(szPayloadName, "0");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_LATM:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "MP4A-LATM");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_3GPP_DIMS:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "richmedia+xml");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_AC3:
 		strcpy(szMediaName, "audio");
 		strcpy(szPayloadName, "ac3");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_H264_SVC:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "H264-SVC");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_HEVC:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "H265");
-		return 1;
+		return GF_TRUE;
 	case GF_RTP_PAYT_SHVC:
 		strcpy(szMediaName, "video");
 		strcpy(szPayloadName, "H265-SHVC");
-		return 1;
+		return GF_TRUE;
 	default:
 		strcpy(szMediaName, "");
 		strcpy(szPayloadName, "");
-		return 0;
+		return GF_FALSE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -550,7 +550,7 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 {
 	char buffer[20000], dsiString[20000];
 	u32 i, k;
-	Bool is_first = 1;
+	Bool is_first = GF_TRUE;
 
 	if ((builder->rtp_payt!=GF_RTP_PAYT_MPEG4) && (builder->rtp_payt!=GF_RTP_PAYT_LATM) ) return GF_BAD_PARAM;
 

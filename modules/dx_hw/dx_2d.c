@@ -47,9 +47,9 @@ static Bool pixelformat_yuv(u32 pixel_format)
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_YV12_10:
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -128,16 +128,16 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
 	if (opt) {
 		if (use_system_memory) {
-			if (!strcmp(opt, "Always")) use_system_memory = 0;
+			if (!strcmp(opt, "Always")) use_system_memory = GF_FALSE;
 		} else {
-			if (!strcmp(opt, "Never")) use_system_memory = 1;
-			else if (!strcmp(opt, "Auto")) dd->force_video_mem_for_yuv = 1;
+			if (!strcmp(opt, "Never")) use_system_memory = GF_TRUE;
+			else if (!strcmp(opt, "Auto")) dd->force_video_mem_for_yuv = GF_TRUE;
 		}
 	}
 
-	force_reinit = 0;
-	if (use_system_memory && !dd->systems_memory) force_reinit = 1;
-	else if (!use_system_memory && dd->systems_memory) force_reinit = 1;
+	force_reinit = GF_FALSE;
+	if (use_system_memory && !dd->systems_memory) force_reinit = GF_TRUE;
+	else if (!use_system_memory && dd->systems_memory) force_reinit = GF_TRUE;
 	if (dd->pBack && !force_reinit&& !dd->fullscreen && (dd->width == Width) && (dd->height == Height) ) {
 		return GF_OK;
 	}
@@ -154,11 +154,11 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 		ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 	} else {
 		if (!use_system_memory) {
-			dd->systems_memory = 0;
+			dd->systems_memory = GF_FALSE;
 			ddsd.ddsCaps.dwCaps |= DDSCAPS_VIDEOMEMORY;
 		} else {
 			ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
-			dd->systems_memory = 1;
+			dd->systems_memory = GF_TRUE;
 		}
 	}
 	if (dd->systems_memory) dr->hw_caps &= ~GF_VIDEO_HW_HAS_RGB;
@@ -215,7 +215,7 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 	if (FAILED(hr)) return GF_IO_ERR;
 
 
-	dd->switch_res = 0;
+	dd->switch_res = GF_FALSE;
 	cooplev = DDSCL_NORMAL;
 	/*Setup FS*/
 	if (dd->fullscreen) {
@@ -301,7 +301,7 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 	pcClipper->lpVtbl->Release(pcClipper);
 
 
-	dd->ddraw_init = 1;
+	dd->ddraw_init = GF_TRUE;
 	/*if YUV not initialize, init using HW video memory to setup HW caps*/
 	return GF_OK;
 }
@@ -320,12 +320,12 @@ static GF_Err DD_LockSurface(DDContext *dd, GF_VideoSurface *vi, LPDDRAWSURFACE 
 	if (FAILED(hr))
 		return GF_IO_ERR;
 
-	vi->video_buffer = desc.lpSurface;
+	vi->video_buffer = (char*)desc.lpSurface;
 	vi->width = desc.dwWidth;
 	vi->height = desc.dwHeight;
 	vi->pitch_x = 0;
 	vi->pitch_y = desc.lPitch;
-	vi->is_hardware_memory = dd->systems_memory ? 0 : 1;
+	vi->is_hardware_memory = dd->systems_memory ? GF_FALSE : GF_TRUE;
 	return GF_OK;
 }
 
@@ -445,7 +445,7 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 
 			SAFE_DD_RELEASE(yuvp->pSurface);
 			memset(yuvp, 0, sizeof(DDSurface));
-			yuvp->is_yuv = 1;
+			yuvp->is_yuv = GF_TRUE;
 
 			memset (&ddsd, 0, sizeof(ddsd));
 			ddsd.dwSize = sizeof(ddsd);
@@ -468,7 +468,7 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 
 				/*try without offscreen yuv->rgbcap*/
 				if (dd->offscreen_yuv_to_rgb) {
-					dd->offscreen_yuv_to_rgb = 0;
+					dd->offscreen_yuv_to_rgb = GF_FALSE;
 					if (dr->hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) {
 						ddsd.ddsCaps.dwCaps |= DDSCAPS_OVERLAY;
 						hr = dd->pDD->lpVtbl->CreateSurface(dd->pDD, &ddsd, &yuvp->pSurface, NULL);
@@ -552,7 +552,7 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 	/*get RGB or YUV pool surface*/
 	//if (video_src->pixel_format==GF_PIXEL_YUVD) return GF_NOT_SUPPORTED;
 	if (video_src->pixel_format==GF_PIXEL_YUVD) video_src->pixel_format=GF_PIXEL_YV12;
-	pool = DD_GetSurface(dr, w, h, video_src->pixel_format, 0);
+	pool = DD_GetSurface(dr, w, h, video_src->pixel_format, GF_FALSE);
 	if (!pool)
 		return GF_IO_ERR;
 
@@ -652,9 +652,9 @@ static GFINLINE Bool is_yuv_planar(u32 format)
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_IYUV:
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 }
 
@@ -664,7 +664,7 @@ static GFINLINE Bool is_yuv_planar(u32 format)
 void DD_InitYUV(GF_VideoOutput *dr)
 {
 	u32 w, h, j, i, num_yuv;
-	Bool force_yv12=0;
+	Bool force_yv12 = GF_FALSE;
 	DWORD numCodes;
 	DWORD formats[30];
 	DWORD *codes;
@@ -688,7 +688,7 @@ void DD_InitYUV(GF_VideoOutput *dr)
 			opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HasOverlay");
 			if (opt && !strcmp(opt, "yes"))
 				dr->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
-			dd->yuv_init = 1;
+			dd->yuv_init = GF_TRUE;
 			num_yuv = 1;
 		}
 	}
@@ -696,7 +696,7 @@ void DD_InitYUV(GF_VideoOutput *dr)
 	/*first run on this machine, to some benchmark*/
 	if (! dd->yuv_init) {
 		char szOpt[100];
-		dd->yuv_init = 1;
+		dd->yuv_init = GF_TRUE;
 
 		dr->hw_caps |= GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY;
 
@@ -728,11 +728,11 @@ void DD_InitYUV(GF_VideoOutput *dr)
 			if (dd->yuv_pool.pSurface) {
 				SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
 				memset(&dd->yuv_pool, 0, sizeof(DDSurface));
-				dd->yuv_pool.is_yuv = 1;
+				dd->yuv_pool.is_yuv = GF_TRUE;
 			}
 
 			dr->yuv_pixel_format = formats[i];
-			if (DD_GetSurface(dr, w, h, dr->yuv_pixel_format, 1) == NULL)
+			if (DD_GetSurface(dr, w, h, dr->yuv_pixel_format, GF_TRUE) == NULL)
 				goto rem_fmt;
 
 			now = gf_sys_clock();
@@ -743,7 +743,7 @@ void DD_InitYUV(GF_VideoOutput *dr)
 			}
 			now = gf_sys_clock() - now;
 			if (formats[i]== GF_PIXEL_YV12)
-				force_yv12=1;
+				force_yv12 = GF_TRUE;
 
 			if (!checkPacked) {
 				if (now<min_planar) {
@@ -775,7 +775,7 @@ rem_fmt:
 		if (dd->yuv_pool.pSurface) {
 			SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
 			memset(&dd->yuv_pool, 0, sizeof(DDSurface));
-			dd->yuv_pool.is_yuv = 1;
+			dd->yuv_pool.is_yuv = GF_TRUE;
 		}
 
 		if (best_planar && (min_planar <= min_packed )) {
@@ -814,7 +814,7 @@ rem_fmt:
 		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV", "yes");
 	}
 	if (opt && strcmp(opt, "yes")) dr->hw_caps &= ~GF_VIDEO_HW_HAS_YUV;
-	else dd->offscreen_yuv_to_rgb = 1;
+	else dd->offscreen_yuv_to_rgb = GF_TRUE;
 
 	/*get YUV overlay key*/
 	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "OverlayColorKey");

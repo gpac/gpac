@@ -95,10 +95,10 @@ static Bool SAF_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	if (!plug || !url)
-		return 0;
+		return GF_FALSE;
 	sExt = strrchr(url, '.');
-	if (gf_service_check_mime_register(plug, SAF_MIME, SAF_MIME_EXT, SAF_MIME_DESC, sExt)) return 1;
-	return 0;
+	if (gf_service_check_mime_register(plug, SAF_MIME, SAF_MIME_EXT, SAF_MIME_DESC, sExt)) return GF_TRUE;
+	return GF_FALSE;
 }
 
 static void SAF_Regulate(SAFIn *read)
@@ -147,7 +147,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		if (param->msg_type!=GF_NETIO_DATA_EXCHANGE) {
 			if (e<0) {
 				if (read->needs_connection) {
-					read->needs_connection = 0;
+					read->needs_connection = GF_FALSE;
 					gf_service_connect_ack(read->service, NULL, e);
 				}
 				return;
@@ -177,14 +177,14 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	bs = gf_bs_new(read->saf_data, read->saf_size, GF_BITSTREAM_READ);
 	bs_pos = 0;
 
-	go = 1;
+	go = GF_TRUE;
 	while (go) {
 		u64 avail = gf_bs_available(bs);
 		bs_pos = gf_bs_get_position(bs);
 
 		if (avail<10) break;
 
-		is_rap = gf_bs_read_int(bs, 1);
+		is_rap = (Bool)gf_bs_read_int(bs, 1);
 		au_sn = gf_bs_read_int(bs, 15);
 		gf_bs_read_int(bs, 2);
 		cts = gf_bs_read_int(bs, 30);
@@ -194,7 +194,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		if (au_size > avail) break;
 		assert(au_size>=2);
 
-		is_rap = 1;
+		is_rap = GF_TRUE;
 
 		type = gf_bs_read_int(bs, 4);
 		stream_id = gf_bs_read_int(bs, 12);
@@ -244,7 +244,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 				if (read->needs_connection && (ch->esd->decoderConfig->streamType==GF_STREAM_SCENE)) {
 					gf_list_add(read->channels, ch);
-					read->needs_connection = 0;
+					read->needs_connection = GF_FALSE;
 					gf_service_connect_ack(read->service, NULL, GF_OK);
 				} else if (read->needs_connection) {
 					gf_odf_desc_del((GF_Descriptor *) ch->esd);
@@ -258,7 +258,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 					gf_list_add(od->ESDescriptors, ch->esd);
 					ch->esd = NULL;
 					od->objectDescriptorID = ch->stream_id;
-					gf_service_declare_media(read->service, (GF_Descriptor*)od, 0);
+					gf_service_declare_media(read->service, (GF_Descriptor*)od, GF_FALSE);
 
 				}
 			}
@@ -283,7 +283,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			if (ch) gf_service_send_packet(read->service, ch->ch, NULL, 0, NULL, GF_EOS);
 			break;
 		case 5:
-			go = 0;
+			go = GF_FALSE;
 			read->run_state = 0;
 			i=0;
 			while ((ch = (SAFChannel *)gf_list_enum(read->channels, &i))) {
@@ -330,7 +330,7 @@ static void SAF_DownloadFile(GF_InputService *plug, char *url)
 
 	read->dnload = gf_service_download_new(read->service, url, 0, SAF_NetIO, read);
 	if (!read->dnload) {
-		read->needs_connection = 0;
+		read->needs_connection = GF_FALSE;
 		gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
@@ -401,7 +401,7 @@ static GF_Err SAF_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	ext = strrchr(szURL, '#');
 	if (ext) ext[0] = 0;
 
-	read->needs_connection = 1;
+	read->needs_connection = GF_TRUE;
 	read->duration = 0;
 
 	read->saf_type = SAF_FILE_LOCAL;
