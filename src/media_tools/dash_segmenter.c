@@ -626,9 +626,10 @@ static GF_Err gf_isom_write_content_protection(GF_ISOFile *input, FILE *mpd, u32
 	return GF_OK;
 }
 
-static void gf_dash_append_segment_timeline(GF_BitStream *mpd_timeline_bs, u64 segment_start, u64 segment_dur, u64 *previous_segment_duration , Bool *first_segment_in_timeline,u32 *segment_timeline_repeat_count)
+static void gf_dash_append_segment_timeline(GF_BitStream *mpd_timeline_bs, u64 segment_start, u64 segment_end, u64 *previous_segment_duration , Bool *first_segment_in_timeline,u32 *segment_timeline_repeat_count)
 {
 	char szMPDTempLine[2048];
+	u64 segment_dur = segment_end - segment_start;
 	if (*previous_segment_duration == segment_dur) {
 		*segment_timeline_repeat_count = *segment_timeline_repeat_count + 1;
 		return;
@@ -673,7 +674,7 @@ static void gf_dash_load_segment_timeline(GF_DASHSegmenter *dash_cfg, GF_BitStre
 		sscanf(MPDTime, ""LLU"-"LLU"@%s", &start, &dur, szRepID);
 		if (strcmp(representationID, szRepID)) continue;
 
-		gf_dash_append_segment_timeline(mpd_timeline_bs, start, dur, previous_segment_duration, first_segment_in_timeline, segment_timeline_repeat_count);
+		gf_dash_append_segment_timeline(mpd_timeline_bs, start, start+dur, previous_segment_duration, first_segment_in_timeline, segment_timeline_repeat_count);
 	}
 }
 
@@ -1779,7 +1780,7 @@ restart_fragmentation_pass:
 					}
 				} 
 				//adjust
-				gf_dash_append_segment_timeline(mpd_timeline_bs, period_duration + (u64)segment_start_time, (u64)SegmentDuration + tick_adjust, &previous_segment_duration, &first_segment_in_timeline, &segment_timeline_repeat_count);
+				gf_dash_append_segment_timeline(mpd_timeline_bs, period_duration + (u64)segment_start_time, (u64)(period_duration + segment_start_time + SegmentDuration + tick_adjust), &previous_segment_duration, &first_segment_in_timeline, &segment_timeline_repeat_count);
 				period_duration += tick_adjust;	
 			}
 			if (dash_cfg->max_segment_duration * dash_cfg->dash_scale < SegmentDuration) {
