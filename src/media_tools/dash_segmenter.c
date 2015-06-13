@@ -2228,7 +2228,7 @@ restart_fragmentation_pass:
 
 	/*store context*/
 	if (dash_cfg->dash_ctx) {
-		period_duration += segment_start_time;
+		period_duration += (u64)segment_start_time; //change to get a Double period duration
 
 		for (i=0; i<gf_list_count(fragmenters); i++) {
 			tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
