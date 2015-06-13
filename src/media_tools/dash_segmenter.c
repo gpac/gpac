@@ -5109,7 +5109,7 @@ static void dasher_format_seg_name(GF_DASHSegmenter *dasher, const char *inName)
 	/*if output is not in the current working dir, concatenate output path to segment name*/
 	szName[0] = 0;
 
-	if (gf_url_get_resource_path(dasher->mpd_name, szName)) {
+	if (inName && gf_url_get_resource_path(dasher->mpd_name, szName)) {
 		strcat(szName, inName);
 		dasher->seg_rad_name = gf_strdup(szName);
 	} else {
