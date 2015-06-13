@@ -348,12 +348,12 @@ const char *gf_dasher_strip_output_dir(const char *mpd_url, const char *path)
 	return res;
 }
 
-GF_Err gf_dasher_store_segment_info(GF_DASHSegmenter *dash_cfg, const char *representationID, const char *SegmentName, u64 segStartTime, u64 segDuration)
+GF_Err gf_dasher_store_segment_info(GF_DASHSegmenter *dash_cfg, const char *representationID, const char *SegmentName, u64 segStartTime, u64 segEndTime)
 {
 	char szKey[512];
 	if (!dash_cfg->dash_ctx) return GF_OK;
 
-	sprintf(szKey, ""LLU"-"LLU"@%s", segStartTime, segDuration, representationID);
+	sprintf(szKey, ""LLU"-"LLU"@%s", segStartTime, segEndTime-segStartTime, representationID);
 	return gf_cfg_set_key(dash_cfg->dash_ctx, "SegmentsStartTimes", SegmentName, szKey);
 }
 
@@ -713,7 +713,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	GF_ISOFile *output, *bs_switch_segment;
 	GF_ISOSample *sample, *next;
 	GF_List *fragmenters;
-	u64 MaxFragmentDuration, MaxSegmentDuration, SegmentDuration, maxFragDurationOverSegment, segment_start_time, period_duration;
+	u64 MaxFragmentDuration, MaxSegmentDuration, period_duration;
+	Double segment_start_time, SegmentDuration, maxFragDurationOverSegment;
 	u64 presentationTimeOffset = 0;
 	Double file_duration, max_segment_duration;
 	u32 nb_segments, width, height, sample_rate, nb_channels, sar_w, sar_h, fps_num, fps_denum, startNumber;
@@ -753,7 +754,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u32 *segments_info = NULL;
 	u32 nb_segments_info = 0;
 	u32 protected_track = 0;
-	u64 min_seg_dur, max_seg_dur, total_seg_dur, last_seg_dur;
+	Double min_seg_dur, max_seg_dur, total_seg_dur, last_seg_dur;
 	Bool audio_only = GF_TRUE;
 	Bool is_bs_switching = GF_FALSE;
 	Bool use_url_template = dash_cfg->use_url_template;
@@ -1353,7 +1354,7 @@ restart_fragmentation_pass:
 			} else {
 				start_range = gf_isom_get_file_size(output);
 				if (seg_rad_name) {
-					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switching, SegmentName, output_file, dash_input->representationID, seg_rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, period_duration + segment_start_time, bandwidth, cur_seg, dash_cfg->use_segment_timeline);
+					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switching, SegmentName, output_file, dash_input->representationID, seg_rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, period_duration + (u64)segment_start_time, bandwidth, cur_seg, dash_cfg->use_segment_timeline);
 					e = gf_isom_start_segment(output, SegmentName, dash_cfg->fragments_in_memory);
 
 					/*we are in bitstream switching mode, delete init segment*/
@@ -1672,9 +1673,7 @@ restart_fragmentation_pass:
 
 					//only compute max dur over segment for the track used for indexing / deriving MPD start time
 					if (!tfref || (tf->is_ref_track)) {
-						u64 f_dur;
-						//FIXME: this is rounded (ok) but the difference is not stored would accumulate over time. Reproduce with AAC and dash-ctx
-						f_dur = ( tf->FragmentLength ) * dash_cfg->dash_scale / tf->TimeScale;
+						Double f_dur = (Double)( tf->FragmentLength ) * dash_cfg->dash_scale / tf->TimeScale;
 						if (maxFragDurationOverSegment <= f_dur) {
 							maxFragDurationOverSegment = f_dur;
 						}
@@ -1749,7 +1748,7 @@ restart_fragmentation_pass:
 				//since dash scale and ref track used for segmentation may not have the same timescale we will have drift in segment timelines. Adjust it 
 				if (tfref) {
 					s64 seg_start_time_min_cts = (s64) (tfref->min_cts_in_segment + tfref->media_time_to_pres_time_shift) * dash_cfg->dash_scale; 
-					u64 seg_start_time_mpd = (period_duration + segment_start_time) * tfref->TimeScale;
+					u64 seg_start_time_mpd = (period_duration + (u64)segment_start_time) * tfref->TimeScale;
 
 					//if first CTS in segment is less than 0, this means that we have AUs that are not presented due to edit list.
 					//adjust the segment duration accordingly.
@@ -1779,8 +1778,8 @@ restart_fragmentation_pass:
 						}
 					}
 				} 
-				//adjust 				
-				gf_dash_append_segment_timeline(mpd_timeline_bs, period_duration + segment_start_time, SegmentDuration + tick_adjust, &previous_segment_duration, &first_segment_in_timeline, &segment_timeline_repeat_count);
+				//adjust
+				gf_dash_append_segment_timeline(mpd_timeline_bs, period_duration + (u64)segment_start_time, (u64)SegmentDuration + tick_adjust, &previous_segment_duration, &first_segment_in_timeline, &segment_timeline_repeat_count);
 				period_duration += tick_adjust;	
 			}
 			if (dash_cfg->max_segment_duration * dash_cfg->dash_scale < SegmentDuration) {
@@ -1788,7 +1787,7 @@ restart_fragmentation_pass:
 				dash_cfg->max_segment_duration /= dash_cfg->dash_scale;
 			}
 
-			gf_dasher_store_segment_info(dash_cfg, dash_input->representationID, SegmentName, period_duration + segment_start_time, SegmentDuration);
+			gf_dasher_store_segment_info(dash_cfg, dash_input->representationID, SegmentName, period_duration + (u64)segment_start_time, (u64)(period_duration + segment_start_time + SegmentDuration));
 
 			segment_start_time += SegmentDuration;
 			nb_segments++;
@@ -4056,7 +4055,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 					dur = ref->subsegment_duration;
 					dur /= 90000;
 
-					gf_dasher_store_segment_info(dash_cfg, dash_input->representationID, SegName, (u64) (current_time*dash_cfg->dash_scale), (u64) (dur*dash_cfg->dash_scale));
+					gf_dasher_store_segment_info(dash_cfg, dash_input->representationID, SegName, (u64) (current_time*dash_cfg->dash_scale), (u64) ((current_time+dur)*dash_cfg->dash_scale));
 
 					current_time += dur;
 
