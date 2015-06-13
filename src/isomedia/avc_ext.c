@@ -36,7 +36,7 @@
 Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 {
 	GF_MPEGVisualSampleEntryBox *entry;
-	if (mdia->handler->handlerType != GF_ISOM_MEDIA_VISUAL) return 0;
+	if (mdia->handler->handlerType != GF_ISOM_MEDIA_VISUAL) return GF_FALSE;
 	switch (_entry->type) {
 	case GF_4CC('a','v','c','1'):
 	case GF_4CC('a','v','c','2'):
@@ -54,14 +54,14 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	case GF_4CC('s','h','c','1'):
 	case GF_4CC('m','h','v','1'):
 	case GF_4CC('m','h','c','1'):
-		return 1;
+		return GF_TRUE;
 	default:
-		return 0;
+		return GF_FALSE;
 	}
 	entry = (GF_MPEGVisualSampleEntryBox*)_entry;
-	if (!entry) return 0;
-	if (entry->avc_config || entry->svc_config || entry->hevc_config || entry->shvc_config) return 1;
-	return 0;
+	if (!entry) return GF_FALSE;
+	if (entry->avc_config || entry->svc_config || entry->hevc_config || entry->shvc_config) return GF_TRUE;
+	return GF_FALSE;
 }
 
 
@@ -69,7 +69,7 @@ static void rewrite_nalus_list(GF_List *nalus, GF_BitStream *bs, Bool rewrite_st
 {
 	u32 i, count = gf_list_count(nalus);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = gf_list_get(nalus, i);
+		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(nalus, i);
 		if (rewrite_start_codes) gf_bs_write_u32(bs, 1);
 		else gf_bs_write_int(bs, sl->size, 8*nal_unit_size_field);
 		gf_bs_write_data(bs, sl->data, sl->size);
@@ -127,7 +127,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 		if (sample_offset < -sample_offset)
 			sample_offset = 0;
 
-		e = Media_GetSample(ref_trak->Media, sampleNumber + sample_offset, &ref_samp, &di, 0, NULL);
+		e = Media_GetSample(ref_trak->Media, sampleNumber + sample_offset, &ref_samp, &di, GF_FALSE, NULL);
 		if (e) return e;
 
 		if (rewrite_start_codes) {
@@ -304,14 +304,14 @@ static void nalu_merge_ps(GF_BitStream *ps_bs, Bool rewrite_start_codes, u32 nal
 		if (entry->hevc_config) {
 			count = gf_list_count(entry->hevc_config->config->param_array);
 			for (i=0; i<count; i++) {
-				GF_HEVCParamArray *ar = gf_list_get(entry->hevc_config->config->param_array, i);
+				GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(entry->hevc_config->config->param_array, i);
 				rewrite_nalus_list(ar->nalus, ps_bs, rewrite_start_codes, nal_unit_size_field);
 			}
 		}
 		if (entry->shvc_config) {
 			count = gf_list_count(entry->shvc_config->config->param_array);
 			for (i=0; i<count; i++) {
-				GF_HEVCParamArray *ar = gf_list_get(entry->shvc_config->config->param_array, i);
+				GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(entry->shvc_config->config->param_array, i);
 				rewrite_nalus_list(ar->nalus, ps_bs, rewrite_start_codes, nal_unit_size_field);
 			}
 		}
@@ -336,8 +336,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	Bool is_hevc = GF_FALSE;
 	//if only one sync given in the sample sync table, insert sps/pps/vps before cra/bla in hevc
 //	Bool check_cra_bla = (mdia->information->sampleTable->SyncSample && mdia->information->sampleTable->SyncSample->nb_entries>1) ? 0 : 1;
-	Bool check_cra_bla = 1;
-	Bool insert_nalu_delim = 1;
+	Bool check_cra_bla = GF_TRUE;
+	Bool insert_nalu_delim = GF_TRUE;
 	GF_Err e = GF_OK;
 	GF_ISOSample *ref_samp;
 	GF_BitStream *src_bs, *ref_bs, *dst_bs, *ps_bs;
@@ -354,7 +354,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	src_bs = ref_bs = dst_bs = ps_bs = NULL;
 	ref_samp = NULL;
 	buffer = NULL;
-	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? 1 : 0;
+	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? GF_TRUE : GF_FALSE;
 
 	if (sample->IsRAP < SAP_TYPE_2) {
 		if (mdia->information->sampleTable->no_sync_found || (!sample->IsRAP && check_cra_bla) ) {
@@ -362,19 +362,19 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		}
 	}
 	if (!sample->IsRAP)
-		rewrite_ps = 0;
+		rewrite_ps = GF_FALSE;
 
-	rewrite_start_codes = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG) ? 1 : 0;
-	insert_vdrd_code = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_VDRD_FLAG) ? 1 : 0;
-	if (!entry->svc_config && !entry->shvc_config) insert_vdrd_code = 0;
+	rewrite_start_codes = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG) ? GF_TRUE : GF_FALSE;
+	insert_vdrd_code = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_VDRD_FLAG) ? GF_TRUE : GF_FALSE;
+	if (!entry->svc_config && !entry->shvc_config) insert_vdrd_code = GF_FALSE;
 	extractor_mode = mdia->mediaTrack->extractor_mode&0x0000FFFF;
 
 	if (extractor_mode != GF_ISOM_NALU_EXTRACT_LAYER_ONLY)
-		insert_vdrd_code = 0;
+		insert_vdrd_code = GF_FALSE;
 
 	//this is a compatible HEVC, don't insert VDRD, insert NALU delim
 	if (entry->shvc_config && entry->hevc_config)
-		insert_vdrd_code = 0;
+		insert_vdrd_code = GF_FALSE;
 
 	if (extractor_mode == GF_ISOM_NALU_EXTRACT_INSPECT) {
 		if (!rewrite_ps && !rewrite_start_codes)
@@ -456,7 +456,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 					GF_TrackBox *a_track = GetTrackbyID(mdia->mediaTrack->moov, scal->trackIDs[i]);
 					GF_MPEGVisualSampleEntryBox *an_entry = NULL;
 					if (a_track && a_track->Media && a_track->Media->information && a_track->Media->information->sampleTable && a_track->Media->information->sampleTable->SampleDescription)
-						an_entry = gf_list_get(a_track->Media->information->sampleTable->SampleDescription->other_boxes, 0);
+						an_entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(a_track->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 
 					if (an_entry)
 						nalu_merge_ps(ps_bs, rewrite_start_codes, nal_unit_size_field, an_entry, is_hevc);
@@ -519,6 +519,10 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	while (gf_bs_available(src_bs)) {
 		nal_size = gf_bs_read_int(src_bs, 8*nal_unit_size_field);
+		if (gf_bs_get_position(src_bs) + nal_size > sample->dataLength) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("Sample %u (size %u) rewrite: corrupted NAL Unit (size %u)\n", sampleNumber, sample->dataLength, nal_size));
+			goto exit;
+		}
 		if (nal_size>max_size) {
 			buffer = (char*) gf_realloc(buffer, sizeof(char)*nal_size);
 			max_size = nal_size;
@@ -744,9 +748,9 @@ void merge_hevc_config(GF_HEVCConfig *dst_cfg, GF_HEVCConfig *src_cfg, Bool forc
 	for (i=0; i<count; i++) {
 		GF_HEVCParamArray *ar_h = NULL;
 		u32 count2 = dst_cfg->param_array ? gf_list_count(dst_cfg->param_array) : 0;
-		GF_HEVCParamArray *ar = gf_list_get(cfg->param_array, i);
+		GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(cfg->param_array, i);
 		for (j=0; j<count2; j++) {
-			ar_h = gf_list_get(dst_cfg->param_array, j);
+			ar_h = (GF_HEVCParamArray*)gf_list_get(dst_cfg->param_array, j);
 			if (ar_h->type==ar->type) {
 				break;
 			}
@@ -798,7 +802,7 @@ void merge_all_config(GF_AVCConfig *avc_cfg, GF_HEVCConfig *hevc_cfg, GF_MediaBo
 		GF_TrackBox *a_track = GetTrackbyID(mdia->mediaTrack->moov, scal->trackIDs[i]);
 		GF_MPEGVisualSampleEntryBox *an_entry = NULL;
 		if (a_track && a_track->Media && a_track->Media->information && a_track->Media->information->sampleTable && a_track->Media->information->sampleTable->SampleDescription)
-			an_entry = gf_list_get(a_track->Media->information->sampleTable->SampleDescription->other_boxes, 0);
+			an_entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(a_track->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 
 		if (!an_entry) continue;
 
@@ -815,7 +819,7 @@ void merge_all_config(GF_AVCConfig *avc_cfg, GF_HEVCConfig *hevc_cfg, GF_MediaBo
 			merge_hevc_config(hevc_cfg, an_entry->hevc_config->config, GF_TRUE);
 	}
 
-	if (hevc_cfg) hevc_cfg->is_shvc = 0;
+	if (hevc_cfg) hevc_cfg->is_shvc = GF_FALSE;
 }
 
 void AVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *mdia)
@@ -982,7 +986,7 @@ GF_Err AVC_HEVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 		if (!avc->hevc_config) avc->hevc_config = (GF_HEVCConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
 		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 			if (avc->hevc_config->config) gf_odf_hevc_cfg_del(avc->hevc_config->config);
-			avc->hevc_config->config = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
+			avc->hevc_config->config = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
 		}
 	}
 	else if (!avc->svc_config && (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC)) {
@@ -1103,14 +1107,14 @@ static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber
 		}
 
 		while (gf_list_count(entry->avc_config->config->sequenceParameterSets)) {
-			GF_AVCConfigSlot *sl = gf_list_get(entry->avc_config->config->sequenceParameterSets, 0);
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(entry->avc_config->config->sequenceParameterSets, 0);
 			gf_list_rem(entry->avc_config->config->sequenceParameterSets, 0);
 			if (sl->data) gf_free(sl->data);
 			gf_free(sl);
 		}
 
 		while (gf_list_count(entry->avc_config->config->pictureParameterSets)) {
-			GF_AVCConfigSlot *sl = gf_list_get(entry->avc_config->config->pictureParameterSets, 0);
+			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(entry->avc_config->config->pictureParameterSets, 0);
 			gf_list_rem(entry->avc_config->config->pictureParameterSets, 0);
 			if (sl->data) gf_free(sl->data);
 			gf_free(sl);
@@ -1332,7 +1336,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 		}
 		array_incomplete = (operand_type==GF_ISOM_HVCC_SET_INBAND) ? 1 : 0;
 		for (i=0; i<gf_list_count(entry->hevc_config->config->param_array); i++) {
-			GF_HEVCParamArray *ar = gf_list_get(entry->hevc_config->config->param_array, i);
+			GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(entry->hevc_config->config->param_array, i);
 
 			/*we want to force hev1*/
 			if (operand_type==GF_ISOM_HVCC_SET_INBAND)
@@ -1342,7 +1346,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 				array_incomplete = 1;
 
 				while (gf_list_count(ar->nalus)) {
-					GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, 0);
+					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(ar->nalus, 0);
 					gf_list_rem(ar->nalus, 0);
 					if (sl->data) gf_free(sl->data);
 					gf_free(sl);
@@ -1411,7 +1415,7 @@ GF_Err gf_isom_hevc_set_tile_config(GF_ISOFile *the_file, u32 trackNumber, u32 D
 
 GF_Err gf_isom_shvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, Bool is_additional)
 {
-	if (cfg) cfg->is_shvc = 1;
+	if (cfg) cfg->is_shvc = GF_TRUE;
 	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, is_additional ? GF_ISOM_HVCC_SET_SHVC : GF_ISOM_HVCC_SET_SHVC_REM_HEVC);
 }
 
@@ -1721,7 +1725,7 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_AV_PARSERS
 				AVCState avc;
 				s32 idx, vui_flag_pos;
-				GF_AVCConfigSlot *sl = gf_list_get(ptr->config->sequenceParameterSets, 0);
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(ptr->config->sequenceParameterSets, 0);
 				idx = gf_media_avc_read_sps(sl->data+1, sl->size-1, &avc, 0, (u32 *) &vui_flag_pos);
 				if (idx>=0) {
 					ptr->config->chroma_format = avc.sps[idx].chroma_format;
@@ -1895,7 +1899,7 @@ GF_Err hvcc_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->config) gf_odf_hevc_cfg_del(ptr->config);
 
 	pos = gf_bs_get_position(bs);
-	ptr->config = gf_odf_hevc_cfg_read_bs(bs, (s->type == GF_ISOM_BOX_TYPE_HVCC) ? 0 : 1);
+	ptr->config = gf_odf_hevc_cfg_read_bs(bs, (s->type == GF_ISOM_BOX_TYPE_HVCC) ? GF_FALSE : GF_TRUE);
 	pos = gf_bs_get_position(bs) - pos ;
 	if (pos < ptr->size)
 		ptr->size -= (u32) pos;
@@ -1941,7 +1945,7 @@ GF_Err hvcc_Size(GF_Box *s)
 
 	count = gf_list_count(ptr->config->param_array);
 	for (i=0; i<count; i++) {
-		GF_HEVCParamArray *ar = gf_list_get(ptr->config->param_array, i);
+		GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(ptr->config->param_array, i);
 		ptr->size += 3;
 		subcount = gf_list_count(ar->nalus);
 		for (j=0; j<subcount; j++) {

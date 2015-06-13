@@ -103,7 +103,7 @@ JSBool SMJS_FUNCTION(widget_show_notification)
 	if ((JS_LookupProperty(c, wid->widget->wm->obj, "showNotification", &fval)==JS_TRUE) && JSVAL_IS_OBJECT(fval)) {
 		jsval *vars;
 		u32 i;
-		vars = gf_malloc(sizeof(jsval)*(argc+1));
+		vars = (jsval*)gf_malloc(sizeof(jsval)*(argc+1));
 		vars[0] = OBJECT_TO_JSVAL(wid->obj);
 		for (i=0; i<argc; i++)
 			vars[i+1] = argv[i];
@@ -127,7 +127,7 @@ static JSBool SMJS_FUNCTION(widget_call_message_reply_callback)
 	if ((JS_LookupProperty(c, obj, "replyCallback", &fval)==JS_TRUE) && JSVAL_IS_OBJECT(fval)) {
 		list = JSVAL_TO_OBJECT(argv[0]);
 		JS_GetArrayLength(c, list, (jsuint*) &count);
-		vals = gf_malloc(sizeof(jsval)*(count+1));
+		vals = (jsval*)gf_malloc(sizeof(jsval)*(count+1));
 		vals[0] = OBJECT_TO_JSVAL(obj);
 		for (i=0; i<count; i++) {
 			JS_GetElement(c, list, (jsint) i, &vals[i+1]);
@@ -156,7 +156,7 @@ static JSBool SMJS_FUNCTION(widget_message_handler_factory)
 	SMJS_SET_RVAL( JSVAL_NULL );
 	count = gf_list_count(bifce->ifce->messages);
 	for (i=0; i<count; i++) {
-		GF_WidgetMessage *msg = gf_list_get(bifce->ifce->messages, i);
+		GF_WidgetMessage *msg = (GF_WidgetMessage*)gf_list_get(bifce->ifce->messages, i);
 		if (!strcmp(msg->name, msg_name)) {
 			JSObject *an_obj = JS_NewObject(c, &bifce->wid->widget->wm->widgetAnyClass._class, 0, 0);
 			SMJS_SET_PRIVATE(c, an_obj, msg);
@@ -257,7 +257,7 @@ static JSBool SMJS_FUNCTION(widget_get_interfaces)
 
 	count = gf_list_count(wid->bound_ifces);
 	for (i=0; i<count; i++) {
-		GF_WidgetInterfaceInstance *ifce = gf_list_get(wid->bound_ifces, i);
+		GF_WidgetInterfaceInstance *ifce = (GF_WidgetInterfaceInstance*)gf_list_get(wid->bound_ifces, i);
 		if (strcmp(ifce->ifce->type, ifce_name)) continue;
 
 		widget_interface_js_bind(c, ifce);
@@ -285,13 +285,13 @@ static JSBool SMJS_FUNCTION_EXT(widget_activate_component, Bool is_deactivate)
 
 	count = gf_list_count(wid->widget->main->components);
 	for (i=0; i<count; i++) {
-		GF_WidgetComponent *comp = gf_list_get(wid->widget->main->components, i);
+		GF_WidgetComponent *comp = (GF_WidgetComponent*)gf_list_get(wid->widget->main->components, i);
 		if (!comp->id  || strcmp(comp->id, comp_id)) continue;
 
 		if (is_deactivate) {
 			wm_deactivate_component(c, wid, comp, NULL);
 		} else {
-			wm_activate_component(c, wid, comp, 0);
+			wm_activate_component(c, wid, comp, GF_FALSE);
 		}
 		break;
 	}
@@ -301,12 +301,12 @@ static JSBool SMJS_FUNCTION_EXT(widget_activate_component, Bool is_deactivate)
 
 static JSBool SMJS_FUNCTION(widget_activate_widget)
 {
-	return widget_activate_component(SMJS_CALL_ARGS, 0);
+	return widget_activate_component(SMJS_CALL_ARGS, GF_FALSE);
 }
 
 static JSBool SMJS_FUNCTION(widget_deactivate_widget)
 {
-	return widget_activate_component(SMJS_CALL_ARGS, 1);
+	return widget_activate_component(SMJS_CALL_ARGS, GF_TRUE);
 }
 
 void widget_on_interface_bind(GF_WidgetInterfaceInstance *ifce, Bool unbind)
@@ -399,7 +399,7 @@ void widget_load(GF_WidgetManager *wm, GF_SceneGraph *scene, JSContext *c, JSObj
 
 	/*Is this scenegraph a widget or not ? To find out, browse all widget instances*/
 	i=0;
-	while ((wi = gf_list_enum(wm->widget_instances, &i))) {
+	while ((wi = (GF_WidgetInstance*)gf_list_enum(wm->widget_instances, &i))) {
 		if (!wi->scene || (wi->scene != scene)) continue;
 		break;
 	}
@@ -411,7 +411,7 @@ void widget_load(GF_WidgetManager *wm, GF_SceneGraph *scene, JSContext *c, JSObj
 		/*detach all bound interfaces from this script*/
 		count = gf_list_count(wi->bound_ifces);
 		for (i=0; i<count; i++) {
-			GF_WidgetInterfaceInstance *ifce = gf_list_get(wi->bound_ifces, i);
+			GF_WidgetInterfaceInstance *ifce = (GF_WidgetInterfaceInstance*)gf_list_get(wi->bound_ifces, i);
 			if (ifce->obj) {
 				SMJS_SET_PRIVATE(c, ifce->obj, NULL);
 				gf_js_remove_root(c, &ifce->obj, GF_JSGC_OBJECT);

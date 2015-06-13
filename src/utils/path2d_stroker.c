@@ -75,7 +75,7 @@ static Bool ft_conic_is_small_enough( GF_Point2D*  base, Fixed *angle_in, Fixed 
 		*angle_out = gf_atan2(d2.y, d2.x);
 	}
 	theta = ABS( gf_angle_diff(*angle_in, *angle_out));
-	return ( theta < FT_SMALL_CONIC_THRESHOLD ) ? 1 : 0;
+	return ( theta < FT_SMALL_CONIC_THRESHOLD ) ? GF_TRUE : GF_FALSE;
 }
 
 static void ft_cubic_split( GF_Point2D*  base )
@@ -143,7 +143,7 @@ static Bool ft_cubic_is_small_enough(GF_Point2D *base, Fixed *angle_in, Fixed *a
 	}
 	theta1 = ABS( gf_angle_diff( *angle_in,  *angle_mid ) );
 	theta2 = ABS( gf_angle_diff( *angle_mid, *angle_out ) );
-	return ((theta1 < FT_SMALL_CUBIC_THRESHOLD) && (theta2 < FT_SMALL_CUBIC_THRESHOLD )) ? 1 : 0;
+	return ((theta1 < FT_SMALL_CUBIC_THRESHOLD) && (theta2 < FT_SMALL_CUBIC_THRESHOLD )) ? GF_TRUE : GF_FALSE;
 }
 
 
@@ -199,7 +199,7 @@ static void ft_stroke_border_close( FT_StrokeBorder  border )
 		border->tags[border->num_points - 1] |= FT_STROKE_TAG_END;
 	}
 	border->start   = -1;
-	border->movable = 0;
+	border->movable = GF_FALSE;
 }
 
 static s32 ft_stroke_border_lineto( FT_StrokeBorder  border, GF_Point2D*       to, Bool movable )
@@ -244,7 +244,7 @@ static s32 ft_stroke_border_conicto( FT_StrokeBorder  border, GF_Point2D*       
 	} else {
 		return -1;
 	}
-	border->movable = 0;
+	border->movable = GF_FALSE;
 	return 0;
 }
 
@@ -270,7 +270,7 @@ static s32 ft_stroke_border_cubicto( FT_StrokeBorder  border,
 	} else {
 		return -1;
 	}
-	border->movable = 0;
+	border->movable = GF_FALSE;
 	return 0;
 }
 
@@ -348,8 +348,8 @@ static s32 ft_stroke_border_moveto(FT_StrokeBorder  border, GF_Point2D*       to
 		ft_stroke_border_close( border );
 
 	border->start   = border->num_points;
-	border->movable = 0;
-	return ft_stroke_border_lineto( border, to, 0 );
+	border->movable = GF_FALSE;
+	return ft_stroke_border_lineto(border, to, GF_FALSE);
 }
 
 
@@ -384,7 +384,7 @@ static s32 ft_stroke_border_get_counts(FT_StrokeBorder  border,
 	if ( in_contour != 0 )
 		goto Fail;
 
-	border->valid = 1;
+	border->valid = GF_TRUE;
 
 Exit:
 	*anum_points   = num_points;
@@ -484,7 +484,7 @@ static s32 ft_stroker_arcto( FT_Stroker  *stroker, s32 side )
 	                                radius,
 	                                stroker->angle_in + rotate,
 	                                total );
-	border->movable = 0;
+	border->movable = GF_FALSE;
 	return error;
 }
 
@@ -533,7 +533,7 @@ static s32 ft_stroker_cap(FT_Stroker  *stroker, Fixed angle, s32 side)
 		delta.x += stroker->center.x + delta2.x;
 		delta.y += stroker->center.y + delta2.y;
 
-		error = ft_stroke_border_lineto( border, &delta, 0 );
+		error = ft_stroke_border_lineto(border, &delta, GF_FALSE);
 		if ( error )
 			goto Exit;
 
@@ -543,17 +543,17 @@ static s32 ft_stroker_cap(FT_Stroker  *stroker, Fixed angle, s32 side)
 		delta.x += delta2.x + stroker->center.x;
 		delta.y += delta2.y + stroker->center.y;
 
-		error = ft_stroke_border_lineto( border, &delta, 0 );
+		error = ft_stroke_border_lineto(border, &delta, GF_FALSE);
 	} else if ( stroker->line_cap == GF_LINE_CAP_TRIANGLE) {
 		/* add a triangle cap */
 		GF_Point2D delta;
 		Fixed radius = stroker->radius;
 		FT_StrokeBorder  border = stroker->borders + side;
-		border->movable = 0;
+		border->movable = GF_FALSE;
 		delta = gf_v2d_from_polar(radius, angle);
 		delta.x += stroker->center.x;
 		delta.y += stroker->center.y;
-		error = ft_stroke_border_lineto(border, &delta, 0);
+		error = ft_stroke_border_lineto(border, &delta, GF_FALSE);
 	}
 
 Exit:
@@ -588,14 +588,14 @@ static s32 ft_stroker_inside(FT_Stroker *stroker, s32 side)
 		delta = gf_v2d_from_polar(stroker->radius, stroker->angle_out + rotate );
 		delta.x += stroker->center.x;
 		delta.y += stroker->center.y;
-		if (!stroker->closing) border->movable = 0;
+		if (!stroker->closing) border->movable = GF_FALSE;
 	} else {
 		length = gf_divfix( stroker->radius, thcos );
 		delta = gf_v2d_from_polar(length, phi + rotate );
 		delta.x += stroker->center.x;
 		delta.y += stroker->center.y;
 	}
-	error = ft_stroke_border_lineto( border, &delta, 0 );
+	error = ft_stroke_border_lineto(border, &delta, GF_FALSE);
 	return error;
 }
 
@@ -629,15 +629,15 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 		delta.x += stroker->center.x;
 		delta.y += stroker->center.y;
 		/*prevent moving current point*/
-		border->movable = 0;
+		border->movable = GF_FALSE;
 		/*and add un-movable end point*/
-		error = ft_stroke_border_lineto( border, &delta, 0);
+		error = ft_stroke_border_lineto( border, &delta, GF_FALSE);
 	} else {
 		/* this is a mitered or beveled corner */
 		Fixed  sigma, radius = stroker->radius;
 		Fixed theta, phi;
 		Fixed thcos;
-		Bool  miter = 1;
+		Bool  miter = GF_TRUE;
 
 		rotate = FT_SIDE_TO_ROTATE( side );
 
@@ -654,7 +654,7 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 		sigma = gf_mulfix( stroker->miter_limit, thcos );
 
 		if ( sigma >= FIX_ONE ) {
-			miter = 0;
+			miter = GF_FALSE;
 		}
 
 		/* this is a miter (broken angle) */
@@ -674,7 +674,7 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 			delta.x += middle.x;
 			delta.y += middle.y;
 
-			error = ft_stroke_border_lineto( border, &delta, 0 );
+			error = ft_stroke_border_lineto( border, &delta, GF_FALSE );
 			if ( error )
 				goto Exit;
 
@@ -683,7 +683,7 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 			delta.x += middle.x;
 			delta.y += middle.y;
 
-			error = ft_stroke_border_lineto( border, &delta, 0 );
+			error = ft_stroke_border_lineto( border, &delta, GF_FALSE );
 			if ( error )
 				goto Exit;
 
@@ -692,7 +692,7 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 			delta.x += stroker->center.x;
 			delta.y += stroker->center.y;
 
-			error = ft_stroke_border_lineto( border, &delta, 1);
+			error = ft_stroke_border_lineto( border, &delta, GF_TRUE);
 		}
 		/* this is a bevel (intersection) */
 		else {
@@ -706,7 +706,7 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 			delta.x += stroker->center.x;
 			delta.y += stroker->center.y;
 
-			error = ft_stroke_border_lineto( border, &delta, 0 );
+			error = ft_stroke_border_lineto( border, &delta, GF_FALSE );
 			if (error) goto Exit;
 
 			/* now add end point */
@@ -714,7 +714,7 @@ static s32 ft_stroker_outside( FT_Stroker *stroker, s32 side )
 			delta.x += stroker->center.x;
 			delta.y += stroker->center.y;
 
-			error = ft_stroke_border_lineto( border, &delta, 1 );
+			error = ft_stroke_border_lineto( border, &delta, GF_TRUE );
 		}
 	}
 Exit:
@@ -779,7 +779,7 @@ static s32 ft_stroker_subpath_start( FT_Stroker *stroker, Fixed start_angle )
 
 	/* save angle for last cap */
 	stroker->subpath_angle = start_angle;
-	stroker->first_point   = 0;
+	stroker->first_point   = GF_FALSE;
 
 Exit:
 	return error;
@@ -823,7 +823,7 @@ static s32 FT_Stroker_LineTo( FT_Stroker *stroker, GF_Point2D*  to, Bool is_last
 		point.x = to->x + delta.x;
 		point.y = to->y + delta.y;
 
-		error = ft_stroke_border_lineto( border, &point, 1 );
+		error = ft_stroke_border_lineto( border, &point, GF_TRUE );
 		if ( error )
 			goto Exit;
 
@@ -845,7 +845,7 @@ static s32 FT_Stroker_ConicTo(FT_Stroker *stroker, GF_Point2D*  control, GF_Poin
 	GF_Point2D*  arc;
 	GF_Point2D*  limit = bez_stack + 30;
 	Fixed start_angle;
-	Bool first_arc = 1;
+	Bool first_arc = GF_TRUE;
 
 
 	arc    = bez_stack;
@@ -866,7 +866,7 @@ static s32 FT_Stroker_ConicTo(FT_Stroker *stroker, GF_Point2D*  control, GF_Poin
 		}
 
 		if ( first_arc ) {
-			first_arc = 0;
+			first_arc = GF_FALSE;
 
 			start_angle = angle_in;
 
@@ -932,7 +932,7 @@ static s32 FT_Stroker_CubicTo(FT_Stroker *stroker,
 	GF_Point2D*  arc;
 	GF_Point2D*  limit = bez_stack + 32;
 	Fixed start_angle;
-	Bool     first_arc = 1;
+	Bool     first_arc = GF_TRUE;
 
 	arc    = bez_stack;
 	arc[0] = *to;
@@ -954,7 +954,7 @@ static s32 FT_Stroker_CubicTo(FT_Stroker *stroker,
 		}
 
 		if ( first_arc ) {
-			first_arc = 0;
+			first_arc = GF_FALSE;
 
 			/* process corner if necessary */
 			start_angle = angle_in;
@@ -1027,7 +1027,7 @@ static s32 FT_Stroker_BeginSubPath(FT_Stroker *stroker, GF_Point2D*  to)
 	/* information regarding its corner/cap.  The latter will be processed */
 	/* in the "end_subpath" routine.                                       */
 	/*                                                                     */
-	stroker->first_point   = 1;
+	stroker->first_point   = GF_TRUE;
 	stroker->center        = *to;
 
 	/* record the subpath start point index for each border */
@@ -1079,8 +1079,8 @@ static s32 ft_stroker_add_reverse_left( FT_Stroker *stroker, Bool     open )
 		left->num_points   = left->start;
 		right->num_points += new_points;
 
-		right->movable = 0;
-		left->movable  = 0;
+		right->movable = GF_FALSE;
+		left->movable  = GF_FALSE;
 	}
 
 Exit:
@@ -1120,7 +1120,7 @@ static s32 FT_Stroker_EndSubPath( FT_Stroker *stroker, Bool do_close)
 				goto Exit;
 		}
 
-		ft_stroker_add_reverse_left(stroker, 0);
+		ft_stroker_add_reverse_left(stroker, GF_FALSE);
 		/* then end our two subpaths */
 		ft_stroke_border_close( stroker->borders + 0 );
 		ft_stroke_border_close( stroker->borders + 1 );
@@ -1132,7 +1132,7 @@ static s32 FT_Stroker_EndSubPath( FT_Stroker *stroker, Bool do_close)
 		if ( error ) goto Exit;
 
 		/* add reversed points from "left" to "right" */
-		error = ft_stroker_add_reverse_left( stroker, 1 );
+		error = ft_stroker_add_reverse_left( stroker, GF_TRUE );
 		if ( error ) goto Exit;
 
 		/* now add the final cap */
@@ -1240,7 +1240,7 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 
 		/*subpath is a single point, force a lineTo to start for the stroker to compute lineCap*/
 		if (point==limit) {
-			error = FT_Stroker_LineTo(stroker, &v_start, 1);
+			error = FT_Stroker_LineTo(stroker, &v_start, GF_TRUE);
 			closed_subpath = 0;
 			goto Close;
 		}
@@ -1258,7 +1258,7 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 				vec.x = point->x;
 				vec.y = point->y;
 
-				error = FT_Stroker_LineTo( stroker, &vec, (point == limit) ? 1 : 0 );
+				error = FT_Stroker_LineTo( stroker, &vec, (point == limit) ? GF_TRUE : GF_FALSE );
 				if ( error )
 					goto Exit;
 				continue;
@@ -1483,7 +1483,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 	dash = gf_path_get_dash(pen, offsetinit, &next_offset);
 	if (length_scale) dash = gf_mulfix(dash, length_scale);
 	firstindex = -1;
-	toggle_check = 0;
+	toggle_check = GF_FALSE;
 
 	start_ind = 0;
 	dist = 0;
@@ -1612,12 +1612,12 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 		else {
 			phase += dists[i] - dist;
 			i ++;
-			toggle_check = 0;
+			toggle_check = GF_FALSE;
 			dist = 0;
 			if (toggle) {
 				e = gf_path_add_line_to_vec(dashed, &pts[i]);
 				if (e) goto err_exit;
-				toggle_check = 1;
+				toggle_check = GF_TRUE;
 
 				if ( (firstindex>=0) && (i == (nb_pts - 1) && ((firstindex + 1) != (s32) start_ind ) ))  {
 					/*merge if closed path*/

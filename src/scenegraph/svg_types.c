@@ -46,7 +46,7 @@ Bool gf_svg_is_timing_tag(u32 tag)
 		             tag == TAG_SVG_audio ||
 		             tag == TAG_LSR_conditional ||
 		             tag == TAG_LSR_updates ||
-		             tag == TAG_SVG_video)?1:0;
+		             tag == TAG_SVG_video)? GF_TRUE : GF_FALSE;
 }
 
 SVG_Element *gf_svg_create_node(u32 ElementTag)

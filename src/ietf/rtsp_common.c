@@ -155,7 +155,7 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 
 	GF_SAFEALLOC(tmp, GF_RTSPTransport);
 
-	IsFirst = 1;
+	IsFirst = GF_TRUE;
 	pos = 0;
 	while (1) {
 		pos = gf_token_get(buffer, pos, " ;", buf, 100);
@@ -170,7 +170,7 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 		//very first param is the profile
 		if (IsFirst) {
 			tmp->Profile = gf_strdup(param_name);
-			IsFirst = 0;
+			IsFirst = GF_FALSE;
 			continue;
 		}
 
@@ -182,12 +182,12 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 			if (tmp->source) gf_free(tmp->source);
 			tmp->source = gf_strdup(param_val);
 		}
-		else if (!stricmp(param_name, "unicast")) tmp->IsUnicast = 1;
-		else if (!stricmp(param_name, "RECORD")) tmp->IsRecord = 1;
-		else if (!stricmp(param_name, "append")) tmp->Append = 1;
+		else if (!stricmp(param_name, "unicast")) tmp->IsUnicast = GF_TRUE;
+		else if (!stricmp(param_name, "RECORD")) tmp->IsRecord = GF_TRUE;
+		else if (!stricmp(param_name, "append")) tmp->Append = GF_TRUE;
 		else if (!stricmp(param_name, "interleaved")) {
 			u32 rID, rcID;
-			tmp->IsInterleaved = 1;
+			tmp->IsInterleaved = GF_TRUE;
 			if (sscanf(param_val, "%u-%u", &rID, &rcID) == 1) {
 				sscanf(param_val, "%u", &rID);
 				tmp->rtcpID = tmp->rtpID = (u8) rID;

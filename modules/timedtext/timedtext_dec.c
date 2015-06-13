@@ -108,9 +108,9 @@ static void TTD_UpdateSizeInfo(TTDPriv *priv)
 	/*no size info is given in main scene, override by associated video size if any, or by text track size*/
 	if (!has_size) {
 		if (priv->cfg->has_vid_info && priv->cfg->video_width && priv->cfg->video_height) {
-			gf_sg_set_scene_size_info(priv->sg, priv->cfg->video_width, priv->cfg->video_height, 1);
+			gf_sg_set_scene_size_info(priv->sg, priv->cfg->video_width, priv->cfg->video_height, GF_TRUE);
 		} else {
-			gf_sg_set_scene_size_info(priv->sg, priv->cfg->text_width, priv->cfg->text_height, 1);
+			gf_sg_set_scene_size_info(priv->sg, priv->cfg->text_width, priv->cfg->text_height, GF_TRUE);
 		}
 		gf_sg_get_scene_size_info(priv->sg, &w, &h);
 		if (!w || !h) return;
@@ -119,25 +119,25 @@ static void TTD_UpdateSizeInfo(TTDPriv *priv)
 
 	if (!w || !h) return;
 	/*apply*/
-	gf_sg_set_scene_size_info(priv->sg, w, h, 1);
+	gf_sg_set_scene_size_info(priv->sg, w, h, GF_TRUE);
 	/*make sure the scene size is big enough to contain the text track after positioning. RESULTS ARE UNDEFINED
 	if offsets are negative: since MPEG-4 uses centered coord system, we must assume video is aligned to top-left*/
 	if (priv->cfg->has_vid_info) {
-		Bool set_size = 0;
+		Bool set_size = GF_FALSE;
 		vw = priv->cfg->horiz_offset;
 		if (vw<0) vw = 0;
 		vh = priv->cfg->vert_offset;
 		if (vh<0) vh = 0;
 		if (priv->cfg->text_width + (u32) vw > w) {
 			w = priv->cfg->text_width+vw;
-			set_size = 1;
+			set_size = GF_TRUE;
 		}
 		if (priv->cfg->text_height + (u32) vh > h) {
 			h = priv->cfg->text_height+vh;
-			set_size = 1;
+			set_size = GF_TRUE;
 		}
 		if (set_size) {
-			gf_sg_set_scene_size_info(priv->sg, w, h, 1);
+			gf_sg_set_scene_size_info(priv->sg, w, h, GF_TRUE);
 			gf_scene_force_size(priv->inlineScene, w, h);
 		}
 	} else {
@@ -198,9 +198,9 @@ static GF_Err TTD_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability
 		if (capability.cap.valueInt) {
 			TTD_ResetDisplay(priv);
 			TTD_UpdateSizeInfo(priv);
-			gf_scene_register_extra_graph(priv->inlineScene, priv->sg, 0);
+			gf_scene_register_extra_graph(priv->inlineScene, priv->sg, GF_FALSE);
 		} else {
-			gf_scene_register_extra_graph(priv->inlineScene, priv->sg, 1);
+			gf_scene_register_extra_graph(priv->inlineScene, priv->sg, GF_TRUE);
 		}
 	}
 	return GF_OK;
@@ -342,9 +342,9 @@ static GF_Err TTD_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 
 	/*option setup*/
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "StreamingText", "UseTexturing");
-	priv->use_texture = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+	priv->use_texture = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "StreamingText", "OutlineText");
-	priv->outline = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+	priv->outline = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 	return e;
 }
 
@@ -353,7 +353,7 @@ static GF_Err TTD_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	if (!priv->nb_streams) return GF_BAD_PARAM;
 
-	gf_scene_register_extra_graph(priv->inlineScene, priv->sg, 1);
+	gf_scene_register_extra_graph(priv->inlineScene, priv->sg, GF_TRUE);
 
 	gf_node_unregister((GF_Node *) priv->ts_blink, NULL);
 	gf_node_unregister((GF_Node *) priv->process_blink, NULL);
@@ -375,8 +375,8 @@ static void ttd_set_blink_fraction(GF_Node *node, GF_Route *route)
 	u32 i;
 	TTDPriv *priv = (TTDPriv *)gf_node_get_private(node);
 
-	Bool blink_on = 1;
-	if (priv->process_blink->set_fraction>FIX_ONE/2) blink_on = 0;
+	Bool blink_on = GF_TRUE;
+	if (priv->process_blink->set_fraction>FIX_ONE/2) blink_on = GF_FALSE;
 	i=0;
 	while ((m = (M_Material2D*)gf_list_enum(priv->blink_nodes, &i))) {
 		if (m->filled != blink_on) {
@@ -391,7 +391,7 @@ static void ttd_set_scroll_fraction(GF_Node *node, GF_Route *route)
 	Fixed frac;
 	TTDPriv *priv = (TTDPriv *)gf_node_get_private(node);
 	frac = priv->process_scroll->set_fraction;
-	if (frac==FIX_ONE) priv->is_active = 0;
+	if (frac==FIX_ONE) priv->is_active = GF_FALSE;
 	if (!priv->tr_scroll) return;
 
 	switch (priv->scroll_type - 1) {
@@ -596,8 +596,9 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 
 	start_char = tc->start_char;
 	for (i=tc->start_char; i<tc->end_char; i++) {
-		Bool new_line = 0;
-		if ((utf16_txt[i] == '\n') || (utf16_txt[i] == '\r') || (utf16_txt[i] == 0x85) || (utf16_txt[i] == 0x2028) || (utf16_txt[i] == 0x2029)) new_line = 1;
+		Bool new_line = GF_FALSE;
+		if ((utf16_txt[i] == '\n') || (utf16_txt[i] == '\r') || (utf16_txt[i] == 0x85) || (utf16_txt[i] == 0x2028) || (utf16_txt[i] == 0x2029))
+			new_line = GF_TRUE;
 
 		if (new_line || (i+1==tc->end_char) ) {
 			SFString *st;
@@ -611,7 +612,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 
 				/*splitting lines, duplicate node*/
 
-				n2 = gf_node_clone(priv->sg, txt_model, NULL, "", 1);
+				n2 = gf_node_clone(priv->sg, txt_model, NULL, "", GF_TRUE);
 				if (tc->hlink && tc->hlink->URL) {
 					GF_Node *t = ((M_Anchor *)n2)->children->node;
 					text = (M_Text *) ((M_Shape *)t)->geometry;
@@ -702,14 +703,14 @@ void TTD_SplitChunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, GF_Box *
 		/*assign mod*/
 		switch (mod->type) {
 		case GF_ISOM_BOX_TYPE_HLIT:
-			tc->is_hilight = 1;
+			tc->is_hilight = GF_TRUE;
 			if (txt->highlight_color) tc->hilight_col = txt->highlight_color->hil_color;
 			break;
 		case GF_ISOM_BOX_TYPE_HREF:
 			tc->hlink = (GF_TextHyperTextBox *) mod;
 			break;
 		case GF_ISOM_BOX_TYPE_BLNK:
-			tc->has_blink = 1;
+			tc->has_blink = GF_TRUE;
 			break;
 		}
 		/*done*/
@@ -756,7 +757,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	if (!td) return;
 
 
-	vertical = (td->displayFlags & GF_TXT_VERTICAL) ? 1 : 0;
+	vertical = (td->displayFlags & GF_TXT_VERTICAL) ? GF_TRUE : GF_FALSE;
 
 	/*set back color*/
 	/*do we fill the text box or the entire text track region*/
@@ -838,7 +839,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	else if (offset - thh < -th/2) offset = -th/2 + thh;
 	priv->tr_box->translation.y = INT2FIX(offset);
 
-	gf_node_dirty_set((GF_Node *)priv->tr_box, 0, 1);
+	gf_node_dirty_set((GF_Node *)priv->tr_box, 0, GF_TRUE);
 
 
 	if (priv->scroll_type) {
@@ -1083,7 +1084,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	(*id) = -1;
 
 
-	gf_node_dirty_set((GF_Node *)form, 0, 1);
+	gf_node_dirty_set((GF_Node *)form, 0, GF_TRUE);
 	gf_node_changed((GF_Node *)form, NULL);
 	gf_node_changed((GF_Node *) priv->dlist, NULL);
 
@@ -1093,7 +1094,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		gf_node_changed((GF_Node *) priv->ts_blink, NULL);
 	}
 
-	priv->is_active = 1;
+	priv->is_active = GF_TRUE;
 	/*scroll timer also acts as AU timer*/
 	priv->ts_scroll->startTime = gf_node_get_scene_time((GF_Node *) priv->ts_scroll);
 	priv->ts_scroll->stopTime = priv->ts_scroll->startTime - 1.0;
@@ -1115,7 +1116,7 @@ static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 in
 		GF_TextSample *txt;
 		Bool is_utf_16;
 		u32 type, length, sample_index, sample_duration;
-		is_utf_16 = gf_bs_read_int(bs, 1);
+		is_utf_16 = (Bool)gf_bs_read_int(bs, 1);
 		gf_bs_read_int(bs, 4);
 		type = gf_bs_read_int(bs, 3);
 		length = gf_bs_read_u16(bs);

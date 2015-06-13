@@ -103,7 +103,7 @@ void optimize_seg_frag_dur(int *seg, int *frag)
 
 Bool change_source_thread(void *params)
 {
-	int ret = 0;
+	Bool ret = GF_FALSE;
 	return ret;
 }
 
@@ -141,14 +141,14 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 	snprintf(name, sizeof(name), "%s/%s", cmddata->out_dir, cmddata->mpd_filename);
 
 	if (strcmp(cmddata->audio_data_conf.filename, "") != 0) {
-		audio_data_conf = gf_list_get(cmddata->audio_lst, 0);
+		audio_data_conf = (const AudioDataConf*)gf_list_get(cmddata->audio_lst, 0);
 		audio_seg_dur = (int)((audio_data_conf->samplerate / (double) audio_frame_size) * (cmddata->seg_dur / 1000.0));
 		audio_frag_dur = (int)((audio_data_conf->samplerate / (double) audio_frame_size) * (cmddata->frag_dur / 1000.0));
 		optimize_seg_frag_dur(&audio_seg_dur, &audio_frag_dur);
 	}
 
 	if (strcmp(cmddata->video_data_conf.filename, "") != 0) {
-		video_data_conf = gf_list_get(cmddata->video_lst, 0);
+		video_data_conf = (VideoDataConf*)gf_list_get(cmddata->video_lst, 0);
 		video_seg_dur = (int)(video_data_conf->framerate * (cmddata->seg_dur / 1000.0));
 		video_frag_dur = (int)(video_data_conf->framerate * (cmddata->frag_dur / 1000.0));
 		optimize_seg_frag_dur(&video_seg_dur, &video_frag_dur);
@@ -209,7 +209,7 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 
 
 		for (i = 0; i < gf_list_count(cmddata->audio_lst); i++) {
-			audio_data_conf = gf_list_get(cmddata->audio_lst, i);
+			audio_data_conf = (const AudioDataConf*)gf_list_get(cmddata->audio_lst, i);
 			fprintf(f,
 			        "   <Representation id=\"%s\" mimeType=\"audio/mp4\" codecs=\"mp4a.40.2\" "
 			        "audioSamplingRate=\"%d\" startWithSAP=\"1\" bandwidth=\"%d\">\n"
@@ -234,7 +234,7 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 		fprintf(f, "/>\n");
 
 		for (i = 0; i < gf_list_count(cmddata->video_lst); i++) {
-			video_data_conf = gf_list_get(cmddata->video_lst, i);
+			video_data_conf = (VideoDataConf*)gf_list_get(cmddata->video_lst, i);
 			fprintf(f, "   <Representation id=\"%s\" mimeType=\"video/mp4\" codecs=\"%s\" "
 			        "width=\"%d\" height=\"%d\" frameRate=\"%d\" sar=\"1:1\" startWithSAP=\"1\" bandwidth=\"%d\">\n"
 			        "   </Representation>\n", video_data_conf->filename,
@@ -416,7 +416,7 @@ Bool fragmenter_thread(void *params)
 		}
 	}
 
-	return 0;
+	return GF_FALSE;
 }
 
 Bool dasher_thread(void *params)
@@ -544,7 +544,7 @@ Bool dasher_thread(void *params)
 //
 //	}
 
-	return 0;
+	return GF_FALSE;
 }
 
 static u32 keyboard_thread(void *params)
@@ -756,7 +756,7 @@ u32 video_encoder_thread(void *params)
 	Bool init_mpd = GF_FALSE;
 	CmdData *in_data = thread_params->in_data;
 	int video_conf_idx = thread_params->video_conf_idx;
-	VideoDataConf *video_data_conf = gf_list_get(in_data->video_lst, video_conf_idx);
+	VideoDataConf *video_data_conf = (VideoDataConf*)gf_list_get(in_data->video_lst, video_conf_idx);
 
 	VideoScaledData *video_scaled_data = thread_params->video_scaled_data;
 	int video_cb_size = (in_data->mode == LIVE_MEDIA || in_data->mode == LIVE_CAMERA) ? 1 : VIDEO_CB_DEFAULT_SIZE;
@@ -1005,7 +1005,7 @@ u32 audio_encoder_thread(void *params)
 
 	CmdData *in_data = thread_params->in_data;
 	int audio_conf_idx = thread_params->audio_conf_idx;
-	AudioDataConf *audio_data_conf = gf_list_get(in_data->audio_lst, audio_conf_idx);
+	AudioDataConf *audio_data_conf = (AudioDataConf*)gf_list_get(in_data->audio_lst, audio_conf_idx);
 
 	AudioInputData *audio_input_data = thread_params->audio_input_data;
 	AudioOutputFile audio_output_file;
@@ -1190,7 +1190,7 @@ int dc_run_controler(CmdData *in_data)
 
 	//Video parameters
 	VideoThreadParam vdecoder_th_params;
-	VideoThreadParam *vencoder_th_params = alloca(gf_list_count(in_data->video_lst) * sizeof(VideoThreadParam));
+	VideoThreadParam *vencoder_th_params = (VideoThreadParam*)alloca(gf_list_count(in_data->video_lst) * sizeof(VideoThreadParam));
 	VideoInputData video_input_data;
 	VideoInputFile *video_input_file[MAX_SOURCE_NUMBER];
 	VideoScaledDataList video_scaled_data_list;
@@ -1198,7 +1198,7 @@ int dc_run_controler(CmdData *in_data)
 
 	//Audio parameters
 	AudioThreadParam adecoder_th_params;
-	AudioThreadParam *aencoder_th_params = alloca(gf_list_count(in_data->audio_lst) * sizeof(AudioThreadParam));
+	AudioThreadParam *aencoder_th_params = (AudioThreadParam*)alloca(gf_list_count(in_data->audio_lst) * sizeof(AudioThreadParam));
 	AudioInputData audio_input_data;
 	AudioInputFile audio_input_file;
 
@@ -1217,7 +1217,7 @@ int dc_run_controler(CmdData *in_data)
 	dc_register_libav();
 
 	for (i = 0; i < MAX_SOURCE_NUMBER; i++)
-		video_input_file[i] = gf_malloc(sizeof(VideoInputFile));
+		video_input_file[i] = (VideoInputFile*)gf_malloc(sizeof(VideoInputFile));
 
 	dc_message_queue_init(&mq);
 	dc_message_queue_init(&delete_seg_mq);
@@ -1233,7 +1233,7 @@ int dc_run_controler(CmdData *in_data)
 
 	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
 		dc_video_scaler_list_init(&video_scaled_data_list, in_data->video_lst);
-		vscaler_th_params = gf_malloc(video_scaled_data_list.size * sizeof(VideoThreadParam));
+		vscaler_th_params = (VideoThreadParam*)gf_malloc(video_scaled_data_list.size * sizeof(VideoThreadParam));
 
 		/* Open input video */
 		if (dc_video_decoder_open(video_input_file[0], &in_data->video_data_conf, in_data->mode, in_data->no_loop, video_scaled_data_list.size) < 0) {
@@ -1251,7 +1251,7 @@ int dc_run_controler(CmdData *in_data)
 
 		/* open other input videos for source switching */
 		for (i = 0; i < gf_list_count(in_data->vsrc); i++) {
-			VideoDataConf *video_data_conf = gf_list_get(in_data->vsrc, i);
+			VideoDataConf *video_data_conf = (VideoDataConf*)gf_list_get(in_data->vsrc, i);
 			if (dc_video_decoder_open(video_input_file[i + 1], video_data_conf, LIVE_MEDIA, 1, video_scaled_data_list.size) < 0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open input video.\n"));
 				ret = -1;
@@ -1328,14 +1328,14 @@ int dc_run_controler(CmdData *in_data)
 
 	//Communication between decoder and audio encoder
 	for (i = 0; i < gf_list_count(in_data->audio_lst); i++) {
-		AudioDataConf *tmadata = gf_list_get(in_data->audio_lst, i);
+		AudioDataConf *tmadata = (AudioDataConf*)gf_list_get(in_data->audio_lst, i);
 		tmadata->channels = in_data->audio_data_conf.channels;
 		tmadata->samplerate = in_data->audio_data_conf.samplerate;
 	}
 
 	//Communication between decoder and video encoder
 	for (i = 0; i < gf_list_count(in_data->video_lst); i++) {
-		VideoDataConf *tmvdata = gf_list_get(in_data->video_lst, i);
+		VideoDataConf *tmvdata = (VideoDataConf*)gf_list_get(in_data->video_lst, i);
 		tmvdata->framerate = in_data->video_data_conf.framerate;
 		if (in_data->use_source_timing) {
 			tmvdata->time_base = in_data->video_data_conf.time_base;
@@ -1359,7 +1359,7 @@ int dc_run_controler(CmdData *in_data)
 	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
 		/* Create video encoder threads */
 		for (i=0; i<gf_list_count(in_data->video_lst); i++) {
-			VideoDataConf * video_data_conf = gf_list_get(in_data->video_lst, i);
+			VideoDataConf * video_data_conf = (VideoDataConf*)gf_list_get(in_data->video_lst, i);
 
 			vencoder_th_params[i].in_data = in_data;
 			vencoder_th_params[i].video_conf_idx = i;

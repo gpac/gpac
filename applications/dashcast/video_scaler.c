@@ -32,7 +32,7 @@
 
 VideoScaledDataNode * dc_video_scaler_node_create(int width, int height, int crop_x, int crop_y, int pix_fmt)
 {
-	VideoScaledDataNode *video_scaled_data_node = gf_malloc(sizeof(VideoDataNode));
+	VideoScaledDataNode *video_scaled_data_node = (VideoScaledDataNode*)gf_malloc(sizeof(VideoDataNode));
 	if (video_scaled_data_node) {
 		video_scaled_data_node->v_frame = FF_ALLOC_FRAME();
 		if (crop_x || crop_y) {
@@ -92,7 +92,7 @@ void dc_video_scaler_list_init(VideoScaledDataList *video_scaled_data_list, GF_L
 			video_scaled_data->out_height = video_data_conf->height;
 			video_scaled_data->num_consumers = 1;
 
-			video_scaled_data_list->video_scaled_data = gf_realloc(video_scaled_data_list->video_scaled_data, (video_scaled_data_list->size+1)*sizeof(VideoScaledData*));
+			video_scaled_data_list->video_scaled_data = (VideoScaledData**)gf_realloc(video_scaled_data_list->video_scaled_data, (video_scaled_data_list->size+1)*sizeof(VideoScaledData*));
 
 			video_scaled_data_list->video_scaled_data[video_scaled_data_list->size] = video_scaled_data;
 			video_scaled_data_list->size++;

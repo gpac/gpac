@@ -221,11 +221,11 @@ GF_Err gf_log_modify_tools_levels(const char *val)
 					global_log_tools[i].level = level;
 			}
 			else {
-				Bool found = 0;
+				Bool found = GF_FALSE;
 				for (i=0; i<GF_LOG_TOOL_MAX; i++) {
 					if (!strcmp(global_log_tools[i].name, tools)) {
 						global_log_tools[i].level = level;
-						found = 1;
+						found = GF_TRUE;
 					}
 				}
 				if (!found) {

@@ -38,7 +38,7 @@ extern "C" {
 /*!
  * All the possible Mime-types for MPD files
  */
-static const char * GF_DASH_MPD_MIME_TYPES[] = { "application/dash+xml", "video/vnd.3gpp.mpd", "audio/vnd.3gpp.mpd", NULL };
+static const char * GF_DASH_MPD_MIME_TYPES[] = { "application/dash+xml", "video/vnd.3gpp.mpd", "audio/vnd.3gpp.mpd", "video/vnd.mpeg.dash.mpd", "audio/vnd.mpeg.dash.mpd", NULL };
 
 /*!
  * All the possible Mime-types for M3U8 files

@@ -37,12 +37,12 @@ static void mpa12_do_flush(GP_RTPPacketizer *builder, Bool start_new)
 	/*flush*/
 	if (builder->pck_hdr) {
 		gf_bs_get_content(builder->pck_hdr, &tmp, &tmp_size);
-		builder->OnData(builder->cbk_obj, tmp, tmp_size, 1);
+		builder->OnData(builder->cbk_obj, tmp, tmp_size, GF_TRUE);
 		gf_free(tmp);
 
 		if (gf_bs_get_size(builder->payload)) {
 			gf_bs_get_content(builder->payload, &tmp, &tmp_size);
-			builder->OnData(builder->cbk_obj, tmp, tmp_size, 0);
+			builder->OnData(builder->cbk_obj, tmp, tmp_size, GF_FALSE);
 			gf_free(tmp);
 		}
 
@@ -61,7 +61,7 @@ static void mpa12_do_flush(GP_RTPPacketizer *builder, Bool start_new)
 	/*create new RTP Packet */
 	builder->rtp_header.SequenceNumber += 1;
 	builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
-	builder->first_sl_in_rtp = 1;
+	builder->first_sl_in_rtp = GF_TRUE;
 	builder->bytesInPacket = 0;
 }
 
@@ -72,7 +72,7 @@ GF_Err gp_rtp_builder_do_mpeg12_audio(GP_RTPPacketizer *builder, char *data, u32
 
 	/*if no data flush, if nothing start if not enough space restart*/
 	if (!data || !builder->bytesInPacket || (builder->bytesInPacket + data_size > builder->Path_MTU)) {
-		mpa12_do_flush(builder, data ? 1 : 0);
+		mpa12_do_flush(builder, data ? GF_TRUE : GF_FALSE);
 		if (!data) return GF_OK;
 	}
 
@@ -86,7 +86,7 @@ GF_Err gp_rtp_builder_do_mpeg12_audio(GP_RTPPacketizer *builder, char *data, u32
 		if (builder->first_sl_in_rtp) {
 			gf_bs_write_u16(builder->pck_hdr, 0);
 			gf_bs_write_u16(builder->pck_hdr, offset);
-			builder->first_sl_in_rtp = 0;
+			builder->first_sl_in_rtp = GF_FALSE;
 			builder->bytesInPacket = 2;
 		}
 		/*add reference*/
@@ -100,11 +100,11 @@ GF_Err gp_rtp_builder_do_mpeg12_audio(GP_RTPPacketizer *builder, char *data, u32
 		/*start new packet if fragmenting*/
 		if (data_size) {
 			offset += (u16) pck_size;
-			mpa12_do_flush(builder, 1);
+			mpa12_do_flush(builder, GF_TRUE);
 		}
 	}
 	/*if offset or no aggregation*/
-	if (offset || !(builder->flags & GP_RTP_PCK_USE_MULTI) ) mpa12_do_flush(builder, 0);
+	if (offset || !(builder->flags & GP_RTP_PCK_USE_MULTI) ) mpa12_do_flush(builder, GF_FALSE);
 
 	return GF_OK;
 }
@@ -125,7 +125,7 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 	if (!data) return GF_OK;
 
 	offset = 0;
-	have_seq = 0;
+	have_seq = GF_FALSE;
 
 	while (1) {
 		u32 oldoffset;
@@ -134,7 +134,7 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 			break;
 
 		offset += oldoffset;
-		if (startcode == MPEG12_SEQUENCE_START_CODE) have_seq = 1;
+		if (startcode == MPEG12_SEQUENCE_START_CODE) have_seq = GF_TRUE;
 		offset += 4;
 
 		if (startcode == MPEG12_PICTURE_START_CODE) break;
@@ -165,11 +165,11 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 
 	buffer = data;
 	prev_slice = 0;
-	start_with_slice = (gf_mv12_next_slice_start((unsigned char *)buffer, offset, data_size, &next_slice) >= 0) ? 1 : 0;
+	start_with_slice = (gf_mv12_next_slice_start((unsigned char *)buffer, offset, data_size, &next_slice) >= 0) ? GF_TRUE : GF_FALSE;
 	offset = 0;
-	slices_done = 0;
+	slices_done = GF_FALSE;
 	got_slice = start_with_slice;
-	first_slice = 1;
+	first_slice = GF_TRUE;
 
 	while (data_size > 0) {
 		Bool last_pck;
@@ -177,19 +177,19 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 
 		if (data_size <= max_pck_size) {
 			len_to_write = data_size;
-			last_pck = 1;
+			last_pck = GF_TRUE;
 			prev_slice = 0;
 		} else {
-			got_slice = (!first_slice && !slices_done && (next_slice <= max_pck_size)) ? 1 : 0;
-			first_slice = 0;
-			last_pck = 0;
+			got_slice = (!first_slice && !slices_done && (next_slice <= max_pck_size)) ? GF_TRUE : GF_FALSE;
+			first_slice = GF_FALSE;
+			last_pck = GF_FALSE;
 
 			while (!slices_done && (next_slice <= max_pck_size)) {
 				prev_slice = next_slice;
 				if (gf_mv12_next_slice_start((unsigned char *)buffer, next_slice + 4, data_size, &next_slice) >= 0) {
-					got_slice = 1;
+					got_slice = GF_TRUE;
 				} else {
-					slices_done = 1;
+					slices_done = GF_TRUE;
 				}
 			}
 			if (got_slice) len_to_write = prev_slice;
@@ -200,22 +200,22 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 
 		if (have_seq) {
 			mpv_hdr[2] |= 0x20;
-			have_seq = 0;
+			have_seq = GF_FALSE;
 		}
 		if (first_slice) mpv_hdr[2] |= 0x10;
 
 		if (got_slice || last_pck) {
 			mpv_hdr[2] |= 0x08;
-			start_with_slice = 1;
+			start_with_slice = GF_TRUE;
 		} else {
-			start_with_slice = 0;
+			start_with_slice = GF_FALSE;
 		}
 
-		builder->OnData(builder->cbk_obj, mpv_hdr, 4, 0);
+		builder->OnData(builder->cbk_obj, mpv_hdr, 4, GF_FALSE);
 		if (builder->OnDataReference) {
 			builder->OnDataReference(builder->cbk_obj, len_to_write, offset);
 		} else {
-			builder->OnData(builder->cbk_obj, data + offset, len_to_write, 0);
+			builder->OnData(builder->cbk_obj, data + offset, len_to_write, GF_FALSE);
 		}
 
 		builder->rtp_header.Marker = last_pck ? 1 : 0;

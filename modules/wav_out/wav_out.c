@@ -117,7 +117,7 @@ static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u3
 {
 	WAVCTX();
 
-	ctx->force_config = (num_buffers && total_duration) ? 1 : 0;
+	ctx->force_config = (num_buffers && total_duration) ? GF_TRUE : GF_FALSE;
 	ctx->cfg_num_buffers = num_buffers;
 	if (ctx->cfg_num_buffers <= 1) ctx->cfg_num_buffers = 2;
 	ctx->cfg_duration = total_duration;
@@ -145,7 +145,7 @@ static void close_waveform(GF_AudioOutput *dr)
 
 	/*brute-force version, actually much safer on winCE*/
 #ifdef _WIN32_WCE
-	ctx->exit_request = 1;
+	ctx->exit_request = GF_TRUE;
 	SetEvent(ctx->event);
 	waveOutReset(ctx->hwo);
 	waveOutClose(ctx->hwo);
@@ -153,9 +153,9 @@ static void close_waveform(GF_AudioOutput *dr)
 	ctx->wav_buf = NULL;
 	CloseHandle(ctx->event);
 	ctx->event = NULL;
-	ctx->exit_request = 0;
+	ctx->exit_request = GF_FALSE;
 #else
-	ctx->exit_request = 1;
+	ctx->exit_request = GF_TRUE;
 	SetEvent(ctx->event);
 	if (ctx->hwo) {
 		u32 i;
@@ -163,10 +163,10 @@ static void close_waveform(GF_AudioOutput *dr)
 		MMRESULT res;
 		/*wait for all buffers to complete, otherwise this locks waveOutReset*/
 		while (1) {
-			not_done = 0;
+			not_done = GF_FALSE;
 			for (i=0 ; i< ctx->num_buffers; i++) {
 				if (! (ctx->wav_hdr[i].dwFlags & WHDR_DONE)) {
-					not_done = 1;
+					not_done = GF_TRUE;
 					break;
 				}
 			}
@@ -184,7 +184,7 @@ static void close_waveform(GF_AudioOutput *dr)
 	ctx->wav_buf = NULL;
 	CloseHandle(ctx->event);
 	ctx->event = NULL;
-	ctx->exit_request = 0;
+	ctx->exit_request = GF_FALSE;
 #endif
 }
 
@@ -275,7 +275,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	/*make sure we're aligned*/
 	while (ctx->buffer_size % ctx->fmt.nBlockAlign) ctx->buffer_size++;
 
-	ctx->wav_buf = gf_malloc(ctx->buffer_size*ctx->num_buffers*sizeof(char));
+	ctx->wav_buf = (char*)gf_malloc(ctx->buffer_size*ctx->num_buffers*sizeof(char));
 	memset(ctx->wav_buf, 0, ctx->buffer_size*ctx->num_buffers*sizeof(char));
 
 	/*setup wave headers*/
@@ -429,20 +429,19 @@ static u32 WAV_GetTotalBufferTime(GF_AudioOutput *dr)
 
 void *NewWAVRender()
 {
-	WAVContext *ctx;
 	GF_AudioOutput *driv;
-	ctx = gf_malloc(sizeof(WAVContext));
+	WAVContext *ctx = (WAVContext*)gf_malloc(sizeof(WAVContext));
 	memset(ctx, 0, sizeof(WAVContext));
 	ctx->num_buffers = 10;
 	ctx->pan = 50;
 	ctx->vol = 100;
-	driv = gf_malloc(sizeof(GF_AudioOutput));
+	driv = (GF_AudioOutput*)gf_malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "Windows MME Output", "gpac distribution")
 
 	driv->opaque = ctx;
 
-	driv->SelfThreaded = 0;
+	driv->SelfThreaded = GF_FALSE;
 	driv->Setup = WAV_Setup;
 	driv->Shutdown = WAV_Shutdown;
 	driv->ConfigureOutput = WAV_ConfigureOutput;
@@ -478,7 +477,8 @@ const u32 *QueryInterfaces()
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return NewWAVRender();
+	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
+		return (GF_BaseInterface*)NewWAVRender();
 	return NULL;
 }
 

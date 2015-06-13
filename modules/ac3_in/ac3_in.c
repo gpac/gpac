@@ -84,16 +84,16 @@ static Bool AC3_CanHandleURL(GF_InputService *plug, const char *url)
 	u32 i;
 	sExt = strrchr(url, '.');
 	for (i = 0 ; AC3_MIMES[i]; i++) {
-		if (gf_service_check_mime_register(plug, AC3_MIMES[i], AC3_EXTS, AC3_DESC, sExt)) return 1;
+		if (gf_service_check_mime_register(plug, AC3_MIMES[i], AC3_EXTS, AC3_DESC, sExt)) return GF_TRUE;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 static Bool ac3_is_local(const char *url)
 {
-	if (!strnicmp(url, "file://", 7)) return 1;
-	if (strstr(url, "://")) return 0;
-	return 1;
+	if (!strnicmp(url, "file://", 7)) return GF_TRUE;
+	if (strstr(url, "://")) return GF_FALSE;
+	return GF_TRUE;
 }
 
 static GF_ESD *AC3_GetESD(AC3Reader *read)
@@ -117,7 +117,7 @@ static void AC3_SetupObject(AC3Reader *read)
 	esd = AC3_GetESD(read);
 	esd->OCRESID = 0;
 	gf_list_add(od->ESDescriptors, esd);
-	gf_service_declare_media(read->service, (GF_Descriptor*)od, 0);
+	gf_service_declare_media(read->service, (GF_Descriptor*)od, GF_FALSE);
 }
 
 
@@ -127,7 +127,7 @@ static Bool AC3_ConfigureFromFile(AC3Reader *read)
 	GF_BitStream *bs;
 	GF_AC3Header hdr;
 	memset(&hdr, 0, sizeof(GF_AC3Header));
-	if (!read->stream) return 0;
+	if (!read->stream) return GF_FALSE;
 	bs = gf_bs_from_file(read->stream, GF_BITSTREAM_READ);
 
 
@@ -150,7 +150,7 @@ static Bool AC3_ConfigureFromFile(AC3Reader *read)
 	}
 	gf_bs_del(bs);
 	gf_fseek(read->stream, 0, SEEK_SET);
-	return 1;
+	return GF_TRUE;
 }
 
 static void AC3_RegulateDataRate(AC3Reader *read)
@@ -176,19 +176,19 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 
 	memset(&hdr, 0, sizeof(GF_AC3Header));
 
-	read->data = gf_realloc(read->data, sizeof(char)*(read->data_size+data_size) );
+	read->data = (unsigned char*)gf_realloc(read->data, sizeof(char)*(read->data_size+data_size) );
 	memcpy(read->data + read->data_size, data, sizeof(char)*data_size);
 	read->data_size += data_size;
 
 	if (read->needs_connection) {
-		read->needs_connection = 0;
+		read->needs_connection = GF_FALSE;
 		bs = gf_bs_new((char *) read->data, read->data_size, GF_BITSTREAM_READ);
 		sync = gf_ac3_parser_bs(bs, &hdr, GF_TRUE);
 		gf_bs_del(bs);
 		if (!sync) return;
 		read->nb_ch = hdr.channels;
 		read->sample_rate = hdr.sample_rate;
-		read->is_live = 1;
+		read->is_live = GF_TRUE;
 		memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 		gf_service_connect_ack(read->service, NULL, GF_OK);
 		AC3_SetupObject(read);
@@ -218,7 +218,7 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 	if (pos) {
 		u8 *d;
 		read->data_size -= (u32) pos;
-		d = gf_malloc(sizeof(char) * read->data_size);
+		d = (u8*)gf_malloc(sizeof(char) * read->data_size);
 		memcpy(d, read->data + pos, sizeof(char) * read->data_size);
 		gf_free(read->data);
 		read->data = d;
@@ -237,7 +237,7 @@ void AC3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	/*done*/
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 		if (read->stream) {
-			read->is_remote = 0;
+			read->is_remote = GF_FALSE;
 			e = GF_EOS;
 		} else if (!read->needs_connection) {
 			return;
@@ -283,7 +283,7 @@ void AC3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	if (e >= GF_OK) {
 		if (read->needs_connection) {
 			gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total_size, NULL, NULL, NULL);
-			if (!total_size) read->is_live = 1;
+			if (!total_size) read->is_live = GF_TRUE;
 		}
 		if (read->is_live) {
 			if (!e) AC3_OnLiveData(read, param->data, param->size);
@@ -299,7 +299,7 @@ void AC3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			if (!read->stream) e = GF_SERVICE_ERROR;
 			else {
 				/*if full file at once (in cache) parse duration*/
-				if (e==GF_EOS) read->is_remote = 0;
+				if (e==GF_EOS) read->is_remote = GF_FALSE;
 				e = GF_OK;
 				/*not enough data*/
 				if (!AC3_ConfigureFromFile(read)) {
@@ -318,7 +318,7 @@ void AC3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	}
 	/*OK confirm*/
 	if (read->needs_connection) {
-		read->needs_connection = 0;
+		read->needs_connection = GF_FALSE;
 		gf_service_connect_ack(read->service, NULL, e);
 		if (!e) AC3_SetupObject(read);
 	}
@@ -328,11 +328,11 @@ void ac3_download_file(GF_InputService *plug, char *url)
 {
 	AC3Reader *read = (AC3Reader*) plug->priv;
 
-	read->needs_connection = 1;
+	read->needs_connection = GF_TRUE;
 
 	read->dnload = gf_service_download_new(read->service, url, 0, AC3_NetIO, read);
 	if (!read->dnload ) {
-		read->needs_connection = 0;
+		read->needs_connection = GF_FALSE;
 		gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
 	} else {
 		/*start our download (threaded)*/
@@ -347,7 +347,7 @@ static GF_Err AC3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	char szURL[2048];
 	char *ext;
 	GF_Err reply;
-	AC3Reader *read = plug->priv;
+	AC3Reader *read = (AC3Reader*)plug->priv;
 	read->service = serv;
 
 	if (read->dnload) gf_service_download_del(read->dnload);
@@ -380,7 +380,7 @@ static GF_Err AC3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 static GF_Err AC3_CloseService(GF_InputService *plug)
 {
-	AC3Reader *read = plug->priv;
+	AC3Reader *read = (AC3Reader*)plug->priv;
 	if (read->stream) gf_fclose(read->stream);
 	read->stream = NULL;
 	if (read->dnload) gf_service_download_del(read->dnload);
@@ -394,7 +394,7 @@ static GF_Err AC3_CloseService(GF_InputService *plug)
 
 static GF_Descriptor *AC3_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	AC3Reader *read = plug->priv;
+	AC3Reader *read = (AC3Reader*)plug->priv;
 	/*since we don't handle multitrack in ac3, we don't need to check sub_url, only use expected type*/
 
 	/*override default*/
@@ -419,7 +419,7 @@ static GF_Err AC3_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 {
 	u32 ES_ID=0;
 	GF_Err e;
-	AC3Reader *read = plug->priv;
+	AC3Reader *read = (AC3Reader*)plug->priv;
 
 	e = GF_SERVICE_ERROR;
 	if (read->ch==channel) goto exit;
@@ -443,7 +443,7 @@ exit:
 
 static GF_Err AC3_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	AC3Reader *read = plug->priv;
+	AC3Reader *read = (AC3Reader*)plug->priv;
 
 	GF_Err e = GF_STREAM_NOT_FOUND;
 	if (read->ch == channel) {
@@ -458,8 +458,7 @@ static GF_Err AC3_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 static GF_Err AC3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
-	AC3Reader *read = plug->priv;
-
+	AC3Reader *read = (AC3Reader*)plug->priv;
 
 	if (com->base.command_type==GF_NET_SERVICE_INFO) {
 		com->info.name = read->icy_track_name ? read->icy_track_name : read->icy_name;
@@ -499,7 +498,7 @@ static GF_Err AC3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (read->stream) gf_fseek(read->stream, 0, SEEK_SET);
 
 		if (read->ch == com->base.on_channel) {
-			read->done = 0;
+			read->done = GF_FALSE;
 			/*PLAY after complete download, estimate duration*/
 			if (!read->is_remote && !read->duration) {
 				AC3_ConfigureFromFile(read);
@@ -528,11 +527,11 @@ static GF_Err AC3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 	Bool sync;
 	GF_BitStream *bs;
 	GF_AC3Header hdr;
-	AC3Reader *read = plug->priv;
+	AC3Reader *read = (AC3Reader*)plug->priv;
 
 	*out_reception_status = GF_OK;
-	*sl_compressed = 0;
-	*is_new_data = 0;
+	*sl_compressed = GF_FALSE;
+	*is_new_data = GF_FALSE;
 	memset(&hdr, 0, sizeof(GF_AC3Header));
 
 	memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
@@ -554,7 +553,7 @@ static GF_Err AC3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 			return GF_OK;
 		}
 		bs = gf_bs_from_file(read->stream, GF_BITSTREAM_READ);
-		*is_new_data = 1;
+		*is_new_data = GF_TRUE;
 
 fetch_next:
 		pos = gf_ftell(read->stream);
@@ -563,7 +562,7 @@ fetch_next:
 			gf_bs_del(bs);
 			if (!read->dnload) {
 				*out_reception_status = GF_EOS;
-				read->done = 1;
+				read->done = GF_TRUE;
 			} else {
 				gf_fseek(read->stream, pos, SEEK_SET);
 				*out_reception_status = GF_OK;
@@ -574,7 +573,7 @@ fetch_next:
 		if (!hdr.framesize) {
 			gf_bs_del(bs);
 			*out_reception_status = GF_EOS;
-			read->done = 1;
+			read->done = GF_TRUE;
 			return GF_OK;
 		}
 		read->data_size = hdr.framesize;
@@ -592,7 +591,7 @@ fetch_next:
 
 		read->sl_hdr.compositionTimeStamp = read->current_time;
 
-		read->data = gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
+		read->data = (unsigned char*)gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
 		gf_bs_read_data(bs, (char *) read->data, read->data_size);
 		if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
 		gf_bs_del(bs);
@@ -605,7 +604,7 @@ fetch_next:
 
 static GF_Err AC3_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	AC3Reader *read = plug->priv;
+	AC3Reader *read = (AC3Reader*)plug->priv;
 
 	if (read->ch == channel) {
 		if (!read->data) return GF_BAD_PARAM;
@@ -620,7 +619,7 @@ static GF_Err AC3_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 GF_InputService *AC3_Load()
 {
 	AC3Reader *reader;
-	GF_InputService *plug = gf_malloc(sizeof(GF_InputService));
+	GF_InputService *plug = (GF_InputService*)gf_malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC AC3 Reader", "gpac distribution")
 
@@ -636,7 +635,7 @@ GF_InputService *AC3_Load()
 	plug->ChannelGetSLP = AC3_ChannelGetSLP;
 	plug->ChannelReleaseSLP = AC3_ChannelReleaseSLP;
 
-	reader = gf_malloc(sizeof(AC3Reader));
+	reader = (AC3Reader*)gf_malloc(sizeof(AC3Reader));
 	memset(reader, 0, sizeof(AC3Reader));
 	plug->priv = reader;
 	return plug;
@@ -645,7 +644,7 @@ GF_InputService *AC3_Load()
 void AC3_Delete(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
-	AC3Reader *read = plug->priv;
+	AC3Reader *read = (AC3Reader*)plug->priv;
 	gf_free(read);
 	gf_free(plug);
 }

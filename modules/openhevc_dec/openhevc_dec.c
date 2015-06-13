@@ -84,7 +84,7 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data)
 		return GF_OK;
-	cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
+	cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
 	if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
 	if (ctx->nalu_size_length != cfg->nal_unit_size)
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -126,7 +126,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		HEVCState hevc;
 		memset(&hevc, 0, sizeof(HEVCState));
 
-		cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
+		cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
 		if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
 		ctx->nalu_size_length = cfg->nal_unit_size;
 
@@ -191,8 +191,8 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		ctx->stride /=2;
 		ctx->out_size /= 2;
 		ctx->chroma_bpp = ctx->luma_bpp = 8;
-		ctx->conv_to_8bit = 1;
-		ctx->pack_mode = 0;
+		ctx->conv_to_8bit = GF_TRUE;
+		ctx->pack_mode = GF_FALSE;
 	}
 	ctx->dec_frames = 0;
 	return GF_OK;
@@ -232,7 +232,7 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	}
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "Systems", "Output8bit");
 	if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "Systems", "Output8bit", (ctx->display_bpp>8) ? "no" : "yes");
-	if (sOpt && !strcmp(sOpt, "yes")) ctx->output_as_8bit = 1;
+	if (sOpt && !strcmp(sOpt, "yes")) ctx->output_as_8bit = GF_TRUE;
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "CBUnits");
 	if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "CBUnits", "4");
@@ -240,7 +240,7 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (!ctx->output_cb_size) ctx->output_cb_size = 4;
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "PackHFR");
-	if (sOpt && !strcmp(sOpt, "yes") ) ctx->pack_mode = 1;
+	if (sOpt && !strcmp(sOpt, "yes") ) ctx->pack_mode = GF_TRUE;
 	else if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "PackHFR", "no");
 
 	if (!ctx->raw_out) {
@@ -268,7 +268,7 @@ static GF_Err HEVC_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 		libOpenHevcClose(ctx->openHevcHandle);
 		ctx->openHevcHandle = NULL;
 	}
-	ctx->is_init = 0;
+	ctx->is_init = GF_FALSE;
 	ctx->width = ctx->height = ctx->out_size = 0;
 	if (ctx->conv_buffer) gf_free(ctx->conv_buffer);
 	ctx->conv_buffer = NULL;
@@ -334,7 +334,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = 1;
 		break;
 	case GF_CODEC_DIRECT_OUTPUT:
-		capability->cap.valueBool = 1;
+		capability->cap.valueBool = GF_TRUE;
 		break;
 	/*not known at our level...*/
 	case GF_CODEC_CU_DURATION:
@@ -354,7 +354,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 	case GF_CODEC_WAIT_RAP:
 		if (ctx->dec_frames) {
 			//quick hack, we have an issue with openHEVC resuming after being flushed ...
-			ctx->had_pic = 0;
+			ctx->had_pic = GF_FALSE;
 			libOpenHevcClose(ctx->openHevcHandle);
 			ctx->openHevcHandle = NULL;
 			ctx->is_init = GF_FALSE;
@@ -373,9 +373,9 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		return GF_OK;
 	case GF_CODEC_DIRECT_OUTPUT:
 		ctx->direct_output = GF_TRUE;
-		ctx->pack_mode = 0;
+		ctx->pack_mode = GF_FALSE;
 		if (ctx->conv_to_8bit && ctx->out_size)
-			ctx->conv_buffer = gf_realloc(ctx->conv_buffer, sizeof(char)*ctx->out_size);
+			ctx->conv_buffer = (char*)gf_realloc(ctx->conv_buffer, sizeof(char)*ctx->out_size);
 
 		return GF_OK;
 	}
@@ -403,14 +403,14 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 
 	if (!ctx->output_as_8bit) {
 		if ((ctx->luma_bpp>8) || (ctx->chroma_bpp>8)) {
-			ctx->pack_mode = 0;
+			ctx->pack_mode = GF_FALSE;
 		}
 	} else {
 		if (bit_depth>8) {
 			bit_depth=8;
-			ctx->conv_to_8bit = 1;
+			ctx->conv_to_8bit = GF_TRUE;
 			a_stride /= 2;
-			ctx->pack_mode = 0;
+			ctx->pack_mode = GF_FALSE;
 		}
 	}
 
@@ -425,7 +425,7 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		*outBufferLength = ctx->out_size;
 
 		if (ctx->conv_to_8bit && ctx->direct_output) {
-			ctx->conv_buffer = gf_realloc(ctx->conv_buffer, sizeof(char)*ctx->out_size);
+			ctx->conv_buffer = (char*)gf_realloc(ctx->conv_buffer, sizeof(char)*ctx->out_size);
 		}
 		return GF_BUFFER_TOO_SMALL;
 	}
@@ -446,7 +446,7 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 			dst.video_buffer = ctx->direct_output ? ctx->conv_buffer : outBuffer;
 			dst.pixel_format = GF_PIXEL_YV12;
 
-			gf_color_write_yv12_10_to_yuv(&dst, (u8 *) openHevcFramePtr.pvY, (u8 *) openHevcFramePtr.pvU, (u8 *) openHevcFramePtr.pvV, openHevcFramePtr.frameInfo.nYPitch, ctx->width, ctx->height, NULL, 0);
+			gf_color_write_yv12_10_to_yuv(&dst, (u8 *) openHevcFramePtr.pvY, (u8 *) openHevcFramePtr.pvU, (u8 *) openHevcFramePtr.pvV, openHevcFramePtr.frameInfo.nYPitch, ctx->width, ctx->height, NULL, GF_FALSE);
 			*outBufferLength = ctx->out_size;
 
 			if (ctx->direct_output )
@@ -463,9 +463,9 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		idx_w = ((ctx->frame_idx==0) || (ctx->frame_idx==2)) ? 0 : ctx->width;
 		idx_h = ((ctx->frame_idx==0) || (ctx->frame_idx==1)) ? 0 : ctx->height*2*ctx->stride;
 
-		pY = (void*) ( outBuffer + idx_h + idx_w );
-		pU = (void*) (outBuffer + 2*ctx->stride*2*ctx->height + idx_w/2 +  idx_h/4);
-		pV = (void*) (outBuffer + 2*ctx->stride*2*ctx->height + ctx->stride*ctx->height + idx_w/2 + idx_h/4);
+		pY = (u8*) (outBuffer + idx_h + idx_w );
+		pU = (u8*) (outBuffer + 2*ctx->stride*2*ctx->height + idx_w/2 +  idx_h/4);
+		pV = (u8*) (outBuffer + 2*ctx->stride*2*ctx->height + ctx->stride*ctx->height + idx_w/2 + idx_h/4);
 
 
 		*outBufferLength = 0;
@@ -528,7 +528,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 			return HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
 		}
 		//quick hack, we have an issue with openHEVC resuming after being flushed ...
-		ctx->had_pic = 0;
+		ctx->had_pic = GF_FALSE;
 		libOpenHevcClose(ctx->openHevcHandle);
 		ctx->openHevcHandle = NULL;
 		ctx->is_init = GF_FALSE;
@@ -550,7 +550,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 	*outBufferLength = 0;
 
 	if (ctx->had_pic) {
-		ctx->had_pic = 0;
+		ctx->had_pic = GF_FALSE;
 		return HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
 	}
 	ctx->dec_frames++;

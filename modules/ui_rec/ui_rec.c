@@ -52,7 +52,7 @@ Bool uir_on_event_play(GF_UIRecord *uir , GF_Event *event, Bool consumed_by_comp
 		}
 		break;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 Bool uir_on_event_record(GF_UIRecord *uir , GF_Event *event, Bool consumed_by_compositor)
@@ -97,13 +97,13 @@ Bool uir_on_event_record(GF_UIRecord *uir , GF_Event *event, Bool consumed_by_co
 		gf_bs_write_u32(uir->bs, event->character.unicode_char);
 		break;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 void uir_load_event(GF_UIRecord *uir)
 {
 	memset(&uir->next_event, 0, sizeof(GF_Event));
-	uir->evt_loaded = 0;
+	uir->evt_loaded = GF_FALSE;
 	if (!gf_bs_available(uir->bs)) return;
 
 
@@ -138,25 +138,25 @@ void uir_load_event(GF_UIRecord *uir)
 		uir->next_event.character.unicode_char = gf_bs_read_u32(uir->bs);
 		break;
 	}
-	uir->evt_loaded = 1;
+	uir->evt_loaded = GF_TRUE;
 }
 
 static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 {
 	const char *opt, *uifile;
-	GF_UIRecord *uir = termext->udta;
+	GF_UIRecord *uir = (GF_UIRecord*)termext->udta;
 
 	switch (action) {
 	case GF_TERM_EXT_START:
 		uir->term = (GF_Terminal *) param;
 		opt = gf_modules_get_option((GF_BaseInterface*)termext, "UIRecord", "Mode");
-		if (!opt) return 0;
+		if (!opt) return GF_FALSE;
 		uifile = gf_modules_get_option((GF_BaseInterface*)termext, "UIRecord", "File");
-		if (!uifile) return 0;
+		if (!uifile) return GF_FALSE;
 
 		if (!strcmp(opt, "Play")) {
 			uir->uif = gf_fopen(uifile, "rb");
-			if (!uir->uif) return 0;
+			if (!uir->uif) return GF_FALSE;
 			uir->bs = gf_bs_from_file(uir->uif, GF_BITSTREAM_READ);
 			termext->caps |= GF_TERM_EXTENSION_NOT_THREADED;
 
@@ -167,16 +167,16 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 			uir_load_event(uir);
 		} else if (!strcmp(opt, "Record")) {
 			uir->uif = gf_fopen(uifile, "wb");
-			if (!uir->uif) return 0;
+			if (!uir->uif) return GF_FALSE;
 			uir->bs = gf_bs_from_file(uir->uif, GF_BITSTREAM_WRITE);
 
 			uir->evt_filter.on_event = uir_on_event_record;
 			uir->evt_filter.udta = uir;
 			gf_term_add_event_filter(uir->term, &uir->evt_filter);
 		} else {
-			return 0;
+			return GF_FALSE;
 		}
-		return 1;
+		return GF_TRUE;
 
 	case GF_TERM_EXT_STOP:
 		if (uir->uif) gf_fclose(uir->uif);
@@ -195,7 +195,7 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 		}
 		break;
 	}
-	return 0;
+	return GF_FALSE;
 }
 
 
@@ -217,7 +217,7 @@ GF_TermExt *uir_new()
 void uir_delete(GF_BaseInterface *ifce)
 {
 	GF_TermExt *dr = (GF_TermExt *) ifce;
-	GF_UIRecord *uir = dr->udta;
+	GF_UIRecord *uir = (GF_UIRecord*)dr->udta;
 	gf_free(uir);
 	gf_free(dr);
 }

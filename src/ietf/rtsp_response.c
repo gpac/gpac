@@ -366,7 +366,7 @@ GF_EXPORT
 GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 {
 	GF_Err e;
-	Bool force_reset = 0;
+	Bool force_reset = GF_FALSE;
 	u32 BodyStart, size;
 
 	if (!sess || !rsp) return GF_BAD_PARAM;
@@ -458,12 +458,12 @@ GF_Err gf_rtsp_get_response(GF_RTSPSession *sess, GF_RTSPResponse *rsp)
 
 exit:
 	if (rsp->Connection && !stricmp(rsp->Connection, "Close"))
-		force_reset = 1;
+		force_reset = GF_TRUE;
 	else if (e && (e != GF_IP_NETWORK_EMPTY))
-		force_reset = 1;
+		force_reset = GF_TRUE;
 
 	if (force_reset) {
-		gf_rtsp_session_reset(sess, 0);
+		gf_rtsp_session_reset(sess, GF_FALSE);
 		//destroy the socket
 		if (sess->connection) gf_sk_del(sess->connection);
 		sess->connection = NULL;

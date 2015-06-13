@@ -39,7 +39,7 @@ static void rtp_amr_flush(GP_RTPPacketizer *builder)
 	builder->pck_hdr = NULL;
 	/*overwrite last frame F bit*/
 	hdr[builder->last_au_sn] &= 0x7F;
-	builder->OnData(builder->cbk_obj, hdr, hdr_size, 1);
+	builder->OnData(builder->cbk_obj, hdr, hdr_size, GF_TRUE);
 	gf_free(hdr);
 	builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
 	builder->bytesInPacket = 0;
@@ -106,7 +106,7 @@ GF_Err gp_rtp_builder_do_amr(GP_RTPPacketizer *builder, char *data, u32 data_siz
 		if (builder->OnDataReference) {
 			builder->OnDataReference(builder->cbk_obj, size, offset);
 		} else {
-			builder->OnData(builder->cbk_obj, data+offset, size, 0);
+			builder->OnData(builder->cbk_obj, data+offset, size, GF_FALSE);
 		}
 		builder->last_au_sn++;
 		builder->bytesInPacket += size;
@@ -166,13 +166,13 @@ GF_Err gp_rtp_builder_do_qcelp(GP_RTPPacketizer *builder, char *data, u32 data_s
 			builder->rtp_header.SequenceNumber += 1;
 			builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
 			hdr = 0;/*no interleaving*/
-			builder->OnData(builder->cbk_obj, (char*)&hdr, 1, 0);
+			builder->OnData(builder->cbk_obj, (char*)&hdr, 1, GF_FALSE);
 			builder->bytesInPacket = 1;
 		}
 		if (builder->OnDataReference) {
 			builder->OnDataReference(builder->cbk_obj, size, offset);
 		} else {
-			builder->OnData(builder->cbk_obj, data+offset, size, 0);
+			builder->OnData(builder->cbk_obj, data+offset, size, GF_FALSE);
 		}
 		builder->bytesInPacket += size;
 		offset += size;
@@ -205,7 +205,7 @@ static void rtp_evrc_smv_flush(GP_RTPPacketizer *builder)
 		/*overwrite count*/
 		hdr[0] = 0;
 		hdr[1] = builder->last_au_sn-1;/*MMM + frameCount-1*/
-		builder->OnData(builder->cbk_obj, hdr, hdr_size, 1);
+		builder->OnData(builder->cbk_obj, hdr, hdr_size, GF_TRUE);
 		gf_free(hdr);
 	}
 	builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
@@ -269,7 +269,7 @@ GF_Err gp_rtp_builder_do_smv(GP_RTPPacketizer *builder, char *data, u32 data_siz
 		if (builder->OnDataReference) {
 			builder->OnDataReference(builder->cbk_obj, size, offset);
 		} else {
-			builder->OnData(builder->cbk_obj, data+offset, size, 0);
+			builder->OnData(builder->cbk_obj, data+offset, size, GF_FALSE);
 		}
 		builder->last_au_sn++;
 		builder->bytesInPacket += size;
@@ -294,7 +294,7 @@ GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, char *data, u32 data_si
 	/*the H263 hinter doesn't perform inter-sample concatenation*/
 	if (!data) return GF_OK;
 
-	Pbit = 1;
+	Pbit = GF_TRUE;
 
 	/*skip 16 0'ed bits of start code*/
 	offset = 2;
@@ -323,17 +323,17 @@ GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, char *data, u32 data_si
 		gf_bs_del(bs);
 
 		/*add header*/
-		builder->OnData(builder->cbk_obj, (char*) hdr, 2, 1);
+		builder->OnData(builder->cbk_obj, (char*) hdr, 2, GF_TRUE);
 		/*add payload*/
 		if (builder->OnDataReference)
 			builder->OnDataReference(builder->cbk_obj, size, offset);
 		else
-			builder->OnData(builder->cbk_obj, data + offset, size, 0);
+			builder->OnData(builder->cbk_obj, data + offset, size, GF_FALSE);
 
 		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
 
 		offset += size;
-		Pbit = 0;
+		Pbit = GF_FALSE;
 	}
 	return GF_OK;
 }
@@ -343,7 +343,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 	GF_BitStream *bs;
 	char *hdr;
 	u32 samp_size, txt_size, pay_start, hdr_size, txt_done, cur_frag, nb_frag;
-	Bool is_utf_16 = 0;
+	Bool is_utf_16 = GF_FALSE;
 
 	if (!data) {
 		/*flush packet*/
@@ -362,7 +362,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 	if (txt_size>2) {
 		/*seems 3GP only accepts BE UTF-16 (no LE, no UTF32)*/
 		if (((u8) data[2]==(u8) 0xFE) && ((u8) data[3]==(u8) 0xFF)) {
-			is_utf_16 = 1;
+			is_utf_16 = GF_TRUE;
 			pay_start = 4;
 			txt_size -= 2;
 		}
@@ -394,7 +394,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 		gf_bs_write_u16(bs, txt_size);
 		gf_bs_get_content(bs, &hdr, &hdr_size);
 		gf_bs_del(bs);
-		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, 0);
+		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, GF_FALSE);
 		builder->bytesInPacket += hdr_size;
 		gf_free(hdr);
 
@@ -402,7 +402,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 			if (builder->OnDataReference) {
 				builder->OnDataReference(builder->cbk_obj, samp_size, pay_start);
 			} else {
-				builder->OnData(builder->cbk_obj, data + pay_start, samp_size, 0);
+				builder->OnData(builder->cbk_obj, data + pay_start, samp_size, GF_FALSE);
 			}
 			builder->bytesInPacket += samp_size;
 		}
@@ -462,14 +462,14 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 		gf_bs_write_u16(bs, samp_size);
 		gf_bs_get_content(bs, &hdr, &hdr_size);
 		gf_bs_del(bs);
-		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, 0);
+		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, GF_FALSE);
 		builder->bytesInPacket += hdr_size;
 		gf_free(hdr);
 
 		if (builder->OnDataReference) {
 			builder->OnDataReference(builder->cbk_obj, size, pay_start + txt_done);
 		} else {
-			builder->OnData(builder->cbk_obj, data + pay_start + txt_done, size, 0);
+			builder->OnData(builder->cbk_obj, data + pay_start + txt_done, size, GF_FALSE);
 		}
 		builder->bytesInPacket += size;
 		cur_frag++;
@@ -516,14 +516,14 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 
 		gf_bs_get_content(bs, &hdr, &hdr_size);
 		gf_bs_del(bs);
-		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, 0);
+		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, GF_FALSE);
 		builder->bytesInPacket += hdr_size;
 		gf_free(hdr);
 
 		if (builder->OnDataReference) {
 			builder->OnDataReference(builder->cbk_obj, size, pay_start + txt_done);
 		} else {
-			builder->OnData(builder->cbk_obj, data + pay_start + txt_done, size, 0);
+			builder->OnData(builder->cbk_obj, data + pay_start + txt_done, size, GF_FALSE);
 		}
 		builder->bytesInPacket += size;
 		cur_frag++;
@@ -571,7 +571,7 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 		gf_bs_skip_bytes(bs, du_size-2);
 
 		/*prepare M-bit*/
-		is_last_du = (offset+du_size==data_size) ? 1 : 0;
+		is_last_du = (offset+du_size==data_size) ? GF_TRUE : GF_FALSE;
 
 		frag_state = 0;
 		while (du_size) {
@@ -635,7 +635,7 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 
 				builder->rtp_header.SequenceNumber += 1;
 				builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
-				builder->OnData(builder->cbk_obj, (char *) dims_rtp_hdr, 1, 1);
+				builder->OnData(builder->cbk_obj, (char *) dims_rtp_hdr, 1, GF_TRUE);
 				builder->bytesInPacket = 1;
 			}
 
@@ -643,7 +643,7 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 			if (builder->OnDataReference)
 				builder->OnDataReference(builder->cbk_obj, size, offset+du_offset+size_offset);
 			else
-				builder->OnData(builder->cbk_obj, data+offset+du_offset+size_offset, size, 0);
+				builder->OnData(builder->cbk_obj, data+offset+du_offset+size_offset, size, GF_FALSE);
 
 			/*if fragmentation, force packet flush even on last packet since aggregation unit do not
 			use the same packet format*/
@@ -676,7 +676,7 @@ static void gf_rtp_ac3_flush(GP_RTPPacketizer *builder)
 
 	hdr[0] = builder->ac3_ft;
 	hdr[1] = builder->last_au_sn;
-	builder->OnData(builder->cbk_obj, hdr, 2, 1);
+	builder->OnData(builder->cbk_obj, hdr, 2, GF_TRUE);
 
 	builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
 	builder->bytesInPacket = 0;
@@ -726,7 +726,7 @@ GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, char *data, u32 data_siz
 		if (builder->OnDataReference)
 			builder->OnDataReference(builder->cbk_obj, data_size, 0);
 		else
-			builder->OnData(builder->cbk_obj, data, data_size, 0);
+			builder->OnData(builder->cbk_obj, data, data_size, GF_FALSE);
 
 		builder->bytesInPacket += data_size;
 		builder->last_au_sn++;
@@ -758,13 +758,13 @@ GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, char *data, u32 data_siz
 
 		hdr[0] = builder->ac3_ft;
 		hdr[1] = builder->last_au_sn;
-		builder->OnData(builder->cbk_obj, hdr, 2, 1);
+		builder->OnData(builder->cbk_obj, hdr, 2, GF_TRUE);
 
 		/*add payload*/
 		if (builder->OnDataReference)
 			builder->OnDataReference(builder->cbk_obj, pck_size, offset);
 		else
-			builder->OnData(builder->cbk_obj, data+offset, pck_size, 0);
+			builder->OnData(builder->cbk_obj, data+offset, pck_size, GF_FALSE);
 
 		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
 		offset += pck_size;

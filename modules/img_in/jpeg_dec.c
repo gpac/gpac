@@ -146,7 +146,7 @@ Bool NewJPEGDec(GF_BaseDecoder *ifcd)
 	ifcd->SetCapabilities = JPEG_SetCapabilities;
 	ifcd->GetName = JPEG_GetCodecName;
 	((GF_MediaDecoder *)ifcd)->ProcessData = JPEG_ProcessData;
-	return 1;
+	return GF_TRUE;
 }
 
 void DeleteJPEGDec(GF_BaseDecoder *ifcg)
