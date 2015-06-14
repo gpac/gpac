@@ -5375,7 +5375,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	Double presentation_duration = 0;
 	Double active_period_start = 0;
 	u32 last_period_rep_idx_plus_one = 0;
-	FILE *mpd;
+	FILE *mpd = NULL;
 	PeriodEntry *p;
 	if (!dasher) return GF_BAD_PARAM;
 
