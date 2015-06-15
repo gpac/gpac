@@ -1704,7 +1704,7 @@ restart_fragmentation_pass:
 		}
 
 		SegmentDuration += maxFragDurationOverSegment;
-		maxFragDurationOverSegment=0;
+		maxFragDurationOverSegment = 0;
 
 		/*if no simulation and no SIDX or realtime is used, flush fragments as we write them*/
 		if (!simulation_pass && (!dash_cfg->enable_sidx || dash_cfg->real_time) ) {
@@ -5408,7 +5408,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "MaxSegmentDuration");
 		if (opt) {
 			Double seg_dur = atof(opt);
-			dasher->segment_duration = seg_dur;
+			dasher->max_segment_duration = seg_dur;
 		} else {
 			sprintf(szOpt, "%f", dasher->segment_duration);
 			gf_cfg_set_key(dasher->dash_ctx, "DASH", "MaxSegmentDuration", szOpt);
