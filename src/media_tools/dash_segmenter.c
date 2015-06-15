@@ -195,6 +195,9 @@ struct _dash_segment_input
 	Bool init_segment_generated;
 	char *init_seg_url;
 	Bool use_bs_switching;
+
+
+	Bool get_component_info_done;
 };
 
 
@@ -5527,10 +5530,14 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 				first_in_period = i+1;
 				last_period_rep_idx_plus_one = first_in_period;
 			}
-
-			if (dash_input->dasher_get_components_info) {
-				e = dash_input->dasher_get_components_info(dash_input, dasher);
-				if (e) return e;
+			
+			//only get component info once
+			if (!dash_input->get_component_info_done) {
+				dash_input->get_component_info_done = GF_TRUE;
+				if (dash_input->dasher_get_components_info) {
+					e = dash_input->dasher_get_components_info(dash_input, dasher);
+					if (e) return e;
+				}
 			}
 			dur = dash_input->duration;
 			if (sub_duration && (sub_duration < dur * dasher->dash_scale) ) {
