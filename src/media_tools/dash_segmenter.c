@@ -713,7 +713,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	GF_Err e;
 	char sOpt[100], sKey[100];
 	char szCodecs[200], szCodec[100];
-	u32 cur_seg, fragment_index, max_sap_type;
+	u32 first_seg, cur_seg, fragment_index, max_sap_type;
 	GF_ISOFile *output, *bs_switch_segment;
 	GF_ISOSample *sample, *next;
 	GF_List *fragmenters;
@@ -1277,8 +1277,8 @@ restart_fragmentation_pass:
 
 	if (!seg_rad_name) use_url_template = GF_FALSE;
 
-	cur_seg=1;
-	fragment_index=1;
+	first_seg = cur_seg = 1;
+	fragment_index = 1;
 	if (dash_input->moof_seqnum_increase) {
 		fragment_index = dash_input->moof_seqnum_increase * dash_input->idx_representations + 1;
 	}
@@ -1304,7 +1304,7 @@ restart_fragmentation_pass:
 		}
 
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "NextSegmentIndex");
-		if (opt) cur_seg = atoi(opt);
+		if (opt) first_seg = cur_seg = atoi(opt);
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "NextFragmentIndex");
 		if (opt) fragment_index = atoi(opt);
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "CumulatedDuration");
@@ -1619,7 +1619,7 @@ restart_fragmentation_pass:
 								/*this is the fragment duration from last sample added to next SAP*/
 								frag_dur += (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dash_cfg->dash_scale / tf->TimeScale;
 								/*if media segment about to be produced is longer than max segment length, force segment split*/
-								if (!tf->splitable && (segment_start_time + SegmentDuration + frag_dur > MaxSegmentDuration * (cur_seg - 1))) {
+								if (!tf->splitable && (segment_start_time + SegmentDuration + frag_dur > MaxSegmentDuration * (cur_seg - first_seg))) {
 									split_at_rap = GF_TRUE;
 									/*force new segment*/
 									force_switch_segment = GF_TRUE;
@@ -4927,7 +4927,8 @@ static Bool gf_dasher_cleanup(GF_DASHSegmenter *dasher)
 
 			seg_time += 2 * dash_duration + dasher->time_shift_depth;
 			seg_time -= elapsed;
-			if (seg_time >= 0) break;
+			if (seg_time >= 0)
+				continue;
 
 			if (! (dasher->dash_mode == GF_DASH_DYNAMIC_DEBUG) ) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Removing segment %s - %g sec too late\n", fileName, -seg_time - dash_duration));
