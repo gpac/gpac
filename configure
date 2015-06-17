@@ -240,6 +240,7 @@ GPAC configuration options:
   --disable-jack           disable Jack audio
   --enable-pulseaudio      enable  Pulse audio
   --disable-pulseaudio     disable Pulse audio
+  --disable-x11            disable X11
   --disable-x11-shm        disable X11 shared memory support
   --disable-x11-xv         disable X11 Xvideo support
   --enable-fixed-point     enable fixed-point math
@@ -1856,6 +1857,8 @@ for opt do
             ;;
         --disable-oss-audio) has_oss_audio="no"
             ;;
+        --disable-x11) has_x11="no"
+            ;;
         --disable-x11-shm) has_x11_shm="no"
             ;;
         --disable-x11-xv) has_x11_xv="no"
@@ -2746,10 +2749,12 @@ if test "$win32" != "yes" ; then
     echo "Jack Audio: $has_jack"
     echo "PulseAudio Audio: $has_pulseaudio"
     echo "DirectFB support: $has_directfb"
-    echo "X11 Shared Memory support: $has_x11_shm (path: $X11_PATH)"
-    echo "X11 XVideo support: $has_x11_xv"
-fi
 
+    if test "$has_x11" != "no" ; then
+        echo "X11 Shared Memory support: $has_x11_shm (path: $X11_PATH)"
+        echo "X11 XVideo support: $has_x11_xv"
+    fi
+fi
 echo "SDL Support: $has_sdl"
 if test "$sdl_too_old" = "yes" ; then
     echo "SDL Version too old - please upgrade for SDL support"
