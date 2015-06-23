@@ -1777,7 +1777,7 @@ restart_fragmentation_pass:
 						if (diff >= 1) {
 							tick_adjust = (u32) diff;
 							if (tick_adjust > 1) {
-								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Drift between minCTS of segment and MPD start time is %g s\n", diff/dash_cfg->dash_scale));
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Drift between minCTS of segment and MPD start time is %g s\n", diff/dash_cfg->dash_scale));
 							}
 						}
 					}
@@ -1950,7 +1950,7 @@ restart_fragmentation_pass:
 			max_segment_duration = dash_cfg->segment_duration;
 		} else {
 			if (3*min_seg_dur < max_seg_dur) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Segment duration variation is higher than the +/- 50%% allowed by DASH-IF (min %g, max %g) - please reconsider encoding\n", (Double) min_seg_dur / dash_cfg->dash_scale, (Double) max_seg_dur / dash_cfg->dash_scale));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment duration variation is higher than the +/- 50%% allowed by DASH-IF (min %g, max %g) - please reconsider encoding\n", (Double) min_seg_dur / dash_cfg->dash_scale, (Double) max_seg_dur / dash_cfg->dash_scale));
 			}
 			if (nb_segments == 1) {
 				max_segment_duration = (Double) total_seg_dur;
@@ -2498,7 +2498,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 						valid_in_adaptation_set = GF_FALSE;
 						break;
 					} else {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Files have non-proportional track layouts (%dx%d vs %dx%d) but sample size and aspect ratio match, assuming precision issue\n", w1, h1, w2, h2));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Files have non-proportional track layouts (%dx%d vs %dx%d) but sample size and aspect ratio match, assuming precision issue\n", w1, h1, w2, h2));
 					}
 				}
 
@@ -2559,13 +2559,13 @@ restart_init:
 		in = gf_isom_open(dash_inputs[i].file_name, GF_ISOM_OPEN_READ, NULL);
 		if (!in) {
 			e = gf_isom_last_error(NULL);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Error while opening %s: %s\n", dash_inputs[i].file_name, gf_error_to_string( e ) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error while opening %s: %s\n", dash_inputs[i].file_name, gf_error_to_string( e ) ));
 			return e;
 		}
 
 		if (bs_switch_mode == GF_DASH_BSMODE_MULTIPLE_ENTRIES) {
 			if (gf_isom_get_track_count(in)>1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot use muli-stsd mode on files with multiple tracks\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot use multi-stsd mode on files with multiple tracks\n"));
 				return GF_NOT_SUPPORTED;
 			}
 		}
@@ -2582,7 +2582,7 @@ restart_init:
 					single_track_id = gf_isom_get_track_id(in, j+1);
 				//if not the same ID between the two tracks we cannot create a legal file with bitstream switching enabled
 				else if (single_track_id != gf_isom_get_track_id(in, j+1)) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Track IDs different between representations, disabling bitstream switching\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Track IDs different between representations, disabling bitstream switching\n"));
 					*disable_bs_switching = GF_TRUE;
 					gf_isom_delete(init_seg);
 					gf_delete_file(szInitName);
@@ -2596,7 +2596,7 @@ restart_init:
 				u32 outDescIndex;
 				if ( gf_isom_get_sample_description_count(in, j+1) != 1) {
 					e = GF_NOT_SUPPORTED;
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot merge track with multiple sample descriptions (file %s) - try disabling bitstream switching\n", dash_inputs[i].file_name ));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot merge track with multiple sample descriptions (file %s) - try disabling bitstream switching\n", dash_inputs[i].file_name ));
 					gf_isom_delete(init_seg);
 					gf_isom_delete(in);
 					return e;
@@ -2812,13 +2812,13 @@ retry_track:
 		gf_isom_close(in);
 	}
 	if (e) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Couldn't create initialization segment: error %s\n", gf_error_to_string(e) ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Couldn't create initialization segment: error %s\n", gf_error_to_string(e) ));
 		*disable_bs_switching = GF_TRUE;
 		gf_isom_delete(init_seg);
 		gf_delete_file(szInitName);
 		return GF_OK;
 	} else if (sps_merge_failed) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Could not merge AVC|H264 SPS from different files (same SPS ID used) - disabling bitstream switching\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Could not merge AVC|H264 SPS from different files (same SPS ID used) - disabling bitstream switching\n"));
 		*disable_bs_switching = GF_TRUE;
 		gf_isom_delete(init_seg);
 		gf_delete_file(szInitName);
@@ -3666,7 +3666,7 @@ static GF_Err dasher_get_ts_demux(GF_TSSegmenter *ts_seg, const char *file, u32 
 	memset(ts_seg, 0, sizeof(GF_TSSegmenter));
 	ts_seg->src = gf_fopen(file, "rb");
 	if (!ts_seg->src) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot open input %s: no such file\n", file));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot open input %s: no such file\n", file));
 		return GF_URL_ERROR;
 	}
 	ts_seg->ts = gf_m2ts_demux_new();
@@ -3782,7 +3782,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 		ts_seg.index_file = gf_fopen(IdxName, "wb");
 		if (!ts_seg.index_file) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot create index file %s\n", IdxName));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot create index file %s\n", IdxName));
 			e = GF_IO_ERR;
 			goto exit;
 		}
@@ -3868,7 +3868,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	/* flush SIDX entry for the last packets */
 	m2ts_sidx_flush_entry(&ts_seg);
 	m2ts_sidx_finalize_size(&ts_seg, ts_seg.file_size);
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH]: Indexing done (1 sidx, %d entries).\n", ts_seg.sidx->nb_refs));
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Indexing done (1 sidx, %d entries).\n", ts_seg.sidx->nb_refs));
 
 	gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_REPINDEX, GF_TRUE, IdxName, basename, dash_input->representationID, gf_dasher_strip_output_dir(dash_cfg->mpd_name, dash_cfg->seg_rad_name), "six", 0, 0, 0, dash_cfg->use_segment_timeline);
 
@@ -3999,7 +3999,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				fprintf(dash_cfg->mpd, "/>\n");
 			} else if (presentationTimeOffset > 1) {
 				fprintf(dash_cfg->mpd, "    <SegmentTemplate presentationTimeOffset=\""LLD"\"/>\n", presentationTimeOffset - 1);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH]: PTSOffset "LLD" - startNumber %d - time %g\n", presentationTimeOffset - 1, segment_index, (Double) (s64) (ts_seg.sidx->earliest_presentation_time + pcr_shift) / 90000.0));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] PTSOffset "LLD" - startNumber %d - time %g\n", presentationTimeOffset - 1, segment_index, (Double) (s64) (ts_seg.sidx->earliest_presentation_time + pcr_shift) / 90000.0));
 			}
 		} else {
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, basename, dash_input->representationID, gf_dasher_strip_output_dir(dash_cfg->mpd_name, dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
@@ -4061,7 +4061,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 					dst = gf_fopen(SegName, "wb");
 					if (!dst) {
 						gf_fclose(src);
-						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot create segment file %s\n", SegName));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot create segment file %s\n", SegName));
 						e = GF_IO_ERR;
 						goto exit;
 					}
@@ -4088,7 +4088,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 							res = (u32) fwrite(buf, 1, to_read, dst);
 						}
 						if (res!=to_read) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: IO error while Extracting segment %03d / %03d\r", i+1, ts_seg.sidx->nb_refs));
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] IO error while Extracting segment %03d / %03d\r", i+1, ts_seg.sidx->nb_refs));
 							break;
 						}
 						pos += res;
@@ -4128,7 +4128,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, dash_cfg->seg_rad_name ? basename : szOutName, dash_input->representationID, gf_dasher_strip_output_dir(dash_cfg->mpd_name, dash_cfg->seg_rad_name), "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 		out = gf_fopen(SegName, "wb");
 		if (!out) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: Cannot create segment file %s\n", SegName));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot create segment file %s\n", SegName));
 			e = GF_IO_ERR;
 			goto exit;
 		}
@@ -4382,7 +4382,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 		count = gf_list_count(ts_seg.ts->programs);
 		dasher_del_ts_demux(&ts_seg);
 		if (count>1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: MPEG-2 TS file %s has several programs - this is not supported in MPEG-DASH - skipping\n", dash_input->file_name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] MPEG-2 TS file %s has several programs - this is not supported in MPEG-DASH - skipping\n", dash_input->file_name));
 			return GF_NOT_SUPPORTED;
 		}
 
@@ -4396,7 +4396,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 	}
 #endif
 
-	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: File %s not supported for dashing - skipping\n", dash_input->file_name));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] File %s not supported for dashing - skipping\n", dash_input->file_name));
 	return GF_NOT_SUPPORTED;
 }
 
@@ -4986,7 +4986,7 @@ static GF_Err dash_insert_period_xml(FILE *mpd, char *szPeriodXML)
 
 	period_mpd = gf_fopen(szPeriodXML, "rb");
 	if (!period_mpd) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Error opening period MPD file %s\n", szPeriodXML));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Error opening period MPD file %s\n", szPeriodXML));
 		return GF_IO_ERR;
 	}
 	gf_fseek(period_mpd, 0, SEEK_END);
@@ -4999,7 +4999,7 @@ static GF_Err dash_insert_period_xml(FILE *mpd, char *szPeriodXML)
 		if (xml_size<4096) size = xml_size;
 		read = (u32) fread(buf, 1, size, period_mpd);
 		if (read != size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Error reading from period MPD file: got %d but requested %d bytes\n", read, size ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Error reading from period MPD file: got %d but requested %d bytes\n", read, size ));
 			gf_fclose(period_mpd);
 			return GF_IO_ERR;
 		}
@@ -5334,7 +5334,7 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *inpu
 	}
 	if (!strcmp(dash_input->file_name, "NULL") || !strcmp(dash_input->file_name, "") || !dash_input->file_name) {
 		if (!strcmp(dash_input->xlink, "")) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH]: No input file specified and no xlink set - cannot dash\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] No input file specified and no xlink set - cannot dash\n"));
 			dasher->nb_inputs --;
 			return GF_BAD_PARAM;
 		}
@@ -5345,7 +5345,7 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *inpu
 		e = gf_dash_segmenter_probe_input(&dasher->inputs, &dasher->nb_inputs, dasher->nb_inputs-1);
 
 		if (e) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Cannot open file %s for dashing: %s\n", dash_input->file_name, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Cannot open file %s for dashing: %s\n", dash_input->file_name, gf_error_to_string(e) ));
 			dasher->nb_inputs --;
 			return e;
 		}
@@ -5528,7 +5528,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			if (max_sap_type>3) nb_sap_type_greater_than_4++;
 		}
 		if (none_supported) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: None of the input types are supported for DASHing - nothing to do ...\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] None of the input types are supported for DASHing - nothing to do ...\n"));
 			return GF_OK;
 		}
 	}
@@ -5536,7 +5536,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	/*check requested profiles can be generated, or adjust them*/
 	if (nb_sap_type_greater_than_4 || (nb_sap_type_greater_than_3 > 1)) {
 		if (dasher->profile) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: WARNING! Max SAP type %d detected\n\tswitching to FULL profile\n", max_sap_type));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Max SAP type %d detected\n\tswitching to FULL profile\n", max_sap_type));
 		}
 		dasher->profile = GF_DASH_PROFILE_FULL;
 	}
@@ -5603,18 +5603,18 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 	if (!segment_alignment) {
 		if (dasher->profile) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Segments are not time-aligned in each representation of each period\n\tswitching to FULL profile\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segments are not time-aligned in each representation of each period\n\tswitching to FULL profile\n"));
 			dasher->profile = GF_DASH_PROFILE_FULL;
 		}
 		if (dasher->bitstream_switching_mode != GF_DASH_BSMODE_NONE) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: Segments are not time-aligned in each representation of each period\n\tdisabling bitstream switching\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segments are not time-aligned in each representation of each period\n\tdisabling bitstream switching\n"));
 			dasher->bitstream_switching_mode = GF_DASH_BSMODE_NONE;
 		}
 	}
 
 	//check we have a segment template
 	if (dasher->use_url_template && !dasher->seg_rad_name) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH]: WARNING! DASH Live profile requested but no -segment-name\n\tusing \"%%s_dash\" by default\n\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! DASH Live profile requested but no -segment-name\n\tusing \"%%s_dash\" by default\n\n"));
 		dasher_format_seg_name(dasher, "%s_dash");
 	}
 
