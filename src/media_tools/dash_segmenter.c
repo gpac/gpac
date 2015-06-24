@@ -444,10 +444,13 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_AVC2_H264:
 	case GF_ISOM_SUBTYPE_AVC3_H264:
 	case GF_ISOM_SUBTYPE_AVC4_H264:
+		//FIXME: in avc1 with multiple descriptor, we should take the right description index
 		avcc = gf_isom_avc_config_get(movie, track, 1);
 		if (force_inband) {
-			if (subtype==GF_ISOM_SUBTYPE_AVC_H264) subtype = GF_ISOM_SUBTYPE_AVC3_H264;
-			else if (subtype==GF_ISOM_SUBTYPE_AVC2_H264) subtype = GF_ISOM_SUBTYPE_AVC4_H264;
+			if (subtype==GF_ISOM_SUBTYPE_AVC_H264)
+				subtype = GF_ISOM_SUBTYPE_AVC3_H264;
+			else if (subtype==GF_ISOM_SUBTYPE_AVC2_H264)
+				subtype = GF_ISOM_SUBTYPE_AVC4_H264;
 		}
 		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 		gf_odf_avc_cfg_del(avcc);
@@ -1031,7 +1034,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			                              &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
 		}
 
-		gf_media_get_rfc_6381_codec_name(input, i+1, szCodec, bs_switch_segment ? GF_TRUE : GF_FALSE, GF_TRUE);
+		gf_media_get_rfc_6381_codec_name(input, i+1, szCodec, dash_cfg->inband_param_set, GF_TRUE);
 		if (strlen(szCodecs)) strcat(szCodecs, ",");
 		strcat(szCodecs, szCodec);
 
