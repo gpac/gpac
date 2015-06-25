@@ -4916,7 +4916,7 @@ GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile dash_profile
 	
 	dasher->mpd_name = gf_strdup(mpdName);
 	dasher->dash_scale = dash_timescale ? dash_timescale : 1000;
-	dasher->tmpdir = gf_strdup(tmp_dir);
+	if (tmp_dir) dasher->tmpdir = gf_strdup(tmp_dir);
 	dasher->profile = dash_profile;
 	dasher->dash_ctx = dasher_context_file;
 
@@ -4961,10 +4961,10 @@ GF_EXPORT
 GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo)
 {
 	if (!dasher) return GF_BAD_PARAM;
-	dasher->title = gf_strdup(title);
-	dasher->copyright = gf_strdup(copyright);
-	dasher->moreInfoURL = gf_strdup(moreInfoURL);
-	dasher->source = gf_strdup(sourceInfo);
+	if (title) dasher->title = gf_strdup(title);
+	if (copyright) dasher->copyright = gf_strdup(copyright);
+	if (moreInfoURL) dasher->moreInfoURL = gf_strdup(moreInfoURL);
+	if (sourceInfo) dasher->source = gf_strdup(sourceInfo);
 	return GF_OK;
 }
 
@@ -4972,7 +4972,7 @@ GF_EXPORT
 GF_Err gf_dasher_set_location(GF_DASHSegmenter *dasher, const char *location)
 {
 	if (!dasher) return GF_BAD_PARAM;
-	dasher->location = gf_strdup(location);
+	if (location) dasher->location = gf_strdup(location);
 	return GF_OK;
 }
 
@@ -4996,7 +4996,7 @@ static void dasher_format_seg_name(GF_DASHSegmenter *dasher, const char *inName)
 		strcat(szName, inName);
 		dasher->seg_rad_name = gf_strdup(szName);
 	} else {
-		dasher->seg_rad_name = gf_strdup(inName);
+		if (inName) dasher->seg_rad_name = gf_strdup(inName);
 	}
 }
 
