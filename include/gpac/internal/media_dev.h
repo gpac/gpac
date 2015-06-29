@@ -343,6 +343,7 @@ typedef struct
 
 
 #define MAX_SHVC_LAYERS	4
+#define MAX_NUM_LAYER_SETS 1024
 typedef struct
 {
 	s32 id;
@@ -369,6 +370,8 @@ typedef struct
 	u32 num_rep_formats;
 	HEVC_RepFormat rep_formats[16];
 	u32 rep_format_idx[16];
+	Bool base_layer_internal_flag, base_layer_available_flag;
+	u8 num_layers_in_id_list[MAX_NUM_LAYER_SETS];
 } HEVC_VPS;
 
 typedef struct
