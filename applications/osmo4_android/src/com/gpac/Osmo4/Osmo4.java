@@ -12,15 +12,20 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -60,6 +65,7 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
+import android.content.res.AssetManager;
 
 import com.gpac.Osmo4.Osmo4GLSurfaceView;
 import com.gpac.Osmo4.Preview;
@@ -259,8 +265,98 @@ public class Osmo4 extends Activity implements GpacCallback {
                 }
             }
         });
+        
+        //copy GUI elements
+        copyGui(gpacConfig);
 
     }
+    
+    /*
+     * Copy GUI elements
+     *
+     * @param config
+     *
+     * Reference: http://stackoverflow.com/questions/4447477/android-how-to-copy-files-from-assets-folder-to-sdcard
+    */
+    private final static String GUI_ROOT_ASSET_DIR = "gui";
+    private void copyGui(GpacConfig config) {
+     		StringBuilder sb = new StringBuilder();
+     		HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
+				AssetManager assetManager = getAssets();
+				String[] list = null;
+				try {
+				    list = assetManager.list(GUI_ROOT_ASSET_DIR);
+				} catch (IOException e) {
+				    Log.e(LOG_OSMO_TAG, "Failed to get asset file list.", e);
+				    exceptions.put("Failed to get asset file list", e);
+				}
+				for(String path : list) {
+				    try {
+				      copyFileOrDir(config, path);
+				    } catch(IOException e) {
+				        Log.e(LOG_OSMO_TAG, "Failed to copy: " + path, e);
+				        exceptions.put("Failed to copy " + path, e);
+				    }       
+				}
+				
+				if (!exceptions.isEmpty()) {
+					try {
+              PrintStream out = new PrintStream(config.getGpacConfigDirectory() + "debug_gui.txt", "UTF-8"); //$NON-NLS-1$//$NON-NLS-2$
+	            sb.append("*** Exceptions:\n"); //$NON-NLS-1$
+	            for (Map.Entry<String, Throwable> ex : exceptions.entrySet()) {
+	                sb.append(ex.getKey()).append(": ") //$NON-NLS-1$
+	                  .append(ex.getValue().getLocalizedMessage())
+	                  .append('(')
+	                  .append(ex.getValue().getClass())
+	                  .append(")\n"); //$NON-NLS-1$
+	            }
+              out.println(sb.toString());
+              out.flush();
+              out.close();
+          } catch (Exception e) {
+              Log.e(LOG_OSMO_TAG, "Failed to output debug info to debug file", e); //$NON-NLS-1$
+          }
+				}
+		}
+		private void copyFileOrDir(GpacConfig config, String path) throws IOException {
+				AssetManager assetManager = getAssets();
+				String assets[] = null;
+				assets = assetManager.list(GUI_ROOT_ASSET_DIR + "/" + path);
+				if (assets.length == 0) {
+				   copyFile(config, path);
+		    } else {
+		        String fullPath = config.getGpacGuiDirectory() + path;
+		        File dir = new File(fullPath);
+		        if (!dir.exists())
+		            dir.mkdir();
+		        for (int i = 0; i < assets.length; ++i) {
+		            copyFileOrDir(config, path + "/" + assets[i]);
+		        }
+		    }
+		}
+
+		private void copyFile(GpacConfig config, String filename) throws IOException {
+		// if this file exists, do nothing
+				if ((new File(config.getGpacGuiDirectory() + filename).exists()))
+					return;
+				AssetManager assetManager = getAssets();
+				InputStream in = null;
+				OutputStream out = null;
+			  in = assetManager.open(GUI_ROOT_ASSET_DIR + "/" + filename);
+			  String newFileName = config.getGpacGuiDirectory() + filename;
+			  out = new FileOutputStream(newFileName);
+
+			  byte[] buffer = new byte[1024];
+			  int read;
+			  while ((read = in.read(buffer)) != -1) {
+			      out.write(buffer, 0, read);
+			  }
+			  in.close();
+			  in = null;
+			  out.flush();
+			  out.close();
+			  out = null;
+		}
 
     // ---------------------------------------
 

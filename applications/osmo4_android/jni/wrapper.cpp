@@ -122,7 +122,7 @@ static JNINativeMethod sMethods[] = {
 	/* name, signature, funcPtr */
 
 	{	"createInstance",
-		"(Lcom/gpac/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J",
+		"(Lcom/gpac/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J",
 		(void*)&Java_com_gpac_Osmo4_GPACInstance_createInstance
 	},
 	{	"gpacdisconnect",
@@ -644,7 +644,7 @@ void CNativeWrapper::SetupLogs() {
 }
 //-------------------------------
 // dir should end with /
-int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir, const char * urlToLoad) {
+int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir, const char * gui_dir, const char * urlToLoad) {
 	LOGI("Initializing GPAC with URL=%s...", urlToLoad);
 	strcpy(m_cfg_dir, cfg_dir);
 	strcpy(m_modules_dir, modules_dir);
@@ -686,7 +686,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		/*hardcode module directory*/
 		gf_cfg_set_key(m_user.config, "Downloader", "CleanCache", "yes");
 		/*startup file*/
-		snprintf(msg, 256, "%sgui/gui.bt", cfg_dir);
+		snprintf(msg, 256, "%sgui.bt", gui_dir);
 		fstart = gf_fopen(msg, "r");
 		if (fstart) {
 			gf_fclose(fstart);
@@ -704,11 +704,18 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "no");
 		gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "1");
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "ft_font");
+		//Storage directory
+		if (!gf_cfg_get_key(m_user.config, "General", "StorageDirectory")) {
+			snprintf(msg, 256, "%sStorage", cfg_dir);
+			if (!gf_dir_exists(msg)) gf_mkdir(msg);
+			gf_cfg_set_key(m_user.config, "General", "StorageDirectory", msg);
+		}
 	}
 	/* All of this has to be done for every instance */
 	gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", modules_dir ? modules_dir : GPAC_MODULES_DIR);
 	gf_cfg_set_key(m_user.config, "General", "CacheDirectory", cache_dir ? cache_dir : GPAC_CACHE_DIR);
 	gf_cfg_set_key(m_user.config, "General", "LastWorkingDir", cfg_dir);
+	gf_cfg_set_key(m_user.config, "General", "DeviceType", "Android");
 	gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", GPAC_FONT_DIR);
 	gf_cfg_set_key(m_user.config, "Video", "DriverName", "Android Video Output");
 	gf_cfg_set_key(m_user.config, "Audio", "DriverName", "Android Audio Output");

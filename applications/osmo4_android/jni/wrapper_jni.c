@@ -26,20 +26,21 @@ extern "C" {
 /*
  * Class:     com_gpac_Osmo4_GPACInstance
  * Method:    createInstance
- * Signature: (Lcom/gpac/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
+ * Signature: (Lcom/gpac/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
  */
-JNIEXPORT jlong JNICALL Java_com_gpac_Osmo4_GPACInstance_createInstance(JNIEnv * env, jclass obj, jobject callback, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir, jstring url_to_open)
+JNIEXPORT jlong JNICALL Java_com_gpac_Osmo4_GPACInstance_createInstance(JNIEnv * env, jclass obj, jobject callback, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir, jstring gui_dir, jstring url_to_open)
 {
 	jboolean isCopy;
 	const char * s1 = env->GetStringUTFChars(cfg_dir, &isCopy);
 	const char * s2 = env->GetStringUTFChars(modules_dir, &isCopy);
 	const char * s3 = env->GetStringUTFChars(cache_dir, &isCopy);
 	const char * s4 = env->GetStringUTFChars(font_dir, &isCopy);
-	const char * s5 = NULL;
+	const char * s5 = env->GetStringUTFChars(gui_dir, &isCopy);
+	const char * s6 = NULL;
 	if (url_to_open)
-		s5 = env->GetStringUTFChars(url_to_open, &isCopy);
+		s6 = env->GetStringUTFChars(url_to_open, &isCopy);
 	else
-		s5 = NULL;
+		s6 = NULL;
 	CNativeWrapper * gpac_obj = new CNativeWrapper();
 	if (gpac_obj) {
 		int w = width;
@@ -47,7 +48,7 @@ JNIEXPORT jlong JNICALL Java_com_gpac_Osmo4_GPACInstance_createInstance(JNIEnv *
 		jniLOGI("Calling gpac_obj->init()...");
 		if (gpac_obj->init(env, NULL, &callback,
 		                   w, h,
-		                   s1, s2, s3, s4, s5)) {
+		                   s1, s2, s3, s4, s5, s6)) {
 			jniLOGE("FAILED to init(), return code not 0");
 			delete gpac_obj;
 			gpac_obj = NULL;
@@ -60,8 +61,9 @@ JNIEXPORT jlong JNICALL Java_com_gpac_Osmo4_GPACInstance_createInstance(JNIEnv *
 	env->ReleaseStringUTFChars(modules_dir, s2);
 	env->ReleaseStringUTFChars(cache_dir, s3);
 	env->ReleaseStringUTFChars(font_dir, s4);
-	if (s5)
-		env->ReleaseStringUTFChars(font_dir, s5);
+	env->ReleaseStringUTFChars(gui_dir, s5);
+	if (s6)
+		env->ReleaseStringUTFChars(url_to_open, s6);
 	__android_log_print(ANDROID_LOG_VERBOSE, jniTAG, "Returned Handle = %p", gpac_obj);
 	return (jlong) gpac_obj;
 }
