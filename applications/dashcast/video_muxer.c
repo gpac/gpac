@@ -45,7 +45,7 @@ static GF_Err avc_import_ffextradata(const u8 *extradata, const u64 extradata_si
 	GF_BitStream *bs;
 	if (!extradata || (extradata_size < sizeof(u32)))
 		return GF_BAD_PARAM;
-	bs = gf_bs_new(extradata, extradata_size, GF_BITSTREAM_READ);
+	bs = gf_bs_new((const char *) extradata, extradata_size, GF_BITSTREAM_READ);
 	if (!bs)
 		return GF_BAD_PARAM;
 	if (gf_bs_read_u32(bs) != 0x00000001) {
@@ -156,7 +156,7 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 	u32 buffer_size = 0;
 	if (!extradata || (extradata_size < sizeof(u32)))
 		return GF_BAD_PARAM;
-	bs = gf_bs_new(extradata, extradata_size, GF_BITSTREAM_READ);
+	bs = gf_bs_new((const char *) extradata, extradata_size, GF_BITSTREAM_READ);
 	if (!bs)
 		return GF_BAD_PARAM;
 
