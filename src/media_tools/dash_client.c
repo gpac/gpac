@@ -3271,7 +3271,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 	j = gf_list_count(period->adaptation_sets);
 	for (as_i=0; as_i<j; as_i++) {
 		GF_MPD_AdaptationSet *set = (GF_MPD_AdaptationSet*)gf_list_get(period->adaptation_sets, as_i);
-		if (strstr(set->mime_type, "webm")) {
+		if (set->mime_type && strstr(set->mime_type, "webm")) {
 			u32 k;
 			for (k=0; k<gf_list_count(set->representations); ++k) {
 				GF_MPD_Representation *rep = (GF_MPD_Representation*)gf_list_get(set->representations, k);
