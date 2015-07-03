@@ -86,12 +86,14 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-, root, root)
-%doc AUTHORS BUGS Changelog COPYING README TODO
+%doc AUTHORS BUGS Changelog COPYING README.md TODO
 %{_bindir}/*
 %{_libdir}/*
 %{_mandir}/man1/*
 
 %changelog
+* Fri Jul 3 2015 Jean Le Feuvre
+- Changed to README.md
 * Wed Feb 13 2008 Pierre Souchay
 - Added libjack
 * Wed Jul 13 2005 Jean Le Feuvre
