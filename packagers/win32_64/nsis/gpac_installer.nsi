@@ -250,7 +250,7 @@ Section "GPAC Core" SecGPAC
   SectionIn RO
   SetOutPath $INSTDIR
 
-  File /oname=ReadMe.txt "${GPAC_ROOT}\README"
+  File /oname=ReadMe.txt "${GPAC_ROOT}\README.md"
   File /oname=License.txt "${GPAC_ROOT}\COPYING"
   File /oname=Changelog.txt "${GPAC_ROOT}\Changelog"
   File "${GPAC_ROOT}\doc\configuration.html"
