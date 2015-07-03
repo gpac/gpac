@@ -884,9 +884,11 @@ function gwlib_filter_event(evt) {
 
     if (gw_ui_top_wnd && gw_ui_top_wnd.on_event(evt)) return true;
 
-    if ((evt.type == GF_EVENT_KEYDOWN) && ((evt.keycode == 'Up') || (evt.keycode == 'Down') || (evt.keycode == 'Right') || (evt.keycode == 'Left')))
+/*
+ if ((evt.type == GF_EVENT_KEYDOWN) && ((evt.keycode == 'Up') || (evt.keycode == 'Down') || (evt.keycode == 'Right') || (evt.keycode == 'Left')))
         return false;
-
+*/
+	
     for (var i = 0; i < gw_event_filters.length; i++) {
         if (gw_event_filters[i](evt) == true) return true;
     }

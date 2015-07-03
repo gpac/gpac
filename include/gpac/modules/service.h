@@ -541,6 +541,7 @@ typedef struct
 	Bool is_announce, is_splicing;
 	Bool reload_external;
 	Bool enable_if_defined;
+	Bool disable_if_defined;
 	Double activation_countdown;
 } GF_AssociatedContentLocation;
 
