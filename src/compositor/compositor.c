@@ -654,7 +654,7 @@ void gf_sc_del(GF_Compositor *compositor)
 		}
 		gf_list_del(compositor->proto_modules);
 	}
-	gf_mx_p(compositor->evq_mx);
+	if (compositor->evq_mx) gf_mx_p(compositor->evq_mx);
 	while (gf_list_count(compositor->event_queue)) {
 		GF_QueuedEvent *qev = (GF_QueuedEvent *)gf_list_get(compositor->event_queue, 0);
 		gf_list_rem(compositor->event_queue, 0);
@@ -665,8 +665,8 @@ void gf_sc_del(GF_Compositor *compositor)
 		gf_list_rem(compositor->event_queue, 0);
 		gf_free(qev);
 	}
-	gf_mx_v(compositor->evq_mx);
-	gf_mx_del(compositor->evq_mx);
+	if (compositor->evq_mx) gf_mx_v(compositor->evq_mx);
+	if (compositor->evq_mx) gf_mx_del(compositor->evq_mx);
 	gf_list_del(compositor->event_queue);
 	gf_list_del(compositor->event_queue_back);
 
