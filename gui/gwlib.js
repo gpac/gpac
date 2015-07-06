@@ -472,13 +472,15 @@ gwskin.tooltip_timeout = gw_new_timer(false);
 gwskin.tooltip_exec = function (obj, show) {
 
     if (!show) return;
-    
+
     if (!gwskin.tooltip_wnd) {
         wnd = gw_new_window(null, true, true, 'tooltip', true);
         wnd.label = '';
         gwskin.tooltip_wnd = wnd;
         wnd.txt = gw_new_text(gwskin.tooltip_wnd, '');
         wnd.on_display_size = function (w, h) {
+            if (! this.label) return;
+
             width = this.label.length * gwskin.default_text_font_size;
             this.set_size(width, 2 * gwskin.default_text_font_size);
             this.txt.set_width(width);
@@ -499,15 +501,15 @@ gwskin.tooltip_exec = function (obj, show) {
             if (!val) gwskin.tooltip_wnd.close();
         }
     }
-    
+
     gwskin.tooltip_wnd.label = obj.get_label();
     gwskin.tooltip_wnd.txt.set_label(gwskin.tooltip_wnd.label);
     gwskin.tooltip_wnd.on_display_size(gw_display_width, gw_display_height);
-    
+
 
     var tt = gwskin.tooltip_wnd;
     var dy = 1.2 * tt.height;
-    var pos = gw_get_adjusted_abs_pos(obj, tt.width, 1.2*tt.height, 0);
+    var pos = gw_get_adjusted_abs_pos(obj, tt.width, 1.2 * tt.height, 0);
     tt.move(pos.x, pos.y);
 }
 
