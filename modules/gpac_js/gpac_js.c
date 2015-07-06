@@ -1456,7 +1456,7 @@ static JSBool SMJS_FUNCTION(gpac_new_storage)
 			GF_Config *a_cfg = gf_list_get(gjs->storages, i);
 			char *cfg_name = gf_cfg_get_filename(a_cfg);
 
-			if (!strstr(cfg_name, szFile)) {
+			if (strstr(cfg_name, szFile)) {
 				storage = a_cfg;
 				gf_free(cfg_name);
 				break;
