@@ -1062,6 +1062,46 @@ const char *gf_m4a_get_profile_name(u8 audio_pl)
 		return "High Efficiency AAC Profile @ Level 4";
 	case 0x2F:
 		return "High Efficiency AAC Profile @ Level 5";
+	case 0x30:
+		return "High Efficiency AAC v2 Profile @ Level 2";
+	case 0x31:
+		return "High Efficiency AAC v2 Profile @ Level 3";
+	case 0x32:
+		return "High Efficiency AAC v2 Profile @ Level 4";
+	case 0x33:
+		return "High Efficiency AAC v2 Profile @ Level 5";
+	case 0x34:
+		return "Low Delay AAC Profile";
+	case 0x35:
+		return "Baseline MPEG Surround Profile @ Level 1";
+	case 0x36:
+		return "Baseline MPEG Surround Profile @ Level 2";
+	case 0x37:
+		return "Baseline MPEG Surround Profile @ Level 3";
+	case 0x38:
+		return "Baseline MPEG Surround Profile @ Level 4";
+	case 0x39:
+		return "Baseline MPEG Surround Profile @ Level 5";
+	case 0x3A:
+		return "Baseline MPEG Surround Profile @ Level 6";
+
+	case 0x50:
+		return "AAC Profile @ Level 6";
+	case 0x51:
+		return "AAC Profile @ Level 7";
+	case 0x52:
+		return "High Efficiency AAC Profile @ Level 6";
+	case 0x53:
+		return "High Efficiency AAC Profile @ Level 7";
+	case 0x54:
+		return "High Efficiency AAC v2 Profile @ Level 6";
+	case 0x55:
+		return "High Efficiency AAC v2 Profile @ Level 7";
+	case 0x56:
+		return "Extended High Efficiency AAC Profile @ Level 6";
+	case 0x57:
+		return "Extended High Efficiency AAC Profile @ Level 7";
+
 	case 0xFE:
 		return "Not part of MPEG-4 audio profiles";
 	case 0xFF:
@@ -1078,12 +1118,23 @@ u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg)
 {
 	switch (cfg->base_object_type) {
 	case 2: /*AAC LC*/
-		if (cfg->nb_chan<=2) return (cfg->base_sr<=24000) ? 0x28 : 0x29; /*LC@L1 or LC@L2*/
-		return (cfg->base_sr<=48000) ? 0x2A : 0x2B; /*LC@L4 or LC@L5*/
+		if (cfg->nb_chan<=2)
+			return (cfg->base_sr<=24000) ? 0x28 : 0x29; /*LC@L1 or LC@L2*/
+		if (cfg->nb_chan<=5) 
+			return (cfg->base_sr<=48000) ? 0x2A : 0x2B; /*LC@L4 or LC@L5*/
+		return (cfg->base_sr<=48000) ? 0x50 : 0x51; /*LC@L4 or LC@L5*/
 	case 5: /*HE-AAC - SBR*/
-	case 29: /*HE-AAC - SBR+PS*/
-		if (cfg->nb_chan<=2) return (cfg->base_sr<=24000) ? 0x2C : 0x2D; /*HE@L2 or HE@L3*/
-		return (cfg->base_sr<=48000) ? 0x2E : 0x2F; /*HE@L4 or HE@L5*/
+		if (cfg->nb_chan<=2)
+			return (cfg->base_sr<=24000) ? 0x2C : 0x2D; /*HE@L2 or HE@L3*/
+		if (cfg->nb_chan<=5)
+			(cfg->base_sr<=48000) ? 0x2E : 0x2F; /*HE@L4 or HE@L5*/
+		return (cfg->base_sr<=48000) ? 0x52 : 0x53; /*HE@L6 or HE@L7*/
+	case 29: /*HE-AACv2 - SBR+PS*/
+		if (cfg->nb_chan<=2)
+			return (cfg->base_sr<=24000) ? 0x30 : 0x31; /*HE-AACv2@L2 or HE-AACv2@L3*/
+		if (cfg->nb_chan<=5) 
+			return (cfg->base_sr<=48000) ? 0x32 : 0x33; /*HE-AACv2@L4 or HE-AACv2@L5*/
+		return (cfg->base_sr<=48000) ? 0x54 : 0x55; /*HE-AACv2@L6 or HE-AACv2@L7*/
 	/*default to HQ*/
 	default:
 		if (cfg->nb_chan<=2) return (cfg->base_sr<24000) ? 0x0E : 0x0F; /*HQ@L1 or HQ@L2*/
@@ -1096,6 +1147,7 @@ u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg)
 GF_EXPORT
 GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_known)
 {
+	u32 channel_configuration = 0;
 	memset(cfg, 0, sizeof(GF_M4ADecSpecInfo));
 	cfg->base_object_type = gf_bs_read_int(bs, 5);
 	/*extended object type*/
@@ -1108,13 +1160,11 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 	} else {
 		cfg->base_sr = GF_M4ASampleRates[cfg->base_sr_index];
 	}
-	{
-		u32 nb_chan = gf_bs_read_int(bs, 4);
-		if (nb_chan == 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[M4A config] invalid value 0, setting default 2 instead.\n"));
-			nb_chan = 2;
-		}
-		cfg->nb_chan = GF_M4ANumChannels[nb_chan-1];
+
+	channel_configuration = gf_bs_read_int(bs, 4);
+
+	if (channel_configuration) {
+		cfg->nb_chan = GF_M4ANumChannels[channel_configuration-1];
 	}
 
 	if (cfg->base_object_type==5 || cfg->base_object_type==29) {
@@ -1154,8 +1204,62 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 		if (gf_bs_read_int(bs, 1))
 			/*delay = */gf_bs_read_int(bs, 14);
 		ext_flag = gf_bs_read_int(bs, 1);
-		if (!cfg->nb_chan) {
+
+		if (! channel_configuration) {
+			u32 i;
+			cfg->program_config_element_present = 1;
+			cfg->element_instance_tag = gf_bs_read_int(bs, 4);
+			cfg->object_type = gf_bs_read_int(bs, 2);
+			cfg->sampling_frequency_index = gf_bs_read_int(bs, 4);
+			cfg->num_front_channel_elements = gf_bs_read_int(bs, 4);
+			cfg->num_side_channel_elements = gf_bs_read_int(bs, 4);
+			cfg->num_back_channel_elements = gf_bs_read_int(bs, 4);
+			cfg->num_lfe_channel_elements = gf_bs_read_int(bs, 2);
+			cfg->num_assoc_data_elements = gf_bs_read_int(bs, 3);
+			cfg->num_valid_cc_elements = gf_bs_read_int(bs, 4);
+			cfg-> mono_mixdown_present = (Bool) gf_bs_read_int(bs, 1);
+			if (cfg->mono_mixdown_present) {
+				cfg->mono_mixdown_element_number = gf_bs_read_int(bs, 4);
+			}
+			cfg->stereo_mixdown_present = gf_bs_read_int(bs, 1);
+			if (cfg->stereo_mixdown_present) {
+				cfg->stereo_mixdown_element_number = gf_bs_read_int(bs, 4);
+			}
+			cfg->matrix_mixdown_idx_present = gf_bs_read_int(bs, 1);
+			if (cfg->matrix_mixdown_idx_present) {
+				cfg->matrix_mixdown_idx = gf_bs_read_int(bs, 2);
+				cfg->pseudo_surround_enable = gf_bs_read_int(bs, 1);
+			}
+			for (i = 0; i < cfg->num_front_channel_elements; i++) {
+				cfg->front_element_is_cpe[i] = gf_bs_read_int(bs, 1);
+				cfg->front_element_tag_select[i] = gf_bs_read_int(bs, 4);
+			}
+			for (i = 0; i < cfg->num_side_channel_elements; i++) {
+				cfg->side_element_is_cpe[i] = gf_bs_read_int(bs, 1);
+				cfg->side_element_tag_select[i] = gf_bs_read_int(bs, 4);
+			}
+			for (i = 0; i < cfg->num_back_channel_elements; i++) {
+				cfg->back_element_is_cpe[i] = gf_bs_read_int(bs, 1);
+				cfg->back_element_tag_select[i] = gf_bs_read_int(bs, 4);
+			}
+			for (i = 0; i < cfg->num_lfe_channel_elements; i++) {
+				cfg->lfe_element_tag_select[i] = gf_bs_read_int(bs, 4);
+			}
+			for ( i = 0; i < cfg->num_assoc_data_elements; i++) {
+				cfg->assoc_data_element_tag_select[i] = gf_bs_read_int(bs, 4);
+			}
+
+			for (i = 0; i < cfg->num_valid_cc_elements; i++) {
+				cfg->cc_element_is_ind_sw[i] = gf_bs_read_int(bs, 1);
+				cfg->valid_cc_element_tag_select[i] = gf_bs_read_int(bs, 4);
+			}
+			gf_bs_align(bs);
+			cfg->comment_field_bytes = gf_bs_read_int(bs, 8);
+			gf_bs_read_data(bs, (char *) cfg->comments, cfg->comment_field_bytes);
+	
+			cfg->nb_chan = cfg->num_front_channel_elements + cfg->num_back_channel_elements + cfg->num_side_channel_elements + cfg->num_lfe_channel_elements;
 		}
+
 		if ((cfg->base_object_type == 6) || (cfg->base_object_type == 20)) {
 			gf_bs_read_int(bs, 3);
 		}
@@ -1292,8 +1396,9 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 	if (cfg->base_sr_index == 0x0F) {
 		gf_bs_write_int(bs, cfg->base_sr, 24);
 	}
-	if (cfg->nb_chan == 8) {
-		gf_bs_write_int(bs, 7, 4);
+
+	if (cfg->program_config_element_present) {
+		gf_bs_write_int(bs, 0, 4);
 	} else {
 		gf_bs_write_int(bs, gf_m4a_get_channel_cfg( cfg->nb_chan) , 4);
 	}
@@ -1332,6 +1437,59 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 		gf_bs_write_int(bs, 0, 1);
 		/*ext flag*/
 		gf_bs_write_int(bs, 0, 1);
+
+		if (cfg->program_config_element_present) {
+			u32 i;
+			gf_bs_write_int(bs, cfg->element_instance_tag, 4);
+			gf_bs_write_int(bs, cfg->object_type, 2);
+			gf_bs_write_int(bs, cfg->sampling_frequency_index, 4);
+			gf_bs_write_int(bs, cfg->num_front_channel_elements, 4);
+			gf_bs_write_int(bs, cfg->num_side_channel_elements, 4);
+			gf_bs_write_int(bs, cfg->num_back_channel_elements, 4);
+			gf_bs_write_int(bs, cfg->num_lfe_channel_elements, 2);
+			gf_bs_write_int(bs, cfg->num_assoc_data_elements, 3);
+			gf_bs_write_int(bs, cfg->num_valid_cc_elements, 4);
+			gf_bs_write_int(bs, cfg-> mono_mixdown_present, 1);
+			if (cfg->mono_mixdown_present) {
+				gf_bs_write_int(bs, cfg->mono_mixdown_element_number, 4);
+			}
+			gf_bs_write_int(bs, cfg->stereo_mixdown_present, 1);
+			if (cfg->stereo_mixdown_present) {
+				gf_bs_write_int(bs, cfg->stereo_mixdown_element_number, 4);
+			}
+			gf_bs_write_int(bs, cfg->matrix_mixdown_idx_present, 1);
+			if (cfg->matrix_mixdown_idx_present) {
+				gf_bs_write_int(bs, cfg->matrix_mixdown_idx, 2);
+				gf_bs_write_int(bs, cfg->pseudo_surround_enable, 1);
+			}
+			for (i = 0; i < cfg->num_front_channel_elements; i++) {
+				gf_bs_write_int(bs, cfg->front_element_is_cpe[i], 1);
+				gf_bs_write_int(bs, cfg->front_element_tag_select[i], 4);
+			}
+			for (i = 0; i < cfg->num_side_channel_elements; i++) {
+				gf_bs_write_int(bs, cfg->side_element_is_cpe[i], 1);
+				gf_bs_write_int(bs, cfg->side_element_tag_select[i], 4);
+			}
+			for (i = 0; i < cfg->num_back_channel_elements; i++) {
+				gf_bs_write_int(bs, cfg->back_element_is_cpe[i], 1);
+				gf_bs_write_int(bs, cfg->back_element_tag_select[i], 4);
+			}
+			for (i = 0; i < cfg->num_lfe_channel_elements; i++) {
+				gf_bs_write_int(bs, cfg->lfe_element_tag_select[i], 4);
+			}
+			for ( i = 0; i < cfg->num_assoc_data_elements; i++) {
+				gf_bs_write_int(bs, cfg->assoc_data_element_tag_select[i], 4);
+			}
+
+			for (i = 0; i < cfg->num_valid_cc_elements; i++) {
+				gf_bs_write_int(bs, cfg->cc_element_is_ind_sw[i], 1);
+				gf_bs_write_int(bs, cfg->valid_cc_element_tag_select[i], 4);
+			}
+			gf_bs_align(bs);
+			gf_bs_write_int(bs, cfg->comment_field_bytes, 8);
+			gf_bs_write_data(bs, (char *) cfg->comments, cfg->comment_field_bytes);
+		}		
+
 		if ((cfg->base_object_type == 6) || (cfg->base_object_type == 20)) {
 			gf_bs_write_int(bs, 0, 3);
 		}
