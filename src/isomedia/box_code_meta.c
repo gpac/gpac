@@ -31,6 +31,7 @@ GF_Box *meta_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_MetaBox, GF_ISOM_BOX_TYPE_META);
 	gf_isom_full_box_init((GF_Box *)tmp);
+	tmp->other_boxes = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
@@ -614,14 +615,20 @@ GF_Err infe_Write(GF_Box *s, GF_BitStream *bs)
 	if (ptr->item_name) {
 		len = (u32) strlen(ptr->item_name)+1;
 		gf_bs_write_data(bs, ptr->item_name, len);
+	} else {
+		gf_bs_write_byte(bs, 0, 1);
 	}
 	if (ptr->content_type) {
 		len = (u32) strlen(ptr->content_type)+1;
 		gf_bs_write_data(bs, ptr->content_type, len);
+	} else {
+		gf_bs_write_byte(bs, 0, 1);
 	}
 	if (ptr->content_encoding) {
 		len = (u32) strlen(ptr->content_encoding)+1;
 		gf_bs_write_data(bs, ptr->content_encoding, len);
+	} else {
+		gf_bs_write_byte(bs, 0, 1);
 	}
 	return GF_OK;
 }
@@ -635,8 +642,11 @@ GF_Err infe_Size(GF_Box *s)
 	if (e) return e;
 	ptr->size += 4;
 	if (ptr->item_name) ptr->size += strlen(ptr->item_name)+1;
+	else ptr->size += 1;
 	if (ptr->content_type) ptr->size += strlen(ptr->content_type)+1;
+	else ptr->size += 1;
 	if (ptr->content_encoding) ptr->size += strlen(ptr->content_encoding)+1;
+	else ptr->size += 1;
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
