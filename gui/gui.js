@@ -99,7 +99,7 @@ function extension_option_getter(_ext) {
 
 function setup_extension_storage(extension) {
     var storage_name = 'config:' + extension.path + '' + extension.name;
-    gwlog(l_err, 'loading storage for extension ' + storage_name);
+    gwlog(l_inf, 'loading storage for extension ' + storage_name);
 
     extension.jsobj.__gpac_storage = gpac.new_storage(storage_name);
 
