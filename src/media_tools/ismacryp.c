@@ -1948,7 +1948,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	GF_Err e;
 	u32 i, count, nb_tracks, common_idx, idx;
 	GF_CryptInfo *info;
-	Bool is_oma;
+	Bool is_oma, is_encrypted=GF_FALSE;
 	GF_TrackCryptInfo *tci;
 
 	is_oma = 0;
@@ -2014,6 +2014,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 		e = gf_encrypt_track(mp4, tci, NULL, NULL);
 		if (e) break;
 
+		is_encrypted = GF_TRUE;
 		if (tci->enc_type==1) is_oma = 1;
 	}
 
@@ -2025,6 +2026,10 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 #else
 		e = gf_isom_modify_alternate_brand(mp4, GF_4CC('o','p','f','2'), 1);
 #endif
+	}
+
+	if (is_encrypted == GF_FALSE) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Warning: no track was encrypted (but PSSH was written).\n", tci->trackID));
 	}
 
 	del_crypt_info(info);
