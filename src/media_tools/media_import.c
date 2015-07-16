@@ -5983,7 +5983,8 @@ restart_import:
 				copy_size = nal_size;
 				if (copy_size) {
 					nb_sei++;
-					flush_sample = GF_TRUE;
+					//FIXME should not be minus 1 in layer_ids[layer_id - 1] but the previous layer in the tree
+					if (!layer_id || !layer_ids[layer_id - 1]) flush_sample = GF_TRUE;
 				}
 			}
 			break;
