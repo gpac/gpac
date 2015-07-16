@@ -1361,7 +1361,7 @@ restart_fragmentation_pass:
 			} else {
 				start_range = gf_isom_get_file_size(output);
 				if (seg_rad_name) {
-					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switching, SegmentName, output_file, dash_input->representationID, dash_input->baseURL[0], seg_rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, period_duration + segment_start_time, bandwidth, cur_seg, dash_cfg->use_segment_timeline);
+					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, is_bs_switching, SegmentName, output_file, dash_input->representationID, dash_input->baseURL ? dash_input->baseURL[0] : NULL, seg_rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, period_duration + segment_start_time, bandwidth, cur_seg, dash_cfg->use_segment_timeline);
 					e = gf_isom_start_segment(output, SegmentName, dash_cfg->fragments_in_memory);
 
 					/*we are in bitstream switching mode, delete init segment*/
