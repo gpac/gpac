@@ -349,9 +349,9 @@ GF_Err schi_Size(GF_Box *s)
 		ptr->size += ptr->adkm->size;
 	}
 	if (ptr->piff_tenc) {
-		e = gf_isom_box_size((GF_Box *) ptr->tenc);
+		e = gf_isom_box_size((GF_Box *) ptr->piff_tenc);
 		if (e) return e;
-		ptr->size += ptr->tenc->size;
+		ptr->size += ptr->piff_tenc->size;
 	}
 	return GF_OK;
 }
