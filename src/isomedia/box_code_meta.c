@@ -455,7 +455,7 @@ GF_Err pitm_Size(GF_Box *s)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	ptr->size += 16;
+	ptr->size += 2;
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
