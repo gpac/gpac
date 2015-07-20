@@ -201,7 +201,7 @@ void PrintGeneralUsage()
 	        " -strict-error        exits after the first error is reported\n"
 	        " -inter time_in_ms    interleaves file data (track chunks of time_in_ms)\n"
 	        "                       * Note 1: Interleaving is 0.5s by default\n"
-	        "                       * Note 2: Performs drift checking accross tracks\n"
+	        "                       * Note 2: Performs drift checking across tracks\n"
 	        "                       * Note 3: a value of 0 disables interleaving\n"
 	        " -old-inter time      same as -inter but doesn't perform drift checking\n"
 	        " -tight               performs tight interleaving (sample based) of the file\n"
