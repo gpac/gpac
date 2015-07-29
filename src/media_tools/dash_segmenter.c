@@ -125,7 +125,8 @@ struct __gf_dash_segmenter
 	/*set if seg_rad_name depends on input file name (had %s in it). In this case, SegmentTemplate cannot be used at adaptation set level*/
 	Bool variable_seg_rad_name;
 
-	Bool content_protection_in_rep;
+	/*duplicate ContentProtection elemnt in adaptation set for DRM and profiles compatibility*/
+	Bool content_protection_in_adaptation_set;
 
 	Double max_segment_duration;
 
@@ -2055,7 +2056,7 @@ restart_fragmentation_pass:
 	}
 
 	/* Write adaptation set content protection element */
-	if (protected_track && first_in_set && !dash_cfg->content_protection_in_rep) {
+	if (protected_track && first_in_set && dash_cfg->content_protection_in_adaptation_set) {
 		gf_isom_write_content_protection(input, dash_cfg->mpd, protected_track, 3);
 	}
 
@@ -2122,7 +2123,7 @@ restart_fragmentation_pass:
 		fprintf(dash_cfg->mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", nb_channels);
 
 	/* Write content protection element in representation */
-	if (protected_track && dash_cfg->content_protection_in_rep) {
+	if (protected_track) {
 		gf_isom_write_content_protection(input, dash_cfg->mpd, protected_track, 4);
 	}
 
@@ -5272,7 +5273,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	if (!dasher) return GF_BAD_PARAM;
 
 	dasher->force_period_end = GF_FALSE;
-	dasher->content_protection_in_rep = GF_TRUE;
+	dasher->content_protection_in_adaptation_set = GF_FALSE;
 
 	if (dasher->dash_mode && !dasher->mpd_update_time && !dasher->mpd_live_duration) {
 		if (dasher->dash_mode == GF_DASH_DYNAMIC_LAST) {
@@ -5453,12 +5454,12 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		dasher->no_fragments_defaults = GF_TRUE;
 		dasher->use_url_template = 1;
 		dasher->single_segment = dasher->single_file = GF_FALSE;
-		dasher->content_protection_in_rep = GF_FALSE;
+		dasher->content_protection_in_adaptation_set = GF_TRUE;
 		break;
 	case GF_DASH_PROFILE_AVC264_ONDEMAND:
 		dasher->segments_start_with_rap = GF_TRUE;
 		dasher->no_fragments_defaults = GF_TRUE;
-		dasher->content_protection_in_rep = GF_FALSE;
+		dasher->content_protection_in_adaptation_set = GF_TRUE;
 		if (dasher->seg_rad_name) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment-name not allowed in DASH-AVC/264 onDemand profile.\n"));
 			return GF_BAD_PARAM;
