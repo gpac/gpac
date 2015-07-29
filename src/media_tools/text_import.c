@@ -1225,10 +1225,11 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 								gf_isom_delete_xml_subtitle_sample(samp);
 								if (!nb_samples) {
 									s->DTS = 0; /*in MP4 we must start at T=0*/
+									last_sample_duration = ts_end;
 								} else {
 									s->DTS = ts_begin;
+									last_sample_duration = ts_end - ts_begin;
 								}
-								last_sample_duration = ts_end - ts_begin;
 								last_sample_end = ts_end;
 								GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("ts_begin="LLD", ts_end="LLD", last_sample_duration="LLU" (real duration: "LLU"), last_sample_end="LLU"\n", ts_begin, ts_end, ts_end - last_sample_end, last_sample_duration, last_sample_end));
 

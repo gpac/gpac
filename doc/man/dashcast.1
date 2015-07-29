@@ -1,0 +1,161 @@
+.TH DASHCAST "1" "July 2015" "DashCast" "GPAC"
+
+.SH NAME
+DashCast - MPEG-4 Systems Framework and Software Development Kit
+
+.SH SYNOPSIS
+.B DashCast
+.RI [options]
+
+.SH OPTIONS
+.SS "General options"
+.TP
+\fB\-log-file \fRfilename
+set output log file. Also works with -lf
+.TP
+\fB\-logs \fRLOGS
+set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX
+.TP
+\fB\-conf \fRfilename
+set the configuration file name (default: dashcast.conf)
+.TP
+\fB\-switch-source \fRfilename
+set the configuration file name for source switching
+
+.SS "Live options"
+.TP
+\fB\-live
+system is live and input is a camera
+.TP
+\fB\-live-media
+system is live and input is a media file
+.TP
+\fB\-no-loop
+system does not loop on the input media file when live
+.TP
+\fB\-dynamic-ast
+changes segment availability start time at each MPD generation (old behaviour but not allowed in most profiles)
+.TP
+\fB\-insert-utc
+inserts UTC clock at the start of each segment
+
+.SS "Source options"
+.TP
+\fB\-npts
+use frame counting for timestamps (not error-free) instead of source timing (default)
+.TP
+\fB\-av \fRstring
+set the source name for a multiplexed audio and video input.
+If this option is present, neither '-a' nor '-v' shall be present.
+.TP
+\fB\-v \fRstring
+set the source name for a video input.
+If input is from a webcam, use "/dev/video[x]" where x is the video device number.
+If input is the screen video, use ":0.0+[x],[y]" which captures from upper-left at x,y.
+If input is from stdin, use "pipe:".
+.TP
+\fB\-vf \fRstring
+set the input video format.
+To capture from a webcam, set video4linux2.
+To capture the screen, set x11grab.
+.TP
+\fB\-v4l2f \fRinv4l2f
+inv4l2f is the input format for webcam acquisition.
+It can be mjpeg, yuyv422, etc.
+.TP
+\fB\-pixf \fRFMT
+set the input pixel format
+.TP
+\fB\-vfr \fRN
+force the input video framerate
+.TP
+\fB\-vres \fRWxH
+force the video resolution (e.g. 640x480)
+.TP
+\fB\-vcrop \fRXxY
+crop the source video from X pixels left and Y pixels top. Must be used with -vres.
+.TP
+\fB\-a \fRstring
+set the source name for an audio input.
+If input is from microphone, use "plughw:[x],[y]" where x is the card number and y is the device number
+.TP
+\fB\-af \fRstring
+set the input audio format
+
+.SS "Output options"
+.TP
+\fB\-vcodec \fRstring
+set the output video codec (default: h264)
+.TP
+\fB\-vcustom \fRstring
+send custom parameters directly to the video encoder
+.TP
+\fB\-gdr
+use Gradual Decoder Refresh feature for video encoding (h264 codec only)
+.TP
+\fB\-gop
+specify GOP size in frames - default is framerate (1 sec gop)
+.TP
+\fB\-low-delay
+specify that low delay settings should be used (no B-frames, fast encoding)
+.TP
+\fB\-acodec \fRstring
+set the output audio codec (default: aac)
+.TP
+\fB\-acustom \fRstring
+send custom parameters directly to the audio encoder
+
+.SS "DASH options"
+.TP
+\fB\-seg-dur \fRdur:int
+set the segment duration in millisecond (default value: 1000)
+.TP
+\fB\-frag \fRdur:int
+set the fragment duration in millisecond (default value: 1000) (same as -frag-dur)
+.TP
+\fB\-seg-marker \fRmarker:4cc
+add a marker box named marker at the end of DASH segment
+.TP
+\fB\-out \fRoutdir:str
+outdir is the output data directory (default: output)
+.TP
+\fB\-mpd \fRmpdname:str
+mpdname is the MPD file name (default: dashcast.mpd)
+.TP
+\fB\-ast-offset \fRdur:int
+dur is the MPD availabilityStartTime shift in milliseconds (default value: 0)
+.TP
+\fB\-mpd-refresh \fRdur:int
+dur is the MPD minimumUpdatePeriod in seconds
+.TP
+\fB\-time-shift \fRdur:int
+dur is the MPD TimeShiftBufferDepth in seconds.
+The default value is 10. Specify -1 to keep all files.
+.TP
+\fB\-min-buffer \fRdur:float
+dur is the MPD minBufferTime in seconds (default value: 1.0)
+.TP
+\fB\-base-url \fRbaseurl:str
+baseurl is the MPD BaseURL
+
+.SH EXAMPLES
+DashCast -av test.avi -live-media
+.PP
+DashCast -a test_audio.mp3 -v test_audio.mp4 -live-media
+.PP
+DashCast -vf video4linux2 -vres 1280x720 -vfr 24 -v4l2f mjpeg -v /dev/video0 -af alsa -a plughw:1,0 -live
+.PP
+DashCast -vf x11grab -vres 800x600 -vfr 25 -v :0.0 -live
+
+.SH BUGS and OTHER HELP
+For bug reports, more information on BT or XMT-A formats or GPAC TTXT files or ISMACryp,
+MPEG-4 Systems usage and more help on DashCast please visit the GPAC web site http://www.gpac.io
+
+.SH "AUTHORS"
+Arash Shafiei.
+Copyright \(co Telecom ParisTech 2000-2013.
+
+.SH "SEE ALSO"
+.BR GPAC (1),
+.BR MP4Box (1),
+.BR MP4Client (1)

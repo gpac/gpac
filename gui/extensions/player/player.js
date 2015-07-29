@@ -99,6 +99,26 @@ extension = {
             case GF_EVENT_NAVIGATE:
                 this.set_movie_url(evt.target_url);
                 return true;
+			case GF_EVENT_KEYDOWN:
+				//alert('key is '+evt.keycode);
+				if (evt.keycode == 'U+004A') {
+					this.controler.rewind.on_click();
+					return true;
+				}
+				if (evt.keycode == 'U+004B') {
+					this.controler.play.on_click();
+					return true;
+				}
+				if (evt.keycode == 'U+004C') {
+					this.controler.forward.on_click();
+					return true;
+				}
+				if (evt.keycode == 'U+004D') {
+					this.back_live.forward.on_click();
+					return true;
+				}
+				return false;
+
 			default:
 				return false;
         }

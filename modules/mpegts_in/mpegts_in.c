@@ -92,6 +92,8 @@ typedef struct
 
 	u32 map_media_time_on_prog_id;
 	Double media_start_range;
+	
+	const char *force_temi_url;
 } M2TSIn;
 
 
@@ -850,6 +852,8 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		memset(&com, 0, sizeof(com));
 		com.addon_info.command_type = GF_NET_ASSOCIATED_CONTENT_LOCATION;
 		com.addon_info.external_URL = ((GF_M2TS_TemiLocationDescriptor*)param)->external_URL;
+		if (m2ts->force_temi_url)
+			com.addon_info.external_URL = m2ts->force_temi_url;
 		com.addon_info.is_announce = ((GF_M2TS_TemiLocationDescriptor*)param)->is_announce;
 		com.addon_info.is_splicing = ((GF_M2TS_TemiLocationDescriptor*)param)->is_splicing;
 		com.addon_info.activation_countdown = ((GF_M2TS_TemiLocationDescriptor*)param)->activation_countdown;
@@ -1105,6 +1109,9 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	m2ts->ts->record_to = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "M2TS", "RecordTo");
 
 	m2ts->service = serv;
+	
+	m2ts->force_temi_url = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "M2TS", "ForceTEMILocation");
+	if (m2ts->force_temi_url && !strlen(m2ts->force_temi_url)) m2ts->force_temi_url = NULL;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "DSMCC", "Activated");
 	if (opt && !strcmp(opt, "yes")) {

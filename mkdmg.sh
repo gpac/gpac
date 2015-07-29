@@ -34,7 +34,7 @@ fi
 mkdir -p tmpdmg/Osmo4.app
 rsync -r --exclude=.git $source_path/build/osxdmg/Osmo4.app/ ./tmpdmg/Osmo4.app/
 ln -s /Applications ./tmpdmg/Applications
-cp $source_path/README ./tmpdmg
+cp $source_path/README.md ./tmpdmg
 cp $source_path/COPYING ./tmpdmg
 
 mkdir -p tmpdmg/Osmo4.app/Contents/MacOS/modules

@@ -160,6 +160,7 @@ public class GPACInstance implements GPACInstanceInterface {
                                     config.getGpacModulesDirectory(),
                                     config.getGpacCacheDirectory(),
                                     config.getGpacFontDirectory(),
+                                    config.getGpacGuiDirectory(),
                                     urlToOpen);
         } catch (Throwable e) {
             throw new GpacInstanceException("Error while creating instance\n" + sb.toString()); //$NON-NLS-1$
@@ -308,10 +309,11 @@ public class GPACInstance implements GPACInstanceInterface {
      * @param modules_dir
      * @param cache_dir
      * @param font_dir
+     * @param gui_dir
      * @return
      */
     private native long createInstance(GpacCallback callback, int width, int height, String cfg_dir,
-            String modules_dir, String cache_dir, String font_dir, String url_to_open);
+            String modules_dir, String cache_dir, String font_dir, String gui_dir, String url_to_open);
 
     /**
      * Disconnects the currently loaded URL
