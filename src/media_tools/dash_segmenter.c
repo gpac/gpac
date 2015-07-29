@@ -2843,8 +2843,10 @@ retry_track:
 
 static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *szOutName, GF_DASHSegmenter *dash_cfg, Bool first_in_set)
 {
+	GF_Err e = GF_OK;
 	GF_ISOFile *in = gf_isom_open(dash_input->file_name, GF_ISOM_OPEN_READ, dash_cfg->tmpdir);
-	GF_Err e = gf_media_isom_segment_file(in, szOutName, dash_cfg, dash_input, first_in_set);
+	if (gf_isom_get_track_count(in))
+		e = gf_media_isom_segment_file(in, szOutName, dash_cfg, dash_input, first_in_set);
 	gf_isom_close(in);
 	return e;
 }
