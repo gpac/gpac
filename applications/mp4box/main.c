@@ -201,7 +201,7 @@ void PrintGeneralUsage()
 	        " -strict-error        exits after the first error is reported\n"
 	        " -inter time_in_ms    interleaves file data (track chunks of time_in_ms)\n"
 	        "                       * Note 1: Interleaving is 0.5s by default\n"
-	        "                       * Note 2: Performs drift checking accross tracks\n"
+	        "                       * Note 2: Performs drift checking across tracks\n"
 	        "                       * Note 3: a value of 0 disables interleaving\n"
 	        " -old-inter time      same as -inter but doesn't perform drift checking\n"
 	        " -tight               performs tight interleaving (sample based) of the file\n"
@@ -2630,6 +2630,10 @@ int mp4boxMain(int argc, char **argv)
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_ID;
 			sep = strchr(argv[i+1], ':');
+			if (!sep) {
+				fprintf(stderr, "Bad format for -set-track-id - expecting \"id1:id2\" got \"%s\"\n", argv[i+1]);
+				MP4BOX_EXIT_WITH_CODE(1);
+			}
 			*sep = 0;
 			tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			*sep = ':';
@@ -4088,7 +4092,7 @@ int mp4boxMain(int argc, char **argv)
 				fprintf(stderr, "No meta box in input file\n");
 			}
 			break;
-		case META_ACTION_DUMP_XML:
+		case META_ACTION_DUMP_ITEM:
 			if (gf_isom_get_meta_item_count(file, meta->root_meta, tk)) {
 				e = gf_isom_extract_meta_item(file, meta->root_meta, tk, meta->item_id, strlen(meta->szPath) ? meta->szPath : NULL);
 			} else {
@@ -4096,7 +4100,7 @@ int mp4boxMain(int argc, char **argv)
 			}
 			break;
 #endif
-		case META_ACTION_DUMP_ITEM:
+		case META_ACTION_DUMP_XML:
 			if (gf_isom_has_meta_xml(file, meta->root_meta, tk)) {
 				e = gf_isom_extract_meta_xml(file, meta->root_meta, tk, meta->szPath, NULL);
 			} else {

@@ -720,7 +720,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 				saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(traf->sai_offsets, i);
 				/*if we have only 1 sai_offsets, assume that its type is cenc*/
 				if ((saio->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) || (gf_list_count(traf->sai_offsets) == 1)) {
-					offset = saio->offsets[0] + moof_offset;
+					offset = (saio->version ? saio->offsets_large[0] : saio->offsets[0]) + moof_offset;
 					nb_saio = saio->entry_count;
 					break;
 				}
@@ -735,7 +735,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			if (saiz) {
 				for (i = 0; i < saiz->sample_count; i++) {
 					if (nb_saio != 1)
-						offset = saio->offsets[i] + moof_offset;
+						offset = (saio->version ? saio->offsets_large[i] : saio->offsets[i]) + moof_offset;
 					size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[i];
 
 					/*cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
@@ -758,7 +758,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 					}
 					gf_list_add(senc->samp_aux_info, sai);
 					if (sai->subsample_count) senc->flags = 0x00000002;*/
-					gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, (u32)offset, size);
+					gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, offset, size);
 					if (nb_saio == 1)
 						offset += size;
 				}

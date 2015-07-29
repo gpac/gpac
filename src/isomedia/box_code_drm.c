@@ -349,9 +349,9 @@ GF_Err schi_Size(GF_Box *s)
 		ptr->size += ptr->adkm->size;
 	}
 	if (ptr->piff_tenc) {
-		e = gf_isom_box_size((GF_Box *) ptr->tenc);
+		e = gf_isom_box_size((GF_Box *) ptr->piff_tenc);
 		if (e) return e;
-		ptr->size += ptr->tenc->size;
+		ptr->size += ptr->piff_tenc->size;
 	}
 	return GF_OK;
 }
@@ -1143,15 +1143,15 @@ GF_Err store_senc_info(GF_SampleEncryptionBox *ptr, GF_BitStream *bs)
 
 	pos = gf_bs_get_position(bs);
 	if (pos>0xFFFFFFFFULL) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] \"senc\" offset larger than 32-bits , cannot store.\n"));
-		return GF_NOT_SUPPORTED;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] \"senc\" offset larger than 32-bits , \"saio\" box version must be 1 .\n"));
 	}
 	e = gf_bs_seek(bs, ptr->cenc_saio->offset_first_offset_field);
 	if (e) return e;
+	//force using version 1 for saio box i.e offset has 64 bits
 	if (ptr->traf) {
-		gf_bs_write_u32(bs, (u32) ( pos - ptr->traf->moof_start_in_bs) );
+		gf_bs_write_u64(bs, pos - ptr->traf->moof_start_in_bs );
 	} else {
-		gf_bs_write_u32(bs, (u32) pos);
+		gf_bs_write_u64(bs, pos);
 	}
 	return gf_bs_seek(bs, pos);
 }

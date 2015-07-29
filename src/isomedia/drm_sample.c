@@ -680,7 +680,7 @@ GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(stbl->sai_offsets, i);
 		if (saio->aux_info_type != GF_4CC('c', 'e', 'n', 'c'))
 			continue;
-		saiz_del((GF_Box *)saio);
+		saio_del((GF_Box *)saio);
 		gf_list_rem(stbl->sai_offsets, i);
 		i--;
 	}
@@ -887,6 +887,8 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 	}
 	if (!senc->cenc_saio) {
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
+		//force using version 1 for saio box, it could be redundant when we use 64 bits for offset
+		senc->cenc_saio->version = 1;
 		senc->cenc_saio->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
 		senc->cenc_saio->aux_info_type_parameter = 0;
 		senc->cenc_saio->entry_count = 1;
@@ -912,7 +914,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 	}
 }
 
-void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u32 offset, u32 len)
+void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u64 offset, u32 len)
 {
 	u32  i;
 	if (!senc->cenc_saiz) {
@@ -924,6 +926,8 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 	}
 	if (!senc->cenc_saio) {
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
+		//force using version 1 for saio box, it could be redundant when we use 64 bits for offset
+		senc->cenc_saio->version = 1;
 		senc->cenc_saio->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
 		senc->cenc_saio->aux_info_type_parameter = 0;
 		if (stbl)
@@ -946,12 +950,12 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 	}
 
 	if (!senc->cenc_saio->entry_count) {
-		senc->cenc_saio->offsets = (u32 *)gf_malloc(sizeof(u32));
-		senc->cenc_saio->offsets[0] = offset;
+		senc->cenc_saio->offsets_large = (u64 *)gf_malloc(sizeof(u64));
+		senc->cenc_saio->offsets_large[0] = offset;
 		senc->cenc_saio->entry_count ++;
 	} else {
-		senc->cenc_saio->offsets = (u32*)gf_realloc(senc->cenc_saio->offsets, sizeof(u32)*(senc->cenc_saio->entry_count+1));
-		senc->cenc_saio->offsets[senc->cenc_saio->entry_count] = offset;
+		senc->cenc_saio->offsets_large = (u64*)gf_realloc(senc->cenc_saio->offsets, sizeof(u64)*(senc->cenc_saio->entry_count+1));
+		senc->cenc_saio->offsets_large[senc->cenc_saio->entry_count] = offset;
 		senc->cenc_saio->entry_count++;
 	}
 }
@@ -1058,20 +1062,21 @@ Bool gf_isom_cenc_has_saiz_saio(GF_SampleTableBox *stbl, GF_TrackFragmentBox *tr
 static GF_Err gf_isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber, u8 IV_size, GF_CENCSampleAuxInfo **sai)
 {
 	GF_BitStream *bs;
-	u32 offset, prev_sai_size, size, i, j, nb_saio;
-	u64 cur_position;
+	u32  prev_sai_size, size, i, j, nb_saio;
+	u64 cur_position, offset;
 	GF_Err e = GF_OK;
 	char *buffer;
 
-	nb_saio = size = offset = prev_sai_size = 0;
+	nb_saio = size = prev_sai_size = 0;
+	offset = 0;
 
 	for (i = 0; i < gf_list_count(mdia->information->sampleTable->sai_offsets); i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(mdia->information->sampleTable->sai_offsets, i);
 		if (saio->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
 			if (saio->entry_count == 1)
-				offset = saio->offsets[0];
+				offset = saio->version ? saio->offsets_large[0] : saio->offsets[0];
 			else
-				offset = saio->offsets[sampleNumber-1];
+				offset = saio->version ? saio->offsets_large[sampleNumber-1]: saio->offsets[sampleNumber-1];
 			nb_saio = saio->entry_count;
 			break;
 		}

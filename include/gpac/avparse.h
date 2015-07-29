@@ -195,7 +195,22 @@ typedef struct
 	Bool has_ps;
 	/*PL indication*/
 	u8 audioPL;
+
+	/*program config element*/
+	Bool program_config_element_present, mono_mixdown_present, stereo_mixdown_present, matrix_mixdown_idx_present, pseudo_surround_enable ;
+	u8 element_instance_tag, object_type, sampling_frequency_index, num_front_channel_elements, num_side_channel_elements, num_back_channel_elements, num_lfe_channel_elements, num_assoc_data_elements, num_valid_cc_elements;
+	u8 mono_mixdown_element_number, stereo_mixdown_element_number, matrix_mixdown_idx;
+
+	u8 front_element_is_cpe[15], front_element_tag_select[15];
+	u8 side_element_is_cpe[15], side_element_tag_select[15];
+	u8 back_element_is_cpe[15], back_element_tag_select[15];
+	u8 lfe_element_tag_select[15];
+	u8 assoc_data_element_tag_select[15];
+	u8 cc_element_is_ind_sw[15], valid_cc_element_tag_select[15];
+	u8 comment_field_bytes;
+	u8 comments[255];
 } GF_M4ADecSpecInfo;
+
 /*parses dsi and updates audioPL*/
 GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg);
 /*gets audioPL for given cfg*/

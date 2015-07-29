@@ -4,7 +4,9 @@ extension = {
     uhd_demo_enabled: false,
     uhd_demo_on: false,
     uhd_state_on: true,
-    active_addon: null,
+    addon_url: null,
+    scene_url: null,
+    overlay_position: 0,
     icon_width: 0,
     icon_height: 0,
     movie_width: 0,
@@ -62,6 +64,24 @@ extension = {
                     }
                 }
                 return false;
+			case GF_EVENT_KEYDOWN:
+				//alert('key is '+evt.keycode);
+				if (evt.keycode == 'U+003D') {
+					this.overlay_position++;
+					if (this.overlay_position==4) {
+						this.do_deactivate_addon();
+						
+					} else {
+						if (this.overlay_position==5) {
+							this.do_activate_addon();
+							this.overlay_position=0;
+						}
+						this.set_option('OverlayPosition', '' + this.overlay_position);
+						this.refresh_addon();
+					}
+					return true;
+				}
+				return false;
             default:
                 return false;
         }
@@ -97,6 +117,8 @@ extension = {
             gwlib_add_event_filter(this.create_event_filter(this), true);
             this.setup = true;
 
+			this.overlay_position = parseInt(this.get_option('OverlayPosition', '0'));
+			
             /*create media nodes element for playback*/
             this.logo = gw_new_container();
             this.logo.children[0] = new SFNode('Inline');
@@ -253,7 +275,7 @@ extension = {
             this.set_size(w, 13 * gwskin.default_icon_height);
         }
 
-        wnd.check_pos(parseInt(this.get_option('OverlayPosition', '0')));
+        wnd.check_pos(this.overlay_position);
         wnd.check_size(parseInt(this.get_option('OverlaySize', '0')));
 
 
@@ -269,27 +291,36 @@ extension = {
     },
 
     refresh_addon: function () {
-        if (this.active_url) {
-            var odm = gpac.get_object_manager(this.active_url);
+        if (this.scene_url) {
+            var odm = gpac.get_object_manager(this.scene_url);
             if (odm) {
                 odm.addon_layout(parseInt(this.get_option('OverlayPosition', '0')), parseInt(this.get_option('OverlaySize', '0')));
             }
         }
     },
 
-    do_activate_addon: function (obj) {
-        var odm = gpac.get_object_manager(obj.scene_url);
+    do_activate_addon: function () {
+        var odm = gpac.get_object_manager(this.scene_url);
         if (odm) {
-            odm.enable_addon(obj.addon_url);
+            odm.enable_addon(this.addon_url);
             odm.addon_layout(parseInt(this.get_option('OverlayPosition', '0')), parseInt(this.get_option('OverlaySize', '0')));
         }
-        this.active_url = obj.scene_url;
     },
+	
+    do_deactivate_addon: function () {
+    	var odm = gpac.get_object_manager(this.scene_url);
+	    if (odm) {
+		   odm.enable_addon(this.addon_url, true);
+    	}
+    },
+	
 
     confirm_addon: function (evt) {
 
         if (this.get_option('AutoSelect', 'no') == 'yes') {
-            this.do_activate_addon(evt);
+			this.scene_url = evt.scene_url;
+			this.addon_url = evt.addon_url;
+            this.do_activate_addon();
             return;
         }
 
@@ -305,7 +336,9 @@ extension = {
 
         dlg.on_confirm = function (value) {
             if (!value) return;
-            this.extension.do_activate_addon(this);
+			this.extension.scene_url = evt.scene_url;
+			this.extension.addon_url = evt.addon_url;
+            this.extension.do_activate_addon();
         }
     },
 

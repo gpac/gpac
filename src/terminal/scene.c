@@ -2265,9 +2265,23 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 		}
 		//this is an already received addon
 		if (my_addon) {
-			if (addon_info->enable_if_defined)
-				addon->enabled = 1;
+			if (addon_info->disable_if_defined) {
+				addon->enabled = GF_FALSE;
 
+				if (addon->root_od) {
+					gf_scene_toggle_addons(scene, GF_FALSE);
+					gf_scene_remove_object(addon->root_od->parentscene, addon->root_od, 2);
+					gf_odm_disconnect(addon->root_od, 1);
+				}
+				if (addon->root_od) {
+					addon->root_od->addon = NULL;
+				}
+				return;
+			}
+
+			if (addon_info->enable_if_defined)
+				addon->enabled = GF_TRUE;
+			
 			//restart addon
 			if (!addon->root_od && addon->timeline_ready && addon->enabled) {
 				load_associated_media(scene, addon);

@@ -1404,7 +1404,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 							const GENERAL_NAME *altname = sk_GENERAL_NAME_value(altnames, i);
 							if (altname->type == GEN_DNS)
 							{
-								char *altname_str = ASN1_STRING_data(altname->d.ia5);
+								unsigned char *altname_str = ASN1_STRING_data(altname->d.ia5);
 								gf_list_add(valid_names, altname_str);
 							}
 						}

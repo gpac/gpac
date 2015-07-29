@@ -54,6 +54,9 @@ public class GpacConfig {
         }
         gpacLibsDirectory = dataDir + "/lib/"; //$NON-NLS-1$
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacLibsDirectory + " for libraries"); //$NON-NLS-1$ //$NON-NLS-2$
+        
+        gpacGuiDirectory = dataDir + "/gui/";
+        Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacGuiDirectory + " for GUI"); //$NON-NLS-1$ //$NON-NLS-2$
 
     }
 
@@ -63,7 +66,7 @@ public class GpacConfig {
      * @return The {@link GpacConfig} instance itself
      */
     public GpacConfig ensureAllDirectoriesExist() {
-        for (String s : new String[] { gpacConfigDirectory, gpacCacheDirectory }) {
+        for (String s : new String[] { gpacConfigDirectory, gpacCacheDirectory, gpacGuiDirectory }) {
             createDirIfNotExist(s);
         }
         return this;
@@ -114,6 +117,15 @@ public class GpacConfig {
     public String getGpacCacheDirectory() {
         return gpacCacheDirectory;
     }
+    
+    /**
+     * Default directory for GUI files
+     * 
+     * @return the gpacGuiDirectory
+     */
+    public String getGpacGuiDirectory() {
+        return gpacGuiDirectory;
+    }
 
     private final String gpacFontDirectory = "/system/fonts/"; //$NON-NLS-1$
 
@@ -122,6 +134,8 @@ public class GpacConfig {
     private final String gpacLibsDirectory;
 
     private final String gpacCacheDirectory;
+    
+    private final String gpacGuiDirectory;
 
     /**
      * Creates a given directory if it does not exist
@@ -170,6 +184,7 @@ public class GpacConfig {
         sb.append("GpacModulesDirectory=").append(getGpacModulesDirectory()).append('\n'); //$NON-NLS-1$
         sb.append("GpacFontDirectory=").append(getGpacFontDirectory()).append('\n'); //$NON-NLS-1$
         sb.append("GpacCacheDirectory=").append(getGpacCacheDirectory()).append('\n'); //$NON-NLS-1$
+         sb.append("GpacGuiDirectory=").append(getGpacGuiDirectory()).append('\n'); //$NON-NLS-1$
         return sb.toString();
     }
 }

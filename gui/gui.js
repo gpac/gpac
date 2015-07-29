@@ -98,12 +98,13 @@ function extension_option_getter(_ext) {
 }
 
 function setup_extension_storage(extension) {
-    var storage_name = 'config:' + extension.ext_description.path + '' + extension.ext_description.name;
+    var storage_name = 'config:' + extension.path + '' + extension.name;
+    gwlog(l_inf, 'loading storage for extension ' + storage_name);
 
-    extension.extension_obj.__gpac_storage = gpac.new_storage(storage_name);
+    extension.jsobj.__gpac_storage = gpac.new_storage(storage_name);
 
-    extension.extension_obj.get_option = extension_option_getter(extension.ext_description);
-    extension.extension_obj.set_option = extension_option_setter(extension.ext_description);
+    extension.jsobj.get_option = extension_option_getter(extension);
+    extension.jsobj.set_option = extension_option_setter(extension);
 }
 
 //Initialize our GUI
@@ -179,6 +180,7 @@ function initialize() {
       if ( (typeof extension.requires_gl == 'boolean') && extension.requires_gl && !gwskin.has_opengl) continue;
 
       extension.path = 'extensions/' + list[i].name + '/';
+      extension.jsobj = null;
 
       gwlog(l_deb, 'Loading UI extension ' + extension.name + ' ' + ' icon ' + extension.path + extension.icon + ' Author ' + extension.author);
 
@@ -194,36 +196,36 @@ function initialize() {
 
       extension.icon = insert_dock_icon(extension.name, extension.path + extension.icon);
       extension.icon.ext_description = extension;
-      extension.icon.extension_obj = null;
       extension.icon.on_close = function () {
         this.ext_description.icon = null;
         this.ext_description = null;
       }
       extension.icon.on_click = function () {
-          if (!this.extension_obj) {
-              for (var i = 0; i < this.ext_description.execjs.length; i++) {
-                  gwlog(l_deb, 'Loading UI extension ' + this.ext_description.name + ' - Executing JS ' + this.ext_description.path + this.ext_description.execjs[i]);
+          var extension = this.ext_description;
+          if (!extension.jsobj) {
+              for (var i = 0; i < extension.execjs.length; i++) {
+                  gwlog(l_deb, 'Loading UI extension ' + extension.name + ' - Executing JS ' + extension.path + extension.execjs[i]);
                   if (!i) {
-                      this.extension_obj = Browser.loadScript(this.ext_description.path + this.ext_description.execjs[i]);
-                      this.compatible = (this.extension_obj != null) ? true : false;
-                      if (!this.compatible) break;
+                      extension.jsobj = Browser.loadScript(extension.path + extension.execjs[i]);
+                      extension.compatible = (extension.jsobj != null) ? true : false;
+                      if (!extension.compatible) break;
 
-                      setup_extension_storage(this);
+                      setup_extension_storage(extension);
                   } else {
-                      Browser.loadScript(this.ext_description.path + this.ext_description.execjs[i]);
+                      Browser.loadScript(extension.path + extension.execjs[i]);
                   }
               }
 
           }
-          if (!this.compatible) {
-              var w = gw_new_message(null, 'Error', 'Extension ' + this.ext_description.name + ' is not compatible');
+          if (!extension.compatible) {
+              var w = gw_new_message(null, 'Error', 'Extension ' + extension.name + ' is not compatible');
               w.show();
               alert('Error');
               this.parent.disable();
               return;
           }
 
-          if (this.extension_obj && (typeof this.extension_obj.start != 'undefined')) this.extension_obj.start();
+          if (extension.jsobj && (typeof extension.jsobj.start != 'undefined')) extension.jsobj.start();
       } 
     }
     

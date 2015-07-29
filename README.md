@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/gpac/gpac.svg?branch=master)](https://travis-ci.org/gpac/gpac)
+
 README for GPAC version 0.5.0, May 2012.
 
 GPAC is a multimedia framework oriented towards rich media and distributed under the LGPL license (see COPYING).

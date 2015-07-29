@@ -1332,28 +1332,34 @@ static JSBool SMJS_FUNCTION(gjs_odm_addon_layout)
 	return JS_TRUE;
 }
 
-static void do_enable_addon(GF_ObjectManager *odm, char *addon_url, Bool enable_if_defined )
+static void do_enable_addon(GF_ObjectManager *odm, char *addon_url, Bool enable_if_defined, Bool disable_if_defined )
 {
 	GF_AssociatedContentLocation addon_info;
 	memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
 	addon_info.external_URL = addon_url;
 	addon_info.timeline_id = -100;
 	addon_info.enable_if_defined = enable_if_defined;
+	addon_info.disable_if_defined = disable_if_defined;
 	gf_scene_register_associated_media(odm->subscene ? odm->subscene : odm->parentscene, &addon_info);
 }
 
 static JSBool SMJS_FUNCTION(gjs_odm_enable_addon)
 {
+	Bool do_disable = GF_FALSE;
 	char *addon_url = NULL;
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
 
 	if (! JSVAL_IS_STRING(argv[0]) ) return JS_TRUE;
-
+	if ((argc==2) && JSVAL_IS_BOOLEAN(argv[1])) {
+		do_disable = (Bool) JSVAL_TO_BOOLEAN(argv[1]);
+	}
+		
+	
 	addon_url = SMJS_CHARS(c, argv[0]);
 	if (addon_url) {
-		do_enable_addon(odm, addon_url, GF_TRUE);
+		do_enable_addon(odm, addon_url, GF_TRUE, do_disable);
 	}
 	return JS_TRUE;
 }
@@ -1369,7 +1375,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_declare_addon)
 
 	addon_url = SMJS_CHARS(c, argv[0]);
 	if (addon_url) {
-		do_enable_addon(odm, addon_url, GF_FALSE);
+		do_enable_addon(odm, addon_url, GF_FALSE, GF_FALSE);
 	}
 	return JS_TRUE;
 }
@@ -1450,7 +1456,7 @@ static JSBool SMJS_FUNCTION(gpac_new_storage)
 			GF_Config *a_cfg = gf_list_get(gjs->storages, i);
 			char *cfg_name = gf_cfg_get_filename(a_cfg);
 
-			if (!strstr(cfg_name, szFile)) {
+			if (strstr(cfg_name, szFile)) {
 				storage = a_cfg;
 				gf_free(cfg_name);
 				break;
