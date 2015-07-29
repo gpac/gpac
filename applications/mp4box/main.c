@@ -2623,6 +2623,10 @@ int mp4boxMain(int argc, char **argv)
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_ID;
 			sep = strchr(argv[i+1], ':');
+			if (!sep) {
+				fprintf(stderr, "Bad format for -set-track-id - expecting \"id1:id2\" got \"%s\"\n", argv[i+1]);
+				MP4BOX_EXIT_WITH_CODE(1);
+			}
 			*sep = 0;
 			tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			*sep = ':';
