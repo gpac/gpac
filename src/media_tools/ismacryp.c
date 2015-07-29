@@ -2029,7 +2029,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	}
 
 	if (is_encrypted == GF_FALSE) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Warning: no track was encrypted (but PSSH was written).\n", tci->trackID));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Warning: no track was encrypted (but PSSH was written).\n"));
 	}
 
 	del_crypt_info(info);
