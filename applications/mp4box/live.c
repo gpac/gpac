@@ -862,7 +862,7 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *grab_ifce, const char *out
 	GF_RTPReorder *ch = NULL;
 #endif
 	GF_Socket *sock;
-	GF_Err e = gf_m2ts_get_socket(grab_m2ts, grab_ifce, 0x80000, &sock);
+	GF_Err e = gf_m2ts_get_socket(grab_m2ts, grab_ifce, GF_M2TS_UDP_BUFFER_SIZE, &sock);
 
 	if (e) {
 		fprintf(stderr, "Cannot open %s: %s\n", grab_m2ts, gf_error_to_string(e));

@@ -3915,7 +3915,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 {
 	u32 i;
 	GF_Err e;
-	char data[UDP_BUFFER_SIZE];
+	char data[GF_M2TS_UDP_BUFFER_SIZE];
 	u32 size;
 	GF_M2TS_Demuxer *ts = _p;
 
@@ -3924,7 +3924,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 
 	//recreate the socket if needed
 	if (ts->socket_url && !ts->sock) {
-		gf_m2ts_get_socket(ts->socket_url, ts->network_type, UDP_BUFFER_SIZE, &ts->sock);
+		gf_m2ts_get_socket(ts->socket_url, ts->network_type, GF_M2TS_UDP_BUFFER_SIZE, &ts->sock);
 	}
 
 #ifdef GPAC_HAS_LINUX_DVB
@@ -3937,7 +3937,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 				continue;
 			}
 
-			ts_size = read(ts->tuner->ts_fd, data, UDP_BUFFER_SIZE);
+			ts_size = read(ts->tuner->ts_fd, data, GF_M2TS_UDP_BUFFER_SIZE);
 			if (ts_size>0) gf_m2ts_process_data(ts, data, (u32) ts_size);
 		}
 	} else
@@ -3962,7 +3962,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 				}
 				size = 0;
 				/*m2ts chunks by chunks*/
-				e = gf_sk_receive(ts->sock, data, UDP_BUFFER_SIZE, 0, &size);
+				e = gf_sk_receive(ts->sock, data, GF_M2TS_UDP_BUFFER_SIZE, 0, &size);
 				if (!size || e) {
 					nb_empty++;
 					if (nb_empty==1000) {
@@ -4159,7 +4159,7 @@ GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u
 static GF_Err gf_m2ts_demuxer_setup_live(GF_M2TS_Demuxer *ts, char *url)
 {
 	GF_Err e;
-	e = gf_m2ts_get_socket(url, ts->network_type, UDP_BUFFER_SIZE, &ts->sock);
+	e = gf_m2ts_get_socket(url, ts->network_type, GF_M2TS_UDP_BUFFER_SIZE, &ts->sock);
 	if (e) return e;
 
 	if (ts->socket_url) gf_free(ts->socket_url);
