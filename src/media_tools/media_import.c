@@ -8881,7 +8881,10 @@ GF_Err gf_import_ac3(GF_MediaImporter *import, Bool is_EAC3)
 				samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
 				max_size = samp->dataLength;
 			}
-			gf_bs_read_data(bs, samp->data, samp->dataLength);
+			if (!gf_bs_read_data(bs, samp->data, samp->dataLength)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[AC3 import] Truncated file - want to read %d bytes but remain only %d bytes\n", samp->dataLength, gf_bs_get_size(bs) - gf_bs_get_position(bs)));
+				break;
+			}
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		if (e)
