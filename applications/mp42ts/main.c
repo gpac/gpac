@@ -2400,7 +2400,7 @@ int main(int argc, char **argv)
 				fprintf(stderr, "Error initializing UDP socket for %s:%d : %s\n", audio_input_ip, audio_input_port, gf_error_to_string(e));
 				goto exit;
 			}
-			gf_sk_set_buffer_size(audio_input_udp_sk, 0, UDP_BUFFER_SIZE);
+			gf_sk_set_buffer_size(audio_input_udp_sk, 0, GF_M2TS_UDP_BUFFER_SIZE);
 			gf_sk_set_block_mode(audio_input_udp_sk, 0);
 
 			/*allocate data buffer*/
