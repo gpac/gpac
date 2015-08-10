@@ -820,6 +820,10 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 			s32 roll_distance;
 			u32 index;
 			GF_ISOSample *samp = gf_isom_get_sample_info(file, i+1, j+1, &index, &offset);
+			if (!samp) {
+				fprintf(dump, " SAMPLE #%d IN TRACK #%d NOT THERE !!!\n", j+1, i+1);
+				continue;
+			}
 			gf_isom_get_sample_flags(file, i+1, j+1, &isLeading, &dependsOn, &dependedOn, &redundant);
 			gf_isom_get_sample_rap_roll_info(file, i+1, j+1, &is_rap, &has_roll, &roll_distance);
 			dts = samp->DTS;
