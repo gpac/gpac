@@ -580,8 +580,8 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 		case GF_ISOM_MEDIA_VISUAL:
 			/*remove image tracks if wanted*/
 			if (gf_isom_get_sample_count(mp4file, i+1)<=1) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Visual track ID %d: only one sample found, assuming image and removing track\n", gf_isom_get_track_id(mp4file, i+1) ));
-				goto remove_track;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[3GPP convert] Visual track ID %d: only one sample found\n", gf_isom_get_track_id(mp4file, i+1) ));
+				//goto remove_track;
 			}
 
 			if (stype == GF_ISOM_SUBTYPE_MPEG4_CRYP) gf_isom_get_ismacryp_info(mp4file, i+1, 1, &stype, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
