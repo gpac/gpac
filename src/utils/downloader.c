@@ -1961,7 +1961,7 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, char *body_start, u3
 	if (sep) sep[0] = ';';
 	*payload_size = size;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Chunk Start: Header \"%s\" - header size %d - payload size %d\n", body_start, 2+strlen(body_start), size));
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Chunk Start: Header \"%s\" - header size %d - payload size %d at UTC "LLD"\n", body_start, 2+strlen(body_start), size, gf_net_get_utc()));
 
 	te_header[0] = '\r';
 	return te_header+2;
@@ -2428,7 +2428,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 #endif
 			e = gf_sk_send(sess->sock, tmp_buf, len+par.size);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request %s\n\n", tmp_buf));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request at UTC "LLD" %s\n\n", gf_net_get_utc(), tmp_buf));
 		gf_free(tmp_buf);
 	} else {
 		u32 len = (u32) strlen(sHTTP);
@@ -2449,7 +2449,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Error sending request %s\n", gf_error_to_string(e) ));
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request %s\n\n", sHTTP));
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request at UTC "LLU" %s\n\n", gf_net_get_utc(), sHTTP));
 		}
 #endif
 	}
