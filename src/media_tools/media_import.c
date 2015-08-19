@@ -8180,10 +8180,11 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				//import->flags |= GF_IMPORT_DO_ABORT;
 				import->last_error = e;
 			}
-			if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90))
+			if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90)) {
 				//import->flags |= GF_IMPORT_DO_ABORT;
+			}
 
-				if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
+			if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
 			if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
 			if (pck->flags & GF_M2TS_PES_PCK_B_FRAME) tsimp->nb_b++;
 			tsimp->last_dts = samp->DTS;
