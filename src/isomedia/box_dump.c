@@ -3750,7 +3750,7 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 		}
 	}
 	fprintf(trace, ">\n");
-	if (itune->data)
+	if (strcmp(name, "Unknown") && itune->data)
 		gf_full_box_dump((GF_Box *)itune->data, trace);
 	DumpBox(a, trace);
 	gf_box_dump_done(NULL, a, trace);
