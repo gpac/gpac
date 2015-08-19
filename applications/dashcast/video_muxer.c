@@ -788,6 +788,8 @@ GF_Err dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, 
 
 int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 ntp_timestamp)
 {
+	Bool segment_close = GF_FALSE;
+	Bool fragment_close = GF_FALSE;
 	switch (video_output_file->muxer_type) {
 	case FFMPEG_VIDEO_MUXER:
 		return dc_ffmpeg_video_muxer_write(video_output_file);
@@ -840,24 +842,30 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 n
 			}
 			video_output_file->last_pts = video_output_file->codec_ctx->coded_frame->pts;
 			video_output_file->last_dts = video_output_file->codec_ctx->coded_frame->pkt_dts;
+			fprintf(stderr, "[DashCast] PTS: %d, DTS: %d, first DTS in frag: %d, frag dur: %d\n", (video_output_file->last_pts*1000)/video_output_file->timescale, (video_output_file->last_dts*1000)/video_output_file->timescale, (video_output_file->first_dts_in_fragment*1000)/video_output_file->timescale, video_output_file->frag_dur);
 
-			if (( video_output_file->last_dts - video_output_file->first_dts_in_fragment + video_output_file->frame_dur) * 1000 >= video_output_file->frag_dur * video_output_file->timescale) {
+			//we may have rounding errors on the input PTS :( add half frame dur safety 
+			//flush segments based on the cumultated duration , to avoid drift
+			/* Check why segment tests work on PTS while fragment tests work on DTS ? */
+			/* Check why fragment closing is not tested based on accumulation of fragment duration to avoid drifts */
+			segment_close =  ((video_output_file->last_pts - video_output_file->pts_at_first_segment + video_output_file->frame_dur) * 1000 >= 
+						      (video_output_file->nb_segments+1)*video_output_file->seg_dur * (u64)video_output_file->timescale);
+#if 0
+			segment_close =  ((video_output_file->last_pts - video_output_file->pts_at_segment_start + 3*video_output_file->frame_dur/2) * 1000 >= 
+				              (video_output_file->seg_dur * (u64)video_output_file->timescale);
+#endif
+			fragment_close = ((video_output_file->last_dts - video_output_file->first_dts_in_fragment + video_output_file->frame_dur) * 1000 >= 
+				              (video_output_file->frag_dur * (u64)video_output_file->timescale));
+
+			if (segment_close || fragment_close) {
 				gf_isom_flush_fragments(video_output_file->isof, 1);
 				video_output_file->fragment_started = 0;
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Flushed fragment at UTC "LLU" ms - First DTS "LLU" last PTS "LLU"\n", gf_net_get_utc(), video_output_file->first_dts_in_fragment, video_output_file->codec_ctx->coded_frame->pts));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Flushed fragment at UTC "LLU" ms - First DTS "LLU" last PTS "LLU" - First Segment PTS "LLU" timescale %d\n", gf_net_get_utc(), video_output_file->first_dts_in_fragment, video_output_file->codec_ctx->coded_frame->pts, video_output_file->pts_at_segment_start, video_output_file->timescale));
 			}
 
-			//we may have rounding errors on the input PTS :( add half frame dur safety
-
-			//flush segments based on the cumultated duration , to avoid drift
-			if (1000 * ( video_output_file->last_pts - video_output_file->pts_at_first_segment + 3*video_output_file->frame_dur/2) / video_output_file->timescale >= (video_output_file->nb_segments+1)*video_output_file->seg_dur ) {
+			if (segment_close) {
 				return 1;
 			}
-#if 0
-			if (1000 * ( video_output_file->last_pts - video_output_file->pts_at_segment_start + 3*video_output_file->frame_dur/2) /video_output_file->timescale >= video_output_file->seg_dur ) {
-				return 1;
-			}
-#endif
 			return 0;
 		}
 
