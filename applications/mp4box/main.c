@@ -3563,7 +3563,6 @@ int mp4boxMain(int argc, char **argv)
 		GF_DASHSegmenter *dasher;
 
 
-		gf_log_set_tool_level(GF_LOG_DASH, GF_LOG_INFO);
 		strcpy(outfile, outName ? outName : gf_url_get_resource_name(inName) );
 		sep = strrchr(outfile, '.');
 		if (sep) sep[0] = 0;
