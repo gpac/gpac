@@ -842,7 +842,7 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 n
 			}
 			video_output_file->last_pts = video_output_file->codec_ctx->coded_frame->pts;
 			video_output_file->last_dts = video_output_file->codec_ctx->coded_frame->pkt_dts;
-			fprintf(stderr, "[DashCast] PTS: %d, DTS: %d, first DTS in frag: %d, frag dur: %d\n", (video_output_file->last_pts*1000)/video_output_file->timescale, (video_output_file->last_dts*1000)/video_output_file->timescale, (video_output_file->first_dts_in_fragment*1000)/video_output_file->timescale, video_output_file->frag_dur);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] PTS: "LLU", DTS: "LLU", first DTS in frag: "LLU", timescale: %d, frag dur: %d\n", video_output_file->last_pts, video_output_file->last_dts, video_output_file->first_dts_in_fragment, video_output_file->timescale, video_output_file->frag_dur));
 
 			//we may have rounding errors on the input PTS :( add half frame dur safety 
 			//flush segments based on the cumultated duration , to avoid drift
