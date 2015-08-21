@@ -183,6 +183,9 @@ struct __gf_download_session
 	u64 request_start_time;
 	/*private extension*/
 	void *ext;
+
+	char *remaining_data;
+	u32 remaining_data_size;
 };
 
 struct __gf_download_manager
@@ -1950,9 +1953,14 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, char *body_start, u3
 
 
 	te_header = strstr((char *) body_start, "\r\n");
-	if (!te_header) return NULL;
+	if (!te_header) {
+		*header_size = 0;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] Chunk encoding: current buffer does not contain enough bytes to read the size\n"));
+		return NULL;
+	}
 
 	te_header[0] = 0;
+	//assert(strlen(body_start));
 	*header_size = (u32) (strlen(body_start)) + 2;
 
 	sep = strchr(body_start, ';');
@@ -1982,7 +1990,7 @@ static void dm_sess_update_download_rate(GF_DownloadSession * sess, Bool always_
 
 static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, u32 payload_size, Bool store_in_init, u32 *rewrite_size)
 {
-	u32 nbBytes, hdr_size, remaining;
+	u32 nbBytes, remaining, hdr_size;
 	u8 *data;
 	Bool flush_chunk = GF_FALSE;
 	GF_NETIO_Parameter par;
@@ -1990,9 +1998,22 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 	nbBytes = payload_size;
 	hdr_size = 0;
 	remaining = 0;
+	if (!payload) 
+		return; //nothing to do
 	if (sess->chunked) {
 		data = (u8 *) gf_dm_get_chunk_data(sess, (char *) payload, &nbBytes, &hdr_size);
-		if (hdr_size + nbBytes + 2 > payload_size) {
+		if (!hdr_size && !data) {
+			/* keep the data and wait for the rest */
+			if (sess->remaining_data) gf_free(sess->remaining_data);
+			sess->remaining_data_size = nbBytes;
+			sess->remaining_data = (char *)gf_malloc(nbBytes * sizeof(char));
+			memcpy(sess->remaining_data, payload, nbBytes);
+			payload_size = 0;
+			payload = NULL;
+		} else if (hdr_size + nbBytes + 2 > payload_size) {
+			/* The entire payload was read, 
+			   and the payload contained the chunk size + CRLF
+			   but we need to wait for the next payloads to finish the chunk */
 			remaining = nbBytes + 2 - payload_size + hdr_size;
 			nbBytes = payload_size - hdr_size;
 			payload_size = 0;
@@ -2503,6 +2524,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 	u32 size;
 	GF_Err e;
 	u32 buf_size = GF_DOWNLOAD_BUFFER_SIZE;
+	u32 remaining_data_size = sess->remaining_data_size;
 	if (sess->dm && sess->dm->limit_data_rate)
 		buf_size = 1024;
 
@@ -2515,7 +2537,15 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 				return GF_OK;
 		}
 
-		e = gf_dm_read_data(sess, sHTTP, buf_size, &size);
+		//the data remaining from the last buffer (i.e size for chunk that couldn't be read because the buffer does not contain enough bytes)
+		if (sess->remaining_data && sess->remaining_data_size) {
+			memcpy(sHTTP, sess->remaining_data, sess->remaining_data_size);
+			gf_free(sess->remaining_data);
+			sess->remaining_data = NULL;
+			sess->remaining_data_size = 0;
+		}
+
+		e = gf_dm_read_data(sess, sHTTP+remaining_data_size, buf_size-remaining_data_size, &size);
 		if (e!= GF_IP_CONNECTION_CLOSED && (!size || e == GF_IP_NETWORK_EMPTY)) {
 			if (e == GF_IP_CONNECTION_CLOSED || (!sess->total_size && !sess->chunked && (gf_sys_clock_high_res() - sess->start_time > 5000000))) {
 				sess->total_size = sess->bytes_done;
@@ -2551,7 +2581,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 			gf_dm_sess_notify_state(sess, sess->status, e);
 			return e;
 		}
-		gf_dm_data_received(sess, (u8 *) sHTTP, size, GF_FALSE, NULL);
+		gf_dm_data_received(sess, (u8 *) sHTTP, size+remaining_data_size, GF_FALSE, NULL);
 
 		/*socket empty*/
 		if (size < GF_DOWNLOAD_BUFFER_SIZE) {
