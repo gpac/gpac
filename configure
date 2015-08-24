@@ -2401,7 +2401,9 @@ else
 
 fi
 
-
+if test "$debuginfo" = "no"; then
+    CFLAGS="$CFLAGS -DNDEBUG"
+fi
 
 #man dir
 if test x"$mandir" = x""; then
