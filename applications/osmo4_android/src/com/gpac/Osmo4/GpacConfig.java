@@ -66,7 +66,7 @@ public class GpacConfig {
      * @return The {@link GpacConfig} instance itself
      */
     public GpacConfig ensureAllDirectoriesExist() {
-        for (String s : new String[] { gpacConfigDirectory, gpacCacheDirectory, gpacGuiDirectory }) {
+        for (String s : new String[] { gpacConfigDirectory, gpacCacheDirectory }) {
             createDirIfNotExist(s);
         }
         return this;
