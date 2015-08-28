@@ -46,7 +46,7 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 		switch (base_layer->decoderConfig->objectTypeIndication) {
 		case GPAC_OTI_VIDEO_SHVC:
 		case GPAC_OTI_VIDEO_SVC:
-			odm->scalable_addon = 1;
+			odm->scalable_addon = GF_TRUE;
 			odm->parentscene->root_od->addon->addon_type = GF_ADDON_TYPE_SCALABLE;
 			*e = GF_OK;
 			//fixme - we need a way to signal dependencies accross services!!
@@ -548,7 +548,11 @@ refetch_AU:
 		src_channels = current_odm->channels;
 		scalable_check = 1;
 		goto browse_scalable;
+	} else if (*nextAU && current_odm->parentscene->root_od->addon && current_odm->parentscene->root_od->addon->loop_detected) {
+		//loop detected in an addon, check whether it's time to restart it
+		gf_scene_check_addon_restart(current_odm->parentscene->root_od->addon, (*nextAU)->CTS, (*nextAU)->DTS);
 	}
+
 
 	if (*nextAU  && (scalable_check==1)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Warning, could not find enhancement layer for this AU (DTS %d) \n", (*nextAU)->DTS ));
@@ -982,6 +986,13 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	if (!AU || !ch) {
 		/*if the codec is in EOS state, assume we're done*/
 		if (codec->Status == GF_ESM_CODEC_EOS) {
+			/*loop in addon has been detected, restart it*/
+			if (ch && ch->odm->parentscene->root_od->addon && ch->odm->parentscene->root_od->addon->loop_detected) {
+				ch->odm->parentscene->root_od->addon->loop_detected = GF_FALSE;
+				gf_scene_addon_restart(ch->odm->parentscene->root_od->addon);
+				return GF_OK;
+			}
+
 			/*if codec is reordering, try to flush it*/
 			if (codec->is_reordering) {
 				if ( LockCompositionUnit(codec, codec->last_unit_cts+1, &CU, &unit_size) == GF_OUT_OF_MEM)

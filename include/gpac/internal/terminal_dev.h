@@ -1206,6 +1206,7 @@ s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts);
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
 /*check if the associated addon has to be restarted, based on the timestamp of the main media (used for scalable addons only). Returns 1 if the addon has been restarted*/
 Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
+Bool gf_scene_addon_restart(GF_AddonMedia *addon);
 
 
 //exported for gpac.js, resumes to main content
