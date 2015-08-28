@@ -40,7 +40,6 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	AVDictionary *options = NULL;
 	AVCodecContext *codec_ctx;
 	AVCodec *codec;
-	char err_buffer[200];
 
 	memset(video_input_file, 0, sizeof(VideoInputFile));
 
@@ -95,30 +94,25 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	/* Open video */
 	open_res = avformat_open_input(&video_input_file->av_fmt_ctx, video_data_conf->filename, in_fmt, options ? &options : NULL);
 	if ( (open_res < 0) && !stricmp(video_data_conf->filename, "screen-capture-recorder") ) {
-		av_make_error_string(err_buffer, 200, open_res);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Buggy screen capture input (open failed with code %d), retrying without specifying resolution (%s)\n", open_res, err_buffer));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Buggy screen capture input (open failed with code %d), retrying without specifying resolution\n", open_res));
 		av_dict_set(&options, "video_size", NULL, 0);
 		open_res = avformat_open_input(&video_input_file->av_fmt_ctx, video_data_conf->filename, in_fmt, options ? &options : NULL);
 	}
 
 	if ( (open_res < 0) && options) {
-		av_make_error_string(err_buffer, 200, open_res);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error %d (%s) opening input - retrying without options\n", open_res, err_buffer));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error %d opening input - retrying without options\n", open_res));
 		av_dict_free(&options);
 		open_res = avformat_open_input(&video_input_file->av_fmt_ctx, video_data_conf->filename, in_fmt, NULL);
 	}
 
 	if (open_res < 0) {
-		av_make_error_string(err_buffer, 200, open_res);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open file %s, error: \n", video_data_conf->filename, err_buffer));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open file %s\n", video_data_conf->filename));
 		return -1;
 	}
 
 	/* Retrieve stream information */
-	open_res = avformat_find_stream_info(video_input_file->av_fmt_ctx, NULL);
-	if (open_res < 0) {
-		av_make_error_string(err_buffer, 200, open_res);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find stream information (%s)\n", err_buffer));
+	if (avformat_find_stream_info(video_input_file->av_fmt_ctx, NULL) < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find stream information\n"));
 		return -1;
 	}
 
@@ -150,10 +144,8 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	}
 
 	/* Open codec */
-	open_res = avcodec_open2(codec_ctx, codec, NULL);
-	if (open_res < 0) {
-		av_make_error_string(err_buffer, 200, open_res);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open codec: %s.\n", err_buffer));
+	if (avcodec_open2(codec_ctx, codec, NULL) < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open codec.\n"));
 		if (!video_input_file->av_fmt_ctx_ref_cnt)
 			avformat_close_input(&video_input_file->av_fmt_ctx);
 		return -1;
