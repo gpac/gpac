@@ -267,7 +267,17 @@ public class Osmo4 extends Activity implements GpacCallback {
         });
         
         //copy GUI elements
-        copyGui(gpacConfig);
+        File guiDir = new File(gpacConfig.getGpacGuiDirectory());
+        if (!guiDir.isDirectory()) {
+        	// there was a file which have the same name with GUI dir, delete it
+        	if (guiDir.exists()) {
+        		if (!guiDir.delete())
+        			Log.e(LOG_OSMO_TAG, "Failed to delete " + guiDir);
+        	}
+        	if (!guiDir.mkdir())
+        		Log.e(LOG_OSMO_TAG, "Failed to create directory " + guiDir);
+        	copyGui(gpacConfig);
+        }
 
     }
     
@@ -284,6 +294,7 @@ public class Osmo4 extends Activity implements GpacCallback {
      		HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
 				AssetManager assetManager = getAssets();
 				String[] list = null;
+				Log.d(LOG_OSMO_TAG, "Copy GUI elements");
 				try {
 				    list = assetManager.list(GUI_ROOT_ASSET_DIR);
 				} catch (IOException e) {
