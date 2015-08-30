@@ -924,19 +924,19 @@ static void gf_text_import_ebu_ttd_remove_samples(GF_XMLNode *root, GF_XMLNode *
 	}
 }
 
+#define TTML_NAMESPACE "http://www.w3.org/ns/ttml"
 static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *parser, GF_XMLNode *root)
 {
-	GF_Err e;
+	GF_Err e, e_opt;
 	u32 i, track, ID, desc_idx, nb_samples, nb_children;
 	u64 last_sample_duration, last_sample_end;
 	GF_XMLAttribute *att;
 	GF_XMLNode *node, *root_working_copy, *sample_list_node;
 	GF_DOMParser *parser_working_copy;
-	char *samp_text, *xmlns;
+	char *samp_text;
 	Bool has_body;
 
 	samp_text = NULL;
-	xmlns = NULL;
 	root_working_copy = NULL;
 	parser_working_copy = NULL;
 	e = GF_OK;
@@ -949,6 +949,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 		goto exit;
 	}
 	gf_isom_set_track_enabled(import->dest, track, 1);
+
 	/*some MPEG-4 setup*/
 	if (import->esd) {
 		if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
@@ -968,11 +969,10 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("Found root attribute name %s, value %s\n", att->name, att->value));
 
 		if (!strcmp(att->name, "xmlns")) {
-			if (strcmp(att->value, "http://www.w3.org/ns/ttml")) {
-				e = gf_import_message(import, GF_BAD_PARAM, "Found invalid EBU-TTD root attribute name %s, value %s (shall be \"%s\")\n", att->name, att->value, "http://www.w3.org/ns/ttml");
+			if (strcmp(att->value, TTML_NAMESPACE)) {
+				e = gf_import_message(import, GF_BAD_PARAM, "Found invalid EBU-TTD root attribute name %s, value %s (shall be \"%s\")\n", att->name, att->value, TTML_NAMESPACE);
 				goto exit;
 			}
-			xmlns = att->value;
 		} else if (!strcmp(att->name, "xml:lang")) {
 			if (import->esd && !import->esd->langDesc) {
 				char *lang;
@@ -980,20 +980,12 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 				import->esd->langDesc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
 				gf_isom_set_media_language(import->dest, track, lang);
 			}
-		} else if (!strcmp(att->name, "ttp:timeBase") && strcmp(att->value, "media")) {
-			e = gf_import_message(import, GF_BAD_PARAM, "Found invalid EBU-TTD root attribute name %s, value %s (shall be \"%s\")\n", att->name, att->value, "media");
-			goto exit;
-		} else if (!strcmp(att->name, "xmlns:ttp") && strcmp(att->value, "http://www.w3.org/ns/ttml#parameter")) {
-			e = gf_import_message(import, GF_BAD_PARAM, "Found invalid EBU-TTD root attribute name %s, value %s (shall be \"%s\")\n", att->name, att->value, "http://www.w3.org/ns/ttml#parameter");
-			goto exit;
-		} else if (!strcmp(att->name, "xmlns:tts") && strcmp(att->value, "http://www.w3.org/ns/ttml#styling")) {
-			e = gf_import_message(import, GF_BAD_PARAM, "Found invalid EBU-TTD root attribute name %s, value %s (shall be \"%s\")\n", att->name, att->value, "http://www.w3.org/ns/ttml#styling");
-			goto exit;
 		}
 	}
 
 	/*** style ***/
 #if 0
+	{
 	Bool has_styling, has_style;
 	GF_TextSampleDescriptor *sd;
 	has_styling = GF_FALSE;
@@ -1003,22 +995,22 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 	while ( (node = (GF_XMLNode*)gf_list_enum(root->content, &i))) {
 		if (node->type) {
 			continue;
-		} else if (!strcmp(node->name, "head")) {
+		} else if (gf_xml_get_element_check_namespace(node, "head", root->ns) == GF_OK) {
 			GF_XMLNode *head_node;
 			u32 head_idx = 0;
 			while ( (head_node = (GF_XMLNode*)gf_list_enum(node->content, &head_idx))) {
-				if (!strcmp(head_node->name, "styling")) {
+				if (gf_xml_get_element_check_namespace(head_node, "styling", root->ns) == GF_OK) {
 					GF_XMLNode *styling_node;
 					u32 styling_idx;
 					if (has_styling) {
-						e = gf_import_message(import, GF_BAD_PARAM, "TTML: duplicated \"styling\" element. Abort.\n");
+						e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"styling\" element. Abort.\n");
 						goto exit;
 					}
 					has_styling = GF_TRUE;
 
 					styling_idx = 0;
 					while ( (styling_node = (GF_XMLNode*)gf_list_enum(head_node->content, &styling_idx))) {
-						if (!strcmp(styling_node->name, "style")) {
+						if (gf_xml_get_element_check_namespace(styling_node, "style", root->ns) == GF_OK) {
 							GF_XMLAttribute *p_att;
 							u32 style_idx = 0;
 							while ( (p_att = (GF_XMLAttribute*)gf_list_enum(styling_node->attributes, &style_idx))) {
@@ -1057,20 +1049,21 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 		}
 	}
 	if (!has_styling) {
-		e = gf_import_message(import, GF_BAD_PARAM, "TTML: missing \"styling\" element. Abort.\n");
+		e = gf_import_message(import, GF_BAD_PARAM, "[TTML] missing \"styling\" element. Abort.\n");
 		goto exit;
 	}
 	if (!has_style) {
-		e = gf_import_message(import, GF_BAD_PARAM, "TTML: missing \"style\" element. Abort.\n");
+		e = gf_import_message(import, GF_BAD_PARAM, "[TTML] missing \"style\" element. Abort.\n");
 		goto exit;
 	}
 	e = gf_isom_new_text_description(import->dest, track, sd, NULL, NULL, &desc_idx);
 	gf_odf_desc_del((GF_Descriptor*)sd);
+	}
 #else
-	e = gf_isom_new_xml_subtitle_description(import->dest, track, xmlns, NULL, NULL, &desc_idx);
+	e = gf_isom_new_xml_subtitle_description(import->dest, track, TTML_NAMESPACE, NULL, NULL, &desc_idx);
 #endif
 	if (e != GF_OK) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("TTML: incorrect sample description. Abort.\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] incorrect sample description. Abort.\n"));
 		e = gf_isom_last_error(import->dest);
 		goto exit;
 	}
@@ -1093,12 +1086,15 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 			continue;
 		}
 
-		if (!strcmp(node->name, "body")) {
+		e_opt = gf_xml_get_element_check_namespace(node, "body", root->ns);
+		if (e_opt == GF_BAD_PARAM) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", node->name));
+		} else if (e_opt == GF_OK) {
 			GF_XMLNode *body_node;
 			u32 body_idx = 0;
 
 			if (has_body) {
-				e = gf_import_message(import, GF_BAD_PARAM, "TTML: duplicated \"body\" element. Abort.\n");
+				e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"body\" element. Abort.\n");
 				goto exit;
 			}
 			has_body = GF_TRUE;
@@ -1107,11 +1103,17 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 			gf_text_import_ebu_ttd_remove_samples(root_working_copy, &sample_list_node);
 
 			while ( (body_node = (GF_XMLNode*)gf_list_enum(node->content, &body_idx))) {
-				if (!strcmp(body_node->name, "div")) {
+				e_opt = gf_xml_get_element_check_namespace(body_node, "div", root->ns);
+				if (e_opt == GF_BAD_PARAM) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", node->name));
+				} else if (e_opt == GF_OK) {
 					GF_XMLNode *div_node;
 					u32 div_idx = 0;
 					while ( (div_node = (GF_XMLNode*)gf_list_enum(body_node->content, &div_idx))) {
-						if (!strcmp(div_node->name, "p")) {
+						e_opt = gf_xml_get_element_check_namespace(div_node, "p", root->ns);
+						if (e_opt == GF_BAD_PARAM) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", node->name));
+						} else if (e_opt == GF_OK) {
 							GF_XMLNode *p_node;
 							GF_XMLAttribute *p_att;
 							u32 p_idx = 0, h, m, s, ms;
@@ -1121,7 +1123,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 							while ( (p_att = (GF_XMLAttribute*)gf_list_enum(div_node->attributes, &p_idx))) {
 								if (!strcmp(p_att->name, "begin")) {
 									if (ts_begin != -1) {
-										e = gf_import_message(import, GF_BAD_PARAM, "TTML: duplicated \"begin\" attribute. Abort.\n");
+										e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"begin\" attribute. Abort.\n");
 										goto exit;
 									}
 									if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
@@ -1131,7 +1133,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									}
 								} else if (!strcmp(p_att->name, "end")) {
 									if (ts_end != -1) {
-										e = gf_import_message(import, GF_BAD_PARAM, "TTML: duplicated \"end\" attribute. Abort.\n");
+										e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"end\" attribute. Abort.\n");
 										goto exit;
 									}
 									if (sscanf(p_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
@@ -1153,13 +1155,16 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 							//or under a <span>
 							p_idx = 0;
 							while ( (p_node = (GF_XMLNode*)gf_list_enum(div_node->content, &p_idx))) {
-								if (!strcmp(p_node->name, "span")) {
+								e_opt = gf_xml_get_element_check_namespace(p_node, "span", root->ns);
+								if (e_opt == GF_BAD_PARAM) {
+									GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", node->name));
+								} else if (e_opt == GF_OK) {
 									u32 span_idx = 0;
 									GF_XMLAttribute *span_att;
 									while ( (span_att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
 										if (!strcmp(span_att->name, "begin")) {
 											if (ts_begin != -1) {
-												e = gf_import_message(import, GF_BAD_PARAM, "TTML: duplicated \"begin\" attribute under <span>. Abort.\n");
+												e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"begin\" attribute under <span>. Abort.\n");
 												goto exit;
 											}
 											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
@@ -1169,7 +1174,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 											}
 										} else if (!strcmp(span_att->name, "end")) {
 											if (ts_end != -1) {
-												e = gf_import_message(import, GF_BAD_PARAM, "TTML: duplicated \"end\" attribute under <span>. Abort.\n");
+												e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"end\" attribute under <span>. Abort.\n");
 												goto exit;
 											}
 											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
@@ -1180,7 +1185,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 										}
 										if ((ts_begin != -1) && (ts_end != -1) && !samp_text && sample_list_node) {
 											if (samp_text) {
-												e = gf_import_message(import, GF_BAD_PARAM, "TTML: duplicated sample text under <span>. Abort.\n");
+												e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated sample text under <span>. Abort.\n");
 												goto exit;
 											}
 
@@ -1203,12 +1208,12 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 								char *str;
 
 								if (ts_end < ts_begin) {
-									e = gf_import_message(import, GF_BAD_PARAM, "TTML: invalid timings: \"begin\"="LLD" , \"end\"="LLD". Abort.\n", ts_begin, ts_end);
+									e = gf_import_message(import, GF_BAD_PARAM, "[TTML] invalid timings: \"begin\"="LLD" , \"end\"="LLD". Abort.\n", ts_begin, ts_end);
 									goto exit;
 								}
 
 								if (ts_begin < (s64)last_sample_end) {
-									e = gf_import_message(import, GF_BAD_PARAM, "TTML: timing overlapping not supported: \"begin\" is "LLD" , last \"end\" was "LLD". Abort.\n", ts_begin, last_sample_end);
+									e = gf_import_message(import, GF_BAD_PARAM, "[TTML] timing overlapping not supported: \"begin\" is "LLD" , last \"end\" was "LLD". Abort.\n", ts_begin, last_sample_end);
 									goto exit;
 								}
 
@@ -1242,7 +1247,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 								if (import->duration && (ts_end > import->duration))
 									break;
 							} else {
-								GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("TTML: incomplete sample (begin="LLD", end="LLD", text=\"%s\"). Skip.\n", ts_begin, ts_end, samp_text ? samp_text : "NULL"));
+								GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] incomplete sample (begin="LLD", end="LLD", text=\"%s\"). Skip.\n", ts_begin, ts_end, samp_text ? samp_text : "NULL"));
 							}
 						}
 					}
@@ -1251,7 +1256,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 		}
 	}
 	if (!has_body) {
-		e = gf_import_message(import, GF_BAD_PARAM, "TTML: missing \"body\" element. Abort.\n");
+		e = gf_import_message(import, GF_BAD_PARAM, "[TTML] missing \"body\" element. Abort.\n");
 		goto exit;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("last_sample_duration="LLU", last_sample_end="LLU"\n", last_sample_duration, last_sample_end));
@@ -1290,8 +1295,8 @@ static GF_Err gf_text_import_ttml(GF_MediaImporter *import)
 		return e;
 	}
 
-	/*look for EBU-TTD*/
-	if (!strcmp(root->name, "tt")) {
+	/*look for TTML*/
+	if (gf_xml_get_element_check_namespace(root, "tt", NULL) == GF_OK) {
 		e = gf_text_import_ebu_ttd(import, parser, root);
 		if (e == GF_OK) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Note: TTML import - EBU-TTD detected\n"));
@@ -1301,7 +1306,11 @@ static GF_Err gf_text_import_ttml(GF_MediaImporter *import)
 			e = GF_OK;
 		}
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("TTML file not recognized: found \"%s\" as root, \"%s\" expected\n", root->name, "tt"));
+		if (root->ns) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("TTML file not recognized: root element is \"%s:%s\" (check your namespaces)\n", root->ns, root->name));
+		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("TTML file not recognized: root element is \"%s\"\n", root->name));
+		}
 		e = GF_BAD_PARAM;
 	}
 
