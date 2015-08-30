@@ -277,6 +277,15 @@ void gf_xml_dom_node_del(GF_XMLNode *node);
  */
 GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **out_data, u32 *out_data_size);
 
+/*
+ *\brief get the element and check that the namespace is known ('xmlns'-only supported for now)
+ *\param n                  the node to process
+ *\param expected_node_name optional expected name for node n
+ *\param expected_ns_prefix optional expected namespace prefix for node n
+ *\return error code or GF_OK
+ */
+GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expected_node_name, const char *expected_ns_prefix);
+
 /*! @} */
 
 #ifdef __cplusplus

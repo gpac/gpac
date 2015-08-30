@@ -1790,7 +1790,7 @@ GF_XMLNode *gf_xml_dom_create_root(GF_DOMParser *parser, const char* name) {
 GF_EXPORT
 GF_XMLNode *gf_xml_dom_get_root(GF_DOMParser *parser)
 {
-	return parser? parser->root : NULL;
+	return parser ? parser->root : NULL;
 }
 GF_EXPORT
 const char *gf_xml_dom_get_error(GF_DOMParser *parser)
@@ -2151,6 +2151,43 @@ GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **data, u32 *data_size
 	gf_bs_get_content(bs, data, data_size);
 	gf_bs_del(bs);
 	return GF_OK;
+}
+
+GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expected_node_name, const char *expected_ns_prefix) {
+	u32 i;
+	GF_XMLAttribute *att;
+
+	/*check we are processing the expected node*/
+	if (expected_node_name && strcmp(expected_node_name, n->name)) {
+		return GF_SG_UNKNOWN_NODE;
+	}
+
+	/*check for previously declared prefix (to be manually provided)*/
+	if (!n->ns) {
+		return GF_OK;
+	}
+	if (expected_ns_prefix && !strcmp(expected_ns_prefix, n->ns)) {
+		return GF_OK;
+	}
+
+	/*look for new namespace in attributes*/
+	i = 0;
+	while ( (att = (GF_XMLAttribute*)gf_list_enum(n->attributes, &i)) ) {
+		const char *ns;
+		if (ns = strstr(att->name, ":")) {
+			if (!strncmp(att->name, "xmlns", 5)) {
+				if (!strcmp(ns+1, n->ns)) {
+					return GF_OK;
+				}
+			} else if (ns) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[XML] Unsupported attribute namespace \"%s\": ignoring\n", att->name));
+				continue;
+			}
+		}
+	}
+
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Unresolved namespace \"%s\" for node \"%s\"\n", n->ns, n->name));
+	return GF_BAD_PARAM;
 }
 
 #endif
