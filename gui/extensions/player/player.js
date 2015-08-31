@@ -100,21 +100,21 @@ extension = {
                 this.set_movie_url(evt.target_url);
                 return true;
 			case GF_EVENT_KEYDOWN:
-				//alert('key is '+evt.keycode);
-				if (evt.keycode == 'U+004A') {
+				//alert('key is '+evt.keycode + ' hw code is ' + evt.hwkey);
+				if (evt.keycode == 'F1') {
 					this.controler.rewind.on_click();
 					return true;
 				}
-				if (evt.keycode == 'U+004B') {
+				if (evt.keycode == 'F2') {
 					this.controler.play.on_click();
 					return true;
 				}
-				if (evt.keycode == 'U+004C') {
+				if (evt.keycode == 'F3') {
 					this.controler.forward.on_click();
 					return true;
 				}
-				if (evt.keycode == 'U+004D') {
-					this.back_live.forward.on_click();
+				if (evt.keycode == 'F4') {
+				    this.controler.back_live.on_click();
 					return true;
 				}
 				return false;

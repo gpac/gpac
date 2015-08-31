@@ -65,9 +65,9 @@ extension = {
                 }
                 return false;
 			case GF_EVENT_KEYDOWN:
-				//alert('key is '+evt.keycode);
-				if (evt.keycode == 'U+003D') {
-					this.overlay_position++;
+			    //alert('key is '+evt.keycode + ' hw code is ' + evt.hwkey);
+				if (evt.keycode == 'F6') {
+				    this.overlay_position++;
 					if (this.overlay_position==4) {
 						this.do_deactivate_addon();
 						
