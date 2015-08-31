@@ -529,6 +529,20 @@ static JSBool SMJS_FUNCTION(gpac_switch_quality)
 	return JS_TRUE;
 }
 
+
+static JSBool SMJS_FUNCTION(gpac_reload)
+{
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_Event evt;
+	GF_Terminal *term = gpac_get_term(c, obj);
+	if (!term) return JS_FALSE;
+
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_RELOAD;
+	term->user->EventProc(term->user->opaque, &evt);
+	return JS_TRUE;
+}
 typedef struct
 {
 	JSContext *c;
@@ -1893,6 +1907,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("get_object_manager",		gpac_get_object_manager, 1),
 		SMJS_FUNCTION_SPEC("new_storage",		gpac_new_storage, 1),
 		SMJS_FUNCTION_SPEC("switch_quality",		gpac_switch_quality, 1),
+		SMJS_FUNCTION_SPEC("reload",		gpac_reload, 1),
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};

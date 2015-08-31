@@ -117,7 +117,16 @@ extension = {
 				    this.controler.back_live.on_click();
 					return true;
 				}
-				return false;
+/*            	if (evt.keycode == 'F7') {
+            	    this.controler.fullscreen.on_click();
+            	    return true;
+            	}
+            	if (evt.keycode == 'F8') {
+            	    gpac.reload();
+            	    return true;
+            	}
+*/
+            	return false;
 
 			default:
 				return false;
