@@ -2521,9 +2521,11 @@ function gw_new_grid_container(parent) {
                     return grid_event_navigate(this, this._all_children, evt.keycode);
                 }
                 if ((evt.keycode == 'PageUp') && (this._page_idx > 0)) {
+                    if (this._pages.length <= 1) return 0;
                     return this.on_prev_page();
                 }
                 if ((evt.keycode == 'PageDown') && (this._page_idx < this._pages.length)) {
+                    if (this._pages.length <= 1) return 0;
                     return this.on_next_page();
                 }
                 return 0;
