@@ -1494,10 +1494,12 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 	}
 
 	while (size > 0) {
-		if (max_size<(u32) size) max_size=size;
+		if (max_size < (u32) size) max_size = size;
 		tot_size += size;
 		i++;
+		size = (s32) AVI_audio_size(in, i);
 	}
+
 	frame = (char*)gf_malloc(sizeof(char) * max_size);
 	AVI_seek_start(in);
 	AVI_set_audio_position(in, 0);
@@ -1574,6 +1576,9 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			goto exit;
 		}
+		if (size == 0) 
+			break;
+
 		num_samples += size;
 		gf_fwrite(frame, 1, size, fout);
 		gf_set_progress("AVI Extract", num_samples, tot_size);
