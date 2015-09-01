@@ -542,13 +542,15 @@ EOF
     Darwin)
         js_flags=-DXP_MAC
         xul_flags=-DXP_MAC
+        CFLAGS_DIR="-I$prefix/include"
+        LDFLAGS="-L$prefix/lib"
         if test -d /sw/bin ; then
             alt_macosx_dir="/sw"
-            CFLAGS_DIR="-I/sw/include"
+            CFLAGS_DIR="-I/sw/include $CFLAGS_DIR"
             LDFLAGS="-L/sw/lib $LDFLAGS"
         elif test -d /opt/local/bin ; then
             alt_macosx_dir="/opt/local"
-            CFLAGS_DIR="-I/opt/local/include"
+            CFLAGS_DIR="-I/opt/local/include $CFLAGS_DIR"
             LDFLAGS="-L/opt/local/lib $LDFLAGS"
         fi
         cc="cc"
@@ -2401,7 +2403,9 @@ else
 
 fi
 
-
+if test "$debuginfo" = "no"; then
+    CFLAGS="$CFLAGS -DNDEBUG"
+fi
 
 #man dir
 if test x"$mandir" = x""; then

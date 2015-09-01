@@ -11,6 +11,7 @@ extension = {
     icon_height: 0,
     movie_width: 0,
     movie_height: 0,
+    disable_save_session: false,
 
     toggle_uhd_demo: function (val) {
         this.uhd_demo_on = val;
@@ -65,9 +66,9 @@ extension = {
                 }
                 return false;
 			case GF_EVENT_KEYDOWN:
-				//alert('key is '+evt.keycode);
-				if (evt.keycode == 'U+003D') {
-					this.overlay_position++;
+			    //alert('key is '+evt.keycode + ' hw code is ' + evt.hwkey);
+				if (evt.keycode == 'F6') {
+				    this.overlay_position++;
 					if (this.overlay_position==4) {
 						this.do_deactivate_addon();
 						
@@ -378,6 +379,8 @@ extension = {
             gwlog(l_inf, 'URL was given when opening, skipping session restore');
             return;
         }
+        //this.disable_save_session = true;
+        
         var server = this.get_option('SessionServer', null);
         var user = this.get_option('UserID', null);
         if (!server || !user) return;
@@ -393,6 +396,8 @@ extension = {
         dlg.show();
         dlg.sess = obj.data;
 
+        gwlog(l_deb, 'H2B2VS state to restore: ' + gwskin.stringify(obj.data));
+
         dlg.on_confirm = function (value) {
             if (!value) return;
             gwskin.restore_session(this.sess.url, this.sess.media_time, this.sess.media_clock);
@@ -400,6 +405,9 @@ extension = {
     },
 
     save_session: function () {
+
+        if (this.disable_save_session) return;
+
         var server = this.get_option('SessionServer', null);
         var user = this.get_option('UserID', null);
         if (!server || !user) return;
@@ -415,6 +423,7 @@ extension = {
         if (typeof gwskin.media_clock != 'undefined') obj.media_clock = gwskin.media_clock;
 
         var str = gwskin.stringify(obj);
+        gwlog(l_deb, 'H2B2VS storing state: ' + str);
 
         var url = server + 'setData';
         var cmd = 'ID=' + user + '&Data=' + str;

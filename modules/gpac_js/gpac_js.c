@@ -529,6 +529,20 @@ static JSBool SMJS_FUNCTION(gpac_switch_quality)
 	return JS_TRUE;
 }
 
+
+static JSBool SMJS_FUNCTION(gpac_reload)
+{
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_Event evt;
+	GF_Terminal *term = gpac_get_term(c, obj);
+	if (!term) return JS_FALSE;
+
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_RELOAD;
+	term->user->EventProc(term->user->opaque, &evt);
+	return JS_TRUE;
+}
 typedef struct
 {
 	JSContext *c;
@@ -1180,6 +1194,27 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 	case -50:
 		*vp = BOOLEAN_TO_JSVAL(odm && (odm->lower_layer_odm || odm->scalable_addon) ? JS_TRUE : JS_FALSE);
 		break;
+	case -51:
+	{
+		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
+		u32 i, count = gf_list_count(scene->resources);
+
+		*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, -1) );
+		if (! scene->main_addon_selected) break;
+
+		for (i=0; i < count; i++) {
+			GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
+			if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
+				if (an_odm->duration) {
+					Double now = gf_clock_time(scene->dyn_ck) / 1000.0;
+					now -= ((Double) an_odm->addon->media_pts) / 90000.0;
+					now += ((Double) an_odm->addon->media_timestamp) / an_odm->addon->media_timescale;
+					*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, now) );
+				}
+			}
+		}
+	}
+	break;
 	}
 
 	return JS_TRUE;
@@ -1528,6 +1563,9 @@ if (SMJS_ID_IS_INT(id)) {
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, gf_dom_event_get_name(evt->type) ));
 #endif
 		break;
+	case -9:
+		*vp = INT_TO_JSVAL(evt->key.hw_code);
+		break;
 	}
 } else if (SMJS_ID_IS_STRING(id)) {
 	char *name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
@@ -1812,14 +1850,15 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	GF_JSAPIParam par;
 
 	JSPropertySpec gpacEvtClassProps[] = {
-		SMJS_PROPERTY_SPEC("keycode",			 -1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("mouse_x",			 -2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("mouse_y",			 -3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("picked",			 -4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("wheel",			 -5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("keycode",			-1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("mouse_x",			-2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("mouse_y",			-3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("picked",			-4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("wheel",				-5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("button",			-6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("type",			 -7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("name",			 -8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("type",				-7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("name",				-8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("hwkey",				-9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};
 	JSFunctionSpec gpacEvtClassFuncs[] = {
@@ -1889,6 +1928,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("get_object_manager",		gpac_get_object_manager, 1),
 		SMJS_FUNCTION_SPEC("new_storage",		gpac_new_storage, 1),
 		SMJS_FUNCTION_SPEC("switch_quality",		gpac_switch_quality, 1),
+		SMJS_FUNCTION_SPEC("reload",		gpac_reload, 1),
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
@@ -1944,6 +1984,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("main_addon_url",	-48,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("reverse_playback_supported",		-49,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("scalable_enhancement",		-50,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("main_addon_media_time",		-51,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		
 
 

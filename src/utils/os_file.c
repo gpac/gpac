@@ -283,10 +283,10 @@ FILE *gf_temp_file_new()
 	char tmp[MAX_PATH];
 	res = tmpfile();
 	if (!res) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Win32] system failure for tmpfile(): 0x%08x\n", GetLastError()));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Win32] system failure for tmpfile(): 0x%08x\n", GetLastError()));
 
 		/*tmpfile() may fail under vista ...*/
-		if (GetEnvironmentVariable("TEMP",tmp,MAX_PATH)) {
+		if (GetEnvironmentVariable("TEMP", tmp, MAX_PATH)) {
 			char tmp2[MAX_PATH], *t_file;
 			gf_rand_init(GF_FALSE);
 			sprintf(tmp2, "gpac_%08x_", gf_rand());

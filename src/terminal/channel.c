@@ -927,6 +927,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		hdr.OCRflag = 0;
 	}
 
+	if (ch->odm->parentscene && ch->odm->parentscene->root_od->addon)
+		hdr.OCRflag = 0;
+
 	/*we ignore OCRs for the moment*/
 	if (hdr.OCRflag==1) {
 		if (!ch->IsClockInit) {

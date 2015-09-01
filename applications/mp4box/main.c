@@ -708,7 +708,8 @@ void PrintDumpUsage()
 	        " -dcr                 ISMACryp samples structure to XML output\n"
 	        " -dump-cover          Extracts cover art\n"
 	        " -dump-chap           Extracts chapter file\n"
-			" -dump-udta [ID:]4cc  Extracts udta for the given 4CC. If ID is given, dumps from UDTA of the given track ID, otherwise moov is used.\n"
+	        " -dump-chap-ogg       Extracts chapter file as OGG format\n"
+	        " -dump-udta [ID:]4cc  Extracts udta for the given 4CC. If ID is given, dumps from UDTA of the given track ID, otherwise moov is used.\n"
 	        "\n"
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	        " -ttxt                Converts input subtitle to GPAC TTXT format\n"
@@ -3583,7 +3584,6 @@ int mp4boxMain(int argc, char **argv)
 		GF_DASHSegmenter *dasher;
 
 
-		gf_log_set_tool_level(GF_LOG_DASH, GF_LOG_INFO);
 		strcpy(outfile, outName ? outName : gf_url_get_resource_name(inName) );
 		sep = strrchr(outfile, '.');
 		if (sep) sep[0] = 0;

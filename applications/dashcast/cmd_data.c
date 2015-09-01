@@ -437,7 +437,6 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "                                - if input is from stdin, use \"pipe:\"\n"
 	    "    -vf string               set the input video format\n"
 #ifdef WIN32
-	    "                                - to capture from a VfW webcam, set vfwcap\n"
 	    "                                - to capture from a directshow device, set dshow\n"
 #else
 	    "                                - to capture from a webcam, set video4linux2\n"
@@ -493,9 +492,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    DashCast -av test.avi -live-media\n"
 	    "    DashCast -a test_audio.mp3 -v test_audio.mp4 -live-media\n"
 #ifdef WIN32
-	    "    DashCast -vf vfwcap -vres 1280x720 -vfr 24 -v 0 -live\n"
 	    "    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"screen-capture-recorder\" -live (please install http://screencapturer.sf.net/)\n"
-	    "    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"YOUR-WEBCAM\" -pixf yuv420p -live\n"
+		"    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"YOUR-WEBCAM\" -pixf yuv420p -live (see https://trac.ffmpeg.org/wiki/DirectShow)\n"
 #elif defined(__DARWIN) || defined(__APPLE__)
         "    DashCast -vf avfoundation -vres 1280x720 -v \"FaceTime HD Camera\" -vfr 25 -live\n"
         "    DashCast -vf avfoundation -vres 1280x720 -v \"Capture screen 0\" -vfr 25 -live\n"
