@@ -293,7 +293,7 @@ void PrintDASHUsage()
 	        "                       Note: the duration of a fragment (subsegment) is set\n"
 	        "	                            using the -frag switch.\n"
 	        "                       Note: for onDemand profile, sets duration of a subsegment\n"
-					" -dash-strict dur     enables DASH-ing of the file(s) with a segment duration of DUR ms (old behaviour)\n"
+	        " -dash-strict dur     enables DASH-ing of the file(s) with a segment duration of DUR ms (old behaviour)\n"
 	        "                       Note: the duration will be the closest to \'dur\', and will remain constant\n"
 	        " -dash-live[=F] dur   generates a live DASH session using dur segment duration, optionally writing live context to F\n"
 	        "                       MP4Box will run the live session until \'q\' is pressed or a fatal error occurs.\n"
