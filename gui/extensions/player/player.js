@@ -99,37 +99,37 @@ extension = {
             case GF_EVENT_NAVIGATE:
                 this.set_movie_url(evt.target_url);
                 return true;
-			case GF_EVENT_KEYDOWN:
-				//alert('key is '+evt.keycode + ' hw code is ' + evt.hwkey);
-				if (evt.keycode == 'F1') {
-					this.controler.rewind.on_click();
-					return true;
-				}
-				if (evt.keycode == 'F2') {
-					this.controler.play.on_click();
-					return true;
-				}
-				if (evt.keycode == 'F3') {
-					this.controler.forward.on_click();
-					return true;
-				}
-				if (evt.keycode == 'F4') {
-				    this.controler.back_live.on_click();
-					return true;
-				}
-/*            	if (evt.keycode == 'F7') {
-            	    this.controler.fullscreen.on_click();
-            	    return true;
-            	}
-            	if (evt.keycode == 'F8') {
-            	    gpac.reload();
-            	    return true;
-            	}
-*/
-            	return false;
+            case GF_EVENT_KEYDOWN:
+                //alert('key is '+evt.keycode + ' hw code is ' + evt.hwkey);
+                if (evt.keycode == 'F1') {
+                    this.controler.rewind.on_click();
+                    return true;
+                }
+                if (evt.keycode == 'F2') {
+                    this.controler.play.on_click();
+                    return true;
+                }
+                if (evt.keycode == 'F3') {
+                    this.controler.forward.on_click();
+                    return true;
+                }
+                if (evt.keycode == 'F4') {
+                    this.controler.back_live.on_click();
+                    return true;
+                }
+                /*            	if (evt.keycode == 'F7') {
+                this.controler.fullscreen.on_click();
+                return true;
+                }
+                if (evt.keycode == 'F8') {
+                gpac.reload();
+                return true;
+                }
+                */
+                return false;
 
-			default:
-				return false;
+            default:
+                return false;
         }
     },
 
@@ -192,6 +192,7 @@ extension = {
                     ext.movie_control.mediaStopTime = ext.initial_start;
                 }
                 ext.movie_control.loop = ext.initial_loop;
+                alert('mc.mST is ' + ext.movie_control.mediaStopTime);
 
                 ext.movie_control.url[0] = ext.current_url;
                 ext.movie_sensor.url[0] = ext.current_url;
@@ -257,14 +258,14 @@ extension = {
                 gpac.set_size(evt.width, evt.height, true);
             }
             ext.streamlist_changed();
-			
-			if (evt.width) {
-				var e = {};
-				e.type = GF_EVENT_SCENE_SIZE;
-				e.width = evt.width;
-				e.height = evt.height;
-				gwlib_filter_event(e);
-			}
+
+            if (evt.width) {
+                var e = {};
+                e.type = GF_EVENT_SCENE_SIZE;
+                e.width = evt.width;
+                e.height = evt.height;
+                gwlib_filter_event(e);
+            }
         }
         this.movie.children[0].on_addon_found = function (evt) {
             var e = {};
@@ -278,18 +279,18 @@ extension = {
         this.movie.children[0].on_streamlist_changed = function (evt) {
             this.extension.streamlist_changed();
         }
-		this.movie.children[0].on_scene_size_modify = function (evt) {
-			var e = {};
-			e.type = GF_EVENT_SCENE_SIZE;
-			e.width = evt.width;
-			e.height = evt.height;
-			gwlib_filter_event(e);
-		}
+        this.movie.children[0].on_scene_size_modify = function (evt) {
+            var e = {};
+            e.type = GF_EVENT_SCENE_SIZE;
+            e.width = evt.width;
+            e.height = evt.height;
+            gwlib_filter_event(e);
+        }
 
         this.movie.children[0].addEventListener('gpac_scene_attached', this.movie.children[0].on_scene_size, 0);
         this.movie.children[0].addEventListener('gpac_addon_found', this.movie.children[0].on_addon_found, 0);
         this.movie.children[0].addEventListener('gpac_streamlist_changed', this.movie.children[0].on_streamlist_changed, 0);
-		this.movie.children[0].addEventListener('gpac_scene_size', this.movie.children[0].on_scene_size_modify, 0);
+        this.movie.children[0].addEventListener('gpac_scene_size', this.movie.children[0].on_scene_size_modify, 0);
 
 
         this.movie.children[0].on_media_progress = function (evt) {
@@ -449,18 +450,18 @@ extension = {
             }
             gw_background_control(false);
             switch (type) {
-                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
                 case 1:
                     this.extension.set_state(this.extension.GF_STATE_PAUSE);
                     this.extension.set_speed(0);
                     break;
-                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
                 case 2:
                     this.extension.set_state(this.extension.GF_STATE_PLAY);
                     this.extension.movie_control.mediaStartTime = time;
                     this.extension.set_speed(1);
                     break;
-                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
                 default:
                     if (this.extension.state == this.extension.GF_STATE_STOP)
                         this.extension.set_state(this.extension.GF_STATE_PLAY);
@@ -1010,6 +1011,7 @@ extension = {
             } else {
                 __anobj.initial_start = media_time;
             }
+            alert('initial start is ' + __anobj.initial_start);
         }
     },
 
@@ -1038,7 +1040,16 @@ extension = {
             }
             this.controler.media_line.set_value(pos);
 
-            gwskin.media_clock = (new Date()).getTime() - this.time_in_tsb * 1000;
+            //we need to figure out if the main addon is on-demand content, in which case we have to store media time for session restore
+            var addon_media_time = this.root_odm.main_addon_media_time;
+            if (addon_media_time >= 0) {
+                gwskin.media_clock = 0;
+                gwskin.media_time = addon_media_time;
+            }
+            //if not, we will restore the session based on wallclock 
+            else {
+                gwskin.media_clock = (new Date()).getTime() - this.time_in_tsb * 1000;
+            }
 
             if (!this.time_in_tsb) {
                 this.controler.time.set_label('');

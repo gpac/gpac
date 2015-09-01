@@ -1194,6 +1194,27 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 	case -50:
 		*vp = BOOLEAN_TO_JSVAL(odm && (odm->lower_layer_odm || odm->scalable_addon) ? JS_TRUE : JS_FALSE);
 		break;
+	case -51:
+	{
+		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
+		u32 i, count = gf_list_count(scene->resources);
+
+		*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, -1) );
+		if (! scene->main_addon_selected) break;
+
+		for (i=0; i < count; i++) {
+			GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
+			if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
+				if (an_odm->duration) {
+					Double now = gf_clock_time(scene->dyn_ck) / 1000.0;
+					now -= ((Double) an_odm->addon->media_pts) / 90000.0;
+					now += ((Double) an_odm->addon->media_timestamp) / an_odm->addon->media_timescale;
+					*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, now) );
+				}
+			}
+		}
+	}
+	break;
 	}
 
 	return JS_TRUE;
@@ -1963,6 +1984,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("main_addon_url",	-48,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("reverse_playback_supported",		-49,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("scalable_enhancement",		-50,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("main_addon_media_time",		-51,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		
 
 
