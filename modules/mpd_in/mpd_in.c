@@ -237,9 +237,13 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 		if (hdr->OCRflag) {
 			u32 scale = hdr->m2ts_pcr ? 300 : 1;
 			u64 pto = scale*group->pto;
-			if (hdr->objectClockReference >= pto)
+			if (hdr->objectClockReference >= pto) {
 				hdr->objectClockReference -= pto;
-			else {
+			}
+			//keep 4 sec between the first received PCR and the first allowed PTS to be used in the period.
+			else if (pto - hdr->objectClockReference < 108000000) {
+				hdr->objectClockReference = 0;
+			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet OCR/PCR "LLU" less than PTO "LLU" - discarding PCR\n", hdr->objectClockReference/scale, group->pto));
 				return;
 			}

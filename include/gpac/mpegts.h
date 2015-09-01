@@ -267,8 +267,8 @@ typedef struct __gf_dvb_tuner GF_Tuner;
 /*Maximum number of service in a TS*/
 #define GF_M2TS_MAX_SERVICES	65535
 
-/*Maximum size of the buffer in UDP is set to 348*188 bytes*/
-#define UDP_BUFFER_SIZE	65424
+/*Maximum size of the buffer in UDP */
+#define GF_M2TS_UDP_BUFFER_SIZE	0x80000
 
 /*returns readable name for given stream type*/
 const char *gf_m2ts_get_stream_name(u32 streamType);

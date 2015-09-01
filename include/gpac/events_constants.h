@@ -245,6 +245,8 @@ typedef enum {
 	GF_EVENT_FROM_SERVICE,
 
 	GF_EVENT_ADDON_DETECTED,
+
+	GF_EVENT_RELOAD,
 } GF_EventType;
 
 /*GPAC/DOM3 key codes*/

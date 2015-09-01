@@ -745,6 +745,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u64 presentationTimeOffset = 0;
 	Double file_duration, max_segment_duration;
 	u32 nb_segments, width, height, sample_rate, nb_channels, sar_w, sar_h, fps_num, fps_denum, startNumber;
+	u32 nbFragmentInSegment = 0;
 	char *langCode = NULL;
 	u32 index_start_range, index_end_range;
 	Bool force_switch_segment = GF_FALSE;
@@ -1749,13 +1750,16 @@ restart_fragmentation_pass:
 					s32 diff_ms = gf_net_get_ntp_diff_ms(generation_start_ntp);
 					if (diff_ms >= end_time) break;
 					gf_sleep(1);
-				}
+				}				
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Flushing fragment at "LLU" us\n", gf_sys_clock_high_res() ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, flushing fragment %d at "LLU" us, at UTC "LLU"\n", SegmentName, nbFragmentInSegment,
+					gf_sys_clock_high_res(), gf_net_get_utc()));
 			}
 
 			e = gf_isom_flush_fragments(output, flush_all_samples ? GF_TRUE : GF_FALSE);
 			if (e) goto err_exit;
+
+			nbFragmentInSegment++;
 		}
 
 
@@ -1849,7 +1853,9 @@ restart_fragmentation_pass:
 						last_segment = GF_TRUE;
 				}
 
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU"\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc()));
 				gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, last_segment, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
+				nbFragmentInSegment = 0;
 
 				//take care of scalable reps
 				if (dash_input->moof_seqnum_increase) {
@@ -1921,8 +1927,10 @@ restart_fragmentation_pass:
 		total_seg_dur += SegmentDuration;
 		last_seg_dur = SegmentDuration;
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU"\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc()));
 		gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, GF_TRUE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
 		nb_segments++;
+		nbFragmentInSegment = 0;
 
 		if (!seg_rad_name) {
 			file_size = gf_isom_get_file_size(output);

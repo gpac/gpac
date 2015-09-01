@@ -672,7 +672,6 @@ GF_NamespaceType gf_xml_get_element_namespace(GF_Node *n)
 	return GF_XMLNS_UNDEFINED;
 }
 
-
 u32 gf_node_get_attribute_count(GF_Node *node)
 {
 	u32 count = 0;

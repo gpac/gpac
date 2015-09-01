@@ -830,6 +830,7 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 {
 	u32 count;
 	s32 res;
+	Bool not_ready = GF_FALSE;
 #ifndef __SYMBIAN32__
 	int ready;
 	struct timeval timeout;
@@ -856,9 +857,10 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 			return GF_IP_NETWORK_FAILURE;
 		}
 	}
+
 	//should never happen (to check: is writeability is guaranteed for not-connected sockets)
 	if (!ready || !FD_ISSET(sock->socket, &Group)) {
-		return GF_IP_NETWORK_EMPTY;
+		not_ready = GF_TRUE;
 	}
 #endif
 
@@ -871,6 +873,9 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 			res = (s32) send(sock->socket, (char *) buffer+count, length - count, 0);
 		}
 		if (res == SOCKET_ERROR) {
+			if (not_ready)
+				return GF_IP_NETWORK_EMPTY;
+
 			switch (res = LASTSOCKERROR) {
 			case EAGAIN:
 				return GF_IP_SOCK_WOULD_BLOCK;

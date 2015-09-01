@@ -8180,10 +8180,11 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				//import->flags |= GF_IMPORT_DO_ABORT;
 				import->last_error = e;
 			}
-			if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90))
+			if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90)) {
 				//import->flags |= GF_IMPORT_DO_ABORT;
+			}
 
-				if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
+			if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
 			if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
 			if (pck->flags & GF_M2TS_PES_PCK_B_FRAME) tsimp->nb_b++;
 			tsimp->last_dts = samp->DTS;
@@ -8881,7 +8882,10 @@ GF_Err gf_import_ac3(GF_MediaImporter *import, Bool is_EAC3)
 				samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
 				max_size = samp->dataLength;
 			}
-			gf_bs_read_data(bs, samp->data, samp->dataLength);
+			if (!gf_bs_read_data(bs, samp->data, samp->dataLength)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[AC3 import] Truncated file - want to read %d bytes but remain only %d bytes\n", samp->dataLength, gf_bs_get_size(bs) - gf_bs_get_position(bs)));
+				break;
+			}
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		if (e)
