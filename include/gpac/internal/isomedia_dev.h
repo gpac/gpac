@@ -2680,6 +2680,7 @@ GF_Err stbl_GetSampleDepType(GF_SampleDependencyTypeBox *stbl, u32 SampleNumber,
 
 /*unpack sample2chunk and chunk offset so that we have 1 sample per chunk (edition mode only)*/
 GF_Err stbl_UnpackOffsets(GF_SampleTableBox *stbl);
+GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl);
 GF_Err SetTrackDuration(GF_TrackBox *trak);
 GF_Err Media_SetDuration(GF_TrackBox *trak);
 

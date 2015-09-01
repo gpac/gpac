@@ -298,6 +298,7 @@ typedef struct
 	char *file_name;
 	char *representationID;
 	char *periodID;
+	Double media_duration;
 	u32 nb_baseURL;
 	char **baseURL;
 	char *xlink;
@@ -425,11 +426,12 @@ GF_Err gf_dasher_enable_single_file(GF_DASHSegmenter *dasher, Bool enable);
 GF_Err gf_dasher_set_switch_mode(GF_DASHSegmenter *dasher, GF_DashSwitchingMode bitstream_switching);
 /*Sets segment and fragment durations. 
  *	\param dasher the DASH segmenter object
- *	\param default_segment_duration the duration of a dash segment 
+ *	\param default_segment_duration the duration of a dash segment
+ *	\param segment_duration_strict indicated is the duration is strict (otherwise we consider the mean duration)
  *	\param default_fragment_duration the duration of a dash fragment - if 0, same as default_segment_duration
  *	\return error code if any
 */
-GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Double default_fragment_duration);
+GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Bool segment_duration_strict, Double default_fragment_duration);
 /*Enables spliting at RAP boundaries
  *	\param dasher the DASH segmenter object
  *	\param segments_start_with_rap segments will be split at RAP boundaries
