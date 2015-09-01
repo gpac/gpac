@@ -36,7 +36,7 @@
  * SONAME versions must be digits (not strings)
  */
 #define GPAC_VERSION          "0.5.2-DEV"
-#define GPAC_VERSION_MAJOR 4
+#define GPAC_VERSION_MAJOR 5
 #define GPAC_VERSION_MINOR 5
 #define GPAC_VERSION_MICRO 0
 

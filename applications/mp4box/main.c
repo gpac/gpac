@@ -293,6 +293,8 @@ void PrintDASHUsage()
 	        "                       Note: the duration of a fragment (subsegment) is set\n"
 	        "	                            using the -frag switch.\n"
 	        "                       Note: for onDemand profile, sets duration of a subsegment\n"
+					" -dash-strict dur     enables DASH-ing of the file(s) with a segment duration of DUR ms (old behaviour)\n"
+	        "                       Note: the duration will be the closest to \'dur\', and will remain constant\n"
 	        " -dash-live[=F] dur   generates a live DASH session using dur segment duration, optionally writing live context to F\n"
 	        "                       MP4Box will run the live session until \'q\' is pressed or a fatal error occurs.\n"
 	        " -ddbg-live[=F] dur   same as -dash-live without time regulation for debug purposes.\n"
@@ -314,12 +316,14 @@ void PrintDASHUsage()
 	        " \"#video\"           only uses the first video track from the source file\n"
 	        " \"#audio\"           only uses the first video track from the source file\n"
 	        " \":id=NAME\"         sets the representation ID to NAME\n"
+	        " \":dur=VALUE\"       processes VALUE seconds from the media\n"
+	        "                       If VALUE is longer than the media duration, the last media duration is lengthen.\n"
 	        " \":period=NAME\"     sets the representation's period to NAME. Multiple periods may be used\n"
 	        "                       period appear in the MPD in the same order as specified with this option\n"
 	        " \":BaseURL=NAME\"    sets the BaseURL. Set multiple times for multiple BaseURLs\n"
 	        " \":bandwidth=VALUE\" sets the representation's bandwidth to a given value\n"
-			" \":duration=VALUE\"  Increases the duration of this period by the given duration in seconds\n"
-			"                       only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:duration=Y.\n"
+	        " \":period_duration=VALUE\"  increases the duration of this period by the given duration in seconds\n"
+	        "                       only used when no input media is specified (remote period insertion), eg :period=X:xlink=Z:duration=Y.\n"
 	        " \":xlink=VALUE\"     sets the xlink value for the period containing this element\n"
 	        "                       only the xlink declared on the first rep of a period will be used\n"
 	        " \":role=VALUE\"      sets the role of this representation (cf DASH spec).\n"
@@ -1486,21 +1490,21 @@ enum
 GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *name, u32 *nb_dash_inputs)
 {
 	GF_DashSegmenterInput *di;
-    char *sep;
-    // skip ./ and ../, and look for first . to figure out extension
-    if ((name[1]=='/') || (name[2]=='/') || (name[1]=='\\') || (name[2]=='\\') ) sep = strchr(name+3, '.');
-    else {
+	char *sep;
+	// skip ./ and ../, and look for first . to figure out extension
+	if ((name[1]=='/') || (name[2]=='/') || (name[1]=='\\') || (name[2]=='\\') ) sep = strchr(name+3, '.');
+	else {
 		char *s2 = strchr(name, ':');
 		sep = strchr(name, '.');
 		if (sep && s2 && (s2 - sep) < 0) {
 			sep = name;
 		}
 	}
-    
-    //then look for our opt separator :
-    sep = strchr(sep ? sep : name, ':');
-    
-    if (sep && (sep[1]=='\\')) sep = strchr(sep+1, ':');
+
+	//then look for our opt separator :
+	sep = strchr(sep ? sep : name, ':');
+
+	if (sep && (sep[1]=='\\')) sep = strchr(sep+1, ':');
 
 	dash_inputs = gf_realloc(dash_inputs, sizeof(GF_DashSegmenterInput) * (*nb_dash_inputs + 1) );
 	memset(&dash_inputs[*nb_dash_inputs], 0, sizeof(GF_DashSegmenterInput) );
@@ -1508,20 +1512,21 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 	(*nb_dash_inputs)++;
 
 	if (sep) {
-		char *opts = sep+1;
-		sep[0] = 0;
+		char *opts, *first_opt;
+		opts = first_opt = sep;
 		while (opts) {
 			sep = strchr(opts, ':');
 			while (sep) {
 				/* this is a real separator if it is followed by a keyword we are looking for */
 				if (!strnicmp(sep, ":id=", 4) ||
-				        !strnicmp(sep, ":period=", 8) ||
-				        !strnicmp(sep, ":BaseURL=", 9) ||
-				        !strnicmp(sep, ":bandwidth=", 11) ||
-				        !strnicmp(sep, ":role=", 6) ||
-				        !strnicmp(sep, ":desc", 5) ||
-				        !strnicmp(sep, ":duration=", 10) ||
-				        !strnicmp(sep, ":xlink=", 7)) {
+				    !strnicmp(sep, ":dur=", 5) ||
+				    !strnicmp(sep, ":period=", 8) ||
+				    !strnicmp(sep, ":BaseURL=", 9) ||
+				    !strnicmp(sep, ":bandwidth=", 11) ||
+				    !strnicmp(sep, ":role=", 6) ||
+				    !strnicmp(sep, ":desc", 5) ||
+				    !strnicmp(sep, ":duration=", 10) || /*legacy*/!strnicmp(sep, ":period_duration=", 10) ||
+				    !strnicmp(sep, ":xlink=", 7)) {
 					break;
 				} else {
 					sep = strchr(sep+1, ':');
@@ -1541,7 +1546,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Duplicate Representation ID \"%s\" in command line\n", di->representationID));
 					}
 				}
-			} else if (!strnicmp(opts, "period=", 7)) di->periodID = gf_strdup(opts+7);
+			} else if (!strnicmp(opts, "dur=", 4)) di->media_duration = (Double)atof(opts+4);
+			else if (!strnicmp(opts, "period=", 7)) di->periodID = gf_strdup(opts+7);
 			else if (!strnicmp(opts, "BaseURL=", 8)) {
 				di->baseURL = (char **)gf_realloc(di->baseURL, (di->nb_baseURL+1)*sizeof(char *));
 				di->baseURL[di->nb_baseURL] = gf_strdup(opts+8);
@@ -1582,14 +1588,17 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 
 			}
 			else if (!strnicmp(opts, "xlink=", 6)) di->xlink = gf_strdup(opts+6);
-			else if (!strnicmp(opts, "duration=", 9)) {
-				di->period_duration = (Double) atof(opts+9);
+			else if (!strnicmp(opts, "period_duration=", 16)) {
+				di->period_duration = (Double) atof(opts+16);
+			}	else if (!strnicmp(opts, "duration=", 9)) {
+				di->period_duration = (Double) atof(opts+9); /*legacy: use period_duration instead*/
 			}
 
 			if (!sep) break;
 			sep[0] = ':';
 			opts = sep+1;
 		}
+		first_opt[0] = '\0';
 	}
 	di->file_name = name;
 	if (!di->representationID) {
@@ -1742,6 +1751,7 @@ int mp4boxMain(int argc, char **argv)
 #endif
 	SDPLine *sdp_lines = NULL;
 	Double interleaving_time, split_duration, split_start, import_fps, dash_duration, dash_subduration;
+	Bool dash_duration_strict;
 	MetaAction *metas = NULL;
 	TrackAction *tracks = NULL;
 	TSELAction *tsel_acts = NULL;
@@ -1775,36 +1785,36 @@ int mp4boxMain(int argc, char **argv)
 	Bool do_mpd = 0;
 #endif
 #ifndef GPAC_DISABLE_SCENE_ENCODER
-	Bool chunk_mode=0;
+	Bool chunk_mode = 0;
 #endif
 #ifndef GPAC_DISABLE_ISOM_HINTING
-	Bool HintCopy=0;
+	Bool HintCopy = 0;
 	u32 MTUSize = 1450;
 #endif
 	GF_ISOFile *file;
-	Bool frag_real_time = 0;
-	Double mpd_update_time = 0;
-	Bool stream_rtp=0;
+	Bool frag_real_time = GF_FALSE;
+	Double mpd_update_time = GF_FALSE;
+	Bool stream_rtp = GF_FALSE;
 	Bool force_co64 = GF_FALSE;
-	Bool live_scene=0;
-	Bool enable_mem_tracker = 0;
-	Bool dump_iod=0;
-	Bool pssh_in_moof=0;
-	Bool samplegroups_in_traf=0;
-	Bool daisy_chain_sidx=0;
-	Bool single_segment=0;
-	Bool single_file=0;
-	Bool segment_timeline=0;
-	u32 segment_marker = 0;
+	Bool live_scene = GF_FALSE;
+	Bool enable_mem_tracker = GF_FALSE;
+	Bool dump_iod = GF_FALSE;
+	Bool pssh_in_moof = GF_FALSE;
+	Bool samplegroups_in_traf = GF_FALSE;
+	Bool daisy_chain_sidx = GF_FALSE;
+	Bool single_segment = GF_FALSE;
+	Bool single_file = GF_FALSE;
+	Bool segment_timeline = GF_FALSE;
+	u32 segment_marker = GF_FALSE;
 	GF_DashProfile dash_profile = GF_DASH_PROFILE_UNKNOWN;
 	const char *dash_profile_extension = NULL;
-	Bool use_url_template=0;
-	Bool seg_at_rap=0;
-	Bool frag_at_rap=0;
-	Bool adjust_split_end = 0;
-	Bool memory_frags = 1;
-	Bool keep_utc = 0;
-	Bool do_bin_nhml = 0;
+	Bool use_url_template = GF_FALSE;
+	Bool seg_at_rap = GF_FALSE;
+	Bool frag_at_rap = GF_FALSE;
+	Bool adjust_split_end = GF_FALSE;
+	Bool memory_frags = GF_TRUE;
+	Bool keep_utc = GF_FALSE;
+	Bool do_bin_nhml = GF_FALSE;
 	u32 timescale = 0;
 	const char *do_wget = NULL;
 	GF_DashSegmenterInput *dash_inputs = NULL;
@@ -1826,6 +1836,7 @@ int mp4boxMain(int argc, char **argv)
 	split_start = -1.0;
 	interleaving_time = 0.0;
 	dash_duration = dash_subduration = 0.0;
+	dash_duration_strict = GF_FALSE;
 	import_fps = 0;
 	import_flags = 0;
 	split_size = 0;
@@ -2268,6 +2279,15 @@ int mp4boxMain(int argc, char **argv)
 				fprintf(stderr, "\tERROR: \"-dash-dash_duration\": invalid parameter %s\n", argv[i+1]);
 				MP4BOX_EXIT_WITH_CODE(1);
 			}
+			i++;
+		} else if (!stricmp(arg, "-dash-strict")) {
+			CHECK_NEXT_ARG
+			dash_duration = atof(argv[i+1]) / 1000;
+			if (dash_duration == 0.0) {
+				fprintf(stderr, "\tERROR: \"-dash-dash_duration\": invalid parameter %s\n", argv[i+1]);
+				MP4BOX_EXIT_WITH_CODE(1);
+			}
+			dash_duration_strict = GF_TRUE;
 			i++;
 		} else if (!stricmp(arg, "-subdur")) {
 			CHECK_NEXT_ARG
@@ -3625,7 +3645,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_single_segment(dasher, single_segment);
 		if (!e) e = gf_dasher_enable_single_file(dasher, single_file);
 		if (!e) e = gf_dasher_set_switch_mode(dasher, bitstream_switching_mode);
-		if (!e) e = gf_dasher_set_durations(dasher, dash_duration, interleaving_time);
+		if (!e) e = gf_dasher_set_durations(dasher, dash_duration, dash_duration_strict, interleaving_time);
 		if (!e) e = gf_dasher_enable_rap_splitting(dasher, seg_at_rap, frag_at_rap);
 		if (!e) e = gf_dasher_set_segment_marker(dasher, segment_marker);
 		if (!e) e = gf_dasher_enable_sidx(dasher, (subsegs_per_sidx>=0) ? 1 : 0, (u32) subsegs_per_sidx, daisy_chain_sidx);
