@@ -81,6 +81,7 @@ struct __gf_dash_segmenter
 	Bool segments_start_with_rap;
 
 	Double segment_duration;
+	Bool segment_duration_strict;
 	Double fragment_duration;
 	//has to be freed
 	char *seg_rad_name;
@@ -1637,11 +1638,19 @@ restart_fragmentation_pass:
 							next_sap_time = isom_get_next_sap_time(input, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2);
 							/*if no more SAP after this one, do not switch segment*/
 							if (next_sap_time) {
-								u32 scaler;
+								u32 scaler, SegmentNum;
+								Double SegmentStart;
+								if (dash_cfg->segment_duration_strict) {
+									SegmentStart = 0;
+									SegmentNum = 1;
+								} else {
+									SegmentStart = segment_start_time;
+									SegmentNum = cur_seg - first_seg;
+								}
 								/*this is the fragment duration from last sample added to next SAP*/
 								frag_dur += (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dash_cfg->dash_scale / tf->TimeScale;
 								/*if media segment about to be produced is longer than max segment length, force segment split*/
-								if (!tf->splitable && (segment_start_time + SegmentDuration + frag_dur > MaxSegmentDuration * (cur_seg - first_seg))) {
+								if (!tf->splitable && (SegmentStart + SegmentDuration + frag_dur > MaxSegmentDuration * SegmentNum)) {
 									split_at_rap = GF_TRUE;
 									/*force new segment*/
 									force_switch_segment = GF_TRUE;
@@ -5199,10 +5208,11 @@ GF_Err gf_dasher_set_switch_mode(GF_DASHSegmenter *dasher, GF_DashSwitchingMode 
 }
 
 GF_EXPORT
-GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Double default_fragment_duration)
+GF_Err gf_dasher_set_durations(GF_DASHSegmenter *dasher, Double default_segment_duration, Bool segment_duration_strict, Double default_fragment_duration)
 {
 	if (!dasher) return GF_BAD_PARAM;
 	dasher->segment_duration = default_segment_duration * 1000 / dasher->dash_scale;
+	dasher->segment_duration_strict = segment_duration_strict;
 	if (default_fragment_duration)
 		dasher->fragment_duration = default_fragment_duration * 1000 / dasher->dash_scale;
 	else 
