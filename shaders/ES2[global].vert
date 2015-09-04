@@ -27,10 +27,10 @@
 #define L_SPOT		    1
 #define L_POINT			2
 
-#define LIGHTS_MAX 		8
+#define LIGHTS_MAX 		3
 #define TEXTURES_MAX 	2
 
-#define CLIPS_MAX 		8
+#define CLIPS_MAX 		4
 
 //Light Structure
 struct gfLight{
@@ -96,8 +96,8 @@ varying vec3 n;		//normal
 varying vec4 gfEye;	//camera
 varying vec2 TexCoord;
 varying float clipDistance[CLIPS_MAX];
-varying vec3 lightVector[8];
-varying vec3 halfVector[8];
+varying vec3 lightVector[LIGHTS_MAX];
+varying vec3 halfVector[LIGHTS_MAX];
 varying float gfFogFactor;
 	
 //testing material
