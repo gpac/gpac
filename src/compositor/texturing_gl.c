@@ -1394,7 +1394,6 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 #ifndef GPAC_USE_GLES1X
 	if (txh->tx_io->yuv_shader) {
-		GLint loc;
 		u32 active_shader;	//stores current shader (GLES2.0 or the old stuff)
 
 		if(compositor->shader_only_mode){	//ES2.0
