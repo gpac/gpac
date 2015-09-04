@@ -1018,18 +1018,22 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	GL_CHECK_ERR
 
 
-	/* test if programs exist (by using flags 0)
-	 * TODO this check was introduced due to losing program objects when switching rasterization modes (hit '3' in runtime to recreate issue)
-	 *   the program objects were not deleted though
-	 */
-	glGetProgramiv(visual->glsl_programs[0], GL_VALIDATE_STATUS, &err_log);
-	if(err_log==-10){
-		GL_CHECK_ERR;
+	if(visual->glsl_programs[0]){
+		/* test if programs exist (by using flags 0)
+		 * TODO this check was introduced due to losing program objects when switching rasterization modes (hit '3' in runtime to recreate issue)
+		 *   the program objects were not deleted though
+		 */
+		glGetProgramiv(visual->glsl_programs[0], GL_VALIDATE_STATUS, &err_log);
+		if(err_log==-10){
 
-		DEL_SHADER(visual->glsl_vertex);
-		for (i=0;i<GF_GL_NUM_OF_VALID_SHADERS; i++) {
-			DEL_PROGRAM(visual->glsl_programs[i]);
+			DEL_SHADER(visual->glsl_vertex);
+			for (i=0;i<GF_GL_NUM_OF_VALID_SHADERS; i++) {
+				DEL_PROGRAM(visual->glsl_programs[i]);
+			}
+			visual->glsl_has_shaders=0;
+			glGetError();	//Clear error log (if the program is lost we will always have an GL_INVALID_VALUE error)
 		}
+	}else{
 		visual->glsl_has_shaders=0;
 		GL_CHECK_ERR;
 	}
@@ -2238,7 +2242,12 @@ static void visual_3d_set_clippers_ES2(GF_VisualManager *visual, GF_TraverseStat
 		glUniform1i(loc, 1);
 
 	//run throught max-supported clips and activate those that are enabled
-	for(i = 0; i < visual->max_clips; i++){
+
+	//TODO ES2 originally it itterated throught all clips ( i< visual->max_clips)
+	//  and visual->max_clips=GF_MAX_GL_CLIPS;
+	//patch should be reversed after the max clips definition is implemented (including in shaders)
+	//for(i = 0; i < visual->max_clips; i++){
+	for(i = 0; i < visual->num_clips; i++){
 		GF_Matrix mx;
 		GF_Plane p;
 		sprintf(tmp, "%s%d%s", "clipActive[", i, "]");
@@ -2596,7 +2605,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	
 	//We have a Colour Matrix to be applied
-	if(tr_state->color_mat.m && !tr_state->color_mat.identity){
+	if(!tr_state->color_mat.identity){
 		GF_Matrix toBeParsed;	//4x4 RGBA Color Matrix
 		Fixed translateV[4];	//Vec4 holding translation property of color_mat
 		int row,col;
@@ -2631,7 +2640,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	
 
 	//We have a Colour Key to be applied
-	if(tr_state->col_key){
+	if(0 && tr_state->col_key){
 
 		Float vals[3];
 		Float eightbit = 255;	//used for mapping values between 0.0 and 1.0
