@@ -27,10 +27,10 @@
 #define L_SPOT		    1
 #define L_POINT			2
 
-#define LIGHTS_MAX 		8
+#define LIGHTS_MAX 		3
 #define TEXTURES_MAX 	2
 
-#define CLIPS_MAX 		8
+#define CLIPS_MAX 		4
 
 //Light Structure
 struct gfLight{
@@ -95,8 +95,8 @@ const vec3 B_mul = vec3(1.164,  2.018,  0.000);
 varying vec3 n;
 varying vec4 gfEye;
 varying vec2 TexCoord;
-varying vec3 lightVector[8];
-varying vec3 halfVector[8];
+varying vec3 lightVector[LIGHTS_MAX];
+varying vec3 halfVector[LIGHTS_MAX];
 varying float clipDistance[CLIPS_MAX];
 varying float gfFogFactor;
 
@@ -112,8 +112,26 @@ vec4 doLighting(int i){
 
 	vec4 lightColor = vec4(zero_float, zero_float, zero_float, zero_float);
 	float att = zero_float;
+	gfLight tempLight;	//we use a temp gfLight, because array of straucts in fragment are not supported in android
+	vec3 lightVnorm; //normalized lightVector
+	vec3 lightV; //temp lightVector
+	vec3 halfVnorm; //temp lightVector
 
-	vec3 lightVnorm = normalize(lightVector[i]);
+if(i==0){	//ES2 does not support switch() statements
+		tempLight = lights[0];
+		lightV = lightVector[0];
+		halfVnorm = normalize(halfVector[0]);
+}else if(i==1){
+		tempLight = lights[1];
+		lightV = lightVector[1];
+		halfVnorm = normalize(halfVector[1]);
+}else if(i==2){
+		tempLight = lights[2];
+		lightV = lightVector[2];
+		halfVnorm = normalize(halfVector[2]);
+}
+	
+	lightVnorm = normalize(lightV);
 	vec3 normal = normalize(n);
 
 	if(gfLightTwoSide && (!gl_FrontFacing)){//light back face
@@ -122,41 +140,41 @@ vec4 doLighting(int i){
 	}
 	
 	float light_cos = max(zero_float, dot(normal, lightVnorm));	//ndotl
-	float half_cos = dot(normal, normalize(halfVector[i]));
+	float half_cos = dot(normal, halfVnorm);
 
-	if(lights[i].type == L_POINT){	//we have a point
-		float distance = length(lightVector[i]);	
-		att = 1.0 / (lights[i].attenuation.x + lights[i].attenuation.y * distance + lights[i].attenuation.z * distance * distance);
+	if(tempLight.type == L_POINT){	//we have a point
+		float distance = length(lightV);	
+		att = 1.0 / (tempLight.attenuation.x + tempLight.attenuation.y * distance + tempLight.attenuation.z * distance * distance);
 
 		if (att <= 0.0)
 			return lightColor;
 			
-		lightColor += light_cos * lights[i].color * gfDiffuseColor;
+		lightColor += light_cos * tempLight.color * gfDiffuseColor;
 		
 		if(light_cos > 0.0){
-			float dotNormHalf = max(dot(normal, normalize(halfVector[i])),0.0);	//ndoth
-			lightColor += (pow(dotNormHalf, gfShininess) * gfSpecularColor * lights[i].color);
+			float dotNormHalf = max(dot(normal, halfVnorm),0.0);	//ndoth
+			lightColor += (pow(dotNormHalf, gfShininess) * gfSpecularColor * tempLight.color);
 			lightColor *= att;
 		}
 		lightColor.a = gfDiffuseColor.a;
 		return lightColor;
 		
-	}else if(lights[i].type == L_SPOT){	//we have a spot
+	}else if(tempLight.type == L_SPOT){	//we have a spot
 		if(light_cos > 0.0){
-			float spot = dot(normalize(lights[i].direction.xyz), normalize(lightVector[i]));	//it should be -direction, but we invert it before parsing
-			if (spot > lights[i].cutOffAngle){
-				float distance = length(lightVector[i]);	
-				float dotNormHalf = max(dot(normal, normalize(halfVector[i])),0.0);	//ndoth
-				spot = pow(spot, lights[i].intensity);
-				att = spot / (lights[i].attenuation.x + lights[i].attenuation.y * distance + lights[i].attenuation.z * distance * distance);
-				lightColor += att * (light_cos * lights[i].color * gfDiffuseColor);
-				lightColor += att * (pow(dotNormHalf, gfShininess) * gfSpecularColor * lights[i].color);
+			float spot = dot(normalize(tempLight.direction.xyz), lightVnorm);	//it should be -direction, but we invert it before parsing
+			if (spot > tempLight.cutOffAngle){
+				float distance = length(lightV);	
+				float dotNormHalf = max(dot(normal, halfVnorm),0.0);	//ndoth
+				spot = pow(spot, tempLight.intensity);
+				att = spot / (tempLight.attenuation.x + tempLight.attenuation.y * distance + tempLight.attenuation.z * distance * distance);
+				lightColor += att * (light_cos * tempLight.color * gfDiffuseColor);
+				lightColor += att * (pow(dotNormHalf, gfShininess) * gfSpecularColor * tempLight.color);
 			}
 		}
 		return lightColor;
 
-	}else if(lights[i].position.w == zero_float || lights[i].type == L_DIRECTIONAL){ //we have a direction
-		vec3 lightDirection = vec3(lights[i].position);
+	}else if(tempLight.position.w == zero_float || tempLight.type == L_DIRECTIONAL){ //we have a direction
+		vec3 lightDirection = vec3(tempLight.position);
 		lightColor = (gfDiffuseColor * gfLightDiffuse) * light_cos; 
 		if (half_cos > zero_float){ 
 			lightColor += (gfSpecularColor * gfLightSpecular) * pow(half_cos, gfShininess);
@@ -201,7 +219,7 @@ void main()
 	
 		fragColor = gfEmissionColor + (gfAmbientColor * gfLightAmbient);
 
-		for(i=0; i<8; i++){
+		for(int i=0; i<LIGHTS_MAX; i++){
 
 			if(i>=gfNumLights) break;
 			
