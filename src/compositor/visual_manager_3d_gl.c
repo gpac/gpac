@@ -823,6 +823,9 @@ static GLint my_glGetAttribLocation(GF_SHADERID glsl_program, const char *attrib
 #ifdef _DEBUG
 static void my_glQueryProgram(GF_SHADERID progObj){
 	GLint err_log = -10;
+GL_CHECK_ERR
+	glValidateProgram(progObj);
+GL_CHECK_ERR
 	glGetProgramiv(progObj, GL_VALIDATE_STATUS, &err_log);
 	printf("GL_VALIDATE_STATUS: %d \n ",err_log);
 	glGetProgramiv(progObj, GL_LINK_STATUS, &err_log);
@@ -834,16 +837,18 @@ static void my_glQueryProgram(GF_SHADERID progObj){
 }
 
 static void my_glQueryUniform(GF_SHADERID progObj, const char *name, int index){
-	GLint loc;
-	GLfloat res[4];
+	GLint loc, i;
+	GLfloat res[16];
 
 	loc = my_glGetUniformLocation(progObj, name);
 	if(loc<0){
-		printf("failed to locate uniform. exiting\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("failed to locate uniform. exiting\n"));
 		return;
 	}else{
 		glGetUniformfv(progObj, loc, (GLfloat *) res);
-		printf("uniform %s has value of: %f\n", name, res[index]);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("uniform %s has value of: ", name));
+		for( i =0; i<index; i++)
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("%f ", res[i]));
 	}
 }
 
@@ -1013,18 +1018,22 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	GL_CHECK_ERR
 
 
-	/* test if programs exist (by using flags 0)
-	 * TODO this check was introduced due to losing program objects when switching rasterization modes (hit '3' in runtime to recreate issue)
-	 *   the program objects were not deleted though
-	 */
-	glGetProgramiv(visual->glsl_programs[0], GL_VALIDATE_STATUS, &err_log);
-	if(err_log==-10){
-		GL_CHECK_ERR;
+	if(visual->glsl_programs[0]){
+		/* test if programs exist (by using flags 0)
+		 * TODO this check was introduced due to losing program objects when switching rasterization modes (hit '3' in runtime to recreate issue)
+		 *   the program objects were not deleted though
+		 */
+		glGetProgramiv(visual->glsl_programs[0], GL_VALIDATE_STATUS, &err_log);
+		if(err_log==-10){
 
-		DEL_SHADER(visual->glsl_vertex);
-		for (i=0;i<GF_GL_NUM_OF_VALID_SHADERS; i++) {
-			DEL_PROGRAM(visual->glsl_programs[i]);
+			DEL_SHADER(visual->glsl_vertex);
+			for (i=0;i<GF_GL_NUM_OF_VALID_SHADERS; i++) {
+				DEL_PROGRAM(visual->glsl_programs[i]);
+			}
+			visual->glsl_has_shaders=0;
+			glGetError();	//Clear error log (if the program is lost we will always have an GL_INVALID_VALUE error)
 		}
+	}else{
 		visual->glsl_has_shaders=0;
 		GL_CHECK_ERR;
 	}
@@ -2024,6 +2033,7 @@ static void glLoadMatrixES2(GF_VisualManager *visual, Fixed *mat, const char *na
 	glUniformMatrix4fv(loc, 1, GL_FALSE, (GLfloat *) _mat);
 #else
 	glUniformMatrix4fv(loc, 1, GL_FALSE, mat);
+#endif
 	GL_CHECK_ERR
 }
 
@@ -2232,7 +2242,12 @@ static void visual_3d_set_clippers_ES2(GF_VisualManager *visual, GF_TraverseStat
 		glUniform1i(loc, 1);
 
 	//run throught max-supported clips and activate those that are enabled
-	for(i = 0; i < visual->max_clips; i++){
+
+	//TODO ES2 originally it itterated throught all clips ( i< visual->max_clips)
+	//  and visual->max_clips=GF_MAX_GL_CLIPS;
+	//patch should be reversed after the max clips definition is implemented (including in shaders)
+	//for(i = 0; i < visual->max_clips; i++){
+	for(i = 0; i < visual->num_clips; i++){
 		GF_Matrix mx;
 		GF_Plane p;
 		sprintf(tmp, "%s%d%s", "clipActive[", i, "]");
