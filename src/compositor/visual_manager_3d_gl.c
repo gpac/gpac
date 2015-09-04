@@ -823,6 +823,9 @@ static GLint my_glGetAttribLocation(GF_SHADERID glsl_program, const char *attrib
 #ifdef _DEBUG
 static void my_glQueryProgram(GF_SHADERID progObj){
 	GLint err_log = -10;
+GL_CHECK_ERR
+	glValidateProgram(progObj);
+GL_CHECK_ERR
 	glGetProgramiv(progObj, GL_VALIDATE_STATUS, &err_log);
 	printf("GL_VALIDATE_STATUS: %d \n ",err_log);
 	glGetProgramiv(progObj, GL_LINK_STATUS, &err_log);
@@ -834,18 +837,38 @@ static void my_glQueryProgram(GF_SHADERID progObj){
 }
 
 static void my_glQueryUniform(GF_SHADERID progObj, const char *name, int index){
-	GLint loc;
-	GLfloat res[4];
+	GLint loc, i;
+	GLfloat res[16];
 
 	loc = my_glGetUniformLocation(progObj, name);
 	if(loc<0){
-		printf("failed to locate uniform. exiting\n");
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("failed to locate uniform. exiting\n"));
 		return;
 	}else{
 		glGetUniformfv(progObj, loc, (GLfloat *) res);
-		printf("uniform %s has value of: %f\n", name, res[index]);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("uniform %s has value of: ", name));
+		for( i =0; i<index; i++)
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("%f ", res[i]));
 	}
 }
+
+//same here
+static void my_glQueryAttrib(GF_SHADERID progObj, const char *name, int index, GLenum param){
+	GLint loc, i;
+	GLfloat res[16];
+
+	loc = my_glGetAttribLocation(progObj, name);
+	if(loc<0){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("failed to locate attribute. exiting\n"));
+		return;
+	}else{
+		glGetVertexAttribfv(loc, param, (GLfloat *) res);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("attribute %s has value of: ", name));
+		for( i =0; i<index; i++)
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("%f ", res[i]));
+	}
+}
+
 
 static void my_glQueryUniforms(GF_SHADERID progObj){
 		GLint maxUniformLen;
@@ -1022,8 +1045,11 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 		visual->glsl_has_shaders = GF_TRUE;
 		GL_CHECK_ERR
 	}
-	
+#ifndef GPAC_ANDROID
 	shader_path =(char *) gf_cfg_get_key(cfg, "Compositor", "ShaderPath");
+#elif defined(GPAC_ANDROID)		//TODOk temporary patch for Android - shader files in "osmo" dir
+	shader_path =(char *) gf_cfg_get_key(cfg, "General", "LastWorkingDir");
+#endif
 	str_size +=strlen("ES2[global].vert");
 	shader_file = (char *) gf_malloc(sizeof(char)*(strlen(shader_path)+str_size));
 	strcpy(shader_file, shader_path);
@@ -1510,7 +1536,7 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 	However we must push triangles one by one since primitive order may have been swapped when
 	building the AABB tree*/
 	for (i=0; i<n->nb_idx; i++) {
-#ifdef GPAC_USE_GLES1X
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
 		glDrawElements(prim_type, 3, GL_UNSIGNED_SHORT, &mesh->indices[3*n->indices[i]]);
 #else
 		glDrawElements(prim_type, 3, GL_UNSIGNED_INT, &mesh->indices[3*n->indices[i]]);
@@ -1949,7 +1975,7 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	/*if inside or no aabb for the mesh draw vertex array*/
 	if (tr_state->visual->compositor->disable_gl_cull || (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos)	{
-#ifdef GPAC_USE_GLES1X
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
 		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_SHORT, mesh->indices);
 #else
 		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_INT, mesh->indices);
@@ -1977,8 +2003,12 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 #if defined(GPAC_USE_GLES2) && !defined(GPAC_IPHONE)
 
-static void glLoadMatrixES2(GF_VisualManager *visual, Fixed *mat, Bool isProjection){
+static void glLoadMatrixES2(GF_VisualManager *visual, Fixed *mat, const char *name){
 	GLint loc;
+#ifdef GPAC_FIXED_POINT
+	Float _mat[16];
+	u32 i;
+#endif
 
 #ifdef _DEBUG
 	//do we need if(!mat) load identity mx? [TODO]
@@ -1987,18 +2017,19 @@ static void glLoadMatrixES2(GF_VisualManager *visual, Fixed *mat, Bool isProject
 	}
 #endif
 
-	if(isProjection==GF_TRUE){
-		loc = my_glGetUniformLocation(visual->glsl_program, "gfProjectionMatrix");
-	}else if(isProjection==GF_FALSE){
-		loc = my_glGetUniformLocation(visual->glsl_program, "gfModelViewMatrix");
-	}else{
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error %d file %s line %d\n", "Invalid glLoadMatrixES2 mode", __FILE__, __LINE__));
+	loc = my_glGetUniformLocation(visual->glsl_program, name);
+	if(loc<0){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error %d file %s line %d\n", "Invalid glLoadMatrixES2 matrix name", __FILE__, __LINE__));
 		return;
 	}
 	GL_CHECK_ERR
 
-
+#ifdef GPAC_FIXED_POINT
+	for (i=0; i<16;i++) _mat[i] = FIX2FLT(mat[i]);
+	glUniformMatrix4fv(loc, 1, GL_FALSE, (GLfloat *) _mat);
+#else
 	glUniformMatrix4fv(loc, 1, GL_FALSE, mat);
+#endif
 	GL_CHECK_ERR
 }
 
@@ -2008,12 +2039,12 @@ static void visual_3d_update_matrices_ES2(GF_TraverseState *tr_state){
 
 	if (tr_state->visual->needs_projection_matrix_reload) {
 		tr_state->visual->needs_projection_matrix_reload = 0;
-		glLoadMatrixES2(tr_state->visual, (Fixed *) tr_state->camera->projection.m, GF_TRUE);
+		glLoadMatrixES2(tr_state->visual, (Fixed *) tr_state->camera->projection.m, "gfProjectionMatrix");
 	}
 
 	gf_mx_copy(mx, tr_state->camera->modelview);	//cal modelview
 	gf_mx_add_matrix(&mx, &tr_state->model_matrix);	//calc modelview
-	glLoadMatrixES2(tr_state->visual, (Fixed *) &mx.m, GF_FALSE);	//load modelview matrix
+	glLoadMatrixES2(tr_state->visual, (Fixed *) &mx.m, "gfModelViewMatrix");	//load modelview matrix
 }
 
 /**
@@ -2218,7 +2249,7 @@ static void visual_3d_set_clippers_ES2(GF_VisualManager *visual, GF_TraverseStat
 
 				p = visual->clippers[i].p;		//then create and calculate clipping plane
 				if (visual->clippers[i].is_2d_clip) {
-					glLoadMatrixES2(tr_state->visual, tr_state->camera->modelview.m, GF_FALSE);
+					glLoadMatrixES2(tr_state->visual, tr_state->camera->modelview.m, "gfModelViewMatrix");
 				} else {
 					gf_mx_copy(mx, inv_mx);
 					if (visual->clippers[i].mx_clipper != NULL) {
@@ -2288,14 +2319,23 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	visual_3d_update_matrices_ES2(tr_state);
 
+//TODOk enable for check after draw ES2
+//	my_glQueryUniform(visual->glsl_program, "gfProjectionMatrix", 16);
+//	my_glQueryUniform(visual->glsl_program, "gfModelViewMatrix", 16);
+
 	loc_color_array = loc_normal_array = loc_textcoord_array = -1;
 
 	loc_vertex_array = my_glGetAttribLocation(visual->glsl_program, "gfVertex");
 	if (loc_vertex_array<0)
 		return;
-	glVertexAttribPointer(loc_vertex_array, 3, GL_FLOAT, GL_TRUE, sizeof(GF_Vertex), vertex_buffer_address);
+
 	glEnableVertexAttribArray(loc_vertex_array);
 	GL_CHECK_ERR
+#if defined(GPAC_FIXED_POINT)
+	glVertexAttribPointer(loc_vertex_array, 3, GL_FIXED, GL_TRUE, sizeof(GF_Vertex), vertex_buffer_address);
+#else
+	glVertexAttribPointer(loc_vertex_array, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), vertex_buffer_address);
+#endif
 
 	if (visual->num_clips){
 		visual_3d_set_clippers_ES2(visual, tr_state);
@@ -2352,7 +2392,39 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	 * we assume it's material2d and override this part
 	 */
 	if (visual->has_material && !visual->has_material_2d) {
-
+		u32 i;
+		for(i =0; i<4;i++){
+			Fixed *rgba = (Fixed *) & visual->materials[i];
+#if defined(GPAC_FIXED_POINT)
+			Float _rgba[4];
+			_rgba[0] = FIX2FLT(rgba[0]);
+			_rgba[1] = FIX2FLT(rgba[1]);
+			_rgba[2] = FIX2FLT(rgba[2]);
+			_rgba[3] = FIX2FLT(rgba[3]);
+#elif defined(GPAC_USE_GLES1X)
+			Fixed *_rgba = (Fixed *) rgba;
+#else
+			Float *_rgba = (Float *) rgba;
+#endif
+			switch(i){
+				case 0:
+					loc = my_glGetUniformLocation(visual->glsl_program, "gfAmbientColor");
+					break;
+				case 1:
+					loc = my_glGetUniformLocation(visual->glsl_program, "gfDiffuseColor");
+					break;
+				case 2:
+					loc = my_glGetUniformLocation(visual->glsl_program, "gfSpecularColor");
+					break;
+				case 3:
+					loc = my_glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
+					break;
+			}
+			
+			if (loc>=0)
+				glUniform4fv(loc, 1, _rgba);
+		}
+/*
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfAmbientColor");
 		if (loc>=0)
 			glUniform4fv(loc, 1, (GLfloat *) & visual->materials[0] );
@@ -2368,10 +2440,10 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfEmissionColor");
 		if (loc>=0)
 			glUniform4fv(loc, 1, (GLfloat *) & visual->materials[3] );
-
+*/
 		loc = my_glGetUniformLocation(visual->glsl_program, "gfShininess");
 		if (loc>=0)
-			glUniform1f(loc, visual->shininess);	//if this does not work as it is supposed to, try: visual->shininess * 128
+			glUniform1f(loc, FIX2FLT(visual->shininess));	//if this does not work as it is supposed to, try: visual->shininess * 128
 								
 		glDisable(GL_CULL_FACE);	//Enable for performance; if so, check glFrontFace()
 
@@ -2429,10 +2501,8 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		
 		gf_mx_transpose(&normal_mx);
 
-		loc = my_glGetUniformLocation(visual->glsl_program, "gfNormalMatrix");
-		if (loc>=0)
-			glUniformMatrix4fv(loc, 1, GL_FALSE, normal_mx.m);
-		GL_CHECK_ERR
+
+		glLoadMatrixES2(tr_state->visual, (Fixed *) &normal_mx.m, "gfNormalMatrix");	//load modelview matrix
 
 
 		loc_normal_array = my_glGetAttribLocation(visual->glsl_program, "gfNormal");
@@ -2664,7 +2734,8 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 					glBufferData(GL_ARRAY_BUFFER, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 				GL_CHECK_ERR
 					mesh->vbo_dirty = 0;
-			}	}
+			}
+		}
 
 	if (mesh->vbo) {
 		base_address = NULL;
