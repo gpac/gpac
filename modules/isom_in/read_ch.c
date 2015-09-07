@@ -411,6 +411,7 @@ static void init_reader(ISOMChannel *ch)
 		}
 	}
 	ch->current_slh.randomAccessPointFlag = ch->sample ? ch->sample->IsRAP : 0;
+	if (!sample_desc_index) sample_desc_index = 1;
     ch->last_sample_desc_index = sample_desc_index;
 	ch->owner->no_order_check = ch->speed < 0 ? GF_TRUE : GF_FALSE;
 }
