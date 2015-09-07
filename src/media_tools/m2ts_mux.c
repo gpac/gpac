@@ -1601,7 +1601,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 					clock = gf_sys_clock_high_res();
 					diff = (u32) (clock - stream->program->sys_clock_at_last_pcr);
 
-					if (diff >= (stream->program->mux->pcr_update_ms-2) *1000) {
+					if (diff >= (stream->program->mux->pcr_update_ms - 5) *1000) {
 						needs_pcr = GF_TRUE;
 					}
 				}
@@ -1704,9 +1704,11 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 			if (stream->program->mux->real_time || stream->program->mux->fixed_rate) {
 				u64 clock;
 				u32 diff = (s32) (now - stream->program->sys_clock_at_last_pcr);
-				if (diff > 5000 + stream->program->mux->pcr_update_ms*1000 ) {
+				//since we currently only send the PCR when an AU is sent, it may happen that we exceed PCR the refresh rate depending in the target bitrate and frame rate. 
+				//we only throw a warning when twiice the PCR refresh is exceeded
+				if (diff > 5000 + 2*stream->program->mux->pcr_update_ms*1000 ) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Sending PCR %d us too late (PCR send rate %d ms)\n", (u32) (diff - stream->program->mux->pcr_update_ms*1000), stream->program->mux->pcr_update_ms ));
-				}
+				} 
 				clock = stream->program->mux->tot_pck_sent - stream->program->nb_pck_last_pcr;
 				clock *= 1504*1000000;
 				clock /= stream->program->mux->bit_rate;
