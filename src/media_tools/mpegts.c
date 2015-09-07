@@ -3302,7 +3302,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			}
 			else if ( (es->program->last_pcr_value < es->program->before_last_pcr_value) ) {
 				//if less than 100 ms before PCR loop at the last PCR, this is a PCR loop
-				if (2576980377300 - es->program->before_last_pcr_value < 270000) {
+				if (2576980377300 - es->program->before_last_pcr_value < 2700000) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR loop found from "LLU" to "LLU" \n", hdr.pid, es->program->before_last_pcr_value, es->program->last_pcr_value));
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR found "LLU" is less than previously received PCR "LLU" but no discontinuity signaled\n", hdr.pid, es->program->last_pcr_value, es->program->before_last_pcr_value));

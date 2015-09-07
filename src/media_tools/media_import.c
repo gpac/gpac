@@ -7886,7 +7886,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			pck->stream->flags |= GF_M2TS_ES_FIRST_DTS;
 			pck->stream->first_dts = (pck->PTS!=pck->DTS) ? pck->DTS : pck->PTS;
 			if (!pck->stream->program->first_dts || pck->stream->program->first_dts > pck->stream->first_dts) {
-				pck->stream->program->first_dts = pck->stream->first_dts;
+				pck->stream->program->first_dts = 1 + pck->stream->first_dts;
 
 				if (pck->stream->pid != import->trackID) {
 					gf_m2ts_set_pes_framing((GF_M2TS_PES *)pck->stream, GF_M2TS_PES_FRAMING_SKIP);
@@ -8167,7 +8167,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			samp->data = pck->data;
 			samp->dataLength = pck->data_len;
 
-			if (samp->DTS && (samp->DTS==tsimp->last_dts)) {
+			if ((pck->stream->flags & GF_M2TS_ES_FIRST_DTS) && (samp->DTS + 1 == tsimp->last_dts)) {
 				e = gf_isom_append_sample_data(import->dest, tsimp->track, (char*)pck->data, pck->data_len);
 			} else {
 
@@ -8187,7 +8187,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
 			if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
 			if (pck->flags & GF_M2TS_PES_PCK_B_FRAME) tsimp->nb_b++;
-			tsimp->last_dts = samp->DTS;
+			tsimp->last_dts = samp->DTS + 1;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] negative time sample - skipping\n"));
 		}
@@ -8289,17 +8289,16 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					sl_pck->stream->flags |= GF_M2TS_ES_FIRST_DTS;
 
 					if (!hdr.compositionTimeStampFlag) {
-						hdr.compositionTimeStamp = sl_pck->stream->program->first_dts;
+						hdr.compositionTimeStamp = sl_pck->stream->program->first_dts - 1;
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] PID %d First SL Access unit start flag set without any composition time stamp - defaulting to last CTS seen on program\n", sl_pck->stream->pid));
 					}
 					sl_pck->stream->first_dts = (hdr.decodingTimeStamp?hdr.decodingTimeStamp:hdr.compositionTimeStamp);
-					if (!sl_pck->stream->program->first_dts ||
-					        sl_pck->stream->program->first_dts > sl_pck->stream->first_dts) {
-						sl_pck->stream->program->first_dts = sl_pck->stream->first_dts;
+					if (!sl_pck->stream->program->first_dts || (sl_pck->stream->program->first_dts > sl_pck->stream->first_dts)) {
+						sl_pck->stream->program->first_dts = sl_pck->stream->first_dts + 1;
 					}
 				} else {
 					if (!hdr.compositionTimeStampFlag) {
-						hdr.compositionTimeStamp = sl_pck->stream->first_dts + tsimp->last_dts+1;
+						hdr.compositionTimeStamp = sl_pck->stream->first_dts + tsimp->last_dts - 1;
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] PID %d SL Access unit start flag set without any composition time stamp - defaulting to last CTS seen on stream + 1\n", sl_pck->stream->pid));
 					}
 				}
@@ -8312,7 +8311,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					samp->IsRAP = import->esd->slConfig->useRandomAccessPointFlag ? hdr.randomAccessPointFlag : RAP;
 
 					/*fix for some DMB streams where TSs are not coded*/
-					if ((tsimp->last_dts == samp->DTS) && gf_isom_get_sample_count(import->dest, tsimp->track))
+					if ((tsimp->last_dts == 1 + samp->DTS) && gf_isom_get_sample_count(import->dest, tsimp->track))
 						samp->DTS += gf_isom_get_media_timescale(import->dest, tsimp->track);
 
 					samp->data = sl_pck->data + hdr_len;
@@ -8326,14 +8325,13 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90)) {
 						//import->flags |= GF_IMPORT_DO_ABORT;
 					}
-					tsimp->last_dts = samp->DTS;
+					tsimp->last_dts = samp->DTS + 1;
 
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] negative time sample - skipping\n"));
 					sl_pck->stream->first_dts = samp->DTS;
-					if (!sl_pck->stream->program->first_dts ||
-					        sl_pck->stream->program->first_dts > sl_pck->stream->first_dts) {
-						sl_pck->stream->program->first_dts = sl_pck->stream->first_dts;
+					if (!sl_pck->stream->program->first_dts || (sl_pck->stream->program->first_dts > sl_pck->stream->first_dts)) {
+						sl_pck->stream->program->first_dts = sl_pck->stream->first_dts + 1;
 					}
 				}
 				samp->data = NULL;
@@ -8479,8 +8477,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 				Double pdur, poffset;
 				media_ts = gf_isom_get_media_timescale(import->dest, tsimp.track);
 				moov_ts = gf_isom_get_timescale(import->dest);
-				assert(es->program->first_dts <= es->first_dts);
-				poffset = (es->first_dts - es->program->first_dts) * 1.0 * moov_ts / media_ts;
+				assert(es->program->first_dts - 1 <= es->first_dts);
+				poffset = (es->first_dts - (es->program->first_dts - 1) ) * 1.0 * moov_ts / media_ts;
 				offset = (u32)poffset;
 				pdur = gf_isom_get_media_duration(import->dest, tsimp.track) * 1.0 * moov_ts / media_ts;
 				dur = (u64)pdur;
