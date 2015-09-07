@@ -500,7 +500,7 @@ extension.view_stats = function () {
                 else stat_obj.http_bandwidth = Math.round(gpac.http_bitrate / 1000);
             }
             //            stat_obj.buffer = 0;
-            stat_obj.buffer = 100000;
+            stat_obj.buffer = 0;
             stat_obj.ntp_diff = 0;
         }
 
@@ -533,7 +533,7 @@ extension.view_stats = function () {
                     bl = 100 * buf / m.max_buffer;
 
                     if (stat_obj) {
-                        if (buf < stat_obj.buffer) {
+                        if (!stat_obj.buffer || (buf && buf < stat_obj.buffer)) {
                             stat_obj.buffer = buf;
                         }
                         //stat_obj.buffer += buf;

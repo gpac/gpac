@@ -12,6 +12,7 @@ extension = {
     movie_width: 0,
     movie_height: 0,
     disable_save_session: false,
+    disable_addons: false,
 
     toggle_uhd_demo: function (val) {
         this.uhd_demo_on = val;
@@ -65,24 +66,40 @@ extension = {
                     }
                 }
                 return false;
-			case GF_EVENT_KEYDOWN:
-			    //alert('key is '+evt.keycode + ' hw code is ' + evt.hwkey);
-				if (evt.keycode == 'F6') {
-				    this.overlay_position++;
-					if (this.overlay_position==4) {
-						this.do_deactivate_addon();
-						
-					} else {
-						if (this.overlay_position==5) {
-							this.do_activate_addon();
-							this.overlay_position=0;
-						}
-						this.set_option('OverlayPosition', '' + this.overlay_position);
-						this.refresh_addon();
-					}
-					return true;
-				}
-				return false;
+            case GF_EVENT_KEYDOWN:
+                //alert('key is '+evt.keycode + ' hw code is ' + evt.hwkey);
+
+                var odm = gpac.get_object_manager(this.scene_url);
+                if (!odm || odm.main_addon_url) return false;
+
+                if (evt.keycode == 'F7') {
+                    this.uhd_state_on = !this.uhd_state_on;
+                    gpac.switch_quality(this.uhd_state_on);
+                    return true;
+                }
+
+                if (evt.keycode == 'F6') {
+                    this.overlay_position++;
+                    if (this.overlay_position == 4) {
+                        this.do_deactivate_addon();
+
+                    } else {
+                        if (this.overlay_position == 5) {
+                            this.do_activate_addon();
+                            this.overlay_position = 0;
+                        }
+                        this.set_option('OverlayPosition', '' + this.overlay_position);
+                        this.refresh_addon();
+                    }
+                    return true;
+                }
+/*
+                if (evt.keycode == 'F12') {
+                    gpac.exit();
+                    return true;
+                }
+*/
+                return false;
             default:
                 return false;
         }
@@ -118,8 +135,8 @@ extension = {
             gwlib_add_event_filter(this.create_event_filter(this), true);
             this.setup = true;
 
-			this.overlay_position = parseInt(this.get_option('OverlayPosition', '0'));
-			
+            this.overlay_position = parseInt(this.get_option('OverlayPosition', '0'));
+
             /*create media nodes element for playback*/
             this.logo = gw_new_container();
             this.logo.children[0] = new SFNode('Inline');
@@ -145,7 +162,9 @@ extension = {
                     this.uhd_demo_enabled = true;
                     this.toggle_uhd_demo(true);
                     gwlog(l_war, 'UHD Demo enabled');
-                    break;
+                }
+                else if (arg == '-no-addon') {
+                    this.disable_addons = true;
                 }
             }
             return;
@@ -307,20 +326,22 @@ extension = {
             odm.addon_layout(parseInt(this.get_option('OverlayPosition', '0')), parseInt(this.get_option('OverlaySize', '0')));
         }
     },
-	
+
     do_deactivate_addon: function () {
-    	var odm = gpac.get_object_manager(this.scene_url);
-	    if (odm) {
-		   odm.enable_addon(this.addon_url, true);
-    	}
+        var odm = gpac.get_object_manager(this.scene_url);
+        if (odm) {
+            odm.enable_addon(this.addon_url, true);
+        }
     },
-	
+
 
     confirm_addon: function (evt) {
 
+        if (this.disable_addons) return;
+
         if (this.get_option('AutoSelect', 'no') == 'yes') {
-			this.scene_url = evt.scene_url;
-			this.addon_url = evt.addon_url;
+            this.scene_url = evt.scene_url;
+            this.addon_url = evt.addon_url;
             this.do_activate_addon();
             return;
         }
@@ -337,8 +358,8 @@ extension = {
 
         dlg.on_confirm = function (value) {
             if (!value) return;
-			this.extension.scene_url = evt.scene_url;
-			this.extension.addon_url = evt.addon_url;
+            this.extension.scene_url = evt.scene_url;
+            this.extension.addon_url = evt.addon_url;
             this.extension.do_activate_addon();
         }
     },
@@ -380,7 +401,7 @@ extension = {
             return;
         }
         //this.disable_save_session = true;
-        
+
         var server = this.get_option('SessionServer', null);
         var user = this.get_option('UserID', null);
         if (!server || !user) return;
