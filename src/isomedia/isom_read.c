@@ -3769,4 +3769,3 @@ Bool gf_isom_get_tile_info(GF_ISOFile *file, u32 trackNumber, u32 sample_descrip
 }
 
 #endif /*GPAC_DISABLE_ISOM*/
-
