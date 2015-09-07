@@ -2381,7 +2381,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		fprintf(stderr, "\tAll samples are sync\n");
 		break;
 	case 1:
-		fprintf(stderr, "\tAverage GOP length: %d samples\n", (u32 ) (gf_isom_get_sample_count(file, trackNum) / gf_isom_get_sync_point_count(file, trackNum) ) );
+		fprintf(stderr, "\tAverage GOP length: %d samples\n", (u32 ) (gf_isom_get_sample_count(file, trackNum) / (gf_isom_get_sync_point_count(file, trackNum) - 1) ) );
 		break;
 	case 2:
 		fprintf(stderr, "\tNo sync sample found\n");
@@ -2956,5 +2956,3 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
-
-
