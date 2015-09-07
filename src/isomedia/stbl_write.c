@@ -301,7 +301,7 @@ GF_Err stbl_unpackCTS(GF_SampleTableBox *stbl)
 	u32 i, j, remain, count;
 	GF_CompositionOffsetBox *ctts;
 	ctts = stbl->CompositionOffset;
-	if (ctts->unpack_mode) return GF_OK;
+	if (!ctts || ctts->unpack_mode) return GF_OK;
 	ctts->unpack_mode = 1;
 
 	packed = ctts->entries;
