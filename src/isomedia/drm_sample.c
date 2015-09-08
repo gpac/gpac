@@ -954,7 +954,7 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 		senc->cenc_saio->offsets_large[0] = offset;
 		senc->cenc_saio->entry_count ++;
 	} else {
-		senc->cenc_saio->offsets_large = (u64*)gf_realloc(senc->cenc_saio->offsets, sizeof(u64)*(senc->cenc_saio->entry_count+1));
+		senc->cenc_saio->offsets_large = (u64*)gf_realloc(senc->cenc_saio->offsets_large, sizeof(u64)*(senc->cenc_saio->entry_count+1));
 		senc->cenc_saio->offsets_large[senc->cenc_saio->entry_count] = offset;
 		senc->cenc_saio->entry_count++;
 	}
