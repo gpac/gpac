@@ -1773,7 +1773,7 @@ restart_fragmentation_pass:
 		}
 #endif
 
-		if (force_switch_segment || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || !next || next_sample_rap || tf->splitable))) {
+		if (force_switch_segment || !next || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap || tf->splitable))) {
 			if (!min_seg_dur || (min_seg_dur>SegmentDuration))
 				min_seg_dur = SegmentDuration;
 			if (max_seg_dur < SegmentDuration)
@@ -5002,7 +5002,6 @@ static Bool gf_dasher_cleanup(GF_DASHSegmenter *dasher)
 			if (opt) j += atoi(opt);
 			sprintf(szRepID, "%d", j);
 			gf_cfg_set_key(dasher->dash_ctx, szSecName, "NbSegmentsRemoved", szRepID);
-
 
 			gf_cfg_set_key(dasher->dash_ctx, "SegmentsStartTimes", fileName, NULL);
 			i--;
