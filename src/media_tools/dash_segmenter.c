@@ -4812,7 +4812,7 @@ static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, GF_DashDynamicMode *da
 		gtime = sec - GF_NTP_SEC_1900_TO_1970;
 		gf_cfg_set_key(dash_ctx, "DASH", "GenerationTime", asctime(gmtime(&gtime)));
 #endif
-		sprintf(szVal, "%u:%d", sec, frac);
+		sprintf(szVal, "%u:%u", sec, frac);
 		gf_cfg_set_key(dash_ctx, "DASH", "GenerationNTP", szVal);
 
 		if (periodID)
