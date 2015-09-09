@@ -574,7 +574,7 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 		evt.type = event_type;
 		evt.screen_rect.width = INT2FIX(w);
 		evt.screen_rect.height = INT2FIX(h);
-		evt.key_flags = scene->is_dynamic_scene;
+		evt.key_flags = scene->is_dynamic_scene ? (scene->is_live360 ? 2 : 1) : 0;
 		if (root) {
 #ifndef GPAC_DISABLE_VRML
 			switch (gf_node_get_tag(root)) {
@@ -1037,6 +1037,8 @@ static void IS_UpdateVideoPos(GF_Scene *scene)
 	u32 w, h, v_w, v_h;
 	if (!scene->visual_url.OD_ID && !scene->visual_url.url) return;
 
+	if (scene->is_live360) return;
+	
 	url.count = 1;
 	url.vals = &scene->visual_url;
 	mo = IS_CheckExistingObject(scene, &url, GF_MEDIA_OBJECT_VIDEO);
@@ -1243,7 +1245,6 @@ void gf_scene_regenerate(GF_Scene *scene)
 	M_Transform2D *addon_tr;
 	M_Layer2D *addon_layer;
 	M_Inline *addon_scene;
-
 	if (scene->is_dynamic_scene != 1) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inline] Regenerating scene graph for service %s\n", scene->root_od->net_service->url));
@@ -1254,13 +1255,35 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 	/*this is the first time, generate a scene graph*/
 	if (!ac) {
+		scene->is_live360 = GF_FALSE;
+		if (strstr(scene->root_od->net_service->url, "#LIVE360TV")) {
+			scene->is_live360 = GF_TRUE;
+		}
+
 		/*create an OrderedGroup*/
-		n1 = is_create_node(scene->graph, TAG_MPEG4_OrderedGroup, NULL);
+		n1 = is_create_node(scene->graph, scene->is_live360 ? TAG_MPEG4_Group : TAG_MPEG4_OrderedGroup, NULL);
 		gf_sg_set_root_node(scene->graph, n1);
 		gf_node_register(n1, NULL);
 
 		if (! scene->root_od->parentscene) {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Background2D, "DYN_BACK");
+			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
+			gf_node_register(n2, n1);
+		}
+
+		if (scene->is_live360) {
+			n2 = is_create_node(scene->graph, TAG_MPEG4_Viewpoint, "DYN_VP");
+			((M_Viewpoint *)n2)->position.z = 0;
+			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
+			gf_node_register(n2, n1);
+
+			n2 = is_create_node(scene->graph, TAG_MPEG4_NavigationInfo, NULL);
+			gf_free( ((M_NavigationInfo *)n2)->type.vals[0] );
+			((M_NavigationInfo *)n2)->type.vals[0] = gf_strdup("VR");
+			gf_free( ((M_NavigationInfo *)n2)->type.vals[1] );
+			((M_NavigationInfo *)n2)->type.vals[1] = gf_strdup("NONE");
+			((M_NavigationInfo *)n2)->avatarSize.count = 0;
+
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 			gf_node_register(n2, n1);
 		}
@@ -1303,43 +1326,50 @@ void gf_scene_regenerate(GF_Scene *scene)
 		((M_Appearance *)n2)->texture = (GF_Node *)mt;
 		gf_node_register((GF_Node *)mt, n2);
 
-		n2 = is_create_node(scene->graph, TAG_MPEG4_Bitmap, NULL);
-		((M_Shape *)n1)->geometry = n2;
+		if (scene->is_live360) {
+			n2 = is_create_node(scene->graph, TAG_MPEG4_Sphere, "DYN_SPHERE");
+			((M_Shape *)n1)->geometry = n2;
+		} else {
+			n2 = is_create_node(scene->graph, TAG_MPEG4_Bitmap, NULL);
+			((M_Shape *)n1)->geometry = n2;
+		}
 		gf_node_register(n2, n1);
 
 
-		/*text streams controlled through AnimationStream*/
-		n1 = gf_sg_get_root_node(scene->graph);
-		as = (M_AnimationStream *) is_create_node(scene->graph, TAG_MPEG4_AnimationStream, "DYN_TEXT");
-		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)as);
-		gf_node_register((GF_Node *)as, n1);
+		if (! scene->is_live360) {
+			/*text streams controlled through AnimationStream*/
+			n1 = gf_sg_get_root_node(scene->graph);
+			as = (M_AnimationStream *) is_create_node(scene->graph, TAG_MPEG4_AnimationStream, "DYN_TEXT");
+			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)as);
+			gf_node_register((GF_Node *)as, n1);
 
 
-		/*3GPP DIMS streams controlled */
-		n1 = gf_sg_get_root_node(scene->graph);
-		dims = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "DIMS_SCENE");
-		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)dims);
-		gf_node_register((GF_Node *)dims, n1);
+			/*3GPP DIMS streams controlled */
+			n1 = gf_sg_get_root_node(scene->graph);
+			dims = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "DIMS_SCENE");
+			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)dims);
+			gf_node_register((GF_Node *)dims, n1);
 
-		/*PVR version of live content*/
-		n1 = gf_sg_get_root_node(scene->graph);
-		addon_scene = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "PVR_SCENE");
-		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)addon_scene);
-		gf_node_register((GF_Node *)addon_scene, (GF_Node *)n1);
+			/*PVR version of live content*/
+			n1 = gf_sg_get_root_node(scene->graph);
+			addon_scene = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "PVR_SCENE");
+			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)addon_scene);
+			gf_node_register((GF_Node *)addon_scene, (GF_Node *)n1);
 
-		/*Media addon scene*/
-		n1 = gf_sg_get_root_node(scene->graph);
-		addon_tr = (M_Transform2D *) is_create_node(scene->graph, TAG_MPEG4_Transform2D, "ADDON_TRANS");
-		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)addon_tr);
-		gf_node_register((GF_Node *)addon_tr, n1);
+			/*Media addon scene*/
+			n1 = gf_sg_get_root_node(scene->graph);
+			addon_tr = (M_Transform2D *) is_create_node(scene->graph, TAG_MPEG4_Transform2D, "ADDON_TRANS");
+			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)addon_tr);
+			gf_node_register((GF_Node *)addon_tr, n1);
 
-		addon_layer = (M_Layer2D *) is_create_node(scene->graph, TAG_MPEG4_Layer2D, "ADDON_LAYER");
-		gf_node_list_add_child( &((GF_ParentNode *)addon_tr)->children, (GF_Node*)addon_layer);
-		gf_node_register((GF_Node *)addon_layer, (GF_Node *)addon_tr);
+			addon_layer = (M_Layer2D *) is_create_node(scene->graph, TAG_MPEG4_Layer2D, "ADDON_LAYER");
+			gf_node_list_add_child( &((GF_ParentNode *)addon_tr)->children, (GF_Node*)addon_layer);
+			gf_node_register((GF_Node *)addon_layer, (GF_Node *)addon_tr);
 
-		addon_scene = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "ADDON_SCENE");
-		gf_node_list_add_child( &((GF_ParentNode *)addon_layer)->children, (GF_Node*)addon_scene);
-		gf_node_register((GF_Node *)addon_scene, (GF_Node *)addon_layer);
+			addon_scene = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "ADDON_SCENE");
+			gf_node_list_add_child( &((GF_ParentNode *)addon_layer)->children, (GF_Node*)addon_scene);
+			gf_node_register((GF_Node *)addon_scene, (GF_Node *)addon_layer);
+		}
 	}
 
 
@@ -1349,14 +1379,16 @@ void gf_scene_regenerate(GF_Scene *scene)
 	mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO");
 	set_media_url(scene, &scene->visual_url, (GF_Node*)mt, &mt->url, GF_STREAM_VISUAL);
 
-	as = (M_AnimationStream *) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
-	set_media_url(scene, &scene->text_url, (GF_Node*)as, &as->url, GF_STREAM_TEXT);
+	if (! scene->is_live360) {
+		as = (M_AnimationStream *) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
+		set_media_url(scene, &scene->text_url, (GF_Node*)as, &as->url, GF_STREAM_TEXT);
 
-	dims = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "DIMS_SCENE");
-	set_media_url(scene, &scene->dims_url, (GF_Node*)dims, &dims->url, GF_STREAM_SCENE);
+		dims = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "DIMS_SCENE");
+		set_media_url(scene, &scene->dims_url, (GF_Node*)dims, &dims->url, GF_STREAM_SCENE);
 
-	n2 = gf_sg_find_node_by_name(scene->graph, "DYN_TOUCH");
-	((M_TouchSensor *)n2)->enabled = GF_TRUE;
+		n2 = gf_sg_find_node_by_name(scene->graph, "DYN_TOUCH");
+		((M_TouchSensor *)n2)->enabled = GF_TRUE;
+	}
 
 	gf_sc_lock(scene->root_od->term->compositor, 0);
 
@@ -1836,10 +1868,36 @@ GF_EXPORT
 void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 {
 	Bool skip_notif = GF_FALSE;
+	Bool use_pixel_metrics = GF_FALSE;
 	/*for now only allowed when no scene info*/
 	if (!scene->is_dynamic_scene) return;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Scene] Forcing scene size to %d x %d\n", width, height));
+	use_pixel_metrics = gf_sg_use_pixel_metrics(scene->graph);
+
+	if (scene->is_live360) {
+		GF_Node *node;
+		u32 radius;
+		width /= 2;
+		height /= 2;
+
+		radius = MAX(width, height) / 2;
+		node = gf_sg_find_node_by_name(scene->graph, "DYN_SPHERE");
+		if (node) {
+			((M_Sphere *)node)->radius = - INT2FIX(radius);
+			gf_node_changed(node, NULL);
+		}
+
+		node = gf_sg_find_node_by_name(scene->graph, "DYN_VP");
+		if (node) {
+			//((M_Viewpoint*)node)->position.z = INT2FIX(MIN(width, height) ) / 2;
+			((M_Viewpoint*)node)->position.z = 0;
+
+			gf_node_changed(node, NULL);
+		}
+
+		use_pixel_metrics = GF_TRUE;
+	}
 
 	if (scene->is_dynamic_scene) {
 		GF_NetworkCommand com;
@@ -1882,7 +1940,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				devt.type = GF_EVENT_SCENE_SIZE;
 				devt.screen_rect.width = INT2FIX(width);
 				devt.screen_rect.height = INT2FIX(height);
-				devt.key_flags = scene->is_dynamic_scene;
+				devt.key_flags = scene->is_dynamic_scene ? (scene->is_live360 ? 2 : 1) : 0;
 
 				gf_scene_notify_event(scene, GF_EVENT_SCENE_SIZE, NULL, &devt, GF_OK, GF_FALSE);
 				
@@ -1902,7 +1960,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 			}
 		}
 	}
-	gf_sg_set_scene_size_info(scene->graph, width, height, gf_sg_use_pixel_metrics(scene->graph));
+	gf_sg_set_scene_size_info(scene->graph, width, height, use_pixel_metrics);
 
 #ifndef GPAC_DISABLE_VRML
 	IS_UpdateVideoPos(scene);

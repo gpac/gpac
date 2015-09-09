@@ -1551,44 +1551,18 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_NAVIGATION:
-		if (compositor->navigation_disabled) {
+		if (! gf_sc_navigation_supported(compositor, value)) {
 			e = GF_NOT_SUPPORTED;
-		} else
+		} 
 #ifndef GPAC_DISABLE_3D
-			if (compositor->visual->type_3d || compositor->active_layer) {
-				GF_Camera *cam = compositor_3d_get_camera(compositor);
-				if (cam->navigation_flags & NAV_ANY) {
-					/*if not specifying mode, try to (un)bind top*/
-					if (!value) {
-#ifndef GPAC_DISABLE_VRML
-						if (compositor->active_layer) {
-							compositor_layer3d_bind_camera(compositor->active_layer, 0, value);
-						} else {
-							GF_Node *n = (GF_Node*)gf_list_get(compositor->visual->navigation_stack, 0);
-							if (n)
-								Bindable_SetSetBind(n, 0);
-							else
-								cam->navigate_mode = value;
-						}
-#else
-						cam->navigate_mode = value;
+		else if (compositor->visual->type_3d || compositor->active_layer) {
+			GF_Camera *cam = compositor_3d_get_camera(compositor);
+			cam->navigate_mode = value;
+		}  
 #endif
-					} else {
-						cam->navigate_mode = value;
-					}
-					break;
-				}
-			} else
-#endif
-			{
-				if ((value!=GF_NAVIGATE_NONE) && (value!=GF_NAVIGATE_SLIDE) && (value!=GF_NAVIGATE_EXAMINE)) {
-					e = GF_NOT_SUPPORTED;
-					break;
-				}
-				compositor->navigate_mode = value;
-				break;
-			}
-		e = GF_NOT_SUPPORTED;
+		else {
+			compositor->navigate_mode = value;
+		}
 		break;
 
 	case GF_OPT_HEADLIGHT:
@@ -1765,6 +1739,7 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 		if (compositor->navigation_disabled) return GF_NAVIGATE_TYPE_NONE;
 		if (compositor->visual->type_3d || compositor->active_layer) {
 			GF_Camera *cam = compositor_3d_get_camera(compositor);
+			if ((cam->navigation_flags & NAV_SELECTABLE)) return GF_NAVIGATE_TYPE_3D;
 			if (!(cam->navigation_flags & NAV_ANY)) return GF_NAVIGATE_TYPE_NONE;
 //			return ((cam->is_3D || compositor->active_layer) ? GF_NAVIGATE_TYPE_3D : GF_NAVIGATE_TYPE_2D);
 			return GF_NAVIGATE_TYPE_3D;
@@ -3491,4 +3466,35 @@ void gf_sc_node_destroy(GF_Compositor *compositor, GF_Node *node, GF_SceneGraph 
 	sc_cleanup_event_queue(compositor->event_queue, node, sg);
 	sc_cleanup_event_queue(compositor->event_queue_back, node, sg);
 	gf_mx_v(compositor->evq_mx);
+}
+
+GF_EXPORT
+Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type)
+{
+	if (compositor->navigation_disabled ) return GF_FALSE;
+	if (compositor->visual->type_3d || compositor->active_layer) {
+		GF_Camera *cam = compositor_3d_get_camera(compositor);
+		if (cam->navigation_flags & NAV_ANY) {
+			return GF_TRUE;
+		} else {
+			M_NavigationInfo *ni = (M_NavigationInfo *)gf_list_get(compositor->visual->navigation_stack, 0);
+			if (ni) {
+				u32 i;
+				for (i=0; i<ni->type.count; i++) {
+					if (!ni->type.vals[i]) continue;
+					if (!stricmp(ni->type.vals[i], "WALK") && (type==GF_NAVIGATE_WALK)) return GF_TRUE;
+					else if (!stricmp(ni->type.vals[i], "NONE") && (type==GF_NAVIGATE_NONE)) return GF_TRUE;
+					else if (!stricmp(ni->type.vals[i], "EXAMINE") && (type==GF_NAVIGATE_EXAMINE)) return GF_TRUE;
+					else if (!stricmp(ni->type.vals[i], "FLY") && (type==GF_NAVIGATE_FLY)) return GF_TRUE;
+					else if (!stricmp(ni->type.vals[i], "VR") && (type==GF_NAVIGATE_VR)) return GF_TRUE;
+					else if (!stricmp(ni->type.vals[i], "GAME") && (type==GF_NAVIGATE_GAME)) return GF_TRUE;
+					else if (!stricmp(ni->type.vals[i], "ORBIT") && (type==GF_NAVIGATE_ORBIT)) return GF_TRUE;
+				}
+			}
+			return GF_FALSE;
+		}
+	} else if ((type!=GF_NAVIGATE_NONE) && (type!=GF_NAVIGATE_SLIDE) && (type!=GF_NAVIGATE_EXAMINE)) {
+		return GF_FALSE;
+	}
+	return GF_TRUE;
 }

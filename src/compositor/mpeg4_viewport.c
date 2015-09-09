@@ -420,7 +420,7 @@ static void navinfo_set_bind(GF_Node *node, GF_Route *route)
 
 static void TraverseNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 {
-	u32 i;
+	u32 i, nb_select_mode;
 #ifndef GPAC_DISABLE_3D
 	SFVec3f start, end;
 	Fixed scale;
@@ -474,18 +474,25 @@ static void TraverseNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 	if (!gf_node_dirty_get(node)) return;
 	gf_node_dirty_clear(node, 0);
 
+	nb_select_mode = 0;
 	tr_state->camera->navigation_flags = 0;
 	tr_state->camera->navigate_mode = 0;
 	for (i=0; i<ni->type.count; i++) {
 		if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "ANY")) tr_state->camera->navigation_flags |= NAV_ANY;
+		else {
+			nb_select_mode++;
+		}
+		
 		if (!tr_state->camera->navigate_mode) {
 			if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "NONE")) tr_state->camera->navigate_mode = GF_NAVIGATE_NONE;
 			else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "WALK")) tr_state->camera->navigate_mode = GF_NAVIGATE_WALK;
 			else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "EXAMINE")) tr_state->camera->navigate_mode = GF_NAVIGATE_EXAMINE;
 			else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "FLY")) tr_state->camera->navigate_mode = GF_NAVIGATE_FLY;
-			else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "QTVR")) tr_state->camera->navigate_mode = GF_NAVIGATE_VR;
+			else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "VR")) tr_state->camera->navigate_mode = GF_NAVIGATE_VR;
 		}
 	}
+	if (nb_select_mode>1) tr_state->camera->navigation_flags |= NAV_SELECTABLE;
+
 	if (ni->headlight) tr_state->camera->navigation_flags |= NAV_HEADLIGHT;
 
 	start.x = start.y = start.z = 0;

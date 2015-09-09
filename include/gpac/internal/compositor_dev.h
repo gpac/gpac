@@ -1451,6 +1451,9 @@ void gf_sc_set_video_pending_frame(GF_Compositor *compositor);
 
 Bool gf_sc_is_over(GF_Compositor *compositor, GF_SceneGraph *scene_graph);
 
+/*returns true if scene or current layer accepts tghe requested navigation type, false otherwise*/
+Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type);
+
 #ifdef __cplusplus
 }
 #endif

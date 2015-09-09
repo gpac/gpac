@@ -143,7 +143,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	gf_node_register((GF_Node *)ni, (GF_Node *)gr);
 	gf_sg_vrml_mf_reset(&ni->type, GF_SG_VRML_MFSTRING);
 	gf_sg_vrml_mf_alloc(&ni->type, GF_SG_VRML_MFSTRING, 1);
-	ni->type.vals[0] = gf_strdup("QTVR");
+	ni->type.vals[0] = gf_strdup("VR");
 
 	/*create ODs*/
 	st = gf_sm_stream_new(load->ctx, 2, GF_STREAM_OD, 1);

@@ -598,8 +598,13 @@ void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_s
 			coords[i * num_steps + j].x = gf_mulfix(radius, x);
 			coords[i * num_steps + j].y = gf_mulfix(radius, y);
 			coords[i * num_steps + j].z = gf_mulfix(radius, z);
-			texcoords[i * num_steps + j].x = FIX_ONE - (j+1)*FIX_ONE/num_steps;
-			texcoords[i * num_steps + j].y = i*FIX_ONE/num_steps;
+			if (radius>0) {
+				texcoords[i * num_steps + j].x = FIX_ONE - (j+1)*FIX_ONE/num_steps;
+				texcoords[i * num_steps + j].y = i*FIX_ONE/num_steps;
+			} else {
+				texcoords[i * num_steps + j].x = j*FIX_ONE/num_steps;
+				texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/num_steps;
+			}
 		}
 	}
 }
@@ -621,7 +626,7 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 
 	for (i=0; i<num_steps-1; i++) {
 		u32 n = i * num_steps;
-
+		Fixed last_tx_coord;
 		for (j=0; j<num_steps; j++) {
 			mesh_set_vertex(mesh, coords[n + j + num_steps].x, coords[n + j + num_steps].y, coords[n + j + num_steps].z,
 			                coords[n + j + num_steps].x, coords[n + j + num_steps].y, coords[n + j + num_steps].z,
@@ -637,12 +642,14 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 			}
 
 		}
+
+		last_tx_coord = (radius>0) ? 0 : FIX_ONE;
 		mesh_set_vertex(mesh, coords[n + num_steps].x, coords[n + num_steps].y, coords[n + num_steps].z,
 		                coords[n + num_steps].x, coords[n + num_steps].y, coords[n  + num_steps].z,
-		                0/*FIX_ONE*/, texcoords[n + num_steps].y);
+		                last_tx_coord, texcoords[n + num_steps].y);
 		mesh_set_vertex(mesh, coords[n].x, coords[n].y, coords[n].z,
 		                coords[n].x, coords[n].y, coords[n].z,
-		                0/*FIX_ONE*/, texcoords[n].y);
+		                last_tx_coord, texcoords[n].y);
 		mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-4, mesh->v_count-2);
 		mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-2, mesh->v_count-1);
 	}

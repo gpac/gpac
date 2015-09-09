@@ -33,7 +33,7 @@ extension.view_stats = function () {
     wnd.objs = [];
 
     wnd.gather_res = function (root, selected_service) {
-        //if not dynamic scene, add main OD to satts
+        //if not dynamic scene, add main OD to stats
         if (!root.dynamic_scene)
             this.objs.push(root);
 

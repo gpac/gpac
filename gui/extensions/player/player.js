@@ -39,6 +39,8 @@ extension = {
     initial_speed: 1,
     initial_start: 0,
     show_stats_init: 0,
+    last_hit_x: 0,
+    last_hit_y: 0,
     services: [],
     channels_wnd: null,
     reverse_playback_supported: false,
@@ -58,9 +60,17 @@ extension = {
 
     ext_filter_event: function (evt) {
         switch (evt.type) {
+            case GF_EVENT_MOUSEDOWN:
+                this.last_hit_x = evt.mouse_x;
+                this.last_hit_y = evt.mouse_y;
+                return false;
             case GF_EVENT_MOUSEUP:
-                this.do_show_controler();
-                return true;
+                if ((this.last_hit_x == evt.mouse_x) && (this.last_hit_y == evt.mouse_y)) {
+                    this.do_show_controler();
+                }
+                //we always return false so that the event is handled by the navigation logic of the player, otherwise
+                //the mouse would never be released and navigation would stay always on
+                return false;
             case GF_EVENT_KEYUP:
                 if (evt.keycode == gwskin.keys.close) {
                     this.do_show_controler();
@@ -450,18 +460,18 @@ extension = {
             }
             gw_background_control(false);
             switch (type) {
-                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+                //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
                 case 1:
                     this.extension.set_state(this.extension.GF_STATE_PAUSE);
                     this.extension.set_speed(0);
                     break;
-                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+                //done sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
                 case 2:
                     this.extension.set_state(this.extension.GF_STATE_PLAY);
                     this.extension.movie_control.mediaStartTime = time;
                     this.extension.set_speed(1);
                     break;
-                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+                //init slide, go in play mode                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
                 default:
                     if (this.extension.state == this.extension.GF_STATE_STOP)
                         this.extension.set_state(this.extension.GF_STATE_PLAY);
@@ -731,7 +741,7 @@ extension = {
 
             if (this.navigate) {
                 this.navigate.hide();
-                if (!this.extension.dynamic_scene && this.extension.movie_connected && (gpac.navigation_type != GF_NAVIGATE_TYPE_NONE)) {
+                if ( (this.extension.dynamic_scene != 1) && this.extension.movie_connected && (gpac.navigation_type != GF_NAVIGATE_TYPE_NONE)) {
                     show_navigate = true;
                     full_w += control_icon_size;
                 }
@@ -1385,7 +1395,9 @@ extension = {
         }
         wnd.make_select_item = function (text, type, current_type) {
             if (current_type == type) text = '* ' + text;
-            wnd.add_menu_item(text, function () { this.select(type); });
+            if (gpac.navigation_supported(type)) {
+                wnd.add_menu_item(text, function () { this.select(type); });
+            }
         }
         wnd.add_menu_item('Reset', function () { this.select('reset'); });
 

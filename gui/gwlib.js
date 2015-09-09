@@ -403,7 +403,7 @@ gwskin.back_color = new SFColor(0.2, 0.2, 0.2);
 gwskin.pointing_device = true;
 gwskin.long_click_delay = 0.5;
 gwskin.use_resource_bank = false;
-gwskin.default_window_alpha = 0.8;
+gwskin.default_window_alpha = 0.5;
 gwskin.default_message_timeout = 3.0;
 gwskin.default_tooltip_timeout = 0.75;
 gwskin.default_tooltip_delay = 1;
@@ -779,6 +779,8 @@ gwskin.images.playlist_prev = 'icons/pl_prev.svg';
 gwskin.labels.playlist_prev = 'Previous';
 gwskin.images.channels = 'icons/tv.svg';
 gwskin.labels.channels = 'TV Channels';
+gwskin.images.view360 = 'icons/image.svg';
+gwskin.labels.view360 = '360°';
 
 
 gwskin.mime_video_default_ext = " mp4 mp4s m4s 3gp 3gpp m2ts ts trp m3u8 mpd avi mov ";
@@ -3308,7 +3310,7 @@ function gw_new_file_dialog(container, label) {
             item.on_long_click = function () {
                 if (this.dlg.on_long_click) {
 					var path = this.path ? this.path : (this.dlg.directory + this.filename);
-                    this.dlg.on_long_click(this.filename, path, this.directory);
+					this.dlg.on_long_click(this.filename, path, this.dlg.directory);
 				}
             }
 
@@ -3490,12 +3492,12 @@ function gw_new_popup(anchor, type)
           var s = children[i].get_label().length;
           if (s>max_s) max_s = s;
         }
-        
+
         for (var i=0; i<children.length; i++) {
-          children[i].set_size(s * 0.9*gwskin.default_text_font_size, gwskin.default_icon_height);
+            children[i].set_size(max_s * 0.9 * gwskin.default_text_font_size, gwskin.default_icon_height);
         }
-        this.area.set_size(s * gwskin.default_text_font_size, children.length * gwskin.default_icon_height);
-        this.set_size(s * gwskin.default_text_font_size, children.length * gwskin.default_icon_height);
+        this.area.set_size(max_s * gwskin.default_text_font_size, children.length * gwskin.default_icon_height);
+        this.set_size(max_s * gwskin.default_text_font_size, children.length * gwskin.default_icon_height);
         this.reposition();
     }
     gw_ui_root.has_popup = true;

@@ -21,7 +21,7 @@ function my_filter_event(evt)
   start_drag_y = evt.mouse_y;
   if (gpac.navigation != GF_NAVIGATE_NONE) return false;
   if (!gpac.fullscreen)  in_drag = 1;
-  return true;
+  return false;
  case GF_EVENT_DBLCLICK:
   return true;
 case GF_EVENT_MOUSEMOVE:
