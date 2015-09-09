@@ -119,26 +119,37 @@ static void view_roll(GF_Compositor *compositor, GF_Camera *cam, Fixed dd)
 	camera_changed(compositor, cam);
 }
 
+static void update_pan_up(GF_Compositor *compositor, GF_Camera *cam)
+{
+	SFVec3f axis, dir;
+	/*update up vector so that right is always horizontal (no y component)*/
+	dir = camera_get_pos_dir(cam);
+	axis = camera_get_right_dir(cam);
+	axis.y = 0;
+	gf_vec_norm(&axis);
+	cam->up = gf_vec_cross(dir, axis);
+	gf_vec_norm(&cam->up);
+
+	camera_changed(compositor, cam);
+}
+
 static void view_pan_x(GF_Compositor *compositor, GF_Camera *cam, Fixed dx)
 {
 	GF_Matrix mx;
 	if (!dx) return;
 	gf_mx_rotation_matrix(&mx, cam->position, cam->up, dx);
 	gf_mx_apply_vec(&mx, &cam->target);
-	camera_changed(compositor, cam);
+
+	update_pan_up(compositor, cam);
 }
 static void view_pan_y(GF_Compositor *compositor, GF_Camera *cam, Fixed dy)
 {
 	GF_Matrix mx;
-	SFVec3f axis;
 	if (!dy) return;
-	axis = camera_get_right_dir(cam);
-	gf_mx_rotation_matrix(&mx, cam->position, axis, dy);
+	gf_mx_rotation_matrix(&mx, cam->position, camera_get_right_dir(cam), dy);
 	gf_mx_apply_vec(&mx, &cam->target);
-	/*update up vector*/
-	cam->up = gf_vec_cross(camera_get_pos_dir(cam), axis);
-	gf_vec_norm(&cam->up);
-	camera_changed(compositor, cam);
+
+	update_pan_up(compositor, cam);
 }
 
 /*for translation moves when jumping*/
@@ -397,8 +408,11 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 				view_translate_z(compositor, cam, gf_mulfix(dy, trans_scale));
 				view_roll(compositor, cam, gf_mulfix(dx, trans_scale));
 			} else {
-				view_exam_x(compositor, cam, -gf_mulfix(GF_PI, dx));
-				view_exam_y(compositor, cam, gf_mulfix(GF_PI, dy));
+				if (ABS(dx) > ABS(dy)) {
+					view_exam_x(compositor, cam, -gf_mulfix(GF_PI, dx));
+				} else {
+					view_exam_y(compositor, cam, gf_mulfix(GF_PI, dy));
+				}
 			}
 			break;
 		case GF_NAVIGATE_ORBIT:

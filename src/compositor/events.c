@@ -2020,7 +2020,6 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 		evt->mouse.x = x;
 		evt->mouse.y = y;
 	}
-	ret += forward_event(compositor, evt, ret);
 
 	if (!ret) {
 #ifndef GPAC_DISABLE_3D
@@ -2031,7 +2030,9 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 		if (compositor->interaction_level & GF_INTERACT_NAVIGATION)
 			ret = compositor_handle_navigation(compositor, evt);
 	}
-
+	if (!ret) {
+		ret = forward_event(compositor, evt, ret);
+	}
 	return ret;
 }
 

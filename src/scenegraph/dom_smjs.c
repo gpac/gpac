@@ -2572,7 +2572,7 @@ if (SMJS_ID_IS_INT(id)) {
 		*vp = INT_TO_JSVAL(evt->error_state);
 		return JS_TRUE;
 	case EVENT_JSPROPERTY_DYNAMIC_SCENE:
-		*vp = INT_TO_JSVAL(evt->key_flags ? 1 : 0);
+		*vp = INT_TO_JSVAL(evt->key_flags);
 		return JS_TRUE;
 	case EVENT_JSPROPERTY_URL:
 		s = JS_NewStringCopyZ(c, evt->addon_url ? evt->addon_url : "");

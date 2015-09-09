@@ -543,6 +543,26 @@ static JSBool SMJS_FUNCTION(gpac_reload)
 	term->user->EventProc(term->user->opaque, &evt);
 	return JS_TRUE;
 }
+
+static JSBool SMJS_FUNCTION(gpac_navigation_supported)
+{
+	SMJS_OBJ
+	SMJS_ARGS
+	u32 type;
+	GF_Terminal *term = gpac_get_term(c, obj);
+	if (!term) return JS_FALSE;
+
+	if (argc < 1) return JS_FALSE;
+
+	if (! JSVAL_IS_INT(argv[0]) ) {
+		SMJS_SET_RVAL( BOOLEAN_TO_JSVAL(JS_FALSE) );
+		return JS_TRUE;
+	}
+	type = JSVAL_TO_INT(argv[0]);
+	SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( gf_sc_navigation_supported(term->compositor, type) ? JS_TRUE : JS_FALSE ) );
+	return JS_TRUE;
+}
+
 typedef struct
 {
 	JSContext *c;
@@ -1929,6 +1949,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("new_storage",		gpac_new_storage, 1),
 		SMJS_FUNCTION_SPEC("switch_quality",		gpac_switch_quality, 1),
 		SMJS_FUNCTION_SPEC("reload",		gpac_reload, 1),
+		SMJS_FUNCTION_SPEC("navigation_supported",		gpac_navigation_supported, 1),
+		
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};

@@ -58,8 +58,10 @@ enum
 {
 	/*headlight is on*/
 	NAV_HEADLIGHT = 1,
+	/*navigtion is selectable*/
+	NAV_SELECTABLE = 1<<1,
 	/*any navigation (eg, user-interface navigation control allowed)*/
-	NAV_ANY = 1<<1
+	NAV_ANY = 1<<2
 };
 
 /*frustum object*/
