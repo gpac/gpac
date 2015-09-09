@@ -422,7 +422,7 @@ typedef void (*gf_log_cbk)(void *cbck, u32 log_level, u32 log_tool, const char* 
  *
  *	Assigns a user-defined callback for printing log messages. By default all logs are redirected to stderr
  *	\param usr_cbk Opaque user data
- *	\param cbk  callback log function
+ *	\param cbk     Callback log function
  *	\return previous callback function
 */
 gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk);

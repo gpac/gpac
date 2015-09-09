@@ -387,7 +387,7 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk)
 	gf_log_cbk prev_cbk = log_cbk;
 	log_cbk = cbk;
 	if (!log_cbk) log_cbk = default_log_callback;
-	user_log_cbk = usr_cbk;
+	if (usr_cbk) user_log_cbk = usr_cbk;
 	return prev_cbk;
 }
 
