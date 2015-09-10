@@ -243,7 +243,6 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 	e = GF_OK;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
-
 	//write our movie to the file
 	if (movie->openMode != GF_ISOM_OPEN_READ) {
 		gf_isom_get_duration(movie);
@@ -256,8 +255,8 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 #endif
 			e = WriteToFile(movie);
 	}
-
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (movie->moov) {
 		u32 i;

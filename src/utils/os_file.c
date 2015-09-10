@@ -292,6 +292,7 @@ FILE *gf_temp_file_new()
 			sprintf(tmp2, "gpac_%08x_", gf_rand());
 			t_file = tempnam(tmp, tmp2);
 			res = gf_fopen(t_file, "w+b");
+			gpac_file_handles--;
 			free(t_file);
 		}
 	}
@@ -617,7 +618,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 #endif
 
 	if (res) {
-		gpac_file_handles ++;
+		gpac_file_handles++;
 	} else {
 		if (strchr(mode, 'w') || strchr(mode, 'a')) {
 #if defined(WIN32)

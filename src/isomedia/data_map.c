@@ -50,7 +50,6 @@ GF_Err gf_isom_set_output_buffering(GF_ISOFile *movie, u32 size)
 #endif
 }
 
-
 void gf_isom_datamap_del(GF_DataMap *ptr)
 {
 	if (!ptr) return;
@@ -70,7 +69,6 @@ void gf_isom_datamap_del(GF_DataMap *ptr)
 	default:
 		break;
 	}
-
 }
 
 //Close a data entry
