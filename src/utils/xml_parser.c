@@ -2174,7 +2174,8 @@ GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expec
 	i = 0;
 	while ( (att = (GF_XMLAttribute*)gf_list_enum(n->attributes, &i)) ) {
 		const char *ns;
-		if (ns = strstr(att->name, ":")) {
+		ns = strstr(att->name, ":");
+		if (ns) {
 			if (!strncmp(att->name, "xmlns", 5)) {
 				if (!strcmp(ns+1, n->ns)) {
 					return GF_OK;

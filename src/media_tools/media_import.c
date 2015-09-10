@@ -2802,7 +2802,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 	while (!feof(nhnt)) {
 		Bool is_start, is_end;
 		samp->dataLength = gf_bs_read_u24(bs);
-		samp->IsRAP = (Bool)gf_bs_read_int(bs, 1);
+		samp->IsRAP = gf_bs_read_int(bs, 1);
 		is_start = (Bool)gf_bs_read_int(bs, 1);
 		if (next_is_start) {
 			is_start = GF_TRUE;

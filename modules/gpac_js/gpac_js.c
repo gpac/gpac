@@ -533,7 +533,6 @@ static JSBool SMJS_FUNCTION(gpac_switch_quality)
 static JSBool SMJS_FUNCTION(gpac_reload)
 {
 	SMJS_OBJ
-	SMJS_ARGS
 	GF_Event evt;
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (!term) return JS_FALSE;
