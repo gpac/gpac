@@ -2381,7 +2381,14 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		fprintf(stderr, "\tAll samples are sync\n");
 		break;
 	case 1:
-		fprintf(stderr, "\tAverage GOP length: %d samples\n", (u32 ) (gf_isom_get_sample_count(file, trackNum) / (gf_isom_get_sync_point_count(file, trackNum) - 1) ) );
+		{
+			u32 nb_sync = gf_isom_get_sync_point_count(file, trackNum) - 1;
+			if (! nb_sync) {
+				fprintf(stderr, "\tOnly one sync sample\n");
+			} else {
+				fprintf(stderr, "\tAverage GOP length: %d samples\n", gf_isom_get_sample_count(file, trackNum) / nb_sync);
+			}
+		}
 		break;
 	case 2:
 		fprintf(stderr, "\tNo sync sample found\n");
