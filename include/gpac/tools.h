@@ -596,9 +596,10 @@ GF_Err gf_move_file(const char *fileName, const char *newFileName);
  *	\brief Temporary File Creation
  *
  *	Creates a new temporary file in binary mode
+ *	\param fileName if not NULL, strdup() of the temporary filename when created by GPAC (NULL otherwise as the system automatically removes its own tmp files)
  *	\return stream handle to the new file ressoucre
  */
-FILE *gf_temp_file_new();
+FILE *gf_temp_file_new(char ** const fileName);
 
 
 /*!
