@@ -237,7 +237,7 @@ void PrintGeneralUsage()
 	        " -enable trackID      enables track\n"
 	        " -disable trackID     disables track\n"
 	        " -new                 forces creation of a new destination file\n"
-			" -timescale VAL       sets movie timescale to VAL ticks per second (default is 600).\n"
+	        " -timescale VAL       sets movie timescale to VAL ticks per second (default is 600).\n"
 	        " -lang [tkID=]LAN     sets track language. LAN is the BCP-47 code (eng, en-UK, ...)\n"
 	        " -delay tkID=TIME     sets track start delay in ms.\n"
 	        " -par tkID=PAR        sets visual track pixel aspect ratio (PAR=N:D or \"none\")\n"
@@ -4719,6 +4719,7 @@ int mp4boxMain(int argc, char **argv)
 	fprintf(stderr, "Error: Read-only version of MP4Box.\n");
 	MP4BOX_EXIT_WITH_CODE(1);
 #endif
+
 err_exit:
 	/*close libgpac*/
 	if (file) gf_isom_delete(file);
@@ -4729,10 +4730,10 @@ exit:
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
-        gf_memory_print();
+		gf_memory_print();
 		return 2;
 	}
-#endif	
+#endif
 	return 0;
 }
 
