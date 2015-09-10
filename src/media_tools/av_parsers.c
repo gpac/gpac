@@ -1127,7 +1127,7 @@ u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg)
 		if (cfg->nb_chan<=2)
 			return (cfg->base_sr<=24000) ? 0x2C : 0x2D; /*HE@L2 or HE@L3*/
 		if (cfg->nb_chan<=5)
-			(cfg->base_sr<=48000) ? 0x2E : 0x2F; /*HE@L4 or HE@L5*/
+			return (cfg->base_sr<=48000) ? 0x2E : 0x2F; /*HE@L4 or HE@L5*/
 		return (cfg->base_sr<=48000) ? 0x52 : 0x53; /*HE@L6 or HE@L7*/
 	case 29: /*HE-AACv2 - SBR+PS*/
 		if (cfg->nb_chan<=2)
