@@ -162,6 +162,10 @@ GF_Err gf_cleanup_dir(char* DirPathName)
 GF_EXPORT
 GF_Err gf_delete_file(const char *fileName)
 {
+	if (!fileName) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("gf_delete_file deletes nothing - ignoring\n"));
+		return GF_OK;
+	}
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
 	CE_CharToWide((char*)fileName, swzName);
@@ -267,9 +271,9 @@ u32 gf_file_handles_count()
 }
 
 GF_EXPORT
-FILE *gf_temp_file_new()
+FILE *gf_temp_file_new(char ** const fileName)
 {
-	FILE *res=NULL;
+	FILE *res = NULL;
 #if defined(_WIN32_WCE)
 	TCHAR pPath[MAX_PATH+1];
 	TCHAR pTemp[MAX_PATH+1];
@@ -292,6 +296,14 @@ FILE *gf_temp_file_new()
 			sprintf(tmp2, "gpac_%08x_", gf_rand());
 			t_file = tempnam(tmp, tmp2);
 			res = gf_fopen(t_file, "w+b");
+			if (res) {
+				gpac_file_handles--;
+				if (fileName) {
+					*fileName = gf_strdup(t_file);
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Win32] temporary file %s won't be deleted - contact the GPAC team\n", t_file));
+				}
+			}
 			free(t_file);
 		}
 	}
@@ -617,7 +629,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 #endif
 
 	if (res) {
-		gpac_file_handles ++;
+		gpac_file_handles++;
 	} else {
 		if (strchr(mode, 'w') || strchr(mode, 'a')) {
 #if defined(WIN32)
