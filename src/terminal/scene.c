@@ -1514,6 +1514,7 @@ void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
 	gf_sc_lock(scene->root_od->term->compositor, 0);
 }
 
+GF_EXPORT
 void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 {
 	char *url;

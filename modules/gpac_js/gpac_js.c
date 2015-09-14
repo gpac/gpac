@@ -937,7 +937,7 @@ static SMJS_FUNC_PROP_GET( odm_getProperty)
 		*vp = INT_TO_JSVAL( odi.num_channels);
 		break;
 	case -15:
-		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_4cc_to_str(odi.lang) ) );
+		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, odi.lang_code ? odi.lang_code : gf_4cc_to_str(odi.lang) ) );
 		break;
 	case -16:
 		*vp = INT_TO_JSVAL( odi.width);
@@ -1340,6 +1340,18 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_service)
 	gf_term_select_service(odm->term, odm->subscene ? odm : odm->parentscene->root_od, sid);
 	return JS_TRUE;
 }
+
+static JSBool SMJS_FUNCTION(gjs_odm_select)
+{
+	SMJS_OBJ
+	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+	
+	if (!odm) return JS_TRUE;
+
+	gf_scene_select_object(odm->parentscene, odm);
+	return JS_TRUE;
+}
+
 
 static JSBool SMJS_FUNCTION(gjs_odm_get_resource)
 {
@@ -2021,6 +2033,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("select_service", gjs_odm_select_service, 1),
 		SMJS_FUNCTION_SPEC("select_quality", gjs_odm_select_quality, 1),
 		SMJS_FUNCTION_SPEC("disable_main_addon", gjs_odm_disable_main_addon, 1),
+		SMJS_FUNCTION_SPEC("select", gjs_odm_select, 1),
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
