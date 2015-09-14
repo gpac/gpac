@@ -1869,12 +1869,11 @@ GF_EXPORT
 void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 {
 	Bool skip_notif = GF_FALSE;
-	Bool use_pixel_metrics = GF_FALSE;
+
 	/*for now only allowed when no scene info*/
 	if (!scene->is_dynamic_scene) return;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Scene] Forcing scene size to %d x %d\n", width, height));
-	use_pixel_metrics = gf_sg_use_pixel_metrics(scene->graph);
 
 	if (scene->is_live360) {
 		GF_Node *node;
@@ -1896,8 +1895,6 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 
 			gf_node_changed(node, NULL);
 		}
-
-		use_pixel_metrics = GF_TRUE;
 	}
 
 	if (scene->is_dynamic_scene) {
@@ -1956,12 +1953,12 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 		gf_sg_set_scene_size_info(scene->root_od->parentscene->graph, width, height, gf_sg_use_pixel_metrics(scene->root_od->parentscene->graph));
 		if (scene->root_od->term->root_scene == scene->root_od->parentscene) {
 			if (width && height) {
-				gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, 1);
+				gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, GF_TRUE);
 				gf_sc_set_size(scene->root_od->term->compositor, width, height);
 			}
 		}
 	}
-	gf_sg_set_scene_size_info(scene->graph, width, height, use_pixel_metrics);
+	gf_sg_set_scene_size_info(scene->graph, width, height, GF_TRUE);
 
 #ifndef GPAC_DISABLE_VRML
 	IS_UpdateVideoPos(scene);
