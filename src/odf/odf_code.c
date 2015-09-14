@@ -1499,6 +1499,7 @@ GF_Descriptor *gf_odf_new_lang()
 GF_Err gf_odf_del_lang(GF_Language *ld)
 {
 	if (!ld) return GF_BAD_PARAM;
+	if (ld->full_lang_code) gf_free(ld->full_lang_code);
 	gf_free(ld);
 	return GF_OK;
 }

@@ -24,6 +24,7 @@
  */
 
 #include "isom_in.h"
+#include <gpac/iso639.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -133,6 +134,11 @@ void isor_declare_objects(ISOMReader *read)
 			gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
 			esd->has_ref_base = base_track ? GF_TRUE : GF_FALSE;
 
+			if (!esd->langDesc) {
+				esd->langDesc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
+				gf_isom_get_media_language(read->mov, i+1, &esd->langDesc->full_lang_code);
+			}
+			
 			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 			od->service_ifce = read->input;
 			od->objectDescriptorID = 0;

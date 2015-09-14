@@ -329,7 +329,10 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 	}
 
 	ch = (GF_Channel*)gf_list_get(odm->channels, 0);
-	if (ch && ch->esd->langDesc) info->lang = ch->esd->langDesc->langCode;
+	if (ch && ch->esd->langDesc) {
+		info->lang = ch->esd->langDesc->langCode;
+		info->lang_code = ch->esd->langDesc->full_lang_code;
+	}
 
 	if (odm->mo && odm->mo->URLs.count)
 		info->media_url = odm->mo->URLs.vals[0].url;
