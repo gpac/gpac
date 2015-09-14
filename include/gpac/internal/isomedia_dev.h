@@ -395,6 +395,16 @@ enum
 
 	GF_ISOM_BOX_TYPE_PRFT   = GF_4CC( 'p', 'r', 'f', 't' ),
 
+	/* Image File Format Boxes */
+	GF_ISOM_BOX_TYPE_ISPE   = GF_4CC( 'i', 's', 'p', 'e' ),
+	GF_ISOM_BOX_TYPE_COLR   = GF_4CC( 'c', 'o', 'l', 'r' ),
+	GF_ISOM_BOX_TYPE_PIXI   = GF_4CC( 'p', 'i', 'x', 'i' ),
+	GF_ISOM_BOX_TYPE_RLOC   = GF_4CC( 'r', 'l', 'o', 'c' ),
+	GF_ISOM_BOX_TYPE_IROT   = GF_4CC( 'i', 'r', 'o', 't' ),
+	GF_ISOM_BOX_TYPE_IPCO   = GF_4CC( 'i', 'p', 'c', 'o' ),
+	GF_ISOM_BOX_TYPE_IPRP   = GF_4CC( 'i', 'p', 'r', 'p' ),
+	GF_ISOM_BOX_TYPE_IPMA   = GF_4CC( 'i', 'p', 'm', 'a' ),
+
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
@@ -1611,6 +1621,14 @@ typedef struct
 	GF_List *descriptors;
 } GF_IPMPControlBox;
 
+typedef struct {
+	GF_ISOM_BOX
+} GF_ItemPropertyContainerBox;
+
+typedef struct {
+	GF_ISOM_BOX
+	GF_ItemPropertyContainerBox *property_container;
+} GF_ItemPropertiesBox;
 
 typedef struct __tag_meta_box
 {
@@ -1622,6 +1640,7 @@ typedef struct __tag_meta_box
 	GF_ItemProtectionBox *protections;
 	GF_ItemInfoBox *item_infos;
 	GF_IPMPControlBox *IPMP_control;
+	GF_ItemPropertiesBox *item_props;
 } GF_MetaBox;
 
 
@@ -2415,6 +2434,49 @@ typedef struct
 	u64 ntp, timestamp;
 } GF_ProducerReferenceTimeBox;
 
+/* Image File Format Structures */
+typedef struct {
+	GF_ISOM_FULL_BOX
+	u32 image_width;
+	u32 image_height;
+} GF_ImageSpatialExtentsPropertyBox;
+
+typedef struct {
+	GF_ISOM_BOX
+	u32 colour_type;
+	u16 colour_primaries;
+	u16 transfer_characteristics;
+	u16 matrix_coefficients;
+	Bool full_range_flag;
+} GF_ColourInformationBox;
+
+typedef struct {
+	GF_ISOM_FULL_BOX
+	u8 num_channels;
+	u8 *bits_per_channel;
+} GF_PixelInformationPropertyBox;
+
+typedef struct {
+	GF_ISOM_FULL_BOX
+	u32 horizontal_offset;
+	u32 vertical_offset;
+} GF_RelativeLocationPropertyBox;
+
+typedef struct {
+	GF_ISOM_BOX
+	u8 angle;
+} GF_ImageRotationBox;
+
+typedef struct {
+	u32 item_id;
+	GF_List *essential;
+	GF_List *property_index;
+} GF_ItemPropertyAssociationEntry;
+
+typedef struct {
+	GF_ISOM_FULL_BOX
+	GF_List *entries;
+} GF_ItemPropertyAssociationBox;
 
 /*
 		Data Map (media storage) stuff
@@ -4234,6 +4296,64 @@ GF_Err elng_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err elng_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err elng_Size(GF_Box *s);
 GF_Err elng_dump(GF_Box *a, FILE * trace);
+
+/* Image File Format declarations */
+GF_Box *ispe_New();
+void ispe_del(GF_Box *s);
+GF_Err ispe_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ispe_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err ispe_Size(GF_Box *s);
+GF_Err ispe_dump(GF_Box *a, FILE * trace);
+
+GF_Box *colr_New();
+void colr_del(GF_Box *s);
+GF_Err colr_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err colr_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err colr_Size(GF_Box *s);
+GF_Err colr_dump(GF_Box *a, FILE * trace);
+
+GF_Box *pixi_New();
+void pixi_del(GF_Box *s);
+GF_Err pixi_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err pixi_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err pixi_Size(GF_Box *s);
+GF_Err pixi_dump(GF_Box *a, FILE * trace);
+
+GF_Box *rloc_New();
+void rloc_del(GF_Box *s);
+GF_Err rloc_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err rloc_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err rloc_Size(GF_Box *s);
+GF_Err rloc_dump(GF_Box *a, FILE * trace);
+
+GF_Box *irot_New();
+void irot_del(GF_Box *s);
+GF_Err irot_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err irot_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err irot_Size(GF_Box *s);
+GF_Err irot_dump(GF_Box *a, FILE * trace);
+
+GF_Box *ipco_New();
+void ipco_del(GF_Box *s);
+GF_Err ipco_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ipco_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err ipco_Size(GF_Box *s);
+GF_Err ipco_dump(GF_Box *a, FILE * trace);
+
+GF_Box *iprp_New();
+void iprp_del(GF_Box *s);
+GF_Err iprp_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err iprp_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err iprp_Size(GF_Box *s);
+GF_Err iprp_dump(GF_Box *a, FILE * trace);
+
+GF_Box *ipma_New();
+void ipma_del(GF_Box *s);
+GF_Err ipma_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ipma_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err ipma_Size(GF_Box *s);
+GF_Err ipma_dump(GF_Box *a, FILE * trace);
+
 
 #endif /*GPAC_DISABLE_ISOM*/
 

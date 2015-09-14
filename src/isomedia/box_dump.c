@@ -549,6 +549,24 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 	case GF_ISOM_BOX_TYPE_FLXS:
 		return flxs_dump(a, trace);
 
+	/* Image File Format */
+	case GF_ISOM_BOX_TYPE_ISPE:
+		return ispe_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_COLR:
+		return colr_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_PIXI:
+		return pixi_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_RLOC:
+		return rloc_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_IROT:
+		return irot_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_IPCO:
+		return ipco_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_IPRP:
+		return iprp_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_IPMA:
+		return ipma_dump(a, trace);
+
 	default:
 		return defa_dump(a, trace);
 	}
@@ -2115,6 +2133,7 @@ GF_Err meta_dump(GF_Box *a, FILE * trace)
 	if (p->protections) gf_box_dump(p->protections, trace);
 	if (p->item_infos) gf_box_dump(p->item_infos, trace);
 	if (p->IPMP_control) gf_box_dump(p->IPMP_control, trace);
+	if (p->item_props) gf_box_dump(p->item_props, trace);
 	gf_box_dump_done("MetaBox", a, trace);
 	return GF_OK;
 }
@@ -4640,6 +4659,110 @@ GF_Err adaf_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
 	gf_box_dump_done("GF_AdobeDRMAUFormatBox", a, trace);
+	return GF_OK;
+}
+
+/* Image File Format dump */
+GF_Err ispe_dump(GF_Box *a, FILE * trace)
+{
+	GF_ImageSpatialExtentsPropertyBox *ptr = (GF_ImageSpatialExtentsPropertyBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<ImageSpatialExtentsPropertyBox image_width=\"%d\" image_height=\"%d\">\n", ptr->image_width, ptr->image_height);
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	gf_box_dump_done("ImageSpatialExtentsPropertyBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err colr_dump(GF_Box *a, FILE * trace)
+{
+	GF_ColourInformationBox *ptr = (GF_ColourInformationBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<ColourInformationBox colour_type=\"%s\" colour_primaries=\"%d\" transfer_characteristics=\"%d\" matrix_coefficients=\"%d\" full_range_flag=\"%d\">\n", ptr->colour_type, ptr->colour_primaries, ptr->transfer_characteristics, ptr->matrix_coefficients, ptr->full_range_flag);
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	gf_box_dump_done("ColourInformationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err pixi_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_PixelInformationPropertyBox *ptr = (GF_PixelInformationPropertyBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<PixelInformationPropertyBox num_channels=\"%d\" bits_per_channel=\"", ptr->num_channels);
+	for (i = 0; i < ptr->num_channels; i++) {
+		if (i != 0) fprintf(trace, ", ");
+		fprintf(trace, "%d", ptr->bits_per_channel[i]);
+	}
+	fprintf(trace, "\">\n");
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	gf_box_dump_done("PixelInformationPropertyBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err rloc_dump(GF_Box *a, FILE * trace)
+{
+	GF_RelativeLocationPropertyBox *ptr = (GF_RelativeLocationPropertyBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<RelativeLocationPropertyBox horizontal_offset=\"%d\" vertical_offset=\"%d\">\n", ptr->horizontal_offset, ptr->vertical_offset);
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	gf_box_dump_done("RelativeLocationPropertyBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err irot_dump(GF_Box *a, FILE * trace)
+{
+	GF_ImageRotationBox *ptr = (GF_ImageRotationBox *)a;
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<ImageRotationBox angle=\"%d\">\n", (ptr->angle*90));
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	gf_box_dump_done("ImageRotationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err ipco_dump(GF_Box *a, FILE * trace)
+{
+	fprintf(trace, "<ItemPropertyContainerBox>\n");
+	DumpBox(a, trace);
+	gf_box_dump_done("ItemPropertyContainerBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err iprp_dump(GF_Box *a, FILE * trace)
+{
+	GF_ItemPropertiesBox *ptr = (GF_ItemPropertiesBox *)a;
+	fprintf(trace, "<ItemPropertiesBox>\n");
+	DumpBox(a, trace);
+	if (ptr->property_container) gf_box_dump(ptr->property_container, trace);
+	gf_box_dump_done("ItemPropertiesBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err ipma_dump(GF_Box *a, FILE * trace)
+{
+	u32 i, j;
+	GF_ItemPropertyAssociationBox *ptr = (GF_ItemPropertyAssociationBox *)a;
+	u32 entry_count = gf_list_count(ptr->entries);
+	if (!a) return GF_BAD_PARAM;
+	fprintf(trace, "<ItemPropertyAssociationBox entry_count=\"%d\">\n", entry_count);
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	for (i = 0; i < entry_count; i++) {
+		GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ptr->entries, i);
+		u32 association_count = gf_list_count(entry->essential);
+ 		fprintf(trace, "<AssociationEntry item_ID=\"%d\" association_count=\"%d\">\n", entry->item_id, association_count);
+		for (j = 0; j < association_count; j++) {
+			Bool *ess = (Bool *)gf_list_get(entry->essential, j);
+			u32 *prop_index = (u32 *)gf_list_get(entry->property_index, j);
+			fprintf(trace, "<Property index=\"%d\" essential=\"%d\"/>\n", *prop_index, *ess);
+		}
+ 		fprintf(trace, "</AssociationEntry>\n");
+	}
+	gf_box_dump_done("ItemPropertyAssociationBox", a, trace);
 	return GF_OK;
 }
 
