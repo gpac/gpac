@@ -3472,6 +3472,7 @@ GF_EXPORT
 Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type)
 {
 	if (compositor->navigation_disabled ) return GF_FALSE;
+#ifndef GPAC_DISABLE_3D
 	if (compositor->visual->type_3d || compositor->active_layer) {
 		GF_Camera *cam = compositor_3d_get_camera(compositor);
 		if (cam->navigation_flags & NAV_ANY) {
@@ -3493,7 +3494,9 @@ Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type)
 			}
 			return GF_FALSE;
 		}
-	} else if ((type!=GF_NAVIGATE_NONE) && (type!=GF_NAVIGATE_SLIDE) && (type!=GF_NAVIGATE_EXAMINE)) {
+	} else
+#endif
+	if ((type!=GF_NAVIGATE_NONE) && (type!=GF_NAVIGATE_SLIDE) && (type!=GF_NAVIGATE_EXAMINE)) {
 		return GF_FALSE;
 	}
 	return GF_TRUE;
