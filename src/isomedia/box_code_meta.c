@@ -46,6 +46,7 @@ void meta_del(GF_Box *s)
 	if (ptr->protections) gf_isom_box_del((GF_Box *)ptr->protections);
 	if (ptr->item_infos) gf_isom_box_del((GF_Box *)ptr->item_infos);
 	if (ptr->IPMP_control) gf_isom_box_del((GF_Box *)ptr->IPMP_control);
+	if (ptr->item_props) gf_isom_box_del((GF_Box *)ptr->item_props);
 	gf_free(ptr);
 }
 
@@ -76,6 +77,10 @@ GF_Err meta_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_IINF:
 		if (ptr->item_infos) return GF_ISOM_INVALID_FILE;
 		ptr->item_infos = (GF_ItemInfoBox*)a;
+		break;
+	case GF_ISOM_BOX_TYPE_IPRP:
+		if (ptr->item_props) return GF_ISOM_INVALID_FILE;
+		ptr->item_props = (GF_ItemPropertiesBox*)a;
 		break;
 	//case ???: ptr->IPMP_control = (???*)a; break;
 	case GF_ISOM_BOX_TYPE_XML:
@@ -135,6 +140,10 @@ GF_Err meta_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->IPMP_control, bs);
 		if (e) return e;
 	}
+	if (ptr->item_props) {
+		e = gf_isom_box_write((GF_Box *) ptr->item_props, bs);
+		if (e) return e;
+	}
 	return GF_OK;
 }
 
@@ -179,6 +188,11 @@ GF_Err meta_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->IPMP_control);
 		if (e) return e;
 		ptr->size += ptr->IPMP_control->size;
+	}
+	if (ptr->item_props) {
+		e = gf_isom_box_size((GF_Box *) ptr->item_props);
+		if (e) return e;
+		ptr->size += ptr->item_props->size;
 	}
 	return GF_OK;
 }

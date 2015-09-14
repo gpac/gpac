@@ -877,6 +877,24 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_ADAF:
 		return adaf_New();
 
+	/* Image File Format */
+	case GF_ISOM_BOX_TYPE_ISPE:
+		return ispe_New();
+	case GF_ISOM_BOX_TYPE_COLR:
+		return colr_New();
+	case GF_ISOM_BOX_TYPE_PIXI:
+		return pixi_New();
+	case GF_ISOM_BOX_TYPE_RLOC:
+		return rloc_New();
+	case GF_ISOM_BOX_TYPE_IROT:
+		return irot_New();
+	case GF_ISOM_BOX_TYPE_IPCO:
+		return ipco_New();
+	case GF_ISOM_BOX_TYPE_IPRP:
+		return iprp_New();
+	case GF_ISOM_BOX_TYPE_IPMA:
+		return ipma_New();
+
 	default:
 		a = defa_New();
 		if (a) a->type = boxType;
@@ -1545,6 +1563,32 @@ void gf_isom_box_del(GF_Box *a)
 		adaf_del(a);
 		return;
 
+	/* Image File Format */
+	case GF_ISOM_BOX_TYPE_ISPE:
+		ispe_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_COLR:
+		colr_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_PIXI:
+		pixi_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_RLOC:
+		rloc_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_IROT:
+		irot_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_IPCO:
+		ipco_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_IPRP:
+		iprp_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_IPMA:
+		ipma_del(a);
+		return;
+
 	default:
 		defa_del(a);
 		return;
@@ -2007,6 +2051,24 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return flxs_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ADAF:
 		return adaf_Read(a, bs);
+
+	/* Image File Format */
+	case GF_ISOM_BOX_TYPE_ISPE:
+		return ispe_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_COLR:
+		return colr_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_PIXI:
+		return pixi_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_RLOC:
+		return rloc_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_IROT:
+		return irot_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_IPCO:
+		return ipco_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_IPRP:
+		return iprp_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_IPMA:
+		return ipma_Read(a, bs);
 
 	default:
 		return defa_Read(a, bs);
@@ -2474,6 +2536,24 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return flxs_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ADAF:
 		return adaf_Write(a, bs);
+
+	/* Image File Format */
+	case GF_ISOM_BOX_TYPE_ISPE:
+		return ispe_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_COLR:
+		return colr_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_PIXI:
+		return pixi_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_RLOC:
+		return rloc_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_IROT:
+		return irot_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_IPCO:
+		return ipco_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_IPRP:
+		return iprp_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_IPMA:
+		return ipma_Write(a, bs);
 
 	default:
 		return defa_Write(a, bs);
@@ -2947,6 +3027,24 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return flxs_Size(a);
 	case GF_ISOM_BOX_TYPE_ADAF:
 		return adaf_Size(a);
+
+	/* Image File Format */
+	case GF_ISOM_BOX_TYPE_ISPE:
+		return ispe_Size(a);
+	case GF_ISOM_BOX_TYPE_COLR:
+		return colr_Size(a);
+	case GF_ISOM_BOX_TYPE_PIXI:
+		return pixi_Size(a);
+	case GF_ISOM_BOX_TYPE_RLOC:
+		return rloc_Size(a);
+	case GF_ISOM_BOX_TYPE_IROT:
+		return irot_Size(a);
+	case GF_ISOM_BOX_TYPE_IPCO:
+		return ipco_Size(a);
+	case GF_ISOM_BOX_TYPE_IPRP:
+		return iprp_Size(a);
+	case GF_ISOM_BOX_TYPE_IPMA:
+		return ipma_Size(a);
 
 	default:
 		return defa_Size(a);

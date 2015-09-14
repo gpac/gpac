@@ -1193,6 +1193,7 @@ typedef struct
 	char szPath[GF_MAX_PATH];
 	char szName[1024], mime_type[1024], enc_type[1024];
 	u32 item_id;
+	GF_ImageItemProperties *image_props;
 } MetaAction;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1243,6 +1244,34 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		}
 		else if (!strnicmp(szSlot, "encoding=", 9)) {
 			strcpy(meta->enc_type, szSlot+9);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "image-size=", 11)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			sscanf(szSlot+11, "%dx%d", &meta->image_props->width, &meta->image_props->height);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "image-pasp=", 11)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			sscanf(szSlot+11, "%dx%d", &meta->image_props->hSpacing, &meta->image_props->vSpacing);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "image-rloc=", 11)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			sscanf(szSlot+11, "%dx%d", &meta->image_props->hOffset, &meta->image_props->vOffset);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "image-irot=", 11)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			meta->image_props->angle = atoi(szSlot+11);
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "dref", 4)) {
@@ -4081,7 +4110,8 @@ int mp4boxMain(int argc, char **argv)
 			                          meta->item_id,
 			                          strlen(meta->mime_type) ? meta->mime_type : NULL,
 			                          strlen(meta->enc_type) ? meta->enc_type : NULL,
-			                          meta->use_dref ? meta->szPath : NULL,  NULL);
+			                          meta->use_dref ? meta->szPath : NULL,  NULL,
+									  meta->image_props);
 			needSave = 1;
 			break;
 		case META_ACTION_REM_ITEM:
