@@ -2048,6 +2048,8 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			gf_isom_get_media_language(import->orig, i+1, &lang);
 			if (lang) {
 				import->tk_info[i].lang = GF_4CC(' ', lang[0], lang[1], lang[2]);
+				gf_free(lang);
+				lang = NULL;
 			}
 			import->nb_tracks ++;
 		}
