@@ -1489,9 +1489,9 @@ GF_Err gf_odf_write_mediatime(GF_BitStream *bs, GF_MediaTime *mt)
 
 GF_Descriptor *gf_odf_new_lang()
 {
-	GF_Language *newDesc = (GF_Language *) gf_malloc(sizeof(GF_Language));
+	GF_Language *newDesc;
+	GF_SAFEALLOC(newDesc, GF_Language);
 	if (!newDesc) return NULL;
-	newDesc->langCode = 0;
 	newDesc->tag = GF_ODF_LANG_TAG;
 	return (GF_Descriptor *) newDesc;
 }
