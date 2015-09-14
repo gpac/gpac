@@ -1762,17 +1762,6 @@ restart_fragmentation_pass:
 			nbFragmentInSegment++;
 		}
 
-
-		//this is now disabled - we try to keep segment duration as constant and close to the requested duration as possible
-		//this code was producing much shorter segments in case segment duration was way greater than fragment duration
-		//this means we will typically end up with one shorter fragment at the end of the segment
-#if 0
-		/*next fragment will exceed segment length, abort fragment now (all samples RAPs)*/
-		if (tfref && tfref->all_sample_raps && (SegmentDuration + MaxFragmentDuration >= MaxSegmentDuration)) {
-			force_switch_segment = GF_TRUE;
-		}
-#endif
-
 		if (force_switch_segment || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || !next || next_sample_rap || tf->splitable))) {
 			if (!min_seg_dur || (min_seg_dur>SegmentDuration))
 				min_seg_dur = SegmentDuration;
