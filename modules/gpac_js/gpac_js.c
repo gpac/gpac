@@ -1348,7 +1348,9 @@ static JSBool SMJS_FUNCTION(gjs_odm_select)
 	
 	if (!odm) return JS_TRUE;
 
+#ifndef GPAC_DISABLE_PLAYER
 	gf_scene_select_object(odm->parentscene, odm);
+#endif
 	return JS_TRUE;
 }
 
