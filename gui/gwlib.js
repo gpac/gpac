@@ -3494,7 +3494,7 @@ function gw_new_popup(anchor, type)
         }
 
         for (var i=0; i<children.length; i++) {
-            children[i].set_size(max_s * 0.9 * gwskin.default_text_font_size, gwskin.default_icon_height);
+            children[i].set_size(max_s * gwskin.default_text_font_size, gwskin.default_icon_height);
         }
         this.area.set_size(max_s * gwskin.default_text_font_size, children.length * gwskin.default_icon_height);
         this.set_size(max_s * gwskin.default_text_font_size, children.length * gwskin.default_icon_height);
