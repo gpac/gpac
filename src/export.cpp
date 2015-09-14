@@ -1798,6 +1798,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_disconnect) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_register_associated_media) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_scene_set_addon_layout_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_scene_select_object) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odm_setup_object) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odm_disconnect) )
