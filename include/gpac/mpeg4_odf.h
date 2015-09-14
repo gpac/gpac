@@ -686,6 +686,7 @@ typedef struct {
 typedef struct {
 	BASE_DESCRIPTOR
 	u32 langCode;
+	char *full_lang_code;
 } GF_Language;
 
 /*Elementary Stream Descriptor*/
