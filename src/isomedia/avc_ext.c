@@ -235,6 +235,8 @@ static SAPType is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *
 	if (!nalu_size_field) return RAP_NO;
 
 	bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
+	if (!bs) return RAP_NO;
+
 	while (gf_bs_available(bs)) {
 		u8 nal_type;
 		u32 size = gf_bs_read_int(bs, 8*nalu_size_field);
@@ -411,6 +413,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	dst_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	ps_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	src_bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
+	if (!src_bs) return GF_ISOM_INVALID_FILE;
 	max_size = 4096;
 
 	/*rewrite start code with NALU delim*/
