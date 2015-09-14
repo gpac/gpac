@@ -856,7 +856,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		readonly_playlist = 0;
 		if (!playlist) {
 			readonly_playlist = 0;
-			playlist = gf_temp_file_new();
+			playlist = gf_temp_file_new(NULL);
 		}
 		pos = ftell(playlist);
 		i=0;

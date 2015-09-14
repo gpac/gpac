@@ -767,8 +767,8 @@ GF_EXPORT
 char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *session_name, char *iod64)
 {
 	u64 size;
-	char *sdp;
-	FILE *tmp = gf_temp_file_new();
+	char *sdp, *tmp_fn = NULL;
+	FILE *tmp = gf_temp_file_new(&tmp_fn);
 	if (!tmp) return NULL;
 
 	/* write SDP header*/
@@ -787,6 +787,8 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 	size = fread(sdp, 1, (size_t)size, tmp);
 	sdp[size] = 0;
 	gf_fclose(tmp);
+	gf_delete_file(tmp_fn);
+	gf_free(tmp_fn);
 	return sdp;
 }
 

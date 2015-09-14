@@ -596,9 +596,10 @@ GF_Err gf_move_file(const char *fileName, const char *newFileName);
  *	\brief Temporary File Creation
  *
  *	Creates a new temporary file in binary mode
+ *	\param fileName if not NULL, strdup() of the temporary filename when created by GPAC (NULL otherwise as the system automatically removes its own tmp files)
  *	\return stream handle to the new file ressoucre
  */
-FILE *gf_temp_file_new();
+FILE *gf_temp_file_new(char ** const fileName);
 
 
 /*!
@@ -935,7 +936,7 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock);
 char * gf_get_default_cache_directory();
 
 /**
- * Gets the number of open file handles (gf_fopn/gf_fclose only).
+ * Gets the number of open file handles (gf_fopen/gf_fclose only).
  * \return  number of open file handles 
  */
 u32 gf_file_handles_count(); 
