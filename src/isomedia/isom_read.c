@@ -264,7 +264,7 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 		for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 			GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(movie->moov->trackList, i);
 			/*delete any pending dataHandler of scalable enhancements*/
-			if (trak->Media->information->scalableDataHandler && (trak->Media->information->scalableDataHandler != movie->movieFileMap))
+			if (trak->Media && trak->Media->information && trak->Media->information->scalableDataHandler && (trak->Media->information->scalableDataHandler != movie->movieFileMap))
 				gf_isom_datamap_del(trak->Media->information->scalableDataHandler);
 		}
 	}
@@ -1056,7 +1056,7 @@ u32 gf_isom_get_media_type(GF_ISOFile *movie, u32 trackNumber)
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
-	return trak->Media->handler->handlerType;
+	return (trak->Media && trak->Media->handler) ? trak->Media->handler->handlerType : 0;
 }
 
 Bool IsMP4Description(u32 entryType)
@@ -1104,7 +1104,7 @@ u32 gf_isom_get_media_subtype(GF_ISOFile *the_file, u32 trackNumber, u32 Descrip
 	GF_TrackBox *trak;
 	GF_Box *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak || !DescriptionIndex) return 0;
+	if (!trak || !DescriptionIndex || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable) return 0;
 	entry = (GF_Box*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!entry) return 0;
 
@@ -2591,7 +2591,7 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 	GF_TrackBox *trak;
 	GF_GenericSampleDescription *udesc;
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !StreamDescriptionIndex) return NULL;
+	if (!trak || !StreamDescriptionIndex || !trak->Media || !trak->Media->information || !trak->Media->information->sampleTable) return 0;
 
 	entry = (GF_GenericVisualSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex-1);
 	//no entry or MPEG entry:

@@ -940,23 +940,25 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u32(bs, subtype);
 	udesc = gf_isom_get_generic_sample_description(mp4, track, 1);
-	if (type==GF_ISOM_MEDIA_AUDIO) {
-		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		gf_bs_write_u32(bs, udesc->samplerate);
-		gf_bs_write_u16(bs, udesc->nb_channels);
-		gf_bs_write_u16(bs, 0);
-		gf_bs_write_u8(bs, udesc->bits_per_sample);
-		gf_bs_write_u8(bs, 0);
-	} else {
-		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		gf_bs_write_u16(bs, udesc->width);
-		gf_bs_write_u16(bs, udesc->height);
+	if (udesc) {
+		if (type==GF_ISOM_MEDIA_AUDIO) {
+			esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+			gf_bs_write_u32(bs, udesc->samplerate);
+			gf_bs_write_u16(bs, udesc->nb_channels);
+			gf_bs_write_u16(bs, 0);
+			gf_bs_write_u8(bs, udesc->bits_per_sample);
+			gf_bs_write_u8(bs, 0);
+		} else {
+			esd->decoderConfig->streamType = GF_STREAM_VISUAL;
+			gf_bs_write_u16(bs, udesc->width);
+			gf_bs_write_u16(bs, udesc->height);
+		}
+		if (udesc->extension_buf_size) {
+			gf_bs_write_data(bs, udesc->extension_buf, udesc->extension_buf_size);
+			gf_free(udesc->extension_buf);
+		}
+		gf_free(udesc);
 	}
-	if (udesc && udesc->extension_buf_size) {
-		gf_bs_write_data(bs, udesc->extension_buf, udesc->extension_buf_size);
-		gf_free(udesc->extension_buf);
-	}
-	if (udesc) gf_free(udesc);
 	gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 	gf_bs_del(bs);
 	return esd;

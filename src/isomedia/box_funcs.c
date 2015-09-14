@@ -96,26 +96,14 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type)
 		size = 4;
 		type = GF_ISOM_BOX_TYPE_VOID;
 	} else {
-		/*now here's a bad thing: some files use size 0 for void atoms, some for "till end of file" indictaion..*/
+		type = gf_bs_read_u32(bs);
+		hdr_size += 4;
+		/*no size means till end of file - EXCEPT FOR some old QuickTime boxes...*/
+		if (type == GF_ISOM_BOX_TYPE_TOTL)
+			size = 12;
 		if (!size) {
-			type = gf_bs_peek_bits(bs, 32, 0);
-			if (!isalnum((type>>24)&0xFF) || !isalnum((type>>16)&0xFF) || !isalnum((type>>8)&0xFF) || !isalnum(type&0xFF)) {
-				size = 4;
-				type = GF_ISOM_BOX_TYPE_VOID;
-			} else {
-				goto proceed_box;
-			}
-		} else {
-proceed_box:
-			type = gf_bs_read_u32(bs);
-			hdr_size += 4;
-			/*no size means till end of file - EXCEPT FOR some old QuickTime boxes...*/
-			if (type == GF_ISOM_BOX_TYPE_TOTL)
-				size = 12;
-			if (!size) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning Read Box type %s size 0 reading till the end of file\n", gf_4cc_to_str(type)));
-				size = gf_bs_available(bs) + 8;
-			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning Read Box type %s (0x%08X) size 0 reading till the end of file\n", gf_4cc_to_str(type), type));
+			size = gf_bs_available(bs) + 8;
 		}
 	}
 	/*handle uuid*/

@@ -714,12 +714,17 @@ GF_Err defa_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size > 0xFFFFFFFF) return GF_ISOM_INVALID_FILE;
 	bytesToRead = (u32) (ptr->size);
 
-	if (bytesToRead) {
-		ptr->data = (char*)gf_malloc(bytesToRead);
-		if (ptr->data == NULL ) return GF_OUT_OF_MEM;
-		ptr->dataSize = bytesToRead;
-		gf_bs_read_data(bs, ptr->data, ptr->dataSize);
+	if (!bytesToRead) return GF_OK;
+	if (bytesToRead>1000000) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Unknown box %s (0x%08X) with payload larger than 1 MBytes, ignoring\n", gf_4cc_to_str(ptr->type), ptr->type ));
+		gf_bs_skip_bytes(bs, ptr->dataSize);
+		return GF_OK;
 	}
+
+	ptr->data = (char*)gf_malloc(bytesToRead);
+	if (ptr->data == NULL ) return GF_OUT_OF_MEM;
+	ptr->dataSize = bytesToRead;
+	gf_bs_read_data(bs, ptr->data, ptr->dataSize);
 	return GF_OK;
 }
 
@@ -738,10 +743,12 @@ GF_Err defa_Write(GF_Box *s, GF_BitStream *bs)
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
 	if (!s) return GF_BAD_PARAM;
 
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-	if (ptr->data) {
-		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
+	if (ptr->dataSize) {
+		e = gf_isom_box_write_header(s, bs);
+		if (e) return e;
+		if (ptr->data) {
+			gf_bs_write_data(bs, ptr->data, ptr->dataSize);
+		}
 	}
 	return GF_OK;
 }
@@ -750,9 +757,11 @@ GF_Err defa_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
-	ptr->size += ptr->dataSize;
+	if (ptr->dataSize) {
+		e = gf_isom_box_get_size(s);
+		if (e) return e;
+		ptr->size += ptr->dataSize;
+	}
 	return GF_OK;
 }
 
@@ -6350,6 +6359,11 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 	GF_BitStream *bs;
 	GF_UnknownBox *a;
 	u32 i;
+
+	if (!trak->Media || !trak->Media->information) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no media box !\n" ));
+		return;
+	}
 
 	if (!trak->Media->information->sampleTable->SampleDescription) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no sample description box !\n" ));

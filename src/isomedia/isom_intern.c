@@ -611,7 +611,7 @@ GF_Err GetMediaTime(GF_TrackBox *trak, Bool force_non_empty, u64 movieTime, u64 
 	//no segment yet...
 	*SegmentStartTime = -1;
 	*MediaOffset = -1;
-	if (!trak->moov->mvhd->timeScale || !trak->Media->mediaHeader->timeScale) {
+	if (!trak->moov->mvhd->timeScale || !trak->Media->mediaHeader->timeScale || !stbl->SampleSize) {
 		return GF_ISOM_INVALID_FILE;
 	}
 
