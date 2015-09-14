@@ -313,6 +313,7 @@
 		9225733218D7269700D6FD98 /* theora_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9225732D18D7269700D6FD98 /* theora_dec.c */; };
 		9225733318D7269700D6FD98 /* vorbis_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9225732E18D7269700D6FD98 /* vorbis_dec.c */; };
 		9225733418D726D800D6FD98 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		924FEE821BA6C63A003F77A6 /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 924FEE811BA6C63A003F77A6 /* iff.c */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
 		92AAF0E518D6DB8600E2FF12 /* sdl_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */; };
 		92AAF0E618D6DB8600E2FF12 /* sdl_out.h in Headers */ = {isa = PBXBuildFile; fileRef = 92AAF0DB18D6DB5500E2FF12 /* sdl_out.h */; };
@@ -1201,6 +1202,7 @@
 		9225732D18D7269700D6FD98 /* theora_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = theora_dec.c; path = ../../modules/ogg/theora_dec.c; sourceTree = "<group>"; };
 		9225732E18D7269700D6FD98 /* vorbis_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vorbis_dec.c; path = ../../modules/ogg/vorbis_dec.c; sourceTree = "<group>"; };
 		922B48781A5ADAB3006CBBBA /* os_module.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
+		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
 		92AAF0D318D6DB2D00E2FF12 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF0D818D6DB5500E2FF12 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio.c; path = ../../modules/sdl_out/audio.c; sourceTree = "<group>"; };
 		92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sdl_out.c; path = ../../modules/sdl_out/sdl_out.c; sourceTree = "<group>"; };
@@ -2319,6 +2321,7 @@
 		9201FFF118D5A444003D1ACA /* isomedia */ = {
 			isa = PBXGroup;
 			children = (
+				924FEE811BA6C63A003F77A6 /* iff.c */,
 				9201FFF218D5A444003D1ACA /* avc_ext.c */,
 				9201FFF318D5A444003D1ACA /* box_code_3gpp.c */,
 				9201FFF418D5A444003D1ACA /* box_code_adobe.c */,
@@ -3481,6 +3484,7 @@
 				9201011118D5A444003D1ACA /* rtsp_response.c in Sources */,
 				9201011218D5A444003D1ACA /* rtsp_session.c in Sources */,
 				9201011318D5A444003D1ACA /* sdp.c in Sources */,
+				924FEE821BA6C63A003F77A6 /* iff.c in Sources */,
 				9201011418D5A444003D1ACA /* avc_ext.c in Sources */,
 				9201011518D5A444003D1ACA /* box_code_3gpp.c in Sources */,
 				9201011618D5A444003D1ACA /* box_code_adobe.c in Sources */,

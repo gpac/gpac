@@ -440,6 +440,7 @@
 		92BC213B16EF8E7A000E0620 /* widgetman.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998E1278777A00ACFF58 /* widgetman.c */; };
 		92BC213C16EF8E7A000E0620 /* widgetman.h in Headers */ = {isa = PBXBuildFile; fileRef = 71A1998F1278777A00ACFF58 /* widgetman.h */; };
 		92C7F19A1AA8B48E00BA5B4C /* gui in Resources */ = {isa = PBXBuildFile; fileRef = 92C7F1991AA8B48E00BA5B4C /* gui */; };
+		92DF5CA61BA6C6F80058A7BA /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 92DF5CA51BA6C6F80058A7BA /* iff.c */; };
 		92E8C78B1A0CD57A00E0436D /* timedtext_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA826116F254F50002629E /* timedtext_dec.c */; };
 		92E8C78C1A0CD57A00E0436D /* timedtext_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA826216F254F50002629E /* timedtext_in.c */; };
 		92E8C78D1A0CD57A00E0436D /* isma_ea.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825F16F254DA0002629E /* isma_ea.c */; };
@@ -1005,6 +1006,7 @@
 		92B69E011A091CFC004E74AA /* mpegu-core.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "mpegu-core.js"; sourceTree = "<group>"; };
 		92B69EB61A091CFC004E74AA /* webvtt-renderer.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "webvtt-renderer.js"; sourceTree = "<group>"; };
 		92C7F1991AA8B48E00BA5B4C /* gui */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gui; path = ../../gui; sourceTree = "<group>"; };
+		92DF5CA51BA6C6F80058A7BA /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
 		92F930841A5ADC1A0072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
 		92F930851A5ADC1A0072A85C /* os_file.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 		92FA825916F2549D0002629E /* validator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = validator.c; path = ../../modules/validator/validator.c; sourceTree = SOURCE_ROOT; };
@@ -1411,6 +1413,7 @@
 		71CCF19F1277045100339E12 /* isomedia */ = {
 			isa = PBXGroup;
 			children = (
+				92DF5CA51BA6C6F80058A7BA /* iff.c */,
 				97A8DDC31896AFF300F4680F /* ttml.c */,
 				97116F201646E38D00BD1AD0 /* box_code_adobe.c */,
 				71CCF1A01277045100339E12 /* avc_ext.c */,
@@ -2210,6 +2213,7 @@
 				92BC213516EF8E7A000E0620 /* unzip.c in Sources */,
 				92BC213916EF8E7A000E0620 /* wgt_load.c in Sources */,
 				92BC213A16EF8E7A000E0620 /* widget.c in Sources */,
+				92DF5CA61BA6C6F80058A7BA /* iff.c in Sources */,
 				92BC213B16EF8E7A000E0620 /* widgetman.c in Sources */,
 				92BC213716EF8E7A000E0620 /* video.c in Sources */,
 				92BC212916EF8E7A000E0620 /* rtp_in.c in Sources */,
