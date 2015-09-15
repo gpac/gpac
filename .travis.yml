@@ -17,3 +17,8 @@ env:
  
 script: 
   - ./configure $GPAC_CONFIGURE_PREFIX $GPAC_CONFIGURE_OPTIONS --extra-cflags="$GPAC_CONFIGURE_ECFLAGS" --extra-ldflags="$GPAC_CONFIGURE_ELDFLAGS" && make clean && make $TARGET && make install
+
+notifications:
+  email:
+    recipients:
+      - travisci@gpac.io
