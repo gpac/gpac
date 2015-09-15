@@ -490,14 +490,14 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	if ((codec->ck->speed == FIX_ONE) && (mo->type==GF_MEDIA_OBJECT_VIDEO)  && !(codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY) ) {
 		if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) {
 			//if the next AU is at most 1 sec from the current clock use no drop mode
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %d next frame TS %d next data length %d (%d in CB)\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, CU->next->dataLength, codec->CB->UnitCount));
 			if (CU->next->dataLength && (CU->next->TS + 1000 >= obj_time)) {
 				skip_resync = GF_TRUE;
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Frame TS %d too late in no-drop mode, enabling drop\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %d next frame TS %d too late in no-drop mode, enabling drop\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS));
 			}
 		}
 	}
-
 		
 	if (skip_resync) {
 		resync=GF_MO_FETCH;

@@ -5183,7 +5183,12 @@ u32 gf_dash_group_get_num_segments_ready(GF_DashClient *dash, u32 idx, Bool *gro
 	u32 res = 0;
 	GF_DASH_Group *group;
 
-	gf_mx_p(dash->dl_mutex);
+	//gf_mx_p(dash->dl_mutex);
+	if (!gf_mx_try_lock(dash->dl_mutex)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] get_num_segments_ready: could not lock dl_mutex\n"));
+		*group_is_done = 0;
+		return 0;
+	}
 	group = gf_list_get(dash->groups, idx);
 
 	*group_is_done = 0;
@@ -5363,7 +5368,11 @@ GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash
 	if (original_url) *original_url = NULL;
 	if (switching_index) *switching_index = -1;
 
-	gf_mx_p(dash->dl_mutex);
+	//gf_mx_p(dash->dl_mutex);
+	if (!gf_mx_try_lock(dash->dl_mutex)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] current_download_segment_location: could not lock dl_mutex\n"));
+		return GF_OK;
+	}
 	group = gf_list_get(dash->groups, idx);
 	if (!group) {
 		gf_mx_v(dash->dl_mutex);
