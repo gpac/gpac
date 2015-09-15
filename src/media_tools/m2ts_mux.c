@@ -1542,15 +1542,6 @@ u32 gf_m2ts_stream_add_pes_header(GF_BitStream *bs, GF_M2TS_Mux_Stream *stream)
 		t = dts & 0x7fff;
 		gf_bs_write_long_int(bs, t, 15);
 		gf_bs_write_int(bs, 1, 1); // marker bit
-
-		{
-			s32 diff = stream->program->last_pcr/300;
-			diff -= (s32) dts;
-			if (diff<0) diff = -diff;
-			if (diff>90000) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: PCR to DTS diff too big!\n", stream->pid));
-			}
-		}
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Adding PES header at PCR "LLD" - has PTS %d ("LLU") - has DTS %d ("LLU") - Payload length %d\n", stream->pid, gf_m2ts_get_pcr(stream)/300, use_pts, cts, use_dts, dts, pes_len));
 
