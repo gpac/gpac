@@ -117,6 +117,7 @@ static GFINLINE void usage()
 	        "-temi-delay DelayMS    Specifies delay between two TEMI url descriptors (default is 1000)\n"
 	        "-temi-offset OffsetMS  Specifies an offset in ms to add to TEMI (by default TEMI starts at 0)\n"
 	        "-temi-noloop           Do not restart the TEMI timeline at the end of the source\n"
+			"-insert-ntp            Inserts NTP timestamp in TEMI timeline descriptor\n"
 	        "-sdt-rate MS           Gives the SDT carrousel rate in milliseconds. If 0 (default), SDT is not sent\n"
 	        "\n"
 	        "MPEG-4/T-DMB options:\n"
