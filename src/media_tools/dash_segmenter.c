@@ -2968,8 +2968,8 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *szOutName, GF_DASHSegmenter *dash_cfg, Bool first_in_set)
 {
 	GF_Err e = GF_OK;
-	GF_ISOFile *in = gf_isom_open(dash_input->file_name, GF_ISOM_OPEN_EDIT, dash_cfg->tmpdir);
-	
+	GF_ISOFile *in = gf_isom_open(dash_input->file_name, dash_input->media_duration ? GF_ISOM_OPEN_EDIT : GF_ISOM_OPEN_READ, dash_cfg->tmpdir);
+
 	if (!gf_isom_get_track_count(in))
 		goto exit;
 
@@ -2985,7 +2985,8 @@ static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *
 	e = gf_media_isom_segment_file(in, szOutName, dash_cfg, dash_input, first_in_set);
 
 exit:
-	gf_isom_close(in);
+	//we don't want to save any modif due to duration adjustments
+	gf_isom_delete(in);
 	return e;
 }
 
