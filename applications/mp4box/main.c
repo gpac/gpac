@@ -813,6 +813,9 @@ void PrintUsage()
 	         " -noprog               disables progress\n"
 	         " -v                   verbose mode\n"
 	         " -logs                set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
+	         " -log-file FILE       sets output log file. Also works with -lf FILE\n"
+	         " -log-clock or -lc    logs time in micro sec since start time of GPAC before each log line.\n"
+	         " -log-utc or -lu      logs UTC time in ms before each log line.\n"
 	         " -version             gets build version\n"
 	         " -- INPUT             escape option if INPUT starts with - character\n"
 	         "\n"
@@ -1765,6 +1768,7 @@ static GF_Err hash_file(char *name, u32 dump_std)
 }
 
 Bool log_sys_clock = GF_FALSE;
+Bool log_utc_time = GF_FALSE;
 
 static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
@@ -1773,6 +1777,14 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 	if (log_sys_clock) {
 		fprintf(logs, "At "LLD" ", gf_sys_clock_high_res() );
 	}
+	if (log_utc_time) {
+		u64 utc_clock = gf_net_get_utc() ;
+		time_t secs = utc_clock/1000;
+		struct tm t;
+		t = *gmtime(&secs);
+		fprintf(logs, "UTC %d-%02d-%02dT%02d:%02d:%02dZ (TS "LLU") - ", 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, utc_clock);
+	}
+
 	vfprintf(logs, fmt, list);
 	fflush(logs);
 }
@@ -1984,8 +1996,11 @@ int mp4boxMain(int argc, char **argv)
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
 		}
-		else if (!strcmp(arg, "-lc") ) {
+		else if (!strcmp(arg, "-lc") || !strcmp(arg, "-log-clock") ) {
 			log_sys_clock = GF_TRUE;
+		}
+		else if (!strcmp(arg, "-lu") || !strcmp(arg, "-log-utc") ) {
+			log_utc_time = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-noprog")) quiet = 1;
 		else if (!stricmp(arg, "-info")) {

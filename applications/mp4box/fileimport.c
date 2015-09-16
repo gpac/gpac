@@ -1043,8 +1043,17 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		return GF_NOT_SUPPORTED;
 	}
 	if (needs_rap_sync) {
+		Bool has_enough_sync = GF_FALSE;
 		tki = &tks[needs_rap_sync-1];
-		if ((gf_isom_get_sync_point_count(mp4, tki->tk)==1) && (chunk_start != 0.0f)) {
+
+		if (chunk_start == 0.0f) 
+			has_enough_sync = GF_TRUE;
+		else if (gf_isom_get_sync_point_count(mp4, tki->tk) > 1)
+			has_enough_sync = GF_TRUE;
+		else if (gf_isom_get_sample_group_info(mp4, tki->tk, 1, GF_4CC('r', 'a', 'p', ' '), NULL, NULL, NULL))
+			has_enough_sync = GF_TRUE;
+
+		if (!has_enough_sync) {
 			fprintf(stderr, "Not enough Random Access points in input file - cannot split\n");
 			gf_free(tks);
 			return GF_NOT_SUPPORTED;
