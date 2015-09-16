@@ -362,7 +362,7 @@ static u32 mpd_thread(void *params)
 			fprintf(stdout, "Duration: %s\n", presentation_duration);
 		}
 
-		dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, 0, cmddata->ast_offset);
+		dc_write_mpd(cmddata, audio_data_conf, video_data_conf, presentation_duration, availability_start_time, time_shift, 1, cmddata->ast_offset);
 	}
 
 	return 0;
