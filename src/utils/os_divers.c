@@ -1695,20 +1695,21 @@ GF_EXPORT
 s32 gf_net_get_ntp_diff_ms(u64 ntp)
 {
 	u32 remote_s, remote_f, local_s, local_f;
-	s64 diff_s, diff_f;
+	s64 local, remote;
 
 	remote_s = (ntp >> 32);
 	remote_f = (u32) (ntp & 0xFFFFFFFFULL);
 	gf_net_get_ntp(&local_s, &local_f);
-	diff_s = local_s;
-	diff_s -= remote_s;
-	diff_s *= 1000;
-	diff_f = local_f;
-	diff_f -= remote_f;
-	diff_f *= 1000;
-	diff_f /= 0xFFFFFFFFULL;
-	diff_s += diff_f;
-	return (s32) diff_s;
+	
+	local = local_s;
+	local *= 1000;
+	local += ((u64) local_f)*1000 / 0xFFFFFFFFULL;
+
+	remote = remote_s;
+	remote *= 1000;
+	remote += ((u64) remote_f)*1000 / 0xFFFFFFFFULL;
+
+	return (s32) (local - remote);
 }
 
 
