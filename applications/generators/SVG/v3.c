@@ -181,23 +181,23 @@ void generateSVGCode_V3(GF_List *svg_elements)
 		if (!strcmp(att->svg_name, "x") || !strcmp(att->svg_name, "y")) {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) {\n", att->svg_name);
 			fprintf(output, "\t\tif (element_tag == TAG_SVG_text) return TAG_SVG_ATT_text_%s;\n", att->implementation_name);
-			fprintf(output, "\t\telse if (element_tag == TAG_SVG_cursorManager) return TAG_SVG_ATT_cursorManager_%s;\n", att->svg_name, att->implementation_name);
-			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\t\telse if (element_tag == TAG_SVG_cursorManager) return TAG_SVG_ATT_cursorManager_%s;\n", att->implementation_name);
+			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->implementation_name);
 			fprintf(output, "\t}\n");
 		} else if (!strcmp(att->svg_name, "rotate")) {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) {\n", att->svg_name);
 			fprintf(output, "\t\tif (element_tag == TAG_SVG_text) return TAG_SVG_ATT_text_%s;\n", att->implementation_name);
-			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->implementation_name);
 			fprintf(output, "\t}\n");
 		} else if (!strcmp(att->svg_name, "type")) {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) {\n", att->svg_name);
 			fprintf(output, "\t\tif (element_tag == TAG_SVG_animateTransform) return TAG_SVG_ATT_transform_type;\n");
-			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->implementation_name);
 			fprintf(output, "\t}\n");
 		} else if (!strcmp(att->svg_name, "fill")) {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) {\n", att->svg_name);
-			fprintf(output, "\t\tif (element_tag == TAG_SVG_animate || element_tag == TAG_SVG_animateColor || element_tag == TAG_SVG_animateMotion || element_tag == TAG_SVG_animateTransform || element_tag == TAG_SVG_animation || element_tag == TAG_SVG_audio || element_tag == TAG_SVG_video || element_tag == TAG_SVG_set) return TAG_SVG_ATT_smil_fill;\n", att->svg_name, att->implementation_name);
-			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->svg_name, att->implementation_name);
+			fprintf(output, "\t\tif (element_tag == TAG_SVG_animate || element_tag == TAG_SVG_animateColor || element_tag == TAG_SVG_animateMotion || element_tag == TAG_SVG_animateTransform || element_tag == TAG_SVG_animation || element_tag == TAG_SVG_audio || element_tag == TAG_SVG_video || element_tag == TAG_SVG_set) return TAG_SVG_ATT_smil_fill;\n");
+			fprintf(output, "\t\telse return TAG_SVG_ATT_%s;\n", att->implementation_name);
 			fprintf(output, "\t}\n");
 		} else {
 			fprintf(output, "\tif (!stricmp(attribute_name, \"%s\")) return TAG_SVG_ATT_%s;\n", att->svg_name, att->implementation_name);
