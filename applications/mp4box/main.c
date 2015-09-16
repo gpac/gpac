@@ -1764,9 +1764,15 @@ static GF_Err hash_file(char *name, u32 dump_std)
 	return GF_OK;
 }
 
+Bool log_sys_clock = GF_FALSE;
+
 static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
 	FILE *logs = cbk;
+
+	if (log_sys_clock) {
+		fprintf(logs, "At "LLD" ", gf_sys_clock_high_res() );
+	}
 	vfprintf(logs, fmt, list);
 	fflush(logs);
 }
@@ -1977,6 +1983,9 @@ int mp4boxMain(int argc, char **argv)
 			logfile = gf_fopen(argv[i+1], "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
+		}
+		else if (!strcmp(arg, "-lc") ) {
+			log_sys_clock = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-noprog")) quiet = 1;
 		else if (!stricmp(arg, "-info")) {
@@ -3740,9 +3749,9 @@ int mp4boxMain(int argc, char **argv)
 					}
 					if (!sleep_for) break;
 
-					gf_sleep(10);
+					gf_sleep(1);
 					sleep_for = gf_dasher_next_update_time(dasher);
-					if (sleep_for<10) {
+					if (sleep_for<1) {
 						fprintf(stderr, "Slept for %d ms before generation\n", gf_sys_clock() - slept);
 						break;
 					}
