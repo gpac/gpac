@@ -792,6 +792,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	const char *seg_ext = dash_cfg->seg_ext;
 	const char *bs_switching_segment_name = NULL;
 	u64 generation_start_ntp = 0;
+	u64 generation_start_utc = 0;
 	u64 ntpts = 0;
 	SegmentName[0] = 0;
 	SegmentDuration = 0;
@@ -807,6 +808,10 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		generation_start_ntp = sec;
 		generation_start_ntp <<= 32;
 		generation_start_ntp |= frac;
+
+		generation_start_utc = sec - GF_NTP_SEC_1900_TO_1970;
+		generation_start_utc *= 1000;
+		generation_start_utc += ((u64) frac) * 1000 / 0xFFFFFFFFUL;
 	}
 	
 	if (dash_cfg->insert_utc) {
@@ -1758,11 +1763,11 @@ restart_fragmentation_pass:
 				while (1) {
 					s32 diff_ms = gf_net_get_ntp_diff_ms(generation_start_ntp);
 					if (diff_ms >= end_time) break;
-					gf_sleep(0);
+					gf_sleep(1);
 				}				
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, flushing fragment %d at "LLU" us, at UTC "LLU"\n", SegmentName, nbFragmentInSegment,
-					gf_sys_clock_high_res(), gf_net_get_utc()));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, flushing fragment %d at "LLU" us, at UTC "LLU" (flush target UTC "LLU")\n", SegmentName, nbFragmentInSegment,
+					gf_sys_clock_high_res(), gf_net_get_utc(), generation_start_utc + end_time));
 			}
 
 			e = gf_isom_flush_fragments(output, flush_all_samples ? GF_TRUE : GF_FALSE);
@@ -1851,7 +1856,7 @@ restart_fragmentation_pass:
 						last_segment = GF_TRUE;
 				}
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU"\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc()));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU" - segment AST "LLU" (MPD AST "LLU")\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc(), generation_start_utc + period_duration + (u64)segment_start_time, generation_start_utc ));
 				gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, last_segment, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
 				nbFragmentInSegment = 0;
 
@@ -4779,10 +4784,6 @@ static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, GF_DashDynamicMode *da
 	const char *opt;
 	char szVal[100];
 	Bool first_run = GF_FALSE;
-	u32 sec, frac;
-#ifndef _WIN32_WCE
-	time_t gtime;
-#endif
 
 	if (!dash_ctx) return GF_BAD_PARAM;
 
@@ -4810,9 +4811,13 @@ static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, GF_DashDynamicMode *da
 
 	gf_cfg_set_key(dash_ctx, "DASH", "PeriodSwitch", "no");
 
-	gf_net_get_ntp(&sec, &frac);
-
 	if (first_run) {
+		u32 sec, frac;
+#ifndef _WIN32_WCE
+		time_t gtime;
+#endif
+		gf_net_get_ntp(&sec, &frac);
+
 #ifndef _WIN32_WCE
 		gtime = sec - GF_NTP_SEC_1900_TO_1970;
 		gf_cfg_set_key(dash_ctx, "DASH", "GenerationTime", asctime(gmtime(&gtime)));
