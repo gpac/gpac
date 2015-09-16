@@ -201,6 +201,8 @@ struct _dash_segment_input
 
 
 	Bool get_component_info_done;
+	//cached isobmf input
+	GF_ISOFile *isobmf_input;
 };
 
 
@@ -790,7 +792,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	const char *seg_ext = dash_cfg->seg_ext;
 	const char *bs_switching_segment_name = NULL;
 	u64 generation_start_ntp = 0;
-	
+	u64 ntpts = 0;
 	SegmentName[0] = 0;
 	SegmentDuration = 0;
 	nb_samp = 0;
@@ -805,6 +807,11 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		generation_start_ntp = sec;
 		generation_start_ntp <<= 32;
 		generation_start_ntp |= frac;
+	}
+	
+	if (dash_cfg->insert_utc) {
+		ntpts = gf_net_get_ntp_ts();
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Sampling NTP TS "LLU" at "LLU" us, at UTC "LLU"\n", ntpts, gf_sys_clock_high_res(), gf_net_get_utc()));
 	}
 
 	bs_switch_segment = NULL;
@@ -1566,8 +1573,10 @@ restart_fragmentation_pass:
 					e = GF_OK;
 				} else {
 					if (tf->is_ref_track && store_utc) {
-						u64 ntpts = gf_net_get_ntp_ts();
 						gf_isom_set_fragment_reference_time(output, tf->TrackID, ntpts, sample->DTS + sample->CTS_Offset + tf->media_time_to_pres_time_shift);
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, storing NTP TS "LLU" at "LLU" us, at UTC "LLU"\n", SegmentName, ntpts, gf_sys_clock_high_res(), gf_net_get_utc()));
+						ntpts = gf_net_get_ntp_ts();
+
 						store_utc = GF_FALSE;
 					}
 
@@ -1749,7 +1758,7 @@ restart_fragmentation_pass:
 				while (1) {
 					s32 diff_ms = gf_net_get_ntp_diff_ms(generation_start_ntp);
 					if (diff_ms >= end_time) break;
-					gf_sleep(1);
+					gf_sleep(0);
 				}				
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, flushing fragment %d at "LLU" us, at UTC "LLU"\n", SegmentName, nbFragmentInSegment,
@@ -2968,26 +2977,31 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *szOutName, GF_DASHSegmenter *dash_cfg, Bool first_in_set)
 {
 	GF_Err e = GF_OK;
-	GF_ISOFile *in = gf_isom_open(dash_input->file_name, dash_input->media_duration ? GF_ISOM_OPEN_EDIT : GF_ISOM_OPEN_READ, dash_cfg->tmpdir);
+	
+	if (!dash_input->isobmf_input) {
+		GF_ISOFile *in = gf_isom_open(dash_input->file_name, dash_input->media_duration ? GF_ISOM_OPEN_EDIT : GF_ISOM_OPEN_READ, dash_cfg->tmpdir);
 
-	if (!gf_isom_get_track_count(in))
-		goto exit;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] ISOBMFF opened\n"));
 
-	if (dash_input->media_duration) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Forcing media duration to %lfs.\n", dash_input->media_duration));
-		e = dasher_isom_force_duration(in, dash_input->media_duration, dash_cfg->fragment_duration);
-		if (e) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Media duration couldn't be forced. Aborting.\n"));
-			goto exit;
+		if (!gf_isom_get_track_count(in)) {
+			gf_isom_delete(in);
+			return GF_BAD_PARAM;
 		}
+
+		if (dash_input->media_duration) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Forcing media duration to %lfs.\n", dash_input->media_duration));
+			e = dasher_isom_force_duration(in, dash_input->media_duration, dash_cfg->fragment_duration);
+			if (e) {
+				gf_isom_delete(in);
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Media duration couldn't be forced. Aborting.\n"));
+				return e;
+			}
+		}
+		dash_input->isobmf_input = in;
 	}
 
-	e = gf_media_isom_segment_file(in, szOutName, dash_cfg, dash_input, first_in_set);
 
-exit:
-	//we don't want to save any modif due to duration adjustments
-	gf_isom_delete(in);
-	return e;
+	return gf_media_isom_segment_file(dash_input->isobmf_input, szOutName, dash_cfg, dash_input, first_in_set);
 }
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
@@ -4270,6 +4284,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 
 		file = gf_isom_open(dash_input->file_name, GF_ISOM_OPEN_READ, NULL);
 		if (!file) return gf_isom_last_error(NULL);
+
 		nb_track = gf_isom_get_track_count(file);
 
 		/*if this dash input file has only one track, or this has not the scalable track: handle as one representation*/
@@ -4300,7 +4315,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				nb_track = dash_input->single_track_num;
 			}
 			dash_input->protection_scheme_type = gf_isom_is_media_encrypted(file, nb_track, 1);
-			gf_isom_close(file);
+
 			dash_input->moof_seqnum_increase = 0;
 
 			return GF_OK;
@@ -5098,6 +5113,11 @@ void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher)
 		}
 		if (dasher->inputs[i].dependencyID) gf_free(dasher->inputs[i].dependencyID);
 		if (dasher->inputs[i].init_seg_url) gf_free(dasher->inputs[i].init_seg_url);
+
+		if (dasher->inputs[i].isobmf_input) {
+			//we don't want to save any modif due to duration adjustments
+			gf_isom_delete(dasher->inputs[i].isobmf_input);
+		}
 	}
 	gf_free(dasher->inputs);
 	dasher->inputs = NULL;
@@ -5416,6 +5436,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	PeriodEntry *p;
 	if (!dasher) return GF_BAD_PARAM;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Dashing starting\n"));
+
 	dasher->force_period_end = GF_FALSE;
 	dasher->content_protection_in_adaptation_set = GF_FALSE;
 
@@ -5565,6 +5587,9 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			return GF_OK;
 		}
 	}
+
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] DASH classification done\n"));
 
 	/*check requested profiles can be generated, or adjust them*/
 	if (nb_sap_type_greater_than_4 || (nb_sap_type_greater_than_3 > 1)) {
@@ -5768,6 +5793,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		}
 	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] DASH fetched component infos\n"));
 
 	active_period_start = 0;
 	if (dasher->dash_ctx) {
@@ -5857,6 +5883,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "CumulatedPastPeriodsDuration");
 			presentation_duration += opt ? atof(opt) : 0.0;
 		}
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] DASH context restored\n"));
 	}
 
 	strcpy(szTempMPD, dasher->mpd_name);
@@ -6235,6 +6263,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		gf_cfg_set_key(dasher->dash_ctx, "DASH", "MaxSegmentDuration", szOpt);
 	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] DASH Segment generation done\n"));
 
 
 	/*ready to write the MPD*/
@@ -6280,6 +6309,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 	fprintf(mpd, "</MPD>");
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] DASH MPD done\n"));
+
 
 	if (dasher->dash_ctx && dasher->dash_mode) {
 		const char *opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "LastPeriodDuration");
@@ -6292,6 +6323,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		if (gf_ftell(mpd) > 100*1024)
 				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[DASH] Manifest MPD is too big for HbbTV 1.5. Limit is 100kB, current size is "LLU"kB\n", gf_ftell(mpd)/1024));
 	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Done dashing\n"));
 
 exit:
 	if (mpd) {
