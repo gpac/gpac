@@ -55,7 +55,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 	esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 	esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 	if (!strcmp(audio_output_file->codec_ctx->codec->name, "aac")) { //TODO: find an automatic table
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG2_LCP;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
 		esd->decoderConfig->bufferSizeDB = 20;
 		esd->slConfig->timestampResolution = audio_codec_ctx->sample_rate;
 		esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
