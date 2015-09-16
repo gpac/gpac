@@ -219,7 +219,7 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 			if ((s64) hdr->decodingTimeStamp >= group->pto)
 				hdr->decodingTimeStamp -= group->pto;
 			else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet DTS "LLU" less than PTO "LLU" - forcing DTS to 0\n", hdr->compositionTimeStamp, group->pto));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Packet DTS "LLU" less than PTO "LLU" - forcing DTS to 0\n", hdr->decodingTimeStamp, group->pto));
 				hdr->decodingTimeStamp = 0;
 				hdr->seekFlag = 1;
 			}
