@@ -28,11 +28,6 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
-#if !defined(NODEJS_FS_WATCH_PATCH) && defined(WIN32)
-#define NODEJS_FS_WATCH_PATCH
-#endif
-
-
 static u32 default_write_buffering_size = 0;
 
 GF_EXPORT
@@ -293,13 +288,6 @@ void gf_isom_datamap_flush(GF_DataMap *map)
 	if (map->type==GF_ISOM_DATA_FILE) {
 		GF_FileDataMap *fdm = (GF_FileDataMap *)map;
 		gf_bs_flush(fdm->bs);
-#ifdef NODEJS_FS_WATCH_PATCH
-		if (fdm->stream && fdm->szName) {
-			gf_fclose(fdm->stream);
-			fdm->stream = gf_fopen(fdm->szName, "a+b");
-			gf_bs_reassign(fdm->bs, fdm->stream);
-		}
-#endif
 	}
 }
 
