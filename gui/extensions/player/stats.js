@@ -461,7 +461,7 @@ extension.view_stats = function () {
         }
         wnd.s_bitrate = wnd.plot.add_serie('Rate', 'Kbps', 0, 0.8, 0);
         if (nb_buffering)
-            wnd.s_buf = wnd.plot.add_serie('Buffer', 's', 0, 0, 0.8);
+            wnd.s_buf = wnd.plot.add_serie('Buffer', 'ms', 0, 0, 0.8);
         else
             wnd.s_buf = null;
 
