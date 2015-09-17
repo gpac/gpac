@@ -268,7 +268,13 @@ typedef struct __gf_dvb_tuner GF_Tuner;
 #define GF_M2TS_MAX_SERVICES	65535
 
 /*Maximum size of the buffer in UDP */
+#ifdef WIN32
 #define GF_M2TS_UDP_BUFFER_SIZE	0x80000
+#else
+//fixme - issues on linux and OSX with large stack size
+//we need to change default stack size for TS thread
+#define GF_M2TS_UDP_BUFFER_SIZE	0x40000
+#endif
 
 /*returns readable name for given stream type*/
 const char *gf_m2ts_get_stream_name(u32 streamType);
