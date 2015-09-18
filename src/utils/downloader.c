@@ -177,7 +177,7 @@ struct __gf_download_session
 	void *usr_cbk;
 	Bool reassigned;
 
-	Bool chunked;
+	Bool chunked, chunk_lf_remains;
 	u32 nb_left_in_chunk;
 
 	u64 request_start_time;
@@ -1951,6 +1951,13 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, char *body_start, u3
 		return body_start;
 	}
 
+	if (sess->chunk_lf_remains) {
+		if (body_start[0] != 0x0a) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] Chunk encoding: expecting trailing LF got 0x%x instead\n", body_start[0] ));
+		}
+		body_start = body_start + 1;
+		sess->chunk_lf_remains = GF_FALSE;
+	}
 
 	te_header = strstr((char *) body_start, "\r\n");
 	if (!te_header) {
@@ -2090,8 +2097,8 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 	}
 
 	if (!sess->nb_left_in_chunk && remaining) {
-		if (remaining<2) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] incomplete chunk (missing trailing CRLF)\n"));
+		if (remaining==1) {
+			sess->chunk_lf_remains = GF_TRUE;
 		} else {
 			sess->nb_left_in_chunk = remaining-2;
 		}
