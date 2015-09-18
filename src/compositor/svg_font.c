@@ -385,7 +385,7 @@ void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node)
 	}
 
 reg_common:
-	st->glyph.ID = (u32) (PTR_TO_U_CAST st);
+	st->glyph.ID = (u32)(PTR_TO_U_CAST st);
 	st->font = font;
 	st->glyph.horiz_advance = font->max_advance_h;
 	if (atts.horiz_adv_x) st->glyph.horiz_advance = FIX2INT( gf_ceil(atts.horiz_adv_x->value) );

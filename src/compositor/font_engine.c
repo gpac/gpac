@@ -1251,7 +1251,7 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 				compositor->sel_buffer_alloc = 2*compositor->sel_buffer_alloc;
 				compositor->sel_buffer = gf_realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);
 			}
-			compositor->sel_buffer[compositor->sel_buffer_len] = span->glyphs[i]->utf_name;
+			compositor->sel_buffer[compositor->sel_buffer_len] = (u16) span->glyphs[i]->utf_name;
 			compositor->sel_buffer_len++;
 		}
 

@@ -27,6 +27,8 @@
 
 #if defined(WIN32) || defined(_WIN32_WCE)
 
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
 #ifdef _WIN32_WCE
 #include <winsock.h>
 
@@ -60,7 +62,8 @@
 
 #endif
 
-/*common win32 redefs*/
+#ifndef EISCONN
+ /*common win32 redefs*/
 #undef EAGAIN
 #define EAGAIN				WSAEWOULDBLOCK
 #define EISCONN				WSAEISCONN
@@ -73,6 +76,8 @@
 #define EINTR				WSAEINTR
 #undef EBADF
 #define EBADF				WSAEBADF
+#endif
+
 
 #define LASTSOCKERROR WSAGetLastError()
 

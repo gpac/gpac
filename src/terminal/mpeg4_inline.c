@@ -359,7 +359,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 	GF_Scene *scene = (GF_Scene *) _is;
 	if (!scene || !lib_url->count) return NULL;
 
-	if (gf_inline_is_hardcoded_proto(scene->root_od->term, lib_url)) return GF_SG_INTERNAL_PROTO;
+	if (gf_inline_is_hardcoded_proto(scene->root_od->term, lib_url)) return (void *) GF_SG_INTERNAL_PROTO;
 
 	i=0;
 	while ((pl = (GF_ProtoLink*)gf_list_enum(scene->extern_protos, &i))) {

@@ -233,7 +233,7 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 			Bool delete_file = 1;
 			M_CacheTexture *ct = (M_CacheTexture*)node;
 
-			sprintf(section, "@cache=%08X", (u32) (PTR_TO_U_CAST ct));
+			sprintf(section, "@cache=%p", ct);
 			file = gf_cfg_get_key(txh->compositor->user->config, section, "cacheFile");
 			opt = gf_cfg_get_key(txh->compositor->user->config, section, "expireAfterNTP");
 
@@ -385,7 +385,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 
 				/*and write cache info*/
 				if (ct->expirationDate!=0) {
-					sprintf(section, "@cache=%08X", (u32) (PTR_TO_U_CAST ct));
+					sprintf(section, "@cache=%p", ct);
 					gf_cfg_set_key(txh->compositor->user->config, section, "serviceURL", src_url);
 					gf_cfg_set_key(txh->compositor->user->config, section, "cacheFile", szExtractName);
 					gf_cfg_set_key(txh->compositor->user->config, section, "cacheName", ct->cacheURL.buffer);
