@@ -1053,10 +1053,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 	/*by default, speed adaptation and display adaptation are enable*/
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "SpeedAdaptation");
-	if (opt && !strcmp(opt, "no"))
-		gf_dash_disable_speed_adaptation(mpdin->dash, GF_TRUE);
-	else
+	if (opt && !strcmp(opt, "yes"))
 		gf_dash_disable_speed_adaptation(mpdin->dash, GF_FALSE);
+	else
+		gf_dash_disable_speed_adaptation(mpdin->dash, GF_TRUE);
 
 	/*dash thread starts at the end of gf_dash_open */
 	e = gf_dash_open(mpdin->dash, url);
