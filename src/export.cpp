@@ -2089,6 +2089,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_download_rate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_timeshift) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_timeshift_buffer_pos) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_codec_stat) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_disable_speed_adaptation) )
 
 
 #endif
