@@ -2090,8 +2090,11 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 	}
 
 	if (!sess->nb_left_in_chunk && remaining) {
-		assert(remaining>=2);
-		sess->nb_left_in_chunk = remaining-2;
+		if (remaining<2) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] incomplete chunk (missing trailing CRLF)\n"));
+		} else {
+			sess->nb_left_in_chunk = remaining-2;
+		}
 	} else if (payload_size) {
 		gf_dm_data_received(sess, payload, payload_size, store_in_init, rewrite_size);
 	}
