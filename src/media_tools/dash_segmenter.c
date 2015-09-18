@@ -1975,7 +1975,7 @@ restart_fragmentation_pass:
 			}
 			if (SegmentDuration) {
 				if (first_segment_in_timeline) {
-					sprintf(szMPDTempLine, "     <S t=\""LLU"\" d=\""LLU"\"/>\n", segment_start_time, SegmentDuration );
+					sprintf(szMPDTempLine, "     <S t=\""LLU"\" d=\""LLU"\"/>\n", (u64) segment_start_time, (u64) SegmentDuration );
 					first_segment_in_timeline = GF_FALSE;
 				} else {
 					sprintf(szMPDTempLine, "     <S d=\""LLU"\"/>\n", (u64) SegmentDuration);

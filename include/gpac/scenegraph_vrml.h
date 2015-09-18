@@ -363,7 +363,7 @@ GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 po
 of the extern proto lib if found and loaded, NULL if not found and GF_SG_INTERNAL_PROTO for internal
 hardcoded protos (extensions of MPEG-4 scene graph used for module deveopment)
 */
-#define GF_SG_INTERNAL_PROTO	(GF_SceneGraph *) 0xFFFFFFFF
+#define GF_SG_INTERNAL_PROTO	(PTR_TO_U_CAST -1)
 
 
 #ifndef GPAC_DISABLE_VRML

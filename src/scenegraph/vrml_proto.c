@@ -572,7 +572,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 		if (!extern_lib) return;
 
 		/*this is an hardcoded proto - all routes, node modifications and co are handled internally*/
-		if (extern_lib == GF_SG_INTERNAL_PROTO) {
+		if (PTR_TO_U_CAST extern_lib == GF_SG_INTERNAL_PROTO) {
 			proto_node->sgprivate->flags |= GF_SG_NODE_DIRTY;
 			// take default values
 			count = gf_list_count(owner->proto_fields);

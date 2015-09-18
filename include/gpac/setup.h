@@ -362,7 +362,11 @@ char* gf_strdup(const char *str);
 #define LLXPAD( pad ) "%" pad "I64x"
 #define LLD_CAST
 #define LLU_CAST
+#ifdef _WIN64
+#define PTR_TO_U_CAST (u64)
+#else
 #define PTR_TO_U_CAST (u32)
+#endif
 
 #elif defined (__SYMBIAN32__)
 
