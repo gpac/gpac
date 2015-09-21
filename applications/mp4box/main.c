@@ -1407,7 +1407,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 }
 
 
-#define CHECK_NEXT_ARG	if (i+1==(u32)argc) { fprintf(stderr, "Missing arg - please check usage\n"); MP4BOX_EXIT_WITH_CODE(1); }
+#define CHECK_NEXT_ARG	if (i+1==(u32)argc) { fprintf(stderr, "Missing arg - please check usage\n"); return mp4box_cleanup(1); }
 
 typedef enum {
 	TRAC_ACTION_REM_TRACK		= 0,
@@ -1453,71 +1453,7 @@ enum
 	GF_ISOM_CONV_TYPE_PSP
 };
 
-#define MP4BOX_EXIT_WITH_CODE(__ret_code)	\
-	if (mpd_base_urls) gf_free(mpd_base_urls);	\
-	if (sdp_lines) gf_free(sdp_lines); \
-	if (metas) gf_free(metas); \
-	if (tracks) { \
-		for (i=0; i<nb_track_act; i++) { \
-			if (tracks[i].out_name) \
-				gf_free(tracks[i].out_name); \
-			if (tracks[i].src_name) \
-				gf_free(tracks[i].src_name); \
-			if (tracks[i].kind_scheme) \
-				gf_free(tracks[i].kind_scheme); \
-			if (tracks[i].kind_value) \
-				gf_free(tracks[i].kind_value); \
-		} \
-		gf_free(tracks); \
-	}\
-	if (tsel_acts) gf_free(tsel_acts); \
-	if (brand_add) gf_free(brand_add); \
-	if (brand_rem) gf_free(brand_rem); \
-	if (dash_inputs) { \
-		u32 i, j; \
-		for (i=0;i<nb_dash_inputs;i++) {\
-			GF_DashSegmenterInput *di = &dash_inputs[i];\
-			if (di->nb_baseURL) { \
-				for (j=0; j<di->nb_baseURL; j++) { \
-					gf_free(di->baseURL[j]); \
-				} \
-				gf_free(di->baseURL); \
-			} \
-			if (di->rep_descs) { \
-				for (j=0; j<di->nb_rep_descs; j++) { \
-					gf_free(di->rep_descs[j]); \
-				} \
-				gf_free(di->rep_descs); \
-			} \
-			if (di->as_descs) { \
-				for (j=0; j<di->nb_as_descs; j++) { \
-					gf_free(di->as_descs[j]); \
-				} \
-				gf_free(di->as_descs); \
-			}\
-			if (di->as_c_descs) { \
-				for (j=0; j<di->nb_as_c_descs; j++) { \
-					gf_free(di->as_c_descs[j]); \
-				} \
-				gf_free(di->as_c_descs); \
-			} \
-			if (di->p_descs) { \
-				for (j=0; j<di->nb_p_descs; j++) { \
-					gf_free(di->p_descs[j]); \
-				} \
-				gf_free(di->p_descs); \
-			} \
-			if (di->representationID) gf_free(di->representationID); \
-			if (di->periodID) gf_free(di->periodID); \
-			if (di->xlink) gf_free(di->xlink); \
-			if (di->role) gf_free(di->role); \
-		}\
-		gf_free(dash_inputs); \
-	} \
-	gf_sys_close();	\
-	if (__ret_code) return __ret_code; \
-	goto exit; \
- 
+
 
 GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *name, u32 *nb_dash_inputs)
 {
@@ -1789,94 +1725,1519 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 	fflush(logs);
 }
 
-int mp4boxMain(int argc, char **argv)
-{
-	char outfile[5000];
-	GF_Err e;
+char outfile[5000];
+GF_Err e;
 #ifndef GPAC_DISABLE_SCENE_ENCODER
-	GF_SMEncodeOptions opts;
+GF_SMEncodeOptions opts;
 #endif
-	SDPLine *sdp_lines = NULL;
-	Double interleaving_time, split_duration, split_start, import_fps, dash_duration, dash_subduration;
-	Bool dash_duration_strict;
-	MetaAction *metas = NULL;
-	TrackAction *tracks = NULL;
-	TSELAction *tsel_acts = NULL;
-	u64 movie_time, initial_tfdt;
-	s32 subsegs_per_sidx;
-	u32 *brand_add = NULL;
-	u32 *brand_rem = NULL;
-	GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
-	u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
-	GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
+SDPLine *sdp_lines = NULL;
+Double interleaving_time, split_duration, split_start, import_fps, dash_duration, dash_subduration;
+Bool dash_duration_strict;
+MetaAction *metas = NULL;
+TrackAction *tracks = NULL;
+TSELAction *tsel_acts = NULL;
+u64 movie_time, initial_tfdt;
+s32 subsegs_per_sidx;
+u32 *brand_add = NULL;
+u32 *brand_rem = NULL;
+GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
+u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
+GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
 #ifndef GPAC_DISABLE_SCENE_DUMP
-	GF_SceneDumpFormat dump_mode;
+GF_SceneDumpFormat dump_mode;
 #endif
-	Double mpd_live_duration = 0;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
-	Bool print_sdp, print_info, open_edit, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults, single_traf_per_moof;
-	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
-	u32 track_dump_type;
-	u32 trackID;
-	Double min_buffer = 1.5;
-	s32 ast_offset_ms = 0;
-	u32 dump_chap = 0;
-	u32 dump_udta_type = 0;
-	u32 dump_udta_track = 0;
-	char **mpd_base_urls = NULL;
-	u32 nb_mpd_base_urls=0;
-	u32 dash_scale = 1000;
-	Bool insert_utc = GF_FALSE;
+Double mpd_live_duration = 0;
+Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
+Bool print_sdp, print_info, open_edit, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults, single_traf_per_moof;
+char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
+u32 track_dump_type;
+u32 trackID;
+Double min_buffer = 1.5;
+s32 ast_offset_ms = 0;
+u32 dump_chap = 0;
+u32 dump_udta_type = 0;
+u32 dump_udta_track = 0;
+char **mpd_base_urls = NULL;
+u32 nb_mpd_base_urls=0;
+u32 dash_scale = 1000;
+Bool insert_utc = GF_FALSE;
 
 #ifndef GPAC_DISABLE_MPD
-	Bool do_mpd = 0;
+Bool do_mpd = 0;
 #endif
 #ifndef GPAC_DISABLE_SCENE_ENCODER
-	Bool chunk_mode = 0;
+Bool chunk_mode = 0;
 #endif
 #ifndef GPAC_DISABLE_ISOM_HINTING
-	Bool HintCopy = 0;
-	u32 MTUSize = 1450;
+Bool HintCopy = 0;
+u32 MTUSize = 1450;
 #endif
-	GF_ISOFile *file;
-	Bool frag_real_time = GF_FALSE;
-	Double mpd_update_time = GF_FALSE;
-	Bool stream_rtp = GF_FALSE;
-	Bool force_co64 = GF_FALSE;
-	Bool live_scene = GF_FALSE;
-	Bool enable_mem_tracker = GF_FALSE;
-	Bool dump_iod = GF_FALSE;
-	Bool pssh_in_moof = GF_FALSE;
-	Bool samplegroups_in_traf = GF_FALSE;
-	Bool daisy_chain_sidx = GF_FALSE;
-	Bool single_segment = GF_FALSE;
-	Bool single_file = GF_FALSE;
-	Bool segment_timeline = GF_FALSE;
-	u32 segment_marker = GF_FALSE;
-	GF_DashProfile dash_profile = GF_DASH_PROFILE_UNKNOWN;
-	const char *dash_profile_extension = NULL;
-	Bool use_url_template = GF_FALSE;
-	Bool seg_at_rap = GF_FALSE;
-	Bool frag_at_rap = GF_FALSE;
-	Bool adjust_split_end = GF_FALSE;
-	Bool memory_frags = GF_TRUE;
-	Bool keep_utc = GF_FALSE;
-	Bool do_bin_nhml = GF_FALSE;
-	u32 timescale = 0;
-	const char *do_wget = NULL;
-	GF_DashSegmenterInput *dash_inputs = NULL;
-	u32 nb_dash_inputs = 0;
-	char *gf_logs = NULL;
-	char *seg_ext = NULL;
-	const char *dash_title = NULL;
-	const char *dash_source = NULL;
-	const char *dash_more_info = NULL;
+GF_ISOFile *file;
+Bool frag_real_time = GF_FALSE;
+Double mpd_update_time = GF_FALSE;
+Bool stream_rtp = GF_FALSE;
+Bool force_co64 = GF_FALSE;
+Bool live_scene = GF_FALSE;
+Bool enable_mem_tracker = GF_FALSE;
+Bool dump_iod = GF_FALSE;
+Bool pssh_in_moof = GF_FALSE;
+Bool samplegroups_in_traf = GF_FALSE;
+Bool daisy_chain_sidx = GF_FALSE;
+Bool single_segment = GF_FALSE;
+Bool single_file = GF_FALSE;
+Bool segment_timeline = GF_FALSE;
+u32 segment_marker = GF_FALSE;
+GF_DashProfile dash_profile = GF_DASH_PROFILE_UNKNOWN;
+const char *dash_profile_extension = NULL;
+Bool use_url_template = GF_FALSE;
+Bool seg_at_rap = GF_FALSE;
+Bool frag_at_rap = GF_FALSE;
+Bool adjust_split_end = GF_FALSE;
+Bool memory_frags = GF_TRUE;
+Bool keep_utc = GF_FALSE;
+Bool do_bin_nhml = GF_FALSE;
+u32 timescale = 0;
+const char *do_wget = NULL;
+GF_DashSegmenterInput *dash_inputs = NULL;
+u32 nb_dash_inputs = 0;
+char *gf_logs = NULL;
+char *seg_ext = NULL;
+const char *dash_title = NULL;
+const char *dash_source = NULL;
+const char *dash_more_info = NULL;
 #if !defined(GPAC_DISABLE_STREAMING)
-	const char *grab_m2ts = NULL;
-	const char *grab_ifce = NULL;
+const char *grab_m2ts = NULL;
+const char *grab_ifce = NULL;
 #endif
-	FILE *logfile = NULL;
+FILE *logfile = NULL;
 
+u32 mp4box_cleanup(u32 ret_code) {
+	if (mpd_base_urls) gf_free(mpd_base_urls);
+	if (sdp_lines) gf_free(sdp_lines);
+	if (metas) gf_free(metas);
+	if (tracks) {
+		for (i = 0; i<nb_track_act; i++) {
+			if (tracks[i].out_name)
+				gf_free(tracks[i].out_name);
+			if (tracks[i].src_name)
+				gf_free(tracks[i].src_name);
+			if (tracks[i].kind_scheme)
+				gf_free(tracks[i].kind_scheme);
+			if (tracks[i].kind_value)
+				gf_free(tracks[i].kind_value);
+		}
+		gf_free(tracks);
+	}
+	if (tsel_acts) gf_free(tsel_acts);
+	if (brand_add) gf_free(brand_add);
+	if (brand_rem) gf_free(brand_rem);
+	if (dash_inputs) {
+		u32 i, j;
+		for (i = 0;i<nb_dash_inputs;i++) {
+			GF_DashSegmenterInput *di = &dash_inputs[i];
+			if (di->nb_baseURL) {
+				for (j = 0; j<di->nb_baseURL; j++) {
+					gf_free(di->baseURL[j]);
+				}
+				gf_free(di->baseURL);
+			}
+			if (di->rep_descs) {
+				for (j = 0; j<di->nb_rep_descs; j++) {
+					gf_free(di->rep_descs[j]);
+				}
+				gf_free(di->rep_descs);
+			}
+			if (di->as_descs) {
+				for (j = 0; j<di->nb_as_descs; j++) {
+					gf_free(di->as_descs[j]);
+				}
+				gf_free(di->as_descs);
+			}
+			if (di->as_c_descs) {
+				for (j = 0; j<di->nb_as_c_descs; j++) {
+					gf_free(di->as_c_descs[j]);
+				}
+				gf_free(di->as_c_descs);
+			}
+			if (di->p_descs) {
+				for (j = 0; j<di->nb_p_descs; j++) {
+					gf_free(di->p_descs[j]);
+				}
+				gf_free(di->p_descs);
+			}
+			if (di->representationID) gf_free(di->representationID);
+			if (di->periodID) gf_free(di->periodID);
+			if (di->xlink) gf_free(di->xlink);
+			if (di->role) gf_free(di->role);
+		}
+		gf_free(dash_inputs);
+	}
+	gf_sys_close();	
+	return ret_code;
+}
+
+u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
+{
+	u32 i = *current_index;
+	/*parse our args*/
+	{
+		arg = argv[i];
+		if (!stricmp(arg, "-itags")) {
+			CHECK_NEXT_ARG itunes_tags = argv[i + 1];
+			i++;
+			open_edit = 1;
+		}
+#ifndef GPAC_DISABLE_ISOM_HINTING
+		else if (!stricmp(arg, "-hint")) {
+			open_edit = 1;
+			HintIt = 1;
+		}
+		else if (!stricmp(arg, "-unhint")) {
+			open_edit = 1;
+			remove_hint = 1;
+		}
+		else if (!stricmp(arg, "-copy")) HintCopy = 1;
+		else if (!stricmp(arg, "-tight")) {
+			FullInter = 1;
+			open_edit = 1;
+			needSave = 1;
+		}
+		else if (!stricmp(arg, "-ocr")) force_ocr = 1;
+		else if (!stricmp(arg, "-latm")) hint_flags |= GP_RTP_PCK_USE_LATM_AAC;
+		else if (!stricmp(arg, "-rap")) {
+			if ((i + 1 < (u32)argc) && (argv[i + 1][0] != '-')) {
+				if (sscanf(argv[i + 1], "%d", &trackID) == 1) {
+					tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+					memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+					tracks[nb_track_act].act_type = TRAC_ACTION_REM_NON_RAP;
+					tracks[nb_track_act].trackID = trackID;
+					nb_track_act++;
+					i++;
+					open_edit = 1;
+				}
+			}
+			hint_flags |= GP_RTP_PCK_SIGNAL_RAP;
+			seg_at_rap = 1;
+		}
+		else if (!stricmp(arg, "-frag-rap")) {
+			frag_at_rap = 1;
+		}
+		else if (!stricmp(arg, "-ts")) hint_flags |= GP_RTP_PCK_SIGNAL_TS;
+		else if (!stricmp(arg, "-size")) hint_flags |= GP_RTP_PCK_SIGNAL_SIZE;
+		else if (!stricmp(arg, "-idx")) hint_flags |= GP_RTP_PCK_SIGNAL_AU_IDX;
+		else if (!stricmp(arg, "-static")) hint_flags |= GP_RTP_PCK_USE_STATIC_ID;
+		else if (!stricmp(arg, "-multi")) {
+			hint_flags |= GP_RTP_PCK_USE_MULTI;
+			if ((i + 1 < (u32)argc) && (sscanf(argv[i + 1], "%u", &max_ptime) == 1)) {
+				char szPt[20];
+				sprintf(szPt, "%u", max_ptime);
+				if (!strcmp(szPt, argv[i + 1])) i++;
+				else max_ptime = 0;
+			}
+		}
+#endif
+		else if (!stricmp(arg, "-mpeg4")) {
+#ifndef GPAC_DISABLE_ISOM_HINTING
+			hint_flags |= GP_RTP_PCK_FORCE_MPEG4;
+#endif
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+			import_flags |= GF_IMPORT_FORCE_MPEG4;
+#endif
+		}
+#ifndef GPAC_DISABLE_ISOM_HINTING
+		else if (!stricmp(arg, "-mtu")) {
+			CHECK_NEXT_ARG MTUSize = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-cardur")) {
+			CHECK_NEXT_ARG car_dur = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-rate")) {
+			CHECK_NEXT_ARG rtp_rate = atoi(argv[i + 1]);
+			i++;
+		}
+#ifndef GPAC_DISABLE_SENG
+		else if (!stricmp(arg, "-add-sdp") || !stricmp(arg, "-sdp_ex")) {
+			char *id;
+			CHECK_NEXT_ARG
+				sdp_lines = gf_realloc(sdp_lines, sizeof(SDPLine) * (nb_sdp_ex + 1));
+
+			id = strchr(argv[i + 1], ':');
+			if (id) {
+				id[0] = 0;
+				if (sscanf(argv[i + 1], "%u", &sdp_lines[0].trackID) == 1) {
+					id[0] = ':';
+					sdp_lines[nb_sdp_ex].line = id + 1;
+				}
+				else {
+					id[0] = ':';
+					sdp_lines[nb_sdp_ex].line = argv[i + 1];
+					sdp_lines[nb_sdp_ex].trackID = 0;
+				}
+			}
+			else {
+				sdp_lines[nb_sdp_ex].line = argv[i + 1];
+				sdp_lines[nb_sdp_ex].trackID = 0;
+			}
+			open_edit = 1;
+			nb_sdp_ex++;
+			i++;
+		}
+#endif /*GPAC_DISABLE_SENG*/
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
+
+		else if (!stricmp(arg, "-single")) {
+#ifndef GPAC_DISABLE_MEDIA_EXPORT
+			CHECK_NEXT_ARG
+				track_dump_type = GF_EXPORT_MP4;
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+			tracks[nb_track_act].act_type = TRAC_ACTION_RAW_EXTRACT;
+			tracks[nb_track_act].trackID = atoi(argv[i + 1]);
+			tracks[nb_track_act].dump_type = GF_EXPORT_MP4;
+			nb_track_act++;
+			i++;
+#endif
+		}
+		else if (!stricmp(arg, "-iod")) regular_iod = 1;
+		else if (!stricmp(arg, "-flat")) {
+			open_edit = 1;
+			do_flat = 1;
+		}
+		else if (!stricmp(arg, "-keep-utc")) keep_utc = 1;
+		else if (!stricmp(arg, "-new")) force_new = 1;
+		else if (!stricmp(arg, "-timescale")) {
+			CHECK_NEXT_ARG
+				timescale = atoi(argv[i + 1]);
+			open_edit = 1;
+			i++;
+		}
+		else if (!stricmp(arg, "-udta")) {
+			CHECK_NEXT_ARG
+				create_new_track_action(argv[i + 1], &tracks, &nb_track_act, 0);
+			tracks[nb_track_act - 1].act_type = TRAC_ACTION_SET_UDTA;
+			open_edit = 1;
+			i++;
+		}
+		else if (!stricmp(arg, "-add") || !stricmp(arg, "-import") || !stricmp(arg, "-convert")) {
+			CHECK_NEXT_ARG
+				if (!stricmp(arg, "-import")) fprintf(stderr, "\tWARNING: \"-import\" is deprecated - use \"-add\"\n");
+				else if (!stricmp(arg, "-convert")) fprintf(stderr, "\tWARNING: \"-convert\" is deprecated - use \"-add\"\n");
+				nb_add++;
+				i++;
+		}
+		else if (!stricmp(arg, "-cat") || !stricmp(arg, "-catx")) {
+			CHECK_NEXT_ARG
+				nb_cat++;
+			i++;
+		}
+		else if (!stricmp(arg, "-time")) {
+			struct tm time;
+			CHECK_NEXT_ARG
+				memset(&time, 0, sizeof(struct tm));
+			sscanf(argv[i + 1], "%d/%d/%d-%d:%d:%d", &time.tm_mday, &time.tm_mon, &time.tm_year, &time.tm_hour, &time.tm_min, &time.tm_sec);
+			time.tm_isdst = 0;
+			time.tm_year -= 1900;
+			time.tm_mon -= 1;
+			open_edit = 1;
+			movie_time = 2082758400;
+			movie_time += mktime(&time);
+			i++;
+		}
+		else if (!stricmp(arg, "-force-cat")) force_cat = 1;
+		else if (!stricmp(arg, "-align-cat")) align_cat = 1;
+		else if (!stricmp(arg, "-unalign-cat")) align_cat = 0;
+		else if (!stricmp(arg, "-raw-cat")) {
+			CHECK_NEXT_ARG
+				raw_cat = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-rem") || !stricmp(arg, "-disable") || !stricmp(arg, "-enable")) {
+			CHECK_NEXT_ARG
+				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+			if (!stricmp(arg, "-enable")) tracks[nb_track_act].act_type = TRAC_ACTION_ENABLE;
+			else if (!stricmp(arg, "-disable")) tracks[nb_track_act].act_type = TRAC_ACTION_DISABLE;
+			else tracks[nb_track_act].act_type = TRAC_ACTION_REM_TRACK;
+			tracks[nb_track_act].trackID = atoi(argv[i + 1]);
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-set-track-id")) {
+			char *sep;
+			CHECK_NEXT_ARG
+				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_ID;
+			sep = strchr(argv[i + 1], ':');
+			if (!sep) {
+				fprintf(stderr, "Bad format for -set-track-id - expecting \"id1:id2\" got \"%s\"\n", argv[i + 1]);
+				return 2;
+			}
+			*sep = 0;
+			tracks[nb_track_act].trackID = atoi(argv[i + 1]);
+			*sep = ':';
+			sep++;
+			tracks[nb_track_act].newTrackID = atoi(sep);
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-par")) {
+			char szTK[20], *ext;
+			CHECK_NEXT_ARG
+				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_PAR;
+			assert(strlen(argv[i + 1]) + 1 <= sizeof(szTK));
+			strncpy(szTK, argv[i + 1], sizeof(szTK));
+			ext = strchr(szTK, '=');
+			if (!ext) {
+				fprintf(stderr, "Bad format for track par - expecting ID=PAR_NUM:PAR_DEN got %s\n", argv[i + 1]);
+				return 2;
+			}
+			if (!stricmp(ext + 1, "none")) {
+				tracks[nb_track_act].par_num = tracks[nb_track_act].par_den = -1;
+			}
+			else {
+				sscanf(ext + 1, "%d", &tracks[nb_track_act].par_num);
+				ext = strchr(ext + 1, ':');
+				if (!ext) {
+					fprintf(stderr, "Bad format for track par - expecting ID=PAR_NUM:PAR_DEN got %s\n", argv[i + 1]);
+					return 2;
+				}
+				sscanf(ext + 1, "%d", &tracks[nb_track_act].par_den);
+			}
+			ext[0] = 0;
+			tracks[nb_track_act].trackID = atoi(szTK);
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-lang")) {
+			char szTK[20], *ext;
+			CHECK_NEXT_ARG
+				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_LANGUAGE;
+			tracks[nb_track_act].trackID = 0;
+			strcpy(szTK, argv[i + 1]);
+			ext = strchr(szTK, '=');
+			if (!strnicmp(argv[i + 1], "all=", 4)) {
+				tracks[nb_track_act].lang = gf_strdup(argv[i + 1] + 4);
+			}
+			else if (!ext) {
+				tracks[nb_track_act].lang = gf_strdup(argv[i + 1]);
+			}
+			else {
+				tracks[nb_track_act].lang = gf_strdup(ext + 1);
+				ext[0] = 0;
+				tracks[nb_track_act].trackID = atoi(szTK);
+				ext[0] = '=';
+			}
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-kind") || !stricmp(arg, "-kind-rem")) {
+			char szTK[200], *ext;
+			char *scheme_start = NULL;
+			Bool has_track_id = GF_FALSE;
+			CHECK_NEXT_ARG
+				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+
+			if (!stricmp(arg, "-kind")) {
+				tracks[nb_track_act].act_type = TRAC_ACTION_SET_KIND;
+			}
+			else {
+				tracks[nb_track_act].act_type = TRAC_ACTION_REM_KIND;
+			}
+			tracks[nb_track_act].trackID = 0;
+			if (!strnicmp(argv[i + 1], "all=", 4)) {
+				scheme_start = argv[i + 1] + 4;
+				has_track_id = GF_TRUE;
+			}
+			if (!scheme_start) {
+				if (strlen(argv[i + 1]) > 200) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_ALL, ("Warning: track kind parameter is too long!"));
+				}
+				strncpy(szTK, argv[i + 1], 200);
+				ext = strchr(szTK, '=');
+				if (ext && !has_track_id) {
+					ext[0] = 0;
+					has_track_id = (sscanf(szTK, "%d", &tracks[nb_track_act].trackID) == 1 ? GF_TRUE : GF_FALSE);
+					if (has_track_id) {
+						scheme_start = ext + 1;
+					}
+					else {
+						scheme_start = szTK;
+					}
+					ext[0] = '=';
+				}
+				else {
+					scheme_start = szTK;
+				}
+			}
+			ext = strchr(scheme_start, '=');
+			if (!ext) {
+				tracks[nb_track_act].kind_scheme = gf_strdup(scheme_start);
+			}
+			else {
+				ext[0] = 0;
+				tracks[nb_track_act].kind_scheme = gf_strdup(scheme_start);
+				ext[0] = '=';
+				tracks[nb_track_act].kind_value = gf_strdup(ext + 1);
+			}
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-delay")) {
+			char szTK[20], *ext;
+			CHECK_NEXT_ARG
+				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+
+			strcpy(szTK, argv[i + 1]);
+			ext = strchr(szTK, '=');
+			if (!ext) {
+				fprintf(stderr, "Bad format for track delay - expecting ID=DLAY got %s\n", argv[i + 1]);
+				return 2;
+			}
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_DELAY;
+			tracks[nb_track_act].delay_ms = atoi(ext + 1);
+			ext[0] = 0;
+			tracks[nb_track_act].trackID = atoi(szTK);
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-ref")) {
+			char *szTK, *ext;
+			CHECK_NEXT_ARG
+				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+
+			szTK = argv[i + 1];
+			ext = strchr(szTK, ':');
+			if (!ext) {
+				fprintf(stderr, "Bad format for track reference - expecting ID:XXXX:refID got %s\n", argv[i + 1]);
+				return 2;
+			}
+			tracks[nb_track_act].act_type = TRAC_ACTION_REFERENCE;
+			ext[0] = 0;
+			tracks[nb_track_act].trackID = atoi(szTK);
+			ext[0] = ':';
+			szTK = ext + 1;
+			ext = strchr(szTK, ':');
+			if (!ext) {
+				fprintf(stderr, "Bad format for track reference - expecting ID:XXXX:refID got %s\n", argv[i + 1]);
+				return 2;
+			}
+			ext[0] = 0;
+			tracks[nb_track_act].lang = gf_strdup(szTK);
+			ext[0] = ':';
+			tracks[nb_track_act].delay_ms = (s32)atoi(ext + 1);
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-name")) {
+			char szTK[GF_MAX_PATH], *ext;
+			CHECK_NEXT_ARG
+				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+
+			strcpy(szTK, argv[i + 1]);
+			ext = strchr(szTK, '=');
+			if (!ext) {
+				fprintf(stderr, "Bad format for track name - expecting ID=name got %s\n", argv[i + 1]);
+				return 2;
+			}
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_HANDLER_NAME;
+			tracks[nb_track_act].hdl_name = strchr(argv[i + 1], '=') + 1;
+			ext[0] = 0;
+			tracks[nb_track_act].trackID = atoi(szTK);
+			ext[0] = '=';
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+#if !defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
+		else if (!stricmp(arg, "-dref")) import_flags |= GF_IMPORT_USE_DATAREF;
+		else if (!stricmp(arg, "-no-drop") || !stricmp(arg, "-nodrop")) import_flags |= GF_IMPORT_NO_FRAME_DROP;
+		else if (!stricmp(arg, "-packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
+		else if (!stricmp(arg, "-sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
+		else if (!stricmp(arg, "-sbrx")) import_flags |= GF_IMPORT_SBR_EXPLICIT;
+		else if (!stricmp(arg, "-ps")) import_flags |= GF_IMPORT_PS_IMPLICIT;
+		else if (!stricmp(arg, "-psx")) import_flags |= GF_IMPORT_PS_EXPLICIT;
+		else if (!stricmp(arg, "-ovsbr")) import_flags |= GF_IMPORT_OVSBR;
+		else if (!stricmp(arg, "-fps")) {
+			CHECK_NEXT_ARG
+				if (!strcmp(argv[i + 1], "auto")) import_fps = GF_IMPORT_AUTO_FPS;
+				else if (strchr(argv[i + 1], '-')) {
+					u32 ticks, dts_inc;
+					sscanf(argv[i + 1], "%u-%u", &ticks, &dts_inc);
+					if (!dts_inc) dts_inc = 1;
+					import_fps = ticks;
+					import_fps /= dts_inc;
+				}
+				else import_fps = atof(argv[i + 1]);
+				i++;
+		}
+		else if (!stricmp(arg, "-agg")) {
+			CHECK_NEXT_ARG agg_samples = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-keep-all") || !stricmp(arg, "-keepall")) import_flags |= GF_IMPORT_KEEP_ALL_TRACKS;
+#endif /*!defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_MEDIA_IMPORT*/
+		else if (!stricmp(arg, "-keep-sys") || !stricmp(arg, "-keepsys")) keep_sys_tracks = 1;
+		else if (!stricmp(arg, "-ms")) {
+			CHECK_NEXT_ARG mediaSource = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-mp4")) {
+			encode = 1;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-saf")) {
+			do_saf = 1;
+		}
+		else if (!stricmp(arg, "-log")) {
+			do_log = 1;
+		}
+#ifndef GPAC_DISABLE_MPD
+		else if (!stricmp(arg, "-mpd")) {
+			do_mpd = 1;
+			CHECK_NEXT_ARG
+				inName = argv[i + 1];
+			i++;
+		}
+#endif
+
+#ifndef GPAC_DISABLE_SCENE_ENCODER
+		else if (!stricmp(arg, "-def")) opts.flags |= GF_SM_ENCODE_USE_NAMES;
+		else if (!stricmp(arg, "-sync")) {
+			CHECK_NEXT_ARG
+				opts.flags |= GF_SM_ENCODE_RAP_INBAND;
+			opts.rap_freq = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-shadow")) {
+			CHECK_NEXT_ARG
+				opts.flags &= ~GF_SM_ENCODE_RAP_INBAND;
+			opts.flags |= GF_SM_ENCODE_RAP_SHADOW;
+			opts.rap_freq = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-carousel")) {
+			CHECK_NEXT_ARG
+				opts.flags &= ~(GF_SM_ENCODE_RAP_INBAND | GF_SM_ENCODE_RAP_SHADOW);
+			opts.rap_freq = atoi(argv[i + 1]);
+			i++;
+		}
+		/*LASeR options*/
+		else if (!stricmp(arg, "-resolution")) {
+			CHECK_NEXT_ARG
+				opts.resolution = atoi(argv[i + 1]);
+			i++;
+		}
+#ifndef GPAC_DISABLE_SCENE_STATS
+		else if (!stricmp(arg, "-auto-quant")) {
+			CHECK_NEXT_ARG
+				opts.resolution = atoi(argv[i + 1]);
+			opts.auto_quant = 1;
+			i++;
+		}
+#endif
+		else if (!stricmp(arg, "-coord-bits")) {
+			CHECK_NEXT_ARG
+				opts.coord_bits = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-scale-bits")) {
+			CHECK_NEXT_ARG
+				opts.scale_bits = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-global-quant")) {
+			CHECK_NEXT_ARG
+				opts.resolution = atoi(argv[i + 1]);
+			opts.auto_quant = 2;
+			i++;
+		}
+		/*chunk encoding*/
+		else if (!stricmp(arg, "-ctx-out") || !stricmp(arg, "-outctx")) {
+			CHECK_NEXT_ARG output_ctx = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-ctx-in") || !stricmp(arg, "-inctx")) {
+			CHECK_NEXT_ARG
+				chunk_mode = 1;
+			input_ctx = argv[i + 1];
+			i++;
+		}
+#endif /*GPAC_DISABLE_SCENE_ENCODER*/
+		else if (!strcmp(arg, "-crypt")) {
+			CHECK_NEXT_ARG
+				crypt = 1;
+			drm_file = argv[i + 1];
+			open_edit = 1;
+			i += 1;
+		}
+		else if (!strcmp(arg, "-decrypt")) {
+			CHECK_NEXT_ARG
+				crypt = 2;
+			if (get_file_type_by_ext(argv[i + 1]) != 1) {
+				drm_file = argv[i + 1];
+				i += 1;
+			}
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-set-kms")) {
+			char szTK[20], *ext;
+			CHECK_NEXT_ARG
+				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
+
+			strncpy(szTK, argv[i + 1], 19);
+			ext = strchr(szTK, '=');
+			tracks[nb_track_act].act_type = TRAC_ACTION_SET_KMS_URI;
+			tracks[nb_track_act].trackID = 0;
+			if (!strnicmp(argv[i + 1], "all=", 4)) {
+				tracks[nb_track_act].kms = argv[i + 1] + 4;
+			}
+			else if (!ext) {
+				tracks[nb_track_act].kms = argv[i + 1];
+			}
+			else {
+				tracks[nb_track_act].kms = ext + 1;
+				ext[0] = 0;
+				tracks[nb_track_act].trackID = atoi(szTK);
+				ext[0] = '=';
+			}
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-split")) {
+			CHECK_NEXT_ARG
+				split_duration = atof(argv[i + 1]);
+			if (split_duration < 0) split_duration = 0;;
+			i++;
+			split_size = 0;
+		}
+		else if (!stricmp(arg, "-split-rap") || !stricmp(arg, "-splitr")) {
+			CHECK_NEXT_ARG
+				split_duration = -1;
+			split_size = -1;
+		}
+		else if (!stricmp(arg, "-split-size") || !stricmp(arg, "-splits")) {
+			CHECK_NEXT_ARG
+				split_size = (u32)atoi(argv[i + 1]);
+			i++;
+			split_duration = 0;
+		}
+		else if (!stricmp(arg, "-split-chunk") || !stricmp(arg, "-splitx") || !stricmp(arg, "-splitz")) {
+			CHECK_NEXT_ARG
+				if (!strstr(argv[i + 1], ":")) {
+					fprintf(stderr, "Chunk extraction usage: \"-splitx start:end\" expressed in seconds\n");
+					return 2;
+				}
+			if (strstr(argv[i + 1], "end")) {
+				sscanf(argv[i + 1], "%lf:end", &split_start);
+				split_duration = -2;
+			}
+			else {
+				sscanf(argv[i + 1], "%lf:%lf", &split_start, &split_duration);
+				split_duration -= split_start;
+			}
+			split_size = 0;
+			if (!stricmp(arg, "-splitz")) adjust_split_end = 1;
+			i++;
+		}
+		/*meta*/
+		else if (!stricmp(arg, "-set-meta")) {
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_SET_TYPE, argv[i + 1]);
+			nb_meta_act++;
+			open_edit = 1;
+			i++;
+		}
+		else if (!stricmp(arg, "-add-item")) {
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_ITEM, argv[i + 1]);
+			nb_meta_act++;
+			open_edit = 1;
+			i++;
+		}
+		else if (!stricmp(arg, "-rem-item")) {
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_REM_ITEM, argv[i + 1]);
+			nb_meta_act++;
+			open_edit = 1;
+			i++;
+		}
+		else if (!stricmp(arg, "-set-primary")) {
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_SET_PRIMARY_ITEM, argv[i + 1]);
+			nb_meta_act++;
+			open_edit = 1;
+			i++;
+		}
+		else if (!stricmp(arg, "-set-xml")) {
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_SET_XML, argv[i + 1]);
+			nb_meta_act++;
+			open_edit = 1;
+			i++;
+		}
+		else if (!stricmp(arg, "-rem-xml")) {
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
+			if (parse_meta_args(&metas[nb_meta_act], META_ACTION_REM_XML, argv[i + 1])) i++;
+			nb_meta_act++;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-dump-xml")) {
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_DUMP_XML, argv[i + 1]);
+			nb_meta_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-dump-item")) {
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_DUMP_ITEM, argv[i + 1]);
+			nb_meta_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-group-add") || !stricmp(arg, "-group-rem-track") || !stricmp(arg, "-group-rem")) {
+			TSELActionType act_type;
+			if (!stricmp(arg, "-group-rem")) {
+				act_type = TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP;
+			}
+			else if (!stricmp(arg, "-group-rem-track")) {
+				act_type = TSEL_ACTION_REMOVE_TSEL;
+			}
+			else {
+				act_type = TSEL_ACTION_SET_PARAM;
+			}
+			if (parse_tsel_args(&tsel_acts, argv[i + 1], &nb_tsel_acts, act_type) == 0) {
+				fprintf(stderr, "Invalid group syntax - check usage\n");
+				return 2;
+			}
+			open_edit = 1;
+			i++;
+		}
+		else if (!stricmp(arg, "-group-clean")) {
+			tsel_acts[nb_tsel_acts].act_type = TSEL_ACTION_REMOVE_ALL_TSEL_IN_FILE;
+			nb_tsel_acts++;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-group-single")) {
+			single_group = 1;
+		}
+		else if (!stricmp(arg, "-package")) {
+			CHECK_NEXT_ARG
+				pack_file = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-mgt")) {
+			CHECK_NEXT_ARG
+				pack_file = argv[i + 1];
+			pack_wgt = 1;
+			i++;
+		}
+
+		else if (!stricmp(arg, "-brand")) {
+			char *b = argv[i + 1];
+			CHECK_NEXT_ARG
+				major_brand = GF_4CC(b[0], b[1], b[2], b[3]);
+			open_edit = 1;
+			if (b[4] == ':') minor_version = atoi(b + 5);
+			i++;
+		}
+		else if (!stricmp(arg, "-ab")) {
+			char *b = argv[i + 1];
+			CHECK_NEXT_ARG
+				brand_add = gf_realloc(brand_add, sizeof(u32) * (nb_alt_brand_add + 1));
+
+			brand_add[nb_alt_brand_add] = GF_4CC(b[0], b[1], b[2], b[3]);
+			nb_alt_brand_add++;
+			open_edit = 1;
+			i++;
+		}
+		else if (!stricmp(arg, "-rb")) {
+			char *b = argv[i + 1];
+			CHECK_NEXT_ARG
+				brand_rem = gf_realloc(brand_rem, sizeof(u32) * (nb_alt_brand_rem + 1));
+
+			brand_rem[nb_alt_brand_rem] = GF_4CC(b[0], b[1], b[2], b[3]);
+			nb_alt_brand_rem++;
+			open_edit = 1;
+			i++;
+		}
+#endif
+		else if (!stricmp(arg, "-languages")) {
+			PrintLanguages();
+			return 1;
+		}
+		else if (!stricmp(arg, "-h")) {
+			if (i + 1 == (u32)argc) PrintUsage();
+			else if (!strcmp(argv[i + 1], "general")) PrintGeneralUsage();
+			else if (!strcmp(argv[i + 1], "extract")) PrintExtractUsage();
+			else if (!strcmp(argv[i + 1], "dash")) PrintDASHUsage();
+			else if (!strcmp(argv[i + 1], "dump")) PrintDumpUsage();
+			else if (!strcmp(argv[i + 1], "import")) PrintImportUsage();
+			else if (!strcmp(argv[i + 1], "format")) PrintFormats();
+			else if (!strcmp(argv[i + 1], "hint")) PrintHintUsage();
+			else if (!strcmp(argv[i + 1], "encode")) PrintEncodeUsage();
+			else if (!strcmp(argv[i + 1], "crypt")) PrintEncryptUsage();
+			else if (!strcmp(argv[i + 1], "meta")) PrintMetaUsage();
+			else if (!strcmp(argv[i + 1], "swf")) PrintSWFUsage();
+#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
+			else if (!strcmp(argv[i + 1], "rtp")) PrintStreamerUsage();
+			else if (!strcmp(argv[i + 1], "live")) PrintLiveUsage();
+#endif
+			else if (!strcmp(argv[i + 1], "all")) {
+				PrintGeneralUsage();
+				PrintExtractUsage();
+				PrintDASHUsage();
+				PrintDumpUsage();
+				PrintImportUsage();
+				PrintFormats();
+				PrintHintUsage();
+				PrintEncodeUsage();
+				PrintEncryptUsage();
+				PrintMetaUsage();
+				PrintSWFUsage();
+#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
+				PrintStreamerUsage();
+				PrintLiveUsage();
+#endif
+			}
+			else PrintUsage();
+			return 1;
+		}
+		else if (!stricmp(arg, "-v")) verbose++;
+		else if (!stricmp(arg, "-tag-list")) {
+			fprintf(stderr, "Supported iTunes tag modifiers:\n");
+			for (i = 0; i < nb_itunes_tags; i++) {
+				fprintf(stderr, "\t%s\t%s\n", itags[i].name, itags[i].comment);
+			}
+			return 1;
+		}
+		else if (!live_scene && !stream_rtp) {
+			fprintf(stderr, "Option %s unknown. Please check usage\n", arg);
+			return 2;
+		}
+	}
+	*current_index = i;
+	return 0;
+}
+
+Bool mp4box_parse_args(int argc, char **argv)
+{
+	u32 i;
+	/*parse our args*/
+	for (i = 1; i < (u32)argc; i++) {
+		arg = argv[i];
+		/*input file(s)*/
+		if ((arg[0] != '-') || !stricmp(arg, "--")) {
+			char *arg_val = arg;
+			if (!stricmp(arg, "--")) {
+				CHECK_NEXT_ARG
+					arg_val = argv[i + 1];
+				i++;
+			}
+			if (argc < 3) {
+				fprintf(stderr, "Error - only one input file found as argument, please check usage\n");
+				return 2;
+			}
+			else if (inName) {
+				if (dash_duration) {
+					if (!nb_dash_inputs) {
+						dash_inputs = set_dash_input(dash_inputs, inName, &nb_dash_inputs);
+					}
+					dash_inputs = set_dash_input(dash_inputs, arg_val, &nb_dash_inputs);
+				}
+				else {
+					fprintf(stderr, "Error - 2 input names specified, please check usage\n");
+					return 2;
+				}
+			}
+			else {
+				inName = arg_val;
+			}
+		}
+		else if (!stricmp(arg, "-?")) {
+			PrintUsage();
+			return 1;
+		}
+		else if (!stricmp(arg, "-version")) {
+			PrintVersion();
+			return 1;
+		}
+		else if (!stricmp(arg, "-sdp")) print_sdp = 1;
+		else if (!stricmp(arg, "-quiet")) quiet = 2;
+		else if (!strcmp(argv[i], "-mem-track")) continue;
+
+		else if (!stricmp(arg, "-logs")) {
+			CHECK_NEXT_ARG
+				gf_logs = argv[i + 1];
+			if (gf_logs)
+				gf_log_set_tools_levels(gf_logs);
+			i++;
+		}
+		else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
+			logfile = gf_fopen(argv[i + 1], "wt");
+			gf_log_set_callback(logfile, on_gpac_log);
+			i++;
+		}
+		else if (!strcmp(arg, "-lc") || !strcmp(arg, "-log-clock")) {
+			log_sys_clock = GF_TRUE;
+		}
+		else if (!strcmp(arg, "-lu") || !strcmp(arg, "-log-utc")) {
+			log_utc_time = GF_TRUE;
+		}
+		else if (!stricmp(arg, "-noprog")) quiet = 1;
+		else if (!stricmp(arg, "-info")) {
+			print_info = 1;
+			if ((i + 1<(u32)argc) && (sscanf(argv[i + 1], "%u", &info_track_id) == 1)) {
+				char szTk[20];
+				sprintf(szTk, "%u", info_track_id);
+				if (!strcmp(szTk, argv[i + 1])) i++;
+				else info_track_id = 0;
+			}
+			else {
+				info_track_id = 0;
+			}
+		}
+	#if !defined(GPAC_DISABLE_STREAMING)
+		else if (!stricmp(arg, "-grab-ts")) {
+			CHECK_NEXT_ARG
+				grab_m2ts = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-ifce")) {
+			CHECK_NEXT_ARG
+				grab_ifce = argv[i + 1];
+			i++;
+		}
+
+	#endif
+	#if !defined(GPAC_DISABLE_CORE_TOOLS)
+		else if (!stricmp(arg, "-wget")) {
+			CHECK_NEXT_ARG
+				do_wget = argv[i + 1];
+			i++;
+		}
+	#endif
+		/*******************************************************************************/
+		else if (!stricmp(arg, "-dvbhdemux")) {
+			dvbhdemux = 1;
+		}
+		/********************************************************************************/
+	#ifndef GPAC_DISABLE_MEDIA_EXPORT
+		else if (!stricmp(arg, "-raw")) {
+			CHECK_NEXT_ARG
+				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NATIVE);
+			i++;
+		}
+		else if (!stricmp(arg, "-raw-layer")) {
+			CHECK_NEXT_ARG
+				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER);
+			i++;
+		}
+		else if (!stricmp(arg, "-qcp")) {
+			CHECK_NEXT_ARG
+				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP);
+			i++;
+		}
+		else if (!stricmp(arg, "-aviraw")) {
+			CHECK_NEXT_ARG
+				if (argv[i + 1] && !stricmp(argv[i + 1], "video")) trackID = 1;
+				else if (argv[i + 1] && !stricmp(argv[i + 1], "audio")) {
+					if (strlen(argv[i + 1]) == 5) trackID = 2;
+					else trackID = 1 + atoi(argv[i + 1] + 5);
+				}
+				else {
+					fprintf(stderr, "Usage: \"-aviraw video\" or \"-aviraw audio\"\n");
+					return 2;
+				}
+				track_dump_type = GF_EXPORT_AVI_NATIVE;
+				i++;
+		}
+		else if (!stricmp(arg, "-raws")) {
+			CHECK_NEXT_ARG
+				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_RAW_SAMPLES);
+			i++;
+		}
+		else if (!stricmp(arg, "-nhnt")) {
+			CHECK_NEXT_ARG
+				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NHNT);
+			i++;
+		}
+		else if (!stricmp(arg, "-nhml")) {
+			CHECK_NEXT_ARG
+				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NHML);
+			i++;
+		}
+		else if (!stricmp(arg, "-webvtt-raw")) {
+			CHECK_NEXT_ARG
+				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_WEBVTT_META);
+			i++;
+		}
+		else if (!stricmp(arg, "-six")) {
+			CHECK_NEXT_ARG
+				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_SIX);
+			i++;
+		}
+		else if (!stricmp(arg, "-avi")) {
+			CHECK_NEXT_ARG
+				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_AVI);
+			i++;
+		}
+	#endif /*GPAC_DISABLE_MEDIA_EXPORT*/
+	#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
+		else if (!stricmp(arg, "-rtp")) {
+			stream_rtp = 1;
+		}
+		else if (!stricmp(arg, "-live")) {
+			live_scene = 1;
+		}
+	#endif
+		else if (!stricmp(arg, "-diod")) {
+			dump_iod = 1;
+		}
+	#ifndef GPAC_DISABLE_VRML
+		else if (!stricmp(arg, "-node")) {
+			CHECK_NEXT_ARG PrintNode(argv[i + 1], 0);
+			return 1;
+		}
+		else if (!stricmp(arg, "-xnode")) {
+			CHECK_NEXT_ARG PrintNode(argv[i + 1], 1);
+			return 1;
+		}
+		else if (!stricmp(arg, "-nodes")) {
+			PrintBuiltInNodes(0);
+			return 1;
+		}
+		else if (!stricmp(arg, "-xnodes")) {
+			PrintBuiltInNodes(1);
+			return 1;
+		}
+	#endif
+	#ifndef GPAC_DISABLE_SVG
+		else if (!stricmp(arg, "-snode")) {
+			CHECK_NEXT_ARG PrintNode(argv[i + 1], 2);
+			return 1;
+		}
+		else if (!stricmp(arg, "-snodes")) {
+			PrintBuiltInNodes(2);
+			return 1;
+		}
+	#endif
+		else if (!stricmp(arg, "-std")) dump_std = 2;
+		else if (!stricmp(arg, "-stdb")) dump_std = 1;
+
+	#if !defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_SCENE_DUMP)
+		else if (!stricmp(arg, "-bt")) dump_mode = GF_SM_DUMP_BT;
+		else if (!stricmp(arg, "-xmt")) dump_mode = GF_SM_DUMP_XMTA;
+		else if (!stricmp(arg, "-wrl")) dump_mode = GF_SM_DUMP_VRML;
+		else if (!stricmp(arg, "-x3dv")) dump_mode = GF_SM_DUMP_X3D_VRML;
+		else if (!stricmp(arg, "-x3d")) dump_mode = GF_SM_DUMP_X3D_XML;
+		else if (!stricmp(arg, "-lsr")) dump_mode = GF_SM_DUMP_LASER;
+		else if (!stricmp(arg, "-svg")) dump_mode = GF_SM_DUMP_SVG;
+	#endif /*defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_SCENE_DUMP)*/
+
+		else if (!stricmp(arg, "-stat")) stat_level = 1;
+		else if (!stricmp(arg, "-stats")) stat_level = 2;
+		else if (!stricmp(arg, "-statx")) stat_level = 3;
+		else if (!stricmp(arg, "-diso")) dump_isom = 1;
+		else if (!stricmp(arg, "-dump-cover")) dump_cart = 1;
+		else if (!stricmp(arg, "-dump-chap")) dump_chap = 1;
+		else if (!stricmp(arg, "-dump-chap-ogg")) dump_chap = 2;
+		else if (!stricmp(arg, "-hash")) do_hash = 1;
+		else if (!stricmp(arg, "-bin")) do_bin_nhml = 1;
+		else if (!stricmp(arg, "-dump-udta")) {
+			char *sep, *code;
+			CHECK_NEXT_ARG
+				sep = strchr(argv[i + 1], ':');
+			if (sep) {
+				sep[0] = 0;
+				dump_udta_track = atoi(argv[i + 1]);
+				sep[0] = ':';
+				code = &sep[1];
+			}
+			else {
+				code = argv[i + 1];
+			}
+			dump_udta_type = GF_4CC(code[0], code[1], code[2], code[3]);
+			i++;
+		}
+		else if (!stricmp(arg, "-dmp4")) {
+			dump_isom = 1;
+			fprintf(stderr, "WARNING: \"-dmp4\" is deprecated - use \"-diso\" option\n");
+		}
+		else if (!stricmp(arg, "-drtp")) dump_rtp = 1;
+		else if (!stricmp(arg, "-dts")) {
+			dump_timestamps = 1;
+			if (((i + 1<(u32)argc) && inName) || (i + 2<(u32)argc)) {
+				if (argv[i + 1][0] != '-') program_number = atoi(argv[i + 1]);
+				i++;
+			}
+		}
+		else if (!stricmp(arg, "-dnal")) {
+			CHECK_NEXT_ARG
+				dump_nal = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-dcr")) dump_cr = 1;
+		else if (!stricmp(arg, "-ttxt") || !stricmp(arg, "-srt")) {
+			if ((i + 1<(u32)argc) && (sscanf(argv[i + 1], "%u", &trackID) == 1)) {
+				char szTk[20];
+				sprintf(szTk, "%d", trackID);
+				if (!strcmp(szTk, argv[i + 1])) i++;
+				else trackID = 0;
+			}
+			else {
+				trackID = 0;
+			}
+	#ifdef GPAC_DISABLE_ISOM_WRITE
+			if (trackID) {
+				fprintf(stderr, "Error: Read-Only version - subtitle conversion not available\n");
+				return 2;
+			}
+	#endif
+			if (!stricmp(arg, "-ttxt")) dump_ttxt = GF_TRUE;
+			else dump_srt = GF_TRUE;
+			import_subtitle = 1;
+		}
+		else if (!stricmp(arg, "-dm2ts")) {
+			dump_m2ts = 1;
+			if (((i + 1<(u32)argc) && inName) || (i + 2<(u32)argc)) {
+				if (argv[i + 1][0] != '-') pes_dump = argv[i + 1];
+				i++;
+			}
+		}
+
+	#ifndef GPAC_DISABLE_SWF_IMPORT
+		/*SWF importer options*/
+		else if (!stricmp(arg, "-global")) swf_flags |= GF_SM_SWF_STATIC_DICT;
+		else if (!stricmp(arg, "-no-ctrl")) swf_flags &= ~GF_SM_SWF_SPLIT_TIMELINE;
+		else if (!stricmp(arg, "-no-text")) swf_flags |= GF_SM_SWF_NO_TEXT;
+		else if (!stricmp(arg, "-no-font")) swf_flags |= GF_SM_SWF_NO_FONT;
+		else if (!stricmp(arg, "-no-line")) swf_flags |= GF_SM_SWF_NO_LINE;
+		else if (!stricmp(arg, "-no-grad")) swf_flags |= GF_SM_SWF_NO_GRADIENT;
+		else if (!stricmp(arg, "-quad")) swf_flags |= GF_SM_SWF_QUAD_CURVE;
+		else if (!stricmp(arg, "-xlp")) swf_flags |= GF_SM_SWF_SCALABLE_LINE;
+		else if (!stricmp(arg, "-ic2d")) swf_flags |= GF_SM_SWF_USE_IC2D;
+		else if (!stricmp(arg, "-same-app")) swf_flags |= GF_SM_SWF_REUSE_APPEARANCE;
+		else if (!stricmp(arg, "-flatten")) {
+			CHECK_NEXT_ARG
+				swf_flatten_angle = (Float)atof(argv[i + 1]);
+			i++;
+		}
+	#endif
+	#ifndef GPAC_DISABLE_ISOM_WRITE
+		else if (!stricmp(arg, "-isma")) {
+			conv_type = GF_ISOM_CONV_TYPE_ISMA;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-3gp")) {
+			conv_type = GF_ISOM_CONV_TYPE_3GPP;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-ipod")) {
+			conv_type = GF_ISOM_CONV_TYPE_IPOD;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-psp")) {
+			conv_type = GF_ISOM_CONV_TYPE_PSP;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-ismax")) {
+			conv_type = GF_ISOM_CONV_TYPE_ISMA_EX;
+			open_edit = 1;
+		}
+
+		else if (!stricmp(arg, "-no-sys") || !stricmp(arg, "-nosys")) {
+			remove_sys_tracks = 1;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-no-iod")) {
+			remove_root_od = 1;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-out")) {
+			CHECK_NEXT_ARG outName = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-tmp")) {
+			CHECK_NEXT_ARG tmpdir = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-co64")) {
+			force_co64 = GF_TRUE;
+			open_edit = 1;
+		}
+		else if (!stricmp(arg, "-write-buffer")) {
+			CHECK_NEXT_ARG
+				gf_isom_set_output_buffering(NULL, atoi(argv[i + 1]));
+			i++;
+		}
+		else if (!stricmp(arg, "-cprt")) {
+			CHECK_NEXT_ARG cprt = argv[i + 1];
+			i++;
+			if (!dash_duration) open_edit = 1;
+		}
+		else if (!stricmp(arg, "-chap")) {
+			CHECK_NEXT_ARG chap_file = argv[i + 1];
+			i++;
+			open_edit = 1;
+		}
+		else if (!strcmp(arg, "-strict-error")) {
+			gf_log_set_strict_error(1);
+		}
+		else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
+			CHECK_NEXT_ARG
+				interleaving_time = atof(argv[i + 1]) / 1000;
+			open_edit = 1;
+			needSave = 1;
+			if (!stricmp(arg, "-old-inter")) old_interleave = 1;
+			i++;
+		}
+		else if (!stricmp(arg, "-frag")) {
+			CHECK_NEXT_ARG
+				interleaving_time = atof(argv[i + 1]) / 1000;
+			needSave = 1;
+			i++;
+			Frag = 1;
+		}
+		else if (!stricmp(arg, "-dash")) {
+			CHECK_NEXT_ARG
+				dash_duration = atof(argv[i + 1]) / 1000;
+			if (dash_duration == 0.0) {
+				fprintf(stderr, "\tERROR: \"-dash-dash_duration\": invalid parameter %s\n", argv[i + 1]);
+				return 2;
+			}
+			i++;
+		}
+		else if (!stricmp(arg, "-dash-strict")) {
+			CHECK_NEXT_ARG
+				dash_duration = atof(argv[i + 1]) / 1000;
+			if (dash_duration == 0.0) {
+				fprintf(stderr, "\tERROR: \"-dash-dash_duration\": invalid parameter %s\n", argv[i + 1]);
+				return 2;
+			}
+			dash_duration_strict = GF_TRUE;
+			i++;
+		}
+		else if (!stricmp(arg, "-subdur")) {
+			CHECK_NEXT_ARG
+				dash_subduration = atof(argv[i + 1]) / 1000;
+			i++;
+		}
+		else if (!stricmp(arg, "-dash-scale")) {
+			CHECK_NEXT_ARG
+				dash_scale = atoi(argv[i + 1]);
+			if (!dash_scale) {
+				fprintf(stderr, "\tERROR: \"-dash-scale\": invalid parameter %s\n", argv[i + 1]);
+				return 2;
+			}
+			i++;
+		}
+		else if (!stricmp(arg, "-dash-ts-prog")) {
+			CHECK_NEXT_ARG
+				program_number = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-subsegs-per-sidx") || !stricmp(arg, "-frags-per-sidx")) {
+			CHECK_NEXT_ARG
+				subsegs_per_sidx = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-segment-name")) {
+			CHECK_NEXT_ARG
+				seg_name = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-segment-ext")) {
+			CHECK_NEXT_ARG
+				seg_ext = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-bs-switching")) {
+			CHECK_NEXT_ARG
+				if (!stricmp(argv[i + 1], "no") || !stricmp(argv[i + 1], "off")) bitstream_switching_mode = GF_DASH_BSMODE_NONE;
+				else if (!stricmp(argv[i + 1], "merge"))  bitstream_switching_mode = GF_DASH_BSMODE_MERGED;
+				else if (!stricmp(argv[i + 1], "multi"))  bitstream_switching_mode = GF_DASH_BSMODE_MULTIPLE_ENTRIES;
+				else if (!stricmp(argv[i + 1], "single"))  bitstream_switching_mode = GF_DASH_BSMODE_SINGLE;
+				else if (!stricmp(argv[i + 1], "inband"))  bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
+				else {
+					fprintf(stderr, "\tWARNING: Unrecognized bitstream switchin mode \"%s\" - please check usage\n", argv[i + 1]);
+					return 2;
+				}
+				i++;
+		}
+		else if (!stricmp(arg, "-dynamic")) {
+			dash_mode = GF_DASH_DYNAMIC;
+		}
+		else if (!stricmp(arg, "-last-dynamic")) {
+			dash_mode = GF_DASH_DYNAMIC_LAST;
+		}
+		else if (!stricmp(arg, "-frag-rt")) {
+			frag_real_time = GF_TRUE;
+		}
+		else if (!strnicmp(arg, "-dash-live", 10) || !strnicmp(arg, "-ddbg-live", 10)) {
+			dash_mode = !strnicmp(arg, "-ddbg-live", 10) ? GF_DASH_DYNAMIC_DEBUG : GF_DASH_DYNAMIC;
+			dash_live = 1;
+			if (arg[10] == '=') {
+				dash_ctx_file = arg + 11;
+			}
+			CHECK_NEXT_ARG
+				dash_duration = atof(argv[i + 1]) / 1000;
+			i++;
+		}
+		else if (!stricmp(arg, "-mpd-duration")) {
+			CHECK_NEXT_ARG mpd_live_duration = atof(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-mpd-refresh")) {
+			CHECK_NEXT_ARG mpd_update_time = atof(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-time-shift")) {
+			CHECK_NEXT_ARG
+				time_shift_depth = (u32)atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-min-buffer")) {
+			CHECK_NEXT_ARG
+				min_buffer = atoi(argv[i + 1]);
+			min_buffer /= 1000;
+			i++;
+		}
+		else if (!stricmp(arg, "-ast-offset")) {
+			CHECK_NEXT_ARG
+				ast_offset_ms = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-moof-sn")) {
+			CHECK_NEXT_ARG
+				initial_moof_sn = (u32)atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-tfdt")) {
+			CHECK_NEXT_ARG
+				sscanf(argv[i + 1], LLU, &initial_tfdt);
+			i++;
+		}
+		else if (!stricmp(arg, "-no-frags-default")) {
+			no_fragments_defaults = 1;
+		}
+		else if (!stricmp(arg, "-single-traf")) {
+			single_traf_per_moof = 1;
+		}
+		else if (!stricmp(arg, "-mpd-title")) {
+			CHECK_NEXT_ARG dash_title = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-mpd-source")) {
+			CHECK_NEXT_ARG dash_source = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-mpd-info-url")) {
+			CHECK_NEXT_ARG dash_more_info = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-base-url")) {
+			CHECK_NEXT_ARG
+				dash_more_info = argv[i + 1];
+			mpd_base_urls = gf_realloc(mpd_base_urls, (nb_mpd_base_urls + 1)*sizeof(char**));
+			mpd_base_urls[nb_mpd_base_urls] = argv[i + 1];
+			nb_mpd_base_urls++;
+			i++;
+		}
+		else if (!stricmp(arg, "-dash-ctx")) {
+			CHECK_NEXT_ARG
+				dash_ctx_file = argv[i + 1];
+			i++;
+		}
+		else if (!stricmp(arg, "-daisy-chain")) {
+			daisy_chain_sidx = 1;
+		}
+		else if (!stricmp(arg, "-single-segment")) {
+			single_segment = 1;
+		}
+		else if (!stricmp(arg, "-single-file")) {
+			single_file = 1;
+		}
+		else if (!stricmp(arg, "-pssh-moof")) {
+			pssh_in_moof = 1;
+		}
+		else if (!stricmp(arg, "-sample-groups-traf")) {
+			samplegroups_in_traf = 1;
+		}
+		else if (!stricmp(arg, "-dash-profile") || !stricmp(arg, "-profile")) {
+			CHECK_NEXT_ARG
+				if (!stricmp(argv[i + 1], "live") || !stricmp(argv[i + 1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
+				else if (!stricmp(argv[i + 1], "onDemand")) dash_profile = GF_DASH_PROFILE_ONDEMAND;
+				else if (!stricmp(argv[i + 1], "hbbtv1.5:live")) {
+					dash_profile = GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE;
+				}
+				else if (!stricmp(argv[i + 1], "dashavc264:live")) {
+					dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
+				}
+				else if (!stricmp(argv[i + 1], "dashavc264:onDemand")) {
+					dash_profile = GF_DASH_PROFILE_AVC264_ONDEMAND;
+				}
+				else if (!stricmp(argv[i + 1], "main")) dash_profile = GF_DASH_PROFILE_MAIN;
+				else dash_profile = GF_DASH_PROFILE_FULL;
+				i++;
+		}
+		else if (!stricmp(arg, "-profile-ext")) {
+			CHECK_NEXT_ARG
+				dash_profile_extension = argv[i + 1];
+			i++;
+		}
+		else if (!strnicmp(arg, "-url-template", 13)) {
+			use_url_template = 1;
+			if ((arg[13] == '=') && arg[14]) {
+				if (!strcmp(&arg[14], "simulate")) use_url_template = 2;
+			}
+		}
+		else if (!stricmp(arg, "-segment-timeline")) {
+			segment_timeline = 1;
+		}
+		else if (!stricmp(arg, "-mem-frags")) {
+			memory_frags = 1;
+		}
+		else if (!stricmp(arg, "-segment-marker")) {
+			char *m;
+			CHECK_NEXT_ARG
+				m = argv[i + 1];
+			segment_marker = GF_4CC(m[0], m[1], m[2], m[3]);
+			i++;
+		}
+		else if (!stricmp(arg, "-insert-utc")) {
+			insert_utc = GF_TRUE;
+		}
+		else {
+			u32 ret = mp4box_parse_args_continue(argc, argv, &i);
+			if (ret) return ret;
+		}
+	}
+	return 0;
+}
+
+int mp4boxMain(int argc, char **argv)
+{
 	nb_tsel_acts = nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = raw_sample_num = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = car_dur = minor_version = 0;
 	e = GF_OK;
 	split_duration = 0.0;
@@ -1940,1310 +3301,13 @@ int mp4boxMain(int argc, char **argv)
 	gf_sys_init(enable_mem_tracker);
 	if (argc < 2) {
 		PrintUsage();
-		MP4BOX_EXIT_WITH_CODE(1);
+		gf_sys_close();
+		return 1;
 	}
 
-
-	/*parse our args*/
-	for (i = 1; i < (u32) argc ; i++) {
-		arg = argv[i];
-		/*input file(s)*/
-		if ((arg[0] != '-') || !stricmp(arg, "--")) {
-			char *arg_val = arg;
-			if (!stricmp(arg, "--")) {
-				CHECK_NEXT_ARG
-				arg_val = argv[i+1];
-				i++;
-			}
-			if (argc < 3) {
-				fprintf(stderr, "Error - only one input file found as argument, please check usage\n");
-				MP4BOX_EXIT_WITH_CODE(1);
-			} else if (inName) {
-				if (dash_duration) {
-					if (!nb_dash_inputs) {
-						dash_inputs = set_dash_input(dash_inputs, inName, &nb_dash_inputs);
-					}
-					dash_inputs = set_dash_input(dash_inputs, arg_val, &nb_dash_inputs);
-				} else {
-					fprintf(stderr, "Error - 2 input names specified, please check usage\n");
-					MP4BOX_EXIT_WITH_CODE(1);
-				}
-			} else {
-				inName = arg_val;
-			}
-		}
-		else if (!stricmp(arg, "-?")) {
-			PrintUsage();
-			MP4BOX_EXIT_WITH_CODE(0);
-		}
-		else if (!stricmp(arg, "-version")) {
-			PrintVersion();
-			MP4BOX_EXIT_WITH_CODE(0);
-		}
-		else if (!stricmp(arg, "-sdp")) print_sdp = 1;
-		else if (!stricmp(arg, "-quiet")) quiet = 2;
-		else if (!strcmp(argv[i], "-mem-track")) continue;
-
-		else if (!stricmp(arg, "-logs")) {
-			CHECK_NEXT_ARG
-			gf_logs = argv[i+1];
-			if (gf_logs)
-				gf_log_set_tools_levels(gf_logs);
-			i++;
-		}
-		else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
-			logfile = gf_fopen(argv[i+1], "wt");
-			gf_log_set_callback(logfile, on_gpac_log);
-			i++;
-		}
-		else if (!strcmp(arg, "-lc") || !strcmp(arg, "-log-clock") ) {
-			log_sys_clock = GF_TRUE;
-		}
-		else if (!strcmp(arg, "-lu") || !strcmp(arg, "-log-utc") ) {
-			log_utc_time = GF_TRUE;
-		}
-		else if (!stricmp(arg, "-noprog")) quiet = 1;
-		else if (!stricmp(arg, "-info")) {
-			print_info = 1;
-			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%u", &info_track_id)==1)) {
-				char szTk[20];
-				sprintf(szTk, "%u", info_track_id);
-				if (!strcmp(szTk, argv[i+1])) i++;
-				else info_track_id=0;
-			} else {
-				info_track_id=0;
-			}
-		}
-#if !defined(GPAC_DISABLE_STREAMING)
-		else if (!stricmp(arg, "-grab-ts")) {
-			CHECK_NEXT_ARG
-			grab_m2ts = argv[i+1];
-			i++;
-		}
-		else if (!stricmp(arg, "-ifce")) {
-			CHECK_NEXT_ARG
-			grab_ifce = argv[i+1];
-			i++;
-		}
-
-#endif
-#if !defined(GPAC_DISABLE_CORE_TOOLS)
-		else if (!stricmp(arg, "-wget")) {
-			CHECK_NEXT_ARG
-			do_wget = argv[i+1];
-			i++;
-		}
-#endif
-		/*******************************************************************************/
-		else if (!stricmp(arg, "-dvbhdemux")) {
-			dvbhdemux = 1;
-		}
-		/********************************************************************************/
-#ifndef GPAC_DISABLE_MEDIA_EXPORT
-		else if (!stricmp(arg, "-raw")) {
-			CHECK_NEXT_ARG
-			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_NATIVE);
-			i++;
-		}
-		else if (!stricmp(arg, "-raw-layer")) {
-			CHECK_NEXT_ARG
-			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER);
-			i++;
-		}
-		else if (!stricmp(arg, "-qcp")) {
-			CHECK_NEXT_ARG
-			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP);
-			i++;
-		}
-		else if (!stricmp(arg, "-aviraw")) {
-			CHECK_NEXT_ARG
-			if (argv[i+1] && !stricmp(argv[i+1], "video")) trackID = 1;
-			else if (argv[i+1] && !stricmp(argv[i+1], "audio")) {
-				if (strlen(argv[i+1])==5) trackID = 2;
-				else trackID = 1 + atoi(argv[i+1] + 5);
-			}
-			else {
-				fprintf(stderr, "Usage: \"-aviraw video\" or \"-aviraw audio\"\n");
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			track_dump_type = GF_EXPORT_AVI_NATIVE;
-			i++;
-		}
-		else if (!stricmp(arg, "-raws")) {
-			CHECK_NEXT_ARG
-			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_RAW_SAMPLES);
-			i++;
-		}
-		else if (!stricmp(arg, "-nhnt")) {
-			CHECK_NEXT_ARG
-			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_NHNT);
-			i++;
-		}
-		else if (!stricmp(arg, "-nhml")) {
-			CHECK_NEXT_ARG
-			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_NHML);
-			i++;
-		}
-		else if (!stricmp(arg, "-webvtt-raw")) {
-			CHECK_NEXT_ARG
-			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_WEBVTT_META);
-			i++;
-		}
-		else if (!stricmp(arg, "-six")) {
-			CHECK_NEXT_ARG
-			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_SIX);
-			i++;
-		}
-		else if (!stricmp(arg, "-avi")) {
-			CHECK_NEXT_ARG
-			track_dump_type = create_new_track_action(argv[i+1], &tracks, &nb_track_act, GF_EXPORT_AVI);
-			i++;
-		}
-#endif /*GPAC_DISABLE_MEDIA_EXPORT*/
-#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
-		else if (!stricmp(arg, "-rtp")) {
-			stream_rtp = 1;
-		}
-		else if (!stricmp(arg, "-live")) {
-			live_scene = 1;
-		}
-#endif
-		else if (!stricmp(arg, "-diod")) {
-			dump_iod = 1;
-		}
-#ifndef GPAC_DISABLE_VRML
-		else if (!stricmp(arg, "-node")) {
-			CHECK_NEXT_ARG PrintNode(argv[i+1], 0);
-			MP4BOX_EXIT_WITH_CODE(0);
-		}
-		else if (!stricmp(arg, "-xnode")) {
-			CHECK_NEXT_ARG PrintNode(argv[i+1], 1);
-			MP4BOX_EXIT_WITH_CODE(0);
-		}
-		else if (!stricmp(arg, "-nodes")) {
-			PrintBuiltInNodes(0);
-			MP4BOX_EXIT_WITH_CODE(0);
-		}
-		else if (!stricmp(arg, "-xnodes")) {
-			PrintBuiltInNodes(1);
-			MP4BOX_EXIT_WITH_CODE(0);
-		}
-#endif
-#ifndef GPAC_DISABLE_SVG
-		else if (!stricmp(arg, "-snode")) {
-			CHECK_NEXT_ARG PrintNode(argv[i+1], 2);
-			MP4BOX_EXIT_WITH_CODE(0);
-		}
-		else if (!stricmp(arg, "-snodes")) {
-			PrintBuiltInNodes(2);
-			MP4BOX_EXIT_WITH_CODE(0);
-		}
-#endif
-		else if (!stricmp(arg, "-std")) dump_std = 2;
-		else if (!stricmp(arg, "-stdb")) dump_std = 1;
-
-#if !defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_SCENE_DUMP)
-		else if (!stricmp(arg, "-bt")) dump_mode = GF_SM_DUMP_BT;
-		else if (!stricmp(arg, "-xmt")) dump_mode = GF_SM_DUMP_XMTA;
-		else if (!stricmp(arg, "-wrl")) dump_mode = GF_SM_DUMP_VRML;
-		else if (!stricmp(arg, "-x3dv")) dump_mode = GF_SM_DUMP_X3D_VRML;
-		else if (!stricmp(arg, "-x3d")) dump_mode = GF_SM_DUMP_X3D_XML;
-		else if (!stricmp(arg, "-lsr")) dump_mode = GF_SM_DUMP_LASER;
-		else if (!stricmp(arg, "-svg")) dump_mode = GF_SM_DUMP_SVG;
-#endif /*defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_SCENE_DUMP)*/
-
-		else if (!stricmp(arg, "-stat")) stat_level = 1;
-		else if (!stricmp(arg, "-stats")) stat_level = 2;
-		else if (!stricmp(arg, "-statx")) stat_level = 3;
-		else if (!stricmp(arg, "-diso")) dump_isom = 1;
-		else if (!stricmp(arg, "-dump-cover")) dump_cart = 1;
-		else if (!stricmp(arg, "-dump-chap")) dump_chap = 1;
-		else if (!stricmp(arg, "-dump-chap-ogg")) dump_chap = 2;
-		else if (!stricmp(arg, "-hash")) do_hash = 1;
-		else if (!stricmp(arg, "-bin")) do_bin_nhml = 1;
-		else if (!stricmp(arg, "-dump-udta")) {
-			char *sep, *code;
-			CHECK_NEXT_ARG 
-			sep = strchr(argv[i+1], ':');
-			if (sep) {
-				sep[0] = 0;
-				dump_udta_track = atoi(argv[i+1]);
-				sep[0] = ':';
-				code = &sep[1];
-			} else {
-				code = argv[i+1];
-			}
-			dump_udta_type = GF_4CC(code[0], code[1], code[2], code[3]);
-			i++;
-		}
-
-
-#if 0
-		else if (!stricmp(arg, "-conf")) {
-			if (i+1==(u32)argc) {
-				fprintf(stderr, "Missing arg - please check usage\n");
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			if (i+2==(u32)argc) {
-				gf_check_isom_files(NULL, argv[i+1]);
-			} else {
-				gf_check_isom_files(argv[i+1], argv[i+2]);
-			}
-			MP4BOX_EXIT_WITH_CODE(0);
-		}
-#endif
-		else if (!stricmp(arg, "-dmp4")) {
-			dump_isom = 1;
-			fprintf(stderr, "WARNING: \"-dmp4\" is deprecated - use \"-diso\" option\n");
-		}
-		else if (!stricmp(arg, "-drtp")) dump_rtp = 1;
-		else if (!stricmp(arg, "-dts")) {
-			dump_timestamps = 1;
-			if ( ((i+1<(u32) argc) && inName) || (i+2<(u32) argc) ) {
-				if (argv[i+1][0] != '-') program_number = atoi(argv[i+1]);
-				i++;
-			}
-		} else if (!stricmp(arg, "-dnal")) {
-			CHECK_NEXT_ARG
-			dump_nal = atoi(argv[i+1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-dcr")) dump_cr = 1;
-		else if (!stricmp(arg, "-ttxt") || !stricmp(arg, "-srt")) {
-			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%u", &trackID)==1)) {
-				char szTk[20];
-				sprintf(szTk, "%d", trackID);
-				if (!strcmp(szTk, argv[i+1])) i++;
-				else trackID=0;
-			} else {
-				trackID = 0;
-			}
-#ifdef GPAC_DISABLE_ISOM_WRITE
-			if (trackID) {
-				fprintf(stderr, "Error: Read-Only version - subtitle conversion not available\n");
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-#endif
-			if (!stricmp(arg, "-ttxt")) dump_ttxt = GF_TRUE;
-			else dump_srt = GF_TRUE;
-			import_subtitle = 1;
-		} else if (!stricmp(arg, "-dm2ts")) {
-			dump_m2ts = 1;
-			if ( ((i+1<(u32) argc) && inName) || (i+2<(u32) argc) ) {
-				if (argv[i+1][0] != '-') pes_dump = argv[i+1];
-				i++;
-			}
-		}
-
-#ifndef GPAC_DISABLE_SWF_IMPORT
-		/*SWF importer options*/
-		else if (!stricmp(arg, "-global")) swf_flags |= GF_SM_SWF_STATIC_DICT;
-		else if (!stricmp(arg, "-no-ctrl")) swf_flags &= ~GF_SM_SWF_SPLIT_TIMELINE;
-		else if (!stricmp(arg, "-no-text")) swf_flags |= GF_SM_SWF_NO_TEXT;
-		else if (!stricmp(arg, "-no-font")) swf_flags |= GF_SM_SWF_NO_FONT;
-		else if (!stricmp(arg, "-no-line")) swf_flags |= GF_SM_SWF_NO_LINE;
-		else if (!stricmp(arg, "-no-grad")) swf_flags |= GF_SM_SWF_NO_GRADIENT;
-		else if (!stricmp(arg, "-quad")) swf_flags |= GF_SM_SWF_QUAD_CURVE;
-		else if (!stricmp(arg, "-xlp")) swf_flags |= GF_SM_SWF_SCALABLE_LINE;
-		else if (!stricmp(arg, "-ic2d")) swf_flags |= GF_SM_SWF_USE_IC2D;
-		else if (!stricmp(arg, "-same-app")) swf_flags |= GF_SM_SWF_REUSE_APPEARANCE;
-		else if (!stricmp(arg, "-flatten")) {
-			CHECK_NEXT_ARG
-			swf_flatten_angle = (Float) atof(argv[i+1]);
-			i++;
-		}
-#endif
-#ifndef GPAC_DISABLE_ISOM_WRITE
-		else if (!stricmp(arg, "-isma")) {
-			conv_type = GF_ISOM_CONV_TYPE_ISMA;
-			open_edit = 1;
-		}
-		else if (!stricmp(arg, "-3gp")) {
-			conv_type = GF_ISOM_CONV_TYPE_3GPP;
-			open_edit = 1;
-		}
-		else if (!stricmp(arg, "-ipod")) {
-			conv_type = GF_ISOM_CONV_TYPE_IPOD;
-			open_edit = 1;
-		}
-		else if (!stricmp(arg, "-psp")) {
-			conv_type = GF_ISOM_CONV_TYPE_PSP;
-			open_edit = 1;
-		}
-		else if (!stricmp(arg, "-ismax")) {
-			conv_type = GF_ISOM_CONV_TYPE_ISMA_EX;
-			open_edit = 1;
-		}
-
-		else if (!stricmp(arg, "-no-sys") || !stricmp(arg, "-nosys")) {
-			remove_sys_tracks = 1;
-			open_edit = 1;
-		}
-		else if (!stricmp(arg, "-no-iod")) {
-			remove_root_od = 1;
-			open_edit = 1;
-		}
-		else if (!stricmp(arg, "-out")) {
-			CHECK_NEXT_ARG outName = argv[i+1];
-			i++;
-		}
-		else if (!stricmp(arg, "-tmp")) {
-			CHECK_NEXT_ARG tmpdir = argv[i+1];
-			i++;
-		}
-		else if (!stricmp(arg, "-co64")) {
-			force_co64 = GF_TRUE;
-			open_edit = 1;
-		}
-		else if (!stricmp(arg, "-write-buffer")) {
-			CHECK_NEXT_ARG
-			gf_isom_set_output_buffering(NULL, atoi(argv[i+1]));
-			i++;
-		}
-		else if (!stricmp(arg, "-cprt")) {
-			CHECK_NEXT_ARG cprt = argv[i+1];
-			i++;
-			if (!dash_duration) open_edit = 1;
-		}
-		else if (!stricmp(arg, "-chap")) {
-			CHECK_NEXT_ARG chap_file = argv[i+1];
-			i++;
-			open_edit = 1;
-		}
-		else if (!strcmp(arg, "-strict-error")) {
-			gf_log_set_strict_error(1);
-		} else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
-			CHECK_NEXT_ARG
-			interleaving_time = atof(argv[i+1]) / 1000;
-			open_edit = 1;
-			needSave = 1;
-			if (!stricmp(arg, "-old-inter")) old_interleave = 1;
-			i++;
-		} else if (!stricmp(arg, "-frag")) {
-			CHECK_NEXT_ARG
-			interleaving_time = atof(argv[i+1]) / 1000;
-			needSave = 1;
-			i++;
-			Frag = 1;
-		} else if (!stricmp(arg, "-dash")) {
-			CHECK_NEXT_ARG
-			dash_duration = atof(argv[i+1]) / 1000;
-			if (dash_duration == 0.0) {
-				fprintf(stderr, "\tERROR: \"-dash-dash_duration\": invalid parameter %s\n", argv[i+1]);
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			i++;
-		} else if (!stricmp(arg, "-dash-strict")) {
-			CHECK_NEXT_ARG
-			dash_duration = atof(argv[i+1]) / 1000;
-			if (dash_duration == 0.0) {
-				fprintf(stderr, "\tERROR: \"-dash-dash_duration\": invalid parameter %s\n", argv[i+1]);
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			dash_duration_strict = GF_TRUE;
-			i++;
-		} else if (!stricmp(arg, "-subdur")) {
-			CHECK_NEXT_ARG
-			dash_subduration = atof(argv[i+1]) / 1000;
-			i++;
-		} else if (!stricmp(arg, "-dash-scale")) {
-			CHECK_NEXT_ARG
-			dash_scale = atoi(argv[i+1]);
-			if (!dash_scale) {
-				fprintf(stderr, "\tERROR: \"-dash-scale\": invalid parameter %s\n", argv[i+1]);
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			i++;
-		} else if (!stricmp(arg, "-dash-ts-prog")) {
-			CHECK_NEXT_ARG
-			program_number = atoi(argv[i+1]);
-			i++;
-		} else if (!stricmp(arg, "-subsegs-per-sidx") || !stricmp(arg, "-frags-per-sidx")) {
-			CHECK_NEXT_ARG
-			subsegs_per_sidx = atoi(argv[i+1]);
-			i++;
-		} else if (!stricmp(arg, "-segment-name")) {
-			CHECK_NEXT_ARG
-			seg_name = argv[i+1];
-			i++;
-		} else if (!stricmp(arg, "-segment-ext")) {
-			CHECK_NEXT_ARG
-			seg_ext = argv[i+1];
-			i++;
-		} else if (!stricmp(arg, "-bs-switching")) {
-			CHECK_NEXT_ARG
-			if (!stricmp(argv[i+1], "no") || !stricmp(argv[i+1], "off")) bitstream_switching_mode = GF_DASH_BSMODE_NONE;
-			else if (!stricmp(argv[i+1], "merge"))  bitstream_switching_mode = GF_DASH_BSMODE_MERGED;
-			else if (!stricmp(argv[i+1], "multi"))  bitstream_switching_mode = GF_DASH_BSMODE_MULTIPLE_ENTRIES;
-			else if (!stricmp(argv[i+1], "single"))  bitstream_switching_mode = GF_DASH_BSMODE_SINGLE;
-			else if (!stricmp(argv[i+1], "inband"))  bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
-			else {
-				fprintf(stderr, "\tWARNING: Unrecognized bitstream switchin mode \"%s\" - please check usage\n", argv[i+1]);
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			i++;
-		}
-		else if (!stricmp(arg, "-dynamic")) {
-			dash_mode = GF_DASH_DYNAMIC;
-		} 
-		else if (!stricmp(arg, "-last-dynamic")) {
-			dash_mode = GF_DASH_DYNAMIC_LAST;
-		}
-		else if (!stricmp(arg, "-frag-rt")) {
-			frag_real_time = GF_TRUE;
-		}
-		else if (!strnicmp(arg, "-dash-live", 10) || !strnicmp(arg, "-ddbg-live", 10)) {
-			dash_mode = !strnicmp(arg, "-ddbg-live", 10) ? GF_DASH_DYNAMIC_DEBUG : GF_DASH_DYNAMIC;
-			dash_live = 1;
-			if (arg[10]=='=') {
-				dash_ctx_file = arg+11;
-			}
-			CHECK_NEXT_ARG
-			dash_duration = atof(argv[i+1]) / 1000;
-			i++;
-		}
-		else if (!stricmp(arg, "-mpd-duration")) {
-			CHECK_NEXT_ARG mpd_live_duration = atof(argv[i+1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-mpd-refresh")) {
-			CHECK_NEXT_ARG mpd_update_time = atof(argv[i+1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-time-shift")) {
-			CHECK_NEXT_ARG
-			time_shift_depth = (u32) atoi(argv[i+1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-min-buffer")) {
-			CHECK_NEXT_ARG
-			min_buffer = atoi(argv[i+1]);
-			min_buffer /= 1000;
-			i++;
-		}
-		else if (!stricmp(arg, "-ast-offset")) {
-			CHECK_NEXT_ARG
-			ast_offset_ms = atoi(argv[i+1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-moof-sn")) {
-			CHECK_NEXT_ARG
-			initial_moof_sn = (u32) atoi(argv[i+1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-tfdt")) {
-			CHECK_NEXT_ARG
-			sscanf(argv[i+1], LLU, &initial_tfdt);
-			i++;
-		}
-		else if (!stricmp(arg, "-no-frags-default")) {
-			no_fragments_defaults = 1;
-		}
-		else if (!stricmp(arg, "-single-traf")) {
-			single_traf_per_moof = 1;
-		}
-		else if (!stricmp(arg, "-mpd-title")) {
-			CHECK_NEXT_ARG dash_title = argv[i+1];
-			i++;
-		}
-		else if (!stricmp(arg, "-mpd-source")) {
-			CHECK_NEXT_ARG dash_source = argv[i+1];
-			i++;
-		}
-		else if (!stricmp(arg, "-mpd-info-url")) {
-			CHECK_NEXT_ARG dash_more_info = argv[i+1];
-			i++;
-		}
-		else if (!stricmp(arg, "-base-url")) {
-			CHECK_NEXT_ARG
-			dash_more_info = argv[i+1];
-			mpd_base_urls = gf_realloc(mpd_base_urls, (nb_mpd_base_urls+1)*sizeof(char**));
-			mpd_base_urls[nb_mpd_base_urls] = argv[i+1];
-			nb_mpd_base_urls++;
-			i++;
-		}
-		else if (!stricmp(arg, "-dash-ctx")) {
-			CHECK_NEXT_ARG
-			dash_ctx_file = argv[i+1];
-			i++;
-		} else if (!stricmp(arg, "-daisy-chain")) {
-			daisy_chain_sidx = 1;
-		} else if (!stricmp(arg, "-single-segment")) {
-			single_segment = 1;
-		} else if (!stricmp(arg, "-single-file")) {
-			single_file = 1;
-		} else if (!stricmp(arg, "-pssh-moof")) {
-			pssh_in_moof = 1;
-		} else if (!stricmp(arg, "-sample-groups-traf")) {
-			samplegroups_in_traf = 1;
-		} else if (!stricmp(arg, "-dash-profile") || !stricmp(arg, "-profile")) {
-			CHECK_NEXT_ARG
-			if (!stricmp(argv[i+1], "live") || !stricmp(argv[i+1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
-			else if (!stricmp(argv[i+1], "onDemand")) dash_profile = GF_DASH_PROFILE_ONDEMAND;
-			else if (!stricmp(argv[i+1], "hbbtv1.5:live")) {
-				dash_profile = GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE;
-			} else if (!stricmp(argv[i+1], "dashavc264:live")) {
-				dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
-			} else if (!stricmp(argv[i+1], "dashavc264:onDemand")) {
-				dash_profile = GF_DASH_PROFILE_AVC264_ONDEMAND;
-			} else if (!stricmp(argv[i+1], "main")) dash_profile = GF_DASH_PROFILE_MAIN;
-			else dash_profile = GF_DASH_PROFILE_FULL;
-			i++;
-		} else if (!stricmp(arg, "-profile-ext")) {
-			CHECK_NEXT_ARG
-			dash_profile_extension = argv[i+1];
-			i++;
-		} else if (!strnicmp(arg, "-url-template", 13)) {
-			use_url_template = 1;
-			if ((arg[13]=='=') && arg[14]) {
-				if (!strcmp( &arg[14], "simulate")) use_url_template = 2;
-			}
-		} else if (!stricmp(arg, "-segment-timeline")) {
-			segment_timeline = 1;
-		} else if (!stricmp(arg, "-mem-frags")) {
-			memory_frags = 1;
-		} else if (!stricmp(arg, "-segment-marker")) {
-			char *m;
-			CHECK_NEXT_ARG
-			m = argv[i+1];
-			segment_marker = GF_4CC(m[0], m[1], m[2], m[3]);
-			i++;
-		} else if (!stricmp(arg, "-insert-utc")) {
-			insert_utc = GF_TRUE;
-		} else if (!stricmp(arg, "-itags")) {
-			CHECK_NEXT_ARG itunes_tags = argv[i+1];
-			i++;
-			open_edit = 1;
-		}
-#ifndef GPAC_DISABLE_ISOM_HINTING
-		else if (!stricmp(arg, "-hint")) {
-			open_edit = 1;
-			HintIt = 1;
-		}
-		else if (!stricmp(arg, "-unhint")) {
-			open_edit = 1;
-			remove_hint = 1;
-		}
-		else if (!stricmp(arg, "-copy")) HintCopy = 1;
-		else if (!stricmp(arg, "-tight")) {
-			FullInter = 1;
-			open_edit = 1;
-			needSave = 1;
-		} else if (!stricmp(arg, "-ocr")) force_ocr = 1;
-		else if (!stricmp(arg, "-latm")) hint_flags |= GP_RTP_PCK_USE_LATM_AAC;
-		else if (!stricmp(arg, "-rap")) {
-			if ((i+1 < (u32)argc) && (argv[i+1][0] != '-')) {
-				if (sscanf(argv[i+1], "%d", &trackID) == 1) {
-					tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-					memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-					tracks[nb_track_act].act_type = TRAC_ACTION_REM_NON_RAP;
-					tracks[nb_track_act].trackID = trackID;
-					nb_track_act++;
-					i++;
-					open_edit = 1;
-				}
-			}
-			hint_flags |= GP_RTP_PCK_SIGNAL_RAP;
-			seg_at_rap=1;
-		}
-		else if (!stricmp(arg, "-frag-rap")) {
-			frag_at_rap=1;
-		}
-		else if (!stricmp(arg, "-ts")) hint_flags |= GP_RTP_PCK_SIGNAL_TS;
-		else if (!stricmp(arg, "-size")) hint_flags |= GP_RTP_PCK_SIGNAL_SIZE;
-		else if (!stricmp(arg, "-idx")) hint_flags |= GP_RTP_PCK_SIGNAL_AU_IDX;
-		else if (!stricmp(arg, "-static")) hint_flags |= GP_RTP_PCK_USE_STATIC_ID;
-		else if (!stricmp(arg, "-multi")) {
-			hint_flags |= GP_RTP_PCK_USE_MULTI;
-			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%u", &max_ptime)==1)) {
-				char szPt[20];
-				sprintf(szPt, "%u", max_ptime);
-				if (!strcmp(szPt, argv[i+1])) i++;
-				else max_ptime=0;
-			}
-		}
-#endif
-		else if (!stricmp(arg, "-mpeg4")) {
-#ifndef GPAC_DISABLE_ISOM_HINTING
-			hint_flags |= GP_RTP_PCK_FORCE_MPEG4;
-#endif
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
-			import_flags |= GF_IMPORT_FORCE_MPEG4;
-#endif
-		}
-#ifndef GPAC_DISABLE_ISOM_HINTING
-		else if (!stricmp(arg, "-mtu")) {
-			CHECK_NEXT_ARG MTUSize = atoi(argv[i+1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-cardur")) {
-			CHECK_NEXT_ARG car_dur = atoi(argv[i+1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-rate")) {
-			CHECK_NEXT_ARG rtp_rate = atoi(argv[i+1]);
-			i++;
-		}
-#ifndef GPAC_DISABLE_SENG
-		else if (!stricmp(arg, "-add-sdp") || !stricmp(arg, "-sdp_ex")) {
-			char *id;
-			CHECK_NEXT_ARG
-			sdp_lines = gf_realloc(sdp_lines, sizeof(SDPLine) * (nb_sdp_ex+1) );
-
-			id = strchr(argv[i+1], ':');
-			if (id) {
-				id[0] = 0;
-				if (sscanf(argv[i+1], "%u", &sdp_lines[0].trackID)==1) {
-					id[0] = ':';
-					sdp_lines[nb_sdp_ex].line = id+1;
-				} else {
-					id[0] = ':';
-					sdp_lines[nb_sdp_ex].line = argv[i+1];
-					sdp_lines[nb_sdp_ex].trackID = 0;
-				}
-			} else {
-				sdp_lines[nb_sdp_ex].line = argv[i+1];
-				sdp_lines[nb_sdp_ex].trackID = 0;
-			}
-			open_edit = 1;
-			nb_sdp_ex++;
-			i++;
-		}
-#endif /*GPAC_DISABLE_SENG*/
-#endif /*GPAC_DISABLE_ISOM_HINTING*/
-
-		else if (!stricmp(arg, "-single")) {
-#ifndef GPAC_DISABLE_MEDIA_EXPORT
-			CHECK_NEXT_ARG
-			track_dump_type = GF_EXPORT_MP4;
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-			tracks[nb_track_act].act_type = TRAC_ACTION_RAW_EXTRACT;
-			tracks[nb_track_act].trackID = atoi(argv[i+1]);
-			tracks[nb_track_act].dump_type = GF_EXPORT_MP4;
-			nb_track_act++;
-			i++;
-#endif
-		}
-		else if (!stricmp(arg, "-iod")) regular_iod = 1;
-		else if (!stricmp(arg, "-flat")) {
-			open_edit = 1;
-			do_flat = 1;
-		}
-		else if (!stricmp(arg, "-keep-utc")) keep_utc = 1;
-		else if (!stricmp(arg, "-new")) force_new = 1;
-		else if (!stricmp(arg, "-timescale")) {
-			CHECK_NEXT_ARG
-			timescale = atoi(argv[i+1]);
-			open_edit = 1;
-			i++;
-		}
-		else if (!stricmp(arg, "-udta")) {
-			CHECK_NEXT_ARG
-			create_new_track_action(argv[i+1], &tracks, &nb_track_act, 0);
-			tracks[nb_track_act-1].act_type = TRAC_ACTION_SET_UDTA;
-			open_edit = 1;
-			i++;
-		}
-		else if (!stricmp(arg, "-add") || !stricmp(arg, "-import") || !stricmp(arg, "-convert")) {
-			CHECK_NEXT_ARG
-			if (!stricmp(arg, "-import")) fprintf(stderr, "\tWARNING: \"-import\" is deprecated - use \"-add\"\n");
-			else if (!stricmp(arg, "-convert")) fprintf(stderr, "\tWARNING: \"-convert\" is deprecated - use \"-add\"\n");
-			nb_add++;
-			i++;
-		}
-		else if (!stricmp(arg, "-cat") || !stricmp(arg, "-catx")) {
-			CHECK_NEXT_ARG
-			nb_cat++;
-			i++;
-		}
-		else if (!stricmp(arg, "-time")) {
-			struct tm time;
-			CHECK_NEXT_ARG
-			memset(&time, 0, sizeof(struct tm));
-			sscanf(argv[i+1], "%d/%d/%d-%d:%d:%d", &time.tm_mday, &time.tm_mon, &time.tm_year, &time.tm_hour, &time.tm_min, &time.tm_sec);
-			time.tm_isdst=0;
-			time.tm_year -= 1900;
-			time.tm_mon -= 1;
-			open_edit = 1;
-			movie_time = 2082758400;
-			movie_time += mktime(&time);
-			i++;
-		}
-		else if (!stricmp(arg, "-force-cat")) force_cat = 1;
-		else if (!stricmp(arg, "-align-cat")) align_cat = 1;
-		else if (!stricmp(arg, "-unalign-cat")) align_cat = 0;
-		else if (!stricmp(arg, "-raw-cat")) {
-			CHECK_NEXT_ARG
-			raw_cat = argv[i+1];
-			i++;
-		}
-		else if (!stricmp(arg, "-rem") || !stricmp(arg, "-disable") || !stricmp(arg, "-enable")) {
-			CHECK_NEXT_ARG
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-			if (!stricmp(arg, "-enable")) tracks[nb_track_act].act_type = TRAC_ACTION_ENABLE;
-			else if (!stricmp(arg, "-disable")) tracks[nb_track_act].act_type = TRAC_ACTION_DISABLE;
-			else tracks[nb_track_act].act_type = TRAC_ACTION_REM_TRACK;
-			tracks[nb_track_act].trackID = atoi(argv[i+1]);
-			open_edit = 1;
-			nb_track_act++;
-			i++;
-		}
-		else if (!stricmp(arg, "-set-track-id")) {
-			char *sep;
-			CHECK_NEXT_ARG
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-			tracks[nb_track_act].act_type = TRAC_ACTION_SET_ID;
-			sep = strchr(argv[i+1], ':');
-			if (!sep) {
-				fprintf(stderr, "Bad format for -set-track-id - expecting \"id1:id2\" got \"%s\"\n", argv[i+1]);
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			*sep = 0;
-			tracks[nb_track_act].trackID = atoi(argv[i+1]);
-			*sep = ':';
-			sep++;
-			tracks[nb_track_act].newTrackID = atoi(sep);
-			open_edit = 1;
-			nb_track_act++;
-			i++;
-		}
-		else if (!stricmp(arg, "-par")) {
-			char szTK[20], *ext;
-			CHECK_NEXT_ARG
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-
-			tracks[nb_track_act].act_type = TRAC_ACTION_SET_PAR;
-			assert(strlen(argv[i+1])+1 <= sizeof(szTK));
-			strncpy(szTK, argv[i+1], sizeof(szTK));
-			ext = strchr(szTK, '=');
-			if (!ext) {
-				fprintf(stderr, "Bad format for track par - expecting ID=PAR_NUM:PAR_DEN got %s\n", argv[i+1]);
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			if (!stricmp(ext+1, "none")) {
-				tracks[nb_track_act].par_num = tracks[nb_track_act].par_den = -1;
-			} else {
-				sscanf(ext+1, "%d", &tracks[nb_track_act].par_num);
-				ext = strchr(ext+1, ':');
-				if (!ext) {
-					fprintf(stderr, "Bad format for track par - expecting ID=PAR_NUM:PAR_DEN got %s\n", argv[i+1]);
-					MP4BOX_EXIT_WITH_CODE(1);
-				}
-				sscanf(ext+1, "%d", &tracks[nb_track_act].par_den);
-			}
-			ext[0] = 0;
-			tracks[nb_track_act].trackID = atoi(szTK);
-			open_edit = 1;
-			nb_track_act++;
-			i++;
-		}
-		else if (!stricmp(arg, "-lang")) {
-			char szTK[20], *ext;
-			CHECK_NEXT_ARG
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-
-			tracks[nb_track_act].act_type = TRAC_ACTION_SET_LANGUAGE;
-			tracks[nb_track_act].trackID = 0;
-			strcpy(szTK, argv[i+1]);
-			ext = strchr(szTK, '=');
-			if (!strnicmp(argv[i+1], "all=", 4)) {
-				tracks[nb_track_act].lang = gf_strdup(argv[i+1]+4);
-			} else if (!ext) {
-				tracks[nb_track_act].lang = gf_strdup(argv[i+1]);
-			} else {
-				tracks[nb_track_act].lang = gf_strdup(ext+1);
-				ext[0] = 0;
-				tracks[nb_track_act].trackID = atoi(szTK);
-				ext[0] = '=';
-			}
-			open_edit = 1;
-			nb_track_act++;
-			i++;
-		}
-		else if (!stricmp(arg, "-kind") || !stricmp(arg, "-kind-rem")) {
-			char szTK[200], *ext;
-			char *scheme_start = NULL;
-			Bool has_track_id = GF_FALSE;
-			CHECK_NEXT_ARG
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-
-			if (!stricmp(arg, "-kind")) {
-				tracks[nb_track_act].act_type = TRAC_ACTION_SET_KIND;
-			} else {
-				tracks[nb_track_act].act_type = TRAC_ACTION_REM_KIND;
-			}
-			tracks[nb_track_act].trackID = 0;
-			if (!strnicmp(argv[i+1], "all=", 4)) {
-				scheme_start = argv[i+1]+4;
-				has_track_id = GF_TRUE;
-			}
-			if (!scheme_start) {
-				if (strlen(argv[i+1])>200) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_ALL, ("Warning: track kind parameter is too long!"));
-				}
-				strncpy(szTK, argv[i+1], 200);
-				ext = strchr(szTK, '=');
-				if (ext && !has_track_id) {
-					ext[0] = 0;
-					has_track_id = (sscanf(szTK, "%d", &tracks[nb_track_act].trackID) == 1 ? GF_TRUE : GF_FALSE);
-					if (has_track_id) {
-						scheme_start = ext+1;
-					} else {
-						scheme_start = szTK;
-					}
-					ext[0] = '=';
-				} else {
-					scheme_start = szTK;
-				}
-			}
-			ext = strchr(scheme_start, '=');
-			if (!ext) {
-				tracks[nb_track_act].kind_scheme = gf_strdup(scheme_start);
-			} else {
-				ext[0] = 0;
-				tracks[nb_track_act].kind_scheme = gf_strdup(scheme_start);
-				ext[0] = '=';
-				tracks[nb_track_act].kind_value = gf_strdup(ext+1);
-			}
-			open_edit = 1;
-			nb_track_act++;
-			i++;
-		}
-		else if (!stricmp(arg, "-delay")) {
-			char szTK[20], *ext;
-			CHECK_NEXT_ARG
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-
-			strcpy(szTK, argv[i+1]);
-			ext = strchr(szTK, '=');
-			if (!ext) {
-				fprintf(stderr, "Bad format for track delay - expecting ID=DLAY got %s\n", argv[i+1]);
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			tracks[nb_track_act].act_type = TRAC_ACTION_SET_DELAY;
-			tracks[nb_track_act].delay_ms = atoi(ext+1);
-			ext[0] = 0;
-			tracks[nb_track_act].trackID = atoi(szTK);
-			open_edit = 1;
-			nb_track_act++;
-			i++;
-		}
-		else if (!stricmp(arg, "-ref")) {
-			char *szTK, *ext;
-			CHECK_NEXT_ARG
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-
-			szTK = argv[i+1];
-			ext = strchr(szTK, ':');
-			if (!ext) {
-				fprintf(stderr, "Bad format for track reference - expecting ID:XXXX:refID got %s\n", argv[i+1]);
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			tracks[nb_track_act].act_type = TRAC_ACTION_REFERENCE;
-			ext[0] = 0;
-			tracks[nb_track_act].trackID = atoi(szTK);
-			ext[0] = ':';
-			szTK = ext+1;
-			ext = strchr(szTK, ':');
-			if (!ext) {
-				fprintf(stderr, "Bad format for track reference - expecting ID:XXXX:refID got %s\n", argv[i+1]);
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			ext[0] = 0;
-			tracks[nb_track_act].lang = gf_strdup(szTK);
-			ext[0] = ':';
-			tracks[nb_track_act].delay_ms = (s32) atoi(ext+1);
-			open_edit = 1;
-			nb_track_act++;
-			i++;
-		}
-		else if (!stricmp(arg, "-name")) {
-			char szTK[GF_MAX_PATH], *ext;
-			CHECK_NEXT_ARG
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-
-			strcpy(szTK, argv[i+1]);
-			ext = strchr(szTK, '=');
-			if (!ext) {
-				fprintf(stderr, "Bad format for track name - expecting ID=name got %s\n", argv[i+1]);
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			tracks[nb_track_act].act_type = TRAC_ACTION_SET_HANDLER_NAME;
-			tracks[nb_track_act].hdl_name = strchr(argv[i+1], '=') + 1;
-			ext[0] = 0;
-			tracks[nb_track_act].trackID = atoi(szTK);
-			ext[0] = '=';
-			open_edit = 1;
-			nb_track_act++;
-			i++;
-		}
-#if !defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
-		else if (!stricmp(arg, "-dref")) import_flags |= GF_IMPORT_USE_DATAREF;
-		else if (!stricmp(arg, "-no-drop") || !stricmp(arg, "-nodrop")) import_flags |= GF_IMPORT_NO_FRAME_DROP;
-		else if (!stricmp(arg, "-packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
-		else if (!stricmp(arg, "-sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
-		else if (!stricmp(arg, "-sbrx")) import_flags |= GF_IMPORT_SBR_EXPLICIT;
-		else if (!stricmp(arg, "-ps")) import_flags |= GF_IMPORT_PS_IMPLICIT;
-		else if (!stricmp(arg, "-psx")) import_flags |= GF_IMPORT_PS_EXPLICIT;
-		else if (!stricmp(arg, "-ovsbr")) import_flags |= GF_IMPORT_OVSBR;
-		else if (!stricmp(arg, "-fps")) {
-			CHECK_NEXT_ARG
-			if (!strcmp(argv[i+1], "auto")) import_fps = GF_IMPORT_AUTO_FPS;
-			else if (strchr(argv[i+1], '-')) {
-				u32 ticks, dts_inc;
-				sscanf(argv[i+1], "%u-%u", &ticks, &dts_inc);
-				if (!dts_inc) dts_inc=1;
-				import_fps = ticks;
-				import_fps /= dts_inc;
-			} else import_fps = atof(argv[i+1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-agg")) {
-			CHECK_NEXT_ARG agg_samples = atoi(argv[i+1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-keep-all") || !stricmp(arg, "-keepall")) import_flags |= GF_IMPORT_KEEP_ALL_TRACKS;
-#endif /*!defined(GPAC_DISABLE_MEDIA_EXPORT) && !defined(GPAC_DISABLE_MEDIA_IMPORT*/
-		else if (!stricmp(arg, "-keep-sys") || !stricmp(arg, "-keepsys")) keep_sys_tracks = 1;
-		else if (!stricmp(arg, "-ms")) {
-			CHECK_NEXT_ARG mediaSource = argv[i+1];
-			i++;
-		}
-		else if (!stricmp(arg, "-mp4")) {
-			encode = 1;
-			open_edit = 1;
-		}
-		else if (!stricmp(arg, "-saf")) {
-			do_saf = 1;
-		}
-		else if (!stricmp(arg, "-log")) {
-			do_log = 1;
-		}
-#ifndef GPAC_DISABLE_MPD
-		else if (!stricmp(arg, "-mpd")) {
-			do_mpd = 1;
-			CHECK_NEXT_ARG
-			inName = argv[i+1];
-			i++;
-		}
-#endif
-
-#ifndef GPAC_DISABLE_SCENE_ENCODER
-		else if (!stricmp(arg, "-def")) opts.flags |= GF_SM_ENCODE_USE_NAMES;
-		else if (!stricmp(arg, "-sync")) {
-			CHECK_NEXT_ARG
-			opts.flags |= GF_SM_ENCODE_RAP_INBAND;
-			opts.rap_freq = atoi(argv[i+1]);
-			i++;
-		} else if (!stricmp(arg, "-shadow")) {
-			CHECK_NEXT_ARG
-			opts.flags &= ~GF_SM_ENCODE_RAP_INBAND;
-			opts.flags |= GF_SM_ENCODE_RAP_SHADOW;
-			opts.rap_freq = atoi(argv[i+1]);
-			i++;
-		} else if (!stricmp(arg, "-carousel")) {
-			CHECK_NEXT_ARG
-			opts.flags &= ~(GF_SM_ENCODE_RAP_INBAND | GF_SM_ENCODE_RAP_SHADOW);
-			opts.rap_freq = atoi(argv[i+1]);
-			i++;
-		}
-		/*LASeR options*/
-		else if (!stricmp(arg, "-resolution")) {
-			CHECK_NEXT_ARG
-			opts.resolution = atoi(argv[i+1]);
-			i++;
-		}
-#ifndef GPAC_DISABLE_SCENE_STATS
-		else if (!stricmp(arg, "-auto-quant")) {
-			CHECK_NEXT_ARG
-			opts.resolution = atoi(argv[i+1]);
-			opts.auto_quant = 1;
-			i++;
-		}
-#endif
-		else if (!stricmp(arg, "-coord-bits")) {
-			CHECK_NEXT_ARG
-			opts.coord_bits = atoi(argv[i+1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-scale-bits")) {
-			CHECK_NEXT_ARG
-			opts.scale_bits = atoi(argv[i+1]);
-			i++;
-		}
-		else if (!stricmp(arg, "-global-quant")) {
-			CHECK_NEXT_ARG
-			opts.resolution = atoi(argv[i+1]);
-			opts.auto_quant = 2;
-			i++;
-		}
-		/*chunk encoding*/
-		else if (!stricmp(arg, "-ctx-out") || !stricmp(arg, "-outctx")) {
-			CHECK_NEXT_ARG output_ctx = argv[i+1];
-			i++;
-		}
-		else if (!stricmp(arg, "-ctx-in") || !stricmp(arg, "-inctx")) {
-			CHECK_NEXT_ARG
-			chunk_mode = 1;
-			input_ctx = argv[i+1];
-			i++;
-		}
-#endif /*GPAC_DISABLE_SCENE_ENCODER*/
-		else if (!strcmp(arg, "-crypt")) {
-			CHECK_NEXT_ARG
-			crypt = 1;
-			drm_file = argv[i+1];
-			open_edit = 1;
-			i += 1;
-		}
-		else if (!strcmp(arg, "-decrypt")) {
-			CHECK_NEXT_ARG
-			crypt = 2;
-			if (get_file_type_by_ext(argv[i+1])!=1) {
-				drm_file = argv[i+1];
-				i += 1;
-			}
-			open_edit = 1;
-		}
-		else if (!stricmp(arg, "-set-kms")) {
-			char szTK[20], *ext;
-			CHECK_NEXT_ARG
-			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act+1));
-			memset(&tracks[nb_track_act], 0, sizeof(TrackAction) );
-
-			strncpy(szTK, argv[i+1], 19);
-			ext = strchr(szTK, '=');
-			tracks[nb_track_act].act_type = TRAC_ACTION_SET_KMS_URI;
-			tracks[nb_track_act].trackID = 0;
-			if (!strnicmp(argv[i+1], "all=", 4)) {
-				tracks[nb_track_act].kms = argv[i+1] + 4;
-			} else if (!ext) {
-				tracks[nb_track_act].kms = argv[i+1];
-			} else {
-				tracks[nb_track_act].kms = ext+1;
-				ext[0] = 0;
-				tracks[nb_track_act].trackID = atoi(szTK);
-				ext[0] = '=';
-			}
-			open_edit = 1;
-			nb_track_act++;
-			i++;
-		}
-		else if (!stricmp(arg, "-split")) {
-			CHECK_NEXT_ARG
-			split_duration = atof(argv[i+1]);
-			if (split_duration<0) split_duration=0;;
-			i++;
-			split_size = 0;
-		}
-		else if (!stricmp(arg, "-split-rap") || !stricmp(arg, "-splitr")) {
-			CHECK_NEXT_ARG
-			split_duration = -1;
-			split_size = -1;
-		}
-		else if (!stricmp(arg, "-split-size") || !stricmp(arg, "-splits")) {
-			CHECK_NEXT_ARG
-			split_size = (u32) atoi(argv[i+1]);
-			i++;
-			split_duration = 0;
-		}
-		else if (!stricmp(arg, "-split-chunk") || !stricmp(arg, "-splitx") || !stricmp(arg, "-splitz")) {
-			CHECK_NEXT_ARG
-			if (!strstr(argv[i+1], ":")) {
-				fprintf(stderr, "Chunk extraction usage: \"-splitx start:end\" expressed in seconds\n");
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			if (strstr(argv[i+1], "end")) {
-				sscanf(argv[i+1], "%lf:end", &split_start);
-				split_duration = -2;
-			} else {
-				sscanf(argv[i+1], "%lf:%lf", &split_start, &split_duration);
-				split_duration -= split_start;
-			}
-			split_size = 0;
-			if (!stricmp(arg, "-splitz")) adjust_split_end = 1;
-			i++;
-		}
-		/*meta*/
-		else if (!stricmp(arg, "-set-meta")) {
-			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], META_ACTION_SET_TYPE, argv[i+1]);
-			nb_meta_act++;
-			open_edit = 1;
-			i++;
-		}
-		else if (!stricmp(arg, "-add-item")) {
-			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_ITEM, argv[i+1]);
-			nb_meta_act++;
-			open_edit = 1;
-			i++;
-		}
-		else if (!stricmp(arg, "-rem-item")) {
-			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], META_ACTION_REM_ITEM, argv[i+1]);
-			nb_meta_act++;
-			open_edit = 1;
-			i++;
-		}
-		else if (!stricmp(arg, "-set-primary")) {
-			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], META_ACTION_SET_PRIMARY_ITEM, argv[i+1]);
-			nb_meta_act++;
-			open_edit = 1;
-			i++;
-		}
-		else if (!stricmp(arg, "-set-xml")) {
-			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], META_ACTION_SET_XML, argv[i+1]);
-			nb_meta_act++;
-			open_edit = 1;
-			i++;
-		}
-		else if (!stricmp(arg, "-rem-xml")) {
-			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			if (parse_meta_args(&metas[nb_meta_act], META_ACTION_REM_XML, argv[i+1])) i++;
-			nb_meta_act++;
-			open_edit = 1;
-		}
-		else if (!stricmp(arg, "-dump-xml")) {
-			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], META_ACTION_DUMP_XML, argv[i+1]);
-			nb_meta_act++;
-			i++;
-		}
-		else if (!stricmp(arg, "-dump-item")) {
-			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act+1));
-			parse_meta_args(&metas[nb_meta_act], META_ACTION_DUMP_ITEM, argv[i+1]);
-			nb_meta_act++;
-			i++;
-		}
-		else if (!stricmp(arg, "-group-add") || !stricmp(arg, "-group-rem-track") || !stricmp(arg, "-group-rem")) {
-			TSELActionType act_type;
-			if (!stricmp(arg, "-group-rem")) {
-				act_type = TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP;
-			} else if ( !stricmp(arg, "-group-rem-track")) {
-				act_type = TSEL_ACTION_REMOVE_TSEL;
-			} else {
-				act_type = TSEL_ACTION_SET_PARAM;
-			}
-			if (parse_tsel_args(&tsel_acts, argv[i+1], &nb_tsel_acts, act_type)==0) {
-				fprintf(stderr, "Invalid group syntax - check usage\n");
-				MP4BOX_EXIT_WITH_CODE(1);
-			}
-			open_edit=1;
-			i++;
-		}
-		else if (!stricmp(arg, "-group-clean")) {
-			tsel_acts[nb_tsel_acts].act_type = TSEL_ACTION_REMOVE_ALL_TSEL_IN_FILE;
-			nb_tsel_acts++;
-			open_edit=1;
-		}
-		else if (!stricmp(arg, "-group-single")) {
-			single_group = 1;
-		}
-		else if (!stricmp(arg, "-package")) {
-			CHECK_NEXT_ARG
-			pack_file  = argv[i+1];
-			i++;
-		}
-		else if (!stricmp(arg, "-mgt")) {
-			CHECK_NEXT_ARG
-			pack_file  = argv[i+1];
-			pack_wgt = 1;
-			i++;
-		}
-
-		else if (!stricmp(arg, "-brand")) {
-			char *b = argv[i+1];
-			CHECK_NEXT_ARG
-			major_brand = GF_4CC(b[0], b[1], b[2], b[3]);
-			open_edit = 1;
-			if (b[4]==':') minor_version = atoi(b+5);
-			i++;
-		}
-		else if (!stricmp(arg, "-ab")) {
-			char *b = argv[i+1];
-			CHECK_NEXT_ARG
-			brand_add = gf_realloc(brand_add, sizeof(u32) * (nb_alt_brand_add+1));
-
-			brand_add[nb_alt_brand_add] = GF_4CC(b[0], b[1], b[2], b[3]);
-			nb_alt_brand_add++;
-			open_edit = 1;
-			i++;
-		}
-		else if (!stricmp(arg, "-rb")) {
-			char *b = argv[i+1];
-			CHECK_NEXT_ARG
-			brand_rem = gf_realloc(brand_rem, sizeof(u32) * (nb_alt_brand_rem+1));
-
-			brand_rem[nb_alt_brand_rem] = GF_4CC(b[0], b[1], b[2], b[3]);
-			nb_alt_brand_rem++;
-			open_edit = 1;
-			i++;
-		}
-#endif
-		else if (!stricmp(arg, "-languages")) {
-			PrintLanguages();
-			MP4BOX_EXIT_WITH_CODE(0);
-		}
-		else if (!stricmp(arg, "-h")) {
-			if (i+1== (u32) argc) PrintUsage();
-			else if (!strcmp(argv[i+1], "general")) PrintGeneralUsage();
-			else if (!strcmp(argv[i+1], "extract")) PrintExtractUsage();
-			else if (!strcmp(argv[i+1], "dash")) PrintDASHUsage();
-			else if (!strcmp(argv[i+1], "dump")) PrintDumpUsage();
-			else if (!strcmp(argv[i+1], "import")) PrintImportUsage();
-			else if (!strcmp(argv[i+1], "format")) PrintFormats();
-			else if (!strcmp(argv[i+1], "hint")) PrintHintUsage();
-			else if (!strcmp(argv[i+1], "encode")) PrintEncodeUsage();
-			else if (!strcmp(argv[i+1], "crypt")) PrintEncryptUsage();
-			else if (!strcmp(argv[i+1], "meta")) PrintMetaUsage();
-			else if (!strcmp(argv[i+1], "swf")) PrintSWFUsage();
-#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
-			else if (!strcmp(argv[i+1], "rtp")) PrintStreamerUsage();
-			else if (!strcmp(argv[i+1], "live")) PrintLiveUsage	();
-#endif
-			else if (!strcmp(argv[i+1], "all")) {
-				PrintGeneralUsage();
-				PrintExtractUsage();
-				PrintDASHUsage();
-				PrintDumpUsage();
-				PrintImportUsage();
-				PrintFormats();
-				PrintHintUsage();
-				PrintEncodeUsage();
-				PrintEncryptUsage();
-				PrintMetaUsage();
-				PrintSWFUsage();
-#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
-				PrintStreamerUsage();
-				PrintLiveUsage	();
-#endif
-			}
-			else PrintUsage();
-			MP4BOX_EXIT_WITH_CODE(0);
-		}
-		else if (!stricmp(arg, "-v")) verbose++;
-		else if (!stricmp(arg, "-tag-list")) {
-			fprintf(stderr, "Supported iTunes tag modifiers:\n");
-			for (i=0; i<nb_itunes_tags; i++) {
-				fprintf(stderr, "\t%s\t%s\n", itags[i].name, itags[i].comment);
-			}
-			MP4BOX_EXIT_WITH_CODE(0);
-		} else if (!live_scene && !stream_rtp) {
-			fprintf(stderr, "Option %s unknown. Please check usage\n", arg);
-			MP4BOX_EXIT_WITH_CODE(1);
-		}
+	i = mp4box_parse_args(argc, argv);
+	if (i) {
+		return mp4box_cleanup(i - 1);
 	}
 
 	if (!inName && dump_std)
@@ -3251,7 +3315,7 @@ int mp4boxMain(int argc, char **argv)
 
 	if (!inName) {
 		PrintUsage();
-		MP4BOX_EXIT_WITH_CODE(1);
+		return mp4box_cleanup(1);
 	}
 	if (!strcmp(inName, "std")) dump_std = 2;
 	if (!strcmp(inName, "stdb")) {
@@ -3278,18 +3342,18 @@ int mp4boxMain(int argc, char **argv)
 #endif
 		{
 			fprintf(stderr, "Fatal error: cannot reopen stdout in binary mode.\n");
-			MP4BOX_EXIT_WITH_CODE(1);
+			return mp4box_cleanup(1);
 		}
 	}
 
 #if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 	if (live_scene) {
 		int ret = live_session(argc, argv);
-		MP4BOX_EXIT_WITH_CODE(ret);
+		return mp4box_cleanup(ret);
 	}
 	if (stream_rtp) {
 		int ret = stream_file_rtp(argc, argv);
-		MP4BOX_EXIT_WITH_CODE(ret);
+		return mp4box_cleanup(ret);
 	}
 #endif
 
@@ -3298,11 +3362,12 @@ int mp4boxMain(int argc, char **argv)
 		FILE *fin, *fout;
 		s64 to_copy, done;
 		fin = gf_fopen(raw_cat, "rb");
-		if (!fin) MP4BOX_EXIT_WITH_CODE(1);
+		if (!fin) return mp4box_cleanup(1);
+
 		fout = gf_fopen(inName, "a+b");
 		if (!fout) {
 			gf_fclose(fin);
-			MP4BOX_EXIT_WITH_CODE(1);
+			return mp4box_cleanup(1);
 		}
 		gf_fseek(fin, 0, SEEK_END);
 		to_copy = gf_ftell(fin);
@@ -3317,7 +3382,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		gf_fclose(fin);
 		gf_fclose(fout);
-		MP4BOX_EXIT_WITH_CODE(0);
+		return mp4box_cleanup(0);
 	}
 #if !defined(GPAC_DISABLE_STREAMING)
 	if (grab_m2ts) {
@@ -3351,7 +3416,7 @@ int mp4boxMain(int argc, char **argv)
 		if (e != GF_OK) {
 			fprintf(stderr, "Cannot retrieve %s: %s\n", do_wget, gf_error_to_string(e) );
 		}
-		MP4BOX_EXIT_WITH_CODE(1);
+		return mp4box_cleanup(1);
 	}
 #endif
 
@@ -3365,13 +3430,13 @@ int mp4boxMain(int argc, char **argv)
 			if (e != GF_OK) {
 				fprintf(stderr, "Cannot retrieve M3U8 (%s): %s\n", inName, gf_error_to_string(e));
 				if (mpd_base_url) gf_free(mpd_base_url);
-				MP4BOX_EXIT_WITH_CODE(1);
+				return mp4box_cleanup(1);
 			}
 			remote = GF_TRUE;
 #else
 			gf_free(mpd_base_url);
 			fprintf(stderr, "HTTP Downloader disabled in this build\n");
-			MP4BOX_EXIT_WITH_CODE(1);
+			return mp4box_cleanup(1);
 #endif
 		}
 		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, (outName ? outName : inName), 0, "video/mp2t", GF_TRUE, use_url_template, NULL);
@@ -3382,10 +3447,10 @@ int mp4boxMain(int argc, char **argv)
 		}
 		if (e != GF_OK) {
 			fprintf(stderr, "Error converting M3U8 (%s) to MPD (%s): %s\n", inName, outName, gf_error_to_string(e));
-			MP4BOX_EXIT_WITH_CODE(1);
+			return mp4box_cleanup(1);
 		} else {
 			fprintf(stderr, "Done converting M3U8 (%s) to MPD (%s)\n", inName, outName);
-			MP4BOX_EXIT_WITH_CODE(0);
+			return mp4box_cleanup(0);
 		}
 	}
 #endif
@@ -3435,7 +3500,7 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "Error importing %s: %s\n", inName, gf_error_to_string(e));
 			gf_isom_delete(file);
 			gf_delete_file("ttxt_convert");
-			MP4BOX_EXIT_WITH_CODE(1);
+			return mp4box_cleanup(1);
 		}
 		/* Prepare the export */
 		strcpy(outfile, inName);
@@ -3455,12 +3520,12 @@ int mp4boxMain(int argc, char **argv)
 		gf_delete_file("ttxt_convert");
 		if (e) {
 			fprintf(stderr, "Error converting %s: %s\n", inName, gf_error_to_string(e));
-			MP4BOX_EXIT_WITH_CODE(1);
+			return mp4box_cleanup(1);
 		}
-		MP4BOX_EXIT_WITH_CODE(0);
+		return mp4box_cleanup(0);
 #else
 		fprintf(stderr, "Feature not supported\n");
-		MP4BOX_EXIT_WITH_CODE(1);
+		return mp4box_cleanup(1);
 #endif
 	}
 
@@ -3487,7 +3552,7 @@ int mp4boxMain(int argc, char **argv)
 		file = gf_isom_open(inName, open_mode, tmpdir);
 		if (!file) {
 			fprintf(stderr, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
-			MP4BOX_EXIT_WITH_CODE(1);
+			return mp4box_cleanup(1);
 		}
 
 		for (i=0; i<(u32) argc; i++) {
@@ -3518,7 +3583,7 @@ int mp4boxMain(int argc, char **argv)
 					if (e) {
 						fprintf(stderr, "Error importing %s: %s\n", argv[i+1], gf_error_to_string(e));
 						gf_isom_delete(file);
-						MP4BOX_EXIT_WITH_CODE(1);
+						return mp4box_cleanup(1);
 					}
 				}
 				i++;
@@ -3548,7 +3613,7 @@ int mp4boxMain(int argc, char **argv)
 			file = gf_isom_open(inName, open_mode, tmpdir);
 			if (!file) {
 				fprintf(stderr, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
-				MP4BOX_EXIT_WITH_CODE(1);
+				return mp4box_cleanup(1);
 			}
 		}
 		for (i=0; i<(u32)argc; i++) {
@@ -3557,7 +3622,7 @@ int mp4boxMain(int argc, char **argv)
 				if (e) {
 					fprintf(stderr, "Error appending %s: %s\n", argv[i+1], gf_error_to_string(e));
 					gf_isom_delete(file);
-					MP4BOX_EXIT_WITH_CODE(1);
+					return mp4box_cleanup(1);
 				}
 				i++;
 			}
@@ -3574,11 +3639,13 @@ int mp4boxMain(int argc, char **argv)
 	else if (chunk_mode) {
 		if (!inName) {
 			fprintf(stderr, "chunk encoding syntax: [-outctx outDump] -inctx inScene auFile\n");
-			MP4BOX_EXIT_WITH_CODE(1);
+			return mp4box_cleanup(1);
 		}
 		e = EncodeFileChunk(inName, outName ? outName : inName, input_ctx, output_ctx, tmpdir);
 		if (e) fprintf(stderr, "Error encoding chunk file %s\n", gf_error_to_string(e));
-		MP4BOX_EXIT_WITH_CODE( e ? 1 : 0 );
+		mp4box_cleanup(0);
+		if (e) return 1;
+		goto exit;
 	}
 #endif
 	else if (encode) {
@@ -3682,16 +3749,16 @@ int mp4boxMain(int argc, char **argv)
 		/*setup dash*/
 		dasher = gf_dasher_new(szMPD, dash_profile, tmpdir, dash_scale, dash_ctx);
 		if (!dasher) {
-			MP4BOX_EXIT_WITH_CODE( 1 );
+			return mp4box_cleanup(1);
 			return GF_OUT_OF_MEM;
 		}
 		e = gf_dasher_set_info(dasher, dash_title, cprt, dash_more_info, dash_source);
-		if (e) { fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e)); MP4BOX_EXIT_WITH_CODE( 1 ); }
+		if (e) { fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e)); return mp4box_cleanup(1); }
 
 		//e = gf_dasher_set_location(dasher, mpd_source);		
 		for (i=0; i < nb_mpd_base_urls; i++) {
 			e = gf_dasher_add_base_url(dasher, mpd_base_urls[i]);
-			if (e) { fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e)); MP4BOX_EXIT_WITH_CODE( 1 ); }
+			if (e) { fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e)); return mp4box_cleanup(1); }
 		}
 		e = gf_dasher_enable_url_template(dasher, (Bool) use_url_template, seg_name, seg_ext);
 		if (!e) e = gf_dasher_enable_segment_timeline(dasher, segment_timeline);
@@ -3717,7 +3784,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		if (e) { 
 			fprintf(stderr, "DASH Setup Error: %s\n", gf_error_to_string(e));
-			MP4BOX_EXIT_WITH_CODE( 1 ); 
+			return mp4box_cleanup(1); 
 		}
 
 		while (1) {
@@ -3796,7 +3863,9 @@ int mp4boxMain(int argc, char **argv)
 		if (del_file)
 			gf_delete_file(inName);
 
-		MP4BOX_EXIT_WITH_CODE( (e!=GF_OK) ? 1 : 0 );
+		mp4box_cleanup(0);
+		if (e) return 1;
+		goto exit;
 	}
 
 	else if (!file
@@ -3827,7 +3896,7 @@ int mp4boxMain(int argc, char **argv)
 
 				if (!file) {
 					fprintf(stderr, "Error opening file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)));
-					MP4BOX_EXIT_WITH_CODE(1);
+					return mp4box_cleanup(1);
 				}
 			}
 			break;
@@ -3871,7 +3940,7 @@ int mp4boxMain(int argc, char **argv)
 						fprintf(stderr, "Error importing %s: %s\n", inName, gf_error_to_string(e));
 						gf_isom_delete(file);
 						gf_delete_file("ttxt_convert");
-						MP4BOX_EXIT_WITH_CODE(1);
+						return mp4box_cleanup(1);
 					}
 				}
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
@@ -3893,7 +3962,8 @@ int mp4boxMain(int argc, char **argv)
 					convert_file_info(inName, info_track_id);
 #endif
 				}
-				MP4BOX_EXIT_WITH_CODE(0);
+				mp4box_cleanup(0);
+				goto exit;
 			}
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 			else if (open_edit) {
@@ -3901,10 +3971,10 @@ int mp4boxMain(int argc, char **argv)
 				if (!outName && file) outName = inName;
 			} else if (!file_exists) {
 				fprintf(stderr, "Error creating file %s: %s\n", inName, gf_error_to_string(GF_URL_ERROR));
-				MP4BOX_EXIT_WITH_CODE(1);
+				return mp4box_cleanup(1);
 			} else {
 				fprintf(stderr, "Cannot open %s - extension not supported\n", inName);
-				MP4BOX_EXIT_WITH_CODE(1);
+				return mp4box_cleanup(1);
 			}
 		}
 	}
@@ -3951,7 +4021,8 @@ int mp4boxMain(int argc, char **argv)
 
 		e = gf_media_export(&mdump);
 		if (e) goto err_exit;
-		MP4BOX_EXIT_WITH_CODE(0);
+		mp4box_cleanup(0);
+		goto exit;
 	}
 	if (!open_edit && !gf_isom_probe_file(inName) && track_dump_type) {
 		GF_MediaExporter mdump;
@@ -3976,7 +4047,8 @@ int mp4boxMain(int argc, char **argv)
 			e = gf_media_export(&mdump);
 			if (e) goto err_exit;
 		}
-		MP4BOX_EXIT_WITH_CODE(0);
+		mp4box_cleanup(0);
+		goto exit;
 	}
 
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
@@ -4181,8 +4253,10 @@ int mp4boxMain(int argc, char **argv)
 	}
 	if (!open_edit && !needSave) {
 		if (file) gf_isom_delete(file);
-		MP4BOX_EXIT_WITH_CODE(0);
+		mp4box_cleanup(0);
+		goto exit;
 	}
+
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	for (i=0; i<nb_tsel_acts; i++) {
@@ -4250,7 +4324,7 @@ int mp4boxMain(int argc, char **argv)
 	if (!encode) {
 		if (!file) {
 			fprintf(stderr, "Nothing to do - exiting\n");
-			MP4BOX_EXIT_WITH_CODE(0);
+			goto exit;
 		}
 		if (outName) {
 			strcpy(outfile, outName);
@@ -4646,7 +4720,8 @@ int mp4boxMain(int argc, char **argv)
 			if (gf_delete_file(inName)) fprintf(stderr, "Error removing file %s\n", inName);
 			else if (gf_move_file(outfile, inName)) fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
 		}
-		MP4BOX_EXIT_WITH_CODE( (e!=GF_OK) ? 1 : 0 );
+		if (e) goto err_exit;
+		goto exit;
 	}
 #endif
 
@@ -4765,22 +4840,27 @@ int mp4boxMain(int argc, char **argv)
 		gf_isom_delete(file);
 	}
 
-	if (e) fprintf(stderr, "Error: %s\n", gf_error_to_string(e));
-	MP4BOX_EXIT_WITH_CODE( (e!=GF_OK) ? 1 : 0 );
+	if (e) {
+		fprintf(stderr, "Error: %s\n", gf_error_to_string(e));
+		goto err_exit;
+	}
+	goto exit;
+
 #else
 	/*close libgpac*/
 	gf_isom_delete(file);
 	fprintf(stderr, "Error: Read-only version of MP4Box.\n");
-	MP4BOX_EXIT_WITH_CODE(1);
+	return mp4box_cleanup(1);
 #endif
 
 err_exit:
 	/*close libgpac*/
 	if (file) gf_isom_delete(file);
 	fprintf(stderr, "\n\tError: %s\n", gf_error_to_string(e));
-	MP4BOX_EXIT_WITH_CODE(1);
+	return mp4box_cleanup(1);
 
 exit:
+	mp4box_cleanup(0);
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
