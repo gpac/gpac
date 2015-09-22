@@ -3324,7 +3324,7 @@
 		9201F92918D5A359003D1ACA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0610;
+				LastUpgradeCheck = 0700;
 				ORGANIZATIONNAME = "Telecom ParisTech";
 			};
 			buildConfigurationList = 9201F92C18D5A359003D1ACA /* Build configuration list for PBXProject "gpac" */;
@@ -4058,6 +4058,7 @@
 		9201F92E18D5A359003D1ACA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ENABLE_TESTABILITY = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = GPAC_CONFIG_DARWIN;
 				HEADER_SEARCH_PATHS = (
 					../../include,
