@@ -1284,43 +1284,41 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 		Bool is_stdout = 0;
 		if (!strcmp(movie->finalName, "std"))
 			is_stdout = 1;
-		
-		if (strcmp(movie->finalName, "")) {
-			//OK, we need a new bitstream
-			stream = is_stdout ? stdout : gf_fopen(movie->finalName, "w+b");
-			if (!stream)
-				return GF_IO_ERR;
-			bs = gf_bs_from_file(stream, GF_BITSTREAM_WRITE);
-			if (!bs) {
-				if (!is_stdout)
-					gf_fclose(stream);
-				return GF_OUT_OF_MEM;
-			}
 
-			if (buffer_size) {
-				gf_bs_set_output_buffering(bs, buffer_size);
-			}
-
-			switch (movie->storageMode) {
-			case GF_ISOM_STORE_TIGHT:
-			case GF_ISOM_STORE_INTERLEAVED:
-				e = WriteInterleaved(&mw, bs, 0);
-				break;
-			case GF_ISOM_STORE_DRIFT_INTERLEAVED:
-				e = WriteInterleaved(&mw, bs, 1);
-				break;
-			case GF_ISOM_STORE_STREAMABLE:
-				e = WriteFlat(&mw, 1, bs);
-				break;
-			default:
-				e = WriteFlat(&mw, 0, bs);
-				break;
-			}
-
-			gf_bs_del(bs);
+		//OK, we need a new bitstream
+		stream = is_stdout ? stdout : gf_fopen(movie->finalName, "w+b");
+		if (!stream)
+			return GF_IO_ERR;
+		bs = gf_bs_from_file(stream, GF_BITSTREAM_WRITE);
+		if (!bs) {
 			if (!is_stdout)
 				gf_fclose(stream);
+			return GF_OUT_OF_MEM;
 		}
+
+		if (buffer_size) {
+			gf_bs_set_output_buffering(bs, buffer_size);
+		}
+
+		switch (movie->storageMode) {
+		case GF_ISOM_STORE_TIGHT:
+		case GF_ISOM_STORE_INTERLEAVED:
+			e = WriteInterleaved(&mw, bs, 0);
+			break;
+		case GF_ISOM_STORE_DRIFT_INTERLEAVED:
+			e = WriteInterleaved(&mw, bs, 1);
+			break;
+		case GF_ISOM_STORE_STREAMABLE:
+			e = WriteFlat(&mw, 1, bs);
+			break;
+		default:
+			e = WriteFlat(&mw, 0, bs);
+			break;
+		}
+
+		gf_bs_del(bs);
+		if (!is_stdout)
+			gf_fclose(stream);
 	}
 	if (mw.buffer) gf_free(mw.buffer);
 	if (mw.nb_done<mw.total_samples) {
