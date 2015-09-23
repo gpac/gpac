@@ -2970,13 +2970,8 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 		if (e)
 			break;
 	}
-	//test only
-#if 0
-	{
-		u64 duration = gf_isom_get_duration(in);
-		gf_isom_set_final_name(in, "");
-	}
-#endif
+
+	gf_isom_update_duration(in);
 	
 	return e;
 }
