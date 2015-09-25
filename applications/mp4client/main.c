@@ -1556,12 +1556,7 @@ int main (int argc, char **argv)
 			playlist = e ? NULL : gf_fopen(the_url, "rt");
 			readonly_playlist = 1;
 			if (playlist) {
-				if (1 > fscanf(playlist, "%s", the_url))
-					fprintf(stderr, "Cannot read any URL from playlist\n");
-				else {
-					fprintf(stderr, "Opening URL %s\n", the_url);
-					gf_term_connect_with_path(term, the_url, pl_path);
-				}
+				request_next_playlist_item = GF_TRUE;
 			} else {
 				if (e)
 					fprintf(stderr, "Failed to open playlist %s: %s\n", the_url, gf_error_to_string(e) );
@@ -1707,6 +1702,8 @@ force_input:
 				if (res == EOF) {
 					fprintf(stderr, "No more items - exiting\n");
 					Run = 0;
+				} else if (the_url[0] == '#') {
+					request_next_playlist_item = GF_TRUE;
 				} else {
 					fprintf(stderr, "Opening URL %s\n", the_url);
 					gf_term_connect_with_path(term, the_url, pl_path);
